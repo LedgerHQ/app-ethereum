@@ -355,6 +355,17 @@ static const bagl_element_t const bagl_ui_idle[] = {
 
 };
 
+// TODO : replace with 1.2 SDK
+int app_cx_ecfp_init_private_key(cx_curve_t curve, unsigned char WIDE *rawkey,
+                                 int key_len, cx_ecfp_private_key_t *key) {
+    key->curve = curve;
+    key->d_len = key_len;
+    if (rawkey != NULL) {
+        os_memmove(key->d, rawkey, key_len);
+    }
+    return key_len;
+}
+
 unsigned int io_seproxyhal_touch_exit(bagl_element_t *e) {
     // Go back to the dashboard
     os_sched_exit(0);
@@ -398,7 +409,8 @@ unsigned int io_seproxyhal_touch_tx_ok(bagl_element_t *e) {
     os_perso_derive_seed_bip32(tmpCtx.transactionContext.bip32Path,
                                tmpCtx.transactionContext.pathLength,
                                privateKeyData, NULL);
-    cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
+    app_cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32,
+                                 &privateKey);
     os_memset(privateKeyData, 0, sizeof(privateKeyData));
     signatureLength =
         cx_ecdsa_sign(&privateKey, CX_RND_RFC6979 | CX_LAST, CX_SHA256,
@@ -556,8 +568,8 @@ void sample_main(void) {
                     }
                     os_perso_derive_seed_bip32(bip32Path, bip32PathLength,
                                                privateKeyData, NULL);
-                    cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32,
-                                             &privateKey);
+                    app_cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData,
+                                                 32, &privateKey);
                     cx_ecfp_generate_pair(CX_CURVE_256K1,
                                           &tmpCtx.publicKeyContext.publicKey,
                                           &privateKey, 1);

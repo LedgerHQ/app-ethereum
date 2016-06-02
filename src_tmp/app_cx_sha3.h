@@ -20,6 +20,10 @@
 
 #pragma once
 
+#ifndef uint64bits_t
+typedef unsigned long long uint64bits_t;
+#endif
+
 struct app_cx_sha3_s {
     struct cx_hash_header_s header;
 

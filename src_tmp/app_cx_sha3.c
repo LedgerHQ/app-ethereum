@@ -284,11 +284,11 @@ int app_cx_hash(cx_hash_t *hash, int mode, unsigned char WIDE *in, int len,
     // --- last block ---
     if (mode & CX_LAST) {
         os_memset(block + blen, 0, (200 - blen));
-        block[blen] |= (hash->algo == CX_SHA3 ? 0x06 : 0x01);
+        block[blen] |= 0x01;
         block[block_size - 1] |= 0x80;
         app_cx_sha3_block((app_cx_sha3_t *)hash);
         // provide result
-        len = ((cx_sha3_t *)hash)->output_size;
+        len = ((app_cx_sha3_t *)hash)->output_size;
         if (out) {
             os_memmove(out, acc, len);
         }

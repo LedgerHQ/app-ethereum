@@ -115,14 +115,15 @@ bool rlpDecodeLength(uint8_t *buffer, uint32_t bufferLength,
 }
 
 void getEthAddressFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
-                                app_cx_sha3_t *sha3Context) {
+                          app_cx_sha3_t *sha3Context) {
     uint8_t hashAddress[32];
     app_cx_sha3_init(sha3Context, 256);
-    app_cx_hash((cx_hash_t*)sha3Context, CX_LAST, publicKey->W + 1, 64, hashAddress);
+    app_cx_hash((cx_hash_t *)sha3Context, CX_LAST, publicKey->W + 1, 64,
+                hashAddress);
     os_memmove(out, hashAddress + 12, 20);
 }
 
-static const uint8_t const HEXDIGITS[] = "0123456789abcdef";
+static const uint8_t const HEXDIGITS[] = "0123456789ABCDEF";
 
 #ifdef CHECKSUM_1
 
@@ -141,7 +142,7 @@ char convertDigit(uint8_t *address, uint8_t index, uint8_t *hash) {
     } else {
         unsigned char data = hash[index / 8];
         if (((data & MASK[index % 8]) != 0) && (digit > 9)) {
-            return HEXDIGITS[digit] - 'a' + 'A';
+            return HEXDIGITS[digit] /*- 'a' + 'A'*/;
         } else {
             return HEXDIGITS[digit];
         }
@@ -152,7 +153,8 @@ void getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
                                 app_cx_sha3_t *sha3Context) {
     uint8_t hashAddress[32];
     app_cx_sha3_init(sha3Context, 256);
-    app_cx_hash((cx_hash_t*)sha3Context, CX_LAST, publicKey->W + 1, 64, hashAddress);
+    app_cx_hash((cx_hash_t *)sha3Context, CX_LAST, publicKey->W + 1, 64,
+                hashAddress);
     getEthAddressStringFromBinary(hashAddress + 12, out, sha3Context);
 }
 
@@ -161,7 +163,7 @@ void getEthAddressStringFromBinary(uint8_t *address, uint8_t *out,
     uint8_t hashChecksum[32];
     uint8_t i;
     app_cx_sha3_init(sha3Context, 256);
-    app_cx_hash((cx_hash_t*)sha3Context, CX_LAST, address, 20, hashChecksum);
+    app_cx_hash((cx_hash_t *)sha3Context, CX_LAST, address, 20, hashChecksum);
     for (i = 0; i < 40; i++) {
         out[i] = convertDigit(address, i, hashChecksum);
     }
@@ -174,7 +176,8 @@ void getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
                                 app_cx_sha3_t *sha3Context) {
     uint8_t hashAddress[32];
     app_cx_sha3_init(sha3Context, 256);
-    app_cx_hash((cx_hash_t*)sha3Context, CX_LAST, publicKey->W + 1, 64, hashAddress);
+    app_cx_hash((cx_hash_t *)sha3Context, CX_LAST, publicKey->W + 1, 64,
+                hashAddress);
     getEthAddressStringFromBinary(hashAddress + 12, out, sha3Context);
 }
 
@@ -189,7 +192,7 @@ void getEthAddressStringFromBinary(uint8_t *address, uint8_t *out,
         tmp[2 * i + 1] = HEXDIGITS[digit & 0x0f];
     }
     app_cx_sha3_init(sha3Context, 256);
-    app_cx_hash((cx_hash_t*)sha3Context, CX_LAST, tmp, 40, hashChecksum);
+    app_cx_hash((cx_hash_t *)sha3Context, CX_LAST, tmp, 40, hashChecksum);
     for (i = 0; i < 40; i++) {
         uint8_t hashDigit = hashChecksum[i / 2];
         if ((i % 2) == 0) {
@@ -198,7 +201,7 @@ void getEthAddressStringFromBinary(uint8_t *address, uint8_t *out,
             hashDigit = hashDigit & 0x0f;
         }
         if ((hashDigit > 7) && (tmp[i] > '9')) {
-            out[i] = tmp[i] - 'a' + 'A';
+            out[i] = tmp[i] /*- 'a' + 'A'*/;
         } else {
             out[i] = tmp[i];
         }

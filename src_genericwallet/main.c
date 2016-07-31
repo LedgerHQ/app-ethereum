@@ -27,26 +27,11 @@
 #include "string.h"
 unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 
-unsigned char usb_enable_request; // request to turn on USB
-unsigned char uiDone; // notification to come back to the APDU event loop
-unsigned int
-    currentUiElement; // currently displayed UI element in a set of elements
-unsigned char
-    element_displayed; // notification of something displayed in a touch handler
-
-// UI currently displayed
-enum UI_STATE { UI_IDLE, UI_ADDRESS, UI_APPROVAL };
-
-enum UI_STATE uiState;
-
-void io_usb_enable(unsigned char enabled);
-void os_boot(void);
-
-unsigned int io_seproxyhal_touch_exit(bagl_element_t *e);
-unsigned int io_seproxyhal_touch_tx_ok(bagl_element_t *e);
-unsigned int io_seproxyhal_touch_tx_cancel(bagl_element_t *e);
-unsigned int io_seproxyhal_touch_address_ok(bagl_element_t *e);
-unsigned int io_seproxyhal_touch_address_cancel(bagl_element_t *e);
+unsigned int io_seproxyhal_touch_exit(const bagl_element_t *e);
+unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e);
+unsigned int io_seproxyhal_touch_tx_cancel(const bagl_element_t *e);
+unsigned int io_seproxyhal_touch_address_ok(const bagl_element_t *e);
+unsigned int io_seproxyhal_touch_address_cancel(const bagl_element_t *e);
 
 uint32_t set_result_get_publicKey(void);
 
@@ -80,7 +65,6 @@ typedef struct transactionContext_t {
     uint8_t hash[32];
 } transactionContext_t;
 
-char lineBuffer[50];
 union {
     publicKeyContext_t publicKeyContext;
     transactionContext_t transactionContext;
@@ -95,10 +79,135 @@ volatile char fullAmount[50];
 volatile char gasPrice[50];
 volatile char startgas[50];
 
-// blank the screen
-static const bagl_element_t const bagl_ui_erase_all[] = {
-    {{BAGL_RECTANGLE, 0x00, 0, 60, 320, 420, 0, 0, BAGL_FILL, 0xf9f9f9,
-      0xf9f9f9, 0, 0},
+ux_state_t ux;
+// display stepped screens
+unsigned int ux_step;
+unsigned int ux_step_count;
+
+// UI displayed when no signature proposal has been received
+static const bagl_element_t const ui_idle_blue[] = {
+    {{BAGL_RECTANGLE, 0x00, 0, 0, 320, 480, 0, 0, BAGL_FILL, 0xf9f9f9, 0xf9f9f9,
+      0, 0},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    {{BAGL_RECTANGLE, 0x00, 0, 0, 320, 60, 0, 0, BAGL_FILL, 0x1d2028, 0x1d2028,
+      0, 0},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    {{BAGL_LABEL, 0x00, 20, 0, 320, 60, 0, 0, BAGL_FILL, 0xFFFFFF, 0x1d2028,
+      BAGL_FONT_OPEN_SANS_LIGHT_14px | BAGL_FONT_ALIGNMENT_MIDDLE, 0},
+     "Ethereum Wallet",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    {{BAGL_BUTTON | BAGL_FLAG_TOUCHABLE, 0x00, 190, 215, 120, 40, 0, 6,
+      BAGL_FILL, 0x41ccb4, 0xF9F9F9,
+      BAGL_FONT_OPEN_SANS_LIGHT_14px | BAGL_FONT_ALIGNMENT_CENTER |
+          BAGL_FONT_ALIGNMENT_MIDDLE,
+      0},
+     "Exit",
+     0,
+     0x37ae99,
+     0xF9F9F9,
+     io_seproxyhal_touch_exit,
+     NULL,
+     NULL}};
+
+unsigned int ui_idle_blue_button(unsigned int button_mask,
+                                 unsigned int button_mask_counter) {
+    return 0;
+}
+
+const bagl_element_t ui_idle_nanos[] = {
+    // type                               userid    x    y   w    h  str rad
+    // fill      fg        bg      fid iid  txt   touchparams...       ]
+    {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF,
+      0, 0},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    {{BAGL_ICON, 0x01, 17, 9, 14, 14, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+      BAGL_GLYPH_ICON_ETHEREUM_BADGE},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x01, 38, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px, 0},
+     "Use wallet to",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x01, 39, 26, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px, 0},
+     "view accounts",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_ICON, 0x01, 118, 14, 7, 4, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+      BAGL_GLYPH_ICON_DOWN},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    {{BAGL_ICON, 0x02, 29, 9, 14, 14, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+      BAGL_GLYPH_ICON_DASHBOARD_BADGE},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    //{{BAGL_LABELINE                       , 0x02,   0,   3, 128,  32, 0, 0, 0
+    //, 0xFFFFFF, 0x000000,
+    //BAGL_FONT_OPEN_SANS_REGULAR_11px|BAGL_FONT_ALIGNMENT_CENTER, 0  }, "view
+    //accounts", 0, 0, 0, NULL, NULL, NULL },
+    {{BAGL_LABELINE, 0x02, 50, 19, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px, 0},
+     "Quit app",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_ICON, 0x02, 3, 14, 7, 4, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+      BAGL_GLYPH_ICON_UP},
      NULL,
      0,
      0,
@@ -107,8 +216,28 @@ static const bagl_element_t const bagl_ui_erase_all[] = {
      NULL,
      NULL},
 };
+unsigned int ui_idle_nanos_button(unsigned int button_mask,
+                                  unsigned int button_mask_counter);
 
-bagl_element_t const bagl_ui_address[] = {
+unsigned int ui_idle_nanos_state;
+unsigned int ui_idle_nanos_prepro(const bagl_element_t *element) {
+    if (element->component.userid > 0) {
+        return (ui_idle_nanos_state == element->component.userid - 1);
+    }
+    return 1;
+}
+
+bagl_element_t const ui_address_blue[] = {
+    {{BAGL_RECTANGLE, 0x00, 0, 0, 320, 480, 0, 0, BAGL_FILL, 0xf9f9f9, 0xf9f9f9,
+      0, 0},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
     // type                                 id    x    y    w    h    s  r  fill
     // fg        bg        font icon   text, out, over, touch
     {{BAGL_RECTANGLE, 0x00, 0, 0, 320, 60, 0, 0, BAGL_FILL, 0x1d2028, 0x1d2028,
@@ -139,7 +268,7 @@ bagl_element_t const bagl_ui_address[] = {
      0,
      0x37ae99,
      0xF9F9F9,
-     (bagl_element_callback_t)io_seproxyhal_touch_address_cancel,
+     io_seproxyhal_touch_address_cancel,
      NULL,
      NULL},
     {{BAGL_BUTTON | BAGL_FLAG_TOUCHABLE, 0x00, 165, 385, 120, 40, 0, 6,
@@ -151,7 +280,7 @@ bagl_element_t const bagl_ui_address[] = {
      0,
      0x37ae99,
      0xF9F9F9,
-     (bagl_element_callback_t)io_seproxyhal_touch_address_ok,
+     io_seproxyhal_touch_address_ok,
      NULL,
      NULL},
 
@@ -192,9 +321,123 @@ bagl_element_t const bagl_ui_address[] = {
      NULL,
      NULL},
 };
+unsigned int ui_address_blue_button(unsigned int button_mask,
+                                    unsigned int button_mask_counter) {
+    return 0;
+}
+
+const bagl_element_t ui_address_nanos[] = {
+    // type                               userid    x    y   w    h  str rad
+    // fill      fg        bg      fid iid  txt   touchparams...       ]
+    {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF,
+      0, 0},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    {{BAGL_ICON, 0x01, 31, 9, 14, 14, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+      BAGL_GLYPH_ICON_EYE_BADGE},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x01, 52, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px, 0},
+     "Confirm",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x01, 53, 26, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px, 0},
+     "account",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    {{BAGL_LABELINE, 0x02, 0, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "Account",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x02, 0, 26, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     addressSummary,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    {{BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+      BAGL_GLYPH_ICON_CROSS},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_ICON, 0x00, 117, 13, 8, 6, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+      BAGL_GLYPH_ICON_CHECK},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+};
+
+unsigned int ui_address_prepro(const bagl_element_t *element) {
+    if (element->component.userid > 0) {
+        unsigned int display = (ux_step == element->component.userid - 1);
+        if (display) {
+            switch (element->component.userid) {
+            case 1:
+                io_seproxyhal_setup_ticker(2000);
+                break;
+            case 2:
+                io_seproxyhal_setup_ticker(3000);
+                break;
+            }
+        }
+        return display;
+    }
+    return 1;
+}
+
+unsigned int ui_address_nanos_button(unsigned int button_mask,
+                                     unsigned int button_mask_counter);
 
 // UI to approve or deny the signature proposal
-static const bagl_element_t const bagl_ui_approval[] = {
+static const bagl_element_t const ui_approval_blue[] = {
+    {{BAGL_RECTANGLE, 0x00, 0, 0, 320, 480, 0, 0, BAGL_FILL, 0xf9f9f9, 0xf9f9f9,
+      0, 0},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
 
     // type                                 id    x    y    w    h    s  r  fill
     // fg        bg        font icon   text, out, over, touch
@@ -226,7 +469,7 @@ static const bagl_element_t const bagl_ui_approval[] = {
      0,
      0x37ae99,
      0xF9F9F9,
-     (bagl_element_callback_t)io_seproxyhal_touch_tx_cancel,
+     io_seproxyhal_touch_tx_cancel,
      NULL,
      NULL},
     {{BAGL_BUTTON | BAGL_FLAG_TOUCHABLE, 0x00, 165, 385, 120, 40, 0, 6,
@@ -238,7 +481,7 @@ static const bagl_element_t const bagl_ui_approval[] = {
      0,
      0x37ae99,
      0xF9F9F9,
-     (bagl_element_callback_t)io_seproxyhal_touch_tx_ok,
+     io_seproxyhal_touch_tx_ok,
      NULL,
      NULL},
 
@@ -316,11 +559,15 @@ static const bagl_element_t const bagl_ui_approval[] = {
      NULL},
 
 };
+unsigned int ui_approval_blue_button(unsigned int button_mask,
+                                     unsigned int button_mask_counter) {
+    return 0;
+}
 
-// UI displayed when no signature proposal has been received
-static const bagl_element_t const bagl_ui_idle[] = {
-
-    {{BAGL_RECTANGLE, 0x00, 0, 0, 320, 60, 0, 0, BAGL_FILL, 0x1d2028, 0x1d2028,
+const bagl_element_t ui_approval_nanos[] = {
+    // type                               userid    x    y   w    h  str rad
+    // fill      fg        bg      fid iid  txt   touchparams...       ]
+    {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF,
       0, 0},
      NULL,
      0,
@@ -330,9 +577,18 @@ static const bagl_element_t const bagl_ui_idle[] = {
      NULL,
      NULL},
 
-    {{BAGL_LABEL, 0x00, 20, 0, 320, 60, 0, 0, BAGL_FILL, 0xFFFFFF, 0x1d2028,
-      BAGL_FONT_OPEN_SANS_LIGHT_14px | BAGL_FONT_ALIGNMENT_MIDDLE, 0},
-     "Ethereum Wallet",
+    {{BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+      BAGL_GLYPH_ICON_CROSS},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_ICON, 0x00, 117, 13, 8, 6, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+      BAGL_GLYPH_ICON_CHECK},
+     NULL,
      0,
      0,
      0,
@@ -340,20 +596,221 @@ static const bagl_element_t const bagl_ui_idle[] = {
      NULL,
      NULL},
 
-    {{BAGL_BUTTON | BAGL_FLAG_TOUCHABLE, 0x00, 190, 215, 120, 40, 0, 6,
-      BAGL_FILL, 0x41ccb4, 0xF9F9F9,
-      BAGL_FONT_OPEN_SANS_LIGHT_14px | BAGL_FONT_ALIGNMENT_CENTER |
-          BAGL_FONT_ALIGNMENT_MIDDLE,
-      0},
-     "Exit",
-     0,
-     0x37ae99,
-     0xF9F9F9,
-     (bagl_element_callback_t)io_seproxyhal_touch_exit,
+    {{BAGL_ICON, 0x01, 21, 9, 14, 14, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+      BAGL_GLYPH_ICON_TRANSACTION_BADGE},
      NULL,
-     NULL}
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x01, 42, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px, 0},
+     "Confirm",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x01, 43, 26, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px, 0},
+     "transaction",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
 
+    {{BAGL_LABELINE, 0x02, 0, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "Amount",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x02, 23, 26, 82, 11, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 26},
+     fullAmount,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    {{BAGL_LABELINE, 0x03, 0, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "Recipient account",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x03, 16, 26, 96, 11, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     addressSummary,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    {{BAGL_LABELINE, 0x04, 0, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "Gas price",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x04, 23, 26, 82, 11, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 26},
+     gasPrice,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    {{BAGL_LABELINE, 0x05, 0, 12, 128, 32, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "Gas limit",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x05, 23, 26, 82, 11, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 26},
+     startgas,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
 };
+
+unsigned int ui_approval_prepro(const bagl_element_t *element) {
+    if (element->component.userid > 0) {
+        unsigned int display = (ux_step == element->component.userid - 1);
+        if (display) {
+            switch (element->component.userid) {
+            case 1:
+                io_seproxyhal_setup_ticker(2000);
+                break;
+            case 3:
+                io_seproxyhal_setup_ticker(3000);
+                break;
+            case 2:
+                io_seproxyhal_setup_ticker(MAX(
+                    3000, 1000 + bagl_label_roundtrip_duration_ms(element, 7)));
+                break;
+            case 4:
+                io_seproxyhal_setup_ticker(MAX(
+                    3000, 1000 + bagl_label_roundtrip_duration_ms(element, 7)));
+                break;
+            case 5:
+                io_seproxyhal_setup_ticker(MAX(
+                    3000, 1000 + bagl_label_roundtrip_duration_ms(element, 7)));
+                break;
+            }
+        }
+        return display;
+    }
+    return 1;
+}
+
+unsigned int ui_approval_nanos_button(unsigned int button_mask,
+                                      unsigned int button_mask_counter);
+
+void ui_idle(void) {
+    if (os_seph_features() &
+        SEPROXYHAL_TAG_SESSION_START_EVENT_FEATURE_SCREEN_BIG) {
+        UX_DISPLAY(ui_idle_blue, NULL);
+    } else {
+        ui_idle_nanos_state = 0; // start by displaying the idle first screen
+        UX_DISPLAY(ui_idle_nanos, ui_idle_nanos_prepro);
+    }
+}
+
+unsigned int io_seproxyhal_touch_exit(const bagl_element_t *e) {
+    // Go back to the dashboard
+    os_sched_exit(0);
+    return 0; // do not redraw the widget
+}
+
+unsigned int ui_idle_nanos_button(unsigned int button_mask,
+                                  unsigned int button_mask_counter) {
+    switch (button_mask) {
+    case BUTTON_EVT_RELEASED | BUTTON_LEFT: // UP
+        if (ui_idle_nanos_state == 1) {
+            ui_idle_nanos_state = 0;
+            UX_DISPLAY(ui_idle_nanos, ui_idle_nanos_prepro);
+        }
+        break;
+
+    case BUTTON_EVT_RELEASED | BUTTON_RIGHT: // DOWN
+        if (ui_idle_nanos_state == 0) {
+            ui_idle_nanos_state = 1;
+            UX_DISPLAY(ui_idle_nanos, ui_idle_nanos_prepro);
+        }
+        break;
+
+    case BUTTON_EVT_RELEASED | BUTTON_LEFT | BUTTON_RIGHT: // EXIT
+        if (ui_idle_nanos_state == 1) {
+            io_seproxyhal_touch_exit(NULL);
+        }
+        break;
+    }
+    return 0;
+}
+
+unsigned int io_seproxyhal_touch_address_ok(const bagl_element_t *e) {
+    uint32_t tx = set_result_get_publicKey();
+    G_io_apdu_buffer[tx++] = 0x90;
+    G_io_apdu_buffer[tx++] = 0x00;
+    // Send back the response, do not restart the event loop
+    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
+    // Display back the original UX
+    ui_idle();
+    return 0; // do not redraw the widget
+}
+
+unsigned int io_seproxyhal_touch_address_cancel(const bagl_element_t *e) {
+    G_io_apdu_buffer[0] = 0x69;
+    G_io_apdu_buffer[1] = 0x85;
+    // Send back the response, do not restart the event loop
+    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+    // Display back the original UX
+    ui_idle();
+    return 0; // do not redraw the widget
+}
+
+unsigned int ui_address_nanos_button(unsigned int button_mask,
+                                     unsigned int button_mask_counter) {
+    switch (button_mask) {
+    case BUTTON_EVT_RELEASED | BUTTON_LEFT: // CANCEL
+        io_seproxyhal_touch_address_cancel(NULL);
+        break;
+
+    case BUTTON_EVT_RELEASED | BUTTON_RIGHT: { // OK
+        io_seproxyhal_touch_address_ok(NULL);
+        break;
+    }
+    }
+    return 0;
+}
 
 // TODO : replace with 1.2 SDK
 int app_cx_ecfp_init_private_key(cx_curve_t curve, unsigned char WIDE *rawkey,
@@ -366,40 +823,7 @@ int app_cx_ecfp_init_private_key(cx_curve_t curve, unsigned char WIDE *rawkey,
     return key_len;
 }
 
-unsigned int io_seproxyhal_touch_exit(bagl_element_t *e) {
-    // Go back to the dashboard
-    os_sched_exit(0);
-    return 0; // do not redraw the widget
-}
-
-unsigned int io_seproxyhal_touch_address_ok(bagl_element_t *e) {
-    uint32_t tx = set_result_get_publicKey();
-    uiDone = 1;
-    G_io_apdu_buffer[tx++] = 0x90;
-    G_io_apdu_buffer[tx++] = 0x00;
-    // Send back the response, do not restart the event loop
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
-    // Display back the original UX
-    uiState = UI_IDLE;
-    currentUiElement = 0;
-    io_seproxyhal_display(&bagl_ui_erase_all[0]);
-    return 0; // do not redraw the widget
-}
-
-unsigned int io_seproxyhal_touch_address_cancel(bagl_element_t *e) {
-    uiDone = 1;
-    G_io_apdu_buffer[0] = 0x69;
-    G_io_apdu_buffer[1] = 0x85;
-    // Send back the response, do not restart the event loop
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
-    // Display back the original UX
-    uiState = UI_IDLE;
-    currentUiElement = 0;
-    io_seproxyhal_display(&bagl_ui_erase_all[0]);
-    return 0; // do not redraw the widget
-}
-
-unsigned int io_seproxyhal_touch_tx_ok(bagl_element_t *e) {
+unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
     uint8_t privateKeyData[32];
     uint8_t signature[100];
     uint8_t signatureLength;
@@ -427,32 +851,38 @@ unsigned int io_seproxyhal_touch_tx_ok(bagl_element_t *e) {
     os_memmove(G_io_apdu_buffer + 1 + 32, signature + 4 + rLength + 2 + sOffset,
                32);
     tx = 65;
-    uiDone = 1;
     G_io_apdu_buffer[tx++] = 0x90;
     G_io_apdu_buffer[tx++] = 0x00;
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
     // Display back the original UX
-    uiState = UI_IDLE;
-    currentUiElement = 0;
-    io_seproxyhal_display(&bagl_ui_erase_all[0]);
+    ui_idle();
     return 0; // do not redraw the widget
 }
 
-unsigned int io_seproxyhal_touch_tx_cancel(bagl_element_t *e) {
-    uiDone = 1;
+unsigned int io_seproxyhal_touch_tx_cancel(const bagl_element_t *e) {
     G_io_apdu_buffer[0] = 0x69;
     G_io_apdu_buffer[1] = 0x85;
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
     // Display back the original UX
-    uiState = UI_IDLE;
-    currentUiElement = 0;
-    io_seproxyhal_display(&bagl_ui_erase_all[0]);
+    ui_idle();
     return 0; // do not redraw the widget
 }
 
-void reset(void) {
+unsigned int ui_approval_nanos_button(unsigned int button_mask,
+                                      unsigned int button_mask_counter) {
+    switch (button_mask) {
+    case BUTTON_EVT_RELEASED | BUTTON_LEFT:
+        io_seproxyhal_touch_tx_cancel(NULL);
+        break;
+
+    case BUTTON_EVT_RELEASED | BUTTON_RIGHT: {
+        io_seproxyhal_touch_tx_ok(NULL);
+        break;
+    }
+    }
+    return 0;
 }
 
 unsigned short io_exchange_al(unsigned char channel, unsigned short tx_len) {
@@ -528,6 +958,7 @@ void sample_main(void) {
                 tx = 0; // ensure no race in catch_other if io_exchange throws
                         // an error
                 rx = io_exchange(CHANNEL_APDU | flags, rx);
+                flags = 0;
 
                 // no apdu received, well, reset the session, and reset the
                 // bootloader configuration
@@ -582,38 +1013,34 @@ void sample_main(void) {
                         tx = set_result_get_publicKey();
                         THROW(0x9000);
                     } else {
-                        os_memmove((unsigned char *)addressSummary,
-                                   tmpCtx.publicKeyContext.address, 5);
-                        os_memmove((unsigned char *)(addressSummary + 5),
-                                   " ... ", 5);
-                        os_memmove((unsigned char *)(addressSummary + 10),
-                                   tmpCtx.publicKeyContext.address + 40 - 5, 5);
-                        addressSummary[15] = '\0';
+                        addressSummary[0] = '0';
+                        addressSummary[1] = 'x';
+                        os_memmove((unsigned char *)(addressSummary + 2),
+                                   tmpCtx.publicKeyContext.address, 4);
+                        os_memmove((unsigned char *)(addressSummary + 6), "...",
+                                   3);
+                        os_memmove((unsigned char *)(addressSummary + 9),
+                                   tmpCtx.publicKeyContext.address + 40 - 4, 4);
+                        addressSummary[13] = '\0';
                         os_memmove((unsigned char *)address1,
                                    tmpCtx.publicKeyContext.address, 20);
                         address1[20] = '\0';
                         os_memmove((unsigned char *)address2,
                                    tmpCtx.publicKeyContext.address + 20, 20);
                         address2[20] = '\0';
-                        uiState = UI_ADDRESS;
-                        currentUiElement = 0;
-                        uiDone = 0;
-                        io_seproxyhal_display(&bagl_ui_erase_all[0]);
-                        // Pump SPI events until the UI has been displayed, then
-                        // go
-                        // back to the original event loop
-                        while (!uiDone) {
-                            unsigned int rx_len;
-                            rx_len = io_seproxyhal_spi_recv(
-                                G_io_seproxyhal_spi_buffer,
-                                sizeof(G_io_seproxyhal_spi_buffer), 0);
-                            if (io_seproxyhal_handle_event()) {
-                                io_seproxyhal_general_status();
-                                continue;
-                            }
-                            io_event(CHANNEL_SPI);
+
+                        // prepare for a UI based reply
+                        if (os_seph_features() &
+                            SEPROXYHAL_TAG_SESSION_START_EVENT_FEATURE_SCREEN_BIG) {
+                            UX_DISPLAY(ui_address_blue, NULL);
+                        } else {
+                            ux_step = 0;
+                            ux_step_count = 2;
+                            // io_seproxyhal_setup_ticker(2000);
+                            UX_DISPLAY(ui_address_nanos, ui_address_prepro);
                         }
-                        continue;
+
+                        flags |= IO_ASYNCH_REPLY;
                     }
                 }
 
@@ -676,12 +1103,14 @@ void sample_main(void) {
                     // Add address
                     getEthAddressStringFromBinary(txContent.destination,
                                                   address, &sha3);
-                    os_memmove((unsigned char *)addressSummary, address, 5);
-                    os_memmove((unsigned char *)(addressSummary + 5), " ... ",
-                               5);
-                    os_memmove((unsigned char *)(addressSummary + 10),
-                               address + 40 - 5, 5);
-                    addressSummary[15] = '\0';
+                    addressSummary[0] = '0';
+                    addressSummary[1] = 'x';
+                    os_memmove((unsigned char *)(addressSummary + 2), address,
+                               4);
+                    os_memmove((unsigned char *)(addressSummary + 6), "...", 3);
+                    os_memmove((unsigned char *)(addressSummary + 9),
+                               address + 40 - 4, 4);
+                    addressSummary[13] = '\0';
                     os_memmove((unsigned char *)address1, address, 20);
                     address1[20] = '\0';
                     os_memmove((unsigned char *)address2, address + 20, 20);
@@ -739,24 +1168,17 @@ void sample_main(void) {
                     }
                     startgas[i] = '\0';
 
-                    uiState = UI_APPROVAL;
-                    currentUiElement = 0;
-                    uiDone = 0;
-                    io_seproxyhal_display(&bagl_ui_erase_all[0]);
-                    // Pump SPI events until the UI has been displayed, then go
-                    // back to the original event loop
-                    while (!uiDone) {
-                        unsigned int rx_len;
-                        rx_len = io_seproxyhal_spi_recv(
-                            G_io_seproxyhal_spi_buffer,
-                            sizeof(G_io_seproxyhal_spi_buffer), 0);
-                        if (io_seproxyhal_handle_event()) {
-                            io_seproxyhal_general_status();
-                            continue;
-                        }
-                        io_event(CHANNEL_SPI);
+                    if (os_seph_features() &
+                        SEPROXYHAL_TAG_SESSION_START_EVENT_FEATURE_SCREEN_BIG) {
+                        UX_DISPLAY(ui_approval_blue, NULL);
+                    } else {
+                        ux_step = 0;
+                        ux_step_count = 5;
+                        //  	                    io_seproxyhal_setup_ticker(2000);
+                        UX_DISPLAY(ui_approval_nanos, ui_approval_prepro);
                     }
-                    continue;
+
+                    flags |= IO_ASYNCH_REPLY;
                 } break;
 
                 case 0xFF: // return to dashboard
@@ -799,124 +1221,71 @@ return_to_dashboard:
 }
 
 void io_seproxyhal_display(const bagl_element_t *element) {
-    element_displayed = 1;
     return io_seproxyhal_display_default((bagl_element_t *)element);
 }
 
 unsigned char io_event(unsigned char channel) {
     // nothing done with the event, throw an error on the transport layer if
     // needed
-    unsigned int offset = 0;
 
     // can't have more than one tag in the reply, not supported yet.
     switch (G_io_seproxyhal_spi_buffer[0]) {
-    case SEPROXYHAL_TAG_FINGER_EVENT: {
-        bagl_element_t *elements = NULL;
-        unsigned int elementsSize = 0;
-        if (uiState == UI_IDLE) {
-            elements = (bagl_element_t *)bagl_ui_idle;
-            elementsSize = sizeof(bagl_ui_idle) / sizeof(bagl_element_t);
-        } else if (uiState == UI_ADDRESS) {
-            elements = (bagl_element_t *)bagl_ui_address;
-            elementsSize = sizeof(bagl_ui_address) / sizeof(bagl_element_t);
-        } else if (uiState == UI_APPROVAL) {
-            elements = (bagl_element_t *)bagl_ui_approval;
-            elementsSize = sizeof(bagl_ui_approval) / sizeof(bagl_element_t);
-        }
-        if (elements != NULL) {
-            io_seproxyhal_touch(elements, elementsSize,
-                                (G_io_seproxyhal_spi_buffer[4] << 8) |
-                                    (G_io_seproxyhal_spi_buffer[5] & 0xFF),
-                                (G_io_seproxyhal_spi_buffer[6] << 8) |
-                                    (G_io_seproxyhal_spi_buffer[7] & 0xFF),
-                                G_io_seproxyhal_spi_buffer[3]);
-            if (!element_displayed) {
-                goto general_status;
-            }
-        } else {
-            goto general_status;
-        }
-    } break;
+    case SEPROXYHAL_TAG_FINGER_EVENT:
+        UX_FINGER_EVENT(G_io_seproxyhal_spi_buffer);
+        break;
 
-#ifdef HAVE_BLE
-    // Make automatically discoverable again when disconnected
-
-    case SEPROXYHAL_TAG_BLE_CONNECTION_EVENT:
-        if (G_io_seproxyhal_spi_buffer[3] == 0) {
-            // TODO : cleaner reset sequence
-            // first disable BLE before turning it off
-            G_io_seproxyhal_spi_buffer[0] = SEPROXYHAL_TAG_BLE_RADIO_POWER;
-            G_io_seproxyhal_spi_buffer[1] = 0;
-            G_io_seproxyhal_spi_buffer[2] = 1;
-            G_io_seproxyhal_spi_buffer[3] = 0;
-            io_seproxyhal_spi_send(G_io_seproxyhal_spi_buffer, 4);
-            // send BLE power on (default parameters)
-            G_io_seproxyhal_spi_buffer[0] = SEPROXYHAL_TAG_BLE_RADIO_POWER;
-            G_io_seproxyhal_spi_buffer[1] = 0;
-            G_io_seproxyhal_spi_buffer[2] = 1;
-            G_io_seproxyhal_spi_buffer[3] = 3; // ble on & advertise
-            io_seproxyhal_spi_send(G_io_seproxyhal_spi_buffer, 5);
-        }
-        goto general_status;
-#endif
+    case SEPROXYHAL_TAG_BUTTON_PUSH_EVENT:
+        UX_BUTTON_PUSH_EVENT(G_io_seproxyhal_spi_buffer);
+        break;
 
     case SEPROXYHAL_TAG_DISPLAY_PROCESSED_EVENT:
-        if (uiState == UI_IDLE) {
-            if (currentUiElement <
-                (sizeof(bagl_ui_idle) / sizeof(bagl_element_t))) {
-                io_seproxyhal_display(&bagl_ui_idle[currentUiElement++]);
-                break;
-            }
-        } else if (uiState == UI_ADDRESS) {
-            if (currentUiElement <
-                (sizeof(bagl_ui_address) / sizeof(bagl_element_t))) {
-                io_seproxyhal_display(&bagl_ui_address[currentUiElement++]);
-                break;
-            }
-        } else if (uiState == UI_APPROVAL) {
-            if (currentUiElement <
-                (sizeof(bagl_ui_approval) / sizeof(bagl_element_t))) {
-                io_seproxyhal_display(&bagl_ui_approval[currentUiElement++]);
-                break;
-            }
+        if (UX_DISPLAYED()) {
+            // TODO perform actions after all screen elements have been
+            // displayed
         } else {
-            screen_printf("Unknown UI state\n");
+            UX_DISPLAY_PROCESSED_EVENT();
         }
-        if (usb_enable_request) {
-            io_usb_enable(1);
-            usb_enable_request = 0;
-        }
-        goto general_status;
+        break;
+
+    case SEPROXYHAL_TAG_TICKER_EVENT:
+        // prepare next screen
+        ux_step = (ux_step + 1) % ux_step_count;
+        // redisplay screen
+        UX_REDISPLAY();
+        break;
 
     // unknown events are acknowledged
     default:
-    general_status:
-        // send a general status last command
-        offset = 0;
-        G_io_seproxyhal_spi_buffer[offset++] = SEPROXYHAL_TAG_GENERAL_STATUS;
-        G_io_seproxyhal_spi_buffer[offset++] = 0;
-        G_io_seproxyhal_spi_buffer[offset++] = 2;
-        G_io_seproxyhal_spi_buffer[offset++] =
-            SEPROXYHAL_TAG_GENERAL_STATUS_LAST_COMMAND >> 8;
-        G_io_seproxyhal_spi_buffer[offset++] =
-            SEPROXYHAL_TAG_GENERAL_STATUS_LAST_COMMAND;
-        io_seproxyhal_spi_send(G_io_seproxyhal_spi_buffer, offset);
-        element_displayed = 0;
         break;
     }
+
+    // close the event if not done previously (by a display or whatever)
+    if (!io_seproxyhal_spi_is_status_sent()) {
+        io_seproxyhal_general_status();
+    }
+
     // command has been processed, DO NOT reset the current APDU transport
     return 1;
+}
+
+void app_exit(void) {
+    BEGIN_TRY_L(exit) {
+        TRY_L(exit) {
+            os_sched_exit(-1);
+        }
+        FINALLY_L(exit) {
+        }
+    }
+    END_TRY_L(exit);
 }
 
 __attribute__((section(".boot"))) int main(void) {
     // exit critical section
     __asm volatile("cpsie i");
 
-    usb_enable_request = 0;
-    element_displayed = 0;
-    uiState = UI_IDLE;
-    currentUiElement = 0;
     os_memset(&txContext, 0, sizeof(txContext));
+
+    UX_INIT();
 
     // ensure exception will work as planned
     os_boot();
@@ -925,18 +1294,9 @@ __attribute__((section(".boot"))) int main(void) {
         TRY {
             io_seproxyhal_init();
 
-#ifdef HAVE_BLE
+            USB_power(1);
 
-            // send BLE power on (default parameters)
-            G_io_seproxyhal_spi_buffer[0] = SEPROXYHAL_TAG_BLE_RADIO_POWER;
-            G_io_seproxyhal_spi_buffer[1] = 0;
-            G_io_seproxyhal_spi_buffer[2] = 1;
-            G_io_seproxyhal_spi_buffer[3] = 3; // ble on & advertise
-            io_seproxyhal_spi_send(G_io_seproxyhal_spi_buffer, 4);
-#endif
-
-            usb_enable_request = 1;
-            io_seproxyhal_display(&bagl_ui_erase_all[0]);
+            ui_idle();
 
             sample_main();
         }
@@ -946,4 +1306,8 @@ __attribute__((section(".boot"))) int main(void) {
         }
     }
     END_TRY;
+
+    app_exit();
+
+    return 0;
 }

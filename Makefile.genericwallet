@@ -15,7 +15,9 @@
 #  limitations under the License.
 #*******************************************************************************
 
-APPNAME = ETH 
+APPNAME = Ethereum 
+TARGET_ID = 0x31100002 #Nano S
+#TARGET_ID = 0x31000002 #Blue
 
 
 ################
@@ -42,17 +44,16 @@ PROG     := token-genericwallet
 
 CONFIG_PRODUCTIONS := bin/$(PROG)
 
-SOURCE_PATH   := src_genericwallet $(BOLOS_SDK)/src src_usb src_common src_tmp 
+SOURCE_PATH   := src_genericwallet $(BOLOS_SDK)/src $(dir $(shell find $(BOLOS_SDK)/lib_stusb* | grep "\.c$$")) src_common src_tmp 
 SOURCE_FILES  := $(foreach path, $(SOURCE_PATH),$(shell find $(path) | grep "\.c$$") )
-INCLUDES_PATH := src_usb $(dir $(shell find src_usb/ | grep "\.h$$")) include src_genericwallet $(BOLOS_SDK)/include $(BOLOS_SDK)/include/arm src_common src_tmp
+INCLUDES_PATH := $(dir $(shell find $(BOLOS_SDK)/lib_stusb* | grep "\.h$$")) include src_genericwallet $(BOLOS_SDK)/include $(BOLOS_SDK)/include/arm src_common src_tmp
 
 ### platform definitions
 DEFINES := ST31 gcc __IO=volatile
 
-DEFINES   += OS_IO_SEPROXYHAL IO_SEPROXYHAL_BUFFER_SIZE_B=300
+DEFINES   += OS_IO_SEPROXYHAL IO_SEPROXYHAL_BUFFER_SIZE_B=128
 DEFINES   += HAVE_BAGL HAVE_PRINTF 
-DEFINES   += HAVE_IO_USB HAVE_L4_USBLIB IO_USB_MAX_ENDPOINTS=7 IO_HID_EP_LENGTH=64
-DEFINES	  += HAVE_BLE
+DEFINES   += HAVE_IO_USB HAVE_L4_USBLIB IO_USB_MAX_ENDPOINTS=7 IO_HID_EP_LENGTH=64 HAVE_USB_APDU
 
 ##############
 # Compiler #
@@ -115,8 +116,6 @@ clean:
 
 prepare:
 	@mkdir -p bin obj debug dep
-	$(info $(SOURCE_FILES))
-	$(info $(DEPEND_FILES))
 
 .SECONDEXPANSION:
 
@@ -126,10 +125,10 @@ log = $(if $(strip $(VERBOSE)),$1,@$1)
 default: prepare bin/$(PROG)
 
 load: 
-	python -m ledgerblue.loadApp --appFlags 0xc0 --fileName bin/$(PROG).hex --appName $(APPNAME)
+	python -m ledgerblue.loadApp --targetId $(TARGET_ID) --appFlags 0xc0 --fileName bin/$(PROG).hex --appName $(APPNAME) --icon `python $(BOLOS_SDK)/icon.py 16 16 icon.gif hexbitmaponly` --apdu --path "44'/60'"
 
 delete:
-	python -m ledgerblue.deleteApp --appName $(APPNAME)
+	python -m ledgerblue.deleteApp --targetId $(TARGET_ID) --appName $(APPNAME)
 
 bin/$(PROG): $(OBJECT_FILES) script.ld
 	@echo "[LINK] 	$@"

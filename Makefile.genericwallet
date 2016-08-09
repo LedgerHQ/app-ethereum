@@ -125,7 +125,10 @@ log = $(if $(strip $(VERBOSE)),$1,@$1)
 default: prepare bin/$(PROG)
 
 load: 
-	python -m ledgerblue.loadApp --targetId $(TARGET_ID) --appFlags 0xc0 --fileName bin/$(PROG).hex --appName $(APPNAME) --icon `python $(BOLOS_SDK)/icon.py 16 16 icon.gif hexbitmaponly` --apdu --path "44'/60'"
+	python -m ledgerblue.loadApp --targetId $(TARGET_ID) --appFlags 0xc0 --fileName bin/$(PROG).hex --appName $(APPNAME) --icon `python $(BOLOS_SDK)/icon.py 16 16 icon.gif hexbitmaponly` --path "44'/60'"
+
+load_release:
+	python -m ledgerblue.loadApp --targetId $(TARGET_ID) --appFlags 0xc0 --fileName bin/$(PROG).hex --appName $(APPNAME) --icon `python $(BOLOS_SDK)/icon.py 16 16 icon.gif hexbitmaponly` --path "44'/60'" --signature 3044022061a619a509c9ab16b933b9f509f6d01958aa042467700d6680c8568f8aa5ede5022063c599da68037a233feeb591922e156035f70fed667b051a954cdb68f8881ef4
 
 delete:
 	python -m ledgerblue.deleteApp --targetId $(TARGET_ID) --appName $(APPNAME)

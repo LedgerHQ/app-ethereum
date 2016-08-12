@@ -21,7 +21,7 @@
 #define MAX_INT256 32
 #define MAX_ADDRESS 20
 
-void initTx(txContext_t *context, app_cx_sha3_t *sha3, txContent_t *content,
+void initTx(txContext_t *context, cx_sha3_t *sha3, txContent_t *content,
             ustreamProcess_t customProcessor, void *extra) {
     os_memset(context, 0, sizeof(txContext_t));
     context->sha3 = sha3;
@@ -29,7 +29,7 @@ void initTx(txContext_t *context, app_cx_sha3_t *sha3, txContent_t *content,
     context->customProcessor = customProcessor;
     context->extra = extra;
     context->currentField = TX_RLP_CONTENT;
-    app_cx_sha3_init(context->sha3, 256);
+    cx_keccak_init(context->sha3, 256);
 }
 
 uint8_t readTxByte(txContext_t *context) {
@@ -45,7 +45,7 @@ uint8_t readTxByte(txContext_t *context) {
         context->currentFieldPos++;
     }
     if (!(context->processingField && context->fieldSingleByte)) {
-        app_cx_hash((cx_hash_t *)context->sha3, 0, &data, 1, NULL);
+        cx_hash((cx_hash_t *)context->sha3, 0, &data, 1, NULL);
     }
     return data;
 }
@@ -59,8 +59,8 @@ void copyTxData(txContext_t *context, uint8_t *out, uint32_t length) {
         os_memmove(out, context->workBuffer, length);
     }
     if (!(context->processingField && context->fieldSingleByte)) {
-        app_cx_hash((cx_hash_t *)context->sha3, 0, context->workBuffer, length,
-                    NULL);
+        cx_hash((cx_hash_t *)context->sha3, 0, context->workBuffer, length,
+                NULL);
     }
     context->workBuffer += length;
     context->commandLength -= length;

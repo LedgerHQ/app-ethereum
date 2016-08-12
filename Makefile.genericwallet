@@ -18,6 +18,7 @@
 APPNAME = Ethereum 
 TARGET_ID = 0x31100002 #Nano S
 #TARGET_ID = 0x31000002 #Blue
+APP_LOAD_PARAMS=--appFlags 0x40 --path "44'/60'" --path "44'/61'" --curve secp256k1
 
 
 ################
@@ -44,9 +45,9 @@ PROG     := token-genericwallet
 
 CONFIG_PRODUCTIONS := bin/$(PROG)
 
-SOURCE_PATH   := src_genericwallet $(BOLOS_SDK)/src $(dir $(shell find $(BOLOS_SDK)/lib_stusb* | grep "\.c$$")) src_common src_tmp 
+SOURCE_PATH   := src_genericwallet $(BOLOS_SDK)/src $(dir $(shell find $(BOLOS_SDK)/lib_stusb* | grep "\.c$$")) src_common  
 SOURCE_FILES  := $(foreach path, $(SOURCE_PATH),$(shell find $(path) | grep "\.c$$") )
-INCLUDES_PATH := $(dir $(shell find $(BOLOS_SDK)/lib_stusb* | grep "\.h$$")) include src_genericwallet $(BOLOS_SDK)/include $(BOLOS_SDK)/include/arm src_common src_tmp
+INCLUDES_PATH := $(dir $(shell find $(BOLOS_SDK)/lib_stusb* | grep "\.h$$")) include src_genericwallet $(BOLOS_SDK)/include $(BOLOS_SDK)/include/arm src_common 
 
 ### platform definitions
 DEFINES := ST31 gcc __IO=volatile
@@ -64,9 +65,9 @@ CC       := $(CLANGPATH)/clang
 
 CFLAGS   := 
 CFLAGS   += -gdwarf-2  -gstrict-dwarf 
-CFLAGS   += -O0
+#CFLAGS   += -O0
 #CFLAGS   += -O0 -g3
-#CFLAGS   += -O3 -Os
+CFLAGS   += -O3 -Os
 CFLAGS   += -mcpu=cortex-m0 -mthumb 
 CFLAGS   += -fno-common -mtune=cortex-m0 -mlittle-endian 
 CFLAGS   += -std=gnu99 -Werror=int-to-pointer-cast -Wall -Wextra #-save-temps
@@ -94,7 +95,7 @@ LDFLAGS  += -fno-common -ffunction-sections -fdata-sections -fwhole-program -nos
 LDFLAGS  += -mno-unaligned-access
 #LDFLAGS  += -nodefaultlibs
 #LDFLAGS  += -nostdlib -nostdinc
-LDFLAGS  += -Tscript.ld  -Wl,--gc-sections -Wl,-Map,debug/$(PROG).map,--cref
+LDFLAGS  += -T$(BOLOS_SDK)/script.ld  -Wl,--gc-sections -Wl,-Map,debug/$(PROG).map,--cref
 LDLIBS   += -Wl,--library-path -Wl,$(GCCPATH)/../lib/armv6-m/
 #LDLIBS   += -Wl,--start-group 
 LDLIBS   += -lm -lgcc -lc 
@@ -124,16 +125,16 @@ log = $(if $(strip $(VERBOSE)),$1,@$1)
 
 default: prepare bin/$(PROG)
 
-load: 
-	python -m ledgerblue.loadApp --targetId $(TARGET_ID) --appFlags 0xc0 --fileName bin/$(PROG).hex --appName $(APPNAME) --icon `python $(BOLOS_SDK)/icon.py 16 16 icon.gif hexbitmaponly` --path "44'/60'"
+load:
+	python -m ledgerblue.loadApp --targetId $(TARGET_ID) --fileName bin/$(PROG).hex --appName $(APPNAME) --icon `python $(BOLOS_SDK)/icon.py 16 16 icon.gif hexbitmaponly` $(APP_LOAD_PARAMS)
 
 load_release:
-	python -m ledgerblue.loadApp --targetId $(TARGET_ID) --appFlags 0xc0 --fileName bin/$(PROG).hex --appName $(APPNAME) --icon `python $(BOLOS_SDK)/icon.py 16 16 icon.gif hexbitmaponly` --path "44'/60'" --signature 3044022061a619a509c9ab16b933b9f509f6d01958aa042467700d6680c8568f8aa5ede5022063c599da68037a233feeb591922e156035f70fed667b051a954cdb68f8881ef4
+	python -m ledgerblue.loadApp --targetId $(TARGET_ID) --fileName bin/$(PROG).hex --appName $(APPNAME) --icon `python $(BOLOS_SDK)/icon.py 16 16 icon.gif hexbitmaponly` $(APP_LOAD_PARAMS) --signature 3044022065e5bcf6519ea12ff991e429cc85bf7ecc789bd1a7a141d5e2dc358e5544c6170220726801803361b3296b83a3d14be8afc3374bda215b4dadd3d67bc3518e1f78bc
 
 delete:
 	python -m ledgerblue.deleteApp --targetId $(TARGET_ID) --appName $(APPNAME)
 
-bin/$(PROG): $(OBJECT_FILES) script.ld
+bin/$(PROG): $(OBJECT_FILES) $(BOLOS_SDK)/script.ld
 	@echo "[LINK] 	$@"
 	$(call log,$(call link_cmdline,$(OBJECT_FILES) $(LDLIBS),$@))
 	$(call log,$(GCCPATH)/arm-none-eabi-objcopy -O ihex -S bin/$(PROG) bin/$(PROG).hex)

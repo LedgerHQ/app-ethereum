@@ -18,7 +18,6 @@
 #include "os.h"
 #include "cx.h"
 #include <stdbool.h>
-#include "app_cx_sha3.h"
 #include "ethUstream.h"
 #include "ethUtils.h"
 #include "uint256.h"
@@ -71,7 +70,7 @@ union {
 } tmpCtx;
 txContext_t txContext;
 txContent_t txContent;
-app_cx_sha3_t sha3;
+cx_sha3_t sha3;
 volatile char addressSummary[21];
 volatile char address1[21];
 volatile char address2[21];
@@ -812,17 +811,6 @@ unsigned int ui_address_nanos_button(unsigned int button_mask,
     return 0;
 }
 
-// TODO : replace with 1.2 SDK
-int app_cx_ecfp_init_private_key(cx_curve_t curve, unsigned char WIDE *rawkey,
-                                 int key_len, cx_ecfp_private_key_t *key) {
-    key->curve = curve;
-    key->d_len = key_len;
-    if (rawkey != NULL) {
-        os_memmove(key->d, rawkey, key_len);
-    }
-    return key_len;
-}
-
 unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
     uint8_t privateKeyData[32];
     uint8_t signature[100];
@@ -830,11 +818,10 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
     cx_ecfp_private_key_t privateKey;
     uint32_t tx = 0;
     uint8_t rLength, sLength, rOffset, sOffset;
-    os_perso_derive_seed_bip32(tmpCtx.transactionContext.bip32Path,
-                               tmpCtx.transactionContext.pathLength,
-                               privateKeyData, NULL);
-    app_cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32,
-                                 &privateKey);
+    os_perso_derive_node_bip32(
+        CX_CURVE_256K1, tmpCtx.transactionContext.bip32Path,
+        tmpCtx.transactionContext.pathLength, privateKeyData, NULL);
+    cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
     os_memset(privateKeyData, 0, sizeof(privateKeyData));
     signatureLength =
         cx_ecdsa_sign(&privateKey, CX_RND_RFC6979 | CX_LAST, CX_SHA256,
@@ -997,10 +984,11 @@ void sample_main(void) {
                                        (dataBuffer[2] << 8) | (dataBuffer[3]);
                         dataBuffer += 4;
                     }
-                    os_perso_derive_seed_bip32(bip32Path, bip32PathLength,
-                                               privateKeyData, NULL);
-                    app_cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData,
-                                                 32, &privateKey);
+                    os_perso_derive_node_bip32(CX_CURVE_256K1, bip32Path,
+                                               bip32PathLength, privateKeyData,
+                                               NULL);
+                    cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32,
+                                             &privateKey);
                     cx_ecfp_generate_pair(CX_CURVE_256K1,
                                           &tmpCtx.publicKeyContext.publicKey,
                                           &privateKey, 1);
@@ -1097,9 +1085,9 @@ void sample_main(void) {
                     }
 
                     // Store the hash
-                    app_cx_hash((cx_hash_t *)&sha3, CX_LAST,
-                                tmpCtx.transactionContext.hash, 0,
-                                tmpCtx.transactionContext.hash);
+                    cx_hash((cx_hash_t *)&sha3, CX_LAST,
+                            tmpCtx.transactionContext.hash, 0,
+                            tmpCtx.transactionContext.hash);
                     // Add address
                     getEthAddressStringFromBinary(txContent.destination,
                                                   address, &sha3);

@@ -18,7 +18,6 @@
 #include "os.h"
 #include "cx.h"
 #include <stdbool.h>
-#include "app_cx_sha3.h"
 
 struct txContext_t;
 
@@ -56,7 +55,7 @@ typedef struct txContent_t {
 
 typedef struct txContext_t {
     rlpTxField_e currentField;
-    app_cx_sha3_t *sha3;
+    cx_sha3_t *sha3;
     uint32_t currentFieldLength;
     uint32_t currentFieldPos;
     bool currentFieldIsList;
@@ -72,7 +71,7 @@ typedef struct txContext_t {
     void *extra;
 } txContext_t;
 
-void initTx(txContext_t *context, app_cx_sha3_t *sha3, txContent_t *content,
+void initTx(txContext_t *context, cx_sha3_t *sha3, txContent_t *content,
             ustreamProcess_t customProcessor, void *extra);
 parserStatus_e processTx(txContext_t *context, uint8_t *buffer,
                          uint32_t length);

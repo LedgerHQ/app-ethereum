@@ -17,7 +17,6 @@
 
 #include "os.h"
 #include "cx.h"
-#include "app_cx_sha3.h"
 
 /**
  * @brief Decode an RLP encoded field - see
@@ -37,13 +36,13 @@ bool rlpDecodeLength(uint8_t *buffer, uint32_t bufferLength,
 bool rlpCanDecode(uint8_t *buffer, uint32_t bufferLength, bool *valid);
 
 void getEthAddressFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
-                          app_cx_sha3_t *sha3Context);
+                          cx_sha3_t *sha3Context);
 
 void getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
-                                app_cx_sha3_t *sha3Context);
+                                cx_sha3_t *sha3Context);
 
 void getEthAddressStringFromBinary(uint8_t *address, uint8_t *out,
-                                   app_cx_sha3_t *sha3Context);
+                                   cx_sha3_t *sha3Context);
 
 bool adjustDecimals(char *src, uint32_t srcLength, char *target,
                     uint32_t targetLength, uint8_t decimals);

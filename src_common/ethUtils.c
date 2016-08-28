@@ -218,17 +218,15 @@ bool adjustDecimals(char *src, uint32_t srcLength, char *target,
     uint32_t startOffset;
     uint32_t lastZeroOffset = 0;
     uint32_t offset = 0;
-    if (srcLength == decimals) {
-        if (targetLength < srcLength + 1) {
+    if ((srcLength == 1) && (*src == '0')) {
+        if (targetLength < 2) {
             return false;
         }
-        for (uint32_t i = 0; i < srcLength; i++) {
-            target[i] = src[i];
-        }
-        target[srcLength] = '\0';
+        target[0] = '0';
+        target[1] = '\0';
         return true;
     }
-    if (srcLength < decimals) {
+    if (srcLength <= decimals) {
         uint32_t delta = decimals - srcLength;
         if (targetLength < srcLength + 1 + 2 + delta) {
             return false;
@@ -269,6 +267,9 @@ bool adjustDecimals(char *src, uint32_t srcLength, char *target,
     }
     if (lastZeroOffset != 0) {
         target[lastZeroOffset] = '\0';
+        if (target[lastZeroOffset - 1] == '.') {
+            target[lastZeroOffset - 1] = '\0';
+        }
     }
     return true;
 }

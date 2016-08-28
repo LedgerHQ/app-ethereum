@@ -28,6 +28,7 @@ from rlp.utils import decode_hex, encode_hex, str_to_bytes
 
 from ethereum import utils
 
+# https://etherscan.io/address/0x5dc8108fc79018113a58328f5283b376b83922ef#code
 SPLIT_CONTRACT_FUNCTION = decode_hex("9c709343")
 SPLIT_CONTRACT_ADDRESS = "5dc8108fc79018113a58328f5283b376b83922ef"
 

@@ -22,11 +22,9 @@ from ledgerblue.commException import CommException
 import argparse
 import struct
 from decimal import Decimal
-from ethereum.transactions import Transaction, UnsignedTransaction
+from ethBase import Transaction, UnsignedTransaction
 from rlp import encode
 from rlp.utils import decode_hex, encode_hex, str_to_bytes
-
-from ethereum import utils
 
 def parse_bip32_path(path):
 	if len(path) == 0:

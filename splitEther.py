@@ -24,11 +24,9 @@ import struct
 import requests
 import json
 from decimal import Decimal
-from ethereum.transactions import Transaction, UnsignedTransaction
 from rlp import encode
 from rlp.utils import decode_hex, encode_hex, str_to_bytes
-
-from ethereum import utils
+from ethBase import Transaction, UnsignedTransaction, sha3
 
 # https://etherscan.io/address/0x5dc8108fc79018113a58328f5283b376b83922ef#code
 SPLIT_CONTRACT_FUNCTION = decode_hex("9c709343")
@@ -39,7 +37,7 @@ def rpc_call(http, url, methodDebug):
 	if req.status_code == 200:
 		result = json.loads(req.text)
 		if 'error' in result:
-			raise Exception("Server error " + methodDebug + " " + result['error']['message'])
+			raise Exception("Server error - " + methodDebug + " - " + result['error']['message'])
 		return result
 	else:
 		raise Exception("Server error - " + methodDebug + " got status " + req.status)
@@ -92,14 +90,14 @@ dongle.exchange(bytes(apdu))
 apdu = "e0020000".decode('hex') + chr(len(donglePath) + 1) + chr(len(donglePath) / 4) + donglePath
 result = dongle.exchange(bytes(apdu))
 publicKey = str(result[1 : 1 + result[0]])
-encodedPublicKey = utils.sha3(publicKey[1:])[12:]
+encodedPublicKey = sha3(publicKey[1:])[12:]
 
 if (args.nonce == None) or (args.amount == None):
 	donglePathFrom = parse_bip32_path(args.path)
 	apdu = "e0020000".decode('hex') + chr(len(donglePathFrom) + 1) + chr(len(donglePathFrom) / 4) + donglePathFrom
 	result = dongle.exchange(bytes(apdu))
 	publicKeyFrom = str(result[1 : 1 + result[0]])
-	encodedPublicKeyFrom = utils.sha3(publicKeyFrom[1:])[12:]
+	encodedPublicKeyFrom = sha3(publicKeyFrom[1:])[12:]
 
 
 http = None

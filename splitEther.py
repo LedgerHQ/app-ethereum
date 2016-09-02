@@ -21,6 +21,8 @@ from ledgerblue.comm import getDongle
 from ledgerblue.commException import CommException
 import argparse
 import struct
+import requests
+import json
 from decimal import Decimal
 from ethereum.transactions import Transaction, UnsignedTransaction
 from rlp import encode
@@ -31,6 +33,17 @@ from ethereum import utils
 # https://etherscan.io/address/0x5dc8108fc79018113a58328f5283b376b83922ef#code
 SPLIT_CONTRACT_FUNCTION = decode_hex("9c709343")
 SPLIT_CONTRACT_ADDRESS = "5dc8108fc79018113a58328f5283b376b83922ef"
+
+def rpc_call(http, url, methodDebug):
+	req = http.get(url)
+	if req.status_code == 200:
+		result = json.loads(req.text)
+		if 'error' in result:
+			raise Exception("Server error " + methodDebug + " " + result['error']['message'])
+		return result
+	else:
+		raise Exception("Server error - " + methodDebug + " got status " + req.status)
+
 
 def parse_bip32_path(path):
 	if len(path) == 0:
@@ -46,13 +59,15 @@ def parse_bip32_path(path):
 	return result
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--nonce', help="Nonce associated to the account")
-parser.add_argument('--gasprice', help="Network gas price")
+parser.add_argument('--nonce', help="Nonce associated to the account (default : query account)")
+parser.add_argument('--gasprice', help="Network gas price (default : query network)")
 parser.add_argument('--startgas', help="startgas", default='80000')
-parser.add_argument('--amount', help="Amount to send in ether")
-parser.add_argument('--to', help="BIP 32 destination path")
+parser.add_argument('--startgas-delta', help="difference applied to startgas if gasprice is automatically fetched", default='1000')
+parser.add_argument('--amount', help="Amount to send in ether (default : query amount, use maximum)")
+parser.add_argument('--to', help="BIP 32 destination path (default : default ETC path)")
 parser.add_argument('--split-to-eth', help="Split to the ETH chain (default : spit to ETC chain)", action='store_true')
-parser.add_argument('--path', help="BIP 32 path to sign with")
+parser.add_argument('--path', help="BIP 32 path to sign with (default : default ETH path)")
+parser.add_argument('--broadcast', help="Broadcast generated transaction (default : false)", action='store_true')
 args = parser.parse_args()
 
 if args.path == None:
@@ -79,6 +94,43 @@ result = dongle.exchange(bytes(apdu))
 publicKey = str(result[1 : 1 + result[0]])
 encodedPublicKey = utils.sha3(publicKey[1:])[12:]
 
+if (args.nonce == None) or (args.amount == None):
+	donglePathFrom = parse_bip32_path(args.path)
+	apdu = "e0020000".decode('hex') + chr(len(donglePathFrom) + 1) + chr(len(donglePathFrom) / 4) + donglePathFrom
+	result = dongle.exchange(bytes(apdu))
+	publicKeyFrom = str(result[1 : 1 + result[0]])
+	encodedPublicKeyFrom = utils.sha3(publicKeyFrom[1:])[12:]
+
+
+http = None
+if (args.gasprice == None) or (args.nonce == None) or (args.amount == None) or (args.broadcast):
+	http = requests.session()
+
+if args.gasprice == None:
+	print "Fetching gas price"
+	result = rpc_call(http, "https://api.etherscan.io/api?module=proxy&action=eth_gasPrice", "gasPrice")
+	args.gasprice = int(result['result'], 16)
+	print "Gas price " + str(args.gasprice)
+
+if args.nonce == None:
+	print "Fetching nonce"
+	result = rpc_call(http, "https://api.etherscan.io/api?module=proxy&action=eth_getTransactionCount&address=0x" + encodedPublicKeyFrom.encode('hex'), "getTransactionCount")
+	args.nonce = int(result['result'], 16)
+	print "Nonce for 0x" + encodedPublicKeyFrom.encode('hex') + " " + str(args.nonce)
+
+if args.amount == None:
+	print "Fetching balance"
+	result = rpc_call(http, "https://api.etherscan.io/api?module=account&action=balance&address=0x" + encodedPublicKeyFrom.encode('hex'), "getBalance")
+	amount = int(result['result'])
+	print "Balance for " + encodedPublicKeyFrom.encode('hex') + " " + str(amount)
+	amount -= (int(args.startgas) - int(args.startgas_delta)) * int(args.gasprice)		
+	if amount < 0:
+		raise Exception("Remaining amount too small to pay for contract fees")
+else:
+	amount = Decimal(args.amount) * 10**18
+
+print "Amount transferred " + str((Decimal(amount) / 10 ** 18)) + " to " + encodedPublicKey.encode('hex')
+
 txData = SPLIT_CONTRACT_FUNCTION
 txData += "\x00" * 31
 if (args.split_to_eth):
@@ -87,8 +139,6 @@ else:
 	txData += "\x00"
 txData += "\x00" * 12
 txData += encodedPublicKey
-
-amount = Decimal(args.amount) * 10**18
 
 tx = Transaction(
     nonce=int(args.nonce),
@@ -111,5 +161,10 @@ r = int(str(result[1:1 + 32]).encode('hex'), 16)
 s = int(str(result[1 + 32: 1 + 32 + 32]).encode('hex'), 16)
 
 tx = Transaction(tx.nonce, tx.gasprice, tx.startgas, tx.to, tx.value, tx.data, v, r, s)
+serializedTx = encode(tx)
 
-print "Signed transaction " + encode_hex(encode(tx))
+print "Signed transaction " + serializedTx.encode('hex')
+
+if (args.broadcast):
+	result = rpc_call(http, "https://api.etherscan.io/api?module=proxy&action=eth_sendRawTransaction&hex=0x" + serializedTx.encode('hex'), "sendRawTransaction")
+	print result

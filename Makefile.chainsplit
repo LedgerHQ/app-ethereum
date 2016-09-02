@@ -15,7 +15,7 @@
 #  limitations under the License.
 #*******************************************************************************
 
-APPNAME = ETC/ETH Split
+APPNAME = "ETC/ETH Split"
 TARGET_ID = 0x31100002 #Nano S
 #TARGET_ID = 0x31000002 #Blue
 APP_LOAD_PARAMS=--appFlags 0x40 --path "44'/60'" --path "44'/61'" --curve secp256k1
@@ -126,10 +126,7 @@ log = $(if $(strip $(VERBOSE)),$1,@$1)
 default: prepare bin/$(PROG)
 
 load:
-	python -m ledgerblue.loadApp --targetId $(TARGET_ID) --fileName bin/$(PROG).hex --appName $(APPNAME) --icon `python $(BOLOS_SDK)/icon.py 16 16 icon.gif hexbitmaponly` $(APP_LOAD_PARAMS)
-
-load_release:
-	python -m ledgerblue.loadApp --targetId $(TARGET_ID) --fileName bin/$(PROG).hex --appName $(APPNAME) --icon `python $(BOLOS_SDK)/icon.py 16 16 icon.gif hexbitmaponly` $(APP_LOAD_PARAMS) --signature 3044022065e5bcf6519ea12ff991e429cc85bf7ecc789bd1a7a141d5e2dc358e5544c6170220726801803361b3296b83a3d14be8afc3374bda215b4dadd3d67bc3518e1f78bc
+	python -m ledgerblue.loadApp --targetId $(TARGET_ID) --fileName bin/$(PROG).hex --appName $(APPNAME) --icon `python $(BOLOS_SDK)/icon.py 16 16 icon_split.gif hexbitmaponly` $(APP_LOAD_PARAMS)
 
 delete:
 	python -m ledgerblue.deleteApp --targetId $(TARGET_ID) --appName $(APPNAME)

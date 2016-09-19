@@ -7,7 +7,7 @@ To use the generic wallet (which disables all data transaction) refer to signTx.
 
 Other examples are provided reusing the Ethereum parsing framwork to implement some advanced use cases : 
 
-  * An ETH/ETC splitting contract - see src_chainsplit, splitEther.py
+  * An ETH/ETC splitting contract - see src_chainsplit, splitEther.py and our Medium post at https://blog.ledger.co/splitting-your-ethers-securely-on-your-nano-s-147f20e9e341
   * An unsupported use case (transferring The DAO (RIP) tokens), using deprecated code - see src_daosend 
 
 

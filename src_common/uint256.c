@@ -282,6 +282,142 @@ void or256(uint256_t *number1, uint256_t *number2, uint256_t *target) {
     or128(&LOWER_P(number1), &LOWER_P(number2), &LOWER_P(target));
 }
 
+void mul128(uint128_t *number1, uint128_t *number2, uint128_t *target) {
+    uint64_t top[4] = {UPPER_P(number1) >> 32, UPPER_P(number1) & 0xffffffff,
+                       LOWER_P(number1) >> 32, LOWER_P(number1) & 0xffffffff};
+    uint64_t bottom[4] = {UPPER_P(number2) >> 32, UPPER_P(number2) & 0xffffffff,
+                          LOWER_P(number2) >> 32,
+                          LOWER_P(number2) & 0xffffffff};
+    uint64_t products[4][4];
+    uint128_t tmp, tmp2;
+
+    for (int y = 3; y > -1; y--) {
+        for (int x = 3; x > -1; x--) {
+            products[3 - x][y] = top[x] * bottom[y];
+        }
+    }
+
+    uint64_t fourth32 = products[0][3] & 0xffffffff;
+    uint64_t third32 = (products[0][2] & 0xffffffff) + (products[0][3] >> 32);
+    uint64_t second32 = (products[0][1] & 0xffffffff) + (products[0][2] >> 32);
+    uint64_t first32 = (products[0][0] & 0xffffffff) + (products[0][1] >> 32);
+
+    third32 += products[1][3] & 0xffffffff;
+    second32 += (products[1][2] & 0xffffffff) + (products[1][3] >> 32);
+    first32 += (products[1][1] & 0xffffffff) + (products[1][2] >> 32);
+
+    second32 += products[2][3] & 0xffffffff;
+    first32 += (products[2][2] & 0xffffffff) + (products[2][3] >> 32);
+
+    first32 += products[3][3] & 0xffffffff;
+
+    UPPER(tmp) = first32 << 32;
+    LOWER(tmp) = 0;
+    UPPER(tmp2) = third32 >> 32;
+    LOWER(tmp2) = third32 << 32;
+    add128(&tmp, &tmp2, target);
+    UPPER(tmp) = second32;
+    LOWER(tmp) = 0;
+    add128(&tmp, target, &tmp2);
+    UPPER(tmp) = 0;
+    LOWER(tmp) = fourth32;
+    add128(&tmp, &tmp2, target);
+}
+
+void mul256(uint256_t *number1, uint256_t *number2, uint256_t *target) {
+    uint128_t top[4];
+    uint128_t bottom[4];
+    uint128_t products[4][4];
+    uint128_t tmp, tmp2, fourth64, third64, second64, first64;
+    uint256_t target1, target2;
+    UPPER(top[0]) = 0;
+    LOWER(top[0]) = UPPER(UPPER_P(number1));
+    UPPER(top[1]) = 0;
+    LOWER(top[1]) = LOWER(UPPER_P(number1));
+    UPPER(top[2]) = 0;
+    LOWER(top[2]) = UPPER(LOWER_P(number1));
+    UPPER(top[3]) = 0;
+    LOWER(top[3]) = LOWER(LOWER_P(number1));
+    UPPER(bottom[0]) = 0;
+    LOWER(bottom[0]) = UPPER(UPPER_P(number2));
+    UPPER(bottom[1]) = 0;
+    LOWER(bottom[1]) = LOWER(UPPER_P(number2));
+    UPPER(bottom[2]) = 0;
+    LOWER(bottom[2]) = UPPER(LOWER_P(number2));
+    UPPER(bottom[3]) = 0;
+    LOWER(bottom[3]) = LOWER(LOWER_P(number2));
+
+    for (int y = 3; y > -1; y--) {
+        for (int x = 3; x > -1; x--) {
+            mul128(&top[x], &bottom[y], &products[3 - x][y]);
+        }
+    }
+
+    UPPER(fourth64) = 0;
+    LOWER(fourth64) = LOWER(products[0][3]);
+    UPPER(tmp) = 0;
+    LOWER(tmp) = LOWER(products[0][2]);
+    UPPER(tmp2) = 0;
+    LOWER(tmp2) = UPPER(products[0][3]);
+    add128(&tmp, &tmp2, &third64);
+    UPPER(tmp) = 0;
+    LOWER(tmp) = LOWER(products[0][1]);
+    UPPER(tmp2) = 0;
+    LOWER(tmp2) = UPPER(products[0][2]);
+    add128(&tmp, &tmp2, &second64);
+    UPPER(tmp) = 0;
+    LOWER(tmp) = LOWER(products[0][0]);
+    UPPER(tmp2) = 0;
+    LOWER(tmp2) = UPPER(products[0][1]);
+    add128(&tmp, &tmp2, &first64);
+
+    UPPER(tmp) = 0;
+    LOWER(tmp) = LOWER(products[1][3]);
+    add128(&tmp, &third64, &tmp2);
+    copy128(&third64, &tmp2);
+    UPPER(tmp) = 0;
+    LOWER(tmp) = LOWER(products[1][2]);
+    add128(&tmp, &second64, &tmp2);
+    UPPER(tmp) = 0;
+    LOWER(tmp) = UPPER(products[1][3]);
+    add128(&tmp, &tmp2, &second64);
+    UPPER(tmp) = 0;
+    LOWER(tmp) = LOWER(products[1][1]);
+    add128(&tmp, &first64, &tmp2);
+    UPPER(tmp) = 0;
+    LOWER(tmp) = UPPER(products[1][2]);
+    add128(&tmp, &tmp2, &first64);
+
+    UPPER(tmp) = 0;
+    LOWER(tmp) = LOWER(products[2][3]);
+    add128(&tmp, &second64, &tmp2);
+    copy128(&second64, &tmp2);
+    UPPER(tmp) = 0;
+    LOWER(tmp) = LOWER(products[2][2]);
+    add128(&tmp, &first64, &tmp2);
+    UPPER(tmp) = 0;
+    LOWER(tmp) = UPPER(products[2][3]);
+    add128(&tmp, &tmp2, &first64);
+
+    UPPER(tmp) = 0;
+    LOWER(tmp) = LOWER(products[3][3]);
+    add128(&tmp, &first64, &tmp2);
+    copy128(&first64, &tmp2);
+
+    clear256(&target1);
+    shiftl128(&first64, 64, &UPPER(target1));
+    clear256(&target2);
+    UPPER(UPPER(target2)) = UPPER(third64);
+    shiftl128(&third64, 64, &LOWER(target2));
+    add256(&target1, &target2, target);
+    clear256(&target1);
+    copy128(&UPPER(target1), &second64);
+    add256(&target1, target, &target2);
+    clear256(&target1);
+    copy128(&LOWER(target1), &fourth64);
+    add256(&target1, &target2, target);
+}
+
 void divmod128(uint128_t *l, uint128_t *r, uint128_t *retDiv,
                uint128_t *retMod) {
     uint128_t copyd, adder, resDiv, resMod;

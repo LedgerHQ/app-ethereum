@@ -55,6 +55,8 @@ void minus128(uint128_t *number1, uint128_t *number2, uint128_t *target);
 void minus256(uint256_t *number1, uint256_t *number2, uint256_t *target);
 void or128(uint128_t *number1, uint128_t *number2, uint128_t *target);
 void or256(uint256_t *number1, uint256_t *number2, uint256_t *target);
+void mul128(uint128_t *number1, uint128_t *number2, uint128_t *target);
+void mul256(uint256_t *number1, uint256_t *number2, uint256_t *target);
 void divmod128(uint128_t *l, uint128_t *r, uint128_t *div, uint128_t *mod);
 void divmod256(uint256_t *l, uint256_t *r, uint256_t *div, uint256_t *mod);
 bool tostring128(uint128_t *number, uint32_t base, char *out,

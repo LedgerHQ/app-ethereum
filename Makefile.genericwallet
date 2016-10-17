@@ -45,8 +45,14 @@ PROG     := token-genericwallet
 
 CONFIG_PRODUCTIONS := bin/$(PROG)
 
+GLYPH_FILES := $(addprefix glyphs/,$(sort $(notdir $(shell find glyphs/))))
+GLYPH_DEST := src_common/glyphs.c
+$(GLYPH_DEST): $(GLYPH_FILES) $(BOLOS_SDK)/icon.py
+	-rm $@
+	if [ ! -z "$(GLYPH_FILES)" ] ; then for gif in $(GLYPH_FILES) ; do python $(BOLOS_SDK)/icon.py $$gif | grep -v "bitmap}," ; done > $(GLYPH_DEST) ; fi
+	
 SOURCE_PATH   := src_genericwallet $(BOLOS_SDK)/src $(dir $(shell find $(BOLOS_SDK)/lib_stusb* | grep "\.c$$")) src_common  
-SOURCE_FILES  := $(foreach path, $(SOURCE_PATH),$(shell find $(path) | grep "\.c$$") )
+SOURCE_FILES  := $(foreach path, $(SOURCE_PATH),$(shell find $(path) | grep "\.c$$") ) $(GLYPH_DEST)
 INCLUDES_PATH := $(dir $(shell find $(BOLOS_SDK)/lib_stusb* | grep "\.h$$")) include src_genericwallet $(BOLOS_SDK)/include $(BOLOS_SDK)/include/arm src_common 
 
 ### platform definitions
@@ -55,6 +61,16 @@ DEFINES := ST31 gcc __IO=volatile
 DEFINES   += OS_IO_SEPROXYHAL IO_SEPROXYHAL_BUFFER_SIZE_B=128
 DEFINES   += HAVE_BAGL HAVE_PRINTF 
 DEFINES   += HAVE_IO_USB HAVE_L4_USBLIB IO_USB_MAX_ENDPOINTS=7 IO_HID_EP_LENGTH=64 HAVE_USB_APDU
+DEFINES   +=  LEDGER_MAJOR_VERSION=1 LEDGER_MINOR_VERSION=0 LEDGER_PATCH_VERSION=2
+
+# U2F
+DEFINES   += HAVE_U2F
+DEFINES   += USB_SEGMENT_SIZE=64
+DEFINES   += BLE_SEGMENT_SIZE=32 #max MTU, min 20
+DEFINES   += U2F_MAX_MESSAGE_SIZE=264 #257+5+2
+DEFINES   += UNUSED\(x\)=\(void\)x
+DEFINES   += PRINTF\(...\)=
+DEFINES   += TARGET_ID=$(TARGET_ID)
 
 ##############
 # Compiler #
@@ -113,9 +129,9 @@ ifeq ($(filter clean,$(MAKECMDGOALS)),)
 endif
 
 clean:
-	rm -fr obj bin debug dep
+	rm -fr obj bin debug dep $(GLYPH_DEST)
 
-prepare:
+prepare: $(GLYPH_DEST)
 	@mkdir -p bin obj debug dep
 
 .SECONDEXPANSION:
@@ -126,10 +142,10 @@ log = $(if $(strip $(VERBOSE)),$1,@$1)
 default: prepare bin/$(PROG)
 
 load:
-	python -m ledgerblue.loadApp --targetId $(TARGET_ID) --fileName bin/$(PROG).hex --appName $(APPNAME) --icon `python $(BOLOS_SDK)/icon.py 16 16 icon.gif hexbitmaponly` $(APP_LOAD_PARAMS)
+	python -m ledgerblue.loadApp --targetId $(TARGET_ID) --fileName bin/$(PROG).hex --appName $(APPNAME) --icon `python $(BOLOS_SDK)/icon.py 16 16 icon.gif hexbitmaponly` --apdu $(APP_LOAD_PARAMS)
 
 load_release:
-	python -m ledgerblue.loadApp --targetId $(TARGET_ID) --fileName bin/$(PROG).hex --appName $(APPNAME) --icon `python $(BOLOS_SDK)/icon.py 16 16 icon.gif hexbitmaponly` $(APP_LOAD_PARAMS) --signature 3044022065e5bcf6519ea12ff991e429cc85bf7ecc789bd1a7a141d5e2dc358e5544c6170220726801803361b3296b83a3d14be8afc3374bda215b4dadd3d67bc3518e1f78bc
+	python -m ledgerblue.loadApp --targetId $(TARGET_ID) --fileName bin/$(PROG).hex --appName $(APPNAME) --icon `python $(BOLOS_SDK)/icon.py 16 16 icon.gif hexbitmaponly` $(APP_LOAD_PARAMS) --signature 304402205385091595d285e0b06b8f968457d70415140497a0edea385a63b9f526ebd2630220524c832f5f0d5e7ecce56db5839a70e52dc1b79bdda37c3aa08282f28b410082 
 
 delete:
 	python -m ledgerblue.deleteApp --targetId $(TARGET_ID) --appName $(APPNAME)

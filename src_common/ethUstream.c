@@ -202,6 +202,7 @@ static void processTo(txContext_t *context) {
                    copySize);
     }
     if (context->currentFieldPos == context->currentFieldLength) {
+        context->content->destinationLength = context->currentFieldLength;
         context->currentField++;
         context->processingField = false;
     }

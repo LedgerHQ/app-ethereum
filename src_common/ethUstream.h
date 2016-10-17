@@ -51,6 +51,7 @@ typedef struct txContent_t {
     txInt256_t startgas;
     txInt256_t value;
     uint8_t destination[20];
+    uint8_t destinationLength;
 } txContent_t;
 
 typedef struct txContext_t {

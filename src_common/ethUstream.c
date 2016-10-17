@@ -213,10 +213,6 @@ static void processData(txContext_t *context) {
         screen_printf("Invalid type for RLP_DATA\n");
         THROW(EXCEPTION);
     }
-    if (context->currentFieldLength > MAX_INT256) {
-        screen_printf("Invalid length for RLP_DATA\n");
-        THROW(EXCEPTION);
-    }
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
             (context->commandLength <

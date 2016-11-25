@@ -30,8 +30,6 @@
 #include "u2f_service.h"
 #include "u2f_transport.h"
 
-volatile unsigned char u2fInputBuffer[64];
-volatile unsigned char u2fOutputBuffer[64];
 volatile unsigned char u2fMessageBuffer[U2F_MAX_MESSAGE_SIZE];
 
 extern void USB_power_U2F(unsigned char enabled, unsigned char fido);
@@ -1377,7 +1375,19 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
                       sizeof(tmpCtx.transactionContext.hash), signature);
     os_memset(&privateKey, 0, sizeof(privateKey));
     // Parity is present in the sequence tag in the legacy API
-    G_io_apdu_buffer[0] = 27 + (signature[0] & 0x01);
+    if (txContent.vLength == 0) {
+        // Legacy API
+        G_io_apdu_buffer[0] = 27 + (signature[0] & 0x01);
+    } else {
+        // New API
+        uint8_t v;
+        if (txContent.vLength == 1) {
+            v = txContent.v[0];
+        } else {
+            v = txContent.v[1];
+        }
+        G_io_apdu_buffer[0] = (v * 2) + 35 + (signature[0] & 0x01);
+    }
     rLength = signature[3];
     sLength = signature[4 + rLength + 1];
     rOffset = (rLength == 33 ? 1 : 0);
@@ -1748,7 +1758,6 @@ void handleApdu(volatile unsigned int *flags, volatile unsigned int *tx) {
                     G_io_apdu_buffer[OFFSET_LC], flags, tx);
                 break;
 
-
             default:
                 THROW(0x6D00);
                 break;
@@ -1942,8 +1951,8 @@ __attribute__((section(".boot"))) int main(void) {
 
 #ifdef HAVE_U2F
             os_memset((unsigned char *)&u2fService, 0, sizeof(u2fService));
-            u2fService.inputBuffer = (uint8_t *)u2fInputBuffer;
-            u2fService.outputBuffer = (uint8_t *)u2fOutputBuffer;
+            u2fService.inputBuffer = G_io_apdu_buffer;
+            u2fService.outputBuffer = G_io_apdu_buffer;
             u2fService.messageBuffer = (uint8_t *)u2fMessageBuffer;
             u2fService.messageBufferSize = U2F_MAX_MESSAGE_SIZE;
             u2f_initialize_service((u2f_service_t *)&u2fService);

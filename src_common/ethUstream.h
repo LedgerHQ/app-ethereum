@@ -32,6 +32,9 @@ typedef enum rlpTxField_e {
     TX_RLP_TO,
     TX_RLP_VALUE,
     TX_RLP_DATA,
+    TX_RLP_V,
+    TX_RLP_R,
+    TX_RLP_S,
     TX_RLP_DONE
 } rlpTxField_e;
 
@@ -52,6 +55,8 @@ typedef struct txContent_t {
     txInt256_t value;
     uint8_t destination[20];
     uint8_t destinationLength;
+    uint8_t v[2];
+    uint8_t vLength;
 } txContent_t;
 
 typedef struct txContext_t {

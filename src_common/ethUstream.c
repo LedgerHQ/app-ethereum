@@ -20,6 +20,7 @@
 
 #define MAX_INT256 32
 #define MAX_ADDRESS 20
+#define MAX_V 2
 
 void initTx(txContext_t *context, cx_sha3_t *sha3, txContent_t *content,
             ustreamProcess_t customProcessor, void *extra) {
@@ -227,10 +228,42 @@ static void processData(txContext_t *context) {
     }
 }
 
+static void processV(txContext_t *context) {
+    if (context->currentFieldIsList) {
+        screen_printf("Invalid type for RLP_V\n");
+        THROW(EXCEPTION);
+    }
+    if (context->currentFieldLength > MAX_V) {
+        screen_printf("Invalid length for RLP_V\n");
+        THROW(EXCEPTION);
+    }
+    if (context->currentFieldPos < context->currentFieldLength) {
+        uint32_t copySize =
+            (context->commandLength <
+                     ((context->currentFieldLength - context->currentFieldPos))
+                 ? context->commandLength
+                 : context->currentFieldLength - context->currentFieldPos);
+        copyTxData(context, context->content->v + context->currentFieldPos,
+                   copySize);
+    }
+    if (context->currentFieldPos == context->currentFieldLength) {
+        context->content->vLength = context->currentFieldLength;
+        context->currentField++;
+        context->processingField = false;
+    }
+}
+
 static parserStatus_e processTxInternal(txContext_t *context) {
     for (;;) {
         bool processedCustom = false;
+        // EIP 155 style transasction
         if (context->currentField == TX_RLP_DONE) {
+            return USTREAM_FINISHED;
+        }
+        // Old style transaction
+        if ((context->currentField == TX_RLP_V) &&
+            (context->commandLength == 0)) {
+            context->content->vLength = 0;
             return USTREAM_FINISHED;
         }
         if (context->commandLength == 0) {
@@ -307,7 +340,12 @@ static parserStatus_e processTxInternal(txContext_t *context) {
                 processTo(context);
                 break;
             case TX_RLP_DATA:
+            case TX_RLP_R:
+            case TX_RLP_S:
                 processData(context);
+                break;
+            case TX_RLP_V:
+                processV(context);
                 break;
             default:
                 screen_printf("Invalid RLP decoder context\n");

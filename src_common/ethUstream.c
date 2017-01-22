@@ -36,7 +36,7 @@ void initTx(txContext_t *context, cx_sha3_t *sha3, txContent_t *content,
 uint8_t readTxByte(txContext_t *context) {
     uint8_t data;
     if (context->commandLength < 1) {
-        screen_printf("readTxByte Underflow\n");
+        PRINTF("readTxByte Underflow\n");
         THROW(EXCEPTION);
     }
     data = *context->workBuffer;
@@ -53,7 +53,7 @@ uint8_t readTxByte(txContext_t *context) {
 
 void copyTxData(txContext_t *context, uint8_t *out, uint32_t length) {
     if (context->commandLength < length) {
-        screen_printf("copyTxData Underflow\n");
+        PRINTF("copyTxData Underflow\n");
         THROW(EXCEPTION);
     }
     if (out != NULL) {
@@ -73,7 +73,7 @@ void copyTxData(txContext_t *context, uint8_t *out, uint32_t length) {
 static void processContent(txContext_t *context) {
     // Keep the full length for sanity checks, move to the next field
     if (!context->currentFieldIsList) {
-        screen_printf("Invalid type for RLP_CONTENT\n");
+        PRINTF("Invalid type for RLP_CONTENT\n");
         THROW(EXCEPTION);
     }
     context->dataLength = context->currentFieldLength;
@@ -83,11 +83,11 @@ static void processContent(txContext_t *context) {
 
 static void processNonce(txContext_t *context) {
     if (context->currentFieldIsList) {
-        screen_printf("Invalid type for RLP_NONCE\n");
+        PRINTF("Invalid type for RLP_NONCE\n");
         THROW(EXCEPTION);
     }
     if (context->currentFieldLength > MAX_INT256) {
-        screen_printf("Invalid length for RLP_NONCE\n");
+        PRINTF("Invalid length for RLP_NONCE\n");
         THROW(EXCEPTION);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
@@ -106,12 +106,12 @@ static void processNonce(txContext_t *context) {
 
 static void processStartGas(txContext_t *context) {
     if (context->currentFieldIsList) {
-        screen_printf("Invalid type for RLP_STARTGAS\n");
+        PRINTF("Invalid type for RLP_STARTGAS\n");
         THROW(EXCEPTION);
     }
     if (context->currentFieldLength > MAX_INT256) {
-        screen_printf("Invalid length for RLP_STARTGAS %d\n",
-                      context->currentFieldLength);
+        PRINTF("Invalid length for RLP_STARTGAS %d\n",
+               context->currentFieldLength);
         THROW(EXCEPTION);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
@@ -133,11 +133,11 @@ static void processStartGas(txContext_t *context) {
 
 static void processGasprice(txContext_t *context) {
     if (context->currentFieldIsList) {
-        screen_printf("Invalid type for RLP_GASPRICE\n");
+        PRINTF("Invalid type for RLP_GASPRICE\n");
         THROW(EXCEPTION);
     }
     if (context->currentFieldLength > MAX_INT256) {
-        screen_printf("Invalid length for RLP_GASPRICE\n");
+        PRINTF("Invalid length for RLP_GASPRICE\n");
         THROW(EXCEPTION);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
@@ -159,11 +159,11 @@ static void processGasprice(txContext_t *context) {
 
 static void processValue(txContext_t *context) {
     if (context->currentFieldIsList) {
-        screen_printf("Invalid type for RLP_VALUE\n");
+        PRINTF("Invalid type for RLP_VALUE\n");
         THROW(EXCEPTION);
     }
     if (context->currentFieldLength > MAX_INT256) {
-        screen_printf("Invalid length for RLP_VALUE\n");
+        PRINTF("Invalid length for RLP_VALUE\n");
         THROW(EXCEPTION);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
@@ -185,11 +185,11 @@ static void processValue(txContext_t *context) {
 
 static void processTo(txContext_t *context) {
     if (context->currentFieldIsList) {
-        screen_printf("Invalid type for RLP_TO\n");
+        PRINTF("Invalid type for RLP_TO\n");
         THROW(EXCEPTION);
     }
     if (context->currentFieldLength > MAX_ADDRESS) {
-        screen_printf("Invalid length for RLP_TO\n");
+        PRINTF("Invalid length for RLP_TO\n");
         THROW(EXCEPTION);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
@@ -211,7 +211,7 @@ static void processTo(txContext_t *context) {
 
 static void processData(txContext_t *context) {
     if (context->currentFieldIsList) {
-        screen_printf("Invalid type for RLP_DATA\n");
+        PRINTF("Invalid type for RLP_DATA\n");
         THROW(EXCEPTION);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
@@ -230,11 +230,11 @@ static void processData(txContext_t *context) {
 
 static void processV(txContext_t *context) {
     if (context->currentFieldIsList) {
-        screen_printf("Invalid type for RLP_V\n");
+        PRINTF("Invalid type for RLP_V\n");
         THROW(EXCEPTION);
     }
     if (context->currentFieldLength > MAX_V) {
-        screen_printf("Invalid length for RLP_V\n");
+        PRINTF("Invalid length for RLP_V\n");
         THROW(EXCEPTION);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
@@ -281,7 +281,7 @@ static parserStatus_e processTxInternal(txContext_t *context) {
                                  &valid)) {
                     // Can decode now, if valid
                     if (!valid) {
-                        screen_printf("RLP pre-decode error\n");
+                        PRINTF("RLP pre-decode error\n");
                         return USTREAM_FAULT;
                     }
                     canDecode = true;
@@ -290,7 +290,7 @@ static parserStatus_e processTxInternal(txContext_t *context) {
                 // Cannot decode yet
                 // Sanity check
                 if (context->rlpBufferPos == sizeof(context->rlpBuffer)) {
-                    screen_printf("RLP pre-decode logic error\n");
+                    PRINTF("RLP pre-decode logic error\n");
                     return USTREAM_FAULT;
                 }
             }
@@ -301,7 +301,7 @@ static parserStatus_e processTxInternal(txContext_t *context) {
             if (!rlpDecodeLength(context->rlpBuffer, context->rlpBufferPos,
                                  &context->currentFieldLength, &offset,
                                  &context->currentFieldIsList)) {
-                screen_printf("RLP decode error\n");
+                PRINTF("RLP decode error\n");
                 return USTREAM_FAULT;
             }
             if (offset == 0) {
@@ -348,7 +348,7 @@ static parserStatus_e processTxInternal(txContext_t *context) {
                 processV(context);
                 break;
             default:
-                screen_printf("Invalid RLP decoder context\n");
+                PRINTF("Invalid RLP decoder context\n");
                 return USTREAM_FAULT;
             }
         }

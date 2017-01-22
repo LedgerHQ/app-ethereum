@@ -111,10 +111,11 @@
 #define HID_EPOUT_ADDR 0x02
 #define HID_EPOUT_SIZE 0x40
 
+#define USBD_LANGID_STRING 0x409
+
 #ifdef HAVE_VID_PID_PROBER
 #define USBD_VID 0x2581
 #define USBD_PID 0xf1d1
-#define USBD_LANGID_STRING 0x409
 #else
 #define USBD_VID 0x2C97
 #if TARGET_ID == 0x31000002 // blue
@@ -148,7 +149,6 @@ const uint8_t const USBD_PRODUCT_FS_STRING[] = {
 #else
 #error unknown TARGET_ID
 #endif
-#define USBD_LANGID_STRING 0x409
 #endif
 
 /* USB Standard Device Descriptor */
@@ -158,7 +158,7 @@ const uint8_t const USBD_LangIDDesc[USB_LEN_LANGID_STR_DESC] = {
 };
 
 const uint8_t const USB_SERIAL_STRING[] = {
-    0x2, USB_DESC_TYPE_STRING,
+    3 * 2 + 2, USB_DESC_TYPE_STRING, '0', 0, '.', 0, '1', 0,
 };
 
 const uint8_t const USBD_MANUFACTURER_STRING[] = {
@@ -290,19 +290,21 @@ __ALIGN_BEGIN const uint8_t const USBD_HID_DeviceQualifierDesc[] __ALIGN_END = {
 
 /* USB Standard Device Descriptor */
 const uint8_t const USBD_DeviceDesc[USB_LEN_DEV_DESC] = {
-    0x12,                      /* bLength */
-    USB_DESC_TYPE_DEVICE,      /* bDescriptorType */
-    0x00,                      /* bcdUSB */
-    0x02, 0x00,                /* bDeviceClass */
-    0x00,                      /* bDeviceSubClass */
-    0x00,                      /* bDeviceProtocol */
-    USB_MAX_EP0_SIZE,          /* bMaxPacketSize */
-    LOBYTE(USBD_VID),          /* idVendor */
-    HIBYTE(USBD_VID),          /* idVendor */
-    LOBYTE(USBD_PID),          /* idVendor */
-    HIBYTE(USBD_PID),          /* idVendor */
-    0x00,                      /* bcdDevice rel. 2.00 */
-    0x02, USBD_IDX_MFC_STR,    /* Index of manufacturer string */
+    0x12,                 /* bLength */
+    USB_DESC_TYPE_DEVICE, /* bDescriptorType */
+    0x00,                 /* bcdUSB */
+    0x02,
+    0x00,             /* bDeviceClass */
+    0x00,             /* bDeviceSubClass */
+    0x00,             /* bDeviceProtocol */
+    USB_MAX_EP0_SIZE, /* bMaxPacketSize */
+    LOBYTE(USBD_VID), /* idVendor */
+    HIBYTE(USBD_VID), /* idVendor */
+    LOBYTE(USBD_PID), /* idVendor */
+    HIBYTE(USBD_PID), /* idVendor */
+    0x00,             /* bcdDevice rel. 2.00 */
+    0x02,
+    USBD_IDX_MFC_STR,          /* Index of manufacturer string */
     USBD_IDX_PRODUCT_STR,      /* Index of product string */
     USBD_IDX_SERIAL_STR,       /* Index of serial number string */
     USBD_MAX_NUM_CONFIGURATION /* bNumConfigurations */
@@ -469,6 +471,8 @@ uint8_t USBD_HID_DataOut_impl(USBD_HandleTypeDef *pdev, uint8_t epnum,
             break;
 
         case IO_USB_APDU_RECEIVED:
+            G_io_apdu_media = IO_APDU_MEDIA_USB_HID; // for application code
+            G_io_apdu_state = APDU_USB_HID; // for next call to io_exchange
             G_io_apdu_length = G_io_usb_hid_total_length;
             break;
         }
@@ -482,15 +486,22 @@ uint8_t USBD_HID_DataOut_impl(USBD_HandleTypeDef *pdev, uint8_t epnum,
   */
 
 // note: how core lib usb calls the hid class
-const USBD_DescriptorsTypeDef const HID_Desc = {
+static const USBD_DescriptorsTypeDef const HID_Desc = {
     USBD_HID_DeviceDescriptor,          USBD_HID_LangIDStrDescriptor,
     USBD_HID_ManufacturerStrDescriptor, USBD_HID_ProductStrDescriptor,
     USBD_HID_SerialStrDescriptor,       USBD_HID_ConfigStrDescriptor,
     USBD_HID_InterfaceStrDescriptor,    NULL,
 };
 
-// the USB device
-USBD_HandleTypeDef USBD_Device;
+static const USBD_ClassTypeDef const USBD_HID = {
+    USBD_HID_Init, USBD_HID_DeInit, USBD_HID_Setup, NULL, /*EP0_TxSent*/
+    NULL, /*EP0_RxReady*/                                 /* STATUS STAGE IN */
+    NULL,                                                 /*DataIn*/
+    USBD_HID_DataOut_impl,                                /*DataOut*/
+    NULL,                                                 /*SOF */
+    NULL, NULL, USBD_HID_GetCfgDesc_impl, USBD_HID_GetCfgDesc_impl,
+    USBD_HID_GetCfgDesc_impl, USBD_HID_GetDeviceQualifierDesc_impl,
+};
 
 void USB_power_U2F(unsigned char enabled, unsigned char fido) {
     uint16_t page = (fido ? PAGE_FIDO : PAGE_GENERIC);

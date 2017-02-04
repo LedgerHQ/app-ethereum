@@ -21,6 +21,7 @@
 #include "ethUstream.h"
 #include "ethUtils.h"
 #include "uint256.h"
+#include "tokens.h"
 
 #include "os_io_seproxyhal.h"
 #include "string.h"
@@ -73,6 +74,14 @@ uint32_t set_result_get_publicKey(void);
 
 #define WEI_TO_ETHER 18
 
+static const uint8_t const TOKEN_TRANSFER_ID[] = {0xa9, 0x05, 0x9c, 0xbb};
+static const uint8_t const TICKER_ETH[] = "ETH ";
+typedef struct tokenContext_t {
+    uint8_t data[4 + 32 + 32];
+    uint32_t dataFieldPos;
+    bool provisioned;
+} tokenContext_t;
+
 typedef struct publicKeyContext_t {
     cx_ecfp_public_key_t publicKey;
     uint8_t address[41];
@@ -93,6 +102,7 @@ union {
 txContext_t txContext;
 txContent_t txContent;
 cx_sha3_t sha3;
+tokenContext_t tokenContext;
 volatile uint8_t dataAllowed;
 volatile uint8_t fidoTransport;
 volatile char addressSummary[32];
@@ -663,7 +673,7 @@ const bagl_element_t ui_settings_nanos[] = {
      NULL},
     //{{BAGL_ICON                           , 0x01,   3,  14,   7,   4, 0, 0, 0
     //, 0xFFFFFF, 0x000000, 0,
-    //BAGL_GLYPH_ICON_UP   }, NULL, 0, 0, 0, NULL, NULL, NULL },
+    // BAGL_GLYPH_ICON_UP   }, NULL, 0, 0, 0, NULL, NULL, NULL },
     {{BAGL_ICON, 0x01, 118, 14, 7, 4, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
       BAGL_GLYPH_ICON_DOWN},
      NULL,
@@ -1033,10 +1043,10 @@ const bagl_element_t ui_address_blue[] = {
      NULL},
 
     //{{BAGL_RECTANGLE | BAGL_FLAG_TOUCHABLE, 0x00, 264,  19,  56,  44, 0, 0,
-    //BAGL_FILL, COLOR_APP, COLOR_APP_LIGHT,
-    //BAGL_FONT_SYMBOLS_0|BAGL_FONT_ALIGNMENT_CENTER|BAGL_FONT_ALIGNMENT_MIDDLE,
-    //0 }, " " /*BAGL_FONT_SYMBOLS_0_DASHBOARD*/, 0, COLOR_APP, 0xFFFFFF,
-    //io_seproxyhal_touch_exit, NULL, NULL},
+    // BAGL_FILL, COLOR_APP, COLOR_APP_LIGHT,
+    // BAGL_FONT_SYMBOLS_0|BAGL_FONT_ALIGNMENT_CENTER|BAGL_FONT_ALIGNMENT_MIDDLE,
+    // 0 }, " " /*BAGL_FONT_SYMBOLS_0_DASHBOARD*/, 0, COLOR_APP, 0xFFFFFF,
+    // io_seproxyhal_touch_exit, NULL, NULL},
 
     {{BAGL_LABELINE, 0x00, 30, 106, 320, 30, 0, 0, BAGL_FILL, 0x999999,
       COLOR_BG_1, BAGL_FONT_OPEN_SANS_SEMIBOLD_8_11PX, 0},
@@ -1280,10 +1290,10 @@ const bagl_element_t ui_details_blue[] = {
      NULL,
      NULL},
     //{{BAGL_RECTANGLE | BAGL_FLAG_TOUCHABLE, 0x00, 264,  19,  56,  44, 0, 0,
-    //BAGL_FILL, COLOR_APP, COLOR_APP_LIGHT,
-    //BAGL_FONT_SYMBOLS_0|BAGL_FONT_ALIGNMENT_CENTER|BAGL_FONT_ALIGNMENT_MIDDLE,
-    //0 }, " " /*BAGL_FONT_SYMBOLS_0_DASHBOARD*/, 0, COLOR_APP, 0xFFFFFF,
-    //io_seproxyhal_touch_exit, NULL, NULL},
+    // BAGL_FILL, COLOR_APP, COLOR_APP_LIGHT,
+    // BAGL_FONT_SYMBOLS_0|BAGL_FONT_ALIGNMENT_CENTER|BAGL_FONT_ALIGNMENT_MIDDLE,
+    // 0 }, " " /*BAGL_FONT_SYMBOLS_0_DASHBOARD*/, 0, COLOR_APP, 0xFFFFFF,
+    // io_seproxyhal_touch_exit, NULL, NULL},
 
     {{BAGL_LABELINE, 0x00, 30, 106, 320, 30, 0, 0, BAGL_FILL, 0x999999,
       COLOR_BG_1, BAGL_FONT_OPEN_SANS_SEMIBOLD_8_11PX, 0},
@@ -1518,10 +1528,10 @@ const bagl_element_t ui_approval_blue[] = {
      NULL},
 
     //{{BAGL_RECTANGLE | BAGL_FLAG_TOUCHABLE, 0x00, 264,  19,  56,  44, 0, 0,
-    //BAGL_FILL, COLOR_APP, COLOR_APP_LIGHT,
-    //BAGL_FONT_SYMBOLS_0|BAGL_FONT_ALIGNMENT_CENTER|BAGL_FONT_ALIGNMENT_MIDDLE,
-    //0 }, " " /*BAGL_FONT_SYMBOLS_0_DASHBOARD*/, 0, COLOR_APP, 0xFFFFFF,
-    //io_seproxyhal_touch_exit, NULL, NULL},
+    // BAGL_FILL, COLOR_APP, COLOR_APP_LIGHT,
+    // BAGL_FONT_SYMBOLS_0|BAGL_FONT_ALIGNMENT_CENTER|BAGL_FONT_ALIGNMENT_MIDDLE,
+    // 0 }, " " /*BAGL_FONT_SYMBOLS_0_DASHBOARD*/, 0, COLOR_APP, 0xFFFFFF,
+    // io_seproxyhal_touch_exit, NULL, NULL},
 
     // BADGE_TRANSACTION.GIF
     {{BAGL_ICON, 0x00, 30, 98, 50, 50, 0, 0, BAGL_FILL, 0, COLOR_BG_1, 0, 0},
@@ -1738,9 +1748,10 @@ const bagl_element_t ui_approval_blue[] = {
      NULL},
 
     //{{BAGL_LABELINE                       , 0x05, 130, 343, 160,  30, 0, 0,
-    //BAGL_FILL, 0x666666, COLOR_BG_1,
-    //BAGL_FONT_OPEN_SANS_REGULAR_10_13PX|BAGL_FONT_ALIGNMENT_RIGHT, 0   }, "Not
-    //present", 0, 0, 0, NULL, NULL, NULL},
+    // BAGL_FILL, 0x666666, COLOR_BG_1,
+    // BAGL_FONT_OPEN_SANS_REGULAR_10_13PX|BAGL_FONT_ALIGNMENT_RIGHT, 0   },
+    // "Not
+    // present", 0, 0, 0, NULL, NULL, NULL},
     {{BAGL_LABELINE, 0x06, 133, 343, 140, 30, 0, 0, BAGL_FILL, 0x666666,
       COLOR_BG_1,
       BAGL_FONT_OPEN_SANS_REGULAR_10_13PX | BAGL_FONT_ALIGNMENT_RIGHT, 0},
@@ -2380,6 +2391,29 @@ bool customProcessor(txContext_t *context) {
             THROW(EXCEPTION);
         } else {
             dataPresent = true;
+            if (context->currentFieldLength == sizeof(tokenContext.data)) {
+                if (context->currentFieldPos < context->currentFieldLength) {
+                    uint32_t copySize = (context->commandLength <
+                                                 ((context->currentFieldLength -
+                                                   context->currentFieldPos))
+                                             ? context->commandLength
+                                             : context->currentFieldLength -
+                                                   context->currentFieldPos);
+                    copyTxData(context,
+                               tokenContext.data + context->currentFieldPos,
+                               copySize);
+                }
+                if (context->currentFieldPos == context->currentFieldLength) {
+                    context->currentField++;
+                    context->processingField = false;
+                    // Initial check to see if the token content can be
+                    // processed
+                    tokenContext.provisioned =
+                        (os_memcmp(tokenContext.data, TOKEN_TRANSFER_ID, 4) ==
+                         0);
+                }
+                return true;
+            }
         }
     }
     return false;
@@ -2464,6 +2498,9 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     uint256_t gasPrice, startGas, uint256;
     uint32_t i;
     uint8_t address[41];
+    uint8_t decimals = WEI_TO_ETHER;
+    uint8_t *ticker = TICKER_ETH;
+    uint8_t tickerOffset = 0;
     if (p1 == P1_FIRST) {
         tmpCtx.transactionContext.pathLength = workBuffer[0];
         if ((tmpCtx.transactionContext.pathLength < 0x01) ||
@@ -2481,6 +2518,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
             dataLength -= 4;
         }
         dataPresent = false;
+        tokenContext.provisioned = false;
         initTx(&txContext, &sha3, &txContent, customProcessor, NULL);
     } else if (p1 != P1_MORE) {
         THROW(0x6B00);
@@ -2504,10 +2542,28 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         PRINTF("Unexpected parser status\n");
         THROW(0x6A80);
     }
-
     // Store the hash
     cx_hash((cx_hash_t *)&sha3, CX_LAST, tmpCtx.transactionContext.hash, 0,
             tmpCtx.transactionContext.hash);
+    // If there is a token to process, check if it is well known
+    if (tokenContext.provisioned) {
+        for (i = 0; i < NUM_TOKENS; i++) {
+            tokenDefinition_t *currentToken = PIC(&TOKENS[i]);
+            if (os_memcmp(currentToken->address, txContent.destination, 20) ==
+                0) {
+                dataPresent = false;
+                decimals = currentToken->decimals;
+                ticker = currentToken->ticker;
+                txContent.destinationLength = 20;
+                os_memmove(txContent.destination, tokenContext.data + 4 + 12,
+                           20);
+                os_memmove(txContent.value.value, tokenContext.data + 4 + 32,
+                           32);
+                txContent.value.length = 32;
+                break;
+            }
+        }
+    }
     // Add address
     if (txContent.destinationLength != 0) {
         getEthAddressStringFromBinary(txContent.destination, address, &sha3);
@@ -2527,7 +2583,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
                    sizeof(CONTRACT_ADDRESS));
         strcpy(fullAddress, "Contract");
     }
-    // Add amount in ethers
+    // Add amount in ethers or tokens
     convertUint256BE(txContent.value.value, txContent.value.length, &uint256);
     tostring256(&uint256, 10, (char *)(G_io_apdu_buffer + 100), 100);
     i = 0;
@@ -2535,17 +2591,18 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
         i++;
     }
     adjustDecimals((char *)(G_io_apdu_buffer + 100), i,
-                   (char *)G_io_apdu_buffer, 100, WEI_TO_ETHER);
+                   (char *)G_io_apdu_buffer, 100, decimals);
     i = 0;
-    fullAmount[0] = 'E';
-    fullAmount[1] = 'T';
-    fullAmount[2] = 'H';
-    fullAmount[3] = ' ';
+    tickerOffset = 0;
+    while (ticker[tickerOffset]) {
+        fullAmount[tickerOffset] = ticker[tickerOffset];
+        tickerOffset++;
+    }
     while (G_io_apdu_buffer[i]) {
-        fullAmount[4 + i] = G_io_apdu_buffer[i];
+        fullAmount[tickerOffset + i] = G_io_apdu_buffer[i];
         i++;
     }
-    fullAmount[4 + i] = '\0';
+    fullAmount[tickerOffset + i] = '\0';
     // Compute maximum fee
     convertUint256BE(txContent.gasprice.value, txContent.gasprice.length,
                      &gasPrice);
@@ -2631,7 +2688,6 @@ void handleApdu(volatile unsigned int *flags, volatile unsigned int *tx) {
                     G_io_apdu_buffer + OFFSET_CDATA,
                     G_io_apdu_buffer[OFFSET_LC], flags, tx);
                 break;
-
 
             default:
                 THROW(0x6D00);

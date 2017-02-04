@@ -161,7 +161,7 @@ default: prepare bin/$(PROG)
 
 
 load: all
-	python -m ledgerblue.loadApp --targetId $(TARGET_ID) --fileName bin/$(PROG).hex --delete --appName $(APPNAME) --icon `python $(BOLOS_SDK)/icon.py $(ICONNAME) hexbitmaponly` $(LOADFLAGS) $(APP_LOAD_PARAMS)
+	python -m ledgerblue.loadApp --targetId $(TARGET_ID) --fileName bin/$(PROG).hex --appName $(APPNAME) --icon `python $(BOLOS_SDK)/icon.py $(ICONNAME) hexbitmaponly` $(LOADFLAGS) $(APP_LOAD_PARAMS)
 
 delete:
 	python -m ledgerblue.deleteApp --targetId $(TARGET_ID) --appName $(APPNAME)

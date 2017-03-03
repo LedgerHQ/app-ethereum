@@ -23,7 +23,7 @@ APP_LOAD_PARAMS=--appFlags 0x40 --path "44'/60'" --path "44'/61'" --curve secp25
 
 APPVERSION_M=1
 APPVERSION_N=0
-APPVERSION_P=5
+APPVERSION_P=8
 APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 
 #prepare hsm generation
@@ -88,6 +88,7 @@ DEFINES   += USB_SEGMENT_SIZE=64
 DEFINES   += BLE_SEGMENT_SIZE=32 #max MTU, min 20
 DEFINES   += U2F_MAX_MESSAGE_SIZE=264 #257+5+2
 DEFINES   += UNUSED\(x\)=\(void\)x
+DEFINES   += APPVERSION=\"$(APPVERSION)\"
 
 ##############
 # Compiler #

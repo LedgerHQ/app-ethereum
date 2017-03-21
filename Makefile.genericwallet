@@ -23,7 +23,7 @@ APP_LOAD_PARAMS=--appFlags 0x40 --path "44'/60'" --path "44'/61'" --curve secp25
 
 APPVERSION_M=1
 APPVERSION_N=0
-APPVERSION_P=8
+APPVERSION_P=9
 APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 
 #prepare hsm generation

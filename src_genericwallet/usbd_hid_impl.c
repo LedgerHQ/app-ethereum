@@ -96,6 +96,7 @@
   * @{
   */
 
+
 /**
   * @}
   */
@@ -117,13 +118,13 @@
 #define USBD_PID 0xf1d1
 #else
 #define USBD_VID 0x2C97
-#if TARGET_ID == 0x31000002 // blue
+#if defined(TARGET_BLUE) // blue
 #define USBD_PID 0x0000
 const uint8_t const USBD_PRODUCT_FS_STRING[] = {
     4 * 2 + 2, USB_DESC_TYPE_STRING, 'B', 0, 'l', 0, 'u', 0, 'e', 0,
 };
 
-#elif TARGET_ID == 0x31100002 // nano s
+#elif defined(TARGET_NANOS) // nano s
 #define USBD_PID 0x0001
 const uint8_t const USBD_PRODUCT_FS_STRING[] = {
     6 * 2 + 2, USB_DESC_TYPE_STRING,
@@ -134,7 +135,7 @@ const uint8_t const USBD_PRODUCT_FS_STRING[] = {
     ' ',       0,
     'S',       0,
 };
-#elif TARGET_ID == 0x31200002 // aramis
+#elif defined(TARGET_ARAMIS) // aramis
 #define USBD_PID 0x0002
 const uint8_t const USBD_PRODUCT_FS_STRING[] = {
     6 * 2 + 2, USB_DESC_TYPE_STRING,
@@ -462,18 +463,21 @@ uint8_t USBD_HID_DataOut_impl(USBD_HandleTypeDef *pdev, uint8_t epnum,
                              U2F_MEDIA_USB);
 #endif
     } else {
-        // add to the hid transport
-        switch (
-            io_usb_hid_receive(io_usb_send_apdu_data, buffer,
-                               io_seproxyhal_get_ep_rx_size(HID_EPOUT_ADDR))) {
-        default:
-            break;
+        // avoid troubles when an apdu has not been replied yet
+        if (G_io_apdu_media == IO_APDU_MEDIA_NONE) {
+            // add to the hid transport
+            switch (io_usb_hid_receive(
+                io_usb_send_apdu_data, buffer,
+                io_seproxyhal_get_ep_rx_size(HID_EPOUT_ADDR))) {
+            default:
+                break;
 
-        case IO_USB_APDU_RECEIVED:
-            G_io_apdu_media = IO_APDU_MEDIA_USB_HID; // for application code
-            G_io_apdu_state = APDU_USB_HID; // for next call to io_exchange
-            G_io_apdu_length = G_io_usb_hid_total_length;
-            break;
+            case IO_USB_APDU_RECEIVED:
+                G_io_apdu_media = IO_APDU_MEDIA_USB_HID; // for application code
+                G_io_apdu_state = APDU_USB_HID; // for next call to io_exchange
+                G_io_apdu_length = G_io_usb_hid_total_length;
+                break;
+            }
         }
     }
 

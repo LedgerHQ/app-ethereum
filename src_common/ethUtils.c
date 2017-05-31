@@ -257,6 +257,7 @@ bool adjustDecimals(char *src, uint32_t srcLength, char *target,
         while (sourceOffset < srcLength) {
             target[offset++] = src[sourceOffset++];
         }
+	target[offset] = '\0';
     }
     for (uint32_t i = startOffset; i < offset; i++) {
         if (target[i] == '0') {

@@ -23,6 +23,12 @@ typedef struct tokenDefinition_t {
     uint8_t decimals;
 } tokenDefinition_t;
 
-#define NUM_TOKENS 105 
+#if defined(CHAIN_TYPE_ETHEREUM)
+#define NUM_TOKENS 221
+#elif defined(CHAIN_TYPE_UBIQ)
+#define NUM_TOKENS 2
+#elif defined(CHAIN_TYPE_EXPANSE)
+#define NUM_TOKENS 0
+#endif
 
 extern tokenDefinition_t const TOKENS[NUM_TOKENS];

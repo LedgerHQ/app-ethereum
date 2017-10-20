@@ -28,6 +28,9 @@
 
 #include "glyphs.h"
 
+#define __NAME3(a, b, c) a##b##c
+#define NAME3(a, b, c) __NAME3(a, b, c)
+
 #ifdef HAVE_U2F
 
 #include "u2f_service.h"
@@ -222,7 +225,7 @@ const bagl_element_t ui_idle_blue[] = {
     /// TOP STATUS BAR
     {{BAGL_LABELINE, 0x00, 0, 45, 320, 30, 0, 0, BAGL_FILL, 0xFFFFFF, COLOR_APP,
       BAGL_FONT_OPEN_SANS_SEMIBOLD_10_13PX | BAGL_FONT_ALIGNMENT_CENTER, 0},
-     "ETHEREUM",
+     CHAINID_UPCASE,
      0,
      0,
      0,
@@ -255,9 +258,9 @@ const bagl_element_t ui_idle_blue[] = {
      NULL,
      NULL},
 
-    // BADGE_ETHEREUM.GIF
+    // BADGE_<CHAINID>.GIF
     {{BAGL_ICON, 0x00, 135, 178, 50, 50, 0, 0, BAGL_FILL, 0, COLOR_BG_1, 0, 0},
-     &C_badge_ethereum,
+     &NAME3(C_blue_badge_, CHAINID, ),
      0,
      0,
      0,
@@ -268,7 +271,7 @@ const bagl_element_t ui_idle_blue[] = {
     {{BAGL_LABELINE, 0x00, 0, 270, 320, 30, 0, 0, BAGL_FILL, 0x000000,
       COLOR_BG_1,
       BAGL_FONT_OPEN_SANS_LIGHT_16_22PX | BAGL_FONT_ALIGNMENT_CENTER, 0},
-     "Open Ethereum wallet",
+     "Open " CHAINID_NAME " wallet",
      0,
      0,
      0,
@@ -383,7 +386,8 @@ const ux_menu_entry_t menu_about[] = {
     UX_MENU_END};
 
 const ux_menu_entry_t menu_main[] = {
-    {NULL, NULL, 0, &C_icon_ethereum, "Use wallet to", "view accounts", 33, 12},
+    {NULL, NULL, 0, &NAME3(C_nanos_badge_, CHAINID, ), "Use wallet to",
+     "view accounts", 33, 12},
     {menu_settings, NULL, 0, NULL, "Settings", NULL, 0, 0},
     {menu_about, NULL, 0, NULL, "About", NULL, 0, 0},
     {NULL, os_sched_exit, 0, &C_icon_dashboard, "Quit app", NULL, 50, 29},
@@ -868,9 +872,9 @@ const bagl_element_t *ui_approval_blue_1_details(const bagl_element_t *e) {
             BAGL_FONT_OPEN_SANS_LIGHT_16_22PX_AVG_WIDTH >=
         160) {
         // display details screen
-        ui_details_init(ui_approval_blue_details_name[G_ui_approval_blue_state]
-                                                     [0],
-                        ui_approval_blue_values[0], ui_approval_blue_init);
+        ui_details_init(
+            ui_approval_blue_details_name[G_ui_approval_blue_state][0],
+            ui_approval_blue_values[0], ui_approval_blue_init);
     }
     return 0;
 };
@@ -879,9 +883,9 @@ const bagl_element_t *ui_approval_blue_2_details(const bagl_element_t *e) {
     if (strlen(ui_approval_blue_values[1]) *
             BAGL_FONT_OPEN_SANS_REGULAR_10_13PX_AVG_WIDTH >=
         160) {
-        ui_details_init(ui_approval_blue_details_name[G_ui_approval_blue_state]
-                                                     [1],
-                        ui_approval_blue_values[1], ui_approval_blue_init);
+        ui_details_init(
+            ui_approval_blue_details_name[G_ui_approval_blue_state][1],
+            ui_approval_blue_values[1], ui_approval_blue_init);
     }
     return 0;
 };
@@ -890,9 +894,9 @@ const bagl_element_t *ui_approval_blue_3_details(const bagl_element_t *e) {
     if (strlen(ui_approval_blue_values[2]) *
             BAGL_FONT_OPEN_SANS_REGULAR_10_13PX_AVG_WIDTH >=
         160) {
-        ui_details_init(ui_approval_blue_details_name[G_ui_approval_blue_state]
-                                                     [2],
-                        ui_approval_blue_values[2], ui_approval_blue_init);
+        ui_details_init(
+            ui_approval_blue_details_name[G_ui_approval_blue_state][2],
+            ui_approval_blue_values[2], ui_approval_blue_init);
     }
     return 0;
 };

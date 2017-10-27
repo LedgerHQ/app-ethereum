@@ -1621,9 +1621,9 @@ const bagl_element_t ui_approval_nanos[] = {
      NULL,
      NULL,
      NULL},
-    {{BAGL_LABELINE, 0x04, 16, 26, 96, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
-      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
-     (char *)addressSummary,
+    {{BAGL_LABELINE, 0x04, 23, 26, 82, 12, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 50},
+     (char *)fullAddress,
      0,
      0,
      0,
@@ -1674,7 +1674,8 @@ unsigned int ui_approval_prepro(const bagl_element_t *element) {
                     3000, 1000 + bagl_label_roundtrip_duration_ms(element, 7)));
                 break;
             case 4:
-                UX_CALLBACK_SET_INTERVAL(3000);
+                UX_CALLBACK_SET_INTERVAL(MAX(
+                    3000, 1000 + bagl_label_roundtrip_duration_ms(element, 7)));
                 break;
             case 5:
                 UX_CALLBACK_SET_INTERVAL(MAX(
@@ -2209,7 +2210,7 @@ void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer,
                  tmpCtx.publicKeyContext.address);
         UX_DISPLAY(ui_address_blue, ui_address_blue_prepro);
 #elif defined(TARGET_NANOS)
-        snprintf(fullAddress, sizeof(fullAddress), " 0x%.*s ", 40,
+        snprintf(fullAddress, sizeof(fullAddress), "0x%.*s", 40,
                  tmpCtx.publicKeyContext.address);
         ux_step = 0;
         ux_step_count = 2;
@@ -2299,12 +2300,14 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     if (tmpContent.txContent.destinationLength != 0) {
         getEthAddressStringFromBinary(tmpContent.txContent.destination, address,
                                       &sha3);
+        /*
         addressSummary[0] = '0';
         addressSummary[1] = 'x';
         os_memmove((unsigned char *)(addressSummary + 2), address, 4);
         os_memmove((unsigned char *)(addressSummary + 6), "...", 3);
         os_memmove((unsigned char *)(addressSummary + 9), address + 40 - 4, 4);
         addressSummary[13] = '\0';
+        */
 
         fullAddress[0] = '0';
         fullAddress[1] = 'x';
@@ -2352,8 +2355,8 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     i = 0;
     tickerOffset = 0;
     while (ticker[tickerOffset]) {
-	maxFee[tickerOffset] = ticker[tickerOffset];
-	tickerOffset++;
+        maxFee[tickerOffset] = ticker[tickerOffset];
+        tickerOffset++;
     }
     tickerOffset++;
     while (G_io_apdu_buffer[i]) {

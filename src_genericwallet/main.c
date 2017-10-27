@@ -81,7 +81,7 @@ uint32_t set_result_get_publicKey(void);
 #define WEI_TO_ETHER 18
 
 static const uint8_t const TOKEN_TRANSFER_ID[] = {0xa9, 0x05, 0x9c, 0xbb};
-static const uint8_t const TICKER_ETH[] = "ETH ";
+static const uint8_t const TICKER_ETH[] = CHAINID_COINNAME " ";
 typedef struct tokenContext_t {
     uint8_t data[4 + 32 + 32];
     uint32_t dataFieldPos;
@@ -2350,15 +2350,17 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
     adjustDecimals((char *)(G_io_apdu_buffer + 100), i,
                    (char *)G_io_apdu_buffer, 100, WEI_TO_ETHER);
     i = 0;
-    maxFee[0] = 'E';
-    maxFee[1] = 'T';
-    maxFee[2] = 'H';
-    maxFee[3] = ' ';
+    tickerOffset = 0;
+    while (ticker[tickerOffset]) {
+	maxFee[tickerOffset] = ticker[tickerOffset];
+	tickerOffset++;
+    }
+    tickerOffset++;
     while (G_io_apdu_buffer[i]) {
-        maxFee[4 + i] = G_io_apdu_buffer[i];
+        maxFee[tickerOffset + i] = G_io_apdu_buffer[i];
         i++;
     }
-    maxFee[4 + i] = '\0';
+    maxFee[tickerOffset + i] = '\0';
 
 #if defined(TARGET_BLUE)
     ui_approval_transaction_blue_init();

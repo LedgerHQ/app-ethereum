@@ -122,8 +122,8 @@ union {
 
 cx_sha3_t sha3;
 tokenContext_t tokenContext;
-volatile uint8_t dataAllowed;
-volatile uint8_t fidoTransport;
+// volatile uint8_t dataAllowed;
+// volatile uint8_t fidoTransport;
 volatile char addressSummary[32];
 volatile char fullAddress[43];
 volatile char fullAmount[50];
@@ -327,7 +327,7 @@ const ux_menu_entry_t menu_settings_data[];
 
 // change the setting
 void menu_settings_data_change(unsigned int enabled) {
-    dataAllowed = enabled;
+    uint8_t dataAllowed = enabled;
     nvm_write(&N_storage.dataAllowed, (void *)&dataAllowed, sizeof(uint8_t));
     USB_power_U2F(0, 0);
     USB_power_U2F(1, N_storage.fidoTransport);
@@ -344,7 +344,7 @@ void menu_settings_data_init(unsigned int ignored) {
 #ifdef HAVE_U2F
 // change the setting
 void menu_settings_browser_change(unsigned int enabled) {
-    fidoTransport = enabled;
+    uint8_t fidoTransport = enabled;
     nvm_write(&N_storage.fidoTransport, (void *)&fidoTransport,
               sizeof(uint8_t));
     USB_power_U2F(0, 0);

@@ -29,6 +29,8 @@ typedef struct tokenDefinition_t {
 #define NUM_TOKENS 2
 #elif defined(CHAIN_TYPE_EXPANSE)
 #define NUM_TOKENS 0
+#elif defined(CHAIN_TYPE_POA)
+#define NUM_TOKENS 0
 #endif
 
 extern tokenDefinition_t const TOKENS[NUM_TOKENS];

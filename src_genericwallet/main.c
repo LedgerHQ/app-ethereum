@@ -2354,8 +2354,8 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer,
                    (char *)G_io_apdu_buffer, 100, WEI_TO_ETHER);
     i = 0;
     tickerOffset = 0;
-    while (ticker[tickerOffset]) {
-        maxFee[tickerOffset] = ticker[tickerOffset];
+    while (TICKER_ETH[tickerOffset]) {
+        maxFee[tickerOffset] = TICKER_ETH[tickerOffset];
         tickerOffset++;
     }
     tickerOffset++;

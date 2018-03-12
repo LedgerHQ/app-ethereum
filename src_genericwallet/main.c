@@ -1876,10 +1876,21 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
         tmpCtx.transactionContext.pathLength, privateKeyData, NULL);
     cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
     os_memset(privateKeyData, 0, sizeof(privateKeyData));
+#if CX_APILEVEL >= 8
+    unsigned int info = 0;
+    signatureLength =
+        cx_ecdsa_sign(&privateKey, CX_RND_RFC6979 | CX_LAST, CX_SHA256,
+                      tmpCtx.transactionContext.hash,
+                      sizeof(tmpCtx.transactionContext.hash), signature, &info);
+    if (info & CX_ECCINFO_PARITY_ODD) {
+        signature[0] |= 0x01;
+    }
+#else
     signatureLength =
         cx_ecdsa_sign(&privateKey, CX_RND_RFC6979 | CX_LAST, CX_SHA256,
                       tmpCtx.transactionContext.hash,
                       sizeof(tmpCtx.transactionContext.hash), signature);
+#endif
     os_memset(&privateKey, 0, sizeof(privateKey));
     // Parity is present in the sequence tag in the legacy API
     if (tmpContent.txContent.vLength == 0) {
@@ -1952,10 +1963,22 @@ unsigned int io_seproxyhal_touch_signMessage_ok(const bagl_element_t *e) {
         tmpCtx.messageSigningContext.pathLength, privateKeyData, NULL);
     cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
     os_memset(privateKeyData, 0, sizeof(privateKeyData));
+
+#if CX_APILEVEL >= 8
+    unsigned int info = 0;
+    signatureLength = cx_ecdsa_sign(
+        &privateKey, CX_RND_RFC6979 | CX_LAST, CX_SHA256,
+        tmpCtx.messageSigningContext.hash,
+        sizeof(tmpCtx.messageSigningContext.hash), signature, &info);
+    if (info & CX_ECCINFO_PARITY_ODD) {
+        signature[0] |= 0x01;
+    }
+#else
     signatureLength =
         cx_ecdsa_sign(&privateKey, CX_RND_RFC6979 | CX_LAST, CX_SHA256,
                       tmpCtx.messageSigningContext.hash,
                       sizeof(tmpCtx.messageSigningContext.hash), signature);
+#endif
     os_memset(&privateKey, 0, sizeof(privateKey));
     G_io_apdu_buffer[0] = 27 + (signature[0] & 0x01);
     rLength = signature[3];

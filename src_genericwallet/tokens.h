@@ -24,7 +24,7 @@ typedef struct tokenDefinition_t {
 } tokenDefinition_t;
 
 #if defined(CHAIN_TYPE_ETHEREUM)
-#define NUM_TOKENS 340 
+#define NUM_TOKENS 341 
 #elif defined(CHAIN_TYPE_UBIQ)
 #define NUM_TOKENS 6 
 #elif defined(CHAIN_TYPE_EXPANSE)

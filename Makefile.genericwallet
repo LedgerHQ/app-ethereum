@@ -38,12 +38,16 @@ else ifeq ($(CHAIN),ubiq)
 APP_LOAD_PARAMS += --path "44'/108'"
 DEFINES += CHAINID_UPCASE=\"UBIQ\" CHAINID_COINNAME=\"UBQ\" CHAINID_NAME=\"Ubiq\" CHAINID=$(CHAIN) CHAIN_TYPE_UBIQ
 APPNAME = Ubiq
+else ifeq ($(CHAIN),poa)
+APP_LOAD_PARAMS += --path "44'/60'"
+DEFINES += CHAINID_UPCASE=\"POA\" CHAINID_COINNAME=\"POA\" CHAINID_NAME=\"Poa\" CHAINID=$(CHAIN) CHAIN_TYPE_POA
+APPNAME = Poa
 else
 ifeq ($(filter clean,$(MAKECMDGOALS)),)
-$(error Unsupported CHAIN - use ethereum, expanse, ubiq)
+$(error Unsupported CHAIN - use ethereum, expanse, ubiq, poa)
 endif
 endif
-APP_LOAD_PARAMS += --appFlags 0x40 --path "44'/1'" --curve secp256k1 $(COMMON_LOAD_PARAMS) 
+APP_LOAD_PARAMS += --appFlags 0x40 --path "44'/1'" --curve secp256k1 $(COMMON_LOAD_PARAMS) --apdu
 
 #prepare hsm generation
 ifeq ($(TARGET_NAME),TARGET_BLUE)
@@ -79,12 +83,12 @@ DEFINES   += APPVERSION=\"$(APPVERSION)\"
 ##############
 #  Compiler  #
 ##############
-#GCCPATH   := $(BOLOS_ENV)/gcc-arm-none-eabi-5_3-2016q1/bin/
-#CLANGPATH := $(BOLOS_ENV)/clang-arm-fropi/bin/
+GCCPATH   := $(BOLOS_ENV)/gcc-arm-none-eabi-5_3-2016q1/bin/
+CLANGPATH := $(BOLOS_ENV)/clang-arm-fropi/bin/
 CC       := $(CLANGPATH)clang 
 
-#CFLAGS   += -O0
-CFLAGS   += -O3 -Os
+CFLAGS   += -O0
+#CFLAGS   += -O3 -Os
 
 AS     := $(GCCPATH)arm-none-eabi-gcc
 

@@ -23,9 +23,12 @@ struct txContext_t;
 
 typedef bool (*ustreamProcess_t)(struct txContext_t *context);
 
+#define TX_FLAG_TYPE 0x01
+
 typedef enum rlpTxField_e {
     TX_RLP_NONE = 0,
     TX_RLP_CONTENT,
+    TX_RLP_TYPE,
     TX_RLP_NONCE,
     TX_RLP_GASPRICE,
     TX_RLP_STARTGAS,
@@ -80,6 +83,6 @@ typedef struct txContext_t {
 void initTx(txContext_t *context, cx_sha3_t *sha3, txContent_t *content,
             ustreamProcess_t customProcessor, void *extra);
 parserStatus_e processTx(txContext_t *context, uint8_t *buffer,
-                         uint32_t length);
+                         uint32_t length, uint32_t processingFlags);
 void copyTxData(txContext_t *context, uint8_t *out, uint32_t length);
 uint8_t readTxByte(txContext_t *context);

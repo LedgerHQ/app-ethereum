@@ -46,7 +46,7 @@ uint8_t readTxByte(txContext_t *context) {
         context->currentFieldPos++;
     }
     if (!(context->processingField && context->fieldSingleByte)) {
-        cx_hash((cx_hash_t *)context->sha3, 0, &data, 1, NULL);
+        cx_hash((cx_hash_t*)context->sha3, 0, &data, 1, NULL);
     }
     return data;
 }
@@ -60,8 +60,7 @@ void copyTxData(txContext_t *context, uint8_t *out, uint32_t length) {
         os_memmove(out, context->workBuffer, length);
     }
     if (!(context->processingField && context->fieldSingleByte)) {
-        cx_hash((cx_hash_t *)context->sha3, 0, context->workBuffer, length,
-                NULL);
+        cx_hash((cx_hash_t*)context->sha3, 0, context->workBuffer, length, NULL);
     }
     context->workBuffer += length;
     context->commandLength -= length;
@@ -79,6 +78,30 @@ static void processContent(txContext_t *context) {
     context->dataLength = context->currentFieldLength;
     context->currentField++;
     context->processingField = false;
+}
+
+
+static void processType(txContext_t *context) {
+    if (context->currentFieldIsList) {
+        PRINTF("Invalid type for RLP_TYPE\n");
+        THROW(EXCEPTION);
+    }
+    if (context->currentFieldLength > MAX_INT256) {
+        PRINTF("Invalid length for RLP_TYPE\n");
+        THROW(EXCEPTION);
+    }
+    if (context->currentFieldPos < context->currentFieldLength) {
+        uint32_t copySize =
+            (context->commandLength <
+                     ((context->currentFieldLength - context->currentFieldPos))
+                 ? context->commandLength
+                 : context->currentFieldLength - context->currentFieldPos);
+        copyTxData(context, NULL, copySize);
+    }
+    if (context->currentFieldPos == context->currentFieldLength) {
+        context->currentField++;
+        context->processingField = false;
+    }
 }
 
 static void processNonce(txContext_t *context) {
@@ -111,7 +134,7 @@ static void processStartGas(txContext_t *context) {
     }
     if (context->currentFieldLength > MAX_INT256) {
         PRINTF("Invalid length for RLP_STARTGAS %d\n",
-               context->currentFieldLength);
+                      context->currentFieldLength);
         THROW(EXCEPTION);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
@@ -183,7 +206,7 @@ static void processValue(txContext_t *context) {
     }
 }
 
-static void processTo(txContext_t *context) {
+static void processTo(txContext_t *context) {    
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_TO\n");
         THROW(EXCEPTION);
@@ -191,7 +214,7 @@ static void processTo(txContext_t *context) {
     if (context->currentFieldLength > MAX_ADDRESS) {
         PRINTF("Invalid length for RLP_TO\n");
         THROW(EXCEPTION);
-    }
+    }    
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
             (context->commandLength <
@@ -209,7 +232,7 @@ static void processTo(txContext_t *context) {
     }
 }
 
-static void processData(txContext_t *context) {
+static void processData(txContext_t *context) {    
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_DATA\n");
         THROW(EXCEPTION);
@@ -228,7 +251,7 @@ static void processData(txContext_t *context) {
     }
 }
 
-static void processV(txContext_t *context) {
+static void processV(txContext_t *context) {    
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_V\n");
         THROW(EXCEPTION);
@@ -236,14 +259,15 @@ static void processV(txContext_t *context) {
     if (context->currentFieldLength > MAX_V) {
         PRINTF("Invalid length for RLP_V\n");
         THROW(EXCEPTION);
-    }
+    }    
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
             (context->commandLength <
                      ((context->currentFieldLength - context->currentFieldPos))
                  ? context->commandLength
                  : context->currentFieldLength - context->currentFieldPos);
-        copyTxData(context, context->content->v + context->currentFieldPos,
+        copyTxData(context,
+                   context->content->v + context->currentFieldPos,
                    copySize);
     }
     if (context->currentFieldPos == context->currentFieldLength) {
@@ -253,7 +277,8 @@ static void processV(txContext_t *context) {
     }
 }
 
-static parserStatus_e processTxInternal(txContext_t *context) {
+
+static parserStatus_e processTxInternal(txContext_t *context, uint32_t processingFlags) {
     for (;;) {
         bool processedCustom = false;
         // EIP 155 style transasction
@@ -261,8 +286,7 @@ static parserStatus_e processTxInternal(txContext_t *context) {
             return USTREAM_FINISHED;
         }
         // Old style transaction
-        if ((context->currentField == TX_RLP_V) &&
-            (context->commandLength == 0)) {
+        if ((context->currentField == TX_RLP_V) && (context->commandLength == 0)) {
             context->content->vLength = 0;
             return USTREAM_FINISHED;
         }
@@ -323,6 +347,12 @@ static parserStatus_e processTxInternal(txContext_t *context) {
             switch (context->currentField) {
             case TX_RLP_CONTENT:
                 processContent(context);
+                if ((processingFlags & TX_FLAG_TYPE) == 0) {
+                    context->currentField++;
+                }
+                break;
+            case TX_RLP_TYPE:
+                processType(context);
                 break;
             case TX_RLP_NONCE:
                 processNonce(context);
@@ -356,13 +386,13 @@ static parserStatus_e processTxInternal(txContext_t *context) {
 }
 
 parserStatus_e processTx(txContext_t *context, uint8_t *buffer,
-                         uint32_t length) {
+                         uint32_t length, uint32_t processingFlags) {
     parserStatus_e result;
     BEGIN_TRY {
         TRY {
             context->workBuffer = buffer;
             context->commandLength = length;
-            result = processTxInternal(context);
+            result = processTxInternal(context, processingFlags);
         }
         CATCH_OTHER(e) {
             result = USTREAM_FAULT;

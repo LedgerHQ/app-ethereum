@@ -19,16 +19,24 @@
 
 typedef struct tokenDefinition_t {
     uint8_t address[20];
-    uint8_t ticker[6];
+    uint8_t ticker[10];
     uint8_t decimals;
 } tokenDefinition_t;
 
-#if defined(CHAIN_TYPE_ETHEREUM)
-#define NUM_TOKENS 340 
-#elif defined(CHAIN_TYPE_UBIQ)
-#define NUM_TOKENS 6 
-#elif defined(CHAIN_TYPE_EXPANSE)
-#define NUM_TOKENS 0
-#endif
+#define NUM_TOKENS_ETHEREUM 677
+#define NUM_TOKENS_ETHEREUM_CLASSIC 0
+#define NUM_TOKENS_POA 0
+#define NUM_TOKENS_RSK 0
+#define NUM_TOKENS_UBIQ 6
+#define NUM_TOKENS_EXPANSE 0
+#define NUM_TOKENS_WANCHAIN 0
+#define NUM_TOKENS_KUSD 0
 
-extern tokenDefinition_t const TOKENS[NUM_TOKENS];
+extern tokenDefinition_t const TOKENS_ETHEREUM[NUM_TOKENS_ETHEREUM];
+extern tokenDefinition_t const TOKENS_ETHEREUM_CLASSIC[NUM_TOKENS_ETHEREUM_CLASSIC];
+extern tokenDefinition_t const TOKENS_POA[NUM_TOKENS_POA];
+extern tokenDefinition_t const TOKENS_RSK[NUM_TOKENS_RSK];
+extern tokenDefinition_t const TOKENS_UBIQ[NUM_TOKENS_UBIQ];
+extern tokenDefinition_t const TOKENS_EXPANSE[NUM_TOKENS_EXPANSE];
+extern tokenDefinition_t const TOKENS_WANCHAIN[NUM_TOKENS_WANCHAIN];
+extern tokenDefinition_t const TOKENS_KUSD[NUM_TOKENS_KUSD];

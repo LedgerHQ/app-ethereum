@@ -1265,6 +1265,9 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength
           case CHAIN_KIND_ETHEREUM_CLASSIC:
             numTokens = NUM_TOKENS_ETHEREUM_CLASSIC;
             break;       
+          case CHAIN_KIND_PIRL:
+            numTokens = NUM_TOKENS_PIRL;
+            break;
           case CHAIN_KIND_POA:
             numTokens = NUM_TOKENS_POA;
             break;
@@ -1293,6 +1296,9 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength
               case CHAIN_KIND_ETHEREUM_CLASSIC:
                 currentToken = PIC(&TOKENS_ETHEREUM_CLASSIC[i]);
                 break;                
+              case CHAIN_KIND_PIRL:
+                currentToken = PIC(&TOKENS_PIRL[i]);
+                break;
               case CHAIN_KIND_POA:
 		            currentToken = PIC(&TOKENS_POA[i]);
             		break;

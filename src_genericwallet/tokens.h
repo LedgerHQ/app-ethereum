@@ -25,6 +25,7 @@ typedef struct tokenDefinition_t {
 
 #define NUM_TOKENS_ETHEREUM 677
 #define NUM_TOKENS_ETHEREUM_CLASSIC 0
+#define NUM_TOKENS_PIRL 0
 #define NUM_TOKENS_POA 0
 #define NUM_TOKENS_RSK 0
 #define NUM_TOKENS_UBIQ 6
@@ -34,6 +35,7 @@ typedef struct tokenDefinition_t {
 
 extern tokenDefinition_t const TOKENS_ETHEREUM[NUM_TOKENS_ETHEREUM];
 extern tokenDefinition_t const TOKENS_ETHEREUM_CLASSIC[NUM_TOKENS_ETHEREUM_CLASSIC];
+extern tokenDefinition_t const TOKENS_PIRL[NUM_TOKENS_PIRL];
 extern tokenDefinition_t const TOKENS_POA[NUM_TOKENS_POA];
 extern tokenDefinition_t const TOKENS_RSK[NUM_TOKENS_RSK];
 extern tokenDefinition_t const TOKENS_UBIQ[NUM_TOKENS_UBIQ];

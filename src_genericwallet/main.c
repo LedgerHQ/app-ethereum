@@ -1259,6 +1259,9 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength
     if (tokenContext.provisioned) {
         uint32_t numTokens = 0;
         switch(chainConfig->kind) {
+          case CHAIN_KIND_AKROMA:
+            numTokens = NUM_TOKENS_AKROMA;
+            break;
           case CHAIN_KIND_ETHEREUM:
             numTokens = NUM_TOKENS_ETHEREUM;
             break;
@@ -1287,6 +1290,9 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength
         for (i=0; i<numTokens; i++) {
             tokenDefinition_t *currentToken = NULL;
             switch(chainConfig->kind) {
+              case CHAIN_KIND_AKROMA:
+                currentToken = PIC(&TOKENS_AKROMA[i]);
+                break;
               case CHAIN_KIND_ETHEREUM:
                 currentToken = PIC(&TOKENS_ETHEREUM[i]);
                 break;

@@ -855,6 +855,28 @@ unsigned int ui_address_nanos_button(unsigned int button_mask, unsigned int butt
 }
 #endif // #if defined(TARGET_NANOS)
 
+uint32_t getV(txContent_t *txContent) {
+    uint32_t v = 0;
+    if (txContent->vLength == 1) {
+      v = txContent->v[0];
+    }
+    else 
+    if (txContent->vLength == 2) {
+      v = (txContent->v[0] << 8) | txContent->v[1];
+    }
+    else
+    if (txContent->vLength == 4) {
+      v = (txContent->v[0] << 24) | (txContent->v[1] << 16) | 
+          (txContent->v[2] << 8) | txContent->v[3];
+    }
+    else {
+        PRINTF("Unexpected v format\n");
+        THROW(EXCEPTION);
+    }
+    return v;
+
+}
+
 unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
     uint8_t privateKeyData[32];
     uint8_t signature[100];
@@ -862,14 +884,7 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
     cx_ecfp_private_key_t privateKey;
     uint32_t tx = 0;
     uint8_t rLength, sLength, rOffset, sOffset;
-    uint32_t v = 0;
-    if (tmpContent.txContent.vLength == 1) {
-      v = tmpContent.txContent.v[0];
-    }
-    else 
-    if (tmpContent.txContent.vLength == 2) {
-      v = (tmpContent.txContent.v[0] << 8) | tmpContent.txContent.v[1];
-    }
+    uint32_t v = getV(&tmpContent.txContent);
     os_perso_derive_node_bip32(CX_CURVE_256K1, tmpCtx.transactionContext.bip32Path,
                                tmpCtx.transactionContext.pathLength,
                                privateKeyData, NULL);
@@ -881,7 +896,7 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
         cx_ecdsa_sign(&privateKey, CX_RND_RFC6979 | CX_LAST, CX_SHA256,
                       tmpCtx.transactionContext.hash,
                       sizeof(tmpCtx.transactionContext.hash), signature, &info);
-    os_memset(&privateKey, 0, sizeof(privateKey));
+    os_memset(&privateKey, 0, sizeof(privateKey));    
     // Parity is present in the sequence tag in the legacy API
     if (tmpContent.txContent.vLength == 0) {
       // Legacy API
@@ -1228,14 +1243,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength
   }
   // Verify the chain
   if (chainConfig->chainId != 0) {
-    uint32_t v;
-    if (tmpContent.txContent.vLength == 1) {
-      v = tmpContent.txContent.v[0];
-    }
-    else 
-    if (tmpContent.txContent.vLength == 2) {
-      v = (tmpContent.txContent.v[0] << 8) | tmpContent.txContent.v[1];
-    }
+    uint32_t v = getV(&tmpContent.txContent);
     if (chainConfig->chainId != v) {
         PRINTF("Invalid chainId %d expected %d\n", v, chainConfig->chainId);
         THROW(0x6A80);

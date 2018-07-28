@@ -20,7 +20,7 @@
 
 #define MAX_INT256 32
 #define MAX_ADDRESS 20
-#define MAX_V 2
+#define MAX_V 4 
 
 void initTx(txContext_t *context, cx_sha3_t *sha3, txContent_t *content,
             ustreamProcess_t customProcessor, void *extra) {

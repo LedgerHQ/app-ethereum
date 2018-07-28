@@ -864,6 +864,10 @@ uint32_t getV(txContent_t *txContent) {
     if (txContent->vLength == 2) {
       v = (txContent->v[0] << 8) | txContent->v[1];
     }
+    else 
+    if (txContent->vLength == 3) {
+      v = (txContent->v[0] << 16) | (txContent->v[1] << 8) | txContent->v[2];
+    }    
     else
     if (txContent->vLength == 4) {
       v = (txContent->v[0] << 24) | (txContent->v[1] << 16) | 

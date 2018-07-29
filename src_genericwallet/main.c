@@ -873,7 +873,8 @@ uint32_t getV(txContent_t *txContent) {
       v = (txContent->v[0] << 24) | (txContent->v[1] << 16) | 
           (txContent->v[2] << 8) | txContent->v[3];
     }
-    else {
+    else 
+    if (txContent->vLength != 0) {
         PRINTF("Unexpected v format\n");
         THROW(EXCEPTION);
     }

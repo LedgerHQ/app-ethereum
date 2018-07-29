@@ -23,6 +23,7 @@ typedef struct tokenDefinition_t {
     uint8_t decimals;
 } tokenDefinition_t;
 
+#define NUM_TOKENS_AKROMA 0
 #define NUM_TOKENS_ETHEREUM 677
 #define NUM_TOKENS_ETHEREUM_CLASSIC 0
 #define NUM_TOKENS_PIRL 0
@@ -33,6 +34,7 @@ typedef struct tokenDefinition_t {
 #define NUM_TOKENS_WANCHAIN 0
 #define NUM_TOKENS_KUSD 0
 
+extern tokenDefinition_t const TOKENS_AKROMA[NUM_TOKENS_AKROMA];
 extern tokenDefinition_t const TOKENS_ETHEREUM[NUM_TOKENS_ETHEREUM];
 extern tokenDefinition_t const TOKENS_ETHEREUM_CLASSIC[NUM_TOKENS_ETHEREUM_CLASSIC];
 extern tokenDefinition_t const TOKENS_PIRL[NUM_TOKENS_PIRL];

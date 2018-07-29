@@ -82,6 +82,10 @@ else ifeq ($(CHAIN),kusd)
 APP_LOAD_PARAMS += --path "44'/91927009'"
 DEFINES += CHAINID_UPCASE=\"KUSD\" CHAINID_COINNAME=\"KUSD\" CHAIN_KIND=CHAIN_KIND_KUSD CHAIN_ID=2
 APPNAME = "KUSD"
+else ifeq ($(CHAIN),musicoin)
+APP_LOAD_PARAMS += --path "44'/184'"
+DEFINES += CHAINID_UPCASE=\"MUSICOIN\" CHAINID_COINNAME=\"MUSIC\" CHAIN_KIND=CHAIN_KIND_MUSICOIN CHAIN_ID=7762959
+APPNAME = "Musicoin"
 else
 ifeq ($(filter clean,$(MAKECMDGOALS)),)
 $(error Unsupported CHAIN - use ethereum, ethereum_classic, expanse, poa, rsk, rsk_testnet, ubiq, wanchain, kusd)

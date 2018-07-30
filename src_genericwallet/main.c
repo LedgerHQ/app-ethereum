@@ -1293,6 +1293,9 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength
           case CHAIN_KIND_MUSICOIN:
             numTokens = NUM_TOKENS_MUSICOIN;
             break;
+          case CHAIN_KIND_CALLISTO:
+            numTokens = NUM_TOKENS_CALLISTO;
+            break;
         }
         for (i=0; i<numTokens; i++) {
             tokenDefinition_t *currentToken = NULL;
@@ -1329,6 +1332,9 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength
                 break;
               case CHAIN_KIND_MUSICOIN:
                 currentToken = PIC(&TOKENS_MUSICOIN[i]);
+                break;
+              case CHAIN_KIND_CALLISTO:
+                currentToken = PIC(&TOKENS_CALLISTO[i]);
                 break;
             } 
             if (os_memcmp(currentToken->address, tmpContent.txContent.destination, 20) == 0) {

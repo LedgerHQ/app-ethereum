@@ -1758,6 +1758,7 @@ void finalizeParsing(bool direct) {
   uint8_t address[41];
   uint8_t decimals = WEI_TO_ETHER;
   uint8_t *ticker = PIC(chainConfig->coinName);
+  uint8_t *feeTicker = PIC(chainConfig->coinName);
   uint8_t tickerOffset = 0;
 
   // Verify the chain
@@ -1856,8 +1857,8 @@ void finalizeParsing(bool direct) {
   adjustDecimals((char *)(G_io_apdu_buffer + 100), i, (char *)G_io_apdu_buffer, 100, WEI_TO_ETHER);
   i = 0;
   tickerOffset=0;
-  while (ticker[tickerOffset]) {
-      strings.common.maxFee[tickerOffset] = ticker[tickerOffset];
+  while (feeTicker[tickerOffset]) {
+      strings.common.maxFee[tickerOffset] = feeTicker[tickerOffset];
       tickerOffset++;
   }
   tickerOffset++;

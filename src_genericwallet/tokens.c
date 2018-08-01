@@ -721,3 +721,5 @@ const tokenDefinition_t const TOKENS_EXPANSE[NUM_TOKENS_EXPANSE] = {};
 const tokenDefinition_t const TOKENS_WANCHAIN[NUM_TOKENS_WANCHAIN] = {};
 
 const tokenDefinition_t const TOKENS_KUSD[NUM_TOKENS_KUSD] = {};
+
+const tokenDefinition_t const TOKENS_MUSICOIN[NUM_TOKENS_MUSICOIN] = {};

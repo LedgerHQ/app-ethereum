@@ -14,7 +14,8 @@ typedef enum chain_kind_e {
 	CHAIN_KIND_WANCHAIN,
 	CHAIN_KIND_KUSD,
 	CHAIN_KIND_PIRL,
-	CHAIN_KIND_AKROMA
+	CHAIN_KIND_AKROMA,
+	CHAIN_KIND_MUSICOIN
 } chain_kind_t;
 
 typedef struct chain_config_s {

@@ -27,6 +27,9 @@
 #include "cx.h"
 #include <stdbool.h>
 #include "ethUtils.h" 
+#include "chainConfig.h"
+
+extern chain_config_t *chainConfig;
 
 bool rlpCanDecode(uint8_t *buffer, uint32_t bufferLength, bool *valid) {
     if (*buffer <= 0x7f) {
@@ -184,15 +187,27 @@ void getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
 void getEthAddressStringFromBinary(uint8_t *address, uint8_t *out,
                                    cx_sha3_t *sha3Context) {
     uint8_t hashChecksum[32];
-    uint8_t tmp[40];
+    uint8_t tmp[100];
     uint8_t i;
+    bool eip1191 = false;
+    uint32_t offset = 0;
+    switch(chainConfig->chainId) {
+        case 30:
+        case 31:
+            eip1191 = true;
+            break;
+    }
+    if (eip1191) {
+        snprintf(tmp, sizeof(tmp), "%d0x", chainConfig->chainId);
+        offset = strlen(tmp);
+    }
     for (i = 0; i < 20; i++) {
         uint8_t digit = address[i];
-        tmp[2 * i] = HEXDIGITS[(digit >> 4) & 0x0f];
-        tmp[2 * i + 1] = HEXDIGITS[digit & 0x0f];
+        tmp[offset + 2 * i] = HEXDIGITS[(digit >> 4) & 0x0f];
+        tmp[offset + 2 * i + 1] = HEXDIGITS[digit & 0x0f];
     }
     cx_keccak_init(sha3Context, 256);
-    cx_hash((cx_hash_t*)sha3Context, CX_LAST, tmp, 40, hashChecksum);
+    cx_hash((cx_hash_t*)sha3Context, CX_LAST, tmp, offset + 40, hashChecksum);
     for (i = 0; i < 40; i++) {
         uint8_t hashDigit = hashChecksum[i / 2];
         if ((i % 2) == 0) {

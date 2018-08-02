@@ -701,6 +701,8 @@ const tokenDefinition_t const TOKENS_ETHEREUM[NUM_TOKENS_ETHEREUM] = {
 
 const tokenDefinition_t const TOKENS_ETHEREUM_CLASSIC[NUM_TOKENS_ETHEREUM_CLASSIC] = {};
 
+const tokenDefinition_t const TOKENS_ETHERSOCIAL[NUM_TOKENS_ETHERSOCIAL] = {};
+
 const tokenDefinition_t const TOKENS_PIRL[NUM_TOKENS_PIRL] = {};
 
 const tokenDefinition_t const TOKENS_POA[NUM_TOKENS_POA] = {};

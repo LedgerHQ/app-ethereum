@@ -46,6 +46,10 @@ else ifeq ($(CHAIN),ethereum_classic)
 APP_LOAD_PARAMS += --path "44'/61'"
 DEFINES += CHAINID_UPCASE=\"ETC\" CHAINID_COINNAME=\"ETC\" CHAIN_KIND=CHAIN_KIND_ETHEREUM_CLASSIC CHAIN_ID=61
 APPNAME = "ETC"
+else ifeq ($(CHAIN),ethersocial)
+APP_LOAD_PARAMS += --path "44'/31102'"
+DEFINES += CHAINID_UPCASE=\"ETHERSOCIAL\" CHAINID_COINNAME=\"ESN\" CHAIN_KIND=CHAIN_KIND_ETHERSOCIAL CHAIN_ID=31102
+APPNAME = "Ethersocial"
 else ifeq ($(CHAIN),expanse)
 APP_LOAD_PARAMS += --path "44'/40'"
 DEFINES += CHAINID_UPCASE=\"EXPANSE\" CHAINID_COINNAME=\"EXP\" CHAIN_KIND=CHAIN_KIND_EXPANSE CHAIN_ID=2
@@ -92,7 +96,7 @@ DEFINES += CHAINID_UPCASE=\"CALLISTO\" CHAINID_COINNAME=\"CLO\" CHAIN_KIND=CHAIN
 APPNAME = "Callisto"
 else
 ifeq ($(filter clean,$(MAKECMDGOALS)),)
-$(error Unsupported CHAIN - use ethereum, ethereum_classic, expanse, poa, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, callisto)
+$(error Unsupported CHAIN - use ethereum, ethereum_classic, expanse, poa, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, callisto, ethersocial)
 endif
 endif
 

@@ -1534,6 +1534,9 @@ tokenDefinition_t* getKnownToken() {
         case CHAIN_KIND_CALLISTO:
             numTokens = NUM_TOKENS_CALLISTO;
             break;            
+        case CHAIN_KIND_ETHERSOCIAL:
+            numTokens = NUM_TOKENS_ETHERSOCIAL;
+            break;
     }
     for (i=0; i<numTokens; i++) {            
         switch(chainConfig->kind) {
@@ -1572,6 +1575,9 @@ tokenDefinition_t* getKnownToken() {
                 break;
             case CHAIN_KIND_CALLISTO:
                 currentToken = PIC(&TOKENS_CALLISTO[i]);
+                break;
+            case CHAIN_KIND_ETHERSOCIAL:
+                currentToken = PIC(&TOKENS_ETHERSOCIAL[i]);
                 break;
         } 
         if (os_memcmp(currentToken->address, tmpContent.txContent.destination, 20) == 0) {

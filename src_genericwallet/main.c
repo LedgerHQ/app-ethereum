@@ -1528,6 +1528,12 @@ tokenDefinition_t* getKnownToken() {
         case CHAIN_KIND_KUSD:
             numTokens = NUM_TOKENS_KUSD;
             break;    
+        case CHAIN_KIND_MUSICOIN:
+            numTokens = NUM_TOKENS_MUSICOIN;
+            break;
+        case CHAIN_KIND_CALLISTO:
+            numTokens = NUM_TOKENS_CALLISTO;
+            break;            
     }
     for (i=0; i<numTokens; i++) {            
         switch(chainConfig->kind) {
@@ -1560,6 +1566,12 @@ tokenDefinition_t* getKnownToken() {
                 break;                              
             case CHAIN_KIND_KUSD:
                 currentToken = PIC(&TOKENS_KUSD[i]);
+                break;
+            case CHAIN_KIND_MUSICOIN:
+                currentToken = PIC(&TOKENS_MUSICOIN[i]);
+                break;
+            case CHAIN_KIND_CALLISTO:
+                currentToken = PIC(&TOKENS_CALLISTO[i]);
                 break;
         } 
         if (os_memcmp(currentToken->address, tmpContent.txContent.destination, 20) == 0) {

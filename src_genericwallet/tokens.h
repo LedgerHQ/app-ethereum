@@ -25,7 +25,7 @@ typedef struct tokenDefinition_t {
 
 #define NUM_TOKENS_AKROMA 0
 #define NUM_TOKENS_ELLAISM 1
-#define NUM_TOKENS_ETHEREUM 677
+#define NUM_TOKENS_ETHEREUM 678
 #define NUM_TOKENS_ETHEREUM_CLASSIC 0
 #define NUM_TOKENS_ETHERSOCIAL 0
 #define NUM_TOKENS_PIRL 0

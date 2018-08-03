@@ -127,7 +127,6 @@ union {
 volatile uint8_t dataAllowed;
 volatile char addressSummary[32];
 volatile bool dataPresent;
-volatile bool skipWarning;
 volatile bool tokenProvisioned;
 
 bagl_element_t tmp_element;
@@ -915,9 +914,23 @@ const bagl_element_t ui_data_selector_nanos[] = {
      NULL},
 };
 
-unsigned int ui_data_selector_blue_prepro(const bagl_element_t* element) {
-  copy_element_and_map_coin_colors(element);
-  return &tmp_element;
+unsigned int ui_data_selector_prepro(const bagl_element_t *element) {
+    if (element->component.userid > 0) {
+        unsigned int display = (ux_step == element->component.userid - 1);
+        if (display) {
+            switch (element->component.userid) {
+                case 1:
+                    UX_CALLBACK_SET_INTERVAL(2000);
+                    break;
+                case 2:
+                    UX_CALLBACK_SET_INTERVAL(MAX(
+                        3000, 1000 + bagl_label_roundtrip_duration_ms(element, 7)));
+                    break;
+            }
+        }
+        return display;
+    }
+    return 1;
 }
 
 unsigned int ui_data_selector_nanos_button(unsigned int button_mask,
@@ -1094,7 +1107,6 @@ unsigned int ui_data_parameter_nanos_button(unsigned int button_mask,
 
 
 void ui_idle(void) {
-    skipWarning = false;
 #if defined(TARGET_BLUE)
     UX_DISPLAY(ui_idle_blue, ui_idle_blue_prepro);
 #elif defined(TARGET_NANOS)
@@ -1761,7 +1773,6 @@ void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t da
     */
 
     // prepare for a UI based reply
-    skipWarning = false;
 #if defined(TARGET_BLUE)
     snprintf(strings.common.fullAddress, sizeof(strings.common.fullAddress), "0x%.*s", 40, tmpCtx.publicKeyContext.address);
     UX_DISPLAY(ui_address_blue, ui_address_blue_prepro);
@@ -1895,7 +1906,6 @@ void finalizeParsing(bool direct) {
 #if defined(TARGET_BLUE)
   ui_approval_transaction_blue_init();
 #elif defined(TARGET_NANOS)
-  skipWarning = !dataPresent;
   ux_step = 0;
   ux_step_count = 4;
   UX_DISPLAY(ui_approval_nanos, ui_approval_prepro);   
@@ -2223,10 +2233,6 @@ unsigned char io_event(unsigned char channel) {
         UX_TICKER_EVENT(G_io_seproxyhal_spi_buffer, 
         {
           if (UX_ALLOWED) {
-            if (skipWarning && (ux_step == 0)) {
-              ux_step++;
-            }
-
             if (ux_step_count) {
               // prepare next screen
               ux_step = (ux_step+1)%ux_step_count;

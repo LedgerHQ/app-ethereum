@@ -216,9 +216,9 @@ void getEthAddressStringFromBinary(uint8_t *address, uint8_t *out,
             hashDigit = hashDigit & 0x0f;
         }
         if ((hashDigit > 7) && (tmp[i] > '9')) {
-            out[i] = tmp[i] - 'a' + 'A';
+            out[i] = tmp[offset + i] - 'a' + 'A';
         } else {
-            out[i] = tmp[i];
+            out[i] = tmp[offset + i];
         }
     }
     out[40] = '\0';

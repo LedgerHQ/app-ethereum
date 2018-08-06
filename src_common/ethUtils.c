@@ -209,16 +209,23 @@ void getEthAddressStringFromBinary(uint8_t *address, uint8_t *out,
     cx_keccak_init(sha3Context, 256);
     cx_hash((cx_hash_t*)sha3Context, CX_LAST, tmp, offset + 40, hashChecksum);
     for (i = 0; i < 40; i++) {
-        uint8_t hashDigit = hashChecksum[i / 2];
+        uint8_t digit = address[i / 2];
         if ((i % 2) == 0) {
-            hashDigit = (hashDigit >> 4) & 0x0f;
+            digit = (digit >> 4) & 0x0f;
         } else {
-            hashDigit = hashDigit & 0x0f;
+            digit = digit & 0x0f;
         }
-        if ((hashDigit > 7) && (tmp[i] > '9')) {
-            out[i] = tmp[offset + i] - 'a' + 'A';
-        } else {
-            out[i] = tmp[offset + i];
+        if (digit < 10) {
+            out[i] = HEXDIGITS[digit];
+        }
+        else {
+            int v = (hashChecksum[i / 2] >> (4 * (1 - i % 2))) & 0x0f;
+            if (v >= 8) {
+                out[i] = HEXDIGITS[digit] - 'a' + 'A';
+            }
+            else {
+                out[i] = HEXDIGITS[digit];
+            }
         }
     }
     out[40] = '\0';

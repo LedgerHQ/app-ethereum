@@ -93,7 +93,7 @@ APPNAME = "Wanchain"
 else ifeq ($(CHAIN),kusd)
 APP_LOAD_PARAMS += --path "44'/91927009'"
 DEFINES += CHAINID_UPCASE=\"KUSD\" CHAINID_COINNAME=\"KUSD\" CHAIN_KIND=CHAIN_KIND_KUSD CHAIN_ID=1
-APPNAME = "KUSD"
+APPNAME = "kUSD"
 else ifeq ($(CHAIN),musicoin)
 APP_LOAD_PARAMS += --path "44'/184'"
 DEFINES += CHAINID_UPCASE=\"MUSICOIN\" CHAINID_COINNAME=\"MUSIC\" CHAIN_KIND=CHAIN_KIND_MUSICOIN CHAIN_ID=7762959
@@ -196,4 +196,4 @@ include $(BOLOS_SDK)/Makefile.rules
 dep/%.d: %.c Makefile.genericwallet
 
 listvariants:
-	@echo VARIANTS CHAIN ethereum ethereum_classic expanse poa rsk ubiq wanchain kusd #musicoin callisto ethersocial ellaism pirl akroma ether1
+	@echo VARIANTS CHAIN ethereum ethereum_classic expanse poa rsk rsk_testnet ubiq wanchain kusd #musicoin callisto ethersocial ellaism pirl akroma ether1

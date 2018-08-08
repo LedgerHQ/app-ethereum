@@ -192,4 +192,4 @@ include $(BOLOS_SDK)/Makefile.rules
 dep/%.d: %.c Makefile.genericwallet
 
 listvariants:
-	@echo VARIANTS CHAIN ethereum ethereum_classic expanse poa rsk ubiq wanchain kusd #musicoin callisto ethersocial ellaism
+	@echo VARIANTS CHAIN ethereum ethereum_classic expanse poa rsk rsk_testnet ubiq wanchain kusd #musicoin callisto ethersocial ellaism

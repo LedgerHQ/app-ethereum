@@ -18,7 +18,8 @@ typedef enum chain_kind_e {
 	CHAIN_KIND_MUSICOIN,
 	CHAIN_KIND_CALLISTO,
 	CHAIN_KIND_ETHERSOCIAL,
-	CHAIN_KIND_ELLAISM
+	CHAIN_KIND_ELLAISM,
+	CHAIN_KIND_ETHER1
 } chain_kind_t;
 
 typedef struct chain_config_s {

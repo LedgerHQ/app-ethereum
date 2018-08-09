@@ -54,6 +54,10 @@ else ifeq ($(CHAIN),ethersocial)
 APP_LOAD_PARAMS += --path "44'/31102'"
 DEFINES += CHAINID_UPCASE=\"ETHERSOCIAL\" CHAINID_COINNAME=\"ESN\" CHAIN_KIND=CHAIN_KIND_ETHERSOCIAL CHAIN_ID=31102
 APPNAME = "Ethersocial"
+else ifeq ($(CHAIN),ether1)
+APP_LOAD_PARAMS += --path "44'/1313114'"
+DEFINES += CHAINID_UPCASE=\"ETHER1\" CHAINID_COINNAME=\"ETHO\" CHAIN_KIND=CHAIN_KIND_ETHER1 CHAIN_ID=1313114
+APPNAME = "Ether-1"
 else ifeq ($(CHAIN),expanse)
 APP_LOAD_PARAMS += --path "44'/40'"
 DEFINES += CHAINID_UPCASE=\"EXPANSE\" CHAINID_COINNAME=\"EXP\" CHAIN_KIND=CHAIN_KIND_EXPANSE CHAIN_ID=2
@@ -100,7 +104,7 @@ DEFINES += CHAINID_UPCASE=\"CALLISTO\" CHAINID_COINNAME=\"CLO\" CHAIN_KIND=CHAIN
 APPNAME = "Callisto"
 else
 ifeq ($(filter clean,$(MAKECMDGOALS)),)
-$(error Unsupported CHAIN - use ethereum, ethereum_classic, expanse, poa, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, callisto, ethersocial, ellaism)
+$(error Unsupported CHAIN - use ethereum, ethereum_classic, expanse, poa, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, callisto, ethersocial, ellaism, pirl, akroma, ether1)
 endif
 endif
 
@@ -192,4 +196,4 @@ include $(BOLOS_SDK)/Makefile.rules
 dep/%.d: %.c Makefile.genericwallet
 
 listvariants:
-	@echo VARIANTS CHAIN ethereum ethereum_classic expanse poa rsk rsk_testnet ubiq wanchain kusd #musicoin callisto ethersocial ellaism
+	@echo VARIANTS CHAIN ethereum ethereum_classic expanse poa rsk rsk_testnet ubiq wanchain kusd #musicoin callisto ethersocial ellaism pirl akroma ether1

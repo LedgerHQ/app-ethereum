@@ -121,9 +121,13 @@ else ifeq ($(CHAIN),mix)
 APP_LOAD_PARAMS += --path "44'/76'"
 DEFINES += CHAINID_UPCASE=\"MIX\" CHAINID_COINNAME=\"MIX\" CHAIN_KIND=CHAIN_KIND_MIX CHAIN_ID=76
 APPNAME = "Mix"
+else ifeq ($(CHAIN),aquachain)
+APP_LOAD_PARAMS += --path "44'/61717561'"
+DEFINES += CHAINID_UPCASE=\"AQUACHAIN\" CHAINID_COINNAME=\"AQUA\" CHAIN_KIND=CHAIN_KIND_AQUACHAIN CHAIN_ID=61717561
+APPNAME = "Aquachain"
 else
 ifeq ($(filter clean,$(MAKECMDGOALS)),)
-$(error Unsupported CHAIN - use ethereum, ethereum_classic, expanse, poa, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, pirl, akroma, atheios, callisto, ethersocial, ellaism, ether1, ethergem, gochain, eosclassic, mix)
+$(error Unsupported CHAIN - use ethereum, ethereum_classic, expanse, poa, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, pirl, akroma, atheios, callisto, ethersocial, ellaism, ether1, ethergem, gochain, eosclassic, mix, aquachain)
 endif
 endif
 

@@ -1558,6 +1558,9 @@ tokenDefinition_t* getKnownToken() {
         case CHAIN_KIND_ETHERGEM:
             numTokens = NUM_TOKENS_ETHERGEM;
             break;
+        case CHAIN_KIND_ATHEIOS:
+            numTokens = NUM_TOKENS_ATHEIOS;
+            break;
     }
     for (i=0; i<numTokens; i++) {            
         switch(chainConfig->kind) {
@@ -1608,6 +1611,9 @@ tokenDefinition_t* getKnownToken() {
                 break;
             case CHAIN_KIND_ETHERGEM:
                 currentToken = PIC(&TOKENS_ETHERGEM[i]);
+                break;
+            case CHAIN_KIND_ATHEIOS:
+                currentToken = PIC(&TOKENS_ATHEIOS[i]);
                 break;
         } 
         if (os_memcmp(currentToken->address, tmpContent.txContent.destination, 20) == 0) {

@@ -106,6 +106,10 @@ else ifeq ($(CHAIN),ethergem)
 APP_LOAD_PARAMS += --path "44'/1987'"
 DEFINES += CHAINID_UPCASE=\"ETHERGEM\" CHAINID_COINNAME=\"EGEM\" CHAIN_KIND=CHAIN_KIND_ETHERGEM CHAIN_ID=1987
 APPNAME = "EtherGem"
+else ifeq ($(CHAIN),atheios)
+APP_LOAD_PARAMS += --path "44'/1620'"
+DEFINES += CHAINID_UPCASE=\"ATHEIOS\" CHAINID_COINNAME=\"ATH\" CHAIN_KIND=CHAIN_KIND_ATHEIOS CHAIN_ID=1620
+APPNAME = "Atheios"
 else
 ifeq ($(filter clean,$(MAKECMDGOALS)),)
 $(error Unsupported CHAIN - use ethereum, ethereum_classic, expanse, poa, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, callisto, ethersocial, ellaism, pirl, akroma, ether1, ethergem)

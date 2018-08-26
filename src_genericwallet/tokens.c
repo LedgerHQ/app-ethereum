@@ -737,3 +737,5 @@ const tokenDefinition_t const TOKENS_CALLISTO[NUM_TOKENS_CALLISTO] = {};
 const tokenDefinition_t const TOKENS_ETHERGEM[NUM_TOKENS_ETHERGEM] = {};
 
 const tokenDefinition_t const TOKENS_ATHEIOS[NUM_TOKENS_ATHEIOS] = {};
+
+const tokenDefinition_t const TOKENS_EOSCLASSIC[NUM_TOKENS_EOSCLASSIC] = {};

@@ -1630,7 +1630,7 @@ customStatus_e customProcessor(txContext_t *context) {
         dataPresent = true;
         // If handling a new contract rather than a function call, abort immediately
         if (tmpContent.txContent.destinationLength == 0) {
-            return CUSTOM_HANDLED;
+            return CUSTOM_NOT_HANDLED;
         }
         if (context->currentFieldPos == 0) {            
             // If handling the beginning of the data field, assume that the function selector is present

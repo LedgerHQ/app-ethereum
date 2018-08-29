@@ -26,7 +26,7 @@ APP_LOAD_PARAMS= --curve secp256k1 $(COMMON_LOAD_PARAMS)
 
 APPVERSION_M=1
 APPVERSION_N=1
-APPVERSION_P=3
+APPVERSION_P=4
 APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 
 
@@ -102,9 +102,17 @@ else ifeq ($(CHAIN),callisto)
 APP_LOAD_PARAMS += --path "44'/820'"
 DEFINES += CHAINID_UPCASE=\"CALLISTO\" CHAINID_COINNAME=\"CLO\" CHAIN_KIND=CHAIN_KIND_CALLISTO CHAIN_ID=820
 APPNAME = "Callisto"
+else ifeq ($(CHAIN),ethergem)
+APP_LOAD_PARAMS += --path "44'/1987'"
+DEFINES += CHAINID_UPCASE=\"ETHERGEM\" CHAINID_COINNAME=\"EGEM\" CHAIN_KIND=CHAIN_KIND_ETHERGEM CHAIN_ID=1987
+APPNAME = "EtherGem"
+else ifeq ($(CHAIN),atheios)
+APP_LOAD_PARAMS += --path "44'/1620'"
+DEFINES += CHAINID_UPCASE=\"ATHEIOS\" CHAINID_COINNAME=\"ATH\" CHAIN_KIND=CHAIN_KIND_ATHEIOS CHAIN_ID=1620
+APPNAME = "Atheios"
 else
 ifeq ($(filter clean,$(MAKECMDGOALS)),)
-$(error Unsupported CHAIN - use ethereum, ethereum_classic, expanse, poa, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, callisto, ethersocial, ellaism, pirl, akroma, ether1)
+$(error Unsupported CHAIN - use ethereum, ethereum_classic, expanse, poa, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, callisto, ethersocial, ellaism, pirl, akroma, ether1, ethergem)
 endif
 endif
 
@@ -196,4 +204,4 @@ include $(BOLOS_SDK)/Makefile.rules
 dep/%.d: %.c Makefile
 
 listvariants:
-	@echo VARIANTS CHAIN ethereum ethereum_classic expanse poa rsk rsk_testnet ubiq wanchain kusd #musicoin callisto ethersocial ellaism pirl akroma ether1
+	@echo VARIANTS CHAIN ethereum ethereum_classic expanse poa rsk rsk_testnet ubiq wanchain kusd #musicoin callisto ethersocial ellaism pirl akroma ether1 ethergem

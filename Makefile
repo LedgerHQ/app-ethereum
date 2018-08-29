@@ -193,7 +193,7 @@ delete:
 include $(BOLOS_SDK)/Makefile.rules
 
 #add dependency on custom makefile filename
-dep/%.d: %.c Makefile.genericwallet
+dep/%.d: %.c Makefile
 
 listvariants:
 	@echo VARIANTS CHAIN ethereum ethereum_classic expanse poa rsk rsk_testnet ubiq wanchain kusd #musicoin callisto ethersocial ellaism pirl akroma ether1

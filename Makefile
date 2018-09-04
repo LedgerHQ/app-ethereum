@@ -26,7 +26,7 @@ APP_LOAD_PARAMS= --curve secp256k1 $(COMMON_LOAD_PARAMS)
 
 APPVERSION_M=1
 APPVERSION_N=1
-APPVERSION_P=3
+APPVERSION_P=4
 APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 
 
@@ -116,7 +116,7 @@ DEFINES += CHAINID_UPCASE=\"EOSCLASSIC\" CHAINID_COINNAME=\"EOSC\" CHAIN_KIND=CH
 APPNAME = "EOSClassic"
 else
 ifeq ($(filter clean,$(MAKECMDGOALS)),)
-$(error Unsupported CHAIN - use ethereum, ethereum_classic, expanse, poa, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, callisto, ethersocial, ellaism, pirl, akroma, ether1, ethergem, atheios, eosclassic)
+$(error Unsupported CHAIN - use ethereum, ethereum_classic, expanse, poa, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, pirl, akroma, atheios, callisto, ethersocial, ellaism, ether1, ethergem, eosclassic)
 endif
 endif
 
@@ -205,7 +205,7 @@ delete:
 include $(BOLOS_SDK)/Makefile.rules
 
 #add dependency on custom makefile filename
-dep/%.d: %.c Makefile.genericwallet
+dep/%.d: %.c Makefile
 
 listvariants:
-	@echo VARIANTS CHAIN ethereum ethereum_classic expanse poa rsk rsk_testnet ubiq wanchain kusd #musicoin callisto ethersocial ellaism pirl akroma ether1 ethergem atheios eosclassic
+	@echo VARIANTS CHAIN ethereum ethereum_classic expanse poa rsk rsk_testnet ubiq wanchain kusd pirl akroma # musicoin atheios callisto ethersocial ellaism   ether1 ethergem eosclassic

@@ -112,7 +112,7 @@ DEFINES += CHAINID_UPCASE=\"ATHEIOS\" CHAINID_COINNAME=\"ATH\" CHAIN_KIND=CHAIN_
 APPNAME = "Atheios"
 else
 ifeq ($(filter clean,$(MAKECMDGOALS)),)
-$(error Unsupported CHAIN - use ethereum, ethereum_classic, expanse, poa, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, callisto, ethersocial, ellaism, pirl, akroma, ether1, ethergem)
+$(error Unsupported CHAIN - use ethereum, ethereum_classic, expanse, poa, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, pirl, akroma, atheios, callisto, ethersocial, ellaism, ether1, ethergem)
 endif
 endif
 
@@ -204,4 +204,4 @@ include $(BOLOS_SDK)/Makefile.rules
 dep/%.d: %.c Makefile
 
 listvariants:
-	@echo VARIANTS CHAIN ethereum ethereum_classic expanse poa rsk rsk_testnet ubiq wanchain kusd #musicoin callisto ethersocial ellaism pirl akroma ether1 ethergem
+	@echo VARIANTS CHAIN ethereum ethereum_classic expanse poa rsk rsk_testnet ubiq wanchain kusd pirl akroma # musicoin atheios callisto ethersocial ellaism   ether1 ethergem

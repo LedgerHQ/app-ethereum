@@ -1514,6 +1514,9 @@ tokenDefinition_t* getKnownToken() {
         case CHAIN_KIND_GOCHAIN:
             numTokens = NUM_TOKENS_GOCHAIN;
             break;
+        case CHAIN_KIND_EOSCLASSIC:
+            numTokens = NUM_TOKENS_EOSCLASSIC;
+            break;
     }
     for (i=0; i<numTokens; i++) {            
         switch(chainConfig->kind) {
@@ -1570,6 +1573,9 @@ tokenDefinition_t* getKnownToken() {
                 break;
             case CHAIN_KIND_GOCHAIN:
                 currentToken = PIC(&TOKENS_GOCHAIN[i]);
+                break;
+            case CHAIN_KIND_EOSCLASSIC:
+                currentToken = PIC(&TOKENS_EOSCLASSIC[i]);
                 break;
         } 
         if (os_memcmp(currentToken->address, tmpContent.txContent.destination, 20) == 0) {

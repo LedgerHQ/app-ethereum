@@ -21,7 +21,8 @@ typedef enum chain_kind_e {
 	CHAIN_KIND_ELLAISM,
 	CHAIN_KIND_ETHER1,
 	CHAIN_KIND_ETHERGEM,
-	CHAIN_KIND_ATHEIOS
+	CHAIN_KIND_ATHEIOS,
+	CHAIN_KIND_GOCHAIN
 } chain_kind_t;
 
 typedef struct chain_config_s {

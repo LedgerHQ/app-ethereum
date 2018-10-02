@@ -20,7 +20,6 @@ $(error Environment variable BOLOS_SDK is not set)
 endif
 include $(BOLOS_SDK)/Makefile.defines
 
-APP_LOAD_FLAGS= --appFlags 0x40 --dep Ethereum
 DEFINES_LIB = USE_LIB_ETHEREUM
 APP_LOAD_PARAMS= --curve secp256k1 $(COMMON_LOAD_PARAMS) 
 
@@ -28,7 +27,7 @@ APPVERSION_M=1
 APPVERSION_N=1
 APPVERSION_P=5
 APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
-
+APP_LOAD_FLAGS= --appFlags 0x40 --dep Ethereum:$(APPVERSION)
 
 ifeq ($(CHAIN),)
 CHAIN=ethereum

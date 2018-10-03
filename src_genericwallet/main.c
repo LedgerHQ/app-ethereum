@@ -1641,7 +1641,10 @@ customStatus_e customProcessor(txContext_t *context) {
                 blockSize = 4;
             }
             else {
-                blockSize = 32 - dataContext.rawDataContext.fieldOffset;
+                if (!N_storage.contractDetails) {
+                  return CUSTOM_NOT_HANDLED;
+                }              
+                blockSize = 32 - (dataContext.rawDataContext.fieldOffset % 32);
             }
 
             // Sanity check

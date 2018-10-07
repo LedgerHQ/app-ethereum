@@ -1137,3 +1137,5 @@ const tokenDefinition_t const TOKENS_ATHEIOS[NUM_TOKENS_ATHEIOS] = {};
 const tokenDefinition_t const TOKENS_GOCHAIN[NUM_TOKENS_GOCHAIN] = {};
 
 const tokenDefinition_t const TOKENS_EOSCLASSIC[NUM_TOKENS_EOSCLASSIC] = {};
+
+const tokenDefinition_t const TOKENS_MIX[NUM_TOKENS_MIX] = {};

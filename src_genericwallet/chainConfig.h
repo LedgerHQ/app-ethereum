@@ -23,7 +23,8 @@ typedef enum chain_kind_e {
 	CHAIN_KIND_ETHERGEM,
 	CHAIN_KIND_ATHEIOS,
 	CHAIN_KIND_GOCHAIN,
-	CHAIN_KIND_EOSCLASSIC
+	CHAIN_KIND_EOSCLASSIC,
+	CHAIN_KIND_MIX
 } chain_kind_t;
 
 typedef struct chain_config_s {

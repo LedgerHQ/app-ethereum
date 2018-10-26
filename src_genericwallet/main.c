@@ -1514,9 +1514,6 @@ tokenDefinition_t* getKnownToken() {
         case CHAIN_KIND_GOCHAIN:
             numTokens = NUM_TOKENS_GOCHAIN;
             break;
-        case CHAIN_KIND_EOSCLASSIC:
-            numTokens = NUM_TOKENS_EOSCLASSIC;
-            break;
         case CHAIN_KIND_MIX:
             numTokens = NUM_TOKENS_MIX;
             break;
@@ -1576,9 +1573,6 @@ tokenDefinition_t* getKnownToken() {
                 break;
             case CHAIN_KIND_GOCHAIN:
                 currentToken = PIC(&TOKENS_GOCHAIN[i]);
-                break;
-            case CHAIN_KIND_EOSCLASSIC:
-                currentToken = PIC(&TOKENS_EOSCLASSIC[i]);
                 break;
             case CHAIN_KIND_MIX:
                 currentToken = PIC(&TOKENS_MIX[i]);

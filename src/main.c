@@ -1520,6 +1520,9 @@ tokenDefinition_t* getKnownToken() {
         case CHAIN_KIND_REOSC:
             numTokens = NUM_TOKENS_REOSC;
             break;
+        case CHAIN_KIND_HPB:
+            numTokens = NUM_TOKENS_HPB;
+            break;
     }
     for (i=0; i<numTokens; i++) {
         switch(chainConfig->kind) {
@@ -1583,7 +1586,10 @@ tokenDefinition_t* getKnownToken() {
             case CHAIN_KIND_REOSC:
                 currentToken = (tokenDefinition_t *)PIC(&TOKENS_REOSC[i]);
                 break;
-        }
+            case CHAIN_KIND_HPB:
+                currentToken = (tokenDefinition_t *)PIC(&TOKENS_HPB[i]);
+                break;
+        } 
         if (os_memcmp(currentToken->address, tmpContent.txContent.destination, 20) == 0) {
             return currentToken;
         }

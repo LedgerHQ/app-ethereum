@@ -121,10 +121,13 @@ else ifeq ($(CHAIN),reosc)
 APP_LOAD_PARAMS += --path "44'/2894'"
 DEFINES += CHAINID_UPCASE=\"REOSC\" CHAINID_COINNAME=\"REOSC\" CHAIN_KIND=CHAIN_KIND_REOSC CHAIN_ID=2894
 APPNAME = "REOSC"
+else ifeq ($(CHAIN),hpb)
+APP_LOAD_PARAMS += --path "44'/269'"
+DEFINES += CHAINID_UPCASE=\"HPB\" CHAINID_COINNAME=\"HPB\" CHAIN_KIND=CHAIN_KIND_HPB CHAIN_ID=269
+APPNAME = "HPB"
 else
 ifeq ($(filter clean,$(MAKECMDGOALS)),)
-$(error Unsupported CHAIN - use ethereum, ethereum_classic, expanse, poa, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, pirl, akroma, atheios, callisto, ethersocial, ellaism, ether1, ethergem, gochain, mix, reosc)
-endif
+$(error Unsupported CHAIN - use ethereum, ethereum_classic, expanse, poa, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, pirl, akroma, atheios, callisto, ethersocial, ellaism, ether1, ethergem, gochain, mix, reosc, hpb)
 endif
 
 APP_LOAD_PARAMS += $(APP_LOAD_FLAGS) --path "44'/1'"
@@ -215,4 +218,8 @@ include $(BOLOS_SDK)/Makefile.rules
 dep/%.d: %.c Makefile
 
 listvariants:
+<<<<<<< HEAD
 	@echo VARIANTS CHAIN ethereum ethereum_classic expanse poa rsk rsk_testnet ubiq wanchain kusd pirl akroma atheios callisto ethersocial ether1 gochain musicoin ethergem mix ellaism reosc
+=======
+        @echo VARIANTS CHAIN ethereum ethereum_classic expanse poa rsk rsk_testnet ubiq wanchain kusd pirl akroma atheios callisto ethersocial ether1 gochain musicoin ethergem mix hpb #ellaism
+>>>>>>> Add support for High Performance Blockchain

@@ -1784,8 +1784,8 @@ void finalizeParsing(bool direct) {
   uint32_t i;
   uint8_t address[41];
   uint8_t decimals = WEI_TO_ETHER;
-  uint8_t *ticker = PIC(chainConfig->coinName);
-  uint8_t *feeTicker = PIC(chainConfig->coinName);
+  uint8_t *ticker = (uint8_t *)PIC(chainConfig->coinName);
+  uint8_t *feeTicker = (uint8_t *)PIC(chainConfig->coinName);
   uint8_t tickerOffset = 0;
 
   // Verify the chain

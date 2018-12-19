@@ -1524,64 +1524,64 @@ tokenDefinition_t* getKnownToken() {
     for (i=0; i<numTokens; i++) {
         switch(chainConfig->kind) {
             case CHAIN_KIND_AKROMA:
-                currentToken = PIC(&TOKENS_AKROMA[i]);
+                currentToken = (tokenDefinition_t *)PIC(&TOKENS_AKROMA[i]);
                 break;
             case CHAIN_KIND_ETHEREUM:
-                currentToken = PIC(&TOKENS_ETHEREUM[i]);
+                currentToken = (tokenDefinition_t *)PIC(&TOKENS_ETHEREUM[i]);
                 break;
             case CHAIN_KIND_ETHEREUM_CLASSIC:
-                currentToken = PIC(&TOKENS_ETHEREUM_CLASSIC[i]);
+                currentToken = (tokenDefinition_t *)PIC(&TOKENS_ETHEREUM_CLASSIC[i]);
                 break;
             case CHAIN_KIND_PIRL:
-                currentToken = PIC(&TOKENS_PIRL[i]);
+                currentToken = (tokenDefinition_t *)PIC(&TOKENS_PIRL[i]);
                 break;
             case CHAIN_KIND_POA:
-                    currentToken = PIC(&TOKENS_POA[i]);
+                    currentToken = (tokenDefinition_t *)PIC(&TOKENS_POA[i]);
                     break;
             case CHAIN_KIND_RSK:
-                currentToken = PIC(&TOKENS_RSK[i]);
+                currentToken = (tokenDefinition_t *)PIC(&TOKENS_RSK[i]);
                 break;
             case CHAIN_KIND_EXPANSE:
-                currentToken = PIC(&TOKENS_EXPANSE[i]);
+                currentToken = (tokenDefinition_t *)PIC(&TOKENS_EXPANSE[i]);
                 break;
             case CHAIN_KIND_UBIQ:
-                currentToken = PIC(&TOKENS_UBIQ[i]);
+                currentToken = (tokenDefinition_t *)PIC(&TOKENS_UBIQ[i]);
                 break;
             case CHAIN_KIND_WANCHAIN:
-                currentToken = PIC(&TOKENS_WANCHAIN[i]);
+                currentToken = (tokenDefinition_t *)PIC(&TOKENS_WANCHAIN[i]);
                 break;
             case CHAIN_KIND_KUSD:
-                currentToken = PIC(&TOKENS_KUSD[i]);
+                currentToken = (tokenDefinition_t *)PIC(&TOKENS_KUSD[i]);
                 break;
             case CHAIN_KIND_MUSICOIN:
-                currentToken = PIC(&TOKENS_MUSICOIN[i]);
+                currentToken = (tokenDefinition_t *)PIC(&TOKENS_MUSICOIN[i]);
                 break;
             case CHAIN_KIND_CALLISTO:
-                currentToken = PIC(&TOKENS_CALLISTO[i]);
+                currentToken = (tokenDefinition_t *)PIC(&TOKENS_CALLISTO[i]);
                 break;
             case CHAIN_KIND_ETHERSOCIAL:
-                currentToken = PIC(&TOKENS_ETHERSOCIAL[i]);
+                currentToken = (tokenDefinition_t *)PIC(&TOKENS_ETHERSOCIAL[i]);
                 break;
             case CHAIN_KIND_ELLAISM:
-                currentToken = PIC(&TOKENS_ELLAISM[i]);
+                currentToken = (tokenDefinition_t *)PIC(&TOKENS_ELLAISM[i]);
                 break;
             case CHAIN_KIND_ETHER1:
-                currentToken = PIC(&TOKENS_ETHER1[i]);
+                currentToken = (tokenDefinition_t *)PIC(&TOKENS_ETHER1[i]);
                 break;
             case CHAIN_KIND_ETHERGEM:
-                currentToken = PIC(&TOKENS_ETHERGEM[i]);
+                currentToken = (tokenDefinition_t *)PIC(&TOKENS_ETHERGEM[i]);
                 break;
             case CHAIN_KIND_ATHEIOS:
-                currentToken = PIC(&TOKENS_ATHEIOS[i]);
+                currentToken = (tokenDefinition_t *)PIC(&TOKENS_ATHEIOS[i]);
                 break;
             case CHAIN_KIND_GOCHAIN:
-                currentToken = PIC(&TOKENS_GOCHAIN[i]);
+                currentToken = (tokenDefinition_t *)PIC(&TOKENS_GOCHAIN[i]);
                 break;
             case CHAIN_KIND_MIX:
-                currentToken = PIC(&TOKENS_MIX[i]);
+                currentToken = (tokenDefinition_t *)PIC(&TOKENS_MIX[i]);
                 break;
             case CHAIN_KIND_REOSC:
-                currentToken = PIC(&TOKENS_REOSC[i]);
+                currentToken = (tokenDefinition_t *)PIC(&TOKENS_REOSC[i]);
                 break;
         }
         if (os_memcmp(currentToken->address, tmpContent.txContent.destination, 20) == 0) {

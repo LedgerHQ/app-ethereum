@@ -159,8 +159,8 @@ union {
     strDataTmp_t tmp;
 } strings;
 
-WIDE internalStorage_t N_storage_real;
-#define N_storage (*(WIDE internalStorage_t*) PIC(&N_storage_real))
+internalStorage_t N_storage_real;
+#define N_storage (*(internalStorage_t*) PIC(&N_storage_real))
 
 static const char const CONTRACT_ADDRESS[] = "New contract";
 

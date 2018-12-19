@@ -26,7 +26,7 @@
 #include "os.h"
 #include "cx.h"
 #include <stdbool.h>
-#include "ethUtils.h" 
+#include "ethUtils.h"
 #include "chainConfig.h"
 
 extern chain_config_t *chainConfig;
@@ -245,7 +245,7 @@ bool adjustDecimals(char *src, uint32_t srcLength, char *target,
         target[0] = '0';
         target[1] = '\0';
         return true;
-    }    
+    }
     if (srcLength <= decimals) {
         uint32_t delta = decimals - srcLength;
         if (targetLength < srcLength + 1 + 2 + delta) {
@@ -292,7 +292,7 @@ bool adjustDecimals(char *src, uint32_t srcLength, char *target,
         target[lastZeroOffset] = '\0';
         if (target[lastZeroOffset - 1] == '.') {
                 target[lastZeroOffset - 1] = '\0';
-        }        
+        }
     }
     return true;
 }

@@ -21,7 +21,7 @@ endif
 include $(BOLOS_SDK)/Makefile.defines
 
 DEFINES_LIB = USE_LIB_ETHEREUM
-APP_LOAD_PARAMS= --curve secp256k1 $(COMMON_LOAD_PARAMS) 
+APP_LOAD_PARAMS= --curve secp256k1 $(COMMON_LOAD_PARAMS)
 
 APPVERSION_M=1
 APPVERSION_N=1
@@ -184,7 +184,7 @@ ifeq ($(GCCPATH),)
 $(info GCCPATH is not set: arm-none-eabi-* will be used from PATH)
 endif
 
-CC       := $(CLANGPATH)clang 
+CC       := $(CLANGPATH)clang
 
 #CFLAGS   += -O0
 CFLAGS   += -O3 -Os
@@ -193,13 +193,13 @@ AS     := $(GCCPATH)arm-none-eabi-gcc
 
 LD       := $(GCCPATH)arm-none-eabi-gcc
 LDFLAGS  += -O3 -Os
-LDLIBS   += -lm -lgcc -lc 
+LDLIBS   += -lm -lgcc -lc
 
 # import rules to compile glyphs(/pone)
 include $(BOLOS_SDK)/Makefile.glyphs
 
 ### variables processed by the common makefile.rules of the SDK to grab source files and include dirs
-APP_SOURCE_PATH  += src_genericwallet src_common src 
+APP_SOURCE_PATH  += src_common src
 SDK_SOURCE_PATH  += lib_stusb lib_stusb_impl lib_u2f
 
 load: all

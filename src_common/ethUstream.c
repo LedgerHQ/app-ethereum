@@ -20,7 +20,7 @@
 
 #define MAX_INT256 32
 #define MAX_ADDRESS 20
-#define MAX_V 4 
+#define MAX_V 4
 
 void initTx(txContext_t *context, cx_sha3_t *sha3, txContent_t *content,
             ustreamProcess_t customProcessor, void *extra) {
@@ -206,7 +206,7 @@ static void processValue(txContext_t *context) {
     }
 }
 
-static void processTo(txContext_t *context) {    
+static void processTo(txContext_t *context) {
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_TO\n");
         THROW(EXCEPTION);
@@ -214,7 +214,7 @@ static void processTo(txContext_t *context) {
     if (context->currentFieldLength > MAX_ADDRESS) {
         PRINTF("Invalid length for RLP_TO\n");
         THROW(EXCEPTION);
-    }    
+    }
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
             (context->commandLength <
@@ -232,7 +232,7 @@ static void processTo(txContext_t *context) {
     }
 }
 
-static void processData(txContext_t *context) {    
+static void processData(txContext_t *context) {
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_DATA\n");
         THROW(EXCEPTION);
@@ -251,7 +251,7 @@ static void processData(txContext_t *context) {
     }
 }
 
-static void processV(txContext_t *context) {    
+static void processV(txContext_t *context) {
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_V\n");
         THROW(EXCEPTION);
@@ -259,7 +259,7 @@ static void processV(txContext_t *context) {
     if (context->currentFieldLength > MAX_V) {
         PRINTF("Invalid length for RLP_V\n");
         THROW(EXCEPTION);
-    }    
+    }
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
             (context->commandLength <
@@ -350,7 +350,7 @@ static parserStatus_e processTxInternal(txContext_t *context) {
                     return USTREAM_SUSPENDED;
                 case CUSTOM_FAULT:
                     PRINTF("Custom processor aborted\n");
-                    return USTREAM_FAULT;                
+                    return USTREAM_FAULT;
                 default:
                     PRINTF("Unhandled custom processor status\n");
                     return USTREAM_FAULT;
@@ -360,7 +360,7 @@ static parserStatus_e processTxInternal(txContext_t *context) {
             switch (context->currentField) {
             case TX_RLP_CONTENT:
                 processContent(context);
-                if ((context->processingFlags & TX_FLAG_TYPE) == 0) {                    
+                if ((context->processingFlags & TX_FLAG_TYPE) == 0) {
                     context->currentField++;
                 }
                 break;
@@ -431,5 +431,5 @@ parserStatus_e continueTx(txContext_t *context) {
         }
     }
     END_TRY;
-    return result;    
+    return result;
 }

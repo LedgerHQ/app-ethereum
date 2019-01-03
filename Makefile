@@ -129,6 +129,7 @@ else
 ifeq ($(filter clean,$(MAKECMDGOALS)),)
 $(error Unsupported CHAIN - use ethereum, ethereum_classic, expanse, poa, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, pirl, akroma, atheios, callisto, ethersocial, ellaism, ether1, ethergem, gochain, mix, reosc, hpb)
 endif
+endif
 
 APP_LOAD_PARAMS += $(APP_LOAD_FLAGS) --path "44'/1'"
 DEFINES += $(DEFINES_LIB)

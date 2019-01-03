@@ -15,6 +15,9 @@
 *  limitations under the License.
 ********************************************************************************/
 
+#ifndef _ETHUSTREAM_H_
+#define _ETHUSTREAM_H_
+
 #include "os.h"
 #include "cx.h"
 #include <stdbool.h>
@@ -96,3 +99,5 @@ parserStatus_e processTx(txContext_t *context, uint8_t *buffer,
 parserStatus_e continueTx(txContext_t *context);
 void copyTxData(txContext_t *context, uint8_t *out, uint32_t length);
 uint8_t readTxByte(txContext_t *context);
+
+#endif /* _ETHUSTREAM_H_ */

@@ -15,6 +15,9 @@
 *  limitations under the License.
 ********************************************************************************/
 
+#ifndef _TOKENS_H_
+#define _TOKENS_H_
+
 #include "os.h"
 
 typedef struct tokenDefinition_t {
@@ -66,3 +69,5 @@ extern tokenDefinition_t const TOKENS_GOCHAIN[NUM_TOKENS_GOCHAIN];
 extern tokenDefinition_t const TOKENS_MIX[NUM_TOKENS_MIX];
 extern tokenDefinition_t const TOKENS_REOSC[NUM_TOKENS_REOSC];
 extern tokenDefinition_t const TOKENS_HPB[NUM_TOKENS_HPB];
+
+#endif /* _TOKENS_H_ */

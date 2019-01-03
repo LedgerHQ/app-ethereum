@@ -15,6 +15,9 @@
 *  limitations under the License.
 ********************************************************************************/
 
+#ifndef _ETHUTILS_H_
+#define _ETHUTILS_H_
+
 #include "os.h"
 #include "cx.h"
 
@@ -46,3 +49,5 @@ void getEthAddressStringFromBinary(uint8_t *address, uint8_t *out,
 
 bool adjustDecimals(char *src, uint32_t srcLength, char *target,
                     uint32_t targetLength, uint8_t decimals);
+
+#endif /* _ETHUTILS_H_ */

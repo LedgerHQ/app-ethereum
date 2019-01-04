@@ -953,17 +953,6 @@ const bagl_element_t ui_data_parameter_blue[] = {
   {{BAGL_RECTANGLE | BAGL_FLAG_TOUCHABLE, 0x00, 165, 414, 115,  36, 0,18, BAGL_FILL, 0x41ccb4, COLOR_BG_1, BAGL_FONT_OPEN_SANS_REGULAR_11_14PX|BAGL_FONT_ALIGNMENT_CENTER|BAGL_FONT_ALIGNMENT_MIDDLE, 0 }, "CONFIRM", 0, 0x3ab7a2, COLOR_BG_1, io_seproxyhal_touch_data_ok, NULL, NULL},
 };
 
-int local_strchr(char *string, char ch) {
-    unsigned int length = strlen(string);
-    unsigned int i;
-    for (i=0; i<length; i++) {
-        if (string[i] == ch) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 unsigned int ui_data_parameter_blue_prepro(const bagl_element_t* element) {
   copy_element_and_map_coin_colors(element);
   if(element->component.userid > 0) {
@@ -1095,33 +1084,6 @@ unsigned int ui_address_nanos_button(unsigned int button_mask, unsigned int butt
     return 0;
 }
 #endif // #if defined(TARGET_NANOS)
-
-uint32_t getV(txContent_t *txContent) {
-    uint32_t v = 0;
-    if (txContent->vLength == 1) {
-      v = txContent->v[0];
-    }
-    else
-    if (txContent->vLength == 2) {
-      v = (txContent->v[0] << 8) | txContent->v[1];
-    }
-    else
-    if (txContent->vLength == 3) {
-      v = (txContent->v[0] << 16) | (txContent->v[1] << 8) | txContent->v[2];
-    }
-    else
-    if (txContent->vLength == 4) {
-      v = (txContent->v[0] << 24) | (txContent->v[1] << 16) |
-          (txContent->v[2] << 8) | txContent->v[3];
-    }
-    else
-    if (txContent->vLength != 0) {
-        PRINTF("Unexpected v format\n");
-        THROW(EXCEPTION);
-    }
-    return v;
-
-}
 
 void io_seproxyhal_send_status(uint32_t sw) {
     G_io_apdu_buffer[0] = ((sw >> 8) & 0xff);
@@ -1409,13 +1371,6 @@ uint32_t set_result_get_publicKey() {
       tx += 32;
     }
     return tx;
-}
-
-void convertUint256BE(uint8_t *data, uint32_t length, uint256_t *target) {
-    uint8_t tmp[32];
-    os_memset(tmp, 0, 32);
-    os_memmove(tmp + 32 - length, data, length);
-    readu256BE(tmp, target);
 }
 
 uint32_t splitBinaryParameterPart(char *result, uint8_t *parameter) {

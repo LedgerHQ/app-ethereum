@@ -30,9 +30,9 @@
 #include "os_io_seproxyhal.h"
 
 #include "glyphs.h"
+#include "utils.h"
 
 unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
-
 
 unsigned int io_seproxyhal_touch_settings(const bagl_element_t *e);
 unsigned int io_seproxyhal_touch_exit(const bagl_element_t *e);
@@ -166,20 +166,7 @@ static const char const CONTRACT_ADDRESS[] = "New contract";
 static const char const SIGN_MAGIC[] = "\x19"
                                        "Ethereum Signed Message:\n";
 
-const unsigned char hex_digits[] = {'0', '1', '2', '3', '4', '5', '6', '7',
-                                    '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
-
 chain_config_t *chainConfig;
-
-void array_hexstr(char *strbuf, const void *bin, unsigned int len) {
-    while (len--) {
-        *strbuf++ = hex_digits[((*((char *)bin)) >> 4) & 0xF];
-        *strbuf++ = hex_digits[(*((char *)bin)) & 0xF];
-        bin = (const void *)((unsigned int)bin + 1);
-    }
-    *strbuf = 0; // EOS
-}
-
 
 const bagl_element_t* ui_menu_item_out_over(const bagl_element_t* e) {
   // the selection rectangle is after the none|touchable

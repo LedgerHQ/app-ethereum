@@ -18,7 +18,8 @@
 #ifndef _ETHUTILS_H_
 #define _ETHUTILS_H_
 
-#include "os.h"
+#include <stdint.h>
+
 #include "cx.h"
 
 /**

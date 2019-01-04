@@ -18,9 +18,11 @@
 #ifndef _ETHUSTREAM_H_
 #define _ETHUSTREAM_H_
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "os.h"
 #include "cx.h"
-#include <stdbool.h>
 
 struct txContext_t;
 

@@ -23,9 +23,12 @@
  * @date 8th of March 2016
  */
 
+#include <stdbool.h>
+#include <stdint.h>
+#include <string.h>
+
 #include "os.h"
 #include "cx.h"
-#include <stdbool.h>
 #include "ethUtils.h"
 #include "chainConfig.h"
 

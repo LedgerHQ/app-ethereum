@@ -15,9 +15,12 @@
 *  limitations under the License.
 ********************************************************************************/
 
+#include <stdbool.h>
+#include <stdint.h>
+#include <string.h>
+
 #include "os.h"
 #include "cx.h"
-#include "stdbool.h"
 #include "ethUstream.h"
 #include "ethUtils.h"
 #include "uint256.h"
@@ -25,7 +28,6 @@
 #include "chainConfig.h"
 
 #include "os_io_seproxyhal.h"
-#include "string.h"
 
 #include "glyphs.h"
 

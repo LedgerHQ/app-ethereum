@@ -15,6 +15,8 @@
 *  limitations under the License.
 ********************************************************************************/
 
+#include <stdint.h>
+
 #include "ethUstream.h"
 #include "ethUtils.h"
 

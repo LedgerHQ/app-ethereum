@@ -19,6 +19,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "uint256.h"
 
 static const char HEXDIGITS[] = "0123456789abcdef";

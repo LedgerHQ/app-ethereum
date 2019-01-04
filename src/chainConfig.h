@@ -18,6 +18,8 @@
 #ifndef _CHAIN_CONFIG_H_
 #define _CHAIN_CONFIG_H_
 
+#include <stdint.h>
+
 #include "os.h"
 
 typedef enum chain_kind_e {

@@ -18,7 +18,7 @@
 #ifndef _TOKENS_H_
 #define _TOKENS_H_
 
-#include "os.h"
+#include <stdint.h>
 
 typedef struct tokenDefinition_t {
     uint8_t address[20];

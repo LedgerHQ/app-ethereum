@@ -22,33 +22,36 @@ from ledgerblue.commException import CommException
 import argparse
 import struct
 
+
 def parse_bip32_path(path):
-	if len(path) == 0:
-		return ""
-	result = ""
-	elements = path.split('/')
-	for pathElement in elements:
-		element = pathElement.split('\'')
-		if len(element) == 1:
-			result = result + struct.pack(">I", int(element[0]))			
-		else:
-			result = result + struct.pack(">I", 0x80000000 | int(element[0]))
-	return result
+    if len(path) == 0:
+        return ""
+    result = ""
+    elements = path.split('/')
+    for pathElement in elements:
+        element = pathElement.split('\'')
+        if len(element) == 1:
+            result = result + struct.pack(">I", int(element[0]))
+        else:
+            result = result + struct.pack(">I", 0x80000000 | int(element[0]))
+    return result
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--path', help="BIP 32 path to retrieve")
 args = parser.parse_args()
 
 if args.path == None:
-	args.path = "44'/60'/0'/0/0"
+    args.path = "44'/60'/0'/0/0"
 
 donglePath = parse_bip32_path(args.path)
-apdu = "e0020100".decode('hex') + chr(len(donglePath) + 1) + chr(len(donglePath) / 4) + donglePath
+apdu = "e0020100".decode('hex') + chr(len(donglePath) + 1) + \
+    chr(len(donglePath) / 4) + donglePath
 
 dongle = getDongle(True)
 result = dongle.exchange(bytes(apdu))
 offset = 1 + result[0]
-address = result[offset + 1 : offset + 1 + result[offset]]
+address = result[offset + 1: offset + 1 + result[offset]]
 
-print "Public key " + str(result[1 : 1 + result[0]]).encode('hex')
+print "Public key " + str(result[1: 1 + result[0]]).encode('hex')
 print "Address 0x" + str(address)

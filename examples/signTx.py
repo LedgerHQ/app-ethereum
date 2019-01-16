@@ -26,18 +26,20 @@ from ethBase import Transaction, UnsignedTransaction
 from rlp import encode
 from rlp.utils import decode_hex, encode_hex, str_to_bytes
 
+
 def parse_bip32_path(path):
-	if len(path) == 0:
-		return ""
-	result = ""
-	elements = path.split('/')
-	for pathElement in elements:
-		element = pathElement.split('\'')
-		if len(element) == 1:
-			result = result + struct.pack(">I", int(element[0]))			
-		else:
-			result = result + struct.pack(">I", 0x80000000 | int(element[0]))
-	return result
+    if len(path) == 0:
+        return ""
+    result = ""
+    elements = path.split('/')
+    for pathElement in elements:
+        element = pathElement.split('\'')
+        if len(element) == 1:
+            result = result + struct.pack(">I", int(element[0]))
+        else:
+            result = result + struct.pack(">I", 0x80000000 | int(element[0]))
+    return result
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--nonce', help="Nonce associated to the account")
@@ -50,12 +52,12 @@ parser.add_argument('--data', help="Data to add, hex encoded")
 args = parser.parse_args()
 
 if args.path == None:
-	args.path = "44'/60'/0'/0/0"
+    args.path = "44'/60'/0'/0/0"
 
 if args.data == None:
-	args.data = ""
+    args.data = ""
 else:
-	args.data = decode_hex(args.data[2:])
+    args.data = decode_hex(args.data[2:])
 
 amount = Decimal(args.amount) * 10**18
 
@@ -71,7 +73,8 @@ tx = Transaction(
 encodedTx = encode(tx, UnsignedTransaction)
 
 donglePath = parse_bip32_path(args.path)
-apdu = "e0040000".decode('hex') + chr(len(donglePath) + 1 + len(encodedTx)) + chr(len(donglePath) / 4) + donglePath + encodedTx
+apdu = "e0040000".decode('hex') + chr(len(donglePath) + 1 +
+                                      len(encodedTx)) + chr(len(donglePath) / 4) + donglePath + encodedTx
 
 dongle = getDongle(True)
 result = dongle.exchange(bytes(apdu))
@@ -80,6 +83,7 @@ v = result[0]
 r = int(str(result[1:1 + 32]).encode('hex'), 16)
 s = int(str(result[1 + 32: 1 + 32 + 32]).encode('hex'), 16)
 
-tx = Transaction(tx.nonce, tx.gasprice, tx.startgas, tx.to, tx.value, tx.data, v, r, s)
+tx = Transaction(tx.nonce, tx.gasprice, tx.startgas,
+                 tx.to, tx.value, tx.data, v, r, s)
 
 print "Signed transaction " + encode_hex(encode(tx))

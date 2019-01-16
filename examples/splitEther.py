@@ -17,6 +17,8 @@
 *  limitations under the License.
 ********************************************************************************
 """
+from __future__ import print_function
+
 from ledgerblue.comm import getDongle
 from ledgerblue.commException import CommException
 import argparse
@@ -48,8 +50,8 @@ def rpc_call(http, url, methodDebug):
 
 def parse_bip32_path(path):
     if len(path) == 0:
-        return ""
-    result = ""
+        return b""
+    result = b""
     elements = path.split('/')
     for pathElement in elements:
         element = pathElement.split('\'')
@@ -96,20 +98,20 @@ if args.to == None:
 dongle = getDongle(True)
 
 donglePath = parse_bip32_path(args.to)
-apdu = "e0060000".decode('hex') + chr(len(donglePath) + 1) + \
-    chr(len(donglePath) / 4) + donglePath
+apdu = bytearray.fromhex("e0060000") + chr(len(donglePath) + 1).encode() + \
+    chr(len(donglePath) // 4).encode() + donglePath
 dongle.exchange(bytes(apdu))
 
-apdu = "e0020000".decode('hex') + chr(len(donglePath) + 1) + \
-    chr(len(donglePath) / 4) + donglePath
+apdu = bytearray.fromhex("e0020000") + chr(len(donglePath) + 1).encode() + \
+    chr(len(donglePath) // 4).encode() + donglePath
 result = dongle.exchange(bytes(apdu))
 publicKey = str(result[1: 1 + result[0]])
 encodedPublicKey = sha3(publicKey[1:])[12:]
 
 if (args.nonce == None) or (args.amount == None):
     donglePathFrom = parse_bip32_path(args.path)
-    apdu = "e0020000".decode('hex') + chr(len(donglePathFrom) + 1) + \
-        chr(len(donglePathFrom) / 4) + donglePathFrom
+    apdu = bytearray.fromhex("e0020000") + chr(len(donglePathFrom) + 1).encode() + \
+        chr(len(donglePathFrom) // 4).encode() + donglePathFrom
     result = dongle.exchange(bytes(apdu))
     publicKeyFrom = str(result[1: 1 + result[0]])
     encodedPublicKeyFrom = sha3(publicKeyFrom[1:])[12:]
@@ -120,36 +122,35 @@ if (args.gasprice == None) or (args.nonce == None) or (args.amount == None) or (
     http = requests.session()
 
 if args.gasprice == None:
-    print "Fetching gas price"
+    print("Fetching gas price")
     result = rpc_call(
         http, "https://api.etherscan.io/api?module=proxy&action=eth_gasPrice", "gasPrice")
     args.gasprice = int(result['result'], 16)
-    print "Gas price " + str(args.gasprice)
+    print("Gas price:", str(args.gasprice))
 
 if args.nonce == None:
-    print "Fetching nonce"
+    print("Fetching nonce")
     result = rpc_call(http, "https://api.etherscan.io/api?module=proxy&action=eth_getTransactionCount&address=0x" +
                       encodedPublicKeyFrom.encode('hex'), "getTransactionCount")
     args.nonce = int(result['result'], 16)
-    print "Nonce for 0x" + \
-        encodedPublicKeyFrom.encode('hex') + " " + str(args.nonce)
+    print("Nonce for 0x", encodedPublicKeyFrom.encode('hex'), " ", args.nonce, sep='')
 
 if args.amount == None:
-    print "Fetching balance"
+    print("Fetching balance")
     result = rpc_call(http, "https://api.etherscan.io/api?module=account&action=balance&address=0x" +
                       encodedPublicKeyFrom.encode('hex'), "getBalance")
     amount = int(result['result'])
-    print "Balance for " + \
-        encodedPublicKeyFrom.encode('hex') + " " + str(amount)
+    print("Balance for 0x", encodedPublicKeyFrom.encode('hex'), " ", str(amount), sep='')
     amount -= (int(args.startgas) - int(args.startgas_delta)) * \
         int(args.gasprice)
+    amount = 2
     if amount < 0:
         raise Exception("Remaining amount too small to pay for contract fees")
 else:
     amount = Decimal(args.amount) * 10**18
 
-print "Amount transferred " + \
-    str((Decimal(amount) / 10 ** 18)) + " to " + encodedPublicKey.encode('hex')
+print("Amount transferred", str((Decimal(amount) / 10 ** 18)),
+      "to", encodedPublicKey.encode('hex'))
 
 txData = SPLIT_CONTRACT_FUNCTION
 txData += "\x00" * 31
@@ -185,9 +186,9 @@ tx = Transaction(tx.nonce, tx.gasprice, tx.startgas,
                  tx.to, tx.value, tx.data, v, r, s)
 serializedTx = encode(tx)
 
-print "Signed transaction " + serializedTx.encode('hex')
+print("Signed transaction", serializedTx.encode('hex'))
 
 if (args.broadcast):
     result = rpc_call(http, "https://api.etherscan.io/api?module=proxy&action=eth_sendRawTransaction&hex=0x" +
                       serializedTx.encode('hex'), "sendRawTransaction")
-    print result
+    print(result)

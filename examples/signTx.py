@@ -17,20 +17,26 @@
 *  limitations under the License.
 ********************************************************************************
 """
+from __future__ import print_function
+
 from ledgerblue.comm import getDongle
 from ledgerblue.commException import CommException
 import argparse
 import struct
-from decimal import Decimal
-from ethBase import Transaction, UnsignedTransaction
+import binascii
+from ethBase import Transaction, UnsignedTransaction, unsigned_tx_from_tx
 from rlp import encode
-from rlp.utils import decode_hex, encode_hex, str_to_bytes
 
+try:
+    from rlp.utils import decode_hex, encode_hex, str_to_bytes
+except:
+    #Python3 hack import for pyethereum
+    from ethereum.utils import decode_hex, encode_hex, str_to_bytes
 
 def parse_bip32_path(path):
     if len(path) == 0:
-        return ""
-    result = ""
+        return b""
+    result = b""
     elements = path.split('/')
     for pathElement in elements:
         element = pathElement.split('\'')
@@ -55,11 +61,11 @@ if args.path == None:
     args.path = "44'/60'/0'/0/0"
 
 if args.data == None:
-    args.data = ""
+    args.data = b""
 else:
     args.data = decode_hex(args.data[2:])
 
-amount = Decimal(args.amount) * 10**18
+amount = args.amount * 10**18
 
 tx = Transaction(
     nonce=int(args.nonce),
@@ -67,23 +73,25 @@ tx = Transaction(
     startgas=int(args.startgas),
     to=decode_hex(args.to[2:]),
     value=int(amount),
-    data=args.data
+    data=args.data,
 )
 
-encodedTx = encode(tx, UnsignedTransaction)
+encodedTx = encode(unsigned_tx_from_tx(tx), UnsignedTransaction)
 
 donglePath = parse_bip32_path(args.path)
-apdu = "e0040000".decode('hex') + chr(len(donglePath) + 1 +
-                                      len(encodedTx)) + chr(len(donglePath) / 4) + donglePath + encodedTx
+apdu = bytearray.fromhex("e0040000")
+apdu.append(len(donglePath) + 1 + len(encodedTx))
+apdu.append(len(donglePath) // 4)
+apdu += donglePath + encodedTx
 
 dongle = getDongle(True)
 result = dongle.exchange(bytes(apdu))
 
 v = result[0]
-r = int(str(result[1:1 + 32]).encode('hex'), 16)
-s = int(str(result[1 + 32: 1 + 32 + 32]).encode('hex'), 16)
+r = int(binascii.hexlify(result[1:1 + 32]), 16)
+s = int(binascii.hexlify(result[1 + 32: 1 + 32 + 32]), 16)
 
 tx = Transaction(tx.nonce, tx.gasprice, tx.startgas,
                  tx.to, tx.value, tx.data, v, r, s)
 
-print "Signed transaction " + encode_hex(encode(tx))
+print("Signed transaction", encode_hex(encode(tx)))

@@ -25,8 +25,8 @@ import struct
 
 def parse_bip32_path(path):
     if len(path) == 0:
-        return ""
-    result = ""
+        return b""
+    result = b""
     elements = path.split('/')
     for pathElement in elements:
         element = pathElement.split('\'')
@@ -45,8 +45,8 @@ if args.path == None:
     args.path = "44'/60'/0'/0/0"
 
 donglePath = parse_bip32_path(args.path)
-apdu = "e0060000".decode('hex') + chr(len(donglePath) + 1) + \
-    chr(len(donglePath) / 4) + donglePath
+apdu = bytearray.fromhex("e0060000") + chr(len(donglePath) + 1).encode() + \
+    chr(len(donglePath) // 4).encode() + donglePath
 
 dongle = getDongle(True)
 dongle.exchange(bytes(apdu))

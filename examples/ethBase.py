@@ -53,5 +53,22 @@ class Transaction(Serializable):
         super(Transaction, self).__init__(
             nonce, gasprice, startgas, to, value, data, v, r, s)
 
+class UnsignedTransaction(Serializable):
+    fields = [
+        ('nonce', big_endian_int),
+        ('gasprice', big_endian_int),
+        ('startgas', big_endian_int),
+        ('to', address),
+        ('value', big_endian_int),
+        ('data', binary),
+    ]
 
-UnsignedTransaction = Transaction.exclude(['v', 'r', 's'])
+def unsigned_tx_from_tx(tx):
+    return UnsignedTransaction(
+        nonce=tx.nonce,
+        gasprice=tx.gasprice,
+        startgas=tx.startgas,
+        to=tx.to,
+        value=tx.value,
+        data=tx.data,
+    )

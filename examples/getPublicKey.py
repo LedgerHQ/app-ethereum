@@ -17,16 +17,19 @@
 *  limitations under the License.
 ********************************************************************************
 """
+from __future__ import print_function
+
 from ledgerblue.comm import getDongle
 from ledgerblue.commException import CommException
 import argparse
 import struct
+import binascii
 
 
 def parse_bip32_path(path):
     if len(path) == 0:
-        return ""
-    result = ""
+        return b""
+    result = b""
     elements = path.split('/')
     for pathElement in elements:
         element = pathElement.split('\'')
@@ -45,13 +48,13 @@ if args.path == None:
     args.path = "44'/60'/0'/0/0"
 
 donglePath = parse_bip32_path(args.path)
-apdu = "e0020100".decode('hex') + chr(len(donglePath) + 1) + \
-    chr(len(donglePath) / 4) + donglePath
+apdu = bytearray.fromhex("e0020100") + chr(len(donglePath) + 1).encode() + \
+    chr(len(donglePath) // 4).encode() + donglePath
 
 dongle = getDongle(True)
 result = dongle.exchange(bytes(apdu))
 offset = 1 + result[0]
 address = result[offset + 1: offset + 1 + result[offset]]
 
-print "Public key " + str(result[1: 1 + result[0]]).encode('hex')
-print "Address 0x" + str(address)
+print("Public key", binascii.hexlify(result[1: 1 + result[0]]).decode())
+print("Address 0x", address.decode(), sep='')

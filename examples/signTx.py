@@ -48,11 +48,11 @@ def parse_bip32_path(path):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--nonce', help="Nonce associated to the account")
-parser.add_argument('--gasprice', help="Network gas price")
-parser.add_argument('--startgas', help="startgas", default='21000')
-parser.add_argument('--amount', help="Amount to send in ether")
-parser.add_argument('--to', help="Destination address")
+parser.add_argument('--nonce', help="Nonce associated to the account", type=int, required=True)
+parser.add_argument('--gasprice', help="Network gas price", type=int, required=True)
+parser.add_argument('--startgas', help="startgas", default='21000', type=int)
+parser.add_argument('--amount', help="Amount to send in ether", type=int, required=True)
+parser.add_argument('--to', help="Destination address", type=str, required=True)
 parser.add_argument('--path', help="BIP 32 path to sign with")
 parser.add_argument('--data', help="Data to add, hex encoded")
 args = parser.parse_args()

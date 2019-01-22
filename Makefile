@@ -25,7 +25,7 @@ APP_LOAD_PARAMS= --curve secp256k1 $(COMMON_LOAD_PARAMS)
 
 APPVERSION_M=1
 APPVERSION_N=1
-APPVERSION_P=8
+APPVERSION_P=9
 APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 APP_LOAD_FLAGS= --appFlags 0x40 --dep Ethereum:$(APPVERSION)
 
@@ -34,9 +34,8 @@ CHAIN=ethereum
 endif
 
 ifeq ($(CHAIN),ethereum)
-#TODO : Fix in 1.4.3
-#APP_LOAD_PARAMS += --path "44'/60'"
-APP_LOAD_PARAMS += --path "44'"
+# Lock the application on its standard path for 1.5. Please complain if non compliant
+APP_LOAD_PARAMS += --path "44'/60'"
 DEFINES += CHAINID_UPCASE=\"ETHEREUM\" CHAINID_COINNAME=\"ETH\" CHAIN_KIND=CHAIN_KIND_ETHEREUM CHAIN_ID=0
 APPNAME = "Ethereum"
 DEFINES_LIB=
@@ -46,7 +45,8 @@ APP_LOAD_PARAMS += --path "44'/163'"
 DEFINES += CHAINID_UPCASE=\"ELLA\" CHAINID_COINNAME=\"ELLA\" CHAIN_KIND=CHAIN_KIND_ELLAISM CHAIN_ID=64
 APPNAME = "Ellaism"
 else ifeq ($(CHAIN),ethereum_classic)
-APP_LOAD_PARAMS += --path "44'/61'"
+# Also allows ETC to access the ETH derivation path to recover forked assets
+APP_LOAD_PARAMS += --path "44'/61'" --path "44'/60'"
 DEFINES += CHAINID_UPCASE=\"ETC\" CHAINID_COINNAME=\"ETC\" CHAIN_KIND=CHAIN_KIND_ETHEREUM_CLASSIC CHAIN_ID=61
 APPNAME = "Ethereum Classic"
 else ifeq ($(CHAIN),ethersocial)

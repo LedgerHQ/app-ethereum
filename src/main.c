@@ -1,6 +1,6 @@
 /*******************************************************************************
-*   Ledger Blue
-*   (c) 2016 Ledger
+*   Ledger Ethereum App
+*   (c) 2016-2019 Ledger
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -15,9 +15,12 @@
 *  limitations under the License.
 ********************************************************************************/
 
+#include <stdbool.h>
+#include <stdint.h>
+#include <string.h>
+
 #include "os.h"
 #include "cx.h"
-#include "stdbool.h"
 #include "ethUstream.h"
 #include "ethUtils.h"
 #include "uint256.h"
@@ -25,15 +28,11 @@
 #include "chainConfig.h"
 
 #include "os_io_seproxyhal.h"
-#include "string.h"
 
 #include "glyphs.h"
-
-#define __NAME3(a, b, c) a##b##c
-#define NAME3(a, b, c) __NAME3(a, b, c)
+#include "utils.h"
 
 unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
-
 
 unsigned int io_seproxyhal_touch_settings(const bagl_element_t *e);
 unsigned int io_seproxyhal_touch_exit(const bagl_element_t *e);
@@ -167,20 +166,7 @@ static const char const CONTRACT_ADDRESS[] = "New contract";
 static const char const SIGN_MAGIC[] = "\x19"
                                        "Ethereum Signed Message:\n";
 
-const unsigned char hex_digits[] = {'0', '1', '2', '3', '4', '5', '6', '7',
-                                    '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
-
 chain_config_t *chainConfig;
-
-void array_hexstr(char *strbuf, const void *bin, unsigned int len) {
-    while (len--) {
-        *strbuf++ = hex_digits[((*((char *)bin)) >> 4) & 0xF];
-        *strbuf++ = hex_digits[(*((char *)bin)) & 0xF];
-        bin = (const void *)((unsigned int)bin + 1);
-    }
-    *strbuf = 0; // EOS
-}
-
 
 const bagl_element_t* ui_menu_item_out_over(const bagl_element_t* e) {
   // the selection rectangle is after the none|touchable
@@ -237,9 +223,6 @@ const bagl_element_t ui_idle_blue[] = {
 
   {{BAGL_RECTANGLE | BAGL_FLAG_TOUCHABLE, 0x00,   0,  19,  56,  44, 0, 0, BAGL_FILL, COLOR_APP, COLOR_APP_LIGHT, BAGL_FONT_SYMBOLS_0|BAGL_FONT_ALIGNMENT_CENTER|BAGL_FONT_ALIGNMENT_MIDDLE, 0 }, BAGL_FONT_SYMBOLS_0_SETTINGS, 0, COLOR_APP, 0xFFFFFF, io_seproxyhal_touch_settings, NULL, NULL},
   {{BAGL_RECTANGLE | BAGL_FLAG_TOUCHABLE, 0x00, 264,  19,  56,  44, 0, 0, BAGL_FILL, COLOR_APP, COLOR_APP_LIGHT, BAGL_FONT_SYMBOLS_0|BAGL_FONT_ALIGNMENT_CENTER|BAGL_FONT_ALIGNMENT_MIDDLE, 0 }, BAGL_FONT_SYMBOLS_0_DASHBOARD, 0, COLOR_APP, 0xFFFFFF, io_seproxyhal_touch_exit, NULL, NULL},
-
-  // BADGE_<CHAINID>.GIF
-  //{{BAGL_ICON                           , 0x00, 135, 178,  50,  50, 0, 0, BAGL_FILL, 0       , COLOR_BG_1, 0                                                              ,0   } , &NAME3(C_blue_badge_, CHAINID, ), 0, 0, 0, NULL, NULL, NULL },
 
   {{BAGL_LABELINE                       , 0x00,   0, 270, 320,  30, 0, 0, BAGL_FILL, 0x000000, COLOR_BG_1, BAGL_FONT_OPEN_SANS_LIGHT_16_22PX|BAGL_FONT_ALIGNMENT_CENTER, 0   }, "Open your wallet", 0, 0, 0, NULL, NULL, NULL},
   {{BAGL_LABELINE                       , 0x00,   0, 308, 320,  30, 0, 0, BAGL_FILL, 0x000000, COLOR_BG_1, BAGL_FONT_OPEN_SANS_REGULAR_10_13PX|BAGL_FONT_ALIGNMENT_CENTER, 0   }, "Connect your Ledger Blue and open your", 0, 0, 0, NULL, NULL, NULL},
@@ -318,7 +301,6 @@ const ux_menu_entry_t menu_about[] = {
 };
 
 const ux_menu_entry_t menu_main[] = {
-  //{NULL, NULL, 0, &NAME3(C_nanos_badge_, CHAINID, ), "Use wallet to", "view accounts", 33, 12},
   {NULL, NULL, 0, NULL, "Use wallet to", "view accounts", 0, 0},
   {menu_settings, NULL, 0, NULL, "Settings", NULL, 0, 0},
   {menu_about, NULL, 0, NULL, "About", NULL, 0, 0},
@@ -971,17 +953,6 @@ const bagl_element_t ui_data_parameter_blue[] = {
   {{BAGL_RECTANGLE | BAGL_FLAG_TOUCHABLE, 0x00, 165, 414, 115,  36, 0,18, BAGL_FILL, 0x41ccb4, COLOR_BG_1, BAGL_FONT_OPEN_SANS_REGULAR_11_14PX|BAGL_FONT_ALIGNMENT_CENTER|BAGL_FONT_ALIGNMENT_MIDDLE, 0 }, "CONFIRM", 0, 0x3ab7a2, COLOR_BG_1, io_seproxyhal_touch_data_ok, NULL, NULL},
 };
 
-int local_strchr(char *string, char ch) {
-    unsigned int length = strlen(string);
-    unsigned int i;
-    for (i=0; i<length; i++) {
-        if (string[i] == ch) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 unsigned int ui_data_parameter_blue_prepro(const bagl_element_t* element) {
   copy_element_and_map_coin_colors(element);
   if(element->component.userid > 0) {
@@ -1113,33 +1084,6 @@ unsigned int ui_address_nanos_button(unsigned int button_mask, unsigned int butt
     return 0;
 }
 #endif // #if defined(TARGET_NANOS)
-
-uint32_t getV(txContent_t *txContent) {
-    uint32_t v = 0;
-    if (txContent->vLength == 1) {
-      v = txContent->v[0];
-    }
-    else
-    if (txContent->vLength == 2) {
-      v = (txContent->v[0] << 8) | txContent->v[1];
-    }
-    else
-    if (txContent->vLength == 3) {
-      v = (txContent->v[0] << 16) | (txContent->v[1] << 8) | txContent->v[2];
-    }
-    else
-    if (txContent->vLength == 4) {
-      v = (txContent->v[0] << 24) | (txContent->v[1] << 16) |
-          (txContent->v[2] << 8) | txContent->v[3];
-    }
-    else
-    if (txContent->vLength != 0) {
-        PRINTF("Unexpected v format\n");
-        THROW(EXCEPTION);
-    }
-    return v;
-
-}
 
 void io_seproxyhal_send_status(uint32_t sw) {
     G_io_apdu_buffer[0] = ((sw >> 8) & 0xff);
@@ -1427,13 +1371,6 @@ uint32_t set_result_get_publicKey() {
       tx += 32;
     }
     return tx;
-}
-
-void convertUint256BE(uint8_t *data, uint32_t length, uint256_t *target) {
-    uint8_t tmp[32];
-    os_memset(tmp, 0, 32);
-    os_memmove(tmp + 32 - length, data, length);
-    readu256BE(tmp, target);
 }
 
 uint32_t splitBinaryParameterPart(char *result, uint8_t *parameter) {

@@ -1,6 +1,6 @@
 /*******************************************************************************
-*   Ledger Blue
-*   (c) 2016 Ledger
+*   Ledger Ethereum App
+*   (c) 2016-2019 Ledger
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -15,7 +15,10 @@
 *  limitations under the License.
 ********************************************************************************/
 
-#include "os.h"
+#ifndef _TOKENS_H_
+#define _TOKENS_H_
+
+#include <stdint.h>
 
 typedef struct tokenDefinition_t {
     uint8_t address[20];
@@ -66,3 +69,5 @@ extern tokenDefinition_t const TOKENS_GOCHAIN[NUM_TOKENS_GOCHAIN];
 extern tokenDefinition_t const TOKENS_MIX[NUM_TOKENS_MIX];
 extern tokenDefinition_t const TOKENS_REOSC[NUM_TOKENS_REOSC];
 extern tokenDefinition_t const TOKENS_HPB[NUM_TOKENS_HPB];
+
+#endif /* _TOKENS_H_ */

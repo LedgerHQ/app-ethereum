@@ -1,6 +1,6 @@
 /*******************************************************************************
-*   Ledger Blue
-*   (c) 2016 Ledger
+*   Ledger Ethereum App
+*   (c) 2016-2019 Ledger
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "uint256.h"
 
 static const char HEXDIGITS[] = "0123456789abcdef";

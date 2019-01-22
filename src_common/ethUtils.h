@@ -1,6 +1,6 @@
 /*******************************************************************************
-*   Ledger Blue
-*   (c) 2016 Ledger
+*   Ledger Ethereum App
+*   (c) 2016-2019 Ledger
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -15,7 +15,11 @@
 *  limitations under the License.
 ********************************************************************************/
 
-#include "os.h"
+#ifndef _ETHUTILS_H_
+#define _ETHUTILS_H_
+
+#include <stdint.h>
+
 #include "cx.h"
 
 /**
@@ -46,3 +50,5 @@ void getEthAddressStringFromBinary(uint8_t *address, uint8_t *out,
 
 bool adjustDecimals(char *src, uint32_t srcLength, char *target,
                     uint32_t targetLength, uint8_t decimals);
+
+#endif /* _ETHUTILS_H_ */

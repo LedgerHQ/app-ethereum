@@ -1,6 +1,6 @@
 /*******************************************************************************
-*   Ledger Blue
-*   (c) 2016 Ledger
+*   Ledger Ethereum App
+*   (c) 2016-2019 Ledger
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -16,6 +16,9 @@
 ********************************************************************************/
 
 // Adapted from https://github.com/calccrypto/uint256_t
+
+#ifndef _UINT256_H_
+#define _UINT256_H_
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -63,3 +66,5 @@ bool tostring128(uint128_t *number, uint32_t base, char *out,
                  uint32_t outLength);
 bool tostring256(uint256_t *number, uint32_t base, char *out,
                  uint32_t outLength);
+
+#endif /* _UINT256_H_ */

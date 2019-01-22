@@ -1,6 +1,6 @@
 /*******************************************************************************
-*   Ledger Blue
-*   (c) 2016 Ledger
+*   Ledger Ethereum App
+*   (c) 2016-2019 Ledger
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -15,9 +15,14 @@
 *  limitations under the License.
 ********************************************************************************/
 
+#ifndef _ETHUSTREAM_H_
+#define _ETHUSTREAM_H_
+
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "os.h"
 #include "cx.h"
-#include <stdbool.h>
 
 struct txContext_t;
 
@@ -96,3 +101,5 @@ parserStatus_e processTx(txContext_t *context, uint8_t *buffer,
 parserStatus_e continueTx(txContext_t *context);
 void copyTxData(txContext_t *context, uint8_t *out, uint32_t length);
 uint8_t readTxByte(txContext_t *context);
+
+#endif /* _ETHUSTREAM_H_ */

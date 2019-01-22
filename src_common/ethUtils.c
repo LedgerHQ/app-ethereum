@@ -1,6 +1,6 @@
 /*******************************************************************************
-*   Ledger Blue
-*   (c) 2016 Ledger
+*   Ledger Ethereum App
+*   (c) 2016-2019 Ledger
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -23,9 +23,12 @@
  * @date 8th of March 2016
  */
 
+#include <stdbool.h>
+#include <stdint.h>
+#include <string.h>
+
 #include "os.h"
 #include "cx.h"
-#include <stdbool.h>
 #include "ethUtils.h"
 #include "chainConfig.h"
 

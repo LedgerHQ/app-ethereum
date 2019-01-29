@@ -21,6 +21,7 @@ from __future__ import print_function
 
 from ledgerblue.comm import getDongle
 from ledgerblue.commException import CommException
+from decimal import Decimal
 import argparse
 import struct
 import binascii
@@ -51,7 +52,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--nonce', help="Nonce associated to the account", type=int, required=True)
 parser.add_argument('--gasprice', help="Network gas price", type=int, required=True)
 parser.add_argument('--startgas', help="startgas", default='21000', type=int)
-parser.add_argument('--amount', help="Amount to send in ether", type=int, required=True)
+parser.add_argument('--amount', help="Amount to send in ether", required=True)
 parser.add_argument('--to', help="Destination address", type=str, required=True)
 parser.add_argument('--path', help="BIP 32 path to sign with")
 parser.add_argument('--data', help="Data to add, hex encoded")
@@ -65,7 +66,7 @@ if args.data == None:
 else:
     args.data = decode_hex(args.data[2:])
 
-amount = args.amount * 10**18
+amount = Decimal(args.amount) * 10**18
 
 tx = Transaction(
     nonce=int(args.nonce),

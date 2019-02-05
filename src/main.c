@@ -51,11 +51,15 @@ void finalizeParsing(bool);
 
 #define MAX_BIP32_PATH 10
 
+#define APP_FLAG_DATA_ALLOWED 0x01
+#define APP_FLAG_EXTERNAL_TOKEN_NEEDED 0x02
+
 #define CLA 0xE0
 #define INS_GET_PUBLIC_KEY 0x02
 #define INS_SIGN 0x04
 #define INS_GET_APP_CONFIGURATION 0x06
 #define INS_SIGN_PERSONAL_MESSAGE 0x08
+#define INS_PROVIDE_ERC20_TOKEN_INFORMATION 0x0A
 #define P1_CONFIRM 0x01
 #define P1_NON_CONFIRM 0x00
 #define P2_NO_CHAINCODE 0x00
@@ -73,6 +77,22 @@ void finalizeParsing(bool);
 #define WEI_TO_ETHER 18
 
 static const uint8_t const TOKEN_TRANSFER_ID[] = { 0xa9, 0x05, 0x9c, 0xbb };
+
+static const uint8_t const TOKEN_SIGNATURE_PUBLIC_KEY[] = {
+// production key 2019-01-11 03:07PM (erc20signer)
+  0x04,
+  
+  0x5e,0x6c,0x10,0x20,0xc1,0x4d,0xc4,0x64,
+  0x42,0xfe,0x89,0xf9,0x7c,0x0b,0x68,0xcd,
+  0xb1,0x59,0x76,0xdc,0x24,0xf2,0x4c,0x31,
+  0x6e,0x7b,0x30,0xfe,0x4e,0x8c,0xc7,0x6b,
+  
+  0x14,0x89,0x15,0x0c,0x21,0x51,0x4e,0xbf,
+  0x44,0x0f,0xf5,0xde,0xa5,0x39,0x3d,0x83,
+  0xde,0x53,0x58,0xcd,0x09,0x8f,0xce,0x8f,
+  0xd0,0xf8,0x1d,0xaa,0x94,0x97,0x91,0x83
+};
+
 typedef struct tokenContext_t {
     uint8_t data[4 + 32 + 32];
     uint32_t dataFieldPos;
@@ -95,6 +115,7 @@ typedef struct transactionContext_t {
     uint8_t pathLength;
     uint32_t bip32Path[MAX_BIP32_PATH];
     uint8_t hash[32];
+    tokenDefinition_t currentToken;
 } transactionContext_t;
 
 typedef struct messageSigningContext_t {
@@ -128,6 +149,7 @@ volatile uint8_t contractDetails;
 volatile char addressSummary[32];
 volatile bool dataPresent;
 volatile bool tokenProvisioned;
+volatile bool currentTokenSet;
 
 bagl_element_t tmp_element;
 
@@ -1394,6 +1416,7 @@ uint32_t splitBinaryParameterPart(char *result, uint8_t *parameter) {
 
 tokenDefinition_t* getKnownToken() {
     tokenDefinition_t *currentToken = NULL;
+#ifdef HAVE_TOKENS_LIST    
     uint32_t numTokens = 0;
     uint32_t i;
     switch(chainConfig->kind) {
@@ -1531,9 +1554,14 @@ tokenDefinition_t* getKnownToken() {
             return currentToken;
         }
     }
+#endif
+
+    if (currentTokenSet && (os_memcmp(tmpCtx.transactionContext.currentToken.address, tmpContent.txContent.destination, 20) == 0)) {
+      return &tmpCtx.transactionContext.currentToken;
+    }
+
     return NULL;
 }
-
 
 customStatus_e customProcessor(txContext_t *context) {
     if ((context->currentField == TX_RLP_DATA) &&
@@ -1666,7 +1694,7 @@ void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t da
   uint32_t bip32Path[MAX_BIP32_PATH];
   uint32_t i;
   uint8_t bip32PathLength = *(dataBuffer++);
-  cx_ecfp_private_key_t privateKey;
+  cx_ecfp_private_key_t privateKey;    
 
   if ((bip32PathLength < 0x01) ||
       (bip32PathLength > MAX_BIP32_PATH)) {
@@ -1680,9 +1708,7 @@ void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t da
     THROW(0x6B00);
   }
   for (i = 0; i < bip32PathLength; i++) {
-    bip32Path[i] = (dataBuffer[0] << 24) |
-                   (dataBuffer[1] << 16) |
-                   (dataBuffer[2] << 8) | (dataBuffer[3]);
+    bip32Path[i] = U4BE(dataBuffer, 0);
     dataBuffer += 4;
   }
   tmpCtx.publicKeyContext.getChaincode = (p2 == P2_CHAINCODE);
@@ -1847,6 +1873,53 @@ void finalizeParsing(bool direct) {
 #endif // #if TARGET_ID
 }
 
+void handleProvideErc20TokenInformation(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength, volatile unsigned int *flags, volatile unsigned int *tx) {
+  UNUSED(p1);
+  UNUSED(p2);
+  UNUSED(flags);
+  uint32_t offset = 0;
+  uint8_t tickerLength;
+  uint32_t chainId;
+  uint8_t hash[32];
+  cx_ecfp_public_key_t tokenKey;
+  if (dataLength < 1) {
+    THROW(0x6A80);
+  }
+  tickerLength = workBuffer[offset++];
+  dataLength--;
+  if (tickerLength >= sizeof(tmpCtx.transactionContext.currentToken.ticker)) {
+    THROW(0x6A80);
+  }
+  if (dataLength < tickerLength + 20 + 4 + 4) {
+    THROW(0x6A80);
+  }
+  cx_hash_sha256(workBuffer + offset, tickerLength + 20 + 4 + 4, hash);
+  os_memmove(tmpCtx.transactionContext.currentToken.ticker, workBuffer + offset, tickerLength);
+  tmpCtx.transactionContext.currentToken.ticker[tickerLength] = '\0';
+  offset += tickerLength;
+  dataLength -= tickerLength;  
+  os_memmove(tmpCtx.transactionContext.currentToken.address, workBuffer + offset, 20);
+  offset += 20;
+  dataLength -= 20;
+  tmpCtx.transactionContext.currentToken.decimals = U4BE(workBuffer, offset);
+  offset += 4;
+  dataLength -= 4;
+  chainId = U4BE(workBuffer, offset);
+  if ((chainConfig->chainId != 0) && (chainConfig->chainId != chainId)) {
+    PRINTF("ChainId token mismatch\n");
+    THROW(0x6A80);
+  }
+  offset += 4;
+  dataLength -= 4;
+  cx_ecfp_init_public_key(CX_CURVE_256K1, TOKEN_SIGNATURE_PUBLIC_KEY, sizeof(TOKEN_SIGNATURE_PUBLIC_KEY), &tokenKey);
+  if (!cx_ecdsa_verify(&tokenKey, CX_LAST, CX_SHA256, hash, 32, workBuffer + offset, dataLength)) {
+    PRINTF("Invalid token signature\n");
+    THROW(0x6A80);
+  }  
+  currentTokenSet = true;  
+  THROW(0x9000);
+}
+
 void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength, volatile unsigned int *flags, volatile unsigned int *tx) {
   UNUSED(tx);
   parserStatus_e txResult;
@@ -1861,14 +1934,13 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength
     workBuffer++;
     dataLength--;
     for (i = 0; i < tmpCtx.transactionContext.pathLength; i++) {
-      tmpCtx.transactionContext.bip32Path[i] =
-        (workBuffer[0] << 24) | (workBuffer[1] << 16) |
-        (workBuffer[2] << 8) | (workBuffer[3]);
+      tmpCtx.transactionContext.bip32Path[i] = U4BE(workBuffer, 0);
       workBuffer += 4;
       dataLength -= 4;
     }
     dataPresent = false;
     tokenProvisioned = false;
+    currentTokenSet = false;
     initTx(&txContext, &sha3, &tmpContent.txContent, customProcessor, NULL);
   }
   else
@@ -1910,7 +1982,10 @@ void handleGetAppConfiguration(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint
   UNUSED(workBuffer);
   UNUSED(dataLength);
   UNUSED(flags);
-  G_io_apdu_buffer[0] = (N_storage.dataAllowed ? 0x01 : 0x00);
+  G_io_apdu_buffer[0] = (N_storage.dataAllowed ? APP_FLAG_DATA_ALLOWED : 0x00);
+#ifndef HAVE_TOKENS_LIST
+  G_io_apdu_buffer[0] |= APP_FLAG_EXTERNAL_TOKEN_NEEDED;
+#endif    
   G_io_apdu_buffer[1] = LEDGER_MAJOR_VERSION;
   G_io_apdu_buffer[2] = LEDGER_MINOR_VERSION;
   G_io_apdu_buffer[3] = LEDGER_PATCH_VERSION;
@@ -1936,15 +2011,11 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint
     workBuffer++;
     dataLength--;
     for (i = 0; i < tmpCtx.messageSigningContext.pathLength; i++) {
-        tmpCtx.messageSigningContext.bip32Path[i] =
-          (workBuffer[0] << 24) | (workBuffer[1] << 16) |
-          (workBuffer[2] << 8) | (workBuffer[3]);
+        tmpCtx.messageSigningContext.bip32Path[i] = U4BE(workBuffer, 0);
         workBuffer += 4;
         dataLength -= 4;
     }
-    tmpCtx.messageSigningContext.remainingLength =
-      (workBuffer[0] << 24) | (workBuffer[1] << 16) |
-      (workBuffer[2] << 8) | (workBuffer[3]);
+    tmpCtx.messageSigningContext.remainingLength = U4BE(workBuffer, 0);
     workBuffer += 4;
     dataLength -= 4;
     // Initialize message header + length
@@ -2010,10 +2081,16 @@ void handleApdu(volatile unsigned int *flags, volatile unsigned int *tx) {
 
       switch (G_io_apdu_buffer[OFFSET_INS]) {
         case INS_GET_PUBLIC_KEY:
+          currentTokenSet = false;
           handleGetPublicKey(G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2], G_io_apdu_buffer + OFFSET_CDATA, G_io_apdu_buffer[OFFSET_LC], flags, tx);
           break;
 
-        case INS_SIGN:
+        case INS_PROVIDE_ERC20_TOKEN_INFORMATION:
+          currentTokenSet = false;
+          handleProvideErc20TokenInformation(G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2], G_io_apdu_buffer + OFFSET_CDATA, G_io_apdu_buffer[OFFSET_LC], flags, tx);          
+          break;
+
+        case INS_SIGN:        
           handleSign(G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2], G_io_apdu_buffer + OFFSET_CDATA, G_io_apdu_buffer[OFFSET_LC], flags, tx);
           break;
 
@@ -2022,6 +2099,7 @@ void handleApdu(volatile unsigned int *flags, volatile unsigned int *tx) {
           break;
 
         case INS_SIGN_PERSONAL_MESSAGE:
+          currentTokenSet = false;
           handleSignPersonalMessage(G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2], G_io_apdu_buffer + OFFSET_CDATA, G_io_apdu_buffer[OFFSET_LC], flags, tx);
           break;
 

@@ -29,7 +29,7 @@ APPVERSION_M=1
 APPVERSION_N=2
 APPVERSION_P=0
 APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
-APP_LOAD_FLAGS= --appFlags 0x40 --dep Ethereum:$(APPVERSION)
+APP_LOAD_FLAGS= --appFlags 0x240 --dep Ethereum:$(APPVERSION)
 
 ifeq ($(CHAIN),)
 CHAIN=ethereum
@@ -41,7 +41,7 @@ APP_LOAD_PARAMS += --path "44'/60'"
 DEFINES += CHAINID_UPCASE=\"ETHEREUM\" CHAINID_COINNAME=\"ETH\" CHAIN_KIND=CHAIN_KIND_ETHEREUM CHAIN_ID=0
 APPNAME = "Ethereum"
 DEFINES_LIB=
-APP_LOAD_FLAGS=--appFlags 0x840
+APP_LOAD_FLAGS=--appFlags 0xa40
 else ifeq ($(CHAIN),ellaism)
 APP_LOAD_PARAMS += --path "44'/163'"
 DEFINES += CHAINID_UPCASE=\"ELLA\" CHAINID_COINNAME=\"ELLA\" CHAIN_KIND=CHAIN_KIND_ELLAISM CHAIN_ID=64
@@ -144,7 +144,11 @@ DEFINES += $(DEFINES_LIB)
 ifeq ($(TARGET_NAME),TARGET_BLUE)
 ICONNAME=blue_app_$(CHAIN).gif
 else
+ifeq ($(TARGET_NAME), TARGET_NANOX)
+ICONNAME=balenos_app_$(CHAIN).gif
+else
 ICONNAME=nanos_app_$(CHAIN).gif
+endif
 endif
 
 ################
@@ -176,6 +180,22 @@ DEFINES   += UNUSED\(x\)=\(void\)x
 DEFINES   += APPVERSION=\"$(APPVERSION)\"
 
 DEFINES   += CX_COMPLIANCE_141
+
+ifeq ($(TARGET_NAME),TARGET_NANOX)
+DEFINES   += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000
+DEFINES   += HAVE_BLE_APDU # basic ledger apdu transport over BLE
+
+DEFINES   += HAVE_GLO096 HAVE_UX_LEGACY
+DEFINES   += HAVE_BAGL BAGL_WIDTH=128 BAGL_HEIGHT=64
+DEFINES   += HAVE_BAGL_ELLIPSIS # long label truncation feature
+DEFINES   += HAVE_BAGL_FONT_OPEN_SANS_REGULAR_11PX
+DEFINES   += HAVE_BAGL_FONT_OPEN_SANS_EXTRABOLD_11PX
+DEFINES   += HAVE_BAGL_FONT_OPEN_SANS_LIGHT_16PX
+endif
+
+ifneq ($(NOCONSENT),)
+DEFINES   += NO_CONSENT
+endif
 
 DEFINES   += HAVE_TOKENS_LIST # Do not activate external ERC-20 support yet
 
@@ -213,6 +233,10 @@ include $(BOLOS_SDK)/Makefile.glyphs
 ### variables processed by the common makefile.rules of the SDK to grab source files and include dirs
 APP_SOURCE_PATH  += src_common src
 SDK_SOURCE_PATH  += lib_stusb lib_stusb_impl lib_u2f
+ifeq ($(TARGET_NAME),TARGET_NANOX)
+SDK_SOURCE_PATH  += lib_blewbxx lib_blewbxx_impl
+SDK_SOURCE_PATH  += lib_ux
+endif
 
 load: all
 	python -m ledgerblue.loadApp $(APP_LOAD_PARAMS)

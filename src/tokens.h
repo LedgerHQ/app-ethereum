@@ -47,6 +47,7 @@ typedef struct tokenDefinition_t {
 #define NUM_TOKENS_MIX 0
 #define NUM_TOKENS_REOSC 0
 #define NUM_TOKENS_HPB 0
+#define NUM_TOKENS_TOMOCHAIN 0
 
 extern tokenDefinition_t const TOKENS_AKROMA[NUM_TOKENS_AKROMA];
 extern tokenDefinition_t const TOKENS_ELLAISM[NUM_TOKENS_ELLAISM];
@@ -69,5 +70,6 @@ extern tokenDefinition_t const TOKENS_GOCHAIN[NUM_TOKENS_GOCHAIN];
 extern tokenDefinition_t const TOKENS_MIX[NUM_TOKENS_MIX];
 extern tokenDefinition_t const TOKENS_REOSC[NUM_TOKENS_REOSC];
 extern tokenDefinition_t const TOKENS_HPB[NUM_TOKENS_HPB];
+extern tokenDefinition_t const TOKENS_TOMOCHAIN[NUM_TOKENS_TOMOCHAIN];
 
 #endif /* _TOKENS_H_ */

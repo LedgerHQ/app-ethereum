@@ -1556,7 +1556,7 @@ tokenDefinition_t* getKnownToken() {
     }
 #endif
 
-    if (currentTokenSet && (os_memcmp(tmpCtx.transactionContext.currentToken.address, tmpContent.txContent.destination, 20) == 0)) {      
+    if ((currentTokenSet || tokenProvisioned) && (os_memcmp(tmpCtx.transactionContext.currentToken.address, tmpContent.txContent.destination, 20) == 0)) {      
       currentTokenSet = false;
       return &tmpCtx.transactionContext.currentToken;
     }

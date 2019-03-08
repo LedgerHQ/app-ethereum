@@ -1556,7 +1556,8 @@ tokenDefinition_t* getKnownToken() {
     }
 #endif
 
-    if (currentTokenSet && (os_memcmp(tmpCtx.transactionContext.currentToken.address, tmpContent.txContent.destination, 20) == 0)) {
+    if (currentTokenSet && (os_memcmp(tmpCtx.transactionContext.currentToken.address, tmpContent.txContent.destination, 20) == 0)) {      
+      currentTokenSet = false;
       return &tmpCtx.transactionContext.currentToken;
     }
 
@@ -1939,8 +1940,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength
       dataLength -= 4;
     }
     dataPresent = false;
-    tokenProvisioned = false;
-    currentTokenSet = false;
+    tokenProvisioned = false;    
     initTx(&txContext, &sha3, &tmpContent.txContent, customProcessor, NULL);
   }
   else

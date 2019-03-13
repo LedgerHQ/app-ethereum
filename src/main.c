@@ -1852,6 +1852,9 @@ tokenDefinition_t* getKnownToken() {
         case CHAIN_KIND_TOBALABA:
             numTokens = NUM_TOKENS_TOBALABA;
             break;
+        case CHAIN_KIND_DEXON:
+            numTokens = NUM_TOKENS_DEXON;
+            break;
     }
     for (i=0; i<numTokens; i++) {
         switch(chainConfig->kind) {
@@ -1868,8 +1871,8 @@ tokenDefinition_t* getKnownToken() {
                 currentToken = (tokenDefinition_t *)PIC(&TOKENS_PIRL[i]);
                 break;
             case CHAIN_KIND_POA:
-                    currentToken = (tokenDefinition_t *)PIC(&TOKENS_POA[i]);
-                    break;
+                currentToken = (tokenDefinition_t *)PIC(&TOKENS_POA[i]);
+                break;
             case CHAIN_KIND_RSK:
                 currentToken = (tokenDefinition_t *)PIC(&TOKENS_RSK[i]);
                 break;
@@ -1923,6 +1926,9 @@ tokenDefinition_t* getKnownToken() {
                 break;
             case CHAIN_KIND_TOBALABA:
                 currentToken = (tokenDefinition_t *)PIC(&TOKENS_TOBALABA[i]);
+                break;
+            case CHAIN_KIND_DEXON:
+                currentToken = (tokenDefinition_t *)PIC(&TOKENS_DEXON[i]);
                 break;
         }
         if (os_memcmp(currentToken->address, tmpContent.txContent.destination, 20) == 0) {

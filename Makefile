@@ -177,6 +177,8 @@ DEFINES   += APPVERSION=\"$(APPVERSION)\"
 
 DEFINES   += CX_COMPLIANCE_141
 
+DEFINES   += HAVE_TOKENS_LIST # Do not activate external ERC-20 support yet
+
 ##############
 #  Compiler  #
 ##############

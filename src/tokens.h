@@ -26,6 +26,8 @@ typedef struct tokenDefinition_t {
     uint8_t decimals;
 } tokenDefinition_t;
 
+#ifdef HAVE_TOKENS_LIST
+
 #define NUM_TOKENS_AKROMA 0
 #define NUM_TOKENS_ELLAISM 1
 #define NUM_TOKENS_ETHEREUM 1102
@@ -71,5 +73,7 @@ extern tokenDefinition_t const TOKENS_MIX[NUM_TOKENS_MIX];
 extern tokenDefinition_t const TOKENS_REOSC[NUM_TOKENS_REOSC];
 extern tokenDefinition_t const TOKENS_HPB[NUM_TOKENS_HPB];
 extern tokenDefinition_t const TOKENS_TOMOCHAIN[NUM_TOKENS_TOMOCHAIN];
+
+#endif
 
 #endif /* _TOKENS_H_ */

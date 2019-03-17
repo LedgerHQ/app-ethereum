@@ -43,7 +43,8 @@ typedef enum chain_kind_e {
 	CHAIN_KIND_GOCHAIN,
 	CHAIN_KIND_MIX,
 	CHAIN_KIND_REOSC,
-	CHAIN_KIND_HPB
+	CHAIN_KIND_HPB,
+	CHAIN_KIND_TOMOCHAIN
 } chain_kind_t;
 
 typedef struct chain_config_s {

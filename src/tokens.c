@@ -1178,4 +1178,7 @@ const tokenDefinition_t const TOKENS_REOSC[NUM_TOKENS_REOSC] = {};
 
 const tokenDefinition_t const TOKENS_HPB[NUM_TOKENS_HPB] = {};
 
+const tokenDefinition_t const TOKENS_TOMOCHAIN[NUM_TOKENS_TOMOCHAIN] = {};
+
 #endif
+

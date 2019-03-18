@@ -81,12 +81,12 @@ static const uint8_t const TOKEN_TRANSFER_ID[] = { 0xa9, 0x05, 0x9c, 0xbb };
 static const uint8_t const TOKEN_SIGNATURE_PUBLIC_KEY[] = {
 // production key 2019-01-11 03:07PM (erc20signer)
   0x04,
-  
+
   0x5e,0x6c,0x10,0x20,0xc1,0x4d,0xc4,0x64,
   0x42,0xfe,0x89,0xf9,0x7c,0x0b,0x68,0xcd,
   0xb1,0x59,0x76,0xdc,0x24,0xf2,0x4c,0x31,
   0x6e,0x7b,0x30,0xfe,0x4e,0x8c,0xc7,0x6b,
-  
+
   0x14,0x89,0x15,0x0c,0x21,0x51,0x4e,0xbf,
   0x44,0x0f,0xf5,0xde,0xa5,0x39,0x3d,0x83,
   0xde,0x53,0x58,0xcd,0x09,0x8f,0xce,0x8f,
@@ -1064,16 +1064,16 @@ void switch_settings_display_data(void);
 
 //////////////////////////////////////////////////////////////////////
 UX_FLOW_DEF_NOCB(
-    ux_idle_flow_1_step, 
-    bnn, //pnn, 
+    ux_idle_flow_1_step,
+    bnn, //pnn,
     {
       "", //&C_icon_dashboard,
       "Application",
       "is ready",
     });
 UX_FLOW_DEF_NOCB(
-    ux_idle_flow_2_step, 
-    bn, 
+    ux_idle_flow_2_step,
+    bn,
     {
       "Version",
       APPVERSION,
@@ -1103,8 +1103,8 @@ const ux_flow_step_t *        const ux_idle_flow [] = {
 };
 
 UX_FLOW_DEF_VALID(
-    ux_settings_flow_1_step, 
-    bnnn, 
+    ux_settings_flow_1_step,
+    bnnn,
     switch_settings_contract_data(),
     {
       "Contract data",
@@ -1114,8 +1114,8 @@ UX_FLOW_DEF_VALID(
     });
 
 UX_FLOW_DEF_VALID(
-    ux_settings_flow_2_step, 
-    bnnn, 
+    ux_settings_flow_2_step,
+    bnnn,
     switch_settings_display_data(),
     {
       "Display data",
@@ -1143,7 +1143,7 @@ const ux_flow_step_t *        const ux_settings_flow [] = {
 void display_settings() {
   strcpy(strings.common.fullAddress, (N_storage.dataAllowed ? "Allowed" : "NOT Allowed"));
   strcpy(strings.common.fullAddress + 20, (N_storage.contractDetails ? "Displayed" : "NOT Displayed"));
-  ux_flow_init(0, ux_settings_flow, NULL);    
+  ux_flow_init(0, ux_settings_flow, NULL);
 }
 
 void switch_settings_contract_data() {
@@ -1160,31 +1160,31 @@ void switch_settings_display_data() {
 
 //////////////////////////////////////////////////////////////////////
 UX_FLOW_DEF_NOCB(
-    ux_display_public_flow_1_step, 
-    pnn, 
+    ux_display_public_flow_1_step,
+    pnn,
     {
       &C_icon_eye,
       "Verify",
       "address",
     });
 UX_FLOW_DEF_NOCB(
-    ux_display_public_flow_2_step, 
-    bnnn_paging, 
+    ux_display_public_flow_2_step,
+    bnnn_paging,
     {
       .title = "Address",
       .text = strings.common.fullAddress,
     });
 UX_FLOW_DEF_VALID(
-    ux_display_public_flow_3_step, 
-    pb, 
+    ux_display_public_flow_3_step,
+    pb,
     io_seproxyhal_touch_address_ok(NULL),
     {
       &C_icon_validate_14,
       "Approve",
     });
 UX_FLOW_DEF_VALID(
-    ux_display_public_flow_4_step, 
-    pb, 
+    ux_display_public_flow_4_step,
+    pb,
     io_seproxyhal_touch_address_cancel(NULL),
     {
       &C_icon_crossmark,
@@ -1201,8 +1201,8 @@ const ux_flow_step_t *        const ux_display_public_flow [] = {
 
 //////////////////////////////////////////////////////////////////////
 UX_FLOW_DEF_NOCB(
-    ux_confirm_selector_flow_1_step, 
-    pnn, 
+    ux_confirm_selector_flow_1_step,
+    pnn,
     {
       &C_icon_eye,
       "Verify",
@@ -1210,23 +1210,23 @@ UX_FLOW_DEF_NOCB(
     });
 
 UX_FLOW_DEF_NOCB(
-    ux_confirm_selector_flow_2_step, 
-    bn, 
+    ux_confirm_selector_flow_2_step,
+    bn,
     {
       "Selector",
       strings.tmp.tmp
     });
 UX_FLOW_DEF_VALID(
-    ux_confirm_selector_flow_3_step, 
-    pb, 
+    ux_confirm_selector_flow_3_step,
+    pb,
     io_seproxyhal_touch_data_ok(NULL),
     {
       &C_icon_validate_14,
       "Approve",
     });
 UX_FLOW_DEF_VALID(
-    ux_confirm_selector_flow_4_step, 
-    pb, 
+    ux_confirm_selector_flow_4_step,
+    pb,
     io_seproxyhal_touch_data_cancel(NULL),
     {
       &C_icon_crossmark,
@@ -1243,31 +1243,31 @@ const ux_flow_step_t *        const ux_confirm_selector_flow [] = {
 
 //////////////////////////////////////////////////////////////////////
 UX_FLOW_DEF_NOCB(
-    ux_confirm_parameter_flow_1_step, 
-    pnn, 
+    ux_confirm_parameter_flow_1_step,
+    pnn,
     {
       &C_icon_eye,
       "Verify",
       strings.tmp.tmp2
     });
 UX_FLOW_DEF_NOCB(
-    ux_confirm_parameter_flow_2_step, 
-    bnnn_paging, 
+    ux_confirm_parameter_flow_2_step,
+    bnnn_paging,
     {
       .title = "Parameter",
       .text = strings.tmp.tmp,
     });
 UX_FLOW_DEF_VALID(
-    ux_confirm_parameter_flow_3_step, 
-    pb, 
+    ux_confirm_parameter_flow_3_step,
+    pb,
     io_seproxyhal_touch_data_ok(NULL),
     {
       &C_icon_validate_14,
       "Approve",
     });
 UX_FLOW_DEF_VALID(
-    ux_confirm_parameter_flow_4_step, 
-    pb, 
+    ux_confirm_parameter_flow_4_step,
+    pb,
     io_seproxyhal_touch_data_cancel(NULL),
     {
       &C_icon_crossmark,
@@ -1283,37 +1283,37 @@ const ux_flow_step_t *        const ux_confirm_parameter_flow [] = {
 };
 
 //////////////////////////////////////////////////////////////////////
-UX_FLOW_DEF_NOCB(ux_approval_tx_1_step, 
-    pnn, 
+UX_FLOW_DEF_NOCB(ux_approval_tx_1_step,
+    pnn,
     {
       &C_icon_eye,
       "Review",
       "transaction",
     });
 UX_FLOW_DEF_NOCB(
-    ux_approval_tx_2_step, 
-    bnnn_paging, 
+    ux_approval_tx_2_step,
+    bnnn_paging,
     {
       .title = "Amount",
       .text = strings.common.fullAmount
     });
 UX_FLOW_DEF_NOCB(
-    ux_approval_tx_3_step, 
-    bnnn_paging, 
+    ux_approval_tx_3_step,
+    bnnn_paging,
     {
       .title = "Address",
       .text = strings.common.fullAddress,
     });
 UX_FLOW_DEF_NOCB(
-    ux_approval_tx_4_step, 
-    bnnn_paging, 
+    ux_approval_tx_4_step,
+    bnnn_paging,
     {
       .title = "Max Fees",
       .text = strings.common.maxFee,
     });
 UX_FLOW_DEF_VALID(
-    ux_approval_tx_5_step, 
-    pbb, 
+    ux_approval_tx_5_step,
+    pbb,
     io_seproxyhal_touch_tx_ok(NULL),
     {
       &C_icon_validate_14,
@@ -1321,16 +1321,16 @@ UX_FLOW_DEF_VALID(
       "and send",
     });
 UX_FLOW_DEF_VALID(
-    ux_approval_tx_6_step, 
-    pb, 
+    ux_approval_tx_6_step,
+    pb,
     io_seproxyhal_touch_tx_cancel(NULL),
     {
       &C_icon_crossmark,
       "Reject",
     });
 
-UX_FLOW_DEF_NOCB(ux_approval_tx_data_warning_step, 
-    pbb, 
+UX_FLOW_DEF_NOCB(ux_approval_tx_data_warning_step,
+    pbb,
     {
       &C_icon_warning,
       "Data",
@@ -1361,16 +1361,16 @@ const ux_flow_step_t *        const ux_approval_tx_data_warning_flow [] = {
 
 //////////////////////////////////////////////////////////////////////
 UX_FLOW_DEF_NOCB(
-    ux_sign_flow_1_step, 
-    pnn, 
+    ux_sign_flow_1_step,
+    pnn,
     {
       &C_icon_certificate,
       "Sign",
       "message",
     });
 UX_FLOW_DEF_NOCB(
-    ux_sign_flow_2_step, 
-    bnnn_paging, 
+    ux_sign_flow_2_step,
+    bnnn_paging,
     {
       .title = "Message hash",
       .text = strings.common.fullAddress,
@@ -1411,12 +1411,12 @@ void ui_idle(void) {
     UX_DISPLAY(ui_idle_blue, ui_idle_blue_prepro);
 #elif defined(TARGET_NANOS)
     UX_MENU_DISPLAY(0, menu_main, NULL);
-#elif defined(TARGET_NANOX)    
+#elif defined(TARGET_NANOX)
     // reserve a display stack slot if none yet
     if(G_ux.stack_count == 0) {
         ux_stack_push();
     }
-    ux_flow_init(0, ux_idle_flow, NULL);    
+    ux_flow_init(0, ux_idle_flow, NULL);
 #endif // #if TARGET_ID
 }
 
@@ -1779,7 +1779,7 @@ uint32_t splitBinaryParameterPart(char *result, uint8_t *parameter) {
 
 tokenDefinition_t* getKnownToken() {
     tokenDefinition_t *currentToken = NULL;
-#ifdef HAVE_TOKENS_LIST    
+#ifdef HAVE_TOKENS_LIST
     uint32_t numTokens = 0;
     uint32_t i;
     switch(chainConfig->kind) {
@@ -1918,14 +1918,14 @@ tokenDefinition_t* getKnownToken() {
             case CHAIN_KIND_TOMOCHAIN:
                 currentToken = (tokenDefinition_t *)PIC(&TOKENS_TOMOCHAIN[i]);
                 break;
-        } 
+        }
         if (os_memcmp(currentToken->address, tmpContent.txContent.destination, 20) == 0) {
             return currentToken;
         }
     }
 #endif
 
-    if ((currentTokenSet || tokenProvisioned) && (os_memcmp(tmpCtx.transactionContext.currentToken.address, tmpContent.txContent.destination, 20) == 0)) {      
+    if ((currentTokenSet || tokenProvisioned) && (os_memcmp(tmpCtx.transactionContext.currentToken.address, tmpContent.txContent.destination, 20) == 0)) {
       currentTokenSet = false;
       return &tmpCtx.transactionContext.currentToken;
     }
@@ -2026,7 +2026,7 @@ customStatus_e customProcessor(txContext_t *context) {
                     ux_step = 0;
                     ux_step_count = 2;
                     UX_DISPLAY(ui_data_selector_nanos, ui_data_selector_prepro);
-#elif defined(TARGET_NANOX)                    
+#elif defined(TARGET_NANOX)
                     ux_flow_init(0, ux_confirm_selector_flow, NULL);
 #endif // #if TARGET_ID
                 }
@@ -2046,7 +2046,7 @@ customStatus_e customProcessor(txContext_t *context) {
                     ux_step = 0;
                     ux_step_count = 2;
                     UX_DISPLAY(ui_data_parameter_nanos, ui_data_parameter_prepro);
-#elif defined(TARGET_NANOX)                    
+#elif defined(TARGET_NANOX)
                     ux_flow_init(0, ux_confirm_parameter_flow, NULL);
 #endif // #if TARGET_ID
                 }
@@ -2068,7 +2068,7 @@ void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t da
   uint32_t bip32Path[MAX_BIP32_PATH];
   uint32_t i;
   uint8_t bip32PathLength = *(dataBuffer++);
-  cx_ecfp_private_key_t privateKey;    
+  cx_ecfp_private_key_t privateKey;
 
   if ((bip32PathLength < 0x01) ||
       (bip32PathLength > MAX_BIP32_PATH)) {
@@ -2120,7 +2120,7 @@ void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t da
     ux_step = 0;
     ux_step_count = 2;
     UX_DISPLAY(ui_address_nanos, ui_address_prepro);
-#elif defined(TARGET_NANOX)    
+#elif defined(TARGET_NANOX)
     snprintf(strings.common.fullAddress, sizeof(strings.common.fullAddress), "0x%.*s", 40, tmpCtx.publicKeyContext.address);
     ux_flow_init(0, ux_display_public_flow, NULL);
 #endif // #if TARGET_ID
@@ -2255,9 +2255,9 @@ void finalizeParsing(bool direct) {
   ux_step = 0;
   ux_step_count = 5;
   UX_DISPLAY(ui_approval_nanos, ui_approval_prepro);
-#elif defined(TARGET_NANOX)  
-  ux_flow_init(0, 
-    ((dataPresent && !N_storage.contractDetails) ? ux_approval_tx_data_warning_flow : ux_approval_tx_flow), 
+#elif defined(TARGET_NANOX)
+  ux_flow_init(0,
+    ((dataPresent && !N_storage.contractDetails) ? ux_approval_tx_data_warning_flow : ux_approval_tx_flow),
     NULL);
 #endif // #if TARGET_ID
 #endif // NO_CONSENT
@@ -2287,7 +2287,7 @@ void handleProvideErc20TokenInformation(uint8_t p1, uint8_t p2, uint8_t *workBuf
   os_memmove(tmpCtx.transactionContext.currentToken.ticker, workBuffer + offset, tickerLength);
   tmpCtx.transactionContext.currentToken.ticker[tickerLength] = '\0';
   offset += tickerLength;
-  dataLength -= tickerLength;  
+  dataLength -= tickerLength;
   os_memmove(tmpCtx.transactionContext.currentToken.address, workBuffer + offset, 20);
   offset += 20;
   dataLength -= 20;
@@ -2305,8 +2305,8 @@ void handleProvideErc20TokenInformation(uint8_t p1, uint8_t p2, uint8_t *workBuf
   if (!cx_ecdsa_verify(&tokenKey, CX_LAST, CX_SHA256, hash, 32, workBuffer + offset, dataLength)) {
     PRINTF("Invalid token signature\n");
     THROW(0x6A80);
-  }  
-  currentTokenSet = true;  
+  }
+  currentTokenSet = true;
   THROW(0x9000);
 }
 
@@ -2329,7 +2329,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength
       dataLength -= 4;
     }
     dataPresent = false;
-    tokenProvisioned = false;    
+    tokenProvisioned = false;
     initTx(&txContext, &sha3, &tmpContent.txContent, customProcessor, NULL);
   }
   else
@@ -2374,7 +2374,7 @@ void handleGetAppConfiguration(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint
   G_io_apdu_buffer[0] = (N_storage.dataAllowed ? APP_FLAG_DATA_ALLOWED : 0x00);
 #ifndef HAVE_TOKENS_LIST
   G_io_apdu_buffer[0] |= APP_FLAG_EXTERNAL_TOKEN_NEEDED;
-#endif    
+#endif
   G_io_apdu_buffer[1] = LEDGER_MAJOR_VERSION;
   G_io_apdu_buffer[2] = LEDGER_MINOR_VERSION;
   G_io_apdu_buffer[3] = LEDGER_PATCH_VERSION;
@@ -2453,7 +2453,7 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint
     ux_step_count = 2;
     UX_DISPLAY(ui_approval_signMessage_nanos,
                    ui_approval_signMessage_prepro);
-#elif defined(TARGET_NANOX)    
+#elif defined(TARGET_NANOX)
     ux_flow_init(0, ux_sign_flow, NULL);
 #endif // #if TARGET_ID
 #endif // NO_CONSENT
@@ -2482,10 +2482,10 @@ void handleApdu(volatile unsigned int *flags, volatile unsigned int *tx) {
 
         case INS_PROVIDE_ERC20_TOKEN_INFORMATION:
           currentTokenSet = false;
-          handleProvideErc20TokenInformation(G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2], G_io_apdu_buffer + OFFSET_CDATA, G_io_apdu_buffer[OFFSET_LC], flags, tx);          
+          handleProvideErc20TokenInformation(G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2], G_io_apdu_buffer + OFFSET_CDATA, G_io_apdu_buffer[OFFSET_LC], flags, tx);
           break;
 
-        case INS_SIGN:        
+        case INS_SIGN:
           handleSign(G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2], G_io_apdu_buffer + OFFSET_CDATA, G_io_apdu_buffer[OFFSET_LC], flags, tx);
           break;
 
@@ -2744,7 +2744,7 @@ __attribute__((section(".boot"))) int main(int arg0) {
 #ifdef TARGET_NANOX
                 // grab the current plane mode setting
                 G_io_app.plane_mode = os_setting_get(OS_SETTING_PLANEMODE, NULL, 0);
-#endif // TARGET_NANOX                
+#endif // TARGET_NANOX
 
                 if (N_storage.initialized != 0x01) {
                   internalStorage_t storage;
@@ -2756,15 +2756,15 @@ __attribute__((section(".boot"))) int main(int arg0) {
                 dataAllowed = N_storage.dataAllowed;
                 contractDetails = N_storage.contractDetails;
 
-                ui_idle();
-
                 USB_power(0);
                 USB_power(1);
+
+                ui_idle();
 
 #ifdef HAVE_BLE
                 BLE_power(0, NULL);
                 BLE_power(1, "Nano X");
-#endif // HAVE_BLE                
+#endif // HAVE_BLE
 
     #if defined(TARGET_BLUE)
                 // setup the status bar colors (remembered after wards, even more if another app does not resetup after app switch)

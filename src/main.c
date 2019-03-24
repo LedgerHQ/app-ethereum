@@ -2277,7 +2277,7 @@ void handleProvideErc20TokenInformation(uint8_t p1, uint8_t p2, uint8_t *workBuf
   }
   tickerLength = workBuffer[offset++];
   dataLength--;
-  if (tickerLength >= sizeof(tmpCtx.transactionContext.currentToken.ticker)) {
+  if ((tickerLength + 1) >= sizeof(tmpCtx.transactionContext.currentToken.ticker)) {
     THROW(0x6A80);
   }
   if (dataLength < tickerLength + 20 + 4 + 4) {
@@ -2285,7 +2285,8 @@ void handleProvideErc20TokenInformation(uint8_t p1, uint8_t p2, uint8_t *workBuf
   }
   cx_hash_sha256(workBuffer + offset, tickerLength + 20 + 4 + 4, hash);
   os_memmove(tmpCtx.transactionContext.currentToken.ticker, workBuffer + offset, tickerLength);
-  tmpCtx.transactionContext.currentToken.ticker[tickerLength] = '\0';
+  tmpCtx.transactionContext.currentToken.ticker[tickerLength] = ' ';
+  tmpCtx.transactionContext.currentToken.ticker[tickerLength + 1] = '\0';  
   offset += tickerLength;
   dataLength -= tickerLength;
   os_memmove(tmpCtx.transactionContext.currentToken.address, workBuffer + offset, 20);

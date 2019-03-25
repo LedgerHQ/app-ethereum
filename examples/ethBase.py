@@ -23,14 +23,12 @@ from rlp import Serializable
 
 try:
     from Crypto.Hash import keccak
-
-    def sha3_256(x): return keccak.new(digest_bits=256, data=x).digest()
+    def sha3_256(x): return keccak.new(digest_bits=256, data=x.encode()).digest()
 except:
     import sha3 as _sha3
-
     def sha3_256(x): return _sha3.sha3_256(x).digest()
-address = Binary.fixed_length(20, allow_empty=True)
 
+address = Binary.fixed_length(20, allow_empty=True)
 
 def sha3(seed):
     return sha3_256(str(seed))

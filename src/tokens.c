@@ -1180,5 +1180,6 @@ const tokenDefinition_t const TOKENS_HPB[NUM_TOKENS_HPB] = {};
 
 const tokenDefinition_t const TOKENS_TOMOCHAIN[NUM_TOKENS_TOMOCHAIN] = {};
 
-#endif
+const tokenDefinition_t const TOKENS_TOBALABA[NUM_TOKENS_TOBALABA] = {};
 
+#endif

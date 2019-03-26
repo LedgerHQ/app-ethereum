@@ -28,6 +28,9 @@ import binascii
 from ethBase import Transaction, UnsignedTransaction, unsigned_tx_from_tx
 from rlp import encode
 
+# Define here Chain_ID for EIP-155
+CHAIN_ID = 0
+
 try:
     from rlp.utils import decode_hex, encode_hex, str_to_bytes
 except:
@@ -75,9 +78,12 @@ tx = Transaction(
     to=decode_hex(args.to[2:]),
     value=int(amount),
     data=args.data,
+    v=CHAIN_ID,
+    r=0,
+    s=0
 )
 
-encodedTx = encode(unsigned_tx_from_tx(tx), UnsignedTransaction)
+encodedTx = encode(tx, Transaction)
 
 donglePath = parse_bip32_path(args.path)
 apdu = bytearray.fromhex("e0040000")
@@ -88,7 +94,13 @@ apdu += donglePath + encodedTx
 dongle = getDongle(True)
 result = dongle.exchange(bytes(apdu))
 
-v = result[0]
+# Needs to recover (main.c:1121)
+if (CHAIN_ID*2 + 35) + 1 > 255:
+	ecc_parity = result[0] - ((CHAIN_ID*2 + 35) % 256)
+	v = (CHAIN_ID*2 + 35) + ecc_parity
+else:
+	v = result[0]
+
 r = int(binascii.hexlify(result[1:1 + 32]), 16)
 s = int(binascii.hexlify(result[1 + 32: 1 + 32 + 32]), 16)
 

@@ -45,7 +45,8 @@ typedef enum chain_kind_e {
 	CHAIN_KIND_REOSC,
 	CHAIN_KIND_HPB,
 	CHAIN_KIND_TOMOCHAIN,
-	CHAIN_KIND_TOBALABA
+	CHAIN_KIND_TOBALABA,
+	CHAIN_KIND_THUNDERCORE
 } chain_kind_t;
 
 typedef struct chain_config_s {

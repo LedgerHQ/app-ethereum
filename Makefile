@@ -88,7 +88,8 @@ APP_LOAD_PARAMS += --path "44'/200625'"
 DEFINES += CHAINID_UPCASE=\"AKA\" CHAINID_COINNAME=\"AKA\" CHAIN_KIND=CHAIN_KIND_AKROMA CHAIN_ID=200625
 APPNAME = "Akroma"
 else ifeq ($(CHAIN),wanchain)
-APP_LOAD_PARAMS += --path "44'/5718350'"
+# Also allows Wanchain to access the ETH derivation path to recover pre-ledger-live assets
+APP_LOAD_PARAMS += --path "44'/5718350'" --path "44'/60'"
 DEFINES += CHAINID_UPCASE=\"WAN\" CHAINID_COINNAME=\"WAN\" CHAIN_KIND=CHAIN_KIND_WANCHAIN CHAIN_ID=1
 APPNAME = "Wanchain"
 else ifeq ($(CHAIN),kusd)

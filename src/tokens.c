@@ -1182,4 +1182,10 @@ const tokenDefinition_t const TOKENS_TOMOCHAIN[NUM_TOKENS_TOMOCHAIN] = {};
 
 const tokenDefinition_t const TOKENS_TOBALABA[NUM_TOKENS_TOBALABA] = {};
 
+const tokenDefinition_t const TOKENS_ARTIS_SIGMA1[NUM_TOKENS_ARTIS_SIGMA1] = {
+	{{0x4d,0xA4,0x99,0xdD,0xF9,0xa4,0x65,0xe4,0xD4,0x7C,0x09,0x9,0xB1,0x1e,0x8e,0x69,0x98,0x94,0xbc,0xA24}, "lab10 ", 18},
+};
+
+const tokenDefinition_t const TOKENS_ARTIS_TAU1[NUM_TOKENS_ARTIS_TAU1] = {};
+
 #endif

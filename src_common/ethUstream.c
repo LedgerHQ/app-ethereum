@@ -48,7 +48,7 @@ uint8_t readTxByte(txContext_t *context) {
         context->currentFieldPos++;
     }
     if (!(context->processingField && context->fieldSingleByte)) {
-        cx_hash((cx_hash_t*)context->sha3, 0, &data, 1, NULL);
+        cx_hash((cx_hash_t*)context->sha3, 0, &data, 1, NULL, 0);
     }
     return data;
 }
@@ -62,7 +62,7 @@ void copyTxData(txContext_t *context, uint8_t *out, uint32_t length) {
         os_memmove(out, context->workBuffer, length);
     }
     if (!(context->processingField && context->fieldSingleByte)) {
-        cx_hash((cx_hash_t*)context->sha3, 0, context->workBuffer, length, NULL);
+        cx_hash((cx_hash_t*)context->sha3, 0, context->workBuffer, length, NULL, 0);
     }
     context->workBuffer += length;
     context->commandLength -= length;

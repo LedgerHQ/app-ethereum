@@ -1182,4 +1182,18 @@ const tokenDefinition_t const TOKENS_TOMOCHAIN[NUM_TOKENS_TOMOCHAIN] = {};
 
 const tokenDefinition_t const TOKENS_TOBALABA[NUM_TOKENS_TOBALABA] = {};
 
+const tokenDefinition_t const TOKENS_DEXON[NUM_TOKENS_DEXON] = {};
+
+const tokenDefinition_t const TOKENS_VOLTA[NUM_TOKENS_VOLTA] = {};
+
+const tokenDefinition_t const TOKENS_EWC[NUM_TOKENS_EWC] = {};
+
+const tokenDefinition_t const TOKENS_ARTIS_SIGMA1[NUM_TOKENS_ARTIS_SIGMA1] = {};
+
+const tokenDefinition_t const TOKENS_ARTIS_TAU1[NUM_TOKENS_ARTIS_TAU1] = {};
+
+const tokenDefinition_t const TOKENS_WEBCHAIN[NUM_TOKENS_WEBCHAIN] = {};
+
+const tokenDefinition_t const TOKENS_THUNDERCORE[NUM_TOKENS_THUNDERCORE] = {};
+
 #endif

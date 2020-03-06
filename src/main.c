@@ -2503,9 +2503,12 @@ void finalizeParsing(bool direct) {
       NULL);
   }
 #elif defined(TARGET_NANOS)
+  // Disable legacy Nano S
+  /*
   ux_step = 0;
   ux_step_count = 5;
   UX_DISPLAY(ui_approval_nanos, ui_approval_prepro);
+  */
 #endif // #if TARGET_ID
 #endif // NO_CONSENT
 }

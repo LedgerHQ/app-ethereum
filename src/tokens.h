@@ -30,7 +30,7 @@ typedef struct tokenDefinition_t {
 
 #define NUM_TOKENS_AKROMA 0
 #define NUM_TOKENS_ELLAISM 1
-#define NUM_TOKENS_CELO 1
+#define NUM_TOKENS_CELO 0 // Celo supports paying tx fees using tokens. This number will increase after mainnet.
 #define NUM_TOKENS_ETHEREUM 1102
 #define NUM_TOKENS_ETHEREUM_CLASSIC 4
 #define NUM_TOKENS_ETHERSOCIAL 0

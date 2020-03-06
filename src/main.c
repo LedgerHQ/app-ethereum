@@ -830,7 +830,7 @@ const bagl_element_t ui_approval_nanos[] = {
   {{BAGL_LABELINE                       , 0x07,   0,  12, 128,  32, 0, 0, 0        , 0xFFFFFF, 0x000000, BAGL_FONT_OPEN_SANS_REGULAR_11px|BAGL_FONT_ALIGNMENT_CENTER, 0  }, "Gateway Fee", 0, 0, 0, NULL, NULL, NULL },
   {{BAGL_LABELINE                       , 0x07,  23,  26,  82,  12, 0x80|10, 0, 0  , 0xFFFFFF, 0x000000, BAGL_FONT_OPEN_SANS_EXTRABOLD_11px|BAGL_FONT_ALIGNMENT_CENTER, 26  }, (char*)strings.common.gatewayFee, 0, 0, 0, NULL, NULL, NULL },
 
-  {{BAGL_LABELINE                       , 0x08,   0,  12, 128,  32, 0, 0, 0        , 0xFFFFFF, 0x000000, BAGL_FONT_OPEN_SANS_REGULAR_11px|BAGL_FONT_ALIGNMENT_CENTER, 0  }, "Gateway Fee Addr", 0, 0, 0, NULL, NULL, NULL },
+  {{BAGL_LABELINE                       , 0x08,   0,  12, 128,  32, 0, 0, 0        , 0xFFFFFF, 0x000000, BAGL_FONT_OPEN_SANS_REGULAR_11px|BAGL_FONT_ALIGNMENT_CENTER, 0  }, "Gateway Addr", 0, 0, 0, NULL, NULL, NULL },
   {{BAGL_LABELINE                       , 0x08,  23,  26,  82,  12, 0x80|10, 0, 0        , 0xFFFFFF, 0x000000, BAGL_FONT_OPEN_SANS_EXTRABOLD_11px|BAGL_FONT_ALIGNMENT_CENTER, 50   }, (char*)strings.common.fullGatewayAddress, 0, 0, 0, NULL, NULL, NULL },
 };
 
@@ -1388,7 +1388,7 @@ UX_FLOW_DEF_NOCB(
     ux_celo_approval_tx_gateway_address_step,
     bnnn_paging,
     {
-      .title = "Gateway Fee Addr",
+      .title = "Gateway Addr",
       .text = strings.common.fullGatewayAddress,
     });
 UX_FLOW_DEF_NOCB(

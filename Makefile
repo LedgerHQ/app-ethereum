@@ -34,7 +34,7 @@ APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 APP_LOAD_FLAGS= --appFlags 0x240 --dep Ethereum:$(APPVERSION)
 
 ifeq ($(CHAIN),)
-CHAIN=ethereum
+CHAIN=celo
 endif
 
 ifeq ($(CHAIN),ethereum)
@@ -42,6 +42,12 @@ ifeq ($(CHAIN),ethereum)
 APP_LOAD_PARAMS += --path "44'/60'"
 DEFINES += CHAINID_UPCASE=\"ETHEREUM\" CHAINID_COINNAME=\"ETH\" CHAIN_KIND=CHAIN_KIND_ETHEREUM CHAIN_ID=0
 APPNAME = "Ethereum"
+DEFINES_LIB=
+APP_LOAD_FLAGS=--appFlags 0xa40
+else ifeq ($(CHAIN), celo)
+APP_LOAD_PARAMS += --path "44'/52752'"
+DEFINES += CHAINID_UPCASE=\"CELO\" CHAINID_COINNAME=\"cGLD\" CHAIN_KIND=CHAIN_KIND_CELO CHAIN_ID=0
+APPNAME = "Celo"
 DEFINES_LIB=
 APP_LOAD_FLAGS=--appFlags 0xa40
 else ifeq ($(CHAIN),ellaism)
@@ -244,7 +250,7 @@ ifneq ($(NOCONSENT),)
 DEFINES   += NO_CONSENT
 endif
 
-#DEFINES   += HAVE_TOKENS_LIST # Do not activate external ERC-20 support yet
+DEFINES   += HAVE_TOKENS_LIST # Do not activate external ERC-20 support yet
 
 ##############
 #  Compiler  #

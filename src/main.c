@@ -185,8 +185,10 @@ typedef struct internalStorage_t {
 
 typedef struct strData_t {
     char fullAddress[43];
+    char fullGatewayAddress[43];
     char fullAmount[50];
     char maxFee[50];
+    char gatewayFee[50];
 } strData_t;
 
 typedef struct strDataTmp_t {
@@ -1353,6 +1355,28 @@ UX_FLOW_DEF_NOCB(
       .title = "Max Fees",
       .text = strings.common.maxFee,
     });
+UX_FLOW_DEF_NOCB(
+    ux_celo_approval_tx_gateway_fee_step,
+    bnnn_paging,
+    {
+      .title = "Gateway Fee",
+      .text = strings.common.gatewayFee,
+    });
+UX_FLOW_DEF_NOCB(
+    ux_celo_approval_tx_gateway_address_step,
+    bnnn_paging,
+    {
+      .title = "Gateway Fee Addr",
+      .text = strings.common.fullGatewayAddress,
+    });
+UX_FLOW_DEF_NOCB(
+    ux_celo_approval_tx_gateway_no_fee_step,
+    bnnn_paging,
+    {
+      .title = "No Gateway Fee",
+      .text  = ""
+    });
+
 UX_FLOW_DEF_VALID(
     ux_approval_tx_5_step,
     pbb,
@@ -1385,6 +1409,29 @@ const ux_flow_step_t *        const ux_approval_tx_flow [] = {
   &ux_approval_tx_2_step,
   &ux_approval_tx_3_step,
   &ux_approval_tx_4_step,
+  &ux_approval_tx_5_step,
+  &ux_approval_tx_6_step,
+  FLOW_END_STEP,
+};
+
+const ux_flow_step_t *        const ux_approval_celo_tx_flow [] = {
+  &ux_approval_tx_1_step,
+  &ux_approval_tx_2_step,
+  &ux_approval_tx_3_step,
+  &ux_approval_tx_4_step,
+  &ux_celo_approval_tx_gateway_no_fee_step,
+  &ux_approval_tx_5_step,
+  &ux_approval_tx_6_step,
+  FLOW_END_STEP,
+};
+
+const ux_flow_step_t *        const ux_approval_celo_gateway_tx_flow [] = {
+  &ux_approval_tx_1_step,
+  &ux_approval_tx_2_step,
+  &ux_approval_tx_3_step,
+  &ux_approval_tx_4_step,
+  &ux_celo_approval_tx_gateway_fee_step,
+  &ux_celo_approval_tx_gateway_address_step,
   &ux_approval_tx_5_step,
   &ux_approval_tx_6_step,
   FLOW_END_STEP,
@@ -1840,7 +1887,7 @@ uint32_t splitBinaryParameterPart(char *result, uint8_t *parameter) {
     }
 }
 
-tokenDefinition_t* getKnownToken() {
+tokenDefinition_t* getKnownToken(char *tokenAddr) {
     tokenDefinition_t *currentToken = NULL;
 #ifdef HAVE_TOKENS_LIST
     uint32_t numTokens = 0;
@@ -1851,6 +1898,9 @@ tokenDefinition_t* getKnownToken() {
             break;
         case CHAIN_KIND_ETHEREUM:
             numTokens = NUM_TOKENS_ETHEREUM;
+            break;
+        case CHAIN_KIND_CELO:
+            numTokens = NUM_TOKENS_CELO;
             break;
         case CHAIN_KIND_ETHEREUM_CLASSIC:
             numTokens = NUM_TOKENS_ETHEREUM_CLASSIC;
@@ -1942,6 +1992,9 @@ tokenDefinition_t* getKnownToken() {
             case CHAIN_KIND_AKROMA:
                 currentToken = (tokenDefinition_t *)PIC(&TOKENS_AKROMA[i]);
                 break;
+            case CHAIN_KIND_CELO:
+                currentToken = (tokenDefinition_t *)PIC(&TOKENS_CELO[i]);		
+                break;
             case CHAIN_KIND_ETHEREUM:
                 currentToken = (tokenDefinition_t *)PIC(&TOKENS_ETHEREUM[i]);
                 break;
@@ -2028,15 +2081,15 @@ tokenDefinition_t* getKnownToken() {
                 break;
             case CHAIN_KIND_THUNDERCORE:
                 currentToken = (tokenDefinition_t *)PIC(&TOKENS_THUNDERCORE[i]);
-                break
+                break;
         }
-        if (os_memcmp(currentToken->address, tmpContent.txContent.destination, 20) == 0) {
+        if (os_memcmp(currentToken->address, tokenAddr, 20) == 0) {
             return currentToken;
         }
     }
 #endif
 
-    if ((currentTokenSet || tokenProvisioned) && (os_memcmp(tmpCtx.transactionContext.currentToken.address, tmpContent.txContent.destination, 20) == 0)) {
+    if ((currentTokenSet || tokenProvisioned) && (os_memcmp(tmpCtx.transactionContext.currentToken.address, tokenAddr, 20) == 0)) {
       currentTokenSet = false;
       return &tmpCtx.transactionContext.currentToken;
     }
@@ -2062,7 +2115,7 @@ customStatus_e customProcessor(txContext_t *context) {
             tokenProvisioned =
                 (context->currentFieldLength == sizeof(dataContext.tokenContext.data)) &&
                 (os_memcmp(context->workBuffer, TOKEN_TRANSFER_ID, 4) == 0) &&
-                (getKnownToken() != NULL);
+                (getKnownToken(tmpContent.txContent.destination) != NULL);
         }
         if (tokenProvisioned) {
             if (context->currentFieldPos < context->currentFieldLength) {
@@ -2273,10 +2326,32 @@ void finalizeParsing(bool direct) {
   uint256_t gasPrice, startGas, uint256;
   uint32_t i;
   uint8_t address[41];
+  uint8_t gatewayAddress[41];
   uint8_t decimals = WEI_TO_ETHER;
+  uint8_t feeDecimals = WEI_TO_ETHER;
   uint8_t *ticker = (uint8_t *)PIC(chainConfig->coinName);
   uint8_t *feeTicker = (uint8_t *)PIC(chainConfig->coinName);
   uint8_t tickerOffset = 0;
+
+  // Display correct currency if fee currency field sent
+  if (tmpContent.txContent.feeCurrencyLength != 0) {
+    tokenDefinition_t *feeCurrencyToken = getKnownToken(tmpContent.txContent.feeCurrency);
+    if (feeCurrencyToken == NULL) {
+      reset_app_context();
+      PRINTF("Invalid fee currency");
+      if (direct) {
+          THROW(0x6A80);
+      }
+      else {
+          io_seproxyhal_send_status(0x6A80);
+          ui_idle();
+          return;
+      }
+    } else {
+      feeTicker = feeCurrencyToken->ticker;
+      feeDecimals = feeCurrencyToken->decimals;
+    }
+  }
 
   // Verify the chain
   if (chainConfig->chainId != 0) {
@@ -2298,7 +2373,7 @@ void finalizeParsing(bool direct) {
   cx_hash((cx_hash_t *)&sha3, CX_LAST, tmpCtx.transactionContext.hash, 0, tmpCtx.transactionContext.hash, 32);
     // If there is a token to process, check if it is well known
     if (tokenProvisioned) {
-        tokenDefinition_t *currentToken = getKnownToken();
+        tokenDefinition_t *currentToken = getKnownToken(tmpContent.txContent.destination);
         if (currentToken != NULL) {
             dataPresent = false;
             decimals = currentToken->decimals;
@@ -2326,14 +2401,12 @@ void finalizeParsing(bool direct) {
   // Add address
   if (tmpContent.txContent.destinationLength != 0) {
     getEthAddressStringFromBinary(tmpContent.txContent.destination, address, &sha3);
-    /*
     addressSummary[0] = '0';
     addressSummary[1] = 'x';
     os_memmove((unsigned char *)(addressSummary + 2), address, 4);
     os_memmove((unsigned char *)(addressSummary + 6), "...", 3);
     os_memmove((unsigned char *)(addressSummary + 9), address + 40 - 4, 4);
     addressSummary[13] = '\0';
-    */
 
     strings.common.fullAddress[0] = '0';
     strings.common.fullAddress[1] = 'x';
@@ -2344,6 +2417,14 @@ void finalizeParsing(bool direct) {
   {
     os_memmove((void*)addressSummary, CONTRACT_ADDRESS, sizeof(CONTRACT_ADDRESS));
     strcpy(strings.common.fullAddress, "Contract");
+  }
+  // Add gateway fee recipient address
+  if (tmpContent.txContent.gatewayDestinationLength != 0) {
+    getEthAddressStringFromBinary(tmpContent.txContent.gatewayDestination, gatewayAddress, &sha3);
+    strings.common.fullGatewayAddress[0] = '0';
+    strings.common.fullGatewayAddress[1] = 'x';
+    os_memmove((unsigned char *)strings.common.fullGatewayAddress+2, gatewayAddress, 40);
+    strings.common.fullGatewayAddress[42] = '\0';
   }
   // Add amount in ethers or tokens
   convertUint256BE(tmpContent.txContent.value.value, tmpContent.txContent.value.length, &uint256);
@@ -2364,6 +2445,25 @@ void finalizeParsing(bool direct) {
         i++;
     }
   strings.common.fullAmount[tickerOffset + i] = '\0';
+  // Add gateway fee
+  convertUint256BE(tmpContent.txContent.gatewayFee.value, tmpContent.txContent.gatewayFee.length, &uint256);
+  tostring256(&uint256, 10, (char *)(G_io_apdu_buffer + 100), 100);
+  i = 0;
+  while (G_io_apdu_buffer[100 + i]) {
+    i++;
+  }
+  adjustDecimals((char *)(G_io_apdu_buffer + 100), i, (char *)G_io_apdu_buffer, 100, feeDecimals);
+  i = 0;
+    tickerOffset = 0;
+    while (feeTicker[tickerOffset]) {
+        strings.common.gatewayFee[tickerOffset] = feeTicker[tickerOffset];
+        tickerOffset++;
+    }
+    while (G_io_apdu_buffer[i]) {
+        strings.common.gatewayFee[tickerOffset + i] = G_io_apdu_buffer[i];
+        i++;
+    }
+  strings.common.gatewayFee[tickerOffset + i] = '\0';
   // Compute maximum fee
   convertUint256BE(tmpContent.txContent.gasprice.value, tmpContent.txContent.gasprice.length, &gasPrice);
   convertUint256BE(tmpContent.txContent.startgas.value, tmpContent.txContent.startgas.length, &startGas);
@@ -2373,7 +2473,7 @@ void finalizeParsing(bool direct) {
   while (G_io_apdu_buffer[100 + i]) {
     i++;
   }
-  adjustDecimals((char *)(G_io_apdu_buffer + 100), i, (char *)G_io_apdu_buffer, 100, WEI_TO_ETHER);
+  adjustDecimals((char *)(G_io_apdu_buffer + 100), i, (char *)G_io_apdu_buffer, 100, feeDecimals);
   i = 0;
   tickerOffset=0;
   while (feeTicker[tickerOffset]) {
@@ -2393,9 +2493,15 @@ void finalizeParsing(bool direct) {
 #if defined(TARGET_BLUE)
   ui_approval_transaction_blue_init();
 #elif defined(HAVE_UX_FLOW)
-  ux_flow_init(0,
-    ((dataPresent && !N_storage.contractDetails) ? ux_approval_tx_data_warning_flow : ux_approval_tx_flow),
-    NULL);
+  if (tmpContent.txContent.gatewayDestinationLength != 0) {
+    ux_flow_init(0,
+      ((dataPresent && !N_storage.contractDetails) ? ux_approval_tx_data_warning_flow : ux_approval_celo_gateway_tx_flow),
+      NULL);
+  } else {
+    ux_flow_init(0,
+      ((dataPresent && !N_storage.contractDetails) ? ux_approval_tx_data_warning_flow : ux_approval_celo_tx_flow),
+      NULL);
+  }
 #elif defined(TARGET_NANOS)
   ux_step = 0;
   ux_step_count = 5;

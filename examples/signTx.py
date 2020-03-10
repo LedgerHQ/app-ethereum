@@ -57,7 +57,7 @@ parser.add_argument('--gasprice', help="Network gas price", type=int, required=T
 parser.add_argument('--startgas', help="startgas", default='21000', type=int)
 parser.add_argument('--feecurrency', help="feecurrency", type=str)
 parser.add_argument('--gatewayfeerecipient', help="gatewayfeerecipient", type=str)
-parser.add_argument('--gatewayfee', help="gatewayfeerecipient", default='0', type=str)
+parser.add_argument('--gatewayfee', help="gatewayfee", default='0', type=str)
 parser.add_argument('--amount', help="Amount to send in ether", required=True)
 parser.add_argument('--to', help="Destination address", type=str, required=True)
 parser.add_argument('--path', help="BIP 32 path to sign with")

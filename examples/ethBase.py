@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 """
 *******************************************************************************
-*   Ledger Ethereum App
-*   (c) 2016-2019 Ledger
+*   Ledger Ethereum App *   (c) 2016-2019 Ledger
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -39,6 +38,9 @@ class Transaction(Serializable):
         ('nonce', big_endian_int),
         ('gasprice', big_endian_int),
         ('startgas', big_endian_int),
+        ('feecurrency', address),
+        ('gatewayfeerecipient', address),
+        ('gatewayfee', big_endian_int),
         ('to', address),
         ('value', big_endian_int),
         ('data', binary),
@@ -47,15 +49,18 @@ class Transaction(Serializable):
         ('s', big_endian_int),
     ]
 
-    def __init__(self, nonce, gasprice, startgas, to, value, data, v=0, r=0, s=0):
+    def __init__(self, nonce, gasprice, startgas, feecurrency, gatewayfeerecipient, gatewayfee, to, value, data, v=0, r=0, s=0):
         super(Transaction, self).__init__(
-            nonce, gasprice, startgas, to, value, data, v, r, s)
+            nonce, gasprice, startgas, feecurrency, gatewayfeerecipient, gatewayfee, to, value, data, v, r, s)
 
 class UnsignedTransaction(Serializable):
     fields = [
         ('nonce', big_endian_int),
         ('gasprice', big_endian_int),
         ('startgas', big_endian_int),
+        ('feecurrency', address),
+        ('gatewayfeerecipient', address),
+        ('gatewayfee', big_endian_int),
         ('to', address),
         ('value', big_endian_int),
         ('data', binary),
@@ -66,6 +71,9 @@ def unsigned_tx_from_tx(tx):
         nonce=tx.nonce,
         gasprice=tx.gasprice,
         startgas=tx.startgas,
+        feecurrency=tx.feecurrency,
+        gatewayfeerecipient=tx.gatewayfeerecipient,
+        gatewayfee=tx.gatewayfee,
         to=tx.to,
         value=tx.value,
         data=tx.data,

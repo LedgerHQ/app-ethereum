@@ -55,6 +55,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--nonce', help="Nonce associated to the account", type=int, required=True)
 parser.add_argument('--gasprice', help="Network gas price", type=int, required=True)
 parser.add_argument('--startgas', help="startgas", default='21000', type=int)
+parser.add_argument('--feecurrency', help="feecurrency", type=str)
+parser.add_argument('--gatewayfeerecipient', help="gatewayfeerecipient", type=str)
+parser.add_argument('--gatewayfee', help="gatewayfee", default='0', type=str)
 parser.add_argument('--amount', help="Amount to send in ether", required=True)
 parser.add_argument('--to', help="Destination address", type=str, required=True)
 parser.add_argument('--path', help="BIP 32 path to sign with")
@@ -62,12 +65,22 @@ parser.add_argument('--data', help="Data to add, hex encoded")
 args = parser.parse_args()
 
 if args.path == None:
-    args.path = "44'/60'/0'/0/0"
+    args.path = "44'/52752'/0'/0/0"
 
 if args.data == None:
     args.data = b""
 else:
     args.data = decode_hex(args.data[2:])
+
+if args.feecurrency == None:
+    args.feecurrency = b""
+else:
+    args.feecurrency = decode_hex(args.feecurrency[2:])
+
+if args.gatewayfeerecipient == None:
+    args.gatewayfeerecipient = b""
+else:
+    args.gatewayfeerecipient = decode_hex(args.gatewayfeerecipient[2:])
 
 amount = Decimal(args.amount) * 10**18
 
@@ -75,6 +88,9 @@ tx = Transaction(
     nonce=int(args.nonce),
     gasprice=int(args.gasprice),
     startgas=int(args.startgas),
+    feecurrency=args.feecurrency,
+    gatewayfeerecipient=args.gatewayfeerecipient,
+    gatewayfee=int(args.gatewayfee),
     to=decode_hex(args.to[2:]),
     value=int(amount),
     data=args.data,
@@ -105,6 +121,7 @@ r = int(binascii.hexlify(result[1:1 + 32]), 16)
 s = int(binascii.hexlify(result[1 + 32: 1 + 32 + 32]), 16)
 
 tx = Transaction(tx.nonce, tx.gasprice, tx.startgas,
+                 tx.feecurrency, tx.gatewayfeerecipient, tx.gatewayfee,
                  tx.to, tx.value, tx.data, v, r, s)
 
 print("Signed transaction", encode_hex(encode(tx)))

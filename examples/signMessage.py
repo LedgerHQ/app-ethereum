@@ -32,7 +32,7 @@ import binascii
 CHAIN_ID = 0
 
 # Magic define
-SIGN_MAGIC = b'\x19Ethereum Signed Message:\n'
+SIGN_MAGIC = b'\x19Celo Signed Message:\n'
 
 def parse_bip32_path(path):
     if len(path) == 0:

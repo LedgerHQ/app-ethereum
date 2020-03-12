@@ -100,6 +100,7 @@ tx = Transaction(
 )
 
 encodedTx = encode(tx, Transaction)
+print('Encoded tx', encode_hex(encodedTx))
 
 donglePath = parse_bip32_path(args.path)
 apdu = bytearray.fromhex("e0040000")

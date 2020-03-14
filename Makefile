@@ -165,9 +165,13 @@ else ifeq ($(CHAIN),thundercore)
 APP_LOAD_PARAMS += --path "44'/1001'"
 DEFINES += CHAINID_UPCASE=\"THUNDERCORE\" CHAINID_COINNAME=\"TT\" CHAIN_KIND=CHAIN_KIND_THUNDERCORE CHAIN_ID=108
 APPNAME = "ThunderCore"
+else ifeq ($(CHAIN),rupaya)
+APP_LOAD_PARAMS += --path "44'/77'"
+DEFINES += CHAINID_UPCASE=\"RUPAYA\" CHAINID_COINNAME=\"RUPX\" CHAIN_KIND=CHAIN_KIND_RUPX CHAIN_ID=77
+APPNAME = "Rupaya"
 else
 ifeq ($(filter clean,$(MAKECMDGOALS)),)
-$(error Unsupported CHAIN - use ethereum, ethereum_classic, expanse, poa, artis_sigma1, artis_tau1, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, pirl, akroma, atheios, callisto, ethersocial, ellaism, ether1, ethergem, gochain, mix, reosc, hpb, tomochain, tobalaba, dexon, volta, ewc, webchain, thundercore)
+$(error Unsupported CHAIN - use ethereum, ethereum_classic, expanse, poa, artis_sigma1, artis_tau1, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, pirl, akroma, atheios, callisto, ethersocial, ellaism, ether1, ethergem, gochain, mix, reosc, hpb, tomochain, tobalaba, dexon, volta, ewc, webchain, thundercore, rupaya)
 endif
 endif
 

@@ -1396,7 +1396,7 @@ UX_FLOW_DEF_NOCB(
     bnnn_paging,
     {
       .title = "No Gateway Fee",
-      .text  = ""
+      .text  = " "
     });
 
 UX_FLOW_DEF_VALID(

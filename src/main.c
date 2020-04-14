@@ -154,13 +154,13 @@ typedef enum {
 } app_state_t;
 
 
-volatile uint8_t dataAllowed;
-volatile uint8_t contractDetails;
-volatile uint8_t appState;
-volatile char addressSummary[32];
-volatile bool dataPresent;
-volatile bool tokenProvisioned;
-volatile bool currentTokenSet;
+uint8_t dataAllowed;
+uint8_t contractDetails;
+uint8_t appState;
+char addressSummary[32];
+bool dataPresent;
+bool tokenProvisioned;
+bool currentTokenSet;
 
 bagl_element_t tmp_element;
 
@@ -2179,7 +2179,7 @@ unsigned int const U_os_perso_seed_cookie[] = {
 
 #ifndef HAVE_WALLET_ID_SDK
 
-void handleGetWalletId(volatile unsigned int *tx) {
+void handleGetWalletId(unsigned int *tx) {
   unsigned char t[64];
   cx_ecfp_256_private_key_t priv;
   cx_ecfp_256_public_key_t pub;
@@ -2198,7 +2198,7 @@ void handleGetWalletId(volatile unsigned int *tx) {
 
 #endif
 
-void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength, volatile unsigned int *flags, volatile unsigned int *tx) {
+void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength, unsigned int *flags, unsigned int *tx) {
   UNUSED(dataLength);
   uint8_t privateKeyData[32];
   uint32_t bip32Path[MAX_BIP32_PATH];
@@ -2404,7 +2404,7 @@ void finalizeParsing(bool direct) {
 #endif // NO_CONSENT
 }
 
-void handleProvideErc20TokenInformation(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength, volatile unsigned int *flags, volatile unsigned int *tx) {
+void handleProvideErc20TokenInformation(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength, unsigned int *flags, unsigned int *tx) {
   UNUSED(p1);
   UNUSED(p2);
   UNUSED(flags);
@@ -2452,7 +2452,7 @@ void handleProvideErc20TokenInformation(uint8_t p1, uint8_t p2, uint8_t *workBuf
   THROW(0x9000);
 }
 
-void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength, volatile unsigned int *flags, volatile unsigned int *tx) {
+void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength, unsigned int *flags, unsigned int *tx) {
   UNUSED(tx);
   parserStatus_e txResult;
   uint32_t i;
@@ -2523,7 +2523,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength
   }
 }
 
-void handleGetAppConfiguration(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength, volatile unsigned int *flags, volatile unsigned int *tx) {
+void handleGetAppConfiguration(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength, unsigned int *flags, unsigned int *tx) {
   UNUSED(p1);
   UNUSED(p2);
   UNUSED(workBuffer);
@@ -2540,7 +2540,7 @@ void handleGetAppConfiguration(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint
   THROW(0x9000);
 }
 
-void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength, volatile unsigned int *flags, volatile unsigned int *tx) {
+void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength, unsigned int *flags, unsigned int *tx) {
   UNUSED(tx);
   uint8_t hashMessage[32];
   if (p1 == P1_FIRST) {
@@ -2643,7 +2643,7 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint
   }
 }
 
-void handleApdu(volatile unsigned int *flags, volatile unsigned int *tx) {
+void handleApdu(unsigned int *flags, unsigned int *tx) {
   unsigned short sw = 0;
 
   BEGIN_TRY {
@@ -2728,9 +2728,9 @@ void handleApdu(volatile unsigned int *flags, volatile unsigned int *tx) {
 }
 
 void sample_main(void) {
-    volatile unsigned int rx = 0;
-    volatile unsigned int tx = 0;
-    volatile unsigned int flags = 0;
+    unsigned int rx = 0;
+    unsigned int tx = 0;
+    unsigned int flags = 0;
 
     // DESIGN NOTE: the bootloader ignores the way APDU are fetched. The only
     // goal is to retrieve APDU.
@@ -2739,7 +2739,7 @@ void sample_main(void) {
     // switch event, before the apdu is replied to the bootloader. This avoid
     // APDU injection faults.
     for (;;) {
-        volatile unsigned short sw = 0;
+        unsigned short sw = 0;
 
         BEGIN_TRY {
             TRY {

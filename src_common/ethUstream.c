@@ -93,11 +93,8 @@ static void processType(txContext_t *context) {
         THROW(EXCEPTION);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
-        uint32_t copySize =
-            (context->commandLength <
-                     ((context->currentFieldLength - context->currentFieldPos))
-                 ? context->commandLength
-                 : context->currentFieldLength - context->currentFieldPos);
+        uint32_t copySize = MIN(context->commandLength,
+            context->currentFieldLength - context->currentFieldPos);
         copyTxData(context, NULL, copySize);
     }
     if (context->currentFieldPos == context->currentFieldLength) {
@@ -116,11 +113,8 @@ static void processNonce(txContext_t *context) {
         THROW(EXCEPTION);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
-        uint32_t copySize =
-            (context->commandLength <
-                     ((context->currentFieldLength - context->currentFieldPos))
-                 ? context->commandLength
-                 : context->currentFieldLength - context->currentFieldPos);
+        uint32_t copySize = MIN(context->commandLength,
+            context->currentFieldLength - context->currentFieldPos);
         copyTxData(context, NULL, copySize);
     }
     if (context->currentFieldPos == context->currentFieldLength) {
@@ -140,11 +134,8 @@ static void processStartGas(txContext_t *context) {
         THROW(EXCEPTION);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
-        uint32_t copySize =
-            (context->commandLength <
-                     ((context->currentFieldLength - context->currentFieldPos))
-                 ? context->commandLength
-                 : context->currentFieldLength - context->currentFieldPos);
+        uint32_t copySize = MIN(context->commandLength,
+            context->currentFieldLength - context->currentFieldPos);
         copyTxData(context,
                    context->content->startgas.value + context->currentFieldPos,
                    copySize);
@@ -166,11 +157,8 @@ static void processGasprice(txContext_t *context) {
         THROW(EXCEPTION);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
-        uint32_t copySize =
-            (context->commandLength <
-                     ((context->currentFieldLength - context->currentFieldPos))
-                 ? context->commandLength
-                 : context->currentFieldLength - context->currentFieldPos);
+        uint32_t copySize = MIN(context->commandLength,
+            context->currentFieldLength - context->currentFieldPos);
         copyTxData(context,
                    context->content->gasprice.value + context->currentFieldPos,
                    copySize);
@@ -192,11 +180,8 @@ static void processValue(txContext_t *context) {
         THROW(EXCEPTION);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
-        uint32_t copySize =
-            (context->commandLength <
-                     ((context->currentFieldLength - context->currentFieldPos))
-                 ? context->commandLength
-                 : context->currentFieldLength - context->currentFieldPos);
+        uint32_t copySize = MIN(context->commandLength,
+            context->currentFieldLength - context->currentFieldPos);
         copyTxData(context,
                    context->content->value.value + context->currentFieldPos,
                    copySize);
@@ -218,11 +203,8 @@ static void processTo(txContext_t *context) {
         THROW(EXCEPTION);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
-        uint32_t copySize =
-            (context->commandLength <
-                     ((context->currentFieldLength - context->currentFieldPos))
-                 ? context->commandLength
-                 : context->currentFieldLength - context->currentFieldPos);
+        uint32_t copySize = MIN(context->commandLength,
+            context->currentFieldLength - context->currentFieldPos);
         copyTxData(context,
                    context->content->destination + context->currentFieldPos,
                    copySize);
@@ -240,11 +222,8 @@ static void processData(txContext_t *context) {
         THROW(EXCEPTION);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
-        uint32_t copySize =
-            (context->commandLength <
-                     ((context->currentFieldLength - context->currentFieldPos))
-                 ? context->commandLength
-                 : context->currentFieldLength - context->currentFieldPos);
+        uint32_t copySize = MIN(context->commandLength,
+            context->currentFieldLength - context->currentFieldPos);
         copyTxData(context, NULL, copySize);
     }
     if (context->currentFieldPos == context->currentFieldLength) {
@@ -263,11 +242,8 @@ static void processV(txContext_t *context) {
         THROW(EXCEPTION);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
-        uint32_t copySize =
-            (context->commandLength <
-                     ((context->currentFieldLength - context->currentFieldPos))
-                 ? context->commandLength
-                 : context->currentFieldLength - context->currentFieldPos);
+        uint32_t copySize = MIN(context->commandLength,
+            context->currentFieldLength - context->currentFieldPos);
         copyTxData(context,
                    context->content->v + context->currentFieldPos,
                    copySize);

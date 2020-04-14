@@ -1190,13 +1190,13 @@ void display_settings() {
 
 void switch_settings_contract_data() {
   uint8_t value = (N_storage.dataAllowed ? 0 : 1);
-  nvm_write(&N_storage.dataAllowed, (void*)&value, sizeof(uint8_t));
+  nvm_write((void*)&N_storage.dataAllowed, (void*)&value, sizeof(uint8_t));
   display_settings();
 }
 
 void switch_settings_display_data() {
   uint8_t value = (N_storage.contractDetails ? 0 : 1);
-  nvm_write(&N_storage.contractDetails, (void*)&value, sizeof(uint8_t));
+  nvm_write((void*)&N_storage.contractDetails, (void*)&value, sizeof(uint8_t));
   display_settings();
 }
 
@@ -1841,8 +1841,8 @@ uint32_t splitBinaryParameterPart(char *result, uint8_t *parameter) {
 }
 
 tokenDefinition_t* getKnownToken() {
-    tokenDefinition_t *currentToken = NULL;
 #ifdef HAVE_TOKENS_LIST
+    tokenDefinition_t *currentToken = NULL;
     uint32_t numTokens = 0;
     uint32_t i;
     switch(chainConfig->kind) {
@@ -2623,7 +2623,7 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint
 
 #ifdef NO_CONSENT
     io_seproxyhal_touch_signMessage_ok(NULL);
-#else NO_CONSENT
+#else
 #if defined(TARGET_BLUE)
     ui_approval_message_sign_blue_init();
 #elif defined(HAVE_UX_FLOW)
@@ -2943,7 +2943,7 @@ __attribute__((section(".boot"))) int main(int arg0) {
                   storage.dataAllowed = 0x00;
                   storage.contractDetails = 0x00;
                   storage.initialized = 0x01;
-                  nvm_write(&N_storage, (void*)&storage, sizeof(internalStorage_t));
+                  nvm_write((void*)&N_storage, (void*)&storage, sizeof(internalStorage_t));
                 }
                 dataAllowed = N_storage.dataAllowed;
                 contractDetails = N_storage.contractDetails;

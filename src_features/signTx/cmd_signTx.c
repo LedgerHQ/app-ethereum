@@ -8,7 +8,7 @@
 #endif
 #include "feature_signTx.h"
 
-void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength, volatile unsigned int *flags, volatile unsigned int *tx) {
+void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength, unsigned int *flags, unsigned int *tx) {
   UNUSED(tx);
   parserStatus_e txResult;
   uint32_t i;

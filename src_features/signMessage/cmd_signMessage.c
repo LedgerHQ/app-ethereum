@@ -11,7 +11,7 @@
 static const char const SIGN_MAGIC[] = "\x19"
                                        "Ethereum Signed Message:\n";
 
-void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength, volatile unsigned int *flags, volatile unsigned int *tx) {
+void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength, unsigned int *flags, unsigned int *tx) {
   UNUSED(tx);
   uint8_t hashMessage[32];
   if (p1 == P1_FIRST) {

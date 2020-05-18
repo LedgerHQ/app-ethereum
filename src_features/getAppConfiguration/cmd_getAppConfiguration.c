@@ -7,7 +7,7 @@
 #include "ui_flow.h"
 #endif
 
-void handleGetAppConfiguration(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength, volatile unsigned int *flags, volatile unsigned int *tx) {
+void handleGetAppConfiguration(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength, unsigned int *flags, unsigned int *tx) {
   UNUSED(p1);
   UNUSED(p2);
   UNUSED(workBuffer);

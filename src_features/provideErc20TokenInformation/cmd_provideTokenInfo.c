@@ -24,7 +24,7 @@ static const uint8_t const TOKEN_SIGNATURE_PUBLIC_KEY[] = {
 
 #ifdef HAVE_CONTRACT_NAME_IN_DESCRIPTOR
 
-void handleProvideErc20TokenInformation(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength, volatile unsigned int *flags, volatile unsigned int *tx) {
+void handleProvideErc20TokenInformation(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength, unsigned int *flags, unsigned int *tx) {
   UNUSED(p1);
   UNUSED(p2);
   UNUSED(flags);
@@ -93,7 +93,7 @@ void handleProvideErc20TokenInformation(uint8_t p1, uint8_t p2, uint8_t *workBuf
 
 #else
 
-void handleProvideErc20TokenInformation(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength, volatile unsigned int *flags, volatile unsigned int *tx) {
+void handleProvideErc20TokenInformation(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength, unsigned int *flags, unsigned int *tx) {
   UNUSED(p1);
   UNUSED(p2);
   UNUSED(flags);

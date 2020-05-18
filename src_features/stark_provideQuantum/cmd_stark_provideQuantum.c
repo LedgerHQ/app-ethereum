@@ -9,7 +9,7 @@
 #include "ui_flow.h"
 #endif
 
-void handleStarkwareProvideQuantum(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength, volatile unsigned int *flags, volatile unsigned int *tx) {
+void handleStarkwareProvideQuantum(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength, unsigned int *flags, unsigned int *tx) {
   size_t i = 0;
   tokenDefinition_t *currentToken = NULL;
   if (appState != APP_STATE_IDLE) {

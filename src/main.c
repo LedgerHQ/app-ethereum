@@ -49,16 +49,16 @@ strings_t strings;
 
 cx_sha3_t sha3;
 
-volatile uint8_t dataAllowed;
-volatile uint8_t contractDetails;
-volatile uint8_t appState;
+uint8_t dataAllowed;
+uint8_t contractDetails;
+uint8_t appState;
 #ifdef TARGET_BLUE
-volatile char addressSummary[32];
+char addressSummary[32];
 #endif
-volatile bool dataPresent;
-volatile contract_call_t contractProvisioned;
+bool dataPresent;
+contract_call_t contractProvisioned;
 #ifdef HAVE_STARKWARE
-volatile bool quantumSet;
+bool quantumSet;
 #endif
 
 #ifdef HAVE_UX_FLOW
@@ -482,7 +482,7 @@ tokenDefinition_t* getKnownToken(uint8_t *contractAddress) {
     return NULL;
 }
 
-void handleApdu(volatile unsigned int *flags, volatile unsigned int *tx) {
+void handleApdu(unsigned int *flags, unsigned int *tx) {
   unsigned short sw = 0;
 
   BEGIN_TRY {
@@ -579,9 +579,9 @@ void handleApdu(volatile unsigned int *flags, volatile unsigned int *tx) {
 }
 
 void sample_main(void) {
-    volatile unsigned int rx = 0;
-    volatile unsigned int tx = 0;
-    volatile unsigned int flags = 0;
+    unsigned int rx = 0;
+    unsigned int tx = 0;
+    unsigned int flags = 0;
 
     // DESIGN NOTE: the bootloader ignores the way APDU are fetched. The only
     // goal is to retrieve APDU.
@@ -590,7 +590,7 @@ void sample_main(void) {
     // switch event, before the apdu is replied to the bootloader. This avoid
     // APDU injection faults.
     for (;;) {
-        volatile unsigned short sw = 0;
+        unsigned short sw = 0;
 
         BEGIN_TRY {
             TRY {

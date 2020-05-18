@@ -153,14 +153,14 @@ extern const internalStorage_t N_storage_real;
 
 #ifdef TARGET_BLUE
 extern bagl_element_t tmp_element;
-extern volatile char addressSummary[32];
+extern char addressSummary[32];
 #endif
 
-extern volatile bool dataPresent;
-extern volatile uint8_t appState;
-extern volatile contract_call_t contractProvisioned;
+extern bool dataPresent;
+extern uint8_t appState;
+extern contract_call_t contractProvisioned;
 #ifdef HAVE_STARKWARE
-extern volatile bool quantumSet;
+extern bool quantumSet;
 #endif
 
 void reset_app_context(void);

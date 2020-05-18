@@ -30,8 +30,16 @@ typedef struct internalStorage_t {
 } internalStorage_t;
 
 typedef struct tokenContext_t {
+#ifdef HAVE_STARKWARE  
+    uint8_t data[4 + 32 + 32 + 32 + 32];
+#else    
     uint8_t data[4 + 32 + 32];
+#endif    
     uint32_t dataFieldPos;
+#ifdef HAVE_STARKWARE
+    uint8_t quantum[32];
+    uint8_t quantumIndex;
+#endif
 } tokenContext_t;
 
 typedef struct rawDataContext_t {
@@ -75,9 +83,22 @@ typedef union {
   char tmp[100];
 } tmpContent_t;
 
+#ifdef HAVE_STARKWARE
+
+typedef struct starkContext_t {
+  uint8_t w1[32];
+  uint8_t w2[32];
+  uint8_t w3[32];
+} starkContext_t;
+
+#endif
+
 typedef union {
     tokenContext_t tokenContext;
     rawDataContext_t rawDataContext;
+#ifdef HAVE_STARKWARE
+    starkContext_t starkContext;
+#endif
 } dataContext_t;
 
 typedef enum {
@@ -90,6 +111,18 @@ typedef enum {
   CONTRACT_NONE,
   CONTRACT_ERC20,
   CONTRACT_ALLOWANCE,
+#ifdef HAVE_STARKWARE
+  CONTRACT_STARKWARE_REGISTER,
+  CONTRACT_STARKWARE_DEPOSIT_TOKEN,
+  CONTRACT_STARKWARE_DEPOSIT_ETH,
+  CONTRACT_STARKWARE_WITHDRAW,
+  CONTRACT_STARKWARE_DEPOSIT_CANCEL,
+  CONTRACT_STARKWARE_DEPOSIT_RECLAIM,
+  CONTRACT_STARKWARE_FULL_WITHDRAWAL,
+  CONTRACT_STARKWARE_FREEZE,
+  CONTRACT_STARKWARE_ESCAPE,
+  CONTRACT_STARKWARE_VERIFY_ESCAPE
+#endif
 } contract_call_t;
 
 typedef struct strData_t {
@@ -126,6 +159,9 @@ extern volatile char addressSummary[32];
 extern volatile bool dataPresent;
 extern volatile uint8_t appState;
 extern volatile contract_call_t contractProvisioned;
+#ifdef HAVE_STARKWARE
+extern volatile bool quantumSet;
+#endif
 
 void reset_app_context(void);
 

@@ -7,12 +7,39 @@
 #ifdef HAVE_UX_FLOW
 #include "ui_flow.h"
 #endif
+#ifdef HAVE_STARKWARE
+#include "stark_utils.h"
+#endif
 
 #define TOKEN_TRANSFER_DATA_SIZE 4 + 32 + 32
 static const uint8_t const TOKEN_TRANSFER_ID[] = { 0xa9, 0x05, 0x9c, 0xbb };
 
 #define ALLOWANCE_DATA_SIZE 4 + 32 + 32
 static const uint8_t const ALLOWANCE_ID[] = { 0x09, 0x5e, 0xa7, 0xb3 };
+
+#ifdef HAVE_STARKWARE
+
+#define STARKWARE_REGISTER_DATA_SIZE 4 + 32
+static const uint8_t const STARKWARE_REGISTER_ID[] = { 0xf2, 0x07, 0x56, 0x4e };
+#define STARKWARE_DEPOSIT_TOKEN_DATA_SIZE 4 + 32 + 32 + 32
+static const uint8_t const STARKWARE_DEPOSIT_TOKEN_ID[] = { 0x00, 0xae, 0xef, 0x8a };
+#define STARKWARE_DEPOSIT_ETH_DATA_SIZE 4 + 32 + 32
+static const uint8_t const STARKWARE_DEPOSIT_ETH_ID[] = { 0xe2, 0xbb, 0xb1, 0x58 };
+#define STARKWARE_DEPOSIT_CANCEL_DATA_SIZE 4 + 32 + 32
+static const uint8_t const STARKWARE_DEPOSIT_CANCEL_ID[] = { 0xc7, 0xfb, 0x11, 0x7c };
+#define STARKWARE_DEPOSIT_RECLAIM_DATA_SIZE 4 + 32 + 32
+static const uint8_t const STARKWARE_DEPOSIT_RECLAIM_ID[] = { 0x4e, 0xab, 0x38, 0xf4 };
+#define STARKWARE_WITHDRAW_DATA_SIZE 4 + 32
+static const uint8_t const STARKWARE_WITHDRAW_ID[] = { 0x2e, 0x1a, 0x7d, 0x4d };
+#define STARKWARE_FULL_WITHDRAWAL_DATA_SIZE 4 + 32
+static const uint8_t const STARKWARE_FULL_WITHDRAWAL_ID[] = { 0x27, 0x6d, 0xd1, 0xde };
+#define STARKWARE_FREEZE_DATA_SIZE 4 + 32
+static const uint8_t const STARKWARE_FREEZE_ID[] = { 0xb9, 0x10, 0x72, 0x09 };
+#define STARKWARE_ESCAPE_DATA_SIZE 4 + 32 + 32 + 32 + 32
+static const uint8_t const STARKWARE_ESCAPE_ID[] = { 0x9e, 0x3a, 0xda, 0xc4 };
+static const uint8_t const STARKWARE_VERIFY_ESCAPE_ID[] = { 0x2d, 0xd5, 0x30, 0x06 };
+
+#endif
 
 uint32_t splitBinaryParameterPart(char *result, uint8_t *parameter) {
     uint32_t i;
@@ -58,6 +85,61 @@ customStatus_e customProcessor(txContext_t *context) {
                 (os_memcmp(context->workBuffer, ALLOWANCE_ID, 4) == 0)) {
               contractProvisioned = CONTRACT_ALLOWANCE;
             }
+#ifdef HAVE_STARKWARE
+            else
+            if ((context->currentFieldLength == STARKWARE_REGISTER_DATA_SIZE) &&
+                (os_memcmp(context->workBuffer, STARKWARE_REGISTER_ID, 4) == 0)) {
+              contractProvisioned = CONTRACT_STARKWARE_REGISTER;
+            }
+            else
+            if ((context->currentFieldLength == STARKWARE_DEPOSIT_ETH_DATA_SIZE) &&
+                (os_memcmp(context->workBuffer, STARKWARE_DEPOSIT_ETH_ID, 4) == 0)) {
+              contractProvisioned = CONTRACT_STARKWARE_DEPOSIT_ETH;
+            }
+            else
+            if ((context->currentFieldLength == STARKWARE_DEPOSIT_TOKEN_DATA_SIZE) &&
+                (os_memcmp(context->workBuffer, STARKWARE_DEPOSIT_TOKEN_ID, 4) == 0) &&
+                quantumSet) {
+              contractProvisioned = CONTRACT_STARKWARE_DEPOSIT_TOKEN;
+            }
+            else
+            if ((context->currentFieldLength == STARKWARE_WITHDRAW_DATA_SIZE) &&
+                (os_memcmp(context->workBuffer, STARKWARE_WITHDRAW_ID, 4) == 0) &&
+                quantumSet) {
+              contractProvisioned = CONTRACT_STARKWARE_WITHDRAW;
+            }
+            else
+            if ((context->currentFieldLength == STARKWARE_DEPOSIT_CANCEL_DATA_SIZE) &&
+                (os_memcmp(context->workBuffer, STARKWARE_DEPOSIT_CANCEL_ID, 4) == 0)) {
+              contractProvisioned = CONTRACT_STARKWARE_DEPOSIT_CANCEL;
+            }
+            else
+            if ((context->currentFieldLength == STARKWARE_DEPOSIT_RECLAIM_DATA_SIZE) &&
+                (os_memcmp(context->workBuffer, STARKWARE_DEPOSIT_RECLAIM_ID, 4) == 0)) {
+              contractProvisioned = CONTRACT_STARKWARE_DEPOSIT_RECLAIM;
+            }
+            else
+            if ((context->currentFieldLength == STARKWARE_FULL_WITHDRAWAL_DATA_SIZE) &&
+                (os_memcmp(context->workBuffer, STARKWARE_FULL_WITHDRAWAL_ID, 4) == 0)) {
+              contractProvisioned = CONTRACT_STARKWARE_FULL_WITHDRAWAL;
+            }
+            else
+            if ((context->currentFieldLength == STARKWARE_FREEZE_DATA_SIZE) &&
+                (os_memcmp(context->workBuffer, STARKWARE_FREEZE_ID, 4) == 0)) {
+              contractProvisioned = CONTRACT_STARKWARE_FREEZE;
+            }
+            else
+            if ((context->currentFieldLength == STARKWARE_ESCAPE_DATA_SIZE) &&
+                (os_memcmp(context->workBuffer, STARKWARE_ESCAPE_ID, 4) == 0) && 
+                quantumSet) {
+              contractProvisioned = CONTRACT_STARKWARE_ESCAPE;
+            }
+            else
+            if (os_memcmp(context->workBuffer, STARKWARE_VERIFY_ESCAPE_ID, 4) == 0) {
+              contractProvisioned = CONTRACT_STARKWARE_VERIFY_ESCAPE;
+            }
+
+#endif
         }
         // Sanity check
         if ((contractProvisioned != CONTRACT_NONE) && (context->currentFieldLength > sizeof(dataContext.tokenContext.data))) {
@@ -192,6 +274,34 @@ void finalizeParsing(bool direct) {
   }
   // Store the hash
   cx_hash((cx_hash_t *)&sha3, CX_LAST, tmpCtx.transactionContext.hash, 0, tmpCtx.transactionContext.hash, 32);
+#ifdef HAVE_STARKWARE
+  if ((contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_ETH) ||
+      (contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_TOKEN) ||
+      (contractProvisioned == CONTRACT_STARKWARE_WITHDRAW) ||
+      (contractProvisioned == CONTRACT_STARKWARE_ESCAPE)) {
+    // For a deposit / withdrawal / escape, check if the token ID is known or can't parse
+    uint8_t tokenIdOffset = (4 + ((contractProvisioned == CONTRACT_STARKWARE_ESCAPE) ? 32 + 32 : 0));
+    if (quantumSet) {
+      tokenDefinition_t *currentToken = NULL;
+      if (dataContext.tokenContext.quantumIndex != MAX_TOKEN) {
+        currentToken = &tmpCtx.transactionContext.tokens[dataContext.tokenContext.quantumIndex];
+      }
+      compute_token_id(&sha3,
+        (currentToken != NULL ? currentToken->address : NULL),
+        dataContext.tokenContext.quantum, G_io_apdu_buffer + 100);
+      if (os_memcmp(dataContext.tokenContext.data + tokenIdOffset, G_io_apdu_buffer + 100, 32) != 0) {
+        PRINTF("Token ID not matching - computed %.*H\n", 32, G_io_apdu_buffer + 100);
+        PRINTF("Current quantum %.*H\n", 32, dataContext.tokenContext.quantum);
+        PRINTF("Requested %.*H\n", 32, dataContext.tokenContext.data + tokenIdOffset);
+        contractProvisioned = CONTRACT_NONE;
+      }
+    }
+    else {
+      PRINTF("Quantum not set\n");
+      contractProvisioned = CONTRACT_NONE;
+    }
+  }
+#endif
     // If there is a token to process, check if it is well known
     if ((contractProvisioned == CONTRACT_ERC20) || (contractProvisioned == CONTRACT_ALLOWANCE)) {
         tokenDefinition_t *currentToken = getKnownToken(tmpContent.txContent.destination);
@@ -299,6 +409,48 @@ void finalizeParsing(bool direct) {
 #if defined(TARGET_BLUE)
   ui_approval_transaction_blue_init();
 #else
+
+#ifdef HAVE_STARKWARE
+
+  if (contractProvisioned == CONTRACT_STARKWARE_REGISTER) {
+    ux_flow_init(0, ux_approval_starkware_register_flow, NULL);
+    return;
+  }
+  else
+  if (contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_TOKEN) {
+    ux_flow_init(0, ux_approval_starkware_deposit_flow, NULL);
+    return;
+  }
+  else
+  if (contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_ETH) {
+    ux_flow_init(0, ux_approval_starkware_deposit_flow, NULL);
+    return;
+  }
+  else
+  if ((contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_CANCEL) ||
+      (contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_RECLAIM) ||
+      (contractProvisioned == CONTRACT_STARKWARE_FULL_WITHDRAWAL) ||
+      (contractProvisioned == CONTRACT_STARKWARE_FREEZE)) {
+    ux_flow_init(0, ux_approval_starkware_verify_vault_id_flow, NULL);
+    return;
+  }  
+  else
+  if (contractProvisioned == CONTRACT_STARKWARE_WITHDRAW) {
+    ux_flow_init(0, ux_approval_starkware_withdraw_flow, NULL);
+    return;
+  }
+  else
+  if (contractProvisioned == CONTRACT_STARKWARE_ESCAPE) {
+    ux_flow_init(0, ux_approval_starkware_escape_flow, NULL);
+    return;
+  } 
+  else 
+  if (contractProvisioned == CONTRACT_STARKWARE_VERIFY_ESCAPE) {
+    ux_flow_init(0, ux_approval_starkware_verify_escape_flow, NULL);
+    return;
+  } 
+
+#endif
 
   if (contractProvisioned == CONTRACT_ALLOWANCE) {
     ux_flow_init(0, ux_approval_allowance_flow, NULL);

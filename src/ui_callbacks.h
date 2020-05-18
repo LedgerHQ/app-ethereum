@@ -18,4 +18,3 @@ void format_signature_out(const uint8_t* signature);
 void finalizeParsing(bool direct);
 tokenDefinition_t* getKnownToken(uint8_t *contractAddress);
 
-

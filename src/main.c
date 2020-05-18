@@ -30,6 +30,10 @@
 #include "glyphs.h"
 #include "utils.h"
 
+#ifdef HAVE_STARKWARE
+#include "stark_crypto.h"
+#endif
+
 unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 
 void ui_idle(void);
@@ -53,6 +57,9 @@ volatile char addressSummary[32];
 #endif
 volatile bool dataPresent;
 volatile contract_call_t contractProvisioned;
+#ifdef HAVE_STARKWARE
+volatile bool quantumSet;
+#endif
 
 #ifdef HAVE_UX_FLOW
 #include "ux.h"
@@ -80,6 +87,9 @@ void reset_app_context() {
   appState = APP_STATE_IDLE;
   os_memset(tmpCtx.transactionContext.tokenSet, 0, MAX_TOKEN);
   contractProvisioned = CONTRACT_NONE;
+#ifdef HAVE_STARKWARE  
+  quantumSet = false;
+#endif  
   os_memset((uint8_t*)&txContext, 0, sizeof(txContext));
   os_memset((uint8_t*)&tmpContent, 0, sizeof(tmpContent));
 }
@@ -477,6 +487,28 @@ void handleApdu(volatile unsigned int *flags, volatile unsigned int *tx) {
 
   BEGIN_TRY {
     TRY {
+
+#ifdef HAVE_STARKWARE
+
+      if (G_io_apdu_buffer[OFFSET_CLA] == STARKWARE_CLA) {
+        switch(G_io_apdu_buffer[OFFSET_INS]) {
+          case STARKWARE_INS_GET_PUBLIC_KEY:
+            handleStarkwareGetPublicKey(G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2], G_io_apdu_buffer + OFFSET_CDATA, G_io_apdu_buffer[OFFSET_LC], flags, tx);
+            break;
+          case STARKWARE_INS_SIGN_MESSAGE:
+            handleStarkwareSignMessage(G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2], G_io_apdu_buffer + OFFSET_CDATA, G_io_apdu_buffer[OFFSET_LC], flags, tx);
+            break;
+          case STARKWARE_INS_PROVIDE_QUANTUM:
+            handleStarkwareProvideQuantum(G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2], G_io_apdu_buffer + OFFSET_CDATA, G_io_apdu_buffer[OFFSET_LC], flags, tx);
+            break;
+          default:
+            THROW(0x6D00);
+            break;
+        }
+        return;        
+      }
+
+#endif      
 
       if (G_io_apdu_buffer[OFFSET_CLA] != CLA) {
         THROW(0x6E00);

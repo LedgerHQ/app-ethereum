@@ -146,7 +146,7 @@ void handleProvideErc20TokenInformation(uint8_t p1, uint8_t p2, uint8_t *workBuf
     for (index=0; index < NUM_TOKENS_EXTRA; index++) {
       currentToken = (tokenDefinition_t *)PIC(&TOKENS_EXTRA[index]);      
       if (os_memcmp(currentToken->address, token->address, 20) == 0) {
-          strcpy(token->ticker, currentToken->ticker);
+          strcpy((char*)token->ticker, (char*)currentToken->ticker);
           token->decimals = currentToken->decimals;
           break;
       }

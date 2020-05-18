@@ -1,7 +1,6 @@
 #include "shared_context.h"
 #include "utils.h"
 #include "ui_callbacks.h"
-#include "os_io_seproxyhal.h"
 
 unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
     uint8_t privateKeyData[32];

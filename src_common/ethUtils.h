@@ -51,4 +51,22 @@ void getEthAddressStringFromBinary(uint8_t *address, uint8_t *out,
 bool adjustDecimals(char *src, uint32_t srcLength, char *target,
                     uint32_t targetLength, uint8_t decimals);
 
+inline int allzeroes(uint8_t *buf, int n) {
+  for (int i = 0; i < n; ++i) {
+    if (buf[i]) {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+inline int ismaxint(uint8_t *buf, int n) {
+  for (int i = 0; i < n; ++i) {
+    if (buf[i] != 0xff) {
+      return 0;
+    }
+  }
+  return 1;
+}
+
 #endif /* _ETHUTILS_H_ */

@@ -8,7 +8,7 @@
 #endif
 #include "feature_getPublicKey.h"
 
-void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength, volatile unsigned int *flags, volatile unsigned int *tx) {
+void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength, unsigned int *flags, unsigned int *tx) {
   UNUSED(dataLength);
   uint8_t privateKeyData[32];
   uint32_t bip32Path[MAX_BIP32_PATH];

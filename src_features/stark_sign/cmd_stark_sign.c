@@ -15,7 +15,7 @@
 #define U8BE(buf, off) (uint64_t)((((uint64_t)U4BE(buf, off)) << 32) | (((uint64_t)U4BE(buf, off + 4)) & 0xFFFFFFFF))
 #define TMP_OFFSET 140
 
-void handleStarkwareSignMessage(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength, volatile unsigned int *flags, volatile unsigned int *tx) {
+void handleStarkwareSignMessage(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength, unsigned int *flags, unsigned int *tx) {
   uint8_t privateKeyData[32];
   uint32_t i;
   uint8_t bip32PathLength = *(dataBuffer);

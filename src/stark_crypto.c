@@ -32,8 +32,8 @@ void starkDerivePrivateKey(uint32_t *bip32Path, uint32_t bip32PathLength, uint8_
   uint8_t tmp[33];
   uint8_t index = 0;
   // Sanity check 
-  if (bip32Path[0] != STARK_BIP32_PATH_0)  {
-    PRINTF("Invalid Stark derivation path %d\n", bip32Path[0]);
+  if ((bip32PathLength < 2) || (bip32Path[0] != STARK_BIP32_PATH_0) || (bip32Path[1] != STARK_BIP32_PATH_1))  {
+    PRINTF("Invalid Stark derivation path %d %d\n", bip32Path[0], bip32Path[1]);
     THROW(0x6a80);
   }
   os_perso_derive_node_bip32(CX_CURVE_256K1, bip32Path, bip32PathLength, tmp, NULL);  

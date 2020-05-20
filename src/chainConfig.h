@@ -56,12 +56,12 @@ typedef enum chain_kind_e {
 } chain_kind_t;
 
 typedef struct chain_config_s {
-	const char* coinName; // ticker
+	const char coinName[10]; // ticker
 	uint32_t chainId;
 	chain_kind_t kind;
 #ifdef TARGET_BLUE
-    const char* header_text;
     unsigned int color_header;
+    const char header_text[13];
     unsigned int color_dashboard;
 #endif // TARGET_BLUE
 

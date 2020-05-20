@@ -136,9 +136,17 @@ typedef struct strDataTmp_t {
     char tmp2[40];
 } strDataTmp_t;
 
+typedef struct swap_data_s {
+    char destination_address[65];
+    unsigned char amount[32];
+    unsigned char fees[32];
+    int was_address_checked;
+} swap_data_t;
+
 typedef union {
     strData_t common;
     strDataTmp_t tmp;
+    swap_data_t swap_data;
 } strings_t;
 
 extern chain_config_t *chainConfig;
@@ -156,6 +164,9 @@ extern bagl_element_t tmp_element;
 extern char addressSummary[32];
 #endif
 
+extern bool called_from_swap;
+extern uint8_t dataAllowed;
+extern uint8_t contractDetails;
 extern bool dataPresent;
 extern uint8_t appState;
 extern contract_call_t contractProvisioned;

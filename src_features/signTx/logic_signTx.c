@@ -331,7 +331,7 @@ void finalizeParsing(bool direct) {
     }
   // Add address
   if (tmpContent.txContent.destinationLength != 0) {
-    getEthAddressStringFromBinary(tmpContent.txContent.destination, address, &sha3);
+    getEthAddressStringFromBinary(tmpContent.txContent.destination, address, &sha3, chainConfig);
     /*
     addressSummary[0] = '0';
     addressSummary[1] = 'x';

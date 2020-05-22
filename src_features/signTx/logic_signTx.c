@@ -403,64 +403,74 @@ void finalizeParsing(bool direct) {
   }
   strings.common.maxFee[tickerOffset + i] = '\0';
 
+  bool no_consent = false;
+
+  no_consent = called_from_swap;
+
 #ifdef NO_CONSENT
-  io_seproxyhal_touch_tx_ok(NULL);
-#else // NO_CONSENT
+  no_consent = true;
+#endif // NO_CONSENT
+
+  if(no_consent){
+    io_seproxyhal_touch_tx_ok(NULL);
+  }
+  else{
 #if defined(TARGET_BLUE)
-  ui_approval_transaction_blue_init();
+      ui_approval_transaction_blue_init();
 #else
 
 #ifdef HAVE_STARKWARE
 
-  if (contractProvisioned == CONTRACT_STARKWARE_REGISTER) {
-    ux_flow_init(0, ux_approval_starkware_register_flow, NULL);
-    return;
-  }
-  else
-  if (contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_TOKEN) {
-    ux_flow_init(0, ux_approval_starkware_deposit_flow, NULL);
-    return;
-  }
-  else
-  if (contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_ETH) {
-    ux_flow_init(0, ux_approval_starkware_deposit_flow, NULL);
-    return;
-  }
-  else
-  if ((contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_CANCEL) ||
-      (contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_RECLAIM) ||
-      (contractProvisioned == CONTRACT_STARKWARE_FULL_WITHDRAWAL) ||
-      (contractProvisioned == CONTRACT_STARKWARE_FREEZE)) {
-    ux_flow_init(0, ux_approval_starkware_verify_vault_id_flow, NULL);
-    return;
-  }  
-  else
-  if (contractProvisioned == CONTRACT_STARKWARE_WITHDRAW) {
-    ux_flow_init(0, ux_approval_starkware_withdraw_flow, NULL);
-    return;
-  }
-  else
-  if (contractProvisioned == CONTRACT_STARKWARE_ESCAPE) {
-    ux_flow_init(0, ux_approval_starkware_escape_flow, NULL);
-    return;
-  } 
-  else 
-  if (contractProvisioned == CONTRACT_STARKWARE_VERIFY_ESCAPE) {
-    ux_flow_init(0, ux_approval_starkware_verify_escape_flow, NULL);
-    return;
-  } 
+      if (contractProvisioned == CONTRACT_STARKWARE_REGISTER) {
+        ux_flow_init(0, ux_approval_starkware_register_flow, NULL);
+        return;
+      }
+      else
+      if (contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_TOKEN) {
+        ux_flow_init(0, ux_approval_starkware_deposit_flow, NULL);
+        return;
+      }
+      else
+      if (contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_ETH) {
+        ux_flow_init(0, ux_approval_starkware_deposit_flow, NULL);
+        return;
+      }
+      else
+      if ((contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_CANCEL) ||
+          (contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_RECLAIM) ||
+          (contractProvisioned == CONTRACT_STARKWARE_FULL_WITHDRAWAL) ||
+          (contractProvisioned == CONTRACT_STARKWARE_FREEZE)) {
+        ux_flow_init(0, ux_approval_starkware_verify_vault_id_flow, NULL);
+        return;
+      }  
+      else
+      if (contractProvisioned == CONTRACT_STARKWARE_WITHDRAW) {
+        ux_flow_init(0, ux_approval_starkware_withdraw_flow, NULL);
+        return;
+      }
+      else
+      if (contractProvisioned == CONTRACT_STARKWARE_ESCAPE) {
+        ux_flow_init(0, ux_approval_starkware_escape_flow, NULL);
+        return;
+      } 
+      else 
+      if (contractProvisioned == CONTRACT_STARKWARE_VERIFY_ESCAPE) {
+        ux_flow_init(0, ux_approval_starkware_verify_escape_flow, NULL);
+        return;
+      } 
 
 #endif
 
-  if (contractProvisioned == CONTRACT_ALLOWANCE) {
-    ux_flow_init(0, ux_approval_allowance_flow, NULL);
-    return;
+      if (contractProvisioned == CONTRACT_ALLOWANCE) {
+        ux_flow_init(0, ux_approval_allowance_flow, NULL);
+        return;
+      }
+
+      ux_flow_init(0,
+        ((dataPresent && !N_storage.contractDetails) ? ux_approval_tx_data_warning_flow : ux_approval_tx_flow),
+        NULL);
+#endif // #if TARGET_ID
   }
 
-  ux_flow_init(0,
-    ((dataPresent && !N_storage.contractDetails) ? ux_approval_tx_data_warning_flow : ux_approval_tx_flow),
-    NULL);
-#endif // #if TARGET_ID
-#endif // NO_CONSENT
 }
 

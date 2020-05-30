@@ -1196,4 +1196,7 @@ const tokenDefinition_t const TOKENS_WEBCHAIN[NUM_TOKENS_WEBCHAIN] = {};
 
 const tokenDefinition_t const TOKENS_THUNDERCORE[NUM_TOKENS_THUNDERCORE] = {};
 
+const tokenDefinition_t const TOKENS_XINFINNETWORK[NUM_TOKENS_XINFINNETWORK] = {};
+
+
 #endif

@@ -52,7 +52,8 @@ typedef enum chain_kind_e {
 	CHAIN_KIND_ARTIS_SIGMA1,
 	CHAIN_KIND_ARTIS_TAU1,
 	CHAIN_KIND_WEBCHAIN,
-	CHAIN_KIND_THUNDERCORE
+	CHAIN_KIND_THUNDERCORE,
+	CHAIN_KIND_XINFINNETWORK
 } chain_kind_t;
 
 typedef struct chain_config_s {

@@ -84,13 +84,7 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint
   if (tmpCtx.messageSigningContext.remainingLength == 0) {
     cx_hash((cx_hash_t *)&sha3, CX_LAST, workBuffer, 0, tmpCtx.messageSigningContext.hash, 32);
     cx_hash((cx_hash_t *)&tmpContent.sha2, CX_LAST, workBuffer, 0, hashMessage, 32);
-
-#define HASH_LENGTH 4
-    array_hexstr(strings.common.fullAddress, hashMessage, HASH_LENGTH / 2);
-    strings.common.fullAddress[HASH_LENGTH / 2 * 2] = '.';
-    strings.common.fullAddress[HASH_LENGTH / 2 * 2 + 1] = '.';
-    strings.common.fullAddress[HASH_LENGTH / 2 * 2 + 2] = '.';
-    array_hexstr(strings.common.fullAddress + HASH_LENGTH / 2 * 2 + 3, hashMessage + 32 - HASH_LENGTH / 2, HASH_LENGTH / 2);
+    snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "%.*H", sizeof(hashMessage), hashMessage);
 
 #ifdef NO_CONSENT
     io_seproxyhal_touch_signMessage_ok(NULL);

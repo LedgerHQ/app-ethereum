@@ -20,7 +20,7 @@ static const uint8_t const ALLOWANCE_ID[] = { 0x09, 0x5e, 0xa7, 0xb3 };
 #ifdef HAVE_STARKWARE
 
 #define STARKWARE_REGISTER_DATA_SIZE 4 + 32
-static const uint8_t const STARKWARE_REGISTER_ID[] = { 0xf2, 0x07, 0x56, 0x4e };
+static const uint8_t const STARKWARE_REGISTER_ID[] = { 0x76, 0x57, 0x18, 0xd7 };
 #define STARKWARE_DEPOSIT_TOKEN_DATA_SIZE 4 + 32 + 32 + 32
 static const uint8_t const STARKWARE_DEPOSIT_TOKEN_ID[] = { 0x00, 0xae, 0xef, 0x8a };
 #define STARKWARE_DEPOSIT_ETH_DATA_SIZE 4 + 32 + 32
@@ -87,7 +87,7 @@ customStatus_e customProcessor(txContext_t *context) {
             }
 #ifdef HAVE_STARKWARE
             else
-            if ((context->currentFieldLength == STARKWARE_REGISTER_DATA_SIZE) &&
+            if ((context->currentFieldLength >= STARKWARE_REGISTER_DATA_SIZE) &&
                 (os_memcmp(context->workBuffer, STARKWARE_REGISTER_ID, 4) == 0)) {
               contractProvisioned = CONTRACT_STARKWARE_REGISTER;
             }

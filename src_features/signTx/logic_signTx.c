@@ -144,8 +144,10 @@ customStatus_e customProcessor(txContext_t *context) {
         // Sanity check
         // Also handle exception that only need to process the beginning of the data
         if ((contractProvisioned != CONTRACT_NONE) && 
+#ifdef HAVE_STARKWARE          
             (contractProvisioned != CONTRACT_STARKWARE_VERIFY_ESCAPE) &&
             (contractProvisioned != CONTRACT_STARKWARE_REGISTER) &&
+#endif            
             (context->currentFieldLength > sizeof(dataContext.tokenContext.data))) {
           PRINTF("Data field overflow - dropping customization\n");
           contractProvisioned = CONTRACT_NONE;

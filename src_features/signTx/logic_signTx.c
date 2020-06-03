@@ -142,22 +142,35 @@ customStatus_e customProcessor(txContext_t *context) {
 #endif
         }
         // Sanity check
-        if ((contractProvisioned != CONTRACT_NONE) && (context->currentFieldLength > sizeof(dataContext.tokenContext.data))) {
+        // Also handle exception that only need to process the beginning of the data
+        if ((contractProvisioned != CONTRACT_NONE) && 
+            (contractProvisioned != CONTRACT_STARKWARE_VERIFY_ESCAPE) &&
+            (contractProvisioned != CONTRACT_STARKWARE_REGISTER) &&
+            (context->currentFieldLength > sizeof(dataContext.tokenContext.data))) {
           PRINTF("Data field overflow - dropping customization\n");
           contractProvisioned = CONTRACT_NONE;
         }
         PRINTF("contractProvisioned %d\n", contractProvisioned);
         if (contractProvisioned != CONTRACT_NONE) {
             if (context->currentFieldPos < context->currentFieldLength) {
-                uint32_t copySize = (context->commandLength <
-                                        ((context->currentFieldLength -
-                                                   context->currentFieldPos))
-                                        ? context->commandLength
-                                            : context->currentFieldLength -
-                                                   context->currentFieldPos);
-                copyTxData(context,
-                    dataContext.tokenContext.data + context->currentFieldPos,
-                    copySize);
+                uint32_t copySize = MIN(context->commandLength, 
+                  context->currentFieldLength - context->currentFieldPos);
+                // Handle the case where we only need to handle the beginning of the data parameter
+                if ((context->currentFieldPos + copySize) < sizeof(dataContext.tokenContext.data)) {
+                  copyTxData(context,
+                      dataContext.tokenContext.data + context->currentFieldPos,
+                      copySize);
+                }
+                else {
+                  if (context->currentFieldPos < sizeof(dataContext.tokenContext.data)) {
+                    uint32_t copySize2 = sizeof(dataContext.tokenContext.data) - context->currentFieldPos;
+                    copyTxData(context,
+                        dataContext.tokenContext.data + context->currentFieldPos,
+                        copySize2);
+                    copySize -= copySize2;
+                  }
+                  copyTxData(context, NULL, copySize);
+                }
             }
             if (context->currentFieldPos == context->currentFieldLength) {
                 context->currentField++;
@@ -381,6 +394,9 @@ void finalizeParsing(bool direct) {
     strings.common.fullAmount[tickerOffset + i] = '\0';
   }
   // Compute maximum fee
+  PRINTF("Max fee\n");
+  PRINTF("Gasprice %.*H\n", tmpContent.txContent.gasprice.length, tmpContent.txContent.gasprice.value);
+  PRINTF("Startgas %.*H\n", tmpContent.txContent.startgas.length, tmpContent.txContent.startgas.value);
   convertUint256BE(tmpContent.txContent.gasprice.value, tmpContent.txContent.gasprice.length, &gasPrice);
   convertUint256BE(tmpContent.txContent.startgas.value, tmpContent.txContent.startgas.length, &startGas);
   mul256(&gasPrice, &startGas, &uint256);

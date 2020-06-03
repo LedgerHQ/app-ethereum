@@ -37,7 +37,7 @@ void starkDerivePrivateKey(uint32_t *bip32Path, uint32_t bip32PathLength, uint8_
     THROW(0x6a80);
   }
   os_perso_derive_node_bip32(CX_CURVE_256K1, bip32Path, bip32PathLength, tmp, NULL);  
-  PRINTF("Private key before processing %.*H\n", 32, privateKeyData);
+  PRINTF("Private key before processing %.*H\n", 32, tmp);
   for(;;) {
     tmp[32] = index;
     cx_hash_sha256(tmp, 33, privateKeyData, 32);

@@ -53,8 +53,8 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint
     workBuffer += 4;
     dataLength -= 4;
     // Initialize message header + length
-    cx_keccak_init(&sha3, 256);
-    cx_hash((cx_hash_t *)&sha3, 0, (uint8_t*)SIGN_MAGIC, sizeof(SIGN_MAGIC) - 1, NULL, 0);
+    cx_keccak_init(&sha3_ctx, 256);
+    cx_hash((cx_hash_t *)&sha3_ctx, 0, (uint8_t*)SIGN_MAGIC, sizeof(SIGN_MAGIC) - 1, NULL, 0);
     for (index = 1; (((index * base) <= tmpCtx.messageSigningContext.remainingLength) &&
                          (((index * base) / base) == index));
              index *= base);
@@ -62,7 +62,7 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint
       tmp[pos++] = '0' + ((tmpCtx.messageSigningContext.remainingLength / index) % base);
     }
     tmp[pos] = '\0';
-    cx_hash((cx_hash_t *)&sha3, 0, (uint8_t*)tmp, pos, NULL, 0);
+    cx_hash((cx_hash_t *)&sha3_ctx, 0, (uint8_t*)tmp, pos, NULL, 0);
     cx_sha256_init(&tmpContent.sha2);
   }
   else if (p1 != P1_MORE) {
@@ -78,11 +78,11 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint
   if (dataLength > tmpCtx.messageSigningContext.remainingLength) {
       THROW(0x6A80);
   }
-  cx_hash((cx_hash_t *)&sha3, 0, workBuffer, dataLength, NULL, 0);
+  cx_hash((cx_hash_t *)&sha3_ctx, 0, workBuffer, dataLength, NULL, 0);
   cx_hash((cx_hash_t *)&tmpContent.sha2, 0, workBuffer, dataLength, NULL, 0);
   tmpCtx.messageSigningContext.remainingLength -= dataLength;
   if (tmpCtx.messageSigningContext.remainingLength == 0) {
-    cx_hash((cx_hash_t *)&sha3, CX_LAST, workBuffer, 0, tmpCtx.messageSigningContext.hash, 32);
+    cx_hash((cx_hash_t *)&sha3_ctx, CX_LAST, workBuffer, 0, tmpCtx.messageSigningContext.hash, 32);
     cx_hash((cx_hash_t *)&tmpContent.sha2, CX_LAST, workBuffer, 0, hashMessage, 32);
 
 #define HASH_LENGTH 4

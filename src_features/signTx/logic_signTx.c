@@ -273,7 +273,7 @@ void finalizeParsing(bool direct) {
     }
   }
   // Store the hash
-  cx_hash((cx_hash_t *)&sha3, CX_LAST, tmpCtx.transactionContext.hash, 0, tmpCtx.transactionContext.hash, 32);
+  cx_hash((cx_hash_t *)&sha3_ctx, CX_LAST, tmpCtx.transactionContext.hash, 0, tmpCtx.transactionContext.hash, 32);
 #ifdef HAVE_STARKWARE
   if ((contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_ETH) ||
       (contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_TOKEN) ||
@@ -286,7 +286,7 @@ void finalizeParsing(bool direct) {
       if (dataContext.tokenContext.quantumIndex != MAX_TOKEN) {
         currentToken = &tmpCtx.transactionContext.tokens[dataContext.tokenContext.quantumIndex];
       }
-      compute_token_id(&sha3,
+      compute_token_id(&sha3_ctx,
         (currentToken != NULL ? currentToken->address : NULL),
         dataContext.tokenContext.quantum, G_io_apdu_buffer + 100);
       if (os_memcmp(dataContext.tokenContext.data + tokenIdOffset, G_io_apdu_buffer + 100, 32) != 0) {
@@ -331,7 +331,7 @@ void finalizeParsing(bool direct) {
     }
   // Add address
   if (tmpContent.txContent.destinationLength != 0) {
-    getEthAddressStringFromBinary(tmpContent.txContent.destination, address, &sha3, chainConfig);
+    getEthAddressStringFromBinary(tmpContent.txContent.destination, address, &sha3_ctx, chainConfig);
     /*
     addressSummary[0] = '0';
     addressSummary[1] = 'x';

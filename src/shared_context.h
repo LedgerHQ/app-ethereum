@@ -137,10 +137,9 @@ typedef struct strDataTmp_t {
 } strDataTmp_t;
 
 typedef struct swap_data_s {
-    char destination_address[65];
-    unsigned char amount[32];
-    unsigned char fees[32];
-    int was_address_checked;
+    char destination_address[43];
+    unsigned char amount[50];
+    unsigned char fees[50];
 } swap_data_t;
 
 typedef union {
@@ -156,7 +155,7 @@ extern txContext_t txContext;
 extern tmpContent_t tmpContent;
 extern dataContext_t dataContext;
 extern strings_t strings;
-extern cx_sha3_t sha3;
+extern cx_sha3_t sha3_ctx;
 extern const internalStorage_t N_storage_real;
 
 #ifdef TARGET_BLUE

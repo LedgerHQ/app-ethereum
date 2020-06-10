@@ -52,8 +52,6 @@ tmpContent_t tmpContent;
 dataContext_t dataContext;
 strings_t strings;
 
-cx_sha3_t sha3;
-
 uint8_t dataAllowed;
 uint8_t contractDetails;
 uint8_t appState;
@@ -704,7 +702,7 @@ unsigned char io_event(unsigned char channel) {
     return 1;
 }
 
-void app_exit(void) {
+void app_exit() {
 
     BEGIN_TRY_L(exit) {
         TRY_L(exit) {
@@ -796,63 +794,68 @@ void coin_main() {
     coin_main_with_config(&coin_config);
 }
 
-void library_main_with_config(chain_config_t *config, unsigned int call_id, unsigned int* call_parameters, unsigned int* return_value) {
-    *return_value = 0;
+void library_main_with_config(chain_config_t *config, unsigned int command, unsigned int* call_parameters) {
     BEGIN_TRY {
         TRY {
+            check_api_level(CX_COMPAT_APILEVEL);
             PRINTF("Inside a library \n");
-            switch (call_id) {
-                case CHECK_ADDRESS_IN:
+            switch (command) {
+                case CHECK_ADDRESS:
                     handle_check_address((check_address_parameters_t*)call_parameters, config);
-                    *return_value = CHECK_ADDRESS_OUT;
                 break;
-                case SIGN_TRANSACTION_IN:
+                case SIGN_TRANSACTION:
                     handle_swap_sign_transaction((create_transaction_parameters_t*)call_parameters, config);
-                    *return_value = SIGN_TRANSACTION_OUT;
                 break;
-                case GET_PRINTABLE_AMOUNT_IN:
+                case GET_PRINTABLE_AMOUNT:
                     handle_get_printable_amount((get_printable_amount_parameters_t*)call_parameters, config);
-                    *return_value = GET_PRINTABLE_AMOUNT_OUT;
                 break;
+            }
+            os_lib_end();
+        }
+        FINALLY {}
+    }
+    END_TRY;
+}
+
+void library_main(unsigned int call_id, unsigned int* call_parameters) {
+    chain_config_t coin_config;
+    init_coin_config(&coin_config);
+    library_main_with_config(&coin_config, call_id, call_parameters);
+}
+
+__attribute__((section(".boot"))) int main(int arg0) {
+#ifdef USE_LIB_ETHEREUM
+    BEGIN_TRY {
+        TRY {
+            unsigned int libcall_params[5];
+            chain_config_t local_chainConfig;
+            init_coin_config(&local_chainConfig);
+            PRINTF("Hello from Eth-clone\n");
+            check_api_level(CX_COMPAT_APILEVEL);
+            // delegate to Ethereum app/lib
+            libcall_params[0] = "Ethereum";
+            libcall_params[1] = 0x100;
+            libcall_params[2] = RUN_APPLICATION;
+            libcall_params[3] = &local_chainConfig;
+            libcall_params[4] = 0;
+            if (arg0) {
+                // call as a library
+                libcall_params[2] = ((unsigned int *)arg0)[1];
+                libcall_params[4] = ((unsigned int *)arg0)[3]; // library arguments
+                os_lib_call(&libcall_params);
+                ((unsigned int *)arg0)[0] = libcall_params[1];
+                os_lib_end();
+            }
+            else {
+                // launch coin application
+                libcall_params[1] = 0x100; // use the Init call, as we won't exit
+                os_lib_call(&libcall_params);
             }
         }
         FINALLY {}
     }
     END_TRY;
-    os_lib_end();
-    app_exit();
-}
-
-void library_main(unsigned int call_id, unsigned int* call_parameters, unsigned int* return_value) {
-    chain_config_t coin_config;
-    init_coin_config(&coin_config);
-    library_main_with_config(&coin_config, call_id, call_parameters, return_value);
-}
-
-__attribute__((section(".boot"))) int main(int arg0) {
-#ifdef USE_LIB_ETHEREUM
-    unsigned int libcall_params[4];
-    chain_config_t local_chainConfig;
-    init_coin_config(&local_chainConfig);
-    PRINTF("Hello from Eth-clone\n");
-    check_api_level(CX_COMPAT_APILEVEL);
-    // delegate to Ethereum app/lib
-    libcall_params[0] = "Ethereum";
-    libcall_params[2] = &local_chainConfig;
-    if (arg0) {
-        // call as a library
-        libcall_params[1] = ((unsigned int *)arg0)[0] | 0x100;
-        libcall_params[3] = ((unsigned int *)arg0)[1]; // library arguments
-        os_lib_call(&libcall_params);
-        ((unsigned int *)arg0)[0] = libcall_params[1];
-        os_lib_end();
-    }
-    else {
-        // launch coin application
-        libcall_params[1] = 0x100; // use the Init call, as we won't exit
-        os_lib_call(&libcall_params);
-    }
-    // no return
+            // no return
 #else
     // exit critical section
     __asm volatile("cpsie i");
@@ -862,20 +865,34 @@ __attribute__((section(".boot"))) int main(int arg0) {
     os_boot();
 
     if (!arg0) {
+        // called from dashboard as standalone eth app
         coin_main();
         return 0;
     }
-    unsigned int call_id = ((unsigned int *)arg0)[0];
-    if (call_id == 0x100) {
-        // *coin application launched from dashboard
-        coin_main_with_config((chain_config_t *)((unsigned int *)arg0)[1]);
+
+    if (((unsigned int *)arg0)[0] != 0x100) {
+        app_exit();
         return 0;
     }
-    // Called as a library
-    if (call_id & 0x100)
-        library_main_with_config((chain_config_t *)((unsigned int *)arg0)[1], call_id & (~0x100), ((unsigned int *)arg0)[2], &((unsigned int *)arg0)[0]);
-    else
-        library_main(call_id, ((unsigned int *)arg0)[1], &((unsigned int *)arg0)[0]);
+    unsigned int command = ((unsigned int *)arg0)[1];
+    chain_config_t * chain_config = ((unsigned int *)arg0)[2];
+    switch (command) {
+        case RUN_APPLICATION:
+            // coin application launched from dashboard
+            if (chain_config == NULL)
+                app_exit();
+            else
+                coin_main_with_config(chain_config);    
+        break;
+        default:
+            if (chain_config == NULL)
+                // Called as standalone eth library
+                library_main(command, ((unsigned int *)arg0)[3]);// called as bitcoin library
+            else
+                // Called as a library from an altcoin
+                library_main_with_config(chain_config, command, ((unsigned int *)arg0)[3]);// called as coin library
+        break;
+    }
 #endif
     return 0;
 }

@@ -17,7 +17,6 @@ void copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
     }
     memcpy(stack_data.amount, sign_transaction_params->amount, sign_transaction_params->amount_length);
     memcpy(stack_data.fees, sign_transaction_params->fee_amount, sign_transaction_params->fee_amount_length);
-    stack_data.was_address_checked = 0;
     memcpy(&strings.swap_data, &stack_data, sizeof(stack_data));
 }
 

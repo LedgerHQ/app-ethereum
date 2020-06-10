@@ -5,7 +5,7 @@
 
 void prepare_register_3() {  
     uint8_t address[41];
-    getEthAddressStringFromBinary(tmpContent.txContent.destination, address, &sha3, chainConfig);
+    getEthAddressStringFromBinary(tmpContent.txContent.destination, address, &sha3_ctx, chainConfig);
     strings.common.fullAddress[0] = '0';
     strings.common.fullAddress[1] = 'x';
     os_memmove((unsigned char *)strings.common.fullAddress+2, address, 40);
@@ -26,7 +26,7 @@ void prepare_register_4() {
   os_memset(&privateKey, 0, sizeof(privateKey));
   os_memset(privateKeyData, 0, sizeof(privateKeyData));
   io_seproxyhal_io_heartbeat();
-  getEthAddressStringFromKey(&publicKey, address, &sha3, chainConfig);
+  getEthAddressStringFromKey(&publicKey, address, &sha3_ctx, chainConfig);
   strings.common.fullAddress[0] = '0';
   strings.common.fullAddress[1] = 'x';
   os_memmove((unsigned char *)strings.common.fullAddress+2, address, 40);

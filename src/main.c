@@ -505,6 +505,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
             THROW(0x6D00);
             break;
         }
+        CLOSE_TRY;
         return;        
       }
 
@@ -809,9 +810,11 @@ __attribute__((section(".boot"))) int main(int arg0) {
             }
             CATCH(EXCEPTION_IO_RESET) {
               // reset IO and UX before continuing
+              CLOSE_TRY;
               continue;
             }
             CATCH_ALL {
+              CLOSE_TRY;             
               break;
             }
             FINALLY {

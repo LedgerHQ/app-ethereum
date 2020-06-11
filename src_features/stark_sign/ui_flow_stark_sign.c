@@ -91,7 +91,7 @@ UX_FLOW_DEF_NOCB(ux_stark_transfer_2_step,
     bnnn_paging,
     {
       .title = "Transfer",
-      .text = ""
+      .text = " "
     });
 
 UX_FLOW_DEF_NOCB(ux_stark_self_transfer_2_step,

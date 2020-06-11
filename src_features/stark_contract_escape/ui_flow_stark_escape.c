@@ -54,7 +54,7 @@ UX_FLOW_DEF_NOCB(
     bnnn_paging,
     {
       .title = "Escape",
-      .text = ""
+      .text = " "
     });
 
 UX_STEP_NOCB_INIT(

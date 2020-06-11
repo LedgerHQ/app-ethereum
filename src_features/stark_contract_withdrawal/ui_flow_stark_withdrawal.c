@@ -37,7 +37,7 @@ UX_FLOW_DEF_NOCB(
     bnnn_paging,
     {
       .title = "Withdrawal",
-      .text = ""
+      .text = " "
     });
 
 UX_STEP_NOCB_INIT(

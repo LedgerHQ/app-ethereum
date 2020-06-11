@@ -52,7 +52,7 @@ UX_STEP_NOCB_INIT(
     prepare_verify_vault_id_2(),
     {
       .title = strings.common.fullAddress,
-      .text = ""
+      .text = " "
     });
 
 UX_STEP_NOCB_INIT(

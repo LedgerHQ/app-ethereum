@@ -14,7 +14,7 @@ UX_FLOW_DEF_NOCB(
     bnnn_paging,
     {
       .title = "Allowance",
-      .text = ""
+      .text = " "
     });
 
 UX_FLOW_DEF_NOCB(

@@ -861,7 +861,6 @@ __attribute__((section(".boot"))) int main(int arg0) {
     // exit critical section
     __asm volatile("cpsie i");
 
-    PRINTF("Hello from Ethereum\n");
     // ensure exception will work as planned
     os_boot();
 

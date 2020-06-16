@@ -17,6 +17,8 @@ static const uint8_t const TOKEN_TRANSFER_ID[] = { 0xa9, 0x05, 0x9c, 0xbb };
 #define ALLOWANCE_DATA_SIZE 4 + 32 + 32
 static const uint8_t const ALLOWANCE_ID[] = { 0x09, 0x5e, 0xa7, 0xb3 };
 
+#define ERR_SILENT_MODE_CHECK_FAILED 0x6001
+
 #ifdef HAVE_STARKWARE
 
 #define STARKWARE_REGISTER_DATA_SIZE 4 + 32
@@ -247,10 +249,21 @@ customStatus_e customProcessor(txContext_t *context) {
     return CUSTOM_NOT_HANDLED;
 }
 
+void compareOrCopy(char* preapproved_string, char* parsed_string, bool silent_mode){
+  if(silent_mode){
+    if(os_memcmp(preapproved_string, parsed_string, strlen(preapproved_string))){
+      THROW(ERR_SILENT_MODE_CHECK_FAILED);
+    }
+  }
+  else{
+    os_memmove(preapproved_string, parsed_string, strlen(parsed_string));
+  }
+}
+
 void finalizeParsing(bool direct) {
   uint256_t gasPrice, startGas, uint256;
   uint32_t i;
-  uint8_t address[41];
+  char displayBuffer[50];
   uint8_t decimals = WEI_TO_ETHER;
   uint8_t *ticker = (uint8_t *)PIC(chainConfig->coinName);
   uint8_t *feeTicker = (uint8_t *)PIC(chainConfig->coinName);
@@ -273,7 +286,7 @@ void finalizeParsing(bool direct) {
     }
   }
   // Store the hash
-  cx_hash((cx_hash_t *)&sha3_ctx, CX_LAST, tmpCtx.transactionContext.hash, 0, tmpCtx.transactionContext.hash, 32);
+  cx_hash((cx_hash_t *)&global_sha3, CX_LAST, tmpCtx.transactionContext.hash, 0, tmpCtx.transactionContext.hash, 32);
 #ifdef HAVE_STARKWARE
   if ((contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_ETH) ||
       (contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_TOKEN) ||
@@ -286,7 +299,7 @@ void finalizeParsing(bool direct) {
       if (dataContext.tokenContext.quantumIndex != MAX_TOKEN) {
         currentToken = &tmpCtx.transactionContext.tokens[dataContext.tokenContext.quantumIndex];
       }
-      compute_token_id(&sha3_ctx,
+      compute_token_id(&global_sha3,
         (currentToken != NULL ? currentToken->address : NULL),
         dataContext.tokenContext.quantum, G_io_apdu_buffer + 100);
       if (os_memcmp(dataContext.tokenContext.data + tokenIdOffset, G_io_apdu_buffer + 100, 32) != 0) {
@@ -331,27 +344,17 @@ void finalizeParsing(bool direct) {
     }
   // Add address
   if (tmpContent.txContent.destinationLength != 0) {
-    getEthAddressStringFromBinary(tmpContent.txContent.destination, address, &sha3_ctx, chainConfig);
-    /*
-    addressSummary[0] = '0';
-    addressSummary[1] = 'x';
-    os_memmove((unsigned char *)(addressSummary + 2), address, 4);
-    os_memmove((unsigned char *)(addressSummary + 6), "...", 3);
-    os_memmove((unsigned char *)(addressSummary + 9), address + 40 - 4, 4);
-    addressSummary[13] = '\0';
-    */
-
-    strings.common.fullAddress[0] = '0';
-    strings.common.fullAddress[1] = 'x';
-    os_memmove((unsigned char *)strings.common.fullAddress+2, address, 40);
-    strings.common.fullAddress[42] = '\0';
+    displayBuffer[0] = '0';
+    displayBuffer[1] = 'x';
+    getEthAddressStringFromBinary(tmpContent.txContent.destination, (uint8_t*)displayBuffer+2, &global_sha3, chainConfig);
+    compareOrCopy(strings.txSummary.fullAddress, displayBuffer, called_from_swap);
   }
   else
   {
 #ifdef TARGET_BLUE
     os_memmove((void*)addressSummary, CONTRACT_ADDRESS, sizeof(CONTRACT_ADDRESS));
 #endif
-    strcpy(strings.common.fullAddress, "Contract");
+    strcpy(strings.txSummary.fullAddress, "Contract");
   }
   if ((contractProvisioned == CONTRACT_NONE) || (contractProvisioned == CONTRACT_ERC20) ||
     (contractProvisioned == CONTRACT_ALLOWANCE)) {
@@ -371,14 +374,15 @@ void finalizeParsing(bool direct) {
     i = 0;
     tickerOffset = 0;
     while (ticker[tickerOffset]) {
-      strings.common.fullAmount[tickerOffset] = ticker[tickerOffset];
+      displayBuffer[tickerOffset] = ticker[tickerOffset];
       tickerOffset++;
     }
     while (G_io_apdu_buffer[i]) {
-      strings.common.fullAmount[tickerOffset + i] = G_io_apdu_buffer[i];
+      displayBuffer[tickerOffset + i] = G_io_apdu_buffer[i];
       i++;
     }
-    strings.common.fullAmount[tickerOffset + i] = '\0';
+    displayBuffer[tickerOffset + i] = '\0';
+    compareOrCopy(strings.txSummary.fullAmount, displayBuffer, called_from_swap);
   }
   // Compute maximum fee
   convertUint256BE(tmpContent.txContent.gasprice.value, tmpContent.txContent.gasprice.length, &gasPrice);
@@ -393,15 +397,16 @@ void finalizeParsing(bool direct) {
   i = 0;
   tickerOffset=0;
   while (feeTicker[tickerOffset]) {
-      strings.common.maxFee[tickerOffset] = feeTicker[tickerOffset];
+      displayBuffer[tickerOffset] = feeTicker[tickerOffset];
       tickerOffset++;
   }
   tickerOffset++;
   while (G_io_apdu_buffer[i]) {
-    strings.common.maxFee[tickerOffset + i] = G_io_apdu_buffer[i];
+    displayBuffer[tickerOffset + i] = G_io_apdu_buffer[i];
     i++;
   }
-  strings.common.maxFee[tickerOffset + i] = '\0';
+  displayBuffer[tickerOffset + i] = '\0';
+  compareOrCopy(strings.txSummary.maxFee, displayBuffer, called_from_swap);
 
   bool no_consent = false;
 

@@ -444,10 +444,10 @@ const bagl_element_t ui_address_blue[8] = {
 unsigned int ui_address_blue_prepro(const bagl_element_t* element) {
   copy_element_and_map_coin_colors(element);
   if(element->component.userid > 0) {
-    unsigned int length = strlen(strings.common.fullAddress);
+    unsigned int length = strlen(strings.txSummary.fullAddress);
     if (length >= (element->component.userid & 0xF) * MAX_CHAR_PER_LINE) {
       os_memset(addressSummary, 0, MAX_CHAR_PER_LINE+1);
-      os_memmove(addressSummary, strings.common.fullAddress+(element->component.userid & 0xF) * MAX_CHAR_PER_LINE, MIN(length - (element->component.userid & 0xF) * MAX_CHAR_PER_LINE, MAX_CHAR_PER_LINE));
+      os_memmove(addressSummary, strings.txSummary.fullAddress+(element->component.userid & 0xF) * MAX_CHAR_PER_LINE, MIN(length - (element->component.userid & 0xF) * MAX_CHAR_PER_LINE, MAX_CHAR_PER_LINE));
       return &tmp_element;
     }
     // nothing to draw for this line

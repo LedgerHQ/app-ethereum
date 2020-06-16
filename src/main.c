@@ -51,6 +51,7 @@ txContext_t txContext;
 tmpContent_t tmpContent;
 dataContext_t dataContext;
 strings_t strings;
+cx_sha3_t global_sha3;
 
 uint8_t dataAllowed;
 uint8_t contractDetails;
@@ -177,9 +178,9 @@ void ui_approval_transaction_blue_init(void) {
   ui_approval_blue_ok = (bagl_element_callback_t) io_seproxyhal_touch_tx_ok;
   ui_approval_blue_cancel = (bagl_element_callback_t) io_seproxyhal_touch_tx_cancel;
   G_ui_approval_blue_state = APPROVAL_TRANSACTION;
-  ui_approval_blue_values[0] = strings.common.fullAmount;
-  ui_approval_blue_values[1] = strings.common.fullAddress;
-  ui_approval_blue_values[2] = strings.common.maxFee;
+  ui_approval_blue_values[0] = strings.txSummary.fullAmount;
+  ui_approval_blue_values[1] = strings.txSummary.fullAddress;
+  ui_approval_blue_values[2] = strings.txSummary.maxFee;
   ui_approval_blue_init();
 }
 
@@ -187,7 +188,7 @@ void ui_approval_message_sign_blue_init(void) {
   ui_approval_blue_ok = (bagl_element_callback_t) io_seproxyhal_touch_signMessage_ok;
   ui_approval_blue_cancel = (bagl_element_callback_t) io_seproxyhal_touch_signMessage_cancel;
   G_ui_approval_blue_state = APPROVAL_MESSAGE;
-  ui_approval_blue_values[0] = strings.common.fullAmount;
+  ui_approval_blue_values[0] = strings.txSummary.fullAmount;
   ui_approval_blue_values[1] = NULL;
   ui_approval_blue_values[2] = NULL;
   ui_approval_blue_init();

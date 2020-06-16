@@ -98,21 +98,21 @@ UX_FLOW_DEF_NOCB(
     bnnn_paging,
     {
       .title = "Amount",
-      .text = strings.common.fullAmount
+      .text = strings.txSummary.fullAmount
     });
 UX_FLOW_DEF_NOCB(
     ux_approval_tx_3_step,
     bnnn_paging,
     {
       .title = "Address",
-      .text = strings.common.fullAddress,
+      .text = strings.txSummary.fullAddress,
     });
 UX_FLOW_DEF_NOCB(
     ux_approval_tx_4_step,
     bnnn_paging,
     {
       .title = "Max Fees",
-      .text = strings.common.maxFee,
+      .text = strings.txSummary.maxFee,
     });
 UX_FLOW_DEF_VALID(
     ux_approval_tx_5_step,

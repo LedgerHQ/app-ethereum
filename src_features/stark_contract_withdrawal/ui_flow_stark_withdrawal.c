@@ -7,11 +7,11 @@ void prepare_register_4();
 
 void prepare_withdraw_3() {  
     uint8_t address[41];
-    getEthAddressStringFromBinary(tmpContent.txContent.destination, address, &sha3_ctx, chainConfig);
-    strings.common.fullAddress[0] = '0';
-    strings.common.fullAddress[1] = 'x';
-    os_memmove((unsigned char *)strings.common.fullAddress+2, address, 40);
-    strings.common.fullAddress[42] = '\0';
+    getEthAddressStringFromBinary(tmpContent.txContent.destination, address, &global_sha3, chainConfig);
+    strings.txSummary.fullAddress[0] = '0';
+    strings.txSummary.fullAddress[1] = 'x';
+    os_memmove((unsigned char *)strings.txSummary.fullAddress+2, address, 40);
+    strings.txSummary.fullAddress[42] = '\0';
 }
 
 void prepare_withdraw_5() {  
@@ -21,7 +21,7 @@ void prepare_withdraw_5() {
     tokenDefinition_t *token = &tmpCtx.transactionContext.tokens[dataContext.tokenContext.quantumIndex];
     ticker = (char*)token->ticker;
   }
-  strcpy(strings.common.fullAmount, ticker);
+  strcpy(strings.txSummary.fullAmount, ticker);
 }
 
 UX_FLOW_DEF_NOCB(ux_approval_starkware_withdraw_1_step,
@@ -46,7 +46,7 @@ UX_STEP_NOCB_INIT(
     prepare_withdraw_3(),
     {
       .title = "Contract Name",
-      .text = strings.common.fullAddress,
+      .text = strings.txSummary.fullAddress,
     });
 
 UX_STEP_NOCB_INIT(
@@ -55,7 +55,7 @@ UX_STEP_NOCB_INIT(
     prepare_register_4(),
     {
       .title = "To Eth Address",
-      .text = strings.common.fullAddress
+      .text = strings.txSummary.fullAddress
     });
 
 UX_STEP_NOCB_INIT(
@@ -64,7 +64,7 @@ UX_STEP_NOCB_INIT(
     prepare_withdraw_5(),
     {
       .title = "Token Symbol",
-      .text = strings.common.fullAmount
+      .text = strings.txSummary.fullAmount
     });
 
 
@@ -73,7 +73,7 @@ UX_FLOW_DEF_NOCB(
     bnnn_paging,
     {
       .title = "Max Fees",
-      .text = strings.common.maxFee,
+      .text = strings.txSummary.maxFee,
     });
 
 UX_FLOW_DEF_VALID(

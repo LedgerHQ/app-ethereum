@@ -40,7 +40,7 @@ void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t da
   os_memset(&privateKey, 0, sizeof(privateKey));
   os_memset(privateKeyData, 0, sizeof(privateKeyData));
   io_seproxyhal_io_heartbeat();
-  getEthAddressStringFromKey(&tmpCtx.publicKeyContext.publicKey, tmpCtx.publicKeyContext.address, &sha3_ctx, chainConfig);
+  getEthAddressStringFromKey(&tmpCtx.publicKeyContext.publicKey, tmpCtx.publicKeyContext.address, &global_sha3, chainConfig);
 #ifndef NO_CONSENT
   if (p1 == P1_NON_CONFIRM)
 #endif // NO_CONSENT
@@ -62,10 +62,10 @@ void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t da
 
     // prepare for a UI based reply
 #if defined(TARGET_BLUE)
-    snprintf(strings.common.fullAddress, sizeof(strings.common.fullAddress), "0x%.*s", 40, tmpCtx.publicKeyContext.address);
+    snprintf(strings.txSummary.fullAddress, sizeof(strings.txSummary.fullAddress), "0x%.*s", 40, tmpCtx.publicKeyContext.address);
     UX_DISPLAY(ui_address_blue, ui_address_blue_prepro);
 #else
-    snprintf(strings.common.fullAddress, sizeof(strings.common.fullAddress), "0x%.*s", 40, tmpCtx.publicKeyContext.address);
+    snprintf(strings.txSummary.fullAddress, sizeof(strings.txSummary.fullAddress), "0x%.*s", 40, tmpCtx.publicKeyContext.address);
     ux_flow_init(0, ux_display_public_flow, NULL);
 #endif // #if TARGET_ID
 

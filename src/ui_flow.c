@@ -55,7 +55,7 @@ UX_FLOW_DEF_VALID(
     switch_settings_contract_data(),
     {
       .title = "Contract data",
-      .text = strings.common.fullAddress,
+      .text = strings.txSummary.fullAddress,
     });
 
 UX_FLOW_DEF_VALID(
@@ -64,7 +64,7 @@ UX_FLOW_DEF_VALID(
     switch_settings_display_data(),
     {
       .title = "Debug data",
-      .text = strings.common.fullAddress + 20
+      .text = strings.txSummary.fullAddress + 20
     });
 
 #else
@@ -77,7 +77,7 @@ UX_FLOW_DEF_VALID(
       "Contract data",
       "Allow contract data",
       "in transactions",
-      strings.common.fullAddress,
+      strings.txSummary.fullAddress,
     });
 
 UX_FLOW_DEF_VALID(
@@ -88,7 +88,7 @@ UX_FLOW_DEF_VALID(
       "Debug data",
       "Display contract data",
       "details",
-      strings.common.fullAddress + 20
+      strings.txSummary.fullAddress + 20
     });
 
 #endif
@@ -110,8 +110,8 @@ const ux_flow_step_t *        const ux_settings_flow [] = {
 };
 
 void display_settings() {
-  strcpy(strings.common.fullAddress, (N_storage.dataAllowed ? "Allowed" : "NOT Allowed"));
-  strcpy(strings.common.fullAddress + 20, (N_storage.contractDetails ? "Displayed" : "NOT Displayed"));
+  strcpy(strings.txSummary.fullAddress, (N_storage.dataAllowed ? "Allowed" : "NOT Allowed"));
+  strcpy(strings.txSummary.fullAddress + 20, (N_storage.contractDetails ? "Displayed" : "NOT Displayed"));
   ux_flow_init(0, ux_settings_flow, NULL);
 }
 

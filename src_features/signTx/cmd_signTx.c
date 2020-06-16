@@ -40,7 +40,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength
     }
     dataPresent = false;
     contractProvisioned = CONTRACT_NONE;
-    initTx(&txContext, &sha3_ctx, &tmpContent.txContent, customProcessor, NULL);
+    initTx(&txContext, &global_sha3, &tmpContent.txContent, customProcessor, NULL);
   }
   else
   if (p1 != P1_MORE) {

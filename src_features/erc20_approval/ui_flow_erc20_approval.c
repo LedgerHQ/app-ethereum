@@ -22,7 +22,7 @@ UX_FLOW_DEF_NOCB(
     bnnn_paging,
     {
       .title = "Contract Name",
-      .text = strings.common.fullAddress,
+      .text = strings.txSummary.fullAddress,
     });
 
 UX_FLOW_DEF_NOCB(
@@ -30,7 +30,7 @@ UX_FLOW_DEF_NOCB(
     bnnn_paging,
     {
       .title = "Amount",
-      .text = strings.common.fullAmount
+      .text = strings.txSummary.fullAmount
     });
 
 UX_FLOW_DEF_NOCB(
@@ -38,7 +38,7 @@ UX_FLOW_DEF_NOCB(
     bnnn_paging,
     {
       .title = "Max Fees",
-      .text = strings.common.maxFee,
+      .text = strings.txSummary.maxFee,
     });
 
 UX_FLOW_DEF_VALID(

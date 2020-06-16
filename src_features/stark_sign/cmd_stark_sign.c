@@ -68,10 +68,10 @@ void handleStarkwareSignMessage(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uin
   }
   // Prepare the Stark parameters
   io_seproxyhal_io_heartbeat();
-  compute_token_id(&sha3_ctx, dataBuffer, dataBuffer + 20, dataContext.starkContext.w1);
+  compute_token_id(&global_sha3, dataBuffer, dataBuffer + 20, dataContext.starkContext.w1);
   if (p1 == P1_STARK_ORDER) {
     io_seproxyhal_io_heartbeat();
-    compute_token_id(&sha3_ctx, dataBuffer + 20 + 32, dataBuffer + 20 + 32 + 20, dataContext.starkContext.w2);
+    compute_token_id(&global_sha3, dataBuffer + 20 + 32, dataBuffer + 20 + 32 + 20, dataContext.starkContext.w2);
     offset = 20 + 32 + 20 + 32;
   }
   else {
@@ -102,12 +102,12 @@ void handleStarkwareSignMessage(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uin
   if (p1 == P1_STARK_ORDER) {
     io_seproxyhal_io_heartbeat();
     // amount to sell
-    stark_get_amount_string(dataBuffer, dataBuffer + 20, dataBuffer + 20 + 32 + 20 + 32 + 4 + 4, (char*)(dataBuffer + TMP_OFFSET), strings.common.fullAmount);
+    stark_get_amount_string(dataBuffer, dataBuffer + 20, dataBuffer + 20 + 32 + 20 + 32 + 4 + 4, (char*)(dataBuffer + TMP_OFFSET), strings.txSummary.fullAmount);
     io_seproxyhal_io_heartbeat();
     // amount to buy
-    stark_get_amount_string(dataBuffer + 20 + 32, dataBuffer + 20 + 32 + 20, dataBuffer + 20 + 32 + 20 + 32 + 4 + 4 + 8, (char*)(dataBuffer + TMP_OFFSET), strings.common.maxFee);
+    stark_get_amount_string(dataBuffer + 20 + 32, dataBuffer + 20 + 32 + 20, dataBuffer + 20 + 32 + 20 + 32 + 4 + 4 + 8, (char*)(dataBuffer + TMP_OFFSET), strings.txSummary.maxFee);
     // src vault ID
-    snprintf(strings.common.fullAddress, sizeof(strings.common.fullAddress), "%d", U4BE(dataBuffer, 20 + 32 + 20 + 32));
+    snprintf(strings.txSummary.fullAddress, sizeof(strings.txSummary.fullAddress), "%d", U4BE(dataBuffer, 20 + 32 + 20 + 32));
   }
   else {
     cx_ecfp_public_key_t publicKey;

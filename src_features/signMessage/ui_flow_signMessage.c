@@ -14,7 +14,7 @@ UX_FLOW_DEF_NOCB(
     bnnn_paging,
     {
       .title = "Message hash",
-      .text = strings.common.fullAddress,
+      .text = strings.txSummary.fullAddress,
     });
 UX_FLOW_DEF_VALID(
     ux_sign_flow_3_step,

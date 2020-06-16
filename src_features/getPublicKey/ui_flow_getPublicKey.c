@@ -16,7 +16,7 @@ UX_FLOW_DEF_NOCB(
     bnnn_paging,
     {
       .title = "Address",
-      .text = strings.common.fullAddress,
+      .text = strings.txSummary.fullAddress,
     });
 UX_FLOW_DEF_VALID(
     ux_display_public_flow_3_step,

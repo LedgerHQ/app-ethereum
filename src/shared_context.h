@@ -125,27 +125,20 @@ typedef enum {
 #endif
 } contract_call_t;
 
-typedef struct strData_t {
+typedef struct txSummary_t {
     char fullAddress[43];
     char fullAmount[50];
     char maxFee[50];
-} strData_t;
+} txSummary_t;
 
 typedef struct strDataTmp_t {
     char tmp[100];
     char tmp2[40];
 } strDataTmp_t;
 
-typedef struct swap_data_s {
-    char destination_address[43];
-    unsigned char amount[50];
-    unsigned char fees[50];
-} swap_data_t;
-
 typedef union {
-    strData_t common;
+    txSummary_t txSummary;
     strDataTmp_t tmp;
-    swap_data_t swap_data;
 } strings_t;
 
 extern chain_config_t *chainConfig;
@@ -155,7 +148,7 @@ extern txContext_t txContext;
 extern tmpContent_t tmpContent;
 extern dataContext_t dataContext;
 extern strings_t strings;
-extern cx_sha3_t sha3_ctx;
+extern cx_sha3_t global_sha3;
 extern const internalStorage_t N_storage_real;
 
 #ifdef TARGET_BLUE

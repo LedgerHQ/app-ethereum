@@ -31,21 +31,21 @@ UX_FLOW_DEF_NOCB(ux_stark_limit_order_4_step,
     bnnn_paging,
     {
       .title = "Sell",
-      .text = strings.common.fullAmount
+      .text = strings.txSummary.fullAmount
     });
 
 UX_FLOW_DEF_NOCB(ux_stark_limit_order_5_step,
     bnnn_paging,
     {
       .title = "Buy",
-      .text = strings.common.maxFee
+      .text = strings.txSummary.maxFee
     });
 
 UX_FLOW_DEF_NOCB(ux_stark_limit_order_6_step,
     bnnn_paging,
     {
       .title = "Token Accont",
-      .text = strings.common.fullAddress
+      .text = strings.txSummary.fullAddress
     });
 
 UX_FLOW_DEF_VALID(

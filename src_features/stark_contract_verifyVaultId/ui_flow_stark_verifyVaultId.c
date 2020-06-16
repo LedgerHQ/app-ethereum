@@ -5,29 +5,29 @@
 
 void prepare_verify_vault_id_2() {
   if (contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_CANCEL) {
-    strcpy(strings.common.fullAddress, "Cancel Deposit");
+    strcpy(strings.txSummary.fullAddress, "Cancel Deposit");
   }
   else
   if (contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_RECLAIM) {
-    strcpy(strings.common.fullAddress, "Reclaim Deposit");
+    strcpy(strings.txSummary.fullAddress, "Reclaim Deposit");
   }
   else
   if (contractProvisioned == CONTRACT_STARKWARE_FULL_WITHDRAWAL) {
-    strcpy(strings.common.fullAddress, "Full Withdrawal");
+    strcpy(strings.txSummary.fullAddress, "Full Withdrawal");
   }  
   else
   if (contractProvisioned == CONTRACT_STARKWARE_FREEZE) {
-    strcpy(strings.common.fullAddress, "Freeze");
+    strcpy(strings.txSummary.fullAddress, "Freeze");
   }    
 }
 
 void prepare_verify_vault_id_3() {
     uint8_t address[41];
-    getEthAddressStringFromBinary(tmpContent.txContent.destination, address, &sha3_ctx, chainConfig);
-    strings.common.fullAddress[0] = '0';
-    strings.common.fullAddress[1] = 'x';
-    os_memmove((unsigned char *)strings.common.fullAddress+2, address, 40);
-    strings.common.fullAddress[42] = '\0';
+    getEthAddressStringFromBinary(tmpContent.txContent.destination, address, &global_sha3, chainConfig);
+    strings.txSummary.fullAddress[0] = '0';
+    strings.txSummary.fullAddress[1] = 'x';
+    os_memmove((unsigned char *)strings.txSummary.fullAddress+2, address, 40);
+    strings.txSummary.fullAddress[42] = '\0';
 }
 
 void prepare_verify_vault_id_4() {
@@ -35,7 +35,7 @@ void prepare_verify_vault_id_4() {
   if ((contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_CANCEL) || (contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_RECLAIM)) {
     offset = 32;
   }
-  snprintf(strings.common.fullAddress, 10, "%d", U4BE(dataContext.tokenContext.data, 4 + offset + 32 - 4));
+  snprintf(strings.txSummary.fullAddress, 10, "%d", U4BE(dataContext.tokenContext.data, 4 + offset + 32 - 4));
 }
 
 UX_FLOW_DEF_NOCB(ux_approval_starkware_verify_vault_id_1_step,
@@ -51,7 +51,7 @@ UX_STEP_NOCB_INIT(
     bnnn_paging,
     prepare_verify_vault_id_2(),
     {
-      .title = strings.common.fullAddress,
+      .title = strings.txSummary.fullAddress,
       .text = ""
     });
 
@@ -61,7 +61,7 @@ UX_STEP_NOCB_INIT(
     prepare_verify_vault_id_3(),
     {
       .title = "Contract Name",
-      .text = strings.common.fullAddress,
+      .text = strings.txSummary.fullAddress,
     });
 
 UX_STEP_NOCB_INIT(
@@ -70,7 +70,7 @@ UX_STEP_NOCB_INIT(
     prepare_verify_vault_id_4(),
     {
       .title = "Token Account",
-      .text = strings.common.fullAddress
+      .text = strings.txSummary.fullAddress
     });
 
 
@@ -79,7 +79,7 @@ UX_FLOW_DEF_NOCB(
     bnnn_paging,
     {
       .title = "Max Fees",
-      .text = strings.common.maxFee,
+      .text = strings.txSummary.maxFee,
     });
 
 UX_FLOW_DEF_VALID(

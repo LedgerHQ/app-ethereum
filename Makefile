@@ -19,8 +19,6 @@ ifeq ($(BOLOS_SDK),)
 $(error Environment variable BOLOS_SDK is not set)
 endif
 
-SCRIPT_LD:=$(CURDIR)/script.ld
-
 include $(BOLOS_SDK)/Makefile.defines
 
 DEFINES_LIB = USE_LIB_ETHEREUM

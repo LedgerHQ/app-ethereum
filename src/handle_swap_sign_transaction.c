@@ -7,17 +7,17 @@
 void copy_transaction_parameters(create_transaction_parameters_t* sign_transaction_params) {
     // first copy parameters to stack, and then to global data.
     // We need this "trick" as the input data position can overlap with app-ethereum globals
-    swap_data_t stack_data;
+    txSummary_t stack_data;
     memset(&stack_data, 0, sizeof(stack_data));
-    strncpy(stack_data.destination_address, sign_transaction_params->destination_address, sizeof(stack_data.destination_address));
-    if ((stack_data.destination_address[sizeof(stack_data.destination_address) - 1] != '\0') || 
+    strncpy(stack_data.fullAddress, sign_transaction_params->destination_address, sizeof(stack_data.fullAddress));
+    if ((stack_data.fullAddress[sizeof(stack_data.fullAddress) - 1] != '\0') || 
         (sign_transaction_params->amount_length > 8) ||
         (sign_transaction_params->fee_amount_length > 8)) {
         os_lib_end();
     }
-    memcpy(stack_data.amount, sign_transaction_params->amount, sign_transaction_params->amount_length);
-    memcpy(stack_data.fees, sign_transaction_params->fee_amount, sign_transaction_params->fee_amount_length);
-    memcpy(&strings.swap_data, &stack_data, sizeof(stack_data));
+    memcpy(stack_data.fullAmount, sign_transaction_params->amount, sign_transaction_params->amount_length);
+    memcpy(stack_data.maxFee, sign_transaction_params->fee_amount, sign_transaction_params->fee_amount_length);
+    memcpy(&strings.txSummary, &stack_data, sizeof(stack_data));
 }
 
 void handle_swap_sign_transaction(create_transaction_parameters_t* sign_transaction_params, chain_config_t *config) {

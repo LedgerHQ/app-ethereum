@@ -5,11 +5,11 @@
 
 void prepare_register_3() {  
     uint8_t address[41];
-    getEthAddressStringFromBinary(tmpContent.txContent.destination, address, &sha3_ctx, chainConfig);
-    strings.common.fullAddress[0] = '0';
-    strings.common.fullAddress[1] = 'x';
-    os_memmove((unsigned char *)strings.common.fullAddress+2, address, 40);
-    strings.common.fullAddress[42] = '\0';
+    getEthAddressStringFromBinary(tmpContent.txContent.destination, address, &global_sha3, chainConfig);
+    strings.txSummary.fullAddress[0] = '0';
+    strings.txSummary.fullAddress[1] = 'x';
+    os_memmove((unsigned char *)strings.txSummary.fullAddress+2, address, 40);
+    strings.txSummary.fullAddress[42] = '\0';
 }
 
 void prepare_register_4() {  
@@ -26,11 +26,11 @@ void prepare_register_4() {
   os_memset(&privateKey, 0, sizeof(privateKey));
   os_memset(privateKeyData, 0, sizeof(privateKeyData));
   io_seproxyhal_io_heartbeat();
-  getEthAddressStringFromKey(&publicKey, address, &sha3_ctx, chainConfig);
-  strings.common.fullAddress[0] = '0';
-  strings.common.fullAddress[1] = 'x';
-  os_memmove((unsigned char *)strings.common.fullAddress+2, address, 40);
-  strings.common.fullAddress[42] = '\0';
+  getEthAddressStringFromKey(&publicKey, address, &global_sha3, chainConfig);
+  strings.txSummary.fullAddress[0] = '0';
+  strings.txSummary.fullAddress[1] = 'x';
+  os_memmove((unsigned char *)strings.txSummary.fullAddress+2, address, 40);
+  strings.txSummary.fullAddress[42] = '\0';
 }
 
 void prepare_register_5() {  
@@ -59,7 +59,7 @@ UX_STEP_NOCB_INIT(
     prepare_register_3(),
     {
       .title = "Contract Name",
-      .text = strings.common.fullAddress,
+      .text = strings.txSummary.fullAddress,
     });
 
 UX_STEP_NOCB_INIT(
@@ -68,7 +68,7 @@ UX_STEP_NOCB_INIT(
     prepare_register_4(),
     {
       .title = "From ETH address",
-      .text = strings.common.fullAddress
+      .text = strings.txSummary.fullAddress
     });
 
 UX_STEP_NOCB_INIT(
@@ -86,7 +86,7 @@ UX_FLOW_DEF_NOCB(
     bnnn_paging,
     {
       .title = "Max Fees",
-      .text = strings.common.maxFee,
+      .text = strings.txSummary.maxFee,
     });
 
 UX_FLOW_DEF_VALID(

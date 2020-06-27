@@ -201,8 +201,8 @@ void getEthAddressStringFromBinary(uint8_t *address, uint8_t *out,
             break;
     }
     if (eip1191) {
-        snprintf(tmp, sizeof(tmp), "%d0x", chainConfig->chainId);
-        offset = strlen(tmp);
+        snprintf((char*)tmp, sizeof(tmp), "%d0x", chainConfig->chainId);
+        offset = strlen((char*)tmp);
     }
     for (i = 0; i < 20; i++) {
         uint8_t digit = address[i];

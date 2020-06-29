@@ -8,19 +8,26 @@
 
 
 void handle_get_printable_amount( get_printable_amount_parameters_t* params, chain_config_t *config) {
+    uint8_t decimals;
+    char ticker[MAX_TICKER_LEN];
     os_memset(params->printable_amount, 0, sizeof(params->printable_amount));
     if (params->amount_length > 32) {
         PRINTF("Amount is too big, 32 bytes max but buffer has %u bytes", params->amount_length);
-        return;
+        os_lib_end();
     }
-    
-    unsigned char coin_name_length = strlen(config->coinName);
-    os_memmove(params->printable_amount, config->coinName, coin_name_length);
+    if(!parse_swap_config(params->coin_configuration, params->coin_configuration_length, ticker, &decimals)){
+        PRINTF("Error while parsing config\n");
+        os_lib_end();
+    }
 
-    uint256_t uint256;
-    char amount_ascii[30];
-    convertUint256BE(params->amount, params->amount_length, &uint256);
-    tostring256(&uint256, 10, amount_ascii, sizeof(amount_ascii));
-    uint8_t amount_ascii_length = strnlen(amount_ascii, sizeof(amount_ascii));
-    adjustDecimals(amount_ascii, amount_ascii_length, params->printable_amount + coin_name_length, sizeof(params->printable_amount) - coin_name_length, WEI_TO_ETHER);
+    // If the amount is a fee, its value is nominated in ETH even if we're doing an ERC20 swap
+    if(params->is_fee){
+        uint8_t ticker_len = strnlen(config->coinName, sizeof(config->coinName));
+        memcpy(ticker, config->coinName, ticker_len);
+        ticker[ticker_len] = ' ';
+        ticker[ticker_len+1] = '\0';
+        decimals = WEI_TO_ETHER;
+    }
+
+    amountToString(params->amount, params->amount_length, decimals, ticker, params->printable_amount, sizeof(params->printable_amount));
 }

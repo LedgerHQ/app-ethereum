@@ -256,7 +256,7 @@ void compareOrCopy(char* preapproved_string, char* parsed_string, bool silent_mo
     }
   }
   else{
-    os_memmove(preapproved_string, parsed_string, strlen(parsed_string));
+    strcpy(preapproved_string, parsed_string);
   }
 }
 
@@ -360,28 +360,17 @@ void finalizeParsing(bool direct) {
     (contractProvisioned == CONTRACT_ALLOWANCE)) {
     // Add amount in ethers or tokens
     if ((contractProvisioned == CONTRACT_ALLOWANCE) && ismaxint(tmpContent.txContent.value.value, 32)) {
-      strcpy((char*)G_io_apdu_buffer, "Unlimited");
+      i = 0;
+      tickerOffset = 0;
+      while (ticker[tickerOffset]) {
+        displayBuffer[tickerOffset] = ticker[tickerOffset];
+        tickerOffset++;
+      }
+      strcpy(displayBuffer + tickerOffset, "Unlimited");
     }
     else {
-      convertUint256BE(tmpContent.txContent.value.value, tmpContent.txContent.value.length, &uint256);
-      tostring256(&uint256, 10, (char *)(G_io_apdu_buffer + 100), 100);
-      i = 0;
-      while (G_io_apdu_buffer[100 + i]) {
-        i++;
-      }
-      adjustDecimals((char *)(G_io_apdu_buffer + 100), i, (char *)G_io_apdu_buffer, 100, decimals);
+      amountToString(tmpContent.txContent.value.value, tmpContent.txContent.value.length, decimals, (char*)ticker, displayBuffer, sizeof(displayBuffer));
     }
-    i = 0;
-    tickerOffset = 0;
-    while (ticker[tickerOffset]) {
-      displayBuffer[tickerOffset] = ticker[tickerOffset];
-      tickerOffset++;
-    }
-    while (G_io_apdu_buffer[i]) {
-      displayBuffer[tickerOffset + i] = G_io_apdu_buffer[i];
-      i++;
-    }
-    displayBuffer[tickerOffset + i] = '\0';
     compareOrCopy(strings.txSummary.fullAmount, displayBuffer, called_from_swap);
   }
   // Compute maximum fee
@@ -396,11 +385,11 @@ void finalizeParsing(bool direct) {
   adjustDecimals((char *)(G_io_apdu_buffer + 100), i, (char *)G_io_apdu_buffer, 100, WEI_TO_ETHER);
   i = 0;
   tickerOffset=0;
+  memset(displayBuffer, 0, sizeof(displayBuffer));
   while (feeTicker[tickerOffset]) {
       displayBuffer[tickerOffset] = feeTicker[tickerOffset];
       tickerOffset++;
   }
-  tickerOffset++;
   while (G_io_apdu_buffer[i]) {
     displayBuffer[tickerOffset + i] = G_io_apdu_buffer[i];
     i++;

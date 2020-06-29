@@ -1,6 +1,8 @@
 #ifndef SWAP_LIB_CALLS
 #define SWAP_LIB_CALLS
 
+#include "stdbool.h"
+
 #define RUN_APPLICATION 1
 
 #define SIGN_TRANSACTION 2
@@ -31,6 +33,7 @@ typedef struct get_printable_amount_parameters_s {
     unsigned char coin_configuration_length;
     unsigned char* amount; 
     unsigned char amount_length;
+    bool is_fee;
     // OUT
     char printable_amount[30];
 } get_printable_amount_parameters_t;

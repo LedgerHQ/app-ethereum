@@ -2,9 +2,10 @@
 #include "usbd_core.h"
 #include "ux.h"
 #include "shared_context.h"
+#include "utils.h"
 
 
-void copy_transaction_parameters(create_transaction_parameters_t* sign_transaction_params) {
+void copy_transaction_parameters(create_transaction_parameters_t* sign_transaction_params, chain_config_t *config) {
     // first copy parameters to stack, and then to global data.
     // We need this "trick" as the input data position can overlap with app-ethereum globals
     txSummary_t stack_data;
@@ -15,13 +16,25 @@ void copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
         (sign_transaction_params->fee_amount_length > 8)) {
         os_lib_end();
     }
-    memcpy(stack_data.fullAmount, sign_transaction_params->amount, sign_transaction_params->amount_length);
-    memcpy(stack_data.maxFee, sign_transaction_params->fee_amount, sign_transaction_params->fee_amount_length);
+
+    uint8_t decimals;
+    char ticker[MAX_TICKER_LEN];
+    if(!parse_swap_config(sign_transaction_params->coin_configuration, sign_transaction_params->coin_configuration_length, ticker, &decimals)){
+        PRINTF("Error while parsing config\n");
+        os_lib_end();
+    }
+    amountToString(sign_transaction_params->amount, sign_transaction_params->amount_length, decimals, ticker, stack_data.fullAmount, sizeof(stack_data.fullAmount));
+
+    // If the amount is a fee, its value is nominated in ETH even if we're doing an ERC20 swap
+    strcpy(ticker, config->coinName);
+    decimals = WEI_TO_ETHER;
+    amountToString(sign_transaction_params->fee_amount, sign_transaction_params->fee_amount_length, decimals, ticker, stack_data.maxFee, sizeof(stack_data.maxFee));
+
     memcpy(&strings.txSummary, &stack_data, sizeof(stack_data));
 }
 
 void handle_swap_sign_transaction(create_transaction_parameters_t* sign_transaction_params, chain_config_t *config) {
-    copy_transaction_parameters(sign_transaction_params);
+    copy_transaction_parameters(sign_transaction_params, config);
     chainConfig = config;
     reset_app_context();
     called_from_swap = true;

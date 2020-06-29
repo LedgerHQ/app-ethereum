@@ -88,7 +88,7 @@ static const char const CONTRACT_ADDRESS[] = "New contract";
 chain_config_t *chainConfig;
 
 void reset_app_context() {
-  PRINTF("!!RESET_APP_CONTEXT\n");
+  //PRINTF("!!RESET_APP_CONTEXT\n");
   appState = APP_STATE_IDLE;
   os_memset(tmpCtx.transactionContext.tokenSet, 0, MAX_TOKEN);
   contractProvisioned = CONTRACT_NONE;

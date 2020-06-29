@@ -30,4 +30,8 @@ int local_strchr(char *string, char ch);
 
 uint32_t getV(txContent_t *txContent);
 
+void amountToString(uint8_t* amount, uint8_t amount_len, uint8_t decimals, char* ticker, char* out_buffer, uint8_t out_buffer_size);
+
+bool parse_swap_config(uint8_t* config, uint8_t config_len, char* ticker, uint8_t* decimals);
+
 #endif /* _UTILS_H_ */

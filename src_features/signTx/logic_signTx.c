@@ -17,6 +17,8 @@ static const uint8_t const TOKEN_TRANSFER_ID[] = { 0xa9, 0x05, 0x9c, 0xbb };
 #define ALLOWANCE_DATA_SIZE 4 + 32 + 32
 static const uint8_t const ALLOWANCE_ID[] = { 0x09, 0x5e, 0xa7, 0xb3 };
 
+#define ERR_SILENT_MODE_CHECK_FAILED 0x6001
+
 #ifdef HAVE_STARKWARE
 
 #define STARKWARE_REGISTER_DATA_SIZE 4 + 32
@@ -130,7 +132,7 @@ customStatus_e customProcessor(txContext_t *context) {
             }
             else
             if ((context->currentFieldLength == STARKWARE_ESCAPE_DATA_SIZE) &&
-                (os_memcmp(context->workBuffer, STARKWARE_ESCAPE_ID, 4) == 0) && 
+                (os_memcmp(context->workBuffer, STARKWARE_ESCAPE_ID, 4) == 0) &&
                 quantumSet) {
               contractProvisioned = CONTRACT_STARKWARE_ESCAPE;
             }
@@ -143,11 +145,11 @@ customStatus_e customProcessor(txContext_t *context) {
         }
         // Sanity check
         // Also handle exception that only need to process the beginning of the data
-        if ((contractProvisioned != CONTRACT_NONE) && 
-#ifdef HAVE_STARKWARE          
+        if ((contractProvisioned != CONTRACT_NONE) &&
+#ifdef HAVE_STARKWARE
             (contractProvisioned != CONTRACT_STARKWARE_VERIFY_ESCAPE) &&
             (contractProvisioned != CONTRACT_STARKWARE_REGISTER) &&
-#endif            
+#endif
             (context->currentFieldLength > sizeof(dataContext.tokenContext.data))) {
           PRINTF("Data field overflow - dropping customization\n");
           contractProvisioned = CONTRACT_NONE;
@@ -155,7 +157,7 @@ customStatus_e customProcessor(txContext_t *context) {
         PRINTF("contractProvisioned %d\n", contractProvisioned);
         if (contractProvisioned != CONTRACT_NONE) {
             if (context->currentFieldPos < context->currentFieldLength) {
-                uint32_t copySize = MIN(context->commandLength, 
+                uint32_t copySize = MIN(context->commandLength,
                   context->currentFieldLength - context->currentFieldPos);
                 // Handle the case where we only need to handle the beginning of the data parameter
                 if ((context->currentFieldPos + copySize) < sizeof(dataContext.tokenContext.data)) {
@@ -262,10 +264,21 @@ customStatus_e customProcessor(txContext_t *context) {
     return CUSTOM_NOT_HANDLED;
 }
 
+void compareOrCopy(char* preapproved_string, char* parsed_string, bool silent_mode){
+  if(silent_mode){
+    if(os_memcmp(preapproved_string, parsed_string, strlen(preapproved_string))){
+      THROW(ERR_SILENT_MODE_CHECK_FAILED);
+    }
+  }
+  else{
+    strcpy(preapproved_string, parsed_string);
+  }
+}
+
 void finalizeParsing(bool direct) {
   uint256_t gasPrice, startGas, uint256;
   uint32_t i;
-  uint8_t address[41];
+  char displayBuffer[50];
   uint8_t decimals = WEI_TO_ETHER;
   uint8_t *ticker = (uint8_t *)PIC(chainConfig->coinName);
   uint8_t *feeTicker = (uint8_t *)PIC(chainConfig->coinName);
@@ -288,7 +301,7 @@ void finalizeParsing(bool direct) {
     }
   }
   // Store the hash
-  cx_hash((cx_hash_t *)&sha3, CX_LAST, tmpCtx.transactionContext.hash, 0, tmpCtx.transactionContext.hash, 32);
+  cx_hash((cx_hash_t *)&global_sha3, CX_LAST, tmpCtx.transactionContext.hash, 0, tmpCtx.transactionContext.hash, 32);
 #ifdef HAVE_STARKWARE
   if ((contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_ETH) ||
       (contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_TOKEN) ||
@@ -301,7 +314,7 @@ void finalizeParsing(bool direct) {
       if (dataContext.tokenContext.quantumIndex != MAX_TOKEN) {
         currentToken = &tmpCtx.transactionContext.tokens[dataContext.tokenContext.quantumIndex];
       }
-      compute_token_id(&sha3,
+      compute_token_id(&global_sha3,
         (currentToken != NULL ? currentToken->address : NULL),
         dataContext.tokenContext.quantum, G_io_apdu_buffer + 100);
       if (os_memcmp(dataContext.tokenContext.data + tokenIdOffset, G_io_apdu_buffer + 100, 32) != 0) {
@@ -346,20 +359,10 @@ void finalizeParsing(bool direct) {
     }
   // Add address
   if (tmpContent.txContent.destinationLength != 0) {
-    getEthAddressStringFromBinary(tmpContent.txContent.destination, address, &sha3);
-    /*
-    addressSummary[0] = '0';
-    addressSummary[1] = 'x';
-    os_memmove((unsigned char *)(addressSummary + 2), address, 4);
-    os_memmove((unsigned char *)(addressSummary + 6), "...", 3);
-    os_memmove((unsigned char *)(addressSummary + 9), address + 40 - 4, 4);
-    addressSummary[13] = '\0';
-    */
-
-    strings.common.fullAddress[0] = '0';
-    strings.common.fullAddress[1] = 'x';
-    os_memmove((unsigned char *)strings.common.fullAddress+2, address, 40);
-    strings.common.fullAddress[42] = '\0';
+    displayBuffer[0] = '0';
+    displayBuffer[1] = 'x';
+    getEthAddressStringFromBinary(tmpContent.txContent.destination, (uint8_t*)displayBuffer+2, &global_sha3, chainConfig);
+    compareOrCopy(strings.common.fullAddress, displayBuffer, called_from_swap);
   }
   else
   {
@@ -372,28 +375,18 @@ void finalizeParsing(bool direct) {
     (contractProvisioned == CONTRACT_ALLOWANCE)) {
     // Add amount in ethers or tokens
     if ((contractProvisioned == CONTRACT_ALLOWANCE) && ismaxint(tmpContent.txContent.value.value, 32)) {
-      strcpy((char*)G_io_apdu_buffer, "Unlimited");
+      i = 0;
+      tickerOffset = 0;
+      while (ticker[tickerOffset]) {
+        displayBuffer[tickerOffset] = ticker[tickerOffset];
+        tickerOffset++;
+      }
+      strcpy(displayBuffer + tickerOffset, "Unlimited");
     }
     else {
-      convertUint256BE(tmpContent.txContent.value.value, tmpContent.txContent.value.length, &uint256);
-      tostring256(&uint256, 10, (char *)(G_io_apdu_buffer + 100), 100);
-      i = 0;
-      while (G_io_apdu_buffer[100 + i]) {
-        i++;
-      }
-      adjustDecimals((char *)(G_io_apdu_buffer + 100), i, (char *)G_io_apdu_buffer, 100, decimals);
+      amountToString(tmpContent.txContent.value.value, tmpContent.txContent.value.length, decimals, (char*)ticker, displayBuffer, sizeof(displayBuffer));
     }
-    i = 0;
-    tickerOffset = 0;
-    while (ticker[tickerOffset]) {
-      strings.common.fullAmount[tickerOffset] = ticker[tickerOffset];
-      tickerOffset++;
-    }
-    while (G_io_apdu_buffer[i]) {
-      strings.common.fullAmount[tickerOffset + i] = G_io_apdu_buffer[i];
-      i++;
-    }
-    strings.common.fullAmount[tickerOffset + i] = '\0';
+    compareOrCopy(strings.common.fullAmount, displayBuffer, called_from_swap);
   }
   // Compute maximum fee
   PRINTF("Max fee\n");
@@ -410,75 +403,86 @@ void finalizeParsing(bool direct) {
   adjustDecimals((char *)(G_io_apdu_buffer + 100), i, (char *)G_io_apdu_buffer, 100, WEI_TO_ETHER);
   i = 0;
   tickerOffset=0;
+  memset(displayBuffer, 0, sizeof(displayBuffer));
   while (feeTicker[tickerOffset]) {
-      strings.common.maxFee[tickerOffset] = feeTicker[tickerOffset];
+      displayBuffer[tickerOffset] = feeTicker[tickerOffset];
       tickerOffset++;
   }
-  tickerOffset++;
   while (G_io_apdu_buffer[i]) {
-    strings.common.maxFee[tickerOffset + i] = G_io_apdu_buffer[i];
+    displayBuffer[tickerOffset + i] = G_io_apdu_buffer[i];
     i++;
   }
-  strings.common.maxFee[tickerOffset + i] = '\0';
+  displayBuffer[tickerOffset + i] = '\0';
+  compareOrCopy(strings.common.maxFee, displayBuffer, called_from_swap);
+
+  bool no_consent = false;
+
+  no_consent = called_from_swap;
 
 #ifdef NO_CONSENT
-  io_seproxyhal_touch_tx_ok(NULL);
-#else // NO_CONSENT
+  no_consent = true;
+#endif // NO_CONSENT
+
+  if(no_consent){
+    io_seproxyhal_touch_tx_ok(NULL);
+  }
+  else{
 #if defined(TARGET_BLUE)
-  ui_approval_transaction_blue_init();
+    ui_approval_transaction_blue_init();
 #else
 
 #ifdef HAVE_STARKWARE
 
-  if (contractProvisioned == CONTRACT_STARKWARE_REGISTER) {
-    ux_flow_init(0, ux_approval_starkware_register_flow, NULL);
-    return;
-  }
-  else
-  if (contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_TOKEN) {
-    ux_flow_init(0, ux_approval_starkware_deposit_flow, NULL);
-    return;
-  }
-  else
-  if (contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_ETH) {
-    ux_flow_init(0, ux_approval_starkware_deposit_flow, NULL);
-    return;
-  }
-  else
-  if ((contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_CANCEL) ||
-      (contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_RECLAIM) ||
-      (contractProvisioned == CONTRACT_STARKWARE_FULL_WITHDRAWAL) ||
-      (contractProvisioned == CONTRACT_STARKWARE_FREEZE)) {
-    ux_flow_init(0, ux_approval_starkware_verify_vault_id_flow, NULL);
-    return;
-  }  
-  else
-  if (contractProvisioned == CONTRACT_STARKWARE_WITHDRAW) {
-    ux_flow_init(0, ux_approval_starkware_withdraw_flow, NULL);
-    return;
-  }
-  else
-  if (contractProvisioned == CONTRACT_STARKWARE_ESCAPE) {
-    ux_flow_init(0, ux_approval_starkware_escape_flow, NULL);
-    return;
-  } 
-  else 
-  if (contractProvisioned == CONTRACT_STARKWARE_VERIFY_ESCAPE) {
-    ux_flow_init(0, ux_approval_starkware_verify_escape_flow, NULL);
-    return;
-  } 
+    if (contractProvisioned == CONTRACT_STARKWARE_REGISTER) {
+      ux_flow_init(0, ux_approval_starkware_register_flow, NULL);
+      return;
+    }
+    else
+    if (contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_TOKEN) {
+      ux_flow_init(0, ux_approval_starkware_deposit_flow, NULL);
+      return;
+    }
+    else
+    if (contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_ETH) {
+      ux_flow_init(0, ux_approval_starkware_deposit_flow, NULL);
+      return;
+    }
+    else
+    if ((contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_CANCEL) ||
+        (contractProvisioned == CONTRACT_STARKWARE_DEPOSIT_RECLAIM) ||
+        (contractProvisioned == CONTRACT_STARKWARE_FULL_WITHDRAWAL) ||
+        (contractProvisioned == CONTRACT_STARKWARE_FREEZE)) {
+      ux_flow_init(0, ux_approval_starkware_verify_vault_id_flow, NULL);
+      return;
+    }
+    else
+    if (contractProvisioned == CONTRACT_STARKWARE_WITHDRAW) {
+      ux_flow_init(0, ux_approval_starkware_withdraw_flow, NULL);
+      return;
+    }
+    else
+    if (contractProvisioned == CONTRACT_STARKWARE_ESCAPE) {
+      ux_flow_init(0, ux_approval_starkware_escape_flow, NULL);
+      return;
+    }
+    else
+    if (contractProvisioned == CONTRACT_STARKWARE_VERIFY_ESCAPE) {
+      ux_flow_init(0, ux_approval_starkware_verify_escape_flow, NULL);
+      return;
+    }
 
 #endif
 
-  if (contractProvisioned == CONTRACT_ALLOWANCE) {
-    ux_flow_init(0, ux_approval_allowance_flow, NULL);
-    return;
+    if (contractProvisioned == CONTRACT_ALLOWANCE) {
+      ux_flow_init(0, ux_approval_allowance_flow, NULL);
+      return;
+    }
+
+    ux_flow_init(0,
+      ((dataPresent && !N_storage.contractDetails) ? ux_approval_tx_data_warning_flow : ux_approval_tx_flow),
+      NULL);
+#endif // #if TARGET_ID
   }
 
-  ux_flow_init(0,
-    ((dataPresent && !N_storage.contractDetails) ? ux_approval_tx_data_warning_flow : ux_approval_tx_flow),
-    NULL);
-#endif // #if TARGET_ID
-#endif // NO_CONSENT
 }
 

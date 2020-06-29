@@ -19,7 +19,9 @@
 #include <string.h>
 
 #include "ethUstream.h"
+#include "ethUtils.h"
 #include "uint256.h"
+#include "tokens.h"
 
 static const unsigned char hex_digits[] = {'0', '1', '2', '3', '4', '5', '6', '7',
                                            '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
@@ -75,4 +77,40 @@ uint32_t getV(txContent_t *txContent) {
         THROW(EXCEPTION);
     }
     return v;
+}
+
+void amountToString(uint8_t* amount, uint8_t amount_size, uint8_t decimals, char* ticker, char* out_buffer, uint8_t out_buffer_size){
+    uint256_t amount_256;
+    char tmp_buffer[100];
+    convertUint256BE(amount, amount_size, &amount_256);
+    tostring256(&amount_256, 10, tmp_buffer, 100);
+
+    uint8_t amount_len = strnlen(tmp_buffer, sizeof(tmp_buffer));
+    uint8_t ticker_len = strnlen(ticker, MAX_TICKER_LEN);
+
+    memcpy(out_buffer, ticker, MIN(out_buffer_size, ticker_len));
+
+    adjustDecimals(tmp_buffer, amount_len, out_buffer + ticker_len, out_buffer_size - ticker_len -1, decimals);
+    out_buffer[out_buffer_size-1] = '\0';
+}
+
+bool parse_swap_config(uint8_t* config, uint8_t config_len, char* ticker, uint8_t* decimals){
+    uint8_t ticker_len, offset = 0;
+    if (config_len == 0){
+        return false;
+    }
+    ticker_len = config[offset++];
+    if(ticker_len == 0 || ticker_len > MAX_TICKER_LEN - 2 || config_len - offset < ticker_len){
+        return false;
+    }
+    memcpy(ticker, config+offset, ticker_len);
+    offset += ticker_len;
+    ticker[ticker_len] = ' ';
+    ticker[ticker_len+1] = '\0';
+
+    if(config_len - offset < 1){
+        return false;
+    }
+    *decimals = config[offset];
+    return true;
 }

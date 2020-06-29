@@ -32,8 +32,6 @@
 #include "ethUtils.h"
 #include "chainConfig.h"
 
-extern chain_config_t *chainConfig;
-
 bool rlpCanDecode(uint8_t *buffer, uint32_t bufferLength, bool *valid) {
     if (*buffer <= 0x7f) {
     } else if (*buffer <= 0xb7) {
@@ -156,15 +154,16 @@ char convertDigit(uint8_t *address, uint8_t index, uint8_t *hash) {
 }
 
 void getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
-                                cx_sha3_t *sha3Context) {
+                                cx_sha3_t *sha3Context, chain_config_t* chain_config) {
     uint8_t hashAddress[32];
     cx_keccak_init(sha3Context, 256);
     cx_hash((cx_hash_t*)sha3Context, CX_LAST, publicKey->W + 1, 64, hashAddress, 32);
-    getEthAddressStringFromBinary(hashAddress + 12, out, sha3Context);
+    getEthAddressStringFromBinary(hashAddress + 12, out, sha3Context, chain_config);
 }
 
 void getEthAddressStringFromBinary(uint8_t *address, uint8_t *out,
-                                   cx_sha3_t *sha3Context) {
+                                   cx_sha3_t *sha3Context, chain_config_t* chain_config) {
+    UNUSED(chain_config);
     uint8_t hashChecksum[32];
     uint8_t i;
     cx_keccak_init(sha3Context, 256);
@@ -180,37 +179,43 @@ void getEthAddressStringFromBinary(uint8_t *address, uint8_t *out,
 static const uint8_t const HEXDIGITS[] = "0123456789abcdef";
 
 void getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
-                                cx_sha3_t *sha3Context) {
+                                cx_sha3_t *sha3Context, chain_config_t* chain_config) {
     uint8_t hashAddress[32];
     cx_keccak_init(sha3Context, 256);
     cx_hash((cx_hash_t*)sha3Context, CX_LAST, publicKey->W + 1, 64, hashAddress, 32);
-    getEthAddressStringFromBinary(hashAddress + 12, out, sha3Context);
+    getEthAddressStringFromBinary(hashAddress + 12, out, sha3Context, chain_config);
 }
 
 void getEthAddressStringFromBinary(uint8_t *address, uint8_t *out,
-                                   cx_sha3_t *sha3Context) {
-    uint8_t hashChecksum[32];
-    uint8_t tmp[100];
+                                   cx_sha3_t *sha3Context, chain_config_t* chain_config) {
+
+    // save some precious stack space
+    union locals_union
+    {
+        uint8_t hashChecksum[32];
+        uint8_t tmp[51];
+    } locals_union;
+
     uint8_t i;
     bool eip1191 = false;
     uint32_t offset = 0;
-    switch(chainConfig->chainId) {
+    switch(chain_config->chainId) {
         case 30:
         case 31:
             eip1191 = true;
             break;
     }
     if (eip1191) {
-        snprintf((char*)tmp, sizeof(tmp), "%d0x", chainConfig->chainId);
-        offset = strlen((char*)tmp);
+        snprintf((char*)locals_union.tmp, sizeof(locals_union.tmp), "%d0x", chain_config->chainId);
+        offset = strlen((char*)locals_union.tmp);
     }
     for (i = 0; i < 20; i++) {
         uint8_t digit = address[i];
-        tmp[offset + 2 * i] = HEXDIGITS[(digit >> 4) & 0x0f];
-        tmp[offset + 2 * i + 1] = HEXDIGITS[digit & 0x0f];
+        locals_union.tmp[offset + 2 * i] = HEXDIGITS[(digit >> 4) & 0x0f];
+        locals_union.tmp[offset + 2 * i + 1] = HEXDIGITS[digit & 0x0f];
     }
     cx_keccak_init(sha3Context, 256);
-    cx_hash((cx_hash_t*)sha3Context, CX_LAST, tmp, offset + 40, hashChecksum, 32);
+    cx_hash((cx_hash_t*)sha3Context, CX_LAST, locals_union.tmp, offset + 40, locals_union.hashChecksum, 32);
     for (i = 0; i < 40; i++) {
         uint8_t digit = address[i / 2];
         if ((i % 2) == 0) {
@@ -222,7 +227,7 @@ void getEthAddressStringFromBinary(uint8_t *address, uint8_t *out,
             out[i] = HEXDIGITS[digit];
         }
         else {
-            int v = (hashChecksum[i / 2] >> (4 * (1 - i % 2))) & 0x0f;
+            int v = (locals_union.hashChecksum[i / 2] >> (4 * (1 - i % 2))) & 0x0f;
             if (v >= 8) {
                 out[i] = HEXDIGITS[digit] - 'a' + 'A';
             }

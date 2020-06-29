@@ -21,7 +21,7 @@
 #include <stdint.h>
 
 #include "cx.h"
-
+#include "chainConfig.h"
 /**
  * @brief Decode an RLP encoded field - see
  * https://github.com/ethereum/wiki/wiki/RLP
@@ -43,14 +43,17 @@ void getEthAddressFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
                                 cx_sha3_t *sha3Context);
 
 void getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out,
-                                cx_sha3_t *sha3Context);
+                                cx_sha3_t *sha3Context, 
+                                chain_config_t* chain_config);
 
 void getEthAddressStringFromBinary(uint8_t *address, uint8_t *out,
-                                   cx_sha3_t *sha3Context);
+                                  cx_sha3_t *sha3Context, 
+                                  chain_config_t* chain_config);
 
 bool adjustDecimals(char *src, uint32_t srcLength, char *target,
                     uint32_t targetLength, uint8_t decimals);
 
+__attribute__((no_instrument_function))
 inline int allzeroes(uint8_t *buf, int n) {
   for (int i = 0; i < n; ++i) {
     if (buf[i]) {
@@ -59,7 +62,7 @@ inline int allzeroes(uint8_t *buf, int n) {
   }
   return 1;
 }
-
+__attribute__((no_instrument_function))
 inline int ismaxint(uint8_t *buf, int n) {
   for (int i = 0; i < n; ++i) {
     if (buf[i] != 0xff) {

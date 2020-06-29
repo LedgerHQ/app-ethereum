@@ -18,6 +18,7 @@
 ifeq ($(BOLOS_SDK),)
 $(error Environment variable BOLOS_SDK is not set)
 endif
+
 include $(BOLOS_SDK)/Makefile.defines
 
 DEFINES_LIB = USE_LIB_ETHEREUM
@@ -245,7 +246,7 @@ DEFINES   += IO_SEPROXYHAL_BUFFER_SIZE_B=72
 endif
 
 # Enabling debug PRINTF
-DEBUG:=0
+DEBUG :=0
 ifneq ($(DEBUG),0)
 DEFINES += HAVE_STACK_OVERFLOW_CHECK
 ifeq ($(TARGET_NAME),TARGET_NANOX)
@@ -283,7 +284,7 @@ endif
 CC       := $(CLANGPATH)clang
 
 #CFLAGS   += -O0
-CFLAGS   += -O3 -Os
+CFLAGS   += -O3 -Os -I/usr/include
 
 AS     := $(GCCPATH)arm-none-eabi-gcc
 

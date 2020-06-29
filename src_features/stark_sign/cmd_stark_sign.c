@@ -68,10 +68,10 @@ void handleStarkwareSignMessage(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uin
   }
   // Prepare the Stark parameters
   io_seproxyhal_io_heartbeat();
-  compute_token_id(&sha3, dataBuffer, dataBuffer + 20, dataContext.starkContext.w1);
+  compute_token_id(&global_sha3, dataBuffer, dataBuffer + 20, dataContext.starkContext.w1);
   if (p1 == P1_STARK_ORDER) {
     io_seproxyhal_io_heartbeat();
-    compute_token_id(&sha3, dataBuffer + 20 + 32, dataBuffer + 20 + 32 + 20, dataContext.starkContext.w2);
+    compute_token_id(&global_sha3, dataBuffer + 20 + 32, dataBuffer + 20 + 32 + 20, dataContext.starkContext.w2);
     offset = 20 + 32 + 20 + 32;
   }
   else {

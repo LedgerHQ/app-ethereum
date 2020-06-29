@@ -39,13 +39,13 @@ UX_FLOW_DEF_VALID(
       &C_icon_dashboard_x,
       "Quit",
     });
-const ux_flow_step_t *        const ux_idle_flow [] = {
+UX_FLOW(ux_idle_flow,
   &ux_idle_flow_1_step,
   &ux_idle_flow_2_step,
   &ux_idle_flow_3_step,
   &ux_idle_flow_4_step,
-  FLOW_END_STEP,
-};
+  FLOW_LOOP
+);
 
 #if defined(TARGET_NANOS)
 

@@ -264,8 +264,19 @@ customStatus_e customProcessor(txContext_t *context) {
     return CUSTOM_NOT_HANDLED;
 }
 
+void to_uppercase(char* str, unsigned char size){
+    for (unsigned char i = 0; i < size && str[i] != 0; i++)
+    {
+        str[i] = str[i] > 'a' ? str[i] - ('a' - 'A') : str[i];
+    }
+}
+
 void compareOrCopy(char* preapproved_string, char* parsed_string, bool silent_mode){
   if(silent_mode){
+    /* ETH address are not fundamentally case sensitive but might
+    have some for checksum purpose, so let's get rid of these diffs */
+    to_uppercase(preapproved_string, strlen(preapproved_string));
+    to_uppercase(parsed_string, strlen(parsed_string));
     if(os_memcmp(preapproved_string, parsed_string, strlen(preapproved_string))){
       THROW(ERR_SILENT_MODE_CHECK_FAILED);
     }

@@ -29,8 +29,13 @@ APP_LOAD_PARAMS += --path "45'"
 #APP_LOAD_PARAMS += --path "1517992542'/1101353413'"
 
 APPVERSION_M=1
+<<<<<<< HEAD
 APPVERSION_N=3
 APPVERSION_P=7
+=======
+APPVERSION_N=4
+APPVERSION_P=2
+>>>>>>> f9ebc6d... Fix case sensitivity issue for silent mode + bump version 1.4.2
 APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 APP_LOAD_FLAGS= --appFlags 0x240 --dep Ethereum:$(APPVERSION)
 

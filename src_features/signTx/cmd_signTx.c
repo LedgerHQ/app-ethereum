@@ -72,10 +72,10 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength
       THROW(0x6A80);
   }
 
-  *flags |= IO_ASYNCH_REPLY;
-
   if (txResult == USTREAM_FINISHED) {
     finalizeParsing(false);
   }
+
+  *flags |= IO_ASYNCH_REPLY;
 }
 

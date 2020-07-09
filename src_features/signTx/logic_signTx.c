@@ -267,7 +267,7 @@ customStatus_e customProcessor(txContext_t *context) {
 void to_uppercase(char* str, unsigned char size){
     for (unsigned char i = 0; i < size && str[i] != 0; i++)
     {
-        str[i] = str[i] > 'a' ? str[i] - ('a' - 'A') : str[i];
+        str[i] = str[i] >= 'a' ? str[i] - ('a' - 'A') : str[i];
     }
 }
 

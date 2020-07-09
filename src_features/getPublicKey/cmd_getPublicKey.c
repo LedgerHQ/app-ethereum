@@ -15,7 +15,9 @@ void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t da
   uint32_t i;
   uint8_t bip32PathLength = *(dataBuffer++);
   cx_ecfp_private_key_t privateKey;
-  reset_app_context();
+  if(!called_from_swap){
+    reset_app_context();
+  }
   if ((bip32PathLength < 0x01) ||
       (bip32PathLength > MAX_BIP32_PATH)) {
     PRINTF("Invalid path\n");

@@ -12,7 +12,7 @@ void copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
     memset(&stack_data, 0, sizeof(stack_data));
     strncpy(stack_data.fullAddress, sign_transaction_params->destination_address, sizeof(stack_data.fullAddress));
     if ((stack_data.fullAddress[sizeof(stack_data.fullAddress) - 1] != '\0') || 
-        (sign_transaction_params->amount_length > 8) ||
+        (sign_transaction_params->amount_length > 32) ||
         (sign_transaction_params->fee_amount_length > 8)) {
         os_lib_end();
     }

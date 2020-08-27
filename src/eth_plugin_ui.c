@@ -79,7 +79,7 @@ void display_next_plugin_item(bool entering) {
                 // Reset multi page layout to the first page
                 G_ux.layout_paging.current = 0;
 #ifdef TARGET_NANOS
-                ux_layout_paging_redisplay(G_ux.stack_count - 1);
+                ux_layout_paging_redisplay_by_addr(G_ux.stack_count - 1);
 #else
                 ux_layout_bnnn_paging_redisplay(0);
 #endif

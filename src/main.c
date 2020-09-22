@@ -60,7 +60,6 @@ uint8_t appState;
 char addressSummary[32];
 #endif
 bool dataPresent;
-contract_call_t contractProvisioned;
 bool called_from_swap;
 #ifdef HAVE_STARKWARE
 bool quantumSet;
@@ -91,7 +90,6 @@ void reset_app_context() {
   //PRINTF("!!RESET_APP_CONTEXT\n");
   appState = APP_STATE_IDLE;
   os_memset(tmpCtx.transactionContext.tokenSet, 0, MAX_TOKEN);
-  contractProvisioned = CONTRACT_NONE;
   called_from_swap = false;
 #ifdef HAVE_STARKWARE
   quantumSet = false;

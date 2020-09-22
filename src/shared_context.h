@@ -14,6 +14,7 @@
 #include "uint256.h"
 #include "tokens.h"
 #include "chainConfig.h"
+#include "eth_plugin_interface.h"
 
 #define MAX_BIP32_PATH 10
 
@@ -30,23 +31,25 @@ typedef struct internalStorage_t {
 } internalStorage_t;
 
 typedef struct tokenContext_t {
-#ifdef HAVE_STARKWARE  
-    uint8_t data[4 + 32 + 32 + 32 + 32];
-#else    
-    uint8_t data[4 + 32 + 32];
-#endif    
-    uint32_t dataFieldPos;
+    char pluginName[PLUGIN_ID_LENGTH];
+    uint8_t pluginAvailable;    
+
+    uint8_t data[32];
+    uint8_t fieldIndex;
+    uint8_t fieldOffset;    
+
+    uint8_t pluginUiMaxItems;
+    uint8_t pluginUiCurrentItem;
+    uint8_t pluginUiState;
+
+    uint8_t pluginContext[3 * 32];
+
 #ifdef HAVE_STARKWARE
     uint8_t quantum[32];
     uint8_t quantumIndex;
 #endif
-} tokenContext_t;
 
-typedef struct rawDataContext_t {
-    uint8_t data[32];
-    uint8_t fieldIndex;
-    uint8_t fieldOffset;
-} rawDataContext_t;
+} tokenContext_t;
 
 typedef struct publicKeyContext_t {
     cx_ecfp_public_key_t publicKey;
@@ -95,7 +98,6 @@ typedef struct starkContext_t {
 
 typedef union {
     tokenContext_t tokenContext;
-    rawDataContext_t rawDataContext;
 #ifdef HAVE_STARKWARE
     starkContext_t starkContext;
 #endif
@@ -161,7 +163,6 @@ extern uint8_t dataAllowed;
 extern uint8_t contractDetails;
 extern bool dataPresent;
 extern uint8_t appState;
-extern contract_call_t contractProvisioned;
 #ifdef HAVE_STARKWARE
 extern bool quantumSet;
 #endif

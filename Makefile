@@ -29,7 +29,7 @@ APP_LOAD_PARAMS += --path "45'"
 #APP_LOAD_PARAMS += --path "1517992542'/1101353413'"
 
 APPVERSION_M=1
-APPVERSION_N=4
+APPVERSION_N=5
 APPVERSION_P=0
 APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 APP_LOAD_FLAGS= --appFlags 0x240 --dep Ethereum:$(APPVERSION)
@@ -292,7 +292,7 @@ LDLIBS   += -lm -lgcc -lc
 include $(BOLOS_SDK)/Makefile.glyphs
 
 ### variables processed by the common makefile.rules of the SDK to grab source files and include dirs
-APP_SOURCE_PATH  += src_common src src_features
+APP_SOURCE_PATH  += src_common src src_features src_plugins
 SDK_SOURCE_PATH  += lib_stusb lib_stusb_impl lib_u2f
 SDK_SOURCE_PATH  += lib_ux
 ifeq ($(TARGET_NAME),TARGET_NANOX)

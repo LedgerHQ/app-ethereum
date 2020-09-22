@@ -59,6 +59,7 @@ parser.add_argument('--amount', help="Amount to send in ether", required=True)
 parser.add_argument('--to', help="Destination address", type=str, required=True)
 parser.add_argument('--path', help="BIP 32 path to sign with")
 parser.add_argument('--data', help="Data to add, hex encoded")
+parser.add_argument('--descriptor', help="Optional descriptor")
 args = parser.parse_args()
 
 if args.path == None:
@@ -85,13 +86,19 @@ tx = Transaction(
 
 encodedTx = encode(tx, Transaction)
 
+dongle = getDongle(True)
+
+if args.descriptor != None:
+    descriptor = binascii.unhexlify(args.descriptor)
+    apdu = struct.pack(">BBBBB", 0xE0, 0x0A, 0x00, 0x00, len(descriptor)) + descriptor
+    dongle.exchange(bytes(apdu))
+
 donglePath = parse_bip32_path(args.path)
 apdu = bytearray.fromhex("e0040000")
 apdu.append(len(donglePath) + 1 + len(encodedTx))
 apdu.append(len(donglePath) // 4)
 apdu += donglePath + encodedTx
 
-dongle = getDongle(True)
 result = dongle.exchange(bytes(apdu))
 
 # Needs to recover (main.c:1121)

@@ -3,9 +3,12 @@
 void erc20_plugin_call(int message, void *parameters);
 void starkware_plugin_call(int message, void *parameters);
 
-static const uint8_t const ERC20_SELECTOR[SELECTOR_SIZE] = { 0xa9, 0x05, 0x9c, 0xbb };
+static const uint8_t const ERC20_TRANSFER_SELECTOR[SELECTOR_SIZE] = { 0xa9, 0x05, 0x9c, 0xbb };
+static const uint8_t const ERC20_APPROVE_SELECTOR[SELECTOR_SIZE] = { 0x09, 0x5e, 0xa7, 0xb3 };
 
-static const uint8_t* const ERC20_SELECTORS[1] = { ERC20_SELECTOR };
+const uint8_t* const ERC20_SELECTORS[NUM_ERC20_SELECTORS] = {
+	ERC20_TRANSFER_SELECTOR, ERC20_APPROVE_SELECTOR
+};
 
 #ifdef HAVE_STARKWARE
 
@@ -34,7 +37,7 @@ const uint8_t* const STARKWARE_SELECTORS[NUM_STARKWARE_SELECTORS] = {
 const internalEthPlugin_t const INTERNAL_ETH_PLUGINS[NUM_INTERNAL_PLUGINS] =  {
 	{
 		ERC20_SELECTORS,
-		1,
+		2,
 		"-erc20",
 		erc20_plugin_call
 	},

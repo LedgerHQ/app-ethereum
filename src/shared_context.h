@@ -74,10 +74,19 @@ typedef struct messageSigningContext_t {
     uint32_t remainingLength;
 } messageSigningContext_t;
 
+typedef struct messageSigningContext712_t {
+    uint8_t pathLength;
+    uint32_t bip32Path[MAX_BIP32_PATH];
+    uint8_t domainHash[32];
+    uint8_t messageHash[32];
+} messageSigningContext712_t;
+
+
 typedef union {
     publicKeyContext_t publicKeyContext;
     transactionContext_t transactionContext;
     messageSigningContext_t messageSigningContext;
+    messageSigningContext712_t messageSigningContext712;
 } tmpCtx_t;
 
 typedef union {

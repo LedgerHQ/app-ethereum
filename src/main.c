@@ -542,6 +542,11 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
           handleSignPersonalMessage(G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2], G_io_apdu_buffer + OFFSET_CDATA, G_io_apdu_buffer[OFFSET_LC], flags, tx);
           break;
 
+        case INS_SIGN_EIP_712_MESSAGE:
+           os_memset(tmpCtx.transactionContext.tokenSet, 0, MAX_TOKEN);
+           handleSignEIP712Message(G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2], G_io_apdu_buffer + OFFSET_CDATA, G_io_apdu_buffer[OFFSET_LC], flags, tx);
+           break;
+
 #if 0
         case 0xFF: // return to dashboard
           goto return_to_dashboard;

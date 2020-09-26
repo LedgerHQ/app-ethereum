@@ -20,6 +20,8 @@ extern const ux_flow_step_t *        const ux_approval_allowance_flow [];
 
 extern const ux_flow_step_t *        const ux_sign_flow [];
 
+extern const ux_flow_step_t *        const ux_sign_712_v0_flow [];
+
 #ifdef HAVE_STARKWARE
 
 extern const ux_flow_step_t *        const ux_display_stark_public_flow [];

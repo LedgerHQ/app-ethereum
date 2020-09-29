@@ -61,9 +61,6 @@ void display_next_plugin_item(bool entering) {
       dataContext.tokenContext.pluginUiState = PLUGIN_UI_INSIDE;
       plugin_ui_get_item();
       ux_flow_prev();	 
-      // Reset multi page layout to the first page
-	    G_ux.layout_paging.current = 0;
-  	  ux_layout_paging_redisplay(G_ux.stack_count-1);      
     }
     else {
       if (dataContext.tokenContext.pluginUiCurrentItem < dataContext.tokenContext.pluginUiMaxItems - 1) {
@@ -71,8 +68,12 @@ void display_next_plugin_item(bool entering) {
         plugin_ui_get_item();
         ux_flow_prev();        
         // Reset multi page layout to the first page
-	    	G_ux.layout_paging.current = 0;
-  	  	ux_layout_paging_redisplay(G_ux.stack_count-1);        
+        G_ux.layout_paging.current = 0;
+        #ifdef TARGET_NANOS
+        ux_layout_paging_redisplay(G_ux.stack_count-1);
+        #else
+        ux_layout_bnnn_paging_redisplay(0);
+        #endif
       }
       else {
         dataContext.tokenContext.pluginUiState = PLUGIN_UI_OUTSIDE;
@@ -155,16 +156,17 @@ UX_FLOW_DEF_VALID(
       "Reject",
     });
 
-const ux_flow_step_t *        const ux_plugin_approval_flow [] = {
-	&ux_plugin_approval_intro_step,
-	&ux_plugin_approval_id_step,
-	&ux_plugin_approval_before_step,
-	&ux_plugin_approval_display_step,
-	&ux_plugin_approval_after_step,
-	&ux_plugin_approval_fees_step,
-	&ux_plugin_approval_ok_step,
-	&ux_plugin_approval_cancel_step
-};
+UX_FLOW(
+  ux_plugin_approval_flow,
+  &ux_plugin_approval_intro_step,
+  &ux_plugin_approval_id_step,
+  &ux_plugin_approval_before_step,
+  &ux_plugin_approval_display_step,
+  &ux_plugin_approval_after_step,
+  &ux_plugin_approval_fees_step,
+  &ux_plugin_approval_ok_step,
+  &ux_plugin_approval_cancel_step
+);
 
 void plugin_ui_start() {
 	dataContext.tokenContext.pluginUiState = PLUGIN_UI_OUTSIDE;

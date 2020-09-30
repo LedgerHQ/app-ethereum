@@ -39,6 +39,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength
       dataLength -= 4;
     }
     dataPresent = false;
+    dataContext.tokenContext.pluginAvailable = 0;
     initTx(&txContext, &global_sha3, &tmpContent.txContent, customProcessor, NULL);
   }
   else

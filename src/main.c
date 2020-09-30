@@ -75,10 +75,6 @@ unsigned int ux_step_count;
 
 const internalStorage_t N_storage_real;
 
-#ifdef TARGET_BLUE
-static const char const CONTRACT_ADDRESS[] = "New contract";
-#endif
-
 
 chain_config_t *chainConfig;
 

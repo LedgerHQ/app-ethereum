@@ -41,6 +41,10 @@ static const uint8_t const STARKWARE_VERIFY_ESCAPE_ID[] = { 0x2d, 0xd5, 0x30, 0x
 
 #endif
 
+#ifdef TARGET_BLUE
+static const char const CONTRACT_ADDRESS[] = "New contract";
+#endif
+
 uint32_t splitBinaryParameterPart(char *result, uint8_t *parameter) {
     uint32_t i;
     for (i=0; i<8; i++) {

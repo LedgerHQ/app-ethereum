@@ -51,9 +51,8 @@ customStatus_e customProcessor(txContext_t *context) {
               dataContext.tokenContext.fieldOffset = 0;
               copyTxData(context, NULL, 4);
               if (context->currentFieldLength == 4) {
-                dataContext.tokenContext.fieldIndex++;
-                return CUSTOM_HANDLED;
-              }              
+                return CUSTOM_NOT_HANDLED;
+              }
             }
         }
           uint32_t blockSize;

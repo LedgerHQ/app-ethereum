@@ -134,7 +134,7 @@ UX_STEP_NOCB_INIT(
   bnnn_paging,
   plugin_ui_compute_fees(),
   {
-    .title = "Max fees",
+    .title = "Max Fees",
     .text = strings.common.maxFee
   });
 

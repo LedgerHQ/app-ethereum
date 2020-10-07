@@ -14,11 +14,11 @@ void prepare_verify_vault_id_2() {
   else
   if (contractProvisioned == CONTRACT_STARKWARE_FULL_WITHDRAWAL) {
     strcpy(strings.common.fullAddress, "Full Withdrawal");
-  }  
+  }
   else
   if (contractProvisioned == CONTRACT_STARKWARE_FREEZE) {
     strcpy(strings.common.fullAddress, "Freeze");
-  }    
+  }
 }
 
 void prepare_verify_vault_id_3() {

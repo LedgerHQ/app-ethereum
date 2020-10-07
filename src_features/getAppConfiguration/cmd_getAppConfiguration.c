@@ -19,7 +19,7 @@ void handleGetAppConfiguration(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint
 #endif
 #ifdef HAVE_STARKWARE
   G_io_apdu_buffer[0] |= APP_FLAG_STARKWARE;
-#endif  
+#endif
   G_io_apdu_buffer[1] = LEDGER_MAJOR_VERSION;
   G_io_apdu_buffer[2] = LEDGER_MINOR_VERSION;
   G_io_apdu_buffer[3] = LEDGER_PATCH_VERSION;

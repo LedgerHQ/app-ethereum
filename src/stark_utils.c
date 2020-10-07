@@ -81,7 +81,7 @@ void pedersen(FieldElement res, /* out */
     ECPoint hash;
 
     memcpy(hash, PEDERSEN_SHIFT, sizeof(hash));
-    
+
     accum_ec_mul(&hash, a, 1, 1);
     accum_ec_mul(&hash, a+1, FIELD_ELEMENT_SIZE-1, 0);
     accum_ec_mul(&hash, b, 1, 3);
@@ -114,7 +114,7 @@ int stark_sign(uint8_t *signature, /* out */
 }
 
 // ERC20Token(address)
-static const uint8_t ERC20_SELECTOR[] = { 0xf4, 0x72, 0x61, 0xb0 }; 
+static const uint8_t ERC20_SELECTOR[] = { 0xf4, 0x72, 0x61, 0xb0 };
 // ETH()
 static const uint8_t ETH_SELECTOR[] = { 0x83, 0x22, 0xff, 0xf2 };
 
@@ -126,11 +126,11 @@ void compute_token_id(cx_sha3_t *sha3, uint8_t *contractAddress, uint8_t *quantu
         os_memset(tmp, 0, sizeof(tmp));
         os_memmove(tmp, ERC20_SELECTOR, 4);
         os_memmove(tmp + 16, contractAddress, 20);
-        cx_hash((cx_hash_t*)sha3, 0, tmp, sizeof(tmp), NULL, 0);        
+        cx_hash((cx_hash_t*)sha3, 0, tmp, sizeof(tmp), NULL, 0);
     }
     else {
         PRINTF("compute_token_id for ETH\n");
-        cx_hash((cx_hash_t*)sha3, 0, ETH_SELECTOR, sizeof(ETH_SELECTOR), NULL, 0);   
+        cx_hash((cx_hash_t*)sha3, 0, ETH_SELECTOR, sizeof(ETH_SELECTOR), NULL, 0);
     }
     PRINTF("compute_token_id quantum %.*H\n", 32, quantum);
     cx_hash((cx_hash_t*)sha3, CX_LAST, quantum, 32, output, 32);

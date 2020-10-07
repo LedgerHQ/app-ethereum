@@ -3,7 +3,7 @@
 #include "shared_context.h"
 #include "ui_callbacks.h"
 
-void prepare_verify_escape_3() {  
+void prepare_verify_escape_3() {
     uint8_t address[41];
     getEthAddressStringFromBinary(tmpContent.txContent.destination, address, &global_sha3, chainConfig);
     strings.common.fullAddress[0] = '0';

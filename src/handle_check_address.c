@@ -33,7 +33,7 @@ void handle_check_address(check_address_parameters_t* params, chain_config_t* ch
         uint8_t privateKeyData[32];
         cx_ecfp_public_key_t publicKey;
     } locals_union2;
-    
+
 
     if ((bip32PathLength < 0x01) ||
         (bip32PathLength > MAX_BIP32_PATH) ||
@@ -61,7 +61,6 @@ void handle_check_address(check_address_parameters_t* params, chain_config_t* ch
 
     if ((strlen(locals_union1.address) != strlen(params->address_to_check + offset_0x)) ||
         os_memcmp(locals_union1.address, params->address_to_check + offset_0x, strlen(locals_union1.address)) != 0) {
-            os_memcpy(params->address_to_check, locals_union1.address, 45);
         PRINTF("Addresses doesn't match\n");
         return;
     }

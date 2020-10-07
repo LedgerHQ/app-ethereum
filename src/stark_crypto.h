@@ -22,4 +22,4 @@ int stark_sign(uint8_t *signautre, /* out */
                uint8_t *privateKeyData, FieldElement token1,
                FieldElement token2, FieldElement msg);
 
-#endif 
+#endif

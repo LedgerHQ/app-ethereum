@@ -13,9 +13,9 @@ unsigned int io_seproxyhal_touch_signMessage712_v0_ok(const bagl_element_t *e) {
     io_seproxyhal_io_heartbeat();
     cx_keccak_init(&global_sha3, 256);
     cx_hash((cx_hash_t *)&global_sha3, 0, (uint8_t*)EIP_712_MAGIC, sizeof(EIP_712_MAGIC), NULL, 0);
-    cx_hash((cx_hash_t *)&global_sha3, 0, tmpCtx.messageSigningContext712.domainHash, 
+    cx_hash((cx_hash_t *)&global_sha3, 0, tmpCtx.messageSigningContext712.domainHash,
         sizeof(tmpCtx.messageSigningContext712.domainHash), NULL, 0);
-    cx_hash((cx_hash_t *)&global_sha3, CX_LAST, tmpCtx.messageSigningContext712.messageHash, 
+    cx_hash((cx_hash_t *)&global_sha3, CX_LAST, tmpCtx.messageSigningContext712.messageHash,
         sizeof(tmpCtx.messageSigningContext712.messageHash), hash, sizeof(hash));
     PRINTF("EIP712 hash to sign %.*H\n", 32, hash);
     io_seproxyhal_io_heartbeat();

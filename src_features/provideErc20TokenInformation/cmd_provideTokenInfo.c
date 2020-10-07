@@ -39,7 +39,7 @@ void handleProvideErc20TokenInformation(uint8_t p1, uint8_t p2, uint8_t *workBuf
 
   tmpCtx.transactionContext.currentTokenIndex = (tmpCtx.transactionContext.currentTokenIndex + 1) % MAX_TOKEN;
   tokenDefinition_t* token = &tmpCtx.transactionContext.tokens[tmpCtx.transactionContext.currentTokenIndex];
-  
+
   if (dataLength < 1) {
     THROW(0x6A80);
   }
@@ -139,12 +139,12 @@ void handleProvideErc20TokenInformation(uint8_t p1, uint8_t p2, uint8_t *workBuf
   }
   offset += 4;
   dataLength -= 4;
-    
-#ifdef HAVE_TOKENS_EXTRA_LIST    
+
+#ifdef HAVE_TOKENS_EXTRA_LIST
     tokenDefinition_t *currentToken = NULL;
     uint32_t index;
     for (index=0; index < NUM_TOKENS_EXTRA; index++) {
-      currentToken = (tokenDefinition_t *)PIC(&TOKENS_EXTRA[index]);      
+      currentToken = (tokenDefinition_t *)PIC(&TOKENS_EXTRA[index]);
       if (os_memcmp(currentToken->address, token->address, 20) == 0) {
           strcpy((char*)token->ticker, (char*)currentToken->ticker);
           token->decimals = currentToken->decimals;

@@ -16,7 +16,7 @@ void poorstream_flush(poorstream_t *stream) {
     *(stream->pointer + 4) = (stream->accumulator >> 24);
     *(stream->pointer + 5) = (stream->accumulator >> 16);
     *(stream->pointer + 6) = (stream->accumulator >> 8);
-    *(stream->pointer + 7) = (stream->accumulator >> 0);	
+    *(stream->pointer + 7) = (stream->accumulator >> 0);
 }
 
 void poorstream_write_bits(poorstream_t *stream, uint64_t bits, uint32_t num_bits) {

@@ -1,5 +1,5 @@
 #include "shared_context.h"
-  
+
 #include "os_io_seproxyhal.h"
 
 extern const ux_flow_step_t *        const ux_idle_flow [];

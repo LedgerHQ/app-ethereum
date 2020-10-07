@@ -2,11 +2,11 @@
 #include "ui_callbacks.h"
 
 void prepare_domain_hash_v0() {
-   snprintf(strings.tmp.tmp, 70, "0x%.*H", 32, tmpCtx.messageSigningContext712.domainHash);  
+   snprintf(strings.tmp.tmp, 70, "0x%.*H", 32, tmpCtx.messageSigningContext712.domainHash);
 }
 
 void prepare_message_hash_v0() {
-   snprintf(strings.tmp.tmp, 70, "0x%.*H", 32, tmpCtx.messageSigningContext712.messageHash);  
+   snprintf(strings.tmp.tmp, 70, "0x%.*H", 32, tmpCtx.messageSigningContext712.messageHash);
 }
 
 UX_FLOW_DEF_NOCB(

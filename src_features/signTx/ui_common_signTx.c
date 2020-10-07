@@ -43,9 +43,12 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
     tx = 65;
     G_io_apdu_buffer[tx++] = 0x90;
     G_io_apdu_buffer[tx++] = 0x00;
-    reset_app_context();
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
+    if(called_from_swap){
+        os_sched_exit(0);
+    }
+    reset_app_context();
     // Display back the original UX
     ui_idle();
     return 0; // do not redraw the widget

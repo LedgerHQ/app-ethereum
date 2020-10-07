@@ -6,7 +6,7 @@
 
 void prepare_deposit_3() {
     uint8_t address[41];
-    getEthAddressStringFromBinary(tmpContent.txContent.destination, address, &sha3);
+    getEthAddressStringFromBinary(tmpContent.txContent.destination, address, &global_sha3, chainConfig);
     strings.common.fullAddress[0] = '0';
     strings.common.fullAddress[1] = 'x';
     os_memmove((unsigned char *)strings.common.fullAddress+2, address, 40);

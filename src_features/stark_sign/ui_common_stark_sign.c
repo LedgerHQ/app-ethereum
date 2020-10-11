@@ -11,7 +11,9 @@ unsigned int io_seproxyhal_touch_stark_ok(const bagl_element_t *e) {
     io_seproxyhal_io_heartbeat();
     starkDerivePrivateKey(tmpCtx.transactionContext.bip32Path, tmpCtx.transactionContext.pathLength, privateKeyData);
     io_seproxyhal_io_heartbeat();
-    stark_sign(signature, privateKeyData, dataContext.starkContext.w1, dataContext.starkContext.w2, dataContext.starkContext.w3);
+    stark_sign(signature, privateKeyData, dataContext.starkContext.w1, dataContext.starkContext.w2, 
+            dataContext.starkContext.w3, 
+            (dataContext.starkContext.conditional ? dataContext.starkContext.w4 : NULL));
     G_io_apdu_buffer[0] = 0;
     format_signature_out(signature);
     tx = 65;

@@ -30,6 +30,10 @@ extern const ux_flow_step_t *        const ux_stark_transfer_flow [];
 
 extern const ux_flow_step_t *        const ux_stark_self_transfer_flow [];
 
+extern const ux_flow_step_t *        const ux_stark_transfer_conditional_flow [];
+
+extern const ux_flow_step_t *        const ux_stark_self_transfer_conditional_flow [];
+
 extern const ux_flow_step_t *        const ux_approval_starkware_register_flow [];
 
 extern const ux_flow_step_t *        const ux_approval_starkware_deposit_flow [];

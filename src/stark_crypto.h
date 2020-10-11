@@ -18,8 +18,4 @@ typedef unsigned char ECPoint[EC_POINT_SIZE];
 void pedersen(FieldElement res, /* out */
               FieldElement a, FieldElement b);
 
-int stark_sign(uint8_t *signautre, /* out */
-               uint8_t *privateKeyData, FieldElement token1,
-               FieldElement token2, FieldElement msg);
-
 #endif 

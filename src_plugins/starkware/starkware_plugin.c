@@ -95,7 +95,9 @@ bool starkware_verify_token_id(uint8_t *tmp32, uint8_t *tokenId) {
 		}
 		compute_token_id(&global_sha3,
 			(currentToken != NULL ? currentToken->address : NULL),
-			dataContext.tokenContext.quantum, tmp32);
+			dataContext.tokenContext.quantumType,			
+			dataContext.tokenContext.quantum, 
+			dataContext.tokenContext.mintingBlob, tmp32);
 		if (memcmp(tokenId, tmp32, 32) != 0) {
 			PRINTF("Token ID not matching - computed %.*H\n", 32, tmp32);
 			PRINTF("Current quantum %.*H\n", 32, dataContext.tokenContext.quantum);

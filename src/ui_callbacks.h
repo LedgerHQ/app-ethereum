@@ -1,4 +1,5 @@
 #include "shared_context.h"
+#include "ux.h"
 
 unsigned int io_seproxyhal_touch_settings(const bagl_element_t *e);
 unsigned int io_seproxyhal_touch_exit(const bagl_element_t *e);

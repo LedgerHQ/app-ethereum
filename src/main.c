@@ -80,10 +80,6 @@ unsigned int ux_step_count;
 
 const internalStorage_t N_storage_real;
 
-#ifdef TARGET_BLUE
-static const char const CONTRACT_ADDRESS[] = "New contract";
-#endif
-
 
 chain_config_t *chainConfig;
 
@@ -791,8 +787,8 @@ void init_coin_config(chain_config_t *coin_config) {
     coin_config->chainId = CHAIN_ID;
     coin_config->kind = CHAIN_KIND;
 #ifdef TARGET_BLUE
-    coin_config.color_header = COLOR_APP;
-    coin_config.color_dashboard = COLOR_APP_LIGHT;
+    coin_config->color_header = COLOR_APP;
+    coin_config->color_dashboard = COLOR_APP_LIGHT;
     strcpy(coin_config->header_text, CHAINID_UPCASE);
 #endif // TARGET_BLUE
 }

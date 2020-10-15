@@ -1,4 +1,5 @@
 #include "shared_context.h"
+#include "ux.h"
 
 #include "os_io_seproxyhal.h"
 

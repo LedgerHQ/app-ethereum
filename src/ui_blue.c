@@ -10,8 +10,6 @@
 #define BAGL_FONT_OPEN_SANS_REGULAR_10_13PX_AVG_WIDTH 8
 #define MAX_CHAR_PER_LINE 25
 
-void io_seproxyhal_io_heartbeat(void) {
-}
 
 bagl_element_t tmp_element;
 

@@ -16,11 +16,11 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength
     if (dataLength < 1) {
       PRINTF("Invalid data\n");
       THROW(0x6a80);
-    }    
+    }
     if (appState != APP_STATE_IDLE) {
       reset_app_context();
     }
-    appState = APP_STATE_SIGNING_TX;    
+    appState = APP_STATE_SIGNING_TX;
     tmpCtx.transactionContext.pathLength = workBuffer[0];
     if ((tmpCtx.transactionContext.pathLength < 0x01) ||
         (tmpCtx.transactionContext.pathLength > MAX_BIP32_PATH)) {
@@ -33,7 +33,7 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength
       if (dataLength < 4) {
         PRINTF("Invalid data\n");
         THROW(0x6a80);
-      }      
+      }
       tmpCtx.transactionContext.bip32Path[i] = U4BE(workBuffer, 0);
       workBuffer += 4;
       dataLength -= 4;

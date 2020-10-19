@@ -134,7 +134,7 @@ customStatus_e customProcessor(txContext_t *context) {
             }
             else
             if ((context->currentFieldLength == STARKWARE_ESCAPE_DATA_SIZE) &&
-                (os_memcmp(context->workBuffer, STARKWARE_ESCAPE_ID, 4) == 0) && 
+                (os_memcmp(context->workBuffer, STARKWARE_ESCAPE_ID, 4) == 0) &&
                 quantumSet) {
               contractProvisioned = CONTRACT_STARKWARE_ESCAPE;
             }
@@ -147,11 +147,11 @@ customStatus_e customProcessor(txContext_t *context) {
         }
         // Sanity check
         // Also handle exception that only need to process the beginning of the data
-        if ((contractProvisioned != CONTRACT_NONE) && 
-#ifdef HAVE_STARKWARE          
+        if ((contractProvisioned != CONTRACT_NONE) &&
+#ifdef HAVE_STARKWARE
             (contractProvisioned != CONTRACT_STARKWARE_VERIFY_ESCAPE) &&
             (contractProvisioned != CONTRACT_STARKWARE_REGISTER) &&
-#endif            
+#endif
             (context->currentFieldLength > sizeof(dataContext.tokenContext.data))) {
           PRINTF("Data field overflow - dropping customization\n");
           contractProvisioned = CONTRACT_NONE;
@@ -159,7 +159,7 @@ customStatus_e customProcessor(txContext_t *context) {
         PRINTF("contractProvisioned %d\n", contractProvisioned);
         if (contractProvisioned != CONTRACT_NONE) {
             if (context->currentFieldPos < context->currentFieldLength) {
-                uint32_t copySize = MIN(context->commandLength, 
+                uint32_t copySize = MIN(context->commandLength,
                   context->currentFieldLength - context->currentFieldPos);
                 // Handle the case where we only need to handle the beginning of the data parameter
                 if ((context->currentFieldPos + copySize) < sizeof(dataContext.tokenContext.data)) {
@@ -455,7 +455,7 @@ void finalizeParsing(bool direct) {
       (contractProvisioned == CONTRACT_STARKWARE_FREEZE)) {
     ux_flow_init(0, ux_approval_starkware_verify_vault_id_flow, NULL);
     return;
-  }  
+  }
   else
   if (contractProvisioned == CONTRACT_STARKWARE_WITHDRAW) {
     ux_flow_init(0, ux_approval_starkware_withdraw_flow, NULL);
@@ -465,12 +465,12 @@ void finalizeParsing(bool direct) {
   if (contractProvisioned == CONTRACT_STARKWARE_ESCAPE) {
     ux_flow_init(0, ux_approval_starkware_escape_flow, NULL);
     return;
-  } 
-  else 
+  }
+  else
   if (contractProvisioned == CONTRACT_STARKWARE_VERIFY_ESCAPE) {
     ux_flow_init(0, ux_approval_starkware_verify_escape_flow, NULL);
     return;
-  } 
+  }
 
 #endif
 

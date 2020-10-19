@@ -27,7 +27,7 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint
     if (appState != APP_STATE_IDLE) {
       reset_app_context();
     }
-    appState = APP_STATE_SIGNING_MESSAGE;    
+    appState = APP_STATE_SIGNING_MESSAGE;
     tmpCtx.messageSigningContext.pathLength = workBuffer[0];
     if ((tmpCtx.messageSigningContext.pathLength < 0x01) ||
         (tmpCtx.messageSigningContext.pathLength > MAX_BIP32_PATH)) {
@@ -48,7 +48,7 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint
     if (dataLength < 4) {
       PRINTF("Invalid data\n");
       THROW(0x6a80);
-    }    
+    }
     tmpCtx.messageSigningContext.remainingLength = U4BE(workBuffer, 0);
     workBuffer += 4;
     dataLength -= 4;

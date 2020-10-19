@@ -13,7 +13,7 @@ static const char const SIGN_MAGIC[] = "\x19"
 
 void handleSignEIP712Message(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength, unsigned int *flags, unsigned int *tx) {
   uint8_t i;
-  
+
   UNUSED(tx);
   if ((p1 != 00) || (p2 != 00)) {
     THROW(0x6B00);
@@ -45,7 +45,7 @@ void handleSignEIP712Message(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16
   if (dataLength < 32 + 32) {
     PRINTF("Invalid data\n");
     THROW(0x6a80);
-  }    
+  }
   memmove(tmpCtx.messageSigningContext712.domainHash, workBuffer, 32);
   memmove(tmpCtx.messageSigningContext712.messageHash, workBuffer + 32, 32);
 
@@ -53,12 +53,12 @@ void handleSignEIP712Message(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16
     io_seproxyhal_touch_signMessage_ok(NULL);
 #else //NO_CONSENT
 #if defined(TARGET_BLUE)
-    // TODO implement  
+    // TODO implement
     ui_approval_message_sign_blue_init();
 #else
     ux_flow_init(0, ux_sign_712_v0_flow, NULL);
 #endif // #if TARGET_ID
 #endif // NO_CONSENT
 
-    *flags |= IO_ASYNCH_REPLY;  
+    *flags |= IO_ASYNCH_REPLY;
 }

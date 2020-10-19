@@ -3,7 +3,7 @@
 #include "shared_context.h"
 #include "ui_callbacks.h"
 
-void prepare_register_3() {  
+void prepare_register_3() {
     uint8_t address[41];
     getEthAddressStringFromBinary(tmpContent.txContent.destination, address, &sha3);
     strings.common.fullAddress[0] = '0';
@@ -12,7 +12,7 @@ void prepare_register_3() {
     strings.common.fullAddress[42] = '\0';
 }
 
-void prepare_register_4() {  
+void prepare_register_4() {
   uint8_t privateKeyData[32];
   uint8_t address[41];
   cx_ecfp_private_key_t privateKey;
@@ -33,8 +33,8 @@ void prepare_register_4() {
   strings.common.fullAddress[42] = '\0';
 }
 
-void prepare_register_5() {  
-  snprintf(strings.tmp.tmp, 70, "0x%.*H", 32, dataContext.tokenContext.data + 4);  
+void prepare_register_5() {
+  snprintf(strings.tmp.tmp, 70, "0x%.*H", 32, dataContext.tokenContext.data + 4);
 }
 
 UX_FLOW_DEF_NOCB(ux_approval_starkware_register_1_step,

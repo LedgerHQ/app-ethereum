@@ -3,7 +3,7 @@
 #include "shared_context.h"
 #include "ui_callbacks.h"
 
-void prepare_escape_3() {  
+void prepare_escape_3() {
     uint8_t address[41];
     getEthAddressStringFromBinary(tmpContent.txContent.destination, address, &sha3);
     strings.common.fullAddress[0] = '0';
@@ -23,7 +23,7 @@ void prepare_escape_4() {
   else {
     tokenDefinition_t *token = &tmpCtx.transactionContext.tokens[dataContext.tokenContext.quantumIndex];
     decimals = token->decimals;
-    ticker = (char*)token->ticker;    
+    ticker = (char*)token->ticker;
   }
   readu256BE(dataContext.tokenContext.data + 4 + 32 + 32 + 32, &amountPre);
   readu256BE(dataContext.tokenContext.quantum, &quantum);

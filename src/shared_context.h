@@ -30,11 +30,11 @@ typedef struct internalStorage_t {
 } internalStorage_t;
 
 typedef struct tokenContext_t {
-#ifdef HAVE_STARKWARE  
+#ifdef HAVE_STARKWARE
     uint8_t data[4 + 32 + 32 + 32 + 32];
-#else    
+#else
     uint8_t data[4 + 32 + 32];
-#endif    
+#endif
     uint32_t dataFieldPos;
 #ifdef HAVE_STARKWARE
     uint8_t quantum[32];

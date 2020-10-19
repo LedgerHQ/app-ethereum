@@ -1,5 +1,5 @@
 #ifdef HAVE_STARKWARE
-  
+
 #include "shared_context.h"
 #include "apdu_constants.h"
 #ifdef TARGET_BLUE

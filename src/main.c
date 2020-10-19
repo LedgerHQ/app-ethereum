@@ -83,9 +83,9 @@ void reset_app_context() {
   appState = APP_STATE_IDLE;
   os_memset(tmpCtx.transactionContext.tokenSet, 0, MAX_TOKEN);
   contractProvisioned = CONTRACT_NONE;
-#ifdef HAVE_STARKWARE  
+#ifdef HAVE_STARKWARE
   quantumSet = false;
-#endif  
+#endif
   os_memset((uint8_t*)&txContext, 0, sizeof(txContext));
   os_memset((uint8_t*)&tmpContent, 0, sizeof(tmpContent));
 }
@@ -502,10 +502,10 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
             break;
         }
         CLOSE_TRY;
-        return;        
+        return;
       }
 
-#endif      
+#endif
 
       if (G_io_apdu_buffer[OFFSET_CLA] != CLA) {
         THROW(0x6E00);
@@ -687,7 +687,7 @@ unsigned char io_event(unsigned char channel) {
         {
         });
         break;
-#endif        
+#endif
     }
 
     // close the event if not done previously (by a display or whatever)
@@ -815,7 +815,7 @@ __attribute__((section(".boot"))) int main(int arg0) {
               continue;
             }
             CATCH_ALL {
-              CLOSE_TRY;             
+              CLOSE_TRY;
               break;
             }
             FINALLY {

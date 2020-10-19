@@ -5,7 +5,7 @@
 
 void prepare_register_4();
 
-void prepare_withdraw_3() {  
+void prepare_withdraw_3() {
     uint8_t address[41];
     getEthAddressStringFromBinary(tmpContent.txContent.destination, address, &sha3);
     strings.common.fullAddress[0] = '0';
@@ -14,8 +14,8 @@ void prepare_withdraw_3() {
     strings.common.fullAddress[42] = '\0';
 }
 
-void prepare_withdraw_5() {  
-  char *ticker = (char*)PIC(chainConfig->coinName);    
+void prepare_withdraw_5() {
+  char *ticker = (char*)PIC(chainConfig->coinName);
 
   if (dataContext.tokenContext.quantumIndex != MAX_TOKEN) {
     tokenDefinition_t *token = &tmpCtx.transactionContext.tokens[dataContext.tokenContext.quantumIndex];

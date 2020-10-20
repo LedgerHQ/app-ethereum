@@ -9,7 +9,7 @@ void prepare_message_hash_v0() {
    snprintf(strings.tmp.tmp, 70, "0x%.*H", 32, tmpCtx.messageSigningContext712.messageHash);
 }
 
-UX_FLOW_DEF_NOCB(
+UX_STEP_NOCB(
     ux_sign_712_v0_flow_1_step,
     pnn,
     {
@@ -33,7 +33,7 @@ UX_STEP_NOCB_INIT(
       .title = "Message hash",
       .text = strings.tmp.tmp,
     });
-UX_FLOW_DEF_VALID(
+UX_STEP_CB(
     ux_sign_712_v0_flow_4_step,
     pbb,
     io_seproxyhal_touch_signMessage712_v0_ok(NULL),
@@ -42,7 +42,7 @@ UX_FLOW_DEF_VALID(
       "Sign",
       "message",
     });
-UX_FLOW_DEF_VALID(
+UX_STEP_CB(
     ux_sign_712_v0_flow_5_step,
     pbb,
     io_seproxyhal_touch_signMessage712_v0_cancel(NULL),
@@ -52,12 +52,11 @@ UX_FLOW_DEF_VALID(
       "signature",
     });
 
-const ux_flow_step_t *        const ux_sign_712_v0_flow [] = {
+UX_FLOW(ux_sign_712_v0_flow,
   &ux_sign_712_v0_flow_1_step,
   &ux_sign_712_v0_flow_2_step,
   &ux_sign_712_v0_flow_3_step,
   &ux_sign_712_v0_flow_4_step,
-  &ux_sign_712_v0_flow_5_step,
-  FLOW_END_STEP,
-};
+  &ux_sign_712_v0_flow_5_step
+);
 

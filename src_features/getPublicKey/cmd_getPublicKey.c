@@ -1,11 +1,7 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
-#ifdef TARGET_BLUE
-#include "ui_blue.h"
-#endif
-#ifdef HAVE_UX_FLOW
+
 #include "ui_flow.h"
-#endif
 #include "feature_getPublicKey.h"
 
 void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength, unsigned int *flags, unsigned int *tx) {
@@ -53,23 +49,8 @@ void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t da
 #ifndef NO_CONSENT
   else
   {
-    /*
-    addressSummary[0] = '0';
-    addressSummary[1] = 'x';
-    os_memmove((unsigned char *)(addressSummary + 2), tmpCtx.publicKeyContext.address, 4);
-    os_memmove((unsigned char *)(addressSummary + 6), "...", 3);
-    os_memmove((unsigned char *)(addressSummary + 9), tmpCtx.publicKeyContext.address + 40 - 4, 4);
-    addressSummary[13] = '\0';
-    */
-
-    // prepare for a UI based reply
-#if defined(TARGET_BLUE)
-    snprintf(strings.common.fullAddress, sizeof(strings.common.fullAddress), "0x%.*s", 40, tmpCtx.publicKeyContext.address);
-    UX_DISPLAY(ui_address_blue, ui_address_blue_prepro);
-#else
     snprintf(strings.common.fullAddress, sizeof(strings.common.fullAddress), "0x%.*s", 40, tmpCtx.publicKeyContext.address);
     ux_flow_init(0, ux_display_public_flow, NULL);
-#endif // #if TARGET_ID
 
     *flags |= IO_ASYNCH_REPLY;
   }

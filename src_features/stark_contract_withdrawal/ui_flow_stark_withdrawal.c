@@ -24,7 +24,7 @@ void prepare_withdraw_5() {
   strcpy(strings.common.fullAmount, ticker);
 }
 
-UX_FLOW_DEF_NOCB(ux_approval_starkware_withdraw_1_step,
+UX_STEP_NOCB(ux_approval_starkware_withdraw_1_step,
     pnn,
     {
       &C_icon_eye,
@@ -32,7 +32,7 @@ UX_FLOW_DEF_NOCB(ux_approval_starkware_withdraw_1_step,
       "transaction",
     });
 
-UX_FLOW_DEF_NOCB(
+UX_STEP_NOCB(
     ux_approval_starkware_withdraw_2_step,
     bnnn_paging,
     {
@@ -68,7 +68,7 @@ UX_STEP_NOCB_INIT(
     });
 
 
-UX_FLOW_DEF_NOCB(
+UX_STEP_NOCB(
     ux_approval_starkware_withdraw_6_step,
     bnnn_paging,
     {
@@ -76,7 +76,7 @@ UX_FLOW_DEF_NOCB(
       .text = strings.common.maxFee,
     });
 
-UX_FLOW_DEF_VALID(
+UX_STEP_CB(
     ux_approval_starkware_withdraw_7_step,
     pbb,
     io_seproxyhal_touch_tx_ok(NULL),
@@ -86,7 +86,7 @@ UX_FLOW_DEF_VALID(
       "and send",
     });
 
-UX_FLOW_DEF_VALID(
+UX_STEP_CB(
     ux_approval_starkware_withdraw_8_step,
     pb,
     io_seproxyhal_touch_tx_cancel(NULL),
@@ -95,7 +95,7 @@ UX_FLOW_DEF_VALID(
       "Reject",
     });
 
-const ux_flow_step_t *        const ux_approval_starkware_withdraw_flow [] = {
+UX_FLOW(ux_approval_starkware_withdraw_flow,
   &ux_approval_starkware_withdraw_1_step,
   &ux_approval_starkware_withdraw_2_step,
   &ux_approval_starkware_withdraw_3_step,
@@ -103,8 +103,7 @@ const ux_flow_step_t *        const ux_approval_starkware_withdraw_flow [] = {
   &ux_approval_starkware_withdraw_5_step,
   &ux_approval_starkware_withdraw_6_step,
   &ux_approval_starkware_withdraw_7_step,
-  &ux_approval_starkware_withdraw_8_step,
-  FLOW_END_STEP,
-};
+  &ux_approval_starkware_withdraw_8_step
+);
 
 #endif

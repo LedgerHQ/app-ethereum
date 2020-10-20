@@ -6,7 +6,7 @@ void switch_settings_contract_data(void);
 void switch_settings_display_data(void);
 
 //////////////////////////////////////////////////////////////////////
-UX_FLOW_DEF_NOCB(
+UX_STEP_NOCB(
     ux_idle_flow_1_step,
     nn, //pnn,
     {
@@ -14,14 +14,14 @@ UX_FLOW_DEF_NOCB(
       "Application",
       "is ready",
     });
-UX_FLOW_DEF_NOCB(
+UX_STEP_NOCB(
     ux_idle_flow_2_step,
     bn,
     {
       "Version",
       APPVERSION,
     });
-UX_FLOW_DEF_VALID(
+UX_STEP_CB(
     ux_idle_flow_3_step,
     pb,
     display_settings(),
@@ -29,7 +29,7 @@ UX_FLOW_DEF_VALID(
       &C_icon_eye,
       "Settings",
     });
-UX_FLOW_DEF_VALID(
+UX_STEP_CB(
     ux_idle_flow_4_step,
     pb,
     os_sched_exit(-1),
@@ -47,7 +47,7 @@ UX_FLOW(ux_idle_flow,
 
 #if defined(TARGET_NANOS)
 
-UX_FLOW_DEF_VALID(
+UX_STEP_CB(
     ux_settings_flow_1_step,
     bnnn_paging,
     switch_settings_contract_data(),
@@ -56,7 +56,7 @@ UX_FLOW_DEF_VALID(
       .text = strings.common.fullAddress,
     });
 
-UX_FLOW_DEF_VALID(
+UX_STEP_CB(
     ux_settings_flow_2_step,
     bnnn_paging,
     switch_settings_display_data(),
@@ -67,7 +67,7 @@ UX_FLOW_DEF_VALID(
 
 #else
 
-UX_FLOW_DEF_VALID(
+UX_STEP_CB(
     ux_settings_flow_1_step,
     bnnn,
     switch_settings_contract_data(),
@@ -78,7 +78,7 @@ UX_FLOW_DEF_VALID(
       strings.common.fullAddress,
     });
 
-UX_FLOW_DEF_VALID(
+UX_STEP_CB(
     ux_settings_flow_2_step,
     bnnn,
     switch_settings_display_data(),
@@ -91,7 +91,7 @@ UX_FLOW_DEF_VALID(
 
 #endif
 
-UX_FLOW_DEF_VALID(
+UX_STEP_CB(
     ux_settings_flow_3_step,
     pb,
     ui_idle(),
@@ -100,12 +100,11 @@ UX_FLOW_DEF_VALID(
       "Back",
     });
 
-const ux_flow_step_t *        const ux_settings_flow [] = {
+UX_FLOW(ux_settings_flow,
   &ux_settings_flow_1_step,
   &ux_settings_flow_2_step,
-  &ux_settings_flow_3_step,
-  FLOW_END_STEP,
-};
+  &ux_settings_flow_3_step
+);
 
 void display_settings() {
   strcpy(strings.common.fullAddress, (N_storage.dataAllowed ? "Allowed" : "NOT Allowed"));

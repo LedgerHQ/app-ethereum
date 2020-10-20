@@ -1,7 +1,7 @@
 #include "shared_context.h"
 #include "ui_callbacks.h"
 
-UX_FLOW_DEF_NOCB(
+UX_STEP_NOCB(
     ux_sign_flow_1_step,
     pnn,
     {
@@ -9,14 +9,14 @@ UX_FLOW_DEF_NOCB(
       "Sign",
       "message",
     });
-UX_FLOW_DEF_NOCB(
+UX_STEP_NOCB(
     ux_sign_flow_2_step,
     bnnn_paging,
     {
       .title = "Message hash",
       .text = strings.tmp.tmp,
     });
-UX_FLOW_DEF_VALID(
+UX_STEP_CB(
     ux_sign_flow_3_step,
     pbb,
     io_seproxyhal_touch_signMessage_ok(NULL),
@@ -25,7 +25,7 @@ UX_FLOW_DEF_VALID(
       "Sign",
       "message",
     });
-UX_FLOW_DEF_VALID(
+UX_STEP_CB(
     ux_sign_flow_4_step,
     pbb,
     io_seproxyhal_touch_signMessage_cancel(NULL),
@@ -35,11 +35,10 @@ UX_FLOW_DEF_VALID(
       "signature",
     });
 
-const ux_flow_step_t *        const ux_sign_flow [] = {
+UX_FLOW(ux_sign_flow,
   &ux_sign_flow_1_step,
   &ux_sign_flow_2_step,
   &ux_sign_flow_3_step,
-  &ux_sign_flow_4_step,
-  FLOW_END_STEP,
-};
+  &ux_sign_flow_4_step
+);
 

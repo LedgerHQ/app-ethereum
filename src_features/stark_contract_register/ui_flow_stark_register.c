@@ -37,7 +37,7 @@ void prepare_register_5() {
   snprintf(strings.tmp.tmp, 70, "0x%.*H", 32, dataContext.tokenContext.data + 4);
 }
 
-UX_FLOW_DEF_NOCB(ux_approval_starkware_register_1_step,
+UX_STEP_NOCB(ux_approval_starkware_register_1_step,
     pnn,
     {
       &C_icon_eye,
@@ -45,7 +45,7 @@ UX_FLOW_DEF_NOCB(ux_approval_starkware_register_1_step,
       "transaction",
     });
 
-UX_FLOW_DEF_NOCB(
+UX_STEP_NOCB(
     ux_approval_starkware_register_2_step,
     bnnn_paging,
     {
@@ -81,7 +81,7 @@ UX_STEP_NOCB_INIT(
     });
 
 
-UX_FLOW_DEF_NOCB(
+UX_STEP_NOCB(
     ux_approval_starkware_register_6_step,
     bnnn_paging,
     {
@@ -89,7 +89,7 @@ UX_FLOW_DEF_NOCB(
       .text = strings.common.maxFee,
     });
 
-UX_FLOW_DEF_VALID(
+UX_STEP_CB(
     ux_approval_starkware_register_7_step,
     pbb,
     io_seproxyhal_touch_tx_ok(NULL),
@@ -99,7 +99,7 @@ UX_FLOW_DEF_VALID(
       "and send",
     });
 
-UX_FLOW_DEF_VALID(
+UX_STEP_CB(
     ux_approval_starkware_register_8_step,
     pb,
     io_seproxyhal_touch_tx_cancel(NULL),
@@ -108,7 +108,7 @@ UX_FLOW_DEF_VALID(
       "Reject",
     });
 
-const ux_flow_step_t *        const ux_approval_starkware_register_flow [] = {
+UX_FLOW(ux_approval_starkware_register_flow,
   &ux_approval_starkware_register_1_step,
   &ux_approval_starkware_register_2_step,
   &ux_approval_starkware_register_3_step,
@@ -116,9 +116,8 @@ const ux_flow_step_t *        const ux_approval_starkware_register_flow [] = {
   &ux_approval_starkware_register_5_step,
   &ux_approval_starkware_register_6_step,
   &ux_approval_starkware_register_7_step,
-  &ux_approval_starkware_register_8_step,
-  FLOW_END_STEP,
-};
+  &ux_approval_starkware_register_8_step
+);
 
 #endif
 

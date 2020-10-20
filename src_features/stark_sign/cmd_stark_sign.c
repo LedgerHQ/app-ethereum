@@ -3,12 +3,7 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
 #include "stark_utils.h"
-#ifdef TARGET_BLUE
-#include "ui_blue.h"
-#endif
-#ifdef HAVE_UX_FLOW
 #include "ui_flow.h"
-#endif
 #include "poorstream.h"
 #include "ui_callbacks.h"
 

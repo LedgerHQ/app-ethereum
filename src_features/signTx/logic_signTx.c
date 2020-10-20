@@ -1,12 +1,7 @@
 #include "shared_context.h"
 #include "utils.h"
 #include "ui_callbacks.h"
-#ifdef TARGET_BLUE
-#include "ui_blue.h"
-#endif
-#ifdef HAVE_UX_FLOW
 #include "ui_flow.h"
-#endif
 #ifdef HAVE_STARKWARE
 #include "stark_utils.h"
 #endif
@@ -231,11 +226,7 @@ customStatus_e customProcessor(txContext_t *context) {
                 dataContext.rawDataContext.fieldOffset = 0;
                 if (fieldPos == 0) {
                     array_hexstr(strings.tmp.tmp, dataContext.rawDataContext.data, 4);
-#if defined(TARGET_BLUE)
-                    UX_DISPLAY(ui_data_selector_blue, ui_data_selector_blue_prepro);
-#else
                     ux_flow_init(0, ux_confirm_selector_flow, NULL);
-#endif // #if TARGET_ID
                 }
                 else {
                     uint32_t offset = 0;
@@ -247,11 +238,7 @@ customStatus_e customProcessor(txContext_t *context) {
                             strings.tmp.tmp[offset++] = ':';
                         }
                     }
-#if defined(TARGET_BLUE)
-                    UX_DISPLAY(ui_data_parameter_blue, ui_data_parameter_blue_prepro);
-#else
                     ux_flow_init(0, ux_confirm_parameter_flow, NULL);
-#endif // #if TARGET_ID
                 }
             }
             else {
@@ -377,9 +364,6 @@ void finalizeParsing(bool direct) {
   }
   else
   {
-#ifdef TARGET_BLUE
-    os_memmove((void*)addressSummary, CONTRACT_ADDRESS, sizeof(CONTRACT_ADDRESS));
-#endif
     strcpy(strings.common.fullAddress, "Contract");
   }
   if ((contractProvisioned == CONTRACT_NONE) || (contractProvisioned == CONTRACT_ERC20) ||
@@ -438,9 +422,6 @@ void finalizeParsing(bool direct) {
     io_seproxyhal_touch_tx_ok(NULL);
   }
   else{
-#if defined(TARGET_BLUE)
-    ui_approval_transaction_blue_init();
-#else
 
 #ifdef HAVE_STARKWARE
 
@@ -492,7 +473,6 @@ void finalizeParsing(bool direct) {
     ux_flow_init(0,
       ((dataPresent && !N_storage.contractDetails) ? ux_approval_tx_data_warning_flow : ux_approval_tx_flow),
       NULL);
-#endif // #if TARGET_ID
   }
 
 }

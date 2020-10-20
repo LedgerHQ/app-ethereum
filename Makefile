@@ -192,14 +192,10 @@ APP_LOAD_PARAMS += $(APP_LOAD_FLAGS) --path "44'/1'"
 DEFINES += $(DEFINES_LIB)
 
 #prepare hsm generation
-ifeq ($(TARGET_NAME),TARGET_BLUE)
-ICONNAME=blue_app_$(CHAIN).gif
-else
 ifeq ($(TARGET_NAME), TARGET_NANOX)
 ICONNAME=nanox_app_$(CHAIN).gif
 else
 ICONNAME=nanos_app_$(CHAIN).gif
-endif
 endif
 
 ################
@@ -223,6 +219,7 @@ DEFINES   += USB_SEGMENT_SIZE=64
 DEFINES   += BLE_SEGMENT_SIZE=32 #max MTU, min 20
 DEFINES   += UNUSED\(x\)=\(void\)x
 DEFINES   += APPVERSION=\"$(APPVERSION)\"
+DEFINES   += HAVE_UX_FLOW
 
 #WEBUSB_URL     = www.ledgerwallet.com
 #DEFINES       += HAVE_WEBUSB WEBUSB_URL_SIZE_B=$(shell echo -n $(WEBUSB_URL) | wc -c) WEBUSB_URL=$(shell echo -n $(WEBUSB_URL) | sed -e "s/./\\\'\0\\\',/g")
@@ -240,13 +237,12 @@ DEFINES   += HAVE_BAGL_ELLIPSIS # long label truncation feature
 DEFINES   += HAVE_BAGL_FONT_OPEN_SANS_REGULAR_11PX
 DEFINES   += HAVE_BAGL_FONT_OPEN_SANS_EXTRABOLD_11PX
 DEFINES   += HAVE_BAGL_FONT_OPEN_SANS_LIGHT_16PX
-DEFINES   += HAVE_UX_FLOW
 else
 DEFINES   += IO_SEPROXYHAL_BUFFER_SIZE_B=72
 endif
 
 # Enabling debug PRINTF
-DEBUG :=0
+DEBUG:=0
 ifneq ($(DEBUG),0)
 DEFINES += HAVE_STACK_OVERFLOW_CHECK
 ifeq ($(TARGET_NAME),TARGET_NANOX)
@@ -298,21 +294,9 @@ include $(BOLOS_SDK)/Makefile.glyphs
 ### variables processed by the common makefile.rules of the SDK to grab source files and include dirs
 APP_SOURCE_PATH  += src_common src src_features
 SDK_SOURCE_PATH  += lib_stusb lib_stusb_impl lib_u2f
+SDK_SOURCE_PATH  += lib_ux
 ifeq ($(TARGET_NAME),TARGET_NANOX)
 SDK_SOURCE_PATH  += lib_blewbxx lib_blewbxx_impl
-SDK_SOURCE_PATH  += lib_ux
-endif
-
-# If the SDK supports Flow for Nano S, build for it
-
-ifeq ($(TARGET_NAME),TARGET_NANOS)
-
-	ifneq "$(wildcard $(BOLOS_SDK)/lib_ux/src/ux_flow_engine.c)" ""
-		SDK_SOURCE_PATH  += lib_ux
-		DEFINES		       += HAVE_UX_FLOW		
-		DEFINES += HAVE_WALLET_ID_SDK 
-	endif
-
 endif
 
 load: all

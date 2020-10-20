@@ -1,11 +1,6 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
-#ifdef TARGET_BLUE
-#include "ui_blue.h"
-#endif
-#ifdef HAVE_UX_FLOW
 #include "ui_flow.h"
-#endif
 
 static const uint8_t const TOKEN_SIGNATURE_PUBLIC_KEY[] = {
 // production key 2019-01-11 03:07PM (erc20signer)

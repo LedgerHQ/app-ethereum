@@ -1,12 +1,7 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
 #include "utils.h"
-#ifdef TARGET_BLUE
-#include "ui_blue.h"
-#endif
-#ifdef HAVE_UX_FLOW
 #include "ui_flow.h"
-#endif
 
 static const char const SIGN_MAGIC[] = "\x19"
                                        "Ethereum Signed Message:\n";
@@ -52,12 +47,7 @@ void handleSignEIP712Message(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16
 #ifdef NO_CONSENT
     io_seproxyhal_touch_signMessage_ok(NULL);
 #else //NO_CONSENT
-#if defined(TARGET_BLUE)
-    // TODO implement
-    ui_approval_message_sign_blue_init();
-#else
     ux_flow_init(0, ux_sign_712_v0_flow, NULL);
-#endif // #if TARGET_ID
 #endif // NO_CONSENT
 
     *flags |= IO_ASYNCH_REPLY;

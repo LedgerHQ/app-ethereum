@@ -59,12 +59,6 @@ typedef struct chain_config_s {
 	char coinName[10]; // ticker
 	uint32_t chainId;
 	chain_kind_t kind;
-#ifdef TARGET_BLUE
-    unsigned int color_header;
-    char header_text[13];
-    unsigned int color_dashboard;
-#endif // TARGET_BLUE
-
 } chain_config_t;
 
 #endif /* _CHAIN_CONFIG_H_ */

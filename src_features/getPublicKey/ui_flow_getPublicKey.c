@@ -1,8 +1,6 @@
 #include "shared_context.h"
 #include "ui_callbacks.h"
 
-#ifdef HAVE_UX_FLOW
-
 UX_FLOW_DEF_NOCB(
     ux_display_public_flow_1_step,
     pnn,
@@ -42,6 +40,3 @@ const ux_flow_step_t *        const ux_display_public_flow [] = {
   &ux_display_public_flow_4_step,
   FLOW_END_STEP,
 };
-
-#endif
-

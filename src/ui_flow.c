@@ -1,8 +1,6 @@
 #include "shared_context.h"
 #include "ui_callbacks.h"
 
-#ifdef HAVE_UX_FLOW
-
 void display_settings(void);
 void switch_settings_contract_data(void);
 void switch_settings_display_data(void);
@@ -126,6 +124,4 @@ void switch_settings_display_data() {
   nvm_write((void*)&N_storage.contractDetails, (void*)&value, sizeof(uint8_t));
   display_settings();
 }
-
-#endif
 

@@ -2,12 +2,7 @@
 
 #include "shared_context.h"
 #include "apdu_constants.h"
-#ifdef TARGET_BLUE
-#include "ui_blue.h"
-#endif
-#ifdef HAVE_UX_FLOW
 #include "ui_flow.h"
-#endif
 
 void handleStarkwareProvideQuantum(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength, unsigned int *flags, unsigned int *tx) {
   size_t i = 0;

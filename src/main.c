@@ -18,12 +18,7 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
 #include "ui_callbacks.h"
-#ifdef TARGET_BLUE
-#include "ui_blue.h"
-#endif
-#ifdef HAVE_UX_FLOW
 #include "ui_flow.h"
-#endif
 
 #include "os_io_seproxyhal.h"
 
@@ -56,9 +51,6 @@ cx_sha3_t global_sha3;
 uint8_t dataAllowed;
 uint8_t contractDetails;
 uint8_t appState;
-#ifdef TARGET_BLUE
-char addressSummary[32];
-#endif
 bool dataPresent;
 contract_call_t contractProvisioned;
 bool called_from_swap;
@@ -66,24 +58,11 @@ bool called_from_swap;
 bool quantumSet;
 #endif
 
-#ifdef HAVE_UX_FLOW
 #include "ux.h"
 ux_state_t G_ux;
 bolos_ux_params_t G_ux_params;
-#else // HAVE_UX_FLOW
-ux_state_t ux;
-
-// display stepped screens
-unsigned int ux_step;
-unsigned int ux_step_count;
-#endif // HAVE_UX_FLOW
 
 const internalStorage_t N_storage_real;
-
-#ifdef TARGET_BLUE
-static const char const CONTRACT_ADDRESS[] = "New contract";
-#endif
-
 
 chain_config_t *chainConfig;
 
@@ -101,23 +80,12 @@ void reset_app_context() {
 }
 
 void ui_idle(void) {
-#if defined(TARGET_BLUE)
-    UX_DISPLAY(ui_idle_blue, ui_idle_blue_prepro);
-#elif defined(HAVE_UX_FLOW)
     // reserve a display stack slot if none yet
     if(G_ux.stack_count == 0) {
         ux_stack_push();
     }
     ux_flow_init(0, ux_idle_flow, NULL);
-#endif // #if TARGET_ID
 }
-
-#if defined(TARGET_BLUE)
-unsigned int io_seproxyhal_touch_settings(const bagl_element_t *e) {
-  UX_DISPLAY(ui_settings_blue, ui_settings_blue_prepro);
-  return 0; // do not redraw button, screen has switched
-}
-#endif // #if defined(TARGET_BLUE)
 
 unsigned int io_seproxyhal_touch_exit(const bagl_element_t *e) {
     // Go back to the dashboard
@@ -168,93 +136,6 @@ void format_signature_out(const uint8_t* signature) {
   }
   memmove(G_io_apdu_buffer+offset+32-xlength, signature+xoffset, xlength);
 }
-
-#if defined(TARGET_BLUE)
-void ui_approval_blue_init(void) {
-  UX_DISPLAY(ui_approval_blue, ui_approval_blue_prepro);
-}
-
-void ui_approval_transaction_blue_init(void) {
-  ui_approval_blue_ok = (bagl_element_callback_t) io_seproxyhal_touch_tx_ok;
-  ui_approval_blue_cancel = (bagl_element_callback_t) io_seproxyhal_touch_tx_cancel;
-  G_ui_approval_blue_state = APPROVAL_TRANSACTION;
-  ui_approval_blue_values[0] = strings.common.fullAmount;
-  ui_approval_blue_values[1] = strings.common.fullAddress;
-  ui_approval_blue_values[2] = strings.common.maxFee;
-  ui_approval_blue_init();
-}
-
-void ui_approval_message_sign_blue_init(void) {
-  ui_approval_blue_ok = (bagl_element_callback_t) io_seproxyhal_touch_signMessage_ok;
-  ui_approval_blue_cancel = (bagl_element_callback_t) io_seproxyhal_touch_signMessage_cancel;
-  G_ui_approval_blue_state = APPROVAL_MESSAGE;
-  ui_approval_blue_values[0] = strings.common.fullAmount;
-  ui_approval_blue_values[1] = NULL;
-  ui_approval_blue_values[2] = NULL;
-  ui_approval_blue_init();
-}
-
-#elif defined(TARGET_NANOS)
-unsigned int ui_approval_nanos_button(unsigned int button_mask, unsigned int button_mask_counter) {
-    switch(button_mask) {
-        case BUTTON_EVT_RELEASED|BUTTON_LEFT:
-            io_seproxyhal_touch_tx_cancel(NULL);
-            break;
-
-        case BUTTON_EVT_RELEASED|BUTTON_RIGHT: {
-			      io_seproxyhal_touch_tx_ok(NULL);
-            break;
-        }
-    }
-    return 0;
-}
-
-
-unsigned int ui_approval_signMessage_nanos_button(unsigned int button_mask, unsigned int button_mask_counter) {
-    switch (button_mask) {
-    case BUTTON_EVT_RELEASED | BUTTON_LEFT:
-        io_seproxyhal_touch_signMessage_cancel(NULL);
-        break;
-
-    case BUTTON_EVT_RELEASED | BUTTON_RIGHT: {
-        io_seproxyhal_touch_signMessage_ok(NULL);
-        break;
-    }
-    }
-    return 0;
-}
-
-unsigned int ui_data_selector_nanos_button(unsigned int button_mask,
-                                     unsigned int button_mask_counter) {
-   switch (button_mask) {
-    case BUTTON_EVT_RELEASED | BUTTON_LEFT:
-        io_seproxyhal_touch_data_cancel(NULL);
-        break;
-
-    case BUTTON_EVT_RELEASED | BUTTON_RIGHT: {
-        io_seproxyhal_touch_data_ok(NULL);
-        break;
-    }
-    }
-    return 0;
-}
-
-unsigned int ui_data_parameter_nanos_button(unsigned int button_mask,
-                                     unsigned int button_mask_counter) {
-   switch (button_mask) {
-    case BUTTON_EVT_RELEASED | BUTTON_LEFT:
-        io_seproxyhal_touch_data_cancel(NULL);
-        break;
-
-    case BUTTON_EVT_RELEASED | BUTTON_RIGHT: {
-        io_seproxyhal_touch_data_ok(NULL);
-        break;
-    }
-    }
-    return 0;
-}
-
-#endif // #if defined(TARGET_NANOS)
 
 unsigned short io_exchange_al(unsigned char channel, unsigned short tx_len) {
     switch (channel & ~(IO_FLAGS)) {
@@ -761,11 +642,6 @@ void coin_main_with_config(chain_config_t *config) {
                 BLE_power(1, "Nano X");
 #endif // HAVE_BLE
 
-#if defined(TARGET_BLUE)
-                // setup the status bar colors (remembered after wards, even more if another app does not resetup after app switch)
-                UX_SET_STATUS_BAR_COLOR(0xFFFFFF, chainConfig->color_header);
-#endif // #if defined(TARGET_BLUE)
-
                 app_main();
             }
             CATCH(EXCEPTION_IO_RESET) {
@@ -790,11 +666,6 @@ void init_coin_config(chain_config_t *coin_config) {
     strcpy(coin_config->coinName, CHAINID_COINNAME " ");
     coin_config->chainId = CHAIN_ID;
     coin_config->kind = CHAIN_KIND;
-#ifdef TARGET_BLUE
-    coin_config.color_header = COLOR_APP;
-    coin_config.color_dashboard = COLOR_APP_LIGHT;
-    strcpy(coin_config->header_text, CHAINID_UPCASE);
-#endif // TARGET_BLUE
 }
 
 void coin_main() {

@@ -4,12 +4,7 @@
 #include "apdu_constants.h"
 #include "stark_utils.h"
 #include "feature_stark_getPublicKey.h"
-#ifdef TARGET_BLUE
-#include "ui_blue.h"
-#endif
-#ifdef HAVE_UX_FLOW
 #include "ui_flow.h"
-#endif
 
 void handleStarkwareGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength, unsigned int *flags, unsigned int *tx) {
   UNUSED(dataLength);

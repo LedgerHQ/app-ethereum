@@ -39,7 +39,7 @@ void prepare_deposit_5() {
   adjustDecimals((char*)(G_io_apdu_buffer + 100), strlen((char*)(G_io_apdu_buffer + 100)), strings.common.fullAmount + strlen(ticker), 50 - strlen(ticker), decimals);
 }
 
-UX_FLOW_DEF_NOCB(ux_approval_starkware_deposit_1_step,
+UX_STEP_NOCB(ux_approval_starkware_deposit_1_step,
     pnn,
     {
       &C_icon_eye,
@@ -47,7 +47,7 @@ UX_FLOW_DEF_NOCB(ux_approval_starkware_deposit_1_step,
       "transaction",
     });
 
-UX_FLOW_DEF_NOCB(
+UX_STEP_NOCB(
     ux_approval_starkware_deposit_2_step,
     bnnn_paging,
     {
@@ -83,7 +83,7 @@ UX_STEP_NOCB_INIT(
     });
 
 
-UX_FLOW_DEF_NOCB(
+UX_STEP_NOCB(
     ux_approval_starkware_deposit_6_step,
     bnnn_paging,
     {
@@ -91,7 +91,7 @@ UX_FLOW_DEF_NOCB(
       .text = strings.common.maxFee,
     });
 
-UX_FLOW_DEF_VALID(
+UX_STEP_CB(
     ux_approval_starkware_deposit_7_step,
     pbb,
     io_seproxyhal_touch_tx_ok(NULL),
@@ -101,7 +101,7 @@ UX_FLOW_DEF_VALID(
       "and send",
     });
 
-UX_FLOW_DEF_VALID(
+UX_STEP_CB(
     ux_approval_starkware_deposit_8_step,
     pb,
     io_seproxyhal_touch_tx_cancel(NULL),
@@ -110,7 +110,7 @@ UX_FLOW_DEF_VALID(
       "Reject",
     });
 
-const ux_flow_step_t *        const ux_approval_starkware_deposit_flow [] = {
+UX_FLOW(ux_approval_starkware_deposit_flow,
   &ux_approval_starkware_deposit_1_step,
   &ux_approval_starkware_deposit_2_step,
   &ux_approval_starkware_deposit_3_step,
@@ -118,9 +118,8 @@ const ux_flow_step_t *        const ux_approval_starkware_deposit_flow [] = {
   &ux_approval_starkware_deposit_5_step,
   &ux_approval_starkware_deposit_6_step,
   &ux_approval_starkware_deposit_7_step,
-  &ux_approval_starkware_deposit_8_step,
-  FLOW_END_STEP,
-};
+  &ux_approval_starkware_deposit_8_step
+);
 
 #endif
 

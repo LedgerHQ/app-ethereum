@@ -12,7 +12,7 @@ void prepare_verify_escape_3() {
     strings.common.fullAddress[42] = '\0';
 }
 
-UX_FLOW_DEF_NOCB(ux_approval_starkware_verify_escape_1_step,
+UX_STEP_NOCB(ux_approval_starkware_verify_escape_1_step,
     pnn,
     {
       &C_icon_eye,
@@ -20,7 +20,7 @@ UX_FLOW_DEF_NOCB(ux_approval_starkware_verify_escape_1_step,
       "transaction",
     });
 
-UX_FLOW_DEF_NOCB(
+UX_STEP_NOCB(
     ux_approval_starkware_verify_escape_2_step,
     bnnn_paging,
     {
@@ -37,7 +37,7 @@ UX_STEP_NOCB_INIT(
       .text = strings.common.fullAddress,
     });
 
-UX_FLOW_DEF_NOCB(
+UX_STEP_NOCB(
     ux_approval_starkware_verify_escape_4_step,
     bnnn_paging,
     {
@@ -45,7 +45,7 @@ UX_FLOW_DEF_NOCB(
       .text = strings.common.maxFee,
     });
 
-UX_FLOW_DEF_VALID(
+UX_STEP_CB(
     ux_approval_starkware_verify_escape_5_step,
     pbb,
     io_seproxyhal_touch_tx_ok(NULL),
@@ -55,7 +55,7 @@ UX_FLOW_DEF_VALID(
       "and send",
     });
 
-UX_FLOW_DEF_VALID(
+UX_STEP_CB(
     ux_approval_starkware_verify_escape_6_step,
     pb,
     io_seproxyhal_touch_tx_cancel(NULL),
@@ -64,14 +64,13 @@ UX_FLOW_DEF_VALID(
       "Reject",
     });
 
-const ux_flow_step_t *        const ux_approval_starkware_verify_escape_flow [] = {
+UX_FLOW(ux_approval_starkware_verify_escape_flow,
   &ux_approval_starkware_verify_escape_1_step,
   &ux_approval_starkware_verify_escape_2_step,
   &ux_approval_starkware_verify_escape_3_step,
   &ux_approval_starkware_verify_escape_4_step,
   &ux_approval_starkware_verify_escape_5_step,
-  &ux_approval_starkware_verify_escape_6_step,
-  FLOW_END_STEP,
-};
+  &ux_approval_starkware_verify_escape_6_step
+);
 
 #endif

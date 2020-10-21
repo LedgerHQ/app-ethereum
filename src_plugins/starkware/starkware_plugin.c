@@ -14,33 +14,47 @@ typedef enum {
 	STARKWARE_FULL_WITHDRAW,
 	STARKWARE_FREEZE,
 	STARKWARE_ESCAPE,
-	STARKWARE_VERIFY_ESCAPE
-
+	STARKWARE_VERIFY_ESCAPE,
+	STARKWARE_WITHDRAW_TO,
+	STARKWARE_DEPOSIT_NFT,
+	STARKWARE_DEPOSIT_NFT_RECLAIM,
+	STARKWARE_WITHDRAW_AND_MINT,
+	STARKWARE_WITHDRAW_NFT,
+	STARKWARE_WITHDRAW_NFT_TO
 } starkwareSelector_t;
 
-// register : starkkey (32), drop param 2
+// register : address (20), stark key (32), drop param 3
    // Registration
    // Contract Name
 	 // From ETH address
    // Master account
-// deposit token : verify tokenId (32), vaultId (4), quantized Amount (32)
+// deposit token : stark key (32), verify assetType (32), vaultId (4), quantized Amount (32)
    // Deposit
    // Contract Name
+	 // Master Account
 	 // Token Account
    // Amount
-// deposit : verify tokenId (32), vaultId (4)
+// deposit : stark key (32), verify assetType (32), vaultId (4)
    // Flow similar to deposit
-// deposit cancel, deposit reclaim : tokenId (32) ignored, vaultId(4)
-// full withdrawal, freeze : vaultId (4)
+// deposit cancel, deposit reclaim : stark key (32), assetType (reclaim) / assetId (cancel) (32) ignored, vaultId(4)
+// full withdrawal, freeze : stark key (32), vaultId (4)
    // Cancel Deposit | Reclaim Deposit | Full Withdrawal | Freeze
    // Contract Name
+   // Master Account
    // Token Account
-// withdrawal : verify tokenId (32)
+// withdrawal : stark key (32), verify assetType (32)
 	 // Withdrawal
 	 // Contract Name
+   // Master Account
    // To Eth Address
    // Token Symbol
-// escape : starkkey (32), vaultId (4), verify tokenId (32), quantized Amount (32)
+// withdrawal to : stark key (32), verify assetType (32), address (20)
+	 // Withdrawal To
+	 // Contract Name
+   // Master Account
+   // To Eth Address
+   // Token Symbol
+// escape : stark key (32), vaultId (4), verify assetType (32), quantized Amount (32)
 	 // Escape
 	 // Contract Name
    // Amount
@@ -49,31 +63,77 @@ typedef enum {
 // verify escape : escapeProof (ignore)
 	 // Verify Escape
 	 // Contract Name
+// deposit NFT : stark key (32), verify assetType (32), vault id (4), token id (32)
+   // Deposit
+   // Contract Name
+   // Master Account
+   // Token Account
+   // NFT Contract
+   // Token ID
+// deposit NFT reclaim : stark key (32), verify assetType (32), vault id (4), token id (32)
+   // Reclaim Deposit
+   // Contract Name
+   // Master Account
+   // Token Account
+   // NFT Contract
+   // Token ID
+// withdraw and mint : stark key (32), verify assetType (32), mintable blob (ignored variable)
+   // Withdrawal
+   // Contract Name
+   // Master Account
+   // Asset Contract
+// withdraw NFT : stark key (32), verify assetType (32), token id (32)
+   // Withdrawal
+   // Contract Name
+   // Master Account
+   // To Eth Address
+   // NFT Contract
+   // Token ID
+// withdraw NFT To : stark key (32), verify assetType (32), token id (32), address (20)
+   // Withdrawal To
+   // Contract Name
+   // Master Account
+   // To Eth Address
+   // NFT Contract
+   // Token ID
+
 
 static const uint8_t STARKWARE_EXPECTED_DATA_SIZE[] = {
-	4 + 32,
+	0,
+	4 + 32 + 32 + 32 + 32,
+	4 + 32 + 32 + 32,
+	4 + 32 + 32 + 32,
 	4 + 32 + 32 + 32,
 	4 + 32 + 32,
 	4 + 32 + 32,
 	4 + 32 + 32,
-	4 + 32,
-	4 + 32,
-	4 + 32,
 	4 + 32 + 32 + 32 + 32,
-	0
+	0,
+	4 + 32 + 32 + 32,
+	4 + 32 + 32 + 32 + 32,
+	4 + 32 + 32 + 32 + 32,
+	0,
+	4 + 32 + 32 + 32,
+	4 + 32 + 32 + 32 + 32
 };
 
 static const uint8_t STARKWARE_NUM_SCREENS[] = {
 	4 - 1,
-	4 - 1,
-	4 - 1,
-	3 - 1,
-	3 - 1,
-	4 - 1,
-	3 - 1,
-	3 - 1,
 	5 - 1,
-	2 - 1
+	5 - 1,
+	4 - 1,
+	4 - 1,
+	5 - 1,
+	4 - 1,
+	4 - 1,
+	5 - 1,
+	2 - 1,
+	5 - 1,
+	6 - 1,
+  6 - 1,
+  4 - 1,
+  6 - 1,
+  6 - 1      	
 };
 
 typedef struct starkware_parameters_t {
@@ -87,7 +147,7 @@ typedef struct starkware_parameters_t {
 } starkware_parameters_t;
 
 // TODO : rewrite as independant code
-bool starkware_verify_token_id(uint8_t *tmp32, uint8_t *tokenId) {
+bool starkware_verify_asset_id(uint8_t *tmp32, uint8_t *tokenId, bool assetTypeOnly) {
 	if (quantumSet) {
 		tokenDefinition_t *currentToken = NULL;
 		if (dataContext.tokenContext.quantumIndex != MAX_TOKEN) {
@@ -97,7 +157,7 @@ bool starkware_verify_token_id(uint8_t *tmp32, uint8_t *tokenId) {
 			(currentToken != NULL ? currentToken->address : NULL),
 			dataContext.tokenContext.quantumType,			
 			dataContext.tokenContext.quantum, 
-			dataContext.tokenContext.mintingBlob, tmp32);
+			dataContext.tokenContext.mintingBlob, assetTypeOnly, tmp32);
 		if (memcmp(tokenId, tmp32, 32) != 0) {
 			PRINTF("Token ID not matching - computed %.*H\n", 32, tmp32);
 			PRINTF("Current quantum %.*H\n", 32, dataContext.tokenContext.quantum);
@@ -108,6 +168,27 @@ bool starkware_verify_token_id(uint8_t *tmp32, uint8_t *tokenId) {
 	else {
 		PRINTF("Quantum not set\n");
     return false;
+	}
+	return true;
+}
+
+bool starkware_verify_nft_token_id(uint8_t *tokenId) {
+	if (!quantumSet) {
+		PRINTF("Quantum not set\n");
+    return false;		
+	}
+	switch(dataContext.tokenContext.quantumType) {
+		case STARK_QUANTUM_ERC721:
+		case STARK_QUANTUM_MINTABLE_ERC721:
+			break;
+		default:
+			PRINTF("Unexpected quantum type for NFT token id check %d\n", dataContext.tokenContext.quantumType);
+			return false;
+	}
+	if (memcmp(dataContext.tokenContext.quantum, tokenId, 32) != 0) {
+		PRINTF("Token ID not matching - expected %.*H\n", 32, dataContext.tokenContext.quantum);
+		PRINTF("Current token ID %.*H\n", 32, tokenId);
+		return false;
 	}
 	return true;
 }
@@ -165,6 +246,18 @@ void starkware_print_ticker(char *destination) {
     ticker = (char*)token->ticker;
   }
   strcpy(destination, ticker);	
+}
+
+// TODO : rewrite as independant code
+void starkware_print_asset_contract(char *destination) {
+	// token has been validated to be present previously
+	if (dataContext.tokenContext.quantumIndex != MAX_TOKEN) {
+		tokenDefinition_t *token = &tmpCtx.transactionContext.tokens[dataContext.tokenContext.quantumIndex];
+		starkware_print_eth_address(token->address, destination);
+	}
+	else {
+		strcpy(destination, "UNKNOWN");
+	}
 }
 
 // TODO : rewrite as independant code
@@ -227,6 +320,128 @@ void starkware_plugin_call(int message, void *parameters) {
 				break;
 			}
 			switch(msg->parameterOffset) {
+
+				case 4:
+					switch(context->selectorIndex) {
+						case STARKWARE_REGISTER:
+							memmove(context->amount, msg->parameter + 32 - 20, 20);
+							break;
+
+						case STARKWARE_DEPOSIT_TOKEN:
+						case STARKWARE_DEPOSIT_ETH:
+						case STARKWARE_DEPOSIT_CANCEL:
+						case STARKWARE_DEPOSIT_RECLAIM:
+						case STARKWARE_WITHDRAW:
+						case STARKWARE_FULL_WITHDRAW:
+						case STARKWARE_FREEZE:
+						case STARKWARE_ESCAPE:
+						case STARKWARE_WITHDRAW_TO:
+						case STARKWARE_DEPOSIT_NFT:
+						case STARKWARE_DEPOSIT_NFT_RECLAIM:
+						case STARKWARE_WITHDRAW_AND_MINT:
+						case STARKWARE_WITHDRAW_NFT:
+						case STARKWARE_WITHDRAW_NFT_TO:
+							memmove(context->starkKey, msg->parameter, 32);
+							break;
+
+						default:
+							break;
+					}
+					msg->result = ETH_PLUGIN_RESULT_OK;
+					break;
+
+			case 4 + 32:
+				switch(context->selectorIndex) {
+					case STARKWARE_REGISTER:
+						memmove(context->starkKey, msg->parameter, 32);
+						break;
+
+					case STARKWARE_ESCAPE: 
+						memmove(context->vaultId, msg->parameter + 32 - 4, 4);
+						break;
+
+					case STARKWARE_DEPOSIT_CANCEL:
+					case STARKWARE_DEPOSIT_RECLAIM:
+						break;
+
+					case STARKWARE_FULL_WITHDRAW:
+					case STARKWARE_FREEZE:
+						memmove(context->vaultId, msg->parameter + 32 - 4, 4);
+						break;							
+
+					case STARKWARE_DEPOSIT_ETH:
+					case STARKWARE_DEPOSIT_TOKEN:
+					case STARKWARE_WITHDRAW:
+					case STARKWARE_WITHDRAW_TO:
+				  case STARKWARE_DEPOSIT_NFT:
+					case STARKWARE_DEPOSIT_NFT_RECLAIM:
+					case STARKWARE_WITHDRAW_AND_MINT:
+					case STARKWARE_WITHDRAW_NFT:
+					case STARKWARE_WITHDRAW_NFT_TO:
+						context->validToken = starkware_verify_asset_id(context->amount, msg->parameter, true);
+						break;
+
+					default:
+						break;
+				}
+				msg->result = ETH_PLUGIN_RESULT_OK;
+				break;
+
+			case 4 + 32 + 32:			
+				switch(context->selectorIndex) {
+
+					case STARKWARE_ESCAPE:
+						context->validToken = starkware_verify_asset_id(context->amount, msg->parameter, true);
+						break;							
+
+					case STARKWARE_DEPOSIT_CANCEL:
+					case STARKWARE_DEPOSIT_RECLAIM:						
+					case STARKWARE_DEPOSIT_ETH:
+					case STARKWARE_DEPOSIT_TOKEN:
+				  case STARKWARE_DEPOSIT_NFT:
+					case STARKWARE_DEPOSIT_NFT_RECLAIM:					
+						memmove(context->vaultId, msg->parameter + 32 - 4, 4);
+						break;
+					
+					case STARKWARE_WITHDRAW_TO:
+						memmove(context->amount, msg->parameter + 32 - 20, 20);
+						break;
+
+					case STARKWARE_WITHDRAW_NFT:
+					case STARKWARE_WITHDRAW_NFT_TO:
+						context->validToken = starkware_verify_nft_token_id(msg->parameter);
+						break;
+
+					default:
+						break;
+				}
+				msg->result = ETH_PLUGIN_RESULT_OK;
+				break;
+
+			case 4 + 32 + 32 + 32:
+				switch(context->selectorIndex) {
+
+					case STARKWARE_ESCAPE: 
+					case STARKWARE_DEPOSIT_TOKEN:
+						memmove(context->amount, msg->parameter, 32);
+						break;
+
+					case STARKWARE_WITHDRAW_NFT_TO:
+						memmove(context->amount, msg->parameter + 32 - 20, 20);
+						break;
+
+					case STARKWARE_DEPOSIT_NFT:
+					case STARKWARE_DEPOSIT_NFT_RECLAIM:
+						context->validToken = starkware_verify_nft_token_id(msg->parameter);
+						break;
+
+					default:
+						break;
+				}			
+				msg->result = ETH_PLUGIN_RESULT_OK;
+				break;
+
+#if 0				
 				case 4:
 					switch(context->selectorIndex) {
 						case STARKWARE_REGISTER:
@@ -290,6 +505,7 @@ void starkware_plugin_call(int message, void *parameters) {
 					}
 					msg->result = ETH_PLUGIN_RESULT_OK;
 					break;
+#endif					
 
 				default:
 					PRINTF("Unhandled parameter offset\n");
@@ -323,15 +539,19 @@ void starkware_plugin_call(int message, void *parameters) {
       		break;
 				case STARKWARE_DEPOSIT_TOKEN:
 				case STARKWARE_DEPOSIT_ETH:
+				case STARKWARE_DEPOSIT_NFT:
 					strcpy(msg->name, "Deposit");
 					break;
 				case STARKWARE_DEPOSIT_CANCEL:
 					strcpy(msg->name, "Cancel Deposit");
 					break;
 				case STARKWARE_DEPOSIT_RECLAIM:
+				case STARKWARE_DEPOSIT_NFT_RECLAIM:
 					strcpy(msg->name, "Reclaim Deposit");
 					break;
 				case STARKWARE_WITHDRAW:
+				case STARKWARE_WITHDRAW_NFT:
+				case STARKWARE_WITHDRAW_AND_MINT:
 					strcpy(msg->name, "Withdrawal");
 					break;					
 				case STARKWARE_FULL_WITHDRAW:
@@ -346,6 +566,11 @@ void starkware_plugin_call(int message, void *parameters) {
 				case STARKWARE_VERIFY_ESCAPE:
 					strcpy(msg->name, "Verify Escape");
 					break;
+				case STARKWARE_WITHDRAW_TO:
+				case STARKWARE_WITHDRAW_NFT_TO:
+					strcpy(msg->name, "Withdrawal To");
+					break;					
+
 				default:
 					break;
       }
@@ -363,6 +588,134 @@ void starkware_plugin_call(int message, void *parameters) {
   					starkware_print_eth_address(tmpContent.txContent.destination, msg->msg);
             msg->result = ETH_PLUGIN_RESULT_OK;
             break;
+          case 1:
+          	switch(context->selectorIndex) {
+          		case STARKWARE_REGISTER:
+          			strcpy(msg->title, "From ETH Address");
+          			starkware_print_eth_address(context->amount, msg->msg);
+          			break;
+      				case STARKWARE_ESCAPE:
+      					strcpy(msg->title, "Amount");
+      					starkware_print_amount(context->amount, msg->msg, true);
+      					break;          			
+							case STARKWARE_DEPOSIT_TOKEN:
+							case STARKWARE_DEPOSIT_ETH:
+							case STARKWARE_DEPOSIT_CANCEL:
+							case STARKWARE_DEPOSIT_RECLAIM:
+							case STARKWARE_WITHDRAW:
+							case STARKWARE_FULL_WITHDRAW:
+							case STARKWARE_FREEZE:
+							case STARKWARE_VERIFY_ESCAPE:
+							case STARKWARE_WITHDRAW_TO:
+							case STARKWARE_DEPOSIT_NFT:
+							case STARKWARE_DEPOSIT_NFT_RECLAIM:
+							case STARKWARE_WITHDRAW_AND_MINT:
+							case STARKWARE_WITHDRAW_NFT:
+							case STARKWARE_WITHDRAW_NFT_TO:
+								strcpy(msg->title, "Master Account");
+								starkware_print_stark_key(context->starkKey, msg->msg);
+								break;								
+      				default:
+      					PRINTF("Unexpected screen %d for %d\n", msg->screenIndex, context->selectorIndex);
+      					break;								
+          	}
+            msg->result = ETH_PLUGIN_RESULT_OK;
+            break;
+          case 2:
+          	switch(context->selectorIndex) {
+          		case STARKWARE_REGISTER:
+							case STARKWARE_ESCAPE:
+								strcpy(msg->title, "Master Account");
+								starkware_print_stark_key(context->starkKey, msg->msg);
+								break;
+
+        			case STARKWARE_DEPOSIT_TOKEN:
+        			case STARKWARE_DEPOSIT_ETH:
+        			case STARKWARE_DEPOSIT_CANCEL:
+        			case STARKWARE_DEPOSIT_RECLAIM:
+        			case STARKWARE_FULL_WITHDRAW:
+							case STARKWARE_FREEZE:        			
+							case STARKWARE_DEPOSIT_NFT:
+							case STARKWARE_DEPOSIT_NFT_RECLAIM:
+        				strcpy(msg->title, "Token Account");
+        				starkware_print_vault_id(U4BE(context->vaultId, 0), msg->msg);
+        				break;
+        			case STARKWARE_WITHDRAW:
+        			case STARKWARE_WITHDRAW_NFT:
+        				strcpy(msg->title, "To ETH Address");
+      					starkware_get_source_address(msg->msg);
+      					break;
+        			case STARKWARE_WITHDRAW_TO:
+        			case STARKWARE_WITHDRAW_NFT_TO:
+        				strcpy(msg->title, "To ETH Address");
+      					starkware_print_eth_address(context->amount, msg->msg);
+      					break;
+      				case STARKWARE_WITHDRAW_AND_MINT:
+								strcpy(msg->title, "Asset Contract");
+								starkware_print_asset_contract(msg->msg);
+								break;      				
+
+      				default:
+      					PRINTF("Unexpected screen %d for %d\n", msg->screenIndex, context->selectorIndex);
+      					break;								
+          	}
+            msg->result = ETH_PLUGIN_RESULT_OK;            
+            break;
+
+          case 3:
+          	switch(context->selectorIndex) {
+							case STARKWARE_ESCAPE:
+								strcpy(msg->title, "Token Account");
+								starkware_print_vault_id(U4BE(context->vaultId, 0), msg->msg);
+								break;
+							case STARKWARE_DEPOSIT_TOKEN:
+							case STARKWARE_DEPOSIT_ETH:
+								strcpy(msg->title, "Amount");
+								starkware_print_amount(
+									(context->selectorIndex == STARKWARE_DEPOSIT_ETH ? NULL : context->amount), 
+									msg->msg, false);
+								break;
+							case STARKWARE_WITHDRAW:
+							case STARKWARE_WITHDRAW_TO:
+								strcpy(msg->title, "Token Symbol");
+								starkware_print_ticker(msg->msg);
+								break;
+
+        			case STARKWARE_WITHDRAW_NFT:
+        			case STARKWARE_WITHDRAW_NFT_TO:
+							case STARKWARE_DEPOSIT_NFT:
+							case STARKWARE_DEPOSIT_NFT_RECLAIM:
+								strcpy(msg->title, "NFT Contract");
+								starkware_print_asset_contract(msg->msg);
+								break;      				
+
+							default:
+								PRINTF("Unexpected screen %d for %d\n", msg->screenIndex, context->selectorIndex);
+								break;								          	
+          	}
+						msg->result = ETH_PLUGIN_RESULT_OK;
+          	break;          	
+
+          case 4:
+          	switch(context->selectorIndex) {
+
+        			case STARKWARE_WITHDRAW_NFT:
+        			case STARKWARE_WITHDRAW_NFT_TO:
+							case STARKWARE_DEPOSIT_NFT:
+							case STARKWARE_DEPOSIT_NFT_RECLAIM:
+								strcpy(msg->title, "TokenID");
+								starkware_print_stark_key(dataContext.tokenContext.quantum, msg->msg);
+								break;      				
+
+							default:
+								PRINTF("Unexpected screen %d for %d\n", msg->screenIndex, context->selectorIndex);
+								break;								          	
+          	}
+						msg->result = ETH_PLUGIN_RESULT_OK;
+          	break;          	
+
+
+#if 0
 
           case 1:
           	switch(context->selectorIndex) {
@@ -432,6 +785,8 @@ void starkware_plugin_call(int message, void *parameters) {
           	}
 						msg->result = ETH_PLUGIN_RESULT_OK;
           	break;          	
+
+#endif
 
           default:
           	PRINTF("Unexpected screen %d for %d\n", msg->screenIndex, context->selectorIndex);

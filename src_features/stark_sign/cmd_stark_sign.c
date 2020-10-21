@@ -111,13 +111,13 @@ void handleStarkwareSignMessage(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uin
   compute_token_id(&global_sha3, dataBuffer + preOffset, 
     (protocol == 2 ? dataBuffer[0] : STARK_QUANTUM_LEGACY), 
     dataBuffer + preOffset + 20, 
-    (protocol == 2 ? dataBuffer + 1 + 20 + 32 : NULL), dataContext.starkContext.w1);
+    (protocol == 2 ? dataBuffer + 1 + 20 + 32 : NULL), false, dataContext.starkContext.w1);
   if (order) {
     io_seproxyhal_io_heartbeat();
     compute_token_id(&global_sha3, dataBuffer + 20 + 32 + postOffset + preOffset, 
       (protocol == 2 ? dataBuffer[1 + 20 + 32 + 32] : STARK_QUANTUM_LEGACY),  
       dataBuffer + 20 + 32 + postOffset + preOffset + 20, 
-      (protocol == 2 ? dataBuffer + 1 + 20 + 32 + 32 + 1 + 20 + 32 : NULL), dataContext.starkContext.w2);
+      (protocol == 2 ? dataBuffer + 1 + 20 + 32 + 32 + 1 + 20 + 32 : NULL), false, dataContext.starkContext.w2);
     offset = 20 + 32 + postOffset + 20 + 32 + postOffset;
   }
   else {  

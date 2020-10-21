@@ -135,7 +135,7 @@ static const uint8_t MINTABLE_ERC721_SELECTOR[] = { 0xb8, 0xb8, 0x66, 0x72 };
 static const char NFT_ASSET_ID_PREFIX[] = { 'N', 'F', 'T', ':', 0 };
 static const char MINTABLE_ASSET_ID_PREFIX[] = { 'M', 'I', 'N', 'T', 'A', 'B', 'L', 'E', ':', 0 };
 
-void compute_token_id(cx_sha3_t *sha3, uint8_t *contractAddress, uint8_t quantumType, uint8_t *quantum, uint8_t *mintingBlob, uint8_t *output) {
+void compute_token_id(cx_sha3_t *sha3, uint8_t *contractAddress, uint8_t quantumType, uint8_t *quantum, uint8_t *mintingBlob, bool assetTypeOnly, uint8_t *output) {
     uint8_t tmp[36];
     cx_keccak_init(sha3, 256);
     if ((contractAddress != NULL) && (!allzeroes(contractAddress, 20))) {
@@ -178,9 +178,9 @@ void compute_token_id(cx_sha3_t *sha3, uint8_t *contractAddress, uint8_t quantum
         PRINTF("compute_token_id quantum %.*H\n", 32, quantum);
         cx_hash((cx_hash_t*)sha3, CX_LAST, quantum, 32, output, 32);
     }
-    if ((quantumType != STARK_QUANTUM_LEGACY) && 
+    if (!assetTypeOnly && ((quantumType != STARK_QUANTUM_LEGACY) && 
         (quantumType != STARK_QUANTUM_ETH) && 
-        (quantumType != STARK_QUANTUM_ERC20)) {
+        (quantumType != STARK_QUANTUM_ERC20))) {
         const char *prefix = NULL;
         output[0] &= 0x03;
         cx_keccak_init(sha3, 256);
@@ -200,7 +200,7 @@ void compute_token_id(cx_sha3_t *sha3, uint8_t *contractAddress, uint8_t quantum
         cx_hash((cx_hash_t*)sha3, 0, output, 32, NULL, 0);
         cx_hash((cx_hash_t*)sha3, CX_LAST, mintingBlob, 32, output, 32);
     }
-    if ((quantumType == STARK_QUANTUM_MINTABLE_ERC20) || (quantumType == STARK_QUANTUM_MINTABLE_ERC721)) {
+    if (!assetTypeOnly && ((quantumType == STARK_QUANTUM_MINTABLE_ERC20) || (quantumType == STARK_QUANTUM_MINTABLE_ERC721))) {
         output[0] = 0x04;
         output[1] = 0x00;
     }

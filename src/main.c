@@ -505,6 +505,9 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
           case STARKWARE_INS_PROVIDE_QUANTUM:
             handleStarkwareProvideQuantum(G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2], G_io_apdu_buffer + OFFSET_CDATA, G_io_apdu_buffer[OFFSET_LC], flags, tx);
             break;
+          case STARKWARE_INS_UNSAFE_SIGN:
+            handleStarkwareUnsafeSign(G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2], G_io_apdu_buffer + OFFSET_CDATA, G_io_apdu_buffer[OFFSET_LC], flags, tx);
+            break;
           default:
             THROW(0x6D00);
             break;

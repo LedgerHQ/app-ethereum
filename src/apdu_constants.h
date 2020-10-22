@@ -27,6 +27,7 @@
 #define STARKWARE_INS_GET_PUBLIC_KEY 0x02
 #define STARKWARE_INS_SIGN_MESSAGE 0x04
 #define STARKWARE_INS_PROVIDE_QUANTUM 0x08
+#define STARKWARE_INS_UNSAFE_SIGN 0x0A
 
 #define P1_STARK_ORDER 0x01
 #define P1_STARK_TRANSFER 0x02
@@ -58,6 +59,7 @@ void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint
 void handleStarkwareGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength, unsigned int *flags, unsigned int *tx);
 void handleStarkwareSignMessage(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength, unsigned int *flags, unsigned int *tx);
 void handleStarkwareProvideQuantum(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength, unsigned int *flags, unsigned int *tx);
+void handleStarkwareUnsafeSign(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength, unsigned int *flags, unsigned int *tx);
 
 #endif
 

@@ -28,6 +28,8 @@ extern const ux_flow_step_t *        const ux_stark_limit_order_flow [];
 
 extern const ux_flow_step_t *        const ux_stark_transfer_flow [];
 
+extern const ux_flow_step_t *        const ux_stark_unsafe_sign_flow [];
+
 extern const ux_flow_step_t *        const ux_stark_self_transfer_flow [];
 
 extern const ux_flow_step_t *        const ux_stark_transfer_conditional_flow [];

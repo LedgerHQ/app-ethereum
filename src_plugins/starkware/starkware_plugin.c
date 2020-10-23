@@ -379,7 +379,7 @@ void starkware_plugin_call(int message, void *parameters) {
         				break;
         			case STARKWARE_WITHDRAW:
         				strcpy(msg->title, "To ETH Address");
-      					starkware_print_eth_address(tmpContent.txContent.destination, msg->msg);
+      					starkware_get_source_address(msg->msg);
       					break;
       				case STARKWARE_ESCAPE:
       					strcpy(msg->title, "Amount");

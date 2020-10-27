@@ -76,6 +76,9 @@ customStatus_e customProcessor(txContext_t *context) {
               blockSize = 4;
           }
           else {
+              if (!N_storage.contractDetails) {
+                return CUSTOM_NOT_HANDLED;
+              }                 
               blockSize = 32 - (dataContext.tokenContext.fieldOffset % 32);
           }
 

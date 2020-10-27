@@ -56,6 +56,9 @@ bool called_from_swap;
 #ifdef HAVE_STARKWARE
 bool quantumSet;
 #endif
+#ifdef HAVE_ETH2
+uint32_t eth2WithdrawalIndex;
+#endif
 
 #include "ux.h"
 ux_state_t G_ux;
@@ -72,6 +75,9 @@ void reset_app_context() {
   called_from_swap = false;
 #ifdef HAVE_STARKWARE
   quantumSet = false;
+#endif
+#ifdef HAVE_ETH2
+  eth2WithdrawalIndex = 0;
 #endif
   os_memset((uint8_t*)&txContext, 0, sizeof(txContext));
   os_memset((uint8_t*)&tmpContent, 0, sizeof(tmpContent));
@@ -427,6 +433,19 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
            os_memset(tmpCtx.transactionContext.tokenSet, 0, MAX_TOKEN);
            handleSignEIP712Message(G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2], G_io_apdu_buffer + OFFSET_CDATA, G_io_apdu_buffer[OFFSET_LC], flags, tx);
            break;
+
+#ifdef HAVE_ETH2
+
+        case INS_GET_ETH2_PUBLIC_KEY:
+           os_memset(tmpCtx.transactionContext.tokenSet, 0, MAX_TOKEN);
+           handleGetEth2PublicKey(G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2], G_io_apdu_buffer + OFFSET_CDATA, G_io_apdu_buffer[OFFSET_LC], flags, tx);
+           break;
+
+        case INS_SET_ETH2_WITHDRAWAL_INDEX:
+            handleSetEth2WithdrawalIndex(G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2], G_io_apdu_buffer + OFFSET_CDATA, G_io_apdu_buffer[OFFSET_LC], flags, tx);
+            break;
+
+#endif
 
 #if 0
         case 0xFF: // return to dashboard

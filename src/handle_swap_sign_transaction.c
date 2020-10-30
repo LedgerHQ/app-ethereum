@@ -47,8 +47,6 @@ void handle_swap_sign_transaction(create_transaction_parameters_t* sign_transact
     storage.initialized = 0x01;
     nvm_write((void*)&N_storage, (void*)&storage, sizeof(internalStorage_t));
     }
-    dataAllowed = N_storage.dataAllowed;
-    contractDetails = N_storage.contractDetails;
 
     UX_INIT();
     USB_power(0);

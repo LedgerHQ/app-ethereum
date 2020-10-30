@@ -163,8 +163,6 @@ extern cx_sha3_t global_sha3;
 extern const internalStorage_t N_storage_real;
 
 extern bool called_from_swap;
-extern uint8_t dataAllowed;
-extern uint8_t contractDetails;
 extern bool dataPresent;
 extern uint8_t appState;
 #ifdef HAVE_STARKWARE

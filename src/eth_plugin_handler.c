@@ -61,8 +61,6 @@ int eth_plugin_perform_init(uint8_t *contractAddress, ethPluginInitContract_t *i
 		}
 	}
 
-#ifndef TARGET_BLUE
-
 	// Do not handle a plugin if running in swap mode
 	if (called_from_swap && (contractAddress != NULL)) {
 		PRINTF("eth_plug_init aborted in swap mode\n");
@@ -90,14 +88,6 @@ int eth_plugin_perform_init(uint8_t *contractAddress, ethPluginInitContract_t *i
 	PRINTF("eth_plugin_init ok %s\n", dataContext.tokenContext.pluginName);
 	dataContext.tokenContext.pluginAvailable = 1;
 	return 1;
-
-#else
-
-	// Disable plugins on Ledger Blue for the time being
-
-	return 0;
-#endif	
-
 }
 
 int eth_plugin_call(uint8_t *contractAddress, int method, void *parameter) {

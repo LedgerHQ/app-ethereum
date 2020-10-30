@@ -47,8 +47,7 @@ APP_LOAD_PARAMS += --path "2645'/579218131'"
 DEFINES += HAVE_STARKWARE
 DEFINES += STARK_BIP32_PATH_0=0x80000A55 STARK_BIP32_PATH_1=0xA2862AD3 
 # Allow to derive ETH 2 public keys
-# TODO : add curve reference on latest firmware
-APP_LOAD_PARAMS += --path "12381/3600"
+APP_LOAD_PARAMS += --path "12381/3600" --curve bls12381g1 
 DEFINES += HAVE_ETH2
 APPNAME = "Ethereum"
 DEFINES_LIB=
@@ -63,8 +62,7 @@ DEFINES += HAVE_STARKWARE
 DEFINES += HAVE_TOKENS_EXTRA_LIST
 DEFINES += STARK_BIP32_PATH_0=0x80000A55 STARK_BIP32_PATH_1=0xA2862AD3
 # Allow to derive ETH 2 public keys
-# TODO : add curve reference on latest firmware
-APP_LOAD_PARAMS += --path "12381/3600"
+APP_LOAD_PARAMS += --path "12381/3600" --curve bls12381g1
 DEFINES += HAVE_ETH2
 APPNAME = "Eth Ropsten"
 DEFINES_LIB=

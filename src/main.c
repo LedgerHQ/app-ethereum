@@ -48,8 +48,6 @@ dataContext_t dataContext;
 strings_t strings;
 cx_sha3_t global_sha3;
 
-uint8_t dataAllowed;
-uint8_t contractDetails;
 uint8_t appState;
 bool dataPresent;
 bool called_from_swap;
@@ -627,8 +625,6 @@ void coin_main_with_config(chain_config_t *config) {
                     storage.initialized = 0x01;
                     nvm_write((void*)&N_storage, (void*)&storage, sizeof(internalStorage_t));
                 }
-                dataAllowed = N_storage.dataAllowed;
-                contractDetails = N_storage.contractDetails;
 
                 USB_power(0);
                 USB_power(1);

@@ -11,7 +11,7 @@ void getEth2PublicKey(uint32_t *bip32Path, uint8_t bip32PathLength, uint8_t *out
 
 #define WITHDRAWAL_KEY_PATH_1 12381
 #define WITHDRAWAL_KEY_PATH_2 3600
-#define WITHDRAWAL_KEY_PATH_3 0
+#define WITHDRAWAL_KEY_PATH_4 0
 
 #define ETH2_DEPOSIT_PUBKEY_OFFSET 0x80
 #define ETH2_WITHDRAWAL_CREDENTIALS_OFFSET 0xE0
@@ -95,8 +95,8 @@ void eth2_plugin_call(int message, void *parameters) {
 					 uint32_t withdrawalKeyPath[4];
 					 withdrawalKeyPath[0] = WITHDRAWAL_KEY_PATH_1;
 					 withdrawalKeyPath[1] = WITHDRAWAL_KEY_PATH_2;
-					 withdrawalKeyPath[2] = WITHDRAWAL_KEY_PATH_3;
-					 withdrawalKeyPath[3] = eth2WithdrawalIndex;
+					 withdrawalKeyPath[2] = eth2WithdrawalIndex;
+					 withdrawalKeyPath[3] = WITHDRAWAL_KEY_PATH_4;
 					 getEth2PublicKey(withdrawalKeyPath, 4, tmp);
 					 PRINTF("eth2 plugin computed withdrawal public key %.*H\n", 48, tmp);
 					 cx_hash_sha256(tmp, 48, tmp, 32);

@@ -508,8 +508,16 @@ void starkware_plugin_call(int message, void *parameters) {
 #endif					
 
 				default:
-					PRINTF("Unhandled parameter offset\n");
-					break;
+					switch(context->selectorIndex) {
+						case STARKWARE_REGISTER:
+						case STARKWARE_VERIFY_ESCAPE:
+							msg->result = ETH_PLUGIN_RESULT_OK;		
+							break;
+
+						default:
+							PRINTF("Unhandled parameter offset\n");
+							break;
+					}
 			}
 		}
 		break;

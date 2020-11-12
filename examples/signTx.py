@@ -59,7 +59,6 @@ parser.add_argument('--amount', help="Amount to send in ether", required=True)
 parser.add_argument('--to', help="Destination address", type=str, required=True)
 parser.add_argument('--path', help="BIP 32 path to sign with")
 parser.add_argument('--data', help="Data to add, hex encoded")
-parser.add_argument('--descriptor', help="Optional descriptor")
 args = parser.parse_args()
 
 if args.path == None:
@@ -86,20 +85,25 @@ tx = Transaction(
 
 encodedTx = encode(tx, Transaction)
 
-dongle = getDongle(True)
-
-if args.descriptor != None:
-    descriptor = binascii.unhexlify(args.descriptor)
-    apdu = struct.pack(">BBBBB", 0xE0, 0x0A, 0x00, 0x00, len(descriptor)) + descriptor
-    dongle.exchange(bytes(apdu))
-
 donglePath = parse_bip32_path(args.path)
-apdu = bytearray.fromhex("e0040000")
-apdu.append(len(donglePath) + 1 + len(encodedTx))
-apdu.append(len(donglePath) // 4)
-apdu += donglePath + encodedTx
+data = struct.pack(">B", len(donglePath) // 4) + donglePath + encodedTx
 
-result = dongle.exchange(bytes(apdu))
+MAX_BLOCK_1 = 50 
+MAX_BLOCK_2 = 30
+
+offset = 0
+dongle = getDongle(True)
+while offset != len(data):
+    if offset == 0:
+        MAX_BLOCK = MAX_BLOCK_1
+    else:
+        MAX_BLOCK = MAX_BLOCK_2
+    chunkSize = len(data) - offset if ((len(data) - offset) < MAX_BLOCK) else MAX_BLOCK 
+    chunk = data[offset : offset + chunkSize]
+    p1 = 0x00 if offset == 0 else 0x80
+    apdu = struct.pack(">BBBBB", 0xe0, 0x04, p1, 0, len(chunk)) + chunk    
+    result = dongle.exchange(bytes(apdu))
+    offset += len(chunk)
 
 # Needs to recover (main.c:1121)
 if (CHAIN_ID*2 + 35) + 1 > 255:

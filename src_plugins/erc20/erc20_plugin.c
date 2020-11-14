@@ -76,6 +76,7 @@ void erc20_plugin_call(int message, void *parameters) {
 				}
 				if (i == NUM_ERC20_SELECTORS) {
 					PRINTF("Unknown selector %.*H\n", SELECTOR_SIZE, msg->selector);
+					msg->result = ETH_PLUGIN_RESULT_ERROR;
 					break;
 				}
 				PRINTF("erc20 plugin init\n");
@@ -99,6 +100,7 @@ void erc20_plugin_call(int message, void *parameters) {
 					break;
 				default:
 					PRINTF("Unhandled parameter offset\n");
+					msg->result = ETH_PLUGIN_RESULT_ERROR;
 					break;
 			}
 		}

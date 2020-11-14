@@ -85,23 +85,26 @@ void compound_plugin_call(int message, void *parameters) {
             if (!allzeroes(msg->pluginSharedRO->txContent->value.value, 32)){
                 if(context->selectorIndex != CETH_MINT){
                     msg->result = ETH_PLUGIN_RESULT_ERROR;
+                    break;
                 }
+            }
+            if (i == NUM_COMPOUND_SELECTORS) {
+                PRINTF("Unknown selector %.*H\n", SELECTOR_SIZE, msg->selector);
+                msg->result = ETH_PLUGIN_RESULT_ERROR;
+                break;
+            }
+            if (msg->dataSize != COMPOUND_EXPECTED_DATA_SIZE[context->selectorIndex]) {
+                PRINTF("Unexpected data size for command %d expected %d got %d\n", context->selectorIndex,
+                COMPOUND_EXPECTED_DATA_SIZE[context->selectorIndex], msg->dataSize);
+                msg->result = ETH_PLUGIN_RESULT_ERROR;
+                break;
             }
             if(context->selectorIndex == CETH_MINT){
                 // ETH amount 0x1234 is stored 0x12340000...000 instead of 0x00....001234, so we strip the following zeroes when copying
                 memset(context->amount, 0, sizeof(context->amount));
                 memmove(context->amount + sizeof(context->amount) - msg->pluginSharedRO->txContent->value.length, msg->pluginSharedRO->txContent->value.value, 32);
             }
-            if (i == NUM_COMPOUND_SELECTORS) {
-                PRINTF("Unknown selector %.*H\n", SELECTOR_SIZE, msg->selector);
-                break;
-            }
-            if (msg->dataSize != COMPOUND_EXPECTED_DATA_SIZE[context->selectorIndex]) {
-                PRINTF("Unexpected data size for command %d expected %d got %d\n", context->selectorIndex,
-                COMPOUND_EXPECTED_DATA_SIZE[context->selectorIndex], msg->dataSize);
-                break;
-            }
-            PRINTF("compound plugin init\n");
+            PRINTF("compound plugin inititialized\n");
             msg->result = ETH_PLUGIN_RESULT_OK;
         }
         break;
@@ -118,8 +121,13 @@ void compound_plugin_call(int message, void *parameters) {
                         break;
                     default:
                         PRINTF("Unhandled parameter offset\n");
+                        msg->result = ETH_PLUGIN_RESULT_ERROR;
                         break;
                 }
+            }
+            else {
+                PRINTF("CETH contract expects no parameters\n");
+                msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
         }
         break;

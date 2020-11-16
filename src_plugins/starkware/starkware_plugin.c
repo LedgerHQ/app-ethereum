@@ -3,6 +3,8 @@
 #include "shared_context.h" // TODO : rewrite as independant code
 #include "eth_plugin_internal.h" // TODO : rewrite as independant code
 
+#ifdef HAVE_STARKWARE
+
 typedef enum {
 
 	STARKWARE_REGISTER = 0,
@@ -448,3 +450,5 @@ void starkware_plugin_call(int message, void *parameters) {
 			PRINTF("Unhandled message %d\n", message);			
 	}
 }
+
+#endif

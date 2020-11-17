@@ -168,6 +168,9 @@ extern uint8_t appState;
 #ifdef HAVE_STARKWARE
 extern bool quantumSet;
 #endif
+#ifdef HAVE_ETH2
+extern uint32_t eth2WithdrawalIndex;
+#endif
 
 void reset_app_context(void);
 

@@ -45,12 +45,16 @@ void eth_plugin_prepare_query_contract_UI(ethQueryContractUI_t *queryContractUI,
 
 int eth_plugin_perform_init(uint8_t *contractAddress, ethPluginInitContract_t *init) {
 	uint8_t i;
+	const uint8_t **selectors;
 	dataContext.tokenContext.pluginAvailable = 0;
 	// Handle hardcoded plugin list
 	PRINTF("Selector %.*H\n", 4, init->selector);
-	for (i=0; i<NUM_INTERNAL_PLUGINS; i++) {
-		const uint8_t **selectors = PIC(INTERNAL_ETH_PLUGINS[i].selectors);
+	for (i=0;; i++) {		
 		uint8_t j;
+		selectors = PIC(INTERNAL_ETH_PLUGINS[i].selectors);
+		if (selectors == NULL) {
+			break;
+		}
 		for (j=0; ((j<INTERNAL_ETH_PLUGINS[i].num_selectors) && (contractAddress != NULL)); j++) {			
 			if (memcmp(init->selector, PIC(selectors[j]), SELECTOR_SIZE) == 0) {
 				strcpy(dataContext.tokenContext.pluginName, INTERNAL_ETH_PLUGINS[i].alias);
@@ -96,6 +100,7 @@ int eth_plugin_call(uint8_t *contractAddress, int method, void *parameter) {
 	char tmp[PLUGIN_ID_LENGTH];
 	char *alias;
 	uint8_t i;
+	uint8_t internalPlugin = 0;
 
 	pluginRW.sha3 = &global_sha3;
 	pluginRO.txContent = &tmpContent.txContent;
@@ -154,14 +159,18 @@ int eth_plugin_call(uint8_t *contractAddress, int method, void *parameter) {
 
 	// Perform the call
 
-	for (i=0; i<NUM_INTERNAL_PLUGINS; i++) {
+	for (i=0;; i++) {
+		if (INTERNAL_ETH_PLUGINS[i].alias[0] == 0) {
+			break;
+		}		
 		if (strcmp(alias, INTERNAL_ETH_PLUGINS[i].alias) == 0) {
+			internalPlugin = 1;
 			((PluginCall)PIC(INTERNAL_ETH_PLUGINS[i].impl))(method, parameter);
 			break;
 		}
 	}
 
-	if (i == NUM_INTERNAL_PLUGINS) {
+	if (!internalPlugin) {
 		 uint32_t params[3];
 		 params[0] = (uint32_t)alias;
 		 params[1] = method;

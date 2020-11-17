@@ -11,6 +11,8 @@
 #define INS_SIGN_PERSONAL_MESSAGE 0x08
 #define INS_PROVIDE_ERC20_TOKEN_INFORMATION 0x0A
 #define INS_SIGN_EIP_712_MESSAGE 0x0C
+#define INS_GET_ETH2_PUBLIC_KEY 0x0E
+#define INS_SET_ETH2_WITHDRAWAL_INDEX 0x10
 #define P1_CONFIRM 0x01
 #define P1_NON_CONFIRM 0x00
 #define P2_NO_CHAINCODE 0x00
@@ -48,6 +50,14 @@ void handleProvideErc20TokenInformation(uint8_t p1, uint8_t p2, uint8_t *dataBuf
 void handleSign(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength, unsigned int *flags, unsigned int *tx);
 void handleGetAppConfiguration(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength, unsigned int *flags, unsigned int *tx);
 void handleSignPersonalMessage(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength, unsigned int *flags, unsigned int *tx);
+void handleSignEIP712Message(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength, unsigned int *flags, unsigned int *tx);
+
+#ifdef HAVE_ETH2
+
+void handleGetEth2PublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength, unsigned int *flags, unsigned int *tx);
+void handleSetEth2WinthdrawalIndex(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength, unsigned int *flags, unsigned int *tx);
+
+#endif
 
 #ifdef HAVE_STARKWARE
 

@@ -12,6 +12,7 @@ unsigned int io_seproxyhal_touch_data_ok(const bagl_element_t *e);
 unsigned int io_seproxyhal_touch_data_cancel(const bagl_element_t *e);
 unsigned int io_seproxyhal_touch_signMessage712_v0_ok(const bagl_element_t *e);
 unsigned int io_seproxyhal_touch_signMessage712_v0_cancel(const bagl_element_t *e);
+unsigned int io_seproxyhal_touch_eth2_address_ok(const bagl_element_t *e);
 
 void ui_idle(void);
 

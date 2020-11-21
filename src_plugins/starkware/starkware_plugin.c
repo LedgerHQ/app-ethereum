@@ -91,11 +91,13 @@ typedef struct starkware_parameters_t {
 // TODO : rewrite as independant code
 bool starkware_verify_token_id(uint8_t *tmp32, uint8_t *tokenId) {
 	if (quantumSet) {
+		cx_sha3_t sha3;
 		tokenDefinition_t *currentToken = NULL;
 		if (dataContext.tokenContext.quantumIndex != MAX_TOKEN) {
 			currentToken = &tmpCtx.transactionContext.tokens[dataContext.tokenContext.quantumIndex];
 		}
-		compute_token_id(&global_sha3,
+		cx_keccak_init(&sha3, 256);
+		compute_token_id(&sha3,
 			(currentToken != NULL ? currentToken->address : NULL),
 			dataContext.tokenContext.quantum, tmp32);
 		if (memcmp(tokenId, tmp32, 32) != 0) {

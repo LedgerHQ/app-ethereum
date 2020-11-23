@@ -53,7 +53,7 @@ typedef enum chain_kind_e {
     CHAIN_KIND_ARTIS_TAU1,
     CHAIN_KIND_WEBCHAIN,
     CHAIN_KIND_THUNDERCORE
-} chain_kind_t;
+    CHAIN_KIND_FUSE} chain_kind_t;
 
 typedef struct chain_config_s {
     char coinName[10];  // ticker

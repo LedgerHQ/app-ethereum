@@ -100,6 +100,10 @@ else ifeq ($(CHAIN),poa)
 APP_LOAD_PARAMS += --path "44'/60'"
 DEFINES += CHAINID_UPCASE=\"POA\" CHAINID_COINNAME=\"POA\" CHAIN_KIND=CHAIN_KIND_POA CHAIN_ID=99
 APPNAME = "POA"
+else ifeq ($(CHAIN),fuse)
+APP_LOAD_PARAMS += --path "44'/60'"
+DEFINES += CHAINID_UPCASE=\"FUSE\" CHAINID_COINNAME=\"FUSE\" CHAIN_KIND=CHAIN_KIND_FUSE CHAIN_ID=122
+APPNAME = "FUSE"
 else ifeq ($(CHAIN),artis_sigma1)
 APP_LOAD_PARAMS += --path "44'/246529'"
 DEFINES += CHAINID_UPCASE=\"ARTISSIGMA1\" CHAINID_COINNAME=\"ATS\" CHAIN_KIND=CHAIN_KIND_ARTIS_SIGMA1 CHAIN_ID=246529
@@ -194,7 +198,7 @@ DEFINES += CHAINID_UPCASE=\"THUNDERCORE\" CHAINID_COINNAME=\"TT\" CHAIN_KIND=CHA
 APPNAME = "ThunderCore"
 else
 ifeq ($(filter clean,$(MAKECMDGOALS)),)
-$(error Unsupported CHAIN - use ethereum, ropsten, ethereum_classic, expanse, poa, artis_sigma1, artis_tau1, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, pirl, akroma, atheios, callisto, ethersocial, ellaism, ether1, ethergem, gochain, mix, reosc, hpb, tomochain, tobalaba, dexon, volta, ewc, webchain, thundercore)
+$(error Unsupported CHAIN - use ethereum, ropsten, ethereum_classic, expanse, poa, artis_sigma1, artis_tau1, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, pirl, akroma, atheios, callisto, ethersocial, ellaism, ether1, ethergem, gochain, mix, reosc, hpb, tomochain, tobalaba, dexon, volta, ewc, webchain, thundercore, fuse)
 endif
 endif
 
@@ -322,4 +326,4 @@ include $(BOLOS_SDK)/Makefile.rules
 dep/%.d: %.c Makefile
 
 listvariants:
-	@echo VARIANTS CHAIN ethereum ropsten ethereum_classic expanse poa rsk rsk_testnet ubiq wanchain pirl akroma atheios callisto ethersocial ether1 gochain musicoin ethergem mix ellaism reosc hpb tomochain dexon volta ewc thundercore
+	@echo VARIANTS CHAIN ethereum ropsten ethereum_classic expanse poa rsk rsk_testnet ubiq wanchain pirl akroma atheios callisto ethersocial ether1 gochain musicoin ethergem mix ellaism reosc hpb tomochain dexon volta ewc thundercore fuse

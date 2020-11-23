@@ -55,6 +55,21 @@ bool check_token_binding(char* ticker1, char* ticker2, const ticker_binding_t* b
 	return false;
 }
 
+bool erc20_plugin_available_check() {
+	if (quantumSet) {
+		switch(dataContext.tokenContext.quantumType) {
+  		case STARK_QUANTUM_LEGACY:
+  		case STARK_QUANTUM_ETH:
+  		case STARK_QUANTUM_ERC20:
+  		case STARK_QUANTUM_MINTABLE_ERC20:
+  			return true;
+  		default:
+  			return false;
+		}
+	}
+	return true;
+}
+
 void erc20_plugin_call(int message, void *parameters) {
 
 	switch(message) {

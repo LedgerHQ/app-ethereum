@@ -57,10 +57,13 @@ int eth_plugin_perform_init(uint8_t *contractAddress, ethPluginInitContract_t *i
 		}
 		for (j=0; ((j<INTERNAL_ETH_PLUGINS[i].num_selectors) && (contractAddress != NULL)); j++) {			
 			if (memcmp(init->selector, PIC(selectors[j]), SELECTOR_SIZE) == 0) {
-				strcpy(dataContext.tokenContext.pluginName, INTERNAL_ETH_PLUGINS[i].alias);
-				dataContext.tokenContext.pluginAvailable = 1;
-				contractAddress = NULL;			
-				break;
+				if ((INTERNAL_ETH_PLUGINS[i].availableCheck == NULL) || 			
+					((PluginAvailableCheck)PIC(INTERNAL_ETH_PLUGINS[i].availableCheck))()) {
+					strcpy(dataContext.tokenContext.pluginName, INTERNAL_ETH_PLUGINS[i].alias);
+					dataContext.tokenContext.pluginAvailable = 1;
+					contractAddress = NULL;			
+					break;
+				}
 			}
 		}
 	}

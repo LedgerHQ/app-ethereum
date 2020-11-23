@@ -4,17 +4,19 @@
 #include "stark_utils.h"
 #include "ui_callbacks.h"
 
-unsigned int io_seproxyhal_touch_stark_ok(const bagl_element_t *e) {
+unsigned int io_seproxyhal_touch_stark_unsafe_sign_ok(const bagl_element_t *e) {
+    cx_ecfp_private_key_t privateKey;
     uint8_t privateKeyData[32];
     uint8_t signature[72];
+    unsigned int info = 0;
     uint32_t tx = 0;
     io_seproxyhal_io_heartbeat();
     starkDerivePrivateKey(tmpCtx.transactionContext.bip32Path, tmpCtx.transactionContext.pathLength, privateKeyData);
     io_seproxyhal_io_heartbeat();
-    stark_sign(signature, privateKeyData, dataContext.starkContext.w1, dataContext.starkContext.w2, 
-            dataContext.starkContext.w3, 
-            (dataContext.starkContext.conditional ? dataContext.starkContext.w4 : NULL));
-     G_io_apdu_buffer[0] = 0;
+    cx_ecfp_init_private_key(CX_CURVE_Stark256, privateKeyData, 32, &privateKey);
+    cx_ecdsa_sign(&privateKey, CX_RND_RFC6979 | CX_LAST, CX_SHA256,
+                         dataContext.starkContext.w2, sizeof(dataContext.starkContext.w2), signature, sizeof(signature), &info);    
+    G_io_apdu_buffer[0] = 0;
     format_signature_out(signature);
     tx = 65;
     G_io_apdu_buffer[tx++] = 0x90;

@@ -30,6 +30,21 @@ typedef struct internalStorage_t {
   uint8_t initialized;
 } internalStorage_t;
 
+#ifdef HAVE_STARKWARE
+
+typedef enum starkQuantumType_e {
+
+  STARK_QUANTUM_LEGACY = 0x00,
+  STARK_QUANTUM_ETH,
+  STARK_QUANTUM_ERC20,
+  STARK_QUANTUM_ERC721,
+  STARK_QUANTUM_MINTABLE_ERC20,
+  STARK_QUANTUM_MINTABLE_ERC721
+
+} starkQuantumType_e;
+
+#endif
+
 typedef struct tokenContext_t {
     char pluginName[PLUGIN_ID_LENGTH];
     uint8_t pluginAvailable;    
@@ -46,7 +61,9 @@ typedef struct tokenContext_t {
 
 #ifdef HAVE_STARKWARE
     uint8_t quantum[32];
+    uint8_t mintingBlob[32];
     uint8_t quantumIndex;
+    uint8_t quantumType;
 #endif
 
 } tokenContext_t;
@@ -101,6 +118,11 @@ typedef struct starkContext_t {
   uint8_t w1[32];
   uint8_t w2[32];
   uint8_t w3[32];
+  uint8_t w4[32];
+  uint8_t conditional;
+  uint8_t transferDestination[32];  
+  uint8_t fact[32];
+  uint8_t conditionAddress[20];  
 } starkContext_t;
 
 #endif

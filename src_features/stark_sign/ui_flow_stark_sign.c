@@ -5,6 +5,21 @@
 
 unsigned int io_seproxyhal_touch_stark_ok(const bagl_element_t *e);
 
+void stark_sign_display_master_account() {
+  snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "0x%.*H", 32, dataContext.starkContext.transferDestination);
+}
+
+void stark_sign_display_condition_address() {
+  strings.tmp.tmp[0] = '0';
+  strings.tmp.tmp[1] = 'x';
+  getEthAddressStringFromBinary(dataContext.starkContext.conditionAddress, (uint8_t*)(strings.tmp.tmp + 2), &global_sha3, chainConfig);
+  strings.tmp.tmp[42] = '\0';
+}  
+
+void stark_sign_display_condition_fact() {
+  snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "0x%.*H", 32, dataContext.starkContext.fact);
+}
+
 UX_STEP_NOCB(ux_stark_limit_order_1_step,
     pnn,
     {
@@ -100,6 +115,19 @@ UX_STEP_NOCB(ux_stark_self_transfer_2_step,
       .text = "Transfer"
     });
 
+UX_STEP_NOCB(ux_stark_conditional_transfer_2_step,
+    bnnn_paging,
+    {
+      .title = "Conditional",
+      .text = "Transfer"
+    });
+
+UX_STEP_NOCB(ux_stark_self_conditional_transfer_2_step,
+    bnnn_paging,
+    {
+      .title = "Conditional",
+      .text = "Self Transfer"
+    });
 
 UX_STEP_NOCB(ux_stark_transfer_3_step,
     bnnn_paging,
@@ -140,6 +168,33 @@ UX_STEP_CB(
       "Reject",
     });
 
+UX_STEP_NOCB_INIT(
+    ux_stark_conditional_transfer_4_step,
+    bnnn_paging,
+    stark_sign_display_master_account(),
+    {
+      .title = "Master Account",
+      .text = strings.tmp.tmp
+    });
+
+UX_STEP_NOCB_INIT(
+    ux_stark_conditional_transfer_8_step,
+    bnnn_paging,
+    stark_sign_display_condition_address(),
+    {
+      .title = "Cond. Address",
+      .text = strings.tmp.tmp
+    });
+
+UX_STEP_NOCB_INIT(
+    ux_stark_conditional_transfer_9_step,
+    bnnn_paging,
+    stark_sign_display_condition_fact(),
+    {
+      .title = "Cond. Fact",
+      .text = strings.tmp.tmp
+    });
+
 UX_FLOW(ux_stark_transfer_flow,
   &ux_stark_transfer_1_step,
   &ux_stark_transfer_2_step,
@@ -155,6 +210,29 @@ UX_FLOW(ux_stark_self_transfer_flow,
   &ux_stark_self_transfer_2_step,
   &ux_stark_transfer_3_step,
   &ux_stark_transfer_5_step,
+  &ux_stark_transfer_6_step,
+  &ux_stark_transfer_7_step
+);
+
+UX_FLOW(ux_stark_transfer_conditional_flow,
+  &ux_stark_transfer_1_step,
+  &ux_stark_conditional_transfer_2_step,
+  &ux_stark_transfer_3_step,
+  &ux_stark_conditional_transfer_4_step,
+  &ux_stark_transfer_5_step,
+  &ux_stark_conditional_transfer_8_step,
+  &ux_stark_conditional_transfer_9_step,
+  &ux_stark_transfer_6_step,
+  &ux_stark_transfer_7_step
+);
+
+UX_FLOW(ux_stark_self_transfer_conditional_flow,
+  &ux_stark_transfer_1_step,
+  &ux_stark_self_conditional_transfer_2_step,
+  &ux_stark_transfer_3_step,
+  &ux_stark_transfer_5_step,
+  &ux_stark_conditional_transfer_8_step,
+  &ux_stark_conditional_transfer_9_step,
   &ux_stark_transfer_6_step,
   &ux_stark_transfer_7_step
 );

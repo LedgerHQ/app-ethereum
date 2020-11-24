@@ -35,8 +35,8 @@ void handleGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t da
   cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
   io_seproxyhal_io_heartbeat();
   cx_ecfp_generate_pair(CX_CURVE_256K1, &tmpCtx.publicKeyContext.publicKey, &privateKey, 1);
-  os_memset(&privateKey, 0, sizeof(privateKey));
-  os_memset(privateKeyData, 0, sizeof(privateKeyData));
+  memset(&privateKey, 0, sizeof(privateKey));
+  memset(privateKeyData, 0, sizeof(privateKeyData));
   io_seproxyhal_io_heartbeat();
   getEthAddressStringFromKey(&tmpCtx.publicKeyContext.publicKey, tmpCtx.publicKeyContext.address, &global_sha3, chainConfig);
 #ifndef NO_CONSENT

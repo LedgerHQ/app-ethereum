@@ -4,7 +4,7 @@
 #include "ethUtils.h"
 #include "string.h"
 
-#define ZERO(x) os_memset(x, 0, sizeof(x))
+#define ZERO(x) memset(x, 0, sizeof(x))
 
 void handle_check_address(check_address_parameters_t* params, chain_config_t* chain_config) {
     PRINTF("Params on the address %d\n",(unsigned int)params);
@@ -60,7 +60,7 @@ void handle_check_address(check_address_parameters_t* params, chain_config_t* ch
     }
 
     if ((strlen(locals_union1.address) != strlen(params->address_to_check + offset_0x)) ||
-        os_memcmp(locals_union1.address, params->address_to_check + offset_0x, strlen(locals_union1.address)) != 0) {
+        memcmp(locals_union1.address, params->address_to_check + offset_0x, strlen(locals_union1.address)) != 0) {
         PRINTF("Addresses doesn't match\n");
         return;
     }

@@ -158,7 +158,7 @@ void compareOrCopy(char* preapproved_string, char* parsed_string, bool silent_mo
     have some for checksum purpose, so let's get rid of these diffs */
     to_uppercase(preapproved_string, strlen(preapproved_string));
     to_uppercase(parsed_string, strlen(parsed_string));
-    if(os_memcmp(preapproved_string, parsed_string, strlen(preapproved_string))){
+    if(memcmp(preapproved_string, parsed_string, strlen(preapproved_string))){
       THROW(ERR_SILENT_MODE_CHECK_FAILED);
     }
   }

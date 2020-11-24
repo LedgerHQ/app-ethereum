@@ -26,7 +26,7 @@
 
 void initTx(txContext_t *context, cx_sha3_t *sha3, txContent_t *content,
             ustreamProcess_t customProcessor, void *extra) {
-    os_memset(context, 0, sizeof(txContext_t));
+    memset(context, 0, sizeof(txContext_t));
     context->sha3 = sha3;
     context->content = content;
     context->customProcessor = customProcessor;
@@ -59,7 +59,7 @@ void copyTxData(txContext_t *context, uint8_t *out, uint32_t length) {
         THROW(EXCEPTION);
     }
     if (out != NULL) {
-        os_memmove(out, context->workBuffer, length);
+        memmove(out, context->workBuffer, length);
     }
     if (!(context->processingField && context->fieldSingleByte)) {
         cx_hash((cx_hash_t*)context->sha3, 0, context->workBuffer, length, NULL, 0);

@@ -72,7 +72,7 @@ void handleStarkwareSignMessage(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uin
     offset += 4;
   }
   // Discard the path to use part of dataBuffer as a temporary buffer
-  os_memmove(dataBuffer, dataBuffer + offset, dataLength - offset);
+  memmove(dataBuffer, dataBuffer + offset, dataLength - offset);
   dataContext.starkContext.conditional = (p1 == P1_STARK_CONDITIONAL_TRANSFER);
   if (dataContext.starkContext.conditional) {
     memmove(dataContext.starkContext.fact, dataBuffer + 20 + 32 + postOffset + 32 + 4 + 4 + 8 + 4 + 4, 32);
@@ -116,7 +116,7 @@ void handleStarkwareSignMessage(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uin
     offset = 20 + 32 + postOffset + 20 + 32 + postOffset;
   }
   else {  
-    os_memmove(dataContext.starkContext.w2, dataBuffer + 20 + 32 + postOffset, 32);
+    memmove(dataContext.starkContext.w2, dataBuffer + 20 + 32 + postOffset, 32);
     offset = 20 + 32 + postOffset + 32;
   }
 
@@ -176,10 +176,10 @@ void handleStarkwareSignMessage(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uin
     cx_ecfp_init_private_key(CX_CURVE_Stark256, privateKeyData, 32, &privateKey);
     io_seproxyhal_io_heartbeat();
     cx_ecfp_generate_pair(CX_CURVE_Stark256, &publicKey, &privateKey, 1);
-    os_memset(&privateKey, 0, sizeof(privateKey));
-    os_memset(privateKeyData, 0, sizeof(privateKeyData));
+    memset(&privateKey, 0, sizeof(privateKey));
+    memset(privateKeyData, 0, sizeof(privateKeyData));
     io_seproxyhal_io_heartbeat();
-    selfTransfer = (os_memcmp(publicKey.W + 1, dataBuffer + 20 + 32 + postOffset, 32) == 0);
+    selfTransfer = (memcmp(publicKey.W + 1, dataBuffer + 20 + 32 + postOffset, 32) == 0);
     PRINTF("self transfer %d\n", selfTransfer);
     io_seproxyhal_io_heartbeat();
     // amount to transfer

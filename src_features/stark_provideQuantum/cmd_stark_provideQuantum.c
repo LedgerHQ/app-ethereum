@@ -34,7 +34,7 @@ void handleStarkwareProvideQuantum(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, 
   if ((p1 != STARK_QUANTUM_ETH) && !addressZero) {
     for(i=0; i<MAX_TOKEN; i++){
       currentToken = &tmpCtx.transactionContext.tokens[i];
-      if (tmpCtx.transactionContext.tokenSet[i] && (os_memcmp(currentToken->address, dataBuffer, 20) == 0)) {
+      if (tmpCtx.transactionContext.tokenSet[i] && (memcmp(currentToken->address, dataBuffer, 20) == 0)) {
         break;
       }
     }

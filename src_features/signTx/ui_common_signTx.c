@@ -15,14 +15,14 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
                                privateKeyData, NULL);
     cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32,
                                  &privateKey);
-    os_memset(privateKeyData, 0, sizeof(privateKeyData));
+    memset(privateKeyData, 0, sizeof(privateKeyData));
     unsigned int info = 0;
     io_seproxyhal_io_heartbeat();
     signatureLength =
         cx_ecdsa_sign(&privateKey, CX_RND_RFC6979 | CX_LAST, CX_SHA256,
                       tmpCtx.transactionContext.hash,
                       sizeof(tmpCtx.transactionContext.hash), signature, sizeof(signature), &info);
-    os_memset(&privateKey, 0, sizeof(privateKey));
+    memset(&privateKey, 0, sizeof(privateKey));
     // Parity is present in the sequence tag in the legacy API
     if (tmpContent.txContent.vLength == 0) {
       // Legacy API

@@ -66,8 +66,8 @@ DEFINES += STARK_BIP32_PATH_0=0x80000A55 STARK_BIP32_PATH_1=0xA2862AD3
 ifeq ($(TARGET_NAME), TARGET_NANOX)
 # Allow to derive ETH 2 public keys
 APP_LOAD_PARAMS += --path "12381/3600" --curve bls12381g1
-endif
 DEFINES += HAVE_ETH2
+endif
 APPNAME = "Eth Ropsten"
 DEFINES_LIB=
 APP_LOAD_FLAGS=--appFlags 0xa40

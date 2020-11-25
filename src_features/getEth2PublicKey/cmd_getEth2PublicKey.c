@@ -22,8 +22,8 @@ void getEth2PublicKey(uint32_t *bip32Path, uint8_t bip32PathLength, uint8_t *out
   memmove(tmp + 16, privateKeyData, 32);
   cx_ecfp_init_private_key(CX_CURVE_BLS12_381_G1, tmp, 48, &privateKey);
   cx_ecfp_generate_pair(CX_CURVE_BLS12_381_G1, &publicKey, &privateKey, 1);
-  memset(tmp, 0, 96);
-  memset((void*)&privateKey, 0, sizeof(cx_ecfp_256_extended_private_key_t));
+  explicit_bzero(tmp, 96);
+  explicit_bzero((void*)&privateKey, sizeof(cx_ecfp_256_extended_private_key_t));
   tmp[47] = 2;
   cx_math_mult(tmp, publicKey.W + 1 + 48, tmp, 48);
   if (cx_math_cmp(tmp + 48, BLS12_381_FIELD_MODULUS, 48) > 0) {

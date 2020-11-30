@@ -25,6 +25,23 @@ typedef enum {
 	STARKWARE_WITHDRAW_NFT_TO
 } starkwareSelector_t;
 
+#ifndef HAVE_TOKENS_EXTRA_LIST
+
+static const uint8_t DEVERSIFI_CONTRACT[] = {
+	0x01,
+	0x5d,0x22,0x04,0x5d,0xac,0xea,0xb0,0x3b,0x15,0x80,0x31,0xec,0xb7,0xd9,0xd0,0x6f,0xad,0x24,0x60,0x9b
+};
+
+#else
+
+static const uint8_t DEVERSIFI_CONTRACT[] = {
+	0x02,
+	0xe7,0x3a,0x39,0x4a,0xde,0x4d,0x94,0xa0,0x73,0x50,0x2d,0xa8,0x70,0x3e,0xa2,0x34,0x90,0xdc,0x7b,0x6a,
+	0x69,0xC6,0x39,0x2E,0xb0,0x2a,0x28,0x82,0x31,0x41,0x34,0xc9,0x8D,0xDC,0xBF,0x73,0xB7,0xAd,0xBa,0xb1
+};
+
+#endif
+
 // register : address (20), stark key (32), drop param 3
    // Registration
    // Contract Name
@@ -147,6 +164,20 @@ typedef struct starkware_parameters_t {
 	uint8_t validToken;
 
 } starkware_parameters_t;
+
+bool is_deversify_contract(const uint8_t *address) {
+	uint32_t offset = 0;
+	uint8_t size = DEVERSIFI_CONTRACT[0];
+	uint8_t i;
+
+	for (i=0; i<DEVERSIFI_CONTRACT[0]; i++) {
+		if (memcmp(address, DEVERSIFI_CONTRACT + offset + 1, 20) == 0) {
+			return true;
+		} 
+		offset += 20;
+	}
+	return false;
+}
 
 // TODO : rewrite as independant code
 bool starkware_verify_asset_id(uint8_t *tmp32, uint8_t *tokenId, bool assetTypeOnly) {
@@ -522,7 +553,7 @@ void starkware_plugin_call(int message, void *parameters) {
 				default:
 					break;
       }
-      strcpy(msg->version, "Starkware");
+      strcpy(msg->version, is_deversify_contract(tmpContent.txContent.destination) ? "DeversiFi" : "Starkware");
       msg->result = ETH_PLUGIN_RESULT_OK;
     }
       break;
@@ -533,7 +564,12 @@ void starkware_plugin_call(int message, void *parameters) {
         switch(msg->screenIndex) {
           case 0:
             strcpy(msg->title, "Contract Name");
-  					starkware_print_eth_address(tmpContent.txContent.destination, msg->msg);
+            if (is_deversify_contract(tmpContent.txContent.destination)) {
+            	strcpy(msg->msg, "DeversiFi");
+            }
+            else {
+  						starkware_print_eth_address(tmpContent.txContent.destination, msg->msg);
+  					}
             msg->result = ETH_PLUGIN_RESULT_OK;
             break;
           case 1:

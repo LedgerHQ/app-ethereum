@@ -59,7 +59,7 @@ UX_STEP_NOCB(ux_stark_limit_order_5_step,
 UX_STEP_NOCB(ux_stark_limit_order_6_step,
     bnnn_paging,
     {
-      .title = "Token Accont",
+      .title = "Token Account",
       .text = strings.common.fullAddress
     });
 
@@ -146,7 +146,7 @@ UX_STEP_NOCB(ux_stark_transfer_4_step,
 UX_STEP_NOCB(ux_stark_transfer_5_step,
     bnnn_paging,
     {
-      .title = "Token Accont",
+      .title = "Token Account",
       .text = strings.tmp.tmp2
     });
 

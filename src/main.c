@@ -69,7 +69,7 @@ chain_config_t *chainConfig;
 void reset_app_context() {
   //PRINTF("!!RESET_APP_CONTEXT\n");
   appState = APP_STATE_IDLE;
-  os_memset(tmpCtx.transactionContext.tokenSet, 0, MAX_TOKEN);
+  memset(tmpCtx.transactionContext.tokenSet, 0, MAX_TOKEN);
   called_from_swap = false;
 #ifdef HAVE_STARKWARE
   quantumSet = false;
@@ -77,8 +77,8 @@ void reset_app_context() {
 #ifdef HAVE_ETH2
   eth2WithdrawalIndex = 0;
 #endif
-  os_memset((uint8_t*)&txContext, 0, sizeof(txContext));
-  os_memset((uint8_t*)&tmpContent, 0, sizeof(tmpContent));
+  memset((uint8_t*)&txContext, 0, sizeof(txContext));
+  memset((uint8_t*)&tmpContent, 0, sizeof(tmpContent));
 }
 
 void ui_idle(void) {
@@ -118,7 +118,7 @@ void io_seproxyhal_send_status(uint32_t sw) {
 }
 
 void format_signature_out(const uint8_t* signature) {
-  os_memset(G_io_apdu_buffer + 1, 0x00, 64);
+  memset(G_io_apdu_buffer + 1, 0x00, 64);
   uint8_t offset = 1;
   uint8_t xoffset = 4; //point to r value
   //copy r
@@ -355,14 +355,14 @@ tokenDefinition_t* getKnownToken(uint8_t *contractAddress) {
                 currentToken = (tokenDefinition_t *)PIC(&TOKENS_THUNDERCORE[i]);
                 break
         }
-        if (os_memcmp(currentToken->address, tmpContent.txContent.destination, 20) == 0) {
+        if (memcmp(currentToken->address, tmpContent.txContent.destination, 20) == 0) {
             return currentToken;
         }
     }
 #endif
     for(size_t i=0; i<MAX_TOKEN; i++){
       currentToken = &tmpCtx.transactionContext.tokens[i];
-      if (tmpCtx.transactionContext.tokenSet[i] && (os_memcmp(currentToken->address, contractAddress, 20) == 0)) {
+      if (tmpCtx.transactionContext.tokenSet[i] && (memcmp(currentToken->address, contractAddress, 20) == 0)) {
         PRINTF("Token found at index %d\n", i);
         return currentToken;
       }
@@ -390,6 +390,9 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
           case STARKWARE_INS_PROVIDE_QUANTUM:
             handleStarkwareProvideQuantum(G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2], G_io_apdu_buffer + OFFSET_CDATA, G_io_apdu_buffer[OFFSET_LC], flags, tx);
             break;
+          case STARKWARE_INS_UNSAFE_SIGN:
+            handleStarkwareUnsafeSign(G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2], G_io_apdu_buffer + OFFSET_CDATA, G_io_apdu_buffer[OFFSET_LC], flags, tx);
+            break;        
           default:
             THROW(0x6D00);
             break;
@@ -406,7 +409,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
 
       switch (G_io_apdu_buffer[OFFSET_INS]) {
         case INS_GET_PUBLIC_KEY:
-          os_memset(tmpCtx.transactionContext.tokenSet, 0, MAX_TOKEN);
+          memset(tmpCtx.transactionContext.tokenSet, 0, MAX_TOKEN);
           handleGetPublicKey(G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2], G_io_apdu_buffer + OFFSET_CDATA, G_io_apdu_buffer[OFFSET_LC], flags, tx);
           break;
 
@@ -423,19 +426,19 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
           break;
 
         case INS_SIGN_PERSONAL_MESSAGE:
-          os_memset(tmpCtx.transactionContext.tokenSet, 0, MAX_TOKEN);
+          memset(tmpCtx.transactionContext.tokenSet, 0, MAX_TOKEN);
           handleSignPersonalMessage(G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2], G_io_apdu_buffer + OFFSET_CDATA, G_io_apdu_buffer[OFFSET_LC], flags, tx);
           break;
 
         case INS_SIGN_EIP_712_MESSAGE:
-           os_memset(tmpCtx.transactionContext.tokenSet, 0, MAX_TOKEN);
+           memset(tmpCtx.transactionContext.tokenSet, 0, MAX_TOKEN);
            handleSignEIP712Message(G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2], G_io_apdu_buffer + OFFSET_CDATA, G_io_apdu_buffer[OFFSET_LC], flags, tx);
            break;
 
 #ifdef HAVE_ETH2
 
         case INS_GET_ETH2_PUBLIC_KEY:
-           os_memset(tmpCtx.transactionContext.tokenSet, 0, MAX_TOKEN);
+           memset(tmpCtx.transactionContext.tokenSet, 0, MAX_TOKEN);
            handleGetEth2PublicKey(G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2], G_io_apdu_buffer + OFFSET_CDATA, G_io_apdu_buffer[OFFSET_LC], flags, tx);
            break;
 
@@ -675,7 +678,7 @@ void coin_main_with_config(chain_config_t *config) {
 }
 
 void init_coin_config(chain_config_t *coin_config) {
-    os_memset(coin_config, 0, sizeof(chain_config_t));
+    memset(coin_config, 0, sizeof(chain_config_t));
     strcpy(coin_config->coinName, CHAINID_COINNAME " ");
     coin_config->chainId = CHAIN_ID;
     coin_config->kind = CHAIN_KIND;

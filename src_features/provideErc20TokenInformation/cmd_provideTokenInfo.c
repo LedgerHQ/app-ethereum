@@ -47,7 +47,7 @@ void handleProvideErc20TokenInformation(uint8_t p1, uint8_t p2, uint8_t *workBuf
     THROW(0x6A80);
   }
   cx_hash((cx_hash_t*)&sha256, 0, workBuffer + offset, tickerLength, NULL, 0);
-  os_memmove(token->ticker, workBuffer + offset, tickerLength);
+  memmove(token->ticker, workBuffer + offset, tickerLength);
   token->ticker[tickerLength] = ' ';
   token->ticker[tickerLength + 1] = '\0';
   offset += tickerLength;
@@ -59,12 +59,12 @@ void handleProvideErc20TokenInformation(uint8_t p1, uint8_t p2, uint8_t *workBuf
     THROW(0x6A80);
   }
   cx_hash((cx_hash_t*)&sha256, CX_LAST, workBuffer + offset, contractNameLength + 20 + 4 + 4, hash, 32);
-  os_memmove(token->contractName, workBuffer + offset, MIN(contractNameLength, sizeof(token->contractName)-1));
+  memmove(token->contractName, workBuffer + offset, MIN(contractNameLength, sizeof(token->contractName)-1));
   token->contractName[MIN(contractNameLength, sizeof(token->contractName)-1)] = '\0';
   offset += contractNameLength;
   dataLength -= contractNameLength;
 
-  os_memmove(token->address, workBuffer + offset, 20);
+  memmove(token->address, workBuffer + offset, 20);
   offset += 20;
   dataLength -= 20;
   token->decimals = U4BE(workBuffer, offset);
@@ -116,12 +116,12 @@ void handleProvideErc20TokenInformation(uint8_t p1, uint8_t p2, uint8_t *workBuf
     THROW(0x6A80);
   }
   cx_hash_sha256(workBuffer + offset, tickerLength + 20 + 4 + 4, hash, 32);
-  os_memmove(token->ticker, workBuffer + offset, tickerLength);
+  memmove(token->ticker, workBuffer + offset, tickerLength);
   token->ticker[tickerLength] = ' ';
   token->ticker[tickerLength + 1] = '\0';
   offset += tickerLength;
   dataLength -= tickerLength;
-  os_memmove(token->address, workBuffer + offset, 20);
+  memmove(token->address, workBuffer + offset, 20);
   offset += 20;
   dataLength -= 20;
   token->decimals = U4BE(workBuffer, offset);
@@ -140,7 +140,7 @@ void handleProvideErc20TokenInformation(uint8_t p1, uint8_t p2, uint8_t *workBuf
     uint32_t index;
     for (index=0; index < NUM_TOKENS_EXTRA; index++) {
       currentToken = (tokenDefinition_t *)PIC(&TOKENS_EXTRA[index]);
-      if (os_memcmp(currentToken->address, token->address, 20) == 0) {
+      if (memcmp(currentToken->address, token->address, 20) == 0) {
           strcpy((char*)token->ticker, (char*)currentToken->ticker);
           token->decimals = currentToken->decimals;
           break;

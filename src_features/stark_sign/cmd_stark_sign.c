@@ -18,6 +18,10 @@ void handleStarkwareSignMessage(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uin
   cx_ecfp_private_key_t privateKey;
   poorstream_t bitstream;
   bool selfTransfer = false;
+  uint8_t order = 1;
+  uint8_t protocol = 2;
+  uint8_t preOffset, postOffset;
+  uint8_t zeroTest;
   // Initial checks
   if (appState != APP_STATE_IDLE) {
     reset_app_context();
@@ -29,17 +33,34 @@ void handleStarkwareSignMessage(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uin
   }
   switch(p1) {
     case P1_STARK_ORDER:
-      if (dataLength != (20 + 32 + 20 + 32 + 4 + 4 + 8 + 8 + 4 + 4 + 1 + 4 * bip32PathLength)) {
-        THROW(0x6700);
-      }
+      protocol = 1;
       break;
     case P1_STARK_TRANSFER:
-      if (dataLength != (20 + 32 + 32 + 4 + 4 + 8 + 4 + 4 + 1 + 4 * bip32PathLength)) {
-        THROW(0x6700);
-      }
+      protocol = 1;
+      order = 0;
+      break;
+    case P1_STARK_ORDER_V2:    
+      break;
+    case P1_STARK_TRANSFER_V2:
+    case P1_STARK_CONDITIONAL_TRANSFER:
+      order = 0;
       break;
     default:
       THROW(0x6B00);
+  }
+  postOffset = (protocol == 2 ? 1 + 32 : 0);
+  preOffset = (protocol == 2 ? 1 : 0);
+  if (order) {
+    if (dataLength != (20 + 32 + 20 + 32 + 4 + 4 + 8 + 8 + 4 + 4 + 1 + 4 * bip32PathLength + 
+      2 * postOffset)) {
+      THROW(0x6700);
+    }    
+  }
+  else {
+      if (dataLength != (20 + 32 + 32 + 4 + 4 + 8 + 4 + 4 + 1 + 4 * bip32PathLength + 
+        postOffset + (p1 == P1_STARK_CONDITIONAL_TRANSFER ? 32 + 20 : 0))) {
+        THROW(0x6700);
+      }
   }
   if (p2 != 0) {
     THROW(0x6B00);
@@ -51,35 +72,63 @@ void handleStarkwareSignMessage(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uin
     offset += 4;
   }
   // Discard the path to use part of dataBuffer as a temporary buffer
-  os_memmove(dataBuffer, dataBuffer + offset, dataLength - offset);
-  // Fail immediately if the contract is unknown
-  if (!allzeroes(dataBuffer, 20) && getKnownToken(dataBuffer) == NULL) {
-      PRINTF("stark - cannot process unknown token %.*H", 20, dataBuffer);
+  memmove(dataBuffer, dataBuffer + offset, dataLength - offset);
+  dataContext.starkContext.conditional = (p1 == P1_STARK_CONDITIONAL_TRANSFER);
+  if (dataContext.starkContext.conditional) {
+    memmove(dataContext.starkContext.fact, dataBuffer + 20 + 32 + postOffset + 32 + 4 + 4 + 8 + 4 + 4, 32);
+    memmove(dataContext.starkContext.conditionAddress, dataBuffer + 20 + 32 + postOffset + 32 + 4 + 4 + 8 + 4 + 4 + 32, 20);
+    PRINTF("Fact %.*H\n", 32, dataContext.starkContext.fact);
+    PRINTF("Address %.*H\n", 20, dataContext.starkContext.conditionAddress);
+  }
+
+  zeroTest = allzeroes(dataBuffer + preOffset, 20);
+  if (zeroTest && (protocol == 2) && (dataBuffer[0] != STARK_QUANTUM_ETH)) {
+    PRINTF("stark - unexpected quantum descriptor type for null first address %d\n", dataBuffer[0]);
+    THROW(0x6A80);
+  }
+  if (!zeroTest && getKnownToken(dataBuffer + preOffset) == NULL) {
+      PRINTF("stark - cannot process unknown token %.*H", 20, dataBuffer + preOffset);
       THROW(0x6A80);
   }
-  if ((p1 == P1_STARK_ORDER) && (!allzeroes(dataBuffer + 20 + 32, 20) && getKnownToken(dataBuffer + 20 + 32) == NULL)) {
-      PRINTF("stark - cannot process unknown token %.*H", 20, dataBuffer + 20 + 32);
+  if (order) {
+    zeroTest = allzeroes(dataBuffer + 20 + 32 + postOffset + preOffset, 20);    
+    if (zeroTest && (protocol == 2) && (dataBuffer[1 + 20 + 32 + 32] != STARK_QUANTUM_ETH)) {
+      PRINTF("stark - unexpected quantum descriptor type for null second address %d\n", dataBuffer[1 + 20 + 32 + 32]);
       THROW(0x6A80);
+    }
+    if (!zeroTest && getKnownToken(dataBuffer + 20 + 32 + postOffset + preOffset) == NULL) {
+      PRINTF("stark - cannot process unknown token %.*H", 20, dataBuffer + 20 + 32 + postOffset + preOffset);
+      THROW(0x6A80);
+    }
   }
   // Prepare the Stark parameters
-  io_seproxyhal_io_heartbeat();
-  compute_token_id(&global_sha3, dataBuffer, dataBuffer + 20, dataContext.starkContext.w1);
-  if (p1 == P1_STARK_ORDER) {
+  io_seproxyhal_io_heartbeat();    
+  compute_token_id(&global_sha3, dataBuffer + preOffset, 
+    (protocol == 2 ? dataBuffer[0] : STARK_QUANTUM_LEGACY), 
+    dataBuffer + preOffset + 20, 
+    (protocol == 2 ? dataBuffer + 1 + 20 + 32 : NULL), false, dataContext.starkContext.w1);
+  if (order) {
     io_seproxyhal_io_heartbeat();
-    compute_token_id(&global_sha3, dataBuffer + 20 + 32, dataBuffer + 20 + 32 + 20, dataContext.starkContext.w2);
-    offset = 20 + 32 + 20 + 32;
+    compute_token_id(&global_sha3, dataBuffer + 20 + 32 + postOffset + preOffset, 
+      (protocol == 2 ? dataBuffer[1 + 20 + 32 + 32] : STARK_QUANTUM_LEGACY),  
+      dataBuffer + 20 + 32 + postOffset + preOffset + 20, 
+      (protocol == 2 ? dataBuffer + 1 + 20 + 32 + 32 + 1 + 20 + 32 : NULL), false, dataContext.starkContext.w2);
+    offset = 20 + 32 + postOffset + 20 + 32 + postOffset;
   }
-  else {
-    os_memmove(dataContext.starkContext.w2, dataBuffer + 20 + 32, 32);
-    offset = 20 + 32 + 32;
+  else {  
+    memmove(dataContext.starkContext.w2, dataBuffer + 20 + 32 + postOffset, 32);
+    offset = 20 + 32 + postOffset + 32;
   }
+
   poorstream_init(&bitstream, dataContext.starkContext.w3);
   poorstream_write_bits(&bitstream, 0, 11); // padding
-  poorstream_write_bits(&bitstream, (p1 == P1_STARK_ORDER ? STARK_ORDER_TYPE : STARK_TRANSFER_TYPE), 4);
+  poorstream_write_bits(&bitstream, 
+    (p1 == P1_STARK_CONDITIONAL_TRANSFER ? STARK_CONDITIONAL_TRANSFER_TYPE : 
+      order ? STARK_ORDER_TYPE : STARK_TRANSFER_TYPE), 4);
   poorstream_write_bits(&bitstream, U4BE(dataBuffer, offset), 31);
   poorstream_write_bits(&bitstream, U4BE(dataBuffer, offset + 4), 31);
   poorstream_write_bits(&bitstream, U8BE(dataBuffer, offset + 4 + 4), 63);
-  if (p1 == P1_STARK_ORDER) {
+  if (order) {
     poorstream_write_bits(&bitstream, U8BE(dataBuffer, offset + 4 + 4 + 8), 63);
     offset += 4 + 4 + 8 + 8;
   }
@@ -93,16 +142,31 @@ void handleStarkwareSignMessage(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uin
   PRINTF("stark w1 %.*H\n", 32, dataContext.starkContext.w1);
   PRINTF("stark w2 %.*H\n", 32, dataContext.starkContext.w2);
   PRINTF("stark w3 %.*H\n", 32, dataContext.starkContext.w3);
+
+  if (dataContext.starkContext.conditional) {
+    cx_keccak_init(&global_sha3, 256);
+    cx_hash((cx_hash_t*)&global_sha3, 0, dataContext.starkContext.conditionAddress, 20, NULL, 0);
+    cx_hash((cx_hash_t*)&global_sha3, CX_LAST, dataContext.starkContext.fact, 32, dataContext.starkContext.w4, 32);
+    dataContext.starkContext.w4[0] &= 0x03;
+    PRINTF("stark w4 %.*H\n", 32, dataContext.starkContext.w4);
+  }
   // Prepare the UI
-  if (p1 == P1_STARK_ORDER) {
+  if (order) {
     io_seproxyhal_io_heartbeat();
     // amount to sell
-    stark_get_amount_string(dataBuffer, dataBuffer + 20, dataBuffer + 20 + 32 + 20 + 32 + 4 + 4, (char*)(dataBuffer + TMP_OFFSET), strings.common.fullAmount);
+    stark_get_amount_string(dataBuffer + preOffset, 
+      dataBuffer + preOffset + 20, 
+      dataBuffer + 20 + 32 + postOffset + 20 + 32 + postOffset + 4 + 4, 
+      (char*)(dataBuffer + TMP_OFFSET), strings.common.fullAmount);   
     io_seproxyhal_io_heartbeat();
     // amount to buy
-    stark_get_amount_string(dataBuffer + 20 + 32, dataBuffer + 20 + 32 + 20, dataBuffer + 20 + 32 + 20 + 32 + 4 + 4 + 8, (char*)(dataBuffer + TMP_OFFSET), strings.common.maxFee);
+    stark_get_amount_string(dataBuffer + 20 + 32 + postOffset + preOffset, 
+      dataBuffer + 20 + 32 + postOffset + preOffset + 20, 
+      dataBuffer + 20 + 32 + postOffset + 20 + 32 + postOffset + 4 + 4 + 8,
+      (char*)(dataBuffer + TMP_OFFSET), strings.common.maxFee);      
     // src vault ID
-    snprintf(strings.common.fullAddress, sizeof(strings.common.fullAddress), "%d", U4BE(dataBuffer, 20 + 32 + 20 + 32));
+    snprintf(strings.common.fullAddress, sizeof(strings.common.fullAddress), "%d", 
+      U4BE(dataBuffer, 20 + 32 + postOffset + 20 + 32 + postOffset));
   }
   else {
     cx_ecfp_public_key_t publicKey;
@@ -112,22 +176,37 @@ void handleStarkwareSignMessage(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uin
     cx_ecfp_init_private_key(CX_CURVE_Stark256, privateKeyData, 32, &privateKey);
     io_seproxyhal_io_heartbeat();
     cx_ecfp_generate_pair(CX_CURVE_Stark256, &publicKey, &privateKey, 1);
-    os_memset(&privateKey, 0, sizeof(privateKey));
-    os_memset(privateKeyData, 0, sizeof(privateKeyData));
+    explicit_bzero(&privateKey, sizeof(privateKey));
+    explicit_bzero(privateKeyData, sizeof(privateKeyData));
     io_seproxyhal_io_heartbeat();
-    selfTransfer = (os_memcmp(publicKey.W + 1, dataBuffer + 20 + 32, 32) == 0);
+    selfTransfer = (memcmp(publicKey.W + 1, dataBuffer + 20 + 32 + postOffset, 32) == 0);
     PRINTF("self transfer %d\n", selfTransfer);
     io_seproxyhal_io_heartbeat();
     // amount to transfer
-    stark_get_amount_string(dataBuffer, dataBuffer + 20, dataBuffer + 20 + 32 + 32 + 4 + 4, (char*)(dataBuffer + TMP_OFFSET), tmpContent.tmp);
+    stark_get_amount_string(dataBuffer + preOffset, 
+      dataBuffer + preOffset + 20, 
+      dataBuffer + 20 + 32 + postOffset + 32 + 4 + 4, (char*)(dataBuffer + TMP_OFFSET), tmpContent.tmp);
     // dest vault ID
-    snprintf(strings.tmp.tmp2, sizeof(strings.tmp.tmp2), "%d", U4BE(dataBuffer, 20 + 32 + 32 + 4));
+    snprintf(strings.tmp.tmp2, sizeof(strings.tmp.tmp2), "%d", 
+      U4BE(dataBuffer, 20 + 32 + postOffset + 32 + 4));
     if (!selfTransfer) {
-      snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "0x%.*H", 32, dataBuffer + 20 + 32);
+      memmove(dataContext.starkContext.transferDestination, dataBuffer + 20 + 32 + postOffset, 32);
+      snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "0x%.*H", 32, dataBuffer + 20 + 32 + postOffset);
     }
   }
-  ux_flow_init(0, p1 == P1_STARK_ORDER ? ux_stark_limit_order_flow : selfTransfer ?
-    ux_stark_self_transfer_flow : ux_stark_transfer_flow, NULL);
+  if (order) {
+    ux_flow_init(0, ux_stark_limit_order_flow, NULL);
+  }
+  else {
+    if (selfTransfer) {
+      ux_flow_init(0, (dataContext.starkContext.conditional ? ux_stark_self_transfer_conditional_flow : 
+        ux_stark_self_transfer_flow), NULL);
+    }
+    else {
+      ux_flow_init(0, (dataContext.starkContext.conditional ? ux_stark_transfer_conditional_flow : 
+        ux_stark_transfer_flow), NULL);      
+    }
+  }
 
   *flags |= IO_ASYNCH_REPLY;
 }

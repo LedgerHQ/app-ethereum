@@ -10,7 +10,7 @@
 void handle_get_printable_amount( get_printable_amount_parameters_t* params, chain_config_t *config) {
     uint8_t decimals;
     char ticker[MAX_TICKER_LEN];
-    os_memset(params->printable_amount, 0, sizeof(params->printable_amount));
+    memset(params->printable_amount, 0, sizeof(params->printable_amount));
     if (params->amount_length > 32) {
         PRINTF("Amount is too big, 32 bytes max but buffer has %u bytes", params->amount_length);
         os_lib_end();

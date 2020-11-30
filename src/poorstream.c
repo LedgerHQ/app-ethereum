@@ -3,7 +3,7 @@
 #include "poorstream.h"
 
 void poorstream_init(poorstream_t *stream, uint8_t *buffer) {
-	os_memset((void*)stream, 0, sizeof(poorstream_t));
+	memset((void*)stream, 0, sizeof(poorstream_t));
 	stream->pointer = buffer;
 }
 

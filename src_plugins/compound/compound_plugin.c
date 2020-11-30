@@ -102,7 +102,7 @@ void compound_plugin_call(int message, void *parameters) {
             if(context->selectorIndex == CETH_MINT){
                 // ETH amount 0x1234 is stored 0x12340000...000 instead of 0x00....001234, so we strip the following zeroes when copying
                 memset(context->amount, 0, sizeof(context->amount));
-                memmove(context->amount + sizeof(context->amount) - msg->pluginSharedRO->txContent->value.length, msg->pluginSharedRO->txContent->value.value, 32);
+                memmove(context->amount + sizeof(context->amount) - msg->pluginSharedRO->txContent->value.length, msg->pluginSharedRO->txContent->value.value, msg->pluginSharedRO->txContent->value.length);
             }
             PRINTF("compound plugin inititialized\n");
             msg->result = ETH_PLUGIN_RESULT_OK;

@@ -222,7 +222,7 @@ void starkware_print_amount(uint8_t *amountData, char *destination, bool forEsca
   if ((amountData == NULL) || (forEscape && (dataContext.tokenContext.quantumIndex == MAX_TOKEN))) {
     decimals = WEI_TO_ETHER;
     if (!forEscape) {
-    	convertUint256BE(tmpContent.txContent.value.value, tmpContent.txContent.value.length, &amountPre);
+    	convertUint256BE(tmpContent.txContent.value.value, tmpContent.txContent.value.length, &amount);
     }
     else {
     	readu256BE(amountData, &amountPre);	
@@ -234,8 +234,10 @@ void starkware_print_amount(uint8_t *amountData, char *destination, bool forEsca
     ticker = (char*)token->ticker;
     readu256BE(amountData, &amountPre);
   }
-  readu256BE(dataContext.tokenContext.quantum, &quantum);
-  mul256(&amountPre, &quantum, &amount);
+  if (amountData != NULL) {
+  	readu256BE(dataContext.tokenContext.quantum, &quantum);
+  	mul256(&amountPre, &quantum, &amount);
+  }
   tostring256(&amount, 10, (char*)(G_io_apdu_buffer + 100), 100);
   strcpy(destination, ticker);
   adjustDecimals((char*)(G_io_apdu_buffer + 100), strlen((char*)(G_io_apdu_buffer + 100)), destination + strlen(ticker), 50 - strlen(ticker), decimals);

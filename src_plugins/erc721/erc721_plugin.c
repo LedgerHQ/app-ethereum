@@ -17,6 +17,7 @@ typedef struct erc721_parameters_t {
 } erc721_parameters_t;
 
 bool erc721_plugin_available_check() {
+#ifdef HAVE_STARKWARE
 	if (quantumSet) {
 		switch(dataContext.tokenContext.quantumType) {
 			case STARK_QUANTUM_ERC721:
@@ -27,6 +28,7 @@ bool erc721_plugin_available_check() {
 		}
 	}
 	return false;
+#endif
 }
 
 void erc721_plugin_call(int message, void *parameters) {

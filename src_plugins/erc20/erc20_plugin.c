@@ -56,6 +56,7 @@ bool check_token_binding(char* ticker1, char* ticker2, const ticker_binding_t* b
 }
 
 bool erc20_plugin_available_check() {
+#ifdef HAVE_STARKWARE
 	if (quantumSet) {
 		switch(dataContext.tokenContext.quantumType) {
   		case STARK_QUANTUM_LEGACY:
@@ -67,6 +68,7 @@ bool erc20_plugin_available_check() {
   			return false;
 		}
 	}
+#endif
 	return true;
 }
 

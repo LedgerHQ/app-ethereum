@@ -34,8 +34,8 @@ void handleStarkwareGetPublicKey(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, ui
   cx_ecfp_init_private_key(CX_CURVE_Stark256, privateKeyData, 32, &privateKey);
   io_seproxyhal_io_heartbeat();
   cx_ecfp_generate_pair(CX_CURVE_Stark256, &tmpCtx.publicKeyContext.publicKey, &privateKey, 1);
-  memset(&privateKey, 0, sizeof(privateKey));
-  memset(privateKeyData, 0, sizeof(privateKeyData));
+  explicit_bzero(&privateKey, sizeof(privateKey));
+  explicit_bzero(privateKeyData, sizeof(privateKeyData));
   io_seproxyhal_io_heartbeat();
 #ifndef NO_CONSENT
   if (p1 == P1_NON_CONFIRM)

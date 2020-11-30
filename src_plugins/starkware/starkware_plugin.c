@@ -308,8 +308,8 @@ void starkware_get_source_address(char *destination) {
   cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
   io_seproxyhal_io_heartbeat();
   cx_ecfp_generate_pair(CX_CURVE_256K1, &publicKey, &privateKey, 1);
-  memset(&privateKey, 0, sizeof(privateKey));
-  memset(privateKeyData, 0, sizeof(privateKeyData));
+  explicit_bzero(&privateKey, sizeof(privateKey));
+  explicit_bzero(privateKeyData, sizeof(privateKeyData));
   io_seproxyhal_io_heartbeat();
   destination[0] = '0';
   destination[1] = 'x';

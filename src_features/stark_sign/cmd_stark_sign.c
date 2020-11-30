@@ -176,8 +176,8 @@ void handleStarkwareSignMessage(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uin
     cx_ecfp_init_private_key(CX_CURVE_Stark256, privateKeyData, 32, &privateKey);
     io_seproxyhal_io_heartbeat();
     cx_ecfp_generate_pair(CX_CURVE_Stark256, &publicKey, &privateKey, 1);
-    memset(&privateKey, 0, sizeof(privateKey));
-    memset(privateKeyData, 0, sizeof(privateKeyData));
+    explicit_bzero(&privateKey, sizeof(privateKey));
+    explicit_bzero(privateKeyData, sizeof(privateKeyData));
     io_seproxyhal_io_heartbeat();
     selfTransfer = (memcmp(publicKey.W + 1, dataBuffer + 20 + 32 + postOffset, 32) == 0);
     PRINTF("self transfer %d\n", selfTransfer);

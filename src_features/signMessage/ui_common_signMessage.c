@@ -13,14 +13,14 @@ unsigned int io_seproxyhal_touch_signMessage_ok(const bagl_element_t *e) {
         tmpCtx.messageSigningContext.pathLength, privateKeyData, NULL);
     io_seproxyhal_io_heartbeat();
     cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
-    memset(privateKeyData, 0, sizeof(privateKeyData));
+    explicit_bzero(privateKeyData, sizeof(privateKeyData));
     unsigned int info = 0;
     io_seproxyhal_io_heartbeat();
     signatureLength =
         cx_ecdsa_sign(&privateKey, CX_RND_RFC6979 | CX_LAST, CX_SHA256,
                       tmpCtx.messageSigningContext.hash,
                       sizeof(tmpCtx.messageSigningContext.hash), signature, sizeof(signature), &info);
-    memset(&privateKey, 0, sizeof(privateKey));
+    explicit_bzero(&privateKey, sizeof(privateKey));
     G_io_apdu_buffer[0] = 27;
     if (info & CX_ECCINFO_PARITY_ODD) {
       G_io_apdu_buffer[0]++;

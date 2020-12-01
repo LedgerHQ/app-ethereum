@@ -11,11 +11,19 @@ unsigned int io_seproxyhal_touch_stark_unsafe_sign_ok(const bagl_element_t *e) {
     unsigned int info = 0;
     uint32_t tx = 0;
     io_seproxyhal_io_heartbeat();
-    starkDerivePrivateKey(tmpCtx.transactionContext.bip32Path, tmpCtx.transactionContext.pathLength, privateKeyData);
+    starkDerivePrivateKey(tmpCtx.transactionContext.bip32Path,
+                          tmpCtx.transactionContext.pathLength,
+                          privateKeyData);
     io_seproxyhal_io_heartbeat();
     cx_ecfp_init_private_key(CX_CURVE_Stark256, privateKeyData, 32, &privateKey);
-    cx_ecdsa_sign(&privateKey, CX_RND_RFC6979 | CX_LAST, CX_SHA256,
-                         dataContext.starkContext.w2, sizeof(dataContext.starkContext.w2), signature, sizeof(signature), &info);    
+    cx_ecdsa_sign(&privateKey,
+                  CX_RND_RFC6979 | CX_LAST,
+                  CX_SHA256,
+                  dataContext.starkContext.w2,
+                  sizeof(dataContext.starkContext.w2),
+                  signature,
+                  sizeof(signature),
+                  &info);
     G_io_apdu_buffer[0] = 0;
     format_signature_out(signature);
     tx = 65;
@@ -26,7 +34,7 @@ unsigned int io_seproxyhal_touch_stark_unsafe_sign_ok(const bagl_element_t *e) {
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
     // Display back the original UX
     ui_idle();
-    return 0; // do not redraw the widget
+    return 0;  // do not redraw the widget
 }
 
 #endif

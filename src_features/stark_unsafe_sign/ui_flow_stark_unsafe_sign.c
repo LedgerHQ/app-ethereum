@@ -6,13 +6,14 @@
 unsigned int io_seproxyhal_touch_stark_unsafe_sign_ok(const bagl_element_t *e);
 
 void stark_unsafe_sign_display_account() {
-  snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "0x%.*H", 32, dataContext.starkContext.w1);
+    snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "0x%.*H", 32, dataContext.starkContext.w1);
 }
 
 void stark_unsafe_sign_display_hash() {
-  snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "0x%.*H", 32, dataContext.starkContext.w2);
+    snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "0x%.*H", 32, dataContext.starkContext.w2);
 }
 
+// clang-format off
 UX_STEP_NOCB(ux_stark_unsafe_sign_1_step,
     pnn,
     {
@@ -57,13 +58,13 @@ UX_STEP_CB(
       &C_icon_crossmark,
       "Reject",
     });
+// clang-format on
 
 UX_FLOW(ux_stark_unsafe_sign_flow,
-  &ux_stark_unsafe_sign_1_step,
-  &ux_stark_unsafe_sign_2_step,
-  &ux_stark_unsafe_sign_3_step,
-  &ux_stark_unsafe_sign_4_step,
-  &ux_stark_unsafe_sign_5_step
-);
+        &ux_stark_unsafe_sign_1_step,
+        &ux_stark_unsafe_sign_2_step,
+        &ux_stark_unsafe_sign_3_step,
+        &ux_stark_unsafe_sign_4_step,
+        &ux_stark_unsafe_sign_5_step);
 
 #endif

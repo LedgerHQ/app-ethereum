@@ -11,5 +11,3 @@ uint32_t set_result_get_stark_publicKey() {
 }
 
 #endif
-
-

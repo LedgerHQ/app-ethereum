@@ -8,10 +8,10 @@
 #include "os.h"
 
 typedef struct poorstream_t {
-	uint8_t *pointer;
-	uint32_t offset;
-	uint64_t mask;
-	uint64_t accumulator;
+    uint8_t *pointer;
+    uint32_t offset;
+    uint64_t mask;
+    uint64_t accumulator;
 } poorstream_t;
 
 void poorstream_init(poorstream_t *stream, uint8_t *buffer);

@@ -1,19 +1,19 @@
 /*******************************************************************************
-*   Ledger Ethereum App
-*   (c) 2016-2019 Ledger
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-********************************************************************************/
+ *   Ledger Ethereum App
+ *   (c) 2016-2019 Ledger
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ ********************************************************************************/
 
 // Adapted from https://github.com/calccrypto/uint256_t
 
@@ -25,10 +25,10 @@
 static const char HEXDIGITS[] = "0123456789abcdef";
 
 static uint64_t readUint64BE(uint8_t *buffer) {
-    return (((uint64_t)buffer[0]) << 56) | (((uint64_t)buffer[1]) << 48) |
-           (((uint64_t)buffer[2]) << 40) | (((uint64_t)buffer[3]) << 32) |
-           (((uint64_t)buffer[4]) << 24) | (((uint64_t)buffer[5]) << 16) |
-           (((uint64_t)buffer[6]) << 8) | (((uint64_t)buffer[7]));
+    return (((uint64_t) buffer[0]) << 56) | (((uint64_t) buffer[1]) << 48) |
+           (((uint64_t) buffer[2]) << 40) | (((uint64_t) buffer[3]) << 32) |
+           (((uint64_t) buffer[4]) << 24) | (((uint64_t) buffer[5]) << 16) |
+           (((uint64_t) buffer[6]) << 8) | (((uint64_t) buffer[7]));
 }
 
 void readu128BE(uint8_t *buffer, uint128_t *target) {
@@ -78,8 +78,7 @@ void shiftl128(uint128_t *number, uint32_t value, uint128_t *target) {
     } else if (value == 0) {
         copy128(target, number);
     } else if (value < 64) {
-        UPPER_P(target) =
-            (UPPER_P(number) << value) + (LOWER_P(number) >> (64 - value));
+        UPPER_P(target) = (UPPER_P(number) << value) + (LOWER_P(number) >> (64 - value));
         LOWER_P(target) = (LOWER_P(number) << value);
     } else if ((128 > value) && (value > 64)) {
         UPPER_P(target) = LOWER_P(number) << (value - 64);
@@ -125,8 +124,7 @@ void shiftr128(uint128_t *number, uint32_t value, uint128_t *target) {
     } else if (value < 64) {
         uint128_t result;
         UPPER(result) = UPPER_P(number) >> value;
-        LOWER(result) =
-            (UPPER_P(number) << (64 - value)) + (LOWER_P(number) >> value);
+        LOWER(result) = (UPPER_P(number) << (64 - value)) + (LOWER_P(number) >> value);
         copy128(target, &result);
     } else if ((128 > value) && (value > 64)) {
         LOWER_P(target) = UPPER_P(number) >> (value - 64);
@@ -202,8 +200,7 @@ uint32_t bits256(uint256_t *number) {
 }
 
 bool equal128(uint128_t *number1, uint128_t *number2) {
-    return (UPPER_P(number1) == UPPER_P(number2)) &&
-           (LOWER_P(number1) == LOWER_P(number2));
+    return (UPPER_P(number1) == UPPER_P(number2)) && (LOWER_P(number1) == LOWER_P(number2));
 }
 
 bool equal256(uint256_t *number1, uint256_t *number2) {
@@ -234,9 +231,8 @@ bool gte256(uint256_t *number1, uint256_t *number2) {
 }
 
 void add128(uint128_t *number1, uint128_t *number2, uint128_t *target) {
-    UPPER_P(target) =
-        UPPER_P(number1) + UPPER_P(number2) +
-        ((LOWER_P(number1) + LOWER_P(number2)) < LOWER_P(number1));
+    UPPER_P(target) = UPPER_P(number1) + UPPER_P(number2) +
+                      ((LOWER_P(number1) + LOWER_P(number2)) < LOWER_P(number1));
     LOWER_P(target) = LOWER_P(number1) + LOWER_P(number2);
 }
 
@@ -254,9 +250,8 @@ void add256(uint256_t *number1, uint256_t *number2, uint256_t *target) {
 }
 
 void minus128(uint128_t *number1, uint128_t *number2, uint128_t *target) {
-    UPPER_P(target) =
-        UPPER_P(number1) - UPPER_P(number2) -
-        ((LOWER_P(number1) - LOWER_P(number2)) > LOWER_P(number1));
+    UPPER_P(target) = UPPER_P(number1) - UPPER_P(number2) -
+                      ((LOWER_P(number1) - LOWER_P(number2)) > LOWER_P(number1));
     LOWER_P(target) = LOWER_P(number1) - LOWER_P(number2);
 }
 
@@ -284,9 +279,12 @@ void or256(uint256_t *number1, uint256_t *number2, uint256_t *target) {
 }
 
 void mul128(uint128_t *number1, uint128_t *number2, uint128_t *target) {
-    uint64_t top[4] = {UPPER_P(number1) >> 32, UPPER_P(number1) & 0xffffffff,
-                       LOWER_P(number1) >> 32, LOWER_P(number1) & 0xffffffff};
-    uint64_t bottom[4] = {UPPER_P(number2) >> 32, UPPER_P(number2) & 0xffffffff,
+    uint64_t top[4] = {UPPER_P(number1) >> 32,
+                       UPPER_P(number1) & 0xffffffff,
+                       LOWER_P(number1) >> 32,
+                       LOWER_P(number1) & 0xffffffff};
+    uint64_t bottom[4] = {UPPER_P(number2) >> 32,
+                          UPPER_P(number2) & 0xffffffff,
                           LOWER_P(number2) >> 32,
                           LOWER_P(number2) & 0xffffffff};
     uint64_t products[4][4];
@@ -337,7 +335,7 @@ void write_u64_be(uint8_t *buffer, uint64_t value) {
 }
 
 void read_u64_be(uint8_t *in, uint64_t *out) {
-    uint8_t *out_ptr = (uint8_t*)out;
+    uint8_t *out_ptr = (uint8_t *) out;
     *out_ptr++ = in[7];
     *out_ptr++ = in[6];
     *out_ptr++ = in[5];
@@ -351,18 +349,17 @@ void read_u64_be(uint8_t *in, uint64_t *out) {
 void mul256(uint256_t *number1, uint256_t *number2, uint256_t *target) {
     uint8_t num1[32], num2[32], result[64];
     memset(&result, 0, sizeof(result));
-    for(uint8_t i = 0; i<4; i++){
-        write_u64_be(num1+i*sizeof(uint64_t), number1->elements[i/2].elements[i%2]);
-        write_u64_be(num2+i*sizeof(uint64_t), number2->elements[i/2].elements[i%2]);
+    for (uint8_t i = 0; i < 4; i++) {
+        write_u64_be(num1 + i * sizeof(uint64_t), number1->elements[i / 2].elements[i % 2]);
+        write_u64_be(num2 + i * sizeof(uint64_t), number2->elements[i / 2].elements[i % 2]);
     }
     cx_math_mult(result, num1, num2, sizeof(num1));
-    for(uint8_t i = 0; i<4; i++){
-        read_u64_be(result+32+i*sizeof(uint64_t), &target->elements[i/2].elements[i%2]);
+    for (uint8_t i = 0; i < 4; i++) {
+        read_u64_be(result + 32 + i * sizeof(uint64_t), &target->elements[i / 2].elements[i % 2]);
     }
 }
 
-void divmod128(uint128_t *l, uint128_t *r, uint128_t *retDiv,
-               uint128_t *retMod) {
+void divmod128(uint128_t *l, uint128_t *r, uint128_t *retDiv, uint128_t *retMod) {
     uint128_t copyd, adder, resDiv, resMod;
     uint128_t one;
     UPPER(one) = 0;
@@ -393,8 +390,7 @@ void divmod128(uint128_t *l, uint128_t *r, uint128_t *retDiv,
     }
 }
 
-void divmod256(uint256_t *l, uint256_t *r, uint256_t *retDiv,
-               uint256_t *retMod) {
+void divmod256(uint256_t *l, uint256_t *r, uint256_t *retDiv, uint256_t *retMod) {
     uint256_t copyd, adder, resDiv, resMod;
     uint256_t one;
     clear256(&one);
@@ -436,8 +432,7 @@ static void reverseString(char *str, uint32_t length) {
     }
 }
 
-bool tostring128(uint128_t *number, uint32_t baseParam, char *out,
-                 uint32_t outLength) {
+bool tostring128(uint128_t *number, uint32_t baseParam, char *out, uint32_t outLength) {
     uint128_t rDiv;
     uint128_t rMod;
     uint128_t base;
@@ -454,15 +449,14 @@ bool tostring128(uint128_t *number, uint32_t baseParam, char *out,
             return false;
         }
         divmod128(&rDiv, &base, &rDiv, &rMod);
-        out[offset++] = HEXDIGITS[(uint8_t)LOWER(rMod)];
+        out[offset++] = HEXDIGITS[(uint8_t) LOWER(rMod)];
     } while (!zero128(&rDiv));
     out[offset] = '\0';
     reverseString(out, offset);
     return true;
 }
 
-bool tostring256(uint256_t *number, uint32_t baseParam, char *out,
-                 uint32_t outLength) {
+bool tostring256(uint256_t *number, uint32_t baseParam, char *out, uint32_t outLength) {
     uint256_t rDiv;
     uint256_t rMod;
     uint256_t base;
@@ -480,7 +474,7 @@ bool tostring256(uint256_t *number, uint32_t baseParam, char *out,
             return false;
         }
         divmod256(&rDiv, &base, &rDiv, &rMod);
-        out[offset++] = HEXDIGITS[(uint8_t)LOWER(LOWER(rMod))];
+        out[offset++] = HEXDIGITS[(uint8_t) LOWER(LOWER(rMod))];
     } while (!zero256(&rDiv));
     out[offset] = '\0';
     reverseString(out, offset);

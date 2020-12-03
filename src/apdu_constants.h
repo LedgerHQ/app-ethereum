@@ -14,6 +14,7 @@
 #define INS_SIGN_EIP_712_MESSAGE            0x0C
 #define INS_GET_ETH2_PUBLIC_KEY             0x0E
 #define INS_SET_ETH2_WITHDRAWAL_INDEX       0x10
+#define INS_SET_EXTERNAL_PLUGIN             0x12
 #define P1_CONFIRM                          0x01
 #define P1_NON_CONFIRM                      0x00
 #define P2_NO_CHAINCODE                     0x00
@@ -84,6 +85,13 @@ void handleSignPersonalMessage(uint8_t p1,
 void handleSignEIP712Message(uint8_t p1,
                              uint8_t p2,
                              uint8_t *dataBuffer,
+                             uint16_t dataLength,
+                             unsigned int *flags,
+                             unsigned int *tx);
+
+void handleSetExternalPlugin(uint8_t p1,
+                             uint8_t p2,
+                             uint8_t *workBuffer,
                              uint16_t dataLength,
                              unsigned int *flags,
                              unsigned int *tx);

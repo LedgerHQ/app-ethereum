@@ -1,26 +1,26 @@
 /*******************************************************************************
-*   Ledger Ethereum App
-*   (c) 2016-2019 Ledger
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-********************************************************************************/
+ *   Ledger Ethereum App
+ *   (c) 2016-2019 Ledger
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ ********************************************************************************/
 
 #ifndef _TOKENS_H_
 #define _TOKENS_H_
 
 #include <stdint.h>
 
-#define MAX_TICKER_LEN 12 // 10 characters + ' ' + '\0'
+#define MAX_TICKER_LEN 12  // 10 characters + ' ' + '\0'
 
 typedef struct tokenDefinition_t {
 #ifdef HAVE_CONTRACT_NAME_IN_DESCRIPTOR
@@ -33,7 +33,7 @@ typedef struct tokenDefinition_t {
 
 #ifdef HAVE_TOKENS_EXTRA_LIST
 
-#define NUM_TOKENS_EXTRA 4 
+#define NUM_TOKENS_EXTRA 4
 
 extern tokenDefinition_t const TOKENS_EXTRA[NUM_TOKENS_EXTRA];
 
@@ -41,36 +41,36 @@ extern tokenDefinition_t const TOKENS_EXTRA[NUM_TOKENS_EXTRA];
 
 #ifdef HAVE_TOKENS_LIST
 
-#define NUM_TOKENS_AKROMA 0
-#define NUM_TOKENS_ELLAISM 1
-#define NUM_TOKENS_ETHEREUM 1102
+#define NUM_TOKENS_AKROMA           0
+#define NUM_TOKENS_ELLAISM          1
+#define NUM_TOKENS_ETHEREUM         1102
 #define NUM_TOKENS_ETHEREUM_CLASSIC 4
-#define NUM_TOKENS_ETHERSOCIAL 0
-#define NUM_TOKENS_ETHER1 0
-#define NUM_TOKENS_PIRL 0
-#define NUM_TOKENS_POA 0
-#define NUM_TOKENS_RSK 0
-#define NUM_TOKENS_UBIQ 6
-#define NUM_TOKENS_EXPANSE 0
-#define NUM_TOKENS_WANCHAIN 0
-#define NUM_TOKENS_KUSD 0
-#define NUM_TOKENS_MUSICOIN 0
-#define NUM_TOKENS_CALLISTO 0
-#define NUM_TOKENS_ETHERGEM 0
-#define NUM_TOKENS_ATHEIOS 0
-#define NUM_TOKENS_GOCHAIN 0
-#define NUM_TOKENS_MIX 0
-#define NUM_TOKENS_REOSC 0
-#define NUM_TOKENS_HPB 0
-#define NUM_TOKENS_TOMOCHAIN 0
-#define NUM_TOKENS_TOBALABA 0
-#define NUM_TOKENS_DEXON 0
-#define NUM_TOKENS_VOLTA 0
-#define NUM_TOKENS_EWC 0
-#define NUM_TOKENS_ARTIS_SIGMA1 0
-#define NUM_TOKENS_ARTIS_TAU1 0
-#define NUM_TOKENS_WEBCHAIN 0
-#define NUM_TOKENS_THUNDERCORE 0
+#define NUM_TOKENS_ETHERSOCIAL      0
+#define NUM_TOKENS_ETHER1           0
+#define NUM_TOKENS_PIRL             0
+#define NUM_TOKENS_POA              0
+#define NUM_TOKENS_RSK              0
+#define NUM_TOKENS_UBIQ             6
+#define NUM_TOKENS_EXPANSE          0
+#define NUM_TOKENS_WANCHAIN         0
+#define NUM_TOKENS_KUSD             0
+#define NUM_TOKENS_MUSICOIN         0
+#define NUM_TOKENS_CALLISTO         0
+#define NUM_TOKENS_ETHERGEM         0
+#define NUM_TOKENS_ATHEIOS          0
+#define NUM_TOKENS_GOCHAIN          0
+#define NUM_TOKENS_MIX              0
+#define NUM_TOKENS_REOSC            0
+#define NUM_TOKENS_HPB              0
+#define NUM_TOKENS_TOMOCHAIN        0
+#define NUM_TOKENS_TOBALABA         0
+#define NUM_TOKENS_DEXON            0
+#define NUM_TOKENS_VOLTA            0
+#define NUM_TOKENS_EWC              0
+#define NUM_TOKENS_ARTIS_SIGMA1     0
+#define NUM_TOKENS_ARTIS_TAU1       0
+#define NUM_TOKENS_WEBCHAIN         0
+#define NUM_TOKENS_THUNDERCORE      0
 
 extern tokenDefinition_t const TOKENS_AKROMA[NUM_TOKENS_AKROMA];
 extern tokenDefinition_t const TOKENS_ELLAISM[NUM_TOKENS_ELLAISM];

@@ -8,16 +8,14 @@
 
 #define SIGNATURE_MAX_LEN (72)
 
-static const ECPoint PEDERSEN_SHIFT[] = { {
+static const ECPoint PEDERSEN_SHIFT[] = {{
     0x04,
 
-    0x04, 0x9e, 0xe3, 0xeb, 0xa8, 0xc1, 0x60, 0x07, 0x00, 0xee, 0x1b,
-    0x87, 0xeb, 0x59, 0x9f, 0x16, 0x71, 0x6b, 0x0b, 0x10, 0x22, 0x94,
-    0x77, 0x33, 0x55, 0x1f, 0xde, 0x40, 0x50, 0xca, 0x68, 0x04,
+    0x04, 0x9e, 0xe3, 0xeb, 0xa8, 0xc1, 0x60, 0x07, 0x00, 0xee, 0x1b, 0x87, 0xeb, 0x59, 0x9f, 0x16,
+    0x71, 0x6b, 0x0b, 0x10, 0x22, 0x94, 0x77, 0x33, 0x55, 0x1f, 0xde, 0x40, 0x50, 0xca, 0x68, 0x04,
 
-    0x03, 0xca, 0x0c, 0xfe, 0x4b, 0x3b, 0xc6, 0xdd, 0xf3, 0x46, 0xd4,
-    0x9d, 0x06, 0xea, 0x0e, 0xd3, 0x4e, 0x62, 0x10, 0x62, 0xc0, 0xe0,
-    0x56, 0xc1, 0xd0, 0x40, 0x5d, 0x26, 0x6e, 0x10, 0x26, 0x8a,
+    0x03, 0xca, 0x0c, 0xfe, 0x4b, 0x3b, 0xc6, 0xdd, 0xf3, 0x46, 0xd4, 0x9d, 0x06, 0xea, 0x0e, 0xd3,
+    0x4e, 0x62, 0x10, 0x62, 0xc0, 0xe0, 0x56, 0xc1, 0xd0, 0x40, 0x5d, 0x26, 0x6e, 0x10, 0x26, 0x8a,
 }};
 
 static const ECPoint PEDERSEN_POINTS[4] = {
@@ -78,15 +76,16 @@ void accum_ec_mul(ECPoint *hash, uint8_t *buf, int len, int pedersen_idx) {
 }
 
 void pedersen(FieldElement res, /* out */
-              FieldElement a, FieldElement b) {
+              FieldElement a,
+              FieldElement b) {
     ECPoint hash;
 
     memcpy(hash, PEDERSEN_SHIFT, sizeof(hash));
-    
+
     accum_ec_mul(&hash, a, 1, 1);
-    accum_ec_mul(&hash, a+1, FIELD_ELEMENT_SIZE-1, 0);
+    accum_ec_mul(&hash, a + 1, FIELD_ELEMENT_SIZE - 1, 0);
     accum_ec_mul(&hash, b, 1, 3);
-    accum_ec_mul(&hash, b+1, FIELD_ELEMENT_SIZE-1, 2);
+    accum_ec_mul(&hash, b + 1, FIELD_ELEMENT_SIZE - 1, 2);
 
     memcpy(res, hash + 1, FIELD_ELEMENT_SIZE);
 }
@@ -116,31 +115,43 @@ int stark_sign(uint8_t *signature, /* out */
     PRINTF("Pedersen hash 2 %.*H\n", 32, hash);
     cx_ecfp_init_private_key(CX_CURVE_Stark256, privateKeyData, 32, &privateKey);
     io_seproxyhal_io_heartbeat();
-    int signatureLength = cx_ecdsa_sign(&privateKey, CX_RND_RFC6979 | CX_LAST, CX_SHA256,
-                         hash, sizeof(hash), signature, SIGNATURE_MAX_LEN, &info);
+    int signatureLength = cx_ecdsa_sign(&privateKey,
+                                        CX_RND_RFC6979 | CX_LAST,
+                                        CX_SHA256,
+                                        hash,
+                                        sizeof(hash),
+                                        signature,
+                                        SIGNATURE_MAX_LEN,
+                                        &info);
     PRINTF("Stark signature %.*H\n", signatureLength, signature);
     return signatureLength;
 }
 
 // ERC20Token(address)
-static const uint8_t ERC20_SELECTOR[] = { 0xf4, 0x72, 0x61, 0xb0 }; 
+static const uint8_t ERC20_SELECTOR[] = {0xf4, 0x72, 0x61, 0xb0};
 // ETH()
-static const uint8_t ETH_SELECTOR[] = { 0x83, 0x22, 0xff, 0xf2 };
+static const uint8_t ETH_SELECTOR[] = {0x83, 0x22, 0xff, 0xf2};
 // ERC721Token(address, uint256)
-static const uint8_t ERC721_SELECTOR[] = { 0x02, 0x57, 0x17, 0x92 };
+static const uint8_t ERC721_SELECTOR[] = {0x02, 0x57, 0x17, 0x92};
 // MintableERC20Token(address)
-static const uint8_t MINTABLE_ERC20_SELECTOR[] = { 0x68, 0x64, 0x6e, 0x2d };
+static const uint8_t MINTABLE_ERC20_SELECTOR[] = {0x68, 0x64, 0x6e, 0x2d};
 // MintableERC721Token(address,uint256)
-static const uint8_t MINTABLE_ERC721_SELECTOR[] = { 0xb8, 0xb8, 0x66, 0x72 };
-static const char NFT_ASSET_ID_PREFIX[] = { 'N', 'F', 'T', ':', 0 };
-static const char MINTABLE_ASSET_ID_PREFIX[] = { 'M', 'I', 'N', 'T', 'A', 'B', 'L', 'E', ':', 0 };
+static const uint8_t MINTABLE_ERC721_SELECTOR[] = {0xb8, 0xb8, 0x66, 0x72};
+static const char NFT_ASSET_ID_PREFIX[] = {'N', 'F', 'T', ':', 0};
+static const char MINTABLE_ASSET_ID_PREFIX[] = {'M', 'I', 'N', 'T', 'A', 'B', 'L', 'E', ':', 0};
 
-void compute_token_id(cx_sha3_t *sha3, uint8_t *contractAddress, uint8_t quantumType, uint8_t *quantum, uint8_t *mintingBlob, bool assetTypeOnly, uint8_t *output) {
+void compute_token_id(cx_sha3_t *sha3,
+                      uint8_t *contractAddress,
+                      uint8_t quantumType,
+                      uint8_t *quantum,
+                      uint8_t *mintingBlob,
+                      bool assetTypeOnly,
+                      uint8_t *output) {
     uint8_t tmp[36];
     cx_keccak_init(sha3, 256);
     if ((contractAddress != NULL) && (!allzeroes(contractAddress, 20))) {
         const uint8_t *selector = NULL;
-        switch(quantumType) {
+        switch (quantumType) {
             case STARK_QUANTUM_ERC20:
             case STARK_QUANTUM_LEGACY:
                 selector = ERC20_SELECTOR;
@@ -162,29 +173,27 @@ void compute_token_id(cx_sha3_t *sha3, uint8_t *contractAddress, uint8_t quantum
         memset(tmp, 0, sizeof(tmp));
         memmove(tmp, selector, 4);
         memmove(tmp + 16, contractAddress, 20);
-        cx_hash((cx_hash_t*)sha3, 0, tmp, sizeof(tmp), NULL, 0);        
-    }
-    else {
+        cx_hash((cx_hash_t *) sha3, 0, tmp, sizeof(tmp), NULL, 0);
+    } else {
         PRINTF("compute_token_id for ETH\n");
-        cx_hash((cx_hash_t*)sha3, 0, ETH_SELECTOR, sizeof(ETH_SELECTOR), NULL, 0);   
+        cx_hash((cx_hash_t *) sha3, 0, ETH_SELECTOR, sizeof(ETH_SELECTOR), NULL, 0);
     }
-    if ((quantumType == STARK_QUANTUM_ERC721) || (quantumType == STARK_QUANTUM_MINTABLE_ERC721)) {        
+    if ((quantumType == STARK_QUANTUM_ERC721) || (quantumType == STARK_QUANTUM_MINTABLE_ERC721)) {
         memset(tmp, 0, 32);
         tmp[31] = 1;
         PRINTF("compute_token_id quantum %.*H\n", 32, tmp);
-        cx_hash((cx_hash_t*)sha3, CX_LAST, tmp, 32, output, 32);    
-    }        
-    else {
+        cx_hash((cx_hash_t *) sha3, CX_LAST, tmp, 32, output, 32);
+    } else {
         PRINTF("compute_token_id quantum %.*H\n", 32, quantum);
-        cx_hash((cx_hash_t*)sha3, CX_LAST, quantum, 32, output, 32);
+        cx_hash((cx_hash_t *) sha3, CX_LAST, quantum, 32, output, 32);
     }
-    if (!assetTypeOnly && ((quantumType != STARK_QUANTUM_LEGACY) && 
-        (quantumType != STARK_QUANTUM_ETH) && 
-        (quantumType != STARK_QUANTUM_ERC20))) {
+    if (!assetTypeOnly &&
+        ((quantumType != STARK_QUANTUM_LEGACY) && (quantumType != STARK_QUANTUM_ETH) &&
+         (quantumType != STARK_QUANTUM_ERC20))) {
         const char *prefix = NULL;
         output[0] &= 0x03;
         cx_keccak_init(sha3, 256);
-        switch(quantumType) {
+        switch (quantumType) {
             case STARK_QUANTUM_ERC721:
                 prefix = NFT_ASSET_ID_PREFIX;
                 break;
@@ -196,18 +205,18 @@ void compute_token_id(cx_sha3_t *sha3, uint8_t *contractAddress, uint8_t quantum
                 PRINTF("Unsupported non default quantum type %d\n", quantumType);
                 return;
         }
-        cx_hash((cx_hash_t*)sha3, 0, (const uint8_t*)prefix, strlen(prefix), NULL, 0);
-        cx_hash((cx_hash_t*)sha3, 0, output, 32, NULL, 0);
-        cx_hash((cx_hash_t*)sha3, CX_LAST, mintingBlob, 32, output, 32);
+        cx_hash((cx_hash_t *) sha3, 0, (const uint8_t *) prefix, strlen(prefix), NULL, 0);
+        cx_hash((cx_hash_t *) sha3, 0, output, 32, NULL, 0);
+        cx_hash((cx_hash_t *) sha3, CX_LAST, mintingBlob, 32, output, 32);
     }
-    if (!assetTypeOnly && ((quantumType == STARK_QUANTUM_MINTABLE_ERC20) || (quantumType == STARK_QUANTUM_MINTABLE_ERC721))) {
+    if (!assetTypeOnly && ((quantumType == STARK_QUANTUM_MINTABLE_ERC20) ||
+                           (quantumType == STARK_QUANTUM_MINTABLE_ERC721))) {
         output[0] = 0x04;
         output[1] = 0x00;
-    }
-    else {
+    } else {
         output[0] &= 0x03;
     }
     PRINTF("compute_token_id computed token %.*H\n", 32, output);
 }
 
-#endif // HAVE_STARK
+#endif  // HAVE_STARK

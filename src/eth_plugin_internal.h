@@ -7,11 +7,11 @@
 typedef bool (*PluginAvailableCheck)(void);
 
 typedef struct internalEthPlugin_t {
-	PluginAvailableCheck availableCheck;
-	const uint8_t **selectors;
-	uint8_t num_selectors;
-	char alias[7];
-	PluginCall impl;
+    PluginAvailableCheck availableCheck;
+    const uint8_t** selectors;
+    uint8_t num_selectors;
+    char alias[7];
+    PluginCall impl;
 } internalEthPlugin_t;
 
 #define NUM_ERC20_SELECTORS 2

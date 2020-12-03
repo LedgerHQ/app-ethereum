@@ -11,7 +11,7 @@
 
 uint32_t splitBinaryParameterPart(char *result, uint8_t *parameter) {
     uint32_t i;
-    for (i=0; i<8; i++) {
+    for (i = 0; i < 8; i++) {
         if (parameter[i] != 0x00) {
             break;
         }
@@ -21,16 +21,14 @@ uint32_t splitBinaryParameterPart(char *result, uint8_t *parameter) {
         result[1] = '0';
         result[2] = '\0';
         return 2;
-    }
-    else {
+    } else {
         array_hexstr(result, parameter + i, 8 - i);
         return ((8 - i) * 2);
     }
 }
 
 customStatus_e customProcessor(txContext_t *context) {
-    if ((context->currentField == TX_RLP_DATA) &&
-        (context->currentFieldLength != 0)) {
+    if ((context->currentField == TX_RLP_DATA) && (context->currentFieldLength != 0)) {
         dataPresent = true;
         // If handling a new contract rather than a function call, abort immediately
         if (tmpContent.txContent.destinationLength == 0) {
@@ -38,320 +36,341 @@ customStatus_e customProcessor(txContext_t *context) {
         }
         if (context->currentFieldPos == 0) {
             ethPluginInitContract_t pluginInit;
-            // If handling the beginning of the data field, assume that the function selector is present
+            // If handling the beginning of the data field, assume that the function selector is
+            // present
             if (context->commandLength < 4) {
                 PRINTF("Missing function selector\n");
                 return CUSTOM_FAULT;
             }
             eth_plugin_prepare_init(&pluginInit, context->workBuffer, context->currentFieldLength);
-            dataContext.tokenContext.pluginAvailable = eth_plugin_perform_init(tmpContent.txContent.destination, &pluginInit);
+            dataContext.tokenContext.pluginAvailable =
+                eth_plugin_perform_init(tmpContent.txContent.destination, &pluginInit);
             PRINTF("pluginAvailable %d\n", dataContext.tokenContext.pluginAvailable);
             if (dataContext.tokenContext.pluginAvailable) {
-              dataContext.tokenContext.fieldIndex = 0;
-              dataContext.tokenContext.fieldOffset = 0;
-              copyTxData(context, NULL, 4);
-              if (context->currentFieldLength == 4) {
-                return CUSTOM_NOT_HANDLED;
-              }
+                dataContext.tokenContext.fieldIndex = 0;
+                dataContext.tokenContext.fieldOffset = 0;
+                copyTxData(context, NULL, 4);
+                if (context->currentFieldLength == 4) {
+                    return CUSTOM_NOT_HANDLED;
+                }
             }
         }
-          uint32_t blockSize;
-          uint32_t copySize;
-          uint32_t fieldPos = context->currentFieldPos;
-          if (fieldPos == 0) { // not reached if a plugin is available
-              if (!N_storage.dataAllowed) {
+        uint32_t blockSize;
+        uint32_t copySize;
+        uint32_t fieldPos = context->currentFieldPos;
+        if (fieldPos == 0) {  // not reached if a plugin is available
+            if (!N_storage.dataAllowed) {
                 PRINTF("Data field forbidden\n");
                 return CUSTOM_FAULT;
-              }     
-              if (!N_storage.contractDetails) {
+            }
+            if (!N_storage.contractDetails) {
                 return CUSTOM_NOT_HANDLED;
-              }     
-              dataContext.tokenContext.fieldIndex = 0;
-              dataContext.tokenContext.fieldOffset = 0;
-              blockSize = 4;
-          }
-          else {
-              if (!N_storage.contractDetails && !dataContext.tokenContext.pluginAvailable) {
+            }
+            dataContext.tokenContext.fieldIndex = 0;
+            dataContext.tokenContext.fieldOffset = 0;
+            blockSize = 4;
+        } else {
+            if (!N_storage.contractDetails && !dataContext.tokenContext.pluginAvailable) {
                 return CUSTOM_NOT_HANDLED;
-              }                 
-              blockSize = 32 - (dataContext.tokenContext.fieldOffset % 32);
-          }
+            }
+            blockSize = 32 - (dataContext.tokenContext.fieldOffset % 32);
+        }
 
-          // Sanity check
-          if ((context->currentFieldLength - fieldPos) < blockSize) {
-              PRINTF("Unconsistent data\n");
-              return CUSTOM_FAULT;
-          }
+        // Sanity check
+        if ((context->currentFieldLength - fieldPos) < blockSize) {
+            PRINTF("Unconsistent data\n");
+            return CUSTOM_FAULT;
+        }
 
-          copySize = (context->commandLength < blockSize ? context->commandLength : blockSize);
+        copySize = (context->commandLength < blockSize ? context->commandLength : blockSize);
 
-          PRINTF("currentFieldPos %d copySize %d\n", context->currentFieldPos, copySize);
+        PRINTF("currentFieldPos %d copySize %d\n", context->currentFieldPos, copySize);
 
-          copyTxData(context,
-                      dataContext.tokenContext.data + dataContext.tokenContext.fieldOffset,
-                      copySize);
+        copyTxData(context,
+                   dataContext.tokenContext.data + dataContext.tokenContext.fieldOffset,
+                   copySize);
 
-          if (context->currentFieldPos == context->currentFieldLength) {
-              context->currentField++;
-              context->processingField = false;
-          }
+        if (context->currentFieldPos == context->currentFieldLength) {
+            context->currentField++;
+            context->processingField = false;
+        }
 
-          dataContext.tokenContext.fieldOffset += copySize;
+        dataContext.tokenContext.fieldOffset += copySize;
 
-          if (copySize == blockSize) {
-              // Can process or display
-              if (dataContext.tokenContext.pluginAvailable) {
+        if (copySize == blockSize) {
+            // Can process or display
+            if (dataContext.tokenContext.pluginAvailable) {
                 ethPluginProvideParameter_t pluginProvideParameter;
-                eth_plugin_prepare_provide_parameter(&pluginProvideParameter, 
-                  dataContext.tokenContext.data, 
-                  dataContext.tokenContext.fieldIndex * 32 + 4);
-                if (!eth_plugin_call(NULL, ETH_PLUGIN_PROVIDE_PARAMETER, (void*)&pluginProvideParameter)) {
-                  PRINTF("Plugin parameter call failed\n");
-                  return CUSTOM_FAULT;
+                eth_plugin_prepare_provide_parameter(&pluginProvideParameter,
+                                                     dataContext.tokenContext.data,
+                                                     dataContext.tokenContext.fieldIndex * 32 + 4);
+                if (!eth_plugin_call(NULL,
+                                     ETH_PLUGIN_PROVIDE_PARAMETER,
+                                     (void *) &pluginProvideParameter)) {
+                    PRINTF("Plugin parameter call failed\n");
+                    return CUSTOM_FAULT;
                 }
                 dataContext.tokenContext.fieldIndex++;
                 dataContext.tokenContext.fieldOffset = 0;
                 return CUSTOM_HANDLED;
-              }
+            }
 
-              if (fieldPos != 0) {
-                  dataContext.tokenContext.fieldIndex++;
-              }
-              dataContext.tokenContext.fieldOffset = 0;
-              if (fieldPos == 0) {
-                  array_hexstr(strings.tmp.tmp, dataContext.tokenContext.data, 4);
-                  ux_flow_init(0, ux_confirm_selector_flow, NULL);
-              }
-              else {
-                  uint32_t offset = 0;
-                  uint32_t i;
-                  snprintf(strings.tmp.tmp2, sizeof(strings.tmp.tmp2), "Field %d", dataContext.tokenContext.fieldIndex);
-                  for (i=0; i<4; i++) {
-                      offset += splitBinaryParameterPart(strings.tmp.tmp + offset, dataContext.tokenContext.data + 8 * i);
-                      if (i != 3) {
-                          strings.tmp.tmp[offset++] = ':';
-                      }
-                  }
-                  ux_flow_init(0, ux_confirm_parameter_flow, NULL);
-              }
-          }
-          else {
-              return CUSTOM_HANDLED;
-          }
+            if (fieldPos != 0) {
+                dataContext.tokenContext.fieldIndex++;
+            }
+            dataContext.tokenContext.fieldOffset = 0;
+            if (fieldPos == 0) {
+                array_hexstr(strings.tmp.tmp, dataContext.tokenContext.data, 4);
+                ux_flow_init(0, ux_confirm_selector_flow, NULL);
+            } else {
+                uint32_t offset = 0;
+                uint32_t i;
+                snprintf(strings.tmp.tmp2,
+                         sizeof(strings.tmp.tmp2),
+                         "Field %d",
+                         dataContext.tokenContext.fieldIndex);
+                for (i = 0; i < 4; i++) {
+                    offset += splitBinaryParameterPart(strings.tmp.tmp + offset,
+                                                       dataContext.tokenContext.data + 8 * i);
+                    if (i != 3) {
+                        strings.tmp.tmp[offset++] = ':';
+                    }
+                }
+                ux_flow_init(0, ux_confirm_parameter_flow, NULL);
+            }
+        } else {
+            return CUSTOM_HANDLED;
+        }
 
-          return CUSTOM_SUSPENDED;
+        return CUSTOM_SUSPENDED;
     }
     return CUSTOM_NOT_HANDLED;
 }
 
-
-void to_uppercase(char* str, unsigned char size){
-    for (unsigned char i = 0; i < size && str[i] != 0; i++)
-    {
+void to_uppercase(char *str, unsigned char size) {
+    for (unsigned char i = 0; i < size && str[i] != 0; i++) {
         str[i] = str[i] >= 'a' ? str[i] - ('a' - 'A') : str[i];
     }
 }
 
-void compareOrCopy(char* preapproved_string, char* parsed_string, bool silent_mode){
-  if(silent_mode){
-    /* ETH address are not fundamentally case sensitive but might
-    have some for checksum purpose, so let's get rid of these diffs */
-    to_uppercase(preapproved_string, strlen(preapproved_string));
-    to_uppercase(parsed_string, strlen(parsed_string));
-    if(memcmp(preapproved_string, parsed_string, strlen(preapproved_string))){
-      THROW(ERR_SILENT_MODE_CHECK_FAILED);
+void compareOrCopy(char *preapproved_string, char *parsed_string, bool silent_mode) {
+    if (silent_mode) {
+        /* ETH address are not fundamentally case sensitive but might
+        have some for checksum purpose, so let's get rid of these diffs */
+        to_uppercase(preapproved_string, strlen(preapproved_string));
+        to_uppercase(parsed_string, strlen(parsed_string));
+        if (memcmp(preapproved_string, parsed_string, strlen(preapproved_string))) {
+            THROW(ERR_SILENT_MODE_CHECK_FAILED);
+        }
+    } else {
+        strcpy(preapproved_string, parsed_string);
     }
-  }
-  else{
-    strcpy(preapproved_string, parsed_string);
-  }
 }
 
 void reportFinalizeError(bool direct) {
-  reset_app_context();
-  if (direct) {
-    THROW(0x6A80);
-  }
-  else {
-    io_seproxyhal_send_status(0x6A80);
-    ui_idle();
-  }
+    reset_app_context();
+    if (direct) {
+        THROW(0x6A80);
+    } else {
+        io_seproxyhal_send_status(0x6A80);
+        ui_idle();
+    }
 }
 
 void computeFees(char *displayBuffer, uint32_t displayBufferSize) {
-  uint256_t gasPrice, startGas, uint256;
-  uint8_t *feeTicker = (uint8_t *)PIC(chainConfig->coinName);
-  uint8_t tickerOffset = 0;  
-  uint32_t i;
+    uint256_t gasPrice, startGas, uint256;
+    uint8_t *feeTicker = (uint8_t *) PIC(chainConfig->coinName);
+    uint8_t tickerOffset = 0;
+    uint32_t i;
 
-  PRINTF("Max fee\n");
-  PRINTF("Gasprice %.*H\n", tmpContent.txContent.gasprice.length, tmpContent.txContent.gasprice.value);
-  PRINTF("Startgas %.*H\n", tmpContent.txContent.startgas.length, tmpContent.txContent.startgas.value);
-  convertUint256BE(tmpContent.txContent.gasprice.value, tmpContent.txContent.gasprice.length, &gasPrice);
-  convertUint256BE(tmpContent.txContent.startgas.value, tmpContent.txContent.startgas.length, &startGas);
-  mul256(&gasPrice, &startGas, &uint256);
-  tostring256(&uint256, 10, (char *)(G_io_apdu_buffer + 100), 100);
-  i = 0;
-  while (G_io_apdu_buffer[100 + i]) {
-    i++;
-  }
-  adjustDecimals((char *)(G_io_apdu_buffer + 100), i, (char *)G_io_apdu_buffer, 100, WEI_TO_ETHER);
-  i = 0;
-  tickerOffset=0;
-  memset(displayBuffer, 0, displayBufferSize);
-  while (feeTicker[tickerOffset]) {
-      displayBuffer[tickerOffset] = feeTicker[tickerOffset];
-      tickerOffset++;
-  }
-  while (G_io_apdu_buffer[i]) {
-    displayBuffer[tickerOffset + i] = G_io_apdu_buffer[i];
-    i++;
-  }
-  displayBuffer[tickerOffset + i] = '\0';
+    PRINTF("Max fee\n");
+    PRINTF("Gasprice %.*H\n",
+           tmpContent.txContent.gasprice.length,
+           tmpContent.txContent.gasprice.value);
+    PRINTF("Startgas %.*H\n",
+           tmpContent.txContent.startgas.length,
+           tmpContent.txContent.startgas.value);
+    convertUint256BE(tmpContent.txContent.gasprice.value,
+                     tmpContent.txContent.gasprice.length,
+                     &gasPrice);
+    convertUint256BE(tmpContent.txContent.startgas.value,
+                     tmpContent.txContent.startgas.length,
+                     &startGas);
+    mul256(&gasPrice, &startGas, &uint256);
+    tostring256(&uint256, 10, (char *) (G_io_apdu_buffer + 100), 100);
+    i = 0;
+    while (G_io_apdu_buffer[100 + i]) {
+        i++;
+    }
+    adjustDecimals((char *) (G_io_apdu_buffer + 100),
+                   i,
+                   (char *) G_io_apdu_buffer,
+                   100,
+                   WEI_TO_ETHER);
+    i = 0;
+    tickerOffset = 0;
+    memset(displayBuffer, 0, displayBufferSize);
+    while (feeTicker[tickerOffset]) {
+        displayBuffer[tickerOffset] = feeTicker[tickerOffset];
+        tickerOffset++;
+    }
+    while (G_io_apdu_buffer[i]) {
+        displayBuffer[tickerOffset + i] = G_io_apdu_buffer[i];
+        i++;
+    }
+    displayBuffer[tickerOffset + i] = '\0';
 }
 
-void finalizeParsing(bool direct) {  
-  char displayBuffer[50];
-  uint8_t decimals = WEI_TO_ETHER;
-  uint8_t *ticker = (uint8_t *)PIC(chainConfig->coinName);
-  ethPluginFinalize_t pluginFinalize;
-  tokenDefinition_t *token1 = NULL, *token2 = NULL;
-  bool genericUI = true;  
+void finalizeParsing(bool direct) {
+    char displayBuffer[50];
+    uint8_t decimals = WEI_TO_ETHER;
+    uint8_t *ticker = (uint8_t *) PIC(chainConfig->coinName);
+    ethPluginFinalize_t pluginFinalize;
+    tokenDefinition_t *token1 = NULL, *token2 = NULL;
+    bool genericUI = true;
 
-  // Verify the chain
-  if (chainConfig->chainId != 0) {
-    uint32_t v = getV(&tmpContent.txContent);
-    if (chainConfig->chainId != v) {
-        reset_app_context();
-        PRINTF("Invalid chainId %d expected %d\n", v, chainConfig->chainId);
-        reportFinalizeError(direct);
-        if (!direct) {
-          return;
-        }
-    }
-  }
-  // Store the hash
-  cx_hash((cx_hash_t *)&global_sha3, CX_LAST, tmpCtx.transactionContext.hash, 0, tmpCtx.transactionContext.hash, 32);
-
-  // Finalize the plugin handling
-  if (dataContext.tokenContext.pluginAvailable) {
-    genericUI = false;
-    eth_plugin_prepare_finalize(&pluginFinalize);
-    if (!eth_plugin_call(NULL, ETH_PLUGIN_FINALIZE, (void*)&pluginFinalize)) {
-      PRINTF("Plugin finalize call failed\n");
-      reportFinalizeError(direct);
-      if (!direct) {
-        return;
-      }    
-    }
-    // Lookup tokens if requested
-    if (pluginFinalize.tokenLookup1 != NULL) {
-      ethPluginProvideToken_t pluginProvideToken;      
-      token1 = getKnownToken(pluginFinalize.tokenLookup1);
-      if (pluginFinalize.tokenLookup2 != NULL) {
-        token2 = getKnownToken(pluginFinalize.tokenLookup2);
-      }
-      eth_plugin_prepare_provide_token(&pluginProvideToken, token1, token2);
-      if (!eth_plugin_call(NULL, ETH_PLUGIN_PROVIDE_TOKEN, (void*)&pluginProvideToken)) {
-        PRINTF("Plugin provide token call failed\n");
-        reportFinalizeError(direct);
-        if (!direct) {
-          return;
-        }    
-      }
-      pluginFinalize.result = pluginProvideToken.result;
-    }
-    if (pluginFinalize.result != ETH_PLUGIN_RESULT_FALLBACK) {
-      // Handle the right interface
-      switch(pluginFinalize.uiType) {
-        case ETH_UI_TYPE_GENERIC:
-          dataPresent = false;
-          dataContext.tokenContext.pluginUiMaxItems = pluginFinalize.numScreens;
-          break;
-        case ETH_UI_TYPE_AMOUNT_ADDRESS:
-          genericUI = true;
-          dataPresent = false;
-          if ((pluginFinalize.amount == NULL) || (pluginFinalize.address == NULL)) {
-            PRINTF("Incorrect amount/address set by plugin\n");
+    // Verify the chain
+    if (chainConfig->chainId != 0) {
+        uint32_t v = getV(&tmpContent.txContent);
+        if (chainConfig->chainId != v) {
+            reset_app_context();
+            PRINTF("Invalid chainId %d expected %d\n", v, chainConfig->chainId);
             reportFinalizeError(direct);
             if (!direct) {
-              return;
-            }    
-          }
-          memmove(tmpContent.txContent.value.value, pluginFinalize.amount, 32);
-          tmpContent.txContent.value.length = 32;
-          memmove(tmpContent.txContent.destination, pluginFinalize.address, 20);
-          tmpContent.txContent.destinationLength = 20;
-          if (token1 != NULL) {
-            decimals = token1->decimals;
-            ticker = token1->ticker;            
-          }
-          break;
-        default:
-          PRINTF("ui type %d not supported\n", pluginFinalize.uiType);
-          reportFinalizeError(direct);
-          if (!direct) {
+                return;
+            }
+        }
+    }
+    // Store the hash
+    cx_hash((cx_hash_t *) &global_sha3,
+            CX_LAST,
+            tmpCtx.transactionContext.hash,
+            0,
+            tmpCtx.transactionContext.hash,
+            32);
+
+    // Finalize the plugin handling
+    if (dataContext.tokenContext.pluginAvailable) {
+        genericUI = false;
+        eth_plugin_prepare_finalize(&pluginFinalize);
+        if (!eth_plugin_call(NULL, ETH_PLUGIN_FINALIZE, (void *) &pluginFinalize)) {
+            PRINTF("Plugin finalize call failed\n");
+            reportFinalizeError(direct);
+            if (!direct) {
+                return;
+            }
+        }
+        // Lookup tokens if requested
+        if (pluginFinalize.tokenLookup1 != NULL) {
+            ethPluginProvideToken_t pluginProvideToken;
+            token1 = getKnownToken(pluginFinalize.tokenLookup1);
+            if (pluginFinalize.tokenLookup2 != NULL) {
+                token2 = getKnownToken(pluginFinalize.tokenLookup2);
+            }
+            eth_plugin_prepare_provide_token(&pluginProvideToken, token1, token2);
+            if (!eth_plugin_call(NULL, ETH_PLUGIN_PROVIDE_TOKEN, (void *) &pluginProvideToken)) {
+                PRINTF("Plugin provide token call failed\n");
+                reportFinalizeError(direct);
+                if (!direct) {
+                    return;
+                }
+            }
+            pluginFinalize.result = pluginProvideToken.result;
+        }
+        if (pluginFinalize.result != ETH_PLUGIN_RESULT_FALLBACK) {
+            // Handle the right interface
+            switch (pluginFinalize.uiType) {
+                case ETH_UI_TYPE_GENERIC:
+                    dataPresent = false;
+                    dataContext.tokenContext.pluginUiMaxItems = pluginFinalize.numScreens;
+                    break;
+                case ETH_UI_TYPE_AMOUNT_ADDRESS:
+                    genericUI = true;
+                    dataPresent = false;
+                    if ((pluginFinalize.amount == NULL) || (pluginFinalize.address == NULL)) {
+                        PRINTF("Incorrect amount/address set by plugin\n");
+                        reportFinalizeError(direct);
+                        if (!direct) {
+                            return;
+                        }
+                    }
+                    memmove(tmpContent.txContent.value.value, pluginFinalize.amount, 32);
+                    tmpContent.txContent.value.length = 32;
+                    memmove(tmpContent.txContent.destination, pluginFinalize.address, 20);
+                    tmpContent.txContent.destinationLength = 20;
+                    if (token1 != NULL) {
+                        decimals = token1->decimals;
+                        ticker = token1->ticker;
+                    }
+                    break;
+                default:
+                    PRINTF("ui type %d not supported\n", pluginFinalize.uiType);
+                    reportFinalizeError(direct);
+                    if (!direct) {
+                        return;
+                    }
+            }
+        } else {
+            genericUI = true;
+        }
+    }
+
+    if (dataPresent && !N_storage.dataAllowed) {
+        PRINTF("Data field forbidden\n");
+        reportFinalizeError(direct);
+        if (!direct) {
             return;
-          }    
-      }
+        }
     }
-    else {
-      genericUI = true;
+    // Prepare destination address to display
+    if (genericUI) {
+        if (tmpContent.txContent.destinationLength != 0) {
+            displayBuffer[0] = '0';
+            displayBuffer[1] = 'x';
+            getEthAddressStringFromBinary(tmpContent.txContent.destination,
+                                          (uint8_t *) displayBuffer + 2,
+                                          &global_sha3,
+                                          chainConfig);
+            compareOrCopy(strings.common.fullAddress, displayBuffer, called_from_swap);
+        } else {
+            strcpy(strings.common.fullAddress, "Contract");
+        }
     }
-  }
+    // Prepare amount to display
+    if (genericUI) {
+        amountToString(tmpContent.txContent.value.value,
+                       tmpContent.txContent.value.length,
+                       decimals,
+                       (char *) ticker,
+                       displayBuffer,
+                       sizeof(displayBuffer));
+        compareOrCopy(strings.common.fullAmount, displayBuffer, called_from_swap);
+    }
+    // Compute maximum fee
+    if (genericUI) {
+        computeFees(displayBuffer, sizeof(displayBuffer));
+        compareOrCopy(strings.common.maxFee, displayBuffer, called_from_swap);
+    }
 
-  if (dataPresent && !N_storage.dataAllowed) {      
-      PRINTF("Data field forbidden\n");
-      reportFinalizeError(direct);
-      if (!direct) {
-        return;
-      }
-  }
-  // Prepare destination address to display
-  if (genericUI) {    
-    if (tmpContent.txContent.destinationLength != 0) {
-      displayBuffer[0] = '0';
-      displayBuffer[1] = 'x';
-      getEthAddressStringFromBinary(tmpContent.txContent.destination, (uint8_t*)displayBuffer+2, &global_sha3, chainConfig);
-      compareOrCopy(strings.common.fullAddress, displayBuffer, called_from_swap);
-    }
-    else
-    {
-      strcpy(strings.common.fullAddress, "Contract");
-    }
-  }
-  // Prepare amount to display
-  if (genericUI) {
-    amountToString(tmpContent.txContent.value.value, tmpContent.txContent.value.length, decimals, (char*)ticker, displayBuffer, sizeof(displayBuffer));
-    compareOrCopy(strings.common.fullAmount, displayBuffer, called_from_swap);
-  }
-  // Compute maximum fee
-  if (genericUI) {
-    computeFees(displayBuffer, sizeof(displayBuffer));
-    compareOrCopy(strings.common.maxFee, displayBuffer, called_from_swap);
-  }
+    bool no_consent = false;
 
-  bool no_consent = false;
-
-  no_consent = called_from_swap;
+    no_consent = called_from_swap;
 
 #ifdef NO_CONSENT
-  no_consent = true;
-#endif // NO_CONSENT
+    no_consent = true;
+#endif  // NO_CONSENT
 
-  if(no_consent){
-    io_seproxyhal_touch_tx_ok(NULL);
-  }
-  else{
-
-    if (genericUI) {
-      ux_flow_init(0,
-        ((dataPresent && !N_storage.contractDetails) ? ux_approval_tx_data_warning_flow : ux_approval_tx_flow),
-        NULL);
+    if (no_consent) {
+        io_seproxyhal_touch_tx_ok(NULL);
+    } else {
+        if (genericUI) {
+            ux_flow_init(
+                0,
+                ((dataPresent && !N_storage.contractDetails) ? ux_approval_tx_data_warning_flow
+                                                             : ux_approval_tx_flow),
+                NULL);
+        } else {
+            plugin_ui_start();
+        }
     }
-    else {
-      plugin_ui_start();
-    }
-  }
-
 }

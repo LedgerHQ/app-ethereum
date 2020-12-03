@@ -3,12 +3,12 @@
 #include "poorstream.h"
 
 void poorstream_init(poorstream_t *stream, uint8_t *buffer) {
-	memset((void*)stream, 0, sizeof(poorstream_t));
-	stream->pointer = buffer;
+    memset((void *) stream, 0, sizeof(poorstream_t));
+    stream->pointer = buffer;
 }
 
 void poorstream_flush(poorstream_t *stream) {
-    //PRINTF("Flush\n");
+    // PRINTF("Flush\n");
     *(stream->pointer + 0) = (stream->accumulator >> 56);
     *(stream->pointer + 1) = (stream->accumulator >> 48);
     *(stream->pointer + 2) = (stream->accumulator >> 40);
@@ -23,12 +23,12 @@ void poorstream_write_bits(poorstream_t *stream, uint64_t bits, uint32_t num_bit
     stream->offset += num_bits;
     if (stream->offset < 64) {
         stream->accumulator |= (bits << (64 - stream->offset));
-        //PRINTF("ACC |= << %d\n", (64 - stream->offset));
+        // PRINTF("ACC |= << %d\n", (64 - stream->offset));
     } else {
         stream->offset -= 64;
         stream->mask = ((1 << (num_bits - stream->offset)) - 1);
-        //PRINTF("Mask %lx\n", stream->mask);
-        //PRINTF("Offset %d\n", stream->offset);
+        // PRINTF("Mask %lx\n", stream->mask);
+        // PRINTF("Offset %d\n", stream->offset);
         stream->accumulator |= ((bits >> stream->offset) & stream->mask);
         poorstream_flush(stream);
         stream->accumulator = 0;

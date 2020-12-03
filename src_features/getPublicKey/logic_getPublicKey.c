@@ -9,9 +9,8 @@ uint32_t set_result_get_publicKey() {
     memmove(G_io_apdu_buffer + tx, tmpCtx.publicKeyContext.address, 40);
     tx += 40;
     if (tmpCtx.publicKeyContext.getChaincode) {
-      memmove(G_io_apdu_buffer + tx, tmpCtx.publicKeyContext.chainCode, 32);
-      tx += 32;
+        memmove(G_io_apdu_buffer + tx, tmpCtx.publicKeyContext.chainCode, 32);
+        tx += 32;
     }
     return tx;
 }
-

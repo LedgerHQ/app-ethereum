@@ -1,0 +1,36 @@
+name: Compilation & tests
+
+on: [push, pull_request]
+
+jobs:
+  job_build_debug:
+    name: Build debug
+    runs-on: ubuntu-latest
+
+    container:
+      image: docker://ledgerhq/ledger-app-builder:1.6.1-2
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v2
+
+      - name: Build an altcoin
+        run: |
+          make DEBUG=1 CHAIN=ethereum_classic
+
+      - name: Upload altcoin binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: ethereum-classic-app-debug
+          path: bin
+
+      - name: Build Ethereum
+        run: |
+          make clean
+          make DEBUG=1
+
+      - name: Upload app binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: ethereum-app-debug
+          path: bin

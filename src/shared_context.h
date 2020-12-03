@@ -22,24 +22,24 @@
 
 #define WEI_TO_ETHER 18
 
-#define N_storage (*(volatile internalStorage_t*) PIC(&N_storage_real))
+#define N_storage (*(volatile internalStorage_t *) PIC(&N_storage_real))
 
 typedef struct internalStorage_t {
-  unsigned char dataAllowed;
-  unsigned char contractDetails;
-  uint8_t initialized;
+    unsigned char dataAllowed;
+    unsigned char contractDetails;
+    uint8_t initialized;
 } internalStorage_t;
 
 #ifdef HAVE_STARKWARE
 
 typedef enum starkQuantumType_e {
 
-  STARK_QUANTUM_LEGACY = 0x00,
-  STARK_QUANTUM_ETH,
-  STARK_QUANTUM_ERC20,
-  STARK_QUANTUM_ERC721,
-  STARK_QUANTUM_MINTABLE_ERC20,
-  STARK_QUANTUM_MINTABLE_ERC721
+    STARK_QUANTUM_LEGACY = 0x00,
+    STARK_QUANTUM_ETH,
+    STARK_QUANTUM_ERC20,
+    STARK_QUANTUM_ERC721,
+    STARK_QUANTUM_MINTABLE_ERC20,
+    STARK_QUANTUM_MINTABLE_ERC721
 
 } starkQuantumType_e;
 
@@ -47,11 +47,11 @@ typedef enum starkQuantumType_e {
 
 typedef struct tokenContext_t {
     char pluginName[PLUGIN_ID_LENGTH];
-    uint8_t pluginAvailable;    
+    uint8_t pluginAvailable;
 
     uint8_t data[32];
     uint8_t fieldIndex;
-    uint8_t fieldOffset;    
+    uint8_t fieldOffset;
 
     uint8_t pluginUiMaxItems;
     uint8_t pluginUiCurrentItem;
@@ -98,7 +98,6 @@ typedef struct messageSigningContext712_t {
     uint8_t messageHash[32];
 } messageSigningContext712_t;
 
-
 typedef union {
     publicKeyContext_t publicKeyContext;
     transactionContext_t transactionContext;
@@ -107,22 +106,22 @@ typedef union {
 } tmpCtx_t;
 
 typedef union {
-  txContent_t txContent;
-  cx_sha256_t sha2;
-  char tmp[100];
+    txContent_t txContent;
+    cx_sha256_t sha2;
+    char tmp[100];
 } tmpContent_t;
 
 #ifdef HAVE_STARKWARE
 
 typedef struct starkContext_t {
-  uint8_t w1[32];
-  uint8_t w2[32];
-  uint8_t w3[32];
-  uint8_t w4[32];
-  uint8_t conditional;
-  uint8_t transferDestination[32];  
-  uint8_t fact[32];
-  uint8_t conditionAddress[20];  
+    uint8_t w1[32];
+    uint8_t w2[32];
+    uint8_t w3[32];
+    uint8_t w4[32];
+    uint8_t conditional;
+    uint8_t transferDestination[32];
+    uint8_t fact[32];
+    uint8_t conditionAddress[20];
 } starkContext_t;
 
 #endif
@@ -134,27 +133,23 @@ typedef union {
 #endif
 } dataContext_t;
 
-typedef enum {
-  APP_STATE_IDLE,
-  APP_STATE_SIGNING_TX,
-  APP_STATE_SIGNING_MESSAGE
-} app_state_t;
+typedef enum { APP_STATE_IDLE, APP_STATE_SIGNING_TX, APP_STATE_SIGNING_MESSAGE } app_state_t;
 
 typedef enum {
-  CONTRACT_NONE,
-  CONTRACT_ERC20,
-  CONTRACT_ALLOWANCE,
+    CONTRACT_NONE,
+    CONTRACT_ERC20,
+    CONTRACT_ALLOWANCE,
 #ifdef HAVE_STARKWARE
-  CONTRACT_STARKWARE_REGISTER,
-  CONTRACT_STARKWARE_DEPOSIT_TOKEN,
-  CONTRACT_STARKWARE_DEPOSIT_ETH,
-  CONTRACT_STARKWARE_WITHDRAW,
-  CONTRACT_STARKWARE_DEPOSIT_CANCEL,
-  CONTRACT_STARKWARE_DEPOSIT_RECLAIM,
-  CONTRACT_STARKWARE_FULL_WITHDRAWAL,
-  CONTRACT_STARKWARE_FREEZE,
-  CONTRACT_STARKWARE_ESCAPE,
-  CONTRACT_STARKWARE_VERIFY_ESCAPE
+    CONTRACT_STARKWARE_REGISTER,
+    CONTRACT_STARKWARE_DEPOSIT_TOKEN,
+    CONTRACT_STARKWARE_DEPOSIT_ETH,
+    CONTRACT_STARKWARE_WITHDRAW,
+    CONTRACT_STARKWARE_DEPOSIT_CANCEL,
+    CONTRACT_STARKWARE_DEPOSIT_RECLAIM,
+    CONTRACT_STARKWARE_FULL_WITHDRAWAL,
+    CONTRACT_STARKWARE_FREEZE,
+    CONTRACT_STARKWARE_ESCAPE,
+    CONTRACT_STARKWARE_VERIFY_ESCAPE
 #endif
 } contract_call_t;
 
@@ -196,5 +191,4 @@ extern uint32_t eth2WithdrawalIndex;
 
 void reset_app_context(void);
 
-#endif // __SHARED_CONTEXT_H__
-
+#endif  // __SHARED_CONTEXT_H__

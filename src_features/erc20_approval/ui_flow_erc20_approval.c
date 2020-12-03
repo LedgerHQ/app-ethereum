@@ -1,6 +1,7 @@
 #include "shared_context.h"
 #include "ui_callbacks.h"
 
+// clang-format off
 UX_STEP_NOCB(ux_approval_allowance_1_step,
     pnn,
     {
@@ -59,14 +60,13 @@ UX_STEP_CB(
       &C_icon_crossmark,
       "Reject",
     });
+// clang-format on
 
 UX_FLOW(ux_approval_allowance_flow,
-  &ux_approval_allowance_1_step,
-  &ux_approval_allowance_2_step,
-  &ux_approval_allowance_3_step,
-  &ux_approval_allowance_4_step,
-  &ux_approval_allowance_5_step,
-  &ux_approval_allowance_6_step,
-  &ux_approval_allowance_7_step
-);
-
+        &ux_approval_allowance_1_step,
+        &ux_approval_allowance_2_step,
+        &ux_approval_allowance_3_step,
+        &ux_approval_allowance_4_step,
+        &ux_approval_allowance_5_step,
+        &ux_approval_allowance_6_step,
+        &ux_approval_allowance_7_step);

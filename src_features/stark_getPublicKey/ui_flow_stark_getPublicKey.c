@@ -5,6 +5,7 @@
 
 unsigned int io_seproxyhal_touch_stark_pubkey_ok(const bagl_element_t *e);
 
+// clang-format off
 UX_STEP_NOCB(
     ux_display_stark_public_flow_1_step,
     pnn,
@@ -36,13 +37,12 @@ UX_STEP_CB(
       &C_icon_crossmark,
       "Reject",
     });
+// clang-format on
 
 UX_FLOW(ux_display_stark_public_flow,
-  &ux_display_stark_public_flow_1_step,
-  &ux_display_stark_public_flow_2_step,
-  &ux_display_stark_public_flow_3_step,
-  &ux_display_stark_public_flow_4_step
-);
+        &ux_display_stark_public_flow_1_step,
+        &ux_display_stark_public_flow_2_step,
+        &ux_display_stark_public_flow_3_step,
+        &ux_display_stark_public_flow_4_step);
 
 #endif
-

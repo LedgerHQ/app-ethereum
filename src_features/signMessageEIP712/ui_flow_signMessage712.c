@@ -2,13 +2,14 @@
 #include "ui_callbacks.h"
 
 void prepare_domain_hash_v0() {
-   snprintf(strings.tmp.tmp, 70, "0x%.*H", 32, tmpCtx.messageSigningContext712.domainHash);
+    snprintf(strings.tmp.tmp, 70, "0x%.*H", 32, tmpCtx.messageSigningContext712.domainHash);
 }
 
 void prepare_message_hash_v0() {
-   snprintf(strings.tmp.tmp, 70, "0x%.*H", 32, tmpCtx.messageSigningContext712.messageHash);
+    snprintf(strings.tmp.tmp, 70, "0x%.*H", 32, tmpCtx.messageSigningContext712.messageHash);
 }
 
+// clang-format off
 UX_STEP_NOCB(
     ux_sign_712_v0_flow_1_step,
     pnn,
@@ -51,12 +52,11 @@ UX_STEP_CB(
       "Cancel",
       "signature",
     });
+// clang-format on
 
 UX_FLOW(ux_sign_712_v0_flow,
-  &ux_sign_712_v0_flow_1_step,
-  &ux_sign_712_v0_flow_2_step,
-  &ux_sign_712_v0_flow_3_step,
-  &ux_sign_712_v0_flow_4_step,
-  &ux_sign_712_v0_flow_5_step
-);
-
+        &ux_sign_712_v0_flow_1_step,
+        &ux_sign_712_v0_flow_2_step,
+        &ux_sign_712_v0_flow_3_step,
+        &ux_sign_712_v0_flow_4_step,
+        &ux_sign_712_v0_flow_5_step);

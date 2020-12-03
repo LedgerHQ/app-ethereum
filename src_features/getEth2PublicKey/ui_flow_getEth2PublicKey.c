@@ -4,9 +4,10 @@
 #include "ui_callbacks.h"
 
 void prepare_eth2_public_key() {
-   snprintf(strings.tmp.tmp, 100, "0x%.*H", 48, tmpCtx.publicKeyContext.publicKey.W);
+    snprintf(strings.tmp.tmp, 100, "0x%.*H", 48, tmpCtx.publicKeyContext.publicKey.W);
 }
 
+// clang-format off
 UX_STEP_NOCB(
     ux_display_public_eth2_flow_1_step,
     pnn,
@@ -39,12 +40,12 @@ UX_STEP_CB(
       &C_icon_crossmark,
       "Reject",
     });
+// clang-format on
 
 UX_FLOW(ux_display_public_eth2_flow,
-  &ux_display_public_eth2_flow_1_step,
-  &ux_display_public_eth2_flow_2_step,
-  &ux_display_public_eth2_flow_3_step,
-  &ux_display_public_eth2_flow_4_step
-);
+        &ux_display_public_eth2_flow_1_step,
+        &ux_display_public_eth2_flow_2_step,
+        &ux_display_public_eth2_flow_3_step,
+        &ux_display_public_eth2_flow_4_step);
 
 #endif

@@ -13,8 +13,7 @@ unsigned int io_seproxyhal_touch_stark_pubkey_ok(const bagl_element_t *e) {
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
     // Display back the original UX
     ui_idle();
-    return 0; // do not redraw the widget
+    return 0;  // do not redraw the widget
 }
 
 #endif
-

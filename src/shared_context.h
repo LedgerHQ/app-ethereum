@@ -83,6 +83,7 @@ typedef struct transactionContext_t {
     tokenDefinition_t tokens[MAX_TOKEN];
     uint8_t tokenSet[MAX_TOKEN];
     uint8_t currentTokenIndex;
+    bool externalPluginIsSet;
 } transactionContext_t;
 
 typedef struct messageSigningContext_t {

@@ -22,11 +22,12 @@ void plugin_ui_get_id() {
                                          strings.tmp.tmp2,
                                          sizeof(strings.tmp.tmp2));
     // Query the original contract for ID if it's not an internal alias
-    if (!eth_plugin_call(
-            (dataContext.tokenContext.pluginName[0] == '-' ? NULL
-                                                           : tmpContent.txContent.destination),
-            ETH_PLUGIN_QUERY_CONTRACT_ID,
-            (void *) &pluginQueryContractID)) {
+    if (!eth_plugin_call((dataContext.tokenContext.pluginName[0] == '-' ||
+                                  tmpCtx.transactionContext.externalPluginIsSet
+                              ? NULL
+                              : tmpContent.txContent.destination),
+                         ETH_PLUGIN_QUERY_CONTRACT_ID,
+                         (void *) &pluginQueryContractID)) {
         PRINTF("Plugin query contract ID call failed\n");
         io_seproxyhal_touch_tx_cancel(NULL);
     }

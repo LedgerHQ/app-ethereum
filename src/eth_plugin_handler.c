@@ -61,23 +61,31 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
     uint8_t i;
     const uint8_t **selectors;
     dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_UNAVAILABLE;
-    // Handle hardcoded plugin list
+
     PRINTF("Selector %.*H\n", 4, init->selector);
-    for (i = 0;; i++) {
-        uint8_t j;
-        selectors = (const uint8_t **) PIC(INTERNAL_ETH_PLUGINS[i].selectors);
-        if (selectors == NULL) {
-            break;
-        }
-        for (j = 0; ((j < INTERNAL_ETH_PLUGINS[i].num_selectors) && (contractAddress != NULL));
-             j++) {
-            if (memcmp(init->selector, (const void *) PIC(selectors[j]), SELECTOR_SIZE) == 0) {
-                if ((INTERNAL_ETH_PLUGINS[i].availableCheck == NULL) ||
-                    ((PluginAvailableCheck) PIC(INTERNAL_ETH_PLUGINS[i].availableCheck))()) {
-                    strcpy(dataContext.tokenContext.pluginName, INTERNAL_ETH_PLUGINS[i].alias);
-                    dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
-                    contractAddress = NULL;
-                    break;
+    if (tmpCtx.transactionContext.externalPluginIsSet) {
+        PRINTF("External plugin will be used\n");
+        dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
+        contractAddress = NULL;
+    }
+    else {
+        // Search internal plugin list
+        for (i = 0;; i++) {
+            uint8_t j;
+            selectors = (const uint8_t **) PIC(INTERNAL_ETH_PLUGINS[i].selectors);
+            if (selectors == NULL) {
+                break;
+            }
+            for (j = 0; ((j < INTERNAL_ETH_PLUGINS[i].num_selectors) && (contractAddress != NULL));
+                j++) {
+                if (memcmp(init->selector, (const void *) PIC(selectors[j]), SELECTOR_SIZE) == 0) {
+                    if ((INTERNAL_ETH_PLUGINS[i].availableCheck == NULL) ||
+                        ((PluginAvailableCheck) PIC(INTERNAL_ETH_PLUGINS[i].availableCheck))()) {
+                        strcpy(dataContext.tokenContext.pluginName, INTERNAL_ETH_PLUGINS[i].alias);
+                        dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
+                        contractAddress = NULL;
+                        break;
+                    }
                 }
             }
         }

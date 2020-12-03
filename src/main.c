@@ -484,6 +484,15 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                                                        tx);
                     break;
 
+                case INS_SET_EXTERNAL_PLUGIN:
+                    handleSetExternalPlugin(G_io_apdu_buffer[OFFSET_P1],
+                                            G_io_apdu_buffer[OFFSET_P2],
+                                            G_io_apdu_buffer + OFFSET_CDATA,
+                                            G_io_apdu_buffer[OFFSET_LC],
+                                            flags,
+                                            tx);
+                    break;
+
                 case INS_SIGN:
                     handleSign(G_io_apdu_buffer[OFFSET_P1],
                                G_io_apdu_buffer[OFFSET_P2],

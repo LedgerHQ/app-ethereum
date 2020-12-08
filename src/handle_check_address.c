@@ -6,14 +6,13 @@
 
 #define ZERO(x) memset(x, 0, sizeof(x))
 
-void handle_check_address(check_address_parameters_t* params, chain_config_t* chain_config) {
+int handle_check_address(check_address_parameters_t* params, chain_config_t* chain_config) {
     PRINTF("Params on the address %d\n", (unsigned int) params);
     PRINTF("Address to check %s\n", params->address_to_check);
     PRINTF("Inside handle_check_address\n");
-    params->result = 0;
     if (params->address_to_check == 0) {
         PRINTF("Address to check == 0\n");
-        return;
+        return 0;
     }
 
     uint8_t i;
@@ -35,7 +34,7 @@ void handle_check_address(check_address_parameters_t* params, chain_config_t* ch
     if ((bip32PathLength < 0x01) || (bip32PathLength > MAX_BIP32_PATH) ||
         (bip32PathLength * 4 != params->address_parameters_length - 1)) {
         PRINTF("Invalid path\n");
-        return;
+        return 0;
     }
     for (i = 0; i < bip32PathLength; i++) {
         locals_union1.bip32Path[i] = U4BE(bip32_path_ptr, 0);
@@ -70,8 +69,8 @@ void handle_check_address(check_address_parameters_t* params, chain_config_t* ch
                params->address_to_check + offset_0x,
                strlen(locals_union1.address)) != 0) {
         PRINTF("Addresses doesn't match\n");
-        return;
+        return 0;
     }
     PRINTF("Addresses  match\n");
-    params->result = 1;
+    return 1;
 }

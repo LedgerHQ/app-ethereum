@@ -4,7 +4,7 @@
 #include "ethUtils.h"
 #include "string.h"
 
-#define ZERO(x) memset(x, 0, sizeof(x))
+#define ZERO(x) memset(&x, 0, sizeof(x))
 
 static int os_strcmp(const char* s1, const char* s2) {
     size_t size = strlen(s1) + 1;
@@ -50,19 +50,19 @@ int handle_check_address(check_address_parameters_t* params, chain_config_t* cha
                                bip32PathLength,
                                locals_union2.privateKeyData,
                                NULL);
-    ZERO(&locals_union1);
+    ZERO(locals_union1);
     cx_ecfp_init_private_key(CX_CURVE_256K1,
                              locals_union2.privateKeyData,
                              32,
                              &locals_union1.privateKey);
-    ZERO(&locals_union2);
+    ZERO(locals_union2);
     cx_ecfp_generate_pair(CX_CURVE_256K1, &locals_union2.publicKey, &locals_union1.privateKey, 1);
-    ZERO(&locals_union1);
+    ZERO(locals_union1);
     getEthAddressStringFromKey(&locals_union2.publicKey,
                                (uint8_t*) locals_union1.address,
                                &local_sha3,
                                chain_config);
-    ZERO(&locals_union2);
+    ZERO(locals_union2);
 
     uint8_t offset_0x = 0;
     if (memcmp(params->address_to_check, "0x", 2) == 0) {

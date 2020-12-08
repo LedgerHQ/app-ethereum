@@ -6,6 +6,11 @@
 
 #define ZERO(x) memset(x, 0, sizeof(x))
 
+static int os_strcmp(const char* s1, const char* s2) {
+    size_t size = strlen(s1) + 1;
+    return memcmp(s1, s2, size);
+}
+
 int handle_check_address(check_address_parameters_t* params, chain_config_t* chain_config) {
     PRINTF("Params on the address %d\n", (unsigned int) params);
     PRINTF("Address to check %s\n", params->address_to_check);
@@ -64,11 +69,8 @@ int handle_check_address(check_address_parameters_t* params, chain_config_t* cha
         offset_0x = 2;
     }
 
-    if ((strlen(locals_union1.address) != strlen(params->address_to_check + offset_0x)) ||
-        memcmp(locals_union1.address,
-               params->address_to_check + offset_0x,
-               strlen(locals_union1.address)) != 0) {
-        PRINTF("Addresses doesn't match\n");
+    if (os_strcmp(locals_union1.address, params->address_to_check + offset_0x) != 0) {
+        PRINTF("Addresses don't match\n");
         return 0;
     }
     PRINTF("Addresses  match\n");

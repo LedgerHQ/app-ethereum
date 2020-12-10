@@ -4,7 +4,9 @@
 #include "swap_lib_calls.h"
 #include "chainConfig.h"
 
-void handle_swap_sign_transaction(create_transaction_parameters_t* get_printable_amount_params,
-                                  chain_config_t* config);
+bool copy_transaction_parameters(create_transaction_parameters_t* sign_transaction_params,
+                                 chain_config_t* config);
+
+void handle_swap_sign_transaction(chain_config_t* config);
 
 #endif  // _HANDLE_SWAP_SIGN_TRANSACTION_H_

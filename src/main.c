@@ -680,8 +680,21 @@ void app_exit() {
     END_TRY_L(exit);
 }
 
-void coin_main_with_config(chain_config_t *config) {
-    chainConfig = config;
+void init_coin_config(chain_config_t *coin_config) {
+    memset(coin_config, 0, sizeof(chain_config_t));
+    strcpy(coin_config->coinName, CHAINID_COINNAME " ");
+    coin_config->chainId = CHAIN_ID;
+    coin_config->kind = CHAIN_KIND;
+}
+
+void coin_main(chain_config_t *coin_config) {
+    chain_config_t config;
+    if (coin_config == NULL) {
+        init_coin_config(&config);
+        chainConfig = &config;
+    } else {
+        chainConfig = coin_config;
+    }
     reset_app_context();
     tmpCtx.transactionContext.currentTokenIndex = 0;
 
@@ -734,53 +747,67 @@ void coin_main_with_config(chain_config_t *config) {
     app_exit();
 }
 
-void init_coin_config(chain_config_t *coin_config) {
-    memset(coin_config, 0, sizeof(chain_config_t));
-    strcpy(coin_config->coinName, CHAINID_COINNAME " ");
-    coin_config->chainId = CHAIN_ID;
-    coin_config->kind = CHAIN_KIND;
-}
+struct libargs_s {
+    unsigned int id;
+    unsigned int command;
+    chain_config_t *chain_config;
+    union {
+        check_address_parameters_t *check_address;
+        create_transaction_parameters_t *create_transaction;
+        get_printable_amount_parameters_t *get_printable_amount;
+    };
+};
 
-void coin_main() {
-    chain_config_t coin_config;
-    init_coin_config(&coin_config);
-    coin_main_with_config(&coin_config);
-}
-
-void library_main_with_config(chain_config_t *config,
-                              unsigned int command,
-                              unsigned int *call_parameters) {
-    BEGIN_TRY {
-        TRY {
-            check_api_level(CX_COMPAT_APILEVEL);
-            PRINTF("Inside a library \n");
-            switch (command) {
-                case CHECK_ADDRESS:
-                    handle_check_address((check_address_parameters_t *) call_parameters, config);
-                    break;
-                case SIGN_TRANSACTION:
-                    handle_swap_sign_transaction(
-                        (create_transaction_parameters_t *) call_parameters,
-                        config);
-                    break;
-                case GET_PRINTABLE_AMOUNT:
-                    handle_get_printable_amount(
-                        (get_printable_amount_parameters_t *) call_parameters,
-                        config);
-                    break;
+static void library_main_helper(struct libargs_s *args) {
+    check_api_level(CX_COMPAT_APILEVEL);
+    PRINTF("Inside a library \n");
+    switch (args->command) {
+        case CHECK_ADDRESS:
+            // ensure result is zero if an exception is thrown
+            args->check_address->result = 0;
+            args->check_address->result =
+                handle_check_address(args->check_address, args->chain_config);
+            break;
+        case SIGN_TRANSACTION:
+            if (copy_transaction_parameters(args->create_transaction, args->chain_config)) {
+                // never returns
+                handle_swap_sign_transaction(args->chain_config);
             }
-            os_lib_end();
-        }
-        FINALLY {
-        }
+            break;
+        case GET_PRINTABLE_AMOUNT:
+            // ensure result is zero if an exception is thrown
+            args->get_printable_amount->result = 0;
+            args->get_printable_amount->result =
+                handle_get_printable_amount(args->get_printable_amount, args->chain_config);
+            break;
+        default:
+            break;
     }
-    END_TRY;
 }
 
-void library_main(unsigned int call_id, unsigned int *call_parameters) {
+void library_main(struct libargs_s *args) {
     chain_config_t coin_config;
-    init_coin_config(&coin_config);
-    library_main_with_config(&coin_config, call_id, call_parameters);
+    if (args->chain_config == NULL) {
+        init_coin_config(&coin_config);
+        args->chain_config = &coin_config;
+    }
+    bool end = false;
+    /* This loop ensures that library_main_helper and os_lib_end are called
+     * within a try context, even if an exception is thrown */
+    while (1) {
+        BEGIN_TRY {
+            TRY {
+                if (!end) {
+                    library_main_helper(args);
+                }
+                os_lib_end();
+            }
+            FINALLY {
+                end = true;
+            }
+        }
+        END_TRY;
+    }
 }
 
 __attribute__((section(".boot"))) int main(int arg0) {
@@ -825,34 +852,26 @@ __attribute__((section(".boot"))) int main(int arg0) {
 
     if (!arg0) {
         // called from dashboard as standalone eth app
-        coin_main();
+        coin_main(NULL);
         return 0;
     }
 
-    if (((unsigned int *) arg0)[0] != 0x100) {
+    struct libargs_s *args = (struct libargs_s *) arg0;
+    if (args->id != 0x100) {
         app_exit();
         return 0;
     }
-    unsigned int command = ((unsigned int *) arg0)[1];
-    chain_config_t *chain_config = ((unsigned int *) arg0)[2];
-    switch (command) {
+    switch (args->command) {
         case RUN_APPLICATION:
             // coin application launched from dashboard
-            if (chain_config == NULL)
+            if (args->chain_config == NULL)
                 app_exit();
             else
-                coin_main_with_config(chain_config);
+                coin_main(args->chain_config);
             break;
         default:
-            if (chain_config == NULL)
-                // Called as standalone eth library
-                library_main(command, ((unsigned int *) arg0)[3]);  // called as bitcoin library
-            else
-                // Called as a library from an altcoin
-                library_main_with_config(chain_config,
-                                         command,
-                                         ((unsigned int *) arg0)[3]);  // called as coin library
-            break;
+            // called as bitcoin or altcoin library
+            library_main(args);
     }
 #endif
     return 0;

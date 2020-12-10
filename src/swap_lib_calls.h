@@ -36,6 +36,7 @@ typedef struct get_printable_amount_parameters_s {
     bool is_fee;
     // OUT
     char printable_amount[30];
+    int result;
 } get_printable_amount_parameters_t;
 
 typedef struct create_transaction_parameters_s {

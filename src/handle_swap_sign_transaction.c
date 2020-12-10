@@ -4,7 +4,7 @@
 #include "shared_context.h"
 #include "utils.h"
 
-void copy_transaction_parameters(create_transaction_parameters_t* sign_transaction_params,
+bool copy_transaction_parameters(create_transaction_parameters_t* sign_transaction_params,
                                  chain_config_t* config) {
     // first copy parameters to stack, and then to global data.
     // We need this "trick" as the input data position can overlap with app-ethereum globals
@@ -16,7 +16,7 @@ void copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
     if ((stack_data.fullAddress[sizeof(stack_data.fullAddress) - 1] != '\0') ||
         (sign_transaction_params->amount_length > 32) ||
         (sign_transaction_params->fee_amount_length > 8)) {
-        os_lib_end();
+        return false;
     }
 
     uint8_t decimals;
@@ -26,7 +26,7 @@ void copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
                            ticker,
                            &decimals)) {
         PRINTF("Error while parsing config\n");
-        os_lib_end();
+        return false;
     }
     amountToString(sign_transaction_params->amount,
                    sign_transaction_params->amount_length,
@@ -46,11 +46,10 @@ void copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
                    sizeof(stack_data.maxFee));
 
     memcpy(&strings.common, &stack_data, sizeof(stack_data));
+    return true;
 }
 
-void handle_swap_sign_transaction(create_transaction_parameters_t* sign_transaction_params,
-                                  chain_config_t* config) {
-    copy_transaction_parameters(sign_transaction_params, config);
+void handle_swap_sign_transaction(chain_config_t* config) {
     chainConfig = config;
     reset_app_context();
     called_from_swap = true;

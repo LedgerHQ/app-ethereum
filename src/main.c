@@ -355,10 +355,10 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
                 break;
             case CHAIN_KIND_THUNDERCORE:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_THUNDERCORE[i]);
-                break
+                break;
             case CHAIN_KIND_FUSE:
-                currentToken = (tokenDefinition_t *)PIC(&TOKENS_FUSE[i]);
-                break
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_FUSE[i]);
+                break;
         }
         if (memcmp(currentToken->address, tmpContent.txContent.destination, 20) == 0) {
             return currentToken;

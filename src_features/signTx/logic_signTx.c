@@ -42,9 +42,16 @@ customStatus_e customProcessor(txContext_t *context) {
                 PRINTF("Missing function selector\n");
                 return CUSTOM_FAULT;
             }
-            eth_plugin_prepare_init(&pluginInit, context->workBuffer, context->currentFieldLength);
-            dataContext.tokenContext.pluginAvailable =
-                eth_plugin_perform_init(tmpContent.txContent.destination, &pluginInit);
+            dataContext.tokenContext.pluginAvailable = 0;
+            // If contract debugging mode is activated, do not go through the plugin activation
+            // as they wouldn't be displayed if the plugin consumes all data but fallbacks
+            if (!N_storage.contractDetails) {
+                eth_plugin_prepare_init(&pluginInit,
+                                        context->workBuffer,
+                                        context->currentFieldLength);
+                dataContext.tokenContext.pluginAvailable =
+                    eth_plugin_perform_init(tmpContent.txContent.destination, &pluginInit);
+            }
             PRINTF("pluginAvailable %d\n", dataContext.tokenContext.pluginAvailable);
             if (dataContext.tokenContext.pluginAvailable) {
                 dataContext.tokenContext.fieldIndex = 0;

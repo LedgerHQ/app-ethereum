@@ -418,7 +418,6 @@ void finalizeParsing(bool direct) {
       strings.common.maxFee[tickerOffset] = feeTicker[tickerOffset];
       tickerOffset++;
   }
-  tickerOffset++;
   while (G_io_apdu_buffer[i]) {
     strings.common.maxFee[tickerOffset + i] = G_io_apdu_buffer[i];
     i++;

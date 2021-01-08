@@ -757,7 +757,8 @@ __attribute__((section(".boot"))) int main(int arg0) {
 
     if (arg0) {
         if (((unsigned int *)arg0)[0] != 0x100) {
-            os_lib_throw(INVALID_PARAMETER);
+            app_exit();
+            return 0;
         }
         chainConfig = (chain_config_t *)((unsigned int *)arg0)[1];
     }

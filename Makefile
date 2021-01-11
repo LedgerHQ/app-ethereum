@@ -26,7 +26,7 @@ APP_LOAD_PARAMS= --curve secp256k1 $(COMMON_LOAD_PARAMS)
 # Allow the app to use path 45 for multi-sig (see BIP45).
 APP_LOAD_PARAMS += --path "45'"
 # Samsung temporary implementation for wallet ID on 0xda7aba5e/0xc1a551c5
-APP_LOAD_PARAMS += --path "1517992542'/1101353413'"
+#APP_LOAD_PARAMS += --path "1517992542'/1101353413'"
 
 APPVERSION_M=1
 APPVERSION_N=9
@@ -35,13 +35,13 @@ APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 APP_LOAD_FLAGS= --appFlags 0x240 --dep Ethereum:$(APPVERSION)
 
 ifeq ($(CHAIN),)
-CHAIN=ethereum
+CHAIN=ethereum_recovery
 endif
 
-ifeq ($(CHAIN),ethereum)
-# Lock the application on its standard path for 1.5. Please complain if non compliant
-APP_LOAD_PARAMS += --path "44'/60'"
-DEFINES += CHAINID_UPCASE=\"ETHEREUM\" CHAINID_COINNAME=\"ETH\" CHAIN_KIND=CHAIN_KIND_ETHEREUM CHAIN_ID=1
+ifeq ($(CHAIN),ethereum_recovery)
+# Path is unlocked on this branch
+APP_LOAD_PARAMS += --path "44'"
+DEFINES += CHAINID_UPCASE=\"ETHEREUM\" CHAINID_COINNAME=\"ETH\" CHAIN_KIND=CHAIN_KIND_ETHEREUM CHAIN_ID=0
 # Starkware integration
 APP_LOAD_PARAMS += --path "2645'/579218131'"
 DEFINES += HAVE_STARKWARE
@@ -49,7 +49,8 @@ DEFINES += STARK_BIP32_PATH_0=0x80000A55 STARK_BIP32_PATH_1=0xA2862AD3
 # Allow to derive ETH 2 public keys
 APP_LOAD_PARAMS += --path "12381/3600" --curve bls12381g1
 DEFINES += HAVE_ETH2
-APPNAME = "Ethereum"
+endif
+APPNAME = "Eth Recovery"
 DEFINES_LIB=
 APP_LOAD_FLAGS=--appFlags 0xa40
 else ifeq ($(CHAIN),ropsten)
@@ -423,4 +424,4 @@ include $(BOLOS_SDK)/Makefile.rules
 dep/%.d: %.c Makefile
 
 listvariants:
-	@echo VARIANTS CHAIN ethereum ropsten goerli moonriver ethereum_classic expanse poa rsk rsk_testnet ubiq wanchain pirl akroma atheios callisto ethersocial ether1 gochain musicoin ethergem mix ellaism reosc hpb tomochain dexon volta ewc thundercore bsc songbird polygon shyft
+	@echo VARIANTS CHAIN ethereum_recovery

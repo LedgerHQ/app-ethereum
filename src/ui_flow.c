@@ -9,6 +9,21 @@ void switch_settings_display_nonce(void);
 //////////////////////////////////////////////////////////////////////
 // clang-format off
 UX_STEP_NOCB(
+    ux_idle_flow_warning_step,
+    pnn,
+    {
+      &C_icon_warning,
+      "This is a",
+      "recovery tool",
+    });
+UX_STEP_NOCB(
+    ux_idle_flow_warning_bis_step,
+    nn,
+    {
+      "It is not for day",
+      "to day operations !",
+    });
+UX_STEP_NOCB(
     ux_idle_flow_1_step,
     nn, //pnn,
     {
@@ -42,6 +57,10 @@ UX_STEP_CB(
 // clang-format on
 
 UX_FLOW(ux_idle_flow,
+        &ux_idle_flow_warning_step,
+        FLOW_BARRIER,
+        &ux_idle_flow_warning_bis_step,
+        FLOW_BARRIER,
         &ux_idle_flow_1_step,
         &ux_idle_flow_2_step,
         &ux_idle_flow_3_step,

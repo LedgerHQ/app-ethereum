@@ -8,6 +8,21 @@ void switch_settings_display_data(void);
 //////////////////////////////////////////////////////////////////////
 // clang-format off
 UX_STEP_NOCB(
+    ux_idle_flow_warning_step,
+    pnn,
+    {
+      &C_icon_warning,
+      "This is a",
+      "recovery tool",
+    });
+UX_STEP_NOCB(
+    ux_idle_flow_warning_bis_step,
+    nn,
+    {
+      "It is not for day",
+      "to day operations !",
+    });
+UX_STEP_NOCB(
     ux_idle_flow_1_step,
     nn, //pnn,
     {
@@ -41,6 +56,10 @@ UX_STEP_CB(
 // clang-format on
 
 UX_FLOW(ux_idle_flow,
+        &ux_idle_flow_warning_step,
+        FLOW_BARRIER,
+        &ux_idle_flow_warning_bis_step,
+        FLOW_BARRIER,
         &ux_idle_flow_1_step,
         &ux_idle_flow_2_step,
         &ux_idle_flow_3_step,
@@ -118,12 +137,12 @@ void display_settings() {
 
 void switch_settings_contract_data() {
     uint8_t value = (N_storage.dataAllowed ? 0 : 1);
-    nvm_write((void*) &N_storage.dataAllowed, (void*) &value, sizeof(uint8_t));
+    nvm_write((void *) &N_storage.dataAllowed, (void *) &value, sizeof(uint8_t));
     display_settings();
 }
 
 void switch_settings_display_data() {
     uint8_t value = (N_storage.contractDetails ? 0 : 1);
-    nvm_write((void*) &N_storage.contractDetails, (void*) &value, sizeof(uint8_t));
+    nvm_write((void *) &N_storage.contractDetails, (void *) &value, sizeof(uint8_t));
     display_settings();
 }

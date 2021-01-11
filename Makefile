@@ -35,12 +35,12 @@ APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 APP_LOAD_FLAGS= --appFlags 0x240 --dep Ethereum:$(APPVERSION)
 
 ifeq ($(CHAIN),)
-CHAIN=ethereum
+CHAIN=ethereum_recovery
 endif
 
-ifeq ($(CHAIN),ethereum)
-# Lock the application on its standard path for 1.5. Please complain if non compliant
-APP_LOAD_PARAMS += --path "44'/60'"
+ifeq ($(CHAIN),ethereum_recovery)
+# Path is unlocked on this branch
+APP_LOAD_PARAMS += --path "44'"
 DEFINES += CHAINID_UPCASE=\"ETHEREUM\" CHAINID_COINNAME=\"ETH\" CHAIN_KIND=CHAIN_KIND_ETHEREUM CHAIN_ID=0
 # Starkware integration
 APP_LOAD_PARAMS += --path "2645'/579218131'" 
@@ -51,7 +51,7 @@ ifeq ($(TARGET_NAME), TARGET_NANOX)
 APP_LOAD_PARAMS += --path "12381/3600" --curve bls12381g1 
 DEFINES += HAVE_ETH2
 endif
-APPNAME = "Ethereum"
+APPNAME = "Eth Recovery"
 DEFINES_LIB=
 APP_LOAD_FLAGS=--appFlags 0xa40
 else ifeq ($(CHAIN),ropsten)
@@ -322,4 +322,4 @@ include $(BOLOS_SDK)/Makefile.rules
 dep/%.d: %.c Makefile
 
 listvariants:
-	@echo VARIANTS CHAIN ethereum ropsten ethereum_classic expanse poa rsk rsk_testnet ubiq wanchain pirl akroma atheios callisto ethersocial ether1 gochain musicoin ethergem mix ellaism reosc hpb tomochain dexon volta ewc thundercore
+	@echo VARIANTS CHAIN ethereum_recovery

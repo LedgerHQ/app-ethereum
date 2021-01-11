@@ -34,7 +34,7 @@ CHAIN_ID = 0
 try:
     from rlp.utils import decode_hex, encode_hex, str_to_bytes
 except:
-    #Python3 hack import for pyethereum
+    # Python3 hack import for pyethereum
     from ethereum.utils import decode_hex, encode_hex, str_to_bytes
 
 def parse_bip32_path(path):
@@ -63,6 +63,7 @@ parser.add_argument('--descriptor', help="Optional descriptor")
 args = parser.parse_args()
 
 if args.path == None:
+    # if you want to use the next account ->  "44'/60'/1'/0/0"
     args.path = "44'/60'/0'/0/0"
 
 if args.data == None:
@@ -72,19 +73,16 @@ else:
 
 amount = Decimal(args.amount) * 10**18
 
-tx = Transaction(
+tx = UnsignedTransaction(
     nonce=int(args.nonce),
     gasprice=int(args.gasprice),
     startgas=int(args.startgas),
     to=decode_hex(args.to[2:]),
     value=int(amount),
     data=args.data,
-    v=CHAIN_ID,
-    r=0,
-    s=0
 )
 
-encodedTx = encode(tx, Transaction)
+encodedTx = encode(tx, UnsignedTransaction)
 
 dongle = getDongle(True)
 
@@ -103,10 +101,10 @@ result = dongle.exchange(bytes(apdu))
 
 # Needs to recover (main.c:1121)
 if (CHAIN_ID*2 + 35) + 1 > 255:
-	ecc_parity = result[0] - ((CHAIN_ID*2 + 35) % 256)
-	v = (CHAIN_ID*2 + 35) + ecc_parity
+    ecc_parity = result[0] - ((CHAIN_ID*2 + 35) % 256)
+    v = (CHAIN_ID*2 + 35) + ecc_parity
 else:
-	v = result[0]
+    v = result[0]
 
 r = int(binascii.hexlify(result[1:1 + 32]), 16)
 s = int(binascii.hexlify(result[1 + 32: 1 + 32 + 32]), 16)

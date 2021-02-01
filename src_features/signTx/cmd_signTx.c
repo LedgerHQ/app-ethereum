@@ -44,6 +44,13 @@ void handleSign(uint8_t p1,
             workBuffer += 4;
             dataLength -= 4;
         }
+
+        // the recovery app doesn't allow to sign on the Ethereum BIP32 path
+        if (tmpCtx.transactionContext.bip32Path[1] == 0x8000003C) {
+            PRINTF("Invalid data\n");
+            THROW(0x6a80);
+        }
+
         tmpContent.txContent.dataPresent = false;
         dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_UNAVAILABLE;
 

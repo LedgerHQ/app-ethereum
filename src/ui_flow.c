@@ -58,14 +58,11 @@ UX_STEP_CB(
 
 UX_FLOW(ux_idle_flow,
         &ux_idle_flow_warning_step,
-        FLOW_BARRIER,
         &ux_idle_flow_warning_bis_step,
-        FLOW_BARRIER,
         &ux_idle_flow_1_step,
         &ux_idle_flow_2_step,
         &ux_idle_flow_3_step,
-        &ux_idle_flow_4_step,
-        FLOW_LOOP);
+        &ux_idle_flow_4_step);
 
 #if defined(TARGET_NANOS)
 

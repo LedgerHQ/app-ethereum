@@ -148,23 +148,23 @@ UX_STEP_NOCB(ux_approval_tx_data_warning_step,
     });
 // clang-format on
 
-const ux_flow_step_t *ux_approval_tx_flow_scott[9];
+const ux_flow_step_t *ux_approval_tx_flow_[9];
 
 void ux_approve_tx(bool dataPresent) {
     int step = 0;
-    ux_approval_tx_flow_scott[step++] = &ux_approval_tx_1_step;
+    ux_approval_tx_flow_[step++] = &ux_approval_tx_1_step;
     if (dataPresent && !N_storage.contractDetails) {
-        ux_approval_tx_flow_scott[step++] = &ux_approval_tx_data_warning_step;
+        ux_approval_tx_flow_[step++] = &ux_approval_tx_data_warning_step;
     }
-    ux_approval_tx_flow_scott[step++] = &ux_approval_tx_2_step;
-    ux_approval_tx_flow_scott[step++] = &ux_approval_tx_3_step;
+    ux_approval_tx_flow_[step++] = &ux_approval_tx_2_step;
+    ux_approval_tx_flow_[step++] = &ux_approval_tx_3_step;
     if (N_storage.displayNonce) {
-        ux_approval_tx_flow_scott[step++] = &ux_approval_tx_display_nonce_step;
+        ux_approval_tx_flow_[step++] = &ux_approval_tx_display_nonce_step;
     }
-    ux_approval_tx_flow_scott[step++] = &ux_approval_tx_4_step;
-    ux_approval_tx_flow_scott[step++] = &ux_approval_tx_5_step;
-    ux_approval_tx_flow_scott[step++] = &ux_approval_tx_6_step;
-    ux_approval_tx_flow_scott[step++] = FLOW_END_STEP;
+    ux_approval_tx_flow_[step++] = &ux_approval_tx_4_step;
+    ux_approval_tx_flow_[step++] = &ux_approval_tx_5_step;
+    ux_approval_tx_flow_[step++] = &ux_approval_tx_6_step;
+    ux_approval_tx_flow_[step++] = FLOW_END_STEP;
 
-    ux_flow_init(0, ux_approval_tx_flow_scott, NULL);
+    ux_flow_init(0, ux_approval_tx_flow_, NULL);
 }

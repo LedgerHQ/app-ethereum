@@ -229,7 +229,7 @@ void computeFees(char *displayBuffer, uint32_t displayBufferSize) {
 }
 
 void finalizeParsing(bool direct) {
-    char displayBuffer[79]; // required to store the string representation of uint256_t max
+    char displayBuffer[79];  // required to store the string representation of uint256_t max
     uint8_t decimals = WEI_TO_ETHER;
     uint8_t *ticker = (uint8_t *) PIC(chainConfig->coinName);
     ethPluginFinalize_t pluginFinalize;

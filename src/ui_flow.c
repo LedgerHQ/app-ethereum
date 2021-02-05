@@ -134,9 +134,8 @@ UX_FLOW(ux_settings_flow,
 void display_settings() {
     strcpy(strings.common.fullAddress, (N_storage.dataAllowed ? "Allowed" : "NOT Allowed"));
     strcpy(strings.common.fullAddress + 20,
-            (N_storage.contractDetails ? "Displayed" : "NOT Displayed"));
-    strcpy(strings.common.nonce,
-            (N_storage.displayNonce ? "Displayed" : "NOT Displayed"));
+           (N_storage.contractDetails ? "Displayed" : "NOT Displayed"));
+    strcpy(strings.common.nonce, (N_storage.displayNonce ? "Displayed" : "NOT Displayed"));
     ux_flow_init(0, ux_settings_flow, NULL);
 }
 

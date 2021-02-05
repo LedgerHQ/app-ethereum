@@ -60,6 +60,7 @@ void handle_swap_sign_transaction(chain_config_t* config) {
         storage.dataAllowed = 0x00;
         storage.contractDetails = 0x00;
         storage.initialized = 0x01;
+        storage.displayNonce = 0x00;
         nvm_write((void*) &N_storage, (void*) &storage, sizeof(internalStorage_t));
     }
 

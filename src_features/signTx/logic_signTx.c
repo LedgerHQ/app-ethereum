@@ -229,7 +229,7 @@ void computeFees(char *displayBuffer, uint32_t displayBufferSize) {
 }
 
 void finalizeParsing(bool direct) {
-    char displayBuffer[50];
+    char displayBuffer[79]; // required to store the string representation of uint256_t max
     uint8_t decimals = WEI_TO_ETHER;
     uint8_t *ticker = (uint8_t *) PIC(chainConfig->coinName);
     ethPluginFinalize_t pluginFinalize;
@@ -352,6 +352,15 @@ void finalizeParsing(bool direct) {
                        displayBuffer,
                        sizeof(displayBuffer));
         compareOrCopy(strings.common.fullAmount, displayBuffer, called_from_swap);
+    }
+    // Prepare nonce to display
+    if (genericUI) {
+        uint256_t nonce;
+        convertUint256BE(tmpContent.txContent.nonce.value,
+                         tmpContent.txContent.nonce.length,
+                         &nonce);
+        tostring256(&nonce, 10, displayBuffer, sizeof(displayBuffer));
+        compareOrCopy(strings.common.nonce, displayBuffer, called_from_swap);
     }
     // Compute maximum fee
     if (genericUI) {

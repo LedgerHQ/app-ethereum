@@ -27,6 +27,7 @@
 typedef struct internalStorage_t {
     unsigned char dataAllowed;
     unsigned char contractDetails;
+    unsigned char displayNonce;
     uint8_t initialized;
 } internalStorage_t;
 
@@ -157,6 +158,7 @@ typedef struct txStringProperties_t {
     char fullAddress[43];
     char fullAmount[50];
     char maxFee[50];
+    char nonce[14]; // size needed to write "NOT Displayed"
 } txStringProperties_t;
 
 typedef struct strDataTmp_t {

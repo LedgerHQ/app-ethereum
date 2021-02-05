@@ -4,6 +4,7 @@
 void display_settings(void);
 void switch_settings_contract_data(void);
 void switch_settings_display_data(void);
+void switch_settings_display_nonce(void);
 
 //////////////////////////////////////////////////////////////////////
 // clang-format off
@@ -68,6 +69,15 @@ UX_STEP_CB(
       .text = strings.common.fullAddress + 20
     });
 
+UX_STEP_CB(
+    ux_settings_flow_3_step,
+    bnnn_paging,
+    switch_settings_display_nonce(),
+    {
+      .title = "Account nonce",
+      .text = strings.common.nonce
+    });
+
 #else
 
 UX_STEP_CB(
@@ -91,11 +101,22 @@ UX_STEP_CB(
       "details",
       strings.common.fullAddress + 20
     });
+  
+  UX_STEP_CB(
+    ux_settings_flow_3_step,
+    bnnn,
+    switch_settings_display_nonce(),
+    {
+      "Nonce",
+      "Display account nonce",
+      "details",
+      strings.common.nonce
+    });
 
 #endif
 
 UX_STEP_CB(
-    ux_settings_flow_3_step,
+    ux_settings_flow_4_step,
     pb,
     ui_idle(),
     {
@@ -107,12 +128,15 @@ UX_STEP_CB(
 UX_FLOW(ux_settings_flow,
         &ux_settings_flow_1_step,
         &ux_settings_flow_2_step,
-        &ux_settings_flow_3_step);
+        &ux_settings_flow_3_step,
+        &ux_settings_flow_4_step);
 
 void display_settings() {
     strcpy(strings.common.fullAddress, (N_storage.dataAllowed ? "Allowed" : "NOT Allowed"));
     strcpy(strings.common.fullAddress + 20,
-           (N_storage.contractDetails ? "Displayed" : "NOT Displayed"));
+            (N_storage.contractDetails ? "Displayed" : "NOT Displayed"));
+    strcpy(strings.common.nonce,
+            (N_storage.displayNonce ? "Displayed" : "NOT Displayed"));
     ux_flow_init(0, ux_settings_flow, NULL);
 }
 
@@ -125,5 +149,11 @@ void switch_settings_contract_data() {
 void switch_settings_display_data() {
     uint8_t value = (N_storage.contractDetails ? 0 : 1);
     nvm_write((void*) &N_storage.contractDetails, (void*) &value, sizeof(uint8_t));
+    display_settings();
+}
+
+void switch_settings_display_nonce() {
+    uint8_t value = (N_storage.displayNonce ? 0 : 1);
+    nvm_write((void*) &N_storage.displayNonce, (void*) &value, sizeof(uint8_t));
     display_settings();
 }

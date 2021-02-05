@@ -131,6 +131,14 @@ UX_STEP_CB(
       "Reject",
     });
 
+UX_STEP_NOCB(
+    ux_approval_tx_display_nonce_step,
+    bnnn_paging,
+    {
+      .title = "Nonce",
+      .text = strings.common.nonce,
+    });
+
 UX_STEP_NOCB(ux_approval_tx_data_warning_step,
     pbb,
     {
@@ -144,6 +152,7 @@ UX_FLOW(ux_approval_tx_flow,
         &ux_approval_tx_1_step,
         &ux_approval_tx_2_step,
         &ux_approval_tx_3_step,
+        &ux_approval_tx_display_nonce_step,
         &ux_approval_tx_4_step,
         &ux_approval_tx_5_step,
         &ux_approval_tx_6_step);
@@ -153,6 +162,7 @@ UX_FLOW(ux_approval_tx_data_warning_flow,
         &ux_approval_tx_data_warning_step,
         &ux_approval_tx_2_step,
         &ux_approval_tx_3_step,
+        &ux_approval_tx_display_nonce_step,
         &ux_approval_tx_4_step,
         &ux_approval_tx_5_step,
         &ux_approval_tx_6_step);

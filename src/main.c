@@ -714,6 +714,7 @@ void coin_main(chain_config_t *coin_config) {
                     internalStorage_t storage;
                     storage.dataAllowed = 0x00;
                     storage.contractDetails = 0x00;
+                    storage.displayNonce = 0x00;
                     storage.initialized = 0x01;
                     nvm_write((void *) &N_storage, (void *) &storage, sizeof(internalStorage_t));
                 }

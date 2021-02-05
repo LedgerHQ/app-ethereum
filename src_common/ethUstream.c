@@ -117,9 +117,10 @@ static void processNonce(txContext_t *context) {
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
             MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
-        copyTxData(context, NULL, copySize);
+        copyTxData(context, context->content->nonce.value, copySize);
     }
     if (context->currentFieldPos == context->currentFieldLength) {
+        context->content->nonce.length = context->currentFieldLength;
         context->currentField++;
         context->processingField = false;
     }

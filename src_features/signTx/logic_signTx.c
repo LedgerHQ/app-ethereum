@@ -380,11 +380,7 @@ void finalizeParsing(bool direct) {
         io_seproxyhal_touch_tx_ok(NULL);
     } else {
         if (genericUI) {
-            ux_flow_init(
-                0,
-                ((dataPresent && !N_storage.contractDetails) ? ux_approval_tx_data_warning_flow
-                                                             : ux_approval_tx_flow),
-                NULL);
+            ux_approve_tx(dataPresent);
         } else {
             plugin_ui_start();
         }

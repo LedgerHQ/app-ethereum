@@ -360,7 +360,7 @@ void finalizeParsing(bool direct) {
                          tmpContent.txContent.nonce.length,
                          &nonce);
         tostring256(&nonce, 10, displayBuffer, sizeof(displayBuffer));
-        compareOrCopy(strings.common.nonce, displayBuffer, called_from_swap);
+        strncpy(strings.common.nonce, displayBuffer, sizeof(strings.common.nonce));
     }
     // Compute maximum fee
     if (genericUI) {

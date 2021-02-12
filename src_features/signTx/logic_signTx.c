@@ -353,6 +353,15 @@ void finalizeParsing(bool direct) {
                        sizeof(displayBuffer));
         compareOrCopy(strings.common.fullAmount, displayBuffer, called_from_swap);
     }
+    // Prepare nonce to display
+    if (genericUI) {
+        uint256_t nonce;
+        convertUint256BE(tmpContent.txContent.nonce.value,
+                         tmpContent.txContent.nonce.length,
+                         &nonce);
+        tostring256(&nonce, 10, displayBuffer, sizeof(displayBuffer));
+        strncpy(strings.common.nonce, displayBuffer, sizeof(strings.common.nonce));
+    }
     // Compute maximum fee
     if (genericUI) {
         computeFees(displayBuffer, sizeof(displayBuffer));
@@ -371,11 +380,7 @@ void finalizeParsing(bool direct) {
         io_seproxyhal_touch_tx_ok(NULL);
     } else {
         if (genericUI) {
-            ux_flow_init(
-                0,
-                ((dataPresent && !N_storage.contractDetails) ? ux_approval_tx_data_warning_flow
-                                                             : ux_approval_tx_flow),
-                NULL);
+            ux_approve_tx(dataPresent);
         } else {
             plugin_ui_start();
         }

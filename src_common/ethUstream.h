@@ -69,6 +69,7 @@ typedef struct txContent_t {
     txInt256_t gasprice;
     txInt256_t startgas;
     txInt256_t value;
+    txInt256_t nonce;
     uint8_t destination[20];
     uint8_t destinationLength;
     uint8_t v[4];

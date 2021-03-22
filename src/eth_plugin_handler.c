@@ -63,6 +63,17 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
 
     PRINTF("Selector %.*H\n", 4, init->selector);
     if (tmpCtx.transactionContext.externalPluginIsSet) {
+        // check if the registered external plugin matches the TX contract address / method selector
+        if (memcmp(contractAddress,
+                   dataContext.tokenContext.contract_address,
+                   sizeof(dataContext.tokenContext.contract_address)) != 0) {
+            os_sched_exit(0);
+        }
+        if (memcmp(init->selector,
+                   dataContext.tokenContext.method_selector,
+                   sizeof(dataContext.tokenContext.method_selector)) != 0) {
+            os_sched_exit(0);
+        }
         PRINTF("External plugin will be used\n");
         dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
         contractAddress = NULL;

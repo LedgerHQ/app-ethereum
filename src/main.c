@@ -71,7 +71,6 @@ chain_config_t *chainConfig;
 void reset_app_context() {
     // PRINTF("!!RESET_APP_CONTEXT\n");
     appState = APP_STATE_IDLE;
-    memset(tmpCtx.transactionContext.tokenSet, 0, MAX_TOKEN);
     called_from_swap = false;
 #ifdef HAVE_STARKWARE
     quantumSet = false;
@@ -79,6 +78,7 @@ void reset_app_context() {
 #ifdef HAVE_ETH2
     eth2WithdrawalIndex = 0;
 #endif
+    memset((uint8_t *) &tmpCtx, 0, sizeof(tmpCtx));
     memset((uint8_t *) &txContext, 0, sizeof(txContext));
     memset((uint8_t *) &tmpContent, 0, sizeof(tmpContent));
 }

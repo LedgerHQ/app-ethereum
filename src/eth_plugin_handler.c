@@ -2,7 +2,6 @@
 #include "eth_plugin_handler.h"
 #include "eth_plugin_internal.h"
 #include "shared_context.h"
-#include "base64.h"
 
 void eth_plugin_prepare_init(ethPluginInitContract_t *init, uint8_t *selector, uint32_t dataSize) {
     memset((uint8_t *) init, 0, sizeof(ethPluginInitContract_t));
@@ -136,8 +135,8 @@ int eth_plugin_call(uint8_t *contractAddress, int method, void *parameter) {
         }
         alias = dataContext.tokenContext.pluginName;
     } else {
-        Base64encode(tmp, (char *) contractAddress, 20);
-        alias = tmp;
+        PRINTF("No matching plugin available\n");
+        return 0;
     }
 
     // Prepare the call

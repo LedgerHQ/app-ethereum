@@ -18,7 +18,7 @@
 // Adapted from https://github.com/calccrypto/uint256_t
 
 #include <stdio.h>
-#include <stdlib.h>
+#include <string.h>
 
 #include "uint256.h"
 

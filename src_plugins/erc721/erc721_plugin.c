@@ -98,7 +98,6 @@ void erc721_plugin_call(int message, void *parameters) {
 
         case ETH_PLUGIN_PROVIDE_TOKEN: {
             ethPluginProvideToken_t *msg = (ethPluginProvideToken_t *) parameters;
-            erc721_parameters_t *context = (erc721_parameters_t *) msg->pluginContext;
             PRINTF("erc721 plugin provide token dest: %d - address: %d\n",
                    (msg->token1 != NULL),
                    (msg->token2 != NULL));

@@ -159,7 +159,7 @@ void compound_plugin_call(int message, void *parameters) {
                     case COMPOUND_MINT:
                     case CETH_MINT:
                         msg->result =
-                            get_underlying_asset_decimals(context->ticker_1, &context->decimals)
+                            get_underlying_asset_decimals((char *)&context->ticker_1, &context->decimals)
                                 ? ETH_PLUGIN_RESULT_OK
                                 : ETH_PLUGIN_RESULT_FALLBACK;
                         break;

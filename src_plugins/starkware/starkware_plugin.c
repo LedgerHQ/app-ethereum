@@ -2,6 +2,8 @@
 #include "eth_plugin_interface.h"
 #include "shared_context.h"       // TODO : rewrite as independant code
 #include "eth_plugin_internal.h"  // TODO : rewrite as independant code
+#include "stark_utils.h"
+#include "utils.h"
 
 #ifdef HAVE_STARKWARE
 
@@ -156,7 +158,6 @@ typedef struct starkware_parameters_t {
 
 bool is_deversify_contract(const uint8_t *address) {
     uint32_t offset = 0;
-    uint8_t size = DEVERSIFI_CONTRACT[0];
     uint8_t i;
 
     for (i = 0; i < DEVERSIFI_CONTRACT[0]; i++) {
@@ -231,7 +232,7 @@ void starkware_print_stark_key(uint8_t *starkKey, char *destination) {
 void starkware_print_eth_address(uint8_t *address, char *destination) {
     destination[0] = '0';
     destination[1] = 'x';
-    getEthAddressStringFromBinary(address, destination + 2, &global_sha3, chainConfig);
+    getEthAddressStringFromBinary(address, (uint8_t *)(destination + 2), &global_sha3, chainConfig);
     destination[42] = '\0';
 }
 
@@ -313,7 +314,7 @@ void starkware_get_source_address(char *destination) {
     io_seproxyhal_io_heartbeat();
     destination[0] = '0';
     destination[1] = 'x';
-    getEthAddressStringFromKey(&publicKey, destination + 2, &global_sha3, chainConfig);
+    getEthAddressStringFromKey(&publicKey, (uint8_t *)(destination + 2), &global_sha3, chainConfig);
     destination[42] = '\0';
 }
 
@@ -325,7 +326,7 @@ void starkware_plugin_call(int message, void *parameters) {
             starkware_parameters_t *context = (starkware_parameters_t *) msg->pluginContext;
             PRINTF("starkware plugin init\n");
             for (i = 0; i < NUM_STARKWARE_SELECTORS; i++) {
-                if (memcmp(PIC(STARKWARE_SELECTORS[i]), msg->selector, SELECTOR_SIZE) == 0) {
+                if (memcmp((const void *)PIC(STARKWARE_SELECTORS[i]), msg->selector, SELECTOR_SIZE) == 0) {
                     context->selectorIndex = i;
                     break;
                 }

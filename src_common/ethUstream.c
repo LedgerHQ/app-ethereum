@@ -16,6 +16,7 @@
  ********************************************************************************/
 
 #include <stdint.h>
+#include <string.h>
 
 #include "ethUstream.h"
 #include "ethUtils.h"

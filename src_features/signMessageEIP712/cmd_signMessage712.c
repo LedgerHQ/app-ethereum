@@ -3,10 +3,6 @@
 #include "utils.h"
 #include "ui_flow.h"
 
-static const char const SIGN_MAGIC[] =
-    "\x19"
-    "Ethereum Signed Message:\n";
-
 void handleSignEIP712Message(uint8_t p1,
                              uint8_t p2,
                              uint8_t *workBuffer,

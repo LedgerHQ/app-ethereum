@@ -4,6 +4,7 @@
 #endif
 #include "ui_callbacks.h"
 #include "eth_plugin_handler.h"
+#include "ux.h"
 
 typedef enum {
 

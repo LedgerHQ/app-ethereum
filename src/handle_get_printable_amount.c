@@ -5,6 +5,7 @@
 #include "uint256.h"
 #include "string.h"
 #include <stdint.h>
+#include <os.h>
 
 int handle_get_printable_amount(get_printable_amount_parameters_t* params, chain_config_t* config) {
     uint8_t decimals;

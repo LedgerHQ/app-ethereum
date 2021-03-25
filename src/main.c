@@ -56,8 +56,8 @@ bool quantumSet;
 #endif
 
 #ifdef HAVE_ETH2
-    uint32_t eth2WithdrawalIndex;
-    #include "withdrawal_index.h"
+uint32_t eth2WithdrawalIndex;
+#include "withdrawal_index.h"
 #endif
 
 #include "ux.h"

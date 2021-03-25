@@ -232,7 +232,10 @@ void starkware_print_stark_key(uint8_t *starkKey, char *destination) {
 void starkware_print_eth_address(uint8_t *address, char *destination) {
     destination[0] = '0';
     destination[1] = 'x';
-    getEthAddressStringFromBinary(address, (uint8_t *)(destination + 2), &global_sha3, chainConfig);
+    getEthAddressStringFromBinary(address,
+                                  (uint8_t *) (destination + 2),
+                                  &global_sha3,
+                                  chainConfig);
     destination[42] = '\0';
 }
 
@@ -314,7 +317,10 @@ void starkware_get_source_address(char *destination) {
     io_seproxyhal_io_heartbeat();
     destination[0] = '0';
     destination[1] = 'x';
-    getEthAddressStringFromKey(&publicKey, (uint8_t *)(destination + 2), &global_sha3, chainConfig);
+    getEthAddressStringFromKey(&publicKey,
+                               (uint8_t *) (destination + 2),
+                               &global_sha3,
+                               chainConfig);
     destination[42] = '\0';
 }
 
@@ -326,7 +332,9 @@ void starkware_plugin_call(int message, void *parameters) {
             starkware_parameters_t *context = (starkware_parameters_t *) msg->pluginContext;
             PRINTF("starkware plugin init\n");
             for (i = 0; i < NUM_STARKWARE_SELECTORS; i++) {
-                if (memcmp((const void *)PIC(STARKWARE_SELECTORS[i]), msg->selector, SELECTOR_SIZE) == 0) {
+                if (memcmp((const void *) PIC(STARKWARE_SELECTORS[i]),
+                           msg->selector,
+                           SELECTOR_SIZE) == 0) {
                     context->selectorIndex = i;
                     break;
                 }

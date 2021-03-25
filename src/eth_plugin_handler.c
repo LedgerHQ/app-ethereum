@@ -64,13 +64,13 @@ int eth_plugin_perform_init(uint8_t *contractAddress, ethPluginInitContract_t *i
     PRINTF("Selector %.*H\n", 4, init->selector);
     for (i = 0;; i++) {
         uint8_t j;
-        selectors = PIC(INTERNAL_ETH_PLUGINS[i].selectors);
+        selectors = (const uint8_t **) PIC(INTERNAL_ETH_PLUGINS[i].selectors);
         if (selectors == NULL) {
             break;
         }
         for (j = 0; ((j < INTERNAL_ETH_PLUGINS[i].num_selectors) && (contractAddress != NULL));
              j++) {
-            if (memcmp(init->selector, PIC(selectors[j]), SELECTOR_SIZE) == 0) {
+            if (memcmp(init->selector, (const void *) PIC(selectors[j]), SELECTOR_SIZE) == 0) {
                 if ((INTERNAL_ETH_PLUGINS[i].availableCheck == NULL) ||
                     ((PluginAvailableCheck) PIC(INTERNAL_ETH_PLUGINS[i].availableCheck))()) {
                     strcpy(dataContext.tokenContext.pluginName, INTERNAL_ETH_PLUGINS[i].alias);

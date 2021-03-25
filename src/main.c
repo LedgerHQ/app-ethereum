@@ -54,8 +54,10 @@ bool called_from_swap;
 #ifdef HAVE_STARKWARE
 bool quantumSet;
 #endif
+
 #ifdef HAVE_ETH2
 uint32_t eth2WithdrawalIndex;
+#include "withdrawal_index.h"
 #endif
 
 #include "ux.h"

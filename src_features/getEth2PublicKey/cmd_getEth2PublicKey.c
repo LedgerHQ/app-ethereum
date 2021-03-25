@@ -23,8 +23,11 @@ void getEth2PublicKey(uint32_t *bip32Path, uint8_t bip32PathLength, uint8_t *out
     io_seproxyhal_io_heartbeat();
     memset(tmp, 0, 48);
     memmove(tmp + 16, privateKeyData, 32);
-    cx_ecfp_init_private_key(CX_CURVE_BLS12_381_G1, tmp, 48, &privateKey);
-    cx_ecfp_generate_pair(CX_CURVE_BLS12_381_G1, &publicKey, &privateKey, 1);
+    cx_ecfp_init_private_key(CX_CURVE_BLS12_381_G1, tmp, 48, (cx_ecfp_private_key_t *) &privateKey);
+    cx_ecfp_generate_pair(CX_CURVE_BLS12_381_G1,
+                          (cx_ecfp_public_key_t *) &publicKey,
+                          (cx_ecfp_private_key_t *) &privateKey,
+                          1);
     explicit_bzero(tmp, 96);
     explicit_bzero((void *) &privateKey, sizeof(cx_ecfp_256_extended_private_key_t));
     tmp[47] = 2;

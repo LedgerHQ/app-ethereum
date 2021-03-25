@@ -92,28 +92,32 @@ const uint8_t* const STARKWARE_SELECTORS[NUM_STARKWARE_SELECTORS] = {
 
 const internalEthPlugin_t const INTERNAL_ETH_PLUGINS[] = {
     {erc20_plugin_available_check,
-     ERC20_SELECTORS,
+     (const uint8_t**) ERC20_SELECTORS,
      NUM_ERC20_SELECTORS,
      "-erc20",
      erc20_plugin_call},
 
     {erc721_plugin_available_check,
-     ERC721_SELECTORS,
+     (const uint8_t**) ERC721_SELECTORS,
      NUM_ERC721_SELECTORS,
      "-er721",
      erc721_plugin_call},
 
-    {NULL, COMPOUND_SELECTORS, NUM_COMPOUND_SELECTORS, "-cmpd", compound_plugin_call},
+    {NULL,
+     (const uint8_t**) COMPOUND_SELECTORS,
+     NUM_COMPOUND_SELECTORS,
+     "-cmpd",
+     compound_plugin_call},
 
 #ifdef HAVE_ETH2
 
-    {NULL, ETH2_SELECTORS, NUM_ETH2_SELECTORS, "-eth2", eth2_plugin_call},
+    {NULL, (const uint8_t**) ETH2_SELECTORS, NUM_ETH2_SELECTORS, "-eth2", eth2_plugin_call},
 
 #endif
 
 #ifdef HAVE_STARKWARE
 
-    {NULL, STARKWARE_SELECTORS, 10, "-strk", starkware_plugin_call},
+    {NULL, (const uint8_t**) STARKWARE_SELECTORS, 10, "-strk", starkware_plugin_call},
 
 #endif
 

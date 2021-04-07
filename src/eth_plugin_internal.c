@@ -126,7 +126,7 @@ const internalEthPlugin_t const INTERNAL_ETH_PLUGINS[] = {
 
 #ifdef HAVE_STARKWARE
 
-    {NULL, (const uint8_t**) STARKWARE_SELECTORS, 10, "-strk", starkware_plugin_call},
+    {NULL, (const uint8_t**) STARKWARE_SELECTORS, NUM_STARKWARE_SELECTORS, "-strk", starkware_plugin_call},
 
 #endif
 

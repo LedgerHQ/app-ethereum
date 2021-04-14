@@ -916,14 +916,11 @@ __attribute__((section(".boot"))) int main(int arg0) {
     }
     switch (args->command) {
         case RUN_APPLICATION:
-            // coin application launched from dashboard
-            if (args->chain_config == NULL)
-                app_exit();
-            else
-                coin_main(args->chain_config);
+            // called as ethereum from altcoin or plugin
+            coin_main(args->chain_config);
             break;
         default:
-            // called as bitcoin or altcoin library
+            // called as ethereum or altcoin library
             library_main(args);
     }
 #endif

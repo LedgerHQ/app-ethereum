@@ -249,6 +249,22 @@ static void processV(txContext_t *context) {
 }
 
 static parserStatus_e processTxInternal(txContext_t *context) {
+    // EIP 2718: TransactionType might be present before the TransactionPayload.
+    uint8_t txType = *context->workBuffer;
+    if (txType >= MIN_TX_TYPE && txType <= MAX_TX_TYPE) {
+        PRINTF("TX TYPE: %u\n", txType);
+
+        // Enumerate through all supported txTypes here...
+        if (txType == LEGACY_TX) {
+            context->txType = txType;
+            context->workBuffer++;
+        } else {
+            PRINTF("Transaction type not supported\n");
+            return USTREAM_FAULT;
+        }
+    }
+
+    // Parse the TransactionPayload.
     for (;;) {
         customStatus_e customStatus = CUSTOM_NOT_HANDLED;
         // EIP 155 style transasction
@@ -263,20 +279,7 @@ static parserStatus_e processTxInternal(txContext_t *context) {
         if (context->commandLength == 0) {
             return USTREAM_PROCESSING;
         }
-        // EIP 2718: TransactionType might be present before the TransactionPayload.
-        if (*context->workBuffer >= MIN_TX_TYPE && *context->workBuffer <= MAX_TX_TYPE) {
-            uint8_t maybeType = *context->workBuffer;
-            PRINTF("TX TYPE: %u\n", maybeType);
 
-            // Enumerate through all supported txTypes here...
-            if (maybeType == LEGACY_TX) {
-                context->txType = *context->workBuffer;
-                context->workBuffer++;
-            } else {
-                PRINTF("Transaction type not supported\n");
-                return USTREAM_FAULT;
-            }
-        }
         if (!context->processingField) {
             bool canDecode = false;
             uint32_t offset;

@@ -265,13 +265,17 @@ static parserStatus_e processTxInternal(txContext_t *context) {
         }
         // EIP 2718: TransactionType might be present before the TransactionPayload.
         if (*context->workBuffer > 0x00 && *context->workBuffer < 0x7f) {
-            PRINTF("TX TYPE: %u\n", *context->workBuffer);
-            if (*context->workBuffer <= MIN_TX_TYPE || *context->workBuffer >= MAX_TX_TYPE) {
+            uint8_t maybeType = *context->workBuffer;
+            PRINTF("TX TYPE: %u\n", maybeType);
+
+            // Enumerate through all supported txTypes here...
+            if (maybeType == LEGACY_TX) {
+                context->txType = *context->workBuffer;
+                context->workBuffer++;
+            } else {
                 PRINTF("Transaction type not supported\n");
                 return USTREAM_FAULT;
             }
-            context->txType = *context->workBuffer;
-            context->workBuffer++;
         }
         if (!context->processingField) {
             bool canDecode = false;

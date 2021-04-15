@@ -40,6 +40,22 @@ void handleSign(uint8_t p1,
         }
         dataPresent = false;
         dataContext.tokenContext.pluginAvailable = 0;
+
+        // EIP 2718: TransactionType might be present before the TransactionPayload.
+        uint8_t txType = *workBuffer;
+        if (txType >= MIN_TX_TYPE && txType <= MAX_TX_TYPE) {
+            PRINTF("Transaction type: %u\n", txType);
+
+            // Enumerate through all supported txTypes here...
+            if (txType == LEGACY_TX) {
+                txContext.txType = txType;
+                workBuffer++;
+                dataLength--;
+            } else {
+                PRINTF("Transaction type not supported\n");
+                THROW(0x6501);
+            }
+        }
         initTx(&txContext, &global_sha3, &tmpContent.txContent, customProcessor, NULL);
     } else if (p1 != P1_MORE) {
         THROW(0x6B00);

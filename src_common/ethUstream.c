@@ -264,7 +264,7 @@ static parserStatus_e processTxInternal(txContext_t *context) {
             return USTREAM_PROCESSING;
         }
         // EIP 2718: TransactionType might be present before the TransactionPayload.
-        if (*context->workBuffer > 0x00 && *context->workBuffer < 0x7f) {
+        if (*context->workBuffer >= MIN_TX_TYPE && *context->workBuffer <= MAX_TX_TYPE) {
             uint8_t maybeType = *context->workBuffer;
             PRINTF("TX TYPE: %u\n", maybeType);
 

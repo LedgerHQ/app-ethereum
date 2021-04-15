@@ -53,6 +53,9 @@ typedef enum rlpTxField_e {
     TX_RLP_DONE
 } rlpTxField_e;
 
+#define MIN_TX_TYPE 0x00
+#define MAX_TX_TYPE 0x7f
+
 // EIP 2718 TransactionType
 typedef enum txType_e {
     LEGACY_TX,

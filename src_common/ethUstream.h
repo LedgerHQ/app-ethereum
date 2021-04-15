@@ -55,8 +55,10 @@ typedef enum rlpTxField_e {
 
 // EIP 2718 TransactionType
 typedef enum txType_e {
-    LegacyTransaction = 1,
-    BerlinTransaction = 2
+    MIN_TX_TYPE,
+    LEGACY_TX,
+    BERLIN_TX,
+    MAX_TX_TYPE,
 } txType_e;
 
 typedef enum parserStatus_e {

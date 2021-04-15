@@ -263,7 +263,14 @@ static parserStatus_e processTxInternal(txContext_t *context) {
         if (context->commandLength == 0) {
             return USTREAM_PROCESSING;
         }
+        // EIP 2718: TransactionType might be present before the TransactionPayload.
+        if (*context->workBuffer > 0x00 && *context->workBuffer < 0x7f) {
+            context->txType = *context->workBuffer;
+            context->workBuffer++;
+            PRINTF("TX TYPE: %u\n", context->txType);
+        }
         if (!context->processingField) {
+            PRINTF("PROCESSING FIELD\n");
             bool canDecode = false;
             uint32_t offset;
             while (context->commandLength != 0) {

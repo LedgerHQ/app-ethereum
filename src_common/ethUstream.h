@@ -53,6 +53,12 @@ typedef enum rlpTxField_e {
     TX_RLP_DONE
 } rlpTxField_e;
 
+// EIP 2718 TransactionType
+typedef enum txType_e {
+    LegacyTransaction = 1,
+    BerlinTransaction = 2
+} txType_e;
+
 typedef enum parserStatus_e {
     USTREAM_PROCESSING,
     USTREAM_SUSPENDED,
@@ -93,6 +99,7 @@ typedef struct txContext_t {
     ustreamProcess_t customProcessor;
     txContent_t *content;
     void *extra;
+    uint8_t txType;
 } txContext_t;
 
 void initTx(txContext_t *context,

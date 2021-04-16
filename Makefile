@@ -313,6 +313,13 @@ ifeq ($(TARGET_NAME),TARGET_NANOX)
 SDK_SOURCE_PATH  += lib_blewbxx lib_blewbxx_impl
 endif
 
+### initialize plugin SDK submodule if needed, and rebuild it
+ifneq ($(shell git submodule status | grep '^[-+]'),)
+$(info INFO: Need to reinitialize git submodules)
+$(shell git submodule update --init)
+endif
+$(shell python3 ethereum-plugin-sdk/build_sdk.py)
+
 load: all
 	python3 -m ledgerblue.loadApp $(APP_LOAD_PARAMS)
 

@@ -1,0 +1,3 @@
+[submodule "ethereum-plugin-sdk"]
+	path = ethereum-plugin-sdk
+	url = git@github.com:LedgerHQ/ethereum-plugin-sdk.git

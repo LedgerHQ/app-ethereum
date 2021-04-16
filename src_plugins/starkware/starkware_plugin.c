@@ -33,15 +33,14 @@ typedef enum {
 
 #ifndef HAVE_TOKENS_EXTRA_LIST
 
-static const uint8_t DEVERSIFI_CONTRACT[] = {0x02, 
-                                             
-                                             0x5d, 0x22, 0x04, 0x5d, 0xac, 0xea, 0xb0,
-                                             0x3b, 0x15, 0x80, 0x31, 0xec, 0xb7, 0xd9,
-                                             0xd0, 0x6f, 0xad, 0x24, 0x60, 0x9b,
-                                             
-                                             0x7d, 0xe1, 0xf0, 0x42, 0x04, 0xef, 0x29,
-                                             0x22, 0x9d, 0x84, 0xe7, 0xc0, 0xc2, 0xd1,
-                                             0x21, 0x6c, 0x28, 0x64, 0x5a, 0x15};
+static const uint8_t DEVERSIFI_CONTRACT[] = {
+    0x02,
+
+    0x5d, 0x22, 0x04, 0x5d, 0xac, 0xea, 0xb0, 0x3b, 0x15, 0x80,
+    0x31, 0xec, 0xb7, 0xd9, 0xd0, 0x6f, 0xad, 0x24, 0x60, 0x9b,
+
+    0x7d, 0xe1, 0xf0, 0x42, 0x04, 0xef, 0x29, 0x22, 0x9d, 0x84,
+    0xe7, 0xc0, 0xc2, 0xd1, 0x21, 0x6c, 0x28, 0x64, 0x5a, 0x15};
 
 #else
 
@@ -122,19 +121,17 @@ static const uint8_t DEVERSIFI_CONTRACT[] = {
 // To Eth Address
 // NFT Contract
 // Token ID
-// register and deposit token : stark key (32), variable signature, verify assetType (32), vault Id (4), quantized amount (32), token address (20), quantum (32)
-// Register and deposit
-// Contract Name
+// register and deposit token : stark key (32), variable signature, verify assetType (32), vault Id
+// (4), quantized amount (32), token address (20), quantum (32) Register and deposit Contract Name
 // From ETH address
 // Master account
 // Token Account
 // Amount
 // register and deposit : stark key (32), variable signature, verify assetType (32), vault Id (4)
 // flow similar to register and deposit
-// deposit token proxy : stark key (32), verify assetType (32), vault Id (4), quantized Amount (32), token address (20), quantum (32)
-// flow similar to deposit    
-// deposit proxy : stark key (32), verify assetType (32), vault Id (4)
-// flow similar to deposit    
+// deposit token proxy : stark key (32), verify assetType (32), vault Id (4), quantized Amount (32),
+// token address (20), quantum (32) flow similar to deposit deposit proxy : stark key (32), verify
+// assetType (32), vault Id (4) flow similar to deposit
 
 static const uint8_t STARKWARE_EXPECTED_DATA_SIZE[] = {0,
                                                        4 + 32 + 32 + 32 + 32,
@@ -157,26 +154,9 @@ static const uint8_t STARKWARE_EXPECTED_DATA_SIZE[] = {0,
                                                        4 + 32 + 32 + 32 + 32 + 32 + 32,
                                                        4 + 32 + 32 + 32};
 
-static const uint8_t STARKWARE_NUM_SCREENS[] = {4 - 1,
-                                                5 - 1,
-                                                5 - 1,
-                                                4 - 1,
-                                                4 - 1,
-                                                5 - 1,
-                                                4 - 1,
-                                                4 - 1,
-                                                5 - 1,
-                                                2 - 1,
-                                                5 - 1,
-                                                6 - 1,
-                                                6 - 1,
-                                                4 - 1,
-                                                6 - 1,
-                                                6 - 1,
-                                                6 - 1,
-                                                6 - 1,
-                                                5 - 1,
-                                                5 - 1};
+static const uint8_t STARKWARE_NUM_SCREENS[] = {4 - 1, 5 - 1, 5 - 1, 4 - 1, 4 - 1, 5 - 1, 4 - 1,
+                                                4 - 1, 5 - 1, 2 - 1, 5 - 1, 6 - 1, 6 - 1, 4 - 1,
+                                                6 - 1, 6 - 1, 6 - 1, 6 - 1, 5 - 1, 5 - 1};
 
 typedef struct starkware_parameters_t {
     uint8_t vaultId[4];
@@ -232,19 +212,18 @@ bool starkware_verify_asset_id(uint8_t *tmp32, uint8_t *tokenId, bool assetTypeO
 bool starkware_verify_token(uint8_t *token) {
     if (quantumSet) {
         if (dataContext.tokenContext.quantumIndex != MAX_TOKEN) {
-            tokenDefinition_t *currentToken = &tmpCtx.transactionContext.tokens[dataContext.tokenContext.quantumIndex];
+            tokenDefinition_t *currentToken =
+                &tmpCtx.transactionContext.tokens[dataContext.tokenContext.quantumIndex];
             if (memcmp(token + 32 - 20, currentToken->address, 20) != 0) {
                 PRINTF("Token not matching got %.*H\n", 20, token + 32 - 20);
                 PRINTF("Current token %.*H\n", 20, currentToken->address);
                 return false;
-            } 
-        }
-        else {
+            }
+        } else {
             PRINTF("Quantum not set\n");
             return false;
         }
-    }
-    else {
+    } else {
         PRINTF("Quantum not set\n");
         return false;
     }
@@ -253,19 +232,17 @@ bool starkware_verify_token(uint8_t *token) {
 
 bool starkware_verify_quantum(uint8_t *quantum) {
     if (quantumSet) {
-        if (dataContext.tokenContext.quantumIndex != MAX_TOKEN) {            
+        if (dataContext.tokenContext.quantumIndex != MAX_TOKEN) {
             if (memcmp(quantum, dataContext.tokenContext.quantum, 32) != 0) {
                 PRINTF("Quantum not matching got %.*H\n", 32, quantum);
                 PRINTF("Current quantum %.*H\n", 32, dataContext.tokenContext.quantum);
                 return false;
-            } 
-        }
-        else {
+            }
+        } else {
             PRINTF("Quantum not set\n");
             return false;
         }
-    }
-    else {
+    } else {
         PRINTF("Quantum not set\n");
         return false;
     }
@@ -585,9 +562,8 @@ void starkware_plugin_call(int message, void *parameters) {
                     break;
 
                 case 4 + 32 + 32 + 32 + 32:
-                    switch(context->selectorIndex) {
-                        switch(context->selectorIndex) {
-
+                    switch (context->selectorIndex) {
+                        switch (context->selectorIndex) {
                             case STARKWARE_REGISTER_AND_DEPOSIT_TOKEN:
                                 memmove(context->amount, msg->parameter, 32);
                                 break;
@@ -599,15 +575,13 @@ void starkware_plugin_call(int message, void *parameters) {
                             default:
                                 break;
                         }
-
                     }
                     msg->result = ETH_PLUGIN_RESULT_OK;
                     break;
 
                 case 4 + 32 + 32 + 32 + 32 + 32:
-                    switch(context->selectorIndex) {
-                        switch(context->selectorIndex) {
-
+                    switch (context->selectorIndex) {
+                        switch (context->selectorIndex) {
                             case STARKWARE_REGISTER_AND_DEPOSIT_TOKEN:
                                 context->validToken = starkware_verify_token(msg->parameter);
                                 break;
@@ -624,9 +598,8 @@ void starkware_plugin_call(int message, void *parameters) {
                     break;
 
                 case 4 + 32 + 32 + 32 + 32 + 32 + 32:
-                    switch(context->selectorIndex) {
-                        switch(context->selectorIndex) {
-
+                    switch (context->selectorIndex) {
+                        switch (context->selectorIndex) {
                             case STARKWARE_REGISTER_AND_DEPOSIT_TOKEN:
                                 context->validToken = starkware_verify_quantum(msg->parameter);
                                 break;
@@ -835,9 +808,10 @@ void starkware_plugin_call(int message, void *parameters) {
                         case STARKWARE_PROXY_DEPOSIT_ETH:
                             strcpy(msg->title, "Amount");
                             starkware_print_amount(
-                                (((context->selectorIndex == STARKWARE_DEPOSIT_ETH)  || 
-                                 (context->selectorIndex == STARKWARE_PROXY_DEPOSIT_ETH)) ? NULL
-                                                                                 : context->amount),
+                                (((context->selectorIndex == STARKWARE_DEPOSIT_ETH) ||
+                                  (context->selectorIndex == STARKWARE_PROXY_DEPOSIT_ETH))
+                                     ? NULL
+                                     : context->amount),
                                 msg->msg,
                                 false);
                             break;
@@ -859,7 +833,7 @@ void starkware_plugin_call(int message, void *parameters) {
                         case STARKWARE_REGISTER_AND_DEPOSIT_ETH:
                             strcpy(msg->title, "Token Account");
                             starkware_print_vault_id(U4BE(context->vaultId, 0), msg->msg);
-                            break;                        
+                            break;
 
                         default:
                             PRINTF("Unexpected screen %d for %d\n",
@@ -884,11 +858,12 @@ void starkware_plugin_call(int message, void *parameters) {
                         case STARKWARE_REGISTER_AND_DEPOSIT_ETH:
                             strcpy(msg->title, "Amount");
                             starkware_print_amount(
-                                ((context->selectorIndex == STARKWARE_REGISTER_AND_DEPOSIT_ETH)  ? NULL
-                                                                                 : context->amount),
+                                ((context->selectorIndex == STARKWARE_REGISTER_AND_DEPOSIT_ETH)
+                                     ? NULL
+                                     : context->amount),
                                 msg->msg,
                                 false);
-                            break;                            
+                            break;
 
                         default:
                             PRINTF("Unexpected screen %d for %d\n",

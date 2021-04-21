@@ -255,7 +255,6 @@ void finalizeParsing(bool direct) {
             return;
         }
 
-        PRINTF("OFFICIAL: %u, RECEIVED: %u\n", chainConfig->chainId, id);
         if (chainConfig->chainId != id) {
             PRINTF("Invalid chainID %u expected %u\n", id, chainConfig->chainId);
             reset_app_context();

@@ -145,7 +145,6 @@ static void processChainID(txContext_t *context) {
         context->currentField++;
         context->processingField = false;
     }
-    PRINTF("chainID: %.*H\n", context->content->chainID.length, context->content->chainID.value);
 }
 
 static void processNonce(txContext_t *context) {

@@ -342,7 +342,6 @@ static bool processEIP2930Tx(txContext_t *context) {
 }
 
 static bool processLegacyTx(txContext_t *context) {
-    PRINTF("Processing legacy\n");
     switch (context->currentField) {
         case LEGACY_RLP_CONTENT:
             processContent(context);

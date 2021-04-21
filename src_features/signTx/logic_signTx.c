@@ -249,7 +249,9 @@ void finalizeParsing(bool direct) {
         if (txContext.txType == LEGACY) {
             id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
         } else if (txContext.txType == EIP2930) {
-            id = u32_from_BE(txContext.content->chainID.value, txContext.content->chainID.length, false);
+            id = u32_from_BE(txContext.content->chainID.value,
+                             txContext.content->chainID.length,
+                             false);
         } else {
             PRINTF("TxType `%u` not supported while checking for chainID\n", txContext.txType);
             return;

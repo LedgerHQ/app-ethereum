@@ -40,7 +40,7 @@ typedef customStatus_e (*ustreamProcess_t)(struct txContext_t *context);
 // First variant of every Tx enum.
 #define RLP_NONE 0
 
-#define IS_PARSING_DONE(ctx)                                            \
+#define PARSING_IS_DONE(ctx)                                            \
     ((ctx->txType == LEGACY && ctx->currentField == LEGACY_RLP_DONE) || \
      (ctx->txType == EIP2930 && ctx->currentField == EIP2930_RLP_DONE))
 

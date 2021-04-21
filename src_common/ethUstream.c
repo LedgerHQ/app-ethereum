@@ -436,7 +436,7 @@ static parserStatus_e processTxInternal(txContext_t *context) {
     for (;;) {
         customStatus_e customStatus = CUSTOM_NOT_HANDLED;
         // EIP 155 style transaction
-        if (IS_PARSING_DONE(context)) {
+        if (PARSING_IS_DONE(context)) {
             return USTREAM_FINISHED;
         }
         // Old style transaction

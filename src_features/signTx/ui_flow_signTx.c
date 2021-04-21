@@ -173,9 +173,9 @@ void ux_approve_tx(bool dataPresent) {
 
     uint32_t id;
     if (txContext.txType == LEGACY) {
-        id = u32_from_BE(txContext.content->v, txContext.content->vLength);
+        id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
     } else if (txContext.txType == EIP2930) {
-        id = u32_from_BE(txContext.content->chainID.value, txContext.content->chainID.length);
+        id = u32_from_BE(txContext.content->chainID.value, txContext.content->chainID.length, false);
     } else {
         PRINTF("TxType `%u` not supported while preparing to approve tx\n", txContext.txType);
         THROW(0x6501);

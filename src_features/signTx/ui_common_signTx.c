@@ -8,7 +8,7 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
     uint8_t signatureLength;
     cx_ecfp_private_key_t privateKey;
     uint32_t tx = 0;
-    uint32_t v = u32_from_BE(tmpContent.txContent.v, tmpContent.txContent.vLength);
+    uint32_t v = u32_from_BE(tmpContent.txContent.v, tmpContent.txContent.vLength, true);
     io_seproxyhal_io_heartbeat();
     os_perso_derive_node_bip32(CX_CURVE_256K1,
                                tmpCtx.transactionContext.bip32Path,

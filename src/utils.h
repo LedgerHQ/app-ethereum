@@ -32,7 +32,7 @@ int local_strchr(char* string, char ch);
 void u32_to_str(char* dest, uint8_t dest_size, uint32_t in);
 
 // Converts a list of bytes (in BE) of length `size` to a uint32_t.
-uint32_t u32_from_BE(uint8_t* in, uint8_t size);
+uint32_t u32_from_BE(uint8_t* in, uint8_t size, bool strict);
 
 void amountToString(uint8_t* amount,
                     uint8_t amount_len,

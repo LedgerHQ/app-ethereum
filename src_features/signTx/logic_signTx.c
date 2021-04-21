@@ -248,9 +248,9 @@ void finalizeParsing(bool direct) {
         uint32_t id = 0;
 
         if (txContext.txType == LEGACY) {
-            id = u32_from_BE(txContext.content->v, txContext.content->vLength);
+            id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
         } else if (txContext.txType == EIP2930) {
-            id = u32_from_BE(txContext.content->chainID.value, txContext.content->chainID.length);
+            id = u32_from_BE(txContext.content->chainID.value, txContext.content->chainID.length, false);
         } else {
             PRINTF("TxType `%u` not supported while checking for chainID\n", txContext.txType);
             return;
@@ -388,7 +388,7 @@ void finalizeParsing(bool direct) {
     // Prepare chainID field
     if (genericUI) {
         if (txContext.txType == LEGACY) {
-            uint32_t id = u32_from_BE(txContext.content->v, txContext.content->vLength);
+            uint32_t id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
             u32_to_str((char *) strings.common.chainID, sizeof(strings.common.chainID), id);
         } else if (txContext.txType == EIP2930) {
             uint256_t chainID;

@@ -251,6 +251,13 @@ else
 DEFINES   += IO_SEPROXYHAL_BUFFER_SIZE_B=72
 endif
 
+# Enables direct data signing without having to specify it in the settings. Useful when testing with speculos.
+ALLOW_DATA:=0
+ifneq ($(ALLOW_DATA),0)
+DEFINES += HAVE_ALLOW_DATA
+endif
+
+
 # Enabling debug PRINTF
 DEBUG:=0
 ifneq ($(DEBUG),0)

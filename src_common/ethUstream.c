@@ -20,6 +20,7 @@
 
 #include "ethUstream.h"
 #include "ethUtils.h"
+#include "utils.h"
 
 #define MAX_INT256  32
 #define MAX_ADDRESS 20
@@ -30,12 +31,15 @@ void initTx(txContext_t *context,
             txContent_t *content,
             ustreamProcess_t customProcessor,
             void *extra) {
+    uint8_t save = context->txType;
+
     memset(context, 0, sizeof(txContext_t));
+    context->txType = save;
     context->sha3 = sha3;
     context->content = content;
     context->customProcessor = customProcessor;
     context->extra = extra;
-    context->currentField = TX_RLP_CONTENT;
+    context->currentField = RLP_NONE + 1;
     cx_keccak_init(context->sha3, 256);
 }
 
@@ -86,6 +90,22 @@ static void processContent(txContext_t *context) {
     context->processingField = false;
 }
 
+static void processAccessList(txContext_t *context) {
+    if (!context->currentFieldIsList) {
+        PRINTF("Invalid type for RLP_DATA\n");
+        THROW(EXCEPTION);
+    }
+    if (context->currentFieldPos < context->currentFieldLength) {
+        uint32_t copySize =
+            MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
+        copyTxData(context, NULL, copySize);
+    }
+    if (context->currentFieldPos == context->currentFieldLength) {
+        context->currentField++;
+        context->processingField = false;
+    }
+}
+
 static void processType(txContext_t *context) {
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_TYPE\n");
@@ -104,6 +124,28 @@ static void processType(txContext_t *context) {
         context->currentField++;
         context->processingField = false;
     }
+}
+
+static void processChainID(txContext_t *context) {
+    if (context->currentFieldIsList) {
+        PRINTF("Invalid type for RLP_CHAINID\n");
+        THROW(EXCEPTION);
+    }
+    if (context->currentFieldLength > MAX_INT256) {
+        PRINTF("Invalid length for RLP_CHAINID\n");
+        THROW(EXCEPTION);
+    }
+    if (context->currentFieldPos < context->currentFieldLength) {
+        uint32_t copySize =
+            MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
+        copyTxData(context, context->content->chainID.value, copySize);
+    }
+    if (context->currentFieldPos == context->currentFieldLength) {
+        context->content->chainID.length = context->currentFieldLength;
+        context->currentField++;
+        context->processingField = false;
+    }
+    PRINTF("chainID: %.*H\n", context->content->chainID.length, context->content->chainID.value);
 }
 
 static void processNonce(txContext_t *context) {
@@ -146,6 +188,11 @@ static void processStartGas(txContext_t *context) {
         context->currentField++;
         context->processingField = false;
     }
+}
+
+// Alias over `processStartGas()`.
+static void processGasLimit(txContext_t *context) {
+    processStartGas(context);
 }
 
 static void processGasprice(txContext_t *context) {
@@ -248,68 +295,167 @@ static void processV(txContext_t *context) {
     }
 }
 
+static bool processEIP2930Tx(txContext_t *context) {
+    switch (context->currentField) {
+        case EIP2930_RLP_CONTENT:
+            processContent(context);
+            if ((context->processingFlags & TX_FLAG_TYPE) == 0) {
+                context->currentField++;
+            }
+            break;
+        case EIP2930_RLP_TYPE:
+            processType(context);
+            break;
+        case EIP2930_RLP_CHAINID:
+            processChainID(context);
+            break;
+        case EIP2930_RLP_NONCE:
+            processNonce(context);
+            break;
+        case EIP2930_RLP_GASPRICE:
+            processGasprice(context);
+            break;
+        case EIP2930_RLP_GASLIMIT:
+            processGasLimit(context);
+            break;
+        case EIP2930_RLP_TO:
+            processTo(context);
+            break;
+        case EIP2930_RLP_VALUE:
+            processValue(context);
+            break;
+        case EIP2930_RLP_YPARITY:
+            processV(context);
+            break;
+        case EIP2930_RLP_ACCESS_LIST:
+            processAccessList(context);
+            break;
+        case EIP2930_RLP_DATA:
+        case EIP2930_RLP_SENDER_R:
+        case EIP2930_RLP_SENDER_S:
+            processData(context);
+            break;
+        default:
+            PRINTF("Invalid RLP decoder context\n");
+            return true;
+    }
+    return false;
+}
+
+static bool processLegacyTx(txContext_t *context) {
+    PRINTF("Processing legacy\n");
+    switch (context->currentField) {
+        case LEGACY_RLP_CONTENT:
+            processContent(context);
+            if ((context->processingFlags & TX_FLAG_TYPE) == 0) {
+                context->currentField++;
+            }
+            break;
+        case LEGACY_RLP_TYPE:
+            processType(context);
+            break;
+        case LEGACY_RLP_NONCE:
+            processNonce(context);
+            break;
+        case LEGACY_RLP_GASPRICE:
+            processGasprice(context);
+            break;
+        case LEGACY_RLP_STARTGAS:
+            processStartGas(context);
+            break;
+        case LEGACY_RLP_TO:
+            processTo(context);
+            break;
+        case LEGACY_RLP_VALUE:
+            processValue(context);
+            break;
+        case LEGACY_RLP_DATA:
+        case LEGACY_RLP_R:
+        case LEGACY_RLP_S:
+            processData(context);
+            break;
+        case LEGACY_RLP_V:
+            processV(context);
+            break;
+        default:
+            PRINTF("Invalid RLP decoder context\n");
+            return true;
+    }
+    return false;
+}
+
+static parserStatus_e parseRLP(txContext_t *context) {
+    bool canDecode = false;
+    uint32_t offset;
+    while (context->commandLength != 0) {
+        bool valid;
+        // Feed the RLP buffer until the length can be decoded
+        context->rlpBuffer[context->rlpBufferPos++] = readTxByte(context);
+        if (rlpCanDecode(context->rlpBuffer, context->rlpBufferPos, &valid)) {
+            // Can decode now, if valid
+            if (!valid) {
+                PRINTF("RLP pre-decode error\n");
+                return USTREAM_FAULT;
+            }
+            canDecode = true;
+            break;
+        }
+        // Cannot decode yet
+        // Sanity check
+        if (context->rlpBufferPos == sizeof(context->rlpBuffer)) {
+            PRINTF("RLP pre-decode logic error\n");
+            return USTREAM_FAULT;
+        }
+    }
+    if (!canDecode) {
+        PRINTF("Can't decode\n");
+        return USTREAM_PROCESSING;
+    }
+    // Ready to process this field
+    if (!rlpDecodeLength(context->rlpBuffer,
+                         context->rlpBufferPos,
+                         &context->currentFieldLength,
+                         &offset,
+                         &context->currentFieldIsList)) {
+        PRINTF("RLP decode error\n");
+        return USTREAM_FAULT;
+    }
+    if (offset == 0) {
+        // Hack for single byte, self encoded
+        context->workBuffer--;
+        context->commandLength++;
+        context->fieldSingleByte = true;
+    } else {
+        context->fieldSingleByte = false;
+    }
+    context->currentFieldPos = 0;
+    context->rlpBufferPos = 0;
+    context->processingField = true;
+    return USTREAM_CONTINUE;
+}
+
 static parserStatus_e processTxInternal(txContext_t *context) {
     for (;;) {
         customStatus_e customStatus = CUSTOM_NOT_HANDLED;
         // EIP 155 style transaction
-        if (context->currentField == TX_RLP_DONE) {
+        if (IS_PARSING_DONE(context)) {
             return USTREAM_FINISHED;
         }
         // Old style transaction
-        if ((context->currentField == TX_RLP_V) && (context->commandLength == 0)) {
+        if ((context->currentField == LEGACY_RLP_V ||
+             context->currentField == EIP2930_RLP_YPARITY) &&
+            (context->commandLength == 0)) {
             context->content->vLength = 0;
             return USTREAM_FINISHED;
         }
         if (context->commandLength == 0) {
             return USTREAM_PROCESSING;
         }
-
         if (!context->processingField) {
-            bool canDecode = false;
-            uint32_t offset;
-            while (context->commandLength != 0) {
-                bool valid;
-                // Feed the RLP buffer until the length can be decoded
-                context->rlpBuffer[context->rlpBufferPos++] = readTxByte(context);
-                if (rlpCanDecode(context->rlpBuffer, context->rlpBufferPos, &valid)) {
-                    // Can decode now, if valid
-                    if (!valid) {
-                        PRINTF("RLP pre-decode error\n");
-                        return USTREAM_FAULT;
-                    }
-                    canDecode = true;
-                    break;
-                }
-                // Cannot decode yet
-                // Sanity check
-                if (context->rlpBufferPos == sizeof(context->rlpBuffer)) {
-                    PRINTF("RLP pre-decode logic error\n");
-                    return USTREAM_FAULT;
-                }
+            parserStatus_e status = parseRLP(context);
+            if (status != USTREAM_CONTINUE) {
+                return status;
             }
-            if (!canDecode) {
-                return USTREAM_PROCESSING;
-            }
-            // Ready to process this field
-            if (!rlpDecodeLength(context->rlpBuffer,
-                                 context->rlpBufferPos,
-                                 &context->currentFieldLength,
-                                 &offset,
-                                 &context->currentFieldIsList)) {
-                PRINTF("RLP decode error\n");
-                return USTREAM_FAULT;
-            }
-            if (offset == 0) {
-                // Hack for single byte, self encoded
-                context->workBuffer--;
-                context->commandLength++;
-                context->fieldSingleByte = true;
-            } else {
-                context->fieldSingleByte = false;
-            }
-            context->currentFieldPos = 0;
-            context->rlpBufferPos = 0;
-            context->processingField = true;
         }
         if (context->customProcessor != NULL) {
             customStatus = context->customProcessor(context);
@@ -328,41 +474,25 @@ static parserStatus_e processTxInternal(txContext_t *context) {
             }
         }
         if (customStatus == CUSTOM_NOT_HANDLED) {
-            switch (context->currentField) {
-                case TX_RLP_CONTENT:
-                    processContent(context);
-                    if ((context->processingFlags & TX_FLAG_TYPE) == 0) {
-                        context->currentField++;
+            PRINTF("Current field: %u\n", context->currentField);
+            switch (context->txType) {
+                bool fault;
+                case LEGACY:
+                    fault = processLegacyTx(context);
+                    if (fault) {
+                        return USTREAM_FAULT;
+                    } else {
+                        break;
                     }
-                    break;
-                case TX_RLP_TYPE:
-                    processType(context);
-                    break;
-                case TX_RLP_NONCE:
-                    processNonce(context);
-                    break;
-                case TX_RLP_GASPRICE:
-                    processGasprice(context);
-                    break;
-                case TX_RLP_STARTGAS:
-                    processStartGas(context);
-                    break;
-                case TX_RLP_VALUE:
-                    processValue(context);
-                    break;
-                case TX_RLP_TO:
-                    processTo(context);
-                    break;
-                case TX_RLP_DATA:
-                case TX_RLP_R:
-                case TX_RLP_S:
-                    processData(context);
-                    break;
-                case TX_RLP_V:
-                    processV(context);
-                    break;
+                case EIP2930:
+                    fault = processEIP2930Tx(context);
+                    if (fault) {
+                        return USTREAM_FAULT;
+                    } else {
+                        break;
+                    }
                 default:
-                    PRINTF("Invalid RLP decoder context\n");
+                    PRINTF("Transaction type %u is not supported\n", context->txType);
                     return USTREAM_FAULT;
             }
         }

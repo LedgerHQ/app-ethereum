@@ -714,7 +714,11 @@ void coin_main(chain_config_t *coin_config) {
 
                 if (N_storage.initialized != 0x01) {
                     internalStorage_t storage;
+#ifdef HAVE_ALLOW_DATA
+                    storage.dataAllowed = 0x01;
+#else
                     storage.dataAllowed = 0x00;
+#endif
                     storage.contractDetails = 0x00;
                     storage.displayNonce = 0x00;
                     storage.initialized = 0x01;

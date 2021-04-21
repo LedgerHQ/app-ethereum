@@ -53,22 +53,58 @@ int local_strchr(char *string, char ch) {
     return -1;
 }
 
-uint32_t getV(txContent_t *txContent) {
-    uint32_t v = 0;
-    if (txContent->vLength == 1) {
-        v = txContent->v[0];
-    } else if (txContent->vLength == 2) {
-        v = (txContent->v[0] << 8) | txContent->v[1];
-    } else if (txContent->vLength == 3) {
-        v = (txContent->v[0] << 16) | (txContent->v[1] << 8) | txContent->v[2];
-    } else if (txContent->vLength == 4) {
-        v = (txContent->v[0] << 24) | (txContent->v[1] << 16) | (txContent->v[2] << 8) |
-            txContent->v[3];
-    } else if (txContent->vLength != 0) {
-        PRINTF("Unexpected v format\n");
-        THROW(EXCEPTION);
+// Almost like U4BE except that it takes `size` as a parameter.
+uint32_t u32_from_BE(uint8_t *in, uint8_t size) {
+    uint32_t res = 0;
+    if (size == 1) {
+        res = in[0];
+    } else if (size == 2) {
+        res = (in[0] << 8) | in[1];
+    } else if (size == 3) {
+        res = (in[0] << 16) | (in[1] << 8) | in[2];
+    } else {
+        res = (in[0] << 24) | (in[1] << 16) | (in[2] << 8) | in[3];
     }
-    return v;
+    return res;
+}
+
+// Converts a uint32_t to a string.
+void u32_to_str(char *dest, uint32_t in, uint8_t dest_size) {
+    uint8_t i = 0;
+
+    // Get the first digit (in case it's 0).
+    dest[i] = in % 10 + '0';
+    in /= 10;
+    i++;
+
+    // Get every digit.
+    while (in != 0) {
+        if (i >= dest_size) {
+            THROW(6502);
+        }
+        dest[i] = in % 10 + '0';
+        in /= 10;
+        i++;
+    }
+
+    // Null terminate the string.
+    dest[i] = '\0';
+    i--;
+
+    // Reverse the string
+    uint8_t end = i;
+    char tmp;
+    i = 0;
+    while (i < end) {
+        // Swap the first and last elements.
+        tmp = dest[i];
+        dest[i] = dest[end];
+        dest[end] = tmp;
+
+        // Decrease the interval size.
+        i++;
+        end--;
+    }
 }
 
 void amountToString(uint8_t *amount,

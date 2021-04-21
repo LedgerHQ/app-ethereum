@@ -28,7 +28,11 @@ void convertUint256BE(uint8_t* data, uint32_t length, uint256_t* target);
 
 int local_strchr(char* string, char ch);
 
-uint32_t getV(txContent_t* txContent);
+// `itoa` for uint32_t.
+void u32_to_str(char* dest, uint8_t dest_size, uint32_t in);
+
+// Converts a list of bytes (in BE) of length `size` to a uint32_t.
+uint32_t u32_from_BE(uint8_t* in, uint8_t size);
 
 void amountToString(uint8_t* amount,
                     uint8_t amount_len,

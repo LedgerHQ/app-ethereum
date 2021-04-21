@@ -59,6 +59,7 @@ void eth_plugin_prepare_query_contract_UI(ethQueryContractUI_t *queryContractUI,
 int eth_plugin_perform_init(uint8_t *contractAddress, ethPluginInitContract_t *init) {
     uint8_t i;
     const uint8_t **selectors;
+    return 0;
     dataContext.tokenContext.pluginAvailable = 0;
     // Handle hardcoded plugin list
     PRINTF("Selector %.*H\n", 4, init->selector);

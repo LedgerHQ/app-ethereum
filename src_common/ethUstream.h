@@ -37,35 +37,63 @@ typedef customStatus_e (*ustreamProcess_t)(struct txContext_t *context);
 
 #define TX_FLAG_TYPE 0x01
 
-typedef enum rlpTxField_e {
-    TX_RLP_NONE = 0,
-    TX_RLP_CONTENT,
-    TX_RLP_TYPE,
-    TX_RLP_NONCE,
-    TX_RLP_GASPRICE,
-    TX_RLP_STARTGAS,
-    TX_RLP_TO,
-    TX_RLP_VALUE,
-    TX_RLP_DATA,
-    TX_RLP_V,
-    TX_RLP_R,
-    TX_RLP_S,
-    TX_RLP_DONE
-} rlpTxField_e;
+// First variant of every Tx enum.
+#define RLP_NONE 0
+
+#define IS_PARSING_DONE(ctx)                                            \
+    ((ctx->txType == LEGACY && ctx->currentField == LEGACY_RLP_DONE) || \
+     (ctx->txType == EIP2930 && ctx->currentField == EIP2930_RLP_DONE))
+
+typedef enum rlpLegacyTxField_e {
+    LEGACY_RLP_NONE = RLP_NONE,
+    LEGACY_RLP_CONTENT,
+    LEGACY_RLP_TYPE,
+    LEGACY_RLP_NONCE,
+    LEGACY_RLP_GASPRICE,
+    LEGACY_RLP_STARTGAS,
+    LEGACY_RLP_TO,
+    LEGACY_RLP_VALUE,
+    LEGACY_RLP_DATA,
+    LEGACY_RLP_V,
+    LEGACY_RLP_R,
+    LEGACY_RLP_S,
+    LEGACY_RLP_DONE
+} rlpLegacyTxField_e;
+
+typedef enum rlpEIP2930TxField_e {
+    EIP2930_RLP_NONE = RLP_NONE,
+    EIP2930_RLP_CONTENT,
+    EIP2930_RLP_TYPE,
+    EIP2930_RLP_CHAINID,
+    EIP2930_RLP_NONCE,
+    EIP2930_RLP_GASPRICE,
+    EIP2930_RLP_GASLIMIT,
+    EIP2930_RLP_TO,
+    EIP2930_RLP_VALUE,
+    EIP2930_RLP_DATA,
+    EIP2930_RLP_ACCESS_LIST,
+    EIP2930_RLP_YPARITY,
+    EIP2930_RLP_SENDER_R,
+    EIP2930_RLP_SENDER_S,
+    EIP2930_RLP_DONE
+} rlpEIP2930TxField_e;
 
 #define MIN_TX_TYPE 0x00
 #define MAX_TX_TYPE 0x7f
 
 // EIP 2718 TransactionType
+// Valid transaction types should be in [0x00, 0x7f]
 typedef enum txType_e {
-    LEGACY_TX = 1,
+    EIP2930 = 0x01,
+    LEGACY = 0xc0  // Legacy tx are greater than or equal to 0xc0.
 } txType_e;
 
 typedef enum parserStatus_e {
-    USTREAM_PROCESSING,
-    USTREAM_SUSPENDED,
-    USTREAM_FINISHED,
-    USTREAM_FAULT
+    USTREAM_PROCESSING,  // Parsing is in progress
+    USTREAM_SUSPENDED,   // Parsing has been suspended
+    USTREAM_FINISHED,    // Parsing is done
+    USTREAM_FAULT,       // An error was encountered while parsing
+    USTREAM_CONTINUE     // Used internally to signify we can keep on parsing
 } parserStatus_e;
 
 typedef struct txInt256_t {
@@ -78,6 +106,7 @@ typedef struct txContent_t {
     txInt256_t startgas;
     txInt256_t value;
     txInt256_t nonce;
+    txInt256_t chainID;
     uint8_t destination[20];
     uint8_t destinationLength;
     uint8_t v[4];
@@ -85,7 +114,7 @@ typedef struct txContent_t {
 } txContent_t;
 
 typedef struct txContext_t {
-    rlpTxField_e currentField;
+    uint8_t currentField;
     cx_sha3_t *sha3;
     uint32_t currentFieldLength;
     uint32_t currentFieldPos;

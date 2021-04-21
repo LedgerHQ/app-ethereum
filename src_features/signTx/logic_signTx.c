@@ -57,7 +57,6 @@ customStatus_e customProcessor(txContext_t *context) {
                                         context->currentFieldLength);
                 dataContext.tokenContext.pluginAvailable =
                     eth_plugin_perform_init(tmpContent.txContent.destination, &pluginInit);
-                PRINTF("a\n");
             }
             PRINTF("pluginAvailable %d\n", dataContext.tokenContext.pluginAvailable);
             if (dataContext.tokenContext.pluginAvailable) {

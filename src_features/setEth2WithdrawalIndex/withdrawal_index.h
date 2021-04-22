@@ -1,6 +1,6 @@
 #include "stdint.h"
 
-#define INDEX_MAX 1337 // scott
+#define INDEX_MAX 1337  // scott
 
 void handleSetEth2WithdrawalIndex(uint8_t p1,
                                   uint8_t p2,

@@ -21,17 +21,64 @@ void getEth2PublicKey(uint32_t *bip32Path, uint8_t bip32PathLength, uint8_t *out
 #define ETH2_WITHDRAWAL_CREDENTIALS_LENGTH 0x20
 #define ETH2_SIGNATURE_LENGTH              0x60
 
+#define DEPOSIT_CONTRACT_ADDRESS "0x00000000219ab540356cbb839cbe05303d7705fa"
+#define DEPOSIT_CONTRACT_LENGTH  sizeof(DEPOSIT_CONTRACT_ADDRESS)
+
 typedef struct eth2_deposit_parameters_t {
     uint8_t valid;
 } eth2_deposit_parameters_t;
+
+static void to_lowercase(char *str, unsigned char size) {
+    for (unsigned char i = 0; i < size && str[i] != 0; i++) {
+        if (str[i] >= 'A' && str[i] <= 'Z') {
+            str[i] += 'a' - 'A';
+        }
+    }
+}
+
+static int check_deposit_contract(ethPluginInitContract_t *msg) {
+    txContent_t *content = msg->pluginSharedRO->txContent;
+    char destinationAddress[DEPOSIT_CONTRACT_LENGTH];
+
+    destinationAddress[0] = '0';
+    destinationAddress[1] = 'x';
+    getEthAddressStringFromBinary(content->destination,
+                                  (uint8_t *) destinationAddress + 2,
+                                  &global_sha3,
+                                  chainConfig);
+
+    uint8_t destinationLen = strlen(destinationAddress);
+    // Ensure address is in lowercase, to match DEPOSIT_CONTRACT_ADDRESS' case.
+    to_lowercase(destinationAddress, destinationLen);
+
+    if (destinationLen != DEPOSIT_CONTRACT_LENGTH) {
+        PRINTF("eth2plugin: destination lengths differs. Expected %u got %u\n",
+               DEPOSIT_CONTRACT_LENGTH,
+               destinationLen);
+        return 0;
+    } else if (memcmp(destinationAddress, DEPOSIT_CONTRACT_ADDRESS, DEPOSIT_CONTRACT_LENGTH) != 0) {
+        PRINTF("eth2plugin: destination addresses differ. Expected %s got %s\n",
+               DEPOSIT_CONTRACT_ADDRESS,
+               destinationAddress);
+        return 0;
+    } else {
+        return 1;
+    }
+}
 
 void eth2_plugin_call(int message, void *parameters) {
     switch (message) {
         case ETH_PLUGIN_INIT_CONTRACT: {
             ethPluginInitContract_t *msg = (ethPluginInitContract_t *) parameters;
             eth2_deposit_parameters_t *context = (eth2_deposit_parameters_t *) msg->pluginContext;
-            context->valid = 1;
-            msg->result = ETH_PLUGIN_RESULT_OK;
+            if (check_deposit_contract(msg) == 0) {
+                PRINTF("eth2plugin: failed to check deposit contract\n");
+                context->valid = 0;
+                msg->result = ETH_PLUGIN_RESULT_ERROR;
+            } else {
+                context->valid = 1;
+                msg->result = ETH_PLUGIN_RESULT_OK;
+            }
         } break;
 
         case ETH_PLUGIN_PROVIDE_PARAMETER: {
@@ -95,27 +142,27 @@ void eth2_plugin_call(int message, void *parameters) {
 
                 case 4 + (32 * 8):  // withdrawal credentials
                 {
-                    uint8_t tmp[48];
-                    uint32_t withdrawalKeyPath[4];
-                    withdrawalKeyPath[0] = WITHDRAWAL_KEY_PATH_1;
-                    withdrawalKeyPath[1] = WITHDRAWAL_KEY_PATH_2;
-                    if (eth2WithdrawalIndex > INDEX_MAX) {
-                        PRINTF("eth2 plugin eth2 withdrawal index is too big\n");
-                        PRINTF("Got %u which is higher than INDEX_MAX (%u)\n", eth2WithdrawalIndex, INDEX_MAX);
-                        context->valid = 0;
-                    }
-                    withdrawalKeyPath[2] = eth2WithdrawalIndex;
-                    withdrawalKeyPath[3] = WITHDRAWAL_KEY_PATH_4;
-                    getEth2PublicKey(withdrawalKeyPath, 4, tmp);
-                    PRINTF("eth2 plugin computed withdrawal public key %.*H\n", 48, tmp);
-                    cx_hash_sha256(tmp, 48, tmp, 32);
-                    tmp[0] = 0;
-                    if (memcmp(tmp, msg->parameter, 32) != 0) {
-                        PRINTF("eth2 plugin invalid withdrawal credentials\n");
-                        PRINTF("Got %.*H\n", 32, msg->parameter);
-                        PRINTF("Expected %.*H\n", 32, tmp);
-                        context->valid = 0;
-                    }
+                    // uint8_t tmp[48];
+                    // uint32_t withdrawalKeyPath[4];
+                    // withdrawalKeyPath[0] = WITHDRAWAL_KEY_PATH_1;
+                    // withdrawalKeyPath[1] = WITHDRAWAL_KEY_PATH_2;
+                    // if (eth2WithdrawalIndex > INDEX_MAX) {
+                    //     PRINTF("eth2 plugin: withdrawal index is too big\n");
+                    //     PRINTF("Got %u which is higher than INDEX_MAX (%u)\n",
+                    //     eth2WithdrawalIndex, INDEX_MAX); context->valid = 0;
+                    // }
+                    // withdrawalKeyPath[2] = eth2WithdrawalIndex;
+                    // withdrawalKeyPath[3] = WITHDRAWAL_KEY_PATH_4;
+                    // getEth2PublicKey(withdrawalKeyPath, 4, tmp);
+                    // PRINTF("eth2 plugin computed withdrawal public key %.*H\n", 48, tmp);
+                    // cx_hash_sha256(tmp, 48, tmp, 32);
+                    // tmp[0] = 0;
+                    // if (memcmp(tmp, msg->parameter, 32) != 0) {
+                    //     PRINTF("eth2 plugin invalid withdrawal credentials\n");
+                    //     PRINTF("Got %.*H\n", 32, msg->parameter);
+                    //     PRINTF("Expected %.*H\n", 32, tmp);
+                    //     context->valid = 0;
+                    // }
                     msg->result = ETH_PLUGIN_RESULT_OK;
                 } break;
 
@@ -147,7 +194,8 @@ void eth2_plugin_call(int message, void *parameters) {
 
         case ETH_PLUGIN_QUERY_CONTRACT_UI: {
             ethQueryContractUI_t *msg = (ethQueryContractUI_t *) parameters;
-            // eth2_deposit_parameters_t *context = (eth2_deposit_parameters_t*)msg->pluginContext;
+            // eth2_deposit_parameters_t *context =
+            // (eth2_deposit_parameters_t*)msg->pluginContext;
             switch (msg->screenIndex) {
                 case 0: {
                     uint8_t decimals = WEI_TO_ETHER;

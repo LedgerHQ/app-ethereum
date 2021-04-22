@@ -6,7 +6,6 @@
 #include "shared_context.h"
 #include "ethUtils.h"
 #include "utils.h"
-#include "withdrawal_index.h"
 
 void getEth2PublicKey(uint32_t *bip32Path, uint8_t bip32PathLength, uint8_t *out);
 
@@ -23,6 +22,9 @@ void getEth2PublicKey(uint32_t *bip32Path, uint8_t bip32PathLength, uint8_t *out
 
 #define DEPOSIT_CONTRACT_ADDRESS "0x00000000219ab540356cbb839cbe05303d7705fa"
 #define DEPOSIT_CONTRACT_LENGTH  sizeof(DEPOSIT_CONTRACT_ADDRESS)
+
+// Highest index for withdrawal derivation path.
+#define INDEX_MAX 524288  // 2 ^ 19
 
 typedef struct eth2_deposit_parameters_t {
     uint8_t valid;

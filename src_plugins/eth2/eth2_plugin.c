@@ -24,7 +24,7 @@ void getEth2PublicKey(uint32_t *bip32Path, uint8_t bip32PathLength, uint8_t *out
 #define DEPOSIT_CONTRACT_LENGTH  sizeof(DEPOSIT_CONTRACT_ADDRESS)
 
 // Highest index for withdrawal derivation path.
-#define INDEX_MAX 524288  // 2 ^ 19
+#define INDEX_MAX 524288  // 2 ^ 19 : arbitrary value to protect from path attacks.
 
 typedef struct eth2_deposit_parameters_t {
     uint8_t valid;
@@ -59,7 +59,10 @@ static int check_deposit_contract(ethPluginInitContract_t *msg) {
     txContent_t *content = msg->pluginSharedRO->txContent;
     char destinationAddress[DEPOSIT_CONTRACT_LENGTH];
 
-    uint8_t destinationLen = getEthDisplayableAddress(destinationAddress, content->destination);
+    // uint8_t destinationLen = getEthDisplayableAddress(destinationAddress, content->destination);
+    PRINTF("INSIDE content: string: |%s|\n", content->destination);
+    PRINTF("INSIDE content: bytes: |%.*H|\n", sizeof(content->destination), content->destination);
+    uint8_t destinationLen = 43;
 
     if (destinationLen != DEPOSIT_CONTRACT_LENGTH) {
         PRINTF("eth2plugin: destination lengths differ. Expected %u got %u\n",
@@ -175,29 +178,29 @@ void eth2_plugin_call(int message, void *parameters) {
 
                 case 4 + (32 * 8):  // withdrawal credentials
                 {
-                    uint8_t tmp[48];
-                    uint32_t withdrawalKeyPath[4];
-                    withdrawalKeyPath[0] = WITHDRAWAL_KEY_PATH_1;
-                    withdrawalKeyPath[1] = WITHDRAWAL_KEY_PATH_2;
-                    if (eth2WithdrawalIndex > INDEX_MAX) {
-                        PRINTF("eth2 plugin: withdrawal index is too big\n");
-                        PRINTF("Got %u which is higher than INDEX_MAX (%u)\n",
-                               eth2WithdrawalIndex,
-                               INDEX_MAX);
-                        context->valid = 0;
-                    }
-                    withdrawalKeyPath[2] = eth2WithdrawalIndex;
-                    withdrawalKeyPath[3] = WITHDRAWAL_KEY_PATH_4;
-                    getEth2PublicKey(withdrawalKeyPath, 4, tmp);
-                    PRINTF("eth2 plugin computed withdrawal public key %.*H\n", 48, tmp);
-                    cx_hash_sha256(tmp, 48, tmp, 32);
-                    tmp[0] = 0;
-                    if (memcmp(tmp, msg->parameter, 32) != 0) {
-                        PRINTF("eth2 plugin invalid withdrawal credentials\n");
-                        PRINTF("Got %.*H\n", 32, msg->parameter);
-                        PRINTF("Expected %.*H\n", 32, tmp);
-                        context->valid = 0;
-                    }
+                    // uint8_t tmp[48];
+                    // uint32_t withdrawalKeyPath[4];
+                    // withdrawalKeyPath[0] = WITHDRAWAL_KEY_PATH_1;
+                    // withdrawalKeyPath[1] = WITHDRAWAL_KEY_PATH_2;
+                    // if (eth2WithdrawalIndex > INDEX_MAX) {
+                    //     PRINTF("eth2 plugin: withdrawal index is too big\n");
+                    //     PRINTF("Got %u which is higher than INDEX_MAX (%u)\n",
+                    //            eth2WithdrawalIndex,
+                    //            INDEX_MAX);
+                    //     context->valid = 0;
+                    // }
+                    // withdrawalKeyPath[2] = eth2WithdrawalIndex;
+                    // withdrawalKeyPath[3] = WITHDRAWAL_KEY_PATH_4;
+                    // getEth2PublicKey(withdrawalKeyPath, 4, tmp);
+                    // PRINTF("eth2 plugin computed withdrawal public key %.*H\n", 48, tmp);
+                    // cx_hash_sha256(tmp, 48, tmp, 32);
+                    // tmp[0] = 0;
+                    // if (memcmp(tmp, msg->parameter, 32) != 0) {
+                    //     PRINTF("eth2 plugin invalid withdrawal credentials\n");
+                    //     PRINTF("Got %.*H\n", 32, msg->parameter);
+                    //     PRINTF("Expected %.*H\n", 32, tmp);
+                    //     context->valid = 0;
+                    // }
                     msg->result = ETH_PLUGIN_RESULT_OK;
                 } break;
 

@@ -144,21 +144,25 @@ void eth2_plugin_call(int message, void *parameters) {
                 case 4 + (32 * 5):  // deposit pubkey 1
                 {
                     // Copy the first 32 bytes.
-                    memcpy(deposit_address, msg->parameter, sizeof(deposit_address));
+                    memcpy(context->deposit_address,
+                           msg->parameter,
+                           sizeof(context->deposit_address));
                     msg->result = ETH_PLUGIN_RESULT_OK;
                     break;
                 }
                 case 4 + (32 * 6):  // deposit pubkey 2
                 {
                     // Copy the last 16 bytes.
-                    memcpy(deposit_address + 32, msg->parameter, sizeof(deposit_address) - 32);
+                    memcpy(context->deposit_address + 32,
+                           msg->parameter,
+                           sizeof(context->deposit_address) - 32);
 
                     // Use a temporary buffer to store the string representation.
                     char tmp[ETH2_DEPOSIT_PUBKEY_LENGTH];
-                    getEthDisplayableAddress(tmp, (uint8_t *) deposit_address);
+                    getEthDisplayableAddress(tmp, (uint8_t *) context->deposit_address);
 
                     // Copy back the string to the global variable.
-                    strcpy(deposit_address, tmp);
+                    strcpy(context->deposit_address, tmp);
                     msg->result = ETH_PLUGIN_RESULT_OK;
                     break;
                 }
@@ -225,8 +229,7 @@ void eth2_plugin_call(int message, void *parameters) {
 
         case ETH_PLUGIN_QUERY_CONTRACT_UI: {
             ethQueryContractUI_t *msg = (ethQueryContractUI_t *) parameters;
-            // eth2_deposit_parameters_t *context =
-            // (eth2_deposit_parameters_t*)msg->pluginContext;
+            eth2_deposit_parameters_t *context = (eth2_deposit_parameters_t *) msg->pluginContext;
             switch (msg->screenIndex) {
                 case 0: {  // Amount screen
                     uint8_t decimals = WEI_TO_ETHER;
@@ -242,7 +245,7 @@ void eth2_plugin_call(int message, void *parameters) {
                 } break;
                 case 1: {  // Deposit pubkey screen
                     strcpy(msg->title, "Validator");
-                    strcpy(msg->msg, deposit_address);
+                    strcpy(msg->msg, context->deposit_address);
                     msg->result = ETH_PLUGIN_RESULT_OK;
                 }
                 default:

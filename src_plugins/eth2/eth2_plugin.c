@@ -24,10 +24,9 @@ void getEth2PublicKey(uint32_t *bip32Path, uint8_t bip32PathLength, uint8_t *out
 #define DEPOSIT_CONTRACT_ADDRESS "0x00000000219ab540356cbb839cbe05303d7705fa"
 #define DEPOSIT_CONTRACT_LENGTH  sizeof(DEPOSIT_CONTRACT_ADDRESS)
 
-char deposit_address[ETH2_DEPOSIT_PUBKEY_LENGTH];
-
 typedef struct eth2_deposit_parameters_t {
     uint8_t valid;
+    char deposit_address[ETH2_DEPOSIT_PUBKEY_LENGTH];
 } eth2_deposit_parameters_t;
 
 static void to_lowercase(char *str, unsigned char size) {

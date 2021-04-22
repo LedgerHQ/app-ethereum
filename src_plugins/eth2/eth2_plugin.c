@@ -24,6 +24,8 @@ void getEth2PublicKey(uint32_t *bip32Path, uint8_t bip32PathLength, uint8_t *out
 #define DEPOSIT_CONTRACT_ADDRESS "0x00000000219ab540356cbb839cbe05303d7705fa"
 #define DEPOSIT_CONTRACT_LENGTH  sizeof(DEPOSIT_CONTRACT_ADDRESS)
 
+char deposit_address[ETH2_DEPOSIT_PUBKEY_LENGTH];
+
 typedef struct eth2_deposit_parameters_t {
     uint8_t valid;
 } eth2_deposit_parameters_t;
@@ -36,21 +38,30 @@ static void to_lowercase(char *str, unsigned char size) {
     }
 }
 
+// Fills the `out` buffer with the lowercase string representation of the pubkey passed in as binary format by `in`.
+// Does not check the size, so expects `out` to be big enough to told the string representation.
+// Returns the length of string (counting the null terminating character).
+static int getEthDisplayableAddress(char *out, uint8_t *in) {
+    out[0] = '0';
+    out[1] = 'x';
+    getEthAddressStringFromBinary(in,
+                                  (uint8_t *) out + 2,
+                                  &global_sha3,
+                                  chainConfig);
+
+    uint8_t destinationLen = strlen(out) + 1; // Adding one to account for \0.
+
+    // Ensure address is in lowercase, to match DEPOSIT_CONTRACT_ADDRESS' case.
+    to_lowercase(out, destinationLen);
+
+    return (destinationLen);
+}
+
 static int check_deposit_contract(ethPluginInitContract_t *msg) {
     txContent_t *content = msg->pluginSharedRO->txContent;
     char destinationAddress[DEPOSIT_CONTRACT_LENGTH];
 
-    destinationAddress[0] = '0';
-    destinationAddress[1] = 'x';
-    getEthAddressStringFromBinary(content->destination,
-                                  (uint8_t *) destinationAddress + 2,
-                                  &global_sha3,
-                                  chainConfig);
-
-    uint8_t destinationLen = strlen(destinationAddress) + 1; // Adding one to account for \0.
-
-    // Ensure address is in lowercase, to match DEPOSIT_CONTRACT_ADDRESS' case.
-    to_lowercase(destinationAddress, destinationLen);
+    uint8_t destinationLen = getEthDisplayableAddress(destinationAddress, content->destination);
 
     if (destinationLen != DEPOSIT_CONTRACT_LENGTH) {
         PRINTF("eth2plugin: destination lengths differs. Expected %u got %u\n",
@@ -132,9 +143,28 @@ void eth2_plugin_call(int message, void *parameters) {
                     msg->result = ETH_PLUGIN_RESULT_OK;
                 } break;
 
+                case 4 + (32 * 5):  // deposit pubkey 1
+                    {
+                        // Copy the first 32 bytes.
+                        memcpy(deposit_address, msg->parameter, sizeof(deposit_address));
+                        msg->result = ETH_PLUGIN_RESULT_OK;
+                        break;
+                    }
+                case 4 + (32 * 6): // deposit pubkey 2
+                    {
+                        // Copy the last 16 bytes.
+                        memcpy(deposit_address + 32, msg->parameter, sizeof(deposit_address) - 32);
+
+                        // Use a temporary buffer to store the string representation.
+                        char tmp[ETH2_DEPOSIT_PUBKEY_LENGTH];
+                        getEthDisplayableAddress(tmp, (uint8_t *)deposit_address);
+
+                        // Copy back the string to the global variable.
+                        strcpy(deposit_address, tmp);
+                        msg->result = ETH_PLUGIN_RESULT_OK;
+                        break;
+                    }
                 case 4 + (32 * 3):  // deposit data root
-                case 4 + (32 * 5):  // deposit pubkey
-                case 4 + (32 * 6):
                 case 4 + (32 * 10):  // signature
                 case 4 + (32 * 11):
                 case 4 + (32 * 12):
@@ -178,7 +208,7 @@ void eth2_plugin_call(int message, void *parameters) {
             eth2_deposit_parameters_t *context = (eth2_deposit_parameters_t *) msg->pluginContext;
             PRINTF("eth2 plugin finalize\n");
             if (context->valid) {
-                msg->numScreens = 1;
+                msg->numScreens = 2;
                 msg->uiType = ETH_UI_TYPE_GENERIC;
                 msg->result = ETH_PLUGIN_RESULT_OK;
             } else {
@@ -198,7 +228,7 @@ void eth2_plugin_call(int message, void *parameters) {
             // eth2_deposit_parameters_t *context =
             // (eth2_deposit_parameters_t*)msg->pluginContext;
             switch (msg->screenIndex) {
-                case 0: {
+                case 0: { // Amount screen
                     uint8_t decimals = WEI_TO_ETHER;
                     uint8_t *ticker = (uint8_t *) PIC(chainConfig->coinName);
                     strcpy(msg->title, "Amount");
@@ -210,6 +240,11 @@ void eth2_plugin_call(int message, void *parameters) {
                                    100);
                     msg->result = ETH_PLUGIN_RESULT_OK;
                 } break;
+                case 1: { // Deposit pubkey screen
+                    strcpy(msg->title, "Validator");
+                    strcpy(msg->msg, deposit_address);
+                    msg->result = ETH_PLUGIN_RESULT_OK;
+                }
                 default:
                     break;
             }

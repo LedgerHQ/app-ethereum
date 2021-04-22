@@ -47,7 +47,8 @@ static int check_deposit_contract(ethPluginInitContract_t *msg) {
                                   &global_sha3,
                                   chainConfig);
 
-    uint8_t destinationLen = strlen(destinationAddress);
+    uint8_t destinationLen = strlen(destinationAddress) + 1; // Adding one to account for \0.
+
     // Ensure address is in lowercase, to match DEPOSIT_CONTRACT_ADDRESS' case.
     to_lowercase(destinationAddress, destinationLen);
 

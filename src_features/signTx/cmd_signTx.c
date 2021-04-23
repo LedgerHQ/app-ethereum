@@ -39,7 +39,7 @@ void handleSign(uint8_t p1,
             dataLength -= 4;
         }
         dataPresent = false;
-        dataContext.tokenContext.pluginAvailable = 0;
+        dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_UNAVAILABLE;
         initTx(&txContext, &global_sha3, &tmpContent.txContent, customProcessor, NULL);
     } else if (p1 != P1_MORE) {
         THROW(0x6B00);

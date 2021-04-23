@@ -22,7 +22,8 @@ void eth_plugin_prepare_query_contract_UI(ethQueryContractUI_t *queryContractUI,
                                           char *msg,
                                           uint32_t msgLength);
 
-int eth_plugin_perform_init(uint8_t *contractAddress, ethPluginInitContract_t *init);
+eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
+                                            ethPluginInitContract_t *init);
 // NULL for cached address, or base contract address
 int eth_plugin_call(uint8_t *contractAddress, int method, void *parameter);
 int compound_plugin_call(uint8_t *contractAddress, int method, void *parameter);

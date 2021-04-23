@@ -42,24 +42,29 @@ customStatus_e customProcessor(txContext_t *context) {
                 PRINTF("Missing function selector\n");
                 return CUSTOM_FAULT;
             }
-            dataContext.tokenContext.pluginAvailable = 0;
+            dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_UNAVAILABLE;
             // If contract debugging mode is activated, do not go through the plugin activation
             // as they wouldn't be displayed if the plugin consumes all data but fallbacks
             if (!N_storage.contractDetails) {
                 eth_plugin_prepare_init(&pluginInit,
                                         context->workBuffer,
                                         context->currentFieldLength);
-                dataContext.tokenContext.pluginAvailable =
+                dataContext.tokenContext.pluginStatus =
                     eth_plugin_perform_init(tmpContent.txContent.destination, &pluginInit);
             }
-            PRINTF("pluginAvailable %d\n", dataContext.tokenContext.pluginAvailable);
-            if (dataContext.tokenContext.pluginAvailable) {
-                dataContext.tokenContext.fieldIndex = 0;
-                dataContext.tokenContext.fieldOffset = 0;
-                copyTxData(context, NULL, 4);
-                if (context->currentFieldLength == 4) {
-                    return CUSTOM_NOT_HANDLED;
-                }
+            PRINTF("pluginstatus %d\n", dataContext.tokenContext.pluginStatus);
+            switch (dataContext.tokenContext.pluginStatus) {
+                case ETH_PLUGIN_RESULT_ERROR:
+                    return CUSTOM_FAULT;
+                case ETH_PLUGIN_RESULT_UNAVAILABLE:
+                    break;
+                default:
+                    dataContext.tokenContext.fieldIndex = 0;
+                    dataContext.tokenContext.fieldOffset = 0;
+                    copyTxData(context, NULL, 4);
+                    if (context->currentFieldLength == 4) {
+                        return CUSTOM_NOT_HANDLED;
+                    }
             }
         }
         uint32_t blockSize;
@@ -77,7 +82,8 @@ customStatus_e customProcessor(txContext_t *context) {
             dataContext.tokenContext.fieldOffset = 0;
             blockSize = 4;
         } else {
-            if (!N_storage.contractDetails && !dataContext.tokenContext.pluginAvailable) {
+            if (!N_storage.contractDetails &&
+                dataContext.tokenContext.pluginStatus != ETH_PLUGIN_RESULT_OK) {
                 return CUSTOM_NOT_HANDLED;
             }
             blockSize = 32 - (dataContext.tokenContext.fieldOffset % 32);
@@ -106,7 +112,7 @@ customStatus_e customProcessor(txContext_t *context) {
 
         if (copySize == blockSize) {
             // Can process or display
-            if (dataContext.tokenContext.pluginAvailable) {
+            if (dataContext.tokenContext.pluginStatus == ETH_PLUGIN_RESULT_OK) {
                 ethPluginProvideParameter_t pluginProvideParameter;
                 eth_plugin_prepare_provide_parameter(&pluginProvideParameter,
                                                      dataContext.tokenContext.data,
@@ -257,7 +263,7 @@ void finalizeParsing(bool direct) {
             32);
 
     // Finalize the plugin handling
-    if (dataContext.tokenContext.pluginAvailable) {
+    if (dataContext.tokenContext.pluginStatus == ETH_PLUGIN_RESULT_OK) {
         genericUI = false;
         eth_plugin_prepare_finalize(&pluginFinalize);
         if (!eth_plugin_call(NULL, ETH_PLUGIN_FINALIZE, (void *) &pluginFinalize)) {

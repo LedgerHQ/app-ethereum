@@ -56,10 +56,11 @@ void eth_plugin_prepare_query_contract_UI(ethQueryContractUI_t *queryContractUI,
     queryContractUI->msgLength = msgLength;
 }
 
-int eth_plugin_perform_init(uint8_t *contractAddress, ethPluginInitContract_t *init) {
+eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
+                                            ethPluginInitContract_t *init) {
     uint8_t i;
     const uint8_t **selectors;
-    dataContext.tokenContext.pluginAvailable = 0;
+    dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_UNAVAILABLE;
     // Handle hardcoded plugin list
     PRINTF("Selector %.*H\n", 4, init->selector);
     for (i = 0;; i++) {
@@ -74,7 +75,7 @@ int eth_plugin_perform_init(uint8_t *contractAddress, ethPluginInitContract_t *i
                 if ((INTERNAL_ETH_PLUGINS[i].availableCheck == NULL) ||
                     ((PluginAvailableCheck) PIC(INTERNAL_ETH_PLUGINS[i].availableCheck))()) {
                     strcpy(dataContext.tokenContext.pluginName, INTERNAL_ETH_PLUGINS[i].alias);
-                    dataContext.tokenContext.pluginAvailable = 1;
+                    dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
                     contractAddress = NULL;
                     break;
                 }
@@ -106,7 +107,7 @@ int eth_plugin_perform_init(uint8_t *contractAddress, ethPluginInitContract_t *i
         }
     }
     PRINTF("eth_plugin_init ok %s\n", dataContext.tokenContext.pluginName);
-    dataContext.tokenContext.pluginAvailable = 1;
+    dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
     return 1;
 }
 
@@ -122,7 +123,7 @@ int eth_plugin_call(uint8_t *contractAddress, int method, void *parameter) {
     pluginRO.txContent = &tmpContent.txContent;
 
     if (contractAddress == NULL) {
-        if (!dataContext.tokenContext.pluginAvailable) {
+        if (dataContext.tokenContext.pluginStatus == ETH_PLUGIN_RESULT_UNAVAILABLE) {
             PRINTF("Cached plugin call but no plugin available\n");
             return 0;
         }

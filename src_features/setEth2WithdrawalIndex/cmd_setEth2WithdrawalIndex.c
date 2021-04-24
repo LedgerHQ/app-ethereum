@@ -2,7 +2,6 @@
 
 #include "shared_context.h"
 #include "apdu_constants.h"
-#include "withdrawal_index.h"
 
 void handleSetEth2WithdrawalIndex(uint8_t p1,
                                   uint8_t p2,
@@ -17,6 +16,8 @@ void handleSetEth2WithdrawalIndex(uint8_t p1,
     if ((p1 != 0) || (p2 != 0)) {
         THROW(0x6B00);
     }
+
+    eth2WithdrawalIndex = U4BE(dataBuffer, 0);
 
     THROW(0x9000);
 }

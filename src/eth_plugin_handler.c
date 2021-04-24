@@ -123,7 +123,7 @@ int eth_plugin_call(uint8_t *contractAddress, int method, void *parameter) {
     pluginRO.txContent = &tmpContent.txContent;
 
     if (contractAddress == NULL) {
-        if (dataContext.tokenContext.pluginStatus == ETH_PLUGIN_RESULT_UNAVAILABLE) {
+        if (dataContext.tokenContext.pluginStatus < ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
             PRINTF("Cached plugin call but no plugin available\n");
             return 0;
         }

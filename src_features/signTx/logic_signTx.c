@@ -57,6 +57,7 @@ customStatus_e customProcessor(txContext_t *context) {
                 case ETH_PLUGIN_RESULT_ERROR:
                     return CUSTOM_FAULT;
                 case ETH_PLUGIN_RESULT_UNAVAILABLE:
+                case ETH_PLUGIN_RESULT_UNSUCCESSFUL:
                     break;
                 default:
                     dataContext.tokenContext.fieldIndex = 0;
@@ -83,7 +84,7 @@ customStatus_e customProcessor(txContext_t *context) {
             blockSize = 4;
         } else {
             if (!N_storage.contractDetails &&
-                dataContext.tokenContext.pluginStatus != ETH_PLUGIN_RESULT_OK) {
+                dataContext.tokenContext.pluginStatus <= ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
                 return CUSTOM_NOT_HANDLED;
             }
             blockSize = 32 - (dataContext.tokenContext.fieldOffset % 32);
@@ -112,7 +113,7 @@ customStatus_e customProcessor(txContext_t *context) {
 
         if (copySize == blockSize) {
             // Can process or display
-            if (dataContext.tokenContext.pluginStatus == ETH_PLUGIN_RESULT_OK) {
+            if (dataContext.tokenContext.pluginStatus >= ETH_PLUGIN_RESULT_SUCCESSFUL) {
                 ethPluginProvideParameter_t pluginProvideParameter;
                 eth_plugin_prepare_provide_parameter(&pluginProvideParameter,
                                                      dataContext.tokenContext.data,
@@ -263,7 +264,7 @@ void finalizeParsing(bool direct) {
             32);
 
     // Finalize the plugin handling
-    if (dataContext.tokenContext.pluginStatus == ETH_PLUGIN_RESULT_OK) {
+    if (dataContext.tokenContext.pluginStatus >= ETH_PLUGIN_RESULT_SUCCESSFUL) {
         genericUI = false;
         eth_plugin_prepare_finalize(&pluginFinalize);
         if (!eth_plugin_call(NULL, ETH_PLUGIN_FINALIZE, (void *) &pluginFinalize)) {

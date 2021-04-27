@@ -95,14 +95,13 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
         } else {
             PRINTF("Trying alias %s\n", dataContext.tokenContext.pluginName);
         }
-        eth_plugin_result_t status = eth_plugin_call(contractAddress, ETH_PLUGIN_INIT_CONTRACT, (void *) init);
+        eth_plugin_result_t status =
+            eth_plugin_call(contractAddress, ETH_PLUGIN_INIT_CONTRACT, (void *) init);
         if (status <= ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
             return status;
-        }
-        else if (status == ETH_PLUGIN_RESULT_OK_ALIAS) {
+        } else if (status == ETH_PLUGIN_RESULT_OK_ALIAS) {
             contractAddress = NULL;
-        }
-        else {
+        } else {
             break;
         }
     }

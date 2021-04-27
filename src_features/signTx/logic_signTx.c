@@ -55,14 +55,14 @@ customStatus_e customProcessor(txContext_t *context) {
             PRINTF("pluginstatus %d\n", dataContext.tokenContext.pluginStatus);
             eth_plugin_result_t status = dataContext.tokenContext.pluginStatus;
             if (status == ETH_PLUGIN_RESULT_ERROR) {
-                    return CUSTOM_FAULT;
+                return CUSTOM_FAULT;
             } else if (status >= ETH_PLUGIN_RESULT_SUCCESSFUL) {
-                    dataContext.tokenContext.fieldIndex = 0;
-                    dataContext.tokenContext.fieldOffset = 0;
-                    copyTxData(context, NULL, 4);
-                    if (context->currentFieldLength == 4) {
-                        return CUSTOM_NOT_HANDLED;
-                    }
+                dataContext.tokenContext.fieldIndex = 0;
+                dataContext.tokenContext.fieldOffset = 0;
+                copyTxData(context, NULL, 4);
+                if (context->currentFieldLength == 4) {
+                    return CUSTOM_NOT_HANDLED;
+                }
             }
         }
         uint32_t blockSize;

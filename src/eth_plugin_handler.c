@@ -95,23 +95,23 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
         } else {
             PRINTF("Trying alias %s\n", dataContext.tokenContext.pluginName);
         }
-        int status = eth_plugin_call(contractAddress, ETH_PLUGIN_INIT_CONTRACT, (void *) init);
-        if (!status) {
-            return 0;
+        eth_plugin_result_t status = eth_plugin_call(contractAddress, ETH_PLUGIN_INIT_CONTRACT, (void *) init);
+        if (status <= ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
+            return status;
         }
-        if (status == ETH_PLUGIN_RESULT_OK) {
-            break;
-        }
-        if (status == ETH_PLUGIN_RESULT_OK_ALIAS) {
+        else if (status == ETH_PLUGIN_RESULT_OK_ALIAS) {
             contractAddress = NULL;
+        }
+        else {
+            break;
         }
     }
     PRINTF("eth_plugin_init ok %s\n", dataContext.tokenContext.pluginName);
     dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
-    return 1;
+    return ETH_PLUGIN_RESULT_OK;
 }
 
-int eth_plugin_call(uint8_t *contractAddress, int method, void *parameter) {
+eth_plugin_result_t eth_plugin_call(uint8_t *contractAddress, int method, void *parameter) {
     ethPluginSharedRW_t pluginRW;
     ethPluginSharedRO_t pluginRO;
     char tmp[PLUGIN_ID_LENGTH];
@@ -125,7 +125,7 @@ int eth_plugin_call(uint8_t *contractAddress, int method, void *parameter) {
     if (contractAddress == NULL) {
         if (dataContext.tokenContext.pluginStatus <= ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
             PRINTF("Cached plugin call but no plugin available\n");
-            return 0;
+            return dataContext.tokenContext.pluginStatus;
         }
         alias = dataContext.tokenContext.pluginName;
     } else {
@@ -177,7 +177,7 @@ int eth_plugin_call(uint8_t *contractAddress, int method, void *parameter) {
             break;
         default:
             PRINTF("Unknown plugin method %d\n", method);
-            return 0;
+            return ETH_PLUGIN_RESULT_UNAVAILABLE;
     }
 
     // Perform the call
@@ -223,8 +223,10 @@ int eth_plugin_call(uint8_t *contractAddress, int method, void *parameter) {
                     break;
                 case ETH_PLUGIN_RESULT_OK_ALIAS:
                     break;
+                case ETH_PLUGIN_RESULT_ERROR:
+                    return ETH_PLUGIN_RESULT_ERROR;
                 default:
-                    return 0;
+                    return ETH_PLUGIN_RESULT_UNAVAILABLE;
             }
             break;
         case ETH_PLUGIN_PROVIDE_PARAMETER:
@@ -232,8 +234,10 @@ int eth_plugin_call(uint8_t *contractAddress, int method, void *parameter) {
                 case ETH_PLUGIN_RESULT_OK:
                 case ETH_PLUGIN_RESULT_FALLBACK:
                     break;
+                case ETH_PLUGIN_RESULT_ERROR:
+                    return ETH_PLUGIN_RESULT_ERROR;
                 default:
-                    return 0;
+                    return ETH_PLUGIN_RESULT_UNAVAILABLE;
             }
             break;
         case ETH_PLUGIN_FINALIZE:
@@ -241,8 +245,10 @@ int eth_plugin_call(uint8_t *contractAddress, int method, void *parameter) {
                 case ETH_PLUGIN_RESULT_OK:
                 case ETH_PLUGIN_RESULT_FALLBACK:
                     break;
+                case ETH_PLUGIN_RESULT_ERROR:
+                    return ETH_PLUGIN_RESULT_ERROR;
                 default:
-                    return 0;
+                    return ETH_PLUGIN_RESULT_UNAVAILABLE;
             }
             break;
         case ETH_PLUGIN_PROVIDE_TOKEN:
@@ -250,23 +256,25 @@ int eth_plugin_call(uint8_t *contractAddress, int method, void *parameter) {
                 case ETH_PLUGIN_RESULT_OK:
                 case ETH_PLUGIN_RESULT_FALLBACK:
                     break;
+                case ETH_PLUGIN_RESULT_ERROR:
+                    return ETH_PLUGIN_RESULT_ERROR;
                 default:
-                    return 0;
+                    return ETH_PLUGIN_RESULT_UNAVAILABLE;
             }
             break;
         case ETH_PLUGIN_QUERY_CONTRACT_ID:
-            if (((ethQueryContractID_t *) parameter)->result != ETH_PLUGIN_RESULT_OK) {
-                return 0;
+            if (((ethQueryContractID_t *) parameter)->result <= ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
+                return ETH_PLUGIN_RESULT_UNAVAILABLE;
             }
             break;
         case ETH_PLUGIN_QUERY_CONTRACT_UI:
-            if (((ethQueryContractUI_t *) parameter)->result != ETH_PLUGIN_RESULT_OK) {
-                return 0;
+            if (((ethQueryContractUI_t *) parameter)->result <= ETH_PLUGIN_RESULT_OK) {
+                return ETH_PLUGIN_RESULT_UNAVAILABLE;
             }
             break;
         default:
-            return 0;
+            return ETH_PLUGIN_RESULT_UNAVAILABLE;
     }
 
-    return 1;
+    return ETH_PLUGIN_RESULT_OK;
 }

@@ -53,13 +53,10 @@ customStatus_e customProcessor(txContext_t *context) {
                     eth_plugin_perform_init(tmpContent.txContent.destination, &pluginInit);
             }
             PRINTF("pluginstatus %d\n", dataContext.tokenContext.pluginStatus);
-            switch (dataContext.tokenContext.pluginStatus) {
-                case ETH_PLUGIN_RESULT_ERROR:
+            eth_plugin_result_t status = dataContext.tokenContext.pluginStatus;
+            if (status == ETH_PLUGIN_RESULT_ERROR) {
                     return CUSTOM_FAULT;
-                case ETH_PLUGIN_RESULT_UNAVAILABLE:
-                case ETH_PLUGIN_RESULT_UNSUCCESSFUL:
-                    break;
-                default:
+            } else if (status >= ETH_PLUGIN_RESULT_SUCCESSFUL) {
                     dataContext.tokenContext.fieldIndex = 0;
                     dataContext.tokenContext.fieldOffset = 0;
                     copyTxData(context, NULL, 4);

@@ -24,7 +24,7 @@ void getEth2PublicKey(uint32_t *bip32Path, uint8_t bip32PathLength, uint8_t *out
 #define DEPOSIT_CONTRACT_LENGTH  sizeof(DEPOSIT_CONTRACT_ADDRESS)
 
 // Highest index for withdrawal derivation path.
-#define INDEX_MAX 524288  // 2 ^ 19 : arbitrary value to protect from path attacks.
+#define INDEX_MAX 65536  // 2 ^ 16 : arbitrary value to protect from path attacks.
 
 typedef struct eth2_deposit_parameters_t {
     uint8_t valid;

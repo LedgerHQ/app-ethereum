@@ -58,7 +58,7 @@ typedef struct tokenContext_t {
     uint8_t pluginUiCurrentItem;
     uint8_t pluginUiState;
 
-    uint8_t pluginContext[3 * 32];
+    uint8_t pluginContext[5 * 32];
 
 #ifdef HAVE_STARKWARE
     uint8_t quantum[32];

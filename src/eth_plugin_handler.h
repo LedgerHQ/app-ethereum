@@ -27,6 +27,8 @@ int eth_plugin_perform_init(uint8_t *contractAddress, ethPluginInitContract_t *i
 int eth_plugin_call(uint8_t *contractAddress, int method, void *parameter);
 int compound_plugin_call(uint8_t *contractAddress, int method, void *parameter);
 
+// int paraswap_plugin_call(uint8_t *contractAddress, int method, void *parameter);
+
 void plugin_ui_start(void);
 
 #endif

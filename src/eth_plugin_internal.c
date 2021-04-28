@@ -6,6 +6,7 @@ bool erc721_plugin_available_check(void);
 void erc20_plugin_call(int message, void* parameters);
 void erc721_plugin_call(int message, void* parameters);
 void compound_plugin_call(int message, void* parameters);
+void paraswap_plugin_call(int message, void* parameters);
 #ifdef HAVE_STARKWARE
 void starkware_plugin_call(int message, void* parameters);
 #endif
@@ -36,6 +37,11 @@ const uint8_t* const COMPOUND_SELECTORS[NUM_COMPOUND_SELECTORS] = {
     COMPOUND_REDEEM_SELECTOR,
     COMPOUND_MINT_SELECTOR,
     CETH_MINT_SELECTOR};
+
+static const uint8_t const PARASWAP_SWAP_FOR_UNISWAP_SELECTOR[SELECTOR_SIZE] = {0x58, 0xb9, 0xd1, 0x79};
+
+const uint8_t* const PARASWAP_SELECTORS[NUM_PARASWAP_SELECTORS] = {
+    PARASWAP_SWAP_FOR_UNISWAP_SELECTOR};
 
 #ifdef HAVE_ETH2
 
@@ -125,6 +131,12 @@ const internalEthPlugin_t const INTERNAL_ETH_PLUGINS[] = {
      NUM_COMPOUND_SELECTORS,
      "-cmpd",
      compound_plugin_call},
+
+    {NULL,
+     (const uint8_t**) PARASWAP_SELECTORS,
+     NUM_PARASWAP_SELECTORS,
+     "-paraswap",
+     paraswap_plugin_call},
 
 #ifdef HAVE_ETH2
 

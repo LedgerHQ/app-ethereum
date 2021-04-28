@@ -10,7 +10,7 @@ typedef struct internalEthPlugin_t {
     PluginAvailableCheck availableCheck;
     const uint8_t** selectors;
     uint8_t num_selectors;
-    char alias[7];
+    char alias[10];
     PluginCall impl;
 } internalEthPlugin_t;
 
@@ -22,6 +22,9 @@ extern const uint8_t* const ERC721_SELECTORS[NUM_ERC721_SELECTORS];
 
 #define NUM_COMPOUND_SELECTORS 4
 extern const uint8_t* const COMPOUND_SELECTORS[NUM_COMPOUND_SELECTORS];
+
+#define NUM_PARASWAP_SELECTORS 1
+extern const uint8_t* const PARASWAP_SELECTORS[NUM_PARASWAP_SELECTORS];
 
 #ifdef HAVE_ETH2
 

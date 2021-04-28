@@ -268,13 +268,23 @@ void finalizeParsing(bool direct) {
             }
         }
         // Lookup tokens if requested
-        if (pluginFinalize.tokenLookup1 != NULL) {
+        if (pluginFinalize.tokenLookup1) {
+            PRINTF("LOOKUP1: %.*H\n", 20, pluginFinalize.tokenLookup1);
+        }
+        if (pluginFinalize.tokenLookup2) {
+            PRINTF("LOOKUP2: %.*H\n", 20, pluginFinalize.tokenLookup2);
+        }
+        if ((pluginFinalize.tokenLookup1 != NULL) || (pluginFinalize.tokenLookup2 != NULL))  {
             ethPluginProvideToken_t pluginProvideToken;
-            token1 = getKnownToken(pluginFinalize.tokenLookup1);
+            if (pluginFinalize.tokenLookup1 != NULL) {
+                token1 = getKnownToken(pluginFinalize.tokenLookup1);
+            }
             if (pluginFinalize.tokenLookup2 != NULL) {
                 token2 = getKnownToken(pluginFinalize.tokenLookup2);
+                PRINTF("RES: %p\n", token2);
             }
             eth_plugin_prepare_provide_token(&pluginProvideToken, token1, token2);
+            PRINTF("BEFORE PROVIDE\n");
             if (!eth_plugin_call(NULL, ETH_PLUGIN_PROVIDE_TOKEN, (void *) &pluginProvideToken)) {
                 PRINTF("Plugin provide token call failed\n");
                 reportFinalizeError(direct);
@@ -282,10 +292,12 @@ void finalizeParsing(bool direct) {
                     return;
                 }
             }
+            PRINTF("AFTER PROVIDE\n");
             pluginFinalize.result = pluginProvideToken.result;
         }
         if (pluginFinalize.result != ETH_PLUGIN_RESULT_FALLBACK) {
             // Handle the right interface
+            PRINTF("SWITCH\n");
             switch (pluginFinalize.uiType) {
                 case ETH_UI_TYPE_GENERIC:
                     dataPresent = false;

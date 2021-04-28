@@ -389,8 +389,9 @@ void finalizeParsing(bool direct) {
     if (genericUI) {
         if (txContext.txType == LEGACY) {
             uint32_t id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
+            PRINTF("Chain ID: %u\n", id);
             uint8_t res =
-                snprintf(strings.common.chainID, sizeof(strings.common.chainID), "%u", id);
+                snprintf(strings.common.chainID, sizeof(strings.common.chainID), "%d", id);
             if (res >= sizeof(strings.common.chainID)) {
                 // If the return value is higher or equal to the size passed in as parameter, then
                 // the output was truncated. Return the appropriate error code.

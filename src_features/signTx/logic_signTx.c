@@ -389,7 +389,13 @@ void finalizeParsing(bool direct) {
     if (genericUI) {
         if (txContext.txType == LEGACY) {
             uint32_t id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
-            u32_to_str((char *) strings.common.chainID, sizeof(strings.common.chainID), id);
+            uint8_t res =
+                snprintf(strings.common.chainID, sizeof(strings.common.chainID), "%u", id);
+            if (res >= sizeof(strings.common.chainID)) {
+                // If the return value is higher or equal to the size passed in as parameter, then
+                // the output was truncated. Return the appropriate error code.
+                THROW(0x6502);
+            }
         } else if (txContext.txType == EIP2930) {
             uint256_t chainID;
             convertUint256BE(tmpContent.txContent.chainID.value,

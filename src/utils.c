@@ -72,45 +72,6 @@ uint32_t u32_from_BE(uint8_t *in, uint8_t size, bool strict) {
     return res;
 }
 
-// Converts a uint32_t to a string.
-void u32_to_str(char *dest, uint32_t in, uint8_t dest_size) {
-    uint8_t i = 0;
-
-    // Get the first digit (in case it's 0).
-    dest[i] = in % 10 + '0';
-    in /= 10;
-    i++;
-
-    // Get every digit.
-    while (in != 0) {
-        if (i >= dest_size) {
-            THROW(6502);
-        }
-        dest[i] = in % 10 + '0';
-        in /= 10;
-        i++;
-    }
-
-    // Null terminate the string.
-    dest[i] = '\0';
-    i--;
-
-    // Reverse the string
-    uint8_t end = i;
-    char tmp;
-    i = 0;
-    while (i < end) {
-        // Swap the first and last elements.
-        tmp = dest[i];
-        dest[i] = dest[end];
-        dest[end] = tmp;
-
-        // Decrease the interval size.
-        i++;
-        end--;
-    }
-}
-
 void amountToString(uint8_t *amount,
                     uint8_t amount_size,
                     uint8_t decimals,

@@ -1,5 +1,10 @@
 #include "paraswap_plugin.h"
 
+const uint8_t PARASWAP_ETHEREUM_ADDRESS[] = {0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee,
+                                             0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee,
+                                             0xee, 0xee, 0xee, 0xee, 0xee, 0xee};
+
+
 static void prepend_ticker(char *dest, uint8_t destsize, char *ticker) {
     uint8_t ticker_len = strlen(ticker);  // check 0
 
@@ -38,87 +43,6 @@ static void handle_init_contract(void *parameters) {
     PRINTF("PLUGIN INIT ok\n");
 }
 
-static void handle_provide_parameter(void *parameters) {
-    ethPluginProvideParameter_t *msg = (ethPluginProvideParameter_t *) parameters;
-    paraswap_parameters_t *context = (paraswap_parameters_t *) msg->pluginContext;
-    PRINTF("eth2 plugin provide parameter %d %.*H\n", msg->parameterOffset, 32, msg->parameter);
-    msg->result = ETH_PLUGIN_RESULT_OK;
-    switch (msg->parameterOffset) {
-        case 4 + (32 * 0):  // amountIn
-        {
-            PRINTF("UNKONW3\n\n");
-            ;
-            memset(context->amount_sent, 0, sizeof(context->amount_sent));
-            uint8_t i = 0;
-            while (msg->parameter[i] == 0) {
-                i++;
-                if (i >= 32) {
-                    PRINTF("SCOTT GET REKT\n");
-                }
-            }
-            amountToString(&msg->parameter[i],
-                           32 - i,
-                           0,
-                           "",
-                           (char *) context->amount_sent,
-                           sizeof(context->amount_sent));
-            break;
-        }
-        case 4 + (32 * 1):  // amountOutMin
-        {
-            PRINTF("UNKONW2\n\n");
-            memset(context->amount_received, 0, sizeof(context->amount_received));
-            uint8_t i = 0;
-            while (msg->parameter[i] == 0) {
-                i++;
-                if (i >= 32) {
-                    PRINTF("SCOTT GET REKT\n");
-                }
-            }
-            amountToString(&msg->parameter[i],
-                           32 - i,
-                           0,
-                           "",
-                           (char *) context->amount_received,
-                           sizeof(context->amount_received));
-            PRINTF("AMOUNT OUT MIN\n\n");
-            ;
-            break;
-        }
-        case 4 + (32 * 2):  // 0x00..080 unknown
-        case 4 + (32 * 3):  // 0x00..001 unknown
-            break;
-        case 4 + (32 * 4):  // number of elements in the path
-        {
-            context->num_paths = msg->parameter[31];  // degueu should be size - 1
-            PRINTF("NUM PATHS: %d\n", context->num_paths);
-            break;
-        }
-        case 4 + (32 * 5):  // From token
-        {
-            memset(context->contract_address_sent, 0, sizeof(context->contract_address_sent));
-            memcpy(context->contract_address_sent,
-                   &msg->parameter[32 - 20],  // 30 - 20 ?
-                   sizeof(context->contract_address_sent));
-            PRINTF("ADDRESS SENT: %.*H\n", 20, context->contract_address_sent);
-            break;
-        }
-        default:
-            PRINTF("Continuing\n");
-            if (msg->parameterOffset == 4 + (32 * (5 + context->num_paths - 1)))  // To token
-            {
-                memset(context->contract_address_received,
-                       0,
-                       sizeof(context->contract_address_received));
-                memcpy(context->contract_address_received,
-                       &msg->parameter[32 - 20],  // 32 - 20 ?
-                       sizeof(context->contract_address_received));
-                PRINTF("ADDRESS RECIEVED: %.*H\n", 20, context->contract_address_received);
-            }
-            break;
-    }
-}
-
 static void handle_finalize(void *parameters) {
     ethPluginFinalize_t *msg = (ethPluginFinalize_t *) parameters;
     paraswap_parameters_t *context = (paraswap_parameters_t *) msg->pluginContext;
@@ -143,9 +67,10 @@ static void handle_finalize(void *parameters) {
 static void handle_provide_token(void *parameters) {
     ethPluginProvideToken_t *msg = (ethPluginProvideToken_t *) parameters;
     paraswap_parameters_t *context = (paraswap_parameters_t *) msg->pluginContext;
-    PRINTF("PARASWAP plugin provide token: %p, %p\n", msg->token1, msg->token2);
+    PRINTF("PARASWAP plugin provide token: 0x%p, 0x%p\n", msg->token1, msg->token2);
     switch (context->selectorIndex) {
-        case PARASWAP_SWAP_ON_UNI: {
+        case SWAP_ON_UNI_FORK:
+        case SWAP_ON_UNI: {
             if (msg->token1 != NULL) {
                 context->decimals_sent = msg->token1->decimals;
                 strncpy(context->ticker_sent,
@@ -172,6 +97,7 @@ static void handle_provide_token(void *parameters) {
             break;
         }
         default:
+            PRINTF("NOT PROVIDING TOKEN FOR SWAPONUNI\n");
             msg->result = ETH_PLUGIN_RESULT_FALLBACK;
             break;
     }
@@ -242,5 +168,3 @@ void paraswap_plugin_call(int message, void *parameters) {
             PRINTF("Unhandled message %d\n", message);
     }
 }
-
-//#endif

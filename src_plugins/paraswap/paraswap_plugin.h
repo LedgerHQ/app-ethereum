@@ -15,14 +15,14 @@
 #define ETH2_WITHDRAWAL_CREDENTIALS_LENGTH 0x20
 #define ETH2_SIGNATURE_LENGTH              0x60
 
-const uint8_t ETHEREUM_ADDRESS[] = {0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee,
-                                    0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee};
+extern const uint8_t PARASWAP_ETHEREUM_ADDRESS[20];
 
 // Returns 1 if corresponding address is the Paraswap address for Ethereum (0xeeeee...).
-#define ADDRESS_IS_ETH(_addr) (!memcmp(_addr, ETHEREUM_ADDRESS, 20))
+#define ADDRESS_IS_ETH(_addr) (!memcmp(_addr, PARASWAP_ETHEREUM_ADDRESS, 20))
 
 typedef enum {
-    PARASWAP_SWAP_ON_UNI = 0,
+    SWAP_ON_UNI,
+    SWAP_ON_UNI_FORK,
 } paraswapSelector_t;
 
 typedef struct paraswap_parameters_t {
@@ -40,3 +40,5 @@ typedef struct paraswap_parameters_t {
     uint8_t selectorIndex;
     uint8_t num_paths;
 } paraswap_parameters_t;
+
+void handle_provide_parameter(void *parameters);

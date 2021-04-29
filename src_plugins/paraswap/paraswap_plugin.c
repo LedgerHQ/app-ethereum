@@ -4,7 +4,6 @@ const uint8_t PARASWAP_ETHEREUM_ADDRESS[] = {0xee, 0xee, 0xee, 0xee, 0xee, 0xee,
                                              0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee,
                                              0xee, 0xee, 0xee, 0xee, 0xee, 0xee};
 
-
 static void prepend_ticker(char *dest, uint8_t destsize, char *ticker) {
     uint8_t ticker_len = strlen(ticker);  // check 0
 
@@ -32,6 +31,7 @@ static void handle_init_contract(void *parameters) {
     paraswap_parameters_t *context = (paraswap_parameters_t *) msg->pluginContext;
     context->valid = 1;
     context->num_paths = 0;  // multi-apdu proof ?
+
     size_t i;
     for (i = 0; i < NUM_PARASWAP_SELECTORS; i++) {
         if (memcmp((uint8_t *) PIC(PARASWAP_SELECTORS[i]), msg->selector, SELECTOR_SIZE) == 0) {
@@ -39,8 +39,24 @@ static void handle_init_contract(void *parameters) {
             break;
         }
     }
+
+    switch (context->selectorIndex) {
+        case BUY_ON_UNI:
+        case SWAP_ON_UNI:
+            context->skip = 0;
+            context->current_param = AMOUNT_IN;
+            break;
+        case BUY_ON_UNI_FORK:
+        case SWAP_ON_UNI_FORK:
+            context->skip = 2;  // Skip the first two parameters.
+            context->current_param = AMOUNT_IN;
+        default:
+            PRINTF("Missing selectorIndex\n");
+            msg->result = ETH_PLUGIN_RESULT_ERROR;
+            return;
+    }
+
     msg->result = ETH_PLUGIN_RESULT_OK;
-    PRINTF("PLUGIN INIT ok\n");
 }
 
 static void handle_finalize(void *parameters) {
@@ -50,11 +66,9 @@ static void handle_finalize(void *parameters) {
     if (context->valid) {
         msg->numScreens = 2;
         if (ADDRESS_IS_ETH(context->contract_address_sent) == 0) {
-            PRINTF("Look up sent\n");
             msg->tokenLookup1 = context->contract_address_sent;
         }
         if (ADDRESS_IS_ETH(context->contract_address_received) == 0) {
-            PRINTF("Look up received\n");
             msg->tokenLookup2 = context->contract_address_received;
         }
         msg->uiType = ETH_UI_TYPE_GENERIC;
@@ -105,9 +119,21 @@ static void handle_provide_token(void *parameters) {
 
 static void handle_query_contract_id(void *parameters) {
     ethQueryContractID_t *msg = (ethQueryContractID_t *) parameters;
+    paraswap_parameters_t *context = (paraswap_parameters_t *) msg->pluginContext;
+
     strcpy(msg->name, "Paraswap");
     msg->nameLength = sizeof("Paraswap");  // scott
-    strcpy(msg->version, "Swap");
+    switch (context->selectorIndex) {
+        case SWAP_ON_UNI_FORK:
+        case SWAP_ON_UNI:
+            strcpy(msg->version, "Swap");
+            break;
+        case BUY_ON_UNI_FORK:
+        case BUY_ON_UNI:
+            strcpy(msg->version, "Buy");
+            break;
+    }
+
     msg->versionLength = strlen(msg->version) + 1;
     msg->result = ETH_PLUGIN_RESULT_OK;
 }
@@ -115,14 +141,16 @@ static void handle_query_contract_id(void *parameters) {
 static void handle_query_contract_ui(void *parameters) {
     ethQueryContractUI_t *msg = (ethQueryContractUI_t *) parameters;
     paraswap_parameters_t *context = (paraswap_parameters_t *) msg->pluginContext;
+    memset(msg->title, 0, 100); // 100 ? degueu
+    memset(msg->msg, 0, 40); // 40 ? deugue
     switch (msg->screenIndex) {
         case 0: {
             strcpy(msg->title, "Send");
             adjustDecimals((char *) context->amount_sent,
                            strlen((char *) context->amount_sent),
                            msg->msg,
-                           40,
-                           context->decimals_sent);  // get good size for msg->msg
+                           40,  // Len scott ?
+                           context->decimals_sent);
             prepend_ticker(msg->msg, 40, context->ticker_sent);
             msg->result = ETH_PLUGIN_RESULT_OK;
         } break;
@@ -131,8 +159,8 @@ static void handle_query_contract_ui(void *parameters) {
             adjustDecimals((char *) context->amount_received,
                            strlen((char *) context->amount_received),
                            msg->msg,
-                           40,
-                           6);  // get good size for msg->msg
+                           40,  // len scott ?
+                           context->decimals_received);
             prepend_ticker(msg->msg, 40, context->ticker_received);
             msg->result = ETH_PLUGIN_RESULT_OK;
             break;

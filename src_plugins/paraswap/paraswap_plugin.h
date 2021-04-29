@@ -8,30 +8,30 @@
 #include "utils.h"
 #include "withdrawal_index.h"
 
-#define ETH2_DEPOSIT_PUBKEY_OFFSET         0x80
-#define ETH2_WITHDRAWAL_CREDENTIALS_OFFSET 0xE0
-#define ETH2_SIGNATURE_OFFSET              0x120
-#define ETH2_DEPOSIT_PUBKEY_LENGTH         0x30
-#define ETH2_WITHDRAWAL_CREDENTIALS_LENGTH 0x20
-#define ETH2_SIGNATURE_LENGTH              0x60
+#define ADDRESS_LENGTH 20
+#define PARAMETER_LENGTH 32
+#define BIGINT_LENGTH 32
 
-extern const uint8_t PARASWAP_ETHEREUM_ADDRESS[20];
+extern const uint8_t PARASWAP_ETHEREUM_ADDRESS[ADDRESS_LENGTH];
 
 // Returns 1 if corresponding address is the Paraswap address for Ethereum (0xeeeee...).
-#define ADDRESS_IS_ETH(_addr) (!memcmp(_addr, PARASWAP_ETHEREUM_ADDRESS, 20))
+#define ADDRESS_IS_ETH(_addr) (!memcmp(_addr, PARASWAP_ETHEREUM_ADDRESS, ADDRESS_LENGTH))
 
 typedef enum {
     SWAP_ON_UNI,
     SWAP_ON_UNI_FORK,
+
+    BUY_ON_UNI,
+    BUY_ON_UNI_FORK,
 } paraswapSelector_t;
 
 typedef struct paraswap_parameters_t {
-    uint8_t amount_sent[32];            // corresponds to amountIn
-    uint8_t contract_address_sent[20];  // use constant
+    uint8_t amount_sent[BIGINT_LENGTH];            // corresponds to amountIn
+    uint8_t contract_address_sent[ADDRESS_LENGTH];  // use constant
     char ticker_sent[MAX_TICKER_LEN];
 
-    uint8_t amount_received[32];            // corresponds to amountOutMin
-    uint8_t contract_address_received[20];  // use constant
+    uint8_t amount_received[BIGINT_LENGTH];            // corresponds to amountOutMin
+    uint8_t contract_address_received[ADDRESS_LENGTH];  // use constant
     char ticker_received[MAX_TICKER_LEN];
 
     uint8_t valid;

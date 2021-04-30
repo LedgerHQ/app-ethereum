@@ -13,7 +13,7 @@ void handleStarkwareUnsafeSign(uint8_t p1,
                                unsigned int *flags,
                                unsigned int *tx) {
     uint32_t i;
-    uint8_t privateKeyData[32];
+    uint8_t privateKeyData[INT256_LENGTH];
     cx_ecfp_public_key_t publicKey;
     cx_ecfp_private_key_t privateKey;
     uint8_t bip32PathLength = *(dataBuffer);

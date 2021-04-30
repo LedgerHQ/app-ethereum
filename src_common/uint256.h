@@ -24,6 +24,7 @@
 #include <stdbool.h>
 #include "os.h"
 #include "cx.h"
+#include "ethUstream.h"
 
 typedef struct uint128_t {
     uint64_t elements[2];

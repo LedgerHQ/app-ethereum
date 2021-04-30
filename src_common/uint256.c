@@ -347,7 +347,7 @@ void read_u64_be(uint8_t *in, uint64_t *out) {
 }
 
 void mul256(uint256_t *number1, uint256_t *number2, uint256_t *target) {
-    uint8_t num1[32], num2[32], result[64];
+    uint8_t num1[INT256_LENGTH], num2[INT256_LENGTH], result[INT256_LENGTH * 2];
     memset(&result, 0, sizeof(result));
     for (uint8_t i = 0; i < 4; i++) {
         write_u64_be(num1 + i * sizeof(uint64_t), number1->elements[i / 2].elements[i % 2]);

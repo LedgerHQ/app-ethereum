@@ -12,7 +12,7 @@ typedef enum { TARGET_ADDRESS = 0, TARGET_CONTRACT, TARGET_COMPOUND } targetType
 typedef struct erc20_parameters_t {
     uint8_t selectorIndex;
     uint8_t destinationAddress[21];
-    uint8_t amount[32];
+    uint8_t amount[INT256_LENGTH];
     uint8_t ticker_1[MAX_TICKER_LEN];
     uint8_t ticker_2[MAX_TICKER_LEN];
     uint8_t decimals;

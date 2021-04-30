@@ -35,9 +35,9 @@ typedef enum customStatus_e {
 
 typedef customStatus_e (*ustreamProcess_t)(struct txContext_t *context);
 
-#define TX_FLAG_TYPE 0x01
+#define TX_FLAG_TYPE   0x01
 #define ADDRESS_LENGTH 20
-#define INT256_LENGTH 32
+#define INT256_LENGTH  32
 
 typedef enum rlpTxField_e {
     TX_RLP_NONE = 0,

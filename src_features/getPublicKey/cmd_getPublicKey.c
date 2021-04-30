@@ -11,7 +11,7 @@ void handleGetPublicKey(uint8_t p1,
                         unsigned int *flags,
                         unsigned int *tx) {
     UNUSED(dataLength);
-    uint8_t privateKeyData[32];
+    uint8_t privateKeyData[INT256_LENGTH];
     uint32_t bip32Path[MAX_BIP32_PATH];
     uint32_t i;
     uint8_t bip32PathLength = *(dataBuffer++);

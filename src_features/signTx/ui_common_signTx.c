@@ -3,7 +3,7 @@
 #include "ui_callbacks.h"
 
 unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
-    uint8_t privateKeyData[32];
+    uint8_t privateKeyData[INT256_LENGTH];
     uint8_t signature[100];
     uint8_t signatureLength;
     cx_ecfp_private_key_t privateKey;

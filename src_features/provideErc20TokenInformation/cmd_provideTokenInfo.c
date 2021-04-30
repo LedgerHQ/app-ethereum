@@ -26,7 +26,7 @@ void handleProvideErc20TokenInformation(uint8_t p1,
     uint32_t offset = 0;
     uint8_t tickerLength, contractNameLength;
     uint32_t chainId;
-    uint8_t hash[32];
+    uint8_t hash[INT256_LENGTH];
     cx_sha256_t sha256;
     cx_ecfp_public_key_t tokenKey;
 
@@ -118,7 +118,7 @@ void handleProvideErc20TokenInformation(uint8_t p1,
     uint32_t offset = 0;
     uint8_t tickerLength;
     uint32_t chainId;
-    uint8_t hash[32];
+    uint8_t hash[INT256_LENGTH];
     cx_ecfp_public_key_t tokenKey;
 
     tmpCtx.transactionContext.currentTokenIndex =

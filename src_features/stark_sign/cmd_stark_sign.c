@@ -17,7 +17,7 @@ void handleStarkwareSignMessage(uint8_t p1,
                                 uint16_t dataLength,
                                 unsigned int *flags,
                                 unsigned int *tx) {
-    uint8_t privateKeyData[32];
+    uint8_t privateKeyData[INT256_LENGTH];
     uint32_t i;
     uint8_t bip32PathLength = *(dataBuffer);
     uint8_t offset = 1;

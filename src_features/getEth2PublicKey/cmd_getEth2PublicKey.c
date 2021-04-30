@@ -12,7 +12,7 @@ static const uint8_t BLS12_381_FIELD_MODULUS[] = {
     0x1e, 0xab, 0xff, 0xfe, 0xb1, 0x53, 0xff, 0xff, 0xb9, 0xfe, 0xff, 0xff, 0xff, 0xff, 0xaa, 0xab};
 
 void getEth2PublicKey(uint32_t *bip32Path, uint8_t bip32PathLength, uint8_t *out) {
-    uint8_t privateKeyData[32];
+    uint8_t privateKeyData[INT256_LENGTH];
     cx_ecfp_256_extended_private_key_t privateKey;
     cx_ecfp_384_public_key_t publicKey;
     uint8_t yFlag = 0;

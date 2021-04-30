@@ -352,7 +352,7 @@ void starkware_print_asset_contract(char *destination) {
 
 // TODO : rewrite as independant code
 void starkware_get_source_address(char *destination) {
-    uint8_t privateKeyData[32];
+    uint8_t privateKeyData[INT256_LENGTH];
     cx_ecfp_private_key_t privateKey;
     cx_ecfp_public_key_t publicKey;
     os_perso_derive_node_bip32(CX_CURVE_256K1,

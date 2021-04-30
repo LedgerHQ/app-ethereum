@@ -26,7 +26,7 @@ APP_LOAD_PARAMS= --curve secp256k1 $(COMMON_LOAD_PARAMS)
 # Allow the app to use path 45 for multi-sig (see BIP45).
 APP_LOAD_PARAMS += --path "45'"
 # Samsung temporary implementation for wallet ID on 0xda7aba5e/0xc1a551c5
-#APP_LOAD_PARAMS += --path "1517992542'/1101353413'"
+APP_LOAD_PARAMS += --path "1517992542'/1101353413'"
 
 APPVERSION_M=1
 APPVERSION_N=6
@@ -249,6 +249,7 @@ DEFINES   += HAVE_BAGL_FONT_OPEN_SANS_EXTRABOLD_11PX
 DEFINES   += HAVE_BAGL_FONT_OPEN_SANS_LIGHT_16PX
 else
 DEFINES   += IO_SEPROXYHAL_BUFFER_SIZE_B=72
+DEFINES   += HAVE_WALLET_ID_SDK
 endif
 
 # Enabling debug PRINTF

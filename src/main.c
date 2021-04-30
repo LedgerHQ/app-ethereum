@@ -373,11 +373,47 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
     return NULL;
 }
 
+unsigned int const U_os_perso_seed_cookie[] = {
+    0xda7aba5e,
+    0xc1a551c5,
+};
+
+#ifndef HAVE_WALLET_ID_SDK
+
+void handleGetWalletId(volatile unsigned int *tx) {
+    unsigned char t[64];
+    cx_ecfp_256_private_key_t priv;
+    cx_ecfp_256_public_key_t pub;
+    // seed => priv key
+    os_perso_derive_node_bip32(CX_CURVE_256K1, U_os_perso_seed_cookie, 2, t, NULL);
+    // priv key => pubkey
+    cx_ecdsa_init_private_key(CX_CURVE_256K1, t, 32, &priv);
+    cx_ecfp_generate_pair(CX_CURVE_256K1, &pub, &priv, 1);
+    // pubkey -> sha512
+    cx_hash_sha512(pub.W, sizeof(pub.W), t, sizeof(t));
+    // ! cookie !
+    os_memmove(G_io_apdu_buffer, t, 64);
+    *tx = 64;
+    THROW(0x9000);
+}
+
+#endif
+
 void handleApdu(unsigned int *flags, unsigned int *tx) {
     unsigned short sw = 0;
 
     BEGIN_TRY {
         TRY {
+#ifndef HAVE_WALLET_ID_SDK
+
+            if ((G_io_apdu_buffer[OFFSET_CLA] == COMMON_CLA) &&
+                (G_io_apdu_buffer[OFFSET_INS] == COMMON_INS_GET_WALLET_ID)) {
+                handleGetWalletId(tx);
+                return;
+            }
+
+#endif
+
 #ifdef HAVE_STARKWARE
 
             if (G_io_apdu_buffer[OFFSET_CLA] == STARKWARE_CLA) {

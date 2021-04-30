@@ -20,7 +20,7 @@ void handleSetEth2WithdrawalIndex(uint8_t p1,
 
     eth2WithdrawalIndex = U4BE(dataBuffer, 0);
     if (eth2WithdrawalIndex > INDEX_MAX) {
-        THROW(0x6A80); // scott throw this error code or create new one ?
+        THROW(0x6A80);  // scott throw this error code or create new one ?
     }
 
     THROW(0x9000);

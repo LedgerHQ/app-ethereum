@@ -274,7 +274,7 @@ void finalizeParsing(bool direct) {
         if (pluginFinalize.tokenLookup2) {
             PRINTF("LOOKUP2: %.*H\n", 20, pluginFinalize.tokenLookup2);
         }
-        if ((pluginFinalize.tokenLookup1 != NULL) || (pluginFinalize.tokenLookup2 != NULL))  {
+        if ((pluginFinalize.tokenLookup1 != NULL) || (pluginFinalize.tokenLookup2 != NULL)) {
             ethPluginProvideToken_t pluginProvideToken;
             if (pluginFinalize.tokenLookup1 != NULL) {
                 token1 = getKnownToken(pluginFinalize.tokenLookup1);

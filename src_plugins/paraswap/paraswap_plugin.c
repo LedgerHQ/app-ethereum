@@ -30,7 +30,7 @@ static void handle_init_contract(void *parameters) {
     ethPluginInitContract_t *msg = (ethPluginInitContract_t *) parameters;
     paraswap_parameters_t *context = (paraswap_parameters_t *) msg->pluginContext;
     context->valid = 1;
-    context->num_paths = 0;  // multi-apdu proof ?
+    context->list_len = 0;
 
     size_t i;
     for (i = 0; i < NUM_PARASWAP_SELECTORS; i++) {
@@ -44,12 +44,21 @@ static void handle_init_contract(void *parameters) {
         case BUY_ON_UNI:
         case SWAP_ON_UNI:
             context->skip = 0;
-            context->current_param = AMOUNT_IN;
+            context->current_param = AMOUNT_SENT;
             break;
         case BUY_ON_UNI_FORK:
         case SWAP_ON_UNI_FORK:
             context->skip = 2;  // Skip the first two parameters.
-            context->current_param = AMOUNT_IN;
+            context->current_param = AMOUNT_SENT;
+            break;
+        case SIMPLE_BUY:
+        case SIMPLE_SWAP:
+        case MULTI_SWAP:
+        case BUY:
+        case MEGA_SWAP:
+            context->skip = 0;
+            context->current_param = TOKEN_SENT;
+            break;
         default:
             PRINTF("Missing selectorIndex\n");
             msg->result = ETH_PLUGIN_RESULT_ERROR;
@@ -64,7 +73,6 @@ static void handle_finalize(void *parameters) {
     paraswap_parameters_t *context = (paraswap_parameters_t *) msg->pluginContext;
     PRINTF("eth2 plugin finalize\n");
     if (context->valid) {
-
         if (context->selectorIndex == SIMPLE_SWAP || context->selectorIndex == SIMPLE_BUY)
             msg->numScreens = 3;
         else
@@ -130,10 +138,13 @@ static void handle_query_contract_id(void *parameters) {
     strcpy(msg->name, "Paraswap");
     msg->nameLength = sizeof("Paraswap");  // scott
     switch (context->selectorIndex) {
+        case MULTI_SWAP:
+        case SIMPLE_SWAP:
         case SWAP_ON_UNI_FORK:
         case SWAP_ON_UNI:
             strcpy(msg->version, "Swap");
             break;
+        case SIMPLE_BUY:
         case BUY_ON_UNI_FORK:
         case BUY_ON_UNI:
             strcpy(msg->version, "Buy");
@@ -147,8 +158,8 @@ static void handle_query_contract_id(void *parameters) {
 static void handle_query_contract_ui(void *parameters) {
     ethQueryContractUI_t *msg = (ethQueryContractUI_t *) parameters;
     paraswap_parameters_t *context = (paraswap_parameters_t *) msg->pluginContext;
-    memset(msg->title, 0, 100); // 100 ? degueu
-    memset(msg->msg, 0, 40); // 40 ? deugue
+    memset(msg->title, 0, 100);  // 100 ? degueu
+    memset(msg->msg, 0, 40);     // 40 ? deugue
     msg->result = ETH_PLUGIN_RESULT_OK;
     switch (msg->screenIndex) {
         case 0: {
@@ -174,7 +185,7 @@ static void handle_query_contract_ui(void *parameters) {
             strcpy(msg->title, "Beneficiary");
             msg->msg[0] = '0';
             msg->msg[1] = 'x';
-            getEthAddressStringFromBinary(context->beneficiary
+            getEthAddressStringFromBinary((uint8_t *) context->beneficiary,
                                           (uint8_t *) msg->msg + 2,
                                           &global_sha3,
                                           chainConfig);

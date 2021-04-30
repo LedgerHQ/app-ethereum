@@ -25,15 +25,19 @@ typedef enum {
     BUY_ON_UNI_FORK,
     SIMPLE_SWAP,
     SIMPLE_BUY,
+    MULTI_SWAP,
+    BUY,
+    MEGA_SWAP,
 } paraswapSelector_t;
 
 typedef enum {
-    AMOUNT_SENT, // Amount sent by the user to the contract.
-    AMOUNT_RECEIVED, // Amount sent by the contract to the user.
-    NUM_PATHS, // Length of the path parameter. Example: ETH -> USDT has path 2, ETH->DAI->MATIC has path 3.
-    TOKEN_SENT, // Address of the token the user is sending.
-    TOKEN_RECEIVED, // Address of the token sent to the user.
-    EXPECTED_AMOUNT, // Expected amount SCOTT
+    AMOUNT_SENT,      // Amount sent by the user to the contract.
+    AMOUNT_RECEIVED,  // Amount sent by the contract to the user.
+    NUM_PATHS,   // Length of the path parameter. Example: ETH -> USDT has path 2, ETH->DAI->MATIC
+                 // has path 3.
+    TOKEN_SENT,  // Address of the token the user is sending.
+    TOKEN_RECEIVED,   // Address of the token sent to the user.
+    EXPECTED_AMOUNT,  // Expected amount SCOTT
     CALLEES,
     EXCHANGE_DATA,
     START_INDEXES,
@@ -50,7 +54,6 @@ typedef struct paraswap_parameters_t {
     uint8_t contract_address_received[ADDRESS_LENGTH];
     char ticker_sent[MAX_TICKER_LEN];
     char ticker_received[MAX_TICKER_LEN];
-
 
     uint8_t valid;
     uint8_t decimals_sent;

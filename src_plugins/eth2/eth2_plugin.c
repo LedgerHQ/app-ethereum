@@ -101,7 +101,9 @@ void eth2_plugin_call(int message, void *parameters) {
                     withdrawalKeyPath[1] = WITHDRAWAL_KEY_PATH_2;
                     if (eth2WithdrawalIndex > INDEX_MAX) {
                         PRINTF("eth2 plugin eth2 withdrawal index is too big\n");
-                        PRINTF("Got %u which is higher than INDEX_MAX (%u)\n", eth2WithdrawalIndex, INDEX_MAX);
+                        PRINTF("Got %u which is higher than INDEX_MAX (%u)\n",
+                               eth2WithdrawalIndex,
+                               INDEX_MAX);
                         context->valid = 0;
                     }
                     withdrawalKeyPath[2] = eth2WithdrawalIndex;

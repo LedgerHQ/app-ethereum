@@ -31,6 +31,7 @@
 #include "cx.h"
 #include "ethUtils.h"
 #include "chainConfig.h"
+#include "ethUstream.h"
 
 bool rlpCanDecode(uint8_t *buffer, uint32_t bufferLength, bool *valid) {
     if (*buffer <= 0x7f) {
@@ -120,7 +121,7 @@ bool rlpDecodeLength(uint8_t *buffer,
 }
 
 void getEthAddressFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out, cx_sha3_t *sha3Context) {
-    uint8_t hashAddress[32];
+    uint8_t hashAddress[INT256_LENGTH];
     cx_keccak_init(sha3Context, 256);
     cx_hash((cx_hash_t *) sha3Context, CX_LAST, publicKey->W + 1, 64, hashAddress, 32);
     memmove(out, hashAddress + 12, 20);
@@ -155,7 +156,7 @@ void getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey,
                                 uint8_t *out,
                                 cx_sha3_t *sha3Context,
                                 chain_config_t *chain_config) {
-    uint8_t hashAddress[32];
+    uint8_t hashAddress[INT256_LENGTH];
     cx_keccak_init(sha3Context, 256);
     cx_hash((cx_hash_t *) sha3Context, CX_LAST, publicKey->W + 1, 64, hashAddress, 32);
     getEthAddressStringFromBinary(hashAddress + 12, out, sha3Context, chain_config);
@@ -166,7 +167,7 @@ void getEthAddressStringFromBinary(uint8_t *address,
                                    cx_sha3_t *sha3Context,
                                    chain_config_t *chain_config) {
     UNUSED(chain_config);
-    uint8_t hashChecksum[32];
+    uint8_t hashChecksum[INT256_LENGTH];
     uint8_t i;
     cx_keccak_init(sha3Context, 256);
     cx_hash((cx_hash_t *) sha3Context, CX_LAST, address, 20, hashChecksum, 32);
@@ -184,7 +185,7 @@ void getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey,
                                 uint8_t *out,
                                 cx_sha3_t *sha3Context,
                                 chain_config_t *chain_config) {
-    uint8_t hashAddress[32];
+    uint8_t hashAddress[INT256_LENGTH];
     cx_keccak_init(sha3Context, 256);
     cx_hash((cx_hash_t *) sha3Context, CX_LAST, publicKey->W + 1, 64, hashAddress, 32);
     getEthAddressStringFromBinary(hashAddress + 12, out, sha3Context, chain_config);
@@ -196,7 +197,7 @@ void getEthAddressStringFromBinary(uint8_t *address,
                                    chain_config_t *chain_config) {
     // save some precious stack space
     union locals_union {
-        uint8_t hashChecksum[32];
+        uint8_t hashChecksum[INT256_LENGTH];
         uint8_t tmp[51];
     } locals_union;
 

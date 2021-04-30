@@ -36,7 +36,7 @@ void array_hexstr(char *strbuf, const void *bin, unsigned int len) {
 }
 
 void convertUint256BE(uint8_t *data, uint32_t length, uint256_t *target) {
-    uint8_t tmp[32];
+    uint8_t tmp[INT256_LENGTH];
     memset(tmp, 0, 32);
     memmove(tmp + 32 - length, data, length);
     readu256BE(tmp, target);

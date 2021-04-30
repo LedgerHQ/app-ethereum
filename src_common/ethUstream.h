@@ -36,6 +36,8 @@ typedef enum customStatus_e {
 typedef customStatus_e (*ustreamProcess_t)(struct txContext_t *context);
 
 #define TX_FLAG_TYPE 0x01
+#define ADDRESS_LENGTH 20
+#define INT256_LENGTH 32
 
 // First variant of every Tx enum.
 #define RLP_NONE 0
@@ -97,7 +99,7 @@ typedef enum parserStatus_e {
 } parserStatus_e;
 
 typedef struct txInt256_t {
-    uint8_t value[32];
+    uint8_t value[INT256_LENGTH];
     uint8_t length;
 } txInt256_t;
 
@@ -107,7 +109,7 @@ typedef struct txContent_t {
     txInt256_t value;
     txInt256_t nonce;
     txInt256_t chainID;
-    uint8_t destination[20];
+    uint8_t destination[ADDRESS_LENGTH];
     uint8_t destinationLength;
     uint8_t v[4];
     uint8_t vLength;

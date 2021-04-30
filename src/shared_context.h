@@ -22,6 +22,8 @@
 
 #define WEI_TO_ETHER 18
 
+#define SELECTOR_LENGTH 4
+
 #define N_storage (*(volatile internalStorage_t *) PIC(&N_storage_real))
 
 typedef struct internalStorage_t {
@@ -50,7 +52,7 @@ typedef struct tokenContext_t {
     char pluginName[PLUGIN_ID_LENGTH];
     uint8_t pluginStatus;
 
-    uint8_t data[32];
+    uint8_t data[INT256_LENGTH];
     uint8_t fieldIndex;
     uint8_t fieldOffset;
 
@@ -60,10 +62,10 @@ typedef struct tokenContext_t {
 
     union {
         struct {
-            uint8_t contract_address[20];
-            uint8_t method_selector[4];
+            uint8_t contract_address[ADDRESS_LENGTH];
+            uint8_t method_selector[SELECTOR_LENGTH];
         };
-        uint8_t pluginContext[3 * 32];
+        uint8_t pluginContext[3 * INT256_LENGTH];
     };
 
 #ifdef HAVE_STARKWARE
@@ -78,14 +80,14 @@ typedef struct tokenContext_t {
 typedef struct publicKeyContext_t {
     cx_ecfp_public_key_t publicKey;
     uint8_t address[41];
-    uint8_t chainCode[32];
+    uint8_t chainCode[INT256_LENGTH];
     bool getChaincode;
 } publicKeyContext_t;
 
 typedef struct transactionContext_t {
     uint8_t pathLength;
     uint32_t bip32Path[MAX_BIP32_PATH];
-    uint8_t hash[32];
+    uint8_t hash[INT256_LENGTH];
     tokenDefinition_t tokens[MAX_TOKEN];
     uint8_t tokenSet[MAX_TOKEN];
     uint8_t currentTokenIndex;
@@ -95,7 +97,7 @@ typedef struct transactionContext_t {
 typedef struct messageSigningContext_t {
     uint8_t pathLength;
     uint32_t bip32Path[MAX_BIP32_PATH];
-    uint8_t hash[32];
+    uint8_t hash[INT256_LENGTH];
     uint32_t remainingLength;
 } messageSigningContext_t;
 

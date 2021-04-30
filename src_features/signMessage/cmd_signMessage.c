@@ -14,7 +14,7 @@ void handleSignPersonalMessage(uint8_t p1,
                                unsigned int *flags,
                                unsigned int *tx) {
     UNUSED(tx);
-    uint8_t hashMessage[32];
+    uint8_t hashMessage[INT256_LENGTH];
     if (p1 == P1_FIRST) {
         char tmp[11];
         uint32_t index;

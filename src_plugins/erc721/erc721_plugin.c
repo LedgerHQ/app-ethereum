@@ -10,8 +10,8 @@ void starkware_print_eth_address(uint8_t *address, char *destination);
 
 typedef struct erc721_parameters_t {
     uint8_t selectorIndex;
-    uint8_t address[20];
-    uint8_t tokenId[32];
+    uint8_t address[ADDRESS_LENGTH];
+    uint8_t tokenId[INT256_LENGTH];
     // tokenDefinition_t *tokenSelf;
     // tokenDefinition_t *tokenAddress;
 } erc721_parameters_t;

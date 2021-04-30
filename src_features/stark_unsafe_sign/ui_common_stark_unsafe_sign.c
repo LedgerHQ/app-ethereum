@@ -6,7 +6,7 @@
 
 unsigned int io_seproxyhal_touch_stark_unsafe_sign_ok(const bagl_element_t *e) {
     cx_ecfp_private_key_t privateKey;
-    uint8_t privateKeyData[32];
+    uint8_t privateKeyData[INT256_LENGTH];
     uint8_t signature[72];
     unsigned int info = 0;
     uint32_t tx = 0;

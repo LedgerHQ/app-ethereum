@@ -46,8 +46,16 @@ static void handle_amount_received(ethPluginProvideParameter_t *msg,
                    sizeof(context->amount_received));
 }
 
-static void handle_num_paths(ethPluginProvideParameter_t *msg, paraswap_parameters_t *context) {
-    context->num_paths = msg->parameter[PARAMETER_LENGTH - 1];
+static void handle_beneficiary(ethPluginProvideParameter_t *msg, paraswap_parameters_t *context) {
+    memset(context->contract_address_sent, 0, sizeof(context->contract_address_sent));
+    memcpy(context->contract_address_sent,
+           &msg->parameter[PARAMETER_LENGTH - ADDRESS_LENGTH],
+           sizeof(context->contract_address_sent));
+    PRINTF("BENEFICIARY: %.*H\n", ADDRESS_LENGTH, context->beneficiary);
+}
+
+static void handle_list_len(ethPluginProvideParameter_t *msg, paraswap_parameters_t *context) {
+    context->list_len = msg->parameter[PARAMETER_LENGTH - 1];
     PRINTF("NUM PATHS: %d\n", context->num_paths);
 }
 
@@ -88,27 +96,27 @@ void handle_provide_parameter(void *parameters) {
             case BUY_ON_UNI:
             case SWAP_ON_UNI: {
                 switch (context->current_param) {
-                    case AMOUNT_IN:
+                    case AMOUNT_SENT: // amountIn
                         handle_amount_sent(msg, context);
-                        context->current_param = AMOUNT_OUT;
+                        context->current_param = AMOUNT_RECEIVED;
                         break;
-                    case AMOUNT_OUT:
+                    case AMOUNT_RECEIVED: // amountOut
                         handle_amount_received(msg, context);
                         context->current_param = NUM_PATHS;
                         context->skip = 2;  // Need to skip two fields before getting to num_paths
                         break;
-                    case NUM_PATHS:
-                        handle_num_paths(msg, context);
+                    case NUM_PATHS: // len(path)
+                        handle_list_len(msg, context);
                         context->current_param = TOKEN_SENT;
                         break;
-                    case TOKEN_SENT:
+                    case TOKEN_SENT: // path[0]
                         handle_token_sent(msg, context);
-                        context->skip = context->num_paths - 2; // -2 because we won't be skipping the first one and the last one.
+                        context->skip = context->list_len - 2; // -2 because we won't be skipping the first one and the last one.
                         context->current_param = TOKEN_RECEIVED;
                         break;
-                    case TOKEN_RECEIVED:
+                    case TOKEN_RECEIVED: // path[len(path) - 1]
                         handle_token_received(msg, context);
-                        context->num_paths = 0;
+                        context->list_len = 0;
                         break;
                     default:
                         PRINTF("Unsupported param\n");
@@ -120,27 +128,27 @@ void handle_provide_parameter(void *parameters) {
             case BUY_ON_UNI_FORK:
             case SWAP_ON_UNI_FORK: {
                 switch (context->current_param) {
-                    case AMOUNT_IN:
+                    case AMOUNT_SENT: // amountInMax
                         handle_amount_sent(msg, context);
-                        context->current_param = AMOUNT_OUT;
+                        context->current_param = AMOUNT_RECEIVED;
                         break;
-                    case AMOUNT_OUT:
+                    case AMOUNT_RECEIVED: // amountOut
                         handle_amount_received(msg, context);
                         context->current_param = NUM_PATHS;
                         context->skip = 2;  // Need to skip two fields
                         break;
-                    case NUM_PATHS:
-                        handle_num_paths(msg, context);
+                    case NUM_PATHS: // len(path)
+                        handle_list_len(msg, context);
                         context->current_param = TOKEN_SENT;
                         break;
-                    case TOKEN_SENT:
+                    case TOKEN_SENT: // path[0]
                         handle_token_sent(msg, context);
                         context->current_param = TOKEN_RECEIVED;
-                        context->skip = context->num_paths - 2; // -2 because we won't be skipping the first one and the last one.
+                        context->skip = context->list_len - 2; // -2 because we won't be skipping the first one and the last one.
                         break;
-                    case TOKEN_RECEIVED:
+                    case TOKEN_RECEIVED: // path[len(path) - 1]
                         handle_token_received(msg, context);
-                        context->num_paths = 0;
+                        context->list_len = 0;
                         break;
                     default:
                         PRINTF("Unsupported param\n");
@@ -148,6 +156,55 @@ void handle_provide_parameter(void *parameters) {
                         break;
                 }
                 break;
+            }
+
+            case SIMPLE_BUY:
+            case SIMPLE_SWAP: {
+                switch (context->current_param) {
+                    case TOKEN_SENT: // fromToken
+                        handle_token_sent(msg, context);
+                        context->current_param = TOKEN_RECEIVED;
+                        break;
+                    case TOKEN_RECEIVED: // toToken
+                        handle_token_received(msg, context);
+                        context->current_param = AMOUNT_RECEIVED;
+                        break;
+                    case AMOUNT_SENT: // fromAmount
+                        handle_amount_sent(msg, context);
+                        context->current_param = AMOUNT_RECEIVED;
+                        break;
+                    case AMOUNT_RECEIVED:
+                        handle_amount_received(msg, context);
+                        context->current_param = EXPECTED_AMOUNT;
+                        break;
+                    case EXPECTED_AMOUNT:
+                        context->skip = 2;
+                        context->current_param = CALLEES;
+                        break;
+                    case CALLEES:
+                        handle_list_len(msg, context);
+                        context->current_param = EXCHANGE_DATA;
+                        context->skip = context->list_len;
+                        break;
+                    case EXCHANGE_DATA: // verify because bytes?
+                        context->current_param = START_INDEXES;
+                        context->skip = 2;
+                        break;
+                    case START_INDEXES:
+                        handle_list_len(msg, context);
+                        context->current_param = VALUES;
+                        context->skip = context->list_len + 2; // + 2 because next field is a list too
+                        break;
+                    case VALUES:
+                        handle_list_len(msg, context);
+                        context->skip = context->list_len;
+                        context->current_param = BENEFICIARY;
+                        break;
+                    case BENEFICIARY:
+                        handle_beneficiary(msg, context);
+                        context->skip = 0;
+                        break;
+                }
             }
         }
     }

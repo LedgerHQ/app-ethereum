@@ -64,13 +64,19 @@ static void handle_finalize(void *parameters) {
     paraswap_parameters_t *context = (paraswap_parameters_t *) msg->pluginContext;
     PRINTF("eth2 plugin finalize\n");
     if (context->valid) {
-        msg->numScreens = 2;
+
+        if (context->selectorIndex == SIMPLE_SWAP || context->selectorIndex == SIMPLE_BUY)
+            msg->numScreens = 3;
+        else
+            msg->numScreens = 2;
+
         if (ADDRESS_IS_ETH(context->contract_address_sent) == 0) {
             msg->tokenLookup1 = context->contract_address_sent;
         }
         if (ADDRESS_IS_ETH(context->contract_address_received) == 0) {
             msg->tokenLookup2 = context->contract_address_received;
         }
+
         msg->uiType = ETH_UI_TYPE_GENERIC;
         msg->result = ETH_PLUGIN_RESULT_OK;
     } else {
@@ -143,6 +149,7 @@ static void handle_query_contract_ui(void *parameters) {
     paraswap_parameters_t *context = (paraswap_parameters_t *) msg->pluginContext;
     memset(msg->title, 0, 100); // 100 ? degueu
     memset(msg->msg, 0, 40); // 40 ? deugue
+    msg->result = ETH_PLUGIN_RESULT_OK;
     switch (msg->screenIndex) {
         case 0: {
             strcpy(msg->title, "Send");
@@ -152,7 +159,6 @@ static void handle_query_contract_ui(void *parameters) {
                            40,  // Len scott ?
                            context->decimals_sent);
             prepend_ticker(msg->msg, 40, context->ticker_sent);
-            msg->result = ETH_PLUGIN_RESULT_OK;
         } break;
         case 1: {
             strcpy(msg->title, "Receive");
@@ -162,7 +168,16 @@ static void handle_query_contract_ui(void *parameters) {
                            40,  // len scott ?
                            context->decimals_received);
             prepend_ticker(msg->msg, 40, context->ticker_received);
-            msg->result = ETH_PLUGIN_RESULT_OK;
+            break;
+        }
+        case 2: {
+            strcpy(msg->title, "Beneficiary");
+            msg->msg[0] = '0';
+            msg->msg[1] = 'x';
+            getEthAddressStringFromBinary(context->beneficiary
+                                          (uint8_t *) msg->msg + 2,
+                                          &global_sha3,
+                                          chainConfig);
             break;
         }
         default:

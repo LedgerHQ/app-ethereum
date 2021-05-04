@@ -13,10 +13,11 @@
 #define BIGINT_LENGTH    32
 #define SELECTOR_SIZE    4
 
-extern const uint8_t PARASWAP_ETHEREUM_ADDRESS[ADDRESS_LENGTH];
+// Paraswap uses `0xeeeee` as a dummy address to represent ETH.
+extern const uint8_t PARASWAP_ETH_ADDRESS[ADDRESS_LENGTH];
 
-// Returns 1 if corresponding address is the Paraswap address for Ethereum (0xeeeee...).
-#define ADDRESS_IS_ETH(_addr) (!memcmp(_addr, PARASWAP_ETHEREUM_ADDRESS, ADDRESS_LENGTH))
+// Returns 1 if corresponding address is the Paraswap address for ETH (0xeeeee...).
+#define ADDRESS_IS_ETH(_addr) (!memcmp(_addr, PARASWAP_ETH_ADDRESS, ADDRESS_LENGTH))
 
 typedef enum {
     SWAP_ON_UNI,
@@ -33,20 +34,19 @@ typedef enum {
 typedef enum {
     AMOUNT_SENT,      // Amount sent by the user to the contract.
     AMOUNT_RECEIVED,  // Amount sent by the contract to the user.
-    NUM_PATHS,   // Length of the path parameter. Example: ETH -> USDT has path 2, ETH->DAI->MATIC
-                 // has path 3.
-    TOKEN_SENT,  // Address of the token the user is sending.
+    TOKEN_SENT,       // Address of the token the user is sending.
     TOKEN_RECEIVED,   // Address of the token sent to the user.
+    PATH,  // Path of the different asseths that will get swapped during the trade. First and last
+           // tokens are the ones we care about.
     EXPECTED_AMOUNT,  // Expected amount SCOTT
     CALLEES,
     EXCHANGE_DATA,
     START_INDEXES,
     VALUES,
-    BENEFICIARY,
+    BENEFICIARY, // Address to which the contract will send the tokens.
 } swap_params;
 
 typedef struct paraswap_parameters_t {
-    swap_params current_param;
     uint8_t amount_sent[BIGINT_LENGTH];
     uint8_t amount_received[BIGINT_LENGTH];
     char beneficiary[ADDRESS_LENGTH];
@@ -55,6 +55,7 @@ typedef struct paraswap_parameters_t {
     char ticker_sent[MAX_TICKER_LEN];
     char ticker_received[MAX_TICKER_LEN];
 
+    swap_params next_param;
     uint8_t valid;
     uint8_t decimals_sent;
     uint8_t decimals_received;

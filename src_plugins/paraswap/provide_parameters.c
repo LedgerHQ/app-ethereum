@@ -56,7 +56,7 @@ static void handle_beneficiary(ethPluginProvideParameter_t *msg, paraswap_parame
 
 static void handle_list_len(ethPluginProvideParameter_t *msg, paraswap_parameters_t *context) {
     context->list_len = msg->parameter[PARAMETER_LENGTH - 1];
-    PRINTF("NUM PATHS: %d\n", context->list_len);
+    PRINTF("LIST LEN: %d\n", context->list_len);
 }
 
 static void handle_token_sent(ethPluginProvideParameter_t *msg, paraswap_parameters_t *context) {
@@ -79,10 +79,10 @@ static void handle_token_received(ethPluginProvideParameter_t *msg,
 void handle_provide_parameter(void *parameters) {
     ethPluginProvideParameter_t *msg = (ethPluginProvideParameter_t *) parameters;
     paraswap_parameters_t *context = (paraswap_parameters_t *) msg->pluginContext;
-    PRINTF("eth2 plugin provide parameter %d %.*H\n",
-           msg->parameterOffset,
-           PARAMETER_LENGTH,
-           msg->parameter);
+    // PRINTF("eth2 plugin provide parameter %d %.*H\n",
+        //    msg->parameterOffset,
+        //    PARAMETER_LENGTH,
+        //    msg->parameter);
 
     msg->result = ETH_PLUGIN_RESULT_OK;
 
@@ -95,26 +95,26 @@ void handle_provide_parameter(void *parameters) {
         switch (context->selectorIndex) {
             case BUY_ON_UNI:
             case SWAP_ON_UNI: {
-                switch (context->current_param) {
+                switch (context->next_param) {
                     case AMOUNT_SENT:  // amountIn
                         handle_amount_sent(msg, context);
-                        context->current_param = AMOUNT_RECEIVED;
+                        context->next_param = AMOUNT_RECEIVED;
                         break;
                     case AMOUNT_RECEIVED:  // amountOut
                         handle_amount_received(msg, context);
-                        context->current_param = NUM_PATHS;
+                        context->next_param = PATH;
                         context->skip = 2;  // Need to skip two fields before getting to list_len
                         break;
-                    case NUM_PATHS:  // len(path)
+                    case PATH:  // len(path)
                         handle_list_len(msg, context);
-                        context->current_param = TOKEN_SENT;
+                        context->next_param = TOKEN_SENT;
                         break;
                     case TOKEN_SENT:  // path[0]
                         handle_token_sent(msg, context);
                         context->skip =
                             context->list_len -
                             2;  // -2 because we won't be skipping the first one and the last one.
-                        context->current_param = TOKEN_RECEIVED;
+                        context->next_param = TOKEN_RECEIVED;
                         break;
                     case TOKEN_RECEIVED:  // path[len(path) - 1]
                         handle_token_received(msg, context);
@@ -129,23 +129,23 @@ void handle_provide_parameter(void *parameters) {
             }
             case BUY_ON_UNI_FORK:
             case SWAP_ON_UNI_FORK: {
-                switch (context->current_param) {
+                switch (context->next_param) {
                     case AMOUNT_SENT:  // amountInMax
                         handle_amount_sent(msg, context);
-                        context->current_param = AMOUNT_RECEIVED;
+                        context->next_param = AMOUNT_RECEIVED;
                         break;
                     case AMOUNT_RECEIVED:  // amountOut
                         handle_amount_received(msg, context);
-                        context->current_param = NUM_PATHS;
+                        context->next_param = PATH;
                         context->skip = 2;  // Need to skip two fields
                         break;
-                    case NUM_PATHS:  // len(path)
+                    case PATH:  // len(path)
                         handle_list_len(msg, context);
-                        context->current_param = TOKEN_SENT;
+                        context->next_param = TOKEN_SENT;
                         break;
                     case TOKEN_SENT:  // path[0]
                         handle_token_sent(msg, context);
-                        context->current_param = TOKEN_RECEIVED;
+                        context->next_param = TOKEN_RECEIVED;
                         context->skip =
                             context->list_len -
                             2;  // -2 because we won't be skipping the first one and the last one.
@@ -164,46 +164,46 @@ void handle_provide_parameter(void *parameters) {
 
             case SIMPLE_BUY:
             case SIMPLE_SWAP: {
-                switch (context->current_param) {
+                switch (context->next_param) {
                     case TOKEN_SENT:  // fromToken
                         handle_token_sent(msg, context);
-                        context->current_param = TOKEN_RECEIVED;
+                        context->next_param = TOKEN_RECEIVED;
                         break;
                     case TOKEN_RECEIVED:  // toToken
                         handle_token_received(msg, context);
-                        context->current_param = AMOUNT_RECEIVED;
+                        context->next_param = AMOUNT_RECEIVED;
                         break;
                     case AMOUNT_SENT:  // fromAmount
                         handle_amount_sent(msg, context);
-                        context->current_param = AMOUNT_RECEIVED;
+                        context->next_param = AMOUNT_RECEIVED;
                         break;
                     case AMOUNT_RECEIVED:  // toAmount
                         handle_amount_received(msg, context);
-                        context->current_param = EXPECTED_AMOUNT;
+                        context->next_param = EXPECTED_AMOUNT;
                         break;
                     case EXPECTED_AMOUNT:
                         context->skip = 2;
-                        context->current_param = CALLEES;
+                        context->next_param = CALLEES;
                         break;
                     case CALLEES:
                         handle_list_len(msg, context);
-                        context->current_param = EXCHANGE_DATA;
+                        context->next_param = EXCHANGE_DATA;
                         context->skip = context->list_len;
                         break;
                     case EXCHANGE_DATA:  // verify because bytes?
-                        context->current_param = START_INDEXES;
+                        context->next_param = START_INDEXES;
                         context->skip = 2;
                         break;
                     case START_INDEXES:
                         handle_list_len(msg, context);
-                        context->current_param = VALUES;
+                        context->next_param = VALUES;
                         context->skip =
                             context->list_len + 2;  // + 2 because next field is a list too
                         break;
                     case VALUES:
                         handle_list_len(msg, context);
                         context->skip = context->list_len;
-                        context->current_param = BENEFICIARY;
+                        context->next_param = BENEFICIARY;
                         break;
                     case BENEFICIARY:
                         handle_beneficiary(msg, context);
@@ -218,32 +218,33 @@ void handle_provide_parameter(void *parameters) {
             }
 
             case MULTI_SWAP: {
-                switch (context->current_param) {
+                PRINTF("MULTI_SWAP: %d\n", context->next_param);
+                switch (context->next_param) {
                     case TOKEN_SENT:  // fromToken
                         handle_token_sent(msg, context);
-                        context->current_param = AMOUNT_SENT;
+                        context->next_param = AMOUNT_SENT;
                         break;
                     case AMOUNT_SENT:  // fromAmount
                         handle_amount_sent(msg, context);
-                        context->current_param = AMOUNT_RECEIVED;
+                        context->next_param = AMOUNT_RECEIVED;
                         break;
                     case AMOUNT_RECEIVED:  // toAmount
                         handle_amount_received(msg, context);
-                        context->current_param = EXPECTED_AMOUNT;
+                        context->next_param = EXPECTED_AMOUNT;
                         break;
                     case EXPECTED_AMOUNT:  // expectedAmount
-                        context->current_param = BENEFICIARY;
+                        context->next_param = BENEFICIARY;
                         break;
                     case BENEFICIARY:
                         handle_beneficiary(msg, context);
-                        context->current_param = NUM_PATHS;
+                        context->next_param = PATH;
                         context->skip =
                             4;  // Referrer, useReduxTokens and two fields because of list.
                         break;
-                    case NUM_PATHS:  // len(path) SCOTT NEED REWORK for Path[]
+                    case PATH:  // len(path) SCOTT NEED REWORK for Path[]
                         handle_list_len(msg, context);
                         context->skip = context->list_len - 1;
-                        context->current_param = TOKEN_RECEIVED;
+                        context->next_param = TOKEN_RECEIVED;
                         break;
                     case TOKEN_RECEIVED:
                         handle_token_received(msg, context);
@@ -257,21 +258,21 @@ void handle_provide_parameter(void *parameters) {
             }
 
             case BUY: {
-                switch (context->current_param) {
+                switch (context->next_param) {
                     case TOKEN_SENT:  // fromToken
                         handle_token_sent(msg, context);
-                        context->current_param = TOKEN_RECEIVED;
+                        context->next_param = TOKEN_RECEIVED;
                         break;
                     case TOKEN_RECEIVED:  // toToken
                         handle_token_received(msg, context);
-                        context->current_param = AMOUNT_SENT;
+                        context->next_param = AMOUNT_SENT;
                         break;
                     case AMOUNT_SENT:
                         handle_amount_sent(msg, context);
-                        context->current_param = AMOUNT_RECEIVED;
+                        context->next_param = AMOUNT_RECEIVED;
                     case AMOUNT_RECEIVED:  // toAmount
                         handle_amount_received(msg, context);
-                        context->current_param = BENEFICIARY;
+                        context->next_param = BENEFICIARY;
                         break;
                     case BENEFICIARY:
                         handle_beneficiary(msg, context);
@@ -284,7 +285,7 @@ void handle_provide_parameter(void *parameters) {
                 break;
             }
 
-            case MEGA_SWAP:
+                // case MEGA_SWAP: scott
         }
     }
 }

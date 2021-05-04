@@ -1,36 +1,40 @@
 #include "paraswap_plugin.h"
 
-const uint8_t PARASWAP_ETHEREUM_ADDRESS[] = {0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee,
-                                             0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee,
-                                             0xee, 0xee, 0xee, 0xee, 0xee, 0xee};
+// Paraswap uses `0xeeeee` as a dummy address to represent ETH.
+const uint8_t PARASWAP_ETH_ADDRESS[] = {0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee,
+                                        0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee};
 
+// Prepend `dest` with `ticker`.
+// Dest must be big enough to hold `ticker` + `dest` + `\0`.
 static void prepend_ticker(char *dest, uint8_t destsize, char *ticker) {
-    uint8_t ticker_len = strlen(ticker);  // check 0
-
-    uint8_t dest_len = strlen(dest);  // check 0
-    if (dest_len + ticker_len >= destsize) {
-        return;  // scott throw ?
+    if (dest == NULL || ticker == NULL) {
+        THROW(0x6503);
     }
+    uint8_t ticker_len = strlen(ticker);
+    uint8_t dest_len = strlen(dest);
+
+    if (dest_len + ticker_len >= destsize) {
+        THROW(0x6504);
+    }
+
     // Right shift the string by `ticker_len` bytes.
     while (dest_len != 0) {
         dest[dest_len + ticker_len] = dest[dest_len];  // First iteration will copy the \0
         dest_len--;
     }
+    // Don't forget to null terminate the string.
     dest[ticker_len] = dest[0];
 
-    // Strcpy the ticker to the beginning of the string.
-    uint8_t i = 0;
-    while (i < ticker_len) {
-        dest[i] = ticker[i];
-        i++;
-    }
+    // Copy the ticker to the beginning of the string.
+    memcpy(dest, ticker, ticker_len);
 }
 
+// Called once to init.
 static void handle_init_contract(void *parameters) {
     ethPluginInitContract_t *msg = (ethPluginInitContract_t *) parameters;
     paraswap_parameters_t *context = (paraswap_parameters_t *) msg->pluginContext;
+    memset(context, 0, sizeof(*context));
     context->valid = 1;
-    context->list_len = 0;
 
     size_t i;
     for (i = 0; i < NUM_PARASWAP_SELECTORS; i++) {
@@ -40,24 +44,25 @@ static void handle_init_contract(void *parameters) {
         }
     }
 
+    PRINTF("\n\nindex: %d\n\n", context->selectorIndex);
+    // Set `next_param` to be the first field we expect to parse.
     switch (context->selectorIndex) {
         case BUY_ON_UNI:
         case SWAP_ON_UNI:
-            context->skip = 0;
-            context->current_param = AMOUNT_SENT;
+            context->next_param = AMOUNT_SENT;
             break;
         case BUY_ON_UNI_FORK:
         case SWAP_ON_UNI_FORK:
-            context->skip = 2;  // Skip the first two parameters.
-            context->current_param = AMOUNT_SENT;
+            context->skip = 2;  // Skip the first two parameters (factory and initCode).
+            context->next_param = AMOUNT_SENT;
             break;
         case SIMPLE_BUY:
         case SIMPLE_SWAP:
         case MULTI_SWAP:
         case BUY:
         case MEGA_SWAP:
-            context->skip = 0;
-            context->current_param = TOKEN_SENT;
+            context->next_param = TOKEN_SENT;
+            PRINTF("INIT: TOKEN_SENT\n");
             break;
         default:
             PRINTF("Missing selectorIndex\n");
@@ -73,15 +78,16 @@ static void handle_finalize(void *parameters) {
     paraswap_parameters_t *context = (paraswap_parameters_t *) msg->pluginContext;
     PRINTF("eth2 plugin finalize\n");
     if (context->valid) {
+        msg->numScreens = 2;
         if (context->selectorIndex == SIMPLE_SWAP || context->selectorIndex == SIMPLE_BUY)
-            msg->numScreens = 3;
-        else
-            msg->numScreens = 2;
-
+            // An addiitonal screen is required to display the `beneficiary` field.
+            msg->numScreens += 1;
         if (ADDRESS_IS_ETH(context->contract_address_sent) == 0) {
+            // Address is not ETH so we will need to look up the token in the CAL.
             msg->tokenLookup1 = context->contract_address_sent;
         }
         if (ADDRESS_IS_ETH(context->contract_address_received) == 0) {
+            // Address is not ETH so we will need to look up the token in the CAL.
             msg->tokenLookup2 = context->contract_address_received;
         }
 

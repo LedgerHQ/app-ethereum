@@ -28,10 +28,16 @@ uint32_t splitBinaryParameterPart(char *result, uint8_t *parameter) {
 }
 
 customStatus_e customProcessor(txContext_t *context) {
-    if ((context->currentField == TX_RLP_DATA) && (context->currentFieldLength != 0)) {
+    if (((context->txType == LEGACY && context->currentField == LEGACY_RLP_DATA) ||
+         (context->txType == EIP2930 && context->currentField == EIP2930_RLP_DATA)) &&
+        (context->currentFieldLength != 0)) {
         dataPresent = true;
         // If handling a new contract rather than a function call, abort immediately
         if (tmpContent.txContent.destinationLength == 0) {
+            return CUSTOM_NOT_HANDLED;
+        }
+        // If data field is less than 4 bytes long, do not try to use a plugin.
+        if (context->currentFieldLength < 4) {
             return CUSTOM_NOT_HANDLED;
         }
         if (context->currentFieldPos == 0) {
@@ -238,10 +244,22 @@ void finalizeParsing(bool direct) {
 
     // Verify the chain
     if (chainConfig->chainId != 0) {
-        uint32_t v = getV(&tmpContent.txContent);
-        if (chainConfig->chainId != v) {
+        uint32_t id = 0;
+
+        if (txContext.txType == LEGACY) {
+            id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
+        } else if (txContext.txType == EIP2930) {
+            id = u32_from_BE(txContext.content->chainID.value,
+                             txContext.content->chainID.length,
+                             false);
+        } else {
+            PRINTF("TxType `%u` not supported while checking for chainID\n", txContext.txType);
+            return;
+        }
+
+        if (chainConfig->chainId != id) {
+            PRINTF("Invalid chainID %u expected %u\n", id, chainConfig->chainId);
             reset_app_context();
-            PRINTF("Invalid chainId %d expected %d\n", v, chainConfig->chainId);
             reportFinalizeError(direct);
             if (!direct) {
                 return;
@@ -323,7 +341,6 @@ void finalizeParsing(bool direct) {
     }
 
     if (dataPresent && !N_storage.dataAllowed) {
-        PRINTF("Data field forbidden\n");
         reportFinalizeError(direct);
         if (!direct) {
             return;
@@ -366,6 +383,31 @@ void finalizeParsing(bool direct) {
     if (genericUI) {
         computeFees(displayBuffer, sizeof(displayBuffer));
         compareOrCopy(strings.common.maxFee, displayBuffer, called_from_swap);
+    }
+
+    // Prepare chainID field
+    if (genericUI) {
+        if (txContext.txType == LEGACY) {
+            uint32_t id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
+            PRINTF("Chain ID: %u\n", id);
+            uint8_t res =
+                snprintf(strings.common.chainID, sizeof(strings.common.chainID), "%d", id);
+            if (res >= sizeof(strings.common.chainID)) {
+                // If the return value is higher or equal to the size passed in as parameter, then
+                // the output was truncated. Return the appropriate error code.
+                THROW(0x6502);
+            }
+        } else if (txContext.txType == EIP2930) {
+            uint256_t chainID;
+            convertUint256BE(tmpContent.txContent.chainID.value,
+                             tmpContent.txContent.chainID.length,
+                             &chainID);
+            tostring256(&chainID, 10, displayBuffer, sizeof(displayBuffer));
+            strncpy(strings.common.chainID, displayBuffer, sizeof(strings.common.chainID));
+        } else {
+            PRINTF("Txtype `%u` not supported while generating chainID\n", txContext.txType);
+            return;
+        }
     }
 
     bool no_consent = false;

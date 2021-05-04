@@ -40,6 +40,22 @@ void handleSign(uint8_t p1,
         }
         dataPresent = false;
         dataContext.tokenContext.pluginAvailable = 0;
+
+        // EIP 2718: TransactionType might be present before the TransactionPayload.
+        uint8_t txType = *workBuffer;
+        if (txType >= MIN_TX_TYPE && txType <= MAX_TX_TYPE) {
+            // Enumerate through all supported txTypes here...
+            if (txType == EIP2930) {
+                txContext.txType = txType;
+                workBuffer++;
+                dataLength--;
+            } else {
+                PRINTF("Transaction type not supported\n");
+                THROW(0x6501);
+            }
+        } else {
+            txContext.txType = LEGACY;
+        }
         initTx(&txContext, &global_sha3, &tmpContent.txContent, customProcessor, NULL);
     } else if (p1 != P1_MORE) {
         THROW(0x6B00);
@@ -51,7 +67,7 @@ void handleSign(uint8_t p1,
         PRINTF("Signature not initialized\n");
         THROW(0x6985);
     }
-    if (txContext.currentField == TX_RLP_NONE) {
+    if (txContext.currentField == RLP_NONE) {
         PRINTF("Parser not initialized\n");
         THROW(0x6985);
     }

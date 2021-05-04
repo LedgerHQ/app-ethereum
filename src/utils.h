@@ -28,7 +28,9 @@ void convertUint256BE(uint8_t* data, uint32_t length, uint256_t* target);
 
 int local_strchr(char* string, char ch);
 
-uint32_t getV(txContent_t* txContent);
+// Converts a list of bytes (in BE) of length `size` to a uint32_t. `strict` will make the function
+// throw if the size is > 4.
+uint32_t u32_from_BE(uint8_t* in, uint8_t size, bool strict);
 
 void amountToString(uint8_t* amount,
                     uint8_t amount_len,

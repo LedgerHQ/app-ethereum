@@ -59,7 +59,9 @@ static int check_deposit_contract(ethPluginInitContract_t *msg) {
     txContent_t *content = msg->pluginSharedRO->txContent;
     char destinationAddress[DEPOSIT_CONTRACT_LENGTH];
 
-    uint8_t destinationLen = getEthDisplayableAddress(destinationAddress, content->destination, msg->pluginSharedRW->sha3);
+    uint8_t destinationLen = getEthDisplayableAddress(destinationAddress,
+                                                      content->destination,
+                                                      msg->pluginSharedRW->sha3);
 
     if (destinationLen != DEPOSIT_CONTRACT_LENGTH) {
         PRINTF("eth2plugin: destination lengths differ. Expected %u got %u\n",
@@ -159,7 +161,9 @@ void eth2_plugin_call(int message, void *parameters) {
 
                     // Use a temporary buffer to store the string representation.
                     char tmp[ETH2_DEPOSIT_PUBKEY_LENGTH];
-                    getEthDisplayableAddress(tmp, (uint8_t *) context->deposit_address, msg->pluginSharedRW->sha3);
+                    getEthDisplayableAddress(tmp,
+                                             (uint8_t *) context->deposit_address,
+                                             msg->pluginSharedRW->sha3);
 
                     // Copy back the string to the global variable.
                     strcpy(context->deposit_address, tmp);

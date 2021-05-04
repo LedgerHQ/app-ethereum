@@ -48,7 +48,7 @@ typedef enum starkQuantumType_e {
 
 typedef struct tokenContext_t {
     char pluginName[PLUGIN_ID_LENGTH];
-    uint8_t pluginAvailable;
+    uint8_t pluginStatus;
 
     uint8_t data[32];
     uint8_t fieldIndex;

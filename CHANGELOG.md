@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.7.2](https://github.com/ledgerhq/app-ethereum/compare/1.7.1...1.7.2) - 2021-5-5
+
+### Added
+
+- Improve Ethereum 2 deposit security:
+  -  Display the validator address on screen when depositing.
+  -  Abort signing when the account index of the withdrawal key is higher than INDEX_MAX.
+  -  Check that the destination field of the transaction is Ethereum 2 deposit contract.
+
 ## [1.7.1](https://github.com/ledgerhq/app-ethereum/compare/1.7.0...1.7.1) - 2021-5-5
 
 ### Added

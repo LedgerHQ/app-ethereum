@@ -1,5 +1,7 @@
 #include "shared_context.h"
 #include "ui_callbacks.h"
+#include "chainConfig.h"
+#include "utils.h"
 
 // clang-format off
 UX_STEP_NOCB(
@@ -85,7 +87,7 @@ UX_FLOW(ux_confirm_parameter_flow,
 
 //////////////////////////////////////////////////////////////////////
 // clang-format off
-UX_STEP_NOCB(ux_approval_tx_1_step,
+UX_STEP_NOCB(ux_approval_review_step,
     pnn,
     {
       &C_icon_eye,
@@ -93,28 +95,35 @@ UX_STEP_NOCB(ux_approval_tx_1_step,
       "transaction",
     });
 UX_STEP_NOCB(
-    ux_approval_tx_2_step,
+    ux_approval_amount_step,
     bnnn_paging,
     {
       .title = "Amount",
       .text = strings.common.fullAmount
     });
 UX_STEP_NOCB(
-    ux_approval_tx_3_step,
+    ux_approval_address_step,
     bnnn_paging,
     {
       .title = "Address",
       .text = strings.common.fullAddress,
     });
 UX_STEP_NOCB(
-    ux_approval_tx_4_step,
+    ux_approval_fees_step,
     bnnn_paging,
     {
       .title = "Max Fees",
       .text = strings.common.maxFee,
     });
+UX_STEP_NOCB(
+    ux_approval_chainid_step,
+    bnnn_paging,
+    {
+      .title = "Chain ID",
+      .text = strings.common.chainID,
+    });
 UX_STEP_CB(
-    ux_approval_tx_5_step,
+    ux_approval_accept_step,
     pbb,
     io_seproxyhal_touch_tx_ok(NULL),
     {
@@ -123,7 +132,7 @@ UX_STEP_CB(
       "and send",
     });
 UX_STEP_CB(
-    ux_approval_tx_6_step,
+    ux_approval_reject_step,
     pb,
     io_seproxyhal_touch_tx_cancel(NULL),
     {
@@ -132,14 +141,14 @@ UX_STEP_CB(
     });
 
 UX_STEP_NOCB(
-    ux_approval_tx_display_nonce_step,
+    ux_approval_nonce_step,
     bnnn_paging,
     {
       .title = "Nonce",
       .text = strings.common.nonce,
     });
 
-UX_STEP_NOCB(ux_approval_tx_data_warning_step,
+UX_STEP_NOCB(ux_approval_data_warning_step,
     pbb,
     {
       &C_icon_warning,
@@ -148,22 +157,36 @@ UX_STEP_NOCB(ux_approval_tx_data_warning_step,
     });
 // clang-format on
 
-const ux_flow_step_t *ux_approval_tx_flow_[9];
+const ux_flow_step_t *ux_approval_tx_flow_[10];
 
 void ux_approve_tx(bool dataPresent) {
     int step = 0;
-    ux_approval_tx_flow_[step++] = &ux_approval_tx_1_step;
+    ux_approval_tx_flow_[step++] = &ux_approval_review_step;
     if (dataPresent && !N_storage.contractDetails) {
-        ux_approval_tx_flow_[step++] = &ux_approval_tx_data_warning_step;
+        ux_approval_tx_flow_[step++] = &ux_approval_data_warning_step;
     }
-    ux_approval_tx_flow_[step++] = &ux_approval_tx_2_step;
-    ux_approval_tx_flow_[step++] = &ux_approval_tx_3_step;
+    ux_approval_tx_flow_[step++] = &ux_approval_amount_step;
+    ux_approval_tx_flow_[step++] = &ux_approval_address_step;
     if (N_storage.displayNonce) {
-        ux_approval_tx_flow_[step++] = &ux_approval_tx_display_nonce_step;
+        ux_approval_tx_flow_[step++] = &ux_approval_nonce_step;
     }
-    ux_approval_tx_flow_[step++] = &ux_approval_tx_4_step;
-    ux_approval_tx_flow_[step++] = &ux_approval_tx_5_step;
-    ux_approval_tx_flow_[step++] = &ux_approval_tx_6_step;
+
+    uint32_t id;
+    if (txContext.txType == LEGACY) {
+        id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
+    } else if (txContext.txType == EIP2930) {
+        id =
+            u32_from_BE(txContext.content->chainID.value, txContext.content->chainID.length, false);
+    } else {
+        PRINTF("TxType `%u` not supported while preparing to approve tx\n", txContext.txType);
+        THROW(0x6501);
+    }
+    if (id != ETHEREUM_MAINNET_CHAINID) {
+        ux_approval_tx_flow_[step++] = &ux_approval_chainid_step;
+    }
+    ux_approval_tx_flow_[step++] = &ux_approval_fees_step;
+    ux_approval_tx_flow_[step++] = &ux_approval_accept_step;
+    ux_approval_tx_flow_[step++] = &ux_approval_reject_step;
     ux_approval_tx_flow_[step++] = FLOW_END_STEP;
 
     ux_flow_init(0, ux_approval_tx_flow_, NULL);

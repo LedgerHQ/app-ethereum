@@ -26,11 +26,11 @@ APP_LOAD_PARAMS= --curve secp256k1 $(COMMON_LOAD_PARAMS)
 # Allow the app to use path 45 for multi-sig (see BIP45).
 APP_LOAD_PARAMS += --path "45'"
 # Samsung temporary implementation for wallet ID on 0xda7aba5e/0xc1a551c5
-#APP_LOAD_PARAMS += --path "1517992542'/1101353413'"
+APP_LOAD_PARAMS += --path "1517992542'/1101353413'"
 
 APPVERSION_M=1
-APPVERSION_N=6
-APPVERSION_P=6
+APPVERSION_N=7
+APPVERSION_P=0
 APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 APP_LOAD_FLAGS= --appFlags 0x240 --dep Ethereum:$(APPVERSION)
 
@@ -249,7 +249,15 @@ DEFINES   += HAVE_BAGL_FONT_OPEN_SANS_EXTRABOLD_11PX
 DEFINES   += HAVE_BAGL_FONT_OPEN_SANS_LIGHT_16PX
 else
 DEFINES   += IO_SEPROXYHAL_BUFFER_SIZE_B=72
+DEFINES   += HAVE_WALLET_ID_SDK
 endif
+
+# Enables direct data signing without having to specify it in the settings. Useful when testing with speculos.
+ALLOW_DATA:=0
+ifneq ($(ALLOW_DATA),0)
+DEFINES += HAVE_ALLOW_DATA
+endif
+
 
 # Enabling debug PRINTF
 DEBUG:=0

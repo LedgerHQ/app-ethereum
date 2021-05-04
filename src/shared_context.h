@@ -158,7 +158,9 @@ typedef struct txStringProperties_t {
     char fullAddress[43];
     char fullAmount[50];
     char maxFee[50];
-    char nonce[8];  // 10M tx per account ought to be enough for everybody
+    char nonce[8];    // 10M tx per account ought to be enough for everybody
+    char chainID[8];  // 10M different chainID ought to be enough for people to find a unique
+                      // chainID for their token / chain.
 } txStringProperties_t;
 
 typedef struct strDataTmp_t {

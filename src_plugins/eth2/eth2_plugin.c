@@ -40,7 +40,7 @@ static void to_lowercase(char *str, unsigned char size) {
 }
 
 // Fills the `out` buffer with the lowercase string representation of the pubkey passed in as binary
-// format by `in`. Does not check the size, so expects `out` to be big enough to told the string
+// format by `in`. Does not check the size, so expects `out` to be big enough to hold the string
 // representation. Returns the length of string (counting the null terminating character).
 static int getEthDisplayableAddress(char *out, uint8_t *in) {
     out[0] = '0';

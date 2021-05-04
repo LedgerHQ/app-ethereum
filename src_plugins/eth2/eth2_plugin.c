@@ -42,10 +42,10 @@ static void to_lowercase(char *str, unsigned char size) {
 // Fills the `out` buffer with the lowercase string representation of the pubkey passed in as binary
 // format by `in`. Does not check the size, so expects `out` to be big enough to hold the string
 // representation. Returns the length of string (counting the null terminating character).
-static int getEthDisplayableAddress(char *out, uint8_t *in) {
+static int getEthDisplayableAddress(char *out, uint8_t *in, cx_sha3_t *sha3) {
     out[0] = '0';
     out[1] = 'x';
-    getEthAddressStringFromBinary(in, (uint8_t *) out + 2, &global_sha3, chainConfig);
+    getEthAddressStringFromBinary(in, (uint8_t *) out + 2, &sha3, chainConfig);
 
     uint8_t destinationLen = strlen(out) + 1;  // Adding one to account for \0.
 
@@ -59,7 +59,7 @@ static int check_deposit_contract(ethPluginInitContract_t *msg) {
     txContent_t *content = msg->pluginSharedRO->txContent;
     char destinationAddress[DEPOSIT_CONTRACT_LENGTH];
 
-    uint8_t destinationLen = getEthDisplayableAddress(destinationAddress, content->destination);
+    uint8_t destinationLen = getEthDisplayableAddress(destinationAddress, content->destination, msg->pluginSharedRW->sha3);
 
     if (destinationLen != DEPOSIT_CONTRACT_LENGTH) {
         PRINTF("eth2plugin: destination lengths differ. Expected %u got %u\n",
@@ -159,7 +159,7 @@ void eth2_plugin_call(int message, void *parameters) {
 
                     // Use a temporary buffer to store the string representation.
                     char tmp[ETH2_DEPOSIT_PUBKEY_LENGTH];
-                    getEthDisplayableAddress(tmp, (uint8_t *) context->deposit_address);
+                    getEthDisplayableAddress(tmp, (uint8_t *) context->deposit_address, msg->pluginSharedRW->sha3);
 
                     // Copy back the string to the global variable.
                     strcpy(context->deposit_address, tmp);

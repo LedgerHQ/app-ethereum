@@ -1,6 +1,7 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
 #include "ui_flow.h"
+#include "tokens.h"
 
 #define CONTRACT_ADDR_SIZE 20
 #define SELECTOR_SIZE      4
@@ -14,9 +15,12 @@ void handleSetExternalPlugin(uint8_t p1,
     UNUSED(p1);
     UNUSED(p2);
     UNUSED(flags);
-    uint8_t pluginNameLength = *workBuffer++;
+    uint8_t hash[32];
+    cx_ecfp_public_key_t tokenKey;
+    uint8_t pluginNameLength = *workBuffer;
+    const size_t payload_size = 1 + pluginNameLength + CONTRACT_ADDR_SIZE + SELECTOR_SIZE;
 
-    if (dataLength < 1 || dataLength != 1 + pluginNameLength + CONTRACT_ADDR_SIZE + SELECTOR_SIZE) {
+    if (dataLength <= payload_size) {
         THROW(0x6A80);
     }
 
@@ -24,6 +28,19 @@ void handleSetExternalPlugin(uint8_t p1,
         THROW(0x6A80);
     }
 
+    // check Ledger's signature over the payload
+    cx_hash_sha256(workBuffer, payload_size, hash, sizeof(hash));
+    cx_ecfp_init_public_key(CX_CURVE_256K1,
+                            LEDGER_SIGNATURE_PUBLIC_KEY,
+                            sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
+                            &tokenKey);
+    if(!cx_ecdsa_verify(&tokenKey, CX_LAST, CX_SHA256, hash, sizeof(hash), workBuffer+payload_size, dataLength-payload_size)){
+        PRINTF("Invalid external plugin signature %.*H\n", payload_size, workBuffer);
+        THROW(0x6A80);
+    }
+
+    // move on to the rest of the payload parsing
+    workBuffer++;
     memmove(dataContext.tokenContext.pluginName, workBuffer, pluginNameLength);
     dataContext.tokenContext.pluginName[pluginNameLength] = '\0';
     workBuffer += pluginNameLength;

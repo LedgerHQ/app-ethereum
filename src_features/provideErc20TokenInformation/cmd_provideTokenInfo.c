@@ -1,16 +1,7 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
 #include "ui_flow.h"
-
-static const uint8_t const TOKEN_SIGNATURE_PUBLIC_KEY[] = {
-    // production key 2019-01-11 03:07PM (erc20signer)
-    0x04,
-
-    0x5e, 0x6c, 0x10, 0x20, 0xc1, 0x4d, 0xc4, 0x64, 0x42, 0xfe, 0x89, 0xf9, 0x7c, 0x0b, 0x68, 0xcd,
-    0xb1, 0x59, 0x76, 0xdc, 0x24, 0xf2, 0x4c, 0x31, 0x6e, 0x7b, 0x30, 0xfe, 0x4e, 0x8c, 0xc7, 0x6b,
-
-    0x14, 0x89, 0x15, 0x0c, 0x21, 0x51, 0x4e, 0xbf, 0x44, 0x0f, 0xf5, 0xde, 0xa5, 0x39, 0x3d, 0x83,
-    0xde, 0x53, 0x58, 0xcd, 0x09, 0x8f, 0xce, 0x8f, 0xd0, 0xf8, 0x1d, 0xaa, 0x94, 0x97, 0x91, 0x83};
+#include "tokens.h"
 
 #ifdef HAVE_CONTRACT_NAME_IN_DESCRIPTOR
 
@@ -87,8 +78,8 @@ void handleProvideErc20TokenInformation(uint8_t p1,
     offset += 4;
     dataLength -= 4;
     cx_ecfp_init_public_key(CX_CURVE_256K1,
-                            TOKEN_SIGNATURE_PUBLIC_KEY,
-                            sizeof(TOKEN_SIGNATURE_PUBLIC_KEY),
+                            LEDGER_SIGNATURE_PUBLIC_KEY,
+                            sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
                             &tokenKey);
     if (!cx_ecdsa_verify(&tokenKey,
                          CX_LAST,
@@ -174,8 +165,8 @@ void handleProvideErc20TokenInformation(uint8_t p1,
         PRINTF("Descriptor whitelisted\n");
     } else {
         cx_ecfp_init_public_key(CX_CURVE_256K1,
-                                TOKEN_SIGNATURE_PUBLIC_KEY,
-                                sizeof(TOKEN_SIGNATURE_PUBLIC_KEY),
+                                LEDGER_SIGNATURE_PUBLIC_KEY,
+                                sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
                                 &tokenKey);
         if (!cx_ecdsa_verify(&tokenKey,
                              CX_LAST,
@@ -192,8 +183,8 @@ void handleProvideErc20TokenInformation(uint8_t p1,
 #else
 
     cx_ecfp_init_public_key(CX_CURVE_256K1,
-                            TOKEN_SIGNATURE_PUBLIC_KEY,
-                            sizeof(TOKEN_SIGNATURE_PUBLIC_KEY),
+                            LEDGER_SIGNATURE_PUBLIC_KEY,
+                            sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
                             &tokenKey);
     if (!cx_ecdsa_verify(&tokenKey,
                          CX_LAST,

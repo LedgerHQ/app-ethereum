@@ -20,8 +20,9 @@ void getEth2PublicKey(uint32_t *bip32Path, uint8_t bip32PathLength, uint8_t *out
 #define ETH2_WITHDRAWAL_CREDENTIALS_LENGTH 0x20
 #define ETH2_SIGNATURE_LENGTH              0x60
 
-#define DEPOSIT_CONTRACT_ADDRESS "0x00000000219ab540356cbb839cbe05303d7705fa"
-#define DEPOSIT_CONTRACT_LENGTH  sizeof(DEPOSIT_CONTRACT_ADDRESS)
+static const uint8_t deposit_contract_address[] = {0x00, 0x00, 0x00, 0x00, 0x21, 0x9a, 0xb5,
+                                                   0x40, 0x35, 0x6c, 0xbb, 0x83, 0x9c, 0xbe,
+                                                   0x05, 0x30, 0x3d, 0x77, 0x05, 0xfa};
 
 // Highest index for withdrawal derivation path.
 #define INDEX_MAX 65536  // 2 ^ 16 : arbitrary value to protect from path attacks.
@@ -49,33 +50,7 @@ static int getEthDisplayableAddress(char *out, uint8_t *in, cx_sha3_t *sha3) {
 
     uint8_t destinationLen = strlen(out) + 1;  // Adding one to account for \0.
 
-    // Ensure address is in lowercase, to match DEPOSIT_CONTRACT_ADDRESS' case.
-    to_lowercase(out, destinationLen);
-
-    return (destinationLen);
-}
-
-static int check_deposit_contract(ethPluginInitContract_t *msg) {
-    txContent_t *content = msg->pluginSharedRO->txContent;
-    char destinationAddress[DEPOSIT_CONTRACT_LENGTH];
-
-    uint8_t destinationLen = getEthDisplayableAddress(destinationAddress,
-                                                      content->destination,
-                                                      msg->pluginSharedRW->sha3);
-
-    if (destinationLen != DEPOSIT_CONTRACT_LENGTH) {
-        PRINTF("eth2plugin: destination lengths differ. Expected %u got %u\n",
-               DEPOSIT_CONTRACT_LENGTH,
-               destinationLen);
-        return 0;
-    } else if (memcmp(destinationAddress, DEPOSIT_CONTRACT_ADDRESS, DEPOSIT_CONTRACT_LENGTH) != 0) {
-        PRINTF("eth2plugin: destination addresses differ. Expected %s got %s\n",
-               DEPOSIT_CONTRACT_ADDRESS,
-               destinationAddress);
-        return 0;
-    } else {
-        return 1;
-    }
+    return destinationLen;
 }
 
 void eth2_plugin_call(int message, void *parameters) {
@@ -83,7 +58,9 @@ void eth2_plugin_call(int message, void *parameters) {
         case ETH_PLUGIN_INIT_CONTRACT: {
             ethPluginInitContract_t *msg = (ethPluginInitContract_t *) parameters;
             eth2_deposit_parameters_t *context = (eth2_deposit_parameters_t *) msg->pluginContext;
-            if (check_deposit_contract(msg) == 0) {
+            if (memcmp(deposit_contract_address,
+                       msg->pluginSharedRO->txContent->destination,
+                       sizeof(deposit_contract_address)) != 0) {
                 PRINTF("eth2plugin: failed to check deposit contract\n");
                 context->valid = 0;
                 msg->result = ETH_PLUGIN_RESULT_ERROR;

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.7.1](https://github.com/ledgerhq/app-ethereum/compare/1.7.0...1.7.1) - 2021-5-5
+
+### Added
+
+- Support for Berlin hard fork: EIP2718 (transaction types) and EIP2930 (access list transactions)
+- Display ChainID when transacting on chains which are not ethereum (BSC, Polygon, etc)
 ## [1.7.0](https://github.com/ledgerhq/app-ethereum/compare/1.6.6...1.7.0) - 2021-4-30
 
 ### Added

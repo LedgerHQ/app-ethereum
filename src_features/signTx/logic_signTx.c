@@ -121,8 +121,7 @@ customStatus_e customProcessor(txContext_t *context) {
                 eth_plugin_prepare_provide_parameter(&pluginProvideParameter,
                                                      dataContext.tokenContext.data,
                                                      dataContext.tokenContext.fieldIndex * 32 + 4);
-                if (!eth_plugin_call(NULL,
-                                     ETH_PLUGIN_PROVIDE_PARAMETER,
+                if (!eth_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER,
                                      (void *) &pluginProvideParameter)) {
                     PRINTF("Plugin parameter call failed\n");
                     return CUSTOM_FAULT;
@@ -282,7 +281,7 @@ void finalizeParsing(bool direct) {
     if (dataContext.tokenContext.pluginStatus >= ETH_PLUGIN_RESULT_SUCCESSFUL) {
         genericUI = false;
         eth_plugin_prepare_finalize(&pluginFinalize);
-        if (!eth_plugin_call(NULL, ETH_PLUGIN_FINALIZE, (void *) &pluginFinalize)) {
+        if (!eth_plugin_call(ETH_PLUGIN_FINALIZE, (void *) &pluginFinalize)) {
             PRINTF("Plugin finalize call failed\n");
             reportFinalizeError(direct);
             if (!direct) {
@@ -297,7 +296,7 @@ void finalizeParsing(bool direct) {
                 token2 = getKnownToken(pluginFinalize.tokenLookup2);
             }
             eth_plugin_prepare_provide_token(&pluginProvideToken, token1, token2);
-            if (!eth_plugin_call(NULL, ETH_PLUGIN_PROVIDE_TOKEN, (void *) &pluginProvideToken)) {
+            if (!eth_plugin_call(ETH_PLUGIN_PROVIDE_TOKEN, (void *) &pluginProvideToken)) {
                 PRINTF("Plugin provide token call failed\n");
                 reportFinalizeError(direct);
                 if (!direct) {

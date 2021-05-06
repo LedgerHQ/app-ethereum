@@ -72,16 +72,39 @@ uint32_t u32_from_BE(uint8_t *in, uint8_t size, bool strict) {
     return res;
 }
 
+bool uint256_to_decimal(const uint8_t *value, char *out, size_t out_len) {
+    uint16_t n[16];
+    uint16_t *p = (uint16_t *) value;
+    for (int i = 0; i < 16; i++) {
+        n[i] = __builtin_bswap16(*p++);
+    }
+    int pos = out_len;
+    while (!allzeroes(n, sizeof(n))) {
+        if (pos == 0) {
+            return false;
+        }
+        pos -= 1;
+        int carry = 0;
+        for (int i = 0; i < 16; i++) {
+            int rem = ((carry << 16) | n[i]) % 10;
+            n[i] = ((carry << 16) | n[i]) / 10;
+            carry = rem;
+        }
+        out[pos] = '0' + carry;
+    }
+    memmove(out, out + pos, out_len - pos);
+    out[out_len - pos] = 0;
+    return true;
+}
+
 void amountToString(uint8_t *amount,
                     uint8_t amount_size,
                     uint8_t decimals,
                     char *ticker,
                     char *out_buffer,
                     uint8_t out_buffer_size) {
-    uint256_t amount_256;
     char tmp_buffer[100];
-    convertUint256BE(amount, amount_size, &amount_256);
-    tostring256(&amount_256, 10, tmp_buffer, 100);
+    uint256_to_decimal(amount, tmp_buffer, 100);
 
     uint8_t amount_len = strnlen(tmp_buffer, sizeof(tmp_buffer));
     uint8_t ticker_len = strnlen(ticker, MAX_TICKER_LEN);

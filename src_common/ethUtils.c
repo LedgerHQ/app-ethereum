@@ -127,60 +127,6 @@ void getEthAddressFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out, cx_sha3
     memmove(out, hashAddress + 12, 20);
 }
 
-#ifdef CHECKSUM_1
-
-static const uint8_t const HEXDIGITS[] = "0123456789ABCDEF";
-
-static const uint8_t const MASK[] = {0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
-
-char convertDigit(uint8_t *address, uint8_t index, uint8_t *hash) {
-    unsigned char digit = address[index / 2];
-    if ((index % 2) == 0) {
-        digit = (digit >> 4) & 0x0f;
-    } else {
-        digit = digit & 0x0f;
-    }
-    if (digit < 10) {
-        return HEXDIGITS[digit];
-    } else {
-        unsigned char data = hash[index / 8];
-        if (((data & MASK[index % 8]) != 0) && (digit > 9)) {
-            return HEXDIGITS[digit] /*- 'a' + 'A'*/;
-        } else {
-            return HEXDIGITS[digit];
-        }
-    }
-}
-
-void getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey,
-                                uint8_t *out,
-                                cx_sha3_t *sha3Context,
-                                chain_config_t *chain_config) {
-    uint8_t hashAddress[INT256_LENGTH];
-    cx_keccak_init(sha3Context, 256);
-    cx_hash((cx_hash_t *) sha3Context, CX_LAST, publicKey->W + 1, 64, hashAddress, 32);
-    getEthAddressStringFromBinary(hashAddress + 12, out, sha3Context, chain_config);
-}
-
-void getEthAddressStringFromBinary(uint8_t *address,
-                                   uint8_t *out,
-                                   cx_sha3_t *sha3Context,
-                                   chain_config_t *chain_config) {
-    UNUSED(chain_config);
-    uint8_t hashChecksum[INT256_LENGTH];
-    uint8_t i;
-    cx_keccak_init(sha3Context, 256);
-    cx_hash((cx_hash_t *) sha3Context, CX_LAST, address, 20, hashChecksum, 32);
-    for (i = 0; i < 40; i++) {
-        out[i] = convertDigit(address, i, hashChecksum);
-    }
-    out[40] = '\0';
-}
-
-#else
-
-static const uint8_t const HEXDIGITS[] = "0123456789abcdef";
-
 void getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey,
                                 uint8_t *out,
                                 cx_sha3_t *sha3Context,
@@ -249,8 +195,6 @@ void getEthAddressStringFromBinary(uint8_t *address,
     }
     out[40] = '\0';
 }
-
-#endif
 
 bool adjustDecimals(char *src,
                     uint32_t srcLength,

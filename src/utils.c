@@ -79,7 +79,7 @@ bool uint256_to_decimal(const uint8_t *value, char *out, size_t out_len) {
         n[i] = __builtin_bswap16(*p++);
     }
     int pos = out_len;
-    while (!allzeroes(n, sizeof(n))) {
+    while (!allzeroes((uint8_t *)n, sizeof(n))) {
         if (pos == 0) {
             return false;
         }

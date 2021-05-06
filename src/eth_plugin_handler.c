@@ -136,6 +136,7 @@ eth_plugin_result_t eth_plugin_call(uint8_t *contractAddress, int method, void *
 
     switch (method) {
         case ETH_PLUGIN_INIT_CONTRACT:
+            ((ethPluginInitContract_t *) parameter)->result = ETH_PLUGIN_RESULT_UNAVAILABLE;
             ((ethPluginInitContract_t *) parameter)->pluginSharedRW = &pluginRW;
             ((ethPluginInitContract_t *) parameter)->pluginSharedRO = &pluginRO;
             ((ethPluginInitContract_t *) parameter)->pluginContext =
@@ -145,24 +146,28 @@ eth_plugin_result_t eth_plugin_call(uint8_t *contractAddress, int method, void *
             ((ethPluginInitContract_t *) parameter)->alias = dataContext.tokenContext.pluginName;
             break;
         case ETH_PLUGIN_PROVIDE_PARAMETER:
+            ((ethPluginProvideParameter_t *) parameter)->result = ETH_PLUGIN_RESULT_UNAVAILABLE;
             ((ethPluginProvideParameter_t *) parameter)->pluginSharedRW = &pluginRW;
             ((ethPluginProvideParameter_t *) parameter)->pluginSharedRO = &pluginRO;
             ((ethPluginProvideParameter_t *) parameter)->pluginContext =
                 (uint8_t *) &dataContext.tokenContext.pluginContext;
             break;
         case ETH_PLUGIN_FINALIZE:
+            ((ethPluginFinalize_t *) parameter)->result = ETH_PLUGIN_RESULT_UNAVAILABLE;
             ((ethPluginFinalize_t *) parameter)->pluginSharedRW = &pluginRW;
             ((ethPluginFinalize_t *) parameter)->pluginSharedRO = &pluginRO;
             ((ethPluginFinalize_t *) parameter)->pluginContext =
                 (uint8_t *) &dataContext.tokenContext.pluginContext;
             break;
         case ETH_PLUGIN_PROVIDE_TOKEN:
+            ((ethPluginProvideToken_t *) parameter)->result = ETH_PLUGIN_RESULT_UNAVAILABLE;
             ((ethPluginProvideToken_t *) parameter)->pluginSharedRW = &pluginRW;
             ((ethPluginProvideToken_t *) parameter)->pluginSharedRO = &pluginRO;
             ((ethPluginProvideToken_t *) parameter)->pluginContext =
                 (uint8_t *) &dataContext.tokenContext.pluginContext;
             break;
         case ETH_PLUGIN_QUERY_CONTRACT_ID:
+            ((ethQueryContractID_t *) parameter)->result = ETH_PLUGIN_RESULT_UNAVAILABLE;
             ((ethQueryContractID_t *) parameter)->pluginSharedRW = &pluginRW;
             ((ethQueryContractID_t *) parameter)->pluginSharedRO = &pluginRO;
             ((ethQueryContractID_t *) parameter)->pluginContext =
@@ -211,9 +216,10 @@ eth_plugin_result_t eth_plugin_call(uint8_t *contractAddress, int method, void *
     }
 
     // Check the call result
-
+    PRINTF("method: %d\n", method);
     switch (method) {
         case ETH_PLUGIN_INIT_CONTRACT:
+            PRINTF("parameter result: %d\n", ((ethPluginInitContract_t *) parameter)->result);
             switch (((ethPluginInitContract_t *) parameter)->result) {
                 case ETH_PLUGIN_RESULT_OK:
                     if (contractAddress != NULL) {

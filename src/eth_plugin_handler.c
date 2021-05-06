@@ -106,29 +106,27 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
         PRINTF("eth_plug_init aborted in swap mode\n");
         return 0;
     }
-    for (;;) {
-        PRINTF("eth_plugin_init\n");
-        if (contractAddress != NULL) {
-            PRINTF("Trying address %.*H\n", 20, contractAddress);
-        } else {
-            PRINTF("Trying alias %s\n", dataContext.tokenContext.pluginName);
-        }
-        eth_plugin_result_t status =
-            eth_plugin_call(contractAddress, ETH_PLUGIN_INIT_CONTRACT, (void *) init);
-        if (status <= ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
+
+    eth_plugin_result_t status = ETH_PLUGIN_RESULT_UNAVAILABLE;
+
+    if (contractAddress != NULL) {
+            PRINTF("No plugin available for %.*H\n", 20, contractAddress);
             return status;
-        } else if (status == ETH_PLUGIN_RESULT_OK_ALIAS) {
-            contractAddress = NULL;
-        } else {
-            break;
-        }
+    }
+
+    PRINTF("eth_plugin_init\n");
+    PRINTF("Trying plugin %s\n", dataContext.tokenContext.pluginName);
+    status = eth_plugin_call(ETH_PLUGIN_INIT_CONTRACT, (void *) init);
+
+    if (status <= ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
+        return status;
     }
     PRINTF("eth_plugin_init ok %s\n", dataContext.tokenContext.pluginName);
     dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
     return ETH_PLUGIN_RESULT_OK;
 }
 
-eth_plugin_result_t eth_plugin_call(uint8_t *contractAddress, int method, void *parameter) {
+eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
     ethPluginSharedRW_t pluginRW;
     ethPluginSharedRO_t pluginRO;
     char tmp[PLUGIN_ID_LENGTH];
@@ -139,16 +137,11 @@ eth_plugin_result_t eth_plugin_call(uint8_t *contractAddress, int method, void *
     pluginRW.sha3 = &global_sha3;
     pluginRO.txContent = &tmpContent.txContent;
 
-    if (contractAddress == NULL) {
-        if (dataContext.tokenContext.pluginStatus <= ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
-            PRINTF("Cached plugin call but no plugin available\n");
-            return dataContext.tokenContext.pluginStatus;
-        }
-        alias = dataContext.tokenContext.pluginName;
-    } else {
-        PRINTF("No matching plugin available\n");
-        return 0;
+    if (dataContext.tokenContext.pluginStatus <= ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
+        PRINTF("Cached plugin call but no plugin available\n");
+        return dataContext.tokenContext.pluginStatus;
     }
+    alias = dataContext.tokenContext.pluginName;
 
     // Prepare the call
 
@@ -240,11 +233,6 @@ eth_plugin_result_t eth_plugin_call(uint8_t *contractAddress, int method, void *
             PRINTF("parameter result: %d\n", ((ethPluginInitContract_t *) parameter)->result);
             switch (((ethPluginInitContract_t *) parameter)->result) {
                 case ETH_PLUGIN_RESULT_OK:
-                    if (contractAddress != NULL) {
-                        strcpy(dataContext.tokenContext.pluginName, alias);
-                    }
-                    break;
-                case ETH_PLUGIN_RESULT_OK_ALIAS:
                     break;
                 case ETH_PLUGIN_RESULT_ERROR:
                     return ETH_PLUGIN_RESULT_ERROR;

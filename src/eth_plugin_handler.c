@@ -219,7 +219,7 @@ eth_plugin_result_t eth_plugin_call(uint8_t *contractAddress, int method, void *
     PRINTF("method: %d\n", method);
     switch (method) {
         case ETH_PLUGIN_INIT_CONTRACT:
-            PRINTF("parameter result: %d\n", ((ethPluginInitContract_t *)parameter)->result);
+            PRINTF("parameter result: %d\n", ((ethPluginInitContract_t *) parameter)->result);
             switch (((ethPluginInitContract_t *) parameter)->result) {
                 case ETH_PLUGIN_RESULT_OK:
                     if (contractAddress != NULL) {

@@ -21,6 +21,7 @@ static void handle_amount_sent(ethPluginProvideParameter_t *msg, paraswap_parame
                    "",
                    (char *) context->amount_sent,
                    sizeof(context->amount_sent));
+    PRINTF("AMOUNT SENT: %s\n", context->amount_sent);
 }
 
 // Store the amount received in the form of a string, without any ticker or decimals. These will be
@@ -44,13 +45,14 @@ static void handle_amount_received(ethPluginProvideParameter_t *msg,
                    "",  // No ticker
                    (char *) context->amount_received,
                    sizeof(context->amount_received));
+    PRINTF("AMOUNT RECEIVED: %s\n", context->amount_received);
 }
 
 static void handle_beneficiary(ethPluginProvideParameter_t *msg, paraswap_parameters_t *context) {
-    memset(context->contract_address_sent, 0, sizeof(context->contract_address_sent));
-    memcpy(context->contract_address_sent,
+    memset(context->beneficiary, 0, sizeof(context->beneficiary));
+    memcpy(context->beneficiary,
            &msg->parameter[PARAMETER_LENGTH - ADDRESS_LENGTH],
-           sizeof(context->contract_address_sent));
+           sizeof(context->beneficiary));
     PRINTF("BENEFICIARY: %.*H\n", ADDRESS_LENGTH, context->beneficiary);
 }
 
@@ -79,10 +81,10 @@ static void handle_token_received(ethPluginProvideParameter_t *msg,
 void handle_provide_parameter(void *parameters) {
     ethPluginProvideParameter_t *msg = (ethPluginProvideParameter_t *) parameters;
     paraswap_parameters_t *context = (paraswap_parameters_t *) msg->pluginContext;
-    // PRINTF("eth2 plugin provide parameter %d %.*H\n",
-        //    msg->parameterOffset,
-        //    PARAMETER_LENGTH,
-        //    msg->parameter);
+    PRINTF("eth2 plugin provide parameter %d %.*H\n",
+           msg->parameterOffset,
+           PARAMETER_LENGTH,
+           msg->parameter);
 
     msg->result = ETH_PLUGIN_RESULT_OK;
 
@@ -91,6 +93,15 @@ void handle_provide_parameter(void *parameters) {
         PRINTF("SKIPPING: %d\n", context->skip);
         context->skip--;
     } else {
+        if ((context->offset) && msg->parameterOffset != context->checkpoint + context->offset) {
+            PRINTF("offset: %d, checkpoint: %d, parameterOffset: %d\n",
+                   context->offset,
+                   context->checkpoint,
+                   msg->parameterOffset);
+            return;
+        }
+
+        context->offset = 0;  // Reset offset
         PRINTF("NOT SKIPPING: INDEX: %d\n", context->selectorIndex);
         switch (context->selectorIndex) {
             case BUY_ON_UNI:
@@ -99,11 +110,15 @@ void handle_provide_parameter(void *parameters) {
                     case AMOUNT_SENT:  // amountIn
                         handle_amount_sent(msg, context);
                         context->next_param = AMOUNT_RECEIVED;
+                        context->checkpoint = msg->parameterOffset;
                         break;
                     case AMOUNT_RECEIVED:  // amountOut
                         handle_amount_received(msg, context);
+                        context->next_param = PATHS_OFFSET;
+                        break;
+                    case PATHS_OFFSET:
+                        context->offset = U2BE(msg->parameter, PARAMETER_LENGTH - 2);
                         context->next_param = PATH;
-                        context->skip = 2;  // Need to skip two fields before getting to list_len
                         break;
                     case PATH:  // len(path)
                         handle_list_len(msg, context);
@@ -111,14 +126,15 @@ void handle_provide_parameter(void *parameters) {
                         break;
                     case TOKEN_SENT:  // path[0]
                         handle_token_sent(msg, context);
-                        context->skip =
-                            context->list_len -
-                            2;  // -2 because we won't be skipping the first one and the last one.
+                        // -2 because we won't be skipping the first one and the last one.
+                        context->skip = context->list_len - 2;
                         context->next_param = TOKEN_RECEIVED;
                         break;
                     case TOKEN_RECEIVED:  // path[len(path) - 1]
                         handle_token_received(msg, context);
-                        context->list_len = 0;
+                        context->next_param = NONE;
+                        break;
+                    case NONE:
                         break;
                     default:
                         PRINTF("Unsupported param\n");
@@ -133,13 +149,17 @@ void handle_provide_parameter(void *parameters) {
                     case AMOUNT_SENT:  // amountInMax
                         handle_amount_sent(msg, context);
                         context->next_param = AMOUNT_RECEIVED;
+                        context->checkpoint = msg->parameterOffset;
                         break;
                     case AMOUNT_RECEIVED:  // amountOut
                         handle_amount_received(msg, context);
-                        context->next_param = PATH;
-                        context->skip = 2;  // Need to skip two fields
+                        context->next_param = PATHS_OFFSET;
                         break;
-                    case PATH:  // len(path)
+                    case PATHS_OFFSET:
+                        context->offset = U2BE(msg->parameter, PARAMETER_LENGTH - 2);
+                        context->next_param = PATH;
+                        break;
+                    case PATH:
                         handle_list_len(msg, context);
                         context->next_param = TOKEN_SENT;
                         break;
@@ -150,9 +170,11 @@ void handle_provide_parameter(void *parameters) {
                             context->list_len -
                             2;  // -2 because we won't be skipping the first one and the last one.
                         break;
-                    case TOKEN_RECEIVED:  // path[len(path) - 1]
+                    case TOKEN_RECEIVED: // path[len(path) - 1]
                         handle_token_received(msg, context);
-                        context->list_len = 0;
+                        context->next_param = NONE;
+                        break;
+                    case NONE:
                         break;
                     default:
                         PRINTF("Unsupported param\n");
@@ -171,7 +193,7 @@ void handle_provide_parameter(void *parameters) {
                         break;
                     case TOKEN_RECEIVED:  // toToken
                         handle_token_received(msg, context);
-                        context->next_param = AMOUNT_RECEIVED;
+                        context->next_param = AMOUNT_SENT;
                         break;
                     case AMOUNT_SENT:  // fromAmount
                         handle_amount_sent(msg, context);
@@ -179,35 +201,17 @@ void handle_provide_parameter(void *parameters) {
                         break;
                     case AMOUNT_RECEIVED:  // toAmount
                         handle_amount_received(msg, context);
-                        context->next_param = EXPECTED_AMOUNT;
-                        break;
-                    case EXPECTED_AMOUNT:
-                        context->skip = 2;
-                        context->next_param = CALLEES;
-                        break;
-                    case CALLEES:
-                        handle_list_len(msg, context);
-                        context->next_param = EXCHANGE_DATA;
-                        context->skip = context->list_len;
-                        break;
-                    case EXCHANGE_DATA:  // verify because bytes?
-                        context->next_param = START_INDEXES;
-                        context->skip = 2;
-                        break;
-                    case START_INDEXES:
-                        handle_list_len(msg, context);
-                        context->next_param = VALUES;
-                        context->skip =
-                            context->list_len + 2;  // + 2 because next field is a list too
-                        break;
-                    case VALUES:
-                        handle_list_len(msg, context);
-                        context->skip = context->list_len;
                         context->next_param = BENEFICIARY;
+                        context->skip = 4; // callees, exchangeData, startIndexes, values.
+                        if (context->selectorIndex == SIMPLE_SWAP) {
+                            context->skip++; // skip field expectedAmount for simple swap.
+                        }
                         break;
                     case BENEFICIARY:
                         handle_beneficiary(msg, context);
-                        context->skip = 0;
+                        context->next_param = NONE;
+                        break;
+                    case NONE:
                         break;
                     default:
                         PRINTF("Param not supported\n");
@@ -218,9 +222,9 @@ void handle_provide_parameter(void *parameters) {
             }
 
             case MULTI_SWAP: {
-                PRINTF("MULTI_SWAP: %d\n", context->next_param);
                 switch (context->next_param) {
                     case TOKEN_SENT:  // fromToken
+                        context->checkpoint = msg->parameterOffset;
                         handle_token_sent(msg, context);
                         context->next_param = AMOUNT_SENT;
                         break;
@@ -230,24 +234,33 @@ void handle_provide_parameter(void *parameters) {
                         break;
                     case AMOUNT_RECEIVED:  // toAmount
                         handle_amount_received(msg, context);
-                        context->next_param = EXPECTED_AMOUNT;
-                        break;
-                    case EXPECTED_AMOUNT:  // expectedAmount
                         context->next_param = BENEFICIARY;
+                        context->skip = 1;
                         break;
-                    case BENEFICIARY:
+                    case BENEFICIARY:  // beneficiary
                         handle_beneficiary(msg, context);
-                        context->next_param = PATH;
-                        context->skip =
-                            4;  // Referrer, useReduxTokens and two fields because of list.
+                        context->next_param = PATHS_OFFSET;
+                        context->skip = 2;  // Skip referrer and useReduxtoken
                         break;
-                    case PATH:  // len(path) SCOTT NEED REWORK for Path[]
-                        handle_list_len(msg, context);
-                        context->skip = context->list_len - 1;
+                    case PATHS_OFFSET:
+                        context->offset = U2BE(msg->parameter, PARAMETER_LENGTH - 2);
+                        context->next_param = PATHS_LEN;
+                        break;
+                    case PATHS_LEN:
+                        // We want to access path[-1] so take the length and decrease by one
+                        context->skip = U4BE(msg->parameter, PARAMETER_LENGTH - 4) - 1;
+                        context->next_param = OFFSET;
+                        break;
+                    case OFFSET:
+                        context->checkpoint = msg->parameterOffset;
+                        context->offset = U2BE(msg->parameter, PARAMETER_LENGTH - 2);
                         context->next_param = TOKEN_RECEIVED;
                         break;
                     case TOKEN_RECEIVED:
                         handle_token_received(msg, context);
+                        context->next_param = NONE;
+                        break;
+                    case NONE:
                         break;
                     default:
                         PRINTF("Param not supported\n");
@@ -267,15 +280,19 @@ void handle_provide_parameter(void *parameters) {
                         handle_token_received(msg, context);
                         context->next_param = AMOUNT_SENT;
                         break;
-                    case AMOUNT_SENT:
+                    case AMOUNT_SENT:  // fromAmount
                         handle_amount_sent(msg, context);
                         context->next_param = AMOUNT_RECEIVED;
-                    case AMOUNT_RECEIVED:  // toAmount
+                        break;
+                    case AMOUNT_RECEIVED: // toAmount
                         handle_amount_received(msg, context);
                         context->next_param = BENEFICIARY;
                         break;
-                    case BENEFICIARY:
+                    case BENEFICIARY:  // beneficiary
                         handle_beneficiary(msg, context);
+                        context->next_param = NONE;
+                        break;
+                   case NONE:
                         break;
                     default:
                         PRINTF("Param not supported\n");
@@ -285,7 +302,75 @@ void handle_provide_parameter(void *parameters) {
                 break;
             }
 
-                // case MEGA_SWAP: scott
+            case MEGA_SWAP: {
+                switch (context->next_param) {
+                    case TOKEN_SENT: // fromToken
+                        context->checkpoint = msg->parameterOffset;
+                        PRINTF("\t\tSetting checkpoint : %d\n", context->checkpoint);
+                        handle_token_sent(msg, context);
+                        context->next_param = AMOUNT_SENT;
+                        break;
+                    case AMOUNT_SENT:
+                        handle_amount_sent(msg, context);
+                        context->next_param = AMOUNT_RECEIVED;
+                        break;
+                    case AMOUNT_RECEIVED:
+                        handle_amount_received(msg, context);
+                        context->next_param = BENEFICIARY;
+                        context->skip = 1;
+                        break;
+                    case BENEFICIARY:
+                        handle_beneficiary(msg, context);
+                        context->next_param = MEGA_PATHS_OFFSET;
+                        context->skip = 2;
+                        break;
+                    case MEGA_PATHS_OFFSET: // 0x140
+                        context->offset = U2BE(msg->parameter, PARAMETER_LENGTH - 2);
+                        PRINTF("\n\t\tMEGA OFFSET: %d, CHECKPOINT: %d, total: %d\n", context->offset, context->checkpoint, context->offset + context->checkpoint);
+                        context->next_param = MEGA_PATHS_LEN;
+                        break;
+                    case MEGA_PATHS_LEN: // 
+                        context->next_param = FIRST_MEGAPATH_OFFSET;
+                        break;
+                    case FIRST_MEGAPATH_OFFSET: // 0x60
+                        context->checkpoint = msg->parameterOffset;
+                        context->offset = U2BE(msg->parameter, PARAMETER_LENGTH - 2);
+                        context->next_param = FIRST_MEGAPATH;
+                        PRINTF("\n\t\tFIRST MEGA OFFSET: %d, CHECKPOINT: %d, total: %d\n", context->offset, context->checkpoint, context->offset + context->checkpoint);
+                        break;
+                    case FIRST_MEGAPATH:
+                        context->checkpoint = msg->parameterOffset;
+                        context->next_param = PATHS_OFFSET;
+                        break;
+                    case PATHS_OFFSET:
+                        context->offset = U2BE(msg->parameter, PARAMETER_LENGTH - 2);
+                        context->next_param = PATHS_LEN;
+                        PRINTF("\n\t\tPATHS OFFSET: %d, CHECKPOINT: %d, total: %d\n", context->offset, context->checkpoint, context->offset + context->checkpoint);
+                        break;
+                    case PATHS_LEN:
+                        context->skip = U2BE(msg->parameter, PARAMETER_LENGTH - 2);
+                        context->skip--;
+                        context->next_param = PATH;
+                        break;
+                    case PATH:
+                        context->checkpoint = msg->parameterOffset;
+                        context->offset = U2BE(msg->parameter, PARAMETER_LENGTH - 2);
+                        context->next_param = TOKEN_RECEIVED;
+                        PRINTF("\n\t\tLAST OFFSET: %d, CHECKPOINT: %d, total: %d\n", context->offset, context->checkpoint, context->offset + context->checkpoint);
+                        break;
+                    case TOKEN_RECEIVED:
+                        handle_token_received(msg, context);
+                        context->next_param = NONE;
+                        break;
+                    case NONE:
+                        break;
+                    default:
+                        PRINTF("Param not supported\n");
+                        msg->result = ETH_PLUGIN_RESULT_ERROR;
+                        break;
+                }
+                break;
+            }
         }
     }
 }

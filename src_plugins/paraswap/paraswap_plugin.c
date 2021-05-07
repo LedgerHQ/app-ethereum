@@ -1,8 +1,11 @@
 #include "paraswap_plugin.h"
 
 // Paraswap uses `0xeeeee` as a dummy address to represent ETH.
-const uint8_t PARASWAP_ETH_ADDRESS[] = {0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee,
+const uint8_t PARASWAP_ETH_ADDRESS[ADDRESS_LENGTH] = {0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee,
                                         0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee};
+
+const uint8_t NULL_ETH_ADDRESS[ADDRESS_LENGTH] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 // Prepend `dest` with `ticker`.
 // Dest must be big enough to hold `ticker` + `dest` + `\0`.
@@ -44,7 +47,6 @@ static void handle_init_contract(void *parameters) {
         }
     }
 
-    PRINTF("\n\nindex: %d\n\n", context->selectorIndex);
     // Set `next_param` to be the first field we expect to parse.
     switch (context->selectorIndex) {
         case BUY_ON_UNI:
@@ -58,11 +60,13 @@ static void handle_init_contract(void *parameters) {
             break;
         case SIMPLE_BUY:
         case SIMPLE_SWAP:
-        case MULTI_SWAP:
+            context->next_param = TOKEN_SENT;
+            break;
         case BUY:
         case MEGA_SWAP:
+        case MULTI_SWAP:
             context->next_param = TOKEN_SENT;
-            PRINTF("INIT: TOKEN_SENT\n");
+            context->skip = 1;  // Skipping 0x20 (first param)
             break;
         default:
             PRINTF("Missing selectorIndex\n");
@@ -80,20 +84,29 @@ static void handle_finalize(void *parameters) {
     if (context->valid) {
         msg->numScreens = 2;
         if (context->selectorIndex == SIMPLE_SWAP || context->selectorIndex == SIMPLE_BUY)
-            // An addiitonal screen is required to display the `beneficiary` field.
-            msg->numScreens += 1;
+            if (strncmp(context->beneficiary, (char *)NULL_ETH_ADDRESS, ADDRESS_LENGTH) != 0) {
+                // An addiitonal screen is required to display the `beneficiary` field.
+                msg->numScreens += 1;
+            }
         if (ADDRESS_IS_ETH(context->contract_address_sent) == 0) {
             // Address is not ETH so we will need to look up the token in the CAL.
             msg->tokenLookup1 = context->contract_address_sent;
+            PRINTF("Setting address sent to: %.*H\n", ADDRESS_LENGTH, context->contract_address_sent);
+        } else {
+            msg->tokenLookup1 = NULL;
         }
         if (ADDRESS_IS_ETH(context->contract_address_received) == 0) {
             // Address is not ETH so we will need to look up the token in the CAL.
+            PRINTF("Setting address receiving to: %.*H\n", ADDRESS_LENGTH, context->contract_address_received);
             msg->tokenLookup2 = context->contract_address_received;
+        } else {
+            msg->tokenLookup2 = NULL;
         }
 
         msg->uiType = ETH_UI_TYPE_GENERIC;
         msg->result = ETH_PLUGIN_RESULT_OK;
     } else {
+        PRINTF("Context not valid\n");
         msg->result = ETH_PLUGIN_RESULT_FALLBACK;
     }
 }
@@ -102,59 +115,50 @@ static void handle_provide_token(void *parameters) {
     ethPluginProvideToken_t *msg = (ethPluginProvideToken_t *) parameters;
     paraswap_parameters_t *context = (paraswap_parameters_t *) msg->pluginContext;
     PRINTF("PARASWAP plugin provide token: 0x%p, 0x%p\n", msg->token1, msg->token2);
-    switch (context->selectorIndex) {
-        case SWAP_ON_UNI_FORK:
-        case SWAP_ON_UNI: {
-            if (msg->token1 != NULL) {
-                context->decimals_sent = msg->token1->decimals;
-                strncpy(context->ticker_sent,
-                        (char *) msg->token1->ticker,
-                        sizeof(context->ticker_sent));
-            } else {
-                context->decimals_sent = WEI_TO_ETHER;
-                uint8_t *ticker = (uint8_t *) PIC(chainConfig->coinName);
-                strncpy(context->ticker_sent, (char *) ticker, sizeof(context->ticker_sent));
-            }
-            if (msg->token2 != NULL) {
-                context->decimals_received = msg->token2->decimals;
-                strncpy(context->ticker_received,
-                        (char *) msg->token2->ticker,
-                        sizeof(context->ticker_received));
-            } else {
-                context->decimals_received = WEI_TO_ETHER;
-                uint8_t *ticker = (uint8_t *) PIC(chainConfig->coinName);
-                strncpy(context->ticker_received,
-                        (char *) ticker,
-                        sizeof(context->ticker_received));
-            }
-            msg->result = ETH_PLUGIN_RESULT_OK;
-            break;
-        }
-        default:
-            PRINTF("NOT PROVIDING TOKEN FOR SWAPONUNI\n");
-            msg->result = ETH_PLUGIN_RESULT_FALLBACK;
-            break;
+    if (msg->token1 != NULL) {
+        context->decimals_sent = msg->token1->decimals;
+        strncpy(context->ticker_sent, (char *) msg->token1->ticker, sizeof(context->ticker_sent));
+    } else {
+        context->decimals_sent = WEI_TO_ETHER;
+        uint8_t *ticker = (uint8_t *) PIC(chainConfig->coinName);
+        strncpy(context->ticker_sent, (char *) ticker, sizeof(context->ticker_sent));
     }
+    if (msg->token2 != NULL) {
+        context->decimals_received = msg->token2->decimals;
+        strncpy(context->ticker_received,
+                (char *) msg->token2->ticker,
+                sizeof(context->ticker_received));
+    } else {
+        context->decimals_received = WEI_TO_ETHER;
+        uint8_t *ticker = (uint8_t *) PIC(chainConfig->coinName);
+        strncpy(context->ticker_received, (char *) ticker, sizeof(context->ticker_received));
+    }
+    msg->result = ETH_PLUGIN_RESULT_OK;
 }
 
 static void handle_query_contract_id(void *parameters) {
     ethQueryContractID_t *msg = (ethQueryContractID_t *) parameters;
     paraswap_parameters_t *context = (paraswap_parameters_t *) msg->pluginContext;
 
-    strcpy(msg->name, "Paraswap");
+    strncpy(msg->name, "Paraswap", 100); // check size
     msg->nameLength = sizeof("Paraswap");  // scott
     switch (context->selectorIndex) {
+        case MEGA_SWAP:
         case MULTI_SWAP:
         case SIMPLE_SWAP:
         case SWAP_ON_UNI_FORK:
         case SWAP_ON_UNI:
-            strcpy(msg->version, "Swap");
+            strncpy(msg->version, "Swap", 40); // check size
             break;
         case SIMPLE_BUY:
         case BUY_ON_UNI_FORK:
         case BUY_ON_UNI:
-            strcpy(msg->version, "Buy");
+            strncpy(msg->version, "Buy", 40); // check size
             break;
+        default:
+            PRINTF("Selector Index :%d not supported\n", context->selectorIndex);
+            msg->result = ETH_PLUGIN_RESULT_ERROR;
+            return;
     }
 
     msg->versionLength = strlen(msg->version) + 1;
@@ -164,12 +168,12 @@ static void handle_query_contract_id(void *parameters) {
 static void handle_query_contract_ui(void *parameters) {
     ethQueryContractUI_t *msg = (ethQueryContractUI_t *) parameters;
     paraswap_parameters_t *context = (paraswap_parameters_t *) msg->pluginContext;
-    memset(msg->title, 0, 100);  // 100 ? degueu
-    memset(msg->msg, 0, 40);     // 40 ? deugue
+    memset(msg->title, 0, 100);  // 100 ? degueu put in sdk
+    memset(msg->msg, 0, 40);     // 40 ? deugue put in sdk
     msg->result = ETH_PLUGIN_RESULT_OK;
     switch (msg->screenIndex) {
         case 0: {
-            strcpy(msg->title, "Send");
+            strncpy(msg->title, "Send", 100); // degueu
             adjustDecimals((char *) context->amount_sent,
                            strlen((char *) context->amount_sent),
                            msg->msg,
@@ -198,7 +202,7 @@ static void handle_query_contract_ui(void *parameters) {
             break;
         }
         default:
-            PRINTF("GET REKT\n");  // scott
+            PRINTF("Received an invalid screenIndex\n");
             msg->result = ETH_PLUGIN_RESULT_ERROR;
             break;
     }

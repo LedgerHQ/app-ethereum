@@ -74,12 +74,13 @@ uint32_t u32_from_BE(uint8_t *in, uint8_t size, bool strict) {
 
 bool uint256_to_decimal(const uint8_t *value, char *out, size_t out_len) {
     uint16_t n[16];
-    uint16_t *p = (uint16_t *) value;
+    memcpy((uint8_t*)n, value, 32);
+    uint16_t *p = n;
     for (int i = 0; i < 16; i++) {
         n[i] = __builtin_bswap16(*p++);
     }
     int pos = out_len;
-    while (!allzeroes((uint8_t *)n, sizeof(n))) {
+    while (!allzeroes(n, sizeof(n))) {
         if (pos == 0) {
             return false;
         }

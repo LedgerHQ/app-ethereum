@@ -65,7 +65,7 @@ typedef struct tokenContext_t {
             uint8_t contract_address[ADDRESS_LENGTH];
             uint8_t method_selector[SELECTOR_LENGTH];
         };
-        uint8_t pluginContext[3 * INT256_LENGTH];
+        uint8_t pluginContext[5 * INT256_LENGTH];
     };
 
 #ifdef HAVE_STARKWARE

@@ -10,7 +10,7 @@ typedef struct internalEthPlugin_t {
     PluginAvailableCheck availableCheck;
     const uint8_t** selectors;
     uint8_t num_selectors;
-    char alias[7];
+    char alias[10];
     PluginCall impl;
 } internalEthPlugin_t;
 

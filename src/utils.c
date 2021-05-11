@@ -74,7 +74,7 @@ uint32_t u32_from_BE(uint8_t *in, uint8_t size, bool strict) {
 
 bool uint256_to_decimal(const uint8_t *value, char *out, size_t out_len) {
     uint16_t n[16];
-    memcpy((uint8_t*)n, value, 32);
+    memcpy((uint8_t *) n, value, 32);
     uint16_t *p = n;
     for (int i = 0; i < 16; i++) {
         n[i] = __builtin_bswap16(*p++);

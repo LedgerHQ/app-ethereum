@@ -15,6 +15,7 @@ void handleSetExternalPlugin(uint8_t p1,
     UNUSED(p1);
     UNUSED(p2);
     UNUSED(flags);
+    PRINTF("Handling set External Plugin\n");
     uint8_t hash[32];
     cx_ecfp_public_key_t tokenKey;
     uint8_t pluginNameLength = *workBuffer;
@@ -78,7 +79,7 @@ void handleSetExternalPlugin(uint8_t p1,
     memmove(dataContext.tokenContext.contract_address, workBuffer, CONTRACT_ADDR_SIZE);
     workBuffer += 20;
     memmove(dataContext.tokenContext.method_selector, workBuffer, SELECTOR_SIZE);
-    tmpCtx.transactionContext.externalPluginIsSet = true;
+    externalPluginIsSet = true;
 
     G_io_apdu_buffer[(*tx)++] = 0x90;
     G_io_apdu_buffer[(*tx)++] = 0x00;

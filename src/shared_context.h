@@ -91,7 +91,6 @@ typedef struct transactionContext_t {
     tokenDefinition_t tokens[MAX_TOKEN];
     uint8_t tokenSet[MAX_TOKEN];
     uint8_t currentTokenIndex;
-    bool externalPluginIsSet;
 } transactionContext_t;
 
 typedef struct messageSigningContext_t {
@@ -197,6 +196,7 @@ extern const internalStorage_t N_storage_real;
 
 extern bool called_from_swap;
 extern bool dataPresent;
+extern bool externalPluginIsSet;
 extern uint8_t appState;
 #ifdef HAVE_STARKWARE
 extern bool quantumSet;

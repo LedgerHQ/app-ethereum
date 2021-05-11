@@ -306,7 +306,7 @@ void finalizeParsing(bool direct) {
                 }
             }
             eth_plugin_prepare_provide_token(&pluginProvideToken, token1, token2);
-            if (!eth_plugin_call(ETH_PLUGIN_PROVIDE_TOKEN, (void *) &pluginProvideToken)) {
+            if (eth_plugin_call(ETH_PLUGIN_PROVIDE_TOKEN, (void *) &pluginProvideToken) <= ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
                 PRINTF("Plugin provide token call failed\n");
                 reportFinalizeError(direct);
                 if (!direct) {

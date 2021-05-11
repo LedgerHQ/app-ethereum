@@ -62,7 +62,7 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
     dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_UNAVAILABLE;
 
     PRINTF("Selector %.*H\n", 4, init->selector);
-    if (tmpCtx.transactionContext.externalPluginIsSet) {
+    if (externalPluginIsSet) {
         // check if the registered external plugin matches the TX contract address / method selector
         if (memcmp(contractAddress,
                    dataContext.tokenContext.contract_address,

@@ -67,9 +67,12 @@ static const ECPoint PEDERSEN_POINTS[4] = {
 void accum_ec_mul(ECPoint *hash, uint8_t *buf, int len, int pedersen_idx) {
     ECPoint tmp;
     if (!allzeroes(buf, len)) {
+        uint8_t pad[32];
         memcpy(tmp, PEDERSEN_POINTS[pedersen_idx], sizeof(ECPoint));
         io_seproxyhal_io_heartbeat();
-        cx_ecfp_scalar_mult(CX_CURVE_Stark256, tmp, sizeof(ECPoint), buf, len);
+        memset(pad, 0, sizeof(pad));
+        memmove(pad + 32 - len, buf, len);
+        cx_ecfp_scalar_mult(CX_CURVE_Stark256, tmp, sizeof(ECPoint), pad, sizeof(pad));
         io_seproxyhal_io_heartbeat();
         cx_ecfp_add_point(CX_CURVE_Stark256, *hash, *hash, tmp, sizeof(ECPoint));
     }

@@ -172,9 +172,12 @@ typedef struct txStringProperties_t {
                       // chainID for their token / chain.
 } txStringProperties_t;
 
+#define SHARED_CTX_FIELD_1_SIZE 100
+#define SHARED_CTX_FIELD_2_SIZE 40
+
 typedef struct strDataTmp_t {
-    char tmp[100];
-    char tmp2[40];
+    char tmp[SHARED_CTX_FIELD_1_SIZE];
+    char tmp2[SHARED_CTX_FIELD_2_SIZE];
 } strDataTmp_t;
 
 typedef union {

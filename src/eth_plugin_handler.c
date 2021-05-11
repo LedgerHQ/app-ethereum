@@ -77,8 +77,7 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
         PRINTF("External plugin will be used\n");
         dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
         contractAddress = NULL;
-    }
-    else {
+    } else {
         // Search internal plugin list
         for (i = 0;; i++) {
             uint8_t j;
@@ -87,7 +86,7 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
                 break;
             }
             for (j = 0; ((j < INTERNAL_ETH_PLUGINS[i].num_selectors) && (contractAddress != NULL));
-                j++) {
+                 j++) {
                 if (memcmp(init->selector, (const void *) PIC(selectors[j]), SELECTOR_SIZE) == 0) {
                     if ((INTERNAL_ETH_PLUGINS[i].availableCheck == NULL) ||
                         ((PluginAvailableCheck) PIC(INTERNAL_ETH_PLUGINS[i].availableCheck))()) {
@@ -110,8 +109,8 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
     eth_plugin_result_t status = ETH_PLUGIN_RESULT_UNAVAILABLE;
 
     if (contractAddress != NULL) {
-            PRINTF("No plugin available for %.*H\n", 20, contractAddress);
-            return status;
+        PRINTF("No plugin available for %.*H\n", 20, contractAddress);
+        return status;
     }
 
     PRINTF("eth_plugin_init\n");

@@ -356,7 +356,7 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_THUNDERCORE[i]);
                 break
         }
-        if (memcmp(currentToken->address, tmpContent.txContent.destination, 20) == 0) {
+        if (memcmp(currentToken->address, tmpContent.txContent.destination, ADDRESS_LENGTH) == 0) {
             return currentToken;
         }
     }
@@ -364,7 +364,7 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
     for (size_t i = 0; i < MAX_TOKEN; i++) {
         currentToken = &tmpCtx.transactionContext.tokens[i];
         if (tmpCtx.transactionContext.tokenSet[i] &&
-            (memcmp(currentToken->address, contractAddress, 20) == 0)) {
+            (memcmp(currentToken->address, contractAddress, ADDRESS_LENGTH) == 0)) {
             PRINTF("Token found at index %d\n", i);
             return currentToken;
         }

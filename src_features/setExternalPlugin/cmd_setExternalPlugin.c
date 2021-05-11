@@ -31,8 +31,8 @@ void handleSetExternalPlugin(uint8_t p1,
     // check Ledger's signature over the payload
     cx_hash_sha256(workBuffer, payload_size, hash, sizeof(hash));
     cx_ecfp_init_public_key(CX_CURVE_256K1,
-                            LEDGER_PLUGINS_SIGNATURE_PUBLIC_KEY,
-                            sizeof(LEDGER_PLUGINS_SIGNATURE_PUBLIC_KEY),
+                            LEDGER_SIGNATURE_PUBLIC_KEY,
+                            sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
                             &tokenKey);
     if(!cx_ecdsa_verify(&tokenKey, CX_LAST, CX_SHA256, hash, sizeof(hash), workBuffer+payload_size, dataLength-payload_size)){
         PRINTF("Invalid external plugin signature %.*H\n", payload_size, workBuffer);

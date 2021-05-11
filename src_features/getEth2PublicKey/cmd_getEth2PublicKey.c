@@ -19,7 +19,7 @@ void getEth2PublicKey(uint32_t *bip32Path, uint8_t bip32PathLength, uint8_t *out
     uint8_t tmp[96];
 
     io_seproxyhal_io_heartbeat();
-    // os_perso_derive_eip2333(CX_CURVE_BLS12_381_G1, bip32Path, bip32PathLength, privateKeyData);
+    os_perso_derive_eip2333(CX_CURVE_BLS12_381_G1, bip32Path, bip32PathLength, privateKeyData);
     io_seproxyhal_io_heartbeat();
     memset(tmp, 0, 48);
     memmove(tmp + 16, privateKeyData, 32);

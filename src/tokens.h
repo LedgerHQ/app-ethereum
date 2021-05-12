@@ -19,6 +19,7 @@
 #define _TOKENS_H_
 
 #include <stdint.h>
+#include "ethUstream.h"
 
 #define MAX_TICKER_LEN 12  // 10 characters + ' ' + '\0'
 

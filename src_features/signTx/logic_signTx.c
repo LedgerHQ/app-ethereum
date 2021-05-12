@@ -6,6 +6,7 @@
 #include "stark_utils.h"
 #endif
 #include "eth_plugin_handler.h"
+#include "chain_id.h"
 
 #define ERR_SILENT_MODE_CHECK_FAILED 0x6001
 
@@ -404,26 +405,27 @@ void finalizeParsing(bool direct) {
 
     // Prepare chainID field
     if (genericUI) {
+        uint32_t chain_id;
+
         if (txContext.txType == LEGACY) {
-            uint32_t id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
-            PRINTF("Chain ID: %u\n", id);
-            uint8_t res =
-                snprintf(strings.common.chainID, sizeof(strings.common.chainID), "%d", id);
+            chain_id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
+        } else if (txContext.txType == EIP2930) {
+            chain_id = u32_from_BE(tmpContent.txContent.chainID.value, tmpContent.txContent.chainID.length, true);
+        }
+        else {
+            PRINTF("Txtype `%u` not supported while generating chainID\n", txContext.txType);
+            return;
+        }
+
+        PRINTF("Chain ID: %d\n", chain_id);
+        char *res = get_network_name_from_chain_id(strings.common.chainID, sizeof(strings.common.chainID), chain_id);
+        if (res == NULL) {
+            uint8_t res = snprintf(strings.common.chainID, sizeof(strings.common.chainID), "%d", chain_id);
             if (res >= sizeof(strings.common.chainID)) {
                 // If the return value is higher or equal to the size passed in as parameter, then
                 // the output was truncated. Return the appropriate error code.
                 THROW(0x6502);
             }
-        } else if (txContext.txType == EIP2930) {
-            uint256_t chainID;
-            convertUint256BE(tmpContent.txContent.chainID.value,
-                             tmpContent.txContent.chainID.length,
-                             &chainID);
-            tostring256(&chainID, 10, displayBuffer, sizeof(displayBuffer));
-            strncpy(strings.common.chainID, displayBuffer, sizeof(strings.common.chainID));
-        } else {
-            PRINTF("Txtype `%u` not supported while generating chainID\n", txContext.txType);
-            return;
         }
     }
 

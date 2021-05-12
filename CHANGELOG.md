@@ -40,6 +40,7 @@ Version bump needed for deployment reasons, nothing changed.
 ### Fixed
 
 - Fixed a bug that prevented using Ethereum sidechains
+
 ## [1.7.3](https://github.com/ledgerhq/app-ethereum/compare/1.7.2...1.7.3) - 2021-5-5
 
 ### Added

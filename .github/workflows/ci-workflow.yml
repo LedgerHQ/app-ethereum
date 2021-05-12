@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Clone
         uses: actions/checkout@v2
+        with:
+          submodules: recursive
 
       - name: Build an altcoin
         run: |

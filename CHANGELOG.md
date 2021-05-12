@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+- Add display of network name instead of chain ID.
+
+## [1.7.6](https://github.com/ledgerhq/app-ethereum/compare/1.7.4...1.7.5) - 2021-5-14
+
+### Added
+
 - Add support for external plugins
 
 ## [1.7.5](https://github.com/ledgerhq/app-ethereum/compare/1.7.4...1.7.5) - 2021-5-10

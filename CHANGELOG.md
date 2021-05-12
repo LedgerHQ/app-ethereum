@@ -5,11 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.7.6](https://github.com/ledgerhq/app-ethereum/compare/1.7.4...1.7.5) - 2021-5-14
+
+### Added
+
+- Add support for external plugins
+
+## [1.7.5](https://github.com/ledgerhq/app-ethereum/compare/1.7.4...1.7.5) - 2021-5-10
+
+### Fixed
+
+- Fixed a bug with cx_ecfp_scalar_mult
+
 ## [1.7.4](https://github.com/ledgerhq/app-ethereum/compare/1.7.3...1.7.4) - 2021-5-6
 
 ### Fixed
 
 - Fixed a bug that prevented using Ethereum sidechains
+
 ## [1.7.3](https://github.com/ledgerhq/app-ethereum/compare/1.7.2...1.7.3) - 2021-5-5
 
 ### Added

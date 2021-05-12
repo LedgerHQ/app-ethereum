@@ -2,6 +2,7 @@
 #include "ui_callbacks.h"
 #include "chainConfig.h"
 #include "utils.h"
+#include "feature_signTx.h"
 
 // clang-format off
 UX_STEP_NOCB(
@@ -119,7 +120,7 @@ UX_STEP_NOCB(
     ux_approval_chainid_step,
     bnnn_paging,
     {
-      .title = "Chain ID",
+      .title = "Network",
       .text = strings.common.chainID,
     });
 UX_STEP_CB(

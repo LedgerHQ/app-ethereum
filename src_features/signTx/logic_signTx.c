@@ -6,7 +6,7 @@
 #include "stark_utils.h"
 #endif
 #include "eth_plugin_handler.h"
-#include "chain_id.h"
+#include "network.h"
 
 #define ERR_SILENT_MODE_CHECK_FAILED 0x6001
 
@@ -196,7 +196,7 @@ void reportFinalizeError(bool direct) {
 
 void computeFees(char *displayBuffer, uint32_t displayBufferSize) {
     uint256_t gasPrice, startGas, uint256;
-    uint8_t *feeTicker = (uint8_t *) PIC(chainConfig->coinName);
+    char *feeTicker = get_network_ticker();
     uint8_t tickerOffset = 0;
     uint32_t i;
 
@@ -219,11 +219,12 @@ void computeFees(char *displayBuffer, uint32_t displayBufferSize) {
     while (G_io_apdu_buffer[100 + i]) {
         i++;
     }
+    uint8_t decimals = get_network_decimals();
     adjustDecimals((char *) (G_io_apdu_buffer + 100),
                    i,
                    (char *) G_io_apdu_buffer,
                    100,
-                   WEI_TO_ETHER);
+                   decimals);
     i = 0;
     tickerOffset = 0;
     memset(displayBuffer, 0, displayBufferSize);
@@ -240,26 +241,15 @@ void computeFees(char *displayBuffer, uint32_t displayBufferSize) {
 
 void finalizeParsing(bool direct) {
     char displayBuffer[50];
-    uint8_t decimals = WEI_TO_ETHER;
-    uint8_t *ticker = (uint8_t *) PIC(chainConfig->coinName);
+    uint8_t decimals = get_network_decimals();
+    char *ticker = get_network_ticker();
     ethPluginFinalize_t pluginFinalize;
     tokenDefinition_t *token1 = NULL, *token2 = NULL;
     bool genericUI = true;
 
     // Verify the chain
     if (chainConfig->chainId != 0) {
-        uint32_t id = 0;
-
-        if (txContext.txType == LEGACY) {
-            id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
-        } else if (txContext.txType == EIP2930) {
-            id = u32_from_BE(txContext.content->chainID.value,
-                             txContext.content->chainID.length,
-                             false);
-        } else {
-            PRINTF("TxType `%u` not supported while checking for chainID\n", txContext.txType);
-            return;
-        }
+        uint32_t id = get_chain_id();
 
         if (chainConfig->chainId != id) {
             PRINTF("Invalid chainID %u expected %u\n", id, chainConfig->chainId);
@@ -343,7 +333,7 @@ void finalizeParsing(bool direct) {
                     tmpContent.txContent.destinationLength = 20;
                     if (token1 != NULL) {
                         decimals = token1->decimals;
-                        ticker = token1->ticker;
+                        ticker = (char *)token1->ticker;
                     }
                     break;
                 default:
@@ -405,27 +395,19 @@ void finalizeParsing(bool direct) {
 
     // Prepare chainID field
     if (genericUI) {
-        uint32_t chain_id;
-
-        if (txContext.txType == LEGACY) {
-            chain_id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
-        } else if (txContext.txType == EIP2930) {
-            chain_id = u32_from_BE(tmpContent.txContent.chainID.value, tmpContent.txContent.chainID.length, true);
-        }
-        else {
-            PRINTF("Txtype `%u` not supported while generating chainID\n", txContext.txType);
-            return;
-        }
-
-        PRINTF("Chain ID: %d\n", chain_id);
-        char *res = get_network_name_from_chain_id(strings.common.chainID, sizeof(strings.common.chainID), chain_id);
-        if (res == NULL) {
-            uint8_t res = snprintf(strings.common.chainID, sizeof(strings.common.chainID), "%d", chain_id);
-            if (res >= sizeof(strings.common.chainID)) {
+        char *name = get_network_name();
+        if (name == NULL) {
+            // No network name found so simply copy the chain ID as the network name.
+            uint32_t chain_id = get_chain_id();
+            uint8_t res = snprintf(strings.common.network_name, sizeof(strings.common.network_name), "%d", chain_id);
+            if (res >= sizeof(strings.common.network_name)) {
                 // If the return value is higher or equal to the size passed in as parameter, then
                 // the output was truncated. Return the appropriate error code.
                 THROW(0x6502);
             }
+        } else {
+            // Network name found, simply copy it.
+            strncpy(strings.common.network_name, name, sizeof(strings.common.network_name));
         }
     }
 

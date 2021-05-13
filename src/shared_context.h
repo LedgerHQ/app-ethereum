@@ -169,7 +169,7 @@ typedef struct txStringProperties_t {
     char fullAmount[50];
     char maxFee[50];
     char nonce[8];  // 10M tx per account ought to be enough for everybody
-    char chainID[NETWORK_NAME_SIZE_MAX];
+    char network_name[NETWORK_NAME_SIZE_MAX];
 } txStringProperties_t;
 
 #define SHARED_CTX_FIELD_1_SIZE 100

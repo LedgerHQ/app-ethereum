@@ -3,6 +3,7 @@
 #include "chainConfig.h"
 #include "utils.h"
 #include "feature_signTx.h"
+#include "network.h"
 
 // clang-format off
 UX_STEP_NOCB(
@@ -121,7 +122,7 @@ UX_STEP_NOCB(
     bnnn_paging,
     {
       .title = "Network",
-      .text = strings.common.chainID,
+      .text = strings.common.network_name,
     });
 UX_STEP_CB(
     ux_approval_accept_step,
@@ -172,17 +173,8 @@ void ux_approve_tx(bool dataPresent) {
         ux_approval_tx_flow_[step++] = &ux_approval_nonce_step;
     }
 
-    uint32_t id;
-    if (txContext.txType == LEGACY) {
-        id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
-    } else if (txContext.txType == EIP2930) {
-        id =
-            u32_from_BE(txContext.content->chainID.value, txContext.content->chainID.length, false);
-    } else {
-        PRINTF("TxType `%u` not supported while preparing to approve tx\n", txContext.txType);
-        THROW(0x6501);
-    }
-    if (id != ETHEREUM_MAINNET_CHAINID) {
+    uint32_t chain_id = get_chain_id();
+    if (chain_id != ETHEREUM_MAINNET_CHAINID || chain_id != chainConfig->chainId) {
         ux_approval_tx_flow_[step++] = &ux_approval_chainid_step;
     }
     ux_approval_tx_flow_[step++] = &ux_approval_fees_step;

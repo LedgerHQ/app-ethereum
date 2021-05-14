@@ -346,6 +346,13 @@ void finalizeParsing(bool direct) {
             return;
         }
     }
+    // Decode Theta Tx
+    if (genericUI) {
+        getThetaTxFromBinary(&txContext, &global_sha3, chainConfig);
+        if (txContext.content->thetaTXtoken == 1) {
+            ticker = (uint8_t *) PIC(chainConfig->coinName2);
+        }
+    }
     // Prepare destination address to display
     if (genericUI) {
         if (tmpContent.txContent.destinationLength != 0) {

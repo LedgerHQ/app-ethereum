@@ -190,6 +190,78 @@ void getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey,
     getEthAddressStringFromBinary(hashAddress + 12, out, sha3Context, chain_config);
 }
 
+void getThetaTxFromBinary(txContext_t *context, cx_sha3_t *sha3Context, chain_config_t *chain_config) {
+    char out[300];
+    uint32_t offset;
+    uint8_t i, thetaOffset = 12, pos = context->content->thetaTXLength - thetaOffset;
+    bool valid, canDecode, decoded;
+    uint8_t *rlpP;
+    uint32_t tmpCurrentFieldLength, tmpCurrentFieldPos;
+    bool tmpCurrentFieldIsList;
+    BEGIN_TRY {
+        TRY {
+            rlpP = context->content->thetaTX + thetaOffset;
+            for (i = 0; i < (context->content->thetaTXLength - thetaOffset) * 2; i++) {
+                uint8_t digit = rlpP[i / 2];
+                if ((i % 2) == 0) {
+                    digit = (digit >> 4) & 0x0f;
+                } else {
+                    digit = digit & 0x0f;
+                }
+                out[i] = HEXDIGITS[digit];
+            }
+            out[i] = '\0';
+            if (context->content->thetaTXLength >= thetaOffset) {
+                canDecode = rlpCanDecode(rlpP, pos, &valid);
+                if (canDecode) {
+                    decoded = rlpDecodeLength(rlpP, pos, &context->content->thetaCurrentFieldLength, &offset, &context->content->thetaCurrentFieldIsList);
+                    if (decoded && context->content->thetaCurrentFieldIsList) {
+                        rlpP += offset;
+                        decoded = rlpDecodeLength(rlpP, pos, &tmpCurrentFieldLength, &offset, &tmpCurrentFieldIsList);
+                        if (decoded && tmpCurrentFieldIsList) {
+                            //TODO : get gas fee
+                            rlpP += offset + tmpCurrentFieldLength;
+                        } else {
+                            return;
+                        }
+                        decoded = rlpDecodeLength(rlpP, pos, &tmpCurrentFieldLength, &offset, &tmpCurrentFieldIsList);
+                        if (decoded && tmpCurrentFieldIsList) {
+                            rlpP += offset + tmpCurrentFieldLength;
+                        } else {
+                            return;
+                        }
+                        decoded = rlpDecodeLength(rlpP, pos, &tmpCurrentFieldLength, &offset, &tmpCurrentFieldIsList);
+                        if (decoded && tmpCurrentFieldIsList) {
+                            //copy address
+                            if (*(rlpP + 2) == 148) {
+                                rlpP += 3;
+                                memmove(context->content->destination, rlpP, 20);
+                            }
+                            //copy value
+                            rlpP += 21;
+                            if (*rlpP != 128 && rlpDecodeLength(rlpP, pos, &tmpCurrentFieldLength, &offset, &tmpCurrentFieldIsList)) {//Theta is not 0
+                                rlpP++;                          
+                                memmove(context->content->value.value, rlpP, tmpCurrentFieldLength);
+                                context->content->value.length = tmpCurrentFieldLength;
+                            } else if (rlpDecodeLength(++rlpP, pos, &tmpCurrentFieldLength, &offset, &tmpCurrentFieldIsList)) { // send Tfuel
+                                context->content->thetaTXtoken = 1;
+                                memmove(context->content->value.value, rlpP + 1, tmpCurrentFieldLength);
+                                context->content->value.length = tmpCurrentFieldLength;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        CATCH_OTHER(e) {
+            PRINTF("Get ThetaTx failed \n");
+        }
+        FINALLY {
+        }
+    }
+    END_TRY;
+};
+
 void getEthAddressStringFromBinary(uint8_t *address,
                                    uint8_t *out,
                                    cx_sha3_t *sha3Context,

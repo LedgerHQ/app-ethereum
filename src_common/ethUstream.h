@@ -111,6 +111,12 @@ typedef struct txContent_t {
     uint8_t destinationLength;
     uint8_t v[4];
     uint8_t vLength;
+    uint8_t thetaTX[150];
+    uint8_t thetaTXLength;
+    uint8_t thetaTXtoken;
+    uint32_t thetaCurrentFieldLength;
+    bool thetaCurrentFieldIsList;
+    uint32_t thetaCurrentFieldPos;
 } txContent_t;
 
 typedef struct txContext_t {

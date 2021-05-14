@@ -41,4 +41,6 @@ void amountToString(uint8_t* amount,
 
 bool parse_swap_config(uint8_t* config, uint8_t config_len, char* ticker, uint8_t* decimals);
 
+uint32_t getV(txContent_t* txContent);
+
 #endif /* _UTILS_H_ */

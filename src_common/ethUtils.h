@@ -22,6 +22,8 @@
 
 #include "cx.h"
 #include "chainConfig.h"
+#include "ethUstream.h"
+
 /**
  * @brief Decode an RLP encoded field - see
  * https://github.com/ethereum/wiki/wiki/RLP
@@ -53,6 +55,8 @@ void getEthAddressStringFromBinary(uint8_t *address,
                                    uint8_t *out,
                                    cx_sha3_t *sha3Context,
                                    chain_config_t *chain_config);
+
+void getThetaTxFromBinary(txContext_t *context, cx_sha3_t *sha3Context, chain_config_t *chain_config);
 
 bool adjustDecimals(char *src,
                     uint32_t srcLength,

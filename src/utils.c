@@ -116,3 +116,21 @@ bool parse_swap_config(uint8_t *config, uint8_t config_len, char *ticker, uint8_
     *decimals = config[offset];
     return true;
 }
+
+uint32_t getV(txContent_t *txContent) {
+    uint32_t v = 0;
+    if (txContent->vLength == 1) {
+        v = txContent->v[0];
+    } else if (txContent->vLength == 2) {
+        v = (txContent->v[0] << 8) | txContent->v[1];
+    } else if (txContent->vLength == 3) {
+        v = (txContent->v[0] << 16) | (txContent->v[1] << 8) | txContent->v[2];
+    } else if (txContent->vLength == 4) {
+        v = (txContent->v[0] << 24) | (txContent->v[1] << 16) | (txContent->v[2] << 8) |
+            txContent->v[3];
+    } else if (txContent->vLength != 0) {
+        PRINTF("Unexpected v format\n");
+        THROW(EXCEPTION);
+    }
+    return v;
+}

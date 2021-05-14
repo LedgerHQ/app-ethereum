@@ -56,7 +56,8 @@ typedef enum chain_kind_e {
 } chain_kind_t;
 
 typedef struct chain_config_s {
-    char coinName[10];  // ticker
+    char coinName[10];  // Theta
+    char coinName2[10];  // Tfuel
     uint32_t chainId;
     chain_kind_t kind;
 } chain_config_t;

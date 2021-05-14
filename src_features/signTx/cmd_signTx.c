@@ -39,7 +39,7 @@ void handleSign(uint8_t p1,
             dataLength -= 4;
         }
         dataPresent = false;
-        dataContext.tokenContext.pluginAvailable = 0;
+        dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_UNAVAILABLE;
 
         // EIP 2718: TransactionType might be present before the TransactionPayload.
         uint8_t txType = *workBuffer;

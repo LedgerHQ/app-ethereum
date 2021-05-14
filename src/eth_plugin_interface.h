@@ -21,11 +21,16 @@ typedef enum {
 } eth_plugin_msg_t;
 
 typedef enum {
-
+    // Unsuccesful return values
     ETH_PLUGIN_RESULT_ERROR = 0x00,
-    ETH_PLUGIN_RESULT_OK = 0x01,
-    ETH_PLUGIN_RESULT_OK_ALIAS = 0x02,
-    ETH_PLUGIN_RESULT_FALLBACK = 0x03
+    ETH_PLUGIN_RESULT_UNAVAILABLE = 0x01,
+    ETH_PLUGIN_RESULT_UNSUCCESSFUL = 0x02,  // Used for comparison
+
+    // Successful return values
+    ETH_PLUGIN_RESULT_SUCCESSFUL = 0x03,  // Used for comparison
+    ETH_PLUGIN_RESULT_OK = 0x04,
+    ETH_PLUGIN_RESULT_OK_ALIAS = 0x05,
+    ETH_PLUGIN_RESULT_FALLBACK = 0x06
 
 } eth_plugin_result_t;
 

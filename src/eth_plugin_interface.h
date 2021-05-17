@@ -72,9 +72,9 @@ typedef struct ethPluginInitContract_t {
     ethPluginSharedRW_t *pluginSharedRW;
     ethPluginSharedRO_t *pluginSharedRO;
     uint8_t *pluginContext;
-    uint32_t pluginContextLength;
+    size_t pluginContextLength;
     uint8_t *selector;  // 4 bytes selector
-    uint32_t dataSize;
+    size_t dataSize;
 
     char *alias;  // 29 bytes alias if ETH_PLUGIN_RESULT_OK_ALIAS set
 
@@ -144,9 +144,9 @@ typedef struct ethQueryContractID_t {
     uint8_t *pluginContext;
 
     char *name;
-    uint32_t nameLength;
+    size_t nameLength;
     char *version;
-    uint32_t versionLength;
+    size_t versionLength;
 
     uint8_t result;
 
@@ -160,9 +160,9 @@ typedef struct ethQueryContractUI_t {
     uint8_t *pluginContext;
     uint8_t screenIndex;
     char *title;
-    uint32_t titleLength;
+    size_t titleLength;
     char *msg;
-    uint32_t msgLength;
+    size_t msgLength;
 
     uint8_t result;
 

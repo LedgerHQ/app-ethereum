@@ -60,9 +60,10 @@ bool adjustDecimals(char *src,
                     uint32_t targetLength,
                     uint8_t decimals);
 
-__attribute__((no_instrument_function)) inline int allzeroes(uint8_t *buf, int n) {
-    for (int i = 0; i < n; ++i) {
-        if (buf[i]) {
+__attribute__((no_instrument_function)) inline int allzeroes(void *buf, size_t n) {
+    uint8_t *p = (uint8_t *) buf;
+    for (size_t i = 0; i < n; ++i) {
+        if (p[i]) {
             return 0;
         }
     }
@@ -77,6 +78,6 @@ __attribute__((no_instrument_function)) inline int ismaxint(uint8_t *buf, int n)
     return 1;
 }
 
-static const uint8_t const HEXDIGITS[] = "0123456789abcdef";
+static const char HEXDIGITS[] = "0123456789abcdef";
 
 #endif /* _ETHUTILS_H_ */

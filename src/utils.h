@@ -34,10 +34,10 @@ uint32_t u32_from_BE(uint8_t* in, uint8_t size, bool strict);
 
 bool uint256_to_decimal(const uint8_t* value, char* out, size_t out_len);
 
-void amountToString(uint8_t* amount,
+void amountToString(const uint8_t* amount,
                     uint8_t amount_len,
                     uint8_t decimals,
-                    char* ticker,
+                    const char* ticker,
                     char* out_buffer,
                     uint8_t out_buffer_size);
 

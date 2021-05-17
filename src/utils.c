@@ -22,6 +22,7 @@
 #include "ethUtils.h"
 #include "uint256.h"
 #include "tokens.h"
+#include "utils.h"
 
 static const unsigned char hex_digits[] =
     {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
@@ -98,10 +99,10 @@ bool uint256_to_decimal(const uint8_t *value, char *out, size_t out_len) {
     return true;
 }
 
-void amountToString(uint8_t *amount,
-                    uint8_t amount_size,
+void amountToString(const uint8_t *amount,
+                    uint8_t amount_size __attribute__((unused)),
                     uint8_t decimals,
-                    char *ticker,
+                    const char *ticker,
                     char *out_buffer,
                     uint8_t out_buffer_size) {
     char tmp_buffer[100];

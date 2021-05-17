@@ -10,6 +10,10 @@
 #define PLUGIN_ID_LENGTH 30
 
 typedef enum {
+    ETH_PLUGIN_INTERFACE_VERSION_1 = 1  // Version 1
+} eth_plugin_interface_version_t;
+
+typedef enum {
 
     ETH_PLUGIN_INIT_CONTRACT = 0x0101,
     ETH_PLUGIN_PROVIDE_PARAMETER = 0x0102,
@@ -61,8 +65,10 @@ typedef struct ethPluginSharedRO_t {
 // Init Contract
 
 typedef struct ethPluginInitContract_t {
-    // in
+    uint8_t interfaceVersion;
+    uint8_t result;
 
+    // in
     ethPluginSharedRW_t *pluginSharedRW;
     ethPluginSharedRO_t *pluginSharedRO;
     uint8_t *pluginContext;
@@ -71,8 +77,6 @@ typedef struct ethPluginInitContract_t {
     uint32_t dataSize;
 
     char *alias;  // 29 bytes alias if ETH_PLUGIN_RESULT_OK_ALIAS set
-
-    uint8_t result;
 
 } ethPluginInitContract_t;
 

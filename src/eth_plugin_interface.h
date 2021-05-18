@@ -10,6 +10,10 @@
 #define PLUGIN_ID_LENGTH 30
 
 typedef enum {
+    ETH_PLUGIN_INTERFACE_VERSION_1 = 1  // Version 1
+} eth_plugin_interface_version_t;
+
+typedef enum {
 
     ETH_PLUGIN_INIT_CONTRACT = 0x0101,
     ETH_PLUGIN_PROVIDE_PARAMETER = 0x0102,
@@ -61,18 +65,18 @@ typedef struct ethPluginSharedRO_t {
 // Init Contract
 
 typedef struct ethPluginInitContract_t {
-    // in
+    uint8_t interfaceVersion;
+    uint8_t result;
 
+    // in
     ethPluginSharedRW_t *pluginSharedRW;
     ethPluginSharedRO_t *pluginSharedRO;
     uint8_t *pluginContext;
-    uint32_t pluginContextLength;
+    size_t pluginContextLength;
     uint8_t *selector;  // 4 bytes selector
-    uint32_t dataSize;
+    size_t dataSize;
 
     char *alias;  // 29 bytes alias if ETH_PLUGIN_RESULT_OK_ALIAS set
-
-    uint8_t result;
 
 } ethPluginInitContract_t;
 
@@ -140,9 +144,9 @@ typedef struct ethQueryContractID_t {
     uint8_t *pluginContext;
 
     char *name;
-    uint32_t nameLength;
+    size_t nameLength;
     char *version;
-    uint32_t versionLength;
+    size_t versionLength;
 
     uint8_t result;
 
@@ -156,9 +160,9 @@ typedef struct ethQueryContractUI_t {
     uint8_t *pluginContext;
     uint8_t screenIndex;
     char *title;
-    uint32_t titleLength;
+    size_t titleLength;
     char *msg;
-    uint32_t msgLength;
+    size_t msgLength;
 
     uint8_t result;
 

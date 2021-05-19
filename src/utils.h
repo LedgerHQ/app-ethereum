@@ -32,7 +32,7 @@ int local_strchr(char* string, char ch);
 // throw if the size is > 4.
 uint32_t u32_from_BE(uint8_t* in, uint8_t size, bool strict);
 
-bool uint256_to_decimal(const uint8_t* value, char* out, size_t out_len);
+bool uint256_to_decimal(const uint8_t* value, size_t value_len, char* out, size_t out_len);
 
 void amountToString(const uint8_t* amount,
                     uint8_t amount_len,

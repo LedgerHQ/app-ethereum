@@ -73,9 +73,26 @@ uint32_t u32_from_BE(uint8_t *in, uint8_t size, bool strict) {
     return res;
 }
 
-bool uint256_to_decimal(const uint8_t *value, char *out, size_t out_len) {
-    uint16_t n[16];
-    memcpy((uint8_t *) n, value, 32);
+bool uint256_to_decimal(const uint8_t *value, size_t value_len, char *out, size_t out_len) {
+    if (value_len > INT256_LENGTH) {
+        // value len is bigger than INT256_LENGTH ?!
+        return false;
+    }
+
+    uint16_t n[16] = {0};
+    // Copy and right-align the number
+    memcpy((uint8_t *) n + INT256_LENGTH - value_len, value, INT256_LENGTH - value_len);
+
+    // Special case when value is 0
+    if (allzeroes(n, INT256_LENGTH)) {
+        if (out_len < 2) {
+            // Not enough space to hold "0" and \0.
+            return false;
+        }
+        strncpy(out, "0", out_len);
+        return true;
+    }
+
     uint16_t *p = n;
     for (int i = 0; i < 16; i++) {
         n[i] = __builtin_bswap16(*p++);
@@ -100,13 +117,18 @@ bool uint256_to_decimal(const uint8_t *value, char *out, size_t out_len) {
 }
 
 void amountToString(const uint8_t *amount,
-                    uint8_t amount_size __attribute__((unused)),
+                    uint8_t amount_size,
                     uint8_t decimals,
                     const char *ticker,
                     char *out_buffer,
                     uint8_t out_buffer_size) {
-    char tmp_buffer[100];
-    uint256_to_decimal(amount, tmp_buffer, 100);
+    char tmp_buffer[100] = {0};
+
+    bool success = uint256_to_decimal(amount, amount_size, tmp_buffer, sizeof(tmp_buffer));
+
+    if (!success) {
+        THROW(0x6504);
+    }
 
     uint8_t amount_len = strnlen(tmp_buffer, sizeof(tmp_buffer));
     uint8_t ticker_len = strnlen(ticker, MAX_TICKER_LEN);

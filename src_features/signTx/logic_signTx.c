@@ -321,8 +321,10 @@ void finalizeParsing(bool direct) {
             switch (pluginFinalize.uiType) {
                 case ETH_UI_TYPE_GENERIC:
                     dataPresent = false;
-                    // Add the number of screens + the number of additional screens to get the total number of screens needed.
-                    dataContext.tokenContext.pluginUiMaxItems = pluginFinalize.numScreens + pluginProvideToken.additionalScreens;
+                    // Add the number of screens + the number of additional screens to get the total
+                    // number of screens needed.
+                    dataContext.tokenContext.pluginUiMaxItems =
+                        pluginFinalize.numScreens + pluginProvideToken.additionalScreens;
                     break;
                 case ETH_UI_TYPE_AMOUNT_ADDRESS:
                     genericUI = true;

@@ -130,6 +130,8 @@ typedef struct ethPluginProvideToken_t {
     tokenDefinition_t *token1;  // set by the ETH application, to be saved by the plugin
     tokenDefinition_t *token2;
 
+    uint8_t additionalScreens; // Used by the plugin if it needs to display additional screens based on the information received from the token definitions.
+
     uint8_t result;
 
 } ethPluginProvideToken_t;

@@ -289,8 +289,8 @@ void finalizeParsing(bool direct) {
             }
         }
         // Lookup tokens if requested
+        ethPluginProvideToken_t pluginProvideToken;
         if ((pluginFinalize.tokenLookup1 != NULL) || (pluginFinalize.tokenLookup2 != NULL)) {
-            ethPluginProvideToken_t pluginProvideToken;
             if (pluginFinalize.tokenLookup1 != NULL) {
                 PRINTF("Lookup1: %.*H\n", ADDRESS_LENGTH, pluginFinalize.tokenLookup1);
                 token1 = getKnownToken(pluginFinalize.tokenLookup1);
@@ -321,7 +321,8 @@ void finalizeParsing(bool direct) {
             switch (pluginFinalize.uiType) {
                 case ETH_UI_TYPE_GENERIC:
                     dataPresent = false;
-                    dataContext.tokenContext.pluginUiMaxItems = pluginFinalize.numScreens;
+                    // Add the number of screens + the number of additional screens to get the total number of screens needed.
+                    dataContext.tokenContext.pluginUiMaxItems = pluginFinalize.numScreens + pluginProvideToken.additionalScreens;
                     break;
                 case ETH_UI_TYPE_AMOUNT_ADDRESS:
                     genericUI = true;
@@ -424,7 +425,7 @@ void finalizeParsing(bool direct) {
         }
     }
 
-    bool no_consent = false;
+    bool no_consent;
 
     no_consent = called_from_swap;
 

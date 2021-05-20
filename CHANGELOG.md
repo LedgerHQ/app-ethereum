@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.7.8](https://github.com/ledgerhq/app-ethereum/compare/1.7.7...1.7.8) - 2021-5-20
+
+### Fixed
+
+Fixed a bug where transaction would sometimes not get properly signed.
+
+## [1.7.7](https://github.com/ledgerhq/app-ethereum/compare/1.7.6...1.7.7) - 2021-5-19
+
+### Special
+
+Version bump needed for deployment reasons, nothing changed.
+
+## [1.7.6](https://github.com/ledgerhq/app-ethereum/compare/1.7.5...1.7.6) - 2021-5-14
+
+### Special
+
+Version bump needed for deployment reasons, nothing changed.
+
+## [1.7.5](https://github.com/ledgerhq/app-ethereum/compare/1.7.4...1.7.5) - 2021-5-10
+
+### Fixed
+
+- Fixed a bug with cx_ecfp_scalar_mult
+
 ## [1.7.4](https://github.com/ledgerhq/app-ethereum/compare/1.7.3...1.7.4) - 2021-5-6
 
 ### Fixed

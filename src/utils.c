@@ -81,7 +81,7 @@ bool uint256_to_decimal(const uint8_t *value, size_t value_len, char *out, size_
 
     uint16_t n[16] = {0};
     // Copy and right-align the number
-    memcpy((uint8_t *) n + INT256_LENGTH - value_len, value, INT256_LENGTH - value_len);
+    memcpy((uint8_t *) n + INT256_LENGTH - value_len, value, value_len);
 
     // Special case when value is 0
     if (allzeroes(n, INT256_LENGTH)) {

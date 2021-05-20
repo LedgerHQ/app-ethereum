@@ -440,8 +440,8 @@ static parserStatus_e processTxInternal(txContext_t *context) {
             return USTREAM_FINISHED;
         }
         // Old style transaction
-        if ((context->currentField == LEGACY_RLP_V ||
-             context->currentField == EIP2930_RLP_YPARITY) &&
+        if (((context->txType == LEGACY && context->currentField == LEGACY_RLP_V) ||
+             (context->txType == EIP2930 && context->currentField == EIP2930_RLP_YPARITY)) &&
             (context->commandLength == 0)) {
             context->content->vLength = 0;
             return USTREAM_FINISHED;

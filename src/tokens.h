@@ -71,6 +71,7 @@ extern tokenDefinition_t const TOKENS_EXTRA[NUM_TOKENS_EXTRA];
 #define NUM_TOKENS_ARTIS_TAU1       0
 #define NUM_TOKENS_WEBCHAIN         0
 #define NUM_TOKENS_THUNDERCORE      0
+#define NUM_TOKENS_THETA            0
 
 extern tokenDefinition_t const TOKENS_AKROMA[NUM_TOKENS_AKROMA];
 extern tokenDefinition_t const TOKENS_ELLAISM[NUM_TOKENS_ELLAISM];

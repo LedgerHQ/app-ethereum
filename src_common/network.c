@@ -19,6 +19,7 @@ const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 56, .name = "BSC", .ticker = "BNB", .decimals = 8},
     {.chain_id = 100, .name = "xDai", .ticker = "xDAI", .decimals = 18},
     {.chain_id = 137, .name = "Polygon", .ticker = "MATIC", .decimals = 18},
+    {.chain_id = 250, .name = "Fantom", .ticker = "FTM", .decimals = 18},
     {.chain_id = 43114, .name = "Avalanche", .ticker = "AVAX", .decimals = 9}
 };
 

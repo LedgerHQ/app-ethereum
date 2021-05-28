@@ -66,7 +66,7 @@ char *get_network_ticker(void) {
 }
 
 uint8_t get_network_decimals(void) {
-    network_info_t *network = (network_info_t *) PIC(get_network());
+    network_info_t *network = get_network();
     if (network == NULL) {
         return WEI_TO_ETHER;
     } else {

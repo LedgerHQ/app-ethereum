@@ -220,11 +220,7 @@ void computeFees(char *displayBuffer, uint32_t displayBufferSize) {
         i++;
     }
     uint8_t decimals = get_network_decimals();
-    adjustDecimals((char *) (G_io_apdu_buffer + 100),
-                   i,
-                   (char *) G_io_apdu_buffer,
-                   100,
-                   decimals);
+    adjustDecimals((char *) (G_io_apdu_buffer + 100), i, (char *) G_io_apdu_buffer, 100, decimals);
     i = 0;
     tickerOffset = 0;
     memset(displayBuffer, 0, displayBufferSize);
@@ -333,7 +329,7 @@ void finalizeParsing(bool direct) {
                     tmpContent.txContent.destinationLength = 20;
                     if (token1 != NULL) {
                         decimals = token1->decimals;
-                        ticker = (char *)token1->ticker;
+                        ticker = (char *) token1->ticker;
                     }
                     break;
                 default:
@@ -399,7 +395,10 @@ void finalizeParsing(bool direct) {
         if (name == NULL) {
             // No network name found so simply copy the chain ID as the network name.
             uint32_t chain_id = get_chain_id();
-            uint8_t res = snprintf(strings.common.network_name, sizeof(strings.common.network_name), "%d", chain_id);
+            uint8_t res = snprintf(strings.common.network_name,
+                                   sizeof(strings.common.network_name),
+                                   "%d",
+                                   chain_id);
             if (res >= sizeof(strings.common.network_name)) {
                 // If the return value is higher or equal to the size passed in as parameter, then
                 // the output was truncated. Return the appropriate error code.

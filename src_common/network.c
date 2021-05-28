@@ -7,7 +7,6 @@
 #include "shared_context.h"
 #include "utils.h"
 
-
 // Mappping of chain ids to networks.
 const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 1, .name = "Ethereum", .ticker = "ETH", .decimals = 18},
@@ -20,8 +19,7 @@ const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 100, .name = "xDai", .ticker = "xDAI", .decimals = 18},
     {.chain_id = 137, .name = "Polygon", .ticker = "MATIC", .decimals = 18},
     {.chain_id = 250, .name = "Fantom", .ticker = "FTM", .decimals = 18},
-    {.chain_id = 43114, .name = "Avalanche", .ticker = "AVAX", .decimals = 9}
-};
+    {.chain_id = 43114, .name = "Avalanche", .ticker = "AVAX", .decimals = 9}};
 
 uint32_t get_chain_id(void) {
     uint32_t chain_id = 0;
@@ -29,9 +27,10 @@ uint32_t get_chain_id(void) {
     if (txContext.txType == LEGACY) {
         chain_id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
     } else if (txContext.txType == EIP2930) {
-        chain_id = u32_from_BE(tmpContent.txContent.chainID.value, tmpContent.txContent.chainID.length, true);
-    }
-    else {
+        chain_id = u32_from_BE(tmpContent.txContent.chainID.value,
+                               tmpContent.txContent.chainID.length,
+                               true);
+    } else {
         PRINTF("Txtype `%u` not supported while generating chainID\n", txContext.txType);
     }
     PRINTF("ChainID: %d\n", chain_id);
@@ -62,12 +61,12 @@ char *get_network_ticker(void) {
     if (network == NULL) {
         return chainConfig->coinName;
     } else {
-        return (char *)PIC(network->ticker);
+        return (char *) PIC(network->ticker);
     }
 }
 
 uint8_t get_network_decimals(void) {
-    network_info_t *network = (network_info_t *)PIC(get_network());
+    network_info_t *network = (network_info_t *) PIC(get_network());
     if (network == NULL) {
         return WEI_TO_ETHER;
     } else {

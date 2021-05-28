@@ -10,7 +10,7 @@ typedef struct network_info_s {
     uint8_t decimals;
 } network_info_t;
 
-// Returns the current chain id. Defaults to chainConfig->chainId.
+// Returns the current chain id. Defaults to 0 if txType was not found.
 uint32_t get_chain_id(void);
 // Returns a pointer to the network struct, or NULL if there is none.
 network_info_t *get_network(void);

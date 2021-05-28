@@ -31,7 +31,7 @@ uint32_t get_chain_id(void) {
                                tmpContent.txContent.chainID.length,
                                true);
     } else {
-        PRINTF("Txtype `%u` not supported while generating chainID\n", txContext.txType);
+        PRINTF("Txtype `%d` not supported while generating chainID\n", txContext.txType);
     }
     PRINTF("ChainID: %d\n", chain_id);
     return chain_id;

@@ -9,17 +9,17 @@
 
 // Mappping of chain ids to networks.
 const network_info_t NETWORK_MAPPING[] = {
-    {.chain_id = 1, .name = "Ethereum", .ticker = "ETH", .decimals = 18},
-    {.chain_id = 3, .name = "Ropsten", .ticker = "ETH", .decimals = 18},
-    {.chain_id = 4, .name = "Rinkeby", .ticker = "ETH", .decimals = 18},
-    {.chain_id = 5, .name = "Goerli", .ticker = "ETH", .decimals = 18},
-    {.chain_id = 10, .name = "Optimism", .ticker = "ETH", .decimals = 18},
-    {.chain_id = 42, .name = "Kovan", .ticker = "ETH", .decimals = 18},
-    {.chain_id = 56, .name = "BSC", .ticker = "BNB", .decimals = 8},
-    {.chain_id = 100, .name = "xDai", .ticker = "xDAI", .decimals = 18},
-    {.chain_id = 137, .name = "Polygon", .ticker = "MATIC", .decimals = 18},
-    {.chain_id = 250, .name = "Fantom", .ticker = "FTM", .decimals = 18},
-    {.chain_id = 43114, .name = "Avalanche", .ticker = "AVAX", .decimals = 9}};
+    {.chain_id = 1, .name = "Ethereum", .ticker = "ETH ", .decimals = 18},
+    {.chain_id = 3, .name = "Ropsten", .ticker = "ETH ", .decimals = 18},
+    {.chain_id = 4, .name = "Rinkeby", .ticker = "ETH ", .decimals = 18},
+    {.chain_id = 5, .name = "Goerli", .ticker = "ETH ", .decimals = 18},
+    {.chain_id = 10, .name = "Optimism", .ticker = "ETH ", .decimals = 18},
+    {.chain_id = 42, .name = "Kovan", .ticker = "ETH ", .decimals = 18},
+    {.chain_id = 56, .name = "BSC", .ticker = "BNB ", .decimals = 8},
+    {.chain_id = 100, .name = "xDai", .ticker = "xDAI ", .decimals = 18},
+    {.chain_id = 137, .name = "Polygon", .ticker = "MATIC ", .decimals = 18},
+    {.chain_id = 250, .name = "Fantom", .ticker = "FTM ", .decimals = 18},
+    {.chain_id = 43114, .name = "Avalanche", .ticker = "AVAX ", .decimals = 9}};
 
 uint32_t get_chain_id(void) {
     uint32_t chain_id = 0;

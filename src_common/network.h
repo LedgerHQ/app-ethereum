@@ -7,7 +7,6 @@ typedef struct network_info_s {
     const char name[NETWORK_STRING_MAX_SIZE];
     const char ticker[MAX_TICKER_LEN];
     uint32_t chain_id;
-    uint8_t decimals;
 } network_info_t;
 
 // Returns the current chain id. Defaults to 0 if txType was not found.
@@ -18,5 +17,3 @@ network_info_t *get_network(void);
 char *get_network_name(void);
 // Returns a pointer to the network ticker, or chainConfig->coinName if there is none.
 char *get_network_ticker(void);
-// Returns the network decimals. Defaults to WEI_TO_ETHER.
-uint8_t get_network_decimals(void);

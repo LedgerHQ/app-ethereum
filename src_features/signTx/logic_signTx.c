@@ -219,8 +219,7 @@ void computeFees(char *displayBuffer, uint32_t displayBufferSize) {
     while (G_io_apdu_buffer[100 + i]) {
         i++;
     }
-    uint8_t decimals = get_network_decimals();
-    adjustDecimals((char *) (G_io_apdu_buffer + 100), i, (char *) G_io_apdu_buffer, 100, decimals);
+    adjustDecimals((char *) (G_io_apdu_buffer + 100), i, (char *) G_io_apdu_buffer, 100, WEI_TO_ETHER);
     i = 0;
     tickerOffset = 0;
     memset(displayBuffer, 0, displayBufferSize);
@@ -237,7 +236,7 @@ void computeFees(char *displayBuffer, uint32_t displayBufferSize) {
 
 void finalizeParsing(bool direct) {
     char displayBuffer[50];
-    uint8_t decimals = get_network_decimals();
+    uint8_t decimals = WEI_TO_ETHER;
     char *ticker = get_network_ticker();
     ethPluginFinalize_t pluginFinalize;
     tokenDefinition_t *token1 = NULL, *token2 = NULL;

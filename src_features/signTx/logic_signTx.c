@@ -246,7 +246,6 @@ void finalizeParsing(bool direct) {
     tokenDefinition_t *token1 = NULL, *token2 = NULL;
     bool genericUI = true;
 
-    PRINTF("FINALIZING\n");
     // Verify the chain
     if (chainConfig->chainId != 0) {
         uint32_t id = 0;

@@ -322,63 +322,42 @@ static bool processEIP1559Tx(txContext_t *context) {
     PRINTF("1559\n");
     switch (context->currentField) {
         case EIP1559_RLP_CONTENT: {
-        uint32_t length =
-            MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
-            PRINTF("content: %.*H\n", length, context->workBuffer);
             processContent(context);
-            PRINTF("flags: %d\n", context->processingFlags);
             if ((context->processingFlags & TX_FLAG_TYPE) == 0) {
-                PRINTF("INCREM\n");
-                // context->currentField++;
+                context->currentField++;
             }
             break;
         }
+        // This gets hit only by Wanchain
+        case EIP1559_RLP_TYPE: {
+            processType(context);
+            break;
+        }
         case EIP1559_RLP_CHAINID: {
-        uint32_t length =
-            MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
-            PRINTF("chainid: %.*H\n", length, context->workBuffer);
             processChainID(context);
             break;
         }
         case EIP1559_RLP_NONCE: {
-        uint32_t length =
-            MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
-            PRINTF("nonce: %.*H\n", length, context->workBuffer);
             processNonce(context);
             break;
         }
         case EIP1559_RLP_MAX_PRIORITY_FEE_PER_GAS: {
-        uint32_t length =
-            MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
-            PRINTF("feepergasmax: %.*H\n", length, context->workBuffer);
             processMaxPriorityFeePerGas(context);
             break;
         }
         case EIP1559_RLP_MAX_FEE_PER_GAS: {
-        uint32_t length =
-            MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
-            PRINTF("gasprice: %.*H\n", length, context->workBuffer);
             processGasprice(context);
             break;
         }
         case EIP1559_RLP_GASLIMIT: {
-        uint32_t length =
-            MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
-            PRINTF("gaslimit: %.*H\n", length, context->workBuffer);
             processGasLimit(context);
             break;
         }
         case EIP1559_RLP_TO: {
-        uint32_t length =
-            MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
-            PRINTF("to: %.*H\n", length, context->workBuffer);
             processTo(context);
             break;
         }
         case EIP1559_RLP_VALUE: {
-        uint32_t length =
-            MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
-            PRINTF("value: %.*H\n", length, context->workBuffer);
             processValue(context);
             break;
         }
@@ -391,7 +370,6 @@ static bool processEIP1559Tx(txContext_t *context) {
             break;
         }
         case EIP1559_RLP_YPARITY: {
-            PRINTF("PARITY\n");
             processV(context);
             break;
         }
@@ -414,6 +392,7 @@ static bool processEIP2930Tx(txContext_t *context) {
                 context->currentField++;
             }
             break;
+        // This gets hit only by Wanchain
         case EIP2930_RLP_TYPE:
             processType(context);
             break;
@@ -462,6 +441,7 @@ static bool processLegacyTx(txContext_t *context) {
                 context->currentField++;
             }
             break;
+        // This gets hit only by Wanchain
         case LEGACY_RLP_TYPE:
             processType(context);
             break;
@@ -522,7 +502,6 @@ static parserStatus_e parseRLP(txContext_t *context) {
         PRINTF("Can't decode\n");
         return USTREAM_PROCESSING;
     }
-    PRINTF("BEFORE: %d\n", context->currentFieldIsList);
     // Ready to process this field
     if (!rlpDecodeLength(context->rlpBuffer,
                          context->rlpBufferPos,
@@ -532,7 +511,6 @@ static parserStatus_e parseRLP(txContext_t *context) {
         PRINTF("RLP decode error\n");
         return USTREAM_FAULT;
     }
-    PRINTF("AFTER: %d\n", context->currentFieldIsList);
     // Ready to process this field
     if (offset == 0) {
         // Hack for single byte, self encoded
@@ -555,9 +533,13 @@ static parserStatus_e processTxInternal(txContext_t *context) {
         if (PARSING_IS_DONE(context)) {
             return USTREAM_FINISHED;
         }
-        // Old style transaction
-        if (((context->txType == LEGACY && context->currentField == LEGACY_RLP_V) ||
-             (context->txType == EIP2930 && context->currentField == EIP2930_RLP_YPARITY)) &&
+        // Old style transaction (pre EIP-155). Transations could just skip `v,r,s` so we needed to cut parsing here.
+        // commandLength == 0 could happen in two cases :
+        // 1. We are in an old style transaction : just return `USTREAM_FINISHED`.
+        // 2. We are at the end of an APDU in a multi-apdu process. This would make us return `USTREAM_FINISHED` preemptively.
+        // Case number 2 should NOT happen as it is up to `ledgerjs` to correctly decrease the size of the
+        // APDU (`commandLength`) so that this situation doesn't happen.
+        if ((context->txType == LEGACY && context->currentField == LEGACY_RLP_V) &&
             (context->commandLength == 0)) {
             context->content->vLength = 0;
             return USTREAM_FINISHED;

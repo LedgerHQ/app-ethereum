@@ -45,7 +45,7 @@ void handleSign(uint8_t p1,
         uint8_t txType = *workBuffer;
         if (txType >= MIN_TX_TYPE && txType <= MAX_TX_TYPE) {
             // Enumerate through all supported txTypes here...
-            if (txType == EIP2930) {
+            if (txType == EIP2930 || txType == EIP1559) {
                 txContext.txType = txType;
                 workBuffer++;
                 dataLength--;
@@ -89,6 +89,7 @@ void handleSign(uint8_t p1,
             THROW(0x6A80);
     }
 
+    PRINTF("FINALIZE\n");
     if (txResult == USTREAM_FINISHED) {
         finalizeParsing(false);
     }

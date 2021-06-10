@@ -29,7 +29,8 @@ uint32_t splitBinaryParameterPart(char *result, uint8_t *parameter) {
 
 customStatus_e customProcessor(txContext_t *context) {
     if (((context->txType == LEGACY && context->currentField == LEGACY_RLP_DATA) ||
-         (context->txType == EIP2930 && context->currentField == EIP2930_RLP_DATA)) &&
+         (context->txType == EIP2930 && context->currentField == EIP2930_RLP_DATA) ||
+         (context->txType == EIP1559 && context->currentField == EIP1559_RLP_DATA)) &&
         (context->currentFieldLength != 0)) {
         dataPresent = true;
         // If handling a new contract rather than a function call, abort immediately
@@ -245,13 +246,14 @@ void finalizeParsing(bool direct) {
     tokenDefinition_t *token1 = NULL, *token2 = NULL;
     bool genericUI = true;
 
+    PRINTF("FINALIZING\n");
     // Verify the chain
     if (chainConfig->chainId != 0) {
         uint32_t id = 0;
 
         if (txContext.txType == LEGACY) {
             id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
-        } else if (txContext.txType == EIP2930) {
+        } else if (txContext.txType == EIP2930 || txContext.txType == EIP1559) {
             id = u32_from_BE(txContext.content->chainID.value,
                              txContext.content->chainID.length,
                              false);
@@ -278,6 +280,7 @@ void finalizeParsing(bool direct) {
             32);
 
     // Finalize the plugin handling
+    PRINTF("1\n");
     if (dataContext.tokenContext.pluginStatus >= ETH_PLUGIN_RESULT_SUCCESSFUL) {
         genericUI = false;
         eth_plugin_prepare_finalize(&pluginFinalize);
@@ -357,6 +360,7 @@ void finalizeParsing(bool direct) {
         }
     }
 
+    PRINTF("2\n");
     if (dataPresent && !N_storage.dataAllowed) {
         reportFinalizeError(direct);
         if (!direct) {
@@ -414,7 +418,7 @@ void finalizeParsing(bool direct) {
                 // the output was truncated. Return the appropriate error code.
                 THROW(0x6502);
             }
-        } else if (txContext.txType == EIP2930) {
+        } else if (txContext.txType == EIP2930 || txContext.txType == EIP1559) {
             uint256_t chainID;
             convertUint256BE(tmpContent.txContent.chainID.value,
                              tmpContent.txContent.chainID.length,
@@ -426,6 +430,7 @@ void finalizeParsing(bool direct) {
             return;
         }
     }
+    PRINTF("3\n");
 
     bool no_consent;
 

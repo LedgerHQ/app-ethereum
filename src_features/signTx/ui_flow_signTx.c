@@ -174,7 +174,7 @@ void ux_approve_tx(bool dataPresent) {
     uint32_t id;
     if (txContext.txType == LEGACY) {
         id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
-    } else if (txContext.txType == EIP2930) {
+    } else if (txContext.txType == EIP2930 || txContext.txType == EIP1559) {
         id =
             u32_from_BE(txContext.content->chainID.value, txContext.content->chainID.length, false);
     } else {

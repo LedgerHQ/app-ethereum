@@ -80,6 +80,24 @@ typedef enum rlpEIP2930TxField_e {
     EIP2930_RLP_DONE
 } rlpEIP2930TxField_e;
 
+typedef enum rlpEIP1559TxField_e {
+    EIP1559_RLP_NONE = RLP_NONE,
+    EIP1559_RLP_CONTENT,
+    EIP1559_RLP_CHAINID,
+    EIP1559_RLP_NONCE,
+    EIP1559_RLP_MAX_PRIORITY_FEE_PER_GAS,
+    EIP1559_RLP_MAX_FEE_PER_GAS,
+    EIP1559_RLP_GASLIMIT,
+    EIP1559_RLP_TO,
+    EIP1559_RLP_VALUE,
+    EIP1559_RLP_DATA,
+    EIP1559_RLP_ACCESS_LIST,
+    EIP1559_RLP_YPARITY,
+    EIP1559_RLP_SENDER_R,
+    EIP1559_RLP_SENDER_S,
+    EIP1559_RLP_DONE
+} rlpEIP1559TxField_e;
+
 #define MIN_TX_TYPE 0x00
 #define MAX_TX_TYPE 0x7f
 
@@ -87,6 +105,7 @@ typedef enum rlpEIP2930TxField_e {
 // Valid transaction types should be in [0x00, 0x7f]
 typedef enum txType_e {
     EIP2930 = 0x01,
+    EIP1559 = 0x02,
     LEGACY = 0xc0  // Legacy tx are greater than or equal to 0xc0.
 } txType_e;
 

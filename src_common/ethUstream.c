@@ -92,7 +92,7 @@ static void processContent(txContext_t *context) {
 
 static void processAccessList(txContext_t *context) {
     if (!context->currentFieldIsList) {
-        PRINTF("Invalid type for RLP_DATA\n");
+        PRINTF("Invalid type for RLP_ACCESS_LIST\n");
         THROW(EXCEPTION);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
@@ -163,6 +163,30 @@ static void processNonce(txContext_t *context) {
     }
     if (context->currentFieldPos == context->currentFieldLength) {
         context->content->nonce.length = context->currentFieldLength;
+        context->currentField++;
+        context->processingField = false;
+    }
+}
+
+static void processMaxPriorityFeePerGas(txContext_t *context) {
+    PRINTF("PRIORITY\n");
+    if (context->currentFieldIsList) {
+        PRINTF("Invalid type for RLP_MAX_PRIORITY_FEE_PER_GAS\n");
+        THROW(EXCEPTION);
+    }
+    if (context->currentFieldLength > MAX_INT256) {
+        PRINTF("Invalid length for RLP_MAX_PRIORITY_FEE_PER_GAS\n");
+        THROW(EXCEPTION);
+    }
+    if (context->currentFieldPos < context->currentFieldLength) {
+        uint8_t tmp[100];
+        uint32_t copySize =
+            MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
+        // copyTxData(context, NULL, copySize);
+        copyTxData(context, &tmp, copySize);
+    }
+    if (context->currentFieldPos == context->currentFieldLength) {
+        // context->content->nonce.length = context->currentFieldLength;
         context->currentField++;
         context->processingField = false;
     }
@@ -294,6 +318,94 @@ static void processV(txContext_t *context) {
     }
 }
 
+static bool processEIP1559Tx(txContext_t *context) {
+    PRINTF("1559\n");
+    switch (context->currentField) {
+        case EIP1559_RLP_CONTENT: {
+        uint32_t length =
+            MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
+            PRINTF("content: %.*H\n", length, context->workBuffer);
+            processContent(context);
+            PRINTF("flags: %d\n", context->processingFlags);
+            if ((context->processingFlags & TX_FLAG_TYPE) == 0) {
+                PRINTF("INCREM\n");
+                // context->currentField++;
+            }
+            break;
+        }
+        case EIP1559_RLP_CHAINID: {
+        uint32_t length =
+            MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
+            PRINTF("chainid: %.*H\n", length, context->workBuffer);
+            processChainID(context);
+            break;
+        }
+        case EIP1559_RLP_NONCE: {
+        uint32_t length =
+            MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
+            PRINTF("nonce: %.*H\n", length, context->workBuffer);
+            processNonce(context);
+            break;
+        }
+        case EIP1559_RLP_MAX_PRIORITY_FEE_PER_GAS: {
+        uint32_t length =
+            MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
+            PRINTF("feepergasmax: %.*H\n", length, context->workBuffer);
+            processMaxPriorityFeePerGas(context);
+            break;
+        }
+        case EIP1559_RLP_MAX_FEE_PER_GAS: {
+        uint32_t length =
+            MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
+            PRINTF("gasprice: %.*H\n", length, context->workBuffer);
+            processGasprice(context);
+            break;
+        }
+        case EIP1559_RLP_GASLIMIT: {
+        uint32_t length =
+            MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
+            PRINTF("gaslimit: %.*H\n", length, context->workBuffer);
+            processGasLimit(context);
+            break;
+        }
+        case EIP1559_RLP_TO: {
+        uint32_t length =
+            MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
+            PRINTF("to: %.*H\n", length, context->workBuffer);
+            processTo(context);
+            break;
+        }
+        case EIP1559_RLP_VALUE: {
+        uint32_t length =
+            MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
+            PRINTF("value: %.*H\n", length, context->workBuffer);
+            processValue(context);
+            break;
+        }
+        case EIP1559_RLP_DATA: {
+            processData(context);
+            break;
+        }
+        case EIP1559_RLP_ACCESS_LIST: {
+            processAccessList(context);
+            break;
+        }
+        case EIP1559_RLP_YPARITY: {
+            PRINTF("PARITY\n");
+            processV(context);
+            break;
+        }
+        case EIP1559_RLP_SENDER_R:
+        case EIP1559_RLP_SENDER_S:
+            processData(context);
+            break;
+        default:
+            PRINTF("Invalid RLP decoder context\n");
+            return true;
+    }
+    return false;
+}
+
 static bool processEIP2930Tx(txContext_t *context) {
     switch (context->currentField) {
         case EIP2930_RLP_CONTENT:
@@ -333,6 +445,7 @@ static bool processEIP2930Tx(txContext_t *context) {
         case EIP2930_RLP_SENDER_R:
         case EIP2930_RLP_SENDER_S:
             processData(context);
+            PRINTF("DONE\n");
             break;
         default:
             PRINTF("Invalid RLP decoder context\n");
@@ -409,6 +522,7 @@ static parserStatus_e parseRLP(txContext_t *context) {
         PRINTF("Can't decode\n");
         return USTREAM_PROCESSING;
     }
+    PRINTF("BEFORE: %d\n", context->currentFieldIsList);
     // Ready to process this field
     if (!rlpDecodeLength(context->rlpBuffer,
                          context->rlpBufferPos,
@@ -418,6 +532,8 @@ static parserStatus_e parseRLP(txContext_t *context) {
         PRINTF("RLP decode error\n");
         return USTREAM_FAULT;
     }
+    PRINTF("AFTER: %d\n", context->currentFieldIsList);
+    // Ready to process this field
     if (offset == 0) {
         // Hack for single byte, self encoded
         context->workBuffer--;
@@ -472,7 +588,7 @@ static parserStatus_e processTxInternal(txContext_t *context) {
             }
         }
         if (customStatus == CUSTOM_NOT_HANDLED) {
-            PRINTF("Current field: %u\n", context->currentField);
+            PRINTF("Current field: %d\n", context->currentField);
             switch (context->txType) {
                 bool fault;
                 case LEGACY:
@@ -484,6 +600,13 @@ static parserStatus_e processTxInternal(txContext_t *context) {
                     }
                 case EIP2930:
                     fault = processEIP2930Tx(context);
+                    if (fault) {
+                        return USTREAM_FAULT;
+                    } else {
+                        break;
+                    }
+                case EIP1559:
+                    fault = processEIP1559Tx(context);
                     if (fault) {
                         return USTREAM_FAULT;
                     } else {

@@ -9,8 +9,10 @@
 
 #define PLUGIN_ID_LENGTH 30
 
+// Interface version. To be updated everytime we introduce breaking changes to the plugin interface.
 typedef enum {
-    ETH_PLUGIN_INTERFACE_VERSION_1 = 1  // Version 1
+    ETH_PLUGIN_INTERFACE_VERSION_1 = 1,  // Version 1
+    ETH_PLUGIN_INTERFACE_VERSION_2 = 2  // Add dataPresent to txContent
 } eth_plugin_interface_version_t;
 
 typedef enum {

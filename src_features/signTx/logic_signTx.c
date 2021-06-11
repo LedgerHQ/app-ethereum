@@ -194,7 +194,8 @@ void reportFinalizeError(bool direct) {
     }
 }
 
-void computeFees(const txInt256_t *BEgasPrice, const txInt256_t *BEgasLimit, uint256_t *output) {
+// Convert `BEgasPrice` and `BEgasLimit` to Uint256 and then stores the multiplication of both in `output`.
+static void computeFees(txInt256_t *BEgasPrice, txInt256_t *BEgasLimit, uint256_t *output) {
     uint256_t gasPrice = {0};
     uint256_t gasLimit = {0};
 
@@ -213,7 +214,7 @@ void computeFees(const txInt256_t *BEgasPrice, const txInt256_t *BEgasLimit, uin
     mul256(&gasPrice, &gasLimit, output);
 }
 
-void feesToString(const uint256_t *rawFee, char *displayBuffer, uint32_t displayBufferSize) {
+static void feesToString(uint256_t *rawFee, char *displayBuffer, uint32_t displayBufferSize) {
     uint8_t *feeTicker = (uint8_t *) PIC(chainConfig->coinName);
     uint8_t tickerOffset = 0;
     uint32_t i;
@@ -244,13 +245,13 @@ void feesToString(const uint256_t *rawFee, char *displayBuffer, uint32_t display
 }
 
 // Compute the fees, transform it to a string, prepend a ticker to it and copy everything to `displayBuffer`.
-void prepareFees(const txInt256_t *BEGasPrice, const txInt256_t *BEGasLimit, char *displayBuffer, uint32_t displayBufferSize) {
+void prepareAndCopyFees(txInt256_t *BEGasPrice, txInt256_t *BEGasLimit, char *displayBuffer, uint32_t displayBufferSize) {
     uint256_t rawFee = {0};
     computeFees(BEGasPrice, BEGasLimit, &rawFee);
     feesToString(&rawFee, displayBuffer, displayBufferSize);
 }
 
-void prepareAndCopyDetailedFees(char *displayBuffer, uint32_t displayBufferSize) {
+static void prepareAndCopyDetailedFees() {
     uint256_t rawPriorityFee = {0};
     uint256_t rawMaxFee = {0};
     uint256_t rawBaseFee = {0};
@@ -263,15 +264,44 @@ void prepareAndCopyDetailedFees(char *displayBuffer, uint32_t displayBufferSize)
 
     // Transform priorityFee to string (with a ticker).
     PRINTF("Computing priority fee\n");
-    feesToString(&rawPriorityFee, displayBuffer, displayBufferSize);
-    // Copy it to destination.
-    compareOrCopy(strings.common.priorityFee, displayBuffer, called_from_swap);
+    feesToString(&rawPriorityFee, strings.common.priorityFee, sizeof(strings.common.priorityFee));
 
     PRINTF("Computing base fee\n");
     // Transform priorityFee to string (with a ticker).
-    feesToString(&rawBaseFee, displayBuffer, displayBufferSize);
-    // Copy it to destination.
-    compareOrCopy(strings.common.maxFee, displayBuffer, called_from_swap);
+    feesToString(&rawBaseFee, strings.common.maxFee, sizeof(strings.common.maxFee));
+}
+
+void prepareFeeDisplay() {
+    if (N_storage.displayFeeDetails) {
+        prepareAndCopyDetailedFees();
+    } else {
+        prepareAndCopyFees(&tmpContent.txContent.gasprice, &tmpContent.txContent.startgas, strings.common.maxFee, sizeof(strings.common.maxFee));
+    }
+}
+
+uint32_t get_chainID() {
+    uint32_t chain_id = 0;
+
+    if (txContext.txType == LEGACY) {
+        chain_id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
+    } else if (txContext.txType == EIP2930 || txContext.txType == EIP1559) {
+        chain_id = u32_from_BE(tmpContent.txContent.chainID.value, tmpContent.txContent.chainID.length, true);
+    }
+    else {
+        PRINTF("Txtype `%u` not supported while generating chainID\n", txContext.txType);
+    }
+    PRINTF("ChainID: %d\n", chain_id);
+    return chain_id;
+}
+
+void prepareChainIdDisplay() {
+    uint32_t chainID = get_chainID();
+    uint8_t res = snprintf(strings.common.chainID, sizeof(strings.common.chainID), "%d", chainID);
+    if (res >= sizeof(strings.common.chainID)) {
+        // If the return value is higher or equal to the size passed in as parameter, then
+        // the output was truncated. Return the appropriate error code.
+        THROW(0x6502);
+    }
 }
 
 void finalizeParsing(bool direct) {
@@ -435,37 +465,12 @@ void finalizeParsing(bool direct) {
     }
     // Compute maximum fee
     if (genericUI) {
-        if (N_storage.displayFeeDetails) {
-            prepareAndCopyDetailedFees(displayBuffer, sizeof(displayBuffer));
-        } else {
-            prepareFees(&tmpContent.txContent.gasprice, &tmpContent.txContent.startgas, displayBuffer, sizeof(displayBuffer));
-            compareOrCopy(strings.common.maxFee, displayBuffer, called_from_swap);
-        }
+        prepareFeeDisplay();
     }
 
     // Prepare chainID field
     if (genericUI) {
-        if (txContext.txType == LEGACY) {
-            uint32_t id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
-            PRINTF("Chain ID: %u\n", id);
-            uint8_t res =
-                snprintf(strings.common.chainID, sizeof(strings.common.chainID), "%d", id);
-            if (res >= sizeof(strings.common.chainID)) {
-                // If the return value is higher or equal to the size passed in as parameter, then
-                // the output was truncated. Return the appropriate error code.
-                THROW(0x6502);
-            }
-        } else if (txContext.txType == EIP2930 || txContext.txType == EIP1559) {
-            uint256_t chainID;
-            convertUint256BE(tmpContent.txContent.chainID.value,
-                             tmpContent.txContent.chainID.length,
-                             &chainID);
-            tostring256(&chainID, 10, displayBuffer, sizeof(displayBuffer));
-            strncpy(strings.common.chainID, displayBuffer, sizeof(strings.common.chainID));
-        } else {
-            PRINTF("Txtype `%u` not supported while generating chainID\n", txContext.txType);
-            return;
-        }
+        prepareChainIdDisplay();
     }
 
     bool no_consent;
@@ -480,7 +485,7 @@ void finalizeParsing(bool direct) {
         io_seproxyhal_touch_tx_ok(NULL);
     } else {
         if (genericUI) {
-            ux_approve_tx(tmpContent.txContent.dataPresent);
+            ux_approve_tx(false);
         } else {
             plugin_ui_start();
         }

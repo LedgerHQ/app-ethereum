@@ -32,7 +32,7 @@ customStatus_e customProcessor(txContext_t *context) {
          (context->txType == EIP2930 && context->currentField == EIP2930_RLP_DATA) ||
          (context->txType == EIP1559 && context->currentField == EIP1559_RLP_DATA)) &&
         (context->currentFieldLength != 0)) {
-        dataPresent = true;
+        context->content->dataPresent = true;
         // If handling a new contract rather than a function call, abort immediately
         if (tmpContent.txContent.destinationLength == 0) {
             return CUSTOM_NOT_HANDLED;
@@ -194,27 +194,31 @@ void reportFinalizeError(bool direct) {
     }
 }
 
-void computeFees(char *displayBuffer, uint32_t displayBufferSize) {
-    uint256_t gasPrice, startGas, uint256;
+void computeFees(const txInt256_t *BEgasPrice, const txInt256_t *BEgasLimit, uint256_t *output) {
+    uint256_t gasPrice = {0};
+    uint256_t gasLimit = {0};
+
+    PRINTF("Gas price %.*H\n",
+           BEgasPrice->length,
+           BEgasPrice->value);
+    PRINTF("Gas limit %.*H\n",
+           BEgasLimit->length,
+           BEgasLimit->value);
+    convertUint256BE(BEgasPrice->value,
+                     BEgasPrice->length,
+                     &gasPrice);
+    convertUint256BE(BEgasLimit->value,
+                     BEgasLimit->length,
+                     &gasLimit);
+    mul256(&gasPrice, &gasLimit, output);
+}
+
+void feesToString(const uint256_t *rawFee, char *displayBuffer, uint32_t displayBufferSize) {
     uint8_t *feeTicker = (uint8_t *) PIC(chainConfig->coinName);
     uint8_t tickerOffset = 0;
     uint32_t i;
 
-    PRINTF("Max fee\n");
-    PRINTF("Gasprice %.*H\n",
-           tmpContent.txContent.gasprice.length,
-           tmpContent.txContent.gasprice.value);
-    PRINTF("Startgas %.*H\n",
-           tmpContent.txContent.startgas.length,
-           tmpContent.txContent.startgas.value);
-    convertUint256BE(tmpContent.txContent.gasprice.value,
-                     tmpContent.txContent.gasprice.length,
-                     &gasPrice);
-    convertUint256BE(tmpContent.txContent.startgas.value,
-                     tmpContent.txContent.startgas.length,
-                     &startGas);
-    mul256(&gasPrice, &startGas, &uint256);
-    tostring256(&uint256, 10, (char *) (G_io_apdu_buffer + 100), 100);
+    tostring256(rawFee, 10, (char *) (G_io_apdu_buffer + 100), 100);
     i = 0;
     while (G_io_apdu_buffer[100 + i]) {
         i++;
@@ -236,6 +240,38 @@ void computeFees(char *displayBuffer, uint32_t displayBufferSize) {
         i++;
     }
     displayBuffer[tickerOffset + i] = '\0';
+    PRINTF("Displayed fees: %s\n", displayBuffer);
+}
+
+// Compute the fees, transform it to a string, prepend a ticker to it and copy everything to `displayBuffer`.
+void prepareFees(const txInt256_t *BEGasPrice, const txInt256_t *BEGasLimit, char *displayBuffer, uint32_t displayBufferSize) {
+    uint256_t rawFee = {0};
+    computeFees(BEGasPrice, BEGasLimit, &rawFee);
+    feesToString(&rawFee, displayBuffer, displayBufferSize);
+}
+
+void prepareAndCopyDetailedFees(char *displayBuffer, uint32_t displayBufferSize) {
+    uint256_t rawPriorityFee = {0};
+    uint256_t rawMaxFee = {0};
+    uint256_t rawBaseFee = {0};
+
+    // Compute the priorityFee and the maxFee.
+    computeFees(&tmpContent.txContent.maxPriorityFeePerGas, &tmpContent.txContent.startgas, &rawPriorityFee);
+    computeFees(&tmpContent.txContent.gasprice, &tmpContent.txContent.startgas, &rawMaxFee);
+    // Substract priorityFee from maxFee -> this is the baseFee
+    minus256(&rawMaxFee, &rawPriorityFee, &rawBaseFee);
+
+    // Transform priorityFee to string (with a ticker).
+    PRINTF("Computing priority fee\n");
+    feesToString(&rawPriorityFee, displayBuffer, displayBufferSize);
+    // Copy it to destination.
+    compareOrCopy(strings.common.priorityFee, displayBuffer, called_from_swap);
+
+    PRINTF("Computing base fee\n");
+    // Transform priorityFee to string (with a ticker).
+    feesToString(&rawBaseFee, displayBuffer, displayBufferSize);
+    // Copy it to destination.
+    compareOrCopy(strings.common.maxFee, displayBuffer, called_from_swap);
 }
 
 void finalizeParsing(bool direct) {
@@ -279,7 +315,6 @@ void finalizeParsing(bool direct) {
             32);
 
     // Finalize the plugin handling
-    PRINTF("1\n");
     if (dataContext.tokenContext.pluginStatus >= ETH_PLUGIN_RESULT_SUCCESSFUL) {
         genericUI = false;
         eth_plugin_prepare_finalize(&pluginFinalize);
@@ -322,7 +357,7 @@ void finalizeParsing(bool direct) {
             // Handle the right interface
             switch (pluginFinalize.uiType) {
                 case ETH_UI_TYPE_GENERIC:
-                    dataPresent = false;
+                    tmpContent.txContent.dataPresent = false;
                     // Add the number of screens + the number of additional screens to get the total
                     // number of screens needed.
                     dataContext.tokenContext.pluginUiMaxItems =
@@ -330,7 +365,7 @@ void finalizeParsing(bool direct) {
                     break;
                 case ETH_UI_TYPE_AMOUNT_ADDRESS:
                     genericUI = true;
-                    dataPresent = false;
+                    tmpContent.txContent.dataPresent = false;
                     if ((pluginFinalize.amount == NULL) || (pluginFinalize.address == NULL)) {
                         PRINTF("Incorrect amount/address set by plugin\n");
                         reportFinalizeError(direct);
@@ -359,8 +394,7 @@ void finalizeParsing(bool direct) {
         }
     }
 
-    PRINTF("2\n");
-    if (dataPresent && !N_storage.dataAllowed) {
+    if (tmpContent.txContent.dataPresent && !N_storage.dataAllowed) {
         reportFinalizeError(direct);
         if (!direct) {
             return;
@@ -401,8 +435,12 @@ void finalizeParsing(bool direct) {
     }
     // Compute maximum fee
     if (genericUI) {
-        computeFees(displayBuffer, sizeof(displayBuffer));
-        compareOrCopy(strings.common.maxFee, displayBuffer, called_from_swap);
+        if (N_storage.displayFeeDetails) {
+            prepareAndCopyDetailedFees(displayBuffer, sizeof(displayBuffer));
+        } else {
+            prepareFees(&tmpContent.txContent.gasprice, &tmpContent.txContent.startgas, displayBuffer, sizeof(displayBuffer));
+            compareOrCopy(strings.common.maxFee, displayBuffer, called_from_swap);
+        }
     }
 
     // Prepare chainID field
@@ -429,7 +467,6 @@ void finalizeParsing(bool direct) {
             return;
         }
     }
-    PRINTF("3\n");
 
     bool no_consent;
 
@@ -443,7 +480,7 @@ void finalizeParsing(bool direct) {
         io_seproxyhal_touch_tx_ok(NULL);
     } else {
         if (genericUI) {
-            ux_approve_tx(dataPresent);
+            ux_approve_tx(tmpContent.txContent.dataPresent);
         } else {
             plugin_ui_start();
         }

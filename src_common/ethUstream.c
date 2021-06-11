@@ -179,14 +179,12 @@ static void processMaxPriorityFeePerGas(txContext_t *context) {
         THROW(EXCEPTION);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
-        uint8_t tmp[100];
         uint32_t copySize =
             MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
-        // copyTxData(context, NULL, copySize);
-        copyTxData(context, &tmp, copySize);
+        copyTxData(context, context->content->maxPriorityFeePerGas.value + context->currentFieldPos, copySize);
     }
     if (context->currentFieldPos == context->currentFieldLength) {
-        // context->content->nonce.length = context->currentFieldLength;
+        context->content->maxPriorityFeePerGas.length = context->currentFieldLength;
         context->currentField++;
         context->processingField = false;
     }
@@ -289,6 +287,26 @@ static void processData(txContext_t *context) {
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
             MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
+        // If there is no data, set dataPresent to false.
+        if (copySize == 1 && *context->workBuffer == 0x00) {
+            context->content->dataPresent = false;
+        }
+        copyTxData(context, NULL, copySize);
+    }
+    if (context->currentFieldPos == context->currentFieldLength) {
+        context->currentField++;
+        context->processingField = false;
+    }
+}
+
+static void processAndDiscard(txContext_t *context) {
+    if (context->currentFieldIsList) {
+        PRINTF("Invalid type for Discarded field\n");
+        THROW(EXCEPTION);
+    }
+    if (context->currentFieldPos < context->currentFieldLength) {
+        uint32_t copySize =
+            MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
         copyTxData(context, NULL, copySize);
     }
     if (context->currentFieldPos == context->currentFieldLength) {
@@ -319,7 +337,6 @@ static void processV(txContext_t *context) {
 }
 
 static bool processEIP1559Tx(txContext_t *context) {
-    PRINTF("1559\n");
     switch (context->currentField) {
         case EIP1559_RLP_CONTENT: {
             processContent(context);
@@ -375,7 +392,7 @@ static bool processEIP1559Tx(txContext_t *context) {
         }
         case EIP1559_RLP_SENDER_R:
         case EIP1559_RLP_SENDER_S:
-            processData(context);
+            processAndDiscard(context);
             break;
         default:
             PRINTF("Invalid RLP decoder context\n");
@@ -417,14 +434,15 @@ static bool processEIP2930Tx(txContext_t *context) {
         case EIP2930_RLP_YPARITY:
             processV(context);
             break;
+        case EIP2930_RLP_DATA:
+            processData(context);
+            break;
         case EIP2930_RLP_ACCESS_LIST:
             processAccessList(context);
             break;
-        case EIP2930_RLP_DATA:
         case EIP2930_RLP_SENDER_R:
         case EIP2930_RLP_SENDER_S:
-            processData(context);
-            PRINTF("DONE\n");
+            processAndDiscard(context);
             break;
         default:
             PRINTF("Invalid RLP decoder context\n");
@@ -461,9 +479,11 @@ static bool processLegacyTx(txContext_t *context) {
             processValue(context);
             break;
         case LEGACY_RLP_DATA:
+            processData(context);
+            break;
         case LEGACY_RLP_R:
         case LEGACY_RLP_S:
-            processData(context);
+            processAndDiscard(context);
             break;
         case LEGACY_RLP_V:
             processV(context);

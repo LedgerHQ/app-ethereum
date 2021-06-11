@@ -109,6 +109,20 @@ UX_STEP_NOCB(
       .text = strings.common.fullAddress,
     });
 UX_STEP_NOCB(
+    ux_approval_base_fee_step,
+    bnnn_paging,
+    {
+      .title = "Base Fee",
+      .text = strings.common.maxFee,
+    });
+UX_STEP_NOCB(
+    ux_approval_priority_fee_step,
+    bnnn_paging,
+    {
+      .title = "Priority Fee",
+      .text = strings.common.priorityFee,
+    });
+UX_STEP_NOCB(
     ux_approval_fees_step,
     bnnn_paging,
     {
@@ -157,18 +171,18 @@ UX_STEP_NOCB(ux_approval_data_warning_step,
     });
 // clang-format on
 
-const ux_flow_step_t *ux_approval_tx_flow_[10];
+const ux_flow_step_t *ux_approval_tx_flow[12];
 
 void ux_approve_tx(bool dataPresent) {
     int step = 0;
-    ux_approval_tx_flow_[step++] = &ux_approval_review_step;
-    if (dataPresent && !N_storage.contractDetails) {
-        ux_approval_tx_flow_[step++] = &ux_approval_data_warning_step;
+    ux_approval_tx_flow[step++] = &ux_approval_review_step;
+    if (tmpContent.txContent.dataPresent && !N_storage.contractDetails) {
+        ux_approval_tx_flow[step++] = &ux_approval_data_warning_step;
     }
-    ux_approval_tx_flow_[step++] = &ux_approval_amount_step;
-    ux_approval_tx_flow_[step++] = &ux_approval_address_step;
+    ux_approval_tx_flow[step++] = &ux_approval_amount_step;
+    ux_approval_tx_flow[step++] = &ux_approval_address_step;
     if (N_storage.displayNonce) {
-        ux_approval_tx_flow_[step++] = &ux_approval_nonce_step;
+        ux_approval_tx_flow[step++] = &ux_approval_nonce_step;
     }
 
     uint32_t id;
@@ -182,12 +196,17 @@ void ux_approve_tx(bool dataPresent) {
         THROW(0x6501);
     }
     if (id != ETHEREUM_MAINNET_CHAINID) {
-        ux_approval_tx_flow_[step++] = &ux_approval_chainid_step;
+        ux_approval_tx_flow[step++] = &ux_approval_chainid_step;
     }
-    ux_approval_tx_flow_[step++] = &ux_approval_fees_step;
-    ux_approval_tx_flow_[step++] = &ux_approval_accept_step;
-    ux_approval_tx_flow_[step++] = &ux_approval_reject_step;
-    ux_approval_tx_flow_[step++] = FLOW_END_STEP;
+    if (txContext.txType == EIP1559 && N_storage.displayFeeDetails) {
+      ux_approval_tx_flow[step++] = &ux_approval_base_fee_step;
+      ux_approval_tx_flow[step++] = &ux_approval_priority_fee_step;
+    } else {
+      ux_approval_tx_flow[step++] = &ux_approval_fees_step;
+    }
+    ux_approval_tx_flow[step++] = &ux_approval_accept_step;
+    ux_approval_tx_flow[step++] = &ux_approval_reject_step;
+    ux_approval_tx_flow[step++] = FLOW_END_STEP;
 
-    ux_flow_init(0, ux_approval_tx_flow_, NULL);
+    ux_flow_init(0, ux_approval_tx_flow, NULL);
 }

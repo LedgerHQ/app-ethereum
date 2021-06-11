@@ -49,7 +49,6 @@ strings_t strings;
 cx_sha3_t global_sha3;
 
 uint8_t appState;
-bool dataPresent;
 bool called_from_swap;
 bool externalPluginIsSet;
 #ifdef HAVE_STARKWARE
@@ -779,6 +778,7 @@ void coin_main(chain_config_t *coin_config) {
 #endif
                     storage.contractDetails = 0x00;
                     storage.displayNonce = 0x00;
+                    storage.displayFeeDetails = 0x00;
                     storage.initialized = 0x01;
                     nvm_write((void *) &N_storage, (void *) &storage, sizeof(internalStorage_t));
                 }

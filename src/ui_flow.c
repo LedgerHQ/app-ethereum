@@ -5,6 +5,7 @@ void display_settings(const ux_flow_step_t* const start_step);
 void switch_settings_contract_data(void);
 void switch_settings_display_data(void);
 void switch_settings_display_nonce(void);
+void switch_settings_display_fee_details(void);
 
 //////////////////////////////////////////////////////////////////////
 // clang-format off
@@ -78,6 +79,15 @@ UX_STEP_CB(
       .text = strings.common.fullAddress + 26
     });
 
+UX_STEP_CB(
+    ux_settings_flow_4_step,
+    bnnn_paging,
+    switch_settings_display_fee_details(),
+    {
+      .title = "Fee Details",
+      .text = strings.common.fullAddress + 40
+    });
+
 #else
 
 UX_STEP_CB(
@@ -113,10 +123,21 @@ UX_STEP_CB(
       strings.common.fullAddress + 26
     });
 
+  UX_STEP_CB(
+    ux_settings_flow_4_step,
+    bnnn,
+    switch_settings_display_fee_details(),
+    {
+      "Fee Details",
+      "Display fee details",
+      "when possible",
+      strings.common.fullAddress + 40
+    });
+
 #endif
 
 UX_STEP_CB(
-    ux_settings_flow_4_step,
+    ux_settings_flow_5_step,
     pb,
     ui_idle(),
     {
@@ -129,7 +150,8 @@ UX_FLOW(ux_settings_flow,
         &ux_settings_flow_1_step,
         &ux_settings_flow_2_step,
         &ux_settings_flow_3_step,
-        &ux_settings_flow_4_step);
+        &ux_settings_flow_4_step,
+        &ux_settings_flow_5_step);
 
 void display_settings(const ux_flow_step_t* const start_step) {
     strcpy(strings.common.fullAddress, (N_storage.dataAllowed ? "Allowed" : "NOT Allowed"));
@@ -137,6 +159,8 @@ void display_settings(const ux_flow_step_t* const start_step) {
            (N_storage.contractDetails ? "Displayed" : "NOT Displayed"));
     strcpy(strings.common.fullAddress + 26,
            (N_storage.displayNonce ? "Displayed" : "NOT Displayed"));
+    strcpy(strings.common.fullAddress + 40,
+           (N_storage.displayFeeDetails ? "Displayed" : "NOT Displayed"));
     ux_flow_init(0, ux_settings_flow, start_step);
 }
 
@@ -156,4 +180,10 @@ void switch_settings_display_nonce() {
     uint8_t value = (N_storage.displayNonce ? 0 : 1);
     nvm_write((void*) &N_storage.displayNonce, (void*) &value, sizeof(uint8_t));
     display_settings(&ux_settings_flow_3_step);
+}
+
+void switch_settings_display_fee_details() {
+    uint8_t value = (N_storage.displayFeeDetails ? 0 : 1);
+    nvm_write((void*) &N_storage.displayFeeDetails, (void*) &value, sizeof(uint8_t));
+    display_settings(&ux_settings_flow_4_step);
 }

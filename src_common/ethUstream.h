@@ -83,8 +83,8 @@ typedef enum rlpEIP2930TxField_e {
 
 typedef enum rlpEIP1559TxField_e {
     EIP1559_RLP_NONE = RLP_NONE,
-    EIP1559_RLP_TYPE, // For wanchain
     EIP1559_RLP_CONTENT,
+    EIP1559_RLP_TYPE, // For wanchain
     EIP1559_RLP_CHAINID,
     EIP1559_RLP_NONCE,
     EIP1559_RLP_MAX_PRIORITY_FEE_PER_GAS,
@@ -125,8 +125,9 @@ typedef struct txInt256_t {
 } txInt256_t;
 
 typedef struct txContent_t {
-    txInt256_t gasprice;
-    txInt256_t startgas;
+    txInt256_t gasprice; // Used as MaxFeePerGas when dealing with EIP1559 transactions.
+    txInt256_t startgas; // Also known as `gasLimit`.
+    txInt256_t maxPriorityFeePerGas;
     txInt256_t value;
     txInt256_t nonce;
     txInt256_t chainID;
@@ -134,6 +135,7 @@ typedef struct txContent_t {
     uint8_t destinationLength;
     uint8_t v[4];
     uint8_t vLength;
+    bool dataPresent;
 } txContent_t;
 
 typedef struct txContext_t {

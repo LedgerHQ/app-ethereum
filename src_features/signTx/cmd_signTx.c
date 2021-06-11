@@ -38,7 +38,7 @@ void handleSign(uint8_t p1,
             workBuffer += 4;
             dataLength -= 4;
         }
-        dataPresent = false;
+        tmpContent.txContent.dataPresent = false;
         dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_UNAVAILABLE;
 
         // EIP 2718: TransactionType might be present before the TransactionPayload.
@@ -89,7 +89,6 @@ void handleSign(uint8_t p1,
             THROW(0x6A80);
     }
 
-    PRINTF("FINALIZE\n");
     if (txResult == USTREAM_FINISHED) {
         finalizeParsing(false);
     }

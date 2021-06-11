@@ -30,6 +30,7 @@ typedef struct internalStorage_t {
     unsigned char dataAllowed;
     unsigned char contractDetails;
     unsigned char displayNonce;
+    unsigned char displayFeeDetails;
     uint8_t initialized;
 } internalStorage_t;
 
@@ -165,7 +166,8 @@ typedef enum {
 typedef struct txStringProperties_t {
     char fullAddress[43];
     char fullAmount[50];
-    char maxFee[50];
+    char maxFee[50]; // Used as BaseFee when detailing fees
+    char priorityFee[50];
     char nonce[8];    // 10M tx per account ought to be enough for everybody
     char chainID[8];  // 10M different chainID ought to be enough for people to find a unique
                       // chainID for their token / chain.
@@ -195,7 +197,6 @@ extern cx_sha3_t global_sha3;
 extern const internalStorage_t N_storage_real;
 
 extern bool called_from_swap;
-extern bool dataPresent;
 extern bool externalPluginIsSet;
 extern uint8_t appState;
 #ifdef HAVE_STARKWARE

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.8.6](https://github.com/ledgerhq/app-ethereum/compare/1.7.9...1.8.6) - 2021-6-15
+
+### Added
+
+Added support for BSC.
+
 ## [1.8.5](https://github.com/ledgerhq/app-ethereum/compare/1.7.9...1.8.5) - 2021-6-8
 
 ### Added

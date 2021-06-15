@@ -4,7 +4,7 @@
 #include "ui_callbacks.h"
 #include "feature_stark_getPublicKey.h"
 
-unsigned int io_seproxyhal_touch_stark_pubkey_ok(const bagl_element_t *e) {
+unsigned int io_seproxyhal_touch_stark_pubkey_ok(__attribute__((unused)) const bagl_element_t *e) {
     uint32_t tx = set_result_get_stark_publicKey();
     G_io_apdu_buffer[tx++] = 0x90;
     G_io_apdu_buffer[tx++] = 0x00;

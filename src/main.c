@@ -93,7 +93,7 @@ void ui_idle(void) {
     ux_flow_init(0, ux_idle_flow, NULL);
 }
 
-unsigned int io_seproxyhal_touch_exit(const bagl_element_t *e) {
+unsigned int io_seproxyhal_touch_exit(__attribute__((unused)) const bagl_element_t *e) {
     // Go back to the dashboard
     os_sched_exit(0);
     return 0;  // do not redraw the widget

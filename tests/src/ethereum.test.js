@@ -89,9 +89,9 @@ test("Transfer nanox", async () => {
     await sim.clickBoth();
 
     await expect(tx).resolves.toEqual({
-      r: "760c0d133c1095830614736e24c5741dcfcf1c46aeb301c3f213d92eac66c7b8",
-      s: "0e19d23ef82e04d2a3e77bc24ad036a381a2a12333b8d9228776bedf08092472",
-      v: "6e"
+      r: "610f4e866a960467e139387d21a922e836c6ae09af548940aa8ceaa04f720ab4",
+      s: "1e9f5e10bf4667c3a8b094856af1d1a98faa544331f654158255fe87cbb55737",
+      v: "6d",
     });
   } finally {
     await sim.close();
@@ -124,9 +124,17 @@ test("Deposit nanos", async () => {
     await sim.clickRight();
     // Address 1
     await sim.clickRight();
+    // Address 2
+    await sim.clickRight();
+    // Address 3
+    await sim.clickRight();
     // Chain ID
     await sim.clickRight();
-    // Max Fees
+    // Max Fees 1
+    await sim.clickRight();
+    // Max Fees 2
+    await sim.clickRight();
+    // Max Fees 3
     await sim.clickRight();
     // Accept
     await sim.clickBoth();
@@ -169,15 +177,16 @@ test("Deposit nanox", async () => {
     await sim.clickRight();
     // Chain ID
     await sim.clickRight();
-    // Max Fees
+    // Max Fees 1/2
     await sim.clickRight();
+
     // Accept
     await sim.clickBoth();
 
     await expect(tx).resolves.toEqual({
-      r: "610f4e866a960467e139387d21a922e836c6ae09af548940aa8ceaa04f720ab4",
-      s: "1e9f5e10bf4667c3a8b094856af1d1a98faa544331f654158255fe87cbb55737",
-      v: "6d",
+      r: "760c0d133c1095830614736e24c5741dcfcf1c46aeb301c3f213d92eac66c7b8",
+      s: "0e19d23ef82e04d2a3e77bc24ad036a381a2a12333b8d9228776bedf08092472",
+      v: "6e",
     });
 
   } finally {

@@ -16,7 +16,7 @@ void handleStarkwareSignMessage(uint8_t p1,
                                 uint8_t *dataBuffer,
                                 uint16_t dataLength,
                                 unsigned int *flags,
-                                unsigned int *tx) {
+                                __attribute__((unused)) unsigned int *tx) {
     uint8_t privateKeyData[INT256_LENGTH];
     uint32_t i;
     uint8_t bip32PathLength = *(dataBuffer);

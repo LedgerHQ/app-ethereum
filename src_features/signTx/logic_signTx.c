@@ -2,6 +2,7 @@
 #include "utils.h"
 #include "ui_callbacks.h"
 #include "ui_flow.h"
+#include "feature_signTx.h"
 #ifdef HAVE_STARKWARE
 #include "stark_utils.h"
 #endif

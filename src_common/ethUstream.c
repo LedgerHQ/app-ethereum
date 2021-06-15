@@ -411,7 +411,6 @@ static parserStatus_e parseRLP(txContext_t *context) {
     }
     // Ready to process this field
     if (!rlpDecodeLength(context->rlpBuffer,
-                         context->rlpBufferPos,
                          &context->currentFieldLength,
                          &offset,
                          &context->currentFieldIsList)) {

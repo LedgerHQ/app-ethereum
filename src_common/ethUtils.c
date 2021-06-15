@@ -59,7 +59,6 @@ bool rlpCanDecode(uint8_t *buffer, uint32_t bufferLength, bool *valid) {
 }
 
 bool rlpDecodeLength(uint8_t *buffer,
-                     uint32_t bufferLength,
                      uint32_t *fieldLength,
                      uint32_t *offset,
                      bool *list) {

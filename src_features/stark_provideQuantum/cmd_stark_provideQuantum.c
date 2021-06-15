@@ -5,11 +5,11 @@
 #include "ui_flow.h"
 
 void handleStarkwareProvideQuantum(uint8_t p1,
-                                   uint8_t p2,
+                                   __attribute__((unused)) uint8_t p2,
                                    uint8_t *dataBuffer,
                                    uint16_t dataLength,
-                                   unsigned int *flags,
-                                   unsigned int *tx) {
+                                   __attribute__((unused)) unsigned int *flags,
+                                   __attribute__((unused)) unsigned int *tx) {
     size_t i = 0;
     uint8_t expectedDataSize = 20 + 32;
     uint8_t addressZero = 0;

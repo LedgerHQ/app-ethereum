@@ -1,7 +1,7 @@
 #include "shared_context.h"
 #include "ui_callbacks.h"
 
-static const uint8_t const EIP_712_MAGIC[] = {0x19, 0x01};
+static const uint8_t EIP_712_MAGIC[] = {0x19, 0x01};
 
 unsigned int io_seproxyhal_touch_signMessage712_v0_ok(const bagl_element_t *e) {
     uint8_t privateKeyData[INT256_LENGTH];

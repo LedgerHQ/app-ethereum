@@ -99,22 +99,6 @@ unsigned int io_seproxyhal_touch_exit(__attribute__((unused)) const bagl_element
     return 0;  // do not redraw the widget
 }
 
-#if defined(TARGET_NANOS)
-unsigned int ui_address_nanos_button(unsigned int button_mask, unsigned int button_mask_counter) {
-    switch (button_mask) {
-        case BUTTON_EVT_RELEASED | BUTTON_LEFT:  // CANCEL
-            io_seproxyhal_touch_address_cancel(NULL);
-            break;
-
-        case BUTTON_EVT_RELEASED | BUTTON_RIGHT: {  // OK
-            io_seproxyhal_touch_address_ok(NULL);
-            break;
-        }
-    }
-    return 0;
-}
-#endif  // #if defined(TARGET_NANOS)
-
 void io_seproxyhal_send_status(uint32_t sw) {
     G_io_apdu_buffer[0] = ((sw >> 8) & 0xff);
     G_io_apdu_buffer[1] = (sw & 0xff);
@@ -682,7 +666,7 @@ void io_seproxyhal_display(const bagl_element_t *element) {
     io_seproxyhal_display_default((bagl_element_t *) element);
 }
 
-unsigned char io_event(unsigned char channel) {
+unsigned char io_event(__attribute__((unused)) unsigned char channel) {
     // nothing done with the event, throw an error on the transport layer if
     // needed
 

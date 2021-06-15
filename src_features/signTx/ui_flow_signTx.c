@@ -286,13 +286,15 @@ void ux_approve_tx(bool fromPlugin) {
     int step = 0;
     ux_approval_tx_flow[step++] = &ux_approval_review_step;
 
-    if (tmpContent.txContent.dataPresent && !N_storage.contractDetails) {
+    if (!fromPlugin && tmpContent.txContent.dataPresent && !N_storage.contractDetails) {
         ux_approval_tx_flow[step++] = &ux_approval_data_warning_step;
     }
 
     if (fromPlugin) {
+        // If we're coming from a plugin then we need to prepare the display.
         prepareChainIdDisplay();
         prepareFeeDisplay();
+
         ux_approval_tx_flow[step++] = &ux_plugin_approval_id_step;
         ux_approval_tx_flow[step++] = &ux_plugin_approval_before_step;
         ux_approval_tx_flow[step++] = &ux_plugin_approval_display_step;

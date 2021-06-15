@@ -9,45 +9,48 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
-Added support for BSC.
+- Added support for BSC.
+- Added icons for Flare.
+- Allowed an extra derivation path for Theta.
+
 
 ## [1.8.5](https://github.com/ledgerhq/app-ethereum/compare/1.7.9...1.8.5) - 2021-6-8
 
 ### Added
 
-Added support for external plugins.
+- Added support for external plugins.
 
 ## [1.7.9](https://github.com/ledgerhq/app-ethereum/compare/1.7.8...1.7.9) - 2021-6-2
 
 ### Added
 
-Added support for Flare Network and Theta Chain.
+- Added support for Flare Network and Theta Chain.
 
 ## [1.7.8](https://github.com/ledgerhq/app-ethereum/compare/1.7.7...1.7.8) - 2021-5-20
 
 ### Fixed
 
-Fixed a bug where transaction would sometimes not get properly signed.
+- Fixed a bug where transaction would sometimes not get properly signed.
 
 ## [1.7.7](https://github.com/ledgerhq/app-ethereum/compare/1.7.6...1.7.7) - 2021-5-19
 
 ### Special
 
-Version bump needed for deployment reasons, nothing changed.
+- Version bump needed for deployment reasons, nothing changed.
 
 ## [1.7.6](https://github.com/ledgerhq/app-ethereum/compare/1.7.5...1.7.6) - 2021-5-14
 
 ### Special
 
-Version bump needed for deployment reasons, nothing changed.
+- Version bump needed for deployment reasons, nothing changed.
 
 ## [1.7.7](https://github.com/ledgerhq/app-ethereum/compare/1.7.6...1.7.7) - 2021-5-19
 
-N/A
+- N/A
 
 ## [1.7.6](https://github.com/ledgerhq/app-ethereum/compare/1.7.6...1.7.6) - 2021-5-14
 
-N/A
+- N/A
 
 ## [1.7.5](https://github.com/ledgerhq/app-ethereum/compare/1.7.4...1.7.5) - 2021-5-10
 

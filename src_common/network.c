@@ -24,14 +24,18 @@ const network_info_t NETWORK_MAPPING[] = {
 uint32_t get_chain_id(void) {
     uint32_t chain_id = 0;
 
-    if (txContext.txType == LEGACY) {
-        chain_id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
-    } else if (txContext.txType == EIP2930) {
-        chain_id = u32_from_BE(tmpContent.txContent.chainID.value,
+    switch (txContext.txType) {
+        case LEGACY:
+            chain_id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
+            break;
+        case EIP2930:
+            chain_id = u32_from_BE(tmpContent.txContent.chainID.value,
                                tmpContent.txContent.chainID.length,
                                true);
-    } else {
-        PRINTF("Txtype `%d` not supported while generating chainID\n", txContext.txType);
+            break;
+        default:
+            PRINTF("Txtype `%d` not supported while generating chainID\n", txContext.txType);
+            break;
     }
     PRINTF("ChainID: %d\n", chain_id);
     return chain_id;

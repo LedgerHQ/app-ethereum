@@ -12,4 +12,4 @@ obj/
 
 # JS
 tests/node_modules
-tests/li
+tests/lib

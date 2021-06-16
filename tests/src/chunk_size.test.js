@@ -29,7 +29,11 @@ test("Check chunk-size edge case", async () => {
     await sim.clickRight();
     // Data Present
     await sim.clickRight();
-    // Amount
+    // Amount 1/3
+    await sim.clickRight();
+    // Amount 2/3
+    await sim.clickRight();
+    // Amount 3/3
     await sim.clickRight();
     // Address 1/3
     await sim.clickRight();
@@ -45,8 +49,8 @@ test("Check chunk-size edge case", async () => {
     await sim.clickBoth();
 
     await expect(tx).resolves.toEqual({
-      r: "610f4e866a960467e139387d21a922e836c6ae09af548940aa8ceaa04f720ab4",
-      s: "1e9f5e10bf4667c3a8b094856af1d1a98faa544331f654158255fe87cbb55737",
+      r: "99ef8e0ff0f1755571c8c00ca18483ae97b907e5c90780333d474930fb7d68ee",
+      s: "707dfc5d5ae47dba7fd7d6afe84c4a3c5a5a649630963a04dc1b88304327ba2a",
       v: "6d",
     });
 

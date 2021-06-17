@@ -15,12 +15,12 @@ const sim_options_nanox = {
 };
 
 const Resolve = require("path").resolve;
-const NANOS_PATH = Resolve("elfs/ethereum_nanos.elf");
-const NANOX_PATH = Resolve("elfs/ethereum_nanox.elf");
+const NANOS_ELF_PATH = Resolve("elfs/ethereum_nanos.elf");
+const NANOX_ELF_PATH = Resolve("elfs/ethereum_nanox.elf");
 
 module.exports = {
-    NANOS_PATH,
-    NANOX_PATH,
+    NANOS_ELF_PATH,
+    NANOX_ELF_PATH,
     sim_options_nanos,
     sim_options_nanox
 }

@@ -18,7 +18,7 @@ const SNAPSHOT_PATH_NANOS = SNAPSHOT_PATH_PREFIX + "nanos/";
 const SNAPSHOT_PATH_NANOX = SNAPSHOT_PATH_PREFIX + "nanox/";
 
 
-test("Approve shiba tokens nanos", async () => {
+test("Approve DAI tokens nanos", async () => {
   jest.setTimeout(100000);
   const sim = new Zemu(NANOS_ELF_PATH);
 
@@ -27,13 +27,17 @@ test("Approve shiba tokens nanos", async () => {
 
     let transport = await sim.getTransport();
 
-    let buffer = Buffer.from("058000002C8000003C800000010000000000000000F869458502540BE40082DA359495AD61B0A150D79219DCF64E1E6CC01F0B64C4CE80B844095EA7B3000000000000000000000000E592427A0AECE92DE3EDEE1F18E0157C05861564FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF018080", "hex");
+    // Token provisioning
+    let buffer = Buffer.from("034441496B175474E89094C44DA98B954EEDEAC495271D0F00000012000000013045022100B3AA979633284EB0F55459099333AB92CF06FDD58DC90E9C070000C8E968864C02207B10EC7D6609F51DDA53D083A6E165A0ABF3A77E13250E6F260772809B49AFF5", "hex");
+    let tx = transport.send(0xe0, 0x0a, 0x00, 0x00, buffer);
 
     // Send transaction
-    let tx = transport.send(0xe0, 0x04, 0x00, 0x00, buffer);
+    buffer = Buffer.from("058000002C8000003C800000010000000000000000F869468506A8B15E0082EBEB946B175474E89094C44DA98B954EEDEAC495271D0F80B844095EA7B30000000000000000000000007D2768DE32B0B80B7A3454C06BDAC94A69DDC7A9FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF018080", "hex");
+    tx = transport.send(0xe0, 0x04, 0x00, 0x00, buffer);
     let filename;
 
     await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot());
+
     // Review tx
     filename = "review.png";
     await sim.snapshot(SNAPSHOT_PATH_NANOS + filename);
@@ -41,26 +45,19 @@ test("Approve shiba tokens nanos", async () => {
     const expected_review = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
     expect(review).toEqual(expected_review);
 
-    // Amount 1/3
-    filename = "amount_1.png";
+    // Type
+    filename = "type.png";
     await sim.clickRight(SNAPSHOT_PATH_NANOS + filename);
-    const amount_1 = Zemu.LoadPng2RGB(SNAPSHOT_PATH_NANOS + filename);
-    const expected_amount_1 = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(amount_1).toEqual(expected_amount_1);
+    const type = Zemu.LoadPng2RGB(SNAPSHOT_PATH_NANOS + filename);
+    const expected_type = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
+    expect(type).toEqual(expected_type);
 
-    // Amount 2/3
-    filename = "amount_2.png";
+    // Amount
+    filename = "amount.png";
     await sim.clickRight(SNAPSHOT_PATH_NANOS + filename);
-    const amount_2 = Zemu.LoadPng2RGB(SNAPSHOT_PATH_NANOS + filename);
-    const expected_amount_2 = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(amount_2).toEqual(expected_amount_2);
-
-    // Amount 3/3
-    filename = "amount_3.png";
-    await sim.clickRight(SNAPSHOT_PATH_NANOS + filename);
-    const amount_3 = Zemu.LoadPng2RGB(SNAPSHOT_PATH_NANOS + filename);
-    const expected_amount_3 = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(amount_3).toEqual(expected_amount_3);
+    const amount = Zemu.LoadPng2RGB(SNAPSHOT_PATH_NANOS + filename);
+    const expected_amount = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
+    expect(amount).toEqual(expected_amount);
 
     // Address 1/3
     filename = "address_1.png";
@@ -100,14 +97,14 @@ test("Approve shiba tokens nanos", async () => {
     await sim.clickBoth();
 
     await expect(tx).resolves.toEqual(
-      Buffer.from([])
+      Buffer.from([37, 146, 36, 53, 17, 57, 107, 101, 164, 250, 167, 53, 165, 71, 46, 169, 155, 60, 224, 247, 242, 51, 142, 171, 66, 98, 6, 115, 11, 192, 221, 197, 127, 22, 27, 192, 248, 97, 6, 77, 132, 13, 228, 244, 48, 76, 253, 25, 165, 113, 1, 126, 98, 223, 125, 143, 112, 207, 96, 92, 15, 2, 85, 147, 182, 144, 0])
     );
   } finally {
     await sim.close();
   }
 });
 
-test("Approve shiba token nanox", async () => {
+test("Approve DAI token nanox", async () => {
   jest.setTimeout(100000);
   const sim = new Zemu(NANOX_ELF_PATH);
 
@@ -115,10 +112,14 @@ test("Approve shiba token nanox", async () => {
     await sim.start(sim_options_nanox);
 
     let transport = await sim.getTransport();
-    let buffer = Buffer.from("058000002C8000003C800000010000000000000000F869458502540BE40082DA359495AD61B0A150D79219DCF64E1E6CC01F0B64C4CE80B844095EA7B3000000000000000000000000E592427A0AECE92DE3EDEE1F18E0157C05861564FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF018080", "hex");
+
+    // Token provisioning
+    let buffer = Buffer.from("034441496B175474E89094C44DA98B954EEDEAC495271D0F00000012000000013045022100B3AA979633284EB0F55459099333AB92CF06FDD58DC90E9C070000C8E968864C02207B10EC7D6609F51DDA53D083A6E165A0ABF3A77E13250E6F260772809B49AFF5", "hex");
+    let tx = transport.send(0xe0, 0x0a, 0x00, 0x00, buffer);
 
     // Send transaction
-    let tx = transport.send(0xe0, 0x04, 0x00, 0x00, buffer);
+    buffer = Buffer.from("058000002C8000003C800000010000000000000000F869468506A8B15E0082EBEB946B175474E89094C44DA98B954EEDEAC495271D0F80B844095EA7B30000000000000000000000007D2768DE32B0B80B7A3454C06BDAC94A69DDC7A9FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF018080", "hex");
+    tx = transport.send(0xe0, 0x04, 0x00, 0x00, buffer);
     let filename;
 
     await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot());
@@ -128,6 +129,13 @@ test("Approve shiba token nanox", async () => {
     const review = Zemu.LoadPng2RGB(SNAPSHOT_PATH_NANOX + filename);
     const expected_review = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOX + filename);
     expect(review).toEqual(expected_review);
+
+    // Type
+    filename = "type.png";
+    await sim.clickRight(SNAPSHOT_PATH_NANOX + filename);
+    const type = Zemu.LoadPng2RGB(SNAPSHOT_PATH_NANOX + filename);
+    const expected_type = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOX + filename);
+    expect(type).toEqual(expected_type);
 
     // Amount
     filename = "amount.png";
@@ -160,7 +168,7 @@ test("Approve shiba token nanox", async () => {
     await sim.clickBoth();
 
     await expect(tx).resolves.toEqual(
-      Buffer.from([])
+      Buffer.from([37, 146, 36, 53, 17, 57, 107, 101, 164, 250, 167, 53, 165, 71, 46, 169, 155, 60, 224, 247, 242, 51, 142, 171, 66, 98, 6, 115, 11, 192, 221, 197, 127, 22, 27, 192, 248, 97, 6, 77, 132, 13, 228, 244, 48, 76, 253, 25, 165, 113, 1, 126, 98, 223, 125, 143, 112, 207, 96, 92, 15, 2, 85, 147, 182, 144, 0])
     );
   } finally {
     await sim.close();

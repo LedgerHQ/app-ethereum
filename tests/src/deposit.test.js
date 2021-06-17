@@ -52,7 +52,7 @@ test("Deposit ETH nanos", async () => {
     // Amount
     filename = "amount.png";
     await sim.clickRight(SNAPSHOT_PATH_NANOS + filename);
-    const amount_2 = Zemu.LoadPng2RGB(SNAPSHOT_PATH_NANOS + filename);
+    const amount = Zemu.LoadPng2RGB(SNAPSHOT_PATH_NANOS + filename);
     const expected_amount = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
     expect(amount).toEqual(expected_amount);
 

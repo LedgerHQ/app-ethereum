@@ -351,6 +351,14 @@ load: all
 delete:
 	python3 -m ledgerblue.deleteApp $(COMMON_DELETE_PARAMS)
 
+install_tests:
+	cd tests && (yarn install || sudo yarn install)
+
+run_tests:
+	cd tests && (yarn test || sudo yarn test)
+
+test: install_tests run_tests
+
 # import generic rules from the sdk
 include $(BOLOS_SDK)/Makefile.rules
 

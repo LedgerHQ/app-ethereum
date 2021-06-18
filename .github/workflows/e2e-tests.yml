@@ -19,8 +19,6 @@ jobs:
           echo $DISPLAY
       - name: Checkout
         uses: actions/checkout@v2
-        with:
-          submodules: true
       - run: sudo apt-get update -y && sudo apt-get install -y libusb-1.0.0 libudev-dev
       - name: Install node
         uses: actions/setup-node@v2

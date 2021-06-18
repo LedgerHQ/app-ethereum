@@ -29,8 +29,7 @@ jobs:
           npm install -g yarn
       - name: Build/Install build js deps
         run: |
-          make zemu_install
+          make install_tests
       - name: Run zemu tests
         run: |
-          export PATH=~/.cargo/bin:$PATH
-          make zemu_test
+          make run_tests

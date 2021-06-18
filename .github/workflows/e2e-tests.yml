@@ -2,6 +2,7 @@ name: End-to-end tests
 
 on: [push, pull_request]
 
+jobs:
   test_zemu:
     runs-on: ubuntu-latest
     steps:

@@ -3,7 +3,8 @@
 
 static const uint8_t EIP_712_MAGIC[] = {0x19, 0x01};
 
-unsigned int io_seproxyhal_touch_signMessage712_v0_ok(__attribute__((unused)) const bagl_element_t *e) {
+unsigned int io_seproxyhal_touch_signMessage712_v0_ok(__attribute__((unused))
+                                                      const bagl_element_t *e) {
     uint8_t privateKeyData[INT256_LENGTH];
     uint8_t hash[INT256_LENGTH];
     uint8_t signature[100];
@@ -70,7 +71,8 @@ unsigned int io_seproxyhal_touch_signMessage712_v0_ok(__attribute__((unused)) co
     return 0;  // do not redraw the widget
 }
 
-unsigned int io_seproxyhal_touch_signMessage712_v0_cancel(__attribute__((unused)) const bagl_element_t *e) {
+unsigned int io_seproxyhal_touch_signMessage712_v0_cancel(__attribute__((unused))
+                                                          const bagl_element_t *e) {
     reset_app_context();
     G_io_apdu_buffer[0] = 0x69;
     G_io_apdu_buffer[1] = 0x85;

@@ -46,7 +46,8 @@ unsigned int io_seproxyhal_touch_signMessage_ok(__attribute__((unused)) const ba
     return 0;  // do not redraw the widget
 }
 
-unsigned int io_seproxyhal_touch_signMessage_cancel(__attribute__((unused)) const bagl_element_t *e) {
+unsigned int io_seproxyhal_touch_signMessage_cancel(__attribute__((unused))
+                                                    const bagl_element_t *e) {
     reset_app_context();
     G_io_apdu_buffer[0] = 0x69;
     G_io_apdu_buffer[1] = 0x85;

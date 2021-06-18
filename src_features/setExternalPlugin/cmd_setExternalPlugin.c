@@ -64,7 +64,8 @@ void handleSetExternalPlugin(uint8_t p1,
         }
         CATCH_OTHER(e) {
             PRINTF("%s external plugin is not present\n", dataContext.tokenContext.pluginName);
-            memset(dataContext.tokenContext.pluginName,0,
+            memset(dataContext.tokenContext.pluginName,
+                   0,
                    sizeof(dataContext.tokenContext.pluginName));
             THROW(0x6984);
         }

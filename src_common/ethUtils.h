@@ -33,10 +33,7 @@
  * string
  * @return true if the RLP header is consistent
  */
-bool rlpDecodeLength(uint8_t *buffer,
-                     uint32_t *fieldLength,
-                     uint32_t *offset,
-                     bool *list);
+bool rlpDecodeLength(uint8_t *buffer, uint32_t *fieldLength, uint32_t *offset, bool *list);
 
 bool rlpCanDecode(uint8_t *buffer, uint32_t bufferLength, bool *valid);
 

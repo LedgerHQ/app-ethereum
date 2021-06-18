@@ -23,10 +23,7 @@ static const uint8_t ERC721_APPROVE_SELECTOR[SELECTOR_SIZE] = {0x09, 0x5e, 0xa7,
 
 const uint8_t* const ERC721_SELECTORS[NUM_ERC721_SELECTORS] = {ERC721_APPROVE_SELECTOR};
 
-static const uint8_t COMPOUND_REDEEM_UNDERLYING_SELECTOR[SELECTOR_SIZE] = {0x85,
-                                                                                 0x2a,
-                                                                                 0x12,
-                                                                                 0xe3};
+static const uint8_t COMPOUND_REDEEM_UNDERLYING_SELECTOR[SELECTOR_SIZE] = {0x85, 0x2a, 0x12, 0xe3};
 static const uint8_t COMPOUND_REDEEM_SELECTOR[SELECTOR_SIZE] = {0xdb, 0x00, 0x6a, 0x75};
 static const uint8_t COMPOUND_MINT_SELECTOR[SELECTOR_SIZE] = {0xa0, 0x71, 0x2d, 0x68};
 static const uint8_t CETH_MINT_SELECTOR[SELECTOR_SIZE] = {0x12, 0x49, 0xc5, 0x8b};
@@ -60,25 +57,19 @@ static const uint8_t STARKWARE_VERIFY_ESCAPE_ID[SELECTOR_SIZE] = {0x2d, 0xd5, 0x
 
 static const uint8_t STARKWARE_WITHDRAW_TO_ID[SELECTOR_SIZE] = {0x14, 0xcd, 0x70, 0xe4};
 static const uint8_t STARKWARE_DEPOSIT_NFT_ID[SELECTOR_SIZE] = {0xae, 0x1c, 0xdd, 0xe6};
-static const uint8_t STARKWARE_DEPOSIT_NFT_RECLAIM_ID[SELECTOR_SIZE] = {0xfc,
-                                                                              0xb0,
-                                                                              0x58,
-                                                                              0x22};
+static const uint8_t STARKWARE_DEPOSIT_NFT_RECLAIM_ID[SELECTOR_SIZE] = {0xfc, 0xb0, 0x58, 0x22};
 static const uint8_t STARKWARE_WITHDRAW_AND_MINT_ID[SELECTOR_SIZE] = {0xd9, 0x14, 0x43, 0xb7};
 static const uint8_t STARKWARE_WITHDRAW_NFT_ID[SELECTOR_SIZE] = {0x01, 0x9b, 0x41, 0x7a};
 static const uint8_t STARKWARE_WITHDRAW_NFT_TO_ID[SELECTOR_SIZE] = {0xeb, 0xef, 0x0f, 0xd0};
 static const uint8_t STARKWARE_REGISTER_AND_DEPOSIT_TOKEN_ID[SELECTOR_SIZE] = {0x10,
-                                                                                     0x82,
-                                                                                     0x08,
-                                                                                     0xcf};
+                                                                               0x82,
+                                                                               0x08,
+                                                                               0xcf};
 static const uint8_t STARKWARE_REGISTER_AND_DEPOSIT_ETH_ID[SELECTOR_SIZE] = {0xa7,
-                                                                                   0x78,
-                                                                                   0xc0,
-                                                                                   0xc3};
-static const uint8_t STARKWARE_PROXY_DEPOSIT_TOKEN_ID[SELECTOR_SIZE] = {0xdc,
-                                                                              0xca,
-                                                                              0xd5,
-                                                                              0x24};
+                                                                             0x78,
+                                                                             0xc0,
+                                                                             0xc3};
+static const uint8_t STARKWARE_PROXY_DEPOSIT_TOKEN_ID[SELECTOR_SIZE] = {0xdc, 0xca, 0xd5, 0x24};
 static const uint8_t STARKWARE_PROXY_DEPOSIT_ETH_ID[SELECTOR_SIZE] = {0x6c, 0xe5, 0xd9, 0x57};
 
 const uint8_t* const STARKWARE_SELECTORS[NUM_STARKWARE_SELECTORS] = {

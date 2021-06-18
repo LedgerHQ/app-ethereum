@@ -58,10 +58,7 @@ bool rlpCanDecode(uint8_t *buffer, uint32_t bufferLength, bool *valid) {
     return true;
 }
 
-bool rlpDecodeLength(uint8_t *buffer,
-                     uint32_t *fieldLength,
-                     uint32_t *offset,
-                     bool *list) {
+bool rlpDecodeLength(uint8_t *buffer, uint32_t *fieldLength, uint32_t *offset, bool *list) {
     if (*buffer <= 0x7f) {
         *offset = 0;
         *fieldLength = 1;

@@ -4,7 +4,8 @@
 #include "stark_utils.h"
 #include "ui_callbacks.h"
 
-unsigned int io_seproxyhal_touch_stark_unsafe_sign_ok(__attribute__((unused)) const bagl_element_t *e) {
+unsigned int io_seproxyhal_touch_stark_unsafe_sign_ok(__attribute__((unused))
+                                                      const bagl_element_t *e) {
     cx_ecfp_private_key_t privateKey;
     uint8_t privateKeyData[INT256_LENGTH];
     uint8_t signature[72];

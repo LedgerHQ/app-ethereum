@@ -243,7 +243,7 @@ void finalizeParsing(bool direct) {
     bool genericUI = true;
 
     // Verify the chain
-    if (chainConfig->chainId != 0) {
+    if (chainConfig->chainId != ETHEREUM_MAINNET_CHAINID) {
         uint32_t id = get_chain_id();
 
         if (chainConfig->chainId != id) {

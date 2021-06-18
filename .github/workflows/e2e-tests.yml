@@ -27,9 +27,6 @@ jobs:
       - name: Install yarn
         run: |
           npm install -g yarn
-      - name: Build Ledger app
-        run: |
-          make DEBUG=1 ALLOW_DATA=1
       - name: Build/Install build js deps
         run: |
           make zemu_install

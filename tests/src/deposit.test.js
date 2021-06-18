@@ -6,7 +6,7 @@ import Zemu from "@zondax/zemu";
 import { TransportStatusError } from "@ledgerhq/errors";
 import { expect } from "../jest";
 
-const {NANOS_ELF_PATH, NANOX_ELF_PATH, sim_options_nanos, sim_options_nanox} = require("generic.js");
+const {NANOS_ELF_PATH, NANOX_ELF_PATH, sim_options_nanos, sim_options_nanox, TIMEOUT} = require("generic.js");
 
 // Adapt this prefix.
 const ORIGINAL_SNAPSHOT_PATH_PREFIX = "snapshots/deposit/";
@@ -20,7 +20,7 @@ const SNAPSHOT_PATH_NANOX = SNAPSHOT_PATH_PREFIX + "nanox/";
 
 
 test("Deposit ETH nanos", async () => {
-  jest.setTimeout(100000);
+  jest.setTimeout(TIMEOUT);
   const sim = new Zemu(NANOS_ELF_PATH);
 
   try {
@@ -28,10 +28,12 @@ test("Deposit ETH nanos", async () => {
 
     let transport = await sim.getTransport();
 
-    let buffer = Buffer.from("058000002C8000003C800000010000000000000000F8914585055AE826008306599594CC9A0B7C43DC2A5F023BB9B738E45B0EF6B06E0487B1A2BC2EC50000B864474CF53D0000000000000000000000007D2768DE32B0B80B7A3454C06BDAC94A69DDC7A900000000000000000000000070BC641723FAD48BE2DF6CF63DC6270EE2F897430000000000000000000000000000000000", "hex");
-
-    // Send transaction
+    let buffer = Buffer.from("058000002c8000003c800000010000000000000000f8924685028fa6ae008306599594cc9a0b7c43dc2a5f023bb9b738e45b0ef6b06e0488016345785d8a0000b864474cf53d0000000000000000000000007d2768de32b0b80b7a3454c06bdac94a69ddc7a900000000000000000000000070bc641723fad48be2df6cf63dc6270ee2f8974300000000000000000000000000000000", "hex");
     let tx = transport.send(0xe0, 0x04, 0x00, 0x00, buffer);
+
+    buffer = Buffer.from("00000000000000000000000000000000018080", "hex");
+    tx = transport.send(0xe0, 0x04, 0x80, 0x00, buffer);
+
     let filename;
 
     await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot());
@@ -94,7 +96,7 @@ test("Deposit ETH nanos", async () => {
     await sim.clickBoth();
 
     await expect(tx).resolves.toEqual(
-      Buffer.from([ 38, 111, 56, 157, 21, 50, 15, 5, 1, 56, 53, 38, 237, 3, 222, 145, 124, 20, 33, 39, 22, 240, 154, 38, 45, 188, 152, 67, 16, 134, 165, 219, 73, 13, 201, 148, 183, 185, 114, 48, 187, 53, 253, 246, 254, 194, 244, 216, 255, 76, 251, 139, 254, 178, 166, 82, 195, 100, 199, 56, 255, 3, 60, 5, 221, 144, 0])
+      Buffer.from([38, 181, 174, 58, 1, 30, 181, 14, 125, 31, 233, 245, 230, 246, 217, 28, 169, 244, 223, 202, 95, 115, 128, 95, 196, 134, 109, 73, 231, 46, 173, 47, 92, 60, 110, 85, 219, 89, 37, 88, 107, 181, 142, 67, 75, 88, 178, 192, 71, 86, 246, 98, 19, 21, 151, 249, 140, 26, 162, 65, 139, 22, 153, 43, 129, 144, 0])
     );
   } finally {
     await sim.close();
@@ -102,17 +104,20 @@ test("Deposit ETH nanos", async () => {
 });
 
 test("Deposit ETH nanox", async () => {
-  jest.setTimeout(100000);
+  jest.setTimeout(TIMEOUT);
   const sim = new Zemu(NANOX_ELF_PATH);
 
   try {
     await sim.start(sim_options_nanox);
 
     let transport = await sim.getTransport();
-    let buffer = Buffer.from("058000002C8000003C800000010000000000000000F8914585055AE826008306599594CC9A0B7C43DC2A5F023BB9B738E45B0EF6B06E0487B1A2BC2EC50000B864474CF53D0000000000000000000000007D2768DE32B0B80B7A3454C06BDAC94A69DDC7A900000000000000000000000070BC641723FAD48BE2DF6CF63DC6270EE2F897430000000000000000000000000000000000", "hex");
 
-    // Send transaction
+    let buffer = Buffer.from("058000002c8000003c800000010000000000000000f8924685028fa6ae008306599594cc9a0b7c43dc2a5f023bb9b738e45b0ef6b06e0488016345785d8a0000b864474cf53d0000000000000000000000007d2768de32b0b80b7a3454c06bdac94a69ddc7a900000000000000000000000070bc641723fad48be2df6cf63dc6270ee2f8974300000000000000000000000000000000", "hex");
     let tx = transport.send(0xe0, 0x04, 0x00, 0x00, buffer);
+
+    buffer = Buffer.from("00000000000000000000000000000000018080", "hex");
+    tx = transport.send(0xe0, 0x04, 0x80, 0x00, buffer);
+
     let filename;
 
     await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot());
@@ -125,9 +130,9 @@ test("Deposit ETH nanox", async () => {
 
     // Data present
     filename = "data_present.png";
-    await sim.clickRight(SNAPSHOT_PATH_NANOS + filename);
-    const data_present = Zemu.LoadPng2RGB(SNAPSHOT_PATH_NANOS + filename);
-    const expected_data_present = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
+    await sim.clickRight(SNAPSHOT_PATH_NANOX + filename);
+    const data_present = Zemu.LoadPng2RGB(SNAPSHOT_PATH_NANOX + filename);
+    const expected_data_present = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOX + filename);
     expect(data_present).toEqual(expected_data_present);
 
     // Amount
@@ -161,7 +166,7 @@ test("Deposit ETH nanox", async () => {
     await sim.clickBoth();
 
     await expect(tx).resolves.toEqual(
-      Buffer.from([ 38, 111, 56, 157, 21, 50, 15, 5, 1, 56, 53, 38, 237, 3, 222, 145, 124, 20, 33, 39, 22, 240, 154, 38, 45, 188, 152, 67, 16, 134, 165, 219, 73, 13, 201, 148, 183, 185, 114, 48, 187, 53, 253, 246, 254, 194, 244, 216, 255, 76, 251, 139, 254, 178, 166, 82, 195, 100, 199, 56, 255, 3, 60, 5, 221, 144, 0])
+      Buffer.from([38, 181, 174, 58, 1, 30, 181, 14, 125, 31, 233, 245, 230, 246, 217, 28, 169, 244, 223, 202, 95, 115, 128, 95, 196, 134, 109, 73, 231, 46, 173, 47, 92, 60, 110, 85, 219, 89, 37, 88, 107, 181, 142, 67, 75, 88, 178, 192, 71, 86, 246, 98, 19, 21, 151, 249, 140, 26, 162, 65, 139, 22, 153, 43, 129, 144, 0])
     );
   } finally {
     await sim.close();

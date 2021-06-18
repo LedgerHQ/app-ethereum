@@ -6,7 +6,7 @@ import Zemu from "@zondax/zemu";
 import { TransportStatusError } from "@ledgerhq/errors";
 import { expect } from "../jest";
 
-const {NANOS_ELF_PATH, NANOX_ELF_PATH, sim_options_nanos, sim_options_nanox} = require("generic.js");
+const {NANOS_ELF_PATH, NANOX_ELF_PATH, sim_options_nanos, sim_options_nanox, TIMEOUT} = require("generic.js");
 
 const ORIGINAL_SNAPSHOT_PATH_PREFIX = "snapshots/send/";
 const SNAPSHOT_PATH_PREFIX = "snapshots/tmp/";
@@ -17,9 +17,8 @@ const ORIGINAL_SNAPSHOT_PATH_NANOX = ORIGINAL_SNAPSHOT_PATH_PREFIX + "nanox/";
 const SNAPSHOT_PATH_NANOS = SNAPSHOT_PATH_PREFIX + "nanos/";
 const SNAPSHOT_PATH_NANOX = SNAPSHOT_PATH_PREFIX + "nanox/";
 
-
 test("Transfer nanos", async () => {
-  jest.setTimeout(100000);
+  jest.setTimeout(TIMEOUT);
   const sim = new Zemu(NANOS_ELF_PATH);
 
   try {
@@ -108,7 +107,7 @@ test("Transfer nanos", async () => {
 });
 
 test("Transfer nanox", async () => {
-  jest.setTimeout(100000);
+  jest.setTimeout(TIMEOUT);
   const sim = new Zemu(NANOX_ELF_PATH);
 
   try {

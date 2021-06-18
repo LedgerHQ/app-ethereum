@@ -118,7 +118,7 @@ UX_STEP_NOCB(
       .text = strings.common.maxFee,
     });
 UX_STEP_NOCB(
-    ux_approval_chainid_step,
+    ux_approval_network_step,
     bnnn_paging,
     {
       .title = "Network",
@@ -175,7 +175,7 @@ void ux_approve_tx(bool dataPresent) {
 
     uint32_t chain_id = get_chain_id();
     if (chain_id != ETHEREUM_MAINNET_CHAINID || chain_id != chainConfig->chainId) {
-        ux_approval_tx_flow_[step++] = &ux_approval_chainid_step;
+        ux_approval_tx_flow_[step++] = &ux_approval_network_step;
     }
     ux_approval_tx_flow_[step++] = &ux_approval_fees_step;
     ux_approval_tx_flow_[step++] = &ux_approval_accept_step;

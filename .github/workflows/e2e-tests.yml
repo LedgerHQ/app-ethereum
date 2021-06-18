@@ -1,0 +1,35 @@
+name: End-to-end tests
+
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test
+        run: |
+          id
+          echo $HOME
+          echo $DISPLAY
+      - name: Checkout
+        uses: actions/checkout@v2
+      - run: sudo apt-get update -y && sudo apt-get install -y libusb-1.0.0 libudev-dev
+      - name: Install node
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14.4.0'
+      - name: Install yarn
+        run: |
+          npm install -g yarn
+      - name: Build/Install build js deps
+        run: |
+          cd tests && yarn install
+      - name: Run zemu tests
+        run: |
+          cd tests && yarn test

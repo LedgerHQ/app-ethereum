@@ -365,9 +365,8 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
                 break;
             case CHAIN_KIND_FLARE:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_FLARE[i]);
-                break
-            case CHAIN_KIND_THETA:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_THETA[i]);
+                break case CHAIN_KIND_THETA : currentToken =
+                                                  (tokenDefinition_t *) PIC(&TOKENS_THETA[i]);
                 break;
         }
         if (memcmp(currentToken->address, tmpContent.txContent.destination, ADDRESS_LENGTH) == 0) {

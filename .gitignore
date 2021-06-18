@@ -13,3 +13,5 @@ obj/
 # JS
 tests/node_modules
 tests/lib
+tests/yarn-error.log
+

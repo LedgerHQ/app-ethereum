@@ -28,8 +28,12 @@ jobs:
         run: |
           npm install -g yarn
       - name: Build/Install build js deps
+        env:
+          BOLOS_SDK: "NONE"
         run: |
           make install_tests
       - name: Run zemu tests
+        env:
+          BOLOS_SDK: "NONE"
         run: |
           make run_tests

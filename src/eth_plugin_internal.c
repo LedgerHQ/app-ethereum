@@ -6,6 +6,7 @@ bool erc721_plugin_available_check(void);
 void erc20_plugin_call(int message, void* parameters);
 void erc721_plugin_call(int message, void* parameters);
 void compound_plugin_call(int message, void* parameters);
+void yearn_plugin_call(int message, void* parameters);
 #ifdef HAVE_STARKWARE
 void starkware_plugin_call(int message, void* parameters);
 #endif
@@ -36,6 +37,19 @@ const uint8_t* const COMPOUND_SELECTORS[NUM_COMPOUND_SELECTORS] = {
     COMPOUND_REDEEM_SELECTOR,
     COMPOUND_MINT_SELECTOR,
     CETH_MINT_SELECTOR};
+
+
+static const uint8_t const YEARN_WITHDRAW_SELECTOR[SELECTOR_SIZE] = {0x3c, 0xcf, 0xd6, 0x0b};
+static const uint8_t const YEARN_DEPOSIT_SELECTOR[SELECTOR_SIZE] = {0xd0, 0xe3, 0x0d, 0xb0};
+static const uint8_t const YEARN_WITHDRAW_WITH_AMOUNT_SELECTOR[SELECTOR_SIZE] = {0x2e, 0x1a, 0x7d, 0x4d};
+static const uint8_t const YEARN_DEPOSIT_WITH_AMOUNT_SELECTOR[SELECTOR_SIZE] = {0xb6, 0xb5, 0x5f, 0x25};
+
+const uint8_t* const YEARN_SELECTORS[NUM_YEARN_SELECTORS] = {
+    YEARN_WITHDRAW_SELECTOR,
+    YEARN_DEPOSIT_SELECTOR,
+    YEARN_WITHDRAW_WITH_AMOUNT_SELECTOR,
+    YEARN_DEPOSIT_WITH_AMOUNT_SELECTOR};
+
 
 #ifdef HAVE_ETH2
 
@@ -125,6 +139,12 @@ const internalEthPlugin_t const INTERNAL_ETH_PLUGINS[] = {
      NUM_COMPOUND_SELECTORS,
      "-cmpd",
      compound_plugin_call},
+
+    {NULL,
+     (const uint8_t**) YEARN_SELECTORS,
+     NUM_YEARN_SELECTORS,
+     "-yearn",
+     yearn_plugin_call},
 
 #ifdef HAVE_ETH2
 

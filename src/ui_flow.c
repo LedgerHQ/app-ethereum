@@ -130,7 +130,7 @@ UX_STEP_CB(
     {
       "Fee Details",
       "Display fee details",
-      "when possible",
+      "when available",
       strings.common.fullAddress + 40
     });
 

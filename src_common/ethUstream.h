@@ -127,7 +127,6 @@ typedef struct txInt256_t {
 typedef struct txContent_t {
     txInt256_t gasprice; // Used as MaxFeePerGas when dealing with EIP1559 transactions.
     txInt256_t startgas; // Also known as `gasLimit`.
-    txInt256_t maxPriorityFeePerGas;
     txInt256_t value;
     txInt256_t nonce;
     txInt256_t chainID;

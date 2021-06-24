@@ -168,28 +168,6 @@ static void processNonce(txContext_t *context) {
     }
 }
 
-static void processMaxPriorityFeePerGas(txContext_t *context) {
-    PRINTF("PRIORITY\n");
-    if (context->currentFieldIsList) {
-        PRINTF("Invalid type for RLP_MAX_PRIORITY_FEE_PER_GAS\n");
-        THROW(EXCEPTION);
-    }
-    if (context->currentFieldLength > MAX_INT256) {
-        PRINTF("Invalid length for RLP_MAX_PRIORITY_FEE_PER_GAS\n");
-        THROW(EXCEPTION);
-    }
-    if (context->currentFieldPos < context->currentFieldLength) {
-        uint32_t copySize =
-            MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
-        copyTxData(context, context->content->maxPriorityFeePerGas.value + context->currentFieldPos, copySize);
-    }
-    if (context->currentFieldPos == context->currentFieldLength) {
-        context->content->maxPriorityFeePerGas.length = context->currentFieldLength;
-        context->currentField++;
-        context->processingField = false;
-    }
-}
-
 static void processStartGas(txContext_t *context) {
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_STARTGAS\n");
@@ -358,10 +336,6 @@ static bool processEIP1559Tx(txContext_t *context) {
             processNonce(context);
             break;
         }
-        case EIP1559_RLP_MAX_PRIORITY_FEE_PER_GAS: {
-            processMaxPriorityFeePerGas(context);
-            break;
-        }
         case EIP1559_RLP_MAX_FEE_PER_GAS: {
             processGasprice(context);
             break;
@@ -390,6 +364,7 @@ static bool processEIP1559Tx(txContext_t *context) {
             processV(context);
             break;
         }
+        case EIP1559_RLP_MAX_PRIORITY_FEE_PER_GAS:
         case EIP1559_RLP_SENDER_R:
         case EIP1559_RLP_SENDER_S:
             processAndDiscard(context);

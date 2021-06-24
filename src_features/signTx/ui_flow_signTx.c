@@ -217,20 +217,6 @@ UX_STEP_INIT(
   });
 
 UX_STEP_NOCB(
-    ux_approval_base_fee_step,
-    bnnn_paging,
-    {
-      .title = "Base Fee",
-      .text = strings.common.maxFee,
-    });
-UX_STEP_NOCB(
-    ux_approval_priority_fee_step,
-    bnnn_paging,
-    {
-      .title = "Priority Fee",
-      .text = strings.common.priorityFee,
-    });
-UX_STEP_NOCB(
     ux_approval_fees_step,
     bnnn_paging,
     {
@@ -321,12 +307,7 @@ void ux_approve_tx(bool fromPlugin) {
     if (id != ETHEREUM_MAINNET_CHAINID) {
         ux_approval_tx_flow[step++] = &ux_approval_chainid_step;
     }
-    if (txContext.txType == EIP1559 && N_storage.displayFeeDetails) {
-      ux_approval_tx_flow[step++] = &ux_approval_base_fee_step;
-      ux_approval_tx_flow[step++] = &ux_approval_priority_fee_step;
-    } else {
-      ux_approval_tx_flow[step++] = &ux_approval_fees_step;
-    }
+    ux_approval_tx_flow[step++] = &ux_approval_fees_step;
     ux_approval_tx_flow[step++] = &ux_approval_accept_step;
     ux_approval_tx_flow[step++] = &ux_approval_reject_step;
     ux_approval_tx_flow[step++] = FLOW_END_STEP;

@@ -251,32 +251,8 @@ void prepareAndCopyFees(txInt256_t *BEGasPrice, txInt256_t *BEGasLimit, char *di
     feesToString(&rawFee, displayBuffer, displayBufferSize);
 }
 
-static void prepareAndCopyDetailedFees() {
-    uint256_t rawPriorityFee = {0};
-    uint256_t rawMaxFee = {0};
-    uint256_t rawBaseFee = {0};
-
-    // Compute the priorityFee and the maxFee.
-    computeFees(&tmpContent.txContent.maxPriorityFeePerGas, &tmpContent.txContent.startgas, &rawPriorityFee);
-    computeFees(&tmpContent.txContent.gasprice, &tmpContent.txContent.startgas, &rawMaxFee);
-    // Substract priorityFee from maxFee -> this is the baseFee
-    minus256(&rawMaxFee, &rawPriorityFee, &rawBaseFee);
-
-    // Transform priorityFee to string (with a ticker).
-    PRINTF("Computing priority fee\n");
-    feesToString(&rawPriorityFee, strings.common.priorityFee, sizeof(strings.common.priorityFee));
-
-    PRINTF("Computing base fee\n");
-    // Transform priorityFee to string (with a ticker).
-    feesToString(&rawBaseFee, strings.common.maxFee, sizeof(strings.common.maxFee));
-}
-
 void prepareFeeDisplay() {
-    if (N_storage.displayFeeDetails) {
-        prepareAndCopyDetailedFees();
-    } else {
-        prepareAndCopyFees(&tmpContent.txContent.gasprice, &tmpContent.txContent.startgas, strings.common.maxFee, sizeof(strings.common.maxFee));
-    }
+    prepareAndCopyFees(&tmpContent.txContent.gasprice, &tmpContent.txContent.startgas, strings.common.maxFee, sizeof(strings.common.maxFee));
 }
 
 uint32_t get_chainID() {

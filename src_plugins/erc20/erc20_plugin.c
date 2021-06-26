@@ -27,7 +27,7 @@ typedef struct contract_t {
     uint8_t address[ADDRESS_LENGTH];
 } contract_t;
 
-#define NUM_CONTRACTS 11
+#define NUM_CONTRACTS 12
 const contract_t const CONTRACTS[NUM_CONTRACTS] = {
     // Compound
     {"Compound DAI", {0x5d, 0x3a, 0x53, 0x6e, 0x4d, 0x6d, 0xbd, 0x61, 0x14, 0xcc,

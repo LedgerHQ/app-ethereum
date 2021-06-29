@@ -42,15 +42,15 @@ typedef customStatus_e (*ustreamProcess_t)(struct txContext_t *context);
 // First variant of every Tx enum.
 #define RLP_NONE 0
 
-#define PARSING_IS_DONE(ctx)                                            \
-    ((ctx->txType == LEGACY && ctx->currentField == LEGACY_RLP_DONE) || \
-    (ctx->txType == EIP2930 && ctx->currentField == EIP2930_RLP_DONE) || \
-    (ctx->txType == EIP1559 && ctx->currentField == EIP1559_RLP_DONE))
+#define PARSING_IS_DONE(ctx)                                              \
+    ((ctx->txType == LEGACY && ctx->currentField == LEGACY_RLP_DONE) ||   \
+     (ctx->txType == EIP2930 && ctx->currentField == EIP2930_RLP_DONE) || \
+     (ctx->txType == EIP1559 && ctx->currentField == EIP1559_RLP_DONE))
 
 typedef enum rlpLegacyTxField_e {
     LEGACY_RLP_NONE = RLP_NONE,
     LEGACY_RLP_CONTENT,
-    LEGACY_RLP_TYPE, // For wanchain
+    LEGACY_RLP_TYPE,  // For wanchain
     LEGACY_RLP_NONCE,
     LEGACY_RLP_GASPRICE,
     LEGACY_RLP_STARTGAS,
@@ -66,7 +66,7 @@ typedef enum rlpLegacyTxField_e {
 typedef enum rlpEIP2930TxField_e {
     EIP2930_RLP_NONE = RLP_NONE,
     EIP2930_RLP_CONTENT,
-    EIP2930_RLP_TYPE, // For wanchain
+    EIP2930_RLP_TYPE,  // For wanchain
     EIP2930_RLP_CHAINID,
     EIP2930_RLP_NONCE,
     EIP2930_RLP_GASPRICE,
@@ -84,7 +84,7 @@ typedef enum rlpEIP2930TxField_e {
 typedef enum rlpEIP1559TxField_e {
     EIP1559_RLP_NONE = RLP_NONE,
     EIP1559_RLP_CONTENT,
-    EIP1559_RLP_TYPE, // For wanchain
+    EIP1559_RLP_TYPE,  // For wanchain
     EIP1559_RLP_CHAINID,
     EIP1559_RLP_NONCE,
     EIP1559_RLP_MAX_PRIORITY_FEE_PER_GAS,
@@ -125,8 +125,8 @@ typedef struct txInt256_t {
 } txInt256_t;
 
 typedef struct txContent_t {
-    txInt256_t gasprice; // Used as MaxFeePerGas when dealing with EIP1559 transactions.
-    txInt256_t startgas; // Also known as `gasLimit`.
+    txInt256_t gasprice;  // Used as MaxFeePerGas when dealing with EIP1559 transactions.
+    txInt256_t startgas;  // Also known as `gasLimit`.
     txInt256_t value;
     txInt256_t nonce;
     txInt256_t chainID;

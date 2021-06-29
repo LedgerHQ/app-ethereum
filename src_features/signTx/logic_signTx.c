@@ -194,23 +194,16 @@ void reportFinalizeError(bool direct) {
     }
 }
 
-// Convert `BEgasPrice` and `BEgasLimit` to Uint256 and then stores the multiplication of both in `output`.
+// Convert `BEgasPrice` and `BEgasLimit` to Uint256 and then stores the multiplication of both in
+// `output`.
 static void computeFees(txInt256_t *BEgasPrice, txInt256_t *BEgasLimit, uint256_t *output) {
     uint256_t gasPrice = {0};
     uint256_t gasLimit = {0};
 
-    PRINTF("Gas price %.*H\n",
-           BEgasPrice->length,
-           BEgasPrice->value);
-    PRINTF("Gas limit %.*H\n",
-           BEgasLimit->length,
-           BEgasLimit->value);
-    convertUint256BE(BEgasPrice->value,
-                     BEgasPrice->length,
-                     &gasPrice);
-    convertUint256BE(BEgasLimit->value,
-                     BEgasLimit->length,
-                     &gasLimit);
+    PRINTF("Gas price %.*H\n", BEgasPrice->length, BEgasPrice->value);
+    PRINTF("Gas limit %.*H\n", BEgasLimit->length, BEgasLimit->value);
+    convertUint256BE(BEgasPrice->value, BEgasPrice->length, &gasPrice);
+    convertUint256BE(BEgasLimit->value, BEgasLimit->length, &gasLimit);
     mul256(&gasPrice, &gasLimit, output);
 }
 
@@ -244,15 +237,22 @@ static void feesToString(uint256_t *rawFee, char *displayBuffer, uint32_t displa
     PRINTF("Displayed fees: %s\n", displayBuffer);
 }
 
-// Compute the fees, transform it to a string, prepend a ticker to it and copy everything to `displayBuffer`.
-void prepareAndCopyFees(txInt256_t *BEGasPrice, txInt256_t *BEGasLimit, char *displayBuffer, uint32_t displayBufferSize) {
+// Compute the fees, transform it to a string, prepend a ticker to it and copy everything to
+// `displayBuffer`.
+void prepareAndCopyFees(txInt256_t *BEGasPrice,
+                        txInt256_t *BEGasLimit,
+                        char *displayBuffer,
+                        uint32_t displayBufferSize) {
     uint256_t rawFee = {0};
     computeFees(BEGasPrice, BEGasLimit, &rawFee);
     feesToString(&rawFee, displayBuffer, displayBufferSize);
 }
 
 void prepareFeeDisplay() {
-    prepareAndCopyFees(&tmpContent.txContent.gasprice, &tmpContent.txContent.startgas, strings.common.maxFee, sizeof(strings.common.maxFee));
+    prepareAndCopyFees(&tmpContent.txContent.gasprice,
+                       &tmpContent.txContent.startgas,
+                       strings.common.maxFee,
+                       sizeof(strings.common.maxFee));
 }
 
 uint32_t get_chainID() {
@@ -261,9 +261,10 @@ uint32_t get_chainID() {
     if (txContext.txType == LEGACY) {
         chain_id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
     } else if (txContext.txType == EIP2930 || txContext.txType == EIP1559) {
-        chain_id = u32_from_BE(tmpContent.txContent.chainID.value, tmpContent.txContent.chainID.length, true);
-    }
-    else {
+        chain_id = u32_from_BE(tmpContent.txContent.chainID.value,
+                               tmpContent.txContent.chainID.length,
+                               true);
+    } else {
         PRINTF("Txtype `%u` not supported while generating chainID\n", txContext.txType);
     }
     PRINTF("ChainID: %d\n", chain_id);

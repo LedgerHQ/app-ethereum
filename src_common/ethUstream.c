@@ -528,12 +528,13 @@ static parserStatus_e processTxInternal(txContext_t *context) {
         if (PARSING_IS_DONE(context)) {
             return USTREAM_FINISHED;
         }
-        // Old style transaction (pre EIP-155). Transations could just skip `v,r,s` so we needed to cut parsing here.
-        // commandLength == 0 could happen in two cases :
+        // Old style transaction (pre EIP-155). Transations could just skip `v,r,s` so we needed to
+        // cut parsing here. commandLength == 0 could happen in two cases :
         // 1. We are in an old style transaction : just return `USTREAM_FINISHED`.
-        // 2. We are at the end of an APDU in a multi-apdu process. This would make us return `USTREAM_FINISHED` preemptively.
-        // Case number 2 should NOT happen as it is up to `ledgerjs` to correctly decrease the size of the
-        // APDU (`commandLength`) so that this situation doesn't happen.
+        // 2. We are at the end of an APDU in a multi-apdu process. This would make us return
+        // `USTREAM_FINISHED` preemptively. Case number 2 should NOT happen as it is up to
+        // `ledgerjs` to correctly decrease the size of the APDU (`commandLength`) so that this
+        // situation doesn't happen.
         if ((context->txType == LEGACY && context->currentField == LEGACY_RLP_V) &&
             (context->commandLength == 0)) {
             context->content->vLength = 0;

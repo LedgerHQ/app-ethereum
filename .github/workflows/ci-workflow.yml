@@ -3,18 +3,18 @@ name: Compilation & tests
 on:
   push:
     branches:
-    - master
+      - master
   pull_request:
     branches:
-    - master
+      - master
 
 jobs:
-  job_build_debug:
+  job_build_debug_nano_s:
     name: Build debug
     runs-on: ubuntu-latest
 
     container:
-      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:2.0.0-1
+      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
 
     steps:
       - name: Clone
@@ -41,4 +41,39 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: ethereum-app-debug
+          path: bin
+
+  job_build_debug_nano_x:
+    name: Build debug
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Build an altcoin Nano X
+        run: |
+          make clean
+          make BOLOS_SDK=$NANOX_SDK DEBUG=1 CHAIN=ethereum_classic
+
+      - name: Upload altcoin binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: ethereum-classic-app-debug-nano-x
+          path: bin
+
+      - name: Build Ethereum Nano X
+        run: |
+          make clean
+          make BOLOS_SDK=$NANOX_SDK DEBUG=1
+
+      - name: Upload app binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: ethereum-app-debug-nano-x
           path: bin

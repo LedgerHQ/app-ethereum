@@ -219,7 +219,11 @@ void computeFees(char *displayBuffer, uint32_t displayBufferSize) {
     while (G_io_apdu_buffer[100 + i]) {
         i++;
     }
-    adjustDecimals((char *) (G_io_apdu_buffer + 100), i, (char *) G_io_apdu_buffer, 100, WEI_TO_ETHER);
+    adjustDecimals((char *) (G_io_apdu_buffer + 100),
+                   i,
+                   (char *) G_io_apdu_buffer,
+                   100,
+                   WEI_TO_ETHER);
     i = 0;
     tickerOffset = 0;
     memset(displayBuffer, 0, displayBufferSize);

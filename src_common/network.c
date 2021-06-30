@@ -30,8 +30,8 @@ uint32_t get_chain_id(void) {
             break;
         case EIP2930:
             chain_id = u32_from_BE(tmpContent.txContent.chainID.value,
-                               tmpContent.txContent.chainID.length,
-                               true);
+                                   tmpContent.txContent.chainID.length,
+                                   true);
             break;
         default:
             PRINTF("Txtype `%d` not supported while generating chainID\n", txContext.txType);

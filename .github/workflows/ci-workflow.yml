@@ -10,7 +10,7 @@ on:
 
 jobs:
   job_build_debug_nano_s:
-    name: Build debug
+    name: Build debug Nano S
     runs-on: ubuntu-latest
 
     container:
@@ -24,27 +24,27 @@ jobs:
 
       - name: Build an altcoin
         run: |
-          make DEBUG=1 CHAIN=ethereum_classic
+          make DEBUG=1 ALLOW_DATA=1 CHAIN=ethereum_classic
 
       - name: Upload altcoin binary
         uses: actions/upload-artifact@v2
         with:
-          name: ethereum-classic-app-debug
+          name: ethereum_classic_nanos
           path: bin
 
       - name: Build Ethereum
         run: |
           make clean
-          make DEBUG=1
+          make DEBUG=1 ALLOW_DATA=1
 
       - name: Upload app binary
         uses: actions/upload-artifact@v2
         with:
-          name: ethereum-app-debug
+          name: ethereum_nanos
           path: bin
 
   job_build_debug_nano_x:
-    name: Build debug
+    name: Build debug Nano X
     runs-on: ubuntu-latest
 
     container:
@@ -59,21 +59,51 @@ jobs:
       - name: Build an altcoin Nano X
         run: |
           make clean
-          make BOLOS_SDK=$NANOX_SDK DEBUG=1 CHAIN=ethereum_classic
+          make BOLOS_SDK=$NANOX_SDK DEBUG=1 ALLOW_DATA=1 CHAIN=ethereum_classic
 
       - name: Upload altcoin binary
         uses: actions/upload-artifact@v2
         with:
-          name: ethereum-classic-app-debug-nano-x
+          name: ethereum_classic_nanox
           path: bin
 
       - name: Build Ethereum Nano X
         run: |
           make clean
-          make BOLOS_SDK=$NANOX_SDK DEBUG=1
+          make BOLOS_SDK=$NANOX_SDK DEBUG=1 ALLOW_DATA=1
 
       - name: Upload app binary
         uses: actions/upload-artifact@v2
         with:
-          name: ethereum-app-debug-nano-x
+          name: ethereum_nanox
           path: bin
+
+  jobs-e2e-tests:
+    needs: [job_build_debug_nano_s, job_build_debug_nano_x]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test
+        run: |
+          id
+          echo $HOME
+          echo $DISPLAY
+      - name: Checkout
+        uses: actions/checkout@v2
+      - run: sudo apt-get update -y && sudo apt-get install -y libusb-1.0.0 libudev-dev
+      - name: Install node
+        uses: actions/setup-node@v2
+        with:
+          node-version: "14.4.0"
+      - name: Install yarn
+        run: |
+          npm install -g yarn
+      - name: Build/Install build js deps
+        run: |
+          cd tests && yarn install
+      - name: Download app binaries
+        uses: actions/download-artifact@v2
+        with:
+          path: tests/elfs
+      - name: Run zemu tests
+        run: |
+          cd tests && yarn test

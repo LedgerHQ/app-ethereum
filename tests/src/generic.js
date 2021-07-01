@@ -15,8 +15,8 @@ const sim_options_nanox = {
 };
 
 const Resolve = require("path").resolve;
-const NANOS_ELF_PATH = Resolve("elfs/ethereum_nanos.elf");
-const NANOX_ELF_PATH = Resolve("elfs/ethereum_nanox.elf");
+const NANOS_ELF_PATH = Resolve("elfs/ethereum_nanos/app.elf");
+const NANOX_ELF_PATH = Resolve("elfs/ethereum_nanox/app.elf");
 
 const TIMEOUT = 1000000;
 

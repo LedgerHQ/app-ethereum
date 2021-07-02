@@ -174,7 +174,7 @@ void ux_approve_tx(bool dataPresent) {
     }
 
     uint32_t chain_id = get_chain_id();
-    if (chain_id != ETHEREUM_MAINNET_CHAINID || chain_id != chainConfig->chainId) {
+    if (chainConfig->chainId == ETHEREUM_MAINNET_CHAINID && chain_id != chainConfig->chainId) {
         ux_approval_tx_flow_[step++] = &ux_approval_network_step;
     }
     ux_approval_tx_flow_[step++] = &ux_approval_fees_step;

@@ -59,6 +59,7 @@ parser.add_argument('--amount', help="Amount to send in ether", required=True)
 parser.add_argument('--to', help="Destination address", type=str, required=True)
 parser.add_argument('--path', help="BIP 32 path to sign with")
 parser.add_argument('--data', help="Data to add, hex encoded")
+parser.add_argument('--chainid', help="Chain ID (1 for Ethereum mainnet, 137 for Polygon, etc)", type=int)
 parser.add_argument('--descriptor', help="Optional descriptor")
 args = parser.parse_args()
 
@@ -71,6 +72,10 @@ if args.data == None:
 else:
     args.data = decode_hex(args.data[2:])
 
+# default to Ethereum mainnet
+if args.chainid == None:
+    args.chainid = 1
+
 amount = Decimal(args.amount) * 10**18
 
 tx = UnsignedTransaction(
@@ -80,9 +85,15 @@ tx = UnsignedTransaction(
     to=decode_hex(args.to[2:]),
     value=int(amount),
     data=args.data,
+    chainid=args.chainid,
+    dummy1=0,
+    dummy2=0
 )
 
 encodedTx = encode(tx, UnsignedTransaction)
+
+# To test an EIP-2930 transaction, uncomment this line
+#encodedTx = bytearray.fromhex("01f8e60380018402625a0094cccccccccccccccccccccccccccccccccccccccc830186a0a4693c61390000000000000000000000000000000000000000000000000000000000000002f85bf859940000000000000000000000000000000000000102f842a00000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000060a780a09b8adcd2a4abd34b42d56fcd90b949f74ca9696dfe2b427bc39aa280bbf1924ca029af4a471bb2953b4e7933ea95880648552a9345424a1ac760189655ceb1832a")
 
 dongle = getDongle(True)
 

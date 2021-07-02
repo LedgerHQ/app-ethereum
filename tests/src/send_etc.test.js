@@ -6,9 +6,9 @@ import Zemu from "@zondax/zemu";
 import { TransportStatusError } from "@ledgerhq/errors";
 import { expect } from "../jest";
 
-const {NANOS_ELF_PATH, NANOX_ELF_PATH, sim_options_nanos, sim_options_nanox, TIMEOUT} = require("generic.js");
+const {NANOS_ETH_LIB, NANOX_ETH_LIB, NANOS_CLONE_ELF_PATH, NANOX_CLONE_ELF_PATH, sim_options_nanos, sim_options_nanox, TIMEOUT} = require("generic.js");
 
-const ORIGINAL_SNAPSHOT_PATH_PREFIX = "snapshots/send_bsc/";
+const ORIGINAL_SNAPSHOT_PATH_PREFIX = "snapshots/send_etc/";
 const SNAPSHOT_PATH_PREFIX = "snapshots/tmp/";
 
 const ORIGINAL_SNAPSHOT_PATH_NANOS = ORIGINAL_SNAPSHOT_PATH_PREFIX + "nanos/";
@@ -17,17 +17,16 @@ const ORIGINAL_SNAPSHOT_PATH_NANOX = ORIGINAL_SNAPSHOT_PATH_PREFIX + "nanox/";
 const SNAPSHOT_PATH_NANOS = SNAPSHOT_PATH_PREFIX + "nanos/";
 const SNAPSHOT_PATH_NANOX = SNAPSHOT_PATH_PREFIX + "nanox/";
 
-
-test("Transfer bsc nanos", async () => {
+test("Transfer on Ethereum clone app nanos", async () => {
   jest.setTimeout(TIMEOUT);
-  const sim = new Zemu(NANOS_ELF_PATH);
+  const sim = new Zemu(NANOS_CLONE_ELF_PATH, NANOS_ETH_LIB);
 
   try {
     await sim.start(sim_options_nanos);
 
     let transport = await sim.getTransport();
 
-    let buffer = Buffer.from("058000002C8000003C800000010000000000000000EB0185012A05F200825208945A321744667052AFFA8386ED49E00EF223CBFFC3876F9C9E7BF6181880388080", "hex");
+    let buffer = Buffer.from("058000002C8000003C800000010000000000000000EB44850306DC4200825208945A321744667052AFFA8386ED49E00EF223CBFFC3876F9C9E7BF61818803D8080", "hex");
 
     // Send transaction
     let tx = transport.send(0xe0, 0x04, 0x00, 0x00, buffer);
@@ -83,13 +82,6 @@ test("Transfer bsc nanos", async () => {
     const expected_address_3 = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
     expect(address_3).toEqual(expected_address_3);
 
-    // Network name
-    filename = "network.png";
-    await sim.clickRight(SNAPSHOT_PATH_NANOS + filename);
-    const chainid = Zemu.LoadPng2RGB(SNAPSHOT_PATH_NANOS + filename);
-    const expected_chainid = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(chainid).toEqual(expected_chainid);
-
     // Max Fees
     filename = "fees.png";
     await sim.clickRight(SNAPSHOT_PATH_NANOS + filename);
@@ -105,25 +97,44 @@ test("Transfer bsc nanos", async () => {
     expect(accept).toEqual(expected_accept);
 
     await sim.clickBoth();
-
     await expect(tx).resolves.toEqual(
-      Buffer.from([147, 246, 103, 204, 52, 233, 129, 93, 244, 240, 82, 251, 52, 99, 205, 190, 53, 95, 255, 92, 26, 207, 78, 145, 155, 53, 57, 128, 101, 33, 160, 89, 173, 107, 53, 73, 43, 113, 8, 217, 217, 225, 204, 122, 237, 229, 54, 237, 107, 49, 115, 25, 123, 86, 221, 135, 60, 188, 59, 67, 224, 65, 214, 244, 7, 144, 0]),
+      Buffer.from("9e52b80e10cb82f3dc8345005e3da3f9cae1fb3f2b9a5df05b7cedba786c685fed381875af27d121beaa9efd8a7450975f9d45a26ba5aa331b7a8b26bcce95e6d09000", 'hex')
     );
+  } finally {
+    await sim.close();
+  }
+});
+
+test("Transfer on network 5234 on Ethereum clone nanos", async () => {
+  jest.setTimeout(TIMEOUT);
+  const sim = new Zemu(NANOS_CLONE_ELF_PATH, NANOS_ETH_LIB);
+
+  try {
+    await sim.start(sim_options_nanos);
+
+    let transport = await sim.getTransport();
+
+    let buffer = Buffer.from("058000002C8000003C800000010000000000000000EB44850306DC4200825208945A321744667052AFFA8386ED49E00EF223CBFFC3876F9C9E7BF61818808214728080", "hex");
+
+    // Send transaction
+    let tx = transport.send(0xe0, 0x04, 0x00, 0x00, buffer);
+
+    await expect(tx).rejects.toEqual(new TransportStatusError(0x6a80));
 
   } finally {
     await sim.close();
   }
 });
 
-test("Transfer bsc nanox", async () => {
+test("Transfer on Ethereum clone nanox", async () => {
   jest.setTimeout(TIMEOUT);
-  const sim = new Zemu(NANOX_ELF_PATH);
+  const sim = new Zemu(NANOX_CLONE_ELF_PATH, NANOX_ETH_LIB);
 
   try {
     await sim.start(sim_options_nanox);
 
     let transport = await sim.getTransport();
-    let buffer = Buffer.from("058000002C8000003C800000010000000000000000EB0185012A05F200825208945A321744667052AFFA8386ED49E00EF223CBFFC3876F9C9E7BF6181880388080", "hex");
+    let buffer = Buffer.from("058000002C8000003C800000010000000000000000EB44850306DC4200825208945A321744667052AFFA8386ED49E00EF223CBFFC3876F9C9E7BF61818803D8080", "hex");
 
     // Send transaction
     let tx = transport.send(0xe0, 0x04, 0x00, 0x00, buffer);
@@ -151,13 +162,6 @@ test("Transfer bsc nanox", async () => {
     const expected_address = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOX + filename);
     expect(address).toEqual(expected_address);
 
-    // Network name
-    filename = "network.png";
-    await sim.clickRight(SNAPSHOT_PATH_NANOX + filename);
-    const chainid = Zemu.LoadPng2RGB(SNAPSHOT_PATH_NANOX + filename);
-    const expected_chainid = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOX + filename);
-    expect(chainid).toEqual(expected_chainid);
-
     // Max Fees
     filename = "fees.png";
     await sim.clickRight(SNAPSHOT_PATH_NANOX + filename);
@@ -175,9 +179,29 @@ test("Transfer bsc nanox", async () => {
     await sim.clickBoth();
 
     await expect(tx).resolves.toEqual(
-      Buffer.from([147, 246, 103, 204, 52, 233, 129, 93, 244, 240, 82, 251, 52, 99, 205, 190, 53, 95, 255, 92, 26, 207, 78, 145, 155, 53, 57, 128, 101, 33, 160, 89, 173, 107, 53, 73, 43, 113, 8, 217, 217, 225, 204, 122, 237, 229, 54, 237, 107, 49, 115, 25, 123, 86, 221, 135, 60, 188, 59, 67, 224, 65, 214, 244, 7, 144, 0]),
+      Buffer.from("9e52b80e10cb82f3dc8345005e3da3f9cae1fb3f2b9a5df05b7cedba786c685fed381875af27d121beaa9efd8a7450975f9d45a26ba5aa331b7a8b26bcce95e6d09000", 'hex')
     );
+  } finally {
+    await sim.close();
+  }
+});
 
+
+test("Transfer on network 5234 on Ethereum clone nanox", async () => {
+  jest.setTimeout(TIMEOUT);
+  const sim = new Zemu(NANOX_CLONE_ELF_PATH, NANOX_ETH_LIB);
+
+  try {
+    await sim.start(sim_options_nanox);
+
+    let transport = await sim.getTransport();
+
+    let buffer = Buffer.from("058000002C8000003C800000010000000000000000EB44850306DC4200825208945A321744667052AFFA8386ED49E00EF223CBFFC3876F9C9E7BF61818808214728080", "hex");
+
+    // Send transaction
+    let tx = transport.send(0xe0, 0x04, 0x00, 0x00, buffer);
+
+    await expect(tx).rejects.toEqual(new TransportStatusError(0x6a80));
   } finally {
     await sim.close();
   }

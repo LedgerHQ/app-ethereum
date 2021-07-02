@@ -294,7 +294,7 @@ void starkware_print_eth_address(uint8_t *address, char *destination) {
 void starkware_print_amount(uint8_t *amountData, char *destination, bool forEscape) {
     uint256_t amount, amountPre, quantum;
     uint8_t decimals;
-    char *ticker = (char *) PIC(chainConfig->coinName);
+    char *ticker = chainConfig->coinName;
 
     if ((amountData == NULL) ||
         (forEscape && (dataContext.tokenContext.quantumIndex == MAX_TOKEN))) {
@@ -328,7 +328,7 @@ void starkware_print_amount(uint8_t *amountData, char *destination, bool forEsca
 
 // TODO : rewrite as independant code
 void starkware_print_ticker(char *destination) {
-    char *ticker = (char *) PIC(chainConfig->coinName);
+    char *ticker = chainConfig->coinName;
 
     if (dataContext.tokenContext.quantumIndex != MAX_TOKEN) {
         tokenDefinition_t *token =

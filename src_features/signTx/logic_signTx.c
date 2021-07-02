@@ -7,6 +7,7 @@
 #include "stark_utils.h"
 #endif
 #include "eth_plugin_handler.h"
+#include "network.h"
 
 #define ERR_SILENT_MODE_CHECK_FAILED 0x6001
 
@@ -196,7 +197,7 @@ void reportFinalizeError(bool direct) {
 
 void computeFees(char *displayBuffer, uint32_t displayBufferSize) {
     uint256_t gasPrice, startGas, uint256;
-    uint8_t *feeTicker = (uint8_t *) PIC(chainConfig->coinName);
+    char *feeTicker = get_network_ticker();
     uint8_t tickerOffset = 0;
     uint32_t i;
 
@@ -241,25 +242,14 @@ void computeFees(char *displayBuffer, uint32_t displayBufferSize) {
 void finalizeParsing(bool direct) {
     char displayBuffer[50];
     uint8_t decimals = WEI_TO_ETHER;
-    uint8_t *ticker = (uint8_t *) PIC(chainConfig->coinName);
+    char *ticker = get_network_ticker();
     ethPluginFinalize_t pluginFinalize;
     tokenDefinition_t *token1 = NULL, *token2 = NULL;
     bool genericUI = true;
 
     // Verify the chain
-    if (chainConfig->chainId != 0) {
-        uint32_t id = 0;
-
-        if (txContext.txType == LEGACY) {
-            id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
-        } else if (txContext.txType == EIP2930) {
-            id = u32_from_BE(txContext.content->chainID.value,
-                             txContext.content->chainID.length,
-                             false);
-        } else {
-            PRINTF("TxType `%u` not supported while checking for chainID\n", txContext.txType);
-            return;
-        }
+    if (chainConfig->chainId != ETHEREUM_MAINNET_CHAINID) {
+        uint32_t id = get_chain_id();
 
         if (chainConfig->chainId != id) {
             PRINTF("Invalid chainID %u expected %u\n", id, chainConfig->chainId);
@@ -343,7 +333,7 @@ void finalizeParsing(bool direct) {
                     tmpContent.txContent.destinationLength = 20;
                     if (token1 != NULL) {
                         decimals = token1->decimals;
-                        ticker = token1->ticker;
+                        ticker = (char *) token1->ticker;
                     }
                     break;
                 default:
@@ -405,26 +395,22 @@ void finalizeParsing(bool direct) {
 
     // Prepare chainID field
     if (genericUI) {
-        if (txContext.txType == LEGACY) {
-            uint32_t id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
-            PRINTF("Chain ID: %u\n", id);
-            uint8_t res =
-                snprintf(strings.common.chainID, sizeof(strings.common.chainID), "%d", id);
-            if (res >= sizeof(strings.common.chainID)) {
+        char *name = get_network_name();
+        if (name == NULL) {
+            // No network name found so simply copy the chain ID as the network name.
+            uint32_t chain_id = get_chain_id();
+            uint8_t res = snprintf(strings.common.network_name,
+                                   sizeof(strings.common.network_name),
+                                   "%d",
+                                   chain_id);
+            if (res >= sizeof(strings.common.network_name)) {
                 // If the return value is higher or equal to the size passed in as parameter, then
                 // the output was truncated. Return the appropriate error code.
                 THROW(0x6502);
             }
-        } else if (txContext.txType == EIP2930) {
-            uint256_t chainID;
-            convertUint256BE(tmpContent.txContent.chainID.value,
-                             tmpContent.txContent.chainID.length,
-                             &chainID);
-            tostring256(&chainID, 10, displayBuffer, sizeof(displayBuffer));
-            strncpy(strings.common.chainID, displayBuffer, sizeof(strings.common.chainID));
         } else {
-            PRINTF("Txtype `%u` not supported while generating chainID\n", txContext.txType);
-            return;
+            // Network name found, simply copy it.
+            strncpy(strings.common.network_name, name, sizeof(strings.common.network_name));
         }
     }
 

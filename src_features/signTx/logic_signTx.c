@@ -281,22 +281,23 @@ void finalizeParsing(bool direct) {
         }
         // Lookup tokens if requested
         ethPluginProvideToken_t pluginProvideToken;
-        eth_plugin_prepare_provide_token(&pluginProvideToken, token1, token2);
+        eth_plugin_prepare_provide_token(&pluginProvideToken);
         if ((pluginFinalize.tokenLookup1 != NULL) || (pluginFinalize.tokenLookup2 != NULL)) {
             if (pluginFinalize.tokenLookup1 != NULL) {
                 PRINTF("Lookup1: %.*H\n", ADDRESS_LENGTH, pluginFinalize.tokenLookup1);
-                token1 = getKnownToken(pluginFinalize.tokenLookup1);
+                pluginProvideToken.token1 = getKnownToken(pluginFinalize.tokenLookup1);
                 if (token1 != NULL) {
-                    PRINTF("Token1 ticker: %s\n", token1->ticker);
+                    PRINTF("Token1 ticker: %s\n", pluginProvideToken.token1->ticker);
                 }
             }
             if (pluginFinalize.tokenLookup2 != NULL) {
                 PRINTF("Lookup2: %.*H\n", ADDRESS_LENGTH, pluginFinalize.tokenLookup2);
-                token2 = getKnownToken(pluginFinalize.tokenLookup2);
+                pluginProvideToken.token2 = getKnownToken(pluginFinalize.tokenLookup2);
                 if (token2 != NULL) {
-                    PRINTF("Token2 ticker: %s\n", token2->ticker);
+                    PRINTF("Token2 ticker: %s\n", pluginProvideToken.token2->ticker);
                 }
             }
+            PRINTF("Providing: %p\n", pluginProvideToken.token1);
             if (eth_plugin_call(ETH_PLUGIN_PROVIDE_TOKEN, (void *) &pluginProvideToken) <=
                 ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
                 PRINTF("Plugin provide token call failed\n");

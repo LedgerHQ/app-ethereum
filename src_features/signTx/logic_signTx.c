@@ -281,6 +281,7 @@ void finalizeParsing(bool direct) {
         }
         // Lookup tokens if requested
         ethPluginProvideToken_t pluginProvideToken;
+        eth_plugin_prepare_provide_token(&pluginProvideToken, token1, token2);
         if ((pluginFinalize.tokenLookup1 != NULL) || (pluginFinalize.tokenLookup2 != NULL)) {
             if (pluginFinalize.tokenLookup1 != NULL) {
                 PRINTF("Lookup1: %.*H\n", ADDRESS_LENGTH, pluginFinalize.tokenLookup1);
@@ -296,7 +297,6 @@ void finalizeParsing(bool direct) {
                     PRINTF("Token2 ticker: %s\n", token2->ticker);
                 }
             }
-            eth_plugin_prepare_provide_token(&pluginProvideToken, token1, token2);
             if (eth_plugin_call(ETH_PLUGIN_PROVIDE_TOKEN, (void *) &pluginProvideToken) <=
                 ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
                 PRINTF("Plugin provide token call failed\n");
@@ -314,6 +314,7 @@ void finalizeParsing(bool direct) {
                     dataPresent = false;
                     // Add the number of screens + the number of additional screens to get the total
                     // number of screens needed.
+                    PRINTF("additionalScreens: %d, numScreens: %d\n", pluginProvideToken.additionalScreens, pluginFinalize.numScreens);
                     dataContext.tokenContext.pluginUiMaxItems =
                         pluginFinalize.numScreens + pluginProvideToken.additionalScreens;
                     break;

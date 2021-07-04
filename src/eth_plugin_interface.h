@@ -59,6 +59,8 @@ typedef struct ethPluginSharedRW_t {
 
 typedef struct ethPluginSharedRO_t {
     txContent_t *txContent;
+    uint8_t pathLength;
+    uint32_t *bip32Path;
 
 } ethPluginSharedRO_t;
 

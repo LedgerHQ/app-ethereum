@@ -138,6 +138,8 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
 
     pluginRW.sha3 = &global_sha3;
     pluginRO.txContent = &tmpContent.txContent;
+    pluginRO.pathLength = tmpCtx.transactionContext.pathLength;
+    pluginRO.bip32Path = &tmpCtx.transactionContext.bip32Path;
 
     if (dataContext.tokenContext.pluginStatus <= ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
         PRINTF("Cached plugin call but no plugin available\n");

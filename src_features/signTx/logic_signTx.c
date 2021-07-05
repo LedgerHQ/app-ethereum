@@ -239,6 +239,27 @@ void computeFees(char *displayBuffer, uint32_t displayBufferSize) {
     displayBuffer[tickerOffset + i] = '\0';
 }
 
+static void get_public_key(uint8_t *out, uint8_t outLength) {
+    uint8_t privateKeyData[INT256_LENGTH] = {0};
+    cx_ecfp_private_key_t privateKey = {0};
+    cx_ecfp_public_key_t publicKey = {0};
+
+    if (outLength < ADDRESS_LENGTH) {
+        return;
+    }
+
+    os_perso_derive_node_bip32(CX_CURVE_256K1,
+                               tmpCtx.transactionContext.bip32Path,
+                               tmpCtx.transactionContext.pathLength,
+                               privateKeyData,
+                               NULL);
+    cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
+    cx_ecfp_generate_pair(CX_CURVE_256K1, &publicKey, &privateKey, 1);
+    explicit_bzero(&privateKey, sizeof(privateKey));
+    explicit_bzero(privateKeyData, sizeof(privateKeyData));
+    getEthAddressFromKey(&publicKey, out, &global_sha3);
+}
+
 void finalizeParsing(bool direct) {
     char displayBuffer[50];
     uint8_t decimals = WEI_TO_ETHER;
@@ -315,6 +336,11 @@ void finalizeParsing(bool direct) {
                     // number of screens needed.
                     dataContext.tokenContext.pluginUiMaxItems =
                         pluginFinalize.numScreens + pluginProvideToken.additionalScreens;
+
+                    uint8_t msg_sender[ADDRESS_LENGTH] = {0};
+                    get_public_key(msg_sender, sizeof(msg_sender));
+
+                    pluginFinalize.address = msg_sender;
                     break;
                 case ETH_UI_TYPE_AMOUNT_ADDRESS:
                     genericUI = true;

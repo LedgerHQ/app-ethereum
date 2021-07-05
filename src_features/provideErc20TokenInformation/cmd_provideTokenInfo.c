@@ -88,10 +88,10 @@ void handleProvideErc20TokenInformation(uint8_t p1,
                          32,
                          workBuffer + offset,
                          dataLength)) {
-        #ifndef HAVE_BYPASS_SIGNATURES
+#ifndef HAVE_BYPASS_SIGNATURES
         PRINTF("Invalid token signature\n");
         THROW(0x6A80);
-        #endif
+#endif
     }
     tmpCtx.transactionContext.tokenSet[tmpCtx.transactionContext.currentTokenIndex] = 1;
     THROW(0x9000);
@@ -177,10 +177,10 @@ void handleProvideErc20TokenInformation(uint8_t p1,
                              32,
                              workBuffer + offset,
                              dataLength)) {
-            #ifndef HAVE_BYPASS_SIGNATURES
+#ifndef HAVE_BYPASS_SIGNATURES
             PRINTF("Invalid token signature\n");
             THROW(0x6A80);
-            #endif
+#endif
         }
     }
 
@@ -197,10 +197,10 @@ void handleProvideErc20TokenInformation(uint8_t p1,
                          32,
                          workBuffer + offset,
                          dataLength)) {
-        #ifndef HAVE_BYPASS_SIGNATURES
+#ifndef HAVE_BYPASS_SIGNATURES
         PRINTF("Invalid token signature\n");
         THROW(0x6A80);
-        #endif
+#endif
     }
 #endif
 

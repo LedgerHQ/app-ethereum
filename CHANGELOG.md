@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.8.6](https://github.com/ledgerhq/app-ethereum/compare/1.8.5...1.8.6) - 2021-7-5
+
+### Added
+
+Display the name of the network when signing a transaction, or the chain ID if the network is not known
+When the network is known, amounts and fees are displayed in the network unit instead of ETH.
+### Fixed
+
+Fix some compilation warning
+
 ## [1.8.5](https://github.com/ledgerhq/app-ethereum/compare/1.7.9...1.8.5) - 2021-6-8
 
 ### Added

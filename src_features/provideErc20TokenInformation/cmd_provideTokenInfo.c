@@ -102,7 +102,7 @@ void handleProvideErc20TokenInformation(uint8_t p1,
                                         uint8_t *workBuffer,
                                         uint16_t dataLength,
                                         unsigned int *flags,
-                                        unsigned int *tx) {
+                                        __attribute__((unused)) unsigned int *tx) {
     UNUSED(p1);
     UNUSED(p2);
     UNUSED(flags);

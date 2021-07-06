@@ -292,6 +292,11 @@ void finalizeParsing(bool direct) {
     if (dataContext.tokenContext.pluginStatus >= ETH_PLUGIN_RESULT_SUCCESSFUL) {
         genericUI = false;
         eth_plugin_prepare_finalize(&pluginFinalize);
+
+        uint8_t msg_sender[ADDRESS_LENGTH] = {0};
+        get_public_key(msg_sender, sizeof(msg_sender));
+        pluginFinalize.address = msg_sender;
+
         if (!eth_plugin_call(ETH_PLUGIN_FINALIZE, (void *) &pluginFinalize)) {
             PRINTF("Plugin finalize call failed\n");
             reportFinalizeError(direct);
@@ -336,11 +341,6 @@ void finalizeParsing(bool direct) {
                     // number of screens needed.
                     dataContext.tokenContext.pluginUiMaxItems =
                         pluginFinalize.numScreens + pluginProvideToken.additionalScreens;
-
-                    uint8_t msg_sender[ADDRESS_LENGTH] = {0};
-                    get_public_key(msg_sender, sizeof(msg_sender));
-
-                    pluginFinalize.address = msg_sender;
                     break;
                 case ETH_UI_TYPE_AMOUNT_ADDRESS:
                     genericUI = true;

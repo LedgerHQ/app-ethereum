@@ -370,12 +370,12 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
     return NULL;
 }
 
+#ifndef HAVE_WALLET_ID_SDK
+
 unsigned int const U_os_perso_seed_cookie[] = {
     0xda7aba5e,
     0xc1a551c5,
 };
-
-#ifndef HAVE_WALLET_ID_SDK
 
 void handleGetWalletId(volatile unsigned int *tx) {
     unsigned char t[64];
@@ -394,7 +394,7 @@ void handleGetWalletId(volatile unsigned int *tx) {
     THROW(0x9000);
 }
 
-#endif
+#endif // HAVE_WALLET_ID_SDK
 
 void handleApdu(unsigned int *flags, unsigned int *tx) {
     unsigned short sw = 0;
@@ -409,7 +409,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                 return;
             }
 
-#endif
+#endif // HAVE_WALLET_ID_SDK
 
 #ifdef HAVE_STARKWARE
 

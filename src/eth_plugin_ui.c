@@ -23,7 +23,8 @@ void plugin_ui_get_id() {
                                          strings.tmp.tmp2,
                                          sizeof(strings.tmp.tmp2));
     // Query the original contract for ID if it's not an internal alias
-    eth_plugin_result_t status = eth_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_ID, (void *) &pluginQueryContractID);
+    eth_plugin_result_t status =
+        eth_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_ID, (void *) &pluginQueryContractID);
     if (status != ETH_PLUGIN_RESULT_OK) {
         PRINTF("Plugin query contract ID call failed\n");
         io_seproxyhal_touch_tx_cancel(NULL);
@@ -38,7 +39,8 @@ void plugin_ui_get_item() {
                                          sizeof(strings.tmp.tmp),
                                          strings.tmp.tmp2,
                                          sizeof(strings.tmp.tmp2));
-    eth_plugin_result_t status = eth_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, (void *) &pluginQueryContractUI);
+    eth_plugin_result_t status =
+        eth_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, (void *) &pluginQueryContractUI);
     if (status != ETH_PLUGIN_RESULT_OK) {
         PRINTF("Plugin query contract UI call failed, got: %d\n", status);
         io_seproxyhal_touch_tx_cancel(NULL);

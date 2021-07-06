@@ -266,7 +266,7 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
             }
             break;
         case ETH_PLUGIN_PROVIDE_TOKEN:
-            PRINTF("RESULT: %d\n", ((ethPluginProvideToken_t *)parameter)->result);
+            PRINTF("RESULT: %d\n", ((ethPluginProvideToken_t *) parameter)->result);
             switch (((ethPluginProvideToken_t *) parameter)->result) {
                 case ETH_PLUGIN_RESULT_OK:
                 case ETH_PLUGIN_RESULT_FALLBACK:

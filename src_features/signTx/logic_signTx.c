@@ -315,7 +315,9 @@ void finalizeParsing(bool direct) {
                     dataPresent = false;
                     // Add the number of screens + the number of additional screens to get the total
                     // number of screens needed.
-                    PRINTF("additionalScreens: %d, numScreens: %d\n", pluginProvideToken.additionalScreens, pluginFinalize.numScreens);
+                    PRINTF("additionalScreens: %d, numScreens: %d\n",
+                           pluginProvideToken.additionalScreens,
+                           pluginFinalize.numScreens);
                     dataContext.tokenContext.pluginUiMaxItems =
                         pluginFinalize.numScreens + pluginProvideToken.additionalScreens;
                     break;

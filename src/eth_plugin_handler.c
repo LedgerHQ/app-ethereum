@@ -225,9 +225,7 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
         params[2] = (uint32_t) parameter;
         BEGIN_TRY {
             TRY {
-                PRINTF("Jumping to lib\n");
                 os_lib_call(params);
-                PRINTF("Back from lib\n");
             }
             CATCH_OTHER(e) {
                 PRINTF("Plugin call exception for %s\n", alias);

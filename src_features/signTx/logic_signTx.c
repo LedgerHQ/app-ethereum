@@ -244,7 +244,6 @@ void finalizeParsing(bool direct) {
     uint8_t decimals = WEI_TO_ETHER;
     char *ticker = get_network_ticker();
     ethPluginFinalize_t pluginFinalize;
-    tokenDefinition_t *token1 = NULL, *token2 = NULL;
     bool genericUI = true;
 
     // Verify the chain
@@ -286,18 +285,17 @@ void finalizeParsing(bool direct) {
             if (pluginFinalize.tokenLookup1 != NULL) {
                 PRINTF("Lookup1: %.*H\n", ADDRESS_LENGTH, pluginFinalize.tokenLookup1);
                 pluginProvideToken.token1 = getKnownToken(pluginFinalize.tokenLookup1);
-                if (token1 != NULL) {
+                if (pluginProvidetoken.token1 != NULL) {
                     PRINTF("Token1 ticker: %s\n", pluginProvideToken.token1->ticker);
                 }
             }
             if (pluginFinalize.tokenLookup2 != NULL) {
                 PRINTF("Lookup2: %.*H\n", ADDRESS_LENGTH, pluginFinalize.tokenLookup2);
                 pluginProvideToken.token2 = getKnownToken(pluginFinalize.tokenLookup2);
-                if (token2 != NULL) {
+                if (pluginProvideToken.token2 != NULL) {
                     PRINTF("Token2 ticker: %s\n", pluginProvideToken.token2->ticker);
                 }
             }
-            PRINTF("Providing: %p\n", pluginProvideToken.token1);
             if (eth_plugin_call(ETH_PLUGIN_PROVIDE_TOKEN, (void *) &pluginProvideToken) <=
                 ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
                 PRINTF("Plugin provide token call failed\n");
@@ -315,9 +313,6 @@ void finalizeParsing(bool direct) {
                     dataPresent = false;
                     // Add the number of screens + the number of additional screens to get the total
                     // number of screens needed.
-                    PRINTF("additionalScreens: %d, numScreens: %d\n",
-                           pluginProvideToken.additionalScreens,
-                           pluginFinalize.numScreens);
                     dataContext.tokenContext.pluginUiMaxItems =
                         pluginFinalize.numScreens + pluginProvideToken.additionalScreens;
                     break;
@@ -335,9 +330,9 @@ void finalizeParsing(bool direct) {
                     tmpContent.txContent.value.length = 32;
                     memmove(tmpContent.txContent.destination, pluginFinalize.address, 20);
                     tmpContent.txContent.destinationLength = 20;
-                    if (token1 != NULL) {
-                        decimals = token1->decimals;
-                        ticker = (char *) token1->ticker;
+                    if (pluginProvideToken.token1 != NULL) {
+                        decimals = pluginProvideToken.token1->decimals;
+                        ticker = (char *)pluginProvideToken.token1->ticker;
                     }
                     break;
                 default:

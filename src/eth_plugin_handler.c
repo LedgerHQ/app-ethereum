@@ -63,11 +63,15 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
         if (memcmp(contractAddress,
                    dataContext.tokenContext.contract_address,
                    sizeof(dataContext.tokenContext.contract_address)) != 0) {
+            PRINTF("Got contract: %.*H\n", ADDRESS_LENGTH, contractAddress);
+            PRINTF("Expected contract: %.*H\n", ADDRESS_LENGTH, dataContext.tokenContext.contract_address);
             os_sched_exit(0);
         }
         if (memcmp(init->selector,
                    dataContext.tokenContext.method_selector,
                    sizeof(dataContext.tokenContext.method_selector)) != 0) {
+            PRINTF("Got selector: %.*H\n", SELECTOR_SIZE, init->selector);
+            PRINTF("Expected selector: %.*H\n", SELECTOR_SIZE, dataContext.tokenContext.method_selector);
             os_sched_exit(0);
         }
         PRINTF("External plugin will be used\n");

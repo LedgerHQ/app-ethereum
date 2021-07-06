@@ -285,7 +285,7 @@ void finalizeParsing(bool direct) {
             if (pluginFinalize.tokenLookup1 != NULL) {
                 PRINTF("Lookup1: %.*H\n", ADDRESS_LENGTH, pluginFinalize.tokenLookup1);
                 pluginProvideToken.token1 = getKnownToken(pluginFinalize.tokenLookup1);
-                if (pluginProvidetoken.token1 != NULL) {
+                if (pluginProvideToken.token1 != NULL) {
                     PRINTF("Token1 ticker: %s\n", pluginProvideToken.token1->ticker);
                 }
             }

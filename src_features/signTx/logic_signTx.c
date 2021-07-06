@@ -332,7 +332,7 @@ void finalizeParsing(bool direct) {
                     tmpContent.txContent.destinationLength = 20;
                     if (pluginProvideToken.token1 != NULL) {
                         decimals = pluginProvideToken.token1->decimals;
-                        ticker = (char *)pluginProvideToken.token1->ticker;
+                        ticker = (char *) pluginProvideToken.token1->ticker;
                     }
                     break;
                 default:

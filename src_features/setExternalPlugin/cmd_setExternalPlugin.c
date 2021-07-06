@@ -3,7 +3,7 @@
 #include "ui_flow.h"
 #include "tokens.h"
 
-#define SELECTOR_SIZE      4
+#define SELECTOR_SIZE 4
 
 void handleSetExternalPlugin(uint8_t p1,
                              uint8_t p2,

@@ -266,6 +266,12 @@ ifneq ($(ALLOW_DATA),0)
 DEFINES += HAVE_ALLOW_DATA
 endif
 
+# Bypass the signature verification for setExternalPlugin and provideERC20TokenInfo calls
+BYPASS_SIGNATURES:=0
+ifneq ($(BYPASS_SIGNATURES),0)
+DEFINES += HAVE_BYPASS_SIGNATURES
+endif
+
 
 # Enabling debug PRINTF
 DEBUG:=0

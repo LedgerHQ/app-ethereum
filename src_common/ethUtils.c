@@ -124,7 +124,7 @@ void getEthAddressFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out, cx_sha3
 }
 
 void getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey,
-                                uint8_t *out,
+                                char *out,
                                 cx_sha3_t *sha3Context,
                                 chain_config_t *chain_config) {
     uint8_t hashAddress[INT256_LENGTH];

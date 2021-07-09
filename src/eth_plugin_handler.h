@@ -7,9 +7,7 @@ void eth_plugin_prepare_provide_parameter(ethPluginProvideParameter_t *providePa
                                           uint8_t *parameter,
                                           uint32_t parameterOffset);
 void eth_plugin_prepare_finalize(ethPluginFinalize_t *finalize);
-void eth_plugin_prepare_provide_token(ethPluginProvideToken_t *provideToken,
-                                      tokenDefinition_t *token1,
-                                      tokenDefinition_t *token2);
+void eth_plugin_prepare_provide_token(ethPluginProvideToken_t *provideToken);
 void eth_plugin_prepare_query_contract_ID(ethQueryContractID_t *queryContractID,
                                           char *name,
                                           uint32_t nameLength,

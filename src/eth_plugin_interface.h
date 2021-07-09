@@ -104,7 +104,8 @@ typedef struct ethPluginFinalize_t {
     uint8_t *tokenLookup2;
 
     uint8_t *amount;   // set an uint256 pointer if uiType is UI_AMOUNT_ADDRESS
-    uint8_t *address;  // set to a 20 bytes address pointer if uiType is UI_AMOUNT_ADDRESS
+    uint8_t *address;  // set to the destination address if uiType is UI_AMOUNT_ADDRESS. Set to the
+                       // user's address if uiType is UI_TYPE_GENERIC
 
     uint8_t uiType;
     uint8_t numScreens;  // ignored if uiType is UI_AMOUNT_ADDRESS

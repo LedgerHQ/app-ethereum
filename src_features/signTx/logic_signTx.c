@@ -239,12 +239,32 @@ void computeFees(char *displayBuffer, uint32_t displayBufferSize) {
     displayBuffer[tickerOffset + i] = '\0';
 }
 
+static void get_public_key(uint8_t *out, uint8_t outLength) {
+    uint8_t privateKeyData[INT256_LENGTH] = {0};
+    cx_ecfp_private_key_t privateKey = {0};
+    cx_ecfp_public_key_t publicKey = {0};
+
+    if (outLength < ADDRESS_LENGTH) {
+        return;
+    }
+
+    os_perso_derive_node_bip32(CX_CURVE_256K1,
+                               tmpCtx.transactionContext.bip32Path,
+                               tmpCtx.transactionContext.pathLength,
+                               privateKeyData,
+                               NULL);
+    cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
+    cx_ecfp_generate_pair(CX_CURVE_256K1, &publicKey, &privateKey, 1);
+    explicit_bzero(&privateKey, sizeof(privateKey));
+    explicit_bzero(privateKeyData, sizeof(privateKeyData));
+    getEthAddressFromKey(&publicKey, out, &global_sha3);
+}
+
 void finalizeParsing(bool direct) {
     char displayBuffer[50];
     uint8_t decimals = WEI_TO_ETHER;
     char *ticker = get_network_ticker();
     ethPluginFinalize_t pluginFinalize;
-    tokenDefinition_t *token1 = NULL, *token2 = NULL;
     bool genericUI = true;
 
     // Verify the chain
@@ -272,6 +292,11 @@ void finalizeParsing(bool direct) {
     if (dataContext.tokenContext.pluginStatus >= ETH_PLUGIN_RESULT_SUCCESSFUL) {
         genericUI = false;
         eth_plugin_prepare_finalize(&pluginFinalize);
+
+        uint8_t msg_sender[ADDRESS_LENGTH] = {0};
+        get_public_key(msg_sender, sizeof(msg_sender));
+        pluginFinalize.address = msg_sender;
+
         if (!eth_plugin_call(ETH_PLUGIN_FINALIZE, (void *) &pluginFinalize)) {
             PRINTF("Plugin finalize call failed\n");
             reportFinalizeError(direct);
@@ -281,22 +306,22 @@ void finalizeParsing(bool direct) {
         }
         // Lookup tokens if requested
         ethPluginProvideToken_t pluginProvideToken;
+        eth_plugin_prepare_provide_token(&pluginProvideToken);
         if ((pluginFinalize.tokenLookup1 != NULL) || (pluginFinalize.tokenLookup2 != NULL)) {
             if (pluginFinalize.tokenLookup1 != NULL) {
                 PRINTF("Lookup1: %.*H\n", ADDRESS_LENGTH, pluginFinalize.tokenLookup1);
-                token1 = getKnownToken(pluginFinalize.tokenLookup1);
-                if (token1 != NULL) {
-                    PRINTF("Token1 ticker: %s\n", token1->ticker);
+                pluginProvideToken.token1 = getKnownToken(pluginFinalize.tokenLookup1);
+                if (pluginProvideToken.token1 != NULL) {
+                    PRINTF("Token1 ticker: %s\n", pluginProvideToken.token1->ticker);
                 }
             }
             if (pluginFinalize.tokenLookup2 != NULL) {
                 PRINTF("Lookup2: %.*H\n", ADDRESS_LENGTH, pluginFinalize.tokenLookup2);
-                token2 = getKnownToken(pluginFinalize.tokenLookup2);
-                if (token2 != NULL) {
-                    PRINTF("Token2 ticker: %s\n", token2->ticker);
+                pluginProvideToken.token2 = getKnownToken(pluginFinalize.tokenLookup2);
+                if (pluginProvideToken.token2 != NULL) {
+                    PRINTF("Token2 ticker: %s\n", pluginProvideToken.token2->ticker);
                 }
             }
-            eth_plugin_prepare_provide_token(&pluginProvideToken, token1, token2);
             if (eth_plugin_call(ETH_PLUGIN_PROVIDE_TOKEN, (void *) &pluginProvideToken) <=
                 ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
                 PRINTF("Plugin provide token call failed\n");
@@ -331,9 +356,9 @@ void finalizeParsing(bool direct) {
                     tmpContent.txContent.value.length = 32;
                     memmove(tmpContent.txContent.destination, pluginFinalize.address, 20);
                     tmpContent.txContent.destinationLength = 20;
-                    if (token1 != NULL) {
-                        decimals = token1->decimals;
-                        ticker = (char *) token1->ticker;
+                    if (pluginProvideToken.token1 != NULL) {
+                        decimals = pluginProvideToken.token1->decimals;
+                        ticker = (char *) pluginProvideToken.token1->ticker;
                     }
                     break;
                 default:

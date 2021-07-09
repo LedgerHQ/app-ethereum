@@ -3,8 +3,7 @@
 #include "ui_flow.h"
 #include "tokens.h"
 
-#define CONTRACT_ADDR_SIZE 20
-#define SELECTOR_SIZE      4
+#define SELECTOR_SIZE 4
 
 void handleSetExternalPlugin(uint8_t p1,
                              uint8_t p2,
@@ -19,7 +18,7 @@ void handleSetExternalPlugin(uint8_t p1,
     uint8_t hash[32];
     cx_ecfp_public_key_t tokenKey;
     uint8_t pluginNameLength = *workBuffer;
-    const size_t payload_size = 1 + pluginNameLength + CONTRACT_ADDR_SIZE + SELECTOR_SIZE;
+    const size_t payload_size = 1 + pluginNameLength + ADDRESS_LENGTH + SELECTOR_SIZE;
 
     if (dataLength <= payload_size) {
         THROW(0x6A80);
@@ -43,7 +42,9 @@ void handleSetExternalPlugin(uint8_t p1,
                          workBuffer + payload_size,
                          dataLength - payload_size)) {
         PRINTF("Invalid external plugin signature %.*H\n", payload_size, workBuffer);
+#ifndef HAVE_BYPASS_SIGNATURES
         THROW(0x6A80);
+#endif
     }
 
     // move on to the rest of the payload parsing
@@ -76,8 +77,8 @@ void handleSetExternalPlugin(uint8_t p1,
 
     PRINTF("Plugin found\n");
 
-    memmove(dataContext.tokenContext.contract_address, workBuffer, CONTRACT_ADDR_SIZE);
-    workBuffer += 20;
+    memmove(dataContext.tokenContext.contract_address, workBuffer, ADDRESS_LENGTH);
+    workBuffer += ADDRESS_LENGTH;
     memmove(dataContext.tokenContext.method_selector, workBuffer, SELECTOR_SIZE);
     externalPluginIsSet = true;
 

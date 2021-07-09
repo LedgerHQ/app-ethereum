@@ -394,7 +394,7 @@ void handleGetWalletId(volatile unsigned int *tx) {
     THROW(0x9000);
 }
 
-#endif // HAVE_WALLET_ID_SDK
+#endif  // HAVE_WALLET_ID_SDK
 
 void handleApdu(unsigned int *flags, unsigned int *tx) {
     unsigned short sw = 0;
@@ -409,7 +409,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                 return;
             }
 
-#endif // HAVE_WALLET_ID_SDK
+#endif  // HAVE_WALLET_ID_SDK
 
 #ifdef HAVE_STARKWARE
 

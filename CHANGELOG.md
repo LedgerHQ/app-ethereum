@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.8.7](https://github.com/ledgerhq/app-ethereum/compare/1.8.6...1.8.7) - 2021-7-9
+
+### Added
+
+Plugins can now check the address of the transaction sender.
+Remove `m/44'/60'` derivation path authorisation for Theta app.
+### Fixed
+
+`additional_screens` was introduced previously but wasn't properly initialized in some cases.
 ## [1.8.6](https://github.com/ledgerhq/app-ethereum/compare/1.8.5...1.8.6) - 2021-7-5
 
 ### Added

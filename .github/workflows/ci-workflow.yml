@@ -82,38 +82,38 @@ jobs:
           name: ethereum_nanox
           path: ./ethereum_nanox.elf
 
-  build_bypass_signatures_nanos:
-    name: Build bypass signatures
-    runs-on: ubuntu-latest
+  # build_bypass_signatures:
+  #   name: Build bypass signatures
+  #   runs-on: ubuntu-latest
 
-    container:
-      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
+  #   container:
+  #     image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
 
-    steps:
-      - name: Clone
-        uses: actions/checkout@v2
-        with:
-          submodules: recursive
+  #   steps:
+  #     - name: Clone
+  #       uses: actions/checkout@v2
+  #       with:
+  #         submodules: recursive
 
-     - name: Build Ethereum
-        run: |
-          make clean
-          make BOLOS_SDK=$NANOS_SDK DEBUG=1 BYPASS_SIGNATURES=1
-          mv bin/app.elf ethereum_nanos_for_dev_plugin.elf
-          make BOLOS_SDK=$NANOX_SDK DEBUG=1 BYPASS_SIGNATURES=1
-          mv bin/app.elf ethereum_nanox_for_dev_plugin.elf
+  #    - name: Build Ethereum
+  #       run: |
+  #         make clean
+  #         make BOLOS_SDK=$NANOS_SDK DEBUG=1 BYPASS_SIGNATURES=1
+  #         mv bin/app.elf ethereum_nanos_for_dev_plugin.elf
+  #         make BOLOS_SDK=$NANOX_SDK DEBUG=1 BYPASS_SIGNATURES=1
+  #         mv bin/app.elf ethereum_nanox_for_dev_plugin.elf
 
-      - name: Upload app binary
-        uses: actions/upload-artifact@v2
-        with:
-          name: ethereum_nanos_for_dev_plugin.elf
-          path: ./ethereum_nanos_for_dev_plugin.elf
+  #     - name: Upload app binary
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: ethereum_nanos_for_dev_plugin.elf
+  #         path: ./ethereum_nanos_for_dev_plugin.elf
 
-      - name: Upload app binary
-        uses: actions/upload-artifact@v2
-        with:
-          name: ethereum_nanox_for_dev_plugin.elf
-          path: ./ethereum_nanox_for_dev_plugin.elf      
+  #     - name: Upload app binary
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: ethereum_nanox_for_dev_plugin.elf
+  #         path: ./ethereum_nanox_for_dev_plugin.elf      
 
   jobs-e2e-tests:
     needs: [job_build_debug_nano_s, job_build_debug_nano_x]

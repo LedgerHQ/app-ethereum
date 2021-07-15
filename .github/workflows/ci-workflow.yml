@@ -107,17 +107,17 @@ jobs:
       - name: Upload nanos binary
         uses: actions/upload-artifact@v2
         with:
-          name: ethereum_nanos_for_dev_plugin.elf
+          name: ethereum_nanos_for_dev_plugin
           path: ./ethereum_nanos_for_dev_plugin.elf
 
       - name: Upload nanox binary
         uses: actions/upload-artifact@v2
         with:
-          name: ethereum_nanox_for_dev_plugin.elf
+          name: ethereum_nanox_for_dev_plugin
           path: ./ethereum_nanox_for_dev_plugin.elf      
 
   jobs-e2e-tests:
-    needs: [job_build_debug_nano_s, job_build_debug_nano_x]
+    needs: [job_build_debug_nano_s, job_build_debug_nano_x, build_bypass_signatures]
     runs-on: ubuntu-latest
     steps:
       - name: Test

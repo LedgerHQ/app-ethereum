@@ -38,7 +38,7 @@ typedef struct eth2_deposit_parameters_t {
 static int getEthDisplayableAddress(char *out, uint8_t *in, cx_sha3_t *sha3) {
     out[0] = '0';
     out[1] = 'x';
-    getEthAddressStringFromBinary(in, (uint8_t *) out + 2, sha3, chainConfig);
+    getEthAddressStringFromBinary(in, out + 2, sha3, chainConfig);
 
     uint8_t destinationLen = strlen(out) + 1;  // Adding one to account for \0.
 

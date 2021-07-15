@@ -17,7 +17,7 @@ void stark_sign_display_condition_address() {
     strings.tmp.tmp[0] = '0';
     strings.tmp.tmp[1] = 'x';
     getEthAddressStringFromBinary(dataContext.starkContext.conditionAddress,
-                                  (uint8_t *) (strings.tmp.tmp + 2),
+                                  strings.tmp.tmp + 2,
                                   &global_sha3,
                                   chainConfig);
     strings.tmp.tmp[42] = '\0';

@@ -284,7 +284,7 @@ void starkware_print_eth_address(uint8_t *address, char *destination) {
     destination[0] = '0';
     destination[1] = 'x';
     getEthAddressStringFromBinary(address,
-                                  (uint8_t *) (destination + 2),
+                                  destination + 2,
                                   &global_sha3,
                                   chainConfig);
     destination[42] = '\0';
@@ -369,7 +369,7 @@ void starkware_get_source_address(char *destination) {
     destination[0] = '0';
     destination[1] = 'x';
     getEthAddressStringFromKey(&publicKey,
-                               (uint8_t *) (destination + 2),
+                               destination + 2,
                                &global_sha3,
                                chainConfig);
     destination[42] = '\0';

@@ -385,7 +385,7 @@ void finalizeParsing(bool direct) {
             displayBuffer[0] = '0';
             displayBuffer[1] = 'x';
             getEthAddressStringFromBinary(tmpContent.txContent.destination,
-                                          (uint8_t *) displayBuffer + 2,
+                                          displayBuffer + 2,
                                           &global_sha3,
                                           chainConfig);
             compareOrCopy(strings.common.fullAddress, displayBuffer, called_from_swap);

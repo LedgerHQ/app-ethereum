@@ -209,7 +209,7 @@ void erc20_plugin_call(int message, void *parameters) {
                         msg->msg[0] = '0';
                         msg->msg[1] = 'x';
                         getEthAddressStringFromBinary(context->destinationAddress,
-                                                      (uint8_t *) msg->msg + 2,
+                                                      msg->msg + 2,
                                                       msg->pluginSharedRW->sha3,
                                                       chainConfig);
                     }

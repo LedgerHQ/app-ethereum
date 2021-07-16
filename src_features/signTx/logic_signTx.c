@@ -171,7 +171,7 @@ void to_uppercase(char *str, unsigned char size) {
     }
 }
 
-void compareOrCopy(char *preapproved_string, char *parsed_string, bool silent_mode) {
+void compareOrCopy(char *preapproved_string, size_t size, char *parsed_string, bool silent_mode) {
     if (silent_mode) {
         /* ETH address are not fundamentally case sensitive but might
         have some for checksum purpose, so let's get rid of these diffs */
@@ -181,7 +181,7 @@ void compareOrCopy(char *preapproved_string, char *parsed_string, bool silent_mo
             THROW(ERR_SILENT_MODE_CHECK_FAILED);
         }
     } else {
-        strcpy(preapproved_string, parsed_string);
+        strlcpy(preapproved_string, parsed_string, size);
     }
 }
 
@@ -358,7 +358,7 @@ void finalizeParsing(bool direct) {
                     tmpContent.txContent.destinationLength = 20;
                     if (pluginProvideToken.token1 != NULL) {
                         decimals = pluginProvideToken.token1->decimals;
-                        ticker = (char *) pluginProvideToken.token1->ticker;
+                        ticker = pluginProvideToken.token1->ticker;
                     }
                     break;
                 default:
@@ -388,7 +388,10 @@ void finalizeParsing(bool direct) {
                                           displayBuffer + 2,
                                           &global_sha3,
                                           chainConfig);
-            compareOrCopy(strings.common.fullAddress, displayBuffer, called_from_swap);
+            compareOrCopy(strings.common.fullAddress,
+                          sizeof(strings.common.fullAddress),
+                          displayBuffer,
+                          called_from_swap);
         } else {
             strcpy(strings.common.fullAddress, "Contract");
         }
@@ -398,10 +401,13 @@ void finalizeParsing(bool direct) {
         amountToString(tmpContent.txContent.value.value,
                        tmpContent.txContent.value.length,
                        decimals,
-                       (char *) ticker,
+                       ticker,
                        displayBuffer,
                        sizeof(displayBuffer));
-        compareOrCopy(strings.common.fullAmount, displayBuffer, called_from_swap);
+        compareOrCopy(strings.common.fullAmount,
+                      sizeof(strings.common.fullAddress),
+                      displayBuffer,
+                      called_from_swap);
     }
     // Prepare nonce to display
     if (genericUI) {
@@ -415,7 +421,10 @@ void finalizeParsing(bool direct) {
     // Compute maximum fee
     if (genericUI) {
         computeFees(displayBuffer, sizeof(displayBuffer));
-        compareOrCopy(strings.common.maxFee, displayBuffer, called_from_swap);
+        compareOrCopy(strings.common.maxFee,
+                      sizeof(strings.common.maxFee),
+                      displayBuffer,
+                      called_from_swap);
     }
 
     // Prepare chainID field

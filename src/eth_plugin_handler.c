@@ -94,7 +94,9 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
                 if (memcmp(init->selector, (const void *) PIC(selectors[j]), SELECTOR_SIZE) == 0) {
                     if ((INTERNAL_ETH_PLUGINS[i].availableCheck == NULL) ||
                         ((PluginAvailableCheck) PIC(INTERNAL_ETH_PLUGINS[i].availableCheck))()) {
-                        strcpy(dataContext.tokenContext.pluginName, INTERNAL_ETH_PLUGINS[i].alias);
+                        strlcpy(dataContext.tokenContext.pluginName,
+                                INTERNAL_ETH_PLUGINS[i].alias,
+                                PLUGIN_ID_LENGTH);
                         dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
                         contractAddress = NULL;
                         break;

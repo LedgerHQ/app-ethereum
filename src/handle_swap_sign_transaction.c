@@ -36,7 +36,7 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
                    sizeof(stack_data.fullAmount));
 
     // If the amount is a fee, its value is nominated in ETH even if we're doing an ERC20 swap
-    strcpy(ticker, config->coinName);
+    strlcpy(ticker, config->coinName, MAX_TICKER_LEN);
     decimals = WEI_TO_ETHER;
     amountToString(sign_transaction_params->fee_amount,
                    sign_transaction_params->fee_amount_length,

@@ -108,8 +108,8 @@ void erc721_plugin_call(int message, void *parameters) {
 
         case ETH_PLUGIN_QUERY_CONTRACT_ID: {
             ethQueryContractID_t *msg = (ethQueryContractID_t *) parameters;
-            strcpy(msg->name, "Allowance");
-            strcpy(msg->version, "");
+            strlcpy(msg->name, "Allowance", msg->nameLength);
+            strlcpy(msg->version, "", msg->versionLength);
             msg->result = ETH_PLUGIN_RESULT_OK;
         } break;
 
@@ -118,19 +118,19 @@ void erc721_plugin_call(int message, void *parameters) {
             erc721_parameters_t *context = (erc721_parameters_t *) msg->pluginContext;
             switch (msg->screenIndex) {
                 case 0:
-                    strcpy(msg->title, "Contract Name");
+                    strlcpy(msg->title, "Contract Name", msg->titleLength);
                     starkware_print_eth_address(tmpContent.txContent.destination, msg->msg);
                     msg->result = ETH_PLUGIN_RESULT_OK;
                     break;
 
                 case 1:
-                    strcpy(msg->title, "NFT Contract");
+                    strlcpy(msg->title, "NFT Contract", msg->titleLength);
                     starkware_print_eth_address(context->address, msg->msg);
                     msg->result = ETH_PLUGIN_RESULT_OK;
                     break;
 
                 case 2:
-                    strcpy(msg->title, "TokenID");
+                    strlcpy(msg->title, "TokenID", msg->titleLength);
                     starkware_print_stark_key(context->tokenId, msg->msg);
                     msg->result = ETH_PLUGIN_RESULT_OK;
                     break;

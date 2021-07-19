@@ -340,6 +340,7 @@ endif
 
 # rebuild
 $(shell python3 ethereum-plugin-sdk/build_sdk.py)
+$(shell find ./ethereum-plugin-sdk -iname '*.h' -o -iname '*.c' | xargs clang-format-10 -i)
 
 # check if a difference is noticed (fail if it happens in CI build)
 ifneq ($(shell git status | grep 'ethereum-plugin-sdk'),)

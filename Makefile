@@ -31,7 +31,7 @@ APP_LOAD_PARAMS += --path "1517992542'/1101353413'"
 APPVERSION_M=1
 APPVERSION_N=8
 APPVERSION_P=8
-APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)-rc1
+APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 APP_LOAD_FLAGS= --appFlags 0x240 --dep Ethereum:$(APPVERSION)
 
 ifeq ($(CHAIN),)
@@ -41,7 +41,7 @@ endif
 ifeq ($(CHAIN),ethereum)
 # Lock the application on its standard path for 1.5. Please complain if non compliant
 APP_LOAD_PARAMS += --path "44'/60'"
-DEFINES += CHAINID_UPCASE=\"ETHEREUM\" CHAINID_COINNAME=\"ETH\" CHAIN_KIND=CHAIN_KIND_ETHEREUM CHAIN_ID=0
+DEFINES += CHAINID_UPCASE=\"ETHEREUM\" CHAINID_COINNAME=\"ETH\" CHAIN_KIND=CHAIN_KIND_ETHEREUM CHAIN_ID=1
 # Starkware integration
 APP_LOAD_PARAMS += --path "2645'/579218131'"
 DEFINES += HAVE_STARKWARE
@@ -197,7 +197,7 @@ APP_LOAD_PARAMS += --path "44'/554'" --path "44'/60'"
 DEFINES += CHAINID_UPCASE=\"FLARE\" CHAINID_COINNAME=\"FLR\" CHAIN_KIND=CHAIN_KIND_FLARE CHAIN_ID=16
 APPNAME = "Flare Coston"
 else ifeq ($(CHAIN),theta)
-APP_LOAD_PARAMS += --path "44'/500'" --path "44'/60'"
+APP_LOAD_PARAMS += --path "44'/500'"
 DEFINES += CHAINID_UPCASE=\"THETA\" CHAINID_COINNAME=\"THETA\" CHAIN_KIND=CHAIN_KIND_THETA CHAIN_ID=500
 APPNAME = "Theta"
 else ifeq ($(CHAIN),bsc)
@@ -270,6 +270,12 @@ ifneq ($(ALLOW_DATA),0)
 DEFINES += HAVE_ALLOW_DATA
 endif
 
+# Bypass the signature verification for setExternalPlugin and provideERC20TokenInfo calls
+BYPASS_SIGNATURES:=0
+ifneq ($(BYPASS_SIGNATURES),0)
+DEFINES += HAVE_BYPASS_SIGNATURES
+endif
+
 
 # Enabling debug PRINTF
 DEBUG:=0
@@ -338,6 +344,7 @@ endif
 
 # rebuild
 $(shell python3 ethereum-plugin-sdk/build_sdk.py)
+$(shell find ./ethereum-plugin-sdk -iname '*.h' -o -iname '*.c' | xargs clang-format-10 -i)
 
 # check if a difference is noticed (fail if it happens in CI build)
 ifneq ($(shell git status | grep 'ethereum-plugin-sdk'),)

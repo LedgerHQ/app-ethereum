@@ -2,7 +2,7 @@
 #include "utils.h"
 #include "ui_callbacks.h"
 
-unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
+unsigned int io_seproxyhal_touch_tx_ok(__attribute__((unused)) const bagl_element_t *e) {
     uint8_t privateKeyData[INT256_LENGTH];
     uint8_t signature[100];
     uint8_t signatureLength;
@@ -58,7 +58,7 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
     return 0;  // do not redraw the widget
 }
 
-unsigned int io_seproxyhal_touch_tx_cancel(const bagl_element_t *e) {
+unsigned int io_seproxyhal_touch_tx_cancel(__attribute__((unused)) const bagl_element_t *e) {
     reset_app_context();
     G_io_apdu_buffer[0] = 0x69;
     G_io_apdu_buffer[1] = 0x85;
@@ -69,7 +69,7 @@ unsigned int io_seproxyhal_touch_tx_cancel(const bagl_element_t *e) {
     return 0;  // do not redraw the widget
 }
 
-unsigned int io_seproxyhal_touch_data_ok(const bagl_element_t *e) {
+unsigned int io_seproxyhal_touch_data_ok(__attribute__((unused)) const bagl_element_t *e) {
     parserStatus_e txResult = USTREAM_FINISHED;
     txResult = continueTx(&txContext);
     switch (txResult) {
@@ -100,7 +100,7 @@ unsigned int io_seproxyhal_touch_data_ok(const bagl_element_t *e) {
     return 0;
 }
 
-unsigned int io_seproxyhal_touch_data_cancel(const bagl_element_t *e) {
+unsigned int io_seproxyhal_touch_data_cancel(__attribute__((unused)) const bagl_element_t *e) {
     reset_app_context();
     io_seproxyhal_send_status(0x6985);
     // Display back the original UX

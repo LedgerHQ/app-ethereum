@@ -3,7 +3,7 @@
 #include "utils.h"
 #include "ui_flow.h"
 
-static const char const SIGN_MAGIC[] =
+static const char SIGN_MAGIC[] =
     "\x19"
     "Ethereum Signed Message:\n";
 

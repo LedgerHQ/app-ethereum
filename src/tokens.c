@@ -4566,4 +4566,6 @@ const tokenDefinition_t const TOKENS_FLARE[NUM_TOKENS_FLARE] = {};
 
 const tokenDefinition_t const TOKENS_THETA[NUM_TOKENS_THETA] = {};
 
+const tokenDefinition_t const TOKENS_BSC[NUM_TOKENS_BSC] = {};
+
 #endif

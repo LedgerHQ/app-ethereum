@@ -145,8 +145,8 @@ void handleProvideErc20TokenInformation(uint8_t p1,
     offset += 4;
     dataLength -= 4;
     chainId = U4BE(workBuffer, offset);
-    if ((chainConfig->chainId != 0) && (chainConfig->chainId != chainId)) {
-        PRINTF("ChainId token mismatch\n");
+    if ((chainConfig->chainId != ETHEREUM_MAINNET_CHAINID) && (chainConfig->chainId != chainId)) {
+        PRINTF("ChainId token mismatch: %d vs %d\n", chainConfig->chainId, chainId);
         THROW(0x6A80);
     }
     offset += 4;

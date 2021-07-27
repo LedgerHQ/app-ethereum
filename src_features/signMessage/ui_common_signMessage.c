@@ -4,7 +4,6 @@
 unsigned int io_seproxyhal_touch_signMessage_ok(__attribute__((unused)) const bagl_element_t *e) {
     uint8_t privateKeyData[INT256_LENGTH];
     uint8_t signature[100];
-    uint8_t signatureLength;
     cx_ecfp_private_key_t privateKey;
     uint32_t tx = 0;
     io_seproxyhal_io_heartbeat();
@@ -18,14 +17,14 @@ unsigned int io_seproxyhal_touch_signMessage_ok(__attribute__((unused)) const ba
     explicit_bzero(privateKeyData, sizeof(privateKeyData));
     unsigned int info = 0;
     io_seproxyhal_io_heartbeat();
-    signatureLength = cx_ecdsa_sign(&privateKey,
-                                    CX_RND_RFC6979 | CX_LAST,
-                                    CX_SHA256,
-                                    tmpCtx.messageSigningContext.hash,
-                                    sizeof(tmpCtx.messageSigningContext.hash),
-                                    signature,
-                                    sizeof(signature),
-                                    &info);
+    cx_ecdsa_sign(&privateKey,
+                  CX_RND_RFC6979 | CX_LAST,
+                  CX_SHA256,
+                  tmpCtx.messageSigningContext.hash,
+                  sizeof(tmpCtx.messageSigningContext.hash),
+                  signature,
+                  sizeof(signature),
+                  &info);
     explicit_bzero(&privateKey, sizeof(privateKey));
     G_io_apdu_buffer[0] = 27;
     if (info & CX_ECCINFO_PARITY_ODD) {

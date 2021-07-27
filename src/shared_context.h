@@ -79,7 +79,7 @@ typedef struct tokenContext_t {
 
 typedef struct publicKeyContext_t {
     cx_ecfp_public_key_t publicKey;
-    uint8_t address[41];
+    char address[41];
     uint8_t chainCode[INT256_LENGTH];
     bool getChaincode;
 } publicKeyContext_t;

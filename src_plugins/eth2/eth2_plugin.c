@@ -38,7 +38,7 @@ typedef struct eth2_deposit_parameters_t {
 static int getEthDisplayableAddress(char *out, uint8_t *in, cx_sha3_t *sha3) {
     out[0] = '0';
     out[1] = 'x';
-    getEthAddressStringFromBinary(in, (uint8_t *) out + 2, sha3, chainConfig);
+    getEthAddressStringFromBinary(in, out + 2, sha3, chainConfig);
 
     uint8_t destinationLen = strlen(out) + 1;  // Adding one to account for \0.
 
@@ -135,7 +135,7 @@ void eth2_plugin_call(int message, void *parameters) {
                                              msg->pluginSharedRW->sha3);
 
                     // Copy back the string to the global variable.
-                    strcpy(context->deposit_address, tmp);
+                    strlcpy(context->deposit_address, tmp, ETH2_DEPOSIT_PUBKEY_LENGTH);
                     msg->result = ETH_PLUGIN_RESULT_OK;
                     break;
                 }
@@ -198,8 +198,8 @@ void eth2_plugin_call(int message, void *parameters) {
 
         case ETH_PLUGIN_QUERY_CONTRACT_ID: {
             ethQueryContractID_t *msg = (ethQueryContractID_t *) parameters;
-            strcpy(msg->name, "ETH2");
-            strcpy(msg->version, "Deposit");
+            strlcpy(msg->name, "ETH2", msg->nameLength);
+            strlcpy(msg->version, "Deposit", msg->versionLength);
             msg->result = ETH_PLUGIN_RESULT_OK;
         } break;
 
@@ -210,7 +210,7 @@ void eth2_plugin_call(int message, void *parameters) {
                 case 0: {  // Amount screen
                     uint8_t decimals = WEI_TO_ETHER;
                     char *ticker = chainConfig->coinName;
-                    strcpy(msg->title, "Amount");
+                    strlcpy(msg->title, "Amount", msg->titleLength);
                     amountToString(tmpContent.txContent.value.value,
                                    tmpContent.txContent.value.length,
                                    decimals,
@@ -220,8 +220,8 @@ void eth2_plugin_call(int message, void *parameters) {
                     msg->result = ETH_PLUGIN_RESULT_OK;
                 } break;
                 case 1: {  // Deposit pubkey screen
-                    strcpy(msg->title, "Validator");
-                    strcpy(msg->msg, context->deposit_address);
+                    strlcpy(msg->title, "Validator", msg->titleLength);
+                    strlcpy(msg->msg, context->deposit_address, msg->msgLength);
                     msg->result = ETH_PLUGIN_RESULT_OK;
                 }
                 default:

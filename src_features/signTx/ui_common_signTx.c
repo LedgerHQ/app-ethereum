@@ -5,7 +5,6 @@
 unsigned int io_seproxyhal_touch_tx_ok(__attribute__((unused)) const bagl_element_t *e) {
     uint8_t privateKeyData[INT256_LENGTH];
     uint8_t signature[100];
-    uint8_t signatureLength;
     cx_ecfp_private_key_t privateKey;
     uint32_t tx = 0;
     uint32_t v = u32_from_BE(tmpContent.txContent.v, tmpContent.txContent.vLength, true);
@@ -19,14 +18,14 @@ unsigned int io_seproxyhal_touch_tx_ok(__attribute__((unused)) const bagl_elemen
     explicit_bzero(privateKeyData, sizeof(privateKeyData));
     unsigned int info = 0;
     io_seproxyhal_io_heartbeat();
-    signatureLength = cx_ecdsa_sign(&privateKey,
-                                    CX_RND_RFC6979 | CX_LAST,
-                                    CX_SHA256,
-                                    tmpCtx.transactionContext.hash,
-                                    sizeof(tmpCtx.transactionContext.hash),
-                                    signature,
-                                    sizeof(signature),
-                                    &info);
+    cx_ecdsa_sign(&privateKey,
+                  CX_RND_RFC6979 | CX_LAST,
+                  CX_SHA256,
+                  tmpCtx.transactionContext.hash,
+                  sizeof(tmpCtx.transactionContext.hash),
+                  signature,
+                  sizeof(signature),
+                  &info);
     explicit_bzero(&privateKey, sizeof(privateKey));
     // Parity is present in the sequence tag in the legacy API
     if (tmpContent.txContent.vLength == 0) {

@@ -32,14 +32,6 @@ typedef struct eth2_deposit_parameters_t {
     char deposit_address[ETH2_DEPOSIT_PUBKEY_LENGTH];
 } eth2_deposit_parameters_t;
 
-static void to_lowercase(char *str, unsigned char size) {
-    for (unsigned char i = 0; i < size && str[i] != 0; i++) {
-        if (str[i] >= 'A' && str[i] <= 'Z') {
-            str[i] += 'a' - 'A';
-        }
-    }
-}
-
 // Fills the `out` buffer with the lowercase string representation of the pubkey passed in as binary
 // format by `in`. Does not check the size, so expects `out` to be big enough to hold the string
 // representation. Returns the length of string (counting the null terminating character).
@@ -217,12 +209,12 @@ void eth2_plugin_call(int message, void *parameters) {
             switch (msg->screenIndex) {
                 case 0: {  // Amount screen
                     uint8_t decimals = WEI_TO_ETHER;
-                    uint8_t *ticker = (uint8_t *) PIC(chainConfig->coinName);
+                    char *ticker = chainConfig->coinName;
                     strcpy(msg->title, "Amount");
                     amountToString(tmpContent.txContent.value.value,
                                    tmpContent.txContent.value.length,
                                    decimals,
-                                   (char *) ticker,
+                                   ticker,
                                    msg->msg,
                                    100);
                     msg->result = ETH_PLUGIN_RESULT_OK;

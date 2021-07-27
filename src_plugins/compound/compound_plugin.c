@@ -43,7 +43,7 @@ typedef struct underlying_asset_decimals_t {
 the cToken decimals. Therefore, we hardcode a binding table. If Compound adds a lot of token in the
 future, we will have to move to a CAL based architecture instead, as this one doesn't scale well.*/
 #define NUM_COMPOUND_BINDINGS 9
-const underlying_asset_decimals_t const UNDERLYING_ASSET_DECIMALS[NUM_COMPOUND_BINDINGS] = {
+const underlying_asset_decimals_t UNDERLYING_ASSET_DECIMALS[NUM_COMPOUND_BINDINGS] = {
     {"cDAI", 18},
     {"CETH", 18},
     {"CUSDC", 6},

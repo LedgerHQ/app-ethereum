@@ -9,13 +9,12 @@ import { expect } from "../jest";
 const {NANOS_ELF_PATH, NANOX_ELF_PATH, sim_options_nanos, sim_options_nanox, TIMEOUT} = require("generic.js");
 
 const ORIGINAL_SNAPSHOT_PATH_PREFIX = "snapshots/send/";
-const SNAPSHOT_PATH_PREFIX = "snapshots/tmp/";
 
 const ORIGINAL_SNAPSHOT_PATH_NANOS = ORIGINAL_SNAPSHOT_PATH_PREFIX + "nanos/";
 const ORIGINAL_SNAPSHOT_PATH_NANOX = ORIGINAL_SNAPSHOT_PATH_PREFIX + "nanox/";
 
-const SNAPSHOT_PATH_NANOS = SNAPSHOT_PATH_PREFIX + "nanos/";
-const SNAPSHOT_PATH_NANOX = SNAPSHOT_PATH_PREFIX + "nanox/";
+const SNAPSHOT_PATH_NANOS = ORIGINAL_SNAPSHOT_PATH_NANOS + "tmp/"
+const SNAPSHOT_PATH_NANOX = ORIGINAL_SNAPSHOT_PATH_NANOX + "tmp/"
 
 test("Transfer Ether on Ethereum app nanos", async () => {
   jest.setTimeout(TIMEOUT);
@@ -24,7 +23,9 @@ test("Transfer Ether on Ethereum app nanos", async () => {
   try {
     await sim.start(sim_options_nanos);
 
+    console.log(sim)
     let transport = await sim.getTransport();
+    console.log(transport)
 
     let buffer = Buffer.from("058000002C8000003C800000010000000000000000EB44850306DC4200825208945A321744667052AFFA8386ED49E00EF223CBFFC3876F9C9E7BF6181880018080", "hex");
 
@@ -106,7 +107,7 @@ test("Transfer Ether on Ethereum app nanos", async () => {
   }
 });
 
-test("Transfer on network 5234 on Ethereum nanos", async () => {
+test.skip("Transfer on network 5234 on Ethereum nanos", async () => {
   jest.setTimeout(TIMEOUT);
   const sim = new Zemu(NANOS_ELF_PATH);
 
@@ -202,7 +203,7 @@ test("Transfer on network 5234 on Ethereum nanos", async () => {
   }
 });
 
-test("Transfer Ether on Ethereum nanox", async () => {
+test.skip("Transfer Ether on Ethereum nanox", async () => {
   jest.setTimeout(TIMEOUT);
   const sim = new Zemu(NANOX_ELF_PATH);
 
@@ -263,7 +264,7 @@ test("Transfer Ether on Ethereum nanox", async () => {
 });
 
 
-test("Transfer on network 5234 on Ethereum nanox", async () => {
+test.skip("Transfer on network 5234 on Ethereum nanox", async () => {
   jest.setTimeout(TIMEOUT);
   const sim = new Zemu(NANOX_ELF_PATH);
 

@@ -66,7 +66,7 @@ bool check_contract(erc20_parameters_t *context) {
     for (size_t i = 0; i < NUM_CONTRACTS; i++) {
         contract_t *contract = (contract_t *) PIC(&CONTRACTS[i]);
         if (memcmp(contract->address, context->destinationAddress, ADDRESS_LENGTH) == 0) {
-            strncpy(context->contract_name, contract->name, sizeof(context->contract_name));
+            strlcpy(context->contract_name, contract->name, sizeof(context->contract_name));
             return true;
         }
     }

@@ -93,7 +93,7 @@ bool uint256_to_decimal(const uint8_t *value, size_t value_len, char *out, size_
             // Not enough space to hold "0" and \0.
             return false;
         }
-        strncpy(out, "0", out_len);
+        strlcpy(out, "0", out_len);
         return true;
     }
 

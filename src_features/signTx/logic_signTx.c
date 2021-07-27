@@ -416,7 +416,7 @@ void finalizeParsing(bool direct) {
                          tmpContent.txContent.nonce.length,
                          &nonce);
         tostring256(&nonce, 10, displayBuffer, sizeof(displayBuffer));
-        strncpy(strings.common.nonce, displayBuffer, sizeof(strings.common.nonce));
+        strlcpy(strings.common.nonce, displayBuffer, sizeof(strings.common.nonce));
     }
     // Compute maximum fee
     if (genericUI) {
@@ -444,7 +444,7 @@ void finalizeParsing(bool direct) {
             }
         } else {
             // Network name found, simply copy it.
-            strncpy(strings.common.network_name, name, sizeof(strings.common.network_name));
+            strlcpy(strings.common.network_name, name, sizeof(strings.common.network_name));
         }
     }
 

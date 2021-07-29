@@ -38,6 +38,7 @@ typedef customStatus_e (*ustreamProcess_t)(struct txContext_t *context);
 #define TX_FLAG_TYPE   0x01
 #define ADDRESS_LENGTH 20
 #define INT256_LENGTH  32
+#define THETA_BUFFER_LENGTH  100
 
 // First variant of every Tx enum.
 #define RLP_NONE 0
@@ -98,12 +99,24 @@ typedef enum parserStatus_e {
     USTREAM_CONTINUE     // Used internally to signify we can keep on parsing
 } parserStatus_e;
 
+typedef enum thetaDecodeStatus_e {
+    THETATX_INIT,        // Decoding is initialized
+    THETATX_PROCESSING,  // Decoding is in progress
+    THETATX_FINISHED,    // Decoding is done
+    THETATX_FAULT,       // An error was encountered while decoding
+} thetaDecodeStatus_e;
+
 typedef struct txInt256_t {
     uint8_t value[INT256_LENGTH];
     uint8_t length;
 } txInt256_t;
 
 typedef struct txContent_t {
+    bool thetaCoinName; // Theta/Tfuel
+    thetaDecodeStatus_e thetaDecodeSatus;
+    uint8_t thetaBuffer[THETA_BUFFER_LENGTH];
+    uint8_t thetaBufferLength;
+    uint8_t thetaBufferToRead;
     txInt256_t gasprice;
     txInt256_t startgas;
     txInt256_t value;

@@ -21,6 +21,7 @@
 #include "ethUstream.h"
 #include "ethUtils.h"
 #include "utils.h"
+#include "shared_context.h"
 
 #define MAX_INT256  32
 #define MAX_ADDRESS 20
@@ -79,6 +80,82 @@ void copyTxData(txContext_t *context, uint8_t *out, uint32_t length) {
     }
 }
 
+void decodeThetaTxAddressAndValue(txContext_t *context, uint8_t *rlpP, uint32_t length) {
+    uint32_t offset, tmpCurrentFieldLength;
+    bool tmpCurrentFieldIsList;
+    rlpP += 3;
+    memmove(context->content->destination, rlpP, ADDRESS_LENGTH); // decode address
+    rlpP += ADDRESS_LENGTH + 1;
+    if (*rlpP != 128 && rlpDecodeLength(rlpP, &tmpCurrentFieldLength, &offset, &tmpCurrentFieldIsList)) {//Theta value
+        context->content->thetaCoinName = true;
+        rlpP += offset;
+        memmove(context->content->value.value, rlpP, tmpCurrentFieldLength);                                
+        context->content->value.length = tmpCurrentFieldLength;
+    } else if (rlpDecodeLength(++rlpP, &tmpCurrentFieldLength, &offset, &tmpCurrentFieldIsList)) { // Tfuel value
+        context->content->thetaCoinName = false;
+        rlpP += offset;
+        memmove(context->content->value.value, rlpP, tmpCurrentFieldLength);
+        context->content->value.length = tmpCurrentFieldLength;
+    }
+    context->content->thetaDecodeSatus = THETATX_FINISHED;
+}
+
+void decodeThetaTx(txContext_t *context, uint32_t length) {
+    if (context->commandLength < length) {
+        PRINTF("copyTxData Underflow\n");
+        THROW(EXCEPTION);
+    }
+    uint32_t offset, tmpCurrentFieldLength;
+    bool decoded, tmpCurrentFieldIsList;
+    uint8_t *rlpP = context->workBuffer;
+    BEGIN_TRY {
+        TRY {
+            if (context->content->thetaDecodeSatus == THETATX_INIT) {
+                decoded = rlpDecodeLength(rlpP, &tmpCurrentFieldLength, &offset, &tmpCurrentFieldIsList);
+                rlpP += offset + tmpCurrentFieldLength; // skip chainID
+                rlpP++; // skip tx type
+                length -= offset + tmpCurrentFieldLength + 1;
+                rlpP += 4;
+                decoded = rlpDecodeLength(rlpP, &tmpCurrentFieldLength, &offset, &tmpCurrentFieldIsList);
+                rlpP += offset;
+                memmove(context->content->startgas.value, rlpP, tmpCurrentFieldLength); // decode gas
+                context->content->startgas.length = tmpCurrentFieldLength;
+                context->content->gasprice.value[0] = 1;    // set gas price to 1
+                context->content->gasprice.length = 1;
+                rlpP += tmpCurrentFieldLength;
+                length -= offset + tmpCurrentFieldLength + 4;
+                decoded = rlpDecodeLength(rlpP, &tmpCurrentFieldLength, &offset, &tmpCurrentFieldIsList);
+                rlpP += offset + tmpCurrentFieldLength; // skip
+                length -= offset + tmpCurrentFieldLength;
+                decoded = rlpDecodeLength(rlpP, &tmpCurrentFieldLength, &offset, &tmpCurrentFieldIsList);
+                if (tmpCurrentFieldLength + 1 > length) {   // Not enought bytes to decode address/value
+                    context->content->thetaDecodeSatus = THETATX_PROCESSING;
+                    context->content->thetaBufferToRead = tmpCurrentFieldLength - length + 1;
+                    memmove(context->content->thetaBuffer, rlpP, length);
+                    context->content->thetaBufferLength = length;
+                } else {
+                    decodeThetaTxAddressAndValue(context, rlpP, tmpCurrentFieldLength);
+                }
+            } else if (context->content->thetaDecodeSatus == THETATX_PROCESSING) { // decode with Theta buffer
+                if (length < context->content->thetaBufferToRead) {
+                    context->content->thetaDecodeSatus = THETATX_FAULT;
+                    PRINTF("Decode ThetaTx failed, invalid buffer");
+                    return;
+                }
+                memmove(context->content->thetaBuffer + context->content->thetaBufferLength, rlpP, context->content->thetaBufferToRead);
+                decodeThetaTxAddressAndValue(context, context->content->thetaBuffer, context->content->thetaBufferLength + context->content->thetaBufferToRead);
+            }
+        }
+        CATCH_OTHER(e) {
+            context->content->thetaDecodeSatus = THETATX_FAULT;
+            PRINTF("Decode ThetaTx failed ");
+        }
+        FINALLY {
+        }
+    }
+    END_TRY;
+}
+
 static void processContent(txContext_t *context) {
     // Keep the full length for sanity checks, move to the next field
     if (!context->currentFieldIsList) {
@@ -88,6 +165,9 @@ static void processContent(txContext_t *context) {
     context->dataLength = context->currentFieldLength;
     context->currentField++;
     context->processingField = false;
+    if (chainConfig->kind == CHAIN_KIND_THETA) { // reset Theta decoding status
+        context->content->thetaDecodeSatus = THETATX_INIT;
+    }
 }
 
 static void processAccessList(txContext_t *context) {
@@ -265,6 +345,12 @@ static void processData(txContext_t *context) {
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
             MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
+        // if (chainConfig->kind == CHAIN_KIND_THETA) {
+        if (allzeroes(context->content->destination, sizeof(context->content->destination)) && allzeroes(&context->content->value, sizeof(context->content->value))
+            && allzeroes(&context->content->gasprice, sizeof(context->content->gasprice)) || chainConfig->kind == CHAIN_KIND_THETA) { //Theta Tx
+            chainConfig->kind = CHAIN_KIND_THETA;
+            decodeThetaTx(context, copySize);
+        }
         copyTxData(context, NULL, copySize);
     }
     if (context->currentFieldPos == context->currentFieldLength) {

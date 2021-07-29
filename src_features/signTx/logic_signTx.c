@@ -197,7 +197,7 @@ void reportFinalizeError(bool direct) {
 
 void computeFees(char *displayBuffer, uint32_t displayBufferSize) {
     uint256_t gasPrice, startGas, uint256;
-    char *feeTicker = get_network_ticker();
+    char *feeTicker = (chainConfig->kind == CHAIN_KIND_THETA) ? "TFUEL" : get_network_ticker();
     uint8_t tickerOffset = 0;
     uint32_t i;
 
@@ -264,6 +264,9 @@ void finalizeParsing(bool direct) {
     char displayBuffer[50];
     uint8_t decimals = WEI_TO_ETHER;
     char *ticker = get_network_ticker();
+    if (chainConfig->kind == CHAIN_KIND_THETA) { // choose from THETA/TFUEL
+        ticker = tmpContent.txContent.thetaCoinName ? "THETA" : "TFUEL";
+    }
     ethPluginFinalize_t pluginFinalize;
     bool genericUI = true;
 

@@ -360,13 +360,7 @@ static bool processEIP1559Tx(txContext_t *context) {
             processAccessList(context);
             break;
         }
-        case EIP1559_RLP_YPARITY: {
-            processV(context);
-            break;
-        }
         case EIP1559_RLP_MAX_PRIORITY_FEE_PER_GAS:
-        case EIP1559_RLP_SENDER_R:
-        case EIP1559_RLP_SENDER_S:
             processAndDiscard(context);
             break;
         default:
@@ -406,18 +400,11 @@ static bool processEIP2930Tx(txContext_t *context) {
         case EIP2930_RLP_VALUE:
             processValue(context);
             break;
-        case EIP2930_RLP_YPARITY:
-            processV(context);
-            break;
         case EIP2930_RLP_DATA:
             processData(context);
             break;
         case EIP2930_RLP_ACCESS_LIST:
             processAccessList(context);
-            break;
-        case EIP2930_RLP_SENDER_R:
-        case EIP2930_RLP_SENDER_S:
-            processAndDiscard(context);
             break;
         default:
             PRINTF("Invalid RLP decoder context\n");

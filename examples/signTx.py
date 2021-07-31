@@ -37,6 +37,7 @@ except:
     # Python3 hack import for pyethereum
     from ethereum.utils import decode_hex, encode_hex, str_to_bytes
 
+
 def parse_bip32_path(path):
     if len(path) == 0:
         return b""
@@ -52,13 +53,18 @@ def parse_bip32_path(path):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--nonce', help="Nonce associated to the account", type=int, required=True)
-parser.add_argument('--gasprice', help="Network gas price", type=int, required=True)
+parser.add_argument(
+    '--nonce', help="Nonce associated to the account", type=int, required=True)
+parser.add_argument('--gasprice', help="Network gas price",
+                    type=int, required=True)
 parser.add_argument('--startgas', help="startgas", default='21000', type=int)
 parser.add_argument('--amount', help="Amount to send in ether", required=True)
-parser.add_argument('--to', help="Destination address", type=str, required=True)
+parser.add_argument('--to', help="Destination address",
+                    type=str, required=True)
 parser.add_argument('--path', help="BIP 32 path to sign with")
 parser.add_argument('--data', help="Data to add, hex encoded")
+parser.add_argument(
+    '--chainid', help="Chain ID (1 for Ethereum mainnet, 137 for Polygon, etc)", type=int)
 parser.add_argument('--descriptor', help="Optional descriptor")
 args = parser.parse_args()
 
@@ -83,12 +89,15 @@ tx = UnsignedTransaction(
 )
 
 encodedTx = encode(tx, UnsignedTransaction)
+encodedTx = bytearray.fromhex(
+    "02ef0306843b9aca008504a817c80082520894b2bb2b958afa2e96dab3f3ce7162b87daea39017872386f26fc1000080c0")
 
 dongle = getDongle(True)
 
 if args.descriptor != None:
     descriptor = binascii.unhexlify(args.descriptor)
-    apdu = struct.pack(">BBBBB", 0xE0, 0x0A, 0x00, 0x00, len(descriptor)) + descriptor
+    apdu = struct.pack(">BBBBB", 0xE0, 0x0A, 0x00, 0x00,
+                       len(descriptor)) + descriptor
     dongle.exchange(bytes(apdu))
 
 donglePath = parse_bip32_path(args.path)
@@ -100,16 +109,16 @@ apdu += donglePath + encodedTx
 result = dongle.exchange(bytes(apdu))
 
 # Needs to recover (main.c:1121)
-if (CHAIN_ID*2 + 35) + 1 > 255:
-    ecc_parity = result[0] - ((CHAIN_ID*2 + 35) % 256)
-    v = (CHAIN_ID*2 + 35) + ecc_parity
-else:
-    v = result[0]
+# if (CHAIN_ID*2 + 35) + 1 > 255:
+#     ecc_parity = result[0] - ((CHAIN_ID*2 + 35) % 256)
+#     v = (CHAIN_ID*2 + 35) + ecc_parity
+# else:
+#     v = result[0]
 
-r = int(binascii.hexlify(result[1:1 + 32]), 16)
-s = int(binascii.hexlify(result[1 + 32: 1 + 32 + 32]), 16)
+# r = int(binascii.hexlify(result[1:1 + 32]), 16)
+# s = int(binascii.hexlify(result[1 + 32: 1 + 32 + 32]), 16)
 
-tx = Transaction(tx.nonce, tx.gasprice, tx.startgas,
-                 tx.to, tx.value, tx.data, v, r, s)
+# tx = Transaction(tx.nonce, tx.gasprice, tx.startgas,
+#                  tx.to, tx.value, tx.data, v, r, s)
 
 print("Signed transaction", encode_hex(encode(tx)))

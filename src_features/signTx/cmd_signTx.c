@@ -41,11 +41,14 @@ void handleSign(uint8_t p1,
         tmpContent.txContent.dataPresent = false;
         dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_UNAVAILABLE;
 
+        initTx(&txContext, &global_sha3, &tmpContent.txContent, customProcessor, NULL);
+
         // EIP 2718: TransactionType might be present before the TransactionPayload.
         uint8_t txType = *workBuffer;
         if (txType >= MIN_TX_TYPE && txType <= MAX_TX_TYPE) {
             // Enumerate through all supported txTypes here...
             if (txType == EIP2930 || txType == EIP1559) {
+                cx_hash((cx_hash_t *) &global_sha3, 0, workBuffer, 1, NULL, 0);
                 txContext.txType = txType;
                 workBuffer++;
                 dataLength--;
@@ -56,7 +59,6 @@ void handleSign(uint8_t p1,
         } else {
             txContext.txType = LEGACY;
         }
-        initTx(&txContext, &global_sha3, &tmpContent.txContent, customProcessor, NULL);
     } else if (p1 != P1_MORE) {
         THROW(0x6B00);
     }

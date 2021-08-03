@@ -92,27 +92,11 @@ void ui_idle(void) {
     ux_flow_init(0, ux_idle_flow, NULL);
 }
 
-unsigned int io_seproxyhal_touch_exit(const bagl_element_t *e) {
+unsigned int io_seproxyhal_touch_exit(__attribute__((unused)) const bagl_element_t *e) {
     // Go back to the dashboard
     os_sched_exit(0);
     return 0;  // do not redraw the widget
 }
-
-#if defined(TARGET_NANOS)
-unsigned int ui_address_nanos_button(unsigned int button_mask, unsigned int button_mask_counter) {
-    switch (button_mask) {
-        case BUTTON_EVT_RELEASED | BUTTON_LEFT:  // CANCEL
-            io_seproxyhal_touch_address_cancel(NULL);
-            break;
-
-        case BUTTON_EVT_RELEASED | BUTTON_RIGHT: {  // OK
-            io_seproxyhal_touch_address_ok(NULL);
-            break;
-        }
-    }
-    return 0;
-}
-#endif  // #if defined(TARGET_NANOS)
 
 void io_seproxyhal_send_status(uint32_t sw) {
     G_io_apdu_buffer[0] = ((sw >> 8) & 0xff);
@@ -269,6 +253,9 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
         case CHAIN_KIND_THETA:
             numTokens = NUM_TOKENS_THETA;
             break;
+        case CHAIN_KIND_BSC:
+            numTokens = NUM_TOKENS_BSC;
+            break;
     }
     for (i = 0; i < numTokens; i++) {
         switch (chainConfig->kind) {
@@ -367,6 +354,9 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
                 break case CHAIN_KIND_THETA : currentToken =
                                                   (tokenDefinition_t *) PIC(&TOKENS_THETA[i]);
                 break;
+            case CHAIN_KIND_BSC:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_BSC[i]);
+                break;
         }
         if (memcmp(currentToken->address, tmpContent.txContent.destination, ADDRESS_LENGTH) == 0) {
             return currentToken;
@@ -385,12 +375,12 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
     return NULL;
 }
 
+#ifndef HAVE_WALLET_ID_SDK
+
 unsigned int const U_os_perso_seed_cookie[] = {
     0xda7aba5e,
     0xc1a551c5,
 };
-
-#ifndef HAVE_WALLET_ID_SDK
 
 void handleGetWalletId(volatile unsigned int *tx) {
     unsigned char t[64];
@@ -409,7 +399,7 @@ void handleGetWalletId(volatile unsigned int *tx) {
     THROW(0x9000);
 }
 
-#endif
+#endif  // HAVE_WALLET_ID_SDK
 
 void handleApdu(unsigned int *flags, unsigned int *tx) {
     unsigned short sw = 0;
@@ -424,7 +414,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                 return;
             }
 
-#endif
+#endif  // HAVE_WALLET_ID_SDK
 
 #ifdef HAVE_STARKWARE
 
@@ -681,7 +671,7 @@ void io_seproxyhal_display(const bagl_element_t *element) {
     io_seproxyhal_display_default((bagl_element_t *) element);
 }
 
-unsigned char io_event(unsigned char channel) {
+unsigned char io_event(__attribute__((unused)) unsigned char channel) {
     // nothing done with the event, throw an error on the transport layer if
     // needed
 

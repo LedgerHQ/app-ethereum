@@ -57,20 +57,24 @@ int local_strchr(char *string, char ch) {
 // Almost like U4BE except that it takes `size` as a parameter.
 // The `strict` parameter defines whether we should throw in case of a length > 4.
 uint32_t u32_from_BE(uint8_t *in, uint8_t size, bool strict) {
-    uint32_t res = 0;
-    if (size == 1) {
-        res = in[0];
-    } else if (size == 2) {
-        res = (in[0] << 8) | in[1];
-    } else if (size == 3) {
-        res = (in[0] << 16) | (in[1] << 8) | in[2];
-    } else if (size == 4) {
-        res = (in[0] << 24) | (in[1] << 16) | (in[2] << 8) | in[3];
-    } else if (strict && size != 0) {
-        PRINTF("Unexpected format\n");
-        THROW(EXCEPTION);
+    switch (size) {
+        case 0:
+            return 0;
+        case 1:
+            return in[0];
+        case 2:
+            return (in[0] << 8) | in[1];
+        case 3:
+            return (in[0] << 16) | (in[1] << 8) | in[2];
+        case 4:
+            return (in[0] << 24) | (in[1] << 16) | (in[2] << 8) | in[3];
+        default:
+            if (strict) {
+                PRINTF("Unexpected format\n");
+                THROW(EXCEPTION);
+            }
+            return (in[0] << 24) | (in[1] << 16) | (in[2] << 8) | in[3];
     }
-    return res;
 }
 
 bool uint256_to_decimal(const uint8_t *value, size_t value_len, char *out, size_t out_len) {
@@ -89,7 +93,7 @@ bool uint256_to_decimal(const uint8_t *value, size_t value_len, char *out, size_
             // Not enough space to hold "0" and \0.
             return false;
         }
-        strncpy(out, "0", out_len);
+        strlcpy(out, "0", out_len);
         return true;
     }
 

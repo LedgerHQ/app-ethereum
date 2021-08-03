@@ -77,6 +77,10 @@ if args.data == None:
 else:
     args.data = decode_hex(args.data[2:])
 
+# default to Ethereum mainnet
+if args.chainid == None:
+    args.chainid = 1
+
 amount = Decimal(args.amount) * 10**18
 
 tx = UnsignedTransaction(
@@ -86,11 +90,17 @@ tx = UnsignedTransaction(
     to=decode_hex(args.to[2:]),
     value=int(amount),
     data=args.data,
+    chainid=args.chainid,
+    dummy1=0,
+    dummy2=0
 )
 
 encodedTx = encode(tx, UnsignedTransaction)
-encodedTx = bytearray.fromhex(
-    "02ef0306843b9aca008504a817c80082520894b2bb2b958afa2e96dab3f3ce7162b87daea39017872386f26fc1000080c0")
+# encodedTx = bytearray.fromhex(
+# "02ef0306843b9aca008504a817c80082520894b2bb2b958afa2e96dab3f3ce7162b87daea39017872386f26fc1000080c0")
+
+# To test an EIP-2930 transaction, uncomment this line
+#encodedTx = bytearray.fromhex("01f8e60380018402625a0094cccccccccccccccccccccccccccccccccccccccc830186a0a4693c61390000000000000000000000000000000000000000000000000000000000000002f85bf859940000000000000000000000000000000000000102f842a00000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000060a780a09b8adcd2a4abd34b42d56fcd90b949f74ca9696dfe2b427bc39aa280bbf1924ca029af4a471bb2953b4e7933ea95880648552a9345424a1ac760189655ceb1832a")
 
 dongle = getDongle(True)
 

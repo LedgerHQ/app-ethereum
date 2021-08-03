@@ -3,79 +3,8 @@
 #include "chainConfig.h"
 #include "utils.h"
 #include "feature_signTx.h"
+#include "network.h"
 #include "eth_plugin_handler.h"
-
-void plugin_ui_get_id() {
-    ethQueryContractID_t pluginQueryContractID;
-    eth_plugin_prepare_query_contract_ID(&pluginQueryContractID,
-                                         strings.common.fullAddress,
-                                         sizeof(strings.common.fullAddress),
-                                         strings.common.fullAmount,
-                                         sizeof(strings.common.fullAmount));
-    // Query the original contract for ID if it's not an internal alias
-    if (!eth_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_ID, (void *) &pluginQueryContractID)) {
-        PRINTF("Plugin query contract ID call failed\n");
-        io_seproxyhal_touch_tx_cancel(NULL);
-    }
-}
-
-void plugin_ui_get_item() {
-    ethQueryContractUI_t pluginQueryContractUI;
-    eth_plugin_prepare_query_contract_UI(&pluginQueryContractUI,
-                                         dataContext.tokenContext.pluginUiCurrentItem,
-                                         strings.common.fullAddress,
-                                         sizeof(strings.common.fullAddress),
-                                         strings.common.fullAmount,
-                                         sizeof(strings.common.fullAmount));
-    if (!eth_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, (void *) &pluginQueryContractUI)) {
-        PRINTF("Plugin query contract UI call failed\n");
-        io_seproxyhal_touch_tx_cancel(NULL);
-    }
-}
-
-void display_next_plugin_item(bool entering) {
-    if (entering) {
-        if (dataContext.tokenContext.pluginUiState == PLUGIN_UI_OUTSIDE) {
-            dataContext.tokenContext.pluginUiState = PLUGIN_UI_INSIDE;
-            dataContext.tokenContext.pluginUiCurrentItem = 0;
-            plugin_ui_get_item();
-            ux_flow_next();
-        } else {
-            if (dataContext.tokenContext.pluginUiCurrentItem > 0) {
-                dataContext.tokenContext.pluginUiCurrentItem--;
-                plugin_ui_get_item();
-                ux_flow_next();
-            } else {
-                dataContext.tokenContext.pluginUiState = PLUGIN_UI_OUTSIDE;
-                dataContext.tokenContext.pluginUiCurrentItem = 0;
-                ux_flow_prev();
-            }
-        }
-    } else {
-        if (dataContext.tokenContext.pluginUiState == PLUGIN_UI_OUTSIDE) {
-            dataContext.tokenContext.pluginUiState = PLUGIN_UI_INSIDE;
-            plugin_ui_get_item();
-            ux_flow_prev();
-        } else {
-            if (dataContext.tokenContext.pluginUiCurrentItem <
-                dataContext.tokenContext.pluginUiMaxItems - 1) {
-                dataContext.tokenContext.pluginUiCurrentItem++;
-                plugin_ui_get_item();
-                ux_flow_prev();
-                // Reset multi page layout to the first page
-                G_ux.layout_paging.current = 0;
-#ifdef TARGET_NANOS
-                ux_layout_paging_redisplay_by_addr(G_ux.stack_count - 1);
-#else
-                ux_layout_bnnn_paging_redisplay(0);
-#endif
-            } else {
-                dataContext.tokenContext.pluginUiState = PLUGIN_UI_OUTSIDE;
-                ux_flow_next();
-            }
-        }
-    }
-}
 
 // clang-format off
 UX_STEP_NOCB(
@@ -224,11 +153,11 @@ UX_STEP_NOCB(
       .text = strings.common.maxFee,
     });
 UX_STEP_NOCB(
-    ux_approval_chainid_step,
+    ux_approval_network_step,
     bnnn_paging,
     {
-      .title = "Chain ID",
-      .text = strings.common.chainID,
+      .title = "Network",
+      .text = strings.common.network_name,
     });
 
 UX_STEP_CB(
@@ -277,15 +206,13 @@ void ux_approve_tx(bool fromPlugin) {
     }
 
     if (fromPlugin) {
-        // If we're coming from a plugin then we need to prepare the display.
-        prepareChainIdDisplay();
-        prepareFeeDisplay();
-
+        // Add the special dynamic display logic
         ux_approval_tx_flow[step++] = &ux_plugin_approval_id_step;
         ux_approval_tx_flow[step++] = &ux_plugin_approval_before_step;
         ux_approval_tx_flow[step++] = &ux_plugin_approval_display_step;
         ux_approval_tx_flow[step++] = &ux_plugin_approval_after_step;
     } else {
+        // We're in a regular transaction, just show the amount and the address
         ux_approval_tx_flow[step++] = &ux_approval_amount_step;
         ux_approval_tx_flow[step++] = &ux_approval_address_step;
     }
@@ -294,19 +221,12 @@ void ux_approve_tx(bool fromPlugin) {
         ux_approval_tx_flow[step++] = &ux_approval_nonce_step;
     }
 
-    uint32_t id;
-    if (txContext.txType == LEGACY) {
-        id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
-    } else if (txContext.txType == EIP2930 || txContext.txType == EIP1559) {
-        id =
-            u32_from_BE(txContext.content->chainID.value, txContext.content->chainID.length, false);
-    } else {
-        PRINTF("TxType `%u` not supported while preparing to approve tx\n", txContext.txType);
-        THROW(0x6501);
+    uint32_t chain_id = get_chain_id();
+    if (chainConfig->chainId == ETHEREUM_MAINNET_CHAINID && chain_id != chainConfig->chainId) {
+        // TODO: do we need the `&&` above?
+        ux_approval_tx_flow[step++] = &ux_approval_network_step;
     }
-    if (id != ETHEREUM_MAINNET_CHAINID) {
-        ux_approval_tx_flow[step++] = &ux_approval_chainid_step;
-    }
+
     ux_approval_tx_flow[step++] = &ux_approval_fees_step;
     ux_approval_tx_flow[step++] = &ux_approval_accept_step;
     ux_approval_tx_flow[step++] = &ux_approval_reject_step;

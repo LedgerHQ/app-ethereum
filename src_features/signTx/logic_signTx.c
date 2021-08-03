@@ -2,10 +2,12 @@
 #include "utils.h"
 #include "ui_callbacks.h"
 #include "ui_flow.h"
+#include "feature_signTx.h"
 #ifdef HAVE_STARKWARE
 #include "stark_utils.h"
 #endif
 #include "eth_plugin_handler.h"
+#include "network.h"
 
 #define ERR_SILENT_MODE_CHECK_FAILED 0x6001
 
@@ -170,7 +172,7 @@ void to_uppercase(char *str, unsigned char size) {
     }
 }
 
-void compareOrCopy(char *preapproved_string, char *parsed_string, bool silent_mode) {
+void compareOrCopy(char *preapproved_string, size_t size, char *parsed_string, bool silent_mode) {
     if (silent_mode) {
         /* ETH address are not fundamentally case sensitive but might
         have some for checksum purpose, so let's get rid of these diffs */
@@ -180,7 +182,7 @@ void compareOrCopy(char *preapproved_string, char *parsed_string, bool silent_mo
             THROW(ERR_SILENT_MODE_CHECK_FAILED);
         }
     } else {
-        strcpy(preapproved_string, parsed_string);
+        strlcpy(preapproved_string, parsed_string, size);
     }
 }
 
@@ -208,7 +210,7 @@ static void computeFees(txInt256_t *BEgasPrice, txInt256_t *BEgasLimit, uint256_
 }
 
 static void feesToString(uint256_t *rawFee, char *displayBuffer, uint32_t displayBufferSize) {
-    uint8_t *feeTicker = (uint8_t *) PIC(chainConfig->coinName);
+    char *feeTicker = get_network_ticker();
     uint8_t tickerOffset = 0;
     uint32_t i;
 
@@ -271,38 +273,58 @@ uint32_t get_chainID() {
     return chain_id;
 }
 
-void prepareChainIdDisplay() {
-    uint32_t chainID = get_chainID();
-    uint8_t res = snprintf(strings.common.chainID, sizeof(strings.common.chainID), "%d", chainID);
-    if (res >= sizeof(strings.common.chainID)) {
-        // If the return value is higher or equal to the size passed in as parameter, then
-        // the output was truncated. Return the appropriate error code.
-        THROW(0x6502);
+void prepareNetworkDisplay() {
+    char *name = get_network_name();
+    if (name == NULL) {
+        // No network name found so simply copy the chain ID as the network name.
+        uint32_t chain_id = get_chain_id();
+        uint8_t res = snprintf(strings.common.network_name,
+                               sizeof(strings.common.network_name),
+                               "%d",
+                               chain_id);
+        if (res >= sizeof(strings.common.network_name)) {
+            // If the return value is higher or equal to the size passed in as parameter, then
+            // the output was truncated. Return the appropriate error code.
+            THROW(0x6502);
+        }
+    } else {
+        // Network name found, simply copy it.
+        strlcpy(strings.common.network_name, name, sizeof(strings.common.network_name));
     }
+}
+
+static void get_public_key(uint8_t *out, uint8_t outLength) {
+    uint8_t privateKeyData[INT256_LENGTH] = {0};
+    cx_ecfp_private_key_t privateKey = {0};
+    cx_ecfp_public_key_t publicKey = {0};
+
+    if (outLength < ADDRESS_LENGTH) {
+        return;
+    }
+
+    os_perso_derive_node_bip32(CX_CURVE_256K1,
+                               tmpCtx.transactionContext.bip32Path,
+                               tmpCtx.transactionContext.pathLength,
+                               privateKeyData,
+                               NULL);
+    cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
+    cx_ecfp_generate_pair(CX_CURVE_256K1, &publicKey, &privateKey, 1);
+    explicit_bzero(&privateKey, sizeof(privateKey));
+    explicit_bzero(privateKeyData, sizeof(privateKeyData));
+    getEthAddressFromKey(&publicKey, out, &global_sha3);
 }
 
 void finalizeParsing(bool direct) {
     char displayBuffer[50];
     uint8_t decimals = WEI_TO_ETHER;
-    uint8_t *ticker = (uint8_t *) PIC(chainConfig->coinName);
+    char *ticker = get_network_ticker();
     ethPluginFinalize_t pluginFinalize;
-    tokenDefinition_t *token1 = NULL, *token2 = NULL;
     bool genericUI = true;
 
     // Verify the chain
-    if (chainConfig->chainId != 0) {
-        uint32_t id = 0;
-
-        if (txContext.txType == LEGACY) {
-            id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
-        } else if (txContext.txType == EIP2930 || txContext.txType == EIP1559) {
-            id = u32_from_BE(txContext.content->chainID.value,
-                             txContext.content->chainID.length,
-                             false);
-        } else {
-            PRINTF("TxType `%u` not supported while checking for chainID\n", txContext.txType);
-            return;
-        }
+    if (chainConfig->chainId != ETHEREUM_MAINNET_CHAINID) {
+        // TODO: Could we remove above check?
+        uint32_t id = get_chain_id();
 
         if (chainConfig->chainId != id) {
             PRINTF("Invalid chainID %u expected %u\n", id, chainConfig->chainId);
@@ -325,6 +347,11 @@ void finalizeParsing(bool direct) {
     if (dataContext.tokenContext.pluginStatus >= ETH_PLUGIN_RESULT_SUCCESSFUL) {
         genericUI = false;
         eth_plugin_prepare_finalize(&pluginFinalize);
+
+        uint8_t msg_sender[ADDRESS_LENGTH] = {0};
+        get_public_key(msg_sender, sizeof(msg_sender));
+        pluginFinalize.address = msg_sender;
+
         if (!eth_plugin_call(ETH_PLUGIN_FINALIZE, (void *) &pluginFinalize)) {
             PRINTF("Plugin finalize call failed\n");
             reportFinalizeError(direct);
@@ -334,22 +361,22 @@ void finalizeParsing(bool direct) {
         }
         // Lookup tokens if requested
         ethPluginProvideToken_t pluginProvideToken;
+        eth_plugin_prepare_provide_token(&pluginProvideToken);
         if ((pluginFinalize.tokenLookup1 != NULL) || (pluginFinalize.tokenLookup2 != NULL)) {
             if (pluginFinalize.tokenLookup1 != NULL) {
                 PRINTF("Lookup1: %.*H\n", ADDRESS_LENGTH, pluginFinalize.tokenLookup1);
-                token1 = getKnownToken(pluginFinalize.tokenLookup1);
-                if (token1 != NULL) {
-                    PRINTF("Token1 ticker: %s\n", token1->ticker);
+                pluginProvideToken.token1 = getKnownToken(pluginFinalize.tokenLookup1);
+                if (pluginProvideToken.token1 != NULL) {
+                    PRINTF("Token1 ticker: %s\n", pluginProvideToken.token1->ticker);
                 }
             }
             if (pluginFinalize.tokenLookup2 != NULL) {
                 PRINTF("Lookup2: %.*H\n", ADDRESS_LENGTH, pluginFinalize.tokenLookup2);
-                token2 = getKnownToken(pluginFinalize.tokenLookup2);
-                if (token2 != NULL) {
-                    PRINTF("Token2 ticker: %s\n", token2->ticker);
+                pluginProvideToken.token2 = getKnownToken(pluginFinalize.tokenLookup2);
+                if (pluginProvideToken.token2 != NULL) {
+                    PRINTF("Token2 ticker: %s\n", pluginProvideToken.token2->ticker);
                 }
             }
-            eth_plugin_prepare_provide_token(&pluginProvideToken, token1, token2);
             if (eth_plugin_call(ETH_PLUGIN_PROVIDE_TOKEN, (void *) &pluginProvideToken) <=
                 ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
                 PRINTF("Plugin provide token call failed\n");
@@ -384,9 +411,9 @@ void finalizeParsing(bool direct) {
                     tmpContent.txContent.value.length = 32;
                     memmove(tmpContent.txContent.destination, pluginFinalize.address, 20);
                     tmpContent.txContent.destinationLength = 20;
-                    if (token1 != NULL) {
-                        decimals = token1->decimals;
-                        ticker = token1->ticker;
+                    if (pluginProvideToken.token1 != NULL) {
+                        decimals = pluginProvideToken.token1->decimals;
+                        ticker = pluginProvideToken.token1->ticker;
                     }
                     break;
                 default:
@@ -407,48 +434,50 @@ void finalizeParsing(bool direct) {
             return;
         }
     }
+
     // Prepare destination address to display
     if (genericUI) {
         if (tmpContent.txContent.destinationLength != 0) {
             displayBuffer[0] = '0';
             displayBuffer[1] = 'x';
             getEthAddressStringFromBinary(tmpContent.txContent.destination,
-                                          (uint8_t *) displayBuffer + 2,
+                                          displayBuffer + 2,
                                           &global_sha3,
                                           chainConfig);
-            compareOrCopy(strings.common.fullAddress, displayBuffer, called_from_swap);
+            compareOrCopy(strings.common.fullAddress,
+                          sizeof(strings.common.fullAddress),
+                          displayBuffer,
+                          called_from_swap);
         } else {
             strcpy(strings.common.fullAddress, "Contract");
         }
     }
+
     // Prepare amount to display
     if (genericUI) {
         amountToString(tmpContent.txContent.value.value,
                        tmpContent.txContent.value.length,
                        decimals,
-                       (char *) ticker,
+                       ticker,
                        displayBuffer,
                        sizeof(displayBuffer));
-        compareOrCopy(strings.common.fullAmount, displayBuffer, called_from_swap);
-    }
-    // Prepare nonce to display
-    if (genericUI) {
-        uint256_t nonce;
-        convertUint256BE(tmpContent.txContent.nonce.value,
-                         tmpContent.txContent.nonce.length,
-                         &nonce);
-        tostring256(&nonce, 10, displayBuffer, sizeof(displayBuffer));
-        strncpy(strings.common.nonce, displayBuffer, sizeof(strings.common.nonce));
-    }
-    // Compute maximum fee
-    if (genericUI) {
-        prepareFeeDisplay();
+        compareOrCopy(strings.common.fullAmount,
+                      sizeof(strings.common.fullAddress),
+                      displayBuffer,
+                      called_from_swap);
     }
 
+    // Prepare nonce to display
+    uint256_t nonce;
+    convertUint256BE(tmpContent.txContent.nonce.value, tmpContent.txContent.nonce.length, &nonce);
+    tostring256(&nonce, 10, displayBuffer, sizeof(displayBuffer));
+    strlcpy(strings.common.nonce, displayBuffer, sizeof(strings.common.nonce));
+
+    // Compute maximum fee
+    prepareFeeDisplay();
+
     // Prepare chainID field
-    if (genericUI) {
-        prepareChainIdDisplay();
-    }
+    prepareNetworkDisplay();
 
     bool no_consent;
 

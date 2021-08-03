@@ -60,7 +60,7 @@ void stark_get_amount_string(uint8_t *contractAddress,
                              char *target100) {
     uint256_t amountPre, quantum, amount;
     uint8_t decimals;
-    char *ticker = (char *) PIC(chainConfig->coinName);
+    char *ticker = chainConfig->coinName;
 
     PRINTF("stark_get_amount_string %.*H\n", 20, contractAddress);
 
@@ -81,7 +81,7 @@ void stark_get_amount_string(uint8_t *contractAddress,
     mul256(&amountPre, &quantum, &amount);
     tostring256(&amount, 10, tmp100, 100);
     PRINTF("stark_get_amount_string - mul256 %s\n", tmp100);
-    strcpy(target100, ticker);
+    strlcpy(target100, ticker, 100);
     adjustDecimals(tmp100, strlen(tmp100), target100 + strlen(ticker), 100, decimals);
     PRINTF("get_amount_string %s\n", target100);
 }

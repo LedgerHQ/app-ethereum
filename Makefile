@@ -30,7 +30,7 @@ APP_LOAD_PARAMS += --path "1517992542'/1101353413'"
 
 APPVERSION_M=1
 APPVERSION_N=8
-APPVERSION_P=5
+APPVERSION_P=8
 APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 APP_LOAD_FLAGS= --appFlags 0x240 --dep Ethereum:$(APPVERSION)
 
@@ -41,7 +41,7 @@ endif
 ifeq ($(CHAIN),ethereum)
 # Lock the application on its standard path for 1.5. Please complain if non compliant
 APP_LOAD_PARAMS += --path "44'/60'"
-DEFINES += CHAINID_UPCASE=\"ETHEREUM\" CHAINID_COINNAME=\"ETH\" CHAIN_KIND=CHAIN_KIND_ETHEREUM CHAIN_ID=0
+DEFINES += CHAINID_UPCASE=\"ETHEREUM\" CHAINID_COINNAME=\"ETH\" CHAIN_KIND=CHAIN_KIND_ETHEREUM CHAIN_ID=1
 # Starkware integration
 APP_LOAD_PARAMS += --path "2645'/579218131'"
 DEFINES += HAVE_STARKWARE
@@ -197,9 +197,13 @@ APP_LOAD_PARAMS += --path "44'/554'" --path "44'/60'"
 DEFINES += CHAINID_UPCASE=\"FLARE\" CHAINID_COINNAME=\"FLR\" CHAIN_KIND=CHAIN_KIND_FLARE CHAIN_ID=16
 APPNAME = "Flare Coston"
 else ifeq ($(CHAIN),theta)
-APP_LOAD_PARAMS += --path "44'/500'" --path "44'/60'"
+APP_LOAD_PARAMS += --path "44'/500'"
 DEFINES += CHAINID_UPCASE=\"THETA\" CHAINID_COINNAME=\"THETA\" CHAIN_KIND=CHAIN_KIND_THETA CHAIN_ID=500
 APPNAME = "Theta"
+else ifeq ($(CHAIN),bsc)
+APP_LOAD_PARAMS += --path "44'/60'"
+DEFINES += CHAINID_UPCASE=\"BSC\" CHAINID_COINNAME=\"BNB\" CHAIN_KIND=CHAIN_KIND_BSC CHAIN_ID=56
+APPNAME = "Binance Smart Chain"
 else
 ifeq ($(filter clean,$(MAKECMDGOALS)),)
 $(error Unsupported CHAIN - use ethereum, ropsten, ethereum_classic, expanse, poa, artis_sigma1, artis_tau1, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, pirl, akroma, atheios, callisto, ethersocial, ellaism, ether1, ethergem, gochain, mix, reosc, hpb, tomochain, tobalaba, dexon, volta, ewc, webchain, thundercore, flare, flare_coston, theta)
@@ -266,6 +270,12 @@ ifneq ($(ALLOW_DATA),0)
 DEFINES += HAVE_ALLOW_DATA
 endif
 
+# Bypass the signature verification for setExternalPlugin and provideERC20TokenInfo calls
+BYPASS_SIGNATURES:=0
+ifneq ($(BYPASS_SIGNATURES),0)
+DEFINES += HAVE_BYPASS_SIGNATURES
+endif
+
 
 # Enabling debug PRINTF
 DEBUG:=0
@@ -306,7 +316,7 @@ endif
 CC       := $(CLANGPATH)clang
 
 #CFLAGS   += -O0
-CFLAGS   += -O3 -Os -Wno-format-invalid-specifier -Wno-format-extra-args -Wno-main
+CFLAGS   += -O3 -Os -Wno-format-invalid-specifier -Wno-format-extra-args
 
 AS     := $(GCCPATH)arm-none-eabi-gcc
 
@@ -334,6 +344,7 @@ endif
 
 # rebuild
 $(shell python3 ethereum-plugin-sdk/build_sdk.py)
+$(shell find ./ethereum-plugin-sdk -iname '*.h' -o -iname '*.c' | xargs clang-format-10 -i)
 
 # check if a difference is noticed (fail if it happens in CI build)
 ifneq ($(shell git status | grep 'ethereum-plugin-sdk'),)
@@ -366,4 +377,4 @@ include $(BOLOS_SDK)/Makefile.rules
 dep/%.d: %.c Makefile
 
 listvariants:
-	@echo VARIANTS CHAIN ethereum ropsten ethereum_classic expanse poa rsk rsk_testnet ubiq wanchain pirl akroma atheios callisto ethersocial ether1 gochain musicoin ethergem mix ellaism reosc hpb tomochain dexon volta ewc thundercore flare flare_coston theta
+	@echo VARIANTS CHAIN ethereum ropsten ethereum_classic expanse poa rsk rsk_testnet ubiq wanchain pirl akroma atheios callisto ethersocial ether1 gochain musicoin ethergem mix ellaism reosc hpb tomochain dexon volta ewc thundercore flare flare_coston theta bsc

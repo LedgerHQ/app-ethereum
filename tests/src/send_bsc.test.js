@@ -83,8 +83,8 @@ test("Transfer bsc nanos", async () => {
     const expected_address_3 = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
     expect(address_3).toEqual(expected_address_3);
 
-    // Chain ID
-    filename = "chainid.png";
+    // Network name
+    filename = "network.png";
     await sim.clickRight(SNAPSHOT_PATH_NANOS + filename);
     const chainid = Zemu.LoadPng2RGB(SNAPSHOT_PATH_NANOS + filename);
     const expected_chainid = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
@@ -151,8 +151,8 @@ test("Transfer bsc nanox", async () => {
     const expected_address = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOX + filename);
     expect(address).toEqual(expected_address);
 
-    // Chain ID
-    filename = "chainid.png";
+    // Network name
+    filename = "network.png";
     await sim.clickRight(SNAPSHOT_PATH_NANOX + filename);
     const chainid = Zemu.LoadPng2RGB(SNAPSHOT_PATH_NANOX + filename);
     const expected_chainid = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOX + filename);

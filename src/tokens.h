@@ -28,7 +28,7 @@ typedef struct tokenDefinition_t {
     uint8_t contractName[ADDRESS_LENGTH];
 #endif
     uint8_t address[ADDRESS_LENGTH];
-    uint8_t ticker[MAX_TICKER_LEN];
+    char ticker[MAX_TICKER_LEN];
     uint8_t decimals;
 } tokenDefinition_t;
 
@@ -43,7 +43,7 @@ extern tokenDefinition_t const TOKENS_EXTRA[NUM_TOKENS_EXTRA];
 #ifndef HAVE_TOKENS_LIST
 
 #ifndef LEDGER_TEST_PUBLIC_KEY
-static const uint8_t const LEDGER_SIGNATURE_PUBLIC_KEY[] = {
+static const uint8_t LEDGER_SIGNATURE_PUBLIC_KEY[] = {
     // production key 2019-01-11 03:07PM (erc20signer)
     0x04, 0x5e, 0x6c, 0x10, 0x20, 0xc1, 0x4d, 0xc4, 0x64, 0x42, 0xfe, 0x89, 0xf9,
     0x7c, 0x0b, 0x68, 0xcd, 0xb1, 0x59, 0x76, 0xdc, 0x24, 0xf2, 0x4c, 0x31, 0x6e,
@@ -52,7 +52,7 @@ static const uint8_t const LEDGER_SIGNATURE_PUBLIC_KEY[] = {
     0xcd, 0x09, 0x8f, 0xce, 0x8f, 0xd0, 0xf8, 0x1d, 0xaa, 0x94, 0x97, 0x91, 0x83};
 
 #else
-static const uint8_t const LEDGER_SIGNATURE_PUBLIC_KEY[] = {
+static const uint8_t LEDGER_SIGNATURE_PUBLIC_KEY[] = {
     // test key 2019-01-11 03:07PM (erc20signer)
     0x04, 0x20, 0xda, 0x62, 0x00, 0x3c, 0x0c, 0xe0, 0x97, 0xe3, 0x36, 0x44, 0xa1,
     0x0f, 0xe4, 0xc3, 0x04, 0x54, 0x06, 0x9a, 0x44, 0x54, 0xf0, 0xfa, 0x9d, 0x4e,
@@ -96,6 +96,7 @@ static const uint8_t const LEDGER_SIGNATURE_PUBLIC_KEY[] = {
 #define NUM_TOKENS_THUNDERCORE      0
 #define NUM_TOKENS_FLARE            0
 #define NUM_TOKENS_THETA            0
+#define NUM_TOKENS_BSC              0
 
 extern tokenDefinition_t const TOKENS_AKROMA[NUM_TOKENS_AKROMA];
 extern tokenDefinition_t const TOKENS_ELLAISM[NUM_TOKENS_ELLAISM];
@@ -129,6 +130,7 @@ extern tokenDefinition_t const TOKENS_WEBCHAIN[NUM_TOKENS_WEBCHAIN];
 extern tokenDefinition_t const TOKENS_THUNDERCORE[NUM_TOKENS_THUNDERCORE];
 extern tokenDefinition_t const TOKENS_FLARE[NUM_TOKENS_FLARE];
 extern tokenDefinition_t const TOKENS_THETA[NUM_TOKENS_THETA];
+extern tokenDefinition_t const TOKENS_BSC[NUM_TOKENS_BSC];
 
 #endif /* HAVE_TOKENS_LIST */
 

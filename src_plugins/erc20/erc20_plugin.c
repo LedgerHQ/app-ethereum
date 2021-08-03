@@ -16,10 +16,10 @@ typedef struct erc20_parameters_t {
     uint8_t selectorIndex;
     uint8_t destinationAddress[21];
     uint8_t amount[INT256_LENGTH];
-    uint8_t ticker[MAX_TICKER_LEN];
+    char ticker[MAX_TICKER_LEN];
     uint8_t decimals;
     uint8_t target;
-    uint8_t contract_name[MAX_CONTRACT_NAME_LEN];
+    char contract_name[MAX_CONTRACT_NAME_LEN];
 } erc20_parameters_t;
 
 typedef struct contract_t {
@@ -27,8 +27,8 @@ typedef struct contract_t {
     uint8_t address[ADDRESS_LENGTH];
 } contract_t;
 
-#define NUM_CONTRACTS 11
-const contract_t const CONTRACTS[NUM_CONTRACTS] = {
+#define NUM_CONTRACTS 13
+const contract_t CONTRACTS[NUM_CONTRACTS] = {
     // Compound
     {"Compound DAI", {0x5d, 0x3a, 0x53, 0x6e, 0x4d, 0x6d, 0xbd, 0x61, 0x14, 0xcc,
                       0x1e, 0xad, 0x35, 0x77, 0x7b, 0xab, 0x94, 0x8e, 0x36, 0x43}},
@@ -52,15 +52,21 @@ const contract_t const CONTRACTS[NUM_CONTRACTS] = {
                       0x48, 0x73, 0xd0, 0x0f, 0xf8, 0x5b, 0xcc, 0xde, 0xd5, 0x50}},
     // Paraswap
     {"Paraswap", {0x1b, 0xd4, 0x35, 0xf3, 0xc0, 0x54, 0xb6, 0xe9, 0x01, 0xb7,
-                  0xb1, 0x08, 0xa0, 0xab, 0x76, 0x17, 0xc8, 0x08, 0x67, 0x7b}}};
+                  0xb1, 0x08, 0xa0, 0xab, 0x76, 0x17, 0xc8, 0x08, 0x67, 0x7b}},
+
+    // stETH
+    {"Lido", {0x7f, 0x39, 0xc5, 0x81, 0xf5, 0x95, 0xb5, 0x3c, 0x5c, 0xb1,
+              0x9b, 0xd0, 0xb3, 0xf8, 0xda, 0x6c, 0x93, 0x5e, 0x2c, 0xa0}},
+
+    // wstETH
+    {"Wrapped stETH", {0xae, 0x7a, 0xb9, 0x65, 0x20, 0xde, 0x3a, 0x18, 0xe5, 0xe1,
+                       0x11, 0xb5, 0xea, 0xab, 0x09, 0x53, 0x12, 0xd7, 0xfe, 0x84}}};
 
 bool check_contract(erc20_parameters_t *context) {
     for (size_t i = 0; i < NUM_CONTRACTS; i++) {
         contract_t *contract = (contract_t *) PIC(&CONTRACTS[i]);
         if (memcmp(contract->address, context->destinationAddress, ADDRESS_LENGTH) == 0) {
-            strncpy((char *) context->contract_name,
-                    contract->name,
-                    sizeof(context->contract_name));
+            strlcpy(context->contract_name, contract->name, sizeof(context->contract_name));
             return true;
         }
     }
@@ -161,7 +167,7 @@ void erc20_plugin_call(int message, void *parameters) {
                    (msg->token2 != NULL));
             if (msg->token1 != NULL) {
                 context->target = TARGET_ADDRESS;
-                strcpy((char *) context->ticker, (char *) msg->token1->ticker);
+                strlcpy(context->ticker, msg->token1->ticker, MAX_TICKER_LEN);
                 context->decimals = msg->token1->decimals;
                 if (context->selectorIndex == ERC20_APPROVE) {
                     if (check_contract(context)) {
@@ -176,8 +182,8 @@ void erc20_plugin_call(int message, void *parameters) {
 
         case ETH_PLUGIN_QUERY_CONTRACT_ID: {
             ethQueryContractID_t *msg = (ethQueryContractID_t *) parameters;
-            strcpy(msg->name, "Type");
-            strcpy(msg->version, "Approve");
+            strlcpy(msg->name, "Type", msg->nameLength);
+            strlcpy(msg->version, "Approve", msg->versionLength);
             msg->result = ETH_PLUGIN_RESULT_OK;
         } break;
 
@@ -186,15 +192,15 @@ void erc20_plugin_call(int message, void *parameters) {
             erc20_parameters_t *context = (erc20_parameters_t *) msg->pluginContext;
             switch (msg->screenIndex) {
                 case 0:
-                    strcpy(msg->title, "Amount");
+                    strlcpy(msg->title, "Amount", msg->titleLength);
                     if (ismaxint(context->amount, sizeof(context->amount))) {
-                        strcpy(msg->msg, "Unlimited ");
-                        strcat(msg->msg, (char *) context->ticker);
+                        strlcpy(msg->msg, "Unlimited ", msg->msgLength);
+                        strlcat(msg->msg, context->ticker, msg->msgLength);
                     } else {
                         amountToString(context->amount,
                                        sizeof(context->amount),
                                        context->decimals,
-                                       (char *) context->ticker,
+                                       context->ticker,
                                        msg->msg,
                                        100);
                     }
@@ -202,14 +208,14 @@ void erc20_plugin_call(int message, void *parameters) {
                     break;
                 case 1:
                     if (context->target >= TARGET_CONTRACT) {
-                        strcpy(msg->title, "Contract");
-                        strcpy(msg->msg, (char *) context->contract_name);
+                        strlcpy(msg->title, "Contract", msg->titleLength);
+                        strlcpy(msg->msg, context->contract_name, msg->msgLength);
                     } else {
-                        strcpy(msg->title, "Address");
+                        strlcpy(msg->title, "Address", msg->titleLength);
                         msg->msg[0] = '0';
                         msg->msg[1] = 'x';
                         getEthAddressStringFromBinary(context->destinationAddress,
-                                                      (uint8_t *) msg->msg + 2,
+                                                      msg->msg + 2,
                                                       msg->pluginSharedRW->sha3,
                                                       chainConfig);
                     }

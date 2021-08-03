@@ -10,5 +10,5 @@ typedef enum {
 customStatus_e customProcessor(txContext_t *context);
 void finalizeParsing(bool direct);
 void prepareFeeDisplay();
-void prepareChainIdDisplay();
+void prepareNetworkDisplay();
 void ux_approve_tx(bool fromPlugin);

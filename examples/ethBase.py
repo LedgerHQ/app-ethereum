@@ -59,6 +59,9 @@ class UnsignedTransaction(Serializable):
         ('to', address),
         ('value', big_endian_int),
         ('data', binary),
+        ('chainid', big_endian_int),
+        ('dummy1', big_endian_int),
+        ('dummy2', big_endian_int),
     ]
 
 def unsigned_tx_from_tx(tx):

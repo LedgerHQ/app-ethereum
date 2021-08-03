@@ -58,11 +58,7 @@ bool rlpCanDecode(uint8_t *buffer, uint32_t bufferLength, bool *valid) {
     return true;
 }
 
-bool rlpDecodeLength(uint8_t *buffer,
-                     uint32_t bufferLength,
-                     uint32_t *fieldLength,
-                     uint32_t *offset,
-                     bool *list) {
+bool rlpDecodeLength(uint8_t *buffer, uint32_t *fieldLength, uint32_t *offset, bool *list) {
     if (*buffer <= 0x7f) {
         *offset = 0;
         *fieldLength = 1;
@@ -128,7 +124,7 @@ void getEthAddressFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out, cx_sha3
 }
 
 void getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey,
-                                uint8_t *out,
+                                char *out,
                                 cx_sha3_t *sha3Context,
                                 chain_config_t *chain_config) {
     uint8_t hashAddress[INT256_LENGTH];
@@ -138,7 +134,7 @@ void getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey,
 }
 
 void getEthAddressStringFromBinary(uint8_t *address,
-                                   uint8_t *out,
+                                   char *out,
                                    cx_sha3_t *sha3Context,
                                    chain_config_t *chain_config) {
     // save some precious stack space

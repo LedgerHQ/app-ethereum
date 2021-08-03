@@ -39,6 +39,7 @@ typedef customStatus_e (*ustreamProcess_t)(struct txContext_t *context);
 #define ADDRESS_LENGTH 20
 #define INT256_LENGTH  32
 #define THETA_BUFFER_LENGTH  100
+#define THETA_STAKE_TX  10
 
 // First variant of every Tx enum.
 #define RLP_NONE 0
@@ -117,6 +118,7 @@ typedef struct txContent_t {
     uint8_t thetaBuffer[THETA_BUFFER_LENGTH];
     uint8_t thetaBufferLength;
     uint8_t thetaBufferToRead;
+    uint8_t thetaTxType;
     txInt256_t gasprice;
     txInt256_t startgas;
     txInt256_t value;

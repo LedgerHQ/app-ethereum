@@ -4568,4 +4568,6 @@ const tokenDefinition_t const TOKENS_THETA[NUM_TOKENS_THETA] = {};
 
 const tokenDefinition_t const TOKENS_BSC[NUM_TOKENS_BSC] = {};
 
+const tokenDefinition_t const TOKENS_AMBROSUS[NUM_TOKENS_AMBROSUS] = {};
+
 #endif

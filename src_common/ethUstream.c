@@ -31,10 +31,7 @@ void initTx(txContext_t *context,
             txContent_t *content,
             ustreamProcess_t customProcessor,
             void *extra) {
-    uint8_t save = context->txType;
-
     memset(context, 0, sizeof(txContext_t));
-    context->txType = save;
     context->sha3 = sha3;
     context->content = content;
     context->customProcessor = customProcessor;

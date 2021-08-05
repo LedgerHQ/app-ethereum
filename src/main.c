@@ -49,7 +49,6 @@ strings_t strings;
 cx_sha3_t global_sha3;
 
 uint8_t appState;
-bool dataPresent;
 bool called_from_swap;
 bool externalPluginIsSet;
 #ifdef HAVE_STARKWARE

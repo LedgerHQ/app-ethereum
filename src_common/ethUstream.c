@@ -31,10 +31,7 @@ void initTx(txContext_t *context,
             txContent_t *content,
             ustreamProcess_t customProcessor,
             void *extra) {
-    uint8_t save = context->txType;
-
     memset(context, 0, sizeof(txContext_t));
-    context->txType = save;
     context->sha3 = sha3;
     context->content = content;
     context->customProcessor = customProcessor;
@@ -92,7 +89,7 @@ static void processContent(txContext_t *context) {
 
 static void processAccessList(txContext_t *context) {
     if (!context->currentFieldIsList) {
-        PRINTF("Invalid type for RLP_DATA\n");
+        PRINTF("Invalid type for RLP_ACCESS_LIST\n");
         THROW(EXCEPTION);
     }
     if (context->currentFieldPos < context->currentFieldLength) {
@@ -265,6 +262,26 @@ static void processData(txContext_t *context) {
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
             MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
+        // If there is no data, set dataPresent to false.
+        if (copySize == 1 && *context->workBuffer == 0x00) {
+            context->content->dataPresent = false;
+        }
+        copyTxData(context, NULL, copySize);
+    }
+    if (context->currentFieldPos == context->currentFieldLength) {
+        context->currentField++;
+        context->processingField = false;
+    }
+}
+
+static void processAndDiscard(txContext_t *context) {
+    if (context->currentFieldIsList) {
+        PRINTF("Invalid type for Discarded field\n");
+        THROW(EXCEPTION);
+    }
+    if (context->currentFieldPos < context->currentFieldLength) {
+        uint32_t copySize =
+            MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
         copyTxData(context, NULL, copySize);
     }
     if (context->currentFieldPos == context->currentFieldLength) {
@@ -294,6 +311,62 @@ static void processV(txContext_t *context) {
     }
 }
 
+static bool processEIP1559Tx(txContext_t *context) {
+    switch (context->currentField) {
+        case EIP1559_RLP_CONTENT: {
+            processContent(context);
+            if ((context->processingFlags & TX_FLAG_TYPE) == 0) {
+                context->currentField++;
+            }
+            break;
+        }
+        // This gets hit only by Wanchain
+        case EIP1559_RLP_TYPE: {
+            processType(context);
+            break;
+        }
+        case EIP1559_RLP_CHAINID: {
+            processChainID(context);
+            break;
+        }
+        case EIP1559_RLP_NONCE: {
+            processNonce(context);
+            break;
+        }
+        case EIP1559_RLP_MAX_FEE_PER_GAS: {
+            processGasprice(context);
+            break;
+        }
+        case EIP1559_RLP_GASLIMIT: {
+            processGasLimit(context);
+            break;
+        }
+        case EIP1559_RLP_TO: {
+            processTo(context);
+            break;
+        }
+        case EIP1559_RLP_VALUE: {
+            processValue(context);
+            break;
+        }
+        case EIP1559_RLP_DATA: {
+            processData(context);
+            break;
+        }
+        case EIP1559_RLP_ACCESS_LIST: {
+            processAccessList(context);
+            break;
+        }
+        case EIP1559_RLP_MAX_PRIORITY_FEE_PER_GAS:
+            processAndDiscard(context);
+            break;
+        default:
+            PRINTF("Invalid RLP decoder context\n");
+            return true;
+    }
+    return false;
+}
+
 static bool processEIP2930Tx(txContext_t *context) {
     switch (context->currentField) {
         case EIP2930_RLP_CONTENT:
@@ -302,6 +375,7 @@ static bool processEIP2930Tx(txContext_t *context) {
                 context->currentField++;
             }
             break;
+        // This gets hit only by Wanchain
         case EIP2930_RLP_TYPE:
             processType(context);
             break;
@@ -323,16 +397,11 @@ static bool processEIP2930Tx(txContext_t *context) {
         case EIP2930_RLP_VALUE:
             processValue(context);
             break;
-        case EIP2930_RLP_YPARITY:
-            processV(context);
+        case EIP2930_RLP_DATA:
+            processData(context);
             break;
         case EIP2930_RLP_ACCESS_LIST:
             processAccessList(context);
-            break;
-        case EIP2930_RLP_DATA:
-        case EIP2930_RLP_SENDER_R:
-        case EIP2930_RLP_SENDER_S:
-            processData(context);
             break;
         default:
             PRINTF("Invalid RLP decoder context\n");
@@ -349,6 +418,7 @@ static bool processLegacyTx(txContext_t *context) {
                 context->currentField++;
             }
             break;
+        // This gets hit only by Wanchain
         case LEGACY_RLP_TYPE:
             processType(context);
             break;
@@ -368,9 +438,11 @@ static bool processLegacyTx(txContext_t *context) {
             processValue(context);
             break;
         case LEGACY_RLP_DATA:
+            processData(context);
+            break;
         case LEGACY_RLP_R:
         case LEGACY_RLP_S:
-            processData(context);
+            processAndDiscard(context);
             break;
         case LEGACY_RLP_V:
             processV(context);
@@ -417,6 +489,7 @@ static parserStatus_e parseRLP(txContext_t *context) {
         PRINTF("RLP decode error\n");
         return USTREAM_FAULT;
     }
+    // Ready to process this field
     if (offset == 0) {
         // Hack for single byte, self encoded
         context->workBuffer--;
@@ -438,9 +511,14 @@ static parserStatus_e processTxInternal(txContext_t *context) {
         if (PARSING_IS_DONE(context)) {
             return USTREAM_FINISHED;
         }
-        // Old style transaction
-        if (((context->txType == LEGACY && context->currentField == LEGACY_RLP_V) ||
-             (context->txType == EIP2930 && context->currentField == EIP2930_RLP_YPARITY)) &&
+        // Old style transaction (pre EIP-155). Transations could just skip `v,r,s` so we needed to
+        // cut parsing here. commandLength == 0 could happen in two cases :
+        // 1. We are in an old style transaction : just return `USTREAM_FINISHED`.
+        // 2. We are at the end of an APDU in a multi-apdu process. This would make us return
+        // `USTREAM_FINISHED` preemptively. Case number 2 should NOT happen as it is up to
+        // `ledgerjs` to correctly decrease the size of the APDU (`commandLength`) so that this
+        // situation doesn't happen.
+        if ((context->txType == LEGACY && context->currentField == LEGACY_RLP_V) &&
             (context->commandLength == 0)) {
             context->content->vLength = 0;
             return USTREAM_FINISHED;
@@ -471,7 +549,7 @@ static parserStatus_e processTxInternal(txContext_t *context) {
             }
         }
         if (customStatus == CUSTOM_NOT_HANDLED) {
-            PRINTF("Current field: %u\n", context->currentField);
+            PRINTF("Current field: %d\n", context->currentField);
             switch (context->txType) {
                 bool fault;
                 case LEGACY:
@@ -483,6 +561,13 @@ static parserStatus_e processTxInternal(txContext_t *context) {
                     }
                 case EIP2930:
                     fault = processEIP2930Tx(context);
+                    if (fault) {
+                        return USTREAM_FAULT;
+                    } else {
+                        break;
+                    }
+                case EIP1559:
+                    fault = processEIP1559Tx(context);
                     if (fault) {
                         return USTREAM_FAULT;
                     } else {

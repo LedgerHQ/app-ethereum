@@ -196,7 +196,6 @@ extern cx_sha3_t global_sha3;
 extern const internalStorage_t N_storage_real;
 
 extern bool called_from_swap;
-extern bool dataPresent;
 extern bool externalPluginIsSet;
 extern uint8_t appState;
 #ifdef HAVE_STARKWARE

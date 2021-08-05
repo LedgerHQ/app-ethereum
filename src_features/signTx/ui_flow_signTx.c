@@ -4,6 +4,7 @@
 #include "utils.h"
 #include "feature_signTx.h"
 #include "network.h"
+#include "eth_plugin_handler.h"
 
 // clang-format off
 UX_STEP_NOCB(
@@ -110,6 +111,40 @@ UX_STEP_NOCB(
       .title = "Address",
       .text = strings.common.fullAddress,
     });
+
+UX_STEP_NOCB_INIT(
+  ux_plugin_approval_id_step,
+  bnnn_paging,
+  plugin_ui_get_id(),
+  {
+    .title = strings.common.fullAddress,
+    .text = strings.common.fullAmount
+  });
+
+UX_STEP_INIT(
+  ux_plugin_approval_before_step,
+  NULL,
+  NULL,
+  {
+    display_next_plugin_item(true);
+  });
+
+UX_FLOW_DEF_NOCB(
+  ux_plugin_approval_display_step,
+  bnnn_paging,
+  {
+    .title = strings.common.fullAddress,
+    .text = strings.common.fullAmount
+  });
+
+UX_STEP_INIT(
+  ux_plugin_approval_after_step,
+  NULL,
+  NULL,
+  {
+    display_next_plugin_item(false);
+  });
+
 UX_STEP_NOCB(
     ux_approval_fees_step,
     bnnn_paging,
@@ -124,6 +159,7 @@ UX_STEP_NOCB(
       .title = "Network",
       .text = strings.common.network_name,
     });
+
 UX_STEP_CB(
     ux_approval_accept_step,
     pbb,
@@ -159,28 +195,42 @@ UX_STEP_NOCB(ux_approval_data_warning_step,
     });
 // clang-format on
 
-const ux_flow_step_t *ux_approval_tx_flow_[10];
+const ux_flow_step_t *ux_approval_tx_flow[15];
 
-void ux_approve_tx(bool dataPresent) {
+void ux_approve_tx(bool fromPlugin) {
     int step = 0;
-    ux_approval_tx_flow_[step++] = &ux_approval_review_step;
-    if (dataPresent && !N_storage.contractDetails) {
-        ux_approval_tx_flow_[step++] = &ux_approval_data_warning_step;
+    ux_approval_tx_flow[step++] = &ux_approval_review_step;
+
+    if (!fromPlugin && tmpContent.txContent.dataPresent && !N_storage.contractDetails) {
+        ux_approval_tx_flow[step++] = &ux_approval_data_warning_step;
     }
-    ux_approval_tx_flow_[step++] = &ux_approval_amount_step;
-    ux_approval_tx_flow_[step++] = &ux_approval_address_step;
+
+    if (fromPlugin) {
+        // Add the special dynamic display logic
+        ux_approval_tx_flow[step++] = &ux_plugin_approval_id_step;
+        ux_approval_tx_flow[step++] = &ux_plugin_approval_before_step;
+        ux_approval_tx_flow[step++] = &ux_plugin_approval_display_step;
+        ux_approval_tx_flow[step++] = &ux_plugin_approval_after_step;
+    } else {
+        // We're in a regular transaction, just show the amount and the address
+        ux_approval_tx_flow[step++] = &ux_approval_amount_step;
+        ux_approval_tx_flow[step++] = &ux_approval_address_step;
+    }
+
     if (N_storage.displayNonce) {
-        ux_approval_tx_flow_[step++] = &ux_approval_nonce_step;
+        ux_approval_tx_flow[step++] = &ux_approval_nonce_step;
     }
 
     uint32_t chain_id = get_chain_id();
     if (chainConfig->chainId == ETHEREUM_MAINNET_CHAINID && chain_id != chainConfig->chainId) {
-        ux_approval_tx_flow_[step++] = &ux_approval_network_step;
+        // TODO: do we need the `&&` above?
+        ux_approval_tx_flow[step++] = &ux_approval_network_step;
     }
-    ux_approval_tx_flow_[step++] = &ux_approval_fees_step;
-    ux_approval_tx_flow_[step++] = &ux_approval_accept_step;
-    ux_approval_tx_flow_[step++] = &ux_approval_reject_step;
-    ux_approval_tx_flow_[step++] = FLOW_END_STEP;
 
-    ux_flow_init(0, ux_approval_tx_flow_, NULL);
+    ux_approval_tx_flow[step++] = &ux_approval_fees_step;
+    ux_approval_tx_flow[step++] = &ux_approval_accept_step;
+    ux_approval_tx_flow[step++] = &ux_approval_reject_step;
+    ux_approval_tx_flow[step++] = FLOW_END_STEP;
+
+    ux_flow_init(0, ux_approval_tx_flow, NULL);
 }

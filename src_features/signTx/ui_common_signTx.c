@@ -27,20 +27,28 @@ unsigned int io_seproxyhal_touch_tx_ok(__attribute__((unused)) const bagl_elemen
                   sizeof(signature),
                   &info);
     explicit_bzero(&privateKey, sizeof(privateKey));
-    // Parity is present in the sequence tag in the legacy API
-    if (tmpContent.txContent.vLength == 0) {
-        // Legacy API
-        G_io_apdu_buffer[0] = 27;
+    if (txContext.txType == EIP1559 || txContext.txType == EIP2930) {
+        if (info & CX_ECCINFO_PARITY_ODD) {
+            G_io_apdu_buffer[0] = 1;
+        } else {
+            G_io_apdu_buffer[0] = 0;
+        }
     } else {
-        // New API
-        // Note that this is wrong for a large v, but the client can always recover
-        G_io_apdu_buffer[0] = (v * 2) + 35;
-    }
-    if (info & CX_ECCINFO_PARITY_ODD) {
-        G_io_apdu_buffer[0]++;
-    }
-    if (info & CX_ECCINFO_xGTn) {
-        G_io_apdu_buffer[0] += 2;
+        // Parity is present in the sequence tag in the legacy API
+        if (tmpContent.txContent.vLength == 0) {
+            // Legacy API
+            G_io_apdu_buffer[0] = 27;
+        } else {
+            // New API
+            // Note that this is wrong for a large v, but the client can always recover
+            G_io_apdu_buffer[0] = (v * 2) + 35;
+        }
+        if (info & CX_ECCINFO_PARITY_ODD) {
+            G_io_apdu_buffer[0]++;
+        }
+        if (info & CX_ECCINFO_xGTn) {
+            G_io_apdu_buffer[0] += 2;
+        }
     }
     format_signature_out(signature);
     tx = 65;

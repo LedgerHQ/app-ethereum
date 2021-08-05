@@ -31,9 +31,10 @@ uint32_t splitBinaryParameterPart(char *result, uint8_t *parameter) {
 
 customStatus_e customProcessor(txContext_t *context) {
     if (((context->txType == LEGACY && context->currentField == LEGACY_RLP_DATA) ||
-         (context->txType == EIP2930 && context->currentField == EIP2930_RLP_DATA)) &&
+         (context->txType == EIP2930 && context->currentField == EIP2930_RLP_DATA) ||
+         (context->txType == EIP1559 && context->currentField == EIP1559_RLP_DATA)) &&
         (context->currentFieldLength != 0)) {
-        dataPresent = true;
+        context->content->dataPresent = true;
         // If handling a new contract rather than a function call, abort immediately
         if (tmpContent.txContent.destinationLength == 0) {
             return CUSTOM_NOT_HANDLED;
@@ -195,27 +196,25 @@ void reportFinalizeError(bool direct) {
     }
 }
 
-void computeFees(char *displayBuffer, uint32_t displayBufferSize) {
-    uint256_t gasPrice, startGas, uint256;
+// Convert `BEgasPrice` and `BEgasLimit` to Uint256 and then stores the multiplication of both in
+// `output`.
+static void computeFees(txInt256_t *BEgasPrice, txInt256_t *BEgasLimit, uint256_t *output) {
+    uint256_t gasPrice = {0};
+    uint256_t gasLimit = {0};
+
+    PRINTF("Gas price %.*H\n", BEgasPrice->length, BEgasPrice->value);
+    PRINTF("Gas limit %.*H\n", BEgasLimit->length, BEgasLimit->value);
+    convertUint256BE(BEgasPrice->value, BEgasPrice->length, &gasPrice);
+    convertUint256BE(BEgasLimit->value, BEgasLimit->length, &gasLimit);
+    mul256(&gasPrice, &gasLimit, output);
+}
+
+static void feesToString(uint256_t *rawFee, char *displayBuffer, uint32_t displayBufferSize) {
     char *feeTicker = get_network_ticker();
     uint8_t tickerOffset = 0;
     uint32_t i;
 
-    PRINTF("Max fee\n");
-    PRINTF("Gasprice %.*H\n",
-           tmpContent.txContent.gasprice.length,
-           tmpContent.txContent.gasprice.value);
-    PRINTF("Startgas %.*H\n",
-           tmpContent.txContent.startgas.length,
-           tmpContent.txContent.startgas.value);
-    convertUint256BE(tmpContent.txContent.gasprice.value,
-                     tmpContent.txContent.gasprice.length,
-                     &gasPrice);
-    convertUint256BE(tmpContent.txContent.startgas.value,
-                     tmpContent.txContent.startgas.length,
-                     &startGas);
-    mul256(&gasPrice, &startGas, &uint256);
-    tostring256(&uint256, 10, (char *) (G_io_apdu_buffer + 100), 100);
+    tostring256(rawFee, 10, (char *) (G_io_apdu_buffer + 100), 100);
     i = 0;
     while (G_io_apdu_buffer[100 + i]) {
         i++;
@@ -237,6 +236,61 @@ void computeFees(char *displayBuffer, uint32_t displayBufferSize) {
         i++;
     }
     displayBuffer[tickerOffset + i] = '\0';
+    PRINTF("Displayed fees: %s\n", displayBuffer);
+}
+
+// Compute the fees, transform it to a string, prepend a ticker to it and copy everything to
+// `displayBuffer`.
+void prepareAndCopyFees(txInt256_t *BEGasPrice,
+                        txInt256_t *BEGasLimit,
+                        char *displayBuffer,
+                        uint32_t displayBufferSize) {
+    uint256_t rawFee = {0};
+    computeFees(BEGasPrice, BEGasLimit, &rawFee);
+    feesToString(&rawFee, displayBuffer, displayBufferSize);
+}
+
+void prepareFeeDisplay() {
+    prepareAndCopyFees(&tmpContent.txContent.gasprice,
+                       &tmpContent.txContent.startgas,
+                       strings.common.maxFee,
+                       sizeof(strings.common.maxFee));
+}
+
+uint32_t get_chainID() {
+    uint32_t chain_id = 0;
+
+    if (txContext.txType == LEGACY) {
+        chain_id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
+    } else if (txContext.txType == EIP2930 || txContext.txType == EIP1559) {
+        chain_id = u32_from_BE(tmpContent.txContent.chainID.value,
+                               tmpContent.txContent.chainID.length,
+                               true);
+    } else {
+        PRINTF("Txtype `%u` not supported while generating chainID\n", txContext.txType);
+    }
+    PRINTF("ChainID: %d\n", chain_id);
+    return chain_id;
+}
+
+void prepareNetworkDisplay() {
+    char *name = get_network_name();
+    if (name == NULL) {
+        // No network name found so simply copy the chain ID as the network name.
+        uint32_t chain_id = get_chain_id();
+        uint8_t res = snprintf(strings.common.network_name,
+                               sizeof(strings.common.network_name),
+                               "%d",
+                               chain_id);
+        if (res >= sizeof(strings.common.network_name)) {
+            // If the return value is higher or equal to the size passed in as parameter, then
+            // the output was truncated. Return the appropriate error code.
+            THROW(0x6502);
+        }
+    } else {
+        // Network name found, simply copy it.
+        strlcpy(strings.common.network_name, name, sizeof(strings.common.network_name));
+    }
 }
 
 static void get_public_key(uint8_t *out, uint8_t outLength) {
@@ -269,6 +323,7 @@ void finalizeParsing(bool direct) {
 
     // Verify the chain
     if (chainConfig->chainId != ETHEREUM_MAINNET_CHAINID) {
+        // TODO: Could we remove above check?
         uint32_t id = get_chain_id();
 
         if (chainConfig->chainId != id) {
@@ -336,7 +391,7 @@ void finalizeParsing(bool direct) {
             // Handle the right interface
             switch (pluginFinalize.uiType) {
                 case ETH_UI_TYPE_GENERIC:
-                    dataPresent = false;
+                    tmpContent.txContent.dataPresent = false;
                     // Add the number of screens + the number of additional screens to get the total
                     // number of screens needed.
                     dataContext.tokenContext.pluginUiMaxItems =
@@ -344,7 +399,7 @@ void finalizeParsing(bool direct) {
                     break;
                 case ETH_UI_TYPE_AMOUNT_ADDRESS:
                     genericUI = true;
-                    dataPresent = false;
+                    tmpContent.txContent.dataPresent = false;
                     if ((pluginFinalize.amount == NULL) || (pluginFinalize.address == NULL)) {
                         PRINTF("Incorrect amount/address set by plugin\n");
                         reportFinalizeError(direct);
@@ -373,12 +428,13 @@ void finalizeParsing(bool direct) {
         }
     }
 
-    if (dataPresent && !N_storage.dataAllowed) {
+    if (tmpContent.txContent.dataPresent && !N_storage.dataAllowed) {
         reportFinalizeError(direct);
         if (!direct) {
             return;
         }
     }
+
     // Prepare destination address to display
     if (genericUI) {
         if (tmpContent.txContent.destinationLength != 0) {
@@ -396,6 +452,7 @@ void finalizeParsing(bool direct) {
             strcpy(strings.common.fullAddress, "Contract");
         }
     }
+
     // Prepare amount to display
     if (genericUI) {
         amountToString(tmpContent.txContent.value.value,
@@ -409,44 +466,18 @@ void finalizeParsing(bool direct) {
                       displayBuffer,
                       called_from_swap);
     }
+
     // Prepare nonce to display
-    if (genericUI) {
-        uint256_t nonce;
-        convertUint256BE(tmpContent.txContent.nonce.value,
-                         tmpContent.txContent.nonce.length,
-                         &nonce);
-        tostring256(&nonce, 10, displayBuffer, sizeof(displayBuffer));
-        strlcpy(strings.common.nonce, displayBuffer, sizeof(strings.common.nonce));
-    }
+    uint256_t nonce;
+    convertUint256BE(tmpContent.txContent.nonce.value, tmpContent.txContent.nonce.length, &nonce);
+    tostring256(&nonce, 10, displayBuffer, sizeof(displayBuffer));
+    strlcpy(strings.common.nonce, displayBuffer, sizeof(strings.common.nonce));
+
     // Compute maximum fee
-    if (genericUI) {
-        computeFees(displayBuffer, sizeof(displayBuffer));
-        compareOrCopy(strings.common.maxFee,
-                      sizeof(strings.common.maxFee),
-                      displayBuffer,
-                      called_from_swap);
-    }
+    prepareFeeDisplay();
 
     // Prepare chainID field
-    if (genericUI) {
-        char *name = get_network_name();
-        if (name == NULL) {
-            // No network name found so simply copy the chain ID as the network name.
-            uint32_t chain_id = get_chain_id();
-            uint8_t res = snprintf(strings.common.network_name,
-                                   sizeof(strings.common.network_name),
-                                   "%d",
-                                   chain_id);
-            if (res >= sizeof(strings.common.network_name)) {
-                // If the return value is higher or equal to the size passed in as parameter, then
-                // the output was truncated. Return the appropriate error code.
-                THROW(0x6502);
-            }
-        } else {
-            // Network name found, simply copy it.
-            strlcpy(strings.common.network_name, name, sizeof(strings.common.network_name));
-        }
-    }
+    prepareNetworkDisplay();
 
     bool no_consent;
 
@@ -460,7 +491,7 @@ void finalizeParsing(bool direct) {
         io_seproxyhal_touch_tx_ok(NULL);
     } else {
         if (genericUI) {
-            ux_approve_tx(dataPresent);
+            ux_approve_tx(false);
         } else {
             plugin_ui_start();
         }

@@ -29,6 +29,7 @@ uint32_t get_chain_id(void) {
             chain_id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
             break;
         case EIP2930:
+        case EIP1559:
             chain_id = u32_from_BE(tmpContent.txContent.chainID.value,
                                    tmpContent.txContent.chainID.length,
                                    true);

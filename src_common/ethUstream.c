@@ -254,10 +254,6 @@ static void processTo(txContext_t *context) {
 }
 
 static void processData(txContext_t *context) {
-    PRINTF("DATA len: %d, DATA: %.*H\n",
-           context->currentFieldLength,
-           context->currentFieldLength,
-           context->workBuffer);
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_DATA\n");
         THROW(EXCEPTION);
@@ -278,7 +274,6 @@ static void processData(txContext_t *context) {
 }
 
 static void processAndDiscard(txContext_t *context) {
-    PRINTF("DISCARDING: %.*H\n", context->currentFieldLength, context->workBuffer);
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for Discarded field\n");
         THROW(EXCEPTION);
@@ -295,10 +290,6 @@ static void processAndDiscard(txContext_t *context) {
 }
 
 static void processV(txContext_t *context) {
-    PRINTF("current Length: %d\tBuff: %.*H\n",
-           context->currentFieldLength,
-           context->currentFieldLength,
-           context->workBuffer);
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_V\n");
         THROW(EXCEPTION);
@@ -306,6 +297,8 @@ static void processV(txContext_t *context) {
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
             MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
+        // Make sure we do not copy more than the size of v.
+        copySize = MIN(copySize, sizeof(context->content->v));
         copyTxData(context, context->content->v + context->currentFieldPos, copySize);
     }
     if (context->currentFieldPos == context->currentFieldLength) {

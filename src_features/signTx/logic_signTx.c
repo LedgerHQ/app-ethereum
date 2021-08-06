@@ -261,11 +261,10 @@ uint32_t get_chainID() {
     uint32_t chain_id = 0;
 
     if (txContext.txType == LEGACY) {
-        chain_id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
+        chain_id = u32_from_BE(txContext.content->v, txContext.content->vLength);
     } else if (txContext.txType == EIP2930 || txContext.txType == EIP1559) {
-        chain_id = u32_from_BE(tmpContent.txContent.chainID.value,
-                               tmpContent.txContent.chainID.length,
-                               true);
+        chain_id =
+            u32_from_BE(tmpContent.txContent.chainID.value, tmpContent.txContent.chainID.length);
     } else {
         PRINTF("Txtype `%u` not supported while generating chainID\n", txContext.txType);
     }

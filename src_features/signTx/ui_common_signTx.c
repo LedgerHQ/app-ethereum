@@ -7,7 +7,7 @@ unsigned int io_seproxyhal_touch_tx_ok(__attribute__((unused)) const bagl_elemen
     uint8_t signature[100];
     cx_ecfp_private_key_t privateKey;
     uint32_t tx = 0;
-    uint32_t v = u32_from_BE(tmpContent.txContent.v, tmpContent.txContent.vLength, true);
+    uint32_t v = u32_from_BE(tmpContent.txContent.v, tmpContent.txContent.vLength);
     io_seproxyhal_io_heartbeat();
     os_perso_derive_node_bip32(CX_CURVE_256K1,
                                tmpCtx.transactionContext.bip32Path,
@@ -27,6 +27,8 @@ unsigned int io_seproxyhal_touch_tx_ok(__attribute__((unused)) const bagl_elemen
                   sizeof(signature),
                   &info);
     explicit_bzero(&privateKey, sizeof(privateKey));
+    PRINTF("v: %.*H\n", tmpContent.txContent.vLength, tmpContent.txContent.v);
+    PRINTF("u32 v: %.*H\n", sizeof(v), &v);
     if (txContext.txType == EIP1559 || txContext.txType == EIP2930) {
         if (info & CX_ECCINFO_PARITY_ODD) {
             G_io_apdu_buffer[0] = 1;

@@ -24,7 +24,6 @@
 
 #define MAX_INT256  32
 #define MAX_ADDRESS 20
-#define MAX_V       4
 
 void initTx(txContext_t *context,
             cx_sha3_t *sha3,
@@ -255,6 +254,10 @@ static void processTo(txContext_t *context) {
 }
 
 static void processData(txContext_t *context) {
+    PRINTF("DATA len: %d, DATA: %.*H\n",
+           context->currentFieldLength,
+           context->currentFieldLength,
+           context->workBuffer);
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_DATA\n");
         THROW(EXCEPTION);
@@ -275,6 +278,7 @@ static void processData(txContext_t *context) {
 }
 
 static void processAndDiscard(txContext_t *context) {
+    PRINTF("DISCARDING: %.*H\n", context->currentFieldLength, context->workBuffer);
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for Discarded field\n");
         THROW(EXCEPTION);
@@ -291,12 +295,12 @@ static void processAndDiscard(txContext_t *context) {
 }
 
 static void processV(txContext_t *context) {
+    PRINTF("current Length: %d\tBuff: %.*H\n",
+           context->currentFieldLength,
+           context->currentFieldLength,
+           context->workBuffer);
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_V\n");
-        THROW(EXCEPTION);
-    }
-    if (context->currentFieldLength > MAX_V) {
-        PRINTF("Invalid length for RLP_V\n");
         THROW(EXCEPTION);
     }
     if (context->currentFieldPos < context->currentFieldLength) {

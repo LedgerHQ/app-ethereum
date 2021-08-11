@@ -54,9 +54,7 @@ int local_strchr(char *string, char ch) {
     return -1;
 }
 
-// Almost like U4BE except that it takes `size` as a parameter.
-// The `strict` parameter defines whether we should throw in case of a length > 4.
-uint32_t u32_from_BE(uint8_t *in, uint8_t size, bool strict) {
+uint32_t u32_from_BE(uint8_t *in, uint8_t size) {
     switch (size) {
         case 0:
             return 0;
@@ -66,13 +64,7 @@ uint32_t u32_from_BE(uint8_t *in, uint8_t size, bool strict) {
             return (in[0] << 8) | in[1];
         case 3:
             return (in[0] << 16) | (in[1] << 8) | in[2];
-        case 4:
-            return (in[0] << 24) | (in[1] << 16) | (in[2] << 8) | in[3];
         default:
-            if (strict) {
-                PRINTF("Unexpected format\n");
-                THROW(EXCEPTION);
-            }
             return (in[0] << 24) | (in[1] << 16) | (in[2] << 8) | in[3];
     }
 }

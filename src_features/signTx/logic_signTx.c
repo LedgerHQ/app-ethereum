@@ -257,22 +257,6 @@ void prepareFeeDisplay() {
                        sizeof(strings.common.maxFee));
 }
 
-uint32_t get_chainID() {
-    uint32_t chain_id = 0;
-
-    if (txContext.txType == LEGACY) {
-        chain_id = u32_from_BE(txContext.content->v, txContext.content->vLength, true);
-    } else if (txContext.txType == EIP2930 || txContext.txType == EIP1559) {
-        chain_id = u32_from_BE(tmpContent.txContent.chainID.value,
-                               tmpContent.txContent.chainID.length,
-                               true);
-    } else {
-        PRINTF("Txtype `%u` not supported while generating chainID\n", txContext.txType);
-    }
-    PRINTF("ChainID: %d\n", chain_id);
-    return chain_id;
-}
-
 void prepareNetworkDisplay() {
     char *name = get_network_name();
     if (name == NULL) {

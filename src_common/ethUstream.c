@@ -24,7 +24,6 @@
 
 #define MAX_INT256  32
 #define MAX_ADDRESS 20
-#define MAX_V       4
 
 void initTx(txContext_t *context,
             cx_sha3_t *sha3,
@@ -295,13 +294,11 @@ static void processV(txContext_t *context) {
         PRINTF("Invalid type for RLP_V\n");
         THROW(EXCEPTION);
     }
-    if (context->currentFieldLength > MAX_V) {
-        PRINTF("Invalid length for RLP_V\n");
-        THROW(EXCEPTION);
-    }
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
             MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
+        // Make sure we do not copy more than the size of v.
+        copySize = MIN(copySize, sizeof(context->content->v));
         copyTxData(context, context->content->v + context->currentFieldPos, copySize);
     }
     if (context->currentFieldPos == context->currentFieldLength) {

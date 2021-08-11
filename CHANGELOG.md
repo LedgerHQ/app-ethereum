@@ -15,7 +15,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Fixed BSC icon colors.
 - Fixed theta tokens.
-- Fix BSC app name display.
 
 ## [1.9.0](https://github.com/ledgerhq/app-ethereum/compare/1.8.8...1.9.0) - 2021-8-05
 

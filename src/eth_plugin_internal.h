@@ -2,7 +2,9 @@
 
 #include "eth_plugin_interface.h"
 
-#define SELECTOR_SIZE 4
+#define SELECTOR_SIZE    4
+#define PARAMETER_LENGTH 32
+#define RUN_APPLICATION  1
 
 typedef bool (*PluginAvailableCheck)(void);
 

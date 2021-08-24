@@ -129,7 +129,16 @@ void amountToString(const uint8_t *amount,
     uint8_t amount_len = strnlen(tmp_buffer, sizeof(tmp_buffer));
     uint8_t ticker_len = strnlen(ticker, MAX_TICKER_LEN);
 
-    memcpy(out_buffer, ticker, MIN(out_buffer_size, ticker_len));
+    // Adding one because of ' '. Not counting `\0` because it will be added at the end anyways.
+    if (out_buffer_size + 1 < ticker_len) {
+        PRINTF("Out buffer size too small: got %d, ticker_len is %\n", out_buffer_size, ticker_len);
+        out_buffer[0] = '\0';
+        return;
+    }
+
+    memcpy(out_buffer, ticker, ticker_len);
+    out_buffer[ticker_len] = ' ';
+    ticker_len++;
 
     adjustDecimals(tmp_buffer,
                    amount_len,
@@ -150,8 +159,7 @@ bool parse_swap_config(uint8_t *config, uint8_t config_len, char *ticker, uint8_
     }
     memcpy(ticker, config + offset, ticker_len);
     offset += ticker_len;
-    ticker[ticker_len] = ' ';
-    ticker[ticker_len + 1] = '\0';
+    ticker[ticker_len] = '\0';
 
     if (config_len - offset < 1) {
         return false;

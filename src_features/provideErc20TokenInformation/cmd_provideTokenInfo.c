@@ -41,8 +41,7 @@ void handleProvideErc20TokenInformation(uint8_t p1,
     }
     cx_hash((cx_hash_t *) &sha256, 0, workBuffer + offset, tickerLength, NULL, 0);
     memmove(token->ticker, workBuffer + offset, tickerLength);
-    token->ticker[tickerLength] = ' ';
-    token->ticker[tickerLength + 1] = '\0';
+    token->ticker[tickerLength] = '\0';
     offset += tickerLength;
     dataLength -= tickerLength;
 
@@ -134,8 +133,7 @@ void handleProvideErc20TokenInformation(uint8_t p1,
     }
     cx_hash_sha256(workBuffer + offset, tickerLength + 20 + 4 + 4, hash, 32);
     memmove(token->ticker, workBuffer + offset, tickerLength);
-    token->ticker[tickerLength] = ' ';
-    token->ticker[tickerLength + 1] = '\0';
+    token->ticker[tickerLength] = '\0';
     offset += tickerLength;
     dataLength -= tickerLength;
     memmove(token->address, workBuffer + offset, 20);

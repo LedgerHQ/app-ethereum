@@ -52,12 +52,14 @@ uint8_t readTxByte(txContext_t *context) {
         context->currentFieldPos++;
     }
     if (!(context->processingField && context->fieldSingleByte)) {
+        PRINTF("hashing: %.*H\n", 1, &data);
         cx_hash((cx_hash_t *) context->sha3, 0, &data, 1, NULL, 0);
     }
     return data;
 }
 
 void copyTxData(txContext_t *context, uint8_t *out, uint32_t length) {
+    PRINTF("copying Data!!\n");
     if (context->commandLength < length) {
         PRINTF("copyTxData Underflow\n");
         THROW(EXCEPTION);
@@ -66,6 +68,7 @@ void copyTxData(txContext_t *context, uint8_t *out, uint32_t length) {
         memmove(out, context->workBuffer, length);
     }
     if (!(context->processingField && context->fieldSingleByte)) {
+        PRINTF("copying %d bytes: %.*H\n", length, length, context->workBuffer);
         cx_hash((cx_hash_t *) context->sha3, 0, context->workBuffer, length, NULL, 0);
     }
     context->workBuffer += length;
@@ -94,6 +97,7 @@ static void processAccessList(txContext_t *context) {
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
             MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
+        PRINTF("copysize: %d\n", copySize);
         copyTxData(context, NULL, copySize);
     }
     if (context->currentFieldPos == context->currentFieldLength) {
@@ -504,8 +508,8 @@ static parserStatus_e parseRLP(txContext_t *context) {
 static parserStatus_e processTxInternal(txContext_t *context) {
     for (;;) {
         customStatus_e customStatus = CUSTOM_NOT_HANDLED;
-        // EIP 155 style transaction
         if (PARSING_IS_DONE(context)) {
+            PRINTF("Parsing is done\n");
             return USTREAM_FINISHED;
         }
         // Old style transaction (pre EIP-155). Transations could just skip `v,r,s` so we needed to

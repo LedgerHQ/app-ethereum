@@ -211,9 +211,9 @@ static void computeFees(txInt256_t *BEgasPrice, txInt256_t *BEgasLimit, uint256_
 
 static void feesToString(uint256_t *rawFee, char *displayBuffer, uint32_t displayBufferSize) {
     char *feeTicker = get_network_ticker();
-    uint8_t tickerOffset = 0;
     uint32_t i;
 
+    // Hacking `G_io_apdu_buffer` and using it as a temp buffer.
     tostring256(rawFee, 10, (char *) (G_io_apdu_buffer + 100), 100);
     i = 0;
     while (G_io_apdu_buffer[100 + i]) {
@@ -224,19 +224,23 @@ static void feesToString(uint256_t *rawFee, char *displayBuffer, uint32_t displa
                    (char *) G_io_apdu_buffer,
                    100,
                    WEI_TO_ETHER);
-    i = 0;
-    tickerOffset = 0;
+
     memset(displayBuffer, 0, displayBufferSize);
-    while (feeTicker[tickerOffset]) {
-        displayBuffer[tickerOffset] = feeTicker[tickerOffset];
-        tickerOffset++;
+
+    uint8_t ticker_len = strnlen(feeTicker, MAX_TICKER_LEN);
+    uint8_t amount_len = strnlen((const char *) G_io_apdu_buffer, 100);
+
+    // Adding +2 because of ' ' and '\0'.
+    if (displayBufferSize < ticker_len + amount_len + 2) {
+        PRINTF("displayBuffer too small\n");
+        displayBuffer[0] = '\0';
+        return;
     }
-    while (G_io_apdu_buffer[i]) {
-        displayBuffer[tickerOffset + i] = G_io_apdu_buffer[i];
-        i++;
-    }
-    displayBuffer[tickerOffset + i] = '\0';
-    PRINTF("Displayed fees: %s\n", displayBuffer);
+    memcpy(displayBuffer, feeTicker, ticker_len);
+    displayBuffer[ticker_len] = ' ';
+    memcpy(displayBuffer + ticker_len + 1, G_io_apdu_buffer, amount_len);
+    displayBuffer[ticker_len + 1 + amount_len] = '\0';
+    PRINTF("Displayed fees: |%s|\n", displayBuffer);
 }
 
 // Compute the fees, transform it to a string, prepend a ticker to it and copy everything to

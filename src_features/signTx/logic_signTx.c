@@ -415,12 +415,11 @@ void finalizeParsing(bool direct) {
     // Prepare destination address to display
     if (genericUI) {
         if (tmpContent.txContent.destinationLength != 0) {
-            displayBuffer[0] = '0';
-            displayBuffer[1] = 'x';
-            getEthAddressStringFromBinary(tmpContent.txContent.destination,
-                                          displayBuffer + 2,
-                                          &global_sha3,
-                                          chainConfig);
+            getEthDisplayableAddress(tmpContent.txContent.destination,
+                                     displayBuffer,
+                                     sizeof(displayBuffer),
+                                     &global_sha3,
+                                     chainConfig);
             compareOrCopy(strings.common.fullAddress,
                           sizeof(strings.common.fullAddress),
                           displayBuffer,

@@ -219,6 +219,24 @@ void getEthAddressStringFromBinary(uint8_t *address,
     out[40] = '\0';
 }
 
+// Fills the `out` buffer with the lowercase string representation of the pubkey passed in as binary
+// format by `in`. (eg: uint8_t*:0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB ->
+// char*:"0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB\0" ) `sha3` context doesn't have have to be
+// initialized prior to call. `chain_config` must be initialized.
+void getEthDisplayableAddress(uint8_t *in,
+                              char *out,
+                              size_t out_len,
+                              cx_sha3_t *sha3,
+                              chain_config_t *chain_config) {
+    if (out_len < 43) {
+        strlcpy(out, "ERROR", out_len);
+        return;
+    }
+    out[0] = '0';
+    out[1] = 'x';
+    getEthAddressStringFromBinary(in, out + 2, sha3, chain_config);
+}
+
 bool adjustDecimals(char *src,
                     uint32_t srcLength,
                     char *target,

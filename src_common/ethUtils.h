@@ -51,6 +51,12 @@ void getEthAddressStringFromBinary(uint8_t *address,
                                    cx_sha3_t *sha3Context,
                                    chain_config_t *chain_config);
 
+void getEthDisplayableAddress(uint8_t *in,
+                              char *out,
+                              size_t out_len,
+                              cx_sha3_t *sha3,
+                              chain_config_t *chain_config);
+
 bool adjustDecimals(char *src,
                     uint32_t srcLength,
                     char *target,

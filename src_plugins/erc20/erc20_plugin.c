@@ -212,12 +212,11 @@ void erc20_plugin_call(int message, void *parameters) {
                         strlcpy(msg->msg, context->contract_name, msg->msgLength);
                     } else {
                         strlcpy(msg->title, "Address", msg->titleLength);
-                        msg->msg[0] = '0';
-                        msg->msg[1] = 'x';
-                        getEthAddressStringFromBinary(context->destinationAddress,
-                                                      msg->msg + 2,
-                                                      msg->pluginSharedRW->sha3,
-                                                      chainConfig);
+                        getEthDisplayableAddress(context->destinationAddress,
+                                                 msg->msg,
+                                                 msg->msgLength,
+                                                 msg->pluginSharedRW->sha3,
+                                                 chainConfig);
                     }
 
                     msg->result = ETH_PLUGIN_RESULT_OK;

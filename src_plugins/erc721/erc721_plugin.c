@@ -5,8 +5,11 @@
 #include "ethUtils.h"
 #include "utils.h"
 
-void starkware_print_stark_key(uint8_t *starkKey, char *destination);
-void starkware_print_eth_address(uint8_t *address, char *destination);
+void getEthDisplayableAddress(uint8_t *in,
+                              char *out,
+                              size_t out_len,
+                              cx_sha3_t *sha3,
+                              chain_config_t *chain_config);
 
 typedef struct erc721_parameters_t {
     uint8_t selectorIndex;
@@ -119,19 +122,27 @@ void erc721_plugin_call(int message, void *parameters) {
             switch (msg->screenIndex) {
                 case 0:
                     strlcpy(msg->title, "Contract Name", msg->titleLength);
-                    starkware_print_eth_address(tmpContent.txContent.destination, msg->msg);
+                    getEthDisplayableAddress(tmpContent.txContent.destination,
+                                             msg->msg,
+                                             msg->msgLength,
+                                             &global_sha3,
+                                             chainConfig);
                     msg->result = ETH_PLUGIN_RESULT_OK;
                     break;
 
                 case 1:
                     strlcpy(msg->title, "NFT Contract", msg->titleLength);
-                    starkware_print_eth_address(context->address, msg->msg);
+                    getEthDisplayableAddress(context->address,
+                                             msg->msg,
+                                             msg->msgLength,
+                                             &global_sha3,
+                                             chainConfig);
                     msg->result = ETH_PLUGIN_RESULT_OK;
                     break;
 
                 case 2:
                     strlcpy(msg->title, "TokenID", msg->titleLength);
-                    starkware_print_stark_key(context->tokenId, msg->msg);
+                    snprintf(msg->msg, 70, "0x%.*H", 32, context->tokenId);
                     msg->result = ETH_PLUGIN_RESULT_OK;
                     break;
 

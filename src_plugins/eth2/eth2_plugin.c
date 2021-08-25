@@ -32,19 +32,6 @@ typedef struct eth2_deposit_parameters_t {
     char deposit_address[ETH2_DEPOSIT_PUBKEY_LENGTH];
 } eth2_deposit_parameters_t;
 
-// Fills the `out` buffer with the lowercase string representation of the pubkey passed in as binary
-// format by `in`. Does not check the size, so expects `out` to be big enough to hold the string
-// representation. Returns the length of string (counting the null terminating character).
-static int getEthDisplayableAddress(char *out, uint8_t *in, cx_sha3_t *sha3) {
-    out[0] = '0';
-    out[1] = 'x';
-    getEthAddressStringFromBinary(in, out + 2, sha3, chainConfig);
-
-    uint8_t destinationLen = strlen(out) + 1;  // Adding one to account for \0.
-
-    return destinationLen;
-}
-
 void eth2_plugin_call(int message, void *parameters) {
     switch (message) {
         case ETH_PLUGIN_INIT_CONTRACT: {
@@ -130,9 +117,11 @@ void eth2_plugin_call(int message, void *parameters) {
 
                     // Use a temporary buffer to store the string representation.
                     char tmp[ETH2_DEPOSIT_PUBKEY_LENGTH];
-                    getEthDisplayableAddress(tmp,
-                                             (uint8_t *) context->deposit_address,
-                                             msg->pluginSharedRW->sha3);
+                    getEthDisplayableAddress((uint8_t *) context->deposit_address,
+                                             tmp,
+                                             sizeof(tmp),
+                                             msg->pluginSharedRW->sha3,
+                                             chainConfig);
 
                     // Copy back the string to the global variable.
                     strlcpy(context->deposit_address, tmp, ETH2_DEPOSIT_PUBKEY_LENGTH);

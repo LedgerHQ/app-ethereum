@@ -13,16 +13,6 @@ void stark_sign_display_master_account() {
              dataContext.starkContext.transferDestination);
 }
 
-void stark_sign_display_condition_address() {
-    strings.tmp.tmp[0] = '0';
-    strings.tmp.tmp[1] = 'x';
-    getEthAddressStringFromBinary(dataContext.starkContext.conditionAddress,
-                                  strings.tmp.tmp + 2,
-                                  &global_sha3,
-                                  chainConfig);
-    strings.tmp.tmp[42] = '\0';
-}
-
 void stark_sign_display_condition_fact() {
     snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "0x%.*H", 32, dataContext.starkContext.fact);
 }
@@ -189,7 +179,11 @@ UX_STEP_NOCB_INIT(
 UX_STEP_NOCB_INIT(
     ux_stark_conditional_transfer_8_step,
     bnnn_paging,
-    stark_sign_display_condition_address(),
+    getEthDisplayableAddress(dataContext.starkContext.conditionAddress,
+                                  strings.tmp.tmp,
+                                  sizeof(strings.tmp.tmp),
+                                  &global_sha3,
+                                  chainConfig),
     {
       .title = "Cond. Address",
       .text = strings.tmp.tmp

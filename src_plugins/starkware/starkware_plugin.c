@@ -280,18 +280,6 @@ void starkware_print_stark_key(uint8_t *starkKey, char *destination) {
 }
 
 // TODO : rewrite as independant code
-void starkware_print_eth_address(uint8_t *address, char *destination, size_t destinationLength) {
-    if (destinationLength < 43) {
-        strlcpy(destination, "ERROR", destinationLength);
-        return;
-    }
-    destination[0] = '0';
-    destination[1] = 'x';
-    getEthAddressStringFromBinary(address, destination + 2, &global_sha3, chainConfig);
-    destination[42] = '\0';
-}
-
-// TODO : rewrite as independant code
 void starkware_print_amount(uint8_t *amountData,
                             char *destination,
                             size_t destinationLength,
@@ -348,7 +336,11 @@ void starkware_print_asset_contract(char *destination, size_t destinationLength)
     if (dataContext.tokenContext.quantumIndex != MAX_TOKEN) {
         tokenDefinition_t *token =
             &tmpCtx.transactionContext.tokens[dataContext.tokenContext.quantumIndex];
-        starkware_print_eth_address(token->address, destination, destinationLength);
+        getEthDisplayableAddress(token->address,
+                                 destination,
+                                 destinationLength,
+                                 &global_sha3,
+                                 chainConfig);
     } else {
         strlcpy(destination, "UNKNOWN", destinationLength);
     }
@@ -708,9 +700,11 @@ void starkware_plugin_call(int message, void *parameters) {
                     if (is_deversify_contract(tmpContent.txContent.destination)) {
                         strlcpy(msg->msg, "DeversiFi", msg->msgLength);
                     } else {
-                        starkware_print_eth_address(tmpContent.txContent.destination,
-                                                    msg->msg,
-                                                    msg->msgLength);
+                        getEthDisplayableAddress(tmpContent.txContent.destination,
+                                                 msg->msg,
+                                                 msg->msgLength,
+                                                 &global_sha3,
+                                                 chainConfig);
                     }
                     msg->result = ETH_PLUGIN_RESULT_OK;
                     break;
@@ -720,7 +714,11 @@ void starkware_plugin_call(int message, void *parameters) {
                         case STARKWARE_REGISTER_AND_DEPOSIT_TOKEN:
                         case STARKWARE_REGISTER_AND_DEPOSIT_ETH:
                             strlcpy(msg->title, "From ETH Address", msg->titleLength);
-                            starkware_print_eth_address(context->amount, msg->msg, msg->msgLength);
+                            getEthDisplayableAddress(context->amount,
+                                                     msg->msg,
+                                                     msg->msgLength,
+                                                     &global_sha3,
+                                                     chainConfig);
                             break;
                         case STARKWARE_ESCAPE:
                             strlcpy(msg->title, "Amount", msg->titleLength);
@@ -784,7 +782,11 @@ void starkware_plugin_call(int message, void *parameters) {
                         case STARKWARE_WITHDRAW_TO:
                         case STARKWARE_WITHDRAW_NFT_TO:
                             strlcpy(msg->title, "To ETH Address", msg->titleLength);
-                            starkware_print_eth_address(context->amount, msg->msg, msg->msgLength);
+                            getEthDisplayableAddress(context->amount,
+                                                     msg->msg,
+                                                     msg->msgLength,
+                                                     &global_sha3,
+                                                     chainConfig);
                             break;
                         case STARKWARE_WITHDRAW_AND_MINT:
                             strlcpy(msg->title, "Asset Contract", msg->titleLength);

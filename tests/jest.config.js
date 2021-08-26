@@ -30,4 +30,6 @@ module.exports = {
     "**/?(*.)+(spec|test).[tj]s?(x)",
     "**/?(*.)+(ispec|test).[tj]s?(x)",
   ],
+
+  setupFilesAfterEnv: ['<rootDir>/setupTests.js']
 };

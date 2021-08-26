@@ -1,3 +1,5 @@
+import fs from "fs";
+
 const sim_options_nanos = {
   model: "nanos",
   logging: true,
@@ -26,6 +28,17 @@ const NANOX_CLONE_ELF_PATH = Resolve("elfs/ethereum_classic_nanox.elf");
 
 const TIMEOUT = 1000000;
 
+const getTmpPath = (testName) => {
+  let date = new Date();
+  let tmpPath = `snapshots/tmp/${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}@${testName}/`;
+  fs.mkdir(tmpPath, { recursive:true }, (err) => {
+    if(err) {
+      console.log("couldn't create tmp folder at path: " + tmpPath)
+    }
+  });
+  return tmpPath;
+}
+
 module.exports = {
     NANOS_ELF_PATH,
     NANOX_ELF_PATH,
@@ -36,4 +49,5 @@ module.exports = {
     sim_options_nanos,
     sim_options_nanox,
     TIMEOUT,
+    getTmpPath,
 }

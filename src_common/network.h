@@ -1,7 +1,6 @@
 #include <stdint.h>
 #include "tokens.h"
-
-#define NETWORK_STRING_MAX_SIZE 12
+#include "shared_context.h"
 
 typedef struct network_info_s {
     const char name[NETWORK_STRING_MAX_SIZE];

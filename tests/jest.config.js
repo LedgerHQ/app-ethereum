@@ -31,5 +31,9 @@ module.exports = {
     "**/?(*.)+(ispec|test).[tj]s?(x)",
   ],
 
-  setupFilesAfterEnv: ['<rootDir>/setupTests.js']
+  // Path of the file where tests can be """decorated"""
+  setupFilesAfterEnv: ['<rootDir>/setupTests.js'],
+
+  // Stop immediatly when a test fail
+  bail: true,
 };

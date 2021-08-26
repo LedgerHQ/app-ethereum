@@ -19,18 +19,19 @@ const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 100, .name = "xDai", .ticker = "xDAI "},
     {.chain_id = 137, .name = "Polygon", .ticker = "MATIC "},
     {.chain_id = 250, .name = "Fantom", .ticker = "FTM "},
-    {.chain_id = 43114, .name = "Avalanche", .ticker = "AVAX "}};
+    {.chain_id = 43114, .name = "Avalanche", .ticker = "AVAX "},
+    {.chain_id = 11297108099, .name = "Palm", .ticker = "PALM "}};
 
-uint32_t get_chain_id(void) {
-    uint32_t chain_id = 0;
+uint64_t get_chain_id(void) {
+    uint64_t chain_id = 0;
 
     switch (txContext.txType) {
         case LEGACY:
-            chain_id = u32_from_BE(txContext.content->v, txContext.content->vLength);
+            chain_id = u64_from_BE(txContext.content->v, txContext.content->vLength);
             break;
         case EIP2930:
         case EIP1559:
-            chain_id = u32_from_BE(tmpContent.txContent.chainID.value,
+            chain_id = u64_from_BE(tmpContent.txContent.chainID.value,
                                    tmpContent.txContent.chainID.length);
             break;
         default:
@@ -42,7 +43,7 @@ uint32_t get_chain_id(void) {
 }
 
 network_info_t *get_network(void) {
-    uint32_t chain_id = get_chain_id();
+    uint64_t chain_id = get_chain_id();
     for (uint8_t i = 0; i < sizeof(NETWORK_MAPPING) / sizeof(*NETWORK_MAPPING); i++) {
         if (NETWORK_MAPPING[i].chain_id == chain_id) {
             return (network_info_t *) PIC(&NETWORK_MAPPING[i]);

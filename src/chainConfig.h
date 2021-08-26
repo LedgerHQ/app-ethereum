@@ -60,7 +60,7 @@ typedef enum chain_kind_e {
 
 typedef struct chain_config_s {
     char coinName[10];  // ticker
-    uint32_t chainId;
+    uint64_t chainId;
     chain_kind_t kind;
 } chain_config_t;
 

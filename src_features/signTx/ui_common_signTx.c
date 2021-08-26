@@ -7,7 +7,6 @@ unsigned int io_seproxyhal_touch_tx_ok(__attribute__((unused)) const bagl_elemen
     uint8_t signature[100];
     cx_ecfp_private_key_t privateKey;
     uint32_t tx = 0;
-    uint32_t v = u32_from_BE(tmpContent.txContent.v, tmpContent.txContent.vLength);
     io_seproxyhal_io_heartbeat();
     os_perso_derive_node_bip32(CX_CURVE_256K1,
                                tmpCtx.transactionContext.bip32Path,
@@ -41,6 +40,7 @@ unsigned int io_seproxyhal_touch_tx_ok(__attribute__((unused)) const bagl_elemen
         } else {
             // New API
             // Note that this is wrong for a large v, but the client can always recover
+            uint64_t v = u64_from_BE(tmpContent.txContent.v, tmpContent.txContent.vLength);
             G_io_apdu_buffer[0] = (v * 2) + 35;
         }
         if (info & CX_ECCINFO_PARITY_ODD) {

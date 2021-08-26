@@ -257,20 +257,40 @@ void prepareFeeDisplay() {
                        sizeof(strings.common.maxFee));
 }
 
+static void u64_to_string(uint64_t src, char *dst, uint8_t dst_size) {
+    // Copy the numbers in ASCII format.
+    uint8_t i = 0;
+    do {
+        // Checking `i + 1` to make sure we have enough space for '\0'.
+        if (i + 1 >= dst_size) {
+            THROW(0x6502);
+        }
+        dst[i] = src % 10 + '0';
+        src /= 10;
+        i++;
+    } while (src);
+
+    // Null terminate string
+    dst[i] = '\0';
+
+    // Revert the string
+    i--;
+    uint8_t j = 0;
+    while (j < i) {
+        char tmp = dst[i];
+        dst[i] = dst[j];
+        dst[j] = tmp;
+        i--;
+        j++;
+    }
+}
+
 void prepareNetworkDisplay() {
     char *name = get_network_name();
     if (name == NULL) {
         // No network name found so simply copy the chain ID as the network name.
-        uint32_t chain_id = get_chain_id();
-        uint8_t res = snprintf(strings.common.network_name,
-                               sizeof(strings.common.network_name),
-                               "%d",
-                               chain_id);
-        if (res >= sizeof(strings.common.network_name)) {
-            // If the return value is higher or equal to the size passed in as parameter, then
-            // the output was truncated. Return the appropriate error code.
-            THROW(0x6502);
-        }
+        uint64_t chain_id = get_chain_id();
+        u64_to_string(chain_id, strings.common.network_name, sizeof(strings.common.network_name));
     } else {
         // Network name found, simply copy it.
         strlcpy(strings.common.network_name, name, sizeof(strings.common.network_name));
@@ -308,7 +328,7 @@ void finalizeParsing(bool direct) {
     // Verify the chain
     if (chainConfig->chainId != ETHEREUM_MAINNET_CHAINID) {
         // TODO: Could we remove above check?
-        uint32_t id = get_chain_id();
+        uint64_t id = get_chain_id();
 
         if (chainConfig->chainId != id) {
             PRINTF("Invalid chainID %u expected %u\n", id, chainConfig->chainId);

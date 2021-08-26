@@ -44,6 +44,8 @@ void getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey,
                                 cx_sha3_t *sha3Context,
                                 chain_config_t *chain_config);
 
+void u64_to_string(uint64_t src, char *dst, uint8_t dst_size);
+
 void getEthAddressStringFromBinary(uint8_t *address,
                                    char *out,
                                    cx_sha3_t *sha3Context,

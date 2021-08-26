@@ -133,6 +133,34 @@ void getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey,
     getEthAddressStringFromBinary(hashAddress + 12, out, sha3Context, chain_config);
 }
 
+void u64_to_string(uint64_t src, char *dst, uint8_t dst_size) {
+    // Copy the numbers in ASCII format.
+    uint8_t i = 0;
+    do {
+        // Checking `i + 1` to make sure we have enough space for '\0'.
+        if (i + 1 >= dst_size) {
+            THROW(0x6502);
+        }
+        dst[i] = src % 10 + '0';
+        src /= 10;
+        i++;
+    } while (src);
+
+    // Null terminate string
+    dst[i] = '\0';
+
+    // Revert the string
+    i--;
+    uint8_t j = 0;
+    while (j < i) {
+        char tmp = dst[i];
+        dst[i] = dst[j];
+        dst[j] = tmp;
+        i--;
+        j++;
+    }
+}
+
 void getEthAddressStringFromBinary(uint8_t *address,
                                    char *out,
                                    cx_sha3_t *sha3Context,
@@ -153,11 +181,9 @@ void getEthAddressStringFromBinary(uint8_t *address,
             break;
     }
     if (eip1191) {
-        snprintf((char *) locals_union.tmp,
-                 sizeof(locals_union.tmp),
-                 "%d0x",
-                 chain_config->chainId);
-        offset = strlen((char *) locals_union.tmp);
+        u64_to_string(chain_config->chainId, (char *) locals_union.tmp, sizeof(locals_union.tmp));
+        offset = strnlen((char *) locals_union.tmp, sizeof(locals_union.tmp));
+        strlcat((char *) locals_union.tmp + offset, "0x", sizeof(locals_union.tmp) - offset);
     }
     for (i = 0; i < 20; i++) {
         uint8_t digit = address[i];

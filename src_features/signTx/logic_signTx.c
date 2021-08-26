@@ -8,6 +8,7 @@
 #endif
 #include "eth_plugin_handler.h"
 #include "network.h"
+#include "ethUtils.h"
 
 #define ERR_SILENT_MODE_CHECK_FAILED 0x6001
 
@@ -255,34 +256,6 @@ void prepareFeeDisplay() {
                        &tmpContent.txContent.startgas,
                        strings.common.maxFee,
                        sizeof(strings.common.maxFee));
-}
-
-static void u64_to_string(uint64_t src, char *dst, uint8_t dst_size) {
-    // Copy the numbers in ASCII format.
-    uint8_t i = 0;
-    do {
-        // Checking `i + 1` to make sure we have enough space for '\0'.
-        if (i + 1 >= dst_size) {
-            THROW(0x6502);
-        }
-        dst[i] = src % 10 + '0';
-        src /= 10;
-        i++;
-    } while (src);
-
-    // Null terminate string
-    dst[i] = '\0';
-
-    // Revert the string
-    i--;
-    uint8_t j = 0;
-    while (j < i) {
-        char tmp = dst[i];
-        dst[i] = dst[j];
-        dst[j] = tmp;
-        i--;
-        j++;
-    }
 }
 
 void prepareNetworkDisplay() {

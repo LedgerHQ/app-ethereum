@@ -20,10 +20,11 @@ const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 137, .name = "Polygon", .ticker = "MATIC "},
     {.chain_id = 250, .name = "Fantom", .ticker = "FTM "},
     {.chain_id = 43114, .name = "Avalanche", .ticker = "AVAX "},
-    {.chain_id = 11297108099, .name = "Palm Network", .ticker = "PALM "}};
+    {.chain_id = 11297108109, .name = "Palm Network", .ticker = "PALM "}};
 
 uint64_t get_chain_id(void) {
     uint64_t chain_id = 0;
+    char tmp[16] = {0};
 
     switch (txContext.txType) {
         case LEGACY:
@@ -38,17 +39,24 @@ uint64_t get_chain_id(void) {
             PRINTF("Txtype `%d` not supported while generating chainID\n", txContext.txType);
             break;
     }
-    PRINTF("ChainID: %d\n", chain_id);
+    u64_to_string(chain_id, tmp, sizeof(tmp));
+    PRINTF("\n\nTMP: %s\n", tmp);
     return chain_id;
 }
 
 network_info_t *get_network(void) {
     uint64_t chain_id = get_chain_id();
+    char tmp1[16];
+    char tmp2[16];
     for (uint8_t i = 0; i < sizeof(NETWORK_MAPPING) / sizeof(*NETWORK_MAPPING); i++) {
+        u64_to_string(NETWORK_MAPPING[i].chain_id, tmp1, sizeof(tmp1));
+        u64_to_string(chain_id, tmp2, sizeof(tmp2));
+        PRINTF("Comparing %s but wanted %s\n", tmp1, tmp2);
         if (NETWORK_MAPPING[i].chain_id == chain_id) {
             return (network_info_t *) PIC(&NETWORK_MAPPING[i]);
         }
     }
+    PRINTF("RETURNING NULL\n");
     return NULL;
 }
 

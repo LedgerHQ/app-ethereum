@@ -267,7 +267,6 @@ void prepareNetworkDisplay() {
     } else {
         // Network name found, simply copy it.
         strlcpy(strings.common.network_name, name, sizeof(strings.common.network_name));
-        PRINTF("COPIED\n");
     }
 }
 
@@ -457,9 +456,6 @@ void finalizeParsing(bool direct) {
 
     // Prepare chainID field
     prepareNetworkDisplay();
-    PRINTF("Network bytes: %.*H\n",
-           sizeof(strings.common.network_name),
-           strings.common.network_name);
     PRINTF("Network: %s\n", strings.common.network_name);
 
     bool no_consent;

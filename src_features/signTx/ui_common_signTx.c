@@ -41,9 +41,10 @@ unsigned int io_seproxyhal_touch_tx_ok(__attribute__((unused)) const bagl_elemen
             // New API
             // Note that this is wrong for a large v, but ledgerjs will recover.
 
-            // Casting to u32 not to introduce breaking changes. In the future, this should be
-            // updated.
-            uint32_t v = U4BE(tmpContent.txContent.v, 0);
+            // Taking only the 4 highest bytes to not introduce breaking changes. In the future,
+            // this should be updated.
+            uint32_t v = (uint32_t) u64_from_BE(tmpContent.txContent.v,
+                                                MIN(4, tmpContent.txContent.vLength));
             G_io_apdu_buffer[0] = (v * 2) + 35;
         }
         if (info & CX_ECCINFO_PARITY_ODD) {

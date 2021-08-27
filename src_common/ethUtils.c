@@ -184,6 +184,7 @@ void getEthAddressStringFromBinary(uint8_t *address,
         u64_to_string(chain_config->chainId, (char *) locals_union.tmp, sizeof(locals_union.tmp));
         offset = strnlen((char *) locals_union.tmp, sizeof(locals_union.tmp));
         strlcat((char *) locals_union.tmp + offset, "0x", sizeof(locals_union.tmp) - offset);
+        offset = strnlen((char *) locals_union.tmp, sizeof(locals_union.tmp));
     }
     for (i = 0; i < 20; i++) {
         uint8_t digit = address[i];

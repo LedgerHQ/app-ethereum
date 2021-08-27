@@ -6,20 +6,17 @@ import Zemu from "@zondax/zemu";
 import { TransportStatusError } from "@ledgerhq/errors";
 import { expect } from "../jest";
 
-const {NANOS_ELF_PATH, NANOX_ELF_PATH, sim_options_nanos, sim_options_nanox, TIMEOUT} = require("generic.js");
+const {NANOS_ELF_PATH, NANOX_ELF_PATH, sim_options_nanos, sim_options_nanox, TIMEOUT, getTmpPath} = require("generic.js");
 
 const ORIGINAL_SNAPSHOT_PATH_PREFIX = "snapshots/eip1559/";
-const SNAPSHOT_PATH_PREFIX = "snapshots/eip1559/";
 
 const ORIGINAL_SNAPSHOT_PATH_NANOS = ORIGINAL_SNAPSHOT_PATH_PREFIX + "nanos/";
 const ORIGINAL_SNAPSHOT_PATH_NANOX = ORIGINAL_SNAPSHOT_PATH_PREFIX + "nanox/";
 
-const SNAPSHOT_PATH_NANOS = SNAPSHOT_PATH_PREFIX + "nanos/";
-const SNAPSHOT_PATH_NANOX = SNAPSHOT_PATH_PREFIX + "nanox/";
-
 test("Transfer nanos eip1559", async () => {
   jest.setTimeout(TIMEOUT);
   const sim = new Zemu(NANOS_ELF_PATH);
+  let tmpPath = getTmpPath(expect.getState().currentTestName);
 
   try {
     await sim.start(sim_options_nanos);
@@ -36,52 +33,52 @@ test("Transfer nanos eip1559", async () => {
     await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot());
     // Review tx
     filename = "review.png";
-    await sim.snapshot(SNAPSHOT_PATH_NANOS + filename);
-    const review = Zemu.LoadPng2RGB(SNAPSHOT_PATH_NANOS + filename);
+    await sim.snapshot(tmpPath + filename);
+    const review = Zemu.LoadPng2RGB(tmpPath + filename);
     const expected_review = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(review).toEqual(expected_review);
+    expect(review).toMatchSnapshot(expected_review);
 
     // Amount
     filename = "amount.png";
-    await sim.clickRight(SNAPSHOT_PATH_NANOS + filename);
-    const amount = Zemu.LoadPng2RGB(SNAPSHOT_PATH_NANOS + filename);
+    await sim.clickRight(tmpPath + filename);
+    const amount = Zemu.LoadPng2RGB(tmpPath + filename);
     const expected_amount = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(amount).toEqual(expected_amount);
+    expect(amount).toMatchSnapshot(expected_amount);
 
     // Address 1/3
     filename = "address_1.png";
-    await sim.clickRight(SNAPSHOT_PATH_NANOS + filename);
-    const address_1 = Zemu.LoadPng2RGB(SNAPSHOT_PATH_NANOS + filename);
+    await sim.clickRight(tmpPath + filename);
+    const address_1 = Zemu.LoadPng2RGB(tmpPath + filename);
     const expected_address_1 = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(address_1).toEqual(expected_address_1);
+    expect(address_1).toMatchSnapshot(expected_address_1);
 
     // Address 2/3
     filename = "address_2.png";
-    await sim.clickRight(SNAPSHOT_PATH_NANOS + filename);
-    const address_2 = Zemu.LoadPng2RGB(SNAPSHOT_PATH_NANOS + filename);
+    await sim.clickRight(tmpPath + filename);
+    const address_2 = Zemu.LoadPng2RGB(tmpPath + filename);
     const expected_address_2 = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(address_2).toEqual(expected_address_2);
+    expect(address_2).toMatchSnapshot(expected_address_2);
 
     // Address 3/3
     filename = "address_3.png";
-    await sim.clickRight(SNAPSHOT_PATH_NANOS + filename);
-    const address_3 = Zemu.LoadPng2RGB(SNAPSHOT_PATH_NANOS + filename);
+    await sim.clickRight(tmpPath + filename);
+    const address_3 = Zemu.LoadPng2RGB(tmpPath + filename);
     const expected_address_3 = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(address_3).toEqual(expected_address_3);
+    expect(address_3).toMatchSnapshot(expected_address_3);
 
     // Max Fees
     filename = "fees.png";
-    await sim.clickRight(SNAPSHOT_PATH_NANOS + filename);
-    const fees = Zemu.LoadPng2RGB(SNAPSHOT_PATH_NANOS + filename);
+    await sim.clickRight(tmpPath + filename);
+    const fees = Zemu.LoadPng2RGB(tmpPath + filename);
     const expected_fees = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(fees).toEqual(expected_fees);
+    expect(fees).toMatchSnapshot(expected_fees);
 
     // Accept
     filename = "accept.png";
-    await sim.clickRight(SNAPSHOT_PATH_NANOS + filename);
-    const accept = Zemu.LoadPng2RGB(SNAPSHOT_PATH_NANOS + filename);
+    await sim.clickRight(tmpPath + filename);
+    const accept = Zemu.LoadPng2RGB(tmpPath + filename);
     const expected_accept = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(accept).toEqual(expected_accept);
+    expect(accept).toMatchSnapshot(expected_accept);
 
     await sim.clickBoth();
 
@@ -95,6 +92,7 @@ test("Transfer nanos eip1559", async () => {
 test("Transfer nanox", async () => {
   jest.setTimeout(TIMEOUT);
   const sim = new Zemu(NANOX_ELF_PATH);
+  let tmpPath = getTmpPath(expect.getState().currentTestName);
 
   try {
     await sim.start(sim_options_nanox);
@@ -111,38 +109,38 @@ test("Transfer nanox", async () => {
     await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot());
     // Review tx
     filename = "review.png";
-    await sim.snapshot(SNAPSHOT_PATH_NANOX + filename);
-    const review = Zemu.LoadPng2RGB(SNAPSHOT_PATH_NANOX + filename);
+    await sim.snapshot(tmpPath + filename);
+    const review = Zemu.LoadPng2RGB(tmpPath + filename);
     const expected_review = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOX + filename);
-    expect(review).toEqual(expected_review);
+    expect(review).toMatchSnapshot(expected_review);
 
     // Amount
     filename = "amount.png";
-    await sim.clickRight(SNAPSHOT_PATH_NANOX + filename);
-    const amount = Zemu.LoadPng2RGB(SNAPSHOT_PATH_NANOX + filename);
+    await sim.clickRight(tmpPath + filename);
+    const amount = Zemu.LoadPng2RGB(tmpPath + filename);
     const expected_amount = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOX + filename);
-    expect(amount).toEqual(expected_amount);
+    expect(amount).toMatchSnapshot(expected_amount);
 
     // Address
     filename = "address.png";
-    await sim.clickRight(SNAPSHOT_PATH_NANOX + filename);
-    const address = Zemu.LoadPng2RGB(SNAPSHOT_PATH_NANOX + filename);
+    await sim.clickRight(tmpPath + filename);
+    const address = Zemu.LoadPng2RGB(tmpPath + filename);
     const expected_address = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOX + filename);
-    expect(address).toEqual(expected_address);
+    expect(address).toMatchSnapshot(expected_address);
 
     // Max Fees
     filename = "fees.png";
-    await sim.clickRight(SNAPSHOT_PATH_NANOX + filename);
-    const fees = Zemu.LoadPng2RGB(SNAPSHOT_PATH_NANOX + filename);
+    await sim.clickRight(tmpPath + filename);
+    const fees = Zemu.LoadPng2RGB(tmpPath + filename);
     const expected_fees = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOX + filename);
-    expect(fees).toEqual(expected_fees);
+    expect(fees).toMatchSnapshot(expected_fees);
 
     // Accept
     filename = "accept.png";
-    await sim.clickRight(SNAPSHOT_PATH_NANOX + filename);
-    const accept = Zemu.LoadPng2RGB(SNAPSHOT_PATH_NANOX + filename);
+    await sim.clickRight(tmpPath + filename);
+    const accept = Zemu.LoadPng2RGB(tmpPath + filename);
     const expected_accept = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOX + filename);
-    expect(accept).toEqual(expected_accept);
+    expect(accept).toMatchSnapshot(expected_accept);
 
     await sim.clickBoth();
 

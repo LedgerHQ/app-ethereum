@@ -8,14 +8,12 @@ expect.extend({
           message: () => `snapshots are equal`,
           pass: true
         }
-      }
-
-    //   console.log(received.data.toString('hex'))
-    //   console.log(original.data.toString('hex'))
-
-      return {
-        message: () => `snapshots are not equal`,
-        pass: false
+      } else {
+        console.log("snapshots are not equal")
+        return {
+          message: () => `snapshots are not equal`,
+          pass: false
+        }
       }
     },
   });

@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # FILL THESE WITH YOUR OWN SDKs PATHS
-NANOS_SDK=""
-NANOX_SDK=""
+NANOS_SDK=$TWO
+NANOX_SDK=$X
 
 # list of apps required by tests that we want to build here
 appnames=("ethereum" "ethereum_classic")

@@ -876,22 +876,22 @@ __attribute__((section(".boot"))) int main(int arg0) {
             PRINTF("Hello from Eth-clone\n");
             check_api_level(CX_COMPAT_APILEVEL);
             // delegate to Ethereum app/lib
-            libcall_params[0] = "Ethereum";
+            libcall_params[0] = (unsigned int) "Ethereum";
             libcall_params[1] = 0x100;
             libcall_params[2] = RUN_APPLICATION;
-            libcall_params[3] = &local_chainConfig;
+            libcall_params[3] = (unsigned int) &local_chainConfig;
             libcall_params[4] = 0;
             if (arg0) {
                 // call as a library
                 libcall_params[2] = ((unsigned int *) arg0)[1];
                 libcall_params[4] = ((unsigned int *) arg0)[3];  // library arguments
-                os_lib_call(&libcall_params);
+                os_lib_call((unsigned int *) &libcall_params);
                 ((unsigned int *) arg0)[0] = libcall_params[1];
                 os_lib_end();
             } else {
                 // launch coin application
                 libcall_params[1] = 0x100;  // use the Init call, as we won't exit
-                os_lib_call(&libcall_params);
+                os_lib_call((unsigned int *) &libcall_params);
             }
         }
         FINALLY {

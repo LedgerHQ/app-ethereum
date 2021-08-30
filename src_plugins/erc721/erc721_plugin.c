@@ -5,12 +5,6 @@
 #include "ethUtils.h"
 #include "utils.h"
 
-void getEthDisplayableAddress(uint8_t *in,
-                              char *out,
-                              size_t out_len,
-                              cx_sha3_t *sha3,
-                              chain_config_t *chain_config);
-
 typedef struct erc721_parameters_t {
     uint8_t selectorIndex;
     uint8_t address[ADDRESS_LENGTH];
@@ -126,7 +120,7 @@ void erc721_plugin_call(int message, void *parameters) {
                                              msg->msg,
                                              msg->msgLength,
                                              &global_sha3,
-                                             chainConfig);
+                                             chainConfig->chainId);
                     msg->result = ETH_PLUGIN_RESULT_OK;
                     break;
 
@@ -136,7 +130,7 @@ void erc721_plugin_call(int message, void *parameters) {
                                              msg->msg,
                                              msg->msgLength,
                                              &global_sha3,
-                                             chainConfig);
+                                             chainConfig->chainId);
                     msg->result = ETH_PLUGIN_RESULT_OK;
                     break;
 

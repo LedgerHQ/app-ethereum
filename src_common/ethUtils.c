@@ -126,11 +126,11 @@ void getEthAddressFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out, cx_sha3
 void getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey,
                                 char *out,
                                 cx_sha3_t *sha3Context,
-                                chain_config_t *chain_config) {
+                                uint64_t chainId) {
     uint8_t hashAddress[INT256_LENGTH];
     cx_keccak_init(sha3Context, 256);
     cx_hash((cx_hash_t *) sha3Context, CX_LAST, publicKey->W + 1, 64, hashAddress, 32);
-    getEthAddressStringFromBinary(hashAddress + 12, out, sha3Context, chain_config);
+    getEthAddressStringFromBinary(hashAddress + 12, out, sha3Context, chainId);
 }
 
 void u64_to_string(uint64_t src, char *dst, uint8_t dst_size) {
@@ -164,7 +164,7 @@ void u64_to_string(uint64_t src, char *dst, uint8_t dst_size) {
 void getEthAddressStringFromBinary(uint8_t *address,
                                    char *out,
                                    cx_sha3_t *sha3Context,
-                                   chain_config_t *chain_config) {
+                                   uint64_t chainId) {
     // save some precious stack space
     union locals_union {
         uint8_t hashChecksum[INT256_LENGTH];
@@ -174,14 +174,14 @@ void getEthAddressStringFromBinary(uint8_t *address,
     uint8_t i;
     bool eip1191 = false;
     uint32_t offset = 0;
-    switch (chain_config->chainId) {
+    switch (chainId) {
         case 30:
         case 31:
             eip1191 = true;
             break;
     }
     if (eip1191) {
-        u64_to_string(chain_config->chainId, (char *) locals_union.tmp, sizeof(locals_union.tmp));
+        u64_to_string(chainId, (char *) locals_union.tmp, sizeof(locals_union.tmp));
         offset = strnlen((char *) locals_union.tmp, sizeof(locals_union.tmp));
         strlcat((char *) locals_union.tmp + offset, "0x", sizeof(locals_union.tmp) - offset);
         offset = strnlen((char *) locals_union.tmp, sizeof(locals_union.tmp));
@@ -219,22 +219,22 @@ void getEthAddressStringFromBinary(uint8_t *address,
     out[40] = '\0';
 }
 
-// Fills the `out` buffer with the lowercase string representation of the pubkey passed in as binary
-// format by `in`. (eg: uint8_t*:0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB ->
-// char*:"0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB\0" ) `sha3` context doesn't have have to be
-// initialized prior to call. `chain_config` must be initialized.
+/* Fills the `out` buffer with the lowercase string representation of the pubkey passed in as binary
+format by `in`. (eg: uint8_t*:0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB ->
+char*:"0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB\0" )
+`sha3` context doesn't have have to be initialized prior to call.*/
 void getEthDisplayableAddress(uint8_t *in,
                               char *out,
                               size_t out_len,
                               cx_sha3_t *sha3,
-                              chain_config_t *chain_config) {
+                              uint64_t chainId) {
     if (out_len < 43) {
         strlcpy(out, "ERROR", out_len);
         return;
     }
     out[0] = '0';
     out[1] = 'x';
-    getEthAddressStringFromBinary(in, out + 2, sha3, chain_config);
+    getEthAddressStringFromBinary(in, out + 2, sha3, chainId);
 }
 
 bool adjustDecimals(char *src,

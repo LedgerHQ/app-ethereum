@@ -183,7 +183,7 @@ UX_STEP_NOCB_INIT(
                                   strings.tmp.tmp,
                                   sizeof(strings.tmp.tmp),
                                   &global_sha3,
-                                  chainConfig),
+                                  chainConfig->chainId),
     {
       .title = "Cond. Address",
       .text = strings.tmp.tmp

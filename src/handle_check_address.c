@@ -61,7 +61,7 @@ int handle_check_address(check_address_parameters_t* params, chain_config_t* cha
     getEthAddressStringFromKey(&locals_union2.publicKey,
                                locals_union1.address,
                                &local_sha3,
-                               chain_config);
+                               chain_config->chainId);
     ZERO(locals_union2);
 
     uint8_t offset_0x = 0;

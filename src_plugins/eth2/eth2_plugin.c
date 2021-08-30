@@ -121,7 +121,7 @@ void eth2_plugin_call(int message, void *parameters) {
                                              tmp,
                                              sizeof(tmp),
                                              msg->pluginSharedRW->sha3,
-                                             chainConfig);
+                                             chainConfig->chainId);
 
                     // Copy back the string to the global variable.
                     strlcpy(context->deposit_address, tmp, ETH2_DEPOSIT_PUBKEY_LENGTH);

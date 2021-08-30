@@ -216,7 +216,7 @@ void erc20_plugin_call(int message, void *parameters) {
                                                  msg->msg,
                                                  msg->msgLength,
                                                  msg->pluginSharedRW->sha3,
-                                                 chainConfig);
+                                                 chainConfig->chainId);
                     }
 
                     msg->result = ETH_PLUGIN_RESULT_OK;

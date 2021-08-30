@@ -419,7 +419,7 @@ void finalizeParsing(bool direct) {
                                      displayBuffer,
                                      sizeof(displayBuffer),
                                      &global_sha3,
-                                     chainConfig);
+                                     chainConfig->chainId);
             compareOrCopy(strings.common.fullAddress,
                           sizeof(strings.common.fullAddress),
                           displayBuffer,

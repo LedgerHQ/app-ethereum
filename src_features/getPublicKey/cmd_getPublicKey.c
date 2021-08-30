@@ -50,7 +50,7 @@ void handleGetPublicKey(uint8_t p1,
     getEthAddressStringFromKey(&tmpCtx.publicKeyContext.publicKey,
                                tmpCtx.publicKeyContext.address,
                                &global_sha3,
-                               chainConfig);
+                               chainConfig->chainId);
 #ifndef NO_CONSENT
     if (p1 == P1_NON_CONFIRM)
 #endif  // NO_CONSENT

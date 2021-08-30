@@ -42,14 +42,20 @@ void getEthAddressFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out, cx_sha3
 void getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey,
                                 char *out,
                                 cx_sha3_t *sha3Context,
-                                chain_config_t *chain_config);
+                                uint64_t chainId);
 
 void u64_to_string(uint64_t src, char *dst, uint8_t dst_size);
 
 void getEthAddressStringFromBinary(uint8_t *address,
                                    char *out,
                                    cx_sha3_t *sha3Context,
-                                   chain_config_t *chain_config);
+                                   uint64_t chainId);
+
+void getEthDisplayableAddress(uint8_t *in,
+                              char *out,
+                              size_t out_len,
+                              cx_sha3_t *sha3,
+                              uint64_t chainId);
 
 bool adjustDecimals(char *src,
                     uint32_t srcLength,

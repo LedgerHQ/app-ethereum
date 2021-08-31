@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Added better display for bigger chainIDs.
 
+### Changed
+
+- Small refactor of `getEthDisplayableAddress` helper
+- Improve Zemu tests to get parallelization
+- Increased plugin interface to version 2
+
 ## [1.9.2](https://github.com/ledgerhq/app-ethereum/compare/1.9.0...1.9.2) - 2021-8-11
 
 ### Added

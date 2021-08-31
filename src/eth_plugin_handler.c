@@ -153,7 +153,7 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
         case ETH_PLUGIN_INIT_CONTRACT:
             PRINTF("-- PLUGIN INIT CONTRACT --\n");
             ((ethPluginInitContract_t *) parameter)->interfaceVersion =
-                ETH_PLUGIN_INTERFACE_VERSION_1;
+                ETH_PLUGIN_INTERFACE_VERSION_LATEST;
             ((ethPluginInitContract_t *) parameter)->result = ETH_PLUGIN_RESULT_UNAVAILABLE;
             ((ethPluginInitContract_t *) parameter)->pluginSharedRW = &pluginRW;
             ((ethPluginInitContract_t *) parameter)->pluginSharedRO = &pluginRO;

@@ -20,9 +20,9 @@ const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 137, .name = "Polygon", .ticker = "MATIC "},
     {.chain_id = 250, .name = "Fantom", .ticker = "FTM "},
     {.chain_id = 42220, .name = "Celo", .ticker = "CELO "},
-    {.chain_id = 43114, .name = "Avalanche", .ticker = "AVAX "}},
+    {.chain_id = 43114, .name = "Avalanche", .ticker = "AVAX "},
     {.chain_id = 44787, .name = "Celo Alfajores", .ticker = "aCELO "},
-    {.chain_id = 62320, .name = "Celo Baklava", .ticker = "bCELO "};
+    {.chain_id = 62320, .name = "Celo Baklava", .ticker = "bCELO "}};
 
 uint32_t get_chain_id(void) {
     uint32_t chain_id = 0;

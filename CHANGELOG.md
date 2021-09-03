@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 - Added better display for bigger chainIDs.
+- Added support for Songbird.
+- Added support for Celo.
 
 ### Changed
 
@@ -17,7 +19,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Improve Zemu tests to get parallelization
 - Increased plugin interface to version 2
 - Remove support for Theta and Flare
-- Add support for Songbird
 
 ## [1.9.2](https://github.com/ledgerhq/app-ethereum/compare/1.9.0...1.9.2) - 2021-8-11
 

@@ -33,7 +33,7 @@ This will run `make install_tests` and `make run_tests`
 To run a specific tests (here the send test):
 ```
 cd tests
-sudo jest --runInBand --detectOpenHandles src/send.test.js
+jest --runInBand --detectOpenHandles src/send.test.js
 ```
 
 Make sure you're in the `tests` folder before running `jest` or `yarn test`.

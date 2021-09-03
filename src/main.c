@@ -250,11 +250,11 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
         case CHAIN_KIND_FLARE:
             numTokens = NUM_TOKENS_FLARE;
             break;
-        case CHAIN_KIND_THETA:
-            numTokens = NUM_TOKENS_THETA;
-            break;
         case CHAIN_KIND_BSC:
             numTokens = NUM_TOKENS_BSC;
+            break;
+        case CHAIN_KIND_SONGBIRD:
+            numTokens = NUM_TOKENS_SONGBIRD;
             break;
     }
     for (i = 0; i < numTokens; i++) {
@@ -352,11 +352,11 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
             case CHAIN_KIND_FLARE:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_FLARE[i]);
                 break;
-            case CHAIN_KIND_THETA:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_THETA[i]);
-                break;
             case CHAIN_KIND_BSC:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_BSC[i]);
+                break;
+            case CHAIN_KIND_SONGBIRD:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_SONGBIRD[i]);
                 break;
         }
         if (memcmp(currentToken->address, tmpContent.txContent.destination, ADDRESS_LENGTH) == 0) {
@@ -876,22 +876,22 @@ __attribute__((section(".boot"))) int main(int arg0) {
             PRINTF("Hello from Eth-clone\n");
             check_api_level(CX_COMPAT_APILEVEL);
             // delegate to Ethereum app/lib
-            libcall_params[0] = "Ethereum";
+            libcall_params[0] = (unsigned int) "Ethereum";
             libcall_params[1] = 0x100;
             libcall_params[2] = RUN_APPLICATION;
-            libcall_params[3] = &local_chainConfig;
+            libcall_params[3] = (unsigned int) &local_chainConfig;
             libcall_params[4] = 0;
             if (arg0) {
                 // call as a library
                 libcall_params[2] = ((unsigned int *) arg0)[1];
                 libcall_params[4] = ((unsigned int *) arg0)[3];  // library arguments
-                os_lib_call(&libcall_params);
+                os_lib_call((unsigned int *) &libcall_params);
                 ((unsigned int *) arg0)[0] = libcall_params[1];
                 os_lib_end();
             } else {
                 // launch coin application
                 libcall_params[1] = 0x100;  // use the Init call, as we won't exit
-                os_lib_call(&libcall_params);
+                os_lib_call((unsigned int *) &libcall_params);
             }
         }
         FINALLY {

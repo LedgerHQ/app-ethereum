@@ -124,13 +124,17 @@ jobs:
       - name: Build/Install build js deps
         run: |
           cd tests && yarn install
+      - name: Create tmp folder for artifacts
+        run: |
+          mkdir tests/elfs
       - name: Download app binaries
         uses: actions/download-artifact@v2
         with:
           path: tests/elfs
       - name: Gather elfs
         run: |
-          cp `find . -name "*.elf"` ./tests/elfs
+          cd tests/elfs
+          cp `find . -name "*.elf"` .
       - name: Run zemu tests
         run: |
           cd tests && yarn test

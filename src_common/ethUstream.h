@@ -126,7 +126,7 @@ typedef struct txContent_t {
     txInt256_t chainID;
     uint8_t destination[ADDRESS_LENGTH];
     uint8_t destinationLength;
-    uint8_t v[4];
+    uint8_t v[8];
     uint8_t vLength;
     bool dataPresent;
 } txContent_t;

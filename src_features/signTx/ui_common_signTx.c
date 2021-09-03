@@ -7,7 +7,6 @@ unsigned int io_seproxyhal_touch_tx_ok(__attribute__((unused)) const bagl_elemen
     uint8_t signature[100];
     cx_ecfp_private_key_t privateKey;
     uint32_t tx = 0;
-    uint32_t v = u32_from_BE(tmpContent.txContent.v, tmpContent.txContent.vLength);
     io_seproxyhal_io_heartbeat();
     os_perso_derive_node_bip32(CX_CURVE_256K1,
                                tmpCtx.transactionContext.bip32Path,
@@ -40,7 +39,12 @@ unsigned int io_seproxyhal_touch_tx_ok(__attribute__((unused)) const bagl_elemen
             G_io_apdu_buffer[0] = 27;
         } else {
             // New API
-            // Note that this is wrong for a large v, but the client can always recover
+            // Note that this is wrong for a large v, but ledgerjs will recover.
+
+            // Taking only the 4 highest bytes to not introduce breaking changes. In the future,
+            // this should be updated.
+            uint32_t v = (uint32_t) u64_from_BE(tmpContent.txContent.v,
+                                                MIN(4, tmpContent.txContent.vLength));
             G_io_apdu_buffer[0] = (v * 2) + 35;
         }
         if (info & CX_ECCINFO_PARITY_ODD) {

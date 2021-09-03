@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.9.3](https://github.com/ledgerhq/app-ethereum/compare/1.9.2...1.9.3) - 2021-9-03
+
+### Added
+
+- Added better display for bigger chainIDs.
+- Added support for Songbird.
+- Added support for Celo.
+
+### Changed
+
+- Small refactor of `getEthDisplayableAddress` helper
+- Improve Zemu tests to get parallelization
+- Increased plugin interface to version 2
+- Remove support for Theta and Flare
+
 ## [1.9.2](https://github.com/ledgerhq/app-ethereum/compare/1.9.0...1.9.2) - 2021-8-11
 
 ### Added

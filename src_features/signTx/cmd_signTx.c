@@ -59,7 +59,7 @@ void handleSign(uint8_t p1,
         } else {
             txContext.txType = LEGACY;
         }
-        PRINTF("TxType: %d\n", txContext.txType);
+        PRINTF("TxType: %x\n", txContext.txType);
     } else if (p1 != P1_MORE) {
         THROW(0x6B00);
     }

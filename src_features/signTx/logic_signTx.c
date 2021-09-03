@@ -8,6 +8,7 @@
 #endif
 #include "eth_plugin_handler.h"
 #include "network.h"
+#include "ethUtils.h"
 
 #define ERR_SILENT_MODE_CHECK_FAILED 0x6001
 
@@ -261,16 +262,8 @@ void prepareNetworkDisplay() {
     char *name = get_network_name();
     if (name == NULL) {
         // No network name found so simply copy the chain ID as the network name.
-        uint32_t chain_id = get_chain_id();
-        uint8_t res = snprintf(strings.common.network_name,
-                               sizeof(strings.common.network_name),
-                               "%d",
-                               chain_id);
-        if (res >= sizeof(strings.common.network_name)) {
-            // If the return value is higher or equal to the size passed in as parameter, then
-            // the output was truncated. Return the appropriate error code.
-            THROW(0x6502);
-        }
+        uint64_t chain_id = get_chain_id();
+        u64_to_string(chain_id, strings.common.network_name, sizeof(strings.common.network_name));
     } else {
         // Network name found, simply copy it.
         strlcpy(strings.common.network_name, name, sizeof(strings.common.network_name));
@@ -308,7 +301,7 @@ void finalizeParsing(bool direct) {
     // Verify the chain
     if (chainConfig->chainId != ETHEREUM_MAINNET_CHAINID) {
         // TODO: Could we remove above check?
-        uint32_t id = get_chain_id();
+        uint64_t id = get_chain_id();
 
         if (chainConfig->chainId != id) {
             PRINTF("Invalid chainID %u expected %u\n", id, chainConfig->chainId);
@@ -422,12 +415,11 @@ void finalizeParsing(bool direct) {
     // Prepare destination address to display
     if (genericUI) {
         if (tmpContent.txContent.destinationLength != 0) {
-            displayBuffer[0] = '0';
-            displayBuffer[1] = 'x';
-            getEthAddressStringFromBinary(tmpContent.txContent.destination,
-                                          displayBuffer + 2,
-                                          &global_sha3,
-                                          chainConfig);
+            getEthDisplayableAddress(tmpContent.txContent.destination,
+                                     displayBuffer,
+                                     sizeof(displayBuffer),
+                                     &global_sha3,
+                                     chainConfig->chainId);
             compareOrCopy(strings.common.fullAddress,
                           sizeof(strings.common.fullAddress),
                           displayBuffer,
@@ -459,9 +451,11 @@ void finalizeParsing(bool direct) {
 
     // Compute maximum fee
     prepareFeeDisplay();
+    PRINTF("Fees displayed: %s\n", strings.common.maxFee);
 
     // Prepare chainID field
     prepareNetworkDisplay();
+    PRINTF("Network: %s\n", strings.common.network_name);
 
     bool no_consent;
 

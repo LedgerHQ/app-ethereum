@@ -54,19 +54,17 @@ int local_strchr(char *string, char ch) {
     return -1;
 }
 
-uint32_t u32_from_BE(uint8_t *in, uint8_t size) {
-    switch (size) {
-        case 0:
-            return 0;
-        case 1:
-            return in[0];
-        case 2:
-            return (in[0] << 8) | in[1];
-        case 3:
-            return (in[0] << 16) | (in[1] << 8) | in[2];
-        default:
-            return (in[0] << 24) | (in[1] << 16) | (in[2] << 8) | in[3];
+uint64_t u64_from_BE(uint8_t *in, uint8_t size) {
+    uint8_t i = 0;
+    uint64_t res = 0;
+
+    while (i < size && i < sizeof(res)) {
+        res <<= 8;
+        res |= in[i];
+        i++;
     }
+
+    return res;
 }
 
 bool uint256_to_decimal(const uint8_t *value, size_t value_len, char *out, size_t out_len) {

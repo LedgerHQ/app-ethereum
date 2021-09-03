@@ -54,13 +54,13 @@ typedef enum chain_kind_e {
     CHAIN_KIND_WEBCHAIN,
     CHAIN_KIND_THUNDERCORE,
     CHAIN_KIND_FLARE,
-    CHAIN_KIND_THETA,
-    CHAIN_KIND_BSC
+    CHAIN_KIND_BSC,
+    CHAIN_KIND_SONGBIRD
 } chain_kind_t;
 
 typedef struct chain_config_s {
     char coinName[10];  // ticker
-    uint32_t chainId;
+    uint64_t chainId;
     chain_kind_t kind;
 } chain_config_t;
 

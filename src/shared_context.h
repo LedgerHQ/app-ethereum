@@ -162,14 +162,14 @@ typedef enum {
 #endif
 } contract_call_t;
 
-#define NETWORK_NAME_MAX_SIZE 12
+#define NETWORK_STRING_MAX_SIZE 16
 
 typedef struct txStringProperties_t {
     char fullAddress[43];
     char fullAmount[50];
     char maxFee[50];
     char nonce[8];  // 10M tx per account ought to be enough for everybody
-    char network_name[NETWORK_NAME_MAX_SIZE];
+    char network_name[NETWORK_STRING_MAX_SIZE];
 } txStringProperties_t;
 
 #define SHARED_CTX_FIELD_1_SIZE 100

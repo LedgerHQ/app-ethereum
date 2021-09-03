@@ -4562,4 +4562,6 @@ const tokenDefinition_t const TOKENS_FLARE[NUM_TOKENS_FLARE] = {};
 
 const tokenDefinition_t const TOKENS_BSC[NUM_TOKENS_BSC] = {};
 
+const tokenDefinition_t const TOKENS_SONGBIRD[NUM_TOKENS_SONGBIRD] = {};
+
 #endif

@@ -80,7 +80,7 @@ void handleSetExternalPlugin(uint8_t p1,
     memmove(dataContext.tokenContext.contract_address, workBuffer, ADDRESS_LENGTH);
     workBuffer += ADDRESS_LENGTH;
     memmove(dataContext.tokenContext.method_selector, workBuffer, SELECTOR_SIZE);
-    externalPluginIsSet = true;
+    pluginType = EXTERNAL;
 
     G_io_apdu_buffer[(*tx)++] = 0x90;
     G_io_apdu_buffer[(*tx)++] = 0x00;

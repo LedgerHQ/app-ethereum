@@ -50,7 +50,7 @@ cx_sha3_t global_sha3;
 
 uint8_t appState;
 bool called_from_swap;
-bool externalPluginIsSet;
+pluginType_t pluginType;
 #ifdef HAVE_STARKWARE
 bool quantumSet;
 #endif
@@ -72,7 +72,7 @@ void reset_app_context() {
     // PRINTF("!!RESET_APP_CONTEXT\n");
     appState = APP_STATE_IDLE;
     called_from_swap = false;
-    externalPluginIsSet = false;
+    pluginType = INTERNAL;
 #ifdef HAVE_STARKWARE
     quantumSet = false;
 #endif

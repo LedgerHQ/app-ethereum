@@ -53,7 +53,7 @@ void handleSign(uint8_t p1,
                 workBuffer++;
                 dataLength--;
             } else {
-                PRINTF("Transaction type not supported\n");
+                PRINTF("Transaction type %d not supported\n", txType);
                 THROW(0x6501);
             }
         } else {

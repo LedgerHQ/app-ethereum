@@ -5,16 +5,23 @@
 #include "ethUtils.h"
 #include "utils.h"
 
-#define APPROVAL_DATA_SIZE       SELECTOR_SIZE + 2 * PARAMETER_LENGTH
+// Internal plugin for EIP 721: https://eips.ethereum.org/EIPS/eip-721
+
 #define MAX_COLLECTION_NAME_SIZE 40
 
 typedef enum {
-    APPROVAL,
+    APPROVE,
+    SET_APPROVAL_FOR_ALL,
     TRANSFER,
 } erc721_selector_t;
 
 typedef enum {
-    FIRST,
+    FROM,
+    TO,
+    DATA,
+    TOKEN_ID,
+    OPERATOR,
+    NONE,
 } erc721_selector_field;
 
 typedef struct erc721_parameters_t {
@@ -26,5 +33,6 @@ typedef struct erc721_parameters_t {
     erc721_selector_field next_param;
 } erc721_parameters_t;
 
-void handle_contract_ui(void *parameters);
-void handle_provide_parameter(void *parameters) {
+void handle_provide_parameter(void *parameters);
+void handle_query_contract_ui(void *parameters);
+bool erc721_plugin_available_check();

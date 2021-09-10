@@ -4,12 +4,9 @@ static void handle_init_contract(void *parameters) {
     ethPluginInitContract_t *msg = (ethPluginInitContract_t *) parameters;
     erc721_parameters_t *context = (erc721_parameters_t *) msg->pluginContext;
 
-    // Sanity checks
+    // Ensure no ETH gets sent with this transaction.
     if (!allzeroes(msg->pluginSharedRO->txContent->value.value, 32)) {
         PRINTF("Err: Transaction amount is not 0 for erc721 approval\n");
-        msg->result = ETH_PLUGIN_RESULT_ERROR;
-    } else if (msg->dataSize != APPROVAL_DATA_SIZE) {
-        PRINTF("Invalid erc721 approval data size %d\n", msg->dataSize);
         msg->result = ETH_PLUGIN_RESULT_ERROR;
     }
 
@@ -30,8 +27,8 @@ static void handle_init_contract(void *parameters) {
 
     msg->result = ETH_PLUGIN_RESULT_OK;
     switch (context->selectorIndex) {
-        case APPROVAL:
-            context->next_param = FIRST;
+        case APPROVE:
+            context->next_param = OPERATOR;
             break;
         default:
             PRINTF("Unsupported selector index: %d\n", context->selectorIndex);
@@ -53,17 +50,20 @@ static void handle_finalize(void *parameters) {
 
 static void handle_provide_token(void *parameters) {
     ethPluginProvideToken_t *msg = (ethPluginProvideToken_t *) parameters;
-    erc721_parameters_t *context = (erc721_parameters_t *) msg->pluginContext;
 
     msg->result = ETH_PLUGIN_RESULT_OK;
 }
 
-static void handle_contract_id(void *parameters) {
+static void handle_query_contract_id(void *parameters) {
     ethQueryContractID_t *msg = (ethQueryContractID_t *) parameters;
 
     strlcpy(msg->name, "NFT", msg->nameLength);
     strlcpy(msg->version, "Allowance", msg->versionLength);
     msg->result = ETH_PLUGIN_RESULT_OK;
+}
+
+bool erc721_plugin_available_check() {
+    return true;
 }
 
 void erc721_plugin_call(int message, void *parameters) {
@@ -76,11 +76,15 @@ void erc721_plugin_call(int message, void *parameters) {
         } break;
         case ETH_PLUGIN_FINALIZE: {
             handle_finalize(parameters);
+            PRINTF("AFTER finalize\n");
         } break;
         case ETH_PLUGIN_PROVIDE_TOKEN: {
+            PRINTF("in provide token\n");
             handle_provide_token(parameters);
+            PRINTF("after\n");
         } break;
         case ETH_PLUGIN_QUERY_CONTRACT_ID: {
+            PRINTF("query contract id\n");
             handle_query_contract_id(parameters);
         } break;
         case ETH_PLUGIN_QUERY_CONTRACT_UI: {

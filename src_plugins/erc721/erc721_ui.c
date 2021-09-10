@@ -5,7 +5,7 @@ static void handle_approval_ui(ethQueryContractUI_t *msg, erc721_parameters_t *c
         case 0:
             strlcpy(msg->title, "Collection", msg->titleLength);
             getEthDisplayableAddress(msg->pluginSharedRO->txContent->destination,
-                                     msg->pluginSharedRO->txContent->destinationLength,
+                                     msg->msg,
                                      msg->msgLength,
                                      &global_sha3,
                                      chainConfig->chainId);
@@ -25,13 +25,13 @@ static void handle_approval_ui(ethQueryContractUI_t *msg, erc721_parameters_t *c
     }
 }
 
-void handle_contract_ui(void *parameters) {
+void handle_query_contract_ui(void *parameters) {
     ethQueryContractUI_t *msg = (ethQueryContractUI_t *) parameters;
     erc721_parameters_t *context = (erc721_parameters_t *) msg->pluginContext;
 
     msg->result = ETH_PLUGIN_RESULT_OK;
     switch (context->selectorIndex) {
-        case APPROVAL:
+        case APPROVE:
             handle_approval_ui(msg, context);
             break;
         default:

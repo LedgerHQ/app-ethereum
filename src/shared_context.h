@@ -196,7 +196,15 @@ extern cx_sha3_t global_sha3;
 extern const internalStorage_t N_storage_real;
 
 extern bool called_from_swap;
-extern bool externalPluginIsSet;
+
+typedef enum {
+    EXTERNAL,  //  External plugin, set by setExternalPlugin.
+    SPECIFIC,  // Specific internal plugin, set by setInternalPlugin.
+    INTERNAL,  // Internal plugin, not set by any command.
+} pluginType_t;
+
+extern pluginType_t pluginType;
+
 extern uint8_t appState;
 #ifdef HAVE_STARKWARE
 extern bool quantumSet;

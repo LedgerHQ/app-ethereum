@@ -40,32 +40,6 @@ static void handle_init_contract(void *parameters) {
     }
 }
 
-static void handle_provide_parameter(void *parameters) {
-    ethPluginProvideParameter_t *msg = (ethPluginProvideParameter_t *) parameters;
-    erc721_parameters_t *context = (erc721_parameters_t *) msg->pluginContext;
-
-    PRINTF("erc721 plugin provide parameter %d %.*H\n",
-           msg->parameterOffset,
-           PARAMETER_LENGTH,
-           msg->parameter);
-
-    msg->result = ETH_PLUGIN_RESULT_SUCCESSFUL;
-    switch (msg->parameterOffset) {
-        case SELECTOR_SIZE:
-            memmove(context->address,
-                    msg->parameter + PARAMETER_LENGTH - ADDRESS_LENGTH,
-                    ADDRESS_LENGTH);
-            break;
-        case SELECTOR_SIZE + PARAMETER_LENGTH:
-            memmove(context->tokenId, msg->parameter, PARAMETER_LENGTH);
-            break;
-        default:
-            PRINTF("Unhandled parameter offset\n");
-            msg->result = ETH_PLUGIN_RESULT_ERROR;
-            break;
-    }
-}
-
 static void handle_finalize(void *parameters) {
     ethPluginFinalize_t *msg = (ethPluginFinalize_t *) parameters;
     erc721_parameters_t *context = (erc721_parameters_t *) msg->pluginContext;
@@ -92,46 +66,6 @@ static void handle_contract_id(void *parameters) {
     msg->result = ETH_PLUGIN_RESULT_OK;
 }
 
-static void handle_contract_ui(void *parameters) {
-    ethQueryContractUI_t *msg = (ethQueryContractUI_t *) parameters;
-    erc721_parameters_t *context = (erc721_parameters_t *) msg->pluginContext;
-
-    // Collection Name (fallback to contract addr)
-    // ID?
-
-    msg->result = ETH_PLUGIN_RESULT_OK;
-    switch (context->selectorIndex) {
-        case APPROVAL:
-            switch (msg->screenIndex) {
-                case 0:
-                    strlcpy(msg->title, "Collection", msg->titleLength);
-                    getEthDisplayableAddress(msg->pluginSharedRO->txContent->destination,
-                                             msg->pluginSharedRO->txContent->destinationLength,
-                                             msg->msgLength,
-                                             &global_sha3,
-                                             chainConfig->chainId);
-                    break;
-                case 1:
-                    strlcpy(msg->title, "To spend", msg->titleLength);
-                    strlcpy(msg->msg, context->collection_name, msg->msgLength);
-                    break;
-                case 2:
-                    strlcpy(msg->title, "TokenID", msg->titleLength);
-                    snprintf(msg->msg, 70, "0x%.*H", sizeof(context->tokenId), context->tokenId);
-                    break;
-                default:
-                    PRINTF("Unsupported screen index %d\n", msg->screenIndex);
-                    msg->result = ETH_PLUGIN_RESULT_ERROR;
-                    break;
-            }
-            break;
-        default:
-            msg->result = ETH_PLUGIN_RESULT_ERROR;
-            PRINTF("Unsupported selector index %d\n", context->selectorIndex);
-            break;
-    }
-}
-
 void erc721_plugin_call(int message, void *parameters) {
     switch (message) {
         case ETH_PLUGIN_INIT_CONTRACT: {
@@ -154,5 +88,6 @@ void erc721_plugin_call(int message, void *parameters) {
         } break;
         default:
             PRINTF("Unhandled message %d\n", message);
+            break;
     }
 }

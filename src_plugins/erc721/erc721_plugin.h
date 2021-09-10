@@ -25,3 +25,6 @@ typedef struct erc721_parameters_t {
 
     erc721_selector_field next_param;
 } erc721_parameters_t;
+
+void handle_contract_ui(void *parameters);
+void handle_provide_parameter(void *parameters) {

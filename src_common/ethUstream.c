@@ -571,7 +571,7 @@ static parserStatus_e processTxInternal(txContext_t *context) {
                         break;
                     }
                 default:
-                    PRINTF("Transaction type %u is not supported\n", context->txType);
+                    PRINTF("Transaction type %d is not supported\n", context->txType);
                     return USTREAM_FAULT;
             }
         }

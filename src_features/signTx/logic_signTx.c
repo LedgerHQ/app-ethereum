@@ -65,6 +65,7 @@ customStatus_e customProcessor(txContext_t *context) {
             PRINTF("pluginstatus %d\n", dataContext.tokenContext.pluginStatus);
             eth_plugin_result_t status = dataContext.tokenContext.pluginStatus;
             if (status == ETH_PLUGIN_RESULT_ERROR) {
+                PRINTF("Plugin error\n");
                 return CUSTOM_FAULT;
             } else if (status >= ETH_PLUGIN_RESULT_SUCCESSFUL) {
                 dataContext.tokenContext.fieldIndex = 0;

@@ -8,17 +8,8 @@ static void copy_parameter(uint8_t *dst, uint8_t *parameter) {
     memmove(dst, parameter, PARAMETER_LENGTH);
 }
 
-void handle_provide_parameter(void *parameters) {
-    ethPluginProvideParameter_t *msg = (ethPluginProvideParameter_t *) parameters;
-    erc721_parameters_t *context = (erc721_parameters_t *) msg->pluginContext;
-
-    PRINTF("erc721 plugin provide parameter %d %.*H\n",
-           msg->parameterOffset,
-           PARAMETER_LENGTH,
-           msg->parameter);
-
-    msg->result = ETH_PLUGIN_RESULT_SUCCESSFUL;
-    switch (msg->parameterOffset) {
+void handle_approve(ethPluginProvideParameter_t *msg, erc721_parameters_t *context) {
+    switch (context->next_param) {
         case OPERATOR:
             copy_address(context->address, msg->parameter);
             context->next_param = TOKEN_ID;
@@ -29,6 +20,59 @@ void handle_provide_parameter(void *parameters) {
             break;
         default:
             PRINTF("Unhandled parameter offset\n");
+            msg->result = ETH_PLUGIN_RESULT_ERROR;
+            break;
+    }
+}
+
+// SCOTT: todo: add display of ETH if there's any?
+// `strict` will set msg->result to ERROR if parsing continues after `TOKEN_ID` has been parsed.
+void handle_transfer(ethPluginProvideParameter_t *msg, erc721_parameters_t *context, bool strict) {
+    switch (context->next_param) {
+        case FROM:
+            context->next_param = TO;
+            break;
+        case TO:
+            copy_address(context->address, msg->parameter);
+            context->next_param = TOKEN_ID;
+            break;
+        case TOKEN_ID:
+            copy_address(context->tokenId, msg->parameter);
+            context->next_param = NONE;
+            break;
+        default:
+            if (strict) {
+                PRINTF("Param %d not supported\n", context->next_param);
+                msg->result = ETH_PLUGIN_RESULT_ERROR;
+            }
+            break;
+    }
+}
+
+void handle_provide_parameter(void *parameters) {
+    ethPluginProvideParameter_t *msg = (ethPluginProvideParameter_t *) parameters;
+    erc721_parameters_t *context = (erc721_parameters_t *) msg->pluginContext;
+
+    PRINTF("erc721 plugin provide parameter %d %.*H\n",
+           msg->parameterOffset,
+           PARAMETER_LENGTH,
+           msg->parameter);
+
+    msg->result = ETH_PLUGIN_RESULT_SUCCESSFUL;
+    switch (context->selectorIndex) {
+        case APPROVE:
+            handle_approve(msg, context);
+            break;
+        case SAFE_TRANSFER:
+        case TRANSFER:
+            handle_transfer(msg, context, true);
+            break;
+        case SAFE_TRANSFER_DATA:
+            // Set `strict` to `false` because additional data might be present.
+            handle_transfer(msg, context, false);
+            break;
+        default:
+            PRINTF("Selector index %d not supported\n", context->selectorIndex);
             msg->result = ETH_PLUGIN_RESULT_ERROR;
             break;
     }

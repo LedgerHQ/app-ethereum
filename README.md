@@ -8,7 +8,7 @@ To compile it and load it on a device, please check out our [developer portal](h
 
 # Plugins
 
-This app support external plugins. More info in [doc/ethapp_plugin.asc](https://github.com/LedgerHQ/app-ethereum/blob/master/doc/ethapp_plugins.asc). If you wish to have a look at an existing plugin, feel free to check out the [ParaSwap plugin](https://github.com/LedgerHQ/app-plugin-paraswap).
+This app support external plugins. More info in [doc/ethapp_plugin.asc](https://github.com/LedgerHQ/app-ethereum/blob/master/doc/ethapp_plugins.asc). If you wish to have a look at an existing plugin, feel free to check out the [Boilerplate plugin](https://github.com/LedgerHQ/app-plugin-boilerplate).
 
 # Testing
 

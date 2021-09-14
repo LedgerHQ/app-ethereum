@@ -64,9 +64,11 @@ static const uint8_t LEDGER_SIGNATURE_PUBLIC_KEY[] = {
 
 #else
 
+// These defines need to follow tokens.c
+
 #define NUM_TOKENS_AKROMA           0
 #define NUM_TOKENS_ELLAISM          1
-#define NUM_TOKENS_ETHEREUM         1102
+#define NUM_TOKENS_ETHEREUM         2
 #define NUM_TOKENS_ETHEREUM_CLASSIC 4
 #define NUM_TOKENS_ETHERSOCIAL      0
 #define NUM_TOKENS_ETHER1           0

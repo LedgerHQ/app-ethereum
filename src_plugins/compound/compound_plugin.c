@@ -85,6 +85,7 @@ void compound_plugin_call(int message, void *parameters) {
             // enforce that ETH amount should be 0, except in ceth.mint case
             if (!allzeroes(msg->pluginSharedRO->txContent->value.value, 32)) {
                 if (context->selectorIndex != CETH_MINT) {
+                    PRINTF("Eth amount is not zero and token minted is not CETH!\n");
                     msg->result = ETH_PLUGIN_RESULT_ERROR;
                     break;
                 }

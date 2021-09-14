@@ -4,12 +4,6 @@ static void handle_init_contract(void *parameters) {
     ethPluginInitContract_t *msg = (ethPluginInitContract_t *) parameters;
     erc721_parameters_t *context = (erc721_parameters_t *) msg->pluginContext;
 
-    // Ensure no ETH gets sent with this transaction.
-    if (!allzeroes(msg->pluginSharedRO->txContent->value.value, 32)) {
-        PRINTF("Err: Transaction amount is not 0 for erc721 approval\n");
-        msg->result = ETH_PLUGIN_RESULT_ERROR;
-    }
-
     uint8_t i;
     for (i = 0; i < NUM_ERC721_SELECTORS; i++) {
         if (memcmp((uint8_t *) PIC(ERC721_SELECTORS[i]), msg->selector, SELECTOR_SIZE) == 0) {
@@ -27,8 +21,14 @@ static void handle_init_contract(void *parameters) {
 
     msg->result = ETH_PLUGIN_RESULT_OK;
     switch (context->selectorIndex) {
+        case SET_APPROVAL_FOR_ALL:
         case APPROVE:
             context->next_param = OPERATOR;
+            break;
+        case SAFE_TRANSFER:
+        case SAFE_TRANSFER_DATA:
+        case TRANSFER:
+            context->next_param = FROM;
             break;
         default:
             PRINTF("Unsupported selector index: %d\n", context->selectorIndex);

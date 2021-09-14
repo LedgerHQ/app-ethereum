@@ -49,6 +49,21 @@ void handle_transfer(ethPluginProvideParameter_t *msg, erc721_parameters_t *cont
     }
 }
 
+void handle_approval_for_all(ethPluginProvideParameter_t *msg, erc721_parameters_t *context) {
+    switch (context->next_param) {
+        case OPERATOR:
+            context->next_param = APPROVED;
+            break;
+        case APPROVED:
+            context->next_param = NONE;
+            break;
+        default:
+            PRINTF("Param %d not supported\n", context->next_param);
+            msg->result = ETH_PLUGIN_RESULT_ERROR;
+            break;
+    }
+}
+
 void handle_provide_parameter(void *parameters) {
     ethPluginProvideParameter_t *msg = (ethPluginProvideParameter_t *) parameters;
     erc721_parameters_t *context = (erc721_parameters_t *) msg->pluginContext;
@@ -70,6 +85,9 @@ void handle_provide_parameter(void *parameters) {
         case SAFE_TRANSFER_DATA:
             // Set `strict` to `false` because additional data might be present.
             handle_transfer(msg, context, false);
+            break;
+        case SET_APPROVAL_FOR_ALL:
+            handle_approval_for_all(msg, context);
             break;
         default:
             PRINTF("Selector index %d not supported\n", context->selectorIndex);

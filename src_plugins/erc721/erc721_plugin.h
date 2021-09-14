@@ -23,6 +23,7 @@ typedef enum {
     DATA,
     TOKEN_ID,
     OPERATOR,
+    APPROVED,
     NONE,
 } erc721_selector_field;
 

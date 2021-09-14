@@ -76,15 +76,11 @@ void erc721_plugin_call(int message, void *parameters) {
         } break;
         case ETH_PLUGIN_FINALIZE: {
             handle_finalize(parameters);
-            PRINTF("AFTER finalize\n");
         } break;
         case ETH_PLUGIN_PROVIDE_TOKEN: {
-            PRINTF("in provide token\n");
             handle_provide_token(parameters);
-            PRINTF("after\n");
         } break;
         case ETH_PLUGIN_QUERY_CONTRACT_ID: {
-            PRINTF("query contract id\n");
             handle_query_contract_id(parameters);
         } break;
         case ETH_PLUGIN_QUERY_CONTRACT_UI: {

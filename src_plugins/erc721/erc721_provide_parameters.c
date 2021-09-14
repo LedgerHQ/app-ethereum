@@ -1,21 +1,23 @@
 #include "erc721_plugin.h"
 
-static void copy_address(uint8_t *dst, uint8_t *parameter) {
-    memmove(dst, parameter + PARAMETER_LENGTH - ADDRESS_LENGTH, ADDRESS_LENGTH);
+static void copy_address(uint8_t *dst, uint8_t *parameter, uint8_t dst_size) {
+    uint8_t copy_size = MIN(dst_size, ADDRESS_LENGTH);
+    memmove(dst, parameter + PARAMETER_LENGTH - copy_size, copy_size);
 }
 
-static void copy_parameter(uint8_t *dst, uint8_t *parameter) {
-    memmove(dst, parameter, PARAMETER_LENGTH);
+static void copy_parameter(uint8_t *dst, uint8_t *parameter, uint8_t dst_size) {
+    uint8_t copy_size = MIN(dst_size, PARAMETER_LENGTH);
+    memmove(dst, parameter, copy_size);
 }
 
 void handle_approve(ethPluginProvideParameter_t *msg, erc721_parameters_t *context) {
     switch (context->next_param) {
         case OPERATOR:
-            copy_address(context->address, msg->parameter);
+            copy_address(context->address, msg->parameter, sizeof(context->address));
             context->next_param = TOKEN_ID;
             break;
         case TOKEN_ID:
-            copy_parameter(context->tokenId, msg->parameter);
+            copy_parameter(context->tokenId, msg->parameter, sizeof(context->tokenId));
             context->next_param = NONE;
             break;
         default:
@@ -33,11 +35,11 @@ void handle_transfer(ethPluginProvideParameter_t *msg, erc721_parameters_t *cont
             context->next_param = TO;
             break;
         case TO:
-            copy_address(context->address, msg->parameter);
+            copy_address(context->address, msg->parameter, sizeof(context->address));
             context->next_param = TOKEN_ID;
             break;
         case TOKEN_ID:
-            copy_address(context->tokenId, msg->parameter);
+            copy_address(context->tokenId, msg->parameter, sizeof(context->tokenId));
             context->next_param = NONE;
             break;
         default:

@@ -170,4 +170,6 @@ const tokenDefinition_t const TOKENS_BSC[NUM_TOKENS_BSC] = {};
 
 const tokenDefinition_t const TOKENS_SONGBIRD[NUM_TOKENS_SONGBIRD] = {};
 
+const tokenDefinition_t const TOKENS_SHYFT[NUM_TOKENS_SHYFT] = {};
+
 #endif

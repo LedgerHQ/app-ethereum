@@ -55,7 +55,8 @@ typedef enum chain_kind_e {
     CHAIN_KIND_THUNDERCORE,
     CHAIN_KIND_FLARE,
     CHAIN_KIND_BSC,
-    CHAIN_KIND_SONGBIRD
+    CHAIN_KIND_SONGBIRD,
+		CHAIN_KIND_SHYFT
 } chain_kind_t;
 
 typedef struct chain_config_s {

@@ -56,10 +56,27 @@ static void handle_provide_token(void *parameters) {
 
 static void handle_query_contract_id(void *parameters) {
     ethQueryContractID_t *msg = (ethQueryContractID_t *) parameters;
+    erc721_parameters_t *context = (erc721_parameters_t *) msg->pluginContext;
+
+    msg->result = ETH_PLUGIN_RESULT_OK;
 
     strlcpy(msg->name, "NFT", msg->nameLength);
-    strlcpy(msg->version, "Allowance", msg->versionLength);
-    msg->result = ETH_PLUGIN_RESULT_OK;
+
+    switch (context->selectorIndex) {
+        case SET_APPROVAL_FOR_ALL:
+        case APPROVE:
+            strlcpy(msg->version, "Allowance", msg->versionLength);
+            break;
+        case SAFE_TRANSFER:
+        case SAFE_TRANSFER_DATA:
+        case TRANSFER:
+            strlcpy(msg->version, "Transfer", msg->versionLength);
+            break;
+        default:
+            PRINTF("Unsupported selector %d\n", context->selectorIndex);
+            msg->result = ETH_PLUGIN_RESULT_ERROR;
+            break;
+    }
 }
 
 bool erc721_plugin_available_check() {

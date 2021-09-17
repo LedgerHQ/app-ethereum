@@ -159,3 +159,17 @@ void switch_settings_display_nonce() {
     nvm_write((void*) &N_storage.displayNonce, (void*) &value, sizeof(uint8_t));
     display_settings(&ux_settings_flow_3_step);
 }
+
+//////////////////////////////////////////////////////////////////////
+// clang-format off
+UX_STEP_CB(
+    ux_warning_contract_data_step,
+    bnnn_paging,
+    ui_idle(),
+    {
+      "Data disabled",
+      "Contract data must be enabled in the settings to sign this transaction",
+    });
+// clang-format on
+
+UX_FLOW(ux_warning_contract_data_flow, &ux_warning_contract_data_step);

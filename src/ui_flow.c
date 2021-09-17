@@ -2,7 +2,7 @@
 #include "ui_callbacks.h"
 
 void display_settings(const ux_flow_step_t* const start_step);
-void switch_settings_contract_data(void);
+void switch_settings_blind_signing(void);
 void switch_settings_display_data(void);
 void switch_settings_display_nonce(void);
 
@@ -54,9 +54,9 @@ UX_FLOW(ux_idle_flow,
 UX_STEP_CB(
     ux_settings_flow_1_step,
     bnnn_paging,
-    switch_settings_contract_data(),
+    switch_settings_blind_signing(),
     {
-      .title = "Contract data",
+      .title = "Blind signing",
       .text = strings.common.fullAddress,
     });
 
@@ -83,11 +83,11 @@ UX_STEP_CB(
 UX_STEP_CB(
     ux_settings_flow_1_step,
     bnnn,
-    switch_settings_contract_data(),
+    switch_settings_blind_signing(),
     {
-      "Contract data",
-      "Allow contract data",
-      "in transactions",
+      "Blind signing",
+      "Enable transaction",
+      "blind signing",
       strings.common.fullAddress,
     });
 
@@ -132,7 +132,7 @@ UX_FLOW(ux_settings_flow,
         &ux_settings_flow_4_step);
 
 void display_settings(const ux_flow_step_t* const start_step) {
-    strlcpy(strings.common.fullAddress, (N_storage.dataAllowed ? "Allowed" : "NOT Allowed"), 12);
+    strlcpy(strings.common.fullAddress, (N_storage.dataAllowed ? "Enabled" : "NOT Enabled"), 12);
     strlcpy(strings.common.fullAddress + 12,
             (N_storage.contractDetails ? "Displayed" : "NOT Displayed"),
             26 - 12);
@@ -142,7 +142,7 @@ void display_settings(const ux_flow_step_t* const start_step) {
     ux_flow_init(0, ux_settings_flow, start_step);
 }
 
-void switch_settings_contract_data() {
+void switch_settings_blind_signing() {
     uint8_t value = (N_storage.dataAllowed ? 0 : 1);
     nvm_write((void*) &N_storage.dataAllowed, (void*) &value, sizeof(uint8_t));
     display_settings(&ux_settings_flow_1_step);
@@ -162,14 +162,26 @@ void switch_settings_display_nonce() {
 
 //////////////////////////////////////////////////////////////////////
 // clang-format off
+#if defined(TARGET_NANOS)
 UX_STEP_CB(
     ux_warning_contract_data_step,
     bnnn_paging,
     ui_idle(),
     {
-      "Data disabled",
-      "Contract data must be enabled in the settings to sign this transaction",
+      "Error",
+      "Blind signing must be enabled in Settings",
     });
+#elif defined(TARGET_NANOX)
+UX_STEP_CB(
+    ux_warning_contract_data_step,
+    pnn,
+    ui_idle(),
+    {
+      &C_icon_crossmark,
+      "Blind signing must be",
+      "enabled in Settings",
+    });
+#endif
 // clang-format on
 
 UX_FLOW(ux_warning_contract_data_flow, &ux_warning_contract_data_step);

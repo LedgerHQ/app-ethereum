@@ -3,6 +3,7 @@ import 'regenerator-runtime/runtime';
 import { expect } from "../jest";
 import { TransportStatusError } from "@ledgerhq/errors";
 import { waitForAppScreen, zemu } from './test.fixture';
+import Zemu from '@zondax/zemu';
 
 test('[Nano S] Try to blind sign with setting disabled', zemu("nanos", async (sim, eth) => {
   // disable blind signing
@@ -15,6 +16,7 @@ test('[Nano S] Try to blind sign with setting disabled', zemu("nanos", async (si
 
   await expect(tx).rejects.toEqual(new TransportStatusError(0x6a80));
 
+  await Zemu.sleep(1000);
   await waitForAppScreen(sim);
   await sim.navigateAndCompareSnapshots('.', 'nanos_try_to_blind_sign_with_setting_disabled', [1, 0]);
 }));
@@ -30,6 +32,7 @@ test('[Nano X] Try to blind sign with setting disabled', zemu("nanox", async (si
 
   await expect(tx).rejects.toEqual(new TransportStatusError(0x6a80));
 
+  await Zemu.sleep(1000);
   await waitForAppScreen(sim);
   await sim.navigateAndCompareSnapshots('.', 'nanox_try_to_blind_sign_with_setting_disabled', [0]);
 }));

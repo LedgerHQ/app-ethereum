@@ -11,7 +11,7 @@ const simOptionsNanoS = {
     model: 'nanos',
     logging: true,
     X11: true,
-    startDelay: 3000,
+    startDelay: 5000,
     custom: '',
 };
 
@@ -19,7 +19,7 @@ const simOptionsNanoX = {
     model: 'nanox',
     logging: true,
     X11: true,
-    startDelay: 3000,
+    startDelay: 5000,
     custom: '',
 };
 

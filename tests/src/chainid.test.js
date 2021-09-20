@@ -1,370 +1,55 @@
 import "core-js/stable";
 import "regenerator-runtime/runtime";
-import Eth from "@ledgerhq/hw-app-eth";
-import { byContractAddress } from "@ledgerhq/hw-app-eth/erc20";
-import Zemu from "@zondax/zemu";
-import { TransportStatusError } from "@ledgerhq/errors";
-import { expect } from "../jest";
+import { waitForAppScreen, zemu } from './test.fixture';
 
-const {NANOS_ELF_PATH, NANOX_ELF_PATH, sim_options_nanos, sim_options_nanox, TIMEOUT, getTmpPath} = require("generic.js");
+test('[Nano S] Transfer on network 112233445566 on Ethereum', zemu("nanos", async (sim, eth) => {
 
-const ORIGINAL_SNAPSHOT_PATH_PREFIX = "snapshots/chainid/";
+  const tx = eth.signTransaction(
+    "44'/60'/1'/0/0",
+    'f044850306dc4200825208945a321744667052affa8386ed49e00ef223cbffc3876f9c9e7bf6181880851a21a278be8080',
+  );
 
-const ORIGINAL_SNAPSHOT_PATH_NANOS = ORIGINAL_SNAPSHOT_PATH_PREFIX + "nanos/";
-const ORIGINAL_SNAPSHOT_PATH_NANOX = ORIGINAL_SNAPSHOT_PATH_PREFIX + "nanox/";
+  await waitForAppScreen(sim);
+  await sim.navigateAndCompareSnapshots('.', 'nanos_transfer_112233445566_network', [9, 0]);
 
-test("Transfer on network 112233445566 on Ethereum nanos", async () => {
-  jest.setTimeout(TIMEOUT);
-  const sim = new Zemu(NANOS_ELF_PATH);
-  let tmpPath = getTmpPath(expect.getState().currentTestName);
+  await tx;
+}));
 
-  try {
-    await sim.start(sim_options_nanos);
+test('[Nano S] Transfer on palm network on Ethereum', zemu("nanos", async (sim, eth) => {
 
-    let transport = await sim.getTransport();
-    let eth = new Eth(transport);
+  const tx = eth.signTransaction(
+    "44'/60'/1'/0/0",
+    'f044850306dc4200825208945a321744667052affa8386ed49e00ef223cbffc3876f9c9e7bf61818808502a15c308d8080',
+  );
 
-    // Send transaction
-    let tx = eth.signTransaction(
-	    "44'/60'/0'/0/0",
-      "f044850306dc4200825208945a321744667052affa8386ed49e00ef223cbffc3876f9c9e7bf6181880851a21a278be8080"
-    )
-    let filename;
+  await waitForAppScreen(sim);
+  await sim.navigateAndCompareSnapshots('.', 'nanos_transfer_palm_network', [9, 0]);
 
-    await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot());
-    // Review tx
-    filename = "review.png";
-    await sim.snapshot(tmpPath + filename);
-    const review = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_review = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(review).toMatchSnapshot(expected_review);
+  await tx;
+}));
 
-    // Amount 1/3
-    filename = "amount_1.png";
-    await sim.clickRight(tmpPath + filename);
-    const amount_1 = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_amount_1 = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(amount_1).toMatchSnapshot(expected_amount_1);
+test('[Nano X] Transfer on network 112233445566 on Ethereum', zemu("nanox", async (sim, eth) => {
 
-    // Amount 2/3
-    filename = "amount_2.png";
-    await sim.clickRight(tmpPath + filename);
-    const amount_2 = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_amount_2 = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(amount_2).toMatchSnapshot(expected_amount_2);
+  const tx = eth.signTransaction(
+    "44'/60'/1'/0/0",
+    'f044850306dc4200825208945a321744667052affa8386ed49e00ef223cbffc3876f9c9e7bf6181880851a21a278be8080',
+  );
 
-    // Amount 3/3
-    filename = "amount_3.png";
-    await sim.clickRight(tmpPath + filename);
-    const amount_3 = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_amount_3 = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(amount_3).toMatchSnapshot(expected_amount_3);
+  await waitForAppScreen(sim);
+  await sim.navigateAndCompareSnapshots('.', 'nanox_transfer_112233445566_network', [5, 0]);
 
-    // Address 1/3
-    filename = "address_1.png";
-    await sim.clickRight(tmpPath + filename);
-    const address_1 = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_address_1 = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(address_1).toMatchSnapshot(expected_address_1);
+  await tx;
+}));
 
-    // Address 2/3
-    filename = "address_2.png";
-    await sim.clickRight(tmpPath + filename);
-    const address_2 = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_address_2 = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(address_2).toMatchSnapshot(expected_address_2);
+test('[Nano X] Transfer on palm network on Ethereum', zemu("nanox", async (sim, eth) => {
 
-    // Address 3/3
-    filename = "address_3.png";
-    await sim.clickRight(tmpPath + filename);
-    const address_3 = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_address_3 = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(address_3).toMatchSnapshot(expected_address_3);
+  const tx = eth.signTransaction(
+    "44'/60'/1'/0/0",
+    'f044850306dc4200825208945a321744667052affa8386ed49e00ef223cbffc3876f9c9e7bf61818808502a15c308d8080',
+  );
 
-    // Network
-    filename = "network.png";
-    await sim.clickRight(tmpPath + filename);
-    const network = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_network = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(network).toMatchSnapshot(expected_network);
+  await waitForAppScreen(sim);
+  await sim.navigateAndCompareSnapshots('.', 'nanox_transfer_palm_network', [5, 0]);
 
-    // Max Fees
-    filename = "fees.png";
-    await sim.clickRight(tmpPath + filename);
-    const fees = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_fees = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(fees).toMatchSnapshot(expected_fees);
-
-    // Accept
-    filename = "accept.png";
-    await sim.clickRight(tmpPath + filename);
-    const accept = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_accept = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(accept).toMatchSnapshot(expected_accept);
-
-    await sim.clickBoth();
-
-    await expect(tx).resolves.toEqual(
-      {
-        "r": "31fca443b3cad62f3ce18e287f3cf4892ac2669379cc21b5cf198561f0511d1e",
-        "s": "3cf21485cd8b86e1acddbcc641e16a3efad18aaeb5ae96a650f1a8b291078494",
-        "v": "344344f1a0",
-      }
-    );
-  } finally {
-    await sim.close();
-  }
-});
-
-test("Transfer on palm network on Ethereum nanos", async () => {
-  jest.setTimeout(TIMEOUT);
-  const sim = new Zemu(NANOS_ELF_PATH);
-  let tmpPath = getTmpPath(expect.getState().currentTestName);
-
-  try {
-    await sim.start(sim_options_nanos);
-
-    let transport = await sim.getTransport();
-    let eth = new Eth(transport);
-
-    // Send transaction
-    let tx = eth.signTransaction(
-	    "44'/60'/0'/0/0",
-      "f044850306dc4200825208945a321744667052affa8386ed49e00ef223cbffc3876f9c9e7bf61818808502a15c308d8080"
-    );
-    let filename;
-
-    await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot());
-    // Review tx
-    filename = "review.png";
-    await sim.snapshot(tmpPath + filename);
-    const review = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_review = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(review).toMatchSnapshot(expected_review);
-
-    // Amount 1/3
-    filename = "amount_1_palm.png";
-    await sim.clickRight(tmpPath + filename);
-    const amount_1 = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_amount_1 = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(amount_1).toMatchSnapshot(expected_amount_1);
-
-    // Amount 2/3
-    filename = "amount_2.png";
-    await sim.clickRight(tmpPath + filename);
-    const amount_2 = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_amount_2 = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(amount_2).toMatchSnapshot(expected_amount_2);
-
-    // Amount 3/3
-    filename = "amount_3.png";
-    await sim.clickRight(tmpPath + filename);
-    const amount_3 = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_amount_3 = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(amount_3).toMatchSnapshot(expected_amount_3);
-
-    // Address 1/3
-    filename = "address_1.png";
-    await sim.clickRight(tmpPath + filename);
-    const address_1 = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_address_1 = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(address_1).toMatchSnapshot(expected_address_1);
-
-    // Address 2/3
-    filename = "address_2.png";
-    await sim.clickRight(tmpPath + filename);
-    const address_2 = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_address_2 = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(address_2).toMatchSnapshot(expected_address_2);
-
-    // Address 3/3
-    filename = "address_3.png";
-    await sim.clickRight(tmpPath + filename);
-    const address_3 = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_address_3 = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(address_3).toMatchSnapshot(expected_address_3);
-
-    // Network
-    filename = "palm.png";
-    await sim.clickRight(tmpPath + filename);
-    const network = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_network = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(network).toMatchSnapshot(expected_network);
-
-    // Max Fees
-    filename = "fees_palm.png";
-    await sim.clickRight(tmpPath + filename);
-    const fees = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_fees = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(fees).toMatchSnapshot(expected_fees);
-
-    // Accept
-    filename = "accept.png";
-    await sim.clickRight(tmpPath + filename);
-    const accept = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_accept = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOS + filename);
-    expect(accept).toMatchSnapshot(expected_accept);
-
-    await sim.clickBoth();
-
-    await expect(tx).resolves.toEqual(
-      {
-        "r": "f9b5d903c47c34027156e869bda5aa002233d6cca583ad53d125612fc0795f3b",
-        "s": "00da038129414e5ae6f7c1529c6067e82484e3694c84c16d575e77162f631c27",
-        "v": "0542b8613d", 
-      }
-    );
-  } finally {
-    await sim.close();
-  }
-});
-
-test("Transfer on network 112233445566 on Ethereum nanox", async () => {
-  jest.setTimeout(TIMEOUT);
-  const sim = new Zemu(NANOX_ELF_PATH);
-  let tmpPath = getTmpPath(expect.getState().currentTestName);
-
-  try {
-    await sim.start(sim_options_nanox);
-
-    let transport = await sim.getTransport();
-    let eth = new Eth(transport);
-
-    // Send transaction
-    let tx = eth.signTransaction(
-	    "44'/60'/0'/0/0",
-	    "f044850306dc4200825208945a321744667052affa8386ed49e00ef223cbffc3876f9c9e7bf6181880851a21a278be8080"
-    )
-    let filename;
-
-    await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot());
-    // Review tx
-    filename = "review.png";
-    await sim.snapshot(tmpPath + filename);
-    const review = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_review = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOX + filename);
-    expect(review).toMatchSnapshot(expected_review);
-
-    // Amount
-    filename = "amount.png";
-    await sim.clickRight(tmpPath + filename);
-    const amount = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_amount = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOX + filename);
-    expect(amount).toMatchSnapshot(expected_amount);
-
-    // Address
-    filename = "address.png";
-    await sim.clickRight(tmpPath + filename);
-    const address = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_address = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOX + filename);
-    expect(address).toMatchSnapshot(expected_address);
-
-    // Network
-    filename = "network.png";
-    await sim.clickRight(tmpPath + filename);
-    const network = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_network = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOX + filename);
-    expect(network).toMatchSnapshot(expected_network);
-
-    // Max Fees
-    filename = "fees.png";
-    await sim.clickRight(tmpPath + filename);
-    const fees = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_fees = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOX + filename);
-    expect(fees).toMatchSnapshot(expected_fees);
-
-    // Accept
-    filename = "accept.png";
-    await sim.clickRight(tmpPath + filename);
-    const accept = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_accept = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOX + filename);
-    expect(accept).toMatchSnapshot(expected_accept);
-
-    await sim.clickBoth();
-
-    await expect(tx).resolves.toEqual(
-      {
-      "r": "31fca443b3cad62f3ce18e287f3cf4892ac2669379cc21b5cf198561f0511d1e",
-      "s": "3cf21485cd8b86e1acddbcc641e16a3efad18aaeb5ae96a650f1a8b291078494",
-      "v": "344344f1a0",
-      }
-    );
-  } finally {
-    await sim.close();
-  }
-});
-
-test("Transfer on palm network on Ethereum nanox", async () => {
-  jest.setTimeout(TIMEOUT);
-  const sim = new Zemu(NANOX_ELF_PATH);
-  let tmpPath = getTmpPath(expect.getState().currentTestName);
-
-  try {
-    await sim.start(sim_options_nanox);
-
-    let transport = await sim.getTransport();
-    let eth = new Eth(transport);
-
-    // Send transaction
-    let tx = eth.signTransaction(
-	    "44'/60'/0'/0/0",
-      "f044850306dc4200825208945a321744667052affa8386ed49e00ef223cbffc3876f9c9e7bf61818808502a15c308d8080"
-    );
-    let filename;
-
-    await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot());
-    // Review tx
-    filename = "review.png";
-    await sim.snapshot(tmpPath + filename);
-    const review = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_review = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOX + filename);
-    expect(review).toMatchSnapshot(expected_review);
-
-    // Amount
-    filename = "amount_palm.png";
-    await sim.clickRight(tmpPath + filename);
-    const amount = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_amount = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOX + filename);
-    expect(amount).toMatchSnapshot(expected_amount);
-
-    // Address
-    filename = "address.png";
-    await sim.clickRight(tmpPath + filename);
-    const address = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_address = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOX + filename);
-    expect(address).toMatchSnapshot(expected_address);
-
-    // Network
-    filename = "palm.png";
-    await sim.clickRight(tmpPath + filename);
-    const network = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_network = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOX + filename);
-    expect(network).toMatchSnapshot(expected_network);
-
-    // Max Fees
-    filename = "fees_palm.png";
-    await sim.clickRight(tmpPath + filename);
-    const fees = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_fees = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOX + filename);
-    expect(fees).toMatchSnapshot(expected_fees);
-
-    // Accept
-    filename = "accept.png";
-    await sim.clickRight(tmpPath + filename);
-    const accept = Zemu.LoadPng2RGB(tmpPath + filename);
-    const expected_accept = Zemu.LoadPng2RGB(ORIGINAL_SNAPSHOT_PATH_NANOX + filename);
-    expect(accept).toMatchSnapshot(expected_accept);
-
-    await sim.clickBoth();
-
-    await expect(tx).resolves.toEqual(
-      {
-        "r": "f9b5d903c47c34027156e869bda5aa002233d6cca583ad53d125612fc0795f3b",
-        "s": "00da038129414e5ae6f7c1529c6067e82484e3694c84c16d575e77162f631c27",
-        "v": "0542b8613d",
-      }
-    );
-  } finally {
-    await sim.close();
-  }
-});
+  await tx;
+}));

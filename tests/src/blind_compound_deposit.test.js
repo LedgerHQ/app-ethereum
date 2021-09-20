@@ -12,7 +12,11 @@ test('[Nano S] Deposit ETH on compound, blind sign', zemu("nanos", async (sim, e
   await waitForAppScreen(sim);
   await sim.navigateAndCompareSnapshots('.', 'nanos_deposit_eth_compound_blind', [7, 0]);
 
-  await tx;
+  await expect(tx).resolves.toEqual({
+    "r": "b5ae3a011eb50e7d1fe9f5e6f6d91ca9f4dfca5f73805fc4866d49e72ead2f5c",
+    "s": "3c6e55db5925586bb58e434b58b2c04756f662131597f98c1aa2418b16992b81",
+    "v": "26",
+  });
 }));
 
 test('[Nano X] Deposit ETH on compound, blind sign', zemu("nanox", async (sim, eth) => {
@@ -25,5 +29,9 @@ test('[Nano X] Deposit ETH on compound, blind sign', zemu("nanox", async (sim, e
   await waitForAppScreen(sim);
   await sim.navigateAndCompareSnapshots('.', 'nanox_deposit_eth_compound_blind', [5, 0]);
 
-  await tx;
+  await expect(tx).resolves.toEqual({
+    "r": "b5ae3a011eb50e7d1fe9f5e6f6d91ca9f4dfca5f73805fc4866d49e72ead2f5c",
+    "s": "3c6e55db5925586bb58e434b58b2c04756f662131597f98c1aa2418b16992b81",
+    "v": "26",
+  });
 }));

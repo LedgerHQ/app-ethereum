@@ -2,7 +2,7 @@ import "core-js/stable";
 import "regenerator-runtime/runtime";
 import { waitForAppScreen, zemu } from './test.fixture';
 
-test('[Nano S] Deposit ETH nanos', zemu("nanos", async (sim, eth) => {
+test('[Nano S] Deposit ETH on compound, blind sign', zemu("nanos", async (sim, eth) => {
 
   const tx = eth.signTransaction(
     "44'/60'/1'/0/0",
@@ -10,12 +10,12 @@ test('[Nano S] Deposit ETH nanos', zemu("nanos", async (sim, eth) => {
   );
 
   await waitForAppScreen(sim);
-  await sim.navigateAndCompareSnapshots('.', 'nanos_try_to_blind_sign_with_setting_disabled', [7, 0]);
+  await sim.navigateAndCompareSnapshots('.', 'nanos_deposit_eth_compound_blind', [7, 0]);
 
   await tx;
 }));
 
-test('[Nano X] Deposit ETH nanox', zemu("nanox", async (sim, eth) => {
+test('[Nano X] Deposit ETH on compound, blind sign', zemu("nanox", async (sim, eth) => {
 
   const tx = eth.signTransaction(
     "44'/60'/1'/0/0",
@@ -23,7 +23,7 @@ test('[Nano X] Deposit ETH nanox', zemu("nanox", async (sim, eth) => {
   );
 
   await waitForAppScreen(sim);
-  await sim.navigateAndCompareSnapshots('.', 'nanox_try_to_blind_sign_with_setting_disabled', [5, 0]);
+  await sim.navigateAndCompareSnapshots('.', 'nanox_deposit_eth_compound_blind', [5, 0]);
 
   await tx;
 }));

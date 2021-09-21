@@ -190,4 +190,6 @@ const tokenDefinition_t const TOKENS_SONGBIRD[NUM_TOKENS_SONGBIRD] = {};
 
 const tokenDefinition_t const TOKENS_MOONRIVER[NUM_TOKENS_MOONRIVER] = {};
 
+const tokenDefinition_t const TOKENS_POLYGON[NUM_TOKENS_POLYGON] = {};
+
 #endif

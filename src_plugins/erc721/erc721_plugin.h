@@ -1,5 +1,6 @@
+#pragma once
+
 #include <string.h>
-#include "eth_plugin_internal.h"
 #include "eth_plugin_handler.h"
 #include "shared_context.h"
 #include "ethUtils.h"
@@ -8,6 +9,8 @@
 // Internal plugin for EIP 721: https://eips.ethereum.org/EIPS/eip-721
 
 #define MAX_COLLECTION_NAME_SIZE 40
+
+#define NUM_ERC721_SELECTORS 4
 
 typedef enum {
     APPROVE,
@@ -38,4 +41,4 @@ typedef struct erc721_parameters_t {
 
 void handle_provide_parameter(void *parameters);
 void handle_query_contract_ui(void *parameters);
-bool erc721_plugin_available_check();
+void erc721_plugin_call(int message, void *parameters);

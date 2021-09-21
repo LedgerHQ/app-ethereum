@@ -1,6 +1,7 @@
 #ifndef __ETH_PLUGIN_INTERNAL_H__
 
 #include "eth_plugin_interface.h"
+#include "erc721_plugin.h"
 
 #define SELECTOR_SIZE    4
 #define PARAMETER_LENGTH 32
@@ -18,9 +19,6 @@ typedef struct internalEthPlugin_t {
 
 #define NUM_ERC20_SELECTORS 2
 extern const uint8_t* const ERC20_SELECTORS[NUM_ERC20_SELECTORS];
-
-#define NUM_ERC721_SELECTORS 1
-extern const uint8_t* const ERC721_SELECTORS[NUM_ERC721_SELECTORS];
 
 #define NUM_COMPOUND_SELECTORS 4
 extern const uint8_t* const COMPOUND_SELECTORS[NUM_COMPOUND_SELECTORS];

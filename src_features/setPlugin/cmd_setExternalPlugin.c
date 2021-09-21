@@ -5,16 +5,16 @@
 
 #define SELECTOR_SIZE 4
 
-void handleSetExternalPlugin(uint8_t p1,
-                             uint8_t p2,
-                             uint8_t *workBuffer,
-                             uint16_t dataLength,
-                             unsigned int *flags,
-                             unsigned int *tx) {
+void handleSetPlugin(uint8_t p1,
+                     uint8_t p2,
+                     uint8_t *workBuffer,
+                     uint16_t dataLength,
+                     unsigned int *flags,
+                     unsigned int *tx) {
     UNUSED(p1);
     UNUSED(p2);
     UNUSED(flags);
-    PRINTF("Handling set External Plugin\n");
+    PRINTF("Handling set Plugin\n");
     uint8_t hash[32];
     cx_ecfp_public_key_t tokenKey;
     uint8_t pluginNameLength = *workBuffer;
@@ -55,32 +55,39 @@ void handleSetExternalPlugin(uint8_t p1,
 
     PRINTF("Check external plugin %s\n", dataContext.tokenContext.pluginName);
 
-    // Check if the plugin is present on the device
-    uint32_t params[2];
-    params[0] = (uint32_t) dataContext.tokenContext.pluginName;
-    params[1] = ETH_PLUGIN_CHECK_PRESENCE;
-    BEGIN_TRY {
-        TRY {
-            os_lib_call(params);
+    if (strcmp("ERC721", dataContext.tokenContext.pluginName) != 0) {
+        // Check if the plugin is present on the device
+        uint32_t params[2];
+        params[0] = (uint32_t) dataContext.tokenContext.pluginName;
+        params[1] = ETH_PLUGIN_CHECK_PRESENCE;
+        BEGIN_TRY {
+            TRY {
+                os_lib_call(params);
+            }
+            CATCH_OTHER(e) {
+                PRINTF("%s external plugin is not present\n", dataContext.tokenContext.pluginName);
+                memset(dataContext.tokenContext.pluginName,
+                       0,
+                       sizeof(dataContext.tokenContext.pluginName));
+                THROW(0x6984);
+            }
+            FINALLY {
+            }
         }
-        CATCH_OTHER(e) {
-            PRINTF("%s external plugin is not present\n", dataContext.tokenContext.pluginName);
-            memset(dataContext.tokenContext.pluginName,
-                   0,
-                   sizeof(dataContext.tokenContext.pluginName));
-            THROW(0x6984);
-        }
-        FINALLY {
-        }
+        END_TRY;
     }
-    END_TRY;
 
     PRINTF("Plugin found\n");
 
     memmove(dataContext.tokenContext.contract_address, workBuffer, ADDRESS_LENGTH);
     workBuffer += ADDRESS_LENGTH;
     memmove(dataContext.tokenContext.method_selector, workBuffer, SELECTOR_SIZE);
-    pluginType = EXTERNAL;
+
+    if (strcmp("ERC721", dataContext.tokenContext.pluginName) == 0) {
+        pluginType = ERC721;
+    } else {
+        pluginType = EXTERNAL;
+    }
 
     G_io_apdu_buffer[(*tx)++] = 0x90;
     G_io_apdu_buffer[(*tx)++] = 0x00;

@@ -1,4 +1,16 @@
 #include "erc721_plugin.h"
+#include "eth_plugin_internal.h"
+
+static const uint8_t ERC721_APPROVE_SELECTOR[SELECTOR_SIZE] = {0x13, 0x37, 0x42, 0x42};
+static const uint8_t ERC721_APPROVE_FOR_ALL_SELECTOR[SELECTOR_SIZE] = {0xa2, 0x2c, 0xb4, 0x65};
+static const uint8_t ERC721_TRANSFER_SELECTOR[SELECTOR_SIZE] = {0x23, 0xb8, 0x72, 0xdd};
+static const uint8_t ERC721_SAFE_TRANSFER_SELECTOR[SELECTOR_SIZE] = {0x42, 0x84, 0x2e, 0x0e};
+// SCOTT TODO: missing SAFE_TRANFSFER_DATA
+
+const uint8_t *const ERC721_SELECTORS[NUM_ERC721_SELECTORS] = {ERC721_APPROVE_SELECTOR,
+                                                               ERC721_APPROVE_FOR_ALL_SELECTOR,
+                                                               ERC721_TRANSFER_SELECTOR,
+                                                               ERC721_SAFE_TRANSFER_SELECTOR};
 
 static void handle_init_contract(void *parameters) {
     ethPluginInitContract_t *msg = (ethPluginInitContract_t *) parameters;

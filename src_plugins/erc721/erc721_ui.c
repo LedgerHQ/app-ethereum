@@ -67,7 +67,7 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc721_parameters_t *cont
                                msg->msgLength);
             break;
         default:
-            PRINF("Unsupported screen index %d\n", msg->screenIndex);
+            PRINTF("Unsupported screen index %d\n", msg->screenIndex);
             msg->result = ETH_PLUGIN_RESULT_ERROR;
             break;
     }

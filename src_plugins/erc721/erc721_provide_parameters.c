@@ -1,4 +1,5 @@
 #include "erc721_plugin.h"
+#include "eth_plugin_internal.h"
 
 static void copy_address(uint8_t *dst, uint8_t *parameter, uint8_t dst_size) {
     uint8_t copy_size = MIN(dst_size, ADDRESS_LENGTH);

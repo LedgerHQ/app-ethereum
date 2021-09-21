@@ -15,6 +15,7 @@
 #include "tokens.h"
 #include "chainConfig.h"
 #include "eth_plugin_interface.h"
+#include "nft.h"
 
 #define MAX_BIP32_PATH 10
 
@@ -88,7 +89,10 @@ typedef struct transactionContext_t {
     uint8_t pathLength;
     uint32_t bip32Path[MAX_BIP32_PATH];
     uint8_t hash[INT256_LENGTH];
-    tokenDefinition_t tokens[MAX_TOKEN];
+    union {
+        tokenDefinition_t tokens[MAX_TOKEN];
+        nftInfo_t nfts[MAX_NFT];
+    };
     uint8_t tokenSet[MAX_TOKEN];
     uint8_t currentTokenIndex;
 } transactionContext_t;
@@ -137,6 +141,7 @@ typedef struct starkContext_t {
 
 typedef union {
     tokenContext_t tokenContext;
+
 #ifdef HAVE_STARKWARE
     starkContext_t starkContext;
 #endif
@@ -198,8 +203,8 @@ extern const internalStorage_t N_storage_real;
 extern bool called_from_swap;
 
 typedef enum {
-    EXTERNAL,  //  External plugin, set by setExternalPlugin.
-    SPECIFIC,  // Specific internal plugin, set by setInternalPlugin.
+    EXTERNAL,  //  External plugin, set by setPlugin.
+    ERC721,    // Specific ERC721 internal plugin, set by setPlugin.
     INTERNAL,  // Internal plugin, not set by any command.
 } pluginType_t;
 

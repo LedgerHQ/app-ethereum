@@ -63,6 +63,7 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
 
     PRINTF("Selector %.*H\n", 4, init->selector);
     switch (pluginType) {
+        case ERC721:
         case EXTERNAL: {
             // check if the registered external plugin matches the TX contract address / method
             // selector
@@ -85,6 +86,7 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
                 os_sched_exit(0);
             }
             PRINTF("External plugin will be used\n");
+            // SCOTT TODO: Add check for chainid.
             dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
             contractAddress = NULL;
         } break;
@@ -103,7 +105,7 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
                         0) {
                         if ((INTERNAL_ETH_PLUGINS[i].availableCheck == NULL) ||
                             ((PluginAvailableCheck) PIC(
-                                INTERNAL_ETH_PLUGINS[i].availableCheck))()) {
+                                INTERNAL_ETH_PLUGINS[i].availableCheck)) ()) {
                             strlcpy(dataContext.tokenContext.pluginName,
                                     INTERNAL_ETH_PLUGINS[i].alias,
                                     PLUGIN_ID_LENGTH);
@@ -114,9 +116,6 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
                     }
                 }
             }
-        } break;
-        case SPECIFIC: {
-            // TODO: scott
         } break;
         default:
             PRINTF("Unsupported pluginType %d\n", pluginType);
@@ -154,7 +153,6 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
     ethPluginSharedRO_t pluginRO;
     char *alias;
     uint8_t i;
-    uint8_t internalPlugin = 0;
 
     pluginRW.sha3 = &global_sha3;
     pluginRO.txContent = &tmpContent.txContent;
@@ -225,35 +223,46 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
             return ETH_PLUGIN_RESULT_UNAVAILABLE;
     }
 
-    // Perform the call
-
-    for (i = 0;; i++) {
-        if (INTERNAL_ETH_PLUGINS[i].alias[0] == 0) {
+    switch (pluginType) {
+        case EXTERNAL: {
+            uint32_t params[3];
+            params[0] = (uint32_t) alias;
+            params[1] = method;
+            params[2] = (uint32_t) parameter;
+            BEGIN_TRY {
+                TRY {
+                    os_lib_call(params);
+                }
+                CATCH_OTHER(e) {
+                    PRINTF("Plugin call exception for %s\n", alias);
+                }
+                FINALLY {
+                }
+            }
+            END_TRY;
             break;
         }
-        if (strcmp(alias, INTERNAL_ETH_PLUGINS[i].alias) == 0) {
-            internalPlugin = 1;
-            ((PluginCall) PIC(INTERNAL_ETH_PLUGINS[i].impl))(method, parameter);
+        case ERC721: {
+            erc721_plugin_call(method, parameter);
             break;
         }
-    }
-
-    if (!internalPlugin) {
-        uint32_t params[3];
-        params[0] = (uint32_t) alias;
-        params[1] = method;
-        params[2] = (uint32_t) parameter;
-        BEGIN_TRY {
-            TRY {
-                os_lib_call(params);
+        case INTERNAL: {
+            // Perform the call
+            for (i = 0;; i++) {
+                if (INTERNAL_ETH_PLUGINS[i].alias[0] == 0) {
+                    break;
+                }
+                if (strcmp(alias, INTERNAL_ETH_PLUGINS[i].alias) == 0) {
+                    ((PluginCall) PIC(INTERNAL_ETH_PLUGINS[i].impl))(method, parameter);
+                    break;
+                }
             }
-            CATCH_OTHER(e) {
-                PRINTF("Plugin call exception for %s\n", alias);
-            }
-            FINALLY {
-            }
+            break;
         }
-        END_TRY;
+        default: {
+            PRINTF("Error with pluginType: %d\n", pluginType);
+            return ETH_PLUGIN_RESULT_ERROR;
+        }
     }
 
     // Check the call result

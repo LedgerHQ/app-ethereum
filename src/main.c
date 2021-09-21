@@ -256,6 +256,9 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
         case CHAIN_KIND_SONGBIRD:
             numTokens = NUM_TOKENS_SONGBIRD;
             break;
+        case CHAIN_KIND_POLYGON:
+            numTokens = NUM_TOKENS_POLYGON;
+            break;
     }
     for (i = 0; i < numTokens; i++) {
         switch (chainConfig->kind) {
@@ -357,6 +360,9 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
                 break;
             case CHAIN_KIND_SONGBIRD:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_SONGBIRD[i]);
+                break;
+            case CHAIN_KIND_POLYGON:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_POLYGON[i]);
                 break;
         }
         if (memcmp(currentToken->address, tmpContent.txContent.destination, ADDRESS_LENGTH) == 0) {

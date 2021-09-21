@@ -285,7 +285,7 @@ endif
 
 
 # Enabling debug PRINTF
-DEBUG:=1
+DEBUG:=0
 ifneq ($(DEBUG),0)
 DEFINES += HAVE_STACK_OVERFLOW_CHECK
 ifeq ($(TARGET_NAME),TARGET_NANOX)

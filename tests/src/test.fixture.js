@@ -41,11 +41,11 @@ function zemu(device, func) {
         jest.setTimeout(TIMEOUT);
         let zemu_args;
         let sim_options;
-        if(device === "nanos"){
+        if(device === "nanos") {
             zemu_args = [NANOS_ELF_PATH];
             sim_options = sim_options_nanos;
         }
-        else{
+        else {
             zemu_args = [NANOX_ELF_PATH];
             sim_options = sim_options_nanox;
         }

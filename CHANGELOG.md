@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.9.5](https://github.com/ledgerhq/app-ethereum/compare/1.9.4...1.9.5) - 2021-9-27
+
+### Changed
+
+- "Contract Data" is now replaced with "Blind sign", which carries more meaning for regular users.
+
+### Added
+
+- When blind signing is disabled in settings, and a transaction with smart conract interactions is sent to the app, a new warning screen pops to let the user know that the setting must be enabled to sign this kind of transactions.
 
 ## [1.9.4](https://github.com/ledgerhq/app-ethereum/compare/1.9.3...1.9.4) - 2021-9-14
 

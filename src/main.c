@@ -92,6 +92,10 @@ void ui_idle(void) {
     ux_flow_init(0, ux_idle_flow, NULL);
 }
 
+void ui_warning_contract_data(void) {
+    ux_flow_init(0, ux_warning_contract_data_flow, NULL);
+}
+
 unsigned int io_seproxyhal_touch_exit(__attribute__((unused)) const bagl_element_t *e) {
     // Go back to the dashboard
     os_sched_exit(0);

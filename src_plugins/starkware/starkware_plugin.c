@@ -271,12 +271,21 @@ bool starkware_verify_nft_token_id(uint8_t *tokenId) {
     return true;
 }
 
-void starkware_print_vault_id(uint32_t vaultId, char *destination) {
-    snprintf(destination, 10, "%d", vaultId);
+void starkware_print_vault_id(uint32_t vaultId, char *destination, size_t max_length) {
+    if (10 > max_length) {
+        os_sched_exit(EXCEPTION_OVERFLOW);
+    }
+    snprintf(destination, max_length, "%d", vaultId);
 }
 
-void starkware_print_stark_key(uint8_t *starkKey, char *destination) {
-    snprintf(destination, 70, "0x%.*H", 32, starkKey);
+void starkware_print_stark_key(uint8_t *starkKey,
+                               size_t length,
+                               char *destination,
+                               size_t max_length) {
+    if (2 + length * 2 + 1 > max_length) {
+        os_sched_exit(EXCEPTION_OVERFLOW);
+    }
+    snprintf(destination, max_length, "0x%.*H", length, starkKey);
 }
 
 // TODO : rewrite as independant code
@@ -741,7 +750,10 @@ void starkware_plugin_call(int message, void *parameters) {
                         case STARKWARE_WITHDRAW_NFT:
                         case STARKWARE_WITHDRAW_NFT_TO:
                             strlcpy(msg->title, "Master Account", msg->titleLength);
-                            starkware_print_stark_key(context->starkKey, msg->msg);
+                            starkware_print_stark_key(context->starkKey,
+                                                      sizeof(context->starkKey),
+                                                      msg->msg,
+                                                      msg->msgLength);
                             break;
                         default:
                             PRINTF("Unexpected screen %d for %d\n",
@@ -758,7 +770,10 @@ void starkware_plugin_call(int message, void *parameters) {
                         case STARKWARE_REGISTER_AND_DEPOSIT_TOKEN:
                         case STARKWARE_REGISTER_AND_DEPOSIT_ETH:
                             strlcpy(msg->title, "Master Account", msg->titleLength);
-                            starkware_print_stark_key(context->starkKey, msg->msg);
+                            starkware_print_stark_key(context->starkKey,
+                                                      sizeof(context->starkKey),
+                                                      msg->msg,
+                                                      msg->msgLength);
                             break;
 
                         case STARKWARE_DEPOSIT_TOKEN:
@@ -772,7 +787,9 @@ void starkware_plugin_call(int message, void *parameters) {
                         case STARKWARE_DEPOSIT_NFT:
                         case STARKWARE_DEPOSIT_NFT_RECLAIM:
                             strlcpy(msg->title, "Token Account", msg->titleLength);
-                            starkware_print_vault_id(U4BE(context->vaultId, 0), msg->msg);
+                            starkware_print_vault_id(U4BE(context->vaultId, 0),
+                                                     msg->msg,
+                                                     msg->msgLength);
                             break;
                         case STARKWARE_WITHDRAW:
                         case STARKWARE_WITHDRAW_NFT:
@@ -806,7 +823,9 @@ void starkware_plugin_call(int message, void *parameters) {
                     switch (context->selectorIndex) {
                         case STARKWARE_ESCAPE:
                             strlcpy(msg->title, "Token Account", msg->titleLength);
-                            starkware_print_vault_id(U4BE(context->vaultId, 0), msg->msg);
+                            starkware_print_vault_id(U4BE(context->vaultId, 0),
+                                                     msg->msg,
+                                                     msg->msgLength);
                             break;
                         case STARKWARE_DEPOSIT_TOKEN:
                         case STARKWARE_DEPOSIT_ETH:
@@ -839,7 +858,9 @@ void starkware_plugin_call(int message, void *parameters) {
                         case STARKWARE_REGISTER_AND_DEPOSIT_TOKEN:
                         case STARKWARE_REGISTER_AND_DEPOSIT_ETH:
                             strlcpy(msg->title, "Token Account", msg->titleLength);
-                            starkware_print_vault_id(U4BE(context->vaultId, 0), msg->msg);
+                            starkware_print_vault_id(U4BE(context->vaultId, 0),
+                                                     msg->msg,
+                                                     msg->msgLength);
                             break;
 
                         default:
@@ -858,7 +879,10 @@ void starkware_plugin_call(int message, void *parameters) {
                         case STARKWARE_DEPOSIT_NFT:
                         case STARKWARE_DEPOSIT_NFT_RECLAIM:
                             strlcpy(msg->title, "TokenID", msg->titleLength);
-                            starkware_print_stark_key(dataContext.tokenContext.quantum, msg->msg);
+                            starkware_print_stark_key(dataContext.tokenContext.quantum,
+                                                      sizeof(dataContext.tokenContext.quantum),
+                                                      msg->msg,
+                                                      msg->msgLength);
                             break;
 
                         case STARKWARE_REGISTER_AND_DEPOSIT_TOKEN:

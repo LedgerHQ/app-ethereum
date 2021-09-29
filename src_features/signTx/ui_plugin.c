@@ -68,11 +68,7 @@ void display_next_plugin_item(bool entering) {
                 ux_flow_prev();
                 // Reset multi page layout to the first page
                 G_ux.layout_paging.current = 0;
-#ifdef TARGET_NANOS
                 ux_layout_paging_redisplay_by_addr(G_ux.stack_count - 1);
-#else
-                ux_layout_bnnn_paging_redisplay(0);
-#endif
             } else {
                 dataContext.tokenContext.pluginUiState = PLUGIN_UI_OUTSIDE;
                 ux_flow_next();

@@ -167,6 +167,9 @@ typedef struct starkware_parameters_t {
 
 } starkware_parameters_t;
 
+#define STARK_KEY_LENGTH (2 + length * 2 + 1)
+#define VAULT_ID_LENGTH  10
+
 bool is_deversify_contract(const uint8_t *address) {
     uint32_t offset = 0;
     uint8_t i;
@@ -272,7 +275,7 @@ bool starkware_verify_nft_token_id(uint8_t *tokenId) {
 }
 
 void starkware_print_vault_id(uint32_t vaultId, char *destination, size_t max_length) {
-    if (10 > max_length) {
+    if (VAULT_ID_LENGTH > max_length) {
         os_sched_exit(EXCEPTION_OVERFLOW);
     }
     snprintf(destination, max_length, "%d", vaultId);
@@ -282,7 +285,7 @@ void starkware_print_stark_key(uint8_t *starkKey,
                                size_t length,
                                char *destination,
                                size_t max_length) {
-    if (2 + length * 2 + 1 > max_length) {
+    if (STARK_KEY_LENGTH > max_length) {
         os_sched_exit(EXCEPTION_OVERFLOW);
     }
     snprintf(destination, max_length, "0x%.*H", length, starkKey);

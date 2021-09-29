@@ -7,7 +7,7 @@ import Zemu from '@zondax/zemu';
 
 test('[Nano S] Try to blind sign with setting disabled', zemu("nanos", async (sim, eth) => {
   // disable blind signing
-  await sim.navigateAndCompareSnapshots('.', 'nanos_disable_blind_signing', [2, 0, 0, 3, 0]);
+  await sim.navigateAndCompareSnapshots('.', 'nanos_disable_blind_signing', [-2, 0, 0, 3, 0]);
 
   // we can't use eth.signTransaction because it detects that contract data is disabled and fails early
   let transport = await sim.getTransport();
@@ -23,7 +23,7 @@ test('[Nano S] Try to blind sign with setting disabled', zemu("nanos", async (si
 
 test('[Nano X] Try to blind sign with setting disabled', zemu("nanox", async (sim, eth) => {
   // disable blind signing
-  await sim.navigateAndCompareSnapshots('.', 'nanox_disable_blind_signing', [2, 0, 0, 3, 0]);
+  await sim.navigateAndCompareSnapshots('.', 'nanox_disable_blind_signing', [-2, 0, 0, 3, 0]);
 
   // we can't use eth.signTransaction because it detects that contract data is disabled and fails early
   let transport = await sim.getTransport();

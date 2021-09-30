@@ -118,10 +118,8 @@ void amountToString(const uint8_t *amount,
                     uint8_t out_buffer_size) {
     char tmp_buffer[100] = {0};
 
-    bool success = uint256_to_decimal(amount, amount_size, tmp_buffer, sizeof(tmp_buffer));
-
-    if (!success) {
-        THROW(0x6504);
+    if (uint256_to_decimal(amount, amount_size, tmp_buffer, sizeof(tmp_buffer)) == false) {
+        THROW(EXCEPTION_OVERFLOW);
     }
 
     uint8_t amount_len = strnlen(tmp_buffer, sizeof(tmp_buffer));
@@ -129,11 +127,14 @@ void amountToString(const uint8_t *amount,
 
     memcpy(out_buffer, ticker, MIN(out_buffer_size, ticker_len));
 
-    adjustDecimals(tmp_buffer,
-                   amount_len,
-                   out_buffer + ticker_len,
-                   out_buffer_size - ticker_len - 1,
-                   decimals);
+    if (adjustDecimals(tmp_buffer,
+                       amount_len,
+                       out_buffer + ticker_len,
+                       out_buffer_size - ticker_len - 1,
+                       decimals) == false) {
+        THROW(EXCEPTION_OVERFLOW);
+    }
+
     out_buffer[out_buffer_size - 1] = '\0';
 }
 

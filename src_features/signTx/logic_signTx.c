@@ -440,7 +440,7 @@ void finalizeParsing(bool direct) {
                        displayBuffer,
                        sizeof(displayBuffer));
         compareOrCopy(strings.common.fullAmount,
-                      sizeof(strings.common.fullAddress),
+                      sizeof(strings.common.fullAmount),
                       displayBuffer,
                       called_from_swap);
     }

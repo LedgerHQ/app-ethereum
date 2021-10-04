@@ -1,6 +1,7 @@
 import "core-js/stable";
 import "regenerator-runtime/runtime";
 import { waitForAppScreen, zemu } from './test.fixture';
+import { TransportStatusError } from "@ledgerhq/errors";
 
 test('[Nano S] Transfer Ether on Ethereum app', zemu("nanos", async (sim, eth) => {
 
@@ -17,6 +18,16 @@ test('[Nano S] Transfer Ether on Ethereum app', zemu("nanos", async (sim, eth) =
     "s": "0dc994b7b97230bb35fdf6fec2f4d8ff4cfb8bfeb2a652c364c738ff033c05dd",
     "v": "26",
   });
+}));
+
+test('[Nano S] Transfer amount >= 2^87 Eth on Ethereum app should fail', zemu("nanos", async (sim, eth) => {
+
+  const tx = eth.signTransaction(
+    "44'/60'/1'/0/0",
+    'f83f268e02cc9be5c53ea44bd43c289dcddc82520894dac17f958d2ee523a2206206994597c13d831ec7928db8b0861b8f7fe5df83cd553a829878000080018080',
+  );
+
+  await expect(tx).rejects.toEqual(new TransportStatusError(0x6807));
 }));
 
 test('[Nano S] Transfer Ether on network 5234 on Ethereum app', zemu("nanos", async (sim, eth) => {

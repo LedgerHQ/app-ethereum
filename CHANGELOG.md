@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.9.7](https://github.com/ledgerhq/app-ethereum/compare/1.9.6...1.9.7) - 2021-9-30
+
+### Fixed
+
+- Fixed a bug where amounts displayed where wrong when the amount was huge (>=2^87)
+
+## [1.9.6](https://github.com/ledgerhq/app-ethereum/compare/1.9.5...1.9.6) - 2021-9-29
+
+### Fixed
+
+- Fixed a bug where fees displayed were wrong on Starkware transactions
+
+## [1.9.5](https://github.com/ledgerhq/app-ethereum/compare/1.9.4...1.9.5) - 2021-9-27
+
+### Changed
+
+- "Contract Data" is now replaced with "Blind sign", which carries more meaning for regular users.
+
+### Added
+
+- When blind signing is disabled in settings, and a transaction with smart conract interactions is sent to the app, a new warning screen pops to let the user know that the setting must be enabled to sign this kind of transactions.
+
+## [1.9.4](https://github.com/ledgerhq/app-ethereum/compare/1.9.3...1.9.4) - 2021-9-14
+
+### Added
+
+- Added Arbitrum network
+
 ## [1.9.3](https://github.com/ledgerhq/app-ethereum/compare/1.9.2...1.9.3) - 2021-9-03
 
 ### Added

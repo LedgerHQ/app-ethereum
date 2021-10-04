@@ -15,6 +15,6 @@ tests/node_modules
 tests/lib
 tests/yarn-error.log
 tests/elfs/*
-tests/snapshots/tmp/*
+tests/snapshots-tmp
 
 .vscode

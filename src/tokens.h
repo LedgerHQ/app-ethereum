@@ -34,7 +34,7 @@ typedef struct tokenDefinition_t {
 
 #ifdef HAVE_TOKENS_EXTRA_LIST
 
-#define NUM_TOKENS_EXTRA 4
+#define NUM_TOKENS_EXTRA 8
 
 extern tokenDefinition_t const TOKENS_EXTRA[NUM_TOKENS_EXTRA];
 

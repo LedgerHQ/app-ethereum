@@ -191,8 +191,8 @@ UX_STEP_NOCB(ux_approval_blind_signing_warning_step,
     pbb,
     {
       &C_icon_warning,
-      "Blind",
-      "Signing",
+      "Data",
+      "Present",
     });
 // clang-format on
 

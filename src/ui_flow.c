@@ -56,7 +56,7 @@ UX_STEP_CB(
     bnnn_paging,
     switch_settings_blind_signing(),
     {
-      .title = "Blind signing",
+      .title = "Contract data",
       .text = strings.common.fullAddress,
     });
 
@@ -85,9 +85,9 @@ UX_STEP_CB(
     bnnn,
     switch_settings_blind_signing(),
     {
-      "Blind signing",
-      "Enable transaction",
-      "blind signing",
+      "Contract data",
+      "Allow contract data",
+      "in transactions",
       strings.common.fullAddress,
     });
 
@@ -169,7 +169,7 @@ UX_STEP_CB(
     ui_idle(),
     {
       "Error",
-      "Blind signing must be enabled in Settings",
+      "Contract data must be enabled in Settings",
     });
 #elif defined(TARGET_NANOX)
 UX_STEP_CB(
@@ -178,7 +178,7 @@ UX_STEP_CB(
     ui_idle(),
     {
       &C_icon_crossmark,
-      "Blind signing must be",
+      "Contract data must be",
       "enabled in Settings",
     });
 #endif

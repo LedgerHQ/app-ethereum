@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.9.9](https://github.com/ledgerhq/app-ethereum/compare/1.9.8...1.9.9) - 2021-10-08
+
+### Changed
+
+- Rollback the revert in wording change of "Contract data" in "Blind signing" that was introduced in v1.9.8
+
+## [1.9.8](https://github.com/ledgerhq/app-ethereum/compare/1.9.7...1.9.8) - 2021-10-06
+
+### Changed
+
+- Revert wording change of "Contract data" in "Blind signing" from v1.9.5
+
+### Added
+
+- Goerli now has its own standalone app, with hardcoded deversifi tokens
+
 ## [1.9.7](https://github.com/ledgerhq/app-ethereum/compare/1.9.6...1.9.7) - 2021-9-30
 
 ### Fixed

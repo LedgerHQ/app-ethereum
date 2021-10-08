@@ -30,7 +30,7 @@ APP_LOAD_PARAMS += --path "1517992542'/1101353413'"
 
 APPVERSION_M=1
 APPVERSION_N=9
-APPVERSION_P=7
+APPVERSION_P=9
 APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 APP_LOAD_FLAGS= --appFlags 0x240 --dep Ethereum:$(APPVERSION)
 
@@ -65,6 +65,21 @@ DEFINES += STARK_BIP32_PATH_0=0x80000A55 STARK_BIP32_PATH_1=0xA2862AD3
 APP_LOAD_PARAMS += --path "12381/3600" --curve bls12381g1
 DEFINES += HAVE_ETH2
 APPNAME = "Eth Ropsten"
+DEFINES_LIB=
+APP_LOAD_FLAGS=--appFlags 0xa40
+else ifeq ($(CHAIN),goerli)
+APP_LOAD_PARAMS += --path "44'/60'"
+DEFINES += CHAINID_UPCASE=\"ETHEREUM\" CHAINID_COINNAME=\"ETH\" CHAIN_KIND=CHAIN_KIND_ETHEREUM CHAIN_ID=5
+# Starkware integration
+APP_LOAD_PARAMS += --path "2645'/579218131'"
+DEFINES += HAVE_STARKWARE
+# Keep for Starkware Goerli tests
+DEFINES += HAVE_TOKENS_EXTRA_LIST
+DEFINES += STARK_BIP32_PATH_0=0x80000A55 STARK_BIP32_PATH_1=0xA2862AD3
+# Allow to derive ETH 2 public keys
+APP_LOAD_PARAMS += --path "12381/3600" --curve bls12381g1
+DEFINES += HAVE_ETH2
+APPNAME = "Eth Goerli"
 DEFINES_LIB=
 APP_LOAD_FLAGS=--appFlags 0xa40
 else ifeq ($(CHAIN),ellaism)
@@ -217,7 +232,7 @@ DEFINES += CHAINID_UPCASE=\"SONGBIRD\" CHAINID_COINNAME=\"SGB\" CHAIN_KIND=CHAIN
 APPNAME = "Songbird"
 else
 ifeq ($(filter clean,$(MAKECMDGOALS)),)
-$(error Unsupported CHAIN - use ethereum, ropsten, moonriver, ethereum_classic, expanse, poa, artis_sigma1, artis_tau1, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, pirl, akroma, atheios, callisto, ethersocial, ellaism, ether1, ethergem, gochain, mix, reosc, hpb, tomochain, tobalaba, dexon, volta, ewc, webchain, thundercore, bsc, songbird)
+$(error Unsupported CHAIN - use ethereum, ropsten, goerli, moonriver, ethereum_classic, expanse, poa, artis_sigma1, artis_tau1, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, pirl, akroma, atheios, callisto, ethersocial, ellaism, ether1, ethergem, gochain, mix, reosc, hpb, tomochain, tobalaba, dexon, volta, ewc, webchain, thundercore, bsc, songbird)
 endif
 endif
 
@@ -388,4 +403,4 @@ include $(BOLOS_SDK)/Makefile.rules
 dep/%.d: %.c Makefile
 
 listvariants:
-	@echo VARIANTS CHAIN ethereum ropsten moonriver ethereum_classic expanse poa rsk rsk_testnet ubiq wanchain pirl akroma atheios callisto ethersocial ether1 gochain musicoin ethergem mix ellaism reosc hpb tomochain dexon volta ewc thundercore bsc songbird
+	@echo VARIANTS CHAIN ethereum ropsten goerli moonriver ethereum_classic expanse poa rsk rsk_testnet ubiq wanchain pirl akroma atheios callisto ethersocial ether1 gochain musicoin ethergem mix ellaism reosc hpb tomochain dexon volta ewc thundercore bsc songbird

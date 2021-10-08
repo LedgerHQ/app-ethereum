@@ -18,7 +18,7 @@ test('[Nano S] Try to blind sign with setting disabled', zemu("nanos", async (si
 
   await Zemu.sleep(1000);
   await waitForAppScreen(sim);
-  await sim.navigateAndCompareSnapshots('.', 'nanos_try_to_blind_sign_with_setting_disabled', [2, 0]);
+  await sim.navigateAndCompareSnapshots('.', 'nanos_try_to_blind_sign_with_setting_disabled', [1, 0]);
 }));
 
 test('[Nano X] Try to blind sign with setting disabled', zemu("nanox", async (sim, eth) => {

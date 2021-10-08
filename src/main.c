@@ -233,6 +233,9 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
         case CHAIN_KIND_TOMOCHAIN:
             numTokens = NUM_TOKENS_TOMOCHAIN;
             break;
+        case CHAIN_KIND_MOONRIVER:
+            numTokens = NUM_TOKENS_MOONRIVER;
+            break;
         case CHAIN_KIND_TOBALABA:
             numTokens = NUM_TOKENS_TOBALABA;
             break;
@@ -334,6 +337,9 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
                 break;
             case CHAIN_KIND_TOMOCHAIN:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_TOMOCHAIN[i]);
+                break;
+            case CHAIN_KIND_MOONRIVER:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_MOONRIVER[i]);
                 break;
             case CHAIN_KIND_TOBALABA:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_TOBALABA[i]);

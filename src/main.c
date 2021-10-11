@@ -257,6 +257,9 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
         case CHAIN_KIND_FLARE:
             numTokens = NUM_TOKENS_FLARE;
             break;
+        case CHAIN_KIND_BTTC:
+            numTokens = NUM_TOKENS_BTTC;
+            break;
         case CHAIN_KIND_BSC:
             numTokens = NUM_TOKENS_BSC;
             break;
@@ -364,6 +367,9 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
                 break;
             case CHAIN_KIND_FLARE:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_FLARE[i]);
+                break;
+            case CHAIN_KIND_BTTC:
+                currentToken = (tokenDefinition_t*) PIC(&TOKENS_BTTC[i]);
                 break;
             case CHAIN_KIND_BSC:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_BSC[i]);

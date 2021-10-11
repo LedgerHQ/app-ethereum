@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.9.10](https://github.com/ledgerhq/app-ethereum/compare/1.9.9...1.9.10) - 2021-10-08
+
+### Added
+
+- Add new app: Moonriver
+
 ## [1.9.9](https://github.com/ledgerhq/app-ethereum/compare/1.9.8...1.9.9) - 2021-10-08
 
 ### Changed

@@ -2,6 +2,7 @@
 #include "apdu_constants.h"
 #include "ui_flow.h"
 #include "tokens.h"
+#include "eth_plugin_interface.h"
 
 #define SELECTOR_SIZE 4
 

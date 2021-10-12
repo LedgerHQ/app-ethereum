@@ -22,6 +22,7 @@
 #include "ethUstream.h"
 
 #define MAX_TICKER_LEN 12  // 10 characters + ' ' + '\0'
+#define MAX_ITEMS      2
 
 typedef struct tokenDefinition_t {
 #ifdef HAVE_CONTRACT_NAME_IN_DESCRIPTOR

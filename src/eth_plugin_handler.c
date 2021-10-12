@@ -47,15 +47,15 @@ void eth_plugin_prepare_query_contract_UI(ethQueryContractUI_t *queryContractUI,
     memset((uint8_t *) queryContractUI, 0, sizeof(ethQueryContractUI_t));
 
     if (allzeroes(&tmpCtx.transactionContext.extraInfo[0], sizeof(union extraInfo_t))) {
-        queryContractUI->extraInfo1 = NULL;
+        queryContractUI->item1 = NULL;
     } else {
-        queryContractUI->extraInfo1 = &tmpCtx.transactionContext.extraInfo[0];
+        queryContractUI->item1 = &tmpCtx.transactionContext.extraInfo[0];
     }
 
     if (allzeroes(&tmpCtx.transactionContext.extraInfo[1], sizeof(union extraInfo_t))) {
-        queryContractUI->extraInfo2 = NULL;
+        queryContractUI->item2 = NULL;
     } else {
-        queryContractUI->extraInfo2 = &tmpCtx.transactionContext.extraInfo[1];
+        queryContractUI->item2 = &tmpCtx.transactionContext.extraInfo[1];
     }
 
     strlcpy(queryContractUI->network_ticker, get_network_ticker(), MAX_TICKER_LEN);

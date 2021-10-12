@@ -164,8 +164,8 @@ typedef struct ethQueryContractID_t {
 typedef struct ethQueryContractUI_t {
     ethPluginSharedRW_t *pluginSharedRW;
     ethPluginSharedRO_t *pluginSharedRO;
-    union extraInfo_t *extraInfo1;
-    union extraInfo_t *extraInfo2;
+    union extraInfo_t *item1;
+    union extraInfo_t *item2;
     char network_ticker[MAX_TICKER_LEN];
     uint8_t *pluginContext;
     uint8_t screenIndex;

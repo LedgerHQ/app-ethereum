@@ -2,6 +2,7 @@
 #include "apdu_constants.h"
 #include "ui_flow.h"
 #include "feature_signTx.h"
+#include "eth_plugin_interface.h"
 
 void handleSign(uint8_t p1,
                 uint8_t p2,

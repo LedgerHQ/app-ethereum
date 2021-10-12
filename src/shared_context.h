@@ -14,16 +14,15 @@
 #include "uint256.h"
 #include "tokens.h"
 #include "chainConfig.h"
-#include "eth_plugin_interface.h"
 #include "nft.h"
 
 #define MAX_BIP32_PATH 10
 
-#define MAX_ITEMS 2
-
 #define WEI_TO_ETHER 18
 
 #define SELECTOR_LENGTH 4
+
+#define PLUGIN_ID_LENGTH 30
 
 #define N_storage (*(volatile internalStorage_t *) PIC(&N_storage_real))
 
@@ -85,16 +84,16 @@ typedef struct publicKeyContext_t {
     bool getChaincode;
 } publicKeyContext_t;
 
-typedef union extraInfo {
+typedef union extraInfo_t {
     tokenDefinition_t token;
     nftInfo_t nft;
-} extraInfo;
+} extraInfo_t;
 
 typedef struct transactionContext_t {
     uint8_t pathLength;
     uint32_t bip32Path[MAX_BIP32_PATH];
     uint8_t hash[INT256_LENGTH];
-    union extraInfo extraInfo[MAX_ITEMS];
+    union extraInfo_t extraInfo[MAX_ITEMS];
     uint8_t tokenSet[MAX_ITEMS];
     uint8_t currentItemIndex;
 } transactionContext_t;

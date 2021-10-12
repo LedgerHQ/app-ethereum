@@ -155,8 +155,8 @@ unsigned short io_exchange_al(unsigned char channel, unsigned short tx_len) {
     return 0;
 }
 
-union extraInfo *getKnownToken(uint8_t *contractAddress) {
-    extraInfo *currentItem = NULL;
+extraInfo_t *getKnownToken(uint8_t *contractAddress) {
+    union extraInfo_t *currentItem = NULL;
 #ifdef HAVE_TOKENS_LIST
     uint32_t numTokens = 0;
     uint32_t i;
@@ -382,7 +382,7 @@ union extraInfo *getKnownToken(uint8_t *contractAddress) {
 #endif
     //
     for (uint8_t i = 0; i < MAX_ITEMS; i++) {
-        currentItem = (extraInfo *) &tmpCtx.transactionContext.extraInfo[i].token;
+        currentItem = (union extraInfo_t *) &tmpCtx.transactionContext.extraInfo[i].token;
         if (tmpCtx.transactionContext.tokenSet[i] &&
             (memcmp(currentItem->token.address, contractAddress, ADDRESS_LENGTH) == 0)) {
             PRINTF("Token found at index %d\n", i);
@@ -391,7 +391,7 @@ union extraInfo *getKnownToken(uint8_t *contractAddress) {
     }
 
     for (uint8_t i = 0; i < MAX_ITEMS; i++) {
-        currentItem = (extraInfo *) &tmpCtx.transactionContext.extraInfo[i].token;
+        currentItem = (union extraInfo_t *) &tmpCtx.transactionContext.extraInfo[i].token;
         if (tmpCtx.transactionContext.tokenSet[i] &&
             (memcmp(currentItem->nft.contractAddress, contractAddress, ADDRESS_LENGTH) == 0)) {
             PRINTF("Token found at index %d\n", i);

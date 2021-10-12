@@ -6,14 +6,14 @@
 #include "cx.h"
 #include "ethUstream.h"
 #include "tokens.h"
-
-#define PLUGIN_ID_LENGTH 30
+#include "shared_context.h"
 
 // Interface version. To be updated everytime we introduce breaking changes to the plugin interface.
 typedef enum {
     ETH_PLUGIN_INTERFACE_VERSION_1 = 1,  // Version 1
     ETH_PLUGIN_INTERFACE_VERSION_2 = 2,
-    ETH_PLUGIN_INTERFACE_VERSION_LATEST = 3,
+    ETH_PLUGIN_INTERFACE_VERSION_3 = 3,
+    ETH_PLUGIN_INTERFACE_VERSION_LATEST = 4,
 } eth_plugin_interface_version_t;
 
 typedef enum {
@@ -131,8 +131,8 @@ typedef struct ethPluginProvideToken_t {
     ethPluginSharedRO_t *pluginSharedRO;
     uint8_t *pluginContext;
 
-    union extraInfo *item1;  // set by the ETH application, to be saved by the plugin
-    union extraInfo *item2;
+    union extraInfo_t *item1;  // set by the ETH application, to be saved by the plugin
+    union extraInfo_t *item2;
 
     uint8_t additionalScreens;  // Used by the plugin if it needs to display additional screens
                                 // based on the information received from the token definitions.
@@ -164,7 +164,9 @@ typedef struct ethQueryContractID_t {
 typedef struct ethQueryContractUI_t {
     ethPluginSharedRW_t *pluginSharedRW;
     ethPluginSharedRO_t *pluginSharedRO;
-    union extraInfo *extraInfo;
+    union extraInfo_t *extraInfo1;
+    union extraInfo_t *extraInfo2;
+    char network_ticker[MAX_TICKER_LEN];
     uint8_t *pluginContext;
     uint8_t screenIndex;
     char network_ticker[MAX_TICKER_LEN];

@@ -45,6 +45,21 @@ void eth_plugin_prepare_query_contract_UI(ethQueryContractUI_t *queryContractUI,
                                           char *msg,
                                           uint32_t msgLength) {
     memset((uint8_t *) queryContractUI, 0, sizeof(ethQueryContractUI_t));
+
+    if (allzeroes(&tmpCtx.transactionContext.extraInfo[0], sizeof(union extraInfo_t))) {
+        queryContractUI->extraInfo1 = NULL;
+    } else {
+        queryContractUI->extraInfo1 = &tmpCtx.transactionContext.extraInfo[0];
+    }
+
+    if (allzeroes(&tmpCtx.transactionContext.extraInfo[1], sizeof(union extraInfo_t))) {
+        queryContractUI->extraInfo2 = NULL;
+    } else {
+        queryContractUI->extraInfo2 = &tmpCtx.transactionContext.extraInfo[1];
+    }
+
+    strlcpy(queryContractUI->network_ticker, get_network_ticker(), MAX_TICKER_LEN);
+
     queryContractUI->screenIndex = screenIndex;
     strlcpy(queryContractUI->network_ticker,
             get_network_ticker(),
@@ -53,7 +68,6 @@ void eth_plugin_prepare_query_contract_UI(ethQueryContractUI_t *queryContractUI,
     queryContractUI->titleLength = titleLength;
     queryContractUI->msg = msg;
     queryContractUI->msgLength = msgLength;
-    queryContractUI->extraInfo = (union extraInfo *) &tmpCtx.transactionContext.extraInfo;
 }
 
 eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
@@ -106,7 +120,7 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
                         0) {
                         if ((INTERNAL_ETH_PLUGINS[i].availableCheck == NULL) ||
                             ((PluginAvailableCheck) PIC(
-                                INTERNAL_ETH_PLUGINS[i].availableCheck)) ()) {
+                                INTERNAL_ETH_PLUGINS[i].availableCheck))()) {
                             strlcpy(dataContext.tokenContext.pluginName,
                                     INTERNAL_ETH_PLUGINS[i].alias,
                                     PLUGIN_ID_LENGTH);

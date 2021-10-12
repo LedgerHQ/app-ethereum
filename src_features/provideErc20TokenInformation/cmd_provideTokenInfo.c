@@ -23,10 +23,10 @@ void handleProvideErc20TokenInformation(uint8_t p1,
 
     cx_sha256_init(&sha256);
 
-    tmpCtx.transactionContext.currentTokenIndex =
-        (tmpCtx.transactionContext.currentTokenIndex + 1) % MAX_TOKEN;
+    tmpCtx.transactionContext.currentItemIndex =
+        (tmpCtx.transactionContext.currentItemIndex + 1) % MAX_ITEMS;
     tokenDefinition_t *token =
-        &tmpCtx.transactionContext.tokens[tmpCtx.transactionContext.currentTokenIndex];
+        &tmpCtx.transactionContext.tokens[tmpCtx.transactionContext.currentItemIndex];
 
     if (dataLength < 1) {
         THROW(0x6A80);
@@ -93,7 +93,7 @@ void handleProvideErc20TokenInformation(uint8_t p1,
         THROW(0x6A80);
 #endif
     }
-    tmpCtx.transactionContext.tokenSet[tmpCtx.transactionContext.currentTokenIndex] = 1;
+    tmpCtx.transactionContext.tokenSet[tmpCtx.transactionContext.currentItemIndex] = 1;
     THROW(0x9000);
 }
 
@@ -114,12 +114,12 @@ void handleProvideErc20TokenInformation(uint8_t p1,
     uint8_t hash[INT256_LENGTH];
     cx_ecfp_public_key_t tokenKey;
 
-    tmpCtx.transactionContext.currentTokenIndex =
-        (tmpCtx.transactionContext.currentTokenIndex + 1) % MAX_TOKEN;
+    tmpCtx.transactionContext.currentItemIndex =
+        (tmpCtx.transactionContext.currentItemIndex + 1) % MAX_ITEMS;
     tokenDefinition_t *token =
-        &tmpCtx.transactionContext.tokens[tmpCtx.transactionContext.currentTokenIndex];
+        &tmpCtx.transactionContext.extraInfo[tmpCtx.transactionContext.currentItemIndex].token;
 
-    PRINTF("Provisioning currentTokenIndex %d\n", tmpCtx.transactionContext.currentTokenIndex);
+    PRINTF("Provisioning currentItemIndex %d\n", tmpCtx.transactionContext.currentItemIndex);
 
     if (dataLength < 1) {
         THROW(0x6A80);
@@ -204,7 +204,7 @@ void handleProvideErc20TokenInformation(uint8_t p1,
     }
 #endif
 
-    tmpCtx.transactionContext.tokenSet[tmpCtx.transactionContext.currentTokenIndex] = 1;
+    tmpCtx.transactionContext.tokenSet[tmpCtx.transactionContext.currentItemIndex] = 1;
     THROW(0x9000);
 }
 

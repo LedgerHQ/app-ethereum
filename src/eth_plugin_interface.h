@@ -131,8 +131,8 @@ typedef struct ethPluginProvideToken_t {
     ethPluginSharedRO_t *pluginSharedRO;
     uint8_t *pluginContext;
 
-    tokenDefinition_t *token1;  // set by the ETH application, to be saved by the plugin
-    tokenDefinition_t *token2;
+    union extraInfo *item1;  // set by the ETH application, to be saved by the plugin
+    union extraInfo *item2;
 
     uint8_t additionalScreens;  // Used by the plugin if it needs to display additional screens
                                 // based on the information received from the token definitions.
@@ -164,6 +164,7 @@ typedef struct ethQueryContractID_t {
 typedef struct ethQueryContractUI_t {
     ethPluginSharedRW_t *pluginSharedRW;
     ethPluginSharedRO_t *pluginSharedRO;
+    union extraInfo *extraInfo;
     uint8_t *pluginContext;
     uint8_t screenIndex;
     char network_ticker[MAX_TICKER_LEN];

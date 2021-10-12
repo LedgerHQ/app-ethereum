@@ -22,11 +22,12 @@ void handleProvideNFTInformation(uint8_t p1,
     uint8_t hash[INT256_LENGTH];
     cx_ecfp_public_key_t nftKey;
 
-    tmpCtx.transactionContext.currentTokenIndex =
-        (tmpCtx.transactionContext.currentTokenIndex + 1) % MAX_TOKEN;
-    nftInfo_t *nft = &tmpCtx.transactionContext.nfts[tmpCtx.transactionContext.currentTokenIndex];
+    tmpCtx.transactionContext.currentItemIndex =
+        (tmpCtx.transactionContext.currentItemIndex + 1) % MAX_ITEMS;
+    nftInfo_t *nft =
+        &tmpCtx.transactionContext.extraInfo[tmpCtx.transactionContext.currentItemIndex].nft;
 
-    PRINTF("Provisioning currentTokenIndex %d\n", tmpCtx.transactionContext.currentTokenIndex);
+    PRINTF("Provisioning currentItemIndex %d\n", tmpCtx.transactionContext.currentItemIndex);
 
     uint8_t size = TYPE_SIZE + VERSION_SIZE + NAME_LENGTH_SIZE;
     uint8_t offset = 0;
@@ -88,6 +89,6 @@ void handleProvideNFTInformation(uint8_t p1,
 #endif
     }
 
-    tmpCtx.transactionContext.tokenSet[tmpCtx.transactionContext.currentTokenIndex] = 1;
+    tmpCtx.transactionContext.tokenSet[tmpCtx.transactionContext.currentItemIndex] = 1;
     THROW(0x9000);
 }

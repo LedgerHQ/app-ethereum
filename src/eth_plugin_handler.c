@@ -52,6 +52,7 @@ void eth_plugin_prepare_query_contract_UI(ethQueryContractUI_t *queryContractUI,
     queryContractUI->titleLength = titleLength;
     queryContractUI->msg = msg;
     queryContractUI->msgLength = msgLength;
+    queryContractUI->extraInfo = (union extraInfo *) &tmpCtx.transactionContext.extraInfo;
 }
 
 eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
@@ -104,7 +105,7 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
                         0) {
                         if ((INTERNAL_ETH_PLUGINS[i].availableCheck == NULL) ||
                             ((PluginAvailableCheck) PIC(
-                                INTERNAL_ETH_PLUGINS[i].availableCheck))()) {
+                                INTERNAL_ETH_PLUGINS[i].availableCheck)) ()) {
                             strlcpy(dataContext.tokenContext.pluginName,
                                     INTERNAL_ETH_PLUGINS[i].alias,
                                     PLUGIN_ID_LENGTH);

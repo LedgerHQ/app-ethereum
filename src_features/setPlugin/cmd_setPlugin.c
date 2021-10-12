@@ -18,12 +18,14 @@ void handleSetPlugin(uint8_t p1,
     uint8_t hash[32];
     cx_ecfp_public_key_t tokenKey;
     uint8_t pluginNameLength = *workBuffer;
+    PRINTF("plugin Name Length: %d\n", pluginNameLength);
     const size_t payload_size = 1 + pluginNameLength + ADDRESS_LENGTH + SELECTOR_SIZE;
 
     if (dataLength <= payload_size) {
         THROW(0x6A80);
     }
 
+    // scott review total
     if (pluginNameLength + 1 > sizeof(dataContext.tokenContext.pluginName)) {
         THROW(0x6A80);
     }
@@ -41,8 +43,8 @@ void handleSetPlugin(uint8_t p1,
                          sizeof(hash),
                          workBuffer + payload_size,
                          dataLength - payload_size)) {
-        PRINTF("Invalid external plugin signature %.*H\n", payload_size, workBuffer);
 #ifndef HAVE_BYPASS_SIGNATURES
+        PRINTF("Invalid external plugin signature %.*H\n", payload_size, workBuffer);
         THROW(0x6A80);
 #endif
     }

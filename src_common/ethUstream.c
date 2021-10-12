@@ -254,6 +254,7 @@ static void processTo(txContext_t *context) {
 }
 
 static void processData(txContext_t *context) {
+    PRINTF("PROCESS DATA\n");
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_DATA\n");
         THROW(EXCEPTION);
@@ -268,6 +269,7 @@ static void processData(txContext_t *context) {
         copyTxData(context, NULL, copySize);
     }
     if (context->currentFieldPos == context->currentFieldLength) {
+        PRINTF("incrementing field\n");
         context->currentField++;
         context->processingField = false;
     }
@@ -506,6 +508,7 @@ static parserStatus_e processTxInternal(txContext_t *context) {
         customStatus_e customStatus = CUSTOM_NOT_HANDLED;
         // EIP 155 style transaction
         if (PARSING_IS_DONE(context)) {
+            PRINTF("parsing is done\n");
             return USTREAM_FINISHED;
         }
         // Old style transaction (pre EIP-155). Transations could just skip `v,r,s` so we needed to
@@ -518,9 +521,11 @@ static parserStatus_e processTxInternal(txContext_t *context) {
         if ((context->txType == LEGACY && context->currentField == LEGACY_RLP_V) &&
             (context->commandLength == 0)) {
             context->content->vLength = 0;
+            PRINTF("finished\n");
             return USTREAM_FINISHED;
         }
         if (context->commandLength == 0) {
+            PRINTF("Command length done\n");
             return USTREAM_PROCESSING;
         }
         if (!context->processingField) {
@@ -531,6 +536,7 @@ static parserStatus_e processTxInternal(txContext_t *context) {
         }
         if (context->customProcessor != NULL) {
             customStatus = context->customProcessor(context);
+            PRINTF("After customprocessor\n");
             switch (customStatus) {
                 case CUSTOM_NOT_HANDLED:
                 case CUSTOM_HANDLED:
@@ -576,6 +582,7 @@ static parserStatus_e processTxInternal(txContext_t *context) {
             }
         }
     }
+    PRINTF("end of here\n");
 }
 
 parserStatus_e processTx(txContext_t *context,
@@ -589,6 +596,7 @@ parserStatus_e processTx(txContext_t *context,
             context->commandLength = length;
             context->processingFlags = processingFlags;
             result = processTxInternal(context);
+            PRINTF("result: %d\n");
         }
         CATCH_OTHER(e) {
             result = USTREAM_FAULT;

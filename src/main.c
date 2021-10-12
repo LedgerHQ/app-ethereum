@@ -155,8 +155,8 @@ unsigned short io_exchange_al(unsigned char channel, unsigned short tx_len) {
     return 0;
 }
 
-tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
-    tokenDefinition_t *currentToken = NULL;
+union extraInfo *getKnownToken(uint8_t *contractAddress) {
+    extraInfo *currentItem = NULL;
 #ifdef HAVE_TOKENS_LIST
     uint32_t numTokens = 0;
     uint32_t i;
@@ -380,12 +380,22 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
         }
     }
 #endif
-    for (size_t i = 0; i < MAX_TOKEN; i++) {
-        currentToken = &tmpCtx.transactionContext.tokens[i];
+    //
+    for (uint8_t i = 0; i < MAX_ITEMS; i++) {
+        currentItem = (extraInfo *) &tmpCtx.transactionContext.extraInfo[i].token;
         if (tmpCtx.transactionContext.tokenSet[i] &&
-            (memcmp(currentToken->address, contractAddress, ADDRESS_LENGTH) == 0)) {
+            (memcmp(currentItem->token.address, contractAddress, ADDRESS_LENGTH) == 0)) {
             PRINTF("Token found at index %d\n", i);
-            return currentToken;
+            return currentItem;
+        }
+    }
+
+    for (uint8_t i = 0; i < MAX_ITEMS; i++) {
+        currentItem = (extraInfo *) &tmpCtx.transactionContext.extraInfo[i].token;
+        if (tmpCtx.transactionContext.tokenSet[i] &&
+            (memcmp(currentItem->nft.contractAddress, contractAddress, ADDRESS_LENGTH) == 0)) {
+            PRINTF("Token found at index %d\n", i);
+            return currentItem;
         }
     }
 
@@ -485,7 +495,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
 
             switch (G_io_apdu_buffer[OFFSET_INS]) {
                 case INS_GET_PUBLIC_KEY:
-                    memset(tmpCtx.transactionContext.tokenSet, 0, MAX_TOKEN);
+                    memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
                     handleGetPublicKey(G_io_apdu_buffer[OFFSET_P1],
                                        G_io_apdu_buffer[OFFSET_P2],
                                        G_io_apdu_buffer + OFFSET_CDATA,
@@ -504,12 +514,12 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                     break;
 
                 case INS_PROVIDE_NFT_INFORMATION:
-                    handleProvideErc20TokenInformation(G_io_apdu_buffer[OFFSET_P1],
-                                                       G_io_apdu_buffer[OFFSET_P2],
-                                                       G_io_apdu_buffer + OFFSET_CDATA,
-                                                       G_io_apdu_buffer[OFFSET_LC],
-                                                       flags,
-                                                       tx);
+                    handleProvideNFTInformation(G_io_apdu_buffer[OFFSET_P1],
+                                                G_io_apdu_buffer[OFFSET_P2],
+                                                G_io_apdu_buffer + OFFSET_CDATA,
+                                                G_io_apdu_buffer[OFFSET_LC],
+                                                flags,
+                                                tx);
                     break;
 
                 case INS_SET_PLUGIN:
@@ -540,7 +550,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                     break;
 
                 case INS_SIGN_PERSONAL_MESSAGE:
-                    memset(tmpCtx.transactionContext.tokenSet, 0, MAX_TOKEN);
+                    memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
                     handleSignPersonalMessage(G_io_apdu_buffer[OFFSET_P1],
                                               G_io_apdu_buffer[OFFSET_P2],
                                               G_io_apdu_buffer + OFFSET_CDATA,
@@ -550,7 +560,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                     break;
 
                 case INS_SIGN_EIP_712_MESSAGE:
-                    memset(tmpCtx.transactionContext.tokenSet, 0, MAX_TOKEN);
+                    memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
                     handleSignEIP712Message(G_io_apdu_buffer[OFFSET_P1],
                                             G_io_apdu_buffer[OFFSET_P2],
                                             G_io_apdu_buffer + OFFSET_CDATA,
@@ -562,7 +572,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
 #ifdef HAVE_ETH2
 
                 case INS_GET_ETH2_PUBLIC_KEY:
-                    memset(tmpCtx.transactionContext.tokenSet, 0, MAX_TOKEN);
+                    memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
                     handleGetEth2PublicKey(G_io_apdu_buffer[OFFSET_P1],
                                            G_io_apdu_buffer[OFFSET_P2],
                                            G_io_apdu_buffer + OFFSET_CDATA,
@@ -771,7 +781,7 @@ void coin_main(chain_config_t *coin_config) {
         chainConfig = coin_config;
     }
     reset_app_context();
-    tmpCtx.transactionContext.currentTokenIndex = 0;
+    tmpCtx.transactionContext.currentItemIndex = 0;
 
     for (;;) {
         UX_INIT();

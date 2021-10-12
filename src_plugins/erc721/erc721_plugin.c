@@ -27,7 +27,7 @@ static void handle_init_contract(void *parameters) {
     // No selector found.
     if (i == NUM_ERC721_SELECTORS) {
         PRINTF("Unknown erc721 selector %.*H\n", SELECTOR_SIZE, msg->selector);
-        msg->result = ETH_PLUGIN_RESULT_ERROR;
+        msg->result = ETH_PLUGIN_RESULT_FALLBACK;
         return;
     }
 
@@ -55,7 +55,7 @@ static void handle_finalize(void *parameters) {
 
     msg->tokenLookup1 = msg->pluginSharedRO->txContent->destination;
     msg->tokenLookup2 = context->address;
-    msg->numScreens = 3;
+    msg->numScreens = 2;
     msg->uiType = ETH_UI_TYPE_GENERIC;
     msg->result = ETH_PLUGIN_RESULT_OK;
 }

@@ -19,7 +19,7 @@
 
 #define MAX_BIP32_PATH 10
 
-#define MAX_TOKEN 2
+#define MAX_ITEMS 2
 
 #define WEI_TO_ETHER 18
 
@@ -85,16 +85,18 @@ typedef struct publicKeyContext_t {
     bool getChaincode;
 } publicKeyContext_t;
 
+typedef union extraInfo {
+    tokenDefinition_t token;
+    nftInfo_t nft;
+} extraInfo;
+
 typedef struct transactionContext_t {
     uint8_t pathLength;
     uint32_t bip32Path[MAX_BIP32_PATH];
     uint8_t hash[INT256_LENGTH];
-    union {
-        tokenDefinition_t tokens[MAX_TOKEN];
-        nftInfo_t nfts[MAX_NFT];
-    };
-    uint8_t tokenSet[MAX_TOKEN];
-    uint8_t currentTokenIndex;
+    union extraInfo extraInfo[MAX_ITEMS];
+    uint8_t tokenSet[MAX_ITEMS];
+    uint8_t currentItemIndex;
 } transactionContext_t;
 
 typedef struct messageSigningContext_t {

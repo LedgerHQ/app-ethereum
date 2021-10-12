@@ -152,9 +152,9 @@ void compound_plugin_call(int message, void *parameters) {
         case ETH_PLUGIN_PROVIDE_TOKEN: {
             ethPluginProvideToken_t *msg = (ethPluginProvideToken_t *) parameters;
             compound_parameters_t *context = (compound_parameters_t *) msg->pluginContext;
-            PRINTF("compound plugin provide token: %d\n", (msg->token1 != NULL));
-            if (msg->token1 != NULL) {
-                strlcpy(context->ticker_1, msg->token1->ticker, MAX_TICKER_LEN);
+            PRINTF("compound plugin provide token: %d\n", (msg->item1 != NULL));
+            if (msg->item1 != NULL) {
+                strlcpy(context->ticker_1, msg->item1->token.ticker, MAX_TICKER_LEN);
                 switch (context->selectorIndex) {
                     case COMPOUND_REDEEM_UNDERLYING:
                     case COMPOUND_MINT:
@@ -167,7 +167,7 @@ void compound_plugin_call(int message, void *parameters) {
 
                     // Only case where we use the compound contract decimals
                     case COMPOUND_REDEEM:
-                        context->decimals = msg->token1->decimals;
+                        context->decimals = msg->item1->token.decimals;
                         msg->result = ETH_PLUGIN_RESULT_OK;
                         break;
 

@@ -163,12 +163,12 @@ void erc20_plugin_call(int message, void *parameters) {
             ethPluginProvideToken_t *msg = (ethPluginProvideToken_t *) parameters;
             erc20_parameters_t *context = (erc20_parameters_t *) msg->pluginContext;
             PRINTF("erc20 plugin provide token 1: %d - 2: %d\n",
-                   (msg->token1 != NULL),
-                   (msg->token2 != NULL));
-            if (msg->token1 != NULL) {
+                   (msg->item1 != NULL),
+                   (msg->item2 != NULL));
+            if (msg->item1 != NULL) {
                 context->target = TARGET_ADDRESS;
-                strlcpy(context->ticker, msg->token1->ticker, MAX_TICKER_LEN);
-                context->decimals = msg->token1->decimals;
+                strlcpy(context->ticker, msg->item1->token.ticker, MAX_TICKER_LEN);
+                context->decimals = msg->item1->token.decimals;
                 if (context->selectorIndex == ERC20_APPROVE) {
                     if (check_contract(context)) {
                         context->target = TARGET_CONTRACT;

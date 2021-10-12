@@ -40,7 +40,7 @@ void handle_transfer(ethPluginProvideParameter_t *msg, erc721_parameters_t *cont
             context->next_param = TOKEN_ID;
             break;
         case TOKEN_ID:
-            copy_address(context->tokenId, msg->parameter, sizeof(context->tokenId));
+            copy_parameter(context->tokenId, msg->parameter, sizeof(context->tokenId));
             context->next_param = NONE;
             break;
         default:

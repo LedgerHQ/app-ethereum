@@ -188,8 +188,9 @@ bool starkware_verify_asset_id(uint8_t *tmp32, uint8_t *tokenId, bool assetTypeO
     if (quantumSet) {
         cx_sha3_t sha3;
         tokenDefinition_t *currentToken = NULL;
-        if (dataContext.tokenContext.quantumIndex != MAX_TOKEN) {
-            currentToken = &tmpCtx.transactionContext.tokens[dataContext.tokenContext.quantumIndex];
+        if (dataContext.tokenContext.quantumIndex != MAX_ITEMS) {
+            currentToken =
+                &tmpCtx.transactionContext.extraInfo[dataContext.tokenContext.quantumIndex].token;
         }
         cx_keccak_init(&sha3, 256);
         compute_token_id(&sha3,
@@ -214,9 +215,9 @@ bool starkware_verify_asset_id(uint8_t *tmp32, uint8_t *tokenId, bool assetTypeO
 
 bool starkware_verify_token(uint8_t *token) {
     if (quantumSet) {
-        if (dataContext.tokenContext.quantumIndex != MAX_TOKEN) {
+        if (dataContext.tokenContext.quantumIndex != MAX_ITEMS) {
             tokenDefinition_t *currentToken =
-                &tmpCtx.transactionContext.tokens[dataContext.tokenContext.quantumIndex];
+                &tmpCtx.transactionContext.extraInfo[dataContext.tokenContext.quantumIndex].token;
             if (memcmp(token + 32 - 20, currentToken->address, 20) != 0) {
                 PRINTF("Token not matching got %.*H\n", 20, token + 32 - 20);
                 PRINTF("Current token %.*H\n", 20, currentToken->address);
@@ -235,7 +236,7 @@ bool starkware_verify_token(uint8_t *token) {
 
 bool starkware_verify_quantum(uint8_t *quantum) {
     if (quantumSet) {
-        if (dataContext.tokenContext.quantumIndex != MAX_TOKEN) {
+        if (dataContext.tokenContext.quantumIndex != MAX_ITEMS) {
             if (memcmp(quantum, dataContext.tokenContext.quantum, 32) != 0) {
                 PRINTF("Quantum not matching got %.*H\n", 32, quantum);
                 PRINTF("Current quantum %.*H\n", 32, dataContext.tokenContext.quantum);
@@ -301,7 +302,7 @@ void starkware_print_amount(uint8_t *amountData,
     char *ticker = chainConfig->coinName;
 
     if ((amountData == NULL) ||
-        (forEscape && (dataContext.tokenContext.quantumIndex == MAX_TOKEN))) {
+        (forEscape && (dataContext.tokenContext.quantumIndex == MAX_ITEMS))) {
         decimals = WEI_TO_ETHER;
         if (!forEscape) {
             convertUint256BE(tmpContent.txContent.value.value,
@@ -312,7 +313,7 @@ void starkware_print_amount(uint8_t *amountData,
         }
     } else {
         tokenDefinition_t *token =
-            &tmpCtx.transactionContext.tokens[dataContext.tokenContext.quantumIndex];
+            &tmpCtx.transactionContext.extraInfo[dataContext.tokenContext.quantumIndex].token;
         decimals = token->decimals;
         ticker = token->ticker;
         readu256BE(amountData, &amountPre);
@@ -334,9 +335,9 @@ void starkware_print_amount(uint8_t *amountData,
 void starkware_print_ticker(char *destination, size_t destinationLength) {
     char *ticker = chainConfig->coinName;
 
-    if (dataContext.tokenContext.quantumIndex != MAX_TOKEN) {
+    if (dataContext.tokenContext.quantumIndex != MAX_ITEMS) {
         tokenDefinition_t *token =
-            &tmpCtx.transactionContext.tokens[dataContext.tokenContext.quantumIndex];
+            &tmpCtx.transactionContext.extraInfo[dataContext.tokenContext.quantumIndex].token;
         ticker = token->ticker;
     }
     strlcpy(destination, ticker, destinationLength);
@@ -345,9 +346,9 @@ void starkware_print_ticker(char *destination, size_t destinationLength) {
 // TODO : rewrite as independant code
 void starkware_print_asset_contract(char *destination, size_t destinationLength) {
     // token has been validated to be present previously
-    if (dataContext.tokenContext.quantumIndex != MAX_TOKEN) {
+    if (dataContext.tokenContext.quantumIndex != MAX_ITEMS) {
         tokenDefinition_t *token =
-            &tmpCtx.transactionContext.tokens[dataContext.tokenContext.quantumIndex];
+            &tmpCtx.transactionContext.extraInfo[dataContext.tokenContext.quantumIndex].token;
         getEthDisplayableAddress(token->address,
                                  destination,
                                  destinationLength,

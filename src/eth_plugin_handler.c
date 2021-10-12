@@ -45,6 +45,9 @@ void eth_plugin_prepare_query_contract_UI(ethQueryContractUI_t *queryContractUI,
                                           uint32_t msgLength) {
     memset((uint8_t *) queryContractUI, 0, sizeof(ethQueryContractUI_t));
     queryContractUI->screenIndex = screenIndex;
+    strlcpy(queryContractUI->network_ticker,
+            get_network_ticker(),
+            sizeof(queryContractUI->network_ticker));
     queryContractUI->title = title;
     queryContractUI->titleLength = titleLength;
     queryContractUI->msg = msg;

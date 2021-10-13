@@ -36,6 +36,35 @@ const NANOX_CLONE_ELF_PATH = Resolve("elfs/ethereum_classic_nanox.elf");
 
 const TIMEOUT = 1000000;
 
+// Generates a serializedTransaction from a rawHexTransaction copy pasted from etherscan.
+function txFromEtherscan(rawTx) {
+    // Remove 0x prefix
+    rawTx = rawTx.slice(2);
+
+    let txType = rawTx.slice(0, 2);
+    if (txType == "02" || txType == "01") {
+        // Remove "02" prefix
+        rawTx = rawTx.slice(2);
+    } else {
+        txType = "";
+    }
+
+    let decoded = RLP.decode("0x" + rawTx);
+    if (txType != "") {
+        decoded = decoded.slice(0, decoded.length - 3); // remove v, r, s
+    } else {
+        decoded[decoded.length - 1] = "0x"; // empty
+        decoded[decoded.length - 2] = "0x"; // empty
+        decoded[decoded.length - 3] = "0x01"; // chainID 1
+    }
+
+    // Encode back the data, drop the '0x' prefix
+    let encoded = RLP.encode(decoded).slice(2);
+
+    // Don't forget to prepend the txtype
+    return txType + encoded;
+}
+
 function zemu(device, func) {
     return async () => {
         jest.setTimeout(TIMEOUT);
@@ -71,5 +100,6 @@ module.exports = {
     NANOX_CLONE_ELF_PATH,
     sim_options_nanos,
     sim_options_nanox,
-    TIMEOUT
+    TIMEOUT,
+    txFromEtherscan,
 }

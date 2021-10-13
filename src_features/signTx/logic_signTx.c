@@ -98,10 +98,10 @@ customStatus_e customProcessor(txContext_t *context) {
             blockSize = 32 - (dataContext.tokenContext.fieldOffset % 32);
         }
 
-        // Sanity check
+        // If the last parameter is of type `bytes` then we might have an
+        // edge case where the data is not a multiple of 32. Set `blockSize` accordingly
         if ((context->currentFieldLength - fieldPos) < blockSize) {
-            PRINTF("Unconsistent data\n");
-            return CUSTOM_FAULT;
+            blockSize = context->currentFieldLength - fieldPos;
         }
 
         copySize = (context->commandLength < blockSize ? context->commandLength : blockSize);

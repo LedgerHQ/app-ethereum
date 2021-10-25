@@ -1,7 +1,20 @@
-bin
-debug
-dep
-obj
+# Compilation of Ledger's app
 src/glyphs.c
 src/glyphs.h
+bin/
+debug/
+dep/
+obj/
 
+# Python
+*.pyc
+
+
+# JS
+tests/node_modules
+tests/lib
+tests/yarn-error.log
+tests/elfs/*
+tests/snapshots-tmp
+
+.vscode

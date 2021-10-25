@@ -18,6 +18,7 @@
 ifeq ($(BOLOS_SDK),)
 $(error Environment variable BOLOS_SDK is not set)
 endif
+
 include $(BOLOS_SDK)/Makefile.defines
 
 DEFINES_LIB = USE_LIB_ETHEREUM
@@ -28,8 +29,8 @@ APP_LOAD_PARAMS += --path "45'"
 APP_LOAD_PARAMS += --path "1517992542'/1101353413'"
 
 APPVERSION_M=1
-APPVERSION_N=2
-APPVERSION_P=13
+APPVERSION_N=9
+APPVERSION_P=10
 APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 APP_LOAD_FLAGS= --appFlags 0x240 --dep Ethereum:$(APPVERSION)
 
@@ -40,8 +41,45 @@ endif
 ifeq ($(CHAIN),ethereum)
 # Lock the application on its standard path for 1.5. Please complain if non compliant
 APP_LOAD_PARAMS += --path "44'/60'"
-DEFINES += CHAINID_UPCASE=\"ETHEREUM\" CHAINID_COINNAME=\"ETH\" CHAIN_KIND=CHAIN_KIND_ETHEREUM CHAIN_ID=0
+DEFINES += CHAINID_UPCASE=\"ETHEREUM\" CHAINID_COINNAME=\"ETH\" CHAIN_KIND=CHAIN_KIND_ETHEREUM CHAIN_ID=1
+# Starkware integration
+APP_LOAD_PARAMS += --path "2645'/579218131'"
+DEFINES += HAVE_STARKWARE
+DEFINES += STARK_BIP32_PATH_0=0x80000A55 STARK_BIP32_PATH_1=0xA2862AD3
+# Allow to derive ETH 2 public keys
+APP_LOAD_PARAMS += --path "12381/3600" --curve bls12381g1
+DEFINES += HAVE_ETH2
 APPNAME = "Ethereum"
+DEFINES_LIB=
+APP_LOAD_FLAGS=--appFlags 0xa40
+else ifeq ($(CHAIN),ropsten)
+APP_LOAD_PARAMS += --path "44'/60'"
+DEFINES += CHAINID_UPCASE=\"ETHEREUM\" CHAINID_COINNAME=\"ETH\" CHAIN_KIND=CHAIN_KIND_ETHEREUM CHAIN_ID=3
+# Starkware integration
+APP_LOAD_PARAMS += --path "2645'/579218131'"
+DEFINES += HAVE_STARKWARE
+# Keep for Starkware Ropsten tests
+DEFINES += HAVE_TOKENS_EXTRA_LIST
+DEFINES += STARK_BIP32_PATH_0=0x80000A55 STARK_BIP32_PATH_1=0xA2862AD3
+# Allow to derive ETH 2 public keys
+APP_LOAD_PARAMS += --path "12381/3600" --curve bls12381g1
+DEFINES += HAVE_ETH2
+APPNAME = "Eth Ropsten"
+DEFINES_LIB=
+APP_LOAD_FLAGS=--appFlags 0xa40
+else ifeq ($(CHAIN),goerli)
+APP_LOAD_PARAMS += --path "44'/60'"
+DEFINES += CHAINID_UPCASE=\"ETHEREUM\" CHAINID_COINNAME=\"ETH\" CHAIN_KIND=CHAIN_KIND_ETHEREUM CHAIN_ID=5
+# Starkware integration
+APP_LOAD_PARAMS += --path "2645'/579218131'"
+DEFINES += HAVE_STARKWARE
+# Keep for Starkware Goerli tests
+DEFINES += HAVE_TOKENS_EXTRA_LIST
+DEFINES += STARK_BIP32_PATH_0=0x80000A55 STARK_BIP32_PATH_1=0xA2862AD3
+# Allow to derive ETH 2 public keys
+APP_LOAD_PARAMS += --path "12381/3600" --curve bls12381g1
+DEFINES += HAVE_ETH2
+APPNAME = "Eth Goerli"
 DEFINES_LIB=
 APP_LOAD_FLAGS=--appFlags 0xa40
 else ifeq ($(CHAIN),ellaism)
@@ -141,6 +179,10 @@ else ifeq ($(CHAIN),tomochain)
 APP_LOAD_PARAMS += --path "44'/889'"
 DEFINES += CHAINID_UPCASE=\"TOMOCHAIN\" CHAINID_COINNAME=\"TOMO\" CHAIN_KIND=CHAIN_KIND_TOMOCHAIN CHAIN_ID=88
 APPNAME = "TomoChain"
+else ifeq ($(CHAIN),moonriver)
+APP_LOAD_PARAMS += --path "44'/60'"
+DEFINES += CHAINID_UPCASE=\"MOONRIVER\" CHAINID_COINNAME=\"MOVR\" CHAIN_KIND=CHAIN_KIND_MOONRIVER CHAIN_ID=1285
+APPNAME = "Moonriver"
 else ifeq ($(CHAIN),tobalaba)
 APP_LOAD_PARAMS += --path "44'/401697'"
 DEFINES += CHAINID_UPCASE=\"TOBALABA\" CHAINID_COINNAME=\"TOBALABA\" CHAIN_KIND=CHAIN_KIND_TOBALABA CHAIN_ID=401697
@@ -165,13 +207,36 @@ else ifeq ($(CHAIN),thundercore)
 APP_LOAD_PARAMS += --path "44'/1001'"
 DEFINES += CHAINID_UPCASE=\"THUNDERCORE\" CHAINID_COINNAME=\"TT\" CHAIN_KIND=CHAIN_KIND_THUNDERCORE CHAIN_ID=108
 APPNAME = "ThunderCore"
+else ifeq ($(CHAIN),flare)
+
+APP_LOAD_PARAMS += --path "44'/554'" --path "44'/60'"
+DEFINES += CHAINID_UPCASE=\"FLARE\" CHAINID_COINNAME=\"FLR\" CHAIN_KIND=CHAIN_KIND_FLARE CHAIN_ID=14
+
+# Pending review parameters
+APP_LOAD_PARAMS += --tlvraw 9F:01
+DEFINES += HAVE_PENDING_REVIEW_SCREEN
+
+APPNAME = "Flare"
+
+else ifeq ($(CHAIN),flare_coston)
+APP_LOAD_PARAMS += --path "44'/554'" --path "44'/60'"
+DEFINES += CHAINID_UPCASE=\"FLARE\" CHAINID_COINNAME=\"FLR\" CHAIN_KIND=CHAIN_KIND_FLARE CHAIN_ID=16
+APPNAME = "Flare Coston"
+else ifeq ($(CHAIN),bsc)
+APP_LOAD_PARAMS += --path "44'/60'"
+DEFINES += CHAINID_UPCASE=\"BSC\" CHAINID_COINNAME=\"BNB\" CHAIN_KIND=CHAIN_KIND_BSC CHAIN_ID=56
+APPNAME = "Binance Smart Chain"
+else ifeq ($(CHAIN),songbird)
+APP_LOAD_PARAMS += --path "44'/554'" --path "44'/60'"
+DEFINES += CHAINID_UPCASE=\"SONGBIRD\" CHAINID_COINNAME=\"SGB\" CHAIN_KIND=CHAIN_KIND_SONGBIRD CHAIN_ID=19
+APPNAME = "Songbird"
 else ifeq ($(CHAIN),xinfinnetwork)
 APP_LOAD_PARAMS += --path "44'/550'"
 DEFINES += CHAINID_UPCASE=\"XINFINNETWORK\" CHAINID_COINNAME=\"XDC\" CHAIN_KIND=CHAIN_KIND_XINFINNETWORK CHAIN_ID=51
 APPNAME = "XinFinNetwork"
 else
 ifeq ($(filter clean,$(MAKECMDGOALS)),)
-$(error Unsupported CHAIN - use ethereum, ethereum_classic, expanse, poa, artis_sigma1, artis_tau1, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, pirl, akroma, atheios, callisto, ethersocial, ellaism, ether1, ethergem, gochain, mix, reosc, hpb, tomochain, tobalaba, dexon, volta, ewc, webchain, thundercore,xinfinnetwork)
+$(error Unsupported CHAIN - use ethereum, ropsten, goerli, moonriver, ethereum_classic, expanse, poa, artis_sigma1, artis_tau1, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, pirl, akroma, atheios, callisto, ethersocial, ellaism, ether1, ethergem, gochain, mix, reosc, hpb, tomochain, tobalaba, dexon, volta, ewc, webchain, thundercore, bsc, songbird, xinfinnetwork)
 endif
 endif
 
@@ -179,14 +244,10 @@ APP_LOAD_PARAMS += $(APP_LOAD_FLAGS) --path "44'/1'"
 DEFINES += $(DEFINES_LIB)
 
 #prepare hsm generation
-ifeq ($(TARGET_NAME),TARGET_BLUE)
-ICONNAME=blue_app_$(CHAIN).gif
-else
 ifeq ($(TARGET_NAME), TARGET_NANOX)
-ICONNAME=nanox_app_$(CHAIN).gif
+ICONNAME=icons/nanox_app_$(CHAIN).gif
 else
-ICONNAME=nanos_app_$(CHAIN).gif
-endif
+ICONNAME=icons/nanos_app_$(CHAIN).gif
 endif
 
 ################
@@ -200,7 +261,7 @@ all: default
 
 DEFINES   += OS_IO_SEPROXYHAL
 DEFINES   += HAVE_BAGL HAVE_SPRINTF
-DEFINES   += HAVE_IO_USB HAVE_L4_USBLIB IO_USB_MAX_ENDPOINTS=6 IO_HID_EP_LENGTH=64 HAVE_USB_APDU
+DEFINES   += HAVE_IO_USB HAVE_L4_USBLIB IO_USB_MAX_ENDPOINTS=4 IO_HID_EP_LENGTH=64 HAVE_USB_APDU
 DEFINES   += LEDGER_MAJOR_VERSION=$(APPVERSION_M) LEDGER_MINOR_VERSION=$(APPVERSION_N) LEDGER_PATCH_VERSION=$(APPVERSION_P)
 
 # U2F
@@ -210,6 +271,7 @@ DEFINES   += USB_SEGMENT_SIZE=64
 DEFINES   += BLE_SEGMENT_SIZE=32 #max MTU, min 20
 DEFINES   += UNUSED\(x\)=\(void\)x
 DEFINES   += APPVERSION=\"$(APPVERSION)\"
+DEFINES   += HAVE_UX_FLOW
 
 #WEBUSB_URL     = www.ledgerwallet.com
 #DEFINES       += HAVE_WEBUSB WEBUSB_URL_SIZE_B=$(shell echo -n $(WEBUSB_URL) | wc -c) WEBUSB_URL=$(shell echo -n $(WEBUSB_URL) | sed -e "s/./\\\'\0\\\',/g")
@@ -227,14 +289,28 @@ DEFINES   += HAVE_BAGL_ELLIPSIS # long label truncation feature
 DEFINES   += HAVE_BAGL_FONT_OPEN_SANS_REGULAR_11PX
 DEFINES   += HAVE_BAGL_FONT_OPEN_SANS_EXTRABOLD_11PX
 DEFINES   += HAVE_BAGL_FONT_OPEN_SANS_LIGHT_16PX
-DEFINES   += HAVE_UX_FLOW
 else
-DEFINES   += IO_SEPROXYHAL_BUFFER_SIZE_B=128
+DEFINES   += IO_SEPROXYHAL_BUFFER_SIZE_B=72
+DEFINES   += HAVE_WALLET_ID_SDK
 endif
 
+# Enables direct data signing without having to specify it in the settings. Useful when testing with speculos.
+ALLOW_DATA:=0
+ifneq ($(ALLOW_DATA),0)
+DEFINES += HAVE_ALLOW_DATA
+endif
+
+# Bypass the signature verification for setExternalPlugin and provideERC20TokenInfo calls
+BYPASS_SIGNATURES:=0
+ifneq ($(BYPASS_SIGNATURES),0)
+DEFINES += HAVE_BYPASS_SIGNATURES
+endif
+
+
 # Enabling debug PRINTF
-DEBUG = 0
+DEBUG:=0
 ifneq ($(DEBUG),0)
+DEFINES += HAVE_STACK_OVERFLOW_CHECK
 ifeq ($(TARGET_NAME),TARGET_NANOX)
 DEFINES   += HAVE_PRINTF PRINTF=mcu_usb_printf
 else
@@ -270,7 +346,7 @@ endif
 CC       := $(CLANGPATH)clang
 
 #CFLAGS   += -O0
-CFLAGS   += -O3 -Os
+CFLAGS   += -O3 -Os -Wno-format-invalid-specifier -Wno-format-extra-args
 
 AS     := $(GCCPATH)arm-none-eabi-gcc
 
@@ -282,30 +358,47 @@ LDLIBS   += -lm -lgcc -lc
 include $(BOLOS_SDK)/Makefile.glyphs
 
 ### variables processed by the common makefile.rules of the SDK to grab source files and include dirs
-APP_SOURCE_PATH  += src_common src
+APP_SOURCE_PATH  += src_common src src_features src_plugins
 SDK_SOURCE_PATH  += lib_stusb lib_stusb_impl lib_u2f
+SDK_SOURCE_PATH  += lib_ux
 ifeq ($(TARGET_NAME),TARGET_NANOX)
 SDK_SOURCE_PATH  += lib_blewbxx lib_blewbxx_impl
-SDK_SOURCE_PATH  += lib_ux
 endif
 
-# If the SDK supports Flow for Nano S, build for it
+### initialize plugin SDK submodule if needed, rebuild it, and warn if a difference is noticed
+ifeq ($(CHAIN),ethereum)
+ifneq ($(shell git submodule status | grep '^[-+]'),)
+$(info INFO: Need to reinitialize git submodules)
+$(shell git submodule update --init)
+endif
 
-ifeq ($(TARGET_NAME),TARGET_NANOS)
+# rebuild
+$(shell python3 ethereum-plugin-sdk/build_sdk.py)
+$(shell find ./ethereum-plugin-sdk -iname '*.h' -o -iname '*.c' | xargs clang-format-10 -i)
 
-	ifneq "$(wildcard $(BOLOS_SDK)/lib_ux/src/ux_flow_engine.c)" ""
-		SDK_SOURCE_PATH  += lib_ux
-		DEFINES		       += HAVE_UX_FLOW		
-		DEFINES += HAVE_WALLET_ID_SDK 
-	endif
-
+# check if a difference is noticed (fail if it happens in CI build)
+ifneq ($(shell git status | grep 'ethereum-plugin-sdk'),)
+ifneq ($(JENKINS_URL),)
+$(error ERROR: please update ethereum-plugin-sdk submodule first)
+else
+$(warning WARNING: please update ethereum-plugin-sdk submodule first)
+endif
+endif
 endif
 
 load: all
-	python -m ledgerblue.loadApp $(APP_LOAD_PARAMS)
+	python3 -m ledgerblue.loadApp $(APP_LOAD_PARAMS)
 
 delete:
-	python -m ledgerblue.deleteApp $(COMMON_DELETE_PARAMS)
+	python3 -m ledgerblue.deleteApp $(COMMON_DELETE_PARAMS)
+
+install_tests:
+	cd tests && (yarn install || sudo yarn install)
+
+run_tests:
+	cd tests && (yarn test || sudo yarn test)
+
+test: install_tests run_tests
 
 # import generic rules from the sdk
 include $(BOLOS_SDK)/Makefile.rules
@@ -314,4 +407,4 @@ include $(BOLOS_SDK)/Makefile.rules
 dep/%.d: %.c Makefile
 
 listvariants:
-	@echo VARIANTS CHAIN ethereum ethereum_classic expanse poa  artis_sigma1 artis_tau1 rsk rsk_testnet ubiq wanchain kusd pirl akroma atheios callisto ethersocial ether1 gochain musicoin ethergem mix ellaism reosc hpb tomochain tobalaba dexon volta ewc webchain thundercore xinfinnetwork
+@echo VARIANTS CHAIN ethereum ropsten goerli moonriver ethereum_classic expanse poa rsk rsk_testnet ubiq wanchain pirl akroma atheios callisto ethersocial ether1 gochain musicoin ethergem mix ellaism reosc hpb tomochain dexon volta ewc thundercore bsc songbird xinfinnetwork

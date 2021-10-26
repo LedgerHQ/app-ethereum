@@ -262,8 +262,12 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
             break;
         case CHAIN_KIND_SONGBIRD:
             numTokens = NUM_TOKENS_SONGBIRD;
-        case CHAIN_KIND_XINFINNETWORK:
-            numTokens = NUM_TOKENS_XINFINNETWORK;
+            break;
+        case CHAIN_KIND_XDCNETWORK:
+            numTokens = NUM_TOKENS_XDCNETWORK;
+            break;
+        case CHAIN_KIND_APOTHEMNETWORK:
+            numTokens = NUM_TOKENS_APOTHEMNETWORK;
             break;
     }
     for (i = 0; i < numTokens; i++) {
@@ -370,8 +374,11 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
             case CHAIN_KIND_SONGBIRD:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_SONGBIRD[i]);
                 break;
-            case CHAIN_KIND_XINFINNETWORK:
-                currentToken = (tokenDefinition_t *)PIC(&TOKENS_XINFINNETWORK[i]);
+            case CHAIN_KIND_XDCNETWORK:
+                currentToken = (tokenDefinition_t *)PIC(&TOKENS_XDCNETWORK[i]);
+                break
+            case CHAIN_KIND_APOTHEMNETWORK:
+                currentToken = (tokenDefinition_t *)PIC(&TOKENS_APOTHEMNETWORK[i]);
                 break
         }
         if (memcmp(currentToken->address, tmpContent.txContent.destination, ADDRESS_LENGTH) == 0) {

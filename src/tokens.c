@@ -190,6 +190,8 @@ const tokenDefinition_t const TOKENS_SONGBIRD[NUM_TOKENS_SONGBIRD] = {};
 
 const tokenDefinition_t const TOKENS_MOONRIVER[NUM_TOKENS_MOONRIVER] = {};
 
-const tokenDefinition_t const TOKENS_XINFINNETWORK[NUM_TOKENS_XINFINNETWORK] = {};
+const tokenDefinition_t const TOKENS_XDCNETWORK[NUM_TOKENS_XDCNETWORK] = {};
+
+const tokenDefinition_t const TOKENS_APOTHEMNETWORK[NUM_TOKENS_APOTHEMNETWORK] = {};
 
 #endif

@@ -92,6 +92,10 @@ void ui_idle(void) {
     ux_flow_init(0, ux_idle_flow, NULL);
 }
 
+void ui_warning_contract_data(void) {
+    ux_flow_init(0, ux_warning_contract_data_flow, NULL);
+}
+
 unsigned int io_seproxyhal_touch_exit(__attribute__((unused)) const bagl_element_t *e) {
     // Go back to the dashboard
     os_sched_exit(0);
@@ -229,6 +233,9 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
         case CHAIN_KIND_TOMOCHAIN:
             numTokens = NUM_TOKENS_TOMOCHAIN;
             break;
+        case CHAIN_KIND_MOONRIVER:
+            numTokens = NUM_TOKENS_MOONRIVER;
+            break;
         case CHAIN_KIND_TOBALABA:
             numTokens = NUM_TOKENS_TOBALABA;
             break;
@@ -333,6 +340,9 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
                 break;
             case CHAIN_KIND_TOMOCHAIN:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_TOMOCHAIN[i]);
+                break;
+            case CHAIN_KIND_MOONRIVER:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_MOONRIVER[i]);
                 break;
             case CHAIN_KIND_TOBALABA:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_TOBALABA[i]);

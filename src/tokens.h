@@ -34,7 +34,7 @@ typedef struct tokenDefinition_t {
 
 #ifdef HAVE_TOKENS_EXTRA_LIST
 
-#define NUM_TOKENS_EXTRA 4
+#define NUM_TOKENS_EXTRA 8
 
 extern tokenDefinition_t const TOKENS_EXTRA[NUM_TOKENS_EXTRA];
 
@@ -99,6 +99,7 @@ static const uint8_t LEDGER_SIGNATURE_PUBLIC_KEY[] = {
 #define NUM_TOKENS_FLARE            0
 #define NUM_TOKENS_BSC              0
 #define NUM_TOKENS_SONGBIRD         0
+#define NUM_TOKENS_MOONRIVER        0
 #define NUM_TOKENS_SHYFT            0
 
 extern tokenDefinition_t const TOKENS_AKROMA[NUM_TOKENS_AKROMA];
@@ -134,6 +135,7 @@ extern tokenDefinition_t const TOKENS_THUNDERCORE[NUM_TOKENS_THUNDERCORE];
 extern tokenDefinition_t const TOKENS_FLARE[NUM_TOKENS_FLARE];
 extern tokenDefinition_t const TOKENS_BSC[NUM_TOKENS_BSC];
 extern tokenDefinition_t const TOKENS_SONGBIRD[NUM_TOKENS_SONGBIRD];
+extern tokenDefinition_t const TOKENS_MOONRIVER[NUM_TOKENS_MOONRIVER];
 extern tokenDefinition_t const TOKENS_SHYFT[NUM_TOKENS_SHYFT];
 
 #endif /* HAVE_TOKENS_LIST */

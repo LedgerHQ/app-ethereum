@@ -81,6 +81,7 @@ customStatus_e customProcessor(txContext_t *context) {
         if (fieldPos == 0) {  // not reached if a plugin is available
             if (!N_storage.dataAllowed) {
                 PRINTF("Data field forbidden\n");
+                ui_warning_contract_data();
                 return CUSTOM_FAULT;
             }
             if (!N_storage.contractDetails) {
@@ -407,6 +408,7 @@ void finalizeParsing(bool direct) {
 
     if (tmpContent.txContent.dataPresent && !N_storage.dataAllowed) {
         reportFinalizeError(direct);
+        ui_warning_contract_data();
         if (!direct) {
             return;
         }
@@ -438,7 +440,7 @@ void finalizeParsing(bool direct) {
                        displayBuffer,
                        sizeof(displayBuffer));
         compareOrCopy(strings.common.fullAmount,
-                      sizeof(strings.common.fullAddress),
+                      sizeof(strings.common.fullAmount),
                       displayBuffer,
                       called_from_swap);
     }

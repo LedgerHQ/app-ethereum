@@ -187,12 +187,12 @@ UX_STEP_NOCB(
       .text = strings.common.nonce,
     });
 
-UX_STEP_NOCB(ux_approval_data_warning_step,
+UX_STEP_NOCB(ux_approval_blind_signing_warning_step,
     pbb,
     {
       &C_icon_warning,
-      "Data",
-      "Present",
+      "Blind",
+      "Signing",
     });
 // clang-format on
 
@@ -203,7 +203,7 @@ void ux_approve_tx(bool fromPlugin) {
     ux_approval_tx_flow[step++] = &ux_approval_review_step;
 
     if (!fromPlugin && tmpContent.txContent.dataPresent && !N_storage.contractDetails) {
-        ux_approval_tx_flow[step++] = &ux_approval_data_warning_step;
+        ux_approval_tx_flow[step++] = &ux_approval_blind_signing_warning_step;
     }
 
     if (fromPlugin) {

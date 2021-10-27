@@ -46,17 +46,19 @@ void eth_plugin_prepare_query_contract_UI(ethQueryContractUI_t *queryContractUI,
                                           uint32_t msgLength) {
     memset((uint8_t *) queryContractUI, 0, sizeof(ethQueryContractUI_t));
 
-    if (allzeroes(&tmpCtx.transactionContext.extraInfo[0], sizeof(union extraInfo_t))) {
+    if (allzeroes(&tmpCtx.transactionContext.extraInfo[1], sizeof(union extraInfo_t))) {
         queryContractUI->item1 = NULL;
     } else {
-        queryContractUI->item1 = &tmpCtx.transactionContext.extraInfo[0];
+        queryContractUI->item1 = &tmpCtx.transactionContext.extraInfo[1];
     }
 
-    if (allzeroes(&tmpCtx.transactionContext.extraInfo[1], sizeof(union extraInfo_t))) {
+    if (allzeroes(&tmpCtx.transactionContext.extraInfo[0], sizeof(union extraInfo_t))) {
         queryContractUI->item2 = NULL;
     } else {
-        queryContractUI->item2 = &tmpCtx.transactionContext.extraInfo[1];
+        queryContractUI->item2 = &tmpCtx.transactionContext.extraInfo[0];
     }
+    PRINTF("item1: %s\n", &tmpCtx.transactionContext.extraInfo[0].nft.collectionName);
+    PRINTF("item2: %s\n", &tmpCtx.transactionContext.extraInfo[1].nft.collectionName);
 
     strlcpy(queryContractUI->network_ticker, get_network_ticker(), MAX_TICKER_LEN);
 
@@ -100,8 +102,8 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
                        dataContext.tokenContext.method_selector);
                 os_sched_exit(0);
             }
-            PRINTF("External plugin will be used\n");
-            // SCOTT TODO: Add check for chainid.
+            PRINTF("Plugin will be used\n");
+            // TODO: Add check for chainid.
             dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
             contractAddress = NULL;
         } break;

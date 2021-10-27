@@ -12,7 +12,6 @@ static void set_approval_ui(ethQueryContractUI_t *msg, erc721_parameters_t *cont
             break;
         case 1:
             strlcpy(msg->title, "To Spend", msg->titleLength);
-            strlcpy(msg->msg, context->collection_name, msg->msgLength);
             break;
         case 2:
             strlcpy(msg->title, "ID", msg->titleLength);
@@ -60,12 +59,34 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc721_parameters_t *cont
                                      chainConfig->chainId);
             break;
         case 1:
-            strlcpy(msg->title, "ID", msg->titleLength);
+            strlcpy(msg->title, "Collection Name", msg->titleLength);
+            // PRINTF("CollectionName: %s\n", msg->item1->nft.collectionName);
+            // PRINTF("CollectionName: %s\n", msg->item2->nft.collectionName);
+            strlcpy(msg->msg, (const char *) &msg->item1->nft.collectionName, msg->msgLength);
+            break;
+        case 2:
+            strlcpy(msg->title, "NFT Address", msg->titleLength);
+            getEthDisplayableAddress(msg->pluginSharedRO->txContent->destination,
+                                     msg->msg,
+                                     msg->msgLength,
+                                     &global_sha3,
+                                     chainConfig->chainId);
+            break;
+        case 3:
+            strlcpy(msg->title, "NFT ID", msg->titleLength);
             uint256_to_decimal(context->tokenId,
                                sizeof(context->tokenId),
                                msg->msg,
                                msg->msgLength);
             break;
+        case 4:
+            strlcpy(msg->title, "Amount", msg->titleLength);
+            amountToString((uint8_t *) &msg->pluginSharedRO->txContent->value,
+                           sizeof(msg->pluginSharedRO->txContent->value),
+                           WEI_TO_ETHER,
+                           msg->network_ticker,
+                           msg->msg,
+                           msg->msgLength);
         default:
             PRINTF("Unsupported screen index %d\n", msg->screenIndex);
             msg->result = ETH_PLUGIN_RESULT_ERROR;

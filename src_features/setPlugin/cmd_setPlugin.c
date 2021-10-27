@@ -23,11 +23,15 @@ void handleSetPlugin(uint8_t p1,
     const size_t payload_size = 1 + pluginNameLength + ADDRESS_LENGTH + SELECTOR_SIZE;
 
     if (dataLength <= payload_size) {
+        PRINTF("data too small: expected at least %d got %d\n", payload_size, dataLength);
         THROW(0x6A80);
     }
 
     // scott review total
     if (pluginNameLength + 1 > sizeof(dataContext.tokenContext.pluginName)) {
+        PRINTF("name length too big: expected max %d, got %d\n",
+               sizeof(dataContext.tokenContext.pluginName),
+               pluginNameLength + 1);
         THROW(0x6A80);
     }
 
@@ -45,7 +49,7 @@ void handleSetPlugin(uint8_t p1,
                          workBuffer + payload_size,
                          dataLength - payload_size)) {
 #ifndef HAVE_BYPASS_SIGNATURES
-        PRINTF("Invalid external plugin signature %.*H\n", payload_size, workBuffer);
+        PRINTF("Invalid plugin signature %.*H\n", payload_size, workBuffer);
         THROW(0x6A80);
 #endif
     }

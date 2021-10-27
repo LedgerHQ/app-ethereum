@@ -31,6 +31,7 @@ typedef struct tokenDefinition_t {
     uint8_t address[ADDRESS_LENGTH];
     char ticker[MAX_TICKER_LEN];
     uint8_t decimals;
+    char scott_pad[20];
 } tokenDefinition_t;
 
 #ifdef HAVE_TOKENS_EXTRA_LIST

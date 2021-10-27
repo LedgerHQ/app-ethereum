@@ -5,12 +5,15 @@ static const uint8_t ERC721_APPROVE_SELECTOR[SELECTOR_SIZE] = {0x13, 0x37, 0x42,
 static const uint8_t ERC721_APPROVE_FOR_ALL_SELECTOR[SELECTOR_SIZE] = {0xa2, 0x2c, 0xb4, 0x65};
 static const uint8_t ERC721_TRANSFER_SELECTOR[SELECTOR_SIZE] = {0x23, 0xb8, 0x72, 0xdd};
 static const uint8_t ERC721_SAFE_TRANSFER_SELECTOR[SELECTOR_SIZE] = {0x42, 0x84, 0x2e, 0x0e};
-// SCOTT TODO: missing SAFE_TRANFSFER_DATA
+static const uint8_t ERC721_SAFE_TRANSFER_DATA_SELECTOR[SELECTOR_SIZE] = {0xf2, 0x42, 0x43, 0x2a};
 
-const uint8_t *const ERC721_SELECTORS[NUM_ERC721_SELECTORS] = {ERC721_APPROVE_SELECTOR,
-                                                               ERC721_APPROVE_FOR_ALL_SELECTOR,
-                                                               ERC721_TRANSFER_SELECTOR,
-                                                               ERC721_SAFE_TRANSFER_SELECTOR};
+const uint8_t *const ERC721_SELECTORS[NUM_ERC721_SELECTORS] = {
+    ERC721_APPROVE_SELECTOR,
+    ERC721_APPROVE_FOR_ALL_SELECTOR,
+    ERC721_TRANSFER_SELECTOR,
+    ERC721_SAFE_TRANSFER_SELECTOR,
+    ERC721_SAFE_TRANSFER_DATA_SELECTOR,
+};
 
 static void handle_init_contract(void *parameters) {
     ethPluginInitContract_t *msg = (ethPluginInitContract_t *) parameters;
@@ -51,11 +54,15 @@ static void handle_init_contract(void *parameters) {
 
 static void handle_finalize(void *parameters) {
     ethPluginFinalize_t *msg = (ethPluginFinalize_t *) parameters;
-    erc721_parameters_t *context = (erc721_parameters_t *) msg->pluginContext;
+    // erc721_parameters_t *context = (erc721_parameters_t *) msg->pluginContext; scott
 
     msg->tokenLookup1 = msg->pluginSharedRO->txContent->destination;
-    msg->tokenLookup2 = context->address;
-    msg->numScreens = 2;
+    msg->tokenLookup2 = NULL;
+    msg->numScreens = 4;
+    if (!allzeroes((void *) &msg->pluginSharedRO->txContent->value,
+                   sizeof(msg->pluginSharedRO->txContent->value))) {
+        msg->numScreens++;
+    }
     msg->uiType = ETH_UI_TYPE_GENERIC;
     msg->result = ETH_PLUGIN_RESULT_OK;
 }

@@ -598,6 +598,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
 #endif
 
                 default:
+                    PRINTF("GET RIKT\n");
                     THROW(0x6D00);
                     break;
             }

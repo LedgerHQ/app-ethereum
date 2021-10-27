@@ -10,7 +10,7 @@
 
 #define MAX_COLLECTION_NAME_SIZE 40
 
-#define NUM_ERC721_SELECTORS 4
+#define NUM_ERC721_SELECTORS 5
 
 typedef enum {
     APPROVE,

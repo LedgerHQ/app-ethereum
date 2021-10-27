@@ -5,6 +5,6 @@
 #define MAX_NFT                 MAX_ITEMS
 
 typedef struct nftInfo_t {
-    char nftCollectionName[COLLECTION_NAME_MAX_LEN];
+    char collectionName[COLLECTION_NAME_MAX_LEN];
     char contractAddress[ADDRESS_LENGTH];
 } nftInfo_t;

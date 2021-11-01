@@ -57,7 +57,8 @@ typedef enum chain_kind_e {
     CHAIN_KIND_FLARE,
     CHAIN_KIND_BSC,
     CHAIN_KIND_SONGBIRD,
-    CHAIN_KIND_POLYGON
+    CHAIN_KIND_POLYGON,
+    CHAIN_KIND_MULTIVAC
 } chain_kind_t;
 
 typedef struct chain_config_s {

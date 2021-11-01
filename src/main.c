@@ -263,6 +263,8 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
         case CHAIN_KIND_SONGBIRD:
             numTokens = NUM_TOKENS_SONGBIRD;
             break;
+        case CHAIN_KIND_POLYGON:
+            numTokens = NUM_TOKENS_POLYGON;
         case CHAIN_KIND_XDCNETWORK:
             numTokens = NUM_TOKENS_XDCNETWORK;
             break;
@@ -373,6 +375,9 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
                 break;
             case CHAIN_KIND_SONGBIRD:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_SONGBIRD[i]);
+                break;
+            case CHAIN_KIND_POLYGON:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_POLYGON[i]);
                 break;
             case CHAIN_KIND_XDCNETWORK:
                 currentToken = (tokenDefinition_t *)PIC(&TOKENS_XDCNETWORK[i]);

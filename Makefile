@@ -240,7 +240,7 @@ DEFINES += CHAINID_UPCASE=\"MULTIVAC\" CHAINID_COINNAME=\"MTV\" CHAIN_KIND=CHAIN
 APPNAME = "MultiVAC"
 else
 ifeq ($(filter clean,$(MAKECMDGOALS)),)
-$(error Unsupported CHAIN - use ethereum, ropsten, goerli, moonriver, ethereum_classic, expanse, poa, artis_sigma1, artis_tau1, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, pirl, akroma, atheios, callisto, ethersocial, ellaism, ether1, ethergem, gochain, mix, reosc, hpb, tomochain, tobalaba, dexon, volta, ewc, webchain, thundercore, bsc, songbird, polygon)
+$(error Unsupported CHAIN - use ethereum, ropsten, goerli, moonriver, ethereum_classic, expanse, poa, artis_sigma1, artis_tau1, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, pirl, akroma, atheios, callisto, ethersocial, ellaism, ether1, ethergem, gochain, mix, reosc, hpb, tomochain, tobalaba, dexon, volta, ewc, webchain, thundercore, bsc, songbird, polygon, multivac)
 endif
 endif
 
@@ -411,4 +411,4 @@ include $(BOLOS_SDK)/Makefile.rules
 dep/%.d: %.c Makefile
 
 listvariants:
-	@echo VARIANTS CHAIN ethereum ropsten goerli moonriver ethereum_classic expanse poa rsk rsk_testnet ubiq wanchain pirl akroma atheios callisto ethersocial ether1 gochain musicoin ethergem mix ellaism reosc hpb tomochain dexon volta ewc thundercore bsc songbird polygon
+	@echo VARIANTS CHAIN ethereum ropsten goerli moonriver ethereum_classic expanse poa rsk rsk_testnet ubiq wanchain pirl akroma atheios callisto ethersocial ether1 gochain musicoin ethergem mix ellaism reosc hpb tomochain dexon volta ewc thundercore bsc songbird polygon multivac

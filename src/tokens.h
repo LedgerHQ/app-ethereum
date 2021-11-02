@@ -137,6 +137,7 @@ extern tokenDefinition_t const TOKENS_BSC[NUM_TOKENS_BSC];
 extern tokenDefinition_t const TOKENS_SONGBIRD[NUM_TOKENS_SONGBIRD];
 extern tokenDefinition_t const TOKENS_MOONRIVER[NUM_TOKENS_MOONRIVER];
 extern tokenDefinition_t const TOKENS_POLYGON[NUM_TOKENS_POLYGON];
+extern tokenDefinition_t const TOKENS_MULTIVAC[NUM_TOKENS_MULTIVAC];
 
 #endif /* HAVE_TOKENS_LIST */
 

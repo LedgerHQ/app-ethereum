@@ -101,6 +101,7 @@ static const uint8_t LEDGER_SIGNATURE_PUBLIC_KEY[] = {
 #define NUM_TOKENS_SONGBIRD         0
 #define NUM_TOKENS_MOONRIVER        0
 #define NUM_TOKENS_POLYGON          0
+#define NUM_TOKENS_MULTIVAC         0
 
 extern tokenDefinition_t const TOKENS_AKROMA[NUM_TOKENS_AKROMA];
 extern tokenDefinition_t const TOKENS_ELLAISM[NUM_TOKENS_ELLAISM];

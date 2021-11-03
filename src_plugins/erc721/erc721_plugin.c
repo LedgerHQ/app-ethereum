@@ -67,8 +67,8 @@ static void handle_finalize(void *parameters) {
     msg->result = ETH_PLUGIN_RESULT_OK;
 }
 
-static void handle_provide_token(void *parameters) {
-    ethPluginProvideToken_t *msg = (ethPluginProvideToken_t *) parameters;
+static void handle_PROVIDE_INFO(void *parameters) {
+    ethPluginProvideInfo_t *msg = (ethPluginProvideInfo_t *) parameters;
 
     msg->result = ETH_PLUGIN_RESULT_OK;
 }
@@ -113,8 +113,8 @@ void erc721_plugin_call(int message, void *parameters) {
         case ETH_PLUGIN_FINALIZE: {
             handle_finalize(parameters);
         } break;
-        case ETH_PLUGIN_PROVIDE_TOKEN: {
-            handle_provide_token(parameters);
+        case ETH_PLUGIN_PROVIDE_INFO: {
+            handle_provide_info(parameters);
         } break;
         case ETH_PLUGIN_QUERY_CONTRACT_ID: {
             handle_query_contract_id(parameters);

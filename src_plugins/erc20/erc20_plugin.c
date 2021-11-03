@@ -159,8 +159,8 @@ void erc20_plugin_call(int message, void *parameters) {
             }
         } break;
 
-        case ETH_PLUGIN_PROVIDE_TOKEN: {
-            ethPluginProvideToken_t *msg = (ethPluginProvideToken_t *) parameters;
+        case ETH_PLUGIN_PROVIDE_INFO: {
+            ethPluginProvideInfo_t *msg = (ethPluginProvideInfo_t *) parameters;
             erc20_parameters_t *context = (erc20_parameters_t *) msg->pluginContext;
             PRINTF("erc20 plugin provide token 1: %d - 2: %d\n",
                    (msg->item1 != NULL),

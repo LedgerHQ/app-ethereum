@@ -21,7 +21,7 @@ typedef enum {
     ETH_PLUGIN_INIT_CONTRACT = 0x0101,
     ETH_PLUGIN_PROVIDE_PARAMETER = 0x0102,
     ETH_PLUGIN_FINALIZE = 0x0103,
-    ETH_PLUGIN_PROVIDE_TOKEN = 0x0104,
+    ETH_PLUGIN_PROVIDE_INFO = 0x0104,
     ETH_PLUGIN_QUERY_CONTRACT_ID = 0x0105,
     ETH_PLUGIN_QUERY_CONTRACT_UI = 0x0106,
     ETH_PLUGIN_CHECK_PRESENCE = 0x01FF
@@ -126,7 +126,7 @@ typedef struct ethPluginFinalize_t {
 
 // Provide token
 
-typedef struct ethPluginProvideToken_t {
+typedef struct ethPluginProvideInfo_t {
     ethPluginSharedRW_t *pluginSharedRW;
     ethPluginSharedRO_t *pluginSharedRO;
     uint8_t *pluginContext;
@@ -139,7 +139,7 @@ typedef struct ethPluginProvideToken_t {
 
     uint8_t result;
 
-} ethPluginProvideToken_t;
+} ethPluginProvideInfo_t;
 
 // Query Contract name and version
 

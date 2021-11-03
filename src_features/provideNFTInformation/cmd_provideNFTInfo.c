@@ -221,10 +221,10 @@ void handleProvideNFTInformation(uint8_t p1,
                          sizeof(hash),
                          workBuffer + offset,
                          signatureLen)) {
-        // #ifndef HAVE_BYPASS_SIGNATURES
+#ifndef HAVE_BYPASS_SIGNATURES
         PRINTF("Invalid NFT signature\n");
         THROW(0x6A80);
-        // #endif
+#endif
     }
 
     tmpCtx.transactionContext.tokenSet[tmpCtx.transactionContext.currentItemIndex] = 1;

@@ -22,7 +22,7 @@ void eth_plugin_prepare_finalize(ethPluginFinalize_t *finalize) {
     memset((uint8_t *) finalize, 0, sizeof(ethPluginFinalize_t));
 }
 
-void eth_plugin_prepare_PROVIDE_INFO(ethPluginProvideInfo_t *provideToken) {
+void eth_plugin_prepare_provide_info(ethPluginProvideInfo_t *provideToken) {
     memset((uint8_t *) provideToken, 0, sizeof(ethPluginProvideInfo_t));
 }
 

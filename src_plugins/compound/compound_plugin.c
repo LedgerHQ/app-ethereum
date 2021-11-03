@@ -149,8 +149,8 @@ void compound_plugin_call(int message, void *parameters) {
             msg->result = ETH_PLUGIN_RESULT_OK;
         } break;
 
-        case ETH_PLUGIN_PROVIDE_TOKEN: {
-            ethPluginProvideToken_t *msg = (ethPluginProvideToken_t *) parameters;
+        case ETH_PLUGIN_PROVIDE_INFO: {
+            ethPluginProvideInfo_t *msg = (ethPluginProvideInfo_t *) parameters;
             compound_parameters_t *context = (compound_parameters_t *) msg->pluginContext;
             PRINTF("compound plugin provide token: %d\n", (msg->item1 != NULL));
             if (msg->item1 != NULL) {

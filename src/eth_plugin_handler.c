@@ -22,8 +22,8 @@ void eth_plugin_prepare_finalize(ethPluginFinalize_t *finalize) {
     memset((uint8_t *) finalize, 0, sizeof(ethPluginFinalize_t));
 }
 
-void eth_plugin_prepare_provide_token(ethPluginProvideToken_t *provideToken) {
-    memset((uint8_t *) provideToken, 0, sizeof(ethPluginProvideToken_t));
+void eth_plugin_prepare_PROVIDE_INFO(ethPluginProvideInfo_t *provideToken) {
+    memset((uint8_t *) provideToken, 0, sizeof(ethPluginProvideInfo_t));
 }
 
 void eth_plugin_prepare_query_contract_ID(ethQueryContractID_t *queryContractID,
@@ -211,12 +211,12 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
             ((ethPluginFinalize_t *) parameter)->pluginContext =
                 (uint8_t *) &dataContext.tokenContext.pluginContext;
             break;
-        case ETH_PLUGIN_PROVIDE_TOKEN:
-            PRINTF("-- PLUGIN PROVIDE TOKEN --\n");
-            ((ethPluginProvideToken_t *) parameter)->result = ETH_PLUGIN_RESULT_UNAVAILABLE;
-            ((ethPluginProvideToken_t *) parameter)->pluginSharedRW = &pluginRW;
-            ((ethPluginProvideToken_t *) parameter)->pluginSharedRO = &pluginRO;
-            ((ethPluginProvideToken_t *) parameter)->pluginContext =
+        case ETH_PLUGIN_PROVIDE_INFO:
+            PRINTF("-- PLUGIN PROVIDE INFO --\n");
+            ((ethPluginProvideInfo_t *) parameter)->result = ETH_PLUGIN_RESULT_UNAVAILABLE;
+            ((ethPluginProvideInfo_t *) parameter)->pluginSharedRW = &pluginRW;
+            ((ethPluginProvideInfo_t *) parameter)->pluginSharedRO = &pluginRO;
+            ((ethPluginProvideInfo_t *) parameter)->pluginContext =
                 (uint8_t *) &dataContext.tokenContext.pluginContext;
             break;
         case ETH_PLUGIN_QUERY_CONTRACT_ID:
@@ -316,9 +316,9 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
                     return ETH_PLUGIN_RESULT_UNAVAILABLE;
             }
             break;
-        case ETH_PLUGIN_PROVIDE_TOKEN:
-            PRINTF("RESULT: %d\n", ((ethPluginProvideToken_t *) parameter)->result);
-            switch (((ethPluginProvideToken_t *) parameter)->result) {
+        case ETH_PLUGIN_PROVIDE_INFO:
+            PRINTF("RESULT: %d\n", ((ethPluginProvideInfo_t *) parameter)->result);
+            switch (((ethPluginProvideInfo_t *) parameter)->result) {
                 case ETH_PLUGIN_RESULT_OK:
                 case ETH_PLUGIN_RESULT_FALLBACK:
                     break;

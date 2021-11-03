@@ -25,7 +25,7 @@
 
 #define VERSION_1 1
 
-#ifdef HAVE_TESTING_KEY
+#ifdef HAVE_NFT_TESTING_KEY
 static const uint8_t LEDGER_NFT_PUBLIC_KEY[] = {
     // 0x30, 0x56, 0x30, 0x10, 0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02, 0x01, 0x06, 0x05,
     // 0x2b, 0x81, 0x04, 0x00, 0x0a, 0x03, 0x42, 0x00, 0x04, 0xf5, 0x70, 0x0c, 0xa1, 0xe8, 0x74,
@@ -150,7 +150,7 @@ void handleProvideNFTInformation(uint8_t p1,
     uint8_t rawKeyLen;
     PRINTF("KeyID: %d\n", keyId);
     switch (keyId) {
-#ifdef HAVE_TESTING_KEY
+#ifdef HAVE_NFT_TESTING_KEY
         case TESTING_KEY:
 #endif
         case NFT_METADATA_KEY_1:

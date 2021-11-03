@@ -46,19 +46,19 @@ void eth_plugin_prepare_query_contract_UI(ethQueryContractUI_t *queryContractUI,
                                           uint32_t msgLength) {
     memset((uint8_t *) queryContractUI, 0, sizeof(ethQueryContractUI_t));
 
+    // If no extra information was found, set the pointer to NULL
     if (allzeroes(&tmpCtx.transactionContext.extraInfo[1], sizeof(union extraInfo_t))) {
         queryContractUI->item1 = NULL;
     } else {
         queryContractUI->item1 = &tmpCtx.transactionContext.extraInfo[1];
     }
 
+    // If no extra information was found, set the pointer to NULL
     if (allzeroes(&tmpCtx.transactionContext.extraInfo[0], sizeof(union extraInfo_t))) {
         queryContractUI->item2 = NULL;
     } else {
         queryContractUI->item2 = &tmpCtx.transactionContext.extraInfo[0];
     }
-    PRINTF("item1: %s\n", &tmpCtx.transactionContext.extraInfo[0].nft.collectionName);
-    PRINTF("item2: %s\n", &tmpCtx.transactionContext.extraInfo[1].nft.collectionName);
 
     strlcpy(queryContractUI->network_ticker, get_network_ticker(), MAX_TICKER_LEN);
 

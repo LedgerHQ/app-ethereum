@@ -82,8 +82,7 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
     switch (pluginType) {
         case ERC721:
         case EXTERNAL: {
-            // check if the registered external plugin matches the TX contract address / method
-            // selector
+            // check if the registered external plugin matches the TX contract address / selector
             if (memcmp(contractAddress,
                        dataContext.tokenContext.contract_address,
                        sizeof(dataContext.tokenContext.contract_address)) != 0) {

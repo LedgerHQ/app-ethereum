@@ -67,7 +67,7 @@ static void handle_finalize(void *parameters) {
     msg->result = ETH_PLUGIN_RESULT_OK;
 }
 
-static void handle_PROVIDE_INFO(void *parameters) {
+static void handle_provide_info(void *parameters) {
     ethPluginProvideInfo_t *msg = (ethPluginProvideInfo_t *) parameters;
 
     msg->result = ETH_PLUGIN_RESULT_OK;

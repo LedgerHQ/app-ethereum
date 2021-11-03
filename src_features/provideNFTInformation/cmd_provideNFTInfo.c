@@ -148,13 +148,14 @@ void handleProvideNFTInformation(uint8_t p1,
     uint8_t keyId = workBuffer[offset];
     uint8_t *rawKey;
     uint8_t rawKeyLen;
+
     PRINTF("KeyID: %d\n", keyId);
     switch (keyId) {
 #ifdef HAVE_NFT_TESTING_KEY
         case TESTING_KEY:
 #endif
         case NFT_METADATA_KEY_1:
-            rawKey = LEDGER_NFT_PUBLIC_KEY;
+            rawKey = (uint8_t *) LEDGER_NFT_PUBLIC_KEY;
             rawKeyLen = sizeof(LEDGER_NFT_PUBLIC_KEY);
             break;
         default:
@@ -168,13 +169,13 @@ void handleProvideNFTInformation(uint8_t p1,
     uint8_t algorithmId = workBuffer[offset];
     PRINTF("Algorithm: %d\n", algorithmId);
     cx_curve_t curve;
-    verificationAlgo *verifAlgo;
+    verificationAlgo *verificationFn;
     cx_md_t hashId;
 
     switch (algorithmId) {
         case ALGORITHM_ID_1:
             curve = CX_CURVE_256K1;
-            verifAlgo = cx_ecdsa_verify;
+            verificationFn = cx_ecdsa_verify;
             hashId = CX_SHA256;
             break;
         default:
@@ -214,13 +215,13 @@ void handleProvideNFTInformation(uint8_t p1,
     PRINTF("After lel\n");
     PRINTF("nftKey: %.*H\n", sizeof(nftKey), &nftKey);
     PRINTF("hash: %.*H\n", sizeof(hash), hash);
-    if (!cx_ecdsa_verify(&nftKey,
-                         CX_LAST,
-                         hashId,
-                         hash,
-                         sizeof(hash),
-                         workBuffer + offset,
-                         signatureLen)) {
+    if (!verificationFn(&nftKey,
+                        CX_LAST,
+                        hashId,
+                        hash,
+                        sizeof(hash),
+                        workBuffer + offset,
+                        signatureLen)) {
 #ifndef HAVE_BYPASS_SIGNATURES
         PRINTF("Invalid NFT signature\n");
         THROW(0x6A80);

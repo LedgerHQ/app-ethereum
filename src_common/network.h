@@ -2,9 +2,11 @@
 #include "tokens.h"
 #include "shared_context.h"
 
+#define MAX_NETWORK_TICKER_LEN 8
+
 typedef struct network_info_s {
     const char name[NETWORK_STRING_MAX_SIZE];
-    const char ticker[MAX_TICKER_LEN];
+    const char ticker[MAX_NETWORK_TICKER_LEN];
     uint64_t chain_id;
 } network_info_t;
 

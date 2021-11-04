@@ -41,6 +41,7 @@ typedef struct uint256_t {
 
 void readu128BE(uint8_t *buffer, uint128_t *target);
 void readu256BE(uint8_t *buffer, uint256_t *target);
+void write_u64_be(uint8_t *buffer, uint64_t value);
 bool zero128(uint128_t *number);
 bool zero256(uint256_t *number);
 void copy128(uint128_t *target, uint128_t *number);

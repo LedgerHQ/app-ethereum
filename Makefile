@@ -346,7 +346,7 @@ endif
 CC       := $(CLANGPATH)clang
 
 #CFLAGS   += -O0
-CFLAGS   += -O3 -Os -Wno-format-invalid-specifier -Wno-format-extra-args
+CFLAGS   += -Oz -Wno-format-invalid-specifier -Wno-format-extra-args
 
 AS     := $(GCCPATH)arm-none-eabi-gcc
 

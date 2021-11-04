@@ -94,22 +94,20 @@ void pedersen(FieldElement res, /* out */
     memcpy(res, hash + 1, FIELD_ELEMENT_SIZE);
 }
 
-void shift_stark_hash(FieldElement hash){
+void shift_stark_hash(FieldElement hash) {
     uint256_t hash256, final_hash256;
     readu256BE(hash, &hash256);
     uint32_t bits_count = bits256(&hash256);
-    if(bits_count < 248){
+    if (bits_count < 248) {
         return;
-    }
-    else if(bits_count >= 248 && bits_count%8 >= 1 && bits_count%8 <= 4){
+    } else if (bits_count >= 248 && bits_count % 8 >= 1 && bits_count % 8 <= 4) {
         shiftl256(&hash256, 4, &final_hash256);
         write_u64_be(hash, UPPER(UPPER_P((&final_hash256))));
-        write_u64_be(hash+8, LOWER(UPPER_P((&final_hash256))));
-        write_u64_be(hash+16, UPPER(LOWER_P((&final_hash256))));
-        write_u64_be(hash+24, LOWER(LOWER_P((&final_hash256))));
+        write_u64_be(hash + 8, LOWER(UPPER_P((&final_hash256))));
+        write_u64_be(hash + 16, UPPER(LOWER_P((&final_hash256))));
+        write_u64_be(hash + 24, LOWER(LOWER_P((&final_hash256))));
         return;
-    }
-    else{
+    } else {
         THROW(0x6A80);
     }
 }

@@ -97,7 +97,7 @@ bool uint256_to_decimal(const uint8_t *value, size_t value_len, char *out, size_
             return false;
         }
         pos -= 1;
-        int carry = 0;
+        unsigned int carry = 0;
         for (int i = 0; i < 16; i++) {
             int rem = ((carry << 16) | n[i]) % 10;
             n[i] = ((carry << 16) | n[i]) / 10;

@@ -50,12 +50,11 @@ static const uint8_t LEDGER_TESTING_KEY[] = {
     0x30, 0x00, 0x7d, 0x0b, 0x46, 0x9a, 0x53, 0x11, 0xee, 0x6a, 0x1a, 0xcd, 0x1d,
     0xa5, 0xaa, 0xb0, 0xf5, 0xc6, 0xdf, 0x13, 0x15, 0x8d, 0x28, 0xcc, 0x12, 0xd1,
     0xdd, 0xa6, 0xec, 0xe9, 0x46, 0xb8, 0x9d, 0x5c, 0x05, 0x49, 0x92, 0x59, 0xc4};
-#else
+#endif
 static const uint8_t LEDGER_PERSO_V2_PUBLIC_KEY[] = {};
 
 // Only used for signing NFT plugins (ERC721 and ERC1155)
 static const uint8_t LEDGER_NFT_SELECTOR_PUBLIC_KEY[] = {};
-#endif
 
 // Verification function used to verify the signature
 typedef bool verificationAlgo(const cx_ecfp_public_key_t *,
@@ -105,6 +104,7 @@ void handleSetPlugin(uint8_t p1,
     }
 
     enum Type type = workBuffer[offset];
+    PRINTF("Type: %d\n", type);
     switch (type) {
         case ETH_PLUGIN:
             break;
@@ -116,6 +116,7 @@ void handleSetPlugin(uint8_t p1,
     offset += TYPE_SIZE;
 
     uint8_t version = workBuffer[offset];
+    PRINTF("version: %d\n", version);
     switch (version) {
         case VERSION_1:
             break;
@@ -160,7 +161,7 @@ void handleSetPlugin(uint8_t p1,
     offset += ADDRESS_LENGTH;
 
     memcpy(tokenContext->methodSelector, workBuffer + offset, SELECTOR_SIZE);
-    PRINTF("Selector: %.*H\n", tokenContext->methodSelector);
+    PRINTF("Selector: %.*H\n", SELECTOR_SIZE, tokenContext->methodSelector);
     offset += SELECTOR_SIZE;
 
     // TODO: store chainID and assert that tx is using the same chainid.
@@ -254,6 +255,7 @@ void handleSetPlugin(uint8_t p1,
     }
 
     pluginType = getPluginType(tokenContext->pluginName, pluginNameLength);
+
     switch (pluginType) {
         case EXTERNAL: {
             PRINTF("Check external plugin %s\n", tokenContext->pluginName);

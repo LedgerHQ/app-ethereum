@@ -3,8 +3,83 @@
 #include "ui_flow.h"
 #include "tokens.h"
 #include "eth_plugin_interface.h"
+#include "eth_plugin_internal.h"
 
-#define SELECTOR_SIZE 4
+// Supported internal plugins
+#define ERC721_STR  "ERC721"
+#define ERC1155_STR "ERC1155"
+
+#define TYPE_SIZE               1
+#define VERSION_SIZE            1
+#define PLUGIN_NAME_LENGTH_SIZE 1
+#define CHAIN_ID_SIZE           8
+#define KEY_ID_SIZE             1
+#define ALGORITHM_ID_SIZE       1
+#define SIGNATURE_LENGTH_SIZE   1
+
+#define HEADER_SIZE TYPE_SIZE + VERSION_SIZE + PLUGIN_NAME_LENGTH_SIZE
+
+#define MIN_DER_SIG_SIZE 67
+#define MAX_DER_SIG_SIZE 72
+
+typedef enum Type {
+    ETH_PLUGIN = 0x01,
+} Type;
+
+typedef enum Version {
+    VERSION_1 = 0x01,
+} Version;
+
+typedef enum KeyId {
+    TEST_KEY = 0x00,
+    PERSO_V2_KEY_1 = 0x01,
+    // Must ONLY be used with ERC721 and ERC1155 plugin
+    AWS_PLUGIN_KEY_1 = 0x02,
+} KeyId;
+
+// Algorithm Id consists of a Key spec and an algorithm spec.
+// Format is: KEYSPEC__ALGOSPEC
+typedef enum AlgorithmID {
+    ECC_SECG_P256K1__ECDSA_SHA_256 = 0x01,
+} AlgorithmID;
+
+#ifdef HAVE_NFT_TESTING_KEY
+static const uint8_t LEDGER_TESTING_KEY[] = {
+    0x04, 0xf5, 0x70, 0x0c, 0xa1, 0xe8, 0x74, 0x24, 0xc7, 0xc7, 0xd1, 0x19, 0xe7,
+    0xe3, 0xc1, 0x89, 0xb1, 0x62, 0x50, 0x94, 0xdb, 0x6e, 0xa0, 0x40, 0x87, 0xc8,
+    0x30, 0x00, 0x7d, 0x0b, 0x46, 0x9a, 0x53, 0x11, 0xee, 0x6a, 0x1a, 0xcd, 0x1d,
+    0xa5, 0xaa, 0xb0, 0xf5, 0xc6, 0xdf, 0x13, 0x15, 0x8d, 0x28, 0xcc, 0x12, 0xd1,
+    0xdd, 0xa6, 0xec, 0xe9, 0x46, 0xb8, 0x9d, 0x5c, 0x05, 0x49, 0x92, 0x59, 0xc4};
+#else
+static const uint8_t LEDGER_PERSO_V2_PUBLIC_KEY[] = {};
+
+// Only used for signing NFT plugins (ERC721 and ERC1155)
+static const uint8_t LEDGER_NFT_SELECTOR_PUBLIC_KEY[] = {};
+#endif
+
+// Verification function used to verify the signature
+typedef bool verificationAlgo(const cx_ecfp_public_key_t *,
+                              int,
+                              cx_md_t,
+                              const unsigned char *,
+                              unsigned int,
+                              unsigned char *,
+                              unsigned int);
+
+// Returns the plugin type of a given plugin name.
+// If the plugin name is not a specific known internal plugin, this function default return value is
+// `EXERNAL`.
+static pluginType_t getPluginType(char *pluginName, uint8_t pluginNameLength) {
+    if (pluginNameLength == sizeof(ERC721_STR) - 1 &&
+        strncmp(pluginName, ERC721_STR, pluginNameLength) == 0) {
+        return ERC721;
+    } else if (pluginNameLength == sizeof(ERC1155_STR) - 1 &&
+               strncmp(pluginName, ERC1155_STR, pluginNameLength) == 0) {
+        return ERC1155;
+    } else {
+        return EXTERNAL;
+    }
+}
 
 void handleSetPlugin(uint8_t p1,
                      uint8_t p2,
@@ -16,84 +91,194 @@ void handleSetPlugin(uint8_t p1,
     UNUSED(p2);
     UNUSED(flags);
     PRINTF("Handling set Plugin\n");
-    uint8_t hash[32];
-    cx_ecfp_public_key_t tokenKey;
-    uint8_t pluginNameLength = *workBuffer;
-    PRINTF("plugin Name Length: %d\n", pluginNameLength);
-    const size_t payload_size = 1 + pluginNameLength + ADDRESS_LENGTH + SELECTOR_SIZE;
+    uint8_t hash[INT256_LENGTH] = {0};
+    cx_ecfp_public_key_t pluginKey = {0};
+    tokenContext_t *tokenContext = &dataContext.tokenContext;
 
-    if (dataLength <= payload_size) {
-        PRINTF("data too small: expected at least %d got %d\n", payload_size, dataLength);
+    uint8_t offset = 0;
+
+    if (dataLength <= HEADER_SIZE) {
+        PRINTF("Data too small for headers: expected at least %d, got %d\n",
+               HEADER_SIZE,
+               dataLength);
         THROW(0x6A80);
     }
 
-    // scott review total
-    if (pluginNameLength + 1 > sizeof(dataContext.tokenContext.pluginName)) {
-        PRINTF("name length too big: expected max %d, got %d\n",
+    enum Type type = workBuffer[offset];
+    switch (type) {
+        case ETH_PLUGIN:
+            break;
+        default:
+            PRINTF("Unsupported type %d\n", type);
+            THROW(0x6a80);
+            break;
+    }
+    offset += TYPE_SIZE;
+
+    uint8_t version = workBuffer[offset];
+    switch (version) {
+        case VERSION_1:
+            break;
+        default:
+            PRINTF("Unsupported version %d\n", version);
+            THROW(0x6a80);
+            break;
+    }
+    offset += VERSION_SIZE;
+
+    uint8_t pluginNameLength = workBuffer[offset];
+    offset += PLUGIN_NAME_LENGTH_SIZE;
+
+    // Size of the payload (everything except the signature)
+    uint8_t payloadSize = HEADER_SIZE + pluginNameLength + ADDRESS_LENGTH + SELECTOR_SIZE +
+                          CHAIN_ID_SIZE + KEY_ID_SIZE + ALGORITHM_ID_SIZE;
+    if (dataLength < payloadSize) {
+        PRINTF("Data too small for payload: expected at least %d, got %d\n",
+               payloadSize,
+               dataLength);
+        THROW(0x6A80);
+    }
+
+    // `+ 1` because we want to add a null terminating character.
+    if (pluginNameLength + 1 > sizeof(tokenContext->pluginName)) {
+        PRINTF("plugin name too big: expected max %d, got %d\n",
                sizeof(dataContext.tokenContext.pluginName),
                pluginNameLength + 1);
         THROW(0x6A80);
     }
 
-    // check Ledger's signature over the payload
-    cx_hash_sha256(workBuffer, payload_size, hash, sizeof(hash));
-    cx_ecfp_init_public_key(CX_CURVE_256K1,
-                            LEDGER_SIGNATURE_PUBLIC_KEY,
-                            sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
-                            &tokenKey);
-    if (!cx_ecdsa_verify(&tokenKey,
-                         CX_LAST,
-                         CX_SHA256,
-                         hash,
-                         sizeof(hash),
-                         workBuffer + payload_size,
-                         dataLength - payload_size)) {
+    // Safe because we've checked the size before.
+    memcpy(tokenContext->pluginName, workBuffer + offset, pluginNameLength);
+    tokenContext->pluginName[pluginNameLength] = '\0';
+
+    PRINTF("Length: %d\n", pluginNameLength);
+    PRINTF("plugin name: %s\n", tokenContext->pluginName);
+    offset += pluginNameLength;
+
+    memcpy(tokenContext->contractAddress, workBuffer + offset, ADDRESS_LENGTH);
+    PRINTF("Address: %.*H\n", ADDRESS_LENGTH, workBuffer + offset);
+    offset += ADDRESS_LENGTH;
+
+    memcpy(tokenContext->methodSelector, workBuffer + offset, SELECTOR_SIZE);
+    PRINTF("Selector: %.*H\n", tokenContext->methodSelector);
+    offset += SELECTOR_SIZE;
+
+    // TODO: store chainID and assert that tx is using the same chainid.
+    // uint64_t chainid = u64_from_BE(workBuffer + offset, CHAIN_ID_SIZE);
+    // PRINTF("ChainID: %.*H\n", sizeof(chainid), &chainid);
+    offset += CHAIN_ID_SIZE;
+
+    enum KeyId keyId = workBuffer[offset];
+    uint8_t const *rawKey;
+    uint8_t rawKeyLen;
+
+    PRINTF("KeyID: %d\n", keyId);
+    switch (keyId) {
+#ifdef HAVE_NFT_TESTING_KEY
+        case TEST_KEY:
+            rawKey = LEDGER_TESTING_KEY;
+            rawKeyLen = sizeof(LEDGER_TESTING_KEY);
+            break;
+#endif
+        case PERSO_V2_KEY_1:
+            rawKey = LEDGER_PERSO_V2_PUBLIC_KEY;
+            rawKeyLen = sizeof(LEDGER_PERSO_V2_PUBLIC_KEY);
+            break;
+        case AWS_PLUGIN_KEY_1:
+            rawKey = LEDGER_NFT_SELECTOR_PUBLIC_KEY;
+            rawKeyLen = sizeof(LEDGER_NFT_SELECTOR_PUBLIC_KEY);
+            break;
+        default:
+            PRINTF("KeyID %d not supported\n", keyId);
+            THROW(0x6A80);
+            break;
+    }
+
+    PRINTF("RawKey: %.*H\n", rawKeyLen, rawKey);
+    offset += KEY_ID_SIZE;
+
+    uint8_t algorithmId = workBuffer[offset];
+    PRINTF("Algorithm: %d\n", algorithmId);
+    cx_curve_t curve;
+    verificationAlgo *verificationFn;
+    cx_md_t hashId;
+
+    switch (algorithmId) {
+        case ECC_SECG_P256K1__ECDSA_SHA_256:
+            curve = CX_CURVE_256K1;
+            verificationFn = cx_ecdsa_verify;
+            hashId = CX_SHA256;
+            break;
+        default:
+            PRINTF("Incorrect algorithmId %d\n", algorithmId);
+            THROW(0x6a80);
+            break;
+    }
+    offset += ALGORITHM_ID_SIZE;
+    PRINTF("hashing: %.*H\n", payloadSize, workBuffer);
+    cx_hash_sha256(workBuffer, payloadSize, hash, sizeof(hash));
+
+    if (dataLength < payloadSize + SIGNATURE_LENGTH_SIZE) {
+        PRINTF("Data too short to hold signature length\n");
+        THROW(0x6a80);
+    }
+
+    uint8_t signatureLen = workBuffer[offset];
+    PRINTF("Sigature len: %d\n", signatureLen);
+    if (signatureLen < MIN_DER_SIG_SIZE || signatureLen > MAX_DER_SIG_SIZE) {
+        PRINTF("SignatureLen too big or too small. Must be between %d and %d, got %d\n",
+               MIN_DER_SIG_SIZE,
+               MAX_DER_SIG_SIZE,
+               signatureLen);
+        THROW(0x6a80);
+    }
+    offset += SIGNATURE_LENGTH_SIZE;
+
+    if (dataLength < payloadSize + SIGNATURE_LENGTH_SIZE + signatureLen) {
+        PRINTF("Signature could not fit in data\n");
+        THROW(0x6a80);
+    }
+
+    cx_ecfp_init_public_key(curve, rawKey, rawKeyLen, &pluginKey);
+    if (!verificationFn(&pluginKey,
+                        CX_LAST,
+                        hashId,
+                        hash,
+                        sizeof(hash),
+                        workBuffer + offset,
+                        signatureLen)) {
 #ifndef HAVE_BYPASS_SIGNATURES
-        PRINTF("Invalid plugin signature %.*H\n", payload_size, workBuffer);
+        PRINTF("Invalid NFT signature\n");
         THROW(0x6A80);
 #endif
     }
 
-    // move on to the rest of the payload parsing
-    workBuffer++;
-    memmove(dataContext.tokenContext.pluginName, workBuffer, pluginNameLength);
-    dataContext.tokenContext.pluginName[pluginNameLength] = '\0';
-    workBuffer += pluginNameLength;
+    pluginType = getPluginType(tokenContext->pluginName, pluginNameLength);
+    switch (pluginType) {
+        case EXTERNAL: {
+            PRINTF("Check external plugin %s\n", tokenContext->pluginName);
 
-    PRINTF("Check external plugin %s\n", dataContext.tokenContext.pluginName);
-
-    if (strcmp("ERC721", dataContext.tokenContext.pluginName) != 0) {
-        // Check if the plugin is present on the device
-        uint32_t params[2];
-        params[0] = (uint32_t) dataContext.tokenContext.pluginName;
-        params[1] = ETH_PLUGIN_CHECK_PRESENCE;
-        BEGIN_TRY {
-            TRY {
-                os_lib_call(params);
+            // Check if the plugin is present on the device
+            uint32_t params[2];
+            params[0] = (uint32_t) tokenContext->pluginName;
+            params[1] = ETH_PLUGIN_CHECK_PRESENCE;
+            BEGIN_TRY {
+                TRY {
+                    os_lib_call(params);
+                }
+                CATCH_OTHER(e) {
+                    PRINTF("%s external plugin is not present\n", tokenContext->pluginName);
+                    memset(tokenContext->pluginName, 0, sizeof(tokenContext->pluginName));
+                    THROW(0x6984);
+                }
+                FINALLY {
+                }
             }
-            CATCH_OTHER(e) {
-                PRINTF("%s external plugin is not present\n", dataContext.tokenContext.pluginName);
-                memset(dataContext.tokenContext.pluginName,
-                       0,
-                       sizeof(dataContext.tokenContext.pluginName));
-                THROW(0x6984);
-            }
-            FINALLY {
-            }
+            END_TRY;
+            break;
         }
-        END_TRY;
-    }
-
-    PRINTF("Plugin found\n");
-
-    memmove(dataContext.tokenContext.contract_address, workBuffer, ADDRESS_LENGTH);
-    workBuffer += ADDRESS_LENGTH;
-    memmove(dataContext.tokenContext.method_selector, workBuffer, SELECTOR_SIZE);
-
-    if (strcmp("ERC721", dataContext.tokenContext.pluginName) == 0) {
-        pluginType = ERC721;
-    } else {
-        pluginType = EXTERNAL;
+        default:
+            break;
     }
 
     G_io_apdu_buffer[(*tx)++] = 0x90;

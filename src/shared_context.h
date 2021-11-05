@@ -62,8 +62,8 @@ typedef struct tokenContext_t {
 
     union {
         struct {
-            uint8_t contract_address[ADDRESS_LENGTH];
-            uint8_t method_selector[SELECTOR_LENGTH];
+            uint8_t contractAddress[ADDRESS_LENGTH];
+            uint8_t methodSelector[SELECTOR_LENGTH];
         };
         uint8_t pluginContext[5 * INT256_LENGTH];
     };
@@ -204,8 +204,9 @@ extern const internalStorage_t N_storage_real;
 extern bool called_from_swap;
 
 typedef enum {
-    EXTERNAL,  //  External plugin, set by setPlugin.
+    EXTERNAL,  //  External plugin, set by setExternalPlugin.
     ERC721,    // Specific ERC721 internal plugin, set by setPlugin.
+    ERC1155,   // Specific ERC1155 internal plugin, set by setPlugin
     INTERNAL,  // Internal plugin, not set by any command.
 } pluginType_t;
 

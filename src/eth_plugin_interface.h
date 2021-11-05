@@ -169,7 +169,6 @@ typedef struct ethQueryContractUI_t {
     char network_ticker[MAX_TICKER_LEN];
     uint8_t *pluginContext;
     uint8_t screenIndex;
-    char network_ticker[MAX_TICKER_LEN];
 
     char *title;
     size_t titleLength;

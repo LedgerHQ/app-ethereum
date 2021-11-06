@@ -19,13 +19,21 @@ static void set_approval_ui(ethQueryContractUI_t *msg, erc721_context_t *context
             }
             break;
         case 2:
+            strlcpy(msg->title, "NFT Address", msg->titleLength);
+            getEthDisplayableAddress(msg->pluginSharedRO->txContent->destination,
+                                     msg->msg,
+                                     msg->msgLength,
+                                     &global_sha3,
+                                     chainConfig->chainId);
+            break;
+        case 3:
             strlcpy(msg->title, "NFT ID", msg->titleLength);
             uint256_to_decimal(context->tokenId,
                                sizeof(context->tokenId),
                                msg->msg,
                                msg->msgLength);
             break;
-        case 3:
+        case 4:
             strlcpy(msg->title, "And send", msg->titleLength);
             amountToString((uint8_t *) &msg->pluginSharedRO->txContent->value,
                            sizeof(msg->pluginSharedRO->txContent->value),
@@ -59,6 +67,14 @@ static void set_approval_for_all_ui(ethQueryContractUI_t *msg, erc721_context_t 
             }
             break;
         case 2:
+            strlcpy(msg->title, "NFT Address", msg->titleLength);
+            getEthDisplayableAddress(msg->pluginSharedRO->txContent->destination,
+                                     msg->msg,
+                                     msg->msgLength,
+                                     &global_sha3,
+                                     chainConfig->chainId);
+            break;
+        case 3:
             strlcpy(msg->title, "And send", msg->titleLength);
             amountToString((uint8_t *) &msg->pluginSharedRO->txContent->value,
                            sizeof(msg->pluginSharedRO->txContent->value),

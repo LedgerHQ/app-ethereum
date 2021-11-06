@@ -119,10 +119,6 @@ static void handle_query_contract_id(void *parameters) {
     }
 }
 
-bool erc721_plugin_available_check() {
-    return true;
-}
-
 void erc721_plugin_call(int message, void *parameters) {
     switch (message) {
         case ETH_PLUGIN_INIT_CONTRACT: {

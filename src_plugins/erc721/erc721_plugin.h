@@ -8,8 +8,6 @@
 
 // Internal plugin for EIP 721: https://eips.ethereum.org/EIPS/eip-721
 
-#define MAX_COLLECTION_NAME_SIZE 40
-
 #define NUM_ERC721_SELECTORS 5
 
 typedef enum {
@@ -31,13 +29,14 @@ typedef enum {
 } erc721_selector_field;
 
 typedef struct erc721_context_t {
-    uint8_t selectorIndex;
     uint8_t address[ADDRESS_LENGTH];
     uint8_t tokenId[INT256_LENGTH];
 
+    bool approved;
+
     erc721_selector_field next_param;
+    uint8_t selectorIndex;
 } erc721_context_t;
 
 void handle_provide_parameter(void *parameters);
 void handle_query_contract_ui(void *parameters);
-void erc721_plugin_call(int message, void *parameters);

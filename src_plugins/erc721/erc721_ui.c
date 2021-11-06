@@ -1,6 +1,6 @@
 #include "erc721_plugin.h"
 
-static void set_approval_ui(ethQueryContractUI_t *msg, erc721_parameters_t *context) {
+static void set_approval_ui(ethQueryContractUI_t *msg, erc721_context_t *context) {
     switch (msg->screenIndex) {
         case 0:
             strlcpy(msg->title, "Allow", msg->titleLength);
@@ -11,15 +11,28 @@ static void set_approval_ui(ethQueryContractUI_t *msg, erc721_parameters_t *cont
                                      chainConfig->chainId);
             break;
         case 1:
-            strlcpy(msg->title, "To Spend", msg->titleLength);
+            strlcpy(msg->title, "To Spend Your", msg->titleLength);
+            if (msg->item1) {
+                strlcpy(msg->msg, (const char *) &msg->item1->nft.collectionName, msg->msgLength);
+            } else {
+                strlcpy(msg->msg, "Not found", msg->msgLength);
+            }
             break;
         case 2:
-            strlcpy(msg->title, "ID", msg->titleLength);
+            strlcpy(msg->title, "NFT ID", msg->titleLength);
             uint256_to_decimal(context->tokenId,
                                sizeof(context->tokenId),
                                msg->msg,
                                msg->msgLength);
             break;
+        case 3:
+            strlcpy(msg->title, "And send", msg->titleLength);
+            amountToString((uint8_t *) &msg->pluginSharedRO->txContent->value,
+                           sizeof(msg->pluginSharedRO->txContent->value),
+                           WEI_TO_ETHER,
+                           msg->network_ticker,
+                           msg->msg,
+                           msg->msgLength);
         default:
             PRINTF("Unsupported screen index %d\n", msg->screenIndex);
             msg->result = ETH_PLUGIN_RESULT_ERROR;
@@ -27,7 +40,7 @@ static void set_approval_ui(ethQueryContractUI_t *msg, erc721_parameters_t *cont
     }
 }
 
-static void set_approval_for_all_ui(ethQueryContractUI_t *msg, erc721_parameters_t *context) {
+static void set_approval_for_all_ui(ethQueryContractUI_t *msg, erc721_context_t *context) {
     switch (msg->screenIndex) {
         case 0:
             strlcpy(msg->title, "Allow", msg->titleLength);
@@ -39,8 +52,20 @@ static void set_approval_for_all_ui(ethQueryContractUI_t *msg, erc721_parameters
             break;
         case 1:
             strlcpy(msg->title, "To Manage ALL", msg->titleLength);
-            strlcpy(msg->msg, context->collection_name, msg->msgLength);
+            if (msg->item1) {
+                strlcpy(msg->msg, (const char *) &msg->item1->nft.collectionName, msg->msgLength);
+            } else {
+                strlcpy(msg->msg, "Not found", msg->msgLength);
+            }
             break;
+        case 2:
+            strlcpy(msg->title, "And send", msg->titleLength);
+            amountToString((uint8_t *) &msg->pluginSharedRO->txContent->value,
+                           sizeof(msg->pluginSharedRO->txContent->value),
+                           WEI_TO_ETHER,
+                           msg->network_ticker,
+                           msg->msg,
+                           msg->msgLength);
         default:
             PRINTF("Unsupported screen index %d\n", msg->screenIndex);
             msg->result = ETH_PLUGIN_RESULT_ERROR;
@@ -48,7 +73,7 @@ static void set_approval_for_all_ui(ethQueryContractUI_t *msg, erc721_parameters
     }
 }
 
-static void set_transfer_ui(ethQueryContractUI_t *msg, erc721_parameters_t *context) {
+static void set_transfer_ui(ethQueryContractUI_t *msg, erc721_context_t *context) {
     switch (msg->screenIndex) {
         case 0:
             strlcpy(msg->title, "To", msg->titleLength);
@@ -60,9 +85,11 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc721_parameters_t *cont
             break;
         case 1:
             strlcpy(msg->title, "Collection Name", msg->titleLength);
-            // PRINTF("CollectionName: %s\n", msg->item1->nft.collectionName);
-            // PRINTF("CollectionName: %s\n", msg->item2->nft.collectionName);
-            strlcpy(msg->msg, (const char *) &msg->item1->nft.collectionName, msg->msgLength);
+            if (msg->item1) {
+                strlcpy(msg->msg, (const char *) &msg->item1->nft.collectionName, msg->msgLength);
+            } else {
+                strlcpy(msg->msg, "Not Found", msg->msgLength);
+            }
             break;
         case 2:
             strlcpy(msg->title, "NFT Address", msg->titleLength);
@@ -80,7 +107,7 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc721_parameters_t *cont
                                msg->msgLength);
             break;
         case 4:
-            strlcpy(msg->title, "Amount", msg->titleLength);
+            strlcpy(msg->title, "And send", msg->titleLength);
             amountToString((uint8_t *) &msg->pluginSharedRO->txContent->value,
                            sizeof(msg->pluginSharedRO->txContent->value),
                            WEI_TO_ETHER,
@@ -96,7 +123,7 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc721_parameters_t *cont
 
 void handle_query_contract_ui(void *parameters) {
     ethQueryContractUI_t *msg = (ethQueryContractUI_t *) parameters;
-    erc721_parameters_t *context = (erc721_parameters_t *) msg->pluginContext;
+    erc721_context_t *context = (erc721_context_t *) msg->pluginContext;
 
     msg->result = ETH_PLUGIN_RESULT_OK;
     switch (context->selectorIndex) {

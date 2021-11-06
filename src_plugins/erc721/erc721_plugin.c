@@ -17,7 +17,7 @@ const uint8_t *const ERC721_SELECTORS[NUM_ERC721_SELECTORS] = {
 
 static void handle_init_contract(void *parameters) {
     ethPluginInitContract_t *msg = (ethPluginInitContract_t *) parameters;
-    erc721_parameters_t *context = (erc721_parameters_t *) msg->pluginContext;
+    erc721_context_t *context = (erc721_context_t *) msg->pluginContext;
 
     uint8_t i;
     for (i = 0; i < NUM_ERC721_SELECTORS; i++) {
@@ -54,14 +54,34 @@ static void handle_init_contract(void *parameters) {
 
 static void handle_finalize(void *parameters) {
     ethPluginFinalize_t *msg = (ethPluginFinalize_t *) parameters;
-    // erc721_parameters_t *context = (erc721_parameters_t *) msg->pluginContext; scott
+    erc721_context_t *context = (erc721_context_t *) msg->pluginContext;
 
     msg->tokenLookup1 = msg->pluginSharedRO->txContent->destination;
     msg->tokenLookup2 = NULL;
-    msg->numScreens = 4;
+    switch (context->selectorIndex) {
+        case TRANSFER:
+        case SAFE_TRANSFER:
+        case SAFE_TRANSFER_DATA:
+        case APPROVE:
+            msg->numScreens = 3;
+            break;
+        case SET_APPROVAL_FOR_ALL:
+            msg->numScreens = 2;
+        default:
+            msg->result = ETH_PLUGIN_RESULT_ERROR;
+            return;
+    }
+    // Check if some ETH is attached to this tx
     if (!allzeroes((void *) &msg->pluginSharedRO->txContent->value,
                    sizeof(msg->pluginSharedRO->txContent->value))) {
-        msg->numScreens++;
+        // Set Approval for All is not payable
+        if (context->selectorIndex == SET_APPROVAL_FOR_ALL) {
+            msg->result = ETH_PLUGIN_RESULT_ERROR;
+            return;
+        } else {
+            // Add an additional screen
+            msg->numScreens++;
+        }
     }
     msg->uiType = ETH_UI_TYPE_GENERIC;
     msg->result = ETH_PLUGIN_RESULT_OK;
@@ -75,7 +95,7 @@ static void handle_provide_info(void *parameters) {
 
 static void handle_query_contract_id(void *parameters) {
     ethQueryContractID_t *msg = (ethQueryContractID_t *) parameters;
-    erc721_parameters_t *context = (erc721_parameters_t *) msg->pluginContext;
+    erc721_context_t *context = (erc721_context_t *) msg->pluginContext;
 
     msg->result = ETH_PLUGIN_RESULT_OK;
 

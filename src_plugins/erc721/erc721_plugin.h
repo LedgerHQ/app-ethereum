@@ -30,14 +30,13 @@ typedef enum {
     NONE,
 } erc721_selector_field;
 
-typedef struct erc721_parameters_t {
+typedef struct erc721_context_t {
     uint8_t selectorIndex;
     uint8_t address[ADDRESS_LENGTH];
     uint8_t tokenId[INT256_LENGTH];
-    char collection_name[MAX_COLLECTION_NAME_SIZE];
 
     erc721_selector_field next_param;
-} erc721_parameters_t;
+} erc721_context_t;
 
 void handle_provide_parameter(void *parameters);
 void handle_query_contract_ui(void *parameters);

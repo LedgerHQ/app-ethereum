@@ -51,7 +51,11 @@ static void set_approval_ui(ethQueryContractUI_t *msg, erc721_context_t *context
 static void set_approval_for_all_ui(ethQueryContractUI_t *msg, erc721_context_t *context) {
     switch (msg->screenIndex) {
         case 0:
-            strlcpy(msg->title, "Allow", msg->titleLength);
+            if (context->approved) {
+                strlcpy(msg->title, "Allow", msg->titleLength);
+            } else {
+                strlcpy(msg->title, "Revoke", msg->titleLength);
+            }
             getEthDisplayableAddress(context->address,
                                      msg->msg,
                                      msg->msgLength,

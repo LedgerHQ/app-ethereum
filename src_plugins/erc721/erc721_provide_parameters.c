@@ -11,7 +11,7 @@ static void copy_parameter(uint8_t *dst, uint8_t *parameter, uint8_t dst_size) {
     memmove(dst, parameter, copy_size);
 }
 
-void handle_approve(ethPluginProvideParameter_t *msg, erc721_parameters_t *context) {
+void handle_approve(ethPluginProvideParameter_t *msg, erc721_context_t *context) {
     switch (context->next_param) {
         case OPERATOR:
             copy_address(context->address, msg->parameter, sizeof(context->address));
@@ -28,9 +28,8 @@ void handle_approve(ethPluginProvideParameter_t *msg, erc721_parameters_t *conte
     }
 }
 
-// SCOTT: todo: add display of ETH if there's any?
 // `strict` will set msg->result to ERROR if parsing continues after `TOKEN_ID` has been parsed.
-void handle_transfer(ethPluginProvideParameter_t *msg, erc721_parameters_t *context, bool strict) {
+void handle_transfer(ethPluginProvideParameter_t *msg, erc721_context_t *context, bool strict) {
     switch (context->next_param) {
         case FROM:
             context->next_param = TO;
@@ -52,7 +51,7 @@ void handle_transfer(ethPluginProvideParameter_t *msg, erc721_parameters_t *cont
     }
 }
 
-void handle_approval_for_all(ethPluginProvideParameter_t *msg, erc721_parameters_t *context) {
+void handle_approval_for_all(ethPluginProvideParameter_t *msg, erc721_context_t *context) {
     switch (context->next_param) {
         case OPERATOR:
             context->next_param = APPROVED;
@@ -69,7 +68,7 @@ void handle_approval_for_all(ethPluginProvideParameter_t *msg, erc721_parameters
 
 void handle_provide_parameter(void *parameters) {
     ethPluginProvideParameter_t *msg = (ethPluginProvideParameter_t *) parameters;
-    erc721_parameters_t *context = (erc721_parameters_t *) msg->pluginContext;
+    erc721_context_t *context = (erc721_context_t *) msg->pluginContext;
 
     PRINTF("erc721 plugin provide parameter %d %.*H\n",
            msg->parameterOffset,

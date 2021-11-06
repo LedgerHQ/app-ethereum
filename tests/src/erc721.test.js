@@ -18,7 +18,7 @@ test('[Nano S] Transfer erc721', zemu("nanos", async (sim, eth) => {
   );
 
   await waitForAppScreen(sim);
-  await sim.navigateAndCompareSnapshots('.', 'nanos_erc721_transfer_ethereum', [13, 0]);
+  await sim.navigateAndCompareSnapshots('.', 'nanos_erc721_transfer_ethereum', [12, 0]);
 
   await expect(tx).resolves.toEqual({
     "r": "409a22a14d640dab324852bbba4a0da04aa30a6e38d681bdba523fa36590bf93",

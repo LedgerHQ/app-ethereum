@@ -240,7 +240,6 @@ static void feesToString(uint256_t *rawFee, char *displayBuffer, uint32_t displa
         i++;
     }
     displayBuffer[tickerOffset + i] = '\0';
-    PRINTF("Displayed fees: %s\n", displayBuffer);
 }
 
 // Compute the fees, transform it to a string, prepend a ticker to it and copy everything to

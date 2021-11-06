@@ -1,17 +1,7 @@
 #include "erc721_plugin.h"
 #include "eth_plugin_internal.h"
 
-static void copy_address(uint8_t *dst, uint8_t *parameter, uint8_t dst_size) {
-    uint8_t copy_size = MIN(dst_size, ADDRESS_LENGTH);
-    memmove(dst, parameter + PARAMETER_LENGTH - copy_size, copy_size);
-}
-
-static void copy_parameter(uint8_t *dst, uint8_t *parameter, uint8_t dst_size) {
-    uint8_t copy_size = MIN(dst_size, PARAMETER_LENGTH);
-    memmove(dst, parameter, copy_size);
-}
-
-void handle_approve(ethPluginProvideParameter_t *msg, erc721_context_t *context) {
+static void handle_approve(ethPluginProvideParameter_t *msg, erc721_context_t *context) {
     switch (context->next_param) {
         case OPERATOR:
             copy_address(context->address, msg->parameter, sizeof(context->address));
@@ -29,7 +19,9 @@ void handle_approve(ethPluginProvideParameter_t *msg, erc721_context_t *context)
 }
 
 // `strict` will set msg->result to ERROR if parsing continues after `TOKEN_ID` has been parsed.
-void handle_transfer(ethPluginProvideParameter_t *msg, erc721_context_t *context, bool strict) {
+static void handle_transfer(ethPluginProvideParameter_t *msg,
+                            erc721_context_t *context,
+                            bool strict) {
     switch (context->next_param) {
         case FROM:
             context->next_param = TO;
@@ -51,13 +43,15 @@ void handle_transfer(ethPluginProvideParameter_t *msg, erc721_context_t *context
     }
 }
 
-void handle_approval_for_all(ethPluginProvideParameter_t *msg, erc721_context_t *context) {
+static void handle_approval_for_all(ethPluginProvideParameter_t *msg, erc721_context_t *context) {
     switch (context->next_param) {
         case OPERATOR:
             context->next_param = APPROVED;
+            copy_address(context->address, msg->parameter, sizeof(context->address));
             break;
         case APPROVED:
             context->next_param = NONE;
+            context->approved = msg->parameter[PARAMETER_LENGTH - 1];
             break;
         default:
             PRINTF("Param %d not supported\n", context->next_param);

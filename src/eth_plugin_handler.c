@@ -80,6 +80,7 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
 
     PRINTF("Selector %.*H\n", 4, init->selector);
     switch (pluginType) {
+        case ERC1155:
         case ERC721:
         case EXTERNAL: {
             // check if the registered external plugin matches the TX contract address / selector

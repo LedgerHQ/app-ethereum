@@ -1,5 +1,6 @@
 import Zemu from '@zondax/zemu';
 import Eth from '@ledgerhq/hw-app-eth';
+import {RLP} from "ethers/lib/utils";
 
 const transactionUploadDelay = 60000;
 

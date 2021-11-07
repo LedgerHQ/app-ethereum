@@ -255,6 +255,12 @@ void handleSetPlugin(uint8_t p1,
     }
 
     pluginType = getPluginType(tokenContext->pluginName, pluginNameLength);
+    if (keyId == AWS_PLUGIN_KEY_1) {
+        if (pluginType != ERC721 && pluginType != ERC1155) {
+            PRINTF("AWS key must only be used to set NFT internal plugins\n");
+            THROW(0x6A80);
+        }
+    }
 
     switch (pluginType) {
         case EXTERNAL: {

@@ -204,10 +204,11 @@ extern const internalStorage_t N_storage_real;
 extern bool called_from_swap;
 
 typedef enum {
-    EXTERNAL,  //  External plugin, set by setExternalPlugin.
-    ERC721,    // Specific ERC721 internal plugin, set by setPlugin.
-    ERC1155,   // Specific ERC1155 internal plugin, set by setPlugin
-    INTERNAL,  // Internal plugin, not set by any command.
+    EXTERNAL,          //  External plugin, set by setExternalPlugin.
+    ERC721,            // Specific ERC721 internal plugin, set by setPlugin.
+    ERC1155,           // Specific ERC1155 internal plugin, set by setPlugin
+    OLD_INTERNAL,      // Old internal plugin, not set by any command.
+    NOT_OLD_INTERNAL,  // Do not treat this tx as an old internal transaction.
 } pluginType_t;
 
 extern pluginType_t pluginType;

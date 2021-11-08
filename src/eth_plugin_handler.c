@@ -80,6 +80,7 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
 
     PRINTF("Selector %.*H\n", 4, init->selector);
     switch (pluginType) {
+        case NOT_OLD_INTERNAL:
         case ERC1155:
         case ERC721:
         case EXTERNAL: {
@@ -107,7 +108,7 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
             dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
             contractAddress = NULL;
         } break;
-        case INTERNAL: {
+        case OLD_INTERNAL: {
             // Search internal plugin list
             for (i = 0;; i++) {
                 uint8_t j;
@@ -241,6 +242,8 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
     }
 
     switch (pluginType) {
+        case NOT_OLD_INTERNAL:
+            break;
         case EXTERNAL: {
             uint32_t params[3];
             params[0] = (uint32_t) alias;
@@ -263,7 +266,11 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
             erc721_plugin_call(method, parameter);
             break;
         }
-        case INTERNAL: {
+        case ERC1155: {
+            erc1155_plugin_call(method, parameter);
+            break;
+        }
+        case OLD_INTERNAL: {
             // Perform the call
             for (i = 0;; i++) {
                 if (INTERNAL_ETH_PLUGINS[i].alias[0] == 0) {

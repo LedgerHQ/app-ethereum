@@ -72,7 +72,7 @@ void reset_app_context() {
     // PRINTF("!!RESET_APP_CONTEXT\n");
     appState = APP_STATE_IDLE;
     called_from_swap = false;
-    pluginType = INTERNAL;
+    pluginType = OLD_INTERNAL;
 #ifdef HAVE_STARKWARE
     quantumSet = false;
 #endif

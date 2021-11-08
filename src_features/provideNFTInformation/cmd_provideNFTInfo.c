@@ -210,6 +210,9 @@ void handleProvideNFTInformation(uint8_t p1,
         THROW(0x6A80);
 #endif
     }
+    // Set this to `NOT_OLD_INTERNAL` because otherwise the tx might be treated as an
+    // internal plugin and we might get a collision and hence some BIG problems.
+    pluginType = NOT_OLD_INTERNAL;
 
     tmpCtx.transactionContext.tokenSet[tmpCtx.transactionContext.currentItemIndex] = 1;
     THROW(0x9000);

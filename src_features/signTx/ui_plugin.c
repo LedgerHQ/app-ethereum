@@ -4,10 +4,8 @@
 #include "ui_callbacks.h"
 #include "ui_plugin.h"
 
-#ifdef TARGET_NANOS
 // This function is not exported by the SDK
 void ux_layout_paging_redisplay_by_addr(unsigned int stack_slot);
-#endif
 
 void plugin_ui_get_id() {
     ethQueryContractID_t pluginQueryContractID;

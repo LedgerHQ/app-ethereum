@@ -112,7 +112,7 @@ void shift_stark_hash(FieldElement hash) {
         THROW(0x6A80);
     }
 }
-#endif // TARGET_NANOX
+#endif  // TARGET_NANOX
 
 int stark_sign(uint8_t *signature, /* out */
                uint8_t *privateKeyData,

@@ -94,6 +94,7 @@ void pedersen(FieldElement res, /* out */
     memcpy(res, hash + 1, FIELD_ELEMENT_SIZE);
 }
 
+#ifdef TARGET_NANOX
 void shift_stark_hash(FieldElement hash) {
     uint256_t hash256, final_hash256;
     readu256BE(hash, &hash256);
@@ -111,6 +112,7 @@ void shift_stark_hash(FieldElement hash) {
         THROW(0x6A80);
     }
 }
+#endif  // TARGET_NANOX
 
 int stark_sign(uint8_t *signature, /* out */
                uint8_t *privateKeyData,

@@ -20,7 +20,7 @@ First [install yarn](https://classic.yarnpkg.com/en/docs/install/#debian-stable)
 Open `tests/build_local_test_elfs.sh` and add your BOLOS SDKs path to `NANOS_SDK` and `NANOX_SDK`.
 This helper script will build the applications required by the test suite and move them at the right place.
 ```
-cd test
+cd tests
 ./build_local_test_elfs.sh
 ```
 Then you can install the project by simply running:

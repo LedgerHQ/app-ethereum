@@ -411,7 +411,7 @@ void handleGetWalletId(volatile unsigned int *tx) {
     // pubkey -> sha512
     cx_hash_sha512(pub.W, sizeof(pub.W), t, sizeof(t));
     // ! cookie !
-    os_memmove(G_io_apdu_buffer, t, 64);
+    memmove(G_io_apdu_buffer, t, 64);
     *tx = 64;
     THROW(0x9000);
 }

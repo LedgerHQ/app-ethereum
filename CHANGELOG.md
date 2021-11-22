@@ -5,12 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.9.14](https://github.com/ledgerhq/app-ethereum/compare/1.9.13...1.9.14) - 2021-11-22
+
+### Added
+
+- Support for Non-Fungible Token (ERC 721 & ERC 1155)
+
+## [1.9.13](https://github.com/ledgerhq/app-ethereum/compare/1.9.12...1.9.13) - 2021-11-17
+
+### Changed
+
+- Small improvement in app size
+
 ## [1.9.12](https://github.com/ledgerhq/app-ethereum/compare/1.9.11...1.9.12) - 2021-11-12
 
 ### Fixed
 
 - Fixed stark order signature on LNX 
-
 
 ## [1.9.11](https://github.com/ledgerhq/app-ethereum/compare/1.9.10...1.9.11) - 2021-10-12
 

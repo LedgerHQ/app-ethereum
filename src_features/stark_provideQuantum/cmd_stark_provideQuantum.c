@@ -37,19 +37,19 @@ void handleStarkwareProvideQuantum(uint8_t p1,
         addressZero = allzeroes(dataBuffer, 20);
     }
     if ((p1 != STARK_QUANTUM_ETH) && !addressZero) {
-        for (i = 0; i < MAX_TOKEN; i++) {
-            currentToken = &tmpCtx.transactionContext.tokens[i];
+        for (i = 0; i < MAX_ITEMS; i++) {
+            currentToken = &tmpCtx.transactionContext.extraInfo[i].token;
             if (tmpCtx.transactionContext.tokenSet[i] &&
                 (memcmp(currentToken->address, dataBuffer, 20) == 0)) {
                 break;
             }
         }
-        if (i == MAX_TOKEN) {
+        if (i == MAX_ITEMS) {
             PRINTF("Associated token not found\n");
             THROW(0x6A80);
         }
     } else {
-        i = MAX_TOKEN;
+        i = MAX_ITEMS;
     }
     memmove(dataContext.tokenContext.quantum, dataBuffer + 20, 32);
     if (p1 != STARK_QUANTUM_LEGACY) {

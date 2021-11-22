@@ -300,10 +300,16 @@ ifneq ($(ALLOW_DATA),0)
 DEFINES += HAVE_ALLOW_DATA
 endif
 
-# Bypass the signature verification for setExternalPlugin and provideERC20TokenInfo calls
+# Bypass the signature verification for setExternalPlugin, setPlugin, provideERC20TokenInfo and provideNFTInfo calls
 BYPASS_SIGNATURES:=0
 ifneq ($(BYPASS_SIGNATURES),0)
 DEFINES += HAVE_BYPASS_SIGNATURES
+endif
+
+# Enable the NFT testing key
+NFT_TESTING_KEY:=0
+ifneq ($(NFT_TESTING_KEY),0)
+DEFINES += HAVE_NFT_TESTING_KEY
 endif
 
 

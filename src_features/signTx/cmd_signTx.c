@@ -2,6 +2,7 @@
 #include "apdu_constants.h"
 #include "ui_flow.h"
 #include "feature_signTx.h"
+#include "eth_plugin_interface.h"
 
 void handleSign(uint8_t p1,
                 uint8_t p2,
@@ -53,7 +54,7 @@ void handleSign(uint8_t p1,
                 workBuffer++;
                 dataLength--;
             } else {
-                PRINTF("Transaction type not supported\n");
+                PRINTF("Transaction type %d not supported\n", txType);
                 THROW(0x6501);
             }
         } else {

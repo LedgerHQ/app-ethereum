@@ -164,7 +164,7 @@ void handleProvideNFTInformation(uint8_t p1,
     switch (algorithmId) {
         case ALGORITHM_ID_1:
             curve = CX_CURVE_256K1;
-            verificationFn = cx_ecdsa_verify;
+            verificationFn = (verificationAlgo*)cx_ecdsa_verify;
             hashId = CX_SHA256;
             break;
         default:

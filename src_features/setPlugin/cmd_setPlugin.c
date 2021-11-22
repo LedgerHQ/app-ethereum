@@ -207,7 +207,7 @@ void handleSetPlugin(uint8_t p1,
     switch (algorithmId) {
         case ECC_SECG_P256K1__ECDSA_SHA_256:
             curve = CX_CURVE_256K1;
-            verificationFn = cx_ecdsa_verify;
+            verificationFn = (verificationAlgo*)cx_ecdsa_verify;
             hashId = CX_SHA256;
             break;
         default:

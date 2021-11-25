@@ -1,11 +1,11 @@
 #include "erc721_plugin.h"
 #include "eth_plugin_internal.h"
 
-static const uint8_t ERC721_APPROVE_SELECTOR[SELECTOR_SIZE] = {0x13, 0x37, 0x42, 0x42};
+static const uint8_t ERC721_APPROVE_SELECTOR[SELECTOR_SIZE] = {0x09, 0x5e, 0xa7, 0xb3};
 static const uint8_t ERC721_APPROVE_FOR_ALL_SELECTOR[SELECTOR_SIZE] = {0xa2, 0x2c, 0xb4, 0x65};
 static const uint8_t ERC721_TRANSFER_SELECTOR[SELECTOR_SIZE] = {0x23, 0xb8, 0x72, 0xdd};
 static const uint8_t ERC721_SAFE_TRANSFER_SELECTOR[SELECTOR_SIZE] = {0x42, 0x84, 0x2e, 0x0e};
-static const uint8_t ERC721_SAFE_TRANSFER_DATA_SELECTOR[SELECTOR_SIZE] = {0xf2, 0x42, 0x43, 0x2a};
+static const uint8_t ERC721_SAFE_TRANSFER_DATA_SELECTOR[SELECTOR_SIZE] = {0xb8, 0x8d, 0x4f, 0xde};
 
 const uint8_t *const ERC721_SELECTORS[NUM_ERC721_SELECTORS] = {
     ERC721_APPROVE_SELECTOR,

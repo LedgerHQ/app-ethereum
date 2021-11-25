@@ -80,7 +80,6 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
 
     PRINTF("Selector %.*H\n", 4, init->selector);
     switch (pluginType) {
-        case NOT_OLD_INTERNAL:
         case ERC1155:
         case ERC721:
         case EXTERNAL: {
@@ -242,8 +241,6 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
     }
 
     switch (pluginType) {
-        case NOT_OLD_INTERNAL:
-            break;
         case EXTERNAL: {
             uint32_t params[3];
             params[0] = (uint32_t) alias;

@@ -36,7 +36,7 @@ UX_STEP_NOCB_INIT(
   bnnn_paging,
   stark_unsafe_sign_display_hash(),
   {
-    .title = "Hash",
+    .title = "Tx Hash",
     .text = strings.tmp.tmp
   });
 

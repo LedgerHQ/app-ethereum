@@ -30,7 +30,7 @@ APP_LOAD_PARAMS += --path "1517992542'/1101353413'"
 
 APPVERSION_M=1
 APPVERSION_N=9
-APPVERSION_P=12
+APPVERSION_P=13
 APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)-xdc
 APP_LOAD_FLAGS= --appFlags 0x240 --dep Ethereum:$(APPVERSION)
 
@@ -180,7 +180,7 @@ APP_LOAD_PARAMS += --path "44'/889'"
 DEFINES += CHAINID_UPCASE=\"TOMOCHAIN\" CHAINID_COINNAME=\"TOMO\" CHAIN_KIND=CHAIN_KIND_TOMOCHAIN CHAIN_ID=88
 APPNAME = "TomoChain"
 else ifeq ($(CHAIN),moonriver)
-APP_LOAD_PARAMS += --path "44'/60'"
+APP_LOAD_PARAMS += --path "44'/60'" --path "44'/1285'"
 DEFINES += CHAINID_UPCASE=\"MOONRIVER\" CHAINID_COINNAME=\"MOVR\" CHAIN_KIND=CHAIN_KIND_MOONRIVER CHAIN_ID=1285
 APPNAME = "Moonriver"
 else ifeq ($(CHAIN),tobalaba)
@@ -354,7 +354,7 @@ endif
 CC       := $(CLANGPATH)clang
 
 #CFLAGS   += -O0
-CFLAGS   += -O3 -Os -Wno-format-invalid-specifier -Wno-format-extra-args
+CFLAGS   += -Oz -Wno-format-invalid-specifier -Wno-format-extra-args
 
 AS     := $(GCCPATH)arm-none-eabi-gcc
 

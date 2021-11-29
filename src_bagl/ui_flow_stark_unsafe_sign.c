@@ -18,8 +18,8 @@ UX_STEP_NOCB(ux_stark_unsafe_sign_1_step,
     pnn,
     {
       &C_icon_warning,
-      "Unsafe",
-      "Stark Sign",
+      "StarkNet",
+      "Blind Sign",
     });
 
 UX_STEP_NOCB_INIT(

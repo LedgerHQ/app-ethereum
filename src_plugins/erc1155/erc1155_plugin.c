@@ -59,7 +59,7 @@ static void handle_finalize(void *parameters) {
     msg->tokenLookup2 = NULL;
     switch (context->selectorIndex) {
         case SAFE_TRANSFER:
-            msg->numScreens = 4;
+            msg->numScreens = 5;
             break;
         case SET_APPROVAL_FOR_ALL:
         case SAFE_BATCH_TRANSFER:

@@ -40,20 +40,6 @@ static void set_approval_for_all_ui(ethQueryContractUI_t *msg, erc1155_context_t
 static void set_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *context) {
     switch (msg->screenIndex) {
         case 0:
-            // What will be displayed on the screen is:
-            // |        Send            |
-            // | `X` `COLLECTION_NAME`  |
-            // where `X` is `value`
-            strlcpy(msg->title, "Send", msg->titleLength);
-            uint256_to_decimal(context->value, sizeof(context->value), msg->msg, msg->msgLength);
-            strlcat(msg->msg, " ", msg->msgLength);
-            if (msg->item1) {
-                strlcat(msg->msg, (const char *) &msg->item1->nft.collectionName, msg->msgLength);
-            } else {
-                strlcat(msg->msg, "Items", msg->msgLength);
-            }
-            break;
-        case 1:
             strlcpy(msg->title, "To", msg->titleLength);
             getEthDisplayableAddress(context->address,
                                      msg->msg,
@@ -61,9 +47,17 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *contex
                                      &global_sha3,
                                      chainConfig->chainId);
             break;
+        case 1:
+            strlcpy(msg->title, "Collection Name", msg->titleLength);
+            if (msg->item1) {
+                strlcpy(msg->msg, (const char *) &msg->item1->nft.collectionName, msg->msgLength);
+            } else {
+                strlcpy(msg->msg, "Not Found", msg->msgLength);
+            }
+            break;
         case 2:
             strlcpy(msg->title, "NFT Address", msg->titleLength);
-            getEthDisplayableAddress(msg->pluginSharedRO->txContent->destination,
+            getEthDisplayableAddress((uint8_t *)msg->item1->nft.contractAddress,
                                      msg->msg,
                                      msg->msgLength,
                                      &global_sha3,
@@ -76,6 +70,10 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *contex
                                msg->msg,
                                msg->msgLength);
             break;
+        case 4:
+            strlcpy(msg->title, "Quantity", msg->titleLength);
+            uint256_to_decimal(context->value, sizeof(context->value), msg->msg, msg->msgLength);
+            break;
         default:
             PRINTF("Unsupported screen index %d\n", msg->screenIndex);
             msg->result = ETH_PLUGIN_RESULT_ERROR;
@@ -85,21 +83,30 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *contex
 
 static void set_batch_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *context) {
     switch (msg->screenIndex) {
-        case 0:
+        /*case 0:
             strlcpy(msg->title, "Send NFTs From", msg->titleLength);
             uint256_to_decimal(context->value, sizeof(context->value), msg->msg, msg->msgLength);
             strlcat(msg->msg, " Different Collections", msg->msgLength);
-            break;
-        case 1:
+            break;*/
+        case 0:
             strlcpy(msg->title, "To", msg->titleLength);
             getEthDisplayableAddress(context->address,
                                      msg->msg,
                                      msg->msgLength,
                                      &global_sha3,
                                      chainConfig->chainId);
+            break;
+        case 1:
+            strlcpy(msg->title, "Collection Name", msg->titleLength);
+            if (msg->item1) {
+                strlcpy(msg->msg, (const char *) &msg->item1->nft.collectionName, msg->msgLength);
+            } else {
+                strlcpy(msg->msg, "Not Found", msg->msgLength);
+            }
+            break;
         case 2:
             strlcpy(msg->title, "NFT Address", msg->titleLength);
-            getEthDisplayableAddress(msg->pluginSharedRO->txContent->destination,
+            getEthDisplayableAddress((uint8_t *)msg->item1->nft.contractAddress,
                                      msg->msg,
                                      msg->msgLength,
                                      &global_sha3,

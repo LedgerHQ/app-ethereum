@@ -115,11 +115,11 @@ UX_STEP_NOCB(
 
 UX_STEP_NOCB_INIT(
   ux_plugin_approval_id_step,
-  bnnn_paging,
+  nn,
   plugin_ui_get_id(),
   {
-    .title = strings.common.fullAddress,
-    .text = strings.common.fullAmount
+    .line1 = strings.common.fullAddress,
+    .line2 = strings.common.fullAmount
   });
 
 UX_STEP_INIT(

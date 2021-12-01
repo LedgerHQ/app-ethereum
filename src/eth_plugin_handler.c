@@ -1,6 +1,7 @@
 #include <string.h>
 #include "eth_plugin_handler.h"
 #include "eth_plugin_internal.h"
+#include "network.h"
 #include "shared_context.h"
 
 void eth_plugin_prepare_init(ethPluginInitContract_t *init, uint8_t *selector, uint32_t dataSize) {

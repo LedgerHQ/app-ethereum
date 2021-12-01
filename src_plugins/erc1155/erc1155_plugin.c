@@ -99,8 +99,10 @@ static void handle_query_contract_id(void *parameters) {
             strlcpy(msg->version, "Allowance", msg->versionLength);
             break;
         case SAFE_TRANSFER:
-        case SAFE_BATCH_TRANSFER:
             strlcpy(msg->version, "Transfer", msg->versionLength);
+            break;
+        case SAFE_BATCH_TRANSFER:
+            strlcpy(msg->version, "Batch Transfer", msg->versionLength);
             break;
         default:
             PRINTF("Unsupported selector %d\n", context->selectorIndex);

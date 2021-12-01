@@ -44,6 +44,5 @@ typedef struct erc1155_context_t {
     uint8_t selectorIndex;
 } erc1155_context_t;
 
-// TODO: Find out why there is a duplicate if we remove 1155 suffix
 void handle_provide_parameter_1155(void *parameters);
 void handle_query_contract_ui_1155(void *parameters);

@@ -125,7 +125,7 @@ void erc721_plugin_call(int message, void *parameters) {
             handle_init_contract(parameters);
         } break;
         case ETH_PLUGIN_PROVIDE_PARAMETER: {
-            handle_provide_parameter(parameters);
+            handle_provide_parameter_721(parameters);
         } break;
         case ETH_PLUGIN_FINALIZE: {
             handle_finalize(parameters);
@@ -137,7 +137,7 @@ void erc721_plugin_call(int message, void *parameters) {
             handle_query_contract_id(parameters);
         } break;
         case ETH_PLUGIN_QUERY_CONTRACT_UI: {
-            handle_query_contract_ui(parameters);
+            handle_query_contract_ui_721(parameters);
         } break;
         default:
             PRINTF("Unhandled message %d\n", message);

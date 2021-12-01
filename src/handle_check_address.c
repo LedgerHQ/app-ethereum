@@ -65,7 +65,7 @@ int handle_check_address(const check_address_parameters_t* params,
         offset_0x = 2;
     }
 
-    if (os_strcmp(locals_union1.address, params->address_to_check + offset_0x) != 0) {
+    if (strcmp(locals_union1.address, params->address_to_check + offset_0x) != 0) {
         PRINTF("Addresses don't match\n");
         return 0;
     }

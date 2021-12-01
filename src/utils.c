@@ -24,17 +24,36 @@
 #include "tokens.h"
 #include "utils.h"
 
-void array_hexstr(char *strbuf, const void *bin, size_t len) {
-    const char hex_digits[] =
-        {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
-    const uint8_t *p = bin;
+int bytes_to_hex(char *out, size_t outl, const void *value, size_t len) {
+    const uint8_t *bytes = (const uint8_t *) value;
+    const char *hex = "0123456789ABCDEF";
 
-    while (len--) {
-        *strbuf++ = hex_digits[(*p >> 4) & 0xF];
-        *strbuf++ = hex_digits[*p & 0xF];
-        p++;
+    if (outl < 2 * len + 1) {
+        if (outl != 0) {
+            *out = '\0';
+        }
+        return -1;
     }
-    *strbuf = 0;  // EOS
+
+    for (size_t i = 0; i < len; i++) {
+        *out++ = hex[(bytes[i] >> 4) & 0xf];
+        *out++ = hex[bytes[i] & 0xf];
+    }
+    *out = 0;
+    return 0;
+}
+
+int bytes_to_string(char *out, size_t outl, const void *value, size_t len) {
+    if (strlcpy(out, "0x", outl) != 2) {
+        goto err;
+    }
+    if (bytes_to_hex(out + 2, outl - 2, value, len)) {
+        goto err;
+    }
+    return 0;
+err:
+    *out = '\0';
+    return -1;
 }
 
 void convertUint256BE(uint8_t *data, uint32_t length, uint256_t *target) {

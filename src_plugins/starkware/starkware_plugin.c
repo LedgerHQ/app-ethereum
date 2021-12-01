@@ -289,7 +289,7 @@ void starkware_print_stark_key(uint8_t *starkKey,
     if (STARK_KEY_LENGTH > max_length) {
         os_sched_exit(EXCEPTION_OVERFLOW);
     }
-    snprintf(destination, max_length, "0x%.*H", length, starkKey);
+    bytes_to_string(destination, max_length, starkKey, length);
 }
 
 // TODO : rewrite as independant code

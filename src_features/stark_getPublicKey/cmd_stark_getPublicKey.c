@@ -5,6 +5,7 @@
 #include "stark_utils.h"
 #include "feature_stark_getPublicKey.h"
 #include "ui_flow.h"
+#include "utils.h"
 
 void handleStarkwareGetPublicKey(uint8_t p1,
                                  uint8_t p2,
@@ -51,11 +52,10 @@ void handleStarkwareGetPublicKey(uint8_t p1,
 #ifndef NO_CONSENT
     else {
         // prepare for a UI based reply
-        snprintf(strings.tmp.tmp,
-                 sizeof(strings.tmp.tmp),
-                 "0x%.*H",
-                 32,
-                 tmpCtx.publicKeyContext.publicKey.W + 1);
+        bytes_to_string(strings.tmp.tmp,
+                        sizeof(strings.tmp.tmp),
+                        tmpCtx.publicKeyContext.publicKey.W + 1,
+                        32);
         ux_flow_init(0, ux_display_stark_public_flow, NULL);
 
         *flags |= IO_ASYNCH_REPLY;

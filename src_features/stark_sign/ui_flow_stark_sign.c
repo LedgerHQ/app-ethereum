@@ -2,19 +2,22 @@
 
 #include "shared_context.h"
 #include "ui_callbacks.h"
+#include "utils.h"
 
 unsigned int io_seproxyhal_touch_stark_ok(const bagl_element_t *e);
 
 void stark_sign_display_master_account() {
-    snprintf(strings.tmp.tmp,
-             sizeof(strings.tmp.tmp),
-             "0x%.*H",
-             32,
-             dataContext.starkContext.transferDestination);
+    bytes_to_string(strings.tmp.tmp,
+                    sizeof(strings.tmp.tmp),
+                    dataContext.starkContext.transferDestination,
+                    sizeof(dataContext.starkContext.transferDestination));
 }
 
 void stark_sign_display_condition_fact() {
-    snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "0x%.*H", 32, dataContext.starkContext.fact);
+    bytes_to_string(strings.tmp.tmp,
+                    sizeof(strings.tmp.tmp),
+                    dataContext.starkContext.fact,
+                    sizeof(dataContext.starkContext.fact));
 }
 
 // clang-format off

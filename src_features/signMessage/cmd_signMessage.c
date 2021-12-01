@@ -95,11 +95,7 @@ void handleSignPersonalMessage(uint8_t p1,
                 tmpCtx.messageSigningContext.hash,
                 32);
         cx_hash((cx_hash_t *) &tmpContent.sha2, CX_LAST, workBuffer, 0, hashMessage, 32);
-        snprintf(strings.tmp.tmp,
-                 sizeof(strings.tmp.tmp),
-                 "%.*H",
-                 sizeof(hashMessage),
-                 hashMessage);
+        bytes_to_hex(strings.tmp.tmp, sizeof(strings.tmp.tmp), hashMessage, sizeof(hashMessage));
 
 #ifdef NO_CONSENT
         io_seproxyhal_touch_signMessage_ok(NULL);

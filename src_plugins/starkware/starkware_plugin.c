@@ -299,7 +299,7 @@ void starkware_print_amount(uint8_t *amountData,
                             bool forEscape) {
     uint256_t amount, amountPre, quantum;
     uint8_t decimals;
-    char *ticker = chainConfig->coinName;
+    const char *ticker = chainConfig->coinName;
 
     if ((amountData == NULL) ||
         (forEscape && (dataContext.tokenContext.quantumIndex == MAX_ITEMS))) {
@@ -333,7 +333,7 @@ void starkware_print_amount(uint8_t *amountData,
 
 // TODO : rewrite as independant code
 void starkware_print_ticker(char *destination, size_t destinationLength) {
-    char *ticker = chainConfig->coinName;
+    const char *ticker = chainConfig->coinName;
 
     if (dataContext.tokenContext.quantumIndex != MAX_ITEMS) {
         tokenDefinition_t *token =

@@ -53,14 +53,14 @@ void starkDerivePrivateKey(uint32_t *bip32Path, uint32_t bip32PathLength, uint8_
 #endif
 }
 
-void stark_get_amount_string(uint8_t *contractAddress,
-                             uint8_t *quantum256,
+void stark_get_amount_string(const uint8_t *contractAddress,
+                             const uint8_t *quantum256,
                              uint8_t *amount64,
                              char *tmp100,
                              char *target100) {
     uint256_t amountPre, quantum, amount;
     uint8_t decimals;
-    char *ticker = chainConfig->coinName;
+    const char *ticker = chainConfig->coinName;
 
     PRINTF("stark_get_amount_string %.*H\n", 20, contractAddress);
 

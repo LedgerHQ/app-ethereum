@@ -66,7 +66,7 @@ bolos_ux_params_t G_ux_params;
 
 const internalStorage_t N_storage_real;
 
-chain_config_t *chainConfig;
+const chain_config_t *chainConfig;
 
 void reset_app_context() {
     // PRINTF("!!RESET_APP_CONTEXT\n");
@@ -155,7 +155,7 @@ unsigned short io_exchange_al(unsigned char channel, unsigned short tx_len) {
     return 0;
 }
 
-extraInfo_t *getKnownToken(uint8_t *contractAddress) {
+extraInfo_t *getKnownToken(const uint8_t *contractAddress) {
     union extraInfo_t *currentItem = NULL;
 #ifdef HAVE_TOKENS_LIST
     uint32_t numTokens = 0;
@@ -713,7 +713,7 @@ void app_main(void) {
 
 // override point, but nothing more to do
 void io_seproxyhal_display(const bagl_element_t *element) {
-    io_seproxyhal_display_default((bagl_element_t *) element);
+    io_seproxyhal_display_default(element);
 }
 
 unsigned char io_event(__attribute__((unused)) unsigned char channel) {

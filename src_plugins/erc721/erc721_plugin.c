@@ -21,7 +21,7 @@ static void handle_init_contract(void *parameters) {
 
     uint8_t i;
     for (i = 0; i < NUM_ERC721_SELECTORS; i++) {
-        if (memcmp((uint8_t *) PIC(ERC721_SELECTORS[i]), msg->selector, SELECTOR_SIZE) == 0) {
+        if (memcmp(PIC(ERC721_SELECTORS[i]), msg->selector, SELECTOR_SIZE) == 0) {
             context->selectorIndex = i;
             break;
         }

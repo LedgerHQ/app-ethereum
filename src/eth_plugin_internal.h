@@ -13,11 +13,11 @@ void copy_parameter(uint8_t* dst, uint8_t* parameter, uint8_t dst_size);
 void erc721_plugin_call(int message, void* parameters);
 void erc1155_plugin_call(int message, void* parameters);
 
-typedef bool (*PluginAvailableCheck)(void);
+typedef bool (*const PluginAvailableCheck)(void);
 
 typedef struct internalEthPlugin_t {
     PluginAvailableCheck availableCheck;
-    const uint8_t** selectors;
+    const uint8_t* const* selectors;
     uint8_t num_selectors;
     char alias[10];
     PluginCall impl;

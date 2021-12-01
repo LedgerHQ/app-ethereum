@@ -38,5 +38,5 @@ typedef struct erc721_context_t {
     uint8_t selectorIndex;
 } erc721_context_t;
 
-void handle_provide_parameter(void *parameters);
-void handle_query_contract_ui(void *parameters);
+void handle_provide_parameter_721(void *parameters);
+void handle_query_contract_ui_721(void *parameters);

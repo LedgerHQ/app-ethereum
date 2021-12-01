@@ -60,7 +60,7 @@ static void handle_approval_for_all(ethPluginProvideParameter_t *msg, erc721_con
     }
 }
 
-void handle_provide_parameter(void *parameters) {
+void handle_provide_parameter_721(void *parameters) {
     ethPluginProvideParameter_t *msg = (ethPluginProvideParameter_t *) parameters;
     erc721_context_t *context = (erc721_context_t *) msg->pluginContext;
 

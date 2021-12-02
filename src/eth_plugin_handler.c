@@ -74,7 +74,6 @@ void eth_plugin_prepare_query_contract_UI(ethQueryContractUI_t *queryContractUI,
 
 eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
                                             ethPluginInitContract_t *init) {
-    uint8_t i;
     const uint8_t *const *selectors;
     dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_UNAVAILABLE;
 
@@ -110,7 +109,7 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
         } break;
         case OLD_INTERNAL: {
             // Search internal plugin list
-            for (i = 0;; i++) {
+            for (size_t i = 0;; i++) {
                 uint8_t j;
                 selectors = (const uint8_t *const *) PIC(INTERNAL_ETH_PLUGINS[i].selectors);
                 if (selectors == NULL) {

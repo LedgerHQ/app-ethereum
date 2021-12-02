@@ -41,6 +41,7 @@ static void set_approval_ui(ethQueryContractUI_t *msg, erc721_context_t *context
                            msg->network_ticker,
                            msg->msg,
                            msg->msgLength);
+            break;
         default:
             PRINTF("Unsupported screen index %d\n", msg->screenIndex);
             msg->result = ETH_PLUGIN_RESULT_ERROR;
@@ -86,6 +87,7 @@ static void set_approval_for_all_ui(ethQueryContractUI_t *msg, erc721_context_t 
                            msg->network_ticker,
                            msg->msg,
                            msg->msgLength);
+            break;
         default:
             PRINTF("Unsupported screen index %d\n", msg->screenIndex);
             msg->result = ETH_PLUGIN_RESULT_ERROR;
@@ -134,6 +136,7 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc721_context_t *context
                            msg->network_ticker,
                            msg->msg,
                            msg->msgLength);
+            break;
         default:
             PRINTF("Unsupported screen index %d\n", msg->screenIndex);
             msg->result = ETH_PLUGIN_RESULT_ERROR;

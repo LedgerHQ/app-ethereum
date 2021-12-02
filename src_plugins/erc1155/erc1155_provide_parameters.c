@@ -50,6 +50,7 @@ static void handle_batch_transfer(ethPluginProvideParameter_t *msg, erc1155_cont
             copy_parameter(context->value, msg->parameter, sizeof(context->value));
             context->targetOffset = 0;
             context->next_param = NONE;
+            break;
         default:
             // Some extra data might be present so don't error.
             break;

@@ -481,7 +481,6 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                         break;
                     default:
                         THROW(0x6D00);
-                        break;
                 }
                 CLOSE_TRY;
                 return;
@@ -608,7 +607,6 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
 
                 default:
                     THROW(0x6D00);
-                    break;
             }
         }
         CATCH(EXCEPTION_IO_RESET) {
@@ -706,9 +704,6 @@ void app_main(void) {
         }
         END_TRY;
     }
-
-    // return_to_dashboard:
-    return;
 }
 
 // override point, but nothing more to do
@@ -736,13 +731,15 @@ unsigned char io_event(__attribute__((unused)) unsigned char channel) {
                   SEPROXYHAL_TAG_STATUS_EVENT_FLAG_USB_POWERED)) {
                 THROW(EXCEPTION_IO_RESET);
             }
-            // no break is intentional
-        default:
             UX_DEFAULT_EVENT();
             break;
 
         case SEPROXYHAL_TAG_DISPLAY_PROCESSED_EVENT:
             UX_DISPLAYED_EVENT({});
+            break;
+
+        default:
+            UX_DEFAULT_EVENT();
             break;
 
 #if 0

@@ -111,7 +111,6 @@ void handleSetPlugin(uint8_t p1,
         default:
             PRINTF("Unsupported type %d\n", type);
             THROW(0x6a80);
-            break;
     }
     offset += TYPE_SIZE;
 
@@ -123,7 +122,6 @@ void handleSetPlugin(uint8_t p1,
         default:
             PRINTF("Unsupported version %d\n", version);
             THROW(0x6a80);
-            break;
     }
     offset += VERSION_SIZE;
 
@@ -192,7 +190,6 @@ void handleSetPlugin(uint8_t p1,
         default:
             PRINTF("KeyID %d not supported\n", keyId);
             THROW(0x6A80);
-            break;
     }
 
     PRINTF("RawKey: %.*H\n", rawKeyLen, rawKey);
@@ -213,7 +210,6 @@ void handleSetPlugin(uint8_t p1,
         default:
             PRINTF("Incorrect algorithmId %d\n", algorithmId);
             THROW(0x6a80);
-            break;
     }
     offset += ALGORITHM_ID_SIZE;
     PRINTF("hashing: %.*H\n", payloadSize, workBuffer);

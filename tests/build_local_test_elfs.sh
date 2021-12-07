@@ -36,7 +36,7 @@ do
     do
        echo "** Building app $appname..."
        make clean BOLOS_SDK="$nano_sdk"
-       make -j DEBUG=1 ALLOW_DATA=1 NFT_TESTING_KEY=1 BOLOS_SDK="$nano_sdk" CHAIN="$appname"
+       make -j DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK="$nano_sdk" CHAIN="$appname"
        cp bin/app.elf "$TESTS_REL_PATH/elfs/${appname}_${elf_suffix}.elf"
     done
 done

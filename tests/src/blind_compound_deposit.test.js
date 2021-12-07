@@ -19,7 +19,7 @@ test('[Nano S] Deposit ETH on compound, blind sign', zemu("nanos", async (sim, e
   });
 }));
 
-test('[Nano X] Deposit ETH on compound, blind sign', zemu("nanox", async (sim, eth) => {
+test.skip('[Nano X] Deposit ETH on compound, blind sign', zemu("nanox", async (sim, eth) => {
 
   const tx = eth.signTransaction(
     "44'/60'/1'/0/0",

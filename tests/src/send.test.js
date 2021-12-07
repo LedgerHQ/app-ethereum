@@ -47,7 +47,7 @@ test('[Nano S] Transfer Ether on network 5234 on Ethereum app', zemu("nanos", as
   });
 }));
 
-test('[Nano X] Transfer Ether on Ethereum app', zemu("nanox", async (sim, eth) => {
+test.skip('[Nano X] Transfer Ether on Ethereum app', zemu("nanox", async (sim, eth) => {
 
   const tx = eth.signTransaction(
     "44'/60'/1'/0/0",
@@ -64,7 +64,7 @@ test('[Nano X] Transfer Ether on Ethereum app', zemu("nanox", async (sim, eth) =
   });
 }));
 
-test('[Nano X] Transfer Ether on network 5234 on Ethereum app', zemu("nanox", async (sim, eth) => {
+test.skip('[Nano X] Transfer Ether on network 5234 on Ethereum app', zemu("nanox", async (sim, eth) => {
 
   const tx = eth.signTransaction(
     "44'/60'/1'/0/0",

@@ -72,68 +72,76 @@ void eth_plugin_prepare_query_contract_UI(ethQueryContractUI_t *queryContractUI,
     queryContractUI->msgLength = msgLength;
 }
 
+static void eth_plugin_perform_init_default(uint8_t *contractAddress,
+                                            ethPluginInitContract_t *init) {
+    // check if the registered external plugin matches the TX contract address / selector
+    if (memcmp(contractAddress,
+               dataContext.tokenContext.contractAddress,
+               sizeof(dataContext.tokenContext.contractAddress)) != 0) {
+        PRINTF("Got contract: %.*H\n", ADDRESS_LENGTH, contractAddress);
+        PRINTF("Expected contract: %.*H\n",
+               ADDRESS_LENGTH,
+               dataContext.tokenContext.contractAddress);
+        os_sched_exit(0);
+    }
+    if (memcmp(init->selector,
+               dataContext.tokenContext.methodSelector,
+               sizeof(dataContext.tokenContext.methodSelector)) != 0) {
+        PRINTF("Got selector: %.*H\n", SELECTOR_SIZE, init->selector);
+        PRINTF("Expected selector: %.*H\n", SELECTOR_SIZE, dataContext.tokenContext.methodSelector);
+        os_sched_exit(0);
+    }
+    PRINTF("Plugin will be used\n");
+    // TODO: Add check for chainid.
+    dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
+}
+
+static bool eth_plugin_perform_init_old_internal(uint8_t *contractAddress,
+                                                 ethPluginInitContract_t *init) {
+    uint8_t i, j;
+    const uint8_t **selectors;
+
+    // Search internal plugin list
+    for (i = 0;; i++) {
+        selectors = (const uint8_t **) PIC(INTERNAL_ETH_PLUGINS[i].selectors);
+        if (selectors == NULL) {
+            break;
+        }
+        for (j = 0; ((j < INTERNAL_ETH_PLUGINS[i].num_selectors) && (contractAddress != NULL));
+             j++) {
+            if (memcmp(init->selector, (const void *) PIC(selectors[j]), SELECTOR_SIZE) == 0) {
+                if ((INTERNAL_ETH_PLUGINS[i].availableCheck == NULL) ||
+                    ((PluginAvailableCheck) PIC(INTERNAL_ETH_PLUGINS[i].availableCheck))()) {
+                    strlcpy(dataContext.tokenContext.pluginName,
+                            INTERNAL_ETH_PLUGINS[i].alias,
+                            PLUGIN_ID_LENGTH);
+                    dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
 eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
                                             ethPluginInitContract_t *init) {
-    uint8_t i;
-    const uint8_t **selectors;
     dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_UNAVAILABLE;
 
     PRINTF("Selector %.*H\n", 4, init->selector);
     switch (pluginType) {
         case ERC1155:
         case ERC721:
-        case EXTERNAL: {
-            // check if the registered external plugin matches the TX contract address / selector
-            if (memcmp(contractAddress,
-                       dataContext.tokenContext.contractAddress,
-                       sizeof(dataContext.tokenContext.contractAddress)) != 0) {
-                PRINTF("Got contract: %.*H\n", ADDRESS_LENGTH, contractAddress);
-                PRINTF("Expected contract: %.*H\n",
-                       ADDRESS_LENGTH,
-                       dataContext.tokenContext.contractAddress);
-                os_sched_exit(0);
-            }
-            if (memcmp(init->selector,
-                       dataContext.tokenContext.methodSelector,
-                       sizeof(dataContext.tokenContext.methodSelector)) != 0) {
-                PRINTF("Got selector: %.*H\n", SELECTOR_SIZE, init->selector);
-                PRINTF("Expected selector: %.*H\n",
-                       SELECTOR_SIZE,
-                       dataContext.tokenContext.methodSelector);
-                os_sched_exit(0);
-            }
-            PRINTF("Plugin will be used\n");
-            // TODO: Add check for chainid.
-            dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
+        case EXTERNAL:
+            eth_plugin_perform_init_default(contractAddress, init);
             contractAddress = NULL;
-        } break;
-        case OLD_INTERNAL: {
-            // Search internal plugin list
-            for (i = 0;; i++) {
-                uint8_t j;
-                selectors = (const uint8_t **) PIC(INTERNAL_ETH_PLUGINS[i].selectors);
-                if (selectors == NULL) {
-                    break;
-                }
-                for (j = 0;
-                     ((j < INTERNAL_ETH_PLUGINS[i].num_selectors) && (contractAddress != NULL));
-                     j++) {
-                    if (memcmp(init->selector, (const void *) PIC(selectors[j]), SELECTOR_SIZE) ==
-                        0) {
-                        if ((INTERNAL_ETH_PLUGINS[i].availableCheck == NULL) ||
-                            ((PluginAvailableCheck) PIC(
-                                INTERNAL_ETH_PLUGINS[i].availableCheck))()) {
-                            strlcpy(dataContext.tokenContext.pluginName,
-                                    INTERNAL_ETH_PLUGINS[i].alias,
-                                    PLUGIN_ID_LENGTH);
-                            dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
-                            contractAddress = NULL;
-                            break;
-                        }
-                    }
-                }
+            break;
+        case OLD_INTERNAL:
+            if (eth_plugin_perform_init_old_internal(contractAddress, init)) {
+                contractAddress = NULL;
             }
-        } break;
+            break;
         default:
             PRINTF("Unsupported pluginType %d\n", pluginType);
             os_sched_exit(0);

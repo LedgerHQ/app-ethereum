@@ -5,7 +5,7 @@
 #include "utils.h"
 
 bool copy_transaction_parameters(create_transaction_parameters_t* sign_transaction_params,
-                                 chain_config_t* config) {
+                                 const chain_config_t* config) {
     // first copy parameters to stack, and then to global data.
     // We need this "trick" as the input data position can overlap with app-ethereum globals
     txStringProperties_t stack_data;
@@ -49,7 +49,7 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
     return true;
 }
 
-void handle_swap_sign_transaction(chain_config_t* config) {
+void handle_swap_sign_transaction(const chain_config_t* config) {
     chainConfig = config;
     reset_app_context();
     called_from_swap = true;

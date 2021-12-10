@@ -12,7 +12,9 @@
 
 #define ERR_SILENT_MODE_CHECK_FAILED 0x6001
 
-uint32_t splitBinaryParameterPart(char *result, uint8_t *parameter) {
+static uint32_t splitBinaryParameterPart(char *result,
+                                         size_t result_size,
+                                         const uint8_t *parameter) {
     uint32_t i;
     for (i = 0; i < 8; i++) {
         if (parameter[i] != 0x00) {
@@ -25,7 +27,7 @@ uint32_t splitBinaryParameterPart(char *result, uint8_t *parameter) {
         result[2] = '\0';
         return 2;
     } else {
-        array_hexstr(result, parameter + i, 8 - i);
+        bytes_to_hex(result, result_size, parameter + i, 8 - i);
         return ((8 - i) * 2);
     }
 }
@@ -143,7 +145,10 @@ customStatus_e customProcessor(txContext_t *context) {
             }
             dataContext.tokenContext.fieldOffset = 0;
             if (fieldPos == 0) {
-                array_hexstr(strings.tmp.tmp, dataContext.tokenContext.data, 4);
+                bytes_to_hex(strings.tmp.tmp,
+                             sizeof(strings.tmp.tmp),
+                             dataContext.tokenContext.data,
+                             4);
                 ux_flow_init(0, ux_confirm_selector_flow, NULL);
             } else {
                 uint32_t offset = 0;
@@ -154,6 +159,7 @@ customStatus_e customProcessor(txContext_t *context) {
                          dataContext.tokenContext.fieldIndex);
                 for (i = 0; i < 4; i++) {
                     offset += splitBinaryParameterPart(strings.tmp.tmp + offset,
+                                                       sizeof(strings.tmp.tmp) - offset,
                                                        dataContext.tokenContext.data + 8 * i);
                     if (i != 3) {
                         strings.tmp.tmp[offset++] = ':';
@@ -214,7 +220,7 @@ static void computeFees(txInt256_t *BEgasPrice, txInt256_t *BEgasLimit, uint256_
 }
 
 static void feesToString(uint256_t *rawFee, char *displayBuffer, uint32_t displayBufferSize) {
-    char *feeTicker = get_network_ticker();
+    const char *feeTicker = get_network_ticker();
     uint8_t tickerOffset = 0;
     uint32_t i;
 
@@ -261,7 +267,7 @@ void prepareFeeDisplay() {
 }
 
 void prepareNetworkDisplay() {
-    char *name = get_network_name();
+    const char *name = get_network_name();
     if (name == NULL) {
         // No network name found so simply copy the chain ID as the network name.
         uint64_t chain_id = get_chain_id();
@@ -296,7 +302,7 @@ static void get_public_key(uint8_t *out, uint8_t outLength) {
 void finalizeParsing(bool direct) {
     char displayBuffer[50];
     uint8_t decimals = WEI_TO_ETHER;
-    char *ticker = get_network_ticker();
+    const char *ticker = get_network_ticker();
     ethPluginFinalize_t pluginFinalize;
     bool genericUI = true;
 

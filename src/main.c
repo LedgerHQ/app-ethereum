@@ -66,7 +66,7 @@ bolos_ux_params_t G_ux_params;
 
 const internalStorage_t N_storage_real;
 
-chain_config_t *chainConfig;
+const chain_config_t *chainConfig;
 
 void reset_app_context() {
     // PRINTF("!!RESET_APP_CONTEXT\n");
@@ -155,7 +155,7 @@ unsigned short io_exchange_al(unsigned char channel, unsigned short tx_len) {
     return 0;
 }
 
-extraInfo_t *getKnownToken(uint8_t *contractAddress) {
+extraInfo_t *getKnownToken(const uint8_t *contractAddress) {
     union extraInfo_t *currentItem = NULL;
 #ifdef HAVE_TOKENS_LIST
     uint32_t numTokens = 0;
@@ -481,7 +481,6 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                         break;
                     default:
                         THROW(0x6D00);
-                        break;
                 }
                 CLOSE_TRY;
                 return;
@@ -608,7 +607,6 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
 
                 default:
                     THROW(0x6D00);
-                    break;
             }
         }
         CATCH(EXCEPTION_IO_RESET) {
@@ -706,14 +704,11 @@ void app_main(void) {
         }
         END_TRY;
     }
-
-    // return_to_dashboard:
-    return;
 }
 
 // override point, but nothing more to do
 void io_seproxyhal_display(const bagl_element_t *element) {
-    io_seproxyhal_display_default((bagl_element_t *) element);
+    io_seproxyhal_display_default(element);
 }
 
 unsigned char io_event(__attribute__((unused)) unsigned char channel) {
@@ -736,13 +731,15 @@ unsigned char io_event(__attribute__((unused)) unsigned char channel) {
                   SEPROXYHAL_TAG_STATUS_EVENT_FLAG_USB_POWERED)) {
                 THROW(EXCEPTION_IO_RESET);
             }
-            // no break is intentional
-        default:
             UX_DEFAULT_EVENT();
             break;
 
         case SEPROXYHAL_TAG_DISPLAY_PROCESSED_EVENT:
             UX_DISPLAYED_EVENT({});
+            break;
+
+        default:
+            UX_DEFAULT_EVENT();
             break;
 
 #if 0

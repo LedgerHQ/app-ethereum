@@ -57,8 +57,8 @@ const underlying_asset_decimals_t UNDERLYING_ASSET_DECIMALS[NUM_COMPOUND_BINDING
 
 bool get_underlying_asset_decimals(char *compound_ticker, uint8_t *out_decimals) {
     for (size_t i = 0; i < NUM_COMPOUND_BINDINGS; i++) {
-        underlying_asset_decimals_t *binding =
-            (underlying_asset_decimals_t *) PIC(&UNDERLYING_ASSET_DECIMALS[i]);
+        const underlying_asset_decimals_t *binding =
+            (const underlying_asset_decimals_t *) PIC(&UNDERLYING_ASSET_DECIMALS[i]);
         if (strncmp(binding->c_ticker,
                     compound_ticker,
                     strnlen(binding->c_ticker, MAX_TICKER_LEN)) == 0) {
@@ -76,8 +76,7 @@ void compound_plugin_call(int message, void *parameters) {
             compound_parameters_t *context = (compound_parameters_t *) msg->pluginContext;
             size_t i;
             for (i = 0; i < NUM_COMPOUND_SELECTORS; i++) {
-                if (memcmp((uint8_t *) PIC(COMPOUND_SELECTORS[i]), msg->selector, SELECTOR_SIZE) ==
-                    0) {
+                if (memcmp(PIC(COMPOUND_SELECTORS[i]), msg->selector, SELECTOR_SIZE) == 0) {
                     context->selectorIndex = i;
                     break;
                 }

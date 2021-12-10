@@ -97,6 +97,7 @@ static void set_batch_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *
                                      msg->msgLength,
                                      &global_sha3,
                                      chainConfig->chainId);
+            break;
         case 2:
             strlcpy(msg->title, "NFT Address", msg->titleLength);
             getEthDisplayableAddress(msg->pluginSharedRO->txContent->destination,

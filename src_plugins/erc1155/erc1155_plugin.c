@@ -17,7 +17,7 @@ static void handle_init_contract(void *parameters) {
 
     uint8_t i;
     for (i = 0; i < NUM_ERC1155_SELECTORS; i++) {
-        if (memcmp((uint8_t *) PIC(ERC1155_SELECTORS[i]), msg->selector, SELECTOR_SIZE) == 0) {
+        if (memcmp(PIC(ERC1155_SELECTORS[i]), msg->selector, SELECTOR_SIZE) == 0) {
             context->selectorIndex = i;
             break;
         }

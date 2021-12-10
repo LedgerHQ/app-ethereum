@@ -22,7 +22,8 @@
 
 #include "uint256.h"
 
-void array_hexstr(char* strbuf, const void* bin, unsigned int len);
+int bytes_to_hex(char* out, size_t outl, const void* value, size_t len);
+int bytes_to_string(char* out, size_t outl, const void* value, size_t len);
 
 void convertUint256BE(uint8_t* data, uint32_t length, uint256_t* target);
 
@@ -39,6 +40,6 @@ void amountToString(const uint8_t* amount,
                     char* out_buffer,
                     uint8_t out_buffer_size);
 
-bool parse_swap_config(uint8_t* config, uint8_t config_len, char* ticker, uint8_t* decimals);
+bool parse_swap_config(const uint8_t* config, uint8_t config_len, char* ticker, uint8_t* decimals);
 
 #endif /* _UTILS_H_ */

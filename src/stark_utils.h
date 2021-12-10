@@ -19,8 +19,8 @@ void compute_token_id(cx_sha3_t *sha3,
 
 void starkDerivePrivateKey(uint32_t *bip32Path, uint32_t bip32PathLength, uint8_t *privateKeyData);
 
-void stark_get_amount_string(uint8_t *contractAddress,
-                             uint8_t *quantum256,
+void stark_get_amount_string(const uint8_t *contractAddress,
+                             const uint8_t *quantum256,
                              uint8_t *amount64,
                              char *tmp100,
                              char *target100);

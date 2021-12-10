@@ -6,6 +6,7 @@
 #include "ui_flow.h"
 #include "poorstream.h"
 #include "ui_callbacks.h"
+#include "utils.h"
 
 #define U8BE(buf, off) \
     (uint64_t)((((uint64_t) U4BE(buf, off)) << 32) | (((uint64_t) U4BE(buf, off + 4)) & 0xFFFFFFFF))
@@ -229,11 +230,10 @@ void handleStarkwareSignMessage(uint8_t p1,
             memmove(dataContext.starkContext.transferDestination,
                     dataBuffer + 20 + 32 + postOffset,
                     32);
-            snprintf(strings.tmp.tmp,
-                     sizeof(strings.tmp.tmp),
-                     "0x%.*H",
-                     32,
-                     dataBuffer + 20 + 32 + postOffset);
+            bytes_to_string(strings.tmp.tmp,
+                            sizeof(strings.tmp.tmp),
+                            dataBuffer + 20 + 32 + postOffset,
+                            32);
         }
     }
     if (order) {

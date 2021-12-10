@@ -2,15 +2,22 @@
 
 #include "shared_context.h"
 #include "ui_callbacks.h"
+#include "utils.h"
 
 unsigned int io_seproxyhal_touch_stark_unsafe_sign_ok(const bagl_element_t *e);
 
 void stark_unsafe_sign_display_account() {
-    snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "0x%.*H", 32, dataContext.starkContext.w1);
+    bytes_to_string(strings.tmp.tmp,
+                    sizeof(strings.tmp.tmp),
+                    dataContext.starkContext.w1,
+                    sizeof(dataContext.starkContext.w1));
 }
 
 void stark_unsafe_sign_display_hash() {
-    snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "0x%.*H", 32, dataContext.starkContext.w2);
+    bytes_to_string(strings.tmp.tmp,
+                    sizeof(strings.tmp.tmp),
+                    dataContext.starkContext.w2,
+                    sizeof(dataContext.starkContext.w2));
 }
 
 // clang-format off

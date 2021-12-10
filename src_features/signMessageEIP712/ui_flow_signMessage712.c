@@ -1,12 +1,19 @@
 #include "shared_context.h"
 #include "ui_callbacks.h"
+#include "utils.h"
 
 void prepare_domain_hash_v0() {
-    snprintf(strings.tmp.tmp, 70, "0x%.*H", 32, tmpCtx.messageSigningContext712.domainHash);
+    bytes_to_string(strings.tmp.tmp,
+                    sizeof(strings.tmp.tmp),
+                    tmpCtx.messageSigningContext712.domainHash,
+                    sizeof(tmpCtx.messageSigningContext712.domainHash));
 }
 
 void prepare_message_hash_v0() {
-    snprintf(strings.tmp.tmp, 70, "0x%.*H", 32, tmpCtx.messageSigningContext712.messageHash);
+    bytes_to_string(strings.tmp.tmp,
+                    sizeof(strings.tmp.tmp),
+                    tmpCtx.messageSigningContext712.messageHash,
+                    sizeof(tmpCtx.messageSigningContext712.messageHash));
 }
 
 // clang-format off

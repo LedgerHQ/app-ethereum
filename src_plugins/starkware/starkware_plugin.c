@@ -289,7 +289,7 @@ void starkware_print_stark_key(uint8_t *starkKey,
     if (STARK_KEY_LENGTH > max_length) {
         os_sched_exit(EXCEPTION_OVERFLOW);
     }
-    snprintf(destination, max_length, "0x%.*H", length, starkKey);
+    bytes_to_string(destination, max_length, starkKey, length);
 }
 
 // TODO : rewrite as independant code
@@ -299,7 +299,7 @@ void starkware_print_amount(uint8_t *amountData,
                             bool forEscape) {
     uint256_t amount, amountPre, quantum;
     uint8_t decimals;
-    char *ticker = chainConfig->coinName;
+    const char *ticker = chainConfig->coinName;
 
     if ((amountData == NULL) ||
         (forEscape && (dataContext.tokenContext.quantumIndex == MAX_ITEMS))) {
@@ -333,7 +333,7 @@ void starkware_print_amount(uint8_t *amountData,
 
 // TODO : rewrite as independant code
 void starkware_print_ticker(char *destination, size_t destinationLength) {
-    char *ticker = chainConfig->coinName;
+    const char *ticker = chainConfig->coinName;
 
     if (dataContext.tokenContext.quantumIndex != MAX_ITEMS) {
         tokenDefinition_t *token =
@@ -569,50 +569,44 @@ void starkware_plugin_call(int message, void *parameters) {
 
                 case 4 + 32 + 32 + 32 + 32:
                     switch (context->selectorIndex) {
-                        switch (context->selectorIndex) {
-                            case STARKWARE_REGISTER_AND_DEPOSIT_TOKEN:
-                                memmove(context->amount, msg->parameter, 32);
-                                break;
+                        case STARKWARE_REGISTER_AND_DEPOSIT_TOKEN:
+                            memmove(context->amount, msg->parameter, 32);
+                            break;
 
-                            case STARKWARE_PROXY_DEPOSIT_TOKEN:
-                                context->validToken = starkware_verify_token(msg->parameter);
-                                break;
+                        case STARKWARE_PROXY_DEPOSIT_TOKEN:
+                            context->validToken = starkware_verify_token(msg->parameter);
+                            break;
 
-                            default:
-                                break;
-                        }
+                        default:
+                            break;
                     }
                     msg->result = ETH_PLUGIN_RESULT_OK;
                     break;
 
                 case 4 + 32 + 32 + 32 + 32 + 32:
                     switch (context->selectorIndex) {
-                        switch (context->selectorIndex) {
-                            case STARKWARE_REGISTER_AND_DEPOSIT_TOKEN:
-                                context->validToken = starkware_verify_token(msg->parameter);
-                                break;
+                        case STARKWARE_REGISTER_AND_DEPOSIT_TOKEN:
+                            context->validToken = starkware_verify_token(msg->parameter);
+                            break;
 
-                            case STARKWARE_PROXY_DEPOSIT_TOKEN:
-                                context->validToken = starkware_verify_quantum(msg->parameter);
-                                break;
+                        case STARKWARE_PROXY_DEPOSIT_TOKEN:
+                            context->validToken = starkware_verify_quantum(msg->parameter);
+                            break;
 
-                            default:
-                                break;
-                        }
+                        default:
+                            break;
                     }
                     msg->result = ETH_PLUGIN_RESULT_OK;
                     break;
 
                 case 4 + 32 + 32 + 32 + 32 + 32 + 32:
                     switch (context->selectorIndex) {
-                        switch (context->selectorIndex) {
-                            case STARKWARE_REGISTER_AND_DEPOSIT_TOKEN:
-                                context->validToken = starkware_verify_quantum(msg->parameter);
-                                break;
+                        case STARKWARE_REGISTER_AND_DEPOSIT_TOKEN:
+                            context->validToken = starkware_verify_quantum(msg->parameter);
+                            break;
 
-                            default:
-                                break;
-                        }
+                        default:
+                            break;
                     }
                     msg->result = ETH_PLUGIN_RESULT_OK;
                     break;

@@ -64,7 +64,7 @@ const contract_t CONTRACTS[NUM_CONTRACTS] = {
 
 bool check_contract(erc20_parameters_t *context) {
     for (size_t i = 0; i < NUM_CONTRACTS; i++) {
-        contract_t *contract = (contract_t *) PIC(&CONTRACTS[i]);
+        const contract_t *contract = (const contract_t *) PIC(&CONTRACTS[i]);
         if (memcmp(contract->address, context->destinationAddress, ADDRESS_LENGTH) == 0) {
             strlcpy(context->contract_name, contract->name, sizeof(context->contract_name));
             return true;
@@ -102,8 +102,7 @@ void erc20_plugin_call(int message, void *parameters) {
             } else {
                 size_t i;
                 for (i = 0; i < NUM_ERC20_SELECTORS; i++) {
-                    if (memcmp((uint8_t *) PIC(ERC20_SELECTORS[i]), msg->selector, SELECTOR_SIZE) ==
-                        0) {
+                    if (memcmp(PIC(ERC20_SELECTORS[i]), msg->selector, SELECTOR_SIZE) == 0) {
                         context->selectorIndex = i;
                         break;
                     }

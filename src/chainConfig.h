@@ -58,8 +58,7 @@ typedef enum chain_kind_e {
     CHAIN_KIND_BSC,
     CHAIN_KIND_SONGBIRD,
     CHAIN_KIND_POLYGON,
-    CHAIN_KIND_PULSECHAIN,
-    CHAIN_KIND_PULSECHAIN_TESTNET
+    CHAIN_KIND_PULSECHAIN
 } chain_kind_t;
 
 typedef struct chain_config_s {

@@ -72,7 +72,7 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *contex
             break;
         case 4:
             strlcpy(msg->title, "Quantity", msg->titleLength);
-            uint256_to_decimal(context->value, sizeof(context->value), msg->msg, msg->msgLength);
+            tostring256(&context->value, 10, msg->msg, msg->msgLength);
             break;
         default:
             PRINTF("Unsupported screen index %d\n", msg->screenIndex);
@@ -82,12 +82,9 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *contex
 }
 
 static void set_batch_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *context) {
+    char    quantity_str[48];
+
     switch (msg->screenIndex) {
-        /*case 0:
-            strlcpy(msg->title, "Send NFTs From", msg->titleLength);
-            uint256_to_decimal(context->value, sizeof(context->value), msg->msg, msg->msgLength);
-            strlcat(msg->msg, " Different Collections", msg->msgLength);
-            break;*/
         case 0:
             strlcpy(msg->title, "To", msg->titleLength);
             getEthDisplayableAddress(context->address,
@@ -111,6 +108,15 @@ static void set_batch_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *
                                      msg->msgLength,
                                      &global_sha3,
                                      chainConfig->chainId);
+            break;
+        case 3:
+            strlcpy(msg->title, "Total Quantity", msg->titleLength);
+            tostring256(&context->value, 10, &quantity_str[0], sizeof(quantity_str));
+            snprintf(msg->msg,
+                     msg->msgLength,
+                     "%s from %d NFT IDs",
+                     quantity_str,
+                     context->array_index);
             break;
         default:
             PRINTF("Unsupported screen index %d\n", msg->screenIndex);

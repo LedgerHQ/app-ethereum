@@ -5,6 +5,7 @@
 #include "shared_context.h"
 #include "ethUtils.h"
 #include "utils.h"
+#include "uint256.h"
 
 // Internal plugin for EIP 1155: https://eips.ethereum.org/EIPS/eip-1155
 
@@ -31,13 +32,15 @@ typedef enum {
 } erc1155_selector_field;
 
 typedef struct erc1155_context_t {
-    uint8_t address[ADDRESS_LENGTH];
-    uint8_t tokenId[INT256_LENGTH];
-    uint8_t value[INT256_LENGTH];
+    uint8_t     address[ADDRESS_LENGTH];
+    uint8_t     tokenId[INT256_LENGTH];
+    uint256_t   value;
 
-    uint32_t valueOffset;
-    uint32_t tokenIdsOffset;
-    uint32_t targetOffset;
+    uint16_t ids_array_len;
+    uint32_t ids_offset;
+    uint16_t values_array_len;
+    uint32_t values_offset;
+    uint16_t array_index;
 
     bool approved;
     erc1155_selector_field next_param;

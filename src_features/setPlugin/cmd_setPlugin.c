@@ -4,6 +4,7 @@
 #include "tokens.h"
 #include "eth_plugin_interface.h"
 #include "eth_plugin_internal.h"
+#include "utils.h"
 
 // Supported internal plugins
 #define ERC721_STR  "ERC721"
@@ -167,9 +168,14 @@ void handleSetPlugin(uint8_t p1,
     PRINTF("Selector: %.*H\n", SELECTOR_SIZE, tokenContext->methodSelector);
     offset += SELECTOR_SIZE;
 
-    // TODO: store chainID and assert that tx is using the same chainid.
-    // uint64_t chainid = u64_from_BE(workBuffer + offset, CHAIN_ID_SIZE);
-    // PRINTF("ChainID: %.*H\n", sizeof(chainid), &chainid);
+    uint64_t chainId = u64_from_BE(workBuffer + offset, CHAIN_ID_SIZE);
+    // this prints raw data, so to have a more meaningful print, display
+    // the buffer before the endianness swap
+    PRINTF("ChainID: %.*H\n", sizeof(chainId), (workBuffer + offset));
+    if ((chainConfig->chainId != 0) && (chainConfig->chainId != chainId)) {
+        PRINTF("Chain ID token mismatch\n");
+        THROW(0x6A80);
+    }
     offset += CHAIN_ID_SIZE;
 
     enum KeyId keyId = workBuffer[offset];

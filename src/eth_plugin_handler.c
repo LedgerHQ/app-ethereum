@@ -92,7 +92,6 @@ static void eth_plugin_perform_init_default(uint8_t *contractAddress,
         os_sched_exit(0);
     }
     PRINTF("Plugin will be used\n");
-    // TODO: Add check for chainid.
     dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
 }
 

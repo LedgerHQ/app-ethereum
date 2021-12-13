@@ -266,6 +266,12 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
         case CHAIN_KIND_POLYGON:
             numTokens = NUM_TOKENS_POLYGON;
             break;
+        case CHAIN_KIND_PULSECHAIN:
+            numTokens = NUM_TOKENS_PULSECHAIN;
+            break;
+        case CHAIN_KIND_PULSECHAIN_TESTNET:
+            numTokens = NUM_TOKENS_PULSECHAIN_TESTNET;
+            break;
     }
     for (i = 0; i < numTokens; i++) {
         switch (chainConfig->kind) {
@@ -373,6 +379,12 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
                 break;
             case CHAIN_KIND_POLYGON:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_POLYGON[i]);
+                break;
+            case CHAIN_KIND_PULSECHAIN:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_PULSECHAIN[i]);
+                break;
+            case CHAIN_KIND_PULSECHAIN_TESTNET:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_PULSECHAIN_TESTNET[i]);
                 break;
         }
         if (memcmp(currentToken->address, tmpContent.txContent.destination, ADDRESS_LENGTH) == 0) {

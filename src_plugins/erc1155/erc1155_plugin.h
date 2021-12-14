@@ -1,3 +1,5 @@
+#ifdef HAVE_NFT_SUPPORT
+
 #pragma once
 
 #include <string.h>
@@ -49,3 +51,5 @@ typedef struct erc1155_context_t {
 
 void handle_provide_parameter_1155(void *parameters);
 void handle_query_contract_ui_1155(void *parameters);
+
+#endif // HAVE_NFT_SUPPORT

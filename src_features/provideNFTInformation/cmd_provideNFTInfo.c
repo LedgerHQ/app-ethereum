@@ -1,3 +1,5 @@
+#ifdef HAVE_NFT_SUPPORT
+
 #include "shared_context.h"
 #include "apdu_constants.h"
 #include "ui_flow.h"
@@ -224,3 +226,5 @@ void handleProvideNFTInformation(uint8_t p1,
     tmpCtx.transactionContext.tokenSet[tmpCtx.transactionContext.currentItemIndex] = 1;
     THROW(0x9000);
 }
+
+#endif // HAVE_NFT_SUPPORT

@@ -1,3 +1,5 @@
+#ifdef HAVE_NFT_SUPPORT
+
 #include "erc1155_plugin.h"
 #include "eth_plugin_internal.h"
 
@@ -150,3 +152,5 @@ void handle_provide_parameter_1155(void *parameters) {
             break;
     }
 }
+
+#endif // HAVE_NFT_SUPPORT

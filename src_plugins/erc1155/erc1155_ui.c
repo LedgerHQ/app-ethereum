@@ -1,3 +1,5 @@
+#ifdef HAVE_NFT_SUPPORT
+
 #include "erc1155_plugin.h"
 
 static void set_approval_for_all_ui(ethQueryContractUI_t *msg, erc1155_context_t *context) {
@@ -146,3 +148,5 @@ void handle_query_contract_ui_1155(void *parameters) {
             break;
     }
 }
+
+#endif // HAVE_NFT_SUPPORT

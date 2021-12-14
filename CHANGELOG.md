@@ -5,11 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.9.14](https://github.com/ledgerhq/app-ethereum/compare/1.9.13...1.9.14) - 2021-11-22
+## [1.9.15](https://github.com/ledgerhq/app-ethereum/compare/1.9.14...1.9.15) - 2021-12-15
 
 ### Added
 
-- Support for Non-Fungible Token (ERC 721 & ERC 1155)
+- Support for Non-Fungible Token (ERC-721 & ERC-1155)
+
+## [1.9.14](https://github.com/ledgerhq/app-ethereum/compare/1.9.13...1.9.14) - 2021-11-30
+
+### Added
+
+- Added Moonriver BIP44 1285
+
+### Fixed
+
+- Fixed stark order signature on LNS 
 
 ## [1.9.13](https://github.com/ledgerhq/app-ethereum/compare/1.9.12...1.9.13) - 2021-11-17
 

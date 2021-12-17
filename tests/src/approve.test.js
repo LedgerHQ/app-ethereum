@@ -19,7 +19,7 @@ test('[Nano S] Approve DAI tokens', zemu("nanos", async (sim, eth) => {
   });
 }));
 
-test('[Nano X] Approve DAI tokens', zemu("nanox", async (sim, eth) => {
+test.skip('[Nano X] Approve DAI tokens', zemu("nanox", async (sim, eth) => {
 
   const tx = eth.signTransaction(
     "44'/60'/1'/0/0",

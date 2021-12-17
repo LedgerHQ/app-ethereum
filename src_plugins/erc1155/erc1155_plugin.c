@@ -1,9 +1,11 @@
+#ifdef HAVE_NFT_SUPPORT
+
 #include "erc1155_plugin.h"
 #include "eth_plugin_internal.h"
 
 static const uint8_t ERC1155_APPROVE_FOR_ALL_SELECTOR[SELECTOR_SIZE] = {0xa2, 0x2c, 0xb4, 0x65};
 static const uint8_t ERC1155_SAFE_TRANSFER_SELECTOR[SELECTOR_SIZE] = {0xf2, 0x42, 0x43, 0x2a};
-static const uint8_t ERC1155_SAFE_BATCH_TRANSFER[SELECTOR_SIZE] = {0xf2, 0x42, 0x43, 0x2a};
+static const uint8_t ERC1155_SAFE_BATCH_TRANSFER[SELECTOR_SIZE] = {0x2e, 0xb2, 0xc2, 0xd6};
 
 const uint8_t *const ERC1155_SELECTORS[NUM_ERC1155_SELECTORS] = {
     ERC1155_APPROVE_FOR_ALL_SELECTOR,
@@ -59,11 +61,11 @@ static void handle_finalize(void *parameters) {
     msg->tokenLookup2 = NULL;
     switch (context->selectorIndex) {
         case SAFE_TRANSFER:
-            msg->numScreens = 4;
+            msg->numScreens = 5;
             break;
         case SET_APPROVAL_FOR_ALL:
         case SAFE_BATCH_TRANSFER:
-            msg->numScreens = 3;
+            msg->numScreens = 4;
             break;
         default:
             msg->result = ETH_PLUGIN_RESULT_ERROR;
@@ -99,8 +101,10 @@ static void handle_query_contract_id(void *parameters) {
             strlcpy(msg->version, "Allowance", msg->versionLength);
             break;
         case SAFE_TRANSFER:
-        case SAFE_BATCH_TRANSFER:
             strlcpy(msg->version, "Transfer", msg->versionLength);
+            break;
+        case SAFE_BATCH_TRANSFER:
+            strlcpy(msg->version, "Batch Transfer", msg->versionLength);
             break;
         default:
             PRINTF("Unsupported selector %d\n", context->selectorIndex);
@@ -134,3 +138,5 @@ void erc1155_plugin_call(int message, void *parameters) {
             break;
     }
 }
+
+#endif // HAVE_NFT_SUPPORT

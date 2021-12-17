@@ -1,11 +1,13 @@
+#ifdef HAVE_NFT_SUPPORT
+
 #include "erc721_plugin.h"
 #include "eth_plugin_internal.h"
 
-static const uint8_t ERC721_APPROVE_SELECTOR[SELECTOR_SIZE] = {0x13, 0x37, 0x42, 0x42};
+static const uint8_t ERC721_APPROVE_SELECTOR[SELECTOR_SIZE] = {0x09, 0x5e, 0xa7, 0xb3};
 static const uint8_t ERC721_APPROVE_FOR_ALL_SELECTOR[SELECTOR_SIZE] = {0xa2, 0x2c, 0xb4, 0x65};
 static const uint8_t ERC721_TRANSFER_SELECTOR[SELECTOR_SIZE] = {0x23, 0xb8, 0x72, 0xdd};
 static const uint8_t ERC721_SAFE_TRANSFER_SELECTOR[SELECTOR_SIZE] = {0x42, 0x84, 0x2e, 0x0e};
-static const uint8_t ERC721_SAFE_TRANSFER_DATA_SELECTOR[SELECTOR_SIZE] = {0xf2, 0x42, 0x43, 0x2a};
+static const uint8_t ERC721_SAFE_TRANSFER_DATA_SELECTOR[SELECTOR_SIZE] = {0xb8, 0x8d, 0x4f, 0xde};
 
 const uint8_t *const ERC721_SELECTORS[NUM_ERC721_SELECTORS] = {
     ERC721_APPROVE_SELECTOR,
@@ -62,11 +64,11 @@ static void handle_finalize(void *parameters) {
         case TRANSFER:
         case SAFE_TRANSFER:
         case SAFE_TRANSFER_DATA:
-        case SET_APPROVAL_FOR_ALL:
-            msg->numScreens = 3;
-            break;
         case APPROVE:
             msg->numScreens = 4;
+            break;
+        case SET_APPROVAL_FOR_ALL:
+            msg->numScreens = 3;
             break;
         default:
             msg->result = ETH_PLUGIN_RESULT_ERROR;
@@ -125,7 +127,7 @@ void erc721_plugin_call(int message, void *parameters) {
             handle_init_contract(parameters);
         } break;
         case ETH_PLUGIN_PROVIDE_PARAMETER: {
-            handle_provide_parameter(parameters);
+            handle_provide_parameter_721(parameters);
         } break;
         case ETH_PLUGIN_FINALIZE: {
             handle_finalize(parameters);
@@ -137,10 +139,12 @@ void erc721_plugin_call(int message, void *parameters) {
             handle_query_contract_id(parameters);
         } break;
         case ETH_PLUGIN_QUERY_CONTRACT_UI: {
-            handle_query_contract_ui(parameters);
+            handle_query_contract_ui_721(parameters);
         } break;
         default:
             PRINTF("Unhandled message %d\n", message);
             break;
     }
 }
+
+#endif // HAVE_NFT_SUPPORT

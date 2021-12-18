@@ -20,6 +20,7 @@
     "bip32-path": "^0.4.2",
     "core-js": "^3.7.0",
     "ethereum-tx-decoder": "^3.0.0",
+    "ethers": "^5.5.1",
     "fs-extra": "^10.0.0",
     "google-protobuf": "^3.11.0",
     "jest-serial-runner": "^1.1.0",

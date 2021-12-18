@@ -34,7 +34,7 @@ test('[Nano S] Transfer Ether on Ethereum app', zemu("nanos", async (sim, eth) =
   });
 }));
 
-test('[Nano X] Transfer Ether on Ethereum app', zemu("nanox", async (sim, eth) => {
+test.skip('[Nano X] Transfer Ether on Ethereum app', zemu("nanox", async (sim, eth) => {
 
   // Provide USDT token info to the app
   const usdt_info = byContractAddressAndChainId("0xdac17f958d2ee523a2206206994597c13d831ec7", 1);

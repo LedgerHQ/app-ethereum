@@ -26,6 +26,10 @@ extern const ux_flow_step_t* const ux_sign_712_v0_flow[];
 
 extern const ux_flow_step_t* const ux_display_public_eth2_flow[];
 
+extern const ux_flow_step_t* const ux_display_privacy_public_key_flow[];
+
+extern const ux_flow_step_t* const ux_display_privacy_shared_secret_flow[];
+
 #ifdef HAVE_STARKWARE
 
 extern const ux_flow_step_t* const ux_display_stark_public_flow[];

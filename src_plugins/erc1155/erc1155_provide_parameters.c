@@ -30,7 +30,7 @@ static void handle_safe_transfer(ethPluginProvideParameter_t *msg, erc1155_conte
 }
 
 static void handle_batch_transfer(ethPluginProvideParameter_t *msg, erc1155_context_t *context) {
-    uint256_t   new_value;
+    uint256_t new_value;
 
     switch (context->next_param) {
         case FROM:
@@ -41,23 +41,19 @@ static void handle_batch_transfer(ethPluginProvideParameter_t *msg, erc1155_cont
             context->next_param = TOKEN_IDS_OFFSET;
             break;
         case TOKEN_IDS_OFFSET:
-            context->ids_offset = \
-                U4BE(msg->parameter,
-                     PARAMETER_LENGTH - sizeof(context->ids_offset)) + 4;
+            context->ids_offset =
+                U4BE(msg->parameter, PARAMETER_LENGTH - sizeof(context->ids_offset)) + 4;
             context->next_param = VALUE_OFFSET;
             break;
         case VALUE_OFFSET:
-            context->values_offset = \
-                U4BE(msg->parameter,
-                     PARAMETER_LENGTH - sizeof(context->values_offset)) + 4;
+            context->values_offset =
+                U4BE(msg->parameter, PARAMETER_LENGTH - sizeof(context->values_offset)) + 4;
             context->next_param = TOKEN_IDS_LENGTH;
             break;
         case TOKEN_IDS_LENGTH:
-            if ((msg->parameterOffset + PARAMETER_LENGTH) > context->ids_offset)
-            {
-                context->ids_array_len = \
-                    U2BE(msg->parameter,
-                         PARAMETER_LENGTH - sizeof(context->ids_array_len));
+            if ((msg->parameterOffset + PARAMETER_LENGTH) > context->ids_offset) {
+                context->ids_array_len =
+                    U2BE(msg->parameter, PARAMETER_LENGTH - sizeof(context->ids_array_len));
                 context->next_param = TOKEN_ID;
                 // set to zero for next step
                 context->array_index = 0;
@@ -65,20 +61,16 @@ static void handle_batch_transfer(ethPluginProvideParameter_t *msg, erc1155_cont
             break;
         case TOKEN_ID:
             // don't copy anything since we won't display it
-            if (--context->ids_array_len == 0)
-            {
+            if (--context->ids_array_len == 0) {
                 context->next_param = VALUE_LENGTH;
             }
             context->array_index++;
             break;
         case VALUE_LENGTH:
-            if ((msg->parameterOffset + PARAMETER_LENGTH) > context->values_offset)
-            {
-                context->values_array_len = \
-                    U2BE(msg->parameter,
-                         PARAMETER_LENGTH - sizeof(context->values_array_len));
-                if (context->values_array_len != context->array_index)
-                {
+            if ((msg->parameterOffset + PARAMETER_LENGTH) > context->values_offset) {
+                context->values_array_len =
+                    U2BE(msg->parameter, PARAMETER_LENGTH - sizeof(context->values_array_len));
+                if (context->values_array_len != context->array_index) {
                     PRINTF("Token ids and values array sizes mismatch!");
                 }
                 context->next_param = VALUE;
@@ -92,8 +84,7 @@ static void handle_batch_transfer(ethPluginProvideParameter_t *msg, erc1155_cont
             copy_parameter(context->tokenId, msg->parameter, sizeof(context->value));
             convertUint256BE(context->tokenId, sizeof(context->tokenId), &new_value);
             add256(&context->value, &new_value, &context->value);
-            if (--context->values_array_len == 0)
-            {
+            if (--context->values_array_len == 0) {
                 context->next_param = NONE;
             }
             context->array_index++;
@@ -132,10 +123,10 @@ void handle_provide_parameter_1155(void *parameters) {
 
     msg->result = ETH_PLUGIN_RESULT_SUCCESSFUL;
 
-    //if (context->targetOffset > SELECTOR_SIZE &&
-    //    context->targetOffset != msg->parameterOffset - SELECTOR_SIZE) {
-    //    return;
-    //}
+    // if (context->targetOffset > SELECTOR_SIZE &&
+    //     context->targetOffset != msg->parameterOffset - SELECTOR_SIZE) {
+    //     return;
+    // }
     switch (context->selectorIndex) {
         case SAFE_TRANSFER:
             handle_safe_transfer(msg, context);
@@ -153,4 +144,4 @@ void handle_provide_parameter_1155(void *parameters) {
     }
 }
 
-#endif // HAVE_NFT_SUPPORT
+#endif  // HAVE_NFT_SUPPORT

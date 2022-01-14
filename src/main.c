@@ -266,6 +266,9 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
         case CHAIN_KIND_POLYGON:
             numTokens = NUM_TOKENS_POLYGON;
             break;
+        case CHAIN_KIND_SHYFT:
+            numTokens = NUM_TOKENS_SHYFT;
+            break;
     }
     for (i = 0; i < numTokens; i++) {
         switch (chainConfig->kind) {
@@ -373,6 +376,9 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
                 break;
             case CHAIN_KIND_POLYGON:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_POLYGON[i]);
+                break;
+            case CHAIN_KIND_SHYFT:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_SHYFT[i]);
                 break;
         }
         if (memcmp(currentToken->address, tmpContent.txContent.destination, ADDRESS_LENGTH) == 0) {
@@ -522,7 +528,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                                                 flags,
                                                 tx);
                     break;
-#endif // HAVE_NFT_SUPPORT
+#endif  // HAVE_NFT_SUPPORT
 
                 case INS_SET_EXTERNAL_PLUGIN:
                     handleSetExternalPlugin(G_io_apdu_buffer[OFFSET_P1],

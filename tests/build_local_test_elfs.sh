@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 TESTS_FULL_PATH=$(dirname "$(realpath "$0")")
 
 # FILL THESE WITH YOUR OWN SDKs PATHS

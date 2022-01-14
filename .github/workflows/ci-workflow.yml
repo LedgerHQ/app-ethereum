@@ -1,6 +1,7 @@
 name: Compilation & tests
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - master
@@ -103,8 +104,27 @@ jobs:
           name: scan-build
           path: scan-build
 
+  building_for_e2e_tests:
+    name: Building binaries for E2E tests
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build testing binaries
+        run: cd tests && ./build_local_test_elfs.sh
+
+      - name: Upload app binaries
+        uses: actions/upload-artifact@v2
+        with:
+          name: e2e_elfs
+          path: ./tests/elfs/
+
   jobs-e2e-tests:
-    needs: [job_build_debug_nano_s, job_build_debug_nano_x]
+    name: E2E tests
+    needs: [building_for_e2e_tests]
     runs-on: ubuntu-latest
     steps:
       - name: Test
@@ -114,28 +134,30 @@ jobs:
           echo $DISPLAY
       - name: Checkout
         uses: actions/checkout@v2
+
       - run: sudo apt-get update -y && sudo apt-get install -y libusb-1.0.0 libudev-dev
+
       - name: Install node
         uses: actions/setup-node@v2
         with:
           node-version: "14.4.0"
+
       - name: Install yarn
-        run: |
-          npm install -g yarn
+        run: npm install -g yarn
+
       - name: Build/Install build js deps
-        run: |
-          cd tests && yarn install
+        run: cd tests && yarn install
+
       - name: Create tmp folder for artifacts
-        run: |
-          mkdir tests/elfs
+        run: mkdir tests/elfs
+
       - name: Download app binaries
         uses: actions/download-artifact@v2
         with:
-          path: tests/elfs
+          path: tmp/
+
       - name: Gather elfs
-        run: |
-          cd tests/elfs
-          cp `find . -name "*.elf"` .
+        run: cp `find tmp/e2e_elfs/ -name "*.elf"` tests/elfs/
+
       - name: Run zemu tests
-        run: |
-          cd tests && yarn test
+        run: cd tests && yarn test

@@ -59,7 +59,7 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *contex
             break;
         case 2:
             strlcpy(msg->title, "NFT Address", msg->titleLength);
-            getEthDisplayableAddress((uint8_t *)msg->item1->nft.contractAddress,
+            getEthDisplayableAddress((uint8_t *) msg->item1->nft.contractAddress,
                                      msg->msg,
                                      msg->msgLength,
                                      &global_sha3,
@@ -84,7 +84,7 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *contex
 }
 
 static void set_batch_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *context) {
-    char    quantity_str[48];
+    char quantity_str[48];
 
     switch (msg->screenIndex) {
         case 0:
@@ -105,7 +105,7 @@ static void set_batch_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *
             break;
         case 2:
             strlcpy(msg->title, "NFT Address", msg->titleLength);
-            getEthDisplayableAddress((uint8_t *)msg->item1->nft.contractAddress,
+            getEthDisplayableAddress((uint8_t *) msg->item1->nft.contractAddress,
                                      msg->msg,
                                      msg->msgLength,
                                      &global_sha3,
@@ -149,4 +149,4 @@ void handle_query_contract_ui_1155(void *parameters) {
     }
 }
 
-#endif // HAVE_NFT_SUPPORT
+#endif  // HAVE_NFT_SUPPORT

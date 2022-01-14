@@ -528,7 +528,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                                                 flags,
                                                 tx);
                     break;
-#endif // HAVE_NFT_SUPPORT
+#endif  // HAVE_NFT_SUPPORT
 
                 case INS_SET_EXTERNAL_PLUGIN:
                     handleSetExternalPlugin(G_io_apdu_buffer[OFFSET_P1],

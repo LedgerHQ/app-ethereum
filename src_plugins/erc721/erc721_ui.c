@@ -115,7 +115,7 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc721_context_t *context
             break;
         case 2:
             strlcpy(msg->title, "NFT Address", msg->titleLength);
-            getEthDisplayableAddress((uint8_t *)msg->item1->nft.contractAddress,
+            getEthDisplayableAddress((uint8_t *) msg->item1->nft.contractAddress,
                                      msg->msg,
                                      msg->msgLength,
                                      &global_sha3,
@@ -167,4 +167,4 @@ void handle_query_contract_ui_721(void *parameters) {
     }
 }
 
-#endif // HAVE_NFT_SUPPORT
+#endif  // HAVE_NFT_SUPPORT

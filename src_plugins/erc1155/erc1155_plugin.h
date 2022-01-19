@@ -34,9 +34,9 @@ typedef enum {
 } erc1155_selector_field;
 
 typedef struct erc1155_context_t {
-    uint8_t     address[ADDRESS_LENGTH];
-    uint8_t     tokenId[INT256_LENGTH];
-    uint256_t   value;
+    uint8_t address[ADDRESS_LENGTH];
+    uint8_t tokenId[INT256_LENGTH];
+    uint256_t value;
 
     uint16_t ids_array_len;
     uint32_t ids_offset;
@@ -52,4 +52,4 @@ typedef struct erc1155_context_t {
 void handle_provide_parameter_1155(void *parameters);
 void handle_query_contract_ui_1155(void *parameters);
 
-#endif // HAVE_NFT_SUPPORT
+#endif  // HAVE_NFT_SUPPORT

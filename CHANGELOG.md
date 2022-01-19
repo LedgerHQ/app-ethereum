@@ -5,11 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.9.15](https://github.com/ledgerhq/app-ethereum/compare/1.9.14...1.9.15) - 2021-12-15
+## [1.9.17](https://github.com/ledgerhq/app-ethereum/compare/1.9.16...1.9.17) - 2022-01-14
 
 ### Added
 
-- Support for Non-Fungible Token (ERC-721 & ERC-1155)
+- Support for Non-Fungible Tokens (ERC-721 & ERC-1155)
+
+## [1.9.16](https://github.com/ledgerhq/app-ethereum/compare/1.9.14...1.9.16) - 2022-01-13
+
+### Added
+
+- Shyft variant
 
 ## [1.9.14](https://github.com/ledgerhq/app-ethereum/compare/1.9.13...1.9.14) - 2021-11-30
 

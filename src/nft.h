@@ -6,7 +6,7 @@
 
 // We defined the collection name max length to be the size of a `tokenDefinition_t` and remove the
 // `ADDRESS_LENGTH` which corresponds to `sizeof(contractAddress`).
-#define COLLECTION_NAME_MAX_LEN sizeof(tokenDefinition_t) - ADDRESS_LENGTH
+#define COLLECTION_NAME_MAX_LEN (sizeof(tokenDefinition_t) - ADDRESS_LENGTH)
 
 typedef struct nftInfo_t {
     char collectionName[COLLECTION_NAME_MAX_LEN];

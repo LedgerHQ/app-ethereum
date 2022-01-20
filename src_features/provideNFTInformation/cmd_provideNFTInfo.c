@@ -9,7 +9,7 @@
 #define TYPE_SIZE        1
 #define VERSION_SIZE     1
 #define NAME_LENGTH_SIZE 1
-#define HEADER_SIZE      TYPE_SIZE + VERSION_SIZE + NAME_LENGTH_SIZE
+#define HEADER_SIZE      (TYPE_SIZE + VERSION_SIZE + NAME_LENGTH_SIZE)
 
 #define CHAIN_ID_SIZE         8
 #define KEY_ID_SIZE           1

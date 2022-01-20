@@ -73,7 +73,7 @@ void handleProvideNFTInformation(uint8_t p1,
 
     PRINTF("Provisioning currentItemIndex %d\n", tmpCtx.transactionContext.currentItemIndex);
 
-    uint8_t offset = 0;
+    size_t offset = 0;
 
     if (dataLength <= HEADER_SIZE) {
         PRINTF("Data too small for headers: expected at least %d, got %d\n",
@@ -108,8 +108,8 @@ void handleProvideNFTInformation(uint8_t p1,
     offset += NAME_LENGTH_SIZE;
 
     // Size of the payload (everything except the signature)
-    uint8_t payloadSize = HEADER_SIZE + collectionNameLength + ADDRESS_LENGTH + CHAIN_ID_SIZE +
-                          KEY_ID_SIZE + ALGORITHM_ID_SIZE;
+    size_t payloadSize = HEADER_SIZE + collectionNameLength + ADDRESS_LENGTH + CHAIN_ID_SIZE +
+                         KEY_ID_SIZE + ALGORITHM_ID_SIZE;
     if (dataLength < payloadSize) {
         PRINTF("Data too small for payload: expected at least %d, got %d\n",
                payloadSize,

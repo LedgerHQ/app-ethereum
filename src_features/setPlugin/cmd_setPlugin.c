@@ -98,7 +98,7 @@ void handleSetPlugin(uint8_t p1,
     cx_ecfp_public_key_t pluginKey = {0};
     tokenContext_t *tokenContext = &dataContext.tokenContext;
 
-    uint8_t offset = 0;
+    size_t offset = 0;
 
     if (dataLength <= HEADER_SIZE) {
         PRINTF("Data too small for headers: expected at least %d, got %d\n",
@@ -135,8 +135,8 @@ void handleSetPlugin(uint8_t p1,
     offset += PLUGIN_NAME_LENGTH_SIZE;
 
     // Size of the payload (everything except the signature)
-    uint8_t payloadSize = HEADER_SIZE + pluginNameLength + ADDRESS_LENGTH + SELECTOR_SIZE +
-                          CHAIN_ID_SIZE + KEY_ID_SIZE + ALGORITHM_ID_SIZE;
+    size_t payloadSize = HEADER_SIZE + pluginNameLength + ADDRESS_LENGTH + SELECTOR_SIZE +
+                         CHAIN_ID_SIZE + KEY_ID_SIZE + ALGORITHM_ID_SIZE;
     if (dataLength < payloadSize) {
         PRINTF("Data too small for payload: expected at least %d, got %d\n",
                payloadSize,

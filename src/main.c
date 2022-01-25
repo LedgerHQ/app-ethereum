@@ -266,11 +266,15 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
         case CHAIN_KIND_POLYGON:
             numTokens = NUM_TOKENS_POLYGON;
             break;
+        case CHAIN_KIND_SHYFT:
+            numTokens = NUM_TOKENS_SHYFT;
+            break;
         case CHAIN_KIND_XDCNETWORK:
             numTokens = NUM_TOKENS_XDCNETWORK;
             break;
         case CHAIN_KIND_APOTHEMNETWORK:
             numTokens = NUM_TOKENS_APOTHEMNETWORK;
+            break;
     }
     for (i = 0; i < numTokens; i++) {
         switch (chainConfig->kind) {
@@ -378,6 +382,9 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
                 break;
             case CHAIN_KIND_POLYGON:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_POLYGON[i]);
+                break;
+            case CHAIN_KIND_SHYFT:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_SHYFT[i]);
                 break;
             case CHAIN_KIND_XDCNETWORK:
                 currentToken = (tokenDefinition_t *)PIC(&TOKENS_XDCNETWORK[i]);

@@ -274,7 +274,6 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
             break;
         case CHAIN_KIND_APOTHEMNETWORK:
             numTokens = NUM_TOKENS_APOTHEMNETWORK;
-            break;
     }
     for (i = 0; i < numTokens; i++) {
         switch (chainConfig->kind) {

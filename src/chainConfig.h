@@ -24,6 +24,7 @@
 
 typedef enum chain_kind_e {
     CHAIN_KIND_ETHEREUM,
+    CHAIN_KIND_MOONBEAM,
     CHAIN_KIND_MOONRIVER,
     CHAIN_KIND_ETHEREUM_CLASSIC,
     CHAIN_KIND_EXPANSE,
@@ -57,7 +58,8 @@ typedef enum chain_kind_e {
     CHAIN_KIND_FLARE,
     CHAIN_KIND_BSC,
     CHAIN_KIND_SONGBIRD,
-    CHAIN_KIND_POLYGON
+    CHAIN_KIND_POLYGON,
+    CHAIN_KIND_SHYFT
 } chain_kind_t;
 
 typedef struct chain_config_s {

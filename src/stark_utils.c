@@ -135,9 +135,7 @@ int stark_sign(uint8_t *signature, /* out */
     }
     pedersen(hash, hash, msg);
     PRINTF("Pedersen hash 2 %.*H\n", 32, hash);
-#ifdef TARGET_NANOX
     shift_stark_hash(hash);
-#endif
     cx_ecfp_init_private_key(CX_CURVE_Stark256, privateKeyData, 32, &privateKey);
     io_seproxyhal_io_heartbeat();
     int signatureLength = cx_ecdsa_sign(&privateKey,

@@ -233,6 +233,9 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
         case CHAIN_KIND_TOMOCHAIN:
             numTokens = NUM_TOKENS_TOMOCHAIN;
             break;
+        case CHAIN_KIND_MOONBEAM:
+            numTokens = NUM_TOKENS_MOONBEAM;
+            break;
         case CHAIN_KIND_MOONRIVER:
             numTokens = NUM_TOKENS_MOONRIVER;
             break;
@@ -265,6 +268,9 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
             break;
         case CHAIN_KIND_POLYGON:
             numTokens = NUM_TOKENS_POLYGON;
+            break;
+        case CHAIN_KIND_SHYFT:
+            numTokens = NUM_TOKENS_SHYFT;
             break;
     }
     for (i = 0; i < numTokens; i++) {
@@ -341,6 +347,9 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
             case CHAIN_KIND_TOMOCHAIN:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_TOMOCHAIN[i]);
                 break;
+            case CHAIN_KIND_MOONBEAM:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_MOONBEAM[i]);
+                break;
             case CHAIN_KIND_MOONRIVER:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_MOONRIVER[i]);
                 break;
@@ -373,6 +382,9 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
                 break;
             case CHAIN_KIND_POLYGON:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_POLYGON[i]);
+                break;
+            case CHAIN_KIND_SHYFT:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_SHYFT[i]);
                 break;
         }
         if (memcmp(currentToken->address, tmpContent.txContent.destination, ADDRESS_LENGTH) == 0) {

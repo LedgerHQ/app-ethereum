@@ -188,8 +188,12 @@ const tokenDefinition_t const TOKENS_BSC[NUM_TOKENS_BSC] = {};
 
 const tokenDefinition_t const TOKENS_SONGBIRD[NUM_TOKENS_SONGBIRD] = {};
 
+const tokenDefinition_t const TOKENS_MOONBEAM[NUM_TOKENS_MOONBEAM] = {};
+
 const tokenDefinition_t const TOKENS_MOONRIVER[NUM_TOKENS_MOONRIVER] = {};
 
 const tokenDefinition_t const TOKENS_POLYGON[NUM_TOKENS_POLYGON] = {};
+
+const tokenDefinition_t const TOKENS_SHYFT[NUM_TOKENS_SHYFT] = {};
 
 #endif

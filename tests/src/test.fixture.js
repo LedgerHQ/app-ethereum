@@ -1,4 +1,4 @@
-import Zemu from '@zondax/zemu';
+import Zemu, { DEFAULT_START_OPTIONS, DeviceModel } from '@zondax/zemu';
 import Eth from '@ledgerhq/hw-app-eth';
 import {RLP} from "ethers/lib/utils";
 
@@ -8,20 +8,11 @@ async function waitForAppScreen(sim) {
     await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot(), transactionUploadDelay);
 }
 
-const sim_options_nanos = {
-    model: 'nanos',
+const sim_options_nano = {
+    ...DEFAULT_START_OPTIONS,
     logging: true,
     X11: true,
-    startDelay: 5000,
-    custom: '',
-};
-
-const sim_options_nanox = {
-    model: 'nanox',
-    logging: true,
-    X11: true,
-    startDelay: 5000,
-    custom: '',
+    startText: 'is ready'
 };
 
 const Resolve = require('path').resolve;
@@ -29,11 +20,13 @@ const Resolve = require('path').resolve;
 const NANOS_ELF_PATH = Resolve('elfs/ethereum_nanos.elf');
 const NANOX_ELF_PATH = Resolve('elfs/ethereum_nanox.elf');
 
-const NANOS_ETH_LIB = { "Ethereum": NANOS_ELF_PATH };
-const NANOX_ETH_LIB = { "Ethereum": NANOX_ELF_PATH };
-
 const NANOS_CLONE_ELF_PATH = Resolve("elfs/ethereum_classic_nanos.elf");
 const NANOX_CLONE_ELF_PATH = Resolve("elfs/ethereum_classic_nanox.elf");
+
+const nano_models: DeviceModel[] = [
+    { name: 'nanos', letter: 'S', path: NANOS_ELF_PATH, clone_path: NANOS_CLONE_ELF_PATH },
+    { name: 'nanox', letter: 'X', path: NANOX_ELF_PATH, clone_path: NANOX_CLONE_ELF_PATH }
+];
 
 const TIMEOUT = 1000000;
 
@@ -66,22 +59,21 @@ function txFromEtherscan(rawTx) {
     return txType + encoded;
 }
 
-function zemu(device, func) {
+function zemu(device, func, start_clone = false) {
     return async () => {
         jest.setTimeout(TIMEOUT);
-        let zemu_args;
-        let sim_options;
-        if(device === "nanos") {
-            zemu_args = [NANOS_ELF_PATH];
-            sim_options = sim_options_nanos;
+        let elf_path;
+        let lib_elf;
+        if (start_clone) {
+            elf_path = device.clone_path;
+            lib_elf = { 'Ethereum': device.path };
         }
         else {
-            zemu_args = [NANOX_ELF_PATH];
-            sim_options = sim_options_nanox;
+            elf_path = device.path;
         }
-        const sim = new Zemu(...zemu_args);
+        const sim = new Zemu(elf_path, lib_elf);
         try {
-            await sim.start(sim_options);
+            await sim.start({...sim_options_nano, model: device.name});
             const transport = await sim.getTransport();
             await func(sim, new Eth(transport));
         } finally {
@@ -93,14 +85,8 @@ function zemu(device, func) {
 module.exports = {
     zemu,
     waitForAppScreen,
-    NANOS_ELF_PATH,
-    NANOX_ELF_PATH,
-    NANOS_ETH_LIB,
-    NANOX_ETH_LIB,
-    NANOS_CLONE_ELF_PATH,
-    NANOX_CLONE_ELF_PATH,
-    sim_options_nanos,
-    sim_options_nanox,
+    sim_options_nano,
+    nano_models,
     TIMEOUT,
     txFromEtherscan,
 }

@@ -388,10 +388,10 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
                 break;
             case CHAIN_KIND_XDCNETWORK:
                 currentToken = (tokenDefinition_t *)PIC(&TOKENS_XDCNETWORK[i]);
-                break
+                break;
             case CHAIN_KIND_APOTHEMNETWORK:
                 currentToken = (tokenDefinition_t *)PIC(&TOKENS_APOTHEMNETWORK[i]);
-                break
+                break;
         }
         if (memcmp(currentToken->address, tmpContent.txContent.destination, ADDRESS_LENGTH) == 0) {
             return currentToken;

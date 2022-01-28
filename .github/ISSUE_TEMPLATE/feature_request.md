@@ -1,19 +1,17 @@
 ---
 name: Feature report
 about: Suggest an idea for this project 
-title: ''
-labels: ''
+title: '[FEATURES] [Subject of the issue]'
+labels: 'enhancement'
 assignees: ''
 
 ---
 
-## [FEATURES] [Subject of the issue]
-
-### Description
+## Description
 
 Describe your issue in as much detail as possible here.
 
-### Your environment
+## Your environment
 
 * OS and version
 * branch that causes this issue

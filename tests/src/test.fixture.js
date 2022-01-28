@@ -4,8 +4,10 @@ import {RLP} from "ethers/lib/utils";
 
 const transactionUploadDelay = 60000;
 
-async function waitForAppScreen(sim) {
-    await sim.waitUntilScreenIsNot(sim.getMainMenuSnapshot(), transactionUploadDelay);
+async function  waitForAppScreen(sim, current_screen = null) {
+    if (current_screen === null) current_screen = sim.getMainMenuSnapshot();
+
+    await sim.waitUntilScreenIsNot(current_screen, transactionUploadDelay);
 }
 
 const sim_options_nano = {
@@ -30,8 +32,33 @@ const nano_models: DeviceModel[] = [
 
 const TIMEOUT = 1000000;
 
+// useful to take an apdu as a hex string and convert its JS representation
+function    apdu_as_string(str) {
+    let buffer = [];
+
+    for (let i = 0; i < str.length; i += 2) {
+        const str_extract = str.substring(i, i + 2);
+        buffer[i / 2] = parseInt(str_extract, 16);
+    }
+    return {
+        cla:    buffer[0],
+        ins:    buffer[1],
+        p1:     buffer[2],
+        p2:     buffer[3],
+        data:   Buffer.from(buffer.slice(5))
+    };
+}
+
+async function  send_apdu(ts, apdu) {
+  await ts.send(apdu.cla,
+                apdu.ins,
+                apdu.p1,
+                apdu.p2,
+                apdu.data);
+}
+
 // Generates a serializedTransaction from a rawHexTransaction copy pasted from etherscan.
-function txFromEtherscan(rawTx) {
+function    txFromEtherscan(rawTx) {
     // Remove 0x prefix
     rawTx = rawTx.slice(2);
 
@@ -89,4 +116,6 @@ module.exports = {
     nano_models,
     TIMEOUT,
     txFromEtherscan,
+    apdu_as_string,
+    send_apdu
 }

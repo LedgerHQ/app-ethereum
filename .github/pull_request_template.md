@@ -18,6 +18,7 @@ Please complete this section if any breaking changes have been made, otherwise d
 - [ ] I have added at least 1 reviewer
 - [ ] I have tested this code
 - [ ] I have added sufficient documentation in the code
+- [ ] I have added labels to this PR
 
 # Additional comments
 

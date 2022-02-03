@@ -63,7 +63,7 @@ Find the documentations here:
 
 Testing is done via the open-source framework [zemu](https://github.com/Zondax/zemu).
 
-### Requirement
+### Requirements
 
 - [nodeJS](https://github.com/nvm-sh/nvm)
 - [yarn](https://classic.yarnpkg.com/lang/en/docs/install/#debian-stable)

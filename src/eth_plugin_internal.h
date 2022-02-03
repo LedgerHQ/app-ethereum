@@ -6,6 +6,13 @@
 #define PARAMETER_LENGTH 32
 #define RUN_APPLICATION  1
 
+void copy_address(uint8_t* dst, uint8_t* parameter, uint8_t dst_size);
+
+void copy_parameter(uint8_t* dst, uint8_t* parameter, uint8_t dst_size);
+
+void erc721_plugin_call(int message, void* parameters);
+void erc1155_plugin_call(int message, void* parameters);
+
 typedef bool (*PluginAvailableCheck)(void);
 
 typedef struct internalEthPlugin_t {
@@ -18,9 +25,6 @@ typedef struct internalEthPlugin_t {
 
 #define NUM_ERC20_SELECTORS 2
 extern const uint8_t* const ERC20_SELECTORS[NUM_ERC20_SELECTORS];
-
-#define NUM_ERC721_SELECTORS 1
-extern const uint8_t* const ERC721_SELECTORS[NUM_ERC721_SELECTORS];
 
 #define NUM_COMPOUND_SELECTORS 4
 extern const uint8_t* const COMPOUND_SELECTORS[NUM_COMPOUND_SELECTORS];

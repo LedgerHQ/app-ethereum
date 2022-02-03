@@ -1,11 +1,20 @@
 #include "eth_plugin_internal.h"
 
 bool erc20_plugin_available_check(void);
-bool erc721_plugin_available_check(void);
 
 void erc20_plugin_call(int message, void* parameters);
-void erc721_plugin_call(int message, void* parameters);
 void compound_plugin_call(int message, void* parameters);
+
+void copy_address(uint8_t* dst, uint8_t* parameter, uint8_t dst_size) {
+    uint8_t copy_size = MIN(dst_size, ADDRESS_LENGTH);
+    memmove(dst, parameter + PARAMETER_LENGTH - copy_size, copy_size);
+}
+
+void copy_parameter(uint8_t* dst, uint8_t* parameter, uint8_t dst_size) {
+    uint8_t copy_size = MIN(dst_size, PARAMETER_LENGTH);
+    memmove(dst, parameter, copy_size);
+}
+
 #ifdef HAVE_STARKWARE
 void starkware_plugin_call(int message, void* parameters);
 #endif
@@ -18,10 +27,6 @@ static const uint8_t ERC20_APPROVE_SELECTOR[SELECTOR_SIZE] = {0x09, 0x5e, 0xa7, 
 
 const uint8_t* const ERC20_SELECTORS[NUM_ERC20_SELECTORS] = {ERC20_TRANSFER_SELECTOR,
                                                              ERC20_APPROVE_SELECTOR};
-
-static const uint8_t ERC721_APPROVE_SELECTOR[SELECTOR_SIZE] = {0x09, 0x5e, 0xa7, 0xb3};
-
-const uint8_t* const ERC721_SELECTORS[NUM_ERC721_SELECTORS] = {ERC721_APPROVE_SELECTOR};
 
 static const uint8_t COMPOUND_REDEEM_UNDERLYING_SELECTOR[SELECTOR_SIZE] = {0x85, 0x2a, 0x12, 0xe3};
 static const uint8_t COMPOUND_REDEEM_SELECTOR[SELECTOR_SIZE] = {0xdb, 0x00, 0x6a, 0x75};
@@ -104,12 +109,6 @@ const internalEthPlugin_t INTERNAL_ETH_PLUGINS[] = {
      NUM_ERC20_SELECTORS,
      "-erc20",
      erc20_plugin_call},
-
-    {erc721_plugin_available_check,
-     (const uint8_t**) ERC721_SELECTORS,
-     NUM_ERC721_SELECTORS,
-     "-er721",
-     erc721_plugin_call},
 
     {NULL,
      (const uint8_t**) COMPOUND_SELECTORS,

@@ -65,6 +65,7 @@ customStatus_e customProcessor(txContext_t *context) {
             PRINTF("pluginstatus %d\n", dataContext.tokenContext.pluginStatus);
             eth_plugin_result_t status = dataContext.tokenContext.pluginStatus;
             if (status == ETH_PLUGIN_RESULT_ERROR) {
+                PRINTF("Plugin error\n");
                 return CUSTOM_FAULT;
             } else if (status >= ETH_PLUGIN_RESULT_SUCCESSFUL) {
                 dataContext.tokenContext.fieldIndex = 0;
@@ -113,6 +114,7 @@ customStatus_e customProcessor(txContext_t *context) {
                    copySize);
 
         if (context->currentFieldPos == context->currentFieldLength) {
+            PRINTF("\n\nIncrementing one\n");
             context->currentField++;
             context->processingField = false;
         }
@@ -238,7 +240,6 @@ static void feesToString(uint256_t *rawFee, char *displayBuffer, uint32_t displa
         i++;
     }
     displayBuffer[tickerOffset + i] = '\0';
-    PRINTF("Displayed fees: %s\n", displayBuffer);
 }
 
 // Compute the fees, transform it to a string, prepend a ticker to it and copy everything to
@@ -301,7 +302,6 @@ void finalizeParsing(bool direct) {
 
     // Verify the chain
     if (chainConfig->chainId != ETHEREUM_MAINNET_CHAINID) {
-        // TODO: Could we remove above check?
         uint64_t id = get_chain_id();
 
         if (chainConfig->chainId != id) {
@@ -338,24 +338,24 @@ void finalizeParsing(bool direct) {
             }
         }
         // Lookup tokens if requested
-        ethPluginProvideToken_t pluginProvideToken;
-        eth_plugin_prepare_provide_token(&pluginProvideToken);
+        ethPluginProvideInfo_t pluginProvideInfo;
+        eth_plugin_prepare_provide_info(&pluginProvideInfo);
         if ((pluginFinalize.tokenLookup1 != NULL) || (pluginFinalize.tokenLookup2 != NULL)) {
             if (pluginFinalize.tokenLookup1 != NULL) {
                 PRINTF("Lookup1: %.*H\n", ADDRESS_LENGTH, pluginFinalize.tokenLookup1);
-                pluginProvideToken.token1 = getKnownToken(pluginFinalize.tokenLookup1);
-                if (pluginProvideToken.token1 != NULL) {
-                    PRINTF("Token1 ticker: %s\n", pluginProvideToken.token1->ticker);
+                pluginProvideInfo.item1 = getKnownToken(pluginFinalize.tokenLookup1);
+                if (pluginProvideInfo.item1 != NULL) {
+                    PRINTF("Token1 ticker: %s\n", pluginProvideInfo.item1->token.ticker);
                 }
             }
             if (pluginFinalize.tokenLookup2 != NULL) {
                 PRINTF("Lookup2: %.*H\n", ADDRESS_LENGTH, pluginFinalize.tokenLookup2);
-                pluginProvideToken.token2 = getKnownToken(pluginFinalize.tokenLookup2);
-                if (pluginProvideToken.token2 != NULL) {
-                    PRINTF("Token2 ticker: %s\n", pluginProvideToken.token2->ticker);
+                pluginProvideInfo.item2 = getKnownToken(pluginFinalize.tokenLookup2);
+                if (pluginProvideInfo.item2 != NULL) {
+                    PRINTF("Token2 ticker: %s\n", pluginProvideInfo.item2->token.ticker);
                 }
             }
-            if (eth_plugin_call(ETH_PLUGIN_PROVIDE_TOKEN, (void *) &pluginProvideToken) <=
+            if (eth_plugin_call(ETH_PLUGIN_PROVIDE_INFO, (void *) &pluginProvideInfo) <=
                 ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
                 PRINTF("Plugin provide token call failed\n");
                 reportFinalizeError(direct);
@@ -363,7 +363,7 @@ void finalizeParsing(bool direct) {
                     return;
                 }
             }
-            pluginFinalize.result = pluginProvideToken.result;
+            pluginFinalize.result = pluginProvideInfo.result;
         }
         if (pluginFinalize.result != ETH_PLUGIN_RESULT_FALLBACK) {
             // Handle the right interface
@@ -373,7 +373,7 @@ void finalizeParsing(bool direct) {
                     // Add the number of screens + the number of additional screens to get the total
                     // number of screens needed.
                     dataContext.tokenContext.pluginUiMaxItems =
-                        pluginFinalize.numScreens + pluginProvideToken.additionalScreens;
+                        pluginFinalize.numScreens + pluginProvideInfo.additionalScreens;
                     break;
                 case ETH_UI_TYPE_AMOUNT_ADDRESS:
                     genericUI = true;
@@ -389,9 +389,9 @@ void finalizeParsing(bool direct) {
                     tmpContent.txContent.value.length = 32;
                     memmove(tmpContent.txContent.destination, pluginFinalize.address, 20);
                     tmpContent.txContent.destinationLength = 20;
-                    if (pluginProvideToken.token1 != NULL) {
-                        decimals = pluginProvideToken.token1->decimals;
-                        ticker = pluginProvideToken.token1->ticker;
+                    if (pluginProvideInfo.item1 != NULL) {
+                        decimals = pluginProvideInfo.item1->token.decimals;
+                        ticker = pluginProvideInfo.item1->token.ticker;
                     }
                     break;
                 default:

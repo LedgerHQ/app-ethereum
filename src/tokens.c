@@ -194,4 +194,6 @@ const tokenDefinition_t const TOKENS_POLYGON[NUM_TOKENS_POLYGON] = {};
 
 const tokenDefinition_t const TOKENS_SHYFT[NUM_TOKENS_SHYFT] = {};
 
+const tokenDefinition_t const TOKENS_MOONBEAM[NUM_TOKENS_MOONBEAM] = {};
+
 #endif

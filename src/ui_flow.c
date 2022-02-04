@@ -171,7 +171,7 @@ UX_STEP_CB(
       "Error",
       "Blind signing must be enabled in Settings",
     });
-#elif defined(TARGET_NANOX)
+#elif defined(TARGET_NANOX) || defined(TARGET_NANOS2)
 UX_STEP_CB(
     ux_warning_contract_data_step,
     pnn,

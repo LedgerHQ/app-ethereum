@@ -256,10 +256,10 @@ APP_LOAD_PARAMS += $(APP_LOAD_FLAGS) --path "44'/1'"
 DEFINES += $(DEFINES_LIB)
 
 #prepare hsm generation
-ifeq ($(TARGET_NAME), TARGET_NANOX)
-ICONNAME=icons/nanox_app_$(CHAIN).gif
-else
+ifeq ($(TARGET_NAME),TARGET_NANOS)
 ICONNAME=icons/nanos_app_$(CHAIN).gif
+else
+ICONNAME=icons/nanox_app_$(CHAIN).gif
 endif
 
 ################
@@ -291,19 +291,21 @@ DEFINES   += HAVE_UX_FLOW
 DEFINES   += HAVE_WEBUSB WEBUSB_URL_SIZE_B=0 WEBUSB_URL=""
 
 ifeq ($(TARGET_NAME),TARGET_NANOX)
-DEFINES   += IO_SEPROXYHAL_BUFFER_SIZE_B=300
 DEFINES   += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000
 DEFINES   += HAVE_BLE_APDU # basic ledger apdu transport over BLE
+endif
 
+ifeq ($(TARGET_NAME),TARGET_NANOS)
+DEFINES   += IO_SEPROXYHAL_BUFFER_SIZE_B=72
+DEFINES   += HAVE_WALLET_ID_SDK
+else
+DEFINES   += IO_SEPROXYHAL_BUFFER_SIZE_B=300
 DEFINES   += HAVE_GLO096
 DEFINES   += HAVE_BAGL BAGL_WIDTH=128 BAGL_HEIGHT=64
 DEFINES   += HAVE_BAGL_ELLIPSIS # long label truncation feature
 DEFINES   += HAVE_BAGL_FONT_OPEN_SANS_REGULAR_11PX
 DEFINES   += HAVE_BAGL_FONT_OPEN_SANS_EXTRABOLD_11PX
 DEFINES   += HAVE_BAGL_FONT_OPEN_SANS_LIGHT_16PX
-else
-DEFINES   += IO_SEPROXYHAL_BUFFER_SIZE_B=72
-DEFINES   += HAVE_WALLET_ID_SDK
 endif
 
 # Enables direct data signing without having to specify it in the settings. Useful when testing with speculos.
@@ -323,10 +325,10 @@ endif
 DEBUG:=0
 ifneq ($(DEBUG),0)
 DEFINES += HAVE_STACK_OVERFLOW_CHECK
-ifeq ($(TARGET_NAME),TARGET_NANOX)
-DEFINES   += HAVE_PRINTF PRINTF=mcu_usb_printf
-else
+ifeq ($(TARGET_NAME),TARGET_NANOS)
 DEFINES   += HAVE_PRINTF PRINTF=screen_printf
+else
+DEFINES   += HAVE_PRINTF PRINTF=mcu_usb_printf
 endif
 else
 DEFINES   += PRINTF\(...\)=

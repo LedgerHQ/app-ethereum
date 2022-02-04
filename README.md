@@ -25,7 +25,7 @@
 - [Documentation](#documentation)
   - [Plugins](#plugins)
 - [Testing](#testing)
-  - [Requirement](#requirement)
+  - [Requirements](#requirements)
     - [Build the applications required by the test suite](#build-the-applications-required-by-the-test-suite)
   - [Running all tests](#running-all-tests)
     - [With Makefile](#with-makefile)
@@ -85,7 +85,7 @@ Testing is done via the open-source framework [zemu](https://github.com/Zondax/z
 ### Running all tests
 #### With Makefile
 
-1. Then you can install the project by simply running on the `root` of the repo:
+1. Then you can install and run tests by simply running on the `root` of the repo:
     - ```sh
         make test
       ```

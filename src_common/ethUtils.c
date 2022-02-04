@@ -243,10 +243,10 @@ uint8_t *getNftContractAddress(const ethQueryContractUI_t *const msg) {
                          : msg->pluginSharedRO->txContent->destination);
 }
 
-bool adjustDecimals(char *src,
-                    uint32_t srcLength,
+bool adjustDecimals(const char *src,
+                    size_t srcLength,
                     char *target,
-                    uint32_t targetLength,
+                    size_t targetLength,
                     uint8_t decimals) {
     uint32_t startOffset;
     uint32_t lastZeroOffset = 0;

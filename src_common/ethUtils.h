@@ -61,10 +61,10 @@ void getEthDisplayableAddress(uint8_t *in,
 
 uint8_t *getNftContractAddress(const ethQueryContractUI_t *const msg);
 
-bool adjustDecimals(char *src,
-                    uint32_t srcLength,
+bool adjustDecimals(const char *src,
+                    size_t srcLength,
                     char *target,
-                    uint32_t targetLength,
+                    size_t targetLength,
                     uint8_t decimals);
 
 static __attribute__((no_instrument_function)) inline int allzeroes(void *buf, size_t n) {

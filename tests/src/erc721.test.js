@@ -16,15 +16,10 @@ test('[Nano ' + model.letter + '] Transfer ERC-721', zemu(model, async (sim, eth
   await send_apdu(eth.transport, set_plugin);
   await send_apdu(eth.transport, provide_nft_info);
   await send_apdu(eth.transport, sign_first);
-  send_apdu(eth.transport, sign_more);
+  let sign_promise = send_apdu(eth.transport, sign_more);
 
   await waitForAppScreen(sim, current_screen);
-  // Go to the reject screen
-  await sim.navigateAndCompareSnapshots('.', model.name + '_erc721_transfer', [8]);
-  // Accepting the transaction somehow takes too long for Zemu and takes the same screenshot
-  // twice, so accept it manually
-  await sim.clickLeft();
-  await sim.clickBoth();
-  // Sleep so it has time to send the response APDU
-  await Zemu.sleep(500);
+  await sim.navigateAndCompareSnapshots('.', model.name + '_erc721_transfer', [8, -1, 0]);
+
+  await sign_promise;
 }));

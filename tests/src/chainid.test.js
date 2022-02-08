@@ -12,14 +12,9 @@ nano_models.forEach(function(model) {
 
       await waitForAppScreen(sim);
       let clicks;
-      if (model.letter === 'S') clicks = [10];
-      else clicks = [6];
-      // Go to the reject screen
-      await sim.navigateAndCompareSnapshots('.', model.name + '_transfer_112233445566_network', clicks);
-      // Accepting the transaction somehow takes too long for Zemu and takes the same screenshot
-      // twice, so accept it manually
-      await sim.clickLeft();
-      await sim.clickBoth();
+      if (model.letter === 'S') clicks = 10;
+      else clicks = 6;
+      await sim.navigateAndCompareSnapshots('.', model.name + '_transfer_112233445566_network', [clicks, -1, 0]);
 
       await expect(tx).resolves.toEqual({
         "r": "509981d8dfb66757e25ff47c009b9b5bc5db0f169473e4735f5212b144f1c069",
@@ -39,14 +34,9 @@ nano_models.forEach(function(model) {
 
       await waitForAppScreen(sim);
       let clicks;
-      if (model.letter === 'S') clicks = [10];
-      else clicks = [6];
-      // Go to the reject screen
-      await sim.navigateAndCompareSnapshots('.', model.name + '_transfer_palm_network', clicks);
-      // Accepting the transaction somehow takes too long for Zemu and takes the same screenshot
-      // twice, so accept it manually
-      await sim.clickLeft();
-      await sim.clickBoth();
+      if (model.letter === 'S') clicks = 10;
+      else clicks = 6;
+      await sim.navigateAndCompareSnapshots('.', model.name + '_transfer_palm_network', [clicks, -1, 0]);
 
       await expect(tx).resolves.toEqual({
         "r": "946700c4972b3da24ddaa95e590ad25a8f905da62e2bd053285a4cc17f93f490",

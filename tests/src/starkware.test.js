@@ -27,14 +27,9 @@ nano_models.forEach(function(model) {
 
       await waitForAppScreen(sim);
       let clicks;
-      if (model.letter === 'S') clicks = [14];
-      else clicks = [10];
-      // Go to the reject screen
-      await sim.navigateAndCompareSnapshots('.', model.name + '_starkware_usdt_deposit', clicks);
-      // Accepting the transaction somehow takes too long for Zemu and takes the same screenshot
-      // twice, so accept it manually
-      await sim.clickLeft();
-      await sim.clickBoth();
+      if (model.letter === 'S') clicks = 14;
+      else clicks = 10;
+      await sim.navigateAndCompareSnapshots('.', model.name + '_starkware_usdt_deposit', [clicks, -1, 0]);
 
       await expect(tx).resolves.toEqual({
         "r": "14c368c0d32e399470d6113cf796c5f4cd70300766337d8b0ba71ecad21b3d52",

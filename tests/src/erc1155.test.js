@@ -16,17 +16,12 @@ test('[Nano ' + model.letter + '] Transfer ERC-1155', zemu(model, async (sim, et
   await send_apdu(eth.transport, set_plugin);
   await send_apdu(eth.transport, provide_nft_info);
   await send_apdu(eth.transport, sign_first);
-  send_apdu(eth.transport, sign_more);
+  let sign_promise = send_apdu(eth.transport, sign_more);
 
   await waitForAppScreen(sim, current_screen);
-  // Go to the reject screen
-  await sim.navigateAndCompareSnapshots('.', model.name + '_erc1155_transfer', [10]);
-  // Accepting the transaction somehow takes too long for Zemu and takes the same screenshot
-  // twice, so accept it manually
-  await sim.clickLeft();
-  await sim.clickBoth();
-  // Sleep so it has time to send the response APDU
-  await Zemu.sleep(500);
+  await sim.navigateAndCompareSnapshots('.', model.name + '_erc1155_transfer', [10, -1, 0]);
+
+  await sign_promise;
 }));
 
 test('[Nano ' + model.letter + '] Batch transfer ERC-1155', zemu(model, async (sim, eth) => {
@@ -44,15 +39,10 @@ test('[Nano ' + model.letter + '] Batch transfer ERC-1155', zemu(model, async (s
   await send_apdu(eth.transport, sign_first);
   await send_apdu(eth.transport, sign_more_1);
   await send_apdu(eth.transport, sign_more_2);
-  send_apdu(eth.transport, sign_more_3);
+  let sign_promise = send_apdu(eth.transport, sign_more_3);
 
   await waitForAppScreen(sim, current_screen);
-  // Go to the reject screen
-  await sim.navigateAndCompareSnapshots('.', model.name + '_erc1155_batch_transfer', [8]);
-  // Accepting the transaction somehow takes too long for Zemu and takes the same screenshot
-  // twice, so accept it manually
-  await sim.clickLeft();
-  await sim.clickBoth();
-  // Sleep so it has time to send the response APDU
-  await Zemu.sleep(500);
+  await sim.navigateAndCompareSnapshots('.', model.name + '_erc1155_batch_transfer', [8, -1, 0]);
+
+  await sign_promise;
 }));

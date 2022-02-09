@@ -11,15 +11,10 @@ nano_models.forEach(function(model) {
       );
 
       let clicks;
-      if (model.letter === 'S') clicks = [8];
-      else clicks = [6];
+      if (model.letter === 'S') clicks = 8;
+      else clicks = 6;
       await waitForAppScreen(sim);
-      // Go to the reject screen
-      await sim.navigateAndCompareSnapshots('.', model.name + '_approve_dai_tokens', clicks);
-      // Accepting the transaction somehow takes too long for Zemu and takes the same screenshot
-      // twice, so accept it manually
-      await sim.clickLeft();
-      await sim.clickBoth();
+      await sim.navigateAndCompareSnapshots('.', model.name + '_approve_dai_tokens', [clicks, -1, 0]);
 
       await expect(tx).resolves.toEqual({
         "r": "92243511396b65a4faa735a5472ea99b3ce0f7f2338eab426206730bc0ddc57f",

@@ -12,14 +12,9 @@ nano_models.forEach(function(model) {
 
         await waitForAppScreen(sim);
         let clicks;
-        if (model.letter === 'S') clicks = [9];
-        else clicks = [5];
-        // Go to the reject screen
-        await sim.navigateAndCompareSnapshots('.', model.name + '_transfer_ethereum_clone', clicks);
-        // Accepting the transaction somehow takes too long for Zemu and takes the same screenshot
-        // twice, so accept it manually
-        await sim.clickLeft();
-        await sim.clickBoth();
+        if (model.letter === 'S') clicks = 9;
+        else clicks = 5;
+        await sim.navigateAndCompareSnapshots('.', model.name + '_transfer_ethereum_clone', [clicks, -1, 0]);
 
         await expect(tx).resolves.toEqual({
           "r": "60df850d297e355596f87dc313a742032de4b59c5579186b3d59bdf31402fec0",

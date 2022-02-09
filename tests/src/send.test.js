@@ -13,14 +13,9 @@ nano_models.forEach(function(model) {
 
       await waitForAppScreen(sim);
       let clicks;
-      if (model.letter === 'S') clicks = [9];
-      else clicks = [5];
-      // Go to the reject screen
-      await sim.navigateAndCompareSnapshots('.', model.name + '_transfer_ethereum', clicks);
-      // Accepting the transaction somehow takes too long for Zemu and takes the same screenshot
-      // twice, so accept it manually
-      await sim.clickLeft();
-      await sim.clickBoth();
+      if (model.letter === 'S') clicks = 9;
+      else clicks = 5;
+      await sim.navigateAndCompareSnapshots('.', model.name + '_transfer_ethereum', [clicks, -1, 0]);
 
       await expect(tx).resolves.toEqual({
         "r": "6f389d15320f0501383526ed03de917c14212716f09a262dbc98431086a5db49",
@@ -52,14 +47,9 @@ nano_models.forEach(function(model) {
 
       await waitForAppScreen(sim);
       let clicks;
-      if (model.letter === 'S') clicks = [10];
-      else clicks = [6];
-      // Go to the reject screen
-      await sim.navigateAndCompareSnapshots('.', model.name + '_transfer_ethereum_5234_network', clicks);
-      // Accepting the transaction somehow takes too long for Zemu and takes the same screenshot
-      // twice, so accept it manually
-      await sim.clickLeft();
-      await sim.clickBoth();
+      if (model.letter === 'S') clicks = 10;
+      else clicks = 6;
+      await sim.navigateAndCompareSnapshots('.', model.name + '_transfer_ethereum_5234_network', [clicks, -1, 0]);
 
       await expect(tx).resolves.toEqual({
         "r": "07a7982dfd16360c96a03467877d0cf9c36f799deff4dace250cdb18e28a3b90",

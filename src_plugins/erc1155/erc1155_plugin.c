@@ -63,9 +63,11 @@ static void handle_finalize(void *parameters) {
         case SAFE_TRANSFER:
             msg->numScreens = 5;
             break;
-        case SET_APPROVAL_FOR_ALL:
         case SAFE_BATCH_TRANSFER:
             msg->numScreens = 4;
+            break;
+        case SET_APPROVAL_FOR_ALL:
+            msg->numScreens = 3;
             break;
         default:
             msg->result = ETH_PLUGIN_RESULT_ERROR;

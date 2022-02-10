@@ -15,11 +15,11 @@ static void set_approval_ui(ethQueryContractUI_t *msg, erc721_context_t *context
                                      chainConfig->chainId);
             break;
         case 1:
-            strlcpy(msg->title, "To Spend Your", msg->titleLength);
+            strlcpy(msg->title, "To Manage Your", msg->titleLength);
             if (msg->item1) {
                 strlcpy(msg->msg, (const char *) &msg->item1->nft.collectionName, msg->msgLength);
             } else {
-                strlcpy(msg->msg, "Not found", msg->msgLength);
+                strlcpy(msg->msg, "Not Found", msg->msgLength);
             }
             break;
         case 2:

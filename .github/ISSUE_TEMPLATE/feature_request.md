@@ -1,7 +1,7 @@
 ---
 name: Feature report
 about: Suggest an idea for this project 
-title: '[FEATURES] [Subject of the issue]'
+title: 'Add [Subject of the issue]'
 labels: 'enhancement'
 assignees: ''
 

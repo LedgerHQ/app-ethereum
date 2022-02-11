@@ -1,0 +1,67 @@
+name: 'Commit and push if the version file has changed'
+
+inputs:
+  name:
+    description: 'The name of the commiter'
+    required: true
+    default: 'github-actions[bot]'
+  email:
+    description: 'The email of the commiter'
+    required: true
+    default: 'github-actions[bot]@users.noreply.github.com'
+  message:
+    description: 'The commit message'
+    required: true
+    default: 'New release version(s)'
+  files:
+    description: 'The file(s) to add in the commit'
+    required: true
+    default: '*'
+  directory:
+    description: 'The directory in which the action will be performed'
+    required: true
+    default: '.'
+  branch:
+    description: 'Checkout (or create) on a specific branch before commit/push'
+    required: true
+    default: 'master'
+  secret:
+    description: 'A token allowing to push the commit on the repository'
+    required: true
+    default: '.'
+  repository:
+    description: 'The repository where to push'
+    required: true
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Commit the changes
+      run: |
+        git config --global user.name ${{ inputs.name }}
+        ORIGIN="$(pwd)"
+        cd ${{ inputs.directory }}
+        git switch ${{ inputs.branch }} 2>/dev/null || git switch -c ${{ inputs.branch }}
+        git status
+        CHANGES="$(git status --porcelain ${{ inputs.files }})"
+        if [ -z "${CHANGES}" ]; \
+        then \
+          echo "No changes, stopping now"; \
+          cd ${origin} \
+          exit 0; \
+        fi
+        echo -e "Changes:\n${CHANGES}"
+        git add ${{ inputs.files }}
+        git commit -am "${{ inputs.message }}"
+        git log -n 2
+        cd ${ORIGIN}
+      shell: bash
+
+    - name: Push commit
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ inputs.secret }}
+        branch: ${{ inputs.branch }}
+        directory: ${{ inputs.directory }}
+        repository: ${{ inputs.repository }}

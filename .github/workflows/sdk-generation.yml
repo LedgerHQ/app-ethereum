@@ -1,0 +1,43 @@
+name: Updating the SDK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+      - develop
+
+jobs:
+  updating_SDK:
+    name: Updating the SDK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v2
+        with:
+          # by default the action uses fetch-depth = 1, which creates
+          # shallow repositories from which we can't push
+          fetch-depth: 0
+          submodules: recursive
+          # needed, else the push inside the action will use default credentials
+          # instead of provided ones
+          persist-credentials: false
+
+      - name: Build new SDK
+        run: python tools/build_sdk.py
+
+      - name: Extract branch name
+        shell: bash
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+        id: extract_branch
+
+      - name: Commit & push changes in the SDK if any
+        uses: ./.github/actions/commit-changes
+        with:
+          name: 'ldg-github-ci'
+          directory: ethereum-plugin-sdk
+          branch: ${{ steps.extract_branch.outputs.branch }}
+          message: "[update] Branch ${{ steps.extract_branch.outputs.branch }} | Commit ${GITHUB_SHA}"
+          secret: ${{ secrets.CI_BOT_TOKEN }}
+          repository: LedgerHQ/ethereum-plugin-sdk

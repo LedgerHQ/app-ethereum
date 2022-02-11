@@ -14,6 +14,7 @@
     <br />
     <a href="https://github.com/LedgerHQ/app-ethereum/issues">Report Bug</a>
     · <a href="https://github.com/LedgerHQ/app-ethereum/issues">Request Feature</a>
+    · <a href="https://github.com/LedgerHQ/app-ethereum/issues">Request New Network</a>
   </p>
 </div>
 <br/>

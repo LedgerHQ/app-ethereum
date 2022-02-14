@@ -6,14 +6,14 @@
 #include "cx.h"
 #include "ethUstream.h"
 #include "tokens.h"
-
-#define PLUGIN_ID_LENGTH 30
+#include "shared_context.h"
 
 // Interface version. To be updated everytime we introduce breaking changes to the plugin interface.
 typedef enum {
-    ETH_PLUGIN_INTERFACE_VERSION_1 = 1,  // Version 1
+    ETH_PLUGIN_INTERFACE_VERSION_1 = 1,
     ETH_PLUGIN_INTERFACE_VERSION_2 = 2,
-    ETH_PLUGIN_INTERFACE_VERSION_LATEST = 3,
+    ETH_PLUGIN_INTERFACE_VERSION_3 = 3,
+    ETH_PLUGIN_INTERFACE_VERSION_LATEST = 4,
 } eth_plugin_interface_version_t;
 
 typedef enum {
@@ -21,7 +21,7 @@ typedef enum {
     ETH_PLUGIN_INIT_CONTRACT = 0x0101,
     ETH_PLUGIN_PROVIDE_PARAMETER = 0x0102,
     ETH_PLUGIN_FINALIZE = 0x0103,
-    ETH_PLUGIN_PROVIDE_TOKEN = 0x0104,
+    ETH_PLUGIN_PROVIDE_INFO = 0x0104,
     ETH_PLUGIN_QUERY_CONTRACT_ID = 0x0105,
     ETH_PLUGIN_QUERY_CONTRACT_UI = 0x0106,
     ETH_PLUGIN_CHECK_PRESENCE = 0x01FF
@@ -126,20 +126,20 @@ typedef struct ethPluginFinalize_t {
 
 // Provide token
 
-typedef struct ethPluginProvideToken_t {
+typedef struct ethPluginProvideInfo_t {
     ethPluginSharedRW_t *pluginSharedRW;
     ethPluginSharedRO_t *pluginSharedRO;
     uint8_t *pluginContext;
 
-    tokenDefinition_t *token1;  // set by the ETH application, to be saved by the plugin
-    tokenDefinition_t *token2;
+    union extraInfo_t *item1;  // set by the ETH application, to be saved by the plugin
+    union extraInfo_t *item2;
 
     uint8_t additionalScreens;  // Used by the plugin if it needs to display additional screens
                                 // based on the information received from the token definitions.
 
     uint8_t result;
 
-} ethPluginProvideToken_t;
+} ethPluginProvideInfo_t;
 
 // Query Contract name and version
 
@@ -164,9 +164,11 @@ typedef struct ethQueryContractID_t {
 typedef struct ethQueryContractUI_t {
     ethPluginSharedRW_t *pluginSharedRW;
     ethPluginSharedRO_t *pluginSharedRO;
+    union extraInfo_t *item1;
+    union extraInfo_t *item2;
+    char network_ticker[MAX_TICKER_LEN];
     uint8_t *pluginContext;
     uint8_t screenIndex;
-    char network_ticker[MAX_TICKER_LEN];
 
     char *title;
     size_t titleLength;

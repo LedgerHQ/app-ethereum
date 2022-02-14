@@ -22,6 +22,7 @@
 #include "ethUstream.h"
 
 #define MAX_TICKER_LEN 12  // 10 characters + ' ' + '\0'
+#define MAX_ITEMS      2
 
 typedef struct tokenDefinition_t {
 #ifdef HAVE_CONTRACT_NAME_IN_DESCRIPTOR
@@ -29,6 +30,9 @@ typedef struct tokenDefinition_t {
 #endif
     uint8_t address[ADDRESS_LENGTH];
     char ticker[MAX_TICKER_LEN];
+    char nft_pad[20];  // Adding some padding because the `nftInfo_t` is based on the size of a
+                       // `tokenDefinition_t`. By adding some padding here we give more space to the
+                       // collection name in the `nftInfo_t`. See `nftInfo_t` for more information.
     uint8_t decimals;
 } tokenDefinition_t;
 

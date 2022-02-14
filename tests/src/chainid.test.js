@@ -36,7 +36,7 @@ test('[Nano S] Transfer on palm network on Ethereum', zemu("nanos", async (sim, 
   });
 }));
 
-test('[Nano X] Transfer on network 112233445566 on Ethereum', zemu("nanox", async (sim, eth) => {
+test.skip('[Nano X] Transfer on network 112233445566 on Ethereum', zemu("nanox", async (sim, eth) => {
 
   const tx = eth.signTransaction(
     "44'/60'/1'/0/0",
@@ -53,7 +53,7 @@ test('[Nano X] Transfer on network 112233445566 on Ethereum', zemu("nanox", asyn
   });
 }));
 
-test('[Nano X] Transfer on palm network on Ethereum', zemu("nanox", async (sim, eth) => {
+test.skip('[Nano X] Transfer on palm network on Ethereum', zemu("nanox", async (sim, eth) => {
 
   const tx = eth.signTransaction(
     "44'/60'/1'/0/0",

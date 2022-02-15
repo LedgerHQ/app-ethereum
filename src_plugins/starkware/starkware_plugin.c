@@ -4,6 +4,7 @@
 #include "eth_plugin_internal.h"  // TODO : rewrite as independant code
 #include "stark_utils.h"
 #include "utils.h"
+#include "ethUtils.h"
 
 #ifdef HAVE_STARKWARE
 

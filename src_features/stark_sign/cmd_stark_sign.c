@@ -6,6 +6,7 @@
 #include "ui_flow.h"
 #include "poorstream.h"
 #include "ui_callbacks.h"
+#include "ethUtils.h"
 
 #define U8BE(buf, off) \
     (uint64_t)((((uint64_t) U4BE(buf, off)) << 32) | (((uint64_t) U4BE(buf, off + 4)) & 0xFFFFFFFF))

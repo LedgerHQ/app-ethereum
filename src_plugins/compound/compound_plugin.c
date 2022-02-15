@@ -3,6 +3,7 @@
 #include "shared_context.h"       // TODO : rewrite as independant code
 #include "eth_plugin_internal.h"  // TODO : rewrite as independant code
 #include "utils.h"
+#include "ethUtils.h"
 
 typedef enum {
     COMPOUND_REDEEM_UNDERLYING = 0,

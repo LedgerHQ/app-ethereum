@@ -3,6 +3,7 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
 #include "ui_flow.h"
+#include "ethUtils.h"
 
 void handleStarkwareProvideQuantum(uint8_t p1,
                                    __attribute__((unused)) uint8_t p2,

@@ -3,6 +3,7 @@
 #include "eth_plugin_internal.h"
 #include "shared_context.h"
 #include "network.h"
+#include "ethUtils.h"
 
 void eth_plugin_prepare_init(ethPluginInitContract_t *init, uint8_t *selector, uint32_t dataSize) {
     memset((uint8_t *) init, 0, sizeof(ethPluginInitContract_t));

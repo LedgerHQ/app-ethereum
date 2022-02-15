@@ -10,7 +10,6 @@
 #include "cx.h"
 #include "os_io_seproxyhal.h"
 #include "ethUstream.h"
-#include "ethUtils.h"
 #include "uint256.h"
 #include "tokens.h"
 #include "chainConfig.h"

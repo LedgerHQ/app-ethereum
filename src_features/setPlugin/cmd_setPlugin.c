@@ -227,7 +227,7 @@ void handleSetPlugin(uint8_t p1,
     }
 
     uint8_t signatureLen = workBuffer[offset];
-    PRINTF("Sigature len: %d\n", signatureLen);
+    PRINTF("Signature len: %d\n", signatureLen);
     if (signatureLen < MIN_DER_SIG_SIZE || signatureLen > MAX_DER_SIG_SIZE) {
         PRINTF("SignatureLen too big or too small. Must be between %d and %d, got %d\n",
                MIN_DER_SIG_SIZE,

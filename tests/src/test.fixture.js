@@ -50,11 +50,11 @@ function    apdu_as_string(str) {
 }
 
 async function  send_apdu(ts, apdu) {
-  await ts.send(apdu.cla,
-                apdu.ins,
-                apdu.p1,
-                apdu.p2,
-                apdu.data);
+    return ts.send(apdu.cla,
+                   apdu.ins,
+                   apdu.p1,
+                   apdu.p2,
+                   apdu.data);
 }
 
 // Generates a serializedTransaction from a rawHexTransaction copy pasted from etherscan.

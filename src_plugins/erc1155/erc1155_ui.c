@@ -26,7 +26,7 @@ static void set_approval_for_all_ui(ethQueryContractUI_t *msg, erc1155_context_t
             break;
         case 2:
             strlcpy(msg->title, "NFT Address", msg->titleLength);
-            getEthDisplayableAddress(msg->pluginSharedRO->txContent->destination,
+            getEthDisplayableAddress(getNftContractAddress(msg),
                                      msg->msg,
                                      msg->msgLength,
                                      &global_sha3,
@@ -59,7 +59,7 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *contex
             break;
         case 2:
             strlcpy(msg->title, "NFT Address", msg->titleLength);
-            getEthDisplayableAddress((uint8_t *) msg->item1->nft.contractAddress,
+            getEthDisplayableAddress(getNftContractAddress(msg),
                                      msg->msg,
                                      msg->msgLength,
                                      &global_sha3,
@@ -105,7 +105,7 @@ static void set_batch_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *
             break;
         case 2:
             strlcpy(msg->title, "NFT Address", msg->titleLength);
-            getEthDisplayableAddress((uint8_t *) msg->item1->nft.contractAddress,
+            getEthDisplayableAddress(getNftContractAddress(msg),
                                      msg->msg,
                                      msg->msgLength,
                                      &global_sha3,

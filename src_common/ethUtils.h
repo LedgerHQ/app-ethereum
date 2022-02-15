@@ -22,6 +22,8 @@
 
 #include "cx.h"
 #include "chainConfig.h"
+#include "eth_plugin_interface.h"
+
 /**
  * @brief Decode an RLP encoded field - see
  * https://github.com/ethereum/wiki/wiki/RLP
@@ -56,6 +58,8 @@ void getEthDisplayableAddress(uint8_t *in,
                               size_t out_len,
                               cx_sha3_t *sha3,
                               uint64_t chainId);
+
+uint8_t *getNftContractAddress(const ethQueryContractUI_t *const msg);
 
 bool adjustDecimals(char *src,
                     uint32_t srcLength,

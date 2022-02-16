@@ -2,8 +2,8 @@
 #include "apdu_constants.h"
 #include "ui_flow.h"
 #include "tokens.h"
-
-#define SELECTOR_SIZE 4
+#include "eth_plugin_interface.h"
+#include "eth_plugin_internal.h"
 
 void handleSetExternalPlugin(uint8_t p1,
                              uint8_t p2,
@@ -14,17 +14,22 @@ void handleSetExternalPlugin(uint8_t p1,
     UNUSED(p1);
     UNUSED(p2);
     UNUSED(flags);
-    PRINTF("Handling set External Plugin\n");
-    uint8_t hash[32];
+    PRINTF("Handling set Plugin\n");
+    uint8_t hash[INT256_LENGTH];
     cx_ecfp_public_key_t tokenKey;
     uint8_t pluginNameLength = *workBuffer;
+    PRINTF("plugin Name Length: %d\n", pluginNameLength);
     const size_t payload_size = 1 + pluginNameLength + ADDRESS_LENGTH + SELECTOR_SIZE;
 
     if (dataLength <= payload_size) {
+        PRINTF("data too small: expected at least %d got %d\n", payload_size, dataLength);
         THROW(0x6A80);
     }
 
     if (pluginNameLength + 1 > sizeof(dataContext.tokenContext.pluginName)) {
+        PRINTF("name length too big: expected max %d, got %d\n",
+               sizeof(dataContext.tokenContext.pluginName),
+               pluginNameLength + 1);
         THROW(0x6A80);
     }
 
@@ -41,8 +46,8 @@ void handleSetExternalPlugin(uint8_t p1,
                          sizeof(hash),
                          workBuffer + payload_size,
                          dataLength - payload_size)) {
-        PRINTF("Invalid external plugin signature %.*H\n", payload_size, workBuffer);
 #ifndef HAVE_BYPASS_SIGNATURES
+        PRINTF("Invalid plugin signature %.*H\n", payload_size, workBuffer);
         THROW(0x6A80);
 #endif
     }
@@ -77,10 +82,11 @@ void handleSetExternalPlugin(uint8_t p1,
 
     PRINTF("Plugin found\n");
 
-    memmove(dataContext.tokenContext.contract_address, workBuffer, ADDRESS_LENGTH);
+    memmove(dataContext.tokenContext.contractAddress, workBuffer, ADDRESS_LENGTH);
     workBuffer += ADDRESS_LENGTH;
-    memmove(dataContext.tokenContext.method_selector, workBuffer, SELECTOR_SIZE);
-    externalPluginIsSet = true;
+    memmove(dataContext.tokenContext.methodSelector, workBuffer, SELECTOR_SIZE);
+
+    pluginType = EXTERNAL;
 
     G_io_apdu_buffer[(*tx)++] = 0x90;
     G_io_apdu_buffer[(*tx)++] = 0x00;

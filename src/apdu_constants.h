@@ -15,6 +15,8 @@
 #define INS_GET_ETH2_PUBLIC_KEY             0x0E
 #define INS_SET_ETH2_WITHDRAWAL_INDEX       0x10
 #define INS_SET_EXTERNAL_PLUGIN             0x12
+#define INS_PROVIDE_NFT_INFORMATION         0x14
+#define INS_SET_PLUGIN                      0x16
 #define P1_CONFIRM                          0x01
 #define P1_NON_CONFIRM                      0x00
 #define P2_NO_CHAINCODE                     0x00
@@ -64,6 +66,12 @@ void handleProvideErc20TokenInformation(uint8_t p1,
                                         uint16_t dataLength,
                                         unsigned int *flags,
                                         unsigned int *tx);
+void handleProvideNFTInformation(uint8_t p1,
+                                 uint8_t p2,
+                                 uint8_t *dataBuffer,
+                                 uint16_t dataLength,
+                                 unsigned int *flags,
+                                 unsigned int *tx);
 void handleSign(uint8_t p1,
                 uint8_t p2,
                 uint8_t *dataBuffer,
@@ -95,6 +103,13 @@ void handleSetExternalPlugin(uint8_t p1,
                              uint16_t dataLength,
                              unsigned int *flags,
                              unsigned int *tx);
+
+void handleSetPlugin(uint8_t p1,
+                     uint8_t p2,
+                     uint8_t *workBuffer,
+                     uint16_t dataLength,
+                     unsigned int *flags,
+                     unsigned int *tx);
 
 #ifdef HAVE_ETH2
 

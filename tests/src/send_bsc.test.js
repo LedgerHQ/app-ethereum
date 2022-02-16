@@ -19,7 +19,7 @@ test('[Nano S] Transfer bsc', zemu("nanos", async (sim, eth) => {
   });
 }));
 
-test('[Nano X] Transfer bsc', zemu("nanox", async (sim, eth) => {
+test.skip('[Nano X] Transfer bsc', zemu("nanox", async (sim, eth) => {
 
   const tx = eth.signTransaction(
     "44'/60'/1'/0/0",

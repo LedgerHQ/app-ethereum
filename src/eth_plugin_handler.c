@@ -2,6 +2,7 @@
 #include "eth_plugin_handler.h"
 #include "eth_plugin_internal.h"
 #include "shared_context.h"
+#include "network.h"
 
 void eth_plugin_prepare_init(ethPluginInitContract_t *init, uint8_t *selector, uint32_t dataSize) {
     memset((uint8_t *) init, 0, sizeof(ethPluginInitContract_t));
@@ -21,8 +22,8 @@ void eth_plugin_prepare_finalize(ethPluginFinalize_t *finalize) {
     memset((uint8_t *) finalize, 0, sizeof(ethPluginFinalize_t));
 }
 
-void eth_plugin_prepare_provide_token(ethPluginProvideToken_t *provideToken) {
-    memset((uint8_t *) provideToken, 0, sizeof(ethPluginProvideToken_t));
+void eth_plugin_prepare_provide_info(ethPluginProvideInfo_t *provideToken) {
+    memset((uint8_t *) provideToken, 0, sizeof(ethPluginProvideInfo_t));
 }
 
 void eth_plugin_prepare_query_contract_ID(ethQueryContractID_t *queryContractID,
@@ -44,6 +45,23 @@ void eth_plugin_prepare_query_contract_UI(ethQueryContractUI_t *queryContractUI,
                                           char *msg,
                                           uint32_t msgLength) {
     memset((uint8_t *) queryContractUI, 0, sizeof(ethQueryContractUI_t));
+
+    // If no extra information was found, set the pointer to NULL
+    if (allzeroes(&tmpCtx.transactionContext.extraInfo[1], sizeof(union extraInfo_t))) {
+        queryContractUI->item1 = NULL;
+    } else {
+        queryContractUI->item1 = &tmpCtx.transactionContext.extraInfo[1];
+    }
+
+    // If no extra information was found, set the pointer to NULL
+    if (allzeroes(&tmpCtx.transactionContext.extraInfo[0], sizeof(union extraInfo_t))) {
+        queryContractUI->item2 = NULL;
+    } else {
+        queryContractUI->item2 = &tmpCtx.transactionContext.extraInfo[0];
+    }
+
+    strlcpy(queryContractUI->network_ticker, get_network_ticker(), MAX_TICKER_LEN);
+
     queryContractUI->screenIndex = screenIndex;
     strlcpy(queryContractUI->network_ticker,
             get_network_ticker(),
@@ -54,59 +72,81 @@ void eth_plugin_prepare_query_contract_UI(ethQueryContractUI_t *queryContractUI,
     queryContractUI->msgLength = msgLength;
 }
 
-eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
+static void eth_plugin_perform_init_default(uint8_t *contractAddress,
                                             ethPluginInitContract_t *init) {
-    uint8_t i;
-    const uint8_t **selectors;
-    dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_UNAVAILABLE;
+    // check if the registered external plugin matches the TX contract address / selector
+    if (memcmp(contractAddress,
+               dataContext.tokenContext.contractAddress,
+               sizeof(dataContext.tokenContext.contractAddress)) != 0) {
+        PRINTF("Got contract: %.*H\n", ADDRESS_LENGTH, contractAddress);
+        PRINTF("Expected contract: %.*H\n",
+               ADDRESS_LENGTH,
+               dataContext.tokenContext.contractAddress);
+        os_sched_exit(0);
+    }
+    if (memcmp(init->selector,
+               dataContext.tokenContext.methodSelector,
+               sizeof(dataContext.tokenContext.methodSelector)) != 0) {
+        PRINTF("Got selector: %.*H\n", SELECTOR_SIZE, init->selector);
+        PRINTF("Expected selector: %.*H\n", SELECTOR_SIZE, dataContext.tokenContext.methodSelector);
+        os_sched_exit(0);
+    }
+    PRINTF("Plugin will be used\n");
+    dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
+}
 
-    PRINTF("Selector %.*H\n", 4, init->selector);
-    if (externalPluginIsSet) {
-        // check if the registered external plugin matches the TX contract address / method selector
-        if (memcmp(contractAddress,
-                   dataContext.tokenContext.contract_address,
-                   sizeof(dataContext.tokenContext.contract_address)) != 0) {
-            PRINTF("Got contract: %.*H\n", ADDRESS_LENGTH, contractAddress);
-            PRINTF("Expected contract: %.*H\n",
-                   ADDRESS_LENGTH,
-                   dataContext.tokenContext.contract_address);
-            os_sched_exit(0);
+static bool eth_plugin_perform_init_old_internal(uint8_t *contractAddress,
+                                                 ethPluginInitContract_t *init) {
+    uint8_t i, j;
+    const uint8_t **selectors;
+
+    // Search internal plugin list
+    for (i = 0;; i++) {
+        selectors = (const uint8_t **) PIC(INTERNAL_ETH_PLUGINS[i].selectors);
+        if (selectors == NULL) {
+            break;
         }
-        if (memcmp(init->selector,
-                   dataContext.tokenContext.method_selector,
-                   sizeof(dataContext.tokenContext.method_selector)) != 0) {
-            PRINTF("Got selector: %.*H\n", SELECTOR_SIZE, init->selector);
-            PRINTF("Expected selector: %.*H\n",
-                   SELECTOR_SIZE,
-                   dataContext.tokenContext.method_selector);
-            os_sched_exit(0);
-        }
-        PRINTF("External plugin will be used\n");
-        dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
-        contractAddress = NULL;
-    } else {
-        // Search internal plugin list
-        for (i = 0;; i++) {
-            uint8_t j;
-            selectors = (const uint8_t **) PIC(INTERNAL_ETH_PLUGINS[i].selectors);
-            if (selectors == NULL) {
-                break;
-            }
-            for (j = 0; ((j < INTERNAL_ETH_PLUGINS[i].num_selectors) && (contractAddress != NULL));
-                 j++) {
-                if (memcmp(init->selector, (const void *) PIC(selectors[j]), SELECTOR_SIZE) == 0) {
-                    if ((INTERNAL_ETH_PLUGINS[i].availableCheck == NULL) ||
-                        ((PluginAvailableCheck) PIC(INTERNAL_ETH_PLUGINS[i].availableCheck))()) {
-                        strlcpy(dataContext.tokenContext.pluginName,
-                                INTERNAL_ETH_PLUGINS[i].alias,
-                                PLUGIN_ID_LENGTH);
-                        dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
-                        contractAddress = NULL;
-                        break;
-                    }
+        for (j = 0; ((j < INTERNAL_ETH_PLUGINS[i].num_selectors) && (contractAddress != NULL));
+             j++) {
+            if (memcmp(init->selector, (const void *) PIC(selectors[j]), SELECTOR_SIZE) == 0) {
+                if ((INTERNAL_ETH_PLUGINS[i].availableCheck == NULL) ||
+                    ((PluginAvailableCheck) PIC(INTERNAL_ETH_PLUGINS[i].availableCheck))()) {
+                    strlcpy(dataContext.tokenContext.pluginName,
+                            INTERNAL_ETH_PLUGINS[i].alias,
+                            PLUGIN_ID_LENGTH);
+                    dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
+                    return true;
                 }
             }
         }
+    }
+
+    return false;
+}
+
+eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
+                                            ethPluginInitContract_t *init) {
+    dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_UNAVAILABLE;
+
+    PRINTF("Selector %.*H\n", 4, init->selector);
+    switch (pluginType) {
+#ifdef HAVE_NFT_SUPPORT
+        case ERC1155:
+        case ERC721:
+#endif  // HAVE_NFT_SUPPORT
+        case EXTERNAL:
+            eth_plugin_perform_init_default(contractAddress, init);
+            contractAddress = NULL;
+            break;
+        case OLD_INTERNAL:
+            if (eth_plugin_perform_init_old_internal(contractAddress, init)) {
+                contractAddress = NULL;
+            }
+            break;
+        default:
+            PRINTF("Unsupported pluginType %d\n", pluginType);
+            os_sched_exit(0);
+            break;
     }
 
     // Do not handle a plugin if running in swap mode
@@ -139,7 +179,6 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
     ethPluginSharedRO_t pluginRO;
     char *alias;
     uint8_t i;
-    uint8_t internalPlugin = 0;
 
     pluginRW.sha3 = &global_sha3;
     pluginRO.txContent = &tmpContent.txContent;
@@ -182,12 +221,12 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
             ((ethPluginFinalize_t *) parameter)->pluginContext =
                 (uint8_t *) &dataContext.tokenContext.pluginContext;
             break;
-        case ETH_PLUGIN_PROVIDE_TOKEN:
-            PRINTF("-- PLUGIN PROVIDE TOKEN --\n");
-            ((ethPluginProvideToken_t *) parameter)->result = ETH_PLUGIN_RESULT_UNAVAILABLE;
-            ((ethPluginProvideToken_t *) parameter)->pluginSharedRW = &pluginRW;
-            ((ethPluginProvideToken_t *) parameter)->pluginSharedRO = &pluginRO;
-            ((ethPluginProvideToken_t *) parameter)->pluginContext =
+        case ETH_PLUGIN_PROVIDE_INFO:
+            PRINTF("-- PLUGIN PROVIDE INFO --\n");
+            ((ethPluginProvideInfo_t *) parameter)->result = ETH_PLUGIN_RESULT_UNAVAILABLE;
+            ((ethPluginProvideInfo_t *) parameter)->pluginSharedRW = &pluginRW;
+            ((ethPluginProvideInfo_t *) parameter)->pluginSharedRO = &pluginRO;
+            ((ethPluginProvideInfo_t *) parameter)->pluginContext =
                 (uint8_t *) &dataContext.tokenContext.pluginContext;
             break;
         case ETH_PLUGIN_QUERY_CONTRACT_ID:
@@ -210,35 +249,52 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
             return ETH_PLUGIN_RESULT_UNAVAILABLE;
     }
 
-    // Perform the call
-
-    for (i = 0;; i++) {
-        if (INTERNAL_ETH_PLUGINS[i].alias[0] == 0) {
+    switch (pluginType) {
+        case EXTERNAL: {
+            uint32_t params[3];
+            params[0] = (uint32_t) alias;
+            params[1] = method;
+            params[2] = (uint32_t) parameter;
+            BEGIN_TRY {
+                TRY {
+                    os_lib_call(params);
+                }
+                CATCH_OTHER(e) {
+                    PRINTF("Plugin call exception for %s\n", alias);
+                }
+                FINALLY {
+                }
+            }
+            END_TRY;
             break;
         }
-        if (strcmp(alias, INTERNAL_ETH_PLUGINS[i].alias) == 0) {
-            internalPlugin = 1;
-            ((PluginCall) PIC(INTERNAL_ETH_PLUGINS[i].impl))(method, parameter);
+#ifdef HAVE_NFT_SUPPORT
+        case ERC721: {
+            erc721_plugin_call(method, parameter);
             break;
         }
-    }
-
-    if (!internalPlugin) {
-        uint32_t params[3];
-        params[0] = (uint32_t) alias;
-        params[1] = method;
-        params[2] = (uint32_t) parameter;
-        BEGIN_TRY {
-            TRY {
-                os_lib_call(params);
-            }
-            CATCH_OTHER(e) {
-                PRINTF("Plugin call exception for %s\n", alias);
-            }
-            FINALLY {
-            }
+        case ERC1155: {
+            erc1155_plugin_call(method, parameter);
+            break;
         }
-        END_TRY;
+#endif  // HAVE_NFT_SUPPORT
+        case OLD_INTERNAL: {
+            // Perform the call
+            for (i = 0;; i++) {
+                if (INTERNAL_ETH_PLUGINS[i].alias[0] == 0) {
+                    break;
+                }
+                if (strcmp(alias, INTERNAL_ETH_PLUGINS[i].alias) == 0) {
+                    ((PluginCall) PIC(INTERNAL_ETH_PLUGINS[i].impl))(method, parameter);
+                    break;
+                }
+            }
+            break;
+        }
+        default: {
+            PRINTF("Error with pluginType: %d\n", pluginType);
+            return ETH_PLUGIN_RESULT_ERROR;
+        }
     }
 
     // Check the call result
@@ -276,9 +332,9 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
                     return ETH_PLUGIN_RESULT_UNAVAILABLE;
             }
             break;
-        case ETH_PLUGIN_PROVIDE_TOKEN:
-            PRINTF("RESULT: %d\n", ((ethPluginProvideToken_t *) parameter)->result);
-            switch (((ethPluginProvideToken_t *) parameter)->result) {
+        case ETH_PLUGIN_PROVIDE_INFO:
+            PRINTF("RESULT: %d\n", ((ethPluginProvideInfo_t *) parameter)->result);
+            switch (((ethPluginProvideInfo_t *) parameter)->result) {
                 case ETH_PLUGIN_RESULT_OK:
                 case ETH_PLUGIN_RESULT_FALLBACK:
                     break;

@@ -50,7 +50,7 @@ cx_sha3_t global_sha3;
 
 uint8_t appState;
 bool called_from_swap;
-bool externalPluginIsSet;
+pluginType_t pluginType;
 #ifdef HAVE_STARKWARE
 bool quantumSet;
 #endif
@@ -72,7 +72,7 @@ void reset_app_context() {
     // PRINTF("!!RESET_APP_CONTEXT\n");
     appState = APP_STATE_IDLE;
     called_from_swap = false;
-    externalPluginIsSet = false;
+    pluginType = OLD_INTERNAL;
 #ifdef HAVE_STARKWARE
     quantumSet = false;
 #endif
@@ -155,8 +155,8 @@ unsigned short io_exchange_al(unsigned char channel, unsigned short tx_len) {
     return 0;
 }
 
-tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
-    tokenDefinition_t *currentToken = NULL;
+extraInfo_t *getKnownToken(uint8_t *contractAddress) {
+    union extraInfo_t *currentItem = NULL;
 #ifdef HAVE_TOKENS_LIST
     uint32_t numTokens = 0;
     uint32_t i;
@@ -390,12 +390,22 @@ tokenDefinition_t *getKnownToken(uint8_t *contractAddress) {
         }
     }
 #endif
-    for (size_t i = 0; i < MAX_TOKEN; i++) {
-        currentToken = &tmpCtx.transactionContext.tokens[i];
+    //
+    for (uint8_t i = 0; i < MAX_ITEMS; i++) {
+        currentItem = (union extraInfo_t *) &tmpCtx.transactionContext.extraInfo[i].token;
         if (tmpCtx.transactionContext.tokenSet[i] &&
-            (memcmp(currentToken->address, contractAddress, ADDRESS_LENGTH) == 0)) {
+            (memcmp(currentItem->token.address, contractAddress, ADDRESS_LENGTH) == 0)) {
             PRINTF("Token found at index %d\n", i);
-            return currentToken;
+            return currentItem;
+        }
+    }
+
+    for (uint8_t i = 0; i < MAX_ITEMS; i++) {
+        currentItem = (union extraInfo_t *) &tmpCtx.transactionContext.extraInfo[i].token;
+        if (tmpCtx.transactionContext.tokenSet[i] &&
+            (memcmp(currentItem->nft.contractAddress, contractAddress, ADDRESS_LENGTH) == 0)) {
+            PRINTF("Token found at index %d\n", i);
+            return currentItem;
         }
     }
 
@@ -421,7 +431,7 @@ void handleGetWalletId(volatile unsigned int *tx) {
     // pubkey -> sha512
     cx_hash_sha512(pub.W, sizeof(pub.W), t, sizeof(t));
     // ! cookie !
-    os_memmove(G_io_apdu_buffer, t, 64);
+    memmove(G_io_apdu_buffer, t, 64);
     *tx = 64;
     THROW(0x9000);
 }
@@ -495,7 +505,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
 
             switch (G_io_apdu_buffer[OFFSET_INS]) {
                 case INS_GET_PUBLIC_KEY:
-                    memset(tmpCtx.transactionContext.tokenSet, 0, MAX_TOKEN);
+                    memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
                     handleGetPublicKey(G_io_apdu_buffer[OFFSET_P1],
                                        G_io_apdu_buffer[OFFSET_P2],
                                        G_io_apdu_buffer + OFFSET_CDATA,
@@ -513,6 +523,17 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                                                        tx);
                     break;
 
+#ifdef HAVE_NFT_SUPPORT
+                case INS_PROVIDE_NFT_INFORMATION:
+                    handleProvideNFTInformation(G_io_apdu_buffer[OFFSET_P1],
+                                                G_io_apdu_buffer[OFFSET_P2],
+                                                G_io_apdu_buffer + OFFSET_CDATA,
+                                                G_io_apdu_buffer[OFFSET_LC],
+                                                flags,
+                                                tx);
+                    break;
+#endif  // HAVE_NFT_SUPPORT
+
                 case INS_SET_EXTERNAL_PLUGIN:
                     handleSetExternalPlugin(G_io_apdu_buffer[OFFSET_P1],
                                             G_io_apdu_buffer[OFFSET_P2],
@@ -520,6 +541,15 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                                             G_io_apdu_buffer[OFFSET_LC],
                                             flags,
                                             tx);
+                    break;
+
+                case INS_SET_PLUGIN:
+                    handleSetPlugin(G_io_apdu_buffer[OFFSET_P1],
+                                    G_io_apdu_buffer[OFFSET_P2],
+                                    G_io_apdu_buffer + OFFSET_CDATA,
+                                    G_io_apdu_buffer[OFFSET_LC],
+                                    flags,
+                                    tx);
                     break;
 
                 case INS_SIGN:
@@ -541,7 +571,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                     break;
 
                 case INS_SIGN_PERSONAL_MESSAGE:
-                    memset(tmpCtx.transactionContext.tokenSet, 0, MAX_TOKEN);
+                    memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
                     handleSignPersonalMessage(G_io_apdu_buffer[OFFSET_P1],
                                               G_io_apdu_buffer[OFFSET_P2],
                                               G_io_apdu_buffer + OFFSET_CDATA,
@@ -551,7 +581,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                     break;
 
                 case INS_SIGN_EIP_712_MESSAGE:
-                    memset(tmpCtx.transactionContext.tokenSet, 0, MAX_TOKEN);
+                    memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
                     handleSignEIP712Message(G_io_apdu_buffer[OFFSET_P1],
                                             G_io_apdu_buffer[OFFSET_P2],
                                             G_io_apdu_buffer + OFFSET_CDATA,
@@ -563,7 +593,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
 #ifdef HAVE_ETH2
 
                 case INS_GET_ETH2_PUBLIC_KEY:
-                    memset(tmpCtx.transactionContext.tokenSet, 0, MAX_TOKEN);
+                    memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
                     handleGetEth2PublicKey(G_io_apdu_buffer[OFFSET_P1],
                                            G_io_apdu_buffer[OFFSET_P2],
                                            G_io_apdu_buffer + OFFSET_CDATA,
@@ -772,7 +802,7 @@ void coin_main(chain_config_t *coin_config) {
         chainConfig = coin_config;
     }
     reset_app_context();
-    tmpCtx.transactionContext.currentTokenIndex = 0;
+    tmpCtx.transactionContext.currentItemIndex = 0;
 
     for (;;) {
         UX_INIT();

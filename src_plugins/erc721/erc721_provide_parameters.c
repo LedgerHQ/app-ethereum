@@ -94,4 +94,4 @@ void handle_provide_parameter_721(void *parameters) {
     }
 }
 
-#endif // HAVE_NFT_SUPPORT
+#endif  // HAVE_NFT_SUPPORT

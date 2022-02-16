@@ -139,4 +139,4 @@ void erc1155_plugin_call(int message, void *parameters) {
     }
 }
 
-#endif // HAVE_NFT_SUPPORT
+#endif  // HAVE_NFT_SUPPORT

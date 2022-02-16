@@ -268,6 +268,8 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
             break;
         case CHAIN_KIND_KARDIACHAIN:
             numTokens = NUM_TOKENS_KARDIACHAIN;
+        case CHAIN_KIND_SHYFT:
+            numTokens = NUM_TOKENS_SHYFT;
             break;
     }
     for (i = 0; i < numTokens; i++) {
@@ -379,6 +381,8 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
                 break;
             case CHAIN_KIND_KARDIACHAIN:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_KARDIACHAIN[i]);
+            case CHAIN_KIND_SHYFT:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_SHYFT[i]);
                 break;
         }
         if (memcmp(currentToken->address, tmpContent.txContent.destination, ADDRESS_LENGTH) == 0) {
@@ -528,7 +532,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                                                 flags,
                                                 tx);
                     break;
-#endif // HAVE_NFT_SUPPORT
+#endif  // HAVE_NFT_SUPPORT
 
                 case INS_SET_EXTERNAL_PLUGIN:
                     handleSetExternalPlugin(G_io_apdu_buffer[OFFSET_P1],

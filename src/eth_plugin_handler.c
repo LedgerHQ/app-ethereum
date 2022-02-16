@@ -133,7 +133,7 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
 #ifdef HAVE_NFT_SUPPORT
         case ERC1155:
         case ERC721:
-#endif // HAVE_NFT_SUPPORT
+#endif  // HAVE_NFT_SUPPORT
         case EXTERNAL:
             eth_plugin_perform_init_default(contractAddress, init);
             contractAddress = NULL;
@@ -277,7 +277,7 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
             erc1155_plugin_call(method, parameter);
             break;
         }
-#endif // HAVE_NFT_SUPPORT
+#endif  // HAVE_NFT_SUPPORT
         case OLD_INTERNAL: {
             // Perform the call
             for (i = 0;; i++) {

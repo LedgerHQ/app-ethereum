@@ -1,3 +1,8 @@
+# KardiaChain ledger app
+This repo is forked from [app-ethereum](https://github.com/LedgerHQ/app-ethereum), used to build KardiaChain as Ethereum-cloned app for Ledger device.
+
+Credit to @andesigner
+
 # app-ethereum
 Ethereum wallet application framework for Nano S and Nano X.
 Ledger Blue is not maintained anymore, but the app can still be compiled for this target using the branch `blue-final-release`.

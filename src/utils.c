@@ -115,7 +115,7 @@ void amountToString(const uint8_t *amount,
                     uint8_t decimals,
                     const char *ticker,
                     char *out_buffer,
-                    uint8_t out_buffer_size) {
+                    size_t out_buffer_size) {
     char tmp_buffer[100] = {0};
 
     if (uint256_to_decimal(amount, amount_size, tmp_buffer, sizeof(tmp_buffer)) == false) {

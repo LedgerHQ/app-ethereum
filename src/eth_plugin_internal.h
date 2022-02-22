@@ -6,9 +6,9 @@
 #define PARAMETER_LENGTH 32
 #define RUN_APPLICATION  1
 
-void copy_address(uint8_t* dst, uint8_t* parameter, uint8_t dst_size);
+void copy_address(uint8_t* dst, const uint8_t* parameter, uint8_t dst_size);
 
-void copy_parameter(uint8_t* dst, uint8_t* parameter, uint8_t dst_size);
+void copy_parameter(uint8_t* dst, const uint8_t* parameter, uint8_t dst_size);
 
 void erc721_plugin_call(int message, void* parameters);
 void erc1155_plugin_call(int message, void* parameters);

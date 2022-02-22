@@ -76,7 +76,7 @@ typedef struct ethPluginInitContract_t {
     ethPluginSharedRO_t *pluginSharedRO;
     uint8_t *pluginContext;
     size_t pluginContextLength;
-    uint8_t *selector;  // 4 bytes selector
+    const uint8_t *selector;  // 4 bytes selector
     size_t dataSize;
 
     char *alias;  // 29 bytes alias if ETH_PLUGIN_RESULT_OK_ALIAS set
@@ -89,7 +89,7 @@ typedef struct ethPluginProvideParameter_t {
     ethPluginSharedRW_t *pluginSharedRW;
     ethPluginSharedRO_t *pluginSharedRO;
     uint8_t *pluginContext;
-    uint8_t *parameter;  // 32 bytes parameter
+    const uint8_t *parameter;  // 32 bytes parameter
     uint32_t parameterOffset;
 
     uint8_t result;
@@ -106,9 +106,9 @@ typedef struct ethPluginFinalize_t {
     uint8_t *tokenLookup1;  // set by the plugin if a token should be looked up
     uint8_t *tokenLookup2;
 
-    uint8_t *amount;   // set an uint256 pointer if uiType is UI_AMOUNT_ADDRESS
-    uint8_t *address;  // set to the destination address if uiType is UI_AMOUNT_ADDRESS. Set to the
-                       // user's address if uiType is UI_TYPE_GENERIC
+    const uint8_t *amount;   // set an uint256 pointer if uiType is UI_AMOUNT_ADDRESS
+    const uint8_t *address;  // set to the destination address if uiType is UI_AMOUNT_ADDRESS. Set
+                             // to the user's address if uiType is UI_TYPE_GENERIC
 
     uint8_t uiType;
     uint8_t numScreens;  // ignored if uiType is UI_AMOUNT_ADDRESS

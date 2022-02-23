@@ -268,6 +268,8 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
             break;
         case CHAIN_KIND_SHYFT:
             numTokens = NUM_TOKENS_SHYFT;
+        case CHAIN_KIND_CPCHAIN:
+            numTokens = NUM_TOKENS_CPCHAIN;
             break;
     }
     for (i = 0; i < numTokens; i++) {
@@ -379,6 +381,9 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
                 break;
             case CHAIN_KIND_SHYFT:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_SHYFT[i]);
+                break;
+            case CHAIN_KIND_CPCHAIN:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_CPCHAIN[i]);
                 break;
         }
         if (memcmp(currentToken->address, tmpContent.txContent.destination, ADDRESS_LENGTH) == 0) {

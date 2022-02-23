@@ -106,6 +106,7 @@ static const uint8_t LEDGER_SIGNATURE_PUBLIC_KEY[] = {
 #define NUM_TOKENS_MOONRIVER        0
 #define NUM_TOKENS_POLYGON          0
 #define NUM_TOKENS_SHYFT            0
+#define NUM_TOKENS_CPCHAIN          0
 
 extern tokenDefinition_t const TOKENS_AKROMA[NUM_TOKENS_AKROMA];
 extern tokenDefinition_t const TOKENS_ELLAISM[NUM_TOKENS_ELLAISM];
@@ -143,6 +144,7 @@ extern tokenDefinition_t const TOKENS_SONGBIRD[NUM_TOKENS_SONGBIRD];
 extern tokenDefinition_t const TOKENS_MOONRIVER[NUM_TOKENS_MOONRIVER];
 extern tokenDefinition_t const TOKENS_POLYGON[NUM_TOKENS_POLYGON];
 extern tokenDefinition_t const TOKENS_SHYFT[NUM_TOKENS_SHYFT];
+extern tokenDefinition_t const TOKENS_CPCHAIN[NUM_TOKENS_CPCHAIN];
 
 #endif /* HAVE_TOKENS_LIST */
 

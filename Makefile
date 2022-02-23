@@ -238,9 +238,14 @@ else ifeq ($(CHAIN),shyft)
 APP_LOAD_PARAMS += --path "44'/60'"
 DEFINES += CHAINID_UPCASE=\"SHYFT\" CHAINID_COINNAME=\"SHFT\" CHAIN_KIND=CHAIN_KIND_SHYFT CHAIN_ID=7341
 APPNAME = "Shyft"
+else ifeq ($(CHAIN),cpchain)
+APP_LOAD_PARAMS += --path "44'/337'"
+DEFINES += CHAINID_UPCASE=\"CPCHAIN\" CHAINID_COINNAME=\"CPC\" CHAIN_KIND=CHAIN_KIND_CPCHAIN CHAIN_ID=337
+APPNAME = "CPChain"
+DEFINES_LIB =
 else
 ifeq ($(filter clean,$(MAKECMDGOALS)),)
-$(error Unsupported CHAIN - use ethereum, ropsten, goerli, moonriver, ethereum_classic, expanse, poa, artis_sigma1, artis_tau1, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, pirl, akroma, atheios, callisto, ethersocial, ellaism, ether1, ethergem, gochain, mix, reosc, hpb, tomochain, tobalaba, dexon, volta, ewc, webchain, thundercore, bsc, songbird, polygon, shyft)
+$(error Unsupported CHAIN - use ethereum, ropsten, goerli, moonriver, ethereum_classic, expanse, poa, artis_sigma1, artis_tau1, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, pirl, akroma, atheios, callisto, ethersocial, ellaism, ether1, ethergem, gochain, mix, reosc, hpb, tomochain, tobalaba, dexon, volta, ewc, webchain, thundercore, bsc, songbird, polygon, shyft, cpchain)
 endif
 endif
 
@@ -423,4 +428,4 @@ include $(BOLOS_SDK)/Makefile.rules
 dep/%.d: %.c Makefile
 
 listvariants:
-	@echo VARIANTS CHAIN ethereum ropsten goerli moonriver ethereum_classic expanse poa rsk rsk_testnet ubiq wanchain pirl akroma atheios callisto ethersocial ether1 gochain musicoin ethergem mix ellaism reosc hpb tomochain dexon volta ewc thundercore bsc songbird polygon shyft
+	@echo VARIANTS CHAIN ethereum ropsten goerli moonriver ethereum_classic expanse poa rsk rsk_testnet ubiq wanchain pirl akroma atheios callisto ethersocial ether1 gochain musicoin ethergem mix ellaism reosc hpb tomochain dexon volta ewc thundercore bsc songbird polygon shyft cpchain

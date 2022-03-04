@@ -1,0 +1,21 @@
+# Editor Files and Folders
+
+.idea/
+.vscode/
+.DS_Store
+*~
+\#*#
+
+# Build Files and Binaries
+
+*.log
+*.o
+*.so
+*.dll
+*.dylib
+cmake-build-*/
+*build/
+
+# Coverage file
+coverage.info
+coverage

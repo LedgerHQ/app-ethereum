@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wall -pedantic -g -O0 --coverage   --coverage -lgcov CMakeFiles/test_main.dir/tests/main.c.o  -o test_main  -Wl,-rpath,/home/cseguret/Projects/app-ethereum/tests/unit/build/_deps/cmocka-build/src _deps/cmocka-build/src/libcmocka.so.0.7.0 -lgcov 

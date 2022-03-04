@@ -1,0 +1,1 @@
+/usr/bin/cc -fPIC -g -Wall -pedantic -g -O0 --coverage  --coverage -lgcov -shared -Wl,-soname,libcmocka.so.0 -o libcmocka.so.0.7.0 CMakeFiles/cmocka.dir/cmocka.c.o 

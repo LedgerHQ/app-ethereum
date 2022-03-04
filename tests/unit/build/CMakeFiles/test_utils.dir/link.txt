@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wall -pedantic -g -O0 --coverage   --coverage -lgcov CMakeFiles/test_utils.dir/tests/utils.c.o  -o test_utils  -Wl,-rpath,/home/cseguret/Projects/app-ethereum/tests/unit/build/_deps/cmocka-build/src:/home/cseguret/Projects/app-ethereum/tests/unit/build _deps/cmocka-build/src/libcmocka.so.0.7.0 -lgcov libutils.so 

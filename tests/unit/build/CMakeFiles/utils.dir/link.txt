@@ -1,1 +1,0 @@
-/usr/bin/cc -fPIC -g -Wall -pedantic -g -O0 --coverage  --coverage -lgcov -shared -Wl,-soname,libutils.so -o libutils.so CMakeFiles/utils.dir/home/cseguret/Projects/app-ethereum/src/utils2.c.o 

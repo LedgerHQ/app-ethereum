@@ -1,3 +1,0 @@
-/home/cseguret/Projects/app-ethereum/tests/unit/build/_deps/cmocka-subbuild/CMakeFiles/rebuild_cache.dir
-/home/cseguret/Projects/app-ethereum/tests/unit/build/_deps/cmocka-subbuild/CMakeFiles/edit_cache.dir
-/home/cseguret/Projects/app-ethereum/tests/unit/build/_deps/cmocka-subbuild/CMakeFiles/cmocka-populate.dir

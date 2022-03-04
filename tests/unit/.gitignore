@@ -15,6 +15,7 @@
 *.dylib
 cmake-build-*/
 *build/
+build/
 
 # Coverage file
 coverage.info

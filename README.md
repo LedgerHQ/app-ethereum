@@ -66,7 +66,7 @@ Testing is done via the open-source framework [zemu](https://github.com/Zondax/z
 
 ### Requirements
 
-- [nodeJS](https://github.com/nvm-sh/nvm)
+- [nodeJS == 16](https://github.com/nvm-sh/nvm)
 - [yarn](https://classic.yarnpkg.com/lang/en/docs/install/#debian-stable)
 - [build environnement](https://github.com/LedgerHQ/ledger-app-builder/blob/master/Dockerfile)
 

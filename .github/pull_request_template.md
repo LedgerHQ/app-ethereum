@@ -8,6 +8,9 @@ Please provide a detailed description of what was done in this PR.
 - [ ] Bugfix (non-breaking change that solves an issue)
 - [ ] New feature (non-breaking change that adds functionality)
 - [ ] Breaking change (change that is not backwards-compatible and/or changes current functionality)
+- [ ] Tests
+- [ ] Documentation
+- [ ] Other (for changes that might not fit in any category)
 
 ## Breaking changes
 

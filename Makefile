@@ -179,10 +179,6 @@ else ifeq ($(CHAIN),tomochain)
 APP_LOAD_PARAMS += --path "44'/889'"
 DEFINES += CHAINID_UPCASE=\"TOMOCHAIN\" CHAINID_COINNAME=\"TOMO\" CHAIN_KIND=CHAIN_KIND_TOMOCHAIN CHAIN_ID=88
 APPNAME = "TomoChain"
-else ifeq ($(CHAIN),id4good)
-APP_LOAD_PARAMS += --path "44'/161803'"
-DEFINES += CHAINID_UPCASE=\"ID4GOOD\" CHAINID_COINNAME=\"A4G\" CHAIN_KIND=CHAIN_KIND_ID4GOOD CHAIN_ID=7788
-APPNAME = "ID4Good"
 else ifeq ($(CHAIN),moonriver)
 APP_LOAD_PARAMS += --path "44'/60'" --path "44'/1285'"
 DEFINES += CHAINID_UPCASE=\"MOONRIVER\" CHAINID_COINNAME=\"MOVR\" CHAIN_KIND=CHAIN_KIND_MOONRIVER CHAIN_ID=1285
@@ -242,9 +238,13 @@ else ifeq ($(CHAIN),shyft)
 APP_LOAD_PARAMS += --path "44'/60'"
 DEFINES += CHAINID_UPCASE=\"SHYFT\" CHAINID_COINNAME=\"SHFT\" CHAIN_KIND=CHAIN_KIND_SHYFT CHAIN_ID=7341
 APPNAME = "Shyft"
+else ifeq ($(CHAIN),id4good)
+APP_LOAD_PARAMS += --path "44'/161803'"
+DEFINES += CHAINID_UPCASE=\"ID4GOOD\" CHAINID_COINNAME=\"A4G\" CHAIN_KIND=CHAIN_KIND_ID4GOOD CHAIN_ID=7788
+APPNAME = "ID4Good"
 else
 ifeq ($(filter clean,$(MAKECMDGOALS)),)
-$(error Unsupported CHAIN - use ethereum, ropsten, goerli, moonriver, ethereum_classic, expanse, poa, artis_sigma1, artis_tau1, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, pirl, akroma, atheios, callisto, ethersocial, ellaism, ether1, ethergem, gochain, mix, reosc, hpb, tomochain, id4good, tobalaba, dexon, volta, ewc, webchain, thundercore, bsc, songbird, polygon, shyft)
+$(error Unsupported CHAIN - use ethereum, ropsten, goerli, moonriver, ethereum_classic, expanse, poa, artis_sigma1, artis_tau1, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, pirl, akroma, atheios, callisto, ethersocial, ellaism, ether1, ethergem, gochain, mix, reosc, hpb, tomochain, tobalaba, dexon, volta, ewc, webchain, thundercore, bsc, songbird, polygon, shyft, id4good)
 endif
 endif
 
@@ -427,4 +427,4 @@ include $(BOLOS_SDK)/Makefile.rules
 dep/%.d: %.c Makefile
 
 listvariants:
-	@echo VARIANTS CHAIN ethereum ropsten goerli moonriver ethereum_classic expanse poa rsk rsk_testnet ubiq wanchain pirl akroma atheios callisto ethersocial ether1 gochain musicoin ethergem mix ellaism reosc hpb tomochain id4good dexon volta ewc thundercore bsc songbird polygon shyft
+	@echo VARIANTS CHAIN ethereum ropsten goerli moonriver ethereum_classic expanse poa rsk rsk_testnet ubiq wanchain pirl akroma atheios callisto ethersocial ether1 gochain musicoin ethergem mix ellaism reosc hpb tomochain dexon volta ewc thundercore bsc songbird polygon shyft id4good

@@ -46,7 +46,6 @@ typedef enum chain_kind_e {
     CHAIN_KIND_REOSC,
     CHAIN_KIND_HPB,
     CHAIN_KIND_TOMOCHAIN,
-    CHAIN_KIND_ID4GOOD,
     CHAIN_KIND_TOBALABA,
     CHAIN_KIND_DEXON,
     CHAIN_KIND_VOLTA,
@@ -59,7 +58,8 @@ typedef enum chain_kind_e {
     CHAIN_KIND_BSC,
     CHAIN_KIND_SONGBIRD,
     CHAIN_KIND_POLYGON,
-    CHAIN_KIND_SHYFT
+    CHAIN_KIND_SHYFT,
+    CHAIN_KIND_ID4GOOD
 } chain_kind_t;
 
 typedef struct chain_config_s {

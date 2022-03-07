@@ -1,4 +1,5 @@
-#ifndef __ETH_PLUGIN_INTERNAL_H__
+#ifndef _ETH_PLUGIN_INTERNAL_H_
+#define _ETH_PLUGIN_INTERNAL_H_
 
 #include "eth_plugin_interface.h"
 
@@ -45,4 +46,4 @@ extern const uint8_t* const STARKWARE_SELECTORS[NUM_STARKWARE_SELECTORS];
 
 extern internalEthPlugin_t const INTERNAL_ETH_PLUGINS[];
 
-#endif
+#endif  // _ETH_PLUGIN_INTERNAL_H_

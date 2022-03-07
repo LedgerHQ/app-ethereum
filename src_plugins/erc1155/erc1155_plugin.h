@@ -1,6 +1,7 @@
-#ifdef HAVE_NFT_SUPPORT
+#ifndef _ERC1155_PLUGIN_H_
+#define _ERC1155_PLUGIN_H_
 
-#pragma once
+#ifdef HAVE_NFT_SUPPORT
 
 #include <string.h>
 #include "eth_plugin_handler.h"
@@ -53,3 +54,5 @@ void handle_provide_parameter_1155(void *parameters);
 void handle_query_contract_ui_1155(void *parameters);
 
 #endif  // HAVE_NFT_SUPPORT
+
+#endif  // _ERC1155_PLUGIN_H_

@@ -87,4 +87,4 @@ static __attribute__((no_instrument_function)) inline int ismaxint(uint8_t *buf,
 
 static const char HEXDIGITS[] = "0123456789abcdef";
 
-#endif /* _ETHUTILS_H_ */
+#endif  // _ETHUTILS_H_

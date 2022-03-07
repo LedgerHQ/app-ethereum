@@ -1,6 +1,5 @@
-#ifndef __SHARED_CONTEXT_H__
-
-#define __SHARED_CONTEXT_H__
+#ifndef _SHARED_CONTEXT_H_
+#define _SHARED_CONTEXT_H_
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -221,4 +220,4 @@ extern uint32_t eth2WithdrawalIndex;
 
 void reset_app_context(void);
 
-#endif  // __SHARED_CONTEXT_H__
+#endif  // _SHARED_CONTEXT_H_

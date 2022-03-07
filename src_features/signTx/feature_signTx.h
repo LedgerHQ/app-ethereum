@@ -1,3 +1,6 @@
+#ifndef _SIGN_TX_H_
+#define _SIGN_TX_H_
+
 #include "shared_context.h"
 
 typedef enum {
@@ -12,3 +15,5 @@ void finalizeParsing(bool direct);
 void prepareFeeDisplay();
 void prepareNetworkDisplay();
 void ux_approve_tx(bool fromPlugin);
+
+#endif  // _SIGN_TX_H_

@@ -141,4 +141,4 @@ extern tokenDefinition_t const TOKENS_SHYFT[NUM_TOKENS_SHYFT];
 
 #endif /* HAVE_TOKENS_LIST */
 
-#endif /* _TOKENS_H_ */
+#endif  // _TOKENS_H_

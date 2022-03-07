@@ -1,3 +1,6 @@
+#ifndef _NETWORK_H_
+#define _NETWORK_H_
+
 #include <stdint.h>
 #include "tokens.h"
 #include "shared_context.h"
@@ -18,3 +21,5 @@ const network_info_t *get_network(void);
 const char *get_network_name(void);
 // Returns a pointer to the network ticker, or chainConfig->coinName if there is none.
 const char *get_network_ticker(void);
+
+#endif  // _NETWORK_H_

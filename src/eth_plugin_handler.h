@@ -1,4 +1,5 @@
-#ifndef __ETH_PLUGIN_HANDLER_H__
+#ifndef _ETH_PLUGIN_HANDLER_H_
+#define _ETH_PLUGIN_HANDLER_H_
 
 #include "eth_plugin_interface.h"
 
@@ -27,4 +28,4 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter);
 
 void plugin_ui_start(void);
 
-#endif
+#endif  // _ETH_PLUGIN_HANDLER_H_

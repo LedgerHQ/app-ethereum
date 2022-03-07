@@ -1,3 +1,6 @@
+#ifndef _APDU_CONSTANTS_H_
+#define _APDU_CONSTANTS_H_
+
 #include "shared_context.h"
 
 #define APP_FLAG_DATA_ALLOWED          0x01
@@ -156,3 +159,5 @@ void handleStarkwareUnsafeSign(uint8_t p1,
                                unsigned int *tx);
 
 #endif
+
+#endif  // _APDU_CONSTANTS_H_

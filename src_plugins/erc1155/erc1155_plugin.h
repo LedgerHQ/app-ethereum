@@ -11,12 +11,11 @@
 
 // Internal plugin for EIP 1155: https://eips.ethereum.org/EIPS/eip-1155
 
-#define NUM_ERC1155_SELECTORS 3
-
 typedef enum {
     SET_APPROVAL_FOR_ALL,
     SAFE_TRANSFER,
     SAFE_BATCH_TRANSFER,
+    SELECTORS_COUNT
 } erc1155_selector_t;
 
 typedef enum {

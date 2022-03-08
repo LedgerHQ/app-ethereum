@@ -9,7 +9,7 @@ static const uint8_t ERC1155_APPROVE_FOR_ALL_SELECTOR[SELECTOR_SIZE] = {0xa2, 0x
 static const uint8_t ERC1155_SAFE_TRANSFER_SELECTOR[SELECTOR_SIZE] = {0xf2, 0x42, 0x43, 0x2a};
 static const uint8_t ERC1155_SAFE_BATCH_TRANSFER[SELECTOR_SIZE] = {0x2e, 0xb2, 0xc2, 0xd6};
 
-const uint8_t *const ERC1155_SELECTORS[NUM_ERC1155_SELECTORS] = {
+const uint8_t *const ERC1155_SELECTORS[SELECTORS_COUNT] = {
     ERC1155_APPROVE_FOR_ALL_SELECTOR,
     ERC1155_SAFE_TRANSFER_SELECTOR,
     ERC1155_SAFE_BATCH_TRANSFER,
@@ -20,7 +20,7 @@ static void handle_init_contract(void *parameters) {
     erc1155_context_t *context = (erc1155_context_t *) msg->pluginContext;
 
     uint8_t i;
-    for (i = 0; i < NUM_ERC1155_SELECTORS; i++) {
+    for (i = 0; i < SELECTORS_COUNT; i++) {
         if (memcmp((uint8_t *) PIC(ERC1155_SELECTORS[i]), msg->selector, SELECTOR_SIZE) == 0) {
             context->selectorIndex = i;
             break;
@@ -28,7 +28,7 @@ static void handle_init_contract(void *parameters) {
     }
 
     // No selector found.
-    if (i == NUM_ERC1155_SELECTORS) {
+    if (i == SELECTORS_COUNT) {
         PRINTF("Unknown erc1155 selector %.*H\n", SELECTOR_SIZE, msg->selector);
         msg->result = ETH_PLUGIN_RESULT_FALLBACK;
         return;

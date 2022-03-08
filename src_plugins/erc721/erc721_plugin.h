@@ -10,14 +10,13 @@
 
 // Internal plugin for EIP 721: https://eips.ethereum.org/EIPS/eip-721
 
-#define NUM_ERC721_SELECTORS 5
-
 typedef enum {
     APPROVE,
     SET_APPROVAL_FOR_ALL,
     TRANSFER,
     SAFE_TRANSFER,
     SAFE_TRANSFER_DATA,
+    SELECTORS_COUNT
 } erc721_selector_t;
 
 typedef enum {

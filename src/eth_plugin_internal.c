@@ -1,3 +1,4 @@
+#include <string.h>
 #include "eth_plugin_internal.h"
 
 bool erc20_plugin_available_check(void);

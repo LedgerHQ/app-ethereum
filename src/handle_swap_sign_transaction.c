@@ -1,6 +1,6 @@
-#include "handle_swap_sign_transaction.h"
-#include "usbd_core.h"
+#include "os_io_seproxyhal.h"
 #include "ux.h"
+#include "handle_swap_sign_transaction.h"
 #include "shared_context.h"
 #include "utils.h"
 

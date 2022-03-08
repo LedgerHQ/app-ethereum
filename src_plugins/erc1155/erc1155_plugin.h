@@ -3,12 +3,11 @@
 
 #ifdef HAVE_NFT_SUPPORT
 
-#include <string.h>
-#include "eth_plugin_handler.h"
-#include "shared_context.h"
-#include "ethUtils.h"
-#include "utils.h"
+#include <stdbool.h>
+#include <stdint.h>
+#include "ethUstream.h"
 #include "uint256.h"
+#include "nft.h"
 
 // Internal plugin for EIP 1155: https://eips.ethereum.org/EIPS/eip-1155
 

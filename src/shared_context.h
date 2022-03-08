@@ -3,13 +3,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <string.h>
-
-#include "os.h"
-#include "cx.h"
-#include "os_io_seproxyhal.h"
 #include "ethUstream.h"
-#include "uint256.h"
 #include "tokens.h"
 #include "chainConfig.h"
 #include "nft.h"

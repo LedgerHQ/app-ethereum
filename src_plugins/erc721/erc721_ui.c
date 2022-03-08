@@ -1,6 +1,10 @@
 #ifdef HAVE_NFT_SUPPORT
 
+#include <string.h>
 #include "erc721_plugin.h"
+#include "eth_plugin_interface.h"
+#include "ethUtils.h"
+#include "utils.h"
 
 static void set_approval_ui(ethQueryContractUI_t *msg, erc721_context_t *context) {
     switch (msg->screenIndex) {

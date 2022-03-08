@@ -1,6 +1,8 @@
 #ifndef _ETH_PLUGIN_INTERNAL_H_
 #define _ETH_PLUGIN_INTERNAL_H_
 
+#include <stdint.h>
+#include <stdbool.h>
 #include "eth_plugin_interface.h"
 
 #define SELECTOR_SIZE    4

@@ -1,7 +1,9 @@
 #ifdef HAVE_NFT_SUPPORT
 
+#include <string.h>
 #include "erc1155_plugin.h"
 #include "eth_plugin_internal.h"
+#include "ethUtils.h"
 
 static const uint8_t ERC1155_APPROVE_FOR_ALL_SELECTOR[SELECTOR_SIZE] = {0xa2, 0x2c, 0xb4, 0x65};
 static const uint8_t ERC1155_SAFE_TRANSFER_SELECTOR[SELECTOR_SIZE] = {0xf2, 0x42, 0x43, 0x2a};

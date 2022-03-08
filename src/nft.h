@@ -1,8 +1,6 @@
 #ifndef _NFT_H_
 #define _NFT_H_
 
-#include "tokens.h"
-
 #define COLLECTION_NAME_MAX_LEN 70
 
 typedef struct nftInfo_t {

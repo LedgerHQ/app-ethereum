@@ -63,8 +63,12 @@ void handleProvideNFTInformation(uint8_t p1,
     UNUSED(flags);
     uint8_t hash[INT256_LENGTH];
     cx_ecfp_public_key_t nftKey;
-    PRINTF("In handle provide NFTInformation");
+    PRINTF("In handle provide NFTInformation\n");
 
+    if ((pluginType != ERC721) && (pluginType != ERC1155)) {
+        PRINTF("NFT metadata provided without proper plugin loaded!\n");
+        THROW(0x6985);
+    }
     tmpCtx.transactionContext.currentItemIndex =
         (tmpCtx.transactionContext.currentItemIndex + 1) % MAX_ITEMS;
     nftInfo_t *nft =

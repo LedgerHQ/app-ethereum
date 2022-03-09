@@ -18,15 +18,11 @@ static void set_approval_ui(ethQueryContractUI_t *msg, erc721_context_t *context
             break;
         case 1:
             strlcpy(msg->title, "To Manage Your", msg->titleLength);
-            if (msg->item1) {
-                strlcpy(msg->msg, (const char *) &msg->item1->nft.collectionName, msg->msgLength);
-            } else {
-                strlcpy(msg->msg, "Not Found", msg->msgLength);
-            }
+            strlcpy(msg->msg, msg->item1->nft.collectionName, msg->msgLength);
             break;
         case 2:
             strlcpy(msg->title, "NFT Address", msg->titleLength);
-            getEthDisplayableAddress(getNftContractAddress(msg),
+            getEthDisplayableAddress(msg->item1->nft.contractAddress,
                                      msg->msg,
                                      msg->msgLength,
                                      &global_sha3,
@@ -62,15 +58,11 @@ static void set_approval_for_all_ui(ethQueryContractUI_t *msg, erc721_context_t 
             break;
         case 1:
             strlcpy(msg->title, "To Manage ALL", msg->titleLength);
-            if (msg->item1) {
-                strlcpy(msg->msg, (const char *) &msg->item1->nft.collectionName, msg->msgLength);
-            } else {
-                strlcpy(msg->msg, "Not found", msg->msgLength);
-            }
+            strlcpy(msg->msg, msg->item1->nft.collectionName, msg->msgLength);
             break;
         case 2:
             strlcpy(msg->title, "NFT Address", msg->titleLength);
-            getEthDisplayableAddress(getNftContractAddress(msg),
+            getEthDisplayableAddress(msg->item1->nft.contractAddress,
                                      msg->msg,
                                      msg->msgLength,
                                      &global_sha3,
@@ -95,15 +87,11 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc721_context_t *context
             break;
         case 1:
             strlcpy(msg->title, "Collection Name", msg->titleLength);
-            if (msg->item1) {
-                strlcpy(msg->msg, (const char *) &msg->item1->nft.collectionName, msg->msgLength);
-            } else {
-                strlcpy(msg->msg, "Not Found", msg->msgLength);
-            }
+            strlcpy(msg->msg, msg->item1->nft.collectionName, msg->msgLength);
             break;
         case 2:
             strlcpy(msg->title, "NFT Address", msg->titleLength);
-            getEthDisplayableAddress(getNftContractAddress(msg),
+            getEthDisplayableAddress(msg->item1->nft.contractAddress,
                                      msg->msg,
                                      msg->msgLength,
                                      &global_sha3,

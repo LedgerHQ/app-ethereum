@@ -48,14 +48,14 @@ void eth_plugin_prepare_query_contract_UI(ethQueryContractUI_t *queryContractUI,
     memset((uint8_t *) queryContractUI, 0, sizeof(ethQueryContractUI_t));
 
     // If no extra information was found, set the pointer to NULL
-    if (allzeroes(&tmpCtx.transactionContext.extraInfo[1], sizeof(union extraInfo_t))) {
+    if (NO_EXTRA_INFO(tmpCtx, 1)) {
         queryContractUI->item1 = NULL;
     } else {
         queryContractUI->item1 = &tmpCtx.transactionContext.extraInfo[1];
     }
 
     // If no extra information was found, set the pointer to NULL
-    if (allzeroes(&tmpCtx.transactionContext.extraInfo[0], sizeof(union extraInfo_t))) {
+    if (NO_EXTRA_INFO(tmpCtx, 0)) {
         queryContractUI->item2 = NULL;
     } else {
         queryContractUI->item2 = &tmpCtx.transactionContext.extraInfo[0];

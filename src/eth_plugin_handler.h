@@ -3,6 +3,9 @@
 
 #include "eth_plugin_interface.h"
 
+#define NO_EXTRA_INFO(ctx, idx) \
+    (allzeroes(&(ctx.transactionContext.extraInfo[idx]), sizeof(extraInfo_t)))
+
 void eth_plugin_prepare_init(ethPluginInitContract_t *init, uint8_t *selector, uint32_t dataSize);
 void eth_plugin_prepare_provide_parameter(ethPluginProvideParameter_t *provideParameter,
                                           uint8_t *parameter,

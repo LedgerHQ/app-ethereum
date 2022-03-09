@@ -4,6 +4,7 @@
 #include "erc1155_plugin.h"
 #include "eth_plugin_internal.h"
 #include "ethUtils.h"
+#include "eth_plugin_handler.h"
 
 static const uint8_t ERC1155_APPROVE_FOR_ALL_SELECTOR[SELECTOR_SIZE] = {0xa2, 0x2c, 0xb4, 0x65};
 static const uint8_t ERC1155_SAFE_TRANSFER_SELECTOR[SELECTOR_SIZE] = {0xf2, 0x42, 0x43, 0x2a};
@@ -19,6 +20,11 @@ static void handle_init_contract(void *parameters) {
     ethPluginInitContract_t *msg = (ethPluginInitContract_t *) parameters;
     erc1155_context_t *context = (erc1155_context_t *) msg->pluginContext;
 
+    if (NO_NFT_METADATA) {
+        PRINTF("No NFT metadata when trying to sign!\n");
+        msg->result = ETH_PLUGIN_RESULT_ERROR;
+        return;
+    }
     uint8_t i;
     for (i = 0; i < SELECTORS_COUNT; i++) {
         if (memcmp((uint8_t *) PIC(ERC1155_SELECTORS[i]), msg->selector, SELECTOR_SIZE) == 0) {

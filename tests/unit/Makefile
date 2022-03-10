@@ -39,4 +39,4 @@ clean:
 	@if [ -d coverage ]; then $(ECHO) -e "${RED}[ RM ]${RESET}" coverage && $(RM) -r coverage ; fi;
 	@if [ -f coverage.info ]; then $(ECHO) -e "${RED}[ RM ]${RESET}" coverage.info && $(RM) -r coverage.info ; fi;
 
-.PHONY: all tests clean
+.PHONY: all coverage clean

@@ -11,6 +11,12 @@ We use the library [**cmocka**](https://cmocka.org/#features)
 
 Don't worry, you don't necessarily need to install the `cmocka library` because the **cmakelist automatically fetches** the library
 
+## Add new test
+
+Create new file into `tests` folder and follow [this initiation](https://cmocka.org/talks/cmocka_unit_testing_and_mocking.pdf)  
+
+Now go to the `CMakeLists.txt` file and add your test with the specific file you want to test.
+
 ## Usage
 
 ### Build

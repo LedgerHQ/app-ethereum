@@ -202,9 +202,8 @@ $(info INFO: Need to reinitialize git submodules)
 $(shell git submodule update --init)
 endif
 
-# rebuild
-$(shell python3 ethereum-plugin-sdk/build_sdk.py)
-$(shell find ./ethereum-plugin-sdk -iname '*.h' -o -iname '*.c' | xargs clang-format-10 -i)
+# rebuild SDK
+$(shell python3 tools/build_sdk.py)
 
 # check if a difference is noticed (fail if it happens in CI build)
 ifneq ($(shell git status | grep 'ethereum-plugin-sdk'),)

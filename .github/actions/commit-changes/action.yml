@@ -44,25 +44,34 @@ runs:
         ORIGIN="$(pwd)"
         cd ${{ inputs.directory }}
         git switch ${{ inputs.branch }} 2>/dev/null || git switch -c ${{ inputs.branch }}
+        echo "-----------------------------------------------------------"
+        echo "Initial repo status"
         git status
         CHANGES="$(git status --porcelain ${{ inputs.files }})"
         if [ -z "${CHANGES}" ]; \
         then \
+          echo "-----------------------------------------------------------"; \
           echo "No changes, stopping now"; \
-          echo "::save-state name=COMMIT::NO"; \
+          echo "COMMIT=NO" > $GITHUB_ENV; \
           cd "${ORIGIN}"; \
           exit 0; \
         fi
         echo -e "Changes:\n${CHANGES}"
         git add ${{ inputs.files }}
+        echo "-----------------------------------------------------------"
+        echo "Repo status before commit"
+        git status
         git commit -am "${{ inputs.message }}"
-        echo "::save-state name=COMMIT::YES"
+        echo "COMMIT=YES" > $GITHUB_ENV
         git log -n 2
         cd "${ORIGIN}"
       shell: bash
 
+    - run: echo "${{ env.COMMIT }}"
+      shell: bash
+
     - name: Push commit
-      if: ${{ steps.commit.state.COMMIT == 'YES' }}
+      if: ${{ env.COMMIT == 'YES' }}
       uses: ad-m/github-push-action@master
       with:
         github_token: ${{ inputs.secret }}

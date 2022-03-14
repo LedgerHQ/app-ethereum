@@ -50,4 +50,4 @@ jobs:
           branch: ${{ steps.extract_branch.outputs.branch }}
           message: "[update][SDK] Branch ${{ steps.extract_branch.outputs.branch }} | Commit ${GITHUB_SHA}"
           secret: ${{ secrets.CI_BOT_TOKEN }}
-          repository: LedgerHQ/ethereum-plugin-sdk
+          repository: LedgerHQ/app-ethereum

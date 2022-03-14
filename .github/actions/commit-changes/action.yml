@@ -38,6 +38,7 @@ runs:
   using: 'composite'
   steps:
     - name: Commit the changes
+      id: commit
       run: |
         git config --global user.name ${{ inputs.name }}
         ORIGIN="$(pwd)"
@@ -48,17 +49,20 @@ runs:
         if [ -z "${CHANGES}" ]; \
         then \
           echo "No changes, stopping now"; \
-          cd ${origin} \
+          echo "::save-state name=COMMIT::NO"; \
+          cd "${ORIGIN}"; \
           exit 0; \
         fi
         echo -e "Changes:\n${CHANGES}"
         git add ${{ inputs.files }}
         git commit -am "${{ inputs.message }}"
+        echo "::save-state name=COMMIT::YES"
         git log -n 2
-        cd ${ORIGIN}
+        cd "${ORIGIN}"
       shell: bash
 
     - name: Push commit
+      if: ${{ steps.commit.state.COMMIT == 'YES' }}
       uses: ad-m/github-push-action@master
       with:
         github_token: ${{ inputs.secret }}

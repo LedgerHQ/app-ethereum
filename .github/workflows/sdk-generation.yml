@@ -41,3 +41,13 @@ jobs:
           message: "[update] Branch ${{ steps.extract_branch.outputs.branch }} | Commit ${GITHUB_SHA}"
           secret: ${{ secrets.CI_BOT_TOKEN }}
           repository: LedgerHQ/ethereum-plugin-sdk
+
+      - name: Update the SDK submodule in the Ethereum app
+        uses: ./.github/actions/commit-changes
+        with:
+          name: 'ldg-github-ci'
+          files: ethereum-plugin-sdk
+          branch: ${{ steps.extract_branch.outputs.branch }}
+          message: "[update][SDK] Branch ${{ steps.extract_branch.outputs.branch }} | Commit ${GITHUB_SHA}"
+          secret: ${{ secrets.CI_BOT_TOKEN }}
+          repository: LedgerHQ/ethereum-plugin-sdk

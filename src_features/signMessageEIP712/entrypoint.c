@@ -19,15 +19,22 @@ typedef enum
     // contract defined struct
     TYPE_CUSTOM = 0,
     // native types
-    TYPE_SOLIDITY_INT,
-    TYPE_SOLIDITY_UINT,
-    TYPE_SOLIDITY_ADDRESS,
-    TYPE_SOLIDITY_BOOL,
-    TYPE_SOLIDITY_STRING,
-    TYPE_SOLIDITY_BYTE,
-    TYPE_SOLIDITY_BYTES_FIX,
-    TYPE_SOLIDITY_BYTES_DYN
+    TYPE_SOL_INT,
+    TYPE_SOL_UINT,
+    TYPE_SOL_ADDRESS,
+    TYPE_SOL_BOOL,
+    TYPE_SOL_STRING,
+    TYPE_SOL_BYTE,
+    TYPE_SOL_BYTES_FIX,
+    TYPE_SOL_BYTES_DYN,
+    TYPES_COUNT
 }   e_type;
+
+typedef enum
+{
+    ARRAY_DYNAMIC = 0,
+    ARRAY_FIXED_SIZE
+}   e_array_type;
 
 
 // APDUs INS
@@ -85,7 +92,7 @@ bool    set_struct_field(uint8_t *data)
         // copy TypeSize
         mem_buffer[mem_idx++] = data[data_idx++];
     }
-    if ((type_desc & TYPE_MASK) == TYPE_CUSTOM)
+    else if ((type_desc & TYPE_MASK) == TYPE_CUSTOM)
     {
         len = data[data_idx++];
         // copy custom struct name length
@@ -94,6 +101,26 @@ bool    set_struct_field(uint8_t *data)
         memmove(&mem_buffer[mem_idx], &data[data_idx], len);
         mem_idx += len;
         data_idx += len;
+    }
+    if (type_desc & ARRAY_MASK)
+    {
+        len = data[data_idx++];
+        mem_buffer[mem_idx++] = len;
+        while (len-- > 0)
+        {
+            mem_buffer[mem_idx++] = data[data_idx];
+            switch (data[data_idx++])
+            {
+                case ARRAY_DYNAMIC: // nothing to do
+                    break;
+                case ARRAY_FIXED_SIZE:
+                    mem_buffer[mem_idx++] = data[data_idx++];
+                    break;
+                default:
+                    // should not be in here :^)
+                    break;
+            }
+        }
     }
 
     // copy length
@@ -111,6 +138,7 @@ void    dump_mem(void)
     uint8_t *mem = structs_array + 1;
     uint8_t type_desc;
     uint8_t fields_count;
+    uint8_t array_depth;
 
     for (int i = 0; i < *structs_array; ++i)
     {
@@ -131,9 +159,9 @@ void    dump_mem(void)
                     mem += (1 + *mem);
                     if (type_desc & TYPESIZE_MASK) mem += 1;
                     break;
-                case TYPE_SOLIDITY_UINT:
+                case TYPE_SOL_UINT:
                     printf("u");
-                case TYPE_SOLIDITY_INT:
+                case TYPE_SOL_INT:
                     printf("int");
                     if (type_desc & TYPESIZE_MASK)
                     {
@@ -141,23 +169,23 @@ void    dump_mem(void)
                         mem += 1;
                     }
                     break;
-                case TYPE_SOLIDITY_ADDRESS:
+                case TYPE_SOL_ADDRESS:
                     printf("address");
                     if (type_desc & TYPESIZE_MASK) mem += 1;
                     break;
-                case TYPE_SOLIDITY_BOOL:
+                case TYPE_SOL_BOOL:
                     printf("bool");
                     if (type_desc & TYPESIZE_MASK) mem += 1;
                     break;
-                case TYPE_SOLIDITY_STRING:
+                case TYPE_SOL_STRING:
                     printf("string");
                     if (type_desc & TYPESIZE_MASK) mem += 1;
                     break;
-                case TYPE_SOLIDITY_BYTE:
+                case TYPE_SOL_BYTE:
                     printf("byte");
                     if (type_desc & TYPESIZE_MASK) mem += 1;
                     break;
-                case TYPE_SOLIDITY_BYTES_FIX:
+                case TYPE_SOL_BYTES_FIX:
                     printf("bytes");
                     if (type_desc & TYPESIZE_MASK)
                     {
@@ -165,7 +193,7 @@ void    dump_mem(void)
                         mem += 1;
                     }
                     break;
-                case TYPE_SOLIDITY_BYTES_DYN:
+                case TYPE_SOL_BYTES_DYN:
                     printf("bytes");
                     if (type_desc & TYPESIZE_MASK) mem += 1;
                     break;
@@ -173,7 +201,25 @@ void    dump_mem(void)
                     // should not be in here :^)
                     break;
             }
-            if (type_desc & ARRAY_MASK) printf("[]");
+            if (type_desc & ARRAY_MASK)
+            {
+                array_depth = *mem++;
+                while (array_depth-- > 0)
+                {
+                    switch (*mem++)
+                    {
+                        case ARRAY_DYNAMIC:
+                            printf("[]");
+                            break;
+                        case ARRAY_FIXED_SIZE:
+                            printf("[%u]", *mem++);
+                            break;
+                        default:
+                            // should not be in here :^)
+                            break;
+                    }
+                }
+            }
             printf(" ");
             fwrite(mem + 1, *mem, sizeof(*mem), stdout);
             mem += (1 + *mem);

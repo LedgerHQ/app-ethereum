@@ -1,6 +1,5 @@
-#ifndef __ETH_PLUGIN_INTERFACE_H__
-
-#define __ETH_PLUGIN_INTERFACE_H__
+#ifndef _ETH_PLUGIN_INTERFACE_H_
+#define _ETH_PLUGIN_INTERFACE_H_
 
 #include "os.h"
 #include "cx.h"
@@ -179,4 +178,4 @@ typedef struct ethQueryContractUI_t {
 
 } ethQueryContractUI_t;
 
-#endif
+#endif  // _ETH_PLUGIN_INTERFACE_H_

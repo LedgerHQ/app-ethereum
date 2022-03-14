@@ -1,16 +1,14 @@
+#ifndef _ERC721_PLUGIN_H_
+#define _ERC721_PLUGIN_H_
+
 #ifdef HAVE_NFT_SUPPORT
 
-#pragma once
-
-#include <string.h>
-#include "eth_plugin_handler.h"
-#include "shared_context.h"
-#include "ethUtils.h"
-#include "utils.h"
+#include <stdbool.h>
+#include <stdint.h>
+#include "ethUstream.h"
+#include "nft.h"
 
 // Internal plugin for EIP 721: https://eips.ethereum.org/EIPS/eip-721
-
-#define NUM_ERC721_SELECTORS 5
 
 typedef enum {
     APPROVE,
@@ -18,6 +16,7 @@ typedef enum {
     TRANSFER,
     SAFE_TRANSFER,
     SAFE_TRANSFER_DATA,
+    SELECTORS_COUNT
 } erc721_selector_t;
 
 typedef enum {
@@ -44,3 +43,5 @@ void handle_provide_parameter_721(void *parameters);
 void handle_query_contract_ui_721(void *parameters);
 
 #endif  // HAVE_NFT_SUPPORT
+
+#endif  // _ERC721_PLUGIN_H_

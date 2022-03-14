@@ -1,5 +1,5 @@
-#ifndef __STARK_UTILS_H__
-#define __STARK_UTILS_H__
+#ifndef _STARK_UTILS_H_
+#define _STARK_UTILS_H_
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -32,4 +32,4 @@ int stark_sign(uint8_t *signature, /* out */
                FieldElement msg,
                FieldElement condition);
 
-#endif
+#endif  // _STARK_UTILS_H_

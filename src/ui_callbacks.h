@@ -1,3 +1,6 @@
+#ifndef _UI_CALLBACKS_H_
+#define _UI_CALLBACKS_H_
+
 #include "shared_context.h"
 #include "ux.h"
 
@@ -22,3 +25,5 @@ void io_seproxyhal_send_status(uint32_t sw);
 void format_signature_out(const uint8_t *signature);
 void finalizeParsing(bool direct);
 extraInfo_t *getKnownToken(uint8_t *contractAddress);
+
+#endif  // _UI_CALLBACKS_H_

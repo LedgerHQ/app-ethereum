@@ -26,29 +26,23 @@ const model = nano_models[1];
         await sign_promise;
     }));
 
-    test('[Nano ' + model.letter + '] Transfer ERC-1155 w/o PROVIDE_NFT_INFORMATION', zemu(model, async (sim, eth) => {
+    test('[Nano ' + model.letter + '] Transfer ERC-1155 w/o NFT metadata', zemu(model, async (sim, eth) => {
         const current_screen = sim.getMainMenuSnapshot();
         await send_apdu(eth.transport, set_plugin);
-        await send_apdu(eth.transport, sign_first);
-        let sign_promise = send_apdu(eth.transport, sign_more);
-
-        await waitForAppScreen(sim, current_screen);
-        await sim.navigateAndCompareSnapshots('.', model.name + '_erc1155_transfer_wo_info', [10, -1, 0]);
-
-        await sign_promise;
-    }));
-
-    test('[Nano ' + model.letter + '] Transfer ERC-1155 w/o SET_PLUGIN', zemu(model, async (sim, eth) => {
-        const current_screen = sim.getMainMenuSnapshot();
-        await send_apdu(eth.transport, provide_nft_info);
         let sign_tx = send_apdu(eth.transport, sign_first);
 
         await expect(sign_tx).rejects.toEqual(new TransportStatusError(0x6a80));
     }));
+
+    test('[Nano ' + model.letter + '] Transfer ERC-1155 w/o plugin loaded', zemu(model, async (sim, eth) => {
+        const current_screen = sim.getMainMenuSnapshot();
+        let nft_info = send_apdu(eth.transport, provide_nft_info);
+
+        await expect(nft_info).rejects.toEqual(new TransportStatusError(0x6985));
+    }));
 }
 
-test('[Nano ' + model.letter + '] Batch transfer ERC-1155', zemu(model, async (sim, eth) => {
-
+{
     const set_plugin = apdu_as_string('e01600007401010745524331313535495f947276749ce646f68ac8c248420045cb7b5e2eb2c2d60000000000000001000147304502210087b35cefc53fd94e25404933eb0d5ff08f20ba655d181de3b24ff0099dc3317f02204a216aa9e0b84bef6e20fcb036bd49647bf0cab66732b99b49ec277ffb682aa1');
     const provide_nft_info = apdu_as_string('e0140000820101194f70656e536561205368617265642053746f726566726f6e74495f947276749ce646f68ac8c248420045cb7b5e00000000000000010001473045022100c74cd613a27a9f4887210f5a3a0e12745e1ba0ab3a0d284cb6485d89c3cce4e602205a13e62a91164985cf58a838f8f531c0b91b980d206a5ba8df28270023ef93a3');
     const sign_first = apdu_as_string('e004000096058000002c8000003c800000000000000000000000f9020b0e850d8cfd86008301617d94495f947276749ce646f68ac8c248420045cb7b5e80b901e42eb2c2d60000000000000000000000006cbcd73cd8e8a42844662f0a0e76d7f79afd933d000000000000000000000000c2907efcce4011c491bbeda8a0fa63ba7aab596c00000000000000000000000000000000000000000000');
@@ -56,16 +50,18 @@ test('[Nano ' + model.letter + '] Batch transfer ERC-1155', zemu(model, async (s
     const sign_more_2 = apdu_as_string('e00480009689732473fcd0bbbe000000000000a30000000001abf06640f8ca8fc5e0ed471b10befcdf65a33e430000000000006a00000000640000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000000700000000000000000000000000000000000000000000000000000000000000010000');
     const sign_more_3 = apdu_as_string('e00480006100000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000043078303000000000000000000000000000000000000000000000000000000000018080');
 
-    const current_screen = sim.getMainMenuSnapshot();
-    await send_apdu(eth.transport, set_plugin);
-    await send_apdu(eth.transport, provide_nft_info);
-    await send_apdu(eth.transport, sign_first);
-    await send_apdu(eth.transport, sign_more_1);
-    await send_apdu(eth.transport, sign_more_2);
-    let sign_promise = send_apdu(eth.transport, sign_more_3);
+    test('[Nano ' + model.letter + '] Batch transfer ERC-1155', zemu(model, async (sim, eth) => {
+        const current_screen = sim.getMainMenuSnapshot();
+        await send_apdu(eth.transport, set_plugin);
+        await send_apdu(eth.transport, provide_nft_info);
+        await send_apdu(eth.transport, sign_first);
+        await send_apdu(eth.transport, sign_more_1);
+        await send_apdu(eth.transport, sign_more_2);
+        let sign_promise = send_apdu(eth.transport, sign_more_3);
 
-    await waitForAppScreen(sim, current_screen);
-    await sim.navigateAndCompareSnapshots('.', model.name + '_erc1155_batch_transfer', [8, -1, 0]);
+        await waitForAppScreen(sim, current_screen);
+        await sim.navigateAndCompareSnapshots('.', model.name + '_erc1155_batch_transfer', [8, -1, 0]);
 
-    await sign_promise;
-}));
+        await sign_promise;
+    }));
+}

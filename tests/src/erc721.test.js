@@ -25,22 +25,17 @@ test('[Nano ' + model.letter + '] Transfer ERC-721', zemu(model, async (sim, eth
     await sign_promise;
 }));
 
-test('[Nano ' + model.letter + '] Transfer ERC-721 w/o NFT_PROVIDE_INFORMATION', zemu(model, async(sim, eth) => {
+test('[Nano ' + model.letter + '] Transfer ERC-721 w/o NFT metadata', zemu(model, async(sim, eth) => {
     const current_screen = sim.getMainMenuSnapshot();
     await send_apdu(eth.transport, set_plugin);
-    await send_apdu(eth.transport, sign_first);
-    let sign_promise = send_apdu(eth.transport, sign_more);
-
-    await waitForAppScreen(sim, current_screen);
-    await sim.navigateAndCompareSnapshots('.', model.name + '_erc721_transfer_wo_info', [8, -1, 0]);
-
-    await sign_promise;
-}));
-
-test('[Nano ' + model.letter + '] Transfer ERC-721 w/o SET_PLUGIN', zemu(model, async (sim, eth) => {
-    const current_screen = sim.getMainMenuSnapshot();
-    await send_apdu(eth.transport, provide_nft_info);
     let sign_tx = send_apdu(eth.transport, sign_first);
 
     await expect(sign_tx).rejects.toEqual(new TransportStatusError(0x6a80));
+}));
+
+test('[Nano ' + model.letter + '] Transfer ERC-721 w/o plugin loaded', zemu(model, async (sim, eth) => {
+    const current_screen = sim.getMainMenuSnapshot();
+    let nft_info = send_apdu(eth.transport, provide_nft_info);
+
+    await expect(nft_info).rejects.toEqual(new TransportStatusError(0x6985));
 }));

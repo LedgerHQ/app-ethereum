@@ -34,7 +34,6 @@ static const uint8_t LEDGER_NFT_METADATA_PUBLIC_KEY[] = {
     0x7d, 0x0b, 0x46, 0x9a, 0x53, 0x11, 0xee, 0x6a, 0x1a, 0xcd, 0x1d, 0xa5, 0xaa, 0xb0,
     0xf5, 0xc6, 0xdf, 0x13, 0x15, 0x8d, 0x28, 0xcc, 0x12, 0xd1, 0xdd, 0xa6, 0xec, 0xe9,
     0x46, 0xb8, 0x9d, 0x5c, 0x05, 0x49, 0x92, 0x59, 0xc4
-
 #else
     0x04, 0x98, 0x8d, 0xa6, 0xb2, 0x46, 0xf2, 0x8e, 0x77, 0xc1, 0xba, 0xb6, 0x75, 0xcb,
     0x2a, 0x27, 0x44, 0xf7, 0xf5, 0xce, 0xc5, 0x6a, 0xe6, 0xe0, 0x32, 0x23, 0x33, 0x7b,
@@ -64,8 +63,12 @@ void handleProvideNFTInformation(uint8_t p1,
     UNUSED(flags);
     uint8_t hash[INT256_LENGTH];
     cx_ecfp_public_key_t nftKey;
-    PRINTF("In handle provide NFTInformation");
+    PRINTF("In handle provide NFTInformation\n");
 
+    if ((pluginType != ERC721) && (pluginType != ERC1155)) {
+        PRINTF("NFT metadata provided without proper plugin loaded!\n");
+        THROW(0x6985);
+    }
     tmpCtx.transactionContext.currentItemIndex =
         (tmpCtx.transactionContext.currentItemIndex + 1) % MAX_ITEMS;
     nftInfo_t *nft =
@@ -117,10 +120,10 @@ void handleProvideNFTInformation(uint8_t p1,
         THROW(0x6A80);
     }
 
-    if (collectionNameLength + 1 > sizeof(nft->collectionName)) {
+    if (collectionNameLength > COLLECTION_NAME_MAX_LEN) {
         PRINTF("CollectionName too big: expected max %d, got %d\n",
-               sizeof(nft->collectionName),
-               collectionNameLength + 1);
+               COLLECTION_NAME_MAX_LEN,
+               collectionNameLength);
         THROW(0x6A80);
     }
 

@@ -1,3 +1,6 @@
+#ifndef _UI_FLOW_H_
+#define _UI_FLOW_H_
+
 #include "shared_context.h"
 
 #include "os_io_seproxyhal.h"
@@ -52,3 +55,5 @@ extern const ux_flow_step_t* const ux_approval_starkware_verify_escape_flow[];
 extern const ux_flow_step_t* const ux_stark_unsafe_sign_flow[];
 
 #endif
+
+#endif  // _UI_FLOW_H_

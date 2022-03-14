@@ -386,20 +386,12 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
         }
     }
 #endif
-    //
+    // Works for ERC-20 & NFT tokens since both structs in the union have the
+    // contract address aligned
     for (uint8_t i = 0; i < MAX_ITEMS; i++) {
         currentItem = (union extraInfo_t *) &tmpCtx.transactionContext.extraInfo[i].token;
         if (tmpCtx.transactionContext.tokenSet[i] &&
             (memcmp(currentItem->token.address, contractAddress, ADDRESS_LENGTH) == 0)) {
-            PRINTF("Token found at index %d\n", i);
-            return currentItem;
-        }
-    }
-
-    for (uint8_t i = 0; i < MAX_ITEMS; i++) {
-        currentItem = (union extraInfo_t *) &tmpCtx.transactionContext.extraInfo[i].token;
-        if (tmpCtx.transactionContext.tokenSet[i] &&
-            (memcmp(currentItem->nft.contractAddress, contractAddress, ADDRESS_LENGTH) == 0)) {
             PRINTF("Token found at index %d\n", i);
             return currentItem;
         }

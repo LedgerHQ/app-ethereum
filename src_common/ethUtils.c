@@ -237,12 +237,6 @@ void getEthDisplayableAddress(uint8_t *in,
     getEthAddressStringFromBinary(in, out + 2, sha3, chainId);
 }
 
-uint8_t *getNftContractAddress(const ethQueryContractUI_t *const msg) {
-    // In case of no PROVIDE_NFT_INFO, we already have the address from the SET_PLUGIN
-    return ((msg->item1) ? ((uint8_t *) msg->item1->nft.contractAddress)
-                         : msg->pluginSharedRO->txContent->destination);
-}
-
 bool adjustDecimals(const char *src,
                     size_t srcLength,
                     char *target,

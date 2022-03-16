@@ -46,22 +46,19 @@ typedef enum
 #define ARRAY_MASK      (1 << 7)
 #define TYPESIZE_MASK   (1 << 6)
 
+// Solidity typename mask
+#define TYPENAME_MORE_TYPE  (1 << 7)
+#define TYPENAME_ENUM       (0xF)
 
 #define     SIZE_MEM_BUFFER 1024
 uint8_t     mem_buffer[SIZE_MEM_BUFFER];
 uint16_t    mem_idx;
 
-uint8_t     *typename_matcher_array;
 uint8_t     *typenames_array;
 uint8_t     *structs_array;
 uint8_t     *current_struct_fields_array;
 
-// Typename matcher masks
-#define TYPENAME_MATCHER_ENUM(m)    ((m >> 4) & 0xF)
-#define TYPENAME_MATCHER_IDX(m)     (m & 0xF)
-
 // lib functions
-
 const uint8_t *get_array_in_mem(const uint8_t *ptr, uint8_t *const array_size)
 {
     *array_size = *ptr;
@@ -117,35 +114,30 @@ const uint8_t *get_struct_field_sol_typename(const uint8_t *ptr,
                                              uint8_t *const length)
 {
     e_type field_type;
-
-    uint8_t matcher_count;
-    const uint8_t *matcher;
-    uint8_t matcher_idx;
-    uint8_t typenames_count;
     const uint8_t *typename_ptr;
+    uint8_t typenames_count;
+    bool more_type;
+    bool typename_found;
 
     field_type = struct_field_type(ptr);
-    matcher = get_array_in_mem(typename_matcher_array, &matcher_count);
-    while (matcher_count-- > 0)
+    typename_ptr = get_array_in_mem(typenames_array, &typenames_count);
+    typename_found = false;
+    while (typenames_count-- > 0)
     {
-        if (TYPENAME_MATCHER_ENUM(*matcher) == field_type)
+        more_type = true;
+        while (more_type)
         {
-            matcher_idx = TYPENAME_MATCHER_IDX(*matcher);
-            typename_ptr = get_array_in_mem(typenames_array, &typenames_count);
-            // if the index, somehow, can't fit in the typenames array
-            if ((matcher_idx + 1) > typenames_count) return NULL;
-            while (typenames_count-- > 0)
+            more_type = *typename_ptr & TYPENAME_MORE_TYPE;
+            e_type type_enum = *typename_ptr & TYPENAME_ENUM;
+            if (type_enum == field_type)
             {
-                typename_ptr = get_string_in_mem(typename_ptr, length);
-                if (matcher_idx-- == 0)
-                {
-                    return typename_ptr;
-                }
-                typename_ptr += *length; // skip this typename, get next one
+                typename_found = true;
             }
-            return NULL; // Not found
+            typename_ptr += 1;
         }
-        matcher += 1; // get next one
+        typename_ptr = get_string_in_mem(typename_ptr, length);
+        if (typename_found) return typename_ptr;
+        typename_ptr += *length;
     }
     return NULL; // Not found
 }
@@ -485,8 +477,7 @@ bool    init_typenames(void)
         "byte",
         "bytes"
     };
-    // table to match type enums to indexes in the typenames string array
-    int     enum_to_str[][2] = {
+    int     enum_to_idx[][2] = {
         { TYPE_SOL_INT, 0 },
         { TYPE_SOL_UINT, 1},
         { TYPE_SOL_ADDRESS, 2 },
@@ -496,27 +487,43 @@ bool    init_typenames(void)
         { TYPE_SOL_BYTES_FIX, 6 },
         { TYPE_SOL_BYTES_DYN, 6 }
     };
-
-    typename_matcher_array = &mem_buffer[mem_idx++];
-    *typename_matcher_array = 0;
-    // set matchers
-    for (size_t i = 0; i < (sizeof(enum_to_str) / sizeof(enum_to_str[0])); ++i)
-    {
-        mem_buffer[mem_idx++] = ((enum_to_str[i][0] << 4) | (enum_to_str[i][1]));
-        // increment array size
-        *typename_matcher_array += 1;
-    }
+    bool    first_match;
 
     typenames_array = &mem_buffer[mem_idx++];
     *typenames_array = 0;
-    // set typenames
-    for (size_t i = 0; i < (sizeof(typenames_str) / sizeof(typenames_str[0])); ++i)
+    // loop over typenames
+    for (size_t s_idx = 0;
+         s_idx < (sizeof(typenames_str) / sizeof(typenames_str[0]));
+         ++s_idx)
     {
-        mem_buffer[mem_idx++] = strlen(typenames_str[i]); // length
-        // copy typename
-        memcpy(&mem_buffer[mem_idx], typenames_str[i], mem_buffer[mem_idx - 1]);
-        // increment mem idx by typename length
-        mem_idx += mem_buffer[mem_idx - 1];
+        first_match = true;
+        // loop over enum/typename pairs
+        for (size_t e_idx = 0;
+             e_idx < (sizeof(enum_to_idx) / sizeof(enum_to_idx[0]));
+             ++e_idx)
+        {
+            if (s_idx == (size_t)enum_to_idx[e_idx][1]) // match
+            {
+                mem_buffer[mem_idx] = enum_to_idx[e_idx][0];
+                if (!first_match) // in case of a previous match, mark it
+                {
+                    mem_buffer[mem_idx - 1] |= TYPENAME_MORE_TYPE;
+                }
+                mem_idx += 1;
+                first_match = false;
+            }
+        }
+
+        if (!first_match) // if at least one match was found
+        {
+            mem_buffer[mem_idx++] = strlen(typenames_str[s_idx]);
+            // copy typename
+            memcpy(&mem_buffer[mem_idx],
+                   typenames_str[s_idx],
+                   mem_buffer[mem_idx - 1]);
+            // increment mem idx by typename length
+            mem_idx += mem_buffer[mem_idx - 1];
+        }
         // increment array size
         *typenames_array += 1;
     }

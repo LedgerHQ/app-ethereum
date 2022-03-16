@@ -549,7 +549,7 @@ int     main(void)
     uint8_t         buf[256];
     uint8_t         idx;
     int             state;
-    uint8_t         payload_size;
+    uint8_t         payload_size = 0;
 
     init_heap();
 

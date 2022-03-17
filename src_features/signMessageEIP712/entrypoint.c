@@ -587,6 +587,6 @@ int     main(void)
         }
     }
     dump_mem();
-    printf("\n%d bytes used in RAM\n", mem_idx);
+    printf("\n%d bytes used in RAM\n", (mem_idx + 1));
     return EXIT_SUCCESS;
 }

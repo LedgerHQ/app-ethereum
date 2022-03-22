@@ -24,4 +24,3 @@ unsigned int io_seproxyhal_touch_privacy_cancel(__attribute__((unused)) const ba
     ui_idle();
     return 0;  // do not redraw the widget
 }
-

@@ -116,11 +116,11 @@ void handleSetPlugin(uint8_t p1,
                      unsigned int *tx);
 
 void handlePerformPrivacyOperation(uint8_t p1,
-                     uint8_t p2,
-                     uint8_t *workBuffer,
-                     uint16_t dataLength,
-                     unsigned int *flags,
-                     unsigned int *tx);
+                                   uint8_t p2,
+                                   uint8_t *workBuffer,
+                                   uint16_t dataLength,
+                                   unsigned int *flags,
+                                   unsigned int *tx);
 
 #ifdef HAVE_ETH2
 

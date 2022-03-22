@@ -542,11 +542,11 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
 
                 case INS_PERFORM_PRIVACY_OPERATION:
                     handlePerformPrivacyOperation(G_io_apdu_buffer[OFFSET_P1],
-                                    G_io_apdu_buffer[OFFSET_P2],
-                                    G_io_apdu_buffer + OFFSET_CDATA,
-                                    G_io_apdu_buffer[OFFSET_LC],
-                                    flags,
-                                    tx);
+                                                  G_io_apdu_buffer[OFFSET_P2],
+                                                  G_io_apdu_buffer + OFFSET_CDATA,
+                                                  G_io_apdu_buffer[OFFSET_LC],
+                                                  flags,
+                                                  tx);
                     break;
 
                 case INS_SIGN:

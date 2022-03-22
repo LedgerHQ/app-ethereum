@@ -8,8 +8,7 @@
 #define P2_SHARED_SECRET 0x01
 
 void decodeScalar(const uint8_t *scalarIn, uint8_t *scalarOut) {
-    uint8_t i;
-    for (i=0; i<32; i++) {
+    for (uint8_t i=0; i<32; i++) {
         switch(i) {
             case 0:
                 scalarOut[0] = (scalarIn[31] & 0x7f) | 0x40;
@@ -33,7 +32,6 @@ void handlePerformPrivacyOperation(uint8_t p1,
     uint8_t privateKeyData[INT256_LENGTH];
     uint8_t privateKeyDataSwapped[INT256_LENGTH];
     uint32_t bip32Path[MAX_BIP32_PATH];
-    uint32_t i;
     uint8_t bip32PathLength = *(dataBuffer++);
     cx_err_t status = CX_OK;
     if (p2 == P2_PUBLIC_ENCRYPTION_KEY) {
@@ -58,7 +56,7 @@ void handlePerformPrivacyOperation(uint8_t p1,
     if ((p1 != P1_CONFIRM) && (p1 != P1_NON_CONFIRM)) {
         THROW(0x6B00);
     }
-    for (i = 0; i < bip32PathLength; i++) {
+    for (uint8_t i = 0; i < bip32PathLength; i++) {
         bip32Path[i] = U4BE(dataBuffer, 0);
         dataBuffer += 4;
     }    
@@ -105,7 +103,7 @@ void handlePerformPrivacyOperation(uint8_t p1,
                  "0x%.*s",
                  40,
                  tmpCtx.publicKeyContext.address);
-        for (i=0; i<32; i++) {
+        for (uint8_t i=0; i<32; i++) {
             privateKeyData[i] = tmpCtx.publicKeyContext.publicKey.W[32 - i];
         }
         snprintf(strings.common.fullAmount, sizeof(strings.common.fullAmount) - 1, "%.*H", 32, privateKeyData);

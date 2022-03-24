@@ -334,6 +334,28 @@ bool    set_struct_field(const uint8_t *const data)
     return true;
 }
 
+/**
+ * Format an unsigned number up to 32-bit into memory into an ASCII string.
+ *
+ * @param[in] value Value to write in memory
+ * @param[in] max_chars Maximum number of characters that could be written
+ *
+ * @return how many characters have been written in memory
+ */
+uint8_t format_uint_into_mem(uint32_t value, uint8_t max_chars)
+{
+    char        *ptr;
+    uint8_t     written_chars;
+
+    if ((ptr = mem_alloc(sizeof(char) * max_chars)) == NULL)
+    {
+        return 0;
+    }
+    written_chars = sprintf(ptr, "%u", value);
+    mem_dealloc(max_chars - written_chars); // in case it ended up being less
+    return written_chars;
+}
+
 void    get_struct_type_string(const uint8_t *const ptr,
                                const uint8_t *const struct_name,
                                uint8_t struct_name_length)
@@ -351,7 +373,6 @@ void    get_struct_type_string(const uint8_t *const ptr,
     uint8_t lvls_count;
     const uint8_t *lvl_ptr;
     uint8_t array_size;
-    uint8_t formatted_length;
 
     // set length
     typestr_length = mem_alloc(sizeof(uint16_t));
@@ -394,9 +415,7 @@ void    get_struct_type_string(const uint8_t *const ptr,
                     break;
             }
             // max value = 256, 3 characters max
-            formatted_length = sprintf(mem_alloc(sizeof(char) * 3), "%u", field_size);
-            mem_dealloc(3 - formatted_length); // in case it used less
-            *typestr_length += formatted_length;
+            *typestr_length += format_uint_into_mem(field_size, 3);
         }
 
         if (struct_field_is_array(field_ptr))
@@ -412,9 +431,7 @@ void    get_struct_type_string(const uint8_t *const ptr,
                         break;
                     case ARRAY_FIXED_SIZE:
                         // max value = 255, 3 characters max
-                        formatted_length = sprintf(mem_alloc(sizeof(char) * 3), "%u", array_size);
-                        mem_dealloc(3 - formatted_length);
-                        *typestr_length += formatted_length;
+                        *typestr_length += format_uint_into_mem(array_size, 3);
                         break;
                     default:
                         // should not be in here :^)

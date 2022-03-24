@@ -376,14 +376,11 @@ void    get_struct_type_string(const uint8_t *const ptr,
 
     // set length
     typestr_length = mem_alloc(sizeof(uint16_t));
-    *typestr_length = 0;
 
     // add name
     typestr = memmove(mem_alloc(struct_name_length), struct_name, struct_name_length);
-    *typestr_length += struct_name_length;
 
     *(char*)mem_alloc(sizeof(char)) = '(';
-    *typestr_length += 1;
 
     field_ptr = get_struct_fields_array(struct_ptr, &fields_count);
     for (uint8_t idx = 0; idx < fields_count; ++idx)
@@ -391,13 +388,11 @@ void    get_struct_type_string(const uint8_t *const ptr,
         if (idx > 0)
         {
             *(char*)mem_alloc(sizeof(char)) = ',';
-            *typestr_length += 1;
         }
 
         name = get_struct_field_typename(field_ptr, &length);
 
         memmove(mem_alloc(sizeof(char) * length), name, length);
-        *typestr_length += length;
 
         if (struct_field_has_typesize(field_ptr))
         {
@@ -415,7 +410,7 @@ void    get_struct_type_string(const uint8_t *const ptr,
                     break;
             }
             // max value = 256, 3 characters max
-            *typestr_length += format_uint_into_mem(field_size, 3);
+            format_uint_into_mem(field_size, 3);
         }
 
         if (struct_field_is_array(field_ptr))
@@ -438,21 +433,22 @@ void    get_struct_type_string(const uint8_t *const ptr,
                         break;
                 }
                 *(char*)mem_alloc(sizeof(char)) = ']';
-                *typestr_length += 1;
                 lvl_ptr = get_next_struct_field_array_lvl(lvl_ptr);
             }
         }
         *(char*)mem_alloc(sizeof(char)) = ' ';
-        *typestr_length += 1;
         name = get_struct_field_keyname(field_ptr, &length);
 
         memmove(mem_alloc(sizeof(char) * length), name, length);
-        *typestr_length += length;
 
         field_ptr = get_next_struct_field(field_ptr);
     }
     *(char*)mem_alloc(sizeof(char)) = ')';
-    *typestr_length += 1;
+
+    // - 2 since :
+    //  * typestr_length is one byte before the start of the string
+    //  * mem_alloc's return will point to one byte after the end of the string
+    *typestr_length = (mem_alloc(0) - (void*)typestr_length - 2);
 
     // FIXME: DBG
     fwrite(typestr, sizeof(char), *typestr_length, stdout);

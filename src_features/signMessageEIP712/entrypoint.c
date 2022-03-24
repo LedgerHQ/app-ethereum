@@ -594,7 +594,7 @@ void    init_heap(void)
 
 int     main(void)
 {
-    uint8_t         buf[256];
+    uint8_t         buf[260]; // 4 bytes APDU header + 256 bytes payload
     uint16_t        idx;
     int             state;
     uint8_t         payload_size = 0;

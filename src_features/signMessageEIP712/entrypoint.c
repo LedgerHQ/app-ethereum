@@ -262,17 +262,31 @@ static inline const uint8_t *get_struct(const uint8_t *const ptr,
 
 bool    set_struct_name(const uint8_t *const data)
 {
+    uint8_t *length_ptr;
+    char *name_ptr;
+
     // increment number of structs
     *structs_array += 1;
 
     // copy length
-    *(uint8_t*)mem_alloc(1) = data[OFFSET_LC];
+    if ((length_ptr = mem_alloc(sizeof(uint8_t))) == NULL)
+    {
+        return false;
+    }
+    *length_ptr = data[OFFSET_LC];
 
     // copy name
-    memmove(mem_alloc(data[OFFSET_LC]), &data[OFFSET_DATA], data[OFFSET_LC]);
+    if ((name_ptr = mem_alloc(sizeof(char) * data[OFFSET_LC])) == NULL)
+    {
+        return false;
+    }
+    memmove(name_ptr, &data[OFFSET_DATA], data[OFFSET_LC]);
 
     // initialize number of fields
-    current_struct_fields_array = mem_alloc(1);
+    if ((current_struct_fields_array = mem_alloc(sizeof(uint8_t))) == NULL)
+    {
+        return false;
+    }
     *current_struct_fields_array = 0;
     return true;
 }
@@ -280,43 +294,77 @@ bool    set_struct_name(const uint8_t *const data)
 bool    set_struct_field(const uint8_t *const data)
 {
     uint8_t data_idx = OFFSET_DATA;
-    uint8_t type_desc, len;
+    uint8_t *type_desc_ptr;
+    uint8_t *type_size_ptr;
+    uint8_t *typename_len_ptr;
+    char *typename;
+    uint8_t *array_levels_count;
+    e_array_type *array_level;
+    uint8_t *array_level_size;
+    uint8_t *fieldname_len_ptr;
+    char *fieldname_ptr;
 
     // increment number of struct fields
     *current_struct_fields_array += 1;
 
     // copy TypeDesc
-    type_desc = data[data_idx++];
-    *(uint8_t*)mem_alloc(1) = type_desc;
+    if ((type_desc_ptr = mem_alloc(sizeof(uint8_t))) == NULL)
+    {
+        return false;
+    }
+    *type_desc_ptr = data[data_idx++];
 
     // check TypeSize flag in TypeDesc
-    if (type_desc & TYPESIZE_MASK)
+    if (*type_desc_ptr & TYPESIZE_MASK)
     {
         // copy TypeSize
-        *(uint8_t*)mem_alloc(1) = data[data_idx++];
-    }
-    else if ((type_desc & TYPE_MASK) == TYPE_CUSTOM)
-    {
-        len = data[data_idx++];
-        // copy custom struct name length
-        *(uint8_t*)mem_alloc(1) = len;
-        // copy name
-        memmove(mem_alloc(len), &data[data_idx], len);
-        data_idx += len;
-    }
-    if (type_desc & ARRAY_MASK)
-    {
-        len = data[data_idx++];
-        *(uint8_t*)mem_alloc(1) = len;
-        while (len-- > 0)
+        if ((type_size_ptr = mem_alloc(sizeof(uint8_t))) == NULL)
         {
-            *(uint8_t*)mem_alloc(1) = data[data_idx];
-            switch (data[data_idx++])
+            return false;
+        }
+        *type_size_ptr = data[data_idx++];
+    }
+    else if ((*type_desc_ptr & TYPE_MASK) == TYPE_CUSTOM)
+    {
+        // copy custom struct name length
+        if ((typename_len_ptr = mem_alloc(sizeof(uint8_t))) == NULL)
+        {
+            return false;
+        }
+        *typename_len_ptr = data[data_idx++];
+
+        // copy name
+        if ((typename = mem_alloc(sizeof(char) * *typename_len_ptr)) == NULL)
+        {
+            return false;
+        }
+        memmove(typename, &data[data_idx], *typename_len_ptr);
+        data_idx += *typename_len_ptr;
+    }
+    if (*type_desc_ptr & ARRAY_MASK)
+    {
+        if ((array_levels_count = mem_alloc(sizeof(uint8_t))) == NULL)
+        {
+            return false;
+        }
+        *array_levels_count = data[data_idx++];
+        for (int idx = 0; idx < *array_levels_count; ++idx)
+        {
+            if ((array_level = mem_alloc(sizeof(uint8_t))) == NULL)
+            {
+                return false;
+            }
+            *array_level = data[data_idx++];
+            switch (*array_level)
             {
                 case ARRAY_DYNAMIC: // nothing to do
                     break;
                 case ARRAY_FIXED_SIZE:
-                    *(uint8_t*)mem_alloc(1) = data[data_idx++];
+                    if ((array_level_size = mem_alloc(sizeof(uint8_t))) == NULL)
+                    {
+                        return false;
+                    }
+                    *array_level_size = data[data_idx++];
                     break;
                 default:
                     // should not be in here :^)
@@ -326,11 +374,18 @@ bool    set_struct_field(const uint8_t *const data)
     }
 
     // copy length
-    len = data[data_idx++];
-    *(uint8_t*)mem_alloc(1) = len;
+    if ((fieldname_len_ptr = mem_alloc(sizeof(uint8_t))) == NULL)
+    {
+        return false;
+    }
+    *fieldname_len_ptr = data[data_idx++];
 
     // copy name
-    memmove(mem_alloc(len), &data[data_idx], len);
+    if ((fieldname_ptr = mem_alloc(sizeof(char) * *fieldname_len_ptr)) == NULL)
+    {
+        return false;
+    }
+    memmove(fieldname_ptr, &data[data_idx], *fieldname_len_ptr);
     return true;
 }
 
@@ -340,7 +395,7 @@ bool    set_struct_field(const uint8_t *const data)
  * @param[in] value Value to write in memory
  * @param[in] max_chars Maximum number of characters that could be written
  *
- * @return how many characters have been written in memory
+ * @return how many characters have been written in memory, 0 in case of an allocation error
  */
 uint8_t format_uint_into_mem(uint32_t value, const uint8_t max_chars)
 {
@@ -376,24 +431,42 @@ const char *get_struct_type_string(const uint8_t *const struct_ptr, uint16_t *co
     uint8_t lvls_count;
     const uint8_t *lvl_ptr;
     uint8_t array_size;
+    char *char_ptr;
+    char *name_ptr;
 
     // add name
     struct_name = get_struct_name(struct_ptr, &struct_name_length);
-    str_start = memmove(mem_alloc(struct_name_length), struct_name, struct_name_length);
+    if ((name_ptr = mem_alloc(sizeof(char) * struct_name_length)) == NULL)
+    {
+        return NULL;
+    }
+    str_start = memmove(name_ptr, struct_name, struct_name_length);
 
-    *(char*)mem_alloc(sizeof(char)) = '(';
+    if ((char_ptr = mem_alloc(sizeof(char))) == NULL)
+    {
+        return NULL;
+    }
+    *char_ptr = '(';
 
     field_ptr = get_struct_fields_array(struct_ptr, &fields_count);
     for (uint8_t idx = 0; idx < fields_count; ++idx)
     {
         if (idx > 0)
         {
-            *(char*)mem_alloc(sizeof(char)) = ',';
+            if ((char_ptr = mem_alloc(sizeof(char))) == NULL)
+            {
+                return NULL;
+            }
+            *char_ptr = ',';
         }
 
         name = get_struct_field_typename(field_ptr, &length);
 
-        memmove(mem_alloc(sizeof(char) * length), name, length);
+        if ((name_ptr = mem_alloc(sizeof(char) * length)) == NULL)
+        {
+            return NULL;
+        }
+        memmove(name_ptr, name, length);
 
         if (struct_field_has_typesize(field_ptr))
         {
@@ -419,7 +492,11 @@ const char *get_struct_type_string(const uint8_t *const struct_ptr, uint16_t *co
             lvl_ptr = get_struct_field_array_lvls_array(field_ptr, &lvls_count);
             while (lvls_count-- > 0)
             {
-                *(char*)mem_alloc(sizeof(char)) = '[';
+                if ((char_ptr = mem_alloc(sizeof(char))) == NULL)
+                {
+                    return NULL;
+                }
+                *char_ptr = '[';
                 switch (struct_field_array_depth(lvl_ptr, &array_size))
                 {
                     case ARRAY_DYNAMIC:
@@ -432,18 +509,34 @@ const char *get_struct_type_string(const uint8_t *const struct_ptr, uint16_t *co
                         // should not be in here :^)
                         break;
                 }
-                *(char*)mem_alloc(sizeof(char)) = ']';
+                if ((char_ptr = mem_alloc(sizeof(char))) == NULL)
+                {
+                    return NULL;
+                }
+                *char_ptr = ']';
                 lvl_ptr = get_next_struct_field_array_lvl(lvl_ptr);
             }
         }
-        *(char*)mem_alloc(sizeof(char)) = ' ';
+        if ((char_ptr = mem_alloc(sizeof(char))) == NULL)
+        {
+            return NULL;
+        }
+        *char_ptr = ' ';
         name = get_struct_field_keyname(field_ptr, &length);
 
-        memmove(mem_alloc(sizeof(char) * length), name, length);
+        if ((name_ptr = mem_alloc(sizeof(char) * length)) == NULL)
+        {
+            return NULL;
+        }
+        memmove(name_ptr, name, length);
 
         field_ptr = get_next_struct_field(field_ptr);
     }
-    *(char*)mem_alloc(sizeof(char)) = ')';
+    if ((char_ptr = mem_alloc(sizeof(char))) == NULL)
+    {
+        return NULL;
+    }
+    *char_ptr = ')';
 
     *str_length = ((char*)mem_alloc(0) - str_start);
     return str_start;
@@ -494,8 +587,9 @@ void    sort_dependencies(const uint8_t *const deps_count,
  * @param[out] deps_count count of how many struct dependencie pointers
  * @param[in] dep pointer to the first dependency pointer
  * @param[in] struct_ptr pointer to the struct we are getting the dependencies of
+ * @return \ref false in case of a memory allocation error, \ref true otherwise
  */
-void    get_struct_dependencies(const void *const structs_array,
+bool    get_struct_dependencies(const void *const structs_array,
                                 uint8_t *const deps_count,
                                 void **dep,
                                 const void *const struct_ptr)
@@ -506,6 +600,7 @@ void    get_struct_dependencies(const void *const structs_array,
     uint8_t arg_structname_length;
     const void *arg_struct_ptr;
     size_t dep_idx;
+    const void **new_dep;
 
     field_ptr = get_struct_fields_array(struct_ptr, &fields_count);
     for (uint8_t idx = 0; idx < fields_count; ++idx)
@@ -529,13 +624,18 @@ void    get_struct_dependencies(const void *const structs_array,
             // if it's not present in the array, add it and recurse into it
             if (dep_idx == *deps_count)
             {
-                *(const void**)mem_alloc(sizeof(void*)) = arg_struct_ptr;
+                if ((new_dep = mem_alloc(sizeof(void*))) == NULL)
+                {
+                    return false;
+                }
+                *new_dep = arg_struct_ptr;
                 *deps_count += 1;
                 get_struct_dependencies(structs_array, deps_count, dep, arg_struct_ptr);
             }
         }
         field_ptr = get_next_struct_field(field_ptr);
     }
+    return true;
 }
 
 /**
@@ -544,8 +644,9 @@ void    get_struct_dependencies(const void *const structs_array,
  * @param[in] structs_array pointer to structs array
  * @param[in] struct_name name of the given struct
  * @param[in] struct_name_length length of the name of the given struct
+ * @return \ref false in case of a memory allocation error, \ref true otherwise
  */
-void    get_type_hash(const void *const structs_array,
+bool    get_type_hash(const void *const structs_array,
                       const char *const struct_name,
                       const uint8_t struct_name_length)
 {
@@ -553,16 +654,23 @@ void    get_type_hash(const void *const structs_array,
                                                struct_name,
                                                struct_name_length);
     const void *const mem_loc_bak = mem_alloc(0); // backup the memory location
-    uint8_t *const deps_count = mem_alloc(sizeof(uint8_t));
+    uint8_t *deps_count;
     void **dep;
     uint16_t total_length = 0;
     uint16_t length;
     const char *typestr;
 
+    if ((deps_count = mem_alloc(sizeof(uint8_t))) == NULL)
+    {
+        return false;
+    }
     *deps_count = 0;
     // get list of structs (own + dependencies), properly ordered
     dep = (void**)(deps_count + 1); // get first elem
-    get_struct_dependencies(structs_array, deps_count, dep, struct_ptr);
+    if (get_struct_dependencies(structs_array, deps_count, dep, struct_ptr) == false)
+    {
+        return false;
+    }
     sort_dependencies(deps_count, dep);
     typestr = get_struct_type_string(struct_ptr, &length);
     total_length += length;
@@ -579,6 +687,7 @@ void    get_type_hash(const void *const structs_array,
 
     // restore the memory location
     mem_dealloc(mem_alloc(0) - mem_loc_bak);
+    return true;
 }
 
 bool    handle_apdu(const uint8_t *const data)
@@ -643,9 +752,13 @@ bool    init_typenames(void)
         { TYPE_SOL_BYTES_DYN, 6 }
     };
     uint8_t *previous_match;
-    uint8_t typename_len;
+    uint8_t *typename_len_ptr;
+    char *typename_ptr;
 
-    typenames_array = mem_alloc(1);
+    if ((typenames_array = mem_alloc(sizeof(uint8_t))) == NULL)
+    {
+        return false;
+    }
     *typenames_array = 0;
     // loop over typenames
     for (size_t s_idx = 0;
@@ -664,19 +777,30 @@ bool    init_typenames(void)
                 {
                     *previous_match |= TYPENAME_MORE_TYPE;
                 }
-                previous_match = mem_alloc(1);
+                if ((previous_match = mem_alloc(sizeof(uint8_t))) == NULL)
+                {
+                    return false;
+                }
                 *previous_match = enum_to_idx[e_idx][IDX_ENUM];
             }
         }
 
         if (previous_match) // if at least one match was found
         {
-            typename_len = strlen(typenames_str[s_idx]);
-            *(uint8_t*)mem_alloc(1) = typename_len;
+            if ((typename_len_ptr = mem_alloc(sizeof(uint8_t))) == NULL)
+            {
+                return false;
+            }
+            // get pointer to the allocated space just above
+            *typename_len_ptr = strlen(typenames_str[s_idx]);
+
+
+            if ((typename_ptr = mem_alloc(sizeof(char) * *typename_len_ptr)) == NULL)
+            {
+                return false;
+            }
             // copy typename
-            memcpy(mem_alloc(typename_len),
-                   typenames_str[s_idx],
-                   typename_len);
+            memcpy(typename_ptr, typenames_str[s_idx], *typename_len_ptr);
         }
         // increment array size
         *typenames_array += 1;
@@ -684,18 +808,21 @@ bool    init_typenames(void)
     return true;
 }
 
-void    init_heap(void)
+bool    init_eip712_context(void)
 {
     // init global variables
     init_mem();
 
-    init_typenames();
+    if (init_typenames() == false)
+        return false;
 
     // set types pointer
-    structs_array = mem_alloc(1);
+    if ((structs_array = mem_alloc(sizeof(uint8_t))) == NULL)
+        return false;
 
     // create len(types)
     *structs_array = 0;
+    return true;
 }
 
 int     main(void)
@@ -705,7 +832,7 @@ int     main(void)
     int             state;
     uint8_t         payload_size = 0;
 
-    init_heap();
+    init_eip712_context();
 
     state = OFFSET_CLA;
     idx = 0;

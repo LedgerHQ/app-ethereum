@@ -86,6 +86,4 @@ typedef struct
     t_array     array_levels;
 }   t_struct_field;
 
-typedef void (*field_callback)(t_struct_field *field, uint8_t index);
-
 #endif // EIP712_H_

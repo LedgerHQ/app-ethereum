@@ -13,15 +13,15 @@ static uint8_t  *structs_array;
 static uint8_t  *current_struct_fields_array;
 
 // lib functions
-const uint8_t *get_array_in_mem(const uint8_t *ptr, uint8_t *const array_size)
+const void *get_array_in_mem(const void *ptr, uint8_t *const array_size)
 {
-    *array_size = *ptr;
+    *array_size = *(uint8_t*)ptr;
     return (ptr + 1);
 }
 
-static inline const uint8_t *get_string_in_mem(const uint8_t *ptr, uint8_t *const string_length)
+static inline const char *get_string_in_mem(const uint8_t *ptr, uint8_t *const string_length)
 {
-    return get_array_in_mem(ptr, string_length);
+    return (char*)get_array_in_mem(ptr, string_length);
 }
 
 // ptr must point to the beginning of a struct field
@@ -56,7 +56,7 @@ uint8_t get_struct_field_typesize(const uint8_t *ptr)
 }
 
 // ptr must point to the beginning of a struct field
-const uint8_t *get_struct_field_custom_typename(const uint8_t *ptr,
+const char *get_struct_field_custom_typename(const uint8_t *ptr,
                                                 uint8_t *const length)
 {
     ptr += 1; // skip TypeDesc
@@ -64,7 +64,7 @@ const uint8_t *get_struct_field_custom_typename(const uint8_t *ptr,
 }
 
 // ptr must point to the beginning of a struct field
-const uint8_t *get_struct_field_sol_typename(const uint8_t *ptr,
+const char *get_struct_field_sol_typename(const uint8_t *ptr,
                                              uint8_t *const length)
 {
     e_type field_type;
@@ -89,15 +89,15 @@ const uint8_t *get_struct_field_sol_typename(const uint8_t *ptr,
             }
             typename_ptr += 1;
         }
-        typename_ptr = get_string_in_mem(typename_ptr, length);
-        if (typename_found) return typename_ptr;
+        typename_ptr = (uint8_t*)get_string_in_mem(typename_ptr, length);
+        if (typename_found) return (char*)typename_ptr;
         typename_ptr += *length;
     }
     return NULL; // Not found
 }
 
 // ptr must point to the beginning of a struct field
-const uint8_t *get_struct_field_typename(const uint8_t *ptr,
+const char *get_struct_field_typename(const uint8_t *ptr,
                                          uint8_t *const length)
 {
     if (struct_field_type(ptr) == TYPE_CUSTOM)
@@ -166,7 +166,7 @@ const uint8_t *get_struct_field_array_lvls_array(const uint8_t *ptr,
 }
 
 // ptr must point to the beginning of a struct field
-const uint8_t *get_struct_field_keyname(const uint8_t *ptr,
+const char *get_struct_field_keyname(const uint8_t *ptr,
                                         uint8_t *const length)
 {
     const uint8_t *field_ptr;
@@ -186,18 +186,18 @@ const uint8_t *get_struct_field_keyname(const uint8_t *ptr,
 }
 
 // ptr must point to the beginning of a struct field
-const uint8_t *get_next_struct_field(const uint8_t *ptr)
+const uint8_t *get_next_struct_field(const void *ptr)
 {
     uint8_t length;
 
-    ptr = get_struct_field_keyname(ptr, &length);
+    ptr = (uint8_t*)get_struct_field_keyname(ptr, &length);
     return (ptr + length);
 }
 
 // ptr must point to the beginning of a struct
-const uint8_t *get_struct_name(const uint8_t *ptr, uint8_t *const length)
+const char *get_struct_name(const uint8_t *ptr, uint8_t *const length)
 {
-    return get_string_in_mem(ptr, length);
+    return (char*)get_string_in_mem(ptr, length);
 }
 
 // ptr must point to the beginning of a struct
@@ -232,12 +232,12 @@ const uint8_t *get_structs_array(const uint8_t *ptr, uint8_t *const length)
 
 // Finds struct with a given name
 const uint8_t *get_structn(const uint8_t *const ptr,
-                           const uint8_t *const name_ptr,
-                           uint8_t name_length)
+                           const char *const name_ptr,
+                           const uint8_t name_length)
 {
     uint8_t structs_count;
     const uint8_t *struct_ptr;
-    const uint8_t *name;
+    const char *name;
     uint8_t length;
 
     struct_ptr = get_structs_array(ptr, &structs_count);
@@ -256,7 +256,7 @@ const uint8_t *get_structn(const uint8_t *const ptr,
 static inline const uint8_t *get_struct(const uint8_t *const ptr,
                                         const char *const name_ptr)
 {
-    return get_structn(ptr, (uint8_t*)name_ptr, strlen(name_ptr));
+    return get_structn(ptr, name_ptr, strlen(name_ptr));
 }
 //
 
@@ -342,7 +342,7 @@ bool    set_struct_field(const uint8_t *const data)
  *
  * @return how many characters have been written in memory
  */
-uint8_t format_uint_into_mem(uint32_t value, uint8_t max_chars)
+uint8_t format_uint_into_mem(uint32_t value, const uint8_t max_chars)
 {
     char        *ptr;
     uint8_t     written_chars;
@@ -356,29 +356,30 @@ uint8_t format_uint_into_mem(uint32_t value, uint8_t max_chars)
     return written_chars;
 }
 
-void    get_struct_type_string(const uint8_t *const ptr,
-                               const uint8_t *const struct_name,
-                               uint8_t struct_name_length)
+/**
+ *
+ *
+ * @param[in] struct_ptr pointer to the structure we want the typestring of
+ * @param[in] str_length length of the formatted string in memory
+ * @return pointer of the string in memory, \ref NULL in case of an error
+ */
+const char *get_struct_type_string(const uint8_t *const struct_ptr, uint16_t *const str_length)
 {
-    const uint8_t *const struct_ptr = get_structn(ptr,
-                                                  struct_name,
-                                                  struct_name_length);
-    uint16_t *typestr_length;
-    char *typestr;
+    const char *str_start;
+    const char *struct_name;
+    uint8_t struct_name_length;
     const uint8_t *field_ptr;
     uint8_t fields_count;
-    const uint8_t *name;
+    const char *name;
     uint8_t length;
     uint16_t field_size;
     uint8_t lvls_count;
     const uint8_t *lvl_ptr;
     uint8_t array_size;
 
-    // set length
-    typestr_length = mem_alloc(sizeof(uint16_t));
-
     // add name
-    typestr = memmove(mem_alloc(struct_name_length), struct_name, struct_name_length);
+    struct_name = get_struct_name(struct_ptr, &struct_name_length);
+    str_start = memmove(mem_alloc(struct_name_length), struct_name, struct_name_length);
 
     *(char*)mem_alloc(sizeof(char)) = '(';
 
@@ -419,14 +420,13 @@ void    get_struct_type_string(const uint8_t *const ptr,
             while (lvls_count-- > 0)
             {
                 *(char*)mem_alloc(sizeof(char)) = '[';
-                *typestr_length += 1;
                 switch (struct_field_array_depth(lvl_ptr, &array_size))
                 {
                     case ARRAY_DYNAMIC:
                         break;
                     case ARRAY_FIXED_SIZE:
                         // max value = 255, 3 characters max
-                        *typestr_length += format_uint_into_mem(array_size, 3);
+                        format_uint_into_mem(array_size, 3);
                         break;
                     default:
                         // should not be in here :^)
@@ -445,31 +445,137 @@ void    get_struct_type_string(const uint8_t *const ptr,
     }
     *(char*)mem_alloc(sizeof(char)) = ')';
 
-    // - 2 since :
-    //  * typestr_length is one byte before the start of the string
-    //  * mem_alloc's return will point to one byte after the end of the string
-    *typestr_length = (mem_alloc(0) - (void*)typestr_length - 2);
-
-    // FIXME: DBG
-    fwrite(typestr, sizeof(char), *typestr_length, stdout);
-    printf("\n");
+    *str_length = ((char*)mem_alloc(0) - str_start);
+    return str_start;
 }
 
-void    get_type_hash(const uint8_t *const ptr,
-                      const uint8_t *const struct_name,
-                      uint8_t struct_name_length)
+/**
+ *
+ *
+ * @param[in] structs_array pointer to structs array
+ * @param[in] deps_count count of how many struct dependencies pointers
+ * @param[in,out] dep pointer to the first dependency pointer
+ */
+void    sort_dependencies(const uint8_t *const deps_count,
+                          void **dep)
 {
-    void *mem_loc_bak;
-    uint16_t str_length;
+    bool changed = false;
+    void *tmp_ptr;
+    const char *name1, *name2;
+    uint8_t namelen1, namelen2;
+    int str_cmp_result;
 
-    // backup the memory location
-    mem_loc_bak = mem_alloc(0);
+    for (size_t idx = 0; (idx + 1) < *deps_count; ++idx)
+    {
+        name1 = get_struct_name(*(dep + idx), &namelen1);
+        name2 = get_struct_name(*(dep + idx + 1), &namelen2);
 
+        str_cmp_result = strncmp(name1, name2, MIN(namelen1, namelen2));
+        if ((str_cmp_result > 0) || ((str_cmp_result == 0) && (namelen1 > namelen2)))
+        {
+            tmp_ptr = *(dep + idx);
+            *(dep + idx) = *(dep + idx + 1);
+            *(dep + idx + 1) = tmp_ptr;
+
+            changed = true;
+        }
+    }
+    // recurse until it is sorted
+    if (changed)
+    {
+        sort_dependencies(deps_count, dep);
+    }
+}
+
+/**
+ *
+ *
+ * @param[in] structs_array pointer to structs array
+ * @param[out] deps_count count of how many struct dependencie pointers
+ * @param[in] dep pointer to the first dependency pointer
+ * @param[in] struct_ptr pointer to the struct we are getting the dependencies of
+ */
+void    get_struct_dependencies(const void *const structs_array,
+                                uint8_t *const deps_count,
+                                void **dep,
+                                const void *const struct_ptr)
+{
+    uint8_t fields_count;
+    const void *field_ptr;
+    const char *arg_structname;
+    uint8_t arg_structname_length;
+    const void *arg_struct_ptr;
+    size_t dep_idx;
+
+    field_ptr = get_struct_fields_array(struct_ptr, &fields_count);
+    for (uint8_t idx = 0; idx < fields_count; ++idx)
+    {
+        if (struct_field_type(field_ptr) == TYPE_CUSTOM)
+        {
+            // get struct name
+            arg_structname = get_struct_field_typename(field_ptr, &arg_structname_length);
+            // from its name, get the pointer to its definition
+            arg_struct_ptr = get_structn(structs_array, arg_structname, arg_structname_length);
+
+            // check if it is not already present in the dependencies array
+            for (dep_idx = 0; dep_idx < *deps_count; ++dep_idx)
+            {
+                // it's a match!
+                if (*(dep + dep_idx) == arg_struct_ptr)
+                {
+                    break;
+                }
+            }
+            // if it's not present in the array, add it and recurse into it
+            if (dep_idx == *deps_count)
+            {
+                *(const void**)mem_alloc(sizeof(void*)) = arg_struct_ptr;
+                *deps_count += 1;
+                get_struct_dependencies(structs_array, deps_count, dep, arg_struct_ptr);
+            }
+        }
+        field_ptr = get_next_struct_field(field_ptr);
+    }
+}
+
+/**
+ *
+ *
+ * @param[in] structs_array pointer to structs array
+ * @param[in] struct_name name of the given struct
+ * @param[in] struct_name_length length of the name of the given struct
+ */
+void    get_type_hash(const void *const structs_array,
+                      const char *const struct_name,
+                      const uint8_t struct_name_length)
+{
+    const void *const struct_ptr = get_structn(structs_array,
+                                               struct_name,
+                                               struct_name_length);
+    const void *const mem_loc_bak = mem_alloc(0); // backup the memory location
+    uint8_t *const deps_count = mem_alloc(sizeof(uint8_t));
+    void **dep;
+    uint16_t total_length = 0;
+    uint16_t length;
+    const char *typestr;
+
+    *deps_count = 0;
     // get list of structs (own + dependencies), properly ordered
-
+    dep = (void**)(deps_count + 1); // get first elem
+    get_struct_dependencies(structs_array, deps_count, dep, struct_ptr);
+    sort_dependencies(deps_count, dep);
+    typestr = get_struct_type_string(struct_ptr, &length);
+    total_length += length;
     // loop over each struct and generate string
-    str_length = 0;
-    get_struct_type_string(ptr, struct_name, struct_name_length);
+    for (int idx = 0; idx < *deps_count; ++idx)
+    {
+        get_struct_type_string(*dep, &length);
+        total_length += length;
+        dep += 1;
+    }
+
+    fwrite(typestr, sizeof(char), total_length, stdout);
+    printf("\n");
 
     // restore the memory location
     mem_dealloc(mem_alloc(0) - mem_loc_bak);
@@ -497,7 +603,7 @@ bool    handle_apdu(const uint8_t *const data)
             switch (data[OFFSET_P2])
             {
                 case P2_NAME:
-                    get_type_hash(structs_array, &data[OFFSET_DATA], data[OFFSET_LC]);
+                    get_type_hash(structs_array, (char*)&data[OFFSET_DATA], data[OFFSET_LC]);
                     break;
                 case P2_FIELD:
                     break;

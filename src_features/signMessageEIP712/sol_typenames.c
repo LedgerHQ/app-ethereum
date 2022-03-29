@@ -15,9 +15,32 @@ enum
     IDX_COUNT
 };
 
-bool init_sol_typenames(void)
+static bool find_enum_matches(const uint8_t (*enum_to_idx)[TYPES_COUNT - 1][IDX_COUNT], uint8_t s_idx)
 {
-    const char *const typenames_str[] = {
+    uint8_t *enum_match = NULL;
+
+    // loop over enum/typename pairs
+    for (uint8_t e_idx = 0; e_idx < ARRAY_SIZE(*enum_to_idx); ++e_idx)
+    {
+        if (s_idx == (*enum_to_idx)[e_idx][IDX_STR_IDX]) // match
+        {
+            if (enum_match != NULL) // in case of a previous match, mark it
+            {
+                *enum_match |= TYPENAME_MORE_TYPE;
+            }
+            if ((enum_match = mem_alloc(sizeof(uint8_t))) == NULL)
+            {
+                return false;
+            }
+            *enum_match = (*enum_to_idx)[e_idx][IDX_ENUM];
+        }
+    }
+    return (enum_match != NULL);
+}
+
+bool    init_sol_typenames(void)
+{
+    const char *const typenames[] = {
         "int",      // 0
         "uint",     // 1
         "address",  // 2
@@ -26,7 +49,8 @@ bool init_sol_typenames(void)
         "byte",     // 5
         "bytes"     // 6
     };
-    const uint8_t enum_to_idx[][IDX_COUNT] = {
+    // \ref TYPES_COUNT - 1 since we don't include \ref TYPE_CUSTOM
+    const uint8_t enum_to_idx[TYPES_COUNT - 1][IDX_COUNT] = {
         { TYPE_SOL_INT,       0 },
         { TYPE_SOL_UINT,      1 },
         { TYPE_SOL_ADDRESS,   2 },
@@ -36,7 +60,6 @@ bool init_sol_typenames(void)
         { TYPE_SOL_BYTES_FIX, 6 },
         { TYPE_SOL_BYTES_DYN, 6 }
     };
-    uint8_t *previous_match;
     uint8_t *typename_len_ptr;
     char *typename_ptr;
 
@@ -46,46 +69,24 @@ bool init_sol_typenames(void)
     }
     *typenames_array = 0;
     // loop over typenames
-    for (size_t s_idx = 0;
-         s_idx < (sizeof(typenames_str) / sizeof(typenames_str[IDX_ENUM]));
-         ++s_idx)
+    for (uint8_t s_idx = 0; s_idx < ARRAY_SIZE(typenames); ++s_idx)
     {
-        previous_match = NULL;
-        // loop over enum/typename pairs
-        for (size_t e_idx = 0;
-             e_idx < (sizeof(enum_to_idx) / sizeof(enum_to_idx[IDX_ENUM]));
-             ++e_idx)
-        {
-            if (s_idx == (size_t)enum_to_idx[e_idx][IDX_STR_IDX]) // match
-            {
-                if (previous_match) // in case of a previous match, mark it
-                {
-                    *previous_match |= TYPENAME_MORE_TYPE;
-                }
-                if ((previous_match = mem_alloc(sizeof(uint8_t))) == NULL)
-                {
-                    return false;
-                }
-                *previous_match = enum_to_idx[e_idx][IDX_ENUM];
-            }
-        }
-
-        if (previous_match) // if at least one match was found
+        // if at least one match was found
+        if (find_enum_matches(&enum_to_idx, s_idx))
         {
             if ((typename_len_ptr = mem_alloc(sizeof(uint8_t))) == NULL)
             {
                 return false;
             }
             // get pointer to the allocated space just above
-            *typename_len_ptr = strlen(typenames_str[s_idx]);
-
+            *typename_len_ptr = strlen(typenames[s_idx]);
 
             if ((typename_ptr = mem_alloc(sizeof(char) * *typename_len_ptr)) == NULL)
             {
                 return false;
             }
             // copy typename
-            memcpy(typename_ptr, typenames_str[s_idx], *typename_len_ptr);
+            memcpy(typename_ptr, typenames[s_idx], *typename_len_ptr);
         }
         // increment array size
         *typenames_array += 1;

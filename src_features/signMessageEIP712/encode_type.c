@@ -7,35 +7,127 @@
 #include "eip712.h"
 #include "encode_type.h"
 
+/**
+ *
+ * @param[in] lvl_ptr pointer to the first array level of a struct field
+ * @param[in] lvls_count the number of array levels the struct field contains
+ * @return \ref true it finished correctly, \ref false if it didn't (memory allocation)
+ */
+static bool format_field_type_array_levels_string(const void *lvl_ptr, uint8_t lvls_count)
+{
+    uint8_t array_size;
+
+    while (lvls_count-- > 0)
+    {
+        if (alloc_and_copy_char('[') == NULL)
+        {
+            return false;
+        }
+
+        switch (struct_field_array_depth(lvl_ptr, &array_size))
+        {
+            case ARRAY_DYNAMIC:
+                break;
+            case ARRAY_FIXED_SIZE:
+                // max value = 255, 3 characters max
+                format_uint_into_mem(array_size, 3);
+                break;
+            default:
+                // should not be in here :^)
+                break;
+        }
+        if (alloc_and_copy_char(']') == NULL)
+        {
+            return false;
+        }
+        lvl_ptr = get_next_struct_field_array_lvl(lvl_ptr);
+    }
+    return true;
+}
 
 /**
  *
+ * @param[in] field_ptr pointer to the struct field
+ * @return \ref true it finished correctly, \ref false if it didn't (memory allocation)
+ */
+static bool format_field_string(const void *field_ptr)
+{
+    const char *name;
+    uint8_t length;
+    uint16_t field_size;
+    uint8_t lvls_count;
+    const uint8_t *lvl_ptr;
+
+    // field type name
+    name = get_struct_field_typename(field_ptr, &length);
+    if (alloc_and_copy(name, length) == NULL)
+    {
+        return false;
+    }
+
+    // field type size
+    if (struct_field_has_typesize(field_ptr))
+    {
+        field_size = get_struct_field_typesize(field_ptr);
+        switch (struct_field_type(field_ptr))
+        {
+            case TYPE_SOL_INT:
+            case TYPE_SOL_UINT:
+                field_size *= 8; // bytes -> bits
+                break;
+            case TYPE_SOL_BYTES_FIX:
+                break;
+            default:
+                // should not be in here :^)
+                break;
+        }
+        // max value = 256, 3 characters max
+        format_uint_into_mem(field_size, 3);
+    }
+
+    // field type array levels
+    if (struct_field_is_array(field_ptr))
+    {
+        lvl_ptr = get_struct_field_array_lvls_array(field_ptr, &lvls_count);
+        format_field_type_array_levels_string(lvl_ptr, lvls_count);
+    }
+    // space between field type name and field name
+    if (alloc_and_copy_char(' ') == NULL)
+    {
+        return false;
+    }
+
+    // field name
+    name = get_struct_field_keyname(field_ptr, &length);
+    if (alloc_and_copy(name, length) == NULL)
+    {
+        return false;
+    }
+    return true;
+}
+
+/**
  *
  * @param[in] struct_ptr pointer to the structure we want the typestring of
  * @param[in] str_length length of the formatted string in memory
  * @return pointer of the string in memory, \ref NULL in case of an error
  */
-static const char *get_struct_type_string(const uint8_t *const struct_ptr, uint16_t *const str_length)
+static const char *format_struct_string(const uint8_t *const struct_ptr, uint16_t *const str_length)
 {
     const char *str_start;
     const char *struct_name;
     uint8_t struct_name_length;
     const uint8_t *field_ptr;
     uint8_t fields_count;
-    const char *name;
-    uint8_t length;
-    uint16_t field_size;
-    uint8_t lvls_count;
-    const uint8_t *lvl_ptr;
-    uint8_t array_size;
 
-    // add name
+    // struct name
     struct_name = get_struct_name(struct_ptr, &struct_name_length);
     if ((str_start = alloc_and_copy(struct_name, struct_name_length)) == NULL)
     {
         return NULL;
     }
 
+    // opening struct parenthese
     if (alloc_and_copy_char('(') == NULL)
     {
         return NULL;
@@ -44,6 +136,7 @@ static const char *get_struct_type_string(const uint8_t *const struct_ptr, uint1
     field_ptr = get_struct_fields_array(struct_ptr, &fields_count);
     for (uint8_t idx = 0; idx < fields_count; ++idx)
     {
+        // comma separating struct fields
         if (idx > 0)
         {
             if (alloc_and_copy_char(',') == NULL)
@@ -52,78 +145,21 @@ static const char *get_struct_type_string(const uint8_t *const struct_ptr, uint1
             }
         }
 
-        name = get_struct_field_typename(field_ptr, &length);
-        if (alloc_and_copy(name, length) == NULL)
+        if (format_field_string(field_ptr) == false)
         {
             return NULL;
         }
 
-        if (struct_field_has_typesize(field_ptr))
-        {
-            field_size = get_struct_field_typesize(field_ptr);
-            switch (struct_field_type(field_ptr))
-            {
-                case TYPE_SOL_INT:
-                case TYPE_SOL_UINT:
-                    field_size *= 8; // bytes -> bits
-                    break;
-                case TYPE_SOL_BYTES_FIX:
-                    break;
-                default:
-                    // should not be in here :^)
-                    break;
-            }
-            // max value = 256, 3 characters max
-            format_uint_into_mem(field_size, 3);
-        }
-
-        if (struct_field_is_array(field_ptr))
-        {
-            lvl_ptr = get_struct_field_array_lvls_array(field_ptr, &lvls_count);
-            while (lvls_count-- > 0)
-            {
-                if (alloc_and_copy_char('[') == NULL)
-                {
-                    return NULL;
-                }
-
-                switch (struct_field_array_depth(lvl_ptr, &array_size))
-                {
-                    case ARRAY_DYNAMIC:
-                        break;
-                    case ARRAY_FIXED_SIZE:
-                        // max value = 255, 3 characters max
-                        format_uint_into_mem(array_size, 3);
-                        break;
-                    default:
-                        // should not be in here :^)
-                        break;
-                }
-                if (alloc_and_copy_char(']') == NULL)
-                {
-                    return NULL;
-                }
-                lvl_ptr = get_next_struct_field_array_lvl(lvl_ptr);
-            }
-        }
-        if (alloc_and_copy_char(' ') == NULL)
-        {
-            return NULL;
-        }
-
-        name = get_struct_field_keyname(field_ptr, &length);
-        if (alloc_and_copy(name, length) == NULL)
-        {
-            return NULL;
-        }
 
         field_ptr = get_next_struct_field(field_ptr);
     }
+    // closing struct parenthese
     if (alloc_and_copy_char(')') == NULL)
     {
         return NULL;
     }
 
+    // compute the length
     *str_length = ((char*)mem_alloc(0) - str_start);
     return str_start;
 }
@@ -249,25 +285,25 @@ const char  *encode_type(const void *const structs_array,
     *encoded_length = 0;
     if ((deps_count = mem_alloc(sizeof(uint8_t))) == NULL)
     {
-        return NULL;//false;
+        return NULL;
     }
     *deps_count = 0;
     // get list of structs (own + dependencies), properly ordered
     dep = (void**)(deps_count + 1); // get first elem
     if (get_struct_dependencies(structs_array, deps_count, dep, struct_ptr) == false)
     {
-        return NULL;//false;
+        return NULL;
     }
     sort_dependencies(deps_count, dep);
-    typestr = get_struct_type_string(struct_ptr, &length);
+    typestr = format_struct_string(struct_ptr, &length);
     *encoded_length += length;
     // loop over each struct and generate string
     for (int idx = 0; idx < *deps_count; ++idx)
     {
-        get_struct_type_string(*dep, &length);
+        format_struct_string(*dep, &length);
         *encoded_length += length;
         dep += 1;
     }
 
-    return typestr;//true;
+    return typestr;
 }

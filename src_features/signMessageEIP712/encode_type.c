@@ -19,7 +19,7 @@ static bool format_field_type_array_levels_string(const void *lvl_ptr, uint8_t l
 
     while (lvls_count-- > 0)
     {
-        if (alloc_and_copy_char('[') == NULL)
+        if (mem_alloc_and_copy_char('[') == NULL)
         {
             return false;
         }
@@ -30,13 +30,13 @@ static bool format_field_type_array_levels_string(const void *lvl_ptr, uint8_t l
                 break;
             case ARRAY_FIXED_SIZE:
                 // max value = 255, 3 characters max
-                format_uint_into_mem(array_size, 3);
+                mem_alloc_and_format_uint(array_size, 3);
                 break;
             default:
                 // should not be in here :^)
                 break;
         }
-        if (alloc_and_copy_char(']') == NULL)
+        if (mem_alloc_and_copy_char(']') == NULL)
         {
             return false;
         }
@@ -60,7 +60,7 @@ static bool format_field_string(const void *field_ptr)
 
     // field type name
     name = get_struct_field_typename(field_ptr, &length);
-    if (alloc_and_copy(name, length) == NULL)
+    if (mem_alloc_and_copy(name, length) == NULL)
     {
         return false;
     }
@@ -82,7 +82,7 @@ static bool format_field_string(const void *field_ptr)
                 break;
         }
         // max value = 256, 3 characters max
-        format_uint_into_mem(field_size, 3);
+        mem_alloc_and_format_uint(field_size, 3);
     }
 
     // field type array levels
@@ -92,14 +92,14 @@ static bool format_field_string(const void *field_ptr)
         format_field_type_array_levels_string(lvl_ptr, lvls_count);
     }
     // space between field type name and field name
-    if (alloc_and_copy_char(' ') == NULL)
+    if (mem_alloc_and_copy_char(' ') == NULL)
     {
         return false;
     }
 
     // field name
     name = get_struct_field_keyname(field_ptr, &length);
-    if (alloc_and_copy(name, length) == NULL)
+    if (mem_alloc_and_copy(name, length) == NULL)
     {
         return false;
     }
@@ -122,13 +122,13 @@ static const char *format_struct_string(const uint8_t *const struct_ptr, uint16_
 
     // struct name
     struct_name = get_struct_name(struct_ptr, &struct_name_length);
-    if ((str_start = alloc_and_copy(struct_name, struct_name_length)) == NULL)
+    if ((str_start = mem_alloc_and_copy(struct_name, struct_name_length)) == NULL)
     {
         return NULL;
     }
 
     // opening struct parenthese
-    if (alloc_and_copy_char('(') == NULL)
+    if (mem_alloc_and_copy_char('(') == NULL)
     {
         return NULL;
     }
@@ -139,7 +139,7 @@ static const char *format_struct_string(const uint8_t *const struct_ptr, uint16_
         // comma separating struct fields
         if (idx > 0)
         {
-            if (alloc_and_copy_char(',') == NULL)
+            if (mem_alloc_and_copy_char(',') == NULL)
             {
                 return NULL;
             }
@@ -154,7 +154,7 @@ static const char *format_struct_string(const uint8_t *const struct_ptr, uint16_
         field_ptr = get_next_struct_field(field_ptr);
     }
     // closing struct parenthese
-    if (alloc_and_copy_char(')') == NULL)
+    if (mem_alloc_and_copy_char(')') == NULL)
     {
         return NULL;
     }

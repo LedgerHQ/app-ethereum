@@ -4,7 +4,7 @@
 #include "mem.h"
 #include "mem_utils.h"
 
-void    *alloc_and_copy(const void *data, size_t size)
+void    *mem_alloc_and_copy(const void *data, size_t size)
 {
     void    *mem_ptr;
 
@@ -15,9 +15,9 @@ void    *alloc_and_copy(const void *data, size_t size)
     return mem_ptr;
 }
 
-char    *alloc_and_copy_char(char c)
+char    *mem_alloc_and_copy_char(char c)
 {
-    return alloc_and_copy(&c, sizeof(char));
+    return mem_alloc_and_copy(&c, sizeof(char));
 }
 
 /**
@@ -28,7 +28,7 @@ char    *alloc_and_copy_char(char c)
  *
  * @return how many characters have been written in memory, 0 in case of an allocation error
  */
-uint8_t format_uint_into_mem(uint32_t value, const uint8_t max_chars)
+uint8_t mem_alloc_and_format_uint(uint32_t value, const uint8_t max_chars)
 {
     char        *ptr;
     uint8_t     written_chars;

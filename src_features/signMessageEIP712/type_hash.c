@@ -4,7 +4,7 @@
 #include "mem.h"
 #include "encode_type.h"
 #include "type_hash.h"
-#include "sha3.h"
+#include "hash_wrap.h"
 
 const uint8_t *type_hash(const void *const structs_array,
                          const char *const struct_name,
@@ -13,8 +13,6 @@ const uint8_t *type_hash(const void *const structs_array,
     const void *const mem_loc_bak = mem_alloc(0); // backup the memory location
     const char  *typestr;
     uint16_t    length;
-    sha3_context ctx;
-    const uint8_t *hash;
     uint8_t *hash_ptr;
 
     typestr = encode_type(structs_array, struct_name, struct_name_length, &length);
@@ -22,12 +20,16 @@ const uint8_t *type_hash(const void *const structs_array,
     {
         return NULL;
     }
-    sha3_Init256(&ctx);
-    sha3_SetFlags(&ctx, SHA3_FLAGS_KECCAK);
-    sha3_Update(&ctx, typestr, length);
-    hash = sha3_Finalize(&ctx);
+    cx_keccak_init((cx_hash_t*)&global_sha3, 256);
+    cx_hash((cx_hash_t*)&global_sha3,
+            0,
+            (uint8_t*)typestr,
+            length,
+            NULL,
+            0);
 
 #ifdef DEBUG
+    // Print type string
     fwrite(typestr, sizeof(char), length, stdout);
     printf("\n");
 #endif
@@ -40,17 +42,19 @@ const uint8_t *type_hash(const void *const structs_array,
     {
         return NULL;
     }
+    cx_hash((cx_hash_t*)&global_sha3,
+            CX_LAST,
+            NULL,
+            0,
+            hash_ptr,
+            KECCAK256_HASH_LENGTH);
 #ifdef DEBUG
+    // print computed hash
     printf("-> 0x");
-#endif
     for (int idx = 0; idx < KECCAK256_HASH_LENGTH; ++idx)
     {
-        hash_ptr[idx] = hash[idx];
-#ifdef DEBUG
-        printf("%.02x", hash[idx]);
-#endif
+        printf("%.02x", hash_ptr[idx]);
     }
-#ifdef DEBUG
     printf("\n");
 #endif
     return hash_ptr;

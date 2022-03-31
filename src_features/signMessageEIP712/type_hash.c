@@ -38,7 +38,7 @@ const uint8_t *type_hash(const void *const structs_array,
     mem_dealloc(mem_alloc(0) - mem_loc_bak);
 
     // copy hash into memory
-    if ((hash_ptr = mem_alloc(KECCAK256_HASH_LENGTH)) == NULL)
+    if ((hash_ptr = mem_alloc(KECCAK256_HASH_BYTESIZE)) == NULL)
     {
         return NULL;
     }
@@ -47,11 +47,11 @@ const uint8_t *type_hash(const void *const structs_array,
             NULL,
             0,
             hash_ptr,
-            KECCAK256_HASH_LENGTH);
+            KECCAK256_HASH_BYTESIZE);
 #ifdef DEBUG
     // print computed hash
     printf("-> 0x");
-    for (int idx = 0; idx < KECCAK256_HASH_LENGTH; ++idx)
+    for (int idx = 0; idx < KECCAK256_HASH_BYTESIZE; ++idx)
     {
         printf("%.02x", hash_ptr[idx]);
     }

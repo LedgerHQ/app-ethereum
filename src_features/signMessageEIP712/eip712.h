@@ -57,7 +57,7 @@ typedef enum
 #define TYPESIZE_MASK   (1 << 6)
 #define TYPENAME_ENUM   (0xF)
 
-#define KECCAK256_HASH_LENGTH   32
+#define KECCAK256_HASH_BYTESIZE 32
 
 #define ARRAY_SIZE(a)   (sizeof(a) / sizeof(a[0]))
 

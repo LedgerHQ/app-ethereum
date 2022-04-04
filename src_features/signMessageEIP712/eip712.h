@@ -57,6 +57,13 @@ typedef enum
 #define TYPESIZE_MASK   (1 << 6)
 #define TYPENAME_ENUM   (0xF)
 
+typedef enum
+{
+    EIP712_TYPE_HASH,
+    EIP712_FIELD_HASH,
+    EIP712_STRUCT_HASH
+}   e_eip712_hash_type;
+
 #define KECCAK256_HASH_BYTESIZE 32
 
 #define ARRAY_SIZE(a)   (sizeof(a) / sizeof(a[0]))

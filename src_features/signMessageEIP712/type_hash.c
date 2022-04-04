@@ -37,23 +37,27 @@ const uint8_t *type_hash(const void *const structs_array,
     // restore the memory location
     mem_dealloc(mem_alloc(0) - mem_loc_bak);
 
-    // copy hash into memory
-    if ((hash_ptr = mem_alloc(KECCAK256_HASH_BYTESIZE)) == NULL)
+    if ((hash_ptr = mem_alloc(KECCAK256_HASH_BYTESIZE + 1)) == NULL)
     {
         return NULL;
     }
+
+    // set TypeHash marker
+    *hash_ptr = EIP712_TYPE_HASH;
+
+    // copy hash into memory
     cx_hash((cx_hash_t*)&global_sha3,
             CX_LAST,
             NULL,
             0,
-            hash_ptr,
+            hash_ptr + 1,
             KECCAK256_HASH_BYTESIZE);
 #ifdef DEBUG
     // print computed hash
     printf("-> 0x");
     for (int idx = 0; idx < KECCAK256_HASH_BYTESIZE; ++idx)
     {
-        printf("%.02x", hash_ptr[idx]);
+        printf("%.02x", (hash_ptr + 1)[idx]);
     }
     printf("\n");
 #endif

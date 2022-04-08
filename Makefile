@@ -234,9 +234,13 @@ else ifeq ($(CHAIN),polygon)
 APP_LOAD_PARAMS += --path "44'/60'"
 DEFINES += CHAINID_UPCASE=\"POLYGON\" CHAINID_COINNAME=\"MATIC\" CHAIN_KIND=CHAIN_KIND_POLYGON CHAIN_ID=137
 APPNAME = "Polygon"
+else ifeq ($(CHAIN),moonbeam)
+APP_LOAD_PARAMS += --path "44'/60'"
+DEFINES += CHAINID_UPCASE=\"MOONBEAM\" CHAINID_COINNAME=\"GLMR\" CHAIN_KIND=CHAIN_KIND_MOONBEAM CHAIN_ID=1284
+APPNAME = "Moonbeam"
 else
 ifeq ($(filter clean,$(MAKECMDGOALS)),)
-$(error Unsupported CHAIN - use ethereum, ropsten, goerli, moonriver, ethereum_classic, expanse, poa, artis_sigma1, artis_tau1, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, pirl, akroma, atheios, callisto, ethersocial, ellaism, ether1, ethergem, gochain, mix, reosc, hpb, tomochain, tobalaba, dexon, volta, ewc, webchain, thundercore, bsc, songbird, polygon)
+$(error Unsupported CHAIN - use ethereum, ropsten, goerli, moonriver, ethereum_classic, expanse, poa, artis_sigma1, artis_tau1, rsk, rsk_testnet, ubiq, wanchain, kusd, musicoin, pirl, akroma, atheios, callisto, ethersocial, ellaism, ether1, ethergem, gochain, mix, reosc, hpb, tomochain, tobalaba, dexon, volta, ewc, webchain, thundercore, bsc, songbird, polygon, moonbeam)
 endif
 endif
 

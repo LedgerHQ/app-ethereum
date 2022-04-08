@@ -20,9 +20,11 @@ bool    init_eip712_context(void)
     mem_init();
 
     if (init_sol_typenames() == false)
+    {
         return false;
+    }
 
-    if (init_path() == false)
+    if (path_init() == false)
     {
         return false;
     }

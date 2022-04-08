@@ -108,7 +108,6 @@ const char *get_struct_field_typename(const uint8_t *ptr,
                                       uint8_t *const length);
 const char *get_struct_field_keyname(const uint8_t *ptr,
                                      uint8_t *const length);
-const uint8_t *get_next_struct_field_array_lvl(const uint8_t *ptr);
 const uint8_t *get_next_struct_field(const void *ptr);
 const uint8_t *get_structn(const uint8_t *const ptr,
                            const char *const name_ptr,

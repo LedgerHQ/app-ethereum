@@ -10,6 +10,7 @@
 #include "context.h"
 #include "sol_typenames.h"
 #include "field_hash.h"
+#include "path.h"
 
 
 // lib functions
@@ -380,12 +381,15 @@ bool    handle_apdu(const uint8_t *const data)
             switch (data[OFFSET_P2])
             {
                 case P2_NAME:
+                    // set root type
+                    path_set_root((char*)&data[OFFSET_DATA], data[OFFSET_LC]);
                     type_hash(structs_array, (char*)&data[OFFSET_DATA], data[OFFSET_LC]);
                     break;
                 case P2_FIELD:
                     field_hash(structs_array, &data[OFFSET_DATA], data[OFFSET_LC]);
                     break;
                 case P2_ARRAY:
+                    path_new_array_depth(data[OFFSET_DATA]);
                     break;
                 default:
                     printf("Unknown P2 0x%x for APDU 0x%x\n", data[OFFSET_P2], data[OFFSET_INS]);

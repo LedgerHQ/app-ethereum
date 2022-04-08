@@ -22,6 +22,7 @@
 
 #include "cx.h"
 #include "chainConfig.h"
+
 /**
  * @brief Decode an RLP encoded field - see
  * https://github.com/ethereum/wiki/wiki/RLP
@@ -57,10 +58,10 @@ void getEthDisplayableAddress(uint8_t *in,
                               cx_sha3_t *sha3,
                               uint64_t chainId);
 
-bool adjustDecimals(char *src,
-                    uint32_t srcLength,
+bool adjustDecimals(const char *src,
+                    size_t srcLength,
                     char *target,
-                    uint32_t targetLength,
+                    size_t targetLength,
                     uint8_t decimals);
 
 static __attribute__((no_instrument_function)) inline int allzeroes(void *buf, size_t n) {
@@ -83,4 +84,4 @@ static __attribute__((no_instrument_function)) inline int ismaxint(uint8_t *buf,
 
 static const char HEXDIGITS[] = "0123456789abcdef";
 
-#endif /* _ETHUTILS_H_ */
+#endif  // _ETHUTILS_H_

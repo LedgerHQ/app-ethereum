@@ -70,4 +70,4 @@ typedef struct chain_config_s {
 
 #define ETHEREUM_MAINNET_CHAINID 1
 
-#endif /* _CHAIN_CONFIG_H_ */
+#endif  // _CHAIN_CONFIG_H_

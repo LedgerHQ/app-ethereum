@@ -1,5 +1,6 @@
 #ifdef HAVE_STARKWARE
 
+#include <string.h>
 #include "shared_context.h"
 #include "feature_stark_getPublicKey.h"
 
@@ -10,4 +11,4 @@ uint32_t set_result_get_stark_publicKey() {
     return tx;
 }
 
-#endif
+#endif  // HAVE_STARKWARE

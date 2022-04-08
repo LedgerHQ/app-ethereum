@@ -1,13 +1,16 @@
 #ifdef HAVE_NFT_SUPPORT
 
+#include <string.h>
 #include "erc1155_plugin.h"
 #include "eth_plugin_internal.h"
+#include "ethUtils.h"
+#include "eth_plugin_handler.h"
 
 static const uint8_t ERC1155_APPROVE_FOR_ALL_SELECTOR[SELECTOR_SIZE] = {0xa2, 0x2c, 0xb4, 0x65};
 static const uint8_t ERC1155_SAFE_TRANSFER_SELECTOR[SELECTOR_SIZE] = {0xf2, 0x42, 0x43, 0x2a};
 static const uint8_t ERC1155_SAFE_BATCH_TRANSFER[SELECTOR_SIZE] = {0x2e, 0xb2, 0xc2, 0xd6};
 
-const uint8_t *const ERC1155_SELECTORS[NUM_ERC1155_SELECTORS] = {
+const uint8_t *const ERC1155_SELECTORS[SELECTORS_COUNT] = {
     ERC1155_APPROVE_FOR_ALL_SELECTOR,
     ERC1155_SAFE_TRANSFER_SELECTOR,
     ERC1155_SAFE_BATCH_TRANSFER,
@@ -17,8 +20,13 @@ static void handle_init_contract(void *parameters) {
     ethPluginInitContract_t *msg = (ethPluginInitContract_t *) parameters;
     erc1155_context_t *context = (erc1155_context_t *) msg->pluginContext;
 
+    if (NO_NFT_METADATA) {
+        PRINTF("No NFT metadata when trying to sign!\n");
+        msg->result = ETH_PLUGIN_RESULT_ERROR;
+        return;
+    }
     uint8_t i;
-    for (i = 0; i < NUM_ERC1155_SELECTORS; i++) {
+    for (i = 0; i < SELECTORS_COUNT; i++) {
         if (memcmp((uint8_t *) PIC(ERC1155_SELECTORS[i]), msg->selector, SELECTOR_SIZE) == 0) {
             context->selectorIndex = i;
             break;
@@ -26,7 +34,7 @@ static void handle_init_contract(void *parameters) {
     }
 
     // No selector found.
-    if (i == NUM_ERC1155_SELECTORS) {
+    if (i == SELECTORS_COUNT) {
         PRINTF("Unknown erc1155 selector %.*H\n", SELECTOR_SIZE, msg->selector);
         msg->result = ETH_PLUGIN_RESULT_FALLBACK;
         return;
@@ -63,9 +71,11 @@ static void handle_finalize(void *parameters) {
         case SAFE_TRANSFER:
             msg->numScreens = 5;
             break;
-        case SET_APPROVAL_FOR_ALL:
         case SAFE_BATCH_TRANSFER:
             msg->numScreens = 4;
+            break;
+        case SET_APPROVAL_FOR_ALL:
+            msg->numScreens = 3;
             break;
         default:
             msg->result = ETH_PLUGIN_RESULT_ERROR;

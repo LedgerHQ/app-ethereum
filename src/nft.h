@@ -1,14 +1,14 @@
-#include "tokens.h"
+#ifndef _NFT_H_
+#define _NFT_H_
 
-// An `nftInfo_t` must be the same size as a `tokenDefinition_t`. This is because both will be held
-// in a `extraInfo_t` which is a union of a `nftInfo_t` and a `tokenDefinition_t`. By having both
-// struct the same size, we know they will be aligned, which facilitates accessing the items.
+#include <stdint.h>
 
-// We defined the collection name max length to be the size of a `tokenDefinition_t` and remove the
-// `ADDRESS_LENGTH` which corresponds to `sizeof(contractAddress`).
-#define COLLECTION_NAME_MAX_LEN sizeof(tokenDefinition_t) - ADDRESS_LENGTH
+#define COLLECTION_NAME_MAX_LEN 70
+#define NO_NFT_METADATA         (NO_EXTRA_INFO(tmpCtx, 1))
 
 typedef struct nftInfo_t {
-    char collectionName[COLLECTION_NAME_MAX_LEN];
-    char contractAddress[ADDRESS_LENGTH];
+    uint8_t contractAddress[ADDRESS_LENGTH];  // must be first item
+    char collectionName[COLLECTION_NAME_MAX_LEN + 1];
 } nftInfo_t;
+
+#endif  // _NFT_H_

@@ -1,3 +1,6 @@
+#ifndef _SET_WITHDRAWAL_INDEX_H_
+#define _SET_WITHDRAWAL_INDEX_H_
+
 #include "stdint.h"
 
 void handleSetEth2WithdrawalIndex(uint8_t p1,
@@ -6,3 +9,5 @@ void handleSetEth2WithdrawalIndex(uint8_t p1,
                                   uint16_t dataLength,
                                   unsigned int *flags,
                                   unsigned int *tx);
+
+#endif  // _SET_WITHDRAWAL_INDEX_H_

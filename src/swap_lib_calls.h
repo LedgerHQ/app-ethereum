@@ -1,5 +1,5 @@
-#ifndef SWAP_LIB_CALLS
-#define SWAP_LIB_CALLS
+#ifndef _SWAP_LIB_CALLS_H_
+#define _SWAP_LIB_CALLS_H_
 
 #include "stdbool.h"
 
@@ -50,4 +50,4 @@ typedef struct create_transaction_parameters_s {
     char* destination_address_extra_id;
 } create_transaction_parameters_t;
 
-#endif
+#endif  // _SWAP_LIB_CALLS_H_

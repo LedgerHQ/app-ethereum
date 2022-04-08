@@ -73,4 +73,4 @@ void divmod256(uint256_t *l, uint256_t *r, uint256_t *div, uint256_t *mod);
 bool tostring128(uint128_t *number, uint32_t base, char *out, uint32_t outLength);
 bool tostring256(uint256_t *number, uint32_t base, char *out, uint32_t outLength);
 
-#endif /* _UINT256_H_ */
+#endif  // _UINT256_H_

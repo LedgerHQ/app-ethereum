@@ -214,7 +214,7 @@ static void computeFees(txInt256_t *BEgasPrice, txInt256_t *BEgasLimit, uint256_
 }
 
 static void feesToString(uint256_t *rawFee, char *displayBuffer, uint32_t displayBufferSize) {
-    char *feeTicker = get_network_ticker();
+    const char *feeTicker = get_network_ticker();
     uint8_t tickerOffset = 0;
     uint32_t i;
 
@@ -261,7 +261,7 @@ void prepareFeeDisplay() {
 }
 
 void prepareNetworkDisplay() {
-    char *name = get_network_name();
+    const char *name = get_network_name();
     if (name == NULL) {
         // No network name found so simply copy the chain ID as the network name.
         uint64_t chain_id = get_chain_id();
@@ -296,7 +296,7 @@ static void get_public_key(uint8_t *out, uint8_t outLength) {
 void finalizeParsing(bool direct) {
     char displayBuffer[50];
     uint8_t decimals = WEI_TO_ETHER;
-    char *ticker = get_network_ticker();
+    const char *ticker = get_network_ticker();
     ethPluginFinalize_t pluginFinalize;
     bool genericUI = true;
 

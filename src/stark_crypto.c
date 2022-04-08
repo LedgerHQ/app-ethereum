@@ -4,6 +4,7 @@
 #include "stark_utils.h"
 #include "ui_callbacks.h"
 #include "utils.h"
+#include "ethUtils.h"
 
 static unsigned char const C_cx_Stark256_n[] = {
     // n: 0x0800000000000010ffffffffffffffffb781126dcae7b2321e66a241adc64d2f
@@ -16,13 +17,13 @@ static unsigned char const STARK_DERIVE_BIAS[] = {
     0x38, 0xa1, 0x3b, 0x4b, 0x92, 0x0e, 0x94, 0x11, 0xae, 0x6d, 0xa5, 0xf4, 0x0b, 0x03, 0x58, 0xb1};
 
 void starkDerivePrivateKey(uint32_t *bip32Path, uint32_t bip32PathLength, uint8_t *privateKeyData) {
-#if 0  
-  // Sanity check 
+#if 0
+  // Sanity check
   if (bip32Path[0] != STARK_BIP32_PATH_0)  {
     PRINTF("Invalid Stark derivation path %d\n", bip32Path[0]);
     THROW(0x6a80);
   }
-  os_perso_derive_node_bip32(CX_CURVE_256K1, bip32Path, bip32PathLength, privateKeyData, NULL);  
+  os_perso_derive_node_bip32(CX_CURVE_256K1, bip32Path, bip32PathLength, privateKeyData, NULL);
   PRINTF("Private key before processing %.*H\n", 32, privateKeyData);
   // TODO - support additional schemes
   cx_math_modm(privateKeyData, 32, C_cx_Stark256_n, 32);

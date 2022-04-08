@@ -215,6 +215,33 @@ The input data is the RLP encoded transaction, without v/r/s present, streamed t
 |r|32|
 |s|32|
 
+Exemple:  
+With path `"44'/60'/1'/0/0"`  
+
+CLA: E0  
+INS: 04  
+P1 : 00 (First transaction block)  
+P2 : 00  
+Lc : ?  
+Le :  
+  - 04 (number BIP 32 derivations)
+  - 80 00 00 2c
+  - 80 00 00 3c
+  - 00 00 00 00
+  - 00 00 00 00
+  - RLP chunk
+
+<br />
+
+CLA: E0  
+INS: 04  
+P1 : 80 (subsequent transaction block)  
+P2 : 00  
+Lc : ?  
+Le :  
+  - RLP chunk
+
+
 </details>
 
 <br/>

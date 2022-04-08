@@ -22,6 +22,7 @@
 #include "ethUstream.h"
 
 #define MAX_TICKER_LEN 12  // 10 characters + ' ' + '\0'
+#define MAX_ITEMS      2
 
 typedef struct tokenDefinition_t {
 #ifdef HAVE_CONTRACT_NAME_IN_DESCRIPTOR
@@ -29,6 +30,9 @@ typedef struct tokenDefinition_t {
 #endif
     uint8_t address[ADDRESS_LENGTH];
     char ticker[MAX_TICKER_LEN];
+    char nft_pad[20];  // Adding some padding because the `nftInfo_t` is based on the size of a
+                       // `tokenDefinition_t`. By adding some padding here we give more space to the
+                       // collection name in the `nftInfo_t`. See `nftInfo_t` for more information.
     uint8_t decimals;
 } tokenDefinition_t;
 
@@ -101,6 +105,7 @@ static const uint8_t LEDGER_SIGNATURE_PUBLIC_KEY[] = {
 #define NUM_TOKENS_SONGBIRD         0
 #define NUM_TOKENS_MOONRIVER        0
 #define NUM_TOKENS_POLYGON          0
+#define NUM_TOKENS_SHYFT            0
 #define NUM_TOKENS_MOONBEAM         0
 
 extern tokenDefinition_t const TOKENS_AKROMA[NUM_TOKENS_AKROMA];
@@ -138,6 +143,7 @@ extern tokenDefinition_t const TOKENS_BSC[NUM_TOKENS_BSC];
 extern tokenDefinition_t const TOKENS_SONGBIRD[NUM_TOKENS_SONGBIRD];
 extern tokenDefinition_t const TOKENS_MOONRIVER[NUM_TOKENS_MOONRIVER];
 extern tokenDefinition_t const TOKENS_POLYGON[NUM_TOKENS_POLYGON];
+extern tokenDefinition_t const TOKENS_SHYFT[NUM_TOKENS_SHYFT];
 extern tokenDefinition_t const TOKENS_MOONBEAM[NUM_TOKENS_MOONBEAM];
 
 #endif /* HAVE_TOKENS_LIST */

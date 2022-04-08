@@ -4,7 +4,7 @@ Ledger Blue is not maintained anymore, but the app can still be compiled for thi
 
 This app follows the specification available in the `doc/` folder.
 
-To compile it and load it on a device, please check out our [developer portal](https://developers.ledger.com/docs/NA/start_here/).
+To compile it and load it on a device, please check out our [developer portal](https://developers.ledger.com/docs/nano-app/introduction/).
 
 # Plugins
 
@@ -20,7 +20,7 @@ First [install yarn](https://classic.yarnpkg.com/en/docs/install/#debian-stable)
 Open `tests/build_local_test_elfs.sh` and add your BOLOS SDKs path to `NANOS_SDK` and `NANOX_SDK`.
 This helper script will build the applications required by the test suite and move them at the right place.
 ```
-cd test
+cd tests
 ./build_local_test_elfs.sh
 ```
 Then you can install the project by simply running:

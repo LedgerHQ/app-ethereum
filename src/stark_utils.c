@@ -94,7 +94,6 @@ void pedersen(FieldElement res, /* out */
     memcpy(res, hash + 1, FIELD_ELEMENT_SIZE);
 }
 
-#ifdef TARGET_NANOX
 void shift_stark_hash(FieldElement hash) {
     uint256_t hash256, final_hash256;
     readu256BE(hash, &hash256);
@@ -112,7 +111,6 @@ void shift_stark_hash(FieldElement hash) {
         THROW(0x6A80);
     }
 }
-#endif  // TARGET_NANOX
 
 int stark_sign(uint8_t *signature, /* out */
                uint8_t *privateKeyData,
@@ -137,9 +135,7 @@ int stark_sign(uint8_t *signature, /* out */
     }
     pedersen(hash, hash, msg);
     PRINTF("Pedersen hash 2 %.*H\n", 32, hash);
-#ifdef TARGET_NANOX
     shift_stark_hash(hash);
-#endif
     cx_ecfp_init_private_key(CX_CURVE_Stark256, privateKeyData, 32, &privateKey);
     io_seproxyhal_io_heartbeat();
     int signatureLength = cx_ecdsa_sign(&privateKey,

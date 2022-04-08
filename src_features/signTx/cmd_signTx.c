@@ -2,6 +2,7 @@
 #include "apdu_constants.h"
 #include "ui_flow.h"
 #include "feature_signTx.h"
+#include "eth_plugin_interface.h"
 
 void handleSign(uint8_t p1,
                 uint8_t p2,
@@ -12,6 +13,11 @@ void handleSign(uint8_t p1,
     UNUSED(tx);
     parserStatus_e txResult;
     uint32_t i;
+
+    if (os_global_pin_is_validated() != BOLOS_UX_OK) {
+        PRINTF("Device is PIN-locked");
+        THROW(0x6982);
+    }
     if (p1 == P1_FIRST) {
         if (dataLength < 1) {
             PRINTF("Invalid data\n");
@@ -53,7 +59,7 @@ void handleSign(uint8_t p1,
                 workBuffer++;
                 dataLength--;
             } else {
-                PRINTF("Transaction type not supported\n");
+                PRINTF("Transaction type %d not supported\n", txType);
                 THROW(0x6501);
             }
         } else {

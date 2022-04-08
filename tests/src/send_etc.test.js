@@ -60,7 +60,7 @@ test("[Nano S] Transfer on network 5234 on Ethereum clone", async () => {
   }
 });
 
-test("[Nano X] Transfer on Ethereum clone app", async () => {
+test.skip("[Nano X] Transfer on Ethereum clone app", async () => {
   jest.setTimeout(TIMEOUT);
   const sim = new Zemu(NANOX_CLONE_ELF_PATH, NANOX_ETH_LIB);
 
@@ -89,7 +89,7 @@ test("[Nano X] Transfer on Ethereum clone app", async () => {
   }
 });
 
-test("[Nano X] Transfer on network 5234 on Ethereum clone", async () => {
+test.skip("[Nano X] Transfer on network 5234 on Ethereum clone", async () => {
   jest.setTimeout(TIMEOUT);
   const sim = new Zemu(NANOX_CLONE_ELF_PATH, NANOX_ETH_LIB);
 

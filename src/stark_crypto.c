@@ -68,7 +68,7 @@ void stark_get_amount_string(uint8_t *contractAddress,
         decimals = WEI_TO_ETHER;
         PRINTF("stark_get_amount_string - ETH\n");
     } else {
-        tokenDefinition_t *token = getKnownToken(contractAddress);
+        tokenDefinition_t *token = &getKnownToken(contractAddress)->token;
         if (token == NULL) {  // caught earlier
             THROW(0x6A80);
         }

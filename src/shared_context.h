@@ -14,15 +14,15 @@
 #include "uint256.h"
 #include "tokens.h"
 #include "chainConfig.h"
-#include "eth_plugin_interface.h"
+#include "nft.h"
 
 #define MAX_BIP32_PATH 10
-
-#define MAX_TOKEN 2
 
 #define WEI_TO_ETHER 18
 
 #define SELECTOR_LENGTH 4
+
+#define PLUGIN_ID_LENGTH 30
 
 #define N_storage (*(volatile internalStorage_t *) PIC(&N_storage_real))
 
@@ -62,8 +62,8 @@ typedef struct tokenContext_t {
 
     union {
         struct {
-            uint8_t contract_address[ADDRESS_LENGTH];
-            uint8_t method_selector[SELECTOR_LENGTH];
+            uint8_t contractAddress[ADDRESS_LENGTH];
+            uint8_t methodSelector[SELECTOR_LENGTH];
         };
         uint8_t pluginContext[5 * INT256_LENGTH];
     };
@@ -84,13 +84,18 @@ typedef struct publicKeyContext_t {
     bool getChaincode;
 } publicKeyContext_t;
 
+typedef union extraInfo_t {
+    tokenDefinition_t token;
+    nftInfo_t nft;
+} extraInfo_t;
+
 typedef struct transactionContext_t {
     uint8_t pathLength;
     uint32_t bip32Path[MAX_BIP32_PATH];
     uint8_t hash[INT256_LENGTH];
-    tokenDefinition_t tokens[MAX_TOKEN];
-    uint8_t tokenSet[MAX_TOKEN];
-    uint8_t currentTokenIndex;
+    union extraInfo_t extraInfo[MAX_ITEMS];
+    uint8_t tokenSet[MAX_ITEMS];
+    uint8_t currentItemIndex;
 } transactionContext_t;
 
 typedef struct messageSigningContext_t {
@@ -137,6 +142,7 @@ typedef struct starkContext_t {
 
 typedef union {
     tokenContext_t tokenContext;
+
 #ifdef HAVE_STARKWARE
     starkContext_t starkContext;
 #endif
@@ -166,7 +172,7 @@ typedef enum {
 
 typedef struct txStringProperties_t {
     char fullAddress[43];
-    char fullAmount[67];
+    char fullAmount[79];  // 2^256 is 78 digits long
     char maxFee[50];
     char nonce[8];  // 10M tx per account ought to be enough for everybody
     char network_name[NETWORK_STRING_MAX_SIZE];
@@ -196,7 +202,16 @@ extern cx_sha3_t global_sha3;
 extern const internalStorage_t N_storage_real;
 
 extern bool called_from_swap;
-extern bool externalPluginIsSet;
+
+typedef enum {
+    EXTERNAL,     //  External plugin, set by setExternalPlugin.
+    ERC721,       // Specific ERC721 internal plugin, set by setPlugin.
+    ERC1155,      // Specific ERC1155 internal plugin, set by setPlugin
+    OLD_INTERNAL  // Old internal plugin, not set by any command.
+} pluginType_t;
+
+extern pluginType_t pluginType;
+
 extern uint8_t appState;
 #ifdef HAVE_STARKWARE
 extern bool quantumSet;

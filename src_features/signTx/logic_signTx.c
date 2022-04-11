@@ -459,6 +459,11 @@ void finalizeParsing(bool direct) {
     prepareNetworkDisplay();
     PRINTF("Network: %s\n", strings.common.network_name);
 
+    // Fill chainID for plugins
+    u64_to_string(get_chain_id(),
+                  tmpContent.txContent.chainID.value,
+                  sizeof(tmpContent.txContent.chainID.value));
+
     bool no_consent;
 
     no_consent = called_from_swap;

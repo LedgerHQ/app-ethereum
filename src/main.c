@@ -380,6 +380,9 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
             case CHAIN_KIND_SHYFT:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_SHYFT[i]);
                 break;
+            case CHAIN_KIND_BTTC:
+                currentToken = (tokenDefinition_t*)PIC(&TOKENS_BTTC[i]);
+                break;
         }
         if (memcmp(currentToken->address, tmpContent.txContent.destination, ADDRESS_LENGTH) == 0) {
             return currentToken;

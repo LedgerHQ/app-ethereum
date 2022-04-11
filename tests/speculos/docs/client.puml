@@ -1,0 +1,35 @@
+@startuml Network
+
+enum InsType <int> {
+    INS_GET_PUBLIC_KEY          = 0x02
+    INS_SIGN_TX                 = 0x04
+    INS_GET_CONFIGURATION       = 0x06
+    INS_SIGN_PERSONAL_TX        = 0x08
+    INS_PROVIDE_ERC20           = 0x0A
+    INS_SIGN_EIP712             = 0x0c
+    INS_ETH2_GET_PUBLIC_KEY     = 0x0E
+    INS_SET_ETH2_WITHDRAWAL     = 0x10
+    INS_SET_EXTERNAL_PLUGIN     = 0x12
+    INS_PROVIDE_NFT_INFORMATION = 0x14
+    INS_SET_PLUGIN              = 0x16
+}
+
+class BoilerPlateCommandBuilder {
+    +bytes serialize(cla int, ins InsType, p1 int, p2 int, cdata bytes)
+    ____
+    .. APDU Builder..
+    +get_configuration() -> bytes
+    +get_public_key(bip32_path str, display bool) -> bytes
+} 
+
+class BoilerplateCommand {
+    +get_configuration() -> Tuple[int, int, int]
+    +get_public_key(bip32_path str, diplay bool) -> Tuple[bytes, bytes, bytes]
+}
+
+class Transaction {
+    +serialize() -> bytes
+    +from_bytes(cls, hexa: Union[bytes, BytesIO])
+}
+
+@enduml

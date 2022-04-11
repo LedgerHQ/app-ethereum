@@ -50,7 +50,7 @@ This command returns specific application configuration
 
 |CLA|INS|P1|P2|Lc|Le|
 |---|---|--|--|--|--|
-|E0|06|00|00|00|04|
+|E0|06|00|00|00|00|
 
 :inbox_tray: input data
 
@@ -63,7 +63,23 @@ None
 |0x01 : arbitrary data signature enabled by user<br/>0x02 : ERC 20 Token information needs to be provided externally|1|
 |Application major version|1|
 |Application minor version|1|
-|Application patch version|1|
+|Application patch version|1|  
+
+Exemple:  
+CLA: E0  
+INS: 06  
+P1 : 00  
+P2 : 00  
+Lc : 00  
+Le : 00  
+  
+|CLA|INS|P1|P2|Lc|Le|
+|---|---|--|--|--|--|
+|E0|06|00|00|00|00|
+
+-> E0 06 00 00 00 00
+
+
 </details>
 
 <br/>
@@ -80,6 +96,7 @@ The address can be optionally checked on the device before being returned.
 Usefull link:
 - [HD Wallet by ledger](https://www.ledger.com/academy/crypto/what-are-hierarchical-deterministic-hd-wallets)
 - [BIP-044](https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki)
+- [psd-application](https://developers.ledger.com/docs/nano-app/psd-applications/)
 
 |CLA|INS|P1                                               |P2                              |Lc        |Le        |
 |---|---|-------------------------------------------------|--------------------------------|----------|----------|
@@ -169,6 +186,8 @@ This command has been supported since firmware version 1.6.0
 <br/>
 
 ## SIGN
+
+- [RLP encoding](https://medium.com/coinmonks/data-structure-in-ethereum-episode-1-recursive-length-prefix-rlp-encoding-decoding-d1016832f919)
 
 ### SIGN ETH TRANSACTION
 
@@ -353,7 +372,7 @@ The signature is computed on
 
 len(pluginName) || pluginName || contractAddress || methodSelector
 
-signed by the following secp256k1 public key 0482bbf2f34f367b2e5bc21847b6566f21f0976b22d3388a9a5e446ac62d25cf725b62a2555b2dd464a4da0ab2f4d506820543af1d242470b1b1a969a27578f353
+signed by the following secp256k1 public key `0482bbf2f34f367b2e5bc21847b6566f21f0976b22d3388a9a5e446ac62d25cf725b62a2555b2dd464a4da0ab2f4d506820543af1d242470b1b1a969a27578f353`
 
 |CLA|INS|P1|P2|Lc|Le|
 |---|---|--|--|--|--|

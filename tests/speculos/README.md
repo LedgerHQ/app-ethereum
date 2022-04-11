@@ -28,12 +28,12 @@ pytest tests/speculos/
 you will find the list of apdu [here](../../doc/apdu.md)
 
 - Get
-  - GET APP CONFIGURATIOn
-    - [X] Simple test
-  - GET ETH PUBLIC ADDRESS
-    - [X] Test get key of coin (Ether, Dai)
-    - [ ] Test get key of coin (Ether, Dai) with display
-    - [ ] Test without chain code
+  - GET APP CONFIGURATION ( 1 test )
+    - Get the configuration
+  - GET ETH PUBLIC ADDRESS ( 3 tests )
+    - Ether coin without display
+    - Dai coin with display
+    - Dai coin with display and reject
   - GET ETH2 PUBLIC KEY
     - [ ] Test get key
     - [ ] Test get key with display

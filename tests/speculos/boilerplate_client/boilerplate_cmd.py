@@ -1,3 +1,6 @@
+from ast import List
+from contextlib import contextmanager
+from ctypes.wintypes import INT
 import struct
 from typing import Tuple
 
@@ -24,7 +27,7 @@ class BoilerplateCommand:
         except ApduException as error:
             raise DeviceException(error_code=error.sw, ins=InsType.INS_GET_VERSION)
 
-        # response = MAJOR (1) || MINOR (1) || PATCH (1)
+        # response = FLAG (1) || MAJOR (1) || MINOR (1) || PATCH (1)
         assert len(response) == 4
 
         info, major, minor, patch = struct.unpack(
@@ -34,12 +37,17 @@ class BoilerplateCommand:
 
         return info, major, minor, patch
 
-    def get_public_key(self, bip32_path: str, display: bool = False) -> Tuple[bytes, bytes, bytes]:
+    @contextmanager
+    def get_public_key(self, bip32_path: str, display: bool = False, result: List = list()) -> Tuple[bytes, bytes, bytes]:
         try:
-            response = self.client._apdu_exchange(
-                self.builder.get_public_key(bip32_path=bip32_path,
-                                            display=display)
-            )  # type: int, bytes
+            chunk: bytes = self.builder.get_public_key(bip32_path=bip32_path, display=display)
+
+            with self.client.apdu_exchange_nowait(cla=chunk[0], ins=chunk[1],
+                                                          p1=chunk[2], p2=chunk[3],
+                                                          data=chunk[5:]) as exchange:
+                yield exchange
+                response: bytes = exchange.receive()
+                
         except ApduException as error:
             raise DeviceException(error_code=error.sw, ins=InsType.INS_GET_PUBLIC_KEY)
 
@@ -64,8 +72,36 @@ class BoilerplateCommand:
         chain_code: bytes = response[offset:]
 
         assert len(response) == 1 + pub_key_len + 1 + eth_addr_len + 32 # 32 -> chain_code_len
+        
+        result.append(uncompressed_addr_len)
+        result.append(eth_addr)
+        result.append(chain_code)
 
-        return uncompressed_addr_len, eth_addr, chain_code
+    def simple_sign_tx(self, bip32_path: str, transaction) -> Tuple[int, int, int]:
+        chunk: bytes = self.builder.simple_sign_tx(bip32_path=bip32_path, transaction=transaction)
+        response: bytes = b""
+
+        with self.client.apdu_exchange_nowait(cla=chunk[0], ins=chunk[1],
+                                              p1=chunk[2], p2=chunk[3],
+                                              data=chunk[5:]) as exchange:
+            # Review Transaction
+            self.client.press_and_release('right')
+            # Address 1/3, 2/3, 3/3
+            self.client.press_and_release('right')
+            self.client.press_and_release('right')
+            self.client.press_and_release('right')
+            # Amount
+            self.client.press_and_release('right')
+            # Approve
+            self.client.press_and_release('both')
+            response = exchange.receive()
+
+        # response = V (1) || R (32) || S (32)
+        assert len(response) == 65
+
+        v, r, s = struct.unpack("BII", response)
+
+        return v, r, s
 
     def sign_tx(self, bip32_path: str, transaction: Transaction) -> Tuple[int, bytes]:
         sw: int

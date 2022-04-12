@@ -266,8 +266,6 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
         case CHAIN_KIND_POLYGON:
             numTokens = NUM_TOKENS_POLYGON;
             break;
-        case CHAIN_KIND_KARDIACHAIN:
-            numTokens = NUM_TOKENS_KARDIACHAIN;
         case CHAIN_KIND_SHYFT:
             numTokens = NUM_TOKENS_SHYFT;
             break;
@@ -379,8 +377,6 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
             case CHAIN_KIND_POLYGON:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_POLYGON[i]);
                 break;
-            case CHAIN_KIND_KARDIACHAIN:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_KARDIACHAIN[i]);
             case CHAIN_KIND_SHYFT:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_SHYFT[i]);
                 break;

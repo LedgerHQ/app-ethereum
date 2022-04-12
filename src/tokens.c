@@ -192,8 +192,6 @@ const tokenDefinition_t const TOKENS_MOONRIVER[NUM_TOKENS_MOONRIVER] = {};
 
 const tokenDefinition_t const TOKENS_POLYGON[NUM_TOKENS_POLYGON] = {};
 
-const tokenDefinition_t const TOKENS_KARDIACHAIN[NUM_TOKENS_KARDIACHAIN] = {};
-
 const tokenDefinition_t const TOKENS_SHYFT[NUM_TOKENS_SHYFT] = {};
 
 #endif

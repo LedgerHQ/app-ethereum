@@ -58,7 +58,6 @@ typedef enum chain_kind_e {
     CHAIN_KIND_BSC,
     CHAIN_KIND_SONGBIRD,
     CHAIN_KIND_POLYGON,
-    CHAIN_KIND_KARDIACHAIN,
     CHAIN_KIND_SHYFT
 } chain_kind_t;
 

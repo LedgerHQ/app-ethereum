@@ -1,3 +1,4 @@
+#include "os_io_seproxyhal.h"
 #include "shared_context.h"
 #include "ui_callbacks.h"
 

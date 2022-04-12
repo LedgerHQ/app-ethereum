@@ -1,6 +1,10 @@
-#ifndef __ETH_PLUGIN_HANDLER_H__
+#ifndef _ETH_PLUGIN_HANDLER_H_
+#define _ETH_PLUGIN_HANDLER_H_
 
 #include "eth_plugin_interface.h"
+
+#define NO_EXTRA_INFO(ctx, idx) \
+    (allzeroes(&(ctx.transactionContext.extraInfo[idx]), sizeof(extraInfo_t)))
 
 void eth_plugin_prepare_init(ethPluginInitContract_t *init, uint8_t *selector, uint32_t dataSize);
 void eth_plugin_prepare_provide_parameter(ethPluginProvideParameter_t *provideParameter,
@@ -27,4 +31,4 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter);
 
 void plugin_ui_start(void);
 
-#endif
+#endif  // _ETH_PLUGIN_HANDLER_H_

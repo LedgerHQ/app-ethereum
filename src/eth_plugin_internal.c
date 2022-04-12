@@ -1,3 +1,4 @@
+#include <string.h>
 #include "eth_plugin_internal.h"
 
 bool erc20_plugin_available_check(void);
@@ -5,12 +6,12 @@ bool erc20_plugin_available_check(void);
 void erc20_plugin_call(int message, void* parameters);
 void compound_plugin_call(int message, void* parameters);
 
-void copy_address(uint8_t* dst, uint8_t* parameter, uint8_t dst_size) {
+void copy_address(uint8_t* dst, const uint8_t* parameter, uint8_t dst_size) {
     uint8_t copy_size = MIN(dst_size, ADDRESS_LENGTH);
     memmove(dst, parameter + PARAMETER_LENGTH - copy_size, copy_size);
 }
 
-void copy_parameter(uint8_t* dst, uint8_t* parameter, uint8_t dst_size) {
+void copy_parameter(uint8_t* dst, const uint8_t* parameter, uint8_t dst_size) {
     uint8_t copy_size = MIN(dst_size, PARAMETER_LENGTH);
     memmove(dst, parameter, copy_size);
 }

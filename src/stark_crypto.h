@@ -1,5 +1,5 @@
-#ifndef __STARK_CRYPTO_H__
-#define __STARK_CRYPTO_H__
+#ifndef _STARK_CRYPTO_H_
+#define _STARK_CRYPTO_H_
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -18,4 +18,4 @@ void pedersen(FieldElement res, /* out */
               FieldElement a,
               FieldElement b);
 
-#endif
+#endif  // _STARK_CRYPTO_H_

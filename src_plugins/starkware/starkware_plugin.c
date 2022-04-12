@@ -1,9 +1,11 @@
 #include <string.h>
+#include "os_io_seproxyhal.h"
 #include "eth_plugin_interface.h"
 #include "shared_context.h"       // TODO : rewrite as independant code
 #include "eth_plugin_internal.h"  // TODO : rewrite as independant code
 #include "stark_utils.h"
 #include "utils.h"
+#include "ethUtils.h"
 
 #ifdef HAVE_STARKWARE
 
@@ -184,7 +186,7 @@ bool is_deversify_contract(const uint8_t *address) {
 }
 
 // TODO : rewrite as independant code
-bool starkware_verify_asset_id(uint8_t *tmp32, uint8_t *tokenId, bool assetTypeOnly) {
+bool starkware_verify_asset_id(uint8_t *tmp32, const uint8_t *tokenId, bool assetTypeOnly) {
     if (quantumSet) {
         cx_sha3_t sha3;
         tokenDefinition_t *currentToken = NULL;
@@ -213,7 +215,7 @@ bool starkware_verify_asset_id(uint8_t *tmp32, uint8_t *tokenId, bool assetTypeO
     return true;
 }
 
-bool starkware_verify_token(uint8_t *token) {
+bool starkware_verify_token(const uint8_t *token) {
     if (quantumSet) {
         if (dataContext.tokenContext.quantumIndex != MAX_ITEMS) {
             tokenDefinition_t *currentToken =
@@ -234,7 +236,7 @@ bool starkware_verify_token(uint8_t *token) {
     return true;
 }
 
-bool starkware_verify_quantum(uint8_t *quantum) {
+bool starkware_verify_quantum(const uint8_t *quantum) {
     if (quantumSet) {
         if (dataContext.tokenContext.quantumIndex != MAX_ITEMS) {
             if (memcmp(quantum, dataContext.tokenContext.quantum, 32) != 0) {
@@ -253,7 +255,7 @@ bool starkware_verify_quantum(uint8_t *quantum) {
     return true;
 }
 
-bool starkware_verify_nft_token_id(uint8_t *tokenId) {
+bool starkware_verify_nft_token_id(const uint8_t *tokenId) {
     if (!quantumSet) {
         PRINTF("Quantum not set\n");
         return false;

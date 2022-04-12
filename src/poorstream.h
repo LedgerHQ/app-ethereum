@@ -1,5 +1,5 @@
-#ifndef __POORSTREAM_H__
-#define __POORSTREAM_H__
+#ifndef _POORSTREAM_H_
+#define _POORSTREAM_H_
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -18,4 +18,4 @@ void poorstream_init(poorstream_t *stream, uint8_t *buffer);
 void poorstream_flush(poorstream_t *stream);
 void poorstream_write_bits(poorstream_t *stream, uint64_t bits, uint32_t num_bits);
 
-#endif
+#endif  // _POORSTREAM_H_

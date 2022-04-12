@@ -164,4 +164,4 @@ parserStatus_e continueTx(txContext_t *context);
 void copyTxData(txContext_t *context, uint8_t *out, uint32_t length);
 uint8_t readTxByte(txContext_t *context);
 
-#endif /* _ETHUSTREAM_H_ */
+#endif  // _ETHUSTREAM_H_

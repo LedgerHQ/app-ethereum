@@ -140,11 +140,11 @@ void handleStarkwareSignMessage(uint8_t p1,
 
     poorstream_init(&bitstream, dataContext.starkContext.w3);
     poorstream_write_bits(&bitstream, 0, 11);  // padding
-    poorstream_write_bits(&bitstream,
-                          (p1 == P1_STARK_CONDITIONAL_TRANSFER ? STARK_CONDITIONAL_TRANSFER_TYPE
-                           : order                             ? STARK_ORDER_TYPE
-                                                               : STARK_TRANSFER_TYPE),
-                          4);
+    poorstream_write_bits(
+        &bitstream,
+        (p1 == P1_STARK_CONDITIONAL_TRANSFER ? STARK_CONDITIONAL_TRANSFER_TYPE
+                                             : order ? STARK_ORDER_TYPE : STARK_TRANSFER_TYPE),
+        4);
     poorstream_write_bits(&bitstream, U4BE(dataBuffer, offset), 31);
     poorstream_write_bits(&bitstream, U4BE(dataBuffer, offset + 4), 31);
     poorstream_write_bits(&bitstream, U8BE(dataBuffer, offset + 4 + 4), 63);

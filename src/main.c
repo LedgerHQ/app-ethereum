@@ -278,6 +278,9 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
         case CHAIN_KIND_KARDIACHAIN:
             numTokens = NUM_TOKENS_KARDIACHAIN;
             break;
+        case CHAIN_KIND_BTTC:
+            numTokens = NUM_TOKENS_BTTC;
+            break;    
         case CHAIN_KIND_WETHIO:
             numTokens = NUM_TOKENS_WETHIO;
             break;
@@ -565,6 +568,15 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                                     G_io_apdu_buffer[OFFSET_LC],
                                     flags,
                                     tx);
+                    break;
+                    
+                case INS_PERFORM_PRIVACY_OPERATION:
+                    handlePerformPrivacyOperation(G_io_apdu_buffer[OFFSET_P1],
+                                                  G_io_apdu_buffer[OFFSET_P2],
+                                                  G_io_apdu_buffer + OFFSET_CDATA,
+                                                  G_io_apdu_buffer[OFFSET_LC],
+                                                  flags,
+                                                  tx);
                     break;
 
                 case INS_SIGN:

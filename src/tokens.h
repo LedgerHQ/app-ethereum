@@ -144,6 +144,7 @@ extern tokenDefinition_t const TOKENS_MOONRIVER[NUM_TOKENS_MOONRIVER];
 extern tokenDefinition_t const TOKENS_POLYGON[NUM_TOKENS_POLYGON];
 extern tokenDefinition_t const TOKENS_SHYFT[NUM_TOKENS_SHYFT];
 extern tokenDefinition_t const TOKENS_CONFLUX_ESPACE[NUM_TOKENS_CONFLUX_ESPACE];
+extern tokenDefinition_t const TOKENS_MOONBEAM[NUM_TOKENS_MOONBEAM];
 extern tokenDefinition_t const TOKENS_BTTC[NUM_TOKENS_BTTC];
 extern tokenDefinition_t const TOKENS_KARDIACHAIN[NUM_TOKENS_KARDIACHAIN];
 extern tokenDefinition_t const TOKENS_WETHIO[NUM_TOKENS_WETHIO];

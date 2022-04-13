@@ -46,8 +46,7 @@ bool    init_sol_typenames(void)
         "address",  // 2
         "bool",     // 3
         "string",   // 4
-        "byte",     // 5
-        "bytes"     // 6
+        "bytes"     // 5
     };
     // \ref TYPES_COUNT - 1 since we don't include \ref TYPE_CUSTOM
     const uint8_t enum_to_idx[TYPES_COUNT - 1][IDX_COUNT] = {
@@ -56,9 +55,8 @@ bool    init_sol_typenames(void)
         { TYPE_SOL_ADDRESS,   2 },
         { TYPE_SOL_BOOL,      3 },
         { TYPE_SOL_STRING,    4 },
-        { TYPE_SOL_BYTE,      5 },
-        { TYPE_SOL_BYTES_FIX, 6 },
-        { TYPE_SOL_BYTES_DYN, 6 }
+        { TYPE_SOL_BYTES_FIX, 5 },
+        { TYPE_SOL_BYTES_DYN, 5 }
     };
     uint8_t *typename_len_ptr;
     char *typename_ptr;

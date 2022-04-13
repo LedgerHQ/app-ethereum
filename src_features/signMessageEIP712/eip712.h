@@ -23,7 +23,6 @@ typedef enum
     TYPE_SOL_ADDRESS,
     TYPE_SOL_BOOL,
     TYPE_SOL_STRING,
-    TYPE_SOL_BYTE,
     TYPE_SOL_BYTES_FIX,
     TYPE_SOL_BYTES_DYN,
     TYPES_COUNT
@@ -67,27 +66,6 @@ typedef enum
 #define KECCAK256_HASH_BYTESIZE 32
 
 #define ARRAY_SIZE(a)   (sizeof(a) / sizeof(a[0]))
-
-typedef struct
-{
-    uint16_t    length;
-    char        *str;
-}   t_string;
-
-typedef struct
-{
-    uint16_t    size;
-    uint8_t     *ptr;
-}   t_array;
-
-typedef struct
-{
-    t_string    type;
-    t_string    key;
-    uint8_t     bytesize;
-    t_array     array_levels;
-}   t_struct_field;
-
 
 // TODO: Move these into a new file
 const char *get_struct_name(const uint8_t *ptr, uint8_t *const length);

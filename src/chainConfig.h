@@ -61,6 +61,8 @@ typedef enum chain_kind_e {
     CHAIN_KIND_SHYFT,
     CHAIN_KIND_CONFLUX_ESPACE,
     CHAIN_KIND_MOONBEAM,
+    CHAIN_KIND_BTTC,
+    CHAIN_KIND_KARDIACHAIN,
 } chain_kind_t;
 
 typedef struct chain_config_s {

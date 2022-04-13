@@ -198,4 +198,8 @@ const tokenDefinition_t const TOKENS_CONFLUX_ESPACE[NUM_TOKENS_CONFLUX_ESPACE] =
 
 const tokenDefinition_t const TOKENS_MOONBEAM[NUM_TOKENS_MOONBEAM] = {};
 
+const tokenDefinition_t const TOKENS_BTTC[NUM_TOKENS_BTTC] = {};
+
+const tokenDefinition_t const TOKENS_KARDIACHAIN[NUM_TOKENS_KARDIACHAIN] = {};
+
 #endif

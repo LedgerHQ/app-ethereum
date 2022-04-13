@@ -60,6 +60,7 @@ typedef enum chain_kind_e {
     CHAIN_KIND_POLYGON,
     CHAIN_KIND_SHYFT,
     CHAIN_KIND_CONFLUX_ESPACE,
+    CHAIN_KIND_MOONBEAM,
 } chain_kind_t;
 
 typedef struct chain_config_s {

@@ -196,4 +196,6 @@ const tokenDefinition_t const TOKENS_SHYFT[NUM_TOKENS_SHYFT] = {};
 
 const tokenDefinition_t const TOKENS_CONFLUX_ESPACE[NUM_TOKENS_CONFLUX_ESPACE] = {};
 
+const tokenDefinition_t const TOKENS_MOONBEAM[NUM_TOKENS_MOONBEAM] = {};
+
 #endif

@@ -1,5 +1,6 @@
 import enum
 import logging
+import string
 import struct
 from typing import List, Tuple, Union, Iterator, cast
 
@@ -213,14 +214,16 @@ class BoilerplateCommandBuilder:
 
         """
         bip32_paths: List[bytes] = bip32_path_from_string(bip32_path)
+        tx_encode = rlp.encode(transaction)
+        lc = len(bip32_paths) + len(tx_encode)
+        
+        hard_length = 5
+        fake_data = [0xcc, 0x85, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x85, 0x77, 0x6f, 0x72, 0x6c, 0x64]
 
         cdata: bytes = b"".join([
-            len(bip32_paths).to_bytes(1, byteorder="big"),
+            hard_length.to_bytes(1, byteorder="big"),
             *bip32_paths,
-            rlp.encode(transaction)
         ])
-
-        print(cdata)
 
         return self.serialize(cla=self.CLA,
                               ins=InsType.INS_SIGN_TX,

@@ -202,4 +202,6 @@ const tokenDefinition_t const TOKENS_BTTC[NUM_TOKENS_BTTC] = {};
 
 const tokenDefinition_t const TOKENS_KARDIACHAIN[NUM_TOKENS_KARDIACHAIN] = {};
 
+const tokenDefinition_t const TOKENS_WETHIO[NUM_TOKENS_WETHIO] = {};
+
 #endif

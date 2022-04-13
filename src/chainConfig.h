@@ -63,6 +63,7 @@ typedef enum chain_kind_e {
     CHAIN_KIND_MOONBEAM,
     CHAIN_KIND_BTTC,
     CHAIN_KIND_KARDIACHAIN,
+    CHAIN_KIND_WETHIO
 } chain_kind_t;
 
 typedef struct chain_config_s {

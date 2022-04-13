@@ -280,7 +280,7 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
             break;
         case CHAIN_KIND_BTTC:
             numTokens = NUM_TOKENS_BTTC;
-            break;    
+            break;
         case CHAIN_KIND_WETHIO:
             numTokens = NUM_TOKENS_WETHIO;
             break;
@@ -402,13 +402,13 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_MOONBEAM[i]);
                 break;
             case CHAIN_KIND_BTTC:
-                currentToken = (tokenDefinition_t*)PIC(&TOKENS_BTTC[i]);
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_BTTC[i]);
                 break;
             case CHAIN_KIND_KARDIACHAIN:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_KARDIACHAIN[i]);
                 break;
             case CHAIN_KIND_WETHIO:
-                currentToken = (tokenDefinition_t *)PIC(&TOKENS_WETHIO[i]);
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_WETHIO[i]);
                 break;
         }
         if (memcmp(currentToken->address, tmpContent.txContent.destination, ADDRESS_LENGTH) == 0) {
@@ -569,7 +569,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                                     flags,
                                     tx);
                     break;
-                    
+
                 case INS_PERFORM_PRIVACY_OPERATION:
                     handlePerformPrivacyOperation(G_io_apdu_buffer[OFFSET_P1],
                                                   G_io_apdu_buffer[OFFSET_P2],

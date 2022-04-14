@@ -6,10 +6,8 @@
 
 #define EIP_712_ENCODED_FIELD_LENGTH    32
 
-void    *encode_integer(const uint8_t *const value, uint16_t length);
-void    *encode_string(const char *const value, uint16_t length);
-void    *encode_bool(const bool *const value, uint16_t length);
-void    *encode_address(const uint8_t *const value, uint16_t length);
-void    *encode_bytes(const uint8_t *const value, uint16_t length);
+void    *encode_integer(const uint8_t *const value, uint8_t length);
+void    *encode_boolean(const bool *const value, uint8_t length);
+void    *encode_address(const uint8_t *const value, uint8_t length);
 
 #endif // ENCODE_FIELD_H_

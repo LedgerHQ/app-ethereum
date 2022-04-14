@@ -386,7 +386,11 @@ bool    handle_apdu(const uint8_t *const data)
                     type_hash(structs_array, (char*)&data[OFFSET_DATA], data[OFFSET_LC]);
                     break;
                 case P2_FIELD:
-                    field_hash(structs_array, &data[OFFSET_DATA], data[OFFSET_LC]);
+                    if ((data[OFFSET_P1] != P1_COMPLETE) && (data[OFFSET_P1] != P1_PARTIAL))
+                    {
+                        return false;
+                    }
+                    field_hash(&data[OFFSET_DATA], data[OFFSET_LC], data[OFFSET_P1] == P1_PARTIAL);
                     break;
                 case P2_ARRAY:
                     path_new_array_depth(data[OFFSET_DATA]);

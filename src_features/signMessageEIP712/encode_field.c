@@ -7,56 +7,13 @@
 
 
 /**
- * Hash field value
+ * Encode a field value to 32 bytes
  *
- * @param[in] value pointer to value
- * @param[in] length its bytelength
- * @param[in] dealloc if the value length should be deallocated from the memory
+ * @param[in] value field value to encode
+ * @param[in] length field length before encoding
+ * @return encoded field value
  */
-static void *hash_field_value(const void *const value, uint16_t length, bool dealloc)
-{
-    uint8_t *hash_ptr = NULL;
-
-    if (value != NULL)
-    {
-        cx_keccak_init((cx_hash_t*)&global_sha3, 256);
-        cx_hash((cx_hash_t*)&global_sha3,
-                0,
-                (uint8_t*)value,
-                length,
-                NULL,
-                0);
-
-        if (dealloc)
-        {
-            // restore the memory location
-            mem_dealloc(length);
-        }
-
-        if ((hash_ptr = mem_alloc(KECCAK256_HASH_BYTESIZE)) == NULL)
-        {
-            return NULL;
-        }
-
-        // copy hash into memory
-        cx_hash((cx_hash_t*)&global_sha3,
-                CX_LAST,
-                NULL,
-                0,
-                hash_ptr,
-                KECCAK256_HASH_BYTESIZE);
-    }
-    return hash_ptr;
-}
-
-/**
- * Encode an integer and hash it
- *
- * @param[in] value pointer to the "packed" integer received
- * @param[in] length its byte-length
- * @return the encoded (hashed) value
- */
-void    *encode_integer(const uint8_t *const value, uint16_t length)
+static void *field_encode(const uint8_t *const value, uint8_t length)
 {
     uint8_t *padded_value;
 
@@ -73,29 +30,30 @@ void    *encode_integer(const uint8_t *const value, uint16_t length)
             padded_value[EIP_712_ENCODED_FIELD_LENGTH - (length - idx)] = value[idx];
         }
     }
-    return hash_field_value(padded_value, EIP_712_ENCODED_FIELD_LENGTH, true);
+    return padded_value;
 }
 
 /**
- * Encode a string and hash it
+ * Encode an integer
  *
- * @param[in] value pointer to the string received
+ * @param[in] value pointer to the "packed" integer received
  * @param[in] length its byte-length
  * @return the encoded (hashed) value
  */
-void    *encode_string(const char *const value, uint16_t length)
+void    *encode_integer(const uint8_t *const value, uint8_t length)
 {
-    return hash_field_value(value, length, false);
+    // no length check here since it will be checked by field_encode
+    return field_encode(value, length);
 }
 
 /**
- * Encode a boolean and hash it
+ * Encode a boolean
  *
  * @param[in] value pointer to the boolean received
  * @param[in] length its byte-length
  * @return the encoded (hashed) value
  */
-void    *encode_bool(const bool *const value, uint16_t length)
+void    *encode_boolean(const bool *const value, uint8_t length)
 {
     if (length != 1) // sanity check
     {
@@ -105,29 +63,17 @@ void    *encode_bool(const bool *const value, uint16_t length)
 }
 
 /**
- * Encode an address and hash it
+ * Encode an address
  *
  * @param[in] value pointer to the address received
  * @param[in] length its byte-length
  * @return the encoded (hashed) value
  */
-void    *encode_address(const uint8_t *const value, uint16_t length)
+void    *encode_address(const uint8_t *const value, uint8_t length)
 {
     if (length != ADDRESS_LENGTH) // sanity check
     {
         return NULL;
     }
     return encode_integer(value, length);
-}
-
-/**
- * Encode bytes and hash it
- *
- * @param[in] value pointer to the bytes received
- * @param[in] length its byte-length
- * @return the encoded (hashed) value
- */
-void    *encode_bytes(const uint8_t *const value, uint16_t length)
-{
-    return hash_field_value(value, length, false);
 }

@@ -7,19 +7,19 @@
 #define MAX_PATH_DEPTH  16
 #define MAX_ARRAY_DEPTH 4
 
-typedef struct __attribute__((packed))
+typedef struct
 {
     uint8_t path_index;
     uint8_t size;
 }   s_array_depth;
 
-typedef struct __attribute__((packed))
+typedef struct
 {
-    const void *root_struct;
     uint8_t depth_count;
     uint8_t depths[MAX_PATH_DEPTH];
     uint8_t array_depth_count;
     s_array_depth array_depths[MAX_ARRAY_DEPTH];
+    const void *root_struct;
 }   s_path;
 
 bool    path_set_root(const char *const struct_name, uint8_t length);

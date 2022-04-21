@@ -197,7 +197,7 @@ class BoilerplateCommandBuilder:
                                             p2=0x00,
                                             cdata=chunk)
 
-    def simple_sign_tx(self, bip32_path: str, transaction) -> bytes:
+    def simple_sign_tx(self, bip32_path: str, transaction: Transaction) -> bytes:
         """Command builder for INS_SIGN_TX.
 
         Parameters
@@ -214,16 +214,16 @@ class BoilerplateCommandBuilder:
 
         """
         bip32_paths: List[bytes] = bip32_path_from_string(bip32_path)
-        tx_encode = rlp.encode(transaction)
-        lc = len(bip32_paths) + len(tx_encode)
         
-        hard_length = 5
-        fake_data = [0xcc, 0x85, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x85, 0x77, 0x6f, 0x72, 0x6c, 0x64]
-
         cdata: bytes = b"".join([
-            hard_length.to_bytes(1, byteorder="big"),
-            *bip32_paths,
+            len(bip32_paths).to_bytes(1, byteorder="big"),
+            *bip32_paths
         ])
+
+        
+        tx: bytes = transaction.serialize()
+
+        cdata = cdata + tx
 
         return self.serialize(cla=self.CLA,
                               ins=InsType.INS_SIGN_TX,

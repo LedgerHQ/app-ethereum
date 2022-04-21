@@ -204,4 +204,8 @@ const tokenDefinition_t const TOKENS_KARDIACHAIN[NUM_TOKENS_KARDIACHAIN] = {};
 
 const tokenDefinition_t const TOKENS_WETHIO[NUM_TOKENS_WETHIO] = {};
 
+const tokenDefinition_t const TOKENS_ASTAR[NUM_TOKENS_ASTAR] = {};
+
+const tokenDefinition_t const TOKENS_SHIDEN[NUM_TOKENS_SHIDEN] = {};
+
 #endif

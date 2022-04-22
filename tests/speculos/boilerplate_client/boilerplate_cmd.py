@@ -87,7 +87,6 @@ class BoilerplateCommand:
 
         a = self.builder.simple_sign_tx(bip32_path="44'/60'/1'/0/0", transaction=transaction)
 
-        print(a.hex())
 
         try:
             response = self.client._apdu_exchange(
@@ -102,7 +101,6 @@ class BoilerplateCommand:
         
         # response = V (1) || R (32) || S (32)
         assert len(response) == 65
-        print(response.hex())
 
         offset: int = 0
 
@@ -133,7 +131,6 @@ class BoilerplateCommand:
 
          # response = V (1) || R (32) || S (32)
         assert len(response) == 65
-        print(response.hex())
 
         offset: int = 0
 

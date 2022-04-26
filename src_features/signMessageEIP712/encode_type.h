@@ -2,6 +2,7 @@
 #define ENCODE_TYPE_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 
 const char  *encode_type(const void *const structs_array,
                         const char *const struct_name,

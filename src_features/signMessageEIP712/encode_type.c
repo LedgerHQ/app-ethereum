@@ -169,37 +169,37 @@ static const char *format_struct_string(const uint8_t *const struct_ptr, uint16_
  *
  * @param[in] structs_array pointer to structs array
  * @param[in] deps_count count of how many struct dependencies pointers
- * @param[in,out] dep pointer to the first dependency pointer
+ * @param[in,out] deps pointer to the first dependency pointer
  */
-static void sort_dependencies(const uint8_t *const deps_count,
-                          void **dep)
+static void sort_dependencies(uint8_t deps_count,
+                              void **deps)
 {
-    bool changed = false;
+    bool changed;
     void *tmp_ptr;
     const char *name1, *name2;
     uint8_t namelen1, namelen2;
     int str_cmp_result;
 
-    for (size_t idx = 0; (idx + 1) < *deps_count; ++idx)
+    do
     {
-        name1 = get_struct_name(*(dep + idx), &namelen1);
-        name2 = get_struct_name(*(dep + idx + 1), &namelen2);
-
-        str_cmp_result = strncmp(name1, name2, MIN(namelen1, namelen2));
-        if ((str_cmp_result > 0) || ((str_cmp_result == 0) && (namelen1 > namelen2)))
+        changed = false;
+        for (size_t idx = 0; (idx + 1) < deps_count; ++idx)
         {
-            tmp_ptr = *(dep + idx);
-            *(dep + idx) = *(dep + idx + 1);
-            *(dep + idx + 1) = tmp_ptr;
+            name1 = get_struct_name(*(deps + idx), &namelen1);
+            name2 = get_struct_name(*(deps + idx + 1), &namelen2);
 
-            changed = true;
+            str_cmp_result = strncmp(name1, name2, MIN(namelen1, namelen2));
+            if ((str_cmp_result > 0) || ((str_cmp_result == 0) && (namelen1 > namelen2)))
+            {
+                tmp_ptr = *(deps + idx);
+                *(deps + idx) = *(deps + idx + 1);
+                *(deps + idx + 1) = tmp_ptr;
+
+                changed = true;
+            }
         }
     }
-    // recurse until it is sorted
-    if (changed)
-    {
-        sort_dependencies(deps_count, dep);
-    }
+    while (changed);
 }
 
 /**
@@ -207,14 +207,14 @@ static void sort_dependencies(const uint8_t *const deps_count,
  *
  * @param[in] structs_array pointer to structs array
  * @param[out] deps_count count of how many struct dependencie pointers
- * @param[in] dep pointer to the first dependency pointer
+ * @param[in] deps pointer to the first dependency pointer
  * @param[in] struct_ptr pointer to the struct we are getting the dependencies of
  * @return \ref false in case of a memory allocation error, \ref true otherwise
  */
 static bool get_struct_dependencies(const void *const structs_array,
-                                uint8_t *const deps_count,
-                                void **dep,
-                                const void *const struct_ptr)
+                                    uint8_t *const deps_count,
+                                    void *const *const deps,
+                                    const void *const struct_ptr)
 {
     uint8_t fields_count;
     const void *field_ptr;
@@ -238,7 +238,7 @@ static bool get_struct_dependencies(const void *const structs_array,
             for (dep_idx = 0; dep_idx < *deps_count; ++dep_idx)
             {
                 // it's a match!
-                if (*(dep + dep_idx) == arg_struct_ptr)
+                if (*(deps + dep_idx) == arg_struct_ptr)
                 {
                     break;
                 }
@@ -252,7 +252,7 @@ static bool get_struct_dependencies(const void *const structs_array,
                 }
                 *new_dep = arg_struct_ptr;
                 *deps_count += 1;
-                get_struct_dependencies(structs_array, deps_count, dep, arg_struct_ptr);
+                get_struct_dependencies(structs_array, deps_count, deps, arg_struct_ptr);
             }
         }
         field_ptr = get_next_struct_field(field_ptr);
@@ -277,32 +277,28 @@ const char  *encode_type(const void *const structs_array,
     const void *const struct_ptr = get_structn(structs_array,
                                                struct_name,
                                                struct_name_length);
-    uint8_t *deps_count;
-    void **dep;
+    uint8_t deps_count;
+    void **deps;
     uint16_t length;
     const char *typestr;
 
     *encoded_length = 0;
-    if ((deps_count = mem_alloc(sizeof(uint8_t))) == NULL)
-    {
-        return NULL;
-    }
-    *deps_count = 0;
+    deps_count = 0;
     // get list of structs (own + dependencies), properly ordered
-    dep = (void**)(deps_count + 1); // get first elem
-    if (get_struct_dependencies(structs_array, deps_count, dep, struct_ptr) == false)
+    deps = mem_alloc(0); // get where the first elem will be
+    if (get_struct_dependencies(structs_array, &deps_count, deps, struct_ptr) == false)
     {
         return NULL;
     }
-    sort_dependencies(deps_count, dep);
+    sort_dependencies(deps_count, deps);
     typestr = format_struct_string(struct_ptr, &length);
     *encoded_length += length;
     // loop over each struct and generate string
-    for (int idx = 0; idx < *deps_count; ++idx)
+    for (int idx = 0; idx < deps_count; ++idx)
     {
-        format_struct_string(*dep, &length);
+        format_struct_string(*deps, &length);
         *encoded_length += length;
-        dep += 1;
+        deps += 1;
     }
 
     return typestr;

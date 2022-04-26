@@ -15,10 +15,12 @@ from boilerplate_client.transaction import Transaction
 class BoilerplateCommand:
     def __init__(self,
                  client: SpeculosClient,
-                 debug: bool = False) -> None:
+                 debug: bool = False,
+                 model: str = "nanos") -> None:
         self.client = client
         self.builder = BoilerplateCommandBuilder(debug=debug)
         self.debug = debug
+        self.model = model
     
     def get_configuration(self) -> Tuple[int, int, int, int]:
         try:

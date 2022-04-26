@@ -1,11 +1,24 @@
 from io import BytesIO
 from typing import List, Optional, Literal
 
+import speculos.client
+
+import PIL.Image as Image
+import io
 
 UINT64_MAX: int = 18446744073709551615
 UINT32_MAX: int = 4294967295
 UINT16_MAX: int = 65535
 
+def save_screenshot(cmd, path: str):
+    screenshot = cmd.client.get_screenshot()
+    img = Image.open(io.BytesIO(screenshot))
+    img.save(path)
+
+
+def compare_screenshot(cmd, path: str):
+    screenshot = cmd.client.get_screenshot()
+    assert speculos.client.screenshot_equal(path, io.BytesIO(screenshot))
 
 def bip32_path_from_string(path: str) -> List[bytes]:
     splitted_path: List[str] = path.split("/")

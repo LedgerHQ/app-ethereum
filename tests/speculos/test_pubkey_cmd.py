@@ -3,7 +3,10 @@ from cgitb import reset
 from pickle import TRUE
 from typing import Tuple
 
+from time import sleep
+
 import boilerplate_client
+from boilerplate_client.utils import UINT64_MAX, compare_screenshot, save_screenshot
 
 
 def test_get_public_key(cmd):
@@ -25,15 +28,37 @@ def test_get_public_key(cmd):
     # DAI COIN with display
     result: list = []
     with cmd.get_public_key(bip32_path="44'/700'/1'/0/0", display=True, result=result) as exchange:
-        cmd.client.press_and_release('right')
-        # Verify address
-        cmd.client.press_and_release('right')
-        # Address 1/3, 2/3, 3/3
-        cmd.client.press_and_release('right')
-        cmd.client.press_and_release('right')
-        cmd.client.press_and_release('right')
-        # Approved
-        cmd.client.press_and_release('both')
+        sleep(0.5)
+
+        if cmd.model == "nanos":
+            # Verify address
+            compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/get_public_key/00000.png")
+            cmd.client.press_and_release('right')
+
+            # Address 1/3, 2/3, 3/3
+            compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/get_public_key/00001.png")
+            cmd.client.press_and_release('right')
+            compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/get_public_key/00002.png")
+            cmd.client.press_and_release('right')
+            compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/get_public_key/00003.png")
+            cmd.client.press_and_release('right')
+
+            # Approved
+            compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/get_public_key/00004.png")
+            cmd.client.press_and_release('both')
+
+        if cmd.model == "nanox":
+            # Verify address
+            compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/get_public_key/00000.png")
+            cmd.client.press_and_release('right')
+
+            # Address
+            compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/get_public_key/00001.png")
+            cmd.client.press_and_release('right')
+
+            # Approve
+            compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/get_public_key/00002.png")
+            cmd.client.press_and_release('both')
 
     uncompressed_addr_len, eth_addr, chain_code = result
     assert len(uncompressed_addr_len) == 65
@@ -50,16 +75,45 @@ def test_reject_get_public_key(cmd):
         # DAI COIN with display
         result: list = []
         with cmd.get_public_key(bip32_path="44'/700'/1'/0/0", display=True, result=result) as exchange:
-            cmd.client.press_and_release('right')
-            # Verify address
-            cmd.client.press_and_release('right')
-            # Address 1/3, 2/3, 3/3
-            cmd.client.press_and_release('right')
-            cmd.client.press_and_release('right')
-            cmd.client.press_and_release('right')
-            # Reject
-            cmd.client.press_and_release('right')
-            cmd.client.press_and_release('both')
+            sleep(0.5)
+
+            if cmd.model == "nanos":
+                # Verify address
+                compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/reject_get_public_key/00000.png")
+                cmd.client.press_and_release('right')
+
+                # Address 1/3, 2/3, 3/3
+                compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/reject_get_public_key/00001.png")
+                cmd.client.press_and_release('right')
+                compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/reject_get_public_key/00002.png")
+                cmd.client.press_and_release('right')
+                compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/reject_get_public_key/00003.png")
+                cmd.client.press_and_release('right')
+
+                # Approve
+                compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/reject_get_public_key/00004.png")
+                cmd.client.press_and_release('right')
+                
+                # Reject
+                compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/reject_get_public_key/00005.png")
+                cmd.client.press_and_release('both')
+            
+            if cmd.model == "nanox":
+                # Verify address
+                compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/reject_get_public_key/00000.png")
+                cmd.client.press_and_release('right')
+
+                # Address
+                compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/reject_get_public_key/00001.png")
+                cmd.client.press_and_release('right')
+
+                # Approve
+                compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/reject_get_public_key/00002.png")
+                cmd.client.press_and_release('right')
+
+                # Reject
+                compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/reject_get_public_key/00003.png")
+                cmd.client.press_and_release('both')
 
     except boilerplate_client.exception.errors.DenyError as error:
         assert error.args[0] == '0x6985'

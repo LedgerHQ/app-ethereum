@@ -24,20 +24,34 @@ char    *mem_alloc_and_copy_char(char c)
  * Format an unsigned number up to 32-bit into memory into an ASCII string.
  *
  * @param[in] value Value to write in memory
- * @param[in] max_chars Maximum number of characters that could be written
+ * @param[out] length number of characters written to memory
  *
- * @return how many characters have been written in memory, 0 in case of an allocation error
+ * @return pointer to memory area or \ref NULL if the allocated failed
  */
-uint8_t mem_alloc_and_format_uint(uint32_t value, const uint8_t max_chars)
+char *mem_alloc_and_format_uint(uint32_t value,
+                                uint8_t *const length)
 {
-    char        *ptr;
-    uint8_t     written_chars;
+    char        *mem_ptr;
+    uint32_t    value_copy;
+    uint8_t     size;
 
-    if ((ptr = mem_alloc(sizeof(char) * max_chars)) == NULL)
+    size = 1; // minimum size, even if 0
+    value_copy = value;
+    while (value_copy >= 10)
+    {
+        value_copy /= 10;
+        size += 1;
+    }
+    // +1 for the null character
+    if ((mem_ptr = mem_alloc(sizeof(char) * (size + 1))) == NULL)
     {
         return 0;
     }
-    written_chars = sprintf(ptr, "%u", value);
-    mem_dealloc(max_chars - written_chars); // in case it ended up being less
-    return written_chars;
+    snprintf(mem_ptr, (size + 1), "%u", value);
+    mem_dealloc(sizeof(char)); // to skip the null character
+    if (length != NULL)
+    {
+        *length = size;
+    }
+    return mem_ptr;
 }

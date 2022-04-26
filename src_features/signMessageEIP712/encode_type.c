@@ -29,8 +29,7 @@ static bool format_field_type_array_levels_string(const void *lvl_ptr, uint8_t l
             case ARRAY_DYNAMIC:
                 break;
             case ARRAY_FIXED_SIZE:
-                // max value = 255, 3 characters max
-                mem_alloc_and_format_uint(array_size, 3);
+                mem_alloc_and_format_uint(array_size, NULL);
                 break;
             default:
                 // should not be in here :^)
@@ -81,8 +80,7 @@ static bool format_field_string(const void *field_ptr)
                 // should not be in here :^)
                 break;
         }
-        // max value = 256, 3 characters max
-        mem_alloc_and_format_uint(field_size, 3);
+        mem_alloc_and_format_uint(field_size, NULL);
     }
 
     // field type array levels

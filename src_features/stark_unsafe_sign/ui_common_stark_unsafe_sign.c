@@ -1,5 +1,6 @@
 #ifdef HAVE_STARKWARE
 
+#include "os_io_seproxyhal.h"
 #include "shared_context.h"
 #include "stark_utils.h"
 #include "ui_callbacks.h"
@@ -38,4 +39,4 @@ unsigned int io_seproxyhal_touch_stark_unsafe_sign_ok(__attribute__((unused))
     return 0;  // do not redraw the widget
 }
 
-#endif
+#endif  // HAVE_STARKWARE

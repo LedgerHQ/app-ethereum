@@ -1,3 +1,6 @@
+#ifndef _APDU_CONSTANTS_H_
+#define _APDU_CONSTANTS_H_
+
 #include "shared_context.h"
 
 #define APP_FLAG_DATA_ALLOWED          0x01
@@ -17,6 +20,7 @@
 #define INS_SET_EXTERNAL_PLUGIN             0x12
 #define INS_PROVIDE_NFT_INFORMATION         0x14
 #define INS_SET_PLUGIN                      0x16
+#define INS_PERFORM_PRIVACY_OPERATION       0x18
 #define P1_CONFIRM                          0x01
 #define P1_NON_CONFIRM                      0x00
 #define P2_NO_CHAINCODE                     0x00
@@ -111,6 +115,13 @@ void handleSetPlugin(uint8_t p1,
                      unsigned int *flags,
                      unsigned int *tx);
 
+void handlePerformPrivacyOperation(uint8_t p1,
+                                   uint8_t p2,
+                                   uint8_t *workBuffer,
+                                   uint16_t dataLength,
+                                   unsigned int *flags,
+                                   unsigned int *tx);
+
 #ifdef HAVE_ETH2
 
 void handleGetEth2PublicKey(uint8_t p1,
@@ -156,3 +167,5 @@ void handleStarkwareUnsafeSign(uint8_t p1,
                                unsigned int *tx);
 
 #endif
+
+#endif  // _APDU_CONSTANTS_H_

@@ -1,6 +1,10 @@
 #ifdef HAVE_NFT_SUPPORT
 
+#include <string.h>
 #include "erc1155_plugin.h"
+#include "eth_plugin_interface.h"
+#include "ethUtils.h"
+#include "utils.h"
 
 static void set_approval_for_all_ui(ethQueryContractUI_t *msg, erc1155_context_t *context) {
     switch (msg->screenIndex) {
@@ -18,15 +22,11 @@ static void set_approval_for_all_ui(ethQueryContractUI_t *msg, erc1155_context_t
             break;
         case 1:
             strlcpy(msg->title, "To Manage ALL", msg->titleLength);
-            if (msg->item1) {
-                strlcpy(msg->msg, (const char *) &msg->item1->nft.collectionName, msg->msgLength);
-            } else {
-                strlcpy(msg->msg, "Not found", msg->msgLength);
-            }
+            strlcpy(msg->msg, msg->item1->nft.collectionName, msg->msgLength);
             break;
         case 2:
             strlcpy(msg->title, "NFT Address", msg->titleLength);
-            getEthDisplayableAddress(msg->pluginSharedRO->txContent->destination,
+            getEthDisplayableAddress(msg->item1->nft.contractAddress,
                                      msg->msg,
                                      msg->msgLength,
                                      &global_sha3,
@@ -51,15 +51,11 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *contex
             break;
         case 1:
             strlcpy(msg->title, "Collection Name", msg->titleLength);
-            if (msg->item1) {
-                strlcpy(msg->msg, (const char *) &msg->item1->nft.collectionName, msg->msgLength);
-            } else {
-                strlcpy(msg->msg, "Not Found", msg->msgLength);
-            }
+            strlcpy(msg->msg, msg->item1->nft.collectionName, msg->msgLength);
             break;
         case 2:
             strlcpy(msg->title, "NFT Address", msg->titleLength);
-            getEthDisplayableAddress((uint8_t *) msg->item1->nft.contractAddress,
+            getEthDisplayableAddress(msg->item1->nft.contractAddress,
                                      msg->msg,
                                      msg->msgLength,
                                      &global_sha3,
@@ -97,15 +93,11 @@ static void set_batch_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *
             break;
         case 1:
             strlcpy(msg->title, "Collection Name", msg->titleLength);
-            if (msg->item1) {
-                strlcpy(msg->msg, (const char *) &msg->item1->nft.collectionName, msg->msgLength);
-            } else {
-                strlcpy(msg->msg, "Not Found", msg->msgLength);
-            }
+            strlcpy(msg->msg, msg->item1->nft.collectionName, msg->msgLength);
             break;
         case 2:
             strlcpy(msg->title, "NFT Address", msg->titleLength);
-            getEthDisplayableAddress((uint8_t *) msg->item1->nft.contractAddress,
+            getEthDisplayableAddress(msg->item1->nft.contractAddress,
                                      msg->msg,
                                      msg->msgLength,
                                      &global_sha3,

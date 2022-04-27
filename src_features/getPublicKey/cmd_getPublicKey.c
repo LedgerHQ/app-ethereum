@@ -3,6 +3,7 @@
 
 #include "ui_flow.h"
 #include "feature_getPublicKey.h"
+#include "ethUtils.h"
 
 void handleGetPublicKey(uint8_t p1,
                         uint8_t p2,

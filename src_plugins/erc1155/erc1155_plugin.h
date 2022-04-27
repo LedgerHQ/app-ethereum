@@ -1,22 +1,21 @@
+#ifndef _ERC1155_PLUGIN_H_
+#define _ERC1155_PLUGIN_H_
+
 #ifdef HAVE_NFT_SUPPORT
 
-#pragma once
-
-#include <string.h>
-#include "eth_plugin_handler.h"
-#include "shared_context.h"
-#include "ethUtils.h"
-#include "utils.h"
+#include <stdbool.h>
+#include <stdint.h>
+#include "ethUstream.h"
 #include "uint256.h"
+#include "nft.h"
 
 // Internal plugin for EIP 1155: https://eips.ethereum.org/EIPS/eip-1155
-
-#define NUM_ERC1155_SELECTORS 3
 
 typedef enum {
     SET_APPROVAL_FOR_ALL,
     SAFE_TRANSFER,
     SAFE_BATCH_TRANSFER,
+    SELECTORS_COUNT
 } erc1155_selector_t;
 
 typedef enum {
@@ -53,3 +52,5 @@ void handle_provide_parameter_1155(void *parameters);
 void handle_query_contract_ui_1155(void *parameters);
 
 #endif  // HAVE_NFT_SUPPORT
+
+#endif  // _ERC1155_PLUGIN_H_

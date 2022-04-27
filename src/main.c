@@ -269,6 +269,21 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
         case CHAIN_KIND_SHYFT:
             numTokens = NUM_TOKENS_SHYFT;
             break;
+        case CHAIN_KIND_CONFLUX_ESPACE:
+            numTokens = NUM_TOKENS_CONFLUX_ESPACE;
+            break;
+        case CHAIN_KIND_MOONBEAM:
+            numTokens = NUM_TOKENS_MOONBEAM;
+            break;
+        case CHAIN_KIND_KARDIACHAIN:
+            numTokens = NUM_TOKENS_KARDIACHAIN;
+            break;
+        case CHAIN_KIND_BTTC:
+            numTokens = NUM_TOKENS_BTTC;
+            break;
+        case CHAIN_KIND_WETHIO:
+            numTokens = NUM_TOKENS_WETHIO;
+            break;
     }
     for (i = 0; i < numTokens; i++) {
         switch (chainConfig->kind) {
@@ -380,26 +395,33 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
             case CHAIN_KIND_SHYFT:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_SHYFT[i]);
                 break;
+            case CHAIN_KIND_CONFLUX_ESPACE:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_CONFLUX_ESPACE[i]);
+                break;
+            case CHAIN_KIND_MOONBEAM:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_MOONBEAM[i]);
+                break;
+            case CHAIN_KIND_BTTC:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_BTTC[i]);
+                break;
+            case CHAIN_KIND_KARDIACHAIN:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_KARDIACHAIN[i]);
+                break;
+            case CHAIN_KIND_WETHIO:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_WETHIO[i]);
+                break;
         }
         if (memcmp(currentToken->address, tmpContent.txContent.destination, ADDRESS_LENGTH) == 0) {
             return currentToken;
         }
     }
 #endif
-    //
+    // Works for ERC-20 & NFT tokens since both structs in the union have the
+    // contract address aligned
     for (uint8_t i = 0; i < MAX_ITEMS; i++) {
         currentItem = (union extraInfo_t *) &tmpCtx.transactionContext.extraInfo[i].token;
         if (tmpCtx.transactionContext.tokenSet[i] &&
             (memcmp(currentItem->token.address, contractAddress, ADDRESS_LENGTH) == 0)) {
-            PRINTF("Token found at index %d\n", i);
-            return currentItem;
-        }
-    }
-
-    for (uint8_t i = 0; i < MAX_ITEMS; i++) {
-        currentItem = (union extraInfo_t *) &tmpCtx.transactionContext.extraInfo[i].token;
-        if (tmpCtx.transactionContext.tokenSet[i] &&
-            (memcmp(currentItem->nft.contractAddress, contractAddress, ADDRESS_LENGTH) == 0)) {
             PRINTF("Token found at index %d\n", i);
             return currentItem;
         }
@@ -546,6 +568,15 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                                     G_io_apdu_buffer[OFFSET_LC],
                                     flags,
                                     tx);
+                    break;
+
+                case INS_PERFORM_PRIVACY_OPERATION:
+                    handlePerformPrivacyOperation(G_io_apdu_buffer[OFFSET_P1],
+                                                  G_io_apdu_buffer[OFFSET_P2],
+                                                  G_io_apdu_buffer + OFFSET_CDATA,
+                                                  G_io_apdu_buffer[OFFSET_LC],
+                                                  flags,
+                                                  tx);
                     break;
 
                 case INS_SIGN:

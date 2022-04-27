@@ -45,27 +45,27 @@ uint64_t get_chain_id(void) {
     return chain_id;
 }
 
-network_info_t *get_network(void) {
+const network_info_t *get_network(void) {
     uint64_t chain_id = get_chain_id();
-    for (uint8_t i = 0; i < sizeof(NETWORK_MAPPING) / sizeof(*NETWORK_MAPPING); i++) {
+    for (size_t i = 0; i < sizeof(NETWORK_MAPPING) / sizeof(*NETWORK_MAPPING); i++) {
         if (NETWORK_MAPPING[i].chain_id == chain_id) {
-            return (network_info_t *) PIC(&NETWORK_MAPPING[i]);
+            return (const network_info_t *) PIC(&NETWORK_MAPPING[i]);
         }
     }
     return NULL;
 }
 
-char *get_network_name(void) {
-    network_info_t *network = get_network();
+const char *get_network_name(void) {
+    const network_info_t *network = get_network();
     if (network == NULL) {
         return NULL;
     } else {
-        return (char *) PIC(network->name);
+        return (const char *) PIC(network->name);
     }
 }
 
-char *get_network_ticker(void) {
-    network_info_t *network = get_network();
+const char *get_network_ticker(void) {
+    const network_info_t *network = get_network();
     if (network == NULL) {
         return chainConfig->coinName;
     } else {

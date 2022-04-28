@@ -5,6 +5,7 @@
 #include "mem.h"
 #include "sol_typenames.h"
 #include "path.h"
+#include "field_hash.h"
 
 uint8_t  *typenames_array;
 uint8_t  *structs_array;
@@ -25,6 +26,11 @@ bool    init_eip712_context(void)
     }
 
     if (path_init() == false)
+    {
+        return false;
+    }
+
+    if (field_hash_init() == false)
     {
         return false;
     }

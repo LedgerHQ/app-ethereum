@@ -18,6 +18,7 @@ typedef struct
     uint8_t     state; // e_field_hashing_state
 }   s_field_hashing;
 
+bool field_hash_init(void);
 const uint8_t *field_hash(const uint8_t *data,
                           uint8_t data_length,
                           bool partial);

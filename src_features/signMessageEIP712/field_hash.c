@@ -9,7 +9,7 @@
 
 static s_field_hashing *fh = NULL;
 
-static bool field_hash_init(void)
+bool field_hash_init(void)
 {
     if (fh == NULL)
     {
@@ -35,7 +35,7 @@ const uint8_t *field_hash(const uint8_t *data,
     uint8_t *hash_ptr = NULL;
 
     (void)data;
-    if ((fh == NULL) && (field_hash_init() == false))
+    if (fh == NULL)
     {
         return NULL;
     }

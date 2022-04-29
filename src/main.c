@@ -260,6 +260,9 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
         case CHAIN_KIND_BSC:
             numTokens = NUM_TOKENS_BSC;
             break;
+        case CHAIN_KIND_OKC:
+            numTokens = NUM_TOKENS_OKC;
+            break;
         case CHAIN_KIND_SONGBIRD:
             numTokens = NUM_TOKENS_SONGBIRD;
             break;
@@ -385,6 +388,9 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
                 break;
             case CHAIN_KIND_BSC:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_BSC[i]);
+                break;
+            case CHAIN_KIND_OKC:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_OKC[i]);
                 break;
             case CHAIN_KIND_SONGBIRD:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_SONGBIRD[i]);

@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.9.18](https://github.com/ledgerhq/app-ethereum/compare/1.9.17...1.9.18) - 2022-04-25
+
+### Added
+
+- Easier way of adding a chain into the Makefile
+- EIP 1024 support
+- Conflux chain
+- Moonbeam chain
+- KardiaChain
+- BitTorrent Chain
+- Wethio chain
+
+### Changed
+
+- More uniform naming between the ERC-721 & ERC-1155 screens
+
+### Fixed
+
+- CI (mostly Zemu tests)
+- App crashing when trying to approve an NFT transaction without having received the NFT information beforehand
+- App refusing to approve an NFT transaction with a long collection name
+
 ## [1.9.17](https://github.com/ledgerhq/app-ethereum/compare/1.9.16...1.9.17) - 2022-01-14
 
 ### Added

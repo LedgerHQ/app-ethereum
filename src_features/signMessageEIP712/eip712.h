@@ -34,9 +34,6 @@ typedef enum
     ARRAY_FIXED_SIZE
 }   e_array_type;
 
-#define MIN(a,b)    ((a > b) ? b : a)
-#define MAX(a,b)    ((a > b) ? a : b)
-
 // APDUs INS
 #define INS_STRUCT_DEF  0x18
 #define INS_STRUCT_IMPL 0x1A

@@ -243,7 +243,7 @@ static bool path_update(void)
         {
             return false;
         }
-        cx_keccak_init((cx_hash_t*)hash_ctx, 256); // initialize it
+        cx_keccak_init(hash_ctx, 256); // initialize it
         // get the struct typehash
         if ((thash_ptr = type_hash(structs_array, typename, typename_len)) == NULL)
         {
@@ -292,7 +292,7 @@ bool    path_set_root(const char *const struct_name, uint8_t name_length)
     {
         return false;
     }
-    cx_keccak_init((cx_hash_t*)hash_ctx, 256); // init hash
+    cx_keccak_init(hash_ctx, 256); // init hash
     if ((thash_ptr = type_hash(structs_array, struct_name, name_length)) == NULL)
     {
         return false;
@@ -420,11 +420,11 @@ bool    path_new_array_depth(uint8_t size)
         cx_sha3_t *old_ctx = (void*)hash_ctx - sizeof(cx_sha3_t);
 
         memcpy(hash_ctx, old_ctx, sizeof(cx_sha3_t));
-        cx_keccak_init((cx_hash_t*)old_ctx, 256); // init hash
+        cx_keccak_init(old_ctx, 256); // init hash
     }
     else // solidity type
     {
-        cx_keccak_init((cx_hash_t*)hash_ctx, 256); // init hash
+        cx_keccak_init(hash_ctx, 256); // init hash
     }
 
     return true;

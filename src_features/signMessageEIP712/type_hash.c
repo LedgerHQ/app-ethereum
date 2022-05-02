@@ -276,7 +276,7 @@ const uint8_t *type_hash(const void *const structs_array,
     void **deps;
     uint8_t *hash_ptr;
 
-    cx_keccak_init((cx_hash_t*)&global_sha3, 256); // init hash
+    cx_keccak_init(&global_sha3, 256); // init hash
     // get list of structs (own + dependencies), properly ordered
     deps = mem_alloc(0); // get where the first elem will be
     if (get_struct_dependencies(structs_array, &deps_count, deps, struct_ptr) == false)

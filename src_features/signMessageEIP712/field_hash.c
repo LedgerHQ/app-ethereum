@@ -55,7 +55,7 @@ const uint8_t *field_hash(const uint8_t *data,
         fh->state = FHS_WAITING_FOR_MORE;
         if (IS_DYN(field_type))
         {
-            cx_keccak_init((cx_hash_t*)&global_sha3, 256); // init hash
+            cx_keccak_init(&global_sha3, 256); // init hash
         }
     }
     fh->remaining_size -= data_length;

@@ -407,6 +407,7 @@ bool    handle_apdu(const uint8_t *const data)
     return true;
 }
 
+#if 0
 int     main(void)
 {
     uint8_t         buf[260]; // 4 bytes APDU header + 256 bytes payload
@@ -453,3 +454,4 @@ int     main(void)
 #endif
     return EXIT_SUCCESS;
 }
+#endif

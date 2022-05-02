@@ -3,30 +3,10 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include "mem.h"
+#include "mem_utils.h"
 #include "eip712.h"
 #include "encode_type.h"
 
-/**
- * Format an unsigned number up to 32-bit into memory into an ASCII string.
- *
- * @param[in] value Value to write in memory
- * @param[in] max_chars Maximum number of characters that could be written
- *
- * @return how many characters have been written in memory, 0 in case of an allocation error
- */
-static uint8_t format_uint_into_mem(uint32_t value, const uint8_t max_chars)
-{
-    char        *ptr;
-    uint8_t     written_chars;
-
-    if ((ptr = mem_alloc(sizeof(char) * max_chars)) == NULL)
-    {
-        return 0;
-    }
-    written_chars = sprintf(ptr, "%u", value);
-    mem_dealloc(max_chars - written_chars); // in case it ended up being less
-    return written_chars;
-}
 
 /**
  *
@@ -48,42 +28,35 @@ static const char *get_struct_type_string(const uint8_t *const struct_ptr, uint1
     uint8_t lvls_count;
     const uint8_t *lvl_ptr;
     uint8_t array_size;
-    char *char_ptr;
-    char *name_ptr;
 
     // add name
     struct_name = get_struct_name(struct_ptr, &struct_name_length);
-    if ((name_ptr = mem_alloc(sizeof(char) * struct_name_length)) == NULL)
+    if ((str_start = alloc_and_copy(struct_name, struct_name_length)) == NULL)
     {
         return NULL;
     }
-    str_start = memmove(name_ptr, struct_name, struct_name_length);
 
-    if ((char_ptr = mem_alloc(sizeof(char))) == NULL)
+    if (alloc_and_copy_char('(') == NULL)
     {
         return NULL;
     }
-    *char_ptr = '(';
 
     field_ptr = get_struct_fields_array(struct_ptr, &fields_count);
     for (uint8_t idx = 0; idx < fields_count; ++idx)
     {
         if (idx > 0)
         {
-            if ((char_ptr = mem_alloc(sizeof(char))) == NULL)
+            if (alloc_and_copy_char(',') == NULL)
             {
                 return NULL;
             }
-            *char_ptr = ',';
         }
 
         name = get_struct_field_typename(field_ptr, &length);
-
-        if ((name_ptr = mem_alloc(sizeof(char) * length)) == NULL)
+        if (alloc_and_copy(name, length) == NULL)
         {
             return NULL;
         }
-        memmove(name_ptr, name, length);
 
         if (struct_field_has_typesize(field_ptr))
         {
@@ -109,11 +82,11 @@ static const char *get_struct_type_string(const uint8_t *const struct_ptr, uint1
             lvl_ptr = get_struct_field_array_lvls_array(field_ptr, &lvls_count);
             while (lvls_count-- > 0)
             {
-                if ((char_ptr = mem_alloc(sizeof(char))) == NULL)
+                if (alloc_and_copy_char('[') == NULL)
                 {
                     return NULL;
                 }
-                *char_ptr = '[';
+
                 switch (struct_field_array_depth(lvl_ptr, &array_size))
                 {
                     case ARRAY_DYNAMIC:
@@ -126,34 +99,30 @@ static const char *get_struct_type_string(const uint8_t *const struct_ptr, uint1
                         // should not be in here :^)
                         break;
                 }
-                if ((char_ptr = mem_alloc(sizeof(char))) == NULL)
+                if (alloc_and_copy_char(']') == NULL)
                 {
                     return NULL;
                 }
-                *char_ptr = ']';
                 lvl_ptr = get_next_struct_field_array_lvl(lvl_ptr);
             }
         }
-        if ((char_ptr = mem_alloc(sizeof(char))) == NULL)
+        if (alloc_and_copy_char(' ') == NULL)
         {
             return NULL;
         }
-        *char_ptr = ' ';
-        name = get_struct_field_keyname(field_ptr, &length);
 
-        if ((name_ptr = mem_alloc(sizeof(char) * length)) == NULL)
+        name = get_struct_field_keyname(field_ptr, &length);
+        if (alloc_and_copy(name, length) == NULL)
         {
             return NULL;
         }
-        memmove(name_ptr, name, length);
 
         field_ptr = get_next_struct_field(field_ptr);
     }
-    if ((char_ptr = mem_alloc(sizeof(char))) == NULL)
+    if (alloc_and_copy_char(')') == NULL)
     {
         return NULL;
     }
-    *char_ptr = ')';
 
     *str_length = ((char*)mem_alloc(0) - str_start);
     return str_start;

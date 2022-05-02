@@ -9,6 +9,7 @@
 #include "type_hash.h"
 #include "context.h"
 #include "sol_typenames.h"
+#include "field_hash.h"
 
 
 // lib functions
@@ -381,6 +382,7 @@ bool    handle_apdu(const uint8_t *const data)
                     type_hash(structs_array, (char*)&data[OFFSET_DATA], data[OFFSET_LC]);
                     break;
                 case P2_FIELD:
+                    field_hash(structs_array, &data[OFFSET_DATA], data[OFFSET_LC]);
                     break;
                 case P2_ARRAY:
                     break;

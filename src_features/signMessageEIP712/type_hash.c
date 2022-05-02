@@ -267,42 +267,34 @@ static bool get_struct_dependencies(const void *const structs_array,
  */
 const uint8_t *type_hash(const void *const structs_array,
                          const char *const struct_name,
-                         const uint8_t struct_name_length,
-                         bool with_deps)
+                         const uint8_t struct_name_length)
 {
     const void *const struct_ptr = get_structn(structs_array,
                                                struct_name,
                                                struct_name_length);
-    uint8_t deps_count;
+    uint8_t deps_count = 0;
     void **deps;
     uint8_t *hash_ptr;
 
     cx_keccak_init((cx_hash_t*)&global_sha3, 256); // init hash
-    if (with_deps)
+    // get list of structs (own + dependencies), properly ordered
+    deps = mem_alloc(0); // get where the first elem will be
+    if (get_struct_dependencies(structs_array, &deps_count, deps, struct_ptr) == false)
     {
-        deps_count = 0;
-        // get list of structs (own + dependencies), properly ordered
-        deps = mem_alloc(0); // get where the first elem will be
-        if (get_struct_dependencies(structs_array, &deps_count, deps, struct_ptr) == false)
-        {
-            return NULL;
-        }
-        sort_dependencies(deps_count, deps);
+        return NULL;
     }
+    sort_dependencies(deps_count, deps);
     if (encode_and_hash_type(struct_ptr) == false)
     {
         return NULL;
     }
-    if (with_deps)
+    // loop over each struct and generate string
+    for (int idx = 0; idx < deps_count; ++idx)
     {
-        // loop over each struct and generate string
-        for (int idx = 0; idx < deps_count; ++idx)
-        {
-            encode_and_hash_type(*deps);
-            deps += 1;
-        }
-        mem_dealloc(sizeof(void*) * deps_count);
+        encode_and_hash_type(*deps);
+        deps += 1;
     }
+    mem_dealloc(sizeof(void*) * deps_count);
 #ifdef DEBUG
     PRINTF("\n");
 #endif

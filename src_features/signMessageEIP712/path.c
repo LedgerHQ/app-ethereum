@@ -248,7 +248,7 @@ static bool path_update(void)
         }
         cx_keccak_init((cx_hash_t*)hash_ctx, 256); // initialize it
         // get the struct typehash
-        if ((thash_ptr = type_hash(structs_array, typename, typename_len, true)) == NULL)
+        if ((thash_ptr = type_hash(structs_array, typename, typename_len)) == NULL)
         {
             return false;
         }
@@ -297,7 +297,7 @@ bool    path_set_root(const char *const struct_name, uint8_t name_length)
         return false;
     }
     cx_keccak_init((cx_hash_t*)hash_ctx, 256); // init hash
-    if ((thash_ptr = type_hash(structs_array, struct_name, name_length, true)) == NULL)
+    if ((thash_ptr = type_hash(structs_array, struct_name, name_length)) == NULL)
     {
         return false;
     }

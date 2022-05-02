@@ -35,13 +35,6 @@ typedef enum
     ARRAY_FIXED_SIZE
 }   e_array_type;
 
-typedef enum
-{
-    IDX_ENUM = 0,
-    IDX_STR_IDX,
-    IDX_COUNT
-}   t_typename_matcher_idx;
-
 #define MIN(a,b)    ((a > b) ? b : a)
 #define MAX(a,b)    ((a > b) ? a : b)
 
@@ -64,9 +57,6 @@ typedef enum
 #define TYPESIZE_MASK   (1 << 6)
 #define TYPENAME_ENUM   (0xF)
 
-// Solidity typenames array mask
-#define TYPENAME_MORE_TYPE  (1 << 7) // For custom typename
-
 #define KECCAK256_HASH_LENGTH   32
 
 typedef struct
@@ -88,7 +78,6 @@ typedef struct
     uint8_t     bytesize;
     t_array     array_levels;
 }   t_struct_field;
-
 
 
 // TODO: Move these into a new file
@@ -115,5 +104,7 @@ const uint8_t *get_next_struct_field(const void *ptr);
 const uint8_t *get_structn(const uint8_t *const ptr,
                            const char *const name_ptr,
                            const uint8_t name_length);
+const void *get_array_in_mem(const void *ptr, uint8_t *const array_size);
+const char *get_string_in_mem(const uint8_t *ptr, uint8_t *const string_length);
 
 #endif // EIP712_H_

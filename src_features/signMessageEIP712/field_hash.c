@@ -32,7 +32,8 @@ const uint8_t *field_hash(const uint8_t *data,
     const char *key;
     uint8_t keylen;
     e_type field_type;
-    uint8_t *hash_ptr = NULL;
+    uint8_t *value = NULL;
+
 
     (void)data;
     if (fh == NULL)
@@ -51,7 +52,10 @@ const uint8_t *field_hash(const uint8_t *data,
         data += sizeof(uint16_t);
         data_length -= sizeof(uint16_t);
         fh->state = FHS_WAITING_FOR_MORE;
-        cx_keccak_init((cx_hash_t*)&global_sha3, 256); // init hash
+        if (IS_DYN(field_type))
+        {
+            cx_keccak_init((cx_hash_t*)&global_sha3, 256); // init hash
+        }
     }
     fh->remaining_size -= data_length;
     // if a dynamic type -> continue progressive hash
@@ -78,8 +82,6 @@ const uint8_t *field_hash(const uint8_t *data,
         fwrite(key, sizeof(char), keylen, stdout);
         printf("\n");
 
-        uint8_t *value = NULL;
-
         if (!IS_DYN(field_type))
         {
             switch (field_type)
@@ -105,28 +107,39 @@ const uint8_t *field_hash(const uint8_t *data,
             {
                 return NULL;
             }
-            cx_hash((cx_hash_t*)&global_sha3,
-                    0,
-                    (uint8_t*)value,
-                    EIP_712_ENCODED_FIELD_LENGTH,
-                    NULL,
-                    0);
-
-            // restore the memory location
-            mem_dealloc(EIP_712_ENCODED_FIELD_LENGTH);
         }
-
-        if ((hash_ptr = mem_alloc(KECCAK256_HASH_BYTESIZE)) == NULL)
+        else
         {
-            return NULL;
+            if ((value = mem_alloc(KECCAK256_HASH_BYTESIZE)) == NULL)
+            {
+                return NULL;
+            }
+            // copy hash into memory
+            cx_hash((cx_hash_t*)&global_sha3,
+                    CX_LAST,
+                    NULL,
+                    0,
+                    value,
+                    KECCAK256_HASH_BYTESIZE);
         }
-        // copy hash into memory
-        cx_hash((cx_hash_t*)&global_sha3,
-                CX_LAST,
-                NULL,
+
+        // TODO: Move elsewhere
+        uint8_t len = IS_DYN(field_type) ?
+                      KECCAK256_HASH_BYTESIZE :
+                      EIP_712_ENCODED_FIELD_LENGTH;
+        // last thing in mem is the hash of the previous field
+        // and just before it is the current hash context
+        cx_sha3_t *hash_ctx = (cx_sha3_t*)(value - sizeof(cx_sha3_t));
+        // start the progressive hash on it
+        cx_hash((cx_hash_t*)hash_ctx,
                 0,
-                hash_ptr,
-                KECCAK256_HASH_BYTESIZE);
+                value,
+                len,
+                NULL,
+                0);
+        // deallocate it
+        mem_dealloc(len);
+        printf("FEED %d\n", len);
 
         path_advance();
         fh->state = FHS_IDLE;
@@ -138,5 +151,6 @@ const uint8_t *field_hash(const uint8_t *data,
             return NULL;
         }
     }
-    return hash_ptr;
+
+    return value;
 }

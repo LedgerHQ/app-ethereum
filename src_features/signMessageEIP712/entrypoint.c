@@ -260,6 +260,7 @@ bool    set_struct_name(const uint8_t *const data)
 }
 
 // TODO: Split this function
+// TODO: Handle partial sends
 bool    set_struct_field(const uint8_t *const data)
 {
     uint8_t data_idx = OFFSET_DATA;
@@ -381,7 +382,6 @@ bool    handle_apdu(const uint8_t *const data)
             switch (data[OFFSET_P2])
             {
                 case P2_NAME:
-                    type_hash(structs_array, (char*)&data[OFFSET_DATA], data[OFFSET_LC], true);
                     // set root type
                     path_set_root((char*)&data[OFFSET_DATA], data[OFFSET_LC]);
                     break;
@@ -449,7 +449,7 @@ int     main(void)
         }
     }
 #ifdef DEBUG
-    printf("\n%lu bytes used in RAM\n", (mem_max + 1));
+    printf("%lu bytes used in RAM\n", (mem_max + 1));
 #endif
     return EXIT_SUCCESS;
 }

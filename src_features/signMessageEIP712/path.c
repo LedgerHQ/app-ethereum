@@ -5,6 +5,8 @@
 #include "mem.h"
 #include "context.h"
 #include "eip712.h"
+#include "type_hash.h"
+#include "shared_context.h"
 
 static s_path *path_struct = NULL;
 
@@ -107,6 +109,43 @@ static bool path_depth_list_pop(void)
         return false;
     }
     path_struct->depth_count -= 1;
+
+    // TODO: Move elsewhere
+    uint8_t shash[KECCAK256_HASH_BYTESIZE];
+    cx_sha3_t *hash_ctx = mem_alloc(0) - sizeof(cx_sha3_t);
+    // finalize hash
+    cx_hash((cx_hash_t*)hash_ctx,
+            CX_LAST,
+            NULL,
+            0,
+            &shash[0],
+            KECCAK256_HASH_BYTESIZE);
+    mem_dealloc(sizeof(cx_sha3_t)); // remove hash context
+#ifdef DEBUG
+    // print computed hash
+    printf("SHASH POP 0x");
+    for (int idx = 0; idx < KECCAK256_HASH_BYTESIZE; ++idx)
+    {
+        printf("%.02x", shash[idx]);
+    }
+    printf("\n");
+#endif
+    if (path_struct->depth_count > 0)
+    {
+        hash_ctx = mem_alloc(0) - sizeof(cx_sha3_t); // previous one
+        // continue progressive hash with the array hash
+        cx_hash((cx_hash_t*)hash_ctx,
+                0,
+                &shash[0],
+                KECCAK256_HASH_BYTESIZE,
+                NULL,
+                0);
+    }
+    else
+    {
+        printf("\n");
+    }
+
     return true;
 }
 
@@ -125,6 +164,7 @@ static bool array_depth_list_push(uint8_t path_idx, uint8_t size)
     {
         return false;
     }
+
     arr->path_index = path_idx;
     arr->size = size;
     path_struct->array_depth_count += 1;
@@ -142,6 +182,28 @@ static bool array_depth_list_pop(void)
     {
         return false;
     }
+
+    // TODO: Move elsewhere
+    uint8_t ahash[KECCAK256_HASH_BYTESIZE];
+    cx_sha3_t *hash_ctx = mem_alloc(0) - sizeof(cx_sha3_t);
+    // finalize hash
+    cx_hash((cx_hash_t*)hash_ctx,
+            CX_LAST,
+            NULL,
+            0,
+            &ahash[0],
+            KECCAK256_HASH_BYTESIZE);
+    mem_dealloc(sizeof(cx_sha3_t)); // remove hash context
+    hash_ctx = mem_alloc(0) - sizeof(cx_sha3_t); // previous one
+    // continue progressive hash with the array hash
+    cx_hash((cx_hash_t*)hash_ctx,
+            0,
+            &ahash[0],
+            KECCAK256_HASH_BYTESIZE,
+            NULL,
+            0);
+    printf("AHASH POP\n");
+
     path_struct->array_depth_count -= 1;
     return true;
 }
@@ -166,7 +228,6 @@ static bool path_update(void)
     }
     while (struct_field_type(field_ptr) == TYPE_CUSTOM)
     {
-        // TODO: calculate the type hash here
         typename = get_struct_field_typename(field_ptr, &typename_len);
         if ((struct_ptr = get_structn(structs_array, typename, typename_len)) == NULL)
         {
@@ -176,6 +237,33 @@ static bool path_update(void)
         {
             return false;
         }
+
+        // TODO: Move elsewhere
+        cx_sha3_t *hash_ctx;
+        const uint8_t *thash_ptr;
+
+        // allocate new hash context
+        if ((hash_ctx = mem_alloc(sizeof(cx_sha3_t))) == NULL)
+        {
+            return false;
+        }
+        cx_keccak_init((cx_hash_t*)hash_ctx, 256); // initialize it
+        // get the struct typehash
+        if ((thash_ptr = type_hash(structs_array, typename, typename_len, true)) == NULL)
+        {
+            return false;
+        }
+        // start the progressive hash on it
+        cx_hash((cx_hash_t*)hash_ctx,
+                0,
+                thash_ptr,
+                KECCAK256_HASH_BYTESIZE,
+                NULL,
+                0);
+        // deallocate it
+        mem_dealloc(KECCAK256_HASH_BYTESIZE);
+        printf("SHASH PUSH w/o deps %p\n", hash_ctx);
+
         path_depth_list_push();
     }
     return true;
@@ -201,6 +289,30 @@ bool    path_set_root(const char *const struct_name, uint8_t name_length)
     {
         return false;
     }
+
+    // TODO: Move elsewhere
+    cx_sha3_t *hash_ctx;
+    const uint8_t *thash_ptr;
+    if ((hash_ctx = mem_alloc(sizeof(cx_sha3_t))) == NULL)
+    {
+        return false;
+    }
+    cx_keccak_init((cx_hash_t*)hash_ctx, 256); // init hash
+    if ((thash_ptr = type_hash(structs_array, struct_name, name_length, true)) == NULL)
+    {
+        return false;
+    }
+    // start the progressive hash on it
+    cx_hash((cx_hash_t*)hash_ctx,
+            0,
+            thash_ptr,
+            KECCAK256_HASH_BYTESIZE,
+            NULL,
+            0);
+    // deallocate it
+    mem_dealloc(KECCAK256_HASH_BYTESIZE);
+    printf("SHASH PUSH w/ deps %p\n", hash_ctx);
+    //
 
     // init depth, at 0 : empty path
     path_struct->depth_count = 0;
@@ -262,7 +374,8 @@ static bool check_and_add_array_depth(const void *depth,
  */
 bool    path_new_array_depth(uint8_t size)
 {
-    const void *field_ptr, *depth;
+    const void *field_ptr = NULL;
+    const void *depth = NULL;
     uint8_t depth_count;
     uint8_t total_count = 0;
     uint8_t pidx;
@@ -302,6 +415,27 @@ bool    path_new_array_depth(uint8_t size)
         printf("Did not find a matching array type.\n");
         return false;
     }
+    // TODO: Move elsewhere
+    cx_sha3_t *hash_ctx;
+    if ((hash_ctx = mem_alloc(sizeof(cx_sha3_t))) == NULL)
+    {
+        return false;
+    }
+    printf("AHASH PUSH %p", hash_ctx);
+    if (struct_field_type(field_ptr) == TYPE_CUSTOM)
+    {
+        cx_sha3_t *old_ctx = (void*)hash_ctx - sizeof(cx_sha3_t);
+
+        memcpy(hash_ctx, old_ctx, sizeof(cx_sha3_t));
+        cx_keccak_init((cx_hash_t*)old_ctx, 256); // init hash
+        printf(" (switched)");
+    }
+    else // solidity type
+    {
+        cx_keccak_init((cx_hash_t*)hash_ctx, 256); // init hash
+    }
+    printf("\n");
+
     return true;
 }
 

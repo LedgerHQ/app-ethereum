@@ -5,7 +5,7 @@
 #include "mem.h"
 
 
-#define SIZE_MEM_BUFFER 2048
+#define SIZE_MEM_BUFFER 8192
 
 static uint8_t  mem_buffer[SIZE_MEM_BUFFER];
 static size_t   mem_idx;

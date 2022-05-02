@@ -88,8 +88,10 @@ const uint8_t *field_hash(const uint8_t *data,
             {
                 case TYPE_SOL_INT:
                 case TYPE_SOL_UINT:
-                case TYPE_SOL_BYTES_FIX:
                     value = encode_integer(data, data_length);
+                    break;
+                case TYPE_SOL_BYTES_FIX:
+                    value = encode_bytes(data, data_length);
                     break;
                 case TYPE_SOL_ADDRESS:
                     value = encode_address(data, data_length);

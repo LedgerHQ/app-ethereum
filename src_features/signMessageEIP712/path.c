@@ -120,15 +120,6 @@ static bool path_depth_list_pop(void)
             &shash[0],
             KECCAK256_HASH_BYTESIZE);
     mem_dealloc(sizeof(cx_sha3_t)); // remove hash context
-#ifdef DEBUG
-    // print computed hash
-    PRINTF("SHASH POP 0x");
-    for (int idx = 0; idx < KECCAK256_HASH_BYTESIZE; ++idx)
-    {
-        PRINTF("%.02x", shash[idx]);
-    }
-    PRINTF("\n");
-#endif
     if (path_struct->depth_count > 0)
     {
         hash_ctx = mem_alloc(0) - sizeof(cx_sha3_t); // previous one
@@ -140,10 +131,17 @@ static bool path_depth_list_pop(void)
                 NULL,
                 0);
     }
+#ifdef DEBUG
     else
     {
-        PRINTF("\n");
+        PRINTF("Hash = 0x");
+        for (int idx = 0; idx < KECCAK256_HASH_BYTESIZE; ++idx)
+        {
+            PRINTF("%.02x", shash[idx]);
+        }
+        PRINTF("\n\n");
     }
+#endif
 
     return true;
 }
@@ -201,7 +199,6 @@ static bool array_depth_list_pop(void)
             KECCAK256_HASH_BYTESIZE,
             NULL,
             0);
-    PRINTF("AHASH POP\n");
 
     path_struct->array_depth_count -= 1;
     return true;
@@ -261,7 +258,6 @@ static bool path_update(void)
                 0);
         // deallocate it
         mem_dealloc(KECCAK256_HASH_BYTESIZE);
-        PRINTF("SHASH PUSH w/o deps %p\n", hash_ctx);
 
         path_depth_list_push();
     }
@@ -310,7 +306,6 @@ bool    path_set_root(const char *const struct_name, uint8_t name_length)
             0);
     // deallocate it
     mem_dealloc(KECCAK256_HASH_BYTESIZE);
-    PRINTF("SHASH PUSH w/ deps %p\n", hash_ctx);
     //
 
     // init depth, at 0 : empty path
@@ -420,20 +415,17 @@ bool    path_new_array_depth(uint8_t size)
     {
         return false;
     }
-    PRINTF("AHASH PUSH %p", hash_ctx);
     if (struct_field_type(field_ptr) == TYPE_CUSTOM)
     {
         cx_sha3_t *old_ctx = (void*)hash_ctx - sizeof(cx_sha3_t);
 
         memcpy(hash_ctx, old_ctx, sizeof(cx_sha3_t));
         cx_keccak_init((cx_hash_t*)old_ctx, 256); // init hash
-        PRINTF(" (switched)");
     }
     else // solidity type
     {
         cx_keccak_init((cx_hash_t*)hash_ctx, 256); // init hash
     }
-    PRINTF("\n");
 
     return true;
 }

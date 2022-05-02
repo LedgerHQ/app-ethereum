@@ -26,12 +26,14 @@ const uint8_t *field_hash(const uint8_t *data,
                           bool partial)
 {
     const void *field_ptr;
+    e_type field_type;
+    uint8_t *value = NULL;
+#ifdef DEBUG
     const char *type;
     uint8_t typelen;
     const char *key;
     uint8_t keylen;
-    e_type field_type;
-    uint8_t *value = NULL;
+#endif
 
 
     (void)data;
@@ -73,13 +75,15 @@ const uint8_t *field_hash(const uint8_t *data,
         {
             return NULL;
         }
-        PRINTF("==> ");
+#ifdef DEBUG
+        PRINTF("=> ");
         type = get_struct_field_typename(field_ptr, &typelen);
         fwrite(type, sizeof(char), typelen, stdout);
         PRINTF(" ");
         key = get_struct_field_keyname(field_ptr, &keylen);
         fwrite(key, sizeof(char), keylen, stdout);
         PRINTF("\n");
+#endif
 
         if (!IS_DYN(field_type))
         {
@@ -140,7 +144,6 @@ const uint8_t *field_hash(const uint8_t *data,
                 0);
         // deallocate it
         mem_dealloc(len);
-        PRINTF("FEED %d\n", len);
 
         path_advance();
         fh->state = FHS_IDLE;

@@ -4,7 +4,7 @@
 #include "mem.h"
 #include "encode_type.h"
 #include "type_hash.h"
-#include "hash_wrap.h"
+#include "shared_context.h"
 
 const uint8_t *type_hash(const void *const structs_array,
                          const char *const struct_name,

@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include "mem.h"
 #include "mem_utils.h"
 #include "eip712.h"
@@ -13,7 +12,7 @@ static inline void hash_nbytes(const uint8_t *b, uint8_t n)
 #ifdef DEBUG
     for (int i = 0; i < n; ++i)
     {
-        printf("%c", b[i]);
+        PRINTF("%c", b[i]);
     }
 #endif
     cx_hash((cx_hash_t*)&global_sha3,
@@ -305,7 +304,7 @@ const uint8_t *type_hash(const void *const structs_array,
         mem_dealloc(sizeof(void*) * deps_count);
     }
 #ifdef DEBUG
-    printf("\n");
+    PRINTF("\n");
 #endif
     // End progressive hashing
     if ((hash_ptr = mem_alloc(KECCAK256_HASH_BYTESIZE)) == NULL)
@@ -321,12 +320,12 @@ const uint8_t *type_hash(const void *const structs_array,
             KECCAK256_HASH_BYTESIZE);
 #ifdef DEBUG
     // print computed hash
-    printf("new -> 0x");
+    PRINTF("new -> 0x");
     for (int idx = 0; idx < KECCAK256_HASH_BYTESIZE; ++idx)
     {
-        printf("%.02x", hash_ptr[idx]);
+        PRINTF("%.02x", hash_ptr[idx]);
     }
-    printf("\n");
+    PRINTF("\n");
 #endif
     return hash_ptr;
 }

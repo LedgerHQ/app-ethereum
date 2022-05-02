@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
 
@@ -11,6 +10,7 @@
 #include "sol_typenames.h"
 #include "field_hash.h"
 #include "path.h"
+#include "shared_context.h"
 
 
 // lib functions
@@ -374,7 +374,7 @@ bool    handle_apdu(const uint8_t *const data)
                     set_struct_field(data);
                     break;
                 default:
-                    printf("Unknown P2 0x%x for APDU 0x%x\n", data[OFFSET_P2], data[OFFSET_INS]);
+                    PRINTF("Unknown P2 0x%x for APDU 0x%x\n", data[OFFSET_P2], data[OFFSET_INS]);
                     return false;
             }
             break;
@@ -396,12 +396,12 @@ bool    handle_apdu(const uint8_t *const data)
                     path_new_array_depth(data[OFFSET_DATA]);
                     break;
                 default:
-                    printf("Unknown P2 0x%x for APDU 0x%x\n", data[OFFSET_P2], data[OFFSET_INS]);
+                    PRINTF("Unknown P2 0x%x for APDU 0x%x\n", data[OFFSET_P2], data[OFFSET_INS]);
                     return false;
             }
             break;
         default:
-            printf("Unrecognized APDU (0x%.02x)\n", data[OFFSET_INS]);
+            PRINTF("Unrecognized APDU (0x%.02x)\n", data[OFFSET_INS]);
             return false;
     }
     return true;
@@ -444,12 +444,12 @@ int     main(void)
                 else idx += 1;
                 break;
             default:
-                printf("Unexpected APDU state!\n");
+                PRINTF("Unexpected APDU state!\n");
                 return EXIT_FAILURE;
         }
     }
 #ifdef DEBUG
-    printf("%lu bytes used in RAM\n", (mem_max + 1));
+    PRINTF("%lu bytes used in RAM\n", (mem_max + 1));
 #endif
     return EXIT_SUCCESS;
 }

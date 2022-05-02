@@ -1,6 +1,5 @@
 #include <stdint.h>
 #include <string.h>
-#include <stdio.h>
 #include "path.h"
 #include "mem.h"
 #include "context.h"
@@ -123,12 +122,12 @@ static bool path_depth_list_pop(void)
     mem_dealloc(sizeof(cx_sha3_t)); // remove hash context
 #ifdef DEBUG
     // print computed hash
-    printf("SHASH POP 0x");
+    PRINTF("SHASH POP 0x");
     for (int idx = 0; idx < KECCAK256_HASH_BYTESIZE; ++idx)
     {
-        printf("%.02x", shash[idx]);
+        PRINTF("%.02x", shash[idx]);
     }
-    printf("\n");
+    PRINTF("\n");
 #endif
     if (path_struct->depth_count > 0)
     {
@@ -143,7 +142,7 @@ static bool path_depth_list_pop(void)
     }
     else
     {
-        printf("\n");
+        PRINTF("\n");
     }
 
     return true;
@@ -202,7 +201,7 @@ static bool array_depth_list_pop(void)
             KECCAK256_HASH_BYTESIZE,
             NULL,
             0);
-    printf("AHASH POP\n");
+    PRINTF("AHASH POP\n");
 
     path_struct->array_depth_count -= 1;
     return true;
@@ -262,7 +261,7 @@ static bool path_update(void)
                 0);
         // deallocate it
         mem_dealloc(KECCAK256_HASH_BYTESIZE);
-        printf("SHASH PUSH w/o deps %p\n", hash_ctx);
+        PRINTF("SHASH PUSH w/o deps %p\n", hash_ctx);
 
         path_depth_list_push();
     }
@@ -311,7 +310,7 @@ bool    path_set_root(const char *const struct_name, uint8_t name_length)
             0);
     // deallocate it
     mem_dealloc(KECCAK256_HASH_BYTESIZE);
-    printf("SHASH PUSH w/ deps %p\n", hash_ctx);
+    PRINTF("SHASH PUSH w/ deps %p\n", hash_ctx);
     //
 
     // init depth, at 0 : empty path
@@ -355,7 +354,7 @@ static bool check_and_add_array_depth(const void *depth,
     expected_type = struct_field_array_depth(depth, &expected_size);
     if ((expected_type == ARRAY_FIXED_SIZE) && (expected_size != size))
     {
-        printf("Unexpected array depth size. (expected %d, got %d)\n",
+        PRINTF("Unexpected array depth size. (expected %d, got %d)\n",
                expected_size, size);
         return false;
     }
@@ -382,7 +381,7 @@ bool    path_new_array_depth(uint8_t size)
 
     if (path_struct == NULL) // sanity check
     {
-        printf("NULL struct check failed\n");
+        PRINTF("NULL struct check failed\n");
         return false;
     }
 
@@ -412,7 +411,7 @@ bool    path_new_array_depth(uint8_t size)
 
     if (pidx == path_struct->depth_count)
     {
-        printf("Did not find a matching array type.\n");
+        PRINTF("Did not find a matching array type.\n");
         return false;
     }
     // TODO: Move elsewhere
@@ -421,20 +420,20 @@ bool    path_new_array_depth(uint8_t size)
     {
         return false;
     }
-    printf("AHASH PUSH %p", hash_ctx);
+    PRINTF("AHASH PUSH %p", hash_ctx);
     if (struct_field_type(field_ptr) == TYPE_CUSTOM)
     {
         cx_sha3_t *old_ctx = (void*)hash_ctx - sizeof(cx_sha3_t);
 
         memcpy(hash_ctx, old_ctx, sizeof(cx_sha3_t));
         cx_keccak_init((cx_hash_t*)old_ctx, 256); // init hash
-        printf(" (switched)");
+        PRINTF(" (switched)");
     }
     else // solidity type
     {
         cx_keccak_init((cx_hash_t*)hash_ctx, 256); // init hash
     }
-    printf("\n");
+    PRINTF("\n");
 
     return true;
 }

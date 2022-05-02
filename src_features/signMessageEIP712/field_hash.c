@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include "field_hash.h"
 #include "encode_field.h"
@@ -74,13 +73,13 @@ const uint8_t *field_hash(const uint8_t *data,
         {
             return NULL;
         }
-        printf("==> ");
+        PRINTF("==> ");
         type = get_struct_field_typename(field_ptr, &typelen);
         fwrite(type, sizeof(char), typelen, stdout);
-        printf(" ");
+        PRINTF(" ");
         key = get_struct_field_keyname(field_ptr, &keylen);
         fwrite(key, sizeof(char), keylen, stdout);
-        printf("\n");
+        PRINTF("\n");
 
         if (!IS_DYN(field_type))
         {
@@ -101,7 +100,7 @@ const uint8_t *field_hash(const uint8_t *data,
                     break;
                 case TYPE_CUSTOM:
                 default:
-                    printf("Unknown solidity type!\n");
+                    PRINTF("Unknown solidity type!\n");
                     return NULL;
             }
 
@@ -141,7 +140,7 @@ const uint8_t *field_hash(const uint8_t *data,
                 0);
         // deallocate it
         mem_dealloc(len);
-        printf("FEED %d\n", len);
+        PRINTF("FEED %d\n", len);
 
         path_advance();
         fh->state = FHS_IDLE;

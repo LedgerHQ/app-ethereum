@@ -381,7 +381,7 @@ bool    handle_apdu(const uint8_t *const data)
             switch (data[OFFSET_P2])
             {
                 case P2_NAME:
-                    type_hash(structs_array, (char*)&data[OFFSET_DATA], data[OFFSET_LC]);
+                    type_hash(structs_array, (char*)&data[OFFSET_DATA], data[OFFSET_LC], true);
                     // set root type
                     path_set_root((char*)&data[OFFSET_DATA], data[OFFSET_LC]);
                     break;

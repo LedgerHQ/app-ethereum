@@ -5,6 +5,7 @@
 
 const uint8_t *type_hash(const void *const structs_array,
                          const char *const struct_name,
-                         const uint8_t struct_name_length);
+                         const uint8_t struct_name_length,
+                         bool with_deps);
 
 #endif // TYPE_HASH_H_

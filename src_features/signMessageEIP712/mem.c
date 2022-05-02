@@ -1,8 +1,6 @@
 #include <stdint.h>
-#ifdef DEBUG
-#include <stdio.h>
-#endif
 #include "mem.h"
+#include "shared_context.h"
 
 
 #define SIZE_MEM_BUFFER 8192
@@ -46,7 +44,7 @@ void    *mem_alloc(size_t size)
     if ((mem_idx + size) > SIZE_MEM_BUFFER) // Buffer exceeded
     {
 #ifdef DEBUG
-        printf("Memory exhausted!\n");
+        PRINTF("Memory exhausted!\n");
 #endif
         return NULL;
     }

@@ -1,6 +1,7 @@
 #ifndef EIP712_H_
 #define EIP712_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 
 enum {
@@ -66,6 +67,8 @@ typedef enum
 // Solidity typenames array mask
 #define TYPENAME_MORE_TYPE  (1 << 7) // For custom typename
 
+#define KECCAK256_HASH_LENGTH   32
+
 typedef struct
 {
     uint16_t    length;
@@ -85,5 +88,32 @@ typedef struct
     uint8_t     bytesize;
     t_array     array_levels;
 }   t_struct_field;
+
+
+
+// TODO: Move these into a new file
+const char *get_struct_name(const uint8_t *ptr, uint8_t *const length);
+const uint8_t *get_struct_fields_array(const uint8_t *ptr,
+                                       uint8_t *const length);
+const char *get_struct_field_typename(const uint8_t *ptr,
+                                      uint8_t *const length);
+bool    struct_field_has_typesize(const uint8_t *ptr);
+uint8_t get_struct_field_typesize(const uint8_t *ptr);
+bool    struct_field_is_array(const uint8_t *ptr);
+e_type  struct_field_type(const uint8_t *ptr);
+const uint8_t *get_struct_field_array_lvls_array(const uint8_t *ptr,
+                                                 uint8_t *const length);
+e_array_type struct_field_array_depth(const uint8_t *ptr,
+                                      uint8_t *const array_size);
+const uint8_t *get_next_struct_field_array_lvl(const uint8_t *ptr);
+const char *get_struct_field_typename(const uint8_t *ptr,
+                                      uint8_t *const length);
+const char *get_struct_field_keyname(const uint8_t *ptr,
+                                     uint8_t *const length);
+const uint8_t *get_next_struct_field_array_lvl(const uint8_t *ptr);
+const uint8_t *get_next_struct_field(const void *ptr);
+const uint8_t *get_structn(const uint8_t *const ptr,
+                           const char *const name_ptr,
+                           const uint8_t name_length);
 
 #endif // EIP712_H_

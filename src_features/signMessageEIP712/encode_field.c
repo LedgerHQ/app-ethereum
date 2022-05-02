@@ -60,6 +60,10 @@ void    *encode_integer(const uint8_t *const value, uint16_t length)
 {
     uint8_t *padded_value;
 
+    if (length > 32) // sanity check
+    {
+        return NULL;
+    }
     // 0-pad the value to 32 bytes
     if ((padded_value = mem_alloc(EIP_712_ENCODED_FIELD_LENGTH)) != NULL)
     {
@@ -93,7 +97,7 @@ void    *encode_string(const char *const value, uint16_t length)
  */
 void    *encode_bool(const bool *const value, uint16_t length)
 {
-    if (length != 1)
+    if (length != 1) // sanity check
     {
         return NULL;
     }
@@ -109,7 +113,7 @@ void    *encode_bool(const bool *const value, uint16_t length)
  */
 void    *encode_address(const uint8_t *const value, uint16_t length)
 {
-    if (length != ADDRESS_LENGTH)
+    if (length != ADDRESS_LENGTH) // sanity check
     {
         return NULL;
     }

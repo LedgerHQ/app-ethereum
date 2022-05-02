@@ -258,6 +258,7 @@ bool    set_struct_name(const uint8_t *const data)
     return true;
 }
 
+// TODO: Split this function
 bool    set_struct_field(const uint8_t *const data)
 {
     uint8_t data_idx = OFFSET_DATA;

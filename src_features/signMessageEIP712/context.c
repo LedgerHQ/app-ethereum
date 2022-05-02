@@ -4,6 +4,7 @@
 #include "eip712.h"
 #include "mem.h"
 #include "sol_typenames.h"
+#include "path.h"
 
 uint8_t  *typenames_array;
 uint8_t  *structs_array;
@@ -21,9 +22,16 @@ bool    init_eip712_context(void)
     if (init_sol_typenames() == false)
         return false;
 
+    if (init_path() == false)
+    {
+        return false;
+    }
+
     // set types pointer
     if ((structs_array = mem_alloc(sizeof(uint8_t))) == NULL)
+    {
         return false;
+    }
 
     // create len(types)
     *structs_array = 0;

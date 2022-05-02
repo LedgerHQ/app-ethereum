@@ -310,14 +310,5 @@ const uint8_t *type_hash(const void *const structs_array,
             0,
             hash_ptr,
             KECCAK256_HASH_BYTESIZE);
-#ifdef DEBUG
-    // print computed hash
-    PRINTF("new -> 0x");
-    for (int idx = 0; idx < KECCAK256_HASH_BYTESIZE; ++idx)
-    {
-        PRINTF("%.02x", hash_ptr[idx]);
-    }
-    PRINTF("\n");
-#endif
     return hash_ptr;
 }

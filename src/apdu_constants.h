@@ -94,12 +94,12 @@ void handleSignPersonalMessage(uint8_t p1,
                                uint8_t dataLength,
                                unsigned int *flags,
                                unsigned int *tx);
-void handleSignEIP712Message(uint8_t p1,
-                             uint8_t p2,
-                             const uint8_t *dataBuffer,
-                             uint16_t dataLength,
-                             unsigned int *flags,
-                             unsigned int *tx);
+void handleSignEIP712Message_v0(uint8_t p1,
+                                uint8_t p2,
+                                const uint8_t *dataBuffer,
+                                uint16_t dataLength,
+                                unsigned int *flags,
+                                unsigned int *tx);
 
 void handleSetExternalPlugin(uint8_t p1,
                              uint8_t p2,

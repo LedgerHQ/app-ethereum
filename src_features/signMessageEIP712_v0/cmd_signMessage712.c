@@ -3,12 +3,14 @@
 #include "utils.h"
 #include "common_ui.h"
 
-void handleSignEIP712Message(uint8_t p1,
-                             uint8_t p2,
-                             const uint8_t *workBuffer,
-                             uint16_t dataLength,
-                             unsigned int *flags,
-                             unsigned int *tx) {
+void handleSignEIP712Message_v0(uint8_t p1,
+                                uint8_t p2,
+                                const uint8_t *workBuffer,
+                                uint16_t dataLength,
+                                unsigned int *flags,
+                                unsigned int *tx) {
+    uint8_t i;
+
     UNUSED(tx);
     if ((p1 != 00) || (p2 != 00)) {
         THROW(0x6B00);

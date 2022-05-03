@@ -1,8 +1,18 @@
 #include <stdint.h>
+#ifdef DEBUG
+#include <stdio.h>
+#endif
 #include "mem.h"
+
+
+#define SIZE_MEM_BUFFER 1024
 
 static uint8_t  mem_buffer[SIZE_MEM_BUFFER];
 static size_t   mem_idx;
+#ifdef DEBUG
+size_t  mem_max;
+#endif
+
 
 /**
  * Initializes the memory buffer index
@@ -10,6 +20,9 @@ static size_t   mem_idx;
 void    mem_init(void)
 {
     mem_idx = 0;
+#ifdef DEBUG
+    mem_max = 0;
+#endif
 }
 
 /**
@@ -26,16 +39,24 @@ void    mem_reset(void)
  * the current location in the memory buffer and moves the index accordingly.
  *
  * @param[in] size Requested allocation size in bytes
- *
  * @return Allocated memory pointer; \ref NULL if not enough space left.
  */
 void    *mem_alloc(size_t size)
 {
     if ((mem_idx + size) > SIZE_MEM_BUFFER) // Buffer exceeded
     {
+#ifdef DEBUG
+        printf("Memory exhausted!\n");
+#endif
         return NULL;
     }
     mem_idx += size;
+#ifdef DEBUG
+    if (mem_idx > mem_max)
+    {
+        mem_max = mem_idx;
+    }
+#endif
     return &mem_buffer[mem_idx - size];
 }
 

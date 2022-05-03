@@ -739,6 +739,8 @@ int     main(void)
                 return EXIT_FAILURE;
         }
     }
-    //printf("\n%d bytes used in RAM\n", (mem_idx + 1));
+#ifdef DEBUG
+    printf("\n%lu bytes used in RAM\n", (mem_max + 1));
+#endif
     return EXIT_SUCCESS;
 }

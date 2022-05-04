@@ -43,15 +43,15 @@ char *mem_alloc_and_format_uint(uint32_t value,
         size += 1;
     }
     // +1 for the null character
-    if ((mem_ptr = mem_alloc(sizeof(char) * (size + 1))) == NULL)
+    if ((mem_ptr = mem_alloc(sizeof(char) * (size + 1))))
     {
-        return 0;
-    }
-    snprintf(mem_ptr, (size + 1), "%u", value);
-    mem_dealloc(sizeof(char)); // to skip the null character
-    if (length != NULL)
-    {
-        *length = size;
+        // should be using %u, but not supported by toolchain
+        snprintf(mem_ptr, (size + 1), "%d", value);
+        mem_dealloc(sizeof(char)); // to skip the null character
+        if (length != NULL)
+        {
+            *length = size;
+        }
     }
     return mem_ptr;
 }

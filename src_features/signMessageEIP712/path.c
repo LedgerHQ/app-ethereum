@@ -137,7 +137,9 @@ static bool path_depth_list_pop(void)
         PRINTF("Hash = 0x");
         for (int idx = 0; idx < KECCAK256_HASH_BYTESIZE; ++idx)
         {
-            PRINTF("%.02x", shash[idx]);
+            // manual 0 padding, %.02x not supported by toolchain
+            if (shash[idx] < 0x10) PRINTF("0");
+            PRINTF("%x", shash[idx]);
         }
         PRINTF("\n\n");
     }

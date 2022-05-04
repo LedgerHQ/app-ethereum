@@ -6,6 +6,7 @@
 #include "eip712.h"
 #include "type_hash.h"
 #include "shared_context.h"
+#include "ethUtils.h"
 
 static s_path *path_struct = NULL;
 
@@ -131,9 +132,22 @@ static bool path_depth_list_pop(void)
                 NULL,
                 0);
     }
-#ifdef DEBUG
     else
     {
+        if (allzeroes(tmpCtx.messageSigningContext712.domainHash, KECCAK256_HASH_BYTESIZE))
+        {
+            memcpy(tmpCtx.messageSigningContext712.domainHash,
+                   shash,
+                   KECCAK256_HASH_BYTESIZE);
+        }
+        else
+        {
+            memcpy(tmpCtx.messageSigningContext712.messageHash,
+                   shash,
+                   KECCAK256_HASH_BYTESIZE);
+            mem_reset();
+        }
+#ifdef DEBUG
         PRINTF("Hash = 0x");
         for (int idx = 0; idx < KECCAK256_HASH_BYTESIZE; ++idx)
         {
@@ -142,8 +156,8 @@ static bool path_depth_list_pop(void)
             PRINTF("%x", shash[idx]);
         }
         PRINTF("\n\n");
-    }
 #endif
+    }
 
     return true;
 }

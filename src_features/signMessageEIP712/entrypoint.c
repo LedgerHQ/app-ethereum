@@ -378,6 +378,19 @@ bool    handle_eip712_struct_def(const uint8_t *const apdu_buf)
                     apdu_buf[OFFSET_INS]);
             ret = false;
     }
+    if (ret)
+    {
+        G_io_apdu_buffer[0] = 0x90;
+        G_io_apdu_buffer[1] = 0x00;
+    }
+    else
+    {
+        G_io_apdu_buffer[0] = 0x6A;
+        G_io_apdu_buffer[1] = 0x80;
+    }
+    //*flags |= IO_ASYNCH_REPLY;
+    // Send back the response, do not restart the event loop
+    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
     return ret;
 }
 
@@ -406,5 +419,18 @@ bool    handle_eip712_struct_impl(const uint8_t *const apdu_buf)
                    apdu_buf[OFFSET_INS]);
             ret = false;
     }
+    if (ret)
+    {
+        G_io_apdu_buffer[0] = 0x90;
+        G_io_apdu_buffer[1] = 0x00;
+    }
+    else
+    {
+        G_io_apdu_buffer[0] = 0x6A;
+        G_io_apdu_buffer[1] = 0x80;
+    }
+    //*flags |= IO_ASYNCH_REPLY;
+    // Send back the response, do not restart the event loop
+    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
     return ret;
 }

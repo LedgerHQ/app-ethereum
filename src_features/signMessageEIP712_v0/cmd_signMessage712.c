@@ -13,7 +13,7 @@ void handleSignEIP712Message_v0(uint8_t p1,
 
     UNUSED(tx);
     if ((p1 != 00) || (p2 != 00)) {
-        THROW(0x6B00);
+        //THROW(0x6B00); // TODO: TMP
     }
     if (appState != APP_STATE_IDLE) {
         reset_app_context();
@@ -21,12 +21,17 @@ void handleSignEIP712Message_v0(uint8_t p1,
 
     workBuffer = parseBip32(workBuffer, &dataLength, &tmpCtx.messageSigningContext.bip32);
 
-    if (workBuffer == NULL || dataLength < 32 + 32) {
+    if (workBuffer == NULL) {
         THROW(0x6a80);
     }
-
-    memmove(tmpCtx.messageSigningContext712.domainHash, workBuffer, 32);
-    memmove(tmpCtx.messageSigningContext712.messageHash, workBuffer + 32, 32);
+    if (p2 == 0) // TODO: TMP
+    {
+        if (dataLength < (32 + 32)) {
+            THROW(0x6a80);
+        }
+        memmove(tmpCtx.messageSigningContext712.domainHash, workBuffer, 32);
+        memmove(tmpCtx.messageSigningContext712.messageHash, workBuffer + 32, 32);
+    }
 
 #ifdef NO_CONSENT
     io_seproxyhal_touch_signMessage_ok(NULL);

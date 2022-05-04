@@ -21,9 +21,9 @@ bool field_hash_init(void)
     return true;
 }
 
-const uint8_t *field_hash(const uint8_t *data,
-                          uint8_t data_length,
-                          bool partial)
+bool    field_hash(const uint8_t *data,
+                   uint8_t data_length,
+                   bool partial)
 {
     const void *field_ptr;
     e_type field_type;
@@ -39,12 +39,12 @@ const uint8_t *field_hash(const uint8_t *data,
     (void)data;
     if (fh == NULL)
     {
-        return NULL;
+        return false;
     }
     // get field by path
     if ((field_ptr = path_get_field()) == NULL)
     {
-        return NULL;
+        return false;
     }
     field_type = struct_field_type(field_ptr);
     if (fh->state == FHS_IDLE) // first packet for this frame
@@ -73,7 +73,7 @@ const uint8_t *field_hash(const uint8_t *data,
     {
         if (partial) // only makes sense if marked as complete
         {
-            return NULL;
+            return false;
         }
 #ifdef DEBUG
         PRINTF("=> ");
@@ -105,19 +105,19 @@ const uint8_t *field_hash(const uint8_t *data,
                 case TYPE_CUSTOM:
                 default:
                     PRINTF("Unknown solidity type!\n");
-                    return NULL;
+                    return false;
             }
 
             if (value == NULL)
             {
-                return NULL;
+                return false;
             }
         }
         else
         {
             if ((value = mem_alloc(KECCAK256_HASH_BYTESIZE)) == NULL)
             {
-                return NULL;
+                return false;
             }
             // copy hash into memory
             cx_hash((cx_hash_t*)&global_sha3,
@@ -152,9 +152,9 @@ const uint8_t *field_hash(const uint8_t *data,
     {
         if (!partial || !IS_DYN(field_type)) // only makes sense if marked as partial
         {
-            return NULL;
+            return false;
         }
     }
 
-    return value;
+    return true;
 }

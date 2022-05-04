@@ -29,7 +29,7 @@
 #include "handle_swap_sign_transaction.h"
 #include "handle_get_printable_amount.h"
 #include "handle_check_address.h"
-#include "mem.h"
+#include "context.h"
 
 #ifdef HAVE_STARKWARE
 #include "stark_crypto.h"
@@ -893,7 +893,7 @@ void coin_main(chain_config_t *coin_config) {
     }
     reset_app_context();
     tmpCtx.transactionContext.currentItemIndex = 0;
-    mem_init();
+    init_eip712_context();
 
     for (;;) {
         UX_INIT();

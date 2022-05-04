@@ -396,7 +396,7 @@ bool    handle_eip712_struct_def(const uint8_t *const apdu_buf)
 
 bool    handle_eip712_struct_impl(const uint8_t *const apdu_buf)
 {
-    bool ret;
+    bool ret = true;
 
     switch (apdu_buf[OFFSET_P2])
     {

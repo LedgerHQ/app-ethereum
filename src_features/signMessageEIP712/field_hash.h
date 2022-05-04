@@ -19,7 +19,7 @@ typedef struct
 }   s_field_hashing;
 
 bool field_hash_init(void);
-const uint8_t *field_hash(const uint8_t *data,
-                          uint8_t data_length,
-                          bool partial);
+bool field_hash(const uint8_t *data,
+                uint8_t data_length,
+                bool partial);
 #endif // FIELD_HASH_H_

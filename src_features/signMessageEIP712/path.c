@@ -7,6 +7,7 @@
 #include "type_hash.h"
 #include "shared_context.h"
 #include "ethUtils.h"
+#include "mem_utils.h"
 
 static s_path *path_struct = NULL;
 
@@ -255,7 +256,7 @@ static bool path_update(void)
         const uint8_t *thash_ptr;
 
         // allocate new hash context
-        if ((hash_ctx = mem_alloc(sizeof(cx_sha3_t))) == NULL)
+        if ((hash_ctx = mem_alloc(sizeof(*hash_ctx))) == NULL)
         {
             return false;
         }
@@ -304,7 +305,7 @@ bool    path_set_root(const char *const struct_name, uint8_t name_length)
     // TODO: Move elsewhere
     cx_sha3_t *hash_ctx;
     const uint8_t *thash_ptr;
-    if ((hash_ctx = mem_alloc(sizeof(cx_sha3_t))) == NULL)
+    if ((hash_ctx = MEM_ALLOC_AND_ALIGN_TO_TYPE(sizeof(*hash_ctx), *hash_ctx)) == NULL)
     {
         return false;
     }
@@ -427,7 +428,8 @@ bool    path_new_array_depth(uint8_t size)
     }
     // TODO: Move elsewhere
     cx_sha3_t *hash_ctx;
-    if ((hash_ctx = mem_alloc(sizeof(cx_sha3_t))) == NULL)
+    // memory address not aligned, padd it
+    if ((hash_ctx = mem_alloc(sizeof(*hash_ctx))) == NULL)
     {
         return false;
     }
@@ -533,7 +535,7 @@ bool    path_advance(void)
 }
 
 /**
- * Allocates the the path indexes in memory and sets it with a depth of 0.
+ * Allocates the path indexes in memory and sets it with a depth of 0.
  *
  * @return whether the memory allocation were successful.
  */
@@ -541,7 +543,7 @@ bool    path_init(void)
 {
     if (path_struct == NULL)
     {
-        path_struct = mem_alloc(sizeof(*path_struct));
+        path_struct = MEM_ALLOC_AND_ALIGN_TO_TYPE(sizeof(*path_struct), *path_struct);
     }
     return path_struct != NULL;
 }

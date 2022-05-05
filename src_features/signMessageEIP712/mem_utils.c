@@ -26,10 +26,9 @@ char    *mem_alloc_and_copy_char(char c)
  * @param[in] value Value to write in memory
  * @param[out] length number of characters written to memory
  *
- * @return pointer to memory area or \ref NULL if the allocated failed
+ * @return pointer to memory area or \ref NULL if the allocation failed
  */
-char *mem_alloc_and_format_uint(uint32_t value,
-                                uint8_t *const length)
+char    *mem_alloc_and_format_uint(uint32_t value, uint8_t *const length)
 {
     char        *mem_ptr;
     uint32_t    value_copy;
@@ -54,4 +53,27 @@ char *mem_alloc_and_format_uint(uint32_t value,
         }
     }
     return mem_ptr;
+}
+
+/**
+ * Allocate and align, required when dealing with pointers of multi-bytes data
+ * like structures that will be dereferenced at runtime.
+ *
+ * @param[in] size the size of the data we want to allocate in memory
+ * @param[in] alignment the byte alignment needed
+ *
+ * @return pointer to the memory area, \ref NULL if the allocation failed
+ */
+void    *mem_alloc_and_align(size_t size, size_t alignment)
+{
+    uint8_t align_diff = (uintptr_t)mem_alloc(0) % alignment;
+
+    if (align_diff > 0) // alignment needed
+    {
+        if (mem_alloc(alignment - align_diff) == NULL)
+        {
+            return NULL;
+        }
+    }
+    return mem_alloc(size);
 }

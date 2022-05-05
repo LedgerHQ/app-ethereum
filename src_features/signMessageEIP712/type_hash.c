@@ -275,10 +275,14 @@ const uint8_t *type_hash(const void *const structs_array,
     uint8_t deps_count = 0;
     void **deps;
     uint8_t *hash_ptr;
+    void *mem_loc_bak = mem_alloc(0);
 
     cx_keccak_init(&global_sha3, 256); // init hash
     // get list of structs (own + dependencies), properly ordered
-    deps = mem_alloc(0); // get where the first elem will be
+    if ((deps = MEM_ALLOC_AND_ALIGN_TO_TYPE(0, *deps)) == NULL)
+    {
+        return NULL;
+    }
     if (get_struct_dependencies(structs_array, &deps_count, deps, struct_ptr) == false)
     {
         return NULL;
@@ -294,7 +298,7 @@ const uint8_t *type_hash(const void *const structs_array,
         encode_and_hash_type(*deps);
         deps += 1;
     }
-    mem_dealloc(sizeof(void*) * deps_count);
+    mem_dealloc(mem_alloc(0) - mem_loc_bak);
 #ifdef DEBUG
     PRINTF("\n");
 #endif

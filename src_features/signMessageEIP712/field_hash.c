@@ -3,6 +3,7 @@
 #include "encode_field.h"
 #include "path.h"
 #include "mem.h"
+#include "mem_utils.h"
 #include "eip712.h"
 #include "shared_context.h"
 
@@ -12,7 +13,7 @@ bool field_hash_init(void)
 {
     if (fh == NULL)
     {
-        if ((fh = mem_alloc(sizeof(*fh))) == NULL)
+        if ((fh = MEM_ALLOC_AND_ALIGN_TO_TYPE(sizeof(*fh), *fh)) == NULL)
         {
             return false;
         }
@@ -36,7 +37,6 @@ bool    field_hash(const uint8_t *data,
 #endif
 
 
-    (void)data;
     if (fh == NULL)
     {
         return false;

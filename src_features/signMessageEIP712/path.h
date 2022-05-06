@@ -13,6 +13,12 @@ typedef struct
     uint8_t size;
 }   s_array_depth;
 
+typedef enum
+{
+    ROOT_DOMAIN,
+    ROOT_MESSAGE
+} e_root_type;
+
 typedef struct
 {
     uint8_t depth_count;
@@ -20,6 +26,7 @@ typedef struct
     uint8_t array_depth_count;
     s_array_depth array_depths[MAX_ARRAY_DEPTH];
     const void *root_struct;
+    e_root_type root_type;
 }   s_path;
 
 bool    path_set_root(const char *const struct_name, uint8_t length);

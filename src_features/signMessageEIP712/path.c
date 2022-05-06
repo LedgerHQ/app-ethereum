@@ -135,18 +135,21 @@ static bool path_depth_list_pop(void)
     }
     else
     {
-        if (allzeroes(tmpCtx.messageSigningContext712.domainHash, KECCAK256_HASH_BYTESIZE))
+        switch (path_struct->root_type)
         {
-            memcpy(tmpCtx.messageSigningContext712.domainHash,
-                   shash,
-                   KECCAK256_HASH_BYTESIZE);
-        }
-        else
-        {
-            memcpy(tmpCtx.messageSigningContext712.messageHash,
-                   shash,
-                   KECCAK256_HASH_BYTESIZE);
-            mem_reset();
+            case ROOT_DOMAIN:
+                memcpy(tmpCtx.messageSigningContext712.domainHash,
+                       shash,
+                       KECCAK256_HASH_BYTESIZE);
+                break;
+            case ROOT_MESSAGE:
+                memcpy(tmpCtx.messageSigningContext712.messageHash,
+                       shash,
+                       KECCAK256_HASH_BYTESIZE);
+                mem_reset();
+                break;
+            default:
+                break;
         }
 #ifdef DEBUG
         PRINTF("Hash = 0x");
@@ -331,6 +334,16 @@ bool    path_set_root(const char *const struct_name, uint8_t name_length)
 
     // init array levels at 0
     path_struct->array_depth_count = 0;
+
+    if ((name_length == DOMAIN_STRUCT_NAME_LENGTH) &&
+        (strncmp(struct_name, DOMAIN_STRUCT_NAME, DOMAIN_STRUCT_NAME_LENGTH) == 0))
+    {
+        path_struct->root_type = ROOT_DOMAIN;
+    }
+    else
+    {
+        path_struct->root_type = ROOT_MESSAGE;
+    }
 
     // because the first field could be a struct type
     path_update();

@@ -138,7 +138,7 @@ void amountToString(const uint8_t *amount,
     out_buffer[out_buffer_size - 1] = '\0';
 }
 
-bool parse_swap_config(uint8_t *config, uint8_t config_len, char *ticker, uint8_t *decimals) {
+bool parse_swap_config(const uint8_t *config, uint8_t config_len, char *ticker, uint8_t *decimals) {
     uint8_t ticker_len, offset = 0;
     if (config_len == 0) {
         return false;

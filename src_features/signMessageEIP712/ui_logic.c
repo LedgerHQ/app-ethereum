@@ -8,6 +8,8 @@
 #include "ui_flow_712.h"
 #include "shared_context.h"
 #include "eip712.h" // get_struct_name
+#include "ethUtils.h" // getEthDisplayableAddress
+#include "utils.h" // uint256_to_decimal
 
 static t_ui_context *ui_ctx = NULL;
 
@@ -75,15 +77,62 @@ void    ui_712_new_field(const void *const field_ptr, const uint8_t *const data,
     const char *key;
     uint8_t key_len;
 
+    // Key
     if ((key = get_struct_field_keyname(field_ptr, &key_len)) != NULL)
     {
         strncpy(strings.tmp.tmp2, key, MIN(key_len, sizeof(strings.tmp.tmp2) - 1));
         strings.tmp.tmp2[key_len] = '\0';
     }
-    // TODO: Encode data as string based on data type
-    (void)data;
-    (void)length;
-    strcpy(strings.tmp.tmp, "Field value");
+
+    // Value
+    strings.tmp.tmp[0] = '\0'; // empty string
+    switch (struct_field_type(field_ptr))
+    {
+        case TYPE_SOL_STRING:
+            strncat(strings.tmp.tmp, (char*)data, sizeof(strings.tmp.tmp) - 1);
+            if (length > (sizeof(strings.tmp.tmp) - 1))
+            {
+                strings.tmp.tmp[sizeof(strings.tmp.tmp) - 1 - 3] = '\0';
+                strcat(strings.tmp.tmp, "...");
+            }
+            else
+            {
+                strings.tmp.tmp[length] = '\0';
+            }
+            break;
+        case TYPE_SOL_ADDRESS:
+            getEthDisplayableAddress((uint8_t*)data,
+                                     strings.tmp.tmp,
+                                     sizeof(strings.tmp.tmp),
+                                     &global_sha3,
+                                     chainConfig->chainId);
+            break;
+        case TYPE_SOL_BOOL:
+            strcpy(strings.tmp.tmp, (*data == false) ? "false" : "true");
+            break;
+        case TYPE_SOL_BYTES_FIX:
+        case TYPE_SOL_BYTES_DYN:
+            snprintf(strings.tmp.tmp,
+                     sizeof(strings.tmp.tmp),
+                     "0x%.*H",
+                     length,
+                     data);
+            // +2 for the "0x"
+            // x2 for each byte value is represented by 2 ASCII characters
+            if ((2 + (length * 2)) > (sizeof(strings.tmp.tmp) - 1))
+            {
+                strings.tmp.tmp[sizeof(strings.tmp.tmp) - 1 - 3] = '\0';
+                strcat(strings.tmp.tmp, "...");
+            }
+            break;
+        // TODO: signed integers should be handled differently
+        case TYPE_SOL_INT:
+        case TYPE_SOL_UINT:
+            uint256_to_decimal(data, length, strings.tmp.tmp, sizeof(strings.tmp.tmp));
+            break;
+        default:
+            PRINTF("Unhandled type\n");
+    }
     ux_flow_prev();
 }
 

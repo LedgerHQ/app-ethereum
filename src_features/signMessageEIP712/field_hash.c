@@ -57,6 +57,7 @@ bool    field_hash(const uint8_t *data,
         if (IS_DYN(field_type))
         {
             cx_keccak_init(&global_sha3, 256); // init hash
+            ui_712_new_field(field_ptr, data, data_length);
         }
     }
     fh->remaining_size -= data_length;
@@ -113,6 +114,7 @@ bool    field_hash(const uint8_t *data,
             {
                 return false;
             }
+            ui_712_new_field(field_ptr, data, data_length);
         }
         else
         {
@@ -146,7 +148,6 @@ bool    field_hash(const uint8_t *data,
         // deallocate it
         mem_dealloc(len);
 
-        ui_712_new_field(field_ptr, data, data_length);
         path_advance();
         fh->state = FHS_IDLE;
     }

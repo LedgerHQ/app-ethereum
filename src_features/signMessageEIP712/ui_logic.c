@@ -133,7 +133,13 @@ void    ui_712_new_field(const void *const field_ptr, const uint8_t *const data,
         default:
             PRINTF("Unhandled type\n");
     }
-    ux_flow_prev();
+
+    // not pretty, manually changes the internal state of the UX flow
+    // so that we always land on the first screen of a paging step without any visible
+    // screen glitching (quick screen switching)
+    G_ux.flow_stack[G_ux.stack_count - 1].index = 0;
+    // since the flow now thinks we are displaying the first step, do next
+    ux_flow_next();
 }
 
 /**

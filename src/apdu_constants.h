@@ -21,6 +21,8 @@
 #define INS_PROVIDE_NFT_INFORMATION         0x14
 #define INS_SET_PLUGIN                      0x16
 #define INS_PERFORM_PRIVACY_OPERATION       0x18
+#define INS_EIP712_STRUCT_DEF               0x1A
+#define INS_EIP712_STRUCT_IMPL              0x1C
 #define P1_CONFIRM                          0x01
 #define P1_NON_CONFIRM                      0x00
 #define P2_NO_CHAINCODE                     0x00
@@ -167,5 +169,8 @@ void handleStarkwareUnsafeSign(uint8_t p1,
                                unsigned int *tx);
 
 #endif
+
+bool    handle_eip712_struct_def(const uint8_t *const apdu_buf);
+bool    handle_eip712_struct_impl(const uint8_t *const apdu_buf);
 
 #endif  // _APDU_CONSTANTS_H_

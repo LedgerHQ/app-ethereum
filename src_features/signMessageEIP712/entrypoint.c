@@ -360,49 +360,51 @@ bool    set_struct_field(const uint8_t *const data)
 }
 
 
-bool    handle_apdu(const uint8_t *const data)
+bool    handle_eip712_struct_def(const uint8_t *const apdu_buf)
 {
-    switch (data[OFFSET_INS])
+    bool ret = true;
+
+    switch (apdu_buf[OFFSET_P2])
     {
-        case INS_STRUCT_DEF:
-            switch (data[OFFSET_P2])
-            {
-                case P2_NAME:
-                    set_struct_name(data);
-                    break;
-                case P2_FIELD:
-                    set_struct_field(data);
-                    break;
-                default:
-                    PRINTF("Unknown P2 0x%x for APDU 0x%x\n", data[OFFSET_P2], data[OFFSET_INS]);
-                    return false;
-            }
+        case P2_NAME:
+            ret = set_struct_name(apdu_buf);
             break;
-        case INS_STRUCT_IMPL:
-            switch (data[OFFSET_P2])
-            {
-                case P2_NAME:
-                    // set root type
-                    path_set_root((char*)&data[OFFSET_DATA], data[OFFSET_LC]);
-                    break;
-                case P2_FIELD:
-                    if ((data[OFFSET_P1] != P1_COMPLETE) && (data[OFFSET_P1] != P1_PARTIAL))
-                    {
-                        return false;
-                    }
-                    field_hash(&data[OFFSET_DATA], data[OFFSET_LC], data[OFFSET_P1] == P1_PARTIAL);
-                    break;
-                case P2_ARRAY:
-                    path_new_array_depth(data[OFFSET_DATA]);
-                    break;
-                default:
-                    PRINTF("Unknown P2 0x%x for APDU 0x%x\n", data[OFFSET_P2], data[OFFSET_INS]);
-                    return false;
-            }
+        case P2_FIELD:
+            ret = set_struct_field(apdu_buf);
             break;
         default:
-            PRINTF("Unrecognized APDU (0x%.02x)\n", data[OFFSET_INS]);
-            return false;
+            PRINTF("Unknown P2 0x%x for APDU 0x%x\n",
+                    apdu_buf[OFFSET_P2],
+                    apdu_buf[OFFSET_INS]);
+            ret = false;
     }
-    return true;
+    return ret;
+}
+
+bool    handle_eip712_struct_impl(const uint8_t *const apdu_buf)
+{
+    bool ret;
+
+    switch (apdu_buf[OFFSET_P2])
+    {
+        case P2_NAME:
+            // set root type
+            ret = path_set_root((char*)&apdu_buf[OFFSET_DATA],
+                                apdu_buf[OFFSET_LC]);
+            break;
+        case P2_FIELD:
+            ret = field_hash(&apdu_buf[OFFSET_DATA],
+                             apdu_buf[OFFSET_LC],
+                             apdu_buf[OFFSET_P1] != P1_COMPLETE);
+            break;
+        case P2_ARRAY:
+            ret = path_new_array_depth(apdu_buf[OFFSET_DATA]);
+            break;
+        default:
+            PRINTF("Unknown P2 0x%x for APDU 0x%x\n",
+                   apdu_buf[OFFSET_P2],
+                   apdu_buf[OFFSET_INS]);
+            ret = false;
+    }
+    return ret;
 }

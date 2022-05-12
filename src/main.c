@@ -29,6 +29,7 @@
 #include "handle_swap_sign_transaction.h"
 #include "handle_get_printable_amount.h"
 #include "handle_check_address.h"
+#include "mem.h"
 
 #ifdef HAVE_STARKWARE
 #include "stark_crypto.h"
@@ -694,6 +695,14 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
 
 #endif
 
+                case INS_EIP712_STRUCT_DEF:
+                    handle_eip712_struct_def(G_io_apdu_buffer);
+                    break;
+
+                case INS_EIP712_STRUCT_IMPL:
+                    handle_eip712_struct_impl(G_io_apdu_buffer);
+                    break;
+
 #if 0
         case 0xFF: // return to dashboard
           goto return_to_dashboard;
@@ -884,6 +893,7 @@ void coin_main(chain_config_t *coin_config) {
     }
     reset_app_context();
     tmpCtx.transactionContext.currentItemIndex = 0;
+    mem_init();
 
     for (;;) {
         UX_INIT();

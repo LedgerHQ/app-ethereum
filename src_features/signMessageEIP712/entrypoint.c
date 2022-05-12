@@ -367,6 +367,13 @@ bool    handle_eip712_struct_def(const uint8_t *const apdu_buf)
 {
     bool ret = true;
 
+    if (!eip712_context_initialized)
+    {
+        if (!eip712_context_init())
+        {
+            return false;
+        }
+    }
     switch (apdu_buf[OFFSET_P2])
     {
         case P2_NAME:
@@ -391,7 +398,6 @@ bool    handle_eip712_struct_def(const uint8_t *const apdu_buf)
         G_io_apdu_buffer[0] = 0x6A;
         G_io_apdu_buffer[1] = 0x80;
     }
-    //*flags |= IO_ASYNCH_REPLY;
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
     return ret;

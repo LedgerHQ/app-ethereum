@@ -10,8 +10,13 @@
 #include "eip712.h" // get_struct_name
 #include "ethUtils.h" // getEthDisplayableAddress
 #include "utils.h" // uint256_to_decimal
+#include "common_712.h"
+#include "context.h" // eip712_context_deinit
+
 
 static t_ui_context *ui_ctx = NULL;
+
+
 
 /**
  * Called on the intermediate dummy screen between the dynamic step
@@ -43,6 +48,8 @@ void    ui_712_next_field(void)
 
 /**
  * Used to notify of a new struct to review (domain or message)
+ *
+ * @param[in] struct_ptr pointer to the structure
  */
 void    ui_712_new_root_struct(const void *const struct_ptr)
 {
@@ -164,4 +171,38 @@ bool    ui_712_init(void)
         ui_ctx->pos = UI_712_POS_REVIEW;
     }
     return ui_ctx != NULL;
+}
+
+/**
+ * Deinit function that simply unsets the struct pointer to NULL
+ */
+void    ui_712_deinit(void)
+{
+    ui_ctx = NULL;
+}
+
+/**
+ * Approve button handling, calls the common handler function then
+ * deinitializes the EIP712 context altogether.
+ * @param[in] e unused here, just needed to match the UI function signature
+ * @return unused here, just needed to match the UI function signature
+ */
+unsigned int ui_712_approve(const bagl_element_t *e)
+{
+    ui_712_approve_cb(e);
+    eip712_context_deinit();
+    return 0;
+}
+
+/**
+ * Reject button handling, calls the common handler function then
+ * deinitializes the EIP712 context altogether.
+ * @param[in] e unused here, just needed to match the UI function signature
+ * @return unused here, just needed to match the UI function signature
+ */
+unsigned int ui_712_reject(const bagl_element_t *e)
+{
+    ui_712_reject_cb(e);
+    eip712_context_deinit();
+    return 0;
 }

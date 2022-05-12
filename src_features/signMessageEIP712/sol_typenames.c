@@ -39,7 +39,7 @@ static bool find_enum_matches(const uint8_t (*enum_to_idx)[TYPES_COUNT - 1][IDX_
     return (enum_match != NULL);
 }
 
-bool    init_sol_typenames(void)
+bool    sol_typenames_init(void)
 {
     const char *const typenames[] = {
         "int",      // 0

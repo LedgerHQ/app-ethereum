@@ -903,7 +903,6 @@ void coin_main(chain_config_t *coin_config) {
     }
     reset_app_context();
     tmpCtx.transactionContext.currentItemIndex = 0;
-    init_eip712_context();
 
     for (;;) {
         UX_INIT();

@@ -11,17 +11,18 @@
 uint8_t  *typenames_array;
 uint8_t  *structs_array;
 uint8_t  *current_struct_fields_array;
+bool eip712_context_initialized = false;
 
 /**
  *
  * @return a boolean indicating if the initialization was successful or not
  */
-bool    init_eip712_context(void)
+bool    eip712_context_init(void)
 {
     // init global variables
     mem_init();
 
-    if (init_sol_typenames() == false)
+    if (sol_typenames_init() == false)
     {
         return false;
     }
@@ -49,7 +50,17 @@ bool    init_eip712_context(void)
 
     // create len(types)
     *structs_array = 0;
+
+    eip712_context_initialized = true;
+
     return true;
 }
 
-// TODO: Make a deinit function
+void    eip712_context_deinit(void)
+{
+    path_deinit();
+    field_hash_deinit();
+    ui_712_deinit();
+    mem_reset();
+    eip712_context_initialized = false;
+}

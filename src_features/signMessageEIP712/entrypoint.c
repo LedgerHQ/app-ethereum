@@ -11,6 +11,7 @@
 #include "field_hash.h"
 #include "path.h"
 #include "shared_context.h"
+#include "ui_logic.h"
 
 
 // lib functions
@@ -419,18 +420,34 @@ bool    handle_eip712_struct_impl(const uint8_t *const apdu_buf)
                    apdu_buf[OFFSET_INS]);
             ret = false;
     }
-    if (ret)
+    if (!ret)
     {
-        G_io_apdu_buffer[0] = 0x90;
-        G_io_apdu_buffer[1] = 0x00;
-    }
-    else
-    {
+        // Send back the response, do not restart the event loop
         G_io_apdu_buffer[0] = 0x6A;
         G_io_apdu_buffer[1] = 0x80;
+        io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
     }
-    //*flags |= IO_ASYNCH_REPLY;
-    // Send back the response, do not restart the event loop
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
     return ret;
+}
+
+bool    handle_eip712_sign(const uint8_t *const apdu_buf)
+{
+    uint8_t i;
+
+    if (apdu_buf[OFFSET_LC] < 1) {
+        PRINTF("Invalid data\n");
+        THROW(0x6a80);
+    }
+    tmpCtx.messageSigningContext712.pathLength = apdu_buf[OFFSET_DATA];
+    if ((tmpCtx.messageSigningContext712.pathLength < 0x01) ||
+        (tmpCtx.messageSigningContext712.pathLength > MAX_BIP32_PATH)) {
+        PRINTF("Invalid path\n");
+        THROW(0x6a80);
+    }
+    for (i = 0; i < tmpCtx.messageSigningContext712.pathLength; i++) {
+        tmpCtx.messageSigningContext712.bip32Path[i] = U4BE(apdu_buf + OFFSET_LC + 1 + (i * 4), 0);
+    }
+
+    ui_712_end_sign();
+    return true;
 }

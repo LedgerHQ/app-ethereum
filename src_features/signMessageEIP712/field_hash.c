@@ -6,6 +6,7 @@
 #include "mem_utils.h"
 #include "eip712.h"
 #include "shared_context.h"
+#include "ui_logic.h"
 
 static s_field_hashing *fh = NULL;
 
@@ -145,6 +146,7 @@ bool    field_hash(const uint8_t *data,
         // deallocate it
         mem_dealloc(len);
 
+        ui_712_new_field(field_ptr, data, data_length);
         path_advance();
         fh->state = FHS_IDLE;
     }
@@ -154,6 +156,9 @@ bool    field_hash(const uint8_t *data,
         {
             return false;
         }
+        G_io_apdu_buffer[0] = 0x90;
+        G_io_apdu_buffer[1] = 0x00;
+        io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
     }
 
     return true;

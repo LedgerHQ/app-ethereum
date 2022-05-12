@@ -673,13 +673,20 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                     break;
 
                 case INS_SIGN_EIP_712_MESSAGE:
-                    memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
-                    handleSignEIP712Message_v0(G_io_apdu_buffer[OFFSET_P1],
-                                               G_io_apdu_buffer[OFFSET_P2],
-                                               G_io_apdu_buffer + OFFSET_CDATA,
-                                               G_io_apdu_buffer[OFFSET_LC],
-                                               flags,
-                                               tx);
+                    if (G_io_apdu_buffer[OFFSET_P2] == 0)
+                    {
+                        memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
+                        handleSignEIP712Message_v0(G_io_apdu_buffer[OFFSET_P1],
+                                                   G_io_apdu_buffer[OFFSET_P2],
+                                                   G_io_apdu_buffer + OFFSET_CDATA,
+                                                   G_io_apdu_buffer[OFFSET_LC],
+                                                   flags,
+                                                   tx);
+                    }
+                    else
+                    {
+                        handle_eip712_sign(G_io_apdu_buffer);
+                    }
                     break;
 
 #ifdef HAVE_ETH2
@@ -706,10 +713,12 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
 #endif
 
                 case INS_EIP712_STRUCT_DEF:
+                    *flags |= IO_ASYNCH_REPLY;
                     handle_eip712_struct_def(G_io_apdu_buffer);
                     break;
 
                 case INS_EIP712_STRUCT_IMPL:
+                    *flags |= IO_ASYNCH_REPLY;
                     handle_eip712_struct_impl(G_io_apdu_buffer);
                     break;
 

@@ -6,6 +6,7 @@
 #include "sol_typenames.h"
 #include "path.h"
 #include "field_hash.h"
+#include "ui_logic.h"
 
 uint8_t  *typenames_array;
 uint8_t  *structs_array;
@@ -35,6 +36,11 @@ bool    init_eip712_context(void)
         return false;
     }
 
+    if (ui_712_init() == false)
+    {
+        return false;
+    }
+
     // set types pointer
     if ((structs_array = mem_alloc(sizeof(uint8_t))) == NULL)
     {
@@ -45,3 +51,5 @@ bool    init_eip712_context(void)
     *structs_array = 0;
     return true;
 }
+
+// TODO: Make a deinit function

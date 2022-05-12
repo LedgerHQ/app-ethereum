@@ -8,6 +8,7 @@
 #include "shared_context.h"
 #include "ethUtils.h"
 #include "mem_utils.h"
+#include "ui_logic.h"
 
 static s_path *path_struct = NULL;
 
@@ -295,6 +296,7 @@ bool    path_set_root(const char *const struct_name, uint8_t name_length)
 {
     if (path_struct == NULL)
     {
+        PRINTF("NULL check failed!\n");
         return false;
     }
 
@@ -302,6 +304,12 @@ bool    path_set_root(const char *const struct_name, uint8_t name_length)
 
     if (path_struct->root_struct == NULL)
     {
+        PRINTF("Struct name not found (");
+        for (int i = 0; i < name_length; ++i)
+        {
+            PRINTF("%c", struct_name[i]);
+        }
+        PRINTF(")!\n");
         return false;
     }
 
@@ -315,6 +323,7 @@ bool    path_set_root(const char *const struct_name, uint8_t name_length)
     cx_keccak_init(hash_ctx, 256); // init hash
     if ((thash_ptr = type_hash(structs_array, struct_name, name_length)) == NULL)
     {
+        PRINTF("Memory allocation failed!\n");
         return false;
     }
     // start the progressive hash on it
@@ -347,6 +356,7 @@ bool    path_set_root(const char *const struct_name, uint8_t name_length)
 
     // because the first field could be a struct type
     path_update();
+    ui_712_new_root_struct(path_struct->root_struct);
     return true;
 }
 
@@ -458,6 +468,9 @@ bool    path_new_array_depth(uint8_t size)
         cx_keccak_init(hash_ctx, 256); // init hash
     }
 
+    G_io_apdu_buffer[0] = 0x90;
+    G_io_apdu_buffer[1] = 0x00;
+    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
     return true;
 }
 

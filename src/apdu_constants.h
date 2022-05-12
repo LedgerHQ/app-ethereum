@@ -172,5 +172,6 @@ void handleStarkwareUnsafeSign(uint8_t p1,
 
 bool    handle_eip712_struct_def(const uint8_t *const apdu_buf);
 bool    handle_eip712_struct_impl(const uint8_t *const apdu_buf);
+bool    handle_eip712_sign(const uint8_t *const apdu_buf);
 
 #endif  // _APDU_CONSTANTS_H_

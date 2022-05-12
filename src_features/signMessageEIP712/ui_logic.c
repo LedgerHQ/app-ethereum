@@ -1,0 +1,112 @@
+#include <stdlib.h>
+#include <stdbool.h>
+#include "ui_logic.h"
+#include "mem.h"
+#include "mem_utils.h"
+#include "os_io.h"
+#include "ux_flow_engine.h"
+#include "ui_flow_712.h"
+#include "shared_context.h"
+#include "eip712.h" // get_struct_name
+
+static t_ui_context *ui_ctx = NULL;
+
+/**
+ * Called on the intermediate dummy screen between the dynamic step
+ * && the approve/reject screen
+ */
+void    ui_712_next_field(void)
+{
+    if (!ui_ctx->end_reached)
+    {
+        // reply to previous APDU
+        G_io_apdu_buffer[0] = 0x90;
+        G_io_apdu_buffer[1] = 0x00;
+        io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+    }
+    else
+    {
+        if (ui_ctx->pos == UI_712_POS_REVIEW)
+        {
+            ux_flow_next();
+            ui_ctx->pos = UI_712_POS_END;
+        }
+        else
+        {
+            ux_flow_prev();
+            ui_ctx->pos = UI_712_POS_REVIEW;
+        }
+    }
+}
+
+/**
+ * Used to notify of a new struct to review (domain or message)
+ */
+void    ui_712_new_root_struct(const void *const struct_ptr)
+{
+    strcpy(strings.tmp.tmp2, "Review struct");
+    const char *struct_name;
+    uint8_t struct_name_length;
+    if ((struct_name = get_struct_name(struct_ptr, &struct_name_length)) != NULL)
+    {
+        strncpy(strings.tmp.tmp, struct_name, struct_name_length);
+        strings.tmp.tmp[struct_name_length] = '\0';
+    }
+    if (!ui_ctx->shown)
+    {
+        ux_flow_init(0, ux_712_flow, NULL);
+        ui_ctx->shown = true;
+    }
+    else
+    {
+        ux_flow_prev();
+    }
+}
+
+/**
+ * Used to notify of a new field to review in the current struct (key + value)
+ *
+ * @param[in] field_ptr pointer to the new struct field
+ * @param[in] data pointer to the field's raw value
+ * @param[in] length field's raw value byte-length
+ */
+void    ui_712_new_field(const void *const field_ptr, const uint8_t *const data, uint8_t length)
+{
+    const char *key;
+    uint8_t key_len;
+
+    if ((key = get_struct_field_keyname(field_ptr, &key_len)) != NULL)
+    {
+        strncpy(strings.tmp.tmp2, key, MIN(key_len, sizeof(strings.tmp.tmp2) - 1));
+        strings.tmp.tmp2[key_len] = '\0';
+    }
+    // TODO: Encode data as string based on data type
+    (void)data;
+    (void)length;
+    strcpy(strings.tmp.tmp, "Field value");
+    ux_flow_prev();
+}
+
+/**
+ * Used to signal that we are done with reviewing the structs and we can now have
+ * the option to approve or reject the signature
+ */
+void    ui_712_end_sign(void)
+{
+    ui_ctx->end_reached = true;
+    ui_712_next_field();
+}
+
+/**
+ * Initializes the UI context structure in memory
+ */
+bool    ui_712_init(void)
+{
+    if ((ui_ctx = MEM_ALLOC_AND_ALIGN_TO_TYPE(sizeof(*ui_ctx), *ui_ctx)))
+    {
+        ui_ctx->shown = false;
+        ui_ctx->end_reached = false;
+        ui_ctx->pos = UI_712_POS_REVIEW;
+    }
+    return ui_ctx != NULL;
+}

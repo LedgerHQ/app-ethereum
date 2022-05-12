@@ -4,15 +4,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-enum {
-    OFFSET_CLA = 0,
-    OFFSET_INS,
-    OFFSET_P1,
-    OFFSET_P2,
-    OFFSET_LC,
-    OFFSET_DATA
-};
-
 typedef enum
 {
     // contract defined struct

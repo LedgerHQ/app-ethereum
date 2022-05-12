@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <string.h>
 
+#include "apdu_constants.h"
 #include "eip712.h"
 #include "mem.h"
 #include "type_hash.h"
@@ -12,6 +13,7 @@
 #include "path.h"
 #include "shared_context.h"
 #include "ui_logic.h"
+#include "common_712.h"
 
 
 // lib functions
@@ -249,7 +251,7 @@ bool    set_struct_name(const uint8_t *const data)
     {
         return false;
     }
-    memmove(name_ptr, &data[OFFSET_DATA], data[OFFSET_LC]);
+    memmove(name_ptr, &data[OFFSET_CDATA], data[OFFSET_LC]);
 
     // initialize number of fields
     if ((current_struct_fields_array = mem_alloc(sizeof(uint8_t))) == NULL)
@@ -264,7 +266,7 @@ bool    set_struct_name(const uint8_t *const data)
 // TODO: Handle partial sends
 bool    set_struct_field(const uint8_t *const data)
 {
-    uint8_t data_idx = OFFSET_DATA;
+    uint8_t data_idx = OFFSET_CDATA;
     uint8_t *type_desc_ptr;
     uint8_t *type_size_ptr;
     uint8_t *typename_len_ptr;
@@ -403,16 +405,16 @@ bool    handle_eip712_struct_impl(const uint8_t *const apdu_buf)
     {
         case P2_NAME:
             // set root type
-            ret = path_set_root((char*)&apdu_buf[OFFSET_DATA],
+            ret = path_set_root((char*)&apdu_buf[OFFSET_CDATA],
                                 apdu_buf[OFFSET_LC]);
             break;
         case P2_FIELD:
-            ret = field_hash(&apdu_buf[OFFSET_DATA],
+            ret = field_hash(&apdu_buf[OFFSET_CDATA],
                              apdu_buf[OFFSET_LC],
                              apdu_buf[OFFSET_P1] != P1_COMPLETE);
             break;
         case P2_ARRAY:
-            ret = path_new_array_depth(apdu_buf[OFFSET_DATA]);
+            ret = path_new_array_depth(apdu_buf[OFFSET_CDATA]);
             break;
         default:
             PRINTF("Unknown P2 0x%x for APDU 0x%x\n",
@@ -432,22 +434,12 @@ bool    handle_eip712_struct_impl(const uint8_t *const apdu_buf)
 
 bool    handle_eip712_sign(const uint8_t *const apdu_buf)
 {
-    uint8_t i;
-
-    if (apdu_buf[OFFSET_LC] < 1) {
-        PRINTF("Invalid data\n");
-        THROW(0x6a80);
+    if (parseBip32(&apdu_buf[OFFSET_CDATA],
+                   &apdu_buf[OFFSET_LC],
+                   &tmpCtx.messageSigningContext.bip32) == NULL)
+    {
+        return false;
     }
-    tmpCtx.messageSigningContext712.pathLength = apdu_buf[OFFSET_DATA];
-    if ((tmpCtx.messageSigningContext712.pathLength < 0x01) ||
-        (tmpCtx.messageSigningContext712.pathLength > MAX_BIP32_PATH)) {
-        PRINTF("Invalid path\n");
-        THROW(0x6a80);
-    }
-    for (i = 0; i < tmpCtx.messageSigningContext712.pathLength; i++) {
-        tmpCtx.messageSigningContext712.bip32Path[i] = U4BE(apdu_buf + OFFSET_LC + 1 + (i * 4), 0);
-    }
-
     ui_712_end_sign();
     return true;
 }

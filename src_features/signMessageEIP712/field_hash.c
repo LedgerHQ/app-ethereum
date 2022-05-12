@@ -10,7 +10,8 @@
 
 static s_field_hashing *fh = NULL;
 
-bool field_hash_init(void)
+
+bool    field_hash_init(void)
 {
     if (fh == NULL)
     {
@@ -21,6 +22,11 @@ bool field_hash_init(void)
         fh->state = FHS_IDLE;
     }
     return true;
+}
+
+void    field_hash_deinit(void)
+{
+    fh = NULL;
 }
 
 bool    field_hash(const uint8_t *data,

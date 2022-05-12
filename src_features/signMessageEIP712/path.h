@@ -33,6 +33,7 @@ bool    path_set_root(const char *const struct_name, uint8_t length);
 const void  *path_get_field(void);
 bool    path_advance(void);
 bool    path_init(void);
+void    path_deinit(void);
 bool    path_new_array_depth(uint8_t size);
 
 #endif // PATH_H_

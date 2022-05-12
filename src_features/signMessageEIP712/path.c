@@ -147,7 +147,6 @@ static bool path_depth_list_pop(void)
                 memcpy(tmpCtx.messageSigningContext712.messageHash,
                        shash,
                        KECCAK256_HASH_BYTESIZE);
-                mem_reset();
                 break;
             default:
                 break;
@@ -572,4 +571,9 @@ bool    path_init(void)
         path_struct = MEM_ALLOC_AND_ALIGN_TO_TYPE(sizeof(*path_struct), *path_struct);
     }
     return path_struct != NULL;
+}
+
+void    path_deinit(void)
+{
+    path_struct = NULL;
 }

@@ -1,7 +1,6 @@
 #include "ui_flow_712.h"
 #include "ui_logic.h"
 #include "shared_context.h" // strings
-#include "common_712.h"
 
 // clang-format off
 UX_STEP_NOCB(
@@ -31,7 +30,7 @@ UX_STEP_INIT(
 UX_STEP_CB(
     ux_712_step_approve,
     pb,
-    ui_712_approve_cb(NULL),
+    ui_712_approve(NULL),
     {
       &C_icon_validate_14,
       "Approve",
@@ -39,7 +38,7 @@ UX_STEP_CB(
 UX_STEP_CB(
     ux_712_step_reject,
     pb,
-    ui_712_reject_cb(NULL),
+    ui_712_reject(NULL),
     {
       &C_icon_crossmark,
       "Reject",

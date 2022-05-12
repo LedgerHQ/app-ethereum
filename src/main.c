@@ -675,6 +675,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                     }
                     else
                     {
+                        *flags |= IO_ASYNCH_REPLY;
                         handle_eip712_sign(G_io_apdu_buffer);
                     }
                     break;

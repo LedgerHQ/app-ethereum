@@ -1,5 +1,6 @@
 #include "shared_context.h"
 #include "ui_callbacks.h"
+#include "common_712.h"
 
 void prepare_domain_hash_v0() {
     snprintf(strings.tmp.tmp, 70, "0x%.*H", 32, tmpCtx.messageSigningContext712.domainHash);
@@ -37,7 +38,7 @@ UX_STEP_NOCB_INIT(
 UX_STEP_CB(
     ux_sign_712_v0_flow_4_step,
     pbb,
-    io_seproxyhal_touch_signMessage712_v0_ok(NULL),
+    ui_712_approve_cb(NULL),
     {
       &C_icon_validate_14,
       "Sign",
@@ -46,7 +47,7 @@ UX_STEP_CB(
 UX_STEP_CB(
     ux_sign_712_v0_flow_5_step,
     pbb,
-    io_seproxyhal_touch_signMessage712_v0_cancel(NULL),
+    ui_712_reject_cb(NULL),
     {
       &C_icon_crossmark,
       "Cancel",

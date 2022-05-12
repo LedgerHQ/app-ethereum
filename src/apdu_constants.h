@@ -53,12 +53,14 @@
 
 #endif
 
-#define OFFSET_CLA   0
-#define OFFSET_INS   1
-#define OFFSET_P1    2
-#define OFFSET_P2    3
-#define OFFSET_LC    4
-#define OFFSET_CDATA 5
+enum {
+    OFFSET_CLA = 0,
+    OFFSET_INS,
+    OFFSET_P1,
+    OFFSET_P2,
+    OFFSET_LC,
+    OFFSET_CDATA
+};
 
 void handleGetPublicKey(uint8_t p1,
                         uint8_t p2,
@@ -99,7 +101,7 @@ void handleSignPersonalMessage(uint8_t p1,
 void handleSignEIP712Message_v0(uint8_t p1,
                                 uint8_t p2,
                                 const uint8_t *dataBuffer,
-                                uint16_t dataLength,
+                                uint8_t dataLength,
                                 unsigned int *flags,
                                 unsigned int *tx);
 

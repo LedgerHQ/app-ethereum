@@ -28,6 +28,10 @@ static const void *get_nth_field_from_path(uint8_t *const fields_count_ptr,
     uint8_t length;
     uint8_t fields_count;
 
+    if (path_struct == NULL)
+    {
+        return NULL;
+    }
     if (depth_count > path_struct->depth_count) // sanity check
     {
         return NULL;
@@ -90,6 +94,10 @@ const void *path_get_field(void)
  */
 static bool path_depth_list_push(void)
 {
+    if (path_struct == NULL)
+    {
+        return false;
+    }
     if (path_struct->depth_count == MAX_PATH_DEPTH)
     {
         return false;
@@ -106,6 +114,10 @@ static bool path_depth_list_push(void)
  */
 static bool path_depth_list_pop(void)
 {
+    if (path_struct == NULL)
+    {
+        return false;
+    }
     if (path_struct->depth_count == 0)
     {
         return false;
@@ -175,13 +187,18 @@ static bool path_depth_list_pop(void)
  */
 static bool array_depth_list_push(uint8_t path_idx, uint8_t size)
 {
-    s_array_depth *arr = &path_struct->array_depths[path_struct->array_depth_count];
+    s_array_depth *arr;
 
+    if (path_struct == NULL)
+    {
+        return false;
+    }
     if (path_struct->array_depth_count == MAX_ARRAY_DEPTH)
     {
         return false;
     }
 
+    arr = &path_struct->array_depths[path_struct->array_depth_count];
     arr->path_index = path_idx;
     arr->size = size;
     path_struct->array_depth_count += 1;
@@ -195,6 +212,10 @@ static bool array_depth_list_push(uint8_t path_idx, uint8_t size)
  */
 static bool array_depth_list_pop(void)
 {
+    if (path_struct == NULL)
+    {
+        return false;
+    }
     if (path_struct->array_depth_count == 0)
     {
         return false;
@@ -233,15 +254,20 @@ static bool array_depth_list_pop(void)
 static bool path_update(void)
 {
     uint8_t fields_count;
-    const void *struct_ptr = path_struct->root_struct;
+    const void *struct_ptr;
     const void *field_ptr;
     const char *typename;
     uint8_t typename_len;
 
+    if (path_struct == NULL)
+    {
+        return false;
+    }
     if ((field_ptr = get_field_from_path(NULL)) == NULL)
     {
         return false;
     }
+    struct_ptr = path_struct->root_struct;
     while (struct_field_type(field_ptr) == TYPE_CUSTOM)
     {
         typename = get_struct_field_typename(field_ptr, &typename_len);
@@ -295,7 +321,6 @@ bool    path_set_root(const char *const struct_name, uint8_t name_length)
 {
     if (path_struct == NULL)
     {
-        PRINTF("NULL check failed!\n");
         return false;
     }
 
@@ -374,9 +399,14 @@ static bool check_and_add_array_depth(const void *depth,
                                  uint8_t size)
 {
     uint8_t expected_size;
-    uint8_t arr_idx = (total_count - path_struct->array_depth_count) - 1;
+    uint8_t arr_idx;
     e_array_type expected_type;
 
+    if (path_struct == NULL)
+    {
+        return false;
+    }
+    arr_idx = (total_count - path_struct->array_depth_count) - 1;
     // we skip index 0, since we already have it
     for (uint8_t idx = 1; idx < (arr_idx + 1); ++idx)
     {
@@ -413,9 +443,8 @@ bool    path_new_array_depth(uint8_t size)
     uint8_t total_count = 0;
     uint8_t pidx;
 
-    if (path_struct == NULL) // sanity check
+    if (path_struct == NULL)
     {
-        PRINTF("NULL struct check failed\n");
         return false;
     }
 
@@ -484,6 +513,10 @@ static bool path_advance_in_struct(void)
     uint8_t *depth = &path_struct->depths[path_struct->depth_count - 1];
     uint8_t fields_count;
 
+    if (path_struct == NULL)
+    {
+        return false;
+    }
     if ((get_field_from_path(&fields_count)) == NULL)
     {
         return false;
@@ -510,6 +543,10 @@ static bool path_advance_in_array(void)
     bool end_reached;
     s_array_depth *arr_depth;
 
+    if (path_struct == NULL)
+    {
+        return false;
+    }
     do
     {
         end_reached = false;

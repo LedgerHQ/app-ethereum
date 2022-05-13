@@ -34,7 +34,8 @@ unsigned int ui_712_approve_cb(const bagl_element_t *e)
             sizeof(tmpCtx.messageSigningContext712.messageHash),
             hash,
             sizeof(hash));
-    PRINTF("EIP712 hash to sign %.*H\n", 32, hash);
+    PRINTF("EIP712 Domain hash 0x%.*h\n", 32, tmpCtx.messageSigningContext712.domainHash);
+    PRINTF("EIP712 Message hash 0x%.*h\n", 32, tmpCtx.messageSigningContext712.messageHash);
     io_seproxyhal_io_heartbeat();
     os_perso_derive_node_bip32(CX_CURVE_256K1,
                                tmpCtx.messageSigningContext712.bip32.path,

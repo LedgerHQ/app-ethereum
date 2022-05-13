@@ -24,6 +24,10 @@ static t_ui_context *ui_ctx = NULL;
  */
 void    ui_712_next_field(void)
 {
+    if (ui_ctx == NULL)
+    {
+        return;
+    }
     if (!ui_ctx->end_reached)
     {
         // reply to previous APDU
@@ -53,6 +57,10 @@ void    ui_712_next_field(void)
  */
 void    ui_712_new_root_struct(const void *const struct_ptr)
 {
+    if (ui_ctx == NULL)
+    {
+        return;
+    }
     strcpy(strings.tmp.tmp2, "Review struct");
     const char *struct_name;
     uint8_t struct_name_length;
@@ -84,6 +92,10 @@ void    ui_712_new_field(const void *const field_ptr, const uint8_t *const data,
     const char *key;
     uint8_t key_len;
 
+    if (ui_ctx == NULL)
+    {
+        return;
+    }
     // Key
     if ((key = get_struct_field_keyname(field_ptr, &key_len)) != NULL)
     {
@@ -155,6 +167,10 @@ void    ui_712_new_field(const void *const field_ptr, const uint8_t *const data,
  */
 void    ui_712_end_sign(void)
 {
+    if (ui_ctx == NULL)
+    {
+        return;
+    }
     ui_ctx->end_reached = true;
     ui_712_next_field();
 }

@@ -16,7 +16,7 @@ int handle_check_address(check_address_parameters_t* params, chain_config_t* cha
     }
 
     uint8_t i;
-    uint8_t* bip32_path_ptr = params->address_parameters;
+    const uint8_t* bip32_path_ptr = params->address_parameters;
     uint8_t bip32PathLength = *(bip32_path_ptr++);
     cx_sha3_t local_sha3;
 

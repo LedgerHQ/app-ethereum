@@ -27,6 +27,9 @@ void ui_712_new_field(const void *const field_ptr, const uint8_t *const data, ui
 void ui_712_end_sign(void);
 unsigned int ui_712_approve(const bagl_element_t *e);
 unsigned int ui_712_reject(const bagl_element_t *e);
+#ifdef HAVE_EIP712_HALF_BLIND
+void    ui_712_message_hash(void);
+#endif // HAVE_EIP712_HALF_BLIND
 
 #endif // HAVE_EIP712_FULL_SUPPORT
 

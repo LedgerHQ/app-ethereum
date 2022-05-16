@@ -140,6 +140,7 @@ endif
 # EIP-712
 ifneq ($(TARGET_NAME),TARGET_NANOS)
 DEFINES	+= HAVE_EIP712_FULL_SUPPORT
+#DEFINES += HAVE_EIP712_HALF_BLIND # temporary
 endif
 
 # Enabling debug PRINTF

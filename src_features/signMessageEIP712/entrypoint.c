@@ -448,6 +448,9 @@ bool    handle_eip712_sign(const uint8_t *const apdu_buf)
     {
         return false;
     }
+#ifdef HAVE_EIP712_HALF_BLIND
+    ui_712_message_hash();
+#endif // HAVE_EIP712_HALF_BLIND
     ui_712_end_sign();
     return true;
 }

@@ -1,3 +1,5 @@
+#ifdef HAVE_EIP712_FULL_SUPPORT
+
 #include <stdlib.h>
 #include <string.h>
 #include "encode_field.h"
@@ -108,3 +110,5 @@ void    *encode_address(const uint8_t *const value, uint8_t length)
     }
     return encode_integer(value, length);
 }
+
+#endif // HAVE_EIP712_FULL_SUPPORT

@@ -1,3 +1,5 @@
+#ifdef HAVE_EIP712_FULL_SUPPORT
+
 #include <stdlib.h>
 #include <stdbool.h>
 #include "ui_logic.h"
@@ -222,3 +224,5 @@ unsigned int ui_712_reject(const bagl_element_t *e)
     eip712_context_deinit();
     return 0;
 }
+
+#endif // HAVE_EIP712_FULL_SUPPORT

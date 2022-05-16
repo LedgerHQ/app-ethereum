@@ -1,6 +1,8 @@
 #ifndef EIP712_H_
 #define EIP712_H_
 
+#ifdef HAVE_EIP712_FULL_SUPPORT
+
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -51,8 +53,6 @@ typedef enum
     EIP712_STRUCT_HASH
 }   e_eip712_hash_type;
 
-#define KECCAK256_HASH_BYTESIZE 32
-
 #define ARRAY_SIZE(a)   (sizeof(a) / sizeof(a[0]))
 
 #define DOMAIN_STRUCT_NAME          "EIP712Domain"
@@ -83,5 +83,7 @@ const uint8_t *get_structn(const uint8_t *const ptr,
                            const uint8_t name_length);
 const void *get_array_in_mem(const void *ptr, uint8_t *const array_size);
 const char *get_string_in_mem(const uint8_t *ptr, uint8_t *const string_length);
+
+#endif // HAVE_EIP712_FULL_SUPPORT
 
 #endif // EIP712_H_

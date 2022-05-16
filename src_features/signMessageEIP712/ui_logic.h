@@ -1,6 +1,8 @@
 #ifndef UI_LOGIC_712_H_
 #define UI_LOGIC_712_H_
 
+#ifdef HAVE_EIP712_FULL_SUPPORT
+
 #include <stdint.h>
 #include "ux.h"
 
@@ -25,5 +27,7 @@ void ui_712_new_field(const void *const field_ptr, const uint8_t *const data, ui
 void ui_712_end_sign(void);
 unsigned int ui_712_approve(const bagl_element_t *e);
 unsigned int ui_712_reject(const bagl_element_t *e);
+
+#endif // HAVE_EIP712_FULL_SUPPORT
 
 #endif // UI_LOGIC_712_H_

@@ -137,6 +137,11 @@ DEFINES += HAVE_NFT_TESTING_KEY
 endif
 endif
 
+# EIP-712
+ifneq ($(TARGET_NAME),TARGET_NANOS)
+DEFINES	+= HAVE_EIP712_FULL_SUPPORT
+endif
+
 # Enabling debug PRINTF
 DEBUG:=0
 ifneq ($(DEBUG),0)

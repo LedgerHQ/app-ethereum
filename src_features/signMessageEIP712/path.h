@@ -1,6 +1,8 @@
 #ifndef PATH_H_
 #define PATH_H_
 
+#ifdef HAVE_EIP712_FULL_SUPPORT
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -35,5 +37,7 @@ bool    path_advance(void);
 bool    path_init(void);
 void    path_deinit(void);
 bool    path_new_array_depth(uint8_t size);
+
+#endif // HAVE_EIP712_FULL_SUPPORT
 
 #endif // PATH_H_

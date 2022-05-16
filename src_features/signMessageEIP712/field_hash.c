@@ -1,3 +1,5 @@
+#ifdef HAVE_EIP712_FULL_SUPPORT
+
 #include <stdlib.h>
 #include "field_hash.h"
 #include "encode_field.h"
@@ -7,6 +9,7 @@
 #include "eip712.h"
 #include "shared_context.h"
 #include "ui_logic.h"
+#include "ethUtils.h" // KECCAK256_HASH_BYTESIZE
 
 static s_field_hashing *fh = NULL;
 
@@ -170,3 +173,5 @@ bool    field_hash(const uint8_t *data,
 
     return true;
 }
+
+#endif // HAVE_EIP712_FULL_SUPPORT

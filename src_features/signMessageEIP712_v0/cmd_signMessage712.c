@@ -4,6 +4,7 @@
 #include "ui_flow.h"
 #include "eip712.h"
 #include "common_712.h"
+#include "ethUtils.h"
 
 void handleSignEIP712Message_v0(uint8_t p1,
                                 uint8_t p2,
@@ -11,8 +12,9 @@ void handleSignEIP712Message_v0(uint8_t p1,
                                 uint8_t dataLength,
                                 unsigned int *flags,
                                 unsigned int *tx) {
-    UNUSED(tx);
-    if ((p1 != 00) || (p2 != 00)) {
+    (void)tx;
+    (void)p2;
+    if (p1 != 00) {
         THROW(0x6B00);
     }
     if (appState != APP_STATE_IDLE) {

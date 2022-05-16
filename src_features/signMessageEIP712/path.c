@@ -598,6 +598,15 @@ bool    path_advance(void)
     return true;
 }
 
+e_root_type path_get_root_type(void)
+{
+    if (path_struct == NULL)
+    {
+        return ROOT_DOMAIN;
+    }
+    return path_struct->root_type;
+}
+
 /**
  * Allocates the path indexes in memory and sets it with a depth of 0.
  *

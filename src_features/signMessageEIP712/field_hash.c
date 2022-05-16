@@ -66,7 +66,14 @@ bool    field_hash(const uint8_t *data,
         if (IS_DYN(field_type))
         {
             cx_keccak_init(&global_sha3, 256); // init hash
+#ifdef HAVE_EIP712_HALF_BLIND
+            if (path_get_root_type() == ROOT_DOMAIN)
+            {
+#endif // HAVE_EIP712_HALF_BLIND
             ui_712_new_field(field_ptr, data, data_length);
+#ifdef HAVE_EIP712_HALF_BLIND
+            }
+#endif // HAVE_EIP712_HALF_BLIND
         }
     }
     fh->remaining_size -= data_length;
@@ -123,7 +130,14 @@ bool    field_hash(const uint8_t *data,
             {
                 return false;
             }
+#ifdef HAVE_EIP712_HALF_BLIND
+            if (path_get_root_type() == ROOT_DOMAIN)
+            {
+#endif // HAVE_EIP712_HALF_BLIND
             ui_712_new_field(field_ptr, data, data_length);
+#ifdef HAVE_EIP712_HALF_BLIND
+            }
+#endif // HAVE_EIP712_HALF_BLIND
         }
         else
         {
@@ -159,6 +173,15 @@ bool    field_hash(const uint8_t *data,
 
         path_advance();
         fh->state = FHS_IDLE;
+#ifdef HAVE_EIP712_HALF_BLIND
+        if (path_get_root_type() == ROOT_MESSAGE)
+        {
+            G_io_apdu_buffer[0] = 0x90;
+            G_io_apdu_buffer[1] = 0x00;
+            io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+        }
+#endif // HAVE_EIP712_HALF_BLIND
+
     }
     else
     {

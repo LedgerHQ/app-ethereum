@@ -63,6 +63,7 @@ void    ui_712_new_root_struct(const void *const struct_ptr)
     {
         return;
     }
+
     strcpy(strings.tmp.tmp2, "Review struct");
     const char *struct_name;
     uint8_t struct_name_length;
@@ -82,6 +83,20 @@ void    ui_712_new_root_struct(const void *const struct_ptr)
     }
 }
 
+#ifdef HAVE_EIP712_HALF_BLIND
+void    ui_712_message_hash(void)
+{
+    strcpy(strings.tmp.tmp2, "Message hash");
+    snprintf(strings.tmp.tmp,
+             sizeof(strings.tmp.tmp),
+             "0x%.*H",
+             KECCAK256_HASH_BYTESIZE,
+             tmpCtx.messageSigningContext712.messageHash);
+    G_ux.flow_stack[G_ux.stack_count - 1].index = 0;
+    ux_flow_next();
+}
+#endif // HAVE_EIP712_HALF_BLIND
+
 /**
  * Used to notify of a new field to review in the current struct (key + value)
  *
@@ -98,6 +113,7 @@ void    ui_712_new_field(const void *const field_ptr, const uint8_t *const data,
     {
         return;
     }
+
     // Key
     if ((key = get_struct_field_keyname(field_ptr, &key_len)) != NULL)
     {
@@ -174,7 +190,10 @@ void    ui_712_end_sign(void)
         return;
     }
     ui_ctx->end_reached = true;
+
+#ifndef HAVE_EIP712_HALF_BLIND
     ui_712_next_field();
+#endif // HAVE_EIP712_HALF_BLIND
 }
 
 /**

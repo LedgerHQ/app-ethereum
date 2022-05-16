@@ -1,3 +1,5 @@
+#ifdef HAVE_EIP712_FULL_SUPPORT
+
 #include <string.h>
 #include <stdint.h>
 #include "context.h"
@@ -64,3 +66,5 @@ void    eip712_context_deinit(void)
     mem_reset();
     eip712_context_initialized = false;
 }
+
+#endif

@@ -1,3 +1,5 @@
+#ifdef HAVE_EIP712_FULL_SUPPORT
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -449,3 +451,6 @@ bool    handle_eip712_sign(const uint8_t *const apdu_buf)
     ui_712_end_sign();
     return true;
 }
+
+
+#endif // HAVE_EIP712_FULL_SUPPORT

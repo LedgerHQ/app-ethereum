@@ -1,3 +1,5 @@
+#ifdef HAVE_EIP712_FULL_SUPPORT
+
 #include "ui_flow_712.h"
 #include "ui_logic.h"
 #include "shared_context.h" // strings
@@ -51,3 +53,5 @@ UX_FLOW(ux_712_flow,
         &ux_712_step_dummy,
         &ux_712_step_approve,
         &ux_712_step_reject);
+
+#endif // HAVE_EIP712_FULL_SUPPORT

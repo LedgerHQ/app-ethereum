@@ -1,7 +1,8 @@
+#ifdef HAVE_EIP712_FULL_SUPPORT
+
 #include <stdint.h>
 #include "mem.h"
 #include "shared_context.h"
-
 
 #define SIZE_MEM_BUFFER 5120
 
@@ -75,3 +76,5 @@ void    mem_dealloc(size_t size)
         mem_idx -= size;
     }
 }
+
+#endif // HAVE_EIP712_FULL_SUPPORT

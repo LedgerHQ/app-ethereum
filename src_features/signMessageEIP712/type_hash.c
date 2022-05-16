@@ -1,3 +1,5 @@
+#ifdef HAVE_EIP712_FULL_SUPPORT
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
@@ -6,6 +8,7 @@
 #include "eip712.h"
 #include "type_hash.h"
 #include "shared_context.h"
+#include "ethUtils.h" // KECCAK256_HASH_BYTESIZE
 
 static inline void hash_nbytes(const uint8_t *b, uint8_t n)
 {
@@ -316,3 +319,5 @@ const uint8_t *type_hash(const void *const structs_array,
             KECCAK256_HASH_BYTESIZE);
     return hash_ptr;
 }
+
+#endif // HAVE_EIP712_FULL_SUPPORT

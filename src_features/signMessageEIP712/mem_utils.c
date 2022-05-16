@@ -1,3 +1,5 @@
+#ifdef HAVE_EIP712_FULL_SUPPORT
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -77,3 +79,5 @@ void    *mem_alloc_and_align(size_t size, size_t alignment)
     }
     return mem_alloc(size);
 }
+
+#endif // HAVE_EIP712_FULL_SUPPORT

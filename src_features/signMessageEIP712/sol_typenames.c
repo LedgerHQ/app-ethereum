@@ -1,3 +1,5 @@
+#ifdef HAVE_EIP712_FULL_SUPPORT
+
 #include <stdint.h>
 #include <string.h>
 #include "sol_typenames.h"
@@ -130,3 +132,5 @@ const char *get_struct_field_sol_typename(const uint8_t *field_ptr,
     }
     return NULL; // Not found
 }
+
+#endif // HAVE_EIP712_FULL_SUPPORT

@@ -23,6 +23,8 @@
 #include "cx.h"
 #include "chainConfig.h"
 
+#define KECCAK256_HASH_BYTESIZE 32
+
 /**
  * @brief Decode an RLP encoded field - see
  * https://github.com/ethereum/wiki/wiki/RLP

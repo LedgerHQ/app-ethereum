@@ -56,6 +56,10 @@ bool    field_hash(const uint8_t *data,
     {
         return false;
     }
+#ifdef HAVE_EIP712_HALF_BLIND
+    uint8_t keylen;
+    const char *key = get_struct_field_keyname(field_ptr, &keylen);
+#endif // HAVE_EIP712_HALF_BLIND
     field_type = struct_field_type(field_ptr);
     if (fh->state == FHS_IDLE) // first packet for this frame
     {
@@ -69,9 +73,12 @@ bool    field_hash(const uint8_t *data,
 #ifdef HAVE_EIP712_HALF_BLIND
             if (path_get_root_type() == ROOT_DOMAIN)
             {
+                if ((keylen == 4) && (strncmp(key, "name", keylen) == 0))
+                {
 #endif // HAVE_EIP712_HALF_BLIND
             ui_712_new_field(field_ptr, data, data_length);
 #ifdef HAVE_EIP712_HALF_BLIND
+                }
             }
 #endif // HAVE_EIP712_HALF_BLIND
         }
@@ -133,9 +140,14 @@ bool    field_hash(const uint8_t *data,
 #ifdef HAVE_EIP712_HALF_BLIND
             if (path_get_root_type() == ROOT_DOMAIN)
             {
+                uint8_t keylen;
+                const char *key = get_struct_field_keyname(field_ptr, &keylen);
+                if ((keylen == 4) && (strncmp(key, "name", keylen) == 0))
+                {
 #endif // HAVE_EIP712_HALF_BLIND
             ui_712_new_field(field_ptr, data, data_length);
 #ifdef HAVE_EIP712_HALF_BLIND
+                }
             }
 #endif // HAVE_EIP712_HALF_BLIND
         }
@@ -174,7 +186,8 @@ bool    field_hash(const uint8_t *data,
         path_advance();
         fh->state = FHS_IDLE;
 #ifdef HAVE_EIP712_HALF_BLIND
-        if (path_get_root_type() == ROOT_MESSAGE)
+        if ((path_get_root_type() == ROOT_MESSAGE) ||
+            ((keylen != 4) || (strncmp(key, "name", keylen) != 0)))
         {
             G_io_apdu_buffer[0] = 0x90;
             G_io_apdu_buffer[1] = 0x00;

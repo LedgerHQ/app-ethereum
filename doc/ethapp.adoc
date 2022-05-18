@@ -1,33 +1,42 @@
 Ethereum application : Common Technical Specifications
 =======================================================
 Ledger Firmware Team <hello@ledger.fr>
-Application version 1.9.18 - 29th of January 2022
+Application version 1.9.19 - 2022-05-17
 
-## 1.0
+## Version history
+
+### 1.0
   - Initial release
 
-## 1.1
+### 1.1
   - Add GET APP CONFIGURATION
   - Add an option to return the chain code in GET ETH PUBLIC ADDRESS
 
-## 1.2
+### 1.2
   - Add SIGN ETH PERSONAL MESSAGE
 
-## 1.1.10
+### 1.1.10
   - Add PROVIDE ERC 20 TOKEN INFORMATION
 
-## 1.5.0
+### 1.5.0
   - Add SIGN ETH EIP 712
   - Add GET ETH2 PUBLIC KEY
 
-## 1.7.6
+### 1.7.6
   - Add SET EXTERNAL PLUGIN
 
-## 1.9.13
+### 1.9.13
   - Add SET PLUGIN
 
-## 1.9.17
+### 1.9.17
+  - Add PROVIDE NFT INFORMATION
+
+### 1.9.18
   - Add PERFORM PRIVACY OPERATION
+
+### 1.9.19
+  - Add EIP712 STRUCT DEFINITION & EIP712 STRUCT IMPLEMENTATION
+  - Update to SIGN ETH EIP712
 
 ## About
 
@@ -292,7 +301,11 @@ This command signs an Ethereum message following the EIP 712 specification (http
 
 For implementation version 0, the domain hash and message hash are provided to the device, which displays them and returns the signature
 
-This command has been supported since firmware version 1.5.0
+This command has been supported since app version 1.5.0
+
+The full implementation uses all the JSON data and does all the hashing on the
+device, it has been supported since app version 1.9.19. This command should come
+last, after all the EIP712 SEND STRUCT DEFINITION & SEND STRUCT IMPLEMENTATION.
 
 #### Coding
 
@@ -302,7 +315,11 @@ This command has been supported since firmware version 1.5.0
 |==============================================================================================================================
 | *CLA* | *INS*  | *P1*               | *P2*       | *Lc*     | *Le*
 |   E0  |   0C   |  00
-                                      |   implementation version : 00      | variable | variable
+                                      | 00: v0 implementation
+
+                                        01: full implementation
+                                                   | variable
+                                                              | variable
 |==============================================================================================================================
 
 'Input data'
@@ -314,8 +331,8 @@ This command has been supported since firmware version 1.5.0
 | First derivation index (big endian)                                               | 4
 | ...                                                                               | 4
 | Last derivation index (big endian)                                                | 4
-| Domain hash                                                                       | 32
-| Message hash                                                                      | 32
+| Domain hash *(only for v0)*                                                       | 32
+| Message hash *(only for v0)*                                                      | 32
 |==============================================================================================================================
 
 'Output data'
@@ -585,6 +602,186 @@ All data can be optionally checked on the device before being returned.
 | *Description*                                                                     | *Length*
 | Public encryption key or shared secret                                                                              | 32
 |==============================================================================================================================
+
+
+### EIP712 SEND STRUCT DEFINITION
+
+#### Description
+
+This command sends the message definition with all its types. +
+These commands should come before the EIP712 SEND STRUCT IMPLEMENTATION ones.
+
+#### Coding
+
+_Command_
+
+[width="80%"]
+|=========================================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *LC*     | *Le*
+|   E0  |   1A   |  00 : complete send
+
+                    01 : partial send, more to come
+                                      |   00 : struct name
+
+                                          FF : struct field
+                                                   | variable
+                                                              | variable
+|=========================================================================
+
+_Input data_
+
+##### If P2 == struct name
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Name                  | LC
+|==========================================
+
+##### If P2 == struct field
+
+:check_y: &#9989;
+:check_n: &#10060;
+
+[width="80%"]
+|======================================================================
+| *Description*                     | *Length (byte)*   | *Mandatory*
+| TypeDesc (type description)       | 1                 | {check_y}
+| TypeSize (type byte size)         | 1                 | {check_n}
+| ArrayLevelCount                   | 1                 | {check_n}
+| ArrayLevels                       | variable          | {check_n}
+| KeyLength                         | 1                 | {check_y}
+| Key                               | variable          | {check_y}
+|======================================================================
+
+###### TypeDesc
+
+From MSB to LSB:
+
+[width="80%"]
+|=============================================================
+| *Description*                             | *Length (bit)*
+| TypeArray (is it an array?)               | 1
+| TypeSize (is a type size specified?)      | 1
+| Unused                                    | 2
+| Type                                      | 4
+|=============================================================
+
+How to interpret Type from its value :
+
+[width="40%"]
+|===========================================
+| *Value*           | *Type*
+| 0                 | custom (struct type)
+| 1                 | int
+| 2                 | uint
+| 3                 | address
+| 4                 | bool
+| 5                 | string
+| 6                 | fixed-sized bytes
+| 7                 | dynamic-sized bytes
+|===========================================
+
+###### TypeSize
+
+_Only present if the TypeSize bit is set in TypeDesc._
+
+Indicates the byte size of the field. (Ex: 8 for an int64)
+
+
+###### ArrayLevelCount
+
+_Only present if the TypeArray bit is set in TypeDesc._
+
+Indicates how many array levels that field has (Ex: 3 for int16[2][][4]).
+
+###### ArrayLevels
+
+_Only present if the TypeArray bit is set in TypeDesc._
+
+Types of array level:
+
+[width="40%"]
+|================================
+| *Byte value*  | *Type*
+| 0             | Dynamic sized (type[])
+| 1             | Fixed size (type[N])
+|================================
+
+Each fixed-sized array level is followed by a byte indicating its size (number of elements).
+
+
+_Output data_
+
+None
+
+
+### EIP712 SEND STRUCT IMPLEMENTATION
+
+#### Description
+
+This command sends the message implementation with all its values. +
+These commands should come after the EIP712 SEND STRUCT DEFINITION ones.
+
+#### Coding
+
+_Command_
+
+[width="80%"]
+|=========================================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *LC*     | *Le*
+|   E0  |   1C   |  00 : complete send
+
+                    01 : partial send, more to come
+                                      |   00 : root struct
+
+                                          0F : array
+
+                                          FF : struct field
+                                                   | variable
+                                                              | variable
+|=========================================================================
+
+_Input data_
+
+##### If P2 == root struct
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Name                  | LC
+|==========================================
+
+Sets the name of the upcoming root structure all the following fields will be apart
+of until we set another root structure.
+
+##### If P2 == array
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Array size            | 1
+|==========================================
+
+Sets the size of the upcoming array the following N fields will be apart of.
+
+##### If P2 == struct field
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Value length          | 2 (BE)
+| Value                 | variable
+|==========================================
+
+Sets the raw value of the next field in order in the current root structure.
+Raw as in, an integer in the JSON file represented as "128" would only be 1 byte long (0x80)
+instead of 3 as an array of ASCII characters. same for addresses and so on.
+
+
+_Output data_
+
+None
 
 
 ## Transport protocol

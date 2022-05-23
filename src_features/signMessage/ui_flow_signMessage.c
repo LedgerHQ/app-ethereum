@@ -14,7 +14,7 @@ UX_STEP_NOCB(
     ux_sign_flow_2_step,
     bnnn_paging,
     {
-      .title = "Message hash",
+      .title = "Message",
       .text = strings.tmp.tmp,
     });
 UX_STEP_CB(

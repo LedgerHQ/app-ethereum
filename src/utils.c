@@ -43,17 +43,6 @@ void convertUint256BE(uint8_t *data, uint32_t length, uint256_t *target) {
     readu256BE(tmp, target);
 }
 
-int local_strchr(char *string, char ch) {
-    unsigned int length = strlen(string);
-    unsigned int i;
-    for (i = 0; i < length; i++) {
-        if (string[i] == ch) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 uint64_t u64_from_BE(const uint8_t *in, uint8_t size) {
     uint8_t i = 0;
     uint64_t res = 0;

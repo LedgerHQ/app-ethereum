@@ -776,8 +776,80 @@ Sets the size of the upcoming array the following N fields will be apart of.
 
 Sets the raw value of the next field in order in the current root structure.
 Raw as in, an integer in the JSON file represented as "128" would only be 1 byte long (0x80)
-instead of 3 as an array of ASCII characters. same for addresses and so on.
+instead of 3 as an array of ASCII characters, same for addresses and so on.
 
+
+_Output data_
+
+None
+
+
+### EIP712 FILTERING
+
+#### Description
+
+This command provides a trusted way of deciding what information from the JSON data to show and replace some values by more meaningful ones.
+
+This mode can be overriden by the in-app setting to fully clear-sign EIP-712 messages.
+
+##### Activation
+
+Full filtering is disabled by default and has to be changed with this APDU (default behaviour is basic filtering handled by the app itself).
+
+Field substitution will be ignored if the full filtering is not activated.
+
+If activated, fields will be by default hidden unless they receive a field name substitution.
+
+##### Contract name substitution
+
+Name substitution commands should come right after the contract address from the domain has been sent with a *SEND STRUCT IMPLEMENTATION*.
+Perfect moment to do it is when the domain implementation has been sent, just before sending the message implementation.
+
+The signature is computed on :
+
+contract address || display name length || display name
+
+
+##### Field name substitution
+
+Name substitution commands should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
+
+The signature is computed on :
+
+contract address || json key length || json key || display name length || display name
+
+#### Coding
+
+_Command_
+
+[width="80%"]
+|=========================================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *LC*     | *Le*
+|   E0  |   1E   | 00 : activate
+
+                   0F : contract name
+
+                   FF : field name
+                                      | 00
+                                                   | variable | variable
+|=========================================================================
+
+_Input data_
+
+##### If P1 == activate
+
+None
+
+##### If P1 == contract name OR P1 == field name
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Display name length   | 1
+| Display name          | variable
+| Signature length      | 1
+| Signature             | variable
+|==========================================
 
 _Output data_
 

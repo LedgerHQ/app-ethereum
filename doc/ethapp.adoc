@@ -255,7 +255,7 @@ The input data is the message to sign, streamed to the device in 255 bytes maxim
 
 #### Description
 
-This commands provides a trusted description of an ERC 20 token to associate a contract address with a ticker and number of decimals.
+This command provides a trusted description of an ERC 20 token to associate a contract address with a ticker and number of decimals.
 
 It shall be run immediately before performing a transaction involving a contract calling this contract address to display the proper token information to the user if necessary, as marked in GET APP CONFIGURATION flags.
 
@@ -425,7 +425,7 @@ None
 
 #### Description
 
-This commands provides the name of a trusted binding of a plugin with a contract address and a supported method selector. This plugin will be called to interpret contract data in the following transaction signing command.
+This command provides the name of a trusted binding of a plugin with a contract address and a supported method selector. This plugin will be called to interpret contract data in the following transaction signing command.
 
 It shall be run immediately before performing a transaction involving a contract supported by this plugin to display the proper information to the user if necessary.
 
@@ -468,7 +468,7 @@ None
 
 #### Description
 
-This commands provides a trusted description of an NFT to associate a contract address with a collectionName.
+This command provides a trusted description of an NFT to associate a contract address with a collectionName.
 
 It shall be run immediately before performing a transaction involving a contract calling this contract address to display the proper nft information to the user if necessary, as marked in GET APP CONFIGURATION flags.
 
@@ -512,7 +512,7 @@ None
 
 #### Description
 
-This commands provides the name of a trusted binding of a plugin with a contract address and a supported method selector. This plugin will be called to interpret contract data in the following transaction signing command.
+This command provides the name of a trusted binding of a plugin with a contract address and a supported method selector. This plugin will be called to interpret contract data in the following transaction signing command.
 
 It can be used to set both internal and external plugins.
 

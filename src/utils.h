@@ -26,8 +26,6 @@ void array_hexstr(char* strbuf, const void* bin, unsigned int len);
 
 void convertUint256BE(uint8_t* data, uint32_t length, uint256_t* target);
 
-int local_strchr(char* string, char ch);
-
 uint64_t u64_from_BE(const uint8_t* in, uint8_t size);
 
 bool uint256_to_decimal(const uint8_t* value, size_t value_len, char* out, size_t out_len);

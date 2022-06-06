@@ -52,5 +52,9 @@ void divmod128(const uint128_t *const l,
                uint128_t *const div,
                uint128_t *const mod);
 bool tostring128(const uint128_t *const number, uint32_t base, char *const out, uint32_t outLength);
+bool tostring128_signed(const uint128_t *const number,
+                        uint32_t base,
+                        char *const out,
+                        uint32_t out_length);
 
 #endif  // _UINT128_H_

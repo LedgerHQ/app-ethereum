@@ -245,3 +245,42 @@ bool tostring128(const uint128_t *const number,
     reverseString(out, offset);
     return true;
 }
+
+/**
+ * Format a uint128_t into a string as a signed integer
+ *
+ * @param[in] number the number to format
+ * @param[in] base the radix used in formatting
+ * @param[out] out the output buffer
+ * @param[in] out_length the length of the output buffer
+ * @return whether the formatting was successful or not
+ */
+bool tostring128_signed(const uint128_t *const number,
+                        uint32_t base,
+                        char *const out,
+                        uint32_t out_length) {
+    uint128_t max_unsigned_val;
+    uint128_t max_signed_val;
+    uint128_t one_val;
+    uint128_t two_val;
+    uint128_t tmp;
+
+    // showing negative numbers only really makes sense in base 10
+    if (base == 10) {
+        explicit_bzero(&one_val, sizeof(one_val));
+        LOWER(one_val) = 1;
+        explicit_bzero(&two_val, sizeof(two_val));
+        LOWER(two_val) = 2;
+
+        memset(&max_unsigned_val, 0xFF, sizeof(max_unsigned_val));
+        divmod128(&max_unsigned_val, &two_val, &max_signed_val, &tmp);
+        if (gt128(number, &max_signed_val))  // negative value
+        {
+            sub128(&max_unsigned_val, number, &tmp);
+            add128(&tmp, &one_val, &tmp);
+            out[0] = '-';
+            return tostring128(&tmp, base, out + 1, out_length - 1);
+        }
+    }
+    return tostring128(number, base, out, out_length);  // positive value
+}

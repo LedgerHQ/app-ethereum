@@ -249,23 +249,23 @@ void add256(uint256_t *number1, uint256_t *number2, uint256_t *target) {
     add128(&LOWER_P(number1), &LOWER_P(number2), &LOWER_P(target));
 }
 
-void minus128(uint128_t *number1, uint128_t *number2, uint128_t *target) {
+void sub128(uint128_t *number1, uint128_t *number2, uint128_t *target) {
     UPPER_P(target) = UPPER_P(number1) - UPPER_P(number2) -
                       ((LOWER_P(number1) - LOWER_P(number2)) > LOWER_P(number1));
     LOWER_P(target) = LOWER_P(number1) - LOWER_P(number2);
 }
 
-void minus256(uint256_t *number1, uint256_t *number2, uint256_t *target) {
+void sub256(uint256_t *number1, uint256_t *number2, uint256_t *target) {
     uint128_t tmp;
-    minus128(&UPPER_P(number1), &UPPER_P(number2), &UPPER_P(target));
-    minus128(&LOWER_P(number1), &LOWER_P(number2), &tmp);
+    sub128(&UPPER_P(number1), &UPPER_P(number2), &UPPER_P(target));
+    sub128(&LOWER_P(number1), &LOWER_P(number2), &tmp);
     if (gt128(&tmp, &LOWER_P(number1))) {
         uint128_t one;
         UPPER(one) = 0;
         LOWER(one) = 1;
-        minus128(&UPPER_P(target), &one, &UPPER_P(target));
+        sub128(&UPPER_P(target), &one, &UPPER_P(target));
     }
-    minus128(&LOWER_P(number1), &LOWER_P(number2), &LOWER_P(target));
+    sub128(&LOWER_P(number1), &LOWER_P(number2), &LOWER_P(target));
 }
 
 void or128(uint128_t *number1, uint128_t *number2, uint128_t *target) {
@@ -379,7 +379,7 @@ void divmod128(uint128_t *l, uint128_t *r, uint128_t *retDiv, uint128_t *retMod)
         }
         while (gte128(&resMod, r)) {
             if (gte128(&resMod, &copyd)) {
-                minus128(&resMod, &copyd, &resMod);
+                sub128(&resMod, &copyd, &resMod);
                 or128(&resDiv, &adder, &resDiv);
             }
             shiftr128(&copyd, 1, &copyd);
@@ -411,7 +411,7 @@ void divmod256(uint256_t *l, uint256_t *r, uint256_t *retDiv, uint256_t *retMod)
         }
         while (gte256(&resMod, r)) {
             if (gte256(&resMod, &copyd)) {
-                minus256(&resMod, &copyd, &resMod);
+                sub256(&resMod, &copyd, &resMod);
                 or256(&resDiv, &adder, &resDiv);
             }
             shiftr256(&copyd, 1, &copyd);

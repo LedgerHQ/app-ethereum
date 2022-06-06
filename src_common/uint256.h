@@ -53,5 +53,10 @@ void divmod256(const uint256_t *const l,
                uint256_t *const div,
                uint256_t *const mod);
 bool tostring256(const uint256_t *const number, uint32_t base, char *const out, uint32_t outLength);
+bool tostring256_signed(const uint256_t *const number,
+                        uint32_t base,
+                        char *const out,
+                        uint32_t out_length);
+
 
 #endif  // _UINT256_H_

@@ -39,38 +39,57 @@ typedef struct uint256_t {
 #define UPPER(x)   x.elements[0]
 #define LOWER(x)   x.elements[1]
 
-void readu128BE(uint8_t *buffer, uint128_t *target);
-void readu256BE(uint8_t *buffer, uint256_t *target);
-void write_u64_be(uint8_t *buffer, uint64_t value);
-bool zero128(uint128_t *number);
-bool zero256(uint256_t *number);
-void copy128(uint128_t *target, uint128_t *number);
-void copy256(uint256_t *target, uint256_t *number);
-void clear128(uint128_t *target);
-void clear256(uint256_t *target);
-void shiftl128(uint128_t *number, uint32_t value, uint128_t *target);
-void shiftr128(uint128_t *number, uint32_t value, uint128_t *target);
-void shiftl256(uint256_t *number, uint32_t value, uint256_t *target);
-void shiftr256(uint256_t *number, uint32_t value, uint256_t *target);
-uint32_t bits128(uint128_t *number);
-uint32_t bits256(uint256_t *number);
-bool equal128(uint128_t *number1, uint128_t *number2);
-bool equal256(uint256_t *number1, uint256_t *number2);
-bool gt128(uint128_t *number1, uint128_t *number2);
-bool gt256(uint256_t *number1, uint256_t *number2);
-bool gte128(uint128_t *number1, uint128_t *number2);
-bool gte256(uint256_t *number1, uint256_t *number2);
-void add128(uint128_t *number1, uint128_t *number2, uint128_t *target);
-void add256(uint256_t *number1, uint256_t *number2, uint256_t *target);
-void sub128(uint128_t *number1, uint128_t *number2, uint128_t *target);
-void sub256(uint256_t *number1, uint256_t *number2, uint256_t *target);
-void or128(uint128_t *number1, uint128_t *number2, uint128_t *target);
-void or256(uint256_t *number1, uint256_t *number2, uint256_t *target);
-void mul128(uint128_t *number1, uint128_t *number2, uint128_t *target);
-void mul256(uint256_t *number1, uint256_t *number2, uint256_t *target);
-void divmod128(uint128_t *l, uint128_t *r, uint128_t *div, uint128_t *mod);
-void divmod256(uint256_t *l, uint256_t *r, uint256_t *div, uint256_t *mod);
-bool tostring128(uint128_t *number, uint32_t base, char *out, uint32_t outLength);
-bool tostring256(uint256_t *number, uint32_t base, char *out, uint32_t outLength);
+void readu128BE(const uint8_t *const buffer, uint128_t *target);
+void readu256BE(const uint8_t *const buffer, uint256_t *target);
+void write_u64_be(uint8_t *const buffer, uint64_t value);
+void read_u64_be(const uint8_t *const in, uint64_t *const out);
+bool zero128(const uint128_t *const number);
+bool zero256(const uint256_t *const number);
+void copy128(uint128_t *const target, const uint128_t *const number);
+void copy256(uint256_t *const target, const uint256_t *const number);
+void clear128(uint128_t *const target);
+void clear256(uint256_t *const target);
+void shiftl128(const uint128_t *const number, uint32_t value, uint128_t *const target);
+void shiftr128(const uint128_t *const number, uint32_t value, uint128_t *const target);
+void shiftl256(const uint256_t *const number, uint32_t value, uint256_t *const target);
+void shiftr256(const uint256_t *const number, uint32_t value, uint256_t *const target);
+uint32_t bits128(const uint128_t *const number);
+uint32_t bits256(const uint256_t *const number);
+bool equal128(const uint128_t *const number1, const uint128_t *const number2);
+bool equal256(const uint256_t *const number1, const uint256_t *const number2);
+bool gt128(const uint128_t *const number1, const uint128_t *const number2);
+bool gt256(const uint256_t *const number1, const uint256_t *const number2);
+bool gte128(const uint128_t *const number1, const uint128_t *const number2);
+bool gte256(const uint256_t *const number1, const uint256_t *const number2);
+void add128(const uint128_t *const number1,
+            const uint128_t *const number2,
+            uint128_t *const target);
+void add256(const uint256_t *const number1,
+            const uint256_t *const number2,
+            uint256_t *const target);
+void sub128(const uint128_t *const number1,
+            const uint128_t *const number2,
+            uint128_t *const target);
+void sub256(const uint256_t *const number1,
+            const uint256_t *const number2,
+            uint256_t *const target);
+void or128(const uint128_t *const number1, const uint128_t *const number2, uint128_t *const target);
+void or256(const uint256_t *const number1, const uint256_t *const number2, uint256_t *const target);
+void mul128(const uint128_t *const number1,
+            const uint128_t *const number2,
+            uint128_t *const target);
+void mul256(const uint256_t *const number1,
+            const uint256_t *const number2,
+            uint256_t *const target);
+void divmod128(const uint128_t *const l,
+               const uint128_t *const r,
+               uint128_t *const div,
+               uint128_t *const mod);
+void divmod256(const uint256_t *const l,
+               const uint256_t *const r,
+               uint256_t *const div,
+               uint256_t *const mod);
+bool tostring128(const uint128_t *const number, uint32_t base, char *const out, uint32_t outLength);
+bool tostring256(const uint256_t *const number, uint32_t base, char *const out, uint32_t outLength);
 
 #endif  // _UINT256_H_

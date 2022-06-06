@@ -1,12 +1,10 @@
-from collections import namedtuple
 from pathlib import Path
-from pyexpat import model
 
 import pytest
 
 from speculos.client import SpeculosClient
 
-from boilerplate_client.boilerplate_cmd import BoilerplateCommand
+from ethereum_client.ethereum_cmd import EthereumCommand
 
 
 SCRIPT_DIR = Path(__file__).absolute().parent
@@ -28,14 +26,14 @@ def client(pytestconfig):
     if model == "nanox":
         version = '2.0.2' # latest version of nanox_sdk
 
-    args = ['--model', model, '--display', pytestconfig.getoption("display"), '--sdk', version]
+    args = ['--log-level', 'speculos:DEBUG','--model', model, '--display', pytestconfig.getoption("display"), '--sdk', version]
     with SpeculosClient(app=str(file_path), args=args) as client:
         yield client
 
 
 @pytest.fixture()
 def cmd(client, pytestconfig):
-    yield BoilerplateCommand(
+    yield EthereumCommand(
         client=client,
         debug=True,
         model=pytestconfig.getoption("model"),

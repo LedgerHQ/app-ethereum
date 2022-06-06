@@ -1,9 +1,9 @@
 from time import sleep
-import boilerplate_client
+import ethereum_client
 
 
-from boilerplate_client.utils import UINT64_MAX, compare_screenshot, compare_screenshot, save_screenshot
-from boilerplate_client.transaction import Transaction
+from ethereum_client.utils import UINT64_MAX, compare_screenshot, compare_screenshot, save_screenshot
+from ethereum_client.transaction import Transaction
 
 
 # https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md
@@ -246,7 +246,7 @@ def test_sign_reject(cmd):
                 compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/reject/00005.png")
                 cmd.client.press_and_release('both')
 
-    except boilerplate_client.exception.errors.DenyError as error:
+    except ethereum_client.exception.errors.DenyError as error:
         assert error.args[0] == '0x6985'
 
 
@@ -347,7 +347,7 @@ def test_sign_error_transaction_type(cmd):
     try:
         with cmd.simple_sign_tx(bip32_path=bip32_path, transaction=transaction, result=result) as ex:
             pass
-    except boilerplate_client.exception.errors.UnknownDeviceError as error:
+    except ethereum_client.exception.errors.UnknownDeviceError as error:
         # Throw error of transaction type not supported
         assert error.args[0] == '0x6501'
 
@@ -355,7 +355,7 @@ def test_sign_error_transaction_type(cmd):
     try:
         with cmd.simple_sign_tx(bip32_path=bip32_path, transaction=transaction, result=result) as ex:
             pass
-    except boilerplate_client.exception.errors.UnknownDeviceError as error:
+    except ethereum_client.exception.errors.UnknownDeviceError as error:
         # Throw error of transaction type not supported
         assert error.args[0] == '0x6501'
 
@@ -588,7 +588,7 @@ def test_sign_blind_error_disabled(cmd):
                 pass
             if cmd.model == "nanox":
                 pass
-    except boilerplate_client.exception.errors.UnknownDeviceError as error:
+    except ethereum_client.exception.errors.UnknownDeviceError as error:
         assert error.args[0] == '0x6a80'
 
 

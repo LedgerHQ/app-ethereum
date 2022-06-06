@@ -5,8 +5,8 @@ from typing import Tuple
 
 from time import sleep
 
-import boilerplate_client
-from boilerplate_client.utils import UINT64_MAX, compare_screenshot, save_screenshot
+import ethereum_client
+from ethereum_client.utils import UINT64_MAX, compare_screenshot, save_screenshot
 
 
 def test_get_public_key(cmd):
@@ -115,5 +115,5 @@ def test_reject_get_public_key(cmd):
                 compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/reject_get_public_key/00003.png")
                 cmd.client.press_and_release('both')
 
-    except boilerplate_client.exception.errors.DenyError as error:
+    except ethereum_client.exception.errors.DenyError as error:
         assert error.args[0] == '0x6985'

@@ -1,12 +1,15 @@
 from io import BytesIO
 from typing import Union
 
-from boilerplate_client.utils import (read, read_uint, read_varint,
+from ethereum_client.utils import (read, read_uint, read_varint,
                                       write_varint, UINT64_MAX)
 
 
 class TransactionError(Exception):
     pass
+
+EIP2930 = 1
+EIP1559 = 2
 
 
 class Transaction:

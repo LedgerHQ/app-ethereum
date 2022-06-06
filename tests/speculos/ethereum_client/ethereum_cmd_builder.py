@@ -1,13 +1,11 @@
 import enum
 import logging
-import string
 import struct
 from typing import List, Tuple, Union, Iterator, cast
 
-import rlp
 
-from boilerplate_client.transaction import Transaction
-from boilerplate_client.utils import bip32_path_from_string
+from ethereum_client.transaction import Transaction
+from ethereum_client.utils import bip32_path_from_string
 
 MAX_APDU_LEN: int = 255
 
@@ -45,7 +43,7 @@ class InsType(enum.IntEnum):
     INS_SET_PLUGIN              = 0x16
 
 
-class BoilerplateCommandBuilder:
+class EthereumCommandBuilder:
     """APDU command builder for the Boilerplate application.
 
     Parameters

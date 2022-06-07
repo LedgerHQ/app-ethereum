@@ -19,39 +19,17 @@
 
 #include <stdio.h>
 #include <string.h>
-
+#include "ethUstream.h" // INT256_LENGTH
 #include "uint256.h"
+#include "uint_common.h"
 
-static const char HEXDIGITS[] = "0123456789abcdef";
-
-static uint64_t readUint64BE(const uint8_t *const buffer) {
-    return (((uint64_t) buffer[0]) << 56) | (((uint64_t) buffer[1]) << 48) |
-           (((uint64_t) buffer[2]) << 40) | (((uint64_t) buffer[3]) << 32) |
-           (((uint64_t) buffer[4]) << 24) | (((uint64_t) buffer[5]) << 16) |
-           (((uint64_t) buffer[6]) << 8) | (((uint64_t) buffer[7]));
-}
-
-void readu128BE(const uint8_t *const buffer, uint128_t *target) {
-    UPPER_P(target) = readUint64BE(buffer);
-    LOWER_P(target) = readUint64BE(buffer + 8);
-}
-
-void readu256BE(const uint8_t *const buffer, uint256_t *target) {
+void readu256BE(const uint8_t *const buffer, uint256_t *const target) {
     readu128BE(buffer, &UPPER_P(target));
     readu128BE(buffer + 16, &LOWER_P(target));
 }
 
-bool zero128(const uint128_t *const number) {
-    return ((LOWER_P(number) == 0) && (UPPER_P(number) == 0));
-}
-
 bool zero256(const uint256_t *const number) {
     return (zero128(&LOWER_P(number)) && zero128(&UPPER_P(number)));
-}
-
-void copy128(uint128_t *const target, const uint128_t *const number) {
-    UPPER_P(target) = UPPER_P(number);
-    LOWER_P(target) = LOWER_P(number);
 }
 
 void copy256(uint256_t *const target, const uint256_t *const number) {
@@ -59,33 +37,9 @@ void copy256(uint256_t *const target, const uint256_t *const number) {
     copy128(&LOWER_P(target), &LOWER_P(number));
 }
 
-void clear128(uint128_t *const target) {
-    UPPER_P(target) = 0;
-    LOWER_P(target) = 0;
-}
-
 void clear256(uint256_t *const target) {
     clear128(&UPPER_P(target));
     clear128(&LOWER_P(target));
-}
-
-void shiftl128(const uint128_t *const number, uint32_t value, uint128_t *const target) {
-    if (value >= 128) {
-        clear128(target);
-    } else if (value == 64) {
-        UPPER_P(target) = LOWER_P(number);
-        LOWER_P(target) = 0;
-    } else if (value == 0) {
-        copy128(target, number);
-    } else if (value < 64) {
-        UPPER_P(target) = (UPPER_P(number) << value) + (LOWER_P(number) >> (64 - value));
-        LOWER_P(target) = (LOWER_P(number) << value);
-    } else if ((128 > value) && (value > 64)) {
-        UPPER_P(target) = LOWER_P(number) << (value - 64);
-        LOWER_P(target) = 0;
-    } else {
-        clear128(target);
-    }
 }
 
 void shiftl256(const uint256_t *const number, uint32_t value, uint256_t *const target) {
@@ -110,27 +64,6 @@ void shiftl256(const uint256_t *const number, uint32_t value, uint256_t *const t
         clear128(&LOWER_P(target));
     } else {
         clear256(target);
-    }
-}
-
-void shiftr128(const uint128_t *const number, uint32_t value, uint128_t *const target) {
-    if (value >= 128) {
-        clear128(target);
-    } else if (value == 64) {
-        UPPER_P(target) = 0;
-        LOWER_P(target) = UPPER_P(number);
-    } else if (value == 0) {
-        copy128(target, number);
-    } else if (value < 64) {
-        uint128_t result;
-        UPPER(result) = UPPER_P(number) >> value;
-        LOWER(result) = (UPPER_P(number) << (64 - value)) + (LOWER_P(number) >> value);
-        copy128(target, &result);
-    } else if ((128 > value) && (value > 64)) {
-        LOWER_P(target) = UPPER_P(number) >> (value - 64);
-        UPPER_P(target) = 0;
-    } else {
-        clear128(target);
     }
 }
 
@@ -159,25 +92,6 @@ void shiftr256(const uint256_t *const number, uint32_t value, uint256_t *const t
     }
 }
 
-uint32_t bits128(const uint128_t *const number) {
-    uint32_t result = 0;
-    if (UPPER_P(number)) {
-        result = 64;
-        uint64_t up = UPPER_P(number);
-        while (up) {
-            up >>= 1;
-            result++;
-        }
-    } else {
-        uint64_t low = LOWER_P(number);
-        while (low) {
-            low >>= 1;
-            result++;
-        }
-    }
-    return result;
-}
-
 uint32_t bits256(const uint256_t *const number) {
     uint32_t result = 0;
     if (!zero128(&UPPER_P(number))) {
@@ -199,20 +113,9 @@ uint32_t bits256(const uint256_t *const number) {
     return result;
 }
 
-bool equal128(const uint128_t *const number1, const uint128_t *const number2) {
-    return (UPPER_P(number1) == UPPER_P(number2)) && (LOWER_P(number1) == LOWER_P(number2));
-}
-
 bool equal256(const uint256_t *const number1, const uint256_t *const number2) {
     return (equal128(&UPPER_P(number1), &UPPER_P(number2)) &&
             equal128(&LOWER_P(number1), &LOWER_P(number2)));
-}
-
-bool gt128(const uint128_t *const number1, const uint128_t *const number2) {
-    if (UPPER_P(number1) == UPPER_P(number2)) {
-        return (LOWER_P(number1) > LOWER_P(number2));
-    }
-    return (UPPER_P(number1) > UPPER_P(number2));
 }
 
 bool gt256(const uint256_t *const number1, const uint256_t *const number2) {
@@ -222,20 +125,8 @@ bool gt256(const uint256_t *const number1, const uint256_t *const number2) {
     return gt128(&UPPER_P(number1), &UPPER_P(number2));
 }
 
-bool gte128(const uint128_t *const number1, const uint128_t *const number2) {
-    return gt128(number1, number2) || equal128(number1, number2);
-}
-
 bool gte256(const uint256_t *const number1, const uint256_t *const number2) {
     return gt256(number1, number2) || equal256(number1, number2);
-}
-
-void add128(const uint128_t *const number1,
-            const uint128_t *const number2,
-            uint128_t *const target) {
-    UPPER_P(target) = UPPER_P(number1) + UPPER_P(number2) +
-                      ((LOWER_P(number1) + LOWER_P(number2)) < LOWER_P(number1));
-    LOWER_P(target) = LOWER_P(number1) + LOWER_P(number2);
 }
 
 void add256(const uint256_t *const number1,
@@ -253,14 +144,6 @@ void add256(const uint256_t *const number1,
     add128(&LOWER_P(number1), &LOWER_P(number2), &LOWER_P(target));
 }
 
-void sub128(const uint128_t *const number1,
-            const uint128_t *const number2,
-            uint128_t *const target) {
-    UPPER_P(target) = UPPER_P(number1) - UPPER_P(number2) -
-                      ((LOWER_P(number1) - LOWER_P(number2)) > LOWER_P(number1));
-    LOWER_P(target) = LOWER_P(number1) - LOWER_P(number2);
-}
-
 void sub256(const uint256_t *const number1,
             const uint256_t *const number2,
             uint256_t *const target) {
@@ -276,88 +159,11 @@ void sub256(const uint256_t *const number1,
     sub128(&LOWER_P(number1), &LOWER_P(number2), &LOWER_P(target));
 }
 
-void or128(const uint128_t *const number1,
-           const uint128_t *const number2,
-           uint128_t *const target) {
-    UPPER_P(target) = UPPER_P(number1) | UPPER_P(number2);
-    LOWER_P(target) = LOWER_P(number1) | LOWER_P(number2);
-}
-
 void or256(const uint256_t *const number1,
            const uint256_t *const number2,
            uint256_t *const target) {
     or128(&UPPER_P(number1), &UPPER_P(number2), &UPPER_P(target));
     or128(&LOWER_P(number1), &LOWER_P(number2), &LOWER_P(target));
-}
-
-void mul128(const uint128_t *const number1,
-            const uint128_t *const number2,
-            uint128_t *const target) {
-    uint64_t top[4] = {UPPER_P(number1) >> 32,
-                       UPPER_P(number1) & 0xffffffff,
-                       LOWER_P(number1) >> 32,
-                       LOWER_P(number1) & 0xffffffff};
-    uint64_t bottom[4] = {UPPER_P(number2) >> 32,
-                          UPPER_P(number2) & 0xffffffff,
-                          LOWER_P(number2) >> 32,
-                          LOWER_P(number2) & 0xffffffff};
-    uint64_t products[4][4];
-    uint128_t tmp, tmp2;
-
-    for (int y = 3; y > -1; y--) {
-        for (int x = 3; x > -1; x--) {
-            products[3 - x][y] = top[x] * bottom[y];
-        }
-    }
-
-    uint64_t fourth32 = products[0][3] & 0xffffffff;
-    uint64_t third32 = (products[0][2] & 0xffffffff) + (products[0][3] >> 32);
-    uint64_t second32 = (products[0][1] & 0xffffffff) + (products[0][2] >> 32);
-    uint64_t first32 = (products[0][0] & 0xffffffff) + (products[0][1] >> 32);
-
-    third32 += products[1][3] & 0xffffffff;
-    second32 += (products[1][2] & 0xffffffff) + (products[1][3] >> 32);
-    first32 += (products[1][1] & 0xffffffff) + (products[1][2] >> 32);
-
-    second32 += products[2][3] & 0xffffffff;
-    first32 += (products[2][2] & 0xffffffff) + (products[2][3] >> 32);
-
-    first32 += products[3][3] & 0xffffffff;
-
-    UPPER(tmp) = first32 << 32;
-    LOWER(tmp) = 0;
-    UPPER(tmp2) = third32 >> 32;
-    LOWER(tmp2) = third32 << 32;
-    add128(&tmp, &tmp2, target);
-    UPPER(tmp) = second32;
-    LOWER(tmp) = 0;
-    add128(&tmp, target, &tmp2);
-    UPPER(tmp) = 0;
-    LOWER(tmp) = fourth32;
-    add128(&tmp, &tmp2, target);
-}
-
-void write_u64_be(uint8_t *const buffer, uint64_t value) {
-    buffer[0] = ((value >> 56) & 0xff);
-    buffer[1] = ((value >> 48) & 0xff);
-    buffer[2] = ((value >> 40) & 0xff);
-    buffer[3] = ((value >> 32) & 0xff);
-    buffer[4] = ((value >> 24) & 0xff);
-    buffer[5] = ((value >> 16) & 0xff);
-    buffer[6] = ((value >> 8) & 0xff);
-    buffer[7] = (value & 0xff);
-}
-
-void read_u64_be(const uint8_t *const in, uint64_t *const out) {
-    uint8_t *out_ptr = (uint8_t *) out;
-    *out_ptr++ = in[7];
-    *out_ptr++ = in[6];
-    *out_ptr++ = in[5];
-    *out_ptr++ = in[4];
-    *out_ptr++ = in[3];
-    *out_ptr++ = in[2];
-    *out_ptr++ = in[1];
-    *out_ptr = in[0];
 }
 
 void mul256(const uint256_t *const number1,
@@ -372,40 +178,6 @@ void mul256(const uint256_t *const number1,
     cx_math_mult(result, num1, num2, sizeof(num1));
     for (uint8_t i = 0; i < 4; i++) {
         read_u64_be(result + 32 + i * sizeof(uint64_t), &target->elements[i / 2].elements[i % 2]);
-    }
-}
-
-void divmod128(const uint128_t *const l,
-               const uint128_t *const r,
-               uint128_t *const retDiv,
-               uint128_t *const retMod) {
-    uint128_t copyd, adder, resDiv, resMod;
-    uint128_t one;
-    UPPER(one) = 0;
-    LOWER(one) = 1;
-    uint32_t diffBits = bits128(l) - bits128(r);
-    clear128(&resDiv);
-    copy128(&resMod, l);
-    if (gt128(r, l)) {
-        copy128(retMod, l);
-        clear128(retDiv);
-    } else {
-        shiftl128(r, diffBits, &copyd);
-        shiftl128(&one, diffBits, &adder);
-        if (gt128(&copyd, &resMod)) {
-            shiftr128(&copyd, 1, &copyd);
-            shiftr128(&adder, 1, &adder);
-        }
-        while (gte128(&resMod, r)) {
-            if (gte128(&resMod, &copyd)) {
-                sub128(&resMod, &copyd, &resMod);
-                or128(&resDiv, &adder, &resDiv);
-            }
-            shiftr128(&copyd, 1, &copyd);
-            shiftr128(&adder, 1, &adder);
-        }
-        copy128(retDiv, &resDiv);
-        copy128(retMod, &resMod);
     }
 }
 
@@ -442,43 +214,6 @@ void divmod256(const uint256_t *const l,
         copy256(retDiv, &resDiv);
         copy256(retMod, &resMod);
     }
-}
-
-static void reverseString(char *str, uint32_t length) {
-    uint32_t i, j;
-    for (i = 0, j = length - 1; i < j; i++, j--) {
-        uint8_t c;
-        c = str[i];
-        str[i] = str[j];
-        str[j] = c;
-    }
-}
-
-bool tostring128(const uint128_t *const number,
-                 uint32_t baseParam,
-                 char *const out,
-                 uint32_t outLength) {
-    uint128_t rDiv;
-    uint128_t rMod;
-    uint128_t base;
-    copy128(&rDiv, number);
-    clear128(&rMod);
-    clear128(&base);
-    LOWER(base) = baseParam;
-    uint32_t offset = 0;
-    if ((baseParam < 2) || (baseParam > 16)) {
-        return false;
-    }
-    do {
-        if (offset > (outLength - 1)) {
-            return false;
-        }
-        divmod128(&rDiv, &base, &rDiv, &rMod);
-        out[offset++] = HEXDIGITS[(uint8_t) LOWER(rMod)];
-    } while (!zero128(&rDiv));
-    out[offset] = '\0';
-    reverseString(out, offset);
-    return true;
 }
 
 bool tostring256(const uint256_t *const number,

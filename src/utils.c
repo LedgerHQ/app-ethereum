@@ -24,13 +24,10 @@
 #include "tokens.h"
 #include "utils.h"
 
-static const unsigned char hex_digits[] =
-    {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
-
 void array_hexstr(char *strbuf, const void *bin, unsigned int len) {
     while (len--) {
-        *strbuf++ = hex_digits[((*((char *) bin)) >> 4) & 0xF];
-        *strbuf++ = hex_digits[(*((char *) bin)) & 0xF];
+        *strbuf++ = HEXDIGITS[((*((char *) bin)) >> 4) & 0xF];
+        *strbuf++ = HEXDIGITS[(*((char *) bin)) & 0xF];
         bin = (const void *) ((unsigned int) bin + 1);
     }
     *strbuf = 0;  // EOS

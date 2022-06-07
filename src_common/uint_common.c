@@ -19,8 +19,6 @@
 
 #include "uint_common.h"
 
-const char HEXDIGITS[] = "0123456789abcdef";
-
 void write_u64_be(uint8_t *const buffer, uint64_t value) {
     buffer[0] = ((value >> 56) & 0xff);
     buffer[1] = ((value >> 48) & 0xff);

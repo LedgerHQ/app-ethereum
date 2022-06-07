@@ -27,8 +27,6 @@
 #define UPPER(x)   x.elements[0]
 #define LOWER(x)   x.elements[1]
 
-extern const char HEXDIGITS[];
-
 void write_u64_be(uint8_t *const buffer, uint64_t value);
 void read_u64_be(const uint8_t *const in, uint64_t *const out);
 uint64_t readUint64BE(const uint8_t *const buffer);

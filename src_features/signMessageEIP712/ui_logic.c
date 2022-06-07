@@ -14,6 +14,8 @@
 #include "utils.h" // uint256_to_decimal
 #include "common_712.h"
 #include "context.h" // eip712_context_deinit
+#include "uint256.h" // tostring256
+#include "int256.h" // tostring256_s
 
 
 static t_ui_context *ui_ctx = NULL;
@@ -108,6 +110,7 @@ void    ui_712_new_field(const void *const field_ptr, const uint8_t *const data,
 {
     const char *key;
     uint8_t key_len;
+    uint256_t value256;
 
     if (ui_ctx == NULL)
     {
@@ -162,10 +165,13 @@ void    ui_712_new_field(const void *const field_ptr, const uint8_t *const data,
                 strcat(strings.tmp.tmp, "...");
             }
             break;
-        // TODO: signed integers should be handled differently
         case TYPE_SOL_INT:
+            convertUint256BE(data, length, &value256);
+            tostring256_s(&value256, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
+            break;
         case TYPE_SOL_UINT:
-            uint256_to_decimal(data, length, strings.tmp.tmp, sizeof(strings.tmp.tmp));
+            convertUint256BE(data, length, &value256);
+            tostring256(&value256, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
             break;
         default:
             PRINTF("Unhandled type\n");

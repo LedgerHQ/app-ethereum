@@ -27,8 +27,6 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "os.h"
-#include "cx.h"
 #include "ethUtils.h"
 #include "chainConfig.h"
 #include "ethUstream.h"

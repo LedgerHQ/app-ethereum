@@ -33,7 +33,7 @@ void array_hexstr(char *strbuf, const void *bin, unsigned int len) {
     *strbuf = 0;  // EOS
 }
 
-void convertUint256BE(uint8_t *data, uint32_t length, uint256_t *target) {
+void convertUint256BE(const uint8_t *const data, uint32_t length, uint256_t *const target) {
     uint8_t tmp[INT256_LENGTH];
     memset(tmp, 0, 32);
     memmove(tmp + 32 - length, data, length);

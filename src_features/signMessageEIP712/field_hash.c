@@ -115,8 +115,10 @@ bool    field_hash(const uint8_t *data,
             switch (field_type)
             {
                 case TYPE_SOL_INT:
+                    value = encode_int(data, data_length, get_struct_field_typesize(field_ptr));
+                    break;
                 case TYPE_SOL_UINT:
-                    value = encode_integer(data, data_length);
+                    value = encode_uint(data, data_length);
                     break;
                 case TYPE_SOL_BYTES_FIX:
                     value = encode_bytes(data, data_length);

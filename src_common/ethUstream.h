@@ -37,6 +37,7 @@ typedef customStatus_e (*ustreamProcess_t)(struct txContext_t *context);
 
 #define TX_FLAG_TYPE   0x01
 #define ADDRESS_LENGTH 20
+#define INT128_LENGTH  16
 #define INT256_LENGTH  32
 
 // First variant of every Tx enum.

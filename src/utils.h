@@ -24,6 +24,7 @@
 
 void array_hexstr(char* strbuf, const void* bin, unsigned int len);
 
+void convertUint128BE(const uint8_t *const data, uint32_t length, uint128_t *const target);
 void convertUint256BE(const uint8_t *const data, uint32_t length, uint256_t *const target);
 
 uint64_t u64_from_BE(const uint8_t* in, uint8_t size);

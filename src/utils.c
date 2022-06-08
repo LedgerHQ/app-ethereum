@@ -20,6 +20,7 @@
 
 #include "ethUstream.h"
 #include "ethUtils.h"
+#include "uint128.h"
 #include "uint256.h"
 #include "tokens.h"
 #include "utils.h"
@@ -33,10 +34,19 @@ void array_hexstr(char *strbuf, const void *bin, unsigned int len) {
     *strbuf = 0;  // EOS
 }
 
+void convertUint128BE(const uint8_t *const data, uint32_t length, uint128_t *const target) {
+    uint8_t tmp[INT128_LENGTH];
+
+    memset(tmp, 0, sizeof(tmp) - length);
+    memmove(tmp + sizeof(tmp) - length, data, length);
+    readu128BE(tmp, target);
+}
+
 void convertUint256BE(const uint8_t *const data, uint32_t length, uint256_t *const target) {
     uint8_t tmp[INT256_LENGTH];
-    memset(tmp, 0, 32);
-    memmove(tmp + 32 - length, data, length);
+
+    memset(tmp, 0, sizeof(tmp) - length);
+    memmove(tmp + sizeof(tmp) - length, data, length);
     readu256BE(tmp, target);
 }
 

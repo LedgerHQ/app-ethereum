@@ -14,8 +14,7 @@
 #include "utils.h" // uint256_to_decimal
 #include "common_712.h"
 #include "context.h" // eip712_context_deinit
-#include "uint256.h" // tostring256
-#include "int256.h" // tostring256_s
+#include "uint256.h" // tostring256 && tostring256_signed
 
 
 static t_ui_context *ui_ctx = NULL;
@@ -111,6 +110,9 @@ void    ui_712_new_field(const void *const field_ptr, const uint8_t *const data,
     const char *key;
     uint8_t key_len;
     uint256_t value256;
+    uint128_t value128;
+    int32_t value32;
+    int16_t value16;
 
     if (ui_ctx == NULL)
     {
@@ -166,8 +168,51 @@ void    ui_712_new_field(const void *const field_ptr, const uint8_t *const data,
             }
             break;
         case TYPE_SOL_INT:
-            convertUint256BE(data, length, &value256);
-            tostring256_s(&value256, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
+            switch (get_struct_field_typesize(field_ptr) * 8)
+            {
+                case 256:
+                    convertUint256BE(data, length, &value256);
+                    tostring256_signed(&value256, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
+                    break;
+                case 128:
+                    convertUint128BE(data, length, &value128);
+                    tostring128_signed(&value128, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
+                    break;
+                case 64:
+                    convertUint64BEto128(data, length, &value128);
+                    tostring128_signed(&value128, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
+                    break;
+                case 32:
+                    value32 = 0;
+                    for (int i = 0; i < length; ++i)
+                    {
+                        ((uint8_t*)&value32)[length - 1 - i] = data[i];
+                    }
+                    snprintf(strings.tmp.tmp,
+                             sizeof(strings.tmp.tmp),
+                             "%d",
+                             value32);
+                    break;
+                case 16:
+                    value16 = 0;
+                    for (int i = 0; i < length; ++i)
+                    {
+                        ((uint8_t*)&value16)[length - 1 - i] = data[i];
+                    }
+                    snprintf(strings.tmp.tmp,
+                             sizeof(strings.tmp.tmp),
+                             "%d",
+                             value16); // expanded to 32 bits
+                    break;
+                case 8:
+                    snprintf(strings.tmp.tmp,
+                             sizeof(strings.tmp.tmp),
+                             "%d",
+                             ((int8_t*)data)[0]); // expanded to 32 bits
+                    break;
+                default:
+                    PRINTF("Unhandled field typesize\n");
+            }
             break;
         case TYPE_SOL_UINT:
             convertUint256BE(data, length, &value256);

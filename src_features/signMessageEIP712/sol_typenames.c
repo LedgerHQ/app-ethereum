@@ -64,11 +64,11 @@ bool    sol_typenames_init(void)
     uint8_t *typename_len_ptr;
     char *typename_ptr;
 
-    if ((typenames_array = mem_alloc(sizeof(uint8_t))) == NULL)
+    if ((eip712_context->typenames_array = mem_alloc(sizeof(uint8_t))) == NULL)
     {
         return false;
     }
-    *typenames_array = 0;
+    *(eip712_context->typenames_array) = 0;
     // loop over typenames
     for (uint8_t s_idx = 0; s_idx < ARRAY_SIZE(typenames); ++s_idx)
     {
@@ -90,7 +90,7 @@ bool    sol_typenames_init(void)
             memcpy(typename_ptr, PIC(typenames[s_idx]), *typename_len_ptr);
         }
         // increment array size
-        *typenames_array += 1;
+        *(eip712_context->typenames_array) += 1;
     }
     return true;
 }
@@ -111,7 +111,7 @@ const char *get_struct_field_sol_typename(const uint8_t *field_ptr,
     bool typename_found;
 
     field_type = struct_field_type(field_ptr);
-    typename_ptr = get_array_in_mem(typenames_array, &typenames_count);
+    typename_ptr = get_array_in_mem(eip712_context->typenames_array, &typenames_count);
     typename_found = false;
     while (typenames_count-- > 0)
     {

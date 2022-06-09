@@ -239,7 +239,7 @@ bool    set_struct_name(const uint8_t *const data)
     char *name_ptr;
 
     // increment number of structs
-    *structs_array += 1;
+    *(eip712_context->structs_array) += 1;
 
     // copy length
     if ((length_ptr = mem_alloc(sizeof(uint8_t))) == NULL)
@@ -256,11 +256,11 @@ bool    set_struct_name(const uint8_t *const data)
     memmove(name_ptr, &data[OFFSET_CDATA], data[OFFSET_LC]);
 
     // initialize number of fields
-    if ((current_struct_fields_array = mem_alloc(sizeof(uint8_t))) == NULL)
+    if ((eip712_context->current_struct_fields_array = mem_alloc(sizeof(uint8_t))) == NULL)
     {
         return false;
     }
-    *current_struct_fields_array = 0;
+    *(eip712_context->current_struct_fields_array) = 0;
     return true;
 }
 
@@ -280,7 +280,7 @@ bool    set_struct_field(const uint8_t *const data)
     char *fieldname_ptr;
 
     // increment number of struct fields
-    *current_struct_fields_array += 1;
+    *(eip712_context->current_struct_fields_array) += 1;
 
     // copy TypeDesc
     if ((type_desc_ptr = mem_alloc(sizeof(uint8_t))) == NULL)
@@ -369,7 +369,7 @@ bool    handle_eip712_struct_def(const uint8_t *const apdu_buf)
 {
     bool ret = true;
 
-    if (!eip712_context_initialized)
+    if (eip712_context == NULL)
     {
         if (!eip712_context_init())
         {

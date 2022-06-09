@@ -25,7 +25,7 @@ static inline bool is_char_special(char c) {
  * @param[in] the length of the input data
  * @return wether the data is fully ASCII or not
  */
-static bool is_data_ascii(const uint8_t *const data, uint8_t length) {
+static bool is_data_ascii(const uint8_t *const data, size_t length) {
     for (uint8_t idx = 0; idx < length; ++idx) {
         if (!is_char_special(data[idx]) && ((data[idx] < 0x20) || (data[idx] > 0x7e))) {
             return false;
@@ -61,7 +61,7 @@ static bool is_value_str_ascii() {
  * @param[in] length the data length
  * @param[in] is_ascii wether the data is ASCII or not
  */
-static void feed_value_str(const uint8_t *const data, uint8_t length, bool is_ascii) {
+static void feed_value_str(const uint8_t *const data, size_t length, bool is_ascii) {
     uint16_t value_strlen = strlen(strings.tmp.tmp);
 
     if ((value_strlen + 1) < sizeof(strings.tmp.tmp)) {
@@ -118,8 +118,7 @@ void handleSignPersonalMessage(uint8_t p1,
     UNUSED(tx);
     uint8_t hashMessage[INT256_LENGTH];
     if (p1 == P1_FIRST) {
-        char tmp[11];
-        uint32_t index;
+        char tmp[11] = {0};
         uint32_t i;
         if (dataLength < 1) {
             PRINTF("Invalid data\n");

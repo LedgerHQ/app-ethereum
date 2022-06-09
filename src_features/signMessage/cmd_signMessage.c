@@ -99,11 +99,14 @@ static void feed_value_str(const uint8_t *const data, size_t length, bool is_asc
                        sizeof(marker));
             }
         } else {
-            snprintf(strings.tmp.tmp + value_strlen,
-                     sizeof(strings.tmp.tmp) - value_strlen,
-                     "%.*H",
-                     length,
-                     data);
+            // truncate to strings.tmp.tmp 's size
+            length = MIN(length, (sizeof(strings.tmp.tmp) - value_strlen)/2);
+            for (size_t i = 0; i < length; i++ ) {
+                snprintf(strings.tmp.tmp + value_strlen + 2*i, 
+                        sizeof(strings.tmp.tmp) - value_strlen - 2*i, 
+                        "%02X", 
+                        data[i]); 
+            }
         }
     }
 }
@@ -161,15 +164,8 @@ void handleSignPersonalMessage(uint8_t p1,
                 sizeof(SIGN_MAGIC) - 1,
                 NULL,
                 0);
-        for (index = 1; (((index * base) <= tmpCtx.messageSigningContext.remainingLength) &&
-                         (((index * base) / base) == index));
-             index *= base)
-            ;
-        for (; index; index /= base) {
-            tmp[pos++] = '0' + ((tmpCtx.messageSigningContext.remainingLength / index) % base);
-        }
-        tmp[pos] = '\0';
-        cx_hash((cx_hash_t *) &global_sha3, 0, (uint8_t *) tmp, pos, NULL, 0);
+        snprintf(tmp, sizeof(tmp), "%u", tmpCtx.messageSigningContext.remainingLength);
+        cx_hash((cx_hash_t *) &global_sha3, 0, (uint8_t *) tmp, strlen(tmp), NULL, 0);
         cx_sha256_init(&tmpContent.sha2);
 
         init_value_str(is_data_ascii(workBuffer, dataLength));

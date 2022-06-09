@@ -10,6 +10,7 @@
 #include "shared_context.h"
 #include "ui_logic.h"
 #include "ethUtils.h" // KECCAK256_HASH_BYTESIZE
+#include "context.h" // contract_addr
 
 static s_field_hashing *fh = NULL;
 
@@ -39,13 +40,12 @@ bool    field_hash(const uint8_t *data,
     const void *field_ptr;
     e_type field_type;
     uint8_t *value = NULL;
+    const char *key;
+    uint8_t keylen;
 #ifdef DEBUG
     const char *type;
     uint8_t typelen;
-    const char *key;
-    uint8_t keylen;
 #endif
-
 
     if (fh == NULL)
     {
@@ -56,10 +56,7 @@ bool    field_hash(const uint8_t *data,
     {
         return false;
     }
-#ifdef HAVE_EIP712_HALF_BLIND
-    uint8_t keylen;
-    const char *key = get_struct_field_keyname(field_ptr, &keylen);
-#endif // HAVE_EIP712_HALF_BLIND
+    key = get_struct_field_keyname(field_ptr, &keylen);
     field_type = struct_field_type(field_ptr);
     if (fh->state == FHS_IDLE) // first packet for this frame
     {
@@ -142,8 +139,6 @@ bool    field_hash(const uint8_t *data,
 #ifdef HAVE_EIP712_HALF_BLIND
             if (path_get_root_type() == ROOT_DOMAIN)
             {
-                uint8_t keylen;
-                const char *key = get_struct_field_keyname(field_ptr, &keylen);
                 if ((keylen == 4) && (strncmp(key, "name", keylen) == 0))
                 {
 #endif // HAVE_EIP712_HALF_BLIND
@@ -185,6 +180,17 @@ bool    field_hash(const uint8_t *data,
         // deallocate it
         mem_dealloc(len);
 
+        // copy contract address into context
+        if ((path_get_root_type() == ROOT_DOMAIN)
+            && (strncmp(key, "verifyingContract", keylen) == 0))
+        {
+            if (data_length != sizeof(eip712_context->contract_addr))
+            {
+                PRINTF("Unexpected verifyingContract length!\n");
+                return false;
+            }
+            memcpy(eip712_context->contract_addr, data, data_length);
+        }
         path_advance();
         fh->state = FHS_IDLE;
 #ifdef HAVE_EIP712_HALF_BLIND

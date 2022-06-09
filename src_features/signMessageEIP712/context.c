@@ -5,15 +5,13 @@
 #include "context.h"
 #include "eip712.h"
 #include "mem.h"
+#include "mem_utils.h"
 #include "sol_typenames.h"
 #include "path.h"
 #include "field_hash.h"
 #include "ui_logic.h"
 
-uint8_t  *typenames_array;
-uint8_t  *structs_array;
-uint8_t  *current_struct_fields_array;
-bool eip712_context_initialized = false;
+s_eip712_context *eip712_context = NULL;
 
 /**
  *
@@ -23,6 +21,11 @@ bool    eip712_context_init(void)
 {
     // init global variables
     mem_init();
+
+    if ((eip712_context = MEM_ALLOC_AND_ALIGN_TO_TYPE(sizeof(*eip712_context), *eip712_context)) == NULL)
+    {
+        return false;
+    }
 
     if (sol_typenames_init() == false)
     {
@@ -45,15 +48,13 @@ bool    eip712_context_init(void)
     }
 
     // set types pointer
-    if ((structs_array = mem_alloc(sizeof(uint8_t))) == NULL)
+    if ((eip712_context->structs_array = mem_alloc(sizeof(uint8_t))) == NULL)
     {
         return false;
     }
 
     // create len(types)
-    *structs_array = 0;
-
-    eip712_context_initialized = true;
+    *(eip712_context->structs_array) = 0;
 
     return true;
 }
@@ -64,7 +65,7 @@ void    eip712_context_deinit(void)
     field_hash_deinit();
     ui_712_deinit();
     mem_reset();
-    eip712_context_initialized = false;
+    eip712_context = NULL;
 }
 
 #endif

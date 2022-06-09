@@ -59,7 +59,7 @@ static const void *get_nth_field_from_path(uint8_t *const fields_count_ptr,
         if (struct_field_type(field_ptr) == TYPE_CUSTOM)
         {
             typename = get_struct_field_typename(field_ptr, &length);
-            if ((struct_ptr = get_structn(structs_array, typename, length)) == NULL)
+            if ((struct_ptr = get_structn(eip712_context->structs_array, typename, length)) == NULL)
             {
                 return NULL;
             }
@@ -273,7 +273,7 @@ static bool path_update(void)
     while (struct_field_type(field_ptr) == TYPE_CUSTOM)
     {
         typename = get_struct_field_typename(field_ptr, &typename_len);
-        if ((struct_ptr = get_structn(structs_array, typename, typename_len)) == NULL)
+        if ((struct_ptr = get_structn(eip712_context->structs_array, typename, typename_len)) == NULL)
         {
             return false;
         }
@@ -293,7 +293,7 @@ static bool path_update(void)
         }
         cx_keccak_init(hash_ctx, 256); // initialize it
         // get the struct typehash
-        if ((thash_ptr = type_hash(structs_array, typename, typename_len)) == NULL)
+        if ((thash_ptr = type_hash(eip712_context->structs_array, typename, typename_len)) == NULL)
         {
             return false;
         }
@@ -326,7 +326,7 @@ bool    path_set_root(const char *const struct_name, uint8_t name_length)
         return false;
     }
 
-    path_struct->root_struct = get_structn(structs_array, struct_name, name_length);
+    path_struct->root_struct = get_structn(eip712_context->structs_array, struct_name, name_length);
 
     if (path_struct->root_struct == NULL)
     {
@@ -347,7 +347,7 @@ bool    path_set_root(const char *const struct_name, uint8_t name_length)
         return false;
     }
     cx_keccak_init(hash_ctx, 256); // init hash
-    if ((thash_ptr = type_hash(structs_array, struct_name, name_length)) == NULL)
+    if ((thash_ptr = type_hash(eip712_context->structs_array, struct_name, name_length)) == NULL)
     {
         PRINTF("Memory allocation failed!\n");
         return false;

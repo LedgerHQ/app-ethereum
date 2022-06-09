@@ -5,14 +5,17 @@
 
 #include <stdbool.h>
 
-extern uint8_t  *typenames_array;
-extern uint8_t  *structs_array;
-extern uint8_t  *current_struct_fields_array;
+typedef struct
+{
+    uint8_t *typenames_array;
+    uint8_t *structs_array;
+    uint8_t *current_struct_fields_array;
+}   s_eip712_context;
+
+extern s_eip712_context *eip712_context;
 
 bool    eip712_context_init(void);
 void    eip712_context_deinit(void);
-
-extern bool eip712_context_initialized;
 
 #endif // HAVE_EIP712_FULL_SUPPORT
 

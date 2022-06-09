@@ -48,6 +48,13 @@ static void init_value_str(bool is_ascii) {
 }
 
 /**
+ * @return Whether the currently stored data is initialized as ASCII or not
+ */
+static bool is_value_str_ascii() {
+    return (memcmp(strings.tmp.tmp, "0x", 2) != 0);
+}
+
+/**
  * Update the global UI string variable by formatting & appending the new data to it
  *
  * @param[in] data the input data
@@ -107,16 +114,12 @@ void handleSignPersonalMessage(uint8_t p1,
                                uint16_t dataLength,
                                unsigned int *flags,
                                unsigned int *tx) {
-    // Point to this unused global variable for persistency
-    bool *is_ascii = (bool *) &strings.tmp.tmp2[0];
 
     UNUSED(tx);
     uint8_t hashMessage[INT256_LENGTH];
     if (p1 == P1_FIRST) {
         char tmp[11];
         uint32_t index;
-        uint32_t base = 10;
-        uint8_t pos = 0;
         uint32_t i;
         if (dataLength < 1) {
             PRINTF("Invalid data\n");
@@ -170,8 +173,7 @@ void handleSignPersonalMessage(uint8_t p1,
         cx_hash((cx_hash_t *) &global_sha3, 0, (uint8_t *) tmp, pos, NULL, 0);
         cx_sha256_init(&tmpContent.sha2);
 
-        *is_ascii = is_data_ascii(workBuffer, dataLength);
-        init_value_str(*is_ascii);
+        init_value_str(is_data_ascii(workBuffer, dataLength));
 
     } else if (p1 != P1_MORE) {
         THROW(0x6B00);
@@ -191,7 +193,7 @@ void handleSignPersonalMessage(uint8_t p1,
     cx_hash((cx_hash_t *) &tmpContent.sha2, 0, workBuffer, dataLength, NULL, 0);
     tmpCtx.messageSigningContext.remainingLength -= dataLength;
 
-    feed_value_str(workBuffer, dataLength, *is_ascii);
+    feed_value_str(workBuffer, dataLength, is_value_str_ascii());
 
     if (tmpCtx.messageSigningContext.remainingLength == 0) {
         cx_hash((cx_hash_t *) &global_sha3,

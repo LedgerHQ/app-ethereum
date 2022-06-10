@@ -100,12 +100,12 @@ static void feed_value_str(const uint8_t *const data, size_t length, bool is_asc
             }
         } else {
             // truncate to strings.tmp.tmp 's size
-            length = MIN(length, (sizeof(strings.tmp.tmp) - value_strlen)/2);
-            for (size_t i = 0; i < length; i++ ) {
-                snprintf(strings.tmp.tmp + value_strlen + 2*i, 
-                        sizeof(strings.tmp.tmp) - value_strlen - 2*i, 
-                        "%02X", 
-                        data[i]); 
+            length = MIN(length, (sizeof(strings.tmp.tmp) - value_strlen) / 2);
+            for (size_t i = 0; i < length; i++) {
+                snprintf(strings.tmp.tmp + value_strlen + 2 * i,
+                         sizeof(strings.tmp.tmp) - value_strlen - 2 * i,
+                         "%02X",
+                         data[i]);
             }
         }
     }
@@ -117,7 +117,6 @@ void handleSignPersonalMessage(uint8_t p1,
                                uint16_t dataLength,
                                unsigned int *flags,
                                unsigned int *tx) {
-
     UNUSED(tx);
     uint8_t hashMessage[INT256_LENGTH];
     if (p1 == P1_FIRST) {

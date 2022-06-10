@@ -25,7 +25,7 @@ static inline bool is_char_special(char c) {
  * @param[in] the length of the input data
  * @return wether the data is fully ASCII or not
  */
-static bool is_data_ascii(const uint8_t *const data, uint8_t length) {
+static bool is_data_ascii(const uint8_t *const data, size_t length) {
     for (uint8_t idx = 0; idx < length; ++idx) {
         if (!is_char_special(data[idx]) && ((data[idx] < 0x20) || (data[idx] > 0x7e))) {
             return false;
@@ -48,13 +48,20 @@ static void init_value_str(bool is_ascii) {
 }
 
 /**
+ * @return Whether the currently stored data is initialized as ASCII or not
+ */
+static bool is_value_str_ascii() {
+    return (memcmp(strings.tmp.tmp, "0x", 2) != 0);
+}
+
+/**
  * Update the global UI string variable by formatting & appending the new data to it
  *
  * @param[in] data the input data
  * @param[in] length the data length
  * @param[in] is_ascii wether the data is ASCII or not
  */
-static void feed_value_str(const uint8_t *const data, uint8_t length, bool is_ascii) {
+static void feed_value_str(const uint8_t *const data, size_t length, bool is_ascii) {
     uint16_t value_strlen = strlen(strings.tmp.tmp);
 
     if ((value_strlen + 1) < sizeof(strings.tmp.tmp)) {
@@ -92,11 +99,14 @@ static void feed_value_str(const uint8_t *const data, uint8_t length, bool is_as
                        sizeof(marker));
             }
         } else {
-            snprintf(strings.tmp.tmp + value_strlen,
-                     sizeof(strings.tmp.tmp) - value_strlen,
-                     "%.*H",
-                     length,
-                     data);
+            // truncate to strings.tmp.tmp 's size
+            length = MIN(length, (sizeof(strings.tmp.tmp) - value_strlen)/2);
+            for (size_t i = 0; i < length; i++ ) {
+                snprintf(strings.tmp.tmp + value_strlen + 2*i, 
+                        sizeof(strings.tmp.tmp) - value_strlen - 2*i, 
+                        "%02X", 
+                        data[i]); 
+            }
         }
     }
 }
@@ -107,16 +117,11 @@ void handleSignPersonalMessage(uint8_t p1,
                                uint16_t dataLength,
                                unsigned int *flags,
                                unsigned int *tx) {
-    // Point to this unused global variable for persistency
-    bool *is_ascii = (bool *) &strings.tmp.tmp2[0];
 
     UNUSED(tx);
     uint8_t hashMessage[INT256_LENGTH];
     if (p1 == P1_FIRST) {
-        char tmp[11];
-        uint32_t index;
-        uint32_t base = 10;
-        uint8_t pos = 0;
+        char tmp[11] = {0};
         uint32_t i;
         if (dataLength < 1) {
             PRINTF("Invalid data\n");
@@ -159,19 +164,11 @@ void handleSignPersonalMessage(uint8_t p1,
                 sizeof(SIGN_MAGIC) - 1,
                 NULL,
                 0);
-        for (index = 1; (((index * base) <= tmpCtx.messageSigningContext.remainingLength) &&
-                         (((index * base) / base) == index));
-             index *= base)
-            ;
-        for (; index; index /= base) {
-            tmp[pos++] = '0' + ((tmpCtx.messageSigningContext.remainingLength / index) % base);
-        }
-        tmp[pos] = '\0';
-        cx_hash((cx_hash_t *) &global_sha3, 0, (uint8_t *) tmp, pos, NULL, 0);
+        snprintf(tmp, sizeof(tmp), "%u", tmpCtx.messageSigningContext.remainingLength);
+        cx_hash((cx_hash_t *) &global_sha3, 0, (uint8_t *) tmp, strlen(tmp), NULL, 0);
         cx_sha256_init(&tmpContent.sha2);
 
-        *is_ascii = is_data_ascii(workBuffer, dataLength);
-        init_value_str(*is_ascii);
+        init_value_str(is_data_ascii(workBuffer, dataLength));
 
     } else if (p1 != P1_MORE) {
         THROW(0x6B00);
@@ -191,7 +188,7 @@ void handleSignPersonalMessage(uint8_t p1,
     cx_hash((cx_hash_t *) &tmpContent.sha2, 0, workBuffer, dataLength, NULL, 0);
     tmpCtx.messageSigningContext.remainingLength -= dataLength;
 
-    feed_value_str(workBuffer, dataLength, *is_ascii);
+    feed_value_str(workBuffer, dataLength, is_value_str_ascii());
 
     if (tmpCtx.messageSigningContext.remainingLength == 0) {
         cx_hash((cx_hash_t *) &global_sha3,

@@ -23,6 +23,7 @@
 #define INS_PERFORM_PRIVACY_OPERATION       0x18
 #define INS_EIP712_STRUCT_DEF               0x1A
 #define INS_EIP712_STRUCT_IMPL              0x1C
+#define INS_EIP712_FILTERING                0x1E
 #define P1_CONFIRM                          0x01
 #define P1_NON_CONFIRM                      0x00
 #define P2_NO_CHAINCODE                     0x00
@@ -172,8 +173,11 @@ void handleStarkwareUnsafeSign(uint8_t p1,
 
 #endif
 
+#ifdef HAVE_EIP712_FULL_SUPPORT
 bool    handle_eip712_struct_def(const uint8_t *const apdu_buf);
 bool    handle_eip712_struct_impl(const uint8_t *const apdu_buf);
 bool    handle_eip712_sign(const uint8_t *const apdu_buf);
+bool    handle_eip712_filtering(const uint8_t *const apdu_buf);
+#endif // HAVE_EIP712_FULL_SUPPORT
 
 #endif  // _APDU_CONSTANTS_H_

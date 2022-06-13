@@ -6,6 +6,15 @@
 #include <stdint.h>
 #include "ux.h"
 
+#define UI_712_FIELD_SHOWN          (1 << 0)
+#define UI_712_FIELD_NAME_PROVIDED  (1 << 1)
+
+typedef enum
+{
+    EIP712_FILTERING_BASIC,
+    EIP712_FILTERING_FULL
+}   e_eip712_filtering_mode;
+
 typedef enum
 {
     UI_712_POS_REVIEW,
@@ -17,7 +26,11 @@ typedef struct
     bool shown;
     bool end_reached;
     e_ui_position pos;
+    uint8_t filtering_mode;
+    uint8_t field_flags;
 }   t_ui_context;
+
+extern t_ui_context *ui_ctx;
 
 bool ui_712_init(void);
 void ui_712_deinit(void);
@@ -33,6 +46,8 @@ void ui_712_set_value(const char *const str, uint8_t length);
 void    ui_712_message_hash(void);
 #endif // HAVE_EIP712_HALF_BLIND
 void    ui_712_redraw_generic_step(void);
+void    ui_712_flag_field(bool show, bool name_provided);
+void    ui_712_field_flags_reset(void);
 
 #endif // HAVE_EIP712_FULL_SUPPORT
 

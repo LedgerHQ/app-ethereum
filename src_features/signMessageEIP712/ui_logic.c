@@ -17,7 +17,7 @@
 #include "uint256.h" // tostring256 && tostring256_signed
 
 
-static t_ui_context *ui_ctx = NULL;
+t_ui_context *ui_ctx = NULL;
 
 
 static void ui_712_set_buf(const char *const src,
@@ -144,7 +144,7 @@ void    ui_712_message_hash(void)
 {
     const char *const title = "Message hash";
 
-    ui_712_set_title(title, strlen(titltitlee));
+    ui_712_set_title(title, strlen(title));
     snprintf(strings.tmp.tmp,
              sizeof(strings.tmp.tmp),
              "0x%.*H",
@@ -179,7 +179,10 @@ void    ui_712_new_field(const void *const field_ptr, const uint8_t *const data,
     // Key
     if ((key = get_struct_field_keyname(field_ptr, &key_len)) != NULL)
     {
-        ui_712_set_title(key, key_len);
+        if (!(ui_ctx->field_flags & UI_712_FIELD_NAME_PROVIDED))
+        {
+            ui_712_set_title(key, key_len);
+        }
     }
 
     // Value
@@ -305,6 +308,7 @@ bool    ui_712_init(void)
         ui_ctx->shown = false;
         ui_ctx->end_reached = false;
         ui_ctx->pos = UI_712_POS_REVIEW;
+        ui_ctx->filtering_mode = EIP712_FILTERING_BASIC;
     }
     return ui_ctx != NULL;
 }
@@ -341,6 +345,23 @@ unsigned int ui_712_reject(const bagl_element_t *e)
     ui_712_reject_cb(e);
     eip712_context_deinit();
     return 0;
+}
+
+void    ui_712_flag_field(bool show, bool name_provided)
+{
+    if (show)
+    {
+        ui_ctx->field_flags |= UI_712_FIELD_SHOWN;
+    }
+    if (name_provided)
+    {
+        ui_ctx->field_flags |= UI_712_FIELD_NAME_PROVIDED;
+    }
+}
+
+void    ui_712_field_flags_reset(void)
+{
+    ui_ctx->field_flags = 0;
 }
 
 #endif // HAVE_EIP712_FULL_SUPPORT

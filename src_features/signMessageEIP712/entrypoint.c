@@ -16,6 +16,7 @@
 #include "shared_context.h"
 #include "ui_logic.h"
 #include "common_712.h"
+#include "path.h"
 
 
 // lib functions
@@ -435,6 +436,277 @@ bool    handle_eip712_struct_impl(const uint8_t *const apdu_buf)
         // Send back the response, do not restart the event loop
         G_io_apdu_buffer[0] = 0x6A;
         G_io_apdu_buffer[1] = 0x80;
+        io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+    }
+    return ret;
+}
+
+static bool verify_contract_name_signature(uint8_t dname_length,
+                                           const char *const dname,
+                                           uint8_t sig_length,
+                                           const uint8_t *const sig)
+{
+    uint8_t hash[INT256_LENGTH];
+    cx_ecfp_public_key_t verifying_key;
+    cx_sha256_t hash_ctx;
+
+    cx_sha256_init(&hash_ctx);
+    // Contract address
+    cx_hash((cx_hash_t*)&hash_ctx,
+            0,
+            eip712_context->contract_addr,
+            sizeof(eip712_context->contract_addr),
+            NULL,
+            0);
+
+    // Display name length
+    cx_hash((cx_hash_t*)&hash_ctx,
+            0,
+            &dname_length,
+            sizeof(dname_length),
+            NULL,
+            0);
+
+    // Display name
+    cx_hash((cx_hash_t*)&hash_ctx,
+            0,
+            (uint8_t*)dname,
+            sizeof(char) * dname_length,
+            NULL,
+            0);
+
+    // Finalize hash
+    cx_hash((cx_hash_t*)&hash_ctx,
+            CX_LAST,
+            NULL,
+            0,
+            hash,
+            sizeof(hash));
+
+    cx_ecfp_init_public_key(CX_CURVE_256K1,
+                            LEDGER_SIGNATURE_PUBLIC_KEY,
+                            sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
+                            &verifying_key);
+    if (!cx_ecdsa_verify(&verifying_key,
+                         CX_LAST,
+                         CX_SHA256,
+                         hash,
+                         sizeof(hash),
+                         sig,
+                         sig_length))
+    {
+#ifndef HAVE_BYPASS_SIGNATURES
+        PRINTF("Invalid EIP-712 contract filtering signature\n");
+        //return false; // TODO: Uncomment
+#endif
+    }
+    return true;
+}
+
+static bool verify_field_name_signature(uint8_t dname_length,
+                                        const char *const dname,
+                                        uint8_t sig_length,
+                                        const uint8_t *const sig)
+{
+    const void *field_ptr;
+    const char *key;
+    uint8_t key_len;
+    uint8_t hash[INT256_LENGTH];
+    cx_ecfp_public_key_t verifying_key;
+    cx_sha256_t hash_ctx;
+
+    cx_sha256_init(&hash_ctx);
+    // Contract address
+    cx_hash((cx_hash_t*)&hash_ctx,
+            0,
+            eip712_context->contract_addr,
+            sizeof(eip712_context->contract_addr),
+            NULL,
+            0);
+
+    if ((field_ptr = path_get_field()) == NULL)
+    {
+        return false;
+    }
+    if ((key = get_struct_field_keyname(field_ptr, &key_len)) == NULL)
+    {
+        return false;
+    }
+
+    // Key length
+    cx_hash((cx_hash_t*)&hash_ctx,
+            0,
+            &key_len,
+            sizeof(key_len),
+            NULL,
+            0);
+
+    // Key
+    cx_hash((cx_hash_t*)&hash_ctx,
+            0,
+            (uint8_t*)key,
+            sizeof(char) * key_len,
+            NULL,
+            0);
+
+    // Display name length
+    cx_hash((cx_hash_t*)&hash_ctx,
+            0,
+            &dname_length,
+            sizeof(dname_length),
+            NULL,
+            0);
+
+    // Display name
+    cx_hash((cx_hash_t*)&hash_ctx,
+            0,
+            (uint8_t*)dname,
+            sizeof(char) * dname_length,
+            NULL,
+            0);
+
+    // Finalize hash
+    cx_hash((cx_hash_t*)&hash_ctx,
+            CX_LAST,
+            NULL,
+            0,
+            hash,
+            INT256_LENGTH);
+
+    cx_ecfp_init_public_key(CX_CURVE_256K1,
+                            LEDGER_SIGNATURE_PUBLIC_KEY,
+                            sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
+                            &verifying_key);
+    if (!cx_ecdsa_verify(&verifying_key,
+                         CX_LAST,
+                         CX_SHA256,
+                         hash,
+                         sizeof(hash),
+                         sig,
+                         sig_length))
+    {
+#ifndef HAVE_BYPASS_SIGNATURES
+        PRINTF("Invalid EIP-712 field filtering signature\n");
+        //return false; // TODO: Uncomment
+#endif
+    }
+    return true;
+}
+
+bool    provide_contract_name(const uint8_t *const payload, uint8_t length)
+{
+    bool ret = false;
+    uint8_t dname_len;
+    const char *dname;
+    uint8_t sig_len;
+    const uint8_t *sig;
+
+    if ((length > 0) && (path_get_root_type() == ROOT_DOMAIN))
+    {
+        dname_len = payload[0];
+        if ((1 + dname_len) < length)
+        {
+            dname = (char*)&payload[1];
+            sig_len = payload[1 + dname_len];
+            sig = &payload[1 + dname_len + 1];
+            if ((sig_len > 0) && ((1 + dname_len + 1 + sig_len) == length))
+            {
+                if ((ret = verify_contract_name_signature(dname_len, dname, sig_len, sig)))
+                {
+                    ui_712_set_title("Contract", 8);
+                    ui_712_set_value(dname, dname_len);
+                    ui_712_redraw_generic_step();
+                }
+            }
+        }
+    }
+    return ret;
+}
+
+bool    provide_field_name(const uint8_t *const payload, uint8_t length)
+{
+    bool ret = false;
+    uint8_t dname_len;
+    const char *dname;
+    uint8_t sig_len;
+    const uint8_t *sig;
+    bool name_provided = false;
+
+    if ((length > 0) && (path_get_root_type() == ROOT_MESSAGE))
+    {
+        dname_len = payload[0];
+        if ((1 + dname_len) < length)
+        {
+            dname = (char*)&payload[1];
+            sig_len = payload[1 + dname_len];
+            sig = &payload[1 + dname_len + 1];
+            if ((sig_len > 0) && ((1 + dname_len + 1 + sig_len) == length))
+            {
+                if ((ret = verify_field_name_signature(dname_len, dname, sig_len, sig)))
+                {
+                    if (dname_len > 0) // don't substitute for an empty name
+                    {
+                        ui_712_set_title(dname, dname_len);
+                        name_provided = true;
+                    }
+                    ret = true;
+                    ui_712_flag_field(true, name_provided);
+                }
+            }
+        }
+    }
+    return ret;
+}
+
+bool    handle_eip712_filtering(const uint8_t *const apdu_buf)
+{
+    bool ret = true;
+
+    switch (apdu_buf[OFFSET_P1])
+    {
+        case P1_ACTIVATE:
+            ui_ctx->filtering_mode = EIP712_FILTERING_FULL;
+            break;
+        case P1_CONTRACT_NAME:
+            if (ui_ctx->filtering_mode == EIP712_FILTERING_FULL)
+            {
+                ret = provide_contract_name(&apdu_buf[OFFSET_CDATA],
+                                            apdu_buf[OFFSET_LC]);
+            }
+            else
+            {
+                ret = false;
+            }
+            break;
+        case P1_FIELD_NAME:
+            if (ui_ctx->filtering_mode == EIP712_FILTERING_FULL)
+            {
+                ret = provide_field_name(&apdu_buf[OFFSET_CDATA],
+                                         apdu_buf[OFFSET_LC]);
+            }
+            else
+            {
+                ret = false;
+            }
+            break;
+        default:
+            PRINTF("Unknown P1 0x%x for APDU 0x%x\n",
+                   apdu_buf[OFFSET_P1],
+                   apdu_buf[OFFSET_INS]);
+            ret = false;
+    }
+    if (ret)
+    {
+        G_io_apdu_buffer[0] = 0x90;
+        G_io_apdu_buffer[1] = 0x00;
+    }
+    else
+    {
+        G_io_apdu_buffer[0] = 0x6A;
+        G_io_apdu_buffer[1] = 0x80;
+    }
+    if ((apdu_buf[OFFSET_P1] != P1_CONTRACT_NAME) || (ret == false))
+    {
         io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
     }
     return ret;

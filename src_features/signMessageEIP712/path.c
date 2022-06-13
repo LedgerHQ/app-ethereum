@@ -397,6 +397,7 @@ bool    path_set_root(const char *const struct_name, uint8_t name_length)
 #ifdef HAVE_EIP712_HALF_BLIND
     }
 #endif // HAVE_EIP712_HALF_BLIND
+    ui_712_field_flags_reset();
     return true;
 }
 
@@ -609,6 +610,7 @@ bool    path_advance(void)
     }
     while (end_reached);
     path_update();
+    ui_712_field_flags_reset();
     return true;
 }
 

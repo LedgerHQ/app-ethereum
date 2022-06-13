@@ -727,6 +727,11 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                     *flags |= IO_ASYNCH_REPLY;
                     handle_eip712_struct_impl(G_io_apdu_buffer);
                     break;
+
+                case INS_EIP712_FILTERING:
+                    *flags |= IO_ASYNCH_REPLY;
+                    handle_eip712_filtering(G_io_apdu_buffer);
+                    break;
 #endif // HAVE_EIP712_FULL_SUPPORT
 
 #if 0

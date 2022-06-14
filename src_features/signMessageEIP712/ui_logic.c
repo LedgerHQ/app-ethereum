@@ -20,6 +20,51 @@
 static t_ui_context *ui_ctx = NULL;
 
 
+static void ui_712_set_buf(const char *const src,
+                           size_t src_length,
+                           char *const dst,
+                           size_t dst_length,
+                           bool explicit_trunc)
+{
+    uint8_t cpy_length;
+
+    if (src_length < dst_length)
+    {
+        cpy_length = src_length;
+    }
+    else
+    {
+        cpy_length = dst_length - 1;
+    }
+    memcpy(dst, src, cpy_length);
+    dst[cpy_length] = '\0';
+    if (explicit_trunc && (src_length > dst_length))
+    {
+        memcpy(dst + cpy_length - 3, "...", 3);
+    }
+}
+
+/**
+ * Set a new title for the EIP-712 generic UX_STEP
+ *
+ * @param[in] str the new title
+ * @param[in] length its length
+ */
+void    ui_712_set_title(const char *const str, uint8_t length)
+{
+    ui_712_set_buf(str, length, strings.tmp.tmp2, sizeof(strings.tmp.tmp2), false);
+}
+
+/**
+ * Set a new value for the EIP-712 generic UX_STEP
+ *
+ * @param[in] str the new value
+ * @param[in] length its length
+ */
+void    ui_712_set_value(const char *const str, uint8_t length)
+{
+    ui_712_set_buf(str, length, strings.tmp.tmp, sizeof(strings.tmp.tmp), true);
+}
 
 /**
  * Called on the intermediate dummy screen between the dynamic step
@@ -60,18 +105,18 @@ void    ui_712_next_field(void)
  */
 void    ui_712_new_root_struct(const void *const struct_ptr)
 {
+    const char *struct_name;
+    uint8_t struct_name_length;
+    const char *const title = "Review struct";
+
     if (ui_ctx == NULL)
     {
         return;
     }
-
-    strcpy(strings.tmp.tmp2, "Review struct");
-    const char *struct_name;
-    uint8_t struct_name_length;
+    ui_712_set_title(title, strlen(title));
     if ((struct_name = get_struct_name(struct_ptr, &struct_name_length)) != NULL)
     {
-        strncpy(strings.tmp.tmp, struct_name, struct_name_length);
-        strings.tmp.tmp[struct_name_length] = '\0';
+        ui_712_set_value(struct_name, struct_name_length);
     }
     if (!ui_ctx->shown)
     {
@@ -87,7 +132,9 @@ void    ui_712_new_root_struct(const void *const struct_ptr)
 #ifdef HAVE_EIP712_HALF_BLIND
 void    ui_712_message_hash(void)
 {
-    strcpy(strings.tmp.tmp2, "Message hash");
+    const char *const title = "Message hash";
+
+    ui_712_set_title(title, strlen(titltitlee));
     snprintf(strings.tmp.tmp,
              sizeof(strings.tmp.tmp),
              "0x%.*H",
@@ -122,25 +169,15 @@ void    ui_712_new_field(const void *const field_ptr, const uint8_t *const data,
     // Key
     if ((key = get_struct_field_keyname(field_ptr, &key_len)) != NULL)
     {
-        strncpy(strings.tmp.tmp2, key, MIN(key_len, sizeof(strings.tmp.tmp2) - 1));
-        strings.tmp.tmp2[key_len] = '\0';
+        ui_712_set_title(key, key_len);
     }
 
     // Value
-    strings.tmp.tmp[0] = '\0'; // empty string
+    ui_712_set_value("", 0);
     switch (struct_field_type(field_ptr))
     {
         case TYPE_SOL_STRING:
-            strncat(strings.tmp.tmp, (char*)data, sizeof(strings.tmp.tmp) - 1);
-            if (length > (sizeof(strings.tmp.tmp) - 1))
-            {
-                strings.tmp.tmp[sizeof(strings.tmp.tmp) - 1 - 3] = '\0';
-                strcat(strings.tmp.tmp, "...");
-            }
-            else
-            {
-                strings.tmp.tmp[length] = '\0';
-            }
+            ui_712_set_value((char*)data, length);
             break;
         case TYPE_SOL_ADDRESS:
             getEthDisplayableAddress((uint8_t*)data,
@@ -150,7 +187,14 @@ void    ui_712_new_field(const void *const field_ptr, const uint8_t *const data,
                                      chainConfig->chainId);
             break;
         case TYPE_SOL_BOOL:
-            strcpy(strings.tmp.tmp, (*data == false) ? "false" : "true");
+            if (*data)
+            {
+                ui_712_set_value("true", 4);
+            }
+            else
+            {
+                ui_712_set_value("false", 5);
+            }
             break;
         case TYPE_SOL_BYTES_FIX:
         case TYPE_SOL_BYTES_DYN:

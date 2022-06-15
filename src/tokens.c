@@ -208,4 +208,8 @@ const tokenDefinition_t const TOKENS_OKC[NUM_TOKENS_OKC] = {};
 
 const tokenDefinition_t const TOKENS_CUBE[NUM_TOKENS_CUBE] = {};
 
+const tokenDefinition_t const TOKENS_ASTAR[NUM_TOKENS_ASTAR] = {};
+
+const tokenDefinition_t const TOKENS_SHIDEN[NUM_TOKENS_SHIDEN] = {};
+
 #endif

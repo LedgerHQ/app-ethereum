@@ -206,4 +206,6 @@ const tokenDefinition_t const TOKENS_WETHIO[NUM_TOKENS_WETHIO] = {};
 
 const tokenDefinition_t const TOKENS_OKC[NUM_TOKENS_OKC] = {};
 
+const tokenDefinition_t const TOKENS_CUBE[NUM_TOKENS_CUBE] = {};
+
 #endif

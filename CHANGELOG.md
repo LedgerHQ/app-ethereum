@@ -5,11 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.9.19](https://github.com/ledgerhq/app-ethereum/compare/1.9.18...1.9.19) - 2022-XX-XX
+## [1.9.19](https://github.com/ledgerhq/app-ethereum/compare/1.9.18...1.9.19) - 2022-06-15
+
+### Added
+
+- (clone) OKXChain
+- (clone) Cube
+- (clone) Astar EVM
+- (clone) Shiden EVM
 
 ### Changed
 
-- EIP-191 signatures now show the actual data contained in the message (clear-signing)
+- EIP-191 signatures now show (up to 99 characters on LNS and 255 on LNX & LNS) the actual data contained in the message (clear-signing)
+
+### Fixed
+
+- Bug with huge swap amounts
 
 ## [1.9.18](https://github.com/ledgerhq/app-ethereum/compare/1.9.17...1.9.18) - 2022-04-25
 
@@ -17,11 +28,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Easier way of adding a chain into the Makefile
 - EIP 1024 support
-- Conflux chain
-- Moonbeam chain
-- KardiaChain
-- BitTorrent Chain
-- Wethio chain
+- (clone) Conflux chain
+- (clone) Moonbeam chain
+- (clone) KardiaChain
+- (clone) BitTorrent Chain
+- (clone) Wethio chain
 
 ### Changed
 

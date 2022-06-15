@@ -37,7 +37,7 @@ jobs:
         with:
           name: 'ldg-github-ci'
           directory: ethereum-plugin-sdk
-          branch: ${{ steps.extract_branch.outputs.branch }}
+          dst_branch: ${{ steps.extract_branch.outputs.branch }}
           message: "[update] Branch ${{ steps.extract_branch.outputs.branch }} | Commit ${GITHUB_SHA}"
           secret: ${{ secrets.CI_BOT_TOKEN }}
           repository: LedgerHQ/ethereum-plugin-sdk
@@ -47,7 +47,6 @@ jobs:
         with:
           name: 'ldg-github-ci'
           files: ethereum-plugin-sdk
-          branch: ${{ steps.extract_branch.outputs.branch }}
           message: "[update][SDK] Branch ${{ steps.extract_branch.outputs.branch }} | Commit ${GITHUB_SHA}"
           secret: ${{ secrets.CI_BOT_TOKEN }}
           repository: LedgerHQ/app-ethereum

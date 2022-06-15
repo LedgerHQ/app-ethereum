@@ -107,6 +107,10 @@ static const uint8_t LEDGER_SIGNATURE_PUBLIC_KEY[] = {
 #define NUM_TOKENS_KARDIACHAIN      0
 #define NUM_TOKENS_WETHIO           0
 #define NUM_TOKENS_XDCNETWORK       0
+#define NUM_TOKENS_OKC              0
+#define NUM_TOKENS_CUBE             0
+#define NUM_TOKENS_ASTAR            0
+#define NUM_TOKENS_SHIDEN           0
 
 extern tokenDefinition_t const TOKENS_AKROMA[NUM_TOKENS_AKROMA];
 extern tokenDefinition_t const TOKENS_ELLAISM[NUM_TOKENS_ELLAISM];
@@ -150,6 +154,9 @@ extern tokenDefinition_t const TOKENS_BTTC[NUM_TOKENS_BTTC];
 extern tokenDefinition_t const TOKENS_KARDIACHAIN[NUM_TOKENS_KARDIACHAIN];
 extern tokenDefinition_t const TOKENS_WETHIO[NUM_TOKENS_WETHIO];
 extern tokenDefinition_t const TOKENS_XDCNETWORK[NUM_TOKENS_XDCNETWORK];
+extern tokenDefinition_t const TOKENS_CUBE[NUM_TOKENS_CUBE];
+extern tokenDefinition_t const TOKENS_ASTAR[NUM_TOKENS_ASTAR];
+extern tokenDefinition_t const TOKENS_SHIDEN[NUM_TOKENS_SHIDEN];
 
 #endif /* HAVE_TOKENS_LIST */
 

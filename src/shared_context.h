@@ -170,7 +170,11 @@ typedef struct txStringProperties_t {
     char network_name[NETWORK_STRING_MAX_SIZE];
 } txStringProperties_t;
 
+#ifdef TARGET_NANOS
 #define SHARED_CTX_FIELD_1_SIZE 100
+#else
+#define SHARED_CTX_FIELD_1_SIZE 256
+#endif
 #define SHARED_CTX_FIELD_2_SIZE 40
 
 typedef struct strDataTmp_t {

@@ -1,6 +1,5 @@
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
-import { expect } from "../jest";
 import { TransportStatusError } from "@ledgerhq/errors";
 import { waitForAppScreen, zemu, nano_models } from './test.fixture';
 import Zemu from '@zondax/zemu';

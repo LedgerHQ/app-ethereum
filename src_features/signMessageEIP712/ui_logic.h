@@ -32,6 +32,7 @@ void ui_712_set_value(const char *const str, uint8_t length);
 #ifdef HAVE_EIP712_HALF_BLIND
 void    ui_712_message_hash(void);
 #endif // HAVE_EIP712_HALF_BLIND
+void    ui_712_redraw_generic_step(void);
 
 #endif // HAVE_EIP712_FULL_SUPPORT
 

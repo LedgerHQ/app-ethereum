@@ -61,7 +61,6 @@ typedef enum
 #define ARRAY_SIZE(a)   (sizeof(a) / sizeof(a[0]))
 
 #define DOMAIN_STRUCT_NAME          "EIP712Domain"
-#define DOMAIN_STRUCT_NAME_LENGTH   12
 
 // TODO: Move these into a new file
 const char *get_struct_name(const uint8_t *ptr, uint8_t *const length);

@@ -15,10 +15,37 @@
 #include "common_712.h"
 #include "context.h" // eip712_context_deinit
 #include "uint256.h" // tostring256 && tostring256_signed
+#include "path.h" // path_get_root_type
 
 
-t_ui_context *ui_ctx = NULL;
+static t_ui_context *ui_ctx = NULL;
 
+
+/**
+ * Checks on the UI context to determine if the next EIP 712 field should be shown
+ *
+ * @return whether the next field should be shown
+ */
+static bool ui_712_field_shown(void)
+{
+    bool ret = false;
+
+    if (ui_ctx->filtering_mode == EIP712_FILTERING_BASIC)
+    {
+        if (path_get_root_type() == ROOT_DOMAIN)
+        {
+            ret = true;
+        }
+    }
+    else // EIP712_FILTERING_FULL
+    {
+        if (ui_ctx->field_flags & UI_712_FIELD_SHOWN)
+        {
+            ret = true;
+        }
+    }
+    return ret;
+}
 
 static void ui_712_set_buf(const char *const src,
                            size_t src_length,
@@ -42,6 +69,17 @@ static void ui_712_set_buf(const char *const src,
     {
         memcpy(dst + cpy_length - 3, "...", 3);
     }
+}
+
+void    ui_712_finalize_field(void)
+{
+    if (!ui_712_field_shown())
+    {
+        G_io_apdu_buffer[0] = 0x90;
+        G_io_apdu_buffer[1] = 0x00;
+        io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+    }
+    ui_712_field_flags_reset();
 }
 
 /**
@@ -68,12 +106,20 @@ void    ui_712_set_value(const char *const str, uint8_t length)
 
 void    ui_712_redraw_generic_step(void)
 {
-    // not pretty, manually changes the internal state of the UX flow
-    // so that we always land on the first screen of a paging step without any visible
-    // screen glitching (quick screen switching)
-    G_ux.flow_stack[G_ux.stack_count - 1].index = 0;
-    // since the flow now thinks we are displaying the first step, do next
-    ux_flow_next();
+    if (!ui_ctx->shown) // Initialize if it is not already
+    {
+        ux_flow_init(0, ux_712_flow, NULL);
+        ui_ctx->shown = true;
+    }
+    else
+    {
+        // not pretty, manually changes the internal state of the UX flow
+        // so that we always land on the first screen of a paging step without any visible
+        // screen glitching (quick screen switching)
+        G_ux.flow_stack[G_ux.stack_count - 1].index = 0;
+        // since the flow now thinks we are displaying the first step, do next
+        ux_flow_next();
+    }
 }
 
 /**
@@ -109,11 +155,11 @@ void    ui_712_next_field(void)
 }
 
 /**
- * Used to notify of a new struct to review (domain or message)
+ * Used to notify of a new struct to review
  *
  * @param[in] struct_ptr pointer to the structure
  */
-void    ui_712_new_root_struct(const void *const struct_ptr)
+void    ui_712_new_struct(const void *const struct_ptr)
 {
     const char *struct_name;
     uint8_t struct_name_length;
@@ -123,23 +169,15 @@ void    ui_712_new_root_struct(const void *const struct_ptr)
     {
         return;
     }
+
     ui_712_set_title(title, strlen(title));
     if ((struct_name = get_struct_name(struct_ptr, &struct_name_length)) != NULL)
     {
         ui_712_set_value(struct_name, struct_name_length);
     }
-    if (!ui_ctx->shown)
-    {
-        ux_flow_init(0, ux_712_flow, NULL);
-        ui_ctx->shown = true;
-    }
-    else
-    {
-        ux_flow_prev();
-    }
+    ui_712_redraw_generic_step();
 }
 
-#ifdef HAVE_EIP712_HALF_BLIND
 void    ui_712_message_hash(void)
 {
     const char *const title = "Message hash";
@@ -150,10 +188,8 @@ void    ui_712_message_hash(void)
              "0x%.*H",
              KECCAK256_HASH_BYTESIZE,
              tmpCtx.messageSigningContext712.messageHash);
-    G_ux.flow_stack[G_ux.stack_count - 1].index = 0;
-    ux_flow_next();
+    ui_712_redraw_generic_step();
 }
-#endif // HAVE_EIP712_HALF_BLIND
 
 /**
  * Used to notify of a new field to review in the current struct (key + value)
@@ -172,6 +208,12 @@ void    ui_712_new_field(const void *const field_ptr, const uint8_t *const data,
     int16_t value16;
 
     if (ui_ctx == NULL)
+    {
+        return;
+    }
+
+    // Check if this field is supposed to be displayed
+    if (!ui_712_field_shown())
     {
         return;
     }
@@ -293,9 +335,10 @@ void    ui_712_end_sign(void)
     }
     ui_ctx->end_reached = true;
 
-#ifndef HAVE_EIP712_HALF_BLIND
-    ui_712_next_field();
-#endif // HAVE_EIP712_HALF_BLIND
+    if (ui_ctx->filtering_mode == EIP712_FILTERING_FULL)
+    {
+        ui_712_next_field();
+    }
 }
 
 /**
@@ -357,6 +400,16 @@ void    ui_712_flag_field(bool show, bool name_provided)
     {
         ui_ctx->field_flags |= UI_712_FIELD_NAME_PROVIDED;
     }
+}
+
+void    ui_712_set_filtering_mode(e_eip712_filtering_mode mode)
+{
+    ui_ctx->filtering_mode = mode;
+}
+
+e_eip712_filtering_mode ui_712_get_filtering_mode(void)
+{
+    return ui_ctx->filtering_mode;
 }
 
 void    ui_712_field_flags_reset(void)

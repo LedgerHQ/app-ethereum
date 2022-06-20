@@ -10,7 +10,6 @@
 #include "shared_context.h"
 #include "ethUtils.h"
 #include "mem_utils.h"
-#include "ui_logic.h"
 
 static s_path *path_struct = NULL;
 
@@ -370,8 +369,8 @@ bool    path_set_root(const char *const struct_name, uint8_t name_length)
     // init array levels at 0
     path_struct->array_depth_count = 0;
 
-    if ((name_length == DOMAIN_STRUCT_NAME_LENGTH) &&
-        (strncmp(struct_name, DOMAIN_STRUCT_NAME, DOMAIN_STRUCT_NAME_LENGTH) == 0))
+    if ((name_length == strlen(DOMAIN_STRUCT_NAME)) &&
+        (strncmp(struct_name, DOMAIN_STRUCT_NAME, name_length) == 0))
     {
         path_struct->root_type = ROOT_DOMAIN;
     }
@@ -382,22 +381,6 @@ bool    path_set_root(const char *const struct_name, uint8_t name_length)
 
     // because the first field could be a struct type
     path_update();
-#ifdef HAVE_EIP712_HALF_BLIND
-    // Only show field for the domain
-    if (path_get_root_type() == ROOT_MESSAGE)
-    {
-        G_io_apdu_buffer[0] = 0x90;
-        G_io_apdu_buffer[1] = 0x00;
-        io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
-    }
-    else
-    {
-#endif // HAVE_EIP712_HALF_BLIND
-    ui_712_new_root_struct(path_struct->root_struct);
-#ifdef HAVE_EIP712_HALF_BLIND
-    }
-#endif // HAVE_EIP712_HALF_BLIND
-    ui_712_field_flags_reset();
     return true;
 }
 
@@ -610,7 +593,6 @@ bool    path_advance(void)
     }
     while (end_reached);
     path_update();
-    ui_712_field_flags_reset();
     return true;
 }
 
@@ -621,6 +603,15 @@ e_root_type path_get_root_type(void)
         return ROOT_DOMAIN;
     }
     return path_struct->root_type;
+}
+
+const void  *path_get_root(void)
+{
+    if (path_struct == NULL)
+    {
+        return NULL;
+    }
+    return path_struct->root_struct;
 }
 
 /**

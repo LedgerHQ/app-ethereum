@@ -38,6 +38,7 @@ bool    path_init(void);
 void    path_deinit(void);
 bool    path_new_array_depth(uint8_t size);
 e_root_type path_get_root_type(void);
+const void  *path_get_root(void);
 
 #endif // HAVE_EIP712_FULL_SUPPORT
 

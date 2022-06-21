@@ -27,6 +27,9 @@ typedef struct internalStorage_t {
     unsigned char dataAllowed;
     unsigned char contractDetails;
     unsigned char displayNonce;
+#ifdef HAVE_EIP712_FULL_SUPPORT
+    bool verbose_eip712;
+#endif // HAVE_EIP712_FULL_SUPPORT
     uint8_t initialized;
 } internalStorage_t;
 

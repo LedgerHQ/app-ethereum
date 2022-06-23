@@ -194,4 +194,22 @@ const tokenDefinition_t const TOKENS_POLYGON[NUM_TOKENS_POLYGON] = {};
 
 const tokenDefinition_t const TOKENS_SHYFT[NUM_TOKENS_SHYFT] = {};
 
+const tokenDefinition_t const TOKENS_CONFLUX_ESPACE[NUM_TOKENS_CONFLUX_ESPACE] = {};
+
+const tokenDefinition_t const TOKENS_MOONBEAM[NUM_TOKENS_MOONBEAM] = {};
+
+const tokenDefinition_t const TOKENS_BTTC[NUM_TOKENS_BTTC] = {};
+
+const tokenDefinition_t const TOKENS_KARDIACHAIN[NUM_TOKENS_KARDIACHAIN] = {};
+
+const tokenDefinition_t const TOKENS_WETHIO[NUM_TOKENS_WETHIO] = {};
+
+const tokenDefinition_t const TOKENS_OKC[NUM_TOKENS_OKC] = {};
+
+const tokenDefinition_t const TOKENS_CUBE[NUM_TOKENS_CUBE] = {};
+
+const tokenDefinition_t const TOKENS_ASTAR[NUM_TOKENS_ASTAR] = {};
+
+const tokenDefinition_t const TOKENS_SHIDEN[NUM_TOKENS_SHIDEN] = {};
+
 #endif

@@ -21,10 +21,14 @@ inputs:
     description: 'The directory in which the action will be performed'
     required: true
     default: '.'
-  branch:
-    description: 'Checkout (or create) on a specific branch before commit/push'
-    required: true
-    default: 'master'
+  src_branch:
+    description: 'Checkout (or create) a specific branch before commit/push. Defaults to current branch'
+    required: false
+    default: ''
+  dst_branch:
+    description: 'Push the created commit on a specific branch. Defaults to current branch'
+    required: false
+    default: ''
   secret:
     description: 'A token allowing to push the commit on the repository'
     required: true
@@ -43,38 +47,73 @@ runs:
         git config --global user.name ${{ inputs.name }}
         ORIGIN="$(pwd)"
         cd ${{ inputs.directory }}
-        git switch ${{ inputs.branch }} 2>/dev/null || git switch -c ${{ inputs.branch }}
+
+        CURRENT_BRANCH=${GITHUB_REF#refs/heads/};
+        # calculating source branch
+        if [ -n  "${{ inputs.src_branch }}" ]; \
+        then \
+          git switch ${{ inputs.src_branch }} 2>/dev/null || git switch -c ${{ inputs.src_branch }}; \
+          SRC_BRANCH=${{ inputs.src_branch }}; \
+        else \
+          SRC_BRANCH=`git branch --show-current`; \
+          if [ -z "$SRC_BRANCH" ]; \
+          then \
+            SRC_BRANCH=$CURRENT_BRANCH; \
+          fi \
+        fi
+
+        # calculating destination branch
+        if [ -n "${{ inputs.dst_branch }}" ]; \
+        then \
+          DST_BRANCH=${{ inputs.dst_branch }}; \
+        else \
+          DST_BRANCH=`git branch --show-current`; \
+          if [ -z "$DST_BRANCH" ]; \
+          then \
+            DST_BRANCH=$CURRENT_BRANCH; \
+          fi \
+        fi
+
         echo "-----------------------------------------------------------"
         echo "Initial repo status"
         git status
+        # checking changes, commit if needed
         CHANGES="$(git status --porcelain ${{ inputs.files }})"
-        if [ -z "${CHANGES}" ]; \
+        if [ -n "${CHANGES}" ]; \
         then \
+          echo -e "Changes:\n${CHANGES}"; \
+          git add ${{ inputs.files }}; \
           echo "-----------------------------------------------------------"; \
-          echo "No changes, stopping now"; \
-          echo "COMMIT=NO" > $GITHUB_ENV; \
-          cd "${ORIGIN}"; \
-          exit 0; \
+          echo "Repo status before commit"; \
+          git status; \
+          git commit -am "${{ inputs.message }}"; \
         fi
-        echo -e "Changes:\n${CHANGES}"
-        git add ${{ inputs.files }}
-        echo "-----------------------------------------------------------"
-        echo "Repo status before commit"
-        git status
-        git commit -am "${{ inputs.message }}"
-        echo "COMMIT=YES" > $GITHUB_ENV
+
+        # compute if a push is needed
+        if [ -n "${CHANGES}" -o "$SRC_BRANCH" != "$DST_BRANCH" ]; \
+        then \
+          PUSH="YES"; \
+        else \
+          PUSH="NO"; \
+        fi
+
         git log -n 2
         cd "${ORIGIN}"
-      shell: bash
 
-    - run: echo "${{ env.COMMIT }}"
+        echo " -- Env SRC_BRANCH: $SRC_BRANCH";
+        echo " -- Env DST_BRANCH: $DST_BRANCH";
+        echo " -- Env PUSH: $PUSH"
+        # exporting these variables for next steps
+        echo "##[set-output name=src_branch;]$(echo $SRC_BRANCH)";
+        echo "##[set-output name=dst_branch;]$(echo $DST_BRANCH)";
+        echo "##[set-output name=push;]$(echo $PUSH)";
       shell: bash
 
     - name: Push commit
-      if: ${{ env.COMMIT == 'YES' }}
+      if: steps.commit.outputs.push == 'YES'
       uses: ad-m/github-push-action@master
       with:
         github_token: ${{ inputs.secret }}
-        branch: ${{ inputs.branch }}
+        branch: ${{ steps.commit.outputs.src_branch }}:${{ steps.commit.outputs.dst_branch }}
         directory: ${{ inputs.directory }}
         repository: ${{ inputs.repository }}

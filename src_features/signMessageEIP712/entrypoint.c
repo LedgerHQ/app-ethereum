@@ -427,6 +427,11 @@ bool    handle_eip712_struct_impl(const uint8_t *const apdu_buf)
             if (path_set_root((char*)&apdu_buf[OFFSET_CDATA],
                               apdu_buf[OFFSET_LC]))
             {
+                if (N_storage.verbose_eip712)
+                {
+                    ui_712_new_struct(path_get_root());
+                    reply_apdu = false;
+                }
                 ui_712_field_flags_reset();
             }
             else
@@ -657,9 +662,12 @@ bool    provide_contract_name(const uint8_t *const payload, uint8_t length)
             {
                 if ((ret = verify_contract_name_signature(dname_len, dname, sig_len, sig)))
                 {
-                    ui_712_set_title("Contract", 8);
-                    ui_712_set_value(dname, dname_len);
-                    ui_712_redraw_generic_step();
+                    if (!N_storage.verbose_eip712)
+                    {
+                        ui_712_set_title("Contract", 8);
+                        ui_712_set_value(dname, dname_len);
+                        ui_712_redraw_generic_step();
+                    }
                 }
             }
         }
@@ -705,21 +713,22 @@ bool    provide_field_name(const uint8_t *const payload, uint8_t length)
 bool    handle_eip712_filtering(const uint8_t *const apdu_buf)
 {
     bool ret = true;
+    bool reply_apdu = true;
 
     switch (apdu_buf[OFFSET_P1])
     {
         case P1_ACTIVATE:
-            ui_712_set_filtering_mode(EIP712_FILTERING_FULL);
+            if (!N_storage.verbose_eip712)
+            {
+                ui_712_set_filtering_mode(EIP712_FILTERING_FULL);
+            }
             break;
         case P1_CONTRACT_NAME:
             if (ui_712_get_filtering_mode() == EIP712_FILTERING_FULL)
             {
                 ret = provide_contract_name(&apdu_buf[OFFSET_CDATA],
                                             apdu_buf[OFFSET_LC]);
-            }
-            else
-            {
-                ret = false;
+                reply_apdu = false;
             }
             break;
         case P1_FIELD_NAME:
@@ -728,10 +737,6 @@ bool    handle_eip712_filtering(const uint8_t *const apdu_buf)
                 ret = provide_field_name(&apdu_buf[OFFSET_CDATA],
                                          apdu_buf[OFFSET_LC]);
             }
-            else
-            {
-                ret = false;
-            }
             break;
         default:
             PRINTF("Unknown P1 0x%x for APDU 0x%x\n",
@@ -739,18 +744,18 @@ bool    handle_eip712_filtering(const uint8_t *const apdu_buf)
                    apdu_buf[OFFSET_INS]);
             ret = false;
     }
-    if (ret)
+    if (reply_apdu)
     {
-        G_io_apdu_buffer[0] = 0x90;
-        G_io_apdu_buffer[1] = 0x00;
-    }
-    else
-    {
-        G_io_apdu_buffer[0] = 0x6A;
-        G_io_apdu_buffer[1] = 0x80;
-    }
-    if ((apdu_buf[OFFSET_P1] != P1_CONTRACT_NAME) || (ret == false))
-    {
+        if (ret)
+        {
+            G_io_apdu_buffer[0] = 0x90;
+            G_io_apdu_buffer[1] = 0x00;
+        }
+        else
+        {
+            G_io_apdu_buffer[0] = 0x6A;
+            G_io_apdu_buffer[1] = 0x80;
+        }
         io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
     }
     return ret;
@@ -764,7 +769,7 @@ bool    handle_eip712_sign(const uint8_t *const apdu_buf)
     {
         return false;
     }
-    if (ui_712_get_filtering_mode() == EIP712_FILTERING_BASIC)
+    if (!N_storage.verbose_eip712 && (ui_712_get_filtering_mode() == EIP712_FILTERING_BASIC))
     {
         ui_712_message_hash();
     }

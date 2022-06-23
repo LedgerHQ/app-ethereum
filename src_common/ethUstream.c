@@ -596,7 +596,7 @@ parserStatus_e processTx(txContext_t *context,
             context->commandLength = length;
             context->processingFlags = processingFlags;
             result = processTxInternal(context);
-            PRINTF("result: %d\n");
+            PRINTF("result: %d\n", result);
         }
         CATCH_OTHER(e) {
             result = USTREAM_FAULT;

@@ -2,7 +2,7 @@ from time import sleep
 import ethereum_client
 
 
-from ethereum_client.utils import UINT64_MAX, compare_screenshot, compare_screenshot, save_screenshot
+from ethereum_client.utils import UINT64_MAX, compare_screenshot, compare_screenshot, save_screenshot, PATH_IMG
 from ethereum_client.transaction import Transaction
 
 
@@ -29,52 +29,52 @@ def test_sign_simple(cmd):
         
         if cmd.model == "nanos":
             # Review transaction
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/simple/00000.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/simple/00000.png")
             cmd.client.press_and_release('right')
 
             # Amount 1/3, 2/3, 3/3
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/simple/00001.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/simple/00001.png")
             cmd.client.press_and_release('right')
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/simple/00002.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/simple/00002.png")
             cmd.client.press_and_release('right')
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/simple/00003.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/simple/00003.png")
             cmd.client.press_and_release('right')
 
             # Address 1/3, 2/3, 3/3
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/simple/00004.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/simple/00004.png")
             cmd.client.press_and_release('right')
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/simple/00005.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/simple/00005.png")
             cmd.client.press_and_release('right')
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/simple/00006.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/simple/00006.png")
             cmd.client.press_and_release('right')
 
             # Max Fees
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/simple/00007.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/simple/00007.png")
             cmd.client.press_and_release('right')
 
             # Accept and send
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/simple/00008.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/simple/00008.png")
             cmd.client.press_and_release('both')
 
-        if cmd.model == "nanox":
+        if cmd.model == "nanox" or cmd.model == "nanosp":
             # Review transaction
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/simple/00000.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/simple/00000.png")
             cmd.client.press_and_release('right')
 
             # Amount
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/simple/00001.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/simple/00001.png")
             cmd.client.press_and_release('right')
 
             # Address
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/simple/00002.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/simple/00002.png")
             cmd.client.press_and_release('right')
 
             # Max Fees
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/simple/00003.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/simple/00003.png")
             cmd.client.press_and_release('right')
 
             # Accept and send
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/simple/00004.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/simple/00004.png")
             cmd.client.press_and_release('both')
 
     v, r, s = result
@@ -105,60 +105,60 @@ def test_sign_dai_coin_type_on_network_5234(cmd):
 
         if cmd.model == "nanos":
             # Review transaction
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/dai_coin_type_on_network_5234/00000.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/dai_coin_type_on_network_5234/00000.png")
             cmd.client.press_and_release('right')
 
             # Amount 1/3, 2/3, 3/3
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/dai_coin_type_on_network_5234/00001.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/dai_coin_type_on_network_5234/00001.png")
             cmd.client.press_and_release('right')
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/dai_coin_type_on_network_5234/00002.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/dai_coin_type_on_network_5234/00002.png")
             cmd.client.press_and_release('right')
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/dai_coin_type_on_network_5234/00003.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/dai_coin_type_on_network_5234/00003.png")
             cmd.client.press_and_release('right')
 
             # Address 1/3, 2/3, 3/3
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/dai_coin_type_on_network_5234/00004.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/dai_coin_type_on_network_5234/00004.png")
             cmd.client.press_and_release('right')
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/dai_coin_type_on_network_5234/00005.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/dai_coin_type_on_network_5234/00005.png")
             cmd.client.press_and_release('right')
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/dai_coin_type_on_network_5234/00006.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/dai_coin_type_on_network_5234/00006.png")
             cmd.client.press_and_release('right')
 
             # Network 5243
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/dai_coin_type_on_network_5234/00007.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/dai_coin_type_on_network_5234/00007.png")
             cmd.client.press_and_release('right')
 
             # Max Fees
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/dai_coin_type_on_network_5234/00008.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/dai_coin_type_on_network_5234/00008.png")
             cmd.client.press_and_release('right')
 
             # Accept and send
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/dai_coin_type_on_network_5234/00009.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/dai_coin_type_on_network_5234/00009.png")
             cmd.client.press_and_release('both')
 
-        if cmd.model == "nanox":
+        if cmd.model == "nanox" or cmd.model == "nanosp":
             # Review transaction
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/dai_coin_type_on_network_5234/00000.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/dai_coin_type_on_network_5234/00000.png")
             cmd.client.press_and_release('right')
 
             # Amount
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/dai_coin_type_on_network_5234/00001.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/dai_coin_type_on_network_5234/00001.png")
             cmd.client.press_and_release('right')
 
             # Address
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/dai_coin_type_on_network_5234/00002.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/dai_coin_type_on_network_5234/00002.png")
             cmd.client.press_and_release('right')
 
             # Network 5243
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/dai_coin_type_on_network_5234/00003.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/dai_coin_type_on_network_5234/00003.png")
             cmd.client.press_and_release('right')
 
             # Max Fees
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/dai_coin_type_on_network_5234/00004.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/dai_coin_type_on_network_5234/00004.png")
             cmd.client.press_and_release('right')
 
             # Accept and send
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/dai_coin_type_on_network_5234/00005.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/dai_coin_type_on_network_5234/00005.png")
             cmd.client.press_and_release('both')
 
     v, r, s = result
@@ -190,60 +190,60 @@ def test_sign_reject(cmd):
 
             if cmd.model == "nanos":
                 # Review transaction
-                compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/reject/00000.png")
+                compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/reject/00000.png")
                 cmd.client.press_and_release('right')
 
                 # Amount 1/3, 2/3, 3/3
-                compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/reject/00001.png")
+                compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/reject/00001.png")
                 cmd.client.press_and_release('right')
-                compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/reject/00002.png")
+                compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/reject/00002.png")
                 cmd.client.press_and_release('right')
-                compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/reject/00003.png")
+                compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/reject/00003.png")
                 cmd.client.press_and_release('right')
 
                 # Address 1/3, 2/3, 3/3
-                compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/reject/00004.png")
+                compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/reject/00004.png")
                 cmd.client.press_and_release('right')
-                compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/reject/00005.png")
+                compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/reject/00005.png")
                 cmd.client.press_and_release('right')
-                compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/reject/00006.png")
+                compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/reject/00006.png")
                 cmd.client.press_and_release('right')
 
                 # Max Fees
-                compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/reject/00007.png")
+                compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/reject/00007.png")
                 cmd.client.press_and_release('right')
 
                 # Accept and send
-                compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/reject/00008.png")
+                compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/reject/00008.png")
                 cmd.client.press_and_release('right')
                 
                 # Reject
-                compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/reject/00009.png")
+                compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/reject/00009.png")
                 cmd.client.press_and_release('both')
 
-            if cmd.model == "nanox":
+            if cmd.model == "nanox" or cmd.model == "nanosp":
                 # Review transaction
-                compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/reject/00000.png")
+                compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/reject/00000.png")
                 cmd.client.press_and_release('right')
 
                 # Amount
-                compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/reject/00001.png")
+                compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/reject/00001.png")
                 cmd.client.press_and_release('right')
 
                 # Address
-                compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/reject/00002.png")
+                compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/reject/00002.png")
                 cmd.client.press_and_release('right')
 
                 # Max Fees
-                compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/reject/00003.png")
+                compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/reject/00003.png")
                 cmd.client.press_and_release('right')
 
                 # Accept and send
-                compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/reject/00004.png")
+                compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/reject/00004.png")
                 cmd.client.press_and_release('right')
 
                 # Reject
-                compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/reject/00005.png")
+                compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/reject/00005.png")
                 cmd.client.press_and_release('both')
 
     except ethereum_client.exception.errors.DenyError as error:
@@ -272,52 +272,52 @@ def test_sign_limit_nonce(cmd):
 
         if cmd.model == "nanos":
             # Review transaction
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/limit_nonce/00000.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/limit_nonce/00000.png")
             cmd.client.press_and_release('right')
 
             # Amount 1/3, 2/3, 3/3
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/limit_nonce/00001.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/limit_nonce/00001.png")
             cmd.client.press_and_release('right')
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/limit_nonce/00002.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/limit_nonce/00002.png")
             cmd.client.press_and_release('right')
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/limit_nonce/00003.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/limit_nonce/00003.png")
             cmd.client.press_and_release('right')
 
             # Address 1/3, 2/3, 3/3
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/limit_nonce/00004.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/limit_nonce/00004.png")
             cmd.client.press_and_release('right')
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/limit_nonce/00005.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/limit_nonce/00005.png")
             cmd.client.press_and_release('right')
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/limit_nonce/00006.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/limit_nonce/00006.png")
             cmd.client.press_and_release('right')
 
             # Max Fees
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/limit_nonce/00007.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/limit_nonce/00007.png")
             cmd.client.press_and_release('right')
 
             # Accept and send
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/limit_nonce/00008.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/limit_nonce/00008.png")
             cmd.client.press_and_release('both')
 
-        if cmd.model == "nanox":
+        if cmd.model == "nanox" or cmd.model == "nanosp":
             # Review transaction
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/limit_nonce/00000.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/limit_nonce/00000.png")
             cmd.client.press_and_release('right')
 
             # Amount
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/limit_nonce/00001.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/limit_nonce/00001.png")
             cmd.client.press_and_release('right')
 
             # Address
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/limit_nonce/00002.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/limit_nonce/00002.png")
             cmd.client.press_and_release('right')
 
             # Max Fees
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/limit_nonce/00003.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/limit_nonce/00003.png")
             cmd.client.press_and_release('right')
 
             # Accept and send
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/limit_nonce/00004.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/limit_nonce/00004.png")
             cmd.client.press_and_release('both')
 
     v, r, s = result
@@ -398,60 +398,60 @@ def test_sign_nonce_display(cmd):
         
         if cmd.model == "nanos":
             # Review transaction
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/nonce_display/00000.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/nonce_display/00000.png")
             cmd.client.press_and_release('right')
 
             # Amount 1/3, 2/3, 3/3
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/nonce_display/00001.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/nonce_display/00001.png")
             cmd.client.press_and_release('right')
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/nonce_display/00002.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/nonce_display/00002.png")
             cmd.client.press_and_release('right')
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/nonce_display/00003.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/nonce_display/00003.png")
             cmd.client.press_and_release('right')
 
             # Address 1/3, 2/3, 3/3
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/nonce_display/00004.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/nonce_display/00004.png")
             cmd.client.press_and_release('right')
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/nonce_display/00005.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/nonce_display/00005.png")
             cmd.client.press_and_release('right')
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/nonce_display/00006.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/nonce_display/00006.png")
             cmd.client.press_and_release('right')
 
             # Nonce
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/nonce_display/00007.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/nonce_display/00007.png")
             cmd.client.press_and_release('right')
 
             # Max Fees
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/nonce_display/00008.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/nonce_display/00008.png")
             cmd.client.press_and_release('right')
 
             # Accept and send
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/nonce_display/00009.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/nonce_display/00009.png")
             cmd.client.press_and_release('both')
 
-        if cmd.model == "nanox":
+        if cmd.model == "nanox" or cmd.model == "nanosp":
             # Review transaction
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/nonce_display/00000.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/nonce_display/00000.png")
             cmd.client.press_and_release('right')
 
             # Amount
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/nonce_display/00001.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/nonce_display/00001.png")
             cmd.client.press_and_release('right')
 
             # Address
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/nonce_display/00002.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/nonce_display/00002.png")
             cmd.client.press_and_release('right')
 
             # Nonce
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/nonce_display/00003.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/nonce_display/00003.png")
             cmd.client.press_and_release('right')
 
             # Max Fees
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/nonce_display/00004.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/nonce_display/00004.png")
             cmd.client.press_and_release('right')
 
             # Accept and send
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/nonce_display/00005.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/nonce_display/00005.png")
             cmd.client.press_and_release('both')
 
     v, r, s = result
@@ -500,60 +500,60 @@ def test_sign_blind_simple(cmd):
         
         if cmd.model == "nanos":
             # Review transaction
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_simple/00000.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_simple/00000.png")
             cmd.client.press_and_release('right')
 
             # Blind Signing
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_simple/00001.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_simple/00001.png")
             cmd.client.press_and_release('right')
 
             # Amount 1/3, 2/3, 3/3
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_simple/00002.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_simple/00002.png")
             cmd.client.press_and_release('right')
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_simple/00003.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_simple/00003.png")
             cmd.client.press_and_release('right')
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_simple/00004.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_simple/00004.png")
             cmd.client.press_and_release('right')
 
             # Address 1/3, 2/3, 3/3
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_simple/00005.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_simple/00005.png")
             cmd.client.press_and_release('right')
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_simple/00006.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_simple/00006.png")
             cmd.client.press_and_release('right')
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_simple/00007.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_simple/00007.png")
             cmd.client.press_and_release('right')
 
             # Max Fees
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_simple/00008.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_simple/00008.png")
             cmd.client.press_and_release('right')
 
             # Accept and send
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_simple/00009.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_simple/00009.png")
             cmd.client.press_and_release('both')
 
-        if cmd.model == "nanox":
+        if cmd.model == "nanox" or cmd.model == "nanosp":
             # Review transaction
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_simple/00000.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_simple/00000.png")
             cmd.client.press_and_release('right')
 
             # Blind Signing
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_simple/00001.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_simple/00001.png")
             cmd.client.press_and_release('right')
 
             # Amount
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_simple/00002.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_simple/00002.png")
             cmd.client.press_and_release('right')
 
             # Address
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_simple/00003.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_simple/00003.png")
             cmd.client.press_and_release('right')
 
             # Max Fees
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_simple/00004.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_simple/00004.png")
             cmd.client.press_and_release('right')
 
             # Accept and send
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_simple/00005.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_simple/00005.png")
             cmd.client.press_and_release('both')
 
     v, r, s = result
@@ -586,7 +586,7 @@ def test_sign_blind_error_disabled(cmd):
 
             if cmd.model == "nanos":
                 pass
-            if cmd.model == "nanox":
+            if cmd.model == "nanox" or cmd.model == "nanosp":
                 pass
     except ethereum_client.exception.errors.UnknownDeviceError as error:
         assert error.args[0] == '0x6a80'
@@ -632,68 +632,68 @@ def test_sign_blind_and_nonce_display(cmd):
         
         if cmd.model == "nanos":
             # Review transaction
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_and_nonce_display/00000.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_and_nonce_display/00000.png")
             cmd.client.press_and_release('right')
 
             # Blind Signing
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_and_nonce_display/00001.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_and_nonce_display/00001.png")
             cmd.client.press_and_release('right')
 
             # Amount 1/3, 2/3, 3/3
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_and_nonce_display/00002.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_and_nonce_display/00002.png")
             cmd.client.press_and_release('right')
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_and_nonce_display/00003.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_and_nonce_display/00003.png")
             cmd.client.press_and_release('right')
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_and_nonce_display/00004.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_and_nonce_display/00004.png")
             cmd.client.press_and_release('right')
 
             # Address 1/3, 2/3, 3/3
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_and_nonce_display/00005.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_and_nonce_display/00005.png")
             cmd.client.press_and_release('right')
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_and_nonce_display/00006.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_and_nonce_display/00006.png")
             cmd.client.press_and_release('right')
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_and_nonce_display/00007.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_and_nonce_display/00007.png")
             cmd.client.press_and_release('right')
 
             # Nonce
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_and_nonce_display/00008.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_and_nonce_display/00008.png")
             cmd.client.press_and_release('right')
 
             # Max Fees
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_and_nonce_display/00009.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_and_nonce_display/00009.png")
             cmd.client.press_and_release('right')
 
             # Accept and send
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_and_nonce_display/00010.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_and_nonce_display/00010.png")
             cmd.client.press_and_release('both')
 
-        if cmd.model == "nanox":
+        if cmd.model == "nanox" or cmd.model == "nanosp":
             # Review transaction
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_and_nonce_display/00000.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_and_nonce_display/00000.png")
             cmd.client.press_and_release('right')
 
             # Blind Signing
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_and_nonce_display/00001.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_and_nonce_display/00001.png")
             cmd.client.press_and_release('right')
 
             # Amount
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_and_nonce_display/00002.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_and_nonce_display/00002.png")
             cmd.client.press_and_release('right')
 
             # Address
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_and_nonce_display/00003.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_and_nonce_display/00003.png")
             cmd.client.press_and_release('right')
 
             # Nonce
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_and_nonce_display/00004.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_and_nonce_display/00004.png")
             cmd.client.press_and_release('right')
 
             # Max Fees
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_and_nonce_display/00005.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_and_nonce_display/00005.png")
             cmd.client.press_and_release('right')
 
             # Accept and send
-            compare_screenshot(cmd, f"screenshots/sign/{cmd.model}/blind_and_nonce_display/00006.png")
+            compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_and_nonce_display/00006.png")
             cmd.client.press_and_release('both')
 
     v, r, s = result

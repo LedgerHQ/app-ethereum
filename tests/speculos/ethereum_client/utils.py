@@ -10,6 +10,9 @@ UINT64_MAX: int = 18446744073709551615
 UINT32_MAX: int = 4294967295
 UINT16_MAX: int = 65535
 
+# Association tableau si écran nanos ou nanox
+PATH_IMG = {"nanos": "nanos", "nanox": "nanox", "nanosp": "nanox"}
+
 def save_screenshot(cmd, path: str):
     screenshot = cmd.client.get_screenshot()
     img = Image.open(io.BytesIO(screenshot))

@@ -6,7 +6,7 @@ from typing import Tuple
 from time import sleep
 
 import ethereum_client
-from ethereum_client.utils import UINT64_MAX, compare_screenshot, save_screenshot
+from ethereum_client.utils import UINT64_MAX, compare_screenshot, save_screenshot, PATH_IMG
 
 
 def test_get_public_key(cmd):
@@ -32,32 +32,32 @@ def test_get_public_key(cmd):
 
         if cmd.model == "nanos":
             # Verify address
-            compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/get_public_key/00000.png")
+            compare_screenshot(cmd, f"screenshots/pubkey/{PATH_IMG[cmd.model]}/get_public_key/00000.png")
             cmd.client.press_and_release('right')
 
             # Address 1/3, 2/3, 3/3
-            compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/get_public_key/00001.png")
+            compare_screenshot(cmd, f"screenshots/pubkey/{PATH_IMG[cmd.model]}/get_public_key/00001.png")
             cmd.client.press_and_release('right')
-            compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/get_public_key/00002.png")
+            compare_screenshot(cmd, f"screenshots/pubkey/{PATH_IMG[cmd.model]}/get_public_key/00002.png")
             cmd.client.press_and_release('right')
-            compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/get_public_key/00003.png")
+            compare_screenshot(cmd, f"screenshots/pubkey/{PATH_IMG[cmd.model]}/get_public_key/00003.png")
             cmd.client.press_and_release('right')
 
             # Approved
-            compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/get_public_key/00004.png")
+            compare_screenshot(cmd, f"screenshots/pubkey/{PATH_IMG[cmd.model]}/get_public_key/00004.png")
             cmd.client.press_and_release('both')
 
-        if cmd.model == "nanox":
+        if cmd.model == "nanox" or cmd.model == "nanosp":
             # Verify address
-            compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/get_public_key/00000.png")
+            compare_screenshot(cmd, f"screenshots/pubkey/{PATH_IMG[cmd.model]}/get_public_key/00000.png")
             cmd.client.press_and_release('right')
 
             # Address
-            compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/get_public_key/00001.png")
+            compare_screenshot(cmd, f"screenshots/pubkey/{PATH_IMG[cmd.model]}/get_public_key/00001.png")
             cmd.client.press_and_release('right')
 
             # Approve
-            compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/get_public_key/00002.png")
+            compare_screenshot(cmd, f"screenshots/pubkey/{PATH_IMG[cmd.model]}/get_public_key/00002.png")
             cmd.client.press_and_release('both')
 
     uncompressed_addr_len, eth_addr, chain_code = result
@@ -79,40 +79,40 @@ def test_reject_get_public_key(cmd):
 
             if cmd.model == "nanos":
                 # Verify address
-                compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/reject_get_public_key/00000.png")
+                compare_screenshot(cmd, f"screenshots/pubkey/{PATH_IMG[cmd.model]}/reject_get_public_key/00000.png")
                 cmd.client.press_and_release('right')
 
                 # Address 1/3, 2/3, 3/3
-                compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/reject_get_public_key/00001.png")
+                compare_screenshot(cmd, f"screenshots/pubkey/{PATH_IMG[cmd.model]}/reject_get_public_key/00001.png")
                 cmd.client.press_and_release('right')
-                compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/reject_get_public_key/00002.png")
+                compare_screenshot(cmd, f"screenshots/pubkey/{PATH_IMG[cmd.model]}/reject_get_public_key/00002.png")
                 cmd.client.press_and_release('right')
-                compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/reject_get_public_key/00003.png")
+                compare_screenshot(cmd, f"screenshots/pubkey/{PATH_IMG[cmd.model]}/reject_get_public_key/00003.png")
                 cmd.client.press_and_release('right')
 
                 # Approve
-                compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/reject_get_public_key/00004.png")
+                compare_screenshot(cmd, f"screenshots/pubkey/{PATH_IMG[cmd.model]}/reject_get_public_key/00004.png")
                 cmd.client.press_and_release('right')
                 
                 # Reject
-                compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/reject_get_public_key/00005.png")
+                compare_screenshot(cmd, f"screenshots/pubkey/{PATH_IMG[cmd.model]}/reject_get_public_key/00005.png")
                 cmd.client.press_and_release('both')
             
-            if cmd.model == "nanox":
+            if cmd.model == "nanox" or cmd.model == "nanosp":
                 # Verify address
-                compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/reject_get_public_key/00000.png")
+                compare_screenshot(cmd, f"screenshots/pubkey/{PATH_IMG[cmd.model]}/reject_get_public_key/00000.png")
                 cmd.client.press_and_release('right')
 
                 # Address
-                compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/reject_get_public_key/00001.png")
+                compare_screenshot(cmd, f"screenshots/pubkey/{PATH_IMG[cmd.model]}/reject_get_public_key/00001.png")
                 cmd.client.press_and_release('right')
 
                 # Approve
-                compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/reject_get_public_key/00002.png")
+                compare_screenshot(cmd, f"screenshots/pubkey/{PATH_IMG[cmd.model]}/reject_get_public_key/00002.png")
                 cmd.client.press_and_release('right')
 
                 # Reject
-                compare_screenshot(cmd, f"screenshots/pubkey/{cmd.model}/reject_get_public_key/00003.png")
+                compare_screenshot(cmd, f"screenshots/pubkey/{PATH_IMG[cmd.model]}/reject_get_public_key/00003.png")
                 cmd.client.press_and_release('both')
 
     except ethereum_client.exception.errors.DenyError as error:

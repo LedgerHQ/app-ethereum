@@ -28,7 +28,6 @@ def chunkify(data: bytes, chunk_len: int) -> Iterator[Tuple[bool, bytes]]:
     if remaining:
         yield True, data[offset:]
 
-
 class InsType(enum.IntEnum):
     INS_GET_PUBLIC_KEY          = 0x02
     INS_SIGN_TX                 = 0x04
@@ -149,6 +148,7 @@ class EthereumCommandBuilder:
                               p2=0x01,
                               cdata=cdata)
 
+    # Not use
     def sign_tx(self, bip32_path: str, transaction: Transaction) -> Iterator[Tuple[bool, bytes]]:
         """Command builder for INS_SIGN_TX.
 

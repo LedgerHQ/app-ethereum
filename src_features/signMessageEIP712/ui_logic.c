@@ -32,7 +32,7 @@ static bool ui_712_field_shown(void)
 
     if (ui_ctx->filtering_mode == EIP712_FILTERING_BASIC)
     {
-        if (path_get_root_type() == ROOT_DOMAIN)
+        if (N_storage.verbose_eip712 || (path_get_root_type() == ROOT_DOMAIN))
         {
             ret = true;
         }
@@ -335,7 +335,7 @@ void    ui_712_end_sign(void)
     }
     ui_ctx->end_reached = true;
 
-    if (ui_ctx->filtering_mode == EIP712_FILTERING_FULL)
+    if (N_storage.verbose_eip712 || (ui_ctx->filtering_mode == EIP712_FILTERING_FULL))
     {
         ui_712_next_field();
     }

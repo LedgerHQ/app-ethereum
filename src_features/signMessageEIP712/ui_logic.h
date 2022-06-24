@@ -28,6 +28,7 @@ typedef struct
     e_ui_position pos;
     uint8_t filtering_mode;
     uint8_t field_flags;
+    uint8_t structs_to_review;
 }   t_ui_context;
 
 bool ui_712_init(void);
@@ -47,6 +48,7 @@ void    ui_712_field_flags_reset(void);
 void    ui_712_finalize_field(void);
 void    ui_712_set_filtering_mode(e_eip712_filtering_mode mode);
 e_eip712_filtering_mode ui_712_get_filtering_mode(void);
+void    ui_712_queue_struct_to_review(void);
 
 #endif // HAVE_EIP712_FULL_SUPPORT
 

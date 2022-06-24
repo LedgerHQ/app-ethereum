@@ -130,24 +130,32 @@ void    ui_712_next_field(void)
     {
         return;
     }
-    if (!ui_ctx->end_reached)
+    if  (ui_ctx->structs_to_review > 0)
     {
-        // reply to previous APDU
-        G_io_apdu_buffer[0] = 0x90;
-        G_io_apdu_buffer[1] = 0x00;
-        io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+        ui_712_review_struct(path_get_nth_struct_to_last(ui_ctx->structs_to_review));
+        ui_ctx->structs_to_review -= 1;
     }
     else
     {
-        if (ui_ctx->pos == UI_712_POS_REVIEW)
+        if (!ui_ctx->end_reached)
         {
-            ux_flow_next();
-            ui_ctx->pos = UI_712_POS_END;
+            // reply to previous APDU
+            G_io_apdu_buffer[0] = 0x90;
+            G_io_apdu_buffer[1] = 0x00;
+            io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
         }
         else
         {
-            ux_flow_prev();
-            ui_ctx->pos = UI_712_POS_REVIEW;
+            if (ui_ctx->pos == UI_712_POS_REVIEW)
+            {
+                ux_flow_next();
+                ui_ctx->pos = UI_712_POS_END;
+            }
+            else
+            {
+                ux_flow_prev();
+                ui_ctx->pos = UI_712_POS_REVIEW;
+            }
         }
     }
 }
@@ -413,6 +421,14 @@ e_eip712_filtering_mode ui_712_get_filtering_mode(void)
 void    ui_712_field_flags_reset(void)
 {
     ui_ctx->field_flags = 0;
+}
+
+void    ui_712_queue_struct_to_review(void)
+{
+    if (N_storage.verbose_eip712)
+    {
+        ui_ctx->structs_to_review += 1;
+    }
 }
 
 #endif // HAVE_EIP712_FULL_SUPPORT

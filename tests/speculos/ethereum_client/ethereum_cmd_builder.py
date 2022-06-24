@@ -5,6 +5,7 @@ from typing import List, Tuple, Union, Iterator, cast
 
 
 from ethereum_client.transaction import Transaction
+from ethereum_client.plugin import Plugin
 from ethereum_client.utils import bip32_path_from_string
 
 MAX_APDU_LEN: int = 255
@@ -119,6 +120,51 @@ class EthereumCommandBuilder:
                               p2=0x00,
                               cdata=b"")
 
+    def set_plugin(self, plugin: Plugin) -> bytes:
+        """Command builder for SET_PLUGIN.
+
+        Parameters
+        ----------
+            -> Check documentation of APDU
+
+        Returns
+        -------
+        bytes
+            APDU command for SET_PLUGIN.
+
+        """
+
+        cdata: bytes = plugin.serialize()
+
+        return self.serialize(cla=self.CLA,
+                              ins=InsType.INS_SET_PLUGIN,
+                              p1=0x00,
+                              p2=0x00,
+                              cdata=cdata)
+
+    def provide_nft_information(self, plugin: Plugin) -> bytes:
+        """Command builder for PROVIDE_NFT_INFORMATION.
+
+        Parameters
+        ----------
+            -> Check documentation of APDU
+
+        Returns
+        -------
+        bytes
+            APDU command for PROVIDE_NFT_INFORMATION.
+
+        """
+
+        cdata: bytes = plugin.serialize()
+
+        return self.serialize(cla=self.CLA,
+                              ins=InsType.INS_PROVIDE_NFT_INFORMATION,
+                              p1=0x00,
+                              p2=0x00,
+                              cdata=cdata)
+
+
     def get_public_key(self, bip32_path: str, display: bool = False) -> bytes:
         """Command builder for GET_PUBLIC_KEY.
 
@@ -141,7 +187,7 @@ class EthereumCommandBuilder:
             len(bip32_paths).to_bytes(1, byteorder="big"),
             *bip32_paths
         ])
-
+        
         return self.serialize(cla=self.CLA,
                               ins=InsType.INS_GET_PUBLIC_KEY,
                               p1=0x01 if display else 0x00,

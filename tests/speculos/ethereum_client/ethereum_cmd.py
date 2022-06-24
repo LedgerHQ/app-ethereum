@@ -10,6 +10,7 @@ from speculos.client import SpeculosClient, ApduException
 from ethereum_client.ethereum_cmd_builder import EthereumCommandBuilder, InsType
 from ethereum_client.exception import DeviceException
 from ethereum_client.transaction import Transaction
+from ethereum_client.plugin import Plugin
 
 
 class EthereumCommand:
@@ -39,6 +40,24 @@ class EthereumCommand:
         )  # type: int, int, int
 
         return info, major, minor, patch
+
+    def set_plugin(self, plugin: Plugin):
+        try:
+            response = self.client._apdu_exchange(
+                self.builder.set_plugin(plugin=plugin)
+            )
+        except ApduException as error:
+            raise DeviceException(error_code=error.sw, ins=InsType.INS_SET_PLUGIN)
+
+    def provide_nft_information(self, plugin: Plugin):
+        try:
+            response = self.client._apdu_exchange(
+                self.builder.provide_nft_information(plugin=plugin)
+            )
+
+        except ApduException as error:
+            raise DeviceException(error_code=error.sw, ins=InsType.INS_SET_PLUGIN)
+
 
     @contextmanager
     def get_public_key(self, bip32_path: str, display: bool = False, result: List = list()) -> Tuple[bytes, bytes, bytes]:
@@ -80,9 +99,30 @@ class EthereumCommand:
         result.append(eth_addr)
         result.append(chain_code)
 
+    def send_apdu(self, apdu: bytes) -> bytes:
+        try:
+            response = self.client._apdu_exchange(
+                apdu
+            )
+        except ApduException as error:
+            raise DeviceException(error_code=error.sw, ins=InsType.INS_SIGN_TX)
+
+    @contextmanager
+    def send_apdu_context(self, apdu: bytes) -> bytes:
+        try:
+
+            with self.client._apdu_exchange(apdu) as exchange:
+               yield exchange
+            
+            #response: bytes = exchange.receive()
+
+        except ApduException as error:
+            raise DeviceException(error_code=error.sw, ins=InsType.INS_SIGN_TX)
+
+
     # Not use
     @contextmanager
-    def test_zemu_hard_apdu_sign(self, transaction: Transaction) -> Tuple[int, int, int]:
+    def test_zemu_hard_apdu_sign(self) -> Tuple[int, int, int]:
         sign: bytes = b'\xe0\x04\x00\x00\x80\x05\x80\x00\x00\x2c\x80\x00\x00\x3c\x80\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\xf8\x69\x46\x85\x06\xa8\xb1\x5e\x00\x82\xeb\xeb\x94\x6b\x17\x54\x74\xe8\x90\x94\xc4\x4d\xa9\x8b\x95\x4e\xed\xea\xc4\x95\x27\x1d\x0f\x80\xb8\x44\x09\x5e\xa7\xb3\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7d\x27\x68\xde\x32\xb0\xb8\x0b\x7a\x34\x54\xc0\x6b\xda\xc9\x4a\x69\xdd\xc7\xa9\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x01\x80\x80'
         simple_eth: bytes = b'\xe0\x04\x00\x00\x41\x05\x80\x00\x00\x2c\x80\x00\x00\x3c\x80\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\xeb\x44\x85\x03\x06\xdc\x42\x00\x82\x52\x08\x94\x5a\x32\x17\x44\x66\x70\x52\xaf\xfa\x83\x86\xed\x49\xe0\x0e\xf2\x23\xcb\xff\xc3\x87\x6f\x9c\x9e\x7b\xf6\x18\x18\x80\x01\x80\x80'
         provide_erc20: bytes = b'\xe0\x0a\x00\x00\x67\x03\x44\x41\x49\x6b\x17\x54\x74\xe8\x90\x94\xc4\x4d\xa9\x8b\x95\x4e\xed\xea\xc4\x95\x27\x1d\x0f\x00\x00\x00\x12\x00\x00\x00\x01\x30\x45\x02\x21\x00\xb3\xaa\x97\x96\x33\x28\x4e\xb0\xf5\x54\x59\x09\x93\x33\xab\x92\xcf\x06\xfd\xd5\x8d\xc9\x0e\x9c\x07\x00\x00\xc8\xe9\x68\x86\x4c\x02\x20\x7b\x10\xec\x7d\x66\x09\xf5\x1d\xda\x53\xd0\x83\xa6\xe1\x65\xa0\xab\xf3\xa7\x7e\x13\x25\x0e\x6f\x26\x07\x72\x80\x9b\x49\xaf\xf5'
@@ -105,7 +145,6 @@ class EthereumCommand:
                         b'\x00' + # Payload
                         b'\xc0\x01\xa0\xe0\x7f\xb8\xa6\x4e\xa3\x78\x6c\x9a\x66\x49\xe5\x44\x29\xe2\x78\x6a\xf3\xea\x31\xc6\xd0\x61\x65\x34\x66\x78\xcf\x8c\xe4\x4f\x9b\xa0\x0e\x4a\x05\x26\xdb\x1e\x90\x5b\x71\x64\xa8\x58\xfd\x5e\xbd\x2f\x17\x59\xe2\x2e\x69\x55\x49\x94\x48\xbd\x27\x6a\x6a\xa6\x28\x30'])
 
-        a = self.builder.simple_sign_tx(bip32_path="44'/60'/1'/0/0", transaction=transaction)
 
 
         try:
@@ -149,3 +188,5 @@ class EthereumCommand:
         result.append(v)
         result.append(r)
         result.append(s)
+
+

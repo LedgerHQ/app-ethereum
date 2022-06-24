@@ -496,9 +496,6 @@ bool    path_new_array_depth(uint8_t size)
         cx_keccak_init(hash_ctx, 256); // init hash
     }
 
-    G_io_apdu_buffer[0] = 0x90;
-    G_io_apdu_buffer[1] = 0x00;
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
     return true;
 }
 

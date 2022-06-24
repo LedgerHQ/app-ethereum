@@ -726,9 +726,11 @@ bool    handle_eip712_filtering(const uint8_t *const apdu_buf)
         case P1_CONTRACT_NAME:
             if (ui_712_get_filtering_mode() == EIP712_FILTERING_FULL)
             {
-                ret = provide_contract_name(&apdu_buf[OFFSET_CDATA],
-                                            apdu_buf[OFFSET_LC]);
-                reply_apdu = false;
+                if ((ret = provide_contract_name(&apdu_buf[OFFSET_CDATA],
+                                                 apdu_buf[OFFSET_LC])))
+                {
+                    reply_apdu = false;
+                }
             }
             break;
         case P1_FIELD_NAME:

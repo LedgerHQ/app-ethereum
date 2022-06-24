@@ -804,10 +804,11 @@ If activated, fields will be by default hidden unless they receive a field name 
 
 Name substitution commands should come right after the contract address from the domain has been sent with a *SEND STRUCT IMPLEMENTATION*.
 Perfect moment to do it is when the domain implementation has been sent, just before sending the message implementation.
+The chain ID used for the signature must be 8 bytes wide.
 
 The signature is computed on :
 
-contract address || display name length || display name
+chain ID (BE) || contract address || display name length || display name
 
 
 ##### Field name substitution
@@ -816,7 +817,7 @@ Name substitution commands should come before the corresponding *SEND STRUCT IMP
 
 The signature is computed on :
 
-contract address || json key length || json key || display name length || display name
+chain ID (BE) || contract address || json key length || json key || display name length || display name
 
 #### Coding
 

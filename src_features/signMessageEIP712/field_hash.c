@@ -15,7 +15,6 @@
 
 static s_field_hashing *fh = NULL;
 
-
 bool    field_hash_init(void)
 {
     if (fh == NULL)

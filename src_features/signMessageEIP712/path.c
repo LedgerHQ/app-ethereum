@@ -10,6 +10,7 @@
 #include "shared_context.h"
 #include "ethUtils.h"
 #include "mem_utils.h"
+#include "ui_logic.h"
 
 static s_path *path_struct = NULL;
 
@@ -76,6 +77,22 @@ static const void *get_nth_field_from_path(uint8_t *const fields_count_ptr,
 static inline const void  *get_field_from_path(uint8_t *const fields_count)
 {
     return get_nth_field_from_path(fields_count, path_struct->depth_count);
+}
+
+const void *path_get_nth_struct_to_last(uint8_t n)
+{
+    const char *typename;
+    uint8_t typename_len;
+    const void *field_ptr;
+    const void *struct_ptr = NULL;
+
+    field_ptr = get_nth_field_from_path(NULL, path_struct->depth_count - n);
+    if (field_ptr != NULL)
+    {
+        typename = get_struct_field_typename(field_ptr, &typename_len);
+        struct_ptr = get_structn(eip712_context->structs_array, typename, typename_len);
+    }
+    return struct_ptr;
 }
 
 /**
@@ -306,6 +323,7 @@ static bool path_update(void)
         // deallocate it
         mem_dealloc(KECCAK256_HASH_BYTESIZE);
 
+        ui_712_queue_struct_to_review();
         path_depth_list_push();
     }
     return true;

@@ -159,7 +159,7 @@ void    ui_712_next_field(void)
  *
  * @param[in] struct_ptr pointer to the structure
  */
-void    ui_712_new_struct(const void *const struct_ptr)
+void    ui_712_review_struct(const void *const struct_ptr)
 {
     const char *struct_name;
     uint8_t struct_name_length;

@@ -13,6 +13,16 @@ UINT16_MAX: int = 65535
 # Association tableau si écran nanos ou nanox
 PATH_IMG = {"nanos": "nanos", "nanox": "nanox", "nanosp": "nanox"}
 
+def apdu_as_string(apdu: str) -> bytes:
+    buffer: bytearray = bytearray(len(apdu) // 2)
+
+    for i in range(0, len(apdu), 2):
+        str_extract: str = apdu[i: i + 2]
+        buffer[i // 2] = int(str_extract, 16)
+    
+    return bytes(buffer)
+
+
 def save_screenshot(cmd, path: str):
     screenshot = cmd.client.get_screenshot()
     img = Image.open(io.BytesIO(screenshot))

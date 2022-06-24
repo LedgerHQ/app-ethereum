@@ -33,7 +33,7 @@ typedef struct
 bool ui_712_init(void);
 void ui_712_deinit(void);
 void ui_712_next_field(void);
-void ui_712_new_struct(const void *const struct_ptr);
+void ui_712_review_struct(const void *const struct_ptr);
 void ui_712_new_field(const void *const field_ptr, const uint8_t *const data, uint8_t length);
 void ui_712_end_sign(void);
 unsigned int ui_712_approve(const bagl_element_t *e);

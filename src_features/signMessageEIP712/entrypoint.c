@@ -429,7 +429,7 @@ bool    handle_eip712_struct_impl(const uint8_t *const apdu_buf)
             {
                 if (N_storage.verbose_eip712)
                 {
-                    ui_712_new_struct(path_get_root());
+                    ui_712_review_struct(path_get_root());
                     reply_apdu = false;
                 }
                 ui_712_field_flags_reset();

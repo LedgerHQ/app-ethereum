@@ -11,29 +11,24 @@ void handleGetPublicKey(uint8_t p1,
                         uint16_t dataLength,
                         unsigned int *flags,
                         unsigned int *tx) {
-    UNUSED(dataLength);
     uint8_t privateKeyData[INT256_LENGTH];
     uint32_t bip32Path[MAX_BIP32_PATH];
-    uint32_t i;
-    uint8_t bip32PathLength = *(dataBuffer++);
+    uint8_t bip32PathLength;
     cx_ecfp_private_key_t privateKey;
+
     if (!called_from_swap) {
         reset_app_context();
     }
-    if ((bip32PathLength < 0x01) || (bip32PathLength > MAX_BIP32_PATH)) {
-        PRINTF("Invalid path\n");
-        THROW(0x6a80);
-    }
+
     if ((p1 != P1_CONFIRM) && (p1 != P1_NON_CONFIRM)) {
         THROW(0x6B00);
     }
     if ((p2 != P2_CHAINCODE) && (p2 != P2_NO_CHAINCODE)) {
         THROW(0x6B00);
     }
-    for (i = 0; i < bip32PathLength; i++) {
-        bip32Path[i] = U4BE(dataBuffer, 0);
-        dataBuffer += 4;
-    }
+
+    dataBuffer = parseBip32(dataBuffer, &dataLength, &bip32PathLength, bip32Path);
+
     tmpCtx.publicKeyContext.getChaincode = (p2 == P2_CHAINCODE);
     io_seproxyhal_io_heartbeat();
     os_perso_derive_node_bip32(

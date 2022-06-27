@@ -33,7 +33,6 @@ void handlePerformPrivacyOperation(uint8_t p1,
     uint8_t privateKeyDataSwapped[INT256_LENGTH];
     uint32_t bip32Path[MAX_BIP32_PATH];
     uint8_t bip32PathLength;
-    // uint8_t bip32PathLength = *(dataBuffer++);
     cx_err_t status = CX_OK;
 
     if ((p1 != P1_CONFIRM) && (p1 != P1_NON_CONFIRM)) {

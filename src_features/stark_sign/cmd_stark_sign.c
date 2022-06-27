@@ -20,7 +20,8 @@ void handleStarkwareSignMessage(uint8_t p1,
                                 __attribute__((unused)) unsigned int *tx) {
     uint8_t privateKeyData[INT256_LENGTH];
     uint32_t i;
-    uint8_t bip32PathLength = *(dataBuffer);
+    // uint8_t bip32PathLength = *(dataBuffer);
+    uint8_t bip32PathLength;
     uint8_t offset = 1;
     cx_ecfp_private_key_t privateKey;
     poorstream_t bitstream;
@@ -29,10 +30,19 @@ void handleStarkwareSignMessage(uint8_t p1,
     uint8_t protocol = 2;
     uint8_t preOffset, postOffset;
     uint8_t zeroTest;
+
     // Initial checks
     if (appState != APP_STATE_IDLE) {
         reset_app_context();
     }
+
+    if (dataLength < 1) {
+        PRINTF("Invalid data\n");
+        THROW(0x6a80);
+    }
+
+    bip32PathLength = *(dataBuffer);
+
     if ((bip32PathLength < 0x01) || (bip32PathLength > MAX_BIP32_PATH)) {
         PRINTF("Invalid path\n");
         THROW(0x6a80);
@@ -140,11 +150,11 @@ void handleStarkwareSignMessage(uint8_t p1,
 
     poorstream_init(&bitstream, dataContext.starkContext.w3);
     poorstream_write_bits(&bitstream, 0, 11);  // padding
-    poorstream_write_bits(&bitstream,
-                          (p1 == P1_STARK_CONDITIONAL_TRANSFER ? STARK_CONDITIONAL_TRANSFER_TYPE
-                           : order                             ? STARK_ORDER_TYPE
-                                                               : STARK_TRANSFER_TYPE),
-                          4);
+    poorstream_write_bits(
+        &bitstream,
+        (p1 == P1_STARK_CONDITIONAL_TRANSFER ? STARK_CONDITIONAL_TRANSFER_TYPE
+                                             : order ? STARK_ORDER_TYPE : STARK_TRANSFER_TYPE),
+        4);
     poorstream_write_bits(&bitstream, U4BE(dataBuffer, offset), 31);
     poorstream_write_bits(&bitstream, U4BE(dataBuffer, offset + 4), 31);
     poorstream_write_bits(&bitstream, U8BE(dataBuffer, offset + 4 + 4), 63);

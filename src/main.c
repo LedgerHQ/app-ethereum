@@ -456,6 +456,39 @@ void handleGetWalletId(volatile unsigned int *tx) {
 
 #endif  // HAVE_WALLET_ID_SDK
 
+uint8_t *parseBip32(uint8_t *dataBuffer,
+                    uint16_t *dataLength,
+                    uint8_t *bip32pathLength,
+                    uint32_t *bip32Path) {
+    if (*dataLength < 1) {
+        PRINTF("Invalid data\n");
+        THROW(0x6a80);
+    }
+
+    *bip32pathLength = *dataBuffer;
+
+    if (*bip32pathLength < 0x1 || *bip32pathLength > MAX_BIP32_PATH) {
+        PRINTF("Invalid path\n");
+        THROW(0x6a80);
+    }
+
+    dataBuffer++;
+    (*dataLength)--;
+
+    if (*dataLength < sizeof(uint32_t) * (*bip32pathLength)) {
+        PRINTF("Invalid data\n");
+        THROW(0x6a80);
+    }
+
+    for (uint8_t i = 0; i < *bip32pathLength; i++) {
+        bip32Path[i] = U4BE(dataBuffer, 0);
+        dataBuffer += sizeof(uint32_t);
+        *dataLength -= sizeof(uint32_t);
+    }
+
+    return dataBuffer;
+}
+
 void handleApdu(unsigned int *flags, unsigned int *tx) {
     unsigned short sw = 0;
 

@@ -296,6 +296,12 @@ static void processV(txContext_t *context) {
         PRINTF("Invalid type for RLP_V\n");
         THROW(EXCEPTION);
     }
+
+    if (context->currentFieldLength > sizeof(context->content->v)) {
+        PRINTF("Invalid length for RLP_V\n");
+        THROW(EXCEPTION);
+    }
+
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
             MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);

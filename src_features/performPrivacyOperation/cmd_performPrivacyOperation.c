@@ -50,26 +50,8 @@ void handlePerformPrivacyOperation(uint8_t p1,
         THROW(0x6700);
     }
 
-    // if (p2 == P2_PUBLIC_ENCRYPTION_KEY) {
-    //     if (dataLength < 1 + 4 * bip32PathLength) {
-    //         THROW(0x6700);
-    //     }
-    // } else if (p2 == P2_SHARED_SECRET) {
-    //     if (dataLength < 1 + 4 * bip32PathLength + 32) {
-    //         THROW(0x6700);
-    //     }
-    // } else {
-    //     THROW(0x6B00);
-    // }
     cx_ecfp_private_key_t privateKey;
-    // if ((bip32PathLength < 0x01) || (bip32PathLength > MAX_BIP32_PATH)) {
-    //     PRINTF("Invalid path\n");
-    //     THROW(0x6a80);
-    // }
-    // for (uint8_t i = 0; i < bip32PathLength; i++) {
-    //     bip32Path[i] = U4BE(dataBuffer, 0);
-    //     dataBuffer += 4;
-    // }
+
     os_perso_derive_node_bip32(
         CX_CURVE_256K1,
         bip32Path,

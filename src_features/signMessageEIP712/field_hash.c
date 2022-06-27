@@ -11,6 +11,7 @@
 #include "ui_logic.h"
 #include "ethUtils.h" // KECCAK256_HASH_BYTESIZE
 #include "context.h" // contract_addr
+#include "utils.h" // u64_from_BE
 
 static s_field_hashing *fh = NULL;
 
@@ -160,16 +161,32 @@ bool    field_hash(const uint8_t *data,
         // deallocate it
         mem_dealloc(len);
 
-        // copy contract address into context
-        if ((path_get_root_type() == ROOT_DOMAIN)
-            && (strncmp(key, "verifyingContract", keylen) == 0))
+        if (path_get_root_type() == ROOT_DOMAIN)
         {
-            if (data_length != sizeof(eip712_context->contract_addr))
+            // copy contract address into context
+            if (strncmp(key, "verifyingContract", keylen) == 0)
             {
-                PRINTF("Unexpected verifyingContract length!\n");
-                return false;
+                if (data_length != sizeof(eip712_context->contract_addr))
+                {
+                    PRINTF("Unexpected verifyingContract length!\n");
+                    return false;
+                }
+                memcpy(eip712_context->contract_addr, data, data_length);
             }
-            memcpy(eip712_context->contract_addr, data, data_length);
+            else if (strncmp(key, "chainId", keylen) == 0)
+            {
+                uint64_t chainId = u64_from_BE(data, data_length);
+
+                if (chainId != chainConfig->chainId)
+                {
+                    PRINTF("EIP712Domain chain ID mismatch, expected 0x%.*h, got 0x%.*h !\n",
+                           sizeof(chainConfig->chainId),
+                           &chainConfig->chainId,
+                           sizeof(chainId),
+                           &chainId);
+                    return false;
+                }
+            }
         }
         path_advance();
         fh->state = FHS_IDLE;

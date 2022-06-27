@@ -27,7 +27,7 @@ void handleGetPublicKey(uint8_t p1,
         THROW(0x6B00);
     }
 
-    dataBuffer = parseBip32(dataBuffer, &dataLength, &bip32PathLength, bip32Path);
+    parseBip32(dataBuffer, &dataLength, &bip32PathLength, bip32Path);
 
     tmpCtx.publicKeyContext.getChaincode = (p2 == P2_CHAINCODE);
     io_seproxyhal_io_heartbeat();

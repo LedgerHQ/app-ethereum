@@ -59,7 +59,7 @@ void handleGetEth2PublicKey(uint8_t p1,
         THROW(0x6B00);
     }
 
-    dataBuffer = parseBip32(dataBuffer, &dataLength, &bip32PathLength, bip32Path);
+    parseBip32(dataBuffer, &dataLength, &bip32PathLength, bip32Path);
 
     getEth2PublicKey(bip32Path, bip32PathLength, tmpCtx.publicKeyContext.publicKey.W);
 

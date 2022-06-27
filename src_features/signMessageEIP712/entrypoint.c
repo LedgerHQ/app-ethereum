@@ -488,8 +488,19 @@ static bool verify_contract_name_signature(uint8_t dname_length,
     uint8_t hash[INT256_LENGTH];
     cx_ecfp_public_key_t verifying_key;
     cx_sha256_t hash_ctx;
+    uint64_t chain_id;
 
     cx_sha256_init(&hash_ctx);
+
+    // Chain ID
+    chain_id = __builtin_bswap64(chainConfig->chainId);
+    cx_hash((cx_hash_t*)&hash_ctx,
+            0,
+            (uint8_t*)&chain_id,
+            sizeof(chain_id),
+            NULL,
+            0);
+
     // Contract address
     cx_hash((cx_hash_t*)&hash_ctx,
             0,
@@ -558,8 +569,19 @@ static bool verify_field_name_signature(uint8_t dname_length,
     uint8_t hash[INT256_LENGTH];
     cx_ecfp_public_key_t verifying_key;
     cx_sha256_t hash_ctx;
+    uint64_t chain_id;
 
     cx_sha256_init(&hash_ctx);
+
+    // Chain ID
+    chain_id = __builtin_bswap64(chainConfig->chainId);
+    cx_hash((cx_hash_t*)&hash_ctx,
+            0,
+            (uint8_t*)&chain_id,
+            sizeof(chain_id),
+            NULL,
+            0);
+
     // Contract address
     cx_hash((cx_hash_t*)&hash_ctx,
             0,

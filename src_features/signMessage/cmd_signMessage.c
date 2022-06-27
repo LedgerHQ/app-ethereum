@@ -127,10 +127,10 @@ void handleSignPersonalMessage(uint8_t p1,
         }
         appState = APP_STATE_SIGNING_MESSAGE;
 
-        workBuffer = parseBip32(
-            workBuffer, &dataLength,
-            &tmpCtx.messageSigningContext.pathLength,
-            tmpCtx.messageSigningContext.bip32Path);
+        workBuffer = parseBip32(workBuffer,
+                                &dataLength,
+                                &tmpCtx.messageSigningContext.pathLength,
+                                tmpCtx.messageSigningContext.bip32Path);
 
         if (dataLength < sizeof(uint32_t)) {
             PRINTF("Invalid data\n");

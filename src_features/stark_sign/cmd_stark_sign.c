@@ -83,7 +83,7 @@ void handleStarkwareSignMessage(uint8_t p1,
     tmpCtx.transactionContext.bip32.length = bip32PathLength;
     for (i = 0; i < bip32PathLength; i++) {
         tmpCtx.transactionContext.bip32.path[i] = U4BE(dataBuffer, offset);
-        PRINTF("Storing path %d %d\n", i, tmpCtx.transactionContext.bip32Path[i]);
+        PRINTF("Storing path %d %d\n", i, tmpCtx.transactionContext.bip32.path[i]);
         offset += 4;
     }
     // Discard the path to use part of dataBuffer as a temporary buffer

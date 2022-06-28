@@ -284,6 +284,18 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
         case CHAIN_KIND_WETHIO:
             numTokens = NUM_TOKENS_WETHIO;
             break;
+        case CHAIN_KIND_OKC:
+            numTokens = NUM_TOKENS_OKC;
+            break;
+        case CHAIN_KIND_CUBE:
+            numTokens = NUM_TOKENS_CUBE;
+            break;
+        case CHAIN_KIND_SHIDEN:
+            numTokens = NUM_TOKENS_SHIDEN;
+            break;
+        case CHAIN_KIND_ASTAR:
+            numTokens = NUM_TOKENS_ASTAR;
+            break;
     }
     for (i = 0; i < numTokens; i++) {
         switch (chainConfig->kind) {
@@ -409,6 +421,18 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
                 break;
             case CHAIN_KIND_WETHIO:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_WETHIO[i]);
+                break;
+            case CHAIN_KIND_OKC:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_OKC[i]);
+                break;
+            case CHAIN_KIND_CUBE:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_CUBE[i]);
+                break;
+            case CHAIN_KIND_SHIDEN:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_SHIDEN[i]);
+                break;
+            case CHAIN_KIND_ASTAR:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_ASTAR[i]);
                 break;
         }
         if (memcmp(currentToken->address, tmpContent.txContent.destination, ADDRESS_LENGTH) == 0) {

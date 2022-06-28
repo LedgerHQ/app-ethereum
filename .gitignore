@@ -18,3 +18,4 @@ tests/elfs/*
 tests/snapshots-tmp
 
 .vscode
+.idea

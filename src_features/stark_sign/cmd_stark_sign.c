@@ -80,9 +80,9 @@ void handleStarkwareSignMessage(uint8_t p1,
     if (p2 != 0) {
         THROW(0x6B00);
     }
-    tmpCtx.transactionContext.pathLength = bip32PathLength;
+    tmpCtx.transactionContext.bip32.length = bip32PathLength;
     for (i = 0; i < bip32PathLength; i++) {
-        tmpCtx.transactionContext.bip32Path[i] = U4BE(dataBuffer, offset);
+        tmpCtx.transactionContext.bip32.path[i] = U4BE(dataBuffer, offset);
         PRINTF("Storing path %d %d\n", i, tmpCtx.transactionContext.bip32Path[i]);
         offset += 4;
     }
@@ -215,7 +215,9 @@ void handleStarkwareSignMessage(uint8_t p1,
         cx_ecfp_public_key_t publicKey;
         // Check if the transfer is a self transfer
         io_seproxyhal_io_heartbeat();
-        starkDerivePrivateKey(tmpCtx.transactionContext.bip32Path, bip32PathLength, privateKeyData);
+        starkDerivePrivateKey(tmpCtx.transactionContext.bip32.path,
+                              bip32PathLength,
+                              privateKeyData);
         cx_ecfp_init_private_key(CX_CURVE_Stark256, privateKeyData, 32, &privateKey);
         io_seproxyhal_io_heartbeat();
         cx_ecfp_generate_pair(CX_CURVE_Stark256, &publicKey, &privateKey, 1);

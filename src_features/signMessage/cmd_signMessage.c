@@ -119,7 +119,6 @@ void handleSignPersonalMessage(uint8_t p1,
                                unsigned int *tx) {
     UNUSED(tx);
     uint8_t hashMessage[INT256_LENGTH];
-    bip32_path_t bip32;
 
     if (p1 == P1_FIRST) {
         char tmp[11] = {0};
@@ -129,14 +128,11 @@ void handleSignPersonalMessage(uint8_t p1,
         }
         appState = APP_STATE_SIGNING_MESSAGE;
 
-        workBuffer = parseBip32(workBuffer, &dataLength, &bip32);
+        workBuffer = parseBip32(workBuffer, &dataLength, &tmpCtx.messageSigningContext.bip32);
 
         if (workBuffer == NULL) {
             THROW(0x6a80);
         }
-
-        tmpCtx.messageSigningContext.pathLength = bip32.length;
-        memcpy(tmpCtx.messageSigningContext.bip32Path, bip32.path, bip32.length * sizeof(uint32_t));
 
         if (dataLength < sizeof(uint32_t)) {
             PRINTF("Invalid data\n");

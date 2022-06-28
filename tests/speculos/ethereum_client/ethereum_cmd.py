@@ -101,18 +101,21 @@ class EthereumCommand:
 
     def send_apdu(self, apdu: bytes) -> bytes:
         try:
-            response = self.client._apdu_exchange(
-                apdu
-            )
+            self.client.apdu_exchange(cla=apdu[0], ins=apdu[1],
+                                        p1=apdu[2], p2=apdu[3],
+                                        data=apdu[5:])
         except ApduException as error:
             raise DeviceException(error_code=error.sw, ins=InsType.INS_SIGN_TX)
 
     @contextmanager
-    def send_apdu_context(self, apdu: bytes) -> bytes:
+    def send_apdu_context(self, apdu: bytes, result: List = list()) -> bytes:
         try:
 
-            with self.client._apdu_exchange(apdu) as exchange:
-               yield exchange
+            with self.client.apdu_exchange_nowait(cla=apdu[0], ins=apdu[1],
+                                                    p1=apdu[2], p2=apdu[3],
+                                                    data=apdu[5:]) as exchange:
+                yield exchange
+                result.append(exchange.receive())
             
             #response: bytes = exchange.receive()
 

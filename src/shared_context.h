@@ -18,6 +18,11 @@
 
 #define N_storage (*(volatile internalStorage_t *) PIC(&N_storage_real))
 
+typedef struct bip32_path_t {
+    uint8_t length;
+    uint32_t path[MAX_BIP32_PATH];
+} bip32_path_t;
+
 typedef struct internalStorage_t {
     unsigned char dataAllowed;
     unsigned char contractDetails;
@@ -217,6 +222,6 @@ extern uint32_t eth2WithdrawalIndex;
 #endif
 
 void reset_app_context(void);
-uint8_t *parseBip32(uint8_t *, uint16_t *, uint8_t *, uint32_t *);
+uint8_t *parseBip32(uint8_t *, uint16_t *, bip32_path_t *);
 
 #endif  // _SHARED_CONTEXT_H_

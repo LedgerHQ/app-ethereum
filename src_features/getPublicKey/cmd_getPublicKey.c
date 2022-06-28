@@ -12,8 +12,7 @@ void handleGetPublicKey(uint8_t p1,
                         unsigned int *flags,
                         unsigned int *tx) {
     uint8_t privateKeyData[INT256_LENGTH];
-    uint32_t bip32Path[MAX_BIP32_PATH];
-    uint8_t bip32PathLength;
+    bip32_path_t bip32;
     cx_ecfp_private_key_t privateKey;
 
     if (!called_from_swap) {
@@ -27,14 +26,18 @@ void handleGetPublicKey(uint8_t p1,
         THROW(0x6B00);
     }
 
-    parseBip32(dataBuffer, &dataLength, &bip32PathLength, bip32Path);
+    dataBuffer = parseBip32(dataBuffer, &dataLength, &bip32);
+
+    if (dataBuffer == NULL) {
+        THROW(0x6a80);
+    }
 
     tmpCtx.publicKeyContext.getChaincode = (p2 == P2_CHAINCODE);
     io_seproxyhal_io_heartbeat();
     os_perso_derive_node_bip32(
         CX_CURVE_256K1,
-        bip32Path,
-        bip32PathLength,
+        bip32.path,
+        bip32.length,
         privateKeyData,
         (tmpCtx.publicKeyContext.getChaincode ? tmpCtx.publicKeyContext.chainCode : NULL));
     cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);

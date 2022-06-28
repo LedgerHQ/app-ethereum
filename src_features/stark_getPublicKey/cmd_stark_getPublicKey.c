@@ -12,8 +12,7 @@ void handleStarkwareGetPublicKey(uint8_t p1,
                                  uint16_t dataLength,
                                  unsigned int *flags,
                                  unsigned int *tx) {
-    uint8_t bip32PathLength;
-    uint32_t bip32Path[MAX_BIP32_PATH];
+    bip32_path_t bip32;
     cx_ecfp_private_key_t privateKey;
     uint8_t privateKeyData[32];
 
@@ -26,10 +25,14 @@ void handleStarkwareGetPublicKey(uint8_t p1,
         THROW(0x6B00);
     }
 
-    parseBip32(dataBuffer, &dataLength, &bip32PathLength, bip32Path);
+    dataBuffer = parseBip32(dataBuffer, &dataLength, &bip32);
+
+    if (dataBuffer == NULL) {
+        THROW(0x6a80);
+    }
 
     io_seproxyhal_io_heartbeat();
-    starkDerivePrivateKey(bip32Path, bip32PathLength, privateKeyData);
+    starkDerivePrivateKey(bip32.path, bip32.length, privateKeyData);
     cx_ecfp_init_private_key(CX_CURVE_Stark256, privateKeyData, 32, &privateKey);
     io_seproxyhal_io_heartbeat();
     cx_ecfp_generate_pair(CX_CURVE_Stark256, &tmpCtx.publicKeyContext.publicKey, &privateKey, 1);

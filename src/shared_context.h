@@ -87,8 +87,7 @@ typedef union extraInfo_t {
 } extraInfo_t;
 
 typedef struct transactionContext_t {
-    uint8_t pathLength;
-    uint32_t bip32Path[MAX_BIP32_PATH];
+    bip32_path_t bip32;
     uint8_t hash[INT256_LENGTH];
     union extraInfo_t extraInfo[MAX_ITEMS];
     uint8_t tokenSet[MAX_ITEMS];
@@ -96,15 +95,13 @@ typedef struct transactionContext_t {
 } transactionContext_t;
 
 typedef struct messageSigningContext_t {
-    uint8_t pathLength;
-    uint32_t bip32Path[MAX_BIP32_PATH];
+    bip32_path_t bip32;
     uint8_t hash[INT256_LENGTH];
     uint32_t remainingLength;
 } messageSigningContext_t;
 
 typedef struct messageSigningContext712_t {
-    uint8_t pathLength;
-    uint32_t bip32Path[MAX_BIP32_PATH];
+    bip32_path_t bip32;
     uint8_t domainHash[32];
     uint8_t messageHash[32];
 } messageSigningContext712_t;

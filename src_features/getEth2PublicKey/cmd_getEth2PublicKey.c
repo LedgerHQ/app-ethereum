@@ -46,8 +46,7 @@ void handleGetEth2PublicKey(uint8_t p1,
                             uint16_t dataLength,
                             unsigned int *flags,
                             unsigned int *tx) {
-    uint8_t bip32PathLength;
-    uint32_t bip32Path[MAX_BIP32_PATH];
+    bip32_path_t bip32;
 
     if (!called_from_swap) {
         reset_app_context();
@@ -59,9 +58,13 @@ void handleGetEth2PublicKey(uint8_t p1,
         THROW(0x6B00);
     }
 
-    parseBip32(dataBuffer, &dataLength, &bip32PathLength, bip32Path);
+    dataBuffer = parseBip32(dataBuffer, &dataLength, &bip32);
 
-    getEth2PublicKey(bip32Path, bip32PathLength, tmpCtx.publicKeyContext.publicKey.W);
+    if (dataBuffer == NULL) {
+        THROW(0x6a80);
+    }
+
+    getEth2PublicKey(bip32.path, bip32.length, tmpCtx.publicKeyContext.publicKey.W);
 
 #ifndef NO_CONSENT
     if (p1 == P1_NON_CONFIRM)

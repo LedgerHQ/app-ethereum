@@ -1,5 +1,5 @@
 from io import BytesIO
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Tuple
 
 import speculos.client
 
@@ -23,6 +23,7 @@ def apdu_as_string(apdu: str) -> bytes:
     return bytes(buffer)
 
 
+
 def save_screenshot(cmd, path: str):
     screenshot = cmd.client.get_screenshot()
     img = Image.open(io.BytesIO(screenshot))
@@ -32,6 +33,23 @@ def save_screenshot(cmd, path: str):
 def compare_screenshot(cmd, path: str):
     screenshot = cmd.client.get_screenshot()
     assert speculos.client.screenshot_equal(path, io.BytesIO(screenshot))
+
+
+def parse_sign_response(response : bytes) -> Tuple[bytes, bytes, bytes]:
+    assert len(response) == 65
+
+    offset: int = 0
+
+    v: bytes = response[offset]
+    offset += 1
+
+    r: bytes = response[offset:offset + 32]
+    offset += 32
+
+    s: bytes = response[offset:]
+
+    return (v, r, s)
+
 
 def bip32_path_from_string(path: str) -> List[bytes]:
     splitted_path: List[str] = path.split("/")

@@ -1,6 +1,5 @@
 from time import sleep
-from typing import Tuple
-from ethereum_client.utils import UINT64_MAX, apdu_as_string, compare_screenshot, save_screenshot, PATH_IMG
+from ethereum_client.utils import UINT64_MAX, apdu_as_string, compare_screenshot, save_screenshot, PATH_IMG, parse_sign_response
 from ethereum_client.plugin import Plugin
 import ethereum_client
 
@@ -30,132 +29,107 @@ PROVIDE_NFT_INFORMATION = Plugin(
     sign=b"\x30\x45\x02\x20\x25\x69\x69\x86\xef\x5f\x0e\xe2\xf7\x2d\x9c\x6e\x41\xd7\xe2\xbf\x2e\x4f\x06\x37\x3a\xb2\x6d\x73\xeb\xe3\x26\xc7\xfd\x4c\x7a\x66\x02\x21\x00\x84\xf6\xb0\x64\xd8\x75\x0a\xe6\x8e\xd5\xdd\x01\x22\x96\xf3\x70\x30\x39\x0e\xc0\x6f\xf5\x34\xc5\xda\x6f\x0f\x4a\x44\x60\xaf\x33",
     )
 
-def parse_sign_response(response : bytes) -> Tuple[bytes, bytes, bytes]:
-    assert len(response) == 65
-
-    offset: int = 0
-
-    v: bytes = response[offset]
-    offset += 1
-
-    r: bytes = response[offset:offset + 32]
-    offset += 32
-
-    s: bytes = response[offset:]
-
-    return (v, r, s)
-
-
 def test_transfer_erc721(cmd):
     result: list = []
 
     if cmd.model == "nanox" or cmd.model == "nanosp":
-        try:
-            cmd.set_plugin(plugin=PLUGIN)
-            cmd.provide_nft_information(plugin=PROVIDE_NFT_INFORMATION)
+        cmd.set_plugin(plugin=PLUGIN)
+        cmd.provide_nft_information(plugin=PROVIDE_NFT_INFORMATION)
             
-            cmd.send_apdu(SIGN_FIRST)
+        cmd.send_apdu(SIGN_FIRST)
 
-            with cmd.send_apdu_context(SIGN_MORE, result) as ex:
-                sleep(0.5)
-                # Review transaction
-                compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721/00000.png")
-                cmd.client.press_and_release('right')
+        with cmd.send_apdu_context(SIGN_MORE, result) as ex:
+            sleep(0.5)
+            # Review transaction
+            compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721/00000.png")
+            cmd.client.press_and_release('right')
                 
-                # NFT Transfer
-                compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721/00001.png")
-                cmd.client.press_and_release('right')
+            # NFT Transfer
+            compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721/00001.png")
+            cmd.client.press_and_release('right')
 
-                # To
-                compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721/00002.png")
-                cmd.client.press_and_release('right')
+            # To
+            compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721/00002.png")
+            cmd.client.press_and_release('right')
 
-                # Collection Name
-                compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721/00003.png")
-                cmd.client.press_and_release('right')
+            # Collection Name
+            compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721/00003.png")
+            cmd.client.press_and_release('right')
 
-                # NFT Address
-                compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721/00004.png")
-                cmd.client.press_and_release('right')
+            # NFT Address
+            compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721/00004.png")
+            cmd.client.press_and_release('right')
 
-                # NFT ID
-                compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721/00005.png")
-                cmd.client.press_and_release('right')
+            # NFT ID
+            compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721/00005.png")
+            cmd.client.press_and_release('right')
 
-                # Max Fees
-                compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721/00006.png")
-                cmd.client.press_and_release('right')
+            # Max Fees
+            compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721/00006.png")
+            cmd.client.press_and_release('right')
 
-                # Accept and send
-                compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721/00007.png")
-                cmd.client.press_and_release('both')
-                pass
+            # Accept and send
+            compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721/00007.png")
+            cmd.client.press_and_release('both')
 
-            response: bytes = result[0]
-            v, r, s = parse_sign_response(response)
+        response: bytes = result[0]
+        v, r, s = parse_sign_response(response)
 
-            assert v == 0x25 # 37
-            assert r.hex() == "68ba082523584adbfc31d36d68b51d6f209ce0838215026bf1802a8f17dcdff4"
-            assert s.hex() == "7c92908fa05c8bc86507a3d6a1c8b3c2722ee01c836d89a61df60c1ab0b43fff"
-    
-        except ethereum_client.exception.errors.DenyError as error:
-            assert error.args[0] == '0x6a80'
+        assert v == 0x25 # 37
+        assert r.hex() == "68ba082523584adbfc31d36d68b51d6f209ce0838215026bf1802a8f17dcdff4"
+        assert s.hex() == "7c92908fa05c8bc86507a3d6a1c8b3c2722ee01c836d89a61df60c1ab0b43fff"
 
 
 def test_transfer_erc721_without_nft_provide_info(cmd):
     result: list = []
 
     if cmd.model == "nanox" or cmd.model == "nanosp":
-        try:
-            cmd.set_plugin(plugin=PLUGIN)
+        cmd.set_plugin(plugin=PLUGIN)
             
-            cmd.send_apdu(SIGN_FIRST)
+        cmd.send_apdu(SIGN_FIRST)
 
-            with cmd.send_apdu_context(SIGN_MORE, result) as ex:
-                sleep(0.5)
+        with cmd.send_apdu_context(SIGN_MORE, result) as ex:
+            sleep(0.5)
                 
-                # Review transaction
-                compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721_without_nft_provide_info/00000.png")
-                cmd.client.press_and_release('right')
+            # Review transaction
+            compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721_without_nft_provide_info/00000.png")
+            cmd.client.press_and_release('right')
                 
-                # NFT Transfer
-                compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721_without_nft_provide_info/00001.png")
-                cmd.client.press_and_release('right')
+            # NFT Transfer
+            compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721_without_nft_provide_info/00001.png")
+            cmd.client.press_and_release('right')
 
-                # To
-                compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721_without_nft_provide_info/00002.png")
-                cmd.client.press_and_release('right')
+            # To
+            compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721_without_nft_provide_info/00002.png")
+            cmd.client.press_and_release('right')
 
-                # Collection Name
-                compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721_without_nft_provide_info/00003.png")
-                cmd.client.press_and_release('right')
+            # Collection Name
+            compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721_without_nft_provide_info/00003.png")
+            cmd.client.press_and_release('right')
 
-                # NFT Address
-                compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721_without_nft_provide_info/00004.png")
-                cmd.client.press_and_release('right')
+            # NFT Address
+            compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721_without_nft_provide_info/00004.png")
+            cmd.client.press_and_release('right')
 
-                # NFT ID
-                compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721_without_nft_provide_info/00005.png")
-                cmd.client.press_and_release('right')
+            # NFT ID
+            compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721_without_nft_provide_info/00005.png")
+            cmd.client.press_and_release('right')
 
-                # Max Fees
-                compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721_without_nft_provide_info/00006.png")
-                cmd.client.press_and_release('right')
+            # Max Fees
+            compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721_without_nft_provide_info/00006.png")
+            cmd.client.press_and_release('right')
 
-                # Accept and send
-                compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721_without_nft_provide_info/00007.png")
-                cmd.client.press_and_release('both')
-                pass
+            # Accept and send
+            compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721_without_nft_provide_info/00007.png")
+            cmd.client.press_and_release('both')
 
-            response: bytes = result[0]
-            v, r, s = parse_sign_response(response)
+        response: bytes = result[0]
+        v, r, s = parse_sign_response(response)
 
-            assert v == 0x25 # 37
-            assert r.hex() == "68ba082523584adbfc31d36d68b51d6f209ce0838215026bf1802a8f17dcdff4"
-            assert s.hex() == "7c92908fa05c8bc86507a3d6a1c8b3c2722ee01c836d89a61df60c1ab0b43fff"
-        
-        except ethereum_client.exception.errors.DenyError as error:
-            assert error.args[0] == '0x6a80'
+        assert v == 0x25 # 37
+        assert r.hex() == "68ba082523584adbfc31d36d68b51d6f209ce0838215026bf1802a8f17dcdff4"
+        assert s.hex() == "7c92908fa05c8bc86507a3d6a1c8b3c2722ee01c836d89a61df60c1ab0b43fff"
+
 
 
 def test_transfer_erc721_without_set_plugin(cmd):

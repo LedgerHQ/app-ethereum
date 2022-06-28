@@ -4,6 +4,14 @@ from ethereum_client.utils import (read, read_uint, read_varint,
                                       write_varint, UINT64_MAX)
 
 class Plugin:
+    """Plugin class
+    Allows to generate an apdu of the SET_PLUGIN command or PROVIDE_NFT_INFORMATION
+
+    PROVIDE_NFT_INFORMATION
+    ----
+     do not define a selector
+
+    """
     def __init__(self, type: int, version: int, name: str, addr: Union[str, bytes], selector: int = -1, chainID: int = 1, keyID: int = 0, algorithm: int = 1, sign: bytes = b'') -> None:
         self.type: int = type
         self.version: int = version

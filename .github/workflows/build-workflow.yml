@@ -1,0 +1,125 @@
+name: Compilation
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+      - develop
+
+jobs:
+  job_build_debug_nano_s:
+    name: Build debug Nano S
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Build an altcoin
+        run: |
+          make DEBUG=1 ALLOW_DATA=1 CHAIN=ethereum_classic
+          mv bin/app.elf ethereum_classic_nanos.elf
+
+      - name: Upload altcoin binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: ethereum_classic_nanos
+          path: ./ethereum_classic_nanos.elf
+
+      - name: Build Ethereum
+        run: |
+          make clean
+          make DEBUG=1 ALLOW_DATA=1
+          mv bin/app.elf ethereum_nanos.elf
+
+      - name: Upload app binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: ethereum_nanos
+          path: ./ethereum_nanos.elf
+
+
+
+  job_build_debug_nano_x:
+    name: Build debug Nano X
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Build an altcoin Nano X
+        run: |
+          make clean
+          make BOLOS_SDK=$NANOX_SDK DEBUG=1 ALLOW_DATA=1 CHAIN=ethereum_classic
+          mv bin/app.elf ethereum_classic_nanox.elf
+
+      - name: Upload altcoin binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: ethereum_classic_nanox
+          path: ./ethereum_classic_nanox.elf
+
+      - name: Build Ethereum Nano X
+        run: |
+          make clean
+          make BOLOS_SDK=$NANOX_SDK DEBUG=1 ALLOW_DATA=1
+          mv bin/app.elf ethereum_nanox.elf
+
+      - name: Upload app binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: ethereum_nanox
+          path: ./ethereum_nanox.elf
+
+
+  job_build_debug_nano_sp:
+    name: Build debug Nano SP
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Build an altcoin Nano SP
+        run: |
+          make clean
+          make BOLOS_SDK=$NANOSP_SDK DEBUG=1 ALLOW_DATA=1 CHAIN=ethereum_classic
+          mv bin/app.elf ethereum_classic_nanosp.elf
+
+      - name: Upload altcoin binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: ethereum_classic_nanosp
+          path: ./ethereum_classic_nanosp.elf
+
+      - name: Build Ethereum Nano SP
+        run: |
+          make clean
+          make BOLOS_SDK=$NANOSP_SDK DEBUG=1 ALLOW_DATA=1
+          mv bin/app.elf ethereum_nanosp.elf
+
+      - name: Upload app binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: ethereum_nanosp
+          path: ./ethereum_nanosp.elf

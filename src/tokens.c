@@ -19,7 +19,7 @@
 
 #include "tokens.h"
 
-const tokenDefinition_t const TOKENS_EXTRA[NUM_TOKENS_EXTRA] = {
+const tokenDefinition_t TOKENS_EXTRA[NUM_TOKENS_EXTRA] = {
 
     // Ropsten DeversiFi tokens
     {{0x4c, 0x5f, 0x66, 0x59, 0x61, 0x97, 0xa8, 0x6f, 0xb3, 0x0a,

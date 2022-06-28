@@ -15,7 +15,7 @@ void handleStarkwareUnsafeSign(uint8_t p1,
     uint8_t privateKeyData[INT256_LENGTH];
     cx_ecfp_public_key_t publicKey;
     cx_ecfp_private_key_t privateKey;
-    uint8_t bip32PathLength;
+    bip32_path_t bip32;
 
     // Initial checks
     if (appState != APP_STATE_IDLE) {
@@ -26,17 +26,22 @@ void handleStarkwareUnsafeSign(uint8_t p1,
         THROW(0x6B00);
     }
 
-    dataBuffer =
-        parseBip32(dataBuffer, &dataLength, &bip32PathLength, tmpCtx.transactionContext.bip32Path);
+    dataBuffer = parseBip32(dataBuffer, &dataLength, &bip32);
+
+    if (dataBuffer == NULL) {
+        THROW(0x6a80);
+    }
 
     if (dataLength != 32) {
         THROW(0x6700);
     }
 
-    tmpCtx.transactionContext.pathLength = bip32PathLength;
+    tmpCtx.transactionContext.pathLength = bip32.length;
+    memcpy(tmpCtx.transactionContext.bip32Path, bip32.path, bip32.length * sizeof(uint32_t));
+
     memmove(dataContext.starkContext.w2, dataBuffer, 32);
     io_seproxyhal_io_heartbeat();
-    starkDerivePrivateKey(tmpCtx.transactionContext.bip32Path, bip32PathLength, privateKeyData);
+    starkDerivePrivateKey(tmpCtx.transactionContext.bip32Path, bip32.length, privateKeyData);
     cx_ecfp_init_private_key(CX_CURVE_Stark256, privateKeyData, 32, &privateKey);
     io_seproxyhal_io_heartbeat();
     cx_ecfp_generate_pair(CX_CURVE_Stark256, &publicKey, &privateKey, 1);

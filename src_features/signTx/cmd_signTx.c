@@ -12,6 +12,7 @@ void handleSign(uint8_t p1,
                 unsigned int *tx) {
     UNUSED(tx);
     parserStatus_e txResult;
+    bip32_path_t bip32;
 
     if (os_global_pin_is_validated() != BOLOS_UX_OK) {
         PRINTF("Device is PIN-locked");
@@ -23,10 +24,14 @@ void handleSign(uint8_t p1,
         }
         appState = APP_STATE_SIGNING_TX;
 
-        workBuffer = parseBip32(workBuffer,
-                                &dataLength,
-                                &tmpCtx.transactionContext.pathLength,
-                                tmpCtx.transactionContext.bip32Path);
+        workBuffer = parseBip32(workBuffer, &dataLength, &bip32);
+
+        if (workBuffer == NULL) {
+            THROW(0x6a80);
+        }
+
+        tmpCtx.transactionContext.pathLength = bip32.length;
+        memcpy(tmpCtx.transactionContext.bip32Path, bip32.path, bip32.length * sizeof(uint32_t));
 
         tmpContent.txContent.dataPresent = false;
         dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_UNAVAILABLE;

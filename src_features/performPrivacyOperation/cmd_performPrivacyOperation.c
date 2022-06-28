@@ -31,8 +31,7 @@ void handlePerformPrivacyOperation(uint8_t p1,
                                    unsigned int *tx) {
     uint8_t privateKeyData[INT256_LENGTH];
     uint8_t privateKeyDataSwapped[INT256_LENGTH];
-    uint32_t bip32Path[MAX_BIP32_PATH];
-    uint8_t bip32PathLength;
+    bip32_path_t bip32;
     cx_err_t status = CX_OK;
 
     if ((p1 != P1_CONFIRM) && (p1 != P1_NON_CONFIRM)) {
@@ -43,7 +42,11 @@ void handlePerformPrivacyOperation(uint8_t p1,
         THROW(0x6700);
     }
 
-    dataBuffer = parseBip32(dataBuffer, &dataLength, &bip32PathLength, bip32Path);
+    dataBuffer = parseBip32(dataBuffer, &dataLength, &bip32);
+
+    if (dataBuffer == NULL) {
+        THROW(0x6a80);
+    }
 
     if ((p2 == P2_SHARED_SECRET) && (dataLength < 32)) {
         THROW(0x6700);
@@ -53,8 +56,8 @@ void handlePerformPrivacyOperation(uint8_t p1,
 
     os_perso_derive_node_bip32(
         CX_CURVE_256K1,
-        bip32Path,
-        bip32PathLength,
+        bip32.path,
+        bip32.length,
         privateKeyData,
         (tmpCtx.publicKeyContext.getChaincode ? tmpCtx.publicKeyContext.chainCode : NULL));
     cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);

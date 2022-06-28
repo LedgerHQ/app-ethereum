@@ -480,32 +480,29 @@ void handleGetWalletId(volatile unsigned int *tx) {
 
 #endif  // HAVE_WALLET_ID_SDK
 
-uint8_t *parseBip32(uint8_t *dataBuffer,
-                    uint16_t *dataLength,
-                    uint8_t *bip32pathLength,
-                    uint32_t *bip32Path) {
+uint8_t *parseBip32(uint8_t *dataBuffer, uint16_t *dataLength, bip32_path_t *bip32) {
     if (*dataLength < 1) {
         PRINTF("Invalid data\n");
-        THROW(0x6a80);
+        return NULL;
     }
 
-    *bip32pathLength = *dataBuffer;
+    bip32->length = *dataBuffer;
 
-    if (*bip32pathLength < 0x1 || *bip32pathLength > MAX_BIP32_PATH) {
-        PRINTF("Invalid path\n");
-        THROW(0x6a80);
+    if (bip32->length < 0x1 || bip32->length > MAX_BIP32_PATH) {
+        PRINTF("Invalid bip32\n");
+        return NULL;
     }
 
     dataBuffer++;
     (*dataLength)--;
 
-    if (*dataLength < sizeof(uint32_t) * (*bip32pathLength)) {
+    if (*dataLength < sizeof(uint32_t) * (bip32->length)) {
         PRINTF("Invalid data\n");
-        THROW(0x6a80);
+        return NULL;
     }
 
-    for (uint8_t i = 0; i < *bip32pathLength; i++) {
-        bip32Path[i] = U4BE(dataBuffer, 0);
+    for (uint8_t i = 0; i < bip32->length; i++) {
+        bip32->path[i] = U4BE(dataBuffer, 0);
         dataBuffer += sizeof(uint32_t);
         *dataLength -= sizeof(uint32_t);
     }

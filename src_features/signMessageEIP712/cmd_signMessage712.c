@@ -10,6 +10,8 @@ void handleSignEIP712Message(uint8_t p1,
                              unsigned int *flags,
                              unsigned int *tx) {
     UNUSED(tx);
+    bip32_path_t bip32;
+
     if ((p1 != 00) || (p2 != 00)) {
         THROW(0x6B00);
     }
@@ -17,15 +19,15 @@ void handleSignEIP712Message(uint8_t p1,
         reset_app_context();
     }
 
-    workBuffer = parseBip32(workBuffer,
-                            &dataLength,
-                            &tmpCtx.messageSigningContext712.pathLength,
-                            tmpCtx.messageSigningContext712.bip32Path);
+    workBuffer = parseBip32(workBuffer, &dataLength, &bip32);
 
-    if (dataLength < 32 + 32) {
-        PRINTF("Invalid data\n");
+    if (workBuffer == NULL || dataLength < 32 + 32) {
         THROW(0x6a80);
     }
+
+    tmpCtx.messageSigningContext712.pathLength = bip32.length;
+    memcpy(tmpCtx.messageSigningContext712.bip32Path, bip32.path, bip32.length * sizeof(uint32_t));
+
     memmove(tmpCtx.messageSigningContext712.domainHash, workBuffer, 32);
     memmove(tmpCtx.messageSigningContext712.messageHash, workBuffer + 32, 32);
 

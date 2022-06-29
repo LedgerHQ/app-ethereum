@@ -36,7 +36,7 @@ jobs:
 # =====================================================
 
   building_for_e2e_zemu_tests:
-    name: Building binaries for E2E tests
+    name: Building binaries for E2E Zemu tests
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
@@ -97,8 +97,9 @@ jobs:
 #            SPECULOS TESTS
 # =====================================================
 
+
   building_for_e2e_speculos_tests:
-    name: Building binaries for E2E tests
+    name: Building binaries for E2E Speculos tests
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
@@ -107,10 +108,11 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Build testing binaries
-        run: mkdir tests/speculos/elfs
-        run: make clean; make DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOS_SDK; mv bin/app.elf .; mv app.elf nanos.elf; mv nanos.elf tests/speculos/elfs
-        run: make clean; make DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOX_SDK; mv bin/app.elf .; mv app.elf nanox.elf; mv nanox.elf tests/speculos/elfs
-        run: make clean; make DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOSP_SDK; mv bin/app.elf .; mv app.elf nanosp.elf; mv nanosp.elf tests/speculos/elfs
+        run: |
+          mkdir tests/speculos/elfs
+          make clean; make DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOS_SDK; mv bin/app.elf .; mv app.elf nanos.elf; mv nanos.elf tests/speculos/elfs
+          make clean; make DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOX_SDK; mv bin/app.elf .; mv app.elf nanox.elf; mv nanox.elf tests/speculos/elfs
+          make clean; make DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOSP_SDK; mv bin/app.elf .; mv app.elf nanosp.elf; mv nanosp.elf tests/speculos/elfs
 
       - name: Upload app binaries
         uses: actions/upload-artifact@v2
@@ -121,27 +123,16 @@ jobs:
 
   jobs-e2e-speculos-tests:
     name: Speculos tests
+    strategy:
+      matrix:
+        model: ["nanos", "nanox", "nanosp"]     
+         
     needs: [building_for_e2e_speculos_tests]
     runs-on: ubuntu-latest
+
     steps:
-      - name: Test
-        run: |
-          id
-          echo $HOME
-          echo $DISPLAY
-      - name: Checkout
+      - name: Clone
         uses: actions/checkout@v2
-
-      - run: sudo apt-get update -y && sudo apt-get install -y libusb-1.0.0 libudev-dev
-
-      - name: Install Python3
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.8.10"
-
-      - name: Install dependencies
-        run: cd tests/speculos
-        run: python3 -m pip install --extra-index-url https://test.pypi.org/simple/ -r requirements.txt
 
       - name: Create tmp folder for artifacts
         run: mkdir tests/speculos/elfs
@@ -154,8 +145,13 @@ jobs:
       - name: Gather elfs
         run: cp `find tmp/e2e_elfs/ -name "*.elf"` tests/speculos/elfs/
 
+      - name: Install dependencies
+        run: |
+          cd tests/speculos
+          sudo apt-get update && sudo apt-get install -y qemu-user-static
+          pip install --extra-index-url https://test.pypi.org/simple/ -r requirements.txt
+
       - name: Run speculos tests
-        run: cd tests/speculos
-        run: pytest --model nanos --path ./elfs/nanos.elf --display headless
-        run: pytest --model nanox --path ./elfs/nanox.elf --display headless
-        run: pytest --model nanosp --path ./elfs/nanosp.elf --display headless
+        run: | 
+          cd tests/speculos
+          pytest --model ${{ matrix.model }} --path ./elfs/${{ matrix.model }}.elf --display headless

@@ -91,57 +91,17 @@ def test_transfer_erc1155_without_nft_provide_info(cmd):
     result: list = []
 
     if cmd.model == "nanox" or cmd.model == "nanosp":
-        cmd.set_plugin(plugin=PLUGIN)
-            
-        cmd.send_apdu(SIGN_FIRST)
+        try:
+            cmd.set_plugin(plugin=PLUGIN)
 
-        with cmd.send_apdu_context(SIGN_MORE, result) as ex:
-            sleep(0.5)
-            # Review transaction
-            compare_screenshot(cmd, f"screenshots/erc1155/{PATH_IMG[cmd.model]}/transfer_erc1155_without_nft_provide_info/00000.png")
-            cmd.client.press_and_release('right')
-            
-            # NFT Transfert
-            compare_screenshot(cmd, f"screenshots/erc1155/{PATH_IMG[cmd.model]}/transfer_erc1155_without_nft_provide_info/00001.png")
-            cmd.client.press_and_release('right')
+        
+            cmd.send_apdu(SIGN_FIRST)
 
-            # To
-            compare_screenshot(cmd, f"screenshots/erc1155/{PATH_IMG[cmd.model]}/transfer_erc1155_without_nft_provide_info/00002.png")
-            cmd.client.press_and_release('right')
-
-            # Collection Name
-            compare_screenshot(cmd, f"screenshots/erc1155/{PATH_IMG[cmd.model]}/transfer_erc1155_without_nft_provide_info/00003.png")
-            cmd.client.press_and_release('right')
-
-            # NFT Address
-            compare_screenshot(cmd, f"screenshots/erc1155/{PATH_IMG[cmd.model]}/transfer_erc1155_without_nft_provide_info/00004.png")
-            cmd.client.press_and_release('right')
-
-            # NFT ID 1/2, 2/2
-            compare_screenshot(cmd, f"screenshots/erc1155/{PATH_IMG[cmd.model]}/transfer_erc1155_without_nft_provide_info/00005.png")
-            cmd.client.press_and_release('right')
-            compare_screenshot(cmd, f"screenshots/erc1155/{PATH_IMG[cmd.model]}/transfer_erc1155_without_nft_provide_info/00006.png")
-            cmd.client.press_and_release('right')
-
-            # Quantity
-            compare_screenshot(cmd, f"screenshots/erc1155/{PATH_IMG[cmd.model]}/transfer_erc1155_without_nft_provide_info/00007.png")
-            cmd.client.press_and_release('right')
-
-            # Max Fees
-            compare_screenshot(cmd, f"screenshots/erc1155/{PATH_IMG[cmd.model]}/transfer_erc1155_without_nft_provide_info/00008.png")
-            cmd.client.press_and_release('right')
-
-            # Accept and send
-            compare_screenshot(cmd, f"screenshots/erc1155/{PATH_IMG[cmd.model]}/transfer_erc1155_without_nft_provide_info/00009.png")
-            cmd.client.press_and_release('both')
-
-
-        response: bytes = result[0]
-        v, r, s = parse_sign_response(response)
-
-        assert v == 0x25 # 37
-        assert r.hex() == "ab3eca1a0b5c66bfe603252037682a024a12f92d799b4d74993a8bf4221bbe7d"
-        assert s.hex() == "24de0c0598d1d8e5ea99b75fa26105478f45f43b510e504fc1b14f07fe7dda2a"
+            with cmd.send_apdu_context(SIGN_MORE, result) as ex:
+                pass
+        
+        except ethereum_client.exception.errors.UnknownDeviceError as error:
+           assert error.args[0] == '0x6a80'
 
 
 def test_transfer_erc1155_without_set_plugin(cmd):
@@ -156,5 +116,5 @@ def test_transfer_erc1155_without_set_plugin(cmd):
             with cmd.send_apdu_context(SIGN_MORE, result) as ex:
                 pass
         
-        except ethereum_client.exception.errors.UnknownDeviceError as error:
-            assert error.args[0] == '0x6a80'
+        except ethereum_client.exception.errors.DenyError as error:
+            assert error.args[0] == '0x6985'

@@ -792,6 +792,11 @@ This command provides a trusted way of deciding what information from the JSON d
 
 This mode can be overriden by the in-app setting to fully clear-sign EIP-712 messages.
 
+For the signatures :
+
+* The chain ID used for the signature must be 8 bytes wide.
+* The schema hash = sha224sum of the value of _types_ at the root of the JSON data (stripped of all spaces and newlines)
+
 ##### Activation
 
 Full filtering is disabled by default and has to be changed with this APDU (default behaviour is basic filtering handled by the app itself).
@@ -804,11 +809,10 @@ If activated, fields will be by default hidden unless they receive a field name 
 
 Name substitution commands should come right after the contract address from the domain has been sent with a *SEND STRUCT IMPLEMENTATION*.
 Perfect moment to do it is when the domain implementation has been sent, just before sending the message implementation.
-The chain ID used for the signature must be 8 bytes wide.
 
 The signature is computed on :
 
-chain ID (BE) || contract address || display name length || display name
+chain ID (BE) || contract address || schema hash || display name length || display name
 
 
 ##### Field name substitution
@@ -817,7 +821,7 @@ Name substitution commands should come before the corresponding *SEND STRUCT IMP
 
 The signature is computed on :
 
-chain ID (BE) || contract address || json key length || json key || display name length || display name
+chain ID (BE) || contract address || schema hash || json key length || json key || display name length || display name
 
 #### Coding
 

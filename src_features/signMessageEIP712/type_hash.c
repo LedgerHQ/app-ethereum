@@ -9,115 +9,29 @@
 #include "type_hash.h"
 #include "shared_context.h"
 #include "ethUtils.h" // KECCAK256_HASH_BYTESIZE
-
-static inline void hash_nbytes(const uint8_t *b, uint8_t n)
-{
-#ifdef DEBUG
-    for (int i = 0; i < n; ++i)
-    {
-        PRINTF("%c", b[i]);
-    }
-#endif
-    cx_hash((cx_hash_t*)&global_sha3,
-            0,
-            b,
-            n,
-            NULL,
-            0);
-}
-
-static inline void hash_byte(uint8_t b)
-{
-    hash_nbytes(&b, 1);
-}
-
-/**
- *
- * @param[in] lvl_ptr pointer to the first array level of a struct field
- * @param[in] lvls_count the number of array levels the struct field contains
- * @return \ref true it finished correctly, \ref false if it didn't (memory allocation)
- */
-static bool format_field_type_array_levels_string(const void *lvl_ptr, uint8_t lvls_count)
-{
-    uint8_t array_size;
-    char *uint_str_ptr;
-    uint8_t uint_str_len;
-
-    while (lvls_count-- > 0)
-    {
-        hash_byte('[');
-
-        switch (struct_field_array_depth(lvl_ptr, &array_size))
-        {
-            case ARRAY_DYNAMIC:
-                break;
-            case ARRAY_FIXED_SIZE:
-                uint_str_ptr = mem_alloc_and_format_uint(array_size, &uint_str_len);
-                hash_nbytes((uint8_t*)uint_str_ptr, uint_str_len);
-                mem_dealloc(uint_str_len);
-                break;
-            default:
-                // should not be in here :^)
-                break;
-        }
-        hash_byte(']');
-        lvl_ptr = get_next_struct_field_array_lvl(lvl_ptr);
-    }
-    return true;
-}
+#include "format_hash_field_type.h"
+#include "hash_bytes.h"
 
 /**
  *
  * @param[in] field_ptr pointer to the struct field
  * @return \ref true it finished correctly, \ref false if it didn't (memory allocation)
  */
-static bool encode_and_hash_field(const void *field_ptr)
+static bool encode_and_hash_field(const void *const field_ptr)
 {
     const char *name;
     uint8_t length;
-    uint16_t field_size;
-    uint8_t lvls_count;
-    const uint8_t *lvl_ptr;
-    char *uint_str_ptr;
-    uint8_t uint_str_len;
 
-    // field type name
-    name = get_struct_field_typename(field_ptr, &length);
-    hash_nbytes((uint8_t*)name, length);
-
-    // field type size
-    if (struct_field_has_typesize(field_ptr))
+    if (!format_hash_field_type(field_ptr, (cx_hash_t*)&global_sha3))
     {
-        field_size = get_struct_field_typesize(field_ptr);
-        switch (struct_field_type(field_ptr))
-        {
-            case TYPE_SOL_INT:
-            case TYPE_SOL_UINT:
-                field_size *= 8; // bytes -> bits
-                break;
-            case TYPE_SOL_BYTES_FIX:
-                break;
-            default:
-                // should not be in here :^)
-                break;
-        }
-        uint_str_ptr = mem_alloc_and_format_uint(field_size, &uint_str_len);
-        hash_nbytes((uint8_t*)uint_str_ptr, uint_str_len);
-        mem_dealloc(uint_str_len);
-    }
-
-    // field type array levels
-    if (struct_field_is_array(field_ptr))
-    {
-        lvl_ptr = get_struct_field_array_lvls_array(field_ptr, &lvls_count);
-        format_field_type_array_levels_string(lvl_ptr, lvls_count);
+        return false;
     }
     // space between field type name and field name
-    hash_byte(' ');
+    hash_byte(' ', (cx_hash_t*)&global_sha3);
 
     // field name
     name = get_struct_field_keyname(field_ptr, &length);
-    hash_nbytes((uint8_t*)name, length);
+    hash_nbytes((uint8_t*)name, length, (cx_hash_t*)&global_sha3);
     return true;
 }
 
@@ -127,7 +41,7 @@ static bool encode_and_hash_field(const void *field_ptr)
  * @param[in] str_length length of the formatted string in memory
  * @return pointer of the string in memory, \ref NULL in case of an error
  */
-static bool encode_and_hash_type(const uint8_t *const struct_ptr)
+static bool encode_and_hash_type(const void *const struct_ptr)
 {
     const char *struct_name;
     uint8_t struct_name_length;
@@ -136,10 +50,10 @@ static bool encode_and_hash_type(const uint8_t *const struct_ptr)
 
     // struct name
     struct_name = get_struct_name(struct_ptr, &struct_name_length);
-    hash_nbytes((uint8_t*)struct_name, struct_name_length);
+    hash_nbytes((uint8_t*)struct_name, struct_name_length, (cx_hash_t*)&global_sha3);
 
     // opening struct parenthese
-    hash_byte('(');
+    hash_byte('(', (cx_hash_t*)&global_sha3);
 
     field_ptr = get_struct_fields_array(struct_ptr, &fields_count);
     for (uint8_t idx = 0; idx < fields_count; ++idx)
@@ -147,7 +61,7 @@ static bool encode_and_hash_type(const uint8_t *const struct_ptr)
         // comma separating struct fields
         if (idx > 0)
         {
-            hash_byte(',');
+            hash_byte(',', (cx_hash_t*)&global_sha3);
         }
 
         if (encode_and_hash_field(field_ptr) == false)
@@ -158,7 +72,7 @@ static bool encode_and_hash_type(const uint8_t *const struct_ptr)
         field_ptr = get_next_struct_field(field_ptr);
     }
     // closing struct parenthese
-    hash_byte(')');
+    hash_byte(')', (cx_hash_t*)&global_sha3);
 
     return true;
 }
@@ -302,9 +216,7 @@ const uint8_t *type_hash(const void *const structs_array,
         deps += 1;
     }
     mem_dealloc(mem_alloc(0) - mem_loc_bak);
-#ifdef DEBUG
-    PRINTF("\n");
-#endif
+
     // End progressive hashing
     if ((hash_ptr = mem_alloc(KECCAK256_HASH_BYTESIZE)) == NULL)
     {

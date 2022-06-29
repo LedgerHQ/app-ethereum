@@ -509,6 +509,14 @@ static bool verify_contract_name_signature(uint8_t dname_length,
             NULL,
             0);
 
+    // Schema hash
+    cx_hash((cx_hash_t*)&hash_ctx,
+            0,
+            eip712_context->schema_hash,
+            sizeof(eip712_context->schema_hash),
+            NULL,
+            0);
+
     // Display name length
     cx_hash((cx_hash_t*)&hash_ctx,
             0,
@@ -587,6 +595,14 @@ static bool verify_field_name_signature(uint8_t dname_length,
             0,
             eip712_context->contract_addr,
             sizeof(eip712_context->contract_addr),
+            NULL,
+            0);
+
+    // Schema hash
+    cx_hash((cx_hash_t*)&hash_ctx,
+            0,
+            eip712_context->schema_hash,
+            sizeof(eip712_context->schema_hash),
             NULL,
             0);
 

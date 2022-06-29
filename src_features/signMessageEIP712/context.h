@@ -12,6 +12,7 @@ typedef struct
     uint8_t *structs_array;
     uint8_t *current_struct_fields_array;
     uint8_t contract_addr[ADDRESS_LENGTH];
+    uint8_t schema_hash[224 / 8];
 }   s_eip712_context;
 
 extern s_eip712_context *eip712_context;

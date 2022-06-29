@@ -1,0 +1,43 @@
+name: "CodeQL"
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+      - develop
+  pull_request:
+    branches:
+      - master
+      - develop
+
+jobs:
+  analyse:
+    name: CodeQL Analyse of application
+    strategy: 
+      matrix:
+        language: [ 'cpp' ]
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+
+      - name: Build
+        run: |
+          make clean
+          make DEBUG=1 ALLOW_DATA=1
+          mv bin/app.elf ethereum_nanos.elf
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2

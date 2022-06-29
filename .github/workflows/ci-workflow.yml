@@ -31,6 +31,10 @@ jobs:
           name: scan-build
           path: scan-build
 
+# =====================================================
+#            ZEMU TESTS
+# =====================================================
+
   building_for_e2e_zemu_tests:
     name: Building binaries for E2E tests
     runs-on: ubuntu-latest
@@ -89,7 +93,9 @@ jobs:
       - name: Run zemu tests
         run: cd tests/zemu/ && yarn test
 
-
+# =====================================================
+#            SPECULOS TESTS
+# =====================================================
 
   building_for_e2e_speculos_tests:
     name: Building binaries for E2E tests

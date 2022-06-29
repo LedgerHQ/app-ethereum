@@ -480,96 +480,11 @@ bool    handle_eip712_struct_impl(const uint8_t *const apdu_buf)
     return ret;
 }
 
-static bool verify_contract_name_signature(uint8_t dname_length,
-                                           const char *const dname,
-                                           uint8_t sig_length,
-                                           const uint8_t *const sig)
-{
-    uint8_t hash[INT256_LENGTH];
-    cx_ecfp_public_key_t verifying_key;
-    cx_sha256_t hash_ctx;
-    uint64_t chain_id;
-
-    cx_sha256_init(&hash_ctx);
-
-    // Chain ID
-    chain_id = __builtin_bswap64(chainConfig->chainId);
-    cx_hash((cx_hash_t*)&hash_ctx,
-            0,
-            (uint8_t*)&chain_id,
-            sizeof(chain_id),
-            NULL,
-            0);
-
-    // Contract address
-    cx_hash((cx_hash_t*)&hash_ctx,
-            0,
-            eip712_context->contract_addr,
-            sizeof(eip712_context->contract_addr),
-            NULL,
-            0);
-
-    // Schema hash
-    cx_hash((cx_hash_t*)&hash_ctx,
-            0,
-            eip712_context->schema_hash,
-            sizeof(eip712_context->schema_hash),
-            NULL,
-            0);
-
-    // Display name length
-    cx_hash((cx_hash_t*)&hash_ctx,
-            0,
-            &dname_length,
-            sizeof(dname_length),
-            NULL,
-            0);
-
-    // Display name
-    cx_hash((cx_hash_t*)&hash_ctx,
-            0,
-            (uint8_t*)dname,
-            sizeof(char) * dname_length,
-            NULL,
-            0);
-
-    // Finalize hash
-    cx_hash((cx_hash_t*)&hash_ctx,
-            CX_LAST,
-            NULL,
-            0,
-            hash,
-            sizeof(hash));
-
-    cx_ecfp_init_public_key(CX_CURVE_256K1,
-#ifdef HAVE_EIP712_TESTING_KEY
-                            EIP712_FEEDER_PUBLIC_KEY,
-                            sizeof(EIP712_FEEDER_PUBLIC_KEY),
-#else
-                            LEDGER_SIGNATURE_PUBLIC_KEY,
-                            sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
-#endif
-                            &verifying_key);
-    if (!cx_ecdsa_verify(&verifying_key,
-                         CX_LAST,
-                         CX_SHA256,
-                         hash,
-                         sizeof(hash),
-                         sig,
-                         sig_length))
-    {
-#ifndef HAVE_BYPASS_SIGNATURES
-        PRINTF("Invalid EIP-712 contract filtering signature\n");
-        return false;
-#endif
-    }
-    return true;
-}
-
-static bool verify_field_name_signature(uint8_t dname_length,
-                                        const char *const dname,
-                                        uint8_t sig_length,
-                                        const uint8_t *const sig)
+static bool verify_filtering_signature(uint8_t dname_length,
+                                       const char *const dname,
+                                       uint8_t sig_length,
+                                       const uint8_t *const sig,
+                                       uint8_t p1)
 {
     const void *field_ptr;
     const char *key;
@@ -606,30 +521,33 @@ static bool verify_field_name_signature(uint8_t dname_length,
             NULL,
             0);
 
-    if ((field_ptr = path_get_field()) == NULL)
+    if (p1 == P1_FIELD_NAME)
     {
-        return false;
-    }
-    if ((key = get_struct_field_keyname(field_ptr, &key_len)) == NULL)
-    {
-        return false;
-    }
+        if ((field_ptr = path_get_field()) == NULL)
+        {
+            return false;
+        }
+        if ((key = get_struct_field_keyname(field_ptr, &key_len)) == NULL)
+        {
+            return false;
+        }
 
-    // Key length
-    cx_hash((cx_hash_t*)&hash_ctx,
-            0,
-            &key_len,
-            sizeof(key_len),
-            NULL,
-            0);
+        // Key length
+        cx_hash((cx_hash_t*)&hash_ctx,
+                0,
+                &key_len,
+                sizeof(key_len),
+                NULL,
+                0);
 
-    // Key
-    cx_hash((cx_hash_t*)&hash_ctx,
-            0,
-            (uint8_t*)key,
-            sizeof(char) * key_len,
-            NULL,
-            0);
+        // Key
+        cx_hash((cx_hash_t*)&hash_ctx,
+                0,
+                (uint8_t*)key,
+                sizeof(char) * key_len,
+                NULL,
+                0);
+    }
 
     // Display name length
     cx_hash((cx_hash_t*)&hash_ctx,
@@ -673,14 +591,14 @@ static bool verify_field_name_signature(uint8_t dname_length,
                          sig_length))
     {
 #ifndef HAVE_BYPASS_SIGNATURES
-        PRINTF("Invalid EIP-712 field filtering signature\n");
+        PRINTF("Invalid EIP-712 filtering signature\n");
         return false;
 #endif
     }
     return true;
 }
 
-bool    provide_contract_name(const uint8_t *const payload, uint8_t length)
+bool    provide_filtering_info(const uint8_t *const payload, uint8_t length, uint8_t p1)
 {
     bool ret = false;
     uint8_t dname_len;
@@ -688,41 +606,21 @@ bool    provide_contract_name(const uint8_t *const payload, uint8_t length)
     uint8_t sig_len;
     const uint8_t *sig;
 
-    if ((length > 0) && (path_get_root_type() == ROOT_DOMAIN))
+    if (p1 == P1_CONTRACT_NAME)
     {
-        dname_len = payload[0];
-        if ((1 + dname_len) < length)
+        if (path_get_root_type() != ROOT_DOMAIN)
         {
-            dname = (char*)&payload[1];
-            sig_len = payload[1 + dname_len];
-            sig = &payload[1 + dname_len + 1];
-            if ((sig_len > 0) && ((1 + dname_len + 1 + sig_len) == length))
-            {
-                if ((ret = verify_contract_name_signature(dname_len, dname, sig_len, sig)))
-                {
-                    if (!N_storage.verbose_eip712)
-                    {
-                        ui_712_set_title("Contract", 8);
-                        ui_712_set_value(dname, dname_len);
-                        ui_712_redraw_generic_step();
-                    }
-                }
-            }
+            return false;
         }
     }
-    return ret;
-}
-
-bool    provide_field_name(const uint8_t *const payload, uint8_t length)
-{
-    bool ret = false;
-    uint8_t dname_len;
-    const char *dname;
-    uint8_t sig_len;
-    const uint8_t *sig;
-    bool name_provided = false;
-
-    if ((length > 0) && (path_get_root_type() == ROOT_MESSAGE))
+    else // P1_FIELD_NAME
+    {
+        if (path_get_root_type() != ROOT_MESSAGE)
+        {
+            return false;
+        }
+    }
+    if (length > 0)
     {
         dname_len = payload[0];
         if ((1 + dname_len) < length)
@@ -732,15 +630,25 @@ bool    provide_field_name(const uint8_t *const payload, uint8_t length)
             sig = &payload[1 + dname_len + 1];
             if ((sig_len > 0) && ((1 + dname_len + 1 + sig_len) == length))
             {
-                if ((ret = verify_field_name_signature(dname_len, dname, sig_len, sig)))
+                if ((ret = verify_filtering_signature(dname_len, dname, sig_len, sig, p1)))
                 {
-                    if (dname_len > 0) // don't substitute for an empty name
+                    if (p1 == P1_CONTRACT_NAME)
                     {
-                        ui_712_set_title(dname, dname_len);
-                        name_provided = true;
+                        if (!N_storage.verbose_eip712)
+                        {
+                            ui_712_set_title("Contract", 8);
+                            ui_712_set_value(dname, dname_len);
+                            ui_712_redraw_generic_step();
+                        }
                     }
-                    ret = true;
-                    ui_712_flag_field(true, name_provided);
+                    else // P1_FIELD_NAME
+                    {
+                        if (dname_len > 0) // don't substitute for an empty name
+                        {
+                            ui_712_set_title(dname, dname_len);
+                        }
+                        ui_712_flag_field(true, dname_len > 0);
+                    }
                 }
             }
         }
@@ -823,20 +731,16 @@ bool    handle_eip712_filtering(const uint8_t *const apdu_buf)
             }
             break;
         case P1_CONTRACT_NAME:
-            if (ui_712_get_filtering_mode() == EIP712_FILTERING_FULL)
-            {
-                if ((ret = provide_contract_name(&apdu_buf[OFFSET_CDATA],
-                                                 apdu_buf[OFFSET_LC])))
-                {
-                    reply_apdu = false;
-                }
-            }
-            break;
         case P1_FIELD_NAME:
             if (ui_712_get_filtering_mode() == EIP712_FILTERING_FULL)
             {
-                ret = provide_field_name(&apdu_buf[OFFSET_CDATA],
-                                         apdu_buf[OFFSET_LC]);
+                ret = provide_filtering_info(&apdu_buf[OFFSET_CDATA],
+                                             apdu_buf[OFFSET_LC],
+                                             apdu_buf[OFFSET_P1]);
+                if ((apdu_buf[OFFSET_P1] == P1_CONTRACT_NAME) && ret)
+                {
+                    reply_apdu = false;
+                }
             }
             break;
         default:

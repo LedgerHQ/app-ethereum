@@ -4,7 +4,7 @@ import struct
 from typing import List, Tuple, Union, Iterator, cast
 
 
-from ethereum_client.transaction import Transaction
+from ethereum_client.transaction import PersonalTransaction, Transaction
 from ethereum_client.plugin import Plugin
 from ethereum_client.utils import bip32_path_from_string
 
@@ -271,6 +271,41 @@ class EthereumCommandBuilder:
 
         return self.serialize(cla=self.CLA,
                               ins=InsType.INS_SIGN_TX,
+                              p1=0x00,
+                              p2=0x00,
+                              cdata=cdata)
+
+    
+    def simple_personal_sign_tx(self, bip32_path: str, transaction: PersonalTransaction) -> bytes:
+        """Command builder for INS_SIGN_PERSONAL_TX.
+
+        Parameters
+        ----------
+        bip32_path : str
+            String representation of BIP32 path.
+        transaction : Transaction
+            Representation of the transaction to be signed.
+
+        Yields
+        -------
+        bytes
+            APDU command chunk for INS_SIGN_PERSONAL_TX.
+
+        """
+        bip32_paths: List[bytes] = bip32_path_from_string(bip32_path)
+        
+        cdata: bytes = b"".join([
+            len(bip32_paths).to_bytes(1, byteorder="big"),
+            *bip32_paths
+        ])
+
+        
+        tx: bytes = transaction.serialize()
+
+        cdata = cdata + tx
+
+        return self.serialize(cla=self.CLA,
+                              ins=InsType.INS_SIGN_PERSONAL_TX,
                               p1=0x00,
                               p2=0x00,
                               cdata=cdata)

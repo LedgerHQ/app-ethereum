@@ -125,7 +125,7 @@ jobs:
     name: Speculos tests
     strategy:
       matrix:
-        model: ["nanos", "nanox"]     
+        model: ["nanosp", "nanos", "nanox"]     
          
     needs: [building_for_e2e_speculos_tests]
     runs-on: ubuntu-latest

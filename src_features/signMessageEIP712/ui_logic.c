@@ -352,7 +352,7 @@ void    ui_712_end_sign(void)
  */
 bool    ui_712_init(void)
 {
-    if ((ui_ctx = MEM_ALLOC_AND_ALIGN_TO_TYPE(sizeof(*ui_ctx), *ui_ctx)))
+    if ((ui_ctx = MEM_ALLOC_AND_ALIGN_TYPE(*ui_ctx)))
     {
         ui_ctx->shown = false;
         ui_ctx->end_reached = false;

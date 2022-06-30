@@ -85,10 +85,10 @@ static bool encode_and_hash_type(const void *const struct_ptr)
  * @param[in,out] deps pointer to the first dependency pointer
  */
 static void sort_dependencies(uint8_t deps_count,
-                              void **deps)
+                              const void **deps)
 {
     bool changed;
-    void *tmp_ptr;
+    const void *tmp_ptr;
     const char *name1, *name2;
     uint8_t namelen1, namelen2;
     int str_cmp_result;
@@ -120,13 +120,13 @@ static void sort_dependencies(uint8_t deps_count,
  *
  * @param[in] structs_array pointer to structs array
  * @param[out] deps_count count of how many struct dependencie pointers
- * @param[in] deps pointer to the first dependency pointer
+ * @param[in] first_dep pointer to the first dependency pointer
  * @param[in] struct_ptr pointer to the struct we are getting the dependencies of
  * @return \ref false in case of a memory allocation error, \ref true otherwise
  */
-static bool get_struct_dependencies(const void *const structs_array,
+static const void **get_struct_dependencies(const void *const structs_array,
                                     uint8_t *const deps_count,
-                                    void *const *const deps,
+                                    const void **first_dep,
                                     const void *const struct_ptr)
 {
     uint8_t fields_count;
@@ -151,7 +151,7 @@ static bool get_struct_dependencies(const void *const structs_array,
             for (dep_idx = 0; dep_idx < *deps_count; ++dep_idx)
             {
                 // it's a match!
-                if (*(deps + dep_idx) == arg_struct_ptr)
+                if (*(first_dep + dep_idx) == arg_struct_ptr)
                 {
                     break;
                 }
@@ -159,18 +159,23 @@ static bool get_struct_dependencies(const void *const structs_array,
             // if it's not present in the array, add it and recurse into it
             if (dep_idx == *deps_count)
             {
-                if ((new_dep = mem_alloc(sizeof(void*))) == NULL)
+                *deps_count += 1;
+                if ((new_dep = MEM_ALLOC_AND_ALIGN_TYPE(void*)) == NULL)
                 {
-                    return false;
+                    return NULL;
+                }
+                if (*deps_count == 1)
+                {
+                    first_dep = new_dep;
                 }
                 *new_dep = arg_struct_ptr;
-                *deps_count += 1;
-                get_struct_dependencies(structs_array, deps_count, deps, arg_struct_ptr);
+                // TODO: Move away from recursive calls
+                get_struct_dependencies(structs_array, deps_count, first_dep, arg_struct_ptr);
             }
         }
         field_ptr = get_next_struct_field(field_ptr);
     }
-    return true;
+    return first_dep;
 }
 
 /**
@@ -190,17 +195,13 @@ const uint8_t *type_hash(const void *const structs_array,
                                                struct_name,
                                                struct_name_length);
     uint8_t deps_count = 0;
-    void **deps;
+    const void **deps;
     uint8_t *hash_ptr;
     void *mem_loc_bak = mem_alloc(0);
 
     cx_keccak_init(&global_sha3, 256); // init hash
-    // get list of structs (own + dependencies), properly ordered
-    if ((deps = MEM_ALLOC_AND_ALIGN_TO_TYPE(0, *deps)) == NULL)
-    {
-        return NULL;
-    }
-    if (get_struct_dependencies(structs_array, &deps_count, deps, struct_ptr) == false)
+    deps = get_struct_dependencies(structs_array, &deps_count, NULL, struct_ptr);
+    if ((deps_count > 0) && (deps == NULL))
     {
         return NULL;
     }

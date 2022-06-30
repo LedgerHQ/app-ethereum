@@ -22,7 +22,7 @@ bool    eip712_context_init(void)
     // init global variables
     mem_init();
 
-    if ((eip712_context = MEM_ALLOC_AND_ALIGN_TO_TYPE(sizeof(*eip712_context), *eip712_context)) == NULL)
+    if ((eip712_context = MEM_ALLOC_AND_ALIGN_TYPE(*eip712_context)) == NULL)
     {
         return false;
     }

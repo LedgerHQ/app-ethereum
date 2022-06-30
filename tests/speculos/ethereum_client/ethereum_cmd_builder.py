@@ -41,6 +41,7 @@ class InsType(enum.IntEnum):
     INS_SET_EXTERNAL_PLUGIN     = 0x12
     INS_PROVIDE_NFT_INFORMATION = 0x14
     INS_SET_PLUGIN              = 0x16
+    INS_PERFORM_PRIVACY_OPERATION = 0x18
 
 
 class EthereumCommandBuilder:

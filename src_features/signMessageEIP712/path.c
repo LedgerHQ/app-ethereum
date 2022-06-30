@@ -359,7 +359,7 @@ bool    path_set_root(const char *const struct_name, uint8_t name_length)
     // TODO: Move elsewhere
     cx_sha3_t *hash_ctx;
     const uint8_t *thash_ptr;
-    if ((hash_ctx = MEM_ALLOC_AND_ALIGN_TO_TYPE(sizeof(*hash_ctx), *hash_ctx)) == NULL)
+    if ((hash_ctx = MEM_ALLOC_AND_ALIGN_TYPE(*hash_ctx)) == NULL)
     {
         return false;
     }
@@ -638,7 +638,7 @@ bool    path_init(void)
 {
     if (path_struct == NULL)
     {
-        path_struct = MEM_ALLOC_AND_ALIGN_TO_TYPE(sizeof(*path_struct), *path_struct);
+        path_struct = MEM_ALLOC_AND_ALIGN_TYPE(*path_struct);
     }
     return path_struct != NULL;
 }

@@ -19,7 +19,7 @@ bool    field_hash_init(void)
 {
     if (fh == NULL)
     {
-        if ((fh = MEM_ALLOC_AND_ALIGN_TO_TYPE(sizeof(*fh), *fh)) == NULL)
+        if ((fh = MEM_ALLOC_AND_ALIGN_TYPE(*fh)) == NULL)
         {
             return false;
         }

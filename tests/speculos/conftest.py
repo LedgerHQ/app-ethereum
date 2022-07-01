@@ -10,7 +10,7 @@ from ethereum_client.ethereum_cmd import EthereumCommand
 SCRIPT_DIR = Path(__file__).absolute().parent
 API_URL = "http://127.0.0.1:5000"
 
-VERSION = {"nanos": "2.1", "nanox": "2.0.2", "nanosp": "1.0"}
+VERSION = {"nanos": "2.1", "nanox": "2.0.2", "nanosp": "1.0.3"}
 
 
 def pytest_addoption(parser):

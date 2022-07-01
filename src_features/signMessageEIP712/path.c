@@ -18,11 +18,11 @@ static s_path *path_struct = NULL;
  * Get the field pointer to by the first N depths of the path.
  *
  * @param[out] fields_count_ptr the number of fields in the last evaluated depth
- * @param[in] depth_count the number of depths to evaluate (N)
+ * @param[in] n the number of depths to evaluate
  * @return the feld which the first Nth depths points to
  */
-static const void *get_nth_field_from_path(uint8_t *const fields_count_ptr,
-                                           uint8_t depth_count)
+static const void *get_nth_field(uint8_t *const fields_count_ptr,
+                                 uint8_t n)
 {
     const void *struct_ptr = path_struct->root_struct;
     const void *field_ptr = NULL;
@@ -34,11 +34,11 @@ static const void *get_nth_field_from_path(uint8_t *const fields_count_ptr,
     {
         return NULL;
     }
-    if (depth_count > path_struct->depth_count) // sanity check
+    if (n > path_struct->depth_count) // sanity check
     {
         return NULL;
     }
-    for (uint8_t depth = 0; depth < depth_count; ++depth)
+    for (uint8_t depth = 0; depth < n; ++depth)
     {
         field_ptr = get_struct_fields_array(struct_ptr, &fields_count);
 
@@ -74,19 +74,24 @@ static const void *get_nth_field_from_path(uint8_t *const fields_count_ptr,
  * @param[out] the number of fields in the depth of the returned field
  * @return the field which the path points to
  */
-static inline const void  *get_field_from_path(uint8_t *const fields_count)
+static inline const void  *get_field(uint8_t *const fields_count)
 {
-    return get_nth_field_from_path(fields_count, path_struct->depth_count);
+    return get_nth_field(fields_count, path_struct->depth_count);
 }
 
-const void *path_get_nth_struct_to_last(uint8_t n)
+const void *path_get_nth_field(uint8_t n)
+{
+    return get_nth_field(NULL, n);
+}
+
+const void *path_get_nth_field_to_last(uint8_t n)
 {
     const char *typename;
     uint8_t typename_len;
     const void *field_ptr;
     const void *struct_ptr = NULL;
 
-    field_ptr = get_nth_field_from_path(NULL, path_struct->depth_count - n);
+    field_ptr = get_nth_field(NULL, path_struct->depth_count - n);
     if (field_ptr != NULL)
     {
         typename = get_struct_field_typename(field_ptr, &typename_len);
@@ -102,7 +107,7 @@ const void *path_get_nth_struct_to_last(uint8_t n)
  */
 const void *path_get_field(void)
 {
-    return get_field_from_path(NULL);
+    return get_field(NULL);
 }
 
 /**
@@ -281,7 +286,7 @@ static bool path_update(void)
     {
         return false;
     }
-    if ((field_ptr = get_field_from_path(NULL)) == NULL)
+    if ((field_ptr = get_field(NULL)) == NULL)
     {
         return false;
     }
@@ -468,7 +473,7 @@ bool    path_new_array_depth(uint8_t size)
 
     for (pidx = 0; pidx < path_struct->depth_count; ++pidx)
     {
-        if ((field_ptr = get_nth_field_from_path(NULL, pidx + 1)) == NULL)
+        if ((field_ptr = get_nth_field(NULL, pidx + 1)) == NULL)
         {
             return false;
         }
@@ -532,7 +537,7 @@ static bool path_advance_in_struct(void)
     {
         return false;
     }
-    if ((get_field_from_path(&fields_count)) == NULL)
+    if ((get_field(&fields_count)) == NULL)
     {
         return false;
     }
@@ -627,6 +632,15 @@ const void  *path_get_root(void)
         return NULL;
     }
     return path_struct->root_struct;
+}
+
+uint8_t path_get_depth_count(void)
+{
+    if (path_struct == NULL)
+    {
+        return 0;
+    }
+    return path_struct->depth_count;
 }
 
 /**

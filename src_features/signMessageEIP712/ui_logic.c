@@ -132,7 +132,7 @@ void    ui_712_next_field(void)
     }
     if  (ui_ctx->structs_to_review > 0)
     {
-        ui_712_review_struct(path_get_nth_struct_to_last(ui_ctx->structs_to_review));
+        ui_712_review_struct(path_get_nth_field_to_last(ui_ctx->structs_to_review));
         ui_ctx->structs_to_review -= 1;
     }
     else

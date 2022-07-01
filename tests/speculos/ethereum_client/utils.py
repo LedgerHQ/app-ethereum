@@ -1,10 +1,8 @@
 from io import BytesIO
 from typing import List, Optional, Literal, Tuple
+import PIL.Image as Image
 
 import speculos.client
-
-import PIL.Image as Image
-import io
 
 UINT64_MAX: int = 18446744073709551615
 UINT32_MAX: int = 4294967295
@@ -26,13 +24,13 @@ def apdu_as_string(apdu: str) -> bytes:
 
 def save_screenshot(cmd, path: str):
     screenshot = cmd.client.get_screenshot()
-    img = Image.open(io.BytesIO(screenshot))
+    img = Image.open(BytesIO(screenshot))
     img.save(path)
 
 
 def compare_screenshot(cmd, path: str):
     screenshot = cmd.client.get_screenshot()
-    assert speculos.client.screenshot_equal(path, io.BytesIO(screenshot))
+    assert speculos.client.screenshot_equal(path, BytesIO(screenshot))
 
 
 def parse_sign_response(response : bytes) -> Tuple[bytes, bytes, bytes]:

@@ -1,12 +1,7 @@
-
-from cgitb import reset
-from pickle import TRUE
-from typing import Tuple
-
 from time import sleep
 
 import ethereum_client
-from ethereum_client.utils import UINT64_MAX, compare_screenshot, save_screenshot, PATH_IMG
+from ethereum_client.utils import compare_screenshot, save_screenshot, PATH_IMG
 
 
 def test_get_public_key(cmd):

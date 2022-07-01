@@ -1,5 +1,4 @@
 from pathlib import Path
-
 import pytest
 
 from speculos.client import SpeculosClient

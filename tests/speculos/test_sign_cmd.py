@@ -1,8 +1,7 @@
 from time import sleep
+
 import ethereum_client
-
-
-from ethereum_client.utils import UINT64_MAX, compare_screenshot, compare_screenshot, save_screenshot, PATH_IMG
+from ethereum_client.utils import compare_screenshot, compare_screenshot, save_screenshot, PATH_IMG
 from ethereum_client.transaction import Transaction
 
 

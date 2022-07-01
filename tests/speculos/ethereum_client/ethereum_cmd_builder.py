@@ -3,7 +3,6 @@ import logging
 import struct
 from typing import List, Tuple, Union, Iterator, cast
 
-
 from ethereum_client.transaction import PersonalTransaction, Transaction
 from ethereum_client.plugin import Plugin
 from ethereum_client.utils import bip32_path_from_string

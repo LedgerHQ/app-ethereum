@@ -1,7 +1,6 @@
 from typing import Union
 
-from ethereum_client.utils import (read, read_uint, read_varint,
-                                      write_varint, UINT64_MAX)
+from ethereum_client.utils import write_varint
 
 class Plugin:
     """Plugin class

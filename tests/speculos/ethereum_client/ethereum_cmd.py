@@ -98,6 +98,27 @@ class EthereumCommand:
         result.append(eth_addr)
         result.append(chain_code)
 
+
+    @contextmanager
+    def perform_privacy_operation(self, bip32_path: str, display: bool = False, shared_secret: bool = False, result: List = list()) -> Tuple[bytes, bytes, bytes]:
+        try:
+            chunk: bytes = self.builder.perform_privacy_operation(bip32_path=bip32_path, display=display, shared_secret=shared_secret)
+
+            with self.client.apdu_exchange_nowait(cla=chunk[0], ins=chunk[1],
+                                                          p1=chunk[2], p2=chunk[3],
+                                                          data=chunk[5:]) as exchange:
+                yield exchange
+                response: bytes = exchange.receive()
+                print(response)
+                
+        except ApduException as error:
+            raise DeviceException(error_code=error.sw, ins=InsType.INS_PERFORM_PRIVACY_OPERATION)
+
+        # response = Public encryption key or shared secret	(32)
+        assert len(response) == 32
+
+        result.append(response)
+
     def send_apdu(self, apdu: bytes) -> bytes:
         try:
             self.client.apdu_exchange(cla=apdu[0], ins=apdu[1],

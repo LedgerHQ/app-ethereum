@@ -195,6 +195,30 @@ class EthereumCommandBuilder:
                               p2=0x01,
                               cdata=cdata)
 
+    def perform_privacy_operation(self, bip32_path: str, display: bool, shared_secret: bool) -> bytes:
+        """Command builder for INS_PERFORM_PRIVACY_OPERATION.
+
+        Parameters
+        ----------
+        bip32_path : str
+            String representation of BIP32 path.
+        Third party public key on Curve25519 : 32 bytes
+            Optionnal if returning the shared secret
+        
+        """
+        bip32_paths: List[bytes] = bip32_path_from_string(bip32_path)
+        
+        cdata: bytes = b"".join([
+            len(bip32_paths).to_bytes(1, byteorder="big"),
+            *bip32_paths
+        ])
+        
+        return self.serialize(cla=self.CLA,
+                              ins=InsType.INS_PERFORM_PRIVACY_OPERATION,
+                              p1=0x01 if display else 0x00,
+                              p2=0x01 if shared_secret else 0x00,
+                              cdata=cdata)
+
     # Not use
     def sign_tx(self, bip32_path: str, transaction: Transaction) -> Iterator[Tuple[bool, bytes]]:
         """Command builder for INS_SIGN_TX.

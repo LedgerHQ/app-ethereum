@@ -222,10 +222,10 @@ delete:
 	python3 -m ledgerblue.deleteApp $(COMMON_DELETE_PARAMS)
 
 install_tests:
-	cd tests/functional/ && (yarn install || sudo yarn install)
+	cd tests/zemu/ && (yarn install || sudo yarn install)
 
 run_tests:
-	cd tests/functional/ && (yarn test || sudo yarn test)
+	cd tests/zemu/ && (yarn test || sudo yarn test)
 
 test: install_tests run_tests
 

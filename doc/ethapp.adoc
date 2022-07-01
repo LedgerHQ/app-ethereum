@@ -812,7 +812,7 @@ Perfect moment to do it is when the domain implementation has been sent, just be
 
 The signature is computed on :
 
-chain ID (BE) || contract address || schema hash || display name length || display name
+chain ID (BE) || contract address || schema hash || display name
 
 
 ##### Field name substitution
@@ -821,7 +821,7 @@ Name substitution commands should come before the corresponding *SEND STRUCT IMP
 
 The signature is computed on :
 
-chain ID (BE) || contract address || schema hash || json key length || json key || display name length || display name
+chain ID (BE) || contract address || schema hash || field path || display name
 
 #### Coding
 

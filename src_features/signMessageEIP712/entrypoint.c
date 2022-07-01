@@ -480,6 +480,7 @@ bool    handle_eip712_struct_impl(const uint8_t *const apdu_buf)
     return ret;
 }
 
+#include "hash_bytes.h"
 static bool verify_filtering_signature(uint8_t dname_length,
                                        const char *const dname,
                                        uint8_t sig_length,
@@ -498,72 +499,55 @@ static bool verify_filtering_signature(uint8_t dname_length,
 
     // Chain ID
     chain_id = __builtin_bswap64(chainConfig->chainId);
-    cx_hash((cx_hash_t*)&hash_ctx,
-            0,
-            (uint8_t*)&chain_id,
-            sizeof(chain_id),
-            NULL,
-            0);
+    hash_nbytes((uint8_t*)&chain_id, sizeof(chain_id), (cx_hash_t*)&hash_ctx);
 
     // Contract address
-    cx_hash((cx_hash_t*)&hash_ctx,
-            0,
-            eip712_context->contract_addr,
-            sizeof(eip712_context->contract_addr),
-            NULL,
-            0);
+    hash_nbytes(eip712_context->contract_addr,
+                sizeof(eip712_context->contract_addr),
+                (cx_hash_t*)&hash_ctx);
 
     // Schema hash
-    cx_hash((cx_hash_t*)&hash_ctx,
-            0,
-            eip712_context->schema_hash,
-            sizeof(eip712_context->schema_hash),
-            NULL,
-            0);
+    hash_nbytes(eip712_context->schema_hash,
+                sizeof(eip712_context->schema_hash),
+                (cx_hash_t*)&hash_ctx);
 
     if (p1 == P1_FIELD_NAME)
     {
-        if ((field_ptr = path_get_field()) == NULL)
-        {
-            return false;
-        }
-        if ((key = get_struct_field_keyname(field_ptr, &key_len)) == NULL)
-        {
-            return false;
-        }
+        uint8_t depth_count = path_get_depth_count();
 
-        // Key length
-        cx_hash((cx_hash_t*)&hash_ctx,
-                0,
-                &key_len,
-                sizeof(key_len),
-                NULL,
-                0);
+        for (uint8_t i = 0; i < depth_count; ++i)
+        {
+            if (i > 0)
+            {
+                hash_byte('.', (cx_hash_t*)&hash_ctx);
+            }
+            if ((field_ptr = path_get_nth_field(i + 1)) != NULL)
+            {
+                if ((key = get_struct_field_keyname(field_ptr, &key_len)) != NULL)
+                {
+                    // field name
+                    hash_nbytes((uint8_t*)key, key_len, (cx_hash_t*)&hash_ctx);
 
-        // Key
-        cx_hash((cx_hash_t*)&hash_ctx,
-                0,
-                (uint8_t*)key,
-                sizeof(char) * key_len,
-                NULL,
-                0);
+                    // array levels
+                    if (struct_field_is_array(field_ptr))
+                    {
+                        uint8_t lvl_count;
+
+                        get_struct_field_array_lvls_array(field_ptr, &lvl_count);
+                        for (int j = 0; j < lvl_count; ++j)
+                        {
+                            hash_nbytes((uint8_t*)".[]", 3, (cx_hash_t*)&hash_ctx);
+                        }
+                    }
+                }
+            }
+        }
     }
 
-    // Display name length
-    cx_hash((cx_hash_t*)&hash_ctx,
-            0,
-            &dname_length,
-            sizeof(dname_length),
-            NULL,
-            0);
-
     // Display name
-    cx_hash((cx_hash_t*)&hash_ctx,
-            0,
-            (uint8_t*)dname,
-            sizeof(char) * dname_length,
-            NULL,
-            0);
+    hash_nbytes((uint8_t*)dname,
+                sizeof(char) * dname_length,
+                (cx_hash_t*)&hash_ctx);
 
     // Finalize hash
     cx_hash((cx_hash_t*)&hash_ctx,

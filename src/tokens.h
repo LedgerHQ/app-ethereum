@@ -41,7 +41,6 @@ extern tokenDefinition_t const TOKENS_EXTRA[NUM_TOKENS_EXTRA];
 
 #endif
 
-
 static const uint8_t LEDGER_SIGNATURE_PUBLIC_KEY[] = {
 #ifndef LEDGER_TEST_PUBLIC_KEY
     // production key 2019-01-11 03:07PM (erc20signer)
@@ -59,6 +58,5 @@ static const uint8_t LEDGER_SIGNATURE_PUBLIC_KEY[] = {
     0xb3, 0x35, 0x61, 0xbb, 0x09, 0xd8, 0x8f, 0xe5, 0x79
 #endif
 };
-
 
 #endif  // _TOKENS_H_

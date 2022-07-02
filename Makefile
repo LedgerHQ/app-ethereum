@@ -154,8 +154,6 @@ ifneq ($(NOCONSENT),)
 DEFINES   += NO_CONSENT
 endif
 
-#DEFINES   += HAVE_TOKENS_LIST # Do not activate external ERC-20 support yet
-
 ##############
 #  Compiler  #
 ##############

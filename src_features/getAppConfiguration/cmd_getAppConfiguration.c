@@ -15,9 +15,6 @@ void handleGetAppConfiguration(uint8_t p1,
     UNUSED(dataLength);
     UNUSED(flags);
     G_io_apdu_buffer[0] = (N_storage.dataAllowed ? APP_FLAG_DATA_ALLOWED : 0x00);
-#ifndef HAVE_TOKENS_LIST
-    G_io_apdu_buffer[0] |= APP_FLAG_EXTERNAL_TOKEN_NEEDED;
-#endif
 #ifdef HAVE_STARKWARE
     G_io_apdu_buffer[0] |= APP_FLAG_STARKWARE;
     G_io_apdu_buffer[0] |= APP_FLAG_STARKWARE_V2;

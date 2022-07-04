@@ -17,23 +17,33 @@ python3 -m pip install --extra-index-url https://test.pypi.org/simple/ -r requir
 
 ## Usage
 
-Given the requirements are installed, just do:
+### Compilation app
+
+Go to the root of the repository:
+```sh
+make DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOX_SDK
+```
+
+Given the requirements are installed, just do (by default command):
 
 ```
-pytest tests/speculos/
+cd tests/speculos/
+pytest
 ```
 
-## Tests by APDU
+### Custom options
+- **--model:**  "nanos", "nanox", "nanosp" | default: "nanos"
+- **--display:** "qt", "headless"          | default: "qt"
+- **--path:** the path of the binary app   | default: path of makefile compilation
 
-you will find the list of apdu [here](../../doc/apdu.md)
+## Example
 
-- Get
-  - GET APP CONFIGURATION ( 1 test )
-    - Get the configuration
-  - GET ETH PUBLIC ADDRESS ( 3 tests )
-    - Ether coin without display
-    - Dai coin with display
-    - Dai coin with display and reject
-  - GET ETH2 PUBLIC KEY
-    - [ ] Test get key
-    - [ ] Test get key with display
+With `nanox` binary app:
+```sh
+# the --path is variable to where you put your binary
+
+pytest --model nanox --path ./elfs/nanox.elf
+
+# Execute specific test:
+pytest --model nanox --path ./elfs/nanox.elf test_pubkey_cmd.py
+```

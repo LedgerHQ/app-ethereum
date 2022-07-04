@@ -4,7 +4,7 @@ import struct
 from typing import List, Tuple, Union, Iterator, cast
 
 from ethereum_client.transaction import PersonalTransaction, Transaction
-from ethereum_client.plugin import Plugin
+from ethereum_client.plugin import ERC20_Information, Plugin
 from ethereum_client.utils import bip32_path_from_string
 
 MAX_APDU_LEN: int = 255
@@ -164,6 +164,27 @@ class EthereumCommandBuilder:
                               p2=0x00,
                               cdata=cdata)
 
+    def provide_erc20_token_information(self, info: ERC20_Information):
+        """Command builder for PROVIDE_ERC20_INFORMATION.
+
+        Parameters
+        ----------
+            -> Check documentation of APDU
+
+        Returns
+        -------
+        bytes
+            APDU command for PROVIDE_ERC20_INFORMATION.
+
+        """
+
+        cdata: bytes = info.serialize()
+
+        return self.serialize(cla=self.CLA,
+                              ins=InsType.INS_PROVIDE_ERC20,
+                              p1=0x00,
+                              p2=0x00,
+                              cdata=cdata)
 
     def get_public_key(self, bip32_path: str, display: bool = False) -> bytes:
         """Command builder for GET_PUBLIC_KEY.

@@ -1,6 +1,29 @@
+import string
 from typing import Union
 
-from ethereum_client.utils import write_varint
+from ethereum_client.utils import apdu_as_string, write_varint
+
+class ERC20_Information:
+    def __init__(self, erc20_ticker: string , addr: Union[str, bytes], nb_decimals: int, chainID: int, sign: str) -> None:
+        self.erc20_ticker: bytes = apdu_as_string(erc20_ticker)
+        self.addr: bytes = bytes.fromhex(addr[2:]) if isinstance(addr, str) else addr
+        self.nb_decimals: int = nb_decimals
+        self.chainID: int = chainID
+        self.sign: bytes = apdu_as_string(sign)
+    
+    def serialize(self) -> bytes:
+        return b"".join([
+            write_varint(len(self.erc20_ticker)),
+            self.erc20_ticker,
+
+            self.addr,
+
+            self.nb_decimals.to_bytes(4, byteorder="big"),
+
+            self.chainID.to_bytes(4, byteorder="big"),
+
+            self.sign,
+        ])
 
 class Plugin:
     """Plugin class
@@ -11,7 +34,7 @@ class Plugin:
      do not define a selector
 
     """
-    def __init__(self, type: int, version: int, name: str, addr: Union[str, bytes], selector: int = -1, chainID: int = 1, keyID: int = 0, algorithm: int = 1, sign: bytes = b'') -> None:
+    def __init__(self, type: int, version: int, name: str, addr: Union[str, bytes], selector: int = -1, chainID: int = 1, keyID: int = 0, algorithm: int = 1, sign: str = "") -> None:
         self.type: int = type
         self.version: int = version
         self.name: bytes = bytes(name, 'UTF-8')
@@ -20,7 +43,7 @@ class Plugin:
         self.chainID: int = chainID
         self.keyID: int = keyID
         self.algorithm: int = algorithm
-        self.sign: bytes = sign
+        self.sign: bytes = apdu_as_string(sign)
 
     def serialize(self) -> bytes:
         return b"".join([

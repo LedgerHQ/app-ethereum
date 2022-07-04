@@ -8,7 +8,7 @@ from speculos.client import SpeculosClient, ApduException
 from ethereum_client.ethereum_cmd_builder import EthereumCommandBuilder, InsType
 from ethereum_client.exception import DeviceException
 from ethereum_client.transaction import PersonalTransaction, Transaction
-from ethereum_client.plugin import Plugin
+from ethereum_client.plugin import ERC20_Information, Plugin
 from ethereum_client.utils import parse_sign_response
 
 
@@ -42,20 +42,30 @@ class EthereumCommand:
 
     def set_plugin(self, plugin: Plugin):
         try:
-            response = self.client._apdu_exchange(
+            self.client._apdu_exchange(
                 self.builder.set_plugin(plugin=plugin)
             )
+        
         except ApduException as error:
             raise DeviceException(error_code=error.sw, ins=InsType.INS_SET_PLUGIN)
 
     def provide_nft_information(self, plugin: Plugin):
         try:
-            response = self.client._apdu_exchange(
+            self.client._apdu_exchange(
                 self.builder.provide_nft_information(plugin=plugin)
             )
 
         except ApduException as error:
-            raise DeviceException(error_code=error.sw, ins=InsType.INS_SET_PLUGIN)
+            raise DeviceException(error_code=error.sw, ins=InsType.INS_PROVIDE_NFT_INFORMATION)
+
+    def provide_erc20_token_information(self, info: ERC20_Information):
+        try:
+            self.client._apdu_exchange(
+                self.builder.provide_erc20_token_information(info=info)
+            )
+
+        except ApduException as error:
+            raise DeviceException(error_code=error.sw, ins=InsType.INS_PROVIDE_ERC20)
 
 
     @contextmanager

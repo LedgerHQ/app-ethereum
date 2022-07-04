@@ -34,6 +34,15 @@
 #define COMMON_CLA               0xB0
 #define COMMON_INS_GET_WALLET_ID 0x04
 
+#define APDU_RESPONSE_OK                        0x9000
+#define APDU_RESPONSE_INVALID_DATA              0x6a80
+#define APDU_RESPONSE_INSUFFICIENT_MEMORY       0x6a84
+#define APDU_RESPONSE_INVALID_INS               0x6d00
+#define APDU_RESPONSE_INVALID_P1_P2             0x6b00
+#define APDU_RESPONSE_CONDITION_NOT_SATISFIED   0x6985
+#define APDU_RESPONSE_REF_DATA_NOT_USABLE       0x6a88
+
+
 #ifdef HAVE_STARKWARE
 
 #define STARKWARE_CLA                 0xF0
@@ -179,5 +188,7 @@ bool    handle_eip712_struct_impl(const uint8_t *const apdu_buf);
 bool    handle_eip712_sign(const uint8_t *const apdu_buf);
 bool    handle_eip712_filtering(const uint8_t *const apdu_buf);
 #endif // HAVE_EIP712_FULL_SUPPORT
+
+extern uint16_t apdu_response_code;
 
 #endif  // _APDU_CONSTANTS_H_

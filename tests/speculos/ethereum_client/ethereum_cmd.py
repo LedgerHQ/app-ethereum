@@ -7,7 +7,7 @@ from speculos.client import SpeculosClient, ApduException
 
 from ethereum_client.ethereum_cmd_builder import EthereumCommandBuilder, InsType
 from ethereum_client.exception import DeviceException
-from ethereum_client.transaction import PersonalTransaction, Transaction
+from ethereum_client.transaction import EIP712, PersonalTransaction, Transaction
 from ethereum_client.plugin import ERC20_Information, Plugin
 from ethereum_client.utils import parse_sign_response
 
@@ -165,6 +165,29 @@ class EthereumCommand:
                 
         except ApduException as error:
             raise DeviceException(error_code=error.sw, ins=InsType.INS_SIGN_TX)
+
+         # response = V (1) || R (32) || S (32)
+        assert len(response) == 65
+        v, r, s = parse_sign_response(response)
+        
+        result.append(v)
+        result.append(r)
+        result.append(s)
+
+
+    @contextmanager
+    def sign_eip712(self, bip32_path: str, transaction: EIP712, result: List = list()) -> None:
+        try:
+            chunk: bytes = self.builder.sign_eip712(bip32_path=bip32_path, transaction=transaction)
+
+            with self.client.apdu_exchange_nowait(cla=chunk[0], ins=chunk[1],
+                                                          p1=chunk[2], p2=chunk[3],
+                                                          data=chunk[5:]) as exchange:
+                yield exchange
+                response: bytes = exchange.receive()
+                
+        except ApduException as error:
+            raise DeviceException(error_code=error.sw, ins=InsType.INS_SIGN_EIP712)
 
          # response = V (1) || R (32) || S (32)
         assert len(response) == 65

@@ -3,7 +3,7 @@ import logging
 import struct
 from typing import List, Tuple, Union, Iterator, cast
 
-from ethereum_client.transaction import PersonalTransaction, Transaction
+from ethereum_client.transaction import EIP712, PersonalTransaction, Transaction
 from ethereum_client.plugin import ERC20_Information, Plugin
 from ethereum_client.utils import bip32_path_from_string
 
@@ -316,6 +316,41 @@ class EthereumCommandBuilder:
 
         return self.serialize(cla=self.CLA,
                               ins=InsType.INS_SIGN_TX,
+                              p1=0x00,
+                              p2=0x00,
+                              cdata=cdata)
+
+    def sign_eip712(self, bip32_path: str, transaction: EIP712) -> bytes:
+        """Command builder for INS_SIGN_EIP712.
+
+        Parameters
+        ----------
+        bip32_path : str
+            String representation of BIP32 path.
+        transaction : EIP712
+            Domain hash  -> 32 bytes
+            Message hash -> 32 bytes
+
+        Yields
+        -------
+        bytes
+            APDU command chunk for INS_SIGN_EIP712.
+
+        """
+        bip32_paths: List[bytes] = bip32_path_from_string(bip32_path)
+        
+        cdata: bytes = b"".join([
+            len(bip32_paths).to_bytes(1, byteorder="big"),
+            *bip32_paths
+        ])
+
+        
+        tx: bytes = transaction.serialize()
+
+        cdata = cdata + tx
+
+        return self.serialize(cla=self.CLA,
+                              ins=InsType.INS_SIGN_EIP712,
                               p1=0x00,
                               p2=0x00,
                               cdata=cdata)

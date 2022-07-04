@@ -25,7 +25,6 @@ def test_provide_erc20_token_error(cmd):
         sign="deadbeef"
     )
 
-    # Test if return 9000
     try:
         cmd.provide_erc20_token_information(info=erc20_info)
     except ethereum_client.exception.errors.UnknownDeviceError as error:

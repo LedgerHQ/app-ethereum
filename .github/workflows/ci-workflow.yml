@@ -45,7 +45,9 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Build testing binaries
-        run: cd tests/zemu/ && ./build_local_test_elfs.sh
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          cd tests/zemu/ && ./build_local_test_elfs.sh
 
       - name: Upload app binaries
         uses: actions/upload-artifact@v2

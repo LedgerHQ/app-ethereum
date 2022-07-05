@@ -6,7 +6,6 @@
 #include "path.h"
 #include "mem.h"
 #include "mem_utils.h"
-#include "eip712.h"
 #include "shared_context.h"
 #include "ui_logic.h"
 #include "ethUtils.h" // KECCAK256_HASH_BYTESIZE

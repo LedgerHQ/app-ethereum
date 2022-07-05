@@ -9,7 +9,6 @@
 #include "ux_flow_engine.h"
 #include "ui_flow_712.h"
 #include "shared_context.h"
-#include "eip712.h" // get_struct_name
 #include "ethUtils.h" // getEthDisplayableAddress
 #include "utils.h" // uint256_to_decimal
 #include "common_712.h"

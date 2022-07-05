@@ -5,7 +5,6 @@
 #include <stdbool.h>
 #include "mem.h"
 #include "mem_utils.h"
-#include "eip712.h"
 #include "type_hash.h"
 #include "shared_context.h"
 #include "ethUtils.h" // KECCAK256_HASH_BYTESIZE

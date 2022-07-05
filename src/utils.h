@@ -22,6 +22,9 @@
 
 #include "uint256.h"
 
+
+#define ARRAY_SIZE(a)   (sizeof(a) / sizeof(a[0]))
+
 void array_hexstr(char* strbuf, const void* bin, unsigned int len);
 
 void convertUint128BE(const uint8_t *const data, uint32_t length, uint128_t *const target);

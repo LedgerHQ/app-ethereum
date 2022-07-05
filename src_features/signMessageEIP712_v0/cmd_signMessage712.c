@@ -3,7 +3,6 @@
 #include "utils.h"
 #include "common_ui.h"
 #include "ui_flow.h"
-#include "eip712.h"
 #include "common_712.h"
 #include "ethUtils.h"
 

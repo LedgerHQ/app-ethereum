@@ -12,6 +12,7 @@
 #include "format_hash_field_type.h"
 #include "hash_bytes.h"
 #include "apdu_constants.h" // APDU response codes
+#include "typed_data.h"
 
 /**
  *

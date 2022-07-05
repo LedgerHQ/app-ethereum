@@ -17,6 +17,7 @@
 #include "uint256.h" // tostring256 && tostring256_signed
 #include "path.h" // path_get_root_type
 #include "apdu_constants.h" // APDU response codes
+#include "typed_data.h"
 
 
 static t_ui_context *ui_ctx = NULL;

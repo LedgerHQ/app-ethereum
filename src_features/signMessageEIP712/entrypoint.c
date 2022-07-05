@@ -59,7 +59,7 @@ bool    handle_eip712_struct_def(const uint8_t *const apdu_buf)
         switch (apdu_buf[OFFSET_P2])
         {
             case P2_NAME:
-                ret = set_struct_name(apdu_buf);
+                ret = set_struct_name(apdu_buf[OFFSET_LC], &apdu_buf[OFFSET_CDATA]);
                 break;
             case P2_FIELD:
                 ret = set_struct_field(apdu_buf);

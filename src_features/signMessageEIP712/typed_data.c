@@ -286,12 +286,12 @@ static inline const uint8_t *get_struct(const uint8_t *const ptr,
 }
 //
 
-bool    set_struct_name(const uint8_t *const data)
+bool    set_struct_name(uint8_t length, const uint8_t *const name)
 {
     uint8_t *length_ptr;
     char *name_ptr;
 
-    if ((data == NULL) || (eip712_context == NULL))
+    if ((name == NULL) || (eip712_context == NULL))
     {
         return false;
     }
@@ -304,15 +304,15 @@ bool    set_struct_name(const uint8_t *const data)
         apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
         return false;
     }
-    *length_ptr = data[OFFSET_LC];
+    *length_ptr = length;
 
     // copy name
-    if ((name_ptr = mem_alloc(sizeof(char) * data[OFFSET_LC])) == NULL)
+    if ((name_ptr = mem_alloc(sizeof(char) * length)) == NULL)
     {
         apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
         return false;
     }
-    memmove(name_ptr, &data[OFFSET_CDATA], data[OFFSET_LC]);
+    memmove(name_ptr, name, length);
 
     // initialize number of fields
     if ((eip712_context->current_struct_fields_array = mem_alloc(sizeof(uint8_t))) == NULL)

@@ -61,7 +61,7 @@ const uint8_t *get_structs_array(const uint8_t *ptr, uint8_t *const length);
 const uint8_t *get_structn(const uint8_t *const ptr,
                            const char *const name_ptr,
                            const uint8_t name_length);
-bool    set_struct_name(const uint8_t *const data);
+bool    set_struct_name(uint8_t length, const uint8_t *const name);
 bool    set_struct_field(const uint8_t *const data);
 
 #endif // HAVE_EIP712_FULL_SUPPORT

@@ -1,16 +1,12 @@
-#ifdef HAVE_EIP712_FULL_SUPPORT
+#ifdef HAVE_DYN_MEM_ALLOC
 
 #include <stdint.h>
 #include "mem.h"
-#include "shared_context.h"
 
 #define SIZE_MEM_BUFFER 5120
 
 static uint8_t  mem_buffer[SIZE_MEM_BUFFER];
 static size_t   mem_idx;
-#ifdef DEBUG
-size_t  mem_max;
-#endif
 
 
 /**
@@ -19,9 +15,6 @@ size_t  mem_max;
 void    mem_init(void)
 {
     mem_idx = 0;
-#ifdef DEBUG
-    mem_max = 0;
-#endif
 }
 
 /**
@@ -34,6 +27,7 @@ void    mem_reset(void)
 
 /**
  * Allocates a chunk of the memory buffer of a given size.
+ *
  * Checks to see if there are enough space left in the memory buffer, returns
  * the current location in the memory buffer and moves the index accordingly.
  *
@@ -44,21 +38,11 @@ void    *mem_alloc(size_t size)
 {
     if ((mem_idx + size) > SIZE_MEM_BUFFER) // Buffer exceeded
     {
-#ifdef DEBUG
-        PRINTF("Memory exhausted!\n");
-#endif
         return NULL;
     }
     mem_idx += size;
-#ifdef DEBUG
-    if (mem_idx > mem_max)
-    {
-        mem_max = mem_idx;
-    }
-#endif
     return &mem_buffer[mem_idx - size];
 }
-
 
 /**
  * De-allocates a chunk of memory buffer by a given size.
@@ -77,4 +61,4 @@ void    mem_dealloc(size_t size)
     }
 }
 
-#endif // HAVE_EIP712_FULL_SUPPORT
+#endif // HAVE_DYN_MEM_ALLOC

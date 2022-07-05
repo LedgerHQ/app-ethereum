@@ -1,26 +1,10 @@
-#ifdef HAVE_EIP712_FULL_SUPPORT
+#ifdef HAVE_DYN_MEM_ALLOC
 
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include "mem.h"
 #include "mem_utils.h"
-
-void    *mem_alloc_and_copy(const void *data, size_t size)
-{
-    void    *mem_ptr;
-
-    if ((mem_ptr = mem_alloc(size)) != NULL)
-    {
-        memmove(mem_ptr, data, size);
-    }
-    return mem_ptr;
-}
-
-char    *mem_alloc_and_copy_char(char c)
-{
-    return mem_alloc_and_copy(&c, sizeof(char));
-}
 
 /**
  * Format an unsigned number up to 32-bit into memory into an ASCII string.
@@ -79,4 +63,4 @@ void    *mem_alloc_and_align(size_t size, size_t alignment)
     return mem_alloc(size);
 }
 
-#endif // HAVE_EIP712_FULL_SUPPORT
+#endif // HAVE_DYN_MEM_ALLOC

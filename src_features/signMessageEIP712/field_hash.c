@@ -13,6 +13,7 @@
 #include "context.h" // contract_addr
 #include "utils.h" // u64_from_BE
 #include "apdu_constants.h" // APDU response codes
+#include "typed_data.h"
 
 static s_field_hashing *fh = NULL;
 

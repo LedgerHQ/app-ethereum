@@ -12,6 +12,7 @@
 #include "mem_utils.h"
 #include "ui_logic.h"
 #include "apdu_constants.h" // APDU response codes
+#include "typed_data.h"
 
 static s_path *path_struct = NULL;
 

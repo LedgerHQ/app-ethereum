@@ -8,6 +8,7 @@
 #include "mem.h"
 #include "os_pic.h"
 #include "apdu_constants.h" // APDU response codes
+#include "typed_data.h"
 
 // Bit indicating they are more types associated to this typename
 #define TYPENAME_MORE_TYPE  (1 << 7)

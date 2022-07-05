@@ -6,6 +6,7 @@
 #include "eip712.h"
 #include "hash_bytes.h"
 #include "apdu_constants.h" // APDU response codes
+#include "typed_data.h"
 
 /**
  * Format & hash a struct field typesize

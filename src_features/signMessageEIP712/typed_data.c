@@ -278,12 +278,6 @@ const uint8_t *get_structn(const uint8_t *const ptr,
     }
     return NULL;
 }
-
-static inline const uint8_t *get_struct(const uint8_t *const ptr,
-                                        const char *const name_ptr)
-{
-    return get_structn(ptr, name_ptr, strlen(name_ptr));
-}
 //
 
 bool    set_struct_name(uint8_t length, const uint8_t *const name)

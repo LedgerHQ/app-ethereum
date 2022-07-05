@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include "commands_712.h"
 #include "apdu_constants.h" // APDU response codes
-#include "eip712.h"
 #include "context.h"
 #include "field_hash.h"
 #include "path.h"
@@ -164,13 +164,14 @@ bool    handle_eip712_filtering(const uint8_t *const apdu_buf)
 bool    handle_eip712_sign(const uint8_t *const apdu_buf)
 {
     bool ret = false;
+    uint8_t length = apdu_buf[OFFSET_LC];
 
     if (eip712_context == NULL)
     {
         apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
     }
     else if (parseBip32(&apdu_buf[OFFSET_CDATA],
-                        &apdu_buf[OFFSET_LC],
+                        &length,
                         &tmpCtx.messageSigningContext.bip32) != NULL)
     {
         if (!N_storage.verbose_eip712 && (ui_712_get_filtering_mode() == EIP712_FILTERING_BASIC))

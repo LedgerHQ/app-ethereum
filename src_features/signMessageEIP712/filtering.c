@@ -5,7 +5,7 @@
 #include "ethUstream.h" // INT256_LENGTH
 #include "apdu_constants.h" // APDU return codes
 #include "context.h"
-#include "eip712.h"
+#include "commands_712.h"
 #include "typed_data.h"
 #include "path.h"
 #include "ui_logic.h"

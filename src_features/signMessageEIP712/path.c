@@ -5,7 +5,7 @@
 #include "path.h"
 #include "mem.h"
 #include "context.h"
-#include "eip712.h"
+#include "commands_712.h"
 #include "type_hash.h"
 #include "shared_context.h"
 #include "ethUtils.h"

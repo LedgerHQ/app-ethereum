@@ -29,7 +29,7 @@
 #include "handle_swap_sign_transaction.h"
 #include "handle_get_printable_amount.h"
 #include "handle_check_address.h"
-#include "context.h"
+#include "commands_712.h"
 
 #ifdef HAVE_STARKWARE
 #include "stark_crypto.h"

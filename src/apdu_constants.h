@@ -182,13 +182,6 @@ void handleStarkwareUnsafeSign(uint8_t p1,
 
 #endif
 
-#ifdef HAVE_EIP712_FULL_SUPPORT
-bool    handle_eip712_struct_def(const uint8_t *const apdu_buf);
-bool    handle_eip712_struct_impl(const uint8_t *const apdu_buf);
-bool    handle_eip712_sign(const uint8_t *const apdu_buf);
-bool    handle_eip712_filtering(const uint8_t *const apdu_buf);
-#endif // HAVE_EIP712_FULL_SUPPORT
-
 extern uint16_t apdu_response_code;
 
 #endif  // _APDU_CONSTANTS_H_

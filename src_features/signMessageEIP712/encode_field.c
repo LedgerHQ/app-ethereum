@@ -4,7 +4,6 @@
 #include <string.h>
 #include "encode_field.h"
 #include "mem.h"
-#include "eip712.h"
 #include "shared_context.h"
 #include "apdu_constants.h" // APDU response codes
 

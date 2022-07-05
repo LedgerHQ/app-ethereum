@@ -6,10 +6,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-// APDUs INS
-#define INS_STRUCT_DEF  0x18
-#define INS_STRUCT_IMPL 0x1A
-
 // APDUs P1
 #define P1_COMPLETE 0x00
 #define P1_PARTIAL  0xFF
@@ -24,16 +20,12 @@
 #define P2_KEY      0x00
 #define P2_VALUE    0xFF
 
-typedef enum
-{
-    EIP712_TYPE_HASH,
-    EIP712_FIELD_HASH,
-    EIP712_STRUCT_HASH
-}   e_eip712_hash_type;
-
-#define ARRAY_SIZE(a)   (sizeof(a) / sizeof(a[0]))
-
 #define DOMAIN_STRUCT_NAME          "EIP712Domain"
+
+bool    handle_eip712_struct_def(const uint8_t *const apdu_buf);
+bool    handle_eip712_struct_impl(const uint8_t *const apdu_buf);
+bool    handle_eip712_sign(const uint8_t *const apdu_buf);
+bool    handle_eip712_filtering(const uint8_t *const apdu_buf);
 
 #endif // HAVE_EIP712_FULL_SUPPORT
 

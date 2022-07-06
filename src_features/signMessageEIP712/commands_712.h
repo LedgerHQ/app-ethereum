@@ -26,6 +26,7 @@ bool    handle_eip712_struct_def(const uint8_t *const apdu_buf);
 bool    handle_eip712_struct_impl(const uint8_t *const apdu_buf);
 bool    handle_eip712_sign(const uint8_t *const apdu_buf);
 bool    handle_eip712_filtering(const uint8_t *const apdu_buf);
+void    handle_eip712_return_code(bool success);
 
 #endif // HAVE_EIP712_FULL_SUPPORT
 

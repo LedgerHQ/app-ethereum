@@ -17,6 +17,7 @@
 #include "path.h" // path_get_root_type
 #include "apdu_constants.h" // APDU response codes
 #include "typed_data.h"
+#include "commands_712.h"
 
 
 static t_ui_context *ui_ctx = NULL;
@@ -140,10 +141,7 @@ void    ui_712_next_field(void)
     {
         if (!ui_ctx->end_reached)
         {
-            // reply to previous APDU
-            G_io_apdu_buffer[0] = 0x90;
-            G_io_apdu_buffer[1] = 0x00;
-            io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+            handle_eip712_return_code(true);
         }
         else
         {

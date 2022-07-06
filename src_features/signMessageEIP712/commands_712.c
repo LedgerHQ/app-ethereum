@@ -14,9 +14,9 @@
 #include "filtering.h"
 #include "common_712.h"
 
-static void handle_eip712_return_code(bool ret)
+void    handle_eip712_return_code(bool success)
 {
-    if (ret)
+    if (success)
     {
         apdu_response_code = APDU_RESPONSE_OK;
     }
@@ -25,7 +25,7 @@ static void handle_eip712_return_code(bool ret)
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
 
-    if (!ret)
+    if (!success)
     {
         eip712_context_deinit();
     }

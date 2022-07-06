@@ -3,7 +3,6 @@
 #include <stdint.h>
 #include <string.h>
 #include "sol_typenames.h"
-#include "context.h"
 #include "mem.h"
 #include "os_pic.h"
 #include "apdu_constants.h" // APDU response codes
@@ -12,6 +11,8 @@
 
 // Bit indicating they are more types associated to this typename
 #define TYPENAME_MORE_TYPE  (1 << 7)
+
+static uint8_t *sol_typenames = NULL;
 
 enum
 {
@@ -67,11 +68,11 @@ bool    sol_typenames_init(void)
     uint8_t *typename_len_ptr;
     char *typename_ptr;
 
-    if ((eip712_context->typenames_array = mem_alloc(sizeof(uint8_t))) == NULL)
+    if ((sol_typenames = mem_alloc(sizeof(uint8_t))) == NULL)
     {
         return false;
     }
-    *(eip712_context->typenames_array) = 0;
+    *(sol_typenames) = 0;
     // loop over typenames
     for (uint8_t s_idx = 0; s_idx < ARRAY_SIZE(typenames); ++s_idx)
     {
@@ -95,7 +96,7 @@ bool    sol_typenames_init(void)
             memcpy(typename_ptr, PIC(typenames[s_idx]), *typename_len_ptr);
         }
         // increment array size
-        *(eip712_context->typenames_array) += 1;
+        *(sol_typenames) += 1;
     }
     return true;
 }
@@ -116,7 +117,7 @@ const char *get_struct_field_sol_typename(const uint8_t *field_ptr,
     bool typename_found;
 
     field_type = struct_field_type(field_ptr);
-    typename_ptr = get_array_in_mem(eip712_context->typenames_array, &typenames_count);
+    typename_ptr = get_array_in_mem(sol_typenames, &typenames_count);
     typename_found = false;
     while (typenames_count-- > 0)
     {

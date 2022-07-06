@@ -7,6 +7,37 @@
 #include "apdu_constants.h" // APDU response codes
 #include "context.h"
 #include "mem.h"
+#include "mem_utils.h"
+
+static s_typed_data *typed_data = NULL;
+
+
+bool    typed_data_init(void)
+{
+    if (typed_data == NULL)
+    {
+        if ((typed_data = MEM_ALLOC_AND_ALIGN_TYPE(*typed_data)) == NULL)
+        {
+            apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+            return false;
+        }
+        // set types pointer
+        if ((typed_data->structs_array = mem_alloc(sizeof(uint8_t))) == NULL)
+        {
+            apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+            return false;
+        }
+
+        // create len(types)
+        *(typed_data->structs_array) = 0;
+    }
+    return true;
+}
+
+void    typed_data_deinit(void)
+{
+    typed_data = NULL;
+}
 
 // lib functions
 const void *get_array_in_mem(const void *ptr, uint8_t *const array_size)
@@ -247,14 +278,13 @@ const uint8_t *get_next_struct(const uint8_t *ptr)
 }
 
 // ptr must point to the size of the structs array
-const uint8_t *get_structs_array(const uint8_t *ptr, uint8_t *const length)
+const uint8_t *get_structs_array(uint8_t *const length)
 {
-    return get_array_in_mem(ptr, length);
+    return get_array_in_mem(typed_data->structs_array, length);
 }
 
 // Finds struct with a given name
-const uint8_t *get_structn(const uint8_t *const ptr,
-                           const char *const name_ptr,
+const uint8_t *get_structn(const char *const name_ptr,
                            const uint8_t name_length)
 {
     uint8_t structs_count;
@@ -262,11 +292,11 @@ const uint8_t *get_structn(const uint8_t *const ptr,
     const char *name;
     uint8_t length;
 
-    if ((ptr == NULL) || (name_ptr == NULL))
+    if (name_ptr == NULL)
     {
         return NULL;
     }
-    struct_ptr = get_structs_array(ptr, &structs_count);
+    struct_ptr = get_structs_array(&structs_count);
     while (structs_count-- > 0)
     {
         name = get_struct_name(struct_ptr, &length);
@@ -285,12 +315,12 @@ bool    set_struct_name(uint8_t length, const uint8_t *const name)
     uint8_t *length_ptr;
     char *name_ptr;
 
-    if ((name == NULL) || (eip712_context == NULL))
+    if ((name == NULL) || (typed_data == NULL))
     {
         return false;
     }
     // increment number of structs
-    *(eip712_context->structs_array) += 1;
+    *(typed_data->structs_array) += 1;
 
     // copy length
     if ((length_ptr = mem_alloc(sizeof(uint8_t))) == NULL)
@@ -309,12 +339,12 @@ bool    set_struct_name(uint8_t length, const uint8_t *const name)
     memmove(name_ptr, name, length);
 
     // initialize number of fields
-    if ((eip712_context->current_struct_fields_array = mem_alloc(sizeof(uint8_t))) == NULL)
+    if ((typed_data->current_struct_fields_array = mem_alloc(sizeof(uint8_t))) == NULL)
     {
         apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
         return false;
     }
-    *(eip712_context->current_struct_fields_array) = 0;
+    *(typed_data->current_struct_fields_array) = 0;
     return true;
 }
 
@@ -333,12 +363,12 @@ bool    set_struct_field(const uint8_t *const data)
     uint8_t *fieldname_len_ptr;
     char *fieldname_ptr;
 
-    if ((data == NULL) || (eip712_context == NULL))
+    if ((data == NULL) || (typed_data == NULL))
     {
         return false;
     }
     // increment number of struct fields
-    *(eip712_context->current_struct_fields_array) += 1;
+    *(typed_data->current_struct_fields_array) += 1;
 
     // copy TypeDesc
     if ((type_desc_ptr = mem_alloc(sizeof(uint8_t))) == NULL)

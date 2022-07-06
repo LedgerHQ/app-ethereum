@@ -5,8 +5,7 @@
 
 #include <stdint.h>
 
-const uint8_t *type_hash(const void *const structs_array,
-                         const char *const struct_name,
+const uint8_t *type_hash(const char *const struct_name,
                          const uint8_t struct_name_length);
 
 #endif // HAVE_EIP712_FULL_SUPPORT

@@ -34,6 +34,12 @@ typedef enum
     TYPES_COUNT
 }   e_type;
 
+typedef struct
+{
+    uint8_t *structs_array;
+    uint8_t *current_struct_fields_array;
+}   s_typed_data;
+
 const void *get_array_in_mem(const void *ptr, uint8_t *const array_size);
 const char *get_string_in_mem(const uint8_t *ptr, uint8_t *const string_length);
 bool    struct_field_is_array(const uint8_t *ptr);
@@ -57,12 +63,13 @@ const char *get_struct_name(const uint8_t *ptr, uint8_t *const length);
 const uint8_t *get_struct_fields_array(const uint8_t *ptr,
                                        uint8_t *const length);
 const uint8_t *get_next_struct(const uint8_t *ptr);
-const uint8_t *get_structs_array(const uint8_t *ptr, uint8_t *const length);
-const uint8_t *get_structn(const uint8_t *const ptr,
-                           const char *const name_ptr,
+const uint8_t *get_structs_array(uint8_t *const length);
+const uint8_t *get_structn(const char *const name_ptr,
                            const uint8_t name_length);
 bool    set_struct_name(uint8_t length, const uint8_t *const name);
 bool    set_struct_field(const uint8_t *const data);
+bool    typed_data_init(void);
+void    typed_data_deinit(void);
 
 #endif // HAVE_EIP712_FULL_SUPPORT
 

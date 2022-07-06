@@ -81,7 +81,6 @@ static bool encode_and_hash_type(const void *const struct_ptr)
 /**
  *
  *
- * @param[in] structs_array pointer to structs array
  * @param[in] deps_count count of how many struct dependencies pointers
  * @param[in,out] deps pointer to the first dependency pointer
  */
@@ -119,16 +118,14 @@ static void sort_dependencies(uint8_t deps_count,
 /**
  *
  *
- * @param[in] structs_array pointer to structs array
  * @param[out] deps_count count of how many struct dependencie pointers
  * @param[in] first_dep pointer to the first dependency pointer
  * @param[in] struct_ptr pointer to the struct we are getting the dependencies of
  * @return \ref false in case of a memory allocation error, \ref true otherwise
  */
-static const void **get_struct_dependencies(const void *const structs_array,
-                                    uint8_t *const deps_count,
-                                    const void **first_dep,
-                                    const void *const struct_ptr)
+static const void **get_struct_dependencies(uint8_t *const deps_count,
+                                            const void **first_dep,
+                                            const void *const struct_ptr)
 {
     uint8_t fields_count;
     const void *field_ptr;
@@ -146,7 +143,7 @@ static const void **get_struct_dependencies(const void *const structs_array,
             // get struct name
             arg_structname = get_struct_field_typename(field_ptr, &arg_structname_length);
             // from its name, get the pointer to its definition
-            arg_struct_ptr = get_structn(structs_array, arg_structname, arg_structname_length);
+            arg_struct_ptr = get_structn(arg_structname, arg_structname_length);
 
             // check if it is not already present in the dependencies array
             for (dep_idx = 0; dep_idx < *deps_count; ++dep_idx)
@@ -172,7 +169,7 @@ static const void **get_struct_dependencies(const void *const structs_array,
                 }
                 *new_dep = arg_struct_ptr;
                 // TODO: Move away from recursive calls
-                get_struct_dependencies(structs_array, deps_count, first_dep, arg_struct_ptr);
+                get_struct_dependencies(deps_count, first_dep, arg_struct_ptr);
             }
         }
         field_ptr = get_next_struct_field(field_ptr);
@@ -183,18 +180,15 @@ static const void **get_struct_dependencies(const void *const structs_array,
 /**
  *
  *
- * @param[in] structs_array pointer to structs array
  * @param[in] struct_name name of the given struct
  * @param[in] struct_name_length length of the name of the given struct
  * @param[in] with_deps if hashed typestring should include struct dependencies
  * @return pointer to encoded string or \ref NULL in case of a memory allocation error
  */
-const uint8_t *type_hash(const void *const structs_array,
-                         const char *const struct_name,
+const uint8_t *type_hash(const char *const struct_name,
                          const uint8_t struct_name_length)
 {
-    const void *const struct_ptr = get_structn(structs_array,
-                                               struct_name,
+    const void *const struct_ptr = get_structn(struct_name,
                                                struct_name_length);
     uint8_t deps_count = 0;
     const void **deps;
@@ -202,7 +196,7 @@ const uint8_t *type_hash(const void *const structs_array,
     void *mem_loc_bak = mem_alloc(0);
 
     cx_keccak_init(&global_sha3, 256); // init hash
-    deps = get_struct_dependencies(structs_array, &deps_count, NULL, struct_ptr);
+    deps = get_struct_dependencies(&deps_count, NULL, struct_ptr);
     if ((deps_count > 0) && (deps == NULL))
     {
         return NULL;

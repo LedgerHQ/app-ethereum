@@ -21,14 +21,14 @@ enum
     IDX_COUNT
 };
 
-static bool find_enum_matches(const uint8_t (*enum_to_idx)[TYPES_COUNT - 1][IDX_COUNT], uint8_t s_idx)
+static bool find_enum_matches(const uint8_t enum_to_idx[TYPES_COUNT - 1][IDX_COUNT], uint8_t s_idx)
 {
     uint8_t *enum_match = NULL;
 
     // loop over enum/typename pairs
-    for (uint8_t e_idx = 0; e_idx < ARRAY_SIZE(*enum_to_idx); ++e_idx)
+    for (uint8_t e_idx = 0; e_idx < (TYPES_COUNT - 1); ++e_idx)
     {
-        if (s_idx == (*enum_to_idx)[e_idx][IDX_STR_IDX]) // match
+        if (s_idx == enum_to_idx[e_idx][IDX_STR_IDX]) // match
         {
             if (enum_match != NULL) // in case of a previous match, mark it
             {
@@ -39,7 +39,7 @@ static bool find_enum_matches(const uint8_t (*enum_to_idx)[TYPES_COUNT - 1][IDX_
                 apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
                 return false;
             }
-            *enum_match = (*enum_to_idx)[e_idx][IDX_ENUM];
+            *enum_match = enum_to_idx[e_idx][IDX_ENUM];
         }
     }
     return (enum_match != NULL);
@@ -77,7 +77,7 @@ bool    sol_typenames_init(void)
     for (uint8_t s_idx = 0; s_idx < ARRAY_SIZE(typenames); ++s_idx)
     {
         // if at least one match was found
-        if (find_enum_matches(&enum_to_idx, s_idx))
+        if (find_enum_matches(enum_to_idx, s_idx))
         {
             if ((typename_len_ptr = mem_alloc(sizeof(uint8_t))) == NULL)
             {

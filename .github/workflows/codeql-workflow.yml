@@ -12,9 +12,10 @@ on:
 
 jobs:
   analyse:
-    name: CodeQL Analyse of application
+    name: Analyse
     strategy: 
       matrix:
+        sdk: [ "$NANOS_SDK", "$NANOX_SDK", "$NANOSP_SDK" ]
         language: [ 'cpp' ]
     runs-on: ubuntu-latest
 
@@ -33,11 +34,10 @@ jobs:
           languages: ${{ matrix.language }}
           queries: security-and-quality
 
-      - name: Build
+      - name: Build Nano 
         run: |
           make clean
-          make DEBUG=1 ALLOW_DATA=1
-          mv bin/app.elf ethereum_nanos.elf
+          make BOLOS_SDK=${{ matrix.sdk }}
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2

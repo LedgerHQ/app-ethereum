@@ -8,7 +8,6 @@
 
 typedef struct
 {
-    uint8_t *typenames_array;
     uint8_t *structs_array;
     uint8_t *current_struct_fields_array;
     uint8_t contract_addr[ADDRESS_LENGTH];

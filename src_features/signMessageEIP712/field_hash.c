@@ -13,6 +13,7 @@
 #include "utils.h" // u64_from_BE
 #include "apdu_constants.h" // APDU response codes
 #include "typed_data.h"
+#include "commands_712.h"
 
 static s_field_hashing *fh = NULL;
 
@@ -206,9 +207,7 @@ bool    field_hash(const uint8_t *data,
             apdu_response_code = APDU_RESPONSE_INVALID_DATA;
             return false;
         }
-        G_io_apdu_buffer[0] = 0x90;
-        G_io_apdu_buffer[1] = 0x00;
-        io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+        handle_eip712_return_code(true);
     }
 
     return true;

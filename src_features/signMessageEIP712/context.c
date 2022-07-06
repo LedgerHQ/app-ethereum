@@ -9,6 +9,7 @@
 #include "path.h"
 #include "field_hash.h"
 #include "ui_logic.h"
+#include "typed_data.h"
 #include "apdu_constants.h" // APDU response codes
 #include "shared_context.h" // reset_app_context
 #include "ui_callbacks.h" // ui_idle
@@ -50,20 +51,17 @@ bool    eip712_context_init(void)
         return false;
     }
 
-    // set types pointer
-    if ((eip712_context->structs_array = mem_alloc(sizeof(uint8_t))) == NULL)
+    if (typed_data_init() == false) // this needs to be initialized last !
     {
-        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
         return false;
     }
 
-    // create len(types)
-    *(eip712_context->structs_array) = 0;
     return true;
 }
 
 void    eip712_context_deinit(void)
 {
+    typed_data_deinit();
     path_deinit();
     field_hash_deinit();
     ui_712_deinit();

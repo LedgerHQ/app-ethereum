@@ -18,7 +18,7 @@ bool    compute_schema_hash(void)
 
     cx_sha224_init(&hash_ctx);
 
-    struct_ptr = get_structs_array(eip712_context->structs_array, &structs_count);
+    struct_ptr = get_structs_array(&structs_count);
     hash_byte('{', (cx_hash_t*)&hash_ctx);
     while (structs_count-- > 0)
     {

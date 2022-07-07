@@ -14,6 +14,7 @@
 #include "apdu_constants.h" // APDU response codes
 #include "typed_data.h"
 #include "commands_712.h"
+#include "hash_bytes.h"
 
 static s_field_hashing *fh = NULL;
 
@@ -36,54 +37,206 @@ void    field_hash_deinit(void)
     fh = NULL;
 }
 
+static const uint8_t *field_hash_prepare(const void *const field_ptr,
+                               const uint8_t *data,
+                               uint8_t *data_length)
+{
+    e_type field_type;
+
+    field_type = struct_field_type(field_ptr);
+    fh->remaining_size = __builtin_bswap16(*(uint16_t*)&data[0]); // network byte order
+    data += sizeof(uint16_t);
+    *data_length -= sizeof(uint16_t);
+    fh->state = FHS_WAITING_FOR_MORE;
+    if (IS_DYN(field_type))
+    {
+        cx_keccak_init(&global_sha3, 256); // init hash
+        ui_712_new_field(field_ptr, data, *data_length);
+    }
+    return data;
+}
+
+static const uint8_t *field_hash_finalize_static(const void *const field_ptr,
+                                                 const uint8_t *const data,
+                                                 uint8_t data_length)
+{
+    uint8_t *value = NULL;
+    e_type field_type;
+
+    field_type = struct_field_type(field_ptr);
+    switch (field_type)
+    {
+        case TYPE_SOL_INT:
+            value = encode_int(data, data_length, get_struct_field_typesize(field_ptr));
+            break;
+        case TYPE_SOL_UINT:
+            value = encode_uint(data, data_length);
+            break;
+        case TYPE_SOL_BYTES_FIX:
+            value = encode_bytes(data, data_length);
+            break;
+        case TYPE_SOL_ADDRESS:
+            value = encode_address(data, data_length);
+            break;
+        case TYPE_SOL_BOOL:
+            value = encode_boolean((bool*)data, data_length);
+            break;
+        case TYPE_CUSTOM:
+        default:
+            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+            PRINTF("Unknown solidity type!\n");
+            return NULL;
+    }
+
+    if (value == NULL)
+    {
+        return NULL;
+    }
+    ui_712_new_field(field_ptr, data, data_length);
+    return value;
+}
+
+static uint8_t *field_hash_finalize_dynamic(void)
+{
+    uint8_t *value;
+
+    if ((value = mem_alloc(KECCAK256_HASH_BYTESIZE)) == NULL)
+    {
+        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+        return NULL;
+    }
+    // copy hash into memory
+    cx_hash((cx_hash_t*)&global_sha3,
+            CX_LAST,
+            NULL,
+            0,
+            value,
+            KECCAK256_HASH_BYTESIZE);
+    return value;
+}
+
+static void field_hash_feed_parent(e_type field_type, const uint8_t *const value)
+{
+    uint8_t len;
+
+    if (IS_DYN(field_type))
+    {
+        len = KECCAK256_HASH_BYTESIZE;
+    }
+    else
+    {
+        len = EIP_712_ENCODED_FIELD_LENGTH;
+    }
+
+    // last thing in mem is the hash of the previous field
+    // and just before it is the current hash context
+    cx_sha3_t *hash_ctx = (cx_sha3_t*)(value - sizeof(cx_sha3_t));
+    // start the progressive hash on it
+    hash_nbytes(value, len, (cx_hash_t*)hash_ctx);
+    // deallocate it
+    mem_dealloc(len);
+}
+
+static bool field_hash_domain_special_fields(const void *const field_ptr,
+                                             const uint8_t *const data,
+                                             uint8_t data_length)
+{
+    const char *key;
+    uint8_t keylen;
+
+    key = get_struct_field_keyname(field_ptr, &keylen);
+    // copy contract address into context
+    if (strncmp(key, "verifyingContract", keylen) == 0)
+    {
+        if (data_length != sizeof(eip712_context->contract_addr))
+        {
+            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+            PRINTF("Unexpected verifyingContract length!\n");
+            return false;
+        }
+        memcpy(eip712_context->contract_addr, data, data_length);
+    }
+    else if (strncmp(key, "chainId", keylen) == 0)
+    {
+        uint64_t chainId = u64_from_BE(data, data_length);
+
+        if (chainId != chainConfig->chainId)
+        {
+            apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+            PRINTF("EIP712Domain chain ID mismatch, expected 0x%.*h, got 0x%.*h !\n",
+                   sizeof(chainConfig->chainId),
+                   &chainConfig->chainId,
+                   sizeof(chainId),
+                   &chainId);
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool field_hash_finalize(const void *const field_ptr,
+                                const uint8_t *const data,
+                                uint8_t data_length)
+{
+    const uint8_t *value = NULL;
+    e_type field_type;
+
+    field_type = struct_field_type(field_ptr);
+    if (!IS_DYN(field_type))
+    {
+        if ((value = field_hash_finalize_static(field_ptr,
+                                                data,
+                                                data_length)) == NULL)
+        {
+            return false;
+        }
+    }
+    else
+    {
+        if ((value = field_hash_finalize_dynamic()) == NULL)
+        {
+            return false;
+        }
+    }
+
+    field_hash_feed_parent(field_type, value);
+
+    if (path_get_root_type() == ROOT_DOMAIN)
+    {
+        if (field_hash_domain_special_fields(field_ptr, data, data_length) == false)
+        {
+            return false;
+        }
+    }
+    path_advance();
+    fh->state = FHS_IDLE;
+    ui_712_finalize_field();
+    return true;
+}
+
 bool    field_hash(const uint8_t *data,
                    uint8_t data_length,
                    bool partial)
 {
     const void *field_ptr;
     e_type field_type;
-    uint8_t *value = NULL;
-    const char *key;
-    uint8_t keylen;
-#ifdef DEBUG
-    const char *type;
-    uint8_t typelen;
-#endif
 
-    if (fh == NULL)
-    {
-        return false;
-    }
-    // get field by path
-    if ((field_ptr = path_get_field()) == NULL)
+    if ((fh == NULL) || ((field_ptr = path_get_field()) == NULL))
     {
         apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
         return false;
     }
-    key = get_struct_field_keyname(field_ptr, &keylen);
+
     field_type = struct_field_type(field_ptr);
     if (fh->state == FHS_IDLE) // first packet for this frame
     {
-        fh->remaining_size = __builtin_bswap16(*(uint16_t*)&data[0]); // network byte order
-        data += sizeof(uint16_t);
-        data_length -= sizeof(uint16_t);
-        fh->state = FHS_WAITING_FOR_MORE;
-        if (IS_DYN(field_type))
-        {
-            cx_keccak_init(&global_sha3, 256); // init hash
-            ui_712_new_field(field_ptr, data, data_length);
-        }
+        data = field_hash_prepare(field_ptr, data, &data_length);
     }
     fh->remaining_size -= data_length;
     // if a dynamic type -> continue progressive hash
     if (IS_DYN(field_type))
     {
-        cx_hash((cx_hash_t*)&global_sha3,
-                0,
-                data,
-                data_length,
-                NULL,
-                0);
+        hash_nbytes(data, data_length, (cx_hash_t*)&global_sha3);
     }
     if (fh->remaining_size == 0)
     {
@@ -92,113 +245,10 @@ bool    field_hash(const uint8_t *data,
             apdu_response_code = APDU_RESPONSE_INVALID_DATA;
             return false;
         }
-#ifdef DEBUG
-        PRINTF("=> ");
-        type = get_struct_field_typename(field_ptr, &typelen);
-        fwrite(type, sizeof(char), typelen, stdout);
-        PRINTF(" ");
-        key = get_struct_field_keyname(field_ptr, &keylen);
-        fwrite(key, sizeof(char), keylen, stdout);
-        PRINTF("\n");
-#endif
-
-        if (!IS_DYN(field_type))
+        if (field_hash_finalize(field_ptr, data, data_length) == false)
         {
-            switch (field_type)
-            {
-                case TYPE_SOL_INT:
-                    value = encode_int(data, data_length, get_struct_field_typesize(field_ptr));
-                    break;
-                case TYPE_SOL_UINT:
-                    value = encode_uint(data, data_length);
-                    break;
-                case TYPE_SOL_BYTES_FIX:
-                    value = encode_bytes(data, data_length);
-                    break;
-                case TYPE_SOL_ADDRESS:
-                    value = encode_address(data, data_length);
-                    break;
-                case TYPE_SOL_BOOL:
-                    value = encode_boolean((bool*)data, data_length);
-                    break;
-                case TYPE_CUSTOM:
-                default:
-                    apdu_response_code = APDU_RESPONSE_INVALID_DATA;
-                    PRINTF("Unknown solidity type!\n");
-                    return false;
-            }
-
-            if (value == NULL)
-            {
-                return false;
-            }
-            ui_712_new_field(field_ptr, data, data_length);
+            return false;
         }
-        else
-        {
-            if ((value = mem_alloc(KECCAK256_HASH_BYTESIZE)) == NULL)
-            {
-                apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
-                return false;
-            }
-            // copy hash into memory
-            cx_hash((cx_hash_t*)&global_sha3,
-                    CX_LAST,
-                    NULL,
-                    0,
-                    value,
-                    KECCAK256_HASH_BYTESIZE);
-        }
-
-        // TODO: Move elsewhere
-        uint8_t len = IS_DYN(field_type) ?
-                      KECCAK256_HASH_BYTESIZE :
-                      EIP_712_ENCODED_FIELD_LENGTH;
-        // last thing in mem is the hash of the previous field
-        // and just before it is the current hash context
-        cx_sha3_t *hash_ctx = (cx_sha3_t*)(value - sizeof(cx_sha3_t));
-        // start the progressive hash on it
-        cx_hash((cx_hash_t*)hash_ctx,
-                0,
-                value,
-                len,
-                NULL,
-                0);
-        // deallocate it
-        mem_dealloc(len);
-
-        if (path_get_root_type() == ROOT_DOMAIN)
-        {
-            // copy contract address into context
-            if (strncmp(key, "verifyingContract", keylen) == 0)
-            {
-                if (data_length != sizeof(eip712_context->contract_addr))
-                {
-                    apdu_response_code = APDU_RESPONSE_INVALID_DATA;
-                    PRINTF("Unexpected verifyingContract length!\n");
-                    return false;
-                }
-                memcpy(eip712_context->contract_addr, data, data_length);
-            }
-            else if (strncmp(key, "chainId", keylen) == 0)
-            {
-                uint64_t chainId = u64_from_BE(data, data_length);
-
-                if (chainId != chainConfig->chainId)
-                {
-                    apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
-                    PRINTF("EIP712Domain chain ID mismatch, expected 0x%.*h, got 0x%.*h !\n",
-                           sizeof(chainConfig->chainId),
-                           &chainConfig->chainId,
-                           sizeof(chainId),
-                           &chainId);
-                    return false;
-                }
-            }
-        }
-        path_advance();
-        fh->state = FHS_IDLE;
-        ui_712_finalize_field();
     }
     else
     {

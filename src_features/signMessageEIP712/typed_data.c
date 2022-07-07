@@ -348,17 +348,89 @@ bool    set_struct_name(uint8_t length, const uint8_t *const name)
     return true;
 }
 
-// TODO: Split this function
+static bool set_struct_field_custom(const uint8_t *const data, uint8_t *data_idx)
+{
+    uint8_t *typename_len_ptr;
+    char *typename;
+
+    // copy custom struct name length
+    if ((typename_len_ptr = mem_alloc(sizeof(uint8_t))) == NULL)
+    {
+        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+        return false;
+    }
+    *typename_len_ptr = data[(*data_idx)++];
+
+    // copy name
+    if ((typename = mem_alloc(sizeof(char) * *typename_len_ptr)) == NULL)
+    {
+        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+        return false;
+    }
+    memmove(typename, &data[*data_idx], *typename_len_ptr);
+    *data_idx += *typename_len_ptr;
+    return true;
+}
+
+static bool set_struct_field_array(const uint8_t *const data, uint8_t *data_idx)
+{
+    uint8_t *array_levels_count;
+    e_array_type *array_level;
+    uint8_t *array_level_size;
+
+    if ((array_levels_count = mem_alloc(sizeof(uint8_t))) == NULL)
+    {
+        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+        return false;
+    }
+    *array_levels_count = data[(*data_idx)++];
+    for (int idx = 0; idx < *array_levels_count; ++idx)
+    {
+        if ((array_level = mem_alloc(sizeof(uint8_t))) == NULL)
+        {
+            apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+            return false;
+        }
+        *array_level = data[(*data_idx)++];
+        switch (*array_level)
+        {
+            case ARRAY_DYNAMIC: // nothing to do
+                break;
+            case ARRAY_FIXED_SIZE:
+                if ((array_level_size = mem_alloc(sizeof(uint8_t))) == NULL)
+                {
+                    apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+                    return false;
+                }
+                *array_level_size = data[(*data_idx)++];
+                break;
+            default:
+                // should not be in here :^)
+                apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+                return false;
+        }
+    }
+    return true;
+}
+
+static bool set_struct_field_typesize(const uint8_t *const data, uint8_t *data_idx)
+{
+    uint8_t *type_size_ptr;
+
+    // copy TypeSize
+    if ((type_size_ptr = mem_alloc(sizeof(uint8_t))) == NULL)
+    {
+        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+        return false;
+    }
+    *type_size_ptr = data[(*data_idx)++];
+    return true;
+}
+
 bool    set_struct_field(const uint8_t *const data)
 {
     uint8_t data_idx = OFFSET_CDATA;
     uint8_t *type_desc_ptr;
-    uint8_t *type_size_ptr;
-    uint8_t *typename_len_ptr;
-    char *typename;
-    uint8_t *array_levels_count;
-    e_array_type *array_level;
-    uint8_t *array_level_size;
     uint8_t *fieldname_len_ptr;
     char *fieldname_ptr;
 
@@ -380,66 +452,23 @@ bool    set_struct_field(const uint8_t *const data)
     // check TypeSize flag in TypeDesc
     if (*type_desc_ptr & TYPESIZE_MASK)
     {
-        // copy TypeSize
-        if ((type_size_ptr = mem_alloc(sizeof(uint8_t))) == NULL)
+        if (set_struct_field_typesize(data, &data_idx) == false)
         {
-            apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
             return false;
         }
-        *type_size_ptr = data[data_idx++];
     }
     else if ((*type_desc_ptr & TYPE_MASK) == TYPE_CUSTOM)
     {
-        // copy custom struct name length
-        if ((typename_len_ptr = mem_alloc(sizeof(uint8_t))) == NULL)
+        if (set_struct_field_custom(data, &data_idx) == false)
         {
-            apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
             return false;
         }
-        *typename_len_ptr = data[data_idx++];
-
-        // copy name
-        if ((typename = mem_alloc(sizeof(char) * *typename_len_ptr)) == NULL)
-        {
-            apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
-            return false;
-        }
-        memmove(typename, &data[data_idx], *typename_len_ptr);
-        data_idx += *typename_len_ptr;
     }
     if (*type_desc_ptr & ARRAY_MASK)
     {
-        if ((array_levels_count = mem_alloc(sizeof(uint8_t))) == NULL)
+        if (set_struct_field_array(data, &data_idx) == false)
         {
-            apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
             return false;
-        }
-        *array_levels_count = data[data_idx++];
-        for (int idx = 0; idx < *array_levels_count; ++idx)
-        {
-            if ((array_level = mem_alloc(sizeof(uint8_t))) == NULL)
-            {
-                apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
-                return false;
-            }
-            *array_level = data[data_idx++];
-            switch (*array_level)
-            {
-                case ARRAY_DYNAMIC: // nothing to do
-                    break;
-                case ARRAY_FIXED_SIZE:
-                    if ((array_level_size = mem_alloc(sizeof(uint8_t))) == NULL)
-                    {
-                        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
-                        return false;
-                    }
-                    *array_level_size = data[data_idx++];
-                    break;
-                default:
-                    // should not be in here :^)
-                    apdu_response_code = APDU_RESPONSE_INVALID_DATA;
-                    return false;
-            }
         }
     }
 

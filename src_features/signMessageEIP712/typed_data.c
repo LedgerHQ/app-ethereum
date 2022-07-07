@@ -349,7 +349,6 @@ bool    set_struct_name(uint8_t length, const uint8_t *const name)
 }
 
 // TODO: Split this function
-// TODO: Handle partial sends
 bool    set_struct_field(const uint8_t *const data)
 {
     uint8_t data_idx = OFFSET_CDATA;

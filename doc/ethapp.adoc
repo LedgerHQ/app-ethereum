@@ -618,9 +618,7 @@ _Command_
 [width="80%"]
 |=========================================================================
 | *CLA* | *INS*  | *P1*               | *P2*       | *LC*     | *Le*
-|   E0  |   1A   |  00 : complete send
-
-                    01 : partial send, more to come
+|   E0  |   1A   |  00
                                       |   00 : struct name
 
                                           FF : struct field

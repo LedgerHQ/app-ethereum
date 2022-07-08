@@ -12,7 +12,6 @@ void handleSign(uint8_t p1,
                 unsigned int *tx) {
     UNUSED(tx);
     parserStatus_e txResult;
-    bip32_path_t bip32;
 
     if (os_global_pin_is_validated() != BOLOS_UX_OK) {
         PRINTF("Device is PIN-locked");

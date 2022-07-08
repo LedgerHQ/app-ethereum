@@ -20,7 +20,8 @@ void handleStarkwareSignMessage(uint8_t p1,
                                 __attribute__((unused)) unsigned int *tx) {
     uint8_t privateKeyData[INT256_LENGTH];
     uint32_t i;
-    uint8_t bip32PathLength = *(dataBuffer);
+    // uint8_t bip32PathLength = *(dataBuffer);
+    uint8_t bip32PathLength;
     uint8_t offset = 1;
     cx_ecfp_private_key_t privateKey;
     poorstream_t bitstream;
@@ -29,10 +30,19 @@ void handleStarkwareSignMessage(uint8_t p1,
     uint8_t protocol = 2;
     uint8_t preOffset, postOffset;
     uint8_t zeroTest;
+
     // Initial checks
     if (appState != APP_STATE_IDLE) {
         reset_app_context();
     }
+
+    if (dataLength < 1) {
+        PRINTF("Invalid data\n");
+        THROW(0x6a80);
+    }
+
+    bip32PathLength = *(dataBuffer);
+
     if ((bip32PathLength < 0x01) || (bip32PathLength > MAX_BIP32_PATH)) {
         PRINTF("Invalid path\n");
         THROW(0x6a80);
@@ -70,10 +80,10 @@ void handleStarkwareSignMessage(uint8_t p1,
     if (p2 != 0) {
         THROW(0x6B00);
     }
-    tmpCtx.transactionContext.pathLength = bip32PathLength;
+    tmpCtx.transactionContext.bip32.length = bip32PathLength;
     for (i = 0; i < bip32PathLength; i++) {
-        tmpCtx.transactionContext.bip32Path[i] = U4BE(dataBuffer, offset);
-        PRINTF("Storing path %d %d\n", i, tmpCtx.transactionContext.bip32Path[i]);
+        tmpCtx.transactionContext.bip32.path[i] = U4BE(dataBuffer, offset);
+        PRINTF("Storing path %d %d\n", i, tmpCtx.transactionContext.bip32.path[i]);
         offset += 4;
     }
     // Discard the path to use part of dataBuffer as a temporary buffer
@@ -205,7 +215,9 @@ void handleStarkwareSignMessage(uint8_t p1,
         cx_ecfp_public_key_t publicKey;
         // Check if the transfer is a self transfer
         io_seproxyhal_io_heartbeat();
-        starkDerivePrivateKey(tmpCtx.transactionContext.bip32Path, bip32PathLength, privateKeyData);
+        starkDerivePrivateKey(tmpCtx.transactionContext.bip32.path,
+                              bip32PathLength,
+                              privateKeyData);
         cx_ecfp_init_private_key(CX_CURVE_Stark256, privateKeyData, 32, &privateKey);
         io_seproxyhal_io_heartbeat();
         cx_ecfp_generate_pair(CX_CURVE_Stark256, &publicKey, &privateKey, 1);

@@ -196,6 +196,105 @@ void    ui_712_message_hash(void)
     ui_712_redraw_generic_step();
 }
 
+static bool ui_712_format_bool(const uint8_t *const data, uint8_t length)
+{
+    if (length != 1)
+    {
+        return false;
+    }
+    if (*data)
+    {
+        ui_712_set_value("true", 4);
+    }
+    else
+    {
+        ui_712_set_value("false", 5);
+    }
+    return true;
+}
+
+static void ui_712_format_bytes(const uint8_t *const data, uint8_t length)
+{
+    snprintf(strings.tmp.tmp,
+            sizeof(strings.tmp.tmp),
+            "0x%.*H",
+            length,
+            data);
+    // +2 for the "0x"
+    // x2 for each byte value is represented by 2 ASCII characters
+    if ((2 + (length * 2)) > (sizeof(strings.tmp.tmp) - 1))
+    {
+        strings.tmp.tmp[sizeof(strings.tmp.tmp) - 1 - 3] = '\0';
+        strcat(strings.tmp.tmp, "...");
+    }
+}
+
+static bool ui_712_format_int(const uint8_t *const data,
+                              uint8_t length,
+                              const void *const field_ptr)
+{
+    uint256_t value256;
+    uint128_t value128;
+    int32_t value32;
+    int16_t value16;
+
+    switch (get_struct_field_typesize(field_ptr) * 8)
+    {
+        case 256:
+            convertUint256BE(data, length, &value256);
+            tostring256_signed(&value256, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
+            break;
+        case 128:
+            convertUint128BE(data, length, &value128);
+            tostring128_signed(&value128, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
+            break;
+        case 64:
+            convertUint64BEto128(data, length, &value128);
+            tostring128_signed(&value128, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
+            break;
+        case 32:
+            value32 = 0;
+            for (int i = 0; i < length; ++i)
+            {
+                ((uint8_t*)&value32)[length - 1 - i] = data[i];
+            }
+            snprintf(strings.tmp.tmp,
+                    sizeof(strings.tmp.tmp),
+                    "%d",
+                    value32);
+            break;
+        case 16:
+            value16 = 0;
+            for (int i = 0; i < length; ++i)
+            {
+                ((uint8_t*)&value16)[length - 1 - i] = data[i];
+            }
+            snprintf(strings.tmp.tmp,
+                    sizeof(strings.tmp.tmp),
+                    "%d",
+                    value16); // expanded to 32 bits
+            break;
+        case 8:
+            snprintf(strings.tmp.tmp,
+                    sizeof(strings.tmp.tmp),
+                    "%d",
+                    ((int8_t*)data)[0]); // expanded to 32 bits
+            break;
+        default:
+            PRINTF("Unhandled field typesize\n");
+            return false;
+    }
+    return true;
+}
+
+static void ui_712_format_uint(const uint8_t *const data, uint8_t length)
+{
+    uint256_t value256;
+
+    convertUint256BE(data, length, &value256);
+    tostring256(&value256, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
+}
+
 /**
  * Used to notify of a new field to review in the current struct (key + value)
  *
@@ -203,24 +302,21 @@ void    ui_712_message_hash(void)
  * @param[in] data pointer to the field's raw value
  * @param[in] length field's raw value byte-length
  */
-void    ui_712_new_field(const void *const field_ptr, const uint8_t *const data, uint8_t length)
+bool    ui_712_new_field(const void *const field_ptr, const uint8_t *const data, uint8_t length)
 {
     const char *key;
     uint8_t key_len;
-    uint256_t value256;
-    uint128_t value128;
-    int32_t value32;
-    int16_t value16;
 
     if (ui_ctx == NULL)
     {
-        return;
+        return false;
     }
 
     // Check if this field is supposed to be displayed
+    // TODO: maybe put it after the big switch case so error handling on value happens
     if (!ui_712_field_shown())
     {
-        return;
+        return true;
     }
 
     // Key
@@ -247,85 +343,30 @@ void    ui_712_new_field(const void *const field_ptr, const uint8_t *const data,
                                      chainConfig->chainId);
             break;
         case TYPE_SOL_BOOL:
-            if (*data)
+            if (ui_712_format_bool(data, length) == false)
             {
-                ui_712_set_value("true", 4);
-            }
-            else
-            {
-                ui_712_set_value("false", 5);
+                return false;
             }
             break;
         case TYPE_SOL_BYTES_FIX:
         case TYPE_SOL_BYTES_DYN:
-            snprintf(strings.tmp.tmp,
-                     sizeof(strings.tmp.tmp),
-                     "0x%.*H",
-                     length,
-                     data);
-            // +2 for the "0x"
-            // x2 for each byte value is represented by 2 ASCII characters
-            if ((2 + (length * 2)) > (sizeof(strings.tmp.tmp) - 1))
-            {
-                strings.tmp.tmp[sizeof(strings.tmp.tmp) - 1 - 3] = '\0';
-                strcat(strings.tmp.tmp, "...");
-            }
+            ui_712_format_bytes(data, length);
             break;
         case TYPE_SOL_INT:
-            switch (get_struct_field_typesize(field_ptr) * 8)
+            if (ui_712_format_int(data, length, field_ptr) == false)
             {
-                case 256:
-                    convertUint256BE(data, length, &value256);
-                    tostring256_signed(&value256, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
-                    break;
-                case 128:
-                    convertUint128BE(data, length, &value128);
-                    tostring128_signed(&value128, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
-                    break;
-                case 64:
-                    convertUint64BEto128(data, length, &value128);
-                    tostring128_signed(&value128, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
-                    break;
-                case 32:
-                    value32 = 0;
-                    for (int i = 0; i < length; ++i)
-                    {
-                        ((uint8_t*)&value32)[length - 1 - i] = data[i];
-                    }
-                    snprintf(strings.tmp.tmp,
-                             sizeof(strings.tmp.tmp),
-                             "%d",
-                             value32);
-                    break;
-                case 16:
-                    value16 = 0;
-                    for (int i = 0; i < length; ++i)
-                    {
-                        ((uint8_t*)&value16)[length - 1 - i] = data[i];
-                    }
-                    snprintf(strings.tmp.tmp,
-                             sizeof(strings.tmp.tmp),
-                             "%d",
-                             value16); // expanded to 32 bits
-                    break;
-                case 8:
-                    snprintf(strings.tmp.tmp,
-                             sizeof(strings.tmp.tmp),
-                             "%d",
-                             ((int8_t*)data)[0]); // expanded to 32 bits
-                    break;
-                default:
-                    PRINTF("Unhandled field typesize\n");
+                return false;
             }
             break;
         case TYPE_SOL_UINT:
-            convertUint256BE(data, length, &value256);
-            tostring256(&value256, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
+            ui_712_format_uint(data, length);
             break;
         default:
             PRINTF("Unhandled type\n");
+            return false;
     }
     ui_712_redraw_generic_step();
+    return true;
 }
 
 /**

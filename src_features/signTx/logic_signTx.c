@@ -424,6 +424,7 @@ void finalizeParsing(bool direct) {
 
     // User has just validated a swap but ETH received apdus about a non standard plugin / contract
     if (called_from_swap && !use_standard_UI) {
+        PRINTF("ERR_SILENT_MODE_CHECK_FAILED, called_from_swap\n");
         THROW(ERR_SILENT_MODE_CHECK_FAILED);
     }
 
@@ -448,6 +449,7 @@ void finalizeParsing(bool direct) {
         if (called_from_swap) {
             // Ensure the values are the same that the ones that have been previously validated
             if (strcasecmp_workaround(strings.common.fullAddress, displayBuffer) != 0) {
+                PRINTF("ERR_SILENT_MODE_CHECK_FAILED, address check failed\n");
                 THROW(ERR_SILENT_MODE_CHECK_FAILED);
             }
         } else {
@@ -466,6 +468,7 @@ void finalizeParsing(bool direct) {
         if (called_from_swap) {
             // Ensure the values are the same that the ones that have been previously validated
             if (strcmp(strings.common.fullAmount, displayBuffer) != 0) {
+                PRINTF("ERR_SILENT_MODE_CHECK_FAILED, amount check failed\n");
                 THROW(ERR_SILENT_MODE_CHECK_FAILED);
             }
         } else {
@@ -483,6 +486,7 @@ void finalizeParsing(bool direct) {
     if (called_from_swap) {
         // Ensure the values are the same that the ones that have been previously validated
         if (strcmp(strings.common.maxFee, displayBuffer) != 0) {
+            PRINTF("ERR_SILENT_MODE_CHECK_FAILED, fees check failed\n");
             THROW(ERR_SILENT_MODE_CHECK_FAILED);
         }
     } else {

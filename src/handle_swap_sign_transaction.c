@@ -33,7 +33,8 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
                    decimals,
                    ticker,
                    stack_data.fullAmount,
-                   sizeof(stack_data.fullAmount));
+                   sizeof(stack_data.fullAmount),
+                   false);
 
     // If the amount is a fee, its value is nominated in ETH even if we're doing an ERC20 swap
     strlcpy(ticker, config->coinName, MAX_TICKER_LEN);
@@ -43,7 +44,8 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
                    decimals,
                    ticker,
                    stack_data.maxFee,
-                   sizeof(stack_data.maxFee));
+                   sizeof(stack_data.maxFee),
+                   false);
 
     memcpy(&strings.common, &stack_data, sizeof(stack_data));
     return true;

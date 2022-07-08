@@ -202,7 +202,8 @@ void erc20_plugin_call(int message, void *parameters) {
                                        context->decimals,
                                        context->ticker,
                                        msg->msg,
-                                       100);
+                                       100,
+                                       false);
                     }
                     msg->result = ETH_PLUGIN_RESULT_OK;
                     break;

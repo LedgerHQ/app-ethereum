@@ -115,7 +115,8 @@ void amountToString(const uint8_t *amount,
                     uint8_t decimals,
                     const char *ticker,
                     char *out_buffer,
-                    size_t out_buffer_size) {
+                    size_t out_buffer_size,
+                    bool add_space) {
     char tmp_buffer[100] = {0};
 
     if (uint256_to_decimal(amount, amount_size, tmp_buffer, sizeof(tmp_buffer)) == false) {
@@ -126,6 +127,10 @@ void amountToString(const uint8_t *amount,
     uint8_t ticker_len = strnlen(ticker, MAX_TICKER_LEN);
 
     memcpy(out_buffer, ticker, MIN(out_buffer_size, ticker_len));
+
+    if (add_space) {
+        memcpy(out_buffer + MIN(out_buffer_size, ticker_len), " ", 1);
+    }
 
     if (adjustDecimals(tmp_buffer,
                        amount_len,

@@ -438,7 +438,8 @@ void finalizeParsing(bool direct) {
                        decimals,
                        ticker,
                        displayBuffer,
-                       sizeof(displayBuffer));
+                       sizeof(displayBuffer),
+                       false);
         compareOrCopy(strings.common.fullAmount,
                       sizeof(strings.common.fullAmount),
                       displayBuffer,

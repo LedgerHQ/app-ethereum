@@ -205,7 +205,8 @@ void eth2_plugin_call(int message, void *parameters) {
                                    decimals,
                                    ticker,
                                    msg->msg,
-                                   100);
+                                   100,
+                                   false);
                     msg->result = ETH_PLUGIN_RESULT_OK;
                 } break;
                 case 1: {  // Deposit pubkey screen

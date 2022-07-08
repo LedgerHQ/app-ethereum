@@ -39,6 +39,7 @@ int handle_get_printable_amount(get_printable_amount_parameters_t* params, chain
                    decimals,
                    ticker,
                    params->printable_amount,
-                   sizeof(params->printable_amount));
+                   sizeof(params->printable_amount),
+                   false);
     return 1;
 }

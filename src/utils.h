@@ -37,7 +37,8 @@ void amountToString(const uint8_t* amount,
                     uint8_t decimals,
                     const char* ticker,
                     char* out_buffer,
-                    size_t out_buffer_size);
+                    size_t out_buffer_size,
+                    bool add_space);
 
 bool parse_swap_config(const uint8_t* config, uint8_t config_len, char* ticker, uint8_t* decimals);
 

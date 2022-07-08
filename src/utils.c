@@ -134,8 +134,8 @@ void amountToString(const uint8_t *amount,
 
     if (adjustDecimals(tmp_buffer,
                        amount_len,
-                       out_buffer + ticker_len,
-                       out_buffer_size - ticker_len - 1,
+                       out_buffer + (ticker_len + add_space),
+                       out_buffer_size - (ticker_len + add_space) - 1,
                        decimals) == false) {
         THROW(EXCEPTION_OVERFLOW);
     }

@@ -13,8 +13,8 @@ unsigned int io_seproxyhal_touch_stark_unsafe_sign_ok(__attribute__((unused))
     unsigned int info = 0;
     uint32_t tx = 0;
     io_seproxyhal_io_heartbeat();
-    starkDerivePrivateKey(tmpCtx.transactionContext.bip32Path,
-                          tmpCtx.transactionContext.pathLength,
+    starkDerivePrivateKey(tmpCtx.transactionContext.bip32.path,
+                          tmpCtx.transactionContext.bip32.length,
                           privateKeyData);
     io_seproxyhal_io_heartbeat();
     cx_ecfp_init_private_key(CX_CURVE_Stark256, privateKeyData, 32, &privateKey);

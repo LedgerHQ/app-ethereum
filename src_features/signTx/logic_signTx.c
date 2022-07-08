@@ -282,8 +282,8 @@ static void get_public_key(uint8_t *out, uint8_t outLength) {
     }
 
     os_perso_derive_node_bip32(CX_CURVE_256K1,
-                               tmpCtx.transactionContext.bip32Path,
-                               tmpCtx.transactionContext.pathLength,
+                               tmpCtx.transactionContext.bip32.path,
+                               tmpCtx.transactionContext.bip32.length,
                                privateKeyData,
                                NULL);
     cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);

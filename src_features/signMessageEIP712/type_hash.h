@@ -4,9 +4,11 @@
 #ifdef HAVE_EIP712_FULL_SUPPORT
 
 #include <stdint.h>
+#include <stdbool.h>
 
-const uint8_t *type_hash(const char *const struct_name,
-                         const uint8_t struct_name_length);
+bool type_hash(const char *const struct_name,
+               const uint8_t struct_name_length,
+               uint8_t *hash_buf);
 
 #endif // HAVE_EIP712_FULL_SUPPORT
 

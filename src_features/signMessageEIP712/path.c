@@ -132,6 +132,56 @@ static bool path_depth_list_push(void)
     return true;
 }
 
+static cx_sha3_t *get_last_hash_ctx(void)
+{
+    return (cx_sha3_t*)mem_alloc(0) - 1;
+}
+
+static void finalize_hash_depth(uint8_t *hash)
+{
+    const cx_sha3_t *hash_ctx;
+
+    hash_ctx = get_last_hash_ctx();
+    // finalize hash
+    cx_hash((cx_hash_t*)hash_ctx,
+            CX_LAST,
+            NULL,
+            0,
+            hash,
+            KECCAK256_HASH_BYTESIZE);
+    mem_dealloc(sizeof(*hash_ctx)); // remove hash context
+}
+
+static void feed_last_hash_depth(uint8_t *hash)
+{
+    const cx_sha3_t *hash_ctx;
+
+    hash_ctx = get_last_hash_ctx();
+    // continue progressive hash with the array hash
+    cx_hash((cx_hash_t*)hash_ctx,
+            0,
+            hash,
+            KECCAK256_HASH_BYTESIZE,
+            NULL,
+            0);
+}
+
+static bool push_new_hash_depth(bool init)
+{
+    cx_sha3_t *hash_ctx;
+
+    // allocate new hash context
+    if ((hash_ctx = MEM_ALLOC_AND_ALIGN_TYPE(*hash_ctx)) == NULL)
+    {
+        return false;
+    }
+    if (init)
+    {
+        cx_keccak_init(hash_ctx, 256); // initialize it
+    }
+    return true;
+}
+
 /**
  * Go up (remove) a depth level.
  *
@@ -139,6 +189,8 @@ static bool path_depth_list_push(void)
  */
 static bool path_depth_list_pop(void)
 {
+    uint8_t hash[KECCAK256_HASH_BYTESIZE];
+
     if (path_struct == NULL)
     {
         return false;
@@ -149,27 +201,10 @@ static bool path_depth_list_pop(void)
     }
     path_struct->depth_count -= 1;
 
-    // TODO: Move elsewhere
-    uint8_t shash[KECCAK256_HASH_BYTESIZE];
-    cx_sha3_t *hash_ctx = mem_alloc(0) - sizeof(cx_sha3_t);
-    // finalize hash
-    cx_hash((cx_hash_t*)hash_ctx,
-            CX_LAST,
-            NULL,
-            0,
-            &shash[0],
-            KECCAK256_HASH_BYTESIZE);
-    mem_dealloc(sizeof(cx_sha3_t)); // remove hash context
+    finalize_hash_depth(hash);
     if (path_struct->depth_count > 0)
     {
-        hash_ctx = mem_alloc(0) - sizeof(cx_sha3_t); // previous one
-        // continue progressive hash with the array hash
-        cx_hash((cx_hash_t*)hash_ctx,
-                0,
-                &shash[0],
-                KECCAK256_HASH_BYTESIZE,
-                NULL,
-                0);
+        feed_last_hash_depth(hash);
     }
     else
     {
@@ -177,27 +212,17 @@ static bool path_depth_list_pop(void)
         {
             case ROOT_DOMAIN:
                 memcpy(tmpCtx.messageSigningContext712.domainHash,
-                       shash,
+                       hash,
                        KECCAK256_HASH_BYTESIZE);
                 break;
             case ROOT_MESSAGE:
                 memcpy(tmpCtx.messageSigningContext712.messageHash,
-                       shash,
+                       hash,
                        KECCAK256_HASH_BYTESIZE);
                 break;
             default:
                 break;
         }
-#ifdef DEBUG
-        PRINTF("Hash = 0x");
-        for (int idx = 0; idx < KECCAK256_HASH_BYTESIZE; ++idx)
-        {
-            // manual 0 padding, %.02x not supported by toolchain
-            if (shash[idx] < 0x10) PRINTF("0");
-            PRINTF("%x", shash[idx]);
-        }
-        PRINTF("\n\n");
-#endif
     }
 
     return true;
@@ -239,6 +264,8 @@ static bool array_depth_list_push(uint8_t path_idx, uint8_t size)
  */
 static bool array_depth_list_pop(void)
 {
+    uint8_t hash[KECCAK256_HASH_BYTESIZE];
+
     if (path_struct == NULL)
     {
         return false;
@@ -248,25 +275,8 @@ static bool array_depth_list_pop(void)
         return false;
     }
 
-    // TODO: Move elsewhere
-    uint8_t ahash[KECCAK256_HASH_BYTESIZE];
-    cx_sha3_t *hash_ctx = mem_alloc(0) - sizeof(cx_sha3_t);
-    // finalize hash
-    cx_hash((cx_hash_t*)hash_ctx,
-            CX_LAST,
-            NULL,
-            0,
-            &ahash[0],
-            KECCAK256_HASH_BYTESIZE);
-    mem_dealloc(sizeof(cx_sha3_t)); // remove hash context
-    hash_ctx = mem_alloc(0) - sizeof(cx_sha3_t); // previous one
-    // continue progressive hash with the array hash
-    cx_hash((cx_hash_t*)hash_ctx,
-            0,
-            &ahash[0],
-            KECCAK256_HASH_BYTESIZE,
-            NULL,
-            0);
+    finalize_hash_depth(hash);
+    feed_last_hash_depth(hash);
 
     path_struct->array_depth_count -= 1;
     return true;
@@ -285,6 +295,7 @@ static bool path_update(void)
     const void *field_ptr;
     const char *typename;
     uint8_t typename_len;
+    uint8_t hash[KECCAK256_HASH_BYTESIZE];
 
     if (path_struct == NULL)
     {
@@ -307,30 +318,16 @@ static bool path_update(void)
             return false;
         }
 
-        // TODO: Move elsewhere
-        cx_sha3_t *hash_ctx;
-        const uint8_t *thash_ptr;
-
-        // allocate new hash context
-        if ((hash_ctx = mem_alloc(sizeof(*hash_ctx))) == NULL)
+        if (push_new_hash_depth(true) == false)
         {
             return false;
         }
-        cx_keccak_init(hash_ctx, 256); // initialize it
         // get the struct typehash
-        if ((thash_ptr = type_hash(typename, typename_len)) == NULL)
+        if (type_hash(typename, typename_len, hash) == false)
         {
             return false;
         }
-        // start the progressive hash on it
-        cx_hash((cx_hash_t*)hash_ctx,
-                0,
-                thash_ptr,
-                KECCAK256_HASH_BYTESIZE,
-                NULL,
-                0);
-        // deallocate it
-        mem_dealloc(KECCAK256_HASH_BYTESIZE);
+        feed_last_hash_depth(hash);
 
         ui_712_queue_struct_to_review();
         path_depth_list_push();
@@ -347,6 +344,8 @@ static bool path_update(void)
  */
 bool    path_set_root(const char *const struct_name, uint8_t name_length)
 {
+    uint8_t hash[KECCAK256_HASH_BYTESIZE];
+
     if (path_struct == NULL)
     {
         apdu_response_code = APDU_RESPONSE_INVALID_DATA;
@@ -367,28 +366,15 @@ bool    path_set_root(const char *const struct_name, uint8_t name_length)
         return false;
     }
 
-    // TODO: Move elsewhere
-    cx_sha3_t *hash_ctx;
-    const uint8_t *thash_ptr;
-    if ((hash_ctx = MEM_ALLOC_AND_ALIGN_TYPE(*hash_ctx)) == NULL)
-    {
-        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
-        return false;
-    }
-    cx_keccak_init(hash_ctx, 256); // init hash
-    if ((thash_ptr = type_hash(struct_name, name_length)) == NULL)
+    if (push_new_hash_depth(true) == false)
     {
         return false;
     }
-    // start the progressive hash on it
-    cx_hash((cx_hash_t*)hash_ctx,
-            0,
-            thash_ptr,
-            KECCAK256_HASH_BYTESIZE,
-            NULL,
-            0);
-    // deallocate it
-    mem_dealloc(KECCAK256_HASH_BYTESIZE);
+    if (type_hash(struct_name, name_length, hash) == false)
+    {
+        return false;
+    }
+    feed_last_hash_depth(hash);
     //
 
     // init depth, at 0 : empty path
@@ -473,6 +459,7 @@ bool    path_new_array_depth(uint8_t size)
     uint8_t depth_count;
     uint8_t total_count = 0;
     uint8_t pidx;
+    bool is_custom;
 
     if (path_struct == NULL)
     {
@@ -511,24 +498,18 @@ bool    path_new_array_depth(uint8_t size)
         PRINTF("Did not find a matching array type.\n");
         return false;
     }
-    // TODO: Move elsewhere
-    cx_sha3_t *hash_ctx;
-    // memory address not aligned, padd it
-    if ((hash_ctx = mem_alloc(sizeof(*hash_ctx))) == NULL)
+    is_custom = struct_field_type(field_ptr) == TYPE_CUSTOM;
+    if (push_new_hash_depth(!is_custom) == false)
     {
-        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
         return false;
     }
-    if (struct_field_type(field_ptr) == TYPE_CUSTOM)
+    if (is_custom)
     {
-        cx_sha3_t *old_ctx = (void*)hash_ctx - sizeof(cx_sha3_t);
+        cx_sha3_t *hash_ctx = get_last_hash_ctx();
+        cx_sha3_t *old_ctx = hash_ctx - 1;
 
-        memcpy(hash_ctx, old_ctx, sizeof(cx_sha3_t));
+        memcpy(hash_ctx, old_ctx, sizeof(*old_ctx));
         cx_keccak_init(old_ctx, 256); // init hash
-    }
-    else // solidity type
-    {
-        cx_keccak_init(hash_ctx, 256); // init hash
     }
 
     return true;

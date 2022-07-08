@@ -185,52 +185,46 @@ static const void **get_struct_dependencies(uint8_t *const deps_count,
  * @param[in] with_deps if hashed typestring should include struct dependencies
  * @return pointer to encoded string or \ref NULL in case of a memory allocation error
  */
-const uint8_t *type_hash(const char *const struct_name,
-                         const uint8_t struct_name_length)
+bool type_hash(const char *const struct_name,
+               const uint8_t struct_name_length,
+               uint8_t *hash_buf)
 {
     const void *const struct_ptr = get_structn(struct_name,
                                                struct_name_length);
     uint8_t deps_count = 0;
     const void **deps;
-    uint8_t *hash_ptr;
     void *mem_loc_bak = mem_alloc(0);
 
     cx_keccak_init(&global_sha3, 256); // init hash
     deps = get_struct_dependencies(&deps_count, NULL, struct_ptr);
     if ((deps_count > 0) && (deps == NULL))
     {
-        return NULL;
+        return false;
     }
     sort_dependencies(deps_count, deps);
     if (encode_and_hash_type(struct_ptr) == false)
     {
-        return NULL;
+        return false;
     }
     // loop over each struct and generate string
     for (int idx = 0; idx < deps_count; ++idx)
     {
         if (encode_and_hash_type(*deps) == false)
         {
-            return NULL;
+            return false;
         }
         deps += 1;
     }
     mem_dealloc(mem_alloc(0) - mem_loc_bak);
 
-    // End progressive hashing
-    if ((hash_ptr = mem_alloc(KECCAK256_HASH_BYTESIZE)) == NULL)
-    {
-        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
-        return NULL;
-    }
     // copy hash into memory
     cx_hash((cx_hash_t*)&global_sha3,
             CX_LAST,
             NULL,
             0,
-            hash_ptr,
+            hash_buf,
             KECCAK256_HASH_BYTESIZE);
-    return hash_ptr;
+    return true;
 }
 
 #endif // HAVE_EIP712_FULL_SUPPORT

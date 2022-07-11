@@ -1,6 +1,7 @@
 from ast import List
 from contextlib import contextmanager
 import struct
+from time import sleep
 from typing import Tuple
 
 from speculos.client import SpeculosClient, ApduException
@@ -152,6 +153,8 @@ class EthereumCommand:
         except ApduException as error:
             raise DeviceException(error_code=error.sw, ins=InsType.INS_SIGN_TX)
 
+
+
     @contextmanager
     def simple_sign_tx(self, bip32_path: str, transaction: Transaction, result: List = list()) -> None:
         try:
@@ -196,24 +199,28 @@ class EthereumCommand:
         result.append(v)
         result.append(r)
         result.append(s)
-    
+
 
     @contextmanager
-    def simple_personal_sign_tx(self, bip32_path: str, transaction: PersonalTransaction, result: List = list()) -> None:
+    def personal_sign_tx(self, bip32_path: str, transaction: PersonalTransaction, result: List = list()) -> None:
+        """
+            Does the same thing as simple_personal_sign but allows to create a batch of cmd apdu
+        """
         try:
-            chunk: bytes = self.builder.simple_personal_sign_tx(bip32_path=bip32_path, transaction=transaction)
-
-            with self.client.apdu_exchange_nowait(cla=chunk[0], ins=chunk[1],
-                                                          p1=chunk[2], p2=chunk[3],
-                                                          data=chunk[5:]) as exchange:
-                yield exchange
-                response: bytes = exchange.receive()
+            for islast_apdu, apdu in self.builder.personal_sign_tx(bip32_path=bip32_path, transaction=transaction):
+                if islast_apdu:
+                    with self.client.apdu_exchange_nowait(cla=apdu[0], ins=apdu[1],
+                                                    p1=apdu[2], p2=apdu[3],
+                                                    data=apdu[5:]) as exchange:
+                        yield exchange
+                        response: bytes = exchange.receive()
+                else:
+                    self.send_apdu(apdu)
                 
         except ApduException as error:
             raise DeviceException(error_code=error.sw, ins=InsType.INS_SIGN_TX)
 
          # response = V (1) || R (32) || S (32)
-        assert len(response) == 65
         v, r, s = parse_sign_response(response)
         
         result.append(v)

@@ -1,5 +1,6 @@
 import enum
 import logging
+import re
 import struct
 from typing import List, Tuple, Union, Iterator, cast
 
@@ -9,6 +10,9 @@ from ethereum_client.utils import bip32_path_from_string
 
 MAX_APDU_LEN: int = 255
 
+def chunked(size, source):
+    for i in range(0, len(source), size):
+        yield source[i:i+size]
 
 def chunkify(data: bytes, chunk_len: int) -> Iterator[Tuple[bool, bytes]]:
     size: int = len(data)
@@ -355,8 +359,7 @@ class EthereumCommandBuilder:
                               p2=0x00,
                               cdata=cdata)
 
-    
-    def simple_personal_sign_tx(self, bip32_path: str, transaction: PersonalTransaction) -> bytes:
+    def personal_sign_tx(self, bip32_path: str, transaction: PersonalTransaction) -> Tuple[bool,bytes]:
         """Command builder for INS_SIGN_PERSONAL_TX.
 
         Parameters
@@ -372,6 +375,7 @@ class EthereumCommandBuilder:
             APDU command chunk for INS_SIGN_PERSONAL_TX.
 
         """
+
         bip32_paths: List[bytes] = bip32_path_from_string(bip32_path)
         
         cdata: bytes = b"".join([
@@ -383,9 +387,30 @@ class EthereumCommandBuilder:
         tx: bytes = transaction.serialize()
 
         cdata = cdata + tx
-
-        return self.serialize(cla=self.CLA,
-                              ins=InsType.INS_SIGN_PERSONAL_TX,
-                              p1=0x00,
-                              p2=0x00,
-                              cdata=cdata)
+        last_chunk = len(cdata) // MAX_APDU_LEN
+        
+        for i, (chunk) in enumerate(chunked(MAX_APDU_LEN, cdata)):
+            if i == 0 and i == last_chunk:
+                yield True, self.serialize(cla=self.CLA,
+                         ins=InsType.INS_SIGN_PERSONAL_TX,
+                         p1=0x00,
+                         p2=0x00,
+                         cdata=chunk)
+            elif i == 0:
+                yield False, self.serialize(cla=self.CLA,
+                         ins=InsType.INS_SIGN_PERSONAL_TX,
+                         p1=0x00,
+                         p2=0x00,
+                         cdata=chunk)
+            elif i == last_chunk:
+                yield True, self.serialize(cla=self.CLA,
+                         ins=InsType.INS_SIGN_PERSONAL_TX,
+                         p1=0x80,
+                         p2=0x00,
+                         cdata=chunk)
+            else:
+                yield False, self.serialize(cla=self.CLA,
+                         ins=InsType.INS_SIGN_PERSONAL_TX,
+                         p1=0x80,
+                         p2=0x00,
+                         cdata=chunk)

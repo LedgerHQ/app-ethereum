@@ -645,11 +645,13 @@ _Input data_
 |======================================================================
 | *Description*                     | *Length (byte)*   | *Mandatory*
 | TypeDesc (type description)       | 1                 | {check_y}
-| TypeSize (type byte size)         | 1                 | {check_n}
+| TypeNameLength                    | 1                 | {check_n}
+| TypeName                          | variable          | {check_n}
+| TypeSize                          | 1                 | {check_n}
 | ArrayLevelCount                   | 1                 | {check_n}
 | ArrayLevels                       | variable          | {check_n}
-| KeyLength                         | 1                 | {check_y}
-| Key                               | variable          | {check_y}
+| KeyNameLength                     | 1                 | {check_y}
+| KeyName                           | variable          | {check_y}
 |======================================================================
 
 ###### TypeDesc
@@ -679,6 +681,13 @@ How to interpret Type from its value :
 | 6                 | fixed-sized bytes
 | 7                 | dynamic-sized bytes
 |===========================================
+
+###### TypeName
+
+_Only present if the Type is set to custom._
+
+Indicates the name of the struct that will be the type of the field.
+
 
 ###### TypeSize
 

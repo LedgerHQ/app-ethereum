@@ -6,6 +6,19 @@
 #include "format_hash_field_type.h"
 #include "context.h"
 
+// the SDK does not define a SHA-224 type, define it here so it's easier
+// to understand in the code
+typedef cx_sha256_t cx_sha224_t;
+
+/**
+ * Compute the schema hash
+ *
+ * The schema hash is the value of the root field "types" in the JSON data,
+ * stripped of all its spaces and newlines. This function reconstructs the JSON syntax
+ * from the stored typed data.
+ *
+ * @return whether the schema hash was successful or not
+ */
 bool    compute_schema_hash(void)
 {
     const void *struct_ptr;
@@ -14,7 +27,7 @@ bool    compute_schema_hash(void)
     uint8_t fields_count;
     const char *name;
     uint8_t name_length;
-    cx_sha256_t hash_ctx; // sha224
+    cx_sha224_t hash_ctx;
 
     cx_sha224_init(&hash_ctx);
 

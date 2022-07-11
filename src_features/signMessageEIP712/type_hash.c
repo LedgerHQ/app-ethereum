@@ -14,6 +14,7 @@
 #include "typed_data.h"
 
 /**
+ * Encode & hash the given structure field
  *
  * @param[in] field_ptr pointer to the struct field
  * @return \ref true it finished correctly, \ref false if it didn't (memory allocation)
@@ -37,6 +38,7 @@ static bool encode_and_hash_field(const void *const field_ptr)
 }
 
 /**
+ * Encode & hash the a given structure type
  *
  * @param[in] struct_ptr pointer to the structure we want the typestring of
  * @param[in] str_length length of the formatted string in memory
@@ -79,7 +81,7 @@ static bool encode_and_hash_type(const void *const struct_ptr)
 }
 
 /**
- *
+ * Sort the given structs based by alphabetical order
  *
  * @param[in] deps_count count of how many struct dependencies pointers
  * @param[in,out] deps pointer to the first dependency pointer
@@ -116,7 +118,7 @@ static void sort_dependencies(uint8_t deps_count,
 }
 
 /**
- *
+ * Find all the dependencies from a given structure
  *
  * @param[out] deps_count count of how many struct dependencie pointers
  * @param[in] first_dep pointer to the first dependency pointer
@@ -178,7 +180,7 @@ static const void **get_struct_dependencies(uint8_t *const deps_count,
 }
 
 /**
- *
+ * Encode the structure's type and hash it
  *
  * @param[in] struct_name name of the given struct
  * @param[in] struct_name_length length of the name of the given struct

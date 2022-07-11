@@ -18,6 +18,11 @@
 
 static s_field_hashing *fh = NULL;
 
+/**
+ * Initialize the field hash context
+ *
+ * @return whether the initialization was successful or not
+ */
 bool    field_hash_init(void)
 {
     if (fh == NULL)
@@ -32,14 +37,25 @@ bool    field_hash_init(void)
     return true;
 }
 
+/**
+ * Deinitialize the field hash context
+ */
 void    field_hash_deinit(void)
 {
     fh = NULL;
 }
 
+/**
+ * Special handling of the first chunk received from a field value
+ *
+ * @param[in] field_ptr pointer to the struct field definition
+ * @param[in] data the field value
+ * @param[in,out] data_length the value length
+ * @return the data pointer
+ */
 static const uint8_t *field_hash_prepare(const void *const field_ptr,
-                               const uint8_t *data,
-                               uint8_t *data_length)
+                                         const uint8_t *data,
+                                         uint8_t *data_length)
 {
     e_type field_type;
 
@@ -56,6 +72,16 @@ static const uint8_t *field_hash_prepare(const void *const field_ptr,
     return data;
 }
 
+/**
+ * Finalize static field hash
+ *
+ * Encode the field data depending on its type
+ *
+ * @param[in] field_ptr pointer to the struct field definition
+ * @param[in] data the field value
+ * @param[in] data_length the value length
+ * @return pointer to the encoded value
+ */
 static const uint8_t *field_hash_finalize_static(const void *const field_ptr,
                                                  const uint8_t *const data,
                                                  uint8_t data_length)
@@ -85,7 +111,6 @@ static const uint8_t *field_hash_finalize_static(const void *const field_ptr,
         default:
             apdu_response_code = APDU_RESPONSE_INVALID_DATA;
             PRINTF("Unknown solidity type!\n");
-            return NULL;
     }
 
     if (value == NULL)
@@ -96,6 +121,13 @@ static const uint8_t *field_hash_finalize_static(const void *const field_ptr,
     return value;
 }
 
+/**
+ * Finalize dynamic field hash
+ *
+ * Allocate and hash the data
+ *
+ * @return pointer to the hash, \ref NULL if it failed
+ */
 static uint8_t *field_hash_finalize_dynamic(void)
 {
     uint8_t *value;
@@ -115,7 +147,13 @@ static uint8_t *field_hash_finalize_dynamic(void)
     return value;
 }
 
-static void field_hash_feed_parent(e_type field_type, const uint8_t *const value)
+/**
+ * Feed the newly created field hash into the parent struct's progressive hash
+ *
+ * @param[in] field_type the struct field's type
+ * @param[in] hash the field hash
+ */
+static void field_hash_feed_parent(e_type field_type, const uint8_t *const hash)
 {
     uint8_t len;
 
@@ -130,13 +168,23 @@ static void field_hash_feed_parent(e_type field_type, const uint8_t *const value
 
     // last thing in mem is the hash of the previous field
     // and just before it is the current hash context
-    cx_sha3_t *hash_ctx = (cx_sha3_t*)(value - sizeof(cx_sha3_t));
-    // start the progressive hash on it
-    hash_nbytes(value, len, (cx_hash_t*)hash_ctx);
+    cx_sha3_t *hash_ctx = (cx_sha3_t*)(hash - sizeof(cx_sha3_t));
+    // continue the progressive hash on it
+    hash_nbytes(hash, len, (cx_hash_t*)hash_ctx);
     // deallocate it
     mem_dealloc(len);
 }
 
+/**
+ * Special domain fields handling
+ *
+ * Do something special for certain EIP712Domain fields
+ *
+ * @param[in] field_ptr pointer to the struct field definition
+ * @param[in] data the field value
+ * @param[in] data_length the value length
+ * @return whether an error occured or not
+ */
 static bool field_hash_domain_special_fields(const void *const field_ptr,
                                              const uint8_t *const data,
                                              uint8_t data_length)
@@ -174,6 +222,14 @@ static bool field_hash_domain_special_fields(const void *const field_ptr,
     return true;
 }
 
+/**
+ * Finalize the data hashing
+ *
+ * @param[in] field_ptr pointer to the struct field definition
+ * @param[in] data the field value
+ * @param[in] data_length the value length
+ * @return whether an error occured or not
+ */
 static bool field_hash_finalize(const void *const field_ptr,
                                 const uint8_t *const data,
                                 uint8_t data_length)
@@ -214,6 +270,14 @@ static bool field_hash_finalize(const void *const field_ptr,
     return true;
 }
 
+/**
+ * Hash a field value
+ *
+ * @param[in] data the field value
+ * @param[in] data_length the value length
+ * @param[in] partial whether there is more of that data coming later or not
+ * @return whether the data hashing was successful or not
+ */
 bool    field_hash(const uint8_t *data,
                    uint8_t data_length,
                    bool partial)

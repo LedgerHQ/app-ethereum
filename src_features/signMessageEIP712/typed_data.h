@@ -55,9 +55,9 @@ const char *get_struct_field_typename(const uint8_t *ptr,
                                       uint8_t *const length);
 e_array_type struct_field_array_depth(const uint8_t *ptr,
                                       uint8_t *const array_size);
-const uint8_t *get_next_struct_field_array_lvl(const uint8_t *ptr);
+const uint8_t *get_next_struct_field_array_lvl(const uint8_t *const ptr);
 const uint8_t *struct_field_half_skip(const uint8_t *ptr);
-const uint8_t *get_struct_field_array_lvls_array(const uint8_t *ptr,
+const uint8_t *get_struct_field_array_lvls_array(const uint8_t *const ptr,
                                                  uint8_t *const length);
 const char *get_struct_field_keyname(const uint8_t *ptr,
                                      uint8_t *const length);

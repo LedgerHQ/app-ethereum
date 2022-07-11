@@ -14,6 +14,14 @@
 #include "filtering.h"
 #include "common_712.h"
 
+/**
+ * Send the response to the previous APDU command
+ *
+ * In case of an error it uses the global variable to retrieve the error code and resets
+ * the app context
+ *
+ * @param[in] success whether the command was successful
+ */
 void    handle_eip712_return_code(bool success)
 {
     if (success)
@@ -31,6 +39,12 @@ void    handle_eip712_return_code(bool success)
     }
 }
 
+/**
+ * Process the EIP712 struct definition command
+ *
+ * @param[in] apdu_buf the APDU payload
+ * @return whether the command was successful or not
+ */
 bool    handle_eip712_struct_def(const uint8_t *const apdu_buf)
 {
     bool ret = true;
@@ -61,6 +75,12 @@ bool    handle_eip712_struct_def(const uint8_t *const apdu_buf)
     return ret;
 }
 
+/**
+ * Process the EIP712 struct implementation command
+ *
+ * @param[in] apdu_buf the APDU payload
+ * @return whether the command was successful or not
+ */
 bool    handle_eip712_struct_impl(const uint8_t *const apdu_buf)
 {
     bool ret = false;
@@ -112,10 +132,17 @@ bool    handle_eip712_struct_impl(const uint8_t *const apdu_buf)
     return ret;
 }
 
+/**
+ * Process the EIP712 filtering command
+ *
+ * @param[in] apdu_buf the APDU payload
+ * @return whether the command was successful or not
+ */
 bool    handle_eip712_filtering(const uint8_t *const apdu_buf)
 {
     bool ret = true;
     bool reply_apdu = true;
+    e_filtering_type type;
 
     if (eip712_context == NULL)
     {
@@ -135,11 +162,14 @@ bool    handle_eip712_filtering(const uint8_t *const apdu_buf)
                 break;
             case P1_CONTRACT_NAME:
             case P1_FIELD_NAME:
+                type = (apdu_buf[OFFSET_P1] == P1_CONTRACT_NAME)
+                       ? FILTERING_CONTRACT_NAME
+                       : FILTERING_STRUCT_FIELD;
                 if (ui_712_get_filtering_mode() == EIP712_FILTERING_FULL)
                 {
                     ret = provide_filtering_info(&apdu_buf[OFFSET_CDATA],
                             apdu_buf[OFFSET_LC],
-                            apdu_buf[OFFSET_P1]);
+                            type);
                     if ((apdu_buf[OFFSET_P1] == P1_CONTRACT_NAME) && ret)
                     {
                         reply_apdu = false;
@@ -161,6 +191,12 @@ bool    handle_eip712_filtering(const uint8_t *const apdu_buf)
     return ret;
 }
 
+/**
+ * Process the EIP712 sign command
+ *
+ * @param[in] apdu_buf the APDU payload
+ * @return whether the command was successful or not
+ */
 bool    handle_eip712_sign(const uint8_t *const apdu_buf)
 {
     bool ret = false;

@@ -22,15 +22,62 @@ static const uint8_t EIP712_FEEDER_PUBLIC_KEY[] = {
 #endif // HAVE_EIP712_TESTING_KEY
 
 
-static bool verify_filtering_signature(uint8_t dname_length,
-                                       const char *const dname,
-                                       uint8_t sig_length,
-                                       const uint8_t *const sig,
-                                       uint8_t p1)
+/**
+ * Reconstruct the field path and hash it
+ *
+ * @param[in] hash_ctx the hashing context
+ */
+static void hash_filtering_path(cx_hash_t *const hash_ctx)
 {
     const void *field_ptr;
     const char *key;
     uint8_t key_len;
+
+    for (uint8_t i = 0; i < path_get_depth_count(); ++i)
+    {
+        if (i > 0)
+        {
+            hash_byte('.', hash_ctx);
+        }
+        if ((field_ptr = path_get_nth_field(i + 1)) != NULL)
+        {
+            if ((key = get_struct_field_keyname(field_ptr, &key_len)) != NULL)
+            {
+                // field name
+                hash_nbytes((uint8_t*)key, key_len, hash_ctx);
+
+                // array levels
+                if (struct_field_is_array(field_ptr))
+                {
+                    uint8_t lvl_count;
+
+                    get_struct_field_array_lvls_array(field_ptr, &lvl_count);
+                    for (int j = 0; j < lvl_count; ++j)
+                    {
+                        hash_nbytes((uint8_t*)".[]", 3, hash_ctx);
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Verify the provided signature
+ *
+ * @param[in] dname_length length of provided substitution name
+ * @param[in] dname provided substitution name
+ * @param[in] sig_length provided signature length
+ * @param[in] sig pointer to the provided signature
+ * @param[in] type the type of filtering
+ * @return whether the signature verification worked or not
+ */
+static bool verify_filtering_signature(uint8_t dname_length,
+                                       const char *const dname,
+                                       uint8_t sig_length,
+                                       const uint8_t *const sig,
+                                       e_filtering_type type)
+{
     uint8_t hash[INT256_LENGTH];
     cx_ecfp_public_key_t verifying_key;
     cx_sha256_t hash_ctx;
@@ -52,37 +99,9 @@ static bool verify_filtering_signature(uint8_t dname_length,
                 sizeof(eip712_context->schema_hash),
                 (cx_hash_t*)&hash_ctx);
 
-    if (p1 == P1_FIELD_NAME)
+    if (type == FILTERING_STRUCT_FIELD)
     {
-        uint8_t depth_count = path_get_depth_count();
-
-        for (uint8_t i = 0; i < depth_count; ++i)
-        {
-            if (i > 0)
-            {
-                hash_byte('.', (cx_hash_t*)&hash_ctx);
-            }
-            if ((field_ptr = path_get_nth_field(i + 1)) != NULL)
-            {
-                if ((key = get_struct_field_keyname(field_ptr, &key_len)) != NULL)
-                {
-                    // field name
-                    hash_nbytes((uint8_t*)key, key_len, (cx_hash_t*)&hash_ctx);
-
-                    // array levels
-                    if (struct_field_is_array(field_ptr))
-                    {
-                        uint8_t lvl_count;
-
-                        get_struct_field_array_lvls_array(field_ptr, &lvl_count);
-                        for (int j = 0; j < lvl_count; ++j)
-                        {
-                            hash_nbytes((uint8_t*)".[]", 3, (cx_hash_t*)&hash_ctx);
-                        }
-                    }
-                }
-            }
-        }
+        hash_filtering_path((cx_hash_t*)&hash_ctx);
     }
 
     // Display name
@@ -123,7 +142,17 @@ static bool verify_filtering_signature(uint8_t dname_length,
     return true;
 }
 
-bool    provide_filtering_info(const uint8_t *const payload, uint8_t length, uint8_t p1)
+/**
+ * Provide filtering information about upcoming struct field
+ *
+ * @param[in] payload the raw data received
+ * @param[in] length payload length
+ * @param[in] type the type of filtering
+ * @return if everything went well or not
+ */
+bool    provide_filtering_info(const uint8_t *const payload,
+                               uint8_t length,
+                               e_filtering_type type)
 {
     bool ret = false;
     uint8_t dname_len;
@@ -131,7 +160,7 @@ bool    provide_filtering_info(const uint8_t *const payload, uint8_t length, uin
     uint8_t sig_len;
     const uint8_t *sig;
 
-    if (p1 == P1_CONTRACT_NAME)
+    if (type == FILTERING_CONTRACT_NAME)
     {
         if (path_get_root_type() != ROOT_DOMAIN)
         {
@@ -139,7 +168,7 @@ bool    provide_filtering_info(const uint8_t *const payload, uint8_t length, uin
             return false;
         }
     }
-    else // P1_FIELD_NAME
+    else // FILTERING_STRUCT_FIELD
     {
         if (path_get_root_type() != ROOT_MESSAGE)
         {
@@ -157,9 +186,9 @@ bool    provide_filtering_info(const uint8_t *const payload, uint8_t length, uin
             sig = &payload[1 + dname_len + 1];
             if ((sig_len > 0) && ((1 + dname_len + 1 + sig_len) == length))
             {
-                if ((ret = verify_filtering_signature(dname_len, dname, sig_len, sig, p1)))
+                if ((ret = verify_filtering_signature(dname_len, dname, sig_len, sig, type)))
                 {
-                    if (p1 == P1_CONTRACT_NAME)
+                    if (type == FILTERING_CONTRACT_NAME)
                     {
                         if (!N_storage.verbose_eip712)
                         {
@@ -168,7 +197,7 @@ bool    provide_filtering_info(const uint8_t *const payload, uint8_t length, uin
                             ui_712_redraw_generic_step();
                         }
                     }
-                    else // P1_FIELD_NAME
+                    else // FILTERING_STRUCT_FIELD
                     {
                         if (dname_len > 0) // don't substitute for an empty name
                         {

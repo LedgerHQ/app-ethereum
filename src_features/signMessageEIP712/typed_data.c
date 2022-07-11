@@ -11,7 +11,11 @@
 
 static s_typed_data *typed_data = NULL;
 
-
+/**
+ * Initialize the typed data context
+ *
+ * @return whether the memory allocation was successful or not
+ */
 bool    typed_data_init(void)
 {
     if (typed_data == NULL)
@@ -39,14 +43,29 @@ void    typed_data_deinit(void)
     typed_data = NULL;
 }
 
-// lib functions
-static const uint8_t *field_skip_typedesc(const uint8_t *field_ptr, const uint8_t *ptr)
+/**
+ * Skip TypeDesc from a structure field
+ *
+ * @param[in] field_ptr pointer to the beginning of the struct field
+ * @param[in] ptr pointer to the current location within the struct field
+ * @return pointer to the data right after
+ */
+static const uint8_t *field_skip_typedesc(const uint8_t *field_ptr,
+                                          const uint8_t *ptr)
 {
     (void)ptr;
     return field_ptr + sizeof(typedesc_t);
 }
 
-static const uint8_t *field_skip_typename(const uint8_t *field_ptr, const uint8_t *ptr)
+/**
+ * Skip the type name from a structure field
+ *
+ * @param[in] field_ptr pointer to the beginning of the struct field
+ * @param[in] ptr pointer to the current location within the struct field
+ * @return pointer to the data right after
+ */
+static const uint8_t *field_skip_typename(const uint8_t *field_ptr,
+                                          const uint8_t *ptr)
 {
     uint8_t size;
 
@@ -58,7 +77,15 @@ static const uint8_t *field_skip_typename(const uint8_t *field_ptr, const uint8_
     return ptr;
 }
 
-static const uint8_t *field_skip_typesize(const uint8_t *field_ptr, const uint8_t *ptr)
+/**
+ * Skip the type size from a structure field
+ *
+ * @param[in] field_ptr pointer to the beginning of the struct field
+ * @param[in] ptr pointer to the current location within the struct field
+ * @return pointer to the data right after
+ */
+static const uint8_t *field_skip_typesize(const uint8_t *field_ptr,
+                                          const uint8_t *ptr)
 {
     if (struct_field_has_typesize(field_ptr))
     {
@@ -67,7 +94,15 @@ static const uint8_t *field_skip_typesize(const uint8_t *field_ptr, const uint8_
     return ptr;
 }
 
-static const uint8_t *field_skip_array_levels(const uint8_t *field_ptr, const uint8_t *ptr)
+/**
+ * Skip the array levels from a structure field
+ *
+ * @param[in] field_ptr pointer to the beginning of the struct field
+ * @param[in] ptr pointer to the current location within the struct field
+ * @return pointer to the data right after
+ */
+static const uint8_t *field_skip_array_levels(const uint8_t *field_ptr,
+                                              const uint8_t *ptr)
 {
     uint8_t size;
 
@@ -82,7 +117,15 @@ static const uint8_t *field_skip_array_levels(const uint8_t *field_ptr, const ui
     return ptr;
 }
 
-static const uint8_t *field_skip_keyname(const uint8_t *field_ptr, const uint8_t *ptr)
+/**
+ * Skip the key name from a structure field
+ *
+ * @param[in] field_ptr pointer to the beginning of the struct field
+ * @param[in] ptr pointer to the current location within the struct field
+ * @return pointer to the data right after
+ */
+static const uint8_t *field_skip_keyname(const uint8_t *field_ptr,
+                                         const uint8_t *ptr)
 {
     uint8_t size;
 
@@ -91,6 +134,13 @@ static const uint8_t *field_skip_keyname(const uint8_t *field_ptr, const uint8_t
     return ptr + size;
 }
 
+/**
+ * Get data pointer & array size from a given pointer
+ *
+ * @param[in] ptr given pointer
+ * @param[out] array_size pointer to array size
+ * @return pointer to data
+ */
 const void *get_array_in_mem(const void *ptr, uint8_t *const array_size)
 {
     if (ptr == NULL)
@@ -101,53 +151,91 @@ const void *get_array_in_mem(const void *ptr, uint8_t *const array_size)
     {
         *array_size = *(uint8_t*)ptr;
     }
-    return (ptr + 1);
+    return (ptr + sizeof(*array_size));
 }
 
+/**
+ * Get pointer to beginning of string & its length from a given pointer
+ *
+ * @param[in] ptr given pointer
+ * @param[out] string_length pointer to string length
+ * @return pointer to beginning of the string
+ */
 const char *get_string_in_mem(const uint8_t *ptr, uint8_t *const string_length)
 {
     return (char*)get_array_in_mem(ptr, string_length);
 }
 
-// ptr must point to the beginning of a struct field
-static inline uint8_t get_struct_field_typedesc(const uint8_t *ptr)
+/**
+ * Get the TypeDesc from a given struct field pointer
+ *
+ * @param[in] field_ptr struct field pointer
+ * @return TypeDesc
+ */
+static inline typedesc_t get_struct_field_typedesc(const uint8_t *const field_ptr)
 {
-    if (ptr == NULL)
+    if (field_ptr == NULL)
     {
         return 0;
     }
-    return *ptr;
+    return *field_ptr;
 }
 
-// ptr must point to the beginning of a struct field
-bool    struct_field_is_array(const uint8_t *ptr)
+/**
+ * Check whether a struct field is an array
+ *
+ * @param[in] field_ptr struct field pointer
+ * @return bool whether it is the case or not
+ */
+bool    struct_field_is_array(const uint8_t *const field_ptr)
 {
-    return (get_struct_field_typedesc(ptr) & ARRAY_MASK);
+    return (get_struct_field_typedesc(field_ptr) & ARRAY_MASK);
 }
 
-// ptr must point to the beginning of a struct field
-bool    struct_field_has_typesize(const uint8_t *ptr)
+/**
+ * Check whether a struct field has a type size associated to it
+ *
+ * @param[in] field_ptr struct field pointer
+ * @return bool whether it is the case or not
+ */
+bool    struct_field_has_typesize(const uint8_t *const field_ptr)
 {
-    return (get_struct_field_typedesc(ptr) & TYPESIZE_MASK);
+    return (get_struct_field_typedesc(field_ptr) & TYPESIZE_MASK);
 }
 
-// ptr must point to the beginning of a struct field
-e_type  struct_field_type(const uint8_t *ptr)
+/**
+ * Get type from a struct field
+ *
+ * @param[in] field_ptr struct field pointer
+ * @return its type enum
+ */
+e_type  struct_field_type(const uint8_t *const field_ptr)
 {
-    return (get_struct_field_typedesc(ptr) & TYPE_MASK);
+    return (get_struct_field_typedesc(field_ptr) & TYPE_MASK);
 }
 
-// ptr must point to the beginning of a struct field
-uint8_t get_struct_field_typesize(const uint8_t *ptr)
+/**
+ * Get type size from a struct field
+ *
+ * @param[in] field_ptr struct field pointer
+ * @return its type size
+ */
+uint8_t get_struct_field_typesize(const uint8_t *const field_ptr)
 {
-    if (ptr == NULL)
+    if (field_ptr == NULL)
     {
         return 0;
     }
-    return *(ptr + 1);
+    return *field_skip_typedesc(field_ptr, NULL);
 }
 
-// ptr must point to the beginning of a struct field
+/**
+ * Get custom type name from a struct field
+ *
+ * @param[in] field_ptr struct field pointer
+ * @param[out] length the type name length
+ * @return type name pointer
+ */
 const char *get_struct_field_custom_typename(const uint8_t *field_ptr,
                                              uint8_t *const length)
 {
@@ -161,7 +249,13 @@ const char *get_struct_field_custom_typename(const uint8_t *field_ptr,
     return get_string_in_mem(ptr, length);
 }
 
-// ptr must point to the beginning of a struct field
+/**
+ * Get type name from a struct field
+ *
+ * @param[in] field_ptr struct field pointer
+ * @param[out] length the type name length
+ * @return type name pointer
+ */
 const char *get_struct_field_typename(const uint8_t *field_ptr,
                                       uint8_t *const length)
 {
@@ -176,34 +270,51 @@ const char *get_struct_field_typename(const uint8_t *field_ptr,
     return get_struct_field_sol_typename(field_ptr, length);
 }
 
-// ptr must point to the beginning of a depth level
-e_array_type struct_field_array_depth(const uint8_t *ptr,
+/**
+ * Get array type of a given struct field's array depth
+ *
+ * @param[in] array_depth_ptr given array depth
+ * @param[out] array_size pointer to array size
+ * @return array type of that depth
+ */
+e_array_type struct_field_array_depth(const uint8_t *array_depth_ptr,
                                       uint8_t *const array_size)
 {
-    if (ptr == NULL)
+    if (array_depth_ptr == NULL)
     {
         return 0;
     }
-    if (*ptr == ARRAY_FIXED_SIZE)
+    if (*array_depth_ptr == ARRAY_FIXED_SIZE)
     {
-        *array_size = *(ptr + 1);
+        if (array_size != NULL)
+        {
+            *array_size = *(array_depth_ptr + sizeof(uint8_t));
+        }
     }
-    return *ptr;
+    return *array_depth_ptr;
 }
 
-// ptr must point to the beginning of a struct field level
-const uint8_t *get_next_struct_field_array_lvl(const uint8_t *ptr)
+/**
+ * Get next array depth form a given struct field's array depth
+ *
+ * @param[in] array_depth_ptr given array depth
+ * @return next array depth
+ */
+const uint8_t *get_next_struct_field_array_lvl(const uint8_t *const array_depth_ptr)
 {
-    if (ptr == NULL)
+    const uint8_t *ptr;
+
+    if (array_depth_ptr == NULL)
     {
         return NULL;
     }
-    switch (*ptr)
+    switch (*array_depth_ptr)
     {
         case ARRAY_DYNAMIC:
+            ptr = array_depth_ptr;
             break;
         case ARRAY_FIXED_SIZE:
-            ptr += 1;
+            ptr = array_depth_ptr + 1;
             break;
         default:
             // should not be in here :^)
@@ -213,8 +324,14 @@ const uint8_t *get_next_struct_field_array_lvl(const uint8_t *ptr)
     return ptr + 1;
 }
 
-// ptr must point to the beginning of a struct field
-const uint8_t *get_struct_field_array_lvls_array(const uint8_t *field_ptr,
+/**
+ * Get the array levels from a given struct field
+ *
+ * @param[in] field_ptr given struct field
+ * @param[out] length number of array levels
+ * @return pointer to the first array level
+ */
+const uint8_t *get_struct_field_array_lvls_array(const uint8_t *const field_ptr,
                                                  uint8_t *const length)
 {
     const uint8_t *ptr;
@@ -230,7 +347,13 @@ const uint8_t *get_struct_field_array_lvls_array(const uint8_t *field_ptr,
     return get_array_in_mem(ptr, length);
 }
 
-// ptr must point to the beginning of a struct field
+/**
+ * Get key name from a given struct field
+ *
+ * @param[in] field_ptr given struct field
+ * @param[out] length name length
+ * @return key name
+ */
 const char *get_struct_field_keyname(const uint8_t *field_ptr,
                                      uint8_t *const length)
 {
@@ -248,8 +371,13 @@ const char *get_struct_field_keyname(const uint8_t *field_ptr,
     return get_string_in_mem(ptr, length);
 }
 
-// ptr must point to the beginning of a struct field
-const uint8_t *get_next_struct_field(const void *field_ptr)
+/**
+ * Get next struct field from a given field
+ *
+ * @param[in] field_ptr given struct field
+ * @return pointer to the next field
+ */
+const uint8_t *get_next_struct_field(const void *const field_ptr)
 {
     const void *ptr;
 
@@ -265,8 +393,14 @@ const uint8_t *get_next_struct_field(const void *field_ptr)
     return field_skip_keyname(field_ptr, ptr);
 }
 
-// ptr must point to the beginning of a struct
-const char *get_struct_name(const uint8_t *struct_ptr, uint8_t *const length)
+/**
+ * Get name from a given struct
+ *
+ * @param[in] struct_ptr given struct
+ * @param[out] length name length
+ * @return struct name
+ */
+const char *get_struct_name(const uint8_t *const struct_ptr, uint8_t *const length)
 {
     if (struct_ptr == NULL)
     {
@@ -276,8 +410,14 @@ const char *get_struct_name(const uint8_t *struct_ptr, uint8_t *const length)
     return (char*)get_string_in_mem(struct_ptr, length);
 }
 
-// ptr must point to the beginning of a struct
-const uint8_t *get_struct_fields_array(const uint8_t *struct_ptr,
+/**
+ * Get struct fields from a given struct
+ *
+ * @param[in] struct_ptr given struct
+ * @param[out] length name length
+ * @return struct name
+ */
+const uint8_t *get_struct_fields_array(const uint8_t *const struct_ptr,
                                        uint8_t *const length)
 {
     const void *ptr;
@@ -294,8 +434,13 @@ const uint8_t *get_struct_fields_array(const uint8_t *struct_ptr,
     return get_array_in_mem(ptr, length);
 }
 
-// ptr must point to the beginning of a struct
-const uint8_t *get_next_struct(const uint8_t *struct_ptr)
+/**
+ * Get next struct from a given struct
+ *
+ * @param[in] struct_ptr given struct
+ * @return pointer to next struct
+ */
+const uint8_t *get_next_struct(const uint8_t *const struct_ptr)
 {
     uint8_t fields_count;
     const void *ptr;
@@ -313,22 +458,33 @@ const uint8_t *get_next_struct(const uint8_t *struct_ptr)
     return ptr;
 }
 
-// ptr must point to the size of the structs array
+/**
+ * Get structs array
+ *
+ * @param[out] length number of structs
+ * @return pointer to the first struct
+ */
 const uint8_t *get_structs_array(uint8_t *const length)
 {
     return get_array_in_mem(typed_data->structs_array, length);
 }
 
-// Finds struct with a given name
-const uint8_t *get_structn(const char *const name_ptr,
-                           const uint8_t name_length)
+/**
+ * Find struct with a given name
+ *
+ * @param[in] name struct name
+ * @param[in] length name length
+ * @return pointer to struct
+ */
+const uint8_t *get_structn(const char *const name,
+                           const uint8_t length)
 {
     uint8_t structs_count;
     const uint8_t *struct_ptr;
-    const char *name;
-    uint8_t length;
+    const char *struct_name;
+    uint8_t name_length;
 
-    if (name_ptr == NULL)
+    if (name == NULL)
     {
         apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
         return NULL;
@@ -336,8 +492,8 @@ const uint8_t *get_structn(const char *const name_ptr,
     struct_ptr = get_structs_array(&structs_count);
     while (structs_count-- > 0)
     {
-        name = get_struct_name(struct_ptr, &length);
-        if ((name_length == length) && (memcmp(name, name_ptr, length) == 0))
+        struct_name = get_struct_name(struct_ptr, &name_length);
+        if ((length == name_length) && (memcmp(name, struct_name, length) == 0))
         {
             return struct_ptr;
         }
@@ -346,8 +502,14 @@ const uint8_t *get_structn(const char *const name_ptr,
     apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
     return NULL;
 }
-//
 
+/**
+ * Set struct name
+ *
+ * @param[in] length name length
+ * @param[in] name name
+ * @return whether it was successful or not
+ */
 bool    set_struct_name(uint8_t length, const uint8_t *const name)
 {
     uint8_t *length_ptr;
@@ -387,7 +549,15 @@ bool    set_struct_name(uint8_t length, const uint8_t *const name)
     return true;
 }
 
-static bool set_struct_field_custom(const uint8_t *const data, uint8_t *data_idx)
+/**
+ * Set struct field custom typename
+ *
+ * @param[in] data the field data
+ * @param[in] data_idx the data index
+ * @return whether it was successful or not
+ */
+static bool set_struct_field_custom_typename(const uint8_t *const data,
+                                             uint8_t *data_idx)
 {
     uint8_t *typename_len_ptr;
     char *typename;
@@ -411,6 +581,13 @@ static bool set_struct_field_custom(const uint8_t *const data, uint8_t *data_idx
     return true;
 }
 
+/**
+ * Set struct field's array levels
+ *
+ * @param[in] data the field data
+ * @param[in] data_idx the data index
+ * @return whether it was successful or not
+ */
 static bool set_struct_field_array(const uint8_t *const data, uint8_t *data_idx)
 {
     uint8_t *array_levels_count;
@@ -452,6 +629,13 @@ static bool set_struct_field_array(const uint8_t *const data, uint8_t *data_idx)
     return true;
 }
 
+/**
+ * Set struct field's type size
+ *
+ * @param[in] data the field data
+ * @param[in,out] data_idx the data index
+ * @return whether it was successful or not
+ */
 static bool set_struct_field_typesize(const uint8_t *const data, uint8_t *data_idx)
 {
     uint8_t *type_size_ptr;
@@ -466,6 +650,12 @@ static bool set_struct_field_typesize(const uint8_t *const data, uint8_t *data_i
     return true;
 }
 
+/**
+ * Set struct field
+ *
+ * @param[in] data the field data
+ * @return whether it was successful or not
+ */
 bool    set_struct_field(const uint8_t *const data)
 {
     uint8_t data_idx = OFFSET_CDATA;
@@ -499,7 +689,7 @@ bool    set_struct_field(const uint8_t *const data)
     }
     else if ((*type_desc_ptr & TYPE_MASK) == TYPE_CUSTOM)
     {
-        if (set_struct_field_custom(data, &data_idx) == false)
+        if (set_struct_field_custom_typename(data, &data_idx) == false)
         {
             return false;
         }

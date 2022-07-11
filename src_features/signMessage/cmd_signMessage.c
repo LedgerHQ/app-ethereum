@@ -12,7 +12,7 @@ static const char SIGN_MAGIC[] =
  * Check if a given character is a "special" displayable ASCII character
  *
  * @param[in] c character we're checking
- * @return wether the character is special or not
+ * @return whether the character is special or not
  */
 static inline bool is_char_special(char c) {
     return ((c >= '\b') && (c <= '\r'));
@@ -23,7 +23,7 @@ static inline bool is_char_special(char c) {
  *
  * @param[in] data the input data
  * @param[in] the length of the input data
- * @return wether the data is fully ASCII or not
+ * @return whether the data is fully ASCII or not
  */
 static bool is_data_ascii(const uint8_t *const data, size_t length) {
     for (uint8_t idx = 0; idx < length; ++idx) {
@@ -59,7 +59,7 @@ static bool is_value_str_ascii() {
  *
  * @param[in] data the input data
  * @param[in] length the data length
- * @param[in] is_ascii wether the data is ASCII or not
+ * @param[in] is_ascii whether the data is ASCII or not
  */
 static void feed_value_str(const uint8_t *const data, size_t length, bool is_ascii) {
     uint16_t value_strlen = strlen(strings.tmp.tmp);

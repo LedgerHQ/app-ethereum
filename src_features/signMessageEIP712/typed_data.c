@@ -40,6 +40,57 @@ void    typed_data_deinit(void)
 }
 
 // lib functions
+static const uint8_t *field_skip_typedesc(const uint8_t *field_ptr, const uint8_t *ptr)
+{
+    (void)ptr;
+    return field_ptr + sizeof(typedesc_t);
+}
+
+static const uint8_t *field_skip_typename(const uint8_t *field_ptr, const uint8_t *ptr)
+{
+    uint8_t size;
+
+    if (struct_field_type(field_ptr) == TYPE_CUSTOM)
+    {
+        get_string_in_mem(ptr, &size);
+        ptr += (sizeof(size) + size);
+    }
+    return ptr;
+}
+
+static const uint8_t *field_skip_typesize(const uint8_t *field_ptr, const uint8_t *ptr)
+{
+    if (struct_field_has_typesize(field_ptr))
+    {
+        ptr += sizeof(typesize_t);
+    }
+    return ptr;
+}
+
+static const uint8_t *field_skip_array_levels(const uint8_t *field_ptr, const uint8_t *ptr)
+{
+    uint8_t size;
+
+    if (struct_field_is_array(field_ptr))
+    {
+        ptr = get_array_in_mem(ptr, &size);
+        while (size-- > 0)
+        {
+            ptr = get_next_struct_field_array_lvl(ptr);
+        }
+    }
+    return ptr;
+}
+
+static const uint8_t *field_skip_keyname(const uint8_t *field_ptr, const uint8_t *ptr)
+{
+    uint8_t size;
+
+    (void)field_ptr;
+    ptr = get_array_in_mem(ptr, &size);
+    return ptr + size;
+}
+
 const void *get_array_in_mem(const void *ptr, uint8_t *const array_size)
 {
     if (ptr == NULL)
@@ -97,30 +148,32 @@ uint8_t get_struct_field_typesize(const uint8_t *ptr)
 }
 
 // ptr must point to the beginning of a struct field
-const char *get_struct_field_custom_typename(const uint8_t *ptr,
+const char *get_struct_field_custom_typename(const uint8_t *field_ptr,
                                              uint8_t *const length)
 {
-    if (ptr == NULL)
+    const uint8_t *ptr;
+
+    if (field_ptr == NULL)
     {
         return NULL;
     }
-    ptr += 1; // skip TypeDesc
+    ptr = field_skip_typedesc(field_ptr, NULL);
     return get_string_in_mem(ptr, length);
 }
 
 // ptr must point to the beginning of a struct field
-const char *get_struct_field_typename(const uint8_t *ptr,
+const char *get_struct_field_typename(const uint8_t *field_ptr,
                                       uint8_t *const length)
 {
-    if (ptr == NULL)
+    if (field_ptr == NULL)
     {
         return NULL;
     }
-    if (struct_field_type(ptr) == TYPE_CUSTOM)
+    if (struct_field_type(field_ptr) == TYPE_CUSTOM)
     {
-        return get_struct_field_custom_typename(ptr, length);
+        return get_struct_field_custom_typename(field_ptr, length);
     }
-    return get_struct_field_sol_typename(ptr, length);
+    return get_struct_field_sol_typename(field_ptr, length);
 }
 
 // ptr must point to the beginning of a depth level
@@ -160,116 +213,99 @@ const uint8_t *get_next_struct_field_array_lvl(const uint8_t *ptr)
     return ptr + 1;
 }
 
-// Skips TypeDesc and TypeSize/Length+TypeName
-// Came to be since it is used in multiple functions
-// TODO: Find better name
-const uint8_t *struct_field_half_skip(const uint8_t *ptr)
-{
-    const uint8_t *field_ptr;
-    uint8_t size;
-
-    if (ptr == NULL)
-    {
-        return NULL;
-    }
-    field_ptr = ptr;
-    ptr += 1; // skip TypeDesc
-    if (struct_field_type(field_ptr) == TYPE_CUSTOM)
-    {
-        get_string_in_mem(ptr, &size);
-        ptr += (1 + size); // skip typename
-    }
-    else if (struct_field_has_typesize(field_ptr))
-    {
-        ptr += 1; // skip TypeSize
-    }
-    return ptr;
-}
-
 // ptr must point to the beginning of a struct field
-const uint8_t *get_struct_field_array_lvls_array(const uint8_t *ptr,
+const uint8_t *get_struct_field_array_lvls_array(const uint8_t *field_ptr,
                                                  uint8_t *const length)
 {
-    if (ptr == NULL)
+    const uint8_t *ptr;
+
+    if (field_ptr == NULL)
     {
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
         return NULL;
     }
-    ptr = struct_field_half_skip(ptr);
+    ptr = field_skip_typedesc(field_ptr, NULL);
+    ptr = field_skip_typename(field_ptr, ptr);
+    ptr = field_skip_typesize(field_ptr, ptr);
     return get_array_in_mem(ptr, length);
 }
 
 // ptr must point to the beginning of a struct field
-const char *get_struct_field_keyname(const uint8_t *ptr,
+const char *get_struct_field_keyname(const uint8_t *field_ptr,
                                      uint8_t *const length)
 {
-    const uint8_t *field_ptr;
-    uint8_t size;
+    const uint8_t *ptr;
 
-    if (ptr == NULL)
+    if (field_ptr == NULL)
     {
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
         return NULL;
     }
-    field_ptr = ptr;
-    ptr = struct_field_half_skip(ptr);
-    if (struct_field_is_array(field_ptr))
-    {
-        ptr = get_array_in_mem(ptr, &size);
-        while (size-- > 0)
-        {
-            ptr = get_next_struct_field_array_lvl(ptr);
-        }
-    }
+    ptr = field_skip_typedesc(field_ptr, NULL);
+    ptr = field_skip_typename(field_ptr, ptr);
+    ptr = field_skip_typesize(field_ptr, ptr);
+    ptr = field_skip_array_levels(field_ptr, ptr);
     return get_string_in_mem(ptr, length);
 }
 
 // ptr must point to the beginning of a struct field
-const uint8_t *get_next_struct_field(const void *ptr)
+const uint8_t *get_next_struct_field(const void *field_ptr)
 {
-    uint8_t length;
+    const void *ptr;
 
-    if (ptr == NULL)
+    if (field_ptr == NULL)
     {
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
         return NULL;
     }
-    ptr = (uint8_t*)get_struct_field_keyname(ptr, &length);
-    return (ptr + length);
+    ptr = field_skip_typedesc(field_ptr, NULL);
+    ptr = field_skip_typename(field_ptr, ptr);
+    ptr = field_skip_typesize(field_ptr, ptr);
+    ptr = field_skip_array_levels(field_ptr, ptr);
+    return field_skip_keyname(field_ptr, ptr);
 }
 
 // ptr must point to the beginning of a struct
-const char *get_struct_name(const uint8_t *ptr, uint8_t *const length)
+const char *get_struct_name(const uint8_t *struct_ptr, uint8_t *const length)
 {
-    if (ptr == NULL)
+    if (struct_ptr == NULL)
     {
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
         return NULL;
     }
-    return (char*)get_string_in_mem(ptr, length);
+    return (char*)get_string_in_mem(struct_ptr, length);
 }
 
 // ptr must point to the beginning of a struct
-const uint8_t *get_struct_fields_array(const uint8_t *ptr,
+const uint8_t *get_struct_fields_array(const uint8_t *struct_ptr,
                                        uint8_t *const length)
 {
+    const void *ptr;
     uint8_t name_length;
 
-    if (ptr == NULL)
+    if (struct_ptr == NULL)
     {
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
         return NULL;
     }
-    get_struct_name(ptr, &name_length);
-    ptr += (1 + name_length); // skip length
+    ptr = struct_ptr;
+    get_struct_name(struct_ptr, &name_length);
+    ptr += (sizeof(name_length) + name_length); // skip length
     return get_array_in_mem(ptr, length);
 }
 
 // ptr must point to the beginning of a struct
-const uint8_t *get_next_struct(const uint8_t *ptr)
+const uint8_t *get_next_struct(const uint8_t *struct_ptr)
 {
     uint8_t fields_count;
+    const void *ptr;
 
-    if (ptr == NULL)
+    if (struct_ptr == NULL)
     {
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
         return NULL;
     }
-    ptr = get_struct_fields_array(ptr, &fields_count);
+    ptr = get_struct_fields_array(struct_ptr, &fields_count);
     while (fields_count-- > 0)
     {
         ptr = get_next_struct_field(ptr);
@@ -294,6 +330,7 @@ const uint8_t *get_structn(const char *const name_ptr,
 
     if (name_ptr == NULL)
     {
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
         return NULL;
     }
     struct_ptr = get_structs_array(&structs_count);
@@ -306,6 +343,7 @@ const uint8_t *get_structn(const char *const name_ptr,
         }
         struct_ptr = get_next_struct(struct_ptr);
     }
+    apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
     return NULL;
 }
 //
@@ -317,6 +355,7 @@ bool    set_struct_name(uint8_t length, const uint8_t *const name)
 
     if ((name == NULL) || (typed_data == NULL))
     {
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
         return false;
     }
     // increment number of structs
@@ -436,6 +475,7 @@ bool    set_struct_field(const uint8_t *const data)
 
     if ((data == NULL) || (typed_data == NULL))
     {
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
         return false;
     }
     // increment number of struct fields

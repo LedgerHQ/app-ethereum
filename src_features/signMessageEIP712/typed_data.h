@@ -40,6 +40,9 @@ typedef struct
     uint8_t *current_struct_fields_array;
 }   s_typed_data;
 
+typedef uint8_t typedesc_t;
+typedef uint8_t typesize_t;
+
 const void *get_array_in_mem(const void *ptr, uint8_t *const array_size);
 const char *get_string_in_mem(const uint8_t *ptr, uint8_t *const string_length);
 bool    struct_field_is_array(const uint8_t *ptr);

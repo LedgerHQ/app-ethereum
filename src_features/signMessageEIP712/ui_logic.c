@@ -130,6 +130,7 @@ void    ui_712_next_field(void)
 {
     if (ui_ctx == NULL)
     {
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
         return;
     }
     if  (ui_ctx->structs_to_review > 0)
@@ -200,6 +201,7 @@ static bool ui_712_format_bool(const uint8_t *const data, uint8_t length)
 {
     if (length != 1)
     {
+        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
         return false;
     }
     if (*data)
@@ -282,6 +284,7 @@ static bool ui_712_format_int(const uint8_t *const data,
             break;
         default:
             PRINTF("Unhandled field typesize\n");
+            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
             return false;
     }
     return true;
@@ -309,27 +312,23 @@ bool    ui_712_new_field(const void *const field_ptr, const uint8_t *const data,
 
     if (ui_ctx == NULL)
     {
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
         return false;
     }
 
-    // Check if this field is supposed to be displayed
-    // TODO: maybe put it after the big switch case so error handling on value happens
-    if (!ui_712_field_shown())
+    // Key
+    if ((key = get_struct_field_keyname(field_ptr, &key_len)) == NULL)
     {
-        return true;
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        return false;
     }
 
-    // Key
-    if ((key = get_struct_field_keyname(field_ptr, &key_len)) != NULL)
+    if (!(ui_ctx->field_flags & UI_712_FIELD_NAME_PROVIDED))
     {
-        if (!(ui_ctx->field_flags & UI_712_FIELD_NAME_PROVIDED))
-        {
-            ui_712_set_title(key, key_len);
-        }
+        ui_712_set_title(key, key_len);
     }
 
     // Value
-    ui_712_set_value("", 0);
     switch (struct_field_type(field_ptr))
     {
         case TYPE_SOL_STRING:
@@ -365,7 +364,12 @@ bool    ui_712_new_field(const void *const field_ptr, const uint8_t *const data,
             PRINTF("Unhandled type\n");
             return false;
     }
-    ui_712_redraw_generic_step();
+
+    // Check if this field is supposed to be displayed
+    if (ui_712_field_shown())
+    {
+        ui_712_redraw_generic_step();
+    }
     return true;
 }
 
@@ -377,6 +381,7 @@ void    ui_712_end_sign(void)
 {
     if (ui_ctx == NULL)
     {
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
         return;
     }
     ui_ctx->end_reached = true;

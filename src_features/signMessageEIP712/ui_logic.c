@@ -49,6 +49,15 @@ static bool ui_712_field_shown(void)
     return ret;
 }
 
+/**
+ * Set UI buffer
+ *
+ * @param[in] src source buffer
+ * @param[in] src_length source buffer size
+ * @param[in] dst destination buffer
+ * @param[in] dst_length destination buffer length
+ * @param[in] explicit_trunc if truncation should be explicitely shown
+ */
 static void ui_712_set_buf(const char *const src,
                            size_t src_length,
                            char *const dst,
@@ -73,6 +82,9 @@ static void ui_712_set_buf(const char *const src,
     }
 }
 
+/**
+ * Skip the field if needed and reset its UI flags
+ */
 void    ui_712_finalize_field(void)
 {
     if (!ui_712_field_shown())
@@ -104,6 +116,9 @@ void    ui_712_set_value(const char *const str, uint8_t length)
     ui_712_set_buf(str, length, strings.tmp.tmp, sizeof(strings.tmp.tmp), true);
 }
 
+/**
+ * Redraw the dynamic UI step that shows EIP712 information
+ */
 void    ui_712_redraw_generic_step(void)
 {
     if (!ui_ctx->shown) // Initialize if it is not already
@@ -163,7 +178,7 @@ void    ui_712_next_field(void)
 /**
  * Used to notify of a new struct to review
  *
- * @param[in] struct_ptr pointer to the structure
+ * @param[in] struct_ptr pointer to the structure to be shown
  */
 void    ui_712_review_struct(const void *const struct_ptr)
 {
@@ -184,6 +199,9 @@ void    ui_712_review_struct(const void *const struct_ptr)
     ui_712_redraw_generic_step();
 }
 
+/**
+ * Show the hash of the message on the generic UI step
+ */
 void    ui_712_message_hash(void)
 {
     const char *const title = "Message hash";
@@ -197,6 +215,13 @@ void    ui_712_message_hash(void)
     ui_712_redraw_generic_step();
 }
 
+/**
+ * Format given data as a string representation of a boolean
+ *
+ * @param[in] data the data that needs formatting
+ * @param[in] length its length
+ * @return if the formatting was successful
+ */
 static bool ui_712_format_bool(const uint8_t *const data, uint8_t length)
 {
     if (length != 1)
@@ -215,6 +240,12 @@ static bool ui_712_format_bool(const uint8_t *const data, uint8_t length)
     return true;
 }
 
+/**
+ * Format given data as a string representation of bytes
+ *
+ * @param[in] data the data that needs formatting
+ * @param[in] length its length
+ */
 static void ui_712_format_bytes(const uint8_t *const data, uint8_t length)
 {
     snprintf(strings.tmp.tmp,
@@ -231,6 +262,13 @@ static void ui_712_format_bytes(const uint8_t *const data, uint8_t length)
     }
 }
 
+/**
+ * Format given data as a string representation of an integer
+ *
+ * @param[in] data the data that needs formatting
+ * @param[in] length its length
+ * @return if the formatting was successful
+ */
 static bool ui_712_format_int(const uint8_t *const data,
                               uint8_t length,
                               const void *const field_ptr)
@@ -290,6 +328,12 @@ static bool ui_712_format_int(const uint8_t *const data,
     return true;
 }
 
+/**
+ * Format given data as a string representation of an unsigned integer
+ *
+ * @param[in] data the data that needs formatting
+ * @param[in] length its length
+ */
 static void ui_712_format_uint(const uint8_t *const data, uint8_t length)
 {
     uint256_t value256;
@@ -435,6 +479,7 @@ unsigned int ui_712_approve(const bagl_element_t *e)
 /**
  * Reject button handling, calls the common handler function then
  * deinitializes the EIP712 context altogether.
+
  * @param[in] e unused here, just needed to match the UI function signature
  * @return unused here, just needed to match the UI function signature
  */
@@ -445,6 +490,12 @@ unsigned int ui_712_reject(const bagl_element_t *e)
     return 0;
 }
 
+/**
+ * Set a structure field's UI flags
+ *
+ * @param[in] show if this field should be shown on the device
+ * @param[in] name_provided if a substitution name has been provided
+ */
 void    ui_712_flag_field(bool show, bool name_provided)
 {
     if (show)
@@ -457,21 +508,39 @@ void    ui_712_flag_field(bool show, bool name_provided)
     }
 }
 
+/**
+ * Set the UI filtering mode
+ *
+ * @param[in] the new filtering mode
+ */
 void    ui_712_set_filtering_mode(e_eip712_filtering_mode mode)
 {
     ui_ctx->filtering_mode = mode;
 }
 
+/**
+ * Get the UI filtering mode
+ *
+ * @return current filtering mode
+ */
 e_eip712_filtering_mode ui_712_get_filtering_mode(void)
 {
     return ui_ctx->filtering_mode;
 }
 
+/**
+ * Reset all the UI struct field flags
+ */
 void    ui_712_field_flags_reset(void)
 {
     ui_ctx->field_flags = 0;
 }
 
+/**
+ * Add a struct to the UI review queue
+ *
+ * Makes it so the user will have to go through a "Review struct" screen
+ */
 void    ui_712_queue_struct_to_review(void)
 {
     if (N_storage.verbose_eip712)

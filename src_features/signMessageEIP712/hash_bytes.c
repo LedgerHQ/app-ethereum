@@ -9,7 +9,7 @@
  * @param[in] n number of bytes to hash
  * @param[in] hash_ctx pointer to the hashing context
  */
-void hash_nbytes(const uint8_t *const bytes_ptr, uint8_t n, cx_hash_t *hash_ctx)
+void hash_nbytes(const uint8_t *const bytes_ptr, uint8_t n, cx_hash_t *const hash_ctx)
 {
     cx_hash(hash_ctx,
             0,
@@ -25,7 +25,7 @@ void hash_nbytes(const uint8_t *const bytes_ptr, uint8_t n, cx_hash_t *hash_ctx)
  * @param[in] byte byte to hash
  * @param[in] hash_ctx pointer to the hashing context
  */
-void hash_byte(uint8_t byte, cx_hash_t *hash_ctx)
+void hash_byte(uint8_t byte, cx_hash_t *const hash_ctx)
 {
     hash_nbytes(&byte, 1, hash_ctx);
 }

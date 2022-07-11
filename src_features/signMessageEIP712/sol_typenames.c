@@ -21,14 +21,21 @@ enum
     IDX_COUNT
 };
 
-static bool find_enum_matches(const uint8_t enum_to_idx[TYPES_COUNT - 1][IDX_COUNT], uint8_t s_idx)
+/**
+ * Find a match between a typename index and all the type enums associated to it
+ *
+ * @param[in] enum_to_idx the type enum to typename index table
+ * @param[in] t_idx typename index
+ * @return whether at least one match was found
+ */
+static bool find_enum_matches(const uint8_t enum_to_idx[TYPES_COUNT - 1][IDX_COUNT], uint8_t t_idx)
 {
     uint8_t *enum_match = NULL;
 
     // loop over enum/typename pairs
     for (uint8_t e_idx = 0; e_idx < (TYPES_COUNT - 1); ++e_idx)
     {
-        if (s_idx == enum_to_idx[e_idx][IDX_STR_IDX]) // match
+        if (t_idx == enum_to_idx[e_idx][IDX_STR_IDX]) // match
         {
             if (enum_match != NULL) // in case of a previous match, mark it
             {
@@ -45,6 +52,11 @@ static bool find_enum_matches(const uint8_t enum_to_idx[TYPES_COUNT - 1][IDX_COU
     return (enum_match != NULL);
 }
 
+/**
+ * Initialize solidity typenames in memory
+ *
+ * @return whether the initialization went well or not
+ */
 bool    sol_typenames_init(void)
 {
     const char *const typenames[] = {
@@ -74,10 +86,10 @@ bool    sol_typenames_init(void)
     }
     *(sol_typenames) = 0;
     // loop over typenames
-    for (uint8_t s_idx = 0; s_idx < ARRAY_SIZE(typenames); ++s_idx)
+    for (uint8_t t_idx = 0; t_idx < ARRAY_SIZE(typenames); ++t_idx)
     {
         // if at least one match was found
-        if (find_enum_matches(enum_to_idx, s_idx))
+        if (find_enum_matches(enum_to_idx, t_idx))
         {
             if ((typename_len_ptr = mem_alloc(sizeof(uint8_t))) == NULL)
             {
@@ -85,7 +97,7 @@ bool    sol_typenames_init(void)
                 return false;
             }
             // get pointer to the allocated space just above
-            *typename_len_ptr = strlen(PIC(typenames[s_idx]));
+            *typename_len_ptr = strlen(PIC(typenames[t_idx]));
 
             if ((typename_ptr = mem_alloc(sizeof(char) * *typename_len_ptr)) == NULL)
             {
@@ -93,7 +105,7 @@ bool    sol_typenames_init(void)
                 return false;
             }
             // copy typename
-            memcpy(typename_ptr, PIC(typenames[s_idx]), *typename_len_ptr);
+            memcpy(typename_ptr, PIC(typenames[t_idx]), *typename_len_ptr);
         }
         // increment array size
         *(sol_typenames) += 1;
@@ -102,6 +114,7 @@ bool    sol_typenames_init(void)
 }
 
 /**
+ * Get typename from a given field
  *
  * @param[in] field_ptr pointer to a struct field
  * @param[out] length length of the returned typename

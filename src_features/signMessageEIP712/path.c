@@ -71,7 +71,7 @@ static const void *get_nth_field(uint8_t *const fields_count_ptr,
 }
 
 /**
- * Get the element the path is pointing to. (internal)
+ * Get the element the path is pointing to.
  *
  * @param[out] the number of fields in the depth of the returned field
  * @return the field which the path points to
@@ -81,11 +81,23 @@ static inline const void  *get_field(uint8_t *const fields_count)
     return get_nth_field(fields_count, path_struct->depth_count);
 }
 
+/**
+ * Get Nth struct field from path
+ *
+ * @param[in] n nth depth requested
+ * @return pointer to the matching field, \ref NULL otherwise
+ */
 const void *path_get_nth_field(uint8_t n)
 {
     return get_nth_field(NULL, n);
 }
 
+/**
+ * Get Nth to last struct field from path
+ *
+ * @param[in] n nth to last depth requested
+ * @return pointer to the matching field, \ref NULL otherwise
+ */
 const void *path_get_nth_field_to_last(uint8_t n)
 {
     const char *typename;
@@ -103,7 +115,7 @@ const void *path_get_nth_field_to_last(uint8_t n)
 }
 
 /**
- * Get the element the path is pointing to. (public facing)
+ * Get the element the path is pointing to
  *
  * @return the field which the path points to
  */
@@ -132,11 +144,21 @@ static bool path_depth_list_push(void)
     return true;
 }
 
+/**
+ * Get the last hashing context (corresponding to the current path depth)
+ *
+ * @return pointer to the hashing context
+ */
 static cx_sha3_t *get_last_hash_ctx(void)
 {
     return (cx_sha3_t*)mem_alloc(0) - 1;
 }
 
+/**
+ * Finalize the last hashing context
+ *
+ * @param[out] hash pointer to buffer where the hash will be stored
+ */
 static void finalize_hash_depth(uint8_t *hash)
 {
     const cx_sha3_t *hash_ctx;
@@ -152,7 +174,12 @@ static void finalize_hash_depth(uint8_t *hash)
     mem_dealloc(sizeof(*hash_ctx)); // remove hash context
 }
 
-static void feed_last_hash_depth(uint8_t *hash)
+/**
+ * Continue last progressive hashing context with given hash
+ *
+ * @param[in] hash pointer to given hash
+ */
+static void feed_last_hash_depth(const uint8_t *const hash)
 {
     const cx_sha3_t *hash_ctx;
 
@@ -166,6 +193,12 @@ static void feed_last_hash_depth(uint8_t *hash)
             0);
 }
 
+/**
+ * Create a new hashing context depth in memory
+ *
+ * @param[in] init if the hashing context should be initialized
+ * @return whether the memory allocation of the hashing context was successful
+ */
 static bool push_new_hash_depth(bool init)
 {
     cx_sha3_t *hash_ctx;
@@ -450,6 +483,7 @@ static bool check_and_add_array_depth(const void *depth,
 /**
  * Add a new array depth with a given size (number of elements).
  *
+ * @param[in] size number of elements
  * @return whether the add was successful or not
  */
 bool    path_new_array_depth(uint8_t size)
@@ -609,6 +643,11 @@ bool    path_advance(void)
     return true;
 }
 
+/**
+ * Get root structure type from path (domain or message)
+ *
+ * @return enum representing root type
+ */
 e_root_type path_get_root_type(void)
 {
     if (path_struct == NULL)
@@ -618,6 +657,11 @@ e_root_type path_get_root_type(void)
     return path_struct->root_type;
 }
 
+/**
+ * Get root structure from path
+ *
+ * @return pointer to the root structure definition
+ */
 const void  *path_get_root(void)
 {
     if (path_struct == NULL)
@@ -627,6 +671,11 @@ const void  *path_get_root(void)
     return path_struct->root_struct;
 }
 
+/**
+ * Get the current amount of depth
+ *
+ * @return depth count
+ */
 uint8_t path_get_depth_count(void)
 {
     if (path_struct == NULL)
@@ -637,7 +686,7 @@ uint8_t path_get_depth_count(void)
 }
 
 /**
- * Allocates the path indexes in memory and sets it with a depth of 0.
+ * Initialize the path context with its indexes in memory and sets it with a depth of 0.
  *
  * @return whether the memory allocation were successful.
  */
@@ -645,12 +694,21 @@ bool    path_init(void)
 {
     if (path_struct == NULL)
     {
-        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
-        path_struct = MEM_ALLOC_AND_ALIGN_TYPE(*path_struct);
+        if ((path_struct = MEM_ALLOC_AND_ALIGN_TYPE(*path_struct)) == NULL)
+        {
+            apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+        }
+        else
+        {
+            path_struct->depth_count = 0;
+        }
     }
     return path_struct != NULL;
 }
 
+/**
+ * De-initialize the path context
+ */
 void    path_deinit(void)
 {
     path_struct = NULL;

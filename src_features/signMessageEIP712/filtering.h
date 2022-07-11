@@ -6,7 +6,15 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-bool    provide_filtering_info(const uint8_t *const payload, uint8_t length, uint8_t p1);
+typedef enum
+{
+    FILTERING_CONTRACT_NAME,
+    FILTERING_STRUCT_FIELD
+}   e_filtering_type;
+
+bool    provide_filtering_info(const uint8_t *const payload,
+                               uint8_t length,
+                               e_filtering_type type);
 
 #endif // HAVE_EIP712_FULL_SUPPORT
 

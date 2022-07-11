@@ -17,6 +17,7 @@
 s_eip712_context *eip712_context = NULL;
 
 /**
+ * Initialize the EIP712 context
  *
  * @return a boolean indicating if the initialization was successful or not
  */
@@ -59,6 +60,9 @@ bool    eip712_context_init(void)
     return true;
 }
 
+/**
+ * De-initialize the EIP712 context
+ */
 void    eip712_context_deinit(void)
 {
     typed_data_deinit();

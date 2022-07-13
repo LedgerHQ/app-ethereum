@@ -70,7 +70,7 @@ const uint8_t *get_structs_array(uint8_t *const length);
 const uint8_t *get_structn(const char *const name_ptr,
                            const uint8_t name_length);
 bool    set_struct_name(uint8_t length, const uint8_t *const name);
-bool    set_struct_field(const uint8_t *const data);
+bool    set_struct_field(uint8_t length, const uint8_t *const data);
 bool    typed_data_init(void);
 void    typed_data_deinit(void);
 

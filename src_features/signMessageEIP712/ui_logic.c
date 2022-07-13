@@ -216,6 +216,45 @@ void    ui_712_message_hash(void)
 }
 
 /**
+ * Format a given data as a string
+ *
+ * @param[in] data the data that needs formatting
+ * @param[in] length its length
+ */
+static void ui_712_format_str(const uint8_t *const data, uint8_t length)
+{
+    if (ui_712_field_shown())
+    {
+        ui_712_set_value((char*)data, length);
+    }
+}
+
+/**
+ * Format a given data as a string representation of an address
+ *
+ * @param[in] data the data that needs formatting
+ * @param[in] length its length
+ * @return if the formatting was successful
+ */
+static bool ui_712_format_addr(const uint8_t *const data, uint8_t length)
+{
+    if (length != ADDRESS_LENGTH)
+    {
+        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        return false;
+    }
+    if (ui_712_field_shown())
+    {
+        getEthDisplayableAddress((uint8_t*)data,
+                                 strings.tmp.tmp,
+                                 sizeof(strings.tmp.tmp),
+                                 &global_sha3,
+                                 chainConfig->chainId);
+    }
+    return true;
+}
+
+/**
  * Format given data as a string representation of a boolean
  *
  * @param[in] data the data that needs formatting
@@ -224,18 +263,19 @@ void    ui_712_message_hash(void)
  */
 static bool ui_712_format_bool(const uint8_t *const data, uint8_t length)
 {
+    const char *const true_str = "true";
+    const char *const false_str = "false";
+    const char *str;
+
     if (length != 1)
     {
         apdu_response_code = APDU_RESPONSE_INVALID_DATA;
         return false;
     }
-    if (*data)
+    str = *data ? true_str : false_str;
+    if (ui_712_field_shown())
     {
-        ui_712_set_value("true", 4);
-    }
-    else
-    {
-        ui_712_set_value("false", 5);
+        ui_712_set_value(str, strlen(str));
     }
     return true;
 }
@@ -248,17 +288,20 @@ static bool ui_712_format_bool(const uint8_t *const data, uint8_t length)
  */
 static void ui_712_format_bytes(const uint8_t *const data, uint8_t length)
 {
-    snprintf(strings.tmp.tmp,
-            sizeof(strings.tmp.tmp),
-            "0x%.*H",
-            length,
-            data);
-    // +2 for the "0x"
-    // x2 for each byte value is represented by 2 ASCII characters
-    if ((2 + (length * 2)) > (sizeof(strings.tmp.tmp) - 1))
+    if (ui_712_field_shown())
     {
-        strings.tmp.tmp[sizeof(strings.tmp.tmp) - 1 - 3] = '\0';
-        strcat(strings.tmp.tmp, "...");
+        snprintf(strings.tmp.tmp,
+                sizeof(strings.tmp.tmp),
+                "0x%.*H",
+                length,
+                data);
+        // +2 for the "0x"
+        // x2 for each byte value is represented by 2 ASCII characters
+        if ((2 + (length * 2)) > (sizeof(strings.tmp.tmp) - 1))
+        {
+            strings.tmp.tmp[sizeof(strings.tmp.tmp) - 1 - 3] = '\0';
+            strcat(strings.tmp.tmp, "...");
+        }
     }
 }
 
@@ -282,15 +325,24 @@ static bool ui_712_format_int(const uint8_t *const data,
     {
         case 256:
             convertUint256BE(data, length, &value256);
-            tostring256_signed(&value256, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
+            if (ui_712_field_shown())
+            {
+                tostring256_signed(&value256, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
+            }
             break;
         case 128:
             convertUint128BE(data, length, &value128);
-            tostring128_signed(&value128, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
+            if (ui_712_field_shown())
+            {
+                tostring128_signed(&value128, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
+            }
             break;
         case 64:
             convertUint64BEto128(data, length, &value128);
-            tostring128_signed(&value128, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
+            if (ui_712_field_shown())
+            {
+                tostring128_signed(&value128, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
+            }
             break;
         case 32:
             value32 = 0;
@@ -298,10 +350,13 @@ static bool ui_712_format_int(const uint8_t *const data,
             {
                 ((uint8_t*)&value32)[length - 1 - i] = data[i];
             }
-            snprintf(strings.tmp.tmp,
-                    sizeof(strings.tmp.tmp),
-                    "%d",
-                    value32);
+            if (ui_712_field_shown())
+            {
+                snprintf(strings.tmp.tmp,
+                         sizeof(strings.tmp.tmp),
+                         "%d",
+                         value32);
+            }
             break;
         case 16:
             value16 = 0;
@@ -309,16 +364,22 @@ static bool ui_712_format_int(const uint8_t *const data,
             {
                 ((uint8_t*)&value16)[length - 1 - i] = data[i];
             }
-            snprintf(strings.tmp.tmp,
-                    sizeof(strings.tmp.tmp),
-                    "%d",
-                    value16); // expanded to 32 bits
+            if (ui_712_field_shown())
+            {
+                snprintf(strings.tmp.tmp,
+                         sizeof(strings.tmp.tmp),
+                         "%d",
+                         value16); // expanded to 32 bits
+            }
             break;
         case 8:
-            snprintf(strings.tmp.tmp,
-                    sizeof(strings.tmp.tmp),
-                    "%d",
-                    ((int8_t*)data)[0]); // expanded to 32 bits
+            if (ui_712_field_shown())
+            {
+                snprintf(strings.tmp.tmp,
+                         sizeof(strings.tmp.tmp),
+                         "%d",
+                         ((int8_t*)data)[0]); // expanded to 32 bits
+            }
             break;
         default:
             PRINTF("Unhandled field typesize\n");
@@ -339,7 +400,10 @@ static void ui_712_format_uint(const uint8_t *const data, uint8_t length)
     uint256_t value256;
 
     convertUint256BE(data, length, &value256);
-    tostring256(&value256, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
+    if (ui_712_field_shown())
+    {
+        tostring256(&value256, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
+    }
 }
 
 /**
@@ -367,7 +431,7 @@ bool    ui_712_new_field(const void *const field_ptr, const uint8_t *const data,
         return false;
     }
 
-    if (!(ui_ctx->field_flags & UI_712_FIELD_NAME_PROVIDED))
+    if (ui_712_field_shown() && !(ui_ctx->field_flags & UI_712_FIELD_NAME_PROVIDED))
     {
         ui_712_set_title(key, key_len);
     }
@@ -376,14 +440,13 @@ bool    ui_712_new_field(const void *const field_ptr, const uint8_t *const data,
     switch (struct_field_type(field_ptr))
     {
         case TYPE_SOL_STRING:
-            ui_712_set_value((char*)data, length);
+            ui_712_format_str(data, length);
             break;
         case TYPE_SOL_ADDRESS:
-            getEthDisplayableAddress((uint8_t*)data,
-                                     strings.tmp.tmp,
-                                     sizeof(strings.tmp.tmp),
-                                     &global_sha3,
-                                     chainConfig->chainId);
+            if (ui_712_format_addr(data, length) == false)
+            {
+                return false;
+            }
             break;
         case TYPE_SOL_BOOL:
             if (ui_712_format_bool(data, length) == false)

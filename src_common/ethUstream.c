@@ -592,7 +592,7 @@ static parserStatus_e processTxInternal(txContext_t *context) {
 }
 
 parserStatus_e processTx(txContext_t *context,
-                         uint8_t *buffer,
+                         const uint8_t *buffer,
                          uint32_t length,
                          uint32_t processingFlags) {
     parserStatus_e result;

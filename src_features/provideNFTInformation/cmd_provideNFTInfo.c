@@ -218,7 +218,7 @@ void handleProvideNFTInformation(uint8_t p1,
                         hashId,
                         hash,
                         sizeof(hash),
-                        workBuffer + offset,
+                        (uint8_t *) workBuffer + offset,
                         signatureLen)) {
 #ifndef HAVE_BYPASS_SIGNATURES
         PRINTF("Invalid NFT signature\n");

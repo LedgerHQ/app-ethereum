@@ -16,7 +16,8 @@
 typedef enum
 {
     ARRAY_DYNAMIC = 0,
-    ARRAY_FIXED_SIZE
+    ARRAY_FIXED_SIZE,
+    ARRAY_TYPES_COUNT
 }   e_array_type;
 
 typedef enum

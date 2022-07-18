@@ -659,6 +659,11 @@ static bool set_struct_field_array(const uint8_t *const data,
             return false;
         }
         *array_level = data[(*data_idx)++];
+        if (*array_level > ARRAY_TYPES_COUNT)
+        {
+            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+            return false;
+        }
         switch (*array_level)
         {
             case ARRAY_DYNAMIC: // nothing to do

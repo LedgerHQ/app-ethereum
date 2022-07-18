@@ -296,6 +296,12 @@ static void processV(txContext_t *context) {
         PRINTF("Invalid type for RLP_V\n");
         THROW(EXCEPTION);
     }
+
+    if (context->currentFieldLength > sizeof(context->content->v)) {
+        PRINTF("Invalid length for RLP_V\n");
+        THROW(EXCEPTION);
+    }
+
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
             MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
@@ -586,7 +592,7 @@ static parserStatus_e processTxInternal(txContext_t *context) {
 }
 
 parserStatus_e processTx(txContext_t *context,
-                         uint8_t *buffer,
+                         const uint8_t *buffer,
                          uint32_t length,
                          uint32_t processingFlags) {
     parserStatus_e result;

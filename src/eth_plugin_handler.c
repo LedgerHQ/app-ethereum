@@ -5,7 +5,9 @@
 #include "network.h"
 #include "ethUtils.h"
 
-void eth_plugin_prepare_init(ethPluginInitContract_t *init, uint8_t *selector, uint32_t dataSize) {
+void eth_plugin_prepare_init(ethPluginInitContract_t *init,
+                             const uint8_t *selector,
+                             uint32_t dataSize) {
     memset((uint8_t *) init, 0, sizeof(ethPluginInitContract_t));
     init->selector = selector;
     init->dataSize = dataSize;

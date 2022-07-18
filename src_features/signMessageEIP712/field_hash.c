@@ -296,6 +296,11 @@ bool    field_hash(const uint8_t *data,
     {
         data = field_hash_prepare(field_ptr, data, &data_length);
     }
+    if (data_length > fh->remaining_size)
+    {
+        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        return false;
+    }
     fh->remaining_size -= data_length;
     // if a dynamic type -> continue progressive hash
     if (IS_DYN(field_type))

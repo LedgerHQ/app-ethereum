@@ -442,19 +442,14 @@ bool    path_set_root(const char *const struct_name, uint8_t name_length)
  * @return whether the checks and add were successful or not
  */
 static bool check_and_add_array_depth(const void *depth,
-                                 uint8_t total_count,
-                                 uint8_t pidx,
-                                 uint8_t size)
+                                      uint8_t total_count,
+                                      uint8_t pidx,
+                                      uint8_t size)
 {
     uint8_t expected_size;
     uint8_t arr_idx;
     e_array_type expected_type;
 
-    if (path_struct == NULL)
-    {
-        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
-        return false;
-    }
     arr_idx = (total_count - path_struct->array_depth_count) - 1;
     // we skip index 0, since we already have it
     for (uint8_t idx = 1; idx < (arr_idx + 1); ++idx)
@@ -483,10 +478,12 @@ static bool check_and_add_array_depth(const void *depth,
 /**
  * Add a new array depth with a given size (number of elements).
  *
- * @param[in] size number of elements
+ * @param[in] data pointer to the number of elements
+ * @param[in] length length of data
  * @return whether the add was successful or not
  */
-bool    path_new_array_depth(uint8_t size)
+bool    path_new_array_depth(const uint8_t *const data,
+                             uint8_t length)
 {
     const void *field_ptr = NULL;
     const void *depth = NULL;
@@ -497,6 +494,12 @@ bool    path_new_array_depth(uint8_t size)
 
     if (path_struct == NULL)
     {
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        return false;
+    }
+    else if (length != 1)
+    {
+        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
         return false;
     }
 
@@ -517,7 +520,7 @@ bool    path_new_array_depth(uint8_t size)
             total_count += depth_count;
             if (total_count > path_struct->array_depth_count)
             {
-                if (!check_and_add_array_depth(depth, total_count, pidx, size))
+                if (!check_and_add_array_depth(depth, total_count, pidx, *data))
                 {
                     return false;
                 }

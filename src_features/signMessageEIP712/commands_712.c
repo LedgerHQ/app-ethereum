@@ -116,7 +116,8 @@ bool    handle_eip712_struct_impl(const uint8_t *const apdu_buf)
                 }
                 break;
             case P2_ARRAY:
-                ret = path_new_array_depth(apdu_buf[OFFSET_CDATA]);
+                ret = path_new_array_depth(&apdu_buf[OFFSET_CDATA],
+                                           apdu_buf[OFFSET_LC]);
                 break;
             default:
                 PRINTF("Unknown P2 0x%x for APDU 0x%x\n",

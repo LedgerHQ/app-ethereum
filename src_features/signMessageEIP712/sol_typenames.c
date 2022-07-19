@@ -7,6 +7,7 @@
 #include "context.h"
 #include "mem.h"
 #include "os_pic.h"
+#include "apdu_constants.h" // APDU response codes
 
 // Bit indicating they are more types associated to this typename
 #define TYPENAME_MORE_TYPE  (1 << 7)
@@ -33,6 +34,7 @@ static bool find_enum_matches(const uint8_t (*enum_to_idx)[TYPES_COUNT - 1][IDX_
             }
             if ((enum_match = mem_alloc(sizeof(uint8_t))) == NULL)
             {
+                apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
                 return false;
             }
             *enum_match = (*enum_to_idx)[e_idx][IDX_ENUM];
@@ -77,6 +79,7 @@ bool    sol_typenames_init(void)
         {
             if ((typename_len_ptr = mem_alloc(sizeof(uint8_t))) == NULL)
             {
+                apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
                 return false;
             }
             // get pointer to the allocated space just above
@@ -84,6 +87,7 @@ bool    sol_typenames_init(void)
 
             if ((typename_ptr = mem_alloc(sizeof(char) * *typename_len_ptr)) == NULL)
             {
+                apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
                 return false;
             }
             // copy typename
@@ -130,6 +134,7 @@ const char *get_struct_field_sol_typename(const uint8_t *field_ptr,
         if (typename_found) return (char*)typename_ptr;
         typename_ptr += *length;
     }
+    apdu_response_code = APDU_RESPONSE_INVALID_DATA;
     return NULL; // Not found
 }
 

@@ -10,6 +10,9 @@
 #include "path.h"
 #include "field_hash.h"
 #include "ui_logic.h"
+#include "apdu_constants.h" // APDU response codes
+#include "shared_context.h" // reset_app_context
+#include "ui_callbacks.h" // ui_idle
 
 s_eip712_context *eip712_context = NULL;
 
@@ -24,6 +27,7 @@ bool    eip712_context_init(void)
 
     if ((eip712_context = MEM_ALLOC_AND_ALIGN_TYPE(*eip712_context)) == NULL)
     {
+        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
         return false;
     }
 
@@ -50,6 +54,7 @@ bool    eip712_context_init(void)
     // set types pointer
     if ((eip712_context->structs_array = mem_alloc(sizeof(uint8_t))) == NULL)
     {
+        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
         return false;
     }
 
@@ -65,6 +70,8 @@ void    eip712_context_deinit(void)
     ui_712_deinit();
     mem_reset();
     eip712_context = NULL;
+    reset_app_context();
+    ui_idle();
 }
 
 #endif

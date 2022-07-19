@@ -7,10 +7,10 @@
 #include "mem_utils.h"
 #include "type_hash.h"
 #include "shared_context.h"
-#include "ethUtils.h" // KECCAK256_HASH_BYTESIZE
+#include "ethUtils.h"  // KECCAK256_HASH_BYTESIZE
 #include "format_hash_field_type.h"
 #include "hash_bytes.h"
-#include "apdu_constants.h" // APDU response codes
+#include "apdu_constants.h"  // APDU response codes
 #include "typed_data.h"
 
 /**
@@ -19,21 +19,19 @@
  * @param[in] field_ptr pointer to the struct field
  * @return \ref true it finished correctly, \ref false if it didn't (memory allocation)
  */
-static bool encode_and_hash_field(const void *const field_ptr)
-{
+static bool encode_and_hash_field(const void *const field_ptr) {
     const char *name;
     uint8_t length;
 
-    if (!format_hash_field_type(field_ptr, (cx_hash_t*)&global_sha3))
-    {
+    if (!format_hash_field_type(field_ptr, (cx_hash_t *) &global_sha3)) {
         return false;
     }
     // space between field type name and field name
-    hash_byte(' ', (cx_hash_t*)&global_sha3);
+    hash_byte(' ', (cx_hash_t *) &global_sha3);
 
     // field name
     name = get_struct_field_keyname(field_ptr, &length);
-    hash_nbytes((uint8_t*)name, length, (cx_hash_t*)&global_sha3);
+    hash_nbytes((uint8_t *) name, length, (cx_hash_t *) &global_sha3);
     return true;
 }
 
@@ -44,8 +42,7 @@ static bool encode_and_hash_field(const void *const field_ptr)
  * @param[in] str_length length of the formatted string in memory
  * @return pointer of the string in memory, \ref NULL in case of an error
  */
-static bool encode_and_hash_type(const void *const struct_ptr)
-{
+static bool encode_and_hash_type(const void *const struct_ptr) {
     const char *struct_name;
     uint8_t struct_name_length;
     const uint8_t *field_ptr;
@@ -53,29 +50,26 @@ static bool encode_and_hash_type(const void *const struct_ptr)
 
     // struct name
     struct_name = get_struct_name(struct_ptr, &struct_name_length);
-    hash_nbytes((uint8_t*)struct_name, struct_name_length, (cx_hash_t*)&global_sha3);
+    hash_nbytes((uint8_t *) struct_name, struct_name_length, (cx_hash_t *) &global_sha3);
 
     // opening struct parenthese
-    hash_byte('(', (cx_hash_t*)&global_sha3);
+    hash_byte('(', (cx_hash_t *) &global_sha3);
 
     field_ptr = get_struct_fields_array(struct_ptr, &fields_count);
-    for (uint8_t idx = 0; idx < fields_count; ++idx)
-    {
+    for (uint8_t idx = 0; idx < fields_count; ++idx) {
         // comma separating struct fields
-        if (idx > 0)
-        {
-            hash_byte(',', (cx_hash_t*)&global_sha3);
+        if (idx > 0) {
+            hash_byte(',', (cx_hash_t *) &global_sha3);
         }
 
-        if (encode_and_hash_field(field_ptr) == false)
-        {
+        if (encode_and_hash_field(field_ptr) == false) {
             return NULL;
         }
 
         field_ptr = get_next_struct_field(field_ptr);
     }
     // closing struct parenthese
-    hash_byte(')', (cx_hash_t*)&global_sha3);
+    hash_byte(')', (cx_hash_t *) &global_sha3);
 
     return true;
 }
@@ -86,26 +80,21 @@ static bool encode_and_hash_type(const void *const struct_ptr)
  * @param[in] deps_count count of how many struct dependencies pointers
  * @param[in,out] deps pointer to the first dependency pointer
  */
-static void sort_dependencies(uint8_t deps_count,
-                              const void **deps)
-{
+static void sort_dependencies(uint8_t deps_count, const void **deps) {
     bool changed;
     const void *tmp_ptr;
     const char *name1, *name2;
     uint8_t namelen1, namelen2;
     int str_cmp_result;
 
-    do
-    {
+    do {
         changed = false;
-        for (size_t idx = 0; (idx + 1) < deps_count; ++idx)
-        {
+        for (size_t idx = 0; (idx + 1) < deps_count; ++idx) {
             name1 = get_struct_name(*(deps + idx), &namelen1);
             name2 = get_struct_name(*(deps + idx + 1), &namelen2);
 
             str_cmp_result = strncmp(name1, name2, MIN(namelen1, namelen2));
-            if ((str_cmp_result > 0) || ((str_cmp_result == 0) && (namelen1 > namelen2)))
-            {
+            if ((str_cmp_result > 0) || ((str_cmp_result == 0) && (namelen1 > namelen2))) {
                 tmp_ptr = *(deps + idx);
                 *(deps + idx) = *(deps + idx + 1);
                 *(deps + idx + 1) = tmp_ptr;
@@ -113,8 +102,7 @@ static void sort_dependencies(uint8_t deps_count,
                 changed = true;
             }
         }
-    }
-    while (changed);
+    } while (changed);
 }
 
 /**
@@ -127,8 +115,7 @@ static void sort_dependencies(uint8_t deps_count,
  */
 static const void **get_struct_dependencies(uint8_t *const deps_count,
                                             const void **first_dep,
-                                            const void *const struct_ptr)
-{
+                                            const void *const struct_ptr) {
     uint8_t fields_count;
     const void *field_ptr;
     const char *arg_structname;
@@ -138,35 +125,28 @@ static const void **get_struct_dependencies(uint8_t *const deps_count,
     const void **new_dep;
 
     field_ptr = get_struct_fields_array(struct_ptr, &fields_count);
-    for (uint8_t idx = 0; idx < fields_count; ++idx)
-    {
-        if (struct_field_type(field_ptr) == TYPE_CUSTOM)
-        {
+    for (uint8_t idx = 0; idx < fields_count; ++idx) {
+        if (struct_field_type(field_ptr) == TYPE_CUSTOM) {
             // get struct name
             arg_structname = get_struct_field_typename(field_ptr, &arg_structname_length);
             // from its name, get the pointer to its definition
             arg_struct_ptr = get_structn(arg_structname, arg_structname_length);
 
             // check if it is not already present in the dependencies array
-            for (dep_idx = 0; dep_idx < *deps_count; ++dep_idx)
-            {
+            for (dep_idx = 0; dep_idx < *deps_count; ++dep_idx) {
                 // it's a match!
-                if (*(first_dep + dep_idx) == arg_struct_ptr)
-                {
+                if (*(first_dep + dep_idx) == arg_struct_ptr) {
                     break;
                 }
             }
             // if it's not present in the array, add it and recurse into it
-            if (dep_idx == *deps_count)
-            {
+            if (dep_idx == *deps_count) {
                 *deps_count += 1;
-                if ((new_dep = MEM_ALLOC_AND_ALIGN_TYPE(void*)) == NULL)
-                {
+                if ((new_dep = MEM_ALLOC_AND_ALIGN_TYPE(void *)) == NULL) {
                     apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
                     return NULL;
                 }
-                if (*deps_count == 1)
-                {
+                if (*deps_count == 1) {
                     first_dep = new_dep;
                 }
                 *new_dep = arg_struct_ptr;
@@ -187,32 +167,24 @@ static const void **get_struct_dependencies(uint8_t *const deps_count,
  * @param[in] with_deps if hashed typestring should include struct dependencies
  * @return pointer to encoded string or \ref NULL in case of a memory allocation error
  */
-bool type_hash(const char *const struct_name,
-               const uint8_t struct_name_length,
-               uint8_t *hash_buf)
-{
-    const void *const struct_ptr = get_structn(struct_name,
-                                               struct_name_length);
+bool type_hash(const char *const struct_name, const uint8_t struct_name_length, uint8_t *hash_buf) {
+    const void *const struct_ptr = get_structn(struct_name, struct_name_length);
     uint8_t deps_count = 0;
     const void **deps;
     void *mem_loc_bak = mem_alloc(0);
 
-    cx_keccak_init(&global_sha3, 256); // init hash
+    cx_keccak_init(&global_sha3, 256);  // init hash
     deps = get_struct_dependencies(&deps_count, NULL, struct_ptr);
-    if ((deps_count > 0) && (deps == NULL))
-    {
+    if ((deps_count > 0) && (deps == NULL)) {
         return false;
     }
     sort_dependencies(deps_count, deps);
-    if (encode_and_hash_type(struct_ptr) == false)
-    {
+    if (encode_and_hash_type(struct_ptr) == false) {
         return false;
     }
     // loop over each struct and generate string
-    for (int idx = 0; idx < deps_count; ++idx)
-    {
-        if (encode_and_hash_type(*deps) == false)
-        {
+    for (int idx = 0; idx < deps_count; ++idx) {
+        if (encode_and_hash_type(*deps) == false) {
             return false;
         }
         deps += 1;
@@ -220,13 +192,8 @@ bool type_hash(const char *const struct_name,
     mem_dealloc(mem_alloc(0) - mem_loc_bak);
 
     // copy hash into memory
-    cx_hash((cx_hash_t*)&global_sha3,
-            CX_LAST,
-            NULL,
-            0,
-            hash_buf,
-            KECCAK256_HASH_BYTESIZE);
+    cx_hash((cx_hash_t *) &global_sha3, CX_LAST, NULL, 0, hash_buf, KECCAK256_HASH_BYTESIZE);
     return true;
 }
 
-#endif // HAVE_EIP712_FULL_SUPPORT
+#endif  // HAVE_EIP712_FULL_SUPPORT

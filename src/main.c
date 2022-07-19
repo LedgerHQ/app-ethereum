@@ -71,7 +71,7 @@ const internalStorage_t N_storage_real;
 chain_config_t *chainConfig;
 
 void reset_app_context() {
-    //PRINTF("!!RESET_APP_CONTEXT\n");
+    // PRINTF("!!RESET_APP_CONTEXT\n");
     appState = APP_STATE_IDLE;
     called_from_swap = false;
     pluginType = OLD_INTERNAL;
@@ -664,8 +664,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                     break;
 
                 case INS_SIGN_EIP_712_MESSAGE:
-                    if (G_io_apdu_buffer[OFFSET_P2] == 0)
-                    {
+                    if (G_io_apdu_buffer[OFFSET_P2] == 0) {
                         memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
                         handleSignEIP712Message_v0(G_io_apdu_buffer[OFFSET_P1],
                                                    G_io_apdu_buffer[OFFSET_P2],
@@ -673,15 +672,13 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                                                    G_io_apdu_buffer[OFFSET_LC],
                                                    flags,
                                                    tx);
-                    }
-                    else
-                    {
+                    } else {
 #ifdef HAVE_EIP712_FULL_SUPPORT
                         *flags |= IO_ASYNCH_REPLY;
                         handle_eip712_sign(G_io_apdu_buffer);
 #else
                         THROW(0x6B00);
-#endif // HAVE_EIP712_FULL_SUPPORT
+#endif  // HAVE_EIP712_FULL_SUPPORT
                     }
                     break;
 
@@ -723,7 +720,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                     *flags |= IO_ASYNCH_REPLY;
                     handle_eip712_filtering(G_io_apdu_buffer);
                     break;
-#endif // HAVE_EIP712_FULL_SUPPORT
+#endif  // HAVE_EIP712_FULL_SUPPORT
 
 #if 0
         case 0xFF: // return to dashboard

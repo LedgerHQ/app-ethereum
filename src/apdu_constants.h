@@ -34,14 +34,13 @@
 #define COMMON_CLA               0xB0
 #define COMMON_INS_GET_WALLET_ID 0x04
 
-#define APDU_RESPONSE_OK                        0x9000
-#define APDU_RESPONSE_INVALID_DATA              0x6a80
-#define APDU_RESPONSE_INSUFFICIENT_MEMORY       0x6a84
-#define APDU_RESPONSE_INVALID_INS               0x6d00
-#define APDU_RESPONSE_INVALID_P1_P2             0x6b00
-#define APDU_RESPONSE_CONDITION_NOT_SATISFIED   0x6985
-#define APDU_RESPONSE_REF_DATA_NOT_USABLE       0x6a88
-
+#define APDU_RESPONSE_OK                      0x9000
+#define APDU_RESPONSE_INVALID_DATA            0x6a80
+#define APDU_RESPONSE_INSUFFICIENT_MEMORY     0x6a84
+#define APDU_RESPONSE_INVALID_INS             0x6d00
+#define APDU_RESPONSE_INVALID_P1_P2           0x6b00
+#define APDU_RESPONSE_CONDITION_NOT_SATISFIED 0x6985
+#define APDU_RESPONSE_REF_DATA_NOT_USABLE     0x6a88
 
 #ifdef HAVE_STARKWARE
 
@@ -63,14 +62,7 @@
 
 #endif
 
-enum {
-    OFFSET_CLA = 0,
-    OFFSET_INS,
-    OFFSET_P1,
-    OFFSET_P2,
-    OFFSET_LC,
-    OFFSET_CDATA
-};
+enum { OFFSET_CLA = 0, OFFSET_INS, OFFSET_P1, OFFSET_P2, OFFSET_LC, OFFSET_CDATA };
 
 void handleGetPublicKey(uint8_t p1,
                         uint8_t p2,

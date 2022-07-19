@@ -7,7 +7,7 @@ void switch_settings_display_data(void);
 void switch_settings_display_nonce(void);
 #ifdef HAVE_EIP712_FULL_SUPPORT
 void switch_settings_verbose_eip712(void);
-#endif // HAVE_EIP712_FULL_SUPPORT
+#endif  // HAVE_EIP712_FULL_SUPPORT
 
 //////////////////////////////////////////////////////////////////////
 // clang-format off
@@ -148,27 +148,22 @@ UX_FLOW(ux_settings_flow,
         &ux_settings_flow_display_nonce_step,
 #ifdef HAVE_EIP712_FULL_SUPPORT
         &ux_settings_flow_verbose_eip712_step,
-#endif // HAVE_EIP712_FULL_SUPPORT
+#endif  // HAVE_EIP712_FULL_SUPPORT
         &ux_settings_flow_back_step);
 
 void display_settings(const ux_flow_step_t* const start_step) {
-    const char *const values[] = {
-        "Enabled",
-        "Disabled"
-    };
-    bool settings[] = {
-        N_storage.dataAllowed,
-        N_storage.contractDetails,
-        N_storage.displayNonce,
+    const char* const values[] = {"Enabled", "Disabled"};
+    bool settings[] = {N_storage.dataAllowed,
+                       N_storage.contractDetails,
+                       N_storage.displayNonce,
 #ifdef HAVE_EIP712_FULL_SUPPORT
-        N_storage.verbose_eip712
-#endif // HAVE_EIP712_FULL_SUPPORT
+                       N_storage.verbose_eip712
+#endif  // HAVE_EIP712_FULL_SUPPORT
     };
     uint8_t offset = 0;
     uint8_t increment = MAX(strlen(values[0]), strlen(values[1])) + 1;
 
-    for (unsigned int i = 0; i < (sizeof(settings) / sizeof(settings[0])); ++i)
-    {
+    for (unsigned int i = 0; i < (sizeof(settings) / sizeof(settings[0])); ++i) {
         strlcpy(strings.common.fullAddress + offset,
                 (settings[i] ? values[0] : values[1]),
                 sizeof(strings.common.fullAddress) - offset);
@@ -197,13 +192,12 @@ void switch_settings_display_nonce(void) {
 }
 
 #ifdef HAVE_EIP712_FULL_SUPPORT
-void switch_settings_verbose_eip712(void)
-{
+void switch_settings_verbose_eip712(void) {
     bool value = !N_storage.verbose_eip712;
     nvm_write((void*) &N_storage.verbose_eip712, (void*) &value, sizeof(value));
     display_settings(&ux_settings_flow_verbose_eip712_step);
 }
-#endif // HAVE_EIP712_FULL_SUPPORT
+#endif  // HAVE_EIP712_FULL_SUPPORT
 
 //////////////////////////////////////////////////////////////////////
 // clang-format off

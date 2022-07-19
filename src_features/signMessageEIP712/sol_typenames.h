@@ -8,9 +8,8 @@
 
 bool sol_typenames_init(void);
 
-const char *get_struct_field_sol_typename(const uint8_t *ptr,
-                                          uint8_t *const length);
+const char *get_struct_field_sol_typename(const uint8_t *ptr, uint8_t *const length);
 
-#endif // HAVE_EIP712_FULL_SUPPORT
+#endif  // HAVE_EIP712_FULL_SUPPORT
 
-#endif // SOL_TYPENAMES_H_
+#endif  // SOL_TYPENAMES_H_

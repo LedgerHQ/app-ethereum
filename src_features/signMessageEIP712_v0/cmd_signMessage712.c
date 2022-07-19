@@ -12,8 +12,8 @@ void handleSignEIP712Message_v0(uint8_t p1,
                                 uint8_t dataLength,
                                 unsigned int *flags,
                                 unsigned int *tx) {
-    (void)tx;
-    (void)p2;
+    (void) tx;
+    (void) p2;
     if (p1 != 00) {
         THROW(0x6B00);
     }
@@ -26,9 +26,7 @@ void handleSignEIP712Message_v0(uint8_t p1,
     if ((workBuffer == NULL) || (dataLength < (KECCAK256_HASH_BYTESIZE * 2))) {
         THROW(0x6a80);
     }
-    memmove(tmpCtx.messageSigningContext712.domainHash,
-            workBuffer,
-            KECCAK256_HASH_BYTESIZE);
+    memmove(tmpCtx.messageSigningContext712.domainHash, workBuffer, KECCAK256_HASH_BYTESIZE);
     memmove(tmpCtx.messageSigningContext712.messageHash,
             workBuffer + KECCAK256_HASH_BYTESIZE,
             KECCAK256_HASH_BYTESIZE);

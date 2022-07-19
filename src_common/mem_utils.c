@@ -14,26 +14,22 @@
  *
  * @return pointer to memory area or \ref NULL if the allocation failed
  */
-char    *mem_alloc_and_format_uint(uint32_t value, uint8_t *const length)
-{
-    char        *mem_ptr;
-    uint32_t    value_copy;
-    uint8_t     size;
+char *mem_alloc_and_format_uint(uint32_t value, uint8_t *const length) {
+    char *mem_ptr;
+    uint32_t value_copy;
+    uint8_t size;
 
-    size = 1; // minimum size, even if 0
+    size = 1;  // minimum size, even if 0
     value_copy = value;
-    while (value_copy >= 10)
-    {
+    while (value_copy >= 10) {
         value_copy /= 10;
         size += 1;
     }
     // +1 for the null character
-    if ((mem_ptr = mem_alloc(sizeof(char) * (size + 1))))
-    {
+    if ((mem_ptr = mem_alloc(sizeof(char) * (size + 1)))) {
         snprintf(mem_ptr, (size + 1), "%u", value);
-        mem_dealloc(sizeof(char)); // to skip the null character
-        if (length != NULL)
-        {
+        mem_dealloc(sizeof(char));  // to skip the null character
+        if (length != NULL) {
             *length = size;
         }
     }
@@ -49,18 +45,16 @@ char    *mem_alloc_and_format_uint(uint32_t value, uint8_t *const length)
  *
  * @return pointer to the memory area, \ref NULL if the allocation failed
  */
-void    *mem_alloc_and_align(size_t size, size_t alignment)
-{
-    uint8_t align_diff = (uintptr_t)mem_alloc(0) % alignment;
+void *mem_alloc_and_align(size_t size, size_t alignment) {
+    uint8_t align_diff = (uintptr_t) mem_alloc(0) % alignment;
 
-    if (align_diff > 0) // alignment needed
+    if (align_diff > 0)  // alignment needed
     {
-        if (mem_alloc(alignment - align_diff) == NULL)
-        {
+        if (mem_alloc(alignment - align_diff) == NULL) {
             return NULL;
         }
     }
     return mem_alloc(size);
 }
 
-#endif // HAVE_DYN_MEM_ALLOC
+#endif  // HAVE_DYN_MEM_ALLOC

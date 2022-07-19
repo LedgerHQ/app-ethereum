@@ -58,5 +58,4 @@ bool tostring256_signed(const uint256_t *const number,
                         char *const out,
                         uint32_t out_length);
 
-
 #endif  // _UINT256_H_

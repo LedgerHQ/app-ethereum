@@ -2,7 +2,7 @@
 
 #include "ui_flow_712.h"
 #include "ui_logic.h"
-#include "shared_context.h" // strings
+#include "shared_context.h"  // strings
 
 // clang-format off
 UX_STEP_NOCB(
@@ -54,4 +54,4 @@ UX_FLOW(ux_712_flow,
         &ux_712_step_approve,
         &ux_712_step_reject);
 
-#endif // HAVE_EIP712_FULL_SUPPORT
+#endif  // HAVE_EIP712_FULL_SUPPORT

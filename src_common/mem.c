@@ -5,23 +5,20 @@
 
 #define SIZE_MEM_BUFFER 5120
 
-static uint8_t  mem_buffer[SIZE_MEM_BUFFER];
-static size_t   mem_idx;
-
+static uint8_t mem_buffer[SIZE_MEM_BUFFER];
+static size_t mem_idx;
 
 /**
  * Initializes the memory buffer index
  */
-void    mem_init(void)
-{
+void mem_init(void) {
     mem_idx = 0;
 }
 
 /**
  * Resets the memory buffer index
  */
-void    mem_reset(void)
-{
+void mem_reset(void) {
     mem_init();
 }
 
@@ -34,9 +31,8 @@ void    mem_reset(void)
  * @param[in] size Requested allocation size in bytes
  * @return Allocated memory pointer; \ref NULL if not enough space left.
  */
-void    *mem_alloc(size_t size)
-{
-    if ((mem_idx + size) > SIZE_MEM_BUFFER) // Buffer exceeded
+void *mem_alloc(size_t size) {
+    if ((mem_idx + size) > SIZE_MEM_BUFFER)  // Buffer exceeded
     {
         return NULL;
     }
@@ -49,16 +45,13 @@ void    *mem_alloc(size_t size)
  *
  * @param[in] size Requested deallocation size in bytes
  */
-void    mem_dealloc(size_t size)
-{
-    if (size > mem_idx) // More than is already allocated
+void mem_dealloc(size_t size) {
+    if (size > mem_idx)  // More than is already allocated
     {
         mem_idx = 0;
-    }
-    else
-    {
+    } else {
         mem_idx -= size;
     }
 }
 
-#endif // HAVE_DYN_MEM_ALLOC
+#endif  // HAVE_DYN_MEM_ALLOC

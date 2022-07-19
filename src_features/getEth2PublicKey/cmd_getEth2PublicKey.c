@@ -43,7 +43,7 @@ void getEth2PublicKey(uint32_t *bip32Path, uint8_t bip32PathLength, uint8_t *out
 void handleGetEth2PublicKey(uint8_t p1,
                             uint8_t p2,
                             const uint8_t *dataBuffer,
-                            uint16_t dataLength,
+                            uint8_t dataLength,
                             unsigned int *flags,
                             unsigned int *tx) {
     bip32_path_t bip32;

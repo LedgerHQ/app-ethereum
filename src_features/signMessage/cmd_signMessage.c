@@ -114,7 +114,7 @@ static void feed_value_str(const uint8_t *const data, size_t length, bool is_asc
 void handleSignPersonalMessage(uint8_t p1,
                                uint8_t p2,
                                const uint8_t *workBuffer,
-                               uint16_t dataLength,
+                               uint8_t dataLength,
                                unsigned int *flags,
                                unsigned int *tx) {
     UNUSED(tx);

@@ -8,7 +8,7 @@
 void handleStarkwareProvideQuantum(uint8_t p1,
                                    __attribute__((unused)) uint8_t p2,
                                    const uint8_t *dataBuffer,
-                                   uint16_t dataLength,
+                                   uint8_t dataLength,
                                    __attribute__((unused)) unsigned int *flags,
                                    __attribute__((unused)) unsigned int *tx) {
     size_t i = 0;

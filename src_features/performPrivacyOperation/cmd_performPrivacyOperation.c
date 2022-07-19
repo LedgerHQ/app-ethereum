@@ -26,7 +26,7 @@ void decodeScalar(const uint8_t *scalarIn, uint8_t *scalarOut) {
 void handlePerformPrivacyOperation(uint8_t p1,
                                    uint8_t p2,
                                    const uint8_t *dataBuffer,
-                                   uint16_t dataLength,
+                                   uint8_t dataLength,
                                    unsigned int *flags,
                                    unsigned int *tx) {
     uint8_t privateKeyData[INT256_LENGTH];

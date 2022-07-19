@@ -88,7 +88,7 @@ static pluginType_t getPluginType(char *pluginName, uint8_t pluginNameLength) {
 void handleSetPlugin(uint8_t p1,
                      uint8_t p2,
                      const uint8_t *workBuffer,
-                     uint16_t dataLength,
+                     uint8_t dataLength,
                      unsigned int *flags,
                      unsigned int *tx) {
     UNUSED(p1);

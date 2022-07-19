@@ -491,7 +491,7 @@ void handleGetWalletId(volatile unsigned int *tx) {
 
 #endif  // HAVE_WALLET_ID_SDK
 
-const uint8_t *parseBip32(const uint8_t *dataBuffer, uint16_t *dataLength, bip32_path_t *bip32) {
+const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_path_t *bip32) {
     if (*dataLength < 1) {
         PRINTF("Invalid data\n");
         return NULL;

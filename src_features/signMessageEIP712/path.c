@@ -11,6 +11,7 @@
 #include "ethUtils.h"
 #include "mem_utils.h"
 #include "ui_logic.h"
+#include "apdu_constants.h" // APDU response codes
 
 static s_path *path_struct = NULL;
 
@@ -214,10 +215,12 @@ static bool array_depth_list_push(uint8_t path_idx, uint8_t size)
 
     if (path_struct == NULL)
     {
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
         return false;
     }
     if (path_struct->array_depth_count == MAX_ARRAY_DEPTH)
     {
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
         return false;
     }
 
@@ -345,6 +348,7 @@ bool    path_set_root(const char *const struct_name, uint8_t name_length)
 {
     if (path_struct == NULL)
     {
+        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
         return false;
     }
 
@@ -358,6 +362,7 @@ bool    path_set_root(const char *const struct_name, uint8_t name_length)
             PRINTF("%c", struct_name[i]);
         }
         PRINTF(")!\n");
+        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
         return false;
     }
 
@@ -366,12 +371,12 @@ bool    path_set_root(const char *const struct_name, uint8_t name_length)
     const uint8_t *thash_ptr;
     if ((hash_ctx = MEM_ALLOC_AND_ALIGN_TYPE(*hash_ctx)) == NULL)
     {
+        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
         return false;
     }
     cx_keccak_init(hash_ctx, 256); // init hash
     if ((thash_ptr = type_hash(eip712_context->structs_array, struct_name, name_length)) == NULL)
     {
-        PRINTF("Memory allocation failed!\n");
         return false;
     }
     // start the progressive hash on it
@@ -427,6 +432,7 @@ static bool check_and_add_array_depth(const void *depth,
 
     if (path_struct == NULL)
     {
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
         return false;
     }
     arr_idx = (total_count - path_struct->array_depth_count) - 1;
@@ -441,6 +447,7 @@ static bool check_and_add_array_depth(const void *depth,
     expected_type = struct_field_array_depth(depth, &expected_size);
     if ((expected_type == ARRAY_FIXED_SIZE) && (expected_size != size))
     {
+        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
         PRINTF("Unexpected array depth size. (expected %d, got %d)\n",
                expected_size, size);
         return false;
@@ -475,12 +482,14 @@ bool    path_new_array_depth(uint8_t size)
     {
         if ((field_ptr = get_nth_field(NULL, pidx + 1)) == NULL)
         {
+            apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
             return false;
         }
         if (struct_field_is_array(field_ptr))
         {
             if ((depth = get_struct_field_array_lvls_array(field_ptr, &depth_count)) == NULL)
             {
+                apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
                 return false;
             }
             total_count += depth_count;
@@ -497,6 +506,7 @@ bool    path_new_array_depth(uint8_t size)
 
     if (pidx == path_struct->depth_count)
     {
+        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
         PRINTF("Did not find a matching array type.\n");
         return false;
     }
@@ -505,6 +515,7 @@ bool    path_new_array_depth(uint8_t size)
     // memory address not aligned, padd it
     if ((hash_ctx = mem_alloc(sizeof(*hash_ctx))) == NULL)
     {
+        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
         return false;
     }
     if (struct_field_type(field_ptr) == TYPE_CUSTOM)
@@ -652,6 +663,7 @@ bool    path_init(void)
 {
     if (path_struct == NULL)
     {
+        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
         path_struct = MEM_ALLOC_AND_ALIGN_TYPE(*path_struct);
     }
     return path_struct != NULL;

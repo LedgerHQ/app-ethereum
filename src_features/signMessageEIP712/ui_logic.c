@@ -16,6 +16,7 @@
 #include "context.h" // eip712_context_deinit
 #include "uint256.h" // tostring256 && tostring256_signed
 #include "path.h" // path_get_root_type
+#include "apdu_constants.h" // APDU response codes
 
 
 static t_ui_context *ui_ctx = NULL;
@@ -358,6 +359,10 @@ bool    ui_712_init(void)
         ui_ctx->end_reached = false;
         ui_ctx->pos = UI_712_POS_REVIEW;
         ui_ctx->filtering_mode = EIP712_FILTERING_BASIC;
+    }
+    else
+    {
+        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
     }
     return ui_ctx != NULL;
 }

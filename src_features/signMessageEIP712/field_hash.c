@@ -12,6 +12,7 @@
 #include "ethUtils.h" // KECCAK256_HASH_BYTESIZE
 #include "context.h" // contract_addr
 #include "utils.h" // u64_from_BE
+#include "apdu_constants.h" // APDU response codes
 
 static s_field_hashing *fh = NULL;
 
@@ -21,6 +22,7 @@ bool    field_hash_init(void)
     {
         if ((fh = MEM_ALLOC_AND_ALIGN_TYPE(*fh)) == NULL)
         {
+            apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
             return false;
         }
         fh->state = FHS_IDLE;
@@ -54,13 +56,14 @@ bool    field_hash(const uint8_t *data,
     // get field by path
     if ((field_ptr = path_get_field()) == NULL)
     {
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
         return false;
     }
     key = get_struct_field_keyname(field_ptr, &keylen);
     field_type = struct_field_type(field_ptr);
     if (fh->state == FHS_IDLE) // first packet for this frame
     {
-        fh->remaining_size = (data[0] << 8) | data[1]; // network byte order
+        fh->remaining_size = __builtin_bswap16(*(uint16_t*)&data[0]); // network byte order
         data += sizeof(uint16_t);
         data_length -= sizeof(uint16_t);
         fh->state = FHS_WAITING_FOR_MORE;
@@ -85,6 +88,7 @@ bool    field_hash(const uint8_t *data,
     {
         if (partial) // only makes sense if marked as complete
         {
+            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
             return false;
         }
 #ifdef DEBUG
@@ -118,6 +122,7 @@ bool    field_hash(const uint8_t *data,
                     break;
                 case TYPE_CUSTOM:
                 default:
+                    apdu_response_code = APDU_RESPONSE_INVALID_DATA;
                     PRINTF("Unknown solidity type!\n");
                     return false;
             }
@@ -132,6 +137,7 @@ bool    field_hash(const uint8_t *data,
         {
             if ((value = mem_alloc(KECCAK256_HASH_BYTESIZE)) == NULL)
             {
+                apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
                 return false;
             }
             // copy hash into memory
@@ -167,6 +173,7 @@ bool    field_hash(const uint8_t *data,
             {
                 if (data_length != sizeof(eip712_context->contract_addr))
                 {
+                    apdu_response_code = APDU_RESPONSE_INVALID_DATA;
                     PRINTF("Unexpected verifyingContract length!\n");
                     return false;
                 }
@@ -178,6 +185,7 @@ bool    field_hash(const uint8_t *data,
 
                 if (chainId != chainConfig->chainId)
                 {
+                    apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
                     PRINTF("EIP712Domain chain ID mismatch, expected 0x%.*h, got 0x%.*h !\n",
                            sizeof(chainConfig->chainId),
                            &chainConfig->chainId,
@@ -195,6 +203,7 @@ bool    field_hash(const uint8_t *data,
     {
         if (!partial || !IS_DYN(field_type)) // only makes sense if marked as partial
         {
+            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
             return false;
         }
         G_io_apdu_buffer[0] = 0x90;

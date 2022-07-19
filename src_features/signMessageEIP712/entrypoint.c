@@ -113,7 +113,8 @@ const uint8_t *get_next_struct_field_array_lvl(const uint8_t *ptr)
             break;
         default:
             // should not be in here :^)
-            break;
+            apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+            return NULL;
     }
     return ptr + 1;
 }
@@ -254,6 +255,7 @@ bool    set_struct_name(const uint8_t *const data)
     // copy length
     if ((length_ptr = mem_alloc(sizeof(uint8_t))) == NULL)
     {
+        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
         return false;
     }
     *length_ptr = data[OFFSET_LC];
@@ -261,6 +263,7 @@ bool    set_struct_name(const uint8_t *const data)
     // copy name
     if ((name_ptr = mem_alloc(sizeof(char) * data[OFFSET_LC])) == NULL)
     {
+        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
         return false;
     }
     memmove(name_ptr, &data[OFFSET_CDATA], data[OFFSET_LC]);
@@ -268,6 +271,7 @@ bool    set_struct_name(const uint8_t *const data)
     // initialize number of fields
     if ((eip712_context->current_struct_fields_array = mem_alloc(sizeof(uint8_t))) == NULL)
     {
+        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
         return false;
     }
     *(eip712_context->current_struct_fields_array) = 0;
@@ -295,6 +299,7 @@ bool    set_struct_field(const uint8_t *const data)
     // copy TypeDesc
     if ((type_desc_ptr = mem_alloc(sizeof(uint8_t))) == NULL)
     {
+        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
         return false;
     }
     *type_desc_ptr = data[data_idx++];
@@ -305,6 +310,7 @@ bool    set_struct_field(const uint8_t *const data)
         // copy TypeSize
         if ((type_size_ptr = mem_alloc(sizeof(uint8_t))) == NULL)
         {
+            apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
             return false;
         }
         *type_size_ptr = data[data_idx++];
@@ -314,6 +320,7 @@ bool    set_struct_field(const uint8_t *const data)
         // copy custom struct name length
         if ((typename_len_ptr = mem_alloc(sizeof(uint8_t))) == NULL)
         {
+            apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
             return false;
         }
         *typename_len_ptr = data[data_idx++];
@@ -321,6 +328,7 @@ bool    set_struct_field(const uint8_t *const data)
         // copy name
         if ((typename = mem_alloc(sizeof(char) * *typename_len_ptr)) == NULL)
         {
+            apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
             return false;
         }
         memmove(typename, &data[data_idx], *typename_len_ptr);
@@ -330,6 +338,7 @@ bool    set_struct_field(const uint8_t *const data)
     {
         if ((array_levels_count = mem_alloc(sizeof(uint8_t))) == NULL)
         {
+            apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
             return false;
         }
         *array_levels_count = data[data_idx++];
@@ -337,6 +346,7 @@ bool    set_struct_field(const uint8_t *const data)
         {
             if ((array_level = mem_alloc(sizeof(uint8_t))) == NULL)
             {
+                apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
                 return false;
             }
             *array_level = data[data_idx++];
@@ -347,13 +357,15 @@ bool    set_struct_field(const uint8_t *const data)
                 case ARRAY_FIXED_SIZE:
                     if ((array_level_size = mem_alloc(sizeof(uint8_t))) == NULL)
                     {
+                        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
                         return false;
                     }
                     *array_level_size = data[data_idx++];
                     break;
                 default:
                     // should not be in here :^)
-                    break;
+                    apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+                    return false;
             }
         }
     }
@@ -361,6 +373,7 @@ bool    set_struct_field(const uint8_t *const data)
     // copy length
     if ((fieldname_len_ptr = mem_alloc(sizeof(uint8_t))) == NULL)
     {
+        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
         return false;
     }
     *fieldname_len_ptr = data[data_idx++];
@@ -368,12 +381,29 @@ bool    set_struct_field(const uint8_t *const data)
     // copy name
     if ((fieldname_ptr = mem_alloc(sizeof(char) * *fieldname_len_ptr)) == NULL)
     {
+        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
         return false;
     }
     memmove(fieldname_ptr, &data[data_idx], *fieldname_len_ptr);
     return true;
 }
 
+void    handle_eip712_return_code(bool ret)
+{
+    if (ret)
+    {
+        apdu_response_code = APDU_RESPONSE_OK;
+    }
+    *(uint16_t*)G_io_apdu_buffer = __builtin_bswap16(apdu_response_code);
+
+    // Send back the response, do not restart the event loop
+    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+
+    if (!ret)
+    {
+        eip712_context_deinit();
+    }
+}
 
 bool    handle_eip712_struct_def(const uint8_t *const apdu_buf)
 {
@@ -381,101 +411,77 @@ bool    handle_eip712_struct_def(const uint8_t *const apdu_buf)
 
     if (eip712_context == NULL)
     {
-        if (!eip712_context_init())
-        {
-            return false;
-        }
-    }
-    switch (apdu_buf[OFFSET_P2])
-    {
-        case P2_NAME:
-            ret = set_struct_name(apdu_buf);
-            break;
-        case P2_FIELD:
-            ret = set_struct_field(apdu_buf);
-            break;
-        default:
-            PRINTF("Unknown P2 0x%x for APDU 0x%x\n",
-                    apdu_buf[OFFSET_P2],
-                    apdu_buf[OFFSET_INS]);
-            ret = false;
+        ret = eip712_context_init();
     }
     if (ret)
     {
-        G_io_apdu_buffer[0] = 0x90;
-        G_io_apdu_buffer[1] = 0x00;
+        switch (apdu_buf[OFFSET_P2])
+        {
+            case P2_NAME:
+                ret = set_struct_name(apdu_buf);
+                break;
+            case P2_FIELD:
+                ret = set_struct_field(apdu_buf);
+                break;
+            default:
+                PRINTF("Unknown P2 0x%x for APDU 0x%x\n",
+                        apdu_buf[OFFSET_P2],
+                        apdu_buf[OFFSET_INS]);
+                apdu_response_code = APDU_RESPONSE_INVALID_P1_P2;
+                ret = false;
+        }
     }
-    else
-    {
-        G_io_apdu_buffer[0] = 0x6A;
-        G_io_apdu_buffer[1] = 0x80;
-    }
-    // Send back the response, do not restart the event loop
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+    handle_eip712_return_code(ret);
     return ret;
 }
 
 bool    handle_eip712_struct_impl(const uint8_t *const apdu_buf)
 {
-    bool ret = true;
+    bool ret = false;
     bool reply_apdu = true;
 
-    switch (apdu_buf[OFFSET_P2])
+    if (eip712_context == NULL)
     {
-        case P2_NAME:
-            // set root type
-            if (path_set_root((char*)&apdu_buf[OFFSET_CDATA],
-                              apdu_buf[OFFSET_LC]))
-            {
-                if (N_storage.verbose_eip712)
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+    }
+    else
+    {
+        switch (apdu_buf[OFFSET_P2])
+        {
+            case P2_NAME:
+                // set root type
+                if ((ret = path_set_root((char*)&apdu_buf[OFFSET_CDATA],
+                                         apdu_buf[OFFSET_LC])))
                 {
-                    ui_712_review_struct(path_get_root());
+                    if (N_storage.verbose_eip712)
+                    {
+                        ui_712_review_struct(path_get_root());
+                        reply_apdu = false;
+                    }
+                    ui_712_field_flags_reset();
+                }
+                break;
+            case P2_FIELD:
+                if ((ret = field_hash(&apdu_buf[OFFSET_CDATA],
+                                      apdu_buf[OFFSET_LC],
+                                      apdu_buf[OFFSET_P1] != P1_COMPLETE)))
+                {
                     reply_apdu = false;
                 }
-                ui_712_field_flags_reset();
-            }
-            else
-            {
-                ret = false;
-            }
-            break;
-        case P2_FIELD:
-            if (field_hash(&apdu_buf[OFFSET_CDATA],
-                           apdu_buf[OFFSET_LC],
-                           apdu_buf[OFFSET_P1] != P1_COMPLETE))
-            {
-                reply_apdu = false;
-            }
-            else
-            {
-                ret = false;
-            }
-            break;
-        case P2_ARRAY:
-            if (!path_new_array_depth(apdu_buf[OFFSET_CDATA]))
-            {
-                ret = false;
-            }
-            break;
-        default:
-            PRINTF("Unknown P2 0x%x for APDU 0x%x\n",
-                   apdu_buf[OFFSET_P2],
-                   apdu_buf[OFFSET_INS]);
-            ret = false;
+                break;
+            case P2_ARRAY:
+                ret = path_new_array_depth(apdu_buf[OFFSET_CDATA]);
+                break;
+            default:
+                PRINTF("Unknown P2 0x%x for APDU 0x%x\n",
+                       apdu_buf[OFFSET_P2],
+                       apdu_buf[OFFSET_INS]);
+                apdu_response_code = APDU_RESPONSE_INVALID_P1_P2;
+        }
     }
     if (reply_apdu)
     {
-        if (ret)
-        {
-            G_io_apdu_buffer[0] = 0x90;
-            G_io_apdu_buffer[1] = 0x00;
-        }
-        else
-        {
-            G_io_apdu_buffer[0] = 0x6a;
-            G_io_apdu_buffer[1] = 0x80;
-        }
-        io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+        handle_eip712_return_code(ret);
     }
     return ret;
 }
@@ -594,6 +600,7 @@ bool    provide_filtering_info(const uint8_t *const payload, uint8_t length, uin
     {
         if (path_get_root_type() != ROOT_DOMAIN)
         {
+            apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
             return false;
         }
     }
@@ -601,6 +608,7 @@ bool    provide_filtering_info(const uint8_t *const payload, uint8_t length, uin
     {
         if (path_get_root_type() != ROOT_MESSAGE)
         {
+            apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
             return false;
         }
     }
@@ -705,65 +713,74 @@ bool    handle_eip712_filtering(const uint8_t *const apdu_buf)
     bool ret = true;
     bool reply_apdu = true;
 
-    switch (apdu_buf[OFFSET_P1])
+    if (eip712_context == NULL)
     {
-        case P1_ACTIVATE:
-            if (!N_storage.verbose_eip712)
-            {
-                ui_712_set_filtering_mode(EIP712_FILTERING_FULL);
-                ret = compute_schema_hash();
-            }
-            break;
-        case P1_CONTRACT_NAME:
-        case P1_FIELD_NAME:
-            if (ui_712_get_filtering_mode() == EIP712_FILTERING_FULL)
-            {
-                ret = provide_filtering_info(&apdu_buf[OFFSET_CDATA],
-                                             apdu_buf[OFFSET_LC],
-                                             apdu_buf[OFFSET_P1]);
-                if ((apdu_buf[OFFSET_P1] == P1_CONTRACT_NAME) && ret)
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        ret = false;
+    }
+    else
+    {
+        switch (apdu_buf[OFFSET_P1])
+        {
+            case P1_ACTIVATE:
+                if (!N_storage.verbose_eip712)
                 {
-                    reply_apdu = false;
+                    ui_712_set_filtering_mode(EIP712_FILTERING_FULL);
+                    ret = compute_schema_hash();
                 }
-            }
-            break;
-        default:
-            PRINTF("Unknown P1 0x%x for APDU 0x%x\n",
-                   apdu_buf[OFFSET_P1],
-                   apdu_buf[OFFSET_INS]);
-            ret = false;
+                break;
+            case P1_CONTRACT_NAME:
+            case P1_FIELD_NAME:
+                if (ui_712_get_filtering_mode() == EIP712_FILTERING_FULL)
+                {
+                    ret = provide_filtering_info(&apdu_buf[OFFSET_CDATA],
+                            apdu_buf[OFFSET_LC],
+                            apdu_buf[OFFSET_P1]);
+                    if ((apdu_buf[OFFSET_P1] == P1_CONTRACT_NAME) && ret)
+                    {
+                        reply_apdu = false;
+                    }
+                }
+                break;
+            default:
+                PRINTF("Unknown P1 0x%x for APDU 0x%x\n",
+                        apdu_buf[OFFSET_P1],
+                        apdu_buf[OFFSET_INS]);
+                apdu_response_code = APDU_RESPONSE_INVALID_P1_P2;
+                ret = false;
+        }
     }
     if (reply_apdu)
     {
-        if (ret)
-        {
-            G_io_apdu_buffer[0] = 0x90;
-            G_io_apdu_buffer[1] = 0x00;
-        }
-        else
-        {
-            G_io_apdu_buffer[0] = 0x6A;
-            G_io_apdu_buffer[1] = 0x80;
-        }
-        io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+        handle_eip712_return_code(ret);
     }
     return ret;
 }
 
 bool    handle_eip712_sign(const uint8_t *const apdu_buf)
 {
-    if (parseBip32(&apdu_buf[OFFSET_CDATA],
-                   &apdu_buf[OFFSET_LC],
-                   &tmpCtx.messageSigningContext.bip32) == NULL)
+    bool ret = false;
+
+    if (eip712_context == NULL)
     {
-        return false;
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
     }
-    if (!N_storage.verbose_eip712 && (ui_712_get_filtering_mode() == EIP712_FILTERING_BASIC))
+    else if (parseBip32(&apdu_buf[OFFSET_CDATA],
+                        &apdu_buf[OFFSET_LC],
+                        &tmpCtx.messageSigningContext.bip32) != NULL)
     {
-        ui_712_message_hash();
+        if (!N_storage.verbose_eip712 && (ui_712_get_filtering_mode() == EIP712_FILTERING_BASIC))
+        {
+            ui_712_message_hash();
+        }
+        ret = true;
+        ui_712_end_sign();
     }
-    ui_712_end_sign();
-    return true;
+    if (!ret)
+    {
+        handle_eip712_return_code(ret);
+    }
+    return ret;
 }
 
 

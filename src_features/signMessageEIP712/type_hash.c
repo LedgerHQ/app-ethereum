@@ -11,6 +11,7 @@
 #include "ethUtils.h" // KECCAK256_HASH_BYTESIZE
 #include "format_hash_field_type.h"
 #include "hash_bytes.h"
+#include "apdu_constants.h" // APDU response codes
 
 /**
  *
@@ -162,6 +163,7 @@ static const void **get_struct_dependencies(const void *const structs_array,
                 *deps_count += 1;
                 if ((new_dep = MEM_ALLOC_AND_ALIGN_TYPE(void*)) == NULL)
                 {
+                    apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
                     return NULL;
                 }
                 if (*deps_count == 1)
@@ -213,7 +215,10 @@ const uint8_t *type_hash(const void *const structs_array,
     // loop over each struct and generate string
     for (int idx = 0; idx < deps_count; ++idx)
     {
-        encode_and_hash_type(*deps);
+        if (encode_and_hash_type(*deps) == false)
+        {
+            return NULL;
+        }
         deps += 1;
     }
     mem_dealloc(mem_alloc(0) - mem_loc_bak);
@@ -221,6 +226,7 @@ const uint8_t *type_hash(const void *const structs_array,
     // End progressive hashing
     if ((hash_ptr = mem_alloc(KECCAK256_HASH_BYTESIZE)) == NULL)
     {
+        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
         return NULL;
     }
     // copy hash into memory

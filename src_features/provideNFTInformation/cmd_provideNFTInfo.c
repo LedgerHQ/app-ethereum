@@ -53,7 +53,7 @@ typedef bool verificationAlgo(const cx_ecfp_public_key_t *,
 
 void handleProvideNFTInformation(uint8_t p1,
                                  uint8_t p2,
-                                 uint8_t *workBuffer,
+                                 const uint8_t *workBuffer,
                                  uint16_t dataLength,
                                  unsigned int *flags,
                                  unsigned int *tx) {
@@ -218,7 +218,7 @@ void handleProvideNFTInformation(uint8_t p1,
                         hashId,
                         hash,
                         sizeof(hash),
-                        workBuffer + offset,
+                        (uint8_t *) workBuffer + offset,
                         signatureLen)) {
 #ifndef HAVE_BYPASS_SIGNATURES
         PRINTF("Invalid NFT signature\n");

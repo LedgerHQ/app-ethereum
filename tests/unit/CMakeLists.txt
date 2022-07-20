@@ -54,10 +54,12 @@ add_compile_definitions(TEST DEBUG=0 SKIP_FOR_CMOCKA)
 include_directories(../../src/)
 include_directories(../../src_common)
 
-add_executable(test_utils tests/utils.c)
+# add cmocka tests
+add_executable(test_demo tests/demo.c)
 
-add_library(utils SHARED ../../src/utils2.c)
+# add src
+add_library(demo SHARED ./demo_tu.c)
 
-target_link_libraries(test_utils PUBLIC cmocka gcov utils)
+target_link_libraries(test_demo PUBLIC cmocka gcov demo)
 
-add_test(test_utils test_utils)
+add_test(test_demo test_demo)

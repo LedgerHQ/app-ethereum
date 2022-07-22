@@ -1,15 +1,15 @@
 import string
 from typing import Union
 
-from ethereum_client.utils import apdu_as_string, write_varint
+from ethereum_client.utils import write_varint
 
 class ERC20Information:
     def __init__(self, erc20_ticker: string , addr: Union[str, bytes], nb_decimals: int, chainID: int, sign: str) -> None:
-        self.erc20_ticker: bytes = apdu_as_string(erc20_ticker)
+        self.erc20_ticker: bytes = bytes.fromhex(erc20_ticker)
         self.addr: bytes = bytes.fromhex(addr[2:]) if isinstance(addr, str) else addr
         self.nb_decimals: int = nb_decimals
         self.chainID: int = chainID
-        self.sign: bytes = apdu_as_string(sign)
+        self.sign: bytes = bytes.fromhex(sign)
     
     def serialize(self) -> bytes:
         return b"".join([
@@ -43,7 +43,7 @@ class Plugin:
         self.chainID: int = chainID
         self.keyID: int = keyID
         self.algorithm: int = algorithm
-        self.sign: bytes = apdu_as_string(sign)
+        self.sign: bytes = bytes.fromhex(sign)
 
     def serialize(self) -> bytes:
         return b"".join([

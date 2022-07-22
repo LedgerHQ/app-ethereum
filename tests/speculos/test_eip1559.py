@@ -1,11 +1,11 @@
 from time import sleep
 
-from ethereum_client.utils import apdu_as_string, compare_screenshot, save_screenshot, PATH_IMG, parse_sign_response
+from ethereum_client.utils import compare_screenshot, save_screenshot, PATH_IMG, parse_sign_response
 
 def test_sign_eip_1559(cmd):
     result: list = []
     # with bip32_path "44'/60'/0'/0/0"
-    apdu_sign_eip_1559 = apdu_as_string("e004000088058000002c8000003c80000000000000000000000002f87001018502540be4008502540be40086246139ca800094cccccccccccccccccccccccccccccccccccccccc8000c001a0e07fb8a64ea3786c9a6649e54429e2786af3ea31c6d06165346678cf8ce44f9ba00e4a0526db1e905b7164a858fd5ebd2f1759e22e6955499448bd276a6aa62830")
+    apdu_sign_eip_1559 = bytes.fromhex("e004000088058000002c8000003c80000000000000000000000002f87001018502540be4008502540be40086246139ca800094cccccccccccccccccccccccccccccccccccccccc8000c001a0e07fb8a64ea3786c9a6649e54429e2786af3ea31c6d06165346678cf8ce44f9ba00e4a0526db1e905b7164a858fd5ebd2f1759e22e6955499448bd276a6aa62830")
 
     with cmd.send_apdu_context(apdu_sign_eip_1559, result) as ex:
         sleep(0.5)

@@ -1,6 +1,6 @@
 from typing import Union
 
-from ethereum_client.utils import apdu_as_string, write_varint, UINT64_MAX
+from ethereum_client.utils import write_varint, UINT64_MAX
 
 
 class TransactionError(Exception):
@@ -86,8 +86,8 @@ class Transaction:
 
 class EIP712:
     def __init__(self, domain_hash: str, msg_hash: str) -> None:
-        self.domain_hash = apdu_as_string(domain_hash)
-        self.msg_hash = apdu_as_string(msg_hash)
+        self.domain_hash = bytes.fromhex(domain_hash)
+        self.msg_hash = bytes.fromhex(msg_hash)
     
     def serialize(self) -> bytes:
         return b"".join([

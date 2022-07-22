@@ -1,7 +1,7 @@
 from time import sleep
 
 import ethereum_client
-from ethereum_client.utils import apdu_as_string, compare_screenshot, compare_screenshot, parse_sign_response, save_screenshot, PATH_IMG
+from ethereum_client.utils import compare_screenshot, compare_screenshot, parse_sign_response, save_screenshot, PATH_IMG
 from ethereum_client.transaction import PersonalTransaction
 
 def test_personal_sign_metamask(cmd):

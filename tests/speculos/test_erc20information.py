@@ -1,8 +1,8 @@
-from ethereum_client.plugin import ERC20_Information
+from ethereum_client.plugin import ERC20Information
 import ethereum_client
 
 def test_provide_erc20_token(cmd):
-    erc20_info = ERC20_Information(
+    erc20_info = ERC20Information(
         erc20_ticker="5a5258",
         addr="0xe41d2489571d322189246dafa5ebde1f4699f498",
         nb_decimals=18,
@@ -17,7 +17,7 @@ def test_provide_erc20_token(cmd):
         raise
 
 def test_provide_erc20_token_error(cmd):
-    erc20_info = ERC20_Information(
+    erc20_info = ERC20Information(
         erc20_ticker="5a5258",
         addr="0xe41d2489571d322189246dafa5ebde1f4699f498",
         nb_decimals=18,

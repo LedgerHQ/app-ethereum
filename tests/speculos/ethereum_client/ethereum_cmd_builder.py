@@ -5,7 +5,7 @@ import struct
 from typing import List, Tuple, Union, Iterator, cast
 
 from ethereum_client.transaction import EIP712, PersonalTransaction, Transaction
-from ethereum_client.plugin import ERC20_Information, Plugin
+from ethereum_client.plugin import ERC20Information, Plugin
 from ethereum_client.utils import bip32_path_from_string
 
 MAX_APDU_LEN: int = 255
@@ -124,7 +124,7 @@ class EthereumCommandBuilder:
                               p2=0x00,
                               cdata=b"")
 
-    def _same_header_builder(self, data: Union[Plugin, ERC20_Information], ins: int) -> bytes:
+    def _same_header_builder(self, data: Union[Plugin, ERC20Information], ins: int) -> bytes:
         return self.serialize(cla=self.CLA,
                               ins=ins,
                               p1=0x00,
@@ -137,7 +137,7 @@ class EthereumCommandBuilder:
     def provide_nft_information(self, plugin: Plugin) -> bytes:
         return self._same_header_builder(plugin, InsType.INS_PROVIDE_NFT_INFORMATION)
 
-    def provide_erc20_token_information(self, info: ERC20_Information):
+    def provide_erc20_token_information(self, info: ERC20Information):
         return self._same_header_builder(info, InsType.INS_PROVIDE_ERC20)
 
     def get_public_key(self, bip32_path: str, display: bool = False) -> bytes:

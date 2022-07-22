@@ -55,7 +55,6 @@ def test_sign_eip_1559(cmd):
             # Accept and send
             compare_screenshot(cmd, f"screenshots/eip1559/{PATH_IMG[cmd.model]}/sign_eip_1559/00004.png")
             cmd.client.press_and_release('both')
-            pass
 
     response: bytes = result[0]
     v, r, s = parse_sign_response(response)

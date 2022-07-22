@@ -197,8 +197,6 @@ def test_transfer_batch_erc1155(cmd):
             # Accept and send
             compare_screenshot(cmd, f"screenshots/erc1155/{PATH_IMG[cmd.model]}/test_transfer_batch_erc1155/00007.png")
             cmd.client.press_and_release('both')
-            pass
-
 
         response: bytes = result[0]
         v, r, s = parse_sign_response(response)

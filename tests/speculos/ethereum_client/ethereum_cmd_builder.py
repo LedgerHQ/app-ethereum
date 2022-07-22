@@ -124,71 +124,21 @@ class EthereumCommandBuilder:
                               p2=0x00,
                               cdata=b"")
 
-    def set_plugin(self, plugin: Plugin) -> bytes:
-        """Command builder for SET_PLUGIN.
-
-        Parameters
-        ----------
-            -> Check documentation of APDU
-
-        Returns
-        -------
-        bytes
-            APDU command for SET_PLUGIN.
-
-        """
-
-        cdata: bytes = plugin.serialize()
-
+    def _same_header_builder(self, data: Union[Plugin, ERC20_Information], ins: int) -> bytes:
         return self.serialize(cla=self.CLA,
-                              ins=InsType.INS_SET_PLUGIN,
+                              ins=ins,
                               p1=0x00,
                               p2=0x00,
-                              cdata=cdata)
+                              cdata=data.serialize())
+
+    def set_plugin(self, plugin: Plugin) -> bytes:
+        return self._same_header_builder(plugin, InsType.INS_SET_PLUGIN)
 
     def provide_nft_information(self, plugin: Plugin) -> bytes:
-        """Command builder for PROVIDE_NFT_INFORMATION.
-
-        Parameters
-        ----------
-            -> Check documentation of APDU
-
-        Returns
-        -------
-        bytes
-            APDU command for PROVIDE_NFT_INFORMATION.
-
-        """
-
-        cdata: bytes = plugin.serialize()
-
-        return self.serialize(cla=self.CLA,
-                              ins=InsType.INS_PROVIDE_NFT_INFORMATION,
-                              p1=0x00,
-                              p2=0x00,
-                              cdata=cdata)
+        return self._same_header_builder(plugin, InsType.INS_PROVIDE_NFT_INFORMATION)
 
     def provide_erc20_token_information(self, info: ERC20_Information):
-        """Command builder for PROVIDE_ERC20_INFORMATION.
-
-        Parameters
-        ----------
-            -> Check documentation of APDU
-
-        Returns
-        -------
-        bytes
-            APDU command for PROVIDE_ERC20_INFORMATION.
-
-        """
-
-        cdata: bytes = info.serialize()
-
-        return self.serialize(cla=self.CLA,
-                              ins=InsType.INS_PROVIDE_ERC20,
-                              p1=0x00,
-                              p2=0x00,
-                              cdata=cdata)
+        return self._same_header_builder(info, InsType.INS_PROVIDE_ERC20)
 
     def get_public_key(self, bip32_path: str, display: bool = False) -> bytes:
         """Command builder for GET_PUBLIC_KEY.
@@ -243,52 +193,6 @@ class EthereumCommandBuilder:
                               p2=0x01 if shared_secret else 0x00,
                               cdata=cdata)
 
-    # Not use
-    def sign_tx(self, bip32_path: str, transaction: Transaction) -> Iterator[Tuple[bool, bytes]]:
-        """Command builder for INS_SIGN_TX.
-
-        Parameters
-        ----------
-        bip32_path : str
-            String representation of BIP32 path.
-        transaction : Transaction
-            Representation of the transaction to be signed.
-
-        Yields
-        -------
-        bytes
-            APDU command chunk for INS_SIGN_TX.
-
-        """
-        bip32_paths: List[bytes] = bip32_path_from_string(bip32_path)
-
-        cdata: bytes = b"".join([
-            len(bip32_paths).to_bytes(1, byteorder="big"),
-            *bip32_paths
-        ])
-
-        yield False, self.serialize(cla=self.CLA,
-                                    ins=InsType.INS_SIGN_TX,
-                                    p1=0x00,
-                                    p2=0x00,
-                                    cdata=cdata)
-
-        tx: bytes = transaction.serialize()
-
-        for i, (is_last, chunk) in enumerate(chunkify(tx, MAX_APDU_LEN)):
-            if is_last:
-                yield True, self.serialize(cla=self.CLA,
-                                           ins=InsType.INS_SIGN_TX,
-                                           p1=0x00,
-                                           p2=0x00,
-                                           cdata=chunk)
-                return
-            else:
-                yield False, self.serialize(cla=self.CLA,
-                                            ins=InsType.INS_SIGN_TX,
-                                            p1=0x00,
-                                            p2=0x00,
-                                            cdata=chunk)
 
     def simple_sign_tx(self, bip32_path: str, transaction: Transaction) -> bytes:
         """Command builder for INS_SIGN_TX.

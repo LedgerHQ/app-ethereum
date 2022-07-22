@@ -120,7 +120,6 @@ class EthereumCommand:
                                                           data=chunk[5:]) as exchange:
                 yield exchange
                 response: bytes = exchange.receive()
-                print(response)
                 
         except ApduException as error:
             raise DeviceException(error_code=error.sw, ins=InsType.INS_PERFORM_PRIVACY_OPERATION)
@@ -148,8 +147,6 @@ class EthereumCommand:
                 yield exchange
                 result.append(exchange.receive())
             
-            #response: bytes = exchange.receive()
-
         except ApduException as error:
             raise DeviceException(error_code=error.sw, ins=InsType.INS_SIGN_TX)
 
@@ -169,7 +166,7 @@ class EthereumCommand:
         except ApduException as error:
             raise DeviceException(error_code=error.sw, ins=InsType.INS_SIGN_TX)
 
-         # response = V (1) || R (32) || S (32)
+        # response = V (1) || R (32) || S (32)
         assert len(response) == 65
         v, r, s = parse_sign_response(response)
         
@@ -192,7 +189,7 @@ class EthereumCommand:
         except ApduException as error:
             raise DeviceException(error_code=error.sw, ins=InsType.INS_SIGN_EIP712)
 
-         # response = V (1) || R (32) || S (32)
+        # response = V (1) || R (32) || S (32)
         assert len(response) == 65
         v, r, s = parse_sign_response(response)
         

@@ -22,6 +22,7 @@ def pytest_addoption(parser):
     path: str = SCRIPT_DIR.parent.parent / "bin" / "app.elf"
     parser.addoption("--path", action="store", default=path)
 
+@pytest.fixture()
 def client(pytestconfig):
     file_path = pytestconfig.getoption("path")
     model = pytestconfig.getoption("model")

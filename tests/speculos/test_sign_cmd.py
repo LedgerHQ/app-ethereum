@@ -1,5 +1,7 @@
 from time import sleep
 
+import pytest
+
 import ethereum_client
 from ethereum_client.utils import compare_screenshot, compare_screenshot, save_screenshot, PATH_IMG
 from ethereum_client.transaction import Transaction
@@ -183,7 +185,8 @@ def test_sign_reject(cmd):
         chainID=1,
     )
 
-    try:
+    with pytest.raises(ethereum_client.exception.errors.DenyError) as error:
+
         with cmd.simple_sign_tx(bip32_path=bip32_path, transaction=transaction, result=result) as ex:
             sleep(0.5)
 
@@ -245,7 +248,6 @@ def test_sign_reject(cmd):
                 compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/reject/00005.png")
                 cmd.client.press_and_release('both')
 
-    except ethereum_client.exception.errors.DenyError as error:
         assert error.args[0] == '0x6985'
 
 
@@ -343,19 +345,18 @@ def test_sign_error_transaction_type(cmd):
         chainID=1,
     )
 
-    try:
+    with pytest.raises(ethereum_client.exception.errors.UnknownDeviceError) as error:
+
         with cmd.simple_sign_tx(bip32_path=bip32_path, transaction=transaction, result=result) as ex:
             pass
-    except ethereum_client.exception.errors.UnknownDeviceError as error:
-        # Throw error of transaction type not supported
+
         assert error.args[0] == '0x6501'
 
     transaction.txType = 0x7F
-    try:
+    with pytest.raises(ethereum_client.exception.errors.UnknownDeviceError) as error:
         with cmd.simple_sign_tx(bip32_path=bip32_path, transaction=transaction, result=result) as ex:
             pass
-    except ethereum_client.exception.errors.UnknownDeviceError as error:
-        # Throw error of transaction type not supported
+
         assert error.args[0] == '0x6501'
 
 
@@ -579,7 +580,8 @@ def test_sign_blind_error_disabled(cmd):
         data="ok",
     )
 
-    try:
+    with pytest.raises(ethereum_client.exception.errors.UnknownDeviceError) as error:
+
         with cmd.simple_sign_tx(bip32_path=bip32_path, transaction=transaction, result=result) as ex:
             sleep(0.5)
 
@@ -587,7 +589,7 @@ def test_sign_blind_error_disabled(cmd):
                 pass
             if cmd.model == "nanox" or cmd.model == "nanosp":
                 pass
-    except ethereum_client.exception.errors.UnknownDeviceError as error:
+
         assert error.args[0] == '0x6a80'
 
 

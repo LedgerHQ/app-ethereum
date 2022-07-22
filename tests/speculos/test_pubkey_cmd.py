@@ -1,5 +1,7 @@
 from time import sleep
 
+import pytest
+
 import ethereum_client
 from ethereum_client.utils import compare_screenshot, save_screenshot, PATH_IMG
 
@@ -66,9 +68,11 @@ def test_get_public_key(cmd):
 
 
 def test_reject_get_public_key(cmd):
-    try:
-        # DAI COIN with display
-        result: list = []
+    # DAI COIN with display
+    result: list = []
+
+    with pytest.raises(ethereum_client.exception.errors.DenyError) as error:
+
         with cmd.get_public_key(bip32_path="44'/700'/1'/0/0", display=True, result=result) as exchange:
             sleep(0.5)
 
@@ -110,5 +114,4 @@ def test_reject_get_public_key(cmd):
                 compare_screenshot(cmd, f"screenshots/pubkey/{PATH_IMG[cmd.model]}/reject_get_public_key/00003.png")
                 cmd.client.press_and_release('both')
 
-    except ethereum_client.exception.errors.DenyError as error:
         assert error.args[0] == '0x6985'

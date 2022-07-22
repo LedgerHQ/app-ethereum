@@ -1,5 +1,7 @@
 from time import sleep
 
+import pytest
+
 import ethereum_client
 from ethereum_client.utils import compare_screenshot, save_screenshot, PATH_IMG, parse_sign_response
 from ethereum_client.plugin import Plugin
@@ -85,14 +87,15 @@ def test_transfer_erc721_without_nft_provide_info(cmd):
     result: list = []
 
     if cmd.model == "nanox" or cmd.model == "nanosp":
-        try:
+        with pytest.raises(ethereum_client.exception.errors.UnknownDeviceError) as error:
+
             cmd.set_plugin(plugin=PLUGIN)
 
             cmd.send_apdu(SIGN_FIRST)
 
             with cmd.send_apdu_context(SIGN_MORE, result) as ex:
                 pass
-        except ethereum_client.exception.errors.UnknownDeviceError as error:
+
             assert error.args[0] == '0x6a80'
     
 
@@ -101,7 +104,7 @@ def test_transfer_erc721_without_set_plugin(cmd):
     result: list = []
 
     if cmd.model == "nanox" or cmd.model == "nanosp":
-        try:
+        with pytest.raises(ethereum_client.exception.errors.DenyError) as error:
             cmd.provide_nft_information(plugin=PROVIDE_NFT_INFORMATION)
             
             cmd.send_apdu(SIGN_FIRST)
@@ -109,5 +112,4 @@ def test_transfer_erc721_without_set_plugin(cmd):
             with cmd.send_apdu_context(SIGN_MORE, result) as ex:
                 pass
         
-        except ethereum_client.exception.errors.DenyError as error:
             assert error.args[0] == '0x6985'

@@ -1,5 +1,7 @@
 from time import sleep
 
+import pytest
+
 from ethereum_client.utils import compare_screenshot, save_screenshot, PATH_IMG, parse_sign_response
 from ethereum_client.transaction import EIP712
 import ethereum_client
@@ -81,7 +83,7 @@ def test_sign_eip_712_hashed_msg_reject(cmd):
         msg_hash="9d96be8a7cca396e711a3ba356bd9878df02a726d753ddb6cda3c507d888bc77"
     )
 
-    try:
+    with pytest.raises(ethereum_client.exception.errors.DenyError) as error:
         with cmd.sign_eip712(bip32_path=bip32_path, transaction=transaction, result=result) as ex:
             sleep(0.5)
 
@@ -142,8 +144,6 @@ def test_sign_eip_712_hashed_msg_reject(cmd):
                 # Cancel signature
                 compare_screenshot(cmd, f"screenshots/eip712/{PATH_IMG[cmd.model]}/sign_eip_712_hashed_msg_reject/00006.png")
                 cmd.client.press_and_release('both')
-
-    except ethereum_client.exception.errors.DenyError as error:
         assert error.args[0] == '0x6985'
 
 def test_sign_eip_712_bad_domain(cmd):
@@ -155,11 +155,11 @@ def test_sign_eip_712_bad_domain(cmd):
         msg_hash="9d96be8a7cca396e711a3ba356bd9878df02a726d753ddb6cda3c507d888bc77"
     )
 
-    try:
+    with pytest.raises(ethereum_client.exception.errors.UnknownDeviceError) as error:
+
         with cmd.sign_eip712(bip32_path=bip32_path, transaction=transaction, result=result) as ex:
             pass
 
-    except ethereum_client.exception.errors.UnknownDeviceError as error:
         assert error.args[0] == '0x6a80'
 
 def test_sign_eip_712_bad_msg(cmd):
@@ -171,9 +171,9 @@ def test_sign_eip_712_bad_msg(cmd):
         msg_hash="deadbeef"
     )
 
-    try:
+    with pytest.raises(ethereum_client.exception.errors.UnknownDeviceError) as error:
+
         with cmd.sign_eip712(bip32_path=bip32_path, transaction=transaction, result=result) as ex:
             pass
 
-    except ethereum_client.exception.errors.UnknownDeviceError as error:
         assert error.args[0] == '0x6a80'

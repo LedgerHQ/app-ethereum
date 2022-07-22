@@ -1,5 +1,7 @@
 from time import sleep
 
+import pytest
+
 import ethereum_client
 from ethereum_client.utils import compare_screenshot, compare_screenshot, parse_sign_response, save_screenshot, PATH_IMG
 from ethereum_client.transaction import PersonalTransaction
@@ -56,7 +58,7 @@ def test_personal_sign_reject(cmd):
         msg="This is an reject sign"
     )
 
-    try:
+    with pytest.raises(ethereum_client.exception.errors.DenyError) as error:
         with cmd.personal_sign_tx(bip32_path=bip32_path, transaction=transaction, result=result) as ex:
             sleep(0.5)
 
@@ -95,8 +97,6 @@ def test_personal_sign_reject(cmd):
                 # Cancel signature
                 compare_screenshot(cmd, f"screenshots/eip191/{PATH_IMG[cmd.model]}/personal_sign_reject/00003.png")
                 cmd.client.press_and_release('both')
-
-    except ethereum_client.exception.errors.DenyError as error:
         assert error.args[0] == '0x6985'
 
 def test_personal_sign_non_ascii(cmd):

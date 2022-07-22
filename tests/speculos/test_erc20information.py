@@ -1,3 +1,4 @@
+import pytest
 from ethereum_client.plugin import ERC20Information
 import ethereum_client
 
@@ -25,7 +26,6 @@ def test_provide_erc20_token_error(cmd):
         sign="deadbeef"
     )
 
-    try:
+    with pytest.raises(ethereum_client.exception.errors.UnknownDeviceError) as error:
         cmd.provide_erc20_token_information(info=erc20_info)
-    except ethereum_client.exception.errors.UnknownDeviceError as error:
-            assert error.args[0] == '0x6a80'
+        assert error.args[0] == '0x6a80'

@@ -9,8 +9,8 @@ unsigned int io_seproxyhal_touch_signMessage_ok(__attribute__((unused)) const ba
     uint32_t tx = 0;
     io_seproxyhal_io_heartbeat();
     os_perso_derive_node_bip32(CX_CURVE_256K1,
-                               tmpCtx.messageSigningContext.bip32Path,
-                               tmpCtx.messageSigningContext.pathLength,
+                               tmpCtx.messageSigningContext.bip32.path,
+                               tmpCtx.messageSigningContext.bip32.length,
                                privateKeyData,
                                NULL);
     io_seproxyhal_io_heartbeat();

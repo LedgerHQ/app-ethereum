@@ -1,4 +1,4 @@
-name: Compilation & tests
+name: Tests
 
 on:
   workflow_dispatch:
@@ -11,79 +11,6 @@ on:
       - develop
 
 jobs:
-  job_build_debug_nano_s:
-    name: Build debug Nano S
-    runs-on: ubuntu-latest
-
-    container:
-      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
-
-    steps:
-      - name: Clone
-        uses: actions/checkout@v2
-        with:
-          submodules: recursive
-
-      - name: Build an altcoin
-        run: |
-          make DEBUG=1 ALLOW_DATA=1 CHAIN=ethereum_classic
-          mv bin/app.elf ethereum_classic_nanos.elf
-
-      - name: Upload altcoin binary
-        uses: actions/upload-artifact@v2
-        with:
-          name: ethereum_classic_nanos
-          path: ./ethereum_classic_nanos.elf
-
-      - name: Build Ethereum
-        run: |
-          make clean
-          make DEBUG=1 ALLOW_DATA=1
-          mv bin/app.elf ethereum_nanos.elf
-
-      - name: Upload app binary
-        uses: actions/upload-artifact@v2
-        with:
-          name: ethereum_nanos
-          path: ./ethereum_nanos.elf
-
-  job_build_debug_nano_x:
-    name: Build debug Nano X
-    runs-on: ubuntu-latest
-
-    container:
-      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
-
-    steps:
-      - name: Clone
-        uses: actions/checkout@v2
-        with:
-          submodules: recursive
-
-      - name: Build an altcoin Nano X
-        run: |
-          make clean
-          make BOLOS_SDK=$NANOX_SDK DEBUG=1 ALLOW_DATA=1 CHAIN=ethereum_classic
-          mv bin/app.elf ethereum_classic_nanox.elf
-
-      - name: Upload altcoin binary
-        uses: actions/upload-artifact@v2
-        with:
-          name: ethereum_classic_nanox
-          path: ./ethereum_classic_nanox.elf
-
-      - name: Build Ethereum Nano X
-        run: |
-          make clean
-          make BOLOS_SDK=$NANOX_SDK DEBUG=1 ALLOW_DATA=1
-          mv bin/app.elf ethereum_nanox.elf
-
-      - name: Upload app binary
-        uses: actions/upload-artifact@v2
-        with:
-          name: ethereum_nanox
-          path: ./ethereum_nanox.elf
-
   scan-build:
     name: Clang Static Analyzer
     runs-on: ubuntu-latest
@@ -104,8 +31,12 @@ jobs:
           name: scan-build
           path: scan-build
 
-  building_for_e2e_tests:
-    name: Building binaries for E2E tests
+# =====================================================
+#            ZEMU TESTS
+# =====================================================
+
+  building_for_e2e_zemu_tests:
+    name: Building binaries for E2E Zemu tests
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
@@ -114,17 +45,19 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Build testing binaries
-        run: cd tests && ./build_local_test_elfs.sh
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          cd tests/zemu/ && ./build_local_test_elfs.sh
 
       - name: Upload app binaries
         uses: actions/upload-artifact@v2
         with:
           name: e2e_elfs
-          path: ./tests/elfs/
+          path: ./tests/zemu/elfs/
 
-  jobs-e2e-tests:
-    name: E2E tests
-    needs: [building_for_e2e_tests]
+  jobs-e2e-zemu-tests:
+    name: E2E Zemu tests
+    needs: [building_for_e2e_zemu_tests]
     runs-on: ubuntu-latest
     steps:
       - name: Test
@@ -146,10 +79,10 @@ jobs:
         run: npm install -g yarn
 
       - name: Build/Install build js deps
-        run: cd tests && yarn install
+        run: cd tests/zemu/ && yarn install
 
       - name: Create tmp folder for artifacts
-        run: mkdir tests/elfs
+        run: mkdir tests/zemu/elfs
 
       - name: Download app binaries
         uses: actions/download-artifact@v2
@@ -157,7 +90,70 @@ jobs:
           path: tmp/
 
       - name: Gather elfs
-        run: cp `find tmp/e2e_elfs/ -name "*.elf"` tests/elfs/
+        run: cp `find tmp/e2e_elfs/ -name "*.elf"` tests/zemu/elfs/
 
       - name: Run zemu tests
-        run: cd tests && yarn test
+        run: cd tests/zemu/ && yarn test
+
+# =====================================================
+#            SPECULOS TESTS
+# =====================================================
+
+
+  building_for_e2e_speculos_tests:
+    name: Building binaries for E2E Speculos tests
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build testing binaries
+        run: |
+          mkdir tests/speculos/elfs
+          make clean && make DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOS_SDK && mv bin/app.elf tests/speculos/elfs/nanos.elf
+          make clean && make DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOX_SDK && mv bin/app.elf tests/speculos/elfs/nanox.elf
+          make clean && make DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOSP_SDK && mv bin/app.elf tests/speculos/elfs/nanosp.elf
+
+      - name: Upload app binaries
+        uses: actions/upload-artifact@v2
+        with:
+          name: e2e_elfs
+          path: ./tests/speculos/elfs
+
+
+  jobs-e2e-speculos-tests:
+    name: Speculos tests
+    strategy:
+      matrix:
+        model: ["nanosp", "nanos", "nanox"]     
+         
+    needs: [building_for_e2e_speculos_tests]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v2
+
+      - name: Create tmp folder for artifacts
+        run: mkdir tests/speculos/elfs
+
+      - name: Download app binaries
+        uses: actions/download-artifact@v2
+        with:
+          path: tmp/
+
+      - name: Gather elfs
+        run: cp `find tmp/e2e_elfs/ -name "*.elf"` tests/speculos/elfs/
+
+      - name: Install dependencies
+        run: |
+          cd tests/speculos
+          sudo apt-get update && sudo apt-get install -y qemu-user-static
+          pip install --extra-index-url https://test.pypi.org/simple/ -r requirements.txt
+
+      - name: Run speculos tests
+        run: | 
+          cd tests/speculos
+          pytest --model ${{ matrix.model }} --path ./elfs/${{ matrix.model }}.elf --display headless

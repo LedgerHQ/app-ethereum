@@ -54,7 +54,7 @@ int local_strchr(char *string, char ch) {
     return -1;
 }
 
-uint64_t u64_from_BE(uint8_t *in, uint8_t size) {
+uint64_t u64_from_BE(const uint8_t *in, uint8_t size) {
     uint8_t i = 0;
     uint64_t res = 0;
 

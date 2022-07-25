@@ -6,7 +6,7 @@ from typing import List, Tuple, Union, Iterator, cast
 
 from ethereum_client.transaction import EIP712, PersonalTransaction, Transaction
 from ethereum_client.plugin import ERC20Information, Plugin
-from ethereum_client.utils import bip32_path_from_string
+from ethereum_client.utils import packed_bip32_path_from_string
 
 MAX_APDU_LEN: int = 255
 
@@ -156,13 +156,8 @@ class EthereumCommandBuilder:
             APDU command for GET_PUBLIC_KEY.
 
         """
-        bip32_paths: List[bytes] = bip32_path_from_string(bip32_path)
-        
-        cdata: bytes = b"".join([
-            len(bip32_paths).to_bytes(1, byteorder="big"),
-            *bip32_paths
-        ])
-        
+        cdata = packed_bip32_path_from_string(bip32_path)
+          
         return self.serialize(cla=self.CLA,
                               ins=InsType.INS_GET_PUBLIC_KEY,
                               p1=0x01 if display else 0x00,
@@ -180,12 +175,7 @@ class EthereumCommandBuilder:
             Optionnal if returning the shared secret
         
         """
-        bip32_paths: List[bytes] = bip32_path_from_string(bip32_path)
-        
-        cdata: bytes = b"".join([
-            len(bip32_paths).to_bytes(1, byteorder="big"),
-            *bip32_paths
-        ])
+        cdata = packed_bip32_path_from_string(bip32_path)
         
         return self.serialize(cla=self.CLA,
                               ins=InsType.INS_PERFORM_PRIVACY_OPERATION,
@@ -210,13 +200,7 @@ class EthereumCommandBuilder:
             APDU command chunk for INS_SIGN_TX.
 
         """
-        bip32_paths: List[bytes] = bip32_path_from_string(bip32_path)
-        
-        cdata: bytes = b"".join([
-            len(bip32_paths).to_bytes(1, byteorder="big"),
-            *bip32_paths
-        ])
-
+        cdata = packed_bip32_path_from_string(bip32_path)
         
         tx: bytes = transaction.serialize()
 
@@ -245,12 +229,7 @@ class EthereumCommandBuilder:
             APDU command chunk for INS_SIGN_EIP712.
 
         """
-        bip32_paths: List[bytes] = bip32_path_from_string(bip32_path)
-        
-        cdata: bytes = b"".join([
-            len(bip32_paths).to_bytes(1, byteorder="big"),
-            *bip32_paths
-        ])
+        cdata = packed_bip32_path_from_string(bip32_path)
 
         
         tx: bytes = transaction.serialize()
@@ -280,13 +259,7 @@ class EthereumCommandBuilder:
 
         """
 
-        bip32_paths: List[bytes] = bip32_path_from_string(bip32_path)
-        
-        cdata: bytes = b"".join([
-            len(bip32_paths).to_bytes(1, byteorder="big"),
-            *bip32_paths
-        ])
-
+        cdata = packed_bip32_path_from_string(bip32_path)
         
         tx: bytes = transaction.serialize()
 

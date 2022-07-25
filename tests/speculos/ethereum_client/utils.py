@@ -52,6 +52,15 @@ def bip32_path_from_string(path: str) -> List[bytes]:
             for p in splitted_path]
 
 
+def packed_bip32_path_from_string(path: str) -> bytes:
+    bip32_paths = bip32_path_from_string(path)
+    
+    return b"".join([
+            len(bip32_paths).to_bytes(1, byteorder="big"),
+            *bip32_paths
+        ])
+
+
 def write_varint(n: int) -> bytes:
     if n < 0xFC:
         return n.to_bytes(1, byteorder="little")

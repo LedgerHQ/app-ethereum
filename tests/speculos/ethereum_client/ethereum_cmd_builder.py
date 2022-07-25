@@ -266,6 +266,7 @@ class EthereumCommandBuilder:
         cdata = cdata + tx
         last_chunk = len(cdata) // MAX_APDU_LEN
         
+        # The generator allows to send apdu frames because we can't send an apdu > 255
         for i, (chunk) in enumerate(chunked(MAX_APDU_LEN, cdata)):
             if i == 0 and i == last_chunk:
                 yield True, self.serialize(cla=self.CLA,

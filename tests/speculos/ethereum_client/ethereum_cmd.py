@@ -200,15 +200,13 @@ class EthereumCommand:
 
     @contextmanager
     def personal_sign_tx(self, bip32_path: str, transaction: PersonalTransaction, result: List = list()) -> None:
-        """
-            Does the same thing as simple_personal_sign but allows to create a batch of cmd apdu
-        """
         try:
             for islast_apdu, apdu in self.builder.personal_sign_tx(bip32_path=bip32_path, transaction=transaction):
                 if islast_apdu:
                     with self.client.apdu_exchange_nowait(cla=apdu[0], ins=apdu[1],
                                                     p1=apdu[2], p2=apdu[3],
                                                     data=apdu[5:]) as exchange:
+                        # the "yield" here allows to wait for a button interaction (click right, left, both)
                         yield exchange
                         response: bytes = exchange.receive()
                 else:

@@ -86,7 +86,7 @@ static pluginType_t getPluginType(char *pluginName, uint8_t pluginNameLength) {
 
 void handleSetPlugin(uint8_t p1,
                      uint8_t p2,
-                     uint8_t *workBuffer,
+                     const uint8_t *workBuffer,
                      uint16_t dataLength,
                      unsigned int *flags,
                      unsigned int *tx) {
@@ -248,7 +248,7 @@ void handleSetPlugin(uint8_t p1,
                         hashId,
                         hash,
                         sizeof(hash),
-                        workBuffer + offset,
+                        (unsigned char *) (workBuffer + offset),
                         signatureLen)) {
 #ifndef HAVE_BYPASS_SIGNATURES
         PRINTF("Invalid NFT signature\n");

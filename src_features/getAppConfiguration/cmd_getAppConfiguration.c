@@ -5,7 +5,7 @@
 
 void handleGetAppConfiguration(uint8_t p1,
                                uint8_t p2,
-                               uint8_t *workBuffer,
+                               const uint8_t *workBuffer,
                                uint16_t dataLength,
                                unsigned int *flags,
                                unsigned int *tx) {

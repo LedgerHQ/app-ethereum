@@ -142,7 +142,7 @@ typedef struct txContext_t {
     uint32_t dataLength;
     uint8_t rlpBuffer[5];
     uint32_t rlpBufferPos;
-    uint8_t *workBuffer;
+    const uint8_t *workBuffer;
     uint32_t commandLength;
     uint32_t processingFlags;
     ustreamProcess_t customProcessor;
@@ -157,7 +157,7 @@ void initTx(txContext_t *context,
             ustreamProcess_t customProcessor,
             void *extra);
 parserStatus_e processTx(txContext_t *context,
-                         uint8_t *buffer,
+                         const uint8_t *buffer,
                          uint32_t length,
                          uint32_t processingFlags);
 parserStatus_e continueTx(txContext_t *context);

@@ -112,9 +112,9 @@ jobs:
       - name: Build testing binaries
         run: |
           mkdir tests/speculos/elfs
-          make clean && make DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOS_SDK && mv bin/app.elf . && mv app.elf nanos.elf && mv nanos.elf tests/speculos/elfs
-          make clean && make DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOX_SDK && mv bin/app.elf . && mv app.elf nanox.elf && mv nanox.elf tests/speculos/elfs
-          make clean && make DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOSP_SDK && mv bin/app.elf . && mv app.elf nanosp.elf && mv nanosp.elf tests/speculos/elfs
+          make clean && make DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOS_SDK && mv bin/app.elf tests/speculos/elfs/nanos.elf
+          make clean && make DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOX_SDK && mv bin/app.elf tests/speculos/elfs/nanox.elf
+          make clean && make DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOSP_SDK && mv bin/app.elf tests/speculos/elfs/nanosp.elf
 
       - name: Upload app binaries
         uses: actions/upload-artifact@v2

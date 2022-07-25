@@ -22,6 +22,7 @@ python3 -m pip install --extra-index-url https://test.pypi.org/simple/ -r requir
 Go to the root of the repository:
 ```sh
 make DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOX_SDK
+mv bin/app.elf tests/speculos/<some name>.elf
 ```
 
 Given the requirements are installed, just do (by default command):

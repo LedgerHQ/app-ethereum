@@ -1,6 +1,5 @@
 import enum
 import logging
-import re
 import struct
 from typing import List, Tuple, Union, Iterator, cast
 

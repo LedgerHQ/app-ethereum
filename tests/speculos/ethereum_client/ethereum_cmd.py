@@ -70,7 +70,7 @@ class EthereumCommand:
 
 
     @contextmanager
-    def get_public_key(self, bip32_path: str, display: bool = False, result: List = list()) -> Tuple[bytes, bytes, bytes]:
+    def get_public_key(self, bip32_path: str, result: List, display: bool = False) -> Tuple[bytes, bytes, bytes]:
         try:
             chunk: bytes = self.builder.get_public_key(bip32_path=bip32_path, display=display)
 
@@ -111,7 +111,7 @@ class EthereumCommand:
 
 
     @contextmanager
-    def perform_privacy_operation(self, bip32_path: str, display: bool = False, shared_secret: bool = False, result: List = list()) -> Tuple[bytes, bytes, bytes]:
+    def perform_privacy_operation(self, bip32_path: str, result: List, display: bool = False, shared_secret: bool = False) -> Tuple[bytes, bytes, bytes]:
         try:
             chunk: bytes = self.builder.perform_privacy_operation(bip32_path=bip32_path, display=display, shared_secret=shared_secret)
 

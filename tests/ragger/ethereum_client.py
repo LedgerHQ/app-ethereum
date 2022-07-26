@@ -222,7 +222,11 @@ class   EthereumClient:
                                                         message_hash))
         self._client.right_click() # sign typed message screen
         for _ in range(2): # two hashes (domain + message)
-            for _ in range(2): # two screens per hash
+            if self._client.firmware.device == "nanos":
+                screens_per_hash = 4
+            else:
+                screens_per_hash = 2
+            for _ in range(screens_per_hash):
                 self._client.right_click()
         self._client.both_click() # approve signature
 

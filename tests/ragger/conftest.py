@@ -1,14 +1,15 @@
 import pytest
+from pathlib import Path
 from ragger import Firmware
 from ragger.backend import SpeculosBackend, LedgerCommBackend, LedgerWalletBackend, BackendInterface
 from ethereum_client import EthereumClient
 
-# This variable is needed for Speculos only (physical tests need the application to be already installed)
-APPLICATION = "../../bin/app.elf"
-# This variable will be useful in tests to implement different behavior depending on the firmware
-NANOX_FIRMWARE = Firmware("nanox", "2.0.2")
-NANOS_FIRMWARE = Firmware("nanos", "2.1")
-NANOSP_FIRMWARE = Firmware("nanosp", "1.0")
+ELFS_DIR = (Path(__file__).parent.parent / "elfs").resolve()
+FWS = [
+    Firmware("nanox", "2.0.2"),
+    Firmware("nanos", "2.1"),
+    Firmware("nanosp", "1.0.3")
+]
 
 # adding a pytest CLI option "--backend"
 def pytest_addoption(parser):
@@ -21,9 +22,15 @@ def backend_name(pytestconfig) -> str:
     return pytestconfig.getoption("backend")
 
 # Providing the firmware as a fixture
-@pytest.fixture
-def firmware() -> Firmware:
-    return NANOX_FIRMWARE
+@pytest.fixture(params=FWS)
+def firmware(request) -> Firmware:
+    return request.param
+
+def get_elf_path(firmware: Firmware) -> Path:
+    assert ELFS_DIR.is_dir(), f"{ELFS_DIR} is not a directory"
+    app = ELFS_DIR / ("app-%s.elf" % firmware.device)
+    assert app.is_file(), f"{app} must exist"
+    return app
 
 # Depending on the "--backend" option value, a different backend is
 # instantiated, and the tests will either run on Speculos or on a physical
@@ -34,7 +41,7 @@ def create_backend(backend: str, firmware: Firmware) -> BackendInterface:
     elif backend.lower() == "ledgerwallet":
         return LedgerWalletBackend(firmware)
     elif backend.lower() == "speculos":
-        return SpeculosBackend(APPLICATION, firmware)
+        return SpeculosBackend(get_elf_path(firmware), firmware)
     else:
         raise ValueError(f"Backend '{backend}' is unknown. Valid backends are: {BACKENDS}")
 

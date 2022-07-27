@@ -1,6 +1,7 @@
 import os
 import fnmatch
 from ethereum_client import EthereumClient
+from eip712 import InputData
 
 def test_eip712_legacy(app_client: EthereumClient):
     bip32 = [
@@ -20,3 +21,15 @@ def test_eip712_legacy(app_client: EthereumClient):
     assert v == bytes.fromhex("1c")
     assert r == bytes.fromhex("ea66f747173762715751c889fea8722acac3fc35db2c226d37a2e58815398f64")
     assert s == bytes.fromhex("52d8ba9153de9255da220ffd36762c0b027701a3b5110f0a765f94b16a9dfb55")
+
+
+def test_eip712_new(app_client: EthereumClient):
+    if app_client._client.firmware.device == "nanos": # not supported
+        return
+
+    # Loop through JSON files
+    for file in os.scandir("./eip712/input_files"):
+        if fnmatch.fnmatch(file, "*-test.json"):
+            print(file.path)
+            InputData.process_file(app_client, file.path, False)
+    assert 1 == 1

@@ -20,14 +20,14 @@ class   P2Type(IntEnum):
     LEGACY_IMPLEM = 0x00
     NEW_IMPLEM = 0x01,
 
-class   EIP712FieldType:
+class   EIP712FieldType(IntEnum):
     CUSTOM = 0,
-    INT = auto(),
-    UINT = auto(),
-    ADDRESS = auto(),
-    BOOL = auto(),
-    STRING = auto(),
-    FIXED_BYTES = auto(),
+    INT = auto()
+    UINT = auto()
+    ADDRESS = auto()
+    BOOL = auto()
+    STRING = auto()
+    FIX_BYTES = auto()
     DYN_BYTES = auto()
 
 
@@ -66,14 +66,14 @@ class   EthereumClientCmdBuilder:
         data = bytearray()
         typedesc = 0
         typedesc |= (len(array_levels) > 0) << 7
-        typedesc |= (type_size > 0) << 6
+        typedesc |= (type_size != None) << 6
         typedesc |= field_type
         data.append(typedesc)
         if field_type == EIP712FieldType.CUSTOM:
             data.append(len(type_name))
             for char in type_name:
                 data.append(ord(char))
-        if type_size > 0:
+        if type_size != None:
             data.append(type_size)
         if len(array_levels) > 0:
             data.append(len(array_levels))
@@ -107,12 +107,17 @@ class   EthereumClientCmdBuilder:
                                data)
 
     def eip712_send_struct_impl_struct_field(self, data: bytearray) -> Iterator[bytes]:
-        while len(data > 0):
+        # Add a 16-bit integer with the data's byte length (network byte order)
+        data_w_length = bytearray()
+        data_w_length.append((len(data) & 0xff00) >> 8)
+        data_w_length.append(len(data) & 0x00ff)
+        data_w_length += data
+        while len(data_w_length) > 0:
             yield self._serialize(InsType.EIP712_SEND_STRUCT_IMPL,
                                   P1Type.COMPLETE_SEND,
                                   P2Type.STRUCT_FIELD,
-                                  data[:0xff])
-            data = data[0xff:]
+                                  data_w_length[:0xff])
+            data_w_length = data_w_length[0xff:]
 
     def _format_bip32(self, bip32, data = bytearray()) -> bytearray:
         data.append(len(bip32))
@@ -195,17 +200,14 @@ class   EthereumClient:
         return self._recv()
 
     def eip712_send_struct_impl_array(self, size: int):
-        send._send(self._cmd_builder.eip712_send_struct_impl_array(size))
+        self._send(self._cmd_builder.eip712_send_struct_impl_array(size))
         return self._recv()
 
     def eip712_send_struct_impl_struct_field(self, raw_value: bytes):
         ret = None
-        for apdu in self._cmd_builder.eip712_send_struct_impl_struct_field(
-                InsType.EIP712_SEND_STRUCT_IMPL,
-                P1Type.COMPLETE_SEND,
-                P2Type.STRUCT_FIELD,
-                data[:0xff]):
+        for apdu in self._cmd_builder.eip712_send_struct_impl_struct_field(raw_value):
             self._send(apdu)
+            # TODO: Do clicks
             ret = self._recv()
         return ret
 

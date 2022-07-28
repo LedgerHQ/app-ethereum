@@ -26,7 +26,7 @@ static inline bool is_char_special(char c) {
  * @return wether the data is fully ASCII or not
  */
 static bool is_data_ascii(const uint8_t *const data, size_t length) {
-    for (uint8_t idx = 0; idx < length; ++idx) {
+    for (size_t idx = 0; idx < length; ++idx) {
         if (!is_char_special(data[idx]) && ((data[idx] < 0x20) || (data[idx] > 0x7e))) {
             return false;
         }

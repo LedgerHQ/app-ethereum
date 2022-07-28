@@ -66,7 +66,7 @@ static void feed_value_str(const uint8_t *const data, size_t length, bool is_asc
 
     if ((value_strlen + 1) < sizeof(strings.tmp.tmp)) {
         if (is_ascii) {
-            uint8_t src_idx = 0;
+            size_t src_idx = 0;
             uint16_t dst_idx = value_strlen;
             bool prev_is_special = false;
 

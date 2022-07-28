@@ -41,7 +41,7 @@ void handleSign(uint8_t p1,
 
         // EIP 2718: TransactionType might be present before the TransactionPayload.
         uint8_t txType = *workBuffer;
-        if (txType >= MIN_TX_TYPE && txType <= MAX_TX_TYPE) {
+        if (txType <= MAX_TX_TYPE) {
             // Enumerate through all supported txTypes here...
             if (txType == EIP2930 || txType == EIP1559) {
                 cx_hash((cx_hash_t *) &global_sha3, 0, workBuffer, 1, NULL, 0);

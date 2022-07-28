@@ -94,7 +94,6 @@ typedef enum rlpEIP1559TxField_e {
     EIP1559_RLP_DONE
 } rlpEIP1559TxField_e;
 
-#define MIN_TX_TYPE 0x00
 #define MAX_TX_TYPE 0x7f
 
 // EIP 2718 TransactionType

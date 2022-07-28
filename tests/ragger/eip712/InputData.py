@@ -383,5 +383,5 @@ def process_file(aclient: EthereumClient, input_file_path: str, filtering = Fals
             return False
 
         # sign
-        send_sign()
+        #send_sign()
     return True

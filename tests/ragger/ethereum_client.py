@@ -113,8 +113,9 @@ class   EthereumClientCmdBuilder:
         data_w_length.append(len(data) & 0x00ff)
         data_w_length += data
         while len(data_w_length) > 0:
+            p1 = P1Type.PARTIAL_SEND if len(data_w_length) > 0xff else P1Type.COMPLETE_SEND
             yield self._serialize(InsType.EIP712_SEND_STRUCT_IMPL,
-                                  P1Type.COMPLETE_SEND,
+                                  p1,
                                   P2Type.STRUCT_FIELD,
                                   data_w_length[:0xff])
             data_w_length = data_w_length[0xff:]

@@ -3,15 +3,16 @@ import fnmatch
 from ethereum_client import EthereumClient
 from eip712 import InputData
 
-def test_eip712_legacy(app_client: EthereumClient):
-    bip32 = [
-        0x8000002c,
-        0x8000003c,
-        0x80000000,
-        0,
-        0
-    ]
+bip32 = [
+    0x8000002c,
+    0x8000003c,
+    0x80000000,
+    0,
+    0
+]
 
+
+def test_eip712_legacy(app_client: EthereumClient):
     v, r, s = app_client.eip712_sign_legacy(
         bip32,
         bytes.fromhex('6137beb405d9ff777172aa879e33edb34a1460e701802746c5ef96e741710e59'),
@@ -32,4 +33,5 @@ def test_eip712_new(app_client: EthereumClient):
         if fnmatch.fnmatch(file, "*-test.json"):
             print(file.path)
             InputData.process_file(app_client, file.path, False)
+            app_client.eip712_sign_new(bip32)
     assert 1 == 1

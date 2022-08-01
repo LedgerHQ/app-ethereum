@@ -120,7 +120,7 @@ class   EthereumClientCmdBuilder:
                                   data_w_length[:0xff])
             data_w_length = data_w_length[0xff:]
 
-    def _format_bip32(self, bip32, data = bytearray()) -> bytearray:
+    def _format_bip32(self, bip32, data: bytearray) -> bytearray:
         data.append(len(bip32))
         for idx in bip32:
             data.append((idx & 0xff000000) >> 24)
@@ -130,7 +130,7 @@ class   EthereumClientCmdBuilder:
         return data
 
     def eip712_sign_new(self, bip32) -> bytes:
-        data = self._format_bip32(bip32)
+        data = self._format_bip32(bip32, bytearray())
         return self._serialize(InsType.EIP712_SIGN,
                                P1Type.COMPLETE_SEND,
                                P2Type.NEW_IMPLEM,
@@ -140,7 +140,7 @@ class   EthereumClientCmdBuilder:
                            bip32,
                            domain_hash: bytes,
                            message_hash: bytes) -> bytes:
-        data = self._format_bip32(bip32)
+        data = self._format_bip32(bip32, bytearray())
         data += domain_hash
         data += message_hash
         return self._serialize(InsType.EIP712_SIGN,

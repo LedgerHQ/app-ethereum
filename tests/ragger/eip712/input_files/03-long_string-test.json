@@ -1,12 +1,12 @@
 {
     "domain": {
-        "chainId": 5,
-        "name": "Ether Mail",
+        "chainId": 1,
+        "name": "Long String Mail",
         "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
         "version": "1"
     },
     "message": {
-        "contents": "Hello, Bob! 012345678012345678012345678012345678012345678012345678012345678012345678012345678012345678012345678012345678012345678012345678012345678012345678012345678012345678012345678012345678012345678012345678012345678012345678012345678012345678012345678012312345678012345678012345678012345678012312345678012345678012345678012345678012312345678012345678012345678012345678012312345678012345678012345678012345678012312345678012345678012345678012345678012312345678012345678012345678012345678012312345678012345678012345678012345678012312345678012345678012345678012345678012312345678012345678012345678012345678012312345678012345678012345678012345678012312345678012345678012345678012345678012312345678012345678012345678012345678012312345678012345678012345678012345678012312345678012345678012345678012345678012312345678012345678012345678012345678012312345678012345678012345678012345678012312345678012345678012345678012345678012312345678012345678012345678012345678012312345678012345678012345678012345678012344444444444444444444123456780123456780123456780123456780123456780123456780123456789999999999999999999999999999990123456789",
+        "contents": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Etiam fermentum interdum tortor, nec elementum enim dignissim ac. Proin at leo sit amet nisl ultrices mollis quis a nunc. Aliquam lobortis a libero non lobortis. Morbi elementum eleifend ante et malesuada. Proin eget fermentum risus. Vestibulum cursus dignissim mollis. In viverra, mi ac accumsan elementum, tellus metus dictum nisi, vel tincidunt odio erat in odio. Aenean nec lorem auctor, tempor ante eget, aliquet purus. Donec fringilla felis iaculis, venenatis ligula egestas, dignissim orci. Aliquam id rhoncus ante, cursus consectetur mauris. Nunc porttitor urna urna, et tristique eros maximus vestibulum. Curabitur pretium a est non porttitor. Cras mollis efficitur sem ut porta. Proin commodo volutpat iaculis. Maecenas ut nulla mi. Aenean ultrices sollicitudin enim, non luctus magna efficitur et. Sed varius sem odio, in sodales erat porta in. Nunc blandit finibus maximus. Mauris nunc tellus, interdum non laoreet sed, aliquet non.",
         "from": {
             "name": "Cow",
             "wallets": [

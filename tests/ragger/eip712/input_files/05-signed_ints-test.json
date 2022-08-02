@@ -1,7 +1,7 @@
 {
     "domain": {
-        "chainId": 5,
-        "name": "Ether Mail",
+        "chainId": 1,
+        "name": "Signed Ints test",
         "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
         "version": "1"
     },

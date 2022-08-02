@@ -296,6 +296,9 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
         case CHAIN_KIND_ASTAR:
             numTokens = NUM_TOKENS_ASTAR;
             break;
+        case CHAIN_KIND_XDCNETWORK:
+            numTokens = NUM_TOKENS_XDCNETWORK;
+            break;
     }
     for (i = 0; i < numTokens; i++) {
         switch (chainConfig->kind) {
@@ -433,6 +436,9 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
                 break;
             case CHAIN_KIND_ASTAR:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_ASTAR[i]);
+                break;
+            case CHAIN_KIND_XDCNETWORK:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_XDCNETWORK[i]);
                 break;
         }
         if (memcmp(currentToken->address, tmpContent.txContent.destination, ADDRESS_LENGTH) == 0) {

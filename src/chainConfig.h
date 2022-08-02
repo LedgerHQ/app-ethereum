@@ -67,7 +67,8 @@ typedef enum chain_kind_e {
     CHAIN_KIND_OKC,
     CHAIN_KIND_CUBE,
     CHAIN_KIND_SHIDEN,
-    CHAIN_KIND_ASTAR
+    CHAIN_KIND_ASTAR,
+    CHAIN_KIND_XDCNETWORK
 } chain_kind_t;
 
 typedef struct chain_config_s {

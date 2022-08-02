@@ -212,4 +212,6 @@ const tokenDefinition_t const TOKENS_ASTAR[NUM_TOKENS_ASTAR] = {};
 
 const tokenDefinition_t const TOKENS_SHIDEN[NUM_TOKENS_SHIDEN] = {};
 
+const tokenDefinition_t const TOKENS_XDCNETWORK[NUM_TOKENS_XDCNETWORK] = {};
+
 #endif

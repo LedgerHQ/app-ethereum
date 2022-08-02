@@ -216,4 +216,6 @@ const tokenDefinition_t const TOKENS_XDCNETWORK[NUM_TOKENS_XDCNETWORK] = {};
 
 const tokenDefinition_t const TOKENS_METER[NUM_TOKENS_METER] = {};
 
+const tokenDefinition_t const TOKENS_MULTIVAC[NUM_TOKENS_MULTIVAC] = {};
+
 #endif

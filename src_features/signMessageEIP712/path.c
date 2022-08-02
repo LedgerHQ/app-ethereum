@@ -21,10 +21,10 @@ static s_path *path_struct = NULL;
  *
  * @param[out] fields_count_ptr the number of fields in the last evaluated depth
  * @param[in] n the number of depths to evaluate
- * @return the feld which the first Nth depths points to
+ * @return the field which the first Nth depths points to
  */
 static const void *get_nth_field(uint8_t *const fields_count_ptr, uint8_t n) {
-    const void *struct_ptr = path_struct->root_struct;
+    const void *struct_ptr = NULL;
     const void *field_ptr = NULL;
     const char *typename;
     uint8_t length;
@@ -33,6 +33,9 @@ static const void *get_nth_field(uint8_t *const fields_count_ptr, uint8_t n) {
     if (path_struct == NULL) {
         return NULL;
     }
+
+    struct_ptr = path_struct->root_struct;
+
     if (n > path_struct->depth_count)  // sanity check
     {
         return NULL;

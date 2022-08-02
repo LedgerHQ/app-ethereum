@@ -254,6 +254,11 @@ bool field_hash(const uint8_t *data, uint8_t data_length, bool partial) {
     field_type = struct_field_type(field_ptr);
     if (fh->state == FHS_IDLE)  // first packet for this frame
     {
+        if (data_length < 2) {
+            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+            return false;
+        }
+
         data = field_hash_prepare(field_ptr, data, &data_length);
     }
     if (data_length > fh->remaining_size) {

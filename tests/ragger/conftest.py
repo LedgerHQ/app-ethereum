@@ -6,8 +6,8 @@ from ethereum_client import EthereumClient
 
 ELFS_DIR = (Path(__file__).parent.parent / "elfs").resolve()
 FWS = [
-    Firmware("nanox", "2.0.2"),
     Firmware("nanos", "2.1"),
+    Firmware("nanox", "2.0.2"),
     Firmware("nanosp", "1.0.3")
 ]
 
@@ -54,4 +54,4 @@ def backend_client(backend_name: str, firmware: Firmware) -> BackendInterface:
 # This final fixture will return the properly configured app client, to be used in tests
 @pytest.fixture
 def app_client(backend_client: BackendInterface) -> EthereumClient:
-    yield EthereumClient(backend_client)
+    return EthereumClient(backend_client)

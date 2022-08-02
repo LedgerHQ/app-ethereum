@@ -1,5 +1,7 @@
+import pytest
 import os
 import fnmatch
+from typing import List
 from ethereum_client import EthereumClient
 from eip712 import InputData
 
@@ -10,6 +12,22 @@ bip32 = [
     0,
     0
 ]
+
+
+def input_files() -> List[str]:
+    files = []
+    for file in os.scandir("./eip712/input_files"):
+        if fnmatch.fnmatch(file, "*-test.json"):
+            files.append(file.path)
+    return sorted(files)
+
+@pytest.fixture(params=input_files())
+def input_file(request) -> str:
+    return request.param
+
+@pytest.fixture(params=[True, False])
+def verbose(request) -> bool:
+    return request.param
 
 
 def test_eip712_legacy(app_client: EthereumClient):
@@ -24,14 +42,12 @@ def test_eip712_legacy(app_client: EthereumClient):
     assert s == bytes.fromhex("52d8ba9153de9255da220ffd36762c0b027701a3b5110f0a765f94b16a9dfb55")
 
 
-def test_eip712_new(app_client: EthereumClient):
-    if app_client._client.firmware.device == "nanos": # not supported
-        return
+def test_eip712_new(app_client: EthereumClient, input_file, verbose):
+    if app_client._client.firmware.device != "nanos": # not supported
+        print("=====> %s" % (input_file))
 
-    # Loop through JSON files
-    for file in os.scandir("./eip712/input_files"):
-        if fnmatch.fnmatch(file, "*-test.json"):
-            print(file.path)
-            InputData.process_file(app_client, file.path, False)
-            app_client.eip712_sign_new(bip32)
-    assert 1 == 1
+        if verbose:
+            app_client.setting_toggle_verbose_eip712()
+        InputData.process_file(app_client, input_file, False)
+        v, r, s = app_client.eip712_sign_new(bip32)
+    assert 1 == 1 # TODO: Replace by the actual v,r,s asserts

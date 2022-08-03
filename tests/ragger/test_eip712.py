@@ -4,6 +4,8 @@ import fnmatch
 from typing import List
 from ethereum_client import EthereumClient
 from eip712 import InputData
+from pathlib import Path
+from configparser import ConfigParser
 
 bip32 = [
     0x8000002c,
@@ -23,7 +25,7 @@ def input_files() -> List[str]:
 
 @pytest.fixture(params=input_files())
 def input_file(request) -> str:
-    return request.param
+    return Path(request.param)
 
 @pytest.fixture(params=[True, False])
 def verbose(request) -> bool:
@@ -42,12 +44,26 @@ def test_eip712_legacy(app_client: EthereumClient):
     assert s == bytes.fromhex("52d8ba9153de9255da220ffd36762c0b027701a3b5110f0a765f94b16a9dfb55")
 
 
-def test_eip712_new(app_client: EthereumClient, input_file, verbose):
+def test_eip712_new(app_client: EthereumClient, input_file: Path, verbose):
     if app_client._client.firmware.device != "nanos": # not supported
         print("=====> %s" % (input_file))
+        test_path = "%s/%s" % (input_file.parent, "-".join(input_file.stem.split("-")[:-1]))
+        conf_file = "%s.ini" % (test_path)
+
+        config = ConfigParser()
+        config.read(conf_file)
+
+        # sanity check
+        assert "signature" in config.sections()
+        assert "v" in config["signature"]
+        assert "r" in config["signature"]
+        assert "s" in config["signature"]
 
         if verbose:
             app_client.setting_toggle_verbose_eip712()
         InputData.process_file(app_client, input_file, False)
         v, r, s = app_client.eip712_sign_new(bip32)
-    assert 1 == 1 # TODO: Replace by the actual v,r,s asserts
+
+        assert v == bytes.fromhex(config["signature"]["v"])
+        assert r == bytes.fromhex(config["signature"]["r"])
+        assert s == bytes.fromhex(config["signature"]["s"])

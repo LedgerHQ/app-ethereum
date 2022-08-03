@@ -220,4 +220,6 @@ const tokenDefinition_t const TOKENS_MULTIVAC[NUM_TOKENS_MULTIVAC] = {};
 
 const tokenDefinition_t const TOKENS_ID4GOOD[NUM_TOKENS_ID4GOOD] = {};
 
+const tokenDefinition_t const TOKENS_TECRA[NUM_TOKENS_TECRA] = {};
+
 #endif

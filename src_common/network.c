@@ -30,7 +30,8 @@ const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 592, .name = "Astar", .ticker = "ASTR "},
     {.chain_id = 50, .name = "XDC", .ticker = "XDC "},
     {.chain_id = 82, .name = "Meter", .ticker = "MTR "},
-    {.chain_id = 62621, .name = "Multivac", .ticker = "MTV "}};
+    {.chain_id = 62621, .name = "Multivac", .ticker = "MTV "}
+    {.chain_id = 20531812, .name = "Tecra", .ticker = "TCR "}};
 
 uint64_t get_chain_id(void) {
     uint64_t chain_id = 0;

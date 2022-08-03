@@ -218,4 +218,6 @@ const tokenDefinition_t const TOKENS_METER[NUM_TOKENS_METER] = {};
 
 const tokenDefinition_t const TOKENS_MULTIVAC[NUM_TOKENS_MULTIVAC] = {};
 
+const tokenDefinition_t const TOKENS_ID4GOOD[NUM_TOKENS_ID4GOOD] = {};
+
 #endif

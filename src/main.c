@@ -311,6 +311,9 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
         case CHAIN_KIND_TECRA:
             numTokens = NUM_TOKENS_TECRA;
             break;
+        case CHAIN_KIND_APOTHEMNETWORK:
+            numTokens = NUM_TOKENS_APOTHEMNETWORK;
+            break;
     }
     for (i = 0; i < numTokens; i++) {
         switch (chainConfig->kind) {
@@ -463,6 +466,9 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
                 break;
             case CHAIN_KIND_TECRA:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_TECRA[i]);
+                break;
+            case CHAIN_KIND_APOTHEMNETWORK:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_APOTHEMNETWORK[i]);
                 break;
         }
         if (memcmp(currentToken->address, tmpContent.txContent.destination, ADDRESS_LENGTH) == 0) {

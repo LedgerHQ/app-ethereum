@@ -2,7 +2,7 @@ import pytest
 import os
 import fnmatch
 from typing import List
-from ethereum_client import EthereumClient
+from ethereum_client import EthereumClient, SettingType
 from eip712 import InputData
 from pathlib import Path
 from configparser import ConfigParser
@@ -44,9 +44,9 @@ def test_eip712_legacy(app_client: EthereumClient):
     assert s == bytes.fromhex("52d8ba9153de9255da220ffd36762c0b027701a3b5110f0a765f94b16a9dfb55")
 
 
-def test_eip712_new(app_client: EthereumClient, input_file: Path, verbose):
-    if app_client._client.firmware.device != "nanos": # not supported
-        print("=====> %s" % (input_file))
+def test_eip712_new(app_client: EthereumClient, input_file: Path, verbose: bool, filtering: bool):
+    print("=====> %s" % (input_file))
+    if app_client._client.firmware.device != "nanos":
         test_path = "%s/%s" % (input_file.parent, "-".join(input_file.stem.split("-")[:-1]))
         conf_file = "%s.ini" % (test_path)
 
@@ -60,10 +60,15 @@ def test_eip712_new(app_client: EthereumClient, input_file: Path, verbose):
         assert "s" in config["signature"]
 
         if verbose:
-            app_client.setting_toggle_verbose_eip712()
+            app_client.settings_set({
+                SettingType.VERBOSE_EIP712: True
+            })
+
         InputData.process_file(app_client, input_file, False)
         v, r, s = app_client.eip712_sign_new(bip32)
 
         assert v == bytes.fromhex(config["signature"]["v"])
         assert r == bytes.fromhex(config["signature"]["r"])
         assert s == bytes.fromhex(config["signature"]["s"])
+    else:
+        print("Not supported by LNS")

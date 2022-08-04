@@ -1,7 +1,6 @@
 from contextlib import contextmanager
-from typing import Generator
 from enum import IntEnum, auto
-from typing import Iterator
+from typing import Iterator, Dict, List
 from ragger.backend import BackendInterface
 from ragger.utils import RAPDU
 import signal
@@ -32,6 +31,19 @@ class   EIP712FieldType(IntEnum):
     STRING = auto()
     FIX_BYTES = auto()
     DYN_BYTES = auto()
+
+class   SettingType(IntEnum):
+    BLIND_SIGNING = 0,
+    DEBUG_DATA = auto()
+    NONCE = auto()
+    VERBOSE_EIP712 = auto()
+
+class   Setting:
+    devices: List[str]
+    value: bool
+
+    def __init__(self, d: List[str]):
+        self.devices = d
 
 
 class   EthereumClientCmdBuilder:
@@ -168,15 +180,30 @@ class   EthereumResponseParser:
         return v, r, s
 
 class   EthereumClient:
-    _verbose_eip712 = False
+    _settings: Dict[SettingType, Setting] = {
+        SettingType.BLIND_SIGNING: Setting(
+            [ "nanos", "nanox", "nanosp" ]
+        ),
+        SettingType.DEBUG_DATA: Setting(
+            [ "nanos", "nanox", "nanosp" ]
+        ),
+        SettingType.NONCE: Setting(
+            [ "nanos", "nanox", "nanosp" ]
+        ),
+        SettingType.VERBOSE_EIP712: Setting(
+            [ "nanox", "nanosp" ]
+        )
+    }
+    _click_delay = 1/4
 
     def __init__(self, client: BackendInterface, debug: bool = False):
         self._client = client
         self._debug = debug
         self._cmd_builder = EthereumClientCmdBuilder()
         self._resp_parser = EthereumResponseParser()
-        self._click_delay = 1/4
         signal.signal(signal.SIGALRM, self._click_signal_timeout)
+        for setting in self._settings.values():
+            setting.value = False
 
     def _send(self, payload: bytearray):
         return self._client.exchange_async_raw(payload)
@@ -235,7 +262,7 @@ class   EthereumClient:
 
     def eip712_sign_new(self, bip32):
         with self._send(self._cmd_builder.eip712_sign_new(bip32)):
-            if not self._verbose_eip712: # need to skip the message hash
+            if not self._settings[SettingType.VERBOSE_EIP712].value: # need to skip the message hash
                 self._client.right_click()
                 self._client.right_click()
             self._client.both_click() # approve signature
@@ -265,18 +292,17 @@ class   EthereumClient:
         assert resp.status == 0x9000
         return self._resp_parser.sign(resp.data)
 
-    def setting_toggle_verbose_eip712(self):
+    def settings_set(self, new_values: Dict[SettingType, bool]):
         # Go to settings
-        self._client.right_click()
-        self._client.right_click()
-        self._client.both_click()
-        # Go to verbose eip712
-        self._client.right_click()
-        self._client.right_click()
-        self._client.right_click()
-        self._client.both_click()
-        # Go back
-        self._client.right_click()
+        for _ in range(2):
+            self._client.right_click()
         self._client.both_click()
 
-        self._verbose_eip712 = not self._verbose_eip712
+        for enum in self._settings.keys():
+            if self._client.firmware.device in self._settings[enum].devices:
+                if enum in new_values.keys():
+                    if new_values[enum] != self._settings[enum].value:
+                        self._client.both_click()
+                        self._settings[enum].value = new_values[enum]
+                self._client.right_click()
+        self._client.both_click()

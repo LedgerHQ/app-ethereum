@@ -33,7 +33,16 @@ const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 62621, .name = "Multivac", .ticker = "MTV "},
     {.chain_id = 20531812, .name = "Tecra", .ticker = "TCR "},
     {.chain_id = 20531811, .name = "TecraTestnet", .ticker = "TCR "},
-    {.chain_id = 51, .name = "Apothemnetwork", .ticker = "XDC "}};
+    {.chain_id = 51, .name = "Apothemnetwork", .ticker = "XDC "},
+    {.chain_id = 199, .name = "BTTC", .ticker = "BTT "},
+    {.chain_id = 1030, .name = "Conflux", .ticker = "CFX "},
+    {.chain_id = 61, .name = "Ethereum Classic", .ticker = "ETC "},
+    {.chain_id = 246, .name = "EnergyWebChain", .ticker = "EWC "},
+    {.chain_id = 14, .name = "Flare", .ticker = "FLR "},
+    {.chain_id = 16, .name = "Flare Coston", .ticker = "FLR "},
+    {.chain_id = 24, .name = "KardiaChain", .ticker = "KAI "},
+    {.chain_id = 1284, .name = "Moonbeam", .ticker = "GLMR "},
+    {.chain_id = 1285, .name = "Moonriver", .ticker = "MOVR "}};
 
 uint64_t get_chain_id(void) {
     uint64_t chain_id = 0;

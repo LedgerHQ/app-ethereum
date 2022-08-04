@@ -31,6 +31,10 @@ def input_file(request) -> str:
 def verbose(request) -> bool:
     return request.param
 
+@pytest.fixture(params=[False, True])
+def filtering(request) -> bool:
+    return request.param
+
 
 def test_eip712_legacy(app_client: EthereumClient):
     v, r, s = app_client.eip712_sign_legacy(
@@ -49,6 +53,10 @@ def test_eip712_new(app_client: EthereumClient, input_file: Path, verbose: bool,
     if app_client._client.firmware.device != "nanos":
         test_path = "%s/%s" % (input_file.parent, "-".join(input_file.stem.split("-")[:-1]))
         conf_file = "%s.ini" % (test_path)
+        filter_file = None
+
+        if filtering:
+            filter_file = "%s-filter.json" % (test_path)
 
         config = ConfigParser()
         config.read(conf_file)
@@ -59,16 +67,19 @@ def test_eip712_new(app_client: EthereumClient, input_file: Path, verbose: bool,
         assert "r" in config["signature"]
         assert "s" in config["signature"]
 
-        if verbose:
-            app_client.settings_set({
-                SettingType.VERBOSE_EIP712: True
-            })
+        if not filtering or Path(filter_file).is_file():
+            if verbose:
+                app_client.settings_set({
+                    SettingType.VERBOSE_EIP712: True
+                })
 
-        InputData.process_file(app_client, input_file, False)
-        v, r, s = app_client.eip712_sign_new(bip32)
+            assert InputData.process_file(app_client, input_file, filter_file) == True
+            v, r, s = app_client.eip712_sign_new(bip32)
 
-        assert v == bytes.fromhex(config["signature"]["v"])
-        assert r == bytes.fromhex(config["signature"]["r"])
-        assert s == bytes.fromhex(config["signature"]["s"])
+            assert v == bytes.fromhex(config["signature"]["v"])
+            assert r == bytes.fromhex(config["signature"]["r"])
+            assert s == bytes.fromhex(config["signature"]["s"])
+        else:
+            print("No filter file found, skipping...")
     else:
-        print("Not supported by LNS")
+        print("Not supported by LNS, skipping...")

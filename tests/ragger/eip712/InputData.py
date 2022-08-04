@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import json
 import sys
 import re
@@ -9,6 +10,7 @@ from ecdsa import SigningKey
 from ecdsa.util import sigencode_der
 import pdb
 from ethereum_client import EthereumClient, EIP712FieldType
+import base64
 
 # global variables
 app_client: EthereumClient = None
@@ -198,7 +200,7 @@ def send_struct_impl_field(value, field):
     data = encoding_functions[field["enum"]](value, field["typesize"])
 
 
-    if False:#args.filtering:
+    if filtering_paths:
         path = ".".join(current_path)
         if path in filtering_paths.keys():
             send_filtering_field_name(filtering_paths[path])
@@ -257,10 +259,10 @@ def send_sign():
     #send_apdu(INS_SIGN, 0x00, P2_VERS_NEW, path_len + bip32path)
     print("send_apdu(INS_SIGN, 0x00, P2_VERS_NEW, path_len + bip32path)")
 
-def send_filtering_activate():
-    #send_apdu(INS_FILTERING, P1_ACTIVATE, 0x00, bytearray())
-    print("send_apdu(INS_FILTERING, P1_ACTIVATE, 0x00, bytearray())")
-
+#def send_filtering_activate():
+#    #send_apdu(INS_FILTERING, P1_ACTIVATE, 0x00, bytearray())
+#    print("send_apdu(INS_FILTERING, P1_ACTIVATE, 0x00, bytearray())")
+#
 def send_filtering_info(p1, display_name, sig):
     payload = bytearray()
     payload.append(len(display_name))
@@ -272,7 +274,7 @@ def send_filtering_info(p1, display_name, sig):
     print("send_apdu(INS_FILTERING, p1, 0x00, payload)")
 
 # ledgerjs doesn't actually sign anything, and instead uses already pre-computed signatures
-def send_filtering_contract_name(display_name):
+def send_filtering_contract_name(display_name: str):
     global sig_ctx
 
     msg = bytearray()
@@ -283,7 +285,7 @@ def send_filtering_contract_name(display_name):
         msg.append(ord(char))
 
     sig = sig_ctx["key"].sign_deterministic(msg, sigencode=sigencode_der)
-    send_filtering_info(P1_CONTRACT_NAME, display_name, sig)
+    app_client.eip712_filtering_send_contract_name(display_name, sig)
 
 # ledgerjs doesn't actually sign anything, and instead uses already pre-computed signatures
 def send_filtering_field_name(display_name):
@@ -300,11 +302,11 @@ def send_filtering_field_name(display_name):
     for char in display_name:
         msg.append(ord(char))
     sig = sig_ctx["key"].sign_deterministic(msg, sigencode=sigencode_der)
-    send_filtering_info(P1_FIELD_NAME, display_name, sig)
+    app_client.eip712_filtering_send_field_name(display_name, sig)
 
-def read_filtering_file(domain, message):
+def read_filtering_file(domain, message, filtering_file_path):
     data_json = None
-    with open("%s-filter.json" % (args.JSON_FILE)) as data:
+    with open(filtering_file_path) as data:
         data_json = json.load(data)
     return data_json
 
@@ -319,8 +321,11 @@ def prepare_filtering(filtr_data, message):
 def init_signature_context(types, domain):
     global sig_ctx
 
-    with open(args.keypath, "r") as priv_file:
-        sig_ctx["key"] = SigningKey.from_pem(priv_file.read(), hashlib.sha256)
+    env_key = os.getenv("CAL_SIGNATURE_TEST_KEY")
+    if env_key:
+        key = base64.b64decode(env_key).decode() # base 64 string -> decode bytes -> string
+        print(key)
+        sig_ctx["key"] = SigningKey.from_pem(key, hashlib.sha256)
         caddr = domain["verifyingContract"]
         if caddr.startswith("0x"):
             caddr = caddr[2:]
@@ -337,7 +342,7 @@ def init_signature_context(types, domain):
         return True
     return False
 
-def process_file(aclient: EthereumClient, input_file_path: str, filtering = False) -> bool:
+def process_file(aclient: EthereumClient, input_file_path: str, filtering_file_path = None) -> bool:
     global sig_ctx
     global app_client
 
@@ -350,10 +355,10 @@ def process_file(aclient: EthereumClient, input_file_path: str, filtering = Fals
         domain = data_json["domain"]
         message = data_json["message"]
 
-        if filtering:
+        if filtering_file_path:
             if not init_signature_context(types, domain):
                 return False
-            filtr = read_filtering_file(domain, message)
+            filtr = read_filtering_file(domain, message, filtering_file_path)
 
         # send types definition
         for key in types.keys():
@@ -362,8 +367,8 @@ def process_file(aclient: EthereumClient, input_file_path: str, filtering = Fals
                 (f["type"], f["enum"], f["typesize"], f["array_lvls"]) = \
                 send_struct_def_field(f["type"], f["name"])
 
-        if filtering:
-            send_filtering_activate()
+        if filtering_file_path:
+            app_client.eip712_filtering_activate()
             prepare_filtering(filtr, message)
 
         # send domain implementation
@@ -371,17 +376,15 @@ def process_file(aclient: EthereumClient, input_file_path: str, filtering = Fals
         if not send_struct_impl(types, domain, domain_typename):
             return False
 
-        if filtering:
+        if filtering_file_path:
             if filtr and "name" in filtr:
                 send_filtering_contract_name(filtr["name"])
             else:
-                send_filtering_contract_name(sig_ctx["domain"]["name"])
+                send_filtering_contract_name(domain["name"])
 
         # send message implementation
         app_client.eip712_send_struct_impl_root_struct(message_typename)
         if not send_struct_impl(types, message, message_typename):
             return False
 
-        # sign
-        #send_sign()
     return True

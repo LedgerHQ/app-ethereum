@@ -4,6 +4,7 @@ from typing import Iterator, Dict, List
 from ragger.backend import BackendInterface
 from ragger.utils import RAPDU
 import signal
+import pdb
 
 class   InsType(IntEnum):
     EIP712_SEND_STRUCT_DEF = 0x1a,
@@ -13,14 +14,17 @@ class   InsType(IntEnum):
 
 class   P1Type(IntEnum):
     COMPLETE_SEND = 0x00,
-    PARTIAL_SEND = 0x01
+    PARTIAL_SEND = 0x01,
+    FILTERING_ACTIVATE = 0x00,
+    FILTERING_CONTRACT_NAME = 0x0f,
+    FILTERING_FIELD_NAME = 0xff
 
 class   P2Type(IntEnum):
     STRUCT_NAME = 0x00,
     STRUCT_FIELD = 0xff,
     ARRAY = 0x0f,
     LEGACY_IMPLEM = 0x00
-    NEW_IMPLEM = 0x01,
+    NEW_IMPLEM = 0x01
 
 class   EIP712FieldType(IntEnum):
     CUSTOM = 0,
@@ -63,14 +67,17 @@ class   EthereumClientCmdBuilder:
         header.append(len(cdata))
         return header + cdata
 
-    def eip712_send_struct_def_struct_name(self, name: str) -> bytes:
+    def _string_to_bytes(self, string: str) -> bytes:
         data = bytearray()
-        for char in name:
+        for char in string:
             data.append(ord(char))
+        return data
+
+    def eip712_send_struct_def_struct_name(self, name: str) -> bytes:
         return self._serialize(InsType.EIP712_SEND_STRUCT_DEF,
                                P1Type.COMPLETE_SEND,
                                P2Type.STRUCT_NAME,
-                               data)
+                               self._string_to_bytes(name))
 
     def eip712_send_struct_def_struct_field(self,
                                             field_type: EIP712FieldType,
@@ -86,8 +93,7 @@ class   EthereumClientCmdBuilder:
         data.append(typedesc)
         if field_type == EIP712FieldType.CUSTOM:
             data.append(len(type_name))
-            for char in type_name:
-                data.append(ord(char))
+            data += self._string_to_bytes(type_name)
         if type_size != None:
             data.append(type_size)
         if len(array_levels) > 0:
@@ -97,21 +103,17 @@ class   EthereumClientCmdBuilder:
                 if level != None:
                     data.append(level)
         data.append(len(key_name))
-        for char in key_name:
-            data.append(ord(char))
+        data += self._string_to_bytes(key_name)
         return self._serialize(InsType.EIP712_SEND_STRUCT_DEF,
                                P1Type.COMPLETE_SEND,
                                P2Type.STRUCT_FIELD,
                                data)
 
     def eip712_send_struct_impl_root_struct(self, name: str) -> bytes:
-        data = bytearray()
-        for char in name:
-            data.append(ord(char))
         return self._serialize(InsType.EIP712_SEND_STRUCT_IMPL,
                                P1Type.COMPLETE_SEND,
                                P2Type.STRUCT_NAME,
-                               data)
+                               self._string_to_bytes(name))
 
     def eip712_send_struct_impl_array(self, size: int) -> bytes:
         data = bytearray()
@@ -163,6 +165,32 @@ class   EthereumClientCmdBuilder:
                                P2Type.LEGACY_IMPLEM,
                                data)
 
+    def eip712_filtering_activate(self):
+        return self._serialize(InsType.EIP712_SEND_FILTERING,
+                               P1Type.FILTERING_ACTIVATE,
+                               0x00,
+                               bytearray())
+
+    def _eip712_filtering_send_name(self, name: str, sig: bytes) -> bytes:
+        data = bytearray()
+        data.append(len(name))
+        data += self._string_to_bytes(name)
+        data.append(len(sig))
+        data += sig
+        return data
+
+    def eip712_filtering_send_contract_name(self, name: str, sig: bytes) -> bytes:
+        return self._serialize(InsType.EIP712_SEND_FILTERING,
+                               P1Type.FILTERING_CONTRACT_NAME,
+                               0x00,
+                               self._eip712_filtering_send_name(name, sig))
+
+    def eip712_filtering_send_field_name(self, name: str, sig: bytes) -> bytes:
+        return self._serialize(InsType.EIP712_SEND_FILTERING,
+                               P1Type.FILTERING_FIELD_NAME,
+                               0x00,
+                               self._eip712_filtering_send_name(name, sig))
+
 
 class   EthereumResponseParser:
     def sign(self, data: bytes):
@@ -195,6 +223,7 @@ class   EthereumClient:
         )
     }
     _click_delay = 1/4
+    _eip712_filtering = False
 
     def __init__(self, client: BackendInterface, debug: bool = False):
         self._client = client
@@ -262,7 +291,8 @@ class   EthereumClient:
 
     def eip712_sign_new(self, bip32):
         with self._send(self._cmd_builder.eip712_sign_new(bip32)):
-            if not self._settings[SettingType.VERBOSE_EIP712].value: # need to skip the message hash
+            if not self._settings[SettingType.VERBOSE_EIP712].value and \
+               not self._eip712_filtering: # need to skip the message hash
                 self._client.right_click()
                 self._client.right_click()
             self._client.both_click() # approve signature
@@ -306,3 +336,21 @@ class   EthereumClient:
                         self._settings[enum].value = new_values[enum]
                 self._client.right_click()
         self._client.both_click()
+
+    def eip712_filtering_activate(self):
+        with self._send(self._cmd_builder.eip712_filtering_activate()):
+            pass
+        self._eip712_filtering = True
+        assert self._recv().status == 0x9000
+
+    def eip712_filtering_send_contract_name(self, name: str, sig: bytes):
+        #pdb.set_trace()
+        with self._send(self._cmd_builder.eip712_filtering_send_contract_name(name, sig)):
+            self._enable_click_until_response()
+        self._disable_click_until_response()
+        assert self._recv().status == 0x9000
+
+    def eip712_filtering_send_field_name(self, name: str, sig: bytes):
+        with self._send(self._cmd_builder.eip712_filtering_send_field_name(name, sig)):
+            pass
+        assert self._recv().status == 0x9000

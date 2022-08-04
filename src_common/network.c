@@ -31,7 +31,9 @@ const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 50, .name = "XDC", .ticker = "XDC "},
     {.chain_id = 82, .name = "Meter", .ticker = "MTR "},
     {.chain_id = 62621, .name = "Multivac", .ticker = "MTV "},
-    {.chain_id = 20531812, .name = "Tecra", .ticker = "TCR "}};
+    {.chain_id = 20531812, .name = "Tecra", .ticker = "TCR "}
+    {.chain_id = 20531811, .name = "TecraTestnet", .ticker = "TCR "}
+    {.chain_id = 51, .name = "Apothemnetwork", .ticker = "XDC "}};
 
 uint64_t get_chain_id(void) {
     uint64_t chain_id = 0;

@@ -4,26 +4,18 @@ import os
 import json
 import sys
 import re
-from enum import IntEnum, auto
 import hashlib
 from ecdsa import SigningKey
 from ecdsa.util import sigencode_der
-import pdb
 from ethereum_client import EthereumClient, EIP712FieldType
 import base64
 
 # global variables
 app_client: EthereumClient = None
-parser = None
-trans = None
 filtering_paths = None
 current_path = list()
 sig_ctx = {}
 
-
-class ArrayType(IntEnum):
-    dynamic = 0
-    fixed_size = auto()
 
 
 
@@ -168,9 +160,6 @@ def encode_string(value, typesize):
         data.append(ord(char))
     return data
 
-def encode_byte(value, typesize):
-    return bytearray()
-
 def encode_bytes_fix(value, typesize):
     return encode_hex_string(value, typesize)
 
@@ -251,27 +240,6 @@ def send_struct_impl(structs, data, structname):
         if not evaluate_field(structs, data[f["name"]], f, len(f["array_lvls"])):
             return False
     return True
-
-def send_sign():
-    bip32path = bytearray.fromhex("8000002c8000003c800000000000000000000000")
-    path_len = bytearray()
-    path_len.append(int(len(bip32path) / 4))
-    #send_apdu(INS_SIGN, 0x00, P2_VERS_NEW, path_len + bip32path)
-    print("send_apdu(INS_SIGN, 0x00, P2_VERS_NEW, path_len + bip32path)")
-
-#def send_filtering_activate():
-#    #send_apdu(INS_FILTERING, P1_ACTIVATE, 0x00, bytearray())
-#    print("send_apdu(INS_FILTERING, P1_ACTIVATE, 0x00, bytearray())")
-#
-def send_filtering_info(p1, display_name, sig):
-    payload = bytearray()
-    payload.append(len(display_name))
-    for char in display_name:
-        payload.append(ord(char))
-    payload.append(len(sig))
-    payload += sig
-    #send_apdu(INS_FILTERING, p1, 0x00, payload)
-    print("send_apdu(INS_FILTERING, p1, 0x00, payload)")
 
 # ledgerjs doesn't actually sign anything, and instead uses already pre-computed signatures
 def send_filtering_contract_name(display_name: str):

@@ -360,7 +360,7 @@ const char *get_struct_name(const uint8_t *const struct_ptr, uint8_t *const leng
  * Get struct fields from a given struct
  *
  * @param[in] struct_ptr given struct
- * @param[out] length name length
+ * @param[out] length number of fields
  * @return struct name
  */
 const uint8_t *get_struct_fields_array(const uint8_t *const struct_ptr, uint8_t *const length) {
@@ -475,6 +475,8 @@ bool set_struct_name(uint8_t length, const uint8_t *const name) {
         return false;
     }
     *(typed_data->current_struct_fields_array) = 0;
+
+    struct_state = INITIALIZED;
     return true;
 }
 
@@ -494,7 +496,7 @@ static const typedesc_t *set_struct_field_typedesc(const uint8_t *const data,
     if ((*data_idx + sizeof(*typedesc_ptr)) > length)  // check buffer bound
     {
         apdu_response_code = APDU_RESPONSE_INVALID_DATA;
-        return false;
+        return NULL;
     }
     if ((typedesc_ptr = mem_alloc(sizeof(uint8_t))) == NULL) {
         apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
@@ -687,6 +689,11 @@ bool set_struct_field(uint8_t length, const uint8_t *const data) {
         apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
         return false;
     }
+
+    if (struct_state == NOT_INITIALIZED) {
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        return false;
+    }
     // increment number of struct fields
     *(typed_data->current_struct_fields_array) += 1;
 
@@ -696,9 +703,17 @@ bool set_struct_field(uint8_t length, const uint8_t *const data) {
 
     // check TypeSize flag in TypeDesc
     if (*typedesc_ptr & TYPESIZE_MASK) {
+        
+        // TYPESIZE and TYPE_CUSTOM are mutually exclusive
+        if ((*typedesc_ptr & TYPE_MASK) == TYPE_CUSTOM) {
+            apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+            return false;
+        }
+
         if (set_struct_field_typesize(data, &data_idx, length) == false) {
             return false;
         }
+
     } else if ((*typedesc_ptr & TYPE_MASK) == TYPE_CUSTOM) {
         if (set_struct_field_custom_typename(data, &data_idx, length) == false) {
             return false;

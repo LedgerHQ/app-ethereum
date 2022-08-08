@@ -242,6 +242,11 @@ bool tostring128(const uint128_t *const number,
         divmod128(&rDiv, &base, &rDiv, &rMod);
         out[offset++] = HEXDIGITS[(uint8_t) LOWER(rMod)];
     } while (!zero128(&rDiv));
+
+    if (offset > (outLength - 1)) {
+        return false;
+    }
+
     out[offset] = '\0';
     reverseString(out, offset);
     return true;

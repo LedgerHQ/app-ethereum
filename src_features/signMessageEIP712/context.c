@@ -14,6 +14,7 @@
 #include "shared_context.h"  // reset_app_context
 #include "ui_callbacks.h"    // ui_idle
 
+e_struct_init struct_state = NOT_INITIALIZED;
 s_eip712_context *eip712_context = NULL;
 
 /**
@@ -50,6 +51,8 @@ bool eip712_context_init(void) {
     {
         return false;
     }
+
+    struct_state = NOT_INITIALIZED;
 
     return true;
 }

@@ -76,7 +76,7 @@ void *encode_int(const uint8_t *const value, uint8_t length, uint8_t typesize) {
 
     if (length < 1) {
         apdu_response_code = APDU_RESPONSE_INVALID_DATA;
-        return NULL; 
+        return NULL;
     }
 
     if ((length == typesize) && (value[0] & (1 << 7)))  // negative number

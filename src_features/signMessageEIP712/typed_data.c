@@ -703,7 +703,6 @@ bool set_struct_field(uint8_t length, const uint8_t *const data) {
 
     // check TypeSize flag in TypeDesc
     if (*typedesc_ptr & TYPESIZE_MASK) {
-        
         // TYPESIZE and TYPE_CUSTOM are mutually exclusive
         if ((*typedesc_ptr & TYPE_MASK) == TYPE_CUSTOM) {
             apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;

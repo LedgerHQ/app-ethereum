@@ -2,7 +2,7 @@ import pytest
 from pathlib import Path
 from ragger import Firmware
 from ragger.backend import SpeculosBackend, LedgerCommBackend, LedgerWalletBackend, BackendInterface
-from ethereum_client import EthereumClient
+from ethereum_client.client import EthereumClient
 
 ELFS_DIR = (Path(__file__).parent.parent / "elfs").resolve()
 FWS = [

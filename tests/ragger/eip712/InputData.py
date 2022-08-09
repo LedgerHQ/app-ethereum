@@ -7,7 +7,7 @@ import re
 import hashlib
 from ecdsa import SigningKey
 from ecdsa.util import sigencode_der
-from ethereum_client import EthereumClient, EIP712FieldType
+from ethereum_client.client import EthereumClient, EIP712FieldType
 import base64
 
 # global variables

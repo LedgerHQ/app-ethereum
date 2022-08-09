@@ -2,7 +2,7 @@ import pytest
 import os
 import fnmatch
 from typing import List
-from ethereum_client import EthereumClient, SettingType
+from ethereum_client.client import EthereumClient, SettingType
 from eip712 import InputData
 from pathlib import Path
 from configparser import ConfigParser

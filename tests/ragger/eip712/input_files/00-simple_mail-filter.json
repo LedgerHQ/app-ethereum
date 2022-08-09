@@ -1,0 +1,7 @@
+{
+    "name": "Test JSON",
+    "fields": {
+        "from.name": "From",
+        "to.name" : "To"
+    }
+}

@@ -10,15 +10,6 @@
 #include "path.h"
 #include "ui_logic.h"
 
-#ifdef HAVE_EIP712_TESTING_KEY
-static const uint8_t EIP712_FEEDER_PUBLIC_KEY[] = {
-    0x04, 0x4c, 0xca, 0x8f, 0xad, 0x49, 0x6a, 0xa5, 0x04, 0x0a, 0x00, 0xa7, 0xeb,
-    0x2f, 0x5c, 0xc3, 0xb8, 0x53, 0x76, 0xd8, 0x8b, 0xa1, 0x47, 0xa7, 0xd7, 0x05,
-    0x4a, 0x99, 0xc6, 0x40, 0x56, 0x18, 0x87, 0xfe, 0x17, 0xa0, 0x96, 0xe3, 0x6c,
-    0x3b, 0x52, 0x3b, 0x24, 0x4f, 0x3e, 0x2f, 0xf7, 0xf8, 0x40, 0xae, 0x26, 0xc4,
-    0xe7, 0x7a, 0xd3, 0xbc, 0x73, 0x9a, 0xf5, 0xde, 0x6f, 0x2d, 0x77, 0xa7, 0xb6};
-#endif  // HAVE_EIP712_TESTING_KEY
-
 /**
  * Reconstruct the field path and hash it
  *
@@ -99,13 +90,8 @@ static bool verify_filtering_signature(uint8_t dname_length,
     cx_hash((cx_hash_t *) &hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH);
 
     cx_ecfp_init_public_key(CX_CURVE_256K1,
-#ifdef HAVE_EIP712_TESTING_KEY
-                            EIP712_FEEDER_PUBLIC_KEY,
-                            sizeof(EIP712_FEEDER_PUBLIC_KEY),
-#else
                             LEDGER_SIGNATURE_PUBLIC_KEY,
                             sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
-#endif
                             &verifying_key);
     if (!cx_ecdsa_verify(&verifying_key, CX_LAST, CX_SHA256, hash, sizeof(hash), sig, sig_length)) {
 #ifndef HAVE_BYPASS_SIGNATURES

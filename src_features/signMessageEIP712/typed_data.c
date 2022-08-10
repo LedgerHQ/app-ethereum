@@ -452,8 +452,13 @@ bool set_struct_name(uint8_t length, const uint8_t *const name) {
         apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
         return false;
     }
+
     // increment number of structs
-    *(typed_data->structs_array) += 1;
+    if ((*(typed_data->structs_array) += 1) == 0) {
+        PRINTF("EIP712 Structs count overflow!\n");
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        return false;
+    }
 
     // copy length
     if ((length_ptr = mem_alloc(sizeof(uint8_t))) == NULL) {
@@ -555,7 +560,7 @@ static bool set_struct_field_custom_typename(const uint8_t *const data,
  */
 static bool set_struct_field_array(const uint8_t *const data, uint8_t *data_idx, uint8_t length) {
     uint8_t *array_levels_count;
-    e_array_type *array_level;
+    uint8_t *array_level;
     uint8_t *array_level_size;
 
     if ((*data_idx + sizeof(*array_levels_count)) > length)  // check buffer bound
@@ -574,12 +579,12 @@ static bool set_struct_field_array(const uint8_t *const data, uint8_t *data_idx,
             apdu_response_code = APDU_RESPONSE_INVALID_DATA;
             return false;
         }
-        if ((array_level = mem_alloc(sizeof(uint8_t))) == NULL) {
+        if ((array_level = mem_alloc(sizeof(*array_level))) == NULL) {
             apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
             return false;
         }
         *array_level = data[(*data_idx)++];
-        if (*array_level > ARRAY_TYPES_COUNT) {
+        if (*array_level >= ARRAY_TYPES_COUNT) {
             apdu_response_code = APDU_RESPONSE_INVALID_DATA;
             return false;
         }
@@ -694,8 +699,13 @@ bool set_struct_field(uint8_t length, const uint8_t *const data) {
         apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
         return false;
     }
+
     // increment number of struct fields
-    *(typed_data->current_struct_fields_array) += 1;
+    if ((*(typed_data->current_struct_fields_array) += 1) == 0) {
+        PRINTF("EIP712 Struct fields count overflow!\n");
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        return false;
+    }
 
     if ((typedesc_ptr = set_struct_field_typedesc(data, &data_idx, length)) == NULL) {
         return false;

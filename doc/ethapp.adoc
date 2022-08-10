@@ -837,12 +837,12 @@ _Command_
 [width="80%"]
 |=========================================================================
 | *CLA* | *INS*  | *P1*               | *P2*       | *LC*     | *Le*
-|   E0  |   1E   | 00 : activate
+|   E0  |   1E   | 00
+                                      | 00 : activate
 
-                   0F : contract name
+                                        0F : contract name
 
-                   FF : field name
-                                      | 00
+                                        FF : field name
                                                    | variable | variable
 |=========================================================================
 

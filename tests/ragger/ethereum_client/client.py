@@ -41,7 +41,7 @@ class   EthereumClient:
     def _recv(self) -> RAPDU:
         return self._client._last_async_response
 
-    def _click_signal_timeout(self, signum: int, frame):
+    def _click_signal_timeout(self, _signum: int, _frame):
         self._client.right_click()
 
     def _enable_click_until_response(self):

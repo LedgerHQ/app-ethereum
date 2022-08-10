@@ -50,10 +50,10 @@ bool handle_eip712_struct_def(const uint8_t *const apdu_buf) {
     }
     if (ret) {
         switch (apdu_buf[OFFSET_P2]) {
-            case P2_NAME:
+            case P2_DEF_NAME:
                 ret = set_struct_name(apdu_buf[OFFSET_LC], &apdu_buf[OFFSET_CDATA]);
                 break;
-            case P2_FIELD:
+            case P2_DEF_FIELD:
                 ret = set_struct_field(apdu_buf[OFFSET_LC], &apdu_buf[OFFSET_CDATA]);
                 break;
             default:
@@ -82,7 +82,7 @@ bool handle_eip712_struct_impl(const uint8_t *const apdu_buf) {
         apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
     } else {
         switch (apdu_buf[OFFSET_P2]) {
-            case P2_NAME:
+            case P2_IMPL_NAME:
                 // set root type
                 if ((ret = path_set_root((char *) &apdu_buf[OFFSET_CDATA], apdu_buf[OFFSET_LC]))) {
                     if (N_storage.verbose_eip712) {
@@ -92,14 +92,14 @@ bool handle_eip712_struct_impl(const uint8_t *const apdu_buf) {
                     ui_712_field_flags_reset();
                 }
                 break;
-            case P2_FIELD:
+            case P2_IMPL_FIELD:
                 if ((ret = field_hash(&apdu_buf[OFFSET_CDATA],
                                       apdu_buf[OFFSET_LC],
                                       apdu_buf[OFFSET_P1] != P1_COMPLETE))) {
                     reply_apdu = false;
                 }
                 break;
-            case P2_ARRAY:
+            case P2_IMPL_ARRAY:
                 ret = path_new_array_depth(&apdu_buf[OFFSET_CDATA], apdu_buf[OFFSET_LC]);
                 break;
             default:
@@ -130,28 +130,28 @@ bool handle_eip712_filtering(const uint8_t *const apdu_buf) {
         apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
         ret = false;
     } else {
-        switch (apdu_buf[OFFSET_P1]) {
-            case P1_ACTIVATE:
+        switch (apdu_buf[OFFSET_P2]) {
+            case P2_FILT_ACTIVATE:
                 if (!N_storage.verbose_eip712) {
                     ui_712_set_filtering_mode(EIP712_FILTERING_FULL);
                     ret = compute_schema_hash();
                 }
                 break;
-            case P1_CONTRACT_NAME:
-            case P1_FIELD_NAME:
-                type = (apdu_buf[OFFSET_P1] == P1_CONTRACT_NAME) ? FILTERING_CONTRACT_NAME
-                                                                 : FILTERING_STRUCT_FIELD;
+            case P2_FILT_CONTRACT_NAME:
+            case P2_FILT_FIELD_NAME:
+                type = (apdu_buf[OFFSET_P2] == P2_FILT_CONTRACT_NAME) ? FILTERING_CONTRACT_NAME
+                                                                      : FILTERING_STRUCT_FIELD;
                 if (ui_712_get_filtering_mode() == EIP712_FILTERING_FULL) {
                     ret =
                         provide_filtering_info(&apdu_buf[OFFSET_CDATA], apdu_buf[OFFSET_LC], type);
-                    if ((apdu_buf[OFFSET_P1] == P1_CONTRACT_NAME) && ret) {
+                    if ((apdu_buf[OFFSET_P2] == P2_FILT_CONTRACT_NAME) && ret) {
                         reply_apdu = false;
                     }
                 }
                 break;
             default:
-                PRINTF("Unknown P1 0x%x for APDU 0x%x\n",
-                       apdu_buf[OFFSET_P1],
+                PRINTF("Unknown P2 0x%x for APDU 0x%x\n",
+                       apdu_buf[OFFSET_P2],
                        apdu_buf[OFFSET_INS]);
                 apdu_response_code = APDU_RESPONSE_INVALID_P1_P2;
                 ret = false;

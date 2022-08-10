@@ -3,24 +3,24 @@ from typing import Iterator
 from ethereum_client.eip712 import EIP712FieldType
 
 class   InsType(IntEnum):
-    EIP712_SEND_STRUCT_DEF = 0x1a,
-    EIP712_SEND_STRUCT_IMPL = 0x1c,
-    EIP712_SEND_FILTERING = 0x1e,
+    EIP712_SEND_STRUCT_DEF = 0x1a
+    EIP712_SEND_STRUCT_IMPL = 0x1c
+    EIP712_SEND_FILTERING = 0x1e
     EIP712_SIGN = 0x0c
 
 class   P1Type(IntEnum):
-    COMPLETE_SEND = 0x00,
-    PARTIAL_SEND = 0x01,
-    FILTERING_ACTIVATE = 0x00,
-    FILTERING_CONTRACT_NAME = 0x0f,
-    FILTERING_FIELD_NAME = 0xff
+    COMPLETE_SEND = 0x00
+    PARTIAL_SEND = 0x01
 
 class   P2Type(IntEnum):
-    STRUCT_NAME = 0x00,
-    STRUCT_FIELD = 0xff,
-    ARRAY = 0x0f,
+    STRUCT_NAME = 0x00
+    STRUCT_FIELD = 0xff
+    ARRAY = 0x0f
     LEGACY_IMPLEM = 0x00
     NEW_IMPLEM = 0x01
+    FILTERING_ACTIVATE = 0x00
+    FILTERING_CONTRACT_NAME = 0x0f
+    FILTERING_FIELD_NAME = 0xff
 
 class   EthereumCmdBuilder:
     _CLA: int = 0xE0
@@ -139,8 +139,8 @@ class   EthereumCmdBuilder:
 
     def eip712_filtering_activate(self):
         return self._serialize(InsType.EIP712_SEND_FILTERING,
-                               P1Type.FILTERING_ACTIVATE,
-                               0x00,
+                               P1Type.COMPLETE_SEND,
+                               P2Type.FILTERING_ACTIVATE,
                                bytearray())
 
     def _eip712_filtering_send_name(self, name: str, sig: bytes) -> bytes:
@@ -153,12 +153,12 @@ class   EthereumCmdBuilder:
 
     def eip712_filtering_send_contract_name(self, name: str, sig: bytes) -> bytes:
         return self._serialize(InsType.EIP712_SEND_FILTERING,
-                               P1Type.FILTERING_CONTRACT_NAME,
-                               0x00,
+                               P1Type.COMPLETE_SEND,
+                               P2Type.FILTERING_CONTRACT_NAME,
                                self._eip712_filtering_send_name(name, sig))
 
     def eip712_filtering_send_field_name(self, name: str, sig: bytes) -> bytes:
         return self._serialize(InsType.EIP712_SEND_FILTERING,
-                               P1Type.FILTERING_FIELD_NAME,
-                               0x00,
+                               P1Type.COMPLETE_SEND,
+                               P2Type.FILTERING_FIELD_NAME,
                                self._eip712_filtering_send_name(name, sig))

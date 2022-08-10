@@ -7,18 +7,18 @@
 #include <stdint.h>
 
 // APDUs P1
-#define P1_COMPLETE      0x00
-#define P1_PARTIAL       0xFF
-#define P1_ACTIVATE      0x00
-#define P1_CONTRACT_NAME 0x0F
-#define P1_FIELD_NAME    0xFF
+#define P1_COMPLETE 0x00
+#define P1_PARTIAL  0xFF
 
 // APDUs P2
-#define P2_NAME  0x00
-#define P2_ARRAY 0x0F
-#define P2_FIELD 0xFF
-#define P2_KEY   0x00
-#define P2_VALUE 0xFF
+#define P2_DEF_NAME           0x00
+#define P2_DEF_FIELD          0xFF
+#define P2_IMPL_NAME          P2_DEF_NAME
+#define P2_IMPL_ARRAY         0x0F
+#define P2_IMPL_FIELD         P2_DEF_FIELD
+#define P2_FILT_ACTIVATE      0x00
+#define P2_FILT_CONTRACT_NAME 0x0F
+#define P2_FILT_FIELD_NAME    0xFF
 
 #define DOMAIN_STRUCT_NAME "EIP712Domain"
 

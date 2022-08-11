@@ -289,26 +289,21 @@ def prepare_filtering(filtr_data, message):
 def init_signature_context(types, domain):
     global sig_ctx
 
-    env_key = os.getenv("CAL_SIGNATURE_TEST_KEY")
-    if env_key:
-        key = base64.b64decode(env_key).decode() # base 64 string -> decode bytes -> string
-        print(key)
-        sig_ctx["key"] = SigningKey.from_pem(key, hashlib.sha256)
-        caddr = domain["verifyingContract"]
-        if caddr.startswith("0x"):
-            caddr = caddr[2:]
-        sig_ctx["caddr"] = bytearray.fromhex(caddr)
-        chainid = domain["chainId"]
-        sig_ctx["chainid"] = bytearray()
-        for i in range(8):
-            sig_ctx["chainid"].append(chainid & (0xff << (i * 8)))
-        sig_ctx["chainid"].reverse()
-        schema_str = json.dumps(types).replace(" ","")
-        schema_hash = hashlib.sha224(schema_str.encode())
-        sig_ctx["schema_hash"] = bytearray.fromhex(schema_hash.hexdigest())
-
-        return True
-    return False
+    env_key = os.environ["CAL_SIGNATURE_TEST_KEY"]
+    key = base64.b64decode(env_key).decode() # base 64 string -> decode bytes -> string
+    sig_ctx["key"] = SigningKey.from_pem(key, hashlib.sha256)
+    caddr = domain["verifyingContract"]
+    if caddr.startswith("0x"):
+        caddr = caddr[2:]
+    sig_ctx["caddr"] = bytearray.fromhex(caddr)
+    chainid = domain["chainId"]
+    sig_ctx["chainid"] = bytearray()
+    for i in range(8):
+        sig_ctx["chainid"].append(chainid & (0xff << (i * 8)))
+    sig_ctx["chainid"].reverse()
+    schema_str = json.dumps(types).replace(" ","")
+    schema_hash = hashlib.sha224(schema_str.encode())
+    sig_ctx["schema_hash"] = bytearray.fromhex(schema_hash.hexdigest())
 
 def process_file(aclient: EthereumClient, input_file_path: str, filtering_file_path = None) -> bool:
     global sig_ctx
@@ -324,8 +319,7 @@ def process_file(aclient: EthereumClient, input_file_path: str, filtering_file_p
         message = data_json["message"]
 
         if filtering_file_path:
-            if not init_signature_context(types, domain):
-                return False
+            init_signature_context(types, domain)
             filtr = read_filtering_file(domain, message, filtering_file_path)
 
         # send types definition

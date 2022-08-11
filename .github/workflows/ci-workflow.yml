@@ -226,6 +226,8 @@ jobs:
                   pip3 install --extra-index-url https://test.pypi.org/simple/ -r requirements.txt
 
             - name: Run tests
+              env:
+                  CAL_SIGNATURE_TEST_KEY: ${{ secrets.CAL_SIGNATURE_TEST_KEY }}
               run: |
                   cd tests/ragger
                   pytest --path ./elfs --model ${{ matrix.model }}

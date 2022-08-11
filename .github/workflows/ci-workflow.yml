@@ -1,7 +1,6 @@
 name: Tests
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - master
@@ -9,12 +8,12 @@ on:
     branches:
       - master
       - develop
+  workflow_dispatch:
 
 jobs:
   scan-build:
     name: Clang Static Analyzer
     runs-on: ubuntu-latest
-
     container:
       image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
 
@@ -25,6 +24,7 @@ jobs:
         run: |
           make clean
           scan-build --use-cc=clang -analyze-headers -enable-checker security -enable-checker unix -enable-checker valist -o scan-build --status-bugs make default
+
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
@@ -52,19 +52,21 @@ jobs:
       - name: Upload app binaries
         uses: actions/upload-artifact@v2
         with:
-          name: e2e_elfs
+          name: e2e_zemu_elfs
           path: ./tests/zemu/elfs/
 
   jobs-e2e-zemu-tests:
     name: E2E Zemu tests
     needs: [building_for_e2e_zemu_tests]
     runs-on: ubuntu-latest
+
     steps:
       - name: Test
         run: |
           id
           echo $HOME
           echo $DISPLAY
+
       - name: Checkout
         uses: actions/checkout@v2
 
@@ -90,7 +92,7 @@ jobs:
           path: tmp/
 
       - name: Gather elfs
-        run: cp `find tmp/e2e_elfs/ -name "*.elf"` tests/zemu/elfs/
+        run: cp `find tmp/e2e_zemu_elfs/ -name "*.elf"` tests/zemu/elfs/
 
       - name: Run zemu tests
         run: cd tests/zemu/ && yarn test
@@ -112,14 +114,14 @@ jobs:
       - name: Build testing binaries
         run: |
           mkdir tests/speculos/elfs
-          make clean && make DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOS_SDK && mv bin/app.elf tests/speculos/elfs/nanos.elf
-          make clean && make DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOX_SDK && mv bin/app.elf tests/speculos/elfs/nanox.elf
-          make clean && make DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOSP_SDK && mv bin/app.elf tests/speculos/elfs/nanosp.elf
+          make clean && make -j DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOS_SDK && mv bin/app.elf tests/speculos/elfs/nanos.elf
+          make clean && make -j DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOX_SDK && mv bin/app.elf tests/speculos/elfs/nanox.elf
+          make clean && make -j DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOSP_SDK && mv bin/app.elf tests/speculos/elfs/nanosp.elf
 
       - name: Upload app binaries
         uses: actions/upload-artifact@v2
         with:
-          name: e2e_elfs
+          name: e2e_speculos_elfs
           path: ./tests/speculos/elfs
 
 
@@ -127,8 +129,8 @@ jobs:
     name: Speculos tests
     strategy:
       matrix:
-        model: ["nanosp", "nanos", "nanox"]     
-         
+        model: ["nanosp", "nanos", "nanox"]
+
     needs: [building_for_e2e_speculos_tests]
     runs-on: ubuntu-latest
 
@@ -145,7 +147,7 @@ jobs:
           path: tmp/
 
       - name: Gather elfs
-        run: cp `find tmp/e2e_elfs/ -name "*.elf"` tests/speculos/elfs/
+        run: cp `find tmp/e2e_speculos_elfs/ -name "*.elf"` tests/speculos/elfs/
 
       - name: Install dependencies
         run: |
@@ -154,6 +156,123 @@ jobs:
           pip install --extra-index-url https://test.pypi.org/simple/ -r requirements.txt
 
       - name: Run speculos tests
-        run: | 
+        run: |
           cd tests/speculos
           pytest --model ${{ matrix.model }} --path ./elfs/${{ matrix.model }}.elf --display headless
+
+
+# =====================================================
+#            RAGGER TESTS
+# =====================================================
+
+  build_ragger_elfs:
+    name: Building binaries for Ragger tests
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v2
+
+      - name: Build test binaries
+        run: |
+          make -j BOLOS_SDK=$NANOS_SDK CAL_TESTING_KEY=1
+          mv bin/app.elf app-nanos.elf
+          make clean
+          make -j BOLOS_SDK=$NANOX_SDK CAL_TESTING_KEY=1
+          mv bin/app.elf app-nanox.elf
+          make clean
+          make -j BOLOS_SDK=$NANOSP_SDK CAL_TESTING_KEY=1
+          mv bin/app.elf app-nanosp.elf
+
+      - name: Upload app binaries
+        uses: actions/upload-artifact@v2
+        with:
+          name: ragger_elfs
+          path: ./app-*.elf
+
+  create_ragger_env:
+    name: Cache Ragger environment
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v2
+
+      - name: APT update
+        run: |
+          sudo apt update
+
+      - name: Create virtual env with dependencies
+        run: |
+          cd tests/ragger
+          python3 -m venv ./venv
+          . ./venv/bin/activate
+          pip3 install --extra-index-url https://test.pypi.org/simple/ -r requirements.txt speculos
+          # Used for the cache key
+          echo "py_deps=$(pip freeze | md5sum | cut -d' ' -f1)" >> $GITHUB_ENV
+
+      - name: Download QEMU
+        run: |
+          sudo apt install --download-only -y qemu-user-static
+          mkdir -p tests/ragger/packages
+          cp /var/cache/apt/archives/*.deb tests/ragger/packages/
+          # Used for the cache key
+          echo "deb_deps=$(find /var/cache/apt/archives/ -maxdepth 0 -type f -name '*.deb' | md5sum | cut -d' ' -f 1)" >> $GITHUB_ENV
+
+      - name: Set up cache
+        uses: actions/cache@v3
+        with:
+          key: ${{ runner.os }}-raggenv-${{ env.py_deps }}-${{ env.deb_deps }}
+          path: |
+            tests/ragger/venv/
+            tests/ragger/packages/
+    outputs:
+      py_deps: ${{ env.py_deps }}
+      deb_deps: ${{ env.deb_deps }}
+
+
+  jobs-ragger-tests:
+    name: Ragger tests
+    strategy:
+      matrix:
+        model: ["nanos", "nanox", "nanosp"]
+    needs: [build_ragger_elfs, create_ragger_env]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v2
+
+      - name: Download previously built artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: ragger_elfs
+          path: tmp/
+
+      - name: Put them where they belong
+        run: |
+          mkdir -p tests/ragger/elfs
+          find tmp/ -type f -name '*.elf' -exec cp {} tests/ragger/elfs/ \;
+
+      - name: Get cached environment
+        uses: actions/cache@v3
+        with:
+          key: ${{ runner.os }}-raggenv-${{ needs.create_ragger_env.outputs.py_deps }}-${{ needs.create_ragger_env.outputs.deb_deps }}
+          path: |
+            tests/ragger/venv/
+            tests/ragger/packages/
+
+      - name: Install QEMU
+        run: |
+          sudo mv tests/ragger/packages/*.deb /var/cache/apt/archives/
+          sudo apt install -y qemu-user-static
+
+      - name: Run tests
+        env:
+          CAL_SIGNATURE_TEST_KEY: ${{ secrets.CAL_SIGNATURE_TEST_KEY }}
+        run: |
+          cd tests/ragger
+          . ./venv/bin/activate
+          pytest --path ./elfs --model ${{ matrix.model }}

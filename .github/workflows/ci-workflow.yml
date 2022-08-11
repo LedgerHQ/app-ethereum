@@ -52,7 +52,7 @@ jobs:
       - name: Upload app binaries
         uses: actions/upload-artifact@v2
         with:
-          name: e2e_elfs
+          name: e2e_zemu_elfs
           path: ./tests/zemu/elfs/
 
   jobs-e2e-zemu-tests:
@@ -90,7 +90,7 @@ jobs:
           path: tmp/
 
       - name: Gather elfs
-        run: cp `find tmp/e2e_elfs/ -name "*.elf"` tests/zemu/elfs/
+        run: cp `find tmp/e2e_zemu_elfs/ -name "*.elf"` tests/zemu/elfs/
 
       - name: Run zemu tests
         run: cd tests/zemu/ && yarn test
@@ -119,7 +119,7 @@ jobs:
       - name: Upload app binaries
         uses: actions/upload-artifact@v2
         with:
-          name: e2e_elfs
+          name: e2e_speculos_elfs
           path: ./tests/speculos/elfs
 
 
@@ -127,8 +127,8 @@ jobs:
     name: Speculos tests
     strategy:
       matrix:
-        model: ["nanosp", "nanos", "nanox"]     
-         
+        model: ["nanosp", "nanos", "nanox"]
+
     needs: [building_for_e2e_speculos_tests]
     runs-on: ubuntu-latest
 
@@ -145,7 +145,7 @@ jobs:
           path: tmp/
 
       - name: Gather elfs
-        run: cp `find tmp/e2e_elfs/ -name "*.elf"` tests/speculos/elfs/
+        run: cp `find tmp/e2e_speculos_elfs/ -name "*.elf"` tests/speculos/elfs/
 
       - name: Install dependencies
         run: |
@@ -154,6 +154,77 @@ jobs:
           pip install --extra-index-url https://test.pypi.org/simple/ -r requirements.txt
 
       - name: Run speculos tests
-        run: | 
+        run: |
           cd tests/speculos
           pytest --model ${{ matrix.model }} --path ./elfs/${{ matrix.model }}.elf --display headless
+
+
+# =====================================================
+#            RAGGER TESTS
+# =====================================================
+
+  building_for_ragger_tests:
+      name: Building binaries for Ragger tests
+      strategy:
+          matrix:
+              include:
+                  - sdk: "$NANOS_SDK"
+                    model: "nanos"
+                  - sdk: "$NANOX_SDK"
+                    model: "nanox"
+                  - sdk: "$NANOSP_SDK"
+                    model: "nanosp"
+
+      runs-on: ubuntu-latest
+      container:
+          image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
+
+      steps:
+          - name: Clone
+            uses: actions/checkout@v2
+
+          - name: Build test binaries
+            run: |
+                make -j BOLOS_SDK=${{ matrix.sdk }} CAL_TESTING_KEY=1
+                mv bin/app.elf bin/app-${{ matrix.model }}.elf
+
+          - name: Upload app binaries
+            uses: actions/upload-artifact@v2
+            with:
+                name: ragger_elfs
+                path: ./bin/app-${{ matrix.model }}.elf
+
+      jobs-ragger-tests:
+          name: Ragger tests
+          strategy:
+              matrix:
+                  model: ["nanos", "nanox", "nanosp"]
+          needs: [building_for_ragger_tests]
+          runs-on: ubuntu-latest
+
+          steps:
+              - name: Clone
+                uses: actions/checkout@v2
+
+              - name: Download previously built artifacts
+                uses: actions/download-artifact@v2
+                with:
+                    name: ragger_elfs
+                    path: tmp/
+
+              - name: Put them where they belong
+                run: |
+                    mkdir -p tests/ragger/elfs
+                    find tmp/ragger_elfs/ -type f -name '*.elf' -exec cp {} tests/ragger/elfs/ \;
+
+              - name: Install dependencies
+                run: |
+                    sudo apt update
+                    sudo apt install -y qemu-user-static
+                    cd tests/ragger
+                    pip3 install --extra-index-url https://test.pypi.org/simple/ -r requirements.txt
+
+              - name: Run tests
+                run: |
+                    cd tests/ragger
+                    pytest --path ./elfs --model ${{ matrix.model }}

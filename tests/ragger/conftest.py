@@ -4,51 +4,62 @@ from ragger import Firmware
 from ragger.backend import SpeculosBackend, LedgerCommBackend, LedgerWalletBackend, BackendInterface
 from ethereum_client.client import EthereumClient
 
-ELFS_DIR = (Path(__file__).parent.parent / "elfs").resolve()
 FWS = [
     Firmware("nanos", "2.1"),
     Firmware("nanox", "2.0.2"),
     Firmware("nanosp", "1.0.3")
 ]
 
-# adding a pytest CLI option "--backend"
 def pytest_addoption(parser):
-    print(help(parser.addoption))
     parser.addoption("--backend", action="store", default="speculos")
+    parser.addoption("--path", action="store", default="./elfs")
+    parser.addoption("--model", action="store", required=True)
 
 # accessing the value of the "--backend" option as a fixture
-@pytest.fixture(scope="session")
-def backend_name(pytestconfig) -> str:
+@pytest.fixture
+def arg_backend(pytestconfig) -> str:
     return pytestconfig.getoption("backend")
 
-# Providing the firmware as a fixture
-@pytest.fixture(params=FWS)
-def firmware(request) -> Firmware:
-    return request.param
+@pytest.fixture
+def arg_path(pytestconfig) -> str:
+    return pytestconfig.getoption("path")
 
-def get_elf_path(firmware: Firmware) -> Path:
-    assert ELFS_DIR.is_dir(), f"{ELFS_DIR} is not a directory"
-    app = ELFS_DIR / ("app-%s.elf" % firmware.device)
-    assert app.is_file(), f"{app} must exist"
+@pytest.fixture
+def arg_model(pytestconfig) -> str:
+    return pytestconfig.getoption("model")
+
+# Providing the firmware as a fixture
+@pytest.fixture
+def firmware(arg_model: str) -> Firmware:
+    for fw in FWS:
+        if fw.device == arg_model:
+            return fw
+    raise ValueError("Unknown device model \"%s\"" % (arg_model))
+
+def get_elf_path(arg_path: str, firmware: Firmware) -> Path:
+    elf_dir = Path(arg_path).resolve()
+    assert elf_dir.is_dir(), ("%s is not a directory" % (arg_path))
+    app = elf_dir / ("app-%s.elf" % firmware.device)
+    assert app.is_file(), ("Firmware %s does not exist !" % (app))
     return app
 
 # Depending on the "--backend" option value, a different backend is
 # instantiated, and the tests will either run on Speculos or on a physical
 # device depending on the backend
-def create_backend(backend: str, firmware: Firmware) -> BackendInterface:
+def create_backend(backend: str, arg_path: str, firmware: Firmware) -> BackendInterface:
     if backend.lower() == "ledgercomm":
         return LedgerCommBackend(firmware, interface="hid")
     elif backend.lower() == "ledgerwallet":
         return LedgerWalletBackend(firmware)
     elif backend.lower() == "speculos":
-        return SpeculosBackend(get_elf_path(firmware), firmware)
+        return SpeculosBackend(get_elf_path(arg_path, firmware), firmware)
     else:
         raise ValueError(f"Backend '{backend}' is unknown. Valid backends are: {BACKENDS}")
 
 # This fixture will create and return the backend client
 @pytest.fixture
-def backend_client(backend_name: str, firmware: Firmware) -> BackendInterface:
-    with create_backend(backend_name, firmware) as b:
+def backend_client(arg_backend: str, arg_path: str, firmware: Firmware) -> BackendInterface:
+    with create_backend(arg_backend, arg_path, firmware) as b:
         yield b
 
 # This final fixture will return the properly configured app client, to be used in tests

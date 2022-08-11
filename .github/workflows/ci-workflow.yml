@@ -1,230 +1,231 @@
 name: Tests
 
 on:
-  workflow_dispatch:
-  push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
-      - develop
+    workflow_dispatch:
+        push:
+            branches:
+                - master
+        pull_request:
+            branches:
+                - master
+                - develop
 
 jobs:
-  scan-build:
-    name: Clang Static Analyzer
-    runs-on: ubuntu-latest
+    scan-build:
+        name: Clang Static Analyzer
+        runs-on: ubuntu-latest
 
-    container:
-      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
+        container:
+            image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
 
-    steps:
-      - uses: actions/checkout@v2
+        steps:
+            - uses: actions/checkout@v2
 
-      - name: Build with Clang Static Analyzer
-        run: |
-          make clean
-          scan-build --use-cc=clang -analyze-headers -enable-checker security -enable-checker unix -enable-checker valist -o scan-build --status-bugs make default
-      - uses: actions/upload-artifact@v2
-        if: failure()
-        with:
-          name: scan-build
-          path: scan-build
+            - name: Build with Clang Static Analyzer
+              run: |
+                  make clean
+                  scan-build --use-cc=clang -analyze-headers -enable-checker security -enable-checker unix -enable-checker valist -o scan-build --status-bugs make default
+
+            - uses: actions/upload-artifact@v2
+              if: failure()
+              with:
+                  name: scan-build
+                  path: scan-build
 
 # =====================================================
 #            ZEMU TESTS
 # =====================================================
 
-  building_for_e2e_zemu_tests:
-    name: Building binaries for E2E Zemu tests
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
+    building_for_e2e_zemu_tests:
+        name: Building binaries for E2E Zemu tests
+        runs-on: ubuntu-latest
+        container:
+            image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
 
-    steps:
-      - uses: actions/checkout@v2
+        steps:
+            - uses: actions/checkout@v2
 
-      - name: Build testing binaries
-        run: |
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          cd tests/zemu/ && ./build_local_test_elfs.sh
+            - name: Build testing binaries
+              run: |
+                  git config --global --add safe.directory "$GITHUB_WORKSPACE"
+                  cd tests/zemu/ && ./build_local_test_elfs.sh
 
-      - name: Upload app binaries
-        uses: actions/upload-artifact@v2
-        with:
-          name: e2e_zemu_elfs
-          path: ./tests/zemu/elfs/
+            - name: Upload app binaries
+              uses: actions/upload-artifact@v2
+              with:
+                  name: e2e_zemu_elfs
+                  path: ./tests/zemu/elfs/
 
-  jobs-e2e-zemu-tests:
-    name: E2E Zemu tests
-    needs: [building_for_e2e_zemu_tests]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Test
-        run: |
-          id
-          echo $HOME
-          echo $DISPLAY
-      - name: Checkout
-        uses: actions/checkout@v2
+    jobs-e2e-zemu-tests:
+        name: E2E Zemu tests
+        needs: [building_for_e2e_zemu_tests]
+        runs-on: ubuntu-latest
+        steps:
+            - name: Test
+              run: |
+                  id
+                  echo $HOME
+                  echo $DISPLAY
+            - name: Checkout
+              uses: actions/checkout@v2
 
-      - run: sudo apt-get update -y && sudo apt-get install -y libusb-1.0.0 libudev-dev
+            - run: sudo apt-get update -y && sudo apt-get install -y libusb-1.0.0 libudev-dev
 
-      - name: Install node
-        uses: actions/setup-node@v2
-        with:
-          node-version: "14.4.0"
+            - name: Install node
+              uses: actions/setup-node@v2
+              with:
+                  node-version: "14.4.0"
 
-      - name: Install yarn
-        run: npm install -g yarn
+            - name: Install yarn
+              run: npm install -g yarn
 
-      - name: Build/Install build js deps
-        run: cd tests/zemu/ && yarn install
+            - name: Build/Install build js deps
+              run: cd tests/zemu/ && yarn install
 
-      - name: Create tmp folder for artifacts
-        run: mkdir tests/zemu/elfs
+            - name: Create tmp folder for artifacts
+              run: mkdir tests/zemu/elfs
 
-      - name: Download app binaries
-        uses: actions/download-artifact@v2
-        with:
-          path: tmp/
+            - name: Download app binaries
+              uses: actions/download-artifact@v2
+              with:
+                  path: tmp/
 
-      - name: Gather elfs
-        run: cp `find tmp/e2e_zemu_elfs/ -name "*.elf"` tests/zemu/elfs/
+            - name: Gather elfs
+              run: cp `find tmp/e2e_zemu_elfs/ -name "*.elf"` tests/zemu/elfs/
 
-      - name: Run zemu tests
-        run: cd tests/zemu/ && yarn test
+            - name: Run zemu tests
+              run: cd tests/zemu/ && yarn test
 
 # =====================================================
 #            SPECULOS TESTS
 # =====================================================
 
 
-  building_for_e2e_speculos_tests:
-    name: Building binaries for E2E Speculos tests
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
+    building_for_e2e_speculos_tests:
+        name: Building binaries for E2E Speculos tests
+        runs-on: ubuntu-latest
+        container:
+            image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
 
-    steps:
-      - uses: actions/checkout@v2
+        steps:
+            - uses: actions/checkout@v2
 
-      - name: Build testing binaries
-        run: |
-          mkdir tests/speculos/elfs
-          make clean && make DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOS_SDK && mv bin/app.elf tests/speculos/elfs/nanos.elf
-          make clean && make DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOX_SDK && mv bin/app.elf tests/speculos/elfs/nanox.elf
-          make clean && make DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOSP_SDK && mv bin/app.elf tests/speculos/elfs/nanosp.elf
+            - name: Build testing binaries
+              run: |
+                  mkdir tests/speculos/elfs
+                  make clean && make DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOS_SDK && mv bin/app.elf tests/speculos/elfs/nanos.elf
+                  make clean && make DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOX_SDK && mv bin/app.elf tests/speculos/elfs/nanox.elf
+                  make clean && make DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOSP_SDK && mv bin/app.elf tests/speculos/elfs/nanosp.elf
 
-      - name: Upload app binaries
-        uses: actions/upload-artifact@v2
-        with:
-          name: e2e_speculos_elfs
-          path: ./tests/speculos/elfs
+            - name: Upload app binaries
+              uses: actions/upload-artifact@v2
+              with:
+                  name: e2e_speculos_elfs
+                  path: ./tests/speculos/elfs
 
 
-  jobs-e2e-speculos-tests:
-    name: Speculos tests
-    strategy:
-      matrix:
-        model: ["nanosp", "nanos", "nanox"]
+    jobs-e2e-speculos-tests:
+        name: Speculos tests
+        strategy:
+            matrix:
+                model: ["nanosp", "nanos", "nanox"]
 
-    needs: [building_for_e2e_speculos_tests]
-    runs-on: ubuntu-latest
+        needs: [building_for_e2e_speculos_tests]
+        runs-on: ubuntu-latest
 
-    steps:
-      - name: Clone
-        uses: actions/checkout@v2
+        steps:
+            - name: Clone
+              uses: actions/checkout@v2
 
-      - name: Create tmp folder for artifacts
-        run: mkdir tests/speculos/elfs
+            - name: Create tmp folder for artifacts
+              run: mkdir tests/speculos/elfs
 
-      - name: Download app binaries
-        uses: actions/download-artifact@v2
-        with:
-          path: tmp/
+            - name: Download app binaries
+              uses: actions/download-artifact@v2
+              with:
+                  path: tmp/
 
-      - name: Gather elfs
-        run: cp `find tmp/e2e_speculos_elfs/ -name "*.elf"` tests/speculos/elfs/
+            - name: Gather elfs
+              run: cp `find tmp/e2e_speculos_elfs/ -name "*.elf"` tests/speculos/elfs/
 
-      - name: Install dependencies
-        run: |
-          cd tests/speculos
-          sudo apt-get update && sudo apt-get install -y qemu-user-static
-          pip install --extra-index-url https://test.pypi.org/simple/ -r requirements.txt
+            - name: Install dependencies
+              run: |
+                  cd tests/speculos
+                  sudo apt-get update && sudo apt-get install -y qemu-user-static
+                  pip install --extra-index-url https://test.pypi.org/simple/ -r requirements.txt
 
-      - name: Run speculos tests
-        run: |
-          cd tests/speculos
-          pytest --model ${{ matrix.model }} --path ./elfs/${{ matrix.model }}.elf --display headless
+            - name: Run speculos tests
+              run: |
+                  cd tests/speculos
+                  pytest --model ${{ matrix.model }} --path ./elfs/${{ matrix.model }}.elf --display headless
 
 
 # =====================================================
 #            RAGGER TESTS
 # =====================================================
 
-  building_for_ragger_tests:
-      name: Building binaries for Ragger tests
-      strategy:
-          matrix:
-              include:
-                  - sdk: "$NANOS_SDK"
-                    model: "nanos"
-                  - sdk: "$NANOX_SDK"
-                    model: "nanox"
-                  - sdk: "$NANOSP_SDK"
-                    model: "nanosp"
+    building_for_ragger_tests:
+        name: Building binaries for Ragger tests
+        strategy:
+            matrix:
+                include:
+                    - sdk: "$NANOS_SDK"
+                      model: "nanos"
+                    - sdk: "$NANOX_SDK"
+                      model: "nanox"
+                    - sdk: "$NANOSP_SDK"
+                      model: "nanosp"
 
-      runs-on: ubuntu-latest
-      container:
-          image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
+        runs-on: ubuntu-latest
+        container:
+            image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
 
-      steps:
-          - name: Clone
-            uses: actions/checkout@v2
+        steps:
+            - name: Clone
+              uses: actions/checkout@v2
 
-          - name: Build test binaries
-            run: |
-                make -j BOLOS_SDK=${{ matrix.sdk }} CAL_TESTING_KEY=1
-                mv bin/app.elf bin/app-${{ matrix.model }}.elf
+            - name: Build test binaries
+              run: |
+                  make -j BOLOS_SDK=${{ matrix.sdk }} CAL_TESTING_KEY=1
+                  mv bin/app.elf bin/app-${{ matrix.model }}.elf
 
-          - name: Upload app binaries
-            uses: actions/upload-artifact@v2
-            with:
-                name: ragger_elfs
-                path: ./bin/app-${{ matrix.model }}.elf
+            - name: Upload app binaries
+              uses: actions/upload-artifact@v2
+              with:
+                  name: ragger_elfs
+                  path: ./bin/app-${{ matrix.model }}.elf
 
-      jobs-ragger-tests:
-          name: Ragger tests
-          strategy:
-              matrix:
-                  model: ["nanos", "nanox", "nanosp"]
-          needs: [building_for_ragger_tests]
-          runs-on: ubuntu-latest
+    jobs-ragger-tests:
+        name: Ragger tests
+        strategy:
+            matrix:
+                model: ["nanos", "nanox", "nanosp"]
+        needs: [building_for_ragger_tests]
+        runs-on: ubuntu-latest
 
-          steps:
-              - name: Clone
-                uses: actions/checkout@v2
+        steps:
+            - name: Clone
+              uses: actions/checkout@v2
 
-              - name: Download previously built artifacts
-                uses: actions/download-artifact@v2
-                with:
-                    name: ragger_elfs
-                    path: tmp/
+            - name: Download previously built artifacts
+              uses: actions/download-artifact@v2
+              with:
+                  name: ragger_elfs
+                  path: tmp/
 
-              - name: Put them where they belong
-                run: |
-                    mkdir -p tests/ragger/elfs
-                    find tmp/ragger_elfs/ -type f -name '*.elf' -exec cp {} tests/ragger/elfs/ \;
+            - name: Put them where they belong
+              run: |
+                  mkdir -p tests/ragger/elfs
+                  find tmp/ -type f -name '*.elf' -exec cp {} tests/ragger/elfs/ \;
 
-              - name: Install dependencies
-                run: |
-                    sudo apt update
-                    sudo apt install -y qemu-user-static
-                    cd tests/ragger
-                    pip3 install --extra-index-url https://test.pypi.org/simple/ -r requirements.txt
+            - name: Install dependencies
+              run: |
+                  sudo apt update
+                  sudo apt install -y qemu-user-static
+                  cd tests/ragger
+                  pip3 install --extra-index-url https://test.pypi.org/simple/ -r requirements.txt
 
-              - name: Run tests
-                run: |
-                    cd tests/ragger
-                    pytest --path ./elfs --model ${{ matrix.model }}
+            - name: Run tests
+              run: |
+                  cd tests/ragger
+                  pytest --path ./elfs --model ${{ matrix.model }}

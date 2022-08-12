@@ -195,12 +195,43 @@ jobs:
                   name: ragger_elfs
                   path: ./bin/app-${{ matrix.model }}.elf
 
+    create_ragger_env:
+        name: Cache Ragger environment
+        needs: [building_for_ragger_tests]
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Clone
+              uses: actions/checkout@v2
+
+            - name: Set up cache
+              uses: actions/cache@v3
+              with:
+                  key: ${{ runner.os }}-raggenv-${{ hashFiles('tests/ragger/requirements.txt') }}
+                  path: |
+                      tests/ragger/venv/
+                      tests/ragger/packages/
+
+            - name: Create virtual env with dependencies
+              run: |
+                  cd tests/ragger
+                  python3 -m venv ./venv
+                  . ./venv/bin/activate
+                  pip3 install --extra-index-url https://test.pypi.org/simple/ -r requirements.txt
+
+            - name: Download QEMU
+              run: |
+                  sudo apt install --download-only -y qemu-user-static
+                  mkdir -p tests/ragger/packages
+                  cp /var/cache/apt/archives/*.deb tests/ragger/packages/
+
+
     jobs-ragger-tests:
         name: Ragger tests
         strategy:
             matrix:
                 model: ["nanos", "nanox", "nanosp"]
-        needs: [building_for_ragger_tests]
+        needs: [create_ragger_env]
         runs-on: ubuntu-latest
 
         steps:
@@ -218,16 +249,23 @@ jobs:
                   mkdir -p tests/ragger/elfs
                   find tmp/ -type f -name '*.elf' -exec cp {} tests/ragger/elfs/ \;
 
-            - name: Install dependencies
+            - name: Get cached environment
+              uses: actions/cache@v3
+              with:
+                  key: ${{ runner.os }}-raggenv-${{ hashFiles('tests/ragger/requirements.txt') }}
+                  path: |
+                      tests/ragger/venv/
+                      tests/ragger/packages/
+
+            - name: Install QEMU
               run: |
-                  sudo apt update
+                  sudo mv tests/ragger/packages/*.deb /var/cache/apt/archives/
                   sudo apt install -y qemu-user-static
-                  cd tests/ragger
-                  pip3 install --extra-index-url https://test.pypi.org/simple/ -r requirements.txt
 
             - name: Run tests
               env:
                   CAL_SIGNATURE_TEST_KEY: ${{ secrets.CAL_SIGNATURE_TEST_KEY }}
               run: |
                   cd tests/ragger
+                  . ./venv/bin/activate
                   pytest --path ./elfs --model ${{ matrix.model }}

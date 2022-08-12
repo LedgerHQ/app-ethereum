@@ -199,13 +199,9 @@ jobs:
             - name: Clone
               uses: actions/checkout@v2
 
-            - name: Set up cache
-              uses: actions/cache@v3
-              with:
-                  key: ${{ runner.os }}-raggenv-${{ hashFiles('tests/ragger/requirements.txt') }}
-                  path: |
-                      tests/ragger/venv/
-                      tests/ragger/packages/
+            - name: APT update
+              run: |
+                  sudo apt update
 
             - name: Create virtual env with dependencies
               run: |
@@ -213,12 +209,27 @@ jobs:
                   python3 -m venv ./venv
                   . ./venv/bin/activate
                   pip3 install --extra-index-url https://test.pypi.org/simple/ -r requirements.txt
+                  # Used for the cache key
+                  echo "py_deps=$(pip freeze | md5sum | cut -d' ' -f1)" >> $GITHUB_ENV
 
             - name: Download QEMU
               run: |
                   sudo apt install --download-only -y qemu-user-static
                   mkdir -p tests/ragger/packages
                   cp /var/cache/apt/archives/*.deb tests/ragger/packages/
+                  # Used for the cache key
+                  echo "deb_deps=$(find /var/cache/apt/archives/ -maxdepth 0 -type f -name '*.deb' | md5sum | cut -d' ' -f 1)" >> $GITHUB_ENV
+
+            - name: Set up cache
+              uses: actions/cache@v3
+              with:
+                  key: ${{ runner.os }}-raggenv-${{ env.py_deps }}-${{ env.deb_deps }}
+                  path: |
+                      tests/ragger/venv/
+                      tests/ragger/packages/
+        outputs:
+            py_deps: ${{ env.py_deps }}
+            deb_deps: ${{ env.deb_deps }}
 
 
     jobs-ragger-tests:
@@ -247,7 +258,7 @@ jobs:
             - name: Get cached environment
               uses: actions/cache@v3
               with:
-                  key: ${{ runner.os }}-raggenv-${{ hashFiles('tests/ragger/requirements.txt') }}
+                  key: ${{ runner.os }}-raggenv-${{ needs.create_ragger_env.outputs.py_deps }}-${{ needs.create_ragger_env.outputs.deb_deps }}
                   path: |
                       tests/ragger/venv/
                       tests/ragger/packages/

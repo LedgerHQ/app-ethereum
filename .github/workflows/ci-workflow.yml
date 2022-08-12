@@ -164,18 +164,8 @@ jobs:
 #            RAGGER TESTS
 # =====================================================
 
-    building_for_ragger_tests:
+    build_ragger_elfs:
         name: Building binaries for Ragger tests
-        strategy:
-            matrix:
-                include:
-                    - sdk: "$NANOS_SDK"
-                      model: "nanos"
-                    - sdk: "$NANOX_SDK"
-                      model: "nanox"
-                    - sdk: "$NANOSP_SDK"
-                      model: "nanosp"
-
         runs-on: ubuntu-latest
         container:
             image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
@@ -186,18 +176,23 @@ jobs:
 
             - name: Build test binaries
               run: |
-                  make -j BOLOS_SDK=${{ matrix.sdk }} CAL_TESTING_KEY=1
-                  mv bin/app.elf bin/app-${{ matrix.model }}.elf
+                  make -j BOLOS_SDK=$NANOS_SDK CAL_TESTING_KEY=1
+                  mv bin/app.elf app-nanos.elf
+                  make clean
+                  make -j BOLOS_SDK=$NANOX_SDK CAL_TESTING_KEY=1
+                  mv bin/app.elf app-nanox.elf
+                  make clean
+                  make -j BOLOS_SDK=$NANOSP_SDK CAL_TESTING_KEY=1
+                  mv bin/app.elf app-nanosp.elf
 
             - name: Upload app binaries
               uses: actions/upload-artifact@v2
               with:
                   name: ragger_elfs
-                  path: ./bin/app-${{ matrix.model }}.elf
+                  path: ./app-*.elf
 
     create_ragger_env:
         name: Cache Ragger environment
-        needs: [building_for_ragger_tests]
         runs-on: ubuntu-latest
 
         steps:
@@ -231,7 +226,7 @@ jobs:
         strategy:
             matrix:
                 model: ["nanos", "nanox", "nanosp"]
-        needs: [create_ragger_env]
+        needs: [build_ragger_elfs, create_ragger_env]
         runs-on: ubuntu-latest
 
         steps:

@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
-- EIP-191 signatures now show (up to 99 characters on LNS and 255 on LNX & LNS) the actual data contained in the message (clear-signing)
+- EIP-191 signatures now show (up to 99 characters on LNS and 255 on LNX & LNSP) the actual data contained in the message (clear-signing)
 
 ### Fixed
 

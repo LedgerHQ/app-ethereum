@@ -286,9 +286,16 @@ def prepare_filtering(filtr_data, message):
     else:
         filtering_paths = {}
 
+def handle_optional_domain_values(domain):
+    if "chainId" not in domain.keys():
+        domain["chainId"] = 0
+    if "verifyingContract" not in domain.keys():
+        domain["verifyingContract"] = "0x0000000000000000000000000000000000000000"
+
 def init_signature_context(types, domain):
     global sig_ctx
 
+    handle_optional_domain_values(domain)
     env_key = os.environ["CAL_SIGNATURE_TEST_KEY"]
     key = base64.b64decode(env_key).decode() # base 64 string -> decode bytes -> string
     sig_ctx["key"] = SigningKey.from_pem(key, hashlib.sha256)

@@ -181,15 +181,14 @@ static bool field_hash_domain_special_fields(const void *const field_ptr,
         }
         memcpy(eip712_context->contract_addr, data, data_length);
     } else if (strncmp(key, "chainId", keylen) == 0) {
-        uint64_t chainId = u64_from_BE(data, data_length);
-
-        if (chainId != chainConfig->chainId) {
+        eip712_context->chain_id = u64_from_BE(data, data_length);
+        if ((eip712_context->chain_id != 0) && (eip712_context->chain_id != chainConfig->chainId)) {
             apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
             PRINTF("EIP712Domain chain ID mismatch, expected 0x%.*h, got 0x%.*h !\n",
                    sizeof(chainConfig->chainId),
                    &chainConfig->chainId,
-                   sizeof(chainId),
-                   &chainId);
+                   sizeof(eip712_context->chain_id),
+                   &eip712_context->chain_id);
             return false;
         }
     }

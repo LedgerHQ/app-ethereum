@@ -66,7 +66,7 @@ static bool verify_filtering_signature(uint8_t dname_length,
     cx_sha256_init(&hash_ctx);
 
     // Chain ID
-    chain_id = __builtin_bswap64(chainConfig->chainId);
+    chain_id = __builtin_bswap64(eip712_context->chain_id);
     hash_nbytes((uint8_t *) &chain_id, sizeof(chain_id), (cx_hash_t *) &hash_ctx);
 
     // Contract address

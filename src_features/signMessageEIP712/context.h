@@ -8,6 +8,7 @@
 
 typedef struct {
     uint8_t contract_addr[ADDRESS_LENGTH];
+    uint64_t chain_id;
     uint8_t schema_hash[224 / 8];
 } s_eip712_context;
 

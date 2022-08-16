@@ -75,6 +75,10 @@ def test_eip712_new(app_client: EthereumClient, input_file: Path, verbose: bool,
 
             assert InputData.process_file(app_client, input_file, filter_file) == True
             v, r, s = app_client.eip712_sign_new(bip32)
+            #print("[signature]")
+            #print("v = %s" % (v.hex()))
+            #print("r = %s" % (r.hex()))
+            #print("s = %s" % (s.hex()))
 
             assert v == bytes.fromhex(config["signature"]["v"])
             assert r == bytes.fromhex(config["signature"]["r"])

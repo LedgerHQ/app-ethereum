@@ -246,6 +246,7 @@ def send_filtering_contract_name(display_name: str):
     global sig_ctx
 
     msg = bytearray()
+    msg.append(183)
     msg += sig_ctx["chainid"]
     msg += sig_ctx["caddr"]
     msg += sig_ctx["schema_hash"]
@@ -262,6 +263,7 @@ def send_filtering_field_name(display_name):
     path_str = ".".join(current_path)
 
     msg = bytearray()
+    msg.append(72)
     msg += sig_ctx["chainid"]
     msg += sig_ctx["caddr"]
     msg += sig_ctx["schema_hash"]

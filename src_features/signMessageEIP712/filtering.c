@@ -65,6 +65,20 @@ static bool verify_filtering_signature(uint8_t dname_length,
 
     cx_sha256_init(&hash_ctx);
 
+    // Magic number, makes it so a signature of one type can't be used as another
+    switch (type) {
+        case FILTERING_STRUCT_FIELD:
+            hash_byte(FILTERING_MAGIC_STRUCT_FIELD, (cx_hash_t *) &hash_ctx);
+            break;
+        case FILTERING_CONTRACT_NAME:
+            hash_byte(FILTERING_MAGIC_CONTRACT_NAME, (cx_hash_t *) &hash_ctx);
+            break;
+        default:
+            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+            PRINTF("Invalid filtering type when verifying signature!\n");
+            return false;
+    }
+
     // Chain ID
     chain_id = __builtin_bswap64(eip712_context->chain_id);
     hash_nbytes((uint8_t *) &chain_id, sizeof(chain_id), (cx_hash_t *) &hash_ctx);

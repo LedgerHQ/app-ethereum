@@ -6,6 +6,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define FILTERING_MAGIC_CONTRACT_NAME 0b10110111  //  183
+#define FILTERING_MAGIC_STRUCT_FIELD  0b01001000  // ~183 = 72
+
 typedef enum { FILTERING_CONTRACT_NAME, FILTERING_STRUCT_FIELD } e_filtering_type;
 
 bool provide_filtering_info(const uint8_t *const payload, uint8_t length, e_filtering_type type);

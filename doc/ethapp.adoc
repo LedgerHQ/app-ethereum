@@ -816,19 +816,21 @@ If activated, fields will be by default hidden unless they receive a field name 
 
 Name substitution commands should come right after the contract address from the domain has been sent with a *SEND STRUCT IMPLEMENTATION*.
 Perfect moment to do it is when the domain implementation has been sent, just before sending the message implementation.
+The first byte is used so that a signature of one type cannot be valid as another type.
 
 The signature is computed on :
 
-chain ID (BE) || contract address || schema hash || display name
+183 || chain ID (BE) || contract address || schema hash || display name
 
 
 ##### Field name substitution
 
 Name substitution commands should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
+The first byte is used so that a signature of one type cannot be valid as another type.
 
 The signature is computed on :
 
-chain ID (BE) || contract address || schema hash || field path || display name
+72 || chain ID (BE) || contract address || schema hash || field path || display name
 
 #### Coding
 

@@ -1,14 +1,14 @@
 name: Tests
 
 on:
+    push:
+        branches:
+            - master
+    pull_request:
+        branches:
+            - master
+            - develop
     workflow_dispatch:
-        push:
-            branches:
-                - master
-        pull_request:
-            branches:
-                - master
-                - develop
 
 jobs:
     scan-build:

@@ -810,22 +810,21 @@ Full filtering is disabled by default and has to be changed with this APDU (defa
 
 Field substitution will be ignored if the full filtering is not activated.
 
-If activated, fields will be by default hidden unless they receive a field name substitution.
+This command should come before the domain & message implementations. If activated, fields will be by default hidden unless they receive a field name substitution.
 
-##### Contract name substitution
+##### Message info
 
-Name substitution commands should come right after the contract address from the domain has been sent with a *SEND STRUCT IMPLEMENTATION*.
-Perfect moment to do it is when the domain implementation has been sent, just before sending the message implementation.
+This command should come right after the implementation of the domain has been sent with *SEND STRUCT IMPLEMENTATION*, just before sending the message implementation.
 The first byte is used so that a signature of one type cannot be valid as another type.
 
 The signature is computed on :
 
-183 || chain ID (BE) || contract address || schema hash || display name
+183 || chain ID (BE) || contract address || schema hash || filters count || display name
 
 
-##### Field name substitution
+##### Show field
 
-Name substitution commands should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
+These commands should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
 The first byte is used so that a signature of one type cannot be valid as another type.
 
 The signature is computed on :
@@ -842,19 +841,31 @@ _Command_
 |   E0  |   1E   | 00
                                       | 00 : activate
 
-                                        0F : contract name
+                                        0F : message info
 
-                                        FF : field name
+                                        FF : show field
                                                    | variable | variable
 |=========================================================================
 
 _Input data_
 
-##### If P1 == activate
+##### If P2 == activate
 
 None
 
-##### If P1 == contract name OR P1 == field name
+##### If P2 == message info
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Display name length   | 1
+| Display name          | variable
+| Filters count         | 1
+| Signature length      | 1
+| Signature             | variable
+|==========================================
+
+##### If P2 == show field
 
 [width="80%"]
 |==========================================

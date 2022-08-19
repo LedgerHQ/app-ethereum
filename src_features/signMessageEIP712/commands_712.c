@@ -139,14 +139,15 @@ bool handle_eip712_filtering(const uint8_t *const apdu_buf) {
                     ret = compute_schema_hash();
                 }
                 break;
-            case P2_FILT_CONTRACT_NAME:
-            case P2_FILT_FIELD_NAME:
-                type = (apdu_buf[OFFSET_P2] == P2_FILT_CONTRACT_NAME) ? FILTERING_CONTRACT_NAME
-                                                                      : FILTERING_STRUCT_FIELD;
+            case P2_FILT_MESSAGE_INFO:
+            case P2_FILT_SHOW_FIELD:
+                type = (apdu_buf[OFFSET_P2] == P2_FILT_MESSAGE_INFO)
+                           ? FILTERING_PROVIDE_MESSAGE_INFO
+                           : FILTERING_SHOW_FIELD;
                 if (ui_712_get_filtering_mode() == EIP712_FILTERING_FULL) {
                     ret =
                         provide_filtering_info(&apdu_buf[OFFSET_CDATA], apdu_buf[OFFSET_LC], type);
-                    if ((apdu_buf[OFFSET_P2] == P2_FILT_CONTRACT_NAME) && ret) {
+                    if ((apdu_buf[OFFSET_P2] == P2_FILT_MESSAGE_INFO) && ret) {
                         reply_apdu = false;
                     }
                 }
@@ -177,6 +178,10 @@ bool handle_eip712_sign(const uint8_t *const apdu_buf) {
 
     if (eip712_context == NULL) {
         apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+    } else if ((ui_712_get_filtering_mode() == EIP712_FILTERING_FULL) &&
+               (ui_712_remaining_filters() != 0)) {
+        PRINTF("%d EIP712 filters are missing\n", ui_712_remaining_filters());
+        apdu_response_code = APDU_RESPONSE_REF_DATA_NOT_FOUND;
     } else if (parseBip32(&apdu_buf[OFFSET_CDATA], &length, &tmpCtx.messageSigningContext.bip32) !=
                NULL) {
         if (!N_storage.verbose_eip712 && (ui_712_get_filtering_mode() == EIP712_FILTERING_BASIC)) {

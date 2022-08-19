@@ -144,13 +144,13 @@ class   EthereumClient:
         self._eip712_filtering = True
         assert self._recv().status == 0x9000
 
-    def eip712_filtering_send_contract_name(self, name: str, sig: bytes):
-        with self._send(self._cmd_builder.eip712_filtering_send_contract_name(name, sig)):
+    def eip712_filtering_message_info(self, name: str, filters_count: int, sig: bytes):
+        with self._send(self._cmd_builder.eip712_filtering_message_info(name, filters_count, sig)):
             self._enable_click_until_response()
         self._disable_click_until_response()
         assert self._recv().status == 0x9000
 
-    def eip712_filtering_send_field_name(self, name: str, sig: bytes):
-        with self._send(self._cmd_builder.eip712_filtering_send_field_name(name, sig)):
+    def eip712_filtering_show_field(self, name: str, sig: bytes):
+        with self._send(self._cmd_builder.eip712_filtering_show_field(name, sig)):
             pass
         assert self._recv().status == 0x9000

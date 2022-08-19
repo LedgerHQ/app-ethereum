@@ -486,6 +486,7 @@ static bool path_advance_in_struct(void) {
     }
     if (path_struct->depth_count > 0) {
         *depth += 1;
+        ui_712_notify_filter_change();
         end_reached = (*depth == fields_count);
     }
     if (end_reached) {

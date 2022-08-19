@@ -192,7 +192,7 @@ def send_struct_impl_field(value, field):
     if filtering_paths:
         path = ".".join(current_path)
         if path in filtering_paths.keys():
-            send_filtering_field_name(filtering_paths[path])
+            send_filtering_show_field(filtering_paths[path])
 
     app_client.eip712_send_struct_impl_struct_field(data)
 
@@ -242,37 +242,38 @@ def send_struct_impl(structs, data, structname):
     return True
 
 # ledgerjs doesn't actually sign anything, and instead uses already pre-computed signatures
-def send_filtering_contract_name(display_name: str):
+def send_filtering_message_info(display_name: str, filters_count: int):
     global sig_ctx
 
-    msg = bytearray()
-    msg.append(183)
-    msg += sig_ctx["chainid"]
-    msg += sig_ctx["caddr"]
-    msg += sig_ctx["schema_hash"]
+    to_sign = bytearray()
+    to_sign.append(183)
+    to_sign += sig_ctx["chainid"]
+    to_sign += sig_ctx["caddr"]
+    to_sign += sig_ctx["schema_hash"]
+    to_sign.append(filters_count)
     for char in display_name:
-        msg.append(ord(char))
+        to_sign.append(ord(char))
 
-    sig = sig_ctx["key"].sign_deterministic(msg, sigencode=sigencode_der)
-    app_client.eip712_filtering_send_contract_name(display_name, sig)
+    sig = sig_ctx["key"].sign_deterministic(to_sign, sigencode=sigencode_der)
+    app_client.eip712_filtering_message_info(display_name, filters_count, sig)
 
 # ledgerjs doesn't actually sign anything, and instead uses already pre-computed signatures
-def send_filtering_field_name(display_name):
+def send_filtering_show_field(display_name):
     global sig_ctx
 
     path_str = ".".join(current_path)
 
-    msg = bytearray()
-    msg.append(72)
-    msg += sig_ctx["chainid"]
-    msg += sig_ctx["caddr"]
-    msg += sig_ctx["schema_hash"]
+    to_sign = bytearray()
+    to_sign.append(72)
+    to_sign += sig_ctx["chainid"]
+    to_sign += sig_ctx["caddr"]
+    to_sign += sig_ctx["schema_hash"]
     for char in path_str:
-        msg.append(ord(char))
+        to_sign.append(ord(char))
     for char in display_name:
-        msg.append(ord(char))
-    sig = sig_ctx["key"].sign_deterministic(msg, sigencode=sigencode_der)
-    app_client.eip712_filtering_send_field_name(display_name, sig)
+        to_sign.append(ord(char))
+    sig = sig_ctx["key"].sign_deterministic(to_sign, sigencode=sigencode_der)
+    app_client.eip712_filtering_show_field(display_name, sig)
 
 def read_filtering_file(domain, message, filtering_file_path):
     data_json = None
@@ -349,9 +350,9 @@ def process_file(aclient: EthereumClient, input_file_path: str, filtering_file_p
 
         if filtering_file_path:
             if filtr and "name" in filtr:
-                send_filtering_contract_name(filtr["name"])
+                send_filtering_message_info(filtr["name"], len(filtering_paths))
             else:
-                send_filtering_contract_name(domain["name"])
+                send_filtering_message_info(domain["name"], len(filtering_paths))
 
         # send message implementation
         app_client.eip712_send_struct_impl_root_struct(message_typename)

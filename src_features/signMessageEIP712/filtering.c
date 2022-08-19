@@ -67,10 +67,10 @@ static bool verify_filtering_signature(uint8_t dname_length,
 
     // Magic number, makes it so a signature of one type can't be used as another
     switch (type) {
-        case FILTERING_STRUCT_FIELD:
+        case FILTERING_SHOW_FIELD:
             hash_byte(FILTERING_MAGIC_STRUCT_FIELD, (cx_hash_t *) &hash_ctx);
             break;
-        case FILTERING_CONTRACT_NAME:
+        case FILTERING_PROVIDE_MESSAGE_INFO:
             hash_byte(FILTERING_MAGIC_CONTRACT_NAME, (cx_hash_t *) &hash_ctx);
             break;
         default:
@@ -93,8 +93,11 @@ static bool verify_filtering_signature(uint8_t dname_length,
                 sizeof(eip712_context->schema_hash),
                 (cx_hash_t *) &hash_ctx);
 
-    if (type == FILTERING_STRUCT_FIELD) {
+    if (type == FILTERING_SHOW_FIELD) {
         hash_filtering_path((cx_hash_t *) &hash_ctx);
+    } else  // FILTERING_PROVIDE_MESSAGE_INFO
+    {
+        hash_byte(ui_712_remaining_filters(), (cx_hash_t *) &hash_ctx);
     }
 
     // Display name
@@ -131,13 +134,14 @@ bool provide_filtering_info(const uint8_t *const payload, uint8_t length, e_filt
     const char *dname;
     uint8_t sig_len;
     const uint8_t *sig;
+    uint8_t offset = 0;
 
-    if (type == FILTERING_CONTRACT_NAME) {
+    if (type == FILTERING_PROVIDE_MESSAGE_INFO) {
         if (path_get_root_type() != ROOT_DOMAIN) {
             apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
             return false;
         }
-    } else  // FILTERING_STRUCT_FIELD
+    } else  // FILTERING_SHOW_FIELD
     {
         if (path_get_root_type() != ROOT_MESSAGE) {
             apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
@@ -145,20 +149,25 @@ bool provide_filtering_info(const uint8_t *const payload, uint8_t length, e_filt
         }
     }
     if (length > 0) {
-        dname_len = payload[0];
+        dname_len = payload[offset++];
         if ((1 + dname_len) < length) {
-            dname = (char *) &payload[1];
-            sig_len = payload[1 + dname_len];
-            sig = &payload[1 + dname_len + 1];
-            if ((sig_len > 0) && ((1 + dname_len + 1 + sig_len) == length)) {
+            dname = (char *) &payload[offset];
+            offset += dname_len;
+            if (type == FILTERING_PROVIDE_MESSAGE_INFO) {
+                ui_712_set_filters_count(payload[offset++]);
+            }
+            sig_len = payload[offset++];
+            sig = &payload[offset];
+            offset += sig_len;
+            if ((sig_len > 0) && (offset == length)) {
                 if ((ret = verify_filtering_signature(dname_len, dname, sig_len, sig, type))) {
-                    if (type == FILTERING_CONTRACT_NAME) {
+                    if (type == FILTERING_PROVIDE_MESSAGE_INFO) {
                         if (!N_storage.verbose_eip712) {
                             ui_712_set_title("Contract", 8);
                             ui_712_set_value(dname, dname_len);
                             ui_712_redraw_generic_step();
                         }
-                    } else  // FILTERING_STRUCT_FIELD
+                    } else  // FILTERING_SHOW_FIELD
                     {
                         if (dname_len > 0)  // don't substitute for an empty name
                         {

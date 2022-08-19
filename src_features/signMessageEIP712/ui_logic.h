@@ -18,6 +18,7 @@ typedef struct {
     bool end_reached;
     e_ui_position pos;
     uint8_t filtering_mode;
+    uint8_t filters_to_process;
     uint8_t field_flags;
     uint8_t structs_to_review;
 } t_ui_context;
@@ -39,7 +40,10 @@ void ui_712_field_flags_reset(void);
 void ui_712_finalize_field(void);
 void ui_712_set_filtering_mode(e_eip712_filtering_mode mode);
 e_eip712_filtering_mode ui_712_get_filtering_mode(void);
+void ui_712_set_filters_count(uint8_t count);
+uint8_t ui_712_remaining_filters(void);
 void ui_712_queue_struct_to_review(void);
+void ui_712_notify_filter_change(void);
 
 #endif  // HAVE_EIP712_FULL_SUPPORT
 

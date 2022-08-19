@@ -151,13 +151,19 @@ class   EthereumCmdBuilder:
         data += sig
         return data
 
-    def eip712_filtering_send_contract_name(self, name: str, sig: bytes) -> bytes:
+    def eip712_filtering_message_info(self, name: str, filters_count: int, sig: bytes) -> bytes:
+        data = bytearray()
+        data.append(len(name))
+        data += self._string_to_bytes(name)
+        data.append(filters_count)
+        data.append(len(sig))
+        data += sig
         return self._serialize(InsType.EIP712_SEND_FILTERING,
                                P1Type.COMPLETE_SEND,
                                P2Type.FILTERING_CONTRACT_NAME,
-                               self._eip712_filtering_send_name(name, sig))
+                               data)
 
-    def eip712_filtering_send_field_name(self, name: str, sig: bytes) -> bytes:
+    def eip712_filtering_show_field(self, name: str, sig: bytes) -> bytes:
         return self._serialize(InsType.EIP712_SEND_FILTERING,
                                P1Type.COMPLETE_SEND,
                                P2Type.FILTERING_FIELD_NAME,

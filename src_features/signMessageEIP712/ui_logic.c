@@ -504,6 +504,24 @@ e_eip712_filtering_mode ui_712_get_filtering_mode(void) {
 }
 
 /**
+ * Set the number of filters this message should process
+ *
+ * @param[in] count number of filters
+ */
+void ui_712_set_filters_count(uint8_t count) {
+    ui_ctx->filters_to_process = count;
+}
+
+/**
+ * Get the number of filters left to process
+ *
+ * @return number of filters
+ */
+uint8_t ui_712_remaining_filters(void) {
+    return ui_ctx->filters_to_process;
+}
+
+/**
  * Reset all the UI struct field flags
  */
 void ui_712_field_flags_reset(void) {
@@ -518,6 +536,23 @@ void ui_712_field_flags_reset(void) {
 void ui_712_queue_struct_to_review(void) {
     if (N_storage.verbose_eip712) {
         ui_ctx->structs_to_review += 1;
+    }
+}
+
+/**
+ * Notify of a filter change from a path advance
+ *
+ * This function figures out by itself if there is anything to do
+ */
+void ui_712_notify_filter_change(void) {
+    if (path_get_root_type() == ROOT_MESSAGE) {
+        if (ui_ctx->filtering_mode == EIP712_FILTERING_FULL) {
+            if (ui_ctx->filters_to_process > 0) {
+                if (ui_ctx->field_flags & UI_712_FIELD_SHOWN) {
+                    ui_ctx->filters_to_process -= 1;
+                }
+            }
+        }
     }
 }
 

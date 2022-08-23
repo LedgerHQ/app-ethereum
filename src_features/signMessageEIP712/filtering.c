@@ -110,6 +110,7 @@ static bool verify_filtering_signature(uint8_t dname_length,
     if (!cx_ecdsa_verify(&verifying_key, CX_LAST, CX_SHA256, hash, sizeof(hash), sig, sig_length)) {
 #ifndef HAVE_BYPASS_SIGNATURES
         PRINTF("Invalid EIP-712 filtering signature\n");
+        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
         return false;
 #endif
     }

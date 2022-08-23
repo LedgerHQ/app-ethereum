@@ -25,6 +25,8 @@
 void handle_eip712_return_code(bool success) {
     if (success) {
         apdu_response_code = APDU_RESPONSE_OK;
+    } else if (apdu_response_code == APDU_RESPONSE_OK) {  // somehow not set
+        apdu_response_code = APDU_RESPONSE_ERROR_NO_INFO;
     }
     *(uint16_t *) G_io_apdu_buffer = __builtin_bswap16(apdu_response_code);
 

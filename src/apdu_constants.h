@@ -35,6 +35,7 @@
 #define COMMON_INS_GET_WALLET_ID 0x04
 
 #define APDU_RESPONSE_OK                      0x9000
+#define APDU_RESPONSE_ERROR_NO_INFO           0x6a00
 #define APDU_RESPONSE_INVALID_DATA            0x6a80
 #define APDU_RESPONSE_INSUFFICIENT_MEMORY     0x6a84
 #define APDU_RESPONSE_INVALID_INS             0x6d00

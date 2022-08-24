@@ -1,10 +1,11 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
-#include "ui_flow.h"
 #include "tokens.h"
 #include "eth_plugin_interface.h"
 #include "eth_plugin_internal.h"
 #include "utils.h"
+#include "common_ui.h"
+#include "os_io_seproxyhal.h"
 
 // Supported internal plugins
 #define ERC721_STR  "ERC721"

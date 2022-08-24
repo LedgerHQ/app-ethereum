@@ -6,6 +6,7 @@
 #include "network.h"
 #include "eth_plugin_handler.h"
 #include "ui_plugin.h"
+#include "common_ui.h"
 
 // clang-format off
 UX_STEP_NOCB(

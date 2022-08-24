@@ -2,8 +2,8 @@
 #include "apdu_constants.h"
 #include "ethUtils.h"
 
-#include "ui_flow.h"
 #include "feature_performPrivacyOperation.h"
+#include "common_ui.h"
 
 #define P2_PUBLIC_ENCRYPTION_KEY 0x00
 #define P2_SHARED_SECRET         0x01
@@ -108,9 +108,9 @@ void handlePerformPrivacyOperation(uint8_t p1,
                  32,
                  privateKeyData);
         if (p2 == P2_PUBLIC_ENCRYPTION_KEY) {
-            ux_flow_init(0, ux_display_privacy_public_key_flow, NULL);
+            ui_display_privacy_public_key();
         } else {
-            ux_flow_init(0, ux_display_privacy_shared_secret_flow, NULL);
+            ui_display_privacy_shared_secret();
         }
 
         *flags |= IO_ASYNCH_REPLY;

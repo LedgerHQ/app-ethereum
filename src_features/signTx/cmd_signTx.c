@@ -1,6 +1,5 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
-#include "ui_flow.h"
 #include "feature_signTx.h"
 #include "eth_plugin_interface.h"
 

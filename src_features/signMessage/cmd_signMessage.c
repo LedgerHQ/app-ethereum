@@ -2,7 +2,7 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
 #include "utils.h"
-#include "ui_flow.h"
+#include "common_ui.h"
 
 static const char SIGN_MAGIC[] =
     "\x19"
@@ -188,7 +188,7 @@ void handleSignPersonalMessage(uint8_t p1,
 #ifdef NO_CONSENT
         io_seproxyhal_touch_signMessage_ok(NULL);
 #else   // NO_CONSENT
-        ux_flow_init(0, ux_sign_flow, NULL);
+        ui_display_sign();
 #endif  // NO_CONSENT
 
         *flags |= IO_ASYNCH_REPLY;

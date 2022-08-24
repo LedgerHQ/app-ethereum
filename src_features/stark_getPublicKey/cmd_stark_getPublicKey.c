@@ -4,7 +4,8 @@
 #include "apdu_constants.h"
 #include "stark_utils.h"
 #include "feature_stark_getPublicKey.h"
-#include "ui_flow.h"
+#include "common_ui.h"
+#include "os_io_seproxyhal.h"
 
 void handleStarkwareGetPublicKey(uint8_t p1,
                                  uint8_t p2,
@@ -55,7 +56,7 @@ void handleStarkwareGetPublicKey(uint8_t p1,
                  "0x%.*H",
                  32,
                  tmpCtx.publicKeyContext.publicKey.W + 1);
-        ux_flow_init(0, ux_display_stark_public_flow, NULL);
+        ui_display_stark_public();
 
         *flags |= IO_ASYNCH_REPLY;
     }

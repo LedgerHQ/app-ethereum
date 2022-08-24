@@ -164,8 +164,8 @@ static const void **get_struct_dependencies(uint8_t *const deps_count,
  *
  * @param[in] struct_name name of the given struct
  * @param[in] struct_name_length length of the name of the given struct
- * @param[in] with_deps if hashed typestring should include struct dependencies
- * @return pointer to encoded string or \ref NULL in case of a memory allocation error
+ * @param[out] hash_buf buffer containing the resulting type_hash
+ * @return whether the type_hash was successful or not
  */
 bool type_hash(const char *const struct_name, const uint8_t struct_name_length, uint8_t *hash_buf) {
     const void *const struct_ptr = get_structn(struct_name, struct_name_length);

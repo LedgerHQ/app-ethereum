@@ -1,7 +1,8 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
-#include "ui_flow.h"
 #include "tokens.h"
+#include "common_ui.h"
+#include "os_io_seproxyhal.h"
 
 #ifdef HAVE_CONTRACT_NAME_IN_DESCRIPTOR
 

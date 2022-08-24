@@ -3,8 +3,9 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
 
-#include "ui_flow.h"
 #include "feature_getEth2PublicKey.h"
+#include "common_ui.h"
+#include "os_io_seproxyhal.h"
 
 static const uint8_t BLS12_381_FIELD_MODULUS[] = {
     0x1a, 0x01, 0x11, 0xea, 0x39, 0x7f, 0xe6, 0x9a, 0x4b, 0x1b, 0xa7, 0xb6, 0x43, 0x4b, 0xac, 0xd7,
@@ -75,7 +76,7 @@ void handleGetEth2PublicKey(uint8_t p1,
     }
 #ifndef NO_CONSENT
     else {
-        ux_flow_init(0, ux_display_public_eth2_flow, NULL);
+        ui_display_public_eth2();
 
         *flags |= IO_ASYNCH_REPLY;
     }

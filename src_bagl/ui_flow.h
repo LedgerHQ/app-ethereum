@@ -30,6 +30,8 @@ extern const ux_flow_step_t* const ux_display_privacy_public_key_flow[];
 
 extern const ux_flow_step_t* const ux_display_privacy_shared_secret_flow[];
 
+extern const ux_flow_step_t* ux_approval_tx_flow[15];
+
 #ifdef HAVE_STARKWARE
 
 extern const ux_flow_step_t* const ux_display_stark_public_flow[];

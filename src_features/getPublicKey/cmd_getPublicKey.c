@@ -1,9 +1,10 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
 
-#include "ui_flow.h"
 #include "feature_getPublicKey.h"
 #include "ethUtils.h"
+#include "common_ui.h"
+#include "os_io_seproxyhal.h"
 
 void handleGetPublicKey(uint8_t p1,
                         uint8_t p2,
@@ -64,7 +65,7 @@ void handleGetPublicKey(uint8_t p1,
                  "0x%.*s",
                  40,
                  tmpCtx.publicKeyContext.address);
-        ux_flow_init(0, ux_display_public_flow, NULL);
+        ui_display_public_key();
 
         *flags |= IO_ASYNCH_REPLY;
     }

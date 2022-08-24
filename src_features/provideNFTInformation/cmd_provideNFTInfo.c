@@ -2,9 +2,10 @@
 
 #include "shared_context.h"
 #include "apdu_constants.h"
-#include "ui_flow.h"
 #include "tokens.h"
 #include "utils.h"
+#include "common_ui.h"
+#include "os_io_seproxyhal.h"
 
 #define TYPE_SIZE        1
 #define VERSION_SIZE     1

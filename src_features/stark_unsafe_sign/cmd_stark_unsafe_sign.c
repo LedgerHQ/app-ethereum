@@ -3,8 +3,8 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
 #include "stark_utils.h"
-#include "ui_flow.h"
-#include "ui_callbacks.h"
+#include "common_ui.h"
+#include "os_io_seproxyhal.h"
 
 void handleStarkwareUnsafeSign(uint8_t p1,
                                uint8_t p2,
@@ -47,7 +47,7 @@ void handleStarkwareUnsafeSign(uint8_t p1,
     explicit_bzero(privateKeyData, sizeof(privateKeyData));
     io_seproxyhal_io_heartbeat();
     memmove(dataContext.starkContext.w1, publicKey.W + 1, 32);
-    ux_flow_init(0, ux_stark_unsafe_sign_flow, NULL);
+    ui_stark_unsafe_sign();
 
     *flags |= IO_ASYNCH_REPLY;
 }

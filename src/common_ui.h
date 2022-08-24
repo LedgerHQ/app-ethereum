@@ -9,7 +9,6 @@ void ui_display_public_eth2(void);
 void ui_display_privacy_public_key(void);
 void ui_display_privacy_shared_secret(void);
 void ui_display_public_key(void);
-void ui_display_sign(void);
 void ui_sign_712_v0(void);
 void ui_display_stark_public(void);
 void ui_confirm_selector(void);

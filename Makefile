@@ -54,6 +54,7 @@ include ./makefile_conf/chain/$(CHAIN).mk
 else
 $(error Unsupported CHAIN - use $(SUPPORTED_CHAINS))
 endif
+DEFINES += APPNAME=\"$(APPNAME)\"
 
 #########
 # Other #
@@ -79,7 +80,7 @@ all: default
 ############
 
 DEFINES   += OS_IO_SEPROXYHAL
-DEFINES   += HAVE_BAGL HAVE_SPRINTF HAVE_SNPRINTF_FORMAT_U
+DEFINES   += HAVE_SPRINTF HAVE_SNPRINTF_FORMAT_U
 DEFINES   += HAVE_IO_USB HAVE_L4_USBLIB IO_USB_MAX_ENDPOINTS=4 IO_HID_EP_LENGTH=64 HAVE_USB_APDU
 DEFINES   += LEDGER_MAJOR_VERSION=$(APPVERSION_M) LEDGER_MINOR_VERSION=$(APPVERSION_N) LEDGER_PATCH_VERSION=$(APPVERSION_P)
 
@@ -97,22 +98,32 @@ DEFINES   += HAVE_UX_FLOW
 
 DEFINES   += HAVE_WEBUSB WEBUSB_URL_SIZE_B=0 WEBUSB_URL=""
 
-ifeq ($(TARGET_NAME),TARGET_NANOX)
+ifneq (,$(filter $(TARGET_NAME),TARGET_NANOX TARGET_FATSTACKS))
+DEFINES   += IO_SEPROXYHAL_BUFFER_SIZE_B=300
 DEFINES   += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000
 DEFINES   += HAVE_BLE_APDU # basic ledger apdu transport over BLE
+SDK_SOURCE_PATH  += lib_blewbxx lib_blewbxx_impl
 endif
 
-ifeq ($(TARGET_NAME),TARGET_NANOS)
+ifneq (,$(filter $(TARGET_NAME),TARGET_NANOS TARGET_NANOS2))
 DEFINES   += IO_SEPROXYHAL_BUFFER_SIZE_B=72
-DEFINES   += HAVE_WALLET_ID_SDK
+endif
+
+ifeq  ($(TARGET_NAME),TARGET_FATSTACKS)
+DEFINES   += HAVE_NBGL
 else
-DEFINES   += IO_SEPROXYHAL_BUFFER_SIZE_B=300
+DEFINES   += HAVE_BAGL
+ifeq ($(TARGET_NAME),TARGET_NANOS)
+DEFINES   += HAVE_WALLET_ID_SDK
+DEFINES   += BAGL_WIDTH=128 BAGL_HEIGHT=32
+else
 DEFINES   += HAVE_GLO096
-DEFINES   += HAVE_BAGL BAGL_WIDTH=128 BAGL_HEIGHT=64
+DEFINES   += BAGL_WIDTH=128 BAGL_HEIGHT=64
 DEFINES   += HAVE_BAGL_ELLIPSIS # long label truncation feature
 DEFINES   += HAVE_BAGL_FONT_OPEN_SANS_REGULAR_11PX
 DEFINES   += HAVE_BAGL_FONT_OPEN_SANS_EXTRABOLD_11PX
 DEFINES   += HAVE_BAGL_FONT_OPEN_SANS_LIGHT_16PX
+endif
 endif
 
 # Enables direct data signing without having to specify it in the settings. Useful when testing with speculos.
@@ -210,11 +221,13 @@ include $(BOLOS_SDK)/Makefile.glyphs
 ### variables processed by the common makefile.rules of the SDK to grab source files and include dirs
 APP_SOURCE_PATH  += src_common src src_features src_plugins
 SDK_SOURCE_PATH  += lib_stusb lib_stusb_impl lib_u2f
+ifeq  ($(TARGET_NAME),TARGET_FATSTACKS)
+SDK_SOURCE_PATH  += lib_ux_fatstacks
+APP_SOURCE_PATH  += src_nbgl
+else
 SDK_SOURCE_PATH  += lib_ux
-ifeq ($(TARGET_NAME),TARGET_NANOX)
-SDK_SOURCE_PATH  += lib_blewbxx lib_blewbxx_impl
-endif
 APP_SOURCE_PATH  += src_bagl
+endif
 
 ### initialize plugin SDK submodule if needed, rebuild it, and warn if a difference is noticed
 ifeq ($(CHAIN),ethereum)

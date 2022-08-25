@@ -5,14 +5,13 @@
 
 static const uint8_t EIP_712_MAGIC[] = {0x19, 0x01};
 
-unsigned int ui_712_approve_cb(const bagl_element_t *e) {
+unsigned int ui_712_approve_cb() {
     uint8_t privateKeyData[INT256_LENGTH];
     uint8_t hash[INT256_LENGTH];
     uint8_t signature[100];
     cx_ecfp_private_key_t privateKey;
     uint32_t tx = 0;
 
-    (void) e;
     io_seproxyhal_io_heartbeat();
     cx_keccak_init(&global_sha3, 256);
     cx_hash((cx_hash_t *) &global_sha3,
@@ -74,8 +73,7 @@ unsigned int ui_712_approve_cb(const bagl_element_t *e) {
     return 0;  // do not redraw the widget
 }
 
-unsigned int ui_712_reject_cb(const bagl_element_t *e) {
-    (void) e;
+unsigned int ui_712_reject_cb() {
     reset_app_context();
     G_io_apdu_buffer[0] = 0x69;
     G_io_apdu_buffer[1] = 0x85;

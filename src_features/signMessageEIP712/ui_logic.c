@@ -451,8 +451,8 @@ void ui_712_deinit(void) {
  * @param[in] e unused here, just needed to match the UI function signature
  * @return unused here, just needed to match the UI function signature
  */
-unsigned int ui_712_approve(const bagl_element_t *e) {
-    ui_712_approve_cb(e);
+unsigned int ui_712_approve() {
+    ui_712_approve_cb();
     eip712_context_deinit();
     return 0;
 }
@@ -464,8 +464,8 @@ unsigned int ui_712_approve(const bagl_element_t *e) {
  * @param[in] e unused here, just needed to match the UI function signature
  * @return unused here, just needed to match the UI function signature
  */
-unsigned int ui_712_reject(const bagl_element_t *e) {
-    ui_712_reject_cb(e);
+unsigned int ui_712_reject() {
+    ui_712_reject_cb();
     eip712_context_deinit();
     return 0;
 }

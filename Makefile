@@ -210,6 +210,7 @@ SDK_SOURCE_PATH  += lib_ux
 ifeq ($(TARGET_NAME),TARGET_NANOX)
 SDK_SOURCE_PATH  += lib_blewbxx lib_blewbxx_impl
 endif
+APP_SOURCE_PATH  += src_bagl
 
 ### initialize plugin SDK submodule if needed, rebuild it, and warn if a difference is noticed
 ifeq ($(CHAIN),ethereum)

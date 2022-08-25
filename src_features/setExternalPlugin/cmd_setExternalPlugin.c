@@ -1,9 +1,10 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
-#include "ui_flow.h"
 #include "tokens.h"
 #include "eth_plugin_interface.h"
 #include "eth_plugin_internal.h"
+#include "common_ui.h"
+#include "os_io_seproxyhal.h"
 
 void handleSetExternalPlugin(uint8_t p1,
                              uint8_t p2,

@@ -17,8 +17,7 @@
 
 #include "shared_context.h"
 #include "apdu_constants.h"
-#include "ui_callbacks.h"
-#include "ui_flow.h"
+#include "common_ui.h"
 
 #include "os_io_seproxyhal.h"
 
@@ -84,24 +83,6 @@ void reset_app_context() {
     memset((uint8_t *) &tmpCtx, 0, sizeof(tmpCtx));
     memset((uint8_t *) &txContext, 0, sizeof(txContext));
     memset((uint8_t *) &tmpContent, 0, sizeof(tmpContent));
-}
-
-void ui_idle(void) {
-    // reserve a display stack slot if none yet
-    if (G_ux.stack_count == 0) {
-        ux_stack_push();
-    }
-    ux_flow_init(0, ux_idle_flow, NULL);
-}
-
-void ui_warning_contract_data(void) {
-    ux_flow_init(0, ux_warning_contract_data_flow, NULL);
-}
-
-unsigned int io_seproxyhal_touch_exit(__attribute__((unused)) const bagl_element_t *e) {
-    // Go back to the dashboard
-    os_sched_exit(0);
-    return 0;  // do not redraw the widget
 }
 
 void io_seproxyhal_send_status(uint32_t sw) {

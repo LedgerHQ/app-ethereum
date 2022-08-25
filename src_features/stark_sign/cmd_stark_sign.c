@@ -3,10 +3,10 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
 #include "stark_utils.h"
-#include "ui_flow.h"
 #include "poorstream.h"
-#include "ui_callbacks.h"
 #include "ethUtils.h"
+#include "common_ui.h"
+#include "os_io_seproxyhal.h"
 
 #define U8BE(buf, off) \
     (uint64_t)((((uint64_t) U4BE(buf, off)) << 32) | (((uint64_t) U4BE(buf, off + 4)) & 0xFFFFFFFF))
@@ -249,20 +249,9 @@ void handleStarkwareSignMessage(uint8_t p1,
         }
     }
     if (order) {
-        ux_flow_init(0, ux_stark_limit_order_flow, NULL);
+        ui_stark_limit_order();
     } else {
-        if (selfTransfer) {
-            ux_flow_init(
-                0,
-                (dataContext.starkContext.conditional ? ux_stark_self_transfer_conditional_flow
-                                                      : ux_stark_self_transfer_flow),
-                NULL);
-        } else {
-            ux_flow_init(0,
-                         (dataContext.starkContext.conditional ? ux_stark_transfer_conditional_flow
-                                                               : ux_stark_transfer_flow),
-                         NULL);
-        }
+        ui_stark_transfer(selfTransfer, dataContext.starkContext.conditional);
     }
 
     *flags |= IO_ASYNCH_REPLY;

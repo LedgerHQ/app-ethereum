@@ -4,7 +4,7 @@
 #include "hash_bytes.h"
 #include "typed_data.h"
 #include "format_hash_field_type.h"
-#include "context.h"
+#include "context_712.h"
 
 // the SDK does not define a SHA-224 type, define it here so it's easier
 // to understand in the code

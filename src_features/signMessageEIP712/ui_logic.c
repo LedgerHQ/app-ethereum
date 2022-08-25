@@ -12,7 +12,7 @@
 #include "ethUtils.h"  // getEthDisplayableAddress
 #include "utils.h"     // uint256_to_decimal
 #include "common_712.h"
-#include "context.h"         // eip712_context_deinit
+#include "context_712.h"     // eip712_context_deinit
 #include "uint256.h"         // tostring256 && tostring256_signed
 #include "path.h"            // path_get_root_type
 #include "apdu_constants.h"  // APDU response codes

@@ -9,7 +9,7 @@
 #include "shared_context.h"
 #include "ui_logic.h"
 #include "ethUtils.h"        // KECCAK256_HASH_BYTESIZE
-#include "context.h"         // contract_addr
+#include "context_712.h"     // contract_addr
 #include "utils.h"           // u64_from_BE
 #include "apdu_constants.h"  // APDU response codes
 #include "typed_data.h"

@@ -5,7 +5,7 @@
 #include "typed_data.h"
 #include "sol_typenames.h"
 #include "apdu_constants.h"  // APDU response codes
-#include "context.h"
+#include "context_712.h"
 #include "mem.h"
 #include "mem_utils.h"
 

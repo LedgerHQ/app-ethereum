@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include "commands_712.h"
 #include "apdu_constants.h"  // APDU response codes
-#include "context.h"
+#include "context_712.h"
 #include "field_hash.h"
 #include "path.h"
 #include "ui_logic.h"

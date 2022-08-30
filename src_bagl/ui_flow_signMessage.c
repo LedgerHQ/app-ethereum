@@ -20,7 +20,7 @@ UX_STEP_NOCB(
 UX_STEP_CB(
     ux_sign_flow_3_step,
     pbb,
-    io_seproxyhal_touch_signMessage_ok(NULL),
+    io_seproxyhal_touch_signMessage_ok(),
     {
       &C_icon_validate_14,
       "Sign",
@@ -29,7 +29,7 @@ UX_STEP_CB(
 UX_STEP_CB(
     ux_sign_flow_4_step,
     pbb,
-    io_seproxyhal_touch_signMessage_cancel(NULL),
+    io_seproxyhal_touch_signMessage_cancel(),
     {
       &C_icon_crossmark,
       "Cancel",

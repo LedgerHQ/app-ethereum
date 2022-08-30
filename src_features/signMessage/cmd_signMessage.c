@@ -186,7 +186,7 @@ void handleSignPersonalMessage(uint8_t p1,
         cx_hash((cx_hash_t *) &tmpContent.sha2, CX_LAST, workBuffer, 0, hashMessage, 32);
 
 #ifdef NO_CONSENT
-        io_seproxyhal_touch_signMessage_ok(NULL);
+        io_seproxyhal_touch_signMessage_ok();
 #else   // NO_CONSENT
         ui_display_sign();
 #endif  // NO_CONSENT

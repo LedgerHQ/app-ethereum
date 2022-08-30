@@ -2,7 +2,7 @@
 #include "shared_context.h"
 #include "ui_callbacks.h"
 
-unsigned int io_seproxyhal_touch_signMessage_ok(__attribute__((unused)) const bagl_element_t *e) {
+unsigned int io_seproxyhal_touch_signMessage_ok(void) {
     uint8_t privateKeyData[INT256_LENGTH];
     uint8_t signature[100];
     cx_ecfp_private_key_t privateKey;
@@ -46,8 +46,7 @@ unsigned int io_seproxyhal_touch_signMessage_ok(__attribute__((unused)) const ba
     return 0;  // do not redraw the widget
 }
 
-unsigned int io_seproxyhal_touch_signMessage_cancel(__attribute__((unused))
-                                                    const bagl_element_t *e) {
+unsigned int io_seproxyhal_touch_signMessage_cancel(void) {
     reset_app_context();
     G_io_apdu_buffer[0] = 0x69;
     G_io_apdu_buffer[1] = 0x85;

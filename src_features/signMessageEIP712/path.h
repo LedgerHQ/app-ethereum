@@ -7,7 +7,7 @@
 #include <stdbool.h>
 
 #define MAX_PATH_DEPTH  16
-#define MAX_ARRAY_DEPTH 4
+#define MAX_ARRAY_DEPTH 8
 
 typedef struct {
     uint8_t path_index;

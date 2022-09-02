@@ -3,197 +3,251 @@
 #include "apdu_constants.h"
 #include "utils.h"
 #include "common_ui.h"
+#include "sign_message.h"
+#include "ui_flow_signMessage.h"
+
+static uint8_t state;
+static bool ui_started;
+static uint8_t processed_size;
+static uint8_t ui_position;
 
 static const char SIGN_MAGIC[] =
     "\x19"
     "Ethereum Signed Message:\n";
 
-/**
- * Check if a given character is a "special" displayable ASCII character
- *
- * @param[in] c character we're checking
- * @return wether the character is special or not
- */
-static inline bool is_char_special(char c) {
-    return ((c >= '\b') && (c <= '\r'));
+
+const uint8_t *unprocessed_data(void)
+{
+    return &G_io_apdu_buffer[OFFSET_CDATA] + processed_size;
 }
 
-/**
- * Check if a given data is made of ASCII characters
- *
- * @param[in] data the input data
- * @param[in] the length of the input data
- * @return wether the data is fully ASCII or not
- */
-static bool is_data_ascii(const uint8_t *const data, size_t length) {
-    for (uint8_t idx = 0; idx < length; ++idx) {
-        if (!is_char_special(data[idx]) && ((data[idx] < 0x20) || (data[idx] > 0x7e))) {
+uint8_t unprocessed_length(void)
+{
+    return G_io_apdu_buffer[OFFSET_LC] - processed_size;
+}
+
+uint8_t remaining_ui_length(void)
+{
+    // -1 for the ending NULL byte
+    return (sizeof(strings.tmp.tmp) - 1) - strlen(strings.tmp.tmp);
+}
+
+static void switch_to_message(void)
+{
+    ui_191_switch_to_message();
+    ui_position = UI_191_REVIEW;
+}
+
+static void switch_to_message_end(void)
+{
+    ui_191_switch_to_message_end();
+    ui_position = UI_191_REVIEW;
+}
+
+static void switch_to_sign(void)
+{
+    ui_191_switch_to_sign();
+    ui_position = UI_191_END;
+}
+
+static void switch_to_question(void)
+{
+    ui_191_switch_to_question();
+    ui_position = UI_191_QUESTION;
+}
+
+const uint8_t *first_apdu_data(const uint8_t *data, uint16_t *length)
+{
+    if (appState != APP_STATE_IDLE) {
+        reset_app_context();
+    }
+    appState = APP_STATE_SIGNING_MESSAGE;
+    data = parseBip32(data, length, &tmpCtx.messageSigningContext.bip32);
+    if (data == NULL) {
+        return NULL;
+    }
+
+    if (*length < sizeof(uint32_t)) {
+        PRINTF("Invalid data\n");
+        return NULL;
+    }
+
+    tmpCtx.messageSigningContext.remainingLength = U4BE(data, 0);
+    data += sizeof(uint32_t);
+    *length -= sizeof(uint32_t);
+
+    // Initialize message header + length
+    cx_keccak_init(&global_sha3, 256);
+    cx_hash((cx_hash_t *) &global_sha3,
+            0,
+            (uint8_t *) SIGN_MAGIC,
+            sizeof(SIGN_MAGIC) - 1,
+            NULL,
+            0);
+    snprintf(strings.tmp.tmp2,
+             sizeof(strings.tmp.tmp2),
+             "%u",
+             tmpCtx.messageSigningContext.remainingLength);
+    cx_hash((cx_hash_t *) &global_sha3,
+            0,
+            (uint8_t *) strings.tmp.tmp2,
+            strlen(strings.tmp.tmp2),
+            NULL,
+            0);
+    strings.tmp.tmp[0] = '\0';
+    state = STATE_191_HASH_DISPLAY;
+    ui_started = false;
+    ui_position = UI_191_REVIEW;
+    return data;
+}
+
+bool feed_hash(const uint8_t *const data, uint8_t length)
+{
+    if (length > tmpCtx.messageSigningContext.remainingLength)
+    {
+        PRINTF("Error: Length mismatch ! (%u > %u)!\n",
+                length,
+                tmpCtx.messageSigningContext.remainingLength);
+        return false;
+    }
+    cx_hash((cx_hash_t *) &global_sha3, 0, data, length, NULL, 0);
+    if ((tmpCtx.messageSigningContext.remainingLength -= length) == 0)
+    {
+        // Finalize hash
+        cx_hash((cx_hash_t *) &global_sha3,
+                CX_LAST,
+                NULL,
+                0,
+                tmpCtx.messageSigningContext.hash,
+                32);
+    }
+    return true;
+}
+
+bool feed_display(void)
+{
+    uint8_t ui_length;
+
+    while ((unprocessed_length() > 0) && ((ui_length = remaining_ui_length()) > 0))
+    {
+        sprintf(&strings.tmp.tmp[sizeof(strings.tmp.tmp) - 1 - ui_length], "%c", *(char*)unprocessed_data());
+        processed_size += 1;
+    }
+
+    if ((remaining_ui_length() == 0) || (tmpCtx.messageSigningContext.remainingLength == 0))
+    {
+        if (!ui_started)
+        {
+            ui_display_sign();
+            ui_started = true;
+        }
+        else
+        {
+            switch_to_message();
+        }
+    }
+
+    if ((unprocessed_length() == 0) && (tmpCtx.messageSigningContext.remainingLength > 0))
+    {
+        *(uint16_t *) G_io_apdu_buffer = __builtin_bswap16(0x9000);
+        io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+    }
+
+    return true;
+}
+
+bool handleSignPersonalMessage(uint8_t p1,
+                               uint8_t p2,
+                               const uint8_t *const payload,
+                               uint8_t length)
+{
+    const uint8_t *data = payload;
+
+    (void)p2;
+    processed_size = 0;
+    if (p1 == P1_FIRST)
+    {
+        if ((data = first_apdu_data(data, (uint16_t*)&length)) == NULL)
+        {
             return false;
+        }
+        processed_size = data - payload;
+    }
+    else if (p1 != P1_MORE)
+    {
+        PRINTF("Error: Unexpected P1 (%u)!\n", p1);
+    }
+
+    if (!feed_hash(data, length))
+    {
+        return false;
+    }
+
+    if (state == STATE_191_HASH_DISPLAY)
+    {
+        feed_display();
+    }
+    else // hash only
+    {
+        if (tmpCtx.messageSigningContext.remainingLength == 0)
+        {
+            switch_to_sign();
+        }
+        else
+        {
+            *(uint16_t *) G_io_apdu_buffer = __builtin_bswap16(0x9000);
+            io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
         }
     }
     return true;
 }
 
-/**
- * Initialize value string that will be displayed in the UX STEP
- *
- * @param[in] if the value is ASCII
- */
-static void init_value_str(bool is_ascii) {
-    if (is_ascii) {
-        strings.tmp.tmp[0] = '\0';  // init string as empty
-    } else {
-        strcpy(strings.tmp.tmp, "0x");  // will display the hex bytes instead
+void dummy_pre_cb(void)
+{
+    if (ui_position == UI_191_REVIEW)
+    {
+        if ((state == STATE_191_HASH_DISPLAY) && ((tmpCtx.messageSigningContext.remainingLength > 0) || (unprocessed_length() > 0)))
+        {
+            switch_to_question();
+        }
+        else
+        {
+            // Go to Sign / Cancel
+            switch_to_sign();
+        }
+    }
+    else
+    {
+        ux_flow_prev();
+        ui_position = UI_191_REVIEW;
     }
 }
 
-/**
- * @return Whether the currently stored data is initialized as ASCII or not
- */
-static bool is_value_str_ascii() {
-    return (memcmp(strings.tmp.tmp, "0x", 2) != 0);
-}
+void theres_more_click_cb(void)
+{
+    state = STATE_191_HASH_ONLY;
 
-/**
- * Update the global UI string variable by formatting & appending the new data to it
- *
- * @param[in] data the input data
- * @param[in] length the data length
- * @param[in] is_ascii wether the data is ASCII or not
- */
-static void feed_value_str(const uint8_t *const data, size_t length, bool is_ascii) {
-    uint16_t value_strlen = strlen(strings.tmp.tmp);
-
-    if ((value_strlen + 1) < sizeof(strings.tmp.tmp)) {
-        if (is_ascii) {
-            uint8_t src_idx = 0;
-            uint16_t dst_idx = value_strlen;
-            bool prev_is_special = false;
-
-            while ((src_idx < length) && (dst_idx < sizeof(strings.tmp.tmp))) {
-                if (prev_is_special) {
-                    if (!is_char_special(data[src_idx])) {
-                        prev_is_special = false;
-                    }
-                } else {
-                    if (is_char_special(data[src_idx])) {
-                        prev_is_special = true;
-                        strings.tmp.tmp[dst_idx] = ' ';
-                        dst_idx += 1;
-                    }
-                }
-                if (!is_char_special(data[src_idx])) {
-                    strings.tmp.tmp[dst_idx] = data[src_idx];
-                    dst_idx += 1;
-                }
-                src_idx += 1;
-            }
-
-            if (dst_idx < sizeof(strings.tmp.tmp)) {
-                strings.tmp.tmp[dst_idx] = '\0';
-            } else {
-                const char marker[] = "...";
-
-                memcpy(strings.tmp.tmp + sizeof(strings.tmp.tmp) - sizeof(marker),
-                       marker,
-                       sizeof(marker));
-            }
-        } else {
-            // truncate to strings.tmp.tmp 's size
-            length = MIN(length, (sizeof(strings.tmp.tmp) - value_strlen) / 2);
-            for (size_t i = 0; i < length; i++) {
-                snprintf(strings.tmp.tmp + value_strlen + 2 * i,
-                         sizeof(strings.tmp.tmp) - value_strlen - 2 * i,
-                         "%02X",
-                         data[i]);
-            }
-        }
+    if (tmpCtx.messageSigningContext.remainingLength > 0)
+    {
+        *(uint16_t *) G_io_apdu_buffer = __builtin_bswap16(0x9000);
+        io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
     }
 }
 
-void handleSignPersonalMessage(uint8_t p1,
-                               uint8_t p2,
-                               const uint8_t *workBuffer,
-                               uint16_t dataLength,
-                               unsigned int *flags,
-                               unsigned int *tx) {
-    UNUSED(tx);
-    uint8_t hashMessage[INT256_LENGTH];
-
-    if (p1 == P1_FIRST) {
-        char tmp[11] = {0};
-
-        if (appState != APP_STATE_IDLE) {
-            reset_app_context();
+void dummy_post_cb(void)
+{
+    if (ui_position == UI_191_QUESTION)
+    {
+        strings.tmp.tmp[0] = '\0'; // empty display string
+        processed_size = 0;
+        if (unprocessed_length() > 0)
+        {
+            feed_display();
         }
-        appState = APP_STATE_SIGNING_MESSAGE;
-
-        workBuffer = parseBip32(workBuffer, &dataLength, &tmpCtx.messageSigningContext.bip32);
-
-        if (workBuffer == NULL) {
-            THROW(0x6a80);
-        }
-
-        if (dataLength < sizeof(uint32_t)) {
-            PRINTF("Invalid data\n");
-            THROW(0x6a80);
-        }
-
-        tmpCtx.messageSigningContext.remainingLength = U4BE(workBuffer, 0);
-        workBuffer += sizeof(uint32_t);
-        dataLength -= sizeof(uint32_t);
-        // Initialize message header + length
-        cx_keccak_init(&global_sha3, 256);
-        cx_hash((cx_hash_t *) &global_sha3,
-                0,
-                (uint8_t *) SIGN_MAGIC,
-                sizeof(SIGN_MAGIC) - 1,
-                NULL,
-                0);
-        snprintf(tmp, sizeof(tmp), "%u", tmpCtx.messageSigningContext.remainingLength);
-        cx_hash((cx_hash_t *) &global_sha3, 0, (uint8_t *) tmp, strlen(tmp), NULL, 0);
-        cx_sha256_init(&tmpContent.sha2);
-
-        init_value_str(is_data_ascii(workBuffer, dataLength));
-
-    } else if (p1 != P1_MORE) {
-        THROW(0x6B00);
+        // TODO: respond to apdu ?
     }
-    if (p2 != 0) {
-        THROW(0x6B00);
-    }
-    if ((p1 == P1_MORE) && (appState != APP_STATE_SIGNING_MESSAGE)) {
-        PRINTF("Signature not initialized\n");
-        THROW(0x6985);
-    }
-    if (dataLength > tmpCtx.messageSigningContext.remainingLength) {
-        THROW(0x6A80);
-    }
-
-    cx_hash((cx_hash_t *) &global_sha3, 0, workBuffer, dataLength, NULL, 0);
-    cx_hash((cx_hash_t *) &tmpContent.sha2, 0, workBuffer, dataLength, NULL, 0);
-    tmpCtx.messageSigningContext.remainingLength -= dataLength;
-
-    feed_value_str(workBuffer, dataLength, is_value_str_ascii());
-
-    if (tmpCtx.messageSigningContext.remainingLength == 0) {
-        cx_hash((cx_hash_t *) &global_sha3,
-                CX_LAST,
-                workBuffer,
-                0,
-                tmpCtx.messageSigningContext.hash,
-                32);
-        cx_hash((cx_hash_t *) &tmpContent.sha2, CX_LAST, workBuffer, 0, hashMessage, 32);
-
-#ifdef NO_CONSENT
-        io_seproxyhal_touch_signMessage_ok();
-#else   // NO_CONSENT
-        ui_display_sign();
-#endif  // NO_CONSENT
-
-        *flags |= IO_ASYNCH_REPLY;
-
-    } else {
-        THROW(0x9000);
+    else // UI_191_END
+    {
+        switch_to_message_end();
     }
 }

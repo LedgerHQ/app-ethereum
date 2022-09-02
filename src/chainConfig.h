@@ -71,7 +71,6 @@ typedef enum chain_kind_e {
     CHAIN_KIND_XDCNETWORK,
     CHAIN_KIND_METER,
     CHAIN_KIND_MULTIVAC,
-    CHAIN_KIND_ID4GOOD,
     CHAIN_KIND_TECRA,
     CHAIN_KIND_APOTHEMNETWORK
 } chain_kind_t;

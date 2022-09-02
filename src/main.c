@@ -305,9 +305,6 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
         case CHAIN_KIND_MULTIVAC:
             numTokens = NUM_TOKENS_MULTIVAC;
             break;
-        case CHAIN_KIND_ID4GOOD:
-            numTokens = NUM_TOKENS_ID4GOOD;
-            break;
         case CHAIN_KIND_TECRA:
             numTokens = NUM_TOKENS_TECRA;
             break;
@@ -460,9 +457,6 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
                 break;
             case CHAIN_KIND_MULTIVAC:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_MULTIVAC[i]);
-                break;
-            case CHAIN_KIND_ID4GOOD:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_ID4GOOD[i]);
                 break;
             case CHAIN_KIND_TECRA:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_TECRA[i]);

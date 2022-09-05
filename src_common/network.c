@@ -47,7 +47,8 @@ const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 99, .name = "POA", .ticker = "POA "},
     {.chain_id = 7341, .name = "Shyft", .ticker = "SHFT "},
     {.chain_id = 19, .name = "Songbird", .ticker = "SGB "},
-    {.chain_id = 73799, .name = "Volta", .ticker = "VOLTA "}};
+    {.chain_id = 73799, .name = "Volta", .ticker = "VOLTA "},
+    {.chain_id = 25, .name = "Cronos", .ticker = "CRO "}};
 
 uint64_t get_chain_id(void) {
     uint64_t chain_id = 0;

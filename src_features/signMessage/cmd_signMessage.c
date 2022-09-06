@@ -232,6 +232,10 @@ void theres_more_click_cb(void)
         *(uint16_t *) G_io_apdu_buffer = __builtin_bswap16(0x9000);
         io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
     }
+    else
+    {
+        switch_to_sign();
+    }
 }
 
 void dummy_post_cb(void)

@@ -7,10 +7,13 @@
 #include "sign_message.h"
 #include "ui_flow_signMessage.h"
 
-static uint8_t state;
-static bool ui_started;
 static uint8_t processed_size;
-static uint8_t ui_position;
+static struct
+{
+    sign_message_state sign_state : 1;
+    bool ui_started : 1;
+    ui_191_position ui_pos : 2;
+} states;
 
 static const char SIGN_MAGIC[] =
     "\x19"
@@ -51,25 +54,25 @@ static void reset_ui_buffer(void)
 static void switch_to_message(void)
 {
     ui_191_switch_to_message();
-    ui_position = UI_191_REVIEW;
+    states.ui_pos = UI_191_REVIEW;
 }
 
 static void switch_to_message_end(void)
 {
     ui_191_switch_to_message_end();
-    ui_position = UI_191_REVIEW;
+    states.ui_pos = UI_191_REVIEW;
 }
 
 static void switch_to_sign(void)
 {
     ui_191_switch_to_sign();
-    ui_position = UI_191_END;
+    states.ui_pos = UI_191_END;
 }
 
 static void switch_to_question(void)
 {
     ui_191_switch_to_question();
-    ui_position = UI_191_QUESTION;
+    states.ui_pos = UI_191_QUESTION;
 }
 
 const uint8_t *first_apdu_data(const uint8_t *data, uint16_t *length)
@@ -111,9 +114,9 @@ const uint8_t *first_apdu_data(const uint8_t *data, uint16_t *length)
             NULL,
             0);
     reset_ui_buffer();
-    state = STATE_191_HASH_DISPLAY;
-    ui_started = false;
-    ui_position = UI_191_REVIEW;
+    states.sign_state = STATE_191_HASH_DISPLAY;
+    states.ui_started = false;
+    states.ui_pos = UI_191_REVIEW;
     return data;
 }
 
@@ -142,7 +145,6 @@ bool feed_hash(const uint8_t *const data, uint8_t length)
 
 void feed_display(void)
 {
-    uint8_t ui_length;
     int c;
 
     while ((unprocessed_length() > 0) && (remaining_ui_buffer_length() > 0))
@@ -178,10 +180,10 @@ void feed_display(void)
     if ((remaining_ui_buffer_length() == 0)
         || (tmpCtx.messageSigningContext.remainingLength == 0))
     {
-        if (!ui_started)
+        if (!states.ui_started)
         {
             ui_display_sign();
-            ui_started = true;
+            states.ui_started = true;
         }
         else
         {
@@ -223,7 +225,7 @@ bool handleSignPersonalMessage(uint8_t p1,
         return false;
     }
 
-    if (state == STATE_191_HASH_DISPLAY)
+    if (states.sign_state == STATE_191_HASH_DISPLAY)
     {
         feed_display();
     }
@@ -244,9 +246,11 @@ bool handleSignPersonalMessage(uint8_t p1,
 
 void dummy_pre_cb(void)
 {
-    if (ui_position == UI_191_REVIEW)
+    if (states.ui_pos == UI_191_REVIEW)
     {
-        if ((state == STATE_191_HASH_DISPLAY) && ((tmpCtx.messageSigningContext.remainingLength > 0) || (unprocessed_length() > 0)))
+        if ((states.sign_state == STATE_191_HASH_DISPLAY)
+            && ((tmpCtx.messageSigningContext.remainingLength > 0)
+                || (unprocessed_length() > 0)))
         {
             switch_to_question();
         }
@@ -259,14 +263,13 @@ void dummy_pre_cb(void)
     else
     {
         ux_flow_prev();
-        ui_position = UI_191_REVIEW;
+        states.ui_pos = UI_191_REVIEW;
     }
 }
 
 void theres_more_click_cb(void)
 {
-    state = STATE_191_HASH_ONLY;
-
+    states.sign_state = STATE_191_HASH_ONLY;
     if (tmpCtx.messageSigningContext.remainingLength > 0)
     {
         *(uint16_t *) G_io_apdu_buffer = __builtin_bswap16(0x9000);
@@ -280,7 +283,7 @@ void theres_more_click_cb(void)
 
 void dummy_post_cb(void)
 {
-    if (ui_position == UI_191_QUESTION)
+    if (states.ui_pos == UI_191_QUESTION)
     {
         reset_ui_buffer();
         if (unprocessed_length() > 0)

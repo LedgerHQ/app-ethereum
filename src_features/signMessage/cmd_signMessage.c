@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <ctype.h>
 #include "shared_context.h"
 #include "apdu_constants.h"
 #include "utils.h"
@@ -16,20 +17,35 @@ static const char SIGN_MAGIC[] =
     "Ethereum Signed Message:\n";
 
 
-const uint8_t *unprocessed_data(void)
+static const uint8_t *unprocessed_data(void)
 {
     return &G_io_apdu_buffer[OFFSET_CDATA] + processed_size;
 }
 
-uint8_t unprocessed_length(void)
+static size_t unprocessed_length(void)
 {
     return G_io_apdu_buffer[OFFSET_LC] - processed_size;
 }
 
-uint8_t remaining_ui_length(void)
+static size_t ui_buffer_length(void)
+{
+    return strlen(UI_191_BUFFER);
+}
+
+static size_t remaining_ui_buffer_length(void)
 {
     // -1 for the ending NULL byte
-    return (sizeof(strings.tmp.tmp) - 1) - strlen(strings.tmp.tmp);
+    return (sizeof(UI_191_BUFFER) - 1) - ui_buffer_length();
+}
+
+static char *remaining_ui_buffer(void)
+{
+    return &UI_191_BUFFER[ui_buffer_length()];
+}
+
+static void reset_ui_buffer(void)
+{
+    UI_191_BUFFER[0] = '\0';
 }
 
 static void switch_to_message(void)
@@ -94,7 +110,7 @@ const uint8_t *first_apdu_data(const uint8_t *data, uint16_t *length)
             strlen(strings.tmp.tmp2),
             NULL,
             0);
-    strings.tmp.tmp[0] = '\0';
+    reset_ui_buffer();
     state = STATE_191_HASH_DISPLAY;
     ui_started = false;
     ui_position = UI_191_REVIEW;
@@ -124,17 +140,43 @@ bool feed_hash(const uint8_t *const data, uint8_t length)
     return true;
 }
 
-bool feed_display(void)
+void feed_display(void)
 {
     uint8_t ui_length;
+    int c;
 
-    while ((unprocessed_length() > 0) && ((ui_length = remaining_ui_length()) > 0))
+    while ((unprocessed_length() > 0) && (remaining_ui_buffer_length() > 0))
     {
-        sprintf(&strings.tmp.tmp[sizeof(strings.tmp.tmp) - 1 - ui_length], "%c", *(char*)unprocessed_data());
-        processed_size += 1;
+        c = *(char*)unprocessed_data();
+        if (isspace(c)) // to replace all white-space characters as spaces
+        {
+            c = ' ';
+        }
+        if (isprint(c))
+        {
+            sprintf(remaining_ui_buffer(), "%c", (char)c);
+            processed_size += 1;
+        }
+        else
+        {
+            if (remaining_ui_buffer_length() >= 4) // 4 being the fixed length of \x00
+            {
+                snprintf(remaining_ui_buffer(), remaining_ui_buffer_length(), "\\x%02x", c);
+                processed_size += 1;
+            }
+            else
+            {
+                // fill the rest of the UI buffer spaces, to consider the buffer full
+                while (remaining_ui_buffer_length())
+                {
+                    sprintf(remaining_ui_buffer(), " ");
+                }
+            }
+        }
     }
 
-    if ((remaining_ui_length() == 0) || (tmpCtx.messageSigningContext.remainingLength == 0))
+    if ((remaining_ui_buffer_length() == 0)
+        || (tmpCtx.messageSigningContext.remainingLength == 0))
     {
         if (!ui_started)
         {
@@ -152,8 +194,6 @@ bool feed_display(void)
         *(uint16_t *) G_io_apdu_buffer = __builtin_bswap16(0x9000);
         io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
     }
-
-    return true;
 }
 
 bool handleSignPersonalMessage(uint8_t p1,
@@ -242,8 +282,7 @@ void dummy_post_cb(void)
 {
     if (ui_position == UI_191_QUESTION)
     {
-        strings.tmp.tmp[0] = '\0'; // empty display string
-        processed_size = 0;
+        reset_ui_buffer();
         if (unprocessed_length() > 0)
         {
             feed_display();

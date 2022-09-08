@@ -31,8 +31,8 @@ UX_STEP_CB(
     bn,
     theres_more_click_cb(),
     {
-      "There's more!",
-      "Click to skip"
+      "More to see!",
+      "Double-click to skip"
     });
 UX_STEP_INIT(
     ux_191_step_dummy_post,

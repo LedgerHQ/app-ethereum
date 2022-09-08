@@ -12,7 +12,6 @@ static struct
 {
     sign_message_state sign_state : 1;
     bool ui_started : 1;
-    ui_191_position ui_pos : 2;
 } states;
 
 static const char SIGN_MAGIC[] =
@@ -82,42 +81,6 @@ static void reset_ui_buffer(void)
 }
 
 /**
- * Switch to the beginning of the Message UI page
- */
-static void switch_to_message(void)
-{
-    ui_191_switch_to_message();
-    states.ui_pos = UI_191_REVIEW;
-}
-
-/**
- * Switch to the end of the Message UI page
- */
-static void switch_to_message_end(void)
-{
-    ui_191_switch_to_message_end();
-    states.ui_pos = UI_191_REVIEW;
-}
-
-/**
- * Switch to the Sign UI page
- */
-static void switch_to_sign(void)
-{
-    ui_191_switch_to_sign();
-    states.ui_pos = UI_191_END;
-}
-
-/**
- * Switch to the interactive question UI page
- */
-static void switch_to_question(void)
-{
-    ui_191_switch_to_question();
-    states.ui_pos = UI_191_QUESTION;
-}
-
-/**
  * Handle the data specific to the first APDU of an EIP-191 signature
  *
  * @param[in] data the APDU payload
@@ -165,7 +128,6 @@ static const uint8_t *first_apdu_data(const uint8_t *data, uint16_t *length)
     reset_ui_buffer();
     states.sign_state = STATE_191_HASH_DISPLAY;
     states.ui_started = false;
-    states.ui_pos = UI_191_REVIEW;
     return data;
 }
 
@@ -241,12 +203,12 @@ static void feed_display(void)
     {
         if (!states.ui_started)
         {
-            ui_display_sign();
+            ui_191_start();
             states.ui_started = true;
         }
         else
         {
-            switch_to_message();
+            ui_191_switch_to_message();
         }
     }
 
@@ -301,7 +263,11 @@ bool handleSignPersonalMessage(uint8_t p1,
     {
         if (tmpCtx.messageSigningContext.remainingLength == 0)
         {
-            switch_to_sign();
+#ifdef NO_CONSENT
+            io_seproxyhal_touch_signMessage_ok();
+#else
+            ui_191_switch_to_sign();
+#endif
         }
         else
         {
@@ -312,30 +278,28 @@ bool handleSignPersonalMessage(uint8_t p1,
     return true;
 }
 
-void dummy_pre_cb(void)
+/**
+ * Decide whether to show the question to show more of the message or not
+ */
+void question_switcher(void)
 {
-    if (states.ui_pos == UI_191_REVIEW)
+    if ((states.sign_state == STATE_191_HASH_DISPLAY)
+        && ((tmpCtx.messageSigningContext.remainingLength > 0)
+            || (unprocessed_length() > 0)))
     {
-        if ((states.sign_state == STATE_191_HASH_DISPLAY)
-            && ((tmpCtx.messageSigningContext.remainingLength > 0)
-                || (unprocessed_length() > 0)))
-        {
-            switch_to_question();
-        }
-        else
-        {
-            // Go to Sign / Cancel
-            switch_to_sign();
-        }
+        ui_191_switch_to_question();
     }
     else
     {
-        ux_flow_prev();
-        states.ui_pos = UI_191_REVIEW;
+        // Go to Sign / Cancel
+        ui_191_switch_to_sign();
     }
 }
 
-void theres_more_click_cb(void)
+/**
+ * The user has decided to skip the rest of the message
+ */
+void skip_rest_of_message(void)
 {
     states.sign_state = STATE_191_HASH_ONLY;
     if (tmpCtx.messageSigningContext.remainingLength > 0)
@@ -345,23 +309,18 @@ void theres_more_click_cb(void)
     }
     else
     {
-        switch_to_sign();
+        ui_191_switch_to_sign();
     }
 }
 
-void dummy_post_cb(void)
+/**
+ * The user has decided to see the next chunk of the message
+ */
+void continue_displaying_message(void)
 {
-    if (states.ui_pos == UI_191_QUESTION)
+    reset_ui_buffer();
+    if (unprocessed_length() > 0)
     {
-        reset_ui_buffer();
-        if (unprocessed_length() > 0)
-        {
-            feed_display();
-        }
-        // TODO: respond to apdu ?
-    }
-    else // UI_191_END
-    {
-        switch_to_message_end();
+        feed_display();
     }
 }

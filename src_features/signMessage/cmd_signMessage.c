@@ -1,9 +1,7 @@
 #include <stdbool.h>
 #include <ctype.h>
-#include "shared_context.h"
+#include <string.h>
 #include "apdu_constants.h"
-#include "utils.h"
-#include "common_ui.h"
 #include "sign_message.h"
 #include "ui_flow_signMessage.h"
 

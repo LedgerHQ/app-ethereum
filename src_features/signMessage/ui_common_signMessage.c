@@ -1,6 +1,6 @@
 #include "os_io_seproxyhal.h"
 #include "shared_context.h"
-#include "ui_callbacks.h"
+#include "common_ui.h"
 
 unsigned int io_seproxyhal_touch_signMessage_ok(void) {
     uint8_t privateKeyData[INT256_LENGTH];

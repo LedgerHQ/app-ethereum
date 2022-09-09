@@ -1,7 +1,7 @@
 #ifdef HAVE_STARKWARE
 
 #include "shared_context.h"
-#include "ui_callbacks.h"
+#include "common_ui.h"
 #include "feature_stark_getPublicKey.h"
 
 unsigned int io_seproxyhal_touch_stark_pubkey_ok(__attribute__((unused)) const bagl_element_t *e) {

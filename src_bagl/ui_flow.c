@@ -1,5 +1,5 @@
 #include "shared_context.h"
-#include "ui_callbacks.h"
+#include "common_ui.h"
 
 void display_settings(const ux_flow_step_t* const start_step);
 void switch_settings_blind_signing(void);

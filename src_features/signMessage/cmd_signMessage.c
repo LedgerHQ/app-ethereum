@@ -2,7 +2,7 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
 #include "utils.h"
-#include "ui_flow.h"
+#include "common_ui.h"
 
 static const char SIGN_MAGIC[] =
     "\x19"
@@ -113,45 +113,32 @@ static void feed_value_str(const uint8_t *const data, size_t length, bool is_asc
 
 void handleSignPersonalMessage(uint8_t p1,
                                uint8_t p2,
-                               uint8_t *workBuffer,
+                               const uint8_t *workBuffer,
                                uint16_t dataLength,
                                unsigned int *flags,
                                unsigned int *tx) {
     UNUSED(tx);
     uint8_t hashMessage[INT256_LENGTH];
+
     if (p1 == P1_FIRST) {
         char tmp[11] = {0};
-        uint32_t i;
-        if (dataLength < 1) {
-            PRINTF("Invalid data\n");
-            THROW(0x6a80);
-        }
+
         if (appState != APP_STATE_IDLE) {
             reset_app_context();
         }
         appState = APP_STATE_SIGNING_MESSAGE;
 
-        tmpCtx.messageSigningContext.pathLength = workBuffer[0];
-        if ((tmpCtx.messageSigningContext.pathLength < 0x01) ||
-            (tmpCtx.messageSigningContext.pathLength > MAX_BIP32_PATH)) {
-            PRINTF("Invalid path\n");
+        workBuffer = parseBip32(workBuffer, &dataLength, &tmpCtx.messageSigningContext.bip32);
+
+        if (workBuffer == NULL) {
             THROW(0x6a80);
         }
-        workBuffer++;
-        dataLength--;
-        for (i = 0; i < tmpCtx.messageSigningContext.pathLength; i++) {
-            if (dataLength < sizeof(uint32_t)) {
-                PRINTF("Invalid data\n");
-                THROW(0x6a80);
-            }
-            tmpCtx.messageSigningContext.bip32Path[i] = U4BE(workBuffer, 0);
-            workBuffer += sizeof(uint32_t);
-            dataLength -= sizeof(uint32_t);
-        }
+
         if (dataLength < sizeof(uint32_t)) {
             PRINTF("Invalid data\n");
             THROW(0x6a80);
         }
+
         tmpCtx.messageSigningContext.remainingLength = U4BE(workBuffer, 0);
         workBuffer += sizeof(uint32_t);
         dataLength -= sizeof(uint32_t);
@@ -201,7 +188,7 @@ void handleSignPersonalMessage(uint8_t p1,
 #ifdef NO_CONSENT
         io_seproxyhal_touch_signMessage_ok(NULL);
 #else   // NO_CONSENT
-        ux_flow_init(0, ux_sign_flow, NULL);
+        ui_display_sign();
 #endif  // NO_CONSENT
 
         *flags |= IO_ASYNCH_REPLY;

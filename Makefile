@@ -34,8 +34,8 @@ APP_LOAD_PARAMS += --path "1517992542'/1101353413'"
 
 APPVERSION_M=1
 APPVERSION_N=9
-APPVERSION_P=19
-APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
+APPVERSION_P=20
+APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)-dev
 APP_LOAD_FLAGS= --appFlags 0x240 --dep Ethereum:$(APPVERSION)
 
 ###########################
@@ -194,6 +194,7 @@ SDK_SOURCE_PATH  += lib_ux
 ifeq ($(TARGET_NAME),TARGET_NANOX)
 SDK_SOURCE_PATH  += lib_blewbxx lib_blewbxx_impl
 endif
+APP_SOURCE_PATH  += src_bagl
 
 ### initialize plugin SDK submodule if needed, rebuild it, and warn if a difference is noticed
 ifeq ($(CHAIN),ethereum)
@@ -222,12 +223,15 @@ delete:
 	python3 -m ledgerblue.deleteApp $(COMMON_DELETE_PARAMS)
 
 install_tests:
-	cd tests && (yarn install || sudo yarn install)
+	cd tests/zemu/ && (yarn install || sudo yarn install)
 
 run_tests:
-	cd tests && (yarn test || sudo yarn test)
+	cd tests/zemu/ && (yarn test || sudo yarn test)
 
 test: install_tests run_tests
+
+unit-test:
+	make -C tests/unit
 
 # import generic rules from the sdk
 include $(BOLOS_SDK)/Makefile.rules

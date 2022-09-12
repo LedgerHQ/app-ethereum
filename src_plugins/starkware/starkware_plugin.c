@@ -367,8 +367,8 @@ void starkware_get_source_address(char *destination) {
     cx_ecfp_private_key_t privateKey;
     cx_ecfp_public_key_t publicKey;
     os_perso_derive_node_bip32(CX_CURVE_256K1,
-                               tmpCtx.transactionContext.bip32Path,
-                               tmpCtx.transactionContext.pathLength,
+                               tmpCtx.transactionContext.bip32.path,
+                               tmpCtx.transactionContext.bip32.length,
                                privateKeyData,
                                NULL);
     cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);

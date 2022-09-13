@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [1.10.0](https://github.com/ledgerhq/app-ethereum/compare/1.9.20...1.10.0) - 2022-XX-XX
 
+### Changed
+
+- EIP-712 signatures are now computed on-device and display their content (clear-signing)
+
 ## [1.9.20](https://github.com/ledgerhq/app-ethereum/compare/1.9.19...1.9.20) - 2022-10-10
 
 ### Added

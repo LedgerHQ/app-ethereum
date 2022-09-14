@@ -277,6 +277,21 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
         case CHAIN_KIND_ASTAR:
             numTokens = NUM_TOKENS_ASTAR;
             break;
+        case CHAIN_KIND_XDCNETWORK:
+            numTokens = NUM_TOKENS_XDCNETWORK;
+            break;
+        case CHAIN_KIND_METER:
+            numTokens = NUM_TOKENS_METER;
+            break;
+        case CHAIN_KIND_MULTIVAC:
+            numTokens = NUM_TOKENS_MULTIVAC;
+            break;
+        case CHAIN_KIND_TECRA:
+            numTokens = NUM_TOKENS_TECRA;
+            break;
+        case CHAIN_KIND_APOTHEMNETWORK:
+            numTokens = NUM_TOKENS_APOTHEMNETWORK;
+            break;
     }
     for (i = 0; i < numTokens; i++) {
         switch (chainConfig->kind) {
@@ -414,6 +429,21 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
                 break;
             case CHAIN_KIND_ASTAR:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_ASTAR[i]);
+                break;
+            case CHAIN_KIND_XDCNETWORK:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_XDCNETWORK[i]);
+                break;
+            case CHAIN_KIND_METER:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_METER[i]);
+                break;
+            case CHAIN_KIND_MULTIVAC:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_MULTIVAC[i]);
+                break;
+            case CHAIN_KIND_TECRA:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_TECRA[i]);
+                break;
+            case CHAIN_KIND_APOTHEMNETWORK:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_APOTHEMNETWORK[i]);
                 break;
         }
         if (memcmp(currentToken->address, tmpContent.txContent.destination, ADDRESS_LENGTH) == 0) {

@@ -212,4 +212,14 @@ const tokenDefinition_t const TOKENS_ASTAR[NUM_TOKENS_ASTAR] = {};
 
 const tokenDefinition_t const TOKENS_SHIDEN[NUM_TOKENS_SHIDEN] = {};
 
+const tokenDefinition_t const TOKENS_XDCNETWORK[NUM_TOKENS_XDCNETWORK] = {};
+
+const tokenDefinition_t const TOKENS_METER[NUM_TOKENS_METER] = {};
+
+const tokenDefinition_t const TOKENS_MULTIVAC[NUM_TOKENS_MULTIVAC] = {};
+
+const tokenDefinition_t const TOKENS_TECRA[NUM_TOKENS_TECRA] = {};
+
+const tokenDefinition_t const TOKENS_APOTHEMNETWORK[NUM_TOKENS_APOTHEMNETWORK] = {};
+
 #endif

@@ -3,8 +3,6 @@
 #include "shared_context.h"
 #include "ui_callbacks.h"
 
-unsigned int io_seproxyhal_touch_stark_pubkey_ok(const bagl_element_t *e);
-
 // clang-format off
 UX_STEP_NOCB(
     ux_display_stark_public_flow_1_step,

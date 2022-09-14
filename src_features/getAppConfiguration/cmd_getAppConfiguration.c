@@ -1,8 +1,6 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
 
-#include "ui_flow.h"
-
 void handleGetAppConfiguration(uint8_t p1,
                                uint8_t p2,
                                const uint8_t *workBuffer,

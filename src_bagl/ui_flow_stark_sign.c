@@ -4,8 +4,6 @@
 #include "ui_callbacks.h"
 #include "ethUtils.h"
 
-unsigned int io_seproxyhal_touch_stark_ok(const bagl_element_t *e);
-
 void stark_sign_display_master_account() {
     snprintf(strings.tmp.tmp,
              sizeof(strings.tmp.tmp),

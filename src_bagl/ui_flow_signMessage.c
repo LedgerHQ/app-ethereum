@@ -5,32 +5,23 @@
 
 static uint8_t ui_pos;
 
-
-static void dummy_pre_cb(void)
-{
-    if (ui_pos == UI_191_POS_REVIEW)
-    {
+static void dummy_pre_cb(void) {
+    if (ui_pos == UI_191_POS_REVIEW) {
         question_switcher();
-    }
-    else
-    {
+    } else {
         ux_flow_prev();
         ui_pos = UI_191_POS_REVIEW;
     }
 }
 
-static void dummy_post_cb(void)
-{
-    if (ui_pos == UI_191_POS_QUESTION)
-    {
+static void dummy_post_cb(void) {
+    if (ui_pos == UI_191_POS_QUESTION) {
         continue_displaying_message();
-    }
-    else // UI_191_END
+    } else  // UI_191_END
     {
         ui_191_switch_to_message_end();
     }
 }
-
 
 // clang-format off
 UX_STEP_NOCB(
@@ -99,34 +90,28 @@ UX_FLOW(ux_191_flow,
         &ux_191_step_sign,
         &ux_191_step_cancel);
 
-
-void ui_191_start(void)
-{
+void ui_191_start(void) {
     ux_flow_init(0, ux_191_flow, NULL);
     ui_pos = UI_191_POS_REVIEW;
 }
 
-void    ui_191_switch_to_message(void)
-{
+void ui_191_switch_to_message(void) {
     ux_flow_init(0, ux_191_flow, &ux_191_step_message);
     ui_pos = UI_191_POS_REVIEW;
 }
 
-void    ui_191_switch_to_message_end(void)
-{
+void ui_191_switch_to_message_end(void) {
     // Force it to a value that will make it automatically do a prev()
     ui_pos = UI_191_POS_QUESTION;
     ux_flow_init(0, ux_191_flow, &ux_191_step_dummy_pre);
 }
 
-void    ui_191_switch_to_sign(void)
-{
+void ui_191_switch_to_sign(void) {
     ux_flow_init(0, ux_191_flow, &ux_191_step_sign);
     ui_pos = UI_191_POS_END;
 }
 
-void    ui_191_switch_to_question(void)
-{
+void ui_191_switch_to_question(void) {
     ux_flow_init(0, ux_191_flow, &ux_191_step_theres_more);
     ui_pos = UI_191_POS_QUESTION;
 }

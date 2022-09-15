@@ -55,11 +55,12 @@ UX_STEP_INIT(
 #ifndef TARGET_NANOS
 UX_STEP_CB(
     ux_191_step_theres_more,
-    bn,
+    nnn,
     skip_rest_of_message(),
     {
-      "More to see!",
-      "Double-click to skip"
+      "Press right to",
+      "continue message",
+      "Double-press to skip"
     });
 UX_STEP_INIT(
     ux_191_step_dummy_post,

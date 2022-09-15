@@ -20,6 +20,17 @@ static const char SIGN_MAGIC[] =
 
 
 /**
+ * Send a response APDU with the given Status Word
+ *
+ * @param[in] sw status word
+ */
+static void apdu_reply(uint16_t sw)
+{
+    *(uint16_t *) G_io_apdu_buffer = __builtin_bswap16(sw);
+    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+}
+
+/**
  * Get unprocessed data from last received APDU
  *
  * @return pointer to data in APDU buffer
@@ -95,11 +106,13 @@ static const uint8_t *first_apdu_data(const uint8_t *data, uint16_t *length)
     appState = APP_STATE_SIGNING_MESSAGE;
     data = parseBip32(data, length, &tmpCtx.messageSigningContext.bip32);
     if (data == NULL) {
+        apdu_reply(0x6a80);
         return NULL;
     }
 
     if (*length < sizeof(uint32_t)) {
         PRINTF("Invalid data\n");
+        apdu_reply(0x6a80);
         return NULL;
     }
 
@@ -145,6 +158,7 @@ static bool feed_hash(const uint8_t *const data, uint8_t length)
         PRINTF("Error: Length mismatch ! (%u > %u)!\n",
                 length,
                 tmpCtx.messageSigningContext.remainingLength);
+        apdu_reply(0x6a80);
         return false;
     }
     cx_hash((cx_hash_t *) &global_sha3, 0, data, length, NULL, 0);
@@ -214,8 +228,7 @@ static void feed_display(void)
 
     if ((unprocessed_length() == 0) && (tmpCtx.messageSigningContext.remainingLength > 0))
     {
-        *(uint16_t *) G_io_apdu_buffer = __builtin_bswap16(0x9000);
-        io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+        apdu_reply(0x9000);
     }
 }
 
@@ -248,6 +261,8 @@ bool handleSignPersonalMessage(uint8_t p1,
     else if (p1 != P1_MORE)
     {
         PRINTF("Error: Unexpected P1 (%u)!\n", p1);
+        apdu_reply(0x6B00);
+        return false;
     }
 
     if (!feed_hash(data, length))
@@ -271,8 +286,7 @@ bool handleSignPersonalMessage(uint8_t p1,
         }
         else
         {
-            *(uint16_t *) G_io_apdu_buffer = __builtin_bswap16(0x9000);
-            io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+            apdu_reply(0x9000);
         }
     }
     return true;
@@ -304,8 +318,7 @@ void skip_rest_of_message(void)
     states.sign_state = STATE_191_HASH_ONLY;
     if (tmpCtx.messageSigningContext.remainingLength > 0)
     {
-        *(uint16_t *) G_io_apdu_buffer = __builtin_bswap16(0x9000);
-        io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+        apdu_reply(0x9000);
     }
     else
     {

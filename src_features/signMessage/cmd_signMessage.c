@@ -20,62 +20,111 @@ static const char SIGN_MAGIC[] =
     "Ethereum Signed Message:\n";
 
 
+/**
+ * Get unprocessed data from last received APDU
+ *
+ * @return pointer to data in APDU buffer
+ */
 static const uint8_t *unprocessed_data(void)
 {
     return &G_io_apdu_buffer[OFFSET_CDATA] + processed_size;
 }
 
+/**
+ * Get size of unprocessed data from last received APDU
+ *
+ * @return size of data in bytes
+ */
 static size_t unprocessed_length(void)
 {
     return G_io_apdu_buffer[OFFSET_LC] - processed_size;
 }
 
+/**
+ * Get used space from UI buffer
+ *
+ * @return size in bytes
+ */
 static size_t ui_buffer_length(void)
 {
     return strlen(UI_191_BUFFER);
 }
 
+/**
+ * Get remaining space from UI buffer
+ *
+ * @return size in bytes
+ */
 static size_t remaining_ui_buffer_length(void)
 {
     // -1 for the ending NULL byte
     return (sizeof(UI_191_BUFFER) - 1) - ui_buffer_length();
 }
 
+/**
+ * Get free space from UI buffer
+ *
+ * @return pointer to the free space
+ */
 static char *remaining_ui_buffer(void)
 {
     return &UI_191_BUFFER[ui_buffer_length()];
 }
 
+/**
+ * Reset the UI buffer
+ *
+ * Simply sets its first byte to a NULL character
+ */
 static void reset_ui_buffer(void)
 {
     UI_191_BUFFER[0] = '\0';
 }
 
+/**
+ * Switch to the beginning of the Message UI page
+ */
 static void switch_to_message(void)
 {
     ui_191_switch_to_message();
     states.ui_pos = UI_191_REVIEW;
 }
 
+/**
+ * Switch to the end of the Message UI page
+ */
 static void switch_to_message_end(void)
 {
     ui_191_switch_to_message_end();
     states.ui_pos = UI_191_REVIEW;
 }
 
+/**
+ * Switch to the Sign UI page
+ */
 static void switch_to_sign(void)
 {
     ui_191_switch_to_sign();
     states.ui_pos = UI_191_END;
 }
 
+/**
+ * Switch to the interactive question UI page
+ */
 static void switch_to_question(void)
 {
     ui_191_switch_to_question();
     states.ui_pos = UI_191_QUESTION;
 }
 
-const uint8_t *first_apdu_data(const uint8_t *data, uint16_t *length)
+/**
+ * Handle the data specific to the first APDU of an EIP-191 signature
+ *
+ * @param[in] data the APDU payload
+ * @param[in] length the payload size
+ * @return pointer to the start of the start of the message; \ref NULL if it failed
+ */
+static const uint8_t *first_apdu_data(const uint8_t *data, uint16_t *length)
 {
     if (appState != APP_STATE_IDLE) {
         reset_app_context();
@@ -120,7 +169,14 @@ const uint8_t *first_apdu_data(const uint8_t *data, uint16_t *length)
     return data;
 }
 
-bool feed_hash(const uint8_t *const data, uint8_t length)
+/**
+ * Feed the progressive hash with new data
+ *
+ * @param[in] data the new data
+ * @param[in] length the data length
+ * @return whether it was successful or not
+ */
+static bool feed_hash(const uint8_t *const data, uint8_t length)
 {
     if (length > tmpCtx.messageSigningContext.remainingLength)
     {
@@ -143,7 +199,10 @@ bool feed_hash(const uint8_t *const data, uint8_t length)
     return true;
 }
 
-void feed_display(void)
+/**
+ * Feed the UI with new data
+ */
+static void feed_display(void)
 {
     int c;
 
@@ -198,6 +257,15 @@ void feed_display(void)
     }
 }
 
+/**
+ * EIP-191 APDU handler
+ *
+ * @param[in] p1 instruction parameter 1
+ * @param[in] p2 instruction parameter 2
+ * @param[in] payload received data
+ * @param[in] length data length
+ * @return whether the handling of the APDU was successful or not
+ */
 bool handleSignPersonalMessage(uint8_t p1,
                                uint8_t p2,
                                const uint8_t *const payload,

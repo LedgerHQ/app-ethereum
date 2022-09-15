@@ -177,12 +177,16 @@ static void feed_display(void) {
                 processed_size += 1;
             } else {
                 // fill the rest of the UI buffer spaces, to consider the buffer full
-                while (remaining_ui_buffer_length()) {
-                    sprintf(remaining_ui_buffer(), " ");
-                }
+                memset(remaining_ui_buffer(), ' ', remaining_ui_buffer_length());
             }
         }
     }
+
+#ifdef TARGET_NANOS
+    if ((remaining_ui_buffer_length() == 0) && (unprocessed_length > 0)) {
+        sprintf(remaining_ui_buffer() - 3, "...");
+    }
+#endif
 
     if ((remaining_ui_buffer_length() == 0) ||
         (tmpCtx.messageSigningContext.remainingLength == 0)) {
@@ -248,6 +252,7 @@ bool handleSignPersonalMessage(uint8_t p1,
     return true;
 }
 
+#ifndef TARGET_NANOS
 /**
  * Decide whether to show the question to show more of the message or not
  */
@@ -260,6 +265,7 @@ void question_switcher(void) {
         ui_191_switch_to_sign();
     }
 }
+#endif
 
 /**
  * The user has decided to skip the rest of the message
@@ -273,6 +279,7 @@ void skip_rest_of_message(void) {
     }
 }
 
+#ifndef TARGET_NANOS
 /**
  * The user has decided to see the next chunk of the message
  */
@@ -282,3 +289,4 @@ void continue_displaying_message(void) {
         feed_display();
     }
 }
+#endif

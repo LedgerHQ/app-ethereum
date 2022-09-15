@@ -7,13 +7,18 @@ static uint8_t ui_pos;
 
 static void dummy_pre_cb(void) {
     if (ui_pos == UI_191_POS_REVIEW) {
+#ifdef TARGET_NANOS
+        skip_rest_of_message();
+#else
         question_switcher();
+#endif
     } else {
         ux_flow_prev();
         ui_pos = UI_191_POS_REVIEW;
     }
 }
 
+#ifndef TARGET_NANOS
 static void dummy_post_cb(void) {
     if (ui_pos == UI_191_POS_QUESTION) {
         continue_displaying_message();
@@ -22,6 +27,7 @@ static void dummy_post_cb(void) {
         ui_191_switch_to_message_end();
     }
 }
+#endif
 
 // clang-format off
 UX_STEP_NOCB(
@@ -46,6 +52,7 @@ UX_STEP_INIT(
     {
       dummy_pre_cb();
     });
+#ifndef TARGET_NANOS
 UX_STEP_CB(
     ux_191_step_theres_more,
     bn,
@@ -61,6 +68,7 @@ UX_STEP_INIT(
     {
       dummy_post_cb();
     });
+#endif
 UX_STEP_CB(
     ux_191_step_sign,
     pbb,
@@ -85,8 +93,10 @@ UX_FLOW(ux_191_flow,
         &ux_191_step_review,
         &ux_191_step_message,
         &ux_191_step_dummy_pre,
+#ifndef TARGET_NANOS
         &ux_191_step_theres_more,
         &ux_191_step_dummy_post,
+#endif
         &ux_191_step_sign,
         &ux_191_step_cancel);
 
@@ -100,18 +110,22 @@ void ui_191_switch_to_message(void) {
     ui_pos = UI_191_POS_REVIEW;
 }
 
+#ifndef TARGET_NANOS
 void ui_191_switch_to_message_end(void) {
     // Force it to a value that will make it automatically do a prev()
     ui_pos = UI_191_POS_QUESTION;
     ux_flow_init(0, ux_191_flow, &ux_191_step_dummy_pre);
 }
+#endif
 
 void ui_191_switch_to_sign(void) {
     ux_flow_init(0, ux_191_flow, &ux_191_step_sign);
     ui_pos = UI_191_POS_END;
 }
 
+#ifndef TARGET_NANOS
 void ui_191_switch_to_question(void) {
     ux_flow_init(0, ux_191_flow, &ux_191_step_theres_more);
     ui_pos = UI_191_POS_QUESTION;
 }
+#endif

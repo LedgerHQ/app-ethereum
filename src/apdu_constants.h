@@ -58,6 +58,9 @@
 #define OFFSET_LC    4
 #define OFFSET_CDATA 5
 
+#define ERR_APDU_EMPTY         0x6982
+#define ERR_APDU_SIZE_MISMATCH 0x6983
+
 void handleGetPublicKey(uint8_t p1,
                         uint8_t p2,
                         const uint8_t *dataBuffer,

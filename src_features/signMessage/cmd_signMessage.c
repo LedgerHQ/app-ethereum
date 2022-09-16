@@ -21,7 +21,8 @@ static const char SIGN_MAGIC[] =
  * @param[in] sw status word
  */
 static void apdu_reply(uint16_t sw) {
-    *(uint16_t *) G_io_apdu_buffer = __builtin_bswap16(sw);
+    G_io_apdu_buffer[0] = (sw >> 8) & 0xff;
+    G_io_apdu_buffer[1] = sw & 0xff;
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
 }
 
@@ -134,7 +135,7 @@ static const uint8_t *first_apdu_data(const uint8_t *data, uint16_t *length) {
  * @param[in] length the data length
  * @return whether it was successful or not
  */
-static bool feed_hash(const uint8_t *const data, uint8_t length) {
+static bool feed_hash(const uint8_t *const data, const uint8_t length) {
     if (length > tmpCtx.messageSigningContext.remainingLength) {
         PRINTF("Error: Length mismatch ! (%u > %u)!\n",
                length,
@@ -217,11 +218,12 @@ bool handleSignPersonalMessage(uint8_t p1,
                                const uint8_t *const payload,
                                uint8_t length) {
     const uint8_t *data = payload;
+    uint16_t u16_length = length;
 
     (void) p2;
     processed_size = 0;
     if (p1 == P1_FIRST) {
-        if ((data = first_apdu_data(data, (uint16_t *) &length)) == NULL) {
+        if ((data = first_apdu_data(data, &u16_length)) == NULL) {
             return false;
         }
         processed_size = data - payload;
@@ -231,7 +233,7 @@ bool handleSignPersonalMessage(uint8_t p1,
         return false;
     }
 
-    if (!feed_hash(data, length)) {
+    if (!feed_hash(data, u16_length)) {
         return false;
     }
 

@@ -770,9 +770,11 @@ void app_main(void) {
                 // no apdu received, well, reset the session, and reset the
                 // bootloader configuration
                 if (rx == 0) {
-                    THROW(0x6982);
+                    THROW(ERR_APDU_EMPTY);
                 }
-                PRINTF("New APDU received:\n%.*H\n", rx, G_io_apdu_buffer);
+                if (rx > OFFSET_LC && rx != (G_io_apdu_buffer[OFFSET_LC] + 5)) {
+                    THROW(ERR_APDU_SIZE_MISMATCH);
+                }
 
                 handleApdu(&flags, &tx);
             }

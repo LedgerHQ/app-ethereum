@@ -27,7 +27,7 @@ void handleSignEIP712Message(uint8_t p1,
     memmove(tmpCtx.messageSigningContext712.messageHash, workBuffer + 32, 32);
 
 #ifdef NO_CONSENT
-    io_seproxyhal_touch_signMessage_ok(NULL);
+    io_seproxyhal_touch_signMessage_ok();
 #else   // NO_CONSENT
     ui_sign_712_v0();
 #endif  // NO_CONSENT

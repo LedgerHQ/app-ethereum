@@ -32,10 +32,6 @@ void ui_display_public_key(void) {
     ux_flow_init(0, ux_display_public_flow, NULL);
 }
 
-void ui_display_sign(void) {
-    ux_flow_init(0, ux_sign_flow, NULL);
-}
-
 void ui_sign_712_v0(void) {
     ux_flow_init(0, ux_sign_712_v0_flow, NULL);
 }

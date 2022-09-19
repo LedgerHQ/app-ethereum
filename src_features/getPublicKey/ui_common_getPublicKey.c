@@ -1,6 +1,6 @@
 #include "shared_context.h"
 #include "feature_getPublicKey.h"
-#include "ui_callbacks.h"
+#include "common_ui.h"
 
 unsigned int io_seproxyhal_touch_address_ok(__attribute__((unused)) const bagl_element_t *e) {
     uint32_t tx = set_result_get_publicKey();

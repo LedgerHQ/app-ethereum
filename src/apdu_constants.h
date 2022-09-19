@@ -58,6 +58,9 @@
 #define OFFSET_LC    4
 #define OFFSET_CDATA 5
 
+#define ERR_APDU_EMPTY         0x6982
+#define ERR_APDU_SIZE_MISMATCH 0x6983
+
 void handleGetPublicKey(uint8_t p1,
                         uint8_t p2,
                         const uint8_t *dataBuffer,
@@ -88,12 +91,10 @@ void handleGetAppConfiguration(uint8_t p1,
                                uint16_t dataLength,
                                unsigned int *flags,
                                unsigned int *tx);
-void handleSignPersonalMessage(uint8_t p1,
+bool handleSignPersonalMessage(uint8_t p1,
                                uint8_t p2,
-                               const uint8_t *dataBuffer,
-                               uint16_t dataLength,
-                               unsigned int *flags,
-                               unsigned int *tx);
+                               const uint8_t *const payload,
+                               uint8_t length);
 void handleSignEIP712Message(uint8_t p1,
                              uint8_t p2,
                              const uint8_t *dataBuffer,

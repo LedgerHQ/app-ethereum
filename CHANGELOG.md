@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.9.21](https://github.com/ledgerhq/app-ethereum/compare/1.9.20...1.9.21) - 2022-??-??
+
+### Changed
+
+- EIP-712 signatures are now computed on-device and display their content (clear-signing)
+
 ## [1.9.20](https://github.com/ledgerhq/app-ethereum/compare/1.9.19...1.9.20) - 2022-09-19
 
 ### Added
@@ -18,10 +24,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
 - EIP-191 improvements, now lets the user see the entire message by chunks 255 characters (LNX & LNS+), LNS still limited to the first chunk of 99 characters
-
-### Changed
-
-- EIP-712 signatures are now computed on-device and display their content (clear-signing)
 
 ## [1.9.19](https://github.com/ledgerhq/app-ethereum/compare/1.9.18...1.9.19) - 2022-06-15
 

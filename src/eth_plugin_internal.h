@@ -29,9 +29,6 @@ typedef struct internalEthPlugin_t {
 #define NUM_ERC20_SELECTORS 2
 extern const uint8_t* const ERC20_SELECTORS[NUM_ERC20_SELECTORS];
 
-#define NUM_COMPOUND_SELECTORS 4
-extern const uint8_t* const COMPOUND_SELECTORS[NUM_COMPOUND_SELECTORS];
-
 #ifdef HAVE_ETH2
 
 #define NUM_ETH2_SELECTORS 1

@@ -57,72 +57,66 @@ UX_FLOW(ux_idle_flow,
         &ux_idle_flow_4_step,
         FLOW_LOOP);
 
-#if defined(TARGET_NANOS)
-
 // clang-format off
 UX_STEP_CB(
     ux_settings_flow_blind_signing_step,
+#ifdef TARGET_NANOS
     bnnn_paging,
-    switch_settings_blind_signing(),
-    {
-      .title = "Blind signing",
-      .text = strings.common.fullAddress,
-    });
-
-UX_STEP_CB(
-    ux_settings_flow_display_data_step,
-    bnnn_paging,
-    switch_settings_display_data(),
-    {
-      .title = "Debug data",
-      .text = strings.common.fullAddress + BUF_INCREMENT
-    });
-
-UX_STEP_CB(
-    ux_settings_flow_display_nonce_step,
-    bnnn_paging,
-    switch_settings_display_nonce(),
-    {
-      .title = "Account nonce",
-      .text = strings.common.fullAddress + (BUF_INCREMENT * 2)
-    });
-
 #else
-
-UX_STEP_CB(
-    ux_settings_flow_blind_signing_step,
     bnnn,
+#endif
     switch_settings_blind_signing(),
     {
+#ifdef TARGET_NANOS
+      .title = "Blind signing",
+      .text =
+#else
       "Blind signing",
       "Transaction",
       "blind signing",
-      strings.common.fullAddress,
+#endif
+      strings.common.fullAddress
     });
 
 UX_STEP_CB(
     ux_settings_flow_display_data_step,
+#ifdef TARGET_NANOS
+    bnnn_paging,
+#else
     bnnn,
+#endif
     switch_settings_display_data(),
     {
+#ifdef TARGET_NANOS
+      .title = "Debug data",
+      .text =
+#else
       "Debug data",
       "Show contract data",
       "details",
+#endif
       strings.common.fullAddress + BUF_INCREMENT
     });
 
-  UX_STEP_CB(
+UX_STEP_CB(
     ux_settings_flow_display_nonce_step,
+#ifdef TARGET_NANOS
+    bnnn_paging,
+#else
     bnnn,
+#endif
     switch_settings_display_nonce(),
     {
+#ifdef TARGET_NANOS
+      .title = "Account nonce",
+      .text =
+#else
       "Nonce",
       "Show account nonce",
       "in transactions",
+#endif
       strings.common.fullAddress + (BUF_INCREMENT * 2)
     });
-
-#endif
 
 #ifdef HAVE_EIP712_FULL_SUPPORT
 UX_STEP_CB(
@@ -205,7 +199,7 @@ void switch_settings_verbose_eip712(void) {
 
 //////////////////////////////////////////////////////////////////////
 // clang-format off
-#if defined(TARGET_NANOS)
+#ifdef TARGET_NANOS
 UX_STEP_CB(
     ux_warning_contract_data_step,
     bnnn_paging,
@@ -214,7 +208,7 @@ UX_STEP_CB(
       "Error",
       "Blind signing must be enabled in Settings",
     });
-#elif defined(TARGET_NANOX) || defined(TARGET_NANOS2)
+#else
 UX_STEP_CB(
     ux_warning_contract_data_step,
     pnn,

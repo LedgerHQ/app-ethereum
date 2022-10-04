@@ -56,7 +56,7 @@ nano_models.forEach(function(model) {
 
         if (model.letter == 'S')
         {
-            await sim.navigateAndCompareSnapshots('.', model.name + '_eip191_opensea', [1, 5, 1, -1, 0]);
+            await sim.navigateAndCompareSnapshots('.', model.name + '_eip191_opensea', [1, 5, 1, 6, 0, 1, -1, 0]);
         }
         else
         {

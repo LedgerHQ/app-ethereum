@@ -14,7 +14,7 @@ void handleSignEIP712Message_v0(uint8_t p1,
     (void) tx;
     (void) p2;
     if (p1 != 00) {
-        THROW(0x6B00);
+        THROW(APDU_RESPONSE_INVALID_P1_P2);
     }
     if (appState != APP_STATE_IDLE) {
         reset_app_context();
@@ -23,7 +23,7 @@ void handleSignEIP712Message_v0(uint8_t p1,
     workBuffer = parseBip32(workBuffer, &dataLength, &tmpCtx.messageSigningContext.bip32);
 
     if ((workBuffer == NULL) || (dataLength < (KECCAK256_HASH_BYTESIZE * 2))) {
-        THROW(0x6a80);
+        THROW(APDU_RESPONSE_INVALID_DATA);
     }
     memmove(tmpCtx.messageSigningContext712.domainHash, workBuffer, KECCAK256_HASH_BYTESIZE);
     memmove(tmpCtx.messageSigningContext712.messageHash,

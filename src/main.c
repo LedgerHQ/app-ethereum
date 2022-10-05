@@ -674,21 +674,24 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                     break;
 
                 case INS_SIGN_EIP_712_MESSAGE:
-                    if (G_io_apdu_buffer[OFFSET_P2] == 0) {
-                        memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
-                        handleSignEIP712Message_v0(G_io_apdu_buffer[OFFSET_P1],
-                                                   G_io_apdu_buffer[OFFSET_P2],
-                                                   G_io_apdu_buffer + OFFSET_CDATA,
-                                                   G_io_apdu_buffer[OFFSET_LC],
-                                                   flags,
-                                                   tx);
-                    } else {
+                    switch (G_io_apdu_buffer[OFFSET_P2]) {
+                        case P2_EIP712_LEGACY_IMPLEM:
+                            memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
+                            handleSignEIP712Message_v0(G_io_apdu_buffer[OFFSET_P1],
+                                                       G_io_apdu_buffer[OFFSET_P2],
+                                                       G_io_apdu_buffer + OFFSET_CDATA,
+                                                       G_io_apdu_buffer[OFFSET_LC],
+                                                       flags,
+                                                       tx);
+                            break;
 #ifdef HAVE_EIP712_FULL_SUPPORT
-                        *flags |= IO_ASYNCH_REPLY;
-                        handle_eip712_sign(G_io_apdu_buffer);
-#else
-                        THROW(0x6B00);
+                        case P2_EIP712_FULL_IMPLEM:
+                            *flags |= IO_ASYNCH_REPLY;
+                            handle_eip712_sign(G_io_apdu_buffer);
+                            break;
 #endif  // HAVE_EIP712_FULL_SUPPORT
+                        default:
+                            THROW(APDU_RESPONSE_INVALID_P1_P2);
                     }
                     break;
 

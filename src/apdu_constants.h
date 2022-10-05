@@ -30,6 +30,8 @@
 #define P2_CHAINCODE                        0x01
 #define P1_FIRST                            0x00
 #define P1_MORE                             0x80
+#define P2_EIP712_LEGACY_IMPLEM             0x00
+#define P2_EIP712_FULL_IMPLEM               0x01
 
 #define COMMON_CLA               0xB0
 #define COMMON_INS_GET_WALLET_ID 0x04

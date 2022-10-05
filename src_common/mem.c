@@ -1,3 +1,11 @@
+/**
+ * Dynamic allocator that uses a fixed-length buffer that is hopefully big enough
+ *
+ * The two functions alloc & dealloc use the buffer as a simple stack.
+ * Especially useful when an unpredictable amount of data will be received and have to be stored
+ * during the transaction but discarded right after.
+ */
+
 #ifdef HAVE_DYN_MEM_ALLOC
 
 #include <stdint.h>
@@ -23,7 +31,7 @@ void mem_reset(void) {
 }
 
 /**
- * Allocates a chunk of the memory buffer of a given size.
+ * Allocates (push) a chunk of the memory buffer of a given size.
  *
  * Checks to see if there are enough space left in the memory buffer, returns
  * the current location in the memory buffer and moves the index accordingly.
@@ -41,7 +49,7 @@ void *mem_alloc(size_t size) {
 }
 
 /**
- * De-allocates a chunk of memory buffer by a given size.
+ * De-allocates (pop) a chunk of memory buffer by a given size.
  *
  * @param[in] size Requested deallocation size in bytes
  */

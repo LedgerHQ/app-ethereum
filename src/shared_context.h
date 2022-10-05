@@ -222,6 +222,6 @@ extern uint32_t eth2WithdrawalIndex;
 #endif
 
 void reset_app_context(void);
-const uint8_t *parseBip32(const uint8_t *, uint8_t *, bip32_path_t *);
+const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_path_t *bip32);
 
 #endif  // _SHARED_CONTEXT_H_

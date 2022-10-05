@@ -1,5 +1,11 @@
 #include "shared_context.h"
+#include "ui_callbacks.h"
 #include "common_ui.h"
+#include "utils.h"
+
+#define ENABLED_STR   "Enabled"
+#define DISABLED_STR  "Disabled"
+#define BUF_INCREMENT (MAX(strlen(ENABLED_STR), strlen(DISABLED_STR)) + 1)
 
 void display_settings(const ux_flow_step_t* const start_step);
 void switch_settings_blind_signing(void);
@@ -69,7 +75,7 @@ UX_STEP_CB(
     switch_settings_display_data(),
     {
       .title = "Debug data",
-      .text = strings.common.fullAddress + 9
+      .text = strings.common.fullAddress + BUF_INCREMENT
     });
 
 UX_STEP_CB(
@@ -78,7 +84,7 @@ UX_STEP_CB(
     switch_settings_display_nonce(),
     {
       .title = "Account nonce",
-      .text = strings.common.fullAddress + 18
+      .text = strings.common.fullAddress + (BUF_INCREMENT * 2)
     });
 
 #else
@@ -102,7 +108,7 @@ UX_STEP_CB(
       "Debug data",
       "Show contract data",
       "details",
-      strings.common.fullAddress + 9
+      strings.common.fullAddress + BUF_INCREMENT
     });
 
   UX_STEP_CB(
@@ -113,7 +119,7 @@ UX_STEP_CB(
       "Nonce",
       "Show account nonce",
       "in transactions",
-      strings.common.fullAddress + 18
+      strings.common.fullAddress + (BUF_INCREMENT * 2)
     });
 
 #endif
@@ -127,7 +133,7 @@ UX_STEP_CB(
       "Verbose EIP-712",
       "Ignore filtering &",
       "display raw content",
-      strings.common.fullAddress + 27
+      strings.common.fullAddress + (BUF_INCREMENT * 3)
     });
 #endif // HAVE_EIP712_FULL_SUPPORT
 
@@ -152,7 +158,6 @@ UX_FLOW(ux_settings_flow,
         &ux_settings_flow_back_step);
 
 void display_settings(const ux_flow_step_t* const start_step) {
-    const char* const values[] = {"Enabled", "Disabled"};
     bool settings[] = {N_storage.dataAllowed,
                        N_storage.contractDetails,
                        N_storage.displayNonce,
@@ -161,13 +166,12 @@ void display_settings(const ux_flow_step_t* const start_step) {
 #endif  // HAVE_EIP712_FULL_SUPPORT
     };
     uint8_t offset = 0;
-    uint8_t increment = MAX(strlen(values[0]), strlen(values[1])) + 1;
 
-    for (unsigned int i = 0; i < (sizeof(settings) / sizeof(settings[0])); ++i) {
+    for (unsigned int i = 0; i < ARRAY_SIZE(settings); ++i) {
         strlcpy(strings.common.fullAddress + offset,
-                (settings[i] ? values[0] : values[1]),
+                (settings[i] ? ENABLED_STR : DISABLED_STR),
                 sizeof(strings.common.fullAddress) - offset);
-        offset += increment;
+        offset += BUF_INCREMENT;
     }
 
     ux_flow_init(0, ux_settings_flow, start_step);

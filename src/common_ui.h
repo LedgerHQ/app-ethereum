@@ -18,6 +18,13 @@ void ui_stark_limit_order(void);
 void ui_stark_unsafe_sign(void);
 void ui_stark_transfer(bool selfTransfer, bool conditional);
 
+// EIP-191
+void ui_191_start(void);
+void ui_191_switch_to_message(void);
+void ui_191_switch_to_message_end(void);
+void ui_191_switch_to_sign(void);
+void ui_191_switch_to_question(void);
+
 #include "ui_callbacks.h"
 #include <string.h>
 

@@ -1,7 +1,9 @@
 #include "shared_context.h"
 #include "ui_callbacks.h"
-#include "ui_flow_signMessage.h"
+#include "common_ui.h"
 #include "sign_message.h"
+
+typedef enum { UI_191_POS_REVIEW, UI_191_POS_QUESTION, UI_191_POS_END } e_ui_191_position;
 
 static uint8_t ui_pos;
 

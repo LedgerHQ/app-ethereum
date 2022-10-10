@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.9.20](https://github.com/ledgerhq/app-ethereum/compare/1.9.19...1.9.20) - 2022-XX-XX
+## [1.9.20](https://github.com/ledgerhq/app-ethereum/compare/1.9.19...1.9.20) - 2022-10-10
 
 ### Added
 
@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 
 - Allow swap with variants
+
+### Removed
+
+- Compound support (will become its own plugin)
 
 ## [1.9.19](https://github.com/ledgerhq/app-ethereum/compare/1.9.18...1.9.19) - 2022-06-15
 

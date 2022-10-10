@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - EIP-191 improvements, now lets the user see the entire message one chunk at a time (255 characters for LNX & LNS+, 99 for LNS)
 
+### Fixed
+
+- Allow swap with variants
+
 ## [1.9.19](https://github.com/ledgerhq/app-ethereum/compare/1.9.18...1.9.19) - 2022-06-15
 
 ### Added

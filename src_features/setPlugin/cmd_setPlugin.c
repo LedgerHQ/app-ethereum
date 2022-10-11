@@ -1,10 +1,11 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
-#include "ui_flow.h"
 #include "tokens.h"
 #include "eth_plugin_interface.h"
 #include "eth_plugin_internal.h"
 #include "utils.h"
+#include "common_ui.h"
+#include "os_io_seproxyhal.h"
 
 // Supported internal plugins
 #define ERC721_STR  "ERC721"
@@ -86,7 +87,7 @@ static pluginType_t getPluginType(char *pluginName, uint8_t pluginNameLength) {
 
 void handleSetPlugin(uint8_t p1,
                      uint8_t p2,
-                     uint8_t *workBuffer,
+                     const uint8_t *workBuffer,
                      uint16_t dataLength,
                      unsigned int *flags,
                      unsigned int *tx) {
@@ -248,7 +249,7 @@ void handleSetPlugin(uint8_t p1,
                         hashId,
                         hash,
                         sizeof(hash),
-                        workBuffer + offset,
+                        (unsigned char *) (workBuffer + offset),
                         signatureLen)) {
 #ifndef HAVE_BYPASS_SIGNATURES
         PRINTF("Invalid NFT signature\n");

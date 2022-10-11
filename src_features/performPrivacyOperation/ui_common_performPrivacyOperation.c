@@ -1,6 +1,6 @@
 #include "shared_context.h"
 #include "feature_getPublicKey.h"
-#include "ui_callbacks.h"
+#include "common_ui.h"
 #include "feature_performPrivacyOperation.h"
 
 unsigned int io_seproxyhal_touch_privacy_ok(__attribute__((unused)) const bagl_element_t *e) {

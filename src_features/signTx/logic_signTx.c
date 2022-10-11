@@ -1,7 +1,5 @@
 #include "shared_context.h"
 #include "utils.h"
-#include "ui_callbacks.h"
-#include "ui_flow.h"
 #include "feature_signTx.h"
 #ifdef HAVE_STARKWARE
 #include "stark_utils.h"
@@ -9,6 +7,8 @@
 #include "eth_plugin_handler.h"
 #include "network.h"
 #include "ethUtils.h"
+#include "common_ui.h"
+#include "ui_callbacks.h"
 
 #define ERR_SILENT_MODE_CHECK_FAILED 0x6001
 
@@ -144,7 +144,7 @@ customStatus_e customProcessor(txContext_t *context) {
             dataContext.tokenContext.fieldOffset = 0;
             if (fieldPos == 0) {
                 array_hexstr(strings.tmp.tmp, dataContext.tokenContext.data, 4);
-                ux_flow_init(0, ux_confirm_selector_flow, NULL);
+                ui_confirm_selector();
             } else {
                 uint32_t offset = 0;
                 uint32_t i;
@@ -159,7 +159,7 @@ customStatus_e customProcessor(txContext_t *context) {
                         strings.tmp.tmp[offset++] = ':';
                     }
                 }
-                ux_flow_init(0, ux_confirm_parameter_flow, NULL);
+                ui_confirm_parameter();
             }
         } else {
             return CUSTOM_HANDLED;
@@ -231,15 +231,26 @@ static void feesToString(uint256_t *rawFee, char *displayBuffer, uint32_t displa
     i = 0;
     tickerOffset = 0;
     memset(displayBuffer, 0, displayBufferSize);
+
     while (feeTicker[tickerOffset]) {
+        if ((uint32_t) tickerOffset >= displayBufferSize) {
+            break;
+        }
+
         displayBuffer[tickerOffset] = feeTicker[tickerOffset];
         tickerOffset++;
     }
     while (G_io_apdu_buffer[i]) {
+        if ((uint32_t) (tickerOffset) + i >= displayBufferSize) {
+            break;
+        }
         displayBuffer[tickerOffset + i] = G_io_apdu_buffer[i];
         i++;
     }
-    displayBuffer[tickerOffset + i] = '\0';
+
+    if ((uint32_t) (tickerOffset) + i < displayBufferSize) {
+        displayBuffer[tickerOffset + i] = '\0';
+    }
 }
 
 // Compute the fees, transform it to a string, prepend a ticker to it and copy everything to
@@ -282,8 +293,8 @@ static void get_public_key(uint8_t *out, uint8_t outLength) {
     }
 
     os_perso_derive_node_bip32(CX_CURVE_256K1,
-                               tmpCtx.transactionContext.bip32Path,
-                               tmpCtx.transactionContext.pathLength,
+                               tmpCtx.transactionContext.bip32.path,
+                               tmpCtx.transactionContext.bip32.length,
                                privateKeyData,
                                NULL);
     cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);

@@ -1,7 +1,8 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
-#include "ui_flow.h"
 #include "tokens.h"
+#include "common_ui.h"
+#include "os_io_seproxyhal.h"
 
 #ifdef HAVE_CONTRACT_NAME_IN_DESCRIPTOR
 
@@ -101,7 +102,7 @@ void handleProvideErc20TokenInformation(uint8_t p1,
 
 void handleProvideErc20TokenInformation(uint8_t p1,
                                         uint8_t p2,
-                                        uint8_t *workBuffer,
+                                        const uint8_t *workBuffer,
                                         uint16_t dataLength,
                                         unsigned int *flags,
                                         __attribute__((unused)) unsigned int *tx) {

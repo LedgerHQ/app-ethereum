@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.9.20](https://github.com/ledgerhq/app-ethereum/compare/1.9.19...1.9.20) - 2022-10-10
+
+### Added
+
+- (clone) XDCNetwork
+- (clone) Meter
+- (clone) Multivac
+- (clone) Tecra
+- (clone) ApothemNetwork
+
+### Changed
+
+- EIP-191 improvements, now lets the user see the entire message one chunk at a time (255 characters for LNX & LNS+, 99 for LNS)
+
+### Fixed
+
+- Allow swap with variants
+
+### Removed
+
+- Compound support (will become its own plugin)
+
 ## [1.9.19](https://github.com/ledgerhq/app-ethereum/compare/1.9.18...1.9.19) - 2022-06-15
 
 ### Added
@@ -16,7 +38,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
-- EIP-191 signatures now show (up to 99 characters on LNS and 255 on LNX & LNS) the actual data contained in the message (clear-signing)
+- EIP-191 signatures now show (up to 99 characters on LNS and 255 on LNX & LNS+) the actual data contained in the message (clear-signing)
 
 ### Fixed
 
@@ -64,7 +86,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
-- Fixed stark order signature on LNS 
+- Fixed stark order signature on LNS
 
 ## [1.9.13](https://github.com/ledgerhq/app-ethereum/compare/1.9.12...1.9.13) - 2021-11-17
 
@@ -76,7 +98,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
-- Fixed stark order signature on LNX 
+- Fixed stark order signature on LNX
 
 ## [1.9.11](https://github.com/ledgerhq/app-ethereum/compare/1.9.10...1.9.11) - 2021-10-12
 

@@ -17,8 +17,7 @@
 
 #include "shared_context.h"
 #include "apdu_constants.h"
-#include "ui_callbacks.h"
-#include "ui_flow.h"
+#include "common_ui.h"
 
 #include "os_io_seproxyhal.h"
 
@@ -82,24 +81,6 @@ void reset_app_context() {
     memset((uint8_t *) &tmpCtx, 0, sizeof(tmpCtx));
     memset((uint8_t *) &txContext, 0, sizeof(txContext));
     memset((uint8_t *) &tmpContent, 0, sizeof(tmpContent));
-}
-
-void ui_idle(void) {
-    // reserve a display stack slot if none yet
-    if (G_ux.stack_count == 0) {
-        ux_stack_push();
-    }
-    ux_flow_init(0, ux_idle_flow, NULL);
-}
-
-void ui_warning_contract_data(void) {
-    ux_flow_init(0, ux_warning_contract_data_flow, NULL);
-}
-
-unsigned int io_seproxyhal_touch_exit(__attribute__((unused)) const bagl_element_t *e) {
-    // Go back to the dashboard
-    os_sched_exit(0);
-    return 0;  // do not redraw the widget
 }
 
 void io_seproxyhal_send_status(uint32_t sw) {
@@ -296,6 +277,21 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
         case CHAIN_KIND_ASTAR:
             numTokens = NUM_TOKENS_ASTAR;
             break;
+        case CHAIN_KIND_XDCNETWORK:
+            numTokens = NUM_TOKENS_XDCNETWORK;
+            break;
+        case CHAIN_KIND_METER:
+            numTokens = NUM_TOKENS_METER;
+            break;
+        case CHAIN_KIND_MULTIVAC:
+            numTokens = NUM_TOKENS_MULTIVAC;
+            break;
+        case CHAIN_KIND_TECRA:
+            numTokens = NUM_TOKENS_TECRA;
+            break;
+        case CHAIN_KIND_APOTHEMNETWORK:
+            numTokens = NUM_TOKENS_APOTHEMNETWORK;
+            break;
     }
     for (i = 0; i < numTokens; i++) {
         switch (chainConfig->kind) {
@@ -434,6 +430,21 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
             case CHAIN_KIND_ASTAR:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_ASTAR[i]);
                 break;
+            case CHAIN_KIND_XDCNETWORK:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_XDCNETWORK[i]);
+                break;
+            case CHAIN_KIND_METER:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_METER[i]);
+                break;
+            case CHAIN_KIND_MULTIVAC:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_MULTIVAC[i]);
+                break;
+            case CHAIN_KIND_TECRA:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_TECRA[i]);
+                break;
+            case CHAIN_KIND_APOTHEMNETWORK:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_APOTHEMNETWORK[i]);
+                break;
         }
         if (memcmp(currentToken->address, tmpContent.txContent.destination, ADDRESS_LENGTH) == 0) {
             return currentToken;
@@ -479,6 +490,36 @@ void handleGetWalletId(volatile unsigned int *tx) {
 }
 
 #endif  // HAVE_WALLET_ID_SDK
+
+const uint8_t *parseBip32(const uint8_t *dataBuffer, uint16_t *dataLength, bip32_path_t *bip32) {
+    if (*dataLength < 1) {
+        PRINTF("Invalid data\n");
+        return NULL;
+    }
+
+    bip32->length = *dataBuffer;
+
+    if (bip32->length < 0x1 || bip32->length > MAX_BIP32_PATH) {
+        PRINTF("Invalid bip32\n");
+        return NULL;
+    }
+
+    dataBuffer++;
+    (*dataLength)--;
+
+    if (*dataLength < sizeof(uint32_t) * (bip32->length)) {
+        PRINTF("Invalid data\n");
+        return NULL;
+    }
+
+    for (uint8_t i = 0; i < bip32->length; i++) {
+        bip32->path[i] = U4BE(dataBuffer, 0);
+        dataBuffer += sizeof(uint32_t);
+        *dataLength -= sizeof(uint32_t);
+    }
+
+    return dataBuffer;
+}
 
 void handleApdu(unsigned int *flags, unsigned int *tx) {
     unsigned short sw = 0;
@@ -623,12 +664,11 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
 
                 case INS_SIGN_PERSONAL_MESSAGE:
                     memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
+                    *flags |= IO_ASYNCH_REPLY;
                     handleSignPersonalMessage(G_io_apdu_buffer[OFFSET_P1],
                                               G_io_apdu_buffer[OFFSET_P2],
                                               G_io_apdu_buffer + OFFSET_CDATA,
-                                              G_io_apdu_buffer[OFFSET_LC],
-                                              flags,
-                                              tx);
+                                              G_io_apdu_buffer[OFFSET_LC]);
                     break;
 
                 case INS_SIGN_EIP_712_MESSAGE:
@@ -730,9 +770,11 @@ void app_main(void) {
                 // no apdu received, well, reset the session, and reset the
                 // bootloader configuration
                 if (rx == 0) {
-                    THROW(0x6982);
+                    THROW(ERR_APDU_EMPTY);
                 }
-                PRINTF("New APDU received:\n%.*H\n", rx, G_io_apdu_buffer);
+                if (rx > OFFSET_LC && rx != (G_io_apdu_buffer[OFFSET_LC] + 5)) {
+                    THROW(ERR_APDU_SIZE_MISMATCH);
+                }
 
                 handleApdu(&flags, &tx);
             }

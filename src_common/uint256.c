@@ -476,6 +476,11 @@ bool tostring256(uint256_t *number, uint32_t baseParam, char *out, uint32_t outL
         divmod256(&rDiv, &base, &rDiv, &rMod);
         out[offset++] = HEXDIGITS[(uint8_t) LOWER(LOWER(rMod))];
     } while (!zero256(&rDiv));
+
+    if (offset > (outLength - 1)) {
+        return false;
+    }
+
     out[offset] = '\0';
     reverseString(out, offset);
     return true;

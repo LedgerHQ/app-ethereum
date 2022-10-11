@@ -1,6 +1,6 @@
 #include "os_io_seproxyhal.h"
 #include "shared_context.h"
-#include "ui_callbacks.h"
+#include "common_ui.h"
 
 static const uint8_t EIP_712_MAGIC[] = {0x19, 0x01};
 
@@ -34,8 +34,8 @@ unsigned int io_seproxyhal_touch_signMessage712_v0_ok(__attribute__((unused))
     PRINTF("EIP712 hash to sign %.*H\n", 32, hash);
     io_seproxyhal_io_heartbeat();
     os_perso_derive_node_bip32(CX_CURVE_256K1,
-                               tmpCtx.messageSigningContext712.bip32Path,
-                               tmpCtx.messageSigningContext712.pathLength,
+                               tmpCtx.messageSigningContext712.bip32.path,
+                               tmpCtx.messageSigningContext712.bip32.length,
                                privateKeyData,
                                NULL);
     io_seproxyhal_io_heartbeat();

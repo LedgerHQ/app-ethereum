@@ -5,7 +5,7 @@
 
 void handleSetEth2WithdrawalIndex(uint8_t p1,
                                   uint8_t p2,
-                                  uint8_t *dataBuffer,
+                                  const uint8_t *dataBuffer,
                                   uint16_t dataLength,
                                   __attribute__((unused)) unsigned int *flags,
                                   __attribute__((unused)) unsigned int *tx) {

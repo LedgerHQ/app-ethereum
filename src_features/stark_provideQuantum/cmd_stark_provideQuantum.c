@@ -2,12 +2,12 @@
 
 #include "shared_context.h"
 #include "apdu_constants.h"
-#include "ui_flow.h"
 #include "ethUtils.h"
+#include "common_ui.h"
 
 void handleStarkwareProvideQuantum(uint8_t p1,
                                    __attribute__((unused)) uint8_t p2,
-                                   uint8_t *dataBuffer,
+                                   const uint8_t *dataBuffer,
                                    uint16_t dataLength,
                                    __attribute__((unused)) unsigned int *flags,
                                    __attribute__((unused)) unsigned int *tx) {
@@ -35,7 +35,7 @@ void handleStarkwareProvideQuantum(uint8_t p1,
         THROW(0x6700);
     }
     if (p1 == STARK_QUANTUM_LEGACY) {
-        addressZero = allzeroes(dataBuffer, 20);
+        addressZero = allzeroes((void *) dataBuffer, 20);
     }
     if ((p1 != STARK_QUANTUM_ETH) && !addressZero) {
         for (i = 0; i < MAX_ITEMS; i++) {

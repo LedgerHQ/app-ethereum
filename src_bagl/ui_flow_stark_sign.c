@@ -3,18 +3,7 @@
 #include "shared_context.h"
 #include "ui_callbacks.h"
 #include "ethUtils.h"
-
-void stark_sign_display_master_account() {
-    snprintf(strings.tmp.tmp,
-             sizeof(strings.tmp.tmp),
-             "0x%.*H",
-             32,
-             dataContext.starkContext.transferDestination);
-}
-
-void stark_sign_display_condition_fact() {
-    snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "0x%.*H", 32, dataContext.starkContext.fact);
-}
+#include "starkDisplayUtils.h"
 
 // clang-format off
 UX_STEP_NOCB(ux_stark_limit_order_1_step,

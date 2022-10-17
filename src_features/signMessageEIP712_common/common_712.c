@@ -2,6 +2,8 @@
 #include "os_io_seproxyhal.h"
 #include "ui_callbacks.h"
 #include "common_712.h"
+#include "ui_callbacks.h"
+#include "common_ui.h"
 
 static const uint8_t EIP_712_MAGIC[] = {0x19, 0x01};
 

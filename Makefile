@@ -33,10 +33,10 @@ APP_LOAD_PARAMS += --path "1517992542'/1101353413'"
 ##################
 
 APPVERSION_M=1
-APPVERSION_N=9
-APPVERSION_P=20
+APPVERSION_N=10
+APPVERSION_P=0
 APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)-dev
-APP_LOAD_FLAGS= --appFlags 0x240 --dep Ethereum:$(APPVERSION)
+APP_LOAD_FLAGS= --appFlags 0xa40 --dep Ethereum:$(APPVERSION)
 
 ###########################
 # Set Chain environnement #

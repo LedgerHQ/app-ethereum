@@ -1,199 +1,283 @@
 #include <stdbool.h>
-#include "shared_context.h"
+#include <ctype.h>
+#include <string.h>
 #include "apdu_constants.h"
-#include "utils.h"
+#include "sign_message.h"
 #include "common_ui.h"
+
+static uint8_t processed_size;
+static struct {
+    sign_message_state sign_state : 1;
+    bool ui_started : 1;
+} states;
 
 static const char SIGN_MAGIC[] =
     "\x19"
     "Ethereum Signed Message:\n";
 
 /**
- * Check if a given character is a "special" displayable ASCII character
+ * Send a response APDU with the given Status Word
  *
- * @param[in] c character we're checking
- * @return whether the character is special or not
+ * @param[in] sw status word
  */
-static inline bool is_char_special(char c) {
-    return ((c >= '\b') && (c <= '\r'));
+static void apdu_reply(uint16_t sw) {
+    G_io_apdu_buffer[0] = (sw >> 8) & 0xff;
+    G_io_apdu_buffer[1] = sw & 0xff;
+    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
 }
 
 /**
- * Check if a given data is made of ASCII characters
+ * Get unprocessed data from last received APDU
  *
- * @param[in] data the input data
- * @param[in] the length of the input data
- * @return whether the data is fully ASCII or not
+ * @return pointer to data in APDU buffer
  */
-static bool is_data_ascii(const uint8_t *const data, size_t length) {
-    for (uint8_t idx = 0; idx < length; ++idx) {
-        if (!is_char_special(data[idx]) && ((data[idx] < 0x20) || (data[idx] > 0x7e))) {
+static const uint8_t *unprocessed_data(void) {
+    return &G_io_apdu_buffer[OFFSET_CDATA] + processed_size;
+}
+
+/**
+ * Get size of unprocessed data from last received APDU
+ *
+ * @return size of data in bytes
+ */
+static size_t unprocessed_length(void) {
+    return G_io_apdu_buffer[OFFSET_LC] - processed_size;
+}
+
+/**
+ * Get used space from UI buffer
+ *
+ * @return size in bytes
+ */
+static size_t ui_buffer_length(void) {
+    return strlen(UI_191_BUFFER);
+}
+
+/**
+ * Get remaining space from UI buffer
+ *
+ * @return size in bytes
+ */
+static size_t remaining_ui_buffer_length(void) {
+    // -1 for the ending NULL byte
+    return (sizeof(UI_191_BUFFER) - 1) - ui_buffer_length();
+}
+
+/**
+ * Get free space from UI buffer
+ *
+ * @return pointer to the free space
+ */
+static char *remaining_ui_buffer(void) {
+    return &UI_191_BUFFER[ui_buffer_length()];
+}
+
+/**
+ * Reset the UI buffer
+ *
+ * Simply sets its first byte to a NULL character
+ */
+static void reset_ui_buffer(void) {
+    UI_191_BUFFER[0] = '\0';
+}
+
+/**
+ * Handle the data specific to the first APDU of an EIP-191 signature
+ *
+ * @param[in] data the APDU payload
+ * @param[in] length the payload size
+ * @return pointer to the start of the start of the message; \ref NULL if it failed
+ */
+static const uint8_t *first_apdu_data(const uint8_t *data, uint8_t *length) {
+    if (appState != APP_STATE_IDLE) {
+        reset_app_context();
+    }
+    appState = APP_STATE_SIGNING_MESSAGE;
+    data = parseBip32(data, length, &tmpCtx.messageSigningContext.bip32);
+    if (data == NULL) {
+        apdu_reply(0x6a80);
+        return NULL;
+    }
+
+    if (*length < sizeof(uint32_t)) {
+        PRINTF("Invalid data\n");
+        apdu_reply(0x6a80);
+        return NULL;
+    }
+
+    tmpCtx.messageSigningContext.remainingLength = U4BE(data, 0);
+    data += sizeof(uint32_t);
+    *length -= sizeof(uint32_t);
+
+    // Initialize message header + length
+    cx_keccak_init(&global_sha3, 256);
+    cx_hash((cx_hash_t *) &global_sha3, 0, (uint8_t *) SIGN_MAGIC, sizeof(SIGN_MAGIC) - 1, NULL, 0);
+    snprintf(strings.tmp.tmp2,
+             sizeof(strings.tmp.tmp2),
+             "%u",
+             tmpCtx.messageSigningContext.remainingLength);
+    cx_hash((cx_hash_t *) &global_sha3,
+            0,
+            (uint8_t *) strings.tmp.tmp2,
+            strlen(strings.tmp.tmp2),
+            NULL,
+            0);
+    reset_ui_buffer();
+    states.sign_state = STATE_191_HASH_DISPLAY;
+    states.ui_started = false;
+    return data;
+}
+
+/**
+ * Feed the progressive hash with new data
+ *
+ * @param[in] data the new data
+ * @param[in] length the data length
+ * @return whether it was successful or not
+ */
+static bool feed_hash(const uint8_t *const data, const uint8_t length) {
+    if (length > tmpCtx.messageSigningContext.remainingLength) {
+        PRINTF("Error: Length mismatch ! (%u > %u)!\n",
+               length,
+               tmpCtx.messageSigningContext.remainingLength);
+        apdu_reply(0x6a80);
+        return false;
+    }
+    cx_hash((cx_hash_t *) &global_sha3, 0, data, length, NULL, 0);
+    if ((tmpCtx.messageSigningContext.remainingLength -= length) == 0) {
+        // Finalize hash
+        cx_hash((cx_hash_t *) &global_sha3,
+                CX_LAST,
+                NULL,
+                0,
+                tmpCtx.messageSigningContext.hash,
+                32);
+    }
+    return true;
+}
+
+/**
+ * Feed the UI with new data
+ */
+static void feed_display(void) {
+    int c;
+
+    while ((unprocessed_length() > 0) && (remaining_ui_buffer_length() > 0)) {
+        c = *(char *) unprocessed_data();
+        if (isspace(c))  // to replace all white-space characters as spaces
+        {
+            c = ' ';
+        }
+        if (isprint(c)) {
+            sprintf(remaining_ui_buffer(), "%c", (char) c);
+            processed_size += 1;
+        } else {
+            if (remaining_ui_buffer_length() >= 4)  // 4 being the fixed length of \x00
+            {
+                snprintf(remaining_ui_buffer(), remaining_ui_buffer_length(), "\\x%02x", c);
+                processed_size += 1;
+            } else {
+                // fill the rest of the UI buffer spaces, to consider the buffer full
+                memset(remaining_ui_buffer(), ' ', remaining_ui_buffer_length());
+            }
+        }
+    }
+
+    if ((remaining_ui_buffer_length() == 0) ||
+        (tmpCtx.messageSigningContext.remainingLength == 0)) {
+        if (!states.ui_started) {
+            ui_191_start();
+            states.ui_started = true;
+        } else {
+            ui_191_switch_to_message();
+        }
+    }
+
+    if ((unprocessed_length() == 0) && (tmpCtx.messageSigningContext.remainingLength > 0)) {
+        apdu_reply(0x9000);
+    }
+}
+
+/**
+ * EIP-191 APDU handler
+ *
+ * @param[in] p1 instruction parameter 1
+ * @param[in] p2 instruction parameter 2
+ * @param[in] payload received data
+ * @param[in] length data length
+ * @return whether the handling of the APDU was successful or not
+ */
+bool handleSignPersonalMessage(uint8_t p1,
+                               uint8_t p2,
+                               const uint8_t *const payload,
+                               uint8_t length) {
+    const uint8_t *data = payload;
+
+    (void) p2;
+    processed_size = 0;
+    if (p1 == P1_FIRST) {
+        if ((data = first_apdu_data(data, &length)) == NULL) {
             return false;
+        }
+        processed_size = data - payload;
+    } else if (p1 != P1_MORE) {
+        PRINTF("Error: Unexpected P1 (%u)!\n", p1);
+        apdu_reply(0x6B00);
+        return false;
+    }
+
+    if (!feed_hash(data, length)) {
+        return false;
+    }
+
+    if (states.sign_state == STATE_191_HASH_DISPLAY) {
+        feed_display();
+    } else  // hash only
+    {
+        if (tmpCtx.messageSigningContext.remainingLength == 0) {
+#ifdef NO_CONSENT
+            io_seproxyhal_touch_signMessage_ok();
+#else
+            ui_191_switch_to_sign();
+#endif
+        } else {
+            apdu_reply(0x9000);
         }
     }
     return true;
 }
 
 /**
- * Initialize value string that will be displayed in the UX STEP
- *
- * @param[in] if the value is ASCII
+ * Decide whether to show the question to show more of the message or not
  */
-static void init_value_str(bool is_ascii) {
-    if (is_ascii) {
-        strings.tmp.tmp[0] = '\0';  // init string as empty
+void question_switcher(void) {
+    if ((states.sign_state == STATE_191_HASH_DISPLAY) &&
+        ((tmpCtx.messageSigningContext.remainingLength > 0) || (unprocessed_length() > 0))) {
+        ui_191_switch_to_question();
     } else {
-        strcpy(strings.tmp.tmp, "0x");  // will display the hex bytes instead
+        // Go to Sign / Cancel
+        ui_191_switch_to_sign();
     }
 }
 
 /**
- * @return Whether the currently stored data is initialized as ASCII or not
+ * The user has decided to skip the rest of the message
  */
-static bool is_value_str_ascii() {
-    return (memcmp(strings.tmp.tmp, "0x", 2) != 0);
+void skip_rest_of_message(void) {
+    states.sign_state = STATE_191_HASH_ONLY;
+    if (tmpCtx.messageSigningContext.remainingLength > 0) {
+        apdu_reply(0x9000);
+    } else {
+        ui_191_switch_to_sign();
+    }
 }
 
 /**
- * Update the global UI string variable by formatting & appending the new data to it
- *
- * @param[in] data the input data
- * @param[in] length the data length
- * @param[in] is_ascii whether the data is ASCII or not
+ * The user has decided to see the next chunk of the message
  */
-static void feed_value_str(const uint8_t *const data, size_t length, bool is_ascii) {
-    uint16_t value_strlen = strlen(strings.tmp.tmp);
-
-    if ((value_strlen + 1) < sizeof(strings.tmp.tmp)) {
-        if (is_ascii) {
-            uint8_t src_idx = 0;
-            uint16_t dst_idx = value_strlen;
-            bool prev_is_special = false;
-
-            while ((src_idx < length) && (dst_idx < sizeof(strings.tmp.tmp))) {
-                if (prev_is_special) {
-                    if (!is_char_special(data[src_idx])) {
-                        prev_is_special = false;
-                    }
-                } else {
-                    if (is_char_special(data[src_idx])) {
-                        prev_is_special = true;
-                        strings.tmp.tmp[dst_idx] = ' ';
-                        dst_idx += 1;
-                    }
-                }
-                if (!is_char_special(data[src_idx])) {
-                    strings.tmp.tmp[dst_idx] = data[src_idx];
-                    dst_idx += 1;
-                }
-                src_idx += 1;
-            }
-
-            if (dst_idx < sizeof(strings.tmp.tmp)) {
-                strings.tmp.tmp[dst_idx] = '\0';
-            } else {
-                const char marker[] = "...";
-
-                memcpy(strings.tmp.tmp + sizeof(strings.tmp.tmp) - sizeof(marker),
-                       marker,
-                       sizeof(marker));
-            }
-        } else {
-            // truncate to strings.tmp.tmp 's size
-            length = MIN(length, (sizeof(strings.tmp.tmp) - value_strlen) / 2);
-            for (size_t i = 0; i < length; i++) {
-                snprintf(strings.tmp.tmp + value_strlen + 2 * i,
-                         sizeof(strings.tmp.tmp) - value_strlen - 2 * i,
-                         "%02X",
-                         data[i]);
-            }
-        }
-    }
-}
-
-void handleSignPersonalMessage(uint8_t p1,
-                               uint8_t p2,
-                               const uint8_t *workBuffer,
-                               uint8_t dataLength,
-                               unsigned int *flags,
-                               unsigned int *tx) {
-    UNUSED(tx);
-    uint8_t hashMessage[INT256_LENGTH];
-
-    if (p1 == P1_FIRST) {
-        char tmp[11] = {0};
-
-        if (appState != APP_STATE_IDLE) {
-            reset_app_context();
-        }
-        appState = APP_STATE_SIGNING_MESSAGE;
-
-        workBuffer = parseBip32(workBuffer, &dataLength, &tmpCtx.messageSigningContext.bip32);
-
-        if (workBuffer == NULL) {
-            THROW(0x6a80);
-        }
-
-        if (dataLength < sizeof(uint32_t)) {
-            PRINTF("Invalid data\n");
-            THROW(0x6a80);
-        }
-
-        tmpCtx.messageSigningContext.remainingLength = U4BE(workBuffer, 0);
-        workBuffer += sizeof(uint32_t);
-        dataLength -= sizeof(uint32_t);
-        // Initialize message header + length
-        cx_keccak_init(&global_sha3, 256);
-        cx_hash((cx_hash_t *) &global_sha3,
-                0,
-                (uint8_t *) SIGN_MAGIC,
-                sizeof(SIGN_MAGIC) - 1,
-                NULL,
-                0);
-        snprintf(tmp, sizeof(tmp), "%u", tmpCtx.messageSigningContext.remainingLength);
-        cx_hash((cx_hash_t *) &global_sha3, 0, (uint8_t *) tmp, strlen(tmp), NULL, 0);
-        cx_sha256_init(&tmpContent.sha2);
-
-        init_value_str(is_data_ascii(workBuffer, dataLength));
-
-    } else if (p1 != P1_MORE) {
-        THROW(0x6B00);
-    }
-    if (p2 != 0) {
-        THROW(0x6B00);
-    }
-    if ((p1 == P1_MORE) && (appState != APP_STATE_SIGNING_MESSAGE)) {
-        PRINTF("Signature not initialized\n");
-        THROW(0x6985);
-    }
-    if (dataLength > tmpCtx.messageSigningContext.remainingLength) {
-        THROW(0x6A80);
-    }
-
-    cx_hash((cx_hash_t *) &global_sha3, 0, workBuffer, dataLength, NULL, 0);
-    cx_hash((cx_hash_t *) &tmpContent.sha2, 0, workBuffer, dataLength, NULL, 0);
-    tmpCtx.messageSigningContext.remainingLength -= dataLength;
-
-    feed_value_str(workBuffer, dataLength, is_value_str_ascii());
-
-    if (tmpCtx.messageSigningContext.remainingLength == 0) {
-        cx_hash((cx_hash_t *) &global_sha3,
-                CX_LAST,
-                workBuffer,
-                0,
-                tmpCtx.messageSigningContext.hash,
-                32);
-        cx_hash((cx_hash_t *) &tmpContent.sha2, CX_LAST, workBuffer, 0, hashMessage, 32);
-
-#ifdef NO_CONSENT
-        io_seproxyhal_touch_signMessage_ok(NULL);
-#else   // NO_CONSENT
-        ui_display_sign();
-#endif  // NO_CONSENT
-
-        *flags |= IO_ASYNCH_REPLY;
-
-    } else {
-        THROW(0x9000);
+void continue_displaying_message(void) {
+    reset_ui_buffer();
+    if (unprocessed_length() > 0) {
+        feed_display();
     }
 }

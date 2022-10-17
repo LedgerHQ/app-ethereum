@@ -666,12 +666,11 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
 
                 case INS_SIGN_PERSONAL_MESSAGE:
                     memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
+                    *flags |= IO_ASYNCH_REPLY;
                     handleSignPersonalMessage(G_io_apdu_buffer[OFFSET_P1],
                                               G_io_apdu_buffer[OFFSET_P2],
                                               G_io_apdu_buffer + OFFSET_CDATA,
-                                              G_io_apdu_buffer[OFFSET_LC],
-                                              flags,
-                                              tx);
+                                              G_io_apdu_buffer[OFFSET_LC]);
                     break;
 
                 case INS_SIGN_EIP_712_MESSAGE:
@@ -799,9 +798,11 @@ void app_main(void) {
                 // no apdu received, well, reset the session, and reset the
                 // bootloader configuration
                 if (rx == 0) {
-                    THROW(0x6982);
+                    THROW(ERR_APDU_EMPTY);
                 }
-                PRINTF("New APDU received:\n%.*H\n", rx, G_io_apdu_buffer);
+                if (rx > OFFSET_LC && rx != (G_io_apdu_buffer[OFFSET_LC] + 5)) {
+                    THROW(ERR_APDU_SIZE_MISMATCH);
+                }
 
                 handleApdu(&flags, &tx);
             }

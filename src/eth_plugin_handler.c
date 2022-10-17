@@ -348,13 +348,13 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
             }
             break;
         case ETH_PLUGIN_QUERY_CONTRACT_ID:
-            if (((ethQueryContractID_t *) parameter)->result <= ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
-                return ETH_PLUGIN_RESULT_UNAVAILABLE;
+            if (((ethQueryContractID_t *) parameter)->result != ETH_PLUGIN_RESULT_OK) {
+                return ETH_PLUGIN_RESULT_ERROR;
             }
             break;
         case ETH_PLUGIN_QUERY_CONTRACT_UI:
-            if (((ethQueryContractUI_t *) parameter)->result <= ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
-                return ETH_PLUGIN_RESULT_UNAVAILABLE;
+            if (((ethQueryContractUI_t *) parameter)->result != ETH_PLUGIN_RESULT_OK) {
+                return ETH_PLUGIN_RESULT_ERROR;
             }
             break;
         default:

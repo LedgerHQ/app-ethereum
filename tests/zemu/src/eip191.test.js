@@ -34,7 +34,7 @@ nano_models.forEach(function(model) {
 
         await waitForAppScreen(sim);
 
-        const rclicks = (model.letter == 'S') ? 6 : 4;
+        const rclicks = (model.letter == 'S') ? 8 : 4;
         await sim.navigateAndCompareSnapshots('.', model.name + '_eip191_nonascii', [rclicks, -1, 0]);
 
         await expect(tx).resolves.toEqual({
@@ -54,7 +54,14 @@ nano_models.forEach(function(model) {
 
         await waitForAppScreen(sim);
 
-        await sim.navigateAndCompareSnapshots('.', model.name + '_eip191_opensea', [7, -1, 0]);
+        if (model.letter == 'S')
+        {
+            await sim.navigateAndCompareSnapshots('.', model.name + '_eip191_opensea', [1, 5, 1, 6, 0, 1, -1, 0]);
+        }
+        else
+        {
+            await sim.navigateAndCompareSnapshots('.', model.name + '_eip191_opensea', [1, 5, 1, 2, 1, -1, 0]);
+        }
 
         await expect(tx).resolves.toEqual({
             "v": 28,

@@ -8,8 +8,8 @@
 #define MAX_NETWORK_TICKER_LEN 8
 
 typedef struct network_info_s {
-    const char name[NETWORK_STRING_MAX_SIZE];
-    const char ticker[MAX_NETWORK_TICKER_LEN];
+    const char *name;
+    const char *ticker;
     uint64_t chain_id;
 } network_info_t;
 

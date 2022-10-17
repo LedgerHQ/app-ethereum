@@ -49,7 +49,7 @@ void handle_eip712_return_code(bool success) {
 bool handle_eip712_struct_def(const uint8_t *const apdu_buf) {
     bool ret = true;
 
-    if (eip712_context == NULL) {
+    if (eip712_context == NULL || struct_state == DEFINED) {
         ret = eip712_context_init();
     }
     if (ret) {

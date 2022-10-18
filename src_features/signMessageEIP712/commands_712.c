@@ -52,6 +52,11 @@ bool handle_eip712_struct_def(const uint8_t *const apdu_buf) {
     if (eip712_context == NULL) {
         ret = eip712_context_init();
     }
+
+    if (struct_state == DEFINED) {
+        ret = false;
+    }
+
     if (ret) {
         switch (apdu_buf[OFFSET_P2]) {
             case P2_DEF_NAME:

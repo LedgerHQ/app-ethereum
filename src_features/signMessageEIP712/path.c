@@ -363,6 +363,8 @@ bool path_set_root(const char *const struct_name, uint8_t name_length) {
         path_struct->root_type = ROOT_MESSAGE;
     }
 
+    struct_state = DEFINED;
+
     // because the first field could be a struct type
     path_update();
     return true;

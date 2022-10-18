@@ -13,6 +13,7 @@
 #include "schema_hash.h"
 #include "filtering.h"
 #include "common_712.h"
+#include "ethUtils.h"  // allzeroes
 
 /**
  * Send the response to the previous APDU command
@@ -184,6 +185,14 @@ bool handle_eip712_sign(const uint8_t *const apdu_buf) {
     uint8_t length = apdu_buf[OFFSET_LC];
 
     if (eip712_context == NULL) {
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+    }
+    // if the final hashes are still zero or if there are some unimplemented fields
+    else if (allzeroes(tmpCtx.messageSigningContext712.domainHash,
+                       sizeof(tmpCtx.messageSigningContext712.domainHash)) ||
+             allzeroes(tmpCtx.messageSigningContext712.messageHash,
+                       sizeof(tmpCtx.messageSigningContext712.messageHash)) ||
+             (path_get_field() != NULL)) {
         apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
     } else if ((ui_712_get_filtering_mode() == EIP712_FILTERING_FULL) &&
                (ui_712_remaining_filters() != 0)) {

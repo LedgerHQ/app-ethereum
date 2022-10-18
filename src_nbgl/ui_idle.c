@@ -1,6 +1,7 @@
 #include "common_ui.h"
 #include "ui_nbgl.h"
 #include "nbgl_use_case.h"
+#include "glyphs.h"
 
 nbgl_page_t* pageContext;
 
@@ -18,10 +19,5 @@ void app_quit(void) {
 }
 
 void ui_idle(void) {
-    nbgl_useCaseHome(APPNAME,
-                     NULL,
-                     APPNAME,
-                     true,
-                     ui_menu_settings,
-                     app_quit);
+    nbgl_useCaseHome(APPNAME, &ICONGLYPH, APPNAME, true, ui_menu_settings, app_quit);
 }

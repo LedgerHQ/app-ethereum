@@ -6,8 +6,6 @@
 #include "mem.h"
 #include "mem_utils.h"
 #include "os_io.h"
-#include "ux_flow_engine.h"
-#include "ui_flow_712.h"
 #include "shared_context.h"
 #include "ethUtils.h"  // getEthDisplayableAddress
 #include "utils.h"     // uint256_to_decimal
@@ -18,6 +16,7 @@
 #include "apdu_constants.h"  // APDU response codes
 #include "typed_data.h"
 #include "commands_712.h"
+#include "common_ui.h"
 
 static t_ui_context *ui_ctx = NULL;
 
@@ -106,43 +105,34 @@ void ui_712_set_value(const char *const str, uint8_t length) {
 void ui_712_redraw_generic_step(void) {
     if (!ui_ctx->shown)  // Initialize if it is not already
     {
-        ux_flow_init(0, ux_712_flow, NULL);
+        ui_712_start();
         ui_ctx->shown = true;
     } else {
-        // not pretty, manually changes the internal state of the UX flow
-        // so that we always land on the first screen of a paging step without any visible
-        // screen glitching (quick screen switching)
-        G_ux.flow_stack[G_ux.stack_count - 1].index = 0;
-        // since the flow now thinks we are displaying the first step, do next
-        ux_flow_next();
+        ui_712_switch_to_message();
     }
 }
 
 /**
- * Called on the intermediate dummy screen between the dynamic step
- * && the approve/reject screen
+ * Called to fetch the next field if they have not all been processed yet
+ *
+ * @return whether there will be a next field
  */
-void ui_712_next_field(void) {
+bool ui_712_next_field(void) {
+    bool next = false;
+
     if (ui_ctx == NULL) {
         apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
-        return;
-    }
-    if (ui_ctx->structs_to_review > 0) {
-        ui_712_review_struct(path_get_nth_field_to_last(ui_ctx->structs_to_review));
-        ui_ctx->structs_to_review -= 1;
     } else {
+        if (ui_ctx->structs_to_review > 0) {
+            ui_712_review_struct(path_get_nth_field_to_last(ui_ctx->structs_to_review));
+            ui_ctx->structs_to_review -= 1;
+        }
         if (!ui_ctx->end_reached) {
             handle_eip712_return_code(true);
-        } else {
-            if (ui_ctx->pos == UI_712_POS_REVIEW) {
-                ux_flow_next();
-                ui_ctx->pos = UI_712_POS_END;
-            } else {
-                ux_flow_prev();
-                ui_ctx->pos = UI_712_POS_REVIEW;
-            }
+            next = true;
         }
     }
+    return next;
 }
 
 /**
@@ -419,7 +409,7 @@ void ui_712_end_sign(void) {
     ui_ctx->end_reached = true;
 
     if (N_storage.verbose_eip712 || (ui_ctx->filtering_mode == EIP712_FILTERING_FULL)) {
-        ui_712_next_field();
+        ui_712_switch_to_sign();
     }
 }
 
@@ -430,7 +420,6 @@ bool ui_712_init(void) {
     if ((ui_ctx = MEM_ALLOC_AND_ALIGN_TYPE(*ui_ctx))) {
         ui_ctx->shown = false;
         ui_ctx->end_reached = false;
-        ui_ctx->pos = UI_712_POS_REVIEW;
         ui_ctx->filtering_mode = EIP712_FILTERING_BASIC;
     } else {
         apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;

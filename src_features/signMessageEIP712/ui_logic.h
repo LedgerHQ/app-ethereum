@@ -11,12 +11,9 @@
 
 typedef enum { EIP712_FILTERING_BASIC, EIP712_FILTERING_FULL } e_eip712_filtering_mode;
 
-typedef enum { UI_712_POS_REVIEW, UI_712_POS_END } e_ui_position;
-
 typedef struct {
     bool shown;
     bool end_reached;
-    e_ui_position pos;
     uint8_t filtering_mode;
     uint8_t filters_to_process;
     uint8_t field_flags;
@@ -25,7 +22,7 @@ typedef struct {
 
 bool ui_712_init(void);
 void ui_712_deinit(void);
-void ui_712_next_field(void);
+bool ui_712_next_field(void);
 void ui_712_review_struct(const void *const struct_ptr);
 bool ui_712_new_field(const void *const field_ptr, const uint8_t *const data, uint8_t length);
 void ui_712_end_sign(void);

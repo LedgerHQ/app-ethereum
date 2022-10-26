@@ -33,7 +33,8 @@ static bool format_hash_field_type_size(const void *const field_ptr, cx_hash_t *
             apdu_response_code = APDU_RESPONSE_INVALID_DATA;
             return false;
     }
-    if ((uint_str_ptr = mem_alloc_and_format_uint(field_size, &uint_str_len)) == NULL) {
+    uint_str_ptr = mem_alloc_and_format_uint(field_size, &uint_str_len);
+    if (uint_str_ptr == NULL) {
         apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
         return false;
     }

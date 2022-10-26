@@ -111,7 +111,7 @@ static void sort_dependencies(uint8_t deps_count, const void **deps) {
  * @param[out] deps_count count of how many struct dependencie pointers
  * @param[in] first_dep pointer to the first dependency pointer
  * @param[in] struct_ptr pointer to the struct we are getting the dependencies of
- * @return \ref false in case of a memory allocation error, \ref true otherwise
+ * @return pointer to the first found dependency, \ref NULL otherwise
  */
 static const void **get_struct_dependencies(uint8_t *const deps_count,
                                             const void **first_dep,

@@ -136,7 +136,7 @@ static bool path_depth_list_push(void) {
  * @return pointer to the hashing context
  */
 static cx_sha3_t *get_last_hash_ctx(void) {
-    return (cx_sha3_t *) mem_alloc(0) - 1;
+    return ((cx_sha3_t *) mem_alloc(0)) - 1;
 }
 
 /**

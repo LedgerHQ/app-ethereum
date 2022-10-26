@@ -94,7 +94,8 @@ bool handle_eip712_struct_impl(const uint8_t *const apdu_buf) {
         switch (apdu_buf[OFFSET_P2]) {
             case P2_IMPL_NAME:
                 // set root type
-                if ((ret = path_set_root((char *) &apdu_buf[OFFSET_CDATA], apdu_buf[OFFSET_LC]))) {
+                ret = path_set_root((char *) &apdu_buf[OFFSET_CDATA], apdu_buf[OFFSET_LC]);
+                if (ret) {
                     if (N_storage.verbose_eip712) {
                         ui_712_review_struct(path_get_root());
                         reply_apdu = false;

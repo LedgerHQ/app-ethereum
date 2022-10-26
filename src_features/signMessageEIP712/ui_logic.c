@@ -64,7 +64,7 @@ static void ui_712_set_buf(const char *const src,
     }
     memcpy(dst, src, cpy_length);
     dst[cpy_length] = '\0';
-    if (explicit_trunc && (src_length > dst_length)) {
+    if (explicit_trunc && (cpy_length < src_length)) {
         memcpy(dst + cpy_length - 3, "...", 3);
     }
 }

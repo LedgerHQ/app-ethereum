@@ -137,6 +137,22 @@ DEFINES += HAVE_NFT_TESTING_KEY
 endif
 endif
 
+# Dynamic memory allocator
+ifneq ($(TARGET_NAME),TARGET_NANOS)
+DEFINES += HAVE_DYN_MEM_ALLOC
+endif
+
+# EIP-712
+ifneq ($(TARGET_NAME),TARGET_NANOS)
+DEFINES	+= HAVE_EIP712_FULL_SUPPORT
+endif
+
+# CryptoAssetsList testing key
+CAL_TESTING_KEY:=0
+ifneq ($(CAL_TESTING_KEY),0)
+DEFINES += HAVE_CAL_TESTING_KEY
+endif
+
 # Enabling debug PRINTF
 DEBUG:=0
 ifneq ($(DEBUG),0)

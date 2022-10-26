@@ -1,10 +1,19 @@
 #include "shared_context.h"
+#include "ui_callbacks.h"
 #include "common_ui.h"
+#include "utils.h"
+
+#define ENABLED_STR   "Enabled"
+#define DISABLED_STR  "Disabled"
+#define BUF_INCREMENT (MAX(strlen(ENABLED_STR), strlen(DISABLED_STR)) + 1)
 
 void display_settings(const ux_flow_step_t* const start_step);
 void switch_settings_blind_signing(void);
 void switch_settings_display_data(void);
 void switch_settings_display_nonce(void);
+#ifdef HAVE_EIP712_FULL_SUPPORT
+void switch_settings_verbose_eip712(void);
+#endif  // HAVE_EIP712_FULL_SUPPORT
 
 //////////////////////////////////////////////////////////////////////
 // clang-format off
@@ -48,75 +57,83 @@ UX_FLOW(ux_idle_flow,
         &ux_idle_flow_4_step,
         FLOW_LOOP);
 
-#if defined(TARGET_NANOS)
-
 // clang-format off
 UX_STEP_CB(
-    ux_settings_flow_1_step,
+    ux_settings_flow_blind_signing_step,
+#ifdef TARGET_NANOS
     bnnn_paging,
-    switch_settings_blind_signing(),
-    {
-      .title = "Blind signing",
-      .text = strings.common.fullAddress,
-    });
-
-UX_STEP_CB(
-    ux_settings_flow_2_step,
-    bnnn_paging,
-    switch_settings_display_data(),
-    {
-      .title = "Debug data",
-      .text = strings.common.fullAddress + 12
-    });
-
-UX_STEP_CB(
-    ux_settings_flow_3_step,
-    bnnn_paging,
-    switch_settings_display_nonce(),
-    {
-      .title = "Account nonce",
-      .text = strings.common.fullAddress + 26
-    });
-
 #else
-
-UX_STEP_CB(
-    ux_settings_flow_1_step,
     bnnn,
+#endif
     switch_settings_blind_signing(),
     {
+#ifdef TARGET_NANOS
+      .title = "Blind signing",
+      .text =
+#else
       "Blind signing",
-      "Enable transaction",
+      "Transaction",
       "blind signing",
-      strings.common.fullAddress,
+#endif
+      strings.common.fullAddress
     });
 
 UX_STEP_CB(
-    ux_settings_flow_2_step,
+    ux_settings_flow_display_data_step,
+#ifdef TARGET_NANOS
+    bnnn_paging,
+#else
     bnnn,
+#endif
     switch_settings_display_data(),
     {
+#ifdef TARGET_NANOS
+      .title = "Debug data",
+      .text =
+#else
       "Debug data",
-      "Display contract data",
+      "Show contract data",
       "details",
-      strings.common.fullAddress + 12
-    });
-
-  UX_STEP_CB(
-    ux_settings_flow_3_step,
-    bnnn,
-    switch_settings_display_nonce(),
-    {
-      "Nonce",
-      "Display account nonce",
-      "in transactions",
-      strings.common.fullAddress + 26
-    });
-
 #endif
+      strings.common.fullAddress + BUF_INCREMENT
+    });
 
 UX_STEP_CB(
-    ux_settings_flow_4_step,
+    ux_settings_flow_display_nonce_step,
+#ifdef TARGET_NANOS
+    bnnn_paging,
+#else
+    bnnn,
+#endif
+    switch_settings_display_nonce(),
+    {
+#ifdef TARGET_NANOS
+      .title = "Account nonce",
+      .text =
+#else
+      "Nonce",
+      "Show account nonce",
+      "in transactions",
+#endif
+      strings.common.fullAddress + (BUF_INCREMENT * 2)
+    });
+
+#ifdef HAVE_EIP712_FULL_SUPPORT
+UX_STEP_CB(
+    ux_settings_flow_verbose_eip712_step,
+    bnnn,
+    switch_settings_verbose_eip712(),
+    {
+      "Verbose EIP-712",
+      "Ignore filtering &",
+      "display raw content",
+      strings.common.fullAddress + (BUF_INCREMENT * 3)
+    });
+#endif // HAVE_EIP712_FULL_SUPPORT
+
+
+UX_STEP_CB(
+    ux_settings_flow_back_step,
     pb,
     ui_idle(),
     {
@@ -126,43 +143,63 @@ UX_STEP_CB(
 // clang-format on
 
 UX_FLOW(ux_settings_flow,
-        &ux_settings_flow_1_step,
-        &ux_settings_flow_2_step,
-        &ux_settings_flow_3_step,
-        &ux_settings_flow_4_step);
+        &ux_settings_flow_blind_signing_step,
+        &ux_settings_flow_display_data_step,
+        &ux_settings_flow_display_nonce_step,
+#ifdef HAVE_EIP712_FULL_SUPPORT
+        &ux_settings_flow_verbose_eip712_step,
+#endif  // HAVE_EIP712_FULL_SUPPORT
+        &ux_settings_flow_back_step);
 
 void display_settings(const ux_flow_step_t* const start_step) {
-    strlcpy(strings.common.fullAddress, (N_storage.dataAllowed ? "Enabled" : "NOT Enabled"), 12);
-    strlcpy(strings.common.fullAddress + 12,
-            (N_storage.contractDetails ? "Displayed" : "NOT Displayed"),
-            26 - 12);
-    strlcpy(strings.common.fullAddress + 26,
-            (N_storage.displayNonce ? "Displayed" : "NOT Displayed"),
-            sizeof(strings.common.fullAddress) - 26);
+    bool settings[] = {N_storage.dataAllowed,
+                       N_storage.contractDetails,
+                       N_storage.displayNonce,
+#ifdef HAVE_EIP712_FULL_SUPPORT
+                       N_storage.verbose_eip712
+#endif  // HAVE_EIP712_FULL_SUPPORT
+    };
+    uint8_t offset = 0;
+
+    for (unsigned int i = 0; i < ARRAY_SIZE(settings); ++i) {
+        strlcpy(strings.common.fullAddress + offset,
+                (settings[i] ? ENABLED_STR : DISABLED_STR),
+                sizeof(strings.common.fullAddress) - offset);
+        offset += BUF_INCREMENT;
+    }
+
     ux_flow_init(0, ux_settings_flow, start_step);
 }
 
-void switch_settings_blind_signing() {
+void switch_settings_blind_signing(void) {
     uint8_t value = (N_storage.dataAllowed ? 0 : 1);
     nvm_write((void*) &N_storage.dataAllowed, (void*) &value, sizeof(uint8_t));
-    display_settings(&ux_settings_flow_1_step);
+    display_settings(&ux_settings_flow_blind_signing_step);
 }
 
-void switch_settings_display_data() {
+void switch_settings_display_data(void) {
     uint8_t value = (N_storage.contractDetails ? 0 : 1);
     nvm_write((void*) &N_storage.contractDetails, (void*) &value, sizeof(uint8_t));
-    display_settings(&ux_settings_flow_2_step);
+    display_settings(&ux_settings_flow_display_data_step);
 }
 
-void switch_settings_display_nonce() {
+void switch_settings_display_nonce(void) {
     uint8_t value = (N_storage.displayNonce ? 0 : 1);
     nvm_write((void*) &N_storage.displayNonce, (void*) &value, sizeof(uint8_t));
-    display_settings(&ux_settings_flow_3_step);
+    display_settings(&ux_settings_flow_display_nonce_step);
 }
+
+#ifdef HAVE_EIP712_FULL_SUPPORT
+void switch_settings_verbose_eip712(void) {
+    bool value = !N_storage.verbose_eip712;
+    nvm_write((void*) &N_storage.verbose_eip712, (void*) &value, sizeof(value));
+    display_settings(&ux_settings_flow_verbose_eip712_step);
+}
+#endif  // HAVE_EIP712_FULL_SUPPORT
 
 //////////////////////////////////////////////////////////////////////
 // clang-format off
-#if defined(TARGET_NANOS)
+#ifdef TARGET_NANOS
 UX_STEP_CB(
     ux_warning_contract_data_step,
     bnnn_paging,
@@ -171,7 +208,7 @@ UX_STEP_CB(
       "Error",
       "Blind signing must be enabled in Settings",
     });
-#elif defined(TARGET_NANOX) || defined(TARGET_NANOS2)
+#else
 UX_STEP_CB(
     ux_warning_contract_data_step,
     pnn,

@@ -88,7 +88,7 @@ static void reset_ui_buffer(void) {
  * @param[in] length the payload size
  * @return pointer to the start of the start of the message; \ref NULL if it failed
  */
-static const uint8_t *first_apdu_data(const uint8_t *data, uint16_t *length) {
+static const uint8_t *first_apdu_data(const uint8_t *data, uint8_t *length) {
     if (appState != APP_STATE_IDLE) {
         reset_app_context();
     }
@@ -212,12 +212,11 @@ bool handleSignPersonalMessage(uint8_t p1,
                                const uint8_t *const payload,
                                uint8_t length) {
     const uint8_t *data = payload;
-    uint16_t u16_length = length;
 
     (void) p2;
     processed_size = 0;
     if (p1 == P1_FIRST) {
-        if ((data = first_apdu_data(data, &u16_length)) == NULL) {
+        if ((data = first_apdu_data(data, &length)) == NULL) {
             return false;
         }
         processed_size = data - payload;
@@ -227,7 +226,7 @@ bool handleSignPersonalMessage(uint8_t p1,
         return false;
     }
 
-    if (!feed_hash(data, u16_length)) {
+    if (!feed_hash(data, length)) {
         return false;
     }
 

@@ -1,0 +1,978 @@
+Ethereum application : Common Technical Specifications
+=======================================================
+Ledger Firmware Team <hello@ledger.fr>
+Application version 1.9.19 - 2022-05-17
+
+## Version history
+
+### 1.0
+  - Initial release
+
+### 1.1
+  - Add GET APP CONFIGURATION
+  - Add an option to return the chain code in GET ETH PUBLIC ADDRESS
+
+### 1.2
+  - Add SIGN ETH PERSONAL MESSAGE
+
+### 1.1.10
+  - Add PROVIDE ERC 20 TOKEN INFORMATION
+
+### 1.5.0
+  - Add SIGN ETH EIP 712
+  - Add GET ETH2 PUBLIC KEY
+
+### 1.7.6
+  - Add SET EXTERNAL PLUGIN
+
+### 1.9.13
+  - Add SET PLUGIN
+
+### 1.9.17
+  - Add PROVIDE NFT INFORMATION
+
+### 1.9.18
+  - Add PERFORM PRIVACY OPERATION
+
+### 1.10.0
+  - Add EIP712 STRUCT DEFINITION & EIP712 STRUCT IMPLEMENTATION
+  - Update to SIGN ETH EIP712
+
+## About
+
+This application describes the APDU messages interface to communicate with the Ethereum application.
+
+The application covers the following functionalities :
+
+  - Retrieve a public Ethereum address given a BIP 32 path
+  - Sign a basic Ethereum transaction given a BIP 32 path
+  - Provide callbacks to validate the data associated to an Ethereum transaction
+
+The application interface can be accessed over HID or BLE
+
+## General purpose APDUs
+
+### GET ETH PUBLIC ADDRESS
+
+#### Description
+
+This command returns the public key and Ethereum address for the given BIP 32 path.
+
+The address can be optionally checked on the device before being returned.
+
+#### Coding
+
+'Command'
+
+[width="80%"]
+|==============================================================================================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *Lc*     | *Le*
+|   E0  |   02   |  00 : return address
+
+                    01 : display address and confirm before returning
+                                      |   00 : do not return the chain code
+
+                                          01 : return the chain code | variable | variable
+|==============================================================================================================================
+
+'Input data'
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                                     | *Length*
+| Number of BIP 32 derivations to perform (max 10)                                  | 1
+| First derivation index (big endian)                                               | 4
+| ...                                                                               | 4
+| Last derivation index (big endian)                                                | 4
+|==============================================================================================================================
+
+'Output data'
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                                     | *Length*
+| Public Key length                                                                 | 1
+| Uncompressed Public Key                                                           | var
+| Ethereum address length                                                           | 1
+| Ethereum address                                                                  | var
+| Chain code if requested                                                           | 32
+|==============================================================================================================================
+
+
+### SIGN ETH TRANSACTION
+
+#### Description
+
+https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1559.md
+
+This command signs an Ethereum transaction after having the user validate the following parameters
+
+  - Gas price
+  - Gas limit
+  - Recipient address
+  - Value
+
+The input data is the RLP encoded transaction (as per https://github.com/ethereum/pyethereum/blob/develop/ethereum/transactions.py#L22), without v/r/s present, streamed to the device in 255 bytes maximum data chunks.
+
+#### Coding
+
+'Command'
+
+[width="80%"]
+|==============================================================================================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *Lc*     | *Le*
+|   E0  |   04   |  00 : first transaction data block
+
+                    80 : subsequent transaction data block
+                                      |   00 | variable | variable
+|==============================================================================================================================
+
+'Input data (first transaction data block)'
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                                     | *Length*
+| Number of BIP 32 derivations to perform (max 10)                                  | 1
+| First derivation index (big endian)                                               | 4
+| ...                                                                               | 4
+| Last derivation index (big endian)                                                | 4
+| RLP transaction chunk                                                             | variable
+|==============================================================================================================================
+
+'Input data (other transaction data block)'
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                                     | *Length*
+| RLP transaction chunk                                                             | variable
+|==============================================================================================================================
+
+
+'Output data'
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                                     | *Length*
+| v                                                                                 | 1
+| r                                                                                 | 32
+| s                                                                                 | 32
+|==============================================================================================================================
+
+
+### GET APP CONFIGURATION
+
+#### Description
+
+This command returns specific application configuration
+
+#### Coding
+
+'Command'
+
+[width="80%"]
+|==============================================================================================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *Lc*     | *Le*
+|   E0  |   06   |  00                |   00       | 00       | 04
+|==============================================================================================================================
+
+'Input data'
+
+None
+
+'Output data'
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                                     | *Length*
+| Flags
+        0x01 : arbitrary data signature enabled by user
+
+        0x02 : ERC 20 Token information needs to be provided externally
+                                                                                    | 01
+| Application major version                                                         | 01
+| Application minor version                                                         | 01
+| Application patch version                                                         | 01
+|==============================================================================================================================
+
+
+### SIGN ETH PERSONAL MESSAGE
+
+#### Description
+
+This command signs an Ethereum message following the personal_sign specification (https://github.com/ethereum/go-ethereum/pull/2940) after having the user validate the SHA-256 hash of the message being signed.
+
+This command has been supported since firmware version 1.0.8
+
+The input data is the message to sign, streamed to the device in 255 bytes maximum data chunks
+
+#### Coding
+
+'Command'
+
+[width="80%"]
+|==============================================================================================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *Lc*     | *Le*
+|   E0  |   08   |  00 : first message data block
+
+                    80 : subsequent message data block
+                                      |   00       | variable | variable
+|==============================================================================================================================
+
+'Input data (first message data block)'
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                                     | *Length*
+| Number of BIP 32 derivations to perform (max 10)                                  | 1
+| First derivation index (big endian)                                               | 4
+| ...                                                                               | 4
+| Last derivation index (big endian)                                                | 4
+| Message length                                                                    | 4
+| Message chunk                                                                     | variable
+|==============================================================================================================================
+
+'Input data (other transaction data block)'
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                                     | *Length*
+| Message chunk                                                                     | variable
+|==============================================================================================================================
+
+
+'Output data'
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                                     | *Length*
+| v                                                                                 | 1
+| r                                                                                 | 32
+| s                                                                                 | 32
+|==============================================================================================================================
+
+
+### PROVIDE ERC 20 TOKEN INFORMATION
+
+#### Description
+
+This command provides a trusted description of an ERC 20 token to associate a contract address with a ticker and number of decimals.
+
+It shall be run immediately before performing a transaction involving a contract calling this contract address to display the proper token information to the user if necessary, as marked in GET APP CONFIGURATION flags.
+
+The signature is computed on
+
+ticker || address || number of decimals (uint4be) || chainId (uint4be)
+
+signed by the following secp256k1 public key 0482bbf2f34f367b2e5bc21847b6566f21f0976b22d3388a9a5e446ac62d25cf725b62a2555b2dd464a4da0ab2f4d506820543af1d242470b1b1a969a27578f353
+
+#### Coding
+
+'Command'
+
+[width="80%"]
+|==============================================================================================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *Lc*     | *Le*
+|   E0  |   0A   |  00   |   00       | variable | 00
+|==============================================================================================================================
+
+'Input data'
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                                     | *Length*
+| Length of ERC 20 ticker                                                           | 1
+| ERC 20 ticker                                                                     | variable
+| ERC 20 contract address                                                           | 20
+| Number of decimals (big endian encoded)                                           | 4
+| Chain ID (big endian encoded)                                                     | 4
+| Token information signature                                                       | variable
+|==============================================================================================================================
+
+'Output data'
+
+None
+
+
+### SIGN ETH EIP 712
+
+#### Description
+
+This command signs an Ethereum message following the EIP 712 specification (https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md)
+
+For implementation version 0, the domain hash and message hash are provided to the device, which displays them and returns the signature
+
+This command has been supported since app version 1.5.0
+
+The full implementation uses all the JSON data and does all the hashing on the
+device, it has been supported since app version 1.9.19. This command should come
+last, after all the EIP712 SEND STRUCT DEFINITION & SEND STRUCT IMPLEMENTATION.
+
+#### Coding
+
+'Command'
+
+[width="80%"]
+|==============================================================================================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *Lc*     | *Le*
+|   E0  |   0C   |  00
+                                      | 00: v0 implementation
+
+                                        01: full implementation
+                                                   | variable
+                                                              | variable
+|==============================================================================================================================
+
+'Input data'
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                                     | *Length*
+| Number of BIP 32 derivations to perform (max 10)                                  | 1
+| First derivation index (big endian)                                               | 4
+| ...                                                                               | 4
+| Last derivation index (big endian)                                                | 4
+| Domain hash *(only for v0)*                                                       | 32
+| Message hash *(only for v0)*                                                      | 32
+|==============================================================================================================================
+
+'Output data'
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                                     | *Length*
+| v                                                                                 | 1
+| r                                                                                 | 32
+| s                                                                                 | 32
+|==============================================================================================================================
+
+
+### GET ETH2 PUBLIC KEY
+
+#### Description
+
+This command returns an Ethereum 2 BLS12-381 public key derived following EIP 2333 specification (https://eips.ethereum.org/EIPS/eip-2333)
+
+This command has been supported since firmware version 1.6.0
+
+#### Coding
+
+'Command'
+
+[width="80%"]
+|==============================================================================================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *Lc*     | *Le*
+|   E0  |   0E   |  00 : return public key
+
+                    01 : display public key and confirm before returning
+                                      |   00      | variable | variable
+|==============================================================================================================================
+
+'Input data'
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                                     | *Length*
+| Number of BIP 32 derivations to perform (max 10)                                  | 1
+| First derivation index (big endian)                                               | 4
+| ...                                                                               | 4
+| Last derivation index (big endian)                                                | 4
+|==============================================================================================================================
+
+'Output data'
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                                     | *Length*
+| Public key                                                                        | 48
+|==============================================================================================================================
+
+
+### SET ETH2 WITHDRAWAL INDEX
+
+#### Description
+
+This command sets the index of the Withdrawal key used as withdrawal credentials in an ETH2 deposit contract call signature. The path of the Withdrawal key is defined as m/12381/3600/index/0 according to EIP 2334 (https://eips.ethereum.org/EIPS/eip-2334)
+
+The default index used is 0 if this method isn't called before the deposit contract transaction is sent to the device to be signed
+
+This command has been supported since firmware version 1.5.0
+
+#### Coding
+
+'Command'
+
+[width="80%"]
+|==============================================================================================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *Lc*     | *Le*
+|   E0  |   10   |  00
+                                      |   00      | variable | variable
+|==============================================================================================================================
+
+'Input data'
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                                     | *Length*
+| Withdrawal key index (big endian)                                                 | 4
+|==============================================================================================================================
+
+'Output data'
+
+None
+
+
+### SET EXTERNAL PLUGIN
+
+#### Description
+
+This command provides the name of a trusted binding of a plugin with a contract address and a supported method selector. This plugin will be called to interpret contract data in the following transaction signing command.
+
+It shall be run immediately before performing a transaction involving a contract supported by this plugin to display the proper information to the user if necessary.
+
+The function returns an error sw (0x6984) if the plugin requested is not installed on the device, 0x9000 otherwise.
+
+The signature is computed on
+
+len(pluginName) || pluginName || contractAddress || methodSelector
+
+signed by the following secp256k1 public key 0482bbf2f34f367b2e5bc21847b6566f21f0976b22d3388a9a5e446ac62d25cf725b62a2555b2dd464a4da0ab2f4d506820543af1d242470b1b1a969a27578f353
+
+#### Coding
+
+'Command'
+
+[width="80%"]
+|==============================================================================================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *Lc*     | *Le*
+|   E0  |   12   |  00   |   00       | variable   | 00
+|==============================================================================================================================
+
+'Input data'
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                                     | *Length*
+| Length of plugin name                                                             | 1
+| plugin name                                                                       | variable
+| contract address                                                                  | 20
+| method selector                                                                   | 4
+| signature                                                                         | variable
+|==============================================================================================================================
+
+'Output data'
+
+None
+
+
+### PROVIDE NFT INFORMATION
+
+#### Description
+
+This command provides a trusted description of an NFT to associate a contract address with a collectionName.
+
+It shall be run immediately before performing a transaction involving a contract calling this contract address to display the proper nft information to the user if necessary, as marked in GET APP CONFIGURATION flags.
+
+The signature is computed on:
+
+type || version || len(collectionName) || collectionName || address || chainId || keyId || algorithmId
+
+#### Coding
+
+'Command'
+
+[width="80%"]
+|==============================================================================================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *Lc*     | *Le*
+|   E0  |   14   |  00   |   00       | variable | 00
+|==============================================================================================================================
+
+'Input data'
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                                     | *Length*
+| Type                                                                              | 1
+| Version                                                                           | 1
+| Collection Name Length                                                            | 1
+| Collection Name                                                                   | variable
+| Address                                                                           | 20
+| Chain ID                                                                          | 8
+| KeyID                                                                             | 1
+| Algorithm ID                                                                      | 1
+| Signature Length                                                                  | 1
+| Signature                                                                         | variable
+|==============================================================================================================================
+
+'Output data'
+
+None
+
+
+### SET PLUGIN
+
+#### Description
+
+This command provides the name of a trusted binding of a plugin with a contract address and a supported method selector. This plugin will be called to interpret contract data in the following transaction signing command.
+
+It can be used to set both internal and external plugins.
+
+It shall be run immediately before performing a transaction involving a contract supported by this plugin to display the proper information to the user if necessary.
+
+The function returns an error sw (0x6984) if the plugin requested is not installed on the device, 0x9000 otherwise.
+
+The plugin names `ERC20`, `ERC721` and `ERC1155` are reserved. Additional plugin names might be added to this list in the future.
+
+The signature is computed on
+
+type || version || len(pluginName) || pluginName || address || selector || chainId || keyId || algorithmId || len(signature) || signature
+
+#### Coding
+
+'Command'
+
+[width="80%"]
+|==============================================================================================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *Lc*     | *Le*
+|   E0  |   16   |  00   |   00       | variable   | 00
+|==============================================================================================================================
+
+'Input data'
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                                     | *Length*
+| Type                                                                              | 1
+| Version                                                                           | 1
+| Plugin Name Length                                                                | 1
+| Plugin Name                                                                       | variable
+| Address                                                                           | 20
+| Selector                                                                          | 4
+| Chain ID                                                                          | 8
+| KeyID                                                                             | 1
+| Algorithm ID                                                                      | 1
+| Signature Length                                                                  | 1
+| Signature                                                                         | variable
+|==============================================================================================================================
+
+'Output data'
+
+None
+
+### PERFORM PRIVACY OPERATION
+
+#### Description
+
+This command performs privacy operations as defined in EIP 1024 (https://ethereum-magicians.org/t/eip-1024-cross-client-encrypt-decrypt/505)
+
+It can return the public encryption key on Curve25519 for a given Ethereum account or the shared secret (generated by the scalar multiplication of the remote public key by the account private key on Curve25519) used to decrypt private data encrypted for a given Ethereum account
+
+All data can be optionally checked on the device before being returned.
+
+#### Coding
+
+'Command'
+
+[width="80%"]
+|==============================================================================================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *Lc*     | *Le*
+|   E0  |   18   |  00 : return data
+
+                    01 : display data and confirm before returning
+                                      |   00 : return the public encryption key
+
+                                          01 : return the shared secret | variable | variable
+|==============================================================================================================================
+
+'Input data'
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                                     | *Length*
+| Number of BIP 32 derivations to perform (max 10)                                  | 1
+| First derivation index (big endian)                                               | 4
+| ...                                                                               | 4
+| Last derivation index (big endian)                                                | 4
+| Third party public key on Curve25519, if returning the shared secret              | 32
+|==============================================================================================================================
+
+'Output data'
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                                     | *Length*
+| Public encryption key or shared secret                                                                              | 32
+|==============================================================================================================================
+
+
+### EIP712 SEND STRUCT DEFINITION
+
+#### Description
+
+This command sends the message definition with all its types. +
+These commands should come before the EIP712 SEND STRUCT IMPLEMENTATION ones.
+
+#### Coding
+
+_Command_
+
+[width="80%"]
+|=========================================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *LC*     | *Le*
+|   E0  |   1A   |  00
+                                      |   00 : struct name
+
+                                          FF : struct field
+                                                   | variable
+                                                              | variable
+|=========================================================================
+
+_Input data_
+
+##### If P2 == struct name
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Name                  | LC
+|==========================================
+
+##### If P2 == struct field
+
+:check_y: &#9989;
+:check_n: &#10060;
+
+[width="80%"]
+|======================================================================
+| *Description*                     | *Length (byte)*   | *Mandatory*
+| TypeDesc (type description)       | 1                 | {check_y}
+| TypeNameLength                    | 1                 | {check_n}
+| TypeName                          | variable          | {check_n}
+| TypeSize                          | 1                 | {check_n}
+| ArrayLevelCount                   | 1                 | {check_n}
+| ArrayLevels                       | variable          | {check_n}
+| KeyNameLength                     | 1                 | {check_y}
+| KeyName                           | variable          | {check_y}
+|======================================================================
+
+###### TypeDesc
+
+From MSB to LSB:
+
+[width="80%"]
+|=============================================================
+| *Description*                             | *Length (bit)*
+| TypeArray (is it an array?)               | 1
+| TypeSize (is a type size specified?)      | 1
+| Unused                                    | 2
+| Type                                      | 4
+|=============================================================
+
+How to interpret Type from its value :
+
+[width="40%"]
+|===========================================
+| *Value*           | *Type*
+| 0                 | custom (struct type)
+| 1                 | int
+| 2                 | uint
+| 3                 | address
+| 4                 | bool
+| 5                 | string
+| 6                 | fixed-sized bytes
+| 7                 | dynamic-sized bytes
+|===========================================
+
+###### TypeName
+
+_Only present if the Type is set to custom._
+
+Indicates the name of the struct that will be the type of the field.
+
+
+###### TypeSize
+
+_Only present if the TypeSize bit is set in TypeDesc._
+
+Indicates the byte size of the field. (Ex: 8 for an int64)
+
+
+###### ArrayLevelCount
+
+_Only present if the TypeArray bit is set in TypeDesc._
+
+Indicates how many array levels that field has (Ex: 3 for int16[2][][4]).
+
+###### ArrayLevels
+
+_Only present if the TypeArray bit is set in TypeDesc._
+
+Types of array level:
+
+[width="40%"]
+|================================
+| *Byte value*  | *Type*
+| 0             | Dynamic sized (type[])
+| 1             | Fixed size (type[N])
+|================================
+
+Each fixed-sized array level is followed by a byte indicating its size (number of elements).
+
+
+_Output data_
+
+None
+
+
+### EIP712 SEND STRUCT IMPLEMENTATION
+
+#### Description
+
+This command sends the message implementation with all its values. +
+These commands should come after the EIP712 SEND STRUCT DEFINITION ones.
+
+#### Coding
+
+_Command_
+
+[width="80%"]
+|=========================================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *LC*     | *Le*
+|   E0  |   1C   |  00 : complete send
+
+                    01 : partial send, more to come
+                                      |   00 : root struct
+
+                                          0F : array
+
+                                          FF : struct field
+                                                   | variable
+                                                              | variable
+|=========================================================================
+
+_Input data_
+
+##### If P2 == root struct
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Name                  | LC
+|==========================================
+
+Sets the name of the upcoming root structure all the following fields will be apart
+of until we set another root structure.
+
+##### If P2 == array
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Array size            | 1
+|==========================================
+
+Sets the size of the upcoming array the following N fields will be apart of.
+
+##### If P2 == struct field
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Value length          | 2 (BE)
+| Value                 | variable
+|==========================================
+
+Sets the raw value of the next field in order in the current root structure.
+Raw as in, an integer in the JSON file represented as "128" would only be 1 byte long (0x80)
+instead of 3 as an array of ASCII characters, same for addresses and so on.
+
+
+_Output data_
+
+None
+
+
+### EIP712 FILTERING
+
+#### Description
+
+This command provides a trusted way of deciding what information from the JSON data to show and replace some values by more meaningful ones.
+
+This mode can be overriden by the in-app setting to fully clear-sign EIP-712 messages.
+
+For the signatures :
+
+* The chain ID used for the signature must be 8 bytes wide.
+* The schema hash = sha224sum of the value of _types_ at the root of the JSON data (stripped of all spaces and newlines)
+
+##### Activation
+
+Full filtering is disabled by default and has to be changed with this APDU (default behaviour is basic filtering handled by the app itself).
+
+Field substitution will be ignored if the full filtering is not activated.
+
+This command should come before the domain & message implementations. If activated, fields will be by default hidden unless they receive a field name substitution.
+
+##### Message info
+
+This command should come right after the implementation of the domain has been sent with *SEND STRUCT IMPLEMENTATION*, just before sending the message implementation.
+The first byte is used so that a signature of one type cannot be valid as another type.
+
+The signature is computed on :
+
+183 || chain ID (BE) || contract address || schema hash || filters count || display name
+
+
+##### Show field
+
+These commands should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
+The first byte is used so that a signature of one type cannot be valid as another type.
+
+The signature is computed on :
+
+72 || chain ID (BE) || contract address || schema hash || field path || display name
+
+#### Coding
+
+_Command_
+
+[width="80%"]
+|=========================================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *LC*     | *Le*
+|   E0  |   1E   | 00
+                                      | 00 : activate
+
+                                        0F : message info
+
+                                        FF : show field
+                                                   | variable | variable
+|=========================================================================
+
+_Input data_
+
+##### If P2 == activate
+
+None
+
+##### If P2 == message info
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Display name length   | 1
+| Display name          | variable
+| Filters count         | 1
+| Signature length      | 1
+| Signature             | variable
+|==========================================
+
+##### If P2 == show field
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Display name length   | 1
+| Display name          | variable
+| Signature length      | 1
+| Signature             | variable
+|==========================================
+
+_Output data_
+
+None
+
+
+## Transport protocol
+
+### General transport description
+
+Ledger APDUs requests and responses are encapsulated using a flexible protocol allowing to fragment large payloads over different underlying transport mechanisms.
+
+The common transport header is defined as follows :
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                                     | *Length*
+| Communication channel ID (big endian)                                             | 2
+| Command tag                                                                       | 1
+| Packet sequence index (big endian)                                                | 2
+| Payload                                                                           | var
+|==============================================================================================================================
+
+The Communication channel ID allows commands multiplexing over the same physical link. It is not used for the time being, and should be set to 0101 to avoid compatibility issues with implementations ignoring a leading 00 byte.
+
+The Command tag describes the message content. Use TAG_APDU (0x05) for standard APDU payloads, or TAG_PING (0x02) for a simple link test.
+
+The Packet sequence index describes the current sequence for fragmented payloads. The first fragment index is 0x00.
+
+### APDU Command payload encoding
+
+APDU Command payloads are encoded as follows :
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                                     | *Length*
+| APDU length (big endian)                                                          | 2
+| APDU CLA                                                                          | 1
+| APDU INS                                                                          | 1
+| APDU P1                                                                           | 1
+| APDU P2                                                                           | 1
+| APDU length                                                                       | 1
+| Optional APDU data                                                                | var
+|==============================================================================================================================
+
+APDU payload is encoded according to the APDU case
+
+[width="80%"]
+|=======================================================================================
+| Case Number  | *Lc* | *Le* | Case description
+|   1          |  0   |  0   | No data in either direction - L is set to 00
+|   2          |  0   |  !0  | Input Data present, no Output Data - L is set to Lc
+|   3          |  !0  |  0   | Output Data present, no Input Data - L is set to Le
+|   4          |  !0  |  !0  | Both Input and Output Data are present - L is set to Lc
+|=======================================================================================
+
+### APDU Response payload encoding
+
+APDU Response payloads are encoded as follows :
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                                     | *Length*
+| APDU response length (big endian)                                                 | 2
+| APDU response data and Status Word                                                | var
+|==============================================================================================================================
+
+### USB mapping
+
+Messages are exchanged with the dongle over HID endpoints over interrupt transfers, with each chunk being 64 bytes long. The HID Report ID is ignored.
+
+### BLE mapping
+
+A similar encoding is used over BLE, without the Communication channel ID.
+
+The application acts as a GATT server defining service UUID D973F2E0-B19E-11E2-9E96-0800200C9A66
+
+When using this service, the client sends requests to the characteristic D973F2E2-B19E-11E2-9E96-0800200C9A66, and gets notified on the characteristic D973F2E1-B19E-11E2-9E96-0800200C9A66 after registering for it.
+
+Requests are encoded using the standard BLE 20 bytes MTU size
+
+## Status Words
+
+The following standard Status Words are returned for all APDUs - some specific Status Words can be used for specific commands and are mentioned in the command description.
+
+'Status Words'
+
+[width="80%"]
+|===============================================================================================
+| *SW*     | *Description*
+|   6501   | TransactionType not supported
+|   6502   | Output buffer too small for chainId conversion
+|   6503   | Plugin error
+|   6504   | Failed to convert from int256
+|   6700   | Incorrect length
+|   6982   | Security status not satisfied (Canceled by user)
+|   6A80   | Invalid data
+|   6B00   | Incorrect parameter P1 or P2
+|   6Fxx   | Technical problem (Internal error, please report)
+|   9000   | Normal ending of the command
+|===============================================================================================

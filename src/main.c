@@ -28,6 +28,7 @@
 #include "handle_swap_sign_transaction.h"
 #include "handle_get_printable_amount.h"
 #include "handle_check_address.h"
+#include "commands_712.h"
 
 #ifdef HAVE_STARKWARE
 #include "stark_crypto.h"
@@ -48,6 +49,7 @@ strings_t strings;
 cx_sha3_t global_sha3;
 
 uint8_t appState;
+uint16_t apdu_response_code;
 bool called_from_swap;
 pluginType_t pluginType;
 #ifdef HAVE_STARKWARE
@@ -491,7 +493,7 @@ void handleGetWalletId(volatile unsigned int *tx) {
 
 #endif  // HAVE_WALLET_ID_SDK
 
-const uint8_t *parseBip32(const uint8_t *dataBuffer, uint16_t *dataLength, bip32_path_t *bip32) {
+const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_path_t *bip32) {
     if (*dataLength < 1) {
         PRINTF("Invalid data\n");
         return NULL;
@@ -672,13 +674,25 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                     break;
 
                 case INS_SIGN_EIP_712_MESSAGE:
-                    memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
-                    handleSignEIP712Message(G_io_apdu_buffer[OFFSET_P1],
-                                            G_io_apdu_buffer[OFFSET_P2],
-                                            G_io_apdu_buffer + OFFSET_CDATA,
-                                            G_io_apdu_buffer[OFFSET_LC],
-                                            flags,
-                                            tx);
+                    switch (G_io_apdu_buffer[OFFSET_P2]) {
+                        case P2_EIP712_LEGACY_IMPLEM:
+                            memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
+                            handleSignEIP712Message_v0(G_io_apdu_buffer[OFFSET_P1],
+                                                       G_io_apdu_buffer[OFFSET_P2],
+                                                       G_io_apdu_buffer + OFFSET_CDATA,
+                                                       G_io_apdu_buffer[OFFSET_LC],
+                                                       flags,
+                                                       tx);
+                            break;
+#ifdef HAVE_EIP712_FULL_SUPPORT
+                        case P2_EIP712_FULL_IMPLEM:
+                            *flags |= IO_ASYNCH_REPLY;
+                            handle_eip712_sign(G_io_apdu_buffer);
+                            break;
+#endif  // HAVE_EIP712_FULL_SUPPORT
+                        default:
+                            THROW(APDU_RESPONSE_INVALID_P1_P2);
+                    }
                     break;
 
 #ifdef HAVE_ETH2
@@ -703,6 +717,23 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                     break;
 
 #endif
+
+#ifdef HAVE_EIP712_FULL_SUPPORT
+                case INS_EIP712_STRUCT_DEF:
+                    *flags |= IO_ASYNCH_REPLY;
+                    handle_eip712_struct_def(G_io_apdu_buffer);
+                    break;
+
+                case INS_EIP712_STRUCT_IMPL:
+                    *flags |= IO_ASYNCH_REPLY;
+                    handle_eip712_struct_impl(G_io_apdu_buffer);
+                    break;
+
+                case INS_EIP712_FILTERING:
+                    *flags |= IO_ASYNCH_REPLY;
+                    handle_eip712_filtering(G_io_apdu_buffer);
+                    break;
+#endif  // HAVE_EIP712_FULL_SUPPORT
 
 #if 0
         case 0xFF: // return to dashboard

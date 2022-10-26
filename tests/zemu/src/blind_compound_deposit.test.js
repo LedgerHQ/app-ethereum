@@ -4,8 +4,12 @@ import { waitForAppScreen, zemu, nano_models } from './test.fixture';
 
 nano_models.forEach(function(model) {
     test('[Nano ' + model.letter + '] Deposit ETH on compound, blind sign', zemu(model, async (sim, eth) => {
+      let clicks;
+      // LNS does not have an EIP712 setting
+      if (model.letter === 'S') clicks = 3;
+      else clicks = 4;
         // Enable blind-signing
-        await sim.navigateAndCompareSnapshots('.', model.name + '_enable_blind_signing', [-2, 0, 0, 3, 0]);
+        await sim.navigateAndCompareSnapshots('.', model.name + '_enable_blind_signing', [-2, 0, 0, clicks, 0]);
 
       const tx = eth.signTransaction(
         "44'/60'/1'/0/0",
@@ -13,7 +17,6 @@ nano_models.forEach(function(model) {
       );
 
       await waitForAppScreen(sim);
-      let clicks;
       if (model.letter === 'S') clicks = 8;
       else clicks = 6;
       await sim.navigateAndCompareSnapshots('.', model.name + '_deposit_eth_compound_blind', [clicks, -1, 0]);

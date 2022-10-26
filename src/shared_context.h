@@ -27,6 +27,9 @@ typedef struct internalStorage_t {
     unsigned char dataAllowed;
     unsigned char contractDetails;
     unsigned char displayNonce;
+#ifdef HAVE_EIP712_FULL_SUPPORT
+    bool verbose_eip712;
+#endif  // HAVE_EIP712_FULL_SUPPORT
     uint8_t initialized;
 } internalStorage_t;
 
@@ -219,6 +222,6 @@ extern uint32_t eth2WithdrawalIndex;
 #endif
 
 void reset_app_context(void);
-const uint8_t *parseBip32(const uint8_t *, uint16_t *, bip32_path_t *);
+const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_path_t *bip32);
 
 #endif  // _SHARED_CONTEXT_H_

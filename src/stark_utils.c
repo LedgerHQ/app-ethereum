@@ -4,6 +4,7 @@
 #include "shared_context.h"
 #include "ethUtils.h"
 #include "uint256.h"
+#include "uint_common.h"
 
 #include "os_io_seproxyhal.h"
 

@@ -25,6 +25,11 @@ void ui_191_switch_to_message_end(void);
 void ui_191_switch_to_sign(void);
 void ui_191_switch_to_question(void);
 
+// EIP-712
+void ui_712_start(void);
+void ui_712_switch_to_message(void);
+void ui_712_switch_to_sign(void);
+
 #include "ui_callbacks.h"
 #include <string.h>
 

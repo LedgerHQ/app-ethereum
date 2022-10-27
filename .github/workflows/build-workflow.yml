@@ -1,7 +1,6 @@
 name: Compilation
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - master
@@ -9,48 +8,27 @@ on:
     branches:
       - master
       - develop
+  workflow_dispatch:
 
 jobs:
-  nano_debug_build:
-    name: Build debug application for NanoS, X and S+
+  nano_release_build:
+    name: Build release application for NanoS, X and S+
     strategy:
       matrix:
-        include:
-          - SDK: "$NANOS_SDK"
-            artifact: nanos
-          - SDK: "$NANOX_SDK"
-            artifact: nanox
-          - SDK: "$NANOSP_SDK"
-            artifact: nanosp
+        sdk: ["$NANOS_SDK", "$NANOX_SDK", "$NANOSP_SDK"]
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
+      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder-lite:latest
 
     steps:
       - name: Clone
         uses: actions/checkout@v2
-        with:
-          submodules: recursive
-
-      - name: Build an altcoin
-        run: |
-          make BOLOS_SDK=${{ matrix.SDK }} DEBUG=1 ALLOW_DATA=1 CHAIN=ethereum_classic
-          mv bin/app.elf ethereum_classic_${{ matrix.artifact }}.elf
-
-      - name: Upload altcoin binary
-        uses: actions/upload-artifact@v2
-        with:
-          name: ethereum_classic_${{ matrix.artifact }}
-          path: ./ethereum_classic_${{ matrix.artifact }}.elf
 
       - name: Build Ethereum
         run: |
-          make clean
-          make BOLOS_SDK=${{ matrix.SDK }} DEBUG=1 ALLOW_DATA=1
-          mv bin/app.elf ethereum_${{ matrix.artifact }}.elf
+          make -j BOLOS_SDK=${{ matrix.sdk }}
 
-      - name: Upload app binary
-        uses: actions/upload-artifact@v2
-        with:
-          name: ethereum_${{ matrix.artifact }}
-          path: ./ethereum_${{ matrix.artifact }}.elf
+      - name: Build an altcoin
+        run: |
+          make clean
+          make -j BOLOS_SDK=${{ matrix.sdk }} CHAIN=polygon

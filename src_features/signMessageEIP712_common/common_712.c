@@ -1,16 +1,19 @@
-#include "os_io_seproxyhal.h"
 #include "shared_context.h"
+#include "os_io_seproxyhal.h"
+#include "ui_callbacks.h"
+#include "common_712.h"
+#include "ui_callbacks.h"
 #include "common_ui.h"
 
 static const uint8_t EIP_712_MAGIC[] = {0x19, 0x01};
 
-unsigned int io_seproxyhal_touch_signMessage712_v0_ok(__attribute__((unused))
-                                                      const bagl_element_t *e) {
+unsigned int ui_712_approve_cb() {
     uint8_t privateKeyData[INT256_LENGTH];
     uint8_t hash[INT256_LENGTH];
     uint8_t signature[100];
     cx_ecfp_private_key_t privateKey;
     uint32_t tx = 0;
+
     io_seproxyhal_io_heartbeat();
     cx_keccak_init(&global_sha3, 256);
     cx_hash((cx_hash_t *) &global_sha3,
@@ -31,7 +34,8 @@ unsigned int io_seproxyhal_touch_signMessage712_v0_ok(__attribute__((unused))
             sizeof(tmpCtx.messageSigningContext712.messageHash),
             hash,
             sizeof(hash));
-    PRINTF("EIP712 hash to sign %.*H\n", 32, hash);
+    PRINTF("EIP712 Domain hash 0x%.*h\n", 32, tmpCtx.messageSigningContext712.domainHash);
+    PRINTF("EIP712 Message hash 0x%.*h\n", 32, tmpCtx.messageSigningContext712.messageHash);
     io_seproxyhal_io_heartbeat();
     os_perso_derive_node_bip32(CX_CURVE_256K1,
                                tmpCtx.messageSigningContext712.bip32.path,
@@ -71,8 +75,7 @@ unsigned int io_seproxyhal_touch_signMessage712_v0_ok(__attribute__((unused))
     return 0;  // do not redraw the widget
 }
 
-unsigned int io_seproxyhal_touch_signMessage712_v0_cancel(__attribute__((unused))
-                                                          const bagl_element_t *e) {
+unsigned int ui_712_reject_cb() {
     reset_app_context();
     G_io_apdu_buffer[0] = 0x69;
     G_io_apdu_buffer[1] = 0x85;

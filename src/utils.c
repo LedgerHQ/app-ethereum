@@ -20,38 +20,44 @@
 
 #include "ethUstream.h"
 #include "ethUtils.h"
+#include "uint128.h"
 #include "uint256.h"
 #include "tokens.h"
 #include "utils.h"
 
-static const unsigned char hex_digits[] =
-    {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
-
 void array_hexstr(char *strbuf, const void *bin, unsigned int len) {
     while (len--) {
-        *strbuf++ = hex_digits[((*((char *) bin)) >> 4) & 0xF];
-        *strbuf++ = hex_digits[(*((char *) bin)) & 0xF];
+        *strbuf++ = HEXDIGITS[((*((char *) bin)) >> 4) & 0xF];
+        *strbuf++ = HEXDIGITS[(*((char *) bin)) & 0xF];
         bin = (const void *) ((unsigned int) bin + 1);
     }
     *strbuf = 0;  // EOS
 }
 
-void convertUint256BE(uint8_t *data, uint32_t length, uint256_t *target) {
-    uint8_t tmp[INT256_LENGTH];
-    memset(tmp, 0, 32);
-    memmove(tmp + 32 - length, data, length);
-    readu256BE(tmp, target);
+void convertUint64BEto128(const uint8_t *const data, uint32_t length, uint128_t *const target) {
+    uint8_t tmp[INT128_LENGTH];
+    int64_t value;
+
+    value = u64_from_BE(data, length);
+    memset(tmp, ((value < 0) ? 0xff : 0), sizeof(tmp) - length);
+    memmove(tmp + sizeof(tmp) - length, data, length);
+    readu128BE(tmp, target);
 }
 
-int local_strchr(char *string, char ch) {
-    unsigned int length = strlen(string);
-    unsigned int i;
-    for (i = 0; i < length; i++) {
-        if (string[i] == ch) {
-            return i;
-        }
-    }
-    return -1;
+void convertUint128BE(const uint8_t *const data, uint32_t length, uint128_t *const target) {
+    uint8_t tmp[INT128_LENGTH];
+
+    memset(tmp, 0, sizeof(tmp) - length);
+    memmove(tmp + sizeof(tmp) - length, data, length);
+    readu128BE(tmp, target);
+}
+
+void convertUint256BE(const uint8_t *const data, uint32_t length, uint256_t *const target) {
+    uint8_t tmp[INT256_LENGTH];
+
+    memset(tmp, 0, sizeof(tmp) - length);
+    memmove(tmp + sizeof(tmp) - length, data, length);
+    readu256BE(tmp, target);
 }
 
 uint64_t u64_from_BE(const uint8_t *in, uint8_t size) {

@@ -2,7 +2,7 @@
 
 set -e
 
-TESTS_FULL_PATH=$(dirname "$(realpath "$0")")
+TESTS_PATH=$(dirname "$(realpath "$0")")
 
 # FILL THESE WITH YOUR OWN SDKs PATHS
 # NANOS_SDK=
@@ -17,11 +17,10 @@ NANO_SDKS=("$NANOS_SDK" "$NANOX_SDK")
 FILE_SUFFIXES=("nanos" "nanox")
 
 # move to the tests directory
-cd "$TESTS_FULL_PATH" || exit 1
+cd "$TESTS_PATH" || exit 1
 
 # Do it only now since before the cd command, we might not have been inside the repository
 GIT_REPO_ROOT=$(git rev-parse --show-toplevel)
-TESTS_REL_PATH=$(realpath --relative-to="$GIT_REPO_ROOT" "$TESTS_FULL_PATH")
 
 # create elfs directory if it doesn't exist
 mkdir -p elfs
@@ -39,7 +38,7 @@ do
        echo "** Building app $appname..."
        make clean BOLOS_SDK="$nano_sdk"
        make -j DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK="$nano_sdk" CHAIN="$appname"
-       cp bin/app.elf "$TESTS_REL_PATH/elfs/${appname}_${elf_suffix}.elf"
+       cp bin/app.elf "$TESTS_PATH/elfs/${appname}_${elf_suffix}.elf"
     done
 done
 

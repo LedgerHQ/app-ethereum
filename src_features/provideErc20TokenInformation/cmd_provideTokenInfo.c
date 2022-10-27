@@ -8,8 +8,8 @@
 
 void handleProvideErc20TokenInformation(uint8_t p1,
                                         uint8_t p2,
-                                        uint8_t *workBuffer,
-                                        uint16_t dataLength,
+                                        const uint8_t *workBuffer,
+                                        uint8_t dataLength,
                                         unsigned int *flags,
                                         unsigned int *tx) {
     UNUSED(p1);
@@ -103,12 +103,13 @@ void handleProvideErc20TokenInformation(uint8_t p1,
 void handleProvideErc20TokenInformation(uint8_t p1,
                                         uint8_t p2,
                                         const uint8_t *workBuffer,
-                                        uint16_t dataLength,
+                                        uint8_t dataLength,
                                         unsigned int *flags,
-                                        __attribute__((unused)) unsigned int *tx) {
+                                        unsigned int *tx) {
     UNUSED(p1);
     UNUSED(p2);
     UNUSED(flags);
+    UNUSED(tx);
     uint32_t offset = 0;
     uint8_t tickerLength;
     uint32_t chainId;

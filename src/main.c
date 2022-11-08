@@ -294,6 +294,8 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
         case CHAIN_KIND_APOTHEMNETWORK:
             numTokens = NUM_TOKENS_APOTHEMNETWORK;
             break;
+        case CHAIN_KIND_SYSCOIN:
+            numTokens = NUM_TOKENS_SYSCOIN;
     }
     for (i = 0; i < numTokens; i++) {
         switch (chainConfig->kind) {

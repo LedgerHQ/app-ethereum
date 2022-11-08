@@ -16,6 +16,7 @@ const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 10, .name = "Optimism", .ticker = "ETH "},
     {.chain_id = 42, .name = "Kovan", .ticker = "ETH "},
     {.chain_id = 56, .name = "BSC", .ticker = "BNB "},
+    {.chain_id = 57, .name = "Syscoin", .ticker = "SYS "},
     {.chain_id = 100, .name = "xDai", .ticker = "xDAI "},
     {.chain_id = 137, .name = "Polygon", .ticker = "MATIC "},
     {.chain_id = 250, .name = "Fantom", .ticker = "FTM "},

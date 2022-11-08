@@ -16,7 +16,7 @@ void copy_parameter(uint8_t* dst, const uint8_t* parameter, uint8_t dst_size) {
     memmove(dst, parameter, copy_size);
 }
 
-bool U2BE_from_parameter(uint8_t* parameter, uint16_t* value) {
+bool U2BE_from_parameter(const uint8_t* parameter, uint16_t* value) {
     if (allzeroes(parameter, PARAMETER_LENGTH - sizeof(uint16_t))) {
         *value = U2BE(parameter, PARAMETER_LENGTH - sizeof(uint16_t));
         return true;
@@ -25,7 +25,7 @@ bool U2BE_from_parameter(uint8_t* parameter, uint16_t* value) {
     return false;
 }
 
-bool U4BE_from_parameter(uint8_t* parameter, uint32_t* value) {
+bool U4BE_from_parameter(const uint8_t* parameter, uint32_t* value) {
     if (allzeroes(parameter, PARAMETER_LENGTH - sizeof(uint32_t))) {
         *value = U4BE(parameter, PARAMETER_LENGTH - sizeof(uint32_t));
         return true;

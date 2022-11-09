@@ -7,6 +7,7 @@ from ethereum_client.setting import SettingType, SettingImpl
 from ethereum_client.eip712 import EIP712FieldType
 from ethereum_client.response_parser import EthereumRespParser
 import signal
+import time
 
 
 class   EthereumClient:
@@ -92,6 +93,7 @@ class   EthereumClient:
 
     def eip712_sign_new(self, bip32):
         with self._send(self._cmd_builder.eip712_sign_new(bip32)):
+            time.sleep(0.5) # tight on timing, needed by the CI otherwise might fail sometimes
             if not self._settings[SettingType.VERBOSE_EIP712].value and \
                not self._eip712_filtering: # need to skip the message hash
                 self._client.right_click()

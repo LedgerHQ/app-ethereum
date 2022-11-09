@@ -16,6 +16,10 @@ static void dummy_cb(void) {
             ux_flow_prev();
             ui_pos = UI_712_POS_REVIEW;
         }
+    } else {
+        // temporarily disable button clicks, they will be re-enabled as soon as new data
+        // is received and the page is redrawn with ux_flow_init()
+        G_ux.stack[0].button_push_callback = NULL;
     }
 }
 

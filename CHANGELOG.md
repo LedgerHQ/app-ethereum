@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.10.1](https://github.com/ledgerhq/app-ethereum/compare/1.10.0...1.10.1) - 2022-11-09
+
+### Fixed
+
+- App/device crash with fast button clicks on slow APDU transport on the new EIP-712 signature UI
+
 ## [1.10.0](https://github.com/ledgerhq/app-ethereum/compare/1.9.20...1.10.0) - 2022-10-26
 
 ### Changed

@@ -209,7 +209,7 @@ jobs:
           cd tests/ragger
           python3 -m venv ./venv
           . ./venv/bin/activate
-          pip3 install --extra-index-url https://test.pypi.org/simple/ -r requirements.txt speculos
+          pip3 install --extra-index-url https://test.pypi.org/simple/ -r requirements.txt
           # Used for the cache key
           echo "py_deps=$(pip freeze | md5sum | cut -d' ' -f1)" >> $GITHUB_ENV
 
@@ -275,4 +275,4 @@ jobs:
         run: |
           cd tests/ragger
           . ./venv/bin/activate
-          pytest --path ./elfs --model ${{ matrix.model }}
+          pytest --path ./elfs --model ${{ matrix.model }} -s -v

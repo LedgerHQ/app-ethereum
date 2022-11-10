@@ -1,7 +1,7 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
 #include "utils.h"
-#include "ui_flow.h"
+#include "common_ui.h"
 #include "common_712.h"
 #include "ethUtils.h"
 
@@ -33,7 +33,7 @@ void handleSignEIP712Message_v0(uint8_t p1,
 #ifdef NO_CONSENT
     io_seproxyhal_touch_signMessage_ok(NULL);
 #else   // NO_CONSENT
-    ux_flow_init(0, ux_sign_712_v0_flow, NULL);
+    ui_sign_712_v0();
 #endif  // NO_CONSENT
 
     *flags |= IO_ASYNCH_REPLY;

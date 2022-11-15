@@ -18,14 +18,14 @@ jobs:
       image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder-lite:latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Build with Clang Static Analyzer
         run: |
           make clean
           scan-build --use-cc=clang -analyze-headers -enable-checker security -enable-checker unix -enable-checker valist -o scan-build --status-bugs make default
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         if: failure()
         with:
           name: scan-build
@@ -42,7 +42,7 @@ jobs:
       image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder-lite:latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Build testing binaries
         run: |
@@ -50,7 +50,7 @@ jobs:
           cd tests/zemu/ && ./build_local_test_elfs.sh
 
       - name: Upload app binaries
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: e2e_zemu_elfs
           path: ./tests/zemu/elfs/
@@ -68,12 +68,12 @@ jobs:
           echo $DISPLAY
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - run: sudo apt-get update -y && sudo apt-get install -y libusb-1.0.0 libudev-dev
 
       - name: Install node
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: "14.4.0"
 
@@ -87,7 +87,7 @@ jobs:
         run: mkdir tests/zemu/elfs
 
       - name: Download app binaries
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           path: tmp/
 
@@ -109,7 +109,7 @@ jobs:
       image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder-lite:latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Build testing binaries
         run: |
@@ -119,7 +119,7 @@ jobs:
           make clean && make -j DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOSP_SDK && mv bin/app.elf tests/speculos/elfs/nanosp.elf
 
       - name: Upload app binaries
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: e2e_speculos_elfs
           path: ./tests/speculos/elfs
@@ -136,13 +136,13 @@ jobs:
 
     steps:
       - name: Clone
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Create tmp folder for artifacts
         run: mkdir tests/speculos/elfs
 
       - name: Download app binaries
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           path: tmp/
 
@@ -173,7 +173,7 @@ jobs:
 
     steps:
       - name: Clone
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Build test binaries
         run: |
@@ -187,7 +187,7 @@ jobs:
           mv bin/app.elf app-nanosp.elf
 
       - name: Upload app binaries
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ragger_elfs
           path: ./app-*.elf
@@ -198,7 +198,7 @@ jobs:
 
     steps:
       - name: Clone
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: APT update
         run: |
@@ -243,10 +243,10 @@ jobs:
 
     steps:
       - name: Clone
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Download previously built artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: ragger_elfs
           path: tmp/

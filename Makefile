@@ -147,10 +147,14 @@ ifneq ($(TARGET_NAME),TARGET_NANOS)
 DEFINES	+= HAVE_EIP712_FULL_SUPPORT
 endif
 
-# CryptoAssetsList testing key
-CAL_TESTING_KEY:=0
-ifneq ($(CAL_TESTING_KEY),0)
-DEFINES += HAVE_CAL_TESTING_KEY
+# CryptoAssetsList key
+CAL_TEST_KEY:=0
+CAL_CI_KEY:=0
+ifneq ($(CAL_TEST_KEY),0)
+DEFINES += HAVE_CAL_TEST_KEY
+endif
+ifneq ($(CAL_CI_KEY),0)
+DEFINES += HAVE_CAL_CI_KEY
 endif
 
 # Enabling debug PRINTF

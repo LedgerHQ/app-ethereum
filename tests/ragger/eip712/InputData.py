@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
 
-import os
 import json
 import sys
 import re
 import hashlib
-from ecdsa import SigningKey
-from ecdsa.util import sigencode_der
 from ethereum_client.client import EthereumClient, EIP712FieldType
-import base64
+from cal import cal
 
 # global variables
 app_client: EthereumClient = None
@@ -254,7 +251,7 @@ def send_filtering_message_info(display_name: str, filters_count: int):
     for char in display_name:
         to_sign.append(ord(char))
 
-    sig = sig_ctx["key"].sign_deterministic(to_sign, sigencode=sigencode_der)
+    sig = cal.sign(to_sign)
     app_client.eip712_filtering_message_info(display_name, filters_count, sig)
 
 # ledgerjs doesn't actually sign anything, and instead uses already pre-computed signatures
@@ -272,7 +269,7 @@ def send_filtering_show_field(display_name):
         to_sign.append(ord(char))
     for char in display_name:
         to_sign.append(ord(char))
-    sig = sig_ctx["key"].sign_deterministic(to_sign, sigencode=sigencode_der)
+    sig = cal.sign(to_sign)
     app_client.eip712_filtering_show_field(display_name, sig)
 
 def read_filtering_file(domain, message, filtering_file_path):
@@ -299,9 +296,6 @@ def init_signature_context(types, domain):
     global sig_ctx
 
     handle_optional_domain_values(domain)
-    env_key = os.environ["CAL_SIGNATURE_TEST_KEY"]
-    key = base64.b64decode(env_key).decode() # base 64 string -> decode bytes -> string
-    sig_ctx["key"] = SigningKey.from_pem(key, hashlib.sha256)
     caddr = domain["verifyingContract"]
     if caddr.startswith("0x"):
         caddr = caddr[2:]

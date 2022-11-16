@@ -177,13 +177,13 @@ jobs:
 
       - name: Build test binaries
         run: |
-          make -j BOLOS_SDK=$NANOS_SDK CAL_TESTING_KEY=1
+          make -j BOLOS_SDK=$NANOS_SDK CAL_CI_KEY=1
           mv bin/app.elf app-nanos.elf
           make clean
-          make -j BOLOS_SDK=$NANOX_SDK CAL_TESTING_KEY=1
+          make -j BOLOS_SDK=$NANOX_SDK CAL_CI_KEY=1
           mv bin/app.elf app-nanox.elf
           make clean
-          make -j BOLOS_SDK=$NANOSP_SDK CAL_TESTING_KEY=1
+          make -j BOLOS_SDK=$NANOSP_SDK CAL_CI_KEY=1
           mv bin/app.elf app-nanosp.elf
 
       - name: Upload app binaries
@@ -270,9 +270,7 @@ jobs:
           sudo apt install -y qemu-user-static
 
       - name: Run tests
-        env:
-          CAL_SIGNATURE_TEST_KEY: ${{ secrets.CAL_SIGNATURE_TEST_KEY }}
         run: |
           cd tests/ragger
           . ./venv/bin/activate
-          pytest --path ./elfs --model ${{ matrix.model }} -s -v
+          pytest --path ./elfs --model ${{ matrix.model }} -s -v --tb=short

@@ -114,6 +114,6 @@ runs:
       uses: ad-m/github-push-action@master
       with:
         github_token: ${{ inputs.secret }}
-        branch: ${{ steps.commit.outputs.src_branch }}:${{ steps.commit.outputs.dst_branch }}
+        branch: ${{ steps.commit.outputs.dst_branch }}
         directory: ${{ inputs.directory }}
         repository: ${{ inputs.repository }}

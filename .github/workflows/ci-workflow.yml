@@ -273,4 +273,4 @@ jobs:
         run: |
           cd tests/ragger
           . ./venv/bin/activate
-          pytest --path ./elfs --model ${{ matrix.model }} -s -v
+          pytest --path ./elfs --model ${{ matrix.model }} -s -v --tb=short

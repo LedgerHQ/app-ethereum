@@ -6,13 +6,23 @@
 #include "network.h"
 #include "plugins.h"
 
-#define MAX_PLUGIN_ITEMS_PER_SCREEN 3
+// 1 more than actually displayed on screen, because of calculations in StaticReview
+#define MAX_PLUGIN_ITEMS_PER_SCREEN 4
+#define TAG_MAX_LEN 43
+#define VALUE_MAX_LEN 79
+enum {
+  REJECT_TOKEN,
+  START_REVIEW_TOKEN,
+};
 
-static nbgl_layoutTagValue_t tlv[MAX_PLUGIN_ITEMS_PER_SCREEN];
-static char title_buffer[MAX_PLUGIN_ITEMS_PER_SCREEN][43];
-static char msg_buffer[MAX_PLUGIN_ITEMS_PER_SCREEN][79];
+static nbgl_layoutTagValue_t tlv;
+// these buffers are used as circular
+static char title_buffer[MAX_PLUGIN_ITEMS_PER_SCREEN][TAG_MAX_LEN];
+static char msg_buffer[MAX_PLUGIN_ITEMS_PER_SCREEN][VALUE_MAX_LEN];
 
-static uint8_t pageCount = 0;
+static nbgl_layoutTagValueList_t useCaseTagValueList;
+static nbgl_pageInfoLongPress_t infoLongPress;
+
 struct tx_approval_context_t {
   bool fromPlugin;
   bool blindSigning;
@@ -20,6 +30,8 @@ struct tx_approval_context_t {
 };
 
 static struct tx_approval_context_t tx_approval_context;
+
+static void reviewContinueCommon(void);
 
 
 static void reviewReject(void) {
@@ -40,133 +52,142 @@ static void reviewChoice(bool confirm) {
   }
 }
 
-static void buildBlindSignWarningPage(nbgl_pageContent_t *content) {
-  content->type = CENTERED_INFO;
-  content->centeredInfo.icon = &C_icon_warning;
-  content->centeredInfo.text1 = "Blind Signing";
-  content->centeredInfo.style = LARGE_CASE_INFO;
-}
-
-static void buildRegularTransactionInfoAmountPage(nbgl_pageContent_t *content) {
-  tlv[0].item = "Amount";
-  tlv[1].item = "Address";
-  tlv[2].item = "Nonce";
-
-  tlv[0].value = strings.common.fullAmount;
-  tlv[1].value = strings.common.fullAddress;
-  tlv[2].value = strings.common.nonce;
-
-  content->type = TAG_VALUE_LIST;
-  content->tagValueList.nbPairs = N_storage.displayNonce ? 3 : 2;
-  content->tagValueList.pairs = (nbgl_layoutTagValue_t *)tlv;
-}
-
-static void buildRegularTransactionInfoAddressPage(nbgl_pageContent_t *content) {
-  tlv[0].item = "Max fees";
-  tlv[1].item = "Network";
-
-  tlv[0].value = strings.common.maxFee;
-  tlv[1].value = strings.common.network_name;
-
-  content->type = TAG_VALUE_LIST;
-  content->tagValueList.nbPairs = tx_approval_context.displayNetwork ? 2 : 1;
-  content->tagValueList.pairs = (nbgl_layoutTagValue_t *)tlv;
-}
-
-static void buildRegularTransactionInfoConfirm(nbgl_pageContent_t *content) {
-  content->type = INFO_LONG_PRESS,
-  content->infoLongPress.icon = &C_badge_transaction_56;
-  content->infoLongPress.text = "Review transaction";
-  content->infoLongPress.longPressText = "Hold to confirm";
-}
-
-static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
-  if (tx_approval_context.blindSigning) {
-    if (page == 0) {
-      buildBlindSignWarningPage(content);
-      return true;
-    }
-  } else {
-    page++;
-  }
+// called by NBGL to get the tag/value pair corresponding to pairIndex
+static nbgl_layoutTagValue_t* getTagValuePair(uint8_t pairIndex) {
+  static int counter = 0;
 
   if (tx_approval_context.fromPlugin) {
-    if (page == 1) {
+    if (pairIndex == 0) {
+      // the first page is an exception because the first tag/value pair is the id
       plugin_ui_get_id();
-      tlv[0].item = strings.common.fullAddress;
-      tlv[0].value = strings.common.fullAmount;
-
-      content->type = TAG_VALUE_LIST;
-      content->tagValueList.nbPairs = 1;
-      content->tagValueList.pairs = (nbgl_layoutTagValue_t *)tlv;
-
-      return true;
+      tlv.item = strings.common.fullAddress;
+      tlv.value = strings.common.fullAmount;
     }
-    else if (page < pageCount - 1) {
-      uint8_t count = 0;
-      for (
-        dataContext.tokenContext.pluginUiCurrentItem = (page - 2) * MAX_PLUGIN_ITEMS_PER_SCREEN;
-        dataContext.tokenContext.pluginUiCurrentItem < (page - 1) * MAX_PLUGIN_ITEMS_PER_SCREEN && dataContext.tokenContext.pluginUiCurrentItem < dataContext.tokenContext.pluginUiMaxItems;
-        dataContext.tokenContext.pluginUiCurrentItem++, count++
-        ) {
-        plugin_ui_get_item_internal(
-          title_buffer[count],
-          sizeof(title_buffer[0]),
-          msg_buffer[count],
-          sizeof(msg_buffer[0])
-        );
-        tlv[count].item = title_buffer[count];
-        tlv[count].value = msg_buffer[count];
+    else if (pairIndex <= dataContext.tokenContext.pluginUiMaxItems) {
+      // for the next dataContext.tokenContext.pluginUiMaxItems items, get tag/value from plugin_ui_get_item_internal()
+      dataContext.tokenContext.pluginUiCurrentItem = pairIndex-1;
+      plugin_ui_get_item_internal(
+        (uint8_t *)title_buffer[counter],
+        TAG_MAX_LEN,
+        (uint8_t *)msg_buffer[counter],
+        VALUE_MAX_LEN
+      );
+      tlv.item = title_buffer[counter];
+      tlv.value = msg_buffer[counter];
+    }
+    else {
+      // for the last 1 (or 2), tags are fixed
+      if (tx_approval_context.displayNetwork && (pairIndex == (dataContext.tokenContext.pluginUiMaxItems+2))) {
+        tlv.item = "Network";
+        tlv.value = strings.common.network_name;
       }
-      content->type = TAG_VALUE_LIST;
-      content->tagValueList.pairs = (nbgl_layoutTagValue_t *)tlv;
-      content->tagValueList.nbPairs = count;
-
-      return true;
-    }
-    else if (page == pageCount - 1) {
-      buildRegularTransactionInfoAddressPage(content);
-      return true;
-    }
-    else
-    {
-      buildRegularTransactionInfoConfirm(content);
-      return true;
+      else {
+        tlv.item = "Max fees";
+        tlv.value = strings.common.maxFee;
+      }
     }
   } else {
-    if (page == 1) {
-      buildRegularTransactionInfoAmountPage(content);
-      return true;
+    // if displayNonce is false, we skip index 2
+    if ((pairIndex > 1) && (!N_storage.displayNonce)) {
+      pairIndex++;
     }
-    if (page == 2) {
-      buildRegularTransactionInfoAddressPage(content);
-      return true;
-    }
-    if (page == 3) {
-      buildRegularTransactionInfoConfirm(content);
-      return true;
+    switch (pairIndex) {
+    case 0:
+      tlv.item = "Amount";
+      tlv.value = strings.common.fullAmount;
+      break;
+    case 1:
+      tlv.item = "Address";
+      tlv.value = strings.common.fullAddress;
+      break;
+    case 2:
+      tlv.item = "Nonce";
+      tlv.value = strings.common.nonce;
+      break;
+    case 3:
+      tlv.item = "Max fees";
+      tlv.value = strings.common.maxFee;
+      break;
+    case 4:
+      tlv.item = "Network";
+      tlv.value = strings.common.network_name;
+      break;
     }
   }
-  return false;
+  // counter is used as index to circular buffer
+  counter++;
+  if (counter == MAX_PLUGIN_ITEMS_PER_SCREEN) {
+    counter = 0;
+  }
+  return &tlv;
+}
+
+static void pageCallback(int token, uint8_t index) {
+  (void)index;
+  nbgl_pageRelease(pageContext);
+  if (token == REJECT_TOKEN) {
+    reviewReject();
+  }
+  else if (token == START_REVIEW_TOKEN) {
+    reviewContinueCommon();
+  }
 }
 
 static void reviewContinue(void) {
-  pageCount = 0;
-
   if (tx_approval_context.blindSigning) {
-    pageCount++;
+    nbgl_pageInfoDescription_t info = {
+      .centeredInfo.icon = &C_icon_warning,
+      .centeredInfo.text1 = "Blind Signing",
+      .centeredInfo.text2 = NULL,
+      .centeredInfo.text3 = NULL,
+      .centeredInfo.style = LARGE_CASE_INFO,
+      .centeredInfo.offsetY = -32,
+      .footerText = "Reject transaction",
+      .footerToken = REJECT_TOKEN,
+      .tapActionText = "Tap to continue",
+      .tapActionToken = START_REVIEW_TOKEN,
+      .topRightStyle = NO_BUTTON_STYLE,
+      .actionButtonText = NULL,
+      .tuneId = TUNE_TAP_CASUAL
+    };
+
+    if (pageContext != NULL) {
+      nbgl_pageRelease(pageContext);
+      pageContext = NULL;
+    }
+    pageContext = nbgl_pageDrawInfo(&pageCallback, NULL, &info);
   }
+  else {
+    reviewContinueCommon();
+  }
+}
+
+static void reviewContinueCommon(void) {
+  uint8_t nbPairs = 0;
 
   if (tx_approval_context.fromPlugin) {
-    // plugin id + max items + fees + confirm
-    pageCount += 1 + (dataContext.tokenContext.pluginUiMaxItems/MAX_PLUGIN_ITEMS_PER_SCREEN) + 1 + 1;
-    if (dataContext.tokenContext.pluginUiMaxItems%MAX_PLUGIN_ITEMS_PER_SCREEN) {
-      pageCount++;
+    // plugin id + max items + fees
+    nbPairs += 1 + dataContext.tokenContext.pluginUiMaxItems + 1;
+    if (tx_approval_context.displayNetwork) {
+      nbPairs ++;
     }
   } else {
-    pageCount += 3;
+    nbPairs += 4;
+    if (N_storage.displayNonce) {
+      nbPairs ++;
+    }
   }
-  nbgl_useCaseRegularReview(0, pageCount, "Reject", NULL, displayTransactionPage, reviewChoice);
+
+  useCaseTagValueList.pairs = NULL;
+  useCaseTagValueList.callback = getTagValuePair;
+  useCaseTagValueList.startIndex = 0;
+  useCaseTagValueList.nbPairs = nbPairs; ///< number of pairs in pairs array
+  useCaseTagValueList.smallCaseForValue = false;
+  useCaseTagValueList.wrapping = false;
+  infoLongPress.icon = &C_badge_transaction_56;
+  infoLongPress.text = "Review transaction";
+  infoLongPress.longPressText = "Hold to confirm";
+  nbgl_useCaseStaticReview(&useCaseTagValueList, &infoLongPress, "Reject", reviewChoice);
 }
 
 

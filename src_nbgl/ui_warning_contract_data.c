@@ -26,7 +26,7 @@ void ui_warning_contract_data(void) {
     },
     .footerText = NULL,
     .bottomButtonStyle = QUIT_ICON,
-    .bottomButtonToken = OK_TOKEN,
+    .bottomButtonsToken = OK_TOKEN,
     .tapActionText = NULL,
     .topRightStyle = NO_BUTTON_STYLE,
     .topRightToken = 0,

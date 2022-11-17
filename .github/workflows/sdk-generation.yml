@@ -42,11 +42,10 @@ jobs:
           secret: ${{ secrets.CI_BOT_TOKEN }}
           repository: LedgerHQ/ethereum-plugin-sdk
 
-      - name: Update the SDK submodule in the Ethereum app
-        uses: ./.github/actions/commit-changes
+      - name: Create SDK update pull request
+        uses: peter-evans/create-pull-request@v4
         with:
-          name: 'ldg-github-ci'
-          files: ethereum-plugin-sdk
-          message: "[update][SDK] Branch ${{ steps.extract_branch.outputs.branch }} | Commit ${GITHUB_SHA}"
-          secret: ${{ secrets.CI_BOT_TOKEN }}
-          repository: LedgerHQ/app-ethereum
+          branch: sdk/update-submodule
+          delete-branch: true
+          title: Update the SDK submodule
+          reviewers: apailler-ledger

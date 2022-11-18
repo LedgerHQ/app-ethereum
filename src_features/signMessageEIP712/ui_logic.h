@@ -10,6 +10,11 @@
 #define UI_712_FIELD_NAME_PROVIDED (1 << 1)
 
 typedef enum { EIP712_FILTERING_BASIC, EIP712_FILTERING_FULL } e_eip712_filtering_mode;
+typedef enum {
+    EIP712_FIELD_LATER,
+    EIP712_FIELD_INCOMING,
+    EIP712_NO_MORE_FIELD
+} e_eip712_nfs;  // next field state
 
 typedef struct {
     bool shown;
@@ -22,7 +27,7 @@ typedef struct {
 
 bool ui_712_init(void);
 void ui_712_deinit(void);
-bool ui_712_next_field(void);
+e_eip712_nfs ui_712_next_field(void);
 void ui_712_review_struct(const void *const struct_ptr);
 bool ui_712_new_field(const void *const field_ptr, const uint8_t *const data, uint8_t length);
 void ui_712_end_sign(void);

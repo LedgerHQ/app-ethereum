@@ -21,7 +21,7 @@ sig_ctx = {}
 # Output = ('uint8', [2, None, 4])  |   ('bool', [])
 def get_array_levels(typename):
     array_lvls = list()
-    regex = re.compile("(.*)\[([0-9]*)\]$")
+    regex = re.compile(r"(.*)\[([0-9]*)\]$")
 
     while True:
         result = regex.search(typename)
@@ -42,7 +42,7 @@ def get_array_levels(typename):
 # Input  = "uint64"         |   "string"
 # Output = ('uint', 64)     |   ('string', None)
 def get_typesize(typename):
-    regex = re.compile("^(\w+?)(\d*)$")
+    regex = re.compile(r"^(\w+?)(\d*)$")
     result = regex.search(typename)
     typename = result.group(1)
     typesize = result.group(2)

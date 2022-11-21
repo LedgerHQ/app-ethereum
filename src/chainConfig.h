@@ -75,7 +75,6 @@ typedef enum chain_kind_e {
     CHAIN_KIND_APOTHEMNETWORK,
     CHAIN_KIND_ID4GOOD
     CHAIN_KIND_VELAS
-
 } chain_kind_t;
 
 typedef struct chain_config_s {

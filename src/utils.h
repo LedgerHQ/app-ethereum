@@ -22,13 +22,15 @@
 
 #include "uint256.h"
 
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
+
 void array_hexstr(char* strbuf, const void* bin, unsigned int len);
 
-void convertUint256BE(uint8_t* data, uint32_t length, uint256_t* target);
+void convertUint128BE(const uint8_t* const data, uint32_t length, uint128_t* const target);
+void convertUint256BE(const uint8_t* const data, uint32_t length, uint256_t* const target);
+void convertUint64BEto128(const uint8_t* const data, uint32_t length, uint128_t* const target);
 
-int local_strchr(char* string, char ch);
-
-uint64_t u64_from_BE(uint8_t* in, uint8_t size);
+uint64_t u64_from_BE(const uint8_t* in, uint8_t size);
 
 bool uint256_to_decimal(const uint8_t* value, size_t value_len, char* out, size_t out_len);
 

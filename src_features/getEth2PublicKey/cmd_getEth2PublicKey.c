@@ -3,8 +3,9 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
 
-#include "ui_flow.h"
 #include "feature_getEth2PublicKey.h"
+#include "common_ui.h"
+#include "os_io_seproxyhal.h"
 
 static const uint8_t BLS12_381_FIELD_MODULUS[] = {
     0x1a, 0x01, 0x11, 0xea, 0x39, 0x7f, 0xe6, 0x9a, 0x4b, 0x1b, 0xa7, 0xb6, 0x43, 0x4b, 0xac, 0xd7,
@@ -42,21 +43,14 @@ void getEth2PublicKey(uint32_t *bip32Path, uint8_t bip32PathLength, uint8_t *out
 
 void handleGetEth2PublicKey(uint8_t p1,
                             uint8_t p2,
-                            uint8_t *dataBuffer,
-                            uint16_t dataLength,
+                            const uint8_t *dataBuffer,
+                            uint8_t dataLength,
                             unsigned int *flags,
                             unsigned int *tx) {
-    UNUSED(dataLength);
-    uint32_t bip32Path[MAX_BIP32_PATH];
-    uint32_t i;
-    uint8_t bip32PathLength = *(dataBuffer++);
+    bip32_path_t bip32;
 
     if (!called_from_swap) {
         reset_app_context();
-    }
-    if ((bip32PathLength < 0x01) || (bip32PathLength > MAX_BIP32_PATH)) {
-        PRINTF("Invalid path\n");
-        THROW(0x6a80);
     }
     if ((p1 != P1_CONFIRM) && (p1 != P1_NON_CONFIRM)) {
         THROW(0x6B00);
@@ -64,11 +58,14 @@ void handleGetEth2PublicKey(uint8_t p1,
     if (p2 != 0) {
         THROW(0x6B00);
     }
-    for (i = 0; i < bip32PathLength; i++) {
-        bip32Path[i] = U4BE(dataBuffer, 0);
-        dataBuffer += 4;
+
+    dataBuffer = parseBip32(dataBuffer, &dataLength, &bip32);
+
+    if (dataBuffer == NULL) {
+        THROW(0x6a80);
     }
-    getEth2PublicKey(bip32Path, bip32PathLength, tmpCtx.publicKeyContext.publicKey.W);
+
+    getEth2PublicKey(bip32.path, bip32.length, tmpCtx.publicKeyContext.publicKey.W);
 
 #ifndef NO_CONSENT
     if (p1 == P1_NON_CONFIRM)
@@ -79,7 +76,7 @@ void handleGetEth2PublicKey(uint8_t p1,
     }
 #ifndef NO_CONSENT
     else {
-        ux_flow_init(0, ux_display_public_eth2_flow, NULL);
+        ui_display_public_eth2();
 
         *flags |= IO_ASYNCH_REPLY;
     }

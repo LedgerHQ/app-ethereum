@@ -19,7 +19,7 @@
 
 #include "tokens.h"
 
-const tokenDefinition_t const TOKENS_EXTRA[NUM_TOKENS_EXTRA] = {
+const tokenDefinition_t TOKENS_EXTRA[NUM_TOKENS_EXTRA] = {
 
     // Ropsten DeversiFi tokens
     {{0x4c, 0x5f, 0x66, 0x59, 0x61, 0x97, 0xa8, 0x6f, 0xb3, 0x0a,
@@ -203,6 +203,24 @@ const tokenDefinition_t const TOKENS_BTTC[NUM_TOKENS_BTTC] = {};
 const tokenDefinition_t const TOKENS_KARDIACHAIN[NUM_TOKENS_KARDIACHAIN] = {};
 
 const tokenDefinition_t const TOKENS_WETHIO[NUM_TOKENS_WETHIO] = {};
+
+const tokenDefinition_t const TOKENS_OKC[NUM_TOKENS_OKC] = {};
+
+const tokenDefinition_t const TOKENS_CUBE[NUM_TOKENS_CUBE] = {};
+
+const tokenDefinition_t const TOKENS_ASTAR[NUM_TOKENS_ASTAR] = {};
+
+const tokenDefinition_t const TOKENS_SHIDEN[NUM_TOKENS_SHIDEN] = {};
+
+const tokenDefinition_t const TOKENS_XDCNETWORK[NUM_TOKENS_XDCNETWORK] = {};
+
+const tokenDefinition_t const TOKENS_METER[NUM_TOKENS_METER] = {};
+
+const tokenDefinition_t const TOKENS_MULTIVAC[NUM_TOKENS_MULTIVAC] = {};
+
+const tokenDefinition_t const TOKENS_TECRA[NUM_TOKENS_TECRA] = {};
+
+const tokenDefinition_t const TOKENS_APOTHEMNETWORK[NUM_TOKENS_APOTHEMNETWORK] = {};
 
 const tokenDefinition_t const TOKENS_VELAS[NUM_TOKENS_VELAS] = {};
 

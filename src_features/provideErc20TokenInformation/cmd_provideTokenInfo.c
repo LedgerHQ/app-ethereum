@@ -1,14 +1,15 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
-#include "ui_flow.h"
 #include "tokens.h"
+#include "common_ui.h"
+#include "os_io_seproxyhal.h"
 
 #ifdef HAVE_CONTRACT_NAME_IN_DESCRIPTOR
 
 void handleProvideErc20TokenInformation(uint8_t p1,
                                         uint8_t p2,
-                                        uint8_t *workBuffer,
-                                        uint16_t dataLength,
+                                        const uint8_t *workBuffer,
+                                        uint8_t dataLength,
                                         unsigned int *flags,
                                         unsigned int *tx) {
     UNUSED(p1);
@@ -101,13 +102,14 @@ void handleProvideErc20TokenInformation(uint8_t p1,
 
 void handleProvideErc20TokenInformation(uint8_t p1,
                                         uint8_t p2,
-                                        uint8_t *workBuffer,
-                                        uint16_t dataLength,
+                                        const uint8_t *workBuffer,
+                                        uint8_t dataLength,
                                         unsigned int *flags,
-                                        __attribute__((unused)) unsigned int *tx) {
+                                        unsigned int *tx) {
     UNUSED(p1);
     UNUSED(p2);
     UNUSED(flags);
+    UNUSED(tx);
     uint32_t offset = 0;
     uint8_t tickerLength;
     uint32_t chainId;

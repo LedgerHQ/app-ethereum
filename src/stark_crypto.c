@@ -2,9 +2,10 @@
 
 #include "shared_context.h"
 #include "stark_utils.h"
-#include "ui_callbacks.h"
 #include "utils.h"
 #include "ethUtils.h"
+
+extraInfo_t *getKnownToken(uint8_t *contractAddress);
 
 static unsigned char const C_cx_Stark256_n[] = {
     // n: 0x0800000000000010ffffffffffffffffb781126dcae7b2321e66a241adc64d2f

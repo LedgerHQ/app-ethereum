@@ -1,12 +1,10 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
 
-#include "ui_flow.h"
-
 void handleGetAppConfiguration(uint8_t p1,
                                uint8_t p2,
-                               uint8_t *workBuffer,
-                               uint16_t dataLength,
+                               const uint8_t *workBuffer,
+                               uint8_t dataLength,
                                unsigned int *flags,
                                unsigned int *tx) {
     UNUSED(p1);

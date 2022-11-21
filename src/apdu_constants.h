@@ -21,15 +21,29 @@
 #define INS_PROVIDE_NFT_INFORMATION         0x14
 #define INS_SET_PLUGIN                      0x16
 #define INS_PERFORM_PRIVACY_OPERATION       0x18
+#define INS_EIP712_STRUCT_DEF               0x1A
+#define INS_EIP712_STRUCT_IMPL              0x1C
+#define INS_EIP712_FILTERING                0x1E
 #define P1_CONFIRM                          0x01
 #define P1_NON_CONFIRM                      0x00
 #define P2_NO_CHAINCODE                     0x00
 #define P2_CHAINCODE                        0x01
 #define P1_FIRST                            0x00
 #define P1_MORE                             0x80
+#define P2_EIP712_LEGACY_IMPLEM             0x00
+#define P2_EIP712_FULL_IMPLEM               0x01
 
 #define COMMON_CLA               0xB0
 #define COMMON_INS_GET_WALLET_ID 0x04
+
+#define APDU_RESPONSE_OK                      0x9000
+#define APDU_RESPONSE_ERROR_NO_INFO           0x6a00
+#define APDU_RESPONSE_INVALID_DATA            0x6a80
+#define APDU_RESPONSE_INSUFFICIENT_MEMORY     0x6a84
+#define APDU_RESPONSE_INVALID_INS             0x6d00
+#define APDU_RESPONSE_INVALID_P1_P2           0x6b00
+#define APDU_RESPONSE_CONDITION_NOT_SATISFIED 0x6985
+#define APDU_RESPONSE_REF_DATA_NOT_FOUND      0x6a88
 
 #ifdef HAVE_STARKWARE
 
@@ -51,74 +65,70 @@
 
 #endif
 
-#define OFFSET_CLA   0
-#define OFFSET_INS   1
-#define OFFSET_P1    2
-#define OFFSET_P2    3
-#define OFFSET_LC    4
-#define OFFSET_CDATA 5
+enum { OFFSET_CLA = 0, OFFSET_INS, OFFSET_P1, OFFSET_P2, OFFSET_LC, OFFSET_CDATA };
+
+#define ERR_APDU_EMPTY         0x6982
+#define ERR_APDU_SIZE_MISMATCH 0x6983
 
 void handleGetPublicKey(uint8_t p1,
                         uint8_t p2,
-                        uint8_t *dataBuffer,
-                        uint16_t dataLength,
+                        const uint8_t *dataBuffer,
+                        uint8_t dataLength,
                         unsigned int *flags,
                         unsigned int *tx);
 void handleProvideErc20TokenInformation(uint8_t p1,
                                         uint8_t p2,
-                                        uint8_t *dataBuffer,
-                                        uint16_t dataLength,
+                                        const uint8_t *workBuffer,
+                                        uint8_t dataLength,
                                         unsigned int *flags,
                                         unsigned int *tx);
 void handleProvideNFTInformation(uint8_t p1,
                                  uint8_t p2,
-                                 uint8_t *dataBuffer,
-                                 uint16_t dataLength,
+                                 const uint8_t *dataBuffer,
+                                 uint8_t dataLength,
                                  unsigned int *flags,
                                  unsigned int *tx);
 void handleSign(uint8_t p1,
                 uint8_t p2,
-                uint8_t *dataBuffer,
-                uint16_t dataLength,
+                const uint8_t *dataBuffer,
+                uint8_t dataLength,
                 unsigned int *flags,
                 unsigned int *tx);
 void handleGetAppConfiguration(uint8_t p1,
                                uint8_t p2,
-                               uint8_t *dataBuffer,
-                               uint16_t dataLength,
+                               const uint8_t *dataBuffer,
+                               uint8_t dataLength,
                                unsigned int *flags,
                                unsigned int *tx);
-void handleSignPersonalMessage(uint8_t p1,
+bool handleSignPersonalMessage(uint8_t p1,
                                uint8_t p2,
-                               uint8_t *dataBuffer,
-                               uint16_t dataLength,
-                               unsigned int *flags,
-                               unsigned int *tx);
-void handleSignEIP712Message(uint8_t p1,
-                             uint8_t p2,
-                             uint8_t *dataBuffer,
-                             uint16_t dataLength,
-                             unsigned int *flags,
-                             unsigned int *tx);
+                               const uint8_t *const payload,
+                               uint8_t length);
+void handleSignEIP712Message_v0(uint8_t p1,
+                                uint8_t p2,
+                                const uint8_t *dataBuffer,
+                                uint8_t dataLength,
+                                unsigned int *flags,
+                                unsigned int *tx);
 
 void handleSetExternalPlugin(uint8_t p1,
                              uint8_t p2,
-                             uint8_t *workBuffer,
-                             uint16_t dataLength,
+                             const uint8_t *workBuffer,
+                             uint8_t dataLength,
                              unsigned int *flags,
                              unsigned int *tx);
 
 void handleSetPlugin(uint8_t p1,
                      uint8_t p2,
-                     uint8_t *workBuffer,
-                     uint16_t dataLength,
+                     const uint8_t *workBuffer,
+                     uint8_t dataLength,
                      unsigned int *flags,
                      unsigned int *tx);
 
 void handlePerformPrivacyOperation(uint8_t p1,
                                    uint8_t p2,
-                                   uint8_t *workBuffer,
-                                   uint16_t dataLength,
+                                   const uint8_t *workBuffer,
+                                   uint8_t dataLength,
                                    unsigned int *flags,
                                    unsigned int *tx);
 
@@ -126,14 +136,14 @@ void handlePerformPrivacyOperation(uint8_t p1,
 
 void handleGetEth2PublicKey(uint8_t p1,
                             uint8_t p2,
-                            uint8_t *dataBuffer,
-                            uint16_t dataLength,
+                            const uint8_t *dataBuffer,
+                            uint8_t dataLength,
                             unsigned int *flags,
                             unsigned int *tx);
 void handleSetEth2WinthdrawalIndex(uint8_t p1,
                                    uint8_t p2,
                                    uint8_t *dataBuffer,
-                                   uint16_t dataLength,
+                                   uint8_t dataLength,
                                    unsigned int *flags,
                                    unsigned int *tx);
 
@@ -143,29 +153,31 @@ void handleSetEth2WinthdrawalIndex(uint8_t p1,
 
 void handleStarkwareGetPublicKey(uint8_t p1,
                                  uint8_t p2,
-                                 uint8_t *dataBuffer,
-                                 uint16_t dataLength,
+                                 const uint8_t *dataBuffer,
+                                 uint8_t dataLength,
                                  unsigned int *flags,
                                  unsigned int *tx);
 void handleStarkwareSignMessage(uint8_t p1,
                                 uint8_t p2,
                                 uint8_t *dataBuffer,
-                                uint16_t dataLength,
+                                uint8_t dataLength,
                                 unsigned int *flags,
                                 unsigned int *tx);
 void handleStarkwareProvideQuantum(uint8_t p1,
                                    uint8_t p2,
-                                   uint8_t *dataBuffer,
-                                   uint16_t dataLength,
+                                   const uint8_t *dataBuffer,
+                                   uint8_t dataLength,
                                    unsigned int *flags,
                                    unsigned int *tx);
 void handleStarkwareUnsafeSign(uint8_t p1,
                                uint8_t p2,
-                               uint8_t *dataBuffer,
-                               uint16_t dataLength,
+                               const uint8_t *dataBuffer,
+                               uint8_t dataLength,
                                unsigned int *flags,
                                unsigned int *tx);
 
 #endif
+
+extern uint16_t apdu_response_code;
 
 #endif  // _APDU_CONSTANTS_H_

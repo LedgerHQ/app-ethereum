@@ -33,10 +33,10 @@ APP_LOAD_PARAMS += --path "1517992542'/1101353413'"
 ##################
 
 APPVERSION_M=1
-APPVERSION_N=9
-APPVERSION_P=19
-APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
-APP_LOAD_FLAGS= --appFlags 0x240 --dep Ethereum:$(APPVERSION)
+APPVERSION_N=10
+APPVERSION_P=2
+APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)-dev
+APP_LOAD_FLAGS= --appFlags 0xa40 --dep Ethereum:$(APPVERSION)
 
 ###########################
 # Set Chain environnement #
@@ -137,6 +137,26 @@ DEFINES += HAVE_NFT_TESTING_KEY
 endif
 endif
 
+# Dynamic memory allocator
+ifneq ($(TARGET_NAME),TARGET_NANOS)
+DEFINES += HAVE_DYN_MEM_ALLOC
+endif
+
+# EIP-712
+ifneq ($(TARGET_NAME),TARGET_NANOS)
+DEFINES	+= HAVE_EIP712_FULL_SUPPORT
+endif
+
+# CryptoAssetsList key
+CAL_TEST_KEY:=0
+CAL_CI_KEY:=0
+ifneq ($(CAL_TEST_KEY),0)
+DEFINES += HAVE_CAL_TEST_KEY
+endif
+ifneq ($(CAL_CI_KEY),0)
+DEFINES += HAVE_CAL_CI_KEY
+endif
+
 # Enabling debug PRINTF
 DEBUG:=0
 ifneq ($(DEBUG),0)
@@ -194,6 +214,7 @@ SDK_SOURCE_PATH  += lib_ux
 ifeq ($(TARGET_NAME),TARGET_NANOX)
 SDK_SOURCE_PATH  += lib_blewbxx lib_blewbxx_impl
 endif
+APP_SOURCE_PATH  += src_bagl
 
 ### initialize plugin SDK submodule if needed, rebuild it, and warn if a difference is noticed
 ifeq ($(CHAIN),ethereum)
@@ -222,12 +243,15 @@ delete:
 	python3 -m ledgerblue.deleteApp $(COMMON_DELETE_PARAMS)
 
 install_tests:
-	cd tests && (yarn install || sudo yarn install)
+	cd tests/zemu/ && (yarn install || sudo yarn install)
 
 run_tests:
-	cd tests && (yarn test || sudo yarn test)
+	cd tests/zemu/ && (yarn test || sudo yarn test)
 
 test: install_tests run_tests
+
+unit-test:
+	make -C tests/unit
 
 # import generic rules from the sdk
 include $(BOLOS_SDK)/Makefile.rules

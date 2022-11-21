@@ -25,7 +25,31 @@ const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 43114, .name = "Avalanche", .ticker = "AVAX "},
     {.chain_id = 44787, .name = "Celo Alfajores", .ticker = "aCELO "},
     {.chain_id = 62320, .name = "Celo Baklava", .ticker = "bCELO "},
-    {.chain_id = 11297108109, .name = "Palm Network", .ticker = "PALM "}};
+    {.chain_id = 11297108109, .name = "Palm Network", .ticker = "PALM "},
+    {.chain_id = 1818, .name = "Cube", .ticker = "CUBE "},
+    {.chain_id = 336, .name = "Shiden", .ticker = "SDN "},
+    {.chain_id = 592, .name = "Astar", .ticker = "ASTR "},
+    {.chain_id = 50, .name = "XDC", .ticker = "XDC "},
+    {.chain_id = 82, .name = "Meter", .ticker = "MTR "},
+    {.chain_id = 62621, .name = "Multivac", .ticker = "MTV "},
+    {.chain_id = 20531812, .name = "Tecra", .ticker = "TCR "},
+    {.chain_id = 20531811, .name = "TecraTestnet", .ticker = "TCR "},
+    {.chain_id = 51, .name = "Apothemnetwork", .ticker = "XDC "},
+    {.chain_id = 199, .name = "BTTC", .ticker = "BTT "},
+    {.chain_id = 1030, .name = "Conflux", .ticker = "CFX "},
+    {.chain_id = 61, .name = "Ethereum Classic", .ticker = "ETC "},
+    {.chain_id = 246, .name = "EnergyWebChain", .ticker = "EWC "},
+    {.chain_id = 14, .name = "Flare", .ticker = "FLR "},
+    {.chain_id = 16, .name = "Flare Coston", .ticker = "FLR "},
+    {.chain_id = 24, .name = "KardiaChain", .ticker = "KAI "},
+    {.chain_id = 1284, .name = "Moonbeam", .ticker = "GLMR "},
+    {.chain_id = 1285, .name = "Moonriver", .ticker = "MOVR "},
+    {.chain_id = 66, .name = "OKXChain", .ticker = "OKT "},
+    {.chain_id = 99, .name = "POA", .ticker = "POA "},
+    {.chain_id = 7341, .name = "Shyft", .ticker = "SHFT "},
+    {.chain_id = 19, .name = "Songbird", .ticker = "SGB "},
+    {.chain_id = 73799, .name = "Volta", .ticker = "VOLTA "},
+    {.chain_id = 25, .name = "Cronos", .ticker = "CRO "}};
 
 uint64_t get_chain_id(void) {
     uint64_t chain_id = 0;

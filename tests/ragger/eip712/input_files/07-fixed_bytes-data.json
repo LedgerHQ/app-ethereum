@@ -1,0 +1,31 @@
+{
+    "domain": {
+        "chainId": 1,
+        "name": "Fixed bytes test",
+        "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+        "version": "1"
+    },
+    "message": {
+        "val1": "0xae",
+        "val4": "0x973bb640",
+        "val8": "0xac3608fa074a22a0",
+        "val16": "0x24e62129cc3ed3df6f8f3cd1e95b812a",
+        "val32": "0xb5d679d10bf948280080e802ce9fde218b0f8c442c47bf4ab05657d8da04d1da"
+    },
+    "primaryType": "Test",
+    "types": {
+        "EIP712Domain": [
+            { "name": "name", "type": "string" },
+            { "name": "version", "type": "string" },
+            { "name": "chainId", "type": "uint256" },
+            { "name": "verifyingContract", "type": "address" }
+        ],
+        "Test": [
+            { "name": "val1", "type": "bytes1" },
+            { "name": "val4", "type": "bytes4" },
+            { "name": "val8", "type": "bytes8" },
+            { "name": "val16", "type": "bytes16" },
+            { "name": "val32", "type": "bytes32" }
+        ]
+    }
+}

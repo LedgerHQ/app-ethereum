@@ -1,0 +1,7 @@
+{
+    "name": "Ethereum sign-in",
+    "fields": {
+        "curDate": "Timestamp",
+        "id": "Identifier"
+    }
+}

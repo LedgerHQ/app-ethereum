@@ -18,10 +18,18 @@
 
 #define N_storage (*(volatile internalStorage_t *) PIC(&N_storage_real))
 
+typedef struct bip32_path_t {
+    uint8_t length;
+    uint32_t path[MAX_BIP32_PATH];
+} bip32_path_t;
+
 typedef struct internalStorage_t {
     unsigned char dataAllowed;
     unsigned char contractDetails;
     unsigned char displayNonce;
+#ifdef HAVE_EIP712_FULL_SUPPORT
+    bool verbose_eip712;
+#endif  // HAVE_EIP712_FULL_SUPPORT
     uint8_t initialized;
 } internalStorage_t;
 
@@ -82,8 +90,7 @@ typedef union extraInfo_t {
 } extraInfo_t;
 
 typedef struct transactionContext_t {
-    uint8_t pathLength;
-    uint32_t bip32Path[MAX_BIP32_PATH];
+    bip32_path_t bip32;
     uint8_t hash[INT256_LENGTH];
     union extraInfo_t extraInfo[MAX_ITEMS];
     uint8_t tokenSet[MAX_ITEMS];
@@ -91,15 +98,13 @@ typedef struct transactionContext_t {
 } transactionContext_t;
 
 typedef struct messageSigningContext_t {
-    uint8_t pathLength;
-    uint32_t bip32Path[MAX_BIP32_PATH];
+    bip32_path_t bip32;
     uint8_t hash[INT256_LENGTH];
     uint32_t remainingLength;
 } messageSigningContext_t;
 
 typedef struct messageSigningContext712_t {
-    uint8_t pathLength;
-    uint32_t bip32Path[MAX_BIP32_PATH];
+    bip32_path_t bip32;
     uint8_t domainHash[32];
     uint8_t messageHash[32];
 } messageSigningContext712_t;
@@ -217,5 +222,6 @@ extern uint32_t eth2WithdrawalIndex;
 #endif
 
 void reset_app_context(void);
+const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_path_t *bip32);
 
 #endif  // _SHARED_CONTEXT_H_

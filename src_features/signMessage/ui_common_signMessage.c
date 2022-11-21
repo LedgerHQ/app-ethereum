@@ -1,16 +1,15 @@
 #include "os_io_seproxyhal.h"
-#include "shared_context.h"
-#include "ui_callbacks.h"
+#include "common_ui.h"
 
-unsigned int io_seproxyhal_touch_signMessage_ok(__attribute__((unused)) const bagl_element_t *e) {
+unsigned int io_seproxyhal_touch_signMessage_ok(void) {
     uint8_t privateKeyData[INT256_LENGTH];
     uint8_t signature[100];
     cx_ecfp_private_key_t privateKey;
     uint32_t tx = 0;
     io_seproxyhal_io_heartbeat();
     os_perso_derive_node_bip32(CX_CURVE_256K1,
-                               tmpCtx.messageSigningContext.bip32Path,
-                               tmpCtx.messageSigningContext.pathLength,
+                               tmpCtx.messageSigningContext.bip32.path,
+                               tmpCtx.messageSigningContext.bip32.length,
                                privateKeyData,
                                NULL);
     io_seproxyhal_io_heartbeat();
@@ -46,8 +45,7 @@ unsigned int io_seproxyhal_touch_signMessage_ok(__attribute__((unused)) const ba
     return 0;  // do not redraw the widget
 }
 
-unsigned int io_seproxyhal_touch_signMessage_cancel(__attribute__((unused))
-                                                    const bagl_element_t *e) {
+unsigned int io_seproxyhal_touch_signMessage_cancel(void) {
     reset_app_context();
     G_io_apdu_buffer[0] = 0x69;
     G_io_apdu_buffer[1] = 0x85;

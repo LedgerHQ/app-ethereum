@@ -1,7 +1,7 @@
 #include "os_io_seproxyhal.h"
 #include "shared_context.h"
 #include "utils.h"
-#include "ui_callbacks.h"
+#include "common_ui.h"
 
 unsigned int io_seproxyhal_touch_tx_ok(__attribute__((unused)) const bagl_element_t *e) {
     uint8_t privateKeyData[INT256_LENGTH];
@@ -10,8 +10,8 @@ unsigned int io_seproxyhal_touch_tx_ok(__attribute__((unused)) const bagl_elemen
     uint32_t tx = 0;
     io_seproxyhal_io_heartbeat();
     os_perso_derive_node_bip32(CX_CURVE_256K1,
-                               tmpCtx.transactionContext.bip32Path,
-                               tmpCtx.transactionContext.pathLength,
+                               tmpCtx.transactionContext.bip32.path,
+                               tmpCtx.transactionContext.bip32.length,
                                privateKeyData,
                                NULL);
     cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);

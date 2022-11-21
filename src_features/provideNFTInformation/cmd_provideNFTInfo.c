@@ -2,9 +2,10 @@
 
 #include "shared_context.h"
 #include "apdu_constants.h"
-#include "ui_flow.h"
 #include "tokens.h"
 #include "utils.h"
+#include "common_ui.h"
+#include "os_io_seproxyhal.h"
 
 #define TYPE_SIZE        1
 #define VERSION_SIZE     1
@@ -53,8 +54,8 @@ typedef bool verificationAlgo(const cx_ecfp_public_key_t *,
 
 void handleProvideNFTInformation(uint8_t p1,
                                  uint8_t p2,
-                                 uint8_t *workBuffer,
-                                 uint16_t dataLength,
+                                 const uint8_t *workBuffer,
+                                 uint8_t dataLength,
                                  unsigned int *flags,
                                  unsigned int *tx) {
     UNUSED(p1);
@@ -218,7 +219,7 @@ void handleProvideNFTInformation(uint8_t p1,
                         hashId,
                         hash,
                         sizeof(hash),
-                        workBuffer + offset,
+                        (uint8_t *) workBuffer + offset,
                         signatureLen)) {
 #ifndef HAVE_BYPASS_SIGNATURES
         PRINTF("Invalid NFT signature\n");

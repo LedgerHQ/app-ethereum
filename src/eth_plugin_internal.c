@@ -1,10 +1,10 @@
 #include <string.h>
 #include "eth_plugin_internal.h"
+#include "ethUtils.h"  // allzeroes
 
 bool erc20_plugin_available_check(void);
 
 void erc20_plugin_call(int message, void* parameters);
-void compound_plugin_call(int message, void* parameters);
 
 void copy_address(uint8_t* dst, const uint8_t* parameter, uint8_t dst_size) {
     uint8_t copy_size = MIN(dst_size, ADDRESS_LENGTH);
@@ -14,6 +14,24 @@ void copy_address(uint8_t* dst, const uint8_t* parameter, uint8_t dst_size) {
 void copy_parameter(uint8_t* dst, const uint8_t* parameter, uint8_t dst_size) {
     uint8_t copy_size = MIN(dst_size, PARAMETER_LENGTH);
     memmove(dst, parameter, copy_size);
+}
+
+bool U2BE_from_parameter(const uint8_t* parameter, uint16_t* value) {
+    if (allzeroes(parameter, PARAMETER_LENGTH - sizeof(uint16_t))) {
+        *value = U2BE(parameter, PARAMETER_LENGTH - sizeof(uint16_t));
+        return true;
+    }
+
+    return false;
+}
+
+bool U4BE_from_parameter(const uint8_t* parameter, uint32_t* value) {
+    if (allzeroes(parameter, PARAMETER_LENGTH - sizeof(uint32_t))) {
+        *value = U4BE(parameter, PARAMETER_LENGTH - sizeof(uint32_t));
+        return true;
+    }
+
+    return false;
 }
 
 #ifdef HAVE_STARKWARE
@@ -28,17 +46,6 @@ static const uint8_t ERC20_APPROVE_SELECTOR[SELECTOR_SIZE] = {0x09, 0x5e, 0xa7, 
 
 const uint8_t* const ERC20_SELECTORS[NUM_ERC20_SELECTORS] = {ERC20_TRANSFER_SELECTOR,
                                                              ERC20_APPROVE_SELECTOR};
-
-static const uint8_t COMPOUND_REDEEM_UNDERLYING_SELECTOR[SELECTOR_SIZE] = {0x85, 0x2a, 0x12, 0xe3};
-static const uint8_t COMPOUND_REDEEM_SELECTOR[SELECTOR_SIZE] = {0xdb, 0x00, 0x6a, 0x75};
-static const uint8_t COMPOUND_MINT_SELECTOR[SELECTOR_SIZE] = {0xa0, 0x71, 0x2d, 0x68};
-static const uint8_t CETH_MINT_SELECTOR[SELECTOR_SIZE] = {0x12, 0x49, 0xc5, 0x8b};
-
-const uint8_t* const COMPOUND_SELECTORS[NUM_COMPOUND_SELECTORS] = {
-    COMPOUND_REDEEM_UNDERLYING_SELECTOR,
-    COMPOUND_REDEEM_SELECTOR,
-    COMPOUND_MINT_SELECTOR,
-    CETH_MINT_SELECTOR};
 
 #ifdef HAVE_ETH2
 
@@ -110,12 +117,6 @@ const internalEthPlugin_t INTERNAL_ETH_PLUGINS[] = {
      NUM_ERC20_SELECTORS,
      "-erc20",
      erc20_plugin_call},
-
-    {NULL,
-     (const uint8_t**) COMPOUND_SELECTORS,
-     NUM_COMPOUND_SELECTORS,
-     "-cmpd",
-     compound_plugin_call},
 
 #ifdef HAVE_ETH2
 

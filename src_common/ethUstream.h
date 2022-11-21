@@ -37,6 +37,7 @@ typedef customStatus_e (*ustreamProcess_t)(struct txContext_t *context);
 
 #define TX_FLAG_TYPE   0x01
 #define ADDRESS_LENGTH 20
+#define INT128_LENGTH  16
 #define INT256_LENGTH  32
 
 // First variant of every Tx enum.
@@ -142,7 +143,7 @@ typedef struct txContext_t {
     uint32_t dataLength;
     uint8_t rlpBuffer[5];
     uint32_t rlpBufferPos;
-    uint8_t *workBuffer;
+    const uint8_t *workBuffer;
     uint32_t commandLength;
     uint32_t processingFlags;
     ustreamProcess_t customProcessor;
@@ -157,7 +158,7 @@ void initTx(txContext_t *context,
             ustreamProcess_t customProcessor,
             void *extra);
 parserStatus_e processTx(txContext_t *context,
-                         uint8_t *buffer,
+                         const uint8_t *buffer,
                          uint32_t length,
                          uint32_t processingFlags);
 parserStatus_e continueTx(txContext_t *context);

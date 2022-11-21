@@ -2,8 +2,8 @@
 #include "apdu_constants.h"
 #include "ethUtils.h"
 
-#include "ui_flow.h"
 #include "feature_performPrivacyOperation.h"
+#include "common_ui.h"
 
 #define P2_PUBLIC_ENCRYPTION_KEY 0x00
 #define P2_SHARED_SECRET         0x01
@@ -25,43 +25,39 @@ void decodeScalar(const uint8_t *scalarIn, uint8_t *scalarOut) {
 
 void handlePerformPrivacyOperation(uint8_t p1,
                                    uint8_t p2,
-                                   uint8_t *dataBuffer,
-                                   uint16_t dataLength,
+                                   const uint8_t *dataBuffer,
+                                   uint8_t dataLength,
                                    unsigned int *flags,
                                    unsigned int *tx) {
-    UNUSED(dataLength);
     uint8_t privateKeyData[INT256_LENGTH];
     uint8_t privateKeyDataSwapped[INT256_LENGTH];
-    uint32_t bip32Path[MAX_BIP32_PATH];
-    uint8_t bip32PathLength = *(dataBuffer++);
+    bip32_path_t bip32;
     cx_err_t status = CX_OK;
-    if (p2 == P2_PUBLIC_ENCRYPTION_KEY) {
-        if (dataLength < 1 + 4 * bip32PathLength) {
-            THROW(0x6700);
-        }
-    } else if (p2 == P2_SHARED_SECRET) {
-        if (dataLength < 1 + 4 * bip32PathLength + 32) {
-            THROW(0x6700);
-        }
-    } else {
-        THROW(0x6B00);
-    }
-    cx_ecfp_private_key_t privateKey;
-    if ((bip32PathLength < 0x01) || (bip32PathLength > MAX_BIP32_PATH)) {
-        PRINTF("Invalid path\n");
-        THROW(0x6a80);
-    }
+
     if ((p1 != P1_CONFIRM) && (p1 != P1_NON_CONFIRM)) {
         THROW(0x6B00);
     }
-    for (uint8_t i = 0; i < bip32PathLength; i++) {
-        bip32Path[i] = U4BE(dataBuffer, 0);
-        dataBuffer += 4;
+
+    if ((p2 != P2_PUBLIC_ENCRYPTION_KEY) && (p2 != P2_SHARED_SECRET)) {
+        THROW(0x6700);
     }
+
+    dataBuffer = parseBip32(dataBuffer, &dataLength, &bip32);
+
+    if (dataBuffer == NULL) {
+        THROW(0x6a80);
+    }
+
+    if ((p2 == P2_SHARED_SECRET) && (dataLength < 32)) {
+        THROW(0x6700);
+    }
+
+    cx_ecfp_private_key_t privateKey;
+
     os_perso_derive_node_bip32(
         CX_CURVE_256K1,
-        bip32Path,
-        bip32PathLength,
+        bip32.path,
+        bip32.length,
         privateKeyData,
         (tmpCtx.publicKeyContext.getChaincode ? tmpCtx.publicKeyContext.chainCode : NULL));
     cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
@@ -112,9 +108,9 @@ void handlePerformPrivacyOperation(uint8_t p1,
                  32,
                  privateKeyData);
         if (p2 == P2_PUBLIC_ENCRYPTION_KEY) {
-            ux_flow_init(0, ux_display_privacy_public_key_flow, NULL);
+            ui_display_privacy_public_key();
         } else {
-            ux_flow_init(0, ux_display_privacy_shared_secret_flow, NULL);
+            ui_display_privacy_shared_secret();
         }
 
         *flags |= IO_ASYNCH_REPLY;

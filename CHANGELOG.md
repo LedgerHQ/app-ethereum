@@ -5,11 +5,58 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.9.19](https://github.com/ledgerhq/app-ethereum/compare/1.9.18...1.9.19) - 2022-XX-XX
+## [1.10.2](https://github.com/ledgerhq/app-ethereum/compare/1.10.1...1.10.2) - 2022-XX-XX
+
+## [1.10.1](https://github.com/ledgerhq/app-ethereum/compare/1.10.0...1.10.1) - 2022-11-09
+
+### Fixed
+
+- App/device crash with fast button clicks on slow APDU transport on the new EIP-712 signature UI
+
+## [1.10.0](https://github.com/ledgerhq/app-ethereum/compare/1.9.20...1.10.0) - 2022-10-26
 
 ### Changed
 
-- EIP-191 signatures now show the actual data contained in the message (clear-signing)
+- EIP-712 signatures are now computed on-device and display their content (clear-signing) (LNX & LNS+)
+
+## [1.9.20](https://github.com/ledgerhq/app-ethereum/compare/1.9.19...1.9.20) - 2022-10-10
+
+### Added
+
+- (clone) XDCNetwork
+- (clone) Meter
+- (clone) Multivac
+- (clone) Tecra
+- (clone) ApothemNetwork
+
+### Changed
+
+- EIP-191 improvements, now lets the user see the entire message one chunk at a time (255 characters for LNX & LNS+, 99 for LNS)
+
+### Fixed
+
+- Allow swap with variants
+
+### Removed
+
+- Compound support (will become its own plugin)
+
+## [1.9.19](https://github.com/ledgerhq/app-ethereum/compare/1.9.18...1.9.19) - 2022-06-15
+
+### Added
+
+- (clone) OKXChain
+- (clone) Cube
+- (clone) Astar EVM
+- (clone) Shiden EVM
+
+### Changed
+
+- EIP-191 signatures now show (up to 99 characters on LNS and 255 on LNX & LNS+) the actual data contained in the message (clear-signing)
+
+### Fixed
+
+- Bug with huge swap amounts
 
 ## [1.9.18](https://github.com/ledgerhq/app-ethereum/compare/1.9.17...1.9.18) - 2022-04-25
 
@@ -17,11 +64,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Easier way of adding a chain into the Makefile
 - EIP 1024 support
-- Conflux chain
-- Moonbeam chain
-- KardiaChain
-- BitTorrent Chain
-- Wethio chain
+- (clone) Conflux chain
+- (clone) Moonbeam chain
+- (clone) KardiaChain
+- (clone) BitTorrent Chain
+- (clone) Wethio chain
 
 ### Changed
 
@@ -53,7 +100,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
-- Fixed stark order signature on LNS 
+- Fixed stark order signature on LNS
 
 ## [1.9.13](https://github.com/ledgerhq/app-ethereum/compare/1.9.12...1.9.13) - 2021-11-17
 
@@ -65,7 +112,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
-- Fixed stark order signature on LNX 
+- Fixed stark order signature on LNX
 
 ## [1.9.11](https://github.com/ledgerhq/app-ethereum/compare/1.9.10...1.9.11) - 2021-10-12
 

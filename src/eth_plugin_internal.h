@@ -16,6 +16,11 @@ void copy_parameter(uint8_t* dst, const uint8_t* parameter, uint8_t dst_size);
 void erc721_plugin_call(int message, void* parameters);
 void erc1155_plugin_call(int message, void* parameters);
 
+// Get the value from the beginning of the parameter (right to left) and check if the rest of it is
+// zero
+bool U2BE_from_parameter(const uint8_t* parameter, uint16_t* value);
+bool U4BE_from_parameter(const uint8_t* parameter, uint32_t* value);
+
 typedef bool (*PluginAvailableCheck)(void);
 
 typedef struct internalEthPlugin_t {
@@ -28,9 +33,6 @@ typedef struct internalEthPlugin_t {
 
 #define NUM_ERC20_SELECTORS 2
 extern const uint8_t* const ERC20_SELECTORS[NUM_ERC20_SELECTORS];
-
-#define NUM_COMPOUND_SELECTORS 4
-extern const uint8_t* const COMPOUND_SELECTORS[NUM_COMPOUND_SELECTORS];
 
 #ifdef HAVE_ETH2
 

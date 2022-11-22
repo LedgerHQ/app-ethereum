@@ -115,10 +115,12 @@ void ui_712_redraw_generic_step(void) {
 /**
  * Called to fetch the next field if they have not all been processed yet
  *
- * @return whether there will be a next field
+ * Also handles the special "Review struct" screen of the verbose mode
+ *
+ * @return the next field state
  */
-bool ui_712_next_field(void) {
-    bool next = false;
+e_eip712_nfs ui_712_next_field(void) {
+    e_eip712_nfs state = EIP712_NO_MORE_FIELD;
 
     if (ui_ctx == NULL) {
         apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
@@ -126,13 +128,13 @@ bool ui_712_next_field(void) {
         if (ui_ctx->structs_to_review > 0) {
             ui_712_review_struct(path_get_nth_field_to_last(ui_ctx->structs_to_review));
             ui_ctx->structs_to_review -= 1;
-        }
-        if (!ui_ctx->end_reached) {
+            state = EIP712_FIELD_LATER;
+        } else if (!ui_ctx->end_reached) {
             handle_eip712_return_code(true);
-            next = true;
+            state = EIP712_FIELD_INCOMING;
         }
     }
-    return next;
+    return state;
 }
 
 /**

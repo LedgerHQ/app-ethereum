@@ -294,6 +294,9 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
         case CHAIN_KIND_APOTHEMNETWORK:
             numTokens = NUM_TOKENS_APOTHEMNETWORK;
             break;
+        case CHAIN_KIND_ID4GOOD:
+            numTokens = NUM_TOKENS_ID4GOOD;
+            break;
     }
     for (i = 0; i < numTokens; i++) {
         switch (chainConfig->kind) {
@@ -446,6 +449,9 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
                 break;
             case CHAIN_KIND_APOTHEMNETWORK:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_APOTHEMNETWORK[i]);
+                break;
+            case CHAIN_KIND_ID4GOOD:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_ID4GOOD[i]);
                 break;
         }
         if (memcmp(currentToken->address, tmpContent.txContent.destination, ADDRESS_LENGTH) == 0) {
@@ -949,6 +955,9 @@ void coin_main(chain_config_t *coin_config) {
 #endif
                     storage.contractDetails = 0x00;
                     storage.displayNonce = 0x00;
+#ifdef HAVE_EIP712_FULL_SUPPORT
+                    storage.verbose_eip712 = 0x00;
+#endif
                     storage.initialized = 0x01;
                     nvm_write((void *) &N_storage, (void *) &storage, sizeof(internalStorage_t));
                 }

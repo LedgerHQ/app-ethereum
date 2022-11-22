@@ -7,19 +7,25 @@ enum { UI_712_POS_REVIEW, UI_712_POS_END };
 static uint8_t ui_pos;
 
 static void dummy_cb(void) {
-    if (!ui_712_next_field()) {
-        if (ui_pos == UI_712_POS_REVIEW) {
-            ux_flow_next();
-            ui_pos = UI_712_POS_END;
-        } else  // UI_712_POS_END
-        {
-            ux_flow_prev();
-            ui_pos = UI_712_POS_REVIEW;
-        }
-    } else {
-        // temporarily disable button clicks, they will be re-enabled as soon as new data
-        // is received and the page is redrawn with ux_flow_init()
-        G_ux.stack[0].button_push_callback = NULL;
+    switch (ui_712_next_field()) {
+        case EIP712_NO_MORE_FIELD:
+            if (ui_pos == UI_712_POS_REVIEW) {
+                ux_flow_next();
+                ui_pos = UI_712_POS_END;
+            } else  // UI_712_POS_END
+            {
+                ux_flow_prev();
+                ui_pos = UI_712_POS_REVIEW;
+            }
+            break;
+        case EIP712_FIELD_INCOMING:
+            // temporarily disable button clicks, they will be re-enabled as soon as new data
+            // is received and the page is redrawn with ux_flow_init()
+            G_ux.stack[0].button_push_callback = NULL;
+            break;
+        case EIP712_FIELD_LATER:
+        default:
+            break;
     }
 }
 

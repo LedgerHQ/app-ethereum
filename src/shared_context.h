@@ -53,7 +53,7 @@ typedef struct tokenContext_t {
     uint8_t pluginStatus;
 
     uint8_t data[INT256_LENGTH];
-    uint8_t fieldIndex;
+    uint16_t fieldIndex;
     uint8_t fieldOffset;
 
     uint8_t pluginUiMaxItems;

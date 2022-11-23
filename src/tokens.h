@@ -125,6 +125,7 @@ static const uint8_t LEDGER_SIGNATURE_PUBLIC_KEY[] = {
 #define NUM_TOKENS_MULTIVAC         0
 #define NUM_TOKENS_TECRA            0
 #define NUM_TOKENS_APOTHEMNETWORK   0
+#define NUM_TOKENS_KLAY             0
 
 extern tokenDefinition_t const TOKENS_AKROMA[NUM_TOKENS_AKROMA];
 extern tokenDefinition_t const TOKENS_ELLAISM[NUM_TOKENS_ELLAISM];
@@ -175,6 +176,7 @@ extern tokenDefinition_t const TOKENS_METER[NUM_TOKENS_METER];
 extern tokenDefinition_t const TOKENS_MULTIVAC[NUM_TOKENS_MULTIVAC];
 extern tokenDefinition_t const TOKENS_TECRA[NUM_TOKENS_TECRA];
 extern tokenDefinition_t const TOKENS_APOTHEMNETWORK[NUM_TOKENS_APOTHEMNETWORK];
+extern tokenDefinition_t const TOKENS_KLAY[NUM_TOKENS_KLAY];
 
 #endif /* HAVE_TOKENS_LIST */
 

@@ -52,6 +52,7 @@ const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 534354, .name = "Scroll (Pre-Alpha)", .ticker = "SCR "},
     {.chain_id = 534353, .name = "Scroll (Goerli)", .ticker = "SCR "},
     {.chain_id = 534352, .name = "Scroll", .ticker = "SCR "}};
+    {.chain_id = 8217, .name = "Klaytn", .ticker = "KLAY "}};
 
 uint64_t get_chain_id(void) {
     uint64_t chain_id = 0;

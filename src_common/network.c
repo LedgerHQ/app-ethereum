@@ -49,10 +49,10 @@ const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 19, .name = "Songbird", .ticker = "SGB "},
     {.chain_id = 73799, .name = "Volta", .ticker = "VOLTA "},
     {.chain_id = 25, .name = "Cronos", .ticker = "CRO "},
+    {.chain_id = 321, .name = "KCC", .ticker = "KCS "},
     {.chain_id = 534354, .name = "Scroll (Pre-Alpha)", .ticker = "SCR "},
     {.chain_id = 534353, .name = "Scroll (Goerli)", .ticker = "SCR "},
-    {.chain_id = 534352, .name = "Scroll", .ticker = "SCR "}},
-    {.chain_id = 321, .name = "KCC", .ticker = "KCS "}};
+    {.chain_id = 534352, .name = "Scroll", .ticker = "SCR "};
 
 uint64_t get_chain_id(void) {
     uint64_t chain_id = 0;

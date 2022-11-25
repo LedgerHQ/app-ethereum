@@ -38,6 +38,9 @@ Application version 1.9.19 - 2022-05-17
   - Add EIP712 STRUCT DEFINITION & EIP712 STRUCT IMPLEMENTATION
   - Update to SIGN ETH EIP712
 
+### 1.10.2
+  - Add domain names support
+
 ## About
 
 This application describes the APDU messages interface to communicate with the Ethereum application.
@@ -874,6 +877,82 @@ None
 | Display name          | variable
 | Signature length      | 1
 | Signature             | variable
+|==========================================
+
+_Output data_
+
+None
+
+
+### GET CHALLENGE
+
+#### Description
+
+Sends a random 32-bit long value. Can prevent replay of signed payloads when the challenge
+is included in said payload.
+
+#### Coding
+
+_Command_
+
+[width="80%"]
+|=============================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *LC*
+|   E0  |   20   | 00                 | 00         | 00
+|=============================================================
+
+_Input data_
+
+None
+
+_Output data_
+
+[width="80%"]
+|===========================================
+| *Description*                 | *Length*
+| Challenge value (BE)          | 4
+|===========================================
+
+
+### PROVIDE DOMAIN NAME
+
+#### Description
+
+This command provides a domain name (like ENS) to be displayed during transactions in place of the address it is associated to.
+It shall be run just before a transaction involving the associated address that would be displayed on the device.
+
+The signature is computed on the TLV payload (minus the signature obviously).
+
+#### Coding
+
+_Command_
+
+[width="80%"]
+|==============================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *LC*
+|   E0  |   22   | 01 : first chunk
+
+                   00 : following chunk
+                                      | 00         | 00
+|==============================================================
+
+_Input data_
+
+##### If P1 == first chunk
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Payload length        | 2
+| TLV payload           | variable
+|==========================================
+
+##### If P1 == following chunk
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| TLV payload           | variable
 |==========================================
 
 _Output data_

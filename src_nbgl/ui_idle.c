@@ -19,5 +19,5 @@ void app_quit(void) {
 }
 
 void ui_idle(void) {
-    nbgl_useCaseHome(APPNAME, &ICONGLYPH, APPNAME, true, ui_menu_settings, app_quit);
+    nbgl_useCaseHome(APPNAME, &ICONGLYPH, NULL, true, ui_menu_settings, app_quit);
 }

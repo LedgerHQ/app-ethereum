@@ -24,6 +24,8 @@
 #define INS_EIP712_STRUCT_DEF               0x1A
 #define INS_EIP712_STRUCT_IMPL              0x1C
 #define INS_EIP712_FILTERING                0x1E
+#define INS_ENS_GET_CHALLENGE               0x20
+#define INS_ENS_PROVIDE_INFO                0x22
 #define P1_CONFIRM                          0x01
 #define P1_NON_CONFIRM                      0x00
 #define P2_NO_CHAINCODE                     0x00

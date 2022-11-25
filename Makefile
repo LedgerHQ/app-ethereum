@@ -157,6 +157,11 @@ ifneq ($(CAL_CI_KEY),0)
 DEFINES += HAVE_CAL_CI_KEY
 endif
 
+# ENS
+ifneq ($(TARGET_NAME),TARGET_NANOS)
+DEFINES += HAVE_TRUSTED_NAME
+endif
+
 # Enabling debug PRINTF
 DEBUG:=0
 ifneq ($(DEBUG),0)

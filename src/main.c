@@ -29,6 +29,8 @@
 #include "handle_get_printable_amount.h"
 #include "handle_check_address.h"
 #include "commands_712.h"
+#include "challenge.h"
+#include "trusted_name.h"
 
 #ifdef HAVE_STARKWARE
 #include "stark_crypto.h"
@@ -741,6 +743,19 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                     break;
 #endif  // HAVE_EIP712_FULL_SUPPORT
 
+#ifdef HAVE_TRUSTED_NAME
+                case INS_ENS_GET_CHALLENGE:
+                    handle_get_new_challenge();
+                    break;
+
+                case INS_ENS_PROVIDE_INFO:
+                    handle_provide_trusted_name(G_io_apdu_buffer[OFFSET_P1],
+                                                G_io_apdu_buffer[OFFSET_P2],
+                                                G_io_apdu_buffer + OFFSET_CDATA,
+                                                G_io_apdu_buffer[OFFSET_LC]);
+                    break;
+#endif  // HAVE_TRUSTED_NAME
+
 #if 0
         case 0xFF: // return to dashboard
           goto return_to_dashboard;
@@ -971,6 +986,11 @@ void coin_main(chain_config_t *coin_config) {
                 BLE_power(0, NULL);
                 BLE_power(1, "Nano X");
 #endif  // HAVE_BLE
+
+#ifdef HAVE_TRUSTED_NAME
+                // to prevent it from having a fixed value at boot
+                roll_challenge();
+#endif  // HAVE_TRUSTED_NAME
 
                 app_main();
             }

@@ -24,6 +24,7 @@ static void reviewChoice(bool confirm) {
 static void buildScreen(void) {
   snprintf(strings.tmp.tmp, 100, "0x%.*H", 48, tmpCtx.publicKeyContext.publicKey.W);
   nbgl_useCaseChoice(
+    &C_warning64px,
     "Export ETH public key?",
     "Allow the Ethereum app\nto export your\npublic key.",
     "Allow",

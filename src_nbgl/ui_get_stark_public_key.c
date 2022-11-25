@@ -23,6 +23,7 @@ static void reviewChoice(bool confirm) {
 
 static void buildScreen(void) {
   nbgl_useCaseChoice(
+    &C_warning64px,
     "Verify stark key",
     strings.tmp.tmp,
     "Approuve",

@@ -38,6 +38,9 @@ Application version 1.9.19 - 2022-05-17
   - Add EIP712 STRUCT DEFINITION & EIP712 STRUCT IMPLEMENTATION
   - Update to SIGN ETH EIP712
 
+### 1.10.2
+  - Add trusted names (ENS) support
+
 ## About
 
 This application describes the APDU messages interface to communicate with the Ethereum application.
@@ -872,6 +875,74 @@ None
 | *Description*         | *Length (byte)*
 | Display name length   | 1
 | Display name          | variable
+| Signature length      | 1
+| Signature             | variable
+|==========================================
+
+_Output data_
+
+None
+
+
+### GET CHALLENGE
+
+#### Description
+
+Generates a random 32-bit long value and return it.
+
+#### Coding
+
+_Command_
+
+[width="80%"]
+|=============================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *LC*
+|   E0  |   20   | 00                 | 00         | 00
+|=============================================================
+
+_Input data_
+
+None
+
+_Output data_
+
+[width="80%"]
+|===========================================
+| *Description*                 | *Length*
+| Challenge value (BE)          | 4
+|===========================================
+
+
+### PROVIDE TRUSTED NAME
+
+#### Description
+
+This command provides a trusted Ethereum domain name (ENS) to be displayed during transactions in place of the address it is associated to.
+It shall be run just before a transaction involving the associated address that would be displayed on the device.
+
+The signature is computed on :
+
+challenge (BE) || address || domain name || chain ID (BE) || key ID || algorithm ID
+
+#### Coding
+
+_Command_
+
+[width="80%"]
+|==============================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *LC*
+|   E0  |   22   | 00                 | 00         | variable
+|==============================================================
+
+_Input data_
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Domain name length    | 1
+| Domain name           | variable
+| Key ID                | 1
+| Algorithm ID          | 1
 | Signature length      | 1
 | Signature             | variable
 |==========================================

@@ -29,6 +29,7 @@
 #include "handle_get_printable_amount.h"
 #include "handle_check_address.h"
 #include "commands_712.h"
+#include "challenge.h"
 
 #ifdef HAVE_STARKWARE
 #include "stark_crypto.h"
@@ -743,6 +744,12 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                     break;
 #endif  // HAVE_EIP712_FULL_SUPPORT
 
+#ifdef HAVE_DOMAIN_NAME
+                case INS_ENS_GET_CHALLENGE:
+                    handle_get_challenge();
+                    break;
+#endif  // HAVE_DOMAIN_NAME
+
 #if 0
         case 0xFF: // return to dashboard
           goto return_to_dashboard;
@@ -973,6 +980,11 @@ void coin_main(chain_config_t *coin_config) {
                 BLE_power(0, NULL);
                 BLE_power(1, "Nano X");
 #endif  // HAVE_BLE
+
+#ifdef HAVE_DOMAIN_NAME
+                // to prevent it from having a fixed value at boot
+                roll_challenge();
+#endif  // HAVE_DOMAIN_NAME
 
                 app_main();
             }

@@ -100,7 +100,8 @@ static void confirm_transaction_rejection_choice(bool confirm) {
 }
 
 static void confirm_transaction_rejection() {
-    nbgl_useCaseChoice("Reject message?",
+    nbgl_useCaseChoice(&C_warning64px,
+                       "Reject message?",
                        NULL,
                        "Yes, Reject",
                        "Go back to message",

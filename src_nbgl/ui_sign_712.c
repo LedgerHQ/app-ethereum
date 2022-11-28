@@ -24,7 +24,7 @@ static void reviewChoice(bool confirm) {
 }
 static bool displaySignPage(uint8_t page, nbgl_pageContent_t *content) {
   content->type = INFO_LONG_PRESS,
-  content->infoLongPress.icon = &C_badge_transaction_56;
+  content->infoLongPress.icon = &ICONGLYPH;
   content->infoLongPress.text = "Sign typed message";
   content->infoLongPress.longPressText = "Hold to confirm";
   return true;

@@ -15,21 +15,16 @@ static void confirmTransation(void) {
 
 static void reviewChoice(bool confirm) {
   if (confirm) {
-    confirmTransation();
-  } else {
-    reviewReject();
+    // display a status page and go back to main
+    nbgl_useCaseStatus("ADDRESS\nVERIFIED",true,confirmTransation);
+  }
+  else {
+    nbgl_useCaseStatus("Address verification\ncancelled",false,reviewReject);
   }
 }
 
 static void buildScreen(void) {
-  nbgl_useCaseChoice(
-    &C_warning64px,
-    "Verify stark key",
-    strings.tmp.tmp,
-    "Approuve",
-    "Reject",
-    reviewChoice
-  );
+  nbgl_useCaseAddressConfirmation(strings.tmp.tmp, reviewChoice);
 }
 
 void ui_display_stark_public(void) {

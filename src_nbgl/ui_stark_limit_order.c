@@ -42,7 +42,7 @@ static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
     content->type = INFO_LONG_PRESS,
     content->infoLongPress.icon = &ICONGLYPH;
     content->infoLongPress.text = "Review stark limit order";
-    content->infoLongPress.longPressText = "Hold to confirm";
+    content->infoLongPress.longPressText = "Hold to sign";
   }
   else {
     return false;

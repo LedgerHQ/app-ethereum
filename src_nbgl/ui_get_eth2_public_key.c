@@ -15,22 +15,17 @@ static void confirmTransation(void) {
 
 static void reviewChoice(bool confirm) {
   if (confirm) {
-    confirmTransation();
-  } else {
-    reviewReject();
+    // display a status page and go back to main
+    nbgl_useCaseStatus("ADDRESS\nVERIFIED",true,confirmTransation);
+  }
+  else {
+    nbgl_useCaseStatus("Address verification\ncancelled",false,reviewReject);
   }
 }
 
 static void buildScreen(void) {
   snprintf(strings.tmp.tmp, 100, "0x%.*H", 48, tmpCtx.publicKeyContext.publicKey.W);
-  nbgl_useCaseChoice(
-    &C_warning64px,
-    "Export ETH2 public key?",
-    "Allow the Ethereum app\nto export your ETH2\npublic key.",
-    "Allow",
-    "Don't allow",
-    reviewChoice
-  );
+  nbgl_useCaseAddressConfirmation(strings.tmp.tmp, reviewChoice);
 }
 
 void ui_display_public_eth2(void) {

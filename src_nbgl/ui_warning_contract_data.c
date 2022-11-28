@@ -3,36 +3,19 @@
 #include "ui_callbacks.h"
 #include "ui_nbgl.h"
 
-enum { OK_TOKEN };
-
-static void pageTouchCallback(int token, uint8_t index) {
-    (void) index;
-    releaseContext();
-
-    if (token == OK_TOKEN) {
-      ui_idle();
-    }
+static void ui_warning_contract_data_choice(bool confirm) {
+  if (confirm) {
+    ui_idle();
+  } else {
+    ui_menu_settings();
+  }
 }
 
 void ui_warning_contract_data(void) {
-  releaseContext();
-  nbgl_pageInfoDescription_t info = {
-    .centeredInfo = {
-      .text1 = "Error",
-      .text2 = "Blind signing must be\nenabled in Settings",
-      .text3 = NULL,
-      .style = LARGE_CASE_INFO,
-      .offsetY = 32
-    },
-    .footerText = NULL,
-    .bottomButtonStyle = QUIT_ICON,
-    .bottomButtonsToken = OK_TOKEN,
-    .tapActionText = NULL,
-    .topRightStyle = NO_BUTTON_STYLE,
-    .topRightToken = 0,
-    .tuneId = TUNE_TAP_CASUAL
-  };
-
-  pageContext = nbgl_pageDrawInfo(pageTouchCallback, NULL, &info);
-  nbgl_refresh();
+  nbgl_useCaseChoice(&C_warning64px,
+                      "This message cannot\nbe clear-signed",
+                      "Enable blind-signing in\nthe settings to sign\nthis transaction.",
+                      "Exit",
+                      "Go to settings",
+                      ui_warning_contract_data_choice);
 }

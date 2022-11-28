@@ -15,44 +15,51 @@ enum {
 static nbgl_layoutSwitch_t switches[4];
 
 static bool navCallback(uint8_t page, nbgl_pageContent_t* content) {
-  switches[0] = (nbgl_layoutSwitch_t) {
-      .initState = N_storage.dataAllowed ? ON_STATE : OFF_STATE,
-      .text = "Blind signing",
-      .subText = "Enable transaction blind signing",
-      .token = BLIND_SIGNING_TOKEN,
-      .tuneId = TUNE_TAP_CASUAL
-  };
-  switches[1] = (nbgl_layoutSwitch_t) {
-      .initState = N_storage.contractDetails ? ON_STATE : OFF_STATE,
-      .text = "Debug",
-      .subText = "Display contract data details",
-      .token = DEBUG_TOKEN,
-      .tuneId = TUNE_TAP_CASUAL
-  };
-  switches[2] = (nbgl_layoutSwitch_t) {
-      .initState = N_storage.displayNonce ? ON_STATE : OFF_STATE,
-      .text = "Nonce",
-      .subText = "Display account nonce\nin transaction",
-      .token = NONCE_TOKEN,
-      .tuneId = TUNE_TAP_CASUAL
-  };
-  switches[3] = (nbgl_layoutSwitch_t) {
-      .initState = N_storage.verbose_eip712 ? ON_STATE : OFF_STATE,
-      .text = "Verbose EIP712",
-      .subText = "Ignore filtering and\ndisplay raw content",
-      .token = EIP712_VERBOSE_TOKEN,
-      .tuneId = TUNE_TAP_CASUAL
-  };
-
   switch (page)
   {
     case 0:
+      switches[0] = (nbgl_layoutSwitch_t) {
+          .initState = N_storage.dataAllowed ? ON_STATE : OFF_STATE,
+          .text = "Blind signing",
+          .subText = "Enable transaction blind signing",
+          .token = BLIND_SIGNING_TOKEN,
+          .tuneId = TUNE_TAP_CASUAL
+      };
+      switches[1] = (nbgl_layoutSwitch_t) {
+          .initState = N_storage.contractDetails ? ON_STATE : OFF_STATE,
+          .text = "Debug",
+          .subText = "Display contract data details",
+          .token = DEBUG_TOKEN,
+          .tuneId = TUNE_TAP_CASUAL
+      };
+      switches[2] = (nbgl_layoutSwitch_t) {
+          .initState = N_storage.displayNonce ? ON_STATE : OFF_STATE,
+          .text = "Nonce",
+          .subText = "Display account nonce\nin transaction",
+          .token = NONCE_TOKEN,
+          .tuneId = TUNE_TAP_CASUAL
+      };
+
       content->type = SWITCHES_LIST;
-      content->switchesList.nbSwitches = 4;
+      content->switchesList.nbSwitches = 3;
       content->switchesList.switches = (nbgl_layoutSwitch_t*)switches;
       break;
 
     case 1:
+      switches[0] = (nbgl_layoutSwitch_t) {
+          .initState = N_storage.verbose_eip712 ? ON_STATE : OFF_STATE,
+          .text = "Verbose EIP712",
+          .subText = "Ignore filtering and\ndisplay raw content",
+          .token = EIP712_VERBOSE_TOKEN,
+          .tuneId = TUNE_TAP_CASUAL
+      };
+
+      content->type = SWITCHES_LIST;
+      content->switchesList.nbSwitches = 1;
+      content->switchesList.switches = (nbgl_layoutSwitch_t*)switches;
+      break;
+
+    case 2:
       content->type = INFOS_LIST;
       content->infosList.nbInfos = 2;
       content->infosList.infoTypes = (const char**) infoTypes;
@@ -91,5 +98,5 @@ static void controlsCallback(int token, uint8_t index) {
 }
 
 void ui_menu_settings(void) {
-  nbgl_useCaseSettings("Ethereum settings", 0, 2, true, ui_idle, navCallback, controlsCallback);
+  nbgl_useCaseSettings("Ethereum settings", 0, 3, true, ui_idle, navCallback, controlsCallback);
 }

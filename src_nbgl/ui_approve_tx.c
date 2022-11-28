@@ -137,9 +137,9 @@ static void pageCallback(int token, uint8_t index) {
 static void reviewContinue(void) {
   if (tx_approval_context.blindSigning) {
     nbgl_pageInfoDescription_t info = {
-      .centeredInfo.icon = &C_icon_warning,
+      .centeredInfo.icon = &C_round_warning_64px,
       .centeredInfo.text1 = "Blind Signing",
-      .centeredInfo.text2 = NULL,
+      .centeredInfo.text2 = "This transaction cannot be\nsecurely interpreted by Ledger\nStax. It might put your assets\nat risk.",
       .centeredInfo.text3 = NULL,
       .centeredInfo.style = LARGE_CASE_INFO,
       .centeredInfo.offsetY = -32,
@@ -200,7 +200,7 @@ static void buildFirstPage(void) {
 }
 
 void ux_approve_tx(bool fromPlugin) {
-  tx_approval_context.blindSigning = !fromPlugin && tmpContent.txContent.dataPresent && !N_storage.dataAllowed;
+  tx_approval_context.blindSigning = !fromPlugin && tmpContent.txContent.dataPresent && !N_storage.contractDetails;
   tx_approval_context.fromPlugin = fromPlugin;
   tx_approval_context.displayNetwork = false;
 

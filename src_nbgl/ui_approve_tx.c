@@ -91,6 +91,7 @@ static nbgl_layoutTagValue_t* getTagValuePair(uint8_t pairIndex) {
     if ((pairIndex > 1) && (!N_storage.displayNonce)) {
       pairIndex++;
     }
+
     switch (pairIndex) {
     case 0:
       tlv.item = "Amount";
@@ -172,8 +173,11 @@ static void reviewContinueCommon(void) {
       nbPairs ++;
     }
   } else {
-    nbPairs += 4;
+    nbPairs += 3;
     if (N_storage.displayNonce) {
+      nbPairs ++;
+    }
+    if (tx_approval_context.displayNetwork) {
       nbPairs ++;
     }
   }

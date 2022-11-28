@@ -44,11 +44,19 @@ static void confirmTransation(void) {
   ui_idle();
 }
 
+static void onConfirmAbandon(void) {
+  nbgl_useCaseStatus("Transaction rejected", false, reviewReject);
+}
+
+static void rejectTransactionQuestion(void) {
+  nbgl_useCaseConfirm("Reject transaction?", NULL, "Yes, reject", "Go back to transaction", onConfirmAbandon);
+}
+
 static void reviewChoice(bool confirm) {
   if (confirm) {
-    confirmTransation();
+    nbgl_useCaseStatus("TRANSACTION\nSIGNED", true, confirmTransation);
   } else {
-    reviewReject();
+    rejectTransactionQuestion();
   }
 }
 
@@ -57,15 +65,9 @@ static nbgl_layoutTagValue_t* getTagValuePair(uint8_t pairIndex) {
   static int counter = 0;
 
   if (tx_approval_context.fromPlugin) {
-    if (pairIndex == 0) {
-      // the first page is an exception because the first tag/value pair is the id
-      plugin_ui_get_id();
-      tlv.item = strings.common.fullAddress;
-      tlv.value = strings.common.fullAmount;
-    }
-    else if (pairIndex <= dataContext.tokenContext.pluginUiMaxItems) {
+    if (pairIndex < dataContext.tokenContext.pluginUiMaxItems) {
       // for the next dataContext.tokenContext.pluginUiMaxItems items, get tag/value from plugin_ui_get_item_internal()
-      dataContext.tokenContext.pluginUiCurrentItem = pairIndex-1;
+      dataContext.tokenContext.pluginUiCurrentItem = pairIndex;
       plugin_ui_get_item_internal(
         (uint8_t *)title_buffer[counter],
         TAG_MAX_LEN,
@@ -76,8 +78,9 @@ static nbgl_layoutTagValue_t* getTagValuePair(uint8_t pairIndex) {
       tlv.value = msg_buffer[counter];
     }
     else {
+      pairIndex -= dataContext.tokenContext.pluginUiMaxItems;
       // for the last 1 (or 2), tags are fixed
-      if (tx_approval_context.displayNetwork && (pairIndex == (dataContext.tokenContext.pluginUiMaxItems+2))) {
+      if (tx_approval_context.displayNetwork && (pairIndex == 0)) {
         tlv.item = "Network";
         tlv.value = strings.common.network_name;
       }
@@ -168,7 +171,7 @@ static void reviewContinueCommon(void) {
 
   if (tx_approval_context.fromPlugin) {
     // plugin id + max items + fees
-    nbPairs += 1 + dataContext.tokenContext.pluginUiMaxItems + 1;
+    nbPairs += dataContext.tokenContext.pluginUiMaxItems + 1;
     if (tx_approval_context.displayNetwork) {
       nbPairs ++;
     }
@@ -188,15 +191,23 @@ static void reviewContinueCommon(void) {
   useCaseTagValueList.nbPairs = nbPairs; ///< number of pairs in pairs array
   useCaseTagValueList.smallCaseForValue = false;
   useCaseTagValueList.wrapping = false;
-  infoLongPress.icon = &C_badge_transaction_56;
+  infoLongPress.icon = &ICONGLYPH;
   infoLongPress.text = "Review transaction";
-  infoLongPress.longPressText = "Hold to confirm";
-  nbgl_useCaseStaticReview(&useCaseTagValueList, &infoLongPress, "Reject", reviewChoice);
+  infoLongPress.longPressText = "Hold to sign";
+  nbgl_useCaseStaticReview(&useCaseTagValueList, &infoLongPress, "Reject transaction", reviewChoice);
 }
 
 
 static void buildFirstPage(void) {
-  nbgl_useCaseReviewStart(&C_badge_transaction_56, "Review transaction", NULL, "Reject", reviewContinue, reviewReject);
+  if (tx_approval_context.fromPlugin) {
+    plugin_ui_get_id();
+    strcpy(title_buffer[0], strings.common.fullAddress);
+    strcpy(msg_buffer[0], strings.common.fullAmount);
+    SPRINTF(msg_buffer[1], "Review %s\ntransaction:\n%s",title_buffer[0], msg_buffer[0]);
+    nbgl_useCaseReviewStart(&ICONGLYPH, msg_buffer[1], NULL, "Reject transaction", reviewContinue, rejectTransactionQuestion);
+  } else {
+    nbgl_useCaseReviewStart(&ICONGLYPH, "Review transaction", NULL, "Reject transaction", reviewContinue, rejectTransactionQuestion);
+  }
 }
 
 void ux_approve_tx(bool fromPlugin) {

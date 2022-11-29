@@ -19,7 +19,7 @@ static nbgl_layoutTagValue_t tlv;
 // these buffers are used as circular
 static char title_buffer[MAX_PLUGIN_ITEMS_PER_SCREEN][TAG_MAX_LEN];
 static char msg_buffer[MAX_PLUGIN_ITEMS_PER_SCREEN][VALUE_MAX_LEN];
-
+static char transaction_type[100];
 static nbgl_layoutTagValueList_t useCaseTagValueList;
 static nbgl_pageInfoLongPress_t infoLongPress;
 
@@ -192,7 +192,7 @@ static void reviewContinueCommon(void) {
   useCaseTagValueList.smallCaseForValue = false;
   useCaseTagValueList.wrapping = false;
   infoLongPress.icon = &ICONGLYPH;
-  infoLongPress.text = "Review transaction";
+  infoLongPress.text = tx_approval_context.fromPlugin ? transaction_type : "Review transaction";
   infoLongPress.longPressText = "Hold to sign";
   nbgl_useCaseStaticReview(&useCaseTagValueList, &infoLongPress, "Reject transaction", reviewChoice);
 }
@@ -201,10 +201,8 @@ static void reviewContinueCommon(void) {
 static void buildFirstPage(void) {
   if (tx_approval_context.fromPlugin) {
     plugin_ui_get_id();
-    strcpy(title_buffer[0], strings.common.fullAddress);
-    strcpy(msg_buffer[0], strings.common.fullAmount);
-    SPRINTF(msg_buffer[1], "Review %s\ntransaction:\n%s",title_buffer[0], msg_buffer[0]);
-    nbgl_useCaseReviewStart(&ICONGLYPH, msg_buffer[1], NULL, "Reject transaction", reviewContinue, rejectTransactionQuestion);
+    SPRINTF(transaction_type, "Review %s\ntransaction:\n%s", strings.common.fullAddress,strings.common.fullAmount);
+    nbgl_useCaseReviewStart(&ICONGLYPH, transaction_type, NULL, "Reject transaction", reviewContinue, rejectTransactionQuestion);
   } else {
     nbgl_useCaseReviewStart(&ICONGLYPH, "Review transaction", NULL, "Reject transaction", reviewContinue, rejectTransactionQuestion);
   }

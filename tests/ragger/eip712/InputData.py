@@ -4,7 +4,7 @@ import json
 import sys
 import re
 import hashlib
-from ethereum_client.client import EthereumClient, EIP712FieldType
+from app.client import EthereumClient, EIP712FieldType
 from cal import cal
 
 # global variables

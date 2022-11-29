@@ -1,17 +1,17 @@
 from enum import IntEnum, auto
-from typing import Iterator, Dict, List
+from typing import Optional
 from ragger.backend import BackendInterface
 from ragger.utils import RAPDU
-from ethereum_client.command_builder import EthereumCmdBuilder
-from ethereum_client.setting import SettingType, SettingImpl
-from ethereum_client.eip712 import EIP712FieldType
-from ethereum_client.response_parser import EthereumRespParser
+from app.command_builder import EthereumCmdBuilder
+from app.setting import SettingType, SettingImpl
+from app.eip712 import EIP712FieldType
+from app.response_parser import EthereumRespParser
 import signal
 import time
 
 
 class   EthereumClient:
-    _settings: Dict[SettingType, SettingImpl] = {
+    _settings: dict[SettingType, SettingImpl] = {
         SettingType.BLIND_SIGNING: SettingImpl(
             [ "nanos", "nanox", "nanosp" ]
         ),
@@ -65,11 +65,11 @@ class   EthereumClient:
                                             array_levels: [],
                                             key_name: str):
         with self._send(self._cmd_builder.eip712_send_struct_def_struct_field(
-            field_type,
-            type_name,
-            type_size,
-            array_levels,
-            key_name)):
+                        field_type,
+                        type_name,
+                        type_size,
+                        array_levels,
+                        key_name)):
             pass
         return self._recv()
 
@@ -125,7 +125,7 @@ class   EthereumClient:
         assert resp.status == 0x9000
         return self._resp_parser.sign(resp.data)
 
-    def settings_set(self, new_values: Dict[SettingType, bool]):
+    def settings_set(self, new_values: dict[SettingType, bool]):
         # Go to settings
         for _ in range(2):
             self._client.right_click()

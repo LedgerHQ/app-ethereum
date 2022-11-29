@@ -1,6 +1,8 @@
 from enum import IntEnum, auto
-from typing import Iterator
-from ethereum_client.eip712 import EIP712FieldType
+from typing import Iterator, Optional
+from app.eip712 import EIP712FieldType
+import struct
+import rlp
 
 class   InsType(IntEnum):
     EIP712_SEND_STRUCT_DEF = 0x1a
@@ -109,27 +111,28 @@ class   EthereumCmdBuilder:
                                   data_w_length[:0xff])
             data_w_length = data_w_length[0xff:]
 
-    def _format_bip32(self, bip32, data: bytearray) -> bytearray:
-        data.append(len(bip32))
-        for idx in bip32:
-            data.append((idx & 0xff000000) >> 24)
-            data.append((idx & 0x00ff0000) >> 16)
-            data.append((idx & 0x0000ff00) >> 8)
-            data.append((idx & 0x000000ff))
+    def _format_bip32(self, path: list[Optional[int]], data: bytearray) -> bytearray:
+        data.append(len(path))
+        for p in path:
+            if p == None:
+                val = 0
+            else:
+                val = (0x8 << 28) | p
+            data += struct.pack(">I", val)
         return data
 
-    def eip712_sign_new(self, bip32) -> bytes:
-        data = self._format_bip32(bip32, bytearray())
+    def eip712_sign_new(self, bip32_path: list[Optional[int]]) -> bytes:
+        data = self._format_bip32(bip32_path, bytearray())
         return self._serialize(InsType.EIP712_SIGN,
                                P1Type.COMPLETE_SEND,
                                P2Type.NEW_IMPLEM,
                                data)
 
     def eip712_sign_legacy(self,
-                           bip32,
+                           bip32_path: list[Optional[int]],
                            domain_hash: bytes,
                            message_hash: bytes) -> bytes:
-        data = self._format_bip32(bip32, bytearray())
+        data = self._format_bip32(bip32_path, bytearray())
         data += domain_hash
         data += message_hash
         return self._serialize(InsType.EIP712_SIGN,

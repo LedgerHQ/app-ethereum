@@ -2,7 +2,7 @@ import pytest
 from pathlib import Path
 from ragger.firmware import Firmware
 from ragger.backend import SpeculosBackend, LedgerCommBackend, LedgerWalletBackend, BackendInterface
-from ethereum_client.client import EthereumClient
+from app.client import EthereumClient
 
 FWS = [
     Firmware("nanos", "2.1"),

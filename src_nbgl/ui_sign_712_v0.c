@@ -19,9 +19,11 @@ static void confirmTransation(void) {
 
 static void reviewChoice(bool confirm) {
   if (confirm) {
-    confirmTransation();
-  } else {
-    reviewReject();
+    // display a status page and go back to main
+    nbgl_useCaseStatus("MESSAGE\nSIGNED",true,confirmTransation);
+  }
+  else {
+    nbgl_useCaseStatus("Message signing\ncancelled",false,reviewReject);
   }
 }
 
@@ -43,7 +45,7 @@ static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
     content->type = INFO_LONG_PRESS,
     content->infoLongPress.icon = &ICONGLYPH;
     content->infoLongPress.text = "Sign typed message";
-    content->infoLongPress.longPressText = "Hold to approuve";
+    content->infoLongPress.longPressText = "Hold to sign";
   }
   else {
     return false;

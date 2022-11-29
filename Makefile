@@ -68,7 +68,8 @@ ifeq ($(TARGET_NAME),TARGET_NANOS)
 ICONNAME=icons/nanos_app_$(CHAIN).gif
 else ifeq ($(TARGET_NAME),TARGET_FATSTACKS)
 ICONNAME=icons/stax_app_$(CHAIN).gif
-DEFINES += ICONGLYPH=C_stax_app_$(CHAIN)
+DEFINES += ICONGLYPH=C_stax_app_$(CHAIN)_64px
+GLYPH_FILES += icons/stax_app_$(CHAIN)_64px.gif
 else
 ICONNAME=icons/nanox_app_$(CHAIN).gif
 endif

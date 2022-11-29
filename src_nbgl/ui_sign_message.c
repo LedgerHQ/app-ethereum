@@ -63,7 +63,7 @@ static bool nav_callback(uint8_t page, nbgl_pageContent_t *content) {
     } else {
         eip191MessageIdx = 0;
         // the last page must contain a long press button
-        content->type = INFO_LONG_PRESS, content->infoLongPress.icon = NULL;
+        content->type = INFO_LONG_PRESS, content->infoLongPress.icon = &C_Message_64px;
         content->infoLongPress.text = "Sign Message?";
         content->infoLongPress.longPressText = "Hold to sign";
         state = UI_191_NBGL_SIGN_DISPLAYED;

@@ -24,8 +24,7 @@ static void reviewChoice(bool confirm) {
 }
 
 static void buildScreen(void) {
-  snprintf(strings.tmp.tmp, 100, "0x%.*H", 48, tmpCtx.publicKeyContext.publicKey.W);
-  nbgl_useCaseAddressConfirmation(strings.tmp.tmp, reviewChoice);
+  nbgl_useCaseAddressConfirmation(strings.common.fullAddress, reviewChoice);
 }
 void ui_display_public_key(void) {
   buildScreen();

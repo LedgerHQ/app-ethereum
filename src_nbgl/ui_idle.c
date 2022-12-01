@@ -18,10 +18,6 @@ void app_quit(void) {
     os_sched_exit(-1);
 }
 
-void ui_idle_with_subtext(char *test) {
-    nbgl_useCaseHome(APPNAME, &ICONGLYPH, test, true, ui_menu_settings, app_quit);
-}
-
 void ui_idle(void) {
     nbgl_useCaseHome(APPNAME, &ICONGLYPH, NULL, true, ui_menu_settings, app_quit);
 }

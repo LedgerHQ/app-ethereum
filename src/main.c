@@ -929,22 +929,14 @@ void init_coin_config(chain_config_t *coin_config) {
     coin_config->kind = CHAIN_KIND;
 }
 
-static char plugin_name[20] = { 0 };
-
-void coin_main(libargs_t *args) {
+void coin_main(chain_config_t *coin_config) {
     chain_config_t config;
-    if (args) {
-        if (args->plugin_name != NULL) {
-            strcpy(plugin_name, args->plugin_name);
-        }
-        if (args->chain_config != NULL) {
-            chainConfig = args->chain_config;
-        }
-    } else {
+    if (coin_config == NULL) {
         init_coin_config(&config);
         chainConfig = &config;
+    } else {
+        chainConfig = coin_config;
     }
-
     reset_app_context();
     tmpCtx.transactionContext.currentItemIndex = 0;
 
@@ -984,7 +976,8 @@ void coin_main(libargs_t *args) {
                 USB_power(0);
                 USB_power(1);
 
-                ui_idle_with_subtext(plugin_name[0] ? plugin_name: NULL);
+                ui_idle();
+
 #ifdef HAVE_BLE
                 BLE_power(0, NULL);
                 BLE_power(1, "Nano X");
@@ -1009,7 +1002,18 @@ void coin_main(libargs_t *args) {
     app_exit();
 }
 
-static void library_main_helper(libargs_t *args) {
+struct libargs_s {
+    unsigned int id;
+    unsigned int command;
+    chain_config_t *chain_config;
+    union {
+        check_address_parameters_t *check_address;
+        create_transaction_parameters_t *create_transaction;
+        get_printable_amount_parameters_t *get_printable_amount;
+    };
+};
+
+static void library_main_helper(struct libargs_s *args) {
     check_api_level(CX_COMPAT_APILEVEL);
     PRINTF("Inside a library \n");
     switch (args->command) {
@@ -1037,7 +1041,7 @@ static void library_main_helper(libargs_t *args) {
     }
 }
 
-void library_main(libargs_t *args) {
+void library_main(struct libargs_s *args) {
     chain_config_t coin_config;
     if (args->chain_config == NULL) {
         init_coin_config(&coin_config);
@@ -1108,7 +1112,7 @@ __attribute__((section(".boot"))) int main(int arg0) {
         return 0;
     }
 
-    libargs_t *args = (libargs_t *) arg0;
+    struct libargs_s *args = (struct libargs_s *) arg0;
     if (args->id != 0x100) {
         app_exit();
         return 0;
@@ -1116,7 +1120,7 @@ __attribute__((section(".boot"))) int main(int arg0) {
     switch (args->command) {
         case RUN_APPLICATION:
             // called as ethereum from altcoin or plugin
-            coin_main(args);
+            coin_main(args->chain_config);
             break;
         default:
             // called as ethereum or altcoin library

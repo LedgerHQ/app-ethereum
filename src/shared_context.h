@@ -50,7 +50,6 @@ typedef enum starkQuantumType_e {
 
 typedef struct tokenContext_t {
     char pluginName[PLUGIN_ID_LENGTH];
-    uint8_t pluginStatus;
 
     uint8_t data[INT256_LENGTH];
     uint16_t fieldIndex;
@@ -69,6 +68,8 @@ typedef struct tokenContext_t {
         // plugin context struct pointers (structs that contain up to 4 bytes wide elements)
         uint8_t pluginContext[5 * INT256_LENGTH] __attribute__((aligned(4)));
     };
+
+    uint8_t pluginStatus;
 
 #ifdef HAVE_STARKWARE
     uint8_t quantum[32];

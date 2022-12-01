@@ -50,7 +50,6 @@ typedef enum starkQuantumType_e {
 
 typedef struct tokenContext_t {
     char pluginName[PLUGIN_ID_LENGTH];
-    uint8_t pluginStatus;
 
     uint8_t data[INT256_LENGTH];
     uint16_t fieldIndex;
@@ -65,8 +64,12 @@ typedef struct tokenContext_t {
             uint8_t contractAddress[ADDRESS_LENGTH];
             uint8_t methodSelector[SELECTOR_LENGTH];
         };
-        uint8_t pluginContext[5 * INT256_LENGTH];
+        // This needs to be strictly 4 bytes aligned since pointers to it will be casted as
+        // plugin context struct pointers (structs that contain up to 4 bytes wide elements)
+        uint8_t pluginContext[5 * INT256_LENGTH] __attribute__((aligned(4)));
     };
+
+    uint8_t pluginStatus;
 
 #ifdef HAVE_STARKWARE
     uint8_t quantum[32];
@@ -76,6 +79,8 @@ typedef struct tokenContext_t {
 #endif
 
 } tokenContext_t;
+
+_Static_assert((offsetof(tokenContext_t, pluginContext) % 4) == 0, "Plugin context not aligned");
 
 typedef struct publicKeyContext_t {
     cx_ecfp_public_key_t publicKey;

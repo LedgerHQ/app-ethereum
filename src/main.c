@@ -875,7 +875,7 @@ unsigned char io_event(__attribute__((unused)) unsigned char channel) {
         case SEPROXYHAL_TAG_BUTTON_PUSH_EVENT:
             UX_BUTTON_PUSH_EVENT(G_io_seproxyhal_spi_buffer);
             break;
-#endif // HAVE_BAGL
+#endif  // HAVE_BAGL
 
         case SEPROXYHAL_TAG_STATUS_EVENT:
             // if (G_io_apdu_media == IO_APDU_MEDIA_USB_HID &&
@@ -894,12 +894,10 @@ unsigned char io_event(__attribute__((unused)) unsigned char channel) {
 #endif  // HAVE_BAGL
             break;
 
-    case SEPROXYHAL_TAG_TICKER_EVENT:
-        G_ticks++;
-        UX_TICKER_EVENT(G_io_seproxyhal_spi_buffer,
-        {
-        });
-        break;
+        case SEPROXYHAL_TAG_TICKER_EVENT:
+            G_ticks++;
+            UX_TICKER_EVENT(G_io_seproxyhal_spi_buffer, {});
+            break;
     }
 
     // close the event if not done previously (by a display or whatever)

@@ -12,4 +12,4 @@ void ui_idle(void);
 void ui_menu_settings(void);
 void ui_menu_about(void);
 
-#endif // _UI_NBGL_H_
+#endif  // _UI_NBGL_H_

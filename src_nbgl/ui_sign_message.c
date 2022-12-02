@@ -19,7 +19,7 @@ static e_ui_nbgl_191_state state;
 static e_ui_nbgl_191_state state_before_reject_cancel;
 
 static nbgl_layoutTagValue_t pair;
-#define MAX_CHARS_PER_PAGE 128+1
+#define MAX_CHARS_PER_PAGE 128 + 1
 static char eip191Message[MAX_CHARS_PER_PAGE] = {0};
 static uint32_t eip191MessageIdx = 0;
 

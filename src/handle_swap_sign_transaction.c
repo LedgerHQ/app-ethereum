@@ -66,10 +66,10 @@ void handle_swap_sign_transaction(chain_config_t* config) {
     }
 
 #ifdef HAVE_BAGL
-        UX_INIT();
+    UX_INIT();
 #endif  // HAVE_BAGL
 #ifdef HAVE_NBGL
-        nbgl_objInit();
+    nbgl_objInit();
 #endif  // HAVE_NBGL
     USB_power(0);
     USB_power(1);

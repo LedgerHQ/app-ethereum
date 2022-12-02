@@ -20,7 +20,7 @@ void app_quit(void) {
 }
 
 void ui_idle(void) {
-    char *app_name = (char*)get_app_network_name();
+    char* app_name = (char*) get_app_network_name();
 
     // In case a new clone is ran with an older ethereum app (unknown chain ID)
     if (app_name == NULL) {

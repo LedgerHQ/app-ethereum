@@ -2,6 +2,7 @@
 #include "ui_nbgl.h"
 #include "nbgl_use_case.h"
 #include "glyphs.h"
+#include "network.h"
 
 nbgl_page_t* pageContext;
 
@@ -19,5 +20,11 @@ void app_quit(void) {
 }
 
 void ui_idle(void) {
-    nbgl_useCaseHome(APPNAME, &ICONGLYPH, NULL, true, ui_menu_settings, app_quit);
+    char *app_name = (char*)get_app_network_name();
+
+    // In case a new clone is ran with an older ethereum app (unknown chain ID)
+    if (app_name == NULL) {
+        app_name = APPNAME;
+    }
+    nbgl_useCaseHome(app_name, &ICONGLYPH, NULL, true, ui_menu_settings, app_quit);
 }

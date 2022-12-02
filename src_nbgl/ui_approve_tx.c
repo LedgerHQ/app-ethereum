@@ -213,7 +213,7 @@ void ux_approve_tx(bool fromPlugin) {
   tx_approval_context.fromPlugin = fromPlugin;
   tx_approval_context.displayNetwork = false;
 
-  uint64_t chain_id = get_chain_id();
+  uint64_t chain_id = get_tx_chain_id();
   if (chainConfig->chainId == ETHEREUM_MAINNET_CHAINID && chain_id != chainConfig->chainId) {
     tx_approval_context.displayNetwork = true;
   }

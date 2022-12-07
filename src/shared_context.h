@@ -226,6 +226,8 @@ extern bool quantumSet;
 extern uint32_t eth2WithdrawalIndex;
 #endif
 
+extern const char *plugin_name;
+
 void reset_app_context(void);
 const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_path_t *bip32);
 

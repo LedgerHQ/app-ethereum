@@ -24,7 +24,7 @@ void ui_idle(void) {
     if (plugin_name != NULL) { // plugin
             nbgl_useCasePlugInHome((char*)plugin_name,
                                    APPNAME,
-                                   &C_stax_app_ethereum,
+                                   &ICONGLYPH_SMALL,
                                    NULL,
                                    NULL,
                                    true,
@@ -49,7 +49,7 @@ void ui_idle(void) {
             default:
                 nbgl_useCasePlugInHome(app_name ? app_name : "???",
                                        APPNAME,
-                                       &C_stax_app_ethereum,
+                                       &ICONGLYPH_SMALL,
                                        NULL,
                                        NULL,
                                        true,

@@ -54,7 +54,7 @@ include ./makefile_conf/chain/$(CHAIN).mk
 else
 $(error Unsupported CHAIN - use $(SUPPORTED_CHAINS))
 endif
-DEFINES += APPNAME=\"$(APPNAME)\"
+CFLAGS += -DAPPNAME=\"$(APPNAME)\"
 
 #########
 # Other #

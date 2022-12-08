@@ -1068,6 +1068,13 @@ __attribute__((section(".boot"))) int main(int arg0) {
             unsigned int libcall_params[5];
             chain_config_t local_chainConfig;
             init_coin_config(&local_chainConfig);
+#ifdef HAVE_NBGL
+            uint8_t coinIcon[sizeof(ICONBITMAP)];
+            memcpy(coinIcon, &ICONBITMAP, sizeof(ICONBITMAP));
+            memcpy(&local_chainConfig.coinIconDetails, &ICONGLYPH, sizeof(ICONGLYPH));
+            local_chainConfig.coinIconDetails.bitmap = coinIcon;
+#endif // HAVE_NBGL
+
             PRINTF("Hello from Eth-clone\n");
             check_api_level(CX_COMPAT_APILEVEL);
             // delegate to Ethereum app/lib
@@ -1076,6 +1083,7 @@ __attribute__((section(".boot"))) int main(int arg0) {
             libcall_params[2] = RUN_APPLICATION;
             libcall_params[3] = (unsigned int) &local_chainConfig;
             libcall_params[4] = 0;
+
             if (arg0) {
                 // call as a library
                 libcall_params[2] = ((unsigned int *) arg0)[1];

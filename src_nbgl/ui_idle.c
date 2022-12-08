@@ -22,14 +22,14 @@ void app_quit(void) {
 
 void ui_idle(void) {
     if (plugin_name != NULL) { // plugin
-            nbgl_useCasePlugInHome((char*)plugin_name,
-                                   APPNAME,
-                                   &ICONGLYPH_SMALL,
-                                   NULL,
-                                   NULL,
-                                   true,
-                                   ui_menu_settings,
-                                   app_quit);
+        nbgl_useCasePlugInHome((char*)plugin_name,
+                                APPNAME,
+                                &ICONGLYPH_SMALL,
+                                NULL,
+                                NULL,
+                                true,
+                                ui_menu_settings,
+                                app_quit);
     } else {
         char *app_name = (char*) get_app_network_name();
 
@@ -39,7 +39,7 @@ void ui_idle(void) {
             case 3: // Ropsten
             case 5: // Goerli
                 nbgl_useCaseHome(app_name,
-                                 &ICONGLYPH,
+                                 get_app_chain_icon(),
                                  NULL,
                                  true,
                                  ui_menu_settings,
@@ -47,14 +47,13 @@ void ui_idle(void) {
                 break;
             // Clones
             default:
-                nbgl_useCasePlugInHome(app_name ? app_name : "???",
-                                       APPNAME,
-                                       &ICONGLYPH_SMALL,
-                                       NULL,
-                                       NULL,
-                                       true,
-                                       ui_menu_settings,
-                                       app_quit);
+                nbgl_useCaseHome(app_name,
+                                 get_app_chain_icon(),
+                                 NULL,
+                                 true,
+                                 ui_menu_settings,
+                                 app_quit);
+                break;
         }
     }
 }

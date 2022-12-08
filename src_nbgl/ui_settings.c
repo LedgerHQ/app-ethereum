@@ -2,7 +2,7 @@
 #include "ui_nbgl.h"
 #include "nbgl_use_case.h"
 
-static const char* const infoTypes[] = {"Version", "Ethereum App"};
+static const char* const infoTypes[] = {"Version", APPNAME" App"};
 static const char* const infoContents[] = {APPVERSION, "(c) 2022 Ledger"};
 
 enum {
@@ -98,5 +98,5 @@ static void controlsCallback(int token, uint8_t index) {
 }
 
 void ui_menu_settings(void) {
-  nbgl_useCaseSettings("Ethereum settings", 0, 3, true, ui_idle, navCallback, controlsCallback);
+  nbgl_useCaseSettings(APPNAME" settings", 0, 3, true, ui_idle, navCallback, controlsCallback);
 }

@@ -191,7 +191,7 @@ static void reviewContinueCommon(void) {
   useCaseTagValueList.nbPairs = nbPairs; ///< number of pairs in pairs array
   useCaseTagValueList.smallCaseForValue = false;
   useCaseTagValueList.wrapping = false;
-  infoLongPress.icon = &ICONGLYPH;
+  infoLongPress.icon = get_app_chain_icon();
   infoLongPress.text = tx_approval_context.fromPlugin ? transaction_type : "Review transaction";
   infoLongPress.longPressText = "Hold to sign";
   nbgl_useCaseStaticReview(&useCaseTagValueList, &infoLongPress, "Reject transaction", reviewChoice);
@@ -202,9 +202,9 @@ static void buildFirstPage(void) {
   if (tx_approval_context.fromPlugin) {
     plugin_ui_get_id();
     SPRINTF(transaction_type, "Review %s\ntransaction:\n%s", strings.common.fullAddress,strings.common.fullAmount);
-    nbgl_useCaseReviewStart(&ICONGLYPH, transaction_type, NULL, "Reject transaction", reviewContinue, rejectTransactionQuestion);
+    nbgl_useCaseReviewStart(get_app_chain_icon(), transaction_type, NULL, "Reject transaction", reviewContinue, rejectTransactionQuestion);
   } else {
-    nbgl_useCaseReviewStart(&ICONGLYPH, "Review transaction", NULL, "Reject transaction", reviewContinue, rejectTransactionQuestion);
+    nbgl_useCaseReviewStart(get_app_chain_icon(), "Review transaction", NULL, "Reject transaction", reviewContinue, rejectTransactionQuestion);
   }
 }
 

@@ -1,5 +1,6 @@
 #include "common_ui.h"
 #include "ui_nbgl.h"
+#include "network.h"
 
 static nbgl_layoutTagValue_t tlv;
 
@@ -30,7 +31,7 @@ static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
   }
   else if (page == 1) {
     content->type = INFO_LONG_PRESS,
-    content->infoLongPress.icon = &ICONGLYPH;
+    content->infoLongPress.icon = get_app_chain_icon();
     content->infoLongPress.text = "Confirm selector";
     content->infoLongPress.longPressText = "Hold to confirm";
   }
@@ -47,7 +48,7 @@ static void reviewContinue(void) {
 }
 
 static void buildScreen(void) {
-  nbgl_useCaseReviewStart(&ICONGLYPH, "Verify selector", NULL, "Reject", reviewContinue, reviewReject);
+  nbgl_useCaseReviewStart(get_app_chain_icon(), "Verify selector", NULL, "Reject", reviewContinue, reviewReject);
 }
 
 void ui_confirm_selector(void) {

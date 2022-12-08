@@ -3,6 +3,7 @@
 #include "ui_logic.h"
 #include "common_712.h"
 #include "nbgl_use_case.h"
+#include "network.h"
 
 // 4 pairs of tag/value to display
 static nbgl_layoutTagValue_t tlv;
@@ -25,7 +26,7 @@ static void reviewChoice(bool confirm) {
 static bool displaySignPage(uint8_t page, nbgl_pageContent_t *content) {
   (void)page;
   content->type = INFO_LONG_PRESS,
-  content->infoLongPress.icon = &ICONGLYPH;
+  content->infoLongPress.icon = get_app_chain_icon();
   content->infoLongPress.text = "Sign typed message";
   content->infoLongPress.longPressText = "Hold to sign";
   return true;

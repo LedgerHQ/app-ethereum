@@ -69,6 +69,7 @@ ICONNAME=icons/nanos_app_$(CHAIN).gif
 else ifeq ($(TARGET_NAME),TARGET_FATSTACKS)
 ICONNAME=icons/stax_app_$(CHAIN).gif
 DEFINES += ICONGLYPH=C_stax_app_$(CHAIN)_64px
+DEFINES += ICONBITMAP=C_stax_app_$(CHAIN)_64px_bitmap
 DEFINES += ICONGLYPH_SMALL=C_stax_app_$(CHAIN)
 GLYPH_FILES += icons/stax_app_$(CHAIN)_64px.gif
 GLYPH_FILES += icons/stax_app_$(CHAIN).gif

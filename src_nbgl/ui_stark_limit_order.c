@@ -2,10 +2,12 @@
 #include "ui_nbgl.h"
 #include "ui_callbacks.h"
 #include "nbgl_use_case.h"
+#include "network.h"
 
-static nbgl_layoutTagValue_t tlv[3];
 
 #ifdef HAVE_STARKWARE
+
+static nbgl_layoutTagValue_t tlv[3];
 
 static void reviewReject(void) {
   io_seproxyhal_touch_tx_cancel(NULL);
@@ -40,7 +42,7 @@ static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
   }
   else if (page == 1) {
     content->type = INFO_LONG_PRESS,
-    content->infoLongPress.icon = &ICONGLYPH;
+    content->infoLongPress.icon = get_app_chain_icon();
     content->infoLongPress.text = "Review stark limit order";
     content->infoLongPress.longPressText = "Hold to sign";
   }
@@ -57,7 +59,7 @@ static void reviewContinue(void) {
 
 
 static void buildFirstPage(void) {
-  nbgl_useCaseReviewStart(&ICONGLYPH, "Review stark limit order", NULL, "Reject", reviewContinue, reviewReject);
+  nbgl_useCaseReviewStart(get_app_chain_icon(), "Review stark limit order", NULL, "Reject", reviewContinue, reviewReject);
 }
 
 void ui_stark_limit_order(void) {

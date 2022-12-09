@@ -3,6 +3,7 @@
 #include "ui_nbgl.h"
 #include "ui_callbacks.h"
 #include "nbgl_use_case.h"
+#include "network.h"
 
 #ifdef HAVE_STARKWARE
 
@@ -43,7 +44,7 @@ static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
   }
   else if (page == 1) {
     content->type = INFO_LONG_PRESS,
-    content->infoLongPress.icon = &ICONGLYPH;
+    content->infoLongPress.icon = get_app_chain_icon();
     content->infoLongPress.text = "Unsafe Stark Sign";
     content->infoLongPress.longPressText = "Hold to sign";
   }
@@ -59,7 +60,7 @@ static void reviewContinue(void) {
 }
 
 static void buildFirstPage(void) {
-  nbgl_useCaseReviewStart(&ICONGLYPH,"Unsafe Stark Sign", NULL, "Reject", reviewContinue, reviewReject);
+  nbgl_useCaseReviewStart(get_app_chain_icon(),"Unsafe Stark Sign", NULL, "Reject", reviewContinue, reviewReject);
 }
 
 void ui_stark_unsafe_sign(void) {

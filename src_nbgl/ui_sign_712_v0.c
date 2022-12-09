@@ -1,6 +1,7 @@
 #include "common_ui.h"
 #include "ui_nbgl.h"
 #include "common_712.h"
+#include "network.h"
 
 static nbgl_layoutTagValue_t tlv[2];
 
@@ -43,7 +44,7 @@ static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
   }
   else if (page == 1) {
     content->type = INFO_LONG_PRESS,
-    content->infoLongPress.icon = &ICONGLYPH;
+    content->infoLongPress.icon = get_app_chain_icon();
     content->infoLongPress.text = "Sign typed message";
     content->infoLongPress.longPressText = "Hold to sign";
   }
@@ -59,7 +60,7 @@ static void reviewContinue(void) {
 
 
 static void buildFirstPage(void) {
-  nbgl_useCaseReviewStart(&ICONGLYPH, "Sign typed message", NULL, "Reject", reviewContinue, reviewReject);
+  nbgl_useCaseReviewStart(get_app_chain_icon(), "Sign typed message", NULL, "Reject", reviewContinue, reviewReject);
 }
 
 void ui_sign_712_v0(void) {

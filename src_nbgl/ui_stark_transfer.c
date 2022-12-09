@@ -4,6 +4,7 @@
 #include "ui_nbgl.h"
 #include "starkDisplayUtils.h"
 #include "ethUtils.h"
+#include "network.h"
 
 #ifdef HAVE_STARKWARE
 
@@ -85,7 +86,7 @@ static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
   }
   if (page == 2) {
     content->type = INFO_LONG_PRESS,
-    content->infoLongPress.icon = &ICONGLYPH;
+    content->infoLongPress.icon = get_app_chain_icon();
     content->infoLongPress.text = "Review transaction";
     content->infoLongPress.longPressText = "Hold to sign";
   }
@@ -114,7 +115,7 @@ void ui_stark_transfer(bool selfTransfer, bool conditional) {
       subTitle = "Transfer";
     }
   }
-  nbgl_useCaseReviewStart(&ICONGLYPH, "Review stark transaction", subTitle, "Reject", reviewContinue, reviewReject);
+  nbgl_useCaseReviewStart(get_app_chain_icon(), "Review stark transaction", subTitle, "Reject", reviewContinue, reviewReject);
 }
 
 #endif // #ifdef HAVE_STARKWARE

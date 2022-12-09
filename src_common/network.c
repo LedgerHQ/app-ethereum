@@ -83,6 +83,17 @@ uint64_t get_app_chain_id(void) {
     return chainConfig->chainId;
 }
 
+#ifdef HAVE_NBGL
+#include "glyphs.h"
+const nbgl_icon_details_t* get_app_chain_icon(void) {
+    if (chainConfig->coinIconDetails.bitmap) {
+        return &chainConfig->coinIconDetails; // if called from a clone, the bitmap is correct
+    } else {
+        return &ICONGLYPH; // else, jsu return the ETH icon
+    }
+}
+#endif // HAVE_NBGL
+
 static uint64_t get_chain_id(e_net_type type) {
     return (type == APP) ? get_app_chain_id() : get_tx_chain_id();
 }

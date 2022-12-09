@@ -2,6 +2,7 @@
 #include "ui_nbgl.h"
 #include "ui_callbacks.h"
 #include "nbgl_use_case.h"
+#include "network.h"
 
 static nbgl_layoutTagValue_t tlv[2];
 static char* review_string;
@@ -37,7 +38,7 @@ static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
   }
   else if (page == 1) {
     content->type = INFO_LONG_PRESS,
-    content->infoLongPress.icon = &ICONGLYPH;
+    content->infoLongPress.icon = get_app_chain_icon();
     content->infoLongPress.text = review_string;
     content->infoLongPress.longPressText = "Hold to approve";
   }
@@ -53,7 +54,7 @@ static void reviewContinue(void) {
 }
 
 static void buildFirstPage(void) {
-  nbgl_useCaseReviewStart(&ICONGLYPH, review_string, NULL, "Reject", reviewContinue, reviewReject);
+  nbgl_useCaseReviewStart(get_app_chain_icon(), review_string, NULL, "Reject", reviewContinue, reviewReject);
 }
 
 void ui_display_privacy_public_key(void) {

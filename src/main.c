@@ -880,11 +880,11 @@ unsigned char io_event(__attribute__((unused)) unsigned char channel) {
 #endif // HAVE_BAGL
 
         case SEPROXYHAL_TAG_STATUS_EVENT:
-            // if (G_io_apdu_media == IO_APDU_MEDIA_USB_HID &&
-            //     !(U4BE(G_io_seproxyhal_spi_buffer, 3) &
-            //       SEPROXYHAL_TAG_STATUS_EVENT_FLAG_USB_POWERED)) {
-            //     THROW(EXCEPTION_IO_RESET);
-            // }
+            if (G_io_apdu_media == IO_APDU_MEDIA_USB_HID &&
+                !(U4BE(G_io_seproxyhal_spi_buffer, 3) &
+                  SEPROXYHAL_TAG_STATUS_EVENT_FLAG_USB_POWERED)) {
+                THROW(EXCEPTION_IO_RESET);
+            }
             // no break is intentional
         default:
             UX_DEFAULT_EVENT();
@@ -894,6 +894,9 @@ unsigned char io_event(__attribute__((unused)) unsigned char channel) {
 #ifdef HAVE_BAGL
             UX_DISPLAYED_EVENT({});
 #endif  // HAVE_BAGL
+#ifdef HAVE_NBGL
+            UX_DEFAULT_EVENT();
+#endif  // HAVE_NBGL
             break;
 
     case SEPROXYHAL_TAG_TICKER_EVENT:

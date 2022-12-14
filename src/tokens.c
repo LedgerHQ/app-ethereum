@@ -222,4 +222,6 @@ const tokenDefinition_t const TOKENS_TECRA[NUM_TOKENS_TECRA] = {};
 
 const tokenDefinition_t const TOKENS_APOTHEMNETWORK[NUM_TOKENS_APOTHEMNETWORK] = {};
 
+const tokenDefinition_t const TOKENS_SYSCOIN[NUM_TOKENS_SYSCOIN] = {};
+
 #endif

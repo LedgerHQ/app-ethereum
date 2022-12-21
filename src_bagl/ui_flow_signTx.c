@@ -219,12 +219,19 @@ void ux_approve_tx(bool fromPlugin) {
     } else {
         // We're in a regular transaction, just show the amount and the address
         ux_approval_tx_flow[step++] = &ux_approval_amount_step;
+#ifdef HAVE_TRUSTED_NAME
         uint64_t chain_id = get_chain_id();
         if (verify_trusted_name(&chain_id, tmpContent.txContent.destination)) {
             ux_approval_tx_flow[step++] = &ux_trusted_name_step;
+            if (N_storage.verbose_trusted_name) {
+                ux_approval_tx_flow[step++] = &ux_approval_address_step;
+            }
         } else {
+#endif  // HAVE_TRUSTED_NAME
             ux_approval_tx_flow[step++] = &ux_approval_address_step;
+#ifdef HAVE_TRUSTED_NAME
         }
+#endif  // HAVE_TRUSTED_NAME
     }
 
     if (N_storage.displayNonce) {

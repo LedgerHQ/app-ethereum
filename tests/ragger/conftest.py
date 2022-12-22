@@ -1,6 +1,6 @@
 import pytest
 from pathlib import Path
-from ragger import Firmware
+from ragger.firmware import Firmware
 from ragger.backend import SpeculosBackend, LedgerCommBackend, LedgerWalletBackend, BackendInterface
 from ethereum_client.client import EthereumClient
 

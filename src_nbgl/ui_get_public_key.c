@@ -5,12 +5,10 @@
 
 static void reviewReject(void) {
   io_seproxyhal_touch_address_cancel(NULL);
-  ui_idle();
 }
 
 static void confirmTransation(void) {
   io_seproxyhal_touch_address_ok(NULL);
-  ui_idle();
 }
 
 static void reviewChoice(bool confirm) {

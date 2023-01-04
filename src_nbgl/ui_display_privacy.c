@@ -9,12 +9,10 @@ static char* review_string;
 
 static void reviewReject(void) {
   io_seproxyhal_touch_privacy_cancel(NULL);
-  ui_idle();
 }
 
 static void confirmTransation(void) {
   io_seproxyhal_touch_privacy_ok(NULL);
-  ui_idle();
 }
 
 static void reviewChoice(bool confirm) {

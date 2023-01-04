@@ -13,12 +13,10 @@ static char message_hash[64];
 
 static void reviewReject(void) {
   io_seproxyhal_touch_tx_cancel(NULL);
-  ui_idle();
 }
 
 static void confirmTransation(void) {
   io_seproxyhal_touch_stark_unsafe_sign_ok(NULL);
-  ui_idle();
 }
 
 static void reviewChoice(bool confirm) {

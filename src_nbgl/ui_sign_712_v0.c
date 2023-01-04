@@ -10,12 +10,10 @@ static char message_hash[70];
 
 static void reviewReject(void) {
   ui_712_approve_cb(NULL);
-  ui_idle();
 }
 
 static void confirmTransation(void) {
   ui_712_reject_cb(NULL);
-  ui_idle();
 }
 
 static void reviewChoice(bool confirm) {

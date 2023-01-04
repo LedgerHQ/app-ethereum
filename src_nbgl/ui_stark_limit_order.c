@@ -11,12 +11,10 @@ static nbgl_layoutTagValue_t tlv[3];
 
 static void reviewReject(void) {
   io_seproxyhal_touch_tx_cancel(NULL);
-  ui_idle();
 }
 
 static void confirmTransation(void) {
   io_seproxyhal_touch_stark_ok(NULL);
-  ui_idle();
 }
 
 static void reviewChoice(bool confirm) {

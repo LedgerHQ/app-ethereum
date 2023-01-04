@@ -6,7 +6,6 @@ static nbgl_layoutTagValue_t tlv;
 
 static void reviewReject(void) {
   io_seproxyhal_touch_data_cancel(NULL);
-  ui_idle();
 }
 
 static void confirmTransation(void) {

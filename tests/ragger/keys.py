@@ -6,6 +6,7 @@ from enum import Enum, auto
 
 class Key(Enum):
     CAL = auto()
+    TRUSTED_NAME = auto()
 
 _keys: dict[Key, SigningKey] = dict()
 

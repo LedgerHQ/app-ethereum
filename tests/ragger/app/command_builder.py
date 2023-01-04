@@ -5,14 +5,19 @@ import struct
 import rlp
 
 class   InsType(IntEnum):
+    SIGN = 0x04
     EIP712_SEND_STRUCT_DEF = 0x1a
     EIP712_SEND_STRUCT_IMPL = 0x1c
     EIP712_SEND_FILTERING = 0x1e
     EIP712_SIGN = 0x0c
+    GET_CHALLENGE = 0x20
+    PROVIDE_TRUSTED_NAME = 0x22
 
 class   P1Type(IntEnum):
     COMPLETE_SEND = 0x00
     PARTIAL_SEND = 0x01
+    SIGN_FIRST_CHUNK = 0x00
+    SIGN_SUBSQT_CHUNK = 0x80
 
 class   P2Type(IntEnum):
     STRUCT_NAME = 0x00
@@ -31,7 +36,7 @@ class   EthereumCmdBuilder:
                    ins: InsType,
                    p1: int,
                    p2: int,
-                   cdata: bytearray = bytearray()) -> bytes:
+                   cdata: bytearray = bytes()) -> bytes:
 
         header = bytearray()
         header.append(self._CLA)
@@ -171,3 +176,53 @@ class   EthereumCmdBuilder:
                                P1Type.COMPLETE_SEND,
                                P2Type.FILTERING_FIELD_NAME,
                                self._eip712_filtering_send_name(name, sig))
+
+    def sign(self, bip32_path: list[Optional[int]], data: list) -> Iterator[bytes]:
+        payload = self._format_bip32(bip32_path, bytearray())
+        payload += rlp.encode(data)
+        p1 = P1Type.SIGN_FIRST_CHUNK
+        while len(payload) > 0:
+            yield self._serialize(InsType.SIGN,
+                                  p1,
+                                  0x00,
+                                  payload[:0xff])
+            payload = payload[0xff:]
+            p1 = P1Type.SIGN_SUBSQT_CHUNK
+
+    def send_fund(self,
+                  bip32_path: list[Optional[int]],
+                  nonce: int,
+                  gas_price: int,
+                  gas_limit: int,
+                  to: bytes,
+                  amount: float,
+                  chain_id: int) -> Iterator[bytes]:
+        data = list()
+        data.append(nonce)
+        data.append(gas_price)
+        data.append(gas_limit)
+        data.append(to)
+        data.append(int(amount * 1000000000000000000))
+        data.append(bytes())
+        data.append(chain_id)
+        data.append(bytes())
+        data.append(bytes())
+        return self.sign(bip32_path, data)
+
+    def get_challenge(self) -> bytes:
+        return self._serialize(InsType.GET_CHALLENGE, 0x00, 0x00)
+
+    def provide_trusted_name(self, name: str, key_id: int, algo_id: int, sig: bytes) -> bytes:
+        payload = bytearray()
+        payload.append(len(name))
+        payload += name.encode()
+        payload.append(key_id)
+        payload.append(algo_id)
+        payload.append(len(sig))
+        payload += sig
+        while len(payload) > 0:
+            yield self._serialize(InsType.PROVIDE_TRUSTED_NAME,
+                                  0x00,
+                                  0x00,
+                                  payload[:0xff])
+            payload = payload[0xff:]

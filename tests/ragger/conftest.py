@@ -15,8 +15,9 @@ def pytest_addoption(parser):
     parser.addoption("--path", action="store", default="./elfs")
     parser.addoption("--model", action="store", required=True)
     parser.addoption("--display", action="store_true", default=False)
+    parser.addoption("--chainid", type=int, action="store", default=1)
+    parser.addoption("--gold", action="store_true", default=False)
 
-# accessing the value of the "--backend" option as a fixture
 @pytest.fixture
 def arg_backend(pytestconfig) -> str:
     return pytestconfig.getoption("backend")
@@ -33,6 +34,14 @@ def arg_model(pytestconfig) -> str:
 def arg_display(pytestconfig) -> bool:
     return pytestconfig.getoption("display")
 
+@pytest.fixture
+def arg_chainid(pytestconfig) -> int:
+    return pytestconfig.getoption("chainid")
+
+@pytest.fixture
+def arg_gold(pytestconfig) -> bool:
+    return pytestconfig.getoption("gold")
+
 # Providing the firmware as a fixture
 @pytest.fixture
 def firmware(arg_model: str) -> Firmware:
@@ -40,6 +49,7 @@ def firmware(arg_model: str) -> Firmware:
         if fw.device == arg_model:
             return fw
     raise ValueError("Unknown device model \"%s\"" % (arg_model))
+
 
 def get_speculos_args(arg_path: str, display: bool, fw: Firmware):
     extra_args = list()
@@ -74,5 +84,7 @@ def backend_client(arg_backend: str, arg_path: str, arg_display: bool, firmware:
 
 # This final fixture will return the properly configured app client, to be used in tests
 @pytest.fixture
-def app_client(backend_client: BackendInterface) -> EthereumClient:
-    return EthereumClient(backend_client)
+def app_client(backend_client: BackendInterface,
+               arg_chainid: int,
+               arg_gold: bool) -> EthereumClient:
+    return EthereumClient(backend_client, arg_chainid, arg_gold)

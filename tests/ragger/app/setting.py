@@ -5,6 +5,7 @@ class   SettingType(IntEnum):
     BLIND_SIGNING = 0,
     DEBUG_DATA = auto()
     NONCE = auto()
+    VERBOSE_ENS = auto()
     VERBOSE_EIP712 = auto()
 
 class   SettingImpl:

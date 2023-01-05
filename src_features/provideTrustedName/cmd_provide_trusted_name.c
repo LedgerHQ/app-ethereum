@@ -13,7 +13,8 @@
 typedef enum { STRUCT_TYPE_1 = 0x00 } e_ens_struct_type;
 typedef enum { APDU_FORMAT_VERSION_1 = 0x00 } e_ens_apdu_format_version;
 
-static s_trusted_name trusted_name = {};
+static s_trusted_name trusted_name_info = {0};
+char trusted_name[TRUSTED_NAME_MAX_LENGTH + 1] = {0};
 
 static const uint8_t TRUSTED_NAME_PUB_KEY[] = {
 #ifdef HAVE_TRUSTED_NAME_TEST_KEY
@@ -72,14 +73,14 @@ bool verify_trusted_name(const uint64_t *chain_id, const uint8_t *addr) {
     // address
     hash_nbytes(addr, ADDRESS_LENGTH, (cx_hash_t *) &hash_ctx);
     // name
-    hash_nbytes((uint8_t *) trusted_name.name, strlen(trusted_name.name), (cx_hash_t *) &hash_ctx);
+    hash_nbytes((uint8_t *) trusted_name, strlen(trusted_name), (cx_hash_t *) &hash_ctx);
     // chain id
     chain_id_be = __builtin_bswap64(*chain_id);
     hash_nbytes((uint8_t *) &chain_id_be, sizeof(chain_id_be), (cx_hash_t *) &hash_ctx);
     // key id
-    hash_byte(trusted_name.key_id, (cx_hash_t *) &hash_ctx);
+    hash_byte(trusted_name_info.key_id, (cx_hash_t *) &hash_ctx);
     // algo id
-    hash_byte(trusted_name.algo_id, (cx_hash_t *) &hash_ctx);
+    hash_byte(trusted_name_info.algo_id, (cx_hash_t *) &hash_ctx);
     cx_hash((cx_hash_t *) &hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH);
 
     cx_ecfp_init_public_key(CX_CURVE_256K1,
@@ -91,8 +92,8 @@ bool verify_trusted_name(const uint64_t *chain_id, const uint8_t *addr) {
                          CX_SHA256,
                          hash,
                          sizeof(hash),
-                         trusted_name.sig,
-                         trusted_name.sig_length)) {
+                         trusted_name_info.sig,
+                         trusted_name_info.sig_length)) {
 #ifndef HAVE_BYPASS_SIGNATURES
         ret = false;
 #endif
@@ -128,37 +129,37 @@ void handle_provide_trusted_name(uint8_t p1, uint8_t p2, const uint8_t *data, ui
         apdu_response_code = APDU_RESPONSE_INVALID_DATA;
         return response_to_trusted_name(false, 0);
     }
-    memcpy((void *) trusted_name.name, &data[off], name_length);
-    trusted_name.name[name_length] = '\0';
+    memcpy((void *) trusted_name, &data[off], name_length);
+    trusted_name[name_length] = '\0';
     off += name_length;
 
-    if ((length - off) < sizeof(trusted_name.key_id)) {
+    if ((length - off) < sizeof(trusted_name_info.key_id)) {
         apdu_response_code = APDU_RESPONSE_INVALID_DATA;
         return response_to_trusted_name(false, 0);
     }
-    trusted_name.key_id = data[off];
-    off += sizeof(trusted_name.key_id);
+    trusted_name_info.key_id = data[off];
+    off += sizeof(trusted_name_info.key_id);
 
-    if ((length - off) < sizeof(trusted_name.algo_id)) {
+    if ((length - off) < sizeof(trusted_name_info.algo_id)) {
         apdu_response_code = APDU_RESPONSE_INVALID_DATA;
         return response_to_trusted_name(false, 0);
     }
-    trusted_name.algo_id = data[off];
-    off += sizeof(trusted_name.algo_id);
+    trusted_name_info.algo_id = data[off];
+    off += sizeof(trusted_name_info.algo_id);
 
-    if ((length - off) < sizeof(trusted_name.sig_length)) {
+    if ((length - off) < sizeof(trusted_name_info.sig_length)) {
         apdu_response_code = APDU_RESPONSE_INVALID_DATA;
         return response_to_trusted_name(false, 0);
     }
-    trusted_name.sig_length = data[off];
-    off += sizeof(trusted_name.sig_length);
+    trusted_name_info.sig_length = data[off];
+    off += sizeof(trusted_name_info.sig_length);
 
-    if ((length - off) < trusted_name.sig_length) {
+    if ((length - off) < trusted_name_info.sig_length) {
         apdu_response_code = APDU_RESPONSE_INVALID_DATA;
         return response_to_trusted_name(false, 0);
     }
-    memcpy((void *) trusted_name.sig, &data[off], trusted_name.sig_length);
-    off += trusted_name.sig_length;
+    memcpy((void *) trusted_name_info.sig, &data[off], trusted_name_info.sig_length);
+    off += trusted_name_info.sig_length;
 
     if ((length - off) > 0) {
         apdu_response_code = APDU_RESPONSE_INVALID_DATA;

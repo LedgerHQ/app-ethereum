@@ -9,6 +9,7 @@
 #include "ethUtils.h"
 #include "common_ui.h"
 #include "ui_callbacks.h"
+#include "trusted_name.h"
 
 #define ERR_SILENT_MODE_CHECK_FAILED 0x6001
 
@@ -310,13 +311,12 @@ void finalizeParsing(bool direct) {
     const char *ticker = get_network_ticker();
     ethPluginFinalize_t pluginFinalize;
     bool genericUI = true;
+    uint64_t chain_id = get_chain_id();
 
     // Verify the chain
     if (chainConfig->chainId != ETHEREUM_MAINNET_CHAINID) {
-        uint64_t id = get_chain_id();
-
-        if (chainConfig->chainId != id) {
-            PRINTF("Invalid chainID %u expected %u\n", id, chainConfig->chainId);
+        if (chainConfig->chainId != chain_id) {
+            PRINTF("Invalid chainID %u expected %u\n", chain_id, chainConfig->chainId);
             reset_app_context();
             reportFinalizeError(direct);
             if (!direct) {

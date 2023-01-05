@@ -66,7 +66,7 @@ const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 2222, .name = "Kava EVM", .ticker = "KAVA "},
     {.chain_id = 10000, .name = "Smart Bitcoin Cash", .ticker = "BCH "},
     {.chain_id = 8217, .name = "Klaytn Cypress", .ticker = "KLAY "},
-    {.chain_id = 245022934, .name = "Neon EVM" .ticker = "NEON "},
+    {.chain_id = 245022934, .name = "Neon EVM", .ticker = "NEON "},
     {.chain_id = 57, .name = "Syscoin", .ticker = "SYS "},
     {.chain_id = 32520, .name = "Bitgert", .ticker = "BRISE "},
     {.chain_id = 106, .name = "Velas EVM", .ticker = "VLX "},

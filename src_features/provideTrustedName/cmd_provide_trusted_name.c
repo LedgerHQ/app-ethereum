@@ -12,9 +12,21 @@
 
 typedef enum { STRUCT_TYPE_1 = 0x00 } e_ens_struct_type;
 typedef enum { APDU_FORMAT_VERSION_1 = 0x00 } e_ens_apdu_format_version;
+typedef enum {
+    APDU_STATE_NAME_LENGTH = 0,
+    APDU_STATE_NAME,
+    APDU_STATE_KEY_ID,
+    APDU_STATE_ALGO_ID,
+    APDU_STATE_SIG_LENGTH,
+    APDU_STATE_SIG,
+    APDU_STATE_COUNT
+} e_apdu_state;
+typedef bool (*t_apdu_parsing_func)(const uint8_t *, uint8_t, uint8_t *);
 
-static s_trusted_name trusted_name_info = {0};
 char trusted_name[TRUSTED_NAME_MAX_LENGTH + 1] = {0};
+static s_trusted_name trusted_name_info = {0};
+static uint8_t apdu_state = APDU_STATE_NAME_LENGTH;
+static uint8_t current_val_offset = 0;
 
 static const uint8_t TRUSTED_NAME_PUB_KEY[] = {
 #ifdef HAVE_TRUSTED_NAME_TEST_KEY
@@ -104,6 +116,139 @@ bool verify_trusted_name(const uint64_t *chain_id, const uint8_t *addr) {
 }
 
 /**
+ * Parse the domain name length from the APDU payload
+ *
+ * @param[in] data payload
+ * @param[in] length size of payload
+ * @param[in,out] apdu_offset offset to the currently processed byte(s) in the payload
+ * @return whether the parsing was successful
+ */
+static bool parse_name_length(const uint8_t *data, uint8_t length, uint8_t *apdu_offset) {
+    if ((length - *apdu_offset) < sizeof(trusted_name_info.name_length)) {
+        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        response_to_trusted_name(false, 0);
+        return false;
+    }
+    trusted_name_info.name_length = data[*apdu_offset];
+    if (trusted_name_info.name_length > TRUSTED_NAME_MAX_LENGTH) {
+        apdu_response_code = APDU_RESPONSE_INVALID_DATA + 1;
+        response_to_trusted_name(false, 0);
+        return false;
+    }
+    *apdu_offset += sizeof(trusted_name_info.name_length);
+    trusted_name[trusted_name_info.name_length] = '\0';
+    current_val_offset = 0;
+    apdu_state = APDU_STATE_NAME;
+    return true;
+}
+
+/**
+ * Parse the domain name from the APDU payload
+ *
+ * @param[in] data payload
+ * @param[in] length size of payload
+ * @param[in,out] apdu_offset offset to the currently processed byte(s) in the payload
+ * @return whether the parsing was successful
+ */
+static bool parse_name(const uint8_t *data, uint8_t length, uint8_t *apdu_offset) {
+    uint8_t cpy_length =
+        MIN(trusted_name_info.name_length - current_val_offset, length - *apdu_offset);
+    memcpy((void *) trusted_name + current_val_offset, &data[*apdu_offset], cpy_length);
+    current_val_offset += cpy_length;
+    *apdu_offset += cpy_length;
+    if (current_val_offset == trusted_name_info.name_length) {
+        apdu_state = APDU_STATE_KEY_ID;
+    }
+    return true;
+}
+
+/**
+ * Parse the key ID from the APDU payload
+ *
+ * @param[in] data payload
+ * @param[in] length size of payload
+ * @param[in,out] apdu_offset offset to the currently processed byte(s) in the payload
+ * @return whether the parsing was successful
+ */
+static bool parse_key_id(const uint8_t *data, uint8_t length, uint8_t *apdu_offset) {
+    if ((length - *apdu_offset) < sizeof(trusted_name_info.key_id)) {
+        apdu_response_code = APDU_RESPONSE_INVALID_DATA + 2;
+        response_to_trusted_name(false, 0);
+        return false;
+    }
+    trusted_name_info.key_id = data[*apdu_offset];
+    *apdu_offset += sizeof(trusted_name_info.key_id);
+    apdu_state = APDU_STATE_ALGO_ID;
+    return true;
+}
+
+/**
+ * Parse the algorithm ID from the APDU payload
+ *
+ * @param[in] data payload
+ * @param[in] length size of payload
+ * @param[in,out] apdu_offset offset to the currently processed byte(s) in the payload
+ * @return whether the parsing was successful
+ */
+static bool parse_algo_id(const uint8_t *data, uint8_t length, uint8_t *apdu_offset) {
+    if ((length - *apdu_offset) < sizeof(trusted_name_info.algo_id)) {
+        apdu_response_code = APDU_RESPONSE_INVALID_DATA + 3;
+        response_to_trusted_name(false, 0);
+        return false;
+    }
+    trusted_name_info.algo_id = data[*apdu_offset];
+    *apdu_offset += sizeof(trusted_name_info.algo_id);
+    apdu_state = APDU_STATE_SIG_LENGTH;
+    return true;
+}
+
+/**
+ * Parse the signature length from the APDU payload
+ *
+ * @param[in] data payload
+ * @param[in] length size of payload
+ * @param[in,out] apdu_offset offset to the currently processed byte(s) in the payload
+ * @return whether the parsing was successful
+ */
+static bool parse_sig_length(const uint8_t *data, uint8_t length, uint8_t *apdu_offset) {
+    if ((length - *apdu_offset) < sizeof(trusted_name_info.sig_length)) {
+        apdu_response_code = APDU_RESPONSE_INVALID_DATA + 4;
+        response_to_trusted_name(false, 0);
+        return false;
+    }
+    trusted_name_info.sig_length = data[*apdu_offset];
+    if (trusted_name_info.sig_length > ECDSA_SIG_MAX_LENGTH) {
+        apdu_response_code = APDU_RESPONSE_INVALID_DATA + 5;
+        response_to_trusted_name(false, 0);
+        return false;
+    }
+    *apdu_offset += sizeof(trusted_name_info.sig_length);
+    current_val_offset = 0;
+    apdu_state = APDU_STATE_SIG;
+    return true;
+}
+
+/**
+ * Parse the signature from the APDU payload
+ *
+ * @param[in] data payload
+ * @param[in] length size of payload
+ * @param[in,out] apdu_offset offset to the currently processed byte(s) in the payload
+ * @return whether the parsing was successful
+ */
+static bool parse_sig(const uint8_t *data, uint8_t length, uint8_t *apdu_offset) {
+    uint8_t cpy_length =
+        MIN(trusted_name_info.sig_length - current_val_offset, length - *apdu_offset);
+    memcpy((void *) trusted_name_info.sig + current_val_offset, &data[*apdu_offset], cpy_length);
+    current_val_offset += cpy_length;
+    *apdu_offset += cpy_length;
+    if (current_val_offset == trusted_name_info.sig_length) {
+        apdu_state = APDU_STATE_NAME_LENGTH;
+    }
+    return true;
+}
+
+/**
  * Handle trusted name APDU
  *
  * @param[in] p1 first APDU instruction parameter
@@ -112,60 +257,19 @@ bool verify_trusted_name(const uint64_t *chain_id, const uint8_t *addr) {
  * @param[in] length payload size
  */
 void handle_provide_trusted_name(uint8_t p1, uint8_t p2, const uint8_t *data, uint8_t length) {
-    uint8_t off = 0;
-    uint8_t name_length;
+    t_apdu_parsing_func parsing_funcs[APDU_STATE_COUNT] =
+        {parse_name_length, parse_name, parse_key_id, parse_algo_id, parse_sig_length, parse_sig};
+    uint8_t apdu_offset = 0;
 
     (void) p1;
     (void) p2;
-
-    if ((length - off) < sizeof(name_length)) {
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
-        return response_to_trusted_name(false, 0);
+    while (apdu_offset < length) {
+        if (apdu_state >= APDU_STATE_COUNT) break;
+        if (!(*(t_apdu_parsing_func) PIC(parsing_funcs[apdu_state]))(data, length, &apdu_offset)) {
+            return;
+        }
     }
-    name_length = data[off];
-    off += sizeof(name_length);
-
-    if ((length - off) < name_length) {
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
-        return response_to_trusted_name(false, 0);
-    }
-    memcpy((void *) trusted_name, &data[off], name_length);
-    trusted_name[name_length] = '\0';
-    off += name_length;
-
-    if ((length - off) < sizeof(trusted_name_info.key_id)) {
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
-        return response_to_trusted_name(false, 0);
-    }
-    trusted_name_info.key_id = data[off];
-    off += sizeof(trusted_name_info.key_id);
-
-    if ((length - off) < sizeof(trusted_name_info.algo_id)) {
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
-        return response_to_trusted_name(false, 0);
-    }
-    trusted_name_info.algo_id = data[off];
-    off += sizeof(trusted_name_info.algo_id);
-
-    if ((length - off) < sizeof(trusted_name_info.sig_length)) {
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
-        return response_to_trusted_name(false, 0);
-    }
-    trusted_name_info.sig_length = data[off];
-    off += sizeof(trusted_name_info.sig_length);
-
-    if ((length - off) < trusted_name_info.sig_length) {
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
-        return response_to_trusted_name(false, 0);
-    }
-    memcpy((void *) trusted_name_info.sig, &data[off], trusted_name_info.sig_length);
-    off += trusted_name_info.sig_length;
-
-    if ((length - off) > 0) {
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
-        return response_to_trusted_name(false, 0);
-    }
-    return response_to_trusted_name(true, 0);
+    return response_to_trusted_name(apdu_offset == length, 0);
 }
 
 #endif  // HAVE_TRUSTED_NAME

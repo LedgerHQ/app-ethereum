@@ -12,6 +12,7 @@
 typedef struct {
     uint8_t key_id;
     uint8_t algo_id;
+    uint8_t name_length;
     uint8_t sig_length;
     uint8_t sig[ECDSA_SIG_MAX_LENGTH];
 } s_trusted_name;

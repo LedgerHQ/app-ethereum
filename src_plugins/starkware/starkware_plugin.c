@@ -326,10 +326,11 @@ void starkware_print_amount(uint8_t *amountData,
     }
     tostring256(&amount, 10, (char *) (G_io_apdu_buffer + 100), 100);
     strlcpy(destination, ticker, destinationLength);
+    strlcat(destination, " ", destinationLength);
     adjustDecimals((char *) (G_io_apdu_buffer + 100),
                    strlen((char *) (G_io_apdu_buffer + 100)),
-                   destination + strlen(ticker),
-                   destinationLength - strlen(ticker),
+                   destination + strlen(ticker) + 1,
+                   destinationLength - strlen(ticker) - 1,
                    decimals);
 }
 

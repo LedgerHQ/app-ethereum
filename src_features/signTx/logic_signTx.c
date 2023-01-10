@@ -240,6 +240,7 @@ static void feesToString(uint256_t *rawFee, char *displayBuffer, uint32_t displa
         displayBuffer[tickerOffset] = feeTicker[tickerOffset];
         tickerOffset++;
     }
+    if ((uint32_t) tickerOffset < displayBufferSize) displayBuffer[tickerOffset++] = ' ';
     while (G_io_apdu_buffer[i]) {
         if ((uint32_t) (tickerOffset) + i >= displayBufferSize) {
             break;

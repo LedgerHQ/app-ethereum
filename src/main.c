@@ -297,6 +297,9 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
         case CHAIN_KIND_ID4GOOD:
             numTokens = NUM_TOKENS_ID4GOOD;
             break;
+        case CHAIN_KIND_OASYS:
+            numTokens = NUM_TOKENS_OASYS;
+            break;
     }
     for (i = 0; i < numTokens; i++) {
         switch (chainConfig->kind) {
@@ -452,6 +455,9 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
                 break;
             case CHAIN_KIND_ID4GOOD:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_ID4GOOD[i]);
+                break;
+            case CHAIN_KIND_OASYS:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_OASYS[i]);
                 break;
         }
         if (memcmp(currentToken->address, tmpContent.txContent.destination, ADDRESS_LENGTH) == 0) {

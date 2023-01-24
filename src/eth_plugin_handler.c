@@ -63,12 +63,8 @@ void eth_plugin_prepare_query_contract_UI(ethQueryContractUI_t *queryContractUI,
         queryContractUI->item2 = &tmpCtx.transactionContext.extraInfo[0];
     }
 
-    strlcpy(queryContractUI->network_ticker, get_network_ticker(), MAX_TICKER_LEN);
-
     queryContractUI->screenIndex = screenIndex;
-    strlcpy(queryContractUI->network_ticker,
-            get_network_ticker(),
-            sizeof(queryContractUI->network_ticker));
+    strlcpy(queryContractUI->network_ticker, get_network_ticker(), MAX_TICKER_LEN);
     queryContractUI->title = title;
     queryContractUI->titleLength = titleLength;
     queryContractUI->msg = msg;

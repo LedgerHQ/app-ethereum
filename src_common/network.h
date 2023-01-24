@@ -5,8 +5,6 @@
 #include "tokens.h"
 #include "shared_context.h"
 
-#define MAX_NETWORK_TICKER_LEN 8
-
 typedef struct network_info_s {
     const char *name;
     const char *ticker;

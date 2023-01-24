@@ -132,6 +132,9 @@ void amountToString(const uint8_t *amount,
     uint8_t ticker_len = strnlen(ticker, MAX_TICKER_LEN);
 
     memcpy(out_buffer, ticker, MIN(out_buffer_size, ticker_len));
+    if (ticker_len > 0) {
+        out_buffer[ticker_len++] = ' ';
+    }
 
     if (adjustDecimals(tmp_buffer,
                        amount_len,
@@ -155,8 +158,7 @@ bool parse_swap_config(const uint8_t *config, uint8_t config_len, char *ticker, 
     }
     memcpy(ticker, config + offset, ticker_len);
     offset += ticker_len;
-    ticker[ticker_len] = ' ';
-    ticker[ticker_len + 1] = '\0';
+    ticker[ticker_len] = '\0';
 
     if (config_len - offset < 1) {
         return false;

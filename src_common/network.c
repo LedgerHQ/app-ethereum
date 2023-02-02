@@ -37,7 +37,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 199, .name = "BTTC", .ticker = "BTT"},
     {.chain_id = 1030, .name = "Conflux", .ticker = "CFX"},
     {.chain_id = 61, .name = "Ethereum Classic", .ticker = "ETC"},
-    {.chain_id = 246, .name = "EnergyWebChain", .ticker = "EWC"},
+    {.chain_id = 246, .name = "EnergyWebChain", .ticker = "EWT"},
     {.chain_id = 14, .name = "Flare", .ticker = "FLR"},
     {.chain_id = 16, .name = "Flare Coston", .ticker = "FLR"},
     {.chain_id = 24, .name = "KardiaChain", .ticker = "KAI"},

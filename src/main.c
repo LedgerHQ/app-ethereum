@@ -228,8 +228,8 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
         case CHAIN_KIND_VOLTA:
             numTokens = NUM_TOKENS_VOLTA;
             break;
-        case CHAIN_KIND_EWT:
-            numTokens = NUM_TOKENS_EWC;
+        case CHAIN_KIND_ENERGYWEBCHAIN:
+            numTokens = NUM_TOKENS_ENERGYWEBCHAIN;
             break;
         case CHAIN_KIND_WEBCHAIN:
             numTokens = NUM_TOKENS_WEBCHAIN;
@@ -384,8 +384,8 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
             case CHAIN_KIND_VOLTA:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_VOLTA[i]);
                 break;
-            case CHAIN_KIND_EWT:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_EWC[i]);
+            case CHAIN_KIND_ENERGYWEBCHAIN:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_ENERGYWEBCHAIN[i]);
                 break;
             case CHAIN_KIND_WEBCHAIN:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_WEBCHAIN[i]);

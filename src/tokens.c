@@ -172,7 +172,7 @@ const tokenDefinition_t const TOKENS_DEXON[NUM_TOKENS_DEXON] = {};
 
 const tokenDefinition_t const TOKENS_VOLTA[NUM_TOKENS_VOLTA] = {};
 
-const tokenDefinition_t const TOKENS_EWC[NUM_TOKENS_EWC] = {};
+const tokenDefinition_t const TOKENS_ENERGYWEBCHAIN[NUM_TOKENS_ENERGYWEBCHAIN] = {};
 
 const tokenDefinition_t const TOKENS_ARTIS_SIGMA1[NUM_TOKENS_ARTIS_SIGMA1] = {};
 

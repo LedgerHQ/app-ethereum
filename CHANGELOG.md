@@ -5,7 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.10.2](https://github.com/ledgerhq/app-ethereum/compare/1.10.1...1.10.2) - 2022-XX-XX
+## [1.10.2](https://github.com/ledgerhq/app-ethereum/compare/1.10.1...1.10.2) - 2022-02-03
+
+### Added
+
+- (clone) ID4Good
+- (network) Cronos
+- (network) Scroll
+- (network) KCC
+- (network) Rootstock
+- (network) Evmos
+- (network) Metis Andromeda
+- (network) Kava EVM
+- (network) Klaytn Cypress
+- (network) Syscoin
+- (network) Velas EVM
+- (network) Boba Network
+- (network) Energi
+
+### Changed
+
+- Starknet blind signing wording
+
+### Fixed
+
+- Missing 44'/60' derivation path for XDC Network
+- Small visual glitch with EIP-712 verbose mode with the "Review struct" page
+- Possible overflow with very large transactions
+- EnergyWebChain ticker
 
 ## [1.10.1](https://github.com/ledgerhq/app-ethereum/compare/1.10.0...1.10.1) - 2022-11-09
 

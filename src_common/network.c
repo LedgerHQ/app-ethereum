@@ -19,7 +19,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 100, .name = "xDai", .ticker = "xDAI"},
     {.chain_id = 137, .name = "Polygon", .ticker = "MATIC"},
     {.chain_id = 250, .name = "Fantom", .ticker = "FTM"},
-    {.chain_id = 42161, .name = "Arbitrum", .ticker = "AETH"},
+    {.chain_id = 42161, .name = "Arbitrum", .ticker = "ETH"},
     {.chain_id = 42220, .name = "Celo", .ticker = "CELO"},
     {.chain_id = 43114, .name = "Avalanche", .ticker = "AVAX"},
     {.chain_id = 44787, .name = "Celo Alfajores", .ticker = "aCELO"},

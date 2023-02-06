@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Small visual glitch with EIP-712 verbose mode with the "Review struct" page
 - Possible overflow with very large transactions
 - EnergyWebChain ticker
+- Arbitrum ticker
 
 ## [1.10.1](https://github.com/ledgerhq/app-ethereum/compare/1.10.0...1.10.1) - 2022-11-09
 

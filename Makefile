@@ -66,7 +66,7 @@ DEFINES += $(DEFINES_LIB)
 #prepare hsm generation
 ifeq ($(TARGET_NAME),TARGET_NANOS)
 ICONNAME=icons/nanos_app_$(CHAIN).gif
-else ifeq ($(TARGET_NAME),TARGET_FATSTACKS)
+else ifeq ($(TARGET_NAME),TARGET_STAX)
 ICONNAME=icons/stax_app_$(CHAIN).gif
 DEFINES += ICONGLYPH=C_stax_app_$(CHAIN)_64px
 DEFINES += ICONBITMAP=C_stax_app_$(CHAIN)_64px_bitmap
@@ -105,7 +105,7 @@ DEFINES   += HAVE_UX_FLOW
 
 DEFINES   += HAVE_WEBUSB WEBUSB_URL_SIZE_B=0 WEBUSB_URL=""
 
-ifneq (,$(filter $(TARGET_NAME),TARGET_NANOX TARGET_FATSTACKS))
+ifneq (,$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX))
 DEFINES   += IO_SEPROXYHAL_BUFFER_SIZE_B=300
 DEFINES   += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000
 DEFINES   += HAVE_BLE_APDU # basic ledger apdu transport over BLE
@@ -116,7 +116,7 @@ ifneq (,$(filter $(TARGET_NAME),TARGET_NANOS TARGET_NANOS2))
 DEFINES   += IO_SEPROXYHAL_BUFFER_SIZE_B=72
 endif
 
-ifeq  ($(TARGET_NAME),TARGET_FATSTACKS)
+ifeq  ($(TARGET_NAME),TARGET_STAX)
 DEFINES   += HAVE_NBGL
 DEFINES   += NBGL_QRCODE
 else
@@ -229,8 +229,8 @@ include $(BOLOS_SDK)/Makefile.glyphs
 ### variables processed by the common makefile.rules of the SDK to grab source files and include dirs
 APP_SOURCE_PATH  += src_common src src_features src_plugins
 SDK_SOURCE_PATH  += lib_stusb lib_stusb_impl lib_u2f
-ifeq  ($(TARGET_NAME),TARGET_FATSTACKS)
-SDK_SOURCE_PATH  += lib_ux_fatstacks
+ifeq  ($(TARGET_NAME),TARGET_STAX)
+SDK_SOURCE_PATH  += lib_ux_stax
 APP_SOURCE_PATH  += src_nbgl
 else
 SDK_SOURCE_PATH  += lib_ux

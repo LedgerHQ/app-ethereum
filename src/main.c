@@ -673,10 +673,12 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                 case INS_SIGN_PERSONAL_MESSAGE:
                     memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
                     *flags |= IO_ASYNCH_REPLY;
-                    handleSignPersonalMessage(G_io_apdu_buffer[OFFSET_P1],
-                                              G_io_apdu_buffer[OFFSET_P2],
-                                              G_io_apdu_buffer + OFFSET_CDATA,
-                                              G_io_apdu_buffer[OFFSET_LC]);
+                    if (!handleSignPersonalMessage(G_io_apdu_buffer[OFFSET_P1],
+                                                   G_io_apdu_buffer[OFFSET_P2],
+                                                   G_io_apdu_buffer + OFFSET_CDATA,
+                                                   G_io_apdu_buffer[OFFSET_LC])) {
+                        reset_app_context();
+                    }
                     break;
 
                 case INS_SIGN_EIP_712_MESSAGE:

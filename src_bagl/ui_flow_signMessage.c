@@ -19,6 +19,9 @@ static void dummy_pre_cb(void) {
 static void dummy_post_cb(void) {
     if (ui_pos == UI_191_POS_QUESTION) {
         continue_displaying_message();
+        // temporarily disable button clicks, they will be re-enabled as soon as new data
+        // is received and the page is redrawn with ux_flow_init()
+        G_ux.stack[0].button_push_callback = NULL;
     } else  // UI_191_END
     {
         ui_191_switch_to_message_end();
@@ -55,6 +58,7 @@ UX_STEP_CB(
 #else
     nnn,
 #endif
+    G_ux.stack[0].button_push_callback = NULL; // disable button clicks
     skip_rest_of_message(),
     {
 #ifndef TARGET_NANOS

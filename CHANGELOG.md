@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.10.2](https://github.com/ledgerhq/app-ethereum/compare/1.10.1...1.10.2) - 2022-02-03
+## [1.10.2](https://github.com/ledgerhq/app-ethereum/compare/1.10.1...1.10.2) - 2022-02-09
 
 ### Added
 
@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Possible overflow with very large transactions
 - EnergyWebChain ticker
 - Arbitrum ticker
+- Better error handling on EIP-191 APDUs
 
 ## [1.10.1](https://github.com/ledgerhq/app-ethereum/compare/1.10.0...1.10.1) - 2022-11-09
 

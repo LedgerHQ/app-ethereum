@@ -192,8 +192,8 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
         case CHAIN_KIND_ELLAISM:
             numTokens = NUM_TOKENS_ELLAISM;
             break;
-        case CHAIN_KIND_ETHER1:
-            numTokens = NUM_TOKENS_ETHER1;
+        case CHAIN_KIND_ETHOPROTOCOL:
+            numTokens = NUM_TOKENS_ETHOPROTOCOL;
             break;
         case CHAIN_KIND_ETHERGEM:
             numTokens = NUM_TOKENS_ETHERGEM;
@@ -348,8 +348,8 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
             case CHAIN_KIND_ELLAISM:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_ELLAISM[i]);
                 break;
-            case CHAIN_KIND_ETHER1:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_ETHER1[i]);
+            case CHAIN_KIND_ETHOPROTOCOL:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_ETHOPROTOCOL[i]);
                 break;
             case CHAIN_KIND_ETHERGEM:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_ETHERGEM[i]);

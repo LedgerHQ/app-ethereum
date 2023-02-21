@@ -135,3 +135,14 @@ const char *get_app_network_ticker(void) {
 const char *get_tx_network_ticker(void) {
     return get_network_ticker(TX);
 }
+
+#ifdef HAVE_NBGL
+#include "glyphs.h"
+const nbgl_icon_details_t *get_app_chain_icon(void) {
+    if (chainConfig->coinIconDetails.bitmap) {
+        return &chainConfig->coinIconDetails;  // if called from a clone, the bitmap is correct
+    } else {
+        return &ICONGLYPH;  // else, jsu return the ETH icon
+    }
+}
+#endif  // HAVE_NBGL

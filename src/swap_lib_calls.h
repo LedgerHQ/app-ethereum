@@ -2,6 +2,7 @@
 #define _SWAP_LIB_CALLS_H_
 
 #include "stdbool.h"
+#include "chainConfig.h"
 
 #define RUN_APPLICATION 1
 
@@ -51,5 +52,17 @@ typedef struct create_transaction_parameters_s {
     const char* const destination_address;
     const char* const destination_address_extra_id;
 } create_transaction_parameters_t;
+
+typedef struct libargs_s {
+    unsigned int id;
+    unsigned int command;
+    chain_config_t* chain_config;
+    union {
+        check_address_parameters_t* check_address;
+        create_transaction_parameters_t* create_transaction;
+        get_printable_amount_parameters_t* get_printable_amount;
+        char* plugin_name;
+    };
+} libargs_t;
 
 #endif  // _SWAP_LIB_CALLS_H_

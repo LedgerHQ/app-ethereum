@@ -5,6 +5,7 @@ bin/
 debug/
 dep/
 obj/
+build/
 
 # Python
 *.pyc

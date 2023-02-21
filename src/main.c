@@ -69,7 +69,8 @@ bolos_ux_params_t G_ux_params;
 
 const internalStorage_t N_storage_real;
 
-chain_config_t *chainConfig;
+const char *plugin_name = NULL;
+chain_config_t *chainConfig = NULL;
 
 void reset_app_context() {
     // PRINTF("!!RESET_APP_CONTEXT\n");
@@ -950,14 +951,19 @@ void init_coin_config(chain_config_t *coin_config) {
     coin_config->kind = CHAIN_KIND;
 }
 
-void coin_main(chain_config_t *coin_config) {
+void coin_main(libargs_t *args) {
     chain_config_t config;
-    if (coin_config == NULL) {
+    if (args) {
+        if (args->chain_config != NULL) {
+            chainConfig = args->chain_config;
+        }
+        plugin_name = args->plugin_name;
+    }
+    if (chainConfig == NULL) {
         init_coin_config(&config);
         chainConfig = &config;
-    } else {
-        chainConfig = coin_config;
     }
+
     reset_app_context();
     tmpCtx.transactionContext.currentItemIndex = 0;
 
@@ -1031,18 +1037,7 @@ void coin_main(chain_config_t *coin_config) {
     app_exit();
 }
 
-struct libargs_s {
-    unsigned int id;
-    unsigned int command;
-    chain_config_t *chain_config;
-    union {
-        check_address_parameters_t *check_address;
-        create_transaction_parameters_t *create_transaction;
-        get_printable_amount_parameters_t *get_printable_amount;
-    };
-};
-
-static void library_main_helper(struct libargs_s *args) {
+static void library_main_helper(libargs_t *args) {
     check_api_level(CX_COMPAT_APILEVEL);
     PRINTF("Inside a library \n");
     switch (args->command) {
@@ -1070,7 +1065,7 @@ static void library_main_helper(struct libargs_s *args) {
     }
 }
 
-void library_main(struct libargs_s *args) {
+void library_main(libargs_t *args) {
     chain_config_t coin_config;
     if (args->chain_config == NULL) {
         init_coin_config(&coin_config);
@@ -1102,6 +1097,13 @@ __attribute__((section(".boot"))) int main(int arg0) {
             unsigned int libcall_params[5];
             chain_config_t local_chainConfig;
             init_coin_config(&local_chainConfig);
+#ifdef HAVE_NBGL
+            uint8_t coinIcon[sizeof(ICONBITMAP)];
+            memcpy(coinIcon, &ICONBITMAP, sizeof(ICONBITMAP));
+            memcpy(&local_chainConfig.coinIconDetails, &ICONGLYPH, sizeof(ICONGLYPH));
+            local_chainConfig.coinIconDetails.bitmap = coinIcon;
+#endif  // HAVE_NBGL
+
             PRINTF("Hello from Eth-clone\n");
             check_api_level(CX_COMPAT_APILEVEL);
             // delegate to Ethereum app/lib
@@ -1110,6 +1112,7 @@ __attribute__((section(".boot"))) int main(int arg0) {
             libcall_params[2] = RUN_APPLICATION;
             libcall_params[3] = (unsigned int) &local_chainConfig;
             libcall_params[4] = 0;
+
             if (arg0) {
                 // call as a library
                 libcall_params[2] = ((unsigned int *) arg0)[1];
@@ -1141,7 +1144,7 @@ __attribute__((section(".boot"))) int main(int arg0) {
         return 0;
     }
 
-    struct libargs_s *args = (struct libargs_s *) arg0;
+    libargs_t *args = (libargs_t *) arg0;
     if (args->id != 0x100) {
         app_exit();
         return 0;
@@ -1149,7 +1152,7 @@ __attribute__((section(".boot"))) int main(int arg0) {
     switch (args->command) {
         case RUN_APPLICATION:
             // called as ethereum from altcoin or plugin
-            coin_main(args->chain_config);
+            coin_main(args);
             break;
         default:
             // called as ethereum or altcoin library

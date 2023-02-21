@@ -856,9 +856,11 @@ void app_main(void) {
 }
 
 // override point, but nothing more to do
+#ifdef HAVE_BAGL
 void io_seproxyhal_display(const bagl_element_t *element) {
     io_seproxyhal_display_default((bagl_element_t *) element);
 }
+#endif
 
 unsigned char io_event(__attribute__((unused)) unsigned char channel) {
     // nothing done with the event, throw an error on the transport layer if
@@ -869,10 +871,11 @@ unsigned char io_event(__attribute__((unused)) unsigned char channel) {
         case SEPROXYHAL_TAG_FINGER_EVENT:
             UX_FINGER_EVENT(G_io_seproxyhal_spi_buffer);
             break;
-
+#ifdef HAVE_BAGL
         case SEPROXYHAL_TAG_BUTTON_PUSH_EVENT:
             UX_BUTTON_PUSH_EVENT(G_io_seproxyhal_spi_buffer);
             break;
+#endif  // HAVE_BAGL
 
         case SEPROXYHAL_TAG_STATUS_EVENT:
             if (G_io_apdu_media == IO_APDU_MEDIA_USB_HID &&
@@ -886,16 +889,17 @@ unsigned char io_event(__attribute__((unused)) unsigned char channel) {
             break;
 
         case SEPROXYHAL_TAG_DISPLAY_PROCESSED_EVENT:
+#ifdef HAVE_BAGL
             UX_DISPLAYED_EVENT({});
+#endif  // HAVE_BAGL
+#ifdef HAVE_NBGL
+            UX_DEFAULT_EVENT();
+#endif  // HAVE_NBGL
             break;
 
-#if 0
-    case SEPROXYHAL_TAG_TICKER_EVENT:
-        UX_TICKER_EVENT(G_io_seproxyhal_spi_buffer,
-        {
-        });
-        break;
-#endif
+        case SEPROXYHAL_TAG_TICKER_EVENT:
+            UX_TICKER_EVENT(G_io_seproxyhal_spi_buffer, {});
+            break;
     }
 
     // close the event if not done previously (by a display or whatever)
@@ -937,7 +941,12 @@ void coin_main(chain_config_t *coin_config) {
     tmpCtx.transactionContext.currentItemIndex = 0;
 
     for (;;) {
+#ifdef HAVE_BAGL
         UX_INIT();
+#endif  // HAVE_BAGL
+#ifdef HAVE_NBGL
+        nbgl_objInit();
+#endif  // HAVE_NBGL
 
         BEGIN_TRY {
             TRY {

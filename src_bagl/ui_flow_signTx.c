@@ -224,7 +224,7 @@ void ux_approve_tx(bool fromPlugin) {
         ux_approval_tx_flow[step++] = &ux_approval_nonce_step;
     }
 
-    uint64_t chain_id = get_chain_id();
+    uint64_t chain_id = get_tx_chain_id();
     if (chainConfig->chainId == ETHEREUM_MAINNET_CHAINID && chain_id != chainConfig->chainId) {
         ux_approval_tx_flow[step++] = &ux_approval_network_step;
     }

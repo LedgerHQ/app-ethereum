@@ -89,6 +89,7 @@ typedef bool (*t_tlv_handler)(const s_tlv_data *data,
 typedef struct {
     uint8_t tag;
     t_tlv_handler func;
+    uint8_t found;
 } s_tlv_handler;
 
 static s_tlv_payload g_tlv_payload = { 0 };
@@ -287,15 +288,15 @@ static bool parse_tlv(s_tlv_payload *payload,
                       s_trusted_name_info *trusted_name_info,
                       s_sig_ctx *sig_ctx) {
     s_tlv_handler handlers[] = {
-        { .tag = STRUCTURE_TYPE, .func = &handle_structure_type },
-        { .tag = STRUCTURE_VERSION, .func = &handle_structure_version },
-        { .tag = CHALLENGE, .func = &handle_challenge },
-        { .tag = SIGNER_KEY_ID, .func = &handle_signer_key_id },
-        { .tag = SIGNER_ALGO, .func = &handle_algo },
-        { .tag = SIGNATURE, .func = &handle_signature },
-        { .tag = TRUSTED_NAME, .func = &handle_trusted_name },
-        { .tag = COIN_TYPE, .func = &handle_coin_type },
-        { .tag = ADDRESS, .func = &handle_address }
+        { .tag = STRUCTURE_TYPE, .func = &handle_structure_type, .found = 0 },
+        { .tag = STRUCTURE_VERSION, .func = &handle_structure_version, .found = 0 },
+        { .tag = CHALLENGE, .func = &handle_challenge, .found = 0 },
+        { .tag = SIGNER_KEY_ID, .func = &handle_signer_key_id, .found = 0 },
+        { .tag = SIGNER_ALGO, .func = &handle_algo, .found = 0 },
+        { .tag = SIGNATURE, .func = &handle_signature, .found = 0 },
+        { .tag = TRUSTED_NAME, .func = &handle_trusted_name, .found = 0 },
+        { .tag = COIN_TYPE, .func = &handle_coin_type, .found = 0 },
+        { .tag = ADDRESS, .func = &handle_address, .found = 0 }
     };
     e_tlv_step step = TLV_TAG;
     s_tlv_data data;
@@ -326,6 +327,7 @@ static bool parse_tlv(s_tlv_payload *payload,
                 // check if a handler exists for this tag
                 for (int idx = 0; idx < (int)ARRAY_SIZE(handlers); ++idx) {
                     if (handlers[idx].tag == data.tag) {
+                        handlers[idx].found += 1;
                         t_tlv_handler fptr = PIC(handlers[idx].func);
                         if (!(*fptr)(&data, trusted_name_info, sig_ctx)) {
                             return false;
@@ -343,6 +345,15 @@ static bool parse_tlv(s_tlv_payload *payload,
             default:
                 apdu_response_code = APDU_RESPONSE_INVALID_DATA;
                 return false;
+        }
+    }
+    // prevent missing or duplicated tags
+    for (int idx = 0; idx < (int)ARRAY_SIZE(handlers); ++idx) {
+        if (handlers[idx].found != 1) {
+            PRINTF("Found %u occurence(s) of tag 0x%x in TLV!\n",
+                   handlers[idx].found,
+                   handlers[idx].tag);
+            return false;
         }
     }
     return true;

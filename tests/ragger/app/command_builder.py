@@ -1,18 +1,19 @@
 from enum import IntEnum, auto
-from typing import Iterator
-from ethereum_client.eip712 import EIP712FieldType
+from typing import Iterator, Optional
+from .eip712 import EIP712FieldType
+import struct
 
-class   InsType(IntEnum):
+class InsType(IntEnum):
     EIP712_SEND_STRUCT_DEF = 0x1a
     EIP712_SEND_STRUCT_IMPL = 0x1c
     EIP712_SEND_FILTERING = 0x1e
     EIP712_SIGN = 0x0c
 
-class   P1Type(IntEnum):
+class P1Type(IntEnum):
     COMPLETE_SEND = 0x00
     PARTIAL_SEND = 0x01
 
-class   P2Type(IntEnum):
+class P2Type(IntEnum):
     STRUCT_NAME = 0x00
     STRUCT_FIELD = 0xff
     ARRAY = 0x0f
@@ -22,7 +23,7 @@ class   P2Type(IntEnum):
     FILTERING_CONTRACT_NAME = 0x0f
     FILTERING_FIELD_NAME = 0xff
 
-class   EthereumCmdBuilder:
+class EthereumCmdBuilder:
     _CLA: int = 0xE0
 
     def _serialize(self,
@@ -109,27 +110,28 @@ class   EthereumCmdBuilder:
                                   data_w_length[:0xff])
             data_w_length = data_w_length[0xff:]
 
-    def _format_bip32(self, bip32, data: bytearray) -> bytearray:
-        data.append(len(bip32))
-        for idx in bip32:
-            data.append((idx & 0xff000000) >> 24)
-            data.append((idx & 0x00ff0000) >> 16)
-            data.append((idx & 0x0000ff00) >> 8)
-            data.append((idx & 0x000000ff))
+    def _format_bip32(self, path: list[Optional[int]], data: bytearray) -> bytearray:
+        data.append(len(path))
+        for p in path:
+            if p == None:
+                val = 0
+            else:
+                val = (0x8 << 28) | p
+            data += struct.pack(">I", val)
         return data
 
-    def eip712_sign_new(self, bip32) -> bytes:
-        data = self._format_bip32(bip32, bytearray())
+    def eip712_sign_new(self, bip32_path: list[Optional[int]]) -> bytes:
+        data = self._format_bip32(bip32_path, bytearray())
         return self._serialize(InsType.EIP712_SIGN,
                                P1Type.COMPLETE_SEND,
                                P2Type.NEW_IMPLEM,
                                data)
 
     def eip712_sign_legacy(self,
-                           bip32,
+                           bip32_path: list[Optional[int]],
                            domain_hash: bytes,
                            message_hash: bytes) -> bytes:
-        data = self._format_bip32(bip32, bytearray())
+        data = self._format_bip32(bip32_path, bytearray())
         data += domain_hash
         data += message_hash
         return self._serialize(InsType.EIP712_SIGN,

@@ -1,4 +1,4 @@
-class   EthereumRespParser:
+class EthereumRespParser:
     def sign(self, data: bytes):
         assert len(data) == (1 + 32 + 32)
 

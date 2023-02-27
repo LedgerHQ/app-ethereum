@@ -1,7 +1,7 @@
 import pytest
 from ragger.conftest import configuration
 from ragger.backend import BackendInterface
-from ethereum_client.client import EthereumClient
+from app.client import EthereumClient
 
 # This final fixture will return the properly configured app client, to be used in tests
 @pytest.fixture

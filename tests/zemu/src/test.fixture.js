@@ -26,8 +26,8 @@ const NANOS_CLONE_ELF_PATH = Resolve("elfs/ethereum_classic_nanos.elf");
 const NANOX_CLONE_ELF_PATH = Resolve("elfs/ethereum_classic_nanox.elf");
 
 const nano_models: DeviceModel[] = [
-    { name: 'nanos', letter: 'S', path: NANOS_ELF_PATH, clone_path: NANOS_CLONE_ELF_PATH },
-    { name: 'nanox', letter: 'X', path: NANOX_ELF_PATH, clone_path: NANOX_CLONE_ELF_PATH }
+    { name: 'nanos', letter: 'S', path: NANOS_ELF_PATH, clone_path: NANOS_CLONE_ELF_PATH }/*,
+    { name: 'nanox', letter: 'X', path: NANOX_ELF_PATH, clone_path: NANOX_CLONE_ELF_PATH }*/
 ];
 
 const TIMEOUT = 1000000;

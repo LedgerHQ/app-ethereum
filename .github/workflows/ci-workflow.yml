@@ -166,110 +166,18 @@ jobs:
 # =====================================================
 
   build_ragger_elfs:
-    name: Building binaries for Ragger tests
-    strategy:
-      matrix:
-        include:
-          - sdk: "$NANOS_SDK"
-            name: "nanos"
-          - sdk: "$NANOX_SDK"
-            name: "nanox"
-          - sdk: "$NANOSP_SDK"
-            name: "nanosp"
-
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder-lite:latest
-
-    steps:
-      - name: Clone
-        uses: actions/checkout@v3
-
-      - name: Build test binaries
-        run: |
-          make -j BOLOS_SDK=${{ matrix.sdk }} CAL_CI_KEY=1 DOMAIN_NAME_TEST_KEY=1
-          mv bin/app.elf app-${{ matrix.name }}.elf
-
-      - name: Upload app binaries
-        uses: actions/upload-artifact@v3
-        with:
-          name: ragger_elfs
-          path: app-${{ matrix.name }}.elf
-
-  create_ragger_env:
-    name: Cache Ragger environment
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Clone
-        uses: actions/checkout@v3
-
-      - name: APT update
-        run: |
-          sudo apt update
-
-      - name: Create virtual env with dependencies
-        run: |
-          cd tests/ragger
-          python3 -m venv ./venv
-          . ./venv/bin/activate
-          pip3 install --extra-index-url https://test.pypi.org/simple/ -r requirements.txt
-          # Used for the cache key
-          echo "py_deps=$(pip freeze | md5sum | cut -d' ' -f1)" >> $GITHUB_ENV
-
-      - name: Download QEMU
-        run: |
-          sudo apt install --download-only -y qemu-user-static
-          mkdir -p tests/ragger/packages
-          cp /var/cache/apt/archives/*.deb tests/ragger/packages/
-          # Used for the cache key
-          echo "deb_deps=$(find /var/cache/apt/archives/ -maxdepth 0 -type f -name '*.deb' | md5sum | cut -d' ' -f 1)" >> $GITHUB_ENV
-
-      - name: Set up cache
-        uses: actions/cache@v3
-        with:
-          key: ${{ runner.os }}-raggenv-${{ env.py_deps }}-${{ env.deb_deps }}
-          path: |
-            tests/ragger/venv/
-            tests/ragger/packages/
-    outputs:
-      py_deps: ${{ env.py_deps }}
-      deb_deps: ${{ env.deb_deps }}
-
+    name: Build app for Ragger tests
+    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_build.yml@v1
+    with:
+      upload_app_binaries_artifact: "ragger_elfs"
+      flags: "DEBUG=1 CAL_CI_KEY=1 DOMAIN_NAME_TEST_KEY=1"
+      skip_stax: true
 
   jobs-ragger-tests:
-    name: Ragger tests
-    strategy:
-      matrix:
-        model: ["nanos", "nanox", "nanosp"]
-    needs: [build_ragger_elfs, create_ragger_env]
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Clone
-        uses: actions/checkout@v3
-
-      - name: Download previously built artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: ragger_elfs
-          path: tests/ragger/elfs/
-
-      - name: Get cached environment
-        uses: actions/cache@v3
-        with:
-          key: ${{ runner.os }}-raggenv-${{ needs.create_ragger_env.outputs.py_deps }}-${{ needs.create_ragger_env.outputs.deb_deps }}
-          path: |
-            tests/ragger/venv/
-            tests/ragger/packages/
-
-      - name: Install QEMU
-        run: |
-          sudo mv tests/ragger/packages/*.deb /var/cache/apt/archives/
-          sudo apt install -y qemu-user-static
-
-      - name: Run tests
-        run: |
-          cd tests/ragger
-          . ./venv/bin/activate
-          pytest --device ${{ matrix.model }} -s -v --tb=short
+    name: Run Ragger tests
+    needs: build_ragger_elfs
+    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_ragger_tests.yml@v1
+    with:
+      download_app_binaries_artifact: "ragger_elfs"
+      test_dir: tests/ragger
+      skip_stax: true

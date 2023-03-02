@@ -177,13 +177,13 @@ jobs:
 
       - name: Build test binaries
         run: |
-          make -j BOLOS_SDK=$NANOS_SDK CAL_CI_KEY=1
+          make -j BOLOS_SDK=$NANOS_SDK CAL_CI_KEY=1 DOMAIN_NAME_TEST_KEY=1
           mv bin/app.elf app-nanos.elf
           make clean
-          make -j BOLOS_SDK=$NANOX_SDK CAL_CI_KEY=1
+          make -j BOLOS_SDK=$NANOX_SDK CAL_CI_KEY=1 DOMAIN_NAME_TEST_KEY=1
           mv bin/app.elf app-nanox.elf
           make clean
-          make -j BOLOS_SDK=$NANOSP_SDK CAL_CI_KEY=1
+          make -j BOLOS_SDK=$NANOSP_SDK CAL_CI_KEY=1 DOMAIN_NAME_TEST_KEY=1
           mv bin/app.elf app-nanosp.elf
 
       - name: Upload app binaries

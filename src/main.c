@@ -30,6 +30,7 @@
 #include "handle_check_address.h"
 #include "commands_712.h"
 #include "challenge.h"
+#include "domain_name.h"
 
 #ifdef HAVE_STARKWARE
 #include "stark_crypto.h"
@@ -748,6 +749,13 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                 case INS_ENS_GET_CHALLENGE:
                     handle_get_challenge();
                     break;
+
+                case INS_ENS_PROVIDE_INFO:
+                    handle_provide_domain_name(G_io_apdu_buffer[OFFSET_P1],
+                                               G_io_apdu_buffer[OFFSET_P2],
+                                               G_io_apdu_buffer + OFFSET_CDATA,
+                                               G_io_apdu_buffer[OFFSET_LC]);
+                    break;
 #endif  // HAVE_DOMAIN_NAME
 
 #if 0
@@ -955,19 +963,22 @@ void coin_main(chain_config_t *coin_config) {
                 G_io_app.plane_mode = os_setting_get(OS_SETTING_PLANEMODE, NULL, 0);
 #endif  // TARGET_NANOX
 
-                if (N_storage.initialized != 0x01) {
+                if (!N_storage.initialized) {
                     internalStorage_t storage;
 #ifdef HAVE_ALLOW_DATA
-                    storage.dataAllowed = 0x01;
+                    storage.dataAllowed = true;
 #else
-                    storage.dataAllowed = 0x00;
+                    storage.dataAllowed = false;
 #endif
-                    storage.contractDetails = 0x00;
-                    storage.displayNonce = 0x00;
+                    storage.contractDetails = false;
+                    storage.displayNonce = false;
 #ifdef HAVE_EIP712_FULL_SUPPORT
-                    storage.verbose_eip712 = 0x00;
+                    storage.verbose_eip712 = false;
 #endif
-                    storage.initialized = 0x01;
+#ifdef HAVE_DOMAIN_NAME
+                    storage.verbose_domain_name = false;
+#endif
+                    storage.initialized = true;
                     nvm_write((void *) &N_storage, (void *) &storage, sizeof(internalStorage_t));
                 }
 

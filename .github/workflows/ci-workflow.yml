@@ -167,6 +167,16 @@ jobs:
 
   build_ragger_elfs:
     name: Building binaries for Ragger tests
+    strategy:
+      matrix:
+        include:
+          - sdk: "$NANOS_SDK"
+            name: "nanos"
+          - sdk: "$NANOX_SDK"
+            name: "nanox"
+          - sdk: "$NANOSP_SDK"
+            name: "nanosp"
+
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder-lite:latest
@@ -177,20 +187,14 @@ jobs:
 
       - name: Build test binaries
         run: |
-          make -j BOLOS_SDK=$NANOS_SDK CAL_CI_KEY=1 DOMAIN_NAME_TEST_KEY=1
-          mv bin/app.elf app-nanos.elf
-          make clean
-          make -j BOLOS_SDK=$NANOX_SDK CAL_CI_KEY=1 DOMAIN_NAME_TEST_KEY=1
-          mv bin/app.elf app-nanox.elf
-          make clean
-          make -j BOLOS_SDK=$NANOSP_SDK CAL_CI_KEY=1 DOMAIN_NAME_TEST_KEY=1
-          mv bin/app.elf app-nanosp.elf
+          make -j BOLOS_SDK=${{ matrix.sdk }} CAL_CI_KEY=1 DOMAIN_NAME_TEST_KEY=1
+          mv bin/app.elf app-${{ matrix.name }}.elf
 
       - name: Upload app binaries
         uses: actions/upload-artifact@v3
         with:
           name: ragger_elfs
-          path: ./app-*.elf
+          path: app-${{ matrix.name }}.elf
 
   create_ragger_env:
     name: Cache Ragger environment
@@ -249,12 +253,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: ragger_elfs
-          path: tmp/
-
-      - name: Put them where they belong
-        run: |
-          mkdir -p tests/ragger/elfs
-          find tmp/ -type f -name '*.elf' -exec cp {} tests/ragger/elfs/ \;
+          path: tests/ragger/elfs/
 
       - name: Get cached environment
         uses: actions/cache@v3
@@ -273,4 +272,4 @@ jobs:
         run: |
           cd tests/ragger
           . ./venv/bin/activate
-          pytest --path ./elfs --model ${{ matrix.model }} -s -v --tb=short
+          pytest --device ${{ matrix.model }} -s -v --tb=short

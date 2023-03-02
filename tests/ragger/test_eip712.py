@@ -18,7 +18,7 @@ bip32 = [
 
 def input_files() -> List[str]:
     files = []
-    for file in os.scandir("./eip712/input_files"):
+    for file in os.scandir("%s/eip712/input_files" % (os.path.dirname(__file__))):
         if fnmatch.fnmatch(file, "*-data.json"):
             files.append(file.path)
     return sorted(files)

@@ -19,6 +19,16 @@ ROOT_SCREENSHOT_PATH = Path(__file__).parent.parent
 WEI_IN_ETH = 1e+18
 
 
+class StatusWord(IntEnum):
+    OK                      = 0x9000
+    ERROR_NO_INFO           = 0x6a00
+    INVALID_DATA            = 0x6a80
+    INSUFFICIENT_MEMORY     = 0x6a84
+    INVALID_INS             = 0x6d00
+    INVALID_P1_P2           = 0x6b00
+    CONDITION_NOT_SATISFIED = 0x6985
+    REF_DATA_NOT_FOUND      = 0x6a88
+
 class DOMAIN_NAME_TAG(IntEnum):
     STRUCTURE_TYPE = 0x01
     STRUCTURE_VERSION = 0x02

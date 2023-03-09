@@ -91,8 +91,8 @@ class EthereumClient:
             self._disable_click_until_response()
             assert self._recv().status == 0x9000
 
-    def eip712_sign_new(self, bip32):
-        with self._send(self._cmd_builder.eip712_sign_new(bip32)):
+    def eip712_sign_new(self, bip32_path: str):
+        with self._send(self._cmd_builder.eip712_sign_new(bip32_path)):
             time.sleep(0.5) # tight on timing, needed by the CI otherwise might fail sometimes
             if not self._settings[SettingType.VERBOSE_EIP712].value and \
                not self._eip712_filtering: # need to skip the message hash
@@ -104,10 +104,10 @@ class EthereumClient:
         return self._resp_parser.sign(resp.data)
 
     def eip712_sign_legacy(self,
-                           bip32,
+                           bip32_path: str,
                            domain_hash: bytes,
                            message_hash: bytes):
-        with self._send(self._cmd_builder.eip712_sign_legacy(bip32,
+        with self._send(self._cmd_builder.eip712_sign_legacy(bip32_path,
                                                              domain_hash,
                                                              message_hash)):
             self._client.right_click() # sign typed message screen

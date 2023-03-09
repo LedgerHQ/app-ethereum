@@ -7,13 +7,7 @@ from eip712 import InputData
 from pathlib import Path
 from configparser import ConfigParser
 
-bip32_path = [
-    44,
-    60,
-    0,
-    None,
-    None
-]
+BIP32_PATH = "m/44'/60'/0'/0/0"
 
 
 def input_files() -> List[str]:
@@ -38,7 +32,7 @@ def filtering(request) -> bool:
 
 def test_eip712_legacy(app_client: EthereumClient):
     v, r, s = app_client.eip712_sign_legacy(
-        bip32_path,
+        BIP32_PATH,
         bytes.fromhex('6137beb405d9ff777172aa879e33edb34a1460e701802746c5ef96e741710e59'),
         bytes.fromhex('eb4221181ff3f1a83ea7313993ca9218496e424604ba9492bb4052c03d5c3df8')
     )
@@ -74,7 +68,7 @@ def test_eip712_new(app_client: EthereumClient, input_file: Path, verbose: bool,
                 })
 
             assert InputData.process_file(app_client, input_file, filter_file) == True
-            v, r, s = app_client.eip712_sign_new(bip32_path)
+            v, r, s = app_client.eip712_sign_new(BIP32_PATH)
             #print("[signature]")
             #print("v = %s" % (v.hex()))
             #print("r = %s" % (r.hex()))

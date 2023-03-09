@@ -1,6 +1,7 @@
 from enum import IntEnum, auto
 from typing import Iterator, Optional
 from .eip712 import EIP712FieldType
+from ragger.bip import pack_derivation_path
 import struct
 
 class InsType(IntEnum):
@@ -110,28 +111,18 @@ class EthereumCmdBuilder:
                                   data_w_length[:0xff])
             data_w_length = data_w_length[0xff:]
 
-    def _format_bip32(self, path: list[Optional[int]], data: bytearray) -> bytearray:
-        data.append(len(path))
-        for p in path:
-            if p == None:
-                val = 0
-            else:
-                val = (0x8 << 28) | p
-            data += struct.pack(">I", val)
-        return data
-
-    def eip712_sign_new(self, bip32_path: list[Optional[int]]) -> bytes:
-        data = self._format_bip32(bip32_path, bytearray())
+    def eip712_sign_new(self, bip32_path: str) -> bytes:
+        data = pack_derivation_path(bip32_path)
         return self._serialize(InsType.EIP712_SIGN,
                                P1Type.COMPLETE_SEND,
                                P2Type.NEW_IMPLEM,
                                data)
 
     def eip712_sign_legacy(self,
-                           bip32_path: list[Optional[int]],
+                           bip32_path: str,
                            domain_hash: bytes,
                            message_hash: bytes) -> bytes:
-        data = self._format_bip32(bip32_path, bytearray())
+        data = pack_derivation_path(bip32_path)
         data += domain_hash
         data += message_hash
         return self._serialize(InsType.EIP712_SIGN,

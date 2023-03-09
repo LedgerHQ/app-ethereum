@@ -5,7 +5,7 @@ import sys
 import re
 import hashlib
 from app.client import EthereumClient, EIP712FieldType
-from cal import cal
+import keychain
 
 # global variables
 app_client: EthereumClient = None
@@ -251,7 +251,7 @@ def send_filtering_message_info(display_name: str, filters_count: int):
     for char in display_name:
         to_sign.append(ord(char))
 
-    sig = cal.sign(to_sign)
+    sig = keychain.sign_data(keychain.Key.CAL, to_sign)
     app_client.eip712_filtering_message_info(display_name, filters_count, sig)
 
 # ledgerjs doesn't actually sign anything, and instead uses already pre-computed signatures
@@ -269,7 +269,7 @@ def send_filtering_show_field(display_name):
         to_sign.append(ord(char))
     for char in display_name:
         to_sign.append(ord(char))
-    sig = cal.sign(to_sign)
+    sig = keychain.sign_data(keychain.Key.CAL, to_sign)
     app_client.eip712_filtering_show_field(display_name, sig)
 
 def read_filtering_file(domain, message, filtering_file_path):

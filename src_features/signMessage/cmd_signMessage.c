@@ -21,6 +21,9 @@ static const char SIGN_MAGIC[] =
  * @param[in] sw status word
  */
 static void apdu_reply(uint16_t sw) {
+    if ((sw != APDU_RESPONSE_OK) && states.ui_started) {
+        ui_idle();
+    }
     G_io_apdu_buffer[0] = (sw >> 8) & 0xff;
     G_io_apdu_buffer[1] = sw & 0xff;
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
@@ -90,18 +93,18 @@ static void reset_ui_buffer(void) {
  */
 static const uint8_t *first_apdu_data(const uint8_t *data, uint8_t *length) {
     if (appState != APP_STATE_IDLE) {
-        reset_app_context();
+        apdu_reply(APDU_RESPONSE_CONDITION_NOT_SATISFIED);
     }
     appState = APP_STATE_SIGNING_MESSAGE;
     data = parseBip32(data, length, &tmpCtx.messageSigningContext.bip32);
     if (data == NULL) {
-        apdu_reply(0x6a80);
+        apdu_reply(APDU_RESPONSE_INVALID_DATA);
         return NULL;
     }
 
     if (*length < sizeof(uint32_t)) {
         PRINTF("Invalid data\n");
-        apdu_reply(0x6a80);
+        apdu_reply(APDU_RESPONSE_INVALID_DATA);
         return NULL;
     }
 
@@ -140,7 +143,7 @@ static bool feed_hash(const uint8_t *const data, const uint8_t length) {
         PRINTF("Error: Length mismatch ! (%u > %u)!\n",
                length,
                tmpCtx.messageSigningContext.remainingLength);
-        apdu_reply(0x6a80);
+        apdu_reply(APDU_RESPONSE_INVALID_DATA);
         return false;
     }
     cx_hash((cx_hash_t *) &global_sha3, 0, data, length, NULL, 0);
@@ -194,7 +197,7 @@ static void feed_display(void) {
     }
 
     if ((unprocessed_length() == 0) && (tmpCtx.messageSigningContext.remainingLength > 0)) {
-        apdu_reply(0x9000);
+        apdu_reply(APDU_RESPONSE_OK);
     }
 }
 
@@ -222,7 +225,11 @@ bool handleSignPersonalMessage(uint8_t p1,
         processed_size = data - payload;
     } else if (p1 != P1_MORE) {
         PRINTF("Error: Unexpected P1 (%u)!\n", p1);
-        apdu_reply(0x6B00);
+        apdu_reply(APDU_RESPONSE_INVALID_P1_P2);
+        return false;
+    } else if (appState != APP_STATE_SIGNING_MESSAGE) {
+        PRINTF("Error: App not already in signing state!\n");
+        apdu_reply(APDU_RESPONSE_INVALID_DATA);
         return false;
     }
 
@@ -241,7 +248,7 @@ bool handleSignPersonalMessage(uint8_t p1,
             ui_191_switch_to_sign();
 #endif
         } else {
-            apdu_reply(0x9000);
+            apdu_reply(APDU_RESPONSE_OK);
         }
     }
     return true;
@@ -266,7 +273,7 @@ void question_switcher(void) {
 void skip_rest_of_message(void) {
     states.sign_state = STATE_191_HASH_ONLY;
     if (tmpCtx.messageSigningContext.remainingLength > 0) {
-        apdu_reply(0x9000);
+        apdu_reply(APDU_RESPONSE_OK);
     } else {
         ui_191_switch_to_sign();
     }

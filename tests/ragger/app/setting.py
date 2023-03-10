@@ -6,6 +6,7 @@ class SettingType(IntEnum):
     DEBUG_DATA = auto()
     NONCE = auto()
     VERBOSE_EIP712 = auto()
+    VERBOSE_ENS = auto()
 
 class SettingImpl:
     devices: List[str]

@@ -17,6 +17,7 @@ typedef enum {
 
 static e_ui_nbgl_191_state state;
 static e_ui_nbgl_191_state state_before_reject_cancel;
+static bool skip_message;
 
 static nbgl_layoutTagValue_t pair;
 
@@ -28,72 +29,89 @@ static void reject_message(void) {
     io_seproxyhal_touch_signMessage_cancel();
 }
 
-static void sign_message() {
+static void sign_message(void) {
     io_seproxyhal_touch_signMessage_ok();
 }
 
-static bool nav_callback(uint8_t page, nbgl_pageContent_t *content) {
-    UNUSED(page);
+static bool display_message(nbgl_pageContent_t *content) {
+    uint16_t len = 0;
+    bool reached;
 
-    if ((state != UI_191_NBGL_GO_TO_SIGN) && (state != UI_191_NBGL_SIGN_DISPLAYED)) {
-        if (state != UI_191_NBGL_BACK_FROM_REJECT_CANCEL) {
-            memset(staxSharedBuffer + eip191MessageIdx, 0, SHARED_BUFFER_SIZE - eip191MessageIdx);
-            memcpy(
-                staxSharedBuffer + eip191MessageIdx,
+    if (state != UI_191_NBGL_BACK_FROM_REJECT_CANCEL) {
+        strncpy(staxSharedBuffer + eip191MessageIdx,
                 strings.tmp.tmp + stringsTmpTmpIdx,
-                MIN(SHARED_BUFFER_SIZE - eip191MessageIdx, SHARED_BUFFER_SIZE - stringsTmpTmpIdx));
-            uint16_t len = 0;
-            bool reached = nbgl_getTextMaxLenInNbLines(BAGL_FONT_INTER_REGULAR_32px,
-                                                       staxSharedBuffer,
-                                                       SCREEN_WIDTH - (2 * BORDER_MARGIN),
-                                                       9,
-                                                       &len);
+                SHARED_BUFFER_SIZE - eip191MessageIdx);
+        reached = nbgl_getTextMaxLenInNbLines(BAGL_FONT_INTER_REGULAR_32px,
+                                              (char *) staxSharedBuffer,
+                                              SCREEN_WIDTH - (2 * BORDER_MARGIN),
+                                              9,
+                                              &len);
 
-            stringsTmpTmpIdx = len - eip191MessageIdx;
-            eip191MessageIdx = len;
-            staxSharedBuffer[eip191MessageIdx] = '\0';
+        stringsTmpTmpIdx = len - eip191MessageIdx;
+        eip191MessageIdx = len;
+        staxSharedBuffer[eip191MessageIdx] = '\0';
 
-            if (!reached && eip191MessageIdx < SHARED_BUFFER_SIZE) {
-                stringsTmpTmpIdx = 0;
-                question_switcher();
-
-                if (state != UI_191_NBGL_GO_TO_SIGN) {
-                    return false;
-                }
-            } else if (reached || eip191MessageIdx == SHARED_BUFFER_SIZE) {
-                eip191MessageIdx = 0;
-            }
-        }
-
-        pair.value = staxSharedBuffer;
-        pair.item = "Message";
-        content->type = TAG_VALUE_LIST;
-        content->tagValueList.nbPairs = 1;
-        content->tagValueList.pairs = &pair;
-        content->tagValueList.smallCaseForValue = false;
-        content->tagValueList.nbMaxLinesForValue = 9;
-        content->tagValueList.wrapping = false;
-
-        if (state == UI_191_NBGL_BACK_FROM_REJECT_CANCEL) {
-            // We come back from Reject screen.
-            // The previously displayed content must be redisplayed.
-            // Do not call question_switcher() to avoid replacing
-            // string.tmp.tmp content.
-            state = state_before_reject_cancel;
-        } else if (stringsTmpTmpIdx >= strlen(strings.tmp.tmp)) {
-            // Fetch the next content to display into strings.tmp.tmp buffer.
+        if (!reached && eip191MessageIdx < SHARED_BUFFER_SIZE) {
             stringsTmpTmpIdx = 0;
             question_switcher();
-            return true;
+
+            if (state != UI_191_NBGL_GO_TO_SIGN) {
+                return false;
+            }
+        } else if (reached || eip191MessageIdx == SHARED_BUFFER_SIZE) {
+            eip191MessageIdx = 0;
+        }
+    }
+
+    pair.value = staxSharedBuffer;
+    pair.item = "Message";
+    content->type = TAG_VALUE_LIST;
+    content->tagValueList.nbPairs = 1;
+    content->tagValueList.pairs = &pair;
+    content->tagValueList.smallCaseForValue = false;
+    content->tagValueList.nbMaxLinesForValue = 9;
+    content->tagValueList.wrapping = false;
+
+    if (state == UI_191_NBGL_BACK_FROM_REJECT_CANCEL) {
+        // We come back from Reject screen.
+        // The previously displayed content must be redisplayed.
+        // Do not call question_switcher() to avoid replacing
+        // string.tmp.tmp content.
+        state = state_before_reject_cancel;
+    } else if (stringsTmpTmpIdx >= strlen(strings.tmp.tmp)) {
+        // Fetch the next content to display into strings.tmp.tmp buffer.
+        stringsTmpTmpIdx = 0;
+        question_switcher();
+    }
+    return true;
+}
+
+static void display_sign(nbgl_pageContent_t *content) {
+    content->type = INFO_LONG_PRESS, content->infoLongPress.icon = &C_Message_64px;
+    content->infoLongPress.text = "Sign Message?";
+    content->infoLongPress.longPressText = "Hold to sign";
+    state = UI_191_NBGL_SIGN_DISPLAYED;
+}
+
+static bool nav_callback(uint8_t page, nbgl_pageContent_t *content) {
+    bool ret = true;
+
+    if (page == LAST_PAGE_FOR_REVIEW) {  // was skipped
+        skip_message = true;
+        skip_rest_of_message();
+    }
+    if ((state != UI_191_NBGL_GO_TO_SIGN) && (state != UI_191_NBGL_SIGN_DISPLAYED)) {
+        if (skip_message) {
+            // do not refresh when this callback triggers after user validation
+            ret = false;
+        } else {
+            ret = display_message(content);
         }
     } else {
         // the last page must contain a long press button
-        content->type = INFO_LONG_PRESS, content->infoLongPress.icon = &C_Message_64px;
-        content->infoLongPress.text = "Sign Message?";
-        content->infoLongPress.longPressText = "Hold to sign";
-        state = UI_191_NBGL_SIGN_DISPLAYED;
+        display_sign(content);
     }
-    return true;
+    return ret;
 }
 
 static void choice_callback(bool confirm) {
@@ -135,6 +153,7 @@ static void confirm_transaction_rejection() {
 
 void ui_191_start(void) {
     state = UI_191_NBGL_START_REVIEW_DISPLAYED;
+    skip_message = false;
     eip191MessageIdx = 0;
     stringsTmpTmpIdx = 0;
 
@@ -157,6 +176,9 @@ void ui_191_switch_to_sign(void) {
     // Next nav_callback callback must display
     // the hold to approve screen
     state = UI_191_NBGL_GO_TO_SIGN;
+    if (skip_message) {
+        continue_review();  // to force screen refresh
+    }
 }
 
 void ui_191_switch_to_question(void) {

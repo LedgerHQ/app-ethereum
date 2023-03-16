@@ -72,7 +72,6 @@ void eip712_context_deinit(void) {
     mem_reset();
     eip712_context = NULL;
     reset_app_context();
-    ui_idle();
 }
 
 #endif

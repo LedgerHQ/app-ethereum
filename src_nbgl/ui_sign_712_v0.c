@@ -2,41 +2,34 @@
 #include "ui_nbgl.h"
 #include "common_712.h"
 #include "network.h"
+#include "ethUtils.h"
+#include "ui_712_common.h"
 
 static nbgl_layoutTagValue_t tlv[2];
 
-static char domain_hash[70];
-static char message_hash[70];
+static void start_review(void);  // forward declaration
 
-static void reviewReject(void) {
-    ui_712_approve_cb(NULL);
+static char *format_hash(const uint8_t *hash, char *buffer, size_t buffer_size, size_t offset) {
+    snprintf(buffer + offset, buffer_size - offset, "0x%.*H", KECCAK256_HASH_BYTESIZE, hash);
+    return buffer + offset;
 }
 
-static void confirmTransation(void) {
-    ui_712_reject_cb(NULL);
-}
-
-static void reviewChoice(bool confirm) {
-    if (confirm) {
-        // display a status page and go back to main
-        nbgl_useCaseStatus("MESSAGE\nSIGNED", true, confirmTransation);
-    } else {
-        nbgl_useCaseStatus("Message signing\ncancelled", false, reviewReject);
-    }
-}
-
-static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
-    snprintf(domain_hash, 70, "0x%.*H", 32, tmpCtx.messageSigningContext712.domainHash);
-    snprintf(message_hash, 70, "0x%.*H", 32, tmpCtx.messageSigningContext712.messageHash);
-
+static bool display_review_page(uint8_t page, nbgl_pageContent_t *content) {
     if (page == 0) {
         tlv[0].item = "Domain hash";
-        tlv[0].value = domain_hash;
+        tlv[0].value = format_hash(tmpCtx.messageSigningContext712.domainHash,
+                                   strings.tmp.tmp,
+                                   sizeof(strings.tmp.tmp),
+                                   0);
         tlv[1].item = "Message hash";
-        tlv[1].value = message_hash;
+        tlv[1].value = format_hash(tmpCtx.messageSigningContext712.messageHash,
+                                   strings.tmp.tmp,
+                                   sizeof(strings.tmp.tmp),
+                                   70);
 
         content->type = TAG_VALUE_LIST;
         content->tagValueList.nbPairs = 2;
+        content->tagValueList.nbMaxLinesForValue = 0;
         content->tagValueList.pairs = (nbgl_layoutTagValue_t *) tlv;
     } else if (page == 1) {
         content->type = INFO_LONG_PRESS, content->infoLongPress.icon = get_app_icon(true);
@@ -48,19 +41,11 @@ static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
     // valid page so return true
     return true;
 }
-static void reviewContinue(void) {
-    nbgl_useCaseRegularReview(0, 2, "Reject", NULL, displayTransactionPage, reviewChoice);
-}
 
-static void buildFirstPage(void) {
-    nbgl_useCaseReviewStart(get_app_chain_icon(),
-                            "Sign typed message",
-                            NULL,
-                            "Reject",
-                            reviewContinue,
-                            reviewReject);
+static void start_review(void) {
+    nbgl_useCaseRegularReview(0, 2, "Reject", NULL, display_review_page, nbgl_712_review_choice);
 }
 
 void ui_sign_712_v0(void) {
-    buildFirstPage();
+    nbgl_712_start(&start_review, "Sign typed message");
 }

@@ -1,29 +1,16 @@
+#ifdef HAVE_EIP712_FULL_SUPPORT
+
 #include "common_ui.h"
 #include "ui_nbgl.h"
 #include "ui_logic.h"
 #include "common_712.h"
 #include "nbgl_use_case.h"
 #include "network.h"
+#include "ui_712_common.h"
 
-// 4 pairs of tag/value to display
-static nbgl_layoutTagValue_t tlv;
+static nbgl_layoutTagValue_t pair;
 
-static void reject_message(void) {
-    ui_712_reject(NULL);
-}
-
-static void sign_message() {
-    ui_712_approve(NULL);
-}
-
-static void reviewChoice(bool confirm) {
-    if (confirm) {
-        sign_message();
-    } else {
-        reject_message();
-    }
-}
-static bool displaySignPage(uint8_t page, nbgl_pageContent_t *content) {
+static bool display_sign_page(uint8_t page, nbgl_pageContent_t *content) {
     (void) page;
     content->type = INFO_LONG_PRESS, content->infoLongPress.icon = get_app_icon(true);
     content->infoLongPress.text = "Sign typed message";
@@ -31,50 +18,63 @@ static bool displaySignPage(uint8_t page, nbgl_pageContent_t *content) {
     return true;
 }
 
-static uint32_t stringsIdx = 0;
+static bool display_review_page(uint8_t page, nbgl_pageContent_t *content) {
+    bool ret;
+    uint16_t len;
 
-static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
-    uint16_t len = 0;
-    if (stringsIdx < strlen(strings.tmp.tmp)) {
-        bool reached = nbgl_getTextMaxLenInNbLines(BAGL_FONT_INTER_REGULAR_32px,
-                                                   strings.tmp.tmp + stringsIdx,
-                                                   SCREEN_WIDTH - (2 * BORDER_MARGIN),
-                                                   9,
-                                                   &len);
-        memset(staxSharedBuffer, 0, sizeof(staxSharedBuffer));
-        memcpy(staxSharedBuffer, strings.tmp.tmp + stringsIdx, len);
-        stringsIdx += len;
-        tlv.item = strings.tmp.tmp2;
-        tlv.value = staxSharedBuffer;
-        content->type = TAG_VALUE_LIST;
-        content->tagValueList.nbPairs = 1;
-        content->tagValueList.pairs = &tlv;
-        return true;
-    } else {
-        stringsIdx = 0;
-        switch (ui_712_next_field()) {
-            case EIP712_NO_MORE_FIELD:
-                return displaySignPage(page, content);
-                break;
-            case EIP712_FIELD_INCOMING:
-            case EIP712_FIELD_LATER:
-            default:
-                break;
-        }
-        return false;
+    switch (page) {
+        case 0:
+            // limit the value to one page
+            nbgl_getTextMaxLenInNbLines(BAGL_FONT_INTER_REGULAR_32px,
+                                        strings.tmp.tmp,
+                                        SCREEN_WIDTH - (2 * BORDER_MARGIN),
+                                        9,
+                                        &len);
+            strings.tmp.tmp[len] = '\0';
+
+            pair.item = strings.tmp.tmp2;
+            pair.value = strings.tmp.tmp;
+            content->type = TAG_VALUE_LIST;
+            content->tagValueList.nbPairs = 1;
+            content->tagValueList.pairs = &pair;
+            content->tagValueList.wrapping = false;
+            content->tagValueList.nbMaxLinesForValue = 0;
+            ret = true;
+            break;
+
+        case 1:
+            switch (ui_712_next_field()) {
+                case EIP712_NO_MORE_FIELD:
+                    return display_sign_page(page, content);
+                    break;
+                case EIP712_FIELD_INCOMING:
+                case EIP712_FIELD_LATER:
+                default:
+                    break;
+            }
+            __attribute__((fallthrough));
+
+        default:
+            ret = false;
+            break;
     }
+    return ret;
 }
 
-void ui_712_switch_to_sign(void) {
-    nbgl_useCaseRegularReview(0, 0, "Reject", NULL, displaySignPage, reviewChoice);
+static void handle_display(nbgl_navCallback_t cb) {
+    nbgl_useCaseRegularReview(0, 0, "Reject", NULL, cb, nbgl_712_review_choice);
 }
 
 void ui_712_start(void) {
-    stringsIdx = 0;
-    nbgl_useCaseRegularReview(0, 0, "Reject", NULL, displayTransactionPage, reviewChoice);
+    nbgl_712_start(&ui_712_switch_to_message, "Review typed message");
 }
 
 void ui_712_switch_to_message(void) {
-    stringsIdx = 0;
-    nbgl_useCaseRegularReview(0, 0, "Reject", NULL, displayTransactionPage, reviewChoice);
+    handle_display(display_review_page);
 }
+
+void ui_712_switch_to_sign(void) {
+    handle_display(display_sign_page);
+}
+
+#endif  // HAVE_EIP712_FULL_SUPPORT

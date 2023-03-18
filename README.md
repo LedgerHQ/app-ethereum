@@ -31,7 +31,7 @@
   - [Running all tests](#running-all-tests)
     - [With Makefile](#with-makefile)
     - [With yarn](#with-yarn)
-  - [Running a specific tests](#running-a-specific-tests)
+  - [Running a specific test](#running-a-specific-tests)
   - [Adding tests](#adding-tests)
     - [Zemu](#zemu)
     - [Update binaries](#update-binaries)
@@ -99,7 +99,7 @@ Testing is done via the open-source framework [zemu](https://github.com/Zondax/z
         yarn test
       ```
 
-### Running a specific tests
+### Running a specific test
 
 1.  Go to the `tests` folder and run:
     - ```sh
@@ -128,7 +128,7 @@ Finally make sure you adapt the expected signature!
 
 #### Update binaries
 
-Don't forget to update the binaries in the test folder. To do so, compile with those environement variables:
+Don't forget to update the binaries in the test folder. To do so, compile with those environment variables:
 
 ```sh
 make DEBUG=1 ALLOW_DATA=1
@@ -145,7 +145,7 @@ Repeat the operation for a binary compiled with nanoX SDK and change for `ethere
 
 ## Contributing
 
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+Contributions are what makes the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
 If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag `enhancement`.
 

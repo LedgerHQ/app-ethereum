@@ -308,7 +308,7 @@ Provide a sample callback mechanism for common plugin actions (amount to string,
 
 Provide external plugins samples
 
-Fully support Starkware as an independant application (APDU logic added)
+Fully support Starkware as an independent application (APDU logic added)
 
 Support extra flags for the generic UI (fast confirmation on first screen, ...)
 

@@ -12,7 +12,7 @@ This document described how a specific device UI for a smart contract can be add
 
 ## Standard support
 
-The applications already includes dedicated UI support for those specific contract calls : 
+The applications already include dedicated UI support for those specific contract calls : 
 
    * ERC 20 approve(address, uint256) - implementation in *src_features/erc20_approval*
    * ERC 20 transfer(address, uint256) - implementation in *src_features/signTx*
@@ -46,7 +46,7 @@ The following online tool can be used to compute selectors https://emn178.github
 
 ## Sample implementation of a function call
 
-This example describes how to implement a specific UI for a contract call. This exemple is using Starkex token deposit - *deposit(uint256 tokenId, uint256 vaultId, uint256 quantizedAmount)*
+This example describes how to implement a specific UI for a contract call. This example is using Starkex token deposit - *deposit(uint256 tokenId, uint256 vaultId, uint256 quantizedAmount)*
 
 
    * Implement the specific UI logic in a new *src_features* subdirectory - note that strings.common.maxFee will be provisioned with the maximum fee to pay for this call

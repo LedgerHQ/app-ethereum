@@ -11,7 +11,7 @@ Application version 1.5.0 - 4th of October 2020
 
 ## About
 
-This specification describes the APDU messages interface implementing the Starkware extensions for the Ethereum appilcation
+This specification describes the APDU messages interface implementing the Starkware extensions for the Ethereum application
 
 ## Modified general purpose APDUs
 

@@ -25,7 +25,7 @@ static void reviewChoice(bool confirm) {
 }
 static bool displaySignPage(uint8_t page, nbgl_pageContent_t *content) {
     (void) page;
-    content->type = INFO_LONG_PRESS, content->infoLongPress.icon = get_app_chain_icon();
+    content->type = INFO_LONG_PRESS, content->infoLongPress.icon = get_app_icon(true);
     content->infoLongPress.text = "Sign typed message";
     content->infoLongPress.longPressText = "Hold to sign";
     return true;

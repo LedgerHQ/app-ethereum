@@ -82,7 +82,7 @@ static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
         }
     }
     if (page == 2) {
-        content->type = INFO_LONG_PRESS, content->infoLongPress.icon = get_app_chain_icon();
+        content->type = INFO_LONG_PRESS, content->infoLongPress.icon = get_app_icon(false);
         content->infoLongPress.text = "Review transaction";
         content->infoLongPress.longPressText = "Hold to sign";
     }
@@ -116,7 +116,7 @@ void ui_stark_transfer(bool selfTransfer, bool conditional) {
             subTitle = "Transfer";
         }
     }
-    nbgl_useCaseReviewStart(get_app_chain_icon(),
+    nbgl_useCaseReviewStart(get_app_icon(false),
                             "Review stark transaction",
                             subTitle,
                             "Reject",

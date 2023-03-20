@@ -188,7 +188,7 @@ static void reviewContinueCommon(void) {
     useCaseTagValueList.nbPairs = nbPairs;  ///< number of pairs in pairs array
     useCaseTagValueList.smallCaseForValue = false;
     useCaseTagValueList.wrapping = false;
-    infoLongPress.icon = get_app_chain_icon();
+    infoLongPress.icon = get_app_icon(true);
     infoLongPress.text = tx_approval_context.fromPlugin ? transaction_type : "Review transaction";
     infoLongPress.longPressText = "Hold to sign";
     nbgl_useCaseStaticReview(&useCaseTagValueList,
@@ -204,14 +204,14 @@ static void buildFirstPage(void) {
                 "Review %s\ntransaction:\n%s",
                 strings.common.fullAddress,
                 strings.common.fullAmount);
-        nbgl_useCaseReviewStart(get_app_chain_icon(),
+        nbgl_useCaseReviewStart(get_app_icon(true),
                                 transaction_type,
                                 NULL,
                                 "Reject transaction",
                                 reviewContinue,
                                 rejectTransactionQuestion);
     } else {
-        nbgl_useCaseReviewStart(get_app_chain_icon(),
+        nbgl_useCaseReviewStart(get_app_icon(true),
                                 "Review transaction",
                                 NULL,
                                 "Reject transaction",

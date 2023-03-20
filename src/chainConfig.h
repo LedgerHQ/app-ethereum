@@ -77,17 +77,10 @@ typedef enum chain_kind_e {
     CHAIN_KIND_OASYS
 } chain_kind_t;
 
-#ifdef HAVE_NBGL
-#include "nbgl_types.h"
-#endif  // HAVE_NBGL
-
 typedef struct chain_config_s {
     char coinName[10];  // ticker
     uint64_t chainId;
     chain_kind_t kind;
-#ifdef HAVE_NBGL
-    nbgl_icon_details_t coinIconDetails;
-#endif  // HAVE_NBGL
 } chain_config_t;
 
 #define ETHEREUM_MAINNET_CHAINID 1

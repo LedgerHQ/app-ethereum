@@ -3,6 +3,7 @@
 
 #include "stdbool.h"
 #include "chainConfig.h"
+#include "shared_context.h"
 
 #define RUN_APPLICATION 1
 
@@ -61,7 +62,7 @@ typedef struct libargs_s {
         check_address_parameters_t* check_address;
         create_transaction_parameters_t* create_transaction;
         get_printable_amount_parameters_t* get_printable_amount;
-        char* plugin_name;
+        caller_app_t* caller_app;
     };
 } libargs_t;
 

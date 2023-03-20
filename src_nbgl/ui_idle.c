@@ -5,9 +5,10 @@
 #include "glyphs.h"
 #include "network.h"
 
-uint8_t staxSharedBuffer[SHARED_BUFFER_SIZE] = {0};
+char staxSharedBuffer[SHARED_BUFFER_SIZE] = {0};
+nbgl_page_t *pageContext;
 
-nbgl_page_t* pageContext;
+#define FORMAT_PLUGIN "This app enables clear\nsigning transactions for\nthe %s dApp."
 
 void releaseContext(void) {
     if (pageContext != NULL) {
@@ -15,47 +16,44 @@ void releaseContext(void) {
         pageContext = NULL;
     }
 }
-enum { BACK_TOKEN = 0, INFO_TOKEN, NEXT_TOKEN, CANCEL_TOKEN, QUIT_INFO_TOKEN, QUIT_APP_TOKEN };
 
 void app_quit(void) {
     // exit app here
     os_sched_exit(-1);
 }
 
-void ui_idle(void) {
-    if (plugin_name != NULL) {  // plugin
-        nbgl_useCasePlugInHome((char*) plugin_name,
-                               APPNAME,
-                               &ICONGLYPH_SMALL,
-                               NULL,
-                               NULL,
-                               true,
-                               ui_menu_settings,
-                               app_quit);
-    } else {
-        char* app_name = (char*) get_app_network_name();
+const nbgl_icon_details_t *get_app_icon(bool caller_icon) {
+    const nbgl_icon_details_t *icon = NULL;
 
-        switch (get_app_chain_id()) {
-            // Standalone apps
-            case 1:  // Mainnet
-            case 3:  // Ropsten
-            case 5:  // Goerli
-                nbgl_useCaseHome(app_name,
-                                 get_app_chain_icon(),
-                                 NULL,
-                                 true,
-                                 ui_menu_settings,
-                                 app_quit);
-                break;
-            // Clones
-            default:
-                nbgl_useCaseHome(app_name,
-                                 get_app_chain_icon(),
-                                 NULL,
-                                 true,
-                                 ui_menu_settings,
-                                 app_quit);
-                break;
+    if (caller_icon && caller_app) {
+        if (caller_app->icon) {
+            icon = caller_app->icon;
         }
+    } else {
+        icon = &ICONGLYPH;
     }
+    return icon;
+}
+
+void ui_idle(void) {
+    const char *app_name = NULL;
+    const char *tagline = NULL;
+
+    if (caller_app) {
+        app_name = caller_app->name;
+
+        if (caller_app->type == CALLER_TYPE_PLUGIN) {
+            snprintf(staxSharedBuffer, sizeof(staxSharedBuffer), FORMAT_PLUGIN, app_name);
+            tagline = staxSharedBuffer;
+        }
+    } else {  // Ethereum app
+        app_name = get_app_network_name();
+    }
+
+    nbgl_useCaseHome((char *) app_name,
+                     get_app_icon(true),
+                     tagline,
+                     true,
+                     ui_menu_settings,
+                     app_quit);
 }

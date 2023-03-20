@@ -28,7 +28,7 @@ static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
         content->tagValueList.nbPairs = 1;
         content->tagValueList.pairs = (nbgl_layoutTagValue_t *) &tlv;
     } else if (page == 1) {
-        content->type = INFO_LONG_PRESS, content->infoLongPress.icon = get_app_chain_icon();
+        content->type = INFO_LONG_PRESS, content->infoLongPress.icon = get_app_icon(true);
         content->infoLongPress.text = "Confirm parameter";
         content->infoLongPress.longPressText = "Hold to confirm";
     } else {
@@ -43,7 +43,7 @@ static void reviewContinue(void) {
 }
 
 static void buildScreen(void) {
-    nbgl_useCaseReviewStart(get_app_chain_icon(),
+    nbgl_useCaseReviewStart(get_app_icon(true),
                             "Verify parameter",
                             NULL,
                             "Reject",

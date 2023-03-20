@@ -69,7 +69,7 @@ bolos_ux_params_t G_ux_params;
 
 const internalStorage_t N_storage_real;
 
-const char *plugin_name = NULL;
+caller_app_t *caller_app = NULL;
 chain_config_t *chainConfig = NULL;
 
 void reset_app_context() {
@@ -957,7 +957,13 @@ void coin_main(libargs_t *args) {
         if (args->chain_config != NULL) {
             chainConfig = args->chain_config;
         }
-        plugin_name = args->plugin_name;
+        if ((caller_app = args->caller_app) != NULL) {
+            if (chainConfig != NULL) {
+                caller_app->type = CALLER_TYPE_CLONE;
+            } else {
+                caller_app->type = CALLER_TYPE_PLUGIN;
+            }
+        }
     }
     if (chainConfig == NULL) {
         init_coin_config(&config);
@@ -1097,12 +1103,6 @@ __attribute__((section(".boot"))) int main(int arg0) {
             unsigned int libcall_params[5];
             chain_config_t local_chainConfig;
             init_coin_config(&local_chainConfig);
-#ifdef HAVE_NBGL
-            uint8_t coinIcon[sizeof(ICONBITMAP)];
-            memcpy(coinIcon, &ICONBITMAP, sizeof(ICONBITMAP));
-            memcpy(&local_chainConfig.coinIconDetails, &ICONGLYPH, sizeof(ICONGLYPH));
-            local_chainConfig.coinIconDetails.bitmap = coinIcon;
-#endif  // HAVE_NBGL
 
             PRINTF("Hello from Eth-clone\n");
             check_api_level(CX_COMPAT_APILEVEL);
@@ -1111,7 +1111,21 @@ __attribute__((section(".boot"))) int main(int arg0) {
             libcall_params[1] = 0x100;
             libcall_params[2] = RUN_APPLICATION;
             libcall_params[3] = (unsigned int) &local_chainConfig;
-            libcall_params[4] = 0;
+#ifdef HAVE_NBGL
+            const char app_name[] = APPNAME;
+            caller_app_t capp;
+            nbgl_icon_details_t icon_details;
+            uint8_t bitmap[sizeof(ICONBITMAP)];
+
+            memcpy(&icon_details, &ICONGLYPH, sizeof(ICONGLYPH));
+            memcpy(&bitmap, &ICONBITMAP, sizeof(bitmap));
+            icon_details.bitmap = (const uint8_t *) bitmap;
+            capp.name = app_name;
+            capp.icon = &icon_details;
+            libcall_params[4] = (unsigned int) &capp;
+#else
+            libcall_params[4] = NULL;
+#endif  // HAVE_NBGL
 
             if (arg0) {
                 // call as a library

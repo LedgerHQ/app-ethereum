@@ -39,7 +39,7 @@ static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
         content->tagValueList.nbPairs = 2;
         content->tagValueList.pairs = (nbgl_layoutTagValue_t *) tlv;
     } else if (page == 1) {
-        content->type = INFO_LONG_PRESS, content->infoLongPress.icon = get_app_chain_icon();
+        content->type = INFO_LONG_PRESS, content->infoLongPress.icon = get_app_icon(true);
         content->infoLongPress.text = "Sign typed message";
         content->infoLongPress.longPressText = "Hold to sign";
     } else {

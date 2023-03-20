@@ -6,11 +6,13 @@
 #include <shared_context.h>
 
 #define SHARED_BUFFER_SIZE SHARED_CTX_FIELD_1_SIZE
-extern uint8_t staxSharedBuffer[SHARED_BUFFER_SIZE];
+extern char staxSharedBuffer[SHARED_BUFFER_SIZE];
 
 extern nbgl_page_t* pageContext;
 
 void releaseContext(void);
+
+const nbgl_icon_details_t* get_app_icon(bool caller_icon);
 
 void ui_idle(void);
 void ui_menu_settings(void);

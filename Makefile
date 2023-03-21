@@ -186,7 +186,6 @@ endif
 endif
 
 # Enabling debug PRINTF
-DEBUG:=1
 ifneq ($(DEBUG),0)
 DEFINES += HAVE_STACK_OVERFLOW_CHECK
 ifeq ($(TARGET_NAME),TARGET_NANOS)
@@ -223,13 +222,11 @@ endif
 
 CC       := $(CLANGPATH)clang
 
-CFLAGS   += -Og -g
-# CFLAGS   += -Oz -Wno-format-invalid-specifier -Wno-format-extra-args
+CFLAGS   += -Wno-format-invalid-specifier -Wno-format-extra-args
 
 AS     := $(GCCPATH)arm-none-eabi-gcc
 
 LD       := $(GCCPATH)arm-none-eabi-gcc
-LDFLAGS  += -O0
 LDLIBS   += -lm -lgcc -lc
 
 # import rules to compile glyphs(/pone)

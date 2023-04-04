@@ -15,13 +15,13 @@ static bool navCallback(uint8_t page, nbgl_pageContent_t* content) {
             switches[0] =
                 (nbgl_layoutSwitch_t){.initState = N_storage.dataAllowed ? ON_STATE : OFF_STATE,
                                       .text = "Blind signing",
-                                      .subText = "Enable transaction blind signing",
+                                      .subText = "Enable transaction blind\nsigning",
                                       .token = BLIND_SIGNING_TOKEN,
                                       .tuneId = TUNE_TAP_CASUAL};
             switches[1] =
                 (nbgl_layoutSwitch_t){.initState = N_storage.contractDetails ? ON_STATE : OFF_STATE,
                                       .text = "Debug",
-                                      .subText = "Display contract data details",
+                                      .subText = "Display contract data\ndetails",
                                       .token = DEBUG_TOKEN,
                                       .tuneId = TUNE_TAP_CASUAL};
             switches[2] =

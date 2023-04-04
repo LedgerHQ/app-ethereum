@@ -212,7 +212,7 @@ void eth2_plugin_call(int message, void *parameters) {
                     strlcpy(msg->title, "Validator", msg->titleLength);
                     strlcpy(msg->msg, context->deposit_address, msg->msgLength);
                     msg->result = ETH_PLUGIN_RESULT_OK;
-                }
+                } break;
                 default:
                     break;
             }

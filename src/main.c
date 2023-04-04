@@ -905,7 +905,7 @@ unsigned char io_event(__attribute__((unused)) unsigned char channel) {
                   SEPROXYHAL_TAG_STATUS_EVENT_FLAG_USB_POWERED)) {
                 THROW(EXCEPTION_IO_RESET);
             }
-            // no break is intentional
+            __attribute__((fallthrough));
         default:
             UX_DEFAULT_EVENT();
             break;

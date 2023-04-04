@@ -105,15 +105,15 @@ void ui_stark_transfer(bool selfTransfer, bool conditional) {
     char *subTitle;
     if (conditional) {
         if (selfTransfer) {
-            subTitle = "Conditionnal self transfer";
+            subTitle = (char *) "Conditionnal self transfer";
         } else {
-            subTitle = "Conditionnal transfer";
+            subTitle = (char *) "Conditionnal transfer";
         }
     } else {
         if (selfTransfer) {
-            subTitle = "self transfer";
+            subTitle = (char *) "self transfer";
         } else {
-            subTitle = "Transfer";
+            subTitle = (char *) "Transfer";
         }
     }
     nbgl_useCaseReviewStart(get_app_icon(false),

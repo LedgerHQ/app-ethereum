@@ -58,11 +58,11 @@ static void buildFirstPage(void) {
 }
 
 void ui_display_privacy_public_key(void) {
-    review_string = "Provide public\nprivacy key";
+    review_string = (char *) "Provide public\nprivacy key";
     buildFirstPage();
 }
 
 void ui_display_privacy_shared_secret(void) {
-    review_string = "Provide public\nsecret key";
+    review_string = (char *) "Provide public\nsecret key";
     buildFirstPage();
 }

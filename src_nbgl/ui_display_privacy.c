@@ -4,7 +4,7 @@
 #include "nbgl_use_case.h"
 #include "network.h"
 
-static nbgl_layoutTagValue_t tlv[2];
+static nbgl_layoutTagValue_t pairs[2];
 static char *review_string;
 
 static void reviewReject(void) {
@@ -25,14 +25,14 @@ static void reviewChoice(bool confirm) {
 
 static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
     if (page == 0) {
-        tlv[0].item = "Address";
-        tlv[0].value = strings.common.fullAddress;
-        tlv[1].item = "Key";
-        tlv[1].value = strings.common.fullAmount;
+        pairs[0].item = "Address";
+        pairs[0].value = strings.common.fullAddress;
+        pairs[1].item = "Key";
+        pairs[1].value = strings.common.fullAmount;
 
         content->type = TAG_VALUE_LIST;
         content->tagValueList.nbPairs = 2;
-        content->tagValueList.pairs = (nbgl_layoutTagValue_t *) tlv;
+        content->tagValueList.pairs = (nbgl_layoutTagValue_t *) pairs;
     } else if (page == 1) {
         content->type = INFO_LONG_PRESS, content->infoLongPress.icon = get_app_icon(true);
         content->infoLongPress.text = review_string;

@@ -5,7 +5,7 @@
 #include "ethUtils.h"
 #include "ui_712_common.h"
 
-static nbgl_layoutTagValue_t tlv[2];
+static nbgl_layoutTagValue_t pairs[2];
 
 static void start_review(void);  // forward declaration
 
@@ -16,21 +16,21 @@ static char *format_hash(const uint8_t *hash, char *buffer, size_t buffer_size, 
 
 static bool display_review_page(uint8_t page, nbgl_pageContent_t *content) {
     if (page == 0) {
-        tlv[0].item = "Domain hash";
-        tlv[0].value = format_hash(tmpCtx.messageSigningContext712.domainHash,
-                                   strings.tmp.tmp,
-                                   sizeof(strings.tmp.tmp),
-                                   0);
-        tlv[1].item = "Message hash";
-        tlv[1].value = format_hash(tmpCtx.messageSigningContext712.messageHash,
-                                   strings.tmp.tmp,
-                                   sizeof(strings.tmp.tmp),
-                                   70);
+        pairs[0].item = "Domain hash";
+        pairs[0].value = format_hash(tmpCtx.messageSigningContext712.domainHash,
+                                     strings.tmp.tmp,
+                                     sizeof(strings.tmp.tmp),
+                                     0);
+        pairs[1].item = "Message hash";
+        pairs[1].value = format_hash(tmpCtx.messageSigningContext712.messageHash,
+                                     strings.tmp.tmp,
+                                     sizeof(strings.tmp.tmp),
+                                     70);
 
         content->type = TAG_VALUE_LIST;
         content->tagValueList.nbPairs = 2;
         content->tagValueList.nbMaxLinesForValue = 0;
-        content->tagValueList.pairs = (nbgl_layoutTagValue_t *) tlv;
+        content->tagValueList.pairs = (nbgl_layoutTagValue_t *) pairs;
     } else if (page == 1) {
         content->type = INFO_LONG_PRESS, content->infoLongPress.icon = get_app_icon(true);
         content->infoLongPress.text = "Sign typed message";

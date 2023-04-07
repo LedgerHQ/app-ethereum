@@ -15,7 +15,7 @@ enum {
     START_REVIEW_TOKEN,
 };
 
-static nbgl_layoutTagValue_t tlv;
+static nbgl_layoutTagValue_t pair;
 // these buffers are used as circular
 static char title_buffer[MAX_PLUGIN_ITEMS_PER_SCREEN][TAG_MAX_LEN];
 static char msg_buffer[MAX_PLUGIN_ITEMS_PER_SCREEN][VALUE_MAX_LEN];
@@ -74,17 +74,17 @@ static nbgl_layoutTagValue_t *getTagValuePair(uint8_t pairIndex) {
                                         TAG_MAX_LEN,
                                         (uint8_t *) msg_buffer[counter],
                                         VALUE_MAX_LEN);
-            tlv.item = title_buffer[counter];
-            tlv.value = msg_buffer[counter];
+            pair.item = title_buffer[counter];
+            pair.value = msg_buffer[counter];
         } else {
             pairIndex -= dataContext.tokenContext.pluginUiMaxItems;
             // for the last 1 (or 2), tags are fixed
             if (tx_approval_context.displayNetwork && (pairIndex == 0)) {
-                tlv.item = "Network";
-                tlv.value = strings.common.network_name;
+                pair.item = "Network";
+                pair.value = strings.common.network_name;
             } else {
-                tlv.item = "Max fees";
-                tlv.value = strings.common.maxFee;
+                pair.item = "Max fees";
+                pair.value = strings.common.maxFee;
             }
         }
     } else {
@@ -95,24 +95,24 @@ static nbgl_layoutTagValue_t *getTagValuePair(uint8_t pairIndex) {
 
         switch (pairIndex) {
             case 0:
-                tlv.item = "Amount";
-                tlv.value = strings.common.fullAmount;
+                pair.item = "Amount";
+                pair.value = strings.common.fullAmount;
                 break;
             case 1:
-                tlv.item = "Address";
-                tlv.value = strings.common.fullAddress;
+                pair.item = "Address";
+                pair.value = strings.common.fullAddress;
                 break;
             case 2:
-                tlv.item = "Nonce";
-                tlv.value = strings.common.nonce;
+                pair.item = "Nonce";
+                pair.value = strings.common.nonce;
                 break;
             case 3:
-                tlv.item = "Max fees";
-                tlv.value = strings.common.maxFee;
+                pair.item = "Max fees";
+                pair.value = strings.common.maxFee;
                 break;
             case 4:
-                tlv.item = "Network";
-                tlv.value = strings.common.network_name;
+                pair.item = "Network";
+                pair.value = strings.common.network_name;
                 break;
         }
     }
@@ -121,7 +121,7 @@ static nbgl_layoutTagValue_t *getTagValuePair(uint8_t pairIndex) {
     if (counter == MAX_PLUGIN_ITEMS_PER_SCREEN) {
         counter = 0;
     }
-    return &tlv;
+    return &pair;
 }
 
 static void pageCallback(int token, uint8_t index) {

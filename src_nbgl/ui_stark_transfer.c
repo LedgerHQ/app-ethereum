@@ -8,7 +8,7 @@
 
 #ifdef HAVE_STARKWARE
 
-static nbgl_layoutTagValue_t tlv[3];
+static nbgl_layoutTagValue_t pairs[3];
 static char condAddressBuffer[43];
 struct stark_transfer_context {
     bool selfTransfer;
@@ -36,26 +36,26 @@ static void reviewChoice(bool confirm) {
 static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
     uint8_t count = 0;
     if (page == 0) {
-        tlv[count].item = "Amount";
-        tlv[count].value = tmpContent.tmp;
+        pairs[count].item = "Amount";
+        pairs[count].value = tmpContent.tmp;
         count++;
 
         if (context.selfTransfer == false && context.conditional == false) {
-            tlv[count].item = "Master Account";
-            tlv[count].value = strings.tmp.tmp;
+            pairs[count].item = "Master Account";
+            pairs[count].value = strings.tmp.tmp;
             count++;
         }
         if (context.conditional) {
             stark_sign_display_master_account();
-            tlv[count].item = "Master Account";
-            tlv[count].value = strings.tmp.tmp;
+            pairs[count].item = "Master Account";
+            pairs[count].value = strings.tmp.tmp;
             count++;
         }
-        tlv[count].item = "Token Account";
-        tlv[count].value = strings.tmp.tmp2;
+        pairs[count].item = "Token Account";
+        pairs[count].value = strings.tmp.tmp2;
         content->type = TAG_VALUE_LIST;
         content->tagValueList.nbPairs = count;
-        content->tagValueList.pairs = (nbgl_layoutTagValue_t *) tlv;
+        content->tagValueList.pairs = (nbgl_layoutTagValue_t *) pairs;
 
         return true;
     }
@@ -66,16 +66,16 @@ static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
                                      sizeof(condAddressBuffer),
                                      &global_sha3,
                                      chainConfig->chainId),
-                tlv[0].item = "Cond. Address";
-            tlv[0].value = condAddressBuffer;
+                pairs[0].item = "Cond. Address";
+            pairs[0].value = condAddressBuffer;
 
             stark_sign_display_condition_fact();
-            tlv[1].item = "Cond. Address";
-            tlv[1].value = strings.tmp.tmp;
+            pairs[1].item = "Cond. Address";
+            pairs[1].value = strings.tmp.tmp;
 
             content->type = TAG_VALUE_LIST;
             content->tagValueList.nbPairs = 2;
-            content->tagValueList.pairs = (nbgl_layoutTagValue_t *) tlv;
+            content->tagValueList.pairs = (nbgl_layoutTagValue_t *) pairs;
 
         } else {
             page++;

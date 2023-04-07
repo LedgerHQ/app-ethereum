@@ -7,7 +7,7 @@ static const char* const infoContents[] = {APPVERSION, "(c) 2022 Ledger"};
 
 enum { BLIND_SIGNING_TOKEN = FIRST_USER_TOKEN, DEBUG_TOKEN, NONCE_TOKEN, EIP712_VERBOSE_TOKEN };
 
-static nbgl_layoutSwitch_t switches[4];
+static nbgl_layoutSwitch_t switches[3];
 
 static bool navCallback(uint8_t page, nbgl_pageContent_t* content) {
     switch (page) {

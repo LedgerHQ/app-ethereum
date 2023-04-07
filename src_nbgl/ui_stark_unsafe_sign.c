@@ -7,7 +7,7 @@
 
 #ifdef HAVE_STARKWARE
 
-static nbgl_layoutTagValue_t tlv[2];
+static nbgl_layoutTagValue_t pairs[2];
 static char from_account[64];
 static char message_hash[64];
 
@@ -32,13 +32,13 @@ static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
     snprintf(message_hash, sizeof(message_hash), "0x%.*H", 32, dataContext.starkContext.w2);
 
     if (page == 0) {
-        tlv[0].item = "From Account";
-        tlv[0].value = from_account;
-        tlv[1].item = "Hash";
-        tlv[1].value = message_hash;
+        pairs[0].item = "From Account";
+        pairs[0].value = from_account;
+        pairs[1].item = "Hash";
+        pairs[1].value = message_hash;
         content->type = TAG_VALUE_LIST;
         content->tagValueList.nbPairs = 2;
-        content->tagValueList.pairs = (nbgl_layoutTagValue_t *) tlv;
+        content->tagValueList.pairs = (nbgl_layoutTagValue_t *) pairs;
     } else if (page == 1) {
         content->type = INFO_LONG_PRESS, content->infoLongPress.icon = get_app_icon(false);
         content->infoLongPress.text = "Unsafe Stark Sign";

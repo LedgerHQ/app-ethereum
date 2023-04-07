@@ -3,6 +3,7 @@
 #include <os.h>
 #include <stdint.h>
 #include <string.h>
+#include <ctype.h>
 #include "utils.h"  // ARRAY_SIZE
 #include "apdu_constants.h"
 #include "domain_name.h"
@@ -113,6 +114,8 @@ static void response_to_domain_name(bool success, uint8_t off) {
 /**
  * Checks if a domain name for the given chain ID and address is known
  *
+ * Always wipes the content of \ref g_domain_name_info
+ *
  * @param[in] chain_id given chain ID
  * @param[in] addr given address
  * @return whether there is or not
@@ -121,12 +124,13 @@ bool has_domain_name(const uint64_t *chain_id, const uint8_t *addr) {
     bool ret = false;
 
     if (g_domain_name_info.valid) {
+        // TODO: Remove once other domain name providers are supported
         if ((*chain_id == ETHEREUM_MAINNET_CHAINID) &&
             (memcmp(addr, g_domain_name_info.addr, ADDRESS_LENGTH) == 0)) {
             ret = true;
         }
-        memset(&g_domain_name_info, 0, sizeof(g_domain_name_info));
     }
+    memset(&g_domain_name_info, 0, sizeof(g_domain_name_info));
     return ret;
 }
 
@@ -263,6 +267,30 @@ static bool handle_signature(const s_tlv_data *data,
 }
 
 /**
+ * Tests if the given domain name character is valid (in our subset of allowed characters)
+ *
+ * @param[in] c given character
+ * @return whether the character is valid
+ */
+static bool is_valid_domain_character(char c) {
+    if (isalpha((int) c)) {
+        if (!islower((int) c)) {
+            return false;
+        }
+    } else if (!isdigit((int) c)) {
+        switch (c) {
+            case '.':
+            case '-':
+            case '_':
+                break;
+            default:
+                return false;
+        }
+    }
+    return true;
+}
+
+/**
  * Handler for tag \ref DOMAIN_NAME
  *
  * @param[in] data the tlv data
@@ -275,9 +303,21 @@ static bool handle_domain_name(const s_tlv_data *data,
                                s_sig_ctx *sig_ctx) {
     (void) sig_ctx;
     if (data->length > DOMAIN_NAME_MAX_LENGTH) {
+        PRINTF("Domain name too long! (%u)\n", data->length);
         return false;
     }
-    strncpy(domain_name_info->name, (const char *) data->value, data->length);
+    // TODO: Remove once other domain name providers are supported
+    if ((data->length < 5) || (strncmp(".eth", (char *) &data->value[data->length - 4], 4) != 0)) {
+        PRINTF("Unexpected TLD!\n");
+        return false;
+    }
+    for (int idx = 0; idx < data->length; ++idx) {
+        if (!is_valid_domain_character(data->value[idx])) {
+            PRINTF("Domain name contains non-allowed character! (0x%x)\n", data->value[idx]);
+            return false;
+        }
+        domain_name_info->name[idx] = data->value[idx];
+    }
     domain_name_info->name[data->length] = '\0';
     return true;
 }

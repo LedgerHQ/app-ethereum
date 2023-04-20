@@ -224,4 +224,6 @@ const tokenDefinition_t const TOKENS_APOTHEMNETWORK[NUM_TOKENS_APOTHEMNETWORK] =
 
 const tokenDefinition_t const TOKENS_OASYS[NUM_TOKENS_OASYS] = {};
 
+const tokenDefinition_t const TOKENS_WALTONCHAIN[NUM_TOKENS_WALTONCHAIN] = {};
+
 #endif

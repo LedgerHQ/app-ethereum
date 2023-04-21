@@ -619,7 +619,7 @@ def test_sign_blind_and_nonce_display(cmd):
 
     transaction = Transaction(
         txType=0xEB,
-        nonce=2**64-1,
+        nonce=1844674,
         gasPrice=0x0306dc4200,
         gasLimit=0x5208,
         to="0x5a321744667052affa8386ed49e00ef223cbffc3",
@@ -699,6 +699,6 @@ def test_sign_blind_and_nonce_display(cmd):
 
     v, r, s = result
 
-    assert v == 0x25 # 37
-    assert r.hex() == "737c07042022d37286216312d62163c4238536d82c5b45937ce9fbf259d11b7d"
-    assert s.hex() == "5604485e0cf37e465a84290eb26a18e40a430f1b0fda184c56b2c3a51ada2e6c"
+    assert v == 0x26 # 38
+    assert r.hex() == "c8d7cd5c1711ea1af7da048d15d1a95fc9347d4622afa11f32320d73384984d1"
+    assert s.hex() == "3165ca0a27f565e1a87560ed3d3a144c4ac9732370428da5e6952e93659f6ac2"

@@ -29,6 +29,8 @@
 #include "handle_get_printable_amount.h"
 #include "handle_check_address.h"
 #include "commands_712.h"
+#include "challenge.h"
+#include "domain_name.h"
 
 #ifdef HAVE_STARKWARE
 #include "stark_crypto.h"
@@ -749,6 +751,19 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                     break;
 #endif  // HAVE_EIP712_FULL_SUPPORT
 
+#ifdef HAVE_DOMAIN_NAME
+                case INS_ENS_GET_CHALLENGE:
+                    handle_get_challenge();
+                    break;
+
+                case INS_ENS_PROVIDE_INFO:
+                    handle_provide_domain_name(G_io_apdu_buffer[OFFSET_P1],
+                                               G_io_apdu_buffer[OFFSET_P2],
+                                               G_io_apdu_buffer + OFFSET_CDATA,
+                                               G_io_apdu_buffer[OFFSET_LC]);
+                    break;
+#endif  // HAVE_DOMAIN_NAME
+
 #if 0
         case 0xFF: // return to dashboard
           goto return_to_dashboard;
@@ -954,19 +969,22 @@ void coin_main(chain_config_t *coin_config) {
                 G_io_app.plane_mode = os_setting_get(OS_SETTING_PLANEMODE, NULL, 0);
 #endif  // TARGET_NANOX
 
-                if (N_storage.initialized != 0x01) {
+                if (!N_storage.initialized) {
                     internalStorage_t storage;
 #ifdef HAVE_ALLOW_DATA
-                    storage.dataAllowed = 0x01;
+                    storage.dataAllowed = true;
 #else
-                    storage.dataAllowed = 0x00;
+                    storage.dataAllowed = false;
 #endif
-                    storage.contractDetails = 0x00;
-                    storage.displayNonce = 0x00;
+                    storage.contractDetails = false;
+                    storage.displayNonce = false;
 #ifdef HAVE_EIP712_FULL_SUPPORT
-                    storage.verbose_eip712 = 0x00;
+                    storage.verbose_eip712 = false;
 #endif
-                    storage.initialized = 0x01;
+#ifdef HAVE_DOMAIN_NAME
+                    storage.verbose_domain_name = false;
+#endif
+                    storage.initialized = true;
                     nvm_write((void *) &N_storage, (void *) &storage, sizeof(internalStorage_t));
                 }
 
@@ -979,6 +997,11 @@ void coin_main(chain_config_t *coin_config) {
                 BLE_power(0, NULL);
                 BLE_power(1, "Nano X");
 #endif  // HAVE_BLE
+
+#ifdef HAVE_DOMAIN_NAME
+                // to prevent it from having a fixed value at boot
+                roll_challenge();
+#endif  // HAVE_DOMAIN_NAME
 
                 app_main();
             }

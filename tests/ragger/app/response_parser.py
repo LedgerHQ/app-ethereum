@@ -1,4 +1,4 @@
-class   EthereumRespParser:
+class EthereumRespParser:
     def sign(self, data: bytes):
         assert len(data) == (1 + 32 + 32)
 
@@ -12,3 +12,7 @@ class   EthereumRespParser:
         data = data[32:]
 
         return v, r, s
+
+    def challenge(self, data: bytes) -> int:
+        assert len(data) == 4
+        return int.from_bytes(data, "big")

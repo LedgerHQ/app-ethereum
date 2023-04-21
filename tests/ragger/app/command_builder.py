@@ -1,18 +1,25 @@
 from enum import IntEnum, auto
-from typing import Iterator
-from ethereum_client.eip712 import EIP712FieldType
+from typing import Iterator, Optional
+from .eip712 import EIP712FieldType
+from ragger.bip import pack_derivation_path
+import struct
 
-class   InsType(IntEnum):
+class InsType(IntEnum):
+    SIGN = 0x04
     EIP712_SEND_STRUCT_DEF = 0x1a
     EIP712_SEND_STRUCT_IMPL = 0x1c
     EIP712_SEND_FILTERING = 0x1e
     EIP712_SIGN = 0x0c
+    GET_CHALLENGE = 0x20
+    PROVIDE_DOMAIN_NAME = 0x22
 
-class   P1Type(IntEnum):
+class P1Type(IntEnum):
     COMPLETE_SEND = 0x00
     PARTIAL_SEND = 0x01
+    SIGN_FIRST_CHUNK = 0x00
+    SIGN_SUBSQT_CHUNK = 0x80
 
-class   P2Type(IntEnum):
+class P2Type(IntEnum):
     STRUCT_NAME = 0x00
     STRUCT_FIELD = 0xff
     ARRAY = 0x0f
@@ -22,14 +29,14 @@ class   P2Type(IntEnum):
     FILTERING_CONTRACT_NAME = 0x0f
     FILTERING_FIELD_NAME = 0xff
 
-class   EthereumCmdBuilder:
+class EthereumCmdBuilder:
     _CLA: int = 0xE0
 
     def _serialize(self,
                    ins: InsType,
                    p1: int,
                    p2: int,
-                   cdata: bytearray = bytearray()) -> bytes:
+                   cdata: bytearray = bytes()) -> bytes:
 
         header = bytearray()
         header.append(self._CLA)
@@ -109,27 +116,18 @@ class   EthereumCmdBuilder:
                                   data_w_length[:0xff])
             data_w_length = data_w_length[0xff:]
 
-    def _format_bip32(self, bip32, data: bytearray) -> bytearray:
-        data.append(len(bip32))
-        for idx in bip32:
-            data.append((idx & 0xff000000) >> 24)
-            data.append((idx & 0x00ff0000) >> 16)
-            data.append((idx & 0x0000ff00) >> 8)
-            data.append((idx & 0x000000ff))
-        return data
-
-    def eip712_sign_new(self, bip32) -> bytes:
-        data = self._format_bip32(bip32, bytearray())
+    def eip712_sign_new(self, bip32_path: str) -> bytes:
+        data = pack_derivation_path(bip32_path)
         return self._serialize(InsType.EIP712_SIGN,
                                P1Type.COMPLETE_SEND,
                                P2Type.NEW_IMPLEM,
                                data)
 
     def eip712_sign_legacy(self,
-                           bip32,
+                           bip32_path: str,
                            domain_hash: bytes,
                            message_hash: bytes) -> bytes:
-        data = self._format_bip32(bip32, bytearray())
+        data = pack_derivation_path(bip32_path)
         data += domain_hash
         data += message_hash
         return self._serialize(InsType.EIP712_SIGN,
@@ -168,3 +166,30 @@ class   EthereumCmdBuilder:
                                P1Type.COMPLETE_SEND,
                                P2Type.FILTERING_FIELD_NAME,
                                self._eip712_filtering_send_name(name, sig))
+
+    def sign(self, bip32_path: str, rlp_data: bytes) -> Iterator[bytes]:
+        payload = pack_derivation_path(bip32_path)
+        payload += rlp_data
+        p1 = P1Type.SIGN_FIRST_CHUNK
+        while len(payload) > 0:
+            yield self._serialize(InsType.SIGN,
+                                  p1,
+                                  0x00,
+                                  payload[:0xff])
+            payload = payload[0xff:]
+            p1 = P1Type.SIGN_SUBSQT_CHUNK
+
+    def get_challenge(self) -> bytes:
+        return self._serialize(InsType.GET_CHALLENGE, 0x00, 0x00)
+
+    def provide_domain_name(self, tlv_payload: bytes) -> bytes:
+        payload  = struct.pack(">H", len(tlv_payload))
+        payload += tlv_payload
+        p1 = 1
+        while len(payload) > 0:
+            yield self._serialize(InsType.PROVIDE_DOMAIN_NAME,
+                                  p1,
+                                  0x00,
+                                  payload[:0xff])
+            payload = payload[0xff:]
+            p1 = 0

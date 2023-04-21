@@ -175,7 +175,7 @@ typedef enum {
 
 #define NETWORK_STRING_MAX_SIZE 16
 
-typedef struct txStringProperties_t {
+typedef struct txStringProperties_s {
     char fullAddress[43];
     char fullAmount[79];  // 2^256 is 78 digits long
     char maxFee[50];
@@ -190,7 +190,7 @@ typedef struct txStringProperties_t {
 #endif
 #define SHARED_CTX_FIELD_2_SIZE 40
 
-typedef struct strDataTmp_t {
+typedef struct strDataTmp_s {
     char tmp[SHARED_CTX_FIELD_1_SIZE];
     char tmp2[SHARED_CTX_FIELD_2_SIZE];
 } strDataTmp_t;

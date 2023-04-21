@@ -31,6 +31,4 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
 // NULL for cached address, or base contract address
 eth_plugin_result_t eth_plugin_call(int method, void *parameter);
 
-void plugin_ui_start(void);
-
 #endif  // _ETH_PLUGIN_HANDLER_H_

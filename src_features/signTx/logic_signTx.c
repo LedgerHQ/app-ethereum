@@ -9,6 +9,7 @@
 #include "ethUtils.h"
 #include "common_ui.h"
 #include "ui_callbacks.h"
+#include <ctype.h>
 
 #define ERR_SILENT_MODE_CHECK_FAILED 0x6001
 
@@ -293,6 +294,18 @@ static void get_public_key(uint8_t *out, uint8_t outLength) {
     getEthAddressFromKey(&publicKey, out, &global_sha3);
 }
 
+static int strncasecmp_workaround(const char *str1, const char *str2, size_t n) {
+    unsigned char c1, c2;
+    for (; n != 0; --n) {
+        c1 = *str1++;
+        c2 = *str2++;
+        if (toupper(c1) != toupper(c2)) {
+            return toupper(c1) - toupper(c2);
+        }
+    };
+    return 0;
+}
+
 void finalizeParsing(bool direct) {
     char displayBuffer[50];
     uint8_t decimals = WEI_TO_ETHER;
@@ -431,9 +444,10 @@ void finalizeParsing(bool direct) {
                           chainConfig->chainId);
         if (called_from_swap) {
             // Ensure the values are the same that the ones that have been previously validated
-            if (strncasecmp(strings.common.fullAddress,
-                            displayBuffer,
-                            MIN(sizeof(strings.common.fullAddress), sizeof(displayBuffer))) != 0) {
+            if (strncasecmp_workaround(
+                    strings.common.fullAddress,
+                    displayBuffer,
+                    MIN(sizeof(strings.common.fullAddress), sizeof(displayBuffer))) != 0) {
                 THROW(ERR_SILENT_MODE_CHECK_FAILED);
             }
         } else {

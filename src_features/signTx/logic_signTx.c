@@ -294,15 +294,18 @@ static void get_public_key(uint8_t *out, uint8_t outLength) {
     getEthAddressFromKey(&publicKey, out, &global_sha3);
 }
 
-static int strncasecmp_workaround(const char *str1, const char *str2, size_t n) {
+/* Local implmentation of strncasecmp, workaround of the segfaulting base implem
+ * Remove once strncasecmp is fixed
+ */
+static int strcasecmp_workaround(const char *str1, const char *str2) {
     unsigned char c1, c2;
-    for (; n != 0; --n) {
+    do {
         c1 = *str1++;
         c2 = *str2++;
         if (toupper(c1) != toupper(c2)) {
             return toupper(c1) - toupper(c2);
         }
-    };
+    } while (c1 != '\0');
     return 0;
 }
 
@@ -444,10 +447,7 @@ void finalizeParsing(bool direct) {
                           chainConfig->chainId);
         if (called_from_swap) {
             // Ensure the values are the same that the ones that have been previously validated
-            if (strncasecmp_workaround(
-                    strings.common.fullAddress,
-                    displayBuffer,
-                    MIN(sizeof(strings.common.fullAddress), sizeof(displayBuffer))) != 0) {
+            if (strcasecmp_workaround(strings.common.fullAddress, displayBuffer) != 0) {
                 THROW(ERR_SILENT_MODE_CHECK_FAILED);
             }
         } else {
@@ -465,9 +465,7 @@ void finalizeParsing(bool direct) {
                        sizeof(displayBuffer));
         if (called_from_swap) {
             // Ensure the values are the same that the ones that have been previously validated
-            if (strncmp(strings.common.fullAmount,
-                        displayBuffer,
-                        MIN(sizeof(strings.common.fullAmount), sizeof(displayBuffer))) != 0) {
+            if (strcmp(strings.common.fullAmount, displayBuffer) != 0) {
                 THROW(ERR_SILENT_MODE_CHECK_FAILED);
             }
         } else {
@@ -484,9 +482,7 @@ void finalizeParsing(bool direct) {
                                   sizeof(displayBuffer));
     if (called_from_swap) {
         // Ensure the values are the same that the ones that have been previously validated
-        if (strncmp(strings.common.maxFee,
-                    displayBuffer,
-                    MIN(sizeof(strings.common.maxFee), sizeof(displayBuffer))) != 0) {
+        if (strcmp(strings.common.maxFee, displayBuffer) != 0) {
             THROW(ERR_SILENT_MODE_CHECK_FAILED);
         }
     } else {

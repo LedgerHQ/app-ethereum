@@ -240,7 +240,7 @@ bool tostring256(const uint256_t *const number,
 
     if (offset == outLength) {  // destination buffer too small
         if (outLength > 3) {
-            strcpy(out, "...");
+            strlcpy(out, "...", outLength);
         } else {
             out[0] = '\0';
         }

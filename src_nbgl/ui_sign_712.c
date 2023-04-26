@@ -25,7 +25,7 @@ static bool display_review_page(uint8_t page, nbgl_pageContent_t *content) {
     switch (page) {
         case 0:
             // limit the value to one page
-            nbgl_getTextMaxLenInNbLines(BAGL_FONT_INTER_REGULAR_32px,
+            nbgl_getTextMaxLenInNbLines(BAGL_FONT_INTER_MEDIUM_32px,
                                         strings.tmp.tmp,
                                         SCREEN_WIDTH - (2 * BORDER_MARGIN),
                                         9,

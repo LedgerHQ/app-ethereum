@@ -41,7 +41,7 @@ static bool display_message(nbgl_pageContent_t *content) {
         strncpy(staxSharedBuffer + eip191MessageIdx,
                 strings.tmp.tmp + stringsTmpTmpIdx,
                 SHARED_BUFFER_SIZE - eip191MessageIdx);
-        reached = nbgl_getTextMaxLenInNbLines(BAGL_FONT_INTER_REGULAR_32px,
+        reached = nbgl_getTextMaxLenInNbLines(BAGL_FONT_INTER_MEDIUM_32px,
                                               (char *) staxSharedBuffer,
                                               SCREEN_WIDTH - (2 * BORDER_MARGIN),
                                               9,

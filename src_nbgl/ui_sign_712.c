@@ -36,7 +36,7 @@ static uint32_t stringsIdx = 0;
 static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
     uint16_t len = 0;
     if (stringsIdx < strlen(strings.tmp.tmp)) {
-        bool reached = nbgl_getTextMaxLenInNbLines(BAGL_FONT_INTER_REGULAR_32px,
+        bool reached = nbgl_getTextMaxLenInNbLines(BAGL_FONT_INTER_MEDIUM_32px,
                                                    strings.tmp.tmp + stringsIdx,
                                                    SCREEN_WIDTH - (2 * BORDER_MARGIN),
                                                    9,

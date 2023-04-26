@@ -43,7 +43,7 @@ static bool nav_callback(uint8_t page, nbgl_pageContent_t *content) {
                 strings.tmp.tmp + stringsTmpTmpIdx,
                 MIN(SHARED_BUFFER_SIZE - eip191MessageIdx, SHARED_BUFFER_SIZE - stringsTmpTmpIdx));
             uint16_t len = 0;
-            bool reached = nbgl_getTextMaxLenInNbLines(BAGL_FONT_INTER_REGULAR_32px,
+            bool reached = nbgl_getTextMaxLenInNbLines(BAGL_FONT_INTER_MEDIUM_32px,
                                                        staxSharedBuffer,
                                                        SCREEN_WIDTH - (2 * BORDER_MARGIN),
                                                        9,

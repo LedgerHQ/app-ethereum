@@ -1,13 +1,14 @@
 from enum import IntEnum, auto
 from typing import List
 
-class   SettingType(IntEnum):
+class SettingType(IntEnum):
     BLIND_SIGNING = 0,
     DEBUG_DATA = auto()
     NONCE = auto()
     VERBOSE_EIP712 = auto()
+    VERBOSE_ENS = auto()
 
-class   SettingImpl:
+class SettingImpl:
     devices: List[str]
     value: bool
 

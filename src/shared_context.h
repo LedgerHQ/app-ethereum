@@ -24,13 +24,16 @@ typedef struct bip32_path_t {
 } bip32_path_t;
 
 typedef struct internalStorage_t {
-    unsigned char dataAllowed;
-    unsigned char contractDetails;
-    unsigned char displayNonce;
+    bool dataAllowed;
+    bool contractDetails;
+    bool displayNonce;
 #ifdef HAVE_EIP712_FULL_SUPPORT
     bool verbose_eip712;
 #endif  // HAVE_EIP712_FULL_SUPPORT
-    uint8_t initialized;
+#ifdef HAVE_DOMAIN_NAME
+    bool verbose_domain_name;
+#endif  // HAVE_DOMAIN_NAME
+    bool initialized;
 } internalStorage_t;
 
 #ifdef HAVE_STARKWARE
@@ -50,10 +53,9 @@ typedef enum starkQuantumType_e {
 
 typedef struct tokenContext_t {
     char pluginName[PLUGIN_ID_LENGTH];
-    uint8_t pluginStatus;
 
     uint8_t data[INT256_LENGTH];
-    uint8_t fieldIndex;
+    uint16_t fieldIndex;
     uint8_t fieldOffset;
 
     uint8_t pluginUiMaxItems;
@@ -65,8 +67,12 @@ typedef struct tokenContext_t {
             uint8_t contractAddress[ADDRESS_LENGTH];
             uint8_t methodSelector[SELECTOR_LENGTH];
         };
-        uint8_t pluginContext[5 * INT256_LENGTH];
+        // This needs to be strictly 4 bytes aligned since pointers to it will be casted as
+        // plugin context struct pointers (structs that contain up to 4 bytes wide elements)
+        uint8_t pluginContext[5 * INT256_LENGTH] __attribute__((aligned(4)));
     };
+
+    uint8_t pluginStatus;
 
 #ifdef HAVE_STARKWARE
     uint8_t quantum[32];
@@ -76,6 +82,8 @@ typedef struct tokenContext_t {
 #endif
 
 } tokenContext_t;
+
+_Static_assert((offsetof(tokenContext_t, pluginContext) % 4) == 0, "Plugin context not aligned");
 
 typedef struct publicKeyContext_t {
     cx_ecfp_public_key_t publicKey;
@@ -167,7 +175,7 @@ typedef enum {
 
 #define NETWORK_STRING_MAX_SIZE 16
 
-typedef struct txStringProperties_t {
+typedef struct txStringProperties_s {
     char fullAddress[43];
     char fullAmount[79];  // 2^256 is 78 digits long
     char maxFee[50];
@@ -182,7 +190,7 @@ typedef struct txStringProperties_t {
 #endif
 #define SHARED_CTX_FIELD_2_SIZE 40
 
-typedef struct strDataTmp_t {
+typedef struct strDataTmp_s {
     char tmp[SHARED_CTX_FIELD_1_SIZE];
     char tmp2[SHARED_CTX_FIELD_2_SIZE];
 } strDataTmp_t;

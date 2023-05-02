@@ -18,8 +18,8 @@ UX_STEP_NOCB(ux_stark_unsafe_sign_1_step,
     pnn,
     {
       &C_icon_warning,
-      "Unsafe",
-      "Stark Sign",
+      "StarkNet",
+      "Blind Sign",
     });
 
 UX_STEP_NOCB_INIT(
@@ -36,7 +36,7 @@ UX_STEP_NOCB_INIT(
   bnnn_paging,
   stark_unsafe_sign_display_hash(),
   {
-    .title = "Hash",
+    .title = "Tx Hash",
     .text = strings.tmp.tmp
   });
 

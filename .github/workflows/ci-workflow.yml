@@ -18,14 +18,14 @@ jobs:
       image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder-lite:latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Build with Clang Static Analyzer
         run: |
           make clean
           scan-build --use-cc=clang -analyze-headers -enable-checker security -enable-checker unix -enable-checker valist -o scan-build --status-bugs make default
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         if: failure()
         with:
           name: scan-build
@@ -42,7 +42,7 @@ jobs:
       image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder-lite:latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Build testing binaries
         run: |
@@ -50,7 +50,7 @@ jobs:
           cd tests/zemu/ && ./build_local_test_elfs.sh
 
       - name: Upload app binaries
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: e2e_zemu_elfs
           path: ./tests/zemu/elfs/
@@ -68,14 +68,14 @@ jobs:
           echo $DISPLAY
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - run: sudo apt-get update -y && sudo apt-get install -y libusb-1.0.0 libudev-dev
 
-      - name: Install node
-        uses: actions/setup-node@v2
+      - name: Install NodeJS
+        uses: actions/setup-node@v3
         with:
-          node-version: "14.4.0"
+          node-version: "16"
 
       - name: Install yarn
         run: npm install -g yarn
@@ -87,7 +87,7 @@ jobs:
         run: mkdir tests/zemu/elfs
 
       - name: Download app binaries
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           path: tmp/
 
@@ -109,7 +109,7 @@ jobs:
       image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder-lite:latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Build testing binaries
         run: |
@@ -119,7 +119,7 @@ jobs:
           make clean && make -j DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOSP_SDK && mv bin/app.elf tests/speculos/elfs/nanosp.elf
 
       - name: Upload app binaries
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: e2e_speculos_elfs
           path: ./tests/speculos/elfs
@@ -136,13 +136,13 @@ jobs:
 
     steps:
       - name: Clone
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Create tmp folder for artifacts
         run: mkdir tests/speculos/elfs
 
       - name: Download app binaries
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           path: tmp/
 
@@ -166,113 +166,18 @@ jobs:
 # =====================================================
 
   build_ragger_elfs:
-    name: Building binaries for Ragger tests
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder-lite:latest
-
-    steps:
-      - name: Clone
-        uses: actions/checkout@v2
-
-      - name: Build test binaries
-        run: |
-          make -j BOLOS_SDK=$NANOS_SDK CAL_TESTING_KEY=1
-          mv bin/app.elf app-nanos.elf
-          make clean
-          make -j BOLOS_SDK=$NANOX_SDK CAL_TESTING_KEY=1
-          mv bin/app.elf app-nanox.elf
-          make clean
-          make -j BOLOS_SDK=$NANOSP_SDK CAL_TESTING_KEY=1
-          mv bin/app.elf app-nanosp.elf
-
-      - name: Upload app binaries
-        uses: actions/upload-artifact@v2
-        with:
-          name: ragger_elfs
-          path: ./app-*.elf
-
-  create_ragger_env:
-    name: Cache Ragger environment
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Clone
-        uses: actions/checkout@v2
-
-      - name: APT update
-        run: |
-          sudo apt update
-
-      - name: Create virtual env with dependencies
-        run: |
-          cd tests/ragger
-          python3 -m venv ./venv
-          . ./venv/bin/activate
-          pip3 install --extra-index-url https://test.pypi.org/simple/ -r requirements.txt
-          # Used for the cache key
-          echo "py_deps=$(pip freeze | md5sum | cut -d' ' -f1)" >> $GITHUB_ENV
-
-      - name: Download QEMU
-        run: |
-          sudo apt install --download-only -y qemu-user-static
-          mkdir -p tests/ragger/packages
-          cp /var/cache/apt/archives/*.deb tests/ragger/packages/
-          # Used for the cache key
-          echo "deb_deps=$(find /var/cache/apt/archives/ -maxdepth 0 -type f -name '*.deb' | md5sum | cut -d' ' -f 1)" >> $GITHUB_ENV
-
-      - name: Set up cache
-        uses: actions/cache@v3
-        with:
-          key: ${{ runner.os }}-raggenv-${{ env.py_deps }}-${{ env.deb_deps }}
-          path: |
-            tests/ragger/venv/
-            tests/ragger/packages/
-    outputs:
-      py_deps: ${{ env.py_deps }}
-      deb_deps: ${{ env.deb_deps }}
-
+    name: Build app for Ragger tests
+    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_build.yml@v1
+    with:
+      upload_app_binaries_artifact: "ragger_elfs"
+      flags: "DEBUG=1 CAL_CI_KEY=1 DOMAIN_NAME_TEST_KEY=1"
+      run_for_devices: '["nanos", "nanox", "nanosp"]'
 
   jobs-ragger-tests:
-    name: Ragger tests
-    strategy:
-      matrix:
-        model: ["nanos", "nanox", "nanosp"]
-    needs: [build_ragger_elfs, create_ragger_env]
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Clone
-        uses: actions/checkout@v2
-
-      - name: Download previously built artifacts
-        uses: actions/download-artifact@v2
-        with:
-          name: ragger_elfs
-          path: tmp/
-
-      - name: Put them where they belong
-        run: |
-          mkdir -p tests/ragger/elfs
-          find tmp/ -type f -name '*.elf' -exec cp {} tests/ragger/elfs/ \;
-
-      - name: Get cached environment
-        uses: actions/cache@v3
-        with:
-          key: ${{ runner.os }}-raggenv-${{ needs.create_ragger_env.outputs.py_deps }}-${{ needs.create_ragger_env.outputs.deb_deps }}
-          path: |
-            tests/ragger/venv/
-            tests/ragger/packages/
-
-      - name: Install QEMU
-        run: |
-          sudo mv tests/ragger/packages/*.deb /var/cache/apt/archives/
-          sudo apt install -y qemu-user-static
-
-      - name: Run tests
-        env:
-          CAL_SIGNATURE_TEST_KEY: ${{ secrets.CAL_SIGNATURE_TEST_KEY }}
-        run: |
-          cd tests/ragger
-          . ./venv/bin/activate
-          pytest --path ./elfs --model ${{ matrix.model }} -s -v
+    name: Run Ragger tests
+    needs: build_ragger_elfs
+    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_ragger_tests.yml@v1
+    with:
+      download_app_binaries_artifact: "ragger_elfs"
+      test_dir: tests/ragger
+      run_for_devices: '["nanos", "nanox", "nanosp"]'

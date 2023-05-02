@@ -230,18 +230,20 @@ bool tostring256(const uint256_t *const number,
     UPPER(LOWER(base)) = 0;
     LOWER(LOWER(base)) = baseParam;
     uint32_t offset = 0;
-    if ((baseParam < 2) || (baseParam > 16)) {
+    if ((outLength == 0) || (baseParam < 2) || (baseParam > 16)) {
         return false;
     }
     do {
-        if (offset > (outLength - 1)) {
-            return false;
-        }
         divmod256(&rDiv, &base, &rDiv, &rMod);
         out[offset++] = HEXDIGITS[(uint8_t) LOWER(LOWER(rMod))];
-    } while (!zero256(&rDiv));
+    } while (!zero256(&rDiv) && (offset < outLength));
 
-    if (offset > (outLength - 1)) {
+    if (offset == outLength) {  // destination buffer too small
+        if (outLength > 3) {
+            strlcpy(out, "...", outLength);
+        } else {
+            out[0] = '\0';
+        }
         return false;
     }
 

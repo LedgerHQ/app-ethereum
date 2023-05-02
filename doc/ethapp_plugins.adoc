@@ -134,6 +134,17 @@ The following return codes are expected, any other will abort the signing proces
   * ETH_PLUGIN_RESULT_OK : if the plugin can be successfully initialized
   * ETH_PLUGIN_RESULT_FALLBACK : if the signing logic should fallback to the generic one
 
+There are already defined functions to extract data from a parameter:
+[source,C]
+----
+void copy_address(uint8_t* dst, const uint8_t* parameter, uint8_t dst_size);
+void copy_parameter(uint8_t* dst, const uint8_t* parameter, uint8_t dst_size);
+
+// Get the value from the beginning of the parameter (right to left) and check if the rest of it is zero
+bool U2BE_from_parameter(const uint8_t* parameter, uint16_t* value);
+bool U4BE_from_parameter(const uint8_t* parameter, uint32_t* value);
+----
+
 ### ETH_PLUGIN_FINALIZE
 
 [source,C]

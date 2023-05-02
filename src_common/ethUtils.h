@@ -66,7 +66,7 @@ bool adjustDecimals(const char *src,
                     size_t targetLength,
                     uint8_t decimals);
 
-static __attribute__((no_instrument_function)) inline int allzeroes(void *buf, size_t n) {
+static __attribute__((no_instrument_function)) inline int allzeroes(const void *buf, size_t n) {
     uint8_t *p = (uint8_t *) buf;
     for (size_t i = 0; i < n; ++i) {
         if (p[i]) {

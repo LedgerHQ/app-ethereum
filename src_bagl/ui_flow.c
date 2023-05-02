@@ -7,13 +7,26 @@
 #define DISABLED_STR  "Disabled"
 #define BUF_INCREMENT (MAX(strlen(ENABLED_STR), strlen(DISABLED_STR)) + 1)
 
-void display_settings(const ux_flow_step_t* const start_step);
-void switch_settings_blind_signing(void);
-void switch_settings_display_data(void);
-void switch_settings_display_nonce(void);
+// Reuse the strings.common.fullAmount buffer for settings displaying.
+// No risk of collision as this buffer is unused in the settings menu
+#define SETTING_BLIND_SIGNING_STATE       (strings.common.fullAmount)
+#define SETTING_DISPLAY_DATA_STATE        (strings.common.fullAmount + (BUF_INCREMENT * 1))
+#define SETTING_DISPLAY_NONCE_STATE       (strings.common.fullAmount + (BUF_INCREMENT * 2))
+#define SETTING_VERBOSE_EIP712_STATE      (strings.common.fullAmount + (BUF_INCREMENT * 3))
+#define SETTING_VERBOSE_DOMAIN_NAME_STATE (strings.common.fullAmount + (BUF_INCREMENT * 4))
+
+#define BOOL_TO_STATE_STR(b) (b ? ENABLED_STR : DISABLED_STR)
+
+static void display_settings(const ux_flow_step_t* const start_step);
+static void switch_settings_blind_signing(void);
+static void switch_settings_display_data(void);
+static void switch_settings_display_nonce(void);
 #ifdef HAVE_EIP712_FULL_SUPPORT
-void switch_settings_verbose_eip712(void);
+static void switch_settings_verbose_eip712(void);
 #endif  // HAVE_EIP712_FULL_SUPPORT
+#ifdef HAVE_DOMAIN_NAME
+static void switch_settings_verbose_domain_name(void);
+#endif  // HAVE_DOMAIN_NAME
 
 //////////////////////////////////////////////////////////////////////
 // clang-format off
@@ -75,7 +88,7 @@ UX_STEP_CB(
       "Transaction",
       "blind signing",
 #endif
-      strings.common.fullAddress
+      SETTING_BLIND_SIGNING_STATE
     });
 
 UX_STEP_CB(
@@ -95,7 +108,7 @@ UX_STEP_CB(
       "Show contract data",
       "details",
 #endif
-      strings.common.fullAddress + BUF_INCREMENT
+      SETTING_DISPLAY_DATA_STATE
     });
 
 UX_STEP_CB(
@@ -115,7 +128,7 @@ UX_STEP_CB(
       "Show account nonce",
       "in transactions",
 #endif
-      strings.common.fullAddress + (BUF_INCREMENT * 2)
+      SETTING_DISPLAY_NONCE_STATE
     });
 
 #ifdef HAVE_EIP712_FULL_SUPPORT
@@ -127,9 +140,22 @@ UX_STEP_CB(
       "Verbose EIP-712",
       "Ignore filtering &",
       "display raw content",
-      strings.common.fullAddress + (BUF_INCREMENT * 3)
+      SETTING_VERBOSE_EIP712_STATE
     });
 #endif // HAVE_EIP712_FULL_SUPPORT
+
+#ifdef HAVE_DOMAIN_NAME
+UX_STEP_CB(
+    ux_settings_flow_verbose_domain_name_step,
+    bnnn,
+    switch_settings_verbose_domain_name(),
+    {
+      "Verbose domains",
+      "Show",
+      "resolved address",
+      SETTING_VERBOSE_DOMAIN_NAME_STATE
+    });
+#endif // HAVE_DOMAIN_NAME
 
 
 UX_STEP_CB(
@@ -149,53 +175,60 @@ UX_FLOW(ux_settings_flow,
 #ifdef HAVE_EIP712_FULL_SUPPORT
         &ux_settings_flow_verbose_eip712_step,
 #endif  // HAVE_EIP712_FULL_SUPPORT
+#ifdef HAVE_DOMAIN_NAME
+        &ux_settings_flow_verbose_domain_name_step,
+#endif  // HAVE_DOMAIN_NAME
         &ux_settings_flow_back_step);
 
-void display_settings(const ux_flow_step_t* const start_step) {
-    bool settings[] = {N_storage.dataAllowed,
-                       N_storage.contractDetails,
-                       N_storage.displayNonce,
+static void display_settings(const ux_flow_step_t* const start_step) {
+    strlcpy(SETTING_BLIND_SIGNING_STATE, BOOL_TO_STATE_STR(N_storage.dataAllowed), BUF_INCREMENT);
+    strlcpy(SETTING_DISPLAY_DATA_STATE,
+            BOOL_TO_STATE_STR(N_storage.contractDetails),
+            BUF_INCREMENT);
+    strlcpy(SETTING_DISPLAY_NONCE_STATE, BOOL_TO_STATE_STR(N_storage.displayNonce), BUF_INCREMENT);
 #ifdef HAVE_EIP712_FULL_SUPPORT
-                       N_storage.verbose_eip712
+    strlcpy(SETTING_VERBOSE_EIP712_STATE,
+            BOOL_TO_STATE_STR(N_storage.verbose_eip712),
+            BUF_INCREMENT);
 #endif  // HAVE_EIP712_FULL_SUPPORT
-    };
-    uint8_t offset = 0;
-
-    for (unsigned int i = 0; i < ARRAY_SIZE(settings); ++i) {
-        strlcpy(strings.common.fullAddress + offset,
-                (settings[i] ? ENABLED_STR : DISABLED_STR),
-                sizeof(strings.common.fullAddress) - offset);
-        offset += BUF_INCREMENT;
-    }
+#ifdef HAVE_DOMAIN_NAME
+    strlcpy(SETTING_VERBOSE_DOMAIN_NAME_STATE,
+            BOOL_TO_STATE_STR(N_storage.verbose_domain_name),
+            BUF_INCREMENT);
+#endif  // HAVE_DOMAIN_NAME
 
     ux_flow_init(0, ux_settings_flow, start_step);
 }
 
-void switch_settings_blind_signing(void) {
-    uint8_t value = (N_storage.dataAllowed ? 0 : 1);
-    nvm_write((void*) &N_storage.dataAllowed, (void*) &value, sizeof(uint8_t));
-    display_settings(&ux_settings_flow_blind_signing_step);
+static void toggle_setting(volatile bool* setting, const ux_flow_step_t* ui_step) {
+    bool value = !*setting;
+    nvm_write((void*) setting, (void*) &value, sizeof(value));
+    display_settings(ui_step);
 }
 
-void switch_settings_display_data(void) {
-    uint8_t value = (N_storage.contractDetails ? 0 : 1);
-    nvm_write((void*) &N_storage.contractDetails, (void*) &value, sizeof(uint8_t));
-    display_settings(&ux_settings_flow_display_data_step);
+static void switch_settings_blind_signing(void) {
+    toggle_setting(&N_storage.dataAllowed, &ux_settings_flow_blind_signing_step);
 }
 
-void switch_settings_display_nonce(void) {
-    uint8_t value = (N_storage.displayNonce ? 0 : 1);
-    nvm_write((void*) &N_storage.displayNonce, (void*) &value, sizeof(uint8_t));
-    display_settings(&ux_settings_flow_display_nonce_step);
+static void switch_settings_display_data(void) {
+    toggle_setting(&N_storage.contractDetails, &ux_settings_flow_display_data_step);
+}
+
+static void switch_settings_display_nonce(void) {
+    toggle_setting(&N_storage.displayNonce, &ux_settings_flow_display_nonce_step);
 }
 
 #ifdef HAVE_EIP712_FULL_SUPPORT
-void switch_settings_verbose_eip712(void) {
-    bool value = !N_storage.verbose_eip712;
-    nvm_write((void*) &N_storage.verbose_eip712, (void*) &value, sizeof(value));
-    display_settings(&ux_settings_flow_verbose_eip712_step);
+static void switch_settings_verbose_eip712(void) {
+    toggle_setting(&N_storage.verbose_eip712, &ux_settings_flow_verbose_eip712_step);
 }
 #endif  // HAVE_EIP712_FULL_SUPPORT
+
+#ifdef HAVE_DOMAIN_NAME
+static void switch_settings_verbose_domain_name(void) {
+    toggle_setting(&N_storage.verbose_domain_name, &ux_settings_flow_verbose_domain_name_step);
+}
+#endif  // HAVE_DOMAIN_NAME
 
 //////////////////////////////////////////////////////////////////////
 // clang-format off

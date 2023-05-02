@@ -29,6 +29,8 @@
 #include "handle_get_printable_amount.h"
 #include "handle_check_address.h"
 #include "commands_712.h"
+#include "challenge.h"
+#include "domain_name.h"
 
 #ifdef HAVE_STARKWARE
 #include "stark_crypto.h"
@@ -228,8 +230,8 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
         case CHAIN_KIND_VOLTA:
             numTokens = NUM_TOKENS_VOLTA;
             break;
-        case CHAIN_KIND_EWC:
-            numTokens = NUM_TOKENS_EWC;
+        case CHAIN_KIND_ENERGYWEBCHAIN:
+            numTokens = NUM_TOKENS_ENERGYWEBCHAIN;
             break;
         case CHAIN_KIND_WEBCHAIN:
             numTokens = NUM_TOKENS_WEBCHAIN;
@@ -293,6 +295,12 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
             break;
         case CHAIN_KIND_APOTHEMNETWORK:
             numTokens = NUM_TOKENS_APOTHEMNETWORK;
+            break;
+        case CHAIN_KIND_ID4GOOD:
+            numTokens = NUM_TOKENS_ID4GOOD;
+            break;
+        case CHAIN_KIND_OASYS:
+            numTokens = NUM_TOKENS_OASYS;
             break;
     }
     for (i = 0; i < numTokens; i++) {
@@ -381,8 +389,8 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
             case CHAIN_KIND_VOLTA:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_VOLTA[i]);
                 break;
-            case CHAIN_KIND_EWC:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_EWC[i]);
+            case CHAIN_KIND_ENERGYWEBCHAIN:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_ENERGYWEBCHAIN[i]);
                 break;
             case CHAIN_KIND_WEBCHAIN:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_WEBCHAIN[i]);
@@ -446,6 +454,12 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
                 break;
             case CHAIN_KIND_APOTHEMNETWORK:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_APOTHEMNETWORK[i]);
+                break;
+            case CHAIN_KIND_ID4GOOD:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_ID4GOOD[i]);
+                break;
+            case CHAIN_KIND_OASYS:
+                currentToken = (tokenDefinition_t *) PIC(&TOKENS_OASYS[i]);
                 break;
         }
         if (memcmp(currentToken->address, tmpContent.txContent.destination, ADDRESS_LENGTH) == 0) {
@@ -667,10 +681,12 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                 case INS_SIGN_PERSONAL_MESSAGE:
                     memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
                     *flags |= IO_ASYNCH_REPLY;
-                    handleSignPersonalMessage(G_io_apdu_buffer[OFFSET_P1],
-                                              G_io_apdu_buffer[OFFSET_P2],
-                                              G_io_apdu_buffer + OFFSET_CDATA,
-                                              G_io_apdu_buffer[OFFSET_LC]);
+                    if (!handleSignPersonalMessage(G_io_apdu_buffer[OFFSET_P1],
+                                                   G_io_apdu_buffer[OFFSET_P2],
+                                                   G_io_apdu_buffer + OFFSET_CDATA,
+                                                   G_io_apdu_buffer[OFFSET_LC])) {
+                        reset_app_context();
+                    }
                     break;
 
                 case INS_SIGN_EIP_712_MESSAGE:
@@ -734,6 +750,19 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                     handle_eip712_filtering(G_io_apdu_buffer);
                     break;
 #endif  // HAVE_EIP712_FULL_SUPPORT
+
+#ifdef HAVE_DOMAIN_NAME
+                case INS_ENS_GET_CHALLENGE:
+                    handle_get_challenge();
+                    break;
+
+                case INS_ENS_PROVIDE_INFO:
+                    handle_provide_domain_name(G_io_apdu_buffer[OFFSET_P1],
+                                               G_io_apdu_buffer[OFFSET_P2],
+                                               G_io_apdu_buffer + OFFSET_CDATA,
+                                               G_io_apdu_buffer[OFFSET_LC]);
+                    break;
+#endif  // HAVE_DOMAIN_NAME
 
 #if 0
         case 0xFF: // return to dashboard
@@ -912,7 +941,7 @@ void app_exit() {
 
 void init_coin_config(chain_config_t *coin_config) {
     memset(coin_config, 0, sizeof(chain_config_t));
-    strcpy(coin_config->coinName, CHAINID_COINNAME " ");
+    strcpy(coin_config->coinName, CHAINID_COINNAME);
     coin_config->chainId = CHAIN_ID;
     coin_config->kind = CHAIN_KIND;
 }
@@ -940,16 +969,22 @@ void coin_main(chain_config_t *coin_config) {
                 G_io_app.plane_mode = os_setting_get(OS_SETTING_PLANEMODE, NULL, 0);
 #endif  // TARGET_NANOX
 
-                if (N_storage.initialized != 0x01) {
+                if (!N_storage.initialized) {
                     internalStorage_t storage;
 #ifdef HAVE_ALLOW_DATA
-                    storage.dataAllowed = 0x01;
+                    storage.dataAllowed = true;
 #else
-                    storage.dataAllowed = 0x00;
+                    storage.dataAllowed = false;
 #endif
-                    storage.contractDetails = 0x00;
-                    storage.displayNonce = 0x00;
-                    storage.initialized = 0x01;
+                    storage.contractDetails = false;
+                    storage.displayNonce = false;
+#ifdef HAVE_EIP712_FULL_SUPPORT
+                    storage.verbose_eip712 = false;
+#endif
+#ifdef HAVE_DOMAIN_NAME
+                    storage.verbose_domain_name = false;
+#endif
+                    storage.initialized = true;
                     nvm_write((void *) &N_storage, (void *) &storage, sizeof(internalStorage_t));
                 }
 
@@ -962,6 +997,11 @@ void coin_main(chain_config_t *coin_config) {
                 BLE_power(0, NULL);
                 BLE_power(1, "Nano X");
 #endif  // HAVE_BLE
+
+#ifdef HAVE_DOMAIN_NAME
+                // to prevent it from having a fixed value at boot
+                roll_challenge();
+#endif  // HAVE_DOMAIN_NAME
 
                 app_main();
             }

@@ -1067,7 +1067,7 @@ void library_main(struct libargs_s *args) {
         init_coin_config(&coin_config);
         args->chain_config = &coin_config;
     }
-    bool end = false;
+    volatile bool end = false;
     /* This loop ensures that library_main_helper and os_lib_end are called
      * within a try context, even if an exception is thrown */
     while (1) {

@@ -1,4 +1,5 @@
 #include "os_io_seproxyhal.h"
+#include "os.h"
 #include "ux.h"
 #include "handle_swap_sign_transaction.h"
 #include "shared_context.h"
@@ -45,6 +46,7 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
                    stack_data.maxFee,
                    sizeof(stack_data.maxFee));
 
+    os_explicit_zero_BSS_segment();
     memcpy(&strings.common, &stack_data, sizeof(stack_data));
     return true;
 }

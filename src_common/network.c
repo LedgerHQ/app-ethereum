@@ -7,6 +7,8 @@
 #include "shared_context.h"
 #include "utils.h"
 
+typedef enum { APP, TX } e_net_type;
+
 // Mappping of chain ids to networks.
 static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 1, .name = "Ethereum", .ticker = "ETH"},
@@ -64,7 +66,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 39797, .name = "Energi", .ticker = "NRG"},
     {.chain_id = 248, .name = "Oasys", .ticker = "OAS"}};
 
-uint64_t get_chain_id(void) {
+uint64_t get_tx_chain_id(void) {
     uint64_t chain_id = 0;
 
     switch (txContext.txType) {
@@ -83,8 +85,16 @@ uint64_t get_chain_id(void) {
     return chain_id;
 }
 
-const network_info_t *get_network(void) {
-    uint64_t chain_id = get_chain_id();
+uint64_t get_app_chain_id(void) {
+    return chainConfig->chainId;
+}
+
+static uint64_t get_chain_id(e_net_type type) {
+    return (type == APP) ? get_app_chain_id() : get_tx_chain_id();
+}
+
+static const network_info_t *get_network(e_net_type type) {
+    uint64_t chain_id = get_chain_id(type);
     for (size_t i = 0; i < sizeof(NETWORK_MAPPING) / sizeof(*NETWORK_MAPPING); i++) {
         if (NETWORK_MAPPING[i].chain_id == chain_id) {
             return (const network_info_t *) PIC(&NETWORK_MAPPING[i]);
@@ -93,8 +103,8 @@ const network_info_t *get_network(void) {
     return NULL;
 }
 
-const char *get_network_name(void) {
-    const network_info_t *network = get_network();
+static const char *get_network_name(e_net_type type) {
+    const network_info_t *network = get_network(type);
     if (network == NULL) {
         return NULL;
     } else {
@@ -102,11 +112,27 @@ const char *get_network_name(void) {
     }
 }
 
-const char *get_network_ticker(void) {
-    const network_info_t *network = get_network();
+const char *get_app_network_name(void) {
+    return get_network_name(APP);
+}
+
+const char *get_tx_network_name(void) {
+    return get_network_name(TX);
+}
+
+static const char *get_network_ticker(e_net_type type) {
+    const network_info_t *network = get_network(type);
     if (network == NULL) {
         return chainConfig->coinName;
     } else {
         return (char *) PIC(network->ticker);
     }
+}
+
+const char *get_app_network_ticker(void) {
+    return get_network_ticker(APP);
+}
+
+const char *get_tx_network_ticker(void) {
+    return get_network_ticker(TX);
 }

@@ -3,7 +3,7 @@
 #include "nbgl_use_case.h"
 
 static const char* const infoTypes[] = {"Version", APPNAME " App"};
-static const char* const infoContents[] = {APPVERSION, "(c) 2022 Ledger"};
+static const char* const infoContents[] = {APPVERSION, "(c) " BUILD_YEAR " Ledger"};
 
 enum {
     BLIND_SIGNING_TOKEN = FIRST_USER_TOKEN,

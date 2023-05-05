@@ -5,6 +5,7 @@
 #include "ui_nbgl.h"
 #include "network.h"
 #include "plugins.h"
+#include "domain_name.h"
 
 // 1 more than actually displayed on screen, because of calculations in StaticReview
 #define MAX_PLUGIN_ITEMS_PER_SCREEN 4
@@ -27,6 +28,9 @@ struct tx_approval_context_t {
     bool fromPlugin;
     bool blindSigning;
     bool displayNetwork;
+#ifdef HAVE_DOMAIN_NAME
+    bool domain_name_match;
+#endif
 };
 
 static struct tx_approval_context_t tx_approval_context;
@@ -35,10 +39,12 @@ static void reviewContinueCommon(void);
 
 static void reviewReject(void) {
     io_seproxyhal_touch_tx_cancel(NULL);
+    memset(&tx_approval_context, 0, sizeof(tx_approval_context));
 }
 
 static void confirmTransation(void) {
     io_seproxyhal_touch_tx_ok(NULL);
+    memset(&tx_approval_context, 0, sizeof(tx_approval_context));
 }
 
 static void onConfirmAbandon(void) {
@@ -88,32 +94,41 @@ static nbgl_layoutTagValue_t *getTagValuePair(uint8_t pairIndex) {
             }
         }
     } else {
-        // if displayNonce is false, we skip index 2
-        if ((pairIndex > 1) && (!N_storage.displayNonce)) {
-            pairIndex++;
-        }
+        uint8_t target_index = 0;
 
-        switch (pairIndex) {
-            case 0:
-                pair.item = "Amount";
-                pair.value = strings.common.fullAmount;
-                break;
-            case 1:
+        if (pairIndex == target_index++) {
+            pair.item = "Amount";
+            pair.value = strings.common.fullAmount;
+        }
+#ifdef HAVE_DOMAIN_NAME
+        if (tx_approval_context.domain_name_match) {
+            if (pairIndex == target_index++) {
+                pair.item = "Domain";
+                pair.value = g_domain_name;
+            }
+        }
+        if (!tx_approval_context.domain_name_match || N_storage.verbose_domain_name) {
+#endif  // HAVE_DOMAIN_NAME
+            if (pairIndex == target_index++) {
                 pair.item = "Address";
                 pair.value = strings.common.fullAddress;
-                break;
-            case 2:
+            }
+#ifdef HAVE_DOMAIN_NAME
+        }
+#endif  // HAVE_DOMAIN_NAME
+        if (N_storage.displayNonce) {
+            if (pairIndex == target_index++) {
                 pair.item = "Nonce";
                 pair.value = strings.common.nonce;
-                break;
-            case 3:
-                pair.item = "Max fees";
-                pair.value = strings.common.maxFee;
-                break;
-            case 4:
-                pair.item = "Network";
-                pair.value = strings.common.network_name;
-                break;
+            }
+        }
+        if (pairIndex == target_index++) {
+            pair.item = "Max fees";
+            pair.value = strings.common.maxFee;
+        }
+        if (pairIndex == target_index++) {
+            pair.item = "Network";
+            pair.value = strings.common.network_name;
         }
     }
     // counter is used as index to circular buffer
@@ -177,6 +192,14 @@ static void reviewContinueCommon(void) {
         if (N_storage.displayNonce) {
             nbPairs++;
         }
+#ifdef HAVE_DOMAIN_NAME
+        uint64_t chain_id = get_tx_chain_id();
+        tx_approval_context.domain_name_match =
+            has_domain_name(&chain_id, tmpContent.txContent.destination);
+        if (tx_approval_context.domain_name_match && N_storage.verbose_domain_name) {
+            nbPairs += 1;
+        }
+#endif  // HAVE_DOMAIN_NAME
         if (tx_approval_context.displayNetwork) {
             nbPairs++;
         }

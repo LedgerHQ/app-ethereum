@@ -98,7 +98,6 @@ DEFINES   += USB_SEGMENT_SIZE=64
 DEFINES   += BLE_SEGMENT_SIZE=32 #max MTU, min 20
 DEFINES   += UNUSED\(x\)=\(void\)x
 DEFINES   += APPVERSION=\"$(APPVERSION)\"
-DEFINES   += HAVE_UX_FLOW
 
 #WEBUSB_URL     = www.ledgerwallet.com
 #DEFINES       += HAVE_WEBUSB WEBUSB_URL_SIZE_B=$(shell echo -n $(WEBUSB_URL) | wc -c) WEBUSB_URL=$(shell echo -n $(WEBUSB_URL) | sed -e "s/./\\\'\0\\\',/g")
@@ -106,21 +105,22 @@ DEFINES   += HAVE_UX_FLOW
 DEFINES   += HAVE_WEBUSB WEBUSB_URL_SIZE_B=0 WEBUSB_URL=""
 
 ifneq (,$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX))
-DEFINES   += IO_SEPROXYHAL_BUFFER_SIZE_B=300
 DEFINES   += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000
 DEFINES   += HAVE_BLE_APDU # basic ledger apdu transport over BLE
 SDK_SOURCE_PATH  += lib_blewbxx lib_blewbxx_impl
 endif
 
-ifneq (,$(filter $(TARGET_NAME),TARGET_NANOS TARGET_NANOS2))
-DEFINES   += IO_SEPROXYHAL_BUFFER_SIZE_B=72
+ifeq ($(TARGET_NAME),TARGET_NANOS)
+DEFINES   += IO_SEPROXYHAL_BUFFER_SIZE_B=128
+else
+DEFINES   += IO_SEPROXYHAL_BUFFER_SIZE_B=300
 endif
 
 ifeq  ($(TARGET_NAME),TARGET_STAX)
-DEFINES   += HAVE_NBGL
 DEFINES   += NBGL_QRCODE
 else
 DEFINES   += HAVE_BAGL
+DEFINES   += HAVE_UX_FLOW
 ifeq ($(TARGET_NAME),TARGET_NANOS)
 DEFINES   += HAVE_WALLET_ID_SDK
 DEFINES   += BAGL_WIDTH=128 BAGL_HEIGHT=32
@@ -236,7 +236,6 @@ include $(BOLOS_SDK)/Makefile.glyphs
 APP_SOURCE_PATH  += src_common src src_features src_plugins
 SDK_SOURCE_PATH  += lib_stusb lib_stusb_impl lib_u2f
 ifeq  ($(TARGET_NAME),TARGET_STAX)
-SDK_SOURCE_PATH  += lib_ux_stax
 APP_SOURCE_PATH  += src_nbgl
 else
 SDK_SOURCE_PATH  += lib_ux

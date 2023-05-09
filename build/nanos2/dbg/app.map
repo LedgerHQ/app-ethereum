@@ -1,0 +1,117 @@
+     VMA      LMA     Size Align Out     In      Symbol
+       0        0        0     1 PAGE_SIZE = 512
+       0        0        0     1 STACK_SIZE = 1500
+       0        0        0     1 END_STACK = ORIGIN ( SRAM ) + LENGTH ( SRAM )
+c0de0000 c0de0000      200     4 .text
+c0de0000 c0de0000        0     1         _text = .
+c0de0000 c0de0000        0     1         _nvram_start = .
+c0de0000 c0de0000       a4     4         build/nanos2/obj/main.o:(.boot)
+c0de0000 c0de0000        0     1                 $t.29
+c0de0001 c0de0001       a4     1                 main
+c0de0098 c0de0098        0     1                 $d.30
+c0de00a4 c0de00a4       12     2         build/nanos2/obj/main.o:(.text.check_api_level)
+c0de00a4 c0de00a4        0     1                 $t.31
+c0de00a5 c0de00a5       12     1                 check_api_level
+c0de00b6 c0de00b6        c     2         build/nanos2/obj/os.o:(.text.os_longjmp)
+c0de00b6 c0de00b6        0     1                 $t.3
+c0de00b7 c0de00b7        c     1                 os_longjmp
+c0de00c2 c0de00c2        e     2         build/nanos2/obj/svc_call.o:(.text)
+c0de00c2 c0de00c2        0     1                 $t
+c0de00c3 c0de00c3        0     1                 SVC_Call
+c0de00ca c0de00ca        0     1                 exception
+c0de00d0 c0de00d0       12     2         build/nanos2/obj/syscalls.o:(.text.get_api_level)
+c0de00d0 c0de00d0        0     1                 $t.0
+c0de00d1 c0de00d1       12     1                 get_api_level
+c0de00e4 c0de00e4       14     4         build/nanos2/obj/syscalls.o:(.text.os_lib_call)
+c0de00e4 c0de00e4        0     1                 $t.221
+c0de00e5 c0de00e5       14     1                 os_lib_call
+c0de00f4 c0de00f4        0     1                 $d.222
+c0de00f8 c0de00f8       10     2         build/nanos2/obj/syscalls.o:(.text.os_lib_end)
+c0de00f8 c0de00f8        0     1                 $t.223
+c0de00f9 c0de00f9       10     1                 os_lib_end
+c0de0108 c0de0108       18     4         build/nanos2/obj/syscalls.o:(.text.os_sched_exit)
+c0de0108 c0de0108        0     1                 $t.251
+c0de0109 c0de0109       18     1                 os_sched_exit
+c0de011c c0de011c        0     1                 $d.252
+c0de0120 c0de0120       10     2         build/nanos2/obj/syscalls.o:(.text.try_context_get)
+c0de0120 c0de0120        0     1                 $t.268
+c0de0121 c0de0121       10     1                 try_context_get
+c0de0130 c0de0130       14     4         build/nanos2/obj/syscalls.o:(.text.try_context_set)
+c0de0130 c0de0130        0     1                 $t.269
+c0de0131 c0de0131       14     1                 try_context_set
+c0de0140 c0de0140        0     1                 $d.270
+c0de0144 c0de0144        8     2         build/nanos2/obj/syscalls.o:(.text.OUTLINED_FUNCTION_0)
+c0de0144 c0de0144        0     1                 $t.293
+c0de0145 c0de0145        8     1                 OUTLINED_FUNCTION_0
+c0de014c c0de014c        6     2         /opt/nanosplus-secure-sdk/arch/st33k1/lib/libc.a(lib_a-aeabi_memclr.o):(.text.__aeabi_memclr)
+c0de014c c0de014c        0     1                 $t
+c0de014d c0de014d        6     1                 __aeabi_memclr
+c0de014d c0de014d        6     1                 __aeabi_memclr8
+c0de014d c0de014d        6     1                 __aeabi_memclr4
+c0de0152 c0de0152        a     2         /opt/nanosplus-secure-sdk/arch/st33k1/lib/libc.a(lib_a-aeabi_memset.o):(.text.__aeabi_memset)
+c0de0152 c0de0152        0     1                 $t
+c0de0153 c0de0153        a     1                 __aeabi_memset
+c0de0153 c0de0153        a     1                 __aeabi_memset8
+c0de0153 c0de0153        a     1                 __aeabi_memset4
+c0de015c c0de015c       10     2         /opt/nanosplus-secure-sdk/arch/st33k1/lib/libc.a(lib_a-memset.o):(.text.memset)
+c0de015c c0de015c        0     1                 $t
+c0de015d c0de015d       10     1                 memset
+c0de016c c0de016c       1c     4         /opt/nanosplus-secure-sdk/arch/st33k1/lib/libc.a(lib_a-setjmp.o):(.text)
+c0de016c c0de016c        0     1                 $t
+c0de016d c0de016d        c     1                 setjmp
+c0de0179 c0de0179        e     1                 longjmp
+c0de0188 c0de0188        9     1         <internal>:(.text)
+c0de0191 c0de0191        3     1         . = ALIGN ( 4 )
+c0de0194 c0de0194        0     1         _etext = .
+c0de0194 c0de0194       6c     1         . = ALIGN ( PAGE_SIZE )
+c0de0200 c0de0200        0     1         _nvram_data = .
+c0de0200 c0de0200        0     1         . = ALIGN ( PAGE_SIZE )
+c0de0200 c0de0200        0     1         _envram_data = .
+c0de0200 c0de0200        0     1         _install_parameters = .
+c0de0200 c0de0200        0     1         _nvram_end = .
+d0000000 d0000000        0     1 .data
+d0000000 d0000000        0     1         . = ALIGN ( 4 )
+d0000000 d0000000        0     1         _data = .
+d0000000 d0000000        0     1         _edata = .
+da7a0000 da7a0000      5e0     1 .bss
+da7a0000 da7a0000        0     1         _bss = .
+da7a0000 da7a0000        0     1         _ebss = .
+da7a0000 da7a0000        0     1         . = ALIGN ( 4 )
+da7a0000 da7a0000        0     1         app_stack_canary = .
+da7a0000 da7a0000        4     1         . += 4
+da7a0004 da7a0004        0     1         _stack_validation = .
+da7a0004 da7a0004      5dc     1         . = _stack_validation + STACK_SIZE
+da7a05e0 da7a05e0        0     1         _stack = ABSOLUTE ( END_STACK ) - STACK_SIZE
+da7a05e0 da7a05e0        0     1         _estack = ABSOLUTE ( END_STACK )
+d0000000 d0000000       10     4 DEBUG
+d0000000 d0000000       10     4         <internal>:(.ARM.exidx)
+       0        0       30     1 .comment
+       0        0       30     1         <internal>:(.comment)
+       0        0      280     4 .debug_frame
+       0        0       2c     4         /opt/nanosplus-secure-sdk/arch/st33k1/lib/libgcc.a(_aeabi_uldivmod.o):(.debug_frame)
+      2c       2c       38     4         /opt/nanosplus-secure-sdk/arch/st33k1/lib/libgcc.a(_udivmoddi4.o):(.debug_frame)
+      64       64       20     4         /opt/nanosplus-secure-sdk/arch/st33k1/lib/libc.a(lib_a-aeabi_memclr.o):(.debug_frame)
+      84       84       20     4         /opt/nanosplus-secure-sdk/arch/st33k1/lib/libc.a(lib_a-aeabi_memcpy.o):(.debug_frame)
+      a4       a4       20     4         /opt/nanosplus-secure-sdk/arch/st33k1/lib/libc.a(lib_a-aeabi_memmove.o):(.debug_frame)
+      c4       c4       20     4         /opt/nanosplus-secure-sdk/arch/st33k1/lib/libc.a(lib_a-aeabi_memset.o):(.debug_frame)
+      e4       e4       20     4         /opt/nanosplus-secure-sdk/arch/st33k1/lib/libc.a(lib_a-explicit_bzero.o):(.debug_frame)
+     104      104       20     4         /opt/nanosplus-secure-sdk/arch/st33k1/lib/libc.a(lib_a-bzero.o):(.debug_frame)
+     124      124       28     4         /opt/nanosplus-secure-sdk/arch/st33k1/lib/libc.a(lib_a-memcmp.o):(.debug_frame)
+     14c      14c       28     4         /opt/nanosplus-secure-sdk/arch/st33k1/lib/libc.a(lib_a-memcpy-stub.o):(.debug_frame)
+     174      174       28     4         /opt/nanosplus-secure-sdk/arch/st33k1/lib/libc.a(lib_a-memmove.o):(.debug_frame)
+     19c      19c       20     4         /opt/nanosplus-secure-sdk/arch/st33k1/lib/libc.a(lib_a-memset.o):(.debug_frame)
+     1bc      1bc       20     4         /opt/nanosplus-secure-sdk/arch/st33k1/lib/libc.a(lib_a-strcmp.o):(.debug_frame)
+     1dc      1dc       2c     4         /opt/nanosplus-secure-sdk/arch/st33k1/lib/libc.a(lib_a-strlcat.o):(.debug_frame)
+     208      208       28     4         /opt/nanosplus-secure-sdk/arch/st33k1/lib/libc.a(lib_a-strlcpy.o):(.debug_frame)
+     230      230       28     4         /opt/nanosplus-secure-sdk/arch/st33k1/lib/libc.a(lib_a-strncmp.o):(.debug_frame)
+     258      258       28     4         /opt/nanosplus-secure-sdk/arch/st33k1/lib/libc.a(lib_a-strnlen.o):(.debug_frame)
+d0000010 d0000010        0     1 PROVIDE ( _nvram = ABSOLUTE ( _nvram_start ) )
+d0000010 d0000010        0     1 PROVIDE ( _envram = ABSOLUTE ( _nvram_end ) )
+       0        0       47     1 .ARM.attributes
+       0        0       47     1         build/nanos2/obj/bagl.o:(.ARM.attributes)
+       0        0      d60     4 .symtab
+       0        0      d60     4         <internal>:(.symtab)
+       0        0       58     1 .shstrtab
+       0        0       58     1         <internal>:(.shstrtab)
+       0        0      c53     1 .strtab
+       0        0      c53     1         <internal>:(.strtab)

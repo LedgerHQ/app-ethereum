@@ -72,7 +72,7 @@ def autonext(fw: Firmware, nav: Navigator):
         moves = [ NavInsID.RIGHT_CLICK ]
     else:
         moves = [ NavInsID.USE_CASE_REVIEW_TAP ]
-    nav.navigate(moves)
+    nav.navigate(moves, screen_change_before_first_instruction=False, screen_change_after_last_instruction=False)
 
 
 def test_eip712_new(firmware: Firmware,

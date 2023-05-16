@@ -69,7 +69,9 @@ bolos_ux_params_t G_ux_params;
 
 const internalStorage_t N_storage_real;
 
+#ifdef HAVE_NBGL
 caller_app_t *caller_app = NULL;
+#endif
 chain_config_t *chainConfig = NULL;
 
 void reset_app_context() {
@@ -957,6 +959,7 @@ void coin_main(libargs_t *args) {
         if (args->chain_config != NULL) {
             chainConfig = args->chain_config;
         }
+#ifdef HAVE_NBGL
         if ((caller_app = args->caller_app) != NULL) {
             if (chainConfig != NULL) {
                 caller_app->type = CALLER_TYPE_CLONE;
@@ -964,6 +967,7 @@ void coin_main(libargs_t *args) {
                 caller_app->type = CALLER_TYPE_PLUGIN;
             }
         }
+#endif
     }
     if (chainConfig == NULL) {
         init_coin_config(&config);

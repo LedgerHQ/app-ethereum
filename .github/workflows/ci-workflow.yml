@@ -171,7 +171,6 @@ jobs:
     with:
       upload_app_binaries_artifact: "ragger_elfs"
       flags: "DEBUG=1 CAL_CI_KEY=1 DOMAIN_NAME_TEST_KEY=1"
-      run_for_devices: '["nanos", "nanox", "nanosp"]'
 
   jobs-ragger-tests:
     name: Run Ragger tests
@@ -180,4 +179,3 @@ jobs:
     with:
       download_app_binaries_artifact: "ragger_elfs"
       test_dir: tests/ragger
-      run_for_devices: '["nanos", "nanox", "nanosp"]'

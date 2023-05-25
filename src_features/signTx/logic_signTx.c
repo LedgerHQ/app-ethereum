@@ -136,6 +136,7 @@ customStatus_e customProcessor(txContext_t *context) {
                 }
                 dataContext.tokenContext.fieldIndex++;
                 dataContext.tokenContext.fieldOffset = 0;
+                memset(dataContext.tokenContext.data, 0, sizeof(dataContext.tokenContext.data));
                 return CUSTOM_HANDLED;
             }
 

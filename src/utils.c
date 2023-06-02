@@ -137,7 +137,7 @@ void amountToString(const uint8_t *amount,
     }
 
     if (out_buffer_size < ticker_len) {
-        return false;
+        THROW(EXCEPTION_OVERFLOW);
     }
 
     if (adjustDecimals(tmp_buffer,

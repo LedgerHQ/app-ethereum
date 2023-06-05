@@ -1,4 +1,4 @@
-
+#include <ctype.h>
 #include <nbgl_page.h>
 #include "shared_context.h"
 #include "ui_callbacks.h"
@@ -219,19 +219,55 @@ static void reviewContinueCommon(void) {
                              reviewChoice);
 }
 
+// Replace "Review" by "Sign" and add questionmark
+static void prepare_sign_text(void) {
+    uint8_t sign_length = strlen("Sign");
+    uint8_t review_length = strlen("Review");
+
+    memmove(staxSharedBuffer, "Sign", sign_length);
+    memmove(staxSharedBuffer + sign_length,
+            staxSharedBuffer + review_length,
+            strlen(staxSharedBuffer) - review_length + 1);
+    strlcat(staxSharedBuffer, "?", sizeof(staxSharedBuffer));
+}
+
+// Force operation to be lowercase
+static void get_lowercase_operation(char *dst, size_t dst_len) {
+    const char *src = strings.common.fullAmount;
+    size_t idx;
+
+    for (idx = 0; (idx < dst_len - 1) && (src[idx] != '\0'); ++idx) {
+        dst[idx] = (char) tolower((int) src[idx]);
+    }
+    dst[idx] = '\0';
+}
+
 static void buildFirstPage(void) {
     if (tx_approval_context.fromPlugin) {
+        char op_name[sizeof(strings.common.fullAmount)];
         plugin_ui_get_id();
-        SPRINTF(staxSharedBuffer,
-                "Review %s\ntransaction:\n%s",
-                strings.common.fullAddress,
-                strings.common.fullAmount);
+
+        get_lowercase_operation(op_name, sizeof(op_name));
+        if (pluginType == EXTERNAL) {
+            snprintf(staxSharedBuffer,
+                     sizeof(staxSharedBuffer),
+                     "Review transaction\nto %s\non %s",
+                     op_name,
+                     strings.common.fullAddress);
+        } else {
+            snprintf(staxSharedBuffer,
+                     sizeof(staxSharedBuffer),
+                     "Review transaction\nto %s\n%s",
+                     op_name,
+                     strings.common.fullAddress);
+        }
         nbgl_useCaseReviewStart(get_app_icon(true),
                                 staxSharedBuffer,
                                 NULL,
                                 "Reject transaction",
                                 reviewContinue,
                                 rejectTransactionQuestion);
+        prepare_sign_text();
     } else {
         nbgl_useCaseReviewStart(get_app_icon(true),
                                 "Review transaction",

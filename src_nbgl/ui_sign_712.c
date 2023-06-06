@@ -6,7 +6,7 @@
 #include "common_712.h"
 #include "nbgl_use_case.h"
 #include "network.h"
-#include "ui_712_common.h"
+#include "ui_message_signing.h"
 
 static nbgl_layoutTagValue_t pair;
 
@@ -62,11 +62,15 @@ static bool display_review_page(uint8_t page, nbgl_pageContent_t *content) {
 }
 
 static void handle_display(nbgl_navCallback_t cb) {
-    nbgl_useCaseRegularReview(0, 0, "Reject", NULL, cb, nbgl_712_review_choice);
+    nbgl_useCaseRegularReview(0, 0, "Reject", NULL, cb, ui_message_review_choice);
 }
 
 void ui_712_start(void) {
-    nbgl_712_start(&ui_712_switch_to_message, "Review typed message");
+    ui_message_start("Review typed message",
+                     NULL,
+                     &ui_712_switch_to_message,
+                     &ui_message_712_approved,
+                     &ui_message_712_rejected);
 }
 
 void ui_712_switch_to_message(void) {

@@ -3,7 +3,7 @@
 #include "common_712.h"
 #include "network.h"
 #include "ethUtils.h"
-#include "ui_712_common.h"
+#include "ui_message_signing.h"
 
 static nbgl_layoutTagValue_t pairs[2];
 
@@ -43,9 +43,13 @@ static bool display_review_page(uint8_t page, nbgl_pageContent_t *content) {
 }
 
 static void start_review(void) {
-    nbgl_useCaseRegularReview(0, 2, "Reject", NULL, display_review_page, nbgl_712_review_choice);
+    nbgl_useCaseRegularReview(0, 2, "Reject", NULL, display_review_page, ui_message_review_choice);
 }
 
 void ui_sign_712_v0(void) {
-    nbgl_712_start(&start_review, "Sign typed message");
+    ui_message_start("Sign typed message",
+                     NULL,
+                     &start_review,
+                     &ui_message_712_approved,
+                     &ui_message_712_rejected);
 }

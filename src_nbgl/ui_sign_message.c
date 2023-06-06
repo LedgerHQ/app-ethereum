@@ -6,17 +6,17 @@
 #include "glyphs.h"
 #include "nbgl_use_case.h"
 #include "common_ui.h"
+#include "ui_message_signing.h"
+#include "ui_signing.h"
 
 typedef enum {
-    UI_191_NBGL_START_REVIEW_DISPLAYED = 0,
-    UI_191_NBGL_GO_TO_NEXT_CONTENT,
-    UI_191_NBGL_BACK_FROM_REJECT_CANCEL,
-    UI_191_NBGL_GO_TO_SIGN,
-    UI_191_NBGL_SIGN_DISPLAYED,
-} e_ui_nbgl_191_state;
+    UI_191_ACTION_IDLE = 0,
+    UI_191_ACTION_ADVANCE_IN_MESSAGE,
+    UI_191_ACTION_GO_TO_SIGN
+} e_ui_191_action;
 
-static e_ui_nbgl_191_state state;
-static e_ui_nbgl_191_state state_before_reject_cancel;
+static e_ui_191_action g_action;
+
 static bool skip_message;
 
 static nbgl_layoutTagValue_t pair;
@@ -37,7 +37,7 @@ static bool display_message(nbgl_pageContent_t *content) {
     uint16_t len = 0;
     bool reached;
 
-    if (state != UI_191_NBGL_BACK_FROM_REJECT_CANCEL) {
+    if (g_action == UI_191_ACTION_ADVANCE_IN_MESSAGE) {
         strncpy(staxSharedBuffer + eip191MessageIdx,
                 strings.tmp.tmp + stringsTmpTmpIdx,
                 SHARED_BUFFER_SIZE - eip191MessageIdx);
@@ -55,7 +55,7 @@ static bool display_message(nbgl_pageContent_t *content) {
             stringsTmpTmpIdx = 0;
             question_switcher();
 
-            if (state != UI_191_NBGL_GO_TO_SIGN) {
+            if (g_action != UI_191_ACTION_GO_TO_SIGN) {
                 return false;
             }
         } else if (reached || eip191MessageIdx == SHARED_BUFFER_SIZE) {
@@ -72,13 +72,7 @@ static bool display_message(nbgl_pageContent_t *content) {
     content->tagValueList.nbMaxLinesForValue = 9;
     content->tagValueList.wrapping = false;
 
-    if (state == UI_191_NBGL_BACK_FROM_REJECT_CANCEL) {
-        // We come back from Reject screen.
-        // The previously displayed content must be redisplayed.
-        // Do not call question_switcher() to avoid replacing
-        // string.tmp.tmp content.
-        state = state_before_reject_cancel;
-    } else if (stringsTmpTmpIdx >= strlen(strings.tmp.tmp)) {
+    if ((g_action != UI_191_ACTION_IDLE) && (stringsTmpTmpIdx >= strlen(strings.tmp.tmp))) {
         // Fetch the next content to display into strings.tmp.tmp buffer.
         stringsTmpTmpIdx = 0;
         question_switcher();
@@ -88,9 +82,9 @@ static bool display_message(nbgl_pageContent_t *content) {
 
 static void display_sign(nbgl_pageContent_t *content) {
     content->type = INFO_LONG_PRESS, content->infoLongPress.icon = &C_Message_64px;
-    content->infoLongPress.text = "Sign Message?";
+    content->infoLongPress.text = "Sign Message";
     content->infoLongPress.longPressText = "Hold to sign";
-    state = UI_191_NBGL_SIGN_DISPLAYED;
+    g_position = UI_SIGNING_POSITION_SIGN;
 }
 
 static bool nav_callback(uint8_t page, nbgl_pageContent_t *content) {
@@ -100,7 +94,7 @@ static bool nav_callback(uint8_t page, nbgl_pageContent_t *content) {
         skip_message = true;
         skip_rest_of_message();
     }
-    if ((state != UI_191_NBGL_GO_TO_SIGN) && (state != UI_191_NBGL_SIGN_DISPLAYED)) {
+    if ((g_action != UI_191_ACTION_GO_TO_SIGN) && (g_position != UI_SIGNING_POSITION_SIGN)) {
         if (skip_message) {
             // do not refresh when this callback triggers after user validation
             ret = false;
@@ -114,68 +108,48 @@ static bool nav_callback(uint8_t page, nbgl_pageContent_t *content) {
     return ret;
 }
 
-static void choice_callback(bool confirm) {
-    if (confirm) {
-        nbgl_useCaseStatus("MESSAGE\nSIGNED", true, sign_message);
-        sign_message();
-    }
-}
-
 static void continue_review(void) {
-    nbgl_useCaseForwardOnlyReview("Reject", NULL, nav_callback, choice_callback);
+    nbgl_useCaseForwardOnlyReview("Reject", NULL, nav_callback, ui_message_review_choice);
 }
 
-static void confirm_transaction_rejection_choice(bool confirm) {
-    if (confirm) {
-        reject_message();
+static void resume_message(void) {
+    e_ui_191_action action_bak = g_action;
+
+    if (g_position == UI_SIGNING_POSITION_START) {
+        ui_191_start();
     } else {
-        // Go to previous screen accordingly
-        if (state == UI_191_NBGL_START_REVIEW_DISPLAYED) {
-            ui_191_start();
-        } else {
-            if (state != UI_191_NBGL_SIGN_DISPLAYED) {
-                state_before_reject_cancel = state;
-                state = UI_191_NBGL_BACK_FROM_REJECT_CANCEL;
-            }
-            continue_review();
-        }
+        g_action = UI_191_ACTION_IDLE;
+        continue_review();
+        g_action = action_bak;
     }
-}
-
-static void confirm_transaction_rejection() {
-    nbgl_useCaseChoice(&C_warning64px,
-                       "Reject message?",
-                       NULL,
-                       "Yes, Reject",
-                       "Go back to message",
-                       confirm_transaction_rejection_choice);
 }
 
 void ui_191_start(void) {
-    state = UI_191_NBGL_START_REVIEW_DISPLAYED;
+    g_position = UI_SIGNING_POSITION_START;
+
     skip_message = false;
     eip191MessageIdx = 0;
     stringsTmpTmpIdx = 0;
 
-    nbgl_useCaseReviewStart(&C_Message_64px,
-                            "Review message",
-                            NULL,
-                            "Reject",
-                            continue_review,
-                            confirm_transaction_rejection);
+    ui_message_start("Review message",
+                     &ui_191_switch_to_message,
+                     &resume_message,
+                     &sign_message,
+                     &reject_message);
 }
 
 void ui_191_switch_to_message(void) {
+    g_position = UI_SIGNING_POSITION_REVIEW;
+    g_action = UI_191_ACTION_ADVANCE_IN_MESSAGE;
     // No question mechanism on Stax:
     // Message is already displayed
-    state = UI_191_NBGL_GO_TO_NEXT_CONTENT;
     continue_review();
 }
 
 void ui_191_switch_to_sign(void) {
+    g_action = UI_191_ACTION_GO_TO_SIGN;
     // Next nav_callback callback must display
     // the hold to approve screen
-    state = UI_191_NBGL_GO_TO_SIGN;
     if (skip_message) {
         continue_review();  // to force screen refresh
     }

@@ -47,6 +47,8 @@ void eth_plugin_prepare_query_contract_UI(ethQueryContractUI_t *queryContractUI,
                                           uint32_t titleLength,
                                           char *msg,
                                           uint32_t msgLength) {
+    uint64_t chain_id;
+
     memset((uint8_t *) queryContractUI, 0, sizeof(ethQueryContractUI_t));
 
     // If no extra information was found, set the pointer to NULL
@@ -64,7 +66,8 @@ void eth_plugin_prepare_query_contract_UI(ethQueryContractUI_t *queryContractUI,
     }
 
     queryContractUI->screenIndex = screenIndex;
-    strlcpy(queryContractUI->network_ticker, get_tx_network_ticker(), MAX_TICKER_LEN);
+    chain_id = get_tx_chain_id();
+    strlcpy(queryContractUI->network_ticker, get_displayable_ticker(&chain_id), MAX_TICKER_LEN);
     queryContractUI->title = title;
     queryContractUI->titleLength = titleLength;
     queryContractUI->msg = msg;

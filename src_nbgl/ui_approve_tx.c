@@ -3,7 +3,7 @@
 #include "shared_context.h"
 #include "ui_callbacks.h"
 #include "ui_nbgl.h"
-#include "network.h"
+#include "ethUtils.h"
 #include "plugins.h"
 #include "domain_name.h"
 

@@ -47,7 +47,8 @@ void ui_idle(void) {
             tagline = staxSharedBuffer;
         }
     } else {  // Ethereum app
-        app_name = get_app_network_name();
+        uint64_t mainnet_chain_id = ETHEREUM_MAINNET_CHAINID;
+        app_name = get_network_name_from_chain_id(&mainnet_chain_id);
     }
 
     nbgl_useCaseHome((char *) app_name,

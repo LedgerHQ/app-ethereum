@@ -92,3 +92,7 @@ const char *get_network_ticker_from_chain_id(const uint64_t *chain_id) {
     }
     return PIC(net->ticker);
 }
+
+bool chain_is_ethereum_compatible(const uint64_t *chain_id) {
+    return get_network_from_chain_id(chain_id) != NULL;
+}

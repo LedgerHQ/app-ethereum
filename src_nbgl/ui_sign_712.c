@@ -7,6 +7,7 @@
 #include "nbgl_use_case.h"
 #include "network.h"
 #include "ui_message_signing.h"
+#include "ui_signing.h"
 
 static nbgl_layoutTagValue_t pair;
 
@@ -45,7 +46,8 @@ static bool display_review_page(uint8_t page, nbgl_pageContent_t *content) {
         case 1:
             switch (ui_712_next_field()) {
                 case EIP712_NO_MORE_FIELD:
-                    return display_sign_page(page, content);
+                    ui_712_switch_to_sign();
+                    ret = true;
                     break;
                 case EIP712_FIELD_INCOMING:
                 case EIP712_FIELD_LATER:
@@ -65,19 +67,38 @@ static void handle_display(nbgl_navCallback_t cb) {
     nbgl_useCaseRegularReview(0, 0, "Reject", NULL, cb, ui_message_review_choice);
 }
 
+static void resume_review(void) {
+    switch (g_position) {
+        case UI_SIGNING_POSITION_START:
+            ui_712_start();
+            break;
+        case UI_SIGNING_POSITION_REVIEW:
+            ui_712_switch_to_message();
+            break;
+        case UI_SIGNING_POSITION_SIGN:
+            ui_712_switch_to_sign();
+            break;
+        default:
+            return;  // should not happen
+    }
+}
+
 void ui_712_start(void) {
+    g_position = UI_SIGNING_POSITION_START;
     ui_message_start("Review typed message",
-                     NULL,
                      &ui_712_switch_to_message,
+                     &resume_review,
                      &ui_message_712_approved,
                      &ui_message_712_rejected);
 }
 
 void ui_712_switch_to_message(void) {
+    g_position = UI_SIGNING_POSITION_REVIEW;
     handle_display(display_review_page);
 }
 
 void ui_712_switch_to_sign(void) {
+    g_position = UI_SIGNING_POSITION_SIGN;
     handle_display(display_sign_page);
 }
 

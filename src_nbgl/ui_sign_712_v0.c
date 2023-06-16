@@ -4,6 +4,7 @@
 #include "network.h"
 #include "ethUtils.h"
 #include "ui_message_signing.h"
+#include "ui_signing.h"
 
 static nbgl_layoutTagValue_t pairs[2];
 
@@ -32,6 +33,7 @@ static bool display_review_page(uint8_t page, nbgl_pageContent_t *content) {
         content->tagValueList.nbMaxLinesForValue = 0;
         content->tagValueList.pairs = (nbgl_layoutTagValue_t *) pairs;
     } else if (page == 1) {
+        g_position = UI_SIGNING_POSITION_SIGN;
         content->type = INFO_LONG_PRESS, content->infoLongPress.icon = get_app_icon(true);
         content->infoLongPress.text = "Sign typed message";
         content->infoLongPress.longPressText = "Hold to sign";
@@ -42,14 +44,45 @@ static bool display_review_page(uint8_t page, nbgl_pageContent_t *content) {
     return true;
 }
 
+static void display_review(void) {
+    uint8_t page;
+
+    switch (g_position) {
+        case UI_SIGNING_POSITION_REVIEW:
+            page = 0;
+            break;
+        case UI_SIGNING_POSITION_SIGN:
+            page = 1;
+            break;
+        default:
+            return;  // should not happen
+    }
+    nbgl_useCaseRegularReview(page,
+                              2,
+                              "Reject",
+                              NULL,
+                              display_review_page,
+                              ui_message_review_choice);
+}
+
 static void start_review(void) {
-    nbgl_useCaseRegularReview(0, 2, "Reject", NULL, display_review_page, ui_message_review_choice);
+    g_position = UI_SIGNING_POSITION_REVIEW;
+    display_review();
+}
+
+static void resume_review(void) {
+    if (g_position == UI_SIGNING_POSITION_START) {
+        ui_sign_712_v0();
+    } else {
+        display_review();
+    }
 }
 
 void ui_sign_712_v0(void) {
+    g_position = UI_SIGNING_POSITION_START;
     ui_message_start("Sign typed message",
-                     NULL,
                      &start_review,
+                     &resume_review,
                      &ui_message_712_approved,
                      &ui_message_712_rejected);
 }

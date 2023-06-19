@@ -2,10 +2,17 @@ import pytest
 import os
 import fnmatch
 from typing import List
-from app.client import EthereumClient, SettingType
+from ragger.firmware import Firmware
+from ragger.backend import BackendInterface
+from ragger.navigator import Navigator, NavInsID
+from app.client import EthAppClient
+from app.settings import SettingID, settings_toggle
 from eip712 import InputData
 from pathlib import Path
 from configparser import ConfigParser
+import app.response_parser as ResponseParser
+from functools import partial
+import time
 
 BIP32_PATH = "m/44'/60'/0'/0/0"
 
@@ -30,19 +37,52 @@ def filtering(request) -> bool:
     return request.param
 
 
-def test_eip712_legacy(app_client: EthereumClient):
-    v, r, s = app_client.eip712_sign_legacy(
-        BIP32_PATH,
-        bytes.fromhex('6137beb405d9ff777172aa879e33edb34a1460e701802746c5ef96e741710e59'),
-        bytes.fromhex('eb4221181ff3f1a83ea7313993ca9218496e424604ba9492bb4052c03d5c3df8')
-    )
+def test_eip712_legacy(firmware: Firmware,
+                       backend: BackendInterface,
+                       navigator: Navigator):
+    app_client = EthAppClient(backend)
+    with app_client.eip712_sign_legacy(
+            BIP32_PATH,
+            bytes.fromhex('6137beb405d9ff777172aa879e33edb34a1460e701802746c5ef96e741710e59'),
+            bytes.fromhex('eb4221181ff3f1a83ea7313993ca9218496e424604ba9492bb4052c03d5c3df8')):
+        moves = list()
+        if firmware.device.startswith("nano"):
+            moves += [ NavInsID.RIGHT_CLICK ]
+            if firmware.device == "nanos":
+                screens_per_hash = 4
+            else:
+                screens_per_hash = 2
+            moves += [ NavInsID.RIGHT_CLICK ] * screens_per_hash * 2
+            moves += [ NavInsID.BOTH_CLICK ]
+        else:
+            moves += [ NavInsID.USE_CASE_REVIEW_TAP ] * 2
+            moves += [ NavInsID.USE_CASE_REVIEW_CONFIRM ]
+        navigator.navigate(moves)
+
+    v, r, s = ResponseParser.signature(app_client.response().data)
 
     assert v == bytes.fromhex("1c")
     assert r == bytes.fromhex("ea66f747173762715751c889fea8722acac3fc35db2c226d37a2e58815398f64")
     assert s == bytes.fromhex("52d8ba9153de9255da220ffd36762c0b027701a3b5110f0a765f94b16a9dfb55")
 
-def test_eip712_new(app_client: EthereumClient, input_file: Path, verbose: bool, filtering: bool):
-    if app_client._client.firmware.device == "nanos":
+
+def autonext(fw: Firmware, nav: Navigator):
+    moves = list()
+    if fw.device.startswith("nano"):
+        moves = [ NavInsID.RIGHT_CLICK ]
+    else:
+        moves = [ NavInsID.USE_CASE_REVIEW_TAP ]
+    nav.navigate(moves, screen_change_before_first_instruction=False, screen_change_after_last_instruction=False)
+
+
+def test_eip712_new(firmware: Firmware,
+                    backend: BackendInterface,
+                    navigator: Navigator,
+                    input_file: Path,
+                    verbose: bool,
+                    filtering: bool):
+    app_client = EthAppClient(backend)
+    if firmware.device == "nanos":
         pytest.skip("Not supported on LNS")
     else:
         test_path = "%s/%s" % (input_file.parent, "-".join(input_file.stem.split("-")[:-1]))
@@ -63,12 +103,25 @@ def test_eip712_new(app_client: EthereumClient, input_file: Path, verbose: bool,
 
         if not filtering or Path(filter_file).is_file():
             if verbose:
-                app_client.settings_set({
-                    SettingType.VERBOSE_EIP712: True
-                })
+                settings_toggle(firmware, navigator, [SettingID.VERBOSE_EIP712])
 
-            assert InputData.process_file(app_client, input_file, filter_file) == True
-            v, r, s = app_client.eip712_sign_new(BIP32_PATH)
+            assert InputData.process_file(app_client,
+                                          input_file,
+                                          filter_file,
+                                          partial(autonext, firmware, navigator)) == True
+            with app_client.eip712_sign_new(BIP32_PATH, verbose):
+                time.sleep(0.5) # tight on timing, needed by the CI otherwise might fail sometimes
+                moves = list()
+                if firmware.device.startswith("nano"):
+                    if not verbose and not filtering: # need to skip the message hash
+                        moves = [ NavInsID.RIGHT_CLICK ] * 2
+                    moves += [ NavInsID.BOTH_CLICK ]
+                else:
+                    if not verbose and not filtering: # need to skip the message hash
+                        moves += [ NavInsID.USE_CASE_REVIEW_TAP ]
+                    moves += [ NavInsID.USE_CASE_REVIEW_CONFIRM ]
+                navigator.navigate(moves)
+            v, r, s = ResponseParser.signature(app_client.response().data)
             #print("[signature]")
             #print("v = %s" % (v.hex()))
             #print("r = %s" % (r.hex()))

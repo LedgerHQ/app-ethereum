@@ -67,18 +67,22 @@ void handle_swap_sign_transaction(chain_config_t* config) {
         nvm_write((void*) &N_storage, (void*) &storage, sizeof(internalStorage_t));
     }
 
+#ifdef HAVE_BAGL
     UX_INIT();
+#endif  // HAVE_BAGL
+#ifdef HAVE_NBGL
+    nbgl_objInit();
+#endif  // HAVE_NBGL
+
     USB_power(0);
     USB_power(1);
     // ui_idle();
     PRINTF("USB power ON/OFF\n");
-#ifdef TARGET_NANOX
+#ifdef HAVE_BLE
     // grab the current plane mode setting
     G_io_app.plane_mode = os_setting_get(OS_SETTING_PLANEMODE, NULL, 0);
-#endif  // TARGET_NANOX
-#ifdef HAVE_BLE
     BLE_power(0, NULL);
-    BLE_power(1, "Nano X");
+    BLE_power(1, NULL);
 #endif  // HAVE_BLE
     app_main();
 }

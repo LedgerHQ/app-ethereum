@@ -82,10 +82,13 @@ def extract_from_c_files(sources, nodes_to_extract):
 
 def merge_headers(sources, nodes_to_extract):
     includes = [
+        '#include <stdbool.h>',
+        '#include <string.h>',
         '#include "os.h"',
         '#include "cx.h"',
-        '#include <stdbool.h>',
-        '#include <string.h>'
+        '#ifdef HAVE_NBGL',
+        '#include "nbgl_types.h"',
+        '#endif'
     ]
 
     body = extract_from_headers(sources, nodes_to_extract)
@@ -156,11 +159,12 @@ if __name__ == "__main__":
         "src/shared_context.h",
         "src/eth_plugin_internal.h",
         "src/nft.h",
+        "src/swap_lib_calls.h"
     ]
     nodes_to_extract = {
         "#define": ["MAX_TICKER_LEN", "ADDRESS_LENGTH", "INT256_LENGTH", "WEI_TO_ETHER", "SELECTOR_SIZE", "PARAMETER_LENGTH", "RUN_APPLICATION", "COLLECTION_NAME_MAX_LEN"],
         "typedef enum": [],
-        "typedef struct": ["tokenDefinition_t", "txInt256_t", "txContent_t", "nftInfo_t"],
+        "typedef struct": ["tokenDefinition_t", "txInt256_t", "txContent_t", "nftInfo_t", "caller_app_t"],
         "typedef union": ["extraInfo_t"],
         "__attribute__((no_instrument_function)) inline": ["int allzeroes"],
         "const": ["HEXDIGITS"],

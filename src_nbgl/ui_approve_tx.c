@@ -179,6 +179,22 @@ static void reviewContinue(void) {
     }
 }
 
+static const nbgl_icon_details_t *get_tx_icon(void) {
+    const nbgl_icon_details_t *icon = NULL;
+
+    if (tx_approval_context.fromPlugin && (pluginType == EXTERNAL)) {
+        if (caller_app && caller_app->name) {
+            if ((strlen(strings.common.fullAddress) == strlen(caller_app->name)) &&
+                (strcmp(strings.common.fullAddress, caller_app->name) == 0)) {
+                icon = get_app_icon(true);
+            }
+        }
+    } else {
+        icon = get_app_icon(false);
+    }
+    return icon;
+}
+
 static void reviewContinueCommon(void) {
     uint8_t nbPairs = 0;
 
@@ -212,7 +228,7 @@ static void reviewContinueCommon(void) {
     useCaseTagValueList.nbPairs = nbPairs;  ///< number of pairs in pairs array
     useCaseTagValueList.smallCaseForValue = false;
     useCaseTagValueList.wrapping = false;
-    infoLongPress.icon = get_app_icon(true);
+    infoLongPress.icon = get_tx_icon();
     infoLongPress.text = tx_approval_context.fromPlugin ? staxSharedBuffer : SIGN(TEXT_TX);
     infoLongPress.longPressText = SIGN_BUTTON;
     nbgl_useCaseStaticReview(&useCaseTagValueList, &infoLongPress, REJECT(TEXT_TX), reviewChoice);
@@ -260,7 +276,7 @@ static void buildFirstPage(void) {
                      op_name,
                      strings.common.fullAddress);
         }
-        nbgl_useCaseReviewStart(get_app_icon(true),
+        nbgl_useCaseReviewStart(get_tx_icon(),
                                 staxSharedBuffer,
                                 NULL,
                                 REJECT(TEXT_TX),
@@ -268,7 +284,7 @@ static void buildFirstPage(void) {
                                 rejectTransactionQuestion);
         prepare_sign_text();
     } else {
-        nbgl_useCaseReviewStart(get_app_icon(true),
+        nbgl_useCaseReviewStart(get_tx_icon(),
                                 REVIEW(TEXT_TX),
                                 NULL,
                                 REJECT(TEXT_TX),

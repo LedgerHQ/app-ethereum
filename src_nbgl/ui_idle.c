@@ -32,6 +32,9 @@ const nbgl_icon_details_t *get_app_icon(bool caller_icon) {
     } else {
         icon = &ICONGLYPH;
     }
+    if (icon == NULL) {
+        PRINTF("%s(%s) returned NULL!\n", __func__, (caller_icon ? "true" : "false"));
+    }
     return icon;
 }
 

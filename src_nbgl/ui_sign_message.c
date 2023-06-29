@@ -82,11 +82,17 @@ static bool display_message(nbgl_pageContent_t *content) {
     return true;
 }
 
-static void display_sign(nbgl_pageContent_t *content) {
-    content->type = INFO_LONG_PRESS, content->infoLongPress.icon = &C_Message_64px;
-    content->infoLongPress.text = TEXT_SIGN_EIP191;
-    content->infoLongPress.longPressText = SIGN_BUTTON;
-    g_position = UI_SIGNING_POSITION_SIGN;
+static bool display_sign(nbgl_pageContent_t *content) {
+    bool ret = false;
+
+    if (g_position != UI_SIGNING_POSITION_SIGN) {
+        content->type = INFO_LONG_PRESS, content->infoLongPress.icon = &C_Message_64px;
+        content->infoLongPress.text = TEXT_SIGN_EIP191;
+        content->infoLongPress.longPressText = SIGN_BUTTON;
+        g_position = UI_SIGNING_POSITION_SIGN;
+        ret = true;
+    }
+    return ret;
 }
 
 static bool nav_callback(uint8_t page, nbgl_pageContent_t *content) {
@@ -105,7 +111,7 @@ static bool nav_callback(uint8_t page, nbgl_pageContent_t *content) {
         }
     } else {
         // the last page must contain a long press button
-        display_sign(content);
+        ret = display_sign(content);
     }
     return ret;
 }

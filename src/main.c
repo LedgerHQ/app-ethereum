@@ -52,7 +52,7 @@ cx_sha3_t global_sha3;
 
 uint8_t appState;
 uint16_t apdu_response_code;
-bool called_from_swap;
+bool G_called_from_swap;
 pluginType_t pluginType;
 #ifdef HAVE_STARKWARE
 bool quantumSet;
@@ -77,7 +77,7 @@ chain_config_t *chainConfig = NULL;
 void reset_app_context() {
     // PRINTF("!!RESET_APP_CONTEXT\n");
     appState = APP_STATE_IDLE;
-    called_from_swap = false;
+    G_called_from_swap = false;
     pluginType = OLD_INTERNAL;
 #ifdef HAVE_STARKWARE
     quantumSet = false;

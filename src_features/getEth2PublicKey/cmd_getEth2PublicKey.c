@@ -49,7 +49,7 @@ void handleGetEth2PublicKey(uint8_t p1,
                             unsigned int *tx) {
     bip32_path_t bip32;
 
-    if (!called_from_swap) {
+    if (!G_called_from_swap) {
         reset_app_context();
     }
     if ((p1 != P1_CONFIRM) && (p1 != P1_NON_CONFIRM)) {

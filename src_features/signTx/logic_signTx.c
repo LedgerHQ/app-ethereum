@@ -424,8 +424,8 @@ void finalizeParsing(bool direct) {
     }
 
     // User has just validated a swap but ETH received apdus about a non standard plugin / contract
-    if (called_from_swap && !use_standard_UI) {
-        PRINTF("ERR_SILENT_MODE_CHECK_FAILED, called_from_swap\n");
+    if (G_called_from_swap && !use_standard_UI) {
+        PRINTF("ERR_SILENT_MODE_CHECK_FAILED, G_called_from_swap\n");
         THROW(ERR_SILENT_MODE_CHECK_FAILED);
     }
 
@@ -447,7 +447,7 @@ void finalizeParsing(bool direct) {
                           sizeof(displayBuffer),
                           &global_sha3,
                           chainConfig->chainId);
-        if (called_from_swap) {
+        if (G_called_from_swap) {
             // Ensure the values are the same that the ones that have been previously validated
             if (strcasecmp_workaround(strings.common.fullAddress, displayBuffer) != 0) {
                 PRINTF("ERR_SILENT_MODE_CHECK_FAILED, address check failed\n");
@@ -466,7 +466,7 @@ void finalizeParsing(bool direct) {
                        ticker,
                        displayBuffer,
                        sizeof(displayBuffer));
-        if (called_from_swap) {
+        if (G_called_from_swap) {
             // Ensure the values are the same that the ones that have been previously validated
             if (strcmp(strings.common.fullAmount, displayBuffer) != 0) {
                 PRINTF("ERR_SILENT_MODE_CHECK_FAILED, amount check failed\n");
@@ -484,7 +484,7 @@ void finalizeParsing(bool direct) {
                                   &tmpContent.txContent.startgas,
                                   displayBuffer,
                                   sizeof(displayBuffer));
-    if (called_from_swap) {
+    if (G_called_from_swap) {
         // Ensure the values are the same that the ones that have been previously validated
         if (strcmp(strings.common.maxFee, displayBuffer) != 0) {
             PRINTF("ERR_SILENT_MODE_CHECK_FAILED, fees check failed\n");
@@ -510,7 +510,7 @@ void finalizeParsing(bool direct) {
 
     // If called from swap, the user as already validated a standard transaction
     // We have already checked the fields of this transaction above
-    no_consent_check = called_from_swap && use_standard_UI;
+    no_consent_check = G_called_from_swap && use_standard_UI;
 
 #ifdef NO_CONSENT
     no_consent_check = true;

@@ -54,7 +54,7 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
 void handle_swap_sign_transaction(chain_config_t* config) {
     chainConfig = config;
     reset_app_context();
-    called_from_swap = true;
+    G_called_from_swap = true;
     io_seproxyhal_init();
 
     if (N_storage.initialized != 0x01) {

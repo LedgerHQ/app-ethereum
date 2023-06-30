@@ -5,8 +5,11 @@
 #include "shared_context.h"
 #include "utils.h"
 #ifdef HAVE_NBGL
-#include "utils.h"
+#include "nbgl_use_case.h"
 #endif  // HAVE_NBGL
+
+// Save the BSS address where we will write the return value when finished
+static uint8_t* G_swap_sign_return_value_address;
 
 bool copy_transaction_parameters(create_transaction_parameters_t* sign_transaction_params,
                                  chain_config_t* config) {
@@ -49,9 +52,19 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
                    stack_data.maxFee,
                    sizeof(stack_data.maxFee));
 
+    // Full reset the global variables
     os_explicit_zero_BSS_segment();
+    // Keep the address at which we'll reply the signing status
+    G_swap_sign_return_value_address = &sign_transaction_params->result;
+    // Commit the values read from exchange to the clean global space
+
     memcpy(&strings.common, &stack_data, sizeof(stack_data));
     return true;
+}
+
+void __attribute__((noreturn)) finalize_exchange_sign_transaction(bool is_success) {
+    *G_swap_sign_return_value_address = is_success;
+    os_lib_end();
 }
 
 void handle_swap_sign_transaction(chain_config_t* config) {

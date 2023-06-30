@@ -1,5 +1,4 @@
-#ifndef _HANDLE_SWAP_SIGN_TRANSACTION_H_
-#define _HANDLE_SWAP_SIGN_TRANSACTION_H_
+#pragma once
 
 #include "swap_lib_calls.h"
 #include "chainConfig.h"
@@ -9,4 +8,4 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
 
 void handle_swap_sign_transaction(chain_config_t* config);
 
-#endif  // _HANDLE_SWAP_SIGN_TRANSACTION_H_
+void __attribute__((noreturn)) finalize_exchange_sign_transaction(bool is_success);

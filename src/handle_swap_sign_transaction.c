@@ -4,6 +4,9 @@
 #include "handle_swap_sign_transaction.h"
 #include "shared_context.h"
 #include "utils.h"
+#ifdef HAVE_NBGL
+#include "utils.h"
+#endif  // HAVE_NBGL
 
 bool copy_transaction_parameters(create_transaction_parameters_t* sign_transaction_params,
                                  chain_config_t* config) {
@@ -52,6 +55,11 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
 }
 
 void handle_swap_sign_transaction(chain_config_t* config) {
+    UX_INIT();
+#ifdef HAVE_NBGL
+    nbgl_useCaseSpinner("Signing");
+#endif  // HAVE_NBGL
+
     chainConfig = config;
     reset_app_context();
     G_called_from_swap = true;
@@ -66,13 +74,6 @@ void handle_swap_sign_transaction(chain_config_t* config) {
         storage.contractDetails = 0x00;
         nvm_write((void*) &N_storage, (void*) &storage, sizeof(internalStorage_t));
     }
-
-#ifdef HAVE_BAGL
-    UX_INIT();
-#endif  // HAVE_BAGL
-#ifdef HAVE_NBGL
-    nbgl_objInit();
-#endif  // HAVE_NBGL
 
     USB_power(0);
     USB_power(1);

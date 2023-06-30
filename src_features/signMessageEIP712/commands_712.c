@@ -13,7 +13,8 @@
 #include "schema_hash.h"
 #include "filtering.h"
 #include "common_712.h"
-#include "ethUtils.h"  // allzeroes
+#include "ethUtils.h"   // allzeroes
+#include "common_ui.h"  // ui_idle
 
 /**
  * Send the response to the previous APDU command
@@ -38,6 +39,7 @@ void handle_eip712_return_code(bool success) {
 
     if (!success) {
         eip712_context_deinit();
+        ui_idle();
     }
 }
 

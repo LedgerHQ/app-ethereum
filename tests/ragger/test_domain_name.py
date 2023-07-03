@@ -3,9 +3,10 @@ from ragger.error import ExceptionRAPDU
 from ragger.firmware import Firmware
 from ragger.backend import BackendInterface
 from ragger.navigator import Navigator, NavInsID
-from app.client import EthAppClient, StatusWord, ROOT_SCREENSHOT_PATH
-from app.settings import SettingID, settings_toggle
-import app.response_parser as ResponseParser
+
+from app.eth_client import EthClient, StatusWord, ROOT_SCREENSHOT_PATH
+from app.eth_settings import SettingID, settings_toggle
+import app.eth_response_parser as EthResponseParser
 import struct
 
 # Values used across all tests
@@ -24,12 +25,12 @@ AMOUNT = 1.22
 def verbose(request) -> bool:
     return request.param
 
-def common(app_client: EthAppClient) -> int:
+def common(app_client: EthClient) -> int:
     if app_client._client.firmware.device == "nanos":
         pytest.skip("Not supported on LNS")
     with app_client.get_challenge():
         pass
-    return ResponseParser.challenge(app_client.response().data)
+    return EthResponseParser.challenge(app_client.response().data)
 
 
 def test_send_fund(firmware: Firmware,
@@ -37,7 +38,7 @@ def test_send_fund(firmware: Firmware,
                    navigator: Navigator,
                    test_name: str,
                    verbose: bool):
-    app_client = EthAppClient(backend)
+    app_client = EthClient(backend)
     challenge = common(app_client)
 
     if verbose:
@@ -72,7 +73,7 @@ def test_send_fund(firmware: Firmware,
 def test_send_fund_wrong_challenge(firmware: Firmware,
                                    backend: BackendInterface,
                                    navigator: Navigator):
-    app_client = EthAppClient(backend)
+    app_client = EthClient(backend)
     caught = False
     challenge = common(app_client)
 
@@ -89,7 +90,7 @@ def test_send_fund_wrong_addr(firmware: Firmware,
                               backend: BackendInterface,
                               navigator: Navigator,
                               test_name: str):
-    app_client = EthAppClient(backend)
+    app_client = EthClient(backend)
     challenge = common(app_client)
 
     with app_client.provide_domain_name(challenge, NAME, ADDR):
@@ -121,7 +122,7 @@ def test_send_fund_non_mainnet(firmware: Firmware,
                                backend: BackendInterface,
                                navigator: Navigator,
                                test_name: str):
-    app_client = EthAppClient(backend)
+    app_client = EthClient(backend)
     challenge = common(app_client)
 
     with app_client.provide_domain_name(challenge, NAME, ADDR):
@@ -149,7 +150,7 @@ def test_send_fund_non_mainnet(firmware: Firmware,
 def test_send_fund_domain_too_long(firmware: Firmware,
                                    backend: BackendInterface,
                                    navigator: Navigator):
-    app_client = EthAppClient(backend)
+    app_client = EthClient(backend)
     challenge = common(app_client)
 
     try:
@@ -164,7 +165,7 @@ def test_send_fund_domain_too_long(firmware: Firmware,
 def test_send_fund_domain_invalid_character(firmware: Firmware,
                                             backend: BackendInterface,
                                             navigator: Navigator):
-    app_client = EthAppClient(backend)
+    app_client = EthClient(backend)
     challenge = common(app_client)
 
     try:
@@ -179,7 +180,7 @@ def test_send_fund_domain_invalid_character(firmware: Firmware,
 def test_send_fund_uppercase(firmware: Firmware,
                              backend: BackendInterface,
                              navigator: Navigator):
-    app_client = EthAppClient(backend)
+    app_client = EthClient(backend)
     challenge = common(app_client)
 
     try:
@@ -194,7 +195,7 @@ def test_send_fund_uppercase(firmware: Firmware,
 def test_send_fund_domain_non_ens(firmware: Firmware,
                                   backend: BackendInterface,
                                   navigator: Navigator):
-    app_client = EthAppClient(backend)
+    app_client = EthClient(backend)
     challenge = common(app_client)
 
     try:

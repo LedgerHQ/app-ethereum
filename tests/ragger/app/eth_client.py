@@ -2,9 +2,9 @@ from enum import IntEnum, auto
 from typing import Optional
 from ragger.backend import BackendInterface
 from ragger.utils import RAPDU
-from .command_builder import CommandBuilder
-from .eip712 import EIP712FieldType
-from .tlv import format_tlv
+from .eth_command_builder import EthCommandBuilder
+from .eth_eip712 import EIP712FieldType
+from .eth_tlv import format_tlv
 from pathlib import Path
 import keychain
 import rlp
@@ -36,10 +36,10 @@ class DOMAIN_NAME_TAG(IntEnum):
     ADDRESS = 0x22
 
 
-class EthAppClient:
-    def __init__(self, client: BackendInterface):
-        self._client = client
-        self._cmd_builder = CommandBuilder()
+class EthClient:
+    def __init__(self, backend: BackendInterface):
+        self._client = backend
+        self._apdu_builder = EthCommandBuilder()
 
     def _send(self, payload: bytearray):
         return self._client.exchange_async_raw(payload)
@@ -48,7 +48,7 @@ class EthAppClient:
         return self._client._last_async_response
 
     def eip712_send_struct_def_struct_name(self, name: str):
-        return self._send(self._cmd_builder.eip712_send_struct_def_struct_name(name))
+        return self._send(self._apdu_builder.eip712_send_struct_def_struct_name(name))
 
     def eip712_send_struct_def_struct_field(self,
                                             field_type: EIP712FieldType,
@@ -56,7 +56,7 @@ class EthAppClient:
                                             type_size: int,
                                             array_levels: [],
                                             key_name: str):
-        return self._send(self._cmd_builder.eip712_send_struct_def_struct_field(
+        return self._send(self._apdu_builder.eip712_send_struct_def_struct_field(
                           field_type,
                           type_name,
                           type_size,
@@ -64,37 +64,37 @@ class EthAppClient:
                           key_name))
 
     def eip712_send_struct_impl_root_struct(self, name: str):
-        return self._send(self._cmd_builder.eip712_send_struct_impl_root_struct(name))
+        return self._send(self._apdu_builder.eip712_send_struct_impl_root_struct(name))
 
     def eip712_send_struct_impl_array(self, size: int):
-        return self._send(self._cmd_builder.eip712_send_struct_impl_array(size))
+        return self._send(self._apdu_builder.eip712_send_struct_impl_array(size))
 
     def eip712_send_struct_impl_struct_field(self, raw_value: bytes):
-        chunks = self._cmd_builder.eip712_send_struct_impl_struct_field(raw_value)
+        chunks = self._apdu_builder.eip712_send_struct_impl_struct_field(raw_value)
         for chunk in chunks[:-1]:
             with self._send(chunk):
                 pass
         return self._send(chunks[-1])
 
     def eip712_sign_new(self, bip32_path: str, verbose: bool):
-        return self._send(self._cmd_builder.eip712_sign_new(bip32_path))
+        return self._send(self._apdu_builder.eip712_sign_new(bip32_path))
 
     def eip712_sign_legacy(self,
                            bip32_path: str,
                            domain_hash: bytes,
                            message_hash: bytes):
-        return self._send(self._cmd_builder.eip712_sign_legacy(bip32_path,
+        return self._send(self._apdu_builder.eip712_sign_legacy(bip32_path,
                                                                domain_hash,
                                                                message_hash))
 
     def eip712_filtering_activate(self):
-        return self._send(self._cmd_builder.eip712_filtering_activate())
+        return self._send(self._apdu_builder.eip712_filtering_activate())
 
     def eip712_filtering_message_info(self, name: str, filters_count: int, sig: bytes):
-        return self._send(self._cmd_builder.eip712_filtering_message_info(name, filters_count, sig))
+        return self._send(self._apdu_builder.eip712_filtering_message_info(name, filters_count, sig))
 
     def eip712_filtering_show_field(self, name: str, sig: bytes):
-        return self._send(self._cmd_builder.eip712_filtering_show_field(name, sig))
+        return self._send(self._apdu_builder.eip712_filtering_show_field(name, sig))
 
     def send_fund(self,
                   bip32_path: str,
@@ -115,14 +115,14 @@ class EthAppClient:
         data.append(bytes())
         data.append(bytes())
 
-        chunks = self._cmd_builder.sign(bip32_path, rlp.encode(data))
+        chunks = self._apdu_builder.sign(bip32_path, rlp.encode(data))
         for chunk in chunks[:-1]:
             with self._send(chunk):
                 pass
         return self._send(chunks[-1])
 
     def get_challenge(self):
-        return self._send(self._cmd_builder.get_challenge())
+        return self._send(self._apdu_builder.get_challenge())
 
     def provide_domain_name(self, challenge: int, name: str, addr: bytes):
         payload  = format_tlv(DOMAIN_NAME_TAG.STRUCTURE_TYPE, 3) # TrustedDomainName
@@ -136,7 +136,7 @@ class EthAppClient:
         payload += format_tlv(DOMAIN_NAME_TAG.SIGNATURE,
                               keychain.sign_data(keychain.Key.DOMAIN_NAME, payload))
 
-        chunks = self._cmd_builder.provide_domain_name(payload)
+        chunks = self._apdu_builder.provide_domain_name(payload)
         for chunk in chunks[:-1]:
             with self._send(chunk):
                 pass

@@ -5,12 +5,14 @@ from typing import List
 from ragger.firmware import Firmware
 from ragger.backend import BackendInterface
 from ragger.navigator import Navigator, NavInsID
-from app.client import EthAppClient
-from app.settings import SettingID, settings_toggle
+
+from app.eth_client import EthClient
+from app.eth_settings import SettingID, settings_toggle
+import app.eth_response_parser as ResponseParser
+
 from eip712 import InputData
 from pathlib import Path
 from configparser import ConfigParser
-import app.response_parser as ResponseParser
 from functools import partial
 import time
 
@@ -40,7 +42,7 @@ def filtering(request) -> bool:
 def test_eip712_legacy(firmware: Firmware,
                        backend: BackendInterface,
                        navigator: Navigator):
-    app_client = EthAppClient(backend)
+    app_client = EthClient(backend)
     with app_client.eip712_sign_legacy(
             BIP32_PATH,
             bytes.fromhex('6137beb405d9ff777172aa879e33edb34a1460e701802746c5ef96e741710e59'),
@@ -81,7 +83,7 @@ def test_eip712_new(firmware: Firmware,
                     input_file: Path,
                     verbose: bool,
                     filtering: bool):
-    app_client = EthAppClient(backend)
+    app_client = EthClient(backend)
     if firmware.device == "nanos":
         pytest.skip("Not supported on LNS")
     else:

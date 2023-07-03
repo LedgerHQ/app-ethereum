@@ -1,6 +1,6 @@
 from enum import IntEnum, auto
 from typing import Iterator, Optional
-from .eip712 import EIP712FieldType
+from .eth_eip712 import EIP712FieldType
 from ragger.bip import pack_derivation_path
 import struct
 
@@ -29,7 +29,7 @@ class P2Type(IntEnum):
     FILTERING_CONTRACT_NAME = 0x0f
     FILTERING_FIELD_NAME = 0xff
 
-class CommandBuilder:
+class EthCommandBuilder:
     _CLA: int = 0xE0
 
     def _serialize(self,

@@ -1,4 +1,4 @@
-ragger[speculos]>=1.7.0,<1.8.0
+ragger[speculos]
 pytest
 ecdsa
 simple-rlp

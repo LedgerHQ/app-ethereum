@@ -11,9 +11,8 @@ These tests are implemented in Python with the `SpeculosClient` interface which 
 Python dependencies are listed in [requirements.txt](requirements.txt)
 
 ```shell
-python3 -m pip install --extra-index-url https://test.pypi.org/simple/ -r requirements.txt
+python3 -m pip install -r requirements.txt
 ```
-> The extra index allows to fetch the latest version of Speculos.
 
 ## Usage
 

@@ -4,6 +4,12 @@
 #include "handle_swap_sign_transaction.h"
 #include "shared_context.h"
 #include "utils.h"
+#ifdef HAVE_NBGL
+#include "nbgl_use_case.h"
+#endif  // HAVE_NBGL
+
+// Save the BSS address where we will write the return value when finished
+static uint8_t* G_swap_sign_return_value_address;
 
 bool copy_transaction_parameters(create_transaction_parameters_t* sign_transaction_params,
                                  chain_config_t* config) {
@@ -46,15 +52,30 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
                    stack_data.maxFee,
                    sizeof(stack_data.maxFee));
 
+    // Full reset the global variables
     os_explicit_zero_BSS_segment();
+    // Keep the address at which we'll reply the signing status
+    G_swap_sign_return_value_address = &sign_transaction_params->result;
+    // Commit the values read from exchange to the clean global space
+
     memcpy(&strings.common, &stack_data, sizeof(stack_data));
     return true;
 }
 
+void __attribute__((noreturn)) finalize_exchange_sign_transaction(bool is_success) {
+    *G_swap_sign_return_value_address = is_success;
+    os_lib_end();
+}
+
 void handle_swap_sign_transaction(chain_config_t* config) {
+    UX_INIT();
+#ifdef HAVE_NBGL
+    nbgl_useCaseSpinner("Signing");
+#endif  // HAVE_NBGL
+
     chainConfig = config;
     reset_app_context();
-    called_from_swap = true;
+    G_called_from_swap = true;
     io_seproxyhal_init();
 
     if (N_storage.initialized != 0x01) {
@@ -66,13 +87,6 @@ void handle_swap_sign_transaction(chain_config_t* config) {
         storage.contractDetails = 0x00;
         nvm_write((void*) &N_storage, (void*) &storage, sizeof(internalStorage_t));
     }
-
-#ifdef HAVE_BAGL
-    UX_INIT();
-#endif  // HAVE_BAGL
-#ifdef HAVE_NBGL
-    nbgl_objInit();
-#endif  // HAVE_NBGL
 
     USB_power(0);
     USB_power(1);

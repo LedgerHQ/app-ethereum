@@ -2,12 +2,14 @@
 #include "shared_context.h"
 #include "utils.h"
 #include "common_ui.h"
+#include "handle_swap_sign_transaction.h"
 
 unsigned int io_seproxyhal_touch_tx_ok(__attribute__((unused)) const bagl_element_t *e) {
     uint8_t privateKeyData[INT256_LENGTH];
     uint8_t signature[100];
     cx_ecfp_private_key_t privateKey;
     uint32_t tx = 0;
+    int err;
     io_seproxyhal_io_heartbeat();
     os_perso_derive_node_bip32(CX_CURVE_256K1,
                                tmpCtx.transactionContext.bip32.path,
@@ -59,10 +61,19 @@ unsigned int io_seproxyhal_touch_tx_ok(__attribute__((unused)) const bagl_elemen
     tx = 65;
     G_io_apdu_buffer[tx++] = 0x90;
     G_io_apdu_buffer[tx++] = 0x00;
+
     // Send back the response, do not restart the event loop
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
-    if (called_from_swap) {
-        os_sched_exit(0);
+    err = io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
+    if (G_called_from_swap) {
+        PRINTF("G_called_from_swap\n");
+
+        // If we are in swap mode and have validated a TX, we send it and immediately quit
+        if (err == 0) {
+            finalize_exchange_sign_transaction(true);
+        } else {
+            PRINTF("Unrecoverable\n");
+            os_sched_exit(-1);
+        }
     }
     reset_app_context();
     // Display back the original UX

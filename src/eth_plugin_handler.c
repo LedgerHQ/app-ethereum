@@ -149,7 +149,7 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
     }
 
     // Do not handle a plugin if running in swap mode
-    if (called_from_swap && (contractAddress != NULL)) {
+    if (G_called_from_swap && (contractAddress != NULL)) {
         PRINTF("eth_plug_init aborted in swap mode\n");
         return 0;
     }

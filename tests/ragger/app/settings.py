@@ -59,5 +59,5 @@ def settings_toggle(fw: Firmware, nav: Navigator, to_toggle: list[SettingID]):
                 moves += [NavInsID.USE_CASE_SETTINGS_NEXT]
             if setting in to_toggle:
                 moves += [NavIns(NavInsID.TOUCH, get_setting_position(fw.device, setting))]
-        moves += [NavInsID.EXIT_HEADER_TAP]
+        moves += [NavInsID.USE_CASE_SETTINGS_MULTI_PAGE_EXIT]
     nav.navigate(moves, screen_change_before_first_instruction=False)

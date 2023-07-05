@@ -116,5 +116,5 @@ static void controlsCallback(int token, uint8_t index) {
 }
 
 void ui_menu_settings(void) {
-    nbgl_useCaseSettings(APPNAME " settings", 0, 3, true, ui_idle, navCallback, controlsCallback);
+    nbgl_useCaseSettings(APPNAME " settings", 0, 3, false, ui_idle, navCallback, controlsCallback);
 }

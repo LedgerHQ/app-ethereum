@@ -1,0 +1,37 @@
+{
+    "domain": {
+        "chainId": 5,
+        "name": "Empty Arrays",
+        "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+        "version": "1"
+    },
+    "message": {
+        "list1": [],
+        "list2": [],
+        "list3": [
+            [
+                "1",
+                "2"
+            ],
+            [],
+            [
+                "3",
+                "4"
+            ]
+        ]
+    },
+    "primaryType": "Struct",
+    "types": {
+        "EIP712Domain": [
+            { "name": "name", "type": "string" },
+            { "name": "version", "type": "string" },
+            { "name": "chainId", "type": "uint256" },
+            { "name": "verifyingContract", "type": "address" }
+        ],
+        "Struct": [
+            { "name": "list1", "type": "EIP712Domain[]" },
+            { "name": "list2", "type": "uint8[]" },
+            { "name": "list3", "type": "string[][]" }
+        ]
+    }
+}

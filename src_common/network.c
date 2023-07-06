@@ -64,6 +64,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 106, .name = "Velas EVM", .ticker = "VLX"},
     {.chain_id = 288, .name = "Boba Network", .ticker = "ETH"},
     {.chain_id = 39797, .name = "Energi", .ticker = "NRG"},
+    {.chain_id = 369, .name = "PulseChain", .ticker = "PLS"},
     {.chain_id = 248, .name = "Oasys", .ticker = "OAS"}};
 
 uint64_t get_tx_chain_id(void) {

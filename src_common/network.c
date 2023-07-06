@@ -68,10 +68,12 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 39797, .name = "Energi", .ticker = "NRG"},
     {.chain_id = 369, .name = "PulseChain", .ticker = "PLS"},
     {.chain_id = 245022926, .name = "Neon EVM Devnet", .ticker = "NEON"},
+    {.chain_id = 245022934, .name = "Neon EVM Mainnet", .ticker = "NEON"},
     {.chain_id = 4919, .name = "Venidium", .ticker = "XVM"},
     {.chain_id = 40, .name = "Telos EVM Mainnet", .ticker = "TLOS"},
     {.chain_id = 196, .name = "OKBChain Mainnet", .ticker = "OKB"},
-    {.chain_id = 248, .name = "Oasys", .ticker = "OAS"}};
+    {.chain_id = 248, .name = "Oasys", .ticker = "OAS"},
+};
 
 static const network_info_t *get_network_from_chain_id(const uint64_t *chain_id) {
     for (size_t i = 0; i < ARRAYLEN(NETWORK_MAPPING); i++) {

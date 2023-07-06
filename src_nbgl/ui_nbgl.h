@@ -6,7 +6,7 @@
 #include <shared_context.h>
 
 #define SHARED_BUFFER_SIZE SHARED_CTX_FIELD_1_SIZE
-extern char staxSharedBuffer[SHARED_BUFFER_SIZE];
+extern char g_stax_shared_buffer[SHARED_BUFFER_SIZE];
 
 extern nbgl_page_t* pageContext;
 

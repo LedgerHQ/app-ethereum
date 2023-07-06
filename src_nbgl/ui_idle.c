@@ -5,7 +5,7 @@
 #include "glyphs.h"
 #include "network.h"
 
-char staxSharedBuffer[SHARED_BUFFER_SIZE] = {0};
+char g_stax_shared_buffer[SHARED_BUFFER_SIZE] = {0};
 nbgl_page_t *pageContext;
 
 #define FORMAT_PLUGIN "This app enables clear\nsigning transactions for\nthe %s dApp."
@@ -46,8 +46,8 @@ void ui_idle(void) {
         app_name = caller_app->name;
 
         if (caller_app->type == CALLER_TYPE_PLUGIN) {
-            snprintf(staxSharedBuffer, sizeof(staxSharedBuffer), FORMAT_PLUGIN, app_name);
-            tagline = staxSharedBuffer;
+            snprintf(g_stax_shared_buffer, sizeof(g_stax_shared_buffer), FORMAT_PLUGIN, app_name);
+            tagline = g_stax_shared_buffer;
         }
     } else {  // Ethereum app
         uint64_t mainnet_chain_id = ETHEREUM_MAINNET_CHAINID;

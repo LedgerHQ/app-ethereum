@@ -40,18 +40,18 @@ static bool display_message(nbgl_pageContent_t *content) {
     bool reached;
 
     if (g_action == UI_191_ACTION_ADVANCE_IN_MESSAGE) {
-        strncpy(staxSharedBuffer + eip191MessageIdx,
+        strncpy(g_stax_shared_buffer + eip191MessageIdx,
                 strings.tmp.tmp + stringsTmpTmpIdx,
                 SHARED_BUFFER_SIZE - eip191MessageIdx);
         reached = nbgl_getTextMaxLenInNbLines(BAGL_FONT_INTER_MEDIUM_32px,
-                                              (char *) staxSharedBuffer,
+                                              (char *) g_stax_shared_buffer,
                                               SCREEN_WIDTH - (2 * BORDER_MARGIN),
                                               9,
                                               &len);
 
         stringsTmpTmpIdx = len - eip191MessageIdx;
         eip191MessageIdx = len;
-        staxSharedBuffer[eip191MessageIdx] = '\0';
+        g_stax_shared_buffer[eip191MessageIdx] = '\0';
 
         if (!reached && eip191MessageIdx < SHARED_BUFFER_SIZE) {
             stringsTmpTmpIdx = 0;
@@ -65,7 +65,7 @@ static bool display_message(nbgl_pageContent_t *content) {
         }
     }
 
-    pair.value = staxSharedBuffer;
+    pair.value = g_stax_shared_buffer;
     pair.item = "Message";
     content->type = TAG_VALUE_LIST;
     content->tagValueList.nbPairs = 1;

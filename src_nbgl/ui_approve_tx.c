@@ -229,7 +229,7 @@ static void reviewContinueCommon(void) {
     useCaseTagValueList.smallCaseForValue = false;
     useCaseTagValueList.wrapping = false;
     infoLongPress.icon = get_tx_icon();
-    infoLongPress.text = tx_approval_context.fromPlugin ? staxSharedBuffer : SIGN(TEXT_TX);
+    infoLongPress.text = tx_approval_context.fromPlugin ? g_stax_shared_buffer : SIGN(TEXT_TX);
     infoLongPress.longPressText = SIGN_BUTTON;
     nbgl_useCaseStaticReview(&useCaseTagValueList, &infoLongPress, REJECT(TEXT_TX), reviewChoice);
 }
@@ -239,11 +239,11 @@ static void prepare_sign_text(void) {
     uint8_t sign_length = strlen("Sign");
     uint8_t review_length = strlen("Review");
 
-    memmove(staxSharedBuffer, "Sign", sign_length);
-    memmove(staxSharedBuffer + sign_length,
-            staxSharedBuffer + review_length,
-            strlen(staxSharedBuffer) - review_length + 1);
-    strlcat(staxSharedBuffer, "?", sizeof(staxSharedBuffer));
+    memmove(g_stax_shared_buffer, "Sign", sign_length);
+    memmove(g_stax_shared_buffer + sign_length,
+            g_stax_shared_buffer + review_length,
+            strlen(g_stax_shared_buffer) - review_length + 1);
+    strlcat(g_stax_shared_buffer, "?", sizeof(g_stax_shared_buffer));
 }
 
 // Force operation to be lowercase
@@ -264,20 +264,20 @@ static void buildFirstPage(void) {
 
         get_lowercase_operation(op_name, sizeof(op_name));
         if (pluginType == EXTERNAL) {
-            snprintf(staxSharedBuffer,
-                     sizeof(staxSharedBuffer),
+            snprintf(g_stax_shared_buffer,
+                     sizeof(g_stax_shared_buffer),
                      "Review transaction\nto %s\non %s",
                      op_name,
                      strings.common.fullAddress);
         } else {
-            snprintf(staxSharedBuffer,
-                     sizeof(staxSharedBuffer),
+            snprintf(g_stax_shared_buffer,
+                     sizeof(g_stax_shared_buffer),
                      "Review transaction\nto %s\n%s",
                      op_name,
                      strings.common.fullAddress);
         }
         nbgl_useCaseReviewStart(get_tx_icon(),
-                                staxSharedBuffer,
+                                g_stax_shared_buffer,
                                 NULL,
                                 REJECT(TEXT_TX),
                                 reviewContinue,

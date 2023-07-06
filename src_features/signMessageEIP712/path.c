@@ -314,7 +314,10 @@ static bool path_update(void) {
         }
         feed_last_hash_depth(hash);
 
-        ui_712_queue_struct_to_review();
+        // TODO: Find a better way to show inner structs in verbose mode when it might be
+        //       an empty array of structs in which case we don't want to show it but the
+        //       size is only known later
+        // ui_712_queue_struct_to_review();
         path_depth_list_push();
     }
     return true;

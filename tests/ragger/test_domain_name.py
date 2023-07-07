@@ -139,10 +139,39 @@ def test_send_fund_non_mainnet(firmware: Firmware,
             moves += [ NavInsID.RIGHT_CLICK ] * 5
             moves += [ NavInsID.BOTH_CLICK ]
         else:
-            moves += [ NavInsID.USE_CASE_REVIEW_TAP ] * 3
+            moves += [ NavInsID.USE_CASE_REVIEW_TAP ] * 2
             moves += [ NavInsID.USE_CASE_REVIEW_CONFIRM ]
         navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH,
                                        "domain_name_non_mainnet",
+                                       moves)
+
+
+def test_send_fund_unknown_chain(firmware: Firmware,
+                                 backend: BackendInterface,
+                                 navigator: Navigator,
+                                 test_name: str):
+    app_client = EthAppClient(backend)
+    challenge = common(app_client)
+
+    with app_client.provide_domain_name(challenge, NAME, ADDR):
+        pass
+
+    with app_client.send_fund(BIP32_PATH,
+                              NONCE,
+                              GAS_PRICE,
+                              GAS_LIMIT,
+                              ADDR,
+                              AMOUNT,
+                              9):
+        moves = list()
+        if firmware.device.startswith("nano"):
+            moves += [ NavInsID.RIGHT_CLICK ] * 5
+            moves += [ NavInsID.BOTH_CLICK ]
+        else:
+            moves += [ NavInsID.USE_CASE_REVIEW_TAP ] * 3
+            moves += [ NavInsID.USE_CASE_REVIEW_CONFIRM ]
+        navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH,
+                                       "domain_name_unknown_chain",
                                        moves)
 
 

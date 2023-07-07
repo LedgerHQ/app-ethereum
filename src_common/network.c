@@ -1,13 +1,13 @@
-#include <stdint.h>
-#include <stddef.h>
-#include <stdbool.h>
 #include <string.h>
+#include "os_utils.h"
+#include "os_pic.h"
 #include "network.h"
-#include "os.h"
-#include "shared_context.h"
-#include "utils.h"
 
-typedef enum { APP, TX } e_net_type;
+typedef struct network_info_s {
+    const char *name;
+    const char *ticker;
+    uint64_t chain_id;
+} network_info_t;
 
 // Mappping of chain ids to networks.
 static const network_info_t NETWORK_MAPPING[] = {
@@ -66,73 +66,33 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 39797, .name = "Energi", .ticker = "NRG"},
     {.chain_id = 248, .name = "Oasys", .ticker = "OAS"}};
 
-uint64_t get_tx_chain_id(void) {
-    uint64_t chain_id = 0;
-
-    switch (txContext.txType) {
-        case LEGACY:
-            chain_id = u64_from_BE(txContext.content->v, txContext.content->vLength);
-            break;
-        case EIP2930:
-        case EIP1559:
-            chain_id = u64_from_BE(tmpContent.txContent.chainID.value,
-                                   tmpContent.txContent.chainID.length);
-            break;
-        default:
-            PRINTF("Txtype `%d` not supported while generating chainID\n", txContext.txType);
-            break;
-    }
-    return chain_id;
-}
-
-uint64_t get_app_chain_id(void) {
-    return chainConfig->chainId;
-}
-
-static uint64_t get_chain_id(e_net_type type) {
-    return (type == APP) ? get_app_chain_id() : get_tx_chain_id();
-}
-
-static const network_info_t *get_network(e_net_type type) {
-    uint64_t chain_id = get_chain_id(type);
-    for (size_t i = 0; i < sizeof(NETWORK_MAPPING) / sizeof(*NETWORK_MAPPING); i++) {
-        if (NETWORK_MAPPING[i].chain_id == chain_id) {
-            return (const network_info_t *) PIC(&NETWORK_MAPPING[i]);
+static const network_info_t *get_network_from_chain_id(const uint64_t *chain_id) {
+    for (size_t i = 0; i < ARRAYLEN(NETWORK_MAPPING); i++) {
+        if (NETWORK_MAPPING[i].chain_id == *chain_id) {
+            return (const network_info_t *) &NETWORK_MAPPING[i];
         }
     }
     return NULL;
 }
 
-static const char *get_network_name(e_net_type type) {
-    const network_info_t *network = get_network(type);
-    if (network == NULL) {
+const char *get_network_name_from_chain_id(const uint64_t *chain_id) {
+    const network_info_t *net = get_network_from_chain_id(chain_id);
+
+    if (net == NULL) {
         return NULL;
-    } else {
-        return (const char *) PIC(network->name);
     }
+    return PIC(net->name);
 }
 
-const char *get_app_network_name(void) {
-    return get_network_name(APP);
-}
+const char *get_network_ticker_from_chain_id(const uint64_t *chain_id) {
+    const network_info_t *net = get_network_from_chain_id(chain_id);
 
-const char *get_tx_network_name(void) {
-    return get_network_name(TX);
-}
-
-static const char *get_network_ticker(e_net_type type) {
-    const network_info_t *network = get_network(type);
-    if (network == NULL) {
-        return chainConfig->coinName;
-    } else {
-        return (char *) PIC(network->ticker);
+    if (net == NULL) {
+        return NULL;
     }
+    return PIC(net->ticker);
 }
 
-const char *get_app_network_ticker(void) {
-    return get_network_ticker(APP);
-}
-
-const char *get_tx_network_ticker(void) {
-    return get_network_ticker(TX);
+bool chain_is_ethereum_compatible(const uint64_t *chain_id) {
+    return get_network_from_chain_id(chain_id) != NULL;
 }

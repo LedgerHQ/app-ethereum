@@ -196,7 +196,8 @@ static void address_to_string(uint8_t *in,
 }
 
 static void raw_fee_to_string(uint256_t *rawFee, char *displayBuffer, uint32_t displayBufferSize) {
-    const char *feeTicker = get_tx_network_ticker();
+    uint64_t chain_id = get_tx_chain_id();
+    const char *feeTicker = get_displayable_ticker(&chain_id);
     uint8_t tickerOffset = 0;
     uint32_t i;
 
@@ -263,10 +264,10 @@ static void nonce_to_string(const txInt256_t *nonce, char *out, size_t out_size)
 }
 
 static void get_network_as_string(char *out, size_t out_size) {
-    const char *name = get_tx_network_name();
+    uint64_t chain_id = get_tx_chain_id();
+    const char *name = get_network_name_from_chain_id(&chain_id);
     if (name == NULL) {
         // No network name found so simply copy the chain ID as the network name.
-        uint64_t chain_id = get_tx_chain_id();
         u64_to_string(chain_id, out, out_size);
     } else {
         // Network name found, simply copy it.
@@ -313,7 +314,8 @@ static int strcasecmp_workaround(const char *str1, const char *str2) {
 void finalizeParsing(bool direct) {
     char displayBuffer[50];
     uint8_t decimals = WEI_TO_ETHER;
-    const char *ticker = get_tx_network_ticker();
+    uint64_t chain_id = get_tx_chain_id();
+    const char *ticker = get_displayable_ticker(&chain_id);
     ethPluginFinalize_t pluginFinalize;
     bool use_standard_UI = true;
 

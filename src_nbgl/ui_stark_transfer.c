@@ -52,8 +52,11 @@ static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
             pairs[count].value = strings.tmp.tmp;
             count++;
         }
+
         pairs[count].item = "Token Account";
         pairs[count].value = strings.tmp.tmp2;
+        count++;
+
         content->type = TAG_VALUE_LIST;
         content->tagValueList.nbPairs = count;
         content->tagValueList.pairs = (nbgl_layoutTagValue_t *) pairs;
@@ -67,7 +70,7 @@ static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
                                      sizeof(condAddressBuffer),
                                      &global_sha3,
                                      chainConfig->chainId),
-                pairs[0].item = "Cond. Address";
+            pairs[0].item = "Cond. Address";
             pairs[0].value = condAddressBuffer;
 
             stark_sign_display_condition_fact();
@@ -86,6 +89,7 @@ static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
         content->type = INFO_LONG_PRESS, content->infoLongPress.icon = get_app_icon(false);
         content->infoLongPress.text = "Review transaction";
         content->infoLongPress.longPressText = SIGN_BUTTON;
+        return true;
     }
 
     return false;
@@ -106,19 +110,19 @@ void ui_stark_transfer(bool selfTransfer, bool conditional) {
     char *subTitle;
     if (conditional) {
         if (selfTransfer) {
-            subTitle = (char *) "Conditionnal self transfer";
+            subTitle = (char *) "Conditional Self Transfer";
         } else {
-            subTitle = (char *) "Conditionnal transfer";
+            subTitle = (char *) "Conditional Transfer";
         }
     } else {
         if (selfTransfer) {
-            subTitle = (char *) "self transfer";
+            subTitle = (char *) "Self Transfer";
         } else {
             subTitle = (char *) "Transfer";
         }
     }
     nbgl_useCaseReviewStart(get_app_icon(false),
-                            "Review stark transaction",
+                            "Review stark\ntransaction",
                             subTitle,
                             REJECT_BUTTON,
                             reviewContinue,

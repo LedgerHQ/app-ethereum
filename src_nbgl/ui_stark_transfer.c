@@ -81,6 +81,7 @@ static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
             content->tagValueList.nbPairs = 2;
             content->tagValueList.pairs = (nbgl_layoutTagValue_t *) pairs;
 
+            return true;
         } else {
             page++;
         }

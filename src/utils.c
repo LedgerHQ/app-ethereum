@@ -116,7 +116,7 @@ bool uint256_to_decimal(const uint8_t *value, size_t value_len, char *out, size_
     return true;
 }
 
-void amountToString(const uint8_t *amount,
+bool amountToString(const uint8_t *amount,
                     uint8_t amount_size,
                     uint8_t decimals,
                     const char *ticker,
@@ -125,7 +125,7 @@ void amountToString(const uint8_t *amount,
     char tmp_buffer[100] = {0};
 
     if (uint256_to_decimal(amount, amount_size, tmp_buffer, sizeof(tmp_buffer)) == false) {
-        THROW(EXCEPTION_OVERFLOW);
+        return false;
     }
 
     uint8_t amount_len = strnlen(tmp_buffer, sizeof(tmp_buffer));
@@ -141,10 +141,11 @@ void amountToString(const uint8_t *amount,
                        out_buffer + ticker_len,
                        out_buffer_size - ticker_len - 1,
                        decimals) == false) {
-        THROW(EXCEPTION_OVERFLOW);
+        return false;
     }
 
     out_buffer[out_buffer_size - 1] = '\0';
+    return true;
 }
 
 bool parse_swap_config(const uint8_t *config, uint8_t config_len, char *ticker, uint8_t *decimals) {

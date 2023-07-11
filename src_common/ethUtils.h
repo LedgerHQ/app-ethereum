@@ -40,21 +40,21 @@ bool rlpDecodeLength(uint8_t *buffer, uint32_t *fieldLength, uint32_t *offset, b
 
 bool rlpCanDecode(uint8_t *buffer, uint32_t bufferLength, bool *valid);
 
-void getEthAddressFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out, cx_sha3_t *sha3Context);
+bool getEthAddressFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out, cx_sha3_t *sha3Context);
 
-void getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey,
+bool getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey,
                                 char *out,
                                 cx_sha3_t *sha3Context,
                                 uint64_t chainId);
 
-void u64_to_string(uint64_t src, char *dst, uint8_t dst_size);
+bool u64_to_string(uint64_t src, char *dst, uint8_t dst_size);
 
-void getEthAddressStringFromBinary(uint8_t *address,
+bool getEthAddressStringFromBinary(uint8_t *address,
                                    char *out,
                                    cx_sha3_t *sha3Context,
                                    uint64_t chainId);
 
-void getEthDisplayableAddress(uint8_t *in,
+bool getEthDisplayableAddress(uint8_t *in,
                               char *out,
                               size_t out_len,
                               cx_sha3_t *sha3,

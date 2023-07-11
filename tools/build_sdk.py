@@ -5,7 +5,7 @@ This script extract a few specific definitions from app-ethereum that are
 required to exchange information with ethereum external plugins.
 It should always be launched from app-ethereum:
 
-python3 ethereum-plugin-sdk/build_sdk.py
+python3 tools/build_sdk.py
 
 '''
 
@@ -88,6 +88,7 @@ def merge_headers(sources, nodes_to_extract):
         '#include "cx.h"',
         '#ifdef HAVE_NBGL',
         '#include "nbgl_types.h"',
+        '#include "glyphs.h"',
         '#endif'
     ]
 
@@ -159,7 +160,8 @@ if __name__ == "__main__":
         "src/shared_context.h",
         "src/eth_plugin_internal.h",
         "src/nft.h",
-        "src/swap_lib_calls.h"
+        "src/swap_lib_calls.h", 
+        "src_plugins_sdk/plugin_main.h"
     ]
     nodes_to_extract = {
         "#define": ["MAX_TICKER_LEN", "ADDRESS_LENGTH", "INT256_LENGTH", "WEI_TO_ETHER", "SELECTOR_SIZE", "PARAMETER_LENGTH", "RUN_APPLICATION", "COLLECTION_NAME_MAX_LEN"],
@@ -168,7 +170,20 @@ if __name__ == "__main__":
         "typedef union": ["extraInfo_t"],
         "__attribute__((no_instrument_function)) inline": ["int allzeroes"],
         "const": ["HEXDIGITS"],
-        "fn": ["void getEthAddressStringFromBinary", "void getEthAddressFromKey", "void getEthDisplayableAddress", "bool adjustDecimals", "bool uint256_to_decimal", "void amountToString", "void u64_to_string", "void copy_address", "void copy_parameter", "bool U2BE_from_parameter", "bool U4BE_from_parameter"]
+        "fn": ["bool getEthAddressStringFromBinary",
+               "bool getEthAddressFromKey",
+               "bool getEthDisplayableAddress",
+               "bool adjustDecimals",
+               "bool uint256_to_decimal",
+               "bool amountToString",
+               "bool u64_to_string",
+               "void copy_address",
+               "void copy_parameter",
+               "bool U2BE_from_parameter",
+               "bool U4BE_from_parameter",
+               "void plugin_main",
+               "void call_app_ethereum",
+               "int main"]
     }
     merge_headers(headers_to_merge, nodes_to_extract)
 
@@ -179,6 +194,7 @@ if __name__ == "__main__":
     c_files_to_merge = [
         "src/utils.c",
         "src_common/ethUtils.c",
-        "src/eth_plugin_internal.c"
+        "src/eth_plugin_internal.c", 
+        "src_plugins_sdk/plugin_main.c"
     ]
     merge_c_files(c_files_to_merge, nodes_to_extract["fn"])

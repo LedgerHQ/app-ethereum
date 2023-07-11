@@ -463,12 +463,16 @@ void finalizeParsing(bool direct) {
 
         // Format the amount in a temporary buffer, if in swap case compare it with validated
         // amount, else commit it
-        amountToString(tmpContent.txContent.value.value,
-                       tmpContent.txContent.value.length,
-                       decimals,
-                       ticker,
-                       displayBuffer,
-                       sizeof(displayBuffer));
+        if (!amountToString(tmpContent.txContent.value.value,
+                            tmpContent.txContent.value.length,
+                            decimals,
+                            ticker,
+                            displayBuffer,
+                            sizeof(displayBuffer))) {
+            PRINTF("OVERFLOW, amount to string failed\n");
+            THROW(EXCEPTION_OVERFLOW);
+        }
+
         if (G_called_from_swap) {
             // Ensure the values are the same that the ones that have been previously validated
             if (strcmp(strings.common.fullAmount, displayBuffer) != 0) {

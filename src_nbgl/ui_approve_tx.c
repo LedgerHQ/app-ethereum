@@ -201,9 +201,6 @@ static void reviewContinueCommon(void) {
     if (tx_approval_context.fromPlugin) {
         // plugin id + max items + fees
         nbPairs += dataContext.tokenContext.pluginUiMaxItems + 1;
-        if (tx_approval_context.displayNetwork) {
-            nbPairs++;
-        }
     } else {
         nbPairs += 3;
         if (N_storage.displayNonce) {
@@ -217,9 +214,10 @@ static void reviewContinueCommon(void) {
             nbPairs += 1;
         }
 #endif  // HAVE_DOMAIN_NAME
-        if (tx_approval_context.displayNetwork) {
+    }
+
+    if (tx_approval_context.displayNetwork) {
             nbPairs++;
-        }
     }
 
     useCaseTagValueList.pairs = NULL;

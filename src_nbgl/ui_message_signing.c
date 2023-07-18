@@ -1,6 +1,6 @@
 #include "ui_nbgl.h"
 #include "ui_signing.h"
-#include "common_712.h"
+#include "ui_logic.h"
 #include "ui_message_signing.h"
 #include "glyphs.h"
 
@@ -42,9 +42,9 @@ void ui_message_start(const char *title,
 }
 
 void ui_message_712_approved(void) {
-    ui_712_approve_cb();
+    ui_712_approve();
 }
 
 void ui_message_712_rejected(void) {
-    ui_712_reject_cb();
+    ui_712_reject();
 }

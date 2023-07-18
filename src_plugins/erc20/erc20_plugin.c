@@ -182,7 +182,11 @@ void erc20_plugin_call(int message, void *parameters) {
 
         case ETH_PLUGIN_QUERY_CONTRACT_ID: {
             ethQueryContractID_t *msg = (ethQueryContractID_t *) parameters;
+#ifdef HAVE_NBGL
+            strlcpy(msg->name, "ERC20 token", msg->nameLength);
+#else
             strlcpy(msg->name, "Type", msg->nameLength);
+#endif
             strlcpy(msg->version, "Approve", msg->versionLength);
             msg->result = ETH_PLUGIN_RESULT_OK;
         } break;

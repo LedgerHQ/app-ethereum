@@ -1,12 +1,14 @@
-
+#include <ctype.h>
 #include <nbgl_page.h>
 #include "shared_context.h"
 #include "ui_callbacks.h"
 #include "ui_nbgl.h"
 #include "ethUtils.h"
+#include "ui_signing.h"
 #include "plugins.h"
 #include "domain_name.h"
 
+#define TEXT_TX "transaction"
 // 1 more than actually displayed on screen, because of calculations in StaticReview
 #define MAX_PLUGIN_ITEMS_PER_SCREEN 4
 #define TAG_MAX_LEN                 43
@@ -51,10 +53,10 @@ static void onConfirmAbandon(void) {
 }
 
 static void rejectTransactionQuestion(void) {
-    nbgl_useCaseConfirm("Reject transaction?",
+    nbgl_useCaseConfirm(REJECT_QUESTION(TEXT_TX),
                         NULL,
-                        "Yes, reject",
-                        "Go back to transaction",
+                        REJECT_CONFIRM_BUTTON,
+                        RESUME(TEXT_TX),
                         onConfirmAbandon);
 }
 
@@ -159,7 +161,7 @@ static void reviewContinue(void) {
             .centeredInfo.text3 = NULL,
             .centeredInfo.style = LARGE_CASE_INFO,
             .centeredInfo.offsetY = -32,
-            .footerText = "Reject transaction",
+            .footerText = REJECT(TEXT_TX),
             .footerToken = REJECT_TOKEN,
             .tapActionText = "Tap to continue",
             .tapActionToken = START_REVIEW_TOKEN,
@@ -175,6 +177,22 @@ static void reviewContinue(void) {
     } else {
         reviewContinueCommon();
     }
+}
+
+static const nbgl_icon_details_t *get_tx_icon(void) {
+    const nbgl_icon_details_t *icon = NULL;
+
+    if (tx_approval_context.fromPlugin && (pluginType == EXTERNAL)) {
+        if (caller_app && caller_app->name) {
+            if ((strlen(strings.common.fullAddress) == strlen(caller_app->name)) &&
+                (strcmp(strings.common.fullAddress, caller_app->name) == 0)) {
+                icon = get_app_icon(true);
+            }
+        }
+    } else {
+        icon = get_app_icon(false);
+    }
+    return icon;
 }
 
 static void reviewContinueCommon(void) {
@@ -210,33 +228,66 @@ static void reviewContinueCommon(void) {
     useCaseTagValueList.nbPairs = nbPairs;  ///< number of pairs in pairs array
     useCaseTagValueList.smallCaseForValue = false;
     useCaseTagValueList.wrapping = false;
-    infoLongPress.icon = get_app_icon(true);
-    infoLongPress.text = tx_approval_context.fromPlugin ? staxSharedBuffer : "Review transaction";
-    infoLongPress.longPressText = "Hold to sign";
-    nbgl_useCaseStaticReview(&useCaseTagValueList,
-                             &infoLongPress,
-                             "Reject transaction",
-                             reviewChoice);
+    infoLongPress.icon = get_tx_icon();
+    infoLongPress.text = tx_approval_context.fromPlugin ? g_stax_shared_buffer : SIGN(TEXT_TX);
+    infoLongPress.longPressText = SIGN_BUTTON;
+    nbgl_useCaseStaticReview(&useCaseTagValueList, &infoLongPress, REJECT(TEXT_TX), reviewChoice);
+}
+
+// Replace "Review" by "Sign" and add questionmark
+static void prepare_sign_text(void) {
+    uint8_t sign_length = strlen("Sign");
+    uint8_t review_length = strlen("Review");
+
+    memmove(g_stax_shared_buffer, "Sign", sign_length);
+    memmove(g_stax_shared_buffer + sign_length,
+            g_stax_shared_buffer + review_length,
+            strlen(g_stax_shared_buffer) - review_length + 1);
+    strlcat(g_stax_shared_buffer, "?", sizeof(g_stax_shared_buffer));
+}
+
+// Force operation to be lowercase
+static void get_lowercase_operation(char *dst, size_t dst_len) {
+    const char *src = strings.common.fullAmount;
+    size_t idx;
+
+    for (idx = 0; (idx < dst_len - 1) && (src[idx] != '\0'); ++idx) {
+        dst[idx] = (char) tolower((int) src[idx]);
+    }
+    dst[idx] = '\0';
 }
 
 static void buildFirstPage(void) {
     if (tx_approval_context.fromPlugin) {
+        char op_name[sizeof(strings.common.fullAmount)];
         plugin_ui_get_id();
-        SPRINTF(staxSharedBuffer,
-                "Review %s\ntransaction:\n%s",
-                strings.common.fullAddress,
-                strings.common.fullAmount);
-        nbgl_useCaseReviewStart(get_app_icon(true),
-                                staxSharedBuffer,
+
+        get_lowercase_operation(op_name, sizeof(op_name));
+        if (pluginType == EXTERNAL) {
+            snprintf(g_stax_shared_buffer,
+                     sizeof(g_stax_shared_buffer),
+                     "Review transaction\nto %s\non %s",
+                     op_name,
+                     strings.common.fullAddress);
+        } else {
+            snprintf(g_stax_shared_buffer,
+                     sizeof(g_stax_shared_buffer),
+                     "Review transaction\nto %s\n%s",
+                     op_name,
+                     strings.common.fullAddress);
+        }
+        nbgl_useCaseReviewStart(get_tx_icon(),
+                                g_stax_shared_buffer,
                                 NULL,
-                                "Reject transaction",
+                                REJECT(TEXT_TX),
                                 reviewContinue,
                                 rejectTransactionQuestion);
+        prepare_sign_text();
     } else {
-        nbgl_useCaseReviewStart(get_app_icon(true),
-                                "Review transaction",
+        nbgl_useCaseReviewStart(get_tx_icon(),
+                                REVIEW(TEXT_TX),
                                 NULL,
-                                "Reject transaction",
+                                REJECT(TEXT_TX),
                                 reviewContinue,
                                 rejectTransactionQuestion);
     }

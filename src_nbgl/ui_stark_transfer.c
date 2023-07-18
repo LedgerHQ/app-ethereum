@@ -2,6 +2,7 @@
 #include "shared_context.h"
 #include "ui_callbacks.h"
 #include "ui_nbgl.h"
+#include "ui_signing.h"
 #include "starkDisplayUtils.h"
 #include "ethUtils.h"
 #include "network.h"
@@ -84,7 +85,7 @@ static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
     if (page == 2) {
         content->type = INFO_LONG_PRESS, content->infoLongPress.icon = get_app_icon(false);
         content->infoLongPress.text = "Review transaction";
-        content->infoLongPress.longPressText = "Hold to sign";
+        content->infoLongPress.longPressText = SIGN_BUTTON;
     }
 
     return false;
@@ -93,7 +94,7 @@ static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
 static void reviewContinue(void) {
     nbgl_useCaseRegularReview(0,
                               context.conditional ? 3 : 2,
-                              "Reject",
+                              REJECT_BUTTON,
                               NULL,
                               displayTransactionPage,
                               reviewChoice);
@@ -119,7 +120,7 @@ void ui_stark_transfer(bool selfTransfer, bool conditional) {
     nbgl_useCaseReviewStart(get_app_icon(false),
                             "Review stark transaction",
                             subTitle,
-                            "Reject",
+                            REJECT_BUTTON,
                             reviewContinue,
                             reviewReject);
 }

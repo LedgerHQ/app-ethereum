@@ -1,4 +1,5 @@
 #include "common_ui.h"
+#include "ui_signing.h"
 #include "ui_nbgl.h"
 #include "network.h"
 
@@ -31,12 +32,12 @@ static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
         content->tagValueList.nbPairs = 1;
         content->tagValueList.pairs = (nbgl_layoutTagValue_t *) &pair;
     } else if (page == 1) {
-        snprintf(staxSharedBuffer,
-                 sizeof(staxSharedBuffer),
+        snprintf(g_stax_shared_buffer,
+                 sizeof(g_stax_shared_buffer),
                  "Confirm %s",
                  (confirm_type == PARAMETER_CONFIRMATION) ? "parameter" : "selector");
         content->type = INFO_LONG_PRESS, content->infoLongPress.icon = get_app_icon(true);
-        content->infoLongPress.text = staxSharedBuffer;
+        content->infoLongPress.text = g_stax_shared_buffer;
         content->infoLongPress.longPressText = "Hold to confirm";
     } else {
         return false;
@@ -46,22 +47,27 @@ static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
 }
 
 static void reviewContinue(void) {
-    snprintf(staxSharedBuffer,
-             sizeof(staxSharedBuffer),
+    snprintf(g_stax_shared_buffer,
+             sizeof(g_stax_shared_buffer),
              "Reject %s",
              (confirm_type == PARAMETER_CONFIRMATION) ? "parameter" : "selector");
-    nbgl_useCaseRegularReview(0, 2, staxSharedBuffer, NULL, displayTransactionPage, reviewChoice);
+    nbgl_useCaseRegularReview(0,
+                              2,
+                              g_stax_shared_buffer,
+                              NULL,
+                              displayTransactionPage,
+                              reviewChoice);
 }
 
 static void buildScreen(void) {
-    snprintf(staxSharedBuffer,
-             sizeof(staxSharedBuffer),
+    snprintf(g_stax_shared_buffer,
+             sizeof(g_stax_shared_buffer),
              "Verify %s",
              (confirm_type == PARAMETER_CONFIRMATION) ? "parameter" : "selector");
     nbgl_useCaseReviewStart(get_app_icon(true),
-                            staxSharedBuffer,
+                            g_stax_shared_buffer,
                             NULL,
-                            "Reject",
+                            REJECT_BUTTON,
                             reviewContinue,
                             reviewReject);
 }

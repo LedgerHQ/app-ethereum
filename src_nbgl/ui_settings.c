@@ -24,6 +24,13 @@ static bool navCallback(uint8_t page, nbgl_pageContent_t* content) {
 
     switch (page) {
         case 0:
+            content->type = INFOS_LIST;
+            content->infosList.nbInfos = 2;
+            content->infosList.infoTypes = (const char**) infoTypes;
+            content->infosList.infoContents = (const char**) infoContents;
+            break;
+
+        case 1:
             switches[index++] =
                 (nbgl_layoutSwitch_t){.initState = N_storage.dataAllowed ? ON_STATE : OFF_STATE,
                                       .text = "Blind signing",
@@ -48,7 +55,7 @@ static bool navCallback(uint8_t page, nbgl_pageContent_t* content) {
             content->switchesList.switches = (nbgl_layoutSwitch_t*) switches;
             break;
 
-        case 1:
+        case 2:
             switches[index++] =
                 (nbgl_layoutSwitch_t){.initState = N_storage.verbose_eip712 ? ON_STATE : OFF_STATE,
                                       .text = "Verbose EIP712",
@@ -67,13 +74,6 @@ static bool navCallback(uint8_t page, nbgl_pageContent_t* content) {
             content->type = SWITCHES_LIST;
             content->switchesList.nbSwitches = index;
             content->switchesList.switches = (nbgl_layoutSwitch_t*) switches;
-            break;
-
-        case 2:
-            content->type = INFOS_LIST;
-            content->infosList.nbInfos = 2;
-            content->infosList.infoTypes = (const char**) infoTypes;
-            content->infosList.infoContents = (const char**) infoContents;
             break;
 
         default:
@@ -116,5 +116,5 @@ static void controlsCallback(int token, uint8_t index) {
 }
 
 void ui_menu_settings(void) {
-    nbgl_useCaseSettings(APPNAME " settings", 0, 3, true, ui_idle, navCallback, controlsCallback);
+    nbgl_useCaseSettings(APPNAME " settings", 0, 3, false, ui_idle, navCallback, controlsCallback);
 }

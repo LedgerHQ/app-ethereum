@@ -1,5 +1,5 @@
-
 #include "common_ui.h"
+#include "ui_signing.h"
 #include "ui_nbgl.h"
 #include "ui_callbacks.h"
 #include "nbgl_use_case.h"
@@ -42,7 +42,7 @@ static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
     } else if (page == 1) {
         content->type = INFO_LONG_PRESS, content->infoLongPress.icon = get_app_icon(false);
         content->infoLongPress.text = "Unsafe Stark Sign";
-        content->infoLongPress.longPressText = "Hold to sign";
+        content->infoLongPress.longPressText = SIGN_BUTTON;
     } else {
         return false;
     }
@@ -51,14 +51,14 @@ static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
 }
 
 static void reviewContinue(void) {
-    nbgl_useCaseRegularReview(0, 2, "Reject", NULL, displayTransactionPage, reviewChoice);
+    nbgl_useCaseRegularReview(0, 2, REJECT_BUTTON, NULL, displayTransactionPage, reviewChoice);
 }
 
 static void buildFirstPage(void) {
     nbgl_useCaseReviewStart(get_app_icon(false),
                             "Unsafe Stark Sign",
                             NULL,
-                            "Reject",
+                            REJECT_BUTTON,
                             reviewContinue,
                             reviewReject);
 }

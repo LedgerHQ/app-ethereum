@@ -120,18 +120,6 @@ static void continue_review(void) {
     nbgl_useCaseForwardOnlyReview(REJECT_BUTTON, NULL, nav_callback, ui_message_review_choice);
 }
 
-static void resume_message(void) {
-    e_ui_191_action action_bak = g_action;
-
-    if (g_position == UI_SIGNING_POSITION_START) {
-        ui_191_start();
-    } else {
-        g_action = UI_191_ACTION_IDLE;
-        continue_review();
-        g_action = action_bak;
-    }
-}
-
 void ui_191_start(void) {
     g_position = UI_SIGNING_POSITION_START;
 
@@ -139,11 +127,7 @@ void ui_191_start(void) {
     eip191MessageIdx = 0;
     stringsTmpTmpIdx = 0;
 
-    ui_message_start(TEXT_REVIEW_EIP191,
-                     &ui_191_switch_to_message,
-                     &resume_message,
-                     &sign_message,
-                     &reject_message);
+    ui_message_start(TEXT_REVIEW_EIP191, &ui_191_switch_to_message, &sign_message, &reject_message);
 }
 
 void ui_191_switch_to_message(void) {

@@ -70,19 +70,10 @@ static void start_review(void) {
     display_review();
 }
 
-static void resume_review(void) {
-    if (g_position == UI_SIGNING_POSITION_START) {
-        ui_sign_712_v0();
-    } else {
-        display_review();
-    }
-}
-
 void ui_sign_712_v0(void) {
     g_position = UI_SIGNING_POSITION_START;
     ui_message_start(TEXT_REVIEW_EIP712,
                      &start_review,
-                     &resume_review,
                      &ui_message_712_approved,
                      &ui_message_712_rejected);
 }

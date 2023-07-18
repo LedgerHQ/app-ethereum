@@ -67,27 +67,10 @@ static void handle_display(nbgl_navCallback_t cb) {
     nbgl_useCaseRegularReview(0, 0, REJECT_BUTTON, NULL, cb, ui_message_review_choice);
 }
 
-static void resume_review(void) {
-    switch (g_position) {
-        case UI_SIGNING_POSITION_START:
-            ui_712_start();
-            break;
-        case UI_SIGNING_POSITION_REVIEW:
-            ui_712_switch_to_message();
-            break;
-        case UI_SIGNING_POSITION_SIGN:
-            ui_712_switch_to_sign();
-            break;
-        default:
-            return;  // should not happen
-    }
-}
-
 void ui_712_start(void) {
     g_position = UI_SIGNING_POSITION_START;
     ui_message_start(TEXT_REVIEW_EIP712,
                      &ui_712_switch_to_message,
-                     &resume_review,
                      &ui_message_712_approved,
                      &ui_message_712_rejected);
 }

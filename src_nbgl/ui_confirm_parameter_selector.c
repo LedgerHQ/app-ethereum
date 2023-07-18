@@ -1,4 +1,5 @@
 #include "common_ui.h"
+#include "ui_signing.h"
 #include "ui_nbgl.h"
 #include "network.h"
 
@@ -61,7 +62,7 @@ static void buildScreen(void) {
     nbgl_useCaseReviewStart(get_app_icon(true),
                             staxSharedBuffer,
                             NULL,
-                            "Reject",
+                            REJECT_BUTTON,
                             reviewContinue,
                             reviewReject);
 }

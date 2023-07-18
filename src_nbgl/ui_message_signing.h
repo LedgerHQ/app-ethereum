@@ -3,6 +3,11 @@
 
 #include <stdbool.h>
 
+#define TEXT_MESSAGE       "message"
+#define TEXT_TYPED_MESSAGE "typed " TEXT_MESSAGE
+#define TEXT_REVIEW_EIP712 REVIEW(TEXT_TYPED_MESSAGE)
+#define TEXT_SIGN_EIP712   SIGN(TEXT_TYPED_MESSAGE)
+
 void ui_message_review_choice(bool confirm);
 void ui_message_start(const char *title,
                       void (*start_func)(void),

@@ -9,6 +9,9 @@
 #include "ui_message_signing.h"
 #include "ui_signing.h"
 
+#define TEXT_REVIEW_EIP191 REVIEW(TEXT_MESSAGE)
+#define TEXT_SIGN_EIP191   SIGN(TEXT_MESSAGE)
+
 typedef enum {
     UI_191_ACTION_IDLE = 0,
     UI_191_ACTION_ADVANCE_IN_MESSAGE,
@@ -21,7 +24,6 @@ static bool skip_message;
 
 static nbgl_layoutTagValue_t pair;
 
-//
 static uint32_t eip191MessageIdx = 0;
 static uint32_t stringsTmpTmpIdx = 0;
 
@@ -82,8 +84,8 @@ static bool display_message(nbgl_pageContent_t *content) {
 
 static void display_sign(nbgl_pageContent_t *content) {
     content->type = INFO_LONG_PRESS, content->infoLongPress.icon = &C_Message_64px;
-    content->infoLongPress.text = "Sign Message";
-    content->infoLongPress.longPressText = "Hold to sign";
+    content->infoLongPress.text = TEXT_SIGN_EIP191;
+    content->infoLongPress.longPressText = SIGN_BUTTON;
     g_position = UI_SIGNING_POSITION_SIGN;
 }
 
@@ -109,7 +111,7 @@ static bool nav_callback(uint8_t page, nbgl_pageContent_t *content) {
 }
 
 static void continue_review(void) {
-    nbgl_useCaseForwardOnlyReview("Reject", NULL, nav_callback, ui_message_review_choice);
+    nbgl_useCaseForwardOnlyReview(REJECT_BUTTON, NULL, nav_callback, ui_message_review_choice);
 }
 
 static void resume_message(void) {
@@ -131,7 +133,7 @@ void ui_191_start(void) {
     eip191MessageIdx = 0;
     stringsTmpTmpIdx = 0;
 
-    ui_message_start("Review message",
+    ui_message_start(TEXT_REVIEW_EIP191,
                      &ui_191_switch_to_message,
                      &resume_message,
                      &sign_message,

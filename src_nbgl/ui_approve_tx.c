@@ -4,9 +4,11 @@
 #include "ui_callbacks.h"
 #include "ui_nbgl.h"
 #include "ethUtils.h"
+#include "ui_signing.h"
 #include "plugins.h"
 #include "domain_name.h"
 
+#define TEXT_TX "transaction"
 // 1 more than actually displayed on screen, because of calculations in StaticReview
 #define MAX_PLUGIN_ITEMS_PER_SCREEN 4
 #define TAG_MAX_LEN                 43
@@ -51,10 +53,10 @@ static void onConfirmAbandon(void) {
 }
 
 static void rejectTransactionQuestion(void) {
-    nbgl_useCaseConfirm("Reject transaction?",
+    nbgl_useCaseConfirm(REJECT_QUESTION(TEXT_TX),
                         NULL,
-                        "Yes, reject",
-                        "Go back to transaction",
+                        REJECT_CONFIRM_BUTTON,
+                        RESUME(TEXT_TX),
                         onConfirmAbandon);
 }
 
@@ -159,7 +161,7 @@ static void reviewContinue(void) {
             .centeredInfo.text3 = NULL,
             .centeredInfo.style = LARGE_CASE_INFO,
             .centeredInfo.offsetY = -32,
-            .footerText = "Reject transaction",
+            .footerText = REJECT(TEXT_TX),
             .footerToken = REJECT_TOKEN,
             .tapActionText = "Tap to continue",
             .tapActionToken = START_REVIEW_TOKEN,
@@ -211,12 +213,9 @@ static void reviewContinueCommon(void) {
     useCaseTagValueList.smallCaseForValue = false;
     useCaseTagValueList.wrapping = false;
     infoLongPress.icon = get_app_icon(true);
-    infoLongPress.text = tx_approval_context.fromPlugin ? staxSharedBuffer : "Review transaction";
-    infoLongPress.longPressText = "Hold to sign";
-    nbgl_useCaseStaticReview(&useCaseTagValueList,
-                             &infoLongPress,
-                             "Reject transaction",
-                             reviewChoice);
+    infoLongPress.text = tx_approval_context.fromPlugin ? staxSharedBuffer : SIGN(TEXT_TX);
+    infoLongPress.longPressText = SIGN_BUTTON;
+    nbgl_useCaseStaticReview(&useCaseTagValueList, &infoLongPress, REJECT(TEXT_TX), reviewChoice);
 }
 
 // Replace "Review" by "Sign" and add questionmark
@@ -264,15 +263,15 @@ static void buildFirstPage(void) {
         nbgl_useCaseReviewStart(get_app_icon(true),
                                 staxSharedBuffer,
                                 NULL,
-                                "Reject transaction",
+                                REJECT(TEXT_TX),
                                 reviewContinue,
                                 rejectTransactionQuestion);
         prepare_sign_text();
     } else {
         nbgl_useCaseReviewStart(get_app_icon(true),
-                                "Review transaction",
+                                REVIEW(TEXT_TX),
                                 NULL,
-                                "Reject transaction",
+                                REJECT(TEXT_TX),
                                 reviewContinue,
                                 rejectTransactionQuestion);
     }

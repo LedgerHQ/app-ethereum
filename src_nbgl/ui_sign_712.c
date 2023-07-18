@@ -14,8 +14,8 @@ static nbgl_layoutTagValue_t pair;
 static bool display_sign_page(uint8_t page, nbgl_pageContent_t *content) {
     (void) page;
     content->type = INFO_LONG_PRESS, content->infoLongPress.icon = get_app_icon(true);
-    content->infoLongPress.text = "Sign typed message";
-    content->infoLongPress.longPressText = "Hold to sign";
+    content->infoLongPress.text = TEXT_SIGN_EIP712;
+    content->infoLongPress.longPressText = SIGN_BUTTON;
     return true;
 }
 
@@ -64,7 +64,7 @@ static bool display_review_page(uint8_t page, nbgl_pageContent_t *content) {
 }
 
 static void handle_display(nbgl_navCallback_t cb) {
-    nbgl_useCaseRegularReview(0, 0, "Reject", NULL, cb, ui_message_review_choice);
+    nbgl_useCaseRegularReview(0, 0, REJECT_BUTTON, NULL, cb, ui_message_review_choice);
 }
 
 static void resume_review(void) {
@@ -85,7 +85,7 @@ static void resume_review(void) {
 
 void ui_712_start(void) {
     g_position = UI_SIGNING_POSITION_START;
-    ui_message_start("Review typed message",
+    ui_message_start(TEXT_REVIEW_EIP712,
                      &ui_712_switch_to_message,
                      &resume_review,
                      &ui_message_712_approved,

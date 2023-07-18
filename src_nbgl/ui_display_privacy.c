@@ -1,4 +1,5 @@
 #include "common_ui.h"
+#include "ui_signing.h"
 #include "ui_nbgl.h"
 #include "ui_callbacks.h"
 #include "nbgl_use_case.h"
@@ -45,14 +46,14 @@ static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
 }
 
 static void reviewContinue(void) {
-    nbgl_useCaseRegularReview(0, 2, "Reject", NULL, displayTransactionPage, reviewChoice);
+    nbgl_useCaseRegularReview(0, 2, REJECT_BUTTON, NULL, displayTransactionPage, reviewChoice);
 }
 
 static void buildFirstPage(void) {
     nbgl_useCaseReviewStart(get_app_icon(true),
                             review_string,
                             NULL,
-                            "Reject",
+                            REJECT_BUTTON,
                             reviewContinue,
                             reviewReject);
 }

@@ -1,4 +1,5 @@
 #include "ui_nbgl.h"
+#include "ui_signing.h"
 #include "common_712.h"
 #include "ui_message_signing.h"
 #include "glyphs.h"
@@ -17,10 +18,10 @@ static void ui_message_rejection_handler(bool confirm) {
 
 static void ui_message_confirm_rejection(void) {
     nbgl_useCaseChoice(&C_warning64px,
-                       "Reject message?",
+                       REJECT_QUESTION(TEXT_MESSAGE),
                        NULL,
-                       "Yes, reject",
-                       "Go back to message",
+                       REJECT_CONFIRM_BUTTON,
+                       RESUME(TEXT_MESSAGE),
                        ui_message_rejection_handler);
 }
 
@@ -43,7 +44,7 @@ void ui_message_start(const char *title,
     nbgl_useCaseReviewStart(&C_Message_64px,
                             title,
                             NULL,
-                            "Reject",
+                            REJECT_BUTTON,
                             start_func,
                             ui_message_confirm_rejection);
 }

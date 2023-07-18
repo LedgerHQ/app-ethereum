@@ -35,8 +35,8 @@ static bool display_review_page(uint8_t page, nbgl_pageContent_t *content) {
     } else if (page == 1) {
         g_position = UI_SIGNING_POSITION_SIGN;
         content->type = INFO_LONG_PRESS, content->infoLongPress.icon = get_app_icon(true);
-        content->infoLongPress.text = "Sign typed message";
-        content->infoLongPress.longPressText = "Hold to sign";
+        content->infoLongPress.text = TEXT_SIGN_EIP712;
+        content->infoLongPress.longPressText = SIGN_BUTTON;
     } else {
         return false;
     }
@@ -59,7 +59,7 @@ static void display_review(void) {
     }
     nbgl_useCaseRegularReview(page,
                               2,
-                              "Reject",
+                              REJECT_BUTTON,
                               NULL,
                               display_review_page,
                               ui_message_review_choice);
@@ -80,7 +80,7 @@ static void resume_review(void) {
 
 void ui_sign_712_v0(void) {
     g_position = UI_SIGNING_POSITION_START;
-    ui_message_start("Sign typed message",
+    ui_message_start(TEXT_REVIEW_EIP712,
                      &start_review,
                      &resume_review,
                      &ui_message_712_approved,

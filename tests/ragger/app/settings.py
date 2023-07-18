@@ -52,6 +52,7 @@ def settings_toggle(fw: Firmware, nav: Navigator, to_toggle: list[SettingID]):
         moves += [NavInsID.BOTH_CLICK] # Back
     else:
         moves += [NavInsID.USE_CASE_HOME_SETTINGS]
+        moves += [NavInsID.USE_CASE_SETTINGS_NEXT]
         for setting in settings:
             setting_idx = settings.index(setting)
             if (setting_idx > 0) and (setting_idx % settings_per_page) == 0:

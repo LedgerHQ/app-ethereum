@@ -30,7 +30,6 @@ static bool display_review_page(uint8_t page, nbgl_pageContent_t *content) {
 
         content->type = TAG_VALUE_LIST;
         content->tagValueList.nbPairs = 2;
-        content->tagValueList.nbMaxLinesForValue = 0;
         content->tagValueList.pairs = (nbgl_layoutTagValue_t *) pairs;
     } else if (page == 1) {
         g_position = UI_SIGNING_POSITION_SIGN;

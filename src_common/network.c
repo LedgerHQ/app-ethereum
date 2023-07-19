@@ -73,6 +73,9 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 40, .name = "Telos EVM Mainnet", .ticker = "TLOS"},
     {.chain_id = 196, .name = "OKBChain Mainnet", .ticker = "OKB"},
     {.chain_id = 248, .name = "Oasys", .ticker = "OAS"},
+    {.chain_id = 1101, .name = "Polygon zkEVM", .ticker = "ETH"},
+    {.chain_id = 8453, .name = "Base", .ticker = "ETH"},
+    {.chain_id = 58008, .name = "Sepolia", .ticker = "ETH"},
 };
 
 static const network_info_t *get_network_from_chain_id(const uint64_t *chain_id) {

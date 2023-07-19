@@ -217,7 +217,7 @@ static void reviewContinueCommon(void) {
     }
 
     if (tx_approval_context.displayNetwork) {
-            nbPairs++;
+        nbPairs++;
     }
 
     useCaseTagValueList.pairs = NULL;

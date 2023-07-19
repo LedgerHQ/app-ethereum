@@ -69,7 +69,7 @@ static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
                                      condAddressBuffer,
                                      sizeof(condAddressBuffer),
                                      &global_sha3,
-                                     chainConfig->chainId),
+                                     chainConfig->chainId);
             pairs[0].item = "Cond. Address";
             pairs[0].value = condAddressBuffer;
 

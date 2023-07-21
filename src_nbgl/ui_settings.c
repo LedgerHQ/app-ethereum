@@ -119,8 +119,14 @@ static void controlsCallback(int token, uint8_t index) {
 
 void ui_menu_settings(void) {
     uint8_t nb_screens = 2;
-#ifdef HAVE_EIP712_FULL_SUPPORT || HAVE_DOMAIN_NAME
+#if defined(HAVE_EIP712_FULL_SUPPORT) || defined(HAVE_DOMAIN_NAME)
     nb_screens += 1;
 #endif
-    nbgl_useCaseSettings(APPNAME " settings", 0, nb_screens, false, ui_idle, navCallback, controlsCallback);
+    nbgl_useCaseSettings(APPNAME " settings",
+                         0,
+                         nb_screens,
+                         false,
+                         ui_idle,
+                         navCallback,
+                         controlsCallback);
 }

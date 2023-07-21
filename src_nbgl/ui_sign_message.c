@@ -46,7 +46,7 @@ static bool display_message(nbgl_pageContent_t *content) {
         reached = nbgl_getTextMaxLenInNbLines(BAGL_FONT_INTER_MEDIUM_32px,
                                               (char *) g_stax_shared_buffer,
                                               SCREEN_WIDTH - (2 * BORDER_MARGIN),
-                                              9,
+                                              NB_MAX_LINES_IN_REVIEW,
                                               &len);
 
         stringsTmpTmpIdx = len - eip191MessageIdx;
@@ -71,7 +71,7 @@ static bool display_message(nbgl_pageContent_t *content) {
     content->tagValueList.nbPairs = 1;
     content->tagValueList.pairs = &pair;
     content->tagValueList.smallCaseForValue = false;
-    content->tagValueList.nbMaxLinesForValue = 9;
+    content->tagValueList.nbMaxLinesForValue = NB_MAX_LINES_IN_REVIEW;
     content->tagValueList.wrapping = false;
 
     if ((g_action != UI_191_ACTION_IDLE) && (stringsTmpTmpIdx >= strlen(strings.tmp.tmp))) {

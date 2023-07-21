@@ -56,12 +56,14 @@ static bool navCallback(uint8_t page, nbgl_pageContent_t* content) {
             break;
 
         case 2:
+#ifdef HAVE_EIP712_FULL_SUPPORT
             switches[index++] =
                 (nbgl_layoutSwitch_t){.initState = N_storage.verbose_eip712 ? ON_STATE : OFF_STATE,
                                       .text = "Verbose EIP712",
                                       .subText = "Ignore filtering and\ndisplay raw content",
                                       .token = EIP712_VERBOSE_TOKEN,
                                       .tuneId = TUNE_TAP_CASUAL};
+#endif  // HAVE_EIP712_FULL_SUPPORT
 #ifdef HAVE_DOMAIN_NAME
             switches[index++] = (nbgl_layoutSwitch_t){
                 .initState = N_storage.verbose_domain_name ? ON_STATE : OFF_STATE,
@@ -116,5 +118,9 @@ static void controlsCallback(int token, uint8_t index) {
 }
 
 void ui_menu_settings(void) {
-    nbgl_useCaseSettings(APPNAME " settings", 0, 3, false, ui_idle, navCallback, controlsCallback);
+    uint8_t nb_screens = 2;
+#ifdef HAVE_EIP712_FULL_SUPPORT || HAVE_DOMAIN_NAME
+    nb_screens += 1;
+#endif
+    nbgl_useCaseSettings(APPNAME " settings", 0, nb_screens, false, ui_idle, navCallback, controlsCallback);
 }

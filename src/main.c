@@ -978,12 +978,7 @@ void coin_main(libargs_t *args) {
     tmpCtx.transactionContext.currentItemIndex = 0;
 
     for (;;) {
-#ifdef HAVE_BAGL
         UX_INIT();
-#endif  // HAVE_BAGL
-#ifdef HAVE_NBGL
-        nbgl_objInit();
-#endif  // HAVE_NBGL
 
         BEGIN_TRY {
             TRY {

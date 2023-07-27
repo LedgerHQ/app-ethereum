@@ -479,7 +479,7 @@ static bool parse_der_value(const s_tlv_payload *payload, size_t *offset, uint32
             if ((*offset + byte_length) > payload->size) {
                 PRINTF("TLV payload too small for DER encoded value\n");
             } else {
-                if (byte_length > sizeof(buf)) {
+                if (byte_length > sizeof(buf) || byte_length == 0) {
                     PRINTF("Unexpectedly long DER-encoded value (%u bytes)\n", byte_length);
                 } else {
                     memset(buf, 0, (sizeof(buf) - byte_length));

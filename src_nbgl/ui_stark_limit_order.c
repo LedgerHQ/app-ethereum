@@ -31,7 +31,7 @@ static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
         pairs[0].value = strings.common.fullAmount;
         pairs[1].item = "Buy";
         pairs[1].value = strings.common.maxFee;
-        pairs[2].item = "Token amount";
+        pairs[2].item = "Token Account";
         pairs[2].value = strings.common.fullAddress;
 
         content->type = TAG_VALUE_LIST;

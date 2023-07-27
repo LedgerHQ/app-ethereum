@@ -29,7 +29,7 @@ static bool display_review_page(uint8_t page, nbgl_pageContent_t *content) {
             nbgl_getTextMaxLenInNbLines(BAGL_FONT_INTER_MEDIUM_32px,
                                         strings.tmp.tmp,
                                         SCREEN_WIDTH - (2 * BORDER_MARGIN),
-                                        9,
+                                        NB_MAX_LINES_IN_REVIEW,
                                         &len);
             strings.tmp.tmp[len] = '\0';
 
@@ -39,7 +39,6 @@ static bool display_review_page(uint8_t page, nbgl_pageContent_t *content) {
             content->tagValueList.nbPairs = 1;
             content->tagValueList.pairs = &pair;
             content->tagValueList.wrapping = false;
-            content->tagValueList.nbMaxLinesForValue = 0;
             ret = true;
             break;
 

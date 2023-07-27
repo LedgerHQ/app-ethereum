@@ -5,7 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.10.3](https://github.com/ledgerhq/app-ethereum/compare/1.10.2...1.10.3) - 2023-XX-XX
+## [1.10.3](https://github.com/ledgerhq/app-ethereum/compare/1.10.2...1.10.3) - 2023-07-27
+
+### Added
+
+- (network) LUKSO mainnet & testnet
+- (network) Chiado
+- (network) PulseChain
+- (network) Neon EVM mainnet & devnet
+- (network) Venidium
+- (network) Telos EVM mainnet
+- (network) OKBChain mainnet
+- (network) Polygon zkEVM
+- (network) Base
+- (network) Sepolia
+- ENS on chains that share the Ethereum derivation path
+- Ledger Stax support
+
+### Changed
+
+- (network) xDai renamed to Gnosis
+
+### Fixed
+
+- Missing context cleanup between plugin calls
+- Miscellaneous swap issues
+- Improper EIP-712 array handling
 
 ## [1.10.2](https://github.com/ledgerhq/app-ethereum/compare/1.10.1...1.10.2) - 2023-04-24
 

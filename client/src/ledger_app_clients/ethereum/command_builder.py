@@ -1,7 +1,7 @@
 import struct
 from enum import IntEnum
 from ragger.bip import pack_derivation_path
-from typing import Iterator
+from typing import List
 
 from .eip712 import EIP712FieldType
 
@@ -41,7 +41,7 @@ class CommandBuilder:
                    ins: InsType,
                    p1: int,
                    p2: int,
-                   cdata: bytearray = bytes()) -> bytes:
+                   cdata: bytes = bytes()) -> bytes:
 
         header = bytearray()
         header.append(self._CLA)
@@ -67,24 +67,24 @@ class CommandBuilder:
                                             field_type: EIP712FieldType,
                                             type_name: str,
                                             type_size: int,
-                                            array_levels: [],
+                                            array_levels: List,
                                             key_name: str) -> bytes:
         data = bytearray()
         typedesc = 0
         typedesc |= (len(array_levels) > 0) << 7
-        typedesc |= (type_size != None) << 6
+        typedesc |= (type_size is not None) << 6
         typedesc |= field_type
         data.append(typedesc)
         if field_type == EIP712FieldType.CUSTOM:
             data.append(len(type_name))
             data += self._string_to_bytes(type_name)
-        if type_size != None:
+        if type_size is not None:
             data.append(type_size)
         if len(array_levels) > 0:
             data.append(len(array_levels))
             for level in array_levels:
-                data.append(0 if level == None else 1)
-                if level != None:
+                data.append(0 if level is None else 1)
+                if level is not None:
                     data.append(level)
         data.append(len(key_name))
         data += self._string_to_bytes(key_name)
@@ -107,7 +107,7 @@ class CommandBuilder:
                                P2Type.ARRAY,
                                data)
 
-    def eip712_send_struct_impl_struct_field(self, data: bytearray) -> Iterator[bytes]:
+    def eip712_send_struct_impl_struct_field(self, data: bytearray) -> List[bytes]:
         chunks = list()
         # Add a 16-bit integer with the data's byte length (network byte order)
         data_w_length = bytearray()
@@ -193,7 +193,7 @@ class CommandBuilder:
 
     def provide_domain_name(self, tlv_payload: bytes) -> list[bytes]:
         chunks = list()
-        payload  = struct.pack(">H", len(tlv_payload))
+        payload = struct.pack(">H", len(tlv_payload))
         payload += tlv_payload
         p1 = 1
         while len(payload) > 0:

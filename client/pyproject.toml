@@ -40,6 +40,5 @@ version = {attr = "ledger_app_clients.ethereum.__version__"}
 [project.urls]
 Home = "https://github.com/LedgerHQ/app-ethereum"
 
-# [tool.setuptools_scm]
-# write_to = "ledgerwallet/__version__.py"
-# local_scheme = "no-local-version"
+[tool.mypy]
+ignore_missing_imports = true

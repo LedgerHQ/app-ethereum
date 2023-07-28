@@ -2,6 +2,7 @@ import rlp
 from enum import IntEnum
 from ragger.backend import BackendInterface
 from ragger.utils import RAPDU
+from typing import List, Optional, Union
 
 from .command_builder import CommandBuilder
 from .eip712 import EIP712FieldType
@@ -13,14 +14,15 @@ WEI_IN_ETH = 1e+18
 
 
 class StatusWord(IntEnum):
-    OK                      = 0x9000
-    ERROR_NO_INFO           = 0x6a00
-    INVALID_DATA            = 0x6a80
-    INSUFFICIENT_MEMORY     = 0x6a84
-    INVALID_INS             = 0x6d00
-    INVALID_P1_P2           = 0x6b00
+    OK = 0x9000
+    ERROR_NO_INFO = 0x6a00
+    INVALID_DATA = 0x6a80
+    INSUFFICIENT_MEMORY = 0x6a84
+    INVALID_INS = 0x6d00
+    INVALID_P1_P2 = 0x6b00
     CONDITION_NOT_SATISFIED = 0x6985
-    REF_DATA_NOT_FOUND      = 0x6a88
+    REF_DATA_NOT_FOUND = 0x6a88
+
 
 class DOMAIN_NAME_TAG(IntEnum):
     STRUCTURE_TYPE = 0x01
@@ -39,10 +41,10 @@ class EthAppClient:
         self._client = client
         self._cmd_builder = CommandBuilder()
 
-    def _send(self, payload: bytearray):
+    def _send(self, payload: bytes):
         return self._client.exchange_async_raw(payload)
 
-    def response(self) -> RAPDU:
+    def response(self) -> Optional[RAPDU]:
         return self._client._last_async_response
 
     def eip712_send_struct_def_struct_name(self, name: str):
@@ -52,7 +54,7 @@ class EthAppClient:
                                             field_type: EIP712FieldType,
                                             type_name: str,
                                             type_size: int,
-                                            array_levels: [],
+                                            array_levels: List,
                                             key_name: str):
         return self._send(self._cmd_builder.eip712_send_struct_def_struct_field(
                           field_type,
@@ -68,7 +70,7 @@ class EthAppClient:
         return self._send(self._cmd_builder.eip712_send_struct_impl_array(size))
 
     def eip712_send_struct_impl_struct_field(self, raw_value: bytes):
-        chunks = self._cmd_builder.eip712_send_struct_impl_struct_field(raw_value)
+        chunks = self._cmd_builder.eip712_send_struct_impl_struct_field(bytearray(raw_value))
         for chunk in chunks[:-1]:
             with self._send(chunk):
                 pass
@@ -102,7 +104,7 @@ class EthAppClient:
                   to: bytes,
                   amount: float,
                   chain_id: int):
-        data = list()
+        data: List[Union[int, bytes]] = list()
         data.append(nonce)
         data.append(gas_price)
         data.append(gas_limit)
@@ -123,12 +125,12 @@ class EthAppClient:
         return self._send(self._cmd_builder.get_challenge())
 
     def provide_domain_name(self, challenge: int, name: str, addr: bytes):
-        payload  = format_tlv(DOMAIN_NAME_TAG.STRUCTURE_TYPE, 3) # TrustedDomainName
+        payload = format_tlv(DOMAIN_NAME_TAG.STRUCTURE_TYPE, 3)  # TrustedDomainName
         payload += format_tlv(DOMAIN_NAME_TAG.STRUCTURE_VERSION, 1)
-        payload += format_tlv(DOMAIN_NAME_TAG.SIGNER_KEY_ID, 0) # test key
-        payload += format_tlv(DOMAIN_NAME_TAG.SIGNER_ALGO, 1) # secp256k1
+        payload += format_tlv(DOMAIN_NAME_TAG.SIGNER_KEY_ID, 0)  # test key
+        payload += format_tlv(DOMAIN_NAME_TAG.SIGNER_ALGO, 1)  # secp256k1
         payload += format_tlv(DOMAIN_NAME_TAG.CHALLENGE, challenge)
-        payload += format_tlv(DOMAIN_NAME_TAG.COIN_TYPE, 0x3c) # ETH in slip-44
+        payload += format_tlv(DOMAIN_NAME_TAG.COIN_TYPE, 0x3c)  # ETH in slip-44
         payload += format_tlv(DOMAIN_NAME_TAG.DOMAIN_NAME, name)
         payload += format_tlv(DOMAIN_NAME_TAG.ADDRESS, addr)
         payload += format_tlv(DOMAIN_NAME_TAG.SIGNATURE,

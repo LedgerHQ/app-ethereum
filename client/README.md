@@ -10,12 +10,12 @@ This package is deployed:
 - on `pypi.org` for the stable version. This version will work with the
   application available on the `master` branch.
   ```bash
-  pip install ledger_app_clients.ethereum`
+  pip install ledger_app_clients.ethereum
   ```
-- on `test.pypi.org` for the rolling release. This verison will work with the
+- on `test.pypi.org` for the rolling release. This version will work with the
   application code on the `develop` branch.
   ```bash
-  pip install --extra-index-url https://test.pypi.org/simple/ ledger_app_clients.ethereum`
+  pip install --extra-index-url https://test.pypi.org/simple/ ledger_app_clients.ethereum
   ```
 
 ### Installation from sources

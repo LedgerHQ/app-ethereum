@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v3
       - run: pip install flake8
       - name: Flake8 lint Python code
-        run: find client/src/ -type f -name '*.py' -exec flake8 --max-line-length=120 '{}' '+'
+        run: (cd client && find src/ -type f -name '*.py' -exec flake8 --max-line-length=120 '{}' '+')
 
   mypy:
     name: Type checking
@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@v3
       - run: pip install mypy
       - name: Mypy type checking
-        run: mypy client/src
+        run: (cd client && mypy src/)
 
   build:
     name: Building the package

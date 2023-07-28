@@ -1,13 +1,13 @@
-#!/usr/bin/env python3
-
-import json
-import sys
-import re
 import hashlib
-from app.client import EthAppClient, EIP712FieldType
-import keychain
-from typing import Callable
+import json
+import re
 import signal
+import sys
+from typing import Callable
+
+from ledger_app_clients.ethereum import keychain
+from ledger_app_clients.ethereum.client import EthAppClient, EIP712FieldType
+
 
 # global variables
 app_client: EthAppClient = None
@@ -16,8 +16,6 @@ current_path = list()
 sig_ctx = {}
 
 autonext_handler: Callable = None
-
-
 
 
 # From a string typename, extract the type and all the array depth

@@ -1,8 +1,10 @@
-from enum import IntEnum, auto
-from typing import Iterator, Optional
-from .eip712 import EIP712FieldType
-from ragger.bip import pack_derivation_path
 import struct
+from enum import IntEnum
+from ragger.bip import pack_derivation_path
+from typing import Iterator
+
+from .eip712 import EIP712FieldType
+
 
 class InsType(IntEnum):
     SIGN = 0x04
@@ -13,11 +15,13 @@ class InsType(IntEnum):
     GET_CHALLENGE = 0x20
     PROVIDE_DOMAIN_NAME = 0x22
 
+
 class P1Type(IntEnum):
     COMPLETE_SEND = 0x00
     PARTIAL_SEND = 0x01
     SIGN_FIRST_CHUNK = 0x00
     SIGN_SUBSQT_CHUNK = 0x80
+
 
 class P2Type(IntEnum):
     STRUCT_NAME = 0x00
@@ -28,6 +32,7 @@ class P2Type(IntEnum):
     FILTERING_ACTIVATE = 0x00
     FILTERING_CONTRACT_NAME = 0x0f
     FILTERING_FIELD_NAME = 0xff
+
 
 class CommandBuilder:
     _CLA: int = 0xE0

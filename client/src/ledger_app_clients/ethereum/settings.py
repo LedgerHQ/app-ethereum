@@ -1,7 +1,7 @@
 from enum import Enum, auto
-from typing import List
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator, NavInsID, NavIns
+
 
 class SettingID(Enum):
     BLIND_SIGNING = auto()

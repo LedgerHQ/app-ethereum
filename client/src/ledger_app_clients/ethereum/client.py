@@ -1,16 +1,14 @@
-from enum import IntEnum, auto
-from typing import Optional
+import rlp
+from enum import IntEnum
 from ragger.backend import BackendInterface
 from ragger.utils import RAPDU
+
 from .command_builder import CommandBuilder
 from .eip712 import EIP712FieldType
+from .keychain import sign_data, Key
 from .tlv import format_tlv
-from pathlib import Path
-import keychain
-import rlp
 
 
-ROOT_SCREENSHOT_PATH = Path(__file__).parent.parent
 WEI_IN_ETH = 1e+18
 
 
@@ -134,7 +132,7 @@ class EthAppClient:
         payload += format_tlv(DOMAIN_NAME_TAG.DOMAIN_NAME, name)
         payload += format_tlv(DOMAIN_NAME_TAG.ADDRESS, addr)
         payload += format_tlv(DOMAIN_NAME_TAG.SIGNATURE,
-                              keychain.sign_data(keychain.Key.DOMAIN_NAME, payload))
+                              sign_data(Key.DOMAIN_NAME, payload))
 
         chunks = self._cmd_builder.provide_domain_name(payload)
         for chunk in chunks[:-1]:

@@ -1,8 +1,9 @@
 import os
 import hashlib
-from ecdsa.util import sigencode_der
 from ecdsa import SigningKey
+from ecdsa.util import sigencode_der
 from enum import Enum, auto
+
 
 # Private key PEM files have to be named the same (lowercase) as their corresponding enum entries
 # Example: for an entry in the Enum named DEV, its PEM file must be at keychain/dev.pem

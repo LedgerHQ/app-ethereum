@@ -1,36 +1,41 @@
-import pytest
-import os
 import fnmatch
-from typing import List
-from ragger.firmware import Firmware
-from ragger.backend import BackendInterface
-from ragger.navigator import Navigator, NavInsID
-from app.client import EthAppClient
-from app.settings import SettingID, settings_toggle
-from eip712 import InputData
-from pathlib import Path
-from configparser import ConfigParser
-import app.response_parser as ResponseParser
-from functools import partial
+import os
+import pytest
 import time
+from configparser import ConfigParser
+from functools import partial
+from pathlib import Path
+from ragger.backend import BackendInterface
+from ragger.firmware import Firmware
+from ragger.navigator import Navigator, NavInsID
+from typing import List
+
+import ledger_app_clients.ethereum.response_parser as ResponseParser
+from ledger_app_clients.ethereum.client import EthAppClient
+from ledger_app_clients.ethereum.eip712 import InputData
+from ledger_app_clients.ethereum.settings import SettingID, settings_toggle
+
 
 BIP32_PATH = "m/44'/60'/0'/0/0"
 
 
 def input_files() -> List[str]:
     files = []
-    for file in os.scandir("%s/eip712/input_files" % (os.path.dirname(__file__))):
+    for file in os.scandir("%s/eip712_input_files" % (os.path.dirname(__file__))):
         if fnmatch.fnmatch(file, "*-data.json"):
             files.append(file.path)
     return sorted(files)
+
 
 @pytest.fixture(params=input_files())
 def input_file(request) -> str:
     return Path(request.param)
 
+
 @pytest.fixture(params=[True, False])
 def verbose(request) -> bool:
     return request.param
+
 
 @pytest.fixture(params=[False, True])
 def filtering(request) -> bool:

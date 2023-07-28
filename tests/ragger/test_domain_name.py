@@ -1,12 +1,16 @@
 import pytest
-from ragger.error import ExceptionRAPDU
-from ragger.firmware import Firmware
+from pathlib import Path
 from ragger.backend import BackendInterface
+from ragger.firmware import Firmware
+from ragger.error import ExceptionRAPDU
 from ragger.navigator import Navigator, NavInsID
-from app.client import EthAppClient, StatusWord, ROOT_SCREENSHOT_PATH
-from app.settings import SettingID, settings_toggle
-import app.response_parser as ResponseParser
-import struct
+
+import ledger_app_clients.ethereum.response_parser as ResponseParser
+from ledger_app_clients.ethereum.client import EthAppClient, StatusWord
+from ledger_app_clients.ethereum.settings import SettingID, settings_toggle
+
+
+ROOT_SCREENSHOT_PATH = Path(__file__).parent
 
 # Values used across all tests
 CHAIN_ID = 1
@@ -73,7 +77,6 @@ def test_send_fund_wrong_challenge(firmware: Firmware,
                                    backend: BackendInterface,
                                    navigator: Navigator):
     app_client = EthAppClient(backend)
-    caught = False
     challenge = common(app_client)
 
     try:

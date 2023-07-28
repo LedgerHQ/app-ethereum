@@ -1,0 +1,43 @@
+name: Python client checks, package build and deployment
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - develop
+      - master
+  pull_request:
+
+jobs:
+  lint:
+    name: Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone
+        uses: actions/checkout@v3
+      - run: pip install flake8
+      - name: Flake8 lint Python code
+        run: find client/src/ -type f -name '*.py' -exec flake8 --max-line-length=120 '{}' '+'
+
+  mypy:
+    name: Type checking
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone
+        uses: actions/checkout@v3
+      - run: pip install mypy
+      - name: Mypy type checking
+        run: mypy client/src
+
+  build:
+    name: Building the package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone
+        uses: actions/checkout@v3
+      - run: pip install --upgrade pip build twine
+      - name: Build and test the package
+        run: |
+          cd client/
+          python -m build .
+          python -m twine check dist/*

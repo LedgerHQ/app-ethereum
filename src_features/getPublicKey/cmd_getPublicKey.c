@@ -16,7 +16,7 @@ void handleGetPublicKey(uint8_t p1,
     bip32_path_t bip32;
     cx_ecfp_private_key_t privateKey;
 
-    if (!called_from_swap) {
+    if (!G_called_from_swap) {
         reset_app_context();
     }
 

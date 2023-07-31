@@ -7,6 +7,9 @@
 #include "tokens.h"
 #include "chainConfig.h"
 #include "nft.h"
+#ifdef HAVE_NBGL
+#include "nbgl_types.h"
+#endif
 
 #define MAX_BIP32_PATH 10
 
@@ -210,7 +213,7 @@ extern strings_t strings;
 extern cx_sha3_t global_sha3;
 extern const internalStorage_t N_storage_real;
 
-extern bool called_from_swap;
+extern bool G_called_from_swap;
 
 typedef enum {
     EXTERNAL,     //  External plugin, set by setExternalPlugin.
@@ -221,6 +224,16 @@ typedef enum {
 
 extern pluginType_t pluginType;
 
+typedef enum { CALLER_TYPE_CLONE, CALLER_TYPE_PLUGIN } e_caller_type;
+
+typedef struct caller_app_t {
+    const char *name;
+#ifdef HAVE_NBGL
+    const nbgl_icon_details_t *icon;
+#endif
+    char type;  // does not have to be set by the caller app
+} caller_app_t;
+
 extern uint8_t appState;
 #ifdef HAVE_STARKWARE
 extern bool quantumSet;
@@ -228,6 +241,8 @@ extern bool quantumSet;
 #ifdef HAVE_ETH2
 extern uint32_t eth2WithdrawalIndex;
 #endif
+
+extern caller_app_t *caller_app;
 
 void reset_app_context(void);
 const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_path_t *bip32);

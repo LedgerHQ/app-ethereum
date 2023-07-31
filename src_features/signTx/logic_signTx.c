@@ -136,6 +136,7 @@ customStatus_e customProcessor(txContext_t *context) {
                 }
                 dataContext.tokenContext.fieldIndex++;
                 dataContext.tokenContext.fieldOffset = 0;
+                memset(dataContext.tokenContext.data, 0, sizeof(dataContext.tokenContext.data));
                 return CUSTOM_HANDLED;
             }
 
@@ -195,7 +196,8 @@ static void address_to_string(uint8_t *in,
 }
 
 static void raw_fee_to_string(uint256_t *rawFee, char *displayBuffer, uint32_t displayBufferSize) {
-    const char *feeTicker = get_network_ticker();
+    uint64_t chain_id = get_tx_chain_id();
+    const char *feeTicker = get_displayable_ticker(&chain_id);
     uint8_t tickerOffset = 0;
     uint32_t i;
 
@@ -262,10 +264,10 @@ static void nonce_to_string(const txInt256_t *nonce, char *out, size_t out_size)
 }
 
 static void get_network_as_string(char *out, size_t out_size) {
-    const char *name = get_network_name();
+    uint64_t chain_id = get_tx_chain_id();
+    const char *name = get_network_name_from_chain_id(&chain_id);
     if (name == NULL) {
         // No network name found so simply copy the chain ID as the network name.
-        uint64_t chain_id = get_chain_id();
         u64_to_string(chain_id, out, out_size);
     } else {
         // Network name found, simply copy it.
@@ -312,13 +314,14 @@ static int strcasecmp_workaround(const char *str1, const char *str2) {
 void finalizeParsing(bool direct) {
     char displayBuffer[50];
     uint8_t decimals = WEI_TO_ETHER;
-    const char *ticker = get_network_ticker();
+    uint64_t chain_id = get_tx_chain_id();
+    const char *ticker = get_displayable_ticker(&chain_id);
     ethPluginFinalize_t pluginFinalize;
     bool use_standard_UI = true;
 
     // Verify the chain
     if (chainConfig->chainId != ETHEREUM_MAINNET_CHAINID) {
-        uint64_t id = get_chain_id();
+        uint64_t id = get_tx_chain_id();
 
         if (chainConfig->chainId != id) {
             PRINTF("Invalid chainID %u expected %u\n", id, chainConfig->chainId);
@@ -423,8 +426,8 @@ void finalizeParsing(bool direct) {
     }
 
     // User has just validated a swap but ETH received apdus about a non standard plugin / contract
-    if (called_from_swap && !use_standard_UI) {
-        PRINTF("ERR_SILENT_MODE_CHECK_FAILED, called_from_swap\n");
+    if (G_called_from_swap && !use_standard_UI) {
+        PRINTF("ERR_SILENT_MODE_CHECK_FAILED, G_called_from_swap\n");
         THROW(ERR_SILENT_MODE_CHECK_FAILED);
     }
 
@@ -446,7 +449,7 @@ void finalizeParsing(bool direct) {
                           sizeof(displayBuffer),
                           &global_sha3,
                           chainConfig->chainId);
-        if (called_from_swap) {
+        if (G_called_from_swap) {
             // Ensure the values are the same that the ones that have been previously validated
             if (strcasecmp_workaround(strings.common.fullAddress, displayBuffer) != 0) {
                 PRINTF("ERR_SILENT_MODE_CHECK_FAILED, address check failed\n");
@@ -465,7 +468,7 @@ void finalizeParsing(bool direct) {
                        ticker,
                        displayBuffer,
                        sizeof(displayBuffer));
-        if (called_from_swap) {
+        if (G_called_from_swap) {
             // Ensure the values are the same that the ones that have been previously validated
             if (strcmp(strings.common.fullAmount, displayBuffer) != 0) {
                 PRINTF("ERR_SILENT_MODE_CHECK_FAILED, amount check failed\n");
@@ -483,7 +486,7 @@ void finalizeParsing(bool direct) {
                                   &tmpContent.txContent.startgas,
                                   displayBuffer,
                                   sizeof(displayBuffer));
-    if (called_from_swap) {
+    if (G_called_from_swap) {
         // Ensure the values are the same that the ones that have been previously validated
         if (strcmp(strings.common.maxFee, displayBuffer) != 0) {
             PRINTF("ERR_SILENT_MODE_CHECK_FAILED, fees check failed\n");
@@ -509,7 +512,7 @@ void finalizeParsing(bool direct) {
 
     // If called from swap, the user as already validated a standard transaction
     // We have already checked the fields of this transaction above
-    no_consent_check = called_from_swap && use_standard_UI;
+    no_consent_check = G_called_from_swap && use_standard_UI;
 
 #ifdef NO_CONSENT
     no_consent_check = true;

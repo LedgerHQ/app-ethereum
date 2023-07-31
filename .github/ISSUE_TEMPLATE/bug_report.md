@@ -15,7 +15,7 @@ Describe your issue in as much detail as possible here.
 
 * OS and version
 * branch that causes this issue
-* Device (Nano S, Nano X, Ledger Blue)
+* Device (Nano S, Nano S Plus, Nano X, Ledger Blue)
 
 ## Steps to reproduce
 

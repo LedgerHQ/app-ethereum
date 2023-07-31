@@ -10,6 +10,7 @@
 #include "challenge.h"
 #include "mem.h"
 #include "hash_bytes.h"
+#include "network.h"
 
 static const uint8_t DOMAIN_NAME_PUB_KEY[] = {
 #ifdef HAVE_DOMAIN_NAME_TEST_KEY
@@ -124,8 +125,8 @@ bool has_domain_name(const uint64_t *chain_id, const uint8_t *addr) {
     bool ret = false;
 
     if (g_domain_name_info.valid) {
-        // TODO: Remove once other domain name providers are supported
-        if ((*chain_id == ETHEREUM_MAINNET_CHAINID) &&
+        // Check if chain ID is known to be Ethereum-compatible (same derivation path)
+        if ((chain_is_ethereum_compatible(chain_id)) &&
             (memcmp(addr, g_domain_name_info.addr, ADDRESS_LENGTH) == 0)) {
             ret = true;
         }
@@ -478,7 +479,7 @@ static bool parse_der_value(const s_tlv_payload *payload, size_t *offset, uint32
             if ((*offset + byte_length) > payload->size) {
                 PRINTF("TLV payload too small for DER encoded value\n");
             } else {
-                if (byte_length > sizeof(buf)) {
+                if (byte_length > sizeof(buf) || byte_length == 0) {
                     PRINTF("Unexpectedly long DER-encoded value (%u bytes)\n", byte_length);
                 } else {
                     memset(buf, 0, (sizeof(buf) - byte_length));

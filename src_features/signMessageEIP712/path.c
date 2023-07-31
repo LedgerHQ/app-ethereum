@@ -143,14 +143,18 @@ static cx_sha3_t *get_last_hash_ctx(void) {
  * Finalize the last hashing context
  *
  * @param[out] hash pointer to buffer where the hash will be stored
+ * @return whether there was anything hashed at this depth
  */
-static void finalize_hash_depth(uint8_t *hash) {
+static bool finalize_hash_depth(uint8_t *hash) {
     const cx_sha3_t *hash_ctx;
+    size_t hashed_bytes;
 
     hash_ctx = get_last_hash_ctx();
+    hashed_bytes = hash_ctx->blen;
     // finalize hash
     cx_hash((cx_hash_t *) hash_ctx, CX_LAST, NULL, 0, hash, KECCAK256_HASH_BYTESIZE);
     mem_dealloc(sizeof(*hash_ctx));  // remove hash context
+    return hashed_bytes > 0;
 }
 
 /**
@@ -192,6 +196,7 @@ static bool push_new_hash_depth(bool init) {
  */
 static bool path_depth_list_pop(void) {
     uint8_t hash[KECCAK256_HASH_BYTESIZE];
+    bool to_feed;
 
     if (path_struct == NULL) {
         return false;
@@ -201,9 +206,11 @@ static bool path_depth_list_pop(void) {
     }
     path_struct->depth_count -= 1;
 
-    finalize_hash_depth(hash);
+    to_feed = finalize_hash_depth(hash);
     if (path_struct->depth_count > 0) {
-        feed_last_hash_depth(hash);
+        if (to_feed) {
+            feed_last_hash_depth(hash);
+        }
     } else {
         switch (path_struct->root_type) {
             case ROOT_DOMAIN:
@@ -261,7 +268,7 @@ static bool array_depth_list_pop(void) {
         return false;
     }
 
-    finalize_hash_depth(hash);
+    finalize_hash_depth(hash);  // return value not checked on purpose
     feed_last_hash_depth(hash);
 
     path_struct->array_depth_count -= 1;
@@ -307,7 +314,10 @@ static bool path_update(void) {
         }
         feed_last_hash_depth(hash);
 
-        ui_712_queue_struct_to_review();
+        // TODO: Find a better way to show inner structs in verbose mode when it might be
+        //       an empty array of structs in which case we don't want to show it but the
+        //       size is only known later
+        // ui_712_queue_struct_to_review();
         path_depth_list_push();
     }
     return true;
@@ -421,6 +431,8 @@ bool path_new_array_depth(const uint8_t *const data, uint8_t length) {
     uint8_t total_count = 0;
     uint8_t pidx;
     bool is_custom;
+    uint8_t array_size;
+    uint8_t array_depth_count_bak;
 
     if (path_struct == NULL) {
         apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
@@ -430,6 +442,8 @@ bool path_new_array_depth(const uint8_t *const data, uint8_t length) {
         return false;
     }
 
+    array_size = *data;
+    array_depth_count_bak = path_struct->array_depth_count;
     for (pidx = 0; pidx < path_struct->depth_count; ++pidx) {
         if ((field_ptr = get_nth_field(NULL, pidx + 1)) == NULL) {
             apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
@@ -442,7 +456,7 @@ bool path_new_array_depth(const uint8_t *const data, uint8_t length) {
             }
             total_count += depth_count;
             if (total_count > path_struct->array_depth_count) {
-                if (!check_and_add_array_depth(depth, total_count, pidx, *data)) {
+                if (!check_and_add_array_depth(depth, total_count, pidx, array_size)) {
                     return false;
                 }
                 break;
@@ -463,8 +477,17 @@ bool path_new_array_depth(const uint8_t *const data, uint8_t length) {
         cx_sha3_t *hash_ctx = get_last_hash_ctx();
         cx_sha3_t *old_ctx = hash_ctx - 1;
 
-        memcpy(hash_ctx, old_ctx, sizeof(*old_ctx));
+        if (array_size > 0) {
+            memcpy(hash_ctx, old_ctx, sizeof(*old_ctx));
+        } else {
+            cx_keccak_init(hash_ctx, 256);
+        }
         cx_keccak_init(old_ctx, 256);  // init hash
+    }
+    if (array_size == 0) {
+        do {
+            path_advance();
+        } while (path_struct->array_depth_count != array_depth_count_bak);
     }
 
     return true;
@@ -515,7 +538,7 @@ static bool path_advance_in_array(void) {
 
         if ((path_struct->array_depth_count > 0) &&
             (arr_depth->path_index == (path_struct->depth_count - 1))) {
-            arr_depth->size -= 1;
+            if (arr_depth->size > 0) arr_depth->size -= 1;
             if (arr_depth->size == 0) {
                 array_depth_list_pop();
                 end_reached = true;

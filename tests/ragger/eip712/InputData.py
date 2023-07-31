@@ -4,14 +4,18 @@ import json
 import sys
 import re
 import hashlib
-from app.client import EthereumClient, EIP712FieldType
+from app.client import EthAppClient, EIP712FieldType
 import keychain
+from typing import Callable
+import signal
 
 # global variables
-app_client: EthereumClient = None
+app_client: EthAppClient = None
 filtering_paths = None
 current_path = list()
 sig_ctx = {}
+
+autonext_handler: Callable = None
 
 
 
@@ -97,11 +101,12 @@ def send_struct_def_field(typename, keyname):
         type_enum = EIP712FieldType.CUSTOM
         typesize = None
 
-    app_client.eip712_send_struct_def_struct_field(type_enum,
-                                                   typename,
-                                                   typesize,
-                                                   array_lvls,
-                                                   keyname)
+    with app_client.eip712_send_struct_def_struct_field(type_enum,
+                                                        typename,
+                                                        typesize,
+                                                        array_lvls,
+                                                        keyname):
+        pass
     return (typename, type_enum, typesize, array_lvls)
 
 
@@ -191,7 +196,9 @@ def send_struct_impl_field(value, field):
         if path in filtering_paths.keys():
             send_filtering_show_field(filtering_paths[path])
 
-    app_client.eip712_send_struct_impl_struct_field(data)
+    with app_client.eip712_send_struct_impl_struct_field(data):
+        enable_autonext()
+    disable_autonext()
 
 
 
@@ -201,7 +208,8 @@ def evaluate_field(structs, data, field, lvls_left, new_level = True):
     if new_level:
         current_path.append(field["name"])
     if len(array_lvls) > 0 and lvls_left > 0:
-        app_client.eip712_send_struct_impl_array(len(data))
+        with app_client.eip712_send_struct_impl_array(len(data)):
+            pass
         idx = 0
         for subdata in data:
             current_path.append("[]")
@@ -252,7 +260,9 @@ def send_filtering_message_info(display_name: str, filters_count: int):
         to_sign.append(ord(char))
 
     sig = keychain.sign_data(keychain.Key.CAL, to_sign)
-    app_client.eip712_filtering_message_info(display_name, filters_count, sig)
+    with app_client.eip712_filtering_message_info(display_name, filters_count, sig):
+        enable_autonext()
+    disable_autonext()
 
 # ledgerjs doesn't actually sign anything, and instead uses already pre-computed signatures
 def send_filtering_show_field(display_name):
@@ -270,7 +280,8 @@ def send_filtering_show_field(display_name):
     for char in display_name:
         to_sign.append(ord(char))
     sig = keychain.sign_data(keychain.Key.CAL, to_sign)
-    app_client.eip712_filtering_show_field(display_name, sig)
+    with app_client.eip712_filtering_show_field(display_name, sig):
+        pass
 
 def read_filtering_file(domain, message, filtering_file_path):
     data_json = None
@@ -309,9 +320,29 @@ def init_signature_context(types, domain):
     schema_hash = hashlib.sha224(schema_str.encode())
     sig_ctx["schema_hash"] = bytearray.fromhex(schema_hash.hexdigest())
 
-def process_file(aclient: EthereumClient, input_file_path: str, filtering_file_path = None) -> bool:
+
+def next_timeout(_signum: int, _frame):
+    autonext_handler()
+
+def enable_autonext():
+    seconds = 1/4
+    if app_client._client.firmware.device == 'stax': # Stax Speculos is slow
+        interval = seconds * 3
+    else:
+        interval = seconds
+    signal.setitimer(signal.ITIMER_REAL, seconds, interval)
+
+def disable_autonext():
+    signal.setitimer(signal.ITIMER_REAL, 0, 0)
+
+
+def process_file(aclient: EthAppClient,
+                 input_file_path: str,
+                 filtering_file_path = None,
+                 autonext: Callable = None) -> bool:
     global sig_ctx
     global app_client
+    global autonext_handler
 
     app_client = aclient
     with open(input_file_path, "r") as data:
@@ -322,23 +353,31 @@ def process_file(aclient: EthereumClient, input_file_path: str, filtering_file_p
         domain = data_json["domain"]
         message = data_json["message"]
 
+        if autonext:
+            autonext_handler = autonext
+            signal.signal(signal.SIGALRM, next_timeout)
+
         if filtering_file_path:
             init_signature_context(types, domain)
             filtr = read_filtering_file(domain, message, filtering_file_path)
 
         # send types definition
         for key in types.keys():
-            app_client.eip712_send_struct_def_struct_name(key)
+            with app_client.eip712_send_struct_def_struct_name(key):
+                pass
             for f in types[key]:
                 (f["type"], f["enum"], f["typesize"], f["array_lvls"]) = \
                 send_struct_def_field(f["type"], f["name"])
 
         if filtering_file_path:
-            app_client.eip712_filtering_activate()
+            with app_client.eip712_filtering_activate():
+                pass
             prepare_filtering(filtr, message)
 
         # send domain implementation
-        app_client.eip712_send_struct_impl_root_struct(domain_typename)
+        with app_client.eip712_send_struct_impl_root_struct(domain_typename):
+            enable_autonext()
+        disable_autonext()
         if not send_struct_impl(types, domain, domain_typename):
             return False
 
@@ -349,7 +388,9 @@ def process_file(aclient: EthereumClient, input_file_path: str, filtering_file_p
                 send_filtering_message_info(domain["name"], len(filtering_paths))
 
         # send message implementation
-        app_client.eip712_send_struct_impl_root_struct(message_typename)
+        with app_client.eip712_send_struct_impl_root_struct(message_typename):
+            enable_autonext()
+        disable_autonext()
         if not send_struct_impl(types, message, message_typename):
             return False
 

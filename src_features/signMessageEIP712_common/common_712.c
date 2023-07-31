@@ -7,7 +7,7 @@
 
 static const uint8_t EIP_712_MAGIC[] = {0x19, 0x01};
 
-unsigned int ui_712_approve_cb() {
+unsigned int ui_712_approve_cb(void) {
     uint8_t privateKeyData[INT256_LENGTH];
     uint8_t hash[INT256_LENGTH];
     uint8_t signature[100];
@@ -75,7 +75,7 @@ unsigned int ui_712_approve_cb() {
     return 0;  // do not redraw the widget
 }
 
-unsigned int ui_712_reject_cb() {
+unsigned int ui_712_reject_cb(void) {
     reset_app_context();
     G_io_apdu_buffer[0] = 0x69;
     G_io_apdu_buffer[1] = 0x85;

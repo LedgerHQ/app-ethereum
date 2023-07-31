@@ -7,7 +7,7 @@
   <h1 align="center">app-ethereum</h1>
 
   <p align="center">
-    Ethereum wallet application for Ledger Blue, Nano S and Nano X
+    Ethereum wallet application for Ledger Blue, Nano S, Nano S Plus and Nano X
     <br />
     <a href="https://github.com/LedgerHQ/app-ethereum/tree/master/doc"><strong>« Explore the docs »</strong></a>
     <br />
@@ -42,7 +42,7 @@
 
 ## About the project
 
-Ethereum wallet application framework for Nano S and Nano X.  
+Ethereum wallet application framework for Nano S, Nano S Plus and Nano X.  
 Ledger Blue is not maintained anymore, but the app can still be compiled for this target using the branch [`blue-final-release`](https://github.com/LedgerHQ/app-ethereum/tree/blue-final-release).
 
 ## Documentation

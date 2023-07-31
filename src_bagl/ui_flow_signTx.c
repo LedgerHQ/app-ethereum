@@ -7,6 +7,7 @@
 #include "eth_plugin_handler.h"
 #include "ui_plugin.h"
 #include "common_ui.h"
+#include "ethUtils.h"
 #include "plugins.h"
 #include "domain_name.h"
 #include "ui_domain_name.h"
@@ -220,7 +221,7 @@ void ux_approve_tx(bool fromPlugin) {
         // We're in a regular transaction, just show the amount and the address
         ux_approval_tx_flow[step++] = &ux_approval_amount_step;
 #ifdef HAVE_DOMAIN_NAME
-        uint64_t chain_id = get_chain_id();
+        uint64_t chain_id = get_tx_chain_id();
         if (has_domain_name(&chain_id, tmpContent.txContent.destination)) {
             ux_approval_tx_flow[step++] = &ux_domain_name_step;
             if (N_storage.verbose_domain_name) {
@@ -238,7 +239,7 @@ void ux_approve_tx(bool fromPlugin) {
         ux_approval_tx_flow[step++] = &ux_approval_nonce_step;
     }
 
-    uint64_t chain_id = get_chain_id();
+    uint64_t chain_id = get_tx_chain_id();
     if (chainConfig->chainId == ETHEREUM_MAINNET_CHAINID && chain_id != chainConfig->chainId) {
         ux_approval_tx_flow[step++] = &ux_approval_network_step;
     }

@@ -27,9 +27,12 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "shared_context.h"
+#include "utils.h"
 #include "ethUtils.h"
 #include "chainConfig.h"
 #include "ethUstream.h"
+#include "network.h"
 
 bool rlpCanDecode(uint8_t *buffer, uint32_t bufferLength, bool *valid) {
     if (*buffer <= 0x7f) {
@@ -300,4 +303,33 @@ bool adjustDecimals(const char *src,
         }
     }
     return true;
+}
+
+// Returns the chain ID. Defaults to 0 if txType was not found (For TX).
+uint64_t get_tx_chain_id(void) {
+    uint64_t chain_id = 0;
+
+    switch (txContext.txType) {
+        case LEGACY:
+            chain_id = u64_from_BE(txContext.content->v, txContext.content->vLength);
+            break;
+        case EIP2930:
+        case EIP1559:
+            chain_id = u64_from_BE(tmpContent.txContent.chainID.value,
+                                   tmpContent.txContent.chainID.length);
+            break;
+        default:
+            PRINTF("Txtype `%d` not supported while generating chainID\n", txContext.txType);
+            break;
+    }
+    return chain_id;
+}
+
+const char *get_displayable_ticker(const uint64_t *chain_id) {
+    const char *ticker = get_network_ticker_from_chain_id(chain_id);
+
+    if (ticker == NULL) {
+        ticker = chainConfig->coinName;
+    }
+    return ticker;
 }

@@ -1,7 +1,11 @@
 import pytest
 from ragger.error import ExceptionRAPDU
-from app.client import EthereumClient, StatusWord
-from app.setting import SettingType
+from ragger.firmware import Firmware
+from ragger.backend import BackendInterface
+from ragger.navigator import Navigator, NavInsID
+from app.client import EthAppClient, StatusWord, ROOT_SCREENSHOT_PATH
+from app.settings import SettingID, settings_toggle
+import app.response_parser as ResponseParser
 import struct
 
 # Values used across all tests
@@ -20,108 +24,211 @@ AMOUNT = 1.22
 def verbose(request) -> bool:
     return request.param
 
-def common(app_client: EthereumClient) -> int:
+def common(app_client: EthAppClient) -> int:
     if app_client._client.firmware.device == "nanos":
         pytest.skip("Not supported on LNS")
-    return app_client.get_challenge()
+    with app_client.get_challenge():
+        pass
+    return ResponseParser.challenge(app_client.response().data)
 
 
-def test_send_fund(app_client: EthereumClient, verbose: bool):
+def test_send_fund(firmware: Firmware,
+                   backend: BackendInterface,
+                   navigator: Navigator,
+                   test_name: str,
+                   verbose: bool):
+    app_client = EthAppClient(backend)
     challenge = common(app_client)
 
     if verbose:
-        app_client.settings_set({
-            SettingType.VERBOSE_ENS: True
-        })
+        settings_toggle(firmware, navigator, [SettingID.VERBOSE_ENS])
 
-    app_client.provide_domain_name(challenge, NAME, ADDR)
+    with app_client.provide_domain_name(challenge, NAME, ADDR):
+        pass
 
-    app_client.send_fund(BIP32_PATH,
-                         NONCE,
-                         GAS_PRICE,
-                         GAS_LIMIT,
-                         ADDR,
-                         AMOUNT,
-                         CHAIN_ID,
-                         "domain_name_verbose_" + str(verbose))
+    with app_client.send_fund(BIP32_PATH,
+                              NONCE,
+                              GAS_PRICE,
+                              GAS_LIMIT,
+                              ADDR,
+                              AMOUNT,
+                              CHAIN_ID):
+        moves = list()
+        if firmware.device.startswith("nano"):
+            moves += [ NavInsID.RIGHT_CLICK ] * 4
+            if verbose:
+                moves += [ NavInsID.RIGHT_CLICK ]
+            moves += [ NavInsID.BOTH_CLICK ]
+        else:
+            moves += [ NavInsID.USE_CASE_REVIEW_TAP ] * 2
+            if verbose:
+                moves += [ NavInsID.USE_CASE_REVIEW_TAP ]
+            moves += [ NavInsID.USE_CASE_REVIEW_CONFIRM ]
+        navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH,
+                                       "domain_name_verbose_" + str(verbose),
+                                       moves)
 
-def test_send_fund_wrong_challenge(app_client: EthereumClient):
+
+def test_send_fund_wrong_challenge(firmware: Firmware,
+                                   backend: BackendInterface,
+                                   navigator: Navigator):
+    app_client = EthAppClient(backend)
     caught = False
     challenge = common(app_client)
 
     try:
-        app_client.provide_domain_name(~challenge & 0xffffffff, NAME, ADDR)
+        with app_client.provide_domain_name(~challenge & 0xffffffff, NAME, ADDR):
+            pass
     except ExceptionRAPDU as e:
         assert e.status == StatusWord.INVALID_DATA
     else:
         assert False # An exception should have been raised
 
-def test_send_fund_wrong_addr(app_client: EthereumClient):
+
+def test_send_fund_wrong_addr(firmware: Firmware,
+                              backend: BackendInterface,
+                              navigator: Navigator,
+                              test_name: str):
+    app_client = EthAppClient(backend)
     challenge = common(app_client)
 
-    app_client.provide_domain_name(challenge, NAME, ADDR)
+    with app_client.provide_domain_name(challenge, NAME, ADDR):
+        pass
 
     addr = bytearray(ADDR)
     addr.reverse()
 
-    app_client.send_fund(BIP32_PATH,
-                         NONCE,
-                         GAS_PRICE,
-                         GAS_LIMIT,
-                         addr,
-                         AMOUNT,
-                         CHAIN_ID,
-                         "domain_name_wrong_addr")
+    with app_client.send_fund(BIP32_PATH,
+                              NONCE,
+                              GAS_PRICE,
+                              GAS_LIMIT,
+                              addr,
+                              AMOUNT,
+                              CHAIN_ID):
+        moves = list()
+        if firmware.device.startswith("nano"):
+            moves += [ NavInsID.RIGHT_CLICK ] * 4
+            moves += [ NavInsID.BOTH_CLICK ]
+        else:
+            moves += [ NavInsID.USE_CASE_REVIEW_TAP ] * 2
+            moves += [ NavInsID.USE_CASE_REVIEW_CONFIRM ]
+        navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH,
+                                       "domain_name_wrong_addr",
+                                       moves)
 
-def test_send_fund_non_mainnet(app_client: EthereumClient):
+
+def test_send_fund_non_mainnet(firmware: Firmware,
+                               backend: BackendInterface,
+                               navigator: Navigator,
+                               test_name: str):
+    app_client = EthAppClient(backend)
     challenge = common(app_client)
 
-    app_client.provide_domain_name(challenge, NAME, ADDR)
+    with app_client.provide_domain_name(challenge, NAME, ADDR):
+        pass
 
-    app_client.send_fund(BIP32_PATH,
-                         NONCE,
-                         GAS_PRICE,
-                         GAS_LIMIT,
-                         ADDR,
-                         AMOUNT,
-                         5,
-                         "domain_name_non_mainnet")
+    with app_client.send_fund(BIP32_PATH,
+                              NONCE,
+                              GAS_PRICE,
+                              GAS_LIMIT,
+                              ADDR,
+                              AMOUNT,
+                              5):
+        moves = list()
+        if firmware.device.startswith("nano"):
+            moves += [ NavInsID.RIGHT_CLICK ] * 5
+            moves += [ NavInsID.BOTH_CLICK ]
+        else:
+            moves += [ NavInsID.USE_CASE_REVIEW_TAP ] * 2
+            moves += [ NavInsID.USE_CASE_REVIEW_CONFIRM ]
+        navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH,
+                                       "domain_name_non_mainnet",
+                                       moves)
 
-def test_send_fund_domain_too_long(app_client: EthereumClient):
+
+def test_send_fund_unknown_chain(firmware: Firmware,
+                                 backend: BackendInterface,
+                                 navigator: Navigator,
+                                 test_name: str):
+    app_client = EthAppClient(backend)
+    challenge = common(app_client)
+
+    with app_client.provide_domain_name(challenge, NAME, ADDR):
+        pass
+
+    with app_client.send_fund(BIP32_PATH,
+                              NONCE,
+                              GAS_PRICE,
+                              GAS_LIMIT,
+                              ADDR,
+                              AMOUNT,
+                              9):
+        moves = list()
+        if firmware.device.startswith("nano"):
+            moves += [ NavInsID.RIGHT_CLICK ] * 5
+            moves += [ NavInsID.BOTH_CLICK ]
+        else:
+            moves += [ NavInsID.USE_CASE_REVIEW_TAP ] * 3
+            moves += [ NavInsID.USE_CASE_REVIEW_CONFIRM ]
+        navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH,
+                                       "domain_name_unknown_chain",
+                                       moves)
+
+
+def test_send_fund_domain_too_long(firmware: Firmware,
+                                   backend: BackendInterface,
+                                   navigator: Navigator):
+    app_client = EthAppClient(backend)
     challenge = common(app_client)
 
     try:
-        app_client.provide_domain_name(challenge, "ledger" + "0"*25 + ".eth", ADDR)
+        with app_client.provide_domain_name(challenge, "ledger" + "0"*25 + ".eth", ADDR):
+            pass
     except ExceptionRAPDU as e:
         assert e.status == StatusWord.INVALID_DATA
     else:
         assert False # An exception should have been raised
 
-def test_send_fund_domain_invalid_character(app_client: EthereumClient):
+
+def test_send_fund_domain_invalid_character(firmware: Firmware,
+                                            backend: BackendInterface,
+                                            navigator: Navigator):
+    app_client = EthAppClient(backend)
     challenge = common(app_client)
 
     try:
-        app_client.provide_domain_name(challenge, "l\xe8dger.eth", ADDR)
+        with app_client.provide_domain_name(challenge, "l\xe8dger.eth", ADDR):
+            pass
     except ExceptionRAPDU as e:
         assert e.status == StatusWord.INVALID_DATA
     else:
         assert False # An exception should have been raised
 
-def test_send_fund_uppercase(app_client: EthereumClient):
+
+def test_send_fund_uppercase(firmware: Firmware,
+                             backend: BackendInterface,
+                             navigator: Navigator):
+    app_client = EthAppClient(backend)
     challenge = common(app_client)
 
     try:
-        app_client.provide_domain_name(challenge, NAME.upper(), ADDR)
+        with app_client.provide_domain_name(challenge, NAME.upper(), ADDR):
+            pass
     except ExceptionRAPDU as e:
         assert e.status == StatusWord.INVALID_DATA
     else:
         assert False # An exception should have been raised
 
-def test_send_fund_domain_non_ens(app_client: EthereumClient):
+
+def test_send_fund_domain_non_ens(firmware: Firmware,
+                                  backend: BackendInterface,
+                                  navigator: Navigator):
+    app_client = EthAppClient(backend)
     challenge = common(app_client)
 
     try:
-        app_client.provide_domain_name(challenge, "ledger.hte", ADDR)
+        with app_client.provide_domain_name(challenge, "ledger.hte", ADDR):
+            pass
     except ExceptionRAPDU as e:
         assert e.status == StatusWord.INVALID_DATA
     else:

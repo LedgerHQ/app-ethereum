@@ -29,7 +29,7 @@ class P2Type(IntEnum):
     FILTERING_CONTRACT_NAME = 0x0f
     FILTERING_FIELD_NAME = 0xff
 
-class EthereumCmdBuilder:
+class CommandBuilder:
     _CLA: int = 0xE0
 
     def _serialize(self,
@@ -103,6 +103,7 @@ class EthereumCmdBuilder:
                                data)
 
     def eip712_send_struct_impl_struct_field(self, data: bytearray) -> Iterator[bytes]:
+        chunks = list()
         # Add a 16-bit integer with the data's byte length (network byte order)
         data_w_length = bytearray()
         data_w_length.append((len(data) & 0xff00) >> 8)
@@ -110,11 +111,12 @@ class EthereumCmdBuilder:
         data_w_length += data
         while len(data_w_length) > 0:
             p1 = P1Type.PARTIAL_SEND if len(data_w_length) > 0xff else P1Type.COMPLETE_SEND
-            yield self._serialize(InsType.EIP712_SEND_STRUCT_IMPL,
-                                  p1,
-                                  P2Type.STRUCT_FIELD,
-                                  data_w_length[:0xff])
+            chunks.append(self._serialize(InsType.EIP712_SEND_STRUCT_IMPL,
+                                          p1,
+                                          P2Type.STRUCT_FIELD,
+                                          data_w_length[:0xff]))
             data_w_length = data_w_length[0xff:]
+        return chunks
 
     def eip712_sign_new(self, bip32_path: str) -> bytes:
         data = pack_derivation_path(bip32_path)
@@ -167,29 +169,33 @@ class EthereumCmdBuilder:
                                P2Type.FILTERING_FIELD_NAME,
                                self._eip712_filtering_send_name(name, sig))
 
-    def sign(self, bip32_path: str, rlp_data: bytes) -> Iterator[bytes]:
+    def sign(self, bip32_path: str, rlp_data: bytes) -> list[bytes]:
+        apdus = list()
         payload = pack_derivation_path(bip32_path)
         payload += rlp_data
         p1 = P1Type.SIGN_FIRST_CHUNK
         while len(payload) > 0:
-            yield self._serialize(InsType.SIGN,
-                                  p1,
-                                  0x00,
-                                  payload[:0xff])
+            apdus.append(self._serialize(InsType.SIGN,
+                                         p1,
+                                         0x00,
+                                         payload[:0xff]))
             payload = payload[0xff:]
             p1 = P1Type.SIGN_SUBSQT_CHUNK
+        return apdus
 
     def get_challenge(self) -> bytes:
         return self._serialize(InsType.GET_CHALLENGE, 0x00, 0x00)
 
-    def provide_domain_name(self, tlv_payload: bytes) -> bytes:
+    def provide_domain_name(self, tlv_payload: bytes) -> list[bytes]:
+        chunks = list()
         payload  = struct.pack(">H", len(tlv_payload))
         payload += tlv_payload
         p1 = 1
         while len(payload) > 0:
-            yield self._serialize(InsType.PROVIDE_DOMAIN_NAME,
-                                  p1,
-                                  0x00,
-                                  payload[:0xff])
+            chunks.append(self._serialize(InsType.PROVIDE_DOMAIN_NAME,
+                                          p1,
+                                          0x00,
+                                          payload[:0xff]))
             payload = payload[0xff:]
             p1 = 0
+        return chunks

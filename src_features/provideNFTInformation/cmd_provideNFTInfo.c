@@ -140,13 +140,13 @@ void handleProvideNFTInformation(uint8_t p1,
     PRINTF("Address: %.*H\n", ADDRESS_LENGTH, workBuffer + offset);
     offset += ADDRESS_LENGTH;
 
-    uint64_t chainId = u64_from_BE(workBuffer + offset, CHAIN_ID_SIZE);
+    uint64_t chain_id = u64_from_BE(workBuffer + offset, CHAIN_ID_SIZE);
     // this prints raw data, so to have a more meaningful print, display
     // the buffer before the endianness swap
-    PRINTF("ChainID: %.*H\n", sizeof(chainId), (workBuffer + offset));
-    if ((chainConfig->chainId != 0) && (chainConfig->chainId != chainId)) {
-        PRINTF("Chain ID token mismatch\n");
-        THROW(0x6A80);
+    PRINTF("ChainID: %.*H\n", sizeof(chain_id), (workBuffer + offset));
+    if (!chain_is_ethereum_compatible(&chain_id)) {
+        PRINTF("Unsupported chain ID!\n");
+        THROW(APDU_RESPONSE_INVALID_DATA);
     }
     offset += CHAIN_ID_SIZE;
 

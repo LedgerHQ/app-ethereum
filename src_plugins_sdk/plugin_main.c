@@ -49,20 +49,36 @@ __attribute__((section(".boot"))) int main(int arg0) {
 
     check_api_level(CX_COMPAT_APILEVEL);
 
-    // Check if plugin is called from the dashboard.
-    if (!arg0) {
-        // Called from dashboard, launch Ethereum app
-        call_app_ethereum();
-        return 0;
-    } else {
-        // Not called from dashboard: called from the ethereum app!
-        // launch plugin main
-        plugin_main(arg0);
+    BEGIN_TRY {
+        TRY {
+            // Check if plugin is called from the dashboard.
+            if (!arg0) {
+                // Called from dashboard, launch Ethereum app
+                call_app_ethereum();
+
+                // Will not get reached.
+                __builtin_unreachable();
+
+                os_sched_exit(-1);
+
+            } else {
+                // Not called from dashboard: called from the ethereum app!
+                // launch plugin main
+                plugin_main(arg0);
+            }
+
+            // Call `os_lib_end`, go back to the ethereum app.
+            os_lib_end();
+
+            // Will not get reached.
+            __builtin_unreachable();
+        }
+        CATCH_OTHER(e) {
+            PRINTF("Exiting following exception: %d\n", e);
+        }
+        FINALLY {
+            os_lib_end();
+        }
     }
-
-    // Call `os_lib_end`, go back to the ethereum app.
-    os_lib_end();
-
-    // Will not get reached.
-    return 0;
+    END_TRY;
 }

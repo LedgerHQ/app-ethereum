@@ -21,9 +21,11 @@ void handleGetPublicKey(uint8_t p1,
     }
 
     if ((p1 != P1_CONFIRM) && (p1 != P1_NON_CONFIRM)) {
+        PRINTF("Error: Unexpected P1 (%u)!\n", p1);
         THROW(APDU_RESPONSE_INVALID_P1_P2);
     }
     if ((p2 != P2_CHAINCODE) && (p2 != P2_NO_CHAINCODE)) {
+        PRINTF("Error: Unexpected P2 (%u)!\n", p2);
         THROW(APDU_RESPONSE_INVALID_P1_P2);
     }
 
@@ -61,6 +63,7 @@ void handleGetPublicKey(uint8_t p1,
 
     (void) dataBuffer;  // to prevent dead increment warning
     if (dataLength > 0) {
+        PRINTF("Error: Leftover unwanted data (%u bytes long)!\n", dataLength);
         THROW(APDU_RESPONSE_INVALID_DATA);
     }
 
@@ -78,7 +81,8 @@ void handleGetPublicKey(uint8_t p1,
                  "0x%.*s",
                  40,
                  tmpCtx.publicKeyContext.address);
-        ui_display_public_key();
+        // don't unnecessarily pass the current app's chain ID
+        ui_display_public_key(chainConfig->chainId == chain_id ? NULL : &chain_id);
 
         *flags |= IO_ASYNCH_REPLY;
     }

@@ -1,6 +1,6 @@
 #ifdef HAVE_DOMAIN_NAME
 
-#include "ux.h"
+#include "ui_domain_name.h"
 #include "domain_name.h"
 
 //////////////////////////////////////////////////////////////////////

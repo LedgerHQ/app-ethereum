@@ -28,7 +28,8 @@ void ui_display_privacy_shared_secret(void) {
     ux_flow_init(0, ux_display_privacy_shared_secret_flow, NULL);
 }
 
-void ui_display_public_key(void) {
+void ui_display_public_key(const uint64_t *chain_id) {
+    (void) chain_id;
     ux_flow_init(0, ux_display_public_flow, NULL);
 }
 

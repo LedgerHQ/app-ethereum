@@ -2,13 +2,14 @@
 #define _COMMON_UI_H_
 
 #include <stdbool.h>
+#include <stdint.h>
 
 void ui_idle(void);
 void ui_warning_contract_data(void);
 void ui_display_public_eth2(void);
 void ui_display_privacy_public_key(void);
 void ui_display_privacy_shared_secret(void);
-void ui_display_public_key(void);
+void ui_display_public_key(const uint64_t *chain_id);
 void ui_sign_712_v0(void);
 void ui_display_stark_public(void);
 void ui_confirm_selector(void);

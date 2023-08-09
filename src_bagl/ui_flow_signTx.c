@@ -158,6 +158,7 @@ UX_STEP_NOCB(
       .title = "Max Fees",
       .text = strings.common.maxFee,
     });
+
 UX_STEP_NOCB(
     ux_approval_network_step,
     bnnn_paging,
@@ -240,7 +241,7 @@ void ux_approve_tx(bool fromPlugin) {
     }
 
     uint64_t chain_id = get_tx_chain_id();
-    if (chainConfig->chainId == ETHEREUM_MAINNET_CHAINID && chain_id != chainConfig->chainId) {
+    if ((chainConfig->chainId == ETHEREUM_MAINNET_CHAINID) && (chain_id != chainConfig->chainId)) {
         ux_approval_tx_flow[step++] = &ux_approval_network_step;
     }
 

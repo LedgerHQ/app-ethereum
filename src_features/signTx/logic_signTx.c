@@ -266,6 +266,7 @@ static void nonce_to_string(const txInt256_t *nonce, char *out, size_t out_size)
 static void get_network_as_string(char *out, size_t out_size) {
     uint64_t chain_id = get_tx_chain_id();
     const char *name = get_network_name_from_chain_id(&chain_id);
+
     if (name == NULL) {
         // No network name found so simply copy the chain ID as the network name.
         u64_to_string(chain_id, out, out_size);
@@ -504,7 +505,7 @@ void finalizeParsing(bool direct) {
                     sizeof(strings.common.nonce));
     PRINTF("Nonce: %s\n", strings.common.nonce);
 
-    // Prepare chainID field
+    // Prepare network field
     get_network_as_string(strings.common.network_name, sizeof(strings.common.network_name));
     PRINTF("Network: %s\n", strings.common.network_name);
 

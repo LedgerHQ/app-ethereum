@@ -124,6 +124,16 @@ class EthAppClient:
     def get_challenge(self):
         return self._send(self._cmd_builder.get_challenge())
 
+    def get_public_addr(self,
+                        display: bool = True,
+                        chaincode: bool = False,
+                        bip32_path: str = "m/44'/60'/0'/0/0",
+                        chain_id: Optional[int] = None):
+        return self._send(self._cmd_builder.get_public_addr(display,
+                                                            chaincode,
+                                                            bip32_path,
+                                                            chain_id))
+
     def provide_domain_name(self, challenge: int, name: str, addr: bytes):
         payload = format_tlv(DOMAIN_NAME_TAG.STRUCTURE_TYPE, 3)  # TrustedDomainName
         payload += format_tlv(DOMAIN_NAME_TAG.STRUCTURE_VERSION, 1)

@@ -19,8 +19,8 @@
 #define MIN_DER_SIG_SIZE      67
 #define MAX_DER_SIG_SIZE      72
 
-#define TEST_NFT_METADATA_KEY 0
-#define PROD_NFT_METADATA_KEY 1
+#define STAGING_NFT_METADATA_KEY 0
+#define PROD_NFT_METADATA_KEY    1
 
 #define ALGORITHM_ID_1 1
 
@@ -29,7 +29,7 @@
 #define VERSION_1 1
 
 static const uint8_t LEDGER_NFT_METADATA_PUBLIC_KEY[] = {
-#ifdef HAVE_NFT_TESTING_KEY
+#ifdef HAVE_NFT_STAGING_KEY
     0x04, 0xf5, 0x70, 0x0c, 0xa1, 0xe8, 0x74, 0x24, 0xc7, 0xc7, 0xd1, 0x19, 0xe7, 0xe3,
     0xc1, 0x89, 0xb1, 0x62, 0x50, 0x94, 0xdb, 0x6e, 0xa0, 0x40, 0x87, 0xc8, 0x30, 0x00,
     0x7d, 0x0b, 0x46, 0x9a, 0x53, 0x11, 0xee, 0x6a, 0x1a, 0xcd, 0x1d, 0xa5, 0xaa, 0xb0,
@@ -156,8 +156,8 @@ void handleProvideNFTInformation(uint8_t p1,
 
     PRINTF("KeyID: %d\n", keyId);
     switch (keyId) {
-#ifdef HAVE_NFT_TESTING_KEY
-        case TEST_NFT_METADATA_KEY:
+#ifdef HAVE_NFT_STAGING_KEY
+        case STAGING_NFT_METADATA_KEY:
 #endif
         case PROD_NFT_METADATA_KEY:
             rawKey = (uint8_t *) LEDGER_NFT_METADATA_PUBLIC_KEY;

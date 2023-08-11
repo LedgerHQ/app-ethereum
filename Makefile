@@ -150,10 +150,10 @@ endif
 # NFTs
 ifneq ($(TARGET_NAME),TARGET_NANOS)
 DEFINES	+= HAVE_NFT_SUPPORT
-# Enable the NFT testing key
-NFT_TESTING_KEY:=0
-ifneq ($(NFT_TESTING_KEY),0)
-DEFINES += HAVE_NFT_TESTING_KEY
+# Enable the NFT staging key
+NFT_STAGING_KEY:=0
+ifneq ($(NFT_STAGING_KEY),0)
+DEFINES += HAVE_NFT_STAGING_KEY
 endif
 endif
 

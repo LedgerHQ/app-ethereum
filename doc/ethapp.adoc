@@ -528,7 +528,7 @@ The plugin names `ERC20`, `ERC721` and `ERC1155` are reserved. Additional plugin
 
 The signature is computed on
 
-type || version || len(pluginName) || pluginName || address || selector || chainId || keyId || algorithmId || len(signature) || signature
+type || version || len(pluginName) || pluginName || address || selector || chainId || keyId || algorithmId
 
 #### Coding
 

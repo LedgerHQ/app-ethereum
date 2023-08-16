@@ -171,7 +171,7 @@ jobs:
     uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_build.yml@v1
     with:
       upload_app_binaries_artifact: "ragger_elfs"
-      flags: "DEBUG=1 CAL_CI_KEY=1 DOMAIN_NAME_TEST_KEY=1"
+      flags: "DEBUG=1 CAL_TEST_KEY=1 DOMAIN_NAME_TEST_KEY=1"
 
   jobs-ragger-tests:
     name: Run Ragger tests

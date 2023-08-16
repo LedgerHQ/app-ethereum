@@ -169,12 +169,18 @@ endif
 
 # CryptoAssetsList key
 CAL_TEST_KEY:=0
-CAL_CI_KEY:=0
 ifneq ($(CAL_TEST_KEY),0)
-DEFINES += HAVE_CAL_TEST_KEY
+    DEFINES += HAVE_CAL_TEST_KEY
 endif
-ifneq ($(CAL_CI_KEY),0)
-DEFINES += HAVE_CAL_CI_KEY
+CAL_STAGING_KEY:=0
+ifneq ($(CAL_STAGING_KEY),0)
+    # Key used by the staging CAL
+    DEFINES += HAVE_CAL_STAGING_KEY
+endif
+ifneq (,$(filter $(DEFINES),HAVE_CAL_TEST_KEY))
+    ifneq (, $(filter $(DEFINES),HAVE_CAL_STAGING_KEY))
+        $(error Multiple alternative CAL keys set at once)
+    endif
 endif
 
 # ENS

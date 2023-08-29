@@ -1,0 +1,44 @@
+[build-system]
+requires = [
+    "setuptools>=45",
+    "setuptools_scm[toml]>=6.2",
+    "wheel"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ledger_app_clients.ethereum"
+authors = [
+    { name = "Ledger", email = "hello@ledger.fr" }
+]
+description = "Ledger Ethereum Python client"
+readme = { file = "README.md", content-type = "text/markdown" }
+# license = { file = "LICENSE" }
+classifiers = [
+    "License :: OSI Approved :: Apache License 2.0",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS :: MacOS X",
+]
+dynamic = [ "version" ]
+requires-python = ">=3.7"
+dependencies = [
+    "ragger[speculos]",
+    "simple-rlp",
+]
+
+[tools.setuptools]
+include-package-data = true
+
+[tool.setuptools.dynamic]
+version = {attr = "ledger_app_clients.ethereum.__version__"}
+
+[project.urls]
+Home = "https://github.com/LedgerHQ/app-ethereum"
+
+[tool.mypy]
+ignore_missing_imports = true

@@ -9,6 +9,7 @@ def signature(data: bytes) -> tuple[bytes, bytes, bytes]:
 
     return v, r, s
 
+
 def challenge(data: bytes) -> int:
     assert len(data) == 4
     return int.from_bytes(data, "big")

@@ -1,0 +1,48 @@
+name: Python client checks, package build and deployment
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - develop
+      - master
+    paths:
+      - ./client/
+      - .github/workflows/python-client.yml
+  pull_request:
+    paths:
+      - ./client/
+      - .github/workflows/python-client.yml
+
+jobs:
+  lint:
+    name: Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone
+        uses: actions/checkout@v3
+      - run: pip install flake8
+      - name: Flake8 lint Python code
+        run: (cd client && find src/ -type f -name '*.py' -exec flake8 --max-line-length=120 '{}' '+')
+
+  mypy:
+    name: Type checking
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone
+        uses: actions/checkout@v3
+      - run: pip install mypy
+      - name: Mypy type checking
+        run: (cd client && mypy src/)
+
+  packaging:
+    needs: [lint, mypy]
+    name: Build, test and deploy the Python package
+    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_pypi_deployment.yml@v1
+    with:
+      package_directory: "client/"
+      stable_deployment: ${{ github.ref == 'refs/heads/master' }}
+      check_changelog_version: true
+      publish: ${{ github.event_name == 'push' }}
+    secrets:
+      pypi_token: ${{ github.ref == 'refs/heads/master' && secrets.PYPI_PUBLIC_API_TOKEN  || secrets.TEST_PYPI_PUBLIC_API_TOKEN }}

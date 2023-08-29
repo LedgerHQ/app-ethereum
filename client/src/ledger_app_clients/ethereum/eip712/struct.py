@@ -1,5 +1,6 @@
 from enum import IntEnum, auto
 
+
 class EIP712FieldType(IntEnum):
     CUSTOM = 0,
     INT = auto()

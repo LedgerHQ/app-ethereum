@@ -7,11 +7,11 @@ on:
       - develop
       - master
     paths:
-      - ./client/
+      - ./client/**
       - .github/workflows/python-client.yml
   pull_request:
     paths:
-      - ./client/
+      - ./client/**
       - .github/workflows/python-client.yml
 
 jobs:

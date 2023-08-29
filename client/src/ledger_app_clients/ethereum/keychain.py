@@ -12,6 +12,7 @@ class Key(Enum):
     CAL = auto()
     DOMAIN_NAME = auto()
     SET_PLUGIN = auto()
+    NFT = auto()
 
 
 _keys: Dict[Key, SigningKey] = dict()

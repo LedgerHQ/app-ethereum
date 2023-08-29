@@ -155,12 +155,21 @@ endif
 
 # NFTs
 ifneq ($(TARGET_NAME),TARGET_NANOS)
-DEFINES	+= HAVE_NFT_SUPPORT
-# Enable the NFT staging key
-NFT_STAGING_KEY:=0
-ifneq ($(NFT_STAGING_KEY),0)
-DEFINES += HAVE_NFT_STAGING_KEY
+    DEFINES	+= HAVE_NFT_SUPPORT
+    NFT_TEST_KEY:=0
+    ifneq ($(NFT_TEST_KEY),0)
+        DEFINES += HAVE_NFT_TEST_KEY
+    endif
+    NFT_STAGING_KEY:=0
+    ifneq ($(NFT_STAGING_KEY),0)
+        # Key used by the staging backend
+        DEFINES += HAVE_NFT_STAGING_KEY
+    endif
 endif
+ifneq (,$(filter $(DEFINES),HAVE_NFT_TEST_KEY))
+    ifneq (, $(filter $(DEFINES),HAVE_NFT_STAGING_KEY))
+        $(error Multiple alternative NFT keys set at once)
+    endif
 endif
 
 # Dynamic memory allocator

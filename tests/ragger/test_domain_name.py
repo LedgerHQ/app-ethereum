@@ -20,7 +20,7 @@ KEY_ID = 1
 ALGO_ID = 1
 BIP32_PATH = "m/44'/60'/0'/0/0"
 NONCE = 21
-GAS_PRICE = 13000000000
+GAS_PRICE = 13
 GAS_LIMIT = 21000
 AMOUNT = 1.22
 
@@ -50,13 +50,13 @@ def test_send_fund(firmware: Firmware,
     with app_client.provide_domain_name(challenge, NAME, ADDR):
         pass
 
-    with app_client.send_fund(BIP32_PATH,
-                              NONCE,
-                              GAS_PRICE,
-                              GAS_LIMIT,
-                              ADDR,
-                              AMOUNT,
-                              CHAIN_ID):
+    with app_client.sign_legacy(BIP32_PATH,
+                                NONCE,
+                                GAS_PRICE,
+                                GAS_LIMIT,
+                                ADDR,
+                                AMOUNT,
+                                CHAIN_ID):
         moves = list()
         if firmware.device.startswith("nano"):
             moves += [ NavInsID.RIGHT_CLICK ] * 4
@@ -101,13 +101,13 @@ def test_send_fund_wrong_addr(firmware: Firmware,
     addr = bytearray(ADDR)
     addr.reverse()
 
-    with app_client.send_fund(BIP32_PATH,
-                              NONCE,
-                              GAS_PRICE,
-                              GAS_LIMIT,
-                              addr,
-                              AMOUNT,
-                              CHAIN_ID):
+    with app_client.sign_legacy(BIP32_PATH,
+                                NONCE,
+                                GAS_PRICE,
+                                GAS_LIMIT,
+                                addr,
+                                AMOUNT,
+                                CHAIN_ID):
         moves = list()
         if firmware.device.startswith("nano"):
             moves += [ NavInsID.RIGHT_CLICK ] * 4
@@ -130,13 +130,13 @@ def test_send_fund_non_mainnet(firmware: Firmware,
     with app_client.provide_domain_name(challenge, NAME, ADDR):
         pass
 
-    with app_client.send_fund(BIP32_PATH,
-                              NONCE,
-                              GAS_PRICE,
-                              GAS_LIMIT,
-                              ADDR,
-                              AMOUNT,
-                              5):
+    with app_client.sign_legacy(BIP32_PATH,
+                                NONCE,
+                                GAS_PRICE,
+                                GAS_LIMIT,
+                                ADDR,
+                                AMOUNT,
+                                5):
         moves = list()
         if firmware.device.startswith("nano"):
             moves += [ NavInsID.RIGHT_CLICK ] * 5
@@ -159,13 +159,13 @@ def test_send_fund_unknown_chain(firmware: Firmware,
     with app_client.provide_domain_name(challenge, NAME, ADDR):
         pass
 
-    with app_client.send_fund(BIP32_PATH,
-                              NONCE,
-                              GAS_PRICE,
-                              GAS_LIMIT,
-                              ADDR,
-                              AMOUNT,
-                              9):
+    with app_client.sign_legacy(BIP32_PATH,
+                                NONCE,
+                                GAS_PRICE,
+                                GAS_LIMIT,
+                                ADDR,
+                                AMOUNT,
+                                9):
         moves = list()
         if firmware.device.startswith("nano"):
             moves += [ NavInsID.RIGHT_CLICK ] * 5

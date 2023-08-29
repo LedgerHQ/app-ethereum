@@ -37,7 +37,6 @@ jobs:
 
   packaging:
     needs: [lint, mypy]
-    if: github.event_name == 'push'
     name: Build, test and deploy the Python package
     uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_pypi_deployment.yml@v1
     with:

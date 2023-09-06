@@ -136,19 +136,19 @@ endif
 endif
 
 # Enables direct data signing without having to specify it in the settings. Useful when testing with speculos.
-ALLOW_DATA:=0
+ALLOW_DATA?=0
 ifneq ($(ALLOW_DATA),0)
 DEFINES += HAVE_ALLOW_DATA
 endif
 
 # Bypass the signature verification for setExternalPlugin, setPlugin, provideERC20TokenInfo and provideNFTInfo calls
-BYPASS_SIGNATURES:=0
+BYPASS_SIGNATURES?=0
 ifneq ($(BYPASS_SIGNATURES),0)
 DEFINES += HAVE_BYPASS_SIGNATURES
 endif
 
 # Enable the SET_PLUGIN test key
-SET_PLUGIN_TEST_KEY:=0
+SET_PLUGIN_TEST_KEY?=0
 ifneq ($(SET_PLUGIN_TEST_KEY),0)
 DEFINES += HAVE_SET_PLUGIN_TEST_KEY
 endif
@@ -156,11 +156,11 @@ endif
 # NFTs
 ifneq ($(TARGET_NAME),TARGET_NANOS)
     DEFINES	+= HAVE_NFT_SUPPORT
-    NFT_TEST_KEY:=0
+    NFT_TEST_KEY?=0
     ifneq ($(NFT_TEST_KEY),0)
         DEFINES += HAVE_NFT_TEST_KEY
     endif
-    NFT_STAGING_KEY:=0
+    NFT_STAGING_KEY?=0
     ifneq ($(NFT_STAGING_KEY),0)
         # Key used by the staging backend
         DEFINES += HAVE_NFT_STAGING_KEY
@@ -183,11 +183,11 @@ DEFINES	+= HAVE_EIP712_FULL_SUPPORT
 endif
 
 # CryptoAssetsList key
-CAL_TEST_KEY:=0
+CAL_TEST_KEY?=0
 ifneq ($(CAL_TEST_KEY),0)
     DEFINES += HAVE_CAL_TEST_KEY
 endif
-CAL_STAGING_KEY:=0
+CAL_STAGING_KEY?=0
 ifneq ($(CAL_STAGING_KEY),0)
     # Key used by the staging CAL
     DEFINES += HAVE_CAL_STAGING_KEY
@@ -201,7 +201,7 @@ endif
 # ENS
 ifneq ($(TARGET_NAME),TARGET_NANOS)
 DEFINES += HAVE_DOMAIN_NAME
-DOMAIN_NAME_TEST_KEY:=0
+DOMAIN_NAME_TEST_KEY?=0
 ifneq ($(DOMAIN_NAME_TEST_KEY),0)
 DEFINES += HAVE_DOMAIN_NAME_TEST_KEY
 endif

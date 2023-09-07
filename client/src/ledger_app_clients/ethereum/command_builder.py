@@ -10,6 +10,8 @@ from .eip712 import EIP712FieldType
 class InsType(IntEnum):
     GET_PUBLIC_ADDR = 0x02
     SIGN = 0x04
+    PROVIDE_NFT_INFORMATION = 0x14
+    SET_PLUGIN = 0x16
     EIP712_SEND_STRUCT_DEF = 0x1a
     EIP712_SEND_STRUCT_IMPL = 0x1c
     EIP712_SEND_FILTERING = 0x1e
@@ -219,3 +221,49 @@ class CommandBuilder:
                                int(display),
                                int(chaincode),
                                payload)
+
+    def set_plugin(self,
+                   type_: int,
+                   version: int,
+                   plugin_name: str,
+                   contract_addr: bytes,
+                   selector: bytes,
+                   chain_id: int,
+                   key_id: int,
+                   algo_id: int,
+                   sig: bytes) -> bytes:
+        payload = bytearray()
+        payload.append(type_)
+        payload.append(version)
+        payload.append(len(plugin_name))
+        payload += plugin_name.encode()
+        payload += contract_addr
+        payload += selector
+        payload += struct.pack(">Q", chain_id)
+        payload.append(key_id)
+        payload.append(algo_id)
+        payload.append(len(sig))
+        payload += sig
+        return self._serialize(InsType.SET_PLUGIN, 0x00, 0x00, payload)
+
+    def provide_nft_information(self,
+                                type_: int,
+                                version: int,
+                                collection_name: str,
+                                addr: bytes,
+                                chain_id: int,
+                                key_id: int,
+                                algo_id: int,
+                                sig: bytes):
+        payload = bytearray()
+        payload.append(type_)
+        payload.append(version)
+        payload.append(len(collection_name))
+        payload += collection_name.encode()
+        payload += addr
+        payload += struct.pack(">Q", chain_id)
+        payload.append(key_id)
+        payload.append(algo_id)
+        payload.append(len(sig))
+        payload += sig
+        return self._serialize(InsType.PROVIDE_NFT_INFORMATION, 0x00, 0x00, payload)

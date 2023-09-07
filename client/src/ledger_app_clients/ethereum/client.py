@@ -206,3 +206,68 @@ class EthAppClient:
             with self._send(chunk):
                 pass
         return self._send(chunks[-1])
+
+    def set_plugin(self,
+                   plugin_name: str,
+                   contract_addr: bytes,
+                   selector: bytes,
+                   chain_id: int,
+                   type_: int = 1,
+                   version: int = 1,
+                   key_id: int = 2,
+                   algo_id: int = 1,
+                   sig: Optional[bytes] = None):
+        if sig is None:
+            # Temporarily get a command with an empty signature to extract the payload and
+            # compute the signature on it
+            tmp = self._cmd_builder.set_plugin(type_,
+                                               version,
+                                               plugin_name,
+                                               contract_addr,
+                                               selector,
+                                               chain_id,
+                                               key_id,
+                                               algo_id,
+                                               bytes())
+            # skip APDU header & empty sig
+            sig = sign_data(Key.SET_PLUGIN, tmp[5:-1])
+        return self._send(self._cmd_builder.set_plugin(type_,
+                                                       version,
+                                                       plugin_name,
+                                                       contract_addr,
+                                                       selector,
+                                                       chain_id,
+                                                       key_id,
+                                                       algo_id,
+                                                       sig))
+
+    def provide_nft_metadata(self,
+                             collection: str,
+                             addr: bytes,
+                             chain_id: int,
+                             type_: int = 1,
+                             version: int = 1,
+                             key_id: int = 1,
+                             algo_id: int = 1,
+                             sig: Optional[bytes] = None):
+        if sig is None:
+            # Temporarily get a command with an empty signature to extract the payload and
+            # compute the signature on it
+            tmp = self._cmd_builder.provide_nft_information(type_,
+                                                            version,
+                                                            collection,
+                                                            addr,
+                                                            chain_id,
+                                                            key_id,
+                                                            algo_id,
+                                                            bytes())
+            # skip APDU header & empty sig
+            sig = sign_data(Key.NFT, tmp[5:-1])
+        return self._send(self._cmd_builder.provide_nft_information(type_,
+                                                                    version,
+                                                                    collection,
+                                                                    addr,
+                                                                    chain_id,
+                                                                    key_id,
+                                                                    algo_id,
+                                                                    sig))

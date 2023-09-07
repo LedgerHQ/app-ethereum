@@ -11,7 +11,14 @@ from .tlv import format_tlv
 
 
 WEI_IN_ETH = 1e+18
+GWEI_IN_ETH = 1e+9
 
+class TxData:
+    selector: bytes
+    parameters: list[bytes]
+    def __init__(self, selector: bytes, params: list[bytes]):
+        self.selector = selector
+        self.parameters = params
 
 class StatusWord(IntEnum):
     OK = 0x9000
@@ -96,30 +103,78 @@ class EthAppClient:
     def eip712_filtering_show_field(self, name: str, sig: bytes):
         return self._send(self._cmd_builder.eip712_filtering_show_field(name, sig))
 
-    def send_fund(self,
-                  bip32_path: str,
-                  nonce: int,
-                  gas_price: int,
-                  gas_limit: int,
-                  to: bytes,
-                  amount: float,
-                  chain_id: int):
-        data: List[Union[int, bytes]] = list()
-        data.append(nonce)
-        data.append(gas_price)
-        data.append(gas_limit)
-        data.append(to)
-        data.append(int(amount * WEI_IN_ETH))
-        data.append(bytes())
-        data.append(chain_id)
-        data.append(bytes())
-        data.append(bytes())
-
-        chunks = self._cmd_builder.sign(bip32_path, rlp.encode(data))
+    def _sign(self, bip32_path: str, raw_tx: bytes):
+        chunks = self._cmd_builder.sign(bip32_path, raw_tx)
         for chunk in chunks[:-1]:
             with self._send(chunk):
                 pass
         return self._send(chunks[-1])
+
+    def _data_to_payload(self, data: TxData) -> bytes:
+        payload = bytearray(data.selector)
+        for param in data.parameters:
+            payload += param.rjust(32, b'\x00')
+        return payload
+
+    def _sign_common(self,
+                     tx: list,
+                     gas_price: float,
+                     gas_limit: int,
+                     destination: bytes,
+                     amount: float,
+                     data: TxData):
+        tx.append(int(gas_price * GWEI_IN_ETH))
+        tx.append(gas_limit)
+        tx.append(destination)
+        if amount > 0:
+            tx.append(int(amount * WEI_IN_ETH))
+        else:
+            tx.append(bytes())
+        if data is not None:
+            tx.append(self._data_to_payload(data))
+        else:
+            tx.append(bytes())
+        return tx
+
+    def sign_legacy(self,
+                    bip32_path: str,
+                    nonce: int,
+                    gas_price: float,
+                    gas_limit: int,
+                    destination: bytes,
+                    amount: float,
+                    chain_id: int,
+                    data: TxData = None):
+        tx = list()
+        tx.append(nonce)
+        tx = self._sign_common(tx, gas_price, gas_limit, destination, amount, data)
+        tx.append(chain_id)
+        tx.append(bytes())
+        tx.append(bytes())
+        return self._sign(bip32_path, rlp.encode(tx))
+
+    def sign_1559(self,
+                  bip32_path: str,
+                  chain_id: int,
+                  nonce: int,
+                  max_prio_gas_price: float,
+                  max_gas_price: float,
+                  gas_limit: int,
+                  destination: bytes,
+                  amount: float,
+                  data: TxData = None,
+                  access_list = list()):
+        tx = list()
+        tx.append(chain_id)
+        tx.append(nonce)
+        tx.append(int(max_prio_gas_price * GWEI_IN_ETH))
+        tx = self._sign_common(tx, max_gas_price, gas_limit, destination, amount, data)
+        tx.append(access_list)
+        tx.append(False)
+        tx.append(bytes())
+        tx.append(bytes())
+        # prefix with transaction type
+        return self._sign(bip32_path, b'\x02' + rlp.encode(tx))
 
     def get_challenge(self):
         return self._send(self._cmd_builder.get_challenge())
@@ -151,3 +206,68 @@ class EthAppClient:
             with self._send(chunk):
                 pass
         return self._send(chunks[-1])
+
+    def set_plugin(self,
+                   plugin_name: str,
+                   contract_addr: bytes,
+                   selector: bytes,
+                   chain_id: int,
+                   type_: int = 1,
+                   version: int = 1,
+                   key_id: int = 2,
+                   algo_id: int = 1,
+                   sig: Optional[bytes] = None):
+        if sig is None:
+            # Temporarily get a command with an empty signature to extract the payload and
+            # compute the signature on it
+            tmp = self._cmd_builder.set_plugin(type_,
+                                               version,
+                                               plugin_name,
+                                               contract_addr,
+                                               selector,
+                                               chain_id,
+                                               key_id,
+                                               algo_id,
+                                               bytes())
+            # skip APDU header & empty sig
+            sig = sign_data(Key.SET_PLUGIN, tmp[5:-1])
+        return self._send(self._cmd_builder.set_plugin(type_,
+                                                       version,
+                                                       plugin_name,
+                                                       contract_addr,
+                                                       selector,
+                                                       chain_id,
+                                                       key_id,
+                                                       algo_id,
+                                                       sig))
+
+    def provide_nft_metadata(self,
+                             collection: str,
+                             addr: bytes,
+                             chain_id: int,
+                             type_: int = 1,
+                             version: int = 1,
+                             key_id: int = 1,
+                             algo_id: int = 1,
+                             sig: Optional[bytes] = None):
+        if sig is None:
+            # Temporarily get a command with an empty signature to extract the payload and
+            # compute the signature on it
+            tmp = self._cmd_builder.provide_nft_information(type_,
+                                                            version,
+                                                            collection,
+                                                            addr,
+                                                            chain_id,
+                                                            key_id,
+                                                            algo_id,
+                                                            bytes())
+            # skip APDU header & empty sig
+            sig = sign_data(Key.NFT, tmp[5:-1])
+        return self._send(self._cmd_builder.provide_nft_information(type_,
+                                                                    version,
+                                                                    collection,
+                                                                    addr,
+                                                                    chain_id,
+                                                                    key_id,
+                                                                    algo_id,
+                                                                    sig))

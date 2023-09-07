@@ -1,5 +1,6 @@
 import struct
 from enum import IntEnum
+from typing import Optional
 from ragger.bip import pack_derivation_path
 from typing import List
 
@@ -7,6 +8,7 @@ from .eip712 import EIP712FieldType
 
 
 class InsType(IntEnum):
+    GET_PUBLIC_ADDR = 0x02
     SIGN = 0x04
     EIP712_SEND_STRUCT_DEF = 0x1a
     EIP712_SEND_STRUCT_IMPL = 0x1c
@@ -204,3 +206,16 @@ class CommandBuilder:
             payload = payload[0xff:]
             p1 = 0
         return chunks
+
+    def get_public_addr(self,
+                        display: bool,
+                        chaincode: bool,
+                        bip32_path: str,
+                        chain_id: Optional[int]) -> bytes:
+        payload = pack_derivation_path(bip32_path)
+        if chain_id is not None:
+            payload += struct.pack(">Q", chain_id)
+        return self._serialize(InsType.GET_PUBLIC_ADDR,
+                               int(display),
+                               int(chaincode),
+                               payload)

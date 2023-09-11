@@ -300,6 +300,16 @@ test: install_tests run_tests
 unit-test:
 	make -C tests/unit
 
+ifeq ($(TARGET_NAME),TARGET_STAX)
+    NETWORK_ICONS_FILE = $(GEN_SRC_DIR)/net_icons.gen.c
+    NETWORK_ICONS_DIR = $(shell dirname "$(NETWORK_ICONS_FILE)")
+
+$(NETWORK_ICONS_FILE):
+	$(shell python3 tools/gen_networks.py "$(NETWORK_ICONS_DIR)")
+
+    APP_SOURCE_FILES += $(NETWORK_ICONS_FILE)
+endif
+
 # import generic rules from the sdk
 include $(BOLOS_SDK)/Makefile.rules
 

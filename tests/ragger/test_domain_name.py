@@ -24,9 +24,11 @@ GAS_PRICE = 13
 GAS_LIMIT = 21000
 AMOUNT = 1.22
 
+
 @pytest.fixture(params=[False, True])
 def verbose(request) -> bool:
     return request.param
+
 
 def common(app_client: EthAppClient) -> int:
     if app_client._client.firmware.device == "nanos":

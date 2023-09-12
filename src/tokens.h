@@ -41,8 +41,6 @@ extern tokenDefinition_t const TOKENS_EXTRA[NUM_TOKENS_EXTRA];
 
 #endif
 
-#ifndef HAVE_TOKENS_LIST
-
 static const uint8_t LEDGER_SIGNATURE_PUBLIC_KEY[] = {
 #if defined(HAVE_CAL_TEST_KEY)
     0x04, 0x4c, 0xca, 0x8f, 0xad, 0x49, 0x6a, 0xa5, 0x04, 0x0a, 0x00, 0xa7, 0xeb, 0x2f,
@@ -66,110 +64,5 @@ static const uint8_t LEDGER_SIGNATURE_PUBLIC_KEY[] = {
     0x8f, 0xd0, 0xf8, 0x1d, 0xaa, 0x94, 0x97, 0x91, 0x83
 #endif
 };
-
-#else
-
-// These defines need to follow tokens.c
-
-#define NUM_TOKENS_AKROMA           0
-#define NUM_TOKENS_ELLAISM          1
-#define NUM_TOKENS_ETHEREUM         2
-#define NUM_TOKENS_ETHEREUM_CLASSIC 4
-#define NUM_TOKENS_ETHERSOCIAL      0
-#define NUM_TOKENS_ETHER1           0
-#define NUM_TOKENS_PIRL             0
-#define NUM_TOKENS_POA              0
-#define NUM_TOKENS_RSK              0
-#define NUM_TOKENS_UBIQ             6
-#define NUM_TOKENS_EXPANSE          0
-#define NUM_TOKENS_WANCHAIN         0
-#define NUM_TOKENS_MUSICOIN         0
-#define NUM_TOKENS_CALLISTO         0
-#define NUM_TOKENS_ETHERGEM         0
-#define NUM_TOKENS_ATHEIOS          0
-#define NUM_TOKENS_GOCHAIN          0
-#define NUM_TOKENS_MIX              0
-#define NUM_TOKENS_REOSC            0
-#define NUM_TOKENS_HPB              0
-#define NUM_TOKENS_TOMOCHAIN        0
-#define NUM_TOKENS_DEXON            0
-#define NUM_TOKENS_VOLTA            0
-#define NUM_TOKENS_ENERGYWEBCHAIN   0
-#define NUM_TOKENS_ARTIS_SIGMA1     0
-#define NUM_TOKENS_ARTIS_TAU1       0
-#define NUM_TOKENS_WEBCHAIN         0
-#define NUM_TOKENS_THUNDERCORE      0
-#define NUM_TOKENS_FLARE            0
-#define NUM_TOKENS_BSC              0
-#define NUM_TOKENS_SONGBIRD         0
-#define NUM_TOKENS_MOONRIVER        0
-#define NUM_TOKENS_POLYGON          0
-#define NUM_TOKENS_SHYFT            0
-#define NUM_TOKENS_CONFLUX_ESPACE   0
-#define NUM_TOKENS_MOONBEAM         0
-#define NUM_TOKENS_BTTC             0
-#define NUM_TOKENS_KARDIACHAIN      0
-#define NUM_TOKENS_WETHIO           0
-#define NUM_TOKENS_OKC              0
-#define NUM_TOKENS_CUBE             0
-#define NUM_TOKENS_ASTAR            0
-#define NUM_TOKENS_SHIDEN           0
-#define NUM_TOKENS_XDCNETWORK       0
-#define NUM_TOKENS_METER            0
-#define NUM_TOKENS_MULTIVAC         0
-#define NUM_TOKENS_TECRA            0
-#define NUM_TOKENS_APOTHEMNETWORK   0
-#define NUM_TOKENS_OASYS            0
-
-extern tokenDefinition_t const TOKENS_AKROMA[NUM_TOKENS_AKROMA];
-extern tokenDefinition_t const TOKENS_ELLAISM[NUM_TOKENS_ELLAISM];
-extern tokenDefinition_t const TOKENS_ETHEREUM[NUM_TOKENS_ETHEREUM];
-extern tokenDefinition_t const TOKENS_ETHEREUM_CLASSIC[NUM_TOKENS_ETHEREUM_CLASSIC];
-extern tokenDefinition_t const TOKENS_ETHERSOCIAL[NUM_TOKENS_ETHERSOCIAL];
-extern tokenDefinition_t const TOKENS_ETHER1[NUM_TOKENS_ETHER1];
-extern tokenDefinition_t const TOKENS_PIRL[NUM_TOKENS_PIRL];
-extern tokenDefinition_t const TOKENS_POA[NUM_TOKENS_POA];
-extern tokenDefinition_t const TOKENS_RSK[NUM_TOKENS_RSK];
-extern tokenDefinition_t const TOKENS_UBIQ[NUM_TOKENS_UBIQ];
-extern tokenDefinition_t const TOKENS_EXPANSE[NUM_TOKENS_EXPANSE];
-extern tokenDefinition_t const TOKENS_WANCHAIN[NUM_TOKENS_WANCHAIN];
-extern tokenDefinition_t const TOKENS_MUSICOIN[NUM_TOKENS_MUSICOIN];
-extern tokenDefinition_t const TOKENS_CALLISTO[NUM_TOKENS_CALLISTO];
-extern tokenDefinition_t const TOKENS_ETHERGEM[NUM_TOKENS_ETHERGEM];
-extern tokenDefinition_t const TOKENS_ATHEIOS[NUM_TOKENS_ATHEIOS];
-extern tokenDefinition_t const TOKENS_GOCHAIN[NUM_TOKENS_GOCHAIN];
-extern tokenDefinition_t const TOKENS_MIX[NUM_TOKENS_MIX];
-extern tokenDefinition_t const TOKENS_REOSC[NUM_TOKENS_REOSC];
-extern tokenDefinition_t const TOKENS_HPB[NUM_TOKENS_HPB];
-extern tokenDefinition_t const TOKENS_TOMOCHAIN[NUM_TOKENS_TOMOCHAIN];
-extern tokenDefinition_t const TOKENS_DEXON[NUM_TOKENS_DEXON];
-extern tokenDefinition_t const TOKENS_VOLTA[NUM_TOKENS_VOLTA];
-extern tokenDefinition_t const TOKENS_ENERGYWEBCHAIN[NUM_TOKENS_ENERGYWEBCHAIN];
-extern tokenDefinition_t const TOKENS_ARTIS_SIGMA1[NUM_TOKENS_ARTIS_SIGMA1];
-extern tokenDefinition_t const TOKENS_ARTIS_TAU1[NUM_TOKENS_ARTIS_TAU1];
-extern tokenDefinition_t const TOKENS_WEBCHAIN[NUM_TOKENS_WEBCHAIN];
-extern tokenDefinition_t const TOKENS_THUNDERCORE[NUM_TOKENS_THUNDERCORE];
-extern tokenDefinition_t const TOKENS_FLARE[NUM_TOKENS_FLARE];
-extern tokenDefinition_t const TOKENS_BSC[NUM_TOKENS_BSC];
-extern tokenDefinition_t const TOKENS_SONGBIRD[NUM_TOKENS_SONGBIRD];
-extern tokenDefinition_t const TOKENS_MOONRIVER[NUM_TOKENS_MOONRIVER];
-extern tokenDefinition_t const TOKENS_POLYGON[NUM_TOKENS_POLYGON];
-extern tokenDefinition_t const TOKENS_SHYFT[NUM_TOKENS_SHYFT];
-extern tokenDefinition_t const TOKENS_CONFLUX_ESPACE[NUM_TOKENS_CONFLUX_ESPACE];
-extern tokenDefinition_t const TOKENS_MOONBEAM[NUM_TOKENS_MOONBEAM];
-extern tokenDefinition_t const TOKENS_BTTC[NUM_TOKENS_BTTC];
-extern tokenDefinition_t const TOKENS_KARDIACHAIN[NUM_TOKENS_KARDIACHAIN];
-extern tokenDefinition_t const TOKENS_WETHIO[NUM_TOKENS_WETHIO];
-extern tokenDefinition_t const TOKENS_CUBE[NUM_TOKENS_CUBE];
-extern tokenDefinition_t const TOKENS_ASTAR[NUM_TOKENS_ASTAR];
-extern tokenDefinition_t const TOKENS_SHIDEN[NUM_TOKENS_SHIDEN];
-extern tokenDefinition_t const TOKENS_XDCNETWORK[NUM_TOKENS_XDCNETWORK];
-extern tokenDefinition_t const TOKENS_METER[NUM_TOKENS_METER];
-extern tokenDefinition_t const TOKENS_MULTIVAC[NUM_TOKENS_MULTIVAC];
-extern tokenDefinition_t const TOKENS_TECRA[NUM_TOKENS_TECRA];
-extern tokenDefinition_t const TOKENS_APOTHEMNETWORK[NUM_TOKENS_APOTHEMNETWORK];
-extern tokenDefinition_t const TOKENS_OASYS[NUM_TOKENS_OASYS];
-
-#endif /* HAVE_TOKENS_LIST */
 
 #endif  // _TOKENS_H_

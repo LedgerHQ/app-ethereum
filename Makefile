@@ -65,15 +65,15 @@ DEFINES += $(DEFINES_LIB)
 
 #prepare hsm generation
 ifeq ($(TARGET_NAME),TARGET_NANOS)
-ICONNAME=icons/nanos_app_$(CHAIN).gif
+ICONNAME=icons/nanos_app_$(CHAIN_ID).gif
 else ifeq ($(TARGET_NAME),TARGET_STAX)
-ICONNAME=icons/stax_app_$(CHAIN).gif
-DEFINES += ICONGLYPH=C_stax_$(CHAIN)_64px
-DEFINES += ICONBITMAP=C_stax_$(CHAIN)_64px_bitmap
-DEFINES += ICONGLYPH_SMALL=C_stax_$(CHAIN)
+ICONNAME=icons/stax_app_$(CHAIN_ID).gif
+DEFINES += ICONGLYPH=C_stax_$(CHAIN_ID)_64px
+DEFINES += ICONBITMAP=C_stax_$(CHAIN_ID)_64px_bitmap
+DEFINES += ICONGLYPH_SMALL=C_stax_$(CHAIN_ID)
 GLYPH_FILES += $(ICONNAME)
 else
-ICONNAME=icons/nanox_app_$(CHAIN).gif
+ICONNAME=icons/nanox_app_$(CHAIN_ID).gif
 endif
 
 ################

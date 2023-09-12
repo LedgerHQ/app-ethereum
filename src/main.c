@@ -182,9 +182,6 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
         case CHAIN_KIND_WANCHAIN:
             numTokens = NUM_TOKENS_WANCHAIN;
             break;
-        case CHAIN_KIND_KUSD:
-            numTokens = NUM_TOKENS_KUSD;
-            break;
         case CHAIN_KIND_MUSICOIN:
             numTokens = NUM_TOKENS_MUSICOIN;
             break;
@@ -223,9 +220,6 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
             break;
         case CHAIN_KIND_MOONRIVER:
             numTokens = NUM_TOKENS_MOONRIVER;
-            break;
-        case CHAIN_KIND_TOBALABA:
-            numTokens = NUM_TOKENS_TOBALABA;
             break;
         case CHAIN_KIND_DEXON:
             numTokens = NUM_TOKENS_DEXON;
@@ -341,9 +335,6 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
             case CHAIN_KIND_WANCHAIN:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_WANCHAIN[i]);
                 break;
-            case CHAIN_KIND_KUSD:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_KUSD[i]);
-                break;
             case CHAIN_KIND_MUSICOIN:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_MUSICOIN[i]);
                 break;
@@ -382,9 +373,6 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
                 break;
             case CHAIN_KIND_MOONRIVER:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_MOONRIVER[i]);
-                break;
-            case CHAIN_KIND_TOBALABA:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_TOBALABA[i]);
                 break;
             case CHAIN_KIND_DEXON:
                 currentToken = (tokenDefinition_t *) PIC(&TOKENS_DEXON[i]);

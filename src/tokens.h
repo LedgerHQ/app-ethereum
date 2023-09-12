@@ -83,7 +83,6 @@ static const uint8_t LEDGER_SIGNATURE_PUBLIC_KEY[] = {
 #define NUM_TOKENS_UBIQ             6
 #define NUM_TOKENS_EXPANSE          0
 #define NUM_TOKENS_WANCHAIN         0
-#define NUM_TOKENS_KUSD             0
 #define NUM_TOKENS_MUSICOIN         0
 #define NUM_TOKENS_CALLISTO         0
 #define NUM_TOKENS_ETHERGEM         0
@@ -93,7 +92,6 @@ static const uint8_t LEDGER_SIGNATURE_PUBLIC_KEY[] = {
 #define NUM_TOKENS_REOSC            0
 #define NUM_TOKENS_HPB              0
 #define NUM_TOKENS_TOMOCHAIN        0
-#define NUM_TOKENS_TOBALABA         0
 #define NUM_TOKENS_DEXON            0
 #define NUM_TOKENS_VOLTA            0
 #define NUM_TOKENS_ENERGYWEBCHAIN   0
@@ -135,7 +133,6 @@ extern tokenDefinition_t const TOKENS_RSK[NUM_TOKENS_RSK];
 extern tokenDefinition_t const TOKENS_UBIQ[NUM_TOKENS_UBIQ];
 extern tokenDefinition_t const TOKENS_EXPANSE[NUM_TOKENS_EXPANSE];
 extern tokenDefinition_t const TOKENS_WANCHAIN[NUM_TOKENS_WANCHAIN];
-extern tokenDefinition_t const TOKENS_KUSD[NUM_TOKENS_KUSD];
 extern tokenDefinition_t const TOKENS_MUSICOIN[NUM_TOKENS_MUSICOIN];
 extern tokenDefinition_t const TOKENS_CALLISTO[NUM_TOKENS_CALLISTO];
 extern tokenDefinition_t const TOKENS_ETHERGEM[NUM_TOKENS_ETHERGEM];
@@ -145,7 +142,6 @@ extern tokenDefinition_t const TOKENS_MIX[NUM_TOKENS_MIX];
 extern tokenDefinition_t const TOKENS_REOSC[NUM_TOKENS_REOSC];
 extern tokenDefinition_t const TOKENS_HPB[NUM_TOKENS_HPB];
 extern tokenDefinition_t const TOKENS_TOMOCHAIN[NUM_TOKENS_TOMOCHAIN];
-extern tokenDefinition_t const TOKENS_TOBALABA[NUM_TOKENS_TOBALABA];
 extern tokenDefinition_t const TOKENS_DEXON[NUM_TOKENS_DEXON];
 extern tokenDefinition_t const TOKENS_VOLTA[NUM_TOKENS_VOLTA];
 extern tokenDefinition_t const TOKENS_ENERGYWEBCHAIN[NUM_TOKENS_ENERGYWEBCHAIN];

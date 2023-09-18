@@ -271,6 +271,16 @@ class EthAppClient:
                                                                     algo_id,
                                                                     sig))
 
+    def set_external_plugin(self,
+                            plugin_name: str,
+                            contract_address: bytes,
+                            method_selelector: bytes,
+                            sig: Optional[bytes] = None):
+        if sig is None:
+            # Temporarily get a command with an empty signature to extract the payload and
+            # compute the signature on it
+            tmp = self._cmd_builder.set_external_plugin(plugin_name, contract_address, method_selelector, bytes())
 
-    def external_plugin_setup(self, plugin_name: str, contract_address: bytes, method_selelector: bytes, sig: bytes):
-        return self._send(self._cmd_builder.external_plugin_setup(plugin_name, contract_address, method_selelector, sig))
+            # skip APDU header & empty sig
+            sig = sign_data(Key.SET_PLUGIN, tmp[5:-1])
+        return self._send(self._cmd_builder.set_external_plugin(plugin_name, contract_address, method_selelector, sig))

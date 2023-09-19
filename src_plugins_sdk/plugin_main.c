@@ -47,8 +47,6 @@ __attribute__((section(".boot"))) int main(int arg0) {
 
     os_boot();
 
-    check_api_level(CX_COMPAT_APILEVEL);
-
     BEGIN_TRY {
         TRY {
             // Check if plugin is called from the dashboard.

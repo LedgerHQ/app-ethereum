@@ -473,6 +473,8 @@ void finalizeParsing(bool direct) {
             // Ensure the values are the same that the ones that have been previously validated
             if (strcmp(strings.common.fullAmount, displayBuffer) != 0) {
                 PRINTF("ERR_SILENT_MODE_CHECK_FAILED, amount check failed\n");
+                PRINTF("Expected %s\n", strings.common.fullAmount);
+                PRINTF("Received %s\n", displayBuffer);
                 THROW(ERR_SILENT_MODE_CHECK_FAILED);
             }
         } else {

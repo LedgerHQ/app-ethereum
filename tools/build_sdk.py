@@ -10,6 +10,7 @@ python3 tools/build_sdk.py
 '''
 
 import os
+import shutil
 
 
 def extract_from_headers(sources, nodes_to_extract):
@@ -28,12 +29,12 @@ def extract_from_headers(sources, nodes_to_extract):
                 if key in line and value in line:
                     node += [line]
                     unclosed_curvy_brackets = line.count('{') - line.count('}')
-                    if unclosed_curvy_brackets == False:
+                    if not unclosed_curvy_brackets:
                         break
                 elif (key == "fn" and value in line) or unclosed_parantheses:
                     node += [line]
                     unclosed_parantheses = line.find(")") == -1
-                    if unclosed_parantheses == False:
+                    if not unclosed_parantheses:
                         break
                 elif unclosed_curvy_brackets:
                     node += [line]
@@ -150,7 +151,8 @@ def merge_c_files(sources, nodes_to_extract):
 
 if __name__ == "__main__":
 
-    # some nodes will be extracted from these headers and merged into a new one, copied to sdk
+    # some nodes will be extracted from these headers and merged into a new
+    # one, copied to sdk
     headers_to_merge = [
         "src/tokens.h",
         "src/chainConfig.h",
@@ -160,13 +162,23 @@ if __name__ == "__main__":
         "src/shared_context.h",
         "src/eth_plugin_internal.h",
         "src/nft.h",
-        "src/swap_lib_calls.h", 
-        "src_plugins_sdk/plugin_main.h"
+        "src/swap_lib_calls.h",
     ]
     nodes_to_extract = {
-        "#define": ["MAX_TICKER_LEN", "ADDRESS_LENGTH", "INT256_LENGTH", "WEI_TO_ETHER", "SELECTOR_SIZE", "PARAMETER_LENGTH", "RUN_APPLICATION", "COLLECTION_NAME_MAX_LEN"],
+        "#define": ["MAX_TICKER_LEN",
+                    "ADDRESS_LENGTH",
+                    "INT256_LENGTH",
+                    "WEI_TO_ETHER",
+                    "SELECTOR_SIZE",
+                    "PARAMETER_LENGTH",
+                    "RUN_APPLICATION",
+                    "COLLECTION_NAME_MAX_LEN"],
         "typedef enum": [],
-        "typedef struct": ["tokenDefinition_t", "txInt256_t", "txContent_t", "nftInfo_t", "caller_app_t"],
+        "typedef struct": ["tokenDefinition_t",
+                           "txInt256_t",
+                           "txContent_t",
+                           "nftInfo_t",
+                           "caller_app_t"],
         "typedef union": ["extraInfo_t"],
         "__attribute__((no_instrument_function)) inline": ["int allzeroes"],
         "const": ["HEXDIGITS"],
@@ -180,21 +192,26 @@ if __name__ == "__main__":
                "void copy_address",
                "void copy_parameter",
                "bool U2BE_from_parameter",
-               "bool U4BE_from_parameter",
-               "void plugin_main",
-               "void call_app_ethereum",
-               "int main"]
+               "bool U4BE_from_parameter"]
     }
     merge_headers(headers_to_merge, nodes_to_extract)
 
-    # this header will be stripped from all #include related to previously merged headers, then copied to sdk
+    # this header will be stripped from all #include related to previously
+    # merged headers, then copied to sdk
     copy_header("src/eth_plugin_interface.h", headers_to_merge)
 
     # extract and merge function bodies
     c_files_to_merge = [
         "src/utils.c",
         "src_common/ethUtils.c",
-        "src/eth_plugin_internal.c", 
-        "src_plugins_sdk/plugin_main.c"
+        "src/eth_plugin_internal.c",
     ]
     merge_c_files(c_files_to_merge, nodes_to_extract["fn"])
+
+    files_to_copy = [
+        "main.c",
+    ]
+
+    for file in files_to_copy:
+        shutil.copyfile("src_plugin_sdk/" + file,
+                        "ethereum-plugin-sdk/include/" + file)

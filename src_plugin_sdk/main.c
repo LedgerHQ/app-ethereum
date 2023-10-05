@@ -1,6 +1,6 @@
 /*****************************************************************************
- *   Ledger Plugins SDK.
- *   (c) 2023 Ledger SAS.
+ *   Ledger Plugin SDK
+ *   (c) 2023 Ledger SAS
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -14,6 +14,17 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *****************************************************************************/
+
+#include "eth_internals.h"
+#include "eth_plugin_interface.h"
+
+// Functions implemented by the plugin
+void handle_init_contract(ethPluginInitContract_t *parameters);
+void handle_provide_parameter(ethPluginProvideParameter_t *parameters);
+void handle_finalize(ethPluginFinalize_t *parameters);
+void handle_provide_token(ethPluginProvideInfo_t *parameters);
+void handle_query_contract_id(ethQueryContractID_t *parameters);
+void handle_query_contract_ui(ethQueryContractUI_t *parameters);
 
 // Calls the ethereum app.
 void call_app_ethereum() {
@@ -40,6 +51,33 @@ void call_app_ethereum() {
     os_lib_call((unsigned int *) &libcall_params);
 }
 
+// Function to dispatch calls from the ethereum app.
+static void dispatch_call(int message, void *parameters) {
+    switch (message) {
+        case ETH_PLUGIN_INIT_CONTRACT:
+            handle_init_contract(parameters);
+            break;
+        case ETH_PLUGIN_PROVIDE_PARAMETER:
+            handle_provide_parameter(parameters);
+            break;
+        case ETH_PLUGIN_FINALIZE:
+            handle_finalize(parameters);
+            break;
+        case ETH_PLUGIN_PROVIDE_INFO:
+            handle_provide_token(parameters);
+            break;
+        case ETH_PLUGIN_QUERY_CONTRACT_ID:
+            handle_query_contract_id(parameters);
+            break;
+        case ETH_PLUGIN_QUERY_CONTRACT_UI:
+            handle_query_contract_ui(parameters);
+            break;
+        default:
+            PRINTF("Unhandled message %d\n", message);
+            break;
+    }
+}
+
 // Low-level main for plugins.
 __attribute__((section(".boot"))) int main(int arg0) {
     // Exit critical section
@@ -61,8 +99,13 @@ __attribute__((section(".boot"))) int main(int arg0) {
 
             } else {
                 // Not called from dashboard: called from the ethereum app!
-                // launch plugin main
-                plugin_main(arg0);
+                const unsigned int *args = (unsigned int *) arg0;
+
+                // If `ETH_PLUGIN_CHECK_PRESENCE` is set, this means the caller is just trying to
+                // know whether this app exists or not. We can skip `paraswap_plugin_call`.
+                if (args[0] != ETH_PLUGIN_CHECK_PRESENCE) {
+                    dispatch_call(args[0], (void *) args[1]);
+                }
             }
 
             // Call `os_lib_end`, go back to the ethereum app.

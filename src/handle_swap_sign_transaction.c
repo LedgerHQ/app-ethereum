@@ -35,22 +35,26 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
         PRINTF("Error while parsing config\n");
         return false;
     }
-    amountToString(sign_transaction_params->amount,
-                   sign_transaction_params->amount_length,
-                   decimals,
-                   ticker,
-                   stack_data.fullAmount,
-                   sizeof(stack_data.fullAmount));
+    if (!amountToString(sign_transaction_params->amount,
+                        sign_transaction_params->amount_length,
+                        decimals,
+                        ticker,
+                        stack_data.fullAmount,
+                        sizeof(stack_data.fullAmount))) {
+        THROW(EXCEPTION_OVERFLOW);
+    }
 
     // If the amount is a fee, its value is nominated in ETH even if we're doing an ERC20 swap
     strlcpy(ticker, config->coinName, MAX_TICKER_LEN);
     decimals = WEI_TO_ETHER;
-    amountToString(sign_transaction_params->fee_amount,
-                   sign_transaction_params->fee_amount_length,
-                   decimals,
-                   ticker,
-                   stack_data.maxFee,
-                   sizeof(stack_data.maxFee));
+    if (!amountToString(sign_transaction_params->fee_amount,
+                        sign_transaction_params->fee_amount_length,
+                        decimals,
+                        ticker,
+                        stack_data.maxFee,
+                        sizeof(stack_data.maxFee))) {
+        THROW(EXCEPTION_OVERFLOW);
+    }
 
     // Full reset the global variables
     os_explicit_zero_BSS_segment();

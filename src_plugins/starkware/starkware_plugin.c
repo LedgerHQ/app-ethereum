@@ -6,6 +6,7 @@
 #include "stark_utils.h"
 #include "utils.h"
 #include "ethUtils.h"
+#include "apdu_constants.h"
 
 #ifdef HAVE_STARKWARE
 
@@ -352,11 +353,13 @@ void starkware_print_asset_contract(char *destination, size_t destinationLength)
     if (dataContext.tokenContext.quantumIndex != MAX_ITEMS) {
         tokenDefinition_t *token =
             &tmpCtx.transactionContext.extraInfo[dataContext.tokenContext.quantumIndex].token;
-        getEthDisplayableAddress(token->address,
-                                 destination,
-                                 destinationLength,
-                                 &global_sha3,
-                                 chainConfig->chainId);
+        if (!getEthDisplayableAddress(token->address,
+                                      destination,
+                                      destinationLength,
+                                      &global_sha3,
+                                      chainConfig->chainId)) {
+            THROW(APDU_RESPONSE_ERROR_NO_INFO);
+        }
     } else {
         strlcpy(destination, "UNKNOWN", destinationLength);
     }
@@ -380,7 +383,12 @@ void starkware_get_source_address(char *destination) {
     io_seproxyhal_io_heartbeat();
     destination[0] = '0';
     destination[1] = 'x';
-    getEthAddressStringFromKey(&publicKey, destination + 2, &global_sha3, chainConfig->chainId);
+    if (!getEthAddressStringFromKey(&publicKey,
+                                    destination + 2,
+                                    &global_sha3,
+                                    chainConfig->chainId)) {
+        THROW(CX_INVALID_PARAMETER);
+    }
     destination[42] = '\0';
 }
 
@@ -716,11 +724,13 @@ void starkware_plugin_call(int message, void *parameters) {
                     if (is_deversify_contract(tmpContent.txContent.destination)) {
                         strlcpy(msg->msg, "DeversiFi", msg->msgLength);
                     } else {
-                        getEthDisplayableAddress(tmpContent.txContent.destination,
-                                                 msg->msg,
-                                                 msg->msgLength,
-                                                 &global_sha3,
-                                                 chainConfig->chainId);
+                        if (!getEthDisplayableAddress(tmpContent.txContent.destination,
+                                                      msg->msg,
+                                                      msg->msgLength,
+                                                      &global_sha3,
+                                                      chainConfig->chainId)) {
+                            THROW(APDU_RESPONSE_ERROR_NO_INFO);
+                        }
                     }
                     msg->result = ETH_PLUGIN_RESULT_OK;
                     break;
@@ -730,11 +740,13 @@ void starkware_plugin_call(int message, void *parameters) {
                         case STARKWARE_REGISTER_AND_DEPOSIT_TOKEN:
                         case STARKWARE_REGISTER_AND_DEPOSIT_ETH:
                             strlcpy(msg->title, "From ETH Address", msg->titleLength);
-                            getEthDisplayableAddress(context->amount,
-                                                     msg->msg,
-                                                     msg->msgLength,
-                                                     &global_sha3,
-                                                     chainConfig->chainId);
+                            if (!getEthDisplayableAddress(context->amount,
+                                                          msg->msg,
+                                                          msg->msgLength,
+                                                          &global_sha3,
+                                                          chainConfig->chainId)) {
+                                THROW(APDU_RESPONSE_ERROR_NO_INFO);
+                            }
                             break;
                         case STARKWARE_ESCAPE:
                             strlcpy(msg->title, "Amount", msg->titleLength);
@@ -806,11 +818,13 @@ void starkware_plugin_call(int message, void *parameters) {
                         case STARKWARE_WITHDRAW_TO:
                         case STARKWARE_WITHDRAW_NFT_TO:
                             strlcpy(msg->title, "To ETH Address", msg->titleLength);
-                            getEthDisplayableAddress(context->amount,
-                                                     msg->msg,
-                                                     msg->msgLength,
-                                                     &global_sha3,
-                                                     chainConfig->chainId);
+                            if (!getEthDisplayableAddress(context->amount,
+                                                          msg->msg,
+                                                          msg->msgLength,
+                                                          &global_sha3,
+                                                          chainConfig->chainId)) {
+                                THROW(APDU_RESPONSE_ERROR_NO_INFO);
+                            }
                             break;
                         case STARKWARE_WITHDRAW_AND_MINT:
                             strlcpy(msg->title, "Asset Contract", msg->titleLength);

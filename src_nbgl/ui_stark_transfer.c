@@ -65,11 +65,13 @@ static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
     }
     if (page == 1) {
         if (context.conditional) {
-            getEthDisplayableAddress(dataContext.starkContext.conditionAddress,
-                                     condAddressBuffer,
-                                     sizeof(condAddressBuffer),
-                                     &global_sha3,
-                                     chainConfig->chainId);
+            if (!getEthDisplayableAddress(dataContext.starkContext.conditionAddress,
+                                          condAddressBuffer,
+                                          sizeof(condAddressBuffer),
+                                          &global_sha3,
+                                          chainConfig->chainId)) {
+                return false;
+            }
             pairs[0].item = "Cond. Address";
             pairs[0].value = condAddressBuffer;
 

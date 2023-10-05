@@ -198,11 +198,13 @@ static bool ui_712_format_addr(const uint8_t *const data, uint8_t length) {
         return false;
     }
     if (ui_712_field_shown()) {
-        getEthDisplayableAddress((uint8_t *) data,
-                                 strings.tmp.tmp,
-                                 sizeof(strings.tmp.tmp),
-                                 &global_sha3,
-                                 chainConfig->chainId);
+        if (!getEthDisplayableAddress((uint8_t *) data,
+                                      strings.tmp.tmp,
+                                      sizeof(strings.tmp.tmp),
+                                      &global_sha3,
+                                      chainConfig->chainId)) {
+            THROW(APDU_RESPONSE_ERROR_NO_INFO);
+        }
     }
     return true;
 }

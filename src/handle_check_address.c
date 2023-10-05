@@ -53,10 +53,12 @@ int handle_check_address(check_address_parameters_t* params, chain_config_t* cha
     ZERO(locals_union2);
     cx_ecfp_generate_pair(CX_CURVE_256K1, &locals_union2.publicKey, &locals_union1.privateKey, 1);
     ZERO(locals_union1);
-    getEthAddressStringFromKey(&locals_union2.publicKey,
-                               locals_union1.address,
-                               &local_sha3,
-                               chain_config->chainId);
+    if (!getEthAddressStringFromKey(&locals_union2.publicKey,
+                                    locals_union1.address,
+                                    &local_sha3,
+                                    chain_config->chainId)) {
+        THROW(CX_INVALID_PARAMETER);
+    }
     ZERO(locals_union2);
 
     uint8_t offset_0x = 0;

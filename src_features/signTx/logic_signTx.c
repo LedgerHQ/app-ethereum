@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include "shared_context.h"
 #include "utils.h"
 #include "feature_signTx.h"
@@ -9,7 +10,7 @@
 #include "ethUtils.h"
 #include "common_ui.h"
 #include "ui_callbacks.h"
-#include <ctype.h>
+#include "apdu_constants.h"
 
 #define ERR_SILENT_MODE_CHECK_FAILED 0x6001
 
@@ -189,7 +190,9 @@ static void address_to_string(uint8_t *in,
                               cx_sha3_t *sha3,
                               uint64_t chainId) {
     if (in_len != 0) {
-        getEthDisplayableAddress(in, out, out_len, sha3, chainId);
+        if (!getEthDisplayableAddress(in, out, out_len, sha3, chainId)) {
+            THROW(APDU_RESPONSE_ERROR_NO_INFO);
+        }
     } else {
         strlcpy(out, "Contract", out_len);
     }
@@ -269,7 +272,9 @@ static void get_network_as_string(char *out, size_t out_size) {
 
     if (name == NULL) {
         // No network name found so simply copy the chain ID as the network name.
-        u64_to_string(chain_id, out, out_size);
+        if (!u64_to_string(chain_id, out, out_size)) {
+            THROW(0x6502);
+        }
     } else {
         // Network name found, simply copy it.
         strlcpy(out, name, out_size);
@@ -294,7 +299,9 @@ static void get_public_key(uint8_t *out, uint8_t outLength) {
     cx_ecfp_generate_pair(CX_CURVE_256K1, &publicKey, &privateKey, 1);
     explicit_bzero(&privateKey, sizeof(privateKey));
     explicit_bzero(privateKeyData, sizeof(privateKeyData));
-    getEthAddressFromKey(&publicKey, out, &global_sha3);
+    if (!getEthAddressFromKey(&publicKey, out, &global_sha3)) {
+        THROW(CX_INVALID_PARAMETER);
+    }
 }
 
 /* Local implmentation of strncasecmp, workaround of the segfaulting base implem

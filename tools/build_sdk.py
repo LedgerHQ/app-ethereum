@@ -210,6 +210,8 @@ if __name__ == "__main__":
 
     files_to_copy = [
         "main.c",
+        "utils.c",
+        "utils.h",
     ]
 
     for file in files_to_copy:

@@ -5,6 +5,7 @@
 #include "ethUtils.h"
 #include "common_ui.h"
 #include "os_io_seproxyhal.h"
+#include "lib_standard_app/crypto_helpers.h"
 
 void handleGetPublicKey(uint8_t p1,
                         uint8_t p2,
@@ -12,9 +13,7 @@ void handleGetPublicKey(uint8_t p1,
                         uint8_t dataLength,
                         unsigned int *flags,
                         unsigned int *tx) {
-    uint8_t privateKeyData[INT256_LENGTH];
     bip32_path_t bip32;
-    cx_ecfp_private_key_t privateKey;
 
     if (!G_called_from_swap) {
         reset_app_context();
@@ -36,23 +35,19 @@ void handleGetPublicKey(uint8_t p1,
     }
 
     tmpCtx.publicKeyContext.getChaincode = (p2 == P2_CHAINCODE);
-    io_seproxyhal_io_heartbeat();
-    os_perso_derive_node_bip32(
-        CX_CURVE_256K1,
-        bip32.path,
-        bip32.length,
-        privateKeyData,
-        (tmpCtx.publicKeyContext.getChaincode ? tmpCtx.publicKeyContext.chainCode : NULL));
-    cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
-    io_seproxyhal_io_heartbeat();
-    cx_ecfp_generate_pair(CX_CURVE_256K1, &tmpCtx.publicKeyContext.publicKey, &privateKey, 1);
-    explicit_bzero(&privateKey, sizeof(privateKey));
-    explicit_bzero(privateKeyData, sizeof(privateKeyData));
-    io_seproxyhal_io_heartbeat();
-    getEthAddressStringFromKey(&tmpCtx.publicKeyContext.publicKey,
-                               tmpCtx.publicKeyContext.address,
-                               &global_sha3,
-                               chainConfig->chainId);
+    if (bip32_derive_get_pubkey_256(
+            CX_CURVE_256K1,
+            bip32.path,
+            bip32.length,
+            tmpCtx.publicKeyContext.publicKey.W,
+            (tmpCtx.publicKeyContext.getChaincode ? tmpCtx.publicKeyContext.chainCode : NULL),
+            CX_SHA512) != CX_OK) {
+        THROW(0x6F00);
+    }
+    getEthAddressStringFromRawKey(tmpCtx.publicKeyContext.publicKey.W,
+                                  tmpCtx.publicKeyContext.address,
+                                  &global_sha3,
+                                  chainConfig->chainId);
 
     uint64_t chain_id = chainConfig->chainId;
     if (dataLength >= sizeof(chain_id)) {

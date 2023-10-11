@@ -6,6 +6,7 @@
 #include "feature_stark_getPublicKey.h"
 #include "common_ui.h"
 #include "os_io_seproxyhal.h"
+#include "lib_standard_app/crypto_helpers.h"
 
 void handleStarkwareGetPublicKey(uint8_t p1,
                                  uint8_t p2,
@@ -14,8 +15,6 @@ void handleStarkwareGetPublicKey(uint8_t p1,
                                  unsigned int *flags,
                                  unsigned int *tx) {
     bip32_path_t bip32;
-    cx_ecfp_private_key_t privateKey;
-    uint8_t privateKeyData[32];
 
     reset_app_context();
 
@@ -33,14 +32,10 @@ void handleStarkwareGetPublicKey(uint8_t p1,
         THROW(0x6a80);
     }
 
-    io_seproxyhal_io_heartbeat();
-    starkDerivePrivateKey(bip32.path, bip32.length, privateKeyData);
-    cx_ecfp_init_private_key(CX_CURVE_Stark256, privateKeyData, 32, &privateKey);
-    io_seproxyhal_io_heartbeat();
-    cx_ecfp_generate_pair(CX_CURVE_Stark256, &tmpCtx.publicKeyContext.publicKey, &privateKey, 1);
-    explicit_bzero(&privateKey, sizeof(privateKey));
-    explicit_bzero(privateKeyData, sizeof(privateKeyData));
-    io_seproxyhal_io_heartbeat();
+    if (stark_get_pubkey(bip32.path, bip32.length, tmpCtx.publicKeyContext.publicKey.W) != CX_OK) {
+        THROW(0x6F00);
+    }
+
 #ifndef NO_CONSENT
     if (p1 == P1_NON_CONFIRM)
 #endif  // NO_CONSENT

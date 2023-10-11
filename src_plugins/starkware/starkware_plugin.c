@@ -1,5 +1,6 @@
 #include <string.h>
 #include "os_io_seproxyhal.h"
+#include "lib_standard_app/crypto_helpers.h"
 #include "eth_plugin_interface.h"
 #include "shared_context.h"       // TODO : rewrite as independant code
 #include "eth_plugin_internal.h"  // TODO : rewrite as independant code
@@ -364,23 +365,20 @@ void starkware_print_asset_contract(char *destination, size_t destinationLength)
 
 // TODO : rewrite as independant code
 void starkware_get_source_address(char *destination) {
-    uint8_t privateKeyData[INT256_LENGTH];
-    cx_ecfp_private_key_t privateKey;
-    cx_ecfp_public_key_t publicKey;
-    os_perso_derive_node_bip32(CX_CURVE_256K1,
-                               tmpCtx.transactionContext.bip32.path,
-                               tmpCtx.transactionContext.bip32.length,
-                               privateKeyData,
-                               NULL);
-    cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
-    io_seproxyhal_io_heartbeat();
-    cx_ecfp_generate_pair(CX_CURVE_256K1, &publicKey, &privateKey, 1);
-    explicit_bzero(&privateKey, sizeof(privateKey));
-    explicit_bzero(privateKeyData, sizeof(privateKeyData));
-    io_seproxyhal_io_heartbeat();
+    uint8_t raw_pubkey[65];
+
+    if (bip32_derive_get_pubkey_256(CX_CURVE_256K1,
+                                    tmpCtx.transactionContext.bip32.path,
+                                    tmpCtx.transactionContext.bip32.length,
+                                    raw_pubkey,
+                                    NULL,
+                                    CX_SHA512) != CX_OK) {
+        THROW(0x6F00);
+    }
+
     destination[0] = '0';
     destination[1] = 'x';
-    getEthAddressStringFromKey(&publicKey, destination + 2, &global_sha3, chainConfig->chainId);
+    getEthAddressStringFromRawKey(raw_pubkey, destination + 2, &global_sha3, chainConfig->chainId);
     destination[42] = '\0';
 }
 

@@ -117,20 +117,22 @@ bool rlpDecodeLength(uint8_t *buffer, uint32_t *fieldLength, uint32_t *offset, b
     return true;
 }
 
-void getEthAddressFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out, cx_sha3_t *sha3Context) {
+void getEthAddressFromRawKey(const uint8_t raw_pubkey[static 65],
+                             uint8_t *out,
+                             cx_sha3_t *sha3Context) {
     uint8_t hashAddress[INT256_LENGTH];
     cx_keccak_init(sha3Context, 256);
-    cx_hash((cx_hash_t *) sha3Context, CX_LAST, publicKey->W + 1, 64, hashAddress, 32);
+    cx_hash((cx_hash_t *) sha3Context, CX_LAST, raw_pubkey + 1, 64, hashAddress, 32);
     memmove(out, hashAddress + 12, 20);
 }
 
-void getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey,
-                                char *out,
-                                cx_sha3_t *sha3Context,
-                                uint64_t chainId) {
+void getEthAddressStringFromRawKey(const uint8_t raw_pubkey[static 65],
+                                   char *out,
+                                   cx_sha3_t *sha3Context,
+                                   uint64_t chainId) {
     uint8_t hashAddress[INT256_LENGTH];
     cx_keccak_init(sha3Context, 256);
-    cx_hash((cx_hash_t *) sha3Context, CX_LAST, publicKey->W + 1, 64, hashAddress, 32);
+    cx_hash((cx_hash_t *) sha3Context, CX_LAST, raw_pubkey + 1, 64, hashAddress, 32);
     getEthAddressStringFromBinary(hashAddress + 12, out, sha3Context, chainId);
 }
 

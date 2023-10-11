@@ -7,28 +7,15 @@
 
 unsigned int io_seproxyhal_touch_stark_unsafe_sign_ok(__attribute__((unused))
                                                       const bagl_element_t *e) {
-    cx_ecfp_private_key_t privateKey;
-    uint8_t privateKeyData[INT256_LENGTH];
-    uint8_t signature[72];
-    unsigned int info = 0;
-    uint32_t tx = 0;
-    io_seproxyhal_io_heartbeat();
-    starkDerivePrivateKey(tmpCtx.transactionContext.bip32.path,
-                          tmpCtx.transactionContext.bip32.length,
-                          privateKeyData);
-    io_seproxyhal_io_heartbeat();
-    cx_ecfp_init_private_key(CX_CURVE_Stark256, privateKeyData, 32, &privateKey);
-    cx_ecdsa_sign(&privateKey,
-                  CX_RND_RFC6979 | CX_LAST,
-                  CX_SHA256,
-                  dataContext.starkContext.w2,
-                  sizeof(dataContext.starkContext.w2),
-                  signature,
-                  sizeof(signature),
-                  &info);
-    G_io_apdu_buffer[0] = 0;
-    format_signature_out(signature);
-    tx = 65;
+    if (stark_sign_hash(tmpCtx.transactionContext.bip32.path,
+                        tmpCtx.transactionContext.bip32.length,
+                        dataContext.starkContext.w2,
+                        sizeof(dataContext.starkContext.w2),
+                        G_io_apdu_buffer) != CX_OK) {
+        THROW(0x6F00);
+    }
+
+    uint32_t tx = 65;
     G_io_apdu_buffer[tx++] = 0x90;
     G_io_apdu_buffer[tx++] = 0x00;
     reset_app_context();

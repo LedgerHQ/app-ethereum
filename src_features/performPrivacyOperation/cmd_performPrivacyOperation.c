@@ -62,10 +62,10 @@ void handlePerformPrivacyOperation(uint8_t p1,
         (tmpCtx.publicKeyContext.getChaincode ? tmpCtx.publicKeyContext.chainCode : NULL));
     cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
     cx_ecfp_generate_pair(CX_CURVE_256K1, &tmpCtx.publicKeyContext.publicKey, &privateKey, 1);
-    getEthAddressStringFromKey(&tmpCtx.publicKeyContext.publicKey,
-                               tmpCtx.publicKeyContext.address,
-                               &global_sha3,
-                               chainConfig->chainId);
+    getEthAddressStringFromRawKey(tmpCtx.publicKeyContext.publicKey.W,
+                                  tmpCtx.publicKeyContext.address,
+                                  &global_sha3,
+                                  chainConfig->chainId);
     if (p2 == P2_PUBLIC_ENCRYPTION_KEY) {
         decodeScalar(privateKeyData, privateKeyDataSwapped);
         cx_ecfp_init_private_key(CX_CURVE_Curve25519, privateKeyDataSwapped, 32, &privateKey);

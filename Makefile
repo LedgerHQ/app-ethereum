@@ -264,6 +264,9 @@ SDK_SOURCE_PATH  += lib_ux
 APP_SOURCE_PATH  += src_bagl
 endif
 
+# Allow usage of function from lib_standard_app/crypto_helpers.c
+APP_SOURCE_FILES += ${BOLOS_SDK}/lib_standard_app/crypto_helpers.c
+
 ### initialize plugin SDK submodule if needed, rebuild it, and warn if a difference is noticed
 ifeq ($(CHAIN),ethereum)
 ifneq ($(shell git submodule status | grep '^[-+]'),)

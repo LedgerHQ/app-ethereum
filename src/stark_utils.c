@@ -113,15 +113,11 @@ void shift_stark_hash(FieldElement hash) {
     }
 }
 
-int stark_sign(uint8_t *signature, /* out */
-               uint8_t *privateKeyData,
-               FieldElement token1,
-               FieldElement token2,
-               FieldElement msg,
-               FieldElement condition) {
-    unsigned int info = 0;
-    FieldElement hash;
-    cx_ecfp_private_key_t privateKey;
+void stark_hash(FieldElement hash, /* out */
+                FieldElement token1,
+                FieldElement token2,
+                FieldElement msg,
+                FieldElement condition) {
     PRINTF("Stark sign msg w1 %.*H\n", 32, token1);
     PRINTF("Stark sign msg w2 %.*H\n", 32, token2);
     PRINTF("Stark sign w3 %.*H\n", 32, msg);
@@ -137,18 +133,6 @@ int stark_sign(uint8_t *signature, /* out */
     pedersen(hash, hash, msg);
     PRINTF("Pedersen hash 2 %.*H\n", 32, hash);
     shift_stark_hash(hash);
-    cx_ecfp_init_private_key(CX_CURVE_Stark256, privateKeyData, 32, &privateKey);
-    io_seproxyhal_io_heartbeat();
-    int signatureLength = cx_ecdsa_sign(&privateKey,
-                                        CX_RND_RFC6979 | CX_LAST,
-                                        CX_SHA256,
-                                        hash,
-                                        sizeof(hash),
-                                        signature,
-                                        SIGNATURE_MAX_LEN,
-                                        &info);
-    PRINTF("Stark signature %.*H\n", signatureLength, signature);
-    return signatureLength;
 }
 
 // ERC20Token(address)

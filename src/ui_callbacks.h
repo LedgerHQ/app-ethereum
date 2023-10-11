@@ -28,7 +28,6 @@ unsigned int io_seproxyhal_touch_stark_ok(const bagl_element_t *e);
 void ui_warning_contract_data(void);
 
 void io_seproxyhal_send_status(uint32_t sw);
-void format_signature_out(const uint8_t *signature);
 void finalizeParsing(bool direct);
 extraInfo_t *getKnownToken(uint8_t *contractAddress);
 

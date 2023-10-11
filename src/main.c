@@ -96,28 +96,6 @@ void io_seproxyhal_send_status(uint32_t sw) {
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
 }
 
-void format_signature_out(const uint8_t *signature) {
-    memset(G_io_apdu_buffer + 1, 0x00, 64);
-    uint8_t offset = 1;
-    uint8_t xoffset = 4;  // point to r value
-    // copy r
-    uint8_t xlength = signature[xoffset - 1];
-    if (xlength == 33) {
-        xlength = 32;
-        xoffset++;
-    }
-    memmove(G_io_apdu_buffer + offset + 32 - xlength, signature + xoffset, xlength);
-    offset += 32;
-    xoffset += xlength + 2;  // move over rvalue and TagLEn
-    // copy s value
-    xlength = signature[xoffset - 1];
-    if (xlength == 33) {
-        xlength = 32;
-        xoffset++;
-    }
-    memmove(G_io_apdu_buffer + offset + 32 - xlength, signature + xoffset, xlength);
-}
-
 unsigned short io_exchange_al(unsigned char channel, unsigned short tx_len) {
     switch (channel & ~(IO_FLAGS)) {
         case CHANNEL_KEYBOARD:

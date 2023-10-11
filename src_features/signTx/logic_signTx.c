@@ -1,3 +1,4 @@
+#include "lib_standard_app/crypto_helpers.h"
 #include "shared_context.h"
 #include "utils.h"
 #include "feature_signTx.h"
@@ -277,24 +278,21 @@ static void get_network_as_string(char *out, size_t out_size) {
 }
 
 static void get_public_key(uint8_t *out, uint8_t outLength) {
-    uint8_t privateKeyData[INT256_LENGTH] = {0};
-    cx_ecfp_private_key_t privateKey = {0};
-    cx_ecfp_public_key_t publicKey = {0};
+    uint8_t raw_pubkey[65];
 
     if (outLength < ADDRESS_LENGTH) {
         return;
     }
+    if (bip32_derive_get_pubkey_256(CX_CURVE_256K1,
+                                    tmpCtx.transactionContext.bip32.path,
+                                    tmpCtx.transactionContext.bip32.length,
+                                    raw_pubkey,
+                                    NULL,
+                                    CX_SHA512) != CX_OK) {
+        THROW(0x6F00);
+    }
 
-    os_perso_derive_node_bip32(CX_CURVE_256K1,
-                               tmpCtx.transactionContext.bip32.path,
-                               tmpCtx.transactionContext.bip32.length,
-                               privateKeyData,
-                               NULL);
-    cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
-    cx_ecfp_generate_pair(CX_CURVE_256K1, &publicKey, &privateKey, 1);
-    explicit_bzero(&privateKey, sizeof(privateKey));
-    explicit_bzero(privateKeyData, sizeof(privateKeyData));
-    getEthAddressFromKey(&publicKey, out, &global_sha3);
+    getEthAddressFromRawKey(raw_pubkey, out, &global_sha3);
 }
 
 /* Local implmentation of strncasecmp, workaround of the segfaulting base implem

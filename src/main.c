@@ -1021,7 +1021,6 @@ void coin_main(libargs_t *args) {
 }
 
 static void library_main_helper(libargs_t *args) {
-    check_api_level(CX_COMPAT_APILEVEL);
     PRINTF("Inside a library \n");
     switch (args->command) {
         case CHECK_ADDRESS:
@@ -1082,7 +1081,6 @@ __attribute__((section(".boot"))) int main(int arg0) {
             init_coin_config(&local_chainConfig);
 
             PRINTF("Hello from Eth-clone\n");
-            check_api_level(CX_COMPAT_APILEVEL);
             // delegate to Ethereum app/lib
             libcall_params[0] = (unsigned int) "Ethereum";
             libcall_params[1] = 0x100;

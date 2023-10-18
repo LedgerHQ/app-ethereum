@@ -7,6 +7,7 @@
 #include "ui_signing.h"
 #include "plugins.h"
 #include "domain_name.h"
+#include "network_icons.h"
 
 #define TEXT_TX "transaction"
 // 1 more than actually displayed on screen, because of calculations in StaticReview
@@ -190,7 +191,12 @@ static const nbgl_icon_details_t *get_tx_icon(void) {
             }
         }
     } else {
-        icon = get_app_icon(false);
+        uint64_t chain_id = get_tx_chain_id();
+        if (chain_id == chainConfig->chainId) {
+            icon = get_app_icon(false);
+        } else {
+            icon = get_network_icon_from_chain_id(&chain_id);
+        }
     }
     return icon;
 }

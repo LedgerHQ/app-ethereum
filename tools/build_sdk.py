@@ -213,7 +213,14 @@ if __name__ == "__main__":
         "utils.c",
         "utils.h",
     ]
-
     for file in files_to_copy:
         shutil.copyfile("src_plugin_sdk/" + file,
                         "ethereum-plugin-sdk/include/" + file)
+
+    files_to_copy = [
+        "CHANGELOG.md",
+        "README.md",
+    ]
+    for file in files_to_copy:
+        shutil.copyfile("src_plugin_sdk/" + file,
+                        "ethereum-plugin-sdk/" + file)

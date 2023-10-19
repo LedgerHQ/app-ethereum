@@ -2,7 +2,7 @@ import rlp
 from enum import IntEnum
 from ragger.backend import BackendInterface
 from ragger.utils import RAPDU
-from typing import List, Optional, Union
+from typing import List, Optional
 
 from .command_builder import CommandBuilder
 from .eip712 import EIP712FieldType
@@ -30,8 +30,7 @@ class StatusWord(IntEnum):
     CONDITION_NOT_SATISFIED = 0x6985
     REF_DATA_NOT_FOUND = 0x6a88
 
-
-class DOMAIN_NAME_TAG(IntEnum):
+class DomainNameTag(IntEnum):
     STRUCTURE_TYPE = 0x01
     STRUCTURE_VERSION = 0x02
     CHALLENGE = 0x12
@@ -52,7 +51,7 @@ class EthAppClient:
         return self._client.exchange_async_raw(payload)
 
     def response(self) -> Optional[RAPDU]:
-        return self._client._last_async_response
+        return self._client.last_async_response
 
     def eip712_send_struct_def_struct_name(self, name: str):
         return self._send(self._cmd_builder.eip712_send_struct_def_struct_name(name))
@@ -190,15 +189,15 @@ class EthAppClient:
                                                             chain_id))
 
     def provide_domain_name(self, challenge: int, name: str, addr: bytes):
-        payload = format_tlv(DOMAIN_NAME_TAG.STRUCTURE_TYPE, 3)  # TrustedDomainName
-        payload += format_tlv(DOMAIN_NAME_TAG.STRUCTURE_VERSION, 1)
-        payload += format_tlv(DOMAIN_NAME_TAG.SIGNER_KEY_ID, 0)  # test key
-        payload += format_tlv(DOMAIN_NAME_TAG.SIGNER_ALGO, 1)  # secp256k1
-        payload += format_tlv(DOMAIN_NAME_TAG.CHALLENGE, challenge)
-        payload += format_tlv(DOMAIN_NAME_TAG.COIN_TYPE, 0x3c)  # ETH in slip-44
-        payload += format_tlv(DOMAIN_NAME_TAG.DOMAIN_NAME, name)
-        payload += format_tlv(DOMAIN_NAME_TAG.ADDRESS, addr)
-        payload += format_tlv(DOMAIN_NAME_TAG.SIGNATURE,
+        payload = format_tlv(DomainNameTag.STRUCTURE_TYPE, 3)  # TrustedDomainName
+        payload += format_tlv(DomainNameTag.STRUCTURE_VERSION, 1)
+        payload += format_tlv(DomainNameTag.SIGNER_KEY_ID, 0)  # test key
+        payload += format_tlv(DomainNameTag.SIGNER_ALGO, 1)  # secp256k1
+        payload += format_tlv(DomainNameTag.CHALLENGE, challenge)
+        payload += format_tlv(DomainNameTag.COIN_TYPE, 0x3c)  # ETH in slip-44
+        payload += format_tlv(DomainNameTag.DOMAIN_NAME, name)
+        payload += format_tlv(DomainNameTag.ADDRESS, addr)
+        payload += format_tlv(DomainNameTag.SIGNATURE,
                               sign_data(Key.DOMAIN_NAME, payload))
 
         chunks = self._cmd_builder.provide_domain_name(payload)
@@ -271,3 +270,17 @@ class EthAppClient:
                                                                     key_id,
                                                                     algo_id,
                                                                     sig))
+
+    def set_external_plugin(self,
+                            plugin_name: str,
+                            contract_address: bytes,
+                            method_selelector: bytes,
+                            sig: Optional[bytes] = None):
+        if sig is None:
+            # Temporarily get a command with an empty signature to extract the payload and
+            # compute the signature on it
+            tmp = self._cmd_builder.set_external_plugin(plugin_name, contract_address, method_selelector, bytes())
+
+            # skip APDU header & empty sig
+            sig = sign_data(Key.SET_PLUGIN, tmp[5:-1])
+        return self._send(self._cmd_builder.set_external_plugin(plugin_name, contract_address, method_selelector, sig))

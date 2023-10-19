@@ -117,11 +117,14 @@ void eth2_plugin_call(int message, void *parameters) {
 
                     // Use a temporary buffer to store the string representation.
                     char tmp[ETH2_DEPOSIT_PUBKEY_LENGTH];
-                    getEthDisplayableAddress((uint8_t *) context->deposit_address,
-                                             tmp,
-                                             sizeof(tmp),
-                                             msg->pluginSharedRW->sha3,
-                                             chainConfig->chainId);
+                    if (!getEthDisplayableAddress((uint8_t *) context->deposit_address,
+                                                  tmp,
+                                                  sizeof(tmp),
+                                                  msg->pluginSharedRW->sha3,
+                                                  chainConfig->chainId)) {
+                        msg->result = ETH_PLUGIN_RESULT_ERROR;
+                        return;
+                    }
 
                     // Copy back the string to the global variable.
                     strlcpy(context->deposit_address, tmp, ETH2_DEPOSIT_PUBKEY_LENGTH);
@@ -200,12 +203,14 @@ void eth2_plugin_call(int message, void *parameters) {
                     uint8_t decimals = WEI_TO_ETHER;
                     char *ticker = chainConfig->coinName;
                     strlcpy(msg->title, "Amount", msg->titleLength);
-                    amountToString(tmpContent.txContent.value.value,
-                                   tmpContent.txContent.value.length,
-                                   decimals,
-                                   ticker,
-                                   msg->msg,
-                                   100);
+                    if (!amountToString(tmpContent.txContent.value.value,
+                                        tmpContent.txContent.value.length,
+                                        decimals,
+                                        ticker,
+                                        msg->msg,
+                                        100)) {
+                        THROW(EXCEPTION_OVERFLOW);
+                    }
                     msg->result = ETH_PLUGIN_RESULT_OK;
                 } break;
                 case 1: {  // Deposit pubkey screen

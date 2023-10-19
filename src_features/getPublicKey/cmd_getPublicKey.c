@@ -49,10 +49,12 @@ void handleGetPublicKey(uint8_t p1,
     explicit_bzero(&privateKey, sizeof(privateKey));
     explicit_bzero(privateKeyData, sizeof(privateKeyData));
     io_seproxyhal_io_heartbeat();
-    getEthAddressStringFromKey(&tmpCtx.publicKeyContext.publicKey,
-                               tmpCtx.publicKeyContext.address,
-                               &global_sha3,
-                               chainConfig->chainId);
+    if (!getEthAddressStringFromKey(&tmpCtx.publicKeyContext.publicKey,
+                                    tmpCtx.publicKeyContext.address,
+                                    &global_sha3,
+                                    chainConfig->chainId)) {
+        THROW(CX_INVALID_PARAMETER);
+    }
 
     uint64_t chain_id = chainConfig->chainId;
     if (dataLength >= sizeof(chain_id)) {

@@ -34,7 +34,7 @@ uint64_t u64_from_BE(const uint8_t* in, uint8_t size);
 
 bool uint256_to_decimal(const uint8_t* value, size_t value_len, char* out, size_t out_len);
 
-void amountToString(const uint8_t* amount,
+bool amountToString(const uint8_t* amount,
                     uint8_t amount_len,
                     uint8_t decimals,
                     const char* ticker,

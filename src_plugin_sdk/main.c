@@ -27,7 +27,7 @@ void handle_query_contract_id(ethQueryContractID_t *parameters);
 void handle_query_contract_ui(ethQueryContractUI_t *parameters);
 
 // Calls the ethereum app.
-void call_app_ethereum() {
+static void call_app_ethereum() {
     unsigned int libcall_params[5];
     libcall_params[0] = (unsigned int) "Ethereum";
     libcall_params[1] = 0x100;

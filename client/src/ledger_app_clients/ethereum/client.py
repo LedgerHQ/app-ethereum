@@ -2,7 +2,7 @@ import rlp
 from enum import IntEnum
 from ragger.backend import BackendInterface
 from ragger.utils import RAPDU
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from .command_builder import CommandBuilder
 from .eip712 import EIP712FieldType
@@ -13,12 +13,15 @@ from .tlv import format_tlv
 WEI_IN_ETH = 1e+18
 GWEI_IN_ETH = 1e+9
 
+
 class TxData:
     selector: bytes
     parameters: list[bytes]
+
     def __init__(self, selector: bytes, params: list[bytes]):
         self.selector = selector
         self.parameters = params
+
 
 class StatusWord(IntEnum):
     OK = 0x9000
@@ -29,6 +32,7 @@ class StatusWord(IntEnum):
     INVALID_P1_P2 = 0x6b00
     CONDITION_NOT_SATISFIED = 0x6985
     REF_DATA_NOT_FOUND = 0x6a88
+
 
 class DomainNameTag(IntEnum):
     STRUCTURE_TYPE = 0x01
@@ -121,7 +125,7 @@ class EthAppClient:
                      gas_limit: int,
                      destination: bytes,
                      amount: float,
-                     data: TxData):
+                     data: Optional[TxData]):
         tx.append(int(gas_price * GWEI_IN_ETH))
         tx.append(gas_limit)
         tx.append(destination)
@@ -143,8 +147,8 @@ class EthAppClient:
                     destination: bytes,
                     amount: float,
                     chain_id: int,
-                    data: TxData = None):
-        tx = list()
+                    data: Optional[TxData] = None):
+        tx: List[Union[int, bytes]] = list()
         tx.append(nonce)
         tx = self._sign_common(tx, gas_price, gas_limit, destination, amount, data)
         tx.append(chain_id)
@@ -161,9 +165,9 @@ class EthAppClient:
                   gas_limit: int,
                   destination: bytes,
                   amount: float,
-                  data: TxData = None,
-                  access_list = list()):
-        tx = list()
+                  data: Optional[TxData] = None,
+                  access_list=list()):
+        tx: List[Union[int, bytes]] = list()
         tx.append(chain_id)
         tx.append(nonce)
         tx.append(int(max_prio_gas_price * GWEI_IN_ETH))

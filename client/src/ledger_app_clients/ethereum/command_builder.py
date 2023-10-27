@@ -182,12 +182,12 @@ class CommandBuilder:
                                P2Type.FILTERING_FIELD_NAME,
                                self._eip712_filtering_send_name(name, sig))
 
-    def set_external_plugin(self, plugin_name: str, contract_address: bytes, method_selelector: bytes, sig: bytes) -> bytes:
+    def set_external_plugin(self, plugin_name: str, contract_address: bytes, selector: bytes, sig: bytes) -> bytes:
         data = bytearray()
         data.append(len(plugin_name))
         data += self._string_to_bytes(plugin_name)
         data += contract_address
-        data += method_selelector
+        data += selector
         data += sig
 
         return self._serialize(InsType.EXTERNAL_PLUGIN_SETUP,

@@ -14,6 +14,7 @@ def challenge(data: bytes) -> int:
     assert len(data) == 4
     return int.from_bytes(data, "big")
 
+
 def pk_addr(data: bytes, has_chaincode: bool = False):
     idx = 0
 

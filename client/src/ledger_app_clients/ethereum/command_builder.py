@@ -1,3 +1,6 @@
+# documentation about APDU format is available here:
+# https://github.com/LedgerHQ/app-ethereum/blob/develop/doc/ethapp.adoc
+
 import struct
 from enum import IntEnum
 from typing import Optional
@@ -18,6 +21,7 @@ class InsType(IntEnum):
     EIP712_SIGN = 0x0c
     GET_CHALLENGE = 0x20
     PROVIDE_DOMAIN_NAME = 0x22
+    EXTERNAL_PLUGIN_SETUP = 0x12
 
 
 class P1Type(IntEnum):
@@ -177,6 +181,19 @@ class CommandBuilder:
                                P1Type.COMPLETE_SEND,
                                P2Type.FILTERING_FIELD_NAME,
                                self._eip712_filtering_send_name(name, sig))
+
+    def set_external_plugin(self, plugin_name: str, contract_address: bytes, selector: bytes, sig: bytes) -> bytes:
+        data = bytearray()
+        data.append(len(plugin_name))
+        data += self._string_to_bytes(plugin_name)
+        data += contract_address
+        data += selector
+        data += sig
+
+        return self._serialize(InsType.EXTERNAL_PLUGIN_SETUP,
+                               P1Type.COMPLETE_SEND,
+                               0x00,
+                               data)
 
     def sign(self, bip32_path: str, rlp_data: bytes) -> list[bytes]:
         apdus = list()

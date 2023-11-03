@@ -201,12 +201,14 @@ void erc20_plugin_call(int message, void *parameters) {
                         strlcpy(msg->msg, "Unlimited ", msg->msgLength);
                         strlcat(msg->msg, context->ticker, msg->msgLength);
                     } else {
-                        amountToString(context->amount,
-                                       sizeof(context->amount),
-                                       context->decimals,
-                                       context->ticker,
-                                       msg->msg,
-                                       100);
+                        if (!amountToString(context->amount,
+                                            sizeof(context->amount),
+                                            context->decimals,
+                                            context->ticker,
+                                            msg->msg,
+                                            100)) {
+                            THROW(EXCEPTION_OVERFLOW);
+                        }
                     }
                     msg->result = ETH_PLUGIN_RESULT_OK;
                     break;
@@ -216,11 +218,13 @@ void erc20_plugin_call(int message, void *parameters) {
                         strlcpy(msg->msg, context->contract_name, msg->msgLength);
                     } else {
                         strlcpy(msg->title, "Address", msg->titleLength);
-                        getEthDisplayableAddress(context->destinationAddress,
-                                                 msg->msg,
-                                                 msg->msgLength,
-                                                 msg->pluginSharedRW->sha3,
-                                                 chainConfig->chainId);
+                        if (!getEthDisplayableAddress(context->destinationAddress,
+                                                      msg->msg,
+                                                      msg->msgLength,
+                                                      msg->pluginSharedRW->sha3,
+                                                      chainConfig->chainId)) {
+                            msg->result = ETH_PLUGIN_RESULT_ERROR;
+                        }
                     }
 
                     msg->result = ETH_PLUGIN_RESULT_OK;

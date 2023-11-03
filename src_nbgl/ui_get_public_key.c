@@ -3,6 +3,7 @@
 #include "ui_callbacks.h"
 #include "ui_nbgl.h"
 #include "network.h"
+#include "network_icons.h"
 
 static void cancel_send(void) {
     io_seproxyhal_touch_address_cancel(NULL);
@@ -34,6 +35,8 @@ static void display_addr(void) {
 }
 
 void ui_display_public_key(const uint64_t *chain_id) {
+    const nbgl_icon_details_t *icon;
+
     // - if a chain_id is given and it's - known, we specify its network name
     //                                   - unknown, we don't specify anything
     // - if no chain_id is given we specify the APPNAME (legacy behaviour)
@@ -45,14 +48,11 @@ void ui_display_public_key(const uint64_t *chain_id) {
                     sizeof(g_stax_shared_buffer));
             strlcat(g_stax_shared_buffer, "\n", sizeof(g_stax_shared_buffer));
         }
+        icon = get_network_icon_from_chain_id(chain_id);
     } else {
         strlcat(g_stax_shared_buffer, APPNAME "\n", sizeof(g_stax_shared_buffer));
+        icon = get_app_icon(false);
     }
     strlcat(g_stax_shared_buffer, "address", sizeof(g_stax_shared_buffer));
-    nbgl_useCaseReviewStart(get_app_icon(false),
-                            g_stax_shared_buffer,
-                            NULL,
-                            "Cancel",
-                            display_addr,
-                            reject_addr);
+    nbgl_useCaseReviewStart(icon, g_stax_shared_buffer, NULL, "Cancel", display_addr, reject_addr);
 }

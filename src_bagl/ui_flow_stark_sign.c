@@ -4,6 +4,7 @@
 #include "ui_callbacks.h"
 #include "ethUtils.h"
 #include "starkDisplayUtils.h"
+#include "apdu_constants.h"
 
 // clang-format off
 UX_STEP_NOCB(ux_stark_limit_order_1_step,
@@ -77,6 +78,16 @@ UX_FLOW(ux_stark_limit_order_flow,
         &ux_stark_limit_order_6_step,
         &ux_stark_limit_order_7_step,
         &ux_stark_limit_order_8_step);
+
+static void stark_format_address(void) {
+    if (!getEthDisplayableAddress(dataContext.starkContext.conditionAddress,
+                                  strings.tmp.tmp,
+                                  sizeof(strings.tmp.tmp),
+                                  &global_sha3,
+                                  chainConfig->chainId)) {
+        THROW(APDU_RESPONSE_ERROR_NO_INFO);
+    }
+}
 
 //////////////////////////////////////////////////////////////////////
 // clang-format off
@@ -167,11 +178,7 @@ UX_STEP_NOCB_INIT(
 UX_STEP_NOCB_INIT(
     ux_stark_conditional_transfer_8_step,
     bnnn_paging,
-    getEthDisplayableAddress(dataContext.starkContext.conditionAddress,
-                                  strings.tmp.tmp,
-                                  sizeof(strings.tmp.tmp),
-                                  &global_sha3,
-                                  chainConfig->chainId),
+    stark_format_address(),
     {
       .title = "Cond. Address",
       .text = strings.tmp.tmp

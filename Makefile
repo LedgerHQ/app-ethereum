@@ -55,6 +55,7 @@ else
 $(error Unsupported CHAIN - use $(SUPPORTED_CHAINS))
 endif
 CFLAGS += -DAPPNAME=\"$(APPNAME)\"
+DEFINES += CHAINID_COINNAME=\"$(TICKER)\" CHAIN_ID=$(CHAIN_ID)
 
 #########
 # Other #
@@ -65,15 +66,15 @@ DEFINES += $(DEFINES_LIB)
 
 #prepare hsm generation
 ifeq ($(TARGET_NAME),TARGET_NANOS)
-ICONNAME=icons/nanos_app_$(CHAIN).gif
+ICONNAME=icons/nanos_app_chain_$(CHAIN_ID).gif
 else ifeq ($(TARGET_NAME),TARGET_STAX)
-ICONNAME=icons/stax_app_$(CHAIN).gif
-DEFINES += ICONGLYPH=C_stax_$(CHAIN)_64px
-DEFINES += ICONBITMAP=C_stax_$(CHAIN)_64px_bitmap
-DEFINES += ICONGLYPH_SMALL=C_stax_$(CHAIN)
+ICONNAME=icons/stax_app_chain_$(CHAIN_ID).gif
+DEFINES += ICONGLYPH=C_stax_chain_$(CHAIN_ID)_64px
+DEFINES += ICONBITMAP=C_stax_chain_$(CHAIN_ID)_64px_bitmap
+DEFINES += ICONGLYPH_SMALL=C_stax_chain_$(CHAIN_ID)
 GLYPH_FILES += $(ICONNAME)
 else
-ICONNAME=icons/nanox_app_$(CHAIN).gif
+ICONNAME=icons/nanox_app_chain_$(CHAIN_ID).gif
 endif
 
 ################
@@ -223,8 +224,6 @@ ifneq ($(NOCONSENT),)
 DEFINES   += NO_CONSENT
 endif
 
-#DEFINES   += HAVE_TOKENS_LIST # Do not activate external ERC-20 support yet
-
 ##############
 #  Compiler  #
 ##############
@@ -300,6 +299,16 @@ test: install_tests run_tests
 
 unit-test:
 	make -C tests/unit
+
+ifeq ($(TARGET_NAME),TARGET_STAX)
+    NETWORK_ICONS_FILE = $(GEN_SRC_DIR)/net_icons.gen.c
+    NETWORK_ICONS_DIR = $(shell dirname "$(NETWORK_ICONS_FILE)")
+
+$(NETWORK_ICONS_FILE):
+	$(shell python3 tools/gen_networks.py "$(NETWORK_ICONS_DIR)")
+
+    APP_SOURCE_FILES += $(NETWORK_ICONS_FILE)
+endif
 
 # import generic rules from the sdk
 include $(BOLOS_SDK)/Makefile.rules

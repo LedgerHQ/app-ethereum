@@ -1,3 +1,4 @@
+---
 name: Python client checks, package build and deployment
 
 on:
@@ -7,11 +8,11 @@ on:
       - develop
       - master
     paths:
-      - ./client/**
+      - client/**
       - .github/workflows/python-client.yml
   pull_request:
     paths:
-      - ./client/**
+      - client/**
       - .github/workflows/python-client.yml
 
 jobs:
@@ -34,6 +35,50 @@ jobs:
       - run: pip install mypy
       - name: Mypy type checking
         run: (cd client && mypy src/)
+
+  get-develop-version:
+    name: Get develop version
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' && github.base_ref == 'develop' }}
+    outputs:
+      develop_version: ${{ steps.get-version.outputs.develop_version }}
+    steps:
+      - name: Check Out Code
+        uses: actions/checkout@v3
+        with:
+          ref: develop
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.12.0
+      - name: Get version
+        id: get-version
+        env:
+          PYTHONPATH: client/src/ledger_app_clients
+        run: |
+          echo "develop_version=$(python -c 'from ethereum import __version__; print(__version__)')" >> $GITHUB_OUTPUT
+
+  version-check:
+    name: Check Version when opening a PR against develop
+    runs-on: ubuntu-latest
+    needs: get-develop-version
+    steps:
+      - name: Check Out Code
+        uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.12.0
+      - name: Check Version Bump
+        env:
+          DEVELOP_VERSION: ${{needs.get-develop-version.outputs.develop_version}}
+          PYTHONPATH: client/src/ledger_app_clients
+        run: |
+          current_version=$(python -c "from ethereum import __version__; print(__version__)")
+          if [[ "$current_version" == "$DEVELOP_VERSION" ]]; then
+            echo "Version in __init__.py hasn't been bumped. Please bump the version before merging."
+            exit 1
+          fi
 
   packaging:
     needs: [lint, mypy]

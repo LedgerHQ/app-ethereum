@@ -96,8 +96,6 @@ jobs:
 
     steps:
       - name: Checkout plugin repository
-        # TODO: remove restriction once finalized
-        if: matrix.repo == 'app-plugin-uniswap-test2'
         uses: actions/checkout@v3
         with:
           repository: LedgerHQ/${{ matrix.repo }}
@@ -111,15 +109,11 @@ jobs:
           persist-credentials: false
 
       - name: Update submodule
-        # TODO: remove restriction once finalized
-        if: matrix.repo == 'app-plugin-uniswap-test2'
         run: |
           cd ethereum-plugin-sdk/
           git checkout ${{ needs.get-sdk-ref.outputs.sdk_ref }}
 
       - name: Commit changes
-        # TODO: remove restriction once finalized
-        if: matrix.repo == 'app-plugin-uniswap-test2'
         id: commit-changes
         run: |
           # Set credentials for commit creation
@@ -137,8 +131,6 @@ jobs:
           echo "branch_name=$branch_name" >> $GITHUB_OUTPUT
 
       - name: Push commit
-        # TODO: remove restriction once finalized
-        if: matrix.repo == 'app-plugin-uniswap-test2'
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.CI_BOT_TOKEN }}
@@ -146,16 +138,12 @@ jobs:
           repository: LedgerHQ/${{ matrix.repo }}
 
       - name: Create 'auto' label if missing
-        # TODO: remove restriction once finalized
-        if: matrix.repo == 'app-plugin-uniswap-test2'
         run: |
           if [[ -z $(gh label list --search auto) ]]; then
             gh label create 'auto' --color 'b4a8d1' --description 'Automatically created'
           fi
 
       - name: Create pull request and commment on SDK issue
-        # TODO: remove restriction once finalized
-        if: matrix.repo == 'app-plugin-uniswap-test2'
         run: |
           # Create the PR with a placeholder body. Will be consolidated at a later step
           pr_url=$(gh pr create \

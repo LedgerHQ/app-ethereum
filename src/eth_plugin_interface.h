@@ -8,16 +8,16 @@
 #include "shared_context.h"
 
 // Interface version. To be updated everytime we introduce breaking changes to the plugin interface.
-typedef enum {
+typedef enum eth_plugin_interface_version_e {
     ETH_PLUGIN_INTERFACE_VERSION_1 = 1,
     ETH_PLUGIN_INTERFACE_VERSION_2 = 2,
     ETH_PLUGIN_INTERFACE_VERSION_3 = 3,
     ETH_PLUGIN_INTERFACE_VERSION_4 = 4,
     ETH_PLUGIN_INTERFACE_VERSION_5 = 5,
-    ETH_PLUGIN_INTERFACE_VERSION_LATEST = 6
+    ETH_PLUGIN_INTERFACE_VERSION_LATEST = 6,
 } eth_plugin_interface_version_t;
 
-typedef enum {
+typedef enum eth_plugin_msg_e {
 
     ETH_PLUGIN_INIT_CONTRACT = 0x0101,
     ETH_PLUGIN_PROVIDE_PARAMETER = 0x0102,
@@ -25,11 +25,11 @@ typedef enum {
     ETH_PLUGIN_PROVIDE_INFO = 0x0104,
     ETH_PLUGIN_QUERY_CONTRACT_ID = 0x0105,
     ETH_PLUGIN_QUERY_CONTRACT_UI = 0x0106,
-    ETH_PLUGIN_CHECK_PRESENCE = 0x01FF
+    ETH_PLUGIN_CHECK_PRESENCE = 0x01FF,
 
 } eth_plugin_msg_t;
 
-typedef enum {
+typedef enum eth_plugin_result_e {
     // Unsuccesful return values
     ETH_PLUGIN_RESULT_ERROR = 0x00,
     ETH_PLUGIN_RESULT_UNAVAILABLE = 0x01,
@@ -39,14 +39,14 @@ typedef enum {
     ETH_PLUGIN_RESULT_SUCCESSFUL = 0x03,  // Used for comparison
     ETH_PLUGIN_RESULT_OK = 0x04,
     ETH_PLUGIN_RESULT_OK_ALIAS = 0x05,
-    ETH_PLUGIN_RESULT_FALLBACK = 0x06
+    ETH_PLUGIN_RESULT_FALLBACK = 0x06,
 
 } eth_plugin_result_t;
 
-typedef enum {
+typedef enum eth_ui_type_e {
 
     ETH_UI_TYPE_AMOUNT_ADDRESS = 0x01,
-    ETH_UI_TYPE_GENERIC = 0x02
+    ETH_UI_TYPE_GENERIC = 0x02,
 
 } eth_ui_type_t;
 
@@ -54,21 +54,21 @@ typedef void (*PluginCall)(int, void *);
 
 // Shared objects, read-write
 
-typedef struct ethPluginSharedRW_t {
+typedef struct ethPluginSharedRW_s {
     cx_sha3_t *sha3;
 
 } ethPluginSharedRW_t;
 
 // Shared objects, read-only
 
-typedef struct ethPluginSharedRO_t {
+typedef struct ethPluginSharedRO_s {
     txContent_t *txContent;
 
 } ethPluginSharedRO_t;
 
 // Init Contract
 
-typedef struct ethPluginInitContract_t {
+typedef struct ethPluginInitContract_s {
     uint8_t interfaceVersion;
     uint8_t result;
 
@@ -86,7 +86,7 @@ typedef struct ethPluginInitContract_t {
 
 // Provide parameter
 
-typedef struct ethPluginProvideParameter_t {
+typedef struct ethPluginProvideParameter_s {
     ethPluginSharedRW_t *pluginSharedRW;
     ethPluginSharedRO_t *pluginSharedRO;
     uint8_t *pluginContext;
@@ -99,7 +99,7 @@ typedef struct ethPluginProvideParameter_t {
 
 // Finalize
 
-typedef struct ethPluginFinalize_t {
+typedef struct ethPluginFinalize_s {
     ethPluginSharedRW_t *pluginSharedRW;
     ethPluginSharedRO_t *pluginSharedRO;
     uint8_t *pluginContext;
@@ -127,7 +127,7 @@ typedef struct ethPluginFinalize_t {
 
 // Provide token
 
-typedef struct ethPluginProvideInfo_t {
+typedef struct ethPluginProvideInfo_s {
     ethPluginSharedRW_t *pluginSharedRW;
     ethPluginSharedRO_t *pluginSharedRO;
     uint8_t *pluginContext;
@@ -146,7 +146,7 @@ typedef struct ethPluginProvideInfo_t {
 
 // This is always called on the non aliased contract
 
-typedef struct ethQueryContractID_t {
+typedef struct ethQueryContractID_s {
     ethPluginSharedRW_t *pluginSharedRW;
     ethPluginSharedRO_t *pluginSharedRO;
     uint8_t *pluginContext;
@@ -162,7 +162,7 @@ typedef struct ethQueryContractID_t {
 
 // Query Contract UI
 
-typedef struct ethQueryContractUI_t {
+typedef struct ethQueryContractUI_s {
     ethPluginSharedRW_t *pluginSharedRW;
     ethPluginSharedRO_t *pluginSharedRO;
     union extraInfo_t *item1;
@@ -179,5 +179,10 @@ typedef struct ethQueryContractUI_t {
     uint8_t result;
 
 } ethQueryContractUI_t;
+
+// Helper to check that the plugin context structure is not bigger than 5 * 32
+#define PLUGIN_CONTEXT_SIZE (5 * INT256_LENGTH)
+#define ASSERT_SIZEOF_PLUGIN_CONTEXT(s) \
+    _Static_assert(sizeof(s) <= PLUGIN_CONTEXT_SIZE, "Plugin context structure is too big.")
 
 #endif  // _ETH_PLUGIN_INTERFACE_H_

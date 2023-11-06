@@ -1,5 +1,5 @@
 ---
-name: Auto update sdk
+name: Open PRs in Ethereum plugins to update SDK
 
 on:
   workflow_dispatch:

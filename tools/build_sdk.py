@@ -220,6 +220,7 @@ if __name__ == "__main__":
     files_to_copy = [
         "CHANGELOG.md",
         "README.md",
+        "standard_plugin.mk",
     ]
     for file in files_to_copy:
         shutil.copyfile("src_plugin_sdk/" + file,

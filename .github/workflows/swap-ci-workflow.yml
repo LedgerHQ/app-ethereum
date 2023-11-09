@@ -1,11 +1,12 @@
+---
 name: Swap functional tests
 
 on:
   workflow_dispatch:
   push:
     branches:
-    - master
-    - develop
+      - master
+      - develop
   pull_request:
 
 jobs:

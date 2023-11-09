@@ -147,8 +147,10 @@ jobs:
       - name: Create pull request and commment on SDK issue
         run: |
           # Github limits the number of possible PR being opened in a given time window.
-          # As suggested in the Github documentation, put a 1 second sleep between each POST call
-          sleep ${{ strategy.job-index }}
+          # The limits are 20 creation per minute and 150 per hour.
+          # As suggested in the Github documentation, put a sleep between each POST call
+          # 3 seconds should be sufficient but let's sleep 4 seconds just in case.
+          sleep $((4 * ${{ strategy.job-index }}))
           # Create the PR with a placeholder body. Will be consolidated at a later step
           pr_url=$(gh pr create \
                      --base 'develop' \
@@ -165,7 +167,6 @@ jobs:
     name: Clean SDK update summary issue
     runs-on: ubuntu-latest
     needs: [get-sdk-ref, open-issue, open-prs]
-    if: success() || failure()
     env:
       GITHUB_TOKEN: ${{ secrets.CI_BOT_TOKEN }}
     steps:

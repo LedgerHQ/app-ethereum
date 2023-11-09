@@ -136,6 +136,7 @@ jobs:
           github_token: ${{ secrets.CI_BOT_TOKEN }}
           branch: ${{ steps.commit-changes.outputs.branch_name }}
           repository: LedgerHQ/${{ matrix.repo }}
+          force: true
 
       - name: Create 'auto' label if missing
         run: |
@@ -145,6 +146,9 @@ jobs:
 
       - name: Create pull request and commment on SDK issue
         run: |
+          # Github limits the number of possible PR being opened in a given time window.
+          # As suggested in the Github documentation, put a 1 second sleep between each POST call
+          sleep ${{ strategy.job-index }}
           # Create the PR with a placeholder body. Will be consolidated at a later step
           pr_url=$(gh pr create \
                      --base 'develop' \

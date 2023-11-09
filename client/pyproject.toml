@@ -28,8 +28,7 @@ dynamic = [ "version" ]
 requires-python = ">=3.7"
 dependencies = [
     "ragger[speculos]",
-    "simple-rlp",
-    "pysha3",
+    "web3~=6.0",
 ]
 
 [tools.setuptools]

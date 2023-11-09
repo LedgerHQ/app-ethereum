@@ -21,7 +21,7 @@ bool U2BE_from_parameter(const uint8_t* parameter, uint16_t* value);
 bool U4BE_from_parameter(const uint8_t* parameter, uint32_t* value);
 
 typedef bool (*PluginAvailableCheck)(void);
-typedef void (*PluginCall)(int, void *);
+typedef void (*PluginCall)(int, void*);
 
 typedef struct internalEthPlugin_t {
     PluginAvailableCheck availableCheck;

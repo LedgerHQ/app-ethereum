@@ -7,7 +7,7 @@ from ragger.backend import BackendInterface
 from ragger.navigator import Navigator, NavInsID
 from ledger_app_clients.ethereum.client import EthAppClient, TxData, StatusWord
 from ledger_app_clients.ethereum.settings import SettingID, settings_toggle
-from ledger_app_clients.ethereum.utils import get_selector_from_function
+from eth_utils import function_signature_to_4byte_selector
 import struct
 
 
@@ -72,7 +72,7 @@ def common_test_nft(fw: Firmware,
                     reject: bool,
                     plugin_name: str):
     app_client = EthAppClient(back)
-    selector = get_selector_from_function(action.fn)
+    selector = function_signature_to_4byte_selector(action.fn)
 
     if app_client._client.firmware.name == "nanos":
         pytest.skip("Not supported on LNS")
@@ -126,7 +126,7 @@ ERC721_SET_APPROVAL_FOR_ALL = "setApprovalForAll(address,bool)"
 
 def data_erc721_transfer_from(action: Action) -> TxData:
     return TxData(
-        get_selector_from_function(action.fn),
+        function_signature_to_4byte_selector(action.fn),
         [
             FROM,
             TO,
@@ -141,7 +141,7 @@ def data_erc721_safe_transfer_from_data(action: Action) -> TxData:
 
 def data_erc721_approve(action: Action) -> TxData:
     return TxData(
-        get_selector_from_function(action.fn),
+        function_signature_to_4byte_selector(action.fn),
         [
             TO,
             struct.pack(">H", NFTS[0][0])
@@ -150,7 +150,7 @@ def data_erc721_approve(action: Action) -> TxData:
 
 def data_erc721_set_approval_for_all(action: Action) -> TxData:
     return TxData(
-        get_selector_from_function(action.fn),
+        function_signature_to_4byte_selector(action.fn),
         [
             TO,
             struct.pack("b", False)
@@ -259,7 +259,7 @@ ERC1155_SET_APPROVAL_FOR_ALL = "setApprovalForAll(address,bool)"
 
 def data_erc1155_safe_transfer_from(action: Action) -> TxData:
     return TxData(
-        get_selector_from_function(action.fn),
+        function_signature_to_4byte_selector(action.fn),
         [
             FROM,
             TO,
@@ -271,7 +271,7 @@ def data_erc1155_safe_transfer_from(action: Action) -> TxData:
 
 def data_erc1155_safe_batch_transfer_from(action: Action) -> TxData:
     data = TxData(
-        get_selector_from_function(action.fn),
+        function_signature_to_4byte_selector(action.fn),
         [
             FROM,
             TO
@@ -288,7 +288,7 @@ def data_erc1155_safe_batch_transfer_from(action: Action) -> TxData:
 
 def data_erc1155_set_approval_for_all(action: Action) -> TxData:
     return TxData(
-        get_selector_from_function(action.fn),
+        function_signature_to_4byte_selector(action.fn),
         [
             TO,
             struct.pack("b", False)

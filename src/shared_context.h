@@ -176,14 +176,15 @@ typedef enum {
 #endif
 } contract_call_t;
 
-#define NETWORK_STRING_MAX_SIZE 16
+// must be able to hold in decimal up to : floor(MAX_UINT64 / 2) - 36
+#define NETWORK_STRING_MAX_SIZE 19
 
 typedef struct txStringProperties_s {
     char fullAddress[43];
     char fullAmount[79];  // 2^256 is 78 digits long
     char maxFee[50];
     char nonce[8];  // 10M tx per account ought to be enough for everybody
-    char network_name[NETWORK_STRING_MAX_SIZE];
+    char network_name[NETWORK_STRING_MAX_SIZE + 1];
 } txStringProperties_t;
 
 #ifdef TARGET_NANOS

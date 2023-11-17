@@ -13,6 +13,7 @@ from .eip712 import EIP712FieldType
 class InsType(IntEnum):
     GET_PUBLIC_ADDR = 0x02
     SIGN = 0x04
+    PERSONAL_SIGN = 0x08
     PROVIDE_NFT_INFORMATION = 0x14
     SET_PLUGIN = 0x16
     EIP712_SEND_STRUCT_DEF = 0x1a
@@ -294,3 +295,19 @@ class CommandBuilder:
         payload.append(len(sig))
         payload += sig
         return self._serialize(InsType.PROVIDE_NFT_INFORMATION, 0x00, 0x00, payload)
+
+    def personal_sign(self, path: str, msg: bytes):
+        payload = pack_derivation_path(path)
+        payload += struct.pack(">I", len(msg))
+        payload += msg
+        chunks = list()
+        p1 = P1Type.SIGN_FIRST_CHUNK
+        while len(payload) > 0:
+            chunk_size = 0xff
+            chunks.append(self._serialize(InsType.PERSONAL_SIGN,
+                                          p1,
+                                          0x00,
+                                          payload[:chunk_size]))
+            payload = payload[chunk_size:]
+            p1 = P1Type.SIGN_SUBSQT_CHUNK
+        return chunks

@@ -224,3 +224,10 @@ class EthAppClient:
             # skip APDU header & empty sig
             sig = sign_data(Key.SET_PLUGIN, tmp[5:-1])
         return self._send(self._cmd_builder.set_external_plugin(plugin_name, contract_address, method_selelector, sig))
+
+    def personal_sign(self, path: str, msg: bytes):
+        chunks = self._cmd_builder.personal_sign(path, msg)
+        for chunk in chunks[:-1]:
+            with self._send(chunk):
+                pass
+        return self._send(chunks[-1])

@@ -75,7 +75,7 @@ class EthAppClient:
                 pass
         return self._send(chunks[-1])
 
-    def eip712_sign_new(self, bip32_path: str, verbose: bool):
+    def eip712_sign_new(self, bip32_path: str):
         return self._send(self._cmd_builder.eip712_sign_new(bip32_path))
 
     def eip712_sign_legacy(self,

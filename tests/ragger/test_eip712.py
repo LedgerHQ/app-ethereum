@@ -9,6 +9,7 @@ from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator, NavInsID
 from typing import List
+import json
 
 import ledger_app_clients.ethereum.response_parser as ResponseParser
 from ledger_app_clients.ethereum.client import EthAppClient
@@ -92,10 +93,14 @@ def test_eip712_new(firmware: Firmware,
     else:
         test_path = "%s/%s" % (input_file.parent, "-".join(input_file.stem.split("-")[:-1]))
         conf_file = "%s.ini" % (test_path)
-        filter_file = None
 
+        filters = None
         if filtering:
-            filter_file = "%s-filter.json" % (test_path)
+            try:
+                with open("%s-filter.json" % (test_path)) as f:
+                    filters = json.load(f)
+            except (IOError, json.decoder.JSONDecodeError) as e:
+                pytest.skip("Filter file error: %s" % (e.strerror))
 
         config = ConfigParser()
         config.read(conf_file)
@@ -106,15 +111,15 @@ def test_eip712_new(firmware: Firmware,
         assert "r" in config["signature"]
         assert "s" in config["signature"]
 
-        if not filtering or Path(filter_file).is_file():
-            if verbose:
-                settings_toggle(firmware, navigator, [SettingID.VERBOSE_EIP712])
+        if verbose:
+            settings_toggle(firmware, navigator, [SettingID.VERBOSE_EIP712])
 
-            assert InputData.process_file(app_client,
-                                          input_file,
-                                          filter_file,
+        with open(input_file) as file:
+            assert InputData.process_data(app_client,
+                                          json.load(file),
+                                          filters,
                                           partial(autonext, firmware, navigator))
-            with app_client.eip712_sign_new(BIP32_PATH, verbose):
+            with app_client.eip712_sign_new(BIP32_PATH):
                 # tight on timing, needed by the CI otherwise might fail sometimes
                 time.sleep(0.5)
 
@@ -130,8 +135,6 @@ def test_eip712_new(firmware: Firmware,
                 navigator.navigate(moves)
             v, r, s = ResponseParser.signature(app_client.response().data)
 
-            assert v == bytes.fromhex(config["signature"]["v"])
-            assert r == bytes.fromhex(config["signature"]["r"])
-            assert s == bytes.fromhex(config["signature"]["s"])
-        else:
-            pytest.skip("No filter file found")
+        assert v == bytes.fromhex(config["signature"]["v"])
+        assert r == bytes.fromhex(config["signature"]["r"])
+        assert s == bytes.fromhex(config["signature"]["s"])

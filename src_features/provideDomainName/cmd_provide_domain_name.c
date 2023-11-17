@@ -205,10 +205,13 @@ static bool handle_challenge(const s_tlv_data *data,
                              s_domain_name_info *domain_name_info,
                              s_sig_ctx *sig_ctx) {
     uint32_t value;
-
     (void) domain_name_info;
     (void) sig_ctx;
-    return get_uint_from_data(data, &value) && (value == get_challenge());
+
+    if (!get_uint_from_data(data, &value)) {
+        return false;
+    }
+    return (value == get_challenge());
 }
 
 /**
@@ -223,8 +226,8 @@ static bool handle_sign_key_id(const s_tlv_data *data,
                                s_domain_name_info *domain_name_info,
                                s_sig_ctx *sig_ctx) {
     uint32_t value;
-
     (void) domain_name_info;
+
     if (!get_uint_from_data(data, &value) || (value > UINT8_MAX)) {
         return false;
     }
@@ -247,7 +250,10 @@ static bool handle_sign_algo(const s_tlv_data *data,
 
     (void) domain_name_info;
     (void) sig_ctx;
-    return get_uint_from_data(data, &value) && (value == ALGO_SECP256K1);
+    if (!get_uint_from_data(data, &value)) {
+        return false;
+    }
+    return (value == ALGO_SECP256K1);
 }
 
 /**
@@ -338,7 +344,10 @@ static bool handle_coin_type(const s_tlv_data *data,
 
     (void) domain_name_info;
     (void) sig_ctx;
-    return get_uint_from_data(data, &value) && (value == SLIP_44_ETHEREUM);
+    if (!get_uint_from_data(data, &value)) {
+        return false;
+    }
+    return (value == SLIP_44_ETHEREUM);
 }
 
 /**

@@ -9,6 +9,8 @@ import ledger_app_clients.ethereum.response_parser as ResponseParser
 from ledger_app_clients.ethereum.client import EthAppClient, StatusWord
 from ledger_app_clients.ethereum.settings import SettingID, settings_toggle
 
+from web3 import Web3
+
 
 ROOT_SCREENSHOT_PATH = Path(__file__).parent
 
@@ -52,13 +54,15 @@ def test_send_fund(firmware: Firmware,
     with app_client.provide_domain_name(challenge, NAME, ADDR):
         pass
 
-    with app_client.sign_legacy(BIP32_PATH,
-                                NONCE,
-                                GAS_PRICE,
-                                GAS_LIMIT,
-                                ADDR,
-                                AMOUNT,
-                                CHAIN_ID):
+    with app_client.sign(BIP32_PATH,
+                         {
+                             "nonce": NONCE,
+                             "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
+                             "gas": GAS_LIMIT,
+                             "to": ADDR,
+                             "value": Web3.to_wei(AMOUNT, "ether"),
+                             "chainId": CHAIN_ID
+                         }):
         moves = list()
         if firmware.device.startswith("nano"):
             moves += [ NavInsID.RIGHT_CLICK ] * 4
@@ -103,13 +107,15 @@ def test_send_fund_wrong_addr(firmware: Firmware,
     addr = bytearray(ADDR)
     addr.reverse()
 
-    with app_client.sign_legacy(BIP32_PATH,
-                                NONCE,
-                                GAS_PRICE,
-                                GAS_LIMIT,
-                                addr,
-                                AMOUNT,
-                                CHAIN_ID):
+    with app_client.sign(BIP32_PATH,
+                         {
+                             "nonce": NONCE,
+                             "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
+                             "gas": GAS_LIMIT,
+                             "to": bytes(addr),
+                             "value": Web3.to_wei(AMOUNT, "ether"),
+                             "chainId": CHAIN_ID
+                         }):
         moves = list()
         if firmware.device.startswith("nano"):
             moves += [ NavInsID.RIGHT_CLICK ] * 4
@@ -132,13 +138,15 @@ def test_send_fund_non_mainnet(firmware: Firmware,
     with app_client.provide_domain_name(challenge, NAME, ADDR):
         pass
 
-    with app_client.sign_legacy(BIP32_PATH,
-                                NONCE,
-                                GAS_PRICE,
-                                GAS_LIMIT,
-                                ADDR,
-                                AMOUNT,
-                                5):
+    with app_client.sign(BIP32_PATH,
+                         {
+                             "nonce": NONCE,
+                             "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
+                             "gas": GAS_LIMIT,
+                             "to": ADDR,
+                             "value": Web3.to_wei(AMOUNT, "ether"),
+                             "chainId": 5
+                         }):
         moves = list()
         if firmware.device.startswith("nano"):
             moves += [ NavInsID.RIGHT_CLICK ] * 5
@@ -161,13 +169,15 @@ def test_send_fund_unknown_chain(firmware: Firmware,
     with app_client.provide_domain_name(challenge, NAME, ADDR):
         pass
 
-    with app_client.sign_legacy(BIP32_PATH,
-                                NONCE,
-                                GAS_PRICE,
-                                GAS_LIMIT,
-                                ADDR,
-                                AMOUNT,
-                                9):
+    with app_client.sign(BIP32_PATH,
+                         {
+                             "nonce": NONCE,
+                             "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
+                             "gas": GAS_LIMIT,
+                             "to": ADDR,
+                             "value": Web3.to_wei(AMOUNT, "ether"),
+                             "chainId": 9
+                         }):
         moves = list()
         if firmware.device.startswith("nano"):
             moves += [ NavInsID.RIGHT_CLICK ] * 5

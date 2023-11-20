@@ -49,4 +49,4 @@ def pk_addr(data: bytes, has_chaincode: bool = False):
     if idx != len(data):
         return None
 
-    return pk, addr.decode(), chaincode
+    return pk, bytes.fromhex(addr.decode()), chaincode

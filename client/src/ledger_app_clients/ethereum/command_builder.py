@@ -195,17 +195,27 @@ class CommandBuilder:
                                0x00,
                                data)
 
-    def sign(self, bip32_path: str, rlp_data: bytes) -> list[bytes]:
+    def sign(self, bip32_path: str, rlp_data: bytes, vrs: list) -> list[bytes]:
         apdus = list()
         payload = pack_derivation_path(bip32_path)
         payload += rlp_data
         p1 = P1Type.SIGN_FIRST_CHUNK
         while len(payload) > 0:
+            chunk_size = 0xff
+
+            # TODO: Fix the app & remove this, issue #409
+            if len(vrs) == 3:
+                if len(payload) > chunk_size:
+                    import rlp
+                    diff = len(rlp.encode(vrs)) - (len(payload) - chunk_size)
+                    if diff > 0:
+                        chunk_size -= diff
+
             apdus.append(self._serialize(InsType.SIGN,
                                          p1,
                                          0x00,
-                                         payload[:0xff]))
-            payload = payload[0xff:]
+                                         payload[:chunk_size]))
+            payload = payload[chunk_size:]
             p1 = P1Type.SIGN_SUBSQT_CHUNK
         return apdus
 

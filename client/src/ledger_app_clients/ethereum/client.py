@@ -109,7 +109,7 @@ class EthAppClient:
                 suffix = [int(tx_params["chainId"]), bytes(), bytes()]
         decoded = rlp.decode(tx)[:-3]  # remove already computed signature
         tx = prefix + rlp.encode(decoded + suffix)
-        chunks = self._cmd_builder.sign(bip32_path, tx)
+        chunks = self._cmd_builder.sign(bip32_path, tx, suffix)
         for chunk in chunks[:-1]:
             with self._send(chunk):
                 pass

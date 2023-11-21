@@ -65,15 +65,15 @@ def test_send_fund(firmware: Firmware,
                          }):
         moves = list()
         if firmware.device.startswith("nano"):
-            moves += [ NavInsID.RIGHT_CLICK ] * 4
+            moves += [NavInsID.RIGHT_CLICK] * 4
             if verbose:
-                moves += [ NavInsID.RIGHT_CLICK ]
-            moves += [ NavInsID.BOTH_CLICK ]
+                moves += [NavInsID.RIGHT_CLICK]
+            moves += [NavInsID.BOTH_CLICK]
         else:
-            moves += [ NavInsID.USE_CASE_REVIEW_TAP ] * 2
+            moves += [NavInsID.USE_CASE_REVIEW_TAP] * 2
             if verbose:
-                moves += [ NavInsID.USE_CASE_REVIEW_TAP ]
-            moves += [ NavInsID.USE_CASE_REVIEW_CONFIRM ]
+                moves += [NavInsID.USE_CASE_REVIEW_TAP]
+            moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
         navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH,
                                        "domain_name_verbose_" + str(verbose),
                                        moves)
@@ -91,7 +91,7 @@ def test_send_fund_wrong_challenge(firmware: Firmware,
     except ExceptionRAPDU as e:
         assert e.status == StatusWord.INVALID_DATA
     else:
-        assert False # An exception should have been raised
+        assert False  # An exception should have been raised
 
 
 def test_send_fund_wrong_addr(firmware: Firmware,
@@ -118,11 +118,11 @@ def test_send_fund_wrong_addr(firmware: Firmware,
                          }):
         moves = list()
         if firmware.device.startswith("nano"):
-            moves += [ NavInsID.RIGHT_CLICK ] * 4
-            moves += [ NavInsID.BOTH_CLICK ]
+            moves += [NavInsID.RIGHT_CLICK] * 4
+            moves += [NavInsID.BOTH_CLICK]
         else:
-            moves += [ NavInsID.USE_CASE_REVIEW_TAP ] * 2
-            moves += [ NavInsID.USE_CASE_REVIEW_CONFIRM ]
+            moves += [NavInsID.USE_CASE_REVIEW_TAP] * 2
+            moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
         navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH,
                                        "domain_name_wrong_addr",
                                        moves)
@@ -149,11 +149,11 @@ def test_send_fund_non_mainnet(firmware: Firmware,
                          }):
         moves = list()
         if firmware.device.startswith("nano"):
-            moves += [ NavInsID.RIGHT_CLICK ] * 5
-            moves += [ NavInsID.BOTH_CLICK ]
+            moves += [NavInsID.RIGHT_CLICK] * 5
+            moves += [NavInsID.BOTH_CLICK]
         else:
-            moves += [ NavInsID.USE_CASE_REVIEW_TAP ] * 2
-            moves += [ NavInsID.USE_CASE_REVIEW_CONFIRM ]
+            moves += [NavInsID.USE_CASE_REVIEW_TAP] * 2
+            moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
         navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH,
                                        "domain_name_non_mainnet",
                                        moves)
@@ -180,11 +180,11 @@ def test_send_fund_unknown_chain(firmware: Firmware,
                          }):
         moves = list()
         if firmware.device.startswith("nano"):
-            moves += [ NavInsID.RIGHT_CLICK ] * 5
-            moves += [ NavInsID.BOTH_CLICK ]
+            moves += [NavInsID.RIGHT_CLICK] * 5
+            moves += [NavInsID.BOTH_CLICK]
         else:
-            moves += [ NavInsID.USE_CASE_REVIEW_TAP ] * 3
-            moves += [ NavInsID.USE_CASE_REVIEW_CONFIRM ]
+            moves += [NavInsID.USE_CASE_REVIEW_TAP] * 3
+            moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
         navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH,
                                        "domain_name_unknown_chain",
                                        moves)
@@ -202,7 +202,7 @@ def test_send_fund_domain_too_long(firmware: Firmware,
     except ExceptionRAPDU as e:
         assert e.status == StatusWord.INVALID_DATA
     else:
-        assert False # An exception should have been raised
+        assert False  # An exception should have been raised
 
 
 def test_send_fund_domain_invalid_character(firmware: Firmware,
@@ -217,7 +217,7 @@ def test_send_fund_domain_invalid_character(firmware: Firmware,
     except ExceptionRAPDU as e:
         assert e.status == StatusWord.INVALID_DATA
     else:
-        assert False # An exception should have been raised
+        assert False  # An exception should have been raised
 
 
 def test_send_fund_uppercase(firmware: Firmware,
@@ -232,7 +232,7 @@ def test_send_fund_uppercase(firmware: Firmware,
     except ExceptionRAPDU as e:
         assert e.status == StatusWord.INVALID_DATA
     else:
-        assert False # An exception should have been raised
+        assert False  # An exception should have been raised
 
 
 def test_send_fund_domain_non_ens(firmware: Firmware,
@@ -247,4 +247,4 @@ def test_send_fund_domain_non_ens(firmware: Firmware,
     except ExceptionRAPDU as e:
         assert e.status == StatusWord.INVALID_DATA
     else:
-        assert False # An exception should have been raised
+        assert False  # An exception should have been raised

@@ -23,52 +23,62 @@ GAS_PRICE = 13
 GAS_LIMIT = 21000
 FROM = bytes.fromhex("1122334455667788990011223344556677889900")
 TO = bytes.fromhex("0099887766554433221100998877665544332211")
-NFTS = [ (1, 3), (5, 2), (7, 4) ] # tuples of (token_id, amount)
+NFTS = [(1, 3), (5, 2), (7, 4)]  # tuples of (token_id, amount)
 DATA = "Some data".encode()
 DEVICE_ADDR: Optional[bytes] = None
 
-class   NFTCollection:
+
+class NFTCollection:
     addr: bytes
     name: str
     chain_id: int
+
     def __init__(self, addr: bytes, name: str, chain_id: int, contract):
         self.addr = addr
         self.name = name
         self.chain_id = chain_id
         self.contract = contract
 
-class   Action:
+
+class Action:
     fn_name: str
     fn_args: list[Any]
     nav_fn: Callable
+
     def __init__(self, fn_name: str, fn_args: list[Any], nav_fn: Callable):
         self.fn_name = fn_name
         self.fn_args = fn_args
         self.nav_fn = nav_fn
 
-def common_nav_nft(is_nano: bool, nano_steps: int, stax_steps: int, reject: bool) -> list[NavInsID]:
+
+def common_nav_nft(is_nano: bool,
+                   nano_steps: int,
+                   stax_steps: int,
+                   reject: bool) -> list[NavInsID]:
     moves = list()
     if is_nano:
-        moves += [ NavInsID.RIGHT_CLICK ] * nano_steps
+        moves += [NavInsID.RIGHT_CLICK] * nano_steps
         if reject:
-            moves += [ NavInsID.RIGHT_CLICK ]
-        moves += [ NavInsID.BOTH_CLICK ]
+            moves += [NavInsID.RIGHT_CLICK]
+        moves += [NavInsID.BOTH_CLICK]
     else:
-        moves += [ NavInsID.USE_CASE_REVIEW_TAP ] * stax_steps
+        moves += [NavInsID.USE_CASE_REVIEW_TAP] * stax_steps
         if reject:
             moves += [
                 NavInsID.USE_CASE_REVIEW_REJECT,
                 NavInsID.USE_CASE_CHOICE_CONFIRM
             ]
         else:
-            moves += [ NavInsID.USE_CASE_REVIEW_CONFIRM ]
+            moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
     return moves
+
 
 def snapshot_test_name(nft_type: str, fn: str, chain_id: int, reject: bool) -> str:
     name = "%s_%s_%s" % (nft_type, fn, str(chain_id))
     if reject:
         name += "-rejected"
     return name
+
 
 def common_test_nft(fw: Firmware,
                     back: BackendInterface,
@@ -131,9 +141,10 @@ def common_test_nft_reject(test_fn: Callable,
     except ExceptionRAPDU as e:
         assert e.status == StatusWord.CONDITION_NOT_SATISFIED
     else:
-        assert False # An exception should have been raised
+        assert False  # An exception should have been raised
 
 # ERC-721
+
 
 ERC721_PLUGIN = "ERC721"
 
@@ -155,6 +166,7 @@ def nav_erc721_transfer_from(is_nano: bool,
         stax_steps += 1
     return common_nav_nft(is_nano, nano_steps, stax_steps, reject)
 
+
 def nav_erc721_approve(is_nano: bool,
                        chain_id: int,
                        reject: bool) -> list[NavInsID]:
@@ -165,6 +177,7 @@ def nav_erc721_approve(is_nano: bool,
         stax_steps += 1
     return common_nav_nft(is_nano, nano_steps, stax_steps, reject)
 
+
 def nav_erc721_set_approval_for_all(is_nano: bool,
                                     chain_id: int,
                                     reject: bool) -> list[NavInsID]:
@@ -173,19 +186,20 @@ def nav_erc721_set_approval_for_all(is_nano: bool,
         nano_steps += 1
     return common_nav_nft(is_nano, nano_steps, 3, reject)
 
+
 collecs_721 = [
     NFTCollection(bytes.fromhex("bc4ca0eda7647a8ab7c2061c2e118a18a936f13d"),
-        "Bored Ape Yacht Club",
-        1,
-        contract_erc721),
+                  "Bored Ape Yacht Club",
+                  1,
+                  contract_erc721),
     NFTCollection(bytes.fromhex("670fd103b1a08628e9557cd66b87ded841115190"),
-        "y00ts",
-        137,
-        contract_erc721),
+                  "y00ts",
+                  137,
+                  contract_erc721),
     NFTCollection(bytes.fromhex("2909cf13e458a576cdd9aab6bd6617051a92dacf"),
-        "goerlirocks",
-        5,
-        contract_erc721),
+                  "goerlirocks",
+                  5,
+                  contract_erc721),
 ]
 actions_721 = [
     Action("safeTransferFrom",
@@ -209,16 +223,19 @@ actions_721 = [
 @pytest.fixture(params=collecs_721)
 def collec_721(request) -> NFTCollection:
     return request.param
+
+
 @pytest.fixture(params=actions_721)
 def action_721(request) -> Action:
     return request.param
 
+
 def test_erc721(firmware: Firmware,
-                 backend: BackendInterface,
-                 navigator: Navigator,
-                 collec_721: NFTCollection,
-                 action_721: Action,
-                 reject: bool = False):
+                backend: BackendInterface,
+                navigator: Navigator,
+                collec_721: NFTCollection,
+                action_721: Action,
+                reject: bool = False):
     common_test_nft(firmware,
                     backend,
                     navigator,
@@ -227,15 +244,17 @@ def test_erc721(firmware: Firmware,
                     reject,
                     ERC721_PLUGIN)
 
+
 def test_erc721_reject(firmware: Firmware,
-                        backend: BackendInterface,
-                        navigator: Navigator):
+                       backend: BackendInterface,
+                       navigator: Navigator):
     common_test_nft_reject(test_erc721,
                            firmware,
                            backend,
                            navigator,
                            collecs_721[0],
                            actions_721[0])
+
 
 # ERC-1155
 
@@ -258,6 +277,7 @@ def nav_erc1155_safe_transfer_from(is_nano: bool,
         nano_steps += 1
     return common_nav_nft(is_nano, nano_steps, 4, reject)
 
+
 def nav_erc1155_safe_batch_transfer_from(is_nano: bool,
                                          chain_id: int,
                                          reject: bool) -> list:
@@ -268,6 +288,7 @@ def nav_erc1155_safe_batch_transfer_from(is_nano: bool,
         stax_steps += 1
     return common_nav_nft(is_nano, nano_steps, stax_steps, reject)
 
+
 def nav_erc1155_set_approval_for_all(is_nano: bool,
                                      chain_id: int,
                                      reject: bool) -> list:
@@ -276,19 +297,20 @@ def nav_erc1155_set_approval_for_all(is_nano: bool,
         nano_steps += 1
     return common_nav_nft(is_nano, nano_steps, 3, reject)
 
+
 collecs_1155 = [
     NFTCollection(bytes.fromhex("495f947276749ce646f68ac8c248420045cb7b5e"),
-        "OpenSea Shared Storefront",
-        1,
-        contract_erc1155),
+                  "OpenSea Shared Storefront",
+                  1,
+                  contract_erc1155),
     NFTCollection(bytes.fromhex("2953399124f0cbb46d2cbacd8a89cf0599974963"),
-        "OpenSea Collections",
-        137,
-        contract_erc1155),
+                  "OpenSea Collections",
+                  137,
+                  contract_erc1155),
     NFTCollection(bytes.fromhex("f4910c763ed4e47a585e2d34baa9a4b611ae448c"),
-        "OpenSea Collections",
-        5,
-        contract_erc1155),
+                  "OpenSea Collections",
+                  5,
+                  contract_erc1155),
 ]
 actions_1155 = [
     Action("safeTransferFrom",
@@ -307,12 +329,17 @@ actions_1155 = [
            [TO, False],
            nav_erc1155_set_approval_for_all),
 ]
+
+
 @pytest.fixture(params=collecs_1155)
 def collec_1155(request) -> bool:
     return request.param
+
+
 @pytest.fixture(params=actions_1155)
 def action_1155(request) -> Action:
     return request.param
+
 
 def test_erc1155(firmware: Firmware,
                  backend: BackendInterface,
@@ -327,6 +354,7 @@ def test_erc1155(firmware: Firmware,
                     action_1155,
                     reject,
                     ERC1155_PLUGIN)
+
 
 def test_erc1155_reject(firmware: Firmware,
                         backend: BackendInterface,

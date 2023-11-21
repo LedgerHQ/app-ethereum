@@ -52,16 +52,16 @@ def test_eip712_legacy(firmware: Firmware,
             bytes.fromhex('eb4221181ff3f1a83ea7313993ca9218496e424604ba9492bb4052c03d5c3df8')):
         moves = list()
         if firmware.device.startswith("nano"):
-            moves += [ NavInsID.RIGHT_CLICK ]
+            moves += [NavInsID.RIGHT_CLICK]
             if firmware.device == "nanos":
                 screens_per_hash = 4
             else:
                 screens_per_hash = 2
-            moves += [ NavInsID.RIGHT_CLICK ] * screens_per_hash * 2
-            moves += [ NavInsID.BOTH_CLICK ]
+            moves += [NavInsID.RIGHT_CLICK] * screens_per_hash * 2
+            moves += [NavInsID.BOTH_CLICK]
         else:
-            moves += [ NavInsID.USE_CASE_REVIEW_TAP ] * 2
-            moves += [ NavInsID.USE_CASE_REVIEW_CONFIRM ]
+            moves += [NavInsID.USE_CASE_REVIEW_TAP] * 2
+            moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
         navigator.navigate(moves)
 
     v, r, s = ResponseParser.signature(app_client.response().data)
@@ -74,9 +74,9 @@ def test_eip712_legacy(firmware: Firmware,
 def autonext(fw: Firmware, nav: Navigator):
     moves = list()
     if fw.device.startswith("nano"):
-        moves = [ NavInsID.RIGHT_CLICK ]
+        moves = [NavInsID.RIGHT_CLICK]
     else:
-        moves = [ NavInsID.USE_CASE_REVIEW_TAP ]
+        moves = [NavInsID.USE_CASE_REVIEW_TAP]
     nav.navigate(moves, screen_change_before_first_instruction=False, screen_change_after_last_instruction=False)
 
 
@@ -113,24 +113,22 @@ def test_eip712_new(firmware: Firmware,
             assert InputData.process_file(app_client,
                                           input_file,
                                           filter_file,
-                                          partial(autonext, firmware, navigator)) == True
+                                          partial(autonext, firmware, navigator))
             with app_client.eip712_sign_new(BIP32_PATH, verbose):
-                time.sleep(0.5) # tight on timing, needed by the CI otherwise might fail sometimes
+                # tight on timing, needed by the CI otherwise might fail sometimes
+                time.sleep(0.5)
+
                 moves = list()
                 if firmware.device.startswith("nano"):
-                    if not verbose and not filtering: # need to skip the message hash
-                        moves = [ NavInsID.RIGHT_CLICK ] * 2
-                    moves += [ NavInsID.BOTH_CLICK ]
+                    if not verbose and not filtering:  # need to skip the message hash
+                        moves = [NavInsID.RIGHT_CLICK] * 2
+                    moves += [NavInsID.BOTH_CLICK]
                 else:
-                    if not verbose and not filtering: # need to skip the message hash
-                        moves += [ NavInsID.USE_CASE_REVIEW_TAP ]
-                    moves += [ NavInsID.USE_CASE_REVIEW_CONFIRM ]
+                    if not verbose and not filtering:  # need to skip the message hash
+                        moves += [NavInsID.USE_CASE_REVIEW_TAP]
+                    moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
                 navigator.navigate(moves)
             v, r, s = ResponseParser.signature(app_client.response().data)
-            #print("[signature]")
-            #print("v = %s" % (v.hex()))
-            #print("r = %s" % (r.hex()))
-            #print("s = %s" % (s.hex()))
 
             assert v == bytes.fromhex(config["signature"]["v"])
             assert r == bytes.fromhex(config["signature"]["r"])

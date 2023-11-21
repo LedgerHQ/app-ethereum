@@ -30,7 +30,8 @@ static bool display_review_page(uint8_t page, nbgl_pageContent_t *content) {
                                         strings.tmp.tmp,
                                         SCREEN_WIDTH - (2 * BORDER_MARGIN),
                                         NB_MAX_LINES_IN_REVIEW,
-                                        &len);
+                                        &len,
+                                        false);
             strings.tmp.tmp[len] = '\0';
 
             pair.item = strings.tmp.tmp2;

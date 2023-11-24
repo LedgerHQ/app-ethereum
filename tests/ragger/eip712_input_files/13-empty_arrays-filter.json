@@ -1,0 +1,7 @@
+{
+    "name": "Empty arrays",
+    "fields": {
+        "list2.[]": "Second list",
+        "list3.[].[]": "Third list"
+    }
+}

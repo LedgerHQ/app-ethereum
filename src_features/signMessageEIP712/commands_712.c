@@ -199,7 +199,7 @@ bool handle_eip712_sign(const uint8_t *const apdu_buf) {
         apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
     } else if ((ui_712_get_filtering_mode() == EIP712_FILTERING_FULL) &&
                (ui_712_remaining_filters() != 0)) {
-        PRINTF("%d EIP712 filters are missing\n", ui_712_remaining_filters());
+        PRINTF("%d EIP712 filter(s) are missing\n", ui_712_remaining_filters());
         apdu_response_code = APDU_RESPONSE_REF_DATA_NOT_FOUND;
     } else if (parseBip32(&apdu_buf[OFFSET_CDATA], &length, &tmpCtx.messageSigningContext.bip32) !=
                NULL) {

@@ -2,7 +2,7 @@ import rlp
 from enum import IntEnum
 from ragger.backend import BackendInterface
 from ragger.utils import RAPDU
-from typing import List, Optional
+from typing import Optional
 
 from .command_builder import CommandBuilder
 from .eip712 import EIP712FieldType
@@ -53,7 +53,7 @@ class EthAppClient:
                                             field_type: EIP712FieldType,
                                             type_name: str,
                                             type_size: int,
-                                            array_levels: List,
+                                            array_levels: list,
                                             key_name: str):
         return self._send(self._cmd_builder.eip712_send_struct_def_struct_field(
                           field_type,

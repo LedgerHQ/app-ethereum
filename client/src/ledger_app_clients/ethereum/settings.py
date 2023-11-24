@@ -1,7 +1,7 @@
 from enum import Enum, auto
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator, NavInsID, NavIns
-from typing import List, Union
+from typing import Union
 
 
 class SettingID(Enum):
@@ -44,7 +44,7 @@ def get_setting_position(device: str, setting: Union[NavInsID, SettingID]) -> tu
 
 
 def settings_toggle(fw: Firmware, nav: Navigator, to_toggle: list[SettingID]):
-    moves: List[Union[NavIns, NavInsID]] = list()
+    moves: list[Union[NavIns, NavInsID]] = list()
     settings = get_device_settings(fw.device)
     # Assume the app is on the home page
     if fw.device.startswith("nano"):

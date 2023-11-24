@@ -5,7 +5,6 @@ import struct
 from enum import IntEnum
 from typing import Optional
 from ragger.bip import pack_derivation_path
-from typing import List
 
 from .eip712 import EIP712FieldType
 
@@ -76,7 +75,7 @@ class CommandBuilder:
                                             field_type: EIP712FieldType,
                                             type_name: str,
                                             type_size: int,
-                                            array_levels: List,
+                                            array_levels: list,
                                             key_name: str) -> bytes:
         data = bytearray()
         typedesc = 0
@@ -116,7 +115,7 @@ class CommandBuilder:
                                P2Type.ARRAY,
                                data)
 
-    def eip712_send_struct_impl_struct_field(self, data: bytearray) -> List[bytes]:
+    def eip712_send_struct_impl_struct_field(self, data: bytearray) -> list[bytes]:
         chunks = list()
         # Add a 16-bit integer with the data's byte length (network byte order)
         data_w_length = bytearray()

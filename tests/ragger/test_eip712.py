@@ -8,7 +8,6 @@ from pathlib import Path
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator, NavInsID
-from typing import List
 import json
 
 import ledger_app_clients.ethereum.response_parser as ResponseParser
@@ -20,7 +19,7 @@ from ledger_app_clients.ethereum.settings import SettingID, settings_toggle
 BIP32_PATH = "m/44'/60'/0'/0/0"
 
 
-def input_files() -> List[str]:
+def input_files() -> list[str]:
     files = []
     for file in os.scandir("%s/eip712_input_files" % (os.path.dirname(__file__))):
         if fnmatch.fnmatch(file, "*-data.json"):

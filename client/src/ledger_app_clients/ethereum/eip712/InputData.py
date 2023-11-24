@@ -4,7 +4,7 @@ import re
 import signal
 import sys
 import copy
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Optional
 
 from ledger_app_clients.ethereum import keychain
 from ledger_app_clients.ethereum.client import EthAppClient, EIP712FieldType
@@ -12,9 +12,9 @@ from ledger_app_clients.ethereum.client import EthAppClient, EIP712FieldType
 
 # global variables
 app_client: EthAppClient = None
-filtering_paths: Dict = {}
-current_path: List[str] = list()
-sig_ctx: Dict[str, Any] = {}
+filtering_paths: dict = {}
+current_path: list[str] = list()
+sig_ctx: dict[str, Any] = {}
 
 
 def default_handler():

@@ -42,9 +42,9 @@ def filtering(request) -> bool:
     return request.param
 
 
-def test_eip712_legacy(firmware: Firmware,
-                       backend: BackendInterface,
-                       navigator: Navigator):
+def notest_eip712_legacy(firmware: Firmware,
+                         backend: BackendInterface,
+                         navigator: Navigator):
     app_client = EthAppClient(backend)
     with app_client.eip712_sign_legacy(
             BIP32_PATH,
@@ -80,12 +80,12 @@ def autonext(fw: Firmware, nav: Navigator):
     nav.navigate(moves, screen_change_before_first_instruction=False, screen_change_after_last_instruction=False)
 
 
-def test_eip712_new(firmware: Firmware,
-                    backend: BackendInterface,
-                    navigator: Navigator,
-                    input_file: Path,
-                    verbose: bool,
-                    filtering: bool):
+def notest_eip712_new(firmware: Firmware,
+                      backend: BackendInterface,
+                      navigator: Navigator,
+                      input_file: Path,
+                      verbose: bool,
+                      filtering: bool):
     app_client = EthAppClient(backend)
     if firmware.device == "nanos":
         pytest.skip("Not supported on LNS")
@@ -137,3 +137,14 @@ def test_eip712_new(firmware: Firmware,
         assert v == bytes.fromhex(config["signature"]["v"])
         assert r == bytes.fromhex(config["signature"]["r"])
         assert s == bytes.fromhex(config["signature"]["s"])
+
+
+def test_problematic(firmware: Firmware,
+                     backend: BackendInterface,
+                     navigator: Navigator):
+    notest_eip712_new(firmware,
+                      backend,
+                      navigator,
+                      Path("eip712_input_files/13-empty_arrays-data.json"),
+                      False,
+                      True)

@@ -806,12 +806,23 @@ __attribute__((section(".boot"))) int main(int arg0) {
                 // call as a library
                 libcall_params[2] = ((unsigned int *) arg0)[1];
                 libcall_params[4] = ((unsigned int *) arg0)[3];  // library arguments
+                PRINTF("===== from clone1 =====\n");
+                for (size_t i = 0; i < ARRAYLEN(libcall_params); ++i) {
+                    PRINTF("[%u] 0x%08x\n", i, libcall_params[i]);
+                }
+                PRINTF("========================\n");
                 os_lib_call((unsigned int *) &libcall_params);
+                // why this line after the os_lib_call ?
                 ((unsigned int *) arg0)[0] = libcall_params[1];
                 os_lib_end();
             } else {
                 // launch coin application
                 libcall_params[1] = 0x100;  // use the Init call, as we won't exit
+                PRINTF("===== from clone2 =====\n");
+                for (size_t i = 0; i < ARRAYLEN(libcall_params); ++i) {
+                    PRINTF("[%u] 0x%08x\n", i, libcall_params[i]);
+                }
+                PRINTF("========================\n");
                 os_lib_call((unsigned int *) &libcall_params);
             }
         }
@@ -834,6 +845,12 @@ __attribute__((section(".boot"))) int main(int arg0) {
     }
 
     libargs_t *args = (libargs_t *) arg0;
+    PRINTF("===== from app-eth =====\n");
+    PRINTF("id = 0x%x\n", args->id);
+    PRINTF("command = 0x%x\n", args->command);
+    PRINTF("chain_config = 0x%08x\n", args->chain_config);
+    PRINTF("union = 0x%08x\n", args->caller_app);
+    PRINTF("========================\n");
     if (args->id != 0x100) {
         app_exit();
         return 0;

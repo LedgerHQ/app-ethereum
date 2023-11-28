@@ -629,24 +629,25 @@ void init_coin_config(chain_config_t *coin_config) {
 
 void coin_main(libargs_t *args) {
     chain_config_t config;
-    if (args) {
-        if (args->chain_config != NULL) {
-            chainConfig = args->chain_config;
-        }
+
 #ifdef HAVE_NBGL
-        if ((caller_app = args->caller_app) != NULL) {
+    if (args) {
+        caller_app = args->caller_app;
+        if (caller_app != NULL) {
             if (chainConfig != NULL) {
                 caller_app->type = CALLER_TYPE_CLONE;
             } else {
                 caller_app->type = CALLER_TYPE_PLUGIN;
             }
         }
+    }
 #endif
-    }
-    if (chainConfig == NULL) {
+    if ((args != NULL) && (args->chain_config != NULL)) {
+        memcpy(&config, args->chain_config, sizeof(config));
+    } else {
         init_coin_config(&config);
-        chainConfig = &config;
     }
+    chainConfig = &config;
 
     reset_app_context();
     tmpCtx.transactionContext.currentItemIndex = 0;
@@ -746,6 +747,7 @@ static void library_main_helper(libargs_t *args) {
 
 void library_main(libargs_t *args) {
     chain_config_t coin_config;
+
     if (args->chain_config == NULL) {
         init_coin_config(&coin_config);
         args->chain_config = &coin_config;

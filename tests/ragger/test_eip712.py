@@ -77,7 +77,10 @@ def autonext(fw: Firmware, nav: Navigator):
         moves = [NavInsID.RIGHT_CLICK]
     else:
         moves = [NavInsID.USE_CASE_REVIEW_TAP]
-    nav.navigate(moves, screen_change_before_first_instruction=False, screen_change_after_last_instruction=False)
+    # We might not need to click so make it so that we don't wait for screen-changes forever
+    nav.navigate(moves,
+                 screen_change_before_first_instruction=False,
+                 screen_change_after_last_instruction=False)
 
 
 def notest_eip712_new(firmware: Firmware,
@@ -131,7 +134,10 @@ def notest_eip712_new(firmware: Firmware,
                     if not verbose and not filtering:  # need to skip the message hash
                         moves += [NavInsID.USE_CASE_REVIEW_TAP]
                     moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
-                navigator.navigate(moves)
+                # screen-changes to False so that we detect if the app sends back a SW early
+                navigator.navigate(moves,
+                                   screen_change_before_first_instruction=False,
+                                   screen_change_after_last_instruction=False)
             v, r, s = ResponseParser.signature(app_client.response().data)
 
         assert v == bytes.fromhex(config["signature"]["v"])

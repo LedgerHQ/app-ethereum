@@ -23,13 +23,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `get_public_addr` now returns address as `bytes` instead of `str`
 
-## [0.1.0] - 2023-30-10
+## [0.1.0] - 2023-10-30
 
 ### Added
 
 - Update the ragger app client to support "set external plugin" APDU
 
-## [0.0.1] - 2023-08-07
+## [0.0.1] - 2023-07-08
 
 ### Added
 

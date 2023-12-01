@@ -47,7 +47,7 @@ static bool display_message(nbgl_pageContent_t *content) {
                                               (char *) g_stax_shared_buffer,
                                               SCREEN_WIDTH - (2 * BORDER_MARGIN),
                                               NB_MAX_LINES_IN_REVIEW,
-#if API_LEVEL >= 14
+#if (API_LEVEL == 0 || API_LEVEL >= 14)
                                               &len,
                                               false);
 #else

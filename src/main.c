@@ -731,57 +731,35 @@ void coin_main(libargs_t *args) {
     app_exit();
 }
 
-static void library_main_helper(libargs_t *args) {
-    check_api_level(CX_COMPAT_APILEVEL);
+void library_main(libargs_t *args) {
+    chain_config_t coin_config;
+    if (args->chain_config == NULL) {
+        // We have been started directly by Exchange, not by a Clone. Init default chain
+        init_coin_config(&coin_config);
+        args->chain_config = &coin_config;
+    }
+
     PRINTF("Inside a library \n");
     switch (args->command) {
         case CHECK_ADDRESS:
-            // ensure result is zero if an exception is thrown
-            args->check_address->result = 0;
-            args->check_address->result =
-                handle_check_address(args->check_address, args->chain_config);
+            handle_check_address(args->check_address, args->chain_config);
             break;
         case SIGN_TRANSACTION:
             if (copy_transaction_parameters(args->create_transaction, args->chain_config)) {
                 // never returns
                 handle_swap_sign_transaction(args->chain_config);
+            } else {
+                // Failed to copy, non recoverable
+                os_sched_exit(-1);
             }
             break;
         case GET_PRINTABLE_AMOUNT:
-            // ensure result is zero if an exception is thrown (compatibility breaking, disabled
-            // until LL is ready)
-            // args->get_printable_amount->result = 0;
-            // args->get_printable_amount->result =
             handle_get_printable_amount(args->get_printable_amount, args->chain_config);
             break;
         default:
             break;
     }
-}
-
-void library_main(libargs_t *args) {
-    chain_config_t coin_config;
-    if (args->chain_config == NULL) {
-        init_coin_config(&coin_config);
-        args->chain_config = &coin_config;
-    }
-    volatile bool end = false;
-    /* This loop ensures that library_main_helper and os_lib_end are called
-     * within a try context, even if an exception is thrown */
-    while (1) {
-        BEGIN_TRY {
-            TRY {
-                if (!end) {
-                    library_main_helper(args);
-                }
-                os_lib_end();
-            }
-            FINALLY {
-                end = true;
-            }
-        }
-        END_TRY;
-    }
+    os_lib_end();
 }
 
 __attribute__((section(".boot"))) int main(int arg0) {

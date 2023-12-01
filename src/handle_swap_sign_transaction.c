@@ -41,7 +41,7 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
                         ticker,
                         stack_data.fullAmount,
                         sizeof(stack_data.fullAmount))) {
-        THROW(EXCEPTION_OVERFLOW);
+        return false;
     }
 
     // If the amount is a fee, its value is nominated in ETH even if we're doing an ERC20 swap
@@ -53,7 +53,7 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
                         ticker,
                         stack_data.maxFee,
                         sizeof(stack_data.maxFee))) {
-        THROW(EXCEPTION_OVERFLOW);
+        return false;
     }
 
     // Full reset the global variables
@@ -71,9 +71,10 @@ void __attribute__((noreturn)) finalize_exchange_sign_transaction(bool is_succes
     os_lib_end();
 }
 
-void handle_swap_sign_transaction(chain_config_t* config) {
-    UX_INIT();
+void __attribute__((noreturn)) handle_swap_sign_transaction(chain_config_t* config) {
 #ifdef HAVE_NBGL
+    // On Stax, display a spinner at startup
+    UX_INIT();
     nbgl_useCaseSpinner("Signing");
 #endif  // HAVE_NBGL
 
@@ -93,10 +94,9 @@ void handle_swap_sign_transaction(chain_config_t* config) {
         nvm_write((void*) &N_storage, (void*) &storage, sizeof(internalStorage_t));
     }
 
+    PRINTF("USB power ON/OFF\n");
     USB_power(0);
     USB_power(1);
-    // ui_idle();
-    PRINTF("USB power ON/OFF\n");
 #ifdef HAVE_BLE
     // grab the current plane mode setting
     G_io_app.plane_mode = os_setting_get(OS_SETTING_PLANEMODE, NULL, 0);

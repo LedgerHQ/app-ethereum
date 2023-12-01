@@ -80,6 +80,7 @@ void handle_swap_sign_transaction(chain_config_t* config) {
     chainConfig = config;
     reset_app_context();
     G_called_from_swap = true;
+    G_swap_response_ready = false;
     io_seproxyhal_init();
 
     if (N_storage.initialized != 0x01) {

@@ -53,6 +53,7 @@ cx_sha3_t global_sha3;
 uint8_t appState;
 uint16_t apdu_response_code;
 bool G_called_from_swap;
+bool G_swap_response_ready;
 pluginType_t pluginType;
 #ifdef HAVE_STARKWARE
 bool quantumSet;
@@ -78,6 +79,7 @@ void reset_app_context() {
     // PRINTF("!!RESET_APP_CONTEXT\n");
     appState = APP_STATE_IDLE;
     G_called_from_swap = false;
+    G_swap_response_ready = false;
     pluginType = OLD_INTERNAL;
 #ifdef HAVE_STARKWARE
     quantumSet = false;
@@ -456,6 +458,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
             THROW(EXCEPTION_IO_RESET);
         }
         CATCH_OTHER(e) {
+            bool quit_now = G_called_from_swap && G_swap_response_ready;
             switch (e & 0xF000) {
                 case 0x6000:
                     // Wipe the transaction context and report the exception
@@ -476,6 +479,18 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
             G_io_apdu_buffer[*tx] = sw >> 8;
             G_io_apdu_buffer[*tx + 1] = sw;
             *tx += 2;
+
+            // If we are in swap mode and have validated a TX, we send it and immediately quit
+            if (quit_now) {
+                if (io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, *tx) == 0) {
+                    // In case of success, the apdu is sent immediatly and eth exits
+                    // Reaching this code means we encountered an error
+                    finalize_exchange_sign_transaction(false);
+                } else {
+                    PRINTF("Unrecoverable\n");
+                    os_sched_exit(-1);
+                }
+            }
         }
         FINALLY {
         }

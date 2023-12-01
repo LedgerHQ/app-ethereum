@@ -433,6 +433,15 @@ void finalizeParsing(bool direct) {
         }
     }
 
+    if (G_called_from_swap) {
+        if (G_swap_response_ready) {
+            // Unreachable given current return to exchange mechanism. Safeguard against regression
+            PRINTF("FATAL: safety against double sign triggered\n");
+            os_sched_exit(-1);
+        }
+        G_swap_response_ready = true;
+    }
+
     // User has just validated a swap but ETH received apdus about a non standard plugin / contract
     if (G_called_from_swap && !use_standard_UI) {
         PRINTF("ERR_SILENT_MODE_CHECK_FAILED, G_called_from_swap\n");
@@ -504,6 +513,8 @@ void finalizeParsing(bool direct) {
         // Ensure the values are the same that the ones that have been previously validated
         if (strcmp(strings.common.maxFee, displayBuffer) != 0) {
             PRINTF("ERR_SILENT_MODE_CHECK_FAILED, fees check failed\n");
+            PRINTF("Expected %s\n", strings.common.maxFee);
+            PRINTF("Received %s\n", displayBuffer);
             THROW(ERR_SILENT_MODE_CHECK_FAILED);
         }
     } else {

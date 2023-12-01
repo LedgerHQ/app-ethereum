@@ -2,25 +2,14 @@ import rlp
 from enum import IntEnum
 from ragger.backend import BackendInterface
 from ragger.utils import RAPDU
-from typing import List, Optional, Union
+from typing import Optional
 
 from .command_builder import CommandBuilder
 from .eip712 import EIP712FieldType
 from .keychain import sign_data, Key
 from .tlv import format_tlv
 
-
-WEI_IN_ETH = 1e+18
-GWEI_IN_ETH = 1e+9
-
-
-class TxData:
-    selector: bytes
-    parameters: list[bytes]
-
-    def __init__(self, selector: bytes, params: list[bytes]):
-        self.selector = selector
-        self.parameters = params
+from web3 import Web3
 
 
 class StatusWord(IntEnum):
@@ -64,7 +53,7 @@ class EthAppClient:
                                             field_type: EIP712FieldType,
                                             type_name: str,
                                             type_size: int,
-                                            array_levels: List,
+                                            array_levels: list,
                                             key_name: str):
         return self._send(self._cmd_builder.eip712_send_struct_def_struct_field(
                           field_type,
@@ -86,7 +75,7 @@ class EthAppClient:
                 pass
         return self._send(chunks[-1])
 
-    def eip712_sign_new(self, bip32_path: str, verbose: bool):
+    def eip712_sign_new(self, bip32_path: str):
         return self._send(self._cmd_builder.eip712_sign_new(bip32_path))
 
     def eip712_sign_legacy(self,
@@ -106,78 +95,25 @@ class EthAppClient:
     def eip712_filtering_show_field(self, name: str, sig: bytes):
         return self._send(self._cmd_builder.eip712_filtering_show_field(name, sig))
 
-    def _sign(self, bip32_path: str, raw_tx: bytes):
-        chunks = self._cmd_builder.sign(bip32_path, raw_tx)
+    def sign(self,
+             bip32_path: str,
+             tx_params: dict):
+        tx = Web3().eth.account.create().sign_transaction(tx_params).rawTransaction
+        prefix = bytes()
+        suffix = []
+        if tx[0] in [0x01, 0x02]:
+            prefix = tx[:1]
+            tx = tx[len(prefix):]
+        else:  # legacy
+            if "chainId" in tx_params:
+                suffix = [int(tx_params["chainId"]), bytes(), bytes()]
+        decoded = rlp.decode(tx)[:-3]  # remove already computed signature
+        tx = prefix + rlp.encode(decoded + suffix)
+        chunks = self._cmd_builder.sign(bip32_path, tx, suffix)
         for chunk in chunks[:-1]:
             with self._send(chunk):
                 pass
         return self._send(chunks[-1])
-
-    def _data_to_payload(self, data: TxData) -> bytes:
-        payload = bytearray(data.selector)
-        for param in data.parameters:
-            payload += param.rjust(32, b'\x00')
-        return payload
-
-    def _sign_common(self,
-                     tx: list,
-                     gas_price: float,
-                     gas_limit: int,
-                     destination: bytes,
-                     amount: float,
-                     data: Optional[TxData]):
-        tx.append(int(gas_price * GWEI_IN_ETH))
-        tx.append(gas_limit)
-        tx.append(destination)
-        if amount > 0:
-            tx.append(int(amount * WEI_IN_ETH))
-        else:
-            tx.append(bytes())
-        if data is not None:
-            tx.append(self._data_to_payload(data))
-        else:
-            tx.append(bytes())
-        return tx
-
-    def sign_legacy(self,
-                    bip32_path: str,
-                    nonce: int,
-                    gas_price: float,
-                    gas_limit: int,
-                    destination: bytes,
-                    amount: float,
-                    chain_id: int,
-                    data: Optional[TxData] = None):
-        tx: List[Union[int, bytes]] = list()
-        tx.append(nonce)
-        tx = self._sign_common(tx, gas_price, gas_limit, destination, amount, data)
-        tx.append(chain_id)
-        tx.append(bytes())
-        tx.append(bytes())
-        return self._sign(bip32_path, rlp.encode(tx))
-
-    def sign_1559(self,
-                  bip32_path: str,
-                  chain_id: int,
-                  nonce: int,
-                  max_prio_gas_price: float,
-                  max_gas_price: float,
-                  gas_limit: int,
-                  destination: bytes,
-                  amount: float,
-                  data: Optional[TxData] = None,
-                  access_list=list()):
-        tx: List[Union[int, bytes]] = list()
-        tx.append(chain_id)
-        tx.append(nonce)
-        tx.append(int(max_prio_gas_price * GWEI_IN_ETH))
-        tx = self._sign_common(tx, max_gas_price, gas_limit, destination, amount, data)
-        tx.append(access_list)
-        tx.append(False)
-        tx.append(bytes())
-        tx.append(bytes())
-        # prefix with transaction type
-        return self._sign(bip32_path, b'\x02' + rlp.encode(tx))
 
     def get_challenge(self):
         return self._send(self._cmd_builder.get_challenge())
@@ -286,5 +222,12 @@ class EthAppClient:
             tmp = self._cmd_builder.set_external_plugin(plugin_name, contract_address, method_selelector, bytes())
 
             # skip APDU header & empty sig
-            sig = sign_data(Key.SET_PLUGIN, tmp[5:-1])
+            sig = sign_data(Key.CAL, tmp[5:])
         return self._send(self._cmd_builder.set_external_plugin(plugin_name, contract_address, method_selelector, sig))
+
+    def personal_sign(self, path: str, msg: bytes):
+        chunks = self._cmd_builder.personal_sign(path, msg)
+        for chunk in chunks[:-1]:
+            with self._send(chunk):
+                pass
+        return self._send(chunks[-1])

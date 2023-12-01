@@ -6,19 +6,21 @@ from ragger.firmware import Firmware
 from ragger.backend import BackendInterface
 from ragger.navigator import Navigator, NavInsID
 from ledger_app_clients.ethereum.client import EthAppClient, StatusWord
-from ledger_app_clients.ethereum.settings import SettingID, settings_toggle
 import ledger_app_clients.ethereum.response_parser as ResponseParser
 from ragger.bip import calculate_public_key_and_chaincode, CurveChoice
 
 ROOT_SCREENSHOT_PATH = Path(__file__).parent
 
+
 @pytest.fixture(params=[True, False])
 def with_chaincode(request) -> bool:
     return request.param
 
+
 @pytest.fixture(params=[None, 1, 2, 5, 137])
 def chain(request) -> Optional[int]:
     return request.param
+
 
 def get_moves(firmware: Firmware,
               navigator: BackendInterface,
@@ -27,24 +29,25 @@ def get_moves(firmware: Firmware,
     moves = list()
 
     if firmware.is_nano:
-        moves += [ NavInsID.RIGHT_CLICK ]
+        moves += [NavInsID.RIGHT_CLICK]
         if firmware.device == "nanos":
-            moves += [ NavInsID.RIGHT_CLICK ] * 3
+            moves += [NavInsID.RIGHT_CLICK] * 3
         else:
-            moves += [ NavInsID.RIGHT_CLICK ]
+            moves += [NavInsID.RIGHT_CLICK]
         if reject:
-            moves += [ NavInsID.RIGHT_CLICK ]
-        moves += [ NavInsID.BOTH_CLICK ]
+            moves += [NavInsID.RIGHT_CLICK]
+        moves += [NavInsID.BOTH_CLICK]
     else:
-        moves += [ NavInsID.USE_CASE_REVIEW_TAP ]
+        moves += [NavInsID.USE_CASE_REVIEW_TAP]
         if chain is not None and chain > 1:
-            moves += [ NavInsID.USE_CASE_ADDRESS_CONFIRMATION_TAP ]
+            moves += [NavInsID.USE_CASE_ADDRESS_CONFIRMATION_TAP]
         if reject:
-            moves += [ NavInsID.USE_CASE_ADDRESS_CONFIRMATION_CANCEL ]
+            moves += [NavInsID.USE_CASE_ADDRESS_CONFIRMATION_CANCEL]
         else:
-            moves += [ NavInsID.USE_CASE_ADDRESS_CONFIRMATION_CONFIRM ]
+            moves += [NavInsID.USE_CASE_ADDRESS_CONFIRMATION_CONFIRM]
 
     return moves
+
 
 def test_get_pk_rejected(firmware: Firmware,
                          backend: BackendInterface,
@@ -59,7 +62,8 @@ def test_get_pk_rejected(firmware: Firmware,
     except ExceptionRAPDU as e:
         assert e.status == StatusWord.CONDITION_NOT_SATISFIED
     else:
-        assert False # An exception should have been raised
+        assert False  # An exception should have been raised
+
 
 def test_get_pk(firmware: Firmware,
                 backend: BackendInterface,

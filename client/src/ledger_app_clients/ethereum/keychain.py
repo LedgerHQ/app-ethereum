@@ -3,7 +3,6 @@ import hashlib
 from ecdsa import SigningKey
 from ecdsa.util import sigencode_der
 from enum import Enum, auto
-from typing import Dict
 
 
 # Private key PEM files have to be named the same (lowercase) as their corresponding enum entries
@@ -15,7 +14,7 @@ class Key(Enum):
     NFT = auto()
 
 
-_keys: Dict[Key, SigningKey] = dict()
+_keys: dict[Key, SigningKey] = dict()
 
 
 # Open the corresponding PEM file and load its key in the global dict

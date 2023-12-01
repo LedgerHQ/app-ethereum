@@ -1,4 +1,3 @@
-ragger[speculos]
 pytest
 ecdsa
 ./client/

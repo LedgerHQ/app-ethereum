@@ -48,7 +48,9 @@ void handleSetExternalPlugin(uint8_t p1,
                          workBuffer + payload_size,
                          dataLength - payload_size)) {
 #ifndef HAVE_BYPASS_SIGNATURES
-        PRINTF("Invalid plugin signature %.*H\n", payload_size, workBuffer);
+        PRINTF("Invalid plugin signature %.*H\n",
+               dataLength - payload_size,
+               workBuffer + payload_size);
         THROW(0x6A80);
 #endif
     }

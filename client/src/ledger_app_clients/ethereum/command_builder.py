@@ -5,7 +5,6 @@ import struct
 from enum import IntEnum
 from typing import Optional
 from ragger.bip import pack_derivation_path
-from typing import List
 
 from .eip712 import EIP712FieldType
 
@@ -13,6 +12,7 @@ from .eip712 import EIP712FieldType
 class InsType(IntEnum):
     GET_PUBLIC_ADDR = 0x02
     SIGN = 0x04
+    PERSONAL_SIGN = 0x08
     PROVIDE_NFT_INFORMATION = 0x14
     SET_PLUGIN = 0x16
     EIP712_SEND_STRUCT_DEF = 0x1a
@@ -75,7 +75,7 @@ class CommandBuilder:
                                             field_type: EIP712FieldType,
                                             type_name: str,
                                             type_size: int,
-                                            array_levels: List,
+                                            array_levels: list,
                                             key_name: str) -> bytes:
         data = bytearray()
         typedesc = 0
@@ -115,7 +115,7 @@ class CommandBuilder:
                                P2Type.ARRAY,
                                data)
 
-    def eip712_send_struct_impl_struct_field(self, data: bytearray) -> List[bytes]:
+    def eip712_send_struct_impl_struct_field(self, data: bytearray) -> list[bytes]:
         chunks = list()
         # Add a 16-bit integer with the data's byte length (network byte order)
         data_w_length = bytearray()
@@ -195,17 +195,27 @@ class CommandBuilder:
                                0x00,
                                data)
 
-    def sign(self, bip32_path: str, rlp_data: bytes) -> list[bytes]:
+    def sign(self, bip32_path: str, rlp_data: bytes, vrs: list) -> list[bytes]:
         apdus = list()
         payload = pack_derivation_path(bip32_path)
         payload += rlp_data
         p1 = P1Type.SIGN_FIRST_CHUNK
         while len(payload) > 0:
+            chunk_size = 0xff
+
+            # TODO: Fix the app & remove this, issue #409
+            if len(vrs) == 3:
+                if len(payload) > chunk_size:
+                    import rlp
+                    diff = len(rlp.encode(vrs)) - (len(payload) - chunk_size)
+                    if diff > 0:
+                        chunk_size -= diff
+
             apdus.append(self._serialize(InsType.SIGN,
                                          p1,
                                          0x00,
-                                         payload[:0xff]))
-            payload = payload[0xff:]
+                                         payload[:chunk_size]))
+            payload = payload[chunk_size:]
             p1 = P1Type.SIGN_SUBSQT_CHUNK
         return apdus
 
@@ -284,3 +294,19 @@ class CommandBuilder:
         payload.append(len(sig))
         payload += sig
         return self._serialize(InsType.PROVIDE_NFT_INFORMATION, 0x00, 0x00, payload)
+
+    def personal_sign(self, path: str, msg: bytes):
+        payload = pack_derivation_path(path)
+        payload += struct.pack(">I", len(msg))
+        payload += msg
+        chunks = list()
+        p1 = P1Type.SIGN_FIRST_CHUNK
+        while len(payload) > 0:
+            chunk_size = 0xff
+            chunks.append(self._serialize(InsType.PERSONAL_SIGN,
+                                          p1,
+                                          0x00,
+                                          payload[:chunk_size]))
+            payload = payload[chunk_size:]
+            p1 = P1Type.SIGN_SUBSQT_CHUNK
+        return chunks

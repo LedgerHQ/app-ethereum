@@ -3,7 +3,8 @@ import json
 import re
 import signal
 import sys
-from typing import Any, Callable, Dict, List, Optional
+import copy
+from typing import Any, Callable, Optional
 
 from ledger_app_clients.ethereum import keychain
 from ledger_app_clients.ethereum.client import EthAppClient, EIP712FieldType
@@ -11,9 +12,9 @@ from ledger_app_clients.ethereum.client import EthAppClient, EIP712FieldType
 
 # global variables
 app_client: EthAppClient = None
-filtering_paths: Dict = {}
-current_path: List[str] = list()
-sig_ctx: Dict[str, Any] = {}
+filtering_paths: dict = {}
+current_path: list[str] = list()
+sig_ctx: dict[str, Any] = {}
 
 
 def default_handler():
@@ -297,13 +298,6 @@ def send_filtering_show_field(display_name):
         pass
 
 
-def read_filtering_file(filtering_file_path: str):
-    data_json = None
-    with open(filtering_file_path) as data:
-        data_json = json.load(data)
-    return data_json
-
-
 def prepare_filtering(filtr_data, message):
     global filtering_paths
 
@@ -355,62 +349,61 @@ def disable_autonext():
     signal.setitimer(signal.ITIMER_REAL, 0, 0)
 
 
-def process_file(aclient: EthAppClient,
-                 input_file_path: str,
-                 filtering_file_path: Optional[str] = None,
+def process_data(aclient: EthAppClient,
+                 data_json: dict,
+                 filters: Optional[dict] = None,
                  autonext: Optional[Callable] = None) -> bool:
     global sig_ctx
     global app_client
     global autonext_handler
 
+    # deepcopy because this function modifies the dict
+    data_json = copy.deepcopy(data_json)
     app_client = aclient
-    with open(input_file_path, "r") as data:
-        data_json = json.load(data)
-        domain_typename = "EIP712Domain"
-        message_typename = data_json["primaryType"]
-        types = data_json["types"]
-        domain = data_json["domain"]
-        message = data_json["message"]
+    domain_typename = "EIP712Domain"
+    message_typename = data_json["primaryType"]
+    types = data_json["types"]
+    domain = data_json["domain"]
+    message = data_json["message"]
 
-        if autonext:
-            autonext_handler = autonext
-            signal.signal(signal.SIGALRM, next_timeout)
+    if autonext:
+        autonext_handler = autonext
+        signal.signal(signal.SIGALRM, next_timeout)
 
-        if filtering_file_path:
-            init_signature_context(types, domain)
-            filtr = read_filtering_file(filtering_file_path)
+    if filters:
+        init_signature_context(types, domain)
 
-        # send types definition
-        for key in types.keys():
-            with app_client.eip712_send_struct_def_struct_name(key):
-                pass
-            for f in types[key]:
-                (f["type"], f["enum"], f["typesize"], f["array_lvls"]) = \
-                 send_struct_def_field(f["type"], f["name"])
+    # send types definition
+    for key in types.keys():
+        with app_client.eip712_send_struct_def_struct_name(key):
+            pass
+        for f in types[key]:
+            (f["type"], f["enum"], f["typesize"], f["array_lvls"]) = \
+             send_struct_def_field(f["type"], f["name"])
 
-        if filtering_file_path:
-            with app_client.eip712_filtering_activate():
-                pass
-            prepare_filtering(filtr, message)
+    if filters:
+        with app_client.eip712_filtering_activate():
+            pass
+        prepare_filtering(filters, message)
 
-        # send domain implementation
-        with app_client.eip712_send_struct_impl_root_struct(domain_typename):
-            enable_autonext()
-        disable_autonext()
-        if not send_struct_impl(types, domain, domain_typename):
-            return False
+    # send domain implementation
+    with app_client.eip712_send_struct_impl_root_struct(domain_typename):
+        enable_autonext()
+    disable_autonext()
+    if not send_struct_impl(types, domain, domain_typename):
+        return False
 
-        if filtering_file_path:
-            if filtr and "name" in filtr:
-                send_filtering_message_info(filtr["name"], len(filtering_paths))
-            else:
-                send_filtering_message_info(domain["name"], len(filtering_paths))
+    if filters:
+        if filters and "name" in filters:
+            send_filtering_message_info(filters["name"], len(filtering_paths))
+        else:
+            send_filtering_message_info(domain["name"], len(filtering_paths))
 
-        # send message implementation
-        with app_client.eip712_send_struct_impl_root_struct(message_typename):
-            enable_autonext()
-        disable_autonext()
-        if not send_struct_impl(types, message, message_typename):
-            return False
+    # send message implementation
+    with app_client.eip712_send_struct_impl_root_struct(message_typename):
+        enable_autonext()
+    disable_autonext()
+    if not send_struct_impl(types, message, message_typename):
+        return False
 
     return True

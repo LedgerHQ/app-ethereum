@@ -731,122 +731,108 @@ void coin_main(libargs_t *args) {
     app_exit();
 }
 
-static void library_main_helper(libargs_t *args) {
-    check_api_level(CX_COMPAT_APILEVEL);
+void library_main(libargs_t *args) {
+    chain_config_t coin_config;
+    if (args->chain_config == NULL) {
+        // We have been started directly by Exchange, not by a Clone. Init default chain
+        init_coin_config(&coin_config);
+        args->chain_config = &coin_config;
+    }
+
     PRINTF("Inside a library \n");
     switch (args->command) {
         case CHECK_ADDRESS:
-            // ensure result is zero if an exception is thrown
-            args->check_address->result = 0;
-            args->check_address->result =
-                handle_check_address(args->check_address, args->chain_config);
+            handle_check_address(args->check_address, args->chain_config);
             break;
         case SIGN_TRANSACTION:
             if (copy_transaction_parameters(args->create_transaction, args->chain_config)) {
                 // never returns
                 handle_swap_sign_transaction(args->chain_config);
+            } else {
+                // Failed to copy, non recoverable
+                os_sched_exit(-1);
             }
             break;
         case GET_PRINTABLE_AMOUNT:
-            // ensure result is zero if an exception is thrown (compatibility breaking, disabled
-            // until LL is ready)
-            // args->get_printable_amount->result = 0;
-            // args->get_printable_amount->result =
             handle_get_printable_amount(args->get_printable_amount, args->chain_config);
             break;
         default:
             break;
     }
+    os_lib_end();
 }
 
-void library_main(libargs_t *args) {
-    chain_config_t coin_config;
-    if (args->chain_config == NULL) {
-        init_coin_config(&coin_config);
-        args->chain_config = &coin_config;
-    }
-    volatile bool end = false;
-    /* This loop ensures that library_main_helper and os_lib_end are called
-     * within a try context, even if an exception is thrown */
-    while (1) {
-        BEGIN_TRY {
-            TRY {
-                if (!end) {
-                    library_main_helper(args);
-                }
-                os_lib_end();
-            }
-            FINALLY {
-                end = true;
-            }
-        }
-        END_TRY;
-    }
-}
-
-__attribute__((section(".boot"))) int main(int arg0) {
-#ifdef USE_LIB_ETHEREUM
+/* Eth clones do not actually contain any logic, they delegate everything to the ETH application.
+ * Start Eth in lib mode with the correct chain config
+ */
+__attribute__((noreturn)) void clone_main(libargs_t *args) {
+    PRINTF("Starting in clone_main\n");
     BEGIN_TRY {
         TRY {
             unsigned int libcall_params[5];
             chain_config_t local_chainConfig;
             init_coin_config(&local_chainConfig);
 
-            PRINTF("Hello from Eth-clone\n");
-            check_api_level(CX_COMPAT_APILEVEL);
-            // delegate to Ethereum app/lib
             libcall_params[0] = (unsigned int) "Ethereum";
             libcall_params[1] = 0x100;
-            libcall_params[2] = RUN_APPLICATION;
             libcall_params[3] = (unsigned int) &local_chainConfig;
-#ifdef HAVE_NBGL
-            const char app_name[] = APPNAME;
-            caller_app_t capp;
-            nbgl_icon_details_t icon_details;
-            uint8_t bitmap[sizeof(ICONBITMAP)];
 
-            memcpy(&icon_details, &ICONGLYPH, sizeof(ICONGLYPH));
-            memcpy(&bitmap, &ICONBITMAP, sizeof(bitmap));
-            icon_details.bitmap = (const uint8_t *) bitmap;
-            capp.name = app_name;
-            capp.icon = &icon_details;
-            libcall_params[4] = (unsigned int) &capp;
-#else
-            libcall_params[4] = NULL;
-#endif  // HAVE_NBGL
-
-            if (arg0) {
-                // call as a library
-                libcall_params[2] = ((unsigned int *) arg0)[1];
-                libcall_params[4] = ((unsigned int *) arg0)[3];  // library arguments
+            // Clone called by Exchange, forward the request to Ethereum
+            if (args != NULL) {
+                if (args->id != 0x100) {
+                    os_sched_exit(0);
+                }
+                libcall_params[2] = args->command;
+                libcall_params[4] = (unsigned int) args->get_printable_amount;
                 os_lib_call((unsigned int *) &libcall_params);
-                ((unsigned int *) arg0)[0] = libcall_params[1];
+                // Ethereum fulfilled the request and returned to us. We return to Exchange.
                 os_lib_end();
             } else {
-                // launch coin application
-                libcall_params[1] = 0x100;  // use the Init call, as we won't exit
+                // Clone called from Dashboard, start Ethereum
+                libcall_params[2] = RUN_APPLICATION;
+// On Stax, forward our icon to Ethereum
+#ifdef HAVE_NBGL
+                const char app_name[] = APPNAME;
+                caller_app_t capp;
+                nbgl_icon_details_t icon_details;
+                uint8_t bitmap[sizeof(ICONBITMAP)];
+
+                memcpy(&icon_details, &ICONGLYPH, sizeof(ICONGLYPH));
+                memcpy(&bitmap, &ICONBITMAP, sizeof(bitmap));
+                icon_details.bitmap = (const uint8_t *) bitmap;
+                capp.name = app_name;
+                capp.icon = &icon_details;
+                libcall_params[4] = (unsigned int) &capp;
+#else
+                libcall_params[4] = 0;
+#endif  // HAVE_NBGL
                 os_lib_call((unsigned int *) &libcall_params);
+                // Ethereum should not return to us
+                os_sched_exit(-1);
             }
         }
         FINALLY {
         }
     }
     END_TRY;
-    // no return
-#else
+
+    // os_lib_call will raise if Ethereum application is not installed. Do not try to recover.
+    os_sched_exit(-1);
+}
+
+int ethereum_main(libargs_t *args) {
     // exit critical section
     __asm volatile("cpsie i");
 
     // ensure exception will work as planned
     os_boot();
 
-    if (!arg0) {
+    if (args == NULL) {
         // called from dashboard as standalone eth app
         coin_main(NULL);
         return 0;
     }
 
-    libargs_t *args = (libargs_t *) arg0;
     if (args->id != 0x100) {
         app_exit();
         return 0;
@@ -860,6 +846,13 @@ __attribute__((section(".boot"))) int main(int arg0) {
             // called as ethereum or altcoin library
             library_main(args);
     }
-#endif
     return 0;
+}
+
+__attribute__((section(".boot"))) int main(int arg0) {
+#ifdef USE_LIB_ETHEREUM
+    clone_main((libargs_t *) arg0);
+#else
+    return ethereum_main((libargs_t *) arg0);
+#endif
 }

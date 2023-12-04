@@ -215,6 +215,7 @@ extern cx_sha3_t global_sha3;
 extern const internalStorage_t N_storage_real;
 
 extern bool G_called_from_swap;
+extern bool G_swap_response_ready;
 
 typedef enum {
     EXTERNAL,     //  External plugin, set by setExternalPlugin.

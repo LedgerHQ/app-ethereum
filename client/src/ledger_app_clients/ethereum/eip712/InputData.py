@@ -13,7 +13,6 @@ from ledger_app_clients.ethereum.client import EthAppClient, EIP712FieldType
 # global variables
 app_client: EthAppClient = None
 filtering_paths: dict = {}
-current_path: list[str] = list()
 sig_ctx: dict[str, Any] = {}
 
 
@@ -198,7 +197,7 @@ encoding_functions[EIP712FieldType.FIX_BYTES] = encode_bytes_fix
 encoding_functions[EIP712FieldType.DYN_BYTES] = encode_bytes_dyn
 
 
-def send_struct_impl_field(value, field):
+def send_struct_impl_field(value, field, path: list[str]):
     # Something wrong happened if this triggers
     if isinstance(value, list) or (field["enum"] == EIP712FieldType.CUSTOM):
         breakpoint()
@@ -206,29 +205,28 @@ def send_struct_impl_field(value, field):
     data = encoding_functions[field["enum"]](value, field["typesize"])
 
     if filtering_paths:
-        path = ".".join(current_path)
-        if path in filtering_paths.keys():
-            send_filtering_show_field(filtering_paths[path])
+        path_str = ".".join(path)
+        if path_str in filtering_paths.keys():
+            send_filtering_show_field(filtering_paths[path_str], path)
 
     with app_client.eip712_send_struct_impl_struct_field(data):
         enable_autonext()
     disable_autonext()
 
 
-def evaluate_field(structs, data, field, lvls_left, new_level=True):
+def evaluate_field(structs, data, field, lvls_left, new_level: bool, path: list[str]):
     array_lvls = field["array_lvls"]
 
     if new_level:
-        current_path.append(field["name"])
+        path.append(field["name"])
     if len(array_lvls) > 0 and lvls_left > 0:
         with app_client.eip712_send_struct_impl_array(len(data)):
             pass
         idx = 0
         for subdata in data:
-            current_path.append("[]")
-            if not evaluate_field(structs, subdata, field, lvls_left - 1, False):
+            path.append("[]")
+            if not evaluate_field(structs, subdata, field, lvls_left - 1, False, path.copy()):
                 return False
-            current_path.pop()
             idx += 1
         if array_lvls[lvls_left - 1] is not None:
             if array_lvls[lvls_left - 1] != idx:
@@ -241,20 +239,23 @@ def evaluate_field(structs, data, field, lvls_left, new_level=True):
             if not send_struct_impl(structs, data, field["type"]):
                 return False
         else:
-            send_struct_impl_field(data, field)
-    if new_level:
-        current_path.pop()
+            send_struct_impl_field(data, field, path)
     return True
 
 
-def send_struct_impl(structs, data, structname):
+def send_struct_impl(structs, data, structname, path: list[str] = list()) -> bool:
     # Check if it is a struct we don't known
     if structname not in structs.keys():
         return False
 
     struct = structs[structname]
     for f in struct:
-        if not evaluate_field(structs, data[f["name"]], f, len(f["array_lvls"])):
+        if not evaluate_field(structs,
+                              data[f["name"]],
+                              f,
+                              len(f["array_lvls"]),
+                              True,
+                              path.copy()):
             return False
     return True
 
@@ -279,10 +280,10 @@ def send_filtering_message_info(display_name: str, filters_count: int):
 
 
 # ledgerjs doesn't actually sign anything, and instead uses already pre-computed signatures
-def send_filtering_show_field(display_name):
+def send_filtering_show_field(display_name, path: list[str]):
     global sig_ctx
 
-    path_str = ".".join(current_path)
+    path_str = ".".join(path)
 
     to_sign = bytearray()
     to_sign.append(72)

@@ -15,7 +15,7 @@
  *  limitations under the License.
  *****************************************************************************/
 
-#include "utils.h"
+#include "plugin_utils.h"
 
 bool find_selector(uint32_t selector, const uint32_t *array, size_t size, size_t *idx) {
     for (size_t i = 0; i < size; ++i) {

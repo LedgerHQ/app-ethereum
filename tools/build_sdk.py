@@ -210,8 +210,8 @@ if __name__ == "__main__":
 
     files_to_copy = [
         "main.c",
-        "utils.c",
-        "utils.h",
+        "plugin_utils.c",
+        "plugin_utils.h",
     ]
     for file in files_to_copy:
         shutil.copyfile("src_plugin_sdk/" + file,

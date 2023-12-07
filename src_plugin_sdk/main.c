@@ -53,28 +53,32 @@ static void call_app_ethereum() {
 
 // Function to dispatch calls from the ethereum app.
 static void dispatch_call(int message, void *parameters) {
-    switch (message) {
-        case ETH_PLUGIN_INIT_CONTRACT:
-            handle_init_contract(parameters);
-            break;
-        case ETH_PLUGIN_PROVIDE_PARAMETER:
-            handle_provide_parameter(parameters);
-            break;
-        case ETH_PLUGIN_FINALIZE:
-            handle_finalize(parameters);
-            break;
-        case ETH_PLUGIN_PROVIDE_INFO:
-            handle_provide_token(parameters);
-            break;
-        case ETH_PLUGIN_QUERY_CONTRACT_ID:
-            handle_query_contract_id(parameters);
-            break;
-        case ETH_PLUGIN_QUERY_CONTRACT_UI:
-            handle_query_contract_ui(parameters);
-            break;
-        default:
-            PRINTF("Unhandled message %d\n", message);
-            break;
+    if (parameters != NULL) {
+        switch (message) {
+            case ETH_PLUGIN_INIT_CONTRACT:
+                handle_init_contract(parameters);
+                break;
+            case ETH_PLUGIN_PROVIDE_PARAMETER:
+                handle_provide_parameter(parameters);
+                break;
+            case ETH_PLUGIN_FINALIZE:
+                handle_finalize(parameters);
+                break;
+            case ETH_PLUGIN_PROVIDE_INFO:
+                handle_provide_token(parameters);
+                break;
+            case ETH_PLUGIN_QUERY_CONTRACT_ID:
+                handle_query_contract_id(parameters);
+                break;
+            case ETH_PLUGIN_QUERY_CONTRACT_UI:
+                handle_query_contract_ui(parameters);
+                break;
+            default:
+                PRINTF("Unhandled message %d\n", message);
+                break;
+        }
+    } else {
+        PRINTF("Received null parameters\n");
     }
 }
 

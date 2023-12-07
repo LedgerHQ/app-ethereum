@@ -223,6 +223,9 @@ def evaluate_field(structs, data, field, lvls_left, new_level: bool, path: list[
         with app_client.eip712_send_struct_impl_array(len(data)):
             pass
         idx = 0
+        if new_level and len(data) == 0:
+            # TODO: Traverse data anyway to check for filtering
+            breakpoint()
         for subdata in data:
             path.append("[]")
             if not evaluate_field(structs, subdata, field, lvls_left - 1, False, path.copy()):

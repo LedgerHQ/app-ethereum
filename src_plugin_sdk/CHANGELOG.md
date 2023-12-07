@@ -5,11 +5,13 @@
 | :rotating_light:     | Breaks build                  |
 | :warning:            | Breaks compatibility with app |
 
-## [latest](/) - 2023/12/06
+## [latest](/) - 2023/12/07
 
 ### Fixed
 
 * standard\_plugin build ([this PR on the SDK](https://github.com/LedgerHQ/ledger-secure-sdk/pull/473) had broken it)
+* Broken variant auto-setting in the standard\_plugin Makefile
+* Missing null-check on parameters received by the plugins
 
 ### Changed
 

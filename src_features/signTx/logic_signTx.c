@@ -319,13 +319,14 @@ static int strcasecmp_workaround(const char *str1, const char *str2) {
     return 0;
 }
 
-void finalizeParsing(bool direct) {
+__attribute__((noinline)) static void finalize_parsing_helper(bool direct, bool *use_standard_UI) {
     char displayBuffer[50];
     uint8_t decimals = WEI_TO_ETHER;
     uint64_t chain_id = get_tx_chain_id();
     const char *ticker = get_displayable_ticker(&chain_id);
     ethPluginFinalize_t pluginFinalize;
-    bool use_standard_UI = true;
+
+    *use_standard_UI = true;
 
     // Verify the chain
     if (chainConfig->chainId != ETHEREUM_MAINNET_CHAINID) {
@@ -396,7 +397,7 @@ void finalizeParsing(bool direct) {
             switch (pluginFinalize.uiType) {
                 case ETH_UI_TYPE_GENERIC:
                     // Use the dedicated ETH plugin UI
-                    use_standard_UI = false;
+                    *use_standard_UI = false;
                     tmpContent.txContent.dataPresent = false;
                     // Add the number of screens + the number of additional screens to get the total
                     // number of screens needed.
@@ -405,7 +406,7 @@ void finalizeParsing(bool direct) {
                     break;
                 case ETH_UI_TYPE_AMOUNT_ADDRESS:
                     // Use the standard ETH UI as this plugin uses the amount/address UI
-                    use_standard_UI = true;
+                    *use_standard_UI = true;
                     tmpContent.txContent.dataPresent = false;
                     if ((pluginFinalize.amount == NULL) || (pluginFinalize.address == NULL)) {
                         PRINTF("Incorrect amount/address set by plugin\n");
@@ -443,7 +444,7 @@ void finalizeParsing(bool direct) {
     }
 
     // User has just validated a swap but ETH received apdus about a non standard plugin / contract
-    if (G_called_from_swap && !use_standard_UI) {
+    if (G_called_from_swap && !*use_standard_UI) {
         PRINTF("ERR_SILENT_MODE_CHECK_FAILED, G_called_from_swap\n");
         THROW(ERR_SILENT_MODE_CHECK_FAILED);
     }
@@ -457,7 +458,7 @@ void finalizeParsing(bool direct) {
     }
 
     // Prepare destination address and amount to display
-    if (use_standard_UI) {
+    if (*use_standard_UI) {
         // Format the address in a temporary buffer, if in swap case compare it with validated
         // address, else commit it
         address_to_string(tmpContent.txContent.destination,
@@ -532,11 +533,14 @@ void finalizeParsing(bool direct) {
     // Prepare network field
     get_network_as_string(strings.common.network_name, sizeof(strings.common.network_name));
     PRINTF("Network: %s\n", strings.common.network_name);
+}
 
+void finalizeParsing(bool direct) {
+    bool use_standard_UI;
     bool no_consent_check;
-
-    // If called from swap, the user as already validated a standard transaction
-    // We have already checked the fields of this transaction above
+    finalize_parsing_helper(direct, &use_standard_UI);
+    // If called from swap, the user has already validated a standard transaction
+    // And we have already checked the fields of this transaction above
     no_consent_check = G_called_from_swap && use_standard_UI;
 
 #ifdef NO_CONSENT

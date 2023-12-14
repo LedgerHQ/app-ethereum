@@ -10,13 +10,10 @@ typedef struct {
     const uint8_t *value;
 } s_tlv_data;
 
-typedef bool(f_tlv_handler)(const s_tlv_data *data, void *param);
+// forward declaration
+typedef struct tlv_handler_param s_tlv_handler_param;
 
-typedef struct {
-    uint8_t tag;
-    f_tlv_handler *func;
-    bool required;
-} s_tlv_handler;
+typedef bool(f_tlv_handler)(const s_tlv_data *data, s_tlv_handler_param *param);
 
 typedef struct {
     uint8_t tag;
@@ -25,9 +22,8 @@ typedef struct {
 
 bool parse_tlv(const uint8_t *payload,
                size_t payload_size,
-               const s_tlv_handler *handlers,
-               uint8_t handler_count,
-               void *param,
+               f_tlv_handler *handler,
+               s_tlv_handler_param *param,
                s_tlv_sig *sig);
 
 #endif  // TLV_H_

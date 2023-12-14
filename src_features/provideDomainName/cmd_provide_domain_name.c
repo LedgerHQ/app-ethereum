@@ -21,6 +21,8 @@
 
 #define SLIP_44_ETHEREUM 60
 
+#define TAG_COUNT 9
+
 typedef enum {
     STRUCT_TYPE = 0x01,
     STRUCT_VERSION = 0x02,
@@ -48,10 +50,11 @@ typedef struct {
     cx_sha256_t hash_ctx;
 } s_sig_ctx;
 
-typedef struct {
+struct tlv_handler_param {
     s_domain_name_info *domain_name_info;
     s_sig_ctx sig_ctx;
-} s_handler_param;
+    uint8_t counters[TAG_COUNT];
+};
 
 static uint8_t *g_payload = NULL;
 static uint16_t g_payload_size = 0;
@@ -132,7 +135,7 @@ static bool get_uint_from_data(const s_tlv_data *data, uint32_t *value) {
  * @param[in,out] param the parameter received from the parser
  * @return whether it was successful
  */
-static bool handle_struct_type(const s_tlv_data *data, s_handler_param *param) {
+static bool handle_struct_type(const s_tlv_data *data, s_tlv_handler_param *param) {
     (void) data;
     (void) param;
     return true;  // unhandled for now
@@ -145,7 +148,7 @@ static bool handle_struct_type(const s_tlv_data *data, s_handler_param *param) {
  * @param[in,out] param the parameter received from the parser
  * @return whether it was successful
  */
-static bool handle_struct_version(const s_tlv_data *data, s_handler_param *param) {
+static bool handle_struct_version(const s_tlv_data *data, s_tlv_handler_param *param) {
     (void) data;
     (void) param;
     return true;  // unhandled for now
@@ -158,7 +161,7 @@ static bool handle_struct_version(const s_tlv_data *data, s_handler_param *param
  * @param[in,out] param the parameter received from the parser
  * @return whether it was successful
  */
-static bool handle_challenge(const s_tlv_data *data, s_handler_param *param) {
+static bool handle_challenge(const s_tlv_data *data, s_tlv_handler_param *param) {
     uint32_t value;
     (void) param;
 
@@ -175,7 +178,7 @@ static bool handle_challenge(const s_tlv_data *data, s_handler_param *param) {
  * @param[in,out] param the parameter received from the parser
  * @return whether it was successful
  */
-static bool handle_sign_key_id(const s_tlv_data *data, s_handler_param *param) {
+static bool handle_sign_key_id(const s_tlv_data *data, s_tlv_handler_param *param) {
     uint32_t value;
 
     if (!get_uint_from_data(data, &value) || (value > UINT8_MAX)) {
@@ -192,7 +195,7 @@ static bool handle_sign_key_id(const s_tlv_data *data, s_handler_param *param) {
  * @param[in,out] param the parameter received from the parser
  * @return whether it was successful
  */
-static bool handle_sign_algo(const s_tlv_data *data, s_handler_param *param) {
+static bool handle_sign_algo(const s_tlv_data *data, s_tlv_handler_param *param) {
     uint32_t value;
 
     (void) param;
@@ -209,7 +212,7 @@ static bool handle_sign_algo(const s_tlv_data *data, s_handler_param *param) {
  * @param[in,out] param the parameter received from the parser
  * @return whether it was successful
  */
-static bool handle_signature(const s_tlv_data *data, s_handler_param *param) {
+static bool handle_signature(const s_tlv_data *data, s_tlv_handler_param *param) {
     param->sig_ctx.input_sig_size = data->length;
     param->sig_ctx.input_sig = data->value;
     return true;
@@ -246,7 +249,7 @@ static bool is_valid_domain_character(char c) {
  * @param[in,out] param the parameter received from the parser
  * @return whether it was successful
  */
-static bool handle_domain_name(const s_tlv_data *data, s_handler_param *param) {
+static bool handle_domain_name(const s_tlv_data *data, s_tlv_handler_param *param) {
     if (data->length > DOMAIN_NAME_MAX_LENGTH) {
         PRINTF("Domain name too long! (%u)\n", data->length);
         return false;
@@ -274,7 +277,7 @@ static bool handle_domain_name(const s_tlv_data *data, s_handler_param *param) {
  * @param[in,out] param the parameter received from the parser
  * @return whether it was successful
  */
-static bool handle_coin_type(const s_tlv_data *data, s_handler_param *param) {
+static bool handle_coin_type(const s_tlv_data *data, s_tlv_handler_param *param) {
     uint32_t value;
 
     (void) param;
@@ -291,12 +294,60 @@ static bool handle_coin_type(const s_tlv_data *data, s_handler_param *param) {
  * @param[in,out] param the parameter received from the parser
  * @return whether it was successful
  */
-static bool handle_address(const s_tlv_data *data, s_handler_param *param) {
+static bool handle_address(const s_tlv_data *data, s_tlv_handler_param *param) {
     if (data->length != ADDRESS_LENGTH) {
         return false;
     }
     memcpy(param->domain_name_info->addr, data->value, ADDRESS_LENGTH);
     return true;
+}
+
+static bool tlv_handler(const s_tlv_data *data, s_tlv_handler_param *param) {
+    bool ret = false;
+    int idx = -1;
+
+    switch (data->tag) {
+        case STRUCT_TYPE:
+            idx = 0;
+            ret = handle_struct_type(data, param);
+            break;
+        case STRUCT_VERSION:
+            idx = 1;
+            ret = handle_struct_version(data, param);
+            break;
+        case CHALLENGE:
+            idx = 2;
+            ret = handle_challenge(data, param);
+            break;
+        case SIGNER_KEY_ID:
+            idx = 3;
+            ret = handle_sign_key_id(data, param);
+            break;
+        case SIGNER_ALGO:
+            idx = 4;
+            ret = handle_sign_algo(data, param);
+            break;
+        case SIGNATURE:
+            idx = 5;
+            ret = handle_signature(data, param);
+            break;
+        case DOMAIN_NAME:
+            idx = 6;
+            ret = handle_domain_name(data, param);
+            break;
+        case COIN_TYPE:
+            idx = 7;
+            ret = handle_coin_type(data, param);
+            break;
+        case ADDRESS:
+            idx = 8;
+            ret = handle_address(data, param);
+            break;
+        default:
+            break;
+    }
+    if (idx != -1) param->counters[idx] += 1;
+    return ret;
 }
 
 /**
@@ -391,30 +442,22 @@ static bool handle_first_chunk(const uint8_t **data, uint8_t *length) {
     return true;
 }
 
+static bool all_tags_found_once(const uint8_t *counters) {
+    for (size_t i = 0; i < TAG_COUNT; ++i) {
+        if (counters[i] != 1) return false;
+    }
+    return true;
+}
+
 static bool handle_all_received(void) {
-    const s_tlv_handler handlers[] = {
-        {.tag = STRUCT_TYPE, .func = (f_tlv_handler *) &handle_struct_type, .required = true},
-        {.tag = STRUCT_VERSION, .func = (f_tlv_handler *) &handle_struct_version, .required = true},
-        {.tag = CHALLENGE, .func = (f_tlv_handler *) &handle_challenge, .required = true},
-        {.tag = SIGNER_KEY_ID, .func = (f_tlv_handler *) &handle_sign_key_id, .required = true},
-        {.tag = SIGNER_ALGO, .func = (f_tlv_handler *) &handle_sign_algo, .required = true},
-        {.tag = SIGNATURE, .func = (f_tlv_handler *) &handle_signature, .required = true},
-        {.tag = DOMAIN_NAME, .func = (f_tlv_handler *) &handle_domain_name, .required = true},
-        {.tag = COIN_TYPE, .func = (f_tlv_handler *) &handle_coin_type, .required = true},
-        {.tag = ADDRESS, .func = (f_tlv_handler *) &handle_address, .required = true}};
-    s_handler_param handler_param;
+    s_tlv_handler_param handler_param = {0};
     s_tlv_sig sig = {.tag = SIGNATURE, .ctx = (cx_hash_t *) &handler_param.sig_ctx.hash_ctx};
 
     g_domain_name_info.name = g_domain_name;
     handler_param.domain_name_info = &g_domain_name_info;
     cx_sha256_init(&handler_param.sig_ctx.hash_ctx);
-    if (!parse_tlv(g_payload,
-                   g_payload_size,
-                   handlers,
-                   ARRAY_SIZE(handlers),
-                   &handler_param,
-                   &sig) ||
-        !verify_signature(&handler_param.sig_ctx)) {
+    if (!parse_tlv(g_payload, g_payload_size, &tlv_handler, &handler_param, &sig) ||
+        !all_tags_found_once(handler_param.counters) || !verify_signature(&handler_param.sig_ctx)) {
         free_payload();
         roll_challenge();  // prevent brute-force guesses
         apdu_response_code = APDU_RESPONSE_INVALID_DATA;

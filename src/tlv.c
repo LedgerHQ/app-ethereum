@@ -7,9 +7,6 @@
 #include "hash_bytes.h"
 #include "tlv.h"
 
-// These array are only created from the size of other constant arrays, not user input
-#pragma GCC diagnostic ignored "-Wvla"
-
 #define DER_LONG_FORM_FLAG        0x80  // 8th bit set
 #define DER_FIRST_BYTE_VALUE_MASK 0x7f
 
@@ -95,36 +92,17 @@ static bool get_der_value_as_uint8(const uint8_t *payload,
 }
 
 /**
- * Calls the proper handler for the given TLV data
+ * Handle generating the hash of the TLV payload (minus the signature itself)
  *
- * Checks if there is a proper handler function for the given TLV tag and then calls it
- *
- * @param[in] handlers array of TLV handlers
- * @param[in] handler_count number of TLV handlers
- * @param[in,out] param pointer to parameter passed to TLV handlers
- * @return the index of the matching handler, -1 in case of an error
+ * @param[in] data the TLV data
+ * @param[in,out] sig the signature context
+ * @param[in] buf the raw TLV buffer
+ * @param[in] buf_size size of the buffer
  */
-static int handle_tlv_data(const s_tlv_handler *handlers,
-                           int handler_count,
-                           const s_tlv_data *data,
-                           void *param) {
-    f_tlv_handler *fptr;
-
-    // check if a handler exists for this tag
-    for (int idx = 0; idx < handler_count; ++idx) {
-        if (handlers[idx].tag == data->tag) {
-            fptr = PIC(handlers[idx].func);
-            if (!(*fptr)(data, param)) {
-                PRINTF("Error while handling tag 0x%x\n", handlers[idx].tag);
-                break;
-            }
-            return idx;
-        }
-    }
-    return -1;
-}
-
-static void handle_sign(s_tlv_data *data, s_tlv_sig *sig, const uint8_t *buf, size_t buf_size) {
+static void handle_sign(const s_tlv_data *data,
+                        s_tlv_sig *sig,
+                        const uint8_t *buf,
+                        size_t buf_size) {
     if (sig != NULL) {
         if (data->tag != sig->tag) {
             hash_nbytes(buf, buf_size, sig->ctx);
@@ -139,26 +117,21 @@ static void handle_sign(s_tlv_data *data, s_tlv_sig *sig, const uint8_t *buf, si
  *
  * @param[in] payload the raw TLV payload
  * @param[in] payload_size size of payload
- * @param[in] handlers array of TLV handlers
- * @param[in] handler_count number of TLV handlers
- * @param[in,out] param pointer to parameter passed to TLV handlers
+ * @param[in] handler TLV handler function
+ * @param[in,out] param pointer to parameter passed to TLV handler
  * @param[in,out] sig the signature information (optional)
  * @return whether it was successful
  */
 bool parse_tlv(const uint8_t *payload,
                size_t payload_size,
-               const s_tlv_handler *handlers,
-               uint8_t handler_count,
-               void *param,
+               f_tlv_handler *handler,
+               s_tlv_handler_param *param,
                s_tlv_sig *sig) {
-    uint8_t occurences[handler_count];
     e_tlv_step step = TLV_TAG;
     s_tlv_data data;
     size_t offset = 0;
     size_t tag_start_off;
-    int handler_idx;
 
-    memset(occurences, 0, sizeof(occurences[0]) * handler_count);
     // handle TLV payload
     while (offset < payload_size) {
         switch (step) {
@@ -182,11 +155,9 @@ bool parse_tlv(const uint8_t *payload,
                     return false;
                 }
                 data.value = &payload[offset];
-                handler_idx = handle_tlv_data(handlers, handler_count, &data, param);
-                if (handler_idx == -1) {
+                if (!handler(&data, param)) {
                     return false;
                 }
-                occurences[handler_idx] += 1;
                 offset += data.length;
                 handle_sign(&data, sig, &payload[tag_start_off], offset - tag_start_off);
                 step = TLV_TAG;
@@ -194,11 +165,6 @@ bool parse_tlv(const uint8_t *payload,
 
             default:
                 return false;
-        }
-    }
-    for (uint8_t i = 0; i < handler_count; ++i) {
-        if (handlers[i].required && (occurences[i] == 0)) {
-            return false;
         }
     }
     return true;

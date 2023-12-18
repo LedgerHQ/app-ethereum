@@ -127,7 +127,7 @@ void handleProvideErc20TokenInformation(uint8_t p1,
     }
     tickerLength = workBuffer[offset++];
     dataLength--;
-    if ((tickerLength + 1) >= sizeof(token->ticker)) {
+    if ((tickerLength + 1) > sizeof(token->ticker)) {
         THROW(0x6A80);
     }
     if (dataLength < tickerLength + 20 + 4 + 4) {

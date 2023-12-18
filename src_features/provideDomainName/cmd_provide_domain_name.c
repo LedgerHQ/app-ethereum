@@ -302,10 +302,31 @@ static bool handle_address(const s_tlv_data *data, s_tlv_handler_param *param) {
     return true;
 }
 
+static bool hash_payload(const s_tlv_data *data, cx_hash_t *hash_ctx) {
+    uint8_t buf[5];
+    size_t len;
+
+    if (data->tag != SIGNATURE) {
+        if ((len = der_encode_value(buf, sizeof(buf), data->tag)) == 0) {
+            return false;
+        }
+        hash_nbytes(buf, len, hash_ctx);
+        if ((len = der_encode_value(buf, sizeof(buf), data->length)) == 0) {
+            return false;
+        }
+        hash_nbytes(buf, len, hash_ctx);
+        hash_nbytes(data->value, data->length, hash_ctx);
+    }
+    return true;
+}
+
 static bool tlv_handler(const s_tlv_data *data, s_tlv_handler_param *param) {
     bool ret = false;
     int idx = -1;
 
+    if (!hash_payload(data, (cx_hash_t *) &param->sig_ctx.hash_ctx)) {
+        return false;
+    }
     switch (data->tag) {
         case STRUCT_TYPE:
             idx = 0;
@@ -451,12 +472,11 @@ static bool all_tags_found_once(const uint8_t *counters) {
 
 static bool handle_all_received(void) {
     s_tlv_handler_param handler_param = {0};
-    s_tlv_sig sig = {.tag = SIGNATURE, .ctx = (cx_hash_t *) &handler_param.sig_ctx.hash_ctx};
 
     g_domain_name_info.name = g_domain_name;
     handler_param.domain_name_info = &g_domain_name_info;
     cx_sha256_init(&handler_param.sig_ctx.hash_ctx);
-    if (!parse_tlv(g_payload, g_payload_size, &tlv_handler, &handler_param, &sig) ||
+    if (!parse_tlv(g_payload, g_payload_size, &tlv_handler, &handler_param) ||
         !all_tags_found_once(handler_param.counters) || !verify_signature(&handler_param.sig_ctx)) {
         free_payload();
         roll_challenge();  // prevent brute-force guesses

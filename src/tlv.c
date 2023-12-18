@@ -12,47 +12,78 @@
 
 typedef enum { TLV_TAG, TLV_LENGTH, TLV_VALUE } e_tlv_step;
 
-/** Parse DER-encoded value
+/** Decode DER-encoded value
  *
- * Parses a DER-encoded value (up to 4 bytes long)
+ * Decode a DER-encoded value (up to 4 bytes long)
  * https://en.wikipedia.org/wiki/X.690
  *
  * @param[in] payload the TLV payload
  * @param[in] payload_size the size of the payload
- * @param[in,out] offset the payload offset
- * @param[out] value the parsed value
- * @return whether it was successful
+ * @param[out] value the decoded value
+ * @return how many bytes were read from the payload, 0 if unsuccessful
  */
-static bool parse_der_value(const uint8_t *payload,
-                            size_t payload_size,
-                            size_t *offset,
-                            uint32_t *value) {
-    bool ret = false;
+static size_t der_decode_value(const uint8_t *payload, size_t payload_size, uint32_t *value) {
+    size_t ret = 0;
     uint8_t byte_length;
     uint8_t buf[sizeof(*value)];
 
     if (value != NULL) {
-        if (payload[*offset] & DER_LONG_FORM_FLAG) {  // long form
-            byte_length = payload[*offset] & DER_FIRST_BYTE_VALUE_MASK;
-            *offset += 1;
-            if ((*offset + byte_length) > payload_size) {
+        if (payload[0] & DER_LONG_FORM_FLAG) {  // long form
+            byte_length = payload[0] & DER_FIRST_BYTE_VALUE_MASK;
+            ret += 1;
+            if ((1 + byte_length) > payload_size) {
                 PRINTF("TLV payload too small for DER encoded value\n");
+                return 0;
             } else {
-                if (byte_length > sizeof(buf) || byte_length == 0) {
+                if ((byte_length > sizeof(buf)) || (byte_length == 0)) {
                     PRINTF("Unexpectedly long DER-encoded value (%u bytes)\n", byte_length);
+                    return 0;
                 } else {
                     memset(buf, 0, (sizeof(buf) - byte_length));
-                    memcpy(buf + (sizeof(buf) - byte_length), &payload[*offset], byte_length);
+                    memcpy(buf + (sizeof(buf) - byte_length), payload, byte_length);
                     *value = U4BE(buf, 0);
-                    *offset += byte_length;
-                    ret = true;
+                    ret += byte_length;
                 }
             }
         } else {  // short form
-            *value = payload[*offset];
-            *offset += 1;
-            ret = true;
+            *value = *payload;
+            ret += 1;
         }
+    }
+    return ret;
+}
+
+/** DER-encode value
+ *
+ * Encode a value in DER (up to 4 bytes long)
+ * https://en.wikipedia.org/wiki/X.690
+ *
+ * @param[out] payload the TLV payload
+ * @param[in] payload_size the size of the payload
+ * @param[in] value the value to encode
+ * @return how many bytes were written in the payload, 0 if unsuccessful
+ */
+size_t der_encode_value(uint8_t *payload, size_t payload_size, uint32_t value) {
+    size_t ret = 1;
+    uint8_t buf[sizeof(value)];
+    uint8_t byte_length = sizeof(buf);
+
+    if ((payload == NULL) || (payload_size == 0)) {
+        return 0;
+    }
+    if (value > DER_FIRST_BYTE_VALUE_MASK) {
+        U4BE_ENCODE(buf, 0, value);
+        for (int idx = 0; buf[idx] == 0; ++idx) {
+            byte_length -= 1;
+        }
+        if ((1 + byte_length) > payload_size) {
+            return 0;
+        }
+        payload[0] = DER_LONG_FORM_FLAG | byte_length;
+        memcpy(&payload[1], &buf[sizeof(buf) - byte_length], byte_length);
+        ret += byte_length;
+    } else {
+        payload[0] = (uint8_t) value;
     }
     return ret;
 }
@@ -66,48 +97,27 @@ static bool parse_der_value(const uint8_t *payload,
  * @param[in] payload_size size of the payload
  * @param[in,out] offset
  * @param[out] value the parsed value
- * @return whether it was successful
+ * @return how many bytes in the payload the value took, 0 if unsuccessful
  */
-static bool get_der_value_as_uint8(const uint8_t *payload,
-                                   size_t payload_size,
-                                   size_t *offset,
-                                   uint8_t *value) {
-    bool ret = false;
+static size_t get_der_value_as_uint8(const uint8_t *payload, size_t payload_size, uint8_t *value) {
+    size_t ret = 0;
     uint32_t tmp_value;
 
     if (value != NULL) {
-        if (!parse_der_value(payload, payload_size, offset, &tmp_value)) {
+        ret = der_decode_value(payload, payload_size, &tmp_value);
+        if (ret == 0) {
             apdu_response_code = APDU_RESPONSE_INVALID_DATA;
         } else {
             if (tmp_value <= UINT8_MAX) {
                 *value = tmp_value;
-                ret = true;
             } else {
                 apdu_response_code = APDU_RESPONSE_INVALID_DATA;
                 PRINTF("TLV DER-encoded value larger than 8 bits\n");
+                return 0;
             }
         }
     }
     return ret;
-}
-
-/**
- * Handle generating the hash of the TLV payload (minus the signature itself)
- *
- * @param[in] data the TLV data
- * @param[in,out] sig the signature context
- * @param[in] buf the raw TLV buffer
- * @param[in] buf_size size of the buffer
- */
-static void handle_sign(const s_tlv_data *data,
-                        s_tlv_sig *sig,
-                        const uint8_t *buf,
-                        size_t buf_size) {
-    if (sig != NULL) {
-        if (data->tag != sig->tag) {
-            hash_nbytes(buf, buf_size, sig->ctx);
-        }
-    }
 }
 
 /**
@@ -119,32 +129,32 @@ static void handle_sign(const s_tlv_data *data,
  * @param[in] payload_size size of payload
  * @param[in] handler TLV handler function
  * @param[in,out] param pointer to parameter passed to TLV handler
- * @param[in,out] sig the signature information (optional)
  * @return whether it was successful
  */
 bool parse_tlv(const uint8_t *payload,
                size_t payload_size,
                f_tlv_handler *handler,
-               s_tlv_handler_param *param,
-               s_tlv_sig *sig) {
+               s_tlv_handler_param *param) {
     e_tlv_step step = TLV_TAG;
     s_tlv_data data;
     size_t offset = 0;
-    size_t tag_start_off;
+    size_t incr;
 
     // handle TLV payload
     while (offset < payload_size) {
         switch (step) {
             case TLV_TAG:
-                tag_start_off = offset;
-                if (!get_der_value_as_uint8(payload, payload_size, &offset, &data.tag)) {
+                incr = get_der_value_as_uint8(&payload[offset], payload_size - offset, &data.tag);
+                if (incr == 0) {
                     return false;
                 }
                 step = TLV_LENGTH;
                 break;
 
             case TLV_LENGTH:
-                if (!get_der_value_as_uint8(payload, payload_size, &offset, &data.length)) {
+                incr =
+                    get_der_value_as_uint8(&payload[offset], payload_size - offset, &data.length);
+                if (incr == 0) {
                     return false;
                 }
                 step = TLV_VALUE;
@@ -158,14 +168,14 @@ bool parse_tlv(const uint8_t *payload,
                 if (!handler(&data, param)) {
                     return false;
                 }
-                offset += data.length;
-                handle_sign(&data, sig, &payload[tag_start_off], offset - tag_start_off);
+                incr = data.length;
                 step = TLV_TAG;
                 break;
 
             default:
                 return false;
         }
+        offset += incr;
     }
     return true;
 }

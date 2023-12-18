@@ -15,15 +15,11 @@ typedef struct tlv_handler_param s_tlv_handler_param;
 
 typedef bool(f_tlv_handler)(const s_tlv_data *data, s_tlv_handler_param *param);
 
-typedef struct {
-    uint8_t tag;
-    cx_hash_t *ctx;
-} s_tlv_sig;
+size_t der_encode_value(uint8_t *payload, size_t payload_size, uint32_t value);
 
 bool parse_tlv(const uint8_t *payload,
                size_t payload_size,
                f_tlv_handler *handler,
-               s_tlv_handler_param *param,
-               s_tlv_sig *sig);
+               s_tlv_handler_param *param);
 
 #endif  // TLV_H_

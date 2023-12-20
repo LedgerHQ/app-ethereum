@@ -302,6 +302,13 @@ static bool handle_address(const s_tlv_data *data, s_tlv_handler_param *param) {
     return true;
 }
 
+/**
+ * Hash TLV payload
+ *
+ * @param[in] data TLV data
+ * @param[in] hash_ctx hashing context
+ * @return whether it was successful
+ */
 static bool hash_payload(const s_tlv_data *data, cx_hash_t *hash_ctx) {
     uint8_t buf[5];
     size_t len;
@@ -320,6 +327,17 @@ static bool hash_payload(const s_tlv_data *data, cx_hash_t *hash_ctx) {
     return true;
 }
 
+
+/**
+ * Callback for the TLV parser
+ *
+ * In charger of callback the right handler function for each tag
+ * Also counts how many times each tag is found.
+ *
+ * @param[in] data TLV data that was parsed
+ * @param[in,out] param parameter given to the TLV parser
+ * @return whether it was successful
+ */
 static bool tlv_handler(const s_tlv_data *data, s_tlv_handler_param *param) {
     bool ret = false;
     int idx = -1;
@@ -439,30 +457,43 @@ static void free_payload(void) {
     g_payload_expected_size = 0;
 }
 
-static bool handle_first_chunk(const uint8_t **data, uint8_t *length) {
+
+/**
+ * Handler for the first chunk
+ *
+ * Allocates payload in RAM, initializes global variables
+ * @param[in] data APDU payload
+ * @param[in] length payload length
+ * @return how many bytes in the payload were processed, 0 if unsuccessful
+ */
+static size_t handle_first_chunk(const uint8_t *data, uint8_t length) {
     // check if no payload is already in memory
     if (g_payload != NULL) {
         free_payload();
         apdu_response_code = APDU_RESPONSE_INVALID_P1_P2;
-        return false;
+        return 0;
     }
 
     // check if we at least get the size
-    if (*length < sizeof(g_payload_expected_size)) {
+    if (length < sizeof(g_payload_expected_size)) {
         apdu_response_code = APDU_RESPONSE_INVALID_DATA;
-        return false;
+        return 0;
     }
-    if (!alloc_payload(U2BE(*data, 0))) {
+    if (!alloc_payload(U2BE(data, 0))) {
         apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
-        return false;
+        return 0;
     }
 
     // skip the size so we can process it like a following chunk
-    *data += sizeof(g_payload_expected_size);
-    *length -= sizeof(g_payload_expected_size);
-    return true;
+    return sizeof(g_payload_expected_size);
 }
 
+/**
+ * Check if all tags have been found once
+ *
+ * @param[in] counters array of counters
+ * @return whether all counters were found once
+ */
 static bool all_tags_found_once(const uint8_t *counters) {
     for (size_t i = 0; i < TAG_COUNT; ++i) {
         if (counters[i] != 1) return false;
@@ -470,6 +501,11 @@ static bool all_tags_found_once(const uint8_t *counters) {
     return true;
 }
 
+/**
+ * Handler for once the whole TLV payload has been received
+ *
+ * @return whether it was successful
+ */
 static bool handle_all_received(void) {
     s_tlv_handler_param handler_param = {0};
 
@@ -502,9 +538,11 @@ static bool handle_all_received(void) {
  * @param[in] length payload size
  */
 void handle_provide_domain_name(uint8_t p1, uint8_t p2, const uint8_t *data, uint8_t length) {
+    size_t offset = 0;
+
     (void) p2;
     if (p1 == P1_FIRST_CHUNK) {
-        if (!handle_first_chunk(&data, &length)) {
+        if ((offset = handle_first_chunk(data, length)) == 0) {
             return response_to_domain_name(false, 0);
         }
     } else {
@@ -515,15 +553,15 @@ void handle_provide_domain_name(uint8_t p1, uint8_t p2, const uint8_t *data, uin
         }
     }
 
-    if ((g_payload_size + length) > g_payload_expected_size) {
+    if ((g_payload_size + (length - offset)) > g_payload_expected_size) {
         apdu_response_code = APDU_RESPONSE_INVALID_DATA;
         free_payload();
         PRINTF("TLV payload size mismatch!\n");
         return response_to_domain_name(false, 0);
     }
     // feed into tlv payload
-    memcpy(g_payload + g_payload_size, data, length);
-    g_payload_size += length;
+    memcpy(g_payload + g_payload_size, data + offset, length - offset);
+    g_payload_size += (length - offset);
 
     // everything has been received
     if (g_payload_size == g_payload_expected_size) {

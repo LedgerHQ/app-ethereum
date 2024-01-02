@@ -78,6 +78,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 58008, .name = "Sepolia", .ticker = "ETH"},
     {.chain_id = 1907, .name = "Bitcichain", .ticker = "BITCI"},
     {.chain_id = 1116, .name = "Core", .ticker = "CORE"},
+    {.chain_id = 7171, .name = "Bitrock Mainnet", .ticker = "BROCK"},
 };
 
 static const network_info_t *get_network_from_chain_id(const uint64_t *chain_id) {

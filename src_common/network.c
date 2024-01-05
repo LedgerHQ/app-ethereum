@@ -53,9 +53,9 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 19, .name = "Songbird", .ticker = "SGB"},
     {.chain_id = 73799, .name = "Volta", .ticker = "VOLTA"},
     {.chain_id = 25, .name = "Cronos", .ticker = "CRO"},
-    {.chain_id = 534354, .name = "Scroll (Pre-Alpha)", .ticker = "SCR"},
-    {.chain_id = 534353, .name = "Scroll (Goerli)", .ticker = "SCR"},
-    {.chain_id = 534352, .name = "Scroll", .ticker = "SCR"},
+    {.chain_id = 534353, .name = "Scroll Alpha", .ticker = "ETH"},
+    {.chain_id = 534351, .name = "Scroll Sepolia", .ticker = "ETH"},
+    {.chain_id = 534352, .name = "Scroll", .ticker = "ETH"},
     {.chain_id = 321, .name = "KCC", .ticker = "KCS"},
     {.chain_id = 30, .name = "Rootstock", .ticker = "RBTC"},
     {.chain_id = 9001, .name = "Evmos", .ticker = "EVMOS"},
@@ -76,6 +76,11 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 1101, .name = "Polygon zkEVM", .ticker = "ETH"},
     {.chain_id = 8453, .name = "Base", .ticker = "ETH"},
     {.chain_id = 58008, .name = "Sepolia", .ticker = "ETH"},
+    {.chain_id = 1907, .name = "Bitcichain", .ticker = "BITCI"},
+    {.chain_id = 1116, .name = "Core", .ticker = "CORE"},
+    {.chain_id = 7171, .name = "Bitrock Mainnet", .ticker = "BROCK"},
+    {.chain_id = 10507, .name = "Numbers Protocol", .ticker = "NUM"},
+    {.chain_id = 59144, .name = "Linea", .ticker = "ETH"},
 };
 
 static const network_info_t *get_network_from_chain_id(const uint64_t *chain_id) {

@@ -46,3 +46,6 @@ Home = "https://github.com/LedgerHQ/app-ethereum"
 
 [tool.mypy]
 ignore_missing_imports = true
+
+[tool.flake8]
+max-line-length = 120

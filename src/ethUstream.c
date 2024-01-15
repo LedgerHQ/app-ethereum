@@ -19,7 +19,7 @@
 #include <string.h>
 
 #include "ethUstream.h"
-#include "ethUtils.h"
+#include "rlp_utils.h"
 #include "utils.h"
 
 #define MAX_INT256  32

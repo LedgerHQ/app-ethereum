@@ -90,7 +90,7 @@ def main(output_dir: str) -> bool:
 
     # get chain IDs and network names
     expr = r"{\.chain_id = ([0-9]*), \.name = \"(.*)\", \.ticker = \"(.*)\"},"
-    with open("src_common/network.c") as f:
+    with open("src/network.c") as f:
         for line in f.readlines():
             line = line.strip()
             if line.startswith("{") and line.endswith("},"):

@@ -6,6 +6,7 @@
 #include "utils.h"
 #include "common_ui.h"
 #include "os_io_seproxyhal.h"
+#include "network.h"
 
 // Supported internal plugins
 #define ERC721_STR  "ERC721"

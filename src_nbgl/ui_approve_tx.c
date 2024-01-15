@@ -8,6 +8,7 @@
 #include "plugins.h"
 #include "domain_name.h"
 #include "network_icons.h"
+#include "network.h"
 
 #define TEXT_TX "transaction"
 // 1 more than actually displayed on screen, because of calculations in StaticReview

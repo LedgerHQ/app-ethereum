@@ -84,10 +84,6 @@ static __attribute__((no_instrument_function)) inline int ismaxint(uint8_t *buf,
     return 1;
 }
 
-uint64_t get_tx_chain_id(void);
-
-const char *get_displayable_ticker(const uint64_t *chain_id);
-
 static const char HEXDIGITS[] = "0123456789abcdef";
 
 #endif  // _ETHUTILS_H_

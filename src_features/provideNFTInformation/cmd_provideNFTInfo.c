@@ -6,6 +6,7 @@
 #include "utils.h"
 #include "common_ui.h"
 #include "os_io_seproxyhal.h"
+#include "network.h"
 
 #define TYPE_SIZE        1
 #define VERSION_SIZE     1

@@ -1,4 +1,5 @@
 #include "eth_plugin_handler.h"
+#include "eth_plugin_internal.h"
 #include "ui_callbacks.h"
 
 void plugin_ui_get_id(void) {

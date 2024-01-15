@@ -15,8 +15,7 @@
  *  limitations under the License.
  ********************************************************************************/
 
-#ifndef _ETHUTILS_H_
-#define _ETHUTILS_H_
+#pragma once
 
 #include <stdint.h>
 
@@ -40,54 +39,6 @@ bool rlpDecodeLength(uint8_t *buffer, uint32_t *fieldLength, uint32_t *offset, b
 
 bool rlpCanDecode(uint8_t *buffer, uint32_t bufferLength, bool *valid);
 
-bool getEthAddressFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out, cx_sha3_t *sha3Context);
-
-bool getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey,
-                                char *out,
-                                cx_sha3_t *sha3Context,
-                                uint64_t chainId);
-
-bool u64_to_string(uint64_t src, char *dst, uint8_t dst_size);
-
-bool getEthAddressStringFromBinary(uint8_t *address,
-                                   char *out,
-                                   cx_sha3_t *sha3Context,
-                                   uint64_t chainId);
-
-bool getEthDisplayableAddress(uint8_t *in,
-                              char *out,
-                              size_t out_len,
-                              cx_sha3_t *sha3,
-                              uint64_t chainId);
-
-bool adjustDecimals(const char *src,
-                    size_t srcLength,
-                    char *target,
-                    size_t targetLength,
-                    uint8_t decimals);
-
-static __attribute__((no_instrument_function)) inline int allzeroes(const void *buf, size_t n) {
-    uint8_t *p = (uint8_t *) buf;
-    for (size_t i = 0; i < n; ++i) {
-        if (p[i]) {
-            return 0;
-        }
-    }
-    return 1;
-}
-static __attribute__((no_instrument_function)) inline int ismaxint(uint8_t *buf, int n) {
-    for (int i = 0; i < n; ++i) {
-        if (buf[i] != 0xff) {
-            return 0;
-        }
-    }
-    return 1;
-}
-
 uint64_t get_tx_chain_id(void);
 
 const char *get_displayable_ticker(const uint64_t *chain_id);
-
-static const char HEXDIGITS[] = "0123456789abcdef";
-
-#endif  // _ETHUTILS_H_

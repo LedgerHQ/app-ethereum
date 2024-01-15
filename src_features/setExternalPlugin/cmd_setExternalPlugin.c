@@ -3,7 +3,9 @@
 #include "tokens.h"
 #include "eth_plugin_interface.h"
 #include "eth_plugin_internal.h"
+#include "plugin_utils.h"
 #include "common_ui.h"
+#include "public_keys.h"
 #include "os_io_seproxyhal.h"
 
 void handleSetExternalPlugin(uint8_t p1,

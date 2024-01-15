@@ -17,17 +17,27 @@
 
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
+
+#include "os.h"
+#include "cx.h"
 #include "utils.h"
 
-#define MAX_TICKER_LEN 11  // 10 characters + '\0'
-#define MAX_ITEMS      2
+typedef struct txInt256_t {
+    uint8_t value[INT256_LENGTH];
+    uint8_t length;
+} txInt256_t;
 
-typedef struct tokenDefinition_t {
-    uint8_t address[ADDRESS_LENGTH];  // must be first item
-#ifdef HAVE_CONTRACT_NAME_IN_DESCRIPTOR
-    uint8_t contractName[ADDRESS_LENGTH];
-#endif
-    char ticker[MAX_TICKER_LEN];
-    uint8_t decimals;
-} tokenDefinition_t;
+typedef struct txContent_t {
+    txInt256_t gasprice;  // Used as MaxFeePerGas when dealing with EIP1559 transactions.
+    txInt256_t startgas;  // Also known as `gasLimit`.
+    txInt256_t value;
+    txInt256_t nonce;
+    txInt256_t chainID;
+    uint8_t destination[ADDRESS_LENGTH];
+    uint8_t destinationLength;
+    uint8_t v[8];
+    uint8_t vLength;
+    bool dataPresent;
+} txContent_t;

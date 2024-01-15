@@ -4,6 +4,7 @@
 #include "erc721_plugin.h"
 #include "eth_plugin_internal.h"
 #include "eth_plugin_interface.h"
+#include "plugin_utils.h"
 #include "ethUtils.h"
 #include "eth_plugin_handler.h"
 

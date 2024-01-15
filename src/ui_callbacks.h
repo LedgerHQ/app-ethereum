@@ -1,7 +1,7 @@
 #ifndef _UI_CALLBACKS_H_
 #define _UI_CALLBACKS_H_
 
-#include "shared_context.h"
+#include "extra_info.h"
 #include "ux.h"
 
 #ifdef HAVE_NBGL

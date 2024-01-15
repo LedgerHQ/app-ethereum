@@ -1,5 +1,6 @@
 #ifdef HAVE_NFT_SUPPORT
 
+#include "plugin_utils.h"
 #include "erc721_plugin.h"
 #include "eth_plugin_internal.h"
 

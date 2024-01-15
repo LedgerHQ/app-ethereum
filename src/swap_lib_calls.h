@@ -8,8 +8,8 @@
 
 #include "stdbool.h"
 #include "chainConfig.h"
-#include "shared_context.h"
 #include "stdint.h"
+#include "caller_api.h"
 
 #define RUN_APPLICATION 1
 

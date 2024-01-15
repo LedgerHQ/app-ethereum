@@ -102,7 +102,7 @@ def merge_headers(sources, nodes_to_extract):
         body
     ])
 
-    with open("ethereum-plugin-sdk/include/eth_internals.h", 'w') as f:
+    with open("ethereum-plugin-sdk2/include/eth_internals.h", 'w') as f:
         f.write(eth_internals_h)
 
 
@@ -128,7 +128,7 @@ def copy_header(header_to_copy, merged_headers):
         include_index+1, '#include "eth_internals.h"\n')
 
     # dump to file
-    with open("ethereum-plugin-sdk/include/eth_plugin_interface.h", 'w') as f:
+    with open("ethereum-plugin-sdk2/include/eth_plugin_interface.h", 'w') as f:
         f.writelines(eth_plugin_interface_h)
 
 
@@ -145,7 +145,7 @@ def merge_c_files(sources, nodes_to_extract):
         body
     ])
 
-    with open("ethereum-plugin-sdk/include/eth_internals.c", 'w') as f:
+    with open("ethereum-plugin-sdk2/include/eth_internals.c", 'w') as f:
         f.write(eth_internals_h)
 
 
@@ -155,14 +155,12 @@ if __name__ == "__main__":
     # one, copied to sdk
     headers_to_merge = [
         "src/tokens.h",
-        "src/chainConfig.h",
         "src/utils.h",
-        "src_common/ethUstream.h",
-        "src_common/ethUtils.h",
-        "src/shared_context.h",
-        "src/eth_plugin_internal.h",
+        "src/tx_content.h",
         "src/nft.h",
-        "src/swap_lib_calls.h",
+        "src/plugin_utils.h",
+        "src/caller_api.h",
+        "src/extra_info.h",
     ]
     nodes_to_extract = {
         "#define": ["MAX_TICKER_LEN",
@@ -171,7 +169,6 @@ if __name__ == "__main__":
                     "WEI_TO_ETHER",
                     "SELECTOR_SIZE",
                     "PARAMETER_LENGTH",
-                    "RUN_APPLICATION",
                     "COLLECTION_NAME_MAX_LEN"],
         "typedef enum": [],
         "typedef struct": ["tokenDefinition_t",
@@ -215,13 +212,14 @@ if __name__ == "__main__":
     ]
     for file in files_to_copy:
         shutil.copyfile("src_plugin_sdk/" + file,
-                        "ethereum-plugin-sdk/include/" + file)
+                        "ethereum-plugin-sdk2/include/" + file)
 
     files_to_copy = [
         "CHANGELOG.md",
         "README.md",
         "standard_plugin.mk",
+        "LICENSE",
     ]
     for file in files_to_copy:
         shutil.copyfile("src_plugin_sdk/" + file,
-                        "ethereum-plugin-sdk/" + file)
+                        "ethereum-plugin-sdk2/" + file)

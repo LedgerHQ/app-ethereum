@@ -6,6 +6,7 @@
 #include "apdu_constants.h"  // APDU return codes
 #include "context_712.h"
 #include "commands_712.h"
+#include "public_keys.h"
 #include "typed_data.h"
 #include "path.h"
 #include "ui_logic.h"

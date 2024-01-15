@@ -1,5 +1,6 @@
 #include <string.h>
 #include "eth_plugin_internal.h"
+#include "plugin_utils.h"
 #include "ethUtils.h"  // allzeroes
 
 bool erc20_plugin_available_check(void);

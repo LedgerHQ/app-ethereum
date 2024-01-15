@@ -2,6 +2,7 @@
 #include "apdu_constants.h"
 #include "tokens.h"
 #include "common_ui.h"
+#include "public_keys.h"
 #include "os_io_seproxyhal.h"
 
 #ifdef HAVE_CONTRACT_NAME_IN_DESCRIPTOR

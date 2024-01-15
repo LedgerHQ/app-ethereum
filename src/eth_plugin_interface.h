@@ -5,9 +5,8 @@
 
 #include "os.h"
 #include "cx.h"
-#include "ethUstream.h"
 #include "tokens.h"
-#include "shared_context.h"
+#include "tx_content.h"
 
 /*************************************************************************************************
  * Comments provided in this file are quick reminders on the usage of the plugin interface       *

@@ -4,6 +4,7 @@
 #include "shared_context.h"       // TODO : rewrite as independant code
 #include "eth_plugin_internal.h"  // TODO : rewrite as independant code
 #include "stark_utils.h"
+#include "plugin_utils.h"
 #include "utils.h"
 #include "ethUtils.h"
 #include "apdu_constants.h"

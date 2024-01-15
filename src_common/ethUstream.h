@@ -15,14 +15,15 @@
  *  limitations under the License.
  ********************************************************************************/
 
-#ifndef _ETHUSTREAM_H_
-#define _ETHUSTREAM_H_
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>
 
 #include "os.h"
 #include "cx.h"
+#include "utils.h"
+#include "tx_content.h"
 
 struct txContext_t;
 
@@ -36,9 +37,6 @@ typedef enum customStatus_e {
 typedef customStatus_e (*ustreamProcess_t)(struct txContext_t *context);
 
 #define TX_FLAG_TYPE   0x01
-#define ADDRESS_LENGTH 20
-#define INT128_LENGTH  16
-#define INT256_LENGTH  32
 
 // First variant of every Tx enum.
 #define RLP_NONE 0
@@ -114,24 +112,6 @@ typedef enum parserStatus_e {
     USTREAM_CONTINUE     // Used internally to signify we can keep on parsing
 } parserStatus_e;
 
-typedef struct txInt256_t {
-    uint8_t value[INT256_LENGTH];
-    uint8_t length;
-} txInt256_t;
-
-typedef struct txContent_t {
-    txInt256_t gasprice;  // Used as MaxFeePerGas when dealing with EIP1559 transactions.
-    txInt256_t startgas;  // Also known as `gasLimit`.
-    txInt256_t value;
-    txInt256_t nonce;
-    txInt256_t chainID;
-    uint8_t destination[ADDRESS_LENGTH];
-    uint8_t destinationLength;
-    uint8_t v[8];
-    uint8_t vLength;
-    bool dataPresent;
-} txContent_t;
-
 typedef struct txContext_t {
     uint8_t currentField;
     cx_sha3_t *sha3;
@@ -164,5 +144,3 @@ parserStatus_e processTx(txContext_t *context,
 parserStatus_e continueTx(txContext_t *context);
 void copyTxData(txContext_t *context, uint8_t *out, uint32_t length);
 uint8_t readTxByte(txContext_t *context);
-
-#endif  // _ETHUSTREAM_H_

@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "uint128.h"
+#include "utils.h"
 #include "uint_common.h"
 #include "ethUtils.h"  // HEXDIGITS
 

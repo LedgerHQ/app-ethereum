@@ -3,17 +3,20 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "os.h"
+#include "cx.h"
 #include "ethUstream.h"
+#include "utils.h"
 #include "tokens.h"
+#include "tx_content.h"
 #include "chainConfig.h"
 #include "nft.h"
+#include "extra_info.h"
 #ifdef HAVE_NBGL
 #include "nbgl_types.h"
 #endif
 
 #define MAX_BIP32_PATH 10
-
-#define WEI_TO_ETHER 18
 
 #define SELECTOR_LENGTH 4
 
@@ -94,11 +97,6 @@ typedef struct publicKeyContext_t {
     uint8_t chainCode[INT256_LENGTH];
     bool getChaincode;
 } publicKeyContext_t;
-
-typedef union extraInfo_t {
-    tokenDefinition_t token;
-    nftInfo_t nft;
-} extraInfo_t;
 
 typedef struct transactionContext_t {
     bip32_path_t bip32;
@@ -226,16 +224,6 @@ typedef enum {
 
 extern pluginType_t pluginType;
 
-typedef enum { CALLER_TYPE_CLONE, CALLER_TYPE_PLUGIN } e_caller_type;
-
-typedef struct caller_app_t {
-    const char *name;
-#ifdef HAVE_NBGL
-    const nbgl_icon_details_t *icon;
-#endif
-    char type;  // does not have to be set by the caller app
-} caller_app_t;
-
 extern uint8_t appState;
 #ifdef HAVE_STARKWARE
 extern bool quantumSet;
@@ -244,7 +232,6 @@ extern bool quantumSet;
 extern uint32_t eth2WithdrawalIndex;
 #endif
 
-extern caller_app_t *caller_app;
 
 void reset_app_context(void);
 const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_path_t *bip32);

@@ -1,6 +1,6 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
-#include "tokens.h"
+#include "public_keys.h"
 #include "common_ui.h"
 #include "os_io_seproxyhal.h"
 

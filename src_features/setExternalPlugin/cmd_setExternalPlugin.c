@@ -1,6 +1,6 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
-#include "tokens.h"
+#include "public_keys.h"
 #include "eth_plugin_interface.h"
 #include "eth_plugin_internal.h"
 #include "common_ui.h"

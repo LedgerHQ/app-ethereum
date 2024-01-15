@@ -17,17 +17,10 @@
 
 #pragma once
 
-#include <stdint.h>
-#include "utils.h"
+#ifdef HAVE_TOKENS_EXTRA_LIST
 
-#define MAX_TICKER_LEN 11  // 10 characters + '\0'
-#define MAX_ITEMS      2
+#define NUM_TOKENS_EXTRA 8
 
-typedef struct tokenDefinition_t {
-    uint8_t address[ADDRESS_LENGTH];  // must be first item
-#ifdef HAVE_CONTRACT_NAME_IN_DESCRIPTOR
-    uint8_t contractName[ADDRESS_LENGTH];
+extern tokenDefinition_t const TOKENS_EXTRA[NUM_TOKENS_EXTRA];
+
 #endif
-    char ticker[MAX_TICKER_LEN];
-    uint8_t decimals;
-} tokenDefinition_t;

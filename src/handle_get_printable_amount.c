@@ -1,11 +1,13 @@
+#include <stdint.h>
+#include <os.h>
+
+#include "swap_utils.h"
 #include "handle_get_printable_amount.h"
 #include "shared_context.h"
 #include "ethUtils.h"
 #include "utils.h"
 #include "uint256.h"
 #include "string.h"
-#include <stdint.h>
-#include <os.h>
 
 void handle_get_printable_amount(get_printable_amount_parameters_t* params,
                                  chain_config_t* config) {

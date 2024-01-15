@@ -154,13 +154,13 @@ if __name__ == "__main__":
     # some nodes will be extracted from these headers and merged into a new
     # one, copied to sdk
     headers_to_merge = [
-        "src/tokens.h",
-        "src/utils.h",
-        "src/tx_content.h",
-        "src/nft.h",
-        "src/plugin_utils.h",
-        "src/caller_api.h",
-        "src/extra_info.h",
+        "src_common/tokens.h",
+        "src_common/utils.h",
+        "src_common/tx_content.h",
+        "src_common/nft.h",
+        "src_common/plugin_utils.h",
+        "src_common/caller_api.h",
+        "src_common/extra_info.h",
     ]
     nodes_to_extract = {
         "#define": ["MAX_TICKER_LEN",
@@ -195,20 +195,17 @@ if __name__ == "__main__":
 
     # this header will be stripped from all #include related to previously
     # merged headers, then copied to sdk
-    copy_header("src/eth_plugin_interface.h", headers_to_merge)
+    copy_header("src_common/eth_plugin_interface.h", headers_to_merge)
 
     # extract and merge function bodies
     c_files_to_merge = [
-        "src/utils.c",
-        "src_common/ethUtils.c",
-        "src/eth_plugin_internal.c",
+        "src_common/utils.c",
+        "src_common/plugin_utils.c",
     ]
     merge_c_files(c_files_to_merge, nodes_to_extract["fn"])
 
     files_to_copy = [
         "main.c",
-        "plugin_utils.c",
-        "plugin_utils.h",
     ]
     for file in files_to_copy:
         shutil.copyfile("src_plugin_sdk/" + file,

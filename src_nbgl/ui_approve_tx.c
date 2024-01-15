@@ -6,6 +6,7 @@
 #include "ui_signing.h"
 #include "plugins.h"
 #include "domain_name.h"
+#include "caller_api.h"
 #include "network_icons.h"
 #include "network.h"
 

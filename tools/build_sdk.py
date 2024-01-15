@@ -157,9 +157,10 @@ if __name__ == "__main__":
         "src/tokens.h",
         "src/utils.h",
         "src/tx_content.h",
-        "src/shared_context.h",
         "src/eth_plugin_internal.h",
         "src/nft.h",
+        "src/extra_info.h",
+        "src/caller_api.h",
     ]
     nodes_to_extract = {
         "#define": ["MAX_TICKER_LEN",

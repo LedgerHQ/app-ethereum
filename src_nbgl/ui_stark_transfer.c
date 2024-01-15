@@ -4,7 +4,6 @@
 #include "ui_nbgl.h"
 #include "ui_signing.h"
 #include "starkDisplayUtils.h"
-#include "ethUtils.h"
 #include "network.h"
 
 #ifdef HAVE_STARKWARE

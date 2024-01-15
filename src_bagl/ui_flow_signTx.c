@@ -7,7 +7,6 @@
 #include "eth_plugin_handler.h"
 #include "ui_plugin.h"
 #include "common_ui.h"
-#include "ethUtils.h"
 #include "plugins.h"
 #include "domain_name.h"
 #include "ui_domain_name.h"

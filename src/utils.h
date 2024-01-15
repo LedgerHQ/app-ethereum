@@ -15,34 +15,82 @@
  *  limitations under the License.
  ********************************************************************************/
 
-#ifndef _UTILS_H_
-#define _UTILS_H_
+#pragma once
 
+#include <stddef.h>
 #include <stdint.h>
 
+#include "os.h"
+#include "cx.h"
 #include "uint256.h"
 
 #define ADDRESS_LENGTH 20
 #define INT128_LENGTH  16
 #define INT256_LENGTH  32
 
+#define KECCAK256_HASH_BYTESIZE 32
+
+static const char HEXDIGITS[] = "0123456789abcdef";
+
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 
-void array_hexstr(char* strbuf, const void* bin, unsigned int len);
+void array_hexstr(char *strbuf, const void *bin, unsigned int len);
 
-void convertUint128BE(const uint8_t* const data, uint32_t length, uint128_t* const target);
-void convertUint256BE(const uint8_t* const data, uint32_t length, uint256_t* const target);
-void convertUint64BEto128(const uint8_t* const data, uint32_t length, uint128_t* const target);
+void convertUint128BE(const uint8_t *const data, uint32_t length, uint128_t *const target);
+void convertUint256BE(const uint8_t *const data, uint32_t length, uint256_t *const target);
+void convertUint64BEto128(const uint8_t *const data, uint32_t length, uint128_t *const target);
 
-uint64_t u64_from_BE(const uint8_t* in, uint8_t size);
+uint64_t u64_from_BE(const uint8_t *in, uint8_t size);
 
-bool uint256_to_decimal(const uint8_t* value, size_t value_len, char* out, size_t out_len);
+bool u64_to_string(uint64_t src, char *dst, uint8_t dst_size);
 
-bool amountToString(const uint8_t* amount,
+bool uint256_to_decimal(const uint8_t *value, size_t value_len, char *out, size_t out_len);
+
+bool amountToString(const uint8_t *amount,
                     uint8_t amount_len,
                     uint8_t decimals,
-                    const char* ticker,
-                    char* out_buffer,
+                    const char *ticker,
+                    char *out_buffer,
                     size_t out_buffer_size);
 
-#endif  // _UTILS_H_
+bool adjustDecimals(const char *src,
+                    size_t srcLength,
+                    char *target,
+                    size_t targetLength,
+                    uint8_t decimals);
+
+bool getEthAddressFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out, cx_sha3_t *sha3Context);
+
+bool getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey,
+                                char *out,
+                                cx_sha3_t *sha3Context,
+                                uint64_t chainId);
+
+bool getEthAddressStringFromBinary(uint8_t *address,
+                                   char *out,
+                                   cx_sha3_t *sha3Context,
+                                   uint64_t chainId);
+
+bool getEthDisplayableAddress(uint8_t *in,
+                              char *out,
+                              size_t out_len,
+                              cx_sha3_t *sha3,
+                              uint64_t chainId);
+
+static __attribute__((no_instrument_function)) inline int allzeroes(const void *buf, size_t n) {
+    uint8_t *p = (uint8_t *) buf;
+    for (size_t i = 0; i < n; ++i) {
+        if (p[i]) {
+            return 0;
+        }
+    }
+    return 1;
+}
+static __attribute__((no_instrument_function)) inline int ismaxint(uint8_t *buf, int n) {
+    for (int i = 0; i < n; ++i) {
+        if (buf[i] != 0xff) {
+            return 0;
+        }
+    }
+    return 1;
+}

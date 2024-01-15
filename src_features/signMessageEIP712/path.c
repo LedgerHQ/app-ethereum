@@ -8,7 +8,6 @@
 #include "commands_712.h"
 #include "type_hash.h"
 #include "shared_context.h"
-#include "ethUtils.h"
 #include "mem_utils.h"
 #include "ui_logic.h"
 #include "apdu_constants.h"  // APDU response codes

@@ -4,7 +4,6 @@
 #include "erc721_plugin.h"
 #include "eth_plugin_internal.h"
 #include "eth_plugin_interface.h"
-#include "ethUtils.h"
 #include "eth_plugin_handler.h"
 
 static const uint8_t ERC721_APPROVE_SELECTOR[SELECTOR_SIZE] = {0x09, 0x5e, 0xa7, 0xb3};

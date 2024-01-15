@@ -22,7 +22,6 @@
 #include "uint256.h"
 #include "uint_common.h"
 #include "ethUstream.h"  // INT256_LENGTH
-#include "ethUtils.h"    // HEXDIGITS
 
 void readu256BE(const uint8_t *const buffer, uint256_t *const target) {
     readu128BE(buffer, &UPPER_P(target));

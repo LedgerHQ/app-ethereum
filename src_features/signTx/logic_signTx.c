@@ -7,7 +7,6 @@
 #endif
 #include "eth_plugin_handler.h"
 #include "network.h"
-#include "ethUtils.h"
 #include "common_ui.h"
 #include "ui_callbacks.h"
 #include "apdu_constants.h"

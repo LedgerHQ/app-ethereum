@@ -4,7 +4,6 @@
 #include "apdu_constants.h"
 #include "stark_utils.h"
 #include "poorstream.h"
-#include "ethUtils.h"
 #include "common_ui.h"
 #include "os_io_seproxyhal.h"
 

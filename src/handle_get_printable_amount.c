@@ -4,7 +4,6 @@
 #include "swap_utils.h"
 #include "handle_get_printable_amount.h"
 #include "shared_context.h"
-#include "ethUtils.h"
 #include "utils.h"
 #include "uint256.h"
 #include "string.h"

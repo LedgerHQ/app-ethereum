@@ -4,7 +4,6 @@
 #include "eth_plugin_internal.h"
 #include "eth_plugin_handler.h"
 #include "shared_context.h"
-#include "ethUtils.h"
 #include "utils.h"
 
 void getEth2PublicKey(uint32_t *bip32Path, uint8_t bip32PathLength, uint8_t *out);

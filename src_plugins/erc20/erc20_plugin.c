@@ -2,7 +2,6 @@
 #include "eth_plugin_internal.h"
 #include "eth_plugin_handler.h"
 #include "shared_context.h"
-#include "ethUtils.h"
 #include "ethUstream.h"
 #include "utils.h"
 

@@ -3,7 +3,6 @@
 #include "utils.h"
 #include "common_ui.h"
 #include "common_712.h"
-#include "ethUtils.h"
 
 void handleSignEIP712Message_v0(uint8_t p1,
                                 uint8_t p2,

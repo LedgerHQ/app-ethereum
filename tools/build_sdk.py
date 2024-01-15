@@ -157,7 +157,6 @@ if __name__ == "__main__":
         "src/tokens.h",
         "src/utils.h",
         "src/tx_content.h",
-        "src/ethUtils.h",
         "src/shared_context.h",
         "src/eth_plugin_internal.h",
         "src/nft.h",
@@ -200,7 +199,6 @@ if __name__ == "__main__":
     # extract and merge function bodies
     c_files_to_merge = [
         "src/utils.c",
-        "src/ethUtils.c",
         "src/eth_plugin_internal.c",
     ]
     merge_c_files(c_files_to_merge, nodes_to_extract["fn"])

@@ -4,7 +4,6 @@
 #include "erc1155_plugin.h"
 #include "eth_plugin_internal.h"
 #include "utils.h"
-#include "ethUtils.h"
 
 static void handle_safe_transfer(ethPluginProvideParameter_t *msg, erc1155_context_t *context) {
     uint8_t new_value[INT256_LENGTH];

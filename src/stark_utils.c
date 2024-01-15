@@ -2,7 +2,6 @@
 
 #include "stark_crypto.h"
 #include "shared_context.h"
-#include "ethUtils.h"
 #include "uint256.h"
 #include "uint_common.h"
 

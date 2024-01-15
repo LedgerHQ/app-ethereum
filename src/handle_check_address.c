@@ -1,7 +1,6 @@
 #include "handle_check_address.h"
 #include "os.h"
 #include "shared_context.h"
-#include "ethUtils.h"
 #include "string.h"
 
 #define ZERO(x) explicit_bzero(&x, sizeof(x))

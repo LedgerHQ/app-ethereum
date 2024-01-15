@@ -2,7 +2,6 @@
 #include "ui_nbgl.h"
 #include "common_712.h"
 #include "network.h"
-#include "ethUtils.h"
 #include "ui_message_signing.h"
 #include "ui_signing.h"
 

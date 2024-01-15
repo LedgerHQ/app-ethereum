@@ -156,7 +156,7 @@ if __name__ == "__main__":
     headers_to_merge = [
         "src/tokens.h",
         "src/utils.h",
-        "src/ethUstream.h",
+        "src/tx_content.h",
         "src/ethUtils.h",
         "src/shared_context.h",
         "src/eth_plugin_internal.h",

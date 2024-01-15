@@ -22,6 +22,10 @@
 
 #include "uint256.h"
 
+#define ADDRESS_LENGTH 20
+#define INT128_LENGTH  16
+#define INT256_LENGTH  32
+
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 
 void array_hexstr(char* strbuf, const void* bin, unsigned int len);

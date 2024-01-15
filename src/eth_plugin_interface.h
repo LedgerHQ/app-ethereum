@@ -5,7 +5,6 @@
 
 #include "os.h"
 #include "cx.h"
-#include "ethUstream.h"
 #include "tokens.h"
 #include "shared_context.h"
 

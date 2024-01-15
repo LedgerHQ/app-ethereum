@@ -1,6 +1,7 @@
 #include <string.h>
 #include "eth_plugin_handler.h"
 #include "eth_plugin_internal.h"
+#include "plugin_utils.h"
 #include "shared_context.h"
 #include "network.h"
 

@@ -2,6 +2,7 @@
 
 #include <string.h>
 #include "erc1155_plugin.h"
+#include "plugin_utils.h"
 #include "eth_plugin_internal.h"
 #include "eth_plugin_handler.h"
 

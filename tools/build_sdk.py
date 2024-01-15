@@ -155,7 +155,6 @@ if __name__ == "__main__":
     # one, copied to sdk
     headers_to_merge = [
         "src/tokens.h",
-        "src/chainConfig.h",
         "src/utils.h",
         "src/ethUstream.h",
         "src/ethUtils.h",
@@ -220,6 +219,7 @@ if __name__ == "__main__":
     files_to_copy = [
         "CHANGELOG.md",
         "README.md",
+        "LICENSE",
         "standard_plugin.mk",
     ]
     for file in files_to_copy:

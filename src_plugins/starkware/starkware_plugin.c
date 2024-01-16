@@ -1,5 +1,6 @@
 #include <string.h>
 #include "os_io_seproxyhal.h"
+#include "uint256.h"
 #include "eth_plugin_interface.h"
 #include "shared_context.h"       // TODO : rewrite as independant code
 #include "eth_plugin_internal.h"  // TODO : rewrite as independant code

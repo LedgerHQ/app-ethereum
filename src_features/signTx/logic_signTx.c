@@ -5,6 +5,7 @@
 #ifdef HAVE_STARKWARE
 #include "stark_utils.h"
 #endif
+#include "uint256.h"
 #include "eth_plugin_handler.h"
 #include "network.h"
 #include "common_ui.h"

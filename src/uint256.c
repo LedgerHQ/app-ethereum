@@ -21,7 +21,7 @@
 #include <string.h>
 #include "uint256.h"
 #include "uint_common.h"
-#include "ethUstream.h"  // INT256_LENGTH
+#include "common_utils.h"  // INT256_LENGTH
 
 void readu256BE(const uint8_t *const buffer, uint256_t *const target) {
     readu128BE(buffer, &UPPER_P(target));
@@ -288,4 +288,12 @@ bool tostring256_signed(const uint256_t *const number,
         }
     }
     return tostring256(number, base, out, out_length);  // positive value
+}
+
+void convertUint256BE(const uint8_t *const data, uint32_t length, uint256_t *const target) {
+    uint8_t tmp[INT256_LENGTH];
+
+    memset(tmp, 0, sizeof(tmp) - length);
+    memmove(tmp + sizeof(tmp) - length, data, length);
+    readu256BE(tmp, target);
 }

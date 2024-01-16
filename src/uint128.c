@@ -290,3 +290,21 @@ bool tostring128_signed(const uint128_t *const number,
     }
     return tostring128(number, base, out, out_length);  // positive value
 }
+
+void convertUint64BEto128(const uint8_t *const data, uint32_t length, uint128_t *const target) {
+    uint8_t tmp[INT128_LENGTH];
+    int64_t value;
+
+    value = u64_from_BE(data, length);
+    memset(tmp, ((value < 0) ? 0xff : 0), sizeof(tmp) - length);
+    memmove(tmp + sizeof(tmp) - length, data, length);
+    readu128BE(tmp, target);
+}
+
+void convertUint128BE(const uint8_t *const data, uint32_t length, uint128_t *const target) {
+    uint8_t tmp[INT128_LENGTH];
+
+    memset(tmp, 0, sizeof(tmp) - length);
+    memmove(tmp + sizeof(tmp) - length, data, length);
+    readu128BE(tmp, target);
+}

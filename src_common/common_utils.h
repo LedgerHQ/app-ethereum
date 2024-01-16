@@ -22,7 +22,6 @@
 
 #include "os.h"
 #include "cx.h"
-#include "uint256.h"
 
 #define WEI_TO_ETHER 18
 
@@ -37,10 +36,6 @@ static const char HEXDIGITS[] = "0123456789abcdef";
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 
 void array_hexstr(char *strbuf, const void *bin, unsigned int len);
-
-void convertUint128BE(const uint8_t *const data, uint32_t length, uint128_t *const target);
-void convertUint256BE(const uint8_t *const data, uint32_t length, uint256_t *const target);
-void convertUint64BEto128(const uint8_t *const data, uint32_t length, uint128_t *const target);
 
 uint64_t u64_from_BE(const uint8_t *in, uint8_t size);
 

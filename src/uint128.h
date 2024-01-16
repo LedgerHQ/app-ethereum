@@ -56,5 +56,7 @@ bool tostring128_signed(const uint128_t *const number,
                         uint32_t base,
                         char *const out,
                         uint32_t out_length);
+void convertUint64BEto128(const uint8_t *const data, uint32_t length, uint128_t *const target);
+void convertUint128BE(const uint8_t *const data, uint32_t length, uint128_t *const target);
 
 #endif  // _UINT128_H_

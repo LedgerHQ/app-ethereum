@@ -1,7 +1,7 @@
 #include "lib_standard_app/crypto_helpers.h"
 #include "os_io_seproxyhal.h"
 #include "shared_context.h"
-#include "utils.h"
+#include "common_utils.h"
 #include "common_ui.h"
 #include "handle_swap_sign_transaction.h"
 

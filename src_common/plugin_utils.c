@@ -1,6 +1,6 @@
 #include <string.h>
 
-#include "utils.h"
+#include "common_utils.h"
 #include "plugin_utils.h"
 
 void copy_address(uint8_t* dst, const uint8_t* parameter, uint8_t dst_size) {

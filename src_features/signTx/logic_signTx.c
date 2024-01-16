@@ -1,6 +1,6 @@
 #include <ctype.h>
 #include "shared_context.h"
-#include "utils.h"
+#include "common_utils.h"
 #include "feature_signTx.h"
 #ifdef HAVE_STARKWARE
 #include "stark_utils.h"

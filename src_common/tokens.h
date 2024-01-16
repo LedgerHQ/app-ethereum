@@ -18,7 +18,7 @@
 #pragma once
 
 #include <stdint.h>
-#include "utils.h"
+#include "common_utils.h"
 
 #define MAX_TICKER_LEN 11  // 10 characters + '\0'
 #define MAX_ITEMS      2

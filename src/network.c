@@ -3,7 +3,7 @@
 #include "os_pic.h"
 #include "network.h"
 #include "shared_context.h"
-#include "utils.h"
+#include "common_utils.h"
 
 typedef struct network_info_s {
     const char *name;

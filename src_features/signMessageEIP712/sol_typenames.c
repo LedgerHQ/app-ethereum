@@ -7,7 +7,7 @@
 #include "os_pic.h"
 #include "apdu_constants.h"  // APDU response codes
 #include "typed_data.h"
-#include "utils.h"  // ARRAY_SIZE
+#include "common_utils.h"  // ARRAY_SIZE
 
 // Bit indicating they are more types associated to this typename
 #define TYPENAME_MORE_TYPE (1 << 7)

@@ -155,7 +155,7 @@ if __name__ == "__main__":
     # one, copied to sdk
     headers_to_merge = [
         "src_common/tokens.h",
-        "src_common/utils.h",
+        "src_common/common_utils.h",
         "src_common/tx_content.h",
         "src_common/plugin_utils.h",
         "src_common/nft.h",
@@ -199,7 +199,7 @@ if __name__ == "__main__":
 
     # extract and merge function bodies
     c_files_to_merge = [
-        "src_common/utils.c",
+        "src_common/common_utils.c",
         "src_common/plugin_utils.c",
     ]
     merge_c_files(c_files_to_merge, nodes_to_extract["fn"])

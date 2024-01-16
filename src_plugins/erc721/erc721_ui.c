@@ -4,7 +4,7 @@
 #include "erc721_plugin.h"
 #include "eth_plugin_internal.h"
 #include "eth_plugin_interface.h"
-#include "utils.h"
+#include "common_utils.h"
 
 static void set_approval_ui(ethQueryContractUI_t *msg, erc721_context_t *context) {
     switch (msg->screenIndex) {

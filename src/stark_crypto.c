@@ -2,7 +2,7 @@
 
 #include "shared_context.h"
 #include "stark_utils.h"
-#include "utils.h"
+#include "common_utils.h"
 
 extraInfo_t *getKnownToken(uint8_t *contractAddress);
 

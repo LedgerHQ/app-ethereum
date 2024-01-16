@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <ctype.h>
-#include "utils.h"  // ARRAY_SIZE
+#include "common_utils.h"  // ARRAY_SIZE
 #include "apdu_constants.h"
 #include "domain_name.h"
 #include "challenge.h"

@@ -22,7 +22,7 @@
 
 #include "os.h"
 #include "cx.h"
-#include "utils.h"
+#include "common_utils.h"
 #include "tx_content.h"
 
 struct txContext_t;

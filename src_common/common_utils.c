@@ -21,7 +21,7 @@
 #include "uint128.h"
 #include "uint256.h"
 #include "tokens.h"
-#include "utils.h"
+#include "common_utils.h"
 
 void array_hexstr(char *strbuf, const void *bin, unsigned int len) {
     while (len--) {

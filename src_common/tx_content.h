@@ -22,7 +22,7 @@
 
 #include "os.h"
 #include "cx.h"
-#include "utils.h"
+#include "common_utils.h"
 
 typedef struct txInt256_t {
     uint8_t value[INT256_LENGTH];

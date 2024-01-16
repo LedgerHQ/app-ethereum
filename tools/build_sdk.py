@@ -154,12 +154,10 @@ if __name__ == "__main__":
     # some nodes will be extracted from these headers and merged into a new
     # one, copied to sdk
     headers_to_merge = [
-        "src_common/tokens.h",
+        "src_common/asset_info.h",
         "src_common/common_utils.h",
         "src_common/tx_content.h",
         "src_common/plugin_utils.h",
-        "src_common/nft.h",
-        "src_common/extra_info.h",
         "src_common/caller_api.h",
     ]
     nodes_to_extract = {

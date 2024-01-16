@@ -7,11 +7,9 @@
 #include "os.h"
 #include "cx.h"
 #include "ethUstream.h"
-#include "tokens.h"
-#include "extra_info.h"
 #include "tx_content.h"
 #include "chainConfig.h"
-#include "nft.h"
+#include "asset_info.h"
 #ifdef HAVE_NBGL
 #include "nbgl_types.h"
 #endif

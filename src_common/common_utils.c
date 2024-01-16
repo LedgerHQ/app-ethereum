@@ -18,7 +18,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "tokens.h"
+#include "asset_info.h"
 #include "common_utils.h"
 
 void array_hexstr(char *strbuf, const void *bin, unsigned int len) {

@@ -19,7 +19,7 @@
 #include <string.h>
 #include <stdbool.h>
 
-#include "tokens.h"
+#include "asset_info.h"
 #include "swap_utils.h"
 
 bool parse_swap_config(const uint8_t *config, uint8_t config_len, char *ticker, uint8_t *decimals) {

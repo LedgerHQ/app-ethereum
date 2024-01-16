@@ -2,7 +2,7 @@
 
 #include "shared_context.h"
 #include "apdu_constants.h"
-#include "tokens.h"
+#include "asset_info.h"
 #include "common_utils.h"
 #include "common_ui.h"
 #include "os_io_seproxyhal.h"

@@ -14,5 +14,5 @@ Be careful, and weight your choices.
 If for some reasons you want to rebuild this SDK manually from [app-ethereum](https://github.com/LedgerHQ/app-ethereum) (reminder: it is rebuild automatically when building app-ethereum itself):
 
 ```shell
-$> python3 tools/build_sdk.py
+$> ./tools/build_sdk.sh
 ```

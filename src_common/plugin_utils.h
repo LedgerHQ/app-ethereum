@@ -20,6 +20,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "eth_plugin_interface.h"
+
 #define SELECTOR_SIZE    4
 #define PARAMETER_LENGTH 32
 

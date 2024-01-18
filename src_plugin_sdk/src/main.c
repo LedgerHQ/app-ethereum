@@ -15,7 +15,6 @@
  *  limitations under the License.
  *****************************************************************************/
 
-#include "eth_internals.h"
 #include "eth_plugin_interface.h"
 #include "lib_standard_app/swap_lib_calls.h"  // RUN_APPLICATION
 

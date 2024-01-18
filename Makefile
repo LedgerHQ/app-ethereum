@@ -277,7 +277,7 @@ ifeq ($(CHAIN),ethereum)
     endif
 
     # rebuild SDK
-    $(shell python3 tools/build_sdk.py)
+    $(shell ./tools/build_sdk.sh)
 
     # check if a difference is noticed (fail if it happens in CI build)
     ifneq ($(shell git status | grep 'ethereum-plugin-sdk'),)

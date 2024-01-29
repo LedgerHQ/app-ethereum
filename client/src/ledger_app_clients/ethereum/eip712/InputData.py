@@ -337,12 +337,11 @@ def next_timeout(_signum: int, _frame):
 
 
 def enable_autonext():
-    seconds = 1/4
     if app_client._client.firmware.device == 'stax':  # Stax Speculos is slow
-        interval = seconds * 3
+        delay = 1.5
     else:
-        interval = seconds
-    signal.setitimer(signal.ITIMER_REAL, seconds, interval)
+        delay = 1/4
+    signal.setitimer(signal.ITIMER_REAL, delay, delay)
 
 
 def disable_autonext():

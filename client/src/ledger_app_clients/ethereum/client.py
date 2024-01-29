@@ -231,3 +231,25 @@ class EthAppClient:
             with self._send(chunk):
                 pass
         return self._send(chunks[-1])
+
+    def provide_token_metadata(self,
+                               ticker: str,
+                               addr: bytes,
+                               decimals: int,
+                               chain_id: int,
+                               sig: Optional[bytes] = None):
+        if sig is None:
+            # Temporarily get a command with an empty signature to extract the payload and
+            # compute the signature on it
+            tmp = self._cmd_builder.provide_erc20_token_information(ticker,
+                                                                    addr,
+                                                                    decimals,
+                                                                    chain_id,
+                                                                    bytes())
+            # skip APDU header & empty sig
+            sig = sign_data(Key.CAL, tmp[6:])
+        return self._send(self._cmd_builder.provide_erc20_token_information(ticker,
+                                                                            addr,
+                                                                            decimals,
+                                                                            chain_id,
+                                                                            sig))

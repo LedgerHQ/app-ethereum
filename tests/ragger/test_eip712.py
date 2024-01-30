@@ -16,7 +16,17 @@ from ledger_app_clients.ethereum.eip712 import InputData
 from ledger_app_clients.ethereum.settings import SettingID, settings_toggle
 
 
+class SnapshotsConfig:
+    test_name: str
+    idx: int
+
+    def __init__(self, test_name: str, idx: int = 0):
+        self.test_name = test_name
+        self.idx = idx
+
+
 BIP32_PATH = "m/44'/60'/0'/0/0"
+snaps_config: Optional[SnapshotsConfig] = None
 
 
 def input_files() -> list[str]:

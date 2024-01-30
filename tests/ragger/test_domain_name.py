@@ -1,9 +1,9 @@
 import pytest
-from pathlib import Path
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from ragger.error import ExceptionRAPDU
 from ragger.navigator import Navigator, NavInsID
+from constants import ROOT_SNAPSHOT_PATH
 
 import ledger_app_clients.ethereum.response_parser as ResponseParser
 from ledger_app_clients.ethereum.client import EthAppClient, StatusWord
@@ -11,8 +11,6 @@ from ledger_app_clients.ethereum.settings import SettingID, settings_toggle
 
 from web3 import Web3
 
-
-ROOT_SCREENSHOT_PATH = Path(__file__).parent
 
 # Values used across all tests
 CHAIN_ID = 1
@@ -74,7 +72,7 @@ def test_send_fund(firmware: Firmware,
             if verbose:
                 moves += [NavInsID.USE_CASE_REVIEW_TAP]
             moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
-        navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH,
+        navigator.navigate_and_compare(ROOT_SNAPSHOT_PATH,
                                        "domain_name_verbose_" + str(verbose),
                                        moves)
 
@@ -123,7 +121,7 @@ def test_send_fund_wrong_addr(firmware: Firmware,
         else:
             moves += [NavInsID.USE_CASE_REVIEW_TAP] * 2
             moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
-        navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH,
+        navigator.navigate_and_compare(ROOT_SNAPSHOT_PATH,
                                        "domain_name_wrong_addr",
                                        moves)
 
@@ -154,7 +152,7 @@ def test_send_fund_non_mainnet(firmware: Firmware,
         else:
             moves += [NavInsID.USE_CASE_REVIEW_TAP] * 2
             moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
-        navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH,
+        navigator.navigate_and_compare(ROOT_SNAPSHOT_PATH,
                                        "domain_name_non_mainnet",
                                        moves)
 
@@ -185,7 +183,7 @@ def test_send_fund_unknown_chain(firmware: Firmware,
         else:
             moves += [NavInsID.USE_CASE_REVIEW_TAP] * 3
             moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
-        navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH,
+        navigator.navigate_and_compare(ROOT_SNAPSHOT_PATH,
                                        "domain_name_unknown_chain",
                                        moves)
 

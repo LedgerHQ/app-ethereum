@@ -22,7 +22,7 @@
 #include "os_io_seproxyhal.h"
 
 #include "glyphs.h"
-#include "utils.h"
+#include "common_utils.h"
 
 #include "swap_lib_calls.h"
 #include "handle_swap_sign_transaction.h"

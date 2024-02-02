@@ -1,38 +1,10 @@
 #include <string.h>
 #include "eth_plugin_internal.h"
-#include "ethUtils.h"  // allzeroes
+#include "plugin_utils.h"
 
 bool erc20_plugin_available_check(void);
 
 void erc20_plugin_call(int message, void* parameters);
-
-void copy_address(uint8_t* dst, const uint8_t* parameter, uint8_t dst_size) {
-    uint8_t copy_size = MIN(dst_size, ADDRESS_LENGTH);
-    memmove(dst, parameter + PARAMETER_LENGTH - copy_size, copy_size);
-}
-
-void copy_parameter(uint8_t* dst, const uint8_t* parameter, uint8_t dst_size) {
-    uint8_t copy_size = MIN(dst_size, PARAMETER_LENGTH);
-    memmove(dst, parameter, copy_size);
-}
-
-bool U2BE_from_parameter(const uint8_t* parameter, uint16_t* value) {
-    if (allzeroes(parameter, PARAMETER_LENGTH - sizeof(uint16_t))) {
-        *value = U2BE(parameter, PARAMETER_LENGTH - sizeof(uint16_t));
-        return true;
-    }
-
-    return false;
-}
-
-bool U4BE_from_parameter(const uint8_t* parameter, uint32_t* value) {
-    if (allzeroes(parameter, PARAMETER_LENGTH - sizeof(uint32_t))) {
-        *value = U4BE(parameter, PARAMETER_LENGTH - sizeof(uint32_t));
-        return true;
-    }
-
-    return false;
-}
 
 #ifdef HAVE_STARKWARE
 void starkware_plugin_call(int message, void* parameters);

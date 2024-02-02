@@ -15,30 +15,46 @@
  *  limitations under the License.
  ********************************************************************************/
 
-#ifndef _ETHUTILS_H_
-#define _ETHUTILS_H_
+#pragma once
 
+#include <stddef.h>
 #include <stdint.h>
 
+#include "os.h"
 #include "cx.h"
-#include "chainConfig.h"
+
+#define WEI_TO_ETHER 18
+
+#define ADDRESS_LENGTH 20
+#define INT128_LENGTH  16
+#define INT256_LENGTH  32
 
 #define KECCAK256_HASH_BYTESIZE 32
 
-/**
- * @brief Decode an RLP encoded field - see
- * https://github.com/ethereum/wiki/wiki/RLP
- * @param [in] buffer buffer containing the RLP encoded field to decode
- * @param [out] fieldLength length of the RLP encoded field
- * @param [out] offset offset to the beginning of the RLP encoded field from the
- * buffer
- * @param [out] list true if the field encodes a list, false if it encodes a
- * string
- * @return true if the RLP header is consistent
- */
-bool rlpDecodeLength(uint8_t *buffer, uint32_t *fieldLength, uint32_t *offset, bool *list);
+static const char HEXDIGITS[] = "0123456789abcdef";
 
-bool rlpCanDecode(uint8_t *buffer, uint32_t bufferLength, bool *valid);
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
+
+void array_hexstr(char *strbuf, const void *bin, unsigned int len);
+
+uint64_t u64_from_BE(const uint8_t *in, uint8_t size);
+
+bool u64_to_string(uint64_t src, char *dst, uint8_t dst_size);
+
+bool uint256_to_decimal(const uint8_t *value, size_t value_len, char *out, size_t out_len);
+
+bool amountToString(const uint8_t *amount,
+                    uint8_t amount_len,
+                    uint8_t decimals,
+                    const char *ticker,
+                    char *out_buffer,
+                    size_t out_buffer_size);
+
+bool adjustDecimals(const char *src,
+                    size_t srcLength,
+                    char *target,
+                    size_t targetLength,
+                    uint8_t decimals);
 
 bool getEthAddressFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out, cx_sha3_t *sha3Context);
 
@@ -46,8 +62,6 @@ bool getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey,
                                 char *out,
                                 cx_sha3_t *sha3Context,
                                 uint64_t chainId);
-
-bool u64_to_string(uint64_t src, char *dst, uint8_t dst_size);
 
 bool getEthAddressStringFromBinary(uint8_t *address,
                                    char *out,
@@ -59,12 +73,6 @@ bool getEthDisplayableAddress(uint8_t *in,
                               size_t out_len,
                               cx_sha3_t *sha3,
                               uint64_t chainId);
-
-bool adjustDecimals(const char *src,
-                    size_t srcLength,
-                    char *target,
-                    size_t targetLength,
-                    uint8_t decimals);
 
 static __attribute__((no_instrument_function)) inline int allzeroes(const void *buf, size_t n) {
     uint8_t *p = (uint8_t *) buf;
@@ -83,11 +91,3 @@ static __attribute__((no_instrument_function)) inline int ismaxint(uint8_t *buf,
     }
     return 1;
 }
-
-uint64_t get_tx_chain_id(void);
-
-const char *get_displayable_ticker(const uint64_t *chain_id);
-
-static const char HEXDIGITS[] = "0123456789abcdef";
-
-#endif  // _ETHUTILS_H_

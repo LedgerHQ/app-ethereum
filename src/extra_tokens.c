@@ -17,7 +17,7 @@
 
 #ifdef HAVE_TOKENS_EXTRA_LIST
 
-#include "tokens.h"
+#include "extra_tokens.h"
 
 const tokenDefinition_t TOKENS_EXTRA[NUM_TOKENS_EXTRA] = {
 

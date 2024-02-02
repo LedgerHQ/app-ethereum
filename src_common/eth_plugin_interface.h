@@ -1,13 +1,16 @@
 // clang-format off
 
-#ifndef _ETH_PLUGIN_INTERFACE_H_
-#define _ETH_PLUGIN_INTERFACE_H_
+#pragma once
 
 #include "os.h"
 #include "cx.h"
-#include "ethUstream.h"
-#include "tokens.h"
-#include "shared_context.h"
+
+// Include other header compatible with plugins
+#include "asset_info.h"
+#include "caller_api.h"
+#include "common_utils.h"
+#include "plugin_utils.h"
+#include "tx_content.h"
 
 /*************************************************************************************************
  * Comments provided in this file are quick reminders on the usage of the plugin interface       *
@@ -217,7 +220,5 @@ typedef struct ethQueryContractUI_s {
 
 } ethQueryContractUI_t;
 // void handle_query_contract_ui(ethQueryContractUI_t *parameters);
-
-#endif  // _ETH_PLUGIN_INTERFACE_H_
 
 // clang-format on

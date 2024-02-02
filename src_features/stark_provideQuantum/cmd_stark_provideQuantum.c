@@ -2,7 +2,6 @@
 
 #include "shared_context.h"
 #include "apdu_constants.h"
-#include "ethUtils.h"
 #include "common_ui.h"
 
 void handleStarkwareProvideQuantum(uint8_t p1,

@@ -26,7 +26,7 @@ jobs:
           persist-credentials: false
 
       - name: Build new SDK
-        run: python tools/build_sdk.py
+        run: ./tools/build_sdk.sh
 
       - name: Extract branch name
         shell: bash

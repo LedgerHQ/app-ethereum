@@ -4,6 +4,7 @@
 #include "hash_bytes.h"
 #include "ethUstream.h"      // INT256_LENGTH
 #include "apdu_constants.h"  // APDU return codes
+#include "public_keys.h"
 #include "context_712.h"
 #include "commands_712.h"
 #include "typed_data.h"

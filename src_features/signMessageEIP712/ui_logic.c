@@ -7,8 +7,7 @@
 #include "mem_utils.h"
 #include "os_io.h"
 #include "shared_context.h"
-#include "ethUtils.h"  // getEthDisplayableAddress
-#include "utils.h"     // uint256_to_decimal
+#include "common_utils.h"  // uint256_to_decimal
 #include "common_712.h"
 #include "context_712.h"     // eip712_context_deinit
 #include "uint256.h"         // tostring256 && tostring256_signed

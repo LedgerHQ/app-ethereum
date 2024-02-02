@@ -13,7 +13,6 @@
 #include "schema_hash.h"
 #include "filtering.h"
 #include "common_712.h"
-#include "ethUtils.h"   // allzeroes
 #include "common_ui.h"  // ui_idle
 
 /**

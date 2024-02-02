@@ -1,6 +1,5 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
-#include "ethUtils.h"
 
 #include "feature_performPrivacyOperation.h"
 #include "common_ui.h"

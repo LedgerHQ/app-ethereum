@@ -1,13 +1,13 @@
 #include <ctype.h>
 #include "shared_context.h"
-#include "utils.h"
+#include "common_utils.h"
 #include "feature_signTx.h"
 #ifdef HAVE_STARKWARE
 #include "stark_utils.h"
 #endif
+#include "uint256.h"
 #include "eth_plugin_handler.h"
 #include "network.h"
-#include "ethUtils.h"
 #include "common_ui.h"
 #include "ui_callbacks.h"
 #include "apdu_constants.h"

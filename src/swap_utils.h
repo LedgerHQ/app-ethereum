@@ -1,6 +1,6 @@
-/*****************************************************************************
- *   Ledger Plugin SDK
- *   (c) 2023 Ledger SAS
+/*******************************************************************************
+ *   Ledger Ethereum App
+ *   (c) 2016-2019 Ledger
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -13,16 +13,10 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- *****************************************************************************/
+ ********************************************************************************/
 
-#include "plugin_utils.h"
+#pragma once
 
-bool find_selector(uint32_t selector, const uint32_t *array, size_t size, size_t *idx) {
-    for (size_t i = 0; i < size; ++i) {
-        if (selector == array[i]) {
-            if (idx != NULL) *idx = i;
-            return true;
-        }
-    }
-    return false;
-}
+#include <stdint.h>
+
+bool parse_swap_config(const uint8_t* config, uint8_t config_len, char* ticker, uint8_t* decimals);

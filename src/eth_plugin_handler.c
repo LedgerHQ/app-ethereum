@@ -1,9 +1,9 @@
 #include <string.h>
 #include "eth_plugin_handler.h"
 #include "eth_plugin_internal.h"
+#include "plugin_utils.h"
 #include "shared_context.h"
 #include "network.h"
-#include "ethUtils.h"
 
 void eth_plugin_prepare_init(ethPluginInitContract_t *init,
                              const uint8_t *selector,

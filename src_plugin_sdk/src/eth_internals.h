@@ -1,6 +1,6 @@
-/*****************************************************************************
- *   Ledger Plugin SDK
- *   (c) 2023 Ledger SAS
+/*******************************************************************************
+ *   Ledger Ethereum App
+ *   (c) 2016-2019 Ledger
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -13,15 +13,9 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- *****************************************************************************/
+ ********************************************************************************/
 
-#ifndef UTILS_H_
-#define UTILS_H_
+#pragma once
 
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdlib.h>
-
-bool find_selector(uint32_t selector, const uint32_t *array, size_t size, size_t *idx);
-
-#endif  // UTILS_H_
+// Empty file, introduced to not break compatibility following plugin-sdk structure rework
+#warning "Deprecated file, the sdk sources have been rationalized in several dedicated files."

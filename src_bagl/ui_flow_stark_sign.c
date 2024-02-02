@@ -2,7 +2,6 @@
 
 #include "shared_context.h"
 #include "ui_callbacks.h"
-#include "ethUtils.h"
 #include "starkDisplayUtils.h"
 #include "apdu_constants.h"
 

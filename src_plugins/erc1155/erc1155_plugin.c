@@ -2,8 +2,8 @@
 
 #include <string.h>
 #include "erc1155_plugin.h"
+#include "plugin_utils.h"
 #include "eth_plugin_internal.h"
-#include "ethUtils.h"
 #include "eth_plugin_handler.h"
 
 static const uint8_t ERC1155_APPROVE_FOR_ALL_SELECTOR[SELECTOR_SIZE] = {0xa2, 0x2c, 0xb4, 0x65};

@@ -2,6 +2,8 @@
 #include "os_utils.h"
 #include "os_pic.h"
 #include "network.h"
+#include "shared_context.h"
+#include "common_utils.h"
 
 typedef struct network_info_s {
     const char *name;
@@ -112,4 +114,33 @@ const char *get_network_ticker_from_chain_id(const uint64_t *chain_id) {
 
 bool chain_is_ethereum_compatible(const uint64_t *chain_id) {
     return get_network_from_chain_id(chain_id) != NULL;
+}
+
+// Returns the chain ID. Defaults to 0 if txType was not found (For TX).
+uint64_t get_tx_chain_id(void) {
+    uint64_t chain_id = 0;
+
+    switch (txContext.txType) {
+        case LEGACY:
+            chain_id = u64_from_BE(txContext.content->v, txContext.content->vLength);
+            break;
+        case EIP2930:
+        case EIP1559:
+            chain_id = u64_from_BE(tmpContent.txContent.chainID.value,
+                                   tmpContent.txContent.chainID.length);
+            break;
+        default:
+            PRINTF("Txtype `%d` not supported while generating chainID\n", txContext.txType);
+            break;
+    }
+    return chain_id;
+}
+
+const char *get_displayable_ticker(const uint64_t *chain_id) {
+    const char *ticker = get_network_ticker_from_chain_id(chain_id);
+
+    if (ticker == NULL) {
+        ticker = chainConfig->coinName;
+    }
+    return ticker;
 }

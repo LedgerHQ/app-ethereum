@@ -5,7 +5,13 @@
 | :rotating_light:     | Breaks build                  |
 | :warning:            | Breaks compatibility with app |
 
-## [latest](/) - 2023/12/07
+## [latest](/) - 2024/02/02
+
+### Changed
+
+* The SDK source code has been split into multiple smaller files
+
+## [3b7e7ad](/../../commit/3b7e7ad) - 2023/12/07
 
 ### Fixed
 

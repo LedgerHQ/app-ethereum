@@ -159,8 +159,8 @@ void handleSetPlugin(uint8_t p1,
     // this prints raw data, so to have a more meaningful print, display
     // the buffer before the endianness swap
     PRINTF("ChainID: %.*H\n", sizeof(chain_id), (workBuffer + offset));
-    if (!chain_is_ethereum_compatible(&chain_id)) {
-        PRINTF("Unsupported chain ID!\n");
+    if (!app_compatible_with_chain_id(&chain_id)) {
+        UNSUPPORTED_CHAIN_ID_MSG(chain_id);
         THROW(APDU_RESPONSE_INVALID_DATA);
     }
     offset += CHAIN_ID_SIZE;

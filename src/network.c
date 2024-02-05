@@ -144,3 +144,15 @@ const char *get_displayable_ticker(const uint64_t *chain_id) {
     }
     return ticker;
 }
+
+/**
+ * Checks wether the app can support the given chain ID
+ *
+ * - If the given chain ID is the same as the app's one
+ * - If both chain IDs are present in the array of Ethereum-compatible networks
+ */
+bool app_compatible_with_chain_id(const uint64_t *chain_id) {
+    return ((chainConfig->chainId == *chain_id) ||
+            (chain_is_ethereum_compatible(&chainConfig->chainId) &&
+             chain_is_ethereum_compatible(chain_id)));
+}

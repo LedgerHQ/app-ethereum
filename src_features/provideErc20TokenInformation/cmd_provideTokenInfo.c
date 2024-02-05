@@ -3,6 +3,7 @@
 #include "public_keys.h"
 #include "common_ui.h"
 #include "os_io_seproxyhal.h"
+#include "network.h"
 
 #ifdef HAVE_CONTRACT_NAME_IN_DESCRIPTOR
 
@@ -111,7 +112,7 @@ void handleProvideErc20TokenInformation(uint8_t p1,
     UNUSED(tx);
     uint32_t offset = 0;
     uint8_t tickerLength;
-    uint32_t chainId;
+    uint64_t chain_id;
     uint8_t hash[INT256_LENGTH];
     cx_ecfp_public_key_t tokenKey;
 
@@ -141,12 +142,13 @@ void handleProvideErc20TokenInformation(uint8_t p1,
     memmove(token->address, workBuffer + offset, 20);
     offset += 20;
     dataLength -= 20;
+    // TODO: Handle 64-bit long chain IDs
     token->decimals = U4BE(workBuffer, offset);
     offset += 4;
     dataLength -= 4;
-    chainId = U4BE(workBuffer, offset);
-    if ((chainConfig->chainId != ETHEREUM_MAINNET_CHAINID) && (chainConfig->chainId != chainId)) {
-        PRINTF("ChainId token mismatch: %d vs %d\n", chainConfig->chainId, chainId);
+    chain_id = U4BE(workBuffer, offset);
+    if (!app_compatible_with_chain_id(&chain_id)) {
+        UNSUPPORTED_CHAIN_ID_MSG(chain_id);
         THROW(0x6A80);
     }
     offset += 4;

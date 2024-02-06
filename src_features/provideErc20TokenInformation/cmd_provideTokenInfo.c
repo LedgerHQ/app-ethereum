@@ -3,6 +3,7 @@
 #include "public_keys.h"
 #include "common_ui.h"
 #include "os_io_seproxyhal.h"
+#include "extra_tokens.h"
 #include "network.h"
 
 #ifdef HAVE_CONTRACT_NAME_IN_DESCRIPTOR

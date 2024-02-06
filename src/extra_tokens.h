@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include "asset_info.h"
+
 #ifdef HAVE_TOKENS_EXTRA_LIST
 
 #define NUM_TOKENS_EXTRA 8

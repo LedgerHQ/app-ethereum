@@ -19,10 +19,6 @@ ifeq ($(BOLOS_SDK),)
 $(error Environment variable BOLOS_SDK is not set)
 endif
 
-# Prevent compilation of BAGL/NBGL
-# Has to be before any SDK include
-DISABLE_UI = 1
-
 include $(BOLOS_SDK)/Makefile.defines
 
 APPVERSION ?= "$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)"
@@ -59,17 +55,5 @@ DISABLE_STANDARD_WEBUSB = 1
 DISABLE_STANDARD_BAGL_UX_FLOW = 1
 DISABLE_DEBUG_LEDGER_ASSERT = 1
 DISABLE_DEBUG_THROW = 1
-
-# Required for PRINTFs to compile
-ifeq ($(DEBUG),0)
-    DISABLE_STANDARD_SEPROXYHAL = 1
-endif
-
-# So the plugin can still access the necessary NBGL types and pass its icon to
-# the Ethereum app
-ifeq ($(TARGET_NAME),TARGET_STAX)
-    DEFINES += HAVE_NBGL
-    INCLUDES_PATH += $(BOLOS_SDK)/lib_nbgl/include $(BOLOS_SDK)/lib_ux_stax
-endif
 
 include $(BOLOS_SDK)/Makefile.standard_app

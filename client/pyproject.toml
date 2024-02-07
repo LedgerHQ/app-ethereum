@@ -34,11 +34,18 @@ dependencies = [
 [tools.setuptools]
 include-package-data = true
 
-[tool.setuptools.dynamic]
-version = {attr = "ledger_app_clients.ethereum.__version__"}
+[tool.setuptools_scm]
+version_file = "src/ledger_app_clients/ethereum/__version__.py"
+local_scheme = "no-local-version"
+root = "../"
+git_describe_command = "git describe --dirty --tags --long --match client-*[0-9]*"
+fallback_version = "0.0.0"
 
 [project.urls]
 Home = "https://github.com/LedgerHQ/app-ethereum"
 
 [tool.mypy]
 ignore_missing_imports = true
+
+[tool.flake8]
+max-line-length = 120

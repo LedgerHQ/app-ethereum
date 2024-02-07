@@ -9,7 +9,7 @@ build/
 
 # Python
 *.pyc
-
+__version__.py
 
 # JS
 tests/node_modules

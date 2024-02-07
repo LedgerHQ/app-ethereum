@@ -5,7 +5,13 @@
 | :rotating_light:     | Breaks build                  |
 | :warning:            | Breaks compatibility with app |
 
-## [latest](/) - 2024/02/02
+## [latest](/) - 2024/02/07
+
+### Removed
+
+* UI disabler
+
+## [2250549](/../../commit/2250549) - 2024/02/02
 
 ### Changed
 

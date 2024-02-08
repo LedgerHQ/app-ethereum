@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "chainConfig.h"
 
 #define UNSUPPORTED_CHAIN_ID_MSG(id)                                              \
     do {                                                                          \
@@ -16,4 +17,4 @@ bool app_compatible_with_chain_id(const uint64_t *chain_id);
 
 uint64_t get_tx_chain_id(void);
 
-const char *get_displayable_ticker(const uint64_t *chain_id);
+const char *get_displayable_ticker(const uint64_t *chain_id, const chain_config_t *chain_cfg);

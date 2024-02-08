@@ -67,7 +67,9 @@ void eth_plugin_prepare_query_contract_UI(ethQueryContractUI_t *queryContractUI,
 
     queryContractUI->screenIndex = screenIndex;
     chain_id = get_tx_chain_id();
-    strlcpy(queryContractUI->network_ticker, get_displayable_ticker(&chain_id), MAX_TICKER_LEN);
+    strlcpy(queryContractUI->network_ticker,
+            get_displayable_ticker(&chain_id, chainConfig),
+            sizeof(queryContractUI->network_ticker));
     queryContractUI->title = title;
     queryContractUI->titleLength = titleLength;
     queryContractUI->msg = msg;

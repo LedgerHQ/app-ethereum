@@ -5,6 +5,7 @@
 #include "handle_swap_sign_transaction.h"
 #include "shared_context.h"
 #include "common_utils.h"
+#include "network.h"
 #ifdef HAVE_NBGL
 #include "nbgl_use_case.h"
 #endif  // HAVE_NBGL
@@ -27,12 +28,15 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
         return false;
     }
 
-    uint8_t decimals;
     char ticker[MAX_TICKER_LEN];
+    uint8_t decimals;
+    uint64_t chain_id = 0;
+
     if (!parse_swap_config(sign_transaction_params->coin_configuration,
                            sign_transaction_params->coin_configuration_length,
                            ticker,
-                           &decimals)) {
+                           &decimals,
+                           &chain_id)) {
         PRINTF("Error while parsing config\n");
         return false;
     }
@@ -46,7 +50,7 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
     }
 
     // If the amount is a fee, its value is nominated in ETH even if we're doing an ERC20 swap
-    strlcpy(ticker, config->coinName, MAX_TICKER_LEN);
+    strlcpy(ticker, get_displayable_ticker(&chain_id, config), sizeof(ticker));
     decimals = WEI_TO_ETHER;
     if (!amountToString(sign_transaction_params->fee_amount,
                         sign_transaction_params->fee_amount_length,

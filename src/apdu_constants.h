@@ -24,6 +24,7 @@
 #define INS_EIP712_FILTERING                0x1E
 #define INS_ENS_GET_CHALLENGE               0x20
 #define INS_ENS_PROVIDE_INFO                0x22
+#define INS_FAVORITE_ACCOUNTS               0x30
 #define P1_CONFIRM                          0x01
 #define P1_NON_CONFIRM                      0x00
 #define P2_NO_CHAINCODE                     0x00
@@ -32,11 +33,19 @@
 #define P1_MORE                             0x80
 #define P2_EIP712_LEGACY_IMPLEM             0x00
 #define P2_EIP712_FULL_IMPLEM               0x01
+#define P1_FAVORITE_DELETE                  0x01
+#define P1_FAVORITE_GET                     0x02
+#define P1_FAVORITE_RENAME                  0x03
+#define P1_FAVORITE_UPDATE                  0x04
+#define P1_FAVORITE_UPDATE_MULTI            0x05
+#define P1_FAVORITE_UPDATE_PATH             0x06
+#define P1_FAVORITE_UPDATE_PATH_MULTI       0x07
 
 #define COMMON_CLA               0xB0
 #define COMMON_INS_GET_WALLET_ID 0x04
 
 #define APDU_RESPONSE_OK                      0x9000
+#define APDU_RESPONSE_AVAILABLE               0x6100
 #define APDU_RESPONSE_ERROR_NO_INFO           0x6a00
 #define APDU_RESPONSE_INVALID_DATA            0x6a80
 #define APDU_RESPONSE_INSUFFICIENT_MEMORY     0x6a84

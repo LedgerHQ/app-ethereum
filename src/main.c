@@ -31,6 +31,9 @@
 #include "commands_712.h"
 #include "challenge.h"
 #include "domain_name.h"
+#ifdef TARGET_STAX
+#include "feature_favoriteAccounts.h"
+#endif
 
 unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 
@@ -391,6 +394,15 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
 #if 0
         case 0xFF: // return to dashboard
           goto return_to_dashboard;
+#endif
+
+#ifdef TARGET_STAX
+                case INS_FAVORITE_ACCOUNTS:
+                    handleFavoriteAccounts(G_io_apdu_buffer[OFFSET_P1],
+                                           G_io_apdu_buffer[OFFSET_P2],
+                                           G_io_apdu_buffer + OFFSET_CDATA,
+                                           G_io_apdu_buffer[OFFSET_LC]);
+                    break;
 #endif
 
                 default:

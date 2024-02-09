@@ -960,6 +960,159 @@ _Output data_
 
 None
 
+### Favorite Accounts
+
+#### Description
+
+This command allows to synchronize an Address Book between Ledger Live and the device.
+This allows user-friendly and easier address verifications.
+Also, the entries from the Address Book can be displayed as a QR code for easier control or sharing.
+
+#### Coding
+
+'Command'
+
+[width="80%"]
+|==============================================================================================================================
+| *CLA* | *INS*  | *P1*                                                 | *P2*             | *Lc*      | *Le*
+|   E0  |   30   |  01 : delete all accounts                            |  00              |  00       | empty
+|   E0  |   30   |  02 : get account                                    |  account Nb      |  00       | empty
+|   E0  |   30   |  03 : rename an account                              |  old name size   |  variable | see below
+|   E0  |   30   |  04 : update an account with address                 |  00              |  00       | see below
+|   E0  |   30   |  05 : update multiple accounts with address          |  00 : next data
+
+                                                                           01 : last data  | variable  | see below
+
+|   E0  |   30   |  06 : update an account with derivation path         |  00              |  00       | see below
+|   E0  |   30   |  07 : update multiple accounts with derivation path  |  00 : next data
+
+                                                                           01 : last data  | variable  | see below
+|==============================================================================================================================
+
+Commands summary:
+
+  - `delete all accounts`: _Purge_ the Address Book, and remove all entries.
+  - `get account`: Retrieve a specific Address Book entry; the Account Number is given in parameter.
+  - `rename an account`: _Change_ the Name assigned to an Account.
+  - `update an account`: _Add_ a new account, or _Rename_ an existing one.
+  - `update multiple accounts`: _Add_ new accounts and/or _Rename_ existing ones.
+This is a _chaining_ command, meaning several APDU must be sent successively,
+and the last one should have P2 = 0x01 to trig the confirmation screens.
+
+> For _update account_ commands, we have each time 2 variants:
+> 
+>  - Providing the full address
+>  - Providing the full derivation path, allowing the device to securely derivate and compute the address.
+
+_Input data_
+
+##### If P1 == `rename an account`
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                               | *Length*
+| Old Account Name (up to 16 ascii characters, 32 hex values - without '0x')  | variable (max 32)
+| New Account Name (up to 16 ascii characters, 32 hex values - without '0x')  | variable (max 32)
+|==============================================================================================================================
+
+> The _Old Account name_ length must be written in P2.
+
+##### If P1 == `update an account`
+
+This command is used to _Add_ a new Address Book entry. If the pair (*_Address_*, *_Chain Id_*) already exists,
+the command will be considered as a _Rename_.
+
+###### Case with Address
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                   | *Length*
+| Chain Id (8 Bytes)                                              | 16
+| Address (20 hex values without '0x')                            | 40
+| Name (up to 16 ascii characters, 32 hex values - without '0x')  | variable (max 32)
+|==============================================================================================================================
+
+###### Case with Derivation Path
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                   | *Length*
+| Chain Id (8 Bytes)                                              | 16
+| Derivation Path (1 Byte length + up to 5 x 4 Bytes)             | variable (max 42)
+| Name (up to 16 ascii characters, 32 hex values - without '0x')  | variable (max 32)
+|==============================================================================================================================
+
+
+##### If P1 == `update multiple account`
+
+Compared to the previous `update an account`, the principle here is to chain multiple APDU
+to update (_Add_/_Rename_) several Address Book entries at once.
+The review/confirmation will be displayed only once when all APDU have been sent.
+Thus, the last APDU must be distinguished using the P2 value.
+
+###### Case with Address
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                   | *Length*
+| Chain Id (8 Bytes)                                              | 16
+| Address (20 hex values without '0x')                            | 40
+| Name (up to 16 ascii characters, 32 hex values - without '0x')  | variable (max 32)
+|==============================================================================================================================
+
+###### Case with Derivation Path
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                   | *Length*
+| Chain Id (8 Bytes)                                              | 16
+| Derivation Path (1 Byte length + up to 5 x 4 Bytes)             | variable (max 42)
+| Name (up to 16 ascii characters, 32 hex values - without '0x')  | variable (max 32)
+|==============================================================================================================================
+
+_Output data_
+
+##### If P1 == `get account`
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                           | *Length*
+| Chain Id (8 Bytes)                                                      | 16
+| Address (20 hex values without '0x')                                    | 40
+| Account Name (up to 16 ascii characters, 32 hex values - without '0x')  | variable (max 32)
+|==============================================================================================================================
+
+
+_Status Word_
+
+The returned Status Word depends on the command:
+
+##### If P1 == `update multiple account`
+
+For each intermediate APDU, the Status Word will 0x61XX, giving the remaining available entries in the lower bits.
+For example, it will return `0x6102` when the command is correctly completed, and there are still `2` remaining (free) entries.
+Of course, after the *Last* one (with P2 = 0x01), it will be `0x9000`, indicating everything has been done and completed.
+
+##### Other commands
+
+The other commands will return `0x9000` when correctly completed.
+
+##### Errors
+
+In case of error, the _Status Word_ will be:
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                                     | *Status Word*
+| Error in P1 / P2 parameters                                                       | 0x6B00
+| Memory error: No more Address Book entries available                              | 0x6A80
+| Requested Data not found                                                          | 0x6A88
+| Add an account, but using an already assigned name                                | 0x6A80
+| Update an account, but APDU length is inconsistent                                | 0x6983
+| Add an account, but it is already present in the  Address Book                    | 0x6985
+|==============================================================================================================================
+
+
 
 ## Transport protocol
 

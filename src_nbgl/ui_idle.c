@@ -54,11 +54,13 @@ void ui_idle(void) {
         uint64_t mainnet_chain_id = ETHEREUM_MAINNET_CHAINID;
         app_name = get_network_name_from_chain_id(&mainnet_chain_id);
     }
-
-    nbgl_useCaseHome((char *) app_name,
-                     get_app_icon(true),
-                     tagline,
-                     true,
-                     ui_menu_settings,
-                     app_quit);
+    nbgl_useCaseHomeExtIcon((char *) app_name,
+                            get_app_icon(true),
+                            tagline,
+                            true,
+                            "My accounts",
+                            ui_menu_account,
+                            ui_menu_settings,
+                            app_quit,
+                            &C_list32px);
 }

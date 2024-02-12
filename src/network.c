@@ -11,6 +11,8 @@ typedef struct network_info_s {
     uint64_t chain_id;
 } network_info_t;
 
+static const char *unknown_ticker = "???";
+
 // Mappping of chain ids to networks.
 static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 1, .name = "Ethereum", .ticker = "ETH"},
@@ -140,7 +142,11 @@ const char *get_displayable_ticker(const uint64_t *chain_id, const chain_config_
     const char *ticker = get_network_ticker_from_chain_id(chain_id);
 
     if (ticker == NULL) {
-        ticker = chain_cfg->coinName;
+        if (*chain_id == chain_cfg->chainId) {
+            ticker = chain_cfg->coinName;
+        } else {
+            ticker = unknown_ticker;
+        }
     }
     return ticker;
 }

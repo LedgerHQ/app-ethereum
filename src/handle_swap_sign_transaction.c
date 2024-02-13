@@ -49,6 +49,10 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
         return false;
     }
 
+    // fallback mechanism in the absence of chain ID in swap config
+    if (chain_id == 0) {
+        chain_id = config->chainId;
+    }
     // If the amount is a fee, its value is nominated in ETH even if we're doing an ERC20 swap
     strlcpy(ticker, get_displayable_ticker(&chain_id, config), sizeof(ticker));
     decimals = WEI_TO_ETHER;

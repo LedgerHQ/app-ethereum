@@ -73,23 +73,6 @@ bool check_contract(erc20_parameters_t *context) {
     return false;
 }
 
-bool erc20_plugin_available_check() {
-#ifdef HAVE_STARKWARE
-    if (quantumSet) {
-        switch (dataContext.tokenContext.quantumType) {
-            case STARK_QUANTUM_LEGACY:
-            case STARK_QUANTUM_ETH:
-            case STARK_QUANTUM_ERC20:
-            case STARK_QUANTUM_MINTABLE_ERC20:
-                return true;
-            default:
-                return false;
-        }
-    }
-#endif
-    return true;
-}
-
 void erc20_plugin_call(int message, void *parameters) {
     switch (message) {
         case ETH_PLUGIN_INIT_CONTRACT: {

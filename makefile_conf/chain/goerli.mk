@@ -1,12 +1,6 @@
 APP_LOAD_PARAMS += --path "44'/60'"
 TICKER = "ETH"
 CHAIN_ID = 5
-# Starkware integration
-APP_LOAD_PARAMS += --path "2645'/579218131'"
-DEFINES += HAVE_STARKWARE
-# Keep for Starkware Goerli tests
-DEFINES += HAVE_TOKENS_EXTRA_LIST
-DEFINES += STARK_BIP32_PATH_0=0x80000A55 STARK_BIP32_PATH_1=0xA2862AD3
 # Allow to derive ETH 2 public keys
 APP_LOAD_PARAMS += --path "12381/3600" --curve bls12381g1
 DEFINES += HAVE_ETH2

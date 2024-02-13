@@ -32,10 +32,6 @@
 #include "challenge.h"
 #include "domain_name.h"
 
-#ifdef HAVE_STARKWARE
-#include "stark_crypto.h"
-#endif
-
 unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 
 void ui_idle(void);
@@ -55,9 +51,6 @@ uint16_t apdu_response_code;
 bool G_called_from_swap;
 bool G_swap_response_ready;
 pluginType_t pluginType;
-#ifdef HAVE_STARKWARE
-bool quantumSet;
-#endif
 
 #ifdef HAVE_ETH2
 uint32_t eth2WithdrawalIndex;
@@ -81,9 +74,6 @@ void reset_app_context() {
     G_called_from_swap = false;
     G_swap_response_ready = false;
     pluginType = OLD_INTERNAL;
-#ifdef HAVE_STARKWARE
-    quantumSet = false;
-#endif
 #ifdef HAVE_ETH2
     eth2WithdrawalIndex = 0;
 #endif
@@ -231,52 +221,6 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
             }
 
 #endif  // HAVE_WALLET_ID_SDK
-
-#ifdef HAVE_STARKWARE
-
-            if (G_io_apdu_buffer[OFFSET_CLA] == STARKWARE_CLA) {
-                switch (G_io_apdu_buffer[OFFSET_INS]) {
-                    case STARKWARE_INS_GET_PUBLIC_KEY:
-                        handleStarkwareGetPublicKey(G_io_apdu_buffer[OFFSET_P1],
-                                                    G_io_apdu_buffer[OFFSET_P2],
-                                                    G_io_apdu_buffer + OFFSET_CDATA,
-                                                    G_io_apdu_buffer[OFFSET_LC],
-                                                    flags,
-                                                    tx);
-                        break;
-                    case STARKWARE_INS_SIGN_MESSAGE:
-                        handleStarkwareSignMessage(G_io_apdu_buffer[OFFSET_P1],
-                                                   G_io_apdu_buffer[OFFSET_P2],
-                                                   G_io_apdu_buffer + OFFSET_CDATA,
-                                                   G_io_apdu_buffer[OFFSET_LC],
-                                                   flags,
-                                                   tx);
-                        break;
-                    case STARKWARE_INS_PROVIDE_QUANTUM:
-                        handleStarkwareProvideQuantum(G_io_apdu_buffer[OFFSET_P1],
-                                                      G_io_apdu_buffer[OFFSET_P2],
-                                                      G_io_apdu_buffer + OFFSET_CDATA,
-                                                      G_io_apdu_buffer[OFFSET_LC],
-                                                      flags,
-                                                      tx);
-                        break;
-                    case STARKWARE_INS_UNSAFE_SIGN:
-                        handleStarkwareUnsafeSign(G_io_apdu_buffer[OFFSET_P1],
-                                                  G_io_apdu_buffer[OFFSET_P2],
-                                                  G_io_apdu_buffer + OFFSET_CDATA,
-                                                  G_io_apdu_buffer[OFFSET_LC],
-                                                  flags,
-                                                  tx);
-                        break;
-                    default:
-                        THROW(0x6D00);
-                        break;
-                }
-                CLOSE_TRY;
-                return;
-            }
-
-#endif
 
             if (G_io_apdu_buffer[OFFSET_CLA] != CLA) {
                 THROW(0x6E00);

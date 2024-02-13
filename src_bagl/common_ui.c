@@ -37,32 +37,6 @@ void ui_sign_712_v0(void) {
     ux_flow_init(0, ux_sign_712_v0_flow, NULL);
 }
 
-#ifdef HAVE_STARKWARE
-void ui_display_stark_public(void) {
-    ux_flow_init(0, ux_display_stark_public_flow, NULL);
-}
-void ui_stark_limit_order(void) {
-    ux_flow_init(0, ux_stark_limit_order_flow, NULL);
-}
-
-void ui_stark_unsafe_sign(void) {
-    ux_flow_init(0, ux_stark_unsafe_sign_flow, NULL);
-}
-
-void ui_stark_transfer(bool selfTransfer, bool conditional) {
-    if (selfTransfer) {
-        ux_flow_init(
-            0,
-            (conditional ? ux_stark_self_transfer_conditional_flow : ux_stark_self_transfer_flow),
-            NULL);
-    } else {
-        ux_flow_init(0,
-                     (conditional ? ux_stark_transfer_conditional_flow : ux_stark_transfer_flow),
-                     NULL);
-    }
-}
-#endif  // HAVE_STARKWARE
-
 void ui_confirm_selector(void) {
     ux_flow_init(0, ux_confirm_selector_flow, NULL);
 }

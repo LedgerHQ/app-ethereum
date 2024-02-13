@@ -31,6 +31,10 @@ void handle_get_printable_amount(get_printable_amount_parameters_t* params,
     }
     // If the amount is a fee, the ticker should be the chain's native currency
     if (params->is_fee) {
+        // fallback mechanism in the absence of chain ID in swap config
+        if (chain_id == 0) {
+            chain_id = config->chainId;
+        }
         strlcpy(ticker, get_displayable_ticker(&chain_id, config), sizeof(ticker));
         decimals = WEI_TO_ETHER;
     }

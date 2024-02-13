@@ -136,11 +136,11 @@ uint64_t get_tx_chain_id(void) {
     return chain_id;
 }
 
-const char *get_displayable_ticker(const uint64_t *chain_id) {
+const char *get_displayable_ticker(const uint64_t *chain_id, const chain_config_t *chain_cfg) {
     const char *ticker = get_network_ticker_from_chain_id(chain_id);
 
     if (ticker == NULL) {
-        ticker = chainConfig->coinName;
+        ticker = chain_cfg->coinName;
     }
     return ticker;
 }

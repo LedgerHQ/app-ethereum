@@ -19,4 +19,8 @@
 
 #include <stdint.h>
 
-bool parse_swap_config(const uint8_t* config, uint8_t config_len, char* ticker, uint8_t* decimals);
+bool parse_swap_config(const uint8_t* config,
+                       uint8_t config_len,
+                       char* ticker,
+                       uint8_t* decimals,
+                       uint64_t* chain_id);

@@ -22,22 +22,38 @@
 #include "asset_info.h"
 #include "swap_utils.h"
 
-bool parse_swap_config(const uint8_t *config, uint8_t config_len, char *ticker, uint8_t *decimals) {
+bool parse_swap_config(const uint8_t *config,
+                       uint8_t config_len,
+                       char *ticker,
+                       uint8_t *decimals,
+                       uint64_t *chain_id) {
     uint8_t ticker_len, offset = 0;
+
     if (config_len == 0) {
         return false;
     }
-    ticker_len = config[offset++];
-    if (ticker_len == 0 || ticker_len > MAX_TICKER_LEN - 2 || config_len - offset < ticker_len) {
+    ticker_len = config[offset];
+    offset += sizeof(ticker_len);
+    if ((ticker_len == 0) || (ticker_len > (MAX_TICKER_LEN - 2)) ||
+        ((config_len - offset) < (ticker_len))) {
         return false;
     }
     memcpy(ticker, config + offset, ticker_len);
     offset += ticker_len;
     ticker[ticker_len] = '\0';
 
-    if (config_len - offset < 1) {
+    if ((config_len - offset) < 1) {
         return false;
     }
     *decimals = config[offset];
+    offset += sizeof(*decimals);
+
+    // the chain ID was adder later to the CAL swap subconfig
+    // so it is optional for retro-compatibility (as it might not be present)
+    if ((config_len - offset) >= sizeof(*chain_id)) {
+        PRINTF("Chain ID from the swap subconfig = 0x%.*h\n", sizeof(*chain_id), &config[offset]);
+        *chain_id = u64_from_BE(config + offset, sizeof(*chain_id));
+        offset += sizeof(*chain_id);
+    }
     return true;
 }

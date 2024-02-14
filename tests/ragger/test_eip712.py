@@ -9,6 +9,8 @@ from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator, NavInsID
 import json
+from typing import Optional
+from constants import ROOT_SNAPSHOT_PATH
 
 import ledger_app_clients.ethereum.response_parser as ResponseParser
 from ledger_app_clients.ethereum.client import EthAppClient
@@ -16,12 +18,26 @@ from ledger_app_clients.ethereum.eip712 import InputData
 from ledger_app_clients.ethereum.settings import SettingID, settings_toggle
 
 
+class SnapshotsConfig:
+    test_name: str
+    idx: int
+
+    def __init__(self, test_name: str, idx: int = 0):
+        self.test_name = test_name
+        self.idx = idx
+
+
 BIP32_PATH = "m/44'/60'/0'/0/0"
+snaps_config: Optional[SnapshotsConfig] = None
+
+
+def eip712_json_path() -> str:
+    return "%s/eip712_input_files" % (os.path.dirname(__file__))
 
 
 def input_files() -> list[str]:
     files = []
-    for file in os.scandir("%s/eip712_input_files" % (os.path.dirname(__file__))):
+    for file in os.scandir(eip712_json_path()):
         if fnmatch.fnmatch(file, "*-data.json"):
             files.append(file.path)
     return sorted(files)
@@ -77,7 +93,52 @@ def autonext(fw: Firmware, nav: Navigator):
         moves = [NavInsID.RIGHT_CLICK]
     else:
         moves = [NavInsID.USE_CASE_REVIEW_TAP]
-    nav.navigate(moves, screen_change_before_first_instruction=False, screen_change_after_last_instruction=False)
+    if snaps_config is not None:
+        nav.navigate_and_compare(ROOT_SNAPSHOT_PATH,
+                                 snaps_config.test_name,
+                                 moves,
+                                 screen_change_before_first_instruction=False,
+                                 screen_change_after_last_instruction=False,
+                                 snap_start_idx=snaps_config.idx)
+        snaps_config.idx += 1
+    else:
+        nav.navigate(moves,
+                     screen_change_before_first_instruction=False,
+                     screen_change_after_last_instruction=False)
+
+
+def eip712_new_common(fw: Firmware,
+                      nav: Navigator,
+                      app_client: EthAppClient,
+                      json_data: dict,
+                      filters: Optional[dict],
+                      verbose: bool):
+    assert InputData.process_data(app_client,
+                                  json_data,
+                                  filters,
+                                  partial(autonext, fw, nav))
+    with app_client.eip712_sign_new(BIP32_PATH):
+        moves = list()
+        if fw.device.startswith("nano"):
+            # need to skip the message hash
+            if not verbose and filters is None:
+                moves = [NavInsID.RIGHT_CLICK] * 2
+            moves += [NavInsID.BOTH_CLICK]
+        else:
+            time.sleep(1.5)
+            # need to skip the message hash
+            if not verbose and filters is None:
+                moves += [NavInsID.USE_CASE_REVIEW_TAP]
+            moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
+        if snaps_config is not None:
+            nav.navigate_and_compare(ROOT_SNAPSHOT_PATH,
+                                     snaps_config.test_name,
+                                     moves,
+                                     snap_start_idx=snaps_config.idx)
+            snaps_config.idx += 1
+        else:
+            nav.navigate(moves)
+    return ResponseParser.signature(app_client.response().data)
 
 
 def test_eip712_new(firmware: Firmware,
@@ -114,26 +175,69 @@ def test_eip712_new(firmware: Firmware,
             settings_toggle(firmware, navigator, [SettingID.VERBOSE_EIP712])
 
         with open(input_file) as file:
-            assert InputData.process_data(app_client,
-                                          json.load(file),
-                                          filters,
-                                          partial(autonext, firmware, navigator))
-            with app_client.eip712_sign_new(BIP32_PATH):
-                # tight on timing, needed by the CI otherwise might fail sometimes
-                time.sleep(0.5)
+            v, r, s = eip712_new_common(firmware,
+                                        navigator,
+                                        app_client,
+                                        json.load(file),
+                                        filters,
+                                        verbose)
 
-                moves = list()
-                if firmware.device.startswith("nano"):
-                    if not verbose and not filtering:  # need to skip the message hash
-                        moves = [NavInsID.RIGHT_CLICK] * 2
-                    moves += [NavInsID.BOTH_CLICK]
-                else:
-                    if not verbose and not filtering:  # need to skip the message hash
-                        moves += [NavInsID.USE_CASE_REVIEW_TAP]
-                    moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
-                navigator.navigate(moves)
-            v, r, s = ResponseParser.signature(app_client.response().data)
+    assert v == bytes.fromhex(config["signature"]["v"])
+    assert r == bytes.fromhex(config["signature"]["r"])
+    assert s == bytes.fromhex(config["signature"]["s"])
 
-        assert v == bytes.fromhex(config["signature"]["v"])
-        assert r == bytes.fromhex(config["signature"]["r"])
-        assert s == bytes.fromhex(config["signature"]["s"])
+
+def test_eip712_address_substitution(firmware: Firmware,
+                                     backend: BackendInterface,
+                                     navigator: Navigator,
+                                     verbose: bool):
+    global snaps_config
+
+    app_client = EthAppClient(backend)
+    if firmware.device == "nanos":
+        pytest.skip("Not supported on LNS")
+    else:
+        test_name = "eip712_address_substitution"
+        if verbose:
+            test_name += "_verbose"
+        snaps_config = SnapshotsConfig(test_name)
+        with open("%s/address_substitution.json" % (eip712_json_path())) as file:
+            data = json.load(file)
+
+            with app_client.provide_token_metadata("DAI",
+                                                   bytes.fromhex(data["message"]["token"][2:]),
+                                                   18,
+                                                   1):
+                pass
+
+            with app_client.get_challenge():
+                pass
+            challenge = ResponseParser.challenge(app_client.response().data)
+            with app_client.provide_domain_name(challenge,
+                                                "vitalik.eth",
+                                                bytes.fromhex(data["message"]["to"][2:])):
+                pass
+
+            if verbose:
+                settings_toggle(firmware, navigator, [SettingID.VERBOSE_EIP712])
+                filters = None
+            else:
+                filters = {
+                    "name": "Token test",
+                    "fields": {
+                        "amount": "Amount",
+                        "token": "Token",
+                        "to": "To",
+                    }
+                }
+
+            v, r, s = eip712_new_common(firmware,
+                                        navigator,
+                                        app_client,
+                                        data,
+                                        filters,
+                                        verbose)
+
+    assert v == bytes.fromhex("1b")
+    assert r == bytes.fromhex("d4a0e058251cdc3845aaa5eb8409d8a189ac668db7c55a64eb3121b0db7fd8c0")
+    assert s == bytes.fromhex("3221800e4f45272c6fa8fafda5e94c848d1a4b90c442aa62afa8e8d6a9af0f00")

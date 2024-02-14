@@ -12,9 +12,9 @@ from ledger_app_clients.ethereum.utils import get_selector_from_data, recover_tr
 from web3 import Web3
 import json
 import os
+from constants import ROOT_SNAPSHOT_PATH
 
 
-ROOT_SCREENSHOT_PATH = Path(__file__).parent
 ABIS_FOLDER = "%s/abis" % (os.path.dirname(__file__))
 
 BIP32_PATH = "m/44'/60'/0'/0/0"
@@ -116,7 +116,7 @@ def common_test_nft(fw: Firmware,
         "data": data,
     }
     with app_client.sign(BIP32_PATH, tx_params):
-        nav.navigate_and_compare(ROOT_SCREENSHOT_PATH,
+        nav.navigate_and_compare(ROOT_SNAPSHOT_PATH,
                                  snapshot_test_name(plugin_name.lower(),
                                                     action.fn_name,
                                                     collec.chain_id,

@@ -1,0 +1,29 @@
+{
+    "domain": {
+        "chainId": 1,
+        "name": "Token test",
+        "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+        "version": "1"
+    },
+    "message": {
+        "from": "0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa",
+        "to": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+        "amount": "117",
+        "token": "0x6B175474E89094C44Da98b954EedeAC495271d0F"
+    },
+    "primaryType": "Transfer",
+    "types": {
+        "EIP712Domain": [
+            { "name": "name", "type": "string" },
+            { "name": "version", "type": "string" },
+            { "name": "chainId", "type": "uint256" },
+            { "name": "verifyingContract", "type": "address" }
+        ],
+        "Transfer": [
+            { "name": "from", "type": "address" },
+            { "name": "to", "type": "address" },
+            { "name": "amount", "type": "uint256" },
+            { "name": "token", "type": "address" }
+        ]
+    }
+}

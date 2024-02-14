@@ -4,6 +4,7 @@ import os
 import sys
 import re
 import argparse
+from pathlib import Path
 
 
 class Network:
@@ -62,7 +63,10 @@ const network_icon_t g_network_icons[%u] = {\
 
         for net in networks:
             glyph_name = get_network_glyph_name(net)
-            if os.path.isfile("glyphs/%s.gif" % (glyph_name)):
+            glyph_file = "glyphs/%s.gif" % (glyph_name)
+            if os.path.isfile(glyph_file):
+                if os.path.islink(glyph_file):
+                    glyph_name = Path(os.path.realpath(glyph_file)).stem
                 print(" "*4, end="", file=out)
                 print("{.chain_id = %u, .icon = &C_%s}, // %s" % (net.chain_id,
                                                                   glyph_name,

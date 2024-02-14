@@ -85,6 +85,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 10507, .name = "Numbers Protocol", .ticker = "NUM"},
     {.chain_id = 59144, .name = "Linea", .ticker = "ETH"},
     {.chain_id = 11155111, .name = "Sepolia", .ticker = "ETH"},
+    {.chain_id = 17000, .name = "Holesky", .ticker = "ETH"},
 };
 
 static const network_info_t *get_network_from_chain_id(const uint64_t *chain_id) {

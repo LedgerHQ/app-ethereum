@@ -29,11 +29,4 @@ extern const uint8_t* const ETH2_SELECTORS[NUM_ETH2_SELECTORS];
 
 #endif
 
-#ifdef HAVE_STARKWARE
-
-#define NUM_STARKWARE_SELECTORS 20
-extern const uint8_t* const STARKWARE_SELECTORS[NUM_STARKWARE_SELECTORS];
-
-#endif
-
 extern internalEthPlugin_t const INTERNAL_ETH_PLUGINS[];

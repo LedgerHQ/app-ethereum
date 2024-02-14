@@ -2,9 +2,6 @@
 #include "shared_context.h"
 #include "common_utils.h"
 #include "feature_signTx.h"
-#ifdef HAVE_STARKWARE
-#include "stark_utils.h"
-#endif
 #include "uint256.h"
 #include "eth_plugin_handler.h"
 #include "network.h"

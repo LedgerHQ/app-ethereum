@@ -5,8 +5,6 @@
 
 #define APP_FLAG_DATA_ALLOWED          0x01
 #define APP_FLAG_EXTERNAL_TOKEN_NEEDED 0x02
-#define APP_FLAG_STARKWARE             0x04
-#define APP_FLAG_STARKWARE_V2          0x08
 
 #define CLA                                 0xE0
 #define INS_GET_PUBLIC_KEY                  0x02
@@ -46,26 +44,6 @@
 #define APDU_RESPONSE_INVALID_P1_P2           0x6b00
 #define APDU_RESPONSE_CONDITION_NOT_SATISFIED 0x6985
 #define APDU_RESPONSE_REF_DATA_NOT_FOUND      0x6a88
-
-#ifdef HAVE_STARKWARE
-
-#define STARKWARE_CLA                 0xF0
-#define STARKWARE_INS_GET_PUBLIC_KEY  0x02
-#define STARKWARE_INS_SIGN_MESSAGE    0x04
-#define STARKWARE_INS_PROVIDE_QUANTUM 0x08
-#define STARKWARE_INS_UNSAFE_SIGN     0x0A
-
-#define P1_STARK_ORDER                0x01
-#define P1_STARK_TRANSFER             0x02
-#define P1_STARK_ORDER_V2             0x03
-#define P1_STARK_TRANSFER_V2          0x04
-#define P1_STARK_CONDITIONAL_TRANSFER 0x05
-
-#define STARK_ORDER_TYPE                0
-#define STARK_TRANSFER_TYPE             1
-#define STARK_CONDITIONAL_TRANSFER_TYPE 2
-
-#endif
 
 enum { OFFSET_CLA = 0, OFFSET_INS, OFFSET_P1, OFFSET_P2, OFFSET_LC, OFFSET_CDATA };
 
@@ -148,35 +126,6 @@ void handleSetEth2WinthdrawalIndex(uint8_t p1,
                                    uint8_t dataLength,
                                    unsigned int *flags,
                                    unsigned int *tx);
-
-#endif
-
-#ifdef HAVE_STARKWARE
-
-void handleStarkwareGetPublicKey(uint8_t p1,
-                                 uint8_t p2,
-                                 const uint8_t *dataBuffer,
-                                 uint8_t dataLength,
-                                 unsigned int *flags,
-                                 unsigned int *tx);
-void handleStarkwareSignMessage(uint8_t p1,
-                                uint8_t p2,
-                                uint8_t *dataBuffer,
-                                uint8_t dataLength,
-                                unsigned int *flags,
-                                unsigned int *tx);
-void handleStarkwareProvideQuantum(uint8_t p1,
-                                   uint8_t p2,
-                                   const uint8_t *dataBuffer,
-                                   uint8_t dataLength,
-                                   unsigned int *flags,
-                                   unsigned int *tx);
-void handleStarkwareUnsafeSign(uint8_t p1,
-                               uint8_t p2,
-                               const uint8_t *dataBuffer,
-                               uint8_t dataLength,
-                               unsigned int *flags,
-                               unsigned int *tx);
 
 #endif
 

@@ -22,6 +22,8 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 10, .name = "Optimism", .ticker = "ETH"},
     {.chain_id = 42, .name = "LUKSO", .ticker = "LYX"},
     {.chain_id = 4201, .name = "LUKSO Testnet", .ticker = "LYXt"},
+    {.chain_id = 4202, .name = "Lisk Sepolia Testnet", .ticker = "ETH"},
+    {.chain_id = 1135, .name = "Lisk", .ticker = "ETH"},
     {.chain_id = 56, .name = "BSC", .ticker = "BNB"},
     {.chain_id = 100, .name = "Gnosis", .ticker = "xDAI"},
     {.chain_id = 10200, .name = "Chiado", .ticker = "xDAI"},

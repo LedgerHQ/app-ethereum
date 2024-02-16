@@ -5,7 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.10.4](https://github.com/ledgerhq/app-ethereum/compare/1.10.3...1.10.4) - 2023-XX-XX
+## [1.10.4](https://github.com/ledgerhq/app-ethereum/compare/1.10.3...1.10.4) - 2023-02-16
+
+### Added
+
+- Addresses in EIP-712 messages can now be displayed as a token ticker or a trusted domain name if a match is found
+- Stax app now has icons of the other supported EVM chains
+- (network) Bitcichain
+- (network) Core
+- (network) Bitrock Mainnet
+- (network) Numbers Protocol
+- (network) Linea
+- (network) Holesky
+
+### Removed
+
+- Starkware support
+- (clone) kUSD
+- (clone) Tobalaba
+
+### Changed
+
+- Can now clear-sign NFT operations on other EVM chains without a clone app
+- Can now swap on other EVM chains without a clone app
+- Improved RAM usage
+- Now shows an explicit ??? ticker when it is unknown instead of falling back to the native chain ticker
+
+### Fixed
+
+- Refusal of transactions with very large chain IDs even within specs
+- Refusal of 10 character-long token tickers
+- (network) Wanchain chain ID
+- (network) Sepolia chain ID
 
 ## [1.10.3](https://github.com/ledgerhq/app-ethereum/compare/1.10.2...1.10.3) - 2023-07-27
 

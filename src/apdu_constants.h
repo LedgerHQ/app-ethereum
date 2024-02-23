@@ -112,6 +112,8 @@ void handlePerformPrivacyOperation(uint8_t p1,
                                    unsigned int *flags,
                                    unsigned int *tx);
 
+void getEthPublicKey(uint32_t *bip32Path, uint8_t bip32PathLength);
+
 #ifdef HAVE_ETH2
 
 void handleGetEth2PublicKey(uint8_t p1,

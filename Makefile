@@ -43,7 +43,7 @@ APP_LOAD_FLAGS= --appFlags 0xa40 --dep Ethereum:$(APPVERSION)
 ###########################
 
 ifeq ($(CHAIN),)
-CHAIN=ethereum
+CHAIN=eth_starkex
 endif
 
 SUPPORTED_CHAINS=$(shell find makefile_conf/chain/ -type f -name '*.mk'| sed 's/.*\/\(.*\).mk/\1/g' | sort)
@@ -286,4 +286,4 @@ include $(BOLOS_SDK)/Makefile.rules
 dep/%.d: %.c Makefile
 
 listvariants:
-	@echo VARIANTS CHAIN $(SUPPORTED_CHAINS)
+	@echo VARIANTS CHAIN $(CHAIN)

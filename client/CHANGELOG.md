@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Increased the delay between `autonext` callback calls for EIP-712 on Stax
+- `recover_transaction` util function for non-legacy transactions
 
 ## [0.2.1] - 2023-12-01
 

@@ -12,6 +12,7 @@
 #include "hash_bytes.h"
 #include "network.h"
 #include "public_keys.h"
+#include "tlv.h"
 
 #define P1_FIRST_CHUNK     0x01
 #define P1_FOLLOWING_CHUNK 0x00
@@ -20,14 +21,9 @@
 
 #define SLIP_44_ETHEREUM 60
 
-#define DER_LONG_FORM_FLAG        0x80  // 8th bit set
-#define DER_FIRST_BYTE_VALUE_MASK 0x7f
-
-typedef enum { TLV_TAG, TLV_LENGTH, TLV_VALUE } e_tlv_step;
-
 typedef enum {
-    STRUCTURE_TYPE = 0x01,
-    STRUCTURE_VERSION = 0x02,
+    STRUCT_TYPE = 0x01,
+    STRUCT_VERSION = 0x02,
     CHALLENGE = 0x12,
     SIGNER_KEY_ID = 0x13,
     SIGNER_ALGO = 0x14,
@@ -38,18 +34,6 @@ typedef enum {
 } e_tlv_tag;
 
 typedef enum { KEY_ID_TEST = 0x00, KEY_ID_PROD = 0x03 } e_key_id;
-
-typedef struct {
-    uint8_t *buf;
-    uint16_t size;
-    uint16_t expected_size;
-} s_tlv_payload;
-
-typedef struct {
-    e_tlv_tag tag;
-    uint8_t length;
-    const uint8_t *value;
-} s_tlv_data;
 
 typedef struct {
     bool valid;
@@ -64,17 +48,14 @@ typedef struct {
     cx_sha256_t hash_ctx;
 } s_sig_ctx;
 
-typedef bool(t_tlv_handler)(const s_tlv_data *data,
-                            s_domain_name_info *domain_name_info,
-                            s_sig_ctx *sig_ctx);
-
 typedef struct {
-    uint8_t tag;
-    t_tlv_handler *func;
-    uint8_t found;
-} s_tlv_handler;
+    s_domain_name_info *domain_name_info;
+    s_sig_ctx sig_ctx;
+} s_handler_param;
 
-static s_tlv_payload g_tlv_payload = {0};
+static uint8_t *g_payload = NULL;
+static uint16_t g_payload_size = 0;
+static uint16_t g_payload_expected_size = 0;
 static s_domain_name_info g_domain_name_info;
 char g_domain_name[DOMAIN_NAME_MAX_LENGTH + 1];
 
@@ -145,36 +126,28 @@ static bool get_uint_from_data(const s_tlv_data *data, uint32_t *value) {
 }
 
 /**
- * Handler for tag \ref STRUCTURE_TYPE
+ * Handler for tag \ref STRUCT_TYPE
  *
- * @param[] data the tlv data
- * @param[] domain_name_info the domain name information
- * @param[] sig_ctx the signature context
+ * @param[in] data the tlv data
+ * @param[in,out] param the parameter received from the parser
  * @return whether it was successful
  */
-static bool handle_structure_type(const s_tlv_data *data,
-                                  s_domain_name_info *domain_name_info,
-                                  s_sig_ctx *sig_ctx) {
+static bool handle_struct_type(const s_tlv_data *data, s_handler_param *param) {
     (void) data;
-    (void) domain_name_info;
-    (void) sig_ctx;
+    (void) param;
     return true;  // unhandled for now
 }
 
 /**
- * Handler for tag \ref STRUCTURE_VERSION
+ * Handler for tag \ref STRUCT_VERSION
  *
- * @param[] data the tlv data
- * @param[] domain_name_info the domain name information
- * @param[] sig_ctx the signature context
+ * @param[in] data the tlv data
+ * @param[in,out] param the parameter received from the parser
  * @return whether it was successful
  */
-static bool handle_structure_version(const s_tlv_data *data,
-                                     s_domain_name_info *domain_name_info,
-                                     s_sig_ctx *sig_ctx) {
+static bool handle_struct_version(const s_tlv_data *data, s_handler_param *param) {
     (void) data;
-    (void) domain_name_info;
-    (void) sig_ctx;
+    (void) param;
     return true;  // unhandled for now
 }
 
@@ -182,16 +155,12 @@ static bool handle_structure_version(const s_tlv_data *data,
  * Handler for tag \ref CHALLENGE
  *
  * @param[in] data the tlv data
- * @param[] domain_name_info the domain name information
- * @param[] sig_ctx the signature context
+ * @param[in,out] param the parameter received from the parser
  * @return whether it was successful
  */
-static bool handle_challenge(const s_tlv_data *data,
-                             s_domain_name_info *domain_name_info,
-                             s_sig_ctx *sig_ctx) {
+static bool handle_challenge(const s_tlv_data *data, s_handler_param *param) {
     uint32_t value;
-    (void) domain_name_info;
-    (void) sig_ctx;
+    (void) param;
 
     if (!get_uint_from_data(data, &value)) {
         return false;
@@ -203,20 +172,16 @@ static bool handle_challenge(const s_tlv_data *data,
  * Handler for tag \ref SIGNER_KEY_ID
  *
  * @param[in] data the tlv data
- * @param[] domain_name_info the domain name information
- * @param[out] sig_ctx the signature context
+ * @param[in,out] param the parameter received from the parser
  * @return whether it was successful
  */
-static bool handle_sign_key_id(const s_tlv_data *data,
-                               s_domain_name_info *domain_name_info,
-                               s_sig_ctx *sig_ctx) {
+static bool handle_sign_key_id(const s_tlv_data *data, s_handler_param *param) {
     uint32_t value;
-    (void) domain_name_info;
 
     if (!get_uint_from_data(data, &value) || (value > UINT8_MAX)) {
         return false;
     }
-    sig_ctx->key_id = value;
+    param->sig_ctx.key_id = value;
     return true;
 }
 
@@ -224,17 +189,13 @@ static bool handle_sign_key_id(const s_tlv_data *data,
  * Handler for tag \ref SIGNER_ALGO
  *
  * @param[in] data the tlv data
- * @param[] domain_name_info the domain name information
- * @param[] sig_ctx the signature context
+ * @param[in,out] param the parameter received from the parser
  * @return whether it was successful
  */
-static bool handle_sign_algo(const s_tlv_data *data,
-                             s_domain_name_info *domain_name_info,
-                             s_sig_ctx *sig_ctx) {
+static bool handle_sign_algo(const s_tlv_data *data, s_handler_param *param) {
     uint32_t value;
 
-    (void) domain_name_info;
-    (void) sig_ctx;
+    (void) param;
     if (!get_uint_from_data(data, &value)) {
         return false;
     }
@@ -245,16 +206,12 @@ static bool handle_sign_algo(const s_tlv_data *data,
  * Handler for tag \ref SIGNATURE
  *
  * @param[in] data the tlv data
- * @param[] domain_name_info the domain name information
- * @param[out] sig_ctx the signature context
+ * @param[in,out] param the parameter received from the parser
  * @return whether it was successful
  */
-static bool handle_signature(const s_tlv_data *data,
-                             s_domain_name_info *domain_name_info,
-                             s_sig_ctx *sig_ctx) {
-    (void) domain_name_info;
-    sig_ctx->input_sig_size = data->length;
-    sig_ctx->input_sig = data->value;
+static bool handle_signature(const s_tlv_data *data, s_handler_param *param) {
+    param->sig_ctx.input_sig_size = data->length;
+    param->sig_ctx.input_sig = data->value;
     return true;
 }
 
@@ -286,14 +243,10 @@ static bool is_valid_domain_character(char c) {
  * Handler for tag \ref DOMAIN_NAME
  *
  * @param[in] data the tlv data
- * @param[out] domain_name_info the domain name information
- * @param[] sig_ctx the signature context
+ * @param[in,out] param the parameter received from the parser
  * @return whether it was successful
  */
-static bool handle_domain_name(const s_tlv_data *data,
-                               s_domain_name_info *domain_name_info,
-                               s_sig_ctx *sig_ctx) {
-    (void) sig_ctx;
+static bool handle_domain_name(const s_tlv_data *data, s_handler_param *param) {
     if (data->length > DOMAIN_NAME_MAX_LENGTH) {
         PRINTF("Domain name too long! (%u)\n", data->length);
         return false;
@@ -308,9 +261,9 @@ static bool handle_domain_name(const s_tlv_data *data,
             PRINTF("Domain name contains non-allowed character! (0x%x)\n", data->value[idx]);
             return false;
         }
-        domain_name_info->name[idx] = data->value[idx];
+        param->domain_name_info->name[idx] = data->value[idx];
     }
-    domain_name_info->name[data->length] = '\0';
+    param->domain_name_info->name[data->length] = '\0';
     return true;
 }
 
@@ -318,17 +271,13 @@ static bool handle_domain_name(const s_tlv_data *data,
  * Handler for tag \ref COIN_TYPE
  *
  * @param[in] data the tlv data
- * @param[] domain_name_info the domain name information
- * @param[] sig_ctx the signature context
+ * @param[in,out] param the parameter received from the parser
  * @return whether it was successful
  */
-static bool handle_coin_type(const s_tlv_data *data,
-                             s_domain_name_info *domain_name_info,
-                             s_sig_ctx *sig_ctx) {
+static bool handle_coin_type(const s_tlv_data *data, s_handler_param *param) {
     uint32_t value;
 
-    (void) domain_name_info;
-    (void) sig_ctx;
+    (void) param;
     if (!get_uint_from_data(data, &value)) {
         return false;
     }
@@ -339,18 +288,14 @@ static bool handle_coin_type(const s_tlv_data *data,
  * Handler for tag \ref ADDRESS
  *
  * @param[in] data the tlv data
- * @param[out] domain_name_info the domain name information
- * @param[] sig_ctx the signature context
+ * @param[in,out] param the parameter received from the parser
  * @return whether it was successful
  */
-static bool handle_address(const s_tlv_data *data,
-                           s_domain_name_info *domain_name_info,
-                           s_sig_ctx *sig_ctx) {
-    (void) sig_ctx;
+static bool handle_address(const s_tlv_data *data, s_handler_param *param) {
     if (data->length != ADDRESS_LENGTH) {
         return false;
     }
-    memcpy(domain_name_info->addr, data->value, ADDRESS_LENGTH);
+    memcpy(param->domain_name_info->addr, data->value, ADDRESS_LENGTH);
     return true;
 }
 
@@ -398,252 +343,90 @@ static bool verify_signature(const s_sig_ctx *sig_ctx) {
 }
 
 /**
- * Calls the proper handler for the given TLV data
- *
- * Checks if there is a proper handler function for the given TLV tag and then calls it
- *
- * @param[in] handlers list of tag / handler function pairs
- * @param[in] handler_count number of handlers
- * @param[in] data the TLV data
- * @param[out] domain_name_info the domain name information
- * @param[out] sig_ctx the signature context
- * @return whether it was successful
- */
-static bool handle_tlv_data(s_tlv_handler *handlers,
-                            int handler_count,
-                            const s_tlv_data *data,
-                            s_domain_name_info *domain_name_info,
-                            s_sig_ctx *sig_ctx) {
-    t_tlv_handler *fptr;
-
-    // check if a handler exists for this tag
-    for (int idx = 0; idx < handler_count; ++idx) {
-        if (handlers[idx].tag == data->tag) {
-            handlers[idx].found += 1;
-            fptr = PIC(handlers[idx].func);
-            if (!(*fptr)(data, domain_name_info, sig_ctx)) {
-                PRINTF("Error while handling tag 0x%x\n", handlers[idx].tag);
-                return false;
-            }
-            break;
-        }
-    }
-    return true;
-}
-
-/**
- * Checks if all the TLV tags were found during parsing
- *
- * @param[in,out] handlers list of tag / handler function pairs
- * @param[in] handler_count number of handlers
- * @return whether all tags were found
- */
-static bool check_found_tlv_tags(s_tlv_handler *handlers, int handler_count) {
-    // prevent missing or duplicated tags
-    for (int idx = 0; idx < handler_count; ++idx) {
-        if (handlers[idx].found != 1) {
-            PRINTF("Found %u occurence(s) of tag 0x%x in TLV!\n",
-                   handlers[idx].found,
-                   handlers[idx].tag);
-            return false;
-        }
-    }
-    return true;
-}
-
-/** Parse DER-encoded value
- *
- * Parses a DER-encoded value (up to 4 bytes long)
- * https://en.wikipedia.org/wiki/X.690
- *
- * @param[in] payload the TLV payload
- * @param[in,out] offset the payload offset
- * @param[out] value the parsed value
- * @return whether it was successful
- */
-static bool parse_der_value(const s_tlv_payload *payload, size_t *offset, uint32_t *value) {
-    bool ret = false;
-    uint8_t byte_length;
-    uint8_t buf[sizeof(*value)];
-
-    if (value != NULL) {
-        if (payload->buf[*offset] & DER_LONG_FORM_FLAG) {  // long form
-            byte_length = payload->buf[*offset] & DER_FIRST_BYTE_VALUE_MASK;
-            *offset += 1;
-            if ((*offset + byte_length) > payload->size) {
-                PRINTF("TLV payload too small for DER encoded value\n");
-            } else {
-                if (byte_length > sizeof(buf) || byte_length == 0) {
-                    PRINTF("Unexpectedly long DER-encoded value (%u bytes)\n", byte_length);
-                } else {
-                    memset(buf, 0, (sizeof(buf) - byte_length));
-                    memcpy(buf + (sizeof(buf) - byte_length), &payload->buf[*offset], byte_length);
-                    *value = U4BE(buf, 0);
-                    *offset += byte_length;
-                    ret = true;
-                }
-            }
-        } else {  // short form
-            *value = payload->buf[*offset];
-            *offset += 1;
-            ret = true;
-        }
-    }
-    return ret;
-}
-
-/**
- * Get DER-encoded value as an uint8
- *
- * Parses the value and checks if it fits in the given \ref uint8_t value
- *
- * @param[in] payload the TLV payload
- * @param[in,out] offset
- * @param[out] value the parsed value
- * @return whether it was successful
- */
-static bool get_der_value_as_uint8(const s_tlv_payload *payload, size_t *offset, uint8_t *value) {
-    bool ret = false;
-    uint32_t tmp_value;
-
-    if (value != NULL) {
-        if (!parse_der_value(payload, offset, &tmp_value)) {
-            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
-        } else {
-            if (tmp_value <= UINT8_MAX) {
-                *value = tmp_value;
-                ret = true;
-            } else {
-                apdu_response_code = APDU_RESPONSE_INVALID_DATA;
-                PRINTF("TLV DER-encoded value larger than 8 bits\n");
-            }
-        }
-    }
-    return ret;
-}
-
-/**
- * Parse the TLV payload
- *
- * Does the TLV parsing but also the SHA-256 hash of the payload.
- *
- * @param[in] payload the raw TLV payload
- * @param[out] domain_name_info the domain name information
- * @param[out] sig_ctx the signature context
- * @return whether it was successful
- */
-static bool parse_tlv(const s_tlv_payload *payload,
-                      s_domain_name_info *domain_name_info,
-                      s_sig_ctx *sig_ctx) {
-    s_tlv_handler handlers[] = {
-        {.tag = STRUCTURE_TYPE, .func = &handle_structure_type, .found = 0},
-        {.tag = STRUCTURE_VERSION, .func = &handle_structure_version, .found = 0},
-        {.tag = CHALLENGE, .func = &handle_challenge, .found = 0},
-        {.tag = SIGNER_KEY_ID, .func = &handle_sign_key_id, .found = 0},
-        {.tag = SIGNER_ALGO, .func = &handle_sign_algo, .found = 0},
-        {.tag = SIGNATURE, .func = &handle_signature, .found = 0},
-        {.tag = DOMAIN_NAME, .func = &handle_domain_name, .found = 0},
-        {.tag = COIN_TYPE, .func = &handle_coin_type, .found = 0},
-        {.tag = ADDRESS, .func = &handle_address, .found = 0}};
-    e_tlv_step step = TLV_TAG;
-    s_tlv_data data;
-    size_t offset = 0;
-    size_t tag_start_off;
-
-    cx_sha256_init(&sig_ctx->hash_ctx);
-    // handle TLV payload
-    while (offset < payload->size) {
-        switch (step) {
-            case TLV_TAG:
-                tag_start_off = offset;
-                if (!get_der_value_as_uint8(payload, &offset, &data.tag)) {
-                    return false;
-                }
-                step = TLV_LENGTH;
-                break;
-
-            case TLV_LENGTH:
-                if (!get_der_value_as_uint8(payload, &offset, &data.length)) {
-                    return false;
-                }
-                step = TLV_VALUE;
-                break;
-
-            case TLV_VALUE:
-                if (offset >= payload->size) {
-                    return false;
-                }
-                data.value = &payload->buf[offset];
-                if (!handle_tlv_data(handlers,
-                                     ARRAY_SIZE(handlers),
-                                     &data,
-                                     domain_name_info,
-                                     sig_ctx)) {
-                    return false;
-                }
-                offset += data.length;
-                if (data.tag != SIGNATURE) {  // the signature wasn't computed on itself
-                    hash_nbytes(&payload->buf[tag_start_off],
-                                (offset - tag_start_off),
-                                (cx_hash_t *) &sig_ctx->hash_ctx);
-                }
-                step = TLV_TAG;
-                break;
-
-            default:
-                return false;
-        }
-    }
-    return check_found_tlv_tags(handlers, ARRAY_SIZE(handlers));
-}
-
-/**
  * Allocate and assign TLV payload
  *
- * @param[in] payload payload structure
  * @param[in] size size of the payload
  * @return whether it was successful
  */
-static bool alloc_payload(s_tlv_payload *payload, uint16_t size) {
-    if ((payload->buf = mem_alloc(size)) == NULL) {
+static bool alloc_payload(uint16_t size) {
+    if ((g_payload = mem_alloc(size)) == NULL) {
         apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
         return false;
     }
-    payload->expected_size = size;
+    g_payload_expected_size = size;
     return true;
 }
 
 /**
  * Deallocate and unassign TLV payload
- *
- * @param[in] payload payload structure
  */
-static void free_payload(s_tlv_payload *payload) {
-    mem_dealloc(payload->expected_size);
-    memset(payload, 0, sizeof(*payload));
+static void free_payload(void) {
+    mem_dealloc(g_payload_expected_size);
+    g_payload = NULL;
+    g_payload_size = 0;
+    g_payload_expected_size = 0;
 }
 
-static bool handle_first_chunk(const uint8_t **data, uint8_t *length, s_tlv_payload *payload) {
+static bool handle_first_chunk(const uint8_t **data, uint8_t *length) {
     // check if no payload is already in memory
-    if (payload->buf != NULL) {
-        free_payload(payload);
+    if (g_payload != NULL) {
+        free_payload();
         apdu_response_code = APDU_RESPONSE_INVALID_P1_P2;
         return false;
     }
 
     // check if we at least get the size
-    if (*length < sizeof(payload->expected_size)) {
+    if (*length < sizeof(g_payload_expected_size)) {
         apdu_response_code = APDU_RESPONSE_INVALID_DATA;
         return false;
     }
-    if (!alloc_payload(payload, U2BE(*data, 0))) {
+    if (!alloc_payload(U2BE(*data, 0))) {
         apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
         return false;
     }
 
     // skip the size so we can process it like a following chunk
-    *data += sizeof(payload->expected_size);
-    *length -= sizeof(payload->expected_size);
+    *data += sizeof(g_payload_expected_size);
+    *length -= sizeof(g_payload_expected_size);
+    return true;
+}
+
+static bool handle_all_received(void) {
+    const s_tlv_handler handlers[] = {
+        {.tag = STRUCT_TYPE, .func = (f_tlv_handler *) &handle_struct_type, .required = true},
+        {.tag = STRUCT_VERSION, .func = (f_tlv_handler *) &handle_struct_version, .required = true},
+        {.tag = CHALLENGE, .func = (f_tlv_handler *) &handle_challenge, .required = true},
+        {.tag = SIGNER_KEY_ID, .func = (f_tlv_handler *) &handle_sign_key_id, .required = true},
+        {.tag = SIGNER_ALGO, .func = (f_tlv_handler *) &handle_sign_algo, .required = true},
+        {.tag = SIGNATURE, .func = (f_tlv_handler *) &handle_signature, .required = true},
+        {.tag = DOMAIN_NAME, .func = (f_tlv_handler *) &handle_domain_name, .required = true},
+        {.tag = COIN_TYPE, .func = (f_tlv_handler *) &handle_coin_type, .required = true},
+        {.tag = ADDRESS, .func = (f_tlv_handler *) &handle_address, .required = true}};
+    s_handler_param handler_param;
+    s_tlv_sig sig = {.tag = SIGNATURE, .ctx = (cx_hash_t *) &handler_param.sig_ctx.hash_ctx};
+
+    g_domain_name_info.name = g_domain_name;
+    handler_param.domain_name_info = &g_domain_name_info;
+    cx_sha256_init(&handler_param.sig_ctx.hash_ctx);
+    if (!parse_tlv(g_payload,
+                   g_payload_size,
+                   handlers,
+                   ARRAY_SIZE(handlers),
+                   &handler_param,
+                   &sig) ||
+        !verify_signature(&handler_param.sig_ctx)) {
+        free_payload();
+        roll_challenge();  // prevent brute-force guesses
+        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        return false;
+    }
+    g_domain_name_info.valid = true;
+    PRINTF("Registered : %s => %.*h\n",
+           g_domain_name_info.name,
+           ADDRESS_LENGTH,
+           g_domain_name_info.addr);
+    free_payload();
+    roll_challenge();  // prevent replays
     return true;
 }
 
@@ -656,48 +439,34 @@ static bool handle_first_chunk(const uint8_t **data, uint8_t *length, s_tlv_payl
  * @param[in] length payload size
  */
 void handle_provide_domain_name(uint8_t p1, uint8_t p2, const uint8_t *data, uint8_t length) {
-    s_sig_ctx sig_ctx;
-
     (void) p2;
     if (p1 == P1_FIRST_CHUNK) {
-        if (!handle_first_chunk(&data, &length, &g_tlv_payload)) {
+        if (!handle_first_chunk(&data, &length)) {
             return response_to_domain_name(false, 0);
         }
     } else {
         // check if a payload is already in memory
-        if (g_tlv_payload.buf == NULL) {
+        if (g_payload == NULL) {
             apdu_response_code = APDU_RESPONSE_INVALID_P1_P2;
             return response_to_domain_name(false, 0);
         }
     }
 
-    if ((g_tlv_payload.size + length) > g_tlv_payload.expected_size) {
+    if ((g_payload_size + length) > g_payload_expected_size) {
         apdu_response_code = APDU_RESPONSE_INVALID_DATA;
-        free_payload(&g_tlv_payload);
+        free_payload();
         PRINTF("TLV payload size mismatch!\n");
         return response_to_domain_name(false, 0);
     }
     // feed into tlv payload
-    memcpy(g_tlv_payload.buf + g_tlv_payload.size, data, length);
-    g_tlv_payload.size += length;
+    memcpy(g_payload + g_payload_size, data, length);
+    g_payload_size += length;
 
     // everything has been received
-    if (g_tlv_payload.size == g_tlv_payload.expected_size) {
-        g_domain_name_info.name = g_domain_name;
-        if (!parse_tlv(&g_tlv_payload, &g_domain_name_info, &sig_ctx) ||
-            !verify_signature(&sig_ctx)) {
-            free_payload(&g_tlv_payload);
-            roll_challenge();  // prevent brute-force guesses
-            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
-            return response_to_domain_name(false, 0);
+    if (g_payload_size == g_payload_expected_size) {
+        if (!handle_all_received()) {
+            response_to_domain_name(false, 0);
         }
-        g_domain_name_info.valid = true;
-        PRINTF("Registered : %s => %.*h\n",
-               g_domain_name_info.name,
-               ADDRESS_LENGTH,
-               g_domain_name_info.addr);
-        free_payload(&g_tlv_payload);
-        roll_challenge();  // prevent replays
     }
     return response_to_domain_name(true, 0);
 }

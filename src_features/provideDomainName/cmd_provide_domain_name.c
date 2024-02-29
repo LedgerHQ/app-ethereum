@@ -259,7 +259,7 @@ static bool handle_domain_name(const s_tlv_data *data, s_tlv_handler_param *para
         PRINTF("Unexpected TLD!\n");
         return false;
     }
-    for (int idx = 0; idx < data->length; ++idx) {
+    for (size_t idx = 0; idx < data->length; ++idx) {
         if (!is_valid_domain_character(data->value[idx])) {
             PRINTF("Domain name contains non-allowed character! (0x%x)\n", data->value[idx]);
             return false;

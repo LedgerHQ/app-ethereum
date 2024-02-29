@@ -6,7 +6,7 @@
 
 typedef struct {
     uint8_t tag;
-    uint8_t length;
+    size_t length;
     const uint8_t *value;
 } s_tlv_data;
 
@@ -15,7 +15,7 @@ typedef struct tlv_handler_param s_tlv_handler_param;
 
 typedef bool(f_tlv_handler)(const s_tlv_data *data, s_tlv_handler_param *param);
 
-size_t der_encode_value(uint8_t *payload, size_t payload_size, uint32_t value);
+size_t der_encode_value(uint8_t *payload, size_t payload_size, size_t value);
 
 bool parse_tlv(const uint8_t *payload,
                size_t payload_size,

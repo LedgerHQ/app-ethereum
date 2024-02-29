@@ -22,7 +22,7 @@ typedef enum { TLV_TAG, TLV_LENGTH, TLV_VALUE } e_tlv_step;
  * @param[out] value the decoded value
  * @return how many bytes were read from the payload, 0 if unsuccessful
  */
-static size_t der_decode_value(const uint8_t *payload, size_t payload_size, uint32_t *value) {
+static size_t der_decode_value(const uint8_t *payload, size_t payload_size, size_t *value) {
     size_t ret = 0;
     uint8_t byte_length;
     uint8_t buf[sizeof(*value)];
@@ -152,8 +152,7 @@ bool parse_tlv(const uint8_t *payload,
                 break;
 
             case TLV_LENGTH:
-                incr =
-                    get_der_value_as_uint8(&payload[offset], payload_size - offset, &data.length);
+                incr = der_decode_value(&payload[offset], payload_size - offset, &data.length);
                 if (incr == 0) {
                     return false;
                 }

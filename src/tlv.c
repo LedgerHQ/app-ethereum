@@ -40,7 +40,7 @@ static size_t der_decode_value(const uint8_t *payload, size_t payload_size, uint
                     return 0;
                 } else {
                     memset(buf, 0, (sizeof(buf) - byte_length));
-                    memcpy(buf + (sizeof(buf) - byte_length), payload, byte_length);
+                    memcpy(buf + (sizeof(buf) - byte_length), payload + 1, byte_length);
                     *value = U4BE(buf, 0);
                     ret += byte_length;
                 }

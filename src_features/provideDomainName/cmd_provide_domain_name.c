@@ -566,7 +566,7 @@ void handle_provide_domain_name(uint8_t p1, uint8_t p2, const uint8_t *data, uin
     // everything has been received
     if (g_payload_size == g_payload_expected_size) {
         if (!handle_all_received()) {
-            response_to_domain_name(false, 0);
+            return response_to_domain_name(false, 0);
         }
     }
     return response_to_domain_name(true, 0);

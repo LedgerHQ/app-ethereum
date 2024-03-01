@@ -50,10 +50,15 @@ typedef struct {
     cx_sha256_t hash_ctx;
 } s_sig_ctx;
 
+typedef struct {
+    uint8_t tag;
+    uint8_t count;
+} s_counter;
+
 struct tlv_handler_param {
     s_domain_name_info *domain_name_info;
     s_sig_ctx sig_ctx;
-    uint8_t counters[TAG_COUNT];
+    s_counter counters[TAG_COUNT];
 };
 
 static uint8_t *g_payload = NULL;
@@ -340,52 +345,47 @@ static bool hash_payload(const s_tlv_data *data, cx_hash_t *hash_ctx) {
  */
 static bool tlv_handler(const s_tlv_data *data, s_tlv_handler_param *param) {
     bool ret = false;
-    int idx = -1;
 
     if (!hash_payload(data, (cx_hash_t *) &param->sig_ctx.hash_ctx)) {
         return false;
     }
     switch (data->tag) {
         case STRUCT_TYPE:
-            idx = 0;
             ret = handle_struct_type(data, param);
             break;
         case STRUCT_VERSION:
-            idx = 1;
             ret = handle_struct_version(data, param);
             break;
         case CHALLENGE:
-            idx = 2;
             ret = handle_challenge(data, param);
             break;
         case SIGNER_KEY_ID:
-            idx = 3;
             ret = handle_sign_key_id(data, param);
             break;
         case SIGNER_ALGO:
-            idx = 4;
             ret = handle_sign_algo(data, param);
             break;
         case SIGNATURE:
-            idx = 5;
             ret = handle_signature(data, param);
             break;
         case DOMAIN_NAME:
-            idx = 6;
             ret = handle_domain_name(data, param);
             break;
         case COIN_TYPE:
-            idx = 7;
             ret = handle_coin_type(data, param);
             break;
         case ADDRESS:
-            idx = 8;
             ret = handle_address(data, param);
             break;
         default:
-            break;
+            return false;
     }
-    if (idx != -1) param->counters[idx] += 1;
+    for (size_t i = 0; i < TAG_COUNT; ++i) {
+        if (param->counters[i].tag == data->tag) {
+            param->counters[i].count += 1;
+            break;
+        }
+    }
     return ret;
 }
 
@@ -494,9 +494,9 @@ static size_t handle_first_chunk(const uint8_t *data, uint8_t length) {
  * @param[in] counters array of counters
  * @return whether all counters were found once
  */
-static bool all_tags_found_once(const uint8_t *counters) {
+static bool all_tags_found_once(const s_counter *counters) {
     for (size_t i = 0; i < TAG_COUNT; ++i) {
-        if (counters[i] != 1) return false;
+        if (counters[i].count != 1) return false;
     }
     return true;
 }
@@ -509,6 +509,15 @@ static bool all_tags_found_once(const uint8_t *counters) {
 static bool handle_all_received(void) {
     s_tlv_handler_param handler_param = {0};
 
+    handler_param.counters[0].tag = STRUCT_TYPE;
+    handler_param.counters[1].tag = STRUCT_VERSION;
+    handler_param.counters[2].tag = CHALLENGE;
+    handler_param.counters[3].tag = SIGNER_KEY_ID;
+    handler_param.counters[4].tag = SIGNER_ALGO;
+    handler_param.counters[5].tag = SIGNATURE;
+    handler_param.counters[6].tag = DOMAIN_NAME;
+    handler_param.counters[7].tag = COIN_TYPE;
+    handler_param.counters[8].tag = ADDRESS;
     g_domain_name_info.name = g_domain_name;
     handler_param.domain_name_info = &g_domain_name_info;
     cx_sha256_init(&handler_param.sig_ctx.hash_ctx);

@@ -316,14 +316,12 @@ static int strcasecmp_workaround(const char *str1, const char *str2) {
     return 0;
 }
 
-__attribute__((noinline)) static void finalize_parsing_helper(bool direct, bool *use_standard_UI) {
+__attribute__((noinline)) static bool finalize_parsing_helper(bool direct, bool *use_standard_UI) {
     char displayBuffer[50];
     uint8_t decimals = WEI_TO_ETHER;
     uint64_t chain_id = get_tx_chain_id();
     const char *ticker = get_displayable_ticker(&chain_id, chainConfig);
     ethPluginFinalize_t pluginFinalize;
-
-    *use_standard_UI = true;
 
     // Verify the chain
     if (chainConfig->chainId != ETHEREUM_MAINNET_CHAINID) {
@@ -334,7 +332,7 @@ __attribute__((noinline)) static void finalize_parsing_helper(bool direct, bool 
             reset_app_context();
             reportFinalizeError(direct);
             if (!direct) {
-                return;
+                return false;
             }
         }
     }
@@ -358,7 +356,7 @@ __attribute__((noinline)) static void finalize_parsing_helper(bool direct, bool 
             PRINTF("Plugin finalize call failed\n");
             reportFinalizeError(direct);
             if (!direct) {
-                return;
+                return false;
             }
         }
         // Lookup tokens if requested
@@ -384,7 +382,7 @@ __attribute__((noinline)) static void finalize_parsing_helper(bool direct, bool 
                 PRINTF("Plugin provide token call failed\n");
                 reportFinalizeError(direct);
                 if (!direct) {
-                    return;
+                    return false;
                 }
             }
             pluginFinalize.result = pluginProvideInfo.result;
@@ -409,7 +407,7 @@ __attribute__((noinline)) static void finalize_parsing_helper(bool direct, bool 
                         PRINTF("Incorrect amount/address set by plugin\n");
                         reportFinalizeError(direct);
                         if (!direct) {
-                            return;
+                            return false;
                         }
                     }
                     memmove(tmpContent.txContent.value.value, pluginFinalize.amount, 32);
@@ -425,7 +423,7 @@ __attribute__((noinline)) static void finalize_parsing_helper(bool direct, bool 
                     PRINTF("ui type %d not supported\n", pluginFinalize.uiType);
                     reportFinalizeError(direct);
                     if (!direct) {
-                        return;
+                        return false;
                     }
             }
         }
@@ -450,7 +448,7 @@ __attribute__((noinline)) static void finalize_parsing_helper(bool direct, bool 
         reportFinalizeError(direct);
         ui_warning_contract_data();
         if (!direct) {
-            return;
+            return false;
         }
     }
 
@@ -530,12 +528,16 @@ __attribute__((noinline)) static void finalize_parsing_helper(bool direct, bool 
     // Prepare network field
     get_network_as_string(strings.common.network_name, sizeof(strings.common.network_name));
     PRINTF("Network: %s\n", strings.common.network_name);
+    return true;
 }
 
 void finalizeParsing(bool direct) {
-    bool use_standard_UI;
+    bool use_standard_UI = true;
     bool no_consent_check;
-    finalize_parsing_helper(direct, &use_standard_UI);
+
+    if (!finalize_parsing_helper(direct, &use_standard_UI)) {
+        return;
+    }
     // If called from swap, the user has already validated a standard transaction
     // And we have already checked the fields of this transaction above
     no_consent_check = G_called_from_swap && use_standard_UI;

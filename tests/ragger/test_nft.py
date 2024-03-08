@@ -11,11 +11,8 @@ import ledger_app_clients.ethereum.response_parser as ResponseParser
 from ledger_app_clients.ethereum.utils import get_selector_from_data, recover_transaction
 from web3 import Web3
 import json
-import os
-from constants import ROOT_SNAPSHOT_PATH
+from constants import ROOT_SNAPSHOT_PATH, ABIS_FOLDER
 
-
-ABIS_FOLDER = "%s/abis" % (os.path.dirname(__file__))
 
 BIP32_PATH = "m/44'/60'/0'/0/0"
 NONCE = 21

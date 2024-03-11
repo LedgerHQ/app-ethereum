@@ -23,16 +23,16 @@ def recover_transaction(tx_params, vrs: tuple) -> bytes:
     if raw_tx[0] in [0x01, 0x02]:
         prefix = raw_tx[:1]
         raw_tx = raw_tx[len(prefix):]
-    # v is returned on one byte only so it might have overflowed
-    # in that case, we will reconstruct it to its full value
-    if "chainId" in tx_params:
-        trunc_chain_id = tx_params["chainId"]
-        while trunc_chain_id.bit_length() > 32:
-            trunc_chain_id >>= 8
-        target = tx_params["chainId"] * 2 + 35
-        trunc_target = trunc_chain_id * 2 + 35
-        diff = vrs[0][0] - (trunc_target & 0xff)
-        vrs = (target + diff, vrs[1], vrs[2])
+    else:
+        # v is returned on one byte only so it might have overflowed
+        # in that case, we will reconstruct it to its full value
+        if "chainId" in tx_params:
+            trunc_chain_id = tx_params["chainId"]
+            while trunc_chain_id.bit_length() > 32:
+                trunc_chain_id >>= 8
+            trunc_target = trunc_chain_id * 2 + 35
+            parity = int.from_bytes(vrs[0], "big") - (trunc_target & 0xff)
+            vrs = (parity + tx_params["chainId"] * 2 + 35, vrs[1], vrs[2])
     decoded = rlp.decode(raw_tx)
     reencoded = rlp.encode(decoded[:-3] + list(vrs))
     addr = Account.recover_transaction(prefix + reencoded)

@@ -110,11 +110,18 @@ UX_STEP_NOCB(
       .text = strings.common.fullAmount
     });
 UX_STEP_NOCB(
+    ux_approval_from_step,
+    bnnn_paging,
+    {
+      .title = "From",
+      .text = strings.common.fromAddress,
+    });
+UX_STEP_NOCB(
     ux_approval_address_step,
     bnnn_paging,
     {
-      .title = "Address",
-      .text = strings.common.fullAddress,
+      .title = "To",
+      .text = strings.common.toAddress,
     });
 
 UX_STEP_NOCB_INIT(
@@ -122,7 +129,7 @@ UX_STEP_NOCB_INIT(
   bnnn_paging,
   plugin_ui_get_id(),
   {
-    .title = strings.common.fullAddress,
+    .title = strings.common.toAddress,
     .text = strings.common.fullAmount
   });
 
@@ -138,7 +145,7 @@ UX_FLOW_DEF_NOCB(
   ux_plugin_approval_display_step,
   bnnn_paging,
   {
-    .title = strings.common.fullAddress,
+    .title = strings.common.toAddress,
     .text = strings.common.fullAmount
   });
 
@@ -225,10 +232,16 @@ void ux_approve_tx(bool fromPlugin) {
         if (has_domain_name(&chain_id, tmpContent.txContent.destination)) {
             ux_approval_tx_flow[step++] = &ux_domain_name_step;
             if (N_storage.verbose_domain_name) {
+                if (strings.common.fromAddress[0] != 0) {
+                    ux_approval_tx_flow[step++] = &ux_approval_from_step;
+                }
                 ux_approval_tx_flow[step++] = &ux_approval_address_step;
             }
         } else {
 #endif  // HAVE_DOMAIN_NAME
+            if (strings.common.fromAddress[0] != 0) {
+                ux_approval_tx_flow[step++] = &ux_approval_from_step;
+            }
             ux_approval_tx_flow[step++] = &ux_approval_address_step;
 #ifdef HAVE_DOMAIN_NAME
         }

@@ -57,8 +57,8 @@ static const nbgl_icon_details_t *get_tx_icon(void) {
 
     if (tx_approval_context.fromPlugin && (pluginType == EXTERNAL)) {
         if (caller_app && caller_app->name) {
-            if ((strlen(strings.common.fullAddress) == strlen(caller_app->name)) &&
-                (strcmp(strings.common.fullAddress, caller_app->name) == 0)) {
+            if ((strlen(strings.common.toAddress) == strlen(caller_app->name)) &&
+                (strcmp(strings.common.toAddress, caller_app->name) == 0)) {
                 icon = get_app_icon(true);
             }
         }
@@ -120,6 +120,12 @@ static uint8_t setTagValuePairs(void) {
         pairs[nbPairs].value = strings.common.fullAmount;
         nbPairs++;
 
+        if (strings.common.fromAddress[0] != 0) {
+            pairs[nbPairs].item = "From";
+            pairs[nbPairs].value = strings.common.fromAddress;
+            nbPairs++;
+        }
+
 #ifdef HAVE_DOMAIN_NAME
         uint64_t chain_id = get_tx_chain_id();
         tx_approval_context.domain_name_match =
@@ -131,8 +137,8 @@ static uint8_t setTagValuePairs(void) {
         }
         if (!tx_approval_context.domain_name_match || N_storage.verbose_domain_name) {
 #endif
-            pairs[nbPairs].item = "Address";
-            pairs[nbPairs].value = strings.common.fullAddress;
+            pairs[nbPairs].item = "To";
+            pairs[nbPairs].value = strings.common.toAddress;
             nbPairs++;
 #ifdef HAVE_DOMAIN_NAME
         }
@@ -172,14 +178,14 @@ static void reviewCommon(void) {
                  "Review transaction\nto %s\n%s%s",
                  op_name,
                  (pluginType == EXTERNAL ? "on " : ""),
-                 strings.common.fullAddress);
+                 strings.common.toAddress);
         // Finish text: replace "Review" by "Sign" and add questionmark
         snprintf(g_stax_shared_buffer + buf_size,
                  buf_size,
                  "Sign transaction\nto %s\n%s%s",
                  op_name,
                  (pluginType == EXTERNAL ? "on " : ""),
-                 strings.common.fullAddress);
+                 strings.common.toAddress);
 
         nbgl_useCaseReview(TYPE_TRANSACTION,
                            &pairsList,

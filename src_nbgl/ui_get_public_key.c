@@ -41,7 +41,7 @@ void ui_display_public_key(const uint64_t *chain_id) {
         icon = get_app_icon(false);
     }
     strlcat(g_stax_shared_buffer, "address", sizeof(g_stax_shared_buffer));
-    nbgl_useCaseAddressReview(strings.common.fullAddress,
+    nbgl_useCaseAddressReview(strings.common.toAddress,
                               NULL,
                               icon,
                               g_stax_shared_buffer,

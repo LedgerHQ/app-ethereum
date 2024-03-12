@@ -3,6 +3,14 @@ from eth_account.messages import encode_defunct, encode_typed_data
 import rlp
 
 
+# eth_account requires it for some reason
+def normalize_vrs(vrs: tuple) -> tuple:
+    vrs_l = list()
+    for elem in vrs:
+        vrs_l.append(elem.lstrip(b'\x00'))
+    return tuple(vrs_l)
+
+
 def get_selector_from_data(data: str) -> bytes:
     raw_data = bytes.fromhex(data[2:])
     return raw_data[:4]
@@ -13,7 +21,7 @@ def recover_message(msg, vrs: tuple) -> bytes:
         smsg = encode_typed_data(full_message=msg)
     else:  # EIP-191
         smsg = encode_defunct(primitive=msg)
-    addr = Account.recover_message(smsg, vrs)
+    addr = Account.recover_message(smsg, normalize_vrs(vrs))
     return bytes.fromhex(addr[2:])
 
 
@@ -50,6 +58,6 @@ def recover_transaction(tx_params, vrs: tuple) -> bytes:
             # Pre EIP-155 TX
             assert False
     decoded = rlp.decode(raw_tx)
-    reencoded = rlp.encode(decoded[:-3] + list(vrs))
+    reencoded = rlp.encode(decoded[:-3] + list(normalize_vrs(vrs)))
     addr = Account.recover_transaction(prefix + reencoded)
     return bytes.fromhex(addr[2:])

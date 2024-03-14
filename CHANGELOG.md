@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.11.0](https://github.com/ledgerhq/app-ethereum/compare/1.10.4...1.11.0) - 2023-XX-XX
+
 ## [1.10.4](https://github.com/ledgerhq/app-ethereum/compare/1.10.3...1.10.4) - 2023-03-08
 
 ### Added

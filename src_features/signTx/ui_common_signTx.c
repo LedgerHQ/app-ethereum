@@ -1,34 +1,26 @@
+#include "lib_standard_app/crypto_helpers.h"
 #include "os_io_seproxyhal.h"
 #include "shared_context.h"
-#include "utils.h"
+#include "common_utils.h"
 #include "common_ui.h"
 #include "handle_swap_sign_transaction.h"
 
 unsigned int io_seproxyhal_touch_tx_ok(__attribute__((unused)) const bagl_element_t *e) {
-    uint8_t privateKeyData[INT256_LENGTH];
-    uint8_t signature[100];
-    cx_ecfp_private_key_t privateKey;
-    uint32_t tx = 0;
+    uint32_t info = 0;
     int err;
-    io_seproxyhal_io_heartbeat();
-    os_perso_derive_node_bip32(CX_CURVE_256K1,
-                               tmpCtx.transactionContext.bip32.path,
-                               tmpCtx.transactionContext.bip32.length,
-                               privateKeyData,
-                               NULL);
-    cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
-    explicit_bzero(privateKeyData, sizeof(privateKeyData));
-    unsigned int info = 0;
-    io_seproxyhal_io_heartbeat();
-    cx_ecdsa_sign(&privateKey,
-                  CX_RND_RFC6979 | CX_LAST,
-                  CX_SHA256,
-                  tmpCtx.transactionContext.hash,
-                  sizeof(tmpCtx.transactionContext.hash),
-                  signature,
-                  sizeof(signature),
-                  &info);
-    explicit_bzero(&privateKey, sizeof(privateKey));
+    if (bip32_derive_ecdsa_sign_rs_hash_256(CX_CURVE_256K1,
+                                            tmpCtx.transactionContext.bip32.path,
+                                            tmpCtx.transactionContext.bip32.length,
+                                            CX_RND_RFC6979 | CX_LAST,
+                                            CX_SHA256,
+                                            tmpCtx.transactionContext.hash,
+                                            sizeof(tmpCtx.transactionContext.hash),
+                                            G_io_apdu_buffer + 1,
+                                            G_io_apdu_buffer + 1 + 32,
+                                            &info) != CX_OK) {
+        THROW(0x6F00);
+    }
+
     if (txContext.txType == EIP1559 || txContext.txType == EIP2930) {
         if (info & CX_ECCINFO_PARITY_ODD) {
             G_io_apdu_buffer[0] = 1;
@@ -57,13 +49,13 @@ unsigned int io_seproxyhal_touch_tx_ok(__attribute__((unused)) const bagl_elemen
             G_io_apdu_buffer[0] += 2;
         }
     }
-    format_signature_out(signature);
-    tx = 65;
-    G_io_apdu_buffer[tx++] = 0x90;
-    G_io_apdu_buffer[tx++] = 0x00;
+
+    // Write status code at parity_byte + r + s
+    G_io_apdu_buffer[1 + 64] = 0x90;
+    G_io_apdu_buffer[1 + 64 + 1] = 0x00;
 
     // Send back the response, do not restart the event loop
-    err = io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
+    err = io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 1 + 64 + 2);
     if (G_called_from_swap) {
         PRINTF("G_called_from_swap\n");
 

@@ -3,17 +3,18 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+
+#include "os.h"
+#include "cx.h"
 #include "ethUstream.h"
-#include "tokens.h"
+#include "tx_content.h"
 #include "chainConfig.h"
-#include "nft.h"
+#include "asset_info.h"
 #ifdef HAVE_NBGL
 #include "nbgl_types.h"
 #endif
 
 #define MAX_BIP32_PATH 10
-
-#define WEI_TO_ETHER 18
 
 #define SELECTOR_LENGTH 4
 
@@ -39,21 +40,6 @@ typedef struct internalStorage_t {
     bool initialized;
 } internalStorage_t;
 
-#ifdef HAVE_STARKWARE
-
-typedef enum starkQuantumType_e {
-
-    STARK_QUANTUM_LEGACY = 0x00,
-    STARK_QUANTUM_ETH,
-    STARK_QUANTUM_ERC20,
-    STARK_QUANTUM_ERC721,
-    STARK_QUANTUM_MINTABLE_ERC20,
-    STARK_QUANTUM_MINTABLE_ERC721
-
-} starkQuantumType_e;
-
-#endif
-
 typedef struct tokenContext_t {
     char pluginName[PLUGIN_ID_LENGTH];
 
@@ -77,13 +63,6 @@ typedef struct tokenContext_t {
 
     uint8_t pluginStatus;
 
-#ifdef HAVE_STARKWARE
-    uint8_t quantum[32];
-    uint8_t mintingBlob[32];
-    uint8_t quantumIndex;
-    uint8_t quantumType;
-#endif
-
 } tokenContext_t;
 
 _Static_assert((offsetof(tokenContext_t, pluginContext) % 4) == 0, "Plugin context not aligned");
@@ -94,11 +73,6 @@ typedef struct publicKeyContext_t {
     uint8_t chainCode[INT256_LENGTH];
     bool getChaincode;
 } publicKeyContext_t;
-
-typedef union extraInfo_t {
-    tokenDefinition_t token;
-    nftInfo_t nft;
-} extraInfo_t;
 
 typedef struct transactionContext_t {
     bip32_path_t bip32;
@@ -133,27 +107,8 @@ typedef union {
     char tmp[100];
 } tmpContent_t;
 
-#ifdef HAVE_STARKWARE
-
-typedef struct starkContext_t {
-    uint8_t w1[32];
-    uint8_t w2[32];
-    uint8_t w3[32];
-    uint8_t w4[32];
-    uint8_t conditional;
-    uint8_t transferDestination[32];
-    uint8_t fact[32];
-    uint8_t conditionAddress[20];
-} starkContext_t;
-
-#endif
-
 typedef union {
     tokenContext_t tokenContext;
-
-#ifdef HAVE_STARKWARE
-    starkContext_t starkContext;
-#endif
 } dataContext_t;
 
 typedef enum { APP_STATE_IDLE, APP_STATE_SIGNING_TX, APP_STATE_SIGNING_MESSAGE } app_state_t;
@@ -162,28 +117,17 @@ typedef enum {
     CONTRACT_NONE,
     CONTRACT_ERC20,
     CONTRACT_ALLOWANCE,
-#ifdef HAVE_STARKWARE
-    CONTRACT_STARKWARE_REGISTER,
-    CONTRACT_STARKWARE_DEPOSIT_TOKEN,
-    CONTRACT_STARKWARE_DEPOSIT_ETH,
-    CONTRACT_STARKWARE_WITHDRAW,
-    CONTRACT_STARKWARE_DEPOSIT_CANCEL,
-    CONTRACT_STARKWARE_DEPOSIT_RECLAIM,
-    CONTRACT_STARKWARE_FULL_WITHDRAWAL,
-    CONTRACT_STARKWARE_FREEZE,
-    CONTRACT_STARKWARE_ESCAPE,
-    CONTRACT_STARKWARE_VERIFY_ESCAPE
-#endif
 } contract_call_t;
 
-#define NETWORK_STRING_MAX_SIZE 16
+// must be able to hold in decimal up to : floor(MAX_UINT64 / 2) - 36
+#define NETWORK_STRING_MAX_SIZE 19
 
 typedef struct txStringProperties_s {
     char fullAddress[43];
     char fullAmount[79];  // 2^256 is 78 digits long
     char maxFee[50];
     char nonce[8];  // 10M tx per account ought to be enough for everybody
-    char network_name[NETWORK_STRING_MAX_SIZE];
+    char network_name[NETWORK_STRING_MAX_SIZE + 1];
 } txStringProperties_t;
 
 #ifdef TARGET_NANOS
@@ -214,6 +158,7 @@ extern cx_sha3_t global_sha3;
 extern const internalStorage_t N_storage_real;
 
 extern bool G_called_from_swap;
+extern bool G_swap_response_ready;
 
 typedef enum {
     EXTERNAL,     //  External plugin, set by setExternalPlugin.
@@ -224,25 +169,10 @@ typedef enum {
 
 extern pluginType_t pluginType;
 
-typedef enum { CALLER_TYPE_CLONE, CALLER_TYPE_PLUGIN } e_caller_type;
-
-typedef struct caller_app_t {
-    const char *name;
-#ifdef HAVE_NBGL
-    const nbgl_icon_details_t *icon;
-#endif
-    char type;  // does not have to be set by the caller app
-} caller_app_t;
-
 extern uint8_t appState;
-#ifdef HAVE_STARKWARE
-extern bool quantumSet;
-#endif
 #ifdef HAVE_ETH2
 extern uint32_t eth2WithdrawalIndex;
 #endif
-
-extern caller_app_t *caller_app;
 
 void reset_app_context(void);
 const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_path_t *bip32);

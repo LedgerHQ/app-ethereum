@@ -30,7 +30,12 @@ static bool display_review_page(uint8_t page, nbgl_pageContent_t *content) {
                                         strings.tmp.tmp,
                                         SCREEN_WIDTH - (2 * BORDER_MARGIN),
                                         NB_MAX_LINES_IN_REVIEW,
+#if (API_LEVEL == 0 || API_LEVEL >= 14)
+                                        &len,
+                                        false);
+#else
                                         &len);
+#endif
             strings.tmp.tmp[len] = '\0';
 
             pair.item = strings.tmp.tmp2;

@@ -7,7 +7,6 @@
 #include "mem_utils.h"
 #include "type_hash.h"
 #include "shared_context.h"
-#include "ethUtils.h"  // KECCAK256_HASH_BYTESIZE
 #include "format_hash_field_type.h"
 #include "hash_bytes.h"
 #include "apdu_constants.h"  // APDU response codes

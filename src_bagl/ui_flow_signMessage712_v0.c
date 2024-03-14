@@ -1,7 +1,6 @@
 #include "shared_context.h"
 #include "ui_callbacks.h"
 #include "common_712.h"
-#include "ethUtils.h"
 
 void prepare_domain_hash_v0() {
     snprintf(strings.tmp.tmp,

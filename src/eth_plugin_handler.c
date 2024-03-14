@@ -1,9 +1,9 @@
 #include <string.h>
 #include "eth_plugin_handler.h"
 #include "eth_plugin_internal.h"
+#include "plugin_utils.h"
 #include "shared_context.h"
 #include "network.h"
-#include "ethUtils.h"
 
 void eth_plugin_prepare_init(ethPluginInitContract_t *init,
                              const uint8_t *selector,
@@ -67,7 +67,9 @@ void eth_plugin_prepare_query_contract_UI(ethQueryContractUI_t *queryContractUI,
 
     queryContractUI->screenIndex = screenIndex;
     chain_id = get_tx_chain_id();
-    strlcpy(queryContractUI->network_ticker, get_displayable_ticker(&chain_id), MAX_TICKER_LEN);
+    strlcpy(queryContractUI->network_ticker,
+            get_displayable_ticker(&chain_id, chainConfig),
+            sizeof(queryContractUI->network_ticker));
     queryContractUI->title = title;
     queryContractUI->titleLength = titleLength;
     queryContractUI->msg = msg;

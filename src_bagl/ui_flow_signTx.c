@@ -1,13 +1,12 @@
 #include "shared_context.h"
 #include "ui_callbacks.h"
 #include "chainConfig.h"
-#include "utils.h"
+#include "common_utils.h"
 #include "feature_signTx.h"
 #include "network.h"
 #include "eth_plugin_handler.h"
 #include "ui_plugin.h"
 #include "common_ui.h"
-#include "ethUtils.h"
 #include "plugins.h"
 #include "domain_name.h"
 #include "ui_domain_name.h"
@@ -158,6 +157,7 @@ UX_STEP_NOCB(
       .title = "Max Fees",
       .text = strings.common.maxFee,
     });
+
 UX_STEP_NOCB(
     ux_approval_network_step,
     bnnn_paging,
@@ -240,7 +240,7 @@ void ux_approve_tx(bool fromPlugin) {
     }
 
     uint64_t chain_id = get_tx_chain_id();
-    if (chainConfig->chainId == ETHEREUM_MAINNET_CHAINID && chain_id != chainConfig->chainId) {
+    if ((chainConfig->chainId == ETHEREUM_MAINNET_CHAINID) && (chain_id != chainConfig->chainId)) {
         ux_approval_tx_flow[step++] = &ux_approval_network_step;
     }
 

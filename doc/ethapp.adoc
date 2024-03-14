@@ -87,6 +87,7 @@ The address can be optionally checked on the device before being returned.
 | First derivation index (big endian)                                               | 4
 | ...                                                                               | 4
 | Last derivation index (big endian)                                                | 4
+| Chain ID (big endian) (optional)                                                  | 8
 |==============================================================================================================================
 
 'Output data'
@@ -527,7 +528,7 @@ The plugin names `ERC20`, `ERC721` and `ERC1155` are reserved. Additional plugin
 
 The signature is computed on
 
-type || version || len(pluginName) || pluginName || address || selector || chainId || keyId || algorithmId || len(signature) || signature
+type || version || len(pluginName) || pluginName || address || selector || chainId || keyId || algorithmId
 
 #### Coding
 

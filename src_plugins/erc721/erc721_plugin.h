@@ -6,7 +6,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "ethUstream.h"
-#include "nft.h"
+#include "asset_info.h"
 
 // Internal plugin for EIP 721: https://eips.ethereum.org/EIPS/eip-721
 

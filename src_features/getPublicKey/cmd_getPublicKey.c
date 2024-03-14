@@ -1,8 +1,7 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
-
+#include "common_utils.h"
 #include "feature_getPublicKey.h"
-#include "ethUtils.h"
 #include "common_ui.h"
 #include "os_io_seproxyhal.h"
 
@@ -21,16 +20,18 @@ void handleGetPublicKey(uint8_t p1,
     }
 
     if ((p1 != P1_CONFIRM) && (p1 != P1_NON_CONFIRM)) {
-        THROW(0x6B00);
+        PRINTF("Error: Unexpected P1 (%u)!\n", p1);
+        THROW(APDU_RESPONSE_INVALID_P1_P2);
     }
     if ((p2 != P2_CHAINCODE) && (p2 != P2_NO_CHAINCODE)) {
-        THROW(0x6B00);
+        PRINTF("Error: Unexpected P2 (%u)!\n", p2);
+        THROW(APDU_RESPONSE_INVALID_P1_P2);
     }
 
     dataBuffer = parseBip32(dataBuffer, &dataLength, &bip32);
 
     if (dataBuffer == NULL) {
-        THROW(0x6a80);
+        THROW(APDU_RESPONSE_INVALID_DATA);
     }
 
     tmpCtx.publicKeyContext.getChaincode = (p2 == P2_CHAINCODE);
@@ -47,16 +48,32 @@ void handleGetPublicKey(uint8_t p1,
     explicit_bzero(&privateKey, sizeof(privateKey));
     explicit_bzero(privateKeyData, sizeof(privateKeyData));
     io_seproxyhal_io_heartbeat();
-    getEthAddressStringFromKey(&tmpCtx.publicKeyContext.publicKey,
-                               tmpCtx.publicKeyContext.address,
-                               &global_sha3,
-                               chainConfig->chainId);
+    if (!getEthAddressStringFromKey(&tmpCtx.publicKeyContext.publicKey,
+                                    tmpCtx.publicKeyContext.address,
+                                    &global_sha3,
+                                    chainConfig->chainId)) {
+        THROW(CX_INVALID_PARAMETER);
+    }
+
+    uint64_t chain_id = chainConfig->chainId;
+    if (dataLength >= sizeof(chain_id)) {
+        chain_id = u64_from_BE(dataBuffer, sizeof(chain_id));
+        dataLength -= sizeof(chain_id);
+        dataBuffer += sizeof(chain_id);
+    }
+
+    (void) dataBuffer;  // to prevent dead increment warning
+    if (dataLength > 0) {
+        PRINTF("Error: Leftover unwanted data (%u bytes long)!\n", dataLength);
+        THROW(APDU_RESPONSE_INVALID_DATA);
+    }
+
 #ifndef NO_CONSENT
     if (p1 == P1_NON_CONFIRM)
 #endif  // NO_CONSENT
     {
         *tx = set_result_get_publicKey();
-        THROW(0x9000);
+        THROW(APDU_RESPONSE_OK);
     }
 #ifndef NO_CONSENT
     else {
@@ -65,7 +82,8 @@ void handleGetPublicKey(uint8_t p1,
                  "0x%.*s",
                  40,
                  tmpCtx.publicKeyContext.address);
-        ui_display_public_key();
+        // don't unnecessarily pass the current app's chain ID
+        ui_display_public_key(chainConfig->chainId == chain_id ? NULL : &chain_id);
 
         *flags |= IO_ASYNCH_REPLY;
     }

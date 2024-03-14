@@ -1,11 +1,14 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
-#include "tokens.h"
+#include "asset_info.h"
 #include "eth_plugin_interface.h"
 #include "eth_plugin_internal.h"
-#include "utils.h"
+#include "plugin_utils.h"
+#include "common_utils.h"
 #include "common_ui.h"
 #include "os_io_seproxyhal.h"
+#include "network.h"
+#include "public_keys.h"
 
 // Supported internal plugins
 #define ERC721_STR  "ERC721"
@@ -43,23 +46,6 @@ typedef enum KeyId {
 typedef enum AlgorithmID {
     ECC_SECG_P256K1__ECDSA_SHA_256 = 0x01,
 } AlgorithmID;
-
-// Only used for signing NFT plugins (ERC721 and ERC1155)
-static const uint8_t LEDGER_NFT_SELECTOR_PUBLIC_KEY[] = {
-#ifdef HAVE_NFT_TESTING_KEY
-    0x04, 0xf5, 0x70, 0x0c, 0xa1, 0xe8, 0x74, 0x24, 0xc7, 0xc7, 0xd1, 0x19, 0xe7, 0xe3,
-    0xc1, 0x89, 0xb1, 0x62, 0x50, 0x94, 0xdb, 0x6e, 0xa0, 0x40, 0x87, 0xc8, 0x30, 0x00,
-    0x7d, 0x0b, 0x46, 0x9a, 0x53, 0x11, 0xee, 0x6a, 0x1a, 0xcd, 0x1d, 0xa5, 0xaa, 0xb0,
-    0xf5, 0xc6, 0xdf, 0x13, 0x15, 0x8d, 0x28, 0xcc, 0x12, 0xd1, 0xdd, 0xa6, 0xec, 0xe9,
-    0x46, 0xb8, 0x9d, 0x5c, 0x05, 0x49, 0x92, 0x59, 0xc4
-#else
-    0x04, 0xd8, 0x62, 0x6e, 0x01, 0x9e, 0x55, 0x3e, 0x19, 0x69, 0x56, 0xf1, 0x17, 0x4d,
-    0xcd, 0xb8, 0x9a, 0x1c, 0xda, 0xc4, 0x93, 0x90, 0x08, 0xbc, 0x79, 0x77, 0x33, 0x6d,
-    0x78, 0x24, 0xee, 0xe3, 0xa2, 0x62, 0x24, 0x1a, 0x62, 0x73, 0x52, 0x3b, 0x09, 0xb8,
-    0xd0, 0xce, 0x0d, 0x39, 0xe8, 0x60, 0xc9, 0x4d, 0x02, 0x53, 0x58, 0xdb, 0xdc, 0x25,
-    0x92, 0xc7, 0xc6, 0x48, 0x0d, 0x39, 0xce, 0xbb, 0xa3
-#endif
-};
 
 // Verification function used to verify the signature
 typedef bool verificationAlgo(const cx_ecfp_public_key_t *,
@@ -169,13 +155,13 @@ void handleSetPlugin(uint8_t p1,
     PRINTF("Selector: %.*H\n", SELECTOR_SIZE, tokenContext->methodSelector);
     offset += SELECTOR_SIZE;
 
-    uint64_t chainId = u64_from_BE(workBuffer + offset, CHAIN_ID_SIZE);
+    uint64_t chain_id = u64_from_BE(workBuffer + offset, CHAIN_ID_SIZE);
     // this prints raw data, so to have a more meaningful print, display
     // the buffer before the endianness swap
-    PRINTF("ChainID: %.*H\n", sizeof(chainId), (workBuffer + offset));
-    if ((chainConfig->chainId != 0) && (chainConfig->chainId != chainId)) {
-        PRINTF("Chain ID token mismatch\n");
-        THROW(0x6A80);
+    PRINTF("ChainID: %.*H\n", sizeof(chain_id), (workBuffer + offset));
+    if (!app_compatible_with_chain_id(&chain_id)) {
+        UNSUPPORTED_CHAIN_ID_MSG(chain_id);
+        THROW(APDU_RESPONSE_INVALID_DATA);
     }
     offset += CHAIN_ID_SIZE;
 
@@ -185,7 +171,7 @@ void handleSetPlugin(uint8_t p1,
 
     PRINTF("KeyID: %d\n", keyId);
     switch (keyId) {
-#ifdef HAVE_NFT_TESTING_KEY
+#ifdef HAVE_NFT_STAGING_KEY
         case TEST_PLUGIN_KEY:
 #endif
         case PROD_PLUGIN_KEY:

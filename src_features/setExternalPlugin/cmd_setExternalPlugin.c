@@ -1,8 +1,9 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
-#include "tokens.h"
+#include "public_keys.h"
 #include "eth_plugin_interface.h"
 #include "eth_plugin_internal.h"
+#include "plugin_utils.h"
 #include "common_ui.h"
 #include "os_io_seproxyhal.h"
 
@@ -48,7 +49,9 @@ void handleSetExternalPlugin(uint8_t p1,
                          workBuffer + payload_size,
                          dataLength - payload_size)) {
 #ifndef HAVE_BYPASS_SIGNATURES
-        PRINTF("Invalid plugin signature %.*H\n", payload_size, workBuffer);
+        PRINTF("Invalid plugin signature %.*H\n",
+               dataLength - payload_size,
+               workBuffer + payload_size);
         THROW(0x6A80);
 #endif
     }

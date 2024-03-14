@@ -2,10 +2,12 @@
 
 #include "shared_context.h"
 #include "apdu_constants.h"
-#include "tokens.h"
-#include "utils.h"
+#include "asset_info.h"
+#include "common_utils.h"
 #include "common_ui.h"
 #include "os_io_seproxyhal.h"
+#include "network.h"
+#include "public_keys.h"
 
 #define TYPE_SIZE        1
 #define VERSION_SIZE     1
@@ -19,30 +21,14 @@
 #define MIN_DER_SIG_SIZE      67
 #define MAX_DER_SIG_SIZE      72
 
-#define TEST_NFT_METADATA_KEY 0
-#define PROD_NFT_METADATA_KEY 1
+#define STAGING_NFT_METADATA_KEY 0
+#define PROD_NFT_METADATA_KEY    1
 
 #define ALGORITHM_ID_1 1
 
 #define TYPE_1 1
 
 #define VERSION_1 1
-
-static const uint8_t LEDGER_NFT_METADATA_PUBLIC_KEY[] = {
-#ifdef HAVE_NFT_TESTING_KEY
-    0x04, 0xf5, 0x70, 0x0c, 0xa1, 0xe8, 0x74, 0x24, 0xc7, 0xc7, 0xd1, 0x19, 0xe7, 0xe3,
-    0xc1, 0x89, 0xb1, 0x62, 0x50, 0x94, 0xdb, 0x6e, 0xa0, 0x40, 0x87, 0xc8, 0x30, 0x00,
-    0x7d, 0x0b, 0x46, 0x9a, 0x53, 0x11, 0xee, 0x6a, 0x1a, 0xcd, 0x1d, 0xa5, 0xaa, 0xb0,
-    0xf5, 0xc6, 0xdf, 0x13, 0x15, 0x8d, 0x28, 0xcc, 0x12, 0xd1, 0xdd, 0xa6, 0xec, 0xe9,
-    0x46, 0xb8, 0x9d, 0x5c, 0x05, 0x49, 0x92, 0x59, 0xc4
-#else
-    0x04, 0x98, 0x8d, 0xa6, 0xb2, 0x46, 0xf2, 0x8e, 0x77, 0xc1, 0xba, 0xb6, 0x75, 0xcb,
-    0x2a, 0x27, 0x44, 0xf7, 0xf5, 0xce, 0xc5, 0x6a, 0xe6, 0xe0, 0x32, 0x23, 0x33, 0x7b,
-    0x57, 0x94, 0xcd, 0x6a, 0xe0, 0x7d, 0x48, 0xb3, 0x0d, 0xb9, 0xcc, 0xb4, 0x0f, 0x5a,
-    0x02, 0xa1, 0x1a, 0x3a, 0xb9, 0x9d, 0x5f, 0x59, 0x5a, 0x3d, 0x50, 0xa0, 0xe1, 0x30,
-    0x23, 0xfd, 0x0d, 0x95, 0x87, 0x92, 0xd7, 0x97, 0x01
-#endif
-};
 
 typedef bool verificationAlgo(const cx_ecfp_public_key_t *,
                               int,
@@ -140,13 +126,13 @@ void handleProvideNFTInformation(uint8_t p1,
     PRINTF("Address: %.*H\n", ADDRESS_LENGTH, workBuffer + offset);
     offset += ADDRESS_LENGTH;
 
-    uint64_t chainId = u64_from_BE(workBuffer + offset, CHAIN_ID_SIZE);
+    uint64_t chain_id = u64_from_BE(workBuffer + offset, CHAIN_ID_SIZE);
     // this prints raw data, so to have a more meaningful print, display
     // the buffer before the endianness swap
-    PRINTF("ChainID: %.*H\n", sizeof(chainId), (workBuffer + offset));
-    if ((chainConfig->chainId != 0) && (chainConfig->chainId != chainId)) {
-        PRINTF("Chain ID token mismatch\n");
-        THROW(0x6A80);
+    PRINTF("ChainID: %.*H\n", sizeof(chain_id), (workBuffer + offset));
+    if (!app_compatible_with_chain_id(&chain_id)) {
+        UNSUPPORTED_CHAIN_ID_MSG(chain_id);
+        THROW(APDU_RESPONSE_INVALID_DATA);
     }
     offset += CHAIN_ID_SIZE;
 
@@ -156,8 +142,8 @@ void handleProvideNFTInformation(uint8_t p1,
 
     PRINTF("KeyID: %d\n", keyId);
     switch (keyId) {
-#ifdef HAVE_NFT_TESTING_KEY
-        case TEST_NFT_METADATA_KEY:
+#ifdef HAVE_NFT_STAGING_KEY
+        case STAGING_NFT_METADATA_KEY:
 #endif
         case PROD_NFT_METADATA_KEY:
             rawKey = (uint8_t *) LEDGER_NFT_METADATA_PUBLIC_KEY;

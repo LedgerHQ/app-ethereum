@@ -1,9 +1,11 @@
 #include "os_io_seproxyhal.h"
 #include "os.h"
 #include "ux.h"
+#include "swap_utils.h"
 #include "handle_swap_sign_transaction.h"
 #include "shared_context.h"
-#include "utils.h"
+#include "common_utils.h"
+#include "network.h"
 #ifdef HAVE_NBGL
 #include "nbgl_use_case.h"
 #endif  // HAVE_NBGL
@@ -26,31 +28,42 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
         return false;
     }
 
-    uint8_t decimals;
     char ticker[MAX_TICKER_LEN];
+    uint8_t decimals;
+    uint64_t chain_id = 0;
+
     if (!parse_swap_config(sign_transaction_params->coin_configuration,
                            sign_transaction_params->coin_configuration_length,
                            ticker,
-                           &decimals)) {
+                           &decimals,
+                           &chain_id)) {
         PRINTF("Error while parsing config\n");
         return false;
     }
-    amountToString(sign_transaction_params->amount,
-                   sign_transaction_params->amount_length,
-                   decimals,
-                   ticker,
-                   stack_data.fullAmount,
-                   sizeof(stack_data.fullAmount));
+    if (!amountToString(sign_transaction_params->amount,
+                        sign_transaction_params->amount_length,
+                        decimals,
+                        ticker,
+                        stack_data.fullAmount,
+                        sizeof(stack_data.fullAmount))) {
+        return false;
+    }
 
+    // fallback mechanism in the absence of chain ID in swap config
+    if (chain_id == 0) {
+        chain_id = config->chainId;
+    }
     // If the amount is a fee, its value is nominated in ETH even if we're doing an ERC20 swap
-    strlcpy(ticker, config->coinName, MAX_TICKER_LEN);
+    strlcpy(ticker, get_displayable_ticker(&chain_id, config), sizeof(ticker));
     decimals = WEI_TO_ETHER;
-    amountToString(sign_transaction_params->fee_amount,
-                   sign_transaction_params->fee_amount_length,
-                   decimals,
-                   ticker,
-                   stack_data.maxFee,
-                   sizeof(stack_data.maxFee));
+    if (!amountToString(sign_transaction_params->fee_amount,
+                        sign_transaction_params->fee_amount_length,
+                        decimals,
+                        ticker,
+                        stack_data.maxFee,
+                        sizeof(stack_data.maxFee))) {
+        return false;
+    }
 
     // Full reset the global variables
     os_explicit_zero_BSS_segment();
@@ -67,15 +80,17 @@ void __attribute__((noreturn)) finalize_exchange_sign_transaction(bool is_succes
     os_lib_end();
 }
 
-void handle_swap_sign_transaction(chain_config_t* config) {
-    UX_INIT();
+void __attribute__((noreturn)) handle_swap_sign_transaction(chain_config_t* config) {
 #ifdef HAVE_NBGL
+    // On Stax, display a spinner at startup
+    UX_INIT();
     nbgl_useCaseSpinner("Signing");
 #endif  // HAVE_NBGL
 
     chainConfig = config;
     reset_app_context();
     G_called_from_swap = true;
+    G_swap_response_ready = false;
     io_seproxyhal_init();
 
     if (N_storage.initialized != 0x01) {
@@ -88,10 +103,9 @@ void handle_swap_sign_transaction(chain_config_t* config) {
         nvm_write((void*) &N_storage, (void*) &storage, sizeof(internalStorage_t));
     }
 
+    PRINTF("USB power ON/OFF\n");
     USB_power(0);
     USB_power(1);
-    // ui_idle();
-    PRINTF("USB power ON/OFF\n");
 #ifdef HAVE_BLE
     // grab the current plane mode setting
     G_io_app.plane_mode = os_setting_get(OS_SETTING_PLANEMODE, NULL, 0);

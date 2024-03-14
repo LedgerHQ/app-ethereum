@@ -3,6 +3,7 @@
 #include "ui_nbgl.h"
 #include "nbgl_use_case.h"
 #include "glyphs.h"
+#include "caller_api.h"
 #include "network.h"
 
 char g_stax_shared_buffer[SHARED_BUFFER_SIZE] = {0};

@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include "ethUstream.h"
 #include "uint256.h"
-#include "nft.h"
+#include "asset_info.h"
 
 // Internal plugin for EIP 1155: https://eips.ethereum.org/EIPS/eip-1155
 

@@ -2,8 +2,8 @@
 
 #include <string.h>
 #include "erc1155_plugin.h"
+#include "plugin_utils.h"
 #include "eth_plugin_internal.h"
-#include "ethUtils.h"
 #include "eth_plugin_handler.h"
 
 static const uint8_t ERC1155_APPROVE_FOR_ALL_SELECTOR[SELECTOR_SIZE] = {0xa2, 0x2c, 0xb4, 0x65};
@@ -108,7 +108,12 @@ static void handle_query_contract_id(void *parameters) {
 
     switch (context->selectorIndex) {
         case SET_APPROVAL_FOR_ALL:
+#ifdef HAVE_NBGL
+            strlcpy(msg->version, "manage", msg->versionLength);
+            strlcat(msg->name, " allowance", msg->nameLength);
+#else
             strlcpy(msg->version, "Allowance", msg->versionLength);
+#endif
             break;
         case SAFE_TRANSFER:
             strlcpy(msg->version, "Transfer", msg->versionLength);

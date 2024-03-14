@@ -1,10 +1,10 @@
-Ethereum application Plugins : Technical Specifications 
+Ethereum application Plugins : Technical Specifications
 =======================================================
 Ledger Firmware Team <hello@ledger.fr>
 Specification version 1.0 - 24th of September 2020
 
 
-## 1.0 
+## 1.0
   - Initial release
 
 ## About
@@ -21,19 +21,19 @@ If a plugin is found, each network serialized data field (32 bytes) is passed to
 
 After all fields have been received, the plugin can report to the Ethereum application whether the full data is accepted, and the user interface model that'll be used to display the data
 
-### Amount/Address user interface 
+### Amount/Address user interface
 
 In this model, the generic (without data) transaction display is used, with the amount and destination address replaced by data provided by the plugin
 
 ### Generic user interface
 
-In this model, the plugin first reports a number of screens (2 lines of text, the second line being scrollable) to be displayed 
+In this model, the plugin first reports a number of screens (2 lines of text, the second line being scrollable) to be displayed
 
 The Ethereum application will request each screen to be displayed to the plugin and let the user browse through them.
 
 The first screen being displayed is always a description of the plugin being used (name and version reported by the plugin), and the last screens include the transaction fees in ETH and a confirmation prompt
 
-### Code flow 
+### Code flow
 
 The plugin interfacing logic is described in _src/eth_plugin_interface.h_
 
@@ -53,7 +53,7 @@ Other specific mappings can be also added by modifying the common dispatcher
 
 ### Creating an external plugin
 
-An external plugin is a library application named after the base64 encoding of the 20 bytes smart contract address 
+An external plugin is a library application named after the base64 encoding of the 20 bytes smart contract address
 
 ## Detailed flow messages
 
@@ -99,7 +99,7 @@ This message is sent when the selector of the data has been parsed. The followin
   * selector : 4 bytes selector of the data field
   * dataSize : size in bytes of the data field
 
-The following return codes are expected, any other will abort the signing process : 
+The following return codes are expected, any other will abort the signing process :
 
   * ETH_PLUGIN_RESULT_OK : if the plugin can be successfully initialized
   * ETH_PLUGIN_RESULT_OK_ALIAS : if a base64 encoded alias of another plugin to call is copied to the _alias_ field. In this case, the dispatcher will follow the alias chain, and the original plugin will only be called to retrieve its name when using a generic user interface
@@ -129,7 +129,7 @@ This message is sent when a new 32 bytes component of the data field is availabl
   * parameter : pointer to the 32 bytes parameter being parsed
   * parameterOffset : offset to this parameter from the beginning of the data field (starts at 4, following the selector)
 
-The following return codes are expected, any other will abort the signing process : 
+The following return codes are expected, any other will abort the signing process :
 
   * ETH_PLUGIN_RESULT_OK : if the plugin can be successfully initialized
   * ETH_PLUGIN_RESULT_FALLBACK : if the signing logic should fallback to the generic one
@@ -157,12 +157,12 @@ typedef struct ethPluginFinalize_t {
   uint8_t *pluginContext;
 
   uint8_t *itemLookup1; // set by the plugin if a token or an nft should be looked up
-  uint8_t *itemLookup2; 
+  uint8_t *itemLookup2;
 
   uint8_t *amount; // set an uint256 pointer if uiType is UI_AMOUNT_ADDRESS
   uint8_t *address;  // set to the destination address if uiType is UI_AMOUNT_ADDRESS. Set to the user's address if uiType is UI_TYPE_GENERIC
 
-  uint8_t uiType; 
+  uint8_t uiType;
   uint8_t numScreens; // ignored if uiType is UI_AMOUNT_ADDRESS
   uint8_t result;
 
@@ -170,10 +170,10 @@ typedef struct ethPluginFinalize_t {
 
 ----
 
-This message is sent when the data field has been fully parsed. The following specific fields can be filled by the plugin : 
+This message is sent when the data field has been fully parsed. The following specific fields can be filled by the plugin :
 
   * itemLookup1 : the pointer shall be set to a 20 bytes address to look up an ERC20 token or NFT if needed by the plugin
-  * itemLookup2 : the pointer shall be set to a 20 bytes address to look up an ERC20 token or NFT if needed by the plugin  
+  * itemLookup2 : the pointer shall be set to a 20 bytes address to look up an ERC20 token or NFT if needed by the plugin
   * uiType : set to either ETH_UI_TYPE_AMOUNT_ADDRESS for an amount/address UI or ETH_UI_TYPE_GENERIC for a generic UI
 
 The following specific fields are filled by the plugin when returning an amount/address UI :
@@ -181,11 +181,11 @@ The following specific fields are filled by the plugin when returning an amount/
   * amount : set to a pointer to a 256 bits number
   * address : set to a pointer to a 20 bytes address
 
-The following specific fields are filled by the plugin when returning a generic UI :  
+The following specific fields are filled by the plugin when returning a generic UI :
 
   * numScreens : number of screens handled by the plugin
 
-The following return codes are expected, any other will abort the signing process : 
+The following return codes are expected, any other will abort the signing process :
 
   * ETH_PLUGIN_RESULT_OK : if the plugin can be successfully initialized
   * ETH_PLUGIN_RESULT_FALLBACK : if the signing logic should fallback to the generic one
@@ -214,10 +214,10 @@ typedef struct ethPluginProvideInfo_t {
 
 This message is sent if an information lookup was required by the plugin when parsing a finalize message. The following specific fields are filled when the plugin is called :
 
-  * item1 : pointer to an union matching itemLookup1, or NULL if not found 
+  * item1 : pointer to an union matching itemLookup1, or NULL if not found
   * item2 : pointer to an union matching itemLookup2, or NULL if not found
 
-The following return codes are expected, any other will abort the signing process : 
+The following return codes are expected, any other will abort the signing process :
 
   * ETH_PLUGIN_RESULT_OK : if the plugin can be successfully initialized
   * ETH_PLUGIN_RESULT_FALLBACK : if the signing logic should fallback to the generic one
@@ -238,7 +238,7 @@ typedef struct ethQueryContractID_t {
   char *version;
   uint32_t versionLength;
 
-  uint8_t result; 
+  uint8_t result;
 
 } ethQueryContractID_t;
 
@@ -251,7 +251,7 @@ This message is sent after the parsing finalization and information lookups if r
   * version : pointer to the version of the plugin, to be filled by the plugin
   * versionLength : maximum version length
 
-The following return codes are expected, any other will abort the signing process : 
+The following return codes are expected, any other will abort the signing process :
 
   * ETH_PLUGIN_RESULT_OK : if the plugin can be successfully initialized
 
@@ -266,7 +266,7 @@ typedef struct ethQueryContractUI_t {
   ethPluginSharedRO_t *pluginSharedRO;
   union extraInfo_t *item1;
   union extraInfo_t *item2;
-  char network_ticker[MAX_TICKER_LEN]; 
+  char network_ticker[MAX_TICKER_LEN];
   uint8_t *pluginContext;
   uint8_t screenIndex;
   char *title;
@@ -280,7 +280,7 @@ typedef struct ethQueryContractUI_t {
 
 ----
 
-This message is sent when a plugin screen shall be displayed if a generic UI is used. The following specific fields are provided when the plugin is called : 
+This message is sent when a plugin screen shall be displayed if a generic UI is used. The following specific fields are provided when the plugin is called :
 
 
   * item1 : pointer to token / nft information
@@ -292,11 +292,11 @@ This message is sent when a plugin screen shall be displayed if a generic UI is 
   * msg : pointer to the second line of the screen, to be filled by the plugin
   * msgLength : maximum msg length
 
-The following return codes are expected, any other will abort the signing process : 
+The following return codes are expected, any other will abort the signing process :
 
   * ETH_PLUGIN_RESULT_OK : if the plugin can be successfully initialized
 
-## Caveats 
+## Caveats
 
 When setting a pointer from the plugin space, make sure to use an address that will be accessible from the Ethereum application (typically in the plugin RAM context, *not* on the plugin stack)
 
@@ -307,8 +307,6 @@ Do not use data types that need to be aligned (such as uint32_t) in the plugin c
 Provide a sample callback mechanism for common plugin actions (amount to string, 256 bits number multiplication ...) to avoid duplicating code in the plugin space
 
 Provide external plugins samples
-
-Fully support Starkware as an independant application (APDU logic added)
 
 Support extra flags for the generic UI (fast confirmation on first screen, ...)
 

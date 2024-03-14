@@ -22,7 +22,7 @@
 #include "os_io_seproxyhal.h"
 
 #include "glyphs.h"
-#include "utils.h"
+#include "common_utils.h"
 
 #include "swap_lib_calls.h"
 #include "handle_swap_sign_transaction.h"
@@ -31,10 +31,6 @@
 #include "commands_712.h"
 #include "challenge.h"
 #include "domain_name.h"
-
-#ifdef HAVE_STARKWARE
-#include "stark_crypto.h"
-#endif
 
 unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 
@@ -53,10 +49,8 @@ cx_sha3_t global_sha3;
 uint8_t appState;
 uint16_t apdu_response_code;
 bool G_called_from_swap;
+bool G_swap_response_ready;
 pluginType_t pluginType;
-#ifdef HAVE_STARKWARE
-bool quantumSet;
-#endif
 
 #ifdef HAVE_ETH2
 uint32_t eth2WithdrawalIndex;
@@ -78,10 +72,8 @@ void reset_app_context() {
     // PRINTF("!!RESET_APP_CONTEXT\n");
     appState = APP_STATE_IDLE;
     G_called_from_swap = false;
+    G_swap_response_ready = false;
     pluginType = OLD_INTERNAL;
-#ifdef HAVE_STARKWARE
-    quantumSet = false;
-#endif
 #ifdef HAVE_ETH2
     eth2WithdrawalIndex = 0;
 #endif
@@ -145,331 +137,6 @@ unsigned short io_exchange_al(unsigned char channel, unsigned short tx_len) {
 
 extraInfo_t *getKnownToken(uint8_t *contractAddress) {
     union extraInfo_t *currentItem = NULL;
-#ifdef HAVE_TOKENS_LIST
-    uint32_t numTokens = 0;
-    uint32_t i;
-    switch (chainConfig->kind) {
-        case CHAIN_KIND_AKROMA:
-            numTokens = NUM_TOKENS_AKROMA;
-            break;
-        case CHAIN_KIND_ETHEREUM:
-            numTokens = NUM_TOKENS_ETHEREUM;
-            break;
-        case CHAIN_KIND_ETHEREUM_CLASSIC:
-            numTokens = NUM_TOKENS_ETHEREUM_CLASSIC;
-            break;
-        case CHAIN_KIND_PIRL:
-            numTokens = NUM_TOKENS_PIRL;
-            break;
-        case CHAIN_KIND_POA:
-            numTokens = NUM_TOKENS_POA;
-            break;
-        case CHAIN_KIND_ARTIS_SIGMA1:
-            numTokens = NUM_TOKENS_ARTIS_SIGMA1;
-            break;
-        case CHAIN_KIND_ARTIS_TAU1:
-            numTokens = NUM_TOKENS_ARTIS_TAU1;
-            break;
-        case CHAIN_KIND_RSK:
-            numTokens = NUM_TOKENS_RSK;
-            break;
-        case CHAIN_KIND_EXPANSE:
-            numTokens = NUM_TOKENS_EXPANSE;
-            break;
-        case CHAIN_KIND_UBIQ:
-            numTokens = NUM_TOKENS_UBIQ;
-            break;
-        case CHAIN_KIND_WANCHAIN:
-            numTokens = NUM_TOKENS_WANCHAIN;
-            break;
-        case CHAIN_KIND_KUSD:
-            numTokens = NUM_TOKENS_KUSD;
-            break;
-        case CHAIN_KIND_MUSICOIN:
-            numTokens = NUM_TOKENS_MUSICOIN;
-            break;
-        case CHAIN_KIND_CALLISTO:
-            numTokens = NUM_TOKENS_CALLISTO;
-            break;
-        case CHAIN_KIND_ETHERSOCIAL:
-            numTokens = NUM_TOKENS_ETHERSOCIAL;
-            break;
-        case CHAIN_KIND_ELLAISM:
-            numTokens = NUM_TOKENS_ELLAISM;
-            break;
-        case CHAIN_KIND_ETHER1:
-            numTokens = NUM_TOKENS_ETHER1;
-            break;
-        case CHAIN_KIND_ETHERGEM:
-            numTokens = NUM_TOKENS_ETHERGEM;
-            break;
-        case CHAIN_KIND_ATHEIOS:
-            numTokens = NUM_TOKENS_ATHEIOS;
-            break;
-        case CHAIN_KIND_GOCHAIN:
-            numTokens = NUM_TOKENS_GOCHAIN;
-            break;
-        case CHAIN_KIND_MIX:
-            numTokens = NUM_TOKENS_MIX;
-            break;
-        case CHAIN_KIND_REOSC:
-            numTokens = NUM_TOKENS_REOSC;
-            break;
-        case CHAIN_KIND_HPB:
-            numTokens = NUM_TOKENS_HPB;
-            break;
-        case CHAIN_KIND_TOMOCHAIN:
-            numTokens = NUM_TOKENS_TOMOCHAIN;
-            break;
-        case CHAIN_KIND_MOONRIVER:
-            numTokens = NUM_TOKENS_MOONRIVER;
-            break;
-        case CHAIN_KIND_TOBALABA:
-            numTokens = NUM_TOKENS_TOBALABA;
-            break;
-        case CHAIN_KIND_DEXON:
-            numTokens = NUM_TOKENS_DEXON;
-            break;
-        case CHAIN_KIND_VOLTA:
-            numTokens = NUM_TOKENS_VOLTA;
-            break;
-        case CHAIN_KIND_ENERGYWEBCHAIN:
-            numTokens = NUM_TOKENS_ENERGYWEBCHAIN;
-            break;
-        case CHAIN_KIND_WEBCHAIN:
-            numTokens = NUM_TOKENS_WEBCHAIN;
-            break;
-        case CHAIN_KIND_THUNDERCORE:
-            numTokens = NUM_TOKENS_THUNDERCORE;
-            break;
-        case CHAIN_KIND_FLARE:
-            numTokens = NUM_TOKENS_FLARE;
-            break;
-        case CHAIN_KIND_BSC:
-            numTokens = NUM_TOKENS_BSC;
-            break;
-        case CHAIN_KIND_SONGBIRD:
-            numTokens = NUM_TOKENS_SONGBIRD;
-            break;
-        case CHAIN_KIND_POLYGON:
-            numTokens = NUM_TOKENS_POLYGON;
-            break;
-        case CHAIN_KIND_SHYFT:
-            numTokens = NUM_TOKENS_SHYFT;
-            break;
-        case CHAIN_KIND_CONFLUX_ESPACE:
-            numTokens = NUM_TOKENS_CONFLUX_ESPACE;
-            break;
-        case CHAIN_KIND_MOONBEAM:
-            numTokens = NUM_TOKENS_MOONBEAM;
-            break;
-        case CHAIN_KIND_KARDIACHAIN:
-            numTokens = NUM_TOKENS_KARDIACHAIN;
-            break;
-        case CHAIN_KIND_BTTC:
-            numTokens = NUM_TOKENS_BTTC;
-            break;
-        case CHAIN_KIND_WETHIO:
-            numTokens = NUM_TOKENS_WETHIO;
-            break;
-        case CHAIN_KIND_OKC:
-            numTokens = NUM_TOKENS_OKC;
-            break;
-        case CHAIN_KIND_CUBE:
-            numTokens = NUM_TOKENS_CUBE;
-            break;
-        case CHAIN_KIND_SHIDEN:
-            numTokens = NUM_TOKENS_SHIDEN;
-            break;
-        case CHAIN_KIND_ASTAR:
-            numTokens = NUM_TOKENS_ASTAR;
-            break;
-        case CHAIN_KIND_XDCNETWORK:
-            numTokens = NUM_TOKENS_XDCNETWORK;
-            break;
-        case CHAIN_KIND_METER:
-            numTokens = NUM_TOKENS_METER;
-            break;
-        case CHAIN_KIND_MULTIVAC:
-            numTokens = NUM_TOKENS_MULTIVAC;
-            break;
-        case CHAIN_KIND_TECRA:
-            numTokens = NUM_TOKENS_TECRA;
-            break;
-        case CHAIN_KIND_APOTHEMNETWORK:
-            numTokens = NUM_TOKENS_APOTHEMNETWORK;
-            break;
-        case CHAIN_KIND_ID4GOOD:
-            numTokens = NUM_TOKENS_ID4GOOD;
-            break;
-        case CHAIN_KIND_OASYS:
-            numTokens = NUM_TOKENS_OASYS;
-            break;
-    }
-    for (i = 0; i < numTokens; i++) {
-        switch (chainConfig->kind) {
-            case CHAIN_KIND_AKROMA:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_AKROMA[i]);
-                break;
-            case CHAIN_KIND_ETHEREUM:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_ETHEREUM[i]);
-                break;
-            case CHAIN_KIND_ETHEREUM_CLASSIC:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_ETHEREUM_CLASSIC[i]);
-                break;
-            case CHAIN_KIND_PIRL:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_PIRL[i]);
-                break;
-            case CHAIN_KIND_POA:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_POA[i]);
-                break;
-            case CHAIN_KIND_ARTIS_SIGMA1:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_ARTIS_SIGMA1[i]);
-                break;
-            case CHAIN_KIND_ARTIS_TAU1:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_ARTIS_TAU1[i]);
-                break;
-            case CHAIN_KIND_RSK:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_RSK[i]);
-                break;
-            case CHAIN_KIND_EXPANSE:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_EXPANSE[i]);
-                break;
-            case CHAIN_KIND_UBIQ:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_UBIQ[i]);
-                break;
-            case CHAIN_KIND_WANCHAIN:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_WANCHAIN[i]);
-                break;
-            case CHAIN_KIND_KUSD:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_KUSD[i]);
-                break;
-            case CHAIN_KIND_MUSICOIN:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_MUSICOIN[i]);
-                break;
-            case CHAIN_KIND_CALLISTO:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_CALLISTO[i]);
-                break;
-            case CHAIN_KIND_ETHERSOCIAL:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_ETHERSOCIAL[i]);
-                break;
-            case CHAIN_KIND_ELLAISM:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_ELLAISM[i]);
-                break;
-            case CHAIN_KIND_ETHER1:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_ETHER1[i]);
-                break;
-            case CHAIN_KIND_ETHERGEM:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_ETHERGEM[i]);
-                break;
-            case CHAIN_KIND_ATHEIOS:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_ATHEIOS[i]);
-                break;
-            case CHAIN_KIND_GOCHAIN:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_GOCHAIN[i]);
-                break;
-            case CHAIN_KIND_MIX:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_MIX[i]);
-                break;
-            case CHAIN_KIND_REOSC:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_REOSC[i]);
-                break;
-            case CHAIN_KIND_HPB:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_HPB[i]);
-                break;
-            case CHAIN_KIND_TOMOCHAIN:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_TOMOCHAIN[i]);
-                break;
-            case CHAIN_KIND_MOONRIVER:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_MOONRIVER[i]);
-                break;
-            case CHAIN_KIND_TOBALABA:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_TOBALABA[i]);
-                break;
-            case CHAIN_KIND_DEXON:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_DEXON[i]);
-                break;
-            case CHAIN_KIND_VOLTA:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_VOLTA[i]);
-                break;
-            case CHAIN_KIND_ENERGYWEBCHAIN:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_ENERGYWEBCHAIN[i]);
-                break;
-            case CHAIN_KIND_WEBCHAIN:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_WEBCHAIN[i]);
-                break;
-            case CHAIN_KIND_THUNDERCORE:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_THUNDERCORE[i]);
-                break;
-            case CHAIN_KIND_FLARE:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_FLARE[i]);
-                break;
-            case CHAIN_KIND_BSC:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_BSC[i]);
-                break;
-            case CHAIN_KIND_SONGBIRD:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_SONGBIRD[i]);
-                break;
-            case CHAIN_KIND_POLYGON:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_POLYGON[i]);
-                break;
-            case CHAIN_KIND_SHYFT:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_SHYFT[i]);
-                break;
-            case CHAIN_KIND_CONFLUX_ESPACE:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_CONFLUX_ESPACE[i]);
-                break;
-            case CHAIN_KIND_MOONBEAM:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_MOONBEAM[i]);
-                break;
-            case CHAIN_KIND_BTTC:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_BTTC[i]);
-                break;
-            case CHAIN_KIND_KARDIACHAIN:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_KARDIACHAIN[i]);
-                break;
-            case CHAIN_KIND_WETHIO:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_WETHIO[i]);
-                break;
-            case CHAIN_KIND_OKC:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_OKC[i]);
-                break;
-            case CHAIN_KIND_CUBE:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_CUBE[i]);
-                break;
-            case CHAIN_KIND_SHIDEN:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_SHIDEN[i]);
-                break;
-            case CHAIN_KIND_ASTAR:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_ASTAR[i]);
-                break;
-            case CHAIN_KIND_XDCNETWORK:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_XDCNETWORK[i]);
-                break;
-            case CHAIN_KIND_METER:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_METER[i]);
-                break;
-            case CHAIN_KIND_MULTIVAC:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_MULTIVAC[i]);
-                break;
-            case CHAIN_KIND_TECRA:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_TECRA[i]);
-                break;
-            case CHAIN_KIND_APOTHEMNETWORK:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_APOTHEMNETWORK[i]);
-                break;
-            case CHAIN_KIND_ID4GOOD:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_ID4GOOD[i]);
-                break;
-            case CHAIN_KIND_OASYS:
-                currentToken = (tokenDefinition_t *) PIC(&TOKENS_OASYS[i]);
-                break;
-        }
-        if (memcmp(currentToken->address, tmpContent.txContent.destination, ADDRESS_LENGTH) == 0) {
-            return currentToken;
-        }
-    }
-#endif
     // Works for ERC-20 & NFT tokens since both structs in the union have the
     // contract address aligned
     for (uint8_t i = 0; i < MAX_ITEMS; i++) {
@@ -554,52 +221,6 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
             }
 
 #endif  // HAVE_WALLET_ID_SDK
-
-#ifdef HAVE_STARKWARE
-
-            if (G_io_apdu_buffer[OFFSET_CLA] == STARKWARE_CLA) {
-                switch (G_io_apdu_buffer[OFFSET_INS]) {
-                    case STARKWARE_INS_GET_PUBLIC_KEY:
-                        handleStarkwareGetPublicKey(G_io_apdu_buffer[OFFSET_P1],
-                                                    G_io_apdu_buffer[OFFSET_P2],
-                                                    G_io_apdu_buffer + OFFSET_CDATA,
-                                                    G_io_apdu_buffer[OFFSET_LC],
-                                                    flags,
-                                                    tx);
-                        break;
-                    case STARKWARE_INS_SIGN_MESSAGE:
-                        handleStarkwareSignMessage(G_io_apdu_buffer[OFFSET_P1],
-                                                   G_io_apdu_buffer[OFFSET_P2],
-                                                   G_io_apdu_buffer + OFFSET_CDATA,
-                                                   G_io_apdu_buffer[OFFSET_LC],
-                                                   flags,
-                                                   tx);
-                        break;
-                    case STARKWARE_INS_PROVIDE_QUANTUM:
-                        handleStarkwareProvideQuantum(G_io_apdu_buffer[OFFSET_P1],
-                                                      G_io_apdu_buffer[OFFSET_P2],
-                                                      G_io_apdu_buffer + OFFSET_CDATA,
-                                                      G_io_apdu_buffer[OFFSET_LC],
-                                                      flags,
-                                                      tx);
-                        break;
-                    case STARKWARE_INS_UNSAFE_SIGN:
-                        handleStarkwareUnsafeSign(G_io_apdu_buffer[OFFSET_P1],
-                                                  G_io_apdu_buffer[OFFSET_P2],
-                                                  G_io_apdu_buffer + OFFSET_CDATA,
-                                                  G_io_apdu_buffer[OFFSET_LC],
-                                                  flags,
-                                                  tx);
-                        break;
-                    default:
-                        THROW(0x6D00);
-                        break;
-                }
-                CLOSE_TRY;
-                return;
-            }
-
-#endif
 
             if (G_io_apdu_buffer[OFFSET_CLA] != CLA) {
                 THROW(0x6E00);
@@ -781,6 +402,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
             THROW(EXCEPTION_IO_RESET);
         }
         CATCH_OTHER(e) {
+            bool quit_now = G_called_from_swap && G_swap_response_ready;
             switch (e & 0xF000) {
                 case 0x6000:
                     // Wipe the transaction context and report the exception
@@ -801,6 +423,18 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
             G_io_apdu_buffer[*tx] = sw >> 8;
             G_io_apdu_buffer[*tx + 1] = sw;
             *tx += 2;
+
+            // If we are in swap mode and have validated a TX, we send it and immediately quit
+            if (quit_now) {
+                if (io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, *tx) == 0) {
+                    // In case of success, the apdu is sent immediatly and eth exits
+                    // Reaching this code means we encountered an error
+                    finalize_exchange_sign_transaction(false);
+                } else {
+                    PRINTF("Unrecoverable\n");
+                    os_sched_exit(-1);
+                }
+            }
         }
         FINALLY {
         }
@@ -950,7 +584,6 @@ void init_coin_config(chain_config_t *coin_config) {
     memset(coin_config, 0, sizeof(chain_config_t));
     strcpy(coin_config->coinName, CHAINID_COINNAME);
     coin_config->chainId = CHAIN_ID;
-    coin_config->kind = CHAIN_KIND;
 }
 
 void coin_main(libargs_t *args) {
@@ -1042,122 +675,108 @@ void coin_main(libargs_t *args) {
     app_exit();
 }
 
-static void library_main_helper(libargs_t *args) {
-    check_api_level(CX_COMPAT_APILEVEL);
+void library_main(libargs_t *args) {
+    chain_config_t coin_config;
+    if (args->chain_config == NULL) {
+        // We have been started directly by Exchange, not by a Clone. Init default chain
+        init_coin_config(&coin_config);
+        args->chain_config = &coin_config;
+    }
+
     PRINTF("Inside a library \n");
     switch (args->command) {
         case CHECK_ADDRESS:
-            // ensure result is zero if an exception is thrown
-            args->check_address->result = 0;
-            args->check_address->result =
-                handle_check_address(args->check_address, args->chain_config);
+            handle_check_address(args->check_address, args->chain_config);
             break;
         case SIGN_TRANSACTION:
             if (copy_transaction_parameters(args->create_transaction, args->chain_config)) {
                 // never returns
                 handle_swap_sign_transaction(args->chain_config);
+            } else {
+                // Failed to copy, non recoverable
+                os_sched_exit(-1);
             }
             break;
         case GET_PRINTABLE_AMOUNT:
-            // ensure result is zero if an exception is thrown (compatibility breaking, disabled
-            // until LL is ready)
-            // args->get_printable_amount->result = 0;
-            // args->get_printable_amount->result =
             handle_get_printable_amount(args->get_printable_amount, args->chain_config);
             break;
         default:
             break;
     }
+    os_lib_end();
 }
 
-void library_main(libargs_t *args) {
-    chain_config_t coin_config;
-    if (args->chain_config == NULL) {
-        init_coin_config(&coin_config);
-        args->chain_config = &coin_config;
-    }
-    volatile bool end = false;
-    /* This loop ensures that library_main_helper and os_lib_end are called
-     * within a try context, even if an exception is thrown */
-    while (1) {
-        BEGIN_TRY {
-            TRY {
-                if (!end) {
-                    library_main_helper(args);
-                }
-                os_lib_end();
-            }
-            FINALLY {
-                end = true;
-            }
-        }
-        END_TRY;
-    }
-}
-
-__attribute__((section(".boot"))) int main(int arg0) {
-#ifdef USE_LIB_ETHEREUM
+/* Eth clones do not actually contain any logic, they delegate everything to the ETH application.
+ * Start Eth in lib mode with the correct chain config
+ */
+__attribute__((noreturn)) void clone_main(libargs_t *args) {
+    PRINTF("Starting in clone_main\n");
     BEGIN_TRY {
         TRY {
             unsigned int libcall_params[5];
             chain_config_t local_chainConfig;
             init_coin_config(&local_chainConfig);
 
-            PRINTF("Hello from Eth-clone\n");
-            check_api_level(CX_COMPAT_APILEVEL);
-            // delegate to Ethereum app/lib
             libcall_params[0] = (unsigned int) "Ethereum";
             libcall_params[1] = 0x100;
-            libcall_params[2] = RUN_APPLICATION;
             libcall_params[3] = (unsigned int) &local_chainConfig;
-#ifdef HAVE_NBGL
-            const char app_name[] = APPNAME;
-            caller_app_t capp;
-            nbgl_icon_details_t icon_details;
-            uint8_t bitmap[sizeof(ICONBITMAP)];
 
-            memcpy(&icon_details, &ICONGLYPH, sizeof(ICONGLYPH));
-            memcpy(&bitmap, &ICONBITMAP, sizeof(bitmap));
-            icon_details.bitmap = (const uint8_t *) bitmap;
-            capp.name = app_name;
-            capp.icon = &icon_details;
-            libcall_params[4] = (unsigned int) &capp;
-#else
-            libcall_params[4] = NULL;
-#endif  // HAVE_NBGL
-
-            if (arg0) {
-                // call as a library
-                libcall_params[2] = ((unsigned int *) arg0)[1];
-                libcall_params[4] = ((unsigned int *) arg0)[3];  // library arguments
+            // Clone called by Exchange, forward the request to Ethereum
+            if (args != NULL) {
+                if (args->id != 0x100) {
+                    os_sched_exit(0);
+                }
+                libcall_params[2] = args->command;
+                libcall_params[4] = (unsigned int) args->get_printable_amount;
                 os_lib_call((unsigned int *) &libcall_params);
-                ((unsigned int *) arg0)[0] = libcall_params[1];
+                // Ethereum fulfilled the request and returned to us. We return to Exchange.
                 os_lib_end();
             } else {
-                // launch coin application
-                libcall_params[1] = 0x100;  // use the Init call, as we won't exit
+                // Clone called from Dashboard, start Ethereum
+                libcall_params[2] = RUN_APPLICATION;
+// On Stax, forward our icon to Ethereum
+#ifdef HAVE_NBGL
+                const char app_name[] = APPNAME;
+                caller_app_t capp;
+                nbgl_icon_details_t icon_details;
+                uint8_t bitmap[sizeof(ICONBITMAP)];
+
+                memcpy(&icon_details, &ICONGLYPH, sizeof(ICONGLYPH));
+                memcpy(&bitmap, &ICONBITMAP, sizeof(bitmap));
+                icon_details.bitmap = (const uint8_t *) bitmap;
+                capp.name = app_name;
+                capp.icon = &icon_details;
+                libcall_params[4] = (unsigned int) &capp;
+#else
+                libcall_params[4] = 0;
+#endif  // HAVE_NBGL
                 os_lib_call((unsigned int *) &libcall_params);
+                // Ethereum should not return to us
+                os_sched_exit(-1);
             }
         }
         FINALLY {
         }
     }
     END_TRY;
-    // no return
-#else
+
+    // os_lib_call will raise if Ethereum application is not installed. Do not try to recover.
+    os_sched_exit(-1);
+}
+
+int ethereum_main(libargs_t *args) {
     // exit critical section
     __asm volatile("cpsie i");
 
     // ensure exception will work as planned
     os_boot();
 
-    if (!arg0) {
+    if (args == NULL) {
         // called from dashboard as standalone eth app
         coin_main(NULL);
         return 0;
     }
 
-    libargs_t *args = (libargs_t *) arg0;
     if (args->id != 0x100) {
         app_exit();
         return 0;
@@ -1171,6 +790,13 @@ __attribute__((section(".boot"))) int main(int arg0) {
             // called as ethereum or altcoin library
             library_main(args);
     }
-#endif
     return 0;
+}
+
+__attribute__((section(".boot"))) int main(int arg0) {
+#ifdef USE_LIB_ETHEREUM
+    clone_main((libargs_t *) arg0);
+#else
+    return ethereum_main((libargs_t *) arg0);
+#endif
 }

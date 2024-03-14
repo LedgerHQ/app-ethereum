@@ -36,25 +36,3 @@ nano_models.forEach(function(model) {
       await expect(tx).rejects.toEqual(new TransportStatusError(0x6807));
     }));
 });
-
-nano_models.forEach(function(model) {
-    test('[Nano ' + model.letter + '] Transfer Ether on network 5234 on Ethereum app', zemu(model, async (sim, eth) => {
-
-      const tx = eth.signTransaction(
-        "44'/60'/1'/0/0",
-        'ED44850306DC4200825208945A321744667052AFFA8386ED49E00EF223CBFFC3876F9C9E7BF61818808214728080',
-      );
-
-      await waitForAppScreen(sim);
-      let clicks;
-      if (model.letter === 'S') clicks = 10;
-      else clicks = 6;
-      await sim.navigateAndCompareSnapshots('.', model.name + '_transfer_ethereum_5234_network', [clicks, -1, 0]);
-
-      await expect(tx).resolves.toEqual({
-        "r": "07a7982dfd16360c96a03467877d0cf9c36f799deff4dace250cdb18e28a3b90",
-        "s": "773318a93da2e32c1cf308ddd6add1e8c0d285973e541520a05fb4dc720e4fb1",
-        "v": "2908",
-      });
-    }));
-});

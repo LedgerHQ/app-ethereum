@@ -1,15 +1,13 @@
+#include <ctype.h>
 #include "shared_context.h"
-#include "utils.h"
+#include "common_utils.h"
 #include "feature_signTx.h"
-#ifdef HAVE_STARKWARE
-#include "stark_utils.h"
-#endif
+#include "uint256.h"
 #include "eth_plugin_handler.h"
 #include "network.h"
-#include "ethUtils.h"
 #include "common_ui.h"
 #include "ui_callbacks.h"
-#include <ctype.h>
+#include "apdu_constants.h"
 
 #define ERR_SILENT_MODE_CHECK_FAILED 0x6001
 
@@ -189,7 +187,9 @@ static void address_to_string(uint8_t *in,
                               cx_sha3_t *sha3,
                               uint64_t chainId) {
     if (in_len != 0) {
-        getEthDisplayableAddress(in, out, out_len, sha3, chainId);
+        if (!getEthDisplayableAddress(in, out, out_len, sha3, chainId)) {
+            THROW(APDU_RESPONSE_ERROR_NO_INFO);
+        }
     } else {
         strlcpy(out, "Contract", out_len);
     }
@@ -197,7 +197,7 @@ static void address_to_string(uint8_t *in,
 
 static void raw_fee_to_string(uint256_t *rawFee, char *displayBuffer, uint32_t displayBufferSize) {
     uint64_t chain_id = get_tx_chain_id();
-    const char *feeTicker = get_displayable_ticker(&chain_id);
+    const char *feeTicker = get_displayable_ticker(&chain_id, chainConfig);
     uint8_t tickerOffset = 0;
     uint32_t i;
 
@@ -266,9 +266,12 @@ static void nonce_to_string(const txInt256_t *nonce, char *out, size_t out_size)
 static void get_network_as_string(char *out, size_t out_size) {
     uint64_t chain_id = get_tx_chain_id();
     const char *name = get_network_name_from_chain_id(&chain_id);
+
     if (name == NULL) {
         // No network name found so simply copy the chain ID as the network name.
-        u64_to_string(chain_id, out, out_size);
+        if (!u64_to_string(chain_id, out, out_size)) {
+            THROW(0x6502);
+        }
     } else {
         // Network name found, simply copy it.
         strlcpy(out, name, out_size);
@@ -293,7 +296,9 @@ static void get_public_key(uint8_t *out, uint8_t outLength) {
     cx_ecfp_generate_pair(CX_CURVE_256K1, &publicKey, &privateKey, 1);
     explicit_bzero(&privateKey, sizeof(privateKey));
     explicit_bzero(privateKeyData, sizeof(privateKeyData));
-    getEthAddressFromKey(&publicKey, out, &global_sha3);
+    if (!getEthAddressFromKey(&publicKey, out, &global_sha3)) {
+        THROW(CX_INVALID_PARAMETER);
+    }
 }
 
 /* Local implmentation of strncasecmp, workaround of the segfaulting base implem
@@ -311,13 +316,12 @@ static int strcasecmp_workaround(const char *str1, const char *str2) {
     return 0;
 }
 
-void finalizeParsing(bool direct) {
+__attribute__((noinline)) static bool finalize_parsing_helper(bool direct, bool *use_standard_UI) {
     char displayBuffer[50];
     uint8_t decimals = WEI_TO_ETHER;
     uint64_t chain_id = get_tx_chain_id();
-    const char *ticker = get_displayable_ticker(&chain_id);
+    const char *ticker = get_displayable_ticker(&chain_id, chainConfig);
     ethPluginFinalize_t pluginFinalize;
-    bool use_standard_UI = true;
 
     // Verify the chain
     if (chainConfig->chainId != ETHEREUM_MAINNET_CHAINID) {
@@ -328,7 +332,7 @@ void finalizeParsing(bool direct) {
             reset_app_context();
             reportFinalizeError(direct);
             if (!direct) {
-                return;
+                return false;
             }
         }
     }
@@ -352,7 +356,7 @@ void finalizeParsing(bool direct) {
             PRINTF("Plugin finalize call failed\n");
             reportFinalizeError(direct);
             if (!direct) {
-                return;
+                return false;
             }
         }
         // Lookup tokens if requested
@@ -378,7 +382,7 @@ void finalizeParsing(bool direct) {
                 PRINTF("Plugin provide token call failed\n");
                 reportFinalizeError(direct);
                 if (!direct) {
-                    return;
+                    return false;
                 }
             }
             pluginFinalize.result = pluginProvideInfo.result;
@@ -388,7 +392,7 @@ void finalizeParsing(bool direct) {
             switch (pluginFinalize.uiType) {
                 case ETH_UI_TYPE_GENERIC:
                     // Use the dedicated ETH plugin UI
-                    use_standard_UI = false;
+                    *use_standard_UI = false;
                     tmpContent.txContent.dataPresent = false;
                     // Add the number of screens + the number of additional screens to get the total
                     // number of screens needed.
@@ -397,13 +401,13 @@ void finalizeParsing(bool direct) {
                     break;
                 case ETH_UI_TYPE_AMOUNT_ADDRESS:
                     // Use the standard ETH UI as this plugin uses the amount/address UI
-                    use_standard_UI = true;
+                    *use_standard_UI = true;
                     tmpContent.txContent.dataPresent = false;
                     if ((pluginFinalize.amount == NULL) || (pluginFinalize.address == NULL)) {
                         PRINTF("Incorrect amount/address set by plugin\n");
                         reportFinalizeError(direct);
                         if (!direct) {
-                            return;
+                            return false;
                         }
                     }
                     memmove(tmpContent.txContent.value.value, pluginFinalize.amount, 32);
@@ -419,14 +423,23 @@ void finalizeParsing(bool direct) {
                     PRINTF("ui type %d not supported\n", pluginFinalize.uiType);
                     reportFinalizeError(direct);
                     if (!direct) {
-                        return;
+                        return false;
                     }
             }
         }
     }
 
+    if (G_called_from_swap) {
+        if (G_swap_response_ready) {
+            // Unreachable given current return to exchange mechanism. Safeguard against regression
+            PRINTF("FATAL: safety against double sign triggered\n");
+            os_sched_exit(-1);
+        }
+        G_swap_response_ready = true;
+    }
+
     // User has just validated a swap but ETH received apdus about a non standard plugin / contract
-    if (G_called_from_swap && !use_standard_UI) {
+    if (G_called_from_swap && !*use_standard_UI) {
         PRINTF("ERR_SILENT_MODE_CHECK_FAILED, G_called_from_swap\n");
         THROW(ERR_SILENT_MODE_CHECK_FAILED);
     }
@@ -435,12 +448,12 @@ void finalizeParsing(bool direct) {
         reportFinalizeError(direct);
         ui_warning_contract_data();
         if (!direct) {
-            return;
+            return false;
         }
     }
 
     // Prepare destination address and amount to display
-    if (use_standard_UI) {
+    if (*use_standard_UI) {
         // Format the address in a temporary buffer, if in swap case compare it with validated
         // address, else commit it
         address_to_string(tmpContent.txContent.destination,
@@ -462,16 +475,22 @@ void finalizeParsing(bool direct) {
 
         // Format the amount in a temporary buffer, if in swap case compare it with validated
         // amount, else commit it
-        amountToString(tmpContent.txContent.value.value,
-                       tmpContent.txContent.value.length,
-                       decimals,
-                       ticker,
-                       displayBuffer,
-                       sizeof(displayBuffer));
+        if (!amountToString(tmpContent.txContent.value.value,
+                            tmpContent.txContent.value.length,
+                            decimals,
+                            ticker,
+                            displayBuffer,
+                            sizeof(displayBuffer))) {
+            PRINTF("OVERFLOW, amount to string failed\n");
+            THROW(EXCEPTION_OVERFLOW);
+        }
+
         if (G_called_from_swap) {
             // Ensure the values are the same that the ones that have been previously validated
             if (strcmp(strings.common.fullAmount, displayBuffer) != 0) {
                 PRINTF("ERR_SILENT_MODE_CHECK_FAILED, amount check failed\n");
+                PRINTF("Expected %s\n", strings.common.fullAmount);
+                PRINTF("Received %s\n", displayBuffer);
                 THROW(ERR_SILENT_MODE_CHECK_FAILED);
             }
         } else {
@@ -490,6 +509,8 @@ void finalizeParsing(bool direct) {
         // Ensure the values are the same that the ones that have been previously validated
         if (strcmp(strings.common.maxFee, displayBuffer) != 0) {
             PRINTF("ERR_SILENT_MODE_CHECK_FAILED, fees check failed\n");
+            PRINTF("Expected %s\n", strings.common.maxFee);
+            PRINTF("Received %s\n", displayBuffer);
             THROW(ERR_SILENT_MODE_CHECK_FAILED);
         }
     } else {
@@ -504,14 +525,21 @@ void finalizeParsing(bool direct) {
                     sizeof(strings.common.nonce));
     PRINTF("Nonce: %s\n", strings.common.nonce);
 
-    // Prepare chainID field
+    // Prepare network field
     get_network_as_string(strings.common.network_name, sizeof(strings.common.network_name));
     PRINTF("Network: %s\n", strings.common.network_name);
+    return true;
+}
 
+void finalizeParsing(bool direct) {
+    bool use_standard_UI = true;
     bool no_consent_check;
 
-    // If called from swap, the user as already validated a standard transaction
-    // We have already checked the fields of this transaction above
+    if (!finalize_parsing_helper(direct, &use_standard_UI)) {
+        return;
+    }
+    // If called from swap, the user has already validated a standard transaction
+    // And we have already checked the fields of this transaction above
     no_consent_check = G_called_from_swap && use_standard_UI;
 
 #ifdef NO_CONSENT

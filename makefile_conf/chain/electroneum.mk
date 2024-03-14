@@ -1,0 +1,4 @@
+APP_LOAD_PARAMS += --path "44'/60'"
+TICKER = "ETN"
+CHAIN_ID = 52014
+APPNAME = "Electroneum"

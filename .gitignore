@@ -20,3 +20,4 @@ tests/snapshots-tmp
 
 .vscode
 .idea
+venv

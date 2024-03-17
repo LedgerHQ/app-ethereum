@@ -92,9 +92,6 @@ DEFINES += HAVE_IO_USB HAVE_L4_USBLIB IO_USB_MAX_ENDPOINTS=4 IO_HID_EP_LENGTH=64
 DEFINES += LEDGER_MAJOR_VERSION=$(APPVERSION_M) LEDGER_MINOR_VERSION=$(APPVERSION_N) LEDGER_PATCH_VERSION=$(APPVERSION_P)
 DEFINES += BUILD_YEAR=\"$(shell date +%Y)\"
 
-# U2F
-DEFINES += HAVE_U2F HAVE_IO_U2F
-DEFINES += U2F_PROXY_MAGIC=\"w0w\"
 DEFINES += USB_SEGMENT_SIZE=64
 DEFINES += BLE_SEGMENT_SIZE=32 #max MTU, min 20
 DEFINES += APPVERSION=\"$(APPVERSION)\"
@@ -258,7 +255,7 @@ include $(BOLOS_SDK)/Makefile.glyphs
 
 ### variables processed by the common makefile.rules of the SDK to grab source files and include dirs
 APP_SOURCE_PATH += src_common src src_features src_plugins
-SDK_SOURCE_PATH += lib_stusb lib_stusb_impl lib_u2f
+SDK_SOURCE_PATH += lib_stusb lib_stusb_impl
 ifeq  ($(TARGET_NAME),TARGET_STAX)
     APP_SOURCE_PATH += src_nbgl
 else

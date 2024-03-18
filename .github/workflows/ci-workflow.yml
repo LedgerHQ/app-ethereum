@@ -1,5 +1,5 @@
 ---
-name: Tests
+name: Tests (Speculos and Zemu)
 
 on:
   workflow_dispatch:
@@ -41,16 +41,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Test
-        run: |
-          id
-          echo $HOME
-          echo $DISPLAY
-
       - name: Checkout
         uses: actions/checkout@v3
 
-      - run: sudo apt-get update -y && sudo apt-get install -y libusb-1.0.0 libudev-dev
+      - name: Install additional tools
+        run: sudo apt-get update -y && sudo apt-get install -y libusb-1.0.0 libudev-dev
 
       - name: Install NodeJS
         uses: actions/setup-node@v3
@@ -72,7 +67,7 @@ jobs:
           path: tmp/
 
       - name: Gather elfs
-        run: cp `find tmp/e2e_zemu_elfs/ -name "*.elf"` tests/zemu/elfs/
+        run: cp tmp/e2e_zemu_elfs/*.elf tests/zemu/elfs/
 
       - name: Run zemu tests
         run: cd tests/zemu/ && yarn test
@@ -128,7 +123,7 @@ jobs:
           path: tmp/
 
       - name: Gather elfs
-        run: cp `find tmp/e2e_speculos_elfs/ -name "*.elf"` tests/speculos/elfs/
+        run: cp tmp/e2e_speculos_elfs/*.elf tests/speculos/elfs/
 
       - name: Install dependencies
         run: |
@@ -140,62 +135,3 @@ jobs:
         run: |
           cd tests/speculos
           pytest --model ${{ matrix.model }} --path ./elfs/${{ matrix.model }}.elf --display headless
-
-
-  # =====================================================
-  #            RAGGER TESTS
-  # =====================================================
-
-  build_ragger_elfs:
-    name: Build app for Ragger tests
-    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_build.yml@v1
-    with:
-      upload_app_binaries_artifact: "ragger_elfs"
-      flags: "DEBUG=1 CAL_TEST_KEY=1 DOMAIN_NAME_TEST_KEY=1 SET_PLUGIN_TEST_KEY=1 NFT_TEST_KEY=1"
-
-  jobs-ragger-tests:
-    name: Run Ragger tests
-    needs: build_ragger_elfs
-    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_ragger_tests.yml@v1
-    with:
-      download_app_binaries_artifact: "ragger_elfs"
-
-  # =====================================================
-  #            STATIC ANALYSIS
-  # =====================================================
-
-  # Static analysis on the main ETH chain is covered by the guidelines enforcer
-  scan-build:
-    name: Clang Static Analyzer on altcoin
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
-    strategy:
-      fail-fast: false
-      matrix:
-        device: ["nanos", "nanos2", "nanox", "stax"]
-
-    steps:
-      - name: Clone
-        uses: actions/checkout@v3
-        with:
-          submodules: recursive
-
-      - name: Build with Clang Static Analyzer
-        run: |
-          eval "BOLOS_SDK=\$$(echo ${{ matrix.device }} | tr [:lower:] [:upper:])_SDK" && \
-          echo "BOLOS_SDK value will be: ${BOLOS_SDK}" && \
-          make -j ENABLE_SDK_WERROR=1 BOLOS_SDK=${BOLOS_SDK} CHAIN=polygon scan-build
-
-      - uses: actions/upload-artifact@v3
-        if: failure()
-        with:
-          name: scan-build
-          path: scan-build
-
-      - name: Upload scan result
-        if: failure()
-        uses: actions/upload-artifact@v3
-        with:
-          name: scan-build
-          path: scan-build

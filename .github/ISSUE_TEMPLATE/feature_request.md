@@ -1,6 +1,6 @@
 ---
 name: Feature report
-about: Suggest an idea for this project 
+about: Suggest an idea for this project
 title: 'Add [Subject of the issue]'
 labels: 'enhancement'
 assignees: ''

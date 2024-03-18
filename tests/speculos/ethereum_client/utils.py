@@ -54,7 +54,7 @@ def bip32_path_from_string(path: str) -> List[bytes]:
 
 def packed_bip32_path_from_string(path: str) -> bytes:
     bip32_paths = bip32_path_from_string(path)
-    
+
     return b"".join([
             len(bip32_paths).to_bytes(1, byteorder="big"),
             *bip32_paths
@@ -98,7 +98,7 @@ def read(buf: BytesIO, size: int) -> bytes:
     b: bytes = buf.read(size)
 
     if len(b) < size:
-        raise ValueError(f"Cant read {size} bytes in buffer!")
+        raise ValueError(f"Can't read {size} bytes in buffer!")
 
     return b
 

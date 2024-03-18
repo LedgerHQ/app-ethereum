@@ -38,9 +38,9 @@ APPVERSION_P = 1
 APPVERSION = $(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)-dev
 APP_LOAD_FLAGS = --appFlags 0xa40 --dep Ethereum:$(APPVERSION)
 
-###########################
-# Set Chain environnement #
-###########################
+#########################
+# Set Chain environment #
+#########################
 
 ifeq ($(CHAIN),)
     CHAIN = ethereum

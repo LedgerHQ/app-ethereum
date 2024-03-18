@@ -801,7 +801,7 @@ None
 
 This command provides a trusted way of deciding what information from the JSON data to show and replace some values by more meaningful ones.
 
-This mode can be overriden by the in-app setting to fully clear-sign EIP-712 messages.
+This mode can be overridden by the in-app setting to fully clear-sign EIP-712 messages.
 
 For the signatures :
 

@@ -9,7 +9,7 @@ def test_sign_eip_1559(cmd):
 
     with cmd.send_apdu_context(apdu_sign_eip_1559, result) as ex:
         sleep(0.5)
-        
+
         if cmd.model == "nanos":
             # Review transaction
             compare_screenshot(cmd, f"screenshots/eip1559/{PATH_IMG[cmd.model]}/sign_eip_1559/00000.png")
@@ -47,7 +47,7 @@ def test_sign_eip_1559(cmd):
             # Address
             compare_screenshot(cmd, f"screenshots/eip1559/{PATH_IMG[cmd.model]}/sign_eip_1559/00002.png")
             cmd.client.press_and_release('right')
-            
+
             # Max Fees
             compare_screenshot(cmd, f"screenshots/eip1559/{PATH_IMG[cmd.model]}/sign_eip_1559/00003.png")
             cmd.client.press_and_release('right')

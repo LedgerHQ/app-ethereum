@@ -16,7 +16,7 @@ def test_personal_sign_metamask(cmd):
 
     with cmd.personal_sign_tx(bip32_path=bip32_path, transaction=transaction, result=result) as ex:
         sleep(0.5)
-        
+
         if cmd.model == "nanos":
             # Sign message
             compare_screenshot(cmd, f"screenshots/eip191/{PATH_IMG[cmd.model]}/personal_sign_metamask/00000.png")
@@ -49,7 +49,7 @@ def test_personal_sign_metamask(cmd):
     assert v == 0x1c # 28
     assert r.hex() == "916099cf0d9c21911c85f0770a47a9696a8189e78c259cf099749748c507baae"
     assert s.hex() == "0d72234bc0ac2e94c5f7a5f4f9cd8610a52be4ea55515a85b9703f1bb158415c"
- 
+
 def test_personal_sign_reject(cmd):
     result: list = []
 
@@ -109,7 +109,7 @@ def test_personal_sign_non_ascii(cmd):
 
     with cmd.personal_sign_tx(bip32_path=bip32_path, transaction=transaction, result=result) as ex:
         sleep(0.5)
-        
+
         if cmd.model == "nanos":
             # Sign message
             compare_screenshot(cmd, f"screenshots/eip191/{PATH_IMG[cmd.model]}/personal_sign_non_ascii/00000.png")
@@ -159,7 +159,7 @@ def test_personal_sign_opensea(cmd):
 
     with cmd.personal_sign_tx(bip32_path, transaction, result) as ex:
         sleep(0.5)
-        
+
         if cmd.model == "nanos":
             # Sign message
             compare_screenshot(cmd, f"screenshots/eip191/{PATH_IMG[cmd.model]}/personal_sign_opensea/00000.png")

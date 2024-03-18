@@ -444,7 +444,7 @@ static bool check_found_tlv_tags(s_tlv_handler *handlers, int handler_count) {
     // prevent missing or duplicated tags
     for (int idx = 0; idx < handler_count; ++idx) {
         if (handlers[idx].found != 1) {
-            PRINTF("Found %u occurence(s) of tag 0x%x in TLV!\n",
+            PRINTF("Found %u occurrence(s) of tag 0x%x in TLV!\n",
                    handlers[idx].found,
                    handlers[idx].tag);
             return false;

@@ -412,7 +412,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
             // If we are in swap mode and have validated a TX, we send it and immediately quit
             if (quit_now) {
                 if (io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, *tx) == 0) {
-                    // In case of success, the apdu is sent immediatly and eth exits
+                    // In case of success, the apdu is sent immediately and eth exits
                     // Reaching this code means we encountered an error
                     finalize_exchange_sign_transaction(false);
                 } else {

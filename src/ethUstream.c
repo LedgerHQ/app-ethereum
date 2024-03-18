@@ -518,7 +518,7 @@ static parserStatus_e processTxInternal(txContext_t *context) {
             PRINTF("parsing is done\n");
             return USTREAM_FINISHED;
         }
-        // Old style transaction (pre EIP-155). Transations could just skip `v,r,s` so we needed to
+        // Old style transaction (pre EIP-155). Transactions could just skip `v,r,s` so we needed to
         // cut parsing here. commandLength == 0 could happen in two cases :
         // 1. We are in an old style transaction : just return `USTREAM_FINISHED`.
         // 2. We are at the end of an APDU in a multi-apdu process. This would make us return

@@ -1,6 +1,6 @@
 ## Description
 
-Please provide a detailed description of what was done in this PR.  
+Please provide a detailed description of what was done in this PR.
 (And mentioned if linked to an issue [docs](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue))
 
 ## Changes include

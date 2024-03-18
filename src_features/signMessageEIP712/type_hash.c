@@ -51,7 +51,7 @@ static bool encode_and_hash_type(const void *const struct_ptr) {
     struct_name = get_struct_name(struct_ptr, &struct_name_length);
     hash_nbytes((uint8_t *) struct_name, struct_name_length, (cx_hash_t *) &global_sha3);
 
-    // opening struct parenthese
+    // opening struct parentheses
     hash_byte('(', (cx_hash_t *) &global_sha3);
 
     field_ptr = get_struct_fields_array(struct_ptr, &fields_count);
@@ -67,7 +67,7 @@ static bool encode_and_hash_type(const void *const struct_ptr) {
 
         field_ptr = get_next_struct_field(field_ptr);
     }
-    // closing struct parenthese
+    // closing struct parentheses
     hash_byte(')', (cx_hash_t *) &global_sha3);
 
     return true;
@@ -107,7 +107,7 @@ static void sort_dependencies(uint8_t deps_count, const void **deps) {
 /**
  * Find all the dependencies from a given structure
  *
- * @param[out] deps_count count of how many struct dependencie pointers
+ * @param[out] deps_count count of how many struct dependency pointers
  * @param[in] first_dep pointer to the first dependency pointer
  * @param[in] struct_ptr pointer to the struct we are getting the dependencies of
  * @return pointer to the first found dependency, \ref NULL otherwise

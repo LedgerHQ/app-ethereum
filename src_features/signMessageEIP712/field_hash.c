@@ -173,7 +173,7 @@ static void field_hash_feed_parent(e_type field_type, const uint8_t *const hash)
  * @param[in] field_ptr pointer to the struct field definition
  * @param[in] data the field value
  * @param[in] data_length the value length
- * @return whether an error occured or not
+ * @return whether an error occurred or not
  */
 static bool field_hash_domain_special_fields(const void *const field_ptr,
                                              const uint8_t *const data,
@@ -202,7 +202,7 @@ static bool field_hash_domain_special_fields(const void *const field_ptr,
  * @param[in] field_ptr pointer to the struct field definition
  * @param[in] data the field value
  * @param[in] data_length the value length
- * @return whether an error occured or not
+ * @return whether an error occurred or not
  */
 static bool field_hash_finalize(const void *const field_ptr,
                                 const uint8_t *const data,

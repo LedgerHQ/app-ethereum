@@ -10,7 +10,7 @@ class ERC20Information:
         self.nb_decimals: int = nb_decimals
         self.chainID: int = chainID
         self.sign: bytes = bytes.fromhex(sign)
-    
+
     def serialize(self) -> bytes:
         return b"".join([
             write_varint(len(self.erc20_ticker)),

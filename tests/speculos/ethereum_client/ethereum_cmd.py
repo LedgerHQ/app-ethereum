@@ -22,7 +22,7 @@ class EthereumCommand:
         self.builder = EthereumCommandBuilder(debug=debug)
         self.debug = debug
         self.model = model
-    
+
     def get_configuration(self) -> Tuple[int, int, int, int]:
         try:
             response = self.client._apdu_exchange(
@@ -46,7 +46,7 @@ class EthereumCommand:
             self.client._apdu_exchange(
                 self.builder.set_plugin(plugin=plugin)
             )
-        
+
         except ApduException as error:
             raise DeviceException(error_code=error.sw, ins=InsType.INS_SET_PLUGIN)
 
@@ -79,7 +79,7 @@ class EthereumCommand:
                                                           data=chunk[5:]) as exchange:
                 yield exchange
                 response: bytes = exchange.receive()
-                
+
         except ApduException as error:
             raise DeviceException(error_code=error.sw, ins=InsType.INS_GET_PUBLIC_KEY)
 
@@ -94,17 +94,17 @@ class EthereumCommand:
 
         uncompressed_addr_len: bytes = response[offset:offset + pub_key_len]
         offset += pub_key_len
-        
+
         eth_addr_len: int = response[offset]
         offset += 1
-        
+
         eth_addr: bytes = response[offset:offset + eth_addr_len]
         offset += eth_addr_len
 
         chain_code: bytes = response[offset:]
 
         assert len(response) == 1 + pub_key_len + 1 + eth_addr_len + 32 # 32 -> chain_code_len
-        
+
         result.append(uncompressed_addr_len)
         result.append(eth_addr)
         result.append(chain_code)
@@ -120,7 +120,7 @@ class EthereumCommand:
                                                           data=chunk[5:]) as exchange:
                 yield exchange
                 response: bytes = exchange.receive()
-                
+
         except ApduException as error:
             raise DeviceException(error_code=error.sw, ins=InsType.INS_PERFORM_PRIVACY_OPERATION)
 
@@ -146,7 +146,7 @@ class EthereumCommand:
                                                     data=apdu[5:]) as exchange:
                 yield exchange
                 result.append(exchange.receive())
-            
+
         except ApduException as error:
             raise DeviceException(error_code=error.sw, ins=InsType.INS_SIGN_TX)
 
@@ -162,14 +162,14 @@ class EthereumCommand:
                                                           data=chunk[5:]) as exchange:
                 yield exchange
                 response: bytes = exchange.receive()
-                
+
         except ApduException as error:
             raise DeviceException(error_code=error.sw, ins=InsType.INS_SIGN_TX)
 
         # response = V (1) || R (32) || S (32)
         assert len(response) == 65
         v, r, s = parse_sign_response(response)
-        
+
         result.append(v)
         result.append(r)
         result.append(s)
@@ -185,14 +185,14 @@ class EthereumCommand:
                                                           data=chunk[5:]) as exchange:
                 yield exchange
                 response: bytes = exchange.receive()
-                
+
         except ApduException as error:
             raise DeviceException(error_code=error.sw, ins=InsType.INS_SIGN_EIP712)
 
         # response = V (1) || R (32) || S (32)
         assert len(response) == 65
         v, r, s = parse_sign_response(response)
-        
+
         result.append(v)
         result.append(r)
         result.append(s)
@@ -211,16 +211,13 @@ class EthereumCommand:
                         response: bytes = exchange.receive()
                 else:
                     self.send_apdu(apdu)
-                
+
         except ApduException as error:
             raise DeviceException(error_code=error.sw, ins=InsType.INS_SIGN_TX)
 
          # response = V (1) || R (32) || S (32)
         v, r, s = parse_sign_response(response)
-        
+
         result.append(v)
         result.append(r)
         result.append(s)
-
-
-

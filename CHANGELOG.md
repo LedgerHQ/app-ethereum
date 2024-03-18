@@ -211,7 +211,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
-- Provide network ticker to plugins (especialy helpful for Paraswap plugin)
+- Provide network ticker to plugins (especially helpful for Paraswap plugin)
 - Polygon variant
 
 ## [1.9.10](https://github.com/ledgerhq/app-ethereum/compare/1.9.9...1.9.10) - 2021-10-08

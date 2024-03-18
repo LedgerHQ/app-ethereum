@@ -115,7 +115,7 @@ const void *path_get_field(void) {
 /**
  * Go down (add) a depth level.
  *
- * @return whether the push was succesful
+ * @return whether the push was successful
  */
 static bool path_depth_list_push(void) {
     if (path_struct == NULL) {

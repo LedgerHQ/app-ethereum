@@ -296,7 +296,7 @@ static void get_public_key(uint8_t *out, uint8_t outLength) {
     getEthAddressFromRawKey(raw_pubkey, out);
 }
 
-/* Local implmentation of strncasecmp, workaround of the segfaulting base implem
+/* Local implementation of strncasecmp, workaround of the segfaulting base implem
  * Remove once strncasecmp is fixed
  */
 static int strcasecmp_workaround(const char *str1, const char *str2) {

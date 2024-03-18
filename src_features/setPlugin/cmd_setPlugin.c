@@ -58,7 +58,7 @@ typedef bool verificationAlgo(const cx_ecfp_public_key_t *,
 
 // Returns the plugin type of a given plugin name.
 // If the plugin name is not a specific known internal plugin, this function default return value is
-// `EXERNAL`.
+// `EXTERNAL`.
 static pluginType_t getPluginType(char *pluginName, uint8_t pluginNameLength) {
     if (pluginNameLength == sizeof(ERC721_STR) - 1 &&
         strncmp(pluginName, ERC721_STR, pluginNameLength) == 0) {

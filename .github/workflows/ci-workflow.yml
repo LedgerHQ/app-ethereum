@@ -22,7 +22,7 @@ jobs:
       image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder-lite:latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build testing binaries
         run: |
@@ -30,7 +30,7 @@ jobs:
           cd tests/zemu/ && ./build_local_test_elfs.sh
 
       - name: Upload app binaries
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: e2e_zemu_elfs
           path: ./tests/zemu/elfs/
@@ -42,7 +42,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install additional tools
         run: sudo apt-get update -y && sudo apt-get install -y libusb-1.0.0 libudev-dev
@@ -62,7 +62,7 @@ jobs:
         run: mkdir tests/zemu/elfs
 
       - name: Download app binaries
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: tmp/
 
@@ -84,7 +84,7 @@ jobs:
       image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder-lite:latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build testing binaries
         run: |
@@ -94,7 +94,7 @@ jobs:
           make clean && make -j DEBUG=1 NFT_STAGING_KEY=1 BOLOS_SDK=$NANOSP_SDK && mv bin/app.elf tests/speculos/elfs/nanosp.elf
 
       - name: Upload app binaries
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: e2e_speculos_elfs
           path: ./tests/speculos/elfs
@@ -112,13 +112,13 @@ jobs:
 
     steps:
       - name: Clone
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Create tmp folder for artifacts
         run: mkdir tests/speculos/elfs
 
       - name: Download app binaries
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: tmp/
 

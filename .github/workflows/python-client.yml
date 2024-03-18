@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clone
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - run: pip install flake8 flake8-pyproject
       - name: Flake8 lint Python code
         run: (cd client && flake8 src/)
@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clone
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - run: pip install mypy
       - name: Mypy type checking
         run: (cd client && mypy src/)
@@ -45,7 +45,7 @@ jobs:
     steps:
 
     - name: Clone
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
 

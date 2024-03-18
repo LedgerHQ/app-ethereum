@@ -92,6 +92,8 @@ static void reset_ui_buffer(void) {
  * @return pointer to the start of the start of the message; \ref NULL if it failed
  */
 static const uint8_t *first_apdu_data(const uint8_t *data, uint8_t *length) {
+    cx_err_t error = CX_INTERNAL_ERROR;
+
     if (appState != APP_STATE_IDLE) {
         apdu_reply(APDU_RESPONSE_CONDITION_NOT_SATISFIED);
     }
@@ -113,22 +115,29 @@ static const uint8_t *first_apdu_data(const uint8_t *data, uint8_t *length) {
     *length -= sizeof(uint32_t);
 
     // Initialize message header + length
-    cx_keccak_init(&global_sha3, 256);
-    cx_hash((cx_hash_t *) &global_sha3, 0, (uint8_t *) SIGN_MAGIC, sizeof(SIGN_MAGIC) - 1, NULL, 0);
+    CX_CHECK(cx_keccak_init_no_throw(&global_sha3, 256));
+    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3,
+                              0,
+                              (uint8_t *) SIGN_MAGIC,
+                              sizeof(SIGN_MAGIC) - 1,
+                              NULL,
+                              0));
     snprintf(strings.tmp.tmp2,
              sizeof(strings.tmp.tmp2),
              "%u",
              tmpCtx.messageSigningContext.remainingLength);
-    cx_hash((cx_hash_t *) &global_sha3,
-            0,
-            (uint8_t *) strings.tmp.tmp2,
-            strlen(strings.tmp.tmp2),
-            NULL,
-            0);
+    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3,
+                              0,
+                              (uint8_t *) strings.tmp.tmp2,
+                              strlen(strings.tmp.tmp2),
+                              NULL,
+                              0));
     reset_ui_buffer();
     states.sign_state = STATE_191_HASH_DISPLAY;
     states.ui_started = false;
     return data;
+end:
+    return NULL;
 }
 
 /**
@@ -139,6 +148,8 @@ static const uint8_t *first_apdu_data(const uint8_t *data, uint8_t *length) {
  * @return whether it was successful or not
  */
 static bool feed_hash(const uint8_t *const data, const uint8_t length) {
+    cx_err_t error = CX_INTERNAL_ERROR;
+
     if (length > tmpCtx.messageSigningContext.remainingLength) {
         PRINTF("Error: Length mismatch ! (%u > %u)!\n",
                length,
@@ -146,17 +157,19 @@ static bool feed_hash(const uint8_t *const data, const uint8_t length) {
         apdu_reply(APDU_RESPONSE_INVALID_DATA);
         return false;
     }
-    cx_hash((cx_hash_t *) &global_sha3, 0, data, length, NULL, 0);
+    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3, 0, data, length, NULL, 0));
     if ((tmpCtx.messageSigningContext.remainingLength -= length) == 0) {
         // Finalize hash
-        cx_hash((cx_hash_t *) &global_sha3,
-                CX_LAST,
-                NULL,
-                0,
-                tmpCtx.messageSigningContext.hash,
-                32);
+        CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3,
+                                  CX_LAST,
+                                  NULL,
+                                  0,
+                                  tmpCtx.messageSigningContext.hash,
+                                  32));
     }
     return true;
+end:
+    return false;
 }
 
 /**

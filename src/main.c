@@ -31,6 +31,7 @@
 #include "commands_712.h"
 #include "challenge.h"
 #include "domain_name.h"
+#include "lib_standard_app/crypto_helpers.h"
 
 unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 
@@ -88,28 +89,6 @@ void io_seproxyhal_send_status(uint32_t sw) {
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
 }
 
-void format_signature_out(const uint8_t *signature) {
-    memset(G_io_apdu_buffer + 1, 0x00, 64);
-    uint8_t offset = 1;
-    uint8_t xoffset = 4;  // point to r value
-    // copy r
-    uint8_t xlength = signature[xoffset - 1];
-    if (xlength == 33) {
-        xlength = 32;
-        xoffset++;
-    }
-    memmove(G_io_apdu_buffer + offset + 32 - xlength, signature + xoffset, xlength);
-    offset += 32;
-    xoffset += xlength + 2;  // move over rvalue and TagLEn
-    // copy s value
-    xlength = signature[xoffset - 1];
-    if (xlength == 33) {
-        xlength = 32;
-        xoffset++;
-    }
-    memmove(G_io_apdu_buffer + offset + 32 - xlength, signature + xoffset, xlength);
-}
-
 unsigned short io_exchange_al(unsigned char channel, unsigned short tx_len) {
     switch (channel & ~(IO_FLAGS)) {
         case CHANNEL_KEYBOARD:
@@ -162,11 +141,17 @@ void handleGetWalletId(volatile unsigned int *tx) {
     unsigned char t[64];
     cx_ecfp_256_private_key_t priv;
     cx_ecfp_256_public_key_t pub;
-    // seed => priv key
-    os_perso_derive_node_bip32(CX_CURVE_256K1, U_os_perso_seed_cookie, 2, t, NULL);
+    // seed => pubkey
+    CX_ASSERT(bip32_derive_with_seed_init_privkey_256(HDW_NORMAL,
+                                                      CX_CURVE_256K1,
+                                                      U_os_perso_seed_cookie,
+                                                      2,
+                                                      &priv,
+                                                      NULL,
+                                                      NULL,
+                                                      0));
     // priv key => pubkey
-    cx_ecdsa_init_private_key(CX_CURVE_256K1, t, 32, &priv);
-    cx_ecfp_generate_pair(CX_CURVE_256K1, &pub, &priv, 1);
+    CX_ASSERT(cx_ecfp_generate_pair_no_throw(CX_CURVE_256K1, &pub, &priv, 1));
     // pubkey -> sha512
     cx_hash_sha512(pub.W, sizeof(pub.W), t, sizeof(t));
     // ! cookie !
@@ -508,9 +493,6 @@ void app_main(void) {
         }
         END_TRY;
     }
-
-    // return_to_dashboard:
-    return;
 }
 
 // override point, but nothing more to do

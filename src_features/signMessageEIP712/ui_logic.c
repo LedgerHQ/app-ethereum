@@ -247,7 +247,6 @@ static bool ui_712_format_addr(const uint8_t *const data, uint8_t length) {
             if (!getEthDisplayableAddress((uint8_t *) data,
                                           strings.tmp.tmp,
                                           sizeof(strings.tmp.tmp),
-                                          &global_sha3,
                                           chainConfig->chainId)) {
                 THROW(APDU_RESPONSE_ERROR_NO_INFO);
             }
@@ -292,7 +291,7 @@ static void ui_712_format_bytes(const uint8_t *const data, uint8_t length) {
         // x2 for each byte value is represented by 2 ASCII characters
         if ((2 + (length * 2)) > (sizeof(strings.tmp.tmp) - 1)) {
             strings.tmp.tmp[sizeof(strings.tmp.tmp) - 1 - 3] = '\0';
-            strcat(strings.tmp.tmp, "...");
+            strlcat(strings.tmp.tmp, "...", sizeof(strings.tmp.tmp));
         }
     }
 }

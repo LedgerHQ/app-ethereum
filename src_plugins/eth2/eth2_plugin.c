@@ -119,7 +119,6 @@ void eth2_plugin_call(int message, void *parameters) {
                     if (!getEthDisplayableAddress((uint8_t *) context->deposit_address,
                                                   tmp,
                                                   sizeof(tmp),
-                                                  msg->pluginSharedRW->sha3,
                                                   chainConfig->chainId)) {
                         msg->result = ETH_PLUGIN_RESULT_ERROR;
                         return;

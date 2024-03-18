@@ -204,7 +204,6 @@ void erc20_plugin_call(int message, void *parameters) {
                         if (!getEthDisplayableAddress(context->destinationAddress,
                                                       msg->msg,
                                                       msg->msgLength,
-                                                      msg->pluginSharedRW->sha3,
                                                       chainConfig->chainId)) {
                             msg->result = ETH_PLUGIN_RESULT_ERROR;
                         }

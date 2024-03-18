@@ -56,23 +56,45 @@ bool adjustDecimals(const char *src,
                     size_t targetLength,
                     uint8_t decimals);
 
-bool getEthAddressFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out, cx_sha3_t *sha3Context);
+void getEthAddressFromRawKey(const uint8_t raw_pubkey[static 65],
+                             uint8_t out[static ADDRESS_LENGTH]);
 
-bool getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey,
-                                char *out,
-                                cx_sha3_t *sha3Context,
-                                uint64_t chainId);
-
-bool getEthAddressStringFromBinary(uint8_t *address,
-                                   char *out,
-                                   cx_sha3_t *sha3Context,
+void getEthAddressStringFromRawKey(const uint8_t raw_pubkey[static 65],
+                                   char out[static ADDRESS_LENGTH * 2],
                                    uint64_t chainId);
 
-bool getEthDisplayableAddress(uint8_t *in,
-                              char *out,
-                              size_t out_len,
-                              cx_sha3_t *sha3,
-                              uint64_t chainId);
+/**
+ * @deprecated
+ * See #getEthAddressFromRawKey
+ */
+DEPRECATED static inline bool getEthAddressFromKey(cx_ecfp_public_key_t *publicKey,
+                                                   uint8_t *out,
+                                                   cx_sha3_t *sha3Context) {
+    UNUSED(sha3Context);
+
+    getEthAddressFromRawKey(publicKey->W, out);
+    return true;
+}
+
+/**
+ * @deprecated
+ * See #getEthAddressFromRawKey
+ */
+DEPRECATED static inline bool getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey,
+                                                         uint8_t *out,
+                                                         cx_sha3_t *sha3Context,
+                                                         uint64_t chainId) {
+    UNUSED(sha3Context);
+
+    getEthAddressStringFromRawKey(publicKey->W, (char *) out, chainId);
+    return true;
+}
+
+bool getEthAddressStringFromBinary(uint8_t *address,
+                                   char out[static ADDRESS_LENGTH * 2],
+                                   uint64_t chainId);
+
+bool getEthDisplayableAddress(uint8_t *in, char *out, size_t out_len, uint64_t chainId);
 
 static __attribute__((no_instrument_function)) inline int allzeroes(const void *buf, size_t n) {
     uint8_t *p = (uint8_t *) buf;

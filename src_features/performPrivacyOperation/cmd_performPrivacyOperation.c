@@ -28,7 +28,7 @@ void handlePerformPrivacyOperation(uint8_t p1,
                                    uint8_t dataLength,
                                    unsigned int *flags,
                                    unsigned int *tx) {
-    uint8_t privateKeyData[INT256_LENGTH];
+    uint8_t privateKeyData[64];
     uint8_t privateKeyDataSwapped[INT256_LENGTH];
     bip32_path_t bip32;
     cx_err_t status = CX_OK;
@@ -53,27 +53,30 @@ void handlePerformPrivacyOperation(uint8_t p1,
 
     cx_ecfp_private_key_t privateKey;
 
-    os_perso_derive_node_bip32(
+    CX_ASSERT(os_derive_bip32_no_throw(
         CX_CURVE_256K1,
         bip32.path,
         bip32.length,
         privateKeyData,
-        (tmpCtx.publicKeyContext.getChaincode ? tmpCtx.publicKeyContext.chainCode : NULL));
-    cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
-    cx_ecfp_generate_pair(CX_CURVE_256K1, &tmpCtx.publicKeyContext.publicKey, &privateKey, 1);
-    if (!getEthAddressStringFromKey(&tmpCtx.publicKeyContext.publicKey,
-                                    tmpCtx.publicKeyContext.address,
-                                    &global_sha3,
-                                    chainConfig->chainId)) {
-        THROW(CX_INVALID_PARAMETER);
-    }
+        (tmpCtx.publicKeyContext.getChaincode ? tmpCtx.publicKeyContext.chainCode : NULL)));
+    CX_ASSERT(cx_ecfp_init_private_key_no_throw(CX_CURVE_256K1, privateKeyData, 32, &privateKey));
+    CX_ASSERT(cx_ecfp_generate_pair_no_throw(CX_CURVE_256K1,
+                                             &tmpCtx.publicKeyContext.publicKey,
+                                             &privateKey,
+                                             1));
+    getEthAddressStringFromRawKey((const uint8_t *) &tmpCtx.publicKeyContext.publicKey.W,
+                                  tmpCtx.publicKeyContext.address,
+                                  chainConfig->chainId);
     if (p2 == P2_PUBLIC_ENCRYPTION_KEY) {
         decodeScalar(privateKeyData, privateKeyDataSwapped);
-        cx_ecfp_init_private_key(CX_CURVE_Curve25519, privateKeyDataSwapped, 32, &privateKey);
-        cx_ecfp_generate_pair(CX_CURVE_Curve25519,
-                              &tmpCtx.publicKeyContext.publicKey,
-                              &privateKey,
-                              1);
+        CX_ASSERT(cx_ecfp_init_private_key_no_throw(CX_CURVE_Curve25519,
+                                                    privateKeyDataSwapped,
+                                                    32,
+                                                    &privateKey));
+        CX_ASSERT(cx_ecfp_generate_pair_no_throw(CX_CURVE_Curve25519,
+                                                 &tmpCtx.publicKeyContext.publicKey,
+                                                 &privateKey,
+                                                 1));
         explicit_bzero(privateKeyDataSwapped, sizeof(privateKeyDataSwapped));
     } else {
         memmove(tmpCtx.publicKeyContext.publicKey.W + 1, dataBuffer, 32);

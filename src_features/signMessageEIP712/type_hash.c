@@ -171,8 +171,9 @@ bool type_hash(const char *const struct_name, const uint8_t struct_name_length, 
     uint8_t deps_count = 0;
     const void **deps;
     void *mem_loc_bak = mem_alloc(0);
+    cx_err_t error = CX_INTERNAL_ERROR;
 
-    cx_keccak_init(&global_sha3, 256);  // init hash
+    CX_CHECK(cx_keccak_init_no_throw(&global_sha3, 256));
     deps = get_struct_dependencies(&deps_count, NULL, struct_ptr);
     if ((deps_count > 0) && (deps == NULL)) {
         return false;
@@ -191,8 +192,15 @@ bool type_hash(const char *const struct_name, const uint8_t struct_name_length, 
     mem_dealloc(mem_alloc(0) - mem_loc_bak);
 
     // copy hash into memory
-    cx_hash((cx_hash_t *) &global_sha3, CX_LAST, NULL, 0, hash_buf, KECCAK256_HASH_BYTESIZE);
+    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3,
+                              CX_LAST,
+                              NULL,
+                              0,
+                              hash_buf,
+                              KECCAK256_HASH_BYTESIZE));
     return true;
+end:
+    return false;
 }
 
 #endif  // HAVE_EIP712_FULL_SUPPORT

@@ -13,27 +13,35 @@ static const uint8_t BLS12_381_FIELD_MODULUS[] = {
     0x1e, 0xab, 0xff, 0xfe, 0xb1, 0x53, 0xff, 0xff, 0xb9, 0xfe, 0xff, 0xff, 0xff, 0xff, 0xaa, 0xab};
 
 void getEth2PublicKey(uint32_t *bip32Path, uint8_t bip32PathLength, uint8_t *out) {
-    uint8_t privateKeyData[INT256_LENGTH];
+    uint8_t privateKeyData[64];
     cx_ecfp_256_extended_private_key_t privateKey;
     cx_ecfp_384_public_key_t publicKey;
     uint8_t yFlag = 0;
     uint8_t tmp[96];
+    int diff;
 
     io_seproxyhal_io_heartbeat();
-    os_perso_derive_eip2333(CX_CURVE_BLS12_381_G1, bip32Path, bip32PathLength, privateKeyData);
+    CX_ASSERT(os_derive_eip2333_no_throw(CX_CURVE_BLS12_381_G1,
+                                         bip32Path,
+                                         bip32PathLength,
+                                         privateKeyData));
     io_seproxyhal_io_heartbeat();
     memset(tmp, 0, 48);
     memmove(tmp + 16, privateKeyData, 32);
-    cx_ecfp_init_private_key(CX_CURVE_BLS12_381_G1, tmp, 48, (cx_ecfp_private_key_t *) &privateKey);
-    cx_ecfp_generate_pair(CX_CURVE_BLS12_381_G1,
-                          (cx_ecfp_public_key_t *) &publicKey,
-                          (cx_ecfp_private_key_t *) &privateKey,
-                          1);
+    CX_ASSERT(cx_ecfp_init_private_key_no_throw(CX_CURVE_BLS12_381_G1,
+                                                tmp,
+                                                48,
+                                                (cx_ecfp_private_key_t *) &privateKey));
+    CX_ASSERT(cx_ecfp_generate_pair_no_throw(CX_CURVE_BLS12_381_G1,
+                                             (cx_ecfp_public_key_t *) &publicKey,
+                                             (cx_ecfp_private_key_t *) &privateKey,
+                                             1));
     explicit_bzero(tmp, 96);
     explicit_bzero((void *) &privateKey, sizeof(cx_ecfp_256_extended_private_key_t));
     tmp[47] = 2;
-    cx_math_mult(tmp, publicKey.W + 1 + 48, tmp, 48);
-    if (cx_math_cmp(tmp + 48, BLS12_381_FIELD_MODULUS, 48) > 0) {
+    CX_ASSERT(cx_math_mult_no_throw(tmp, publicKey.W + 1 + 48, tmp, 48));
+    CX_ASSERT(cx_math_cmp_no_throw(tmp + 48, BLS12_381_FIELD_MODULUS, 48, &diff));
+    if (diff > 0) {
         yFlag = 0x20;
     }
     publicKey.W[1] &= 0x1f;

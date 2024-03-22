@@ -308,7 +308,8 @@ static bool path_update(bool skip_if_array, bool stop_at_array) {
     while (struct_field_type(field_ptr) == TYPE_CUSTOM) {
         if (((field_ptr == starting_field_ptr) && skip_if_array) ||
             ((field_ptr != starting_field_ptr) && stop_at_array)) {
-            if (struct_field_is_array(field_ptr)) {
+            if ((path_struct->array_depths[path_struct->array_depth_count - 1].index == 0) &&
+                struct_field_is_array(field_ptr)) {
                 break;
             }
         }
@@ -323,11 +324,14 @@ static bool path_update(bool skip_if_array, bool stop_at_array) {
         if (push_new_hash_depth(true) == false) {
             return false;
         }
-        // get the struct typehash
-        if (type_hash(typename, typename_len, hash) == false) {
-            return false;
+
+        if (!path_struct->in_empty_array) {
+            // get the struct typehash
+            if (type_hash(typename, typename_len, hash) == false) {
+                return false;
+            }
+            feed_last_hash_depth(hash);
         }
-        feed_last_hash_depth(hash);
 
         // TODO: Find a better way to show inner structs in verbose mode when it might be
         //       an empty array of structs in which case we don't want to show it but the
@@ -459,6 +463,9 @@ bool path_new_array_depth(const uint8_t *const data, uint8_t length) {
     }
 
     array_size = *data;
+    if (array_size == 0) {
+        path_struct->in_empty_array = true;
+    }
     if (!path_update(false, array_size > 0)) {
         return false;
     }
@@ -503,10 +510,11 @@ bool path_new_array_depth(const uint8_t *const data, uint8_t length) {
         }
         CX_CHECK(cx_keccak_init_no_throw(old_ctx, 256));
     }
-    if (array_size == 0) {
+    if (path_struct->in_empty_array) {
         do {
             path_advance(false);
-        } while (path_struct->array_depth_count != array_depth_count_bak);
+        } while (path_struct->array_depth_count > array_depth_count_bak);
+        path_struct->in_empty_array = false;
     }
 
     return true;
@@ -636,6 +644,7 @@ bool path_init(void) {
             apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
         } else {
             path_struct->depth_count = 0;
+            path_struct->in_empty_array = false;
         }
     }
     return path_struct != NULL;

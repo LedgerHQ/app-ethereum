@@ -24,6 +24,7 @@ typedef struct {
     s_array_depth array_depths[MAX_ARRAY_DEPTH];
     const void *root_struct;
     e_root_type root_type;
+    bool in_empty_array;
 } s_path;
 
 bool path_set_root(const char *const struct_name, uint8_t length);

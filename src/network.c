@@ -36,6 +36,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 1818, .name = "Cube", .ticker = "CUBE"},
     {.chain_id = 336, .name = "Shiden", .ticker = "SDN"},
     {.chain_id = 592, .name = "Astar", .ticker = "ASTR"},
+    {.chain_id = 3776, .name = "Astar zkEVM", .ticker = "ETH"},
     {.chain_id = 50, .name = "XDC", .ticker = "XDC"},
     {.chain_id = 82, .name = "Meter", .ticker = "MTR"},
     {.chain_id = 62621, .name = "Multivac", .ticker = "MTV"},

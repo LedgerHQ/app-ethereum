@@ -9,6 +9,7 @@
 #include "ethUstream.h"
 #include "tx_content.h"
 #include "chainConfig.h"
+#include "eth_plugin_interface.h"
 #include "asset_info.h"
 #ifdef HAVE_NBGL
 #include "nbgl_types.h"
@@ -56,9 +57,9 @@ typedef struct tokenContext_t {
             uint8_t contractAddress[ADDRESS_LENGTH];
             uint8_t methodSelector[SELECTOR_LENGTH];
         };
-        // This needs to be strictly 4 bytes aligned since pointers to it will be casted as
-        // plugin context struct pointers (structs that contain up to 4 bytes wide elements)
-        uint8_t pluginContext[5 * INT256_LENGTH] __attribute__((aligned(4)));
+        // This needs to be strictly 4 bytes aligned since pointers so it can be cast as plugin
+        // context struct pointers (structs that contain up to 4 bytes wide elements)
+        uint8_t pluginContext[PLUGIN_CONTEXT_SIZE] __attribute__((aligned(4)));
     };
 
     uint8_t pluginStatus;

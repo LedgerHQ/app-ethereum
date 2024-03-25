@@ -49,7 +49,6 @@ typedef customStatus_e (*ustreamProcess_t)(struct txContext_t *context);
 typedef enum rlpLegacyTxField_e {
     LEGACY_RLP_NONE = RLP_NONE,
     LEGACY_RLP_CONTENT,
-    LEGACY_RLP_TYPE,  // For wanchain
     LEGACY_RLP_NONCE,
     LEGACY_RLP_GASPRICE,
     LEGACY_RLP_STARTGAS,
@@ -65,7 +64,6 @@ typedef enum rlpLegacyTxField_e {
 typedef enum rlpEIP2930TxField_e {
     EIP2930_RLP_NONE = RLP_NONE,
     EIP2930_RLP_CONTENT,
-    EIP2930_RLP_TYPE,  // For wanchain
     EIP2930_RLP_CHAINID,
     EIP2930_RLP_NONCE,
     EIP2930_RLP_GASPRICE,
@@ -80,7 +78,6 @@ typedef enum rlpEIP2930TxField_e {
 typedef enum rlpEIP1559TxField_e {
     EIP1559_RLP_NONE = RLP_NONE,
     EIP1559_RLP_CONTENT,
-    EIP1559_RLP_TYPE,  // For wanchain
     EIP1559_RLP_CHAINID,
     EIP1559_RLP_NONCE,
     EIP1559_RLP_MAX_PRIORITY_FEE_PER_GAS,
@@ -125,7 +122,6 @@ typedef struct txContext_t {
     uint32_t rlpBufferPos;
     const uint8_t *workBuffer;
     uint32_t commandLength;
-    uint32_t processingFlags;
     ustreamProcess_t customProcessor;
     txContent_t *content;
     void *extra;
@@ -139,8 +135,7 @@ void initTx(txContext_t *context,
             void *extra);
 parserStatus_e processTx(txContext_t *context,
                          const uint8_t *buffer,
-                         uint32_t length,
-                         uint32_t processingFlags);
+                         uint32_t length);
 parserStatus_e continueTx(txContext_t *context);
 void copyTxData(txContext_t *context, uint8_t *out, uint32_t length);
 uint8_t readTxByte(txContext_t *context);

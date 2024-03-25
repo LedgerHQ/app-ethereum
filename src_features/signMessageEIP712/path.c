@@ -255,6 +255,7 @@ static bool array_depth_list_push(uint8_t path_idx, uint8_t size) {
     arr = &path_struct->array_depths[path_struct->array_depth_count];
     arr->path_index = path_idx;
     arr->size = size;
+    arr->index = 0;
     path_struct->array_depth_count += 1;
     return true;
 }
@@ -558,8 +559,8 @@ static bool path_advance_in_array(void) {
 
         if ((path_struct->array_depth_count > 0) &&
             (arr_depth->path_index == (path_struct->depth_count - 1))) {
-            if (arr_depth->size > 0) arr_depth->size -= 1;
-            if (arr_depth->size == 0) {
+            arr_depth->index += 1;
+            if (arr_depth->index == arr_depth->size) {
                 array_depth_list_pop();
                 end_reached = true;
             } else {

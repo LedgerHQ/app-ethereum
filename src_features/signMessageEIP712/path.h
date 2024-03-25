@@ -12,6 +12,7 @@
 typedef struct {
     uint8_t path_index;
     uint8_t size;
+    uint8_t index;
 } s_array_depth;
 
 typedef enum { ROOT_DOMAIN, ROOT_MESSAGE } e_root_type;

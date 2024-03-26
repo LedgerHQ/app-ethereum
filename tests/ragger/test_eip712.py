@@ -11,11 +11,13 @@ from ragger.navigator import Navigator, NavInsID
 import json
 from typing import Optional
 from constants import ROOT_SNAPSHOT_PATH
+from eth_account.messages import encode_defunct, encode_typed_data
 
 import ledger_app_clients.ethereum.response_parser as ResponseParser
 from ledger_app_clients.ethereum.client import EthAppClient
 from ledger_app_clients.ethereum.eip712 import InputData
 from ledger_app_clients.ethereum.settings import SettingID, settings_toggle
+from ledger_app_clients.ethereum.utils import recover_message
 
 
 class SnapshotsConfig:
@@ -28,7 +30,8 @@ class SnapshotsConfig:
 
 
 BIP32_PATH = "m/44'/60'/0'/0/0"
-snaps_config: Optional[SnapshotsConfig] = None
+SNAPS_CONFIG: Optional[SnapshotsConfig] = None
+WALLET_ADDR: Optional[bytes] = None
 
 
 def eip712_json_path() -> str:
@@ -58,33 +61,44 @@ def filtering(request) -> bool:
     return request.param
 
 
+def get_wallet_addr(client: EthAppClient) -> bytes:
+    global WALLET_ADDR
+
+    # don't ask again if we already have it
+    if WALLET_ADDR is None:
+        with client.get_public_addr(display=False):
+            pass
+        _, WALLET_ADDR, _ = ResponseParser.pk_addr(client.response().data)
+    return WALLET_ADDR
+
+
 def test_eip712_legacy(firmware: Firmware,
                        backend: BackendInterface,
                        navigator: Navigator):
     app_client = EthAppClient(backend)
-    with app_client.eip712_sign_legacy(
-            BIP32_PATH,
-            bytes.fromhex('6137beb405d9ff777172aa879e33edb34a1460e701802746c5ef96e741710e59'),
-            bytes.fromhex('eb4221181ff3f1a83ea7313993ca9218496e424604ba9492bb4052c03d5c3df8')):
-        moves = list()
-        if firmware.device.startswith("nano"):
-            moves += [NavInsID.RIGHT_CLICK]
-            if firmware.device == "nanos":
-                screens_per_hash = 4
+
+    with open(input_files()[0]) as file:
+        data = json.load(file)
+        smsg = encode_typed_data(full_message=data)
+        with app_client.eip712_sign_legacy(BIP32_PATH, smsg.header, smsg.body):
+            moves = list()
+            if firmware.device.startswith("nano"):
+                moves += [NavInsID.RIGHT_CLICK]
+                if firmware.device == "nanos":
+                    screens_per_hash = 4
+                else:
+                    screens_per_hash = 2
+                moves += [NavInsID.RIGHT_CLICK] * screens_per_hash * 2
+                moves += [NavInsID.BOTH_CLICK]
             else:
-                screens_per_hash = 2
-            moves += [NavInsID.RIGHT_CLICK] * screens_per_hash * 2
-            moves += [NavInsID.BOTH_CLICK]
-        else:
-            moves += [NavInsID.USE_CASE_REVIEW_TAP] * 2
-            moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
-        navigator.navigate(moves)
+                moves += [NavInsID.USE_CASE_REVIEW_TAP] * 2
+                moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
+            navigator.navigate(moves)
 
-    v, r, s = ResponseParser.signature(app_client.response().data)
+        v, r, s = ResponseParser.signature(app_client.response().data)
+        recovered_addr = recover_message(data, (v, r, s))
 
-    assert v == bytes.fromhex("1c")
-    assert r == bytes.fromhex("ea66f747173762715751c889fea8722acac3fc35db2c226d37a2e58815398f64")
-    assert s == bytes.fromhex("52d8ba9153de9255da220ffd36762c0b027701a3b5110f0a765f94b16a9dfb55")
+    assert recovered_addr == get_wallet_addr(app_client)
 
 
 def autonext(fw: Firmware, nav: Navigator):
@@ -93,14 +107,14 @@ def autonext(fw: Firmware, nav: Navigator):
         moves = [NavInsID.RIGHT_CLICK]
     else:
         moves = [NavInsID.USE_CASE_REVIEW_TAP]
-    if snaps_config is not None:
+    if SNAPS_CONFIG is not None:
         nav.navigate_and_compare(ROOT_SNAPSHOT_PATH,
-                                 snaps_config.test_name,
+                                 SNAPS_CONFIG.test_name,
                                  moves,
                                  screen_change_before_first_instruction=False,
                                  screen_change_after_last_instruction=False,
-                                 snap_start_idx=snaps_config.idx)
-        snaps_config.idx += 1
+                                 snap_start_idx=SNAPS_CONFIG.idx)
+        SNAPS_CONFIG.idx += 1
     else:
         nav.navigate(moves,
                      screen_change_before_first_instruction=False,
@@ -130,12 +144,12 @@ def eip712_new_common(fw: Firmware,
             if not verbose and filters is None:
                 moves += [NavInsID.USE_CASE_REVIEW_TAP]
             moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
-        if snaps_config is not None:
+        if SNAPS_CONFIG is not None:
             nav.navigate_and_compare(ROOT_SNAPSHOT_PATH,
-                                     snaps_config.test_name,
+                                     SNAPS_CONFIG.test_name,
                                      moves,
-                                     snap_start_idx=snaps_config.idx)
-            snaps_config.idx += 1
+                                     snap_start_idx=SNAPS_CONFIG.idx)
+            SNAPS_CONFIG.idx += 1
         else:
             nav.navigate(moves)
     return ResponseParser.signature(app_client.response().data)
@@ -152,7 +166,6 @@ def test_eip712_new(firmware: Firmware,
         pytest.skip("Not supported on LNS")
     else:
         test_path = "%s/%s" % (input_file.parent, "-".join(input_file.stem.split("-")[:-1]))
-        conf_file = "%s.ini" % (test_path)
 
         filters = None
         if filtering:
@@ -162,36 +175,28 @@ def test_eip712_new(firmware: Firmware,
             except (IOError, json.decoder.JSONDecodeError) as e:
                 pytest.skip("Filter file error: %s" % (e.strerror))
 
-        config = ConfigParser()
-        config.read(conf_file)
-
-        # sanity check
-        assert "signature" in config.sections()
-        assert "v" in config["signature"]
-        assert "r" in config["signature"]
-        assert "s" in config["signature"]
-
         if verbose:
             settings_toggle(firmware, navigator, [SettingID.VERBOSE_EIP712])
 
         with open(input_file) as file:
+            data = json.load(file)
             v, r, s = eip712_new_common(firmware,
                                         navigator,
                                         app_client,
-                                        json.load(file),
+                                        data,
                                         filters,
                                         verbose)
 
-    assert v == bytes.fromhex(config["signature"]["v"])
-    assert r == bytes.fromhex(config["signature"]["r"])
-    assert s == bytes.fromhex(config["signature"]["s"])
+            recovered_addr = recover_message(data, (v, r, s))
+
+    assert recovered_addr == get_wallet_addr(app_client)
 
 
 def test_eip712_address_substitution(firmware: Firmware,
                                      backend: BackendInterface,
                                      navigator: Navigator,
                                      verbose: bool):
-    global snaps_config
+    global SNAPS_CONFIG
 
     app_client = EthAppClient(backend)
     if firmware.device == "nanos":
@@ -200,7 +205,7 @@ def test_eip712_address_substitution(firmware: Firmware,
         test_name = "eip712_address_substitution"
         if verbose:
             test_name += "_verbose"
-        snaps_config = SnapshotsConfig(test_name)
+        SNAPS_CONFIG = SnapshotsConfig(test_name)
         with open("%s/address_substitution.json" % (eip712_json_path())) as file:
             data = json.load(file)
 
@@ -233,7 +238,6 @@ def test_eip712_address_substitution(firmware: Firmware,
                                         data,
                                         filters,
                                         verbose)
+            recovered_addr = recover_message(data, (v, r, s))
 
-    assert v == bytes.fromhex("1b")
-    assert r == bytes.fromhex("d4a0e058251cdc3845aaa5eb8409d8a189ac668db7c55a64eb3121b0db7fd8c0")
-    assert s == bytes.fromhex("3221800e4f45272c6fa8fafda5e94c848d1a4b90c442aa62afa8e8d6a9af0f00")
+    assert recovered_addr == get_wallet_addr(app_client)

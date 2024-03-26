@@ -1,10 +1,12 @@
-from ragger.backend import BackendInterface
-from ragger.firmware import Firmware
-from ragger.navigator import Navigator, NavInsID
+from web3 import Web3
+
 from ledger_app_clients.ethereum.client import EthAppClient
 import ledger_app_clients.ethereum.response_parser as ResponseParser
 from ledger_app_clients.ethereum.utils import recover_transaction
-from web3 import Web3
+
+from ragger.backend import BackendInterface
+from ragger.firmware import Firmware
+from ragger.navigator import Navigator, NavInsID
 
 
 # Values used across all tests
@@ -17,18 +19,18 @@ GAS_LIMIT = 21000
 AMOUNT = 1.22
 
 
-def common(fw: Firmware,
-           back: BackendInterface,
-           nav: Navigator,
+def common(firmware: Firmware,
+           backend: BackendInterface,
+           navigator: Navigator,
            tx_params: dict):
-    app_client = EthAppClient(back)
+    app_client = EthAppClient(backend)
 
     with app_client.get_public_addr(display=False):
         pass
     _, DEVICE_ADDR, _ = ResponseParser.pk_addr(app_client.response().data)
 
     with app_client.sign(BIP32_PATH, tx_params):
-        if fw.device.startswith("nano"):
+        if firmware.device.startswith("nano"):
             next_action = NavInsID.RIGHT_CLICK
             confirm_action = NavInsID.BOTH_CLICK
             end_text = "Accept"
@@ -36,7 +38,7 @@ def common(fw: Firmware,
             next_action = NavInsID.USE_CASE_REVIEW_TAP
             confirm_action = NavInsID.USE_CASE_REVIEW_CONFIRM
             end_text = "Sign"
-        nav.navigate_until_text(next_action, [confirm_action], end_text)
+        navigator.navigate_until_text(next_action, [confirm_action], end_text)
 
     # verify signature
     vrs = ResponseParser.signature(app_client.response().data)

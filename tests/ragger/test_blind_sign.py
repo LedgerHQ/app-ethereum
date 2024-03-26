@@ -1,10 +1,12 @@
 import json
+from web3 import Web3
+
+from ledger_app_clients.ethereum.client import EthAppClient
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator, NavInsID
 from ragger.error import ExceptionRAPDU
-from ledger_app_clients.ethereum.client import EthAppClient
-from web3 import Web3
+
 from constants import ROOT_SNAPSHOT_PATH, ABIS_FOLDER
 
 
@@ -15,7 +17,7 @@ def test_blind_sign(firmware: Firmware,
                     navigator: Navigator):
     app_client = EthAppClient(backend)
 
-    with open("%s/erc20.json" % (ABIS_FOLDER)) as file:
+    with open(f"{ABIS_FOLDER}/erc20.json", encoding="utf-8") as file:
         contract = Web3().eth.contract(
             abi=json.load(file),
             address=None
@@ -43,7 +45,7 @@ def test_blind_sign(firmware: Firmware,
     else:
         assert False
 
-    moves = list()
+    moves = []
     if firmware.device.startswith("nano"):
         if firmware.device == "nanos":
             moves += [NavInsID.RIGHT_CLICK]

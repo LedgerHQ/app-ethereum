@@ -115,7 +115,7 @@ const void *path_get_field(void) {
 /**
  * Go down (add) a depth level.
  *
- * @return whether the push was succesful
+ * @return whether the push was successful
  */
 static bool path_depth_list_push(void) {
     if (path_struct == NULL) {
@@ -147,13 +147,17 @@ static cx_sha3_t *get_last_hash_ctx(void) {
 static bool finalize_hash_depth(uint8_t *hash) {
     const cx_sha3_t *hash_ctx;
     size_t hashed_bytes;
+    cx_err_t error = CX_INTERNAL_ERROR;
 
     hash_ctx = get_last_hash_ctx();
     hashed_bytes = hash_ctx->blen;
     // finalize hash
-    cx_hash((cx_hash_t *) hash_ctx, CX_LAST, NULL, 0, hash, KECCAK256_HASH_BYTESIZE);
+    CX_CHECK(
+        cx_hash_no_throw((cx_hash_t *) hash_ctx, CX_LAST, NULL, 0, hash, KECCAK256_HASH_BYTESIZE));
     mem_dealloc(sizeof(*hash_ctx));  // remove hash context
     return hashed_bytes > 0;
+end:
+    return false;
 }
 
 /**
@@ -166,7 +170,7 @@ static void feed_last_hash_depth(const uint8_t *const hash) {
 
     hash_ctx = get_last_hash_ctx();
     // continue progressive hash with the array hash
-    cx_hash((cx_hash_t *) hash_ctx, 0, hash, KECCAK256_HASH_BYTESIZE, NULL, 0);
+    CX_ASSERT(cx_hash_no_throw((cx_hash_t *) hash_ctx, 0, hash, KECCAK256_HASH_BYTESIZE, NULL, 0));
 }
 
 /**
@@ -177,15 +181,18 @@ static void feed_last_hash_depth(const uint8_t *const hash) {
  */
 static bool push_new_hash_depth(bool init) {
     cx_sha3_t *hash_ctx;
+    cx_err_t error = CX_INTERNAL_ERROR;
 
     // allocate new hash context
     if ((hash_ctx = MEM_ALLOC_AND_ALIGN_TYPE(*hash_ctx)) == NULL) {
         return false;
     }
     if (init) {
-        cx_keccak_init(hash_ctx, 256);  // initialize it
+        CX_CHECK(cx_keccak_init_no_throw(hash_ctx, 256));
     }
     return true;
+end:
+    return false;
 }
 
 /**
@@ -294,7 +301,6 @@ static bool path_update(void) {
     if ((field_ptr = get_field(NULL)) == NULL) {
         return false;
     }
-    struct_ptr = path_struct->root_struct;
     while (struct_field_type(field_ptr) == TYPE_CUSTOM) {
         typename = get_struct_field_typename(field_ptr, &typename_len);
         if ((struct_ptr = get_structn(typename, typename_len)) == NULL) {
@@ -432,6 +438,7 @@ bool path_new_array_depth(const uint8_t *const data, uint8_t length) {
     bool is_custom;
     uint8_t array_size;
     uint8_t array_depth_count_bak;
+    cx_err_t error = CX_INTERNAL_ERROR;
 
     if (path_struct == NULL) {
         apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
@@ -479,9 +486,9 @@ bool path_new_array_depth(const uint8_t *const data, uint8_t length) {
         if (array_size > 0) {
             memcpy(hash_ctx, old_ctx, sizeof(*old_ctx));
         } else {
-            cx_keccak_init(hash_ctx, 256);
+            CX_CHECK(cx_keccak_init_no_throw(hash_ctx, 256));
         }
-        cx_keccak_init(old_ctx, 256);  // init hash
+        CX_CHECK(cx_keccak_init_no_throw(old_ctx, 256));
     }
     if (array_size == 0) {
         do {
@@ -490,6 +497,8 @@ bool path_new_array_depth(const uint8_t *const data, uint8_t length) {
     }
 
     return true;
+end:
+    return false;
 }
 
 /**

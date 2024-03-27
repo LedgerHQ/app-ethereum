@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout SDK repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: LedgerHQ/ethereum-plugin-sdk
           ref: develop
@@ -96,7 +96,7 @@ jobs:
 
     steps:
       - name: Checkout plugin repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: LedgerHQ/${{ matrix.repo }}
           submodules: recursive
@@ -144,7 +144,7 @@ jobs:
             gh label create 'auto' --color 'b4a8d1' --description 'Automatically created'
           fi
 
-      - name: Create pull request and commment on SDK issue
+      - name: Create pull request and comment on SDK issue
         run: |
           # Github limits the number of possible PR being opened in a given time window.
           # The limits are 20 creation per minute and 150 per hour.

@@ -27,7 +27,7 @@ def test_sign_simple(cmd):
 
     with cmd.simple_sign_tx(bip32_path=bip32_path, transaction=transaction, result=result) as ex:
         sleep(0.5)
-        
+
         if cmd.model == "nanos":
             # Review transaction
             compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/simple/00000.png")
@@ -87,7 +87,7 @@ def test_sign_simple(cmd):
 
 def test_sign_reject(cmd):
     result: list = []
-    
+
     # Ether coin type
     bip32_path="44'/60'/1'/0/0"
 
@@ -134,7 +134,7 @@ def test_sign_reject(cmd):
                 # Accept and send
                 compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/reject/00008.png")
                 cmd.client.press_and_release('right')
-                
+
                 # Reject
                 compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/reject/00009.png")
                 cmd.client.press_and_release('both')
@@ -169,7 +169,7 @@ def test_sign_reject(cmd):
 
 def test_sign_limit_nonce(cmd):
     result: list = []
-    
+
     # Ether coin type
     bip32_path="44'/60'/1'/0/0"
 
@@ -246,7 +246,7 @@ def test_sign_limit_nonce(cmd):
 
 def test_sign_error_transaction_type(cmd):
     result: list = []
-    
+
     # Ether coin type
     bip32_path="44'/60'/1'/0/0"
 
@@ -311,7 +311,7 @@ def test_sign_nonce_display(cmd):
 
     with cmd.simple_sign_tx(bip32_path=bip32_path, transaction=transaction, result=result) as ex:
         sleep(0.5)
-        
+
         if cmd.model == "nanos":
             # Review transaction
             compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/nonce_display/00000.png")
@@ -413,7 +413,7 @@ def test_sign_blind_simple(cmd):
 
     with cmd.simple_sign_tx(bip32_path=bip32_path, transaction=transaction, result=result) as ex:
         sleep(0.5)
-        
+
         if cmd.model == "nanos":
             # Review transaction
             compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_simple/00000.png")
@@ -546,7 +546,7 @@ def test_sign_blind_and_nonce_display(cmd):
 
     with cmd.simple_sign_tx(bip32_path=bip32_path, transaction=transaction, result=result) as ex:
         sleep(0.5)
-        
+
         if cmd.model == "nanos":
             # Review transaction
             compare_screenshot(cmd, f"screenshots/sign/{PATH_IMG[cmd.model]}/blind_and_nonce_display/00000.png")

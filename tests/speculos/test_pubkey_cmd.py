@@ -92,11 +92,11 @@ def test_reject_get_public_key(cmd):
                 # Approve
                 compare_screenshot(cmd, f"screenshots/pubkey/{PATH_IMG[cmd.model]}/reject_get_public_key/00004.png")
                 cmd.client.press_and_release('right')
-                
+
                 # Reject
                 compare_screenshot(cmd, f"screenshots/pubkey/{PATH_IMG[cmd.model]}/reject_get_public_key/00005.png")
                 cmd.client.press_and_release('both')
-            
+
             if cmd.model == "nanox" or cmd.model == "nanosp":
                 # Verify address
                 compare_screenshot(cmd, f"screenshots/pubkey/{PATH_IMG[cmd.model]}/reject_get_public_key/00000.png")

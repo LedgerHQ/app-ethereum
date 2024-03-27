@@ -38,7 +38,7 @@ def test_transfer_erc1155(cmd):
     if cmd.model == "nanox" or cmd.model == "nanosp":
         cmd.set_plugin(plugin=PLUGIN)
         cmd.provide_nft_information(plugin=PROVIDE_NFT_INFORMATION)
-            
+
         cmd.send_apdu(SIGN_FIRST)
 
         with cmd.send_apdu_context(SIGN_MORE, result) as ex:
@@ -46,8 +46,8 @@ def test_transfer_erc1155(cmd):
             # Review transaction
             compare_screenshot(cmd, f"screenshots/erc1155/{PATH_IMG[cmd.model]}/transfer_erc1155/00000.png")
             cmd.client.press_and_release('right')
-            
-            # NFT Transfert
+
+            # NFT Transfer
             compare_screenshot(cmd, f"screenshots/erc1155/{PATH_IMG[cmd.model]}/transfer_erc1155/00001.png")
             cmd.client.press_and_release('right')
 
@@ -98,7 +98,7 @@ def test_transfer_erc1155_without_nft_provide_info(cmd):
 
             cmd.set_plugin(plugin=PLUGIN)
 
-        
+
             cmd.send_apdu(SIGN_FIRST)
 
             with cmd.send_apdu_context(SIGN_MORE, result) as ex:
@@ -114,7 +114,7 @@ def test_transfer_erc1155_without_set_plugin(cmd):
         with pytest.raises(ethereum_client.exception.errors.DenyError) as error:
 
             cmd.provide_nft_information(plugin=PROVIDE_NFT_INFORMATION)
-            
+
             cmd.send_apdu(SIGN_FIRST)
 
             with cmd.send_apdu_context(SIGN_MORE, result) as ex:
@@ -161,7 +161,7 @@ def test_transfer_batch_erc1155(cmd):
     if cmd.model == "nanox" or cmd.model == "nanosp":
         cmd.set_plugin(plugin=PLUGIN_BATCH)
         cmd.provide_nft_information(plugin=PROVIDE_NFT_INFORMATION_BATCH)
-            
+
         cmd.send_apdu(SIGN_FIRST_BATCH)
         cmd.send_apdu(SIGN_MORE_1_BATCH)
         cmd.send_apdu(SIGN_MORE_2_BATCH)

@@ -52,6 +52,7 @@ static const uint8_t *field_hash_prepare(const void *const field_ptr,
                                          const uint8_t *data,
                                          uint8_t *data_length) {
     e_type field_type;
+    cx_err_t error = CX_INTERNAL_ERROR;
 
     field_type = struct_field_type(field_ptr);
     fh->remaining_size = __builtin_bswap16(*(uint16_t *) &data[0]);  // network byte order
@@ -59,10 +60,12 @@ static const uint8_t *field_hash_prepare(const void *const field_ptr,
     *data_length -= sizeof(uint16_t);
     fh->state = FHS_WAITING_FOR_MORE;
     if (IS_DYN(field_type)) {
-        cx_keccak_init(&global_sha3, 256);  // init hash
+        CX_CHECK(cx_keccak_init_no_throw(&global_sha3, 256));
         ui_712_new_field(field_ptr, data, *data_length);
     }
     return data;
+end:
+    return NULL;
 }
 
 /**
@@ -120,14 +123,22 @@ static const uint8_t *field_hash_finalize_static(const void *const field_ptr,
  */
 static uint8_t *field_hash_finalize_dynamic(void) {
     uint8_t *value;
+    cx_err_t error = CX_INTERNAL_ERROR;
 
     if ((value = mem_alloc(KECCAK256_HASH_BYTESIZE)) == NULL) {
         apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
         return NULL;
     }
     // copy hash into memory
-    cx_hash((cx_hash_t *) &global_sha3, CX_LAST, NULL, 0, value, KECCAK256_HASH_BYTESIZE);
+    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3,
+                              CX_LAST,
+                              NULL,
+                              0,
+                              value,
+                              KECCAK256_HASH_BYTESIZE));
     return value;
+end:
+    return NULL;
 }
 
 /**
@@ -162,7 +173,7 @@ static void field_hash_feed_parent(e_type field_type, const uint8_t *const hash)
  * @param[in] field_ptr pointer to the struct field definition
  * @param[in] data the field value
  * @param[in] data_length the value length
- * @return whether an error occured or not
+ * @return whether an error occurred or not
  */
 static bool field_hash_domain_special_fields(const void *const field_ptr,
                                              const uint8_t *const data,
@@ -191,7 +202,7 @@ static bool field_hash_domain_special_fields(const void *const field_ptr,
  * @param[in] field_ptr pointer to the struct field definition
  * @param[in] data the field value
  * @param[in] data_length the value length
- * @return whether an error occured or not
+ * @return whether an error occurred or not
  */
 static bool field_hash_finalize(const void *const field_ptr,
                                 const uint8_t *const data,

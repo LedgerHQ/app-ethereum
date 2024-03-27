@@ -48,7 +48,7 @@ static bool ui_712_field_shown(void) {
  * @param[in] src_length source buffer size
  * @param[in] dst destination buffer
  * @param[in] dst_length destination buffer length
- * @param[in] explicit_trunc if truncation should be explicitely shown
+ * @param[in] explicit_trunc if truncation should be explicitly shown
  */
 static void ui_712_set_buf(const char *const src,
                            size_t src_length,
@@ -194,7 +194,7 @@ static void ui_712_format_str(const uint8_t *const data, uint8_t length) {
 static const char *get_address_token_ticker(const uint8_t *addr) {
     tokenDefinition_t *token;
 
-    // Loop over the received token informations
+    // Loop over the received token information
     for (uint8_t token_idx = 0; token_idx < MAX_ITEMS; ++token_idx) {
         if (tmpCtx.transactionContext.tokenSet[token_idx] == 1) {
             token = &tmpCtx.transactionContext.extraInfo[token_idx].token;
@@ -247,7 +247,6 @@ static bool ui_712_format_addr(const uint8_t *const data, uint8_t length) {
             if (!getEthDisplayableAddress((uint8_t *) data,
                                           strings.tmp.tmp,
                                           sizeof(strings.tmp.tmp),
-                                          &global_sha3,
                                           chainConfig->chainId)) {
                 THROW(APDU_RESPONSE_ERROR_NO_INFO);
             }
@@ -292,7 +291,7 @@ static void ui_712_format_bytes(const uint8_t *const data, uint8_t length) {
         // x2 for each byte value is represented by 2 ASCII characters
         if ((2 + (length * 2)) > (sizeof(strings.tmp.tmp) - 1)) {
             strings.tmp.tmp[sizeof(strings.tmp.tmp) - 1 - 3] = '\0';
-            strcat(strings.tmp.tmp, "...");
+            strlcat(strings.tmp.tmp, "...", sizeof(strings.tmp.tmp));
         }
     }
 }

@@ -113,4 +113,6 @@ void __attribute__((noreturn)) handle_swap_sign_transaction(chain_config_t* conf
     BLE_power(1, NULL);
 #endif  // HAVE_BLE
     app_main();
+    // Failsafe
+    os_sched_exit(-1);
 }

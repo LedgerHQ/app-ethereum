@@ -1,13 +1,10 @@
 # Compilation of Ledger's app
-src/glyphs.c
-src/glyphs.h
 bin/
 debug/
-dep/
-obj/
 build/
 
 # Python
+venv/
 *.pyc
 __version__.py
 

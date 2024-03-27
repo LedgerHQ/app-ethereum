@@ -12,7 +12,7 @@ This document described how a specific device UI for a smart contract can be add
 
 ## Standard support
 
-The applications already includes dedicated UI support for those specific contract calls :
+The application already includes dedicated UI support for those specific contract calls :
 
    * ERC 20 approve(address, uint256) - implementation in *src_features/erc20_approval*
    * ERC 20 transfer(address, uint256) - implementation in *src_features/signTx*
@@ -45,4 +45,3 @@ A UI implementation might want to convert an ERC 20 token contract address to a 
 2 tickers can be temporarily provisioned to the application by using the PROVIDE ERC 20 TOKEN INFORMATION APDU, described in *src_features/provideErc20TokenInformation* - the UI can then iterate on the provisioned tickers to display relevant information to the user
 
 The same mechanism will be extended to support well known contract addresses in the future
-

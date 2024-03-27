@@ -48,18 +48,10 @@ static bool display_review_page(uint8_t page, nbgl_pageContent_t *content) {
             break;
 
         case 1:
-            switch (ui_712_next_field()) {
-                case EIP712_NO_MORE_FIELD:
-                    ui_712_switch_to_sign();
-                    ret = true;
-                    break;
-                case EIP712_FIELD_INCOMING:
-                case EIP712_FIELD_LATER:
-                default:
-                    break;
+            if (ui_712_next_field() == EIP712_NO_MORE_FIELD) {
+                ui_712_switch_to_sign();
             }
             __attribute__((fallthrough));
-
         default:
             ret = false;
             break;

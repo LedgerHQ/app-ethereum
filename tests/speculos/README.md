@@ -8,6 +8,7 @@ These tests are implemented in Python with the `SpeculosClient` interface which 
 - [pip](https://pip.pypa.io/en/stable/installation/)
 
 ### Dependencies
+
 Python dependencies are listed in [requirements.txt](requirements.txt)
 
 ```shell
@@ -19,6 +20,7 @@ python3 -m pip install -r requirements.txt
 ### Compilation app
 
 Go to the root of the repository:
+
 ```sh
 make DEBUG=1 NFT_TESTING_KEY=1 BOLOS_SDK=$NANOX_SDK
 mv bin/app.elf tests/speculos/<some name>.elf
@@ -26,12 +28,13 @@ mv bin/app.elf tests/speculos/<some name>.elf
 
 Given the requirements are installed, just do (by default command):
 
-```
+```shell
 cd tests/speculos/
 pytest
 ```
 
 ### Custom options
+
 - **--model:**  "nanos", "nanox", "nanosp" | default: "nanos"
 - **--display:** "qt", "headless"          | default: "qt"
 - **--path:** the path of the binary app   | default: path of makefile compilation
@@ -39,6 +42,7 @@ pytest
 ## Example
 
 With `nanox` binary app:
+
 ```sh
 # the --path is variable to where you put your binary
 

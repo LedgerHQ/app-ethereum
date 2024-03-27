@@ -63,6 +63,7 @@ static bool verify_filtering_signature(uint8_t dname_length,
     cx_ecfp_public_key_t verifying_key;
     cx_sha256_t hash_ctx;
     uint64_t chain_id;
+    cx_err_t error = CX_INTERNAL_ERROR;
 
     cx_sha256_init(&hash_ctx);
 
@@ -105,13 +106,13 @@ static bool verify_filtering_signature(uint8_t dname_length,
     hash_nbytes((uint8_t *) dname, sizeof(char) * dname_length, (cx_hash_t *) &hash_ctx);
 
     // Finalize hash
-    cx_hash((cx_hash_t *) &hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH);
+    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH));
 
-    cx_ecfp_init_public_key(CX_CURVE_256K1,
-                            LEDGER_SIGNATURE_PUBLIC_KEY,
-                            sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
-                            &verifying_key);
-    if (!cx_ecdsa_verify(&verifying_key, CX_LAST, CX_SHA256, hash, sizeof(hash), sig, sig_length)) {
+    CX_CHECK(cx_ecfp_init_public_key_no_throw(CX_CURVE_256K1,
+                                              LEDGER_SIGNATURE_PUBLIC_KEY,
+                                              sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
+                                              &verifying_key));
+    if (!cx_ecdsa_verify_no_throw(&verifying_key, hash, sizeof(hash), sig, sig_length)) {
 #ifndef HAVE_BYPASS_SIGNATURES
         PRINTF("Invalid EIP-712 filtering signature\n");
         apdu_response_code = APDU_RESPONSE_INVALID_DATA;
@@ -119,6 +120,8 @@ static bool verify_filtering_signature(uint8_t dname_length,
 #endif
     }
     return true;
+end:
+    return false;
 }
 
 /**

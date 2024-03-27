@@ -34,13 +34,13 @@ APP_LOAD_PARAMS += --path "1517992542'/1101353413'"
 
 APPVERSION_M = 1
 APPVERSION_N = 11
-APPVERSION_P = 0
+APPVERSION_P = 1
 APPVERSION = $(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)-dev
 APP_LOAD_FLAGS = --appFlags 0xa40 --dep Ethereum:$(APPVERSION)
 
-###########################
-# Set Chain environnement #
-###########################
+#########################
+# Set Chain environment #
+#########################
 
 ifeq ($(CHAIN),)
     CHAIN = ethereum

@@ -8,6 +8,7 @@
 #include "common_ui.h"
 #include "ui_callbacks.h"
 #include "apdu_constants.h"
+#include "lib_standard_app/crypto_helpers.h"
 
 #define ERR_SILENT_MODE_CHECK_FAILED 0x6001
 
@@ -184,10 +185,9 @@ static void address_to_string(uint8_t *in,
                               size_t in_len,
                               char *out,
                               size_t out_len,
-                              cx_sha3_t *sha3,
                               uint64_t chainId) {
     if (in_len != 0) {
-        if (!getEthDisplayableAddress(in, out, out_len, sha3, chainId)) {
+        if (!getEthDisplayableAddress(in, out, out_len, chainId)) {
             THROW(APDU_RESPONSE_ERROR_NO_INFO);
         }
     } else {
@@ -279,29 +279,24 @@ static void get_network_as_string(char *out, size_t out_size) {
 }
 
 static void get_public_key(uint8_t *out, uint8_t outLength) {
-    uint8_t privateKeyData[INT256_LENGTH] = {0};
-    cx_ecfp_private_key_t privateKey = {0};
-    cx_ecfp_public_key_t publicKey = {0};
+    uint8_t raw_pubkey[65];
 
     if (outLength < ADDRESS_LENGTH) {
         return;
     }
-
-    os_perso_derive_node_bip32(CX_CURVE_256K1,
-                               tmpCtx.transactionContext.bip32.path,
-                               tmpCtx.transactionContext.bip32.length,
-                               privateKeyData,
-                               NULL);
-    cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
-    cx_ecfp_generate_pair(CX_CURVE_256K1, &publicKey, &privateKey, 1);
-    explicit_bzero(&privateKey, sizeof(privateKey));
-    explicit_bzero(privateKeyData, sizeof(privateKeyData));
-    if (!getEthAddressFromKey(&publicKey, out, &global_sha3)) {
-        THROW(CX_INVALID_PARAMETER);
+    if (bip32_derive_get_pubkey_256(CX_CURVE_256K1,
+                                    tmpCtx.transactionContext.bip32.path,
+                                    tmpCtx.transactionContext.bip32.length,
+                                    raw_pubkey,
+                                    NULL,
+                                    CX_SHA512) != CX_OK) {
+        THROW(APDU_RESPONSE_UNKNOWN);
     }
+
+    getEthAddressFromRawKey(raw_pubkey, out);
 }
 
-/* Local implmentation of strncasecmp, workaround of the segfaulting base implem
+/* Local implementation of strncasecmp, workaround of the segfaulting base implem
  * Remove once strncasecmp is fixed
  */
 static int strcasecmp_workaround(const char *str1, const char *str2) {
@@ -322,6 +317,7 @@ __attribute__((noinline)) static bool finalize_parsing_helper(bool direct, bool 
     uint64_t chain_id = get_tx_chain_id();
     const char *ticker = get_displayable_ticker(&chain_id, chainConfig);
     ethPluginFinalize_t pluginFinalize;
+    cx_err_t error = CX_INTERNAL_ERROR;
 
     // Verify the chain
     if (chainConfig->chainId != ETHEREUM_MAINNET_CHAINID) {
@@ -337,12 +333,12 @@ __attribute__((noinline)) static bool finalize_parsing_helper(bool direct, bool 
         }
     }
     // Store the hash
-    cx_hash((cx_hash_t *) &global_sha3,
-            CX_LAST,
-            tmpCtx.transactionContext.hash,
-            0,
-            tmpCtx.transactionContext.hash,
-            32);
+    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3,
+                              CX_LAST,
+                              tmpCtx.transactionContext.hash,
+                              0,
+                              tmpCtx.transactionContext.hash,
+                              32));
 
     // Finalize the plugin handling
     if (dataContext.tokenContext.pluginStatus >= ETH_PLUGIN_RESULT_SUCCESSFUL) {
@@ -460,7 +456,6 @@ __attribute__((noinline)) static bool finalize_parsing_helper(bool direct, bool 
                           tmpContent.txContent.destinationLength,
                           displayBuffer,
                           sizeof(displayBuffer),
-                          &global_sha3,
                           chainConfig->chainId);
         if (G_called_from_swap) {
             // Ensure the values are the same that the ones that have been previously validated
@@ -529,6 +524,8 @@ __attribute__((noinline)) static bool finalize_parsing_helper(bool direct, bool 
     get_network_as_string(strings.common.network_name, sizeof(strings.common.network_name));
     PRINTF("Network: %s\n", strings.common.network_name);
     return true;
+end:
+    return false;
 }
 
 void finalizeParsing(bool direct) {

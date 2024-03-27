@@ -31,18 +31,17 @@
   - [Running all tests](#running-all-tests)
     - [With Makefile](#with-makefile)
     - [With yarn](#with-yarn)
-  - [Running a specific tests](#running-a-specific-tests)
+  - [Running a specific test](#running-a-specific-test)
   - [Adding tests](#adding-tests)
     - [Zemu](#zemu)
     - [Update binaries](#update-binaries)
 - [Contributing](#contributing)
 
-
 </details>
 
 ## About the project
 
-Ethereum wallet application framework for Nano S, Nano S Plus and Nano X.  
+Ethereum wallet application framework for Nano S, Nano S Plus and Nano X.
 Ledger Blue is not maintained anymore, but the app can still be compiled for this target using the branch [`blue-final-release`](https://github.com/LedgerHQ/app-ethereum/tree/blue-final-release).
 
 ## Documentation
@@ -53,8 +52,9 @@ To compile it and load it on a device, please check out our [developer portal](h
 
 ### Plugins
 
-We have the concept of plugins in the ETH app.  
-Find the documentations here:  
+We have the concept of plugins in the ETH app.
+Find the documentations here:
+
 - [Blog Ethereum plugins](https://blog.ledger.com/ethereum-plugins/)
 - [Ethereum application Plugins : Technical Specifications](https://github.com/LedgerHQ/app-ethereum/blob/master/doc/ethapp_plugins.asc)
 - [Plugin guide](https://hackmd.io/300Ukv5gSbCbVcp3cZuwRQ)
@@ -68,48 +68,55 @@ Testing is done via the open-source framework [zemu](https://github.com/Zondax/z
 
 - [nodeJS == 16](https://github.com/nvm-sh/nvm)
 - [yarn](https://classic.yarnpkg.com/lang/en/docs/install/#debian-stable)
-- [build environnement](https://github.com/LedgerHQ/ledger-app-builder/blob/master/Dockerfile)
+- [build environment](https://github.com/LedgerHQ/ledger-app-builder/blob/master/Dockerfile)
 
-#### Build the applications required by the test suite  
+#### Build the applications required by the test suite
 
 1. Add your BOLOS SDKs path to:
-    - `NANOS_SDK` and `NANOX_SDK`
+
+    `NANOS_SDK` and `NANOX_SDK`
 
 2. Go to the `tests` folder and run `./build_local_test_elfs.sh`
-    - ```sh
-        cd tests
-        # This helper script will build the applications required by the test suite and move them at the right place.
-        yarn install
-        ./build_local_test_elfs.sh
-      ```
+
+    ```sh
+    cd tests
+    # This helper script will build the applications required by the test suite and move them at the right place.
+    yarn install
+    ./build_local_test_elfs.sh
+    ```
 
 ### Running all tests
+
 #### With Makefile
 
 1. Then you can install and run tests by simply running on the `root` of the repo:
-    - ```sh
-        make test
-      ```
-    - This will run `make install_tests` and `make run_tests`
+
+    ```sh
+    make test
+    # This will run `make install_tests` and `make run_tests`
+    ```
 
 #### With yarn
 
 1. Go to the `tests` folder and run:
-    - ```sh
-        yarn test
-      ```
 
-### Running a specific tests
+    ```sh
+    yarn test
+    ```
 
-1.  Go to the `tests` folder and run:
-    - ```sh
-        yarn jest --runInBand --detectOpenHandles {YourTestFile}
-      ```
-2.  For example with the `send test`:
-    - ```sh
-        yarn jest --runInBand --detectOpenHandles src/send.test.js
-      ```
+### Running a specific test
 
+1. Go to the `tests` folder and run:
+
+    ```sh
+    yarn jest --runInBand --detectOpenHandles {YourTestFile}
+    ```
+
+2. For example with the `send test`:
+
+    ```sh
+    yarn jest --runInBand --detectOpenHandles src/send.test.js
+    ```
 
 ### Adding tests
 
@@ -128,7 +135,7 @@ Finally make sure you adapt the expected signature!
 
 #### Update binaries
 
-Don't forget to update the binaries in the test folder. To do so, compile with those environement variables:
+Don't forget to update the binaries in the test folder. To do so, compile with those environment variables:
 
 ```sh
 make DEBUG=1 ALLOW_DATA=1
@@ -142,10 +149,9 @@ cp bin/app.elf tests/elfs/ethereum_nanos.elf
 
 Repeat the operation for a binary compiled with nanoX SDK and change for `ethereum_nanox.elf`.
 
-
 ## Contributing
 
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+Contributions are what makes the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
 If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag `enhancement`.
 

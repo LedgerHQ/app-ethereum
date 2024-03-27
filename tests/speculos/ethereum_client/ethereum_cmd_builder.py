@@ -156,7 +156,7 @@ class EthereumCommandBuilder:
 
         """
         cdata = packed_bip32_path_from_string(bip32_path)
-          
+
         return self.serialize(cla=self.CLA,
                               ins=InsType.INS_GET_PUBLIC_KEY,
                               p1=0x01 if display else 0x00,
@@ -171,11 +171,11 @@ class EthereumCommandBuilder:
         bip32_path : str
             String representation of BIP32 path.
         Third party public key on Curve25519 : 32 bytes
-            Optionnal if returning the shared secret
-        
+            Optional if returning the shared secret
+
         """
         cdata = packed_bip32_path_from_string(bip32_path)
-        
+
         return self.serialize(cla=self.CLA,
                               ins=InsType.INS_PERFORM_PRIVACY_OPERATION,
                               p1=0x01 if display else 0x00,
@@ -200,7 +200,7 @@ class EthereumCommandBuilder:
 
         """
         cdata = packed_bip32_path_from_string(bip32_path)
-        
+
         tx: bytes = transaction.serialize()
 
         cdata = cdata + tx
@@ -230,7 +230,7 @@ class EthereumCommandBuilder:
         """
         cdata = packed_bip32_path_from_string(bip32_path)
 
-        
+
         tx: bytes = transaction.serialize()
 
         cdata = cdata + tx
@@ -259,12 +259,12 @@ class EthereumCommandBuilder:
         """
 
         cdata = packed_bip32_path_from_string(bip32_path)
-        
+
         tx: bytes = transaction.serialize()
 
         cdata = cdata + tx
         last_chunk = len(cdata) // MAX_APDU_LEN
-        
+
         # The generator allows to send apdu frames because we can't send an apdu > 255
         for i, (chunk) in enumerate(chunked(MAX_APDU_LEN, cdata)):
             if i == 0 and i == last_chunk:

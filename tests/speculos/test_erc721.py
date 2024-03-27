@@ -38,7 +38,7 @@ def test_transfer_erc721(cmd):
     if cmd.model == "nanox" or cmd.model == "nanosp":
         cmd.set_plugin(plugin=PLUGIN)
         cmd.provide_nft_information(plugin=PROVIDE_NFT_INFORMATION)
-            
+
         cmd.send_apdu(SIGN_FIRST)
 
         with cmd.send_apdu_context(SIGN_MORE, result) as ex:
@@ -46,7 +46,7 @@ def test_transfer_erc721(cmd):
             # Review transaction
             compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721/00000.png")
             cmd.client.press_and_release('right')
-                
+
             # NFT Transfer
             compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721/00001.png")
             cmd.client.press_and_release('right')
@@ -97,7 +97,7 @@ def test_transfer_erc721_without_nft_provide_info(cmd):
                 pass
 
             assert error.args[0] == '0x6a80'
-    
+
 
 
 def test_transfer_erc721_without_set_plugin(cmd):
@@ -106,10 +106,10 @@ def test_transfer_erc721_without_set_plugin(cmd):
     if cmd.model == "nanox" or cmd.model == "nanosp":
         with pytest.raises(ethereum_client.exception.errors.DenyError) as error:
             cmd.provide_nft_information(plugin=PROVIDE_NFT_INFORMATION)
-            
+
             cmd.send_apdu(SIGN_FIRST)
 
             with cmd.send_apdu_context(SIGN_MORE, result) as ex:
                 pass
-        
+
             assert error.args[0] == '0x6985'

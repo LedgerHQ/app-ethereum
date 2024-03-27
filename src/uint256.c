@@ -175,7 +175,7 @@ void mul256(const uint256_t *const number1,
         write_u64_be(num1 + i * sizeof(uint64_t), number1->elements[i / 2].elements[i % 2]);
         write_u64_be(num2 + i * sizeof(uint64_t), number2->elements[i / 2].elements[i % 2]);
     }
-    cx_math_mult(result, num1, num2, sizeof(num1));
+    CX_ASSERT(cx_math_mult_no_throw(result, num1, num2, sizeof(num1)));
     for (uint8_t i = 0; i < 4; i++) {
         read_u64_be(result + 32 + i * sizeof(uint64_t), &target->elements[i / 2].elements[i % 2]);
     }

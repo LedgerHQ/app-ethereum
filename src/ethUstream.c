@@ -36,7 +36,7 @@ void initTx(txContext_t *context,
     context->customProcessor = customProcessor;
     context->extra = extra;
     context->currentField = RLP_NONE + 1;
-    cx_keccak_init(context->sha3, 256);
+    CX_ASSERT(cx_keccak_init_no_throw(context->sha3, 256));
 }
 
 uint8_t readTxByte(txContext_t *context) {
@@ -52,7 +52,7 @@ uint8_t readTxByte(txContext_t *context) {
         context->currentFieldPos++;
     }
     if (!(context->processingField && context->fieldSingleByte)) {
-        cx_hash((cx_hash_t *) context->sha3, 0, &data, 1, NULL, 0);
+        CX_ASSERT(cx_hash_no_throw((cx_hash_t *) context->sha3, 0, &data, 1, NULL, 0));
     }
     return data;
 }
@@ -66,7 +66,8 @@ void copyTxData(txContext_t *context, uint8_t *out, uint32_t length) {
         memmove(out, context->workBuffer, length);
     }
     if (!(context->processingField && context->fieldSingleByte)) {
-        cx_hash((cx_hash_t *) context->sha3, 0, context->workBuffer, length, NULL, 0);
+        CX_ASSERT(
+            cx_hash_no_throw((cx_hash_t *) context->sha3, 0, context->workBuffer, length, NULL, 0));
     }
     context->workBuffer += length;
     context->commandLength -= length;
@@ -517,7 +518,7 @@ static parserStatus_e processTxInternal(txContext_t *context) {
             PRINTF("parsing is done\n");
             return USTREAM_FINISHED;
         }
-        // Old style transaction (pre EIP-155). Transations could just skip `v,r,s` so we needed to
+        // Old style transaction (pre EIP-155). Transactions could just skip `v,r,s` so we needed to
         // cut parsing here. commandLength == 0 could happen in two cases :
         // 1. We are in an old style transaction : just return `USTREAM_FINISHED`.
         // 2. We are at the end of an APDU in a multi-apdu process. This would make us return

@@ -13,7 +13,7 @@ typedef struct network_info_s {
 
 static const char *unknown_ticker = "???";
 
-// Mappping of chain ids to networks.
+// Mapping of chain ids to networks.
 static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 1, .name = "Ethereum", .ticker = "ETH"},
     {.chain_id = 3, .name = "Ropsten", .ticker = "ETH"},
@@ -153,7 +153,7 @@ const char *get_displayable_ticker(const uint64_t *chain_id, const chain_config_
 }
 
 /**
- * Checks wether the app can support the given chain ID
+ * Checks whether the app can support the given chain ID
  *
  * - If the given chain ID is the same as the app's one
  * - If both chain IDs are present in the array of Ethereum-compatible networks

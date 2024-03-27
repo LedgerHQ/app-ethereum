@@ -20,6 +20,8 @@
 
 #include "asset_info.h"
 #include "common_utils.h"
+#include "lcx_ecfp.h"
+#include "lcx_sha3.h"
 
 void array_hexstr(char *strbuf, const void *bin, unsigned int len) {
     while (len--) {
@@ -214,55 +216,23 @@ bool amountToString(const uint8_t *amount,
     return true;
 }
 
-bool getEthAddressFromKey(cx_ecfp_public_key_t *publicKey, uint8_t *out, cx_sha3_t *sha3Context) {
-    uint8_t hashAddress[INT256_LENGTH];
-
-    if (cx_keccak_init_no_throw(sha3Context, 256) != CX_OK) {
-        return false;
-    }
-
-    if (cx_hash_no_throw((cx_hash_t *) sha3Context,
-                         CX_LAST,
-                         publicKey->W + 1,
-                         64,
-                         hashAddress,
-                         32) != CX_OK) {
-        return false;
-    }
-
-    memmove(out, hashAddress + 12, 20);
-    return true;
+void getEthAddressFromRawKey(const uint8_t raw_pubkey[static 65],
+                             uint8_t out[static ADDRESS_LENGTH]) {
+    uint8_t hashAddress[CX_KECCAK_256_SIZE];
+    CX_ASSERT(cx_keccak_256_hash(raw_pubkey + 1, 64, hashAddress));
+    memmove(out, hashAddress + 12, ADDRESS_LENGTH);
 }
 
-bool getEthAddressStringFromKey(cx_ecfp_public_key_t *publicKey,
-                                char *out,
-                                cx_sha3_t *sha3Context,
-                                uint64_t chainId) {
-    uint8_t hashAddress[INT256_LENGTH];
-
-    if (cx_keccak_init_no_throw(sha3Context, 256) != CX_OK) {
-        return false;
-    }
-
-    if (cx_hash_no_throw((cx_hash_t *) sha3Context,
-                         CX_LAST,
-                         publicKey->W + 1,
-                         64,
-                         hashAddress,
-                         32) != CX_OK) {
-        return false;
-    }
-
-    if (!getEthAddressStringFromBinary(hashAddress + 12, out, sha3Context, chainId)) {
-        return false;
-    }
-
-    return true;
+void getEthAddressStringFromRawKey(const uint8_t raw_pubkey[static 65],
+                                   char out[static ADDRESS_LENGTH * 2],
+                                   uint64_t chainId) {
+    uint8_t hashAddress[CX_KECCAK_256_SIZE];
+    CX_ASSERT(cx_keccak_256_hash(raw_pubkey + 1, 64, hashAddress));
+    getEthAddressStringFromBinary(hashAddress + 12, out, chainId);
 }
 
 bool getEthAddressStringFromBinary(uint8_t *address,
-                                   char *out,
-                                   cx_sha3_t *sha3Context,
+                                   char out[static ADDRESS_LENGTH * 2],
                                    uint64_t chainId) {
     // save some precious stack space
     union locals_union {
@@ -292,18 +262,10 @@ bool getEthAddressStringFromBinary(uint8_t *address,
         locals_union.tmp[offset + 2 * i] = HEXDIGITS[(digit >> 4) & 0x0f];
         locals_union.tmp[offset + 2 * i + 1] = HEXDIGITS[digit & 0x0f];
     }
-    if (cx_keccak_init_no_throw(sha3Context, 256) != CX_OK) {
+    if (cx_keccak_256_hash(locals_union.tmp, offset + 40, locals_union.hashChecksum) != CX_OK) {
         return false;
     }
 
-    if (cx_hash_no_throw((cx_hash_t *) sha3Context,
-                         CX_LAST,
-                         locals_union.tmp,
-                         offset + 40,
-                         locals_union.hashChecksum,
-                         32) != CX_OK) {
-        return false;
-    }
     for (i = 0; i < 40; i++) {
         uint8_t digit = address[i / 2];
         if ((i % 2) == 0) {
@@ -329,20 +291,15 @@ bool getEthAddressStringFromBinary(uint8_t *address,
 
 /* Fills the `out` buffer with the lowercase string representation of the pubkey passed in as binary
 format by `in`. (eg: uint8_t*:0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB ->
-char*:"0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB\0" )
-`sha3` context doesn't have have to be initialized prior to call.*/
-bool getEthDisplayableAddress(uint8_t *in,
-                              char *out,
-                              size_t out_len,
-                              cx_sha3_t *sha3,
-                              uint64_t chainId) {
+char*:"0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB\0" ).*/
+bool getEthDisplayableAddress(uint8_t *in, char *out, size_t out_len, uint64_t chainId) {
     if (out_len < 43) {
         strlcpy(out, "ERROR", out_len);
         return false;
     }
     out[0] = '0';
     out[1] = 'x';
-    if (!getEthAddressStringFromBinary(in, out + 2, sha3, chainId)) {
+    if (!getEthAddressStringFromBinary(in, out + 2, chainId)) {
         strlcpy(out, "ERROR", out_len);
         return false;
     }

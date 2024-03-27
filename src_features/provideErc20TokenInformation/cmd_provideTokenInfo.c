@@ -168,44 +168,20 @@ void handleProvideErc20TokenInformation(uint8_t p1,
     }
     if (index < NUM_TOKENS_EXTRA) {
         PRINTF("Descriptor whitelisted\n");
-    } else {
-        cx_ecfp_init_public_key(CX_CURVE_256K1,
-                                LEDGER_SIGNATURE_PUBLIC_KEY,
-                                sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
-                                &tokenKey);
-        if (!cx_ecdsa_verify(&tokenKey,
-                             CX_LAST,
-                             CX_SHA256,
-                             hash,
-                             32,
-                             workBuffer + offset,
-                             dataLength)) {
+    } else
+#endif
+    {
+        CX_ASSERT(cx_ecfp_init_public_key_no_throw(CX_CURVE_256K1,
+                                                   LEDGER_SIGNATURE_PUBLIC_KEY,
+                                                   sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
+                                                   &tokenKey));
+        if (!cx_ecdsa_verify_no_throw(&tokenKey, hash, 32, workBuffer + offset, dataLength)) {
 #ifndef HAVE_BYPASS_SIGNATURES
             PRINTF("Invalid token signature\n");
             THROW(0x6A80);
 #endif
         }
     }
-
-#else
-
-    cx_ecfp_init_public_key(CX_CURVE_256K1,
-                            LEDGER_SIGNATURE_PUBLIC_KEY,
-                            sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
-                            &tokenKey);
-    if (!cx_ecdsa_verify(&tokenKey,
-                         CX_LAST,
-                         CX_SHA256,
-                         hash,
-                         32,
-                         workBuffer + offset,
-                         dataLength)) {
-#ifndef HAVE_BYPASS_SIGNATURES
-        PRINTF("Invalid token signature\n");
-        THROW(0x6A80);
-#endif
-    }
-#endif
 
     tmpCtx.transactionContext.tokenSet[tmpCtx.transactionContext.currentItemIndex] = 1;
     THROW(0x9000);

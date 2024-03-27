@@ -88,7 +88,7 @@ class EIP712:
     def __init__(self, domain_hash: str, msg_hash: str) -> None:
         self.domain_hash = bytes.fromhex(domain_hash)
         self.msg_hash = bytes.fromhex(msg_hash)
-    
+
     def serialize(self) -> bytes:
         return b"".join([
             self.domain_hash,

@@ -52,15 +52,12 @@ def test_get_pk_rejected(firmware: Firmware,
                          navigator: Navigator):
     app_client = EthAppClient(backend)
 
-    try:
+    with pytest.raises(ExceptionRAPDU) as e:
         with app_client.get_public_addr():
             navigator.navigate_and_compare(ROOT_SNAPSHOT_PATH,
                                            "get_pk_rejected",
                                            get_moves(firmware, navigator, reject=True))
-    except ExceptionRAPDU as e:
-        assert e.status == StatusWord.CONDITION_NOT_SATISFIED
-    else:
-        assert False  # An exception should have been raised
+    assert e.value.status == StatusWord.CONDITION_NOT_SATISFIED
 
 
 def test_get_pk(firmware: Firmware,

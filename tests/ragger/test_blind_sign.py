@@ -1,9 +1,10 @@
 import json
+import pytest
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator, NavInsID
 from ragger.error import ExceptionRAPDU
-from ledger_app_clients.ethereum.client import EthAppClient
+from ledger_app_clients.ethereum.client import EthAppClient, StatusWord
 from web3 import Web3
 from constants import ROOT_SNAPSHOT_PATH, ABIS_FOLDER
 
@@ -35,13 +36,10 @@ def test_blind_sign(firmware: Firmware,
         "data": data,
         "chainId": 1
     }
-    try:
+    with pytest.raises(ExceptionRAPDU) as e:
         with app_client.sign("m/44'/60'/0'/0/0", tx_params):
             pass
-    except ExceptionRAPDU:
-        pass
-    else:
-        assert False
+    assert e.value.status == StatusWord.INVALID_DATA
 
     moves = list()
     if firmware.device.startswith("nano"):

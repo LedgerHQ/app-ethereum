@@ -33,9 +33,8 @@ def verbose(request) -> bool:
 def common(app_client: EthAppClient) -> int:
     if app_client._client.firmware.device == "nanos":
         pytest.skip("Not supported on LNS")
-    with app_client.get_challenge():
-        pass
-    return ResponseParser.challenge(app_client.response().data)
+    challenge = app_client.get_challenge()
+    return ResponseParser.challenge(challenge.data)
 
 
 def test_send_fund(firmware: Firmware,
@@ -49,8 +48,7 @@ def test_send_fund(firmware: Firmware,
     if verbose:
         settings_toggle(firmware, navigator, [SettingID.VERBOSE_ENS])
 
-    with app_client.provide_domain_name(challenge, NAME, ADDR):
-        pass
+    app_client.provide_domain_name(challenge, NAME, ADDR)
 
     with app_client.sign(BIP32_PATH,
                          {
@@ -83,13 +81,9 @@ def test_send_fund_wrong_challenge(firmware: Firmware,
     app_client = EthAppClient(backend)
     challenge = common(app_client)
 
-    try:
-        with app_client.provide_domain_name(~challenge & 0xffffffff, NAME, ADDR):
-            pass
-    except ExceptionRAPDU as e:
-        assert e.status == StatusWord.INVALID_DATA
-    else:
-        assert False  # An exception should have been raised
+    with pytest.raises(ExceptionRAPDU) as e:
+        app_client.provide_domain_name(~challenge & 0xffffffff, NAME, ADDR)
+    assert e.value.status == StatusWord.INVALID_DATA
 
 
 def test_send_fund_wrong_addr(firmware: Firmware,
@@ -99,8 +93,7 @@ def test_send_fund_wrong_addr(firmware: Firmware,
     app_client = EthAppClient(backend)
     challenge = common(app_client)
 
-    with app_client.provide_domain_name(challenge, NAME, ADDR):
-        pass
+    app_client.provide_domain_name(challenge, NAME, ADDR)
 
     addr = bytearray(ADDR)
     addr.reverse()
@@ -133,8 +126,7 @@ def test_send_fund_non_mainnet(firmware: Firmware,
     app_client = EthAppClient(backend)
     challenge = common(app_client)
 
-    with app_client.provide_domain_name(challenge, NAME, ADDR):
-        pass
+    app_client.provide_domain_name(challenge, NAME, ADDR)
 
     with app_client.sign(BIP32_PATH,
                          {
@@ -164,8 +156,7 @@ def test_send_fund_unknown_chain(firmware: Firmware,
     app_client = EthAppClient(backend)
     challenge = common(app_client)
 
-    with app_client.provide_domain_name(challenge, NAME, ADDR):
-        pass
+    app_client.provide_domain_name(challenge, NAME, ADDR)
 
     with app_client.sign(BIP32_PATH,
                          {
@@ -194,13 +185,9 @@ def test_send_fund_domain_too_long(firmware: Firmware,
     app_client = EthAppClient(backend)
     challenge = common(app_client)
 
-    try:
-        with app_client.provide_domain_name(challenge, "ledger" + "0"*25 + ".eth", ADDR):
-            pass
-    except ExceptionRAPDU as e:
-        assert e.status == StatusWord.INVALID_DATA
-    else:
-        assert False  # An exception should have been raised
+    with pytest.raises(ExceptionRAPDU) as e:
+        app_client.provide_domain_name(challenge, "ledger" + "0"*25 + ".eth", ADDR)
+    assert e.value.status == StatusWord.INVALID_DATA
 
 
 def test_send_fund_domain_invalid_character(firmware: Firmware,
@@ -209,13 +196,9 @@ def test_send_fund_domain_invalid_character(firmware: Firmware,
     app_client = EthAppClient(backend)
     challenge = common(app_client)
 
-    try:
-        with app_client.provide_domain_name(challenge, "l\xe8dger.eth", ADDR):
-            pass
-    except ExceptionRAPDU as e:
-        assert e.status == StatusWord.INVALID_DATA
-    else:
-        assert False  # An exception should have been raised
+    with pytest.raises(ExceptionRAPDU) as e:
+        app_client.provide_domain_name(challenge, "l\xe8dger.eth", ADDR)
+    assert e.value.status == StatusWord.INVALID_DATA
 
 
 def test_send_fund_uppercase(firmware: Firmware,
@@ -224,13 +207,9 @@ def test_send_fund_uppercase(firmware: Firmware,
     app_client = EthAppClient(backend)
     challenge = common(app_client)
 
-    try:
-        with app_client.provide_domain_name(challenge, NAME.upper(), ADDR):
-            pass
-    except ExceptionRAPDU as e:
-        assert e.status == StatusWord.INVALID_DATA
-    else:
-        assert False  # An exception should have been raised
+    with pytest.raises(ExceptionRAPDU) as e:
+        app_client.provide_domain_name(challenge, NAME.upper(), ADDR)
+    assert e.value.status == StatusWord.INVALID_DATA
 
 
 def test_send_fund_domain_non_ens(firmware: Firmware,
@@ -239,10 +218,6 @@ def test_send_fund_domain_non_ens(firmware: Firmware,
     app_client = EthAppClient(backend)
     challenge = common(app_client)
 
-    try:
-        with app_client.provide_domain_name(challenge, "ledger.hte", ADDR):
-            pass
-    except ExceptionRAPDU as e:
-        assert e.status == StatusWord.INVALID_DATA
-    else:
-        assert False  # An exception should have been raised
+    with pytest.raises(ExceptionRAPDU) as e:
+        app_client.provide_domain_name(challenge, "ledger.hte", ADDR)
+    assert e.value.status == StatusWord.INVALID_DATA

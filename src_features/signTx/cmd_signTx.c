@@ -71,8 +71,7 @@ void handleSign(uint8_t p1,
     }
     txResult = processTx(&txContext,
                          workBuffer,
-                         dataLength,
-                         (chainConfig->chainId == 888 ? TX_FLAG_TYPE : 0));  // Wanchain exception
+                         dataLength);
     switch (txResult) {
         case USTREAM_SUSPENDED:
             break;

@@ -103,26 +103,6 @@ static void processAccessList(txContext_t *context) {
     }
 }
 
-static void processType(txContext_t *context) {
-    if (context->currentFieldIsList) {
-        PRINTF("Invalid type for RLP_TYPE\n");
-        THROW(EXCEPTION);
-    }
-    if (context->currentFieldLength > MAX_INT256) {
-        PRINTF("Invalid length for RLP_TYPE\n");
-        THROW(EXCEPTION);
-    }
-    if (context->currentFieldPos < context->currentFieldLength) {
-        uint32_t copySize =
-            MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
-        copyTxData(context, NULL, copySize);
-    }
-    if (context->currentFieldPos == context->currentFieldLength) {
-        context->currentField++;
-        context->processingField = false;
-    }
-}
-
 static void processChainID(txContext_t *context) {
     if (context->currentFieldIsList) {
         PRINTF("Invalid type for RLP_CHAINID\n");
@@ -321,14 +301,6 @@ static bool processEIP1559Tx(txContext_t *context) {
     switch (context->currentField) {
         case EIP1559_RLP_CONTENT: {
             processContent(context);
-            if ((context->processingFlags & TX_FLAG_TYPE) == 0) {
-                context->currentField++;
-            }
-            break;
-        }
-        // This gets hit only by Wanchain
-        case EIP1559_RLP_TYPE: {
-            processType(context);
             break;
         }
         case EIP1559_RLP_CHAINID: {
@@ -377,13 +349,6 @@ static bool processEIP2930Tx(txContext_t *context) {
     switch (context->currentField) {
         case EIP2930_RLP_CONTENT:
             processContent(context);
-            if ((context->processingFlags & TX_FLAG_TYPE) == 0) {
-                context->currentField++;
-            }
-            break;
-        // This gets hit only by Wanchain
-        case EIP2930_RLP_TYPE:
-            processType(context);
             break;
         case EIP2930_RLP_CHAINID:
             processChainID(context);
@@ -420,13 +385,6 @@ static bool processLegacyTx(txContext_t *context) {
     switch (context->currentField) {
         case LEGACY_RLP_CONTENT:
             processContent(context);
-            if ((context->processingFlags & TX_FLAG_TYPE) == 0) {
-                context->currentField++;
-            }
-            break;
-        // This gets hit only by Wanchain
-        case LEGACY_RLP_TYPE:
-            processType(context);
             break;
         case LEGACY_RLP_NONCE:
             processNonce(context);
@@ -594,14 +552,12 @@ static parserStatus_e processTxInternal(txContext_t *context) {
 
 parserStatus_e processTx(txContext_t *context,
                          const uint8_t *buffer,
-                         uint32_t length,
-                         uint32_t processingFlags) {
+                         uint32_t length) {
     parserStatus_e result;
     BEGIN_TRY {
         TRY {
             context->workBuffer = buffer;
             context->commandLength = length;
-            context->processingFlags = processingFlags;
             result = processTxInternal(context);
             PRINTF("result: %d\n", result);
         }

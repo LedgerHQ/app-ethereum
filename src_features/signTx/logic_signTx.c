@@ -340,12 +340,13 @@ __attribute__((noinline)) static bool finalize_parsing_helper(bool direct, bool 
                               tmpCtx.transactionContext.hash,
                               32));
 
+    uint8_t msg_sender[ADDRESS_LENGTH] = {0};
+    get_public_key(msg_sender, sizeof(msg_sender));
+
     // Finalize the plugin handling
     if (dataContext.tokenContext.pluginStatus >= ETH_PLUGIN_RESULT_SUCCESSFUL) {
         eth_plugin_prepare_finalize(&pluginFinalize);
 
-        uint8_t msg_sender[ADDRESS_LENGTH] = {0};
-        get_public_key(msg_sender, sizeof(msg_sender));
         pluginFinalize.address = msg_sender;
 
         if (!eth_plugin_call(ETH_PLUGIN_FINALIZE, (void *) &pluginFinalize)) {
@@ -492,6 +493,20 @@ __attribute__((noinline)) static bool finalize_parsing_helper(bool direct, bool 
             strlcpy(strings.common.fullAmount, displayBuffer, sizeof(strings.common.fullAmount));
         }
         PRINTF("Amount displayed: %s\n", strings.common.fullAmount);
+
+        if (G_called_from_swap) {
+            // Transaction parameters are managed by the Exchange caller app!
+            explicit_bzero(strings.common.fromAddress, sizeof(strings.common.fromAddress));
+        } else {
+            // Format the from address in a temporary buffer, if in swap case compare it with
+            // validated address, else commit it
+            address_to_string(msg_sender,
+                              ADDRESS_LENGTH,
+                              strings.common.fromAddress,
+                              sizeof(strings.common.fromAddress),
+                              chainConfig->chainId);
+            PRINTF("FROM Address displayed: %s\n", strings.common.fromAddress);
+        }
     }
 
     // Compute the max fee in a temporary buffer, if in swap case compare it with validated max fee,

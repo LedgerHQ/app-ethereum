@@ -17,8 +17,8 @@ nano_models.forEach(function(model) {
       );
 
       await waitForAppScreen(sim);
-      if (model.letter === 'S') clicks = 8;
-      else clicks = 6;
+      if (model.letter === 'S') clicks = 11;
+      else clicks = 9;
       await sim.navigateAndCompareSnapshots('.', model.name + '_deposit_eth_compound_blind', [clicks, -1, 0]);
 
       await expect(tx).resolves.toEqual({

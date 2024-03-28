@@ -123,6 +123,7 @@ typedef enum {
 #define NETWORK_STRING_MAX_SIZE 19
 
 typedef struct txStringProperties_s {
+    char fromAddress[43];
     char fullAddress[43];
     char fullAmount[79];  // 2^256 is 78 digits long
     char maxFee[50];

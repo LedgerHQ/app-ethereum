@@ -17,11 +17,13 @@ class EthereumCommand:
     def __init__(self,
                  client: SpeculosClient,
                  debug: bool = False,
-                 model: str = "nanos") -> None:
+                 model: str = "nanos",
+                 golden_run: bool = False) -> None:
         self.client = client
         self.builder = EthereumCommandBuilder(debug=debug)
         self.debug = debug
         self.model = model
+        self.golden_run = golden_run
 
     def get_configuration(self) -> Tuple[int, int, int, int]:
         try:

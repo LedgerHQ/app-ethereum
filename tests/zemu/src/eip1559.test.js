@@ -12,8 +12,8 @@ nano_models.forEach(function(model) {
 
       await waitForAppScreen(sim);
       let clicks;
-      if (model.letter === 'S') clicks = 7;
-      else clicks = 5;
+      if (model.letter === 'S') clicks = 10;
+      else clicks = 6;
       await sim.navigateAndCompareSnapshots('.', model.name + '_transfer_eip1559', [clicks, -1, 0]);
 
       await expect(tx).resolves.toEqual({

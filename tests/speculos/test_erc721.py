@@ -3,7 +3,7 @@ from time import sleep
 import pytest
 
 import ethereum_client
-from ethereum_client.utils import compare_screenshot, save_screenshot, PATH_IMG, parse_sign_response
+from ethereum_client.utils import compare_screenshot, PATH_IMG, parse_sign_response
 from ethereum_client.plugin import Plugin
 
 SIGN_FIRST = bytes.fromhex("e004000096058000002c8000003c800000000000000000000000f88a0a852c3ce1ec008301f5679460f80121c31a0d46b5279700f9df786054aa5ee580b86442842e0e0000000000000000000000006cbcd73cd8e8a42844662f0a0e76d7f79afd933d000000000000000000000000c2907efcce4011c491bbeda8a0fa63ba7aab596c000000000000000000000000000000000000000000000000")
@@ -35,7 +35,7 @@ PROVIDE_NFT_INFORMATION = Plugin(
 def test_transfer_erc721(cmd):
     result: list = []
 
-    if cmd.model == "nanox" or cmd.model == "nanosp":
+    if cmd.model in ("nanox", "nanosp"):
         cmd.set_plugin(plugin=PLUGIN)
         cmd.provide_nft_information(plugin=PROVIDE_NFT_INFORMATION)
 
@@ -43,37 +43,21 @@ def test_transfer_erc721(cmd):
 
         with cmd.send_apdu_context(SIGN_MORE, result) as ex:
             sleep(0.5)
+
+            # Loop to check the screens:
             # Review transaction
-            compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721/00000.png")
-            cmd.client.press_and_release('right')
-
             # NFT Transfer
-            compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721/00001.png")
-            cmd.client.press_and_release('right')
-
             # To
-            compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721/00002.png")
-            cmd.client.press_and_release('right')
-
             # Collection Name
-            compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721/00003.png")
-            cmd.client.press_and_release('right')
-
             # NFT Address
-            compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721/00004.png")
-            cmd.client.press_and_release('right')
-
             # NFT ID
-            compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721/00005.png")
-            cmd.client.press_and_release('right')
-
             # Max Fees
-            compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721/00006.png")
-            cmd.client.press_and_release('right')
-
             # Accept and send
-            compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721/00007.png")
-            cmd.client.press_and_release('both')
+            nb_png = 7
+
+            for png_index in range(nb_png + 1):
+                compare_screenshot(cmd, f"screenshots/erc721/{PATH_IMG[cmd.model]}/transfer_erc721/{png_index:05d}.png")
+                cmd.client.press_and_release('both' if png_index == nb_png else 'right')
 
         response: bytes = result[0]
         v, r, s = parse_sign_response(response)
@@ -86,7 +70,7 @@ def test_transfer_erc721(cmd):
 def test_transfer_erc721_without_nft_provide_info(cmd):
     result: list = []
 
-    if cmd.model == "nanox" or cmd.model == "nanosp":
+    if cmd.model in ("nanox", "nanosp"):
         with pytest.raises(ethereum_client.exception.errors.UnknownDeviceError) as error:
 
             cmd.set_plugin(plugin=PLUGIN)
@@ -99,11 +83,10 @@ def test_transfer_erc721_without_nft_provide_info(cmd):
             assert error.args[0] == '0x6a80'
 
 
-
 def test_transfer_erc721_without_set_plugin(cmd):
     result: list = []
 
-    if cmd.model == "nanox" or cmd.model == "nanosp":
+    if cmd.model in ("nanox", "nanosp"):
         with pytest.raises(ethereum_client.exception.errors.DenyError) as error:
             cmd.provide_nft_information(plugin=PROVIDE_NFT_INFORMATION)
 

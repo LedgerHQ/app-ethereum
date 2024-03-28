@@ -103,6 +103,11 @@ static nbgl_layoutTagValue_t *getTagValuePair(uint8_t pairIndex) {
             pair.item = "Amount";
             pair.value = strings.common.fullAmount;
         }
+        if ((strings.common.fromAddress[0] != 0) && (pairIndex == target_index++)) {
+            pair.item = "Address From";
+            pair.value = strings.common.fromAddress;
+        }
+
 #ifdef HAVE_DOMAIN_NAME
         if (tx_approval_context.domain_name_match) {
             if (pairIndex == target_index++) {
@@ -113,9 +118,10 @@ static nbgl_layoutTagValue_t *getTagValuePair(uint8_t pairIndex) {
         if (!tx_approval_context.domain_name_match || N_storage.verbose_domain_name) {
 #endif  // HAVE_DOMAIN_NAME
             if (pairIndex == target_index++) {
-                pair.item = "Address";
+                pair.item = "Address To";
                 pair.value = strings.common.fullAddress;
             }
+
 #ifdef HAVE_DOMAIN_NAME
         }
 #endif  // HAVE_DOMAIN_NAME
@@ -209,7 +215,7 @@ static void reviewContinueCommon(void) {
         // plugin id + max items + fees
         nbPairs += dataContext.tokenContext.pluginUiMaxItems + 1;
     } else {
-        nbPairs += 3;
+        nbPairs += 4;
         if (N_storage.displayNonce) {
             nbPairs++;
         }

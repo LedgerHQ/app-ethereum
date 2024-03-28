@@ -20,6 +20,9 @@ def pytest_addoption(parser):
     path: str = SCRIPT_DIR.parent.parent / "bin" / "app.elf"
     parser.addoption("--path", action="store", default=path)
 
+    parser.addoption("--golden_run", action="store_true")
+
+
 @pytest.fixture()
 def client(pytestconfig):
     file_path = pytestconfig.getoption("path")
@@ -36,4 +39,5 @@ def cmd(client, pytestconfig):
         client=client,
         debug=True,
         model=pytestconfig.getoption("model"),
+        golden_run=pytestconfig.getoption("golden_run"),
     )

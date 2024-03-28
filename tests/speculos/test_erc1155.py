@@ -98,7 +98,6 @@ def test_transfer_erc1155_without_nft_provide_info(cmd):
 
             cmd.set_plugin(plugin=PLUGIN)
 
-
             cmd.send_apdu(SIGN_FIRST)
 
             with cmd.send_apdu_context(SIGN_MORE, result) as ex:

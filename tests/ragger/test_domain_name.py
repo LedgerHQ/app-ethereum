@@ -65,12 +65,10 @@ def test_send_fund(firmware: Firmware,
         if firmware.device.startswith("nano"):
             moves += [NavInsID.RIGHT_CLICK] * 4
             if verbose:
-                moves += [NavInsID.RIGHT_CLICK]
+                moves += [NavInsID.RIGHT_CLICK] * 2
             moves += [NavInsID.BOTH_CLICK]
         else:
-            moves += [NavInsID.USE_CASE_REVIEW_TAP] * 2
-            if verbose:
-                moves += [NavInsID.USE_CASE_REVIEW_TAP]
+            moves += [NavInsID.USE_CASE_REVIEW_TAP] * 3
             moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
         navigator.navigate_and_compare(ROOT_SNAPSHOT_PATH,
                                        "domain_name_verbose_" + str(verbose),
@@ -116,10 +114,10 @@ def test_send_fund_wrong_addr(firmware: Firmware,
                          }):
         moves = list()
         if firmware.device.startswith("nano"):
-            moves += [NavInsID.RIGHT_CLICK] * 4
+            moves += [NavInsID.RIGHT_CLICK] * 5
             moves += [NavInsID.BOTH_CLICK]
         else:
-            moves += [NavInsID.USE_CASE_REVIEW_TAP] * 2
+            moves += [NavInsID.USE_CASE_REVIEW_TAP] * 3
             moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
         navigator.navigate_and_compare(ROOT_SNAPSHOT_PATH,
                                        "domain_name_wrong_addr",
@@ -150,7 +148,7 @@ def test_send_fund_non_mainnet(firmware: Firmware,
             moves += [NavInsID.RIGHT_CLICK] * 5
             moves += [NavInsID.BOTH_CLICK]
         else:
-            moves += [NavInsID.USE_CASE_REVIEW_TAP] * 2
+            moves += [NavInsID.USE_CASE_REVIEW_TAP] * 3
             moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
         navigator.navigate_and_compare(ROOT_SNAPSHOT_PATH,
                                        "domain_name_non_mainnet",
@@ -178,7 +176,7 @@ def test_send_fund_unknown_chain(firmware: Firmware,
                          }):
         moves = list()
         if firmware.device.startswith("nano"):
-            moves += [NavInsID.RIGHT_CLICK] * 5
+            moves += [NavInsID.RIGHT_CLICK] * 6
             moves += [NavInsID.BOTH_CLICK]
         else:
             moves += [NavInsID.USE_CASE_REVIEW_TAP] * 3

@@ -1,6 +1,7 @@
 from io import BytesIO
 from typing import List, Optional, Literal, Tuple
-import PIL.Image as Image
+from os.path import exists
+from PIL import Image
 
 import speculos.client
 
@@ -19,7 +20,13 @@ def save_screenshot(cmd, path: str):
 
 def compare_screenshot(cmd, path: str):
     screenshot = cmd.client.get_screenshot()
-    assert speculos.client.screenshot_equal(path, BytesIO(screenshot))
+
+    if not exists(path) or \
+       not speculos.client.screenshot_equal(path, BytesIO(screenshot)):
+        if cmd.golden_run:
+            save_screenshot(cmd, path)
+        else:
+            raise AssertionError(f"invalid screenshot {path}")
 
 
 def parse_sign_response(response : bytes) -> Tuple[bytes, bytes, bytes]:

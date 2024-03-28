@@ -33,8 +33,7 @@
 #define P2_EIP712_LEGACY_IMPLEM             0x00
 #define P2_EIP712_FULL_IMPLEM               0x01
 
-#define COMMON_CLA               0xB0
-#define COMMON_INS_GET_WALLET_ID 0x04
+#define COMMON_CLA 0xB0
 
 #define APDU_RESPONSE_OK                      0x9000
 #define APDU_RESPONSE_ERROR_NO_INFO           0x6a00

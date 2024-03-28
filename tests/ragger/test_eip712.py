@@ -204,19 +204,15 @@ def test_eip712_address_substitution(firmware: Firmware,
         with open("%s/address_substitution.json" % (eip712_json_path())) as file:
             data = json.load(file)
 
-            with app_client.provide_token_metadata("DAI",
-                                                   bytes.fromhex(data["message"]["token"][2:]),
-                                                   18,
-                                                   1):
-                pass
+            app_client.provide_token_metadata("DAI",
+                                              bytes.fromhex(data["message"]["token"][2:]),
+                                              18,
+                                              1)
 
-            with app_client.get_challenge():
-                pass
-            challenge = ResponseParser.challenge(app_client.response().data)
-            with app_client.provide_domain_name(challenge,
-                                                "vitalik.eth",
-                                                bytes.fromhex(data["message"]["to"][2:])):
-                pass
+            challenge = ResponseParser.challenge(app_client.get_challenge().data)
+            app_client.provide_domain_name(challenge,
+                                           "vitalik.eth",
+                                           bytes.fromhex(data["message"]["to"][2:]))
 
             if verbose:
                 settings_toggle(firmware, navigator, [SettingID.VERBOSE_EIP712])

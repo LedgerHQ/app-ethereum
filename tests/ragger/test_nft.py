@@ -96,13 +96,11 @@ def common_test_nft(fw: Firmware,
         _, DEVICE_ADDR, _ = ResponseParser.pk_addr(app_client.response().data)
 
     data = collec.contract.encodeABI(action.fn_name, action.fn_args)
-    with app_client.set_plugin(plugin_name,
-                               collec.addr,
-                               get_selector_from_data(data),
-                               collec.chain_id):
-        pass
-    with app_client.provide_nft_metadata(collec.name, collec.addr, collec.chain_id):
-        pass
+    app_client.set_plugin(plugin_name,
+                          collec.addr,
+                          get_selector_from_data(data),
+                          collec.chain_id)
+    app_client.provide_nft_metadata(collec.name, collec.addr, collec.chain_id)
     tx_params = {
         "nonce": NONCE,
         "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
@@ -133,12 +131,9 @@ def common_test_nft_reject(test_fn: Callable,
                            nav: Navigator,
                            collec: NFTCollection,
                            action: Action):
-    try:
+    with pytest.raises(ExceptionRAPDU) as e:
         test_fn(fw, back, nav, collec, action, True)
-    except ExceptionRAPDU as e:
-        assert e.status == StatusWord.CONDITION_NOT_SATISFIED
-    else:
-        assert False  # An exception should have been raised
+    assert e.value.status == StatusWord.CONDITION_NOT_SATISFIED
 
 # ERC-721
 

@@ -1,5 +1,5 @@
 ---
-name: Tests (Speculos and Zemu)
+name: Tests (Zemu)
 
 on:
   workflow_dispatch:
@@ -71,67 +71,3 @@ jobs:
 
       - name: Run zemu tests
         run: cd tests/zemu/ && yarn test
-
-  # =====================================================
-  #            SPECULOS TESTS
-  # =====================================================
-
-
-  building_for_e2e_speculos_tests:
-    name: Building binaries for E2E Speculos tests
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder-lite:latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build testing binaries
-        run: |
-          mkdir tests/speculos/elfs
-          make clean && make -j DEBUG=1 NFT_STAGING_KEY=1 BOLOS_SDK=$NANOS_SDK && mv bin/app.elf tests/speculos/elfs/nanos.elf
-          make clean && make -j DEBUG=1 NFT_STAGING_KEY=1 BOLOS_SDK=$NANOX_SDK && mv bin/app.elf tests/speculos/elfs/nanox.elf
-          make clean && make -j DEBUG=1 NFT_STAGING_KEY=1 BOLOS_SDK=$NANOSP_SDK && mv bin/app.elf tests/speculos/elfs/nanosp.elf
-
-      - name: Upload app binaries
-        uses: actions/upload-artifact@v4
-        with:
-          name: e2e_speculos_elfs
-          path: ./tests/speculos/elfs
-
-
-  jobs-e2e-speculos-tests:
-    name: Speculos tests
-    strategy:
-      fail-fast: false
-      matrix:
-        model: ["nanosp", "nanos", "nanox"]
-
-    needs: [building_for_e2e_speculos_tests]
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Clone
-        uses: actions/checkout@v4
-
-      - name: Create tmp folder for artifacts
-        run: mkdir tests/speculos/elfs
-
-      - name: Download app binaries
-        uses: actions/download-artifact@v4
-        with:
-          path: tmp/
-
-      - name: Gather elfs
-        run: cp tmp/e2e_speculos_elfs/*.elf tests/speculos/elfs/
-
-      - name: Install dependencies
-        run: |
-          cd tests/speculos
-          sudo apt-get update && sudo apt-get install -y qemu-user-static
-          pip install -r requirements.txt
-
-      - name: Run speculos tests
-        run: |
-          cd tests/speculos
-          pytest --model ${{ matrix.model }} --path ./elfs/${{ matrix.model }}.elf --display headless

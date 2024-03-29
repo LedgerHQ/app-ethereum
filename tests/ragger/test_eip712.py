@@ -9,6 +9,7 @@ from typing import Optional
 import pytest
 
 import ledger_app_clients.ethereum.response_parser as ResponseParser
+from ledger_app_clients.ethereum.utils import recover_message
 from ledger_app_clients.ethereum.client import EthAppClient
 from ledger_app_clients.ethereum.eip712 import InputData
 from ledger_app_clients.ethereum.settings import SettingID, settings_toggle
@@ -16,6 +17,7 @@ from ledger_app_clients.ethereum.settings import SettingID, settings_toggle
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator, NavInsID
+
 from constants import ROOT_SNAPSHOT_PATH
 
 
@@ -96,11 +98,11 @@ def autonext(firmware: Firmware, navigator: Navigator):
         moves = [NavInsID.USE_CASE_REVIEW_TAP]
     if snaps_config is not None:
         navigator.navigate_and_compare(ROOT_SNAPSHOT_PATH,
-                                 snaps_config.test_name,
-                                 moves,
-                                 screen_change_before_first_instruction=False,
-                                 screen_change_after_last_instruction=False,
-                                 snap_start_idx=snaps_config.idx)
+                                       snaps_config.test_name,
+                                       moves,
+                                       screen_change_before_first_instruction=False,
+                                       screen_change_after_last_instruction=False,
+                                       snap_start_idx=snaps_config.idx)
         snaps_config.idx += 1
     else:
         navigator.navigate(moves,
@@ -151,37 +153,38 @@ def test_eip712_new(firmware: Firmware,
     app_client = EthAppClient(backend)
     if firmware.device == "nanos":
         pytest.skip("Not supported on LNS")
-    else:
-        test_path = f"{input_file.parent}/{'-'.join(input_file.stem.split('-')[:-1])}"
-        conf_file = f"{test_path}.ini"
 
-        filters = None
-        if filtering:
-            try:
-                with open(f"{test_path}-filter.json", encoding="utf-8") as f:
-                    filters = json.load(f)
-            except (IOError, json.decoder.JSONDecodeError) as e:
-                pytest.skip(f"Filter file error: {e.strerror}")
+    test_path = f"{input_file.parent}/{'-'.join(input_file.stem.split('-')[:-1])}"
+    conf_file = f"{test_path}.ini"
 
-        config = ConfigParser()
-        config.read(conf_file)
+    filters = None
+    if filtering:
+        try:
+            filterfile = Path(f"{test_path}-filter.json")
+            with open(filterfile, encoding="utf-8") as f:
+                filters = json.load(f)
+        except (IOError, json.decoder.JSONDecodeError) as e:
+            pytest.skip(f"{filterfile.name}: {e.strerror}")
 
-        # sanity check
-        assert "signature" in config.sections()
-        assert "v" in config["signature"]
-        assert "r" in config["signature"]
-        assert "s" in config["signature"]
+    config = ConfigParser()
+    config.read(conf_file)
 
-        if verbose:
-            settings_toggle(firmware, navigator, [SettingID.VERBOSE_EIP712])
+    # sanity check
+    assert "signature" in config.sections()
+    assert "v" in config["signature"]
+    assert "r" in config["signature"]
+    assert "s" in config["signature"]
 
-        with open(input_file, encoding="utf-8") as file:
-            v, r, s = eip712_new_common(firmware,
-                                        navigator,
-                                        app_client,
-                                        json.load(file),
-                                        filters,
-                                        verbose)
+    if verbose:
+        settings_toggle(firmware, navigator, [SettingID.VERBOSE_EIP712])
+
+    with open(input_file, encoding="utf-8") as file:
+        v, r, s = eip712_new_common(firmware,
+                                    navigator,
+                                    app_client,
+                                    json.load(file),
+                                    filters,
+                                    verbose)
 
     assert v == bytes.fromhex(config["signature"]["v"])
     assert r == bytes.fromhex(config["signature"]["r"])
@@ -197,44 +200,48 @@ def test_eip712_address_substitution(firmware: Firmware,
     app_client = EthAppClient(backend)
     if firmware.device == "nanos":
         pytest.skip("Not supported on LNS")
+
+    with app_client.get_public_addr(display=False):
+        pass
+    _, DEVICE_ADDR, _ = ResponseParser.pk_addr(app_client.response().data)
+
+    test_name = "eip712_address_substitution"
+    if verbose:
+        test_name += "_verbose"
+    snaps_config = SnapshotsConfig(test_name)
+    with open(f"{eip712_json_path()}/address_substitution.json", encoding="utf-8") as file:
+        data = json.load(file)
+
+    app_client.provide_token_metadata("DAI",
+                                      bytes.fromhex(data["message"]["token"][2:]),
+                                      18,
+                                      1)
+
+    challenge = ResponseParser.challenge(app_client.get_challenge().data)
+    app_client.provide_domain_name(challenge,
+                                   "vitalik.eth",
+                                   bytes.fromhex(data["message"]["to"][2:]))
+
+    if verbose:
+        settings_toggle(firmware, navigator, [SettingID.VERBOSE_EIP712])
+        filters = None
     else:
-        test_name = "eip712_address_substitution"
-        if verbose:
-            test_name += "_verbose"
-        snaps_config = SnapshotsConfig(test_name)
-        with open(f"{eip712_json_path()}/address_substitution.json", encoding="utf-8") as file:
-            data = json.load(file)
+        filters = {
+            "name": "Token test",
+            "fields": {
+                "amount": "Amount",
+                "token": "Token",
+                "to": "To",
+            }
+        }
 
-            app_client.provide_token_metadata("DAI",
-                                              bytes.fromhex(data["message"]["token"][2:]),
-                                              18,
-                                              1)
+    vrs = eip712_new_common(firmware,
+                            navigator,
+                            app_client,
+                            data,
+                            filters,
+                            verbose)
 
-            challenge = ResponseParser.challenge(app_client.get_challenge().data)
-            app_client.provide_domain_name(challenge,
-                                           "vitalik.eth",
-                                           bytes.fromhex(data["message"]["to"][2:]))
-
-            if verbose:
-                settings_toggle(firmware, navigator, [SettingID.VERBOSE_EIP712])
-                filters = None
-            else:
-                filters = {
-                    "name": "Token test",
-                    "fields": {
-                        "amount": "Amount",
-                        "token": "Token",
-                        "to": "To",
-                    }
-                }
-
-            v, r, s = eip712_new_common(firmware,
-                                        navigator,
-                                        app_client,
-                                        data,
-                                        filters,
-                                        verbose)
-
-    assert v == bytes.fromhex("1b")
-    assert r == bytes.fromhex("d4a0e058251cdc3845aaa5eb8409d8a189ac668db7c55a64eb3121b0db7fd8c0")
-    assert s == bytes.fromhex("3221800e4f45272c6fa8fafda5e94c848d1a4b90c442aa62afa8e8d6a9af0f00")
+    # verify signature
+    addr = recover_message(data, vrs)
+    assert addr == DEVICE_ADDR

@@ -16,9 +16,12 @@ from constants import ROOT_SNAPSHOT_PATH
 CHAIN_ID = 1
 ADDR = bytes.fromhex("0011223344556677889900112233445566778899")
 ADDR2 = bytes.fromhex("5a321744667052affa8386ed49e00ef223cbffc3")
+ADDR3 = bytes.fromhex("dac17f958d2ee523a2206206994597c13d831ec7")
 BIP32_PATH = "m/44'/60'/0'/0/0"
+BIP32_PATH2 = "m/44'/60'/1'/0/0"
 NONCE = 21
 NONCE2 = 68
+GAS_PRICE = 13
 GAS_LIMIT = 21000
 AMOUNT = 1.22
 
@@ -93,16 +96,62 @@ def common_reject(firmware: Firmware,
         assert False  # An exception should have been raised
 
 
+def common_fail(backend: BackendInterface,
+                tx_params: dict,
+                expected: StatusWord,
+                path: str = BIP32_PATH):
+    app_client = EthAppClient(backend)
+
+    try:
+        with app_client.sign(path, tx_params):
+            pass
+
+    except ExceptionRAPDU as e:
+        assert e.status == expected
+    else:
+        assert False  # An exception should have been raised
+
+
 def test_legacy(firmware: Firmware, backend: BackendInterface, navigator: Navigator):
     tx_params: dict = {
         "nonce": NONCE,
-        "gasPrice": Web3.to_wei(13, "gwei"),
+        "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
         "gas": GAS_LIMIT,
         "to": ADDR,
         "value": Web3.to_wei(AMOUNT, "ether"),
         "chainId": CHAIN_ID
     }
     common(firmware, backend, navigator, tx_params)
+
+
+# Legacy Zemu Send: Transfer Ether on Ethereum app
+def test_legacy_send(firmware: Firmware,
+                      backend: BackendInterface,
+                      navigator: Navigator,
+                      test_name: str):
+    tx_params: dict = {
+        "nonce": NONCE2,
+        "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
+        "gas": GAS_LIMIT,
+        "to": ADDR2,
+        "value": 31415926913374232,
+        "chainId": CHAIN_ID
+    }
+    common(firmware, backend, navigator, tx_params, test_name, BIP32_PATH2)
+
+
+# Legacy Zemu Send: Transfer amount >= 2^87 Eth on Ethereum app should fail
+def test_legacy_send_error(backend: BackendInterface):
+    tx_params: dict = {
+        "nonce": 38,
+        "gasPrice": 56775612312210000000001234554332,
+        "gas": GAS_LIMIT,
+        "to": ADDR3,
+        "value": 12345678912345678912345678000000000000000000,
+        "chainId": CHAIN_ID
+    }
+    common_fail(backend, tx_params, StatusWord.EXCEPTION_OVERFLOW, path=BIP32_PATH2)
+
 
 
 def test_1559(firmware: Firmware, backend: BackendInterface, navigator: Navigator):
@@ -124,7 +173,7 @@ def test_sign_simple(firmware: Firmware,
                      test_name: str):
     tx_params: dict = {
         "nonce": NONCE2,
-        "gasPrice": Web3.to_wei(13, 'gwei'),
+        "gasPrice": Web3.to_wei(GAS_PRICE, 'gwei'),
         "gas": GAS_LIMIT,
         "to": ADDR2,
         "value": 0x6f9c9e7bf61818,
@@ -180,7 +229,7 @@ def test_sign_nonce_display(firmware: Firmware,
 
     tx_params: dict = {
         "nonce": NONCE2,
-        "gasPrice": Web3.to_wei(13, 'gwei'),
+        "gasPrice": Web3.to_wei(GAS_PRICE, 'gwei'),
         "gas": GAS_LIMIT,
         "to": ADDR2,
         "value": 0x6f9c9e7bf61818,
@@ -222,7 +271,7 @@ def test_sign_blind_simple(firmware: Firmware,
     data = "ok"
     tx_params: dict = {
         "nonce": NONCE2,
-        "gasPrice": Web3.to_wei(13, 'gwei'),
+        "gasPrice": Web3.to_wei(GAS_PRICE, 'gwei'),
         "gas": GAS_LIMIT,
         "to": ADDR2,
         "value": 0x6f9c9e7bf61818,
@@ -267,7 +316,7 @@ def test_sign_blind_and_nonce_display(firmware: Firmware,
     data = "That's a little message :)"
     tx_params: dict = {
         "nonce": 1844674,
-        "gasPrice": Web3.to_wei(13, 'gwei'),
+        "gasPrice": Web3.to_wei(GAS_PRICE, 'gwei'),
         "gas": GAS_LIMIT,
         "to": ADDR2,
         "value": 0x6f9c9e7bf61818,
@@ -283,7 +332,7 @@ def test_sign_reject(firmware: Firmware,
                      test_name: str):
     tx_params: dict = {
         "nonce": NONCE2,
-        "gasPrice": Web3.to_wei(13, 'gwei'),
+        "gasPrice": Web3.to_wei(GAS_PRICE, 'gwei'),
         "gas": GAS_LIMIT,
         "to": ADDR2,
         "value": 0x6f9c9e7bf61818,
@@ -305,7 +354,7 @@ def test_sign_error_transaction_type(backend: BackendInterface):
 
     app_client = EthAppClient(backend)
     try:
-        with app_client.sign("m/44'/60'/1'/0/0", tx_params):
+        with app_client.sign(BIP32_PATH2, tx_params):
             pass
 
     except TypeError:
@@ -318,7 +367,7 @@ def test_sign_blind_error_disabled(backend: BackendInterface):
     data = "ok"
     tx_params: dict = {
         "nonce": NONCE2,
-        "gasPrice": Web3.to_wei(13, 'gwei'),
+        "gasPrice": Web3.to_wei(GAS_PRICE, 'gwei'),
         "gas": GAS_LIMIT,
         "to": ADDR2,
         "value": 0x6f9c9e7bf61818,
@@ -326,12 +375,4 @@ def test_sign_blind_error_disabled(backend: BackendInterface):
         "data": data.encode('utf-8').hex()
     }
 
-    app_client = EthAppClient(backend)
-    try:
-        with app_client.sign("m/44'/60'/1'/0/0", tx_params):
-            pass
-
-    except ExceptionRAPDU as e:
-        assert e.status == StatusWord.INVALID_DATA
-    else:
-        assert False  # An exception should have been raised
+    common_fail(backend, tx_params, StatusWord.INVALID_DATA, BIP32_PATH2)

@@ -18,9 +18,9 @@ jobs:
     name: Analyse
     strategy:
       matrix:
-        sdk: [ "$NANOS_SDK", "$NANOX_SDK", "$NANOSP_SDK", "$STAX_SDK" ]
-        #'cpp' covers C and C++
-        language: [ 'cpp' ]
+        sdk: ["$NANOS_SDK", "$NANOX_SDK", "$NANOSP_SDK", "$STAX_SDK"]
+        # 'cpp' covers C and C++
+        language: ['cpp']
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder-legacy:latest

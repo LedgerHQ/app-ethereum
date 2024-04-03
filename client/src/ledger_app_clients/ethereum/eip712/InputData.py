@@ -6,8 +6,8 @@ import sys
 import copy
 from typing import Any, Callable, Optional
 
-from ledger_app_clients.ethereum import keychain
-from ledger_app_clients.ethereum.client import EthAppClient, EIP712FieldType
+from client import keychain
+from client.client import EthAppClient, EIP712FieldType
 
 
 # global variables

@@ -126,9 +126,9 @@ def test_legacy(firmware: Firmware, backend: BackendInterface, navigator: Naviga
 
 # Legacy Zemu Send: Transfer Ether on Ethereum app
 def test_legacy_send(firmware: Firmware,
-                      backend: BackendInterface,
-                      navigator: Navigator,
-                      test_name: str):
+                     backend: BackendInterface,
+                     navigator: Navigator,
+                     test_name: str):
     tx_params: dict = {
         "nonce": NONCE2,
         "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
@@ -151,6 +151,22 @@ def test_legacy_send_error(backend: BackendInterface):
         "chainId": CHAIN_ID
     }
     common_fail(backend, tx_params, StatusWord.EXCEPTION_OVERFLOW, path=BIP32_PATH2)
+
+
+# Legacy Zemu Send BSC: Transfer bsc
+def test_legacy_send_bsc(firmware: Firmware,
+                         backend: BackendInterface,
+                         navigator: Navigator,
+                         test_name: str):
+    tx_params: dict = {
+        "nonce": 1,
+        "gasPrice": Web3.to_wei(5, 'gwei'),
+        "gas": GAS_LIMIT,
+        "to": ADDR2,
+        "value": 31415926913374232,
+        "chainId": 56
+    }
+    common(firmware, backend, navigator, tx_params, test_name, BIP32_PATH2)
 
 
 

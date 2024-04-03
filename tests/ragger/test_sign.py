@@ -169,6 +169,37 @@ def test_legacy_send_bsc(firmware: Firmware,
     common(firmware, backend, navigator, tx_params, test_name, BIP32_PATH2)
 
 
+# Legacy Zemu ChainId: Transfer on network 112233445566 on Ethereum
+def test_legacy_chainid1(firmware: Firmware,
+                         backend: BackendInterface,
+                         navigator: Navigator,
+                         test_name: str):
+    tx_params: dict = {
+        "nonce": NONCE2,
+        "gasPrice": Web3.to_wei(GAS_PRICE, 'gwei'),
+        "gas": GAS_LIMIT,
+        "to": ADDR2,
+        "value": 31415926913374232,
+        "chainId": 112233445566
+    }
+    common(firmware, backend, navigator, tx_params, test_name, BIP32_PATH2)
+
+
+# Legacy Zemu ChainId: Transfer on palm network on Ethereum
+def test_legacy_chainid2(firmware: Firmware,
+                         backend: BackendInterface,
+                         navigator: Navigator,
+                         test_name: str):
+    tx_params: dict = {
+        "nonce": NONCE2,
+        "gasPrice": Web3.to_wei(GAS_PRICE, 'gwei'),
+        "gas": GAS_LIMIT,
+        "to": ADDR2,
+        "value": 31415926913374232,
+        "chainId": 11297108109
+    }
+    common(firmware, backend, navigator, tx_params, test_name, BIP32_PATH2)
+
 
 def test_1559(firmware: Firmware, backend: BackendInterface, navigator: Navigator):
     tx_params: dict = {

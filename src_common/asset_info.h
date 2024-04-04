@@ -24,10 +24,12 @@
 
 #define COLLECTION_NAME_MAX_LEN 70
 
+#ifdef HAVE_NFT_SUPPORT
 typedef struct nftInfo_t {
     uint8_t contractAddress[ADDRESS_LENGTH];  // must be first item
     char collectionName[COLLECTION_NAME_MAX_LEN + 1];
 } nftInfo_t;
+#endif  // HAVE_NFT_SUPPORT
 
 // TOKENS
 
@@ -47,5 +49,7 @@ typedef struct tokenDefinition_t {
 
 typedef union extraInfo_t {
     tokenDefinition_t token;
+#ifdef HAVE_NFT_SUPPORT
     nftInfo_t nft;
+#endif  // HAVE_NFT_SUPPORT
 } extraInfo_t;

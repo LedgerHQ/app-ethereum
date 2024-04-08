@@ -1,4 +1,4 @@
-APP_LOAD_PARAMS += --path "44'/60'"
+PATH_APP_LOAD_PARAMS += "44'/60'"
 TICKER = "MATIC"
 CHAIN_ID = 137
 APPNAME = "Polygon"

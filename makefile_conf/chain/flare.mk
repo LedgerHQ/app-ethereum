@@ -1,9 +1,8 @@
-APP_LOAD_PARAMS += --path "44'/554'" --path "44'/60'"
+PATH_APP_LOAD_PARAMS += "44'/554'" "44'/60'"
 TICKER = "FLR"
 CHAIN_ID = 14
+APPNAME = "Flare"
 
 # Pending review parameters
-APP_LOAD_PARAMS += --tlvraw 9F:01
-DEFINES += HAVE_PENDING_REVIEW_SCREEN
+ENABLE_PENDING_REVIEW_SCREEN = 1
 
-APPNAME = "Flare"

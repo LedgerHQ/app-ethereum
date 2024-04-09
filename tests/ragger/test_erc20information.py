@@ -1,5 +1,6 @@
 import pytest
-from ledger_app_clients.ethereum.client import EthAppClient, StatusWord
+
+from client.client import EthAppClient, StatusWord
 
 from ragger.error import ExceptionRAPDU
 from ragger.backend import BackendInterface

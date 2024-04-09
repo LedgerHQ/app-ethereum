@@ -1,8 +1,8 @@
 from typing import Optional, Tuple
 import pytest
 
-from ledger_app_clients.ethereum.client import EthAppClient, StatusWord
-import ledger_app_clients.ethereum.response_parser as ResponseParser
+from client.client import EthAppClient, StatusWord
+import client.response_parser as ResponseParser
 
 from ragger.error import ExceptionRAPDU
 from ragger.firmware import Firmware

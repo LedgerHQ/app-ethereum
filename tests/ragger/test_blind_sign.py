@@ -2,7 +2,8 @@ import json
 import pytest
 from web3 import Web3
 
-from ledger_app_clients.ethereum.client import EthAppClient, StatusWord
+from client.client import EthAppClient, StatusWord
+
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator, NavInsID

@@ -8,11 +8,11 @@ import json
 from typing import Optional
 import pytest
 
-import ledger_app_clients.ethereum.response_parser as ResponseParser
-from ledger_app_clients.ethereum.utils import recover_message
-from ledger_app_clients.ethereum.client import EthAppClient
-from ledger_app_clients.ethereum.eip712 import InputData
-from ledger_app_clients.ethereum.settings import SettingID, settings_toggle
+import client.response_parser as ResponseParser
+from client.utils import recover_message
+from client.client import EthAppClient
+from client.eip712 import InputData
+from client.settings import SettingID, settings_toggle
 
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware

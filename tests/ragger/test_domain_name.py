@@ -1,9 +1,10 @@
 import pytest
 from web3 import Web3
 
-import ledger_app_clients.ethereum.response_parser as ResponseParser
-from ledger_app_clients.ethereum.client import EthAppClient, StatusWord
-from ledger_app_clients.ethereum.settings import SettingID, settings_toggle
+import client.response_parser as ResponseParser
+from client.client import EthAppClient, StatusWord
+from client.settings import SettingID, settings_toggle
+
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from ragger.error import ExceptionRAPDU

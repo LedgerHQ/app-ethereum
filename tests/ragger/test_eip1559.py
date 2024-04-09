@@ -1,12 +1,12 @@
-from ledger_app_clients.ethereum.client import EthAppClient
-import ledger_app_clients.ethereum.response_parser as ResponseParser
-from ledger_app_clients.ethereum.utils import recover_transaction
+from web3 import Web3
+
+from client.client import EthAppClient
+import client.response_parser as ResponseParser
+from client.utils import recover_transaction
 
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator, NavInsID
-
-from web3 import Web3
 
 from constants import ROOT_SNAPSHOT_PATH
 

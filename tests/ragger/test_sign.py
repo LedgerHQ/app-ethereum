@@ -1,8 +1,8 @@
 from web3 import Web3
 
-from ledger_app_clients.ethereum.client import EthAppClient, StatusWord
-import ledger_app_clients.ethereum.response_parser as ResponseParser
-from ledger_app_clients.ethereum.utils import recover_transaction
+from client.client import EthAppClient, StatusWord
+import client.response_parser as ResponseParser
+from client.utils import recover_transaction
 
 from ragger.error import ExceptionRAPDU
 from ragger.backend import BackendInterface

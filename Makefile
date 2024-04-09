@@ -44,7 +44,7 @@ APPVERSION = $(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)-dev
 
 # Application source files
 APP_SOURCE_PATH += src src_features src_plugins
-ifeq ($(TARGET_NAME),TARGET_STAX)
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
     APP_SOURCE_PATH += src_nbgl
 else
     APP_SOURCE_PATH += src_bagl
@@ -55,7 +55,7 @@ APP_SOURCE_FILES += ${BOLOS_SDK}/lib_standard_app/crypto_helpers.c
 APP_SOURCE_FILES += ${BOLOS_SDK}/lib_standard_app/format.c
 INCLUDES_PATH += ${BOLOS_SDK}/lib_standard_app
 
-ifeq ($(TARGET_NAME),TARGET_STAX)
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
 NETWORK_ICONS_FILE = $(GEN_SRC_DIR)/net_icons.gen.c
 NETWORK_ICONS_DIR = $(shell dirname "$(NETWORK_ICONS_FILE)")
 
@@ -71,12 +71,13 @@ ICON_NANOS = icons/nanos_app_chain_$(CHAIN_ID).gif
 ICON_NANOX = icons/nanox_app_chain_$(CHAIN_ID).gif
 ICON_NANOSP = icons/nanox_app_chain_$(CHAIN_ID).gif
 ICON_STAX = icons/stax_app_chain_$(CHAIN_ID).gif
+ICON_FLEX = icons/flex_app_chain_$(CHAIN_ID).gif
 
 #prepare hsm generation
-ifeq ($(TARGET_NAME),TARGET_STAX)
-    DEFINES += ICONGLYPH=C_stax_chain_$(CHAIN_ID)_64px
-    DEFINES += ICONBITMAP=C_stax_chain_$(CHAIN_ID)_64px_bitmap
-    DEFINES += ICONGLYPH_SMALL=C_stax_chain_$(CHAIN_ID)
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
+    DEFINES += ICONGLYPH=C_chain_$(CHAIN_ID)_64px
+    DEFINES += ICONBITMAP=C_chain_$(CHAIN_ID)_64px_bitmap
+    DEFINES += ICONGLYPH_SMALL=C_chain_$(CHAIN_ID)
 endif
 
 

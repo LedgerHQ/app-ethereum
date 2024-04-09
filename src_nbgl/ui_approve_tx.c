@@ -155,7 +155,7 @@ static void pageCallback(int token, uint8_t index) {
 static void reviewContinue(void) {
     if (tx_approval_context.blindSigning) {
         nbgl_pageInfoDescription_t info = {
-            .centeredInfo.icon = &C_round_warning_64px,
+            .centeredInfo.icon = &C_Important_Circle_64px,
             .centeredInfo.text1 = "Blind Signing",
             .centeredInfo.text2 =
                 "This transaction cannot be\nsecurely interpreted by Ledger\nStax. It might put "

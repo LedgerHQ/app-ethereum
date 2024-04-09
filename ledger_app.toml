@@ -1,7 +1,7 @@
 [app]
 build_directory = "./"
 sdk = "C"
-devices = ["nanos", "nanox", "nanos+", "stax"]
+devices = ["nanos", "nanox", "nanos+", "stax", "flex"]
 
 [use_cases] # Coherent build options that make sense for your application
 debug = "DEBUG=1"

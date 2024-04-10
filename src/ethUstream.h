@@ -36,8 +36,6 @@ typedef enum customStatus_e {
 
 typedef customStatus_e (*ustreamProcess_t)(struct txContext_t *context);
 
-#define TX_FLAG_TYPE 0x01
-
 // First variant of every Tx enum.
 #define RLP_NONE 0
 

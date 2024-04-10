@@ -1,9 +1,11 @@
-from typing import Optional, Tuple
+from typing import Optional
 import pytest
 
-from client.client import EthAppClient, StatusWord
-import client.response_parser as ResponseParser
+from py_ecc.bls import G2ProofOfPossession as bls
 
+from staking_deposit.key_handling.key_derivation.path import mnemonic_and_path_to_key
+
+from ragger.bip.seed import SPECULOS_MNEMONIC
 from ragger.error import ExceptionRAPDU
 from ragger.firmware import Firmware
 from ragger.backend import BackendInterface
@@ -11,6 +13,9 @@ from ragger.navigator import Navigator, NavInsID
 from ragger.bip import calculate_public_key_and_chaincode, CurveChoice
 
 from constants import ROOT_SNAPSHOT_PATH
+
+from client.client import EthAppClient, StatusWord
+import client.response_parser as ResponseParser
 
 
 @pytest.fixture(name="with_chaincode", params=[True, False])
@@ -25,7 +30,8 @@ def chain_fixture(request) -> Optional[int]:
 
 def get_moves(firmware: Firmware,
               chain: Optional[int] = None,
-              reject: bool = False):
+              reject: bool = False,
+              pk_eth2: bool = False):
     moves = []
 
     if firmware.is_nano:
@@ -36,9 +42,14 @@ def get_moves(firmware: Firmware,
             moves += [NavInsID.RIGHT_CLICK]
         if reject:
             moves += [NavInsID.RIGHT_CLICK]
+        if pk_eth2:
+            if firmware.device == "nanos":
+                moves += [NavInsID.RIGHT_CLICK] * 2
+            moves += [NavInsID.RIGHT_CLICK]
         moves += [NavInsID.BOTH_CLICK]
     else:
-        moves += [NavInsID.USE_CASE_REVIEW_TAP]
+        if not pk_eth2:
+            moves += [NavInsID.USE_CASE_REVIEW_TAP]
         if chain is not None and chain > 1:
             moves += [NavInsID.USE_CASE_ADDRESS_CONFIRMATION_TAP]
         if reject:
@@ -90,18 +101,21 @@ def test_get_pk(firmware: Firmware,
         assert chaincode.hex() == ref_chaincode
 
 
-def test_get_pk2(firmware: Firmware,
-                 backend: BackendInterface,
-                 navigator: Navigator):
+def test_get_eth2_pk(firmware: Firmware,
+                     backend: BackendInterface,
+                     navigator: Navigator,
+                     test_name: str):
     app_client = EthAppClient(backend)
 
-    path="m/44'/700'/1'/0/0"
-    with app_client.get_public_addr(bip32_path=path, chaincode=True):
+    path="m/12381/3600/0/0"
+    with app_client.get_eth2_public_addr(bip32_path=path):
         navigator.navigate_and_compare(ROOT_SNAPSHOT_PATH,
-                                       "get_pk_700",
-                                       get_moves(firmware))
-    pk, _, chaincode = ResponseParser.pk_addr(app_client.response().data, True)
-    ref_pk, ref_chaincode = calculate_public_key_and_chaincode(curve=CurveChoice.Secp256k1,
-                                                               path=path)
-    assert pk.hex() == ref_pk
-    assert chaincode.hex() == ref_chaincode
+                                       test_name,
+                                       get_moves(firmware, pk_eth2=True))
+
+    pk = app_client.response().data
+    ref_pk = bls.SkToPk(mnemonic_and_path_to_key(SPECULOS_MNEMONIC, path))
+    if firmware.name == "stax":
+        pk = pk[1:49]
+
+    assert pk == ref_pk

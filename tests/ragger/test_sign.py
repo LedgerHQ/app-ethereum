@@ -17,11 +17,13 @@ CHAIN_ID = 1
 ADDR = bytes.fromhex("0011223344556677889900112233445566778899")
 ADDR2 = bytes.fromhex("5a321744667052affa8386ed49e00ef223cbffc3")
 ADDR3 = bytes.fromhex("dac17f958d2ee523a2206206994597c13d831ec7")
+ADDR4 = bytes.fromhex("b2bb2b958afa2e96dab3f3ce7162b87daea39017")
 BIP32_PATH = "m/44'/60'/0'/0/0"
 BIP32_PATH2 = "m/44'/60'/1'/0/0"
 NONCE = 21
 NONCE2 = 68
 GAS_PRICE = 13
+GAS_PRICE2 = 5
 GAS_LIMIT = 21000
 AMOUNT = 1.22
 
@@ -144,7 +146,7 @@ def test_legacy_send_bsc(firmware: Firmware,
                          test_name: str):
     tx_params: dict = {
         "nonce": 1,
-        "gasPrice": Web3.to_wei(5, 'gwei'),
+        "gasPrice": Web3.to_wei(GAS_PRICE2, 'gwei'),
         "gas": GAS_LIMIT,
         "to": ADDR2,
         "value": 31415926913374232,
@@ -416,3 +418,27 @@ def test_sign_blind_error_disabled(backend: BackendInterface):
     }
 
     common_fail(backend, tx_params, StatusWord.INVALID_DATA, BIP32_PATH2)
+
+
+def test_sign_eip_2930(firmware: Firmware,
+                       backend: BackendInterface,
+                       navigator: Navigator,
+                       test_name: str):
+
+    tx_params = {
+        "nonce": NONCE,
+        "gasPrice": Web3.to_wei(GAS_PRICE2, "gwei"),
+        "gas": GAS_LIMIT,
+        "to": ADDR4,
+        "value": Web3.to_wei(0.01, "ether"),
+        "chainId": 3,
+        "accessList": [
+            {
+                "address": "0x0000000000000000000000000000000000000001",
+                "storageKeys": [
+                    "0x0100000000000000000000000000000000000000000000000000000000000000"
+                ]
+            }
+        ],
+    }
+    common(firmware, backend, navigator, tx_params, test_name)

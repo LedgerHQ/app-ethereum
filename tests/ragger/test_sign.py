@@ -2,6 +2,7 @@ from web3 import Web3
 
 from client.client import EthAppClient, StatusWord
 import client.response_parser as ResponseParser
+from client.settings import SettingID, settings_toggle
 from client.utils import recover_transaction
 
 from ragger.error import ExceptionRAPDU
@@ -243,31 +244,8 @@ def test_sign_nonce_display(firmware: Firmware,
                             backend: BackendInterface,
                             navigator: Navigator,
                             test_name: str):
-    # Activate nonce display
-    if firmware.device.startswith("nano"):
-        initial_instructions = [
-            NavInsID.LEFT_CLICK,    # Application is ready
-            NavInsID.LEFT_CLICK,    # Quit
-            NavInsID.BOTH_CLICK,    # Blind signing
-            NavInsID.RIGHT_CLICK,   # Debug data
-            NavInsID.RIGHT_CLICK,   # Nonce display
-            NavInsID.BOTH_CLICK,
-            NavInsID.RIGHT_CLICK,
-        ]
-        if firmware.device != "nanos":
-            initial_instructions += [NavInsID.RIGHT_CLICK] * 2
-        initial_instructions += [NavInsID.BOTH_CLICK]    # Back
-    else:
-        initial_instructions = [
-            NavInsID.USE_CASE_HOME_SETTINGS,    # Settings
-            NavInsID.USE_CASE_SETTINGS_NEXT,    # Next page
-            NavIns(NavInsID.TOUCH, (340, 440)), # Nonce
-            NavInsID.USE_CASE_SETTINGS_MULTI_PAGE_EXIT,
-        ]
 
-    # Navigate to settings menu to avoid 1st screen with random serial no
-    navigator.navigate(initial_instructions,
-                        screen_change_before_first_instruction=False)
+    settings_toggle(firmware, navigator, [SettingID.NONCE])
 
     tx_params: dict = {
         "nonce": NONCE2,
@@ -284,31 +262,7 @@ def test_sign_blind_simple(firmware: Firmware,
                            backend: BackendInterface,
                            navigator: Navigator,
                            test_name: str):
-    # Activate nonce display
-    if firmware.device.startswith("nano"):
-        initial_instructions = [
-            NavInsID.LEFT_CLICK,    # Application is ready
-            NavInsID.LEFT_CLICK,    # Quit
-            NavInsID.BOTH_CLICK,    # Blind signing
-            NavInsID.BOTH_CLICK,
-            NavInsID.RIGHT_CLICK,
-            NavInsID.RIGHT_CLICK,
-            NavInsID.RIGHT_CLICK,
-        ]
-        if firmware.device != "nanos":
-            initial_instructions += [NavInsID.RIGHT_CLICK] * 2
-        initial_instructions += [NavInsID.BOTH_CLICK]    # Back
-    else:
-        initial_instructions = [
-            NavInsID.USE_CASE_HOME_SETTINGS,    # Settings
-            NavInsID.USE_CASE_SETTINGS_NEXT,    # Next page
-            NavIns(NavInsID.TOUCH, (340, 120)), # Blind signing
-            NavInsID.USE_CASE_SETTINGS_MULTI_PAGE_EXIT,
-        ]
-
-    # Navigate to settings menu to avoid 1st screen with random serial no
-    navigator.navigate(initial_instructions,
-                        screen_change_before_first_instruction=False)
+    settings_toggle(firmware, navigator, [SettingID.BLIND_SIGNING])
 
     data = "ok"
     tx_params: dict = {
@@ -327,33 +281,7 @@ def test_sign_blind_and_nonce_display(firmware: Firmware,
                                       backend: BackendInterface,
                                       navigator: Navigator,
                                       test_name: str):
-    # Activate nonce display
-    if firmware.device.startswith("nano"):
-        initial_instructions = [
-            NavInsID.LEFT_CLICK,    # Application is ready
-            NavInsID.LEFT_CLICK,    # Quit
-            NavInsID.BOTH_CLICK,    # Blind signing
-            NavInsID.BOTH_CLICK,
-            NavInsID.RIGHT_CLICK,
-            NavInsID.RIGHT_CLICK,   # Nonce display
-            NavInsID.BOTH_CLICK,
-            NavInsID.RIGHT_CLICK,
-        ]
-        if firmware.device != "nanos":
-            initial_instructions += [NavInsID.RIGHT_CLICK] * 2
-        initial_instructions += [NavInsID.BOTH_CLICK]    # Back
-    else:
-        initial_instructions = [
-            NavInsID.USE_CASE_HOME_SETTINGS,    # Settings
-            NavInsID.USE_CASE_SETTINGS_NEXT,    # Next page
-            NavIns(NavInsID.TOUCH, (340, 120)), # Blind signing
-            NavIns(NavInsID.TOUCH, (340, 440)), # Nonce
-            NavInsID.USE_CASE_SETTINGS_MULTI_PAGE_EXIT,
-        ]
-
-    # Navigate to settings menu to avoid 1st screen with random serial no
-    navigator.navigate(initial_instructions,
-                        screen_change_before_first_instruction=False)
+    settings_toggle(firmware, navigator, [SettingID.NONCE, SettingID.BLIND_SIGNING])
 
     data = "That's a little message :)"
     tx_params: dict = {

@@ -124,22 +124,6 @@ def test_legacy(firmware: Firmware, backend: BackendInterface, navigator: Naviga
     common(firmware, backend, navigator, tx_params)
 
 
-# Legacy Zemu Send: Transfer Ether on Ethereum app
-def test_legacy_send(firmware: Firmware,
-                     backend: BackendInterface,
-                     navigator: Navigator,
-                     test_name: str):
-    tx_params: dict = {
-        "nonce": NONCE2,
-        "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
-        "gas": GAS_LIMIT,
-        "to": ADDR2,
-        "value": 31415926913374232,
-        "chainId": CHAIN_ID
-    }
-    common(firmware, backend, navigator, tx_params, test_name, BIP32_PATH2)
-
-
 # Legacy Zemu Send: Transfer amount >= 2^87 Eth on Ethereum app should fail
 def test_legacy_send_error(backend: BackendInterface):
     tx_params: dict = {
@@ -170,7 +154,7 @@ def test_legacy_send_bsc(firmware: Firmware,
 
 
 # Legacy Zemu ChainId: Transfer on network 112233445566 on Ethereum
-def test_legacy_chainid1(firmware: Firmware,
+def test_legacy_chainid(firmware: Firmware,
                          backend: BackendInterface,
                          navigator: Navigator,
                          test_name: str):
@@ -181,22 +165,6 @@ def test_legacy_chainid1(firmware: Firmware,
         "to": ADDR2,
         "value": 31415926913374232,
         "chainId": 112233445566
-    }
-    common(firmware, backend, navigator, tx_params, test_name, BIP32_PATH2)
-
-
-# Legacy Zemu ChainId: Transfer on palm network on Ethereum
-def test_legacy_chainid2(firmware: Firmware,
-                         backend: BackendInterface,
-                         navigator: Navigator,
-                         test_name: str):
-    tx_params: dict = {
-        "nonce": NONCE2,
-        "gasPrice": Web3.to_wei(GAS_PRICE, 'gwei'),
-        "gas": GAS_LIMIT,
-        "to": ADDR2,
-        "value": 31415926913374232,
-        "chainId": 11297108109
     }
     common(firmware, backend, navigator, tx_params, test_name, BIP32_PATH2)
 

@@ -27,6 +27,7 @@ GAS_PRICE = 13
 GAS_PRICE2 = 5
 GAS_LIMIT = 21000
 AMOUNT = 1.22
+AMOUNT2 = 0.31415
 
 
 def common(firmware: Firmware,
@@ -127,7 +128,7 @@ def test_legacy(firmware: Firmware, backend: BackendInterface, navigator: Naviga
     common(firmware, backend, navigator, tx_params)
 
 
-# Legacy Zemu Send: Transfer amount >= 2^87 Eth on Ethereum app should fail
+# Transfer amount >= 2^87 Eth on Ethereum app should fail
 def test_legacy_send_error(backend: BackendInterface):
     tx_params: dict = {
         "nonce": 38,
@@ -140,7 +141,7 @@ def test_legacy_send_error(backend: BackendInterface):
     common_fail(backend, tx_params, StatusWord.EXCEPTION_OVERFLOW, path=BIP32_PATH2)
 
 
-# Legacy Zemu Send BSC: Transfer bsc
+# Transfer bsc
 def test_legacy_send_bsc(firmware: Firmware,
                          backend: BackendInterface,
                          navigator: Navigator,
@@ -150,13 +151,13 @@ def test_legacy_send_bsc(firmware: Firmware,
         "gasPrice": Web3.to_wei(GAS_PRICE2, 'gwei'),
         "gas": GAS_LIMIT,
         "to": ADDR2,
-        "value": 31415926913374232,
+        "value": Web3.to_wei(AMOUNT2, "ether"),
         "chainId": 56
     }
     common(firmware, backend, navigator, tx_params, test_name, BIP32_PATH2)
 
 
-# Legacy Zemu ChainId: Transfer on network 112233445566 on Ethereum
+# Transfer on network 112233445566 on Ethereum
 def test_legacy_chainid(firmware: Firmware,
                          backend: BackendInterface,
                          navigator: Navigator,
@@ -166,13 +167,13 @@ def test_legacy_chainid(firmware: Firmware,
         "gasPrice": Web3.to_wei(GAS_PRICE, 'gwei'),
         "gas": GAS_LIMIT,
         "to": ADDR2,
-        "value": 31415926913374232,
+        "value": Web3.to_wei(AMOUNT2, "ether"),
         "chainId": 112233445566
     }
     common(firmware, backend, navigator, tx_params, test_name, BIP32_PATH2)
 
 
-# Legacy Zemu contract data warning: Try to blind sign with setting disabled
+# Try to blind sign with setting disabled
 def test_legacy_contract(firmware: Firmware,
                          backend: BackendInterface,
                          navigator: Navigator,
@@ -190,8 +191,8 @@ def test_legacy_contract(firmware: Firmware,
                     NavInsID.BOTH_CLICK
                 ]
                 navigator.navigate_and_compare(ROOT_SNAPSHOT_PATH,
-                                                test_name,
-                                                moves)
+                                               test_name,
+                                               moves)
 
     except ExceptionRAPDU as e:
         assert e.status == StatusWord.INVALID_DATA
@@ -219,7 +220,7 @@ def test_sign_simple(firmware: Firmware,
         "gasPrice": Web3.to_wei(GAS_PRICE, 'gwei'),
         "gas": GAS_LIMIT,
         "to": ADDR2,
-        "value": 0x6f9c9e7bf61818,
+        "value": Web3.to_wei(AMOUNT2, "ether"),
         "chainId": CHAIN_ID
     }
     common(firmware, backend, navigator, tx_params, test_name, "m/44'/60'/1'/0/0")
@@ -252,7 +253,7 @@ def test_sign_nonce_display(firmware: Firmware,
         "gasPrice": Web3.to_wei(GAS_PRICE, 'gwei'),
         "gas": GAS_LIMIT,
         "to": ADDR2,
-        "value": 0x6f9c9e7bf61818,
+        "value": Web3.to_wei(AMOUNT2, "ether"),
         "chainId": CHAIN_ID
     }
     common(firmware, backend, navigator, tx_params, test_name, "m/44'/60'/1'/0/0")
@@ -270,7 +271,7 @@ def test_sign_blind_simple(firmware: Firmware,
         "gasPrice": Web3.to_wei(GAS_PRICE, 'gwei'),
         "gas": GAS_LIMIT,
         "to": ADDR2,
-        "value": 0x6f9c9e7bf61818,
+        "value": Web3.to_wei(AMOUNT2, "ether"),
         "chainId": CHAIN_ID,
         "data": data.encode('utf-8').hex()
     }
@@ -289,7 +290,7 @@ def test_sign_blind_and_nonce_display(firmware: Firmware,
         "gasPrice": Web3.to_wei(GAS_PRICE, 'gwei'),
         "gas": GAS_LIMIT,
         "to": ADDR2,
-        "value": 0x6f9c9e7bf61818,
+        "value": Web3.to_wei(AMOUNT2, "ether"),
         "chainId": CHAIN_ID,
         "data": data.encode('utf-8').hex()
     }
@@ -305,7 +306,7 @@ def test_sign_reject(firmware: Firmware,
         "gasPrice": Web3.to_wei(GAS_PRICE, 'gwei'),
         "gas": GAS_LIMIT,
         "to": ADDR2,
-        "value": 0x6f9c9e7bf61818,
+        "value": Web3.to_wei(AMOUNT2, "ether"),
         "chainId": CHAIN_ID
     }
     common_reject(firmware, backend, navigator, tx_params, test_name, "m/44'/60'/1'/0/0")
@@ -340,7 +341,7 @@ def test_sign_blind_error_disabled(backend: BackendInterface):
         "gasPrice": Web3.to_wei(GAS_PRICE, 'gwei'),
         "gas": GAS_LIMIT,
         "to": ADDR2,
-        "value": 0x6f9c9e7bf61818,
+        "value": Web3.to_wei(AMOUNT2, "ether"),
         "chainId": CHAIN_ID,
         "data": data.encode('utf-8').hex()
     }

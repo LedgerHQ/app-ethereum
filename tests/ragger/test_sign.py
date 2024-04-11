@@ -1,3 +1,4 @@
+from pathlib import Path
 from web3 import Web3
 
 from client.client import EthAppClient, StatusWord
@@ -8,9 +9,7 @@ from client.utils import recover_transaction
 from ragger.error import ExceptionRAPDU
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
-from ragger.navigator import Navigator, NavInsID, NavIns
-
-from constants import ROOT_SNAPSHOT_PATH
+from ragger.navigator import Navigator, NavInsID
 
 
 # Values used across all tests
@@ -33,6 +32,7 @@ AMOUNT2 = 0.31415
 def common(firmware: Firmware,
            backend: BackendInterface,
            navigator: Navigator,
+           default_screenshot_path: Path,
            tx_params: dict,
            test_name: str = "",
            path: str = BIP32_PATH):
@@ -56,7 +56,7 @@ def common(firmware: Firmware,
             navigator.navigate_until_text_and_compare(next_action,
                                                       [confirm_action],
                                                       end_text,
-                                                      ROOT_SNAPSHOT_PATH,
+                                                      default_screenshot_path,
                                                       test_name)
         else:
             navigator.navigate_until_text(next_action, [confirm_action], end_text)
@@ -70,6 +70,7 @@ def common(firmware: Firmware,
 def common_reject(firmware: Firmware,
                   backend: BackendInterface,
                   navigator: Navigator,
+                  default_screenshot_path: Path,
                   tx_params: dict,
                   test_name: str,
                   path: str = BIP32_PATH):
@@ -83,14 +84,14 @@ def common_reject(firmware: Firmware,
                 navigator.navigate_until_text_and_compare(next_action,
                                                           [confirm_action],
                                                           "Reject",
-                                                          ROOT_SNAPSHOT_PATH,
+                                                          default_screenshot_path,
                                                           test_name)
             else:
                 instructions = [NavInsID.USE_CASE_REVIEW_TAP] * 2
                 instructions += [NavInsID.USE_CASE_CHOICE_REJECT,
                                 NavInsID.USE_CASE_CHOICE_CONFIRM,
                                 NavInsID.USE_CASE_STATUS_DISMISS]
-                navigator.navigate_and_compare(ROOT_SNAPSHOT_PATH,
+                navigator.navigate_and_compare(default_screenshot_path,
                                                test_name,
                                                instructions)
 
@@ -116,7 +117,10 @@ def common_fail(backend: BackendInterface,
         assert False  # An exception should have been raised
 
 
-def test_legacy(firmware: Firmware, backend: BackendInterface, navigator: Navigator):
+def test_legacy(firmware: Firmware,
+                backend: BackendInterface,
+                navigator: Navigator,
+                default_screenshot_path: Path):
     tx_params: dict = {
         "nonce": NONCE,
         "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
@@ -125,7 +129,7 @@ def test_legacy(firmware: Firmware, backend: BackendInterface, navigator: Naviga
         "value": Web3.to_wei(AMOUNT, "ether"),
         "chainId": CHAIN_ID
     }
-    common(firmware, backend, navigator, tx_params)
+    common(firmware, backend, navigator, default_screenshot_path, tx_params)
 
 
 # Transfer amount >= 2^87 Eth on Ethereum app should fail
@@ -145,7 +149,8 @@ def test_legacy_send_error(backend: BackendInterface):
 def test_legacy_send_bsc(firmware: Firmware,
                          backend: BackendInterface,
                          navigator: Navigator,
-                         test_name: str):
+                         test_name: str,
+                         default_screenshot_path: Path):
     tx_params: dict = {
         "nonce": 1,
         "gasPrice": Web3.to_wei(GAS_PRICE2, 'gwei'),
@@ -154,14 +159,15 @@ def test_legacy_send_bsc(firmware: Firmware,
         "value": Web3.to_wei(AMOUNT2, "ether"),
         "chainId": 56
     }
-    common(firmware, backend, navigator, tx_params, test_name, BIP32_PATH2)
+    common(firmware, backend, navigator, default_screenshot_path, tx_params, test_name, BIP32_PATH2)
 
 
 # Transfer on network 112233445566 on Ethereum
 def test_legacy_chainid(firmware: Firmware,
                          backend: BackendInterface,
                          navigator: Navigator,
-                         test_name: str):
+                         test_name: str,
+                         default_screenshot_path: Path):
     tx_params: dict = {
         "nonce": NONCE2,
         "gasPrice": Web3.to_wei(GAS_PRICE, 'gwei'),
@@ -170,14 +176,15 @@ def test_legacy_chainid(firmware: Firmware,
         "value": Web3.to_wei(AMOUNT2, "ether"),
         "chainId": 112233445566
     }
-    common(firmware, backend, navigator, tx_params, test_name, BIP32_PATH2)
+    common(firmware, backend, navigator, default_screenshot_path, tx_params, test_name, BIP32_PATH2)
 
 
 # Try to blind sign with setting disabled
 def test_legacy_contract(firmware: Firmware,
                          backend: BackendInterface,
                          navigator: Navigator,
-                         test_name: str):
+                         test_name: str,
+                         default_screenshot_path: Path):
 
     buffer = bytes.fromhex("058000002c8000003c800000010000000000000000f849208506fc23ac008303dc3194f650c3d88d12db855b8bf7d11be6c55a4e07dcc980a4a1712d6800000000000000000000000000000000000000000000000000000000000acbc7018080")
     app_client = EthAppClient(backend)
@@ -190,7 +197,7 @@ def test_legacy_contract(firmware: Firmware,
                     NavInsID.RIGHT_CLICK,
                     NavInsID.BOTH_CLICK
                 ]
-                navigator.navigate_and_compare(ROOT_SNAPSHOT_PATH,
+                navigator.navigate_and_compare(default_screenshot_path,
                                                test_name,
                                                moves)
 
@@ -198,7 +205,10 @@ def test_legacy_contract(firmware: Firmware,
         assert e.status == StatusWord.INVALID_DATA
 
 
-def test_1559(firmware: Firmware, backend: BackendInterface, navigator: Navigator):
+def test_1559(firmware: Firmware,
+              backend: BackendInterface,
+              navigator: Navigator,
+              default_screenshot_path: Path):
     tx_params: dict = {
         "nonce": NONCE,
         "maxFeePerGas": Web3.to_wei(145, "gwei"),
@@ -208,13 +218,14 @@ def test_1559(firmware: Firmware, backend: BackendInterface, navigator: Navigato
         "value": Web3.to_wei(AMOUNT, "ether"),
         "chainId": CHAIN_ID
     }
-    common(firmware, backend, navigator, tx_params)
+    common(firmware, backend, navigator, default_screenshot_path, tx_params)
 
 
 def test_sign_simple(firmware: Firmware,
                      backend: BackendInterface,
                      navigator: Navigator,
-                     test_name: str):
+                     test_name: str,
+                     default_screenshot_path: Path):
     tx_params: dict = {
         "nonce": NONCE2,
         "gasPrice": Web3.to_wei(GAS_PRICE, 'gwei'),
@@ -223,13 +234,14 @@ def test_sign_simple(firmware: Firmware,
         "value": Web3.to_wei(AMOUNT2, "ether"),
         "chainId": CHAIN_ID
     }
-    common(firmware, backend, navigator, tx_params, test_name, "m/44'/60'/1'/0/0")
+    common(firmware, backend, navigator, default_screenshot_path, tx_params, test_name, "m/44'/60'/1'/0/0")
 
 
 def test_sign_limit_nonce(firmware: Firmware,
                           backend: BackendInterface,
                           navigator: Navigator,
-                          test_name: str):
+                          test_name: str,
+                          default_screenshot_path: Path):
     tx_params: dict = {
         "nonce": 2**64-1,
         "gasPrice": 10,
@@ -238,13 +250,14 @@ def test_sign_limit_nonce(firmware: Firmware,
         "value": 0x08762,
         "chainId": CHAIN_ID
     }
-    common(firmware, backend, navigator, tx_params, test_name, "m/44'/60'/1'/0/0")
+    common(firmware, backend, navigator, default_screenshot_path, tx_params, test_name, "m/44'/60'/1'/0/0")
 
 
 def test_sign_nonce_display(firmware: Firmware,
                             backend: BackendInterface,
                             navigator: Navigator,
-                            test_name: str):
+                            test_name: str,
+                            default_screenshot_path: Path):
 
     settings_toggle(firmware, navigator, [SettingID.NONCE])
 
@@ -256,13 +269,14 @@ def test_sign_nonce_display(firmware: Firmware,
         "value": Web3.to_wei(AMOUNT2, "ether"),
         "chainId": CHAIN_ID
     }
-    common(firmware, backend, navigator, tx_params, test_name, "m/44'/60'/1'/0/0")
+    common(firmware, backend, navigator, default_screenshot_path, tx_params, test_name, "m/44'/60'/1'/0/0")
 
 
 def test_sign_blind_simple(firmware: Firmware,
                            backend: BackendInterface,
                            navigator: Navigator,
-                           test_name: str):
+                           test_name: str,
+                           default_screenshot_path: Path):
     settings_toggle(firmware, navigator, [SettingID.BLIND_SIGNING])
 
     data = "ok"
@@ -275,13 +289,14 @@ def test_sign_blind_simple(firmware: Firmware,
         "chainId": CHAIN_ID,
         "data": data.encode('utf-8').hex()
     }
-    common(firmware, backend, navigator, tx_params, test_name, "m/44'/60'/1'/0/0")
+    common(firmware, backend, navigator, default_screenshot_path, tx_params, test_name, "m/44'/60'/1'/0/0")
 
 
 def test_sign_blind_and_nonce_display(firmware: Firmware,
                                       backend: BackendInterface,
                                       navigator: Navigator,
-                                      test_name: str):
+                                      test_name: str,
+                                      default_screenshot_path: Path):
     settings_toggle(firmware, navigator, [SettingID.NONCE, SettingID.BLIND_SIGNING])
 
     data = "That's a little message :)"
@@ -294,13 +309,14 @@ def test_sign_blind_and_nonce_display(firmware: Firmware,
         "chainId": CHAIN_ID,
         "data": data.encode('utf-8').hex()
     }
-    common(firmware, backend, navigator, tx_params, test_name, "m/44'/60'/1'/0/0")
+    common(firmware, backend, navigator, default_screenshot_path, tx_params, test_name, "m/44'/60'/1'/0/0")
 
 
 def test_sign_reject(firmware: Firmware,
                      backend: BackendInterface,
                      navigator: Navigator,
-                     test_name: str):
+                     test_name: str,
+                     default_screenshot_path: Path):
     tx_params: dict = {
         "nonce": NONCE2,
         "gasPrice": Web3.to_wei(GAS_PRICE, 'gwei'),
@@ -309,7 +325,7 @@ def test_sign_reject(firmware: Firmware,
         "value": Web3.to_wei(AMOUNT2, "ether"),
         "chainId": CHAIN_ID
     }
-    common_reject(firmware, backend, navigator, tx_params, test_name, "m/44'/60'/1'/0/0")
+    common_reject(firmware, backend, navigator, default_screenshot_path, tx_params, test_name, "m/44'/60'/1'/0/0")
 
 
 def test_sign_error_transaction_type(backend: BackendInterface):
@@ -352,7 +368,8 @@ def test_sign_blind_error_disabled(backend: BackendInterface):
 def test_sign_eip_2930(firmware: Firmware,
                        backend: BackendInterface,
                        navigator: Navigator,
-                       test_name: str):
+                       test_name: str,
+                       default_screenshot_path: Path):
 
     tx_params = {
         "nonce": NONCE,
@@ -370,4 +387,4 @@ def test_sign_eip_2930(firmware: Firmware,
             }
         ],
     }
-    common(firmware, backend, navigator, tx_params, test_name)
+    common(firmware, backend, navigator, default_screenshot_path, tx_params, test_name)

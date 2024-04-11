@@ -1,3 +1,4 @@
+from pathlib import Path
 import json
 import pytest
 from web3 import Web3
@@ -9,14 +10,15 @@ from ragger.firmware import Firmware
 from ragger.navigator import Navigator, NavInsID
 from ragger.error import ExceptionRAPDU
 
-from constants import ROOT_SNAPSHOT_PATH, ABIS_FOLDER
+from constants import ABIS_FOLDER
 
 
 # Token approval, would require loading the "internal plugin" &
 # providing the token metadata from the CAL
 def test_blind_sign(firmware: Firmware,
                     backend: BackendInterface,
-                    navigator: Navigator):
+                    navigator: Navigator,
+                    default_screenshot_path: Path):
     app_client = EthAppClient(backend)
 
     with open(f"{ABIS_FOLDER}/erc20.json", encoding="utf-8") as file:
@@ -51,6 +53,6 @@ def test_blind_sign(firmware: Firmware,
         moves += [NavInsID.BOTH_CLICK]
     else:
         moves += [NavInsID.USE_CASE_CHOICE_CONFIRM]
-    navigator.navigate_and_compare(ROOT_SNAPSHOT_PATH,
+    navigator.navigate_and_compare(default_screenshot_path,
                                    "blind-signed_approval",
                                    moves)

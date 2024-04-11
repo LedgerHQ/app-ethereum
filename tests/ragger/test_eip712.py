@@ -18,8 +18,6 @@ from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator, NavInsID
 
-from constants import ROOT_SNAPSHOT_PATH
-
 
 class SnapshotsConfig:
     test_name: str
@@ -90,14 +88,14 @@ def test_eip712_legacy(firmware: Firmware,
     assert s == bytes.fromhex("52d8ba9153de9255da220ffd36762c0b027701a3b5110f0a765f94b16a9dfb55")
 
 
-def autonext(firmware: Firmware, navigator: Navigator):
+def autonext(firmware: Firmware, navigator: Navigator, default_screenshot_path: Path):
     moves = []
     if firmware.device.startswith("nano"):
         moves = [NavInsID.RIGHT_CLICK]
     else:
         moves = [NavInsID.USE_CASE_REVIEW_TAP]
     if snaps_config is not None:
-        navigator.navigate_and_compare(ROOT_SNAPSHOT_PATH,
+        navigator.navigate_and_compare(default_screenshot_path,
                                        snaps_config.test_name,
                                        moves,
                                        screen_change_before_first_instruction=False,
@@ -112,6 +110,7 @@ def autonext(firmware: Firmware, navigator: Navigator):
 
 def eip712_new_common(firmware: Firmware,
                       navigator: Navigator,
+                      default_screenshot_path: Path,
                       app_client: EthAppClient,
                       json_data: dict,
                       filters: Optional[dict],
@@ -119,7 +118,7 @@ def eip712_new_common(firmware: Firmware,
     assert InputData.process_data(app_client,
                                   json_data,
                                   filters,
-                                  partial(autonext, firmware, navigator))
+                                  partial(autonext, firmware, navigator, default_screenshot_path))
     with app_client.eip712_sign_new(BIP32_PATH):
         moves = []
         if firmware.device.startswith("nano"):
@@ -134,7 +133,7 @@ def eip712_new_common(firmware: Firmware,
                 moves += [NavInsID.USE_CASE_REVIEW_TAP]
             moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
         if snaps_config is not None:
-            navigator.navigate_and_compare(ROOT_SNAPSHOT_PATH,
+            navigator.navigate_and_compare(default_screenshot_path,
                                      snaps_config.test_name,
                                      moves,
                                      snap_start_idx=snaps_config.idx)
@@ -147,6 +146,7 @@ def eip712_new_common(firmware: Firmware,
 def test_eip712_new(firmware: Firmware,
                     backend: BackendInterface,
                     navigator: Navigator,
+                    default_screenshot_path: Path,
                     input_file: Path,
                     verbose: bool,
                     filtering: bool):
@@ -181,6 +181,7 @@ def test_eip712_new(firmware: Firmware,
     with open(input_file, encoding="utf-8") as file:
         v, r, s = eip712_new_common(firmware,
                                     navigator,
+                                    default_screenshot_path,
                                     app_client,
                                     json.load(file),
                                     filters,
@@ -194,6 +195,7 @@ def test_eip712_new(firmware: Firmware,
 def test_eip712_address_substitution(firmware: Firmware,
                                      backend: BackendInterface,
                                      navigator: Navigator,
+                                     default_screenshot_path: Path,
                                      verbose: bool):
     global snaps_config
 
@@ -237,6 +239,7 @@ def test_eip712_address_substitution(firmware: Firmware,
 
     vrs = eip712_new_common(firmware,
                             navigator,
+                            default_screenshot_path,
                             app_client,
                             data,
                             filters,

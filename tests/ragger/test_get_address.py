@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Optional
 import pytest
 
@@ -11,8 +12,6 @@ from ragger.firmware import Firmware
 from ragger.backend import BackendInterface
 from ragger.navigator import Navigator, NavInsID
 from ragger.bip import calculate_public_key_and_chaincode, CurveChoice
-
-from constants import ROOT_SNAPSHOT_PATH
 
 from client.client import EthAppClient, StatusWord
 import client.response_parser as ResponseParser
@@ -70,13 +69,14 @@ def get_moves(firmware: Firmware,
 def test_get_pk_rejected(firmware: Firmware,
                          backend: BackendInterface,
                          navigator: Navigator,
+                         default_screenshot_path: Path,
                          path,
                          suffix):
     app_client = EthAppClient(backend)
 
     with pytest.raises(ExceptionRAPDU) as e:
         with app_client.get_public_addr(bip32_path=path):
-            navigator.navigate_and_compare(ROOT_SNAPSHOT_PATH,
+            navigator.navigate_and_compare(default_screenshot_path,
                                            f"get_pk_rejected_{suffix}",
                                            get_moves(firmware, reject=True))
     assert e.value.status == StatusWord.CONDITION_NOT_SATISFIED
@@ -85,12 +85,13 @@ def test_get_pk_rejected(firmware: Firmware,
 def test_get_pk(firmware: Firmware,
                 backend: BackendInterface,
                 navigator: Navigator,
+                default_screenshot_path: Path,
                 with_chaincode: bool,
                 chain: Optional[int]):
     app_client = EthAppClient(backend)
 
     with app_client.get_public_addr(chaincode=with_chaincode, chain_id=chain):
-        navigator.navigate_and_compare(ROOT_SNAPSHOT_PATH,
+        navigator.navigate_and_compare(default_screenshot_path,
                                        f"get_pk_{chain}",
                                        get_moves(firmware, chain=chain))
     pk, _, chaincode = ResponseParser.pk_addr(app_client.response().data, with_chaincode)
@@ -104,12 +105,13 @@ def test_get_pk(firmware: Firmware,
 def test_get_eth2_pk(firmware: Firmware,
                      backend: BackendInterface,
                      navigator: Navigator,
-                     test_name: str):
+                     test_name: str,
+                     default_screenshot_path: Path):
     app_client = EthAppClient(backend)
 
     path="m/12381/3600/0/0"
     with app_client.get_eth2_public_addr(bip32_path=path):
-        navigator.navigate_and_compare(ROOT_SNAPSHOT_PATH,
+        navigator.navigate_and_compare(default_screenshot_path,
                                        test_name,
                                        get_moves(firmware, pk_eth2=True))
 

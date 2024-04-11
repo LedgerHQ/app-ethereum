@@ -1,3 +1,4 @@
+from pathlib import Path
 from web3 import Web3
 
 from ragger.backend import BackendInterface
@@ -20,6 +21,7 @@ VALUE = 0.31415
 def test_clone_thundercore(firmware: Firmware,
                            backend: BackendInterface,
                            navigator: Navigator,
+                           default_screenshot_path: Path,
                            test_name: str):
     tx_params: dict = {
         "nonce": NONCE,
@@ -29,4 +31,4 @@ def test_clone_thundercore(firmware: Firmware,
         "value": Web3.to_wei(VALUE, "ether"),
         "chainId": 108
     }
-    common(firmware, backend, navigator, tx_params, test_name, BIP32_PATH)
+    common(firmware, backend, navigator, default_screenshot_path, tx_params, test_name, BIP32_PATH)

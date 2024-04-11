@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Callable, Optional, Any
 import json
 import pytest
@@ -12,7 +13,7 @@ from ragger.firmware import Firmware
 from ragger.backend import BackendInterface
 from ragger.navigator import Navigator, NavInsID
 
-from constants import ROOT_SNAPSHOT_PATH, ABIS_FOLDER
+from constants import ABIS_FOLDER
 
 
 BIP32_PATH = "m/44'/60'/0'/0/0"
@@ -81,6 +82,7 @@ def snapshot_test_name(nft_type: str, fn: str, chain_id: int, reject: bool) -> s
 def common_test_nft(firmware: Firmware,
                     backend: BackendInterface,
                     navigator: Navigator,
+                    default_screenshot_path: Path,
                     collec: NFTCollection,
                     action: Action,
                     reject: bool,
@@ -112,7 +114,7 @@ def common_test_nft(firmware: Firmware,
         "data": data,
     }
     with app_client.sign(BIP32_PATH, tx_params):
-        navigator.navigate_and_compare(ROOT_SNAPSHOT_PATH,
+        navigator.navigate_and_compare(default_screenshot_path,
                                  snapshot_test_name(plugin_name.lower(),
                                                     action.fn_name,
                                                     collec.chain_id,
@@ -130,10 +132,11 @@ def common_test_nft_reject(test_fn: Callable,
                            firmware: Firmware,
                            backend: BackendInterface,
                            navigator: Navigator,
+                           default_screenshot_path: Path,
                            collec: NFTCollection,
                            action: Action):
     with pytest.raises(ExceptionRAPDU) as e:
-        test_fn(firmware, backend, navigator, collec, action, True)
+        test_fn(firmware, backend, navigator, default_screenshot_path, collec, action, True)
     assert e.value.status == StatusWord.CONDITION_NOT_SATISFIED
 
 # ERC-721
@@ -226,12 +229,14 @@ def action_721_fixture(request) -> Action:
 def test_erc721(firmware: Firmware,
                 backend: BackendInterface,
                 navigator: Navigator,
+                default_screenshot_path: Path,
                 collec_721: NFTCollection,
                 action_721: Action,
                 reject: bool = False):
     common_test_nft(firmware,
                     backend,
                     navigator,
+                    default_screenshot_path,
                     collec_721,
                     action_721,
                     reject,
@@ -240,11 +245,13 @@ def test_erc721(firmware: Firmware,
 
 def test_erc721_reject(firmware: Firmware,
                        backend: BackendInterface,
-                       navigator: Navigator):
+                       navigator: Navigator,
+                       default_screenshot_path: Path):
     common_test_nft_reject(test_erc721,
                            firmware,
                            backend,
                            navigator,
+                           default_screenshot_path,
                            collecs_721[0],
                            actions_721[0])
 
@@ -337,12 +344,14 @@ def action_1155_fixture(request) -> Action:
 def test_erc1155(firmware: Firmware,
                  backend: BackendInterface,
                  navigator: Navigator,
+                 default_screenshot_path: Path,
                  collec_1155: NFTCollection,
                  action_1155: Action,
                  reject: bool = False):
     common_test_nft(firmware,
                     backend,
                     navigator,
+                    default_screenshot_path,
                     collec_1155,
                     action_1155,
                     reject,
@@ -351,10 +360,12 @@ def test_erc1155(firmware: Firmware,
 
 def test_erc1155_reject(firmware: Firmware,
                         backend: BackendInterface,
-                        navigator: Navigator):
+                        navigator: Navigator,
+                        default_screenshot_path: Path):
     common_test_nft_reject(test_erc1155,
                            firmware,
                            backend,
                            navigator,
+                           default_screenshot_path,
                            collecs_1155[0],
                            actions_1155[0])

@@ -1,22 +1,27 @@
+from pathlib import Path
 import json
 import pytest
+from web3 import Web3
+
+from client.client import EthAppClient, StatusWord
+
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator, NavInsID
 from ragger.error import ExceptionRAPDU
-from ledger_app_clients.ethereum.client import EthAppClient, StatusWord
-from web3 import Web3
-from constants import ROOT_SNAPSHOT_PATH, ABIS_FOLDER
+
+from constants import ABIS_FOLDER
 
 
 # Token approval, would require loading the "internal plugin" &
 # providing the token metadata from the CAL
 def test_blind_sign(firmware: Firmware,
                     backend: BackendInterface,
-                    navigator: Navigator):
+                    navigator: Navigator,
+                    default_screenshot_path: Path):
     app_client = EthAppClient(backend)
 
-    with open("%s/erc20.json" % (ABIS_FOLDER)) as file:
+    with open(f"{ABIS_FOLDER}/erc20.json", encoding="utf-8") as file:
         contract = Web3().eth.contract(
             abi=json.load(file),
             address=None
@@ -41,13 +46,13 @@ def test_blind_sign(firmware: Firmware,
             pass
     assert e.value.status == StatusWord.INVALID_DATA
 
-    moves = list()
+    moves = []
     if firmware.device.startswith("nano"):
         if firmware.device == "nanos":
             moves += [NavInsID.RIGHT_CLICK]
         moves += [NavInsID.BOTH_CLICK]
     else:
         moves += [NavInsID.USE_CASE_CHOICE_CONFIRM]
-    navigator.navigate_and_compare(ROOT_SNAPSHOT_PATH,
+    navigator.navigate_and_compare(default_screenshot_path,
                                    "blind-signed_approval",
                                    moves)

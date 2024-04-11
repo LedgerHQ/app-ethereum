@@ -1,15 +1,15 @@
+from pathlib import Path
 import pytest
+from web3 import Web3
+
+import client.response_parser as ResponseParser
+from client.client import EthAppClient, StatusWord
+from client.settings import SettingID, settings_toggle
+
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from ragger.error import ExceptionRAPDU
 from ragger.navigator import Navigator, NavInsID
-from constants import ROOT_SNAPSHOT_PATH
-
-import ledger_app_clients.ethereum.response_parser as ResponseParser
-from ledger_app_clients.ethereum.client import EthAppClient, StatusWord
-from ledger_app_clients.ethereum.settings import SettingID, settings_toggle
-
-from web3 import Web3
 
 
 # Values used across all tests
@@ -25,13 +25,14 @@ GAS_LIMIT = 21000
 AMOUNT = 1.22
 
 
-@pytest.fixture(params=[False, True])
-def verbose(request) -> bool:
+@pytest.fixture(name="verbose", params=[False, True])
+def verbose_fixture(request) -> bool:
     return request.param
 
 
-def common(app_client: EthAppClient) -> int:
-    if app_client._client.firmware.device == "nanos":
+def common(firmware: Firmware, app_client: EthAppClient) -> int:
+
+    if firmware.device == "nanos":
         pytest.skip("Not supported on LNS")
     challenge = app_client.get_challenge()
     return ResponseParser.challenge(challenge.data)
@@ -40,10 +41,10 @@ def common(app_client: EthAppClient) -> int:
 def test_send_fund(firmware: Firmware,
                    backend: BackendInterface,
                    navigator: Navigator,
-                   test_name: str,
+                   default_screenshot_path: Path,
                    verbose: bool):
     app_client = EthAppClient(backend)
-    challenge = common(app_client)
+    challenge = common(firmware, app_client)
 
     if verbose:
         settings_toggle(firmware, navigator, [SettingID.VERBOSE_ENS])
@@ -59,7 +60,7 @@ def test_send_fund(firmware: Firmware,
                              "value": Web3.to_wei(AMOUNT, "ether"),
                              "chainId": CHAIN_ID
                          }):
-        moves = list()
+        moves = []
         if firmware.device.startswith("nano"):
             moves += [NavInsID.RIGHT_CLICK] * 4
             if verbose:
@@ -70,16 +71,14 @@ def test_send_fund(firmware: Firmware,
             if verbose:
                 moves += [NavInsID.USE_CASE_REVIEW_TAP]
             moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
-        navigator.navigate_and_compare(ROOT_SNAPSHOT_PATH,
+        navigator.navigate_and_compare(default_screenshot_path,
                                        "domain_name_verbose_" + str(verbose),
                                        moves)
 
 
-def test_send_fund_wrong_challenge(firmware: Firmware,
-                                   backend: BackendInterface,
-                                   navigator: Navigator):
+def test_send_fund_wrong_challenge(firmware: Firmware, backend: BackendInterface):
     app_client = EthAppClient(backend)
-    challenge = common(app_client)
+    challenge = common(firmware, app_client)
 
     with pytest.raises(ExceptionRAPDU) as e:
         app_client.provide_domain_name(~challenge & 0xffffffff, NAME, ADDR)
@@ -89,9 +88,9 @@ def test_send_fund_wrong_challenge(firmware: Firmware,
 def test_send_fund_wrong_addr(firmware: Firmware,
                               backend: BackendInterface,
                               navigator: Navigator,
-                              test_name: str):
+                              default_screenshot_path: Path):
     app_client = EthAppClient(backend)
-    challenge = common(app_client)
+    challenge = common(firmware, app_client)
 
     app_client.provide_domain_name(challenge, NAME, ADDR)
 
@@ -107,14 +106,14 @@ def test_send_fund_wrong_addr(firmware: Firmware,
                              "value": Web3.to_wei(AMOUNT, "ether"),
                              "chainId": CHAIN_ID
                          }):
-        moves = list()
+        moves = []
         if firmware.device.startswith("nano"):
             moves += [NavInsID.RIGHT_CLICK] * 4
             moves += [NavInsID.BOTH_CLICK]
         else:
             moves += [NavInsID.USE_CASE_REVIEW_TAP] * 2
             moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
-        navigator.navigate_and_compare(ROOT_SNAPSHOT_PATH,
+        navigator.navigate_and_compare(default_screenshot_path,
                                        "domain_name_wrong_addr",
                                        moves)
 
@@ -122,9 +121,9 @@ def test_send_fund_wrong_addr(firmware: Firmware,
 def test_send_fund_non_mainnet(firmware: Firmware,
                                backend: BackendInterface,
                                navigator: Navigator,
-                               test_name: str):
+                               default_screenshot_path: Path):
     app_client = EthAppClient(backend)
-    challenge = common(app_client)
+    challenge = common(firmware, app_client)
 
     app_client.provide_domain_name(challenge, NAME, ADDR)
 
@@ -137,14 +136,14 @@ def test_send_fund_non_mainnet(firmware: Firmware,
                              "value": Web3.to_wei(AMOUNT, "ether"),
                              "chainId": 5
                          }):
-        moves = list()
+        moves = []
         if firmware.device.startswith("nano"):
             moves += [NavInsID.RIGHT_CLICK] * 5
             moves += [NavInsID.BOTH_CLICK]
         else:
             moves += [NavInsID.USE_CASE_REVIEW_TAP] * 2
             moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
-        navigator.navigate_and_compare(ROOT_SNAPSHOT_PATH,
+        navigator.navigate_and_compare(default_screenshot_path,
                                        "domain_name_non_mainnet",
                                        moves)
 
@@ -152,9 +151,9 @@ def test_send_fund_non_mainnet(firmware: Firmware,
 def test_send_fund_unknown_chain(firmware: Firmware,
                                  backend: BackendInterface,
                                  navigator: Navigator,
-                                 test_name: str):
+                                 default_screenshot_path: Path):
     app_client = EthAppClient(backend)
-    challenge = common(app_client)
+    challenge = common(firmware, app_client)
 
     app_client.provide_domain_name(challenge, NAME, ADDR)
 
@@ -167,56 +166,48 @@ def test_send_fund_unknown_chain(firmware: Firmware,
                              "value": Web3.to_wei(AMOUNT, "ether"),
                              "chainId": 9
                          }):
-        moves = list()
+        moves = []
         if firmware.device.startswith("nano"):
             moves += [NavInsID.RIGHT_CLICK] * 5
             moves += [NavInsID.BOTH_CLICK]
         else:
             moves += [NavInsID.USE_CASE_REVIEW_TAP] * 3
             moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
-        navigator.navigate_and_compare(ROOT_SNAPSHOT_PATH,
+        navigator.navigate_and_compare(default_screenshot_path,
                                        "domain_name_unknown_chain",
                                        moves)
 
 
-def test_send_fund_domain_too_long(firmware: Firmware,
-                                   backend: BackendInterface,
-                                   navigator: Navigator):
+def test_send_fund_domain_too_long(firmware: Firmware, backend: BackendInterface):
     app_client = EthAppClient(backend)
-    challenge = common(app_client)
+    challenge = common(firmware, app_client)
 
     with pytest.raises(ExceptionRAPDU) as e:
         app_client.provide_domain_name(challenge, "ledger" + "0"*25 + ".eth", ADDR)
     assert e.value.status == StatusWord.INVALID_DATA
 
 
-def test_send_fund_domain_invalid_character(firmware: Firmware,
-                                            backend: BackendInterface,
-                                            navigator: Navigator):
+def test_send_fund_domain_invalid_character(firmware: Firmware, backend: BackendInterface):
     app_client = EthAppClient(backend)
-    challenge = common(app_client)
+    challenge = common(firmware, app_client)
 
     with pytest.raises(ExceptionRAPDU) as e:
         app_client.provide_domain_name(challenge, "l\xe8dger.eth", ADDR)
     assert e.value.status == StatusWord.INVALID_DATA
 
 
-def test_send_fund_uppercase(firmware: Firmware,
-                             backend: BackendInterface,
-                             navigator: Navigator):
+def test_send_fund_uppercase(firmware: Firmware, backend: BackendInterface):
     app_client = EthAppClient(backend)
-    challenge = common(app_client)
+    challenge = common(firmware, app_client)
 
     with pytest.raises(ExceptionRAPDU) as e:
         app_client.provide_domain_name(challenge, NAME.upper(), ADDR)
     assert e.value.status == StatusWord.INVALID_DATA
 
 
-def test_send_fund_domain_non_ens(firmware: Firmware,
-                                  backend: BackendInterface,
-                                  navigator: Navigator):
+def test_send_fund_domain_non_ens(firmware: Firmware, backend: BackendInterface):
     app_client = EthAppClient(backend)
-    challenge = common(app_client)
+    challenge = common(firmware, app_client)
 
     with pytest.raises(ExceptionRAPDU) as e:
         app_client.provide_domain_name(challenge, "ledger.hte", ADDR)

@@ -1,17 +1,19 @@
-import pytest
-from typing import Optional, Any
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Optional, Any
+import json
+import pytest
+from web3 import Web3
+
+from client.client import EthAppClient, StatusWord
+import client.response_parser as ResponseParser
+from client.utils import get_selector_from_data, recover_transaction
+
 from ragger.error import ExceptionRAPDU
 from ragger.firmware import Firmware
 from ragger.backend import BackendInterface
 from ragger.navigator import Navigator, NavInsID
-from ledger_app_clients.ethereum.client import EthAppClient, StatusWord
-import ledger_app_clients.ethereum.response_parser as ResponseParser
-from ledger_app_clients.ethereum.utils import get_selector_from_data, recover_transaction
-from web3 import Web3
-import json
-from constants import ROOT_SNAPSHOT_PATH, ABIS_FOLDER
+
+from constants import ABIS_FOLDER
 
 
 BIP32_PATH = "m/44'/60'/0'/0/0"
@@ -52,7 +54,7 @@ def common_nav_nft(is_nano: bool,
                    nano_steps: int,
                    stax_steps: int,
                    reject: bool) -> list[NavInsID]:
-    moves = list()
+    moves = []
     if is_nano:
         moves += [NavInsID.RIGHT_CLICK] * nano_steps
         if reject:
@@ -71,23 +73,24 @@ def common_nav_nft(is_nano: bool,
 
 
 def snapshot_test_name(nft_type: str, fn: str, chain_id: int, reject: bool) -> str:
-    name = "%s_%s_%s" % (nft_type, fn, str(chain_id))
+    name = f"{nft_type}_{fn}_{str(chain_id)}"
     if reject:
         name += "-rejected"
     return name
 
 
-def common_test_nft(fw: Firmware,
-                    back: BackendInterface,
-                    nav: Navigator,
+def common_test_nft(firmware: Firmware,
+                    backend: BackendInterface,
+                    navigator: Navigator,
+                    default_screenshot_path: Path,
                     collec: NFTCollection,
                     action: Action,
                     reject: bool,
                     plugin_name: str):
     global DEVICE_ADDR
-    app_client = EthAppClient(back)
+    app_client = EthAppClient(backend)
 
-    if app_client._client.firmware.name == "nanos":
+    if firmware.device == "nanos":
         pytest.skip("Not supported on LNS")
 
     if DEVICE_ADDR is None:  # to only have to request it once
@@ -111,12 +114,12 @@ def common_test_nft(fw: Firmware,
         "data": data,
     }
     with app_client.sign(BIP32_PATH, tx_params):
-        nav.navigate_and_compare(ROOT_SNAPSHOT_PATH,
+        navigator.navigate_and_compare(default_screenshot_path,
                                  snapshot_test_name(plugin_name.lower(),
                                                     action.fn_name,
                                                     collec.chain_id,
                                                     reject),
-                                 action.nav_fn(fw.is_nano,
+                                 action.nav_fn(firmware.is_nano,
                                                collec.chain_id,
                                                reject))
     # verify signature
@@ -126,13 +129,14 @@ def common_test_nft(fw: Firmware,
 
 
 def common_test_nft_reject(test_fn: Callable,
-                           fw: Firmware,
-                           back: BackendInterface,
-                           nav: Navigator,
+                           firmware: Firmware,
+                           backend: BackendInterface,
+                           navigator: Navigator,
+                           default_screenshot_path: Path,
                            collec: NFTCollection,
                            action: Action):
     with pytest.raises(ExceptionRAPDU) as e:
-        test_fn(fw, back, nav, collec, action, True)
+        test_fn(firmware, backend, navigator, default_screenshot_path, collec, action, True)
     assert e.value.status == StatusWord.CONDITION_NOT_SATISFIED
 
 # ERC-721
@@ -140,13 +144,13 @@ def common_test_nft_reject(test_fn: Callable,
 
 ERC721_PLUGIN = "ERC721"
 
-with open("%s/erc721.json" % (ABIS_FOLDER)) as file:
+with open(f"{ABIS_FOLDER}/erc721.json", encoding="utf-8") as file:
     contract_erc721 = Web3().eth.contract(
         abi=json.load(file),
         address=bytes(20)
     )
 
-# ui nav functions
+# ui navigator functions
 
 def nav_erc721_transfer_from(is_nano: bool,
                              chain_id: int,
@@ -212,25 +216,27 @@ actions_721 = [
 ]
 
 
-@pytest.fixture(params=collecs_721)
-def collec_721(request) -> NFTCollection:
+@pytest.fixture(name="collec_721", params=collecs_721)
+def collec_721_fixture(request) -> NFTCollection:
     return request.param
 
 
-@pytest.fixture(params=actions_721)
-def action_721(request) -> Action:
+@pytest.fixture(name="action_721", params=actions_721)
+def action_721_fixture(request) -> Action:
     return request.param
 
 
 def test_erc721(firmware: Firmware,
                 backend: BackendInterface,
                 navigator: Navigator,
+                default_screenshot_path: Path,
                 collec_721: NFTCollection,
                 action_721: Action,
                 reject: bool = False):
     common_test_nft(firmware,
                     backend,
                     navigator,
+                    default_screenshot_path,
                     collec_721,
                     action_721,
                     reject,
@@ -239,11 +245,13 @@ def test_erc721(firmware: Firmware,
 
 def test_erc721_reject(firmware: Firmware,
                        backend: BackendInterface,
-                       navigator: Navigator):
+                       navigator: Navigator,
+                       default_screenshot_path: Path):
     common_test_nft_reject(test_erc721,
                            firmware,
                            backend,
                            navigator,
+                           default_screenshot_path,
                            collecs_721[0],
                            actions_721[0])
 
@@ -252,14 +260,14 @@ def test_erc721_reject(firmware: Firmware,
 
 ERC1155_PLUGIN = "ERC1155"
 
-with open("%s/erc1155.json" % (ABIS_FOLDER)) as file:
+with open(f"{ABIS_FOLDER}/erc1155.json", encoding="utf-8") as file:
     contract_erc1155 = Web3().eth.contract(
         abi=json.load(file),
         address=bytes(20)
     )
 
 
-# ui nav functions
+# ui navigator functions
 
 def nav_erc1155_safe_transfer_from(is_nano: bool,
                                    chain_id: int,
@@ -323,25 +331,27 @@ actions_1155 = [
 ]
 
 
-@pytest.fixture(params=collecs_1155)
-def collec_1155(request) -> bool:
+@pytest.fixture(name="collec_1155", params=collecs_1155)
+def collec_1155_fixture(request) -> bool:
     return request.param
 
 
-@pytest.fixture(params=actions_1155)
-def action_1155(request) -> Action:
+@pytest.fixture(name="action_1155", params=actions_1155)
+def action_1155_fixture(request) -> Action:
     return request.param
 
 
 def test_erc1155(firmware: Firmware,
                  backend: BackendInterface,
                  navigator: Navigator,
+                 default_screenshot_path: Path,
                  collec_1155: NFTCollection,
                  action_1155: Action,
                  reject: bool = False):
     common_test_nft(firmware,
                     backend,
                     navigator,
+                    default_screenshot_path,
                     collec_1155,
                     action_1155,
                     reject,
@@ -350,10 +360,12 @@ def test_erc1155(firmware: Firmware,
 
 def test_erc1155_reject(firmware: Firmware,
                         backend: BackendInterface,
-                        navigator: Navigator):
+                        navigator: Navigator,
+                        default_screenshot_path: Path):
     common_test_nft_reject(test_erc1155,
                            firmware,
                            backend,
                            navigator,
+                           default_screenshot_path,
                            collecs_1155[0],
                            actions_1155[0])

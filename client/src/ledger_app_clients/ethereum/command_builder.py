@@ -11,6 +11,7 @@ from .eip712 import EIP712FieldType
 
 class InsType(IntEnum):
     GET_PUBLIC_ADDR = 0x02
+    GET_ETH2_PUBLIC_ADDR = 0x0e
     SIGN = 0x04
     PERSONAL_SIGN = 0x08
     PROVIDE_ERC20_TOKEN_INFORMATION = 0x0a
@@ -248,6 +249,15 @@ class CommandBuilder:
         return self._serialize(InsType.GET_PUBLIC_ADDR,
                                int(display),
                                int(chaincode),
+                               payload)
+
+    def get_eth2_public_addr(self,
+                             display: bool,
+                             bip32_path: str) -> bytes:
+        payload = pack_derivation_path(bip32_path)
+        return self._serialize(InsType.GET_ETH2_PUBLIC_ADDR,
+                               int(display),
+                               0x00,
                                payload)
 
     def set_plugin(self,

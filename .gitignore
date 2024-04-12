@@ -3,17 +3,15 @@ bin/
 debug/
 build/
 
+# Unit tests and code coverage
+tests/unit/build/
+tests/unit/coverage/
+tests/unit/coverage.*
+
 # Python
 venv/
 *.pyc
 __version__.py
-
-# JS
-tests/node_modules
-tests/lib
-tests/yarn-error.log
-tests/elfs/*
-tests/snapshots-tmp
 
 .vscode
 .idea

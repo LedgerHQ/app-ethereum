@@ -71,7 +71,6 @@ else
     APP_SOURCE_PATH += src_bagl
 endif
 APP_SOURCE_FILES += ${BOLOS_SDK}/lib_standard_app/crypto_helpers.c
-SDK_SOURCE_PATH += lib_u2f
 
 ifeq ($(TARGET_NAME),TARGET_STAX)
 NETWORK_ICONS_FILE = $(GEN_SRC_DIR)/net_icons.gen.c
@@ -171,10 +170,6 @@ DISABLE_STANDARD_APP_FILES = 1
 ########################################
 #        Main app configuration        #
 ########################################
-
-# U2F
-DEFINES += HAVE_IO_U2F
-DEFINES += U2F_PROXY_MAGIC=\"w0w\"
 
 DEFINES += CHAINID_COINNAME=\"$(TICKER)\" CHAIN_ID=$(CHAIN_ID)
 DEFINES += BUILD_YEAR=\"$(shell date +%Y)\"

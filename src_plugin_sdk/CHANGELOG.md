@@ -5,7 +5,13 @@
 | :rotating_light:     | Breaks build                  |
 | :warning:            | Breaks compatibility with app |
 
-## [latest](/) - 2024/03/27
+## [latest](/) - 2024/04/12
+
+### Fixed
+
+* Fix potential oob writes in `amountToString`
+
+## [8fe6572](/../../commit/8fe6572) - 2024/03/27
 
 ### Changed
 

@@ -21,8 +21,6 @@ endif
 
 include $(BOLOS_SDK)/Makefile.defines
 
-# Allows to use sprintf(..., "0x%.*H", ...)
-CFLAGS += -Wno-format-invalid-specifier -Wno-format-extra-args
 ########################################
 #        Mandatory configuration       #
 ########################################
@@ -54,6 +52,7 @@ APP_SOURCE_FILES += ./ethereum-plugin-sdk/src/common_utils.c
 APP_SOURCE_FILES += ./ethereum-plugin-sdk/src/plugin_utils.c
 INCLUDES_PATH += ./ethereum-plugin-sdk/src
 APP_SOURCE_FILES += ${BOLOS_SDK}/lib_standard_app/crypto_helpers.c
+APP_SOURCE_FILES += ${BOLOS_SDK}/lib_standard_app/format.c
 INCLUDES_PATH += ${BOLOS_SDK}/lib_standard_app
 
 ifeq ($(TARGET_NAME),TARGET_STAX)

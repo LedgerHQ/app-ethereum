@@ -199,7 +199,7 @@ void eth2_plugin_call(int message, void *parameters) {
             switch (msg->screenIndex) {
                 case 0: {  // Amount screen
                     uint8_t decimals = WEI_TO_ETHER;
-                    char *ticker = chainConfig->coinName;
+                    const char *ticker = chainConfig->coinName;
                     strlcpy(msg->title, "Amount", msg->titleLength);
                     if (!amountToString(tmpContent.txContent.value.value,
                                         tmpContent.txContent.value.length,

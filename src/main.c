@@ -67,7 +67,7 @@ const internalStorage_t N_storage_real;
 #ifdef HAVE_NBGL
 caller_app_t *caller_app = NULL;
 #endif
-chain_config_t *chainConfig = NULL;
+const chain_config_t *chainConfig;
 
 void reset_app_context() {
     // PRINTF("!!RESET_APP_CONTEXT\n");
@@ -114,7 +114,7 @@ unsigned short io_exchange_al(unsigned char channel, unsigned short tx_len) {
     return 0;
 }
 
-extraInfo_t *getKnownToken(uint8_t *contractAddress) {
+extraInfo_t *getKnownToken(const uint8_t *contractAddress) {
     union extraInfo_t *currentItem = NULL;
     // Works for ERC-20 & NFT tokens since both structs in the union have the
     // contract address aligned
@@ -456,7 +456,7 @@ void app_main(void) {
 // override point, but nothing more to do
 #ifdef HAVE_BAGL
 void io_seproxyhal_display(const bagl_element_t *element) {
-    io_seproxyhal_display_default((bagl_element_t *) element);
+    io_seproxyhal_display_default(element);
 }
 #endif
 
@@ -526,7 +526,7 @@ void init_coin_config(chain_config_t *coin_config) {
     coin_config->chainId = CHAIN_ID;
 }
 
-void coin_main(libargs_t *args) {
+__attribute__((noreturn)) void coin_main(libargs_t *args) {
     chain_config_t config;
     if (args) {
         if (args->chain_config != NULL) {
@@ -612,10 +612,10 @@ void coin_main(libargs_t *args) {
         }
         END_TRY;
     }
-    app_exit();
+    os_sched_exit(-1);
 }
 
-void library_main(libargs_t *args) {
+__attribute__((noreturn)) void library_main(libargs_t *args) {
     chain_config_t coin_config;
     if (args->chain_config == NULL) {
         // We have been started directly by Exchange, not by a Clone. Init default chain

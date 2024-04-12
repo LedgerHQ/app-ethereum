@@ -14,7 +14,7 @@
 static uint8_t* G_swap_sign_return_value_address;
 
 bool copy_transaction_parameters(create_transaction_parameters_t* sign_transaction_params,
-                                 chain_config_t* config) {
+                                 const chain_config_t* config) {
     // first copy parameters to stack, and then to global data.
     // We need this "trick" as the input data position can overlap with app-ethereum globals
     txStringProperties_t stack_data;
@@ -80,7 +80,7 @@ void __attribute__((noreturn)) finalize_exchange_sign_transaction(bool is_succes
     os_lib_end();
 }
 
-void __attribute__((noreturn)) handle_swap_sign_transaction(chain_config_t* config) {
+void __attribute__((noreturn)) handle_swap_sign_transaction(const chain_config_t* config) {
 #ifdef HAVE_NBGL
     // On Stax, display a spinner at startup
     UX_INIT();

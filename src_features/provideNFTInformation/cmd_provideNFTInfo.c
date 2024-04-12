@@ -137,7 +137,7 @@ void handleProvideNFTInformation(uint8_t p1,
     offset += CHAIN_ID_SIZE;
 
     uint8_t keyId = workBuffer[offset];
-    uint8_t *rawKey;
+    const uint8_t *rawKey;
     uint8_t rawKeyLen;
 
     PRINTF("KeyID: %d\n", keyId);
@@ -146,7 +146,7 @@ void handleProvideNFTInformation(uint8_t p1,
         case STAGING_NFT_METADATA_KEY:
 #endif
         case PROD_NFT_METADATA_KEY:
-            rawKey = (uint8_t *) LEDGER_NFT_METADATA_PUBLIC_KEY;
+            rawKey = LEDGER_NFT_METADATA_PUBLIC_KEY;
             rawKeyLen = sizeof(LEDGER_NFT_METADATA_PUBLIC_KEY);
             break;
         default:

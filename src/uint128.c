@@ -53,11 +53,9 @@ void shiftl128(const uint128_t *const number, uint32_t value, uint128_t *const t
     } else if (value < 64) {
         UPPER_P(target) = (UPPER_P(number) << value) + (LOWER_P(number) >> (64 - value));
         LOWER_P(target) = (LOWER_P(number) << value);
-    } else if ((128 > value) && (value > 64)) {
+    } else {
         UPPER_P(target) = LOWER_P(number) << (value - 64);
         LOWER_P(target) = 0;
-    } else {
-        clear128(target);
     }
 }
 
@@ -74,11 +72,9 @@ void shiftr128(const uint128_t *const number, uint32_t value, uint128_t *const t
         UPPER(result) = UPPER_P(number) >> value;
         LOWER(result) = (UPPER_P(number) << (64 - value)) + (LOWER_P(number) >> value);
         copy128(target, &result);
-    } else if ((128 > value) && (value > 64)) {
+    } else {
         LOWER_P(target) = UPPER_P(number) >> (value - 64);
         UPPER_P(target) = 0;
-    } else {
-        clear128(target);
     }
 }
 

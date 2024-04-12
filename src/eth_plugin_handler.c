@@ -102,11 +102,11 @@ static void eth_plugin_perform_init_default(uint8_t *contractAddress,
 static bool eth_plugin_perform_init_old_internal(uint8_t *contractAddress,
                                                  ethPluginInitContract_t *init) {
     uint8_t i, j;
-    const uint8_t **selectors;
+    const uint8_t *const *selectors;
 
     // Search internal plugin list
     for (i = 0;; i++) {
-        selectors = (const uint8_t **) PIC(INTERNAL_ETH_PLUGINS[i].selectors);
+        selectors = (const uint8_t *const *) PIC(INTERNAL_ETH_PLUGINS[i].selectors);
         if (selectors == NULL) {
             break;
         }

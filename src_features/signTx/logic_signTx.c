@@ -9,10 +9,11 @@
 #include "ui_callbacks.h"
 #include "apdu_constants.h"
 #include "crypto_helpers.h"
+#include "format.h"
 
 #define ERR_SILENT_MODE_CHECK_FAILED 0x6001
 
-uint32_t splitBinaryParameterPart(char *result, uint8_t *parameter) {
+static uint32_t splitBinaryParameterPart(char *result, size_t result_size, uint8_t *parameter) {
     uint32_t i;
     for (i = 0; i < 8; i++) {
         if (parameter[i] != 0x00) {
@@ -25,7 +26,7 @@ uint32_t splitBinaryParameterPart(char *result, uint8_t *parameter) {
         result[2] = '\0';
         return 2;
     } else {
-        array_hexstr(result, parameter + i, 8 - i);
+        format_hex(parameter + i, 8 - i, result, result_size);
         return ((8 - i) * 2);
     }
 }
@@ -144,7 +145,10 @@ customStatus_e customProcessor(txContext_t *context) {
             }
             dataContext.tokenContext.fieldOffset = 0;
             if (fieldPos == 0) {
-                array_hexstr(strings.tmp.tmp, dataContext.tokenContext.data, 4);
+                format_hex(dataContext.tokenContext.data,
+                           4,
+                           strings.tmp.tmp,
+                           sizeof(strings.tmp.tmp));
                 ui_confirm_selector();
             } else {
                 uint32_t offset = 0;
@@ -155,6 +159,7 @@ customStatus_e customProcessor(txContext_t *context) {
                          dataContext.tokenContext.fieldIndex);
                 for (i = 0; i < 4; i++) {
                     offset += splitBinaryParameterPart(strings.tmp.tmp + offset,
+                                                       sizeof(strings.tmp.tmp) - offset,
                                                        dataContext.tokenContext.data + 8 * i);
                     if (i != 3) {
                         strings.tmp.tmp[offset++] = ':';

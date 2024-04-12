@@ -2,6 +2,7 @@
 #include "shared_context.h"
 #include "ui_callbacks.h"
 #include "ui_nbgl.h"
+#include "uint_common.h"
 
 static void reviewReject(void) {
     io_seproxyhal_touch_address_cancel(NULL);
@@ -21,7 +22,10 @@ static void reviewChoice(bool confirm) {
 }
 
 static void buildScreen(void) {
-    snprintf(strings.tmp.tmp, 100, "0x%.*H", 48, tmpCtx.publicKeyContext.publicKey.W);
+    bytes_to_string(strings.tmp.tmp,
+                    sizeof(strings.tmp.tmp),
+                    tmpCtx.publicKeyContext.publicKey.W,
+                    48);
     nbgl_useCaseAddressConfirmation(strings.tmp.tmp, reviewChoice);
 }
 

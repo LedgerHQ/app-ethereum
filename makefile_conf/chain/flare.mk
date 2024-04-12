@@ -1,8 +1,0 @@
-PATH_APP_LOAD_PARAMS += "44'/554'" "44'/60'"
-TICKER = "FLR"
-CHAIN_ID = 14
-APPNAME = "Flare"
-
-# Pending review parameters
-ENABLE_PENDING_REVIEW_SCREEN = 1
-

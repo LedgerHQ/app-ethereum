@@ -1,4 +1,0 @@
-PATH_APP_LOAD_PARAMS += "44'/554'" "44'/60'"
-TICKER = "FLR"
-CHAIN_ID = 16
-APPNAME = "Flare Coston"

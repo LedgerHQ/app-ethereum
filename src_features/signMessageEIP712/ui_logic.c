@@ -18,6 +18,44 @@
 #include "common_ui.h"
 #include "uint_common.h"
 
+#define AMOUNT_JOIN_FLAG_TOKEN (1 << 0)
+#define AMOUNT_JOIN_FLAG_VALUE (1 << 1)
+
+typedef struct {
+    // display name, not NULL-terminated
+    char name[25];
+    uint8_t name_length;
+    uint8_t value[INT256_LENGTH];
+    uint8_t value_length;
+    // indicates the steps the token join has gone through
+    uint8_t flags;
+} s_amount_join;
+
+typedef enum {
+    AMOUNT_JOIN_STATE_TOKEN,
+    AMOUNT_JOIN_STATE_VALUE,
+} e_amount_join_state;
+
+#define UI_712_FIELD_SHOWN         (1 << 0)
+#define UI_712_FIELD_NAME_PROVIDED (1 << 1)
+#define UI_712_AMOUNT_JOIN         (1 << 2)
+
+typedef struct {
+    s_amount_join joins[MAX_ASSETS];
+    uint8_t idx;
+    e_amount_join_state state;
+} s_amount_context;
+
+typedef struct {
+    bool shown;
+    bool end_reached;
+    uint8_t filtering_mode;
+    uint8_t filters_to_process;
+    uint8_t field_flags;
+    uint8_t structs_to_review;
+    s_amount_context amount;
+} t_ui_context;
+
 static t_ui_context *ui_ctx = NULL;
 
 /**
@@ -32,8 +70,7 @@ static bool ui_712_field_shown(void) {
         if (N_storage.verbose_eip712 || (path_get_root_type() == ROOT_DOMAIN)) {
             ret = true;
         }
-    } else  // EIP712_FILTERING_FULL
-    {
+    } else {  // EIP712_FILTERING_FULL
         if (ui_ctx->field_flags & UI_712_FIELD_SHOWN) {
             ret = true;
         }
@@ -103,8 +140,7 @@ void ui_712_set_value(const char *const str, uint8_t length) {
  * Redraw the dynamic UI step that shows EIP712 information
  */
 void ui_712_redraw_generic_step(void) {
-    if (!ui_ctx->shown)  // Initialize if it is not already
-    {
+    if (!ui_ctx->shown) {  // Initialize if it is not already
         ui_712_start();
         ui_ctx->shown = true;
     } else {
@@ -335,6 +371,62 @@ static void ui_712_format_uint(const uint8_t *const data, uint8_t length) {
 }
 
 /**
+ * Format given data as an amount with its ticker and value with correct decimals
+ *
+ * @return whether it was successful or not
+ */
+static bool ui_712_format_amount_join(void) {
+    const tokenDefinition_t *token;
+    token = &tmpCtx.transactionContext.extraInfo[ui_ctx->amount.idx].token;
+
+    if (!amountToString(ui_ctx->amount.joins[ui_ctx->amount.idx].value,
+                        ui_ctx->amount.joins[ui_ctx->amount.idx].value_length,
+                        token->decimals,
+                        token->ticker,
+                        strings.tmp.tmp,
+                        sizeof(strings.tmp.tmp))) {
+        return false;
+    }
+    ui_ctx->field_flags |= UI_712_FIELD_SHOWN;
+    ui_712_set_title(ui_ctx->amount.joins[ui_ctx->amount.idx].name,
+                     ui_ctx->amount.joins[ui_ctx->amount.idx].name_length);
+    explicit_bzero(&ui_ctx->amount.joins[ui_ctx->amount.idx],
+                   sizeof(ui_ctx->amount.joins[ui_ctx->amount.idx]));
+    return true;
+}
+
+/**
+ * Update the state of the amount-join
+ *
+ * @param[in] data the data that needs formatting
+ * @param[in] length its length
+ * @return whether it was successful or not
+ */
+static bool update_amount_join(const uint8_t *data, uint8_t length) {
+    tokenDefinition_t *token;
+
+    token = &tmpCtx.transactionContext.extraInfo[ui_ctx->amount.idx].token;
+    switch (ui_ctx->amount.state) {
+        case AMOUNT_JOIN_STATE_TOKEN:
+            if (memcmp(data, token->address, ADDRESS_LENGTH) != 0) {
+                return false;
+            }
+            ui_ctx->amount.joins[ui_ctx->amount.idx].flags |= AMOUNT_JOIN_FLAG_TOKEN;
+            break;
+
+        case AMOUNT_JOIN_STATE_VALUE:
+            memcpy(ui_ctx->amount.joins[ui_ctx->amount.idx].value, data, length);
+            ui_ctx->amount.joins[ui_ctx->amount.idx].value_length = length;
+            ui_ctx->amount.joins[ui_ctx->amount.idx].flags |= AMOUNT_JOIN_FLAG_VALUE;
+            break;
+
+        default:
+            return false;
+    }
+    return true;
+}
+
+/**
  * Used to notify of a new field to review in the current struct (key + value)
  *
  * @param[in] field_ptr pointer to the new struct field
@@ -392,6 +484,19 @@ bool ui_712_new_field(const void *const field_ptr, const uint8_t *const data, ui
             return false;
     }
 
+    if (ui_ctx->field_flags & UI_712_AMOUNT_JOIN) {
+        if (!update_amount_join(data, length)) {
+            return false;
+        }
+
+        if (ui_ctx->amount.joins[ui_ctx->amount.idx].flags ==
+            (AMOUNT_JOIN_FLAG_TOKEN | AMOUNT_JOIN_FLAG_VALUE)) {
+            if (!ui_712_format_amount_join()) {
+                return false;
+            }
+        }
+    }
+
     // Check if this field is supposed to be displayed
     if (ui_712_field_shown()) {
         ui_712_redraw_generic_step();
@@ -423,6 +528,7 @@ bool ui_712_init(void) {
         ui_ctx->shown = false;
         ui_ctx->end_reached = false;
         ui_ctx->filtering_mode = EIP712_FILTERING_BASIC;
+        explicit_bzero(&ui_ctx->amount, sizeof(ui_ctx->amount));
     } else {
         apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
     }
@@ -466,13 +572,17 @@ unsigned int ui_712_reject() {
  *
  * @param[in] show if this field should be shown on the device
  * @param[in] name_provided if a substitution name has been provided
+ * @param[in] token_join if this field is part of a token join
  */
-void ui_712_flag_field(bool show, bool name_provided) {
+void ui_712_flag_field(bool show, bool name_provided, bool token_join) {
     if (show) {
         ui_ctx->field_flags |= UI_712_FIELD_SHOWN;
     }
     if (name_provided) {
         ui_ctx->field_flags |= UI_712_FIELD_NAME_PROVIDED;
+    }
+    if (token_join) {
+        ui_ctx->field_flags |= UI_712_AMOUNT_JOIN;
     }
 }
 
@@ -545,6 +655,20 @@ void ui_712_notify_filter_change(void) {
             }
         }
     }
+}
+
+void ui_712_token_join_prepare_addr_check(uint8_t index) {
+    ui_ctx->amount.idx = index;
+    ui_ctx->amount.state = AMOUNT_JOIN_STATE_TOKEN;
+}
+
+void ui_712_token_join_prepare_amount(uint8_t index, const char *name, uint8_t name_length) {
+    uint8_t cpy_len = MIN(sizeof(ui_ctx->amount.joins[index].name), name_length);
+
+    ui_ctx->amount.idx = index;
+    ui_ctx->amount.state = AMOUNT_JOIN_STATE_VALUE;
+    memcpy(ui_ctx->amount.joins[index].name, name, cpy_len);
+    ui_ctx->amount.joins[index].name_length = cpy_len;
 }
 
 #endif  // HAVE_EIP712_FULL_SUPPORT

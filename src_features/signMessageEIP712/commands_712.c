@@ -14,6 +14,23 @@
 #include "filtering.h"
 #include "common_712.h"
 #include "common_ui.h"  // ui_idle
+#include "manage_asset_info.h"
+
+// APDUs P1
+#define P1_COMPLETE 0x00
+#define P1_PARTIAL  0xFF
+
+// APDUs P2
+#define P2_DEF_NAME               0x00
+#define P2_DEF_FIELD              0xFF
+#define P2_IMPL_NAME              P2_DEF_NAME
+#define P2_IMPL_ARRAY             0x0F
+#define P2_IMPL_FIELD             P2_DEF_FIELD
+#define P2_FILT_ACTIVATE          0x00
+#define P2_FILT_MESSAGE_INFO      0x0F
+#define P2_FILT_AMOUNT_JOIN_TOKEN 0xFD
+#define P2_FILT_AMOUNT_JOIN_VALUE 0xFE
+#define P2_FILT_RAW_FIELD         0xFF
 
 /**
  * Send the response to the previous APDU command
@@ -136,39 +153,43 @@ bool handle_eip712_struct_impl(const uint8_t *const apdu_buf) {
 bool handle_eip712_filtering(const uint8_t *const apdu_buf) {
     bool ret = true;
     bool reply_apdu = true;
-    e_filtering_type type;
 
     if (eip712_context == NULL) {
         apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
-        ret = false;
-    } else {
-        switch (apdu_buf[OFFSET_P2]) {
-            case P2_FILT_ACTIVATE:
-                if (!N_storage.verbose_eip712) {
-                    ui_712_set_filtering_mode(EIP712_FILTERING_FULL);
-                    ret = compute_schema_hash();
-                }
-                break;
-            case P2_FILT_MESSAGE_INFO:
-            case P2_FILT_SHOW_FIELD:
-                type = (apdu_buf[OFFSET_P2] == P2_FILT_MESSAGE_INFO)
-                           ? FILTERING_PROVIDE_MESSAGE_INFO
-                           : FILTERING_SHOW_FIELD;
-                if (ui_712_get_filtering_mode() == EIP712_FILTERING_FULL) {
-                    ret =
-                        provide_filtering_info(&apdu_buf[OFFSET_CDATA], apdu_buf[OFFSET_LC], type);
-                    if ((apdu_buf[OFFSET_P2] == P2_FILT_MESSAGE_INFO) && ret) {
-                        reply_apdu = false;
-                    }
-                }
-                break;
-            default:
-                PRINTF("Unknown P2 0x%x for APDU 0x%x\n",
-                       apdu_buf[OFFSET_P2],
-                       apdu_buf[OFFSET_INS]);
-                apdu_response_code = APDU_RESPONSE_INVALID_P1_P2;
-                ret = false;
-        }
+        return false;
+    }
+    if ((apdu_buf[OFFSET_P2] != P2_FILT_ACTIVATE) &&
+        (ui_712_get_filtering_mode() != EIP712_FILTERING_FULL)) {
+        handle_eip712_return_code(true);
+        return true;
+    }
+    switch (apdu_buf[OFFSET_P2]) {
+        case P2_FILT_ACTIVATE:
+            if (!N_storage.verbose_eip712) {
+                ui_712_set_filtering_mode(EIP712_FILTERING_FULL);
+                ret = compute_schema_hash();
+            }
+            forget_known_assets();
+            break;
+        case P2_FILT_MESSAGE_INFO:
+            ret = filtering_message_info(&apdu_buf[OFFSET_CDATA], apdu_buf[OFFSET_LC]);
+            if (ret) {
+                reply_apdu = false;
+            }
+            break;
+        case P2_FILT_AMOUNT_JOIN_TOKEN:
+            ret = filtering_amount_join_token(&apdu_buf[OFFSET_CDATA], apdu_buf[OFFSET_LC]);
+            break;
+        case P2_FILT_AMOUNT_JOIN_VALUE:
+            ret = filtering_amount_join_value(&apdu_buf[OFFSET_CDATA], apdu_buf[OFFSET_LC]);
+            break;
+        case P2_FILT_RAW_FIELD:
+            ret = filtering_raw_field(&apdu_buf[OFFSET_CDATA], apdu_buf[OFFSET_LC]);
+            break;
+        default:
+            PRINTF("Unknown P2 0x%x for APDU 0x%x\n", apdu_buf[OFFSET_P2], apdu_buf[OFFSET_INS]);
+            apdu_response_code = APDU_RESPONSE_INVALID_P1_P2;
+            ret = false;
     }
     if (reply_apdu) {
         handle_eip712_return_code(ret);

@@ -52,7 +52,7 @@ FetchContent_MakeAvailable(cmocka)
 add_compile_definitions(TEST DEBUG=0 SKIP_FOR_CMOCKA)
 
 include_directories(../../src/)
-include_directories(../../src_common)
+include_directories(../../src_plugin_sdk)
 
 # add cmocka tests
 add_executable(test_demo tests/demo.c)

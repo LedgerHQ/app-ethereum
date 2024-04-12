@@ -38,38 +38,21 @@ ifneq ($(CHAIN),$(filter $(CHAIN),$(SUPPORTED_CHAINS)))
 endif
 include ./makefile_conf/chain/$(CHAIN).mk
 
-### initialize plugin SDK submodule if needed, rebuild it, and warn if a difference is noticed
-ifeq ($(CHAIN),ethereum)
-    ifneq ($(shell git submodule status | grep '^[-+]'),)
-        $(info INFO: Need to reinitialize git submodules)
-        $(shell git submodule update --init)
-    endif
-
-    # rebuild SDK
-    $(shell ./tools/build_sdk.sh)
-
-    # check if a difference is noticed (fail if it happens in CI build)
-    ifneq ($(shell git status | grep 'ethereum-plugin-sdk'),)
-        ifneq ($(JENKINS_URL),)
-            $(error ERROR: please update ethereum-plugin-sdk submodule first)
-        else
-            $(warning WARNING: please update ethereum-plugin-sdk submodule first)
-        endif
-    endif
-endif
-
 APPVERSION_M = 1
 APPVERSION_N = 11
 APPVERSION_P = 0
 APPVERSION = $(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)-dev
 
 # Application source files
-APP_SOURCE_PATH += src_common src src_features src_plugins
+APP_SOURCE_PATH += src src_features src_plugins
 ifeq ($(TARGET_NAME),TARGET_STAX)
     APP_SOURCE_PATH += src_nbgl
 else
     APP_SOURCE_PATH += src_bagl
 endif
+APP_SOURCE_FILES += ./ethereum-plugin-sdk/src/common_utils.c
+APP_SOURCE_FILES += ./ethereum-plugin-sdk/src/plugin_utils.c
+INCLUDES_PATH += ./ethereum-plugin-sdk/src
 APP_SOURCE_FILES += ${BOLOS_SDK}/lib_standard_app/crypto_helpers.c
 INCLUDES_PATH += ${BOLOS_SDK}/lib_standard_app
 

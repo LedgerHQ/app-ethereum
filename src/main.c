@@ -31,7 +31,7 @@
 #include "commands_712.h"
 #include "challenge.h"
 #include "domain_name.h"
-#include "lib_standard_app/crypto_helpers.h"
+#include "crypto_helpers.h"
 
 unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 

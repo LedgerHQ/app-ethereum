@@ -3,7 +3,7 @@
 #include "os.h"
 #include "shared_context.h"
 #include "string.h"
-#include "lib_standard_app/crypto_helpers.h"
+#include "crypto_helpers.h"
 
 #define ZERO(x) explicit_bzero(&x, sizeof(x))
 

@@ -8,7 +8,7 @@
 #include "common_ui.h"
 #include "ui_callbacks.h"
 #include "apdu_constants.h"
-#include "lib_standard_app/crypto_helpers.h"
+#include "crypto_helpers.h"
 
 #define ERR_SILENT_MODE_CHECK_FAILED 0x6001
 

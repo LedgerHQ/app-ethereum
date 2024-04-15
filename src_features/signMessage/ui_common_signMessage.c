@@ -1,6 +1,6 @@
 #include "os_io_seproxyhal.h"
 #include "apdu_constants.h"
-#include "lib_standard_app/crypto_helpers.h"
+#include "crypto_helpers.h"
 #include "common_ui.h"
 
 unsigned int io_seproxyhal_touch_signMessage_ok(void) {

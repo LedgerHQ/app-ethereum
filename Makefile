@@ -71,6 +71,7 @@ else
     APP_SOURCE_PATH += src_bagl
 endif
 APP_SOURCE_FILES += ${BOLOS_SDK}/lib_standard_app/crypto_helpers.c
+INCLUDES_PATH += ${BOLOS_SDK}/lib_standard_app
 
 ifeq ($(TARGET_NAME),TARGET_STAX)
 NETWORK_ICONS_FILE = $(GEN_SRC_DIR)/net_icons.gen.c

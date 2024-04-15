@@ -45,7 +45,7 @@
         "expiryTime": "1709280466",
         "startNonce": "7",
         "erc20Token": "0x09bc4e0d864854c6afb6eb9a9cdf58ac190d0df9",
-        "platformFeeRecipient": "0x7538262ae993ca117a0e481f908209137a4626e",
+        "platformFeeRecipient": "0x07538262ae993ca117a0e481f908209137a4626e",
         "basicCollections": [
             {
                 "nftAddress": "0xaaaea1fb9f3de3f70e89f37b69ab11b47eb9ce6f",

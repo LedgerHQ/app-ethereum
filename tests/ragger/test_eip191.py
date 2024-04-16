@@ -8,15 +8,14 @@ from client.utils import recover_message
 from ragger.error import ExceptionRAPDU
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
-from ragger.navigator import Navigator, NavInsID
+from ragger.navigator.navigation_scenario import NavigateWithScenario
 
 
 BIP32_PATH = "m/44'/60'/0'/0/0"
 
 
-def test_personal_sign_metamask(firmware: Firmware,
-                                backend: BackendInterface,
-                                navigator: Navigator,
+def test_personal_sign_metamask(backend: BackendInterface,
+                                scenario_navigator: NavigateWithScenario,
                                 test_name: str,
                                 default_screenshot_path: Path):
 
@@ -29,22 +28,7 @@ def test_personal_sign_metamask(firmware: Firmware,
     _, DEVICE_ADDR, _ = ResponseParser.pk_addr(app_client.response().data)
 
     with app_client.personal_sign(BIP32_PATH, msg.encode('utf-8')):
-        if firmware.device.startswith("nano"):
-            next_action = NavInsID.RIGHT_CLICK
-            confirm_action = NavInsID.BOTH_CLICK
-            initial_instructions = [NavInsID.RIGHT_CLICK]
-            # Skip 1st screen because 'Sign' is already present
-            navigator.navigate(initial_instructions,
-                               screen_change_after_last_instruction=False)
-        else:
-            next_action = NavInsID.USE_CASE_REVIEW_TAP
-            confirm_action = NavInsID.USE_CASE_REVIEW_CONFIRM
-
-        navigator.navigate_until_text_and_compare(next_action,
-                                                  [confirm_action],
-                                                  "Sign",
-                                                  default_screenshot_path,
-                                                  test_name)
+        scenario_navigator.review_approve(default_screenshot_path, test_name, "Sign")
 
     # verify signature
     vrs = ResponseParser.signature(app_client.response().data)
@@ -52,9 +36,8 @@ def test_personal_sign_metamask(firmware: Firmware,
     assert addr == DEVICE_ADDR
 
 
-def test_personal_sign_non_ascii(firmware: Firmware,
-                                 backend: BackendInterface,
-                                 navigator: Navigator,
+def test_personal_sign_non_ascii(backend: BackendInterface,
+                                 scenario_navigator: NavigateWithScenario,
                                  test_name: str,
                                  default_screenshot_path: Path):
 
@@ -67,23 +50,7 @@ def test_personal_sign_non_ascii(firmware: Firmware,
     _, DEVICE_ADDR, _ = ResponseParser.pk_addr(app_client.response().data)
 
     with app_client.personal_sign(BIP32_PATH, msg.encode('utf-8')):
-        if firmware.device.startswith("nano"):
-            next_action = NavInsID.RIGHT_CLICK
-            confirm_action = NavInsID.BOTH_CLICK
-            initial_instructions = [NavInsID.RIGHT_CLICK]
-            # Skip 1st screen because 'Sign' is already present
-            navigator.navigate(initial_instructions,
-                               screen_change_before_first_instruction=False,
-                               screen_change_after_last_instruction=False)
-        else:
-            next_action = NavInsID.USE_CASE_REVIEW_TAP
-            confirm_action = NavInsID.USE_CASE_REVIEW_CONFIRM
-
-        navigator.navigate_until_text_and_compare(next_action,
-                                                  [confirm_action],
-                                                  "Sign",
-                                                  default_screenshot_path,
-                                                  test_name)
+        scenario_navigator.review_approve(default_screenshot_path, test_name, "Sign")
 
     # verify signature
     vrs = ResponseParser.signature(app_client.response().data)
@@ -93,7 +60,7 @@ def test_personal_sign_non_ascii(firmware: Firmware,
 
 def test_personal_sign_opensea(firmware: Firmware,
                                backend: BackendInterface,
-                               navigator: Navigator,
+                               scenario_navigator: NavigateWithScenario,
                                test_name: str,
                                default_screenshot_path: Path):
 
@@ -108,23 +75,7 @@ def test_personal_sign_opensea(firmware: Firmware,
     if firmware.device == "nanos":
         pytest.skip("Not supported on LNS")
     with app_client.personal_sign(BIP32_PATH, msg.encode('utf-8')):
-        if firmware.device.startswith("nano"):
-            next_action = NavInsID.RIGHT_CLICK
-            confirm_action = NavInsID.BOTH_CLICK
-            initial_instructions = [NavInsID.RIGHT_CLICK]
-            # Skip 1st screen because 'Sign' is already present
-            navigator.navigate(initial_instructions,
-                               screen_change_before_first_instruction=False,
-                               screen_change_after_last_instruction=False)
-        else:
-            next_action = NavInsID.USE_CASE_REVIEW_TAP
-            confirm_action = NavInsID.USE_CASE_REVIEW_CONFIRM
-
-        navigator.navigate_until_text_and_compare(next_action,
-                                                  [confirm_action],
-                                                  "Sign",
-                                                  default_screenshot_path,
-                                                  test_name)
+        scenario_navigator.review_approve(default_screenshot_path, test_name, "Sign")
 
     # verify signature
     vrs = ResponseParser.signature(app_client.response().data)
@@ -134,7 +85,7 @@ def test_personal_sign_opensea(firmware: Firmware,
 
 def test_personal_sign_reject(firmware: Firmware,
                               backend: BackendInterface,
-                              navigator: Navigator,
+                              scenario_navigator: NavigateWithScenario,
                               test_name: str,
                               default_screenshot_path: Path):
 
@@ -145,21 +96,10 @@ def test_personal_sign_reject(firmware: Firmware,
     try:
         with app_client.personal_sign(BIP32_PATH, msg.encode('utf-8')):
             if firmware.device.startswith("nano"):
-                next_action = NavInsID.RIGHT_CLICK
-                confirm_action = NavInsID.BOTH_CLICK
-                navigator.navigate_until_text_and_compare(next_action,
-                                                          [confirm_action],
-                                                          "Cancel",
-                                                          default_screenshot_path,
-                                                          test_name)
+                end_text = "Cancel"
             else:
-                # instructions = [NavInsID.USE_CASE_REVIEW_TAP]
-                instructions = [NavInsID.USE_CASE_CHOICE_REJECT,
-                                NavInsID.USE_CASE_CHOICE_CONFIRM,
-                                NavInsID.USE_CASE_STATUS_DISMISS]
-                navigator.navigate_and_compare(default_screenshot_path,
-                                               test_name,
-                                               instructions)
+                end_text = "Sign"
+            scenario_navigator.review_reject(default_screenshot_path, test_name, end_text)
 
     except ExceptionRAPDU as e:
         assert e.status == StatusWord.CONDITION_NOT_SATISFIED

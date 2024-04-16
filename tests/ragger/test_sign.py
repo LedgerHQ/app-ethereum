@@ -9,7 +9,7 @@ from client.utils import recover_transaction
 from ragger.error import ExceptionRAPDU
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
-from ragger.navigator import Navigator
+from ragger.navigator import Navigator, NavInsID
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 
 
@@ -32,11 +32,13 @@ AMOUNT2 = 0.31415
 
 def common(firmware: Firmware,
            backend: BackendInterface,
+           navigator: Navigator,
            scenario_navigator: NavigateWithScenario,
            default_screenshot_path: Path,
            tx_params: dict,
            test_name: str = "",
-           path: str = BIP32_PATH):
+           path: str = BIP32_PATH,
+           confirm: bool = False):
     app_client = EthAppClient(backend)
 
     with app_client.get_public_addr(bip32_path=path, display=False):
@@ -44,6 +46,12 @@ def common(firmware: Firmware,
     _, DEVICE_ADDR, _ = ResponseParser.pk_addr(app_client.response().data)
 
     with app_client.sign(path, tx_params):
+        if not firmware.device.startswith("nano") and confirm:
+            navigator.navigate_and_compare(default_screenshot_path,
+                                           f"{test_name}/confirm",
+                                           [NavInsID.USE_CASE_CHOICE_CONFIRM],
+                                           screen_change_after_last_instruction=False)
+
         if firmware.device.startswith("nano"):
             end_text = "Accept"
         else:
@@ -93,6 +101,7 @@ def common_fail(backend: BackendInterface,
 
 def test_legacy(firmware: Firmware,
                 backend: BackendInterface,
+                navigator: Navigator,
                 scenario_navigator: NavigateWithScenario,
                 default_screenshot_path: Path):
     tx_params: dict = {
@@ -103,7 +112,7 @@ def test_legacy(firmware: Firmware,
         "value": Web3.to_wei(AMOUNT, "ether"),
         "chainId": CHAIN_ID
     }
-    common(firmware, backend, scenario_navigator, default_screenshot_path, tx_params)
+    common(firmware, backend, navigator, scenario_navigator, default_screenshot_path, tx_params)
 
 
 # Transfer amount >= 2^87 Eth on Ethereum app should fail
@@ -122,6 +131,7 @@ def test_legacy_send_error(backend: BackendInterface):
 # Transfer bsc
 def test_legacy_send_bsc(firmware: Firmware,
                          backend: BackendInterface,
+                         navigator: Navigator,
                          scenario_navigator: NavigateWithScenario,
                          test_name: str,
                          default_screenshot_path: Path):
@@ -133,12 +143,13 @@ def test_legacy_send_bsc(firmware: Firmware,
         "value": Web3.to_wei(AMOUNT2, "ether"),
         "chainId": 56
     }
-    common(firmware, backend, scenario_navigator, default_screenshot_path, tx_params, test_name, BIP32_PATH2)
+    common(firmware, backend, navigator, scenario_navigator, default_screenshot_path, tx_params, test_name, BIP32_PATH2)
 
 
 # Transfer on network 112233445566 on Ethereum
 def test_legacy_chainid(firmware: Firmware,
                         backend: BackendInterface,
+                        navigator: Navigator,
                         scenario_navigator: NavigateWithScenario,
                         test_name: str,
                         default_screenshot_path: Path):
@@ -150,7 +161,7 @@ def test_legacy_chainid(firmware: Firmware,
         "value": Web3.to_wei(AMOUNT2, "ether"),
         "chainId": 112233445566
     }
-    common(firmware, backend, scenario_navigator, default_screenshot_path, tx_params, test_name, BIP32_PATH2)
+    common(firmware, backend, navigator, scenario_navigator, default_screenshot_path, tx_params, test_name, BIP32_PATH2)
 
 
 # Try to blind sign with setting disabled
@@ -168,6 +179,7 @@ def test_legacy_contract(backend: BackendInterface):
 
 def test_1559(firmware: Firmware,
               backend: BackendInterface,
+              navigator: Navigator,
               scenario_navigator: NavigateWithScenario,
               default_screenshot_path: Path):
     tx_params: dict = {
@@ -179,11 +191,12 @@ def test_1559(firmware: Firmware,
         "value": Web3.to_wei(AMOUNT, "ether"),
         "chainId": CHAIN_ID
     }
-    common(firmware, backend, scenario_navigator, default_screenshot_path, tx_params)
+    common(firmware, backend, navigator, scenario_navigator, default_screenshot_path, tx_params)
 
 
 def test_sign_simple(firmware: Firmware,
                      backend: BackendInterface,
+                     navigator: Navigator,
                      scenario_navigator: NavigateWithScenario,
                      test_name: str,
                      default_screenshot_path: Path):
@@ -195,11 +208,12 @@ def test_sign_simple(firmware: Firmware,
         "value": Web3.to_wei(AMOUNT2, "ether"),
         "chainId": CHAIN_ID
     }
-    common(firmware, backend, scenario_navigator, default_screenshot_path, tx_params, test_name, "m/44'/60'/1'/0/0")
+    common(firmware, backend, navigator, scenario_navigator, default_screenshot_path, tx_params, test_name, "m/44'/60'/1'/0/0")
 
 
 def test_sign_limit_nonce(firmware: Firmware,
                           backend: BackendInterface,
+                          navigator: Navigator,
                           scenario_navigator: NavigateWithScenario,
                           test_name: str,
                           default_screenshot_path: Path):
@@ -211,7 +225,7 @@ def test_sign_limit_nonce(firmware: Firmware,
         "value": 0x08762,
         "chainId": CHAIN_ID
     }
-    common(firmware, backend, scenario_navigator, default_screenshot_path, tx_params, test_name, "m/44'/60'/1'/0/0")
+    common(firmware, backend, navigator, scenario_navigator, default_screenshot_path, tx_params, test_name, "m/44'/60'/1'/0/0")
 
 
 def test_sign_nonce_display(firmware: Firmware,
@@ -231,7 +245,7 @@ def test_sign_nonce_display(firmware: Firmware,
         "value": Web3.to_wei(AMOUNT2, "ether"),
         "chainId": CHAIN_ID
     }
-    common(firmware, backend, scenario_navigator, default_screenshot_path, tx_params, test_name, "m/44'/60'/1'/0/0")
+    common(firmware, backend, navigator, scenario_navigator, default_screenshot_path, tx_params, test_name, "m/44'/60'/1'/0/0")
 
 
 def test_sign_blind_simple(firmware: Firmware,
@@ -252,7 +266,7 @@ def test_sign_blind_simple(firmware: Firmware,
         "chainId": CHAIN_ID,
         "data": data.encode('utf-8').hex()
     }
-    common(firmware, backend, scenario_navigator, default_screenshot_path, tx_params, test_name, "m/44'/60'/1'/0/0")
+    common(firmware, backend, navigator, scenario_navigator, default_screenshot_path, tx_params, test_name, "m/44'/60'/1'/0/0", True)
 
 
 def test_sign_blind_and_nonce_display(firmware: Firmware,
@@ -273,7 +287,7 @@ def test_sign_blind_and_nonce_display(firmware: Firmware,
         "chainId": CHAIN_ID,
         "data": data.encode('utf-8').hex()
     }
-    common(firmware, backend, scenario_navigator, default_screenshot_path, tx_params, test_name, "m/44'/60'/1'/0/0")
+    common(firmware, backend, navigator, scenario_navigator, default_screenshot_path, tx_params, test_name, "m/44'/60'/1'/0/0", True)
 
 
 def test_sign_reject(backend: BackendInterface,
@@ -330,6 +344,7 @@ def test_sign_blind_error_disabled(backend: BackendInterface):
 
 def test_sign_eip_2930(firmware: Firmware,
                        backend: BackendInterface,
+                       navigator: Navigator,
                        scenario_navigator: NavigateWithScenario,
                        test_name: str,
                        default_screenshot_path: Path):
@@ -350,4 +365,4 @@ def test_sign_eip_2930(firmware: Firmware,
             }
         ],
     }
-    common(firmware, backend, scenario_navigator, default_screenshot_path, tx_params, test_name)
+    common(firmware, backend, navigator, scenario_navigator, default_screenshot_path, tx_params, test_name)

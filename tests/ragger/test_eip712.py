@@ -1,6 +1,5 @@
 import fnmatch
 import os
-import time
 from configparser import ConfigParser
 from functools import partial
 from pathlib import Path
@@ -17,6 +16,7 @@ from client.settings import SettingID, settings_toggle
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator, NavInsID
+from ragger.navigator.navigation_scenario import NavigateWithScenario
 
 
 class SnapshotsConfig:
@@ -59,27 +59,14 @@ def filtering_fixture(request) -> bool:
     return request.param
 
 
-def test_eip712_legacy(firmware: Firmware,
-                       backend: BackendInterface,
-                       navigator: Navigator):
+def test_eip712_legacy(backend: BackendInterface, scenario_navigator: NavigateWithScenario):
     app_client = EthAppClient(backend)
+
     with app_client.eip712_sign_legacy(
             BIP32_PATH,
             bytes.fromhex('6137beb405d9ff777172aa879e33edb34a1460e701802746c5ef96e741710e59'),
             bytes.fromhex('eb4221181ff3f1a83ea7313993ca9218496e424604ba9492bb4052c03d5c3df8')):
-        moves = []
-        if firmware.device.startswith("nano"):
-            moves += [NavInsID.RIGHT_CLICK]
-            if firmware.device == "nanos":
-                screens_per_hash = 4
-            else:
-                screens_per_hash = 2
-            moves += [NavInsID.RIGHT_CLICK] * screens_per_hash * 2
-            moves += [NavInsID.BOTH_CLICK]
-        else:
-            moves += [NavInsID.USE_CASE_REVIEW_TAP] * 2
-            moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
-        navigator.navigate(moves)
+        scenario_navigator.review_approve(custom_screen_text="Sign", do_comparison=False)
 
     v, r, s = ResponseParser.signature(app_client.response().data)
 
@@ -127,7 +114,6 @@ def eip712_new_common(firmware: Firmware,
                 moves = [NavInsID.RIGHT_CLICK] * 2
             moves += [NavInsID.BOTH_CLICK]
         else:
-            time.sleep(1.5)
             # need to skip the message hash
             if not verbose and filters is None:
                 moves += [NavInsID.USE_CASE_REVIEW_TAP]

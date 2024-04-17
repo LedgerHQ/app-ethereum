@@ -114,7 +114,7 @@ unsigned short io_exchange_al(unsigned char channel, unsigned short tx_len) {
     return 0;
 }
 
-extraInfo_t *getKnownToken(uint8_t *contractAddress) {
+extraInfo_t *getKnownToken(const uint8_t *contractAddress) {
     union extraInfo_t *currentItem = NULL;
     // Works for ERC-20 & NFT tokens since both structs in the union have the
     // contract address aligned

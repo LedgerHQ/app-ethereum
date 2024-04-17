@@ -75,18 +75,6 @@ typedef enum eth_ui_type_e {
 } eth_ui_type_t;
 
 
-// Scratch objects and utilities available to the plugin READ-WRITE
-typedef struct ethPluginSharedRW_s {
-    cx_sha3_t *sha3;
-} ethPluginSharedRW_t;
-
-
-// Transaction data available to the plugin READ-ONLY
-typedef struct ethPluginSharedRO_s {
-    txContent_t *txContent;
-} ethPluginSharedRO_t;
-
-
 // Plugin-only memory allocated by the Ethereum application and used by the plugin.
 #define PLUGIN_CONTEXT_SIZE (5 * INT256_LENGTH)
 // It is recommended to cast the raw uin8_t array to a structure meaningful for your plugin
@@ -106,16 +94,18 @@ typedef struct ethPluginSharedRO_s {
 // Init Contract
 
 typedef struct ethPluginInitContract_s {
+    // READ ONLY //
     eth_plugin_interface_version_t interfaceVersion;
-    eth_plugin_result_t result;
-
-    // in
-    ethPluginSharedRW_t *pluginSharedRW;
-    ethPluginSharedRO_t *pluginSharedRO;
-    uint8_t *pluginContext;
+    const txContent_t *txContent;
     size_t pluginContextLength;
     const uint8_t *selector;  // 4 bytes selector
     size_t dataSize;
+
+    // READ WRITE //
+    uint8_t *pluginContext; // PLUGIN_CONTEXT_SIZE
+
+    // WRITE ONLY //
+    eth_plugin_result_t result;
 
 } ethPluginInitContract_t;
 // void handle_init_contract(ethPluginInitContract_t *parameters);
@@ -124,12 +114,15 @@ typedef struct ethPluginInitContract_s {
 // Provide parameter
 
 typedef struct ethPluginProvideParameter_s {
-    ethPluginSharedRW_t *pluginSharedRW;
-    ethPluginSharedRO_t *pluginSharedRO;
-    uint8_t *pluginContext; // PLUGIN_CONTEXT_SIZE
+    // READ ONLY //
+    const txContent_t *txContent;
     const uint8_t *parameter;  // 32 bytes parameter
     uint32_t parameterOffset;
 
+    // READ WRITE //
+    uint8_t *pluginContext; // PLUGIN_CONTEXT_SIZE
+
+    // WRITE ONLY //
     eth_plugin_result_t result;
 
 } ethPluginProvideParameter_t;
@@ -139,19 +132,22 @@ typedef struct ethPluginProvideParameter_s {
 // Finalize
 
 typedef struct ethPluginFinalize_s {
-    ethPluginSharedRW_t *pluginSharedRW;
-    ethPluginSharedRO_t *pluginSharedRO;
+    // READ ONLY //
+    const txContent_t *txContent;
+
+    // READ WRITE //
     uint8_t *pluginContext; // PLUGIN_CONTEXT_SIZE
 
-    uint8_t *tokenLookup1;  // set by the plugin if a token should be looked up
-    uint8_t *tokenLookup2;
-
-    const uint8_t *amount;   // set an uint256 pointer if uiType is UI_AMOUNT_ADDRESS
-    const uint8_t *address;  // set to the destination address if uiType is UI_AMOUNT_ADDRESS. Set
-                             // to the user's address if uiType is UI_TYPE_GENERIC
+    // WRITE ONLY //
+    const uint8_t *tokenLookup1;  // set by the plugin if a token should be looked up
+    const uint8_t *tokenLookup2;
 
     eth_ui_type_t uiType;
-    uint8_t numScreens;  // ignored if uiType is UI_AMOUNT_ADDRESS
+    const uint8_t *amount;  // set an uint256 pointer if uiType is UI_AMOUNT_ADDRESS
+    const uint8_t *address; // set to the destination address if uiType is UI_AMOUNT_ADDRESS.
+                            // set to the user's address if uiType is UI_TYPE_GENERIC
+    uint8_t numScreens;     // set the number of screens to display if uiType is UI_TYPE_GENERIC
+
     eth_plugin_result_t result;
 
 } ethPluginFinalize_t;
@@ -161,13 +157,16 @@ typedef struct ethPluginFinalize_s {
 // Provide token
 
 typedef struct ethPluginProvideInfo_s {
-    ethPluginSharedRW_t *pluginSharedRW;
-    ethPluginSharedRO_t *pluginSharedRO;
-    uint8_t *pluginContext; // PLUGIN_CONTEXT_SIZE
-
+    // READ ONLY //
+    const txContent_t *txContent;
     union extraInfo_t *item1;  // set by the ETH application, to be saved by the plugin
     union extraInfo_t *item2;
 
+    // READ WRITE //
+    uint8_t *pluginContext; // PLUGIN_CONTEXT_SIZE
+
+
+    // WRITE ONLY //
     uint8_t additionalScreens;  // Used by the plugin if it needs to display additional screens
                                 // based on the information received from the token definitions.
 
@@ -182,14 +181,17 @@ typedef struct ethPluginProvideInfo_s {
 // This is always called on the non aliased contract
 
 typedef struct ethQueryContractID_s {
-    ethPluginSharedRW_t *pluginSharedRW;
-    ethPluginSharedRO_t *pluginSharedRO;
+    // READ ONLY //
+    const txContent_t *txContent;
+    size_t nameLength;
+    size_t versionLength;
+
+    // READ WRITE //
     uint8_t *pluginContext; // PLUGIN_CONTEXT_SIZE
 
+    // WRITE ONLY //
     char *name;
-    size_t nameLength;
     char *version;
-    size_t versionLength;
 
     eth_plugin_result_t result;
 
@@ -200,18 +202,21 @@ typedef struct ethQueryContractID_s {
 // Query Contract UI
 
 typedef struct ethQueryContractUI_s {
-    ethPluginSharedRW_t *pluginSharedRW;
-    ethPluginSharedRO_t *pluginSharedRO;
+    // READ ONLY //
+    const txContent_t *txContent;
     union extraInfo_t *item1;
     union extraInfo_t *item2;
     char network_ticker[MAX_TICKER_LEN];
-    uint8_t *pluginContext; // PLUGIN_CONTEXT_SIZE
+    size_t titleLength;
+    size_t msgLength;
     uint8_t screenIndex;
 
+    // READ WRITE //
+    uint8_t *pluginContext; // PLUGIN_CONTEXT_SIZE
+
+    // WRITE ONLY //
     char *title;
-    size_t titleLength;
     char *msg;
-    size_t msgLength;
 
     eth_plugin_result_t result;
 

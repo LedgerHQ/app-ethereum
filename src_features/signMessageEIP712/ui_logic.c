@@ -15,6 +15,7 @@
 #include "apdu_constants.h"  // APDU response codes
 #include "typed_data.h"
 #include "commands_712.h"
+#include "manage_asset_info.h"
 #include "common_ui.h"
 #include "domain_name.h"
 #include "uint_common.h"
@@ -192,16 +193,9 @@ static void ui_712_format_str(const uint8_t *const data, uint8_t length) {
  * @return the ticker name if found, \ref NULL otherwise
  */
 static const char *get_address_token_ticker(const uint8_t *addr) {
-    tokenDefinition_t *token;
-
-    // Loop over the received token information
-    for (uint8_t token_idx = 0; token_idx < MAX_ITEMS; ++token_idx) {
-        if (tmpCtx.transactionContext.tokenSet[token_idx] == 1) {
-            token = &tmpCtx.transactionContext.extraInfo[token_idx].token;
-            if (memcmp(token->address, addr, ADDRESS_LENGTH) == 0) {
-                return token->ticker;
-            }
-        }
+    extraInfo_t *extra_info = get_asset_info(addr);
+    if (extra_info != NULL) {
+        return extra_info->token.ticker;
     }
     return NULL;
 }

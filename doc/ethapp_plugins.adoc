@@ -85,8 +85,6 @@ typedef struct ethPluginInitContract_t {
   uint8_t *selector; // 4 bytes selector
   uint32_t dataSize;
 
-  char *alias; // 29 bytes alias if ETH_PLUGIN_RESULT_OK_ALIAS set
-
   uint8_t result;
 
 } ethPluginInitContract_t;

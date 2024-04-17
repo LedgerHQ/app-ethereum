@@ -207,7 +207,6 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
                 (uint8_t *) &dataContext.tokenContext.pluginContext;
             ((ethPluginInitContract_t *) parameter)->pluginContextLength =
                 sizeof(dataContext.tokenContext.pluginContext);
-            ((ethPluginInitContract_t *) parameter)->alias = dataContext.tokenContext.pluginName;
             break;
         case ETH_PLUGIN_PROVIDE_PARAMETER:
             PRINTF("-- PLUGIN PROVIDE PARAMETER --\n");

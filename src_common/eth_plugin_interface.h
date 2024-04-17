@@ -56,7 +56,6 @@ typedef enum eth_plugin_result_e {
     // Successful return values
     ETH_PLUGIN_RESULT_SUCCESSFUL = 0x03,  // Used for comparison
     ETH_PLUGIN_RESULT_OK = 0x04,
-    ETH_PLUGIN_RESULT_OK_ALIAS = 0x05,
     ETH_PLUGIN_RESULT_FALLBACK = 0x06,
 } eth_plugin_result_t;
 
@@ -117,8 +116,6 @@ typedef struct ethPluginInitContract_s {
     size_t pluginContextLength;
     const uint8_t *selector;  // 4 bytes selector
     size_t dataSize;
-
-    char *alias;  // 29 bytes alias if ETH_PLUGIN_RESULT_OK_ALIAS set
 
 } ethPluginInitContract_t;
 // void handle_init_contract(ethPluginInitContract_t *parameters);

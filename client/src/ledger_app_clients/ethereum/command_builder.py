@@ -17,6 +17,7 @@ class InsType(IntEnum):
     PROVIDE_ERC20_TOKEN_INFORMATION = 0x0a
     PROVIDE_NFT_INFORMATION = 0x14
     SET_PLUGIN = 0x16
+    PERFORM_PRIVACY_OPERATION = 0x18
     EIP712_SEND_STRUCT_DEF = 0x1a
     EIP712_SEND_STRUCT_IMPL = 0x1c
     EIP712_SEND_FILTERING = 0x1e
@@ -259,6 +260,16 @@ class CommandBuilder:
                                int(display),
                                0x00,
                                payload)
+
+    def perform_privacy_operation(self,
+                                  display: bool,
+                                  bip32_path: str,
+                                  pubkey: bytes) -> bytes:
+        payload = pack_derivation_path(bip32_path)
+        return self._serialize(InsType.PERFORM_PRIVACY_OPERATION,
+                               int(display),
+                               0x01 if pubkey else 0x00,
+                               payload + pubkey)
 
     def set_plugin(self,
                    type_: int,

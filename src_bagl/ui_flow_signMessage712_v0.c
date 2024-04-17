@@ -23,7 +23,7 @@ UX_STEP_NOCB(
     pnn,
     {
       &C_icon_certificate,
-      "Sign",
+      "Review",
       "typed message",
     });
 UX_STEP_NOCB_INIT(

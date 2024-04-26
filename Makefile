@@ -27,7 +27,8 @@ include $(BOLOS_SDK)/Makefile.defines
 
 ifeq ($(CHAIN),)
     CHAIN = ethereum
-    APPNAME = ethereum
+    # Temporary definition to ensure VSCode extension works... To be cleaned later
+    APPNAME = Ethereum
 endif
 
 SUPPORTED_CHAINS = $(shell find makefile_conf/chain/ -type f -name '*.mk'| sed 's/.*\/\(.*\).mk/\1/g' | sort)
@@ -48,8 +49,7 @@ ifeq ($(TARGET_NAME),TARGET_STAX)
 else
     APP_SOURCE_PATH += src_bagl
 endif
-APP_SOURCE_FILES += ./ethereum-plugin-sdk/src/common_utils.c
-APP_SOURCE_FILES += ./ethereum-plugin-sdk/src/plugin_utils.c
+APP_SOURCE_FILES += $(filter-out ./ethereum-plugin-sdk/src/main.c, $(wildcard ./ethereum-plugin-sdk/src/*.c))
 INCLUDES_PATH += ./ethereum-plugin-sdk/src
 APP_SOURCE_FILES += ${BOLOS_SDK}/lib_standard_app/crypto_helpers.c
 APP_SOURCE_FILES += ${BOLOS_SDK}/lib_standard_app/format.c
@@ -106,8 +106,8 @@ VARIANT_VALUES = $(SUPPORTED_CHAINS)
 
 # Activate dependency only for specific CHAIN
 ifneq ($(CHAIN),ethereum)
-DEP_APP_LOAD_PARAMS = Ethereum:$(APPVERSION)
-DEFINES_LIB = USE_LIB_ETHEREUM
+    DEP_APP_LOAD_PARAMS = Ethereum:$(APPVERSION)
+    DEFINES_LIB = USE_LIB_ETHEREUM
 endif
 
 # Enabling DEBUG flag will enable PRINTF and disable optimizations

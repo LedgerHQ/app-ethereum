@@ -26,6 +26,6 @@ void ui_warning_contract_data(void);
 
 void io_seproxyhal_send_status(uint32_t sw);
 void finalizeParsing(bool direct);
-extraInfo_t *getKnownToken(uint8_t *contractAddress);
+extraInfo_t *getKnownToken(const uint8_t *contractAddress);
 
 #endif  // _UI_CALLBACKS_H_

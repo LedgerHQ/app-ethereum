@@ -17,6 +17,7 @@
 #include "commands_712.h"
 #include "common_ui.h"
 #include "domain_name.h"
+#include "uint_common.h"
 
 static t_ui_context *ui_ctx = NULL;
 
@@ -165,11 +166,10 @@ void ui_712_message_hash(void) {
     const char *const title = "Message hash";
 
     ui_712_set_title(title, strlen(title));
-    snprintf(strings.tmp.tmp,
-             sizeof(strings.tmp.tmp),
-             "0x%.*H",
-             KECCAK256_HASH_BYTESIZE,
-             tmpCtx.messageSigningContext712.messageHash);
+    bytes_to_string(strings.tmp.tmp,
+                    sizeof(strings.tmp.tmp),
+                    tmpCtx.messageSigningContext712.messageHash,
+                    KECCAK256_HASH_BYTESIZE);
     ui_712_redraw_generic_step();
 }
 
@@ -286,7 +286,7 @@ static bool ui_712_format_bool(const uint8_t *const data, uint8_t length) {
  */
 static void ui_712_format_bytes(const uint8_t *const data, uint8_t length) {
     if (ui_712_field_shown()) {
-        snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "0x%.*H", length, data);
+        bytes_to_string(strings.tmp.tmp, sizeof(strings.tmp.tmp), data, length);
         // +2 for the "0x"
         // x2 for each byte value is represented by 2 ASCII characters
         if ((2 + (length * 2)) > (sizeof(strings.tmp.tmp) - 1)) {

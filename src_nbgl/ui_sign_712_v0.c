@@ -4,13 +4,14 @@
 #include "network.h"
 #include "ui_message_signing.h"
 #include "ui_signing.h"
+#include "uint_common.h"
 
 static nbgl_layoutTagValue_t pairs[2];
 
 static void start_review(void);  // forward declaration
 
 static char *format_hash(const uint8_t *hash, char *buffer, size_t buffer_size, size_t offset) {
-    snprintf(buffer + offset, buffer_size - offset, "0x%.*H", KECCAK256_HASH_BYTESIZE, hash);
+    bytes_to_string(buffer + offset, buffer_size - offset, hash, KECCAK256_HASH_BYTESIZE);
     return buffer + offset;
 }
 

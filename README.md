@@ -135,6 +135,12 @@ If you prefer using a terminal to perform the steps manually, you can use the gu
 
 Setup a compilation environment by following the [shell with docker approach](#with-a-terminal).
 
+Be sure you checkout the submodule:
+
+```shell
+git submodule update --init
+```
+
 From inside the container, use the following command to build the app:
 
 ```shell

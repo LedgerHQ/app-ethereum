@@ -1,7 +1,7 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
 #include "os_io_seproxyhal.h"
-#include "lib_standard_app/crypto_helpers.h"
+#include "crypto_helpers.h"
 #include "ui_callbacks.h"
 #include "common_712.h"
 #include "ui_callbacks.h"

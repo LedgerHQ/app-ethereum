@@ -4,7 +4,7 @@
 #include "feature_getPublicKey.h"
 #include "common_ui.h"
 #include "os_io_seproxyhal.h"
-#include "lib_standard_app/crypto_helpers.h"
+#include "crypto_helpers.h"
 
 void handleGetPublicKey(uint8_t p1,
                         uint8_t p2,

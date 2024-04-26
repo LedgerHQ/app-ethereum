@@ -1,4 +1,4 @@
-#include "lib_standard_app/crypto_helpers.h"
+#include "crypto_helpers.h"
 #include "os_io_seproxyhal.h"
 #include "shared_context.h"
 #include "common_utils.h"

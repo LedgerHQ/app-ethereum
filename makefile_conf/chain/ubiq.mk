@@ -1,4 +1,4 @@
-APP_LOAD_PARAMS += --path "44'/108'"
+PATH_APP_LOAD_PARAMS += "44'/108'"
 TICKER = "UBQ"
 CHAIN_ID = 8
 APPNAME = "Ubiq"

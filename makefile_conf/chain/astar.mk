@@ -1,4 +1,4 @@
-APP_LOAD_PARAMS += --path "44'/810'" --path "44'/60'"
+PATH_APP_LOAD_PARAMS += "44'/810'" "44'/60'"
 TICKER = "ASTR"
 CHAIN_ID = 592
 APPNAME = "Astar Polkadot EVM"

@@ -59,11 +59,9 @@ void shiftl256(const uint256_t *const number, uint32_t value, uint256_t *const t
         add128(&tmp1, &tmp2, &UPPER(result));
         shiftl128(&LOWER_P(number), value, &LOWER(result));
         copy256(target, &result);
-    } else if ((256 > value) && (value > 128)) {
+    } else {
         shiftl128(&LOWER_P(number), (value - 128), &UPPER_P(target));
         clear128(&LOWER_P(target));
-    } else {
-        clear256(target);
     }
 }
 
@@ -84,11 +82,9 @@ void shiftr256(const uint256_t *const number, uint32_t value, uint256_t *const t
         shiftl128(&UPPER_P(number), (128 - value), &tmp2);
         add128(&tmp1, &tmp2, &LOWER(result));
         copy256(target, &result);
-    } else if ((256 > value) && (value > 128)) {
+    } else {
         shiftr128(&UPPER_P(number), (value - 128), &LOWER_P(target));
         clear128(&UPPER_P(target));
-    } else {
-        clear256(target);
     }
 }
 

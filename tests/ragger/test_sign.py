@@ -180,26 +180,13 @@ def test_legacy_chainid(firmware: Firmware,
 
 
 # Try to blind sign with setting disabled
-def test_legacy_contract(firmware: Firmware,
-                         backend: BackendInterface,
-                         navigator: Navigator,
-                         test_name: str,
-                         default_screenshot_path: Path):
+def test_legacy_contract(backend: BackendInterface):
 
     buffer = bytes.fromhex("058000002c8000003c800000010000000000000000f849208506fc23ac008303dc3194f650c3d88d12db855b8bf7d11be6c55a4e07dcc980a4a1712d6800000000000000000000000000000000000000000000000000000000000acbc7018080")
     app_client = EthAppClient(backend)
 
     try:
-        with app_client.send_raw(0xe0, 0x04, 0x00, 0x00, buffer):
-            if firmware.device.startswith("nano"):
-                # No screens recorded on Stax
-                moves = [
-                    NavInsID.RIGHT_CLICK,
-                    NavInsID.BOTH_CLICK
-                ]
-                navigator.navigate_and_compare(default_screenshot_path,
-                                               test_name,
-                                               moves)
+        app_client.send_raw(0xe0, 0x04, 0x00, 0x00, buffer)
 
     except ExceptionRAPDU as e:
         assert e.status == StatusWord.INVALID_DATA

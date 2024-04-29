@@ -17,8 +17,8 @@
 #define VALUE_MAX_LEN    79
 #define MAX_PAIRS        12  // Max 10 for plugins + 2 (Network and fees)
 
-static nbgl_layoutTagValue_t pairs[MAX_PAIRS];
-static nbgl_layoutTagValueList_t pairsList;
+static nbgl_contentTagValue_t pairs[MAX_PAIRS];
+static nbgl_contentTagValueList_t pairsList;
 // these buffers are used as circular
 static char title_buffer[MAX_PLUGIN_ITEMS][TAG_MAX_LEN];
 static char msg_buffer[MAX_PLUGIN_ITEMS][VALUE_MAX_LEN];

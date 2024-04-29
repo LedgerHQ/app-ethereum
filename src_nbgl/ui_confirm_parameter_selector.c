@@ -24,7 +24,7 @@ static void long_press_cb(int token, uint8_t index, int page) {
 static void buildScreen(e_confirmation_type confirm_type) {
     static nbgl_genericContents_t contents = {0};
     static nbgl_content_t contentsList[3] = {0};
-    static nbgl_layoutTagValue_t pair = {0};
+    static nbgl_contentTagValue_t pair = {0};
     uint8_t nbContents = 0;
     uint32_t buf_size = SHARED_BUFFER_SIZE / 2;
 

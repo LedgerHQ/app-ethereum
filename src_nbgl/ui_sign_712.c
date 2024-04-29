@@ -9,7 +9,7 @@
 #include "ui_message_signing.h"
 #include "ui_signing.h"
 
-static nbgl_layoutTagValue_t pair;
+static nbgl_contentTagValue_t pair;
 
 static bool display_sign_page(uint8_t page, nbgl_pageContent_t *content) {
     (void) page;

@@ -9,8 +9,8 @@
 #include "ui_message_signing.h"
 #include "ui_signing.h"
 
-static nbgl_layoutTagValue_t pair;
-static nbgl_layoutTagValueList_t pairsList;
+static nbgl_contentTagValue_t pair;
+static nbgl_contentTagValueList_t pairsList;
 
 static uint32_t eip191MessageIdx = 0;
 static uint32_t stringsTmpTmpIdx = 0;

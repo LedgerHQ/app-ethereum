@@ -535,20 +535,13 @@ end:
 
 void finalizeParsing(bool direct) {
     bool use_standard_UI = true;
-    bool no_consent_check;
 
     if (!finalize_parsing_helper(direct, &use_standard_UI)) {
         return;
     }
     // If called from swap, the user has already validated a standard transaction
     // And we have already checked the fields of this transaction above
-    no_consent_check = G_called_from_swap && use_standard_UI;
-
-#ifdef NO_CONSENT
-    no_consent_check = true;
-#endif  // NO_CONSENT
-
-    if (no_consent_check) {
+    if (G_called_from_swap && use_standard_UI) {
         io_seproxyhal_touch_tx_ok(NULL);
     } else {
         if (use_standard_UI) {

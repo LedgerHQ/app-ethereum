@@ -63,10 +63,6 @@ ifneq ($(TARGET_NAME),TARGET_NANOS)
     endif
 endif
 
-ifneq ($(NOCONSENT),)
-    DEFINES += NO_CONSENT
-endif
-
 # Check features incompatibilities
 # --------------------------------
 # NFTs

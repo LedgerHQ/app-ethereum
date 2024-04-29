@@ -90,15 +90,10 @@ void handlePerformPrivacyOperation(uint8_t p1,
         THROW(0x6A80);
     }
 
-#ifndef NO_CONSENT
-    if (p1 == P1_NON_CONFIRM)
-#endif  // NO_CONSENT
-    {
+    if (p1 == P1_NON_CONFIRM) {
         *tx = set_result_perform_privacy_operation();
         THROW(0x9000);
-    }
-#ifndef NO_CONSENT
-    else {
+    } else {
         snprintf(strings.common.fullAddress,
                  sizeof(strings.common.fullAddress),
                  "0x%.*s",
@@ -120,5 +115,4 @@ void handlePerformPrivacyOperation(uint8_t p1,
 
         *flags |= IO_ASYNCH_REPLY;
     }
-#endif  // NO_CONSENT
 }

@@ -23,7 +23,7 @@ static void long_press_cb(int token, uint8_t index, int page) {
 static void buildFirstPage(const char *review_string) {
     static nbgl_genericContents_t contents = {0};
     static nbgl_content_t contentsList[3] = {0};
-    static nbgl_layoutTagValue_t pairs[2] = {0};
+    static nbgl_contentTagValue_t pairs[2] = {0};
     uint8_t nbContents = 0;
     uint8_t nbPairs = 0;
 

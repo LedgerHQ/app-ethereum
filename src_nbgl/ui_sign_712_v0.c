@@ -6,8 +6,8 @@
 #include "ui_signing.h"
 #include "uint_common.h"
 
-static nbgl_layoutTagValue_t pairs[2];
-static nbgl_layoutTagValueList_t pairsList;
+static nbgl_contentTagValue_t pairs[2];
+static nbgl_contentTagValueList_t pairsList;
 
 static void messageReviewChoice_cb(bool confirm) {
     if (confirm) {

@@ -22,7 +22,7 @@ static e_ui_191_action g_action;
 
 static bool skip_message;
 
-static nbgl_layoutTagValue_t pair;
+static nbgl_contentTagValue_t pair;
 
 static uint32_t eip191MessageIdx = 0;
 static uint32_t stringsTmpTmpIdx = 0;

@@ -605,7 +605,10 @@ __attribute__((noreturn)) void library_main(libargs_t *args) {
     PRINTF("Inside a library \n");
     switch (args->command) {
         case CHECK_ADDRESS:
-            handle_check_address(args->check_address, args->chain_config);
+            if (handle_check_address(args->check_address, args->chain_config) != APDU_RESPONSE_OK) {
+                // Failed, non recoverable
+                os_sched_exit(-1);
+            }
             break;
         case SIGN_TRANSACTION:
             if (copy_transaction_parameters(args->create_transaction, args->chain_config)) {

@@ -1,4 +1,4 @@
-name: Misspelings CI
+name: Misspellings CI
 
 on:
   workflow_dispatch:

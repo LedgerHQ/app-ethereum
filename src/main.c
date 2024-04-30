@@ -620,7 +620,11 @@ __attribute__((noreturn)) void library_main(libargs_t *args) {
             }
             break;
         case GET_PRINTABLE_AMOUNT:
-            handle_get_printable_amount(args->get_printable_amount, args->chain_config);
+            if (handle_get_printable_amount(args->get_printable_amount, args->chain_config) !=
+                APDU_RESPONSE_OK) {
+                // Failed, non recoverable
+                os_sched_exit(-1);
+            }
             break;
         default:
             break;

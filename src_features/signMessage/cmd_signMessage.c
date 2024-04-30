@@ -255,11 +255,7 @@ bool handleSignPersonalMessage(uint8_t p1,
     } else  // hash only
     {
         if (tmpCtx.messageSigningContext.remainingLength == 0) {
-#ifdef NO_CONSENT
-            io_seproxyhal_touch_signMessage_ok();
-#else
             ui_191_switch_to_sign();
-#endif
         } else {
             apdu_reply(APDU_RESPONSE_OK);
         }

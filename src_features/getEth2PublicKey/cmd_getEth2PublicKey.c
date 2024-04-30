@@ -75,20 +75,14 @@ void handleGetEth2PublicKey(uint8_t p1,
 
     getEth2PublicKey(bip32.path, bip32.length, tmpCtx.publicKeyContext.publicKey.W);
 
-#ifndef NO_CONSENT
-    if (p1 == P1_NON_CONFIRM)
-#endif  // NO_CONSENT
-    {
+    if (p1 == P1_NON_CONFIRM) {
         *tx = set_result_get_eth2_publicKey();
         THROW(0x9000);
-    }
-#ifndef NO_CONSENT
-    else {
+    } else {
         ui_display_public_eth2();
 
         *flags |= IO_ASYNCH_REPLY;
     }
-#endif  // NO_CONSENT
 }
 
 #endif

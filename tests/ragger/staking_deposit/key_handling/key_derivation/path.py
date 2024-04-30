@@ -3,7 +3,7 @@ from typing import List
 from bip_utils import Bip39SeedGenerator
 from bip_utils.utils.mnemonic import Mnemonic
 
-from .tree import (
+from staking_deposit.key_handling.key_derivation.tree import (
     derive_master_SK,
     derive_child_SK,
 )

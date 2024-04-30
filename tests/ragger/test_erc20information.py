@@ -1,9 +1,9 @@
 import pytest
 
-from client.client import EthAppClient, StatusWord
-
 from ragger.error import ExceptionRAPDU
 from ragger.backend import BackendInterface
+
+from client.client import EthAppClient, StatusWord
 
 
 def test_provide_erc20_token(backend: BackendInterface):

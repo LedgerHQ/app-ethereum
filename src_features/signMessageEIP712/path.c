@@ -255,6 +255,7 @@ static bool array_depth_list_push(uint8_t path_idx, uint8_t size) {
     arr = &path_struct->array_depths[path_struct->array_depth_count];
     arr->path_index = path_idx;
     arr->size = size;
+    arr->index = 0;
     path_struct->array_depth_count += 1;
     return true;
 }
@@ -285,11 +286,14 @@ static bool array_depth_list_pop(void) {
  * Updates the path so that it doesn't point to a struct-type field, but rather
  * only to actual fields.
  *
+ * @param[in] skip_if_array skip if path is already pointing at an array
+ * @param[in] stop_at_array stop at the first downstream array
  * @return whether the path update worked or not
  */
-static bool path_update(void) {
+static bool path_update(bool skip_if_array, bool stop_at_array) {
     uint8_t fields_count;
     const void *struct_ptr;
+    const void *starting_field_ptr;
     const void *field_ptr;
     const char *typename;
     uint8_t typename_len;
@@ -298,10 +302,20 @@ static bool path_update(void) {
     if (path_struct == NULL) {
         return false;
     }
-    if ((field_ptr = get_field(NULL)) == NULL) {
+    if ((starting_field_ptr = get_field(NULL)) == NULL) {
         return false;
     }
+    field_ptr = starting_field_ptr;
     while (struct_field_type(field_ptr) == TYPE_CUSTOM) {
+        // check if we meet one of the given conditions
+        if (((field_ptr == starting_field_ptr) && skip_if_array) ||
+            ((field_ptr != starting_field_ptr) && stop_at_array)) {
+            // only if it is the first iteration of that array depth
+            if ((path_struct->array_depths[path_struct->array_depth_count - 1].index == 0) &&
+                struct_field_is_array(field_ptr)) {
+                break;
+            }
+        }
         typename = get_struct_field_typename(field_ptr, &typename_len);
         if ((struct_ptr = get_structn(typename, typename_len)) == NULL) {
             return false;
@@ -313,11 +327,16 @@ static bool path_update(void) {
         if (push_new_hash_depth(true) == false) {
             return false;
         }
-        // get the struct typehash
-        if (type_hash(typename, typename_len, hash) == false) {
-            return false;
+
+        // The only times they are both at false is if we are traversing an empty array,
+        // don't do a typehash in that case
+        if ((skip_if_array != false) || (stop_at_array != false)) {
+            // get the struct typehash
+            if (type_hash(typename, typename_len, hash) == false) {
+                return false;
+            }
+            feed_last_hash_depth(hash);
         }
-        feed_last_hash_depth(hash);
 
         // TODO: Find a better way to show inner structs in verbose mode when it might be
         //       an empty array of structs in which case we don't want to show it but the
@@ -381,7 +400,7 @@ bool path_set_root(const char *const struct_name, uint8_t name_length) {
     struct_state = DEFINED;
 
     // because the first field could be a struct type
-    path_update();
+    path_update(true, true);
     return true;
 }
 
@@ -449,6 +468,9 @@ bool path_new_array_depth(const uint8_t *const data, uint8_t length) {
     }
 
     array_size = *data;
+    if (!path_update(false, array_size > 0)) {
+        return false;
+    }
     array_depth_count_bak = path_struct->array_depth_count;
     for (pidx = 0; pidx < path_struct->depth_count; ++pidx) {
         if ((field_ptr = get_nth_field(NULL, pidx + 1)) == NULL) {
@@ -492,8 +514,8 @@ bool path_new_array_depth(const uint8_t *const data, uint8_t length) {
     }
     if (array_size == 0) {
         do {
-            path_advance();
-        } while (path_struct->array_depth_count != array_depth_count_bak);
+            path_advance(false);
+        } while (path_struct->array_depth_count > array_depth_count_bak);
     }
 
     return true;
@@ -546,8 +568,8 @@ static bool path_advance_in_array(void) {
 
         if ((path_struct->array_depth_count > 0) &&
             (arr_depth->path_index == (path_struct->depth_count - 1))) {
-            if (arr_depth->size > 0) arr_depth->size -= 1;
-            if (arr_depth->size == 0) {
+            arr_depth->index += 1;
+            if (arr_depth->index == arr_depth->size) {
                 array_depth_list_pop();
                 end_reached = true;
             } else {
@@ -563,7 +585,7 @@ static bool path_advance_in_array(void) {
  *
  * @return whether the advancement was successful or not
  */
-bool path_advance(void) {
+bool path_advance(bool array_check) {
     bool end_reached;
 
     do {
@@ -573,8 +595,7 @@ bool path_advance(void) {
             end_reached = false;
         }
     } while (end_reached);
-    path_update();
-    return true;
+    return path_update(array_check, array_check);
 }
 
 /**

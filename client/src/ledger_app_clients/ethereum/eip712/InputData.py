@@ -165,10 +165,7 @@ def encode_bool(value: str, typesize: int) -> bytes:
 
 
 def encode_string(value: str, typesize: int) -> bytes:
-    data = bytearray()
-    for char in value:
-        data.append(ord(char))
-    return data
+    return value.encode()
 
 
 def encode_bytes_fix(value: str, typesize: int) -> bytes:
@@ -264,8 +261,7 @@ def send_filtering_message_info(display_name: str, filters_count: int):
     to_sign += sig_ctx["caddr"]
     to_sign += sig_ctx["schema_hash"]
     to_sign.append(filters_count)
-    for char in display_name:
-        to_sign.append(ord(char))
+    to_sign += display_name.encode()
 
     sig = keychain.sign_data(keychain.Key.CAL, to_sign)
     with app_client.eip712_filtering_message_info(display_name, filters_count, sig):
@@ -284,10 +280,8 @@ def send_filtering_show_field(display_name):
     to_sign += sig_ctx["chainid"]
     to_sign += sig_ctx["caddr"]
     to_sign += sig_ctx["schema_hash"]
-    for char in path_str:
-        to_sign.append(ord(char))
-    for char in display_name:
-        to_sign.append(ord(char))
+    to_sign += path_str.encode()
+    to_sign += display_name.encode()
     sig = keychain.sign_data(keychain.Key.CAL, to_sign)
     with app_client.eip712_filtering_show_field(display_name, sig):
         pass

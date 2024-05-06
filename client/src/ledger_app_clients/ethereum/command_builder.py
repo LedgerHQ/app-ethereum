@@ -62,17 +62,11 @@ class CommandBuilder:
         header.append(len(cdata))
         return header + cdata
 
-    def _string_to_bytes(self, string: str) -> bytes:
-        data = bytearray()
-        for char in string:
-            data.append(ord(char))
-        return data
-
     def eip712_send_struct_def_struct_name(self, name: str) -> bytes:
         return self._serialize(InsType.EIP712_SEND_STRUCT_DEF,
                                P1Type.COMPLETE_SEND,
                                P2Type.STRUCT_NAME,
-                               self._string_to_bytes(name))
+                               name.encode())
 
     def eip712_send_struct_def_struct_field(self,
                                             field_type: EIP712FieldType,
@@ -88,7 +82,7 @@ class CommandBuilder:
         data.append(typedesc)
         if field_type == EIP712FieldType.CUSTOM:
             data.append(len(type_name))
-            data += self._string_to_bytes(type_name)
+            data += type_name.encode()
         if type_size is not None:
             data.append(type_size)
         if len(array_levels) > 0:
@@ -98,7 +92,7 @@ class CommandBuilder:
                 if level is not None:
                     data.append(level)
         data.append(len(key_name))
-        data += self._string_to_bytes(key_name)
+        data += key_name.encode()
         return self._serialize(InsType.EIP712_SEND_STRUCT_DEF,
                                P1Type.COMPLETE_SEND,
                                P2Type.STRUCT_FIELD,
@@ -108,7 +102,7 @@ class CommandBuilder:
         return self._serialize(InsType.EIP712_SEND_STRUCT_IMPL,
                                P1Type.COMPLETE_SEND,
                                P2Type.STRUCT_NAME,
-                               self._string_to_bytes(name))
+                               name.encode())
 
     def eip712_send_struct_impl_array(self, size: int) -> bytes:
         data = bytearray()
@@ -162,7 +156,7 @@ class CommandBuilder:
     def _eip712_filtering_send_name(self, name: str, sig: bytes) -> bytes:
         data = bytearray()
         data.append(len(name))
-        data += self._string_to_bytes(name)
+        data += name.encode()
         data.append(len(sig))
         data += sig
         return data
@@ -170,7 +164,7 @@ class CommandBuilder:
     def eip712_filtering_message_info(self, name: str, filters_count: int, sig: bytes) -> bytes:
         data = bytearray()
         data.append(len(name))
-        data += self._string_to_bytes(name)
+        data += name.encode()
         data.append(filters_count)
         data.append(len(sig))
         data += sig
@@ -188,7 +182,7 @@ class CommandBuilder:
     def set_external_plugin(self, plugin_name: str, contract_address: bytes, selector: bytes, sig: bytes) -> bytes:
         data = bytearray()
         data.append(len(plugin_name))
-        data += self._string_to_bytes(plugin_name)
+        data += plugin_name.encode()
         data += contract_address
         data += selector
         data += sig

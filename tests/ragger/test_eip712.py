@@ -180,12 +180,12 @@ def test_eip712_new(firmware: Firmware,
     assert recovered_addr == get_wallet_addr(app_client)
 
 
-def test_eip712_address_substitution(firmware: Firmware,
-                                     backend: BackendInterface,
-                                     navigator: Navigator,
-                                     default_screenshot_path: Path,
-                                     test_name: str,
-                                     verbose: bool):
+def test_eip712_advanced_filtering(firmware: Firmware,
+                                   backend: BackendInterface,
+                                   navigator: Navigator,
+                                   default_screenshot_path: Path,
+                                   test_name: str,
+                                   verbose: bool):
     global SNAPS_CONFIG
 
     app_client = EthAppClient(backend)
@@ -195,25 +195,43 @@ def test_eip712_address_substitution(firmware: Firmware,
     if verbose:
         test_name += "_verbose"
     SNAPS_CONFIG = SnapshotsConfig(test_name)
-    with open(f"{eip712_json_path()}/address_substitution.json", encoding="utf-8") as file:
-        data = json.load(file)
 
-    app_client.provide_token_metadata("DAI",
-                                      bytes.fromhex(data["message"]["token"][2:]),
-                                      18,
-                                      1)
-
-    challenge = ResponseParser.challenge(app_client.get_challenge().data)
-    app_client.provide_domain_name(challenge,
-                                   "vitalik.eth",
-                                   bytes.fromhex(data["message"]["to"][2:]))
+    data = {
+        "domain": {
+            "chainId": 1,
+            "name": "Advanced test",
+            "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+            "version": "1"
+        },
+        "message": {
+            "from": "0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa",
+            "to": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+            "amount": 117,
+            "token": "0x6B175474E89094C44Da98b954EedeAC495271d0F"
+        },
+        "primaryType": "Transfer",
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"}
+            ],
+            "Transfer": [
+                {"name": "from", "type": "address"},
+                {"name": "to", "type": "address"},
+                {"name": "amount", "type": "uint256"},
+                {"name": "token", "type": "address"}
+            ]
+        }
+    }
 
     if verbose:
         settings_toggle(firmware, navigator, [SettingID.VERBOSE_EIP712])
         filters = None
     else:
         filters = {
-            "name": "Token test",
+            "name": "Advanced Filtering",
             "fields": {
                 "amount": "Amount",
                 "token": "Token",

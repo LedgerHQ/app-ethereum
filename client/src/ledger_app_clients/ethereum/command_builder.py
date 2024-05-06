@@ -41,8 +41,10 @@ class P2Type(IntEnum):
     LEGACY_IMPLEM = 0x00
     NEW_IMPLEM = 0x01
     FILTERING_ACTIVATE = 0x00
-    FILTERING_CONTRACT_NAME = 0x0f
-    FILTERING_FIELD_NAME = 0xff
+    FILTERING_MESSAGE_INFO = 0x0f
+    FILTERING_TOKEN_ADDR_CHECK = 0xfd
+    FILTERING_AMOUNT_FIELD = 0xfe
+    FILTERING_RAW = 0xff
 
 
 class CommandBuilder:
@@ -170,13 +172,35 @@ class CommandBuilder:
         data += sig
         return self._serialize(InsType.EIP712_SEND_FILTERING,
                                P1Type.COMPLETE_SEND,
-                               P2Type.FILTERING_CONTRACT_NAME,
+                               P2Type.FILTERING_MESSAGE_INFO,
                                data)
 
-    def eip712_filtering_show_field(self, name: str, sig: bytes) -> bytes:
+    def eip712_filtering_amount_join_token(self, token_idx: int, sig: bytes) -> bytes:
+        data = bytearray()
+        data.append(token_idx)
+        data.append(len(sig))
+        data += sig
         return self._serialize(InsType.EIP712_SEND_FILTERING,
                                P1Type.COMPLETE_SEND,
-                               P2Type.FILTERING_FIELD_NAME,
+                               P2Type.FILTERING_TOKEN_ADDR_CHECK,
+                               data)
+
+    def eip712_filtering_amount_join_value(self, token_idx: int, name: str, sig: bytes) -> bytes:
+        data = bytearray()
+        data.append(len(name))
+        data += name.encode()
+        data.append(token_idx)
+        data.append(len(sig))
+        data += sig
+        return self._serialize(InsType.EIP712_SEND_FILTERING,
+                               P1Type.COMPLETE_SEND,
+                               P2Type.FILTERING_AMOUNT_FIELD,
+                               data)
+
+    def eip712_filtering_raw(self, name: str, sig: bytes) -> bytes:
+        return self._serialize(InsType.EIP712_SEND_FILTERING,
+                               P1Type.COMPLETE_SEND,
+                               P2Type.FILTERING_RAW,
                                self._eip712_filtering_send_name(name, sig))
 
     def set_external_plugin(self, plugin_name: str, contract_address: bytes, selector: bytes, sig: bytes) -> bytes:

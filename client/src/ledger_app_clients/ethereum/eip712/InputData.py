@@ -200,7 +200,15 @@ def send_struct_impl_field(value, field):
     if filtering_paths:
         path = ".".join(current_path)
         if path in filtering_paths.keys():
-            send_filtering_show_field(filtering_paths[path])
+            if filtering_paths[path]["type"] == "amount_join_token":
+                send_filtering_amount_join_token(filtering_paths[path]["token"])
+            elif filtering_paths[path]["type"] == "amount_join_value":
+                send_filtering_amount_join_value(filtering_paths[path]["token"],
+                                                 filtering_paths[path]["name"])
+            elif filtering_paths[path]["type"] == "raw":
+                send_filtering_raw(filtering_paths[path]["name"])
+            else:
+                assert False
 
     with app_client.eip712_send_struct_impl_struct_field(data):
         enable_autonext()
@@ -251,15 +259,22 @@ def send_struct_impl(structs, data, structname):
     return True
 
 
+def start_signature_payload(ctx: dict, magic: int) -> bytearray:
+    to_sign = bytearray()
+    # magic number so that signature for one type of filter can't possibly be
+    # valid for another, defined in APDU specs
+    to_sign.append(magic)
+    to_sign += ctx["chainid"]
+    to_sign += ctx["caddr"]
+    to_sign += ctx["schema_hash"]
+    return to_sign
+
+
 # ledgerjs doesn't actually sign anything, and instead uses already pre-computed signatures
 def send_filtering_message_info(display_name: str, filters_count: int):
     global sig_ctx
 
-    to_sign = bytearray()
-    to_sign.append(183)
-    to_sign += sig_ctx["chainid"]
-    to_sign += sig_ctx["caddr"]
-    to_sign += sig_ctx["schema_hash"]
+    to_sign = start_signature_payload(sig_ctx, 183)
     to_sign.append(filters_count)
     to_sign += display_name.encode()
 
@@ -269,21 +284,44 @@ def send_filtering_message_info(display_name: str, filters_count: int):
     disable_autonext()
 
 
-# ledgerjs doesn't actually sign anything, and instead uses already pre-computed signatures
-def send_filtering_show_field(display_name):
+def send_filtering_amount_join_token(token_idx: int):
     global sig_ctx
 
     path_str = ".".join(current_path)
 
-    to_sign = bytearray()
-    to_sign.append(72)
-    to_sign += sig_ctx["chainid"]
-    to_sign += sig_ctx["caddr"]
-    to_sign += sig_ctx["schema_hash"]
+    to_sign = start_signature_payload(sig_ctx, 11)
+    to_sign += path_str.encode()
+    to_sign.append(token_idx)
+    sig = keychain.sign_data(keychain.Key.CAL, to_sign)
+    with app_client.eip712_filtering_amount_join_token(token_idx, sig):
+        pass
+
+
+def send_filtering_amount_join_value(token_idx: int, display_name: str):
+    global sig_ctx
+
+    path_str = ".".join(current_path)
+
+    to_sign = start_signature_payload(sig_ctx, 22)
+    to_sign += path_str.encode()
+    to_sign += display_name.encode()
+    to_sign.append(token_idx)
+    sig = keychain.sign_data(keychain.Key.CAL, to_sign)
+    with app_client.eip712_filtering_amount_join_value(token_idx, display_name, sig):
+        pass
+
+
+# ledgerjs doesn't actually sign anything, and instead uses already pre-computed signatures
+def send_filtering_raw(display_name):
+    global sig_ctx
+
+    path_str = ".".join(current_path)
+
+    to_sign = start_signature_payload(sig_ctx, 72)
     to_sign += path_str.encode()
     to_sign += display_name.encode()
     sig = keychain.sign_data(keychain.Key.CAL, to_sign)
-    with app_client.eip712_filtering_show_field(display_name, sig):
+    with app_client.eip712_filtering_raw(display_name, sig):
         pass
 
 
@@ -294,6 +332,12 @@ def prepare_filtering(filtr_data, message):
         filtering_paths = filtr_data["fields"]
     else:
         filtering_paths = {}
+    if "tokens" in filtr_data:
+        for token in filtr_data["tokens"]:
+            app_client.provide_token_metadata(token["ticker"],
+                                              bytes.fromhex(token["addr"][2:]),
+                                              token["decimals"],
+                                              token["chain_id"])
 
 
 def handle_optional_domain_values(domain):

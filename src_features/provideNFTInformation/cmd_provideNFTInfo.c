@@ -8,6 +8,7 @@
 #include "os_io_seproxyhal.h"
 #include "network.h"
 #include "public_keys.h"
+#include "manage_asset_info.h"
 
 #define TYPE_SIZE        1
 #define VERSION_SIZE     1
@@ -56,10 +57,7 @@ void handleProvideNFTInformation(uint8_t p1,
         PRINTF("NFT metadata provided without proper plugin loaded!\n");
         THROW(0x6985);
     }
-    tmpCtx.transactionContext.currentItemIndex =
-        (tmpCtx.transactionContext.currentItemIndex + 1) % MAX_ITEMS;
-    nftInfo_t *nft =
-        &tmpCtx.transactionContext.extraInfo[tmpCtx.transactionContext.currentItemIndex].nft;
+    nftInfo_t *nft = &get_current_asset_info()->nft;
 
     PRINTF("Provisioning currentItemIndex %d\n", tmpCtx.transactionContext.currentItemIndex);
 
@@ -201,7 +199,7 @@ void handleProvideNFTInformation(uint8_t p1,
 #endif
     }
 
-    tmpCtx.transactionContext.tokenSet[tmpCtx.transactionContext.currentItemIndex] = 1;
+    validate_current_asset_info();
     THROW(0x9000);
 }
 

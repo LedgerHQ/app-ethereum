@@ -533,7 +533,6 @@ __attribute__((noreturn)) void coin_main(libargs_t *args) {
     }
 
     reset_app_context();
-    tmpCtx.transactionContext.currentItemIndex = 0;
 
     for (;;) {
         UX_INIT();

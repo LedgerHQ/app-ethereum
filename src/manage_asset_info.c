@@ -2,6 +2,7 @@
 
 void reset_known_tokens(void) {
     memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
+    tmpCtx.transactionContext.currentItemIndex = 0;
 }
 
 static extraInfo_t *get_asset_info(uint8_t index) {

@@ -18,7 +18,7 @@ static void messageReviewChoice_cb(bool confirm) {
 }
 
 static char *format_hash(const uint8_t *hash, char *buffer, size_t buffer_size, size_t offset) {
-    bytes_to_string(buffer + offset, buffer_size - offset, hash, KECCAK256_HASH_BYTESIZE);
+    array_bytes_string(buffer + offset, buffer_size - offset, hash, KECCAK256_HASH_BYTESIZE);
     return buffer + offset;
 }
 

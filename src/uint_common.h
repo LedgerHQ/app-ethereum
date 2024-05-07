@@ -35,6 +35,4 @@ void read_u64_be(const uint8_t *const in, uint64_t *const out);
 uint64_t readUint64BE(const uint8_t *const buffer);
 void reverseString(char *const str, uint32_t length);
 
-int bytes_to_string(char *out, size_t outl, const void *value, size_t len);
-
 #endif  //_UINT_COMMON_H_

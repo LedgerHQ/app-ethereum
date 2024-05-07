@@ -5,10 +5,10 @@
 #include "uint_common.h"
 
 void prepare_eth2_public_key() {
-    bytes_to_string(strings.tmp.tmp,
-                    sizeof(strings.tmp.tmp),
-                    tmpCtx.publicKeyContext.publicKey.W,
-                    48);
+    array_bytes_string(strings.tmp.tmp,
+                       sizeof(strings.tmp.tmp),
+                       tmpCtx.publicKeyContext.publicKey.W,
+                       48);
 }
 
 // clang-format off

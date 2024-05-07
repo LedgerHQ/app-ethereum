@@ -21,10 +21,10 @@ static void reviewChoice(bool confirm) {
 }
 
 void ui_display_public_eth2(void) {
-    bytes_to_string(strings.tmp.tmp,
-                    sizeof(strings.tmp.tmp),
-                    tmpCtx.publicKeyContext.publicKey.W,
-                    48);
+    array_bytes_string(strings.tmp.tmp,
+                       sizeof(strings.tmp.tmp),
+                       tmpCtx.publicKeyContext.publicKey.W,
+                       48);
     strlcpy(g_stax_shared_buffer, "Verify ETH2\naddress", sizeof(g_stax_shared_buffer));
     nbgl_useCaseAddressReview(strings.tmp.tmp,
                               NULL,

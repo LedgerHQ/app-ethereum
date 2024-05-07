@@ -80,6 +80,7 @@ void reset_app_context() {
     eth2WithdrawalIndex = 0;
 #endif
     memset((uint8_t *) &tmpCtx, 0, sizeof(tmpCtx));
+    forget_known_assets();
     memset((uint8_t *) &txContext, 0, sizeof(txContext));
     memset((uint8_t *) &tmpContent, 0, sizeof(tmpContent));
 }
@@ -156,7 +157,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
 
             switch (G_io_apdu_buffer[OFFSET_INS]) {
                 case INS_GET_PUBLIC_KEY:
-                    reset_known_tokens();
+                    forget_known_assets();
                     handleGetPublicKey(G_io_apdu_buffer[OFFSET_P1],
                                        G_io_apdu_buffer[OFFSET_P2],
                                        G_io_apdu_buffer + OFFSET_CDATA,
@@ -231,7 +232,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                     break;
 
                 case INS_SIGN_PERSONAL_MESSAGE:
-                    reset_known_tokens();
+                    forget_known_assets();
                     *flags |= IO_ASYNCH_REPLY;
                     if (!handleSignPersonalMessage(G_io_apdu_buffer[OFFSET_P1],
                                                    G_io_apdu_buffer[OFFSET_P2],
@@ -244,7 +245,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                 case INS_SIGN_EIP_712_MESSAGE:
                     switch (G_io_apdu_buffer[OFFSET_P2]) {
                         case P2_EIP712_LEGACY_IMPLEM:
-                            reset_known_tokens();
+                            forget_known_assets();
                             handleSignEIP712Message_v0(G_io_apdu_buffer[OFFSET_P1],
                                                        G_io_apdu_buffer[OFFSET_P2],
                                                        G_io_apdu_buffer + OFFSET_CDATA,
@@ -266,7 +267,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
 #ifdef HAVE_ETH2
 
                 case INS_GET_ETH2_PUBLIC_KEY:
-                    reset_known_tokens();
+                    forget_known_assets();
                     handleGetEth2PublicKey(G_io_apdu_buffer[OFFSET_P1],
                                            G_io_apdu_buffer[OFFSET_P2],
                                            G_io_apdu_buffer + OFFSET_CDATA,

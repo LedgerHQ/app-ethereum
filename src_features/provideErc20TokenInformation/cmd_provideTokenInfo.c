@@ -117,7 +117,7 @@ void handleProvideErc20TokenInformation(uint8_t p1,
 
     tokenDefinition_t *token = &get_current_asset_info()->token;
 
-    PRINTF("Provisioning currentItemIndex %d\n", tmpCtx.transactionContext.currentItemIndex);
+    PRINTF("Provisioning currentAssetIndex %d\n", tmpCtx.transactionContext.currentAssetIndex);
 
     if (dataLength < 1) {
         THROW(0x6A80);
@@ -138,10 +138,11 @@ void handleProvideErc20TokenInformation(uint8_t p1,
     memmove(token->address, workBuffer + offset, 20);
     offset += 20;
     dataLength -= 20;
-    // TODO: Handle 64-bit long chain IDs
+    // TODO: 4 bytes for this is overkill
     token->decimals = U4BE(workBuffer, offset);
     offset += 4;
     dataLength -= 4;
+    // TODO: Handle 64-bit long chain IDs
     chain_id = U4BE(workBuffer, offset);
     if (!app_compatible_with_chain_id(&chain_id)) {
         UNSUPPORTED_CHAIN_ID_MSG(chain_id);

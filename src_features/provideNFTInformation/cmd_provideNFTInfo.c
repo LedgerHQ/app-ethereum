@@ -59,7 +59,7 @@ void handleProvideNFTInformation(uint8_t p1,
     }
     nftInfo_t *nft = &get_current_asset_info()->nft;
 
-    PRINTF("Provisioning currentItemIndex %d\n", tmpCtx.transactionContext.currentItemIndex);
+    PRINTF("Provisioning currentAssetIndex %d\n", tmpCtx.transactionContext.currentAssetIndex);
 
     size_t offset = 0;
 

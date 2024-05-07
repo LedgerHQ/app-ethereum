@@ -193,7 +193,7 @@ static void ui_712_format_str(const uint8_t *const data, uint8_t length) {
  * @return the ticker name if found, \ref NULL otherwise
  */
 static const char *get_address_token_ticker(const uint8_t *addr) {
-    extraInfo_t *extra_info = get_asset_info(addr);
+    extraInfo_t *extra_info = get_asset_info_by_addr(addr);
     if (extra_info != NULL) {
         return extra_info->token.ticker;
     }

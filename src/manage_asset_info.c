@@ -4,7 +4,7 @@ void reset_known_tokens(void) {
     memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
 }
 
-extraInfo_t *get_asset_info(const uint8_t *contractAddress) {
+extraInfo_t *get_asset_info_by_addr(const uint8_t *contractAddress) {
     // Works for ERC-20 & NFT tokens since both structs in the union have the
     // contract address aligned
     for (uint8_t i = 0; i < MAX_ITEMS; i++) {

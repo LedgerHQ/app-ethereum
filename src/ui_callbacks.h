@@ -1,5 +1,4 @@
-#ifndef _UI_CALLBACKS_H_
-#define _UI_CALLBACKS_H_
+#pragma once
 
 #include "shared_context.h"
 #include "ux.h"
@@ -26,6 +25,3 @@ void ui_warning_contract_data(void);
 
 void io_seproxyhal_send_status(uint32_t sw);
 void finalizeParsing(bool direct);
-extraInfo_t *getKnownToken(const uint8_t *contractAddress);
-
-#endif  // _UI_CALLBACKS_H_

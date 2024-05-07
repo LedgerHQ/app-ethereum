@@ -32,6 +32,7 @@
 #include "challenge.h"
 #include "domain_name.h"
 #include "crypto_helpers.h"
+#include "manage_asset_info.h"
 
 unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 
@@ -79,6 +80,7 @@ void reset_app_context() {
     eth2WithdrawalIndex = 0;
 #endif
     memset((uint8_t *) &tmpCtx, 0, sizeof(tmpCtx));
+    forget_known_assets();
     memset((uint8_t *) &txContext, 0, sizeof(txContext));
     memset((uint8_t *) &tmpContent, 0, sizeof(tmpContent));
 }
@@ -112,22 +114,6 @@ unsigned short io_exchange_al(unsigned char channel, unsigned short tx_len) {
             THROW(INVALID_PARAMETER);
     }
     return 0;
-}
-
-extraInfo_t *getKnownToken(const uint8_t *contractAddress) {
-    union extraInfo_t *currentItem = NULL;
-    // Works for ERC-20 & NFT tokens since both structs in the union have the
-    // contract address aligned
-    for (uint8_t i = 0; i < MAX_ITEMS; i++) {
-        currentItem = (union extraInfo_t *) &tmpCtx.transactionContext.extraInfo[i].token;
-        if (tmpCtx.transactionContext.tokenSet[i] &&
-            (memcmp(currentItem->token.address, contractAddress, ADDRESS_LENGTH) == 0)) {
-            PRINTF("Token found at index %d\n", i);
-            return currentItem;
-        }
-    }
-
-    return NULL;
 }
 
 const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_path_t *bip32) {
@@ -171,7 +157,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
 
             switch (G_io_apdu_buffer[OFFSET_INS]) {
                 case INS_GET_PUBLIC_KEY:
-                    memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
+                    forget_known_assets();
                     handleGetPublicKey(G_io_apdu_buffer[OFFSET_P1],
                                        G_io_apdu_buffer[OFFSET_P2],
                                        G_io_apdu_buffer + OFFSET_CDATA,
@@ -246,7 +232,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                     break;
 
                 case INS_SIGN_PERSONAL_MESSAGE:
-                    memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
+                    forget_known_assets();
                     *flags |= IO_ASYNCH_REPLY;
                     if (!handleSignPersonalMessage(G_io_apdu_buffer[OFFSET_P1],
                                                    G_io_apdu_buffer[OFFSET_P2],
@@ -259,7 +245,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                 case INS_SIGN_EIP_712_MESSAGE:
                     switch (G_io_apdu_buffer[OFFSET_P2]) {
                         case P2_EIP712_LEGACY_IMPLEM:
-                            memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
+                            forget_known_assets();
                             handleSignEIP712Message_v0(G_io_apdu_buffer[OFFSET_P1],
                                                        G_io_apdu_buffer[OFFSET_P2],
                                                        G_io_apdu_buffer + OFFSET_CDATA,
@@ -281,7 +267,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
 #ifdef HAVE_ETH2
 
                 case INS_GET_ETH2_PUBLIC_KEY:
-                    memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
+                    forget_known_assets();
                     handleGetEth2PublicKey(G_io_apdu_buffer[OFFSET_P1],
                                            G_io_apdu_buffer[OFFSET_P2],
                                            G_io_apdu_buffer + OFFSET_CDATA,
@@ -548,7 +534,6 @@ __attribute__((noreturn)) void coin_main(libargs_t *args) {
     }
 
     reset_app_context();
-    tmpCtx.transactionContext.currentItemIndex = 0;
 
     for (;;) {
         UX_INIT();

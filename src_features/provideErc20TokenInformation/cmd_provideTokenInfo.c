@@ -5,6 +5,7 @@
 #include "os_io_seproxyhal.h"
 #include "extra_tokens.h"
 #include "network.h"
+#include "manage_asset_info.h"
 
 #ifdef HAVE_CONTRACT_NAME_IN_DESCRIPTOR
 
@@ -26,10 +27,7 @@ void handleProvideErc20TokenInformation(uint8_t p1,
 
     cx_sha256_init(&sha256);
 
-    tmpCtx.transactionContext.currentItemIndex =
-        (tmpCtx.transactionContext.currentItemIndex + 1) % MAX_ITEMS;
-    tokenDefinition_t *token =
-        &tmpCtx.transactionContext.tokens[tmpCtx.transactionContext.currentItemIndex];
+    tokenDefinition_t *token = &get_current_asset_info()->token;
 
     if (dataLength < 1) {
         THROW(0x6A80);
@@ -95,7 +93,7 @@ void handleProvideErc20TokenInformation(uint8_t p1,
         THROW(0x6A80);
 #endif
     }
-    tmpCtx.transactionContext.tokenSet[tmpCtx.transactionContext.currentItemIndex] = 1;
+    validate_current_asset_info();
     THROW(0x9000);
 }
 
@@ -117,12 +115,9 @@ void handleProvideErc20TokenInformation(uint8_t p1,
     uint8_t hash[INT256_LENGTH];
     cx_ecfp_public_key_t tokenKey;
 
-    tmpCtx.transactionContext.currentItemIndex =
-        (tmpCtx.transactionContext.currentItemIndex + 1) % MAX_ITEMS;
-    tokenDefinition_t *token =
-        &tmpCtx.transactionContext.extraInfo[tmpCtx.transactionContext.currentItemIndex].token;
+    tokenDefinition_t *token = &get_current_asset_info()->token;
 
-    PRINTF("Provisioning currentItemIndex %d\n", tmpCtx.transactionContext.currentItemIndex);
+    PRINTF("Provisioning currentAssetIndex %d\n", tmpCtx.transactionContext.currentAssetIndex);
 
     if (dataLength < 1) {
         THROW(0x6A80);
@@ -143,10 +138,11 @@ void handleProvideErc20TokenInformation(uint8_t p1,
     memmove(token->address, workBuffer + offset, 20);
     offset += 20;
     dataLength -= 20;
-    // TODO: Handle 64-bit long chain IDs
+    // TODO: 4 bytes for this is overkill
     token->decimals = U4BE(workBuffer, offset);
     offset += 4;
     dataLength -= 4;
+    // TODO: Handle 64-bit long chain IDs
     chain_id = U4BE(workBuffer, offset);
     if (!app_compatible_with_chain_id(&chain_id)) {
         UNSUPPORTED_CHAIN_ID_MSG(chain_id);
@@ -183,7 +179,7 @@ void handleProvideErc20TokenInformation(uint8_t p1,
         }
     }
 
-    tmpCtx.transactionContext.tokenSet[tmpCtx.transactionContext.currentItemIndex] = 1;
+    validate_current_asset_info();
     THROW(0x9000);
 }
 

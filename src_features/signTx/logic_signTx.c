@@ -10,6 +10,7 @@
 #include "apdu_constants.h"
 #include "crypto_helpers.h"
 #include "format.h"
+#include "manage_asset_info.h"
 
 #define ERR_SILENT_MODE_CHECK_FAILED 0x6001
 
@@ -366,14 +367,14 @@ __attribute__((noinline)) static bool finalize_parsing_helper(bool direct, bool 
         if ((pluginFinalize.tokenLookup1 != NULL) || (pluginFinalize.tokenLookup2 != NULL)) {
             if (pluginFinalize.tokenLookup1 != NULL) {
                 PRINTF("Lookup1: %.*H\n", ADDRESS_LENGTH, pluginFinalize.tokenLookup1);
-                pluginProvideInfo.item1 = getKnownToken(pluginFinalize.tokenLookup1);
+                pluginProvideInfo.item1 = get_asset_info_by_addr(pluginFinalize.tokenLookup1);
                 if (pluginProvideInfo.item1 != NULL) {
                     PRINTF("Token1 ticker: %s\n", pluginProvideInfo.item1->token.ticker);
                 }
             }
             if (pluginFinalize.tokenLookup2 != NULL) {
                 PRINTF("Lookup2: %.*H\n", ADDRESS_LENGTH, pluginFinalize.tokenLookup2);
-                pluginProvideInfo.item2 = getKnownToken(pluginFinalize.tokenLookup2);
+                pluginProvideInfo.item2 = get_asset_info_by_addr(pluginFinalize.tokenLookup2);
                 if (pluginProvideInfo.item2 != NULL) {
                     PRINTF("Token2 ticker: %s\n", pluginProvideInfo.item2->token.ticker);
                 }

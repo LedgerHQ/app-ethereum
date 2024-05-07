@@ -4,3 +4,5 @@
 
 void reset_known_tokens(void);
 extraInfo_t *get_asset_info_by_addr(const uint8_t *contractAddress);
+extraInfo_t *get_current_asset_info(void);
+void validate_current_asset_info(void);

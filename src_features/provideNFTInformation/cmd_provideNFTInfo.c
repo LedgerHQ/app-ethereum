@@ -199,8 +199,10 @@ void handleProvideNFTInformation(uint8_t p1,
 #endif
     }
 
+    G_io_apdu_buffer[0] = tmpCtx.transactionContext.currentAssetIndex;
     validate_current_asset_info();
-    THROW(0x9000);
+    U2BE_ENCODE(G_io_apdu_buffer, 1, APDU_RESPONSE_OK);
+    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 3);
 }
 
 #endif  // HAVE_NFT_SUPPORT

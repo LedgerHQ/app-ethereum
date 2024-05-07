@@ -15,9 +15,7 @@
 #include "apdu_constants.h"  // APDU response codes
 #include "typed_data.h"
 #include "commands_712.h"
-#include "manage_asset_info.h"
 #include "common_ui.h"
-#include "domain_name.h"
 #include "uint_common.h"
 
 static t_ui_context *ui_ctx = NULL;
@@ -187,39 +185,6 @@ static void ui_712_format_str(const uint8_t *const data, uint8_t length) {
 }
 
 /**
- * Find a substitute token ticker for a given address
- *
- * @param[in] addr the given address
- * @return the ticker name if found, \ref NULL otherwise
- */
-static const char *get_address_token_ticker(const uint8_t *addr) {
-    extraInfo_t *extra_info = get_asset_info_by_addr(addr);
-    if (extra_info != NULL) {
-        return extra_info->token.ticker;
-    }
-    return NULL;
-}
-
-/**
- * Find a substitute (token ticker or domain name) for a given address
- *
- * @param[in] addr the given address
- * @return the substitute if found, \ref NULL otherwise
- */
-static const char *get_address_substitute(const uint8_t *addr) {
-    const char *str = NULL;
-
-    str = get_address_token_ticker(addr);
-    if (str == NULL) {
-        if (has_domain_name(&eip712_context->chain_id, addr)) {
-            // No handling of the verbose domains setting
-            str = g_domain_name;
-        }
-    }
-    return str;
-}
-
-/**
  * Format a given data as a string representation of an address
  *
  * @param[in] data the data that needs formatting
@@ -231,19 +196,12 @@ static bool ui_712_format_addr(const uint8_t *const data, uint8_t length) {
         apdu_response_code = APDU_RESPONSE_INVALID_DATA;
         return false;
     }
-
     if (ui_712_field_shown()) {
-        const char *sub;
-
-        if (!N_storage.verbose_eip712 && ((sub = get_address_substitute(data)) != NULL)) {
-            ui_712_set_value(sub, strlen(sub));
-        } else {
-            if (!getEthDisplayableAddress((uint8_t *) data,
-                                          strings.tmp.tmp,
-                                          sizeof(strings.tmp.tmp),
-                                          chainConfig->chainId)) {
-                THROW(APDU_RESPONSE_ERROR_NO_INFO);
-            }
+        if (!getEthDisplayableAddress((uint8_t *) data,
+                                      strings.tmp.tmp,
+                                      sizeof(strings.tmp.tmp),
+                                      chainConfig->chainId)) {
+            THROW(APDU_RESPONSE_ERROR_NO_INFO);
         }
     }
     return true;

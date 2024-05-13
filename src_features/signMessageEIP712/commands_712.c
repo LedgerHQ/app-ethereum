@@ -28,6 +28,7 @@
 #define P2_IMPL_FIELD             P2_DEF_FIELD
 #define P2_FILT_ACTIVATE          0x00
 #define P2_FILT_MESSAGE_INFO      0x0F
+#define P2_FILT_DATE_TIME         0xFC
 #define P2_FILT_AMOUNT_JOIN_TOKEN 0xFD
 #define P2_FILT_AMOUNT_JOIN_VALUE 0xFE
 #define P2_FILT_RAW_FIELD         0xFF
@@ -176,6 +177,9 @@ bool handle_eip712_filtering(const uint8_t *const apdu_buf) {
             if (ret) {
                 reply_apdu = false;
             }
+            break;
+        case P2_FILT_DATE_TIME:
+            ret = filtering_date_time(&apdu_buf[OFFSET_CDATA], apdu_buf[OFFSET_LC]);
             break;
         case P2_FILT_AMOUNT_JOIN_TOKEN:
             ret = filtering_amount_join_token(&apdu_buf[OFFSET_CDATA], apdu_buf[OFFSET_LC]);

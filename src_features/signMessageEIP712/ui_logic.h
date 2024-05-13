@@ -26,7 +26,7 @@ void ui_712_set_title(const char *const str, uint8_t length);
 void ui_712_set_value(const char *const str, uint8_t length);
 void ui_712_message_hash(void);
 void ui_712_redraw_generic_step(void);
-void ui_712_flag_field(bool show, bool name_provided, bool token_join);
+void ui_712_flag_field(bool show, bool name_provided, bool token_join, bool datetime);
 void ui_712_field_flags_reset(void);
 void ui_712_finalize_field(void);
 void ui_712_set_filtering_mode(e_eip712_filtering_mode mode);

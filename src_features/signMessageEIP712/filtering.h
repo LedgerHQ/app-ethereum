@@ -7,6 +7,7 @@
 #include <stdint.h>
 
 bool filtering_message_info(const uint8_t *payload, uint8_t length);
+bool filtering_date_time(const uint8_t *payload, uint8_t length);
 bool filtering_amount_join_token(const uint8_t *payload, uint8_t length);
 bool filtering_amount_join_value(const uint8_t *payload, uint8_t length);
 bool filtering_raw_field(const uint8_t *payload, uint8_t length);

@@ -14,6 +14,7 @@
 #define FILT_MAGIC_MESSAGE_INFO      183
 #define FILT_MAGIC_AMOUNT_JOIN_TOKEN 11
 #define FILT_MAGIC_AMOUNT_JOIN_VALUE 22
+#define FILT_MAGIC_DATETIME          33
 #define FILT_MAGIC_RAW_FIELD         72
 
 /**
@@ -215,6 +216,66 @@ bool filtering_message_info(const uint8_t *payload, uint8_t length) {
 }
 
 /**
+ * Command to display a field as a date-time
+ *
+ * @param[in] payload the payload to parse
+ * @param[in] length the payload length
+ * @return whether it was successful or not
+ */
+bool filtering_date_time(const uint8_t *payload, uint8_t length) {
+    uint8_t name_len;
+    const char *name;
+    uint8_t sig_len;
+    const uint8_t *sig;
+    uint8_t offset = 0;
+
+    if (path_get_root_type() != ROOT_MESSAGE) {
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        return false;
+    }
+
+    // Parsing
+    if ((offset + sizeof(name_len)) > length) {
+        return false;
+    }
+    name_len = payload[offset++];
+    if ((offset + name_len) > length) {
+        return false;
+    }
+    name = (char *) &payload[offset];
+    offset += name_len;
+    if ((offset + sizeof(sig_len)) > length) {
+        return false;
+    }
+    sig_len = payload[offset++];
+    if ((offset + sig_len) != length) {
+        return false;
+    }
+    sig = &payload[offset];
+
+    // Verification
+    cx_sha256_t hash_ctx;
+    if (!sig_verif_start(&hash_ctx, FILT_MAGIC_DATETIME)) {
+        return false;
+    }
+    hash_filtering_path((cx_hash_t *) &hash_ctx);
+    hash_nbytes((uint8_t *) name, sizeof(char) * name_len, (cx_hash_t *) &hash_ctx);
+    if (!sig_verif_end(&hash_ctx, sig, sig_len)) {
+        return false;
+    }
+
+    // Handling
+    if (!check_typename("uint")) {
+        return false;
+    }
+    if (name_len > 0) {  // don't substitute for an empty name
+        ui_712_set_title(name, name_len);
+    }
+    ui_712_flag_field(true, name_len > 0, false, true);
+    return true;
+}
+
+/**
  * Command to display a field as an amount-join (token part)
  *
  * @param[in] payload the payload to parse
@@ -261,7 +322,7 @@ bool filtering_amount_join_token(const uint8_t *payload, uint8_t length) {
     if (!check_typename("address") || !check_token_index(token_idx)) {
         return false;
     }
-    ui_712_flag_field(false, false, true);
+    ui_712_flag_field(false, false, true, false);
     ui_712_token_join_prepare_addr_check(token_idx);
     return true;
 }
@@ -328,7 +389,7 @@ bool filtering_amount_join_value(const uint8_t *payload, uint8_t length) {
     if (!check_typename("uint") || !check_token_index(token_idx)) {
         return false;
     }
-    ui_712_flag_field(false, false, true);
+    ui_712_flag_field(false, false, true, false);
     ui_712_token_join_prepare_amount(token_idx, name, name_len);
     return true;
 }
@@ -386,7 +447,7 @@ bool filtering_raw_field(const uint8_t *payload, uint8_t length) {
     if (name_len > 0) {  // don't substitute for an empty name
         ui_712_set_title(name, name_len);
     }
-    ui_712_flag_field(true, name_len > 0, false);
+    ui_712_flag_field(true, name_len > 0, false, false);
     return true;
 }
 

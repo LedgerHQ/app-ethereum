@@ -1,6 +1,5 @@
 import fnmatch
 import os
-import time
 from functools import partial
 from pathlib import Path
 import json
@@ -8,15 +7,16 @@ from typing import Optional
 import pytest
 from eth_account.messages import encode_typed_data
 
+from ragger.backend import BackendInterface
+from ragger.firmware import Firmware
+from ragger.navigator import Navigator, NavInsID
+from ragger.navigator.navigation_scenario import NavigateWithScenario
+
 import client.response_parser as ResponseParser
 from client.utils import recover_message
 from client.client import EthAppClient
 from client.eip712 import InputData
 from client.settings import SettingID, settings_toggle
-
-from ragger.backend import BackendInterface
-from ragger.firmware import Firmware
-from ragger.navigator import Navigator, NavInsID
 
 
 class SnapshotsConfig:
@@ -71,31 +71,17 @@ def get_wallet_addr(client: EthAppClient) -> bytes:
     return WALLET_ADDR
 
 
-def test_eip712_legacy(firmware: Firmware,
-                       backend: BackendInterface,
-                       navigator: Navigator):
+def test_eip712_legacy(backend: BackendInterface, scenario_navigator: NavigateWithScenario):
     app_client = EthAppClient(backend)
 
-    with open(input_files()[0]) as file:
+    with open(input_files()[0], encoding="utf-8") as file:
         data = json.load(file)
-        smsg = encode_typed_data(full_message=data)
-        with app_client.eip712_sign_legacy(BIP32_PATH, smsg.header, smsg.body):
-            moves = []
-            if firmware.device.startswith("nano"):
-                moves += [NavInsID.RIGHT_CLICK]
-                if firmware.device == "nanos":
-                    screens_per_hash = 4
-                else:
-                    screens_per_hash = 2
-                moves += [NavInsID.RIGHT_CLICK] * screens_per_hash * 2
-                moves += [NavInsID.BOTH_CLICK]
-            else:
-                moves += [NavInsID.USE_CASE_REVIEW_TAP] * 2
-                moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
-            navigator.navigate(moves)
+    smsg = encode_typed_data(full_message=data)
+    with app_client.eip712_sign_legacy(BIP32_PATH, smsg.header, smsg.body):
+        scenario_navigator.review_approve(custom_screen_text="Sign", do_comparison=False)
 
-        vrs = ResponseParser.signature(app_client.response().data)
-        recovered_addr = recover_message(data, vrs)
+    vrs = ResponseParser.signature(app_client.response().data)
+    recovered_addr = recover_message(data, vrs)
 
     assert recovered_addr == get_wallet_addr(app_client)
 
@@ -139,7 +125,6 @@ def eip712_new_common(firmware: Firmware,
                 moves = [NavInsID.RIGHT_CLICK] * 2
             moves += [NavInsID.BOTH_CLICK]
         else:
-            time.sleep(1.5)
             # need to skip the message hash
             if not verbose and filters is None:
                 moves += [NavInsID.USE_CASE_REVIEW_TAP]
@@ -165,6 +150,8 @@ def test_eip712_new(firmware: Firmware,
     app_client = EthAppClient(backend)
     if firmware.device == "nanos":
         pytest.skip("Not supported on LNS")
+    if firmware.device == "flex":
+        pytest.skip("Not yet available on Flex (due to swipe)")
 
     test_path = f"{input_file.parent}/{'-'.join(input_file.stem.split('-')[:-1])}"
 
@@ -206,6 +193,8 @@ def test_eip712_address_substitution(firmware: Firmware,
     app_client = EthAppClient(backend)
     if firmware.device == "nanos":
         pytest.skip("Not supported on LNS")
+    if firmware.device == "flex":
+        pytest.skip("Not yet available on Flex (due to swipe)")
 
     if verbose:
         test_name += "_verbose"

@@ -1,69 +1,73 @@
 #include "common_ui.h"
 #include "ui_signing.h"
 #include "ui_nbgl.h"
-#include "ui_callbacks.h"
 #include "nbgl_use_case.h"
-#include "network.h"
+#include "nbgl_content.h"
 
-static nbgl_layoutTagValue_t pairs[2];
-static char *review_string;
+enum {
+    TOKEN_APPROVE = FIRST_USER_TOKEN,
+};
 
 static void reviewReject(void) {
     io_seproxyhal_touch_privacy_cancel(NULL);
 }
 
-static void confirmTransation(void) {
-    io_seproxyhal_touch_privacy_ok(NULL);
-}
-
-static void reviewChoice(bool confirm) {
-    if (confirm) {
-        confirmTransation();
-    } else {
-        reviewReject();
+static void long_press_cb(int token, uint8_t index, int page) {
+    UNUSED(index);
+    UNUSED(page);
+    if (token == TOKEN_APPROVE) {
+        io_seproxyhal_touch_privacy_ok(NULL);
     }
 }
 
-static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
-    if (page == 0) {
-        pairs[0].item = "Address";
-        pairs[0].value = strings.common.fullAddress;
-        pairs[1].item = "Key";
-        pairs[1].value = strings.common.fullAmount;
+static void buildFirstPage(const char *review_string) {
+    static nbgl_genericContents_t contents = {0};
+    static nbgl_content_t contentsList[3] = {0};
+    static nbgl_contentTagValue_t pairs[2] = {0};
+    uint8_t nbContents = 0;
+    uint8_t nbPairs = 0;
 
-        content->type = TAG_VALUE_LIST;
-        content->tagValueList.nbPairs = 2;
-        content->tagValueList.pairs = (nbgl_layoutTagValue_t *) pairs;
-    } else if (page == 1) {
-        content->type = INFO_LONG_PRESS, content->infoLongPress.icon = get_app_icon(true);
-        content->infoLongPress.text = review_string;
-        content->infoLongPress.longPressText = "Hold to approve";
-    } else {
-        return false;
-    }
-    // valid page so return true
-    return true;
-}
+    pairs[nbPairs].item = "Address";
+    pairs[nbPairs].value = strings.common.fullAddress;
+    nbPairs++;
+    pairs[nbPairs].item = "Key";
+    pairs[nbPairs].value = strings.common.fullAmount;
+    nbPairs++;
 
-static void reviewContinue(void) {
-    nbgl_useCaseRegularReview(0, 2, REJECT_BUTTON, NULL, displayTransactionPage, reviewChoice);
-}
+    // Title page
+    contentsList[nbContents].type = CENTERED_INFO;
+    contentsList[nbContents].content.centeredInfo.text1 = review_string;
+    contentsList[nbContents].content.centeredInfo.icon = get_app_icon(true);
+    contentsList[nbContents].content.centeredInfo.style = LARGE_CASE_INFO;
+    nbContents++;
 
-static void buildFirstPage(void) {
-    nbgl_useCaseReviewStart(get_app_icon(true),
-                            review_string,
-                            NULL,
-                            REJECT_BUTTON,
-                            reviewContinue,
-                            reviewReject);
+    // Values to be reviewed
+    contentsList[nbContents].type = TAG_VALUE_LIST;
+    contentsList[nbContents].content.tagValueList.pairs = pairs;
+    contentsList[nbContents].content.tagValueList.nbPairs = nbPairs;
+    nbContents++;
+
+    // Approval screen
+    contentsList[nbContents].type = INFO_LONG_PRESS;
+    contentsList[nbContents].content.infoLongPress.text = review_string;
+    contentsList[nbContents].content.infoLongPress.icon = get_app_icon(true);
+    contentsList[nbContents].content.infoLongPress.longPressText = "Hold to approve";
+    contentsList[nbContents].content.infoLongPress.longPressToken = TOKEN_APPROVE;
+    contentsList[nbContents].content.infoLongPress.tuneId = NB_TUNES;
+    contentsList[nbContents].contentActionCallback = long_press_cb;
+    nbContents++;
+
+    contents.callbackCallNeeded = false;
+    contents.contentsList = contentsList;
+    contents.nbContents = nbContents;
+
+    nbgl_useCaseGenericReview(&contents, REJECT_BUTTON, reviewReject);
 }
 
 void ui_display_privacy_public_key(void) {
-    review_string = (char *) "Provide public\nprivacy key";
-    buildFirstPage();
+    buildFirstPage("Provide public\nprivacy key");
 }
 
 void ui_display_privacy_shared_secret(void) {
-    review_string = (char *) "Provide public\nsecret key";
-    buildFirstPage();
+    buildFirstPage("Provide public\nsecret key");
 }

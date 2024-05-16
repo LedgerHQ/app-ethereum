@@ -124,7 +124,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
-- EIP-191 improvements, now lets the user see the entire message one chunk at a time (255 characters for LNX & LNS+, 99 for LNS)
+- EIP-191 improvements, now lets the user see the entire message one chunk at a time
+  (255 characters for LNX & LNS+, 99 for LNS)
 
 ### Fixed
 
@@ -145,7 +146,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
-- EIP-191 signatures now show (up to 99 characters on LNS and 255 on LNX & LNS+) the actual data contained in the message (clear-signing)
+- EIP-191 signatures now show (up to 99 characters on LNS and 255 on LNX & LNS+) the actual data
+  contained in the message (clear-signing)
 
 ### Fixed
 
@@ -256,7 +258,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
-- When blind signing is disabled in settings, and a transaction with smart conract interactions is sent to the app, a new warning screen pops to let the user know that the setting must be enabled to sign this kind of transactions.
+- When blind signing is disabled in settings, and a transaction with smart conract interactions is sent to the app,
+  a new warning screen pops to let the user know that the setting must be enabled to sign this kind of transactions.
 
 ## [1.9.4](https://github.com/ledgerhq/app-ethereum/compare/1.9.3...1.9.4) - 2021-9-14
 

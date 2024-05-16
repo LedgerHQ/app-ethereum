@@ -13,25 +13,12 @@ static void confirm_send(void) {
     io_seproxyhal_touch_address_ok(NULL);
 }
 
-static void confirm_addr(void) {
-    // display a status page and go back to main
-    nbgl_useCaseStatus("ADDRESS\nVERIFIED", true, confirm_send);
-}
-
-static void reject_addr(void) {
-    nbgl_useCaseStatus("Address verification\ncancelled", false, cancel_send);
-}
-
 static void review_choice(bool confirm) {
     if (confirm) {
-        confirm_addr();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_ADDRESS_VERIFIED, confirm_send);
     } else {
-        reject_addr();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_ADDRESS_REJECTED, cancel_send);
     }
-}
-
-static void display_addr(void) {
-    nbgl_useCaseAddressConfirmation(strings.common.fullAddress, review_choice);
 }
 
 void ui_display_public_key(const uint64_t *chain_id) {
@@ -54,5 +41,10 @@ void ui_display_public_key(const uint64_t *chain_id) {
         icon = get_app_icon(false);
     }
     strlcat(g_stax_shared_buffer, "address", sizeof(g_stax_shared_buffer));
-    nbgl_useCaseReviewStart(icon, g_stax_shared_buffer, NULL, "Cancel", display_addr, reject_addr);
+    nbgl_useCaseAddressReview(strings.common.fullAddress,
+                              NULL,
+                              icon,
+                              g_stax_shared_buffer,
+                              NULL,
+                              review_choice);
 }

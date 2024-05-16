@@ -22,7 +22,7 @@ static e_ui_191_action g_action;
 
 static bool skip_message;
 
-static nbgl_layoutTagValue_t pair;
+static nbgl_contentTagValue_t pair;
 
 static uint32_t eip191MessageIdx = 0;
 static uint32_t stringsTmpTmpIdx = 0;
@@ -43,7 +43,7 @@ static bool display_message(nbgl_pageContent_t *content) {
         strncpy(g_stax_shared_buffer + eip191MessageIdx,
                 strings.tmp.tmp + stringsTmpTmpIdx,
                 SHARED_BUFFER_SIZE - eip191MessageIdx);
-        reached = nbgl_getTextMaxLenInNbLines(BAGL_FONT_INTER_MEDIUM_32px,
+        reached = nbgl_getTextMaxLenInNbLines(LARGE_MEDIUM_FONT,
                                               (char *) g_stax_shared_buffer,
                                               SCREEN_WIDTH - (2 * BORDER_MARGIN),
                                               NB_MAX_LINES_IN_REVIEW,
@@ -91,7 +91,7 @@ static bool display_sign(nbgl_pageContent_t *content) {
     bool ret = false;
 
     if (g_position != UI_SIGNING_POSITION_SIGN) {
-        content->type = INFO_LONG_PRESS, content->infoLongPress.icon = &C_Message_64px;
+        content->type = INFO_LONG_PRESS, content->infoLongPress.icon = &C_Review_64px;
         content->infoLongPress.text = TEXT_SIGN_EIP191;
         content->infoLongPress.longPressText = SIGN_BUTTON;
         g_position = UI_SIGNING_POSITION_SIGN;

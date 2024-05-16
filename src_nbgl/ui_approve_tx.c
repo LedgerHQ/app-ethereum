@@ -9,23 +9,19 @@
 #include "caller_api.h"
 #include "network_icons.h"
 #include "network.h"
+#include "ledger_assert.h"
 
-#define TEXT_TX "transaction"
 // 1 more than actually displayed on screen, because of calculations in StaticReview
-#define MAX_PLUGIN_ITEMS_PER_SCREEN 4
-#define TAG_MAX_LEN                 43
-#define VALUE_MAX_LEN               79
-enum {
-    REJECT_TOKEN,
-    START_REVIEW_TOKEN,
-};
+#define MAX_PLUGIN_ITEMS 8
+#define TAG_MAX_LEN      43
+#define VALUE_MAX_LEN    79
+#define MAX_PAIRS        12  // Max 10 for plugins + 2 (Network and fees)
 
-static nbgl_layoutTagValue_t pair;
+static nbgl_contentTagValue_t pairs[MAX_PAIRS];
+static nbgl_contentTagValueList_t pairsList;
 // these buffers are used as circular
-static char title_buffer[MAX_PLUGIN_ITEMS_PER_SCREEN][TAG_MAX_LEN];
-static char msg_buffer[MAX_PLUGIN_ITEMS_PER_SCREEN][VALUE_MAX_LEN];
-static nbgl_layoutTagValueList_t useCaseTagValueList;
-static nbgl_pageInfoLongPress_t infoLongPress;
+static char title_buffer[MAX_PLUGIN_ITEMS][TAG_MAX_LEN];
+static char msg_buffer[MAX_PLUGIN_ITEMS][VALUE_MAX_LEN];
 
 struct tx_approval_context_t {
     bool fromPlugin;
@@ -38,8 +34,6 @@ struct tx_approval_context_t {
 
 static struct tx_approval_context_t tx_approval_context;
 
-static void reviewContinueCommon(void);
-
 static void reviewReject(void) {
     io_seproxyhal_touch_tx_cancel(NULL);
     memset(&tx_approval_context, 0, sizeof(tx_approval_context));
@@ -50,134 +44,11 @@ static void confirmTransation(void) {
     memset(&tx_approval_context, 0, sizeof(tx_approval_context));
 }
 
-static void onConfirmAbandon(void) {
-    nbgl_useCaseStatus("Transaction rejected", false, reviewReject);
-}
-
-static void rejectTransactionQuestion(void) {
-    nbgl_useCaseConfirm(REJECT_QUESTION(TEXT_TX),
-                        NULL,
-                        REJECT_CONFIRM_BUTTON,
-                        RESUME(TEXT_TX),
-                        onConfirmAbandon);
-}
-
 static void reviewChoice(bool confirm) {
     if (confirm) {
-        nbgl_useCaseStatus("TRANSACTION\nSIGNED", true, confirmTransation);
+        nbgl_useCaseReviewStatus(STATUS_TYPE_TRANSACTION_SIGNED, confirmTransation);
     } else {
-        rejectTransactionQuestion();
-    }
-}
-
-// called by NBGL to get the tag/value pair corresponding to pairIndex
-static nbgl_layoutTagValue_t *getTagValuePair(uint8_t pairIndex) {
-    static int counter = 0;
-
-    if (tx_approval_context.fromPlugin) {
-        if (pairIndex < dataContext.tokenContext.pluginUiMaxItems) {
-            // for the next dataContext.tokenContext.pluginUiMaxItems items, get tag/value from
-            // plugin_ui_get_item_internal()
-            dataContext.tokenContext.pluginUiCurrentItem = pairIndex;
-            plugin_ui_get_item_internal((uint8_t *) title_buffer[counter],
-                                        TAG_MAX_LEN,
-                                        (uint8_t *) msg_buffer[counter],
-                                        VALUE_MAX_LEN);
-            pair.item = title_buffer[counter];
-            pair.value = msg_buffer[counter];
-        } else {
-            pairIndex -= dataContext.tokenContext.pluginUiMaxItems;
-            // for the last 1 (or 2), tags are fixed
-            if (tx_approval_context.displayNetwork && (pairIndex == 0)) {
-                pair.item = "Network";
-                pair.value = strings.common.network_name;
-            } else {
-                pair.item = "Max fees";
-                pair.value = strings.common.maxFee;
-            }
-        }
-    } else {
-        uint8_t target_index = 0;
-
-        if (pairIndex == target_index++) {
-            pair.item = "Amount";
-            pair.value = strings.common.fullAmount;
-        }
-#ifdef HAVE_DOMAIN_NAME
-        if (tx_approval_context.domain_name_match) {
-            if (pairIndex == target_index++) {
-                pair.item = "Domain";
-                pair.value = g_domain_name;
-            }
-        }
-        if (!tx_approval_context.domain_name_match || N_storage.verbose_domain_name) {
-#endif  // HAVE_DOMAIN_NAME
-            if (pairIndex == target_index++) {
-                pair.item = "Address";
-                pair.value = strings.common.fullAddress;
-            }
-#ifdef HAVE_DOMAIN_NAME
-        }
-#endif  // HAVE_DOMAIN_NAME
-        if (N_storage.displayNonce) {
-            if (pairIndex == target_index++) {
-                pair.item = "Nonce";
-                pair.value = strings.common.nonce;
-            }
-        }
-        if (pairIndex == target_index++) {
-            pair.item = "Max fees";
-            pair.value = strings.common.maxFee;
-        }
-        if (pairIndex == target_index++) {
-            pair.item = "Network";
-            pair.value = strings.common.network_name;
-        }
-    }
-    // counter is used as index to circular buffer
-    counter++;
-    if (counter == MAX_PLUGIN_ITEMS_PER_SCREEN) {
-        counter = 0;
-    }
-    return &pair;
-}
-
-static void pageCallback(int token, uint8_t index) {
-    (void) index;
-    nbgl_pageRelease(pageContext);
-    if (token == REJECT_TOKEN) {
-        reviewReject();
-    } else if (token == START_REVIEW_TOKEN) {
-        reviewContinueCommon();
-    }
-}
-
-static void reviewContinue(void) {
-    if (tx_approval_context.blindSigning) {
-        nbgl_pageInfoDescription_t info = {
-            .centeredInfo.icon = &C_round_warning_64px,
-            .centeredInfo.text1 = "Blind Signing",
-            .centeredInfo.text2 =
-                "This transaction cannot be\nsecurely interpreted by Ledger\nStax. It might put "
-                "your assets\nat risk.",
-            .centeredInfo.text3 = NULL,
-            .centeredInfo.style = LARGE_CASE_INFO,
-            .centeredInfo.offsetY = -32,
-            .footerText = REJECT(TEXT_TX),
-            .footerToken = REJECT_TOKEN,
-            .tapActionText = "Tap to continue",
-            .tapActionToken = START_REVIEW_TOKEN,
-            .topRightStyle = NO_BUTTON_STYLE,
-            .actionButtonText = NULL,
-            .tuneId = TUNE_TAP_CASUAL};
-
-        if (pageContext != NULL) {
-            nbgl_pageRelease(pageContext);
-            pageContext = NULL;
-        }
-        pageContext = nbgl_pageDrawInfo(&pageCallback, NULL, &info);
-    } else {
-        reviewContinueCommon();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_TRANSACTION_REJECTED, reviewReject);
     }
 }
 
@@ -202,55 +73,6 @@ static const nbgl_icon_details_t *get_tx_icon(void) {
     return icon;
 }
 
-static void reviewContinueCommon(void) {
-    uint8_t nbPairs = 0;
-
-    if (tx_approval_context.fromPlugin) {
-        // plugin id + max items + fees
-        nbPairs += dataContext.tokenContext.pluginUiMaxItems + 1;
-    } else {
-        nbPairs += 3;
-        if (N_storage.displayNonce) {
-            nbPairs++;
-        }
-#ifdef HAVE_DOMAIN_NAME
-        uint64_t chain_id = get_tx_chain_id();
-        tx_approval_context.domain_name_match =
-            has_domain_name(&chain_id, tmpContent.txContent.destination);
-        if (tx_approval_context.domain_name_match && N_storage.verbose_domain_name) {
-            nbPairs += 1;
-        }
-#endif  // HAVE_DOMAIN_NAME
-    }
-
-    if (tx_approval_context.displayNetwork) {
-        nbPairs++;
-    }
-
-    useCaseTagValueList.pairs = NULL;
-    useCaseTagValueList.callback = getTagValuePair;
-    useCaseTagValueList.startIndex = 0;
-    useCaseTagValueList.nbPairs = nbPairs;  ///< number of pairs in pairs array
-    useCaseTagValueList.smallCaseForValue = false;
-    useCaseTagValueList.wrapping = false;
-    infoLongPress.icon = get_tx_icon();
-    infoLongPress.text = tx_approval_context.fromPlugin ? g_stax_shared_buffer : SIGN(TEXT_TX);
-    infoLongPress.longPressText = SIGN_BUTTON;
-    nbgl_useCaseStaticReview(&useCaseTagValueList, &infoLongPress, REJECT(TEXT_TX), reviewChoice);
-}
-
-// Replace "Review" by "Sign" and add questionmark
-static void prepare_sign_text(void) {
-    uint8_t sign_length = strlen("Sign");
-    uint8_t review_length = strlen("Review");
-
-    memmove(g_stax_shared_buffer, "Sign", sign_length);
-    memmove(g_stax_shared_buffer + sign_length,
-            g_stax_shared_buffer + review_length,
-            strlen(g_stax_shared_buffer) - review_length + 1);
-    strlcat(g_stax_shared_buffer, "?", sizeof(g_stax_shared_buffer));
-}
-
 // Force operation to be lowercase
 static void get_lowercase_operation(char *dst, size_t dst_len) {
     const char *src = strings.common.fullAmount;
@@ -262,43 +84,132 @@ static void get_lowercase_operation(char *dst, size_t dst_len) {
     dst[idx] = '\0';
 }
 
-static void buildFirstPage(void) {
+static uint8_t setTagValuePairs(void) {
+    uint8_t nbPairs = 0;
+    uint8_t pairIndex = 0;
+    uint8_t counter = 0;
+
+    explicit_bzero(pairs, sizeof(pairs));
+
+    // Setup data to display
     if (tx_approval_context.fromPlugin) {
+        for (pairIndex = 0; pairIndex < dataContext.tokenContext.pluginUiMaxItems; pairIndex++) {
+            // for the next dataContext.tokenContext.pluginUiMaxItems items, get tag/value from
+            // plugin_ui_get_item_internal()
+            dataContext.tokenContext.pluginUiCurrentItem = pairIndex;
+            plugin_ui_get_item_internal((uint8_t *) title_buffer[counter],
+                                        TAG_MAX_LEN,
+                                        (uint8_t *) msg_buffer[counter],
+                                        VALUE_MAX_LEN);
+            pairs[nbPairs].item = title_buffer[counter];
+            pairs[nbPairs].value = msg_buffer[counter];
+            nbPairs++;
+            LEDGER_ASSERT((++counter < MAX_PLUGIN_ITEMS), "Too many items for plugin\n");
+        }
+        // for the last 1 (or 2), tags are fixed
+        if (tx_approval_context.displayNetwork) {
+            pairs[nbPairs].item = "Network";
+            pairs[nbPairs].value = strings.common.network_name;
+            nbPairs++;
+        }
+        pairs[nbPairs].item = "Max fees";
+        pairs[nbPairs].value = strings.common.maxFee;
+        nbPairs++;
+    } else {
+        pairs[nbPairs].item = "Amount";
+        pairs[nbPairs].value = strings.common.fullAmount;
+        nbPairs++;
+
+#ifdef HAVE_DOMAIN_NAME
+        uint64_t chain_id = get_tx_chain_id();
+        tx_approval_context.domain_name_match =
+            has_domain_name(&chain_id, tmpContent.txContent.destination);
+        if (tx_approval_context.domain_name_match) {
+            pairs[nbPairs].item = "Domain";
+            pairs[nbPairs].value = g_domain_name;
+            nbPairs++;
+        }
+        if (!tx_approval_context.domain_name_match || N_storage.verbose_domain_name) {
+#endif
+            pairs[nbPairs].item = "Address";
+            pairs[nbPairs].value = strings.common.fullAddress;
+            nbPairs++;
+#ifdef HAVE_DOMAIN_NAME
+        }
+#endif
+        if (N_storage.displayNonce) {
+            pairs[nbPairs].item = "Nonce";
+            pairs[nbPairs].value = strings.common.nonce;
+            nbPairs++;
+        }
+        pairs[nbPairs].item = "Max fees";
+        pairs[nbPairs].value = strings.common.maxFee;
+        nbPairs++;
+
+        if (tx_approval_context.displayNetwork) {
+            pairs[nbPairs].item = "Network";
+            pairs[nbPairs].value = strings.common.network_name;
+            nbPairs++;
+        }
+    }
+    return nbPairs;
+}
+
+static void reviewCommon(void) {
+    explicit_bzero(&pairsList, sizeof(pairsList));
+
+    pairsList.nbPairs = setTagValuePairs();
+    pairsList.pairs = pairs;
+
+    if (tx_approval_context.fromPlugin) {
+        uint32_t buf_size = SHARED_BUFFER_SIZE / 2;
         char op_name[sizeof(strings.common.fullAmount)];
         plugin_ui_get_id();
 
         get_lowercase_operation(op_name, sizeof(op_name));
-        if (pluginType == EXTERNAL) {
-            snprintf(g_stax_shared_buffer,
-                     sizeof(g_stax_shared_buffer),
-                     "Review transaction\nto %s\non %s",
-                     op_name,
-                     strings.common.fullAddress);
-        } else {
-            snprintf(g_stax_shared_buffer,
-                     sizeof(g_stax_shared_buffer),
-                     "Review transaction\nto %s\n%s",
-                     op_name,
-                     strings.common.fullAddress);
-        }
-        nbgl_useCaseReviewStart(get_tx_icon(),
-                                g_stax_shared_buffer,
-                                NULL,
-                                REJECT(TEXT_TX),
-                                reviewContinue,
-                                rejectTransactionQuestion);
-        prepare_sign_text();
+        snprintf(g_stax_shared_buffer,
+                 buf_size,
+                 "Review transaction\nto %s\n%s%s",
+                 op_name,
+                 (pluginType == EXTERNAL ? "on " : ""),
+                 strings.common.fullAddress);
+        // Finish text: replace "Review" by "Sign" and add questionmark
+        snprintf(g_stax_shared_buffer + buf_size,
+                 buf_size,
+                 "Sign transaction\nto %s\n%s%s",
+                 op_name,
+                 (pluginType == EXTERNAL ? "on " : ""),
+                 strings.common.fullAddress);
+
+        nbgl_useCaseReview(TYPE_TRANSACTION,
+                           &pairsList,
+                           get_tx_icon(),
+                           g_stax_shared_buffer,
+                           NULL,
+                           g_stax_shared_buffer + buf_size,
+                           reviewChoice);
     } else {
-        nbgl_useCaseReviewStart(get_tx_icon(),
-                                REVIEW(TEXT_TX),
-                                NULL,
-                                REJECT(TEXT_TX),
-                                reviewContinue,
-                                rejectTransactionQuestion);
+        nbgl_useCaseReview(TYPE_TRANSACTION,
+                           &pairsList,
+                           get_tx_icon(),
+                           REVIEW("transaction"),
+                           NULL,
+                           SIGN("transaction"),
+                           reviewChoice);
+    }
+}
+
+void blind_confirm_cb(bool confirm) {
+    if (confirm) {
+        reviewCommon();
+    } else {
+        reviewReject();
     }
 }
 
 void ux_approve_tx(bool fromPlugin) {
+    memset(&tx_approval_context, 0, sizeof(tx_approval_context));
+
     tx_approval_context.blindSigning =
         !fromPlugin && tmpContent.txContent.dataPresent && !N_storage.contractDetails;
     tx_approval_context.fromPlugin = fromPlugin;
@@ -309,5 +220,16 @@ void ux_approve_tx(bool fromPlugin) {
         tx_approval_context.displayNetwork = true;
     }
 
-    buildFirstPage();
+    if (tx_approval_context.blindSigning) {
+        nbgl_useCaseChoice(&C_Important_Circle_64px,
+                           "Blind Signing",
+                           "This transaction cannot be securely interpreted by "
+                           "your Ledger device.\nIt might put "
+                           "your assets at risk.",
+                           "Continue",
+                           "Cancel",
+                           blind_confirm_cb);
+    } else {
+        reviewCommon();
+    }
 }

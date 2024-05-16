@@ -61,12 +61,13 @@ Or you can refer to the section `Available pytest options` to configure the opti
 With Ethereum App, it is also possible to load an app (like a _plugin_), and use the `app-ethereum` like a _library_.
 Such case is tested with application clone, using `ThunderCore`.
 
-This special configuration needs an additional command line parameter `--with_lib_mode`, where only the dedicated tests are selected.
+This special configuration needs an additional command line parameter `--with_lib_mode`,
+where only the dedicated tests are selected.
 
 ## Adding a test
 
-When adding new Module for tests, just be carrefull to declare it correctly in order to be handled following the parameter `--with_lib_mode`.
-please refer to `conftest.py`.
+When adding new Module for tests, just be carrefull to declare it correctly in order to be handled
+following the parameter `--with_lib_mode`. please refer to `conftest.py`.
 
 ## Available pytest options
 

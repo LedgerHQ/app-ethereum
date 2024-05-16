@@ -32,12 +32,9 @@ def PBKDF2(*, password: bytes, salt: bytes, dklen: int, c: int, prf: str) -> byt
     if 'sha' not in prf:
         raise ValueError(f"String 'sha' is not in `prf`({prf})")
     if 'sha256' in prf and c < 2**18:
-        '''
-        Verify the number of rounds of SHA256-PBKDF2. SHA512 not checked as use in BIP39
-        does not require, and therefore doesn't use, safe parameters (c=2048).
-
-        Ref: https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki#from-mnemonic-to-seed
-        '''
+        # Verify the number of rounds of SHA256-PBKDF2. SHA512 not checked as use in BIP39
+        # does not require, and therefore doesn't use, safe parameters (c=2048).
+        # Ref: https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki#from-mnemonic-to-seed
         raise ValueError("The PBKDF2 parameters chosen are not secure.")
     _hash = _sha256 if 'sha256' in prf else _sha512
     res = _PBKDF2(password=password, salt=salt, dkLen=dklen, count=c, hmac_hash_module=_hash)  # type: ignore

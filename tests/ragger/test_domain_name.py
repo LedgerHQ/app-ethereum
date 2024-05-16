@@ -2,14 +2,15 @@ from pathlib import Path
 import pytest
 from web3 import Web3
 
-import client.response_parser as ResponseParser
-from client.client import EthAppClient, StatusWord
-from client.settings import SettingID, settings_toggle
-
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from ragger.error import ExceptionRAPDU
-from ragger.navigator import Navigator, NavInsID
+from ragger.navigator import Navigator
+from ragger.navigator.navigation_scenario import NavigateWithScenario
+
+import client.response_parser as ResponseParser
+from client.client import EthAppClient, StatusWord
+from client.settings import SettingID, settings_toggle
 
 
 # Values used across all tests
@@ -41,6 +42,7 @@ def common(firmware: Firmware, app_client: EthAppClient) -> int:
 def test_send_fund(firmware: Firmware,
                    backend: BackendInterface,
                    navigator: Navigator,
+                   scenario_navigator: NavigateWithScenario,
                    default_screenshot_path: Path,
                    verbose: bool):
     app_client = EthAppClient(backend)
@@ -60,20 +62,12 @@ def test_send_fund(firmware: Firmware,
                              "value": Web3.to_wei(AMOUNT, "ether"),
                              "chainId": CHAIN_ID
                          }):
-        moves = []
         if firmware.device.startswith("nano"):
-            moves += [NavInsID.RIGHT_CLICK] * 4
-            if verbose:
-                moves += [NavInsID.RIGHT_CLICK]
-            moves += [NavInsID.BOTH_CLICK]
+            end_text = "Accept"
         else:
-            moves += [NavInsID.USE_CASE_REVIEW_TAP] * 2
-            if verbose:
-                moves += [NavInsID.USE_CASE_REVIEW_TAP]
-            moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
-        navigator.navigate_and_compare(default_screenshot_path,
-                                       "domain_name_verbose_" + str(verbose),
-                                       moves)
+            end_text = "Sign"
+
+        scenario_navigator.review_approve(default_screenshot_path, f"domain_name_verbose_{str(verbose)}", end_text)
 
 
 def test_send_fund_wrong_challenge(firmware: Firmware, backend: BackendInterface):
@@ -87,7 +81,7 @@ def test_send_fund_wrong_challenge(firmware: Firmware, backend: BackendInterface
 
 def test_send_fund_wrong_addr(firmware: Firmware,
                               backend: BackendInterface,
-                              navigator: Navigator,
+                              scenario_navigator: NavigateWithScenario,
                               default_screenshot_path: Path):
     app_client = EthAppClient(backend)
     challenge = common(firmware, app_client)
@@ -106,21 +100,17 @@ def test_send_fund_wrong_addr(firmware: Firmware,
                              "value": Web3.to_wei(AMOUNT, "ether"),
                              "chainId": CHAIN_ID
                          }):
-        moves = []
         if firmware.device.startswith("nano"):
-            moves += [NavInsID.RIGHT_CLICK] * 4
-            moves += [NavInsID.BOTH_CLICK]
+            end_text = "Accept"
         else:
-            moves += [NavInsID.USE_CASE_REVIEW_TAP] * 2
-            moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
-        navigator.navigate_and_compare(default_screenshot_path,
-                                       "domain_name_wrong_addr",
-                                       moves)
+            end_text = "Sign"
+
+        scenario_navigator.review_approve(default_screenshot_path, "domain_name_wrong_addr", end_text)
 
 
 def test_send_fund_non_mainnet(firmware: Firmware,
                                backend: BackendInterface,
-                               navigator: Navigator,
+                               scenario_navigator: NavigateWithScenario,
                                default_screenshot_path: Path):
     app_client = EthAppClient(backend)
     challenge = common(firmware, app_client)
@@ -136,21 +126,17 @@ def test_send_fund_non_mainnet(firmware: Firmware,
                              "value": Web3.to_wei(AMOUNT, "ether"),
                              "chainId": 5
                          }):
-        moves = []
         if firmware.device.startswith("nano"):
-            moves += [NavInsID.RIGHT_CLICK] * 5
-            moves += [NavInsID.BOTH_CLICK]
+            end_text = "Accept"
         else:
-            moves += [NavInsID.USE_CASE_REVIEW_TAP] * 2
-            moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
-        navigator.navigate_and_compare(default_screenshot_path,
-                                       "domain_name_non_mainnet",
-                                       moves)
+            end_text = "Sign"
+
+        scenario_navigator.review_approve(default_screenshot_path, "domain_name_non_mainnet", end_text)
 
 
 def test_send_fund_unknown_chain(firmware: Firmware,
                                  backend: BackendInterface,
-                                 navigator: Navigator,
+                                 scenario_navigator: NavigateWithScenario,
                                  default_screenshot_path: Path):
     app_client = EthAppClient(backend)
     challenge = common(firmware, app_client)
@@ -166,16 +152,12 @@ def test_send_fund_unknown_chain(firmware: Firmware,
                              "value": Web3.to_wei(AMOUNT, "ether"),
                              "chainId": 9
                          }):
-        moves = []
         if firmware.device.startswith("nano"):
-            moves += [NavInsID.RIGHT_CLICK] * 5
-            moves += [NavInsID.BOTH_CLICK]
+            end_text = "Accept"
         else:
-            moves += [NavInsID.USE_CASE_REVIEW_TAP] * 3
-            moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
-        navigator.navigate_and_compare(default_screenshot_path,
-                                       "domain_name_unknown_chain",
-                                       moves)
+            end_text = "Sign"
+
+        scenario_navigator.review_approve(default_screenshot_path, "domain_name_unknown_chain", end_text)
 
 
 def test_send_fund_domain_too_long(firmware: Firmware, backend: BackendInterface):

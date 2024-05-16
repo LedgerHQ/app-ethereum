@@ -1,16 +1,17 @@
+from typing import List
+
 from staking_deposit.utils.crypto import (
     HKDF,
     SHA256,
 )
 from py_ecc.optimized_bls12_381 import curve_order as bls_curve_order
-from typing import List
 
 
-def _flip_bits_256(input: int) -> int:
+def _flip_bits_256(value: int) -> int:
     """
-    Flips 256 bits worth of `input`.
+    Flips 256 bits worth of `value`.
     """
-    return input ^ (2**256 - 1)
+    return value ^ (2**256 - 1)
 
 
 def _IKM_to_lamport_SK(*, IKM: bytes, salt: bytes) -> List[bytes]:

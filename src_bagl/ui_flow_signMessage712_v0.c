@@ -4,17 +4,17 @@
 #include "uint_common.h"
 
 void prepare_domain_hash_v0() {
-    bytes_to_string(strings.tmp.tmp,
-                    sizeof(strings.tmp.tmp),
-                    tmpCtx.messageSigningContext712.domainHash,
-                    KECCAK256_HASH_BYTESIZE);
+    array_bytes_string(strings.tmp.tmp,
+                       sizeof(strings.tmp.tmp),
+                       tmpCtx.messageSigningContext712.domainHash,
+                       KECCAK256_HASH_BYTESIZE);
 }
 
 void prepare_message_hash_v0() {
-    bytes_to_string(strings.tmp.tmp,
-                    sizeof(strings.tmp.tmp),
-                    tmpCtx.messageSigningContext712.messageHash,
-                    KECCAK256_HASH_BYTESIZE);
+    array_bytes_string(strings.tmp.tmp,
+                       sizeof(strings.tmp.tmp),
+                       tmpCtx.messageSigningContext712.messageHash,
+                       KECCAK256_HASH_BYTESIZE);
 }
 
 // clang-format off
@@ -23,7 +23,7 @@ UX_STEP_NOCB(
     pnn,
     {
       &C_icon_certificate,
-      "Sign",
+      "Review",
       "typed message",
     });
 UX_STEP_NOCB_INIT(

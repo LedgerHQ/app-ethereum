@@ -58,20 +58,3 @@ void reverseString(char *const str, uint32_t length) {
         str[j] = c;
     }
 }
-
-int bytes_to_string(char *out, size_t outl, const void *value, size_t len) {
-    if (outl <= 2) {
-        // Need at least '0x' and 1 digit
-        return -1;
-    }
-    if (strlcpy(out, "0x", outl) != 2) {
-        goto err;
-    }
-    if (format_hex(value, len, out + 2, outl - 2) < 0) {
-        goto err;
-    }
-    return 0;
-err:
-    *out = '\0';
-    return -1;
-}

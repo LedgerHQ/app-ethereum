@@ -147,6 +147,14 @@ class EthAppClient:
         return self._exchange_async(self._cmd_builder.get_eth2_public_addr(display,
                                                                            bip32_path))
 
+    def perform_privacy_operation(self,
+                                  display: bool = True,
+                                  bip32_path: str = "m/44'/60'/0'/0/0",
+                                  pubkey: bytes = bytes()):
+        return self._exchange(self._cmd_builder.perform_privacy_operation(display,
+                                                                          bip32_path,
+                                                                          pubkey))
+
     def provide_domain_name(self, challenge: int, name: str, addr: bytes) -> RAPDU:
         payload = format_tlv(DomainNameTag.STRUCTURE_TYPE, 3)  # TrustedDomainName
         payload += format_tlv(DomainNameTag.STRUCTURE_VERSION, 1)

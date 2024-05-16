@@ -9,7 +9,7 @@
 #include "ui_message_signing.h"
 #include "ui_signing.h"
 
-static nbgl_layoutTagValue_t pair;
+static nbgl_contentTagValue_t pair;
 
 static bool display_sign_page(uint8_t page, nbgl_pageContent_t *content) {
     (void) page;
@@ -26,16 +26,12 @@ static bool display_review_page(uint8_t page, nbgl_pageContent_t *content) {
     switch (page) {
         case 0:
             // limit the value to one page
-            nbgl_getTextMaxLenInNbLines(BAGL_FONT_INTER_MEDIUM_32px,
+            nbgl_getTextMaxLenInNbLines(LARGE_MEDIUM_FONT,
                                         strings.tmp.tmp,
                                         SCREEN_WIDTH - (2 * BORDER_MARGIN),
                                         NB_MAX_LINES_IN_REVIEW,
-#if (API_LEVEL == 0 || API_LEVEL >= 14)
                                         &len,
                                         false);
-#else
-                                        &len);
-#endif
             strings.tmp.tmp[len] = '\0';
 
             pair.item = strings.tmp.tmp2;

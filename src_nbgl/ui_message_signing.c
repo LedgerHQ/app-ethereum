@@ -33,7 +33,7 @@ void ui_message_start(const char *title,
                       void (*rejected_func)(void)) {
     g_approved_func = approved_func;
     g_rejected_func = rejected_func;
-    nbgl_useCaseReviewStart(&C_Message_64px,
+    nbgl_useCaseReviewStart(&C_Review_64px,
                             title,
                             NULL,
                             REJECT_BUTTON,

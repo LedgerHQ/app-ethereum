@@ -205,6 +205,8 @@ def send_struct_impl_field(value, field):
             elif filtering_paths[path]["type"] == "amount_join_value":
                 send_filtering_amount_join_value(filtering_paths[path]["token"],
                                                  filtering_paths[path]["name"])
+            elif filtering_paths[path]["type"] == "datetime":
+                send_filtering_datetime(filtering_paths[path]["name"])
             elif filtering_paths[path]["type"] == "raw":
                 send_filtering_raw(filtering_paths[path]["name"])
             else:
@@ -308,6 +310,19 @@ def send_filtering_amount_join_value(token_idx: int, display_name: str):
     to_sign.append(token_idx)
     sig = keychain.sign_data(keychain.Key.CAL, to_sign)
     with app_client.eip712_filtering_amount_join_value(token_idx, display_name, sig):
+        pass
+
+
+def send_filtering_datetime(display_name: str):
+    global sig_ctx
+
+    path_str = ".".join(current_path)
+
+    to_sign = start_signature_payload(sig_ctx, 33)
+    to_sign += path_str.encode()
+    to_sign += display_name.encode()
+    sig = keychain.sign_data(keychain.Key.CAL, to_sign)
+    with app_client.eip712_filtering_datetime(display_name, sig):
         pass
 
 

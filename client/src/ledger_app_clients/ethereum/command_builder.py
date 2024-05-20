@@ -42,6 +42,7 @@ class P2Type(IntEnum):
     NEW_IMPLEM = 0x01
     FILTERING_ACTIVATE = 0x00
     FILTERING_MESSAGE_INFO = 0x0f
+    FILTERING_DATETIME = 0xfc
     FILTERING_TOKEN_ADDR_CHECK = 0xfd
     FILTERING_AMOUNT_FIELD = 0xfe
     FILTERING_RAW = 0xff
@@ -196,6 +197,12 @@ class CommandBuilder:
                                P1Type.COMPLETE_SEND,
                                P2Type.FILTERING_AMOUNT_FIELD,
                                data)
+
+    def eip712_filtering_datetime(self, name: str, sig: bytes) -> bytes:
+        return self._serialize(InsType.EIP712_SEND_FILTERING,
+                               P1Type.COMPLETE_SEND,
+                               P2Type.FILTERING_DATETIME,
+                               self._eip712_filtering_send_name(name, sig))
 
     def eip712_filtering_raw(self, name: str, sig: bytes) -> bytes:
         return self._serialize(InsType.EIP712_SEND_FILTERING,

@@ -115,6 +115,9 @@ class EthAppClient:
                                                                                          name,
                                                                                          sig))
 
+    def eip712_filtering_datetime(self, name: str, sig: bytes):
+        return self._exchange_async(self._cmd_builder.eip712_filtering_datetime(name, sig))
+
     def eip712_filtering_raw(self, name: str, sig: bytes):
         return self._exchange_async(self._cmd_builder.eip712_filtering_raw(name, sig))
 

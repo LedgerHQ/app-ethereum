@@ -16,7 +16,7 @@ void ui_confirm_parameter(void);
 void app_quit(void);
 
 // EIP-191
-void ui_191_start(void);
+void ui_191_start(uint32_t msg_size);
 void ui_191_switch_to_message(void);
 void ui_191_switch_to_message_end(void);
 void ui_191_switch_to_sign(void);

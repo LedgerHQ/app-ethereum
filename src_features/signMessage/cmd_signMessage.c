@@ -6,6 +6,7 @@
 #include "common_ui.h"
 
 static uint8_t processed_size;
+static uint32_t msg_size;
 static struct {
     sign_message_state sign_state : 1;
     bool ui_started : 1;
@@ -202,8 +203,8 @@ static void feed_display(void) {
     if ((remaining_ui_buffer_length() == 0) ||
         (tmpCtx.messageSigningContext.remainingLength == 0)) {
         if (!states.ui_started) {
-            ui_191_start();
             states.ui_started = true;
+            ui_191_start(msg_size);
         } else {
             ui_191_switch_to_message();
         }
@@ -235,6 +236,7 @@ bool handleSignPersonalMessage(uint8_t p1,
         if ((data = first_apdu_data(data, &length)) == NULL) {
             return false;
         }
+        msg_size = tmpCtx.messageSigningContext.remainingLength;
         processed_size = data - payload;
     } else if (p1 != P1_MORE) {
         PRINTF("Error: Unexpected P1 (%u)!\n", p1);

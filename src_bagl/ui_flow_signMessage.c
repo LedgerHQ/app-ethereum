@@ -105,7 +105,8 @@ UX_FLOW(ux_191_flow,
         &ux_191_step_sign,
         &ux_191_step_cancel);
 
-void ui_191_start(void) {
+void ui_191_start(uint32_t msg_size) {
+    UNUSED(msg_size);
     ux_flow_init(0, ux_191_flow, NULL);
     ui_pos = UI_191_POS_REVIEW;
 }

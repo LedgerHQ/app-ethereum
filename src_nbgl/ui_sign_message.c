@@ -125,7 +125,7 @@ static void continue_review(void) {
     nbgl_useCaseForwardOnlyReview(REJECT_BUTTON, NULL, nav_callback, ui_message_review_choice);
 }
 
-void ui_191_start(void) {
+void ui_191_start(uint32_t msg_size) {
     g_position = UI_SIGNING_POSITION_START;
 
     skip_message = false;

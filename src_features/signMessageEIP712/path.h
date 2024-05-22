@@ -12,6 +12,7 @@
 typedef struct {
     uint8_t path_index;
     uint8_t size;
+    uint8_t index;
 } s_array_depth;
 
 typedef enum { ROOT_DOMAIN, ROOT_MESSAGE } e_root_type;
@@ -27,7 +28,7 @@ typedef struct {
 
 bool path_set_root(const char *const struct_name, uint8_t length);
 const void *path_get_field(void);
-bool path_advance(void);
+bool path_advance(bool array_check);
 bool path_init(void);
 void path_deinit(void);
 bool path_new_array_depth(const uint8_t *const data, uint8_t length);

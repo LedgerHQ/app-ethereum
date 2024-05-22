@@ -58,7 +58,7 @@ typedef bool verificationAlgo(const cx_ecfp_public_key_t *,
 
 // Returns the plugin type of a given plugin name.
 // If the plugin name is not a specific known internal plugin, this function default return value is
-// `EXERNAL`.
+// `EXTERNAL`.
 static pluginType_t getPluginType(char *pluginName, uint8_t pluginNameLength) {
     if (pluginNameLength == sizeof(ERC721_STR) - 1 &&
         strncmp(pluginName, ERC721_STR, pluginNameLength) == 0) {
@@ -189,20 +189,10 @@ void handleSetPlugin(uint8_t p1,
 
     uint8_t algorithmId = workBuffer[offset];
     PRINTF("Algorithm: %d\n", algorithmId);
-    cx_curve_t curve;
-    verificationAlgo *verificationFn;
-    cx_md_t hashId;
 
-    switch (algorithmId) {
-        case ECC_SECG_P256K1__ECDSA_SHA_256:
-            curve = CX_CURVE_256K1;
-            verificationFn = (verificationAlgo *) cx_ecdsa_verify;
-            hashId = CX_SHA256;
-            break;
-        default:
-            PRINTF("Incorrect algorithmId %d\n", algorithmId);
-            THROW(0x6a80);
-            break;
+    if (algorithmId != ECC_SECG_P256K1__ECDSA_SHA_256) {
+        PRINTF("Incorrect algorithmId %d\n", algorithmId);
+        THROW(0x6a80);
     }
     offset += ALGORITHM_ID_SIZE;
     PRINTF("hashing: %.*H\n", payloadSize, workBuffer);
@@ -229,14 +219,12 @@ void handleSetPlugin(uint8_t p1,
         THROW(0x6a80);
     }
 
-    cx_ecfp_init_public_key(curve, rawKey, rawKeyLen, &pluginKey);
-    if (!verificationFn(&pluginKey,
-                        CX_LAST,
-                        hashId,
-                        hash,
-                        sizeof(hash),
-                        (unsigned char *) (workBuffer + offset),
-                        signatureLen)) {
+    CX_ASSERT(cx_ecfp_init_public_key_no_throw(CX_CURVE_256K1, rawKey, rawKeyLen, &pluginKey));
+    if (!cx_ecdsa_verify_no_throw(&pluginKey,
+                                  hash,
+                                  sizeof(hash),
+                                  (unsigned char *) (workBuffer + offset),
+                                  signatureLen)) {
 #ifndef HAVE_BYPASS_SIGNATURES
         PRINTF("Invalid NFT signature\n");
         THROW(0x6A80);

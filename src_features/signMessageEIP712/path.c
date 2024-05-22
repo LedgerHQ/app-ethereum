@@ -115,7 +115,7 @@ const void *path_get_field(void) {
 /**
  * Go down (add) a depth level.
  *
- * @return whether the push was succesful
+ * @return whether the push was successful
  */
 static bool path_depth_list_push(void) {
     if (path_struct == NULL) {
@@ -147,13 +147,17 @@ static cx_sha3_t *get_last_hash_ctx(void) {
 static bool finalize_hash_depth(uint8_t *hash) {
     const cx_sha3_t *hash_ctx;
     size_t hashed_bytes;
+    cx_err_t error = CX_INTERNAL_ERROR;
 
     hash_ctx = get_last_hash_ctx();
     hashed_bytes = hash_ctx->blen;
     // finalize hash
-    cx_hash((cx_hash_t *) hash_ctx, CX_LAST, NULL, 0, hash, KECCAK256_HASH_BYTESIZE);
+    CX_CHECK(
+        cx_hash_no_throw((cx_hash_t *) hash_ctx, CX_LAST, NULL, 0, hash, KECCAK256_HASH_BYTESIZE));
     mem_dealloc(sizeof(*hash_ctx));  // remove hash context
     return hashed_bytes > 0;
+end:
+    return false;
 }
 
 /**
@@ -166,7 +170,7 @@ static void feed_last_hash_depth(const uint8_t *const hash) {
 
     hash_ctx = get_last_hash_ctx();
     // continue progressive hash with the array hash
-    cx_hash((cx_hash_t *) hash_ctx, 0, hash, KECCAK256_HASH_BYTESIZE, NULL, 0);
+    CX_ASSERT(cx_hash_no_throw((cx_hash_t *) hash_ctx, 0, hash, KECCAK256_HASH_BYTESIZE, NULL, 0));
 }
 
 /**
@@ -177,15 +181,18 @@ static void feed_last_hash_depth(const uint8_t *const hash) {
  */
 static bool push_new_hash_depth(bool init) {
     cx_sha3_t *hash_ctx;
+    cx_err_t error = CX_INTERNAL_ERROR;
 
     // allocate new hash context
     if ((hash_ctx = MEM_ALLOC_AND_ALIGN_TYPE(*hash_ctx)) == NULL) {
         return false;
     }
     if (init) {
-        cx_keccak_init(hash_ctx, 256);  // initialize it
+        CX_CHECK(cx_keccak_init_no_throw(hash_ctx, 256));
     }
     return true;
+end:
+    return false;
 }
 
 /**
@@ -248,6 +255,7 @@ static bool array_depth_list_push(uint8_t path_idx, uint8_t size) {
     arr = &path_struct->array_depths[path_struct->array_depth_count];
     arr->path_index = path_idx;
     arr->size = size;
+    arr->index = 0;
     path_struct->array_depth_count += 1;
     return true;
 }
@@ -278,11 +286,14 @@ static bool array_depth_list_pop(void) {
  * Updates the path so that it doesn't point to a struct-type field, but rather
  * only to actual fields.
  *
+ * @param[in] skip_if_array skip if path is already pointing at an array
+ * @param[in] stop_at_array stop at the first downstream array
  * @return whether the path update worked or not
  */
-static bool path_update(void) {
+static bool path_update(bool skip_if_array, bool stop_at_array) {
     uint8_t fields_count;
     const void *struct_ptr;
+    const void *starting_field_ptr;
     const void *field_ptr;
     const char *typename;
     uint8_t typename_len;
@@ -291,11 +302,20 @@ static bool path_update(void) {
     if (path_struct == NULL) {
         return false;
     }
-    if ((field_ptr = get_field(NULL)) == NULL) {
+    if ((starting_field_ptr = get_field(NULL)) == NULL) {
         return false;
     }
-    struct_ptr = path_struct->root_struct;
+    field_ptr = starting_field_ptr;
     while (struct_field_type(field_ptr) == TYPE_CUSTOM) {
+        // check if we meet one of the given conditions
+        if (((field_ptr == starting_field_ptr) && skip_if_array) ||
+            ((field_ptr != starting_field_ptr) && stop_at_array)) {
+            // only if it is the first iteration of that array depth
+            if ((path_struct->array_depths[path_struct->array_depth_count - 1].index == 0) &&
+                struct_field_is_array(field_ptr)) {
+                break;
+            }
+        }
         typename = get_struct_field_typename(field_ptr, &typename_len);
         if ((struct_ptr = get_structn(typename, typename_len)) == NULL) {
             return false;
@@ -307,11 +327,16 @@ static bool path_update(void) {
         if (push_new_hash_depth(true) == false) {
             return false;
         }
-        // get the struct typehash
-        if (type_hash(typename, typename_len, hash) == false) {
-            return false;
+
+        // The only times they are both at false is if we are traversing an empty array,
+        // don't do a typehash in that case
+        if ((skip_if_array != false) || (stop_at_array != false)) {
+            // get the struct typehash
+            if (type_hash(typename, typename_len, hash) == false) {
+                return false;
+            }
+            feed_last_hash_depth(hash);
         }
-        feed_last_hash_depth(hash);
 
         // TODO: Find a better way to show inner structs in verbose mode when it might be
         //       an empty array of structs in which case we don't want to show it but the
@@ -375,7 +400,7 @@ bool path_set_root(const char *const struct_name, uint8_t name_length) {
     struct_state = DEFINED;
 
     // because the first field could be a struct type
-    path_update();
+    path_update(true, true);
     return true;
 }
 
@@ -432,6 +457,7 @@ bool path_new_array_depth(const uint8_t *const data, uint8_t length) {
     bool is_custom;
     uint8_t array_size;
     uint8_t array_depth_count_bak;
+    cx_err_t error = CX_INTERNAL_ERROR;
 
     if (path_struct == NULL) {
         apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
@@ -442,6 +468,9 @@ bool path_new_array_depth(const uint8_t *const data, uint8_t length) {
     }
 
     array_size = *data;
+    if (!path_update(false, array_size > 0)) {
+        return false;
+    }
     array_depth_count_bak = path_struct->array_depth_count;
     for (pidx = 0; pidx < path_struct->depth_count; ++pidx) {
         if ((field_ptr = get_nth_field(NULL, pidx + 1)) == NULL) {
@@ -479,17 +508,19 @@ bool path_new_array_depth(const uint8_t *const data, uint8_t length) {
         if (array_size > 0) {
             memcpy(hash_ctx, old_ctx, sizeof(*old_ctx));
         } else {
-            cx_keccak_init(hash_ctx, 256);
+            CX_CHECK(cx_keccak_init_no_throw(hash_ctx, 256));
         }
-        cx_keccak_init(old_ctx, 256);  // init hash
+        CX_CHECK(cx_keccak_init_no_throw(old_ctx, 256));
     }
     if (array_size == 0) {
         do {
-            path_advance();
-        } while (path_struct->array_depth_count != array_depth_count_bak);
+            path_advance(false);
+        } while (path_struct->array_depth_count > array_depth_count_bak);
     }
 
     return true;
+end:
+    return false;
 }
 
 /**
@@ -537,8 +568,8 @@ static bool path_advance_in_array(void) {
 
         if ((path_struct->array_depth_count > 0) &&
             (arr_depth->path_index == (path_struct->depth_count - 1))) {
-            if (arr_depth->size > 0) arr_depth->size -= 1;
-            if (arr_depth->size == 0) {
+            arr_depth->index += 1;
+            if (arr_depth->index == arr_depth->size) {
                 array_depth_list_pop();
                 end_reached = true;
             } else {
@@ -554,7 +585,7 @@ static bool path_advance_in_array(void) {
  *
  * @return whether the advancement was successful or not
  */
-bool path_advance(void) {
+bool path_advance(bool array_check) {
     bool end_reached;
 
     do {
@@ -564,8 +595,7 @@ bool path_advance(void) {
             end_reached = false;
         }
     } while (end_reached);
-    path_update();
-    return true;
+    return path_update(array_check, array_check);
 }
 
 /**

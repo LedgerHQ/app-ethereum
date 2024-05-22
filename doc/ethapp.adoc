@@ -267,7 +267,7 @@ The signature is computed on
 
 ticker || address || number of decimals (uint4be) || chainId (uint4be)
 
-signed by the following secp256k1 public key 0482bbf2f34f367b2e5bc21847b6566f21f0976b22d3388a9a5e446ac62d25cf725b62a2555b2dd464a4da0ab2f4d506820543af1d242470b1b1a969a27578f353
+signed by the following secp256k1 public key 045e6c1020c14dc46442fe89f97c0b68cdb15976dc24f24c316e7b30fe4e8cc76b1489150c21514ebf440ff5dea5393d83de5358cd098fce8fd0f81daa94979183
 
 #### Coding
 
@@ -801,7 +801,7 @@ None
 
 This command provides a trusted way of deciding what information from the JSON data to show and replace some values by more meaningful ones.
 
-This mode can be overriden by the in-app setting to fully clear-sign EIP-712 messages.
+This mode can be overridden by the in-app setting to fully clear-sign EIP-712 messages.
 
 For the signatures :
 

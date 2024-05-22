@@ -1,0 +1,14 @@
+# markdownlint config file
+
+# Use custom style file
+style "#{File.dirname(__FILE__)}/.mdl.rb"
+
+# MD002 - First header in file should be a top level header
+# MD005 - Inconsistent indentation for list items at the same level
+# MD007 - Unordered list indentation
+# MD014 - Dollar signs used before commands without showing output
+# MD024 - Multiple headers with the same content
+# MD029 - Ordered list item prefix
+# MD033 - Inline HTML
+# MD041 - First line in file should be a top level header
+rules "~MD002,~MD005,~MD007,~MD014,~MD024,~MD029,~MD033,~MD041"

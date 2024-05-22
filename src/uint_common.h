@@ -21,6 +21,9 @@
 #define _UINT_COMMON_H_
 
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include "format.h"
 
 #define UPPER_P(x) x->elements[0]
 #define LOWER_P(x) x->elements[1]

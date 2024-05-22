@@ -17,7 +17,6 @@ static void set_approval_for_all_ui(ethQueryContractUI_t *msg, erc1155_context_t
             if (!getEthDisplayableAddress(context->address,
                                           msg->msg,
                                           msg->msgLength,
-                                          &global_sha3,
                                           chainConfig->chainId)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
@@ -31,7 +30,6 @@ static void set_approval_for_all_ui(ethQueryContractUI_t *msg, erc1155_context_t
             if (!getEthDisplayableAddress(msg->item1->nft.contractAddress,
                                           msg->msg,
                                           msg->msgLength,
-                                          &global_sha3,
                                           chainConfig->chainId)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
@@ -50,7 +48,6 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *contex
             if (!getEthDisplayableAddress(context->address,
                                           msg->msg,
                                           msg->msgLength,
-                                          &global_sha3,
                                           chainConfig->chainId)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
@@ -64,7 +61,6 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *contex
             if (!getEthDisplayableAddress(msg->item1->nft.contractAddress,
                                           msg->msg,
                                           msg->msgLength,
-                                          &global_sha3,
                                           chainConfig->chainId)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
@@ -100,7 +96,6 @@ static void set_batch_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *
             if (!getEthDisplayableAddress(context->address,
                                           msg->msg,
                                           msg->msgLength,
-                                          &global_sha3,
                                           chainConfig->chainId)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
@@ -114,7 +109,6 @@ static void set_batch_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *
             if (!getEthDisplayableAddress(msg->item1->nft.contractAddress,
                                           msg->msg,
                                           msg->msgLength,
-                                          &global_sha3,
                                           chainConfig->chainId)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }

@@ -15,8 +15,10 @@
 #include "apdu_constants.h"  // APDU response codes
 #include "typed_data.h"
 #include "commands_712.h"
+#include "manage_asset_info.h"
 #include "common_ui.h"
 #include "domain_name.h"
+#include "uint_common.h"
 
 static t_ui_context *ui_ctx = NULL;
 
@@ -48,7 +50,7 @@ static bool ui_712_field_shown(void) {
  * @param[in] src_length source buffer size
  * @param[in] dst destination buffer
  * @param[in] dst_length destination buffer length
- * @param[in] explicit_trunc if truncation should be explicitely shown
+ * @param[in] explicit_trunc if truncation should be explicitly shown
  */
 static void ui_712_set_buf(const char *const src,
                            size_t src_length,
@@ -165,11 +167,10 @@ void ui_712_message_hash(void) {
     const char *const title = "Message hash";
 
     ui_712_set_title(title, strlen(title));
-    snprintf(strings.tmp.tmp,
-             sizeof(strings.tmp.tmp),
-             "0x%.*H",
-             KECCAK256_HASH_BYTESIZE,
-             tmpCtx.messageSigningContext712.messageHash);
+    array_bytes_string(strings.tmp.tmp,
+                       sizeof(strings.tmp.tmp),
+                       tmpCtx.messageSigningContext712.messageHash,
+                       KECCAK256_HASH_BYTESIZE);
     ui_712_redraw_generic_step();
 }
 
@@ -192,16 +193,9 @@ static void ui_712_format_str(const uint8_t *const data, uint8_t length) {
  * @return the ticker name if found, \ref NULL otherwise
  */
 static const char *get_address_token_ticker(const uint8_t *addr) {
-    tokenDefinition_t *token;
-
-    // Loop over the received token informations
-    for (uint8_t token_idx = 0; token_idx < MAX_ITEMS; ++token_idx) {
-        if (tmpCtx.transactionContext.tokenSet[token_idx] == 1) {
-            token = &tmpCtx.transactionContext.extraInfo[token_idx].token;
-            if (memcmp(token->address, addr, ADDRESS_LENGTH) == 0) {
-                return token->ticker;
-            }
-        }
+    extraInfo_t *extra_info = get_asset_info_by_addr(addr);
+    if (extra_info != NULL) {
+        return extra_info->token.ticker;
     }
     return NULL;
 }
@@ -247,7 +241,6 @@ static bool ui_712_format_addr(const uint8_t *const data, uint8_t length) {
             if (!getEthDisplayableAddress((uint8_t *) data,
                                           strings.tmp.tmp,
                                           sizeof(strings.tmp.tmp),
-                                          &global_sha3,
                                           chainConfig->chainId)) {
                 THROW(APDU_RESPONSE_ERROR_NO_INFO);
             }
@@ -287,12 +280,12 @@ static bool ui_712_format_bool(const uint8_t *const data, uint8_t length) {
  */
 static void ui_712_format_bytes(const uint8_t *const data, uint8_t length) {
     if (ui_712_field_shown()) {
-        snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "0x%.*H", length, data);
+        array_bytes_string(strings.tmp.tmp, sizeof(strings.tmp.tmp), data, length);
         // +2 for the "0x"
         // x2 for each byte value is represented by 2 ASCII characters
         if ((2 + (length * 2)) > (sizeof(strings.tmp.tmp) - 1)) {
             strings.tmp.tmp[sizeof(strings.tmp.tmp) - 1 - 3] = '\0';
-            strcat(strings.tmp.tmp, "...");
+            strlcat(strings.tmp.tmp, "...", sizeof(strings.tmp.tmp));
         }
     }
 }

@@ -43,7 +43,7 @@ void handleSign(uint8_t p1,
         if (txType >= MIN_TX_TYPE && txType <= MAX_TX_TYPE) {
             // Enumerate through all supported txTypes here...
             if (txType == EIP2930 || txType == EIP1559) {
-                cx_hash((cx_hash_t *) &global_sha3, 0, workBuffer, 1, NULL, 0);
+                CX_ASSERT(cx_hash_no_throw((cx_hash_t *) &global_sha3, 0, workBuffer, 1, NULL, 0));
                 txContext.txType = txType;
                 workBuffer++;
                 dataLength--;

@@ -25,24 +25,22 @@
 - [About the project](#about-the-project)
 - [Documentation](#documentation)
   - [Plugins](#plugins)
-- [Testing](#testing)
-  - [Requirements](#requirements)
-    - [Build the applications required by the test suite](#build-the-applications-required-by-the-test-suite)
-  - [Running all tests](#running-all-tests)
-    - [With Makefile](#with-makefile)
-    - [With yarn](#with-yarn)
-  - [Running a specific tests](#running-a-specific-tests)
-  - [Adding tests](#adding-tests)
-    - [Zemu](#zemu)
-    - [Update binaries](#update-binaries)
+- [Quick start guide](#quick-start-guide)
+  - [With VSCode](#with-vscode)
+  - [With a terminal](#with-a-terminal)
+- [Compilation and load](#compilation-and-load)
+  - [Compilation](#compilation)
+  - [Loading on a physical device](#loading-on-a-physical-device)
+- [Tests](#tests)
+  - [Functional Tests (Ragger based)](#functional-tests-ragger-based)
+  - [Unit Tests](#unit-tests)
 - [Contributing](#contributing)
-
 
 </details>
 
 ## About the project
 
-Ethereum wallet application framework for Nano S, Nano S Plus and Nano X.  
+Ethereum wallet application framework for Nano S, Nano S Plus and Nano X.
 Ledger Blue is not maintained anymore, but the app can still be compiled for this target using the branch [`blue-final-release`](https://github.com/LedgerHQ/app-ethereum/tree/blue-final-release).
 
 ## Documentation
@@ -53,101 +51,223 @@ To compile it and load it on a device, please check out our [developer portal](h
 
 ### Plugins
 
-We have the concept of plugins in the ETH app.  
-Find the documentations here:  
+We have the concept of plugins in the ETH app.
+Find the documentations here:
+
 - [Blog Ethereum plugins](https://blog.ledger.com/ethereum-plugins/)
 - [Ethereum application Plugins : Technical Specifications](https://github.com/LedgerHQ/app-ethereum/blob/master/doc/ethapp_plugins.asc)
 - [Plugin guide](https://hackmd.io/300Ukv5gSbCbVcp3cZuwRQ)
 - [Boilerplate plugin](https://github.com/LedgerHQ/app-plugin-boilerplate)
 
-## Testing
+## Quick start guide
 
-Testing is done via the open-source framework [zemu](https://github.com/Zondax/zemu).
+### With VSCode
 
-### Requirements
+You can quickly setup a convenient environment to build and test your application by using
+[Ledger's VSCode developer tools extension](https://marketplace.visualstudio.com/items?itemName=LedgerHQ.ledger-dev-tools)
+which leverages the [ledger-app-dev-tools](https://github.com/LedgerHQ/ledger-app-builder/pkgs/container/ledger-app-builder%2Fledger-app-dev-tools)
+docker image.
 
-- [nodeJS == 16](https://github.com/nvm-sh/nvm)
-- [yarn](https://classic.yarnpkg.com/lang/en/docs/install/#debian-stable)
-- [build environnement](https://github.com/LedgerHQ/ledger-app-builder/blob/master/Dockerfile)
+It will allow you, whether you are developing on macOS, Windows or Linux,
+to quickly **build** your apps, **test** them on **Speculos** and **load** them on any supported device.
 
-#### Build the applications required by the test suite  
+- Install and run [Docker](https://www.docker.com/products/docker-desktop/).
+- Make sure you have an X11 server running:
+  - On Ubuntu Linux, it should be running by default.
+  - On macOS, install and launch [XQuartz](https://www.xquartz.org/)
+    (make sure to go to XQuartz > Preferences > Security and check "Allow client connections").
+  - On Windows, install and launch [VcXsrv](https://sourceforge.net/projects/vcxsrv/)
+    (make sure to configure it to disable access control).
+- Install [VScode](https://code.visualstudio.com/download) and add [Ledger's extension](https://marketplace.visualstudio.com/items?itemName=LedgerHQ.ledger-dev-tools).
+- Open a terminal and clone `app-ethereum` with `git clone git@github.com:LedgerHQ/app-ethereum.git`.
+- Open the `app-ethereum` folder with VSCode.
+- Use Ledger extension's sidebar menu or open the tasks menu with `ctrl + shift + b`
+  (`command + shift + b` on a Mac) to conveniently execute actions:
+  - Build the app for the device model of your choice with `Build`.
+  - Test your binary on [Speculos](https://github.com/LedgerHQ/speculos) with `Run with Speculos`.
+  - You can also run functional tests, load the app on a physical device, and more.
 
-1. Add your BOLOS SDKs path to:
-    - `NANOS_SDK` and `NANOX_SDK`
+> The terminal tab of VSCode will show you what commands the extension runs behind the scene.
 
-2. Go to the `tests` folder and run `./build_local_test_elfs.sh`
-    - ```sh
-        cd tests
-        # This helper script will build the applications required by the test suite and move them at the right place.
-        yarn install
-        ./build_local_test_elfs.sh
-      ```
+### With a terminal
 
-### Running all tests
-#### With Makefile
+The [ledger-app-dev-tools](https://github.com/LedgerHQ/ledger-app-builder/pkgs/container/ledger-app-builder%2Fledger-app-dev-tools)
+docker image contains all the required tools and libraries to **build**, **test** and **load** an application.
 
-1. Then you can install and run tests by simply running on the `root` of the repo:
-    - ```sh
-        make test
-      ```
-    - This will run `make install_tests` and `make run_tests`
+You can download it from the ghcr.io docker repository:
 
-#### With yarn
-
-1. Go to the `tests` folder and run:
-    - ```sh
-        yarn test
-      ```
-
-### Running a specific tests
-
-1.  Go to the `tests` folder and run:
-    - ```sh
-        yarn jest --runInBand --detectOpenHandles {YourTestFile}
-      ```
-2.  For example with the `send test`:
-    - ```sh
-        yarn jest --runInBand --detectOpenHandles src/send.test.js
-      ```
-
-
-### Adding tests
-
-#### Zemu
-
-To add tests, copy one of the already existing test files in `tests/src/`.
-You then need to adapt the `buffer` and `tx` variables to adapt to the APDU you wish to send.
-
-- Adapt the expected screen flow. Please create a folder under `tests/snapshots` with the name of the test you're performing.
-- Then adapt the `ORIGINAL_SNAPSHOT_PATH_PREFIX` with the name of the folder you just created.
-- To create the snapshots, modify the `SNAPSHOT_PATH_PREFIX` and set it to be equal to `ORIGINAL_SNAPSHOT_PATH_PREFIX`.
-- Run the tests once, this will create all the snapshots in the folder you created.
-- Put back your `SNAPSHOT_PATH_PREFIX` to `snapshots/tmp/`.
-
-Finally make sure you adapt the expected signature!
-
-#### Update binaries
-
-Don't forget to update the binaries in the test folder. To do so, compile with those environement variables:
-
-```sh
-make DEBUG=1 ALLOW_DATA=1
+```shell
+sudo docker pull ghcr.io/ledgerhq/ledger-app-builder/ledger-app-dev-tools:latest
 ```
 
-Then copy the binary to the `tests/elfs` folder (in this case, compiled with SDK for nanoS):
+You can then enter this development environment by executing the following command
+from the root directory of the application `git` repository:
 
-```sh
-cp bin/app.elf tests/elfs/ethereum_nanos.elf
+#### Linux (Ubuntu)
+
+```shell
+sudo docker run --rm -ti --user "$(id -u):$(id -g)" --privileged -v "/dev/bus/usb:/dev/bus/usb" -v "$(realpath .):/app" ghcr.io/ledgerhq/ledger-app-builder/ledger-app-dev-tools:latest
 ```
 
-Repeat the operation for a binary compiled with nanoX SDK and change for `ethereum_nanox.elf`.
+#### macOS
 
+```shell
+sudo docker run  --rm -ti --user "$(id -u):$(id -g)" --privileged -v "$(pwd -P):/app" ghcr.io/ledgerhq/ledger-app-builder/ledger-app-dev-tools:latest
+```
+
+#### Windows (with PowerShell)
+
+```shell
+docker run --rm -ti --privileged -v "$(Get-Location):/app" ghcr.io/ledgerhq/ledger-app-builder/ledger-app-dev-tools:latest
+```
+
+The application's code will be available from inside the docker container,
+you can proceed to the following compilation steps to build your app.
+
+## Compilation and load
+
+To easily setup a development environment for compilation and loading on a physical device, you can use the [VSCode integration](#with-vscode)
+whether you are on Linux, macOS or Windows.
+
+If you prefer using a terminal to perform the steps manually, you can use the guide below.
+
+### Compilation
+
+Setup a compilation environment by following the [shell with docker approach](#with-a-terminal).
+
+Be sure you checkout the submodule:
+
+```shell
+git submodule update --init
+```
+
+From inside the container, use the following command to build the app:
+
+```shell
+make DEBUG=1  # compile optionally with PRINTF
+```
+
+You can choose which device to compile and load for by setting the `BOLOS_SDK` environment variable to the following values:
+
+- `BOLOS_SDK=$NANOS_SDK`
+- `BOLOS_SDK=$NANOX_SDK`
+- `BOLOS_SDK=$NANOSP_SDK`
+- `BOLOS_SDK=$STAX_SDK`
+
+### Loading on a physical device
+
+This step will vary slightly depending on your platform.
+
+> Your physical device must be connected, unlocked and the screen showing the dashboard (not inside an application).
+
+#### Linux (Ubuntu)
+
+First make sure you have the proper udev rules added on your host.
+See [udev-rules](https://github.com/LedgerHQ/udev-rules)
+
+Then once you have [opened a terminal](#with-a-terminal) in the `app-builder` image and [built the app](#compilation-and-load)
+for the device you want, run the following command:
+
+```shell
+# Run this command from the app-builder container terminal.
+make load    # load the app on a Nano S by default
+```
+
+[Setting the BOLOS_SDK environment variable](#compilation-and-load) will allow you to load
+on whichever supported device you want.
+
+#### macOS / Windows (with PowerShell)
+
+> It is assumed you have [Python](https://www.python.org/downloads/) installed on your computer.
+
+Run these commands on your host from the app's source folder once you have [built the app](#compilation-and-load)
+for the device you want:
+
+```shell
+# Install Python virtualenv
+python3 -m pip install virtualenv
+# Create the 'ledger' virtualenv
+python3 -m virtualenv ledger
+```
+
+Enter the Python virtual environment
+
+- macOS: `source ledger/bin/activate`
+- Windows: `.\ledger\Scripts\Activate.ps1`
+
+```shell
+# Install Ledgerblue (tool to load the app)
+python3 -m pip install ledgerblue
+# Load the app.
+python3 -m ledgerblue.runScript --scp --fileName bin/app.apdu --elfFile bin/app.elf
+```
+
+## Tests
+
+The Ethereum app comes with different tests:
+
+- Functional Tests implemented with Ledger's [Ragger](https://github.com/LedgerHQ/ragger) test framework.
+- Unit Tests, allowing to test basic simple functions
+
+### Functional Tests (Ragger based)
+
+#### Linux (Ubuntu)
+
+On Linux, you can use [Ledger's VS Code extension](#with-vscode) to run the tests.
+If you prefer not to, open a terminal and follow the steps below.
+
+Install the tests requirements:
+
+```shell
+pip install -r tests/ragger/requirements.txt
+```
+
+Then you can:
+
+Run the functional tests (here for nanos but available for any device once you have built the binaries):
+
+```shell
+pytest tests/ragger/ --tb=short -v --device nanos
+```
+
+Please see the corresponding ducomentation [USAGE](tests/ragger/usage.md)
+
+Or run your app directly with Speculos
+
+```shell
+speculos --model nanos build/nanos/bin/app.elf
+```
+
+#### macOS / Windows
+
+To test your app on macOS or Windows, it is recommended to use [Ledger's VS Code extension](#with-vscode)
+to quickly setup a working test environment.
+
+You can use the following sequence of tasks and commands (all accessible in the **extension sidebar menu**):
+
+- `Select build target`
+- `Build app`
+
+Then you can choose to execute the functional tests:
+
+- Use `Run tests`.
+
+Or simply run the app on the Speculos emulator:
+
+- `Run with Speculos`.
+
+### Unit Tests
+
+Those tests are available in the directory `tests/unit`. Please see the corresponding [README](tests/unit/README.md)
+to compile and run them.
 
 ## Contributing
 
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+Contributions are what makes the open source community such an amazing place to learn, inspire, and create.
+Any contributions you make are **greatly appreciated**.
 
-If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag `enhancement`.
+If you have a suggestion that would make this better, please fork the repo and create a pull request.
+You can also simply open an issue with the tag `enhancement`.
 
 1. Fork the Project
 2. Create your Feature Branch (`git checkout -b feature/my-feature`)

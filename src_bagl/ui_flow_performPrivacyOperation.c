@@ -3,7 +3,7 @@
 
 // clang-format off
 UX_STEP_NOCB(
-    ux_display_privacy_public_key_flow_1_step, 
+    ux_display_privacy_public_key_flow_1_step,
     pnn,
     {
       &C_icon_eye,
@@ -11,21 +11,21 @@ UX_STEP_NOCB(
       "privacy key",
     });
 UX_STEP_NOCB(
-    ux_display_privacy_public_key_flow_2_step, 
+    ux_display_privacy_public_key_flow_2_step,
     bnnn_paging,
     {
       .title = "Address",
       .text = strings.common.fullAddress,
     });
 UX_STEP_NOCB(
-    ux_display_privacy_public_key_flow_3_step, 
+    ux_display_privacy_public_key_flow_3_step,
     bnnn_paging,
     {
       .title = "Key",
       .text = strings.common.fullAmount,
     });
 UX_STEP_CB(
-    ux_display_privacy_public_key_flow_4_step, 
+    ux_display_privacy_public_key_flow_4_step,
     pb,
     io_seproxyhal_touch_privacy_ok(NULL),
     {
@@ -33,7 +33,7 @@ UX_STEP_CB(
       "Approve",
     });
 UX_STEP_CB(
-    ux_display_privacy_public_key_flow_5_step, 
+    ux_display_privacy_public_key_flow_5_step,
     pb,
     io_seproxyhal_touch_privacy_cancel(NULL),
     {

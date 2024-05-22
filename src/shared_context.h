@@ -22,6 +22,8 @@
 
 #define N_storage (*(volatile internalStorage_t *) PIC(&N_storage_real))
 
+#define MAX_ASSETS MAX_ITEMS  // TODO: Temporary, remove once plugin SDK is updated
+
 typedef struct bip32_path_t {
     uint8_t length;
     uint32_t path[MAX_BIP32_PATH];
@@ -58,7 +60,9 @@ typedef struct tokenContext_t {
         };
         // This needs to be strictly 4 bytes aligned since pointers to it will be casted as
         // plugin context struct pointers (structs that contain up to 4 bytes wide elements)
-        uint8_t pluginContext[5 * INT256_LENGTH] __attribute__((aligned(4)));
+        // uint8_t pluginContext[5 * INT256_LENGTH] __attribute__((aligned(4)));
+        // TODO: use PLUGIN_CONTEXT_SIZE after eth is released with the updated plugin sdk
+        uint8_t pluginContext[10 * INT256_LENGTH] __attribute__((aligned(4)));
     };
 
     uint8_t pluginStatus;
@@ -77,9 +81,9 @@ typedef struct publicKeyContext_t {
 typedef struct transactionContext_t {
     bip32_path_t bip32;
     uint8_t hash[INT256_LENGTH];
-    union extraInfo_t extraInfo[MAX_ITEMS];
-    uint8_t tokenSet[MAX_ITEMS];
-    uint8_t currentItemIndex;
+    union extraInfo_t extraInfo[MAX_ASSETS];
+    bool assetSet[MAX_ASSETS];
+    uint8_t currentAssetIndex;
 } transactionContext_t;
 
 typedef struct messageSigningContext_t {
@@ -147,7 +151,7 @@ typedef union {
     strDataTmp_t tmp;
 } strings_t;
 
-extern chain_config_t *chainConfig;
+extern const chain_config_t *chainConfig;
 
 extern tmpCtx_t tmpCtx;
 extern txContext_t txContext;

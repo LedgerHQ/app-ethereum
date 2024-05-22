@@ -52,17 +52,17 @@ void eth_plugin_prepare_query_contract_UI(ethQueryContractUI_t *queryContractUI,
     memset((uint8_t *) queryContractUI, 0, sizeof(ethQueryContractUI_t));
 
     // If no extra information was found, set the pointer to NULL
-    if (NO_EXTRA_INFO(tmpCtx, 1)) {
+    if (NO_EXTRA_INFO(tmpCtx, 0)) {
         queryContractUI->item1 = NULL;
     } else {
-        queryContractUI->item1 = &tmpCtx.transactionContext.extraInfo[1];
+        queryContractUI->item1 = &tmpCtx.transactionContext.extraInfo[0];
     }
 
     // If no extra information was found, set the pointer to NULL
-    if (NO_EXTRA_INFO(tmpCtx, 0)) {
+    if (NO_EXTRA_INFO(tmpCtx, 1)) {
         queryContractUI->item2 = NULL;
     } else {
-        queryContractUI->item2 = &tmpCtx.transactionContext.extraInfo[0];
+        queryContractUI->item2 = &tmpCtx.transactionContext.extraInfo[1];
     }
 
     queryContractUI->screenIndex = screenIndex;
@@ -102,11 +102,11 @@ static void eth_plugin_perform_init_default(uint8_t *contractAddress,
 static bool eth_plugin_perform_init_old_internal(uint8_t *contractAddress,
                                                  ethPluginInitContract_t *init) {
     uint8_t i, j;
-    const uint8_t **selectors;
+    const uint8_t *const *selectors;
 
     // Search internal plugin list
     for (i = 0;; i++) {
-        selectors = (const uint8_t **) PIC(INTERNAL_ETH_PLUGINS[i].selectors);
+        selectors = (const uint8_t *const *) PIC(INTERNAL_ETH_PLUGINS[i].selectors);
         if (selectors == NULL) {
             break;
         }

@@ -365,36 +365,38 @@ static bool handle_address(const s_tlv_data *data,
 static bool verify_signature(const s_sig_ctx *sig_ctx) {
     uint8_t hash[INT256_LENGTH];
     cx_ecfp_public_key_t verif_key;
+    cx_err_t error = CX_INTERNAL_ERROR;
 
-    cx_hash((cx_hash_t *) &sig_ctx->hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH);
+    CX_CHECK(
+        cx_hash_no_throw((cx_hash_t *) &sig_ctx->hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH));
     switch (sig_ctx->key_id) {
 #ifdef HAVE_DOMAIN_NAME_TEST_KEY
         case KEY_ID_TEST:
 #else
         case KEY_ID_PROD:
 #endif
-            cx_ecfp_init_public_key(CX_CURVE_256K1,
-                                    DOMAIN_NAME_PUB_KEY,
-                                    sizeof(DOMAIN_NAME_PUB_KEY),
-                                    &verif_key);
+            CX_CHECK(cx_ecfp_init_public_key_no_throw(CX_CURVE_256K1,
+                                                      DOMAIN_NAME_PUB_KEY,
+                                                      sizeof(DOMAIN_NAME_PUB_KEY),
+                                                      &verif_key));
             break;
         default:
             PRINTF("Error: Unknown metadata key ID %u\n", sig_ctx->key_id);
             return false;
     }
-    if (!cx_ecdsa_verify(&verif_key,
-                         CX_LAST,
-                         CX_SHA256,
-                         hash,
-                         sizeof(hash),
-                         sig_ctx->input_sig,
-                         sig_ctx->input_sig_size)) {
+    if (!cx_ecdsa_verify_no_throw(&verif_key,
+                                  hash,
+                                  sizeof(hash),
+                                  sig_ctx->input_sig,
+                                  sig_ctx->input_sig_size)) {
         PRINTF("Domain name signature verification failed!\n");
 #ifndef HAVE_BYPASS_SIGNATURES
         return false;
 #endif
     }
     return true;
+end:
+    return false;
 }
 
 /**
@@ -442,7 +444,7 @@ static bool check_found_tlv_tags(s_tlv_handler *handlers, int handler_count) {
     // prevent missing or duplicated tags
     for (int idx = 0; idx < handler_count; ++idx) {
         if (handlers[idx].found != 1) {
-            PRINTF("Found %u occurence(s) of tag 0x%x in TLV!\n",
+            PRINTF("Found %u occurrence(s) of tag 0x%x in TLV!\n",
                    handlers[idx].found,
                    handlers[idx].tag);
             return false;

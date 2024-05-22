@@ -12,7 +12,7 @@ static void ui_warning_contract_data_choice(bool confirm) {
 }
 
 void ui_warning_contract_data(void) {
-    nbgl_useCaseChoice(&C_warning64px,
+    nbgl_useCaseChoice(&C_Warning_64px,
                        "This message cannot\nbe clear-signed",
                        "Enable blind-signing in\nthe settings to sign\nthis transaction.",
                        "Exit",

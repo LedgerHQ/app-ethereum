@@ -1,3 +1,5 @@
 pytest
 ecdsa
-./client/
+web3~=6.0
+ragger[speculos]
+py_ecc

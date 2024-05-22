@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clone
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - run: pip install flake8 flake8-pyproject
       - name: Flake8 lint Python code
         run: (cd client && flake8 src/)
@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clone
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - run: pip install mypy
       - name: Mypy type checking
         run: (cd client && mypy src/)
@@ -44,37 +44,37 @@ jobs:
     needs: [lint, mypy]
     steps:
 
-    - name: Clone
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
+      - name: Clone
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Build Python package
-      run: |
-        pip install --upgrade pip build twine
-        cd client/
-        python -m build;
-        python -m twine check dist/*
-        pip install .;
-        echo "TAG_VERSION=$(python -c 'from ledger_app_clients.ethereum import __version__; print(__version__)')" >> "$GITHUB_ENV"
+      - name: Build Python package
+        run: |
+          pip install --upgrade pip build twine
+          cd client/
+          python -m build;
+          python -m twine check dist/*
+          pip install .;
+          echo "TAG_VERSION=$(python -c 'from ledger_app_clients.ethereum import __version__; print(__version__)')" >> "$GITHUB_ENV"
 
-    - name: Check version against CHANGELOG
-      if: startsWith(github.ref, 'refs/tags/')
-      run: |
-        CHANGELOG_VERSION=$(grep -Po '(?<=## \[)(\d+\.)+[^\]]' client/CHANGELOG.md | head -n 1)
-        if [ "${{ env.TAG_VERSION }}" == "${CHANGELOG_VERSION}" ];
-        then
-            echo 'Package and CHANGELOG versions match!';
-            exit 0;
-        else
-            echo "Tag '${{ env.TAG_VERSION }}' and CHANGELOG '${CHANGELOG_VERSION}' versions mismatch!";
-            exit 1;
-        fi
+      - name: Check version against CHANGELOG
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          CHANGELOG_VERSION=$(grep -Po '(?<=## \[)(\d+\.)+[^\]]' client/CHANGELOG.md | head -n 1)
+          if [ "${{ env.TAG_VERSION }}" == "${CHANGELOG_VERSION}" ];
+          then
+              echo 'Package and CHANGELOG versions match!';
+              exit 0;
+          else
+              echo "Tag '${{ env.TAG_VERSION }}' and CHANGELOG '${CHANGELOG_VERSION}' versions mismatch!";
+              exit 1;
+          fi
 
-    - name: Publish Python package on pypi.org
-      if: success() && github.event_name == 'push'
-      run: (cd client && python -m twine upload --verbose dist/*)
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_PUBLIC_API_TOKEN  }}
-        TWINE_NON_INTERACTIVE: 1
+      - name: Publish Python package on pypi.org
+        if: success() && github.event_name == 'push'
+        run: (cd client && python -m twine upload --verbose dist/*)
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_PUBLIC_API_TOKEN  }}
+          TWINE_NON_INTERACTIVE: 1

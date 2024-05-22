@@ -53,7 +53,6 @@ bool parse_swap_config(const uint8_t *config,
     if ((config_len - offset) >= sizeof(*chain_id)) {
         PRINTF("Chain ID from the swap subconfig = 0x%.*h\n", sizeof(*chain_id), &config[offset]);
         *chain_id = u64_from_BE(config + offset, sizeof(*chain_id));
-        offset += sizeof(*chain_id);
     }
     return true;
 }

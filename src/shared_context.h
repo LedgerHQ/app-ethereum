@@ -22,7 +22,7 @@
 
 #define N_storage (*(volatile internalStorage_t *) PIC(&N_storage_real))
 
-#define MAX_ASSETS MAX_ITEMS  // TODO: Temporary, remove once plugin SDK is updated
+#define MAX_ASSETS 5
 
 typedef struct bip32_path_t {
     uint8_t length;

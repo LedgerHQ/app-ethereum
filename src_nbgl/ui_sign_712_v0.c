@@ -1,19 +1,19 @@
+#include <string.h>    // explicit_bzero
+#include "os_utils.h"  // ARRAYLEN
 #include "common_ui.h"
 #include "ui_nbgl.h"
 #include "common_712.h"
-#include "network.h"
 #include "ui_message_signing.h"
 #include "ui_signing.h"
-#include "uint_common.h"
 
 static nbgl_contentTagValue_t pairs[2];
 static nbgl_contentTagValueList_t pairsList;
 
-static void messageReviewChoice_cb(bool confirm) {
+static void message_review_choice(bool confirm) {
     if (confirm) {
-        nbgl_useCaseStatus("MESSAGE\nSIGNED", true, ui_message_712_approved);
+        nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_SIGNED, ui_message_712_approved);
     } else {
-        nbgl_useCaseStatus("Message signing\ncancelled", false, ui_message_712_rejected);
+        nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_REJECTED, ui_message_712_rejected);
     }
 }
 
@@ -22,7 +22,7 @@ static char *format_hash(const uint8_t *hash, char *buffer, size_t buffer_size, 
     return buffer + offset;
 }
 
-static void setTagValuePairs(void) {
+void ui_sign_712_v0(void) {
     explicit_bzero(pairs, sizeof(pairs));
     explicit_bzero(&pairsList, sizeof(pairsList));
 
@@ -37,34 +37,15 @@ static void setTagValuePairs(void) {
                                  sizeof(strings.tmp.tmp),
                                  70);
 
-    pairsList.nbPairs = 2;
+    pairsList.nbPairs = ARRAYLEN(pairs);
     pairsList.pairs = pairs;
-    pairsList.smallCaseForValue = false;
-    pairsList.nbMaxLinesForValue = NB_MAX_LINES_IN_REVIEW;
-    pairsList.wrapping = false;
-}
+    pairsList.nbMaxLinesForValue = 0;
 
-static void more_data_cb(bool confirm) {
-    if (confirm) {
-        if (g_position != UI_SIGNING_POSITION_SIGN) {
-            setTagValuePairs();
-            nbgl_useCaseReviewStreamingContinue(&pairsList, more_data_cb);
-            // Switch to signature
-            g_position = UI_SIGNING_POSITION_SIGN;
-        } else {
-            // the last page must contain a long press button
-            nbgl_useCaseReviewStreamingFinish(TEXT_SIGN_EIP712, messageReviewChoice_cb);
-        }
-    } else {
-        ui_message_712_rejected();
-    }
-}
-
-void ui_sign_712_v0(void) {
-    g_position = UI_SIGNING_POSITION_START;
-    nbgl_useCaseReviewStreamingStart(TYPE_MESSAGE,
-                                     &C_Review_64px,
-                                     TEXT_REVIEW_EIP712,
-                                     NULL,
-                                     more_data_cb);
+    nbgl_useCaseReview(TYPE_MESSAGE,
+                       &pairsList,
+                       &C_Review_64px,
+                       TEXT_REVIEW_EIP712,
+                       NULL,
+                       TEXT_SIGN_EIP712,
+                       message_review_choice);
 }

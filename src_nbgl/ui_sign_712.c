@@ -22,20 +22,9 @@ static void message_progress(bool confirm) {
 }
 
 static void message_update(bool confirm) {
-    uint16_t len;
-
     if (confirm) {
         explicit_bzero(&pair, sizeof(pair));
         explicit_bzero(&pairs_list, sizeof(pairs_list));
-
-        // limit the value to one page
-        nbgl_getTextMaxLenInNbLines(LARGE_MEDIUM_FONT,
-                                    strings.tmp.tmp,
-                                    SCREEN_WIDTH - (2 * BORDER_MARGIN),
-                                    NB_MAX_LINES_IN_REVIEW,
-                                    &len,
-                                    false);
-        strings.tmp.tmp[len] = '\0';
 
         pair.item = strings.tmp.tmp2;
         pair.value = strings.tmp.tmp;

@@ -4,18 +4,9 @@
 #include "ui_nbgl.h"
 #include "common_712.h"
 #include "ui_message_signing.h"
-#include "ui_signing.h"
 
 static nbgl_contentTagValue_t pairs[2];
-static nbgl_contentTagValueList_t pairsList;
-
-static void message_review_choice(bool confirm) {
-    if (confirm) {
-        nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_SIGNED, ui_message_712_approved);
-    } else {
-        nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_REJECTED, ui_message_712_rejected);
-    }
-}
+static nbgl_contentTagValueList_t pairs_list;
 
 static char *format_hash(const uint8_t *hash, char *buffer, size_t buffer_size, size_t offset) {
     array_bytes_string(buffer + offset, buffer_size - offset, hash, KECCAK256_HASH_BYTESIZE);
@@ -24,7 +15,7 @@ static char *format_hash(const uint8_t *hash, char *buffer, size_t buffer_size, 
 
 void ui_sign_712_v0(void) {
     explicit_bzero(pairs, sizeof(pairs));
-    explicit_bzero(&pairsList, sizeof(pairsList));
+    explicit_bzero(&pairs_list, sizeof(pairs_list));
 
     pairs[0].item = "Domain hash";
     pairs[0].value = format_hash(tmpCtx.messageSigningContext712.domainHash,
@@ -37,15 +28,15 @@ void ui_sign_712_v0(void) {
                                  sizeof(strings.tmp.tmp),
                                  70);
 
-    pairsList.nbPairs = ARRAYLEN(pairs);
-    pairsList.pairs = pairs;
-    pairsList.nbMaxLinesForValue = 0;
+    pairs_list.nbPairs = ARRAYLEN(pairs);
+    pairs_list.pairs = pairs;
+    pairs_list.nbMaxLinesForValue = 0;
 
     nbgl_useCaseReview(TYPE_MESSAGE,
-                       &pairsList,
+                       &pairs_list,
                        &C_Review_64px,
                        TEXT_REVIEW_EIP712,
                        NULL,
                        TEXT_SIGN_EIP712,
-                       message_review_choice);
+                       ui_typed_message_review_choice);
 }

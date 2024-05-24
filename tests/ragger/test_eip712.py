@@ -150,8 +150,6 @@ def test_eip712_new(firmware: Firmware,
     app_client = EthAppClient(backend)
     if firmware.device == "nanos":
         pytest.skip("Not supported on LNS")
-    if firmware.device == "flex":
-        pytest.skip("Not yet available on Flex (due to swipe)")
 
     test_path = f"{input_file.parent}/{'-'.join(input_file.stem.split('-')[:-1])}"
 
@@ -193,8 +191,6 @@ def test_eip712_address_substitution(firmware: Firmware,
     app_client = EthAppClient(backend)
     if firmware.device == "nanos":
         pytest.skip("Not supported on LNS")
-    if firmware.device == "flex":
-        pytest.skip("Not yet available on Flex (due to swipe)")
 
     if verbose:
         test_name += "_verbose"

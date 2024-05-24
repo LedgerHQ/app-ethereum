@@ -332,7 +332,10 @@ def next_timeout(_signum: int, _frame):
 
 
 def enable_autonext():
-    delay = 1/5
+    if app_client._client.firmware.device in ("stax", "flex"):
+        delay = 1/3
+    else:
+        delay = 1/4
     signal.setitimer(signal.ITIMER_REAL, delay, delay)
 
 

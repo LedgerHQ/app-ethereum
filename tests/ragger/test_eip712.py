@@ -209,6 +209,7 @@ def test_eip712_advanced_filtering(firmware: Firmware,
             "token_send": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
             "value_send": 24500000000000000000,
             "token_recv": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+            "expires": 1714559400,
         },
         "primaryType": "Transfer",
         "types": {
@@ -224,6 +225,7 @@ def test_eip712_advanced_filtering(firmware: Firmware,
                 {"name": "token_send", "type": "address"},
                 {"name": "value_send", "type": "uint256"},
                 {"name": "token_recv", "type": "address"},
+                {"name": "expires", "type": "uint64"},
             ]
         }
     }
@@ -270,6 +272,10 @@ def test_eip712_advanced_filtering(firmware: Firmware,
                 "with": {
                     "type": "raw",
                     "name": "With",
+                },
+                "expires": {
+                    "type": "datetime",
+                    "name": "Will Expire"
                 },
             }
         }

@@ -204,10 +204,11 @@ def test_eip712_advanced_filtering(firmware: Firmware,
             "version": "1"
         },
         "message": {
-            "from": "0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa",
-            "to": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-            "amount": 117,
-            "token": "0x6B175474E89094C44Da98b954EedeAC495271d0F"
+            "with": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+            "value_recv": 10000000000000000,
+            "token_send": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+            "value_send": 24500000000000000000,
+            "token_recv": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
         },
         "primaryType": "Transfer",
         "types": {
@@ -218,10 +219,11 @@ def test_eip712_advanced_filtering(firmware: Firmware,
                 {"name": "verifyingContract", "type": "address"}
             ],
             "Transfer": [
-                {"name": "from", "type": "address"},
-                {"name": "to", "type": "address"},
-                {"name": "amount", "type": "uint256"},
-                {"name": "token", "type": "address"}
+                {"name": "with", "type": "address"},
+                {"name": "value_recv", "type": "uint256"},
+                {"name": "token_send", "type": "address"},
+                {"name": "value_send", "type": "uint256"},
+                {"name": "token_recv", "type": "address"},
             ]
         }
     }
@@ -232,10 +234,43 @@ def test_eip712_advanced_filtering(firmware: Firmware,
     else:
         filters = {
             "name": "Advanced Filtering",
+            "tokens": [
+                {
+                    "addr": "0x6b175474e89094c44da98b954eedeac495271d0f",
+                    "ticker": "DAI",
+                    "decimals": 18,
+                    "chain_id": 1,
+                },
+                {
+                    "addr": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                    "ticker": "WETH",
+                    "decimals": 18,
+                    "chain_id": 1,
+                },
+            ],
             "fields": {
-                "amount": "Amount",
-                "token": "Token",
-                "to": "To",
+                "value_send": {
+                    "type": "amount_join_value",
+                    "name": "Send",
+                    "token": 0,
+                },
+                "token_send": {
+                    "type": "amount_join_token",
+                    "token": 0,
+                },
+                "value_recv": {
+                    "type": "amount_join_value",
+                    "name": "Receive",
+                    "token": 1,
+                },
+                "token_recv": {
+                    "type": "amount_join_token",
+                    "token": 1,
+                },
+                "with": {
+                    "type": "raw",
+                    "name": "With",
+                },
             }
         }
 

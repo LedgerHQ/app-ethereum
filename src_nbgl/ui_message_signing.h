@@ -2,6 +2,7 @@
 #define UI_MESSAGE_SIGNING_H_
 
 #include <stdbool.h>
+#include "ui_signing.h"
 
 #define TEXT_MESSAGE       "message"
 #define TEXT_TYPED_MESSAGE "typed " TEXT_MESSAGE

@@ -8,14 +8,6 @@
 static nbgl_contentTagValue_t pairs[2];
 static nbgl_contentTagValueList_t pairs_list;
 
-static void message_review_choice(bool confirm) {
-    if (confirm) {
-        nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_SIGNED, ui_message_712_approved);
-    } else {
-        nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_REJECTED, ui_message_712_rejected);
-    }
-}
-
 static char *format_hash(const uint8_t *hash, char *buffer, size_t buffer_size, size_t offset) {
     array_bytes_string(buffer + offset, buffer_size - offset, hash, KECCAK256_HASH_BYTESIZE);
     return buffer + offset;
@@ -46,5 +38,5 @@ void ui_sign_712_v0(void) {
                        TEXT_REVIEW_EIP712,
                        NULL,
                        TEXT_SIGN_EIP712,
-                       message_review_choice);
+                       ui_typed_message_review_choice);
 }

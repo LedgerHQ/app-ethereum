@@ -17,8 +17,9 @@ jobs:
   analyse:
     name: Analyse
     strategy:
+      fail-fast: false
       matrix:
-        sdk: ["$NANOS_SDK", "$NANOX_SDK", "$NANOSP_SDK", "$STAX_SDK"]
+        sdk: ["$NANOS_SDK", "$NANOX_SDK", "$NANOSP_SDK", "$STAX_SDK", "$FLEX_SDK"]
         # 'cpp' covers C and C++
         language: ['cpp']
     runs-on: ubuntu-latest

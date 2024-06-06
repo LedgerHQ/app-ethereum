@@ -224,14 +224,10 @@ static void ui_712_format_str(const uint8_t *data, uint8_t length, bool last) {
     size_t max_len = sizeof(strings.tmp.tmp) - 1;
     size_t cur_len = strlen(strings.tmp.tmp);
 
-    if (ui_712_field_shown()) {
-        memcpy(strings.tmp.tmp + cur_len,
-               data,
-               MIN(max_len - cur_len, length));
-        // truncated
-        if (last && ((max_len - cur_len) < length)) {
-            memcpy(strings.tmp.tmp + max_len - 3, "...", 3);
-        }
+    memcpy(strings.tmp.tmp + cur_len, data, MIN(max_len - cur_len, length));
+    // truncated
+    if (last && ((max_len - cur_len) < length)) {
+        memcpy(strings.tmp.tmp + max_len - 3, "...", 3);
     }
 }
 
@@ -252,13 +248,11 @@ static bool ui_712_format_addr(const uint8_t *data, uint8_t length, bool first) 
         apdu_response_code = APDU_RESPONSE_INVALID_DATA;
         return false;
     }
-    if (ui_712_field_shown()) {
-        if (!getEthDisplayableAddress((uint8_t *) data,
-                                      strings.tmp.tmp,
-                                      sizeof(strings.tmp.tmp),
-                                      chainConfig->chainId)) {
-            THROW(APDU_RESPONSE_ERROR_NO_INFO);
-        }
+    if (!getEthDisplayableAddress((uint8_t *) data,
+                                  strings.tmp.tmp,
+                                  sizeof(strings.tmp.tmp),
+                                  chainConfig->chainId)) {
+        THROW(APDU_RESPONSE_ERROR_NO_INFO);
     }
     return true;
 }
@@ -286,9 +280,7 @@ static bool ui_712_format_bool(const uint8_t *data, uint8_t length, bool first) 
         return false;
     }
     str = *data ? true_str : false_str;
-    if (ui_712_field_shown()) {
-        memcpy(strings.tmp.tmp, str, MIN(max_len, strlen(str)));
-    }
+    memcpy(strings.tmp.tmp, str, MIN(max_len, strlen(str)));
     return true;
 }
 
@@ -305,21 +297,19 @@ static bool ui_712_format_bytes(const uint8_t *data, uint8_t length, bool first,
     size_t max_len = sizeof(strings.tmp.tmp) - 1;
     size_t cur_len = strlen(strings.tmp.tmp);
 
-    if (ui_712_field_shown()) {
-        if (first) {
-            memcpy(strings.tmp.tmp, "0x", MIN(max_len, 2));
-            cur_len += 2;
-        }
-        if (format_hex(data,
-                       MIN((max_len - cur_len) / 2, length),
-                       strings.tmp.tmp + cur_len,
-                       max_len + 1 - cur_len) < 0) {
-            return false;
-        }
-        // truncated
-        if (last && (((max_len - cur_len) / 2) < length)) {
-            memcpy(strings.tmp.tmp + max_len - 3, "...", 3);
-        }
+    if (first) {
+        memcpy(strings.tmp.tmp, "0x", MIN(max_len, 2));
+        cur_len += 2;
+    }
+    if (format_hex(data,
+                   MIN((max_len - cur_len) / 2, length),
+                   strings.tmp.tmp + cur_len,
+                   max_len + 1 - cur_len) < 0) {
+        return false;
+    }
+    // truncated
+    if (last && (((max_len - cur_len) / 2) < length)) {
+        memcpy(strings.tmp.tmp + max_len - 3, "...", 3);
     }
     return true;
 }
@@ -349,50 +339,38 @@ static bool ui_712_format_int(const uint8_t *data,
     switch (get_struct_field_typesize(field_ptr) * 8) {
         case 256:
             convertUint256BE(data, length, &value256);
-            if (ui_712_field_shown()) {
-                tostring256_signed(&value256, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
-            }
+            tostring256_signed(&value256, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
             break;
         case 128:
             convertUint128BE(data, length, &value128);
-            if (ui_712_field_shown()) {
-                tostring128_signed(&value128, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
-            }
+            tostring128_signed(&value128, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
             break;
         case 64:
             convertUint64BEto128(data, length, &value128);
-            if (ui_712_field_shown()) {
-                tostring128_signed(&value128, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
-            }
+            tostring128_signed(&value128, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
             break;
         case 32:
             value32 = 0;
             for (int i = 0; i < length; ++i) {
                 ((uint8_t *) &value32)[length - 1 - i] = data[i];
             }
-            if (ui_712_field_shown()) {
-                snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "%d", value32);
-            }
+            snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "%d", value32);
             break;
         case 16:
             value16 = 0;
             for (int i = 0; i < length; ++i) {
                 ((uint8_t *) &value16)[length - 1 - i] = data[i];
             }
-            if (ui_712_field_shown()) {
-                snprintf(strings.tmp.tmp,
-                         sizeof(strings.tmp.tmp),
-                         "%d",
-                         value16);  // expanded to 32 bits
-            }
+            snprintf(strings.tmp.tmp,
+                     sizeof(strings.tmp.tmp),
+                     "%d",
+                     value16);  // expanded to 32 bits
             break;
         case 8:
-            if (ui_712_field_shown()) {
-                snprintf(strings.tmp.tmp,
-                         sizeof(strings.tmp.tmp),
-                         "%d",
-                         ((int8_t *) data)[0]);  // expanded to 32 bits
-            }
+            snprintf(strings.tmp.tmp,
+                     sizeof(strings.tmp.tmp),
+                     "%d",
+                     ((int8_t *) data)[0]);  // expanded to 32 bits
             break;
         default:
             PRINTF("Unhandled field typesize\n");
@@ -418,9 +396,7 @@ static bool ui_712_format_uint(const uint8_t *data, uint8_t length, bool first) 
         return false;
     }
     convertUint256BE(data, length, &value256);
-    if (ui_712_field_shown()) {
-        tostring256(&value256, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
-    }
+    tostring256(&value256, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
     return true;
 }
 
@@ -546,39 +522,41 @@ bool ui_712_feed_to_display(const void *field_ptr,
         return false;
     }
     // Value
-    switch (struct_field_type(field_ptr)) {
-        case TYPE_SOL_STRING:
-            ui_712_format_str(data, length, last);
-            break;
-        case TYPE_SOL_ADDRESS:
-            if (ui_712_format_addr(data, length, first) == false) {
+    if (ui_712_field_shown()) {
+        switch (struct_field_type(field_ptr)) {
+            case TYPE_SOL_STRING:
+                ui_712_format_str(data, length, last);
+                break;
+            case TYPE_SOL_ADDRESS:
+                if (ui_712_format_addr(data, length, first) == false) {
+                    return false;
+                }
+                break;
+            case TYPE_SOL_BOOL:
+                if (ui_712_format_bool(data, length, first) == false) {
+                    return false;
+                }
+                break;
+            case TYPE_SOL_BYTES_FIX:
+            case TYPE_SOL_BYTES_DYN:
+                if (ui_712_format_bytes(data, length, first, last) == false) {
+                    return false;
+                }
+                break;
+            case TYPE_SOL_INT:
+                if (ui_712_format_int(data, length, first, field_ptr) == false) {
+                    return false;
+                }
+                break;
+            case TYPE_SOL_UINT:
+                if (ui_712_format_uint(data, length, first) == false) {
+                    return false;
+                }
+                break;
+            default:
+                PRINTF("Unhandled type\n");
                 return false;
-            }
-            break;
-        case TYPE_SOL_BOOL:
-            if (ui_712_format_bool(data, length, first) == false) {
-                return false;
-            }
-            break;
-        case TYPE_SOL_BYTES_FIX:
-        case TYPE_SOL_BYTES_DYN:
-            if (ui_712_format_bytes(data, length, first, last) == false) {
-                return false;
-            }
-            break;
-        case TYPE_SOL_INT:
-            if (ui_712_format_int(data, length, first, field_ptr) == false) {
-                return false;
-            }
-            break;
-        case TYPE_SOL_UINT:
-            if (ui_712_format_uint(data, length, first) == false) {
-                return false;
-            }
-            break;
-        default:
-            PRINTF("Unhandled type\n");
-            return false;
+        }
     }
 
     if (ui_ctx->field_flags & UI_712_AMOUNT_JOIN) {

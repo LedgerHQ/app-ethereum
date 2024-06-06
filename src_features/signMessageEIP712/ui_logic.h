@@ -43,6 +43,9 @@ void ui_712_token_join_prepare_addr_check(uint8_t index);
 void ui_712_token_join_prepare_amount(uint8_t index, const char *name, uint8_t name_length);
 void amount_join_set_token_received(void);
 bool ui_712_show_raw_key(const void *field_ptr);
+#ifdef SCREEN_SIZE_WALLET
+char *get_ui_pairs_buffer(size_t *size);
+#endif
 
 #endif  // HAVE_EIP712_FULL_SUPPORT
 

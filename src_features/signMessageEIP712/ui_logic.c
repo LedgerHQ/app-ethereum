@@ -56,6 +56,9 @@ typedef struct {
     uint8_t field_flags;
     uint8_t structs_to_review;
     s_amount_context amount;
+#ifdef SCREEN_SIZE_WALLET
+    char ui_pairs_buffer[(SHARED_CTX_FIELD_1_SIZE + SHARED_CTX_FIELD_2_SIZE) * 2];
+#endif
 } t_ui_context;
 
 static t_ui_context *ui_ctx = NULL;
@@ -210,6 +213,7 @@ void ui_712_message_hash(void) {
                        sizeof(strings.tmp.tmp),
                        tmpCtx.messageSigningContext712.messageHash,
                        KECCAK256_HASH_BYTESIZE);
+    ui_ctx->end_reached = true;
     ui_712_redraw_generic_step();
 }
 
@@ -594,9 +598,9 @@ void ui_712_end_sign(void) {
         apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
         return;
     }
-    ui_ctx->end_reached = true;
 
     if (N_storage.verbose_eip712 || (ui_ctx->filtering_mode == EIP712_FILTERING_FULL)) {
+        ui_ctx->end_reached = true;
         ui_712_switch_to_sign();
     }
 }
@@ -777,5 +781,18 @@ bool ui_712_show_raw_key(const void *field_ptr) {
     }
     return true;
 }
+
+#ifdef SCREEN_SIZE_WALLET
+/*
+ * Get UI pairs buffer
+ *
+ * @param[out] size buffer size
+ * @return pointer to the buffer
+ */
+char *get_ui_pairs_buffer(size_t *size) {
+    *size = sizeof(ui_ctx->ui_pairs_buffer);
+    return ui_ctx->ui_pairs_buffer;
+}
+#endif
 
 #endif  // HAVE_EIP712_FULL_SUPPORT

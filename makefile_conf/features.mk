@@ -48,7 +48,7 @@ ifneq ($(CAL_TEST_KEY),0)
     # Key used in our test framework
     DEFINES += HAVE_CAL_TEST_KEY
 endif
-CAL_STAGING_KEY ?= 0
+CAL_STAGING_KEY ?= 1
 ifneq ($(CAL_STAGING_KEY),0)
     # Key used by the staging CAL
     DEFINES += HAVE_CAL_STAGING_KEY

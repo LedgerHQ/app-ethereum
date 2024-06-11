@@ -70,6 +70,7 @@ def common_test_nft(firmware: Firmware,
                           collec.addr,
                           get_selector_from_data(data),
                           collec.chain_id)
+
     app_client.provide_nft_metadata(collec.name, collec.addr, collec.chain_id)
     tx_params = {
         "nonce": NONCE,

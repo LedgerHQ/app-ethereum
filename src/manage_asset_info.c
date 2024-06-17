@@ -6,33 +6,35 @@ void forget_known_assets(void) {
     tmpCtx.transactionContext.currentAssetIndex = 0;
 }
 
-static extraInfo_t *get_asset_info(uint8_t index) {
-    if (index >= MAX_ASSETS) {
+static extraInfo_t *get_asset_info(int index) {
+    if ((index < 0) || (index >= MAX_ASSETS)) {
         return NULL;
     }
     return &tmpCtx.transactionContext.extraInfo[index];
 }
 
-static bool asset_info_is_set(uint8_t index) {
-    if (index >= MAX_ASSETS) {
+static bool asset_info_is_set(int index) {
+    if ((index < 0) || (index >= MAX_ASSETS)) {
         return false;
     }
     return tmpCtx.transactionContext.assetSet[index];
 }
 
-extraInfo_t *get_asset_info_by_addr(const uint8_t *contractAddress) {
+int get_asset_index_by_addr(const uint8_t *addr) {
     // Works for ERC-20 & NFT tokens since both structs in the union have the
     // contract address aligned
-    for (uint8_t i = 0; i < MAX_ASSETS; i++) {
-        extraInfo_t *currentItem = get_asset_info(i);
-        if (asset_info_is_set(i) &&
-            (memcmp(currentItem->token.address, contractAddress, ADDRESS_LENGTH) == 0)) {
+    for (int i = 0; i < MAX_ASSETS; i++) {
+        extraInfo_t *asset = get_asset_info(i);
+        if (asset_info_is_set(i) && (memcmp(asset->token.address, addr, ADDRESS_LENGTH) == 0)) {
             PRINTF("Token found at index %d\n", i);
-            return currentItem;
+            return i;
         }
     }
+    return -1;
+}
 
-    return NULL;
+extraInfo_t *get_asset_info_by_addr(const uint8_t *addr) {
+    return get_asset_info(get_asset_index_by_addr(addr));
 }
 
 extraInfo_t *get_current_asset_info(void) {

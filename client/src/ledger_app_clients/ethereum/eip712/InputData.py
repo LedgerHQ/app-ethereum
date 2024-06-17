@@ -203,7 +203,12 @@ def send_struct_impl_field(value, field):
             if filtering_paths[path]["type"] == "amount_join_token":
                 send_filtering_amount_join_token(filtering_paths[path]["token"])
             elif filtering_paths[path]["type"] == "amount_join_value":
-                send_filtering_amount_join_value(filtering_paths[path]["token"],
+                if "token" in filtering_paths[path].keys():
+                    token = filtering_paths[path]["token"]
+                else:
+                    # Permit (ERC-2612)
+                    token = 0xff
+                send_filtering_amount_join_value(token,
                                                  filtering_paths[path]["name"])
             elif filtering_paths[path]["type"] == "datetime":
                 send_filtering_datetime(filtering_paths[path]["name"])

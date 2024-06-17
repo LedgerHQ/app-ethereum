@@ -37,6 +37,7 @@ void ui_712_queue_struct_to_review(void);
 void ui_712_notify_filter_change(void);
 void ui_712_token_join_prepare_addr_check(uint8_t index);
 void ui_712_token_join_prepare_amount(uint8_t index, const char *name, uint8_t name_length);
+void amount_join_set_token_received(void);
 
 #endif  // HAVE_EIP712_FULL_SUPPORT
 

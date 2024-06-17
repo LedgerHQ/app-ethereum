@@ -5,6 +5,7 @@
 #include "ethUstream.h"      // INT256_LENGTH
 #include "apdu_constants.h"  // APDU return codes
 #include "public_keys.h"
+#include "manage_asset_info.h"
 #include "context_712.h"
 #include "commands_712.h"
 #include "typed_data.h"
@@ -16,6 +17,8 @@
 #define FILT_MAGIC_AMOUNT_JOIN_VALUE 22
 #define FILT_MAGIC_DATETIME          33
 #define FILT_MAGIC_RAW_FIELD         72
+
+#define TOKEN_IDX_ADDR_IN_DOMAIN 0xff
 
 /**
  * Reconstruct the field path and hash it
@@ -386,6 +389,19 @@ bool filtering_amount_join_value(const uint8_t *payload, uint8_t length) {
     }
 
     // Handling
+    if (token_idx == TOKEN_IDX_ADDR_IN_DOMAIN) {
+        // Permit (ERC-2612)
+        int resolved_idx = get_asset_index_by_addr(eip712_context->contract_addr);
+
+        if (resolved_idx == -1) {
+            PRINTF("ERROR: Could not find asset info for verifyingContract address!\n");
+            return false;
+        }
+        token_idx = (uint8_t) resolved_idx;
+        // simulate as if we had received a token-join addr
+        ui_712_token_join_prepare_addr_check(token_idx);
+        amount_join_set_token_received();
+    }
     if (!check_typename("uint") || !check_token_index(token_idx)) {
         return false;
     }

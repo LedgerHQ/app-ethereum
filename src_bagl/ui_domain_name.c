@@ -9,7 +9,7 @@ UX_STEP_NOCB(
     ux_domain_name_step,
     bnnn_paging,
     {
-      .title = "Domain",
+      .title = "To (domain)",
       .text = g_domain_name
     });
 // clang-format on

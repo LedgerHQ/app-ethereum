@@ -116,22 +116,22 @@ static uint8_t setTagValuePairs(void) {
         pairs[nbPairs].value = strings.common.maxFee;
         nbPairs++;
     } else {
-        pairs[nbPairs].item = "Amount";
-        pairs[nbPairs].value = strings.common.fullAmount;
-        nbPairs++;
-
         if (strings.common.fromAddress[0] != 0) {
             pairs[nbPairs].item = "From";
             pairs[nbPairs].value = strings.common.fromAddress;
             nbPairs++;
         }
 
+        pairs[nbPairs].item = "Amount";
+        pairs[nbPairs].value = strings.common.fullAmount;
+        nbPairs++;
+
 #ifdef HAVE_DOMAIN_NAME
         uint64_t chain_id = get_tx_chain_id();
         tx_approval_context.domain_name_match =
             has_domain_name(&chain_id, tmpContent.txContent.destination);
         if (tx_approval_context.domain_name_match) {
-            pairs[nbPairs].item = "Domain";
+            pairs[nbPairs].item = "To (domain)";
             pairs[nbPairs].value = g_domain_name;
             nbPairs++;
         }
@@ -143,15 +143,15 @@ static uint8_t setTagValuePairs(void) {
 #ifdef HAVE_DOMAIN_NAME
         }
 #endif
+        pairs[nbPairs].item = "Max fees";
+        pairs[nbPairs].value = strings.common.maxFee;
+        nbPairs++;
+
         if (N_storage.displayNonce) {
             pairs[nbPairs].item = "Nonce";
             pairs[nbPairs].value = strings.common.nonce;
             nbPairs++;
         }
-        pairs[nbPairs].item = "Max fees";
-        pairs[nbPairs].value = strings.common.maxFee;
-        nbPairs++;
-
         if (tx_approval_context.displayNetwork) {
             pairs[nbPairs].item = "Network";
             pairs[nbPairs].value = strings.common.network_name;

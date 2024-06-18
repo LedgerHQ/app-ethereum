@@ -117,7 +117,7 @@ UX_STEP_NOCB(
       .text = strings.common.fromAddress,
     });
 UX_STEP_NOCB(
-    ux_approval_address_step,
+    ux_approval_to_step,
     bnnn_paging,
     {
       .title = "To",
@@ -226,27 +226,23 @@ void ux_approve_tx(bool fromPlugin) {
         ux_approval_tx_flow[step++] = &ux_plugin_approval_after_step;
     } else {
         // We're in a regular transaction, just show the amount and the address
+        if (strings.common.fromAddress[0] != 0) {
+            ux_approval_tx_flow[step++] = &ux_approval_from_step;
+        }
         ux_approval_tx_flow[step++] = &ux_approval_amount_step;
 #ifdef HAVE_DOMAIN_NAME
         uint64_t chain_id = get_tx_chain_id();
         if (has_domain_name(&chain_id, tmpContent.txContent.destination)) {
             ux_approval_tx_flow[step++] = &ux_domain_name_step;
-            if (N_storage.verbose_domain_name) {
-                if (strings.common.fromAddress[0] != 0) {
-                    ux_approval_tx_flow[step++] = &ux_approval_from_step;
-                }
-                ux_approval_tx_flow[step++] = &ux_approval_address_step;
-            }
         } else {
 #endif  // HAVE_DOMAIN_NAME
-            if (strings.common.fromAddress[0] != 0) {
-                ux_approval_tx_flow[step++] = &ux_approval_from_step;
-            }
-            ux_approval_tx_flow[step++] = &ux_approval_address_step;
+            ux_approval_tx_flow[step++] = &ux_approval_to_step;
 #ifdef HAVE_DOMAIN_NAME
         }
 #endif  // HAVE_DOMAIN_NAME
     }
+
+    ux_approval_tx_flow[step++] = &ux_approval_fees_step;
 
     if (N_storage.displayNonce) {
         ux_approval_tx_flow[step++] = &ux_approval_nonce_step;
@@ -257,7 +253,6 @@ void ux_approve_tx(bool fromPlugin) {
         ux_approval_tx_flow[step++] = &ux_approval_network_step;
     }
 
-    ux_approval_tx_flow[step++] = &ux_approval_fees_step;
     ux_approval_tx_flow[step++] = &ux_approval_accept_step;
     ux_approval_tx_flow[step++] = &ux_approval_reject_step;
     ux_approval_tx_flow[step++] = FLOW_END_STEP;

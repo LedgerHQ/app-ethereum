@@ -221,6 +221,11 @@ void ux_approve_tx(bool fromPlugin) {
     if (fromPlugin) {
         // Add the special dynamic display logic
         ux_approval_tx_flow[step++] = &ux_plugin_approval_id_step;
+        if (pluginType != EXTERNAL) {
+            if (strings.common.fromAddress[0] != 0) {
+                ux_approval_tx_flow[step++] = &ux_approval_from_step;
+            }
+        }
         ux_approval_tx_flow[step++] = &ux_plugin_approval_before_step;
         ux_approval_tx_flow[step++] = &ux_plugin_approval_display_step;
         ux_approval_tx_flow[step++] = &ux_plugin_approval_after_step;
@@ -234,6 +239,9 @@ void ux_approve_tx(bool fromPlugin) {
         uint64_t chain_id = get_tx_chain_id();
         if (has_domain_name(&chain_id, tmpContent.txContent.destination)) {
             ux_approval_tx_flow[step++] = &ux_domain_name_step;
+            if (N_storage.verbose_domain_name) {
+                ux_approval_tx_flow[step++] = &ux_approval_to_step;
+            }
         } else {
 #endif  // HAVE_DOMAIN_NAME
             ux_approval_tx_flow[step++] = &ux_approval_to_step;
@@ -241,8 +249,6 @@ void ux_approve_tx(bool fromPlugin) {
         }
 #endif  // HAVE_DOMAIN_NAME
     }
-
-    ux_approval_tx_flow[step++] = &ux_approval_fees_step;
 
     if (N_storage.displayNonce) {
         ux_approval_tx_flow[step++] = &ux_approval_nonce_step;
@@ -253,6 +259,7 @@ void ux_approve_tx(bool fromPlugin) {
         ux_approval_tx_flow[step++] = &ux_approval_network_step;
     }
 
+    ux_approval_tx_flow[step++] = &ux_approval_fees_step;
     ux_approval_tx_flow[step++] = &ux_approval_accept_step;
     ux_approval_tx_flow[step++] = &ux_approval_reject_step;
     ux_approval_tx_flow[step++] = FLOW_END_STEP;

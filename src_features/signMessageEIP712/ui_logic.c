@@ -89,9 +89,9 @@ static bool ui_712_field_shown(void) {
  * @param[in] dst_length destination buffer length
  * @param[in] explicit_trunc if truncation should be explicitly shown
  */
-static void ui_712_set_buf(const char *const src,
+static void ui_712_set_buf(const char *src,
                            size_t src_length,
-                           char *const dst,
+                           char *dst,
                            size_t dst_length,
                            bool explicit_trunc) {
     uint8_t cpy_length;
@@ -124,7 +124,7 @@ void ui_712_finalize_field(void) {
  * @param[in] str the new title
  * @param[in] length its length
  */
-void ui_712_set_title(const char *const str, uint8_t length) {
+void ui_712_set_title(const char *str, size_t length) {
     ui_712_set_buf(str, length, strings.tmp.tmp2, sizeof(strings.tmp.tmp2), false);
 }
 
@@ -134,7 +134,7 @@ void ui_712_set_title(const char *const str, uint8_t length) {
  * @param[in] str the new value
  * @param[in] length its length
  */
-void ui_712_set_value(const char *const str, uint8_t length) {
+void ui_712_set_value(const char *str, size_t length) {
     ui_712_set_buf(str, length, strings.tmp.tmp, sizeof(strings.tmp.tmp), true);
 }
 
@@ -170,6 +170,9 @@ e_eip712_nfs ui_712_next_field(void) {
         } else if (!ui_ctx->end_reached) {
             handle_eip712_return_code(true);
             state = EIP712_FIELD_INCOMING;
+            // So that later when we append to them, we start from an empty string
+            explicit_bzero(strings.tmp.tmp, sizeof(strings.tmp.tmp));
+            explicit_bzero(strings.tmp.tmp2, sizeof(strings.tmp.tmp2));
         }
     }
     return state;
@@ -180,10 +183,10 @@ e_eip712_nfs ui_712_next_field(void) {
  *
  * @param[in] struct_ptr pointer to the structure to be shown
  */
-void ui_712_review_struct(const void *const struct_ptr) {
+void ui_712_review_struct(const void *struct_ptr) {
     const char *struct_name;
     uint8_t struct_name_length;
-    const char *const title = "Review struct";
+    const char *title = "Review struct";
 
     if (ui_ctx == NULL) {
         return;
@@ -200,7 +203,7 @@ void ui_712_review_struct(const void *const struct_ptr) {
  * Show the hash of the message on the generic UI step
  */
 void ui_712_message_hash(void) {
-    const char *const title = "Message hash";
+    const char *title = "Message hash";
 
     ui_712_set_title(title, strlen(title));
     array_bytes_string(strings.tmp.tmp,
@@ -215,10 +218,20 @@ void ui_712_message_hash(void) {
  *
  * @param[in] data the data that needs formatting
  * @param[in] length its length
+ * @param[in] last if this is the last chunk
  */
-static void ui_712_format_str(const uint8_t *const data, uint8_t length) {
+static void ui_712_format_str(const uint8_t *data, uint8_t length, bool last) {
+    size_t max_len = sizeof(strings.tmp.tmp) - 1;
+    size_t cur_len = strlen(strings.tmp.tmp);
+
     if (ui_712_field_shown()) {
-        ui_712_set_value((char *) data, length);
+        memcpy(strings.tmp.tmp + cur_len,
+               data,
+               MIN(max_len - cur_len, length));
+        // truncated
+        if (last && ((max_len - cur_len) < length)) {
+            memcpy(strings.tmp.tmp + max_len - 3, "...", 3);
+        }
     }
 }
 
@@ -227,9 +240,14 @@ static void ui_712_format_str(const uint8_t *const data, uint8_t length) {
  *
  * @param[in] data the data that needs formatting
  * @param[in] length its length
+ * @param[in] first if this is the first chunk
  * @return if the formatting was successful
  */
-static bool ui_712_format_addr(const uint8_t *const data, uint8_t length) {
+static bool ui_712_format_addr(const uint8_t *data, uint8_t length, bool first) {
+    // no reason for an address to be received over multiple chunks
+    if (!first) {
+        return false;
+    }
     if (length != ADDRESS_LENGTH) {
         apdu_response_code = APDU_RESPONSE_INVALID_DATA;
         return false;
@@ -250,20 +268,26 @@ static bool ui_712_format_addr(const uint8_t *const data, uint8_t length) {
  *
  * @param[in] data the data that needs formatting
  * @param[in] length its length
+ * @param[in] first if this is the first chunk
  * @return if the formatting was successful
  */
-static bool ui_712_format_bool(const uint8_t *const data, uint8_t length) {
-    const char *const true_str = "true";
-    const char *const false_str = "false";
+static bool ui_712_format_bool(const uint8_t *data, uint8_t length, bool first) {
+    size_t max_len = sizeof(strings.tmp.tmp) - 1;
+    const char *true_str = "true";
+    const char *false_str = "false";
     const char *str;
 
+    // no reason for a boolean to be received over multiple chunks
+    if (!first) {
+        return false;
+    }
     if (length != 1) {
         apdu_response_code = APDU_RESPONSE_INVALID_DATA;
         return false;
     }
     str = *data ? true_str : false_str;
     if (ui_712_field_shown()) {
-        ui_712_set_value(str, strlen(str));
+        memcpy(strings.tmp.tmp, str, MIN(max_len, strlen(str)));
     }
     return true;
 }
@@ -273,17 +297,31 @@ static bool ui_712_format_bool(const uint8_t *const data, uint8_t length) {
  *
  * @param[in] data the data that needs formatting
  * @param[in] length its length
+ * @param[in] first if this is the first chunk
+ * @param[in] last if this is the last chunk
+ * @return if the formatting was successful
  */
-static void ui_712_format_bytes(const uint8_t *const data, uint8_t length) {
+static bool ui_712_format_bytes(const uint8_t *data, uint8_t length, bool first, bool last) {
+    size_t max_len = sizeof(strings.tmp.tmp) - 1;
+    size_t cur_len = strlen(strings.tmp.tmp);
+
     if (ui_712_field_shown()) {
-        array_bytes_string(strings.tmp.tmp, sizeof(strings.tmp.tmp), data, length);
-        // +2 for the "0x"
-        // x2 for each byte value is represented by 2 ASCII characters
-        if ((2 + (length * 2)) > (sizeof(strings.tmp.tmp) - 1)) {
-            strings.tmp.tmp[sizeof(strings.tmp.tmp) - 1 - 3] = '\0';
-            strlcat(strings.tmp.tmp, "...", sizeof(strings.tmp.tmp));
+        if (first) {
+            memcpy(strings.tmp.tmp, "0x", MIN(max_len, 2));
+            cur_len += 2;
+        }
+        if (format_hex(data,
+                       MIN((max_len - cur_len) / 2, length),
+                       strings.tmp.tmp + cur_len,
+                       max_len + 1 - cur_len) < 0) {
+            return false;
+        }
+        // truncated
+        if (last && (((max_len - cur_len) / 2) < length)) {
+            memcpy(strings.tmp.tmp + max_len - 3, "...", 3);
         }
     }
+    return true;
 }
 
 /**
@@ -291,16 +329,23 @@ static void ui_712_format_bytes(const uint8_t *const data, uint8_t length) {
  *
  * @param[in] data the data that needs formatting
  * @param[in] length its length
+ * @param[in] first if this is the first chunk
+ * @param[in] field_ptr pointer to the EIP-712 field
  * @return if the formatting was successful
  */
-static bool ui_712_format_int(const uint8_t *const data,
+static bool ui_712_format_int(const uint8_t *data,
                               uint8_t length,
-                              const void *const field_ptr) {
+                              bool first,
+                              const void *field_ptr) {
     uint256_t value256;
     uint128_t value128;
     int32_t value32;
     int16_t value16;
 
+    // no reason for an integer to be received over multiple chunks
+    if (!first) {
+        return false;
+    }
     switch (get_struct_field_typesize(field_ptr) * 8) {
         case 256:
             convertUint256BE(data, length, &value256);
@@ -362,14 +407,21 @@ static bool ui_712_format_int(const uint8_t *const data,
  *
  * @param[in] data the data that needs formatting
  * @param[in] length its length
+ * @param[in] first if this is the first chunk
+ * @return if the formatting was successful
  */
-static void ui_712_format_uint(const uint8_t *const data, uint8_t length) {
+static bool ui_712_format_uint(const uint8_t *data, uint8_t length, bool first) {
     uint256_t value256;
 
+    // no reason for an integer to be received over multiple chunks
+    if (!first) {
+        return false;
+    }
     convertUint256BE(data, length, &value256);
     if (ui_712_field_shown()) {
         tostring256(&value256, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
     }
+    return true;
 }
 
 /**
@@ -472,57 +524,57 @@ static bool ui_712_format_datetime(const uint8_t *data, uint8_t length) {
 }
 
 /**
- * Used to notify of a new field to review in the current struct (key + value)
+ * Formats and feeds the given input data to the display buffers
  *
  * @param[in] field_ptr pointer to the new struct field
  * @param[in] data pointer to the field's raw value
  * @param[in] length field's raw value byte-length
+ * @param[in] first if this is the first chunk
+ * @param[in] last if this is the last chunk
  */
-bool ui_712_new_field(const void *const field_ptr, const uint8_t *const data, uint8_t length) {
-    const char *key;
-    uint8_t key_len;
-
+bool ui_712_feed_to_display(const void *field_ptr,
+                            const uint8_t *data,
+                            uint8_t length,
+                            bool first,
+                            bool last) {
     if (ui_ctx == NULL) {
         apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
         return false;
     }
 
-    // Key
-    if ((key = get_struct_field_keyname(field_ptr, &key_len)) == NULL) {
-        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+    if (first && (strlen(strings.tmp.tmp) > 0)) {
         return false;
     }
-
-    if (ui_712_field_shown() && !(ui_ctx->field_flags & UI_712_FIELD_NAME_PROVIDED)) {
-        ui_712_set_title(key, key_len);
-    }
-
     // Value
     switch (struct_field_type(field_ptr)) {
         case TYPE_SOL_STRING:
-            ui_712_format_str(data, length);
+            ui_712_format_str(data, length, last);
             break;
         case TYPE_SOL_ADDRESS:
-            if (ui_712_format_addr(data, length) == false) {
+            if (ui_712_format_addr(data, length, first) == false) {
                 return false;
             }
             break;
         case TYPE_SOL_BOOL:
-            if (ui_712_format_bool(data, length) == false) {
+            if (ui_712_format_bool(data, length, first) == false) {
                 return false;
             }
             break;
         case TYPE_SOL_BYTES_FIX:
         case TYPE_SOL_BYTES_DYN:
-            ui_712_format_bytes(data, length);
+            if (ui_712_format_bytes(data, length, first, last) == false) {
+                return false;
+            }
             break;
         case TYPE_SOL_INT:
-            if (ui_712_format_int(data, length, field_ptr) == false) {
+            if (ui_712_format_int(data, length, first, field_ptr) == false) {
                 return false;
             }
             break;
         case TYPE_SOL_UINT:
-            ui_712_format_uint(data, length);
+            if (ui_712_format_uint(data, length, first) == false) {
+                return false;
+            }
             break;
         default:
             PRINTF("Unhandled type\n");
@@ -549,7 +601,7 @@ bool ui_712_new_field(const void *const field_ptr, const uint8_t *const data, ui
     }
 
     // Check if this field is supposed to be displayed
-    if (ui_712_field_shown()) {
+    if (last && ui_712_field_shown()) {
         ui_712_redraw_generic_step();
     }
     return true;
@@ -580,6 +632,8 @@ bool ui_712_init(void) {
         ui_ctx->end_reached = false;
         ui_ctx->filtering_mode = EIP712_FILTERING_BASIC;
         explicit_bzero(&ui_ctx->amount, sizeof(ui_ctx->amount));
+        explicit_bzero(strings.tmp.tmp, sizeof(strings.tmp.tmp));
+        explicit_bzero(strings.tmp.tmp2, sizeof(strings.tmp.tmp2));
     } else {
         apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
     }
@@ -724,6 +778,26 @@ void ui_712_token_join_prepare_amount(uint8_t index, const char *name, uint8_t n
     ui_ctx->amount.state = AMOUNT_JOIN_STATE_VALUE;
     memcpy(ui_ctx->amount.joins[index].name, name, cpy_len);
     ui_ctx->amount.joins[index].name_length = cpy_len;
+}
+
+/**
+ * Set UI pair key to the raw JSON key
+ *
+ * @param[in] field_ptr pointer to the field
+ * @return whether it was successful or not
+ */
+bool ui_712_show_raw_key(const void *field_ptr) {
+    const char *key;
+    uint8_t key_len;
+
+    if ((key = get_struct_field_keyname(field_ptr, &key_len)) == NULL) {
+        return false;
+    }
+
+    if (ui_712_field_shown() && !(ui_ctx->field_flags & UI_712_FIELD_NAME_PROVIDED)) {
+        ui_712_set_title(key, key_len);
+    }
+    return true;
 }
 
 #endif  // HAVE_EIP712_FULL_SUPPORT

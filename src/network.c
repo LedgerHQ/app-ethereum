@@ -86,8 +86,8 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 59144, .name = "Linea", .ticker = "ETH"},
     {.chain_id = 11155111, .name = "Sepolia", .ticker = "ETH"},
     {.chain_id = 17000, .name = "Holesky", .ticker = "ETH"},
-    {.chain_id = 324, .name = "zkSync Mainnet", .ticker = "ETH"},
-    {.chain_id = 300, .name = "zkSync Sepolia", .ticker = "ETH"},
+    {.chain_id = 324, .name = "ZKsync Era", .ticker = "ETH"},
+    {.chain_id = 300, .name = "ZKsync Sepolia Testnet", .ticker = "ETH"},
 };
 
 static const network_info_t *get_network_from_chain_id(const uint64_t *chain_id) {

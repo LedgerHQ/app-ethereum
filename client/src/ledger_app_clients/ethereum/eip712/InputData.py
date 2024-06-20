@@ -119,7 +119,7 @@ def send_struct_def_field(typename, keyname):
     return (typename, type_enum, typesize, array_lvls)
 
 
-def encode_integer(value: Union[str | int], typesize: int) -> bytes:
+def encode_integer(value: Union[str, int], typesize: int) -> bytes:
     # Some are already represented as integers in the JSON, but most as strings
     if isinstance(value, str):
         value = int(value, 0)

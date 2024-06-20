@@ -94,8 +94,8 @@ void handlePerformPrivacyOperation(uint8_t p1,
         *tx = set_result_perform_privacy_operation();
         THROW(0x9000);
     } else {
-        snprintf(strings.common.fullAddress,
-                 sizeof(strings.common.fullAddress),
+        snprintf(strings.common.toAddress,
+                 sizeof(strings.common.toAddress),
                  "0x%.*s",
                  40,
                  tmpCtx.publicKeyContext.address);

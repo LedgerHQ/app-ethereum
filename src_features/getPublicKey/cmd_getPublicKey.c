@@ -64,8 +64,8 @@ void handleGetPublicKey(uint8_t p1,
         *tx = set_result_get_publicKey();
         THROW(APDU_RESPONSE_OK);
     } else {
-        snprintf(strings.common.fullAddress,
-                 sizeof(strings.common.fullAddress),
+        snprintf(strings.common.toAddress,
+                 sizeof(strings.common.toAddress),
                  "0x%.*s",
                  40,
                  tmpCtx.publicKeyContext.address);

@@ -110,11 +110,18 @@ UX_STEP_NOCB(
       .text = strings.common.fullAmount
     });
 UX_STEP_NOCB(
-    ux_approval_address_step,
+    ux_approval_from_step,
     bnnn_paging,
     {
-      .title = "Address",
-      .text = strings.common.fullAddress,
+      .title = "From",
+      .text = strings.common.fromAddress,
+    });
+UX_STEP_NOCB(
+    ux_approval_to_step,
+    bnnn_paging,
+    {
+      .title = "To",
+      .text = strings.common.toAddress,
     });
 
 UX_STEP_NOCB_INIT(
@@ -122,7 +129,7 @@ UX_STEP_NOCB_INIT(
   bnnn_paging,
   plugin_ui_get_id(),
   {
-    .title = strings.common.fullAddress,
+    .title = strings.common.toAddress,
     .text = strings.common.fullAmount
   });
 
@@ -138,7 +145,7 @@ UX_FLOW_DEF_NOCB(
   ux_plugin_approval_display_step,
   bnnn_paging,
   {
-    .title = strings.common.fullAddress,
+    .title = strings.common.toAddress,
     .text = strings.common.fullAmount
   });
 
@@ -214,22 +221,30 @@ void ux_approve_tx(bool fromPlugin) {
     if (fromPlugin) {
         // Add the special dynamic display logic
         ux_approval_tx_flow[step++] = &ux_plugin_approval_id_step;
+        if (pluginType != EXTERNAL) {
+            if (strings.common.fromAddress[0] != 0) {
+                ux_approval_tx_flow[step++] = &ux_approval_from_step;
+            }
+        }
         ux_approval_tx_flow[step++] = &ux_plugin_approval_before_step;
         ux_approval_tx_flow[step++] = &ux_plugin_approval_display_step;
         ux_approval_tx_flow[step++] = &ux_plugin_approval_after_step;
     } else {
         // We're in a regular transaction, just show the amount and the address
+        if (strings.common.fromAddress[0] != 0) {
+            ux_approval_tx_flow[step++] = &ux_approval_from_step;
+        }
         ux_approval_tx_flow[step++] = &ux_approval_amount_step;
 #ifdef HAVE_DOMAIN_NAME
         uint64_t chain_id = get_tx_chain_id();
         if (has_domain_name(&chain_id, tmpContent.txContent.destination)) {
             ux_approval_tx_flow[step++] = &ux_domain_name_step;
             if (N_storage.verbose_domain_name) {
-                ux_approval_tx_flow[step++] = &ux_approval_address_step;
+                ux_approval_tx_flow[step++] = &ux_approval_to_step;
             }
         } else {
 #endif  // HAVE_DOMAIN_NAME
-            ux_approval_tx_flow[step++] = &ux_approval_address_step;
+            ux_approval_tx_flow[step++] = &ux_approval_to_step;
 #ifdef HAVE_DOMAIN_NAME
         }
 #endif  // HAVE_DOMAIN_NAME

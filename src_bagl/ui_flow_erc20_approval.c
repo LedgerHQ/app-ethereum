@@ -23,7 +23,7 @@ UX_STEP_NOCB(
     bnnn_paging,
     {
       .title = "Contract Name",
-      .text = strings.common.fullAddress,
+      .text = strings.common.toAddress,
     });
 
 UX_STEP_NOCB(

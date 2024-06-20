@@ -398,6 +398,13 @@ static bool ui_712_format_amount_join(void) {
 }
 
 /**
+ * Simply mark the current amount-join's token address as received
+ */
+void amount_join_set_token_received(void) {
+    ui_ctx->amount.joins[ui_ctx->amount.idx].flags |= AMOUNT_JOIN_FLAG_TOKEN;
+}
+
+/**
  * Update the state of the amount-join
  *
  * @param[in] data the data that needs formatting
@@ -413,7 +420,7 @@ static bool update_amount_join(const uint8_t *data, uint8_t length) {
             if (memcmp(data, token->address, ADDRESS_LENGTH) != 0) {
                 return false;
             }
-            ui_ctx->amount.joins[ui_ctx->amount.idx].flags |= AMOUNT_JOIN_FLAG_TOKEN;
+            amount_join_set_token_received();
             break;
 
         case AMOUNT_JOIN_STATE_VALUE:

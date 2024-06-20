@@ -180,61 +180,53 @@ def test_eip712_new(firmware: Firmware,
     assert recovered_addr == get_wallet_addr(app_client)
 
 
-def test_eip712_advanced_filtering(firmware: Firmware,
-                                   backend: BackendInterface,
-                                   navigator: Navigator,
-                                   default_screenshot_path: Path,
-                                   test_name: str,
-                                   verbose: bool):
-    global SNAPS_CONFIG
+class DataSet():
+    data: dict
+    filters: dict
+    suffix: str
 
-    app_client = EthAppClient(backend)
-    if firmware.device == "nanos":
-        pytest.skip("Not supported on LNS")
+    def __init__(self, data: dict, filters: dict, suffix: str = ""):
+        self.data = data
+        self.filters = filters
+        self.suffix = suffix
 
-    if verbose:
-        test_name += "_verbose"
-    SNAPS_CONFIG = SnapshotsConfig(test_name)
 
-    data = {
-        "domain": {
-            "chainId": 1,
-            "name": "Advanced test",
-            "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
-            "version": "1"
+ADVANCED_DATA_SETS = [
+    DataSet(
+        {
+            "domain": {
+                "chainId": 1,
+                "name": "Advanced test",
+                "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+                "version": "1"
+            },
+            "message": {
+                "with": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+                "value_recv": 10000000000000000,
+                "token_send": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+                "value_send": 24500000000000000000,
+                "token_recv": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                "expires": 1714559400,
+            },
+            "primaryType": "Transfer",
+            "types": {
+                "EIP712Domain": [
+                    {"name": "name", "type": "string"},
+                    {"name": "version", "type": "string"},
+                    {"name": "chainId", "type": "uint256"},
+                    {"name": "verifyingContract", "type": "address"}
+                ],
+                "Transfer": [
+                    {"name": "with", "type": "address"},
+                    {"name": "value_recv", "type": "uint256"},
+                    {"name": "token_send", "type": "address"},
+                    {"name": "value_send", "type": "uint256"},
+                    {"name": "token_recv", "type": "address"},
+                    {"name": "expires", "type": "uint64"},
+                ]
+            }
         },
-        "message": {
-            "with": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-            "value_recv": 10000000000000000,
-            "token_send": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
-            "value_send": 24500000000000000000,
-            "token_recv": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-            "expires": 1714559400,
-        },
-        "primaryType": "Transfer",
-        "types": {
-            "EIP712Domain": [
-                {"name": "name", "type": "string"},
-                {"name": "version", "type": "string"},
-                {"name": "chainId", "type": "uint256"},
-                {"name": "verifyingContract", "type": "address"}
-            ],
-            "Transfer": [
-                {"name": "with", "type": "address"},
-                {"name": "value_recv", "type": "uint256"},
-                {"name": "token_send", "type": "address"},
-                {"name": "value_send", "type": "uint256"},
-                {"name": "token_recv", "type": "address"},
-                {"name": "expires", "type": "uint64"},
-            ]
-        }
-    }
-
-    if verbose:
-        settings_toggle(firmware, navigator, [SettingID.VERBOSE_EIP712])
-        filters = None
-    else:
-        filters = {
+        {
             "name": "Advanced Filtering",
             "tokens": [
                 {
@@ -279,15 +271,92 @@ def test_eip712_advanced_filtering(firmware: Firmware,
                 },
             }
         }
+    ),
+    DataSet(
+        {
+            "types": {
+                "EIP712Domain": [
+                    {"name": "name", "type": "string"},
+                    {"name": "version", "type": "string"},
+                    {"name": "chainId", "type": "uint256"},
+                    {"name": "verifyingContract", "type": "address"},
+                ],
+                "Permit": [
+                    {"name": "owner", "type": "address"},
+                    {"name": "spender", "type": "address"},
+                    {"name": "value", "type": "uint256"},
+                    {"name": "nonce", "type": "uint256"},
+                    {"name": "deadline", "type": "uint256"},
+                ]
+            },
+            "primaryType": "Permit",
+            "domain": {
+                "name": "ENS",
+                "version": "1",
+                "verifyingContract": "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72",
+                "chainId": 1,
+            },
+            "message": {
+                "owner": "0xb5a6948372defdfc5754b69dc831d21e2d5ebd74",
+                "spender": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
+                "value": 4200000000000000000,
+                "nonce": 0,
+                "deadline": 1719756000,
+            }
+        },
+        {
+            "name": "Permit filtering",
+            "tokens": [
+                {
+                    "addr": "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72",
+                    "ticker": "ENS",
+                    "decimals": 18,
+                    "chain_id": 1,
+                },
+            ],
+            "fields": {
+                "value": {
+                    "type": "amount_join_value",
+                    "name": "Send",
+                },
+                "deadline": {
+                    "type": "datetime",
+                    "name": "Deadline",
+                },
+            }
+        },
+        "_permit"
+    ),
+]
+
+
+@pytest.fixture(name="data_set", params=ADVANCED_DATA_SETS)
+def data_set_fixture(request) -> DataSet:
+    return request.param
+
+
+def test_eip712_advanced_filtering(firmware: Firmware,
+                                   backend: BackendInterface,
+                                   navigator: Navigator,
+                                   default_screenshot_path: Path,
+                                   test_name: str,
+                                   data_set: DataSet):
+    global SNAPS_CONFIG
+
+    app_client = EthAppClient(backend)
+    if firmware.device == "nanos":
+        pytest.skip("Not supported on LNS")
+
+    SNAPS_CONFIG = SnapshotsConfig(test_name + data_set.suffix)
 
     vrs = eip712_new_common(firmware,
                             navigator,
                             default_screenshot_path,
                             app_client,
-                            data,
-                            filters,
-                            verbose)
+                            data_set.data,
+                            data_set.filters,
+                            False)
 
     # verify signature
-    addr = recover_message(data, vrs)
+    addr = recover_message(data_set.data, vrs)
     assert addr == get_wallet_addr(app_client)

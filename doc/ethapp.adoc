@@ -850,6 +850,8 @@ The signature is computed on :
 
 This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
 
+A token index of 0xFF indicates the token address is in the _verifyingContract_ field of the EIP712Domain so the app won't receive an amount-join token filtering APDU. This enables support for Permit (ERC-2612) messages.
+
 The signature is computed on :
 
 22 || chain ID (BE) || contract address || schema hash || field path || display name || token index

@@ -77,6 +77,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 62320, .name = "Celo Baklava", .ticker = "bCELO"},
     {.chain_id = 62621, .name = "Multivac", .ticker = "MTV"},
     {.chain_id = 73799, .name = "Volta", .ticker = "VOLTA"},
+    {.chain_id = 84532, .name = "Base Sepolia", .ticker = "ETH"},
     {.chain_id = 534351, .name = "Scroll Sepolia", .ticker = "ETH"},
     {.chain_id = 534352, .name = "Scroll", .ticker = "ETH"},
     {.chain_id = 534353, .name = "Scroll Alpha", .ticker = "ETH"},

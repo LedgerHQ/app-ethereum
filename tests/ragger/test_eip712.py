@@ -112,11 +112,13 @@ def eip712_new_common(firmware: Firmware,
                       app_client: EthAppClient,
                       json_data: dict,
                       filters: Optional[dict],
-                      verbose: bool):
+                      verbose: bool,
+                      golden_run: bool):
     assert InputData.process_data(app_client,
                                   json_data,
                                   filters,
-                                  partial(autonext, firmware, navigator, default_screenshot_path))
+                                  partial(autonext, firmware, navigator, default_screenshot_path),
+                                  golden_run)
     with app_client.eip712_sign_new(BIP32_PATH):
         moves = []
         if firmware.device.startswith("nano"):
@@ -126,15 +128,13 @@ def eip712_new_common(firmware: Firmware,
             moves += [NavInsID.BOTH_CLICK]
         else:
             # need to skip the message hash
-            if not verbose and filters is None:
-                moves += [NavInsID.USE_CASE_REVIEW_TAP]
+            moves += [NavInsID.USE_CASE_REVIEW_TAP]
             moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
         if SNAPS_CONFIG is not None:
             navigator.navigate_and_compare(default_screenshot_path,
                                            SNAPS_CONFIG.test_name,
                                            moves,
                                            snap_start_idx=SNAPS_CONFIG.idx)
-            SNAPS_CONFIG.idx += 1
         else:
             navigator.navigate(moves)
     return ResponseParser.signature(app_client.response().data)
@@ -173,7 +173,8 @@ def test_eip712_new(firmware: Firmware,
                                 app_client,
                                 data,
                                 filters,
-                                verbose)
+                                verbose,
+                                False)
 
         recovered_addr = recover_message(data, vrs)
 
@@ -340,7 +341,8 @@ def test_eip712_advanced_filtering(firmware: Firmware,
                                    navigator: Navigator,
                                    default_screenshot_path: Path,
                                    test_name: str,
-                                   data_set: DataSet):
+                                   data_set: DataSet,
+                                   golden_run: bool):
     global SNAPS_CONFIG
 
     app_client = EthAppClient(backend)
@@ -355,7 +357,8 @@ def test_eip712_advanced_filtering(firmware: Firmware,
                             app_client,
                             data_set.data,
                             data_set.filters,
-                            False)
+                            False,
+                            golden_run)
 
     # verify signature
     addr = recover_message(data_set.data, vrs)

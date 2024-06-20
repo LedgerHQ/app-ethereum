@@ -23,6 +23,7 @@ def default_handler():
 
 
 autonext_handler: Callable = default_handler
+is_golden_run: bool
 
 
 # From a string typename, extract the type and all the array depth
@@ -394,6 +395,12 @@ def enable_autonext():
         delay = 1/3
     else:
         delay = 1/4
+
+    # golden run has to be slower to make sure we take good snapshots
+    # and not processing/loading screens
+    if is_golden_run:
+        delay *= 3
+
     signal.setitimer(signal.ITIMER_REAL, delay, delay)
 
 
@@ -404,10 +411,12 @@ def disable_autonext():
 def process_data(aclient: EthAppClient,
                  data_json: dict,
                  filters: Optional[dict] = None,
-                 autonext: Optional[Callable] = None) -> bool:
+                 autonext: Optional[Callable] = None,
+                 golden_run: bool = False) -> bool:
     global sig_ctx
     global app_client
     global autonext_handler
+    global is_golden_run
 
     # deepcopy because this function modifies the dict
     data_json = copy.deepcopy(data_json)
@@ -421,6 +430,8 @@ def process_data(aclient: EthAppClient,
     if autonext:
         autonext_handler = autonext
         signal.signal(signal.SIGALRM, next_timeout)
+
+    is_golden_run = golden_run
 
     if filters:
         init_signature_context(types, domain)

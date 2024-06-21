@@ -39,7 +39,6 @@ unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 void ui_idle(void);
 
 uint32_t set_result_get_publicKey(void);
-void finalizeParsing(bool);
 
 tmpCtx_t tmpCtx;
 txContext_t txContext;

@@ -88,7 +88,7 @@ void handleSign(uint8_t p1,
     }
 
     if (txResult == USTREAM_FINISHED) {
-        finalizeParsing(false);
+        finalizeParsing();
     }
 
     *flags |= IO_ASYNCH_REPLY;

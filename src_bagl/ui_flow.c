@@ -2,6 +2,7 @@
 #include "ui_callbacks.h"
 #include "common_ui.h"
 #include "common_utils.h"
+#include "feature_signTx.h"
 
 #define ENABLED_STR   "Enabled"
 #define DISABLED_STR  "Disabled"
@@ -214,16 +215,63 @@ UX_STEP_CB(
       "Blind signing must be enabled in Settings",
     });
 #else
+UX_STEP_NOCB(
+    ux_blind_signing_warning_step,
+    pbb,
+    {
+      &C_icon_warning,
+      "This transaction",
+      "cannot be trusted",
+    });
+UX_STEP_NOCB(
+    ux_blind_signing_text1_step,
+    nnnn,
+    {
+      "Your Ledger cannot",
+      "decode this",
+      "transaction. If you",
+      "sign it, you could",
+    });
+UX_STEP_NOCB(
+    ux_blind_signing_text2_step,
+    nnnn,
+    {
+      "be authorizing",
+      "malicious actions",
+      "that can drain your",
+      "wallet.",
+    });
+UX_STEP_NOCB(
+    ux_blind_signing_link_step,
+    nn,
+    {
+      "Learn more:",
+      "ledger.com/e8",
+    });
 UX_STEP_CB(
-    ux_warning_contract_data_step,
-    pnn,
-    ui_idle(),
+    ux_blind_signing_accept_step,
+    pbb,
+    start_signature_flow(),
+    {
+      &C_icon_validate_14,
+      "Accept risk and",
+      "review transaction",
+    });
+UX_STEP_CB(
+    ux_blind_signing_reject_step,
+    pb,
+    report_finalize_error(),
     {
       &C_icon_crossmark,
-      "Blind signing must be",
-      "enabled in Settings",
+      "Reject",
     });
 #endif
 // clang-format on
 
-UX_FLOW(ux_warning_contract_data_flow, &ux_warning_contract_data_step);
+UX_FLOW(ux_blind_signing_flow,
+        &ux_blind_signing_warning_step,
+        &ux_blind_signing_text1_step,
+        &ux_blind_signing_text2_step,
+        &ux_blind_signing_link_step,
+        &ux_blind_signing_accept_step,
+        &ux_blind_signing_reject_step);

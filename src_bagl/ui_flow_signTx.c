@@ -199,12 +199,12 @@ UX_STEP_NOCB(
       .text = strings.common.nonce,
     });
 
-UX_STEP_NOCB(ux_approval_blind_signing_warning_step,
+UX_STEP_NOCB(ux_approval_blind_signing_reminder_step,
     pbb,
     {
       &C_icon_warning,
-      "Blind",
-      "Signing",
+      "You accepted",
+      "the risks",
     });
 // clang-format on
 
@@ -213,10 +213,6 @@ const ux_flow_step_t *ux_approval_tx_flow[15];
 void ux_approve_tx(bool fromPlugin) {
     int step = 0;
     ux_approval_tx_flow[step++] = &ux_approval_review_step;
-
-    if (!fromPlugin && tmpContent.txContent.dataPresent && !N_storage.contractDetails) {
-        ux_approval_tx_flow[step++] = &ux_approval_blind_signing_warning_step;
-    }
 
     if (fromPlugin) {
         // Add the special dynamic display logic
@@ -260,6 +256,9 @@ void ux_approve_tx(bool fromPlugin) {
     }
 
     ux_approval_tx_flow[step++] = &ux_approval_fees_step;
+    if (!fromPlugin && tmpContent.txContent.dataPresent && !N_storage.contractDetails) {
+        ux_approval_tx_flow[step++] = &ux_approval_blind_signing_reminder_step;
+    }
     ux_approval_tx_flow[step++] = &ux_approval_accept_step;
     ux_approval_tx_flow[step++] = &ux_approval_reject_step;
     ux_approval_tx_flow[step++] = FLOW_END_STEP;

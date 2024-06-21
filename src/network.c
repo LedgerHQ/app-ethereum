@@ -58,6 +58,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 1818, .name = "Cube", .ticker = "CUBE"},
     {.chain_id = 1907, .name = "Bitcichain", .ticker = "BITCI"},
     {.chain_id = 2222, .name = "Kava EVM", .ticker = "KAVA"},
+    {.chain_id = 3776, .name = "Astar zkEVM", .ticker = "ETH"},
     {.chain_id = 4201, .name = "LUKSO Testnet", .ticker = "LYXt"},
     {.chain_id = 4919, .name = "Venidium", .ticker = "XVM"},
     {.chain_id = 5000, .name = "Mantle", .ticker = "MNT"},

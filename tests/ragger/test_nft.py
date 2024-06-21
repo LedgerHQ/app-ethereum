@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Callable, Optional, Any
 import json
 import pytest
@@ -51,7 +50,6 @@ class Action:
 def common_test_nft(firmware: Firmware,
                     backend: BackendInterface,
                     scenario_navigator: NavigateWithScenario,
-                    default_screenshot_path: Path,
                     collec: NFTCollection,
                     action: Action,
                     reject: bool,
@@ -59,7 +57,7 @@ def common_test_nft(firmware: Firmware,
     global DEVICE_ADDR
     app_client = EthAppClient(backend)
 
-    if firmware.device == "nanos":
+    if firmware == Firmware.NANOS:
         pytest.skip("Not supported on LNS")
 
     if DEVICE_ADDR is None:  # to only have to request it once
@@ -86,13 +84,13 @@ def common_test_nft(firmware: Firmware,
         test_name  = f"{plugin_name.lower()}_{action.fn_name}_{str(collec.chain_id)}"
         if reject:
             test_name += "-rejected"
-            scenario_navigator.review_reject(default_screenshot_path, test_name)
+            scenario_navigator.review_reject(test_name=test_name)
         else:
-            if firmware.device.startswith("nano"):
+            if firmware.is_nano:
                 end_text = "Accept"
             else:
                 end_text = "Sign"
-            scenario_navigator.review_approve(default_screenshot_path, test_name, end_text)
+            scenario_navigator.review_approve(test_name=test_name, custom_screen_text=end_text)
 
     # verify signature
     vrs = ResponseParser.signature(app_client.response().data)
@@ -104,11 +102,10 @@ def common_test_nft_reject(test_fn: Callable,
                            firmware: Firmware,
                            backend: BackendInterface,
                            scenario_navigator: NavigateWithScenario,
-                           default_screenshot_path: Path,
                            collec: NFTCollection,
                            action: Action):
     with pytest.raises(ExceptionRAPDU) as e:
-        test_fn(firmware, backend, scenario_navigator, default_screenshot_path, collec, action, True)
+        test_fn(firmware, backend, scenario_navigator, collec, action, True)
     assert e.value.status == StatusWord.CONDITION_NOT_SATISFIED
 
 # ERC-721
@@ -158,14 +155,12 @@ def action_721_fixture(request) -> Action:
 def test_erc721(firmware: Firmware,
                 backend: BackendInterface,
                 scenario_navigator: NavigateWithScenario,
-                default_screenshot_path: Path,
                 collec_721: NFTCollection,
                 action_721: Action,
                 reject: bool = False):
     common_test_nft(firmware,
                     backend,
                     scenario_navigator,
-                    default_screenshot_path,
                     collec_721,
                     action_721,
                     reject,
@@ -174,13 +169,11 @@ def test_erc721(firmware: Firmware,
 
 def test_erc721_reject(firmware: Firmware,
                        backend: BackendInterface,
-                       scenario_navigator: NavigateWithScenario,
-                       default_screenshot_path: Path):
+                       scenario_navigator: NavigateWithScenario):
     common_test_nft_reject(test_erc721,
                            firmware,
                            backend,
                            scenario_navigator,
-                           default_screenshot_path,
                            collecs_721[0],
                            actions_721[0])
 
@@ -237,14 +230,12 @@ def action_1155_fixture(request) -> Action:
 def test_erc1155(firmware: Firmware,
                  backend: BackendInterface,
                  scenario_navigator: NavigateWithScenario,
-                 default_screenshot_path: Path,
                  collec_1155: NFTCollection,
                  action_1155: Action,
                  reject: bool = False):
     common_test_nft(firmware,
                     backend,
                     scenario_navigator,
-                    default_screenshot_path,
                     collec_1155,
                     action_1155,
                     reject,
@@ -253,12 +244,10 @@ def test_erc1155(firmware: Firmware,
 
 def test_erc1155_reject(firmware: Firmware,
                         backend: BackendInterface,
-                        scenario_navigator: NavigateWithScenario,
-                        default_screenshot_path: Path):
+                        scenario_navigator: NavigateWithScenario):
     common_test_nft_reject(test_erc1155,
                            firmware,
                            backend,
                            scenario_navigator,
-                           default_screenshot_path,
                            collecs_1155[0],
                            actions_1155[0])

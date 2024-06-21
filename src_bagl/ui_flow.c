@@ -205,24 +205,20 @@ static void switch_settings_verbose_domain_name(void) {
 
 //////////////////////////////////////////////////////////////////////
 // clang-format off
-#ifdef TARGET_NANOS
-UX_STEP_CB(
-    ux_warning_contract_data_step,
-    bnnn_paging,
-    ui_idle(),
-    {
-      "Error",
-      "Blind signing must be enabled in Settings",
-    });
-#else
 UX_STEP_NOCB(
     ux_blind_signing_warning_step,
     pbb,
     {
       &C_icon_warning,
+#ifdef TARGET_NANOS
+      "Transaction",
+      "not trusted",
+#else
       "This transaction",
       "cannot be trusted",
+#endif
     });
+#ifndef TARGET_NANOS
 UX_STEP_NOCB(
     ux_blind_signing_text1_step,
     nnnn,
@@ -241,6 +237,7 @@ UX_STEP_NOCB(
       "that can drain your",
       "wallet.",
     });
+#endif
 UX_STEP_NOCB(
     ux_blind_signing_link_step,
     nn,
@@ -254,8 +251,13 @@ UX_STEP_CB(
     start_signature_flow(),
     {
       &C_icon_validate_14,
+#ifdef TARGET_NANOS
+      "Accept risk",
+      "and review",
+#else
       "Accept risk and",
       "review transaction",
+#endif
     });
 UX_STEP_CB(
     ux_blind_signing_reject_step,
@@ -265,13 +267,14 @@ UX_STEP_CB(
       &C_icon_crossmark,
       "Reject",
     });
-#endif
 // clang-format on
 
 UX_FLOW(ux_blind_signing_flow,
         &ux_blind_signing_warning_step,
+#ifndef TARGET_NANOS
         &ux_blind_signing_text1_step,
         &ux_blind_signing_text2_step,
+#endif
         &ux_blind_signing_link_step,
         &ux_blind_signing_accept_step,
         &ux_blind_signing_reject_step);

@@ -73,6 +73,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 39797, .name = "Energi", .ticker = "NRG"},
     {.chain_id = 42161, .name = "Arbitrum", .ticker = "ETH"},
     {.chain_id = 42220, .name = "Celo", .ticker = "CELO"},
+    {.chain_id = 42793, .name = "Etherlink Mainnet", .ticker = "XTZ"},
     {.chain_id = 43114, .name = "Avalanche", .ticker = "AVAX"},
     {.chain_id = 44787, .name = "Celo Alfajores", .ticker = "aCELO"},
     {.chain_id = 59141, .name = "Linea Sepolia", .ticker = "ETH"},

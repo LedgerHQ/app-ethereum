@@ -4,9 +4,10 @@ sdk = "C"
 devices = ["nanos", "nanox", "nanos+", "stax", "flex"]
 
 [use_cases] # Coherent build options that make sense for your application
-debug = "DEBUG=1"
-use_test_keys = "DEBUG=1 CAL_TEST_KEY=1 DOMAIN_NAME_TEST_KEY=1 SET_PLUGIN_TEST_KEY=1 NFT_TEST_KEY=1"
-cal_bypass = "DEBUG=1 BYPASS_SIGNATURES=1"
+test_keys = "CAL_TEST_KEY=1 DOMAIN_NAME_TEST_KEY=1 SET_PLUGIN_TEST_KEY=1 NFT_TEST_KEY=1"
+dbg_test_keys = "DEBUG=1 CAL_TEST_KEY=1 DOMAIN_NAME_TEST_KEY=1 SET_PLUGIN_TEST_KEY=1 NFT_TEST_KEY=1"
+cal_bypass = "BYPASS_SIGNATURES=1"
+dbg_cal_bypass = "DEBUG=1 BYPASS_SIGNATURES=1"
 
 [tests]
 unit_directory = "./tests/unit"

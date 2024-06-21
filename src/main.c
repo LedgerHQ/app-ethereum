@@ -549,11 +549,6 @@ __attribute__((noreturn)) void coin_main(libargs_t *args) {
 
                 if (!N_storage.initialized) {
                     internalStorage_t storage;
-#ifdef HAVE_ALLOW_DATA
-                    storage.dataAllowed = true;
-#else
-                    storage.dataAllowed = false;
-#endif
                     storage.contractDetails = false;
                     storage.displayNonce = false;
 #ifdef HAVE_EIP712_FULL_SUPPORT

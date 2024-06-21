@@ -9,16 +9,14 @@
 
 // Reuse the strings.common.fullAmount buffer for settings displaying.
 // No risk of collision as this buffer is unused in the settings menu
-#define SETTING_BLIND_SIGNING_STATE       (strings.common.fullAmount)
-#define SETTING_DISPLAY_DATA_STATE        (strings.common.fullAmount + (BUF_INCREMENT * 1))
-#define SETTING_DISPLAY_NONCE_STATE       (strings.common.fullAmount + (BUF_INCREMENT * 2))
-#define SETTING_VERBOSE_EIP712_STATE      (strings.common.fullAmount + (BUF_INCREMENT * 3))
-#define SETTING_VERBOSE_DOMAIN_NAME_STATE (strings.common.fullAmount + (BUF_INCREMENT * 4))
+#define SETTING_DISPLAY_DATA_STATE        (strings.common.fullAmount + (BUF_INCREMENT * 0))
+#define SETTING_DISPLAY_NONCE_STATE       (strings.common.fullAmount + (BUF_INCREMENT * 1))
+#define SETTING_VERBOSE_EIP712_STATE      (strings.common.fullAmount + (BUF_INCREMENT * 2))
+#define SETTING_VERBOSE_DOMAIN_NAME_STATE (strings.common.fullAmount + (BUF_INCREMENT * 3))
 
 #define BOOL_TO_STATE_STR(b) (b ? ENABLED_STR : DISABLED_STR)
 
 static void display_settings(const ux_flow_step_t* const start_step);
-static void switch_settings_blind_signing(void);
 static void switch_settings_display_data(void);
 static void switch_settings_display_nonce(void);
 #ifdef HAVE_EIP712_FULL_SUPPORT
@@ -71,26 +69,6 @@ UX_FLOW(ux_idle_flow,
         FLOW_LOOP);
 
 // clang-format off
-UX_STEP_CB(
-    ux_settings_flow_blind_signing_step,
-#ifdef TARGET_NANOS
-    bnnn_paging,
-#else
-    bnnn,
-#endif
-    switch_settings_blind_signing(),
-    {
-#ifdef TARGET_NANOS
-      .title = "Blind signing",
-      .text =
-#else
-      "Blind signing",
-      "Transaction",
-      "blind signing",
-#endif
-      SETTING_BLIND_SIGNING_STATE
-    });
-
 UX_STEP_CB(
     ux_settings_flow_display_data_step,
 #ifdef TARGET_NANOS
@@ -169,7 +147,6 @@ UX_STEP_CB(
 // clang-format on
 
 UX_FLOW(ux_settings_flow,
-        &ux_settings_flow_blind_signing_step,
         &ux_settings_flow_display_data_step,
         &ux_settings_flow_display_nonce_step,
 #ifdef HAVE_EIP712_FULL_SUPPORT
@@ -181,7 +158,6 @@ UX_FLOW(ux_settings_flow,
         &ux_settings_flow_back_step);
 
 static void display_settings(const ux_flow_step_t* const start_step) {
-    strlcpy(SETTING_BLIND_SIGNING_STATE, BOOL_TO_STATE_STR(N_storage.dataAllowed), BUF_INCREMENT);
     strlcpy(SETTING_DISPLAY_DATA_STATE,
             BOOL_TO_STATE_STR(N_storage.contractDetails),
             BUF_INCREMENT);
@@ -204,10 +180,6 @@ static void toggle_setting(volatile bool* setting, const ux_flow_step_t* ui_step
     bool value = !*setting;
     nvm_write((void*) setting, (void*) &value, sizeof(value));
     display_settings(ui_step);
-}
-
-static void switch_settings_blind_signing(void) {
-    toggle_setting(&N_storage.dataAllowed, &ux_settings_flow_blind_signing_step);
 }
 
 static void switch_settings_display_data(void) {

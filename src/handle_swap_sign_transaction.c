@@ -95,7 +95,6 @@ void __attribute__((noreturn)) handle_swap_sign_transaction(const chain_config_t
 
     if (N_storage.initialized != 0x01) {
         internalStorage_t storage;
-        storage.dataAllowed = 0x00;
         storage.contractDetails = 0x00;
         storage.initialized = 0x01;
         storage.displayNonce = 0x00;

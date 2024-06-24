@@ -4,8 +4,10 @@ from functools import partial
 from pathlib import Path
 import json
 from typing import Optional
+from ctypes import c_uint64
 import pytest
 from eth_account.messages import encode_typed_data
+import web3
 
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
@@ -298,7 +300,7 @@ ADVANCED_DATA_SETS = [
                 "chainId": 1,
             },
             "message": {
-                "owner": "0xb5a6948372defdfc5754b69dc831d21e2d5ebd74",
+                "owner": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
                 "spender": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
                 "value": 4200000000000000000,
                 "nonce": 0,
@@ -327,6 +329,69 @@ ADVANCED_DATA_SETS = [
             }
         },
         "_permit"
+    ),
+    DataSet(
+        {
+            "types": {
+                "EIP712Domain": [
+                    {"name": "name", "type": "string"},
+                    {"name": "version", "type": "string"},
+                    {"name": "chainId", "type": "uint256"},
+                    {"name": "verifyingContract", "type": "address"},
+                ],
+                "Root": [
+                    {"name": "token_big", "type": "address"},
+                    {"name": "value_big", "type": "uint256"},
+                    {"name": "token_biggest", "type": "address"},
+                    {"name": "value_biggest", "type": "uint256"},
+                ]
+            },
+            "primaryType": "Root",
+            "domain": {
+                "name": "test",
+                "version": "1",
+                "verifyingContract": "0x0000000000000000000000000000000000000000",
+                "chainId": 1,
+            },
+            "message": {
+                "token_big": "0x6b175474e89094c44da98b954eedeac495271d0f",
+                "value_big": c_uint64(-1).value,
+                "token_biggest": "0x6b175474e89094c44da98b954eedeac495271d0f",
+                "value_biggest": int(web3.constants.MAX_INT, 0),
+            }
+        },
+        {
+            "name": "Unlimited test",
+            "tokens": [
+                {
+                    "addr": "0x6b175474e89094c44da98b954eedeac495271d0f",
+                    "ticker": "DAI",
+                    "decimals": 18,
+                    "chain_id": 1,
+                },
+            ],
+            "fields": {
+                "token_big": {
+                    "type": "amount_join_token",
+                    "token": 0,
+                },
+                "value_big": {
+                    "type": "amount_join_value",
+                    "name": "Big",
+                    "token": 0,
+                },
+                "token_biggest": {
+                    "type": "amount_join_token",
+                    "token": 0,
+                },
+                "value_biggest": {
+                    "type": "amount_join_value",
+                    "name": "Biggest",
+                    "token": 0,
+                },
+            }
+        },
+        "_unlimited"
     ),
 ]
 

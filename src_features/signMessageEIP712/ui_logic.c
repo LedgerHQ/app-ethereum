@@ -413,13 +413,20 @@ static bool ui_712_format_amount_join(void) {
     const tokenDefinition_t *token;
     token = &tmpCtx.transactionContext.extraInfo[ui_ctx->amount.idx].token;
 
-    if (!amountToString(ui_ctx->amount.joins[ui_ctx->amount.idx].value,
-                        ui_ctx->amount.joins[ui_ctx->amount.idx].value_length,
-                        token->decimals,
-                        token->ticker,
-                        strings.tmp.tmp,
-                        sizeof(strings.tmp.tmp))) {
-        return false;
+    if ((ui_ctx->amount.joins[ui_ctx->amount.idx].value_length == INT256_LENGTH) &&
+        ismaxint(ui_ctx->amount.joins[ui_ctx->amount.idx].value,
+                 ui_ctx->amount.joins[ui_ctx->amount.idx].value_length)) {
+        strlcpy(strings.tmp.tmp, "Unlimited ", sizeof(strings.tmp.tmp));
+        strlcat(strings.tmp.tmp, token->ticker, sizeof(strings.tmp.tmp));
+    } else {
+        if (!amountToString(ui_ctx->amount.joins[ui_ctx->amount.idx].value,
+                            ui_ctx->amount.joins[ui_ctx->amount.idx].value_length,
+                            token->decimals,
+                            token->ticker,
+                            strings.tmp.tmp,
+                            sizeof(strings.tmp.tmp))) {
+            return false;
+        }
     }
     ui_ctx->field_flags |= UI_712_FIELD_SHOWN;
     ui_712_set_title(ui_ctx->amount.joins[ui_ctx->amount.idx].name,

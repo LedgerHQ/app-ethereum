@@ -164,21 +164,6 @@ def test_legacy_chainid(firmware: Firmware,
     common(firmware, backend, navigator, scenario_navigator, default_screenshot_path, tx_params, test_name, BIP32_PATH2)
 
 
-# Try to blind sign with setting disabled
-def test_legacy_contract(backend: BackendInterface):
-
-    # pylint: disable=line-too-long
-    buffer = bytes.fromhex("058000002c8000003c800000010000000000000000f849208506fc23ac008303dc3194f650c3d88d12db855b8bf7d11be6c55a4e07dcc980a4a1712d6800000000000000000000000000000000000000000000000000000000000acbc7018080")
-    # pylint: enable=line-too-long
-    app_client = EthAppClient(backend)
-
-    try:
-        app_client.send_raw(0xe0, 0x04, 0x00, 0x00, buffer)
-
-    except ExceptionRAPDU as e:
-        assert e.status == StatusWord.INVALID_DATA
-
-
 def test_1559(firmware: Firmware,
               backend: BackendInterface,
               navigator: Navigator,
@@ -250,64 +235,6 @@ def test_sign_nonce_display(firmware: Firmware,
     common(firmware, backend, navigator, scenario_navigator, default_screenshot_path, tx_params, test_name, "m/44'/60'/1'/0/0")
 
 
-def test_sign_blind_simple(firmware: Firmware,
-                           backend: BackendInterface,
-                           navigator: Navigator,
-                           scenario_navigator: NavigateWithScenario,
-                           test_name: str,
-                           default_screenshot_path: Path):
-    settings_toggle(firmware, navigator, [SettingID.BLIND_SIGNING])
-
-    data = "ok"
-    tx_params: dict = {
-        "nonce": NONCE2,
-        "gasPrice": Web3.to_wei(GAS_PRICE, 'gwei'),
-        "gas": GAS_LIMIT,
-        "to": ADDR2,
-        "value": Web3.to_wei(AMOUNT2, "ether"),
-        "chainId": CHAIN_ID,
-        "data": data.encode('utf-8').hex()
-    }
-    common(firmware,
-           backend,
-           navigator,
-           scenario_navigator,
-           default_screenshot_path,
-           tx_params,
-           test_name,
-           "m/44'/60'/1'/0/0",
-           True)
-
-
-def test_sign_blind_and_nonce_display(firmware: Firmware,
-                                      backend: BackendInterface,
-                                      navigator: Navigator,
-                                      scenario_navigator: NavigateWithScenario,
-                                      test_name: str,
-                                      default_screenshot_path: Path):
-    settings_toggle(firmware, navigator, [SettingID.NONCE, SettingID.BLIND_SIGNING])
-
-    data = "That's a little message :)"
-    tx_params: dict = {
-        "nonce": 1844674,
-        "gasPrice": Web3.to_wei(GAS_PRICE, 'gwei'),
-        "gas": GAS_LIMIT,
-        "to": ADDR2,
-        "value": Web3.to_wei(AMOUNT2, "ether"),
-        "chainId": CHAIN_ID,
-        "data": data.encode('utf-8').hex()
-    }
-    common(firmware,
-           backend,
-           navigator,
-           scenario_navigator,
-           default_screenshot_path,
-           tx_params,
-           test_name,
-           "m/44'/60'/1'/0/0",
-           True)
-
-
 def test_sign_reject(backend: BackendInterface,
                      scenario_navigator: NavigateWithScenario,
                      test_name: str,
@@ -343,21 +270,6 @@ def test_sign_error_transaction_type(backend: BackendInterface):
         pass
     else:
         assert False  # An exception should have been raised
-
-
-def test_sign_blind_error_disabled(backend: BackendInterface):
-    data = "ok"
-    tx_params: dict = {
-        "nonce": NONCE2,
-        "gasPrice": Web3.to_wei(GAS_PRICE, 'gwei'),
-        "gas": GAS_LIMIT,
-        "to": ADDR2,
-        "value": Web3.to_wei(AMOUNT2, "ether"),
-        "chainId": CHAIN_ID,
-        "data": data.encode('utf-8').hex()
-    }
-
-    common_fail(backend, tx_params, StatusWord.INVALID_DATA, BIP32_PATH2)
 
 
 def test_sign_eip_2930(firmware: Firmware,

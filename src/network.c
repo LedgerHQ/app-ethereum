@@ -85,6 +85,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 52014, .name = "Electroneum", .ticker = "ETN"},
     {.chain_id = 59141, .name = "Linea Sepolia", .ticker = "ETH"},
     {.chain_id = 59144, .name = "Linea", .ticker = "ETH"},
+    {.chain_id = 60808, .name = "BOB", .ticker = "ETH"},
     {.chain_id = 62320, .name = "Celo Baklava", .ticker = "bCELO"},
     {.chain_id = 62621, .name = "Multivac", .ticker = "MTV"},
     {.chain_id = 73799, .name = "Volta", .ticker = "VOLTA"},

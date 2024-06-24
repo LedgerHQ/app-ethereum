@@ -10,10 +10,10 @@
 
 // Reuse the strings.common.fullAmount buffer for settings displaying.
 // No risk of collision as this buffer is unused in the settings menu
-#define SETTING_DISPLAY_DATA_STATE        (strings.common.fullAmount + (BUF_INCREMENT * 0))
-#define SETTING_DISPLAY_NONCE_STATE       (strings.common.fullAmount + (BUF_INCREMENT * 1))
-#define SETTING_VERBOSE_EIP712_STATE      (strings.common.fullAmount + (BUF_INCREMENT * 2))
-#define SETTING_VERBOSE_DOMAIN_NAME_STATE (strings.common.fullAmount + (BUF_INCREMENT * 3))
+#define SETTING_VERBOSE_DOMAIN_NAME_STATE (strings.common.fullAmount + (BUF_INCREMENT * 0))
+#define SETTING_VERBOSE_EIP712_STATE      (strings.common.fullAmount + (BUF_INCREMENT * 1))
+#define SETTING_DISPLAY_NONCE_STATE       (strings.common.fullAmount + (BUF_INCREMENT * 2))
+#define SETTING_DISPLAY_DATA_STATE        (strings.common.fullAmount + (BUF_INCREMENT * 3))
 
 #define BOOL_TO_STATE_STR(b) (b ? ENABLED_STR : DISABLED_STR)
 
@@ -70,25 +70,31 @@ UX_FLOW(ux_idle_flow,
         FLOW_LOOP);
 
 // clang-format off
+#ifdef HAVE_DOMAIN_NAME
 UX_STEP_CB(
-    ux_settings_flow_display_data_step,
-#ifdef TARGET_NANOS
-    bnnn_paging,
-#else
+    ux_settings_flow_verbose_domain_name_step,
     bnnn,
-#endif
-    switch_settings_display_data(),
+    switch_settings_verbose_domain_name(),
     {
-#ifdef TARGET_NANOS
-      .title = "Debug data",
-      .text =
-#else
-      "Debug data",
-      "Show contract data",
-      "details",
-#endif
-      SETTING_DISPLAY_DATA_STATE
+      "ENS addresses",
+      "Displays resolved",
+      "addresses from ENS",
+      SETTING_VERBOSE_DOMAIN_NAME_STATE
     });
+#endif // HAVE_DOMAIN_NAME
+
+#ifdef HAVE_EIP712_FULL_SUPPORT
+UX_STEP_CB(
+    ux_settings_flow_verbose_eip712_step,
+    bnnn,
+    switch_settings_verbose_eip712(),
+    {
+      "Raw messages",
+      "Displays raw content",
+      "from EIP712 messages",
+      SETTING_VERBOSE_EIP712_STATE
+    });
+#endif // HAVE_EIP712_FULL_SUPPORT
 
 UX_STEP_CB(
     ux_settings_flow_display_nonce_step,
@@ -104,38 +110,31 @@ UX_STEP_CB(
       .text =
 #else
       "Nonce",
-      "Show account nonce",
+      "Displays nonce",
       "in transactions",
 #endif
       SETTING_DISPLAY_NONCE_STATE
     });
 
-#ifdef HAVE_EIP712_FULL_SUPPORT
 UX_STEP_CB(
-    ux_settings_flow_verbose_eip712_step,
+    ux_settings_flow_display_data_step,
+#ifdef TARGET_NANOS
+    bnnn_paging,
+#else
     bnnn,
-    switch_settings_verbose_eip712(),
+#endif
+    switch_settings_display_data(),
     {
-      "Verbose EIP-712",
-      "Ignore filtering &",
-      "display raw content",
-      SETTING_VERBOSE_EIP712_STATE
+#ifdef TARGET_NANOS
+      .title = "Debug data",
+      .text =
+#else
+      "Debug contracts",
+      "Displays contract",
+      "data details",
+#endif
+      SETTING_DISPLAY_DATA_STATE
     });
-#endif // HAVE_EIP712_FULL_SUPPORT
-
-#ifdef HAVE_DOMAIN_NAME
-UX_STEP_CB(
-    ux_settings_flow_verbose_domain_name_step,
-    bnnn,
-    switch_settings_verbose_domain_name(),
-    {
-      "Verbose domains",
-      "Show",
-      "resolved address",
-      SETTING_VERBOSE_DOMAIN_NAME_STATE
-    });
-#endif // HAVE_DOMAIN_NAME
-
 
 UX_STEP_CB(
     ux_settings_flow_back_step,
@@ -148,14 +147,14 @@ UX_STEP_CB(
 // clang-format on
 
 UX_FLOW(ux_settings_flow,
-        &ux_settings_flow_display_data_step,
-        &ux_settings_flow_display_nonce_step,
-#ifdef HAVE_EIP712_FULL_SUPPORT
-        &ux_settings_flow_verbose_eip712_step,
-#endif  // HAVE_EIP712_FULL_SUPPORT
 #ifdef HAVE_DOMAIN_NAME
         &ux_settings_flow_verbose_domain_name_step,
 #endif  // HAVE_DOMAIN_NAME
+#ifdef HAVE_EIP712_FULL_SUPPORT
+        &ux_settings_flow_verbose_eip712_step,
+#endif  // HAVE_EIP712_FULL_SUPPORT
+        &ux_settings_flow_display_nonce_step,
+        &ux_settings_flow_display_data_step,
         &ux_settings_flow_back_step);
 
 static void display_settings(const ux_flow_step_t* const start_step) {

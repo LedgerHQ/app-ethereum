@@ -175,9 +175,11 @@ static void reviewCommon(void) {
     pairsList.pairs = pairs;
     nbgl_operationType_t op = TYPE_TRANSACTION;
 
+#if API_LEVEL >= 19
     if (tmpContent.txContent.dataPresent) {
         op |= BLIND_OPERATION;
     }
+#endif
     if (tx_approval_context.fromPlugin) {
         uint32_t buf_size = SHARED_BUFFER_SIZE / 2;
         char op_name[sizeof(strings.common.fullAmount)];

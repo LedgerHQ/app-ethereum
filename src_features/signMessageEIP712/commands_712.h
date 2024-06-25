@@ -6,20 +6,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-// APDUs P1
-#define P1_COMPLETE 0x00
-#define P1_PARTIAL  0xFF
-
-// APDUs P2
-#define P2_DEF_NAME          0x00
-#define P2_DEF_FIELD         0xFF
-#define P2_IMPL_NAME         P2_DEF_NAME
-#define P2_IMPL_ARRAY        0x0F
-#define P2_IMPL_FIELD        P2_DEF_FIELD
-#define P2_FILT_ACTIVATE     0x00
-#define P2_FILT_MESSAGE_INFO 0x0F
-#define P2_FILT_SHOW_FIELD   0xFF
-
 #define DOMAIN_STRUCT_NAME "EIP712Domain"
 
 bool handle_eip712_struct_def(const uint8_t *const apdu_buf);

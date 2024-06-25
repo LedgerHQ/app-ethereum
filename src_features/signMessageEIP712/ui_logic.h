@@ -5,9 +5,7 @@
 
 #include <stdint.h>
 #include "ux.h"
-
-#define UI_712_FIELD_SHOWN         (1 << 0)
-#define UI_712_FIELD_NAME_PROVIDED (1 << 1)
+#include "uint256.h"
 
 typedef enum { EIP712_FILTERING_BASIC, EIP712_FILTERING_FULL } e_eip712_filtering_mode;
 typedef enum {
@@ -16,28 +14,23 @@ typedef enum {
     EIP712_NO_MORE_FIELD
 } e_eip712_nfs;  // next field state
 
-typedef struct {
-    bool shown;
-    bool end_reached;
-    uint8_t filtering_mode;
-    uint8_t filters_to_process;
-    uint8_t field_flags;
-    uint8_t structs_to_review;
-} t_ui_context;
-
 bool ui_712_init(void);
 void ui_712_deinit(void);
 e_eip712_nfs ui_712_next_field(void);
 void ui_712_review_struct(const void *const struct_ptr);
-bool ui_712_new_field(const void *const field_ptr, const uint8_t *const data, uint8_t length);
+bool ui_712_feed_to_display(const void *field_ptr,
+                            const uint8_t *data,
+                            uint8_t length,
+                            bool first,
+                            bool last);
 void ui_712_end_sign(void);
 unsigned int ui_712_approve();
 unsigned int ui_712_reject();
-void ui_712_set_title(const char *const str, uint8_t length);
-void ui_712_set_value(const char *const str, uint8_t length);
+void ui_712_set_title(const char *str, size_t length);
+void ui_712_set_value(const char *str, size_t length);
 void ui_712_message_hash(void);
 void ui_712_redraw_generic_step(void);
-void ui_712_flag_field(bool show, bool name_provided);
+void ui_712_flag_field(bool show, bool name_provided, bool token_join, bool datetime);
 void ui_712_field_flags_reset(void);
 void ui_712_finalize_field(void);
 void ui_712_set_filtering_mode(e_eip712_filtering_mode mode);
@@ -46,6 +39,13 @@ void ui_712_set_filters_count(uint8_t count);
 uint8_t ui_712_remaining_filters(void);
 void ui_712_queue_struct_to_review(void);
 void ui_712_notify_filter_change(void);
+void ui_712_token_join_prepare_addr_check(uint8_t index);
+void ui_712_token_join_prepare_amount(uint8_t index, const char *name, uint8_t name_length);
+void amount_join_set_token_received(void);
+bool ui_712_show_raw_key(const void *field_ptr);
+#ifdef SCREEN_SIZE_WALLET
+char *get_ui_pairs_buffer(size_t *size);
+#endif
 
 #endif  // HAVE_EIP712_FULL_SUPPORT
 

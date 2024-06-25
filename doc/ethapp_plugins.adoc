@@ -85,8 +85,6 @@ typedef struct ethPluginInitContract_t {
   uint8_t *selector; // 4 bytes selector
   uint32_t dataSize;
 
-  char *alias; // 29 bytes alias if ETH_PLUGIN_RESULT_OK_ALIAS set
-
   uint8_t result;
 
 } ethPluginInitContract_t;
@@ -102,7 +100,6 @@ This message is sent when the selector of the data has been parsed. The followin
 The following return codes are expected, any other will abort the signing process :
 
   * ETH_PLUGIN_RESULT_OK : if the plugin can be successfully initialized
-  * ETH_PLUGIN_RESULT_OK_ALIAS : if a base64 encoded alias of another plugin to call is copied to the _alias_ field. In this case, the dispatcher will follow the alias chain, and the original plugin will only be called to retrieve its name when using a generic user interface
   * ETH_PLUGIN_RESULT_FALLBACK : if the signing logic should fallback to the generic one
 
 ### ETH_PLUGIN_PROVIDE_PARAMETER

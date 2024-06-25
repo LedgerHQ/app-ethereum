@@ -23,6 +23,7 @@ def default_handler():
 
 
 autonext_handler: Callable = default_handler
+is_golden_run: bool
 
 
 # From a string typename, extract the type and all the array depth
@@ -119,7 +120,7 @@ def send_struct_def_field(typename, keyname):
     return (typename, type_enum, typesize, array_lvls)
 
 
-def encode_integer(value: Union[str | int], typesize: int) -> bytes:
+def encode_integer(value: Union[str, int], typesize: int) -> bytes:
     # Some are already represented as integers in the JSON, but most as strings
     if isinstance(value, str):
         value = int(value, 0)
@@ -165,10 +166,7 @@ def encode_bool(value: str, typesize: int) -> bytes:
 
 
 def encode_string(value: str, typesize: int) -> bytes:
-    data = bytearray()
-    for char in value:
-        data.append(ord(char))
-    return data
+    return value.encode()
 
 
 def encode_bytes_fix(value: str, typesize: int) -> bytes:
@@ -203,7 +201,22 @@ def send_struct_impl_field(value, field):
     if filtering_paths:
         path = ".".join(current_path)
         if path in filtering_paths.keys():
-            send_filtering_show_field(filtering_paths[path])
+            if filtering_paths[path]["type"] == "amount_join_token":
+                send_filtering_amount_join_token(filtering_paths[path]["token"])
+            elif filtering_paths[path]["type"] == "amount_join_value":
+                if "token" in filtering_paths[path].keys():
+                    token = filtering_paths[path]["token"]
+                else:
+                    # Permit (ERC-2612)
+                    token = 0xff
+                send_filtering_amount_join_value(token,
+                                                 filtering_paths[path]["name"])
+            elif filtering_paths[path]["type"] == "datetime":
+                send_filtering_datetime(filtering_paths[path]["name"])
+            elif filtering_paths[path]["type"] == "raw":
+                send_filtering_raw(filtering_paths[path]["name"])
+            else:
+                assert False
 
     with app_client.eip712_send_struct_impl_struct_field(data):
         enable_autonext()
@@ -254,18 +267,24 @@ def send_struct_impl(structs, data, structname):
     return True
 
 
+def start_signature_payload(ctx: dict, magic: int) -> bytearray:
+    to_sign = bytearray()
+    # magic number so that signature for one type of filter can't possibly be
+    # valid for another, defined in APDU specs
+    to_sign.append(magic)
+    to_sign += ctx["chainid"]
+    to_sign += ctx["caddr"]
+    to_sign += ctx["schema_hash"]
+    return to_sign
+
+
 # ledgerjs doesn't actually sign anything, and instead uses already pre-computed signatures
 def send_filtering_message_info(display_name: str, filters_count: int):
     global sig_ctx
 
-    to_sign = bytearray()
-    to_sign.append(183)
-    to_sign += sig_ctx["chainid"]
-    to_sign += sig_ctx["caddr"]
-    to_sign += sig_ctx["schema_hash"]
+    to_sign = start_signature_payload(sig_ctx, 183)
     to_sign.append(filters_count)
-    for char in display_name:
-        to_sign.append(ord(char))
+    to_sign += display_name.encode()
 
     sig = keychain.sign_data(keychain.Key.CAL, to_sign)
     with app_client.eip712_filtering_message_info(display_name, filters_count, sig):
@@ -273,23 +292,57 @@ def send_filtering_message_info(display_name: str, filters_count: int):
     disable_autonext()
 
 
-# ledgerjs doesn't actually sign anything, and instead uses already pre-computed signatures
-def send_filtering_show_field(display_name):
+def send_filtering_amount_join_token(token_idx: int):
     global sig_ctx
 
     path_str = ".".join(current_path)
 
-    to_sign = bytearray()
-    to_sign.append(72)
-    to_sign += sig_ctx["chainid"]
-    to_sign += sig_ctx["caddr"]
-    to_sign += sig_ctx["schema_hash"]
-    for char in path_str:
-        to_sign.append(ord(char))
-    for char in display_name:
-        to_sign.append(ord(char))
+    to_sign = start_signature_payload(sig_ctx, 11)
+    to_sign += path_str.encode()
+    to_sign.append(token_idx)
     sig = keychain.sign_data(keychain.Key.CAL, to_sign)
-    with app_client.eip712_filtering_show_field(display_name, sig):
+    with app_client.eip712_filtering_amount_join_token(token_idx, sig):
+        pass
+
+
+def send_filtering_amount_join_value(token_idx: int, display_name: str):
+    global sig_ctx
+
+    path_str = ".".join(current_path)
+
+    to_sign = start_signature_payload(sig_ctx, 22)
+    to_sign += path_str.encode()
+    to_sign += display_name.encode()
+    to_sign.append(token_idx)
+    sig = keychain.sign_data(keychain.Key.CAL, to_sign)
+    with app_client.eip712_filtering_amount_join_value(token_idx, display_name, sig):
+        pass
+
+
+def send_filtering_datetime(display_name: str):
+    global sig_ctx
+
+    path_str = ".".join(current_path)
+
+    to_sign = start_signature_payload(sig_ctx, 33)
+    to_sign += path_str.encode()
+    to_sign += display_name.encode()
+    sig = keychain.sign_data(keychain.Key.CAL, to_sign)
+    with app_client.eip712_filtering_datetime(display_name, sig):
+        pass
+
+
+# ledgerjs doesn't actually sign anything, and instead uses already pre-computed signatures
+def send_filtering_raw(display_name):
+    global sig_ctx
+
+    path_str = ".".join(current_path)
+
+    to_sign = start_signature_payload(sig_ctx, 72)
+    to_sign += path_str.encode()
+    to_sign += display_name.encode()
+    sig = keychain.sign_data(keychain.Key.CAL, to_sign)
+    with app_client.eip712_filtering_raw(display_name, sig):
         pass
 
 
@@ -300,6 +353,12 @@ def prepare_filtering(filtr_data, message):
         filtering_paths = filtr_data["fields"]
     else:
         filtering_paths = {}
+    if "tokens" in filtr_data:
+        for token in filtr_data["tokens"]:
+            app_client.provide_token_metadata(token["ticker"],
+                                              bytes.fromhex(token["addr"][2:]),
+                                              token["decimals"],
+                                              token["chain_id"])
 
 
 def handle_optional_domain_values(domain):
@@ -332,7 +391,16 @@ def next_timeout(_signum: int, _frame):
 
 
 def enable_autonext():
-    delay = 1/5
+    if app_client._client.firmware.device in ("stax", "flex"):
+        delay = 1/3
+    else:
+        delay = 1/4
+
+    # golden run has to be slower to make sure we take good snapshots
+    # and not processing/loading screens
+    if is_golden_run:
+        delay *= 3
+
     signal.setitimer(signal.ITIMER_REAL, delay, delay)
 
 
@@ -343,10 +411,12 @@ def disable_autonext():
 def process_data(aclient: EthAppClient,
                  data_json: dict,
                  filters: Optional[dict] = None,
-                 autonext: Optional[Callable] = None) -> bool:
+                 autonext: Optional[Callable] = None,
+                 golden_run: bool = False) -> bool:
     global sig_ctx
     global app_client
     global autonext_handler
+    global is_golden_run
 
     # deepcopy because this function modifies the dict
     data_json = copy.deepcopy(data_json)
@@ -360,6 +430,8 @@ def process_data(aclient: EthAppClient,
     if autonext:
         autonext_handler = autonext
         signal.signal(signal.SIGALRM, next_timeout)
+
+    is_golden_run = golden_run
 
     if filters:
         init_signature_context(types, domain)

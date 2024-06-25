@@ -19,10 +19,10 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
     // We need this "trick" as the input data position can overlap with app-ethereum globals
     txStringProperties_t stack_data;
     memset(&stack_data, 0, sizeof(stack_data));
-    strlcpy(stack_data.fullAddress,
+    strlcpy(stack_data.toAddress,
             sign_transaction_params->destination_address,
-            sizeof(stack_data.fullAddress));
-    if ((stack_data.fullAddress[sizeof(stack_data.fullAddress) - 1] != '\0') ||
+            sizeof(stack_data.toAddress));
+    if ((stack_data.toAddress[sizeof(stack_data.toAddress) - 1] != '\0') ||
         (sign_transaction_params->amount_length > 32) ||
         (sign_transaction_params->fee_amount_length > 8)) {
         return false;

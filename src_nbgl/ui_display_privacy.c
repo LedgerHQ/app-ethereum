@@ -28,7 +28,7 @@ static void buildFirstPage(const char *review_string) {
     uint8_t nbPairs = 0;
 
     pairs[nbPairs].item = "Address";
-    pairs[nbPairs].value = strings.common.fullAddress;
+    pairs[nbPairs].value = strings.common.toAddress;
     nbPairs++;
     pairs[nbPairs].item = "Key";
     pairs[nbPairs].value = strings.common.fullAmount;

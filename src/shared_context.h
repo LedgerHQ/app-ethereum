@@ -22,7 +22,7 @@
 
 #define N_storage (*(volatile internalStorage_t *) PIC(&N_storage_real))
 
-#define MAX_ASSETS MAX_ITEMS  // TODO: Temporary, remove once plugin SDK is updated
+#define MAX_ASSETS 5
 
 typedef struct bip32_path_t {
     uint8_t length;
@@ -127,7 +127,8 @@ typedef enum {
 #define NETWORK_STRING_MAX_SIZE 19
 
 typedef struct txStringProperties_s {
-    char fullAddress[43];
+    char fromAddress[43];
+    char toAddress[43];
     char fullAmount[79];  // 2^256 is 78 digits long
     char maxFee[50];
     char nonce[8];  // 10M tx per account ought to be enough for everybody
@@ -137,7 +138,11 @@ typedef struct txStringProperties_s {
 #ifdef TARGET_NANOS
 #define SHARED_CTX_FIELD_1_SIZE 100
 #else
+#ifdef SCREEN_SIZE_WALLET
+#define SHARED_CTX_FIELD_1_SIZE 380
+#else
 #define SHARED_CTX_FIELD_1_SIZE 256
+#endif
 #endif
 #define SHARED_CTX_FIELD_2_SIZE 40
 

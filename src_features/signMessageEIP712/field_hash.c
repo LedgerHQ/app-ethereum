@@ -61,7 +61,6 @@ static const uint8_t *field_hash_prepare(const void *const field_ptr,
     fh->state = FHS_WAITING_FOR_MORE;
     if (IS_DYN(field_type)) {
         CX_CHECK(cx_keccak_init_no_throw(&global_sha3, 256));
-        ui_712_new_field(field_ptr, data, *data_length);
     }
     return data;
 end:
@@ -106,11 +105,6 @@ static const uint8_t *field_hash_finalize_static(const void *const field_ptr,
             apdu_response_code = APDU_RESPONSE_INVALID_DATA;
             PRINTF("Unknown solidity type!\n");
     }
-
-    if (value == NULL) {
-        return NULL;
-    }
-    ui_712_new_field(field_ptr, data, data_length);
     return value;
 }
 
@@ -245,6 +239,7 @@ static bool field_hash_finalize(const void *const field_ptr,
 bool field_hash(const uint8_t *data, uint8_t data_length, bool partial) {
     const void *field_ptr;
     e_type field_type;
+    bool first = fh->state == FHS_IDLE;
 
     if ((fh == NULL) || ((field_ptr = path_get_field()) == NULL)) {
         apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
@@ -252,8 +247,11 @@ bool field_hash(const uint8_t *data, uint8_t data_length, bool partial) {
     }
 
     field_type = struct_field_type(field_ptr);
-    if (fh->state == FHS_IDLE)  // first packet for this frame
-    {
+    // first packet for this frame
+    if (first) {
+        if (!ui_712_show_raw_key(field_ptr)) {
+            return false;
+        }
         if (data_length < 2) {
             apdu_response_code = APDU_RESPONSE_INVALID_DATA;
             return false;
@@ -269,6 +267,9 @@ bool field_hash(const uint8_t *data, uint8_t data_length, bool partial) {
     // if a dynamic type -> continue progressive hash
     if (IS_DYN(field_type)) {
         hash_nbytes(data, data_length, (cx_hash_t *) &global_sha3);
+    }
+    if (!ui_712_feed_to_display(field_ptr, data, data_length, first, fh->remaining_size == 0)) {
+        return false;
     }
     if (fh->remaining_size == 0) {
         if (partial)  // only makes sense if marked as complete
@@ -287,7 +288,6 @@ bool field_hash(const uint8_t *data, uint8_t data_length, bool partial) {
         }
         handle_eip712_return_code(true);
     }
-
     return true;
 }
 

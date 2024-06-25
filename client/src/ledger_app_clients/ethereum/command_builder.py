@@ -41,8 +41,11 @@ class P2Type(IntEnum):
     LEGACY_IMPLEM = 0x00
     NEW_IMPLEM = 0x01
     FILTERING_ACTIVATE = 0x00
-    FILTERING_CONTRACT_NAME = 0x0f
-    FILTERING_FIELD_NAME = 0xff
+    FILTERING_MESSAGE_INFO = 0x0f
+    FILTERING_DATETIME = 0xfc
+    FILTERING_TOKEN_ADDR_CHECK = 0xfd
+    FILTERING_AMOUNT_FIELD = 0xfe
+    FILTERING_RAW = 0xff
 
 
 class CommandBuilder:
@@ -62,17 +65,11 @@ class CommandBuilder:
         header.append(len(cdata))
         return header + cdata
 
-    def _string_to_bytes(self, string: str) -> bytes:
-        data = bytearray()
-        for char in string:
-            data.append(ord(char))
-        return data
-
     def eip712_send_struct_def_struct_name(self, name: str) -> bytes:
         return self._serialize(InsType.EIP712_SEND_STRUCT_DEF,
                                P1Type.COMPLETE_SEND,
                                P2Type.STRUCT_NAME,
-                               self._string_to_bytes(name))
+                               name.encode())
 
     def eip712_send_struct_def_struct_field(self,
                                             field_type: EIP712FieldType,
@@ -88,7 +85,7 @@ class CommandBuilder:
         data.append(typedesc)
         if field_type == EIP712FieldType.CUSTOM:
             data.append(len(type_name))
-            data += self._string_to_bytes(type_name)
+            data += type_name.encode()
         if type_size is not None:
             data.append(type_size)
         if len(array_levels) > 0:
@@ -98,7 +95,7 @@ class CommandBuilder:
                 if level is not None:
                     data.append(level)
         data.append(len(key_name))
-        data += self._string_to_bytes(key_name)
+        data += key_name.encode()
         return self._serialize(InsType.EIP712_SEND_STRUCT_DEF,
                                P1Type.COMPLETE_SEND,
                                P2Type.STRUCT_FIELD,
@@ -108,7 +105,7 @@ class CommandBuilder:
         return self._serialize(InsType.EIP712_SEND_STRUCT_IMPL,
                                P1Type.COMPLETE_SEND,
                                P2Type.STRUCT_NAME,
-                               self._string_to_bytes(name))
+                               name.encode())
 
     def eip712_send_struct_impl_array(self, size: int) -> bytes:
         data = bytearray()
@@ -162,7 +159,7 @@ class CommandBuilder:
     def _eip712_filtering_send_name(self, name: str, sig: bytes) -> bytes:
         data = bytearray()
         data.append(len(name))
-        data += self._string_to_bytes(name)
+        data += name.encode()
         data.append(len(sig))
         data += sig
         return data
@@ -170,25 +167,53 @@ class CommandBuilder:
     def eip712_filtering_message_info(self, name: str, filters_count: int, sig: bytes) -> bytes:
         data = bytearray()
         data.append(len(name))
-        data += self._string_to_bytes(name)
+        data += name.encode()
         data.append(filters_count)
         data.append(len(sig))
         data += sig
         return self._serialize(InsType.EIP712_SEND_FILTERING,
                                P1Type.COMPLETE_SEND,
-                               P2Type.FILTERING_CONTRACT_NAME,
+                               P2Type.FILTERING_MESSAGE_INFO,
                                data)
 
-    def eip712_filtering_show_field(self, name: str, sig: bytes) -> bytes:
+    def eip712_filtering_amount_join_token(self, token_idx: int, sig: bytes) -> bytes:
+        data = bytearray()
+        data.append(token_idx)
+        data.append(len(sig))
+        data += sig
         return self._serialize(InsType.EIP712_SEND_FILTERING,
                                P1Type.COMPLETE_SEND,
-                               P2Type.FILTERING_FIELD_NAME,
+                               P2Type.FILTERING_TOKEN_ADDR_CHECK,
+                               data)
+
+    def eip712_filtering_amount_join_value(self, token_idx: int, name: str, sig: bytes) -> bytes:
+        data = bytearray()
+        data.append(len(name))
+        data += name.encode()
+        data.append(token_idx)
+        data.append(len(sig))
+        data += sig
+        return self._serialize(InsType.EIP712_SEND_FILTERING,
+                               P1Type.COMPLETE_SEND,
+                               P2Type.FILTERING_AMOUNT_FIELD,
+                               data)
+
+    def eip712_filtering_datetime(self, name: str, sig: bytes) -> bytes:
+        return self._serialize(InsType.EIP712_SEND_FILTERING,
+                               P1Type.COMPLETE_SEND,
+                               P2Type.FILTERING_DATETIME,
+                               self._eip712_filtering_send_name(name, sig))
+
+    def eip712_filtering_raw(self, name: str, sig: bytes) -> bytes:
+        return self._serialize(InsType.EIP712_SEND_FILTERING,
+                               P1Type.COMPLETE_SEND,
+                               P2Type.FILTERING_RAW,
                                self._eip712_filtering_send_name(name, sig))
 
     def set_external_plugin(self, plugin_name: str, contract_address: bytes, selector: bytes, sig: bytes) -> bytes:
         data = bytearray()
         data.append(len(plugin_name))
-        data += self._string_to_bytes(plugin_name)
+        data += plugin_name.encode()
         data += contract_address
         data += selector
         data += sig

@@ -6,12 +6,11 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define FILTERING_MAGIC_CONTRACT_NAME 0b10110111  //  183
-#define FILTERING_MAGIC_STRUCT_FIELD  0b01001000  // ~183 = 72
-
-typedef enum { FILTERING_PROVIDE_MESSAGE_INFO, FILTERING_SHOW_FIELD } e_filtering_type;
-
-bool provide_filtering_info(const uint8_t *const payload, uint8_t length, e_filtering_type type);
+bool filtering_message_info(const uint8_t *payload, uint8_t length);
+bool filtering_date_time(const uint8_t *payload, uint8_t length);
+bool filtering_amount_join_token(const uint8_t *payload, uint8_t length);
+bool filtering_amount_join_value(const uint8_t *payload, uint8_t length);
+bool filtering_raw_field(const uint8_t *payload, uint8_t length);
 
 #endif  // HAVE_EIP712_FULL_SUPPORT
 

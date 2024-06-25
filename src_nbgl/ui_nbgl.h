@@ -11,6 +11,7 @@ extern char g_stax_shared_buffer[SHARED_BUFFER_SIZE];
 extern nbgl_page_t* pageContext;
 
 const nbgl_icon_details_t* get_app_icon(bool caller_icon);
+const nbgl_icon_details_t* get_tx_icon(void);
 
 void ui_idle(void);
 

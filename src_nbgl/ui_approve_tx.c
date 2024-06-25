@@ -51,7 +51,7 @@ static void reviewChoice(bool confirm) {
     }
 }
 
-static const nbgl_icon_details_t *get_tx_icon(void) {
+const nbgl_icon_details_t *get_tx_icon(void) {
     const nbgl_icon_details_t *icon = NULL;
 
     if (tx_approval_context.fromPlugin && (pluginType == EXTERNAL)) {

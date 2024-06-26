@@ -79,7 +79,7 @@ void erc20_plugin_call(int message, void *parameters) {
             ethPluginInitContract_t *msg = (ethPluginInitContract_t *) parameters;
             erc20_parameters_t *context = (erc20_parameters_t *) msg->pluginContext;
             // enforce that ETH amount should be 0
-            if (!allzeroes(msg->pluginSharedRO->txContent->value.value, 32)) {
+            if (!allzeroes(msg->txContent->value.value, 32)) {
                 PRINTF("Err: Transaction amount is not 0\n");
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             } else {
@@ -129,13 +129,13 @@ void erc20_plugin_call(int message, void *parameters) {
             erc20_parameters_t *context = (erc20_parameters_t *) msg->pluginContext;
             PRINTF("erc20 plugin finalize\n");
             if (context->selectorIndex == ERC20_TRANSFER) {
-                msg->tokenLookup1 = msg->pluginSharedRO->txContent->destination;
+                msg->tokenLookup1 = msg->txContent->destination;
                 msg->amount = context->amount;
                 msg->address = context->destinationAddress;
                 msg->uiType = ETH_UI_TYPE_AMOUNT_ADDRESS;
                 msg->result = ETH_PLUGIN_RESULT_OK;
             } else if (context->selectorIndex == ERC20_APPROVE) {
-                msg->tokenLookup1 = msg->pluginSharedRO->txContent->destination;
+                msg->tokenLookup1 = msg->txContent->destination;
                 msg->numScreens = 2;
                 msg->uiType = ETH_UI_TYPE_GENERIC;
                 msg->result = ETH_PLUGIN_RESULT_OK;

@@ -5,27 +5,24 @@ from typing import Union
 
 
 class SettingID(Enum):
-    BLIND_SIGNING = auto()
-    DEBUG_DATA = auto()
-    NONCE = auto()
-    VERBOSE_EIP712 = auto()
     VERBOSE_ENS = auto()
+    VERBOSE_EIP712 = auto()
+    NONCE = auto()
+    DEBUG_DATA = auto()
 
 
 def get_device_settings(device: str) -> list[SettingID]:
     if device == "nanos":
         return [
-            SettingID.BLIND_SIGNING,
+            SettingID.NONCE,
             SettingID.DEBUG_DATA,
-            SettingID.NONCE
         ]
     if device in ("nanox", "nanosp", "stax", "flex"):
         return [
-            SettingID.BLIND_SIGNING,
-            SettingID.DEBUG_DATA,
-            SettingID.NONCE,
+            SettingID.VERBOSE_ENS,
             SettingID.VERBOSE_EIP712,
-            SettingID.VERBOSE_ENS
+            SettingID.NONCE,
+            SettingID.DEBUG_DATA,
         ]
     return []
 

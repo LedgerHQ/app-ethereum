@@ -9,8 +9,7 @@
 #define SETTING_CONTENTS_NB 1
 
 enum {
-    BLIND_SIGNING_TOKEN = FIRST_USER_TOKEN,
-    DEBUG_TOKEN,
+    DEBUG_TOKEN = FIRST_USER_TOKEN,
     NONCE_TOKEN,
 #ifdef HAVE_EIP712_FULL_SUPPORT
     EIP712_VERBOSE_TOKEN,
@@ -21,23 +20,22 @@ enum {
 };
 
 enum {
-    BLIND_SIGNING_ID = 0,
-    DEBUG_ID,
-    NONCE_ID,
-#ifdef HAVE_EIP712_FULL_SUPPORT
-    EIP712_VERBOSE_ID,
-#endif
 #ifdef HAVE_DOMAIN_NAME
     DOMAIN_NAME_VERBOSE_ID,
 #endif
+#ifdef HAVE_EIP712_FULL_SUPPORT
+    EIP712_VERBOSE_ID,
+#endif
+    NONCE_ID,
+    DEBUG_ID,
     SETTINGS_SWITCHES_NB
 };
 
 static uint8_t initSettingPage;
 
 // settings definition
-static const char* const infoTypes[SETTING_INFO_NB] = {"Version", APPNAME " App"};
-static const char* const infoContents[SETTING_INFO_NB] = {APPVERSION, "(c) " BUILD_YEAR " Ledger"};
+static const char* const infoTypes[SETTING_INFO_NB] = {"Version", "Developer"};
+static const char* const infoContents[SETTING_INFO_NB] = {APPVERSION, "Ledger"};
 
 static nbgl_contentInfoList_t infoList = {0};
 static nbgl_contentSwitch_t switches[SETTINGS_SWITCHES_NB] = {0};
@@ -51,11 +49,6 @@ static void controlsCallback(int token, uint8_t index, int page) {
     initSettingPage = page;
 
     switch (token) {
-        case BLIND_SIGNING_TOKEN:
-            value = (N_storage.dataAllowed ? 0 : 1);
-            switches[BLIND_SIGNING_ID].initState = (nbgl_state_t) value;
-            nvm_write((void*) &N_storage.dataAllowed, (void*) &value, sizeof(uint8_t));
-            break;
         case DEBUG_TOKEN:
             value = (N_storage.contractDetails ? 0 : 1);
             switches[DEBUG_ID].initState = (nbgl_state_t) value;
@@ -84,40 +77,34 @@ static void controlsCallback(int token, uint8_t index, int page) {
 }
 
 void ui_menu_settings(void) {
-    switches[BLIND_SIGNING_ID].initState = N_storage.dataAllowed ? ON_STATE : OFF_STATE;
-    switches[BLIND_SIGNING_ID].text = "Blind signing";
-    switches[BLIND_SIGNING_ID].subText = "Enable transaction blind\nsigning";
-    switches[BLIND_SIGNING_ID].token = BLIND_SIGNING_TOKEN;
-    switches[BLIND_SIGNING_ID].tuneId = TUNE_TAP_CASUAL;
-
-    switches[DEBUG_ID].initState = N_storage.contractDetails ? ON_STATE : OFF_STATE;
-    switches[DEBUG_ID].text = "Debug";
-    switches[DEBUG_ID].subText = "Display contract data\ndetails";
-    switches[DEBUG_ID].token = DEBUG_TOKEN;
-    switches[DEBUG_ID].tuneId = TUNE_TAP_CASUAL;
-
-    switches[NONCE_ID].initState = N_storage.displayNonce ? ON_STATE : OFF_STATE;
-    switches[NONCE_ID].text = "Nonce";
-    switches[NONCE_ID].subText = "Display account nonce\nin transaction";
-    switches[NONCE_ID].token = NONCE_TOKEN;
-    switches[NONCE_ID].tuneId = TUNE_TAP_CASUAL;
+#ifdef HAVE_DOMAIN_NAME
+    switches[DOMAIN_NAME_VERBOSE_ID].initState =
+        N_storage.verbose_domain_name ? ON_STATE : OFF_STATE;
+    switches[DOMAIN_NAME_VERBOSE_ID].text = "ENS addresses";
+    switches[DOMAIN_NAME_VERBOSE_ID].subText = "Displays the resolved address of ENS domains.";
+    switches[DOMAIN_NAME_VERBOSE_ID].token = DOMAIN_NAME_VERBOSE_TOKEN;
+    switches[DOMAIN_NAME_VERBOSE_ID].tuneId = TUNE_TAP_CASUAL;
+#endif  // HAVE_DOMAIN_NAME
 
 #ifdef HAVE_EIP712_FULL_SUPPORT
     switches[EIP712_VERBOSE_ID].initState = N_storage.verbose_eip712 ? ON_STATE : OFF_STATE;
-    switches[EIP712_VERBOSE_ID].text = "Verbose EIP712";
-    switches[EIP712_VERBOSE_ID].subText = "Ignore filtering and\ndisplay raw content";
+    switches[EIP712_VERBOSE_ID].text = "Raw messages";
+    switches[EIP712_VERBOSE_ID].subText = "Displays raw content from EIP712 messages.";
     switches[EIP712_VERBOSE_ID].token = EIP712_VERBOSE_TOKEN;
     switches[EIP712_VERBOSE_ID].tuneId = TUNE_TAP_CASUAL;
 #endif  // HAVE_EIP712_FULL_SUPPORT
 
-#ifdef HAVE_DOMAIN_NAME
-    switches[DOMAIN_NAME_VERBOSE_ID].initState =
-        N_storage.verbose_domain_name ? ON_STATE : OFF_STATE;
-    switches[DOMAIN_NAME_VERBOSE_ID].text = "Verbose domains";
-    switches[DOMAIN_NAME_VERBOSE_ID].subText = "Show resolved address";
-    switches[DOMAIN_NAME_VERBOSE_ID].token = DOMAIN_NAME_VERBOSE_TOKEN;
-    switches[DOMAIN_NAME_VERBOSE_ID].tuneId = TUNE_TAP_CASUAL;
-#endif  // HAVE_DOMAIN_NAME
+    switches[NONCE_ID].initState = N_storage.displayNonce ? ON_STATE : OFF_STATE;
+    switches[NONCE_ID].text = "Nonce";
+    switches[NONCE_ID].subText = "Displays nonce information in transactions.";
+    switches[NONCE_ID].token = NONCE_TOKEN;
+    switches[NONCE_ID].tuneId = TUNE_TAP_CASUAL;
+
+    switches[DEBUG_ID].initState = N_storage.contractDetails ? ON_STATE : OFF_STATE;
+    switches[DEBUG_ID].text = "Debug smart contracts";
+    switches[DEBUG_ID].subText = "Displays contract data details.";
+    switches[DEBUG_ID].token = DEBUG_TOKEN;
+    switches[DEBUG_ID].tuneId = TUNE_TAP_CASUAL;
 
     contents[0].type = SWITCHES_LIST;
     contents[0].content.switchesList.nbSwitches = SETTINGS_SWITCHES_NB;

@@ -10,6 +10,7 @@ import struct
 from client import keychain
 from client.client import EthAppClient, EIP712FieldType
 
+from ragger.firmware import Firmware
 
 # global variables
 app_client: EthAppClient = None
@@ -391,7 +392,7 @@ def next_timeout(_signum: int, _frame):
 
 
 def enable_autonext():
-    if app_client._client.firmware.device in ("stax", "flex"):
+    if app_client._client.firmware in (Firmware.STAX, Firmware.FLEX):
         delay = 1/3
     else:
         delay = 1/4

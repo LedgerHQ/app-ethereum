@@ -55,12 +55,16 @@ static const nbgl_icon_details_t *get_tx_icon(void) {
     const nbgl_icon_details_t *icon = NULL;
 
     if (tx_approval_context.fromPlugin && (pluginType == EXTERNAL)) {
-        if (caller_app && caller_app->name) {
-            if ((strlen(strings.common.toAddress) == strlen(caller_app->name)) &&
-                (strcmp(strings.common.toAddress, caller_app->name) == 0)) {
+        if ((caller_app != NULL) && (caller_app->name != NULL)) {
+            if (strcmp(strings.common.toAddress, caller_app->name) == 0) {
                 icon = get_app_icon(true);
             }
         }
+        // icon is NULL in this case
+        // Check with Alex if this is expected or a bug
+    } else if ((caller_app != NULL) && !tx_approval_context.fromPlugin) {
+        // Clone case
+        icon = get_app_icon(true);
     } else {
         uint64_t chain_id = get_tx_chain_id();
         if (chain_id == chainConfig->chainId) {

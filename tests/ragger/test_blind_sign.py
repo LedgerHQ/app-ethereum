@@ -95,10 +95,14 @@ def test_blind_sign(firmware: Firmware,
                         moves += [NavInsID.RIGHT_CLICK] * 6
                     moves += [NavInsID.BOTH_CLICK]
             else:
+                if firmware.device == "stax":
+                    tap_number = 2
+                else:
+                    tap_number = 3
                 if sign:
                     moves += [NavInsID.USE_CASE_CHOICE_REJECT]
                     moves += [NavInsID.USE_CASE_CHOICE_CONFIRM]
-                    moves += [NavInsID.USE_CASE_REVIEW_TAP] * 3
+                    moves += [NavInsID.USE_CASE_REVIEW_TAP] * tap_number
                     moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
                 else:
                     moves += [NavInsID.USE_CASE_CHOICE_CONFIRM]
@@ -181,16 +185,19 @@ def test_sign_parameter_selector(firmware: Firmware,
             moves += [NavInsID.BOTH_CLICK]
 
             if firmware.device == "nanos":
-                pass
                 moves += [NavInsID.RIGHT_CLICK] * 9
             else:
                 moves += [NavInsID.RIGHT_CLICK] * 5
             moves += [NavInsID.BOTH_CLICK]
         else:
+            if firmware.device == "stax":
+                tap_number = 2
+            else:
+                tap_number = 3
             moves += ([NavInsID.USE_CASE_REVIEW_TAP] * 2 + [NavInsID.USE_CASE_REVIEW_CONFIRM]) * flows
             moves += [NavInsID.USE_CASE_CHOICE_REJECT]
             moves += [NavInsID.USE_CASE_CHOICE_CONFIRM]
-            moves += [NavInsID.USE_CASE_REVIEW_TAP] * 3
+            moves += [NavInsID.USE_CASE_REVIEW_TAP] * tap_number
             moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
         navigator.navigate_and_compare(default_screenshot_path,
                                        test_name,

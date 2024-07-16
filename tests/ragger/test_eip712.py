@@ -129,16 +129,25 @@ def eip712_new_common(firmware: Firmware,
                 moves = [NavInsID.RIGHT_CLICK] * 2
             moves += [NavInsID.BOTH_CLICK]
         else:
-            # need to skip the message hash
+            # this move is necessary most of the times, but can't be 100% sure with the fields grouping
             moves += [NavInsID.SWIPE_CENTER_TO_LEFT]
+            # need to skip the message hash
+            if not verbose and filters is None:
+                moves += [NavInsID.SWIPE_CENTER_TO_LEFT]
             moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
         if SNAPS_CONFIG is not None:
+            # Could break (time-out) if given a JSON that requires less moves
+            # TODO: Maybe take list of moves as input instead of trying to guess them ?
             navigator.navigate_and_compare(default_screenshot_path,
                                            SNAPS_CONFIG.test_name,
                                            moves,
                                            snap_start_idx=SNAPS_CONFIG.idx)
         else:
-            navigator.navigate(moves)
+            # Do them one-by-one to prevent an unnecessary move from timing-out and failing the test
+            for move in moves:
+                navigator.navigate([move],
+                                   screen_change_before_first_instruction=False,
+                                   screen_change_after_last_instruction=False)
     return ResponseParser.signature(app_client.response().data)
 
 

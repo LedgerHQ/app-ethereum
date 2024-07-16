@@ -37,8 +37,8 @@ def get_setting_position(device: str, setting: Union[NavInsID, SettingID]) -> tu
     settings_per_page = get_setting_per_page(device)
     if device == "stax":
         screen_height = 672  # px
-        header_height = 85  # px
-        footer_height = 132  # px
+        header_height = 88  # px
+        footer_height = 92  # px
         option_offset = 350  # px
     else:
         screen_height = 600  # px

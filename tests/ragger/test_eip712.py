@@ -93,7 +93,7 @@ def autonext(firmware: Firmware, navigator: Navigator, default_screenshot_path: 
     if firmware.device.startswith("nano"):
         moves = [NavInsID.RIGHT_CLICK]
     else:
-        moves = [NavInsID.USE_CASE_REVIEW_TAP]
+        moves = [NavInsID.SWIPE_CENTER_TO_LEFT]
     if SNAPS_CONFIG is not None:
         navigator.navigate_and_compare(default_screenshot_path,
                                        SNAPS_CONFIG.test_name,
@@ -130,7 +130,7 @@ def eip712_new_common(firmware: Firmware,
             moves += [NavInsID.BOTH_CLICK]
         else:
             # need to skip the message hash
-            moves += [NavInsID.USE_CASE_REVIEW_TAP]
+            moves += [NavInsID.SWIPE_CENTER_TO_LEFT]
             moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
         if SNAPS_CONFIG is not None:
             navigator.navigate_and_compare(default_screenshot_path,

@@ -102,7 +102,7 @@ def test_blind_sign(firmware: Firmware,
                 if sign:
                     moves += [NavInsID.USE_CASE_CHOICE_REJECT]
                     moves += [NavInsID.USE_CASE_CHOICE_CONFIRM]
-                    moves += [NavInsID.USE_CASE_REVIEW_TAP] * tap_number
+                    moves += [NavInsID.SWIPE_CENTER_TO_LEFT] * tap_number
                     moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
                 else:
                     moves += [NavInsID.USE_CASE_CHOICE_CONFIRM]
@@ -194,10 +194,10 @@ def test_sign_parameter_selector(firmware: Firmware,
                 tap_number = 2
             else:
                 tap_number = 3
-            moves += ([NavInsID.USE_CASE_REVIEW_TAP] * 2 + [NavInsID.USE_CASE_REVIEW_CONFIRM]) * flows
+            moves += ([NavInsID.SWIPE_CENTER_TO_LEFT] * 2 + [NavInsID.USE_CASE_REVIEW_CONFIRM]) * flows
             moves += [NavInsID.USE_CASE_CHOICE_REJECT]
             moves += [NavInsID.USE_CASE_CHOICE_CONFIRM]
-            moves += [NavInsID.USE_CASE_REVIEW_TAP] * tap_number
+            moves += [NavInsID.SWIPE_CENTER_TO_LEFT] * tap_number
             moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
         navigator.navigate_and_compare(default_screenshot_path,
                                        test_name,

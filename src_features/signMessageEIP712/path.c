@@ -9,7 +9,6 @@
 #include "type_hash.h"
 #include "shared_context.h"
 #include "mem_utils.h"
-#include "ui_logic.h"
 #include "apdu_constants.h"  // APDU response codes
 #include "typed_data.h"
 
@@ -541,7 +540,6 @@ static bool path_advance_in_struct(void) {
     }
     if (path_struct->depth_count > 0) {
         *depth += 1;
-        ui_712_notify_filter_change();
         end_reached = (*depth == fields_count);
     }
     if (end_reached) {
@@ -632,6 +630,35 @@ uint8_t path_get_depth_count(void) {
         return 0;
     }
     return path_struct->depth_count;
+}
+
+/**
+ * Generate a unique checksum out of the current path
+ *
+ * Goes over the fields of the \ref path_struct with a few exceptions : we skip the root_type since
+ * we already go over root_struct, and in array_depths we only go over path_index since it would
+ * otherwise generate a different CRC for different fields which are targeted by the same filtering
+ * path.
+ *
+ * @return CRC-32 checksum
+ */
+uint32_t get_path_crc(void) {
+    uint32_t value = CX_CRC32_INIT;
+
+    value = cx_crc32_update(value, &path_struct->root_struct, sizeof(path_struct->root_struct));
+    value = cx_crc32_update(value, &path_struct->depth_count, sizeof(path_struct->depth_count));
+    value = cx_crc32_update(value,
+                            path_struct->depths,
+                            sizeof(path_struct->depths[0]) * path_struct->depth_count);
+    value = cx_crc32_update(value,
+                            &path_struct->array_depth_count,
+                            sizeof(path_struct->array_depth_count));
+    for (int i = 0; i < path_struct->array_depth_count; ++i) {
+        value = cx_crc32_update(value,
+                                &path_struct->array_depths[i].path_index,
+                                sizeof(path_struct->array_depths[i].path_index));
+    }
+    return value;
 }
 
 /**

@@ -195,6 +195,14 @@ bool handle_eip712_filtering(const uint8_t *const apdu_buf) {
             apdu_response_code = APDU_RESPONSE_INVALID_P1_P2;
             ret = false;
     }
+    if ((apdu_buf[OFFSET_P2] > P2_FILT_MESSAGE_INFO) && ret) {
+        if (ui_712_push_new_filter_path()) {
+            if (!ui_712_filters_counter_incr()) {
+                ret = false;
+                apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+            }
+        }
+    }
     if (reply_apdu) {
         handle_eip712_return_code(ret);
     }

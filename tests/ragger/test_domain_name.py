@@ -1,4 +1,3 @@
-from pathlib import Path
 import pytest
 from web3 import Web3
 
@@ -33,7 +32,7 @@ def verbose_fixture(request) -> bool:
 
 def common(firmware: Firmware, app_client: EthAppClient) -> int:
 
-    if firmware.device == "nanos":
+    if firmware == Firmware.NANOS:
         pytest.skip("Not supported on LNS")
     challenge = app_client.get_challenge()
     return ResponseParser.challenge(challenge.data)
@@ -43,7 +42,6 @@ def test_send_fund(firmware: Firmware,
                    backend: BackendInterface,
                    navigator: Navigator,
                    scenario_navigator: NavigateWithScenario,
-                   default_screenshot_path: Path,
                    verbose: bool):
     app_client = EthAppClient(backend)
     challenge = common(firmware, app_client)
@@ -62,12 +60,12 @@ def test_send_fund(firmware: Firmware,
                              "value": Web3.to_wei(AMOUNT, "ether"),
                              "chainId": CHAIN_ID
                          }):
-        if firmware.device.startswith("nano"):
+        if firmware.is_nano:
             end_text = "Accept"
         else:
             end_text = "Sign"
 
-        scenario_navigator.review_approve(default_screenshot_path, f"domain_name_verbose_{str(verbose)}", end_text)
+        scenario_navigator.review_approve(test_name=f"domain_name_verbose_{str(verbose)}", custom_screen_text=end_text)
 
 
 def test_send_fund_wrong_challenge(firmware: Firmware, backend: BackendInterface):
@@ -81,8 +79,7 @@ def test_send_fund_wrong_challenge(firmware: Firmware, backend: BackendInterface
 
 def test_send_fund_wrong_addr(firmware: Firmware,
                               backend: BackendInterface,
-                              scenario_navigator: NavigateWithScenario,
-                              default_screenshot_path: Path):
+                              scenario_navigator: NavigateWithScenario):
     app_client = EthAppClient(backend)
     challenge = common(firmware, app_client)
 
@@ -100,18 +97,17 @@ def test_send_fund_wrong_addr(firmware: Firmware,
                              "value": Web3.to_wei(AMOUNT, "ether"),
                              "chainId": CHAIN_ID
                          }):
-        if firmware.device.startswith("nano"):
+        if firmware.is_nano:
             end_text = "Accept"
         else:
             end_text = "Sign"
 
-        scenario_navigator.review_approve(default_screenshot_path, "domain_name_wrong_addr", end_text)
+        scenario_navigator.review_approve(test_name="domain_name_wrong_addr", custom_screen_text=end_text)
 
 
 def test_send_fund_non_mainnet(firmware: Firmware,
                                backend: BackendInterface,
-                               scenario_navigator: NavigateWithScenario,
-                               default_screenshot_path: Path):
+                               scenario_navigator: NavigateWithScenario):
     app_client = EthAppClient(backend)
     challenge = common(firmware, app_client)
 
@@ -126,18 +122,17 @@ def test_send_fund_non_mainnet(firmware: Firmware,
                              "value": Web3.to_wei(AMOUNT, "ether"),
                              "chainId": 5
                          }):
-        if firmware.device.startswith("nano"):
+        if firmware.is_nano:
             end_text = "Accept"
         else:
             end_text = "Sign"
 
-        scenario_navigator.review_approve(default_screenshot_path, "domain_name_non_mainnet", end_text)
+        scenario_navigator.review_approve(test_name="domain_name_non_mainnet", custom_screen_text=end_text)
 
 
 def test_send_fund_unknown_chain(firmware: Firmware,
                                  backend: BackendInterface,
-                                 scenario_navigator: NavigateWithScenario,
-                                 default_screenshot_path: Path):
+                                 scenario_navigator: NavigateWithScenario):
     app_client = EthAppClient(backend)
     challenge = common(firmware, app_client)
 
@@ -152,12 +147,12 @@ def test_send_fund_unknown_chain(firmware: Firmware,
                              "value": Web3.to_wei(AMOUNT, "ether"),
                              "chainId": 9
                          }):
-        if firmware.device.startswith("nano"):
+        if firmware.is_nano:
             end_text = "Accept"
         else:
             end_text = "Sign"
 
-        scenario_navigator.review_approve(default_screenshot_path, "domain_name_unknown_chain", end_text)
+        scenario_navigator.review_approve(test_name="domain_name_unknown_chain", custom_screen_text=end_text)
 
 
 def test_send_fund_domain_too_long(firmware: Firmware, backend: BackendInterface):

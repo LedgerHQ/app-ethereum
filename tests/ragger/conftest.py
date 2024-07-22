@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from os import path
 import warnings
 import glob
 
@@ -17,8 +18,8 @@ def pytest_addoption(parser):
     parser.addoption("--with_lib_mode", action="store_true", help="Run the test with Library Mode")
 
 
-parent: Path = Path(__file__).parent
-testFiles = glob.glob("test_*.py", root_dir=f"{parent}")
+pattern = f"{Path(__file__).parent}/test_*.py"
+testFiles = [path.basename(x) for x in glob.glob(pattern)]
 collect_ignore = []
 if "--with_lib_mode" in sys.argv:
 

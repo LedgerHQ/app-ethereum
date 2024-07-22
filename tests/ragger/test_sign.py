@@ -46,18 +46,18 @@ def common(firmware: Firmware,
     _, DEVICE_ADDR, _ = ResponseParser.pk_addr(app_client.response().data)
 
     with app_client.sign(path, tx_params):
-        if not firmware.device.startswith("nano") and confirm:
+        if not firmware.is_nano and confirm:
             navigator.navigate_and_compare(default_screenshot_path,
                                            f"{test_name}/confirm",
                                            [NavInsID.USE_CASE_CHOICE_CONFIRM],
                                            screen_change_after_last_instruction=False)
 
-        if firmware.device.startswith("nano"):
+        if firmware.is_nano:
             end_text = "Accept"
         else:
             end_text = "Sign"
 
-        scenario_navigator.review_approve(default_screenshot_path, test_name, end_text, (test_name != ""))
+        scenario_navigator.review_approve(custom_screen_text=end_text, do_comparison=test_name!="")
 
     # verify signature
     vrs = ResponseParser.signature(app_client.response().data)
@@ -67,15 +67,13 @@ def common(firmware: Firmware,
 
 def common_reject(backend: BackendInterface,
                   scenario_navigator: NavigateWithScenario,
-                  default_screenshot_path: Path,
                   tx_params: dict,
-                  test_name: str,
                   path: str = BIP32_PATH):
     app_client = EthAppClient(backend)
 
     try:
         with app_client.sign(path, tx_params):
-            scenario_navigator.review_reject(default_screenshot_path, test_name)
+            scenario_navigator.review_reject()
 
     except ExceptionRAPDU as e:
         assert e.status == StatusWord.CONDITION_NOT_SATISFIED
@@ -235,10 +233,7 @@ def test_sign_nonce_display(firmware: Firmware,
     common(firmware, backend, navigator, scenario_navigator, default_screenshot_path, tx_params, test_name, "m/44'/60'/1'/0/0")
 
 
-def test_sign_reject(backend: BackendInterface,
-                     scenario_navigator: NavigateWithScenario,
-                     test_name: str,
-                     default_screenshot_path: Path):
+def test_sign_reject(backend: BackendInterface, scenario_navigator: NavigateWithScenario):
     tx_params: dict = {
         "nonce": NONCE2,
         "gasPrice": Web3.to_wei(GAS_PRICE, 'gwei'),
@@ -247,7 +242,7 @@ def test_sign_reject(backend: BackendInterface,
         "value": Web3.to_wei(AMOUNT2, "ether"),
         "chainId": CHAIN_ID
     }
-    common_reject(backend, scenario_navigator, default_screenshot_path, tx_params, test_name, "m/44'/60'/1'/0/0")
+    common_reject(backend, scenario_navigator, tx_params, "m/44'/60'/1'/0/0")
 
 
 def test_sign_error_transaction_type(backend: BackendInterface):

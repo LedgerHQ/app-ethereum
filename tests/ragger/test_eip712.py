@@ -90,7 +90,7 @@ def test_eip712_legacy(backend: BackendInterface, scenario_navigator: NavigateWi
 
 def autonext(firmware: Firmware, navigator: Navigator, default_screenshot_path: Path):
     moves = []
-    if firmware.device.startswith("nano"):
+    if firmware.is_nano:
         moves = [NavInsID.RIGHT_CLICK]
     else:
         moves = [NavInsID.SWIPE_CENTER_TO_LEFT]
@@ -123,10 +123,10 @@ def eip712_new_common(firmware: Firmware,
                                   golden_run)
     with app_client.eip712_sign_new(BIP32_PATH):
         moves = []
-        if firmware.device.startswith("nano"):
+        if firmware.is_nano:
             # need to skip the message hash
             if not verbose and filters is None:
-                moves = [NavInsID.RIGHT_CLICK] * 2
+                moves += [NavInsID.RIGHT_CLICK] * 2
             moves += [NavInsID.BOTH_CLICK]
         else:
             # this move is necessary most of the times, but can't be 100% sure with the fields grouping
@@ -159,7 +159,7 @@ def test_eip712_new(firmware: Firmware,
                     verbose: bool,
                     filtering: bool):
     app_client = EthAppClient(backend)
-    if firmware.device == "nanos":
+    if firmware == Firmware.NANOS:
         pytest.skip("Not supported on LNS")
 
     test_path = f"{input_file.parent}/{'-'.join(input_file.stem.split('-')[:-1])}"
@@ -420,7 +420,7 @@ def test_eip712_advanced_filtering(firmware: Firmware,
     global SNAPS_CONFIG
 
     app_client = EthAppClient(backend)
-    if firmware.device == "nanos":
+    if firmware == Firmware.NANOS:
         pytest.skip("Not supported on LNS")
 
     SNAPS_CONFIG = SnapshotsConfig(test_name + data_set.suffix)

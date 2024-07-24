@@ -113,7 +113,7 @@ static void prepare_and_display_home(const char *appname, const char *tagline) {
     switches[DOMAIN_NAME_VERBOSE_ID].initState =
         N_storage.verbose_domain_name ? ON_STATE : OFF_STATE;
     switches[DOMAIN_NAME_VERBOSE_ID].text = "ENS addresses";
-    switches[DOMAIN_NAME_VERBOSE_ID].subText = "Displays the resolved address of ENS domains.";
+    switches[DOMAIN_NAME_VERBOSE_ID].subText = "Display the resolved address of ENS domains.";
     switches[DOMAIN_NAME_VERBOSE_ID].token = DOMAIN_NAME_VERBOSE_TOKEN;
     switches[DOMAIN_NAME_VERBOSE_ID].tuneId = TUNE_TAP_CASUAL;
 #endif  // HAVE_DOMAIN_NAME
@@ -121,20 +121,20 @@ static void prepare_and_display_home(const char *appname, const char *tagline) {
 #ifdef HAVE_EIP712_FULL_SUPPORT
     switches[EIP712_VERBOSE_ID].initState = N_storage.verbose_eip712 ? ON_STATE : OFF_STATE;
     switches[EIP712_VERBOSE_ID].text = "Raw messages";
-    switches[EIP712_VERBOSE_ID].subText = "Displays raw content from EIP712 messages.";
+    switches[EIP712_VERBOSE_ID].subText = "Display raw content from EIP712 messages.";
     switches[EIP712_VERBOSE_ID].token = EIP712_VERBOSE_TOKEN;
     switches[EIP712_VERBOSE_ID].tuneId = TUNE_TAP_CASUAL;
 #endif  // HAVE_EIP712_FULL_SUPPORT
 
     switches[NONCE_ID].initState = N_storage.displayNonce ? ON_STATE : OFF_STATE;
     switches[NONCE_ID].text = "Nonce";
-    switches[NONCE_ID].subText = "Displays nonce information in transactions.";
+    switches[NONCE_ID].subText = "Display nonce in transactions.";
     switches[NONCE_ID].token = NONCE_TOKEN;
     switches[NONCE_ID].tuneId = TUNE_TAP_CASUAL;
 
     switches[DEBUG_ID].initState = N_storage.contractDetails ? ON_STATE : OFF_STATE;
     switches[DEBUG_ID].text = "Debug smart contracts";
-    switches[DEBUG_ID].subText = "Displays contract data details.";
+    switches[DEBUG_ID].subText = "Display contract data details.";
     switches[DEBUG_ID].token = DEBUG_TOKEN;
     switches[DEBUG_ID].tuneId = TUNE_TAP_CASUAL;
 

@@ -37,6 +37,7 @@ const void *path_get_root(void);
 const void *path_get_nth_field(uint8_t n);
 const void *path_get_nth_field_to_last(uint8_t n);
 uint8_t path_get_depth_count(void);
+uint32_t get_path_crc(void);
 
 #endif  // HAVE_EIP712_FULL_SUPPORT
 

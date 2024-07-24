@@ -12,10 +12,9 @@ static void dummy_cb(void) {
             if (ui_pos == UI_712_POS_REVIEW) {
                 ux_flow_next();
                 ui_pos = UI_712_POS_END;
-            } else  // UI_712_POS_END
-            {
-                ux_flow_prev();
-                ui_pos = UI_712_POS_REVIEW;
+            } else {
+                // Keep user at the end of the flow
+                ux_flow_next();
             }
             break;
         case EIP712_FIELD_INCOMING:

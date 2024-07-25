@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - (network) Electroneum
 - New EIP-712 filtering modes (datetime, amount-join)
 - New blind-signing warning flow before every blind-signed transaction flow
+- New "From" field in transactions containing the wallet's derived address
 - Ledger Flex support
 
 ### Removed
@@ -43,6 +44,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Renamed Optimism to OP Mainnet
 - Can now store up to 5 assets information (instead of 2)
 - Can now buffer & show multiple EIP-712 fields on one page for NBGL devices
+- Renamed the "Address" field in transactions to "To"
 
 ### Fixed
 

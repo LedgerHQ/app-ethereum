@@ -69,9 +69,7 @@ void handleSign(uint8_t p1,
         PRINTF("Parser not initialized\n");
         THROW(0x6985);
     }
-    txResult = processTx(&txContext,
-                         workBuffer,
-                         dataLength);
+    txResult = processTx(&txContext, workBuffer, dataLength);
     switch (txResult) {
         case USTREAM_SUSPENDED:
             break;

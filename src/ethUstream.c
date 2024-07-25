@@ -550,9 +550,7 @@ static parserStatus_e processTxInternal(txContext_t *context) {
     PRINTF("end of here\n");
 }
 
-parserStatus_e processTx(txContext_t *context,
-                         const uint8_t *buffer,
-                         uint32_t length) {
+parserStatus_e processTx(txContext_t *context, const uint8_t *buffer, uint32_t length) {
     parserStatus_e result;
     BEGIN_TRY {
         TRY {

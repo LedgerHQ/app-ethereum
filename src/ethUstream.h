@@ -131,9 +131,7 @@ void initTx(txContext_t *context,
             txContent_t *content,
             ustreamProcess_t customProcessor,
             void *extra);
-parserStatus_e processTx(txContext_t *context,
-                         const uint8_t *buffer,
-                         uint32_t length);
+parserStatus_e processTx(txContext_t *context, const uint8_t *buffer, uint32_t length);
 parserStatus_e continueTx(txContext_t *context);
 void copyTxData(txContext_t *context, uint8_t *out, uint32_t length);
 uint8_t readTxByte(txContext_t *context);

@@ -1,4 +1,4 @@
-APP_LOAD_PARAMS += --path "44'/227'"
+PATH_APP_LOAD_PARAMS += "44'/227'"
 TICKER = "WEB"
 CHAIN_ID = 24484
 APPNAME = "Webchain"

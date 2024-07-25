@@ -59,11 +59,9 @@ void shiftl256(const uint256_t *const number, uint32_t value, uint256_t *const t
         add128(&tmp1, &tmp2, &UPPER(result));
         shiftl128(&LOWER_P(number), value, &LOWER(result));
         copy256(target, &result);
-    } else if ((256 > value) && (value > 128)) {
+    } else {
         shiftl128(&LOWER_P(number), (value - 128), &UPPER_P(target));
         clear128(&LOWER_P(target));
-    } else {
-        clear256(target);
     }
 }
 
@@ -84,11 +82,9 @@ void shiftr256(const uint256_t *const number, uint32_t value, uint256_t *const t
         shiftl128(&UPPER_P(number), (128 - value), &tmp2);
         add128(&tmp1, &tmp2, &LOWER(result));
         copy256(target, &result);
-    } else if ((256 > value) && (value > 128)) {
+    } else {
         shiftr128(&UPPER_P(number), (value - 128), &LOWER_P(target));
         clear128(&UPPER_P(target));
-    } else {
-        clear256(target);
     }
 }
 
@@ -175,7 +171,7 @@ void mul256(const uint256_t *const number1,
         write_u64_be(num1 + i * sizeof(uint64_t), number1->elements[i / 2].elements[i % 2]);
         write_u64_be(num2 + i * sizeof(uint64_t), number2->elements[i / 2].elements[i % 2]);
     }
-    cx_math_mult(result, num1, num2, sizeof(num1));
+    CX_ASSERT(cx_math_mult_no_throw(result, num1, num2, sizeof(num1)));
     for (uint8_t i = 0; i < 4; i++) {
         read_u64_be(result + 32 + i * sizeof(uint64_t), &target->elements[i / 2].elements[i % 2]);
     }

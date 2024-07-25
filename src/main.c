@@ -31,13 +31,14 @@
 #include "commands_712.h"
 #include "challenge.h"
 #include "domain_name.h"
+#include "crypto_helpers.h"
+#include "manage_asset_info.h"
 
 unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 
 void ui_idle(void);
 
 uint32_t set_result_get_publicKey(void);
-void finalizeParsing(bool);
 
 tmpCtx_t tmpCtx;
 txContext_t txContext;
@@ -66,7 +67,7 @@ const internalStorage_t N_storage_real;
 #ifdef HAVE_NBGL
 caller_app_t *caller_app = NULL;
 #endif
-chain_config_t *chainConfig = NULL;
+const chain_config_t *chainConfig;
 
 void reset_app_context() {
     // PRINTF("!!RESET_APP_CONTEXT\n");
@@ -78,6 +79,7 @@ void reset_app_context() {
     eth2WithdrawalIndex = 0;
 #endif
     memset((uint8_t *) &tmpCtx, 0, sizeof(tmpCtx));
+    forget_known_assets();
     memset((uint8_t *) &txContext, 0, sizeof(txContext));
     memset((uint8_t *) &tmpContent, 0, sizeof(tmpContent));
 }
@@ -86,28 +88,6 @@ void io_seproxyhal_send_status(uint32_t sw) {
     G_io_apdu_buffer[0] = ((sw >> 8) & 0xff);
     G_io_apdu_buffer[1] = (sw & 0xff);
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
-}
-
-void format_signature_out(const uint8_t *signature) {
-    memset(G_io_apdu_buffer + 1, 0x00, 64);
-    uint8_t offset = 1;
-    uint8_t xoffset = 4;  // point to r value
-    // copy r
-    uint8_t xlength = signature[xoffset - 1];
-    if (xlength == 33) {
-        xlength = 32;
-        xoffset++;
-    }
-    memmove(G_io_apdu_buffer + offset + 32 - xlength, signature + xoffset, xlength);
-    offset += 32;
-    xoffset += xlength + 2;  // move over rvalue and TagLEn
-    // copy s value
-    xlength = signature[xoffset - 1];
-    if (xlength == 33) {
-        xlength = 32;
-        xoffset++;
-    }
-    memmove(G_io_apdu_buffer + offset + 32 - xlength, signature + xoffset, xlength);
 }
 
 unsigned short io_exchange_al(unsigned char channel, unsigned short tx_len) {
@@ -134,48 +114,6 @@ unsigned short io_exchange_al(unsigned char channel, unsigned short tx_len) {
     }
     return 0;
 }
-
-extraInfo_t *getKnownToken(uint8_t *contractAddress) {
-    union extraInfo_t *currentItem = NULL;
-    // Works for ERC-20 & NFT tokens since both structs in the union have the
-    // contract address aligned
-    for (uint8_t i = 0; i < MAX_ITEMS; i++) {
-        currentItem = (union extraInfo_t *) &tmpCtx.transactionContext.extraInfo[i].token;
-        if (tmpCtx.transactionContext.tokenSet[i] &&
-            (memcmp(currentItem->token.address, contractAddress, ADDRESS_LENGTH) == 0)) {
-            PRINTF("Token found at index %d\n", i);
-            return currentItem;
-        }
-    }
-
-    return NULL;
-}
-
-#ifndef HAVE_WALLET_ID_SDK
-
-unsigned int const U_os_perso_seed_cookie[] = {
-    0xda7aba5e,
-    0xc1a551c5,
-};
-
-void handleGetWalletId(volatile unsigned int *tx) {
-    unsigned char t[64];
-    cx_ecfp_256_private_key_t priv;
-    cx_ecfp_256_public_key_t pub;
-    // seed => priv key
-    os_perso_derive_node_bip32(CX_CURVE_256K1, U_os_perso_seed_cookie, 2, t, NULL);
-    // priv key => pubkey
-    cx_ecdsa_init_private_key(CX_CURVE_256K1, t, 32, &priv);
-    cx_ecfp_generate_pair(CX_CURVE_256K1, &pub, &priv, 1);
-    // pubkey -> sha512
-    cx_hash_sha512(pub.W, sizeof(pub.W), t, sizeof(t));
-    // ! cookie !
-    memmove(G_io_apdu_buffer, t, 64);
-    *tx = 64;
-    THROW(0x9000);
-}
-
-#endif  // HAVE_WALLET_ID_SDK
 
 const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_path_t *bip32) {
     if (*dataLength < 1) {
@@ -212,23 +150,13 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
 
     BEGIN_TRY {
         TRY {
-#ifndef HAVE_WALLET_ID_SDK
-
-            if ((G_io_apdu_buffer[OFFSET_CLA] == COMMON_CLA) &&
-                (G_io_apdu_buffer[OFFSET_INS] == COMMON_INS_GET_WALLET_ID)) {
-                handleGetWalletId(tx);
-                return;
-            }
-
-#endif  // HAVE_WALLET_ID_SDK
-
             if (G_io_apdu_buffer[OFFSET_CLA] != CLA) {
                 THROW(0x6E00);
             }
 
             switch (G_io_apdu_buffer[OFFSET_INS]) {
                 case INS_GET_PUBLIC_KEY:
-                    memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
+                    forget_known_assets();
                     handleGetPublicKey(G_io_apdu_buffer[OFFSET_P1],
                                        G_io_apdu_buffer[OFFSET_P2],
                                        G_io_apdu_buffer + OFFSET_CDATA,
@@ -303,7 +231,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                     break;
 
                 case INS_SIGN_PERSONAL_MESSAGE:
-                    memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
+                    forget_known_assets();
                     *flags |= IO_ASYNCH_REPLY;
                     if (!handleSignPersonalMessage(G_io_apdu_buffer[OFFSET_P1],
                                                    G_io_apdu_buffer[OFFSET_P2],
@@ -316,7 +244,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                 case INS_SIGN_EIP_712_MESSAGE:
                     switch (G_io_apdu_buffer[OFFSET_P2]) {
                         case P2_EIP712_LEGACY_IMPLEM:
-                            memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
+                            forget_known_assets();
                             handleSignEIP712Message_v0(G_io_apdu_buffer[OFFSET_P1],
                                                        G_io_apdu_buffer[OFFSET_P2],
                                                        G_io_apdu_buffer + OFFSET_CDATA,
@@ -338,7 +266,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
 #ifdef HAVE_ETH2
 
                 case INS_GET_ETH2_PUBLIC_KEY:
-                    memset(tmpCtx.transactionContext.tokenSet, 0, MAX_ITEMS);
+                    forget_known_assets();
                     handleGetEth2PublicKey(G_io_apdu_buffer[OFFSET_P1],
                                            G_io_apdu_buffer[OFFSET_P2],
                                            G_io_apdu_buffer + OFFSET_CDATA,
@@ -427,7 +355,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
             // If we are in swap mode and have validated a TX, we send it and immediately quit
             if (quit_now) {
                 if (io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, *tx) == 0) {
-                    // In case of success, the apdu is sent immediatly and eth exits
+                    // In case of success, the apdu is sent immediately and eth exits
                     // Reaching this code means we encountered an error
                     finalize_exchange_sign_transaction(false);
                 } else {
@@ -508,15 +436,12 @@ void app_main(void) {
         }
         END_TRY;
     }
-
-    // return_to_dashboard:
-    return;
 }
 
 // override point, but nothing more to do
 #ifdef HAVE_BAGL
 void io_seproxyhal_display(const bagl_element_t *element) {
-    io_seproxyhal_display_default((bagl_element_t *) element);
+    io_seproxyhal_display_default(element);
 }
 #endif
 
@@ -586,7 +511,7 @@ void init_coin_config(chain_config_t *coin_config) {
     coin_config->chainId = CHAIN_ID;
 }
 
-void coin_main(libargs_t *args) {
+__attribute__((noreturn)) void coin_main(libargs_t *args) {
     chain_config_t config;
     if (args) {
         if (args->chain_config != NULL) {
@@ -608,7 +533,6 @@ void coin_main(libargs_t *args) {
     }
 
     reset_app_context();
-    tmpCtx.transactionContext.currentItemIndex = 0;
 
     for (;;) {
         UX_INIT();
@@ -624,11 +548,6 @@ void coin_main(libargs_t *args) {
 
                 if (!N_storage.initialized) {
                     internalStorage_t storage;
-#ifdef HAVE_ALLOW_DATA
-                    storage.dataAllowed = true;
-#else
-                    storage.dataAllowed = false;
-#endif
                     storage.contractDetails = false;
                     storage.displayNonce = false;
 #ifdef HAVE_EIP712_FULL_SUPPORT
@@ -672,10 +591,10 @@ void coin_main(libargs_t *args) {
         }
         END_TRY;
     }
-    app_exit();
+    os_sched_exit(-1);
 }
 
-void library_main(libargs_t *args) {
+__attribute__((noreturn)) void library_main(libargs_t *args) {
     chain_config_t coin_config;
     if (args->chain_config == NULL) {
         // We have been started directly by Exchange, not by a Clone. Init default chain

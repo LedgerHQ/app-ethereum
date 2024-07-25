@@ -4,8 +4,8 @@
 void plugin_ui_get_id(void) {
     ethQueryContractID_t pluginQueryContractID;
     eth_plugin_prepare_query_contract_ID(&pluginQueryContractID,
-                                         strings.common.fullAddress,
-                                         sizeof(strings.common.fullAddress),
+                                         strings.common.toAddress,
+                                         sizeof(strings.common.toAddress),
                                          strings.common.fullAmount,
                                          sizeof(strings.common.fullAmount));
     // Query the original contract for ID if it's not an internal alias
@@ -33,8 +33,8 @@ void plugin_ui_get_item_internal(char *title_buffer,
 }
 
 void plugin_ui_get_item(void) {
-    plugin_ui_get_item_internal(strings.common.fullAddress,
-                                sizeof(strings.common.fullAddress),
+    plugin_ui_get_item_internal(strings.common.toAddress,
+                                sizeof(strings.common.toAddress),
                                 strings.common.fullAmount,
                                 sizeof(strings.common.fullAmount));
 }

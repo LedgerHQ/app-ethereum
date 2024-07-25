@@ -1,21 +1,24 @@
 import fnmatch
 import os
-import pytest
-import time
-from configparser import ConfigParser
 from functools import partial
 from pathlib import Path
+import json
+from typing import Optional
+from ctypes import c_uint64
+import pytest
+from eth_account.messages import encode_typed_data
+import web3
+
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator, NavInsID
-import json
-from typing import Optional
-from constants import ROOT_SNAPSHOT_PATH
+from ragger.navigator.navigation_scenario import NavigateWithScenario
 
-import ledger_app_clients.ethereum.response_parser as ResponseParser
-from ledger_app_clients.ethereum.client import EthAppClient
-from ledger_app_clients.ethereum.eip712 import InputData
-from ledger_app_clients.ethereum.settings import SettingID, settings_toggle
+import client.response_parser as ResponseParser
+from client.utils import recover_message
+from client.client import EthAppClient
+from client.eip712 import InputData
+from client.settings import SettingID, settings_toggle
 
 
 class SnapshotsConfig:
@@ -28,11 +31,12 @@ class SnapshotsConfig:
 
 
 BIP32_PATH = "m/44'/60'/0'/0/0"
-snaps_config: Optional[SnapshotsConfig] = None
+SNAPS_CONFIG: Optional[SnapshotsConfig] = None
+WALLET_ADDR: Optional[bytes] = None
 
 
 def eip712_json_path() -> str:
-    return "%s/eip712_input_files" % (os.path.dirname(__file__))
+    return f"{os.path.dirname(__file__)}/eip712_input_files"
 
 
 def input_files() -> list[str]:
@@ -43,201 +47,393 @@ def input_files() -> list[str]:
     return sorted(files)
 
 
-@pytest.fixture(params=input_files())
-def input_file(request) -> str:
+@pytest.fixture(name="input_file", params=input_files())
+def input_file_fixture(request) -> str:
     return Path(request.param)
 
 
-@pytest.fixture(params=[True, False])
-def verbose(request) -> bool:
+@pytest.fixture(name="verbose", params=[True, False])
+def verbose_fixture(request) -> bool:
     return request.param
 
 
-@pytest.fixture(params=[False, True])
-def filtering(request) -> bool:
+@pytest.fixture(name="filtering", params=[False, True])
+def filtering_fixture(request) -> bool:
     return request.param
 
 
-def test_eip712_legacy(firmware: Firmware,
-                       backend: BackendInterface,
-                       navigator: Navigator):
+def get_wallet_addr(client: EthAppClient) -> bytes:
+    global WALLET_ADDR
+
+    # don't ask again if we already have it
+    if WALLET_ADDR is None:
+        with client.get_public_addr(display=False):
+            pass
+        _, WALLET_ADDR, _ = ResponseParser.pk_addr(client.response().data)
+    return WALLET_ADDR
+
+
+def test_eip712_legacy(backend: BackendInterface, scenario_navigator: NavigateWithScenario):
     app_client = EthAppClient(backend)
-    with app_client.eip712_sign_legacy(
-            BIP32_PATH,
-            bytes.fromhex('6137beb405d9ff777172aa879e33edb34a1460e701802746c5ef96e741710e59'),
-            bytes.fromhex('eb4221181ff3f1a83ea7313993ca9218496e424604ba9492bb4052c03d5c3df8')):
-        moves = list()
-        if firmware.device.startswith("nano"):
-            moves += [NavInsID.RIGHT_CLICK]
-            if firmware.device == "nanos":
-                screens_per_hash = 4
-            else:
-                screens_per_hash = 2
-            moves += [NavInsID.RIGHT_CLICK] * screens_per_hash * 2
-            moves += [NavInsID.BOTH_CLICK]
-        else:
-            moves += [NavInsID.USE_CASE_REVIEW_TAP] * 2
-            moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
-        navigator.navigate(moves)
 
-    v, r, s = ResponseParser.signature(app_client.response().data)
+    with open(input_files()[0], encoding="utf-8") as file:
+        data = json.load(file)
+    smsg = encode_typed_data(full_message=data)
+    with app_client.eip712_sign_legacy(BIP32_PATH, smsg.header, smsg.body):
+        scenario_navigator.review_approve(custom_screen_text="Sign", do_comparison=False)
 
-    assert v == bytes.fromhex("1c")
-    assert r == bytes.fromhex("ea66f747173762715751c889fea8722acac3fc35db2c226d37a2e58815398f64")
-    assert s == bytes.fromhex("52d8ba9153de9255da220ffd36762c0b027701a3b5110f0a765f94b16a9dfb55")
+    vrs = ResponseParser.signature(app_client.response().data)
+    recovered_addr = recover_message(data, vrs)
+
+    assert recovered_addr == get_wallet_addr(app_client)
 
 
-def autonext(fw: Firmware, nav: Navigator):
-    moves = list()
-    if fw.device.startswith("nano"):
+def autonext(firmware: Firmware, navigator: Navigator, default_screenshot_path: Path):
+    moves = []
+    if firmware.is_nano:
         moves = [NavInsID.RIGHT_CLICK]
     else:
-        moves = [NavInsID.USE_CASE_REVIEW_TAP]
-    if snaps_config is not None:
-        nav.navigate_and_compare(ROOT_SNAPSHOT_PATH,
-                                 snaps_config.test_name,
-                                 moves,
-                                 screen_change_before_first_instruction=False,
-                                 screen_change_after_last_instruction=False,
-                                 snap_start_idx=snaps_config.idx)
-        snaps_config.idx += 1
+        moves = [NavInsID.SWIPE_CENTER_TO_LEFT]
+    if SNAPS_CONFIG is not None:
+        navigator.navigate_and_compare(default_screenshot_path,
+                                       SNAPS_CONFIG.test_name,
+                                       moves,
+                                       screen_change_before_first_instruction=False,
+                                       screen_change_after_last_instruction=False,
+                                       snap_start_idx=SNAPS_CONFIG.idx)
+        SNAPS_CONFIG.idx += 1
     else:
-        nav.navigate(moves,
-                     screen_change_before_first_instruction=False,
-                     screen_change_after_last_instruction=False)
+        navigator.navigate(moves,
+                           screen_change_before_first_instruction=False,
+                           screen_change_after_last_instruction=False)
 
 
-def eip712_new_common(fw: Firmware,
-                      nav: Navigator,
+def eip712_new_common(firmware: Firmware,
+                      navigator: Navigator,
+                      default_screenshot_path: Path,
                       app_client: EthAppClient,
                       json_data: dict,
                       filters: Optional[dict],
-                      verbose: bool):
+                      verbose: bool,
+                      golden_run: bool):
     assert InputData.process_data(app_client,
                                   json_data,
                                   filters,
-                                  partial(autonext, fw, nav))
+                                  partial(autonext, firmware, navigator, default_screenshot_path),
+                                  golden_run)
     with app_client.eip712_sign_new(BIP32_PATH):
-        moves = list()
-        if fw.device.startswith("nano"):
+        moves = []
+        if firmware.is_nano:
             # need to skip the message hash
             if not verbose and filters is None:
-                moves = [NavInsID.RIGHT_CLICK] * 2
+                moves += [NavInsID.RIGHT_CLICK] * 2
             moves += [NavInsID.BOTH_CLICK]
         else:
-            time.sleep(1.5)
+            # this move is necessary most of the times, but can't be 100% sure with the fields grouping
+            moves += [NavInsID.SWIPE_CENTER_TO_LEFT]
             # need to skip the message hash
             if not verbose and filters is None:
-                moves += [NavInsID.USE_CASE_REVIEW_TAP]
+                moves += [NavInsID.SWIPE_CENTER_TO_LEFT]
             moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
-        if snaps_config is not None:
-            nav.navigate_and_compare(ROOT_SNAPSHOT_PATH,
-                                     snaps_config.test_name,
-                                     moves,
-                                     snap_start_idx=snaps_config.idx)
-            snaps_config.idx += 1
+        if SNAPS_CONFIG is not None:
+            # Could break (time-out) if given a JSON that requires less moves
+            # TODO: Maybe take list of moves as input instead of trying to guess them ?
+            navigator.navigate_and_compare(default_screenshot_path,
+                                           SNAPS_CONFIG.test_name,
+                                           moves,
+                                           snap_start_idx=SNAPS_CONFIG.idx)
         else:
-            nav.navigate(moves)
+            # Do them one-by-one to prevent an unnecessary move from timing-out and failing the test
+            for move in moves:
+                navigator.navigate([move],
+                                   screen_change_before_first_instruction=False,
+                                   screen_change_after_last_instruction=False)
     return ResponseParser.signature(app_client.response().data)
 
 
 def test_eip712_new(firmware: Firmware,
                     backend: BackendInterface,
                     navigator: Navigator,
+                    default_screenshot_path: Path,
                     input_file: Path,
                     verbose: bool,
                     filtering: bool):
     app_client = EthAppClient(backend)
-    if firmware.device == "nanos":
+    if firmware == Firmware.NANOS:
         pytest.skip("Not supported on LNS")
-    else:
-        test_path = "%s/%s" % (input_file.parent, "-".join(input_file.stem.split("-")[:-1]))
-        conf_file = "%s.ini" % (test_path)
 
-        filters = None
-        if filtering:
-            try:
-                with open("%s-filter.json" % (test_path)) as f:
-                    filters = json.load(f)
-            except (IOError, json.decoder.JSONDecodeError) as e:
-                pytest.skip("Filter file error: %s" % (e.strerror))
+    test_path = f"{input_file.parent}/{'-'.join(input_file.stem.split('-')[:-1])}"
 
-        config = ConfigParser()
-        config.read(conf_file)
+    filters = None
+    if filtering:
+        try:
+            filterfile = Path(f"{test_path}-filter.json")
+            with open(filterfile, encoding="utf-8") as f:
+                filters = json.load(f)
+        except (IOError, json.decoder.JSONDecodeError) as e:
+            pytest.skip(f"{filterfile.name}: {e.strerror}")
 
-        # sanity check
-        assert "signature" in config.sections()
-        assert "v" in config["signature"]
-        assert "r" in config["signature"]
-        assert "s" in config["signature"]
+    if verbose:
+        settings_toggle(firmware, navigator, [SettingID.VERBOSE_EIP712])
 
-        if verbose:
-            settings_toggle(firmware, navigator, [SettingID.VERBOSE_EIP712])
+    with open(input_file, encoding="utf-8") as file:
+        data = json.load(file)
+        vrs = eip712_new_common(firmware,
+                                navigator,
+                                default_screenshot_path,
+                                app_client,
+                                data,
+                                filters,
+                                verbose,
+                                False)
 
-        with open(input_file) as file:
-            v, r, s = eip712_new_common(firmware,
-                                        navigator,
-                                        app_client,
-                                        json.load(file),
-                                        filters,
-                                        verbose)
+        recovered_addr = recover_message(data, vrs)
 
-    assert v == bytes.fromhex(config["signature"]["v"])
-    assert r == bytes.fromhex(config["signature"]["r"])
-    assert s == bytes.fromhex(config["signature"]["s"])
+    assert recovered_addr == get_wallet_addr(app_client)
 
 
-def test_eip712_address_substitution(firmware: Firmware,
-                                     backend: BackendInterface,
-                                     navigator: Navigator,
-                                     verbose: bool):
-    global snaps_config
+class DataSet():
+    data: dict
+    filters: dict
+    suffix: str
+
+    def __init__(self, data: dict, filters: dict, suffix: str = ""):
+        self.data = data
+        self.filters = filters
+        self.suffix = suffix
+
+
+ADVANCED_DATA_SETS = [
+    DataSet(
+        {
+            "domain": {
+                "chainId": 1,
+                "name": "Advanced test",
+                "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+                "version": "1"
+            },
+            "message": {
+                "with": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+                "value_recv": 10000000000000000,
+                "token_send": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+                "value_send": 24500000000000000000,
+                "token_recv": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                "expires": 1714559400,
+            },
+            "primaryType": "Transfer",
+            "types": {
+                "EIP712Domain": [
+                    {"name": "name", "type": "string"},
+                    {"name": "version", "type": "string"},
+                    {"name": "chainId", "type": "uint256"},
+                    {"name": "verifyingContract", "type": "address"}
+                ],
+                "Transfer": [
+                    {"name": "with", "type": "address"},
+                    {"name": "value_recv", "type": "uint256"},
+                    {"name": "token_send", "type": "address"},
+                    {"name": "value_send", "type": "uint256"},
+                    {"name": "token_recv", "type": "address"},
+                    {"name": "expires", "type": "uint64"},
+                ]
+            }
+        },
+        {
+            "name": "Advanced Filtering",
+            "tokens": [
+                {
+                    "addr": "0x6b175474e89094c44da98b954eedeac495271d0f",
+                    "ticker": "DAI",
+                    "decimals": 18,
+                    "chain_id": 1,
+                },
+                {
+                    "addr": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                    "ticker": "WETH",
+                    "decimals": 18,
+                    "chain_id": 1,
+                },
+            ],
+            "fields": {
+                "value_send": {
+                    "type": "amount_join_value",
+                    "name": "Send",
+                    "token": 0,
+                },
+                "token_send": {
+                    "type": "amount_join_token",
+                    "token": 0,
+                },
+                "value_recv": {
+                    "type": "amount_join_value",
+                    "name": "Receive",
+                    "token": 1,
+                },
+                "token_recv": {
+                    "type": "amount_join_token",
+                    "token": 1,
+                },
+                "with": {
+                    "type": "raw",
+                    "name": "With",
+                },
+                "expires": {
+                    "type": "datetime",
+                    "name": "Will Expire"
+                },
+            }
+        }
+    ),
+    DataSet(
+        {
+            "types": {
+                "EIP712Domain": [
+                    {"name": "name", "type": "string"},
+                    {"name": "version", "type": "string"},
+                    {"name": "chainId", "type": "uint256"},
+                    {"name": "verifyingContract", "type": "address"},
+                ],
+                "Permit": [
+                    {"name": "owner", "type": "address"},
+                    {"name": "spender", "type": "address"},
+                    {"name": "value", "type": "uint256"},
+                    {"name": "nonce", "type": "uint256"},
+                    {"name": "deadline", "type": "uint256"},
+                ]
+            },
+            "primaryType": "Permit",
+            "domain": {
+                "name": "ENS",
+                "version": "1",
+                "verifyingContract": "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72",
+                "chainId": 1,
+            },
+            "message": {
+                "owner": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+                "spender": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
+                "value": 4200000000000000000,
+                "nonce": 0,
+                "deadline": 1719756000,
+            }
+        },
+        {
+            "name": "Permit filtering",
+            "tokens": [
+                {
+                    "addr": "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72",
+                    "ticker": "ENS",
+                    "decimals": 18,
+                    "chain_id": 1,
+                },
+            ],
+            "fields": {
+                "value": {
+                    "type": "amount_join_value",
+                    "name": "Send",
+                },
+                "deadline": {
+                    "type": "datetime",
+                    "name": "Deadline",
+                },
+            }
+        },
+        "_permit"
+    ),
+    DataSet(
+        {
+            "types": {
+                "EIP712Domain": [
+                    {"name": "name", "type": "string"},
+                    {"name": "version", "type": "string"},
+                    {"name": "chainId", "type": "uint256"},
+                    {"name": "verifyingContract", "type": "address"},
+                ],
+                "Root": [
+                    {"name": "token_big", "type": "address"},
+                    {"name": "value_big", "type": "uint256"},
+                    {"name": "token_biggest", "type": "address"},
+                    {"name": "value_biggest", "type": "uint256"},
+                ]
+            },
+            "primaryType": "Root",
+            "domain": {
+                "name": "test",
+                "version": "1",
+                "verifyingContract": "0x0000000000000000000000000000000000000000",
+                "chainId": 1,
+            },
+            "message": {
+                "token_big": "0x6b175474e89094c44da98b954eedeac495271d0f",
+                "value_big": c_uint64(-1).value,
+                "token_biggest": "0x6b175474e89094c44da98b954eedeac495271d0f",
+                "value_biggest": int(web3.constants.MAX_INT, 0),
+            }
+        },
+        {
+            "name": "Unlimited test",
+            "tokens": [
+                {
+                    "addr": "0x6b175474e89094c44da98b954eedeac495271d0f",
+                    "ticker": "DAI",
+                    "decimals": 18,
+                    "chain_id": 1,
+                },
+            ],
+            "fields": {
+                "token_big": {
+                    "type": "amount_join_token",
+                    "token": 0,
+                },
+                "value_big": {
+                    "type": "amount_join_value",
+                    "name": "Big",
+                    "token": 0,
+                },
+                "token_biggest": {
+                    "type": "amount_join_token",
+                    "token": 0,
+                },
+                "value_biggest": {
+                    "type": "amount_join_value",
+                    "name": "Biggest",
+                    "token": 0,
+                },
+            }
+        },
+        "_unlimited"
+    ),
+]
+
+
+@pytest.fixture(name="data_set", params=ADVANCED_DATA_SETS)
+def data_set_fixture(request) -> DataSet:
+    return request.param
+
+
+def test_eip712_advanced_filtering(firmware: Firmware,
+                                   backend: BackendInterface,
+                                   navigator: Navigator,
+                                   default_screenshot_path: Path,
+                                   test_name: str,
+                                   data_set: DataSet,
+                                   golden_run: bool):
+    global SNAPS_CONFIG
 
     app_client = EthAppClient(backend)
-    if firmware.device == "nanos":
+    if firmware == Firmware.NANOS:
         pytest.skip("Not supported on LNS")
-    else:
-        test_name = "eip712_address_substitution"
-        if verbose:
-            test_name += "_verbose"
-        snaps_config = SnapshotsConfig(test_name)
-        with open("%s/address_substitution.json" % (eip712_json_path())) as file:
-            data = json.load(file)
 
-            with app_client.provide_token_metadata("DAI",
-                                                   bytes.fromhex(data["message"]["token"][2:]),
-                                                   18,
-                                                   1):
-                pass
+    SNAPS_CONFIG = SnapshotsConfig(test_name + data_set.suffix)
 
-            with app_client.get_challenge():
-                pass
-            challenge = ResponseParser.challenge(app_client.response().data)
-            with app_client.provide_domain_name(challenge,
-                                                "vitalik.eth",
-                                                bytes.fromhex(data["message"]["to"][2:])):
-                pass
+    vrs = eip712_new_common(firmware,
+                            navigator,
+                            default_screenshot_path,
+                            app_client,
+                            data_set.data,
+                            data_set.filters,
+                            False,
+                            golden_run)
 
-            if verbose:
-                settings_toggle(firmware, navigator, [SettingID.VERBOSE_EIP712])
-                filters = None
-            else:
-                filters = {
-                    "name": "Token test",
-                    "fields": {
-                        "amount": "Amount",
-                        "token": "Token",
-                        "to": "To",
-                    }
-                }
-
-            v, r, s = eip712_new_common(firmware,
-                                        navigator,
-                                        app_client,
-                                        data,
-                                        filters,
-                                        verbose)
-
-    assert v == bytes.fromhex("1b")
-    assert r == bytes.fromhex("d4a0e058251cdc3845aaa5eb8409d8a189ac668db7c55a64eb3121b0db7fd8c0")
-    assert s == bytes.fromhex("3221800e4f45272c6fa8fafda5e94c848d1a4b90c442aa62afa8e8d6a9af0f00")
+    # verify signature
+    addr = recover_message(data_set.data, vrs)
+    assert addr == get_wallet_addr(app_client)

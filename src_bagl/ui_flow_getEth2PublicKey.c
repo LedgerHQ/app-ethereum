@@ -2,9 +2,13 @@
 
 #include "shared_context.h"
 #include "ui_callbacks.h"
+#include "uint_common.h"
 
 void prepare_eth2_public_key() {
-    snprintf(strings.tmp.tmp, 100, "0x%.*H", 48, tmpCtx.publicKeyContext.publicKey.W);
+    array_bytes_string(strings.tmp.tmp,
+                       sizeof(strings.tmp.tmp),
+                       tmpCtx.publicKeyContext.publicKey.W,
+                       48);
 }
 
 // clang-format off

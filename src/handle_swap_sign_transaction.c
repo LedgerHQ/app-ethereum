@@ -14,15 +14,15 @@
 static uint8_t* G_swap_sign_return_value_address;
 
 bool copy_transaction_parameters(create_transaction_parameters_t* sign_transaction_params,
-                                 chain_config_t* config) {
+                                 const chain_config_t* config) {
     // first copy parameters to stack, and then to global data.
     // We need this "trick" as the input data position can overlap with app-ethereum globals
     txStringProperties_t stack_data;
     memset(&stack_data, 0, sizeof(stack_data));
-    strlcpy(stack_data.fullAddress,
+    strlcpy(stack_data.toAddress,
             sign_transaction_params->destination_address,
-            sizeof(stack_data.fullAddress));
-    if ((stack_data.fullAddress[sizeof(stack_data.fullAddress) - 1] != '\0') ||
+            sizeof(stack_data.toAddress));
+    if ((stack_data.toAddress[sizeof(stack_data.toAddress) - 1] != '\0') ||
         (sign_transaction_params->amount_length > 32) ||
         (sign_transaction_params->fee_amount_length > 8)) {
         return false;
@@ -80,7 +80,7 @@ void __attribute__((noreturn)) finalize_exchange_sign_transaction(bool is_succes
     os_lib_end();
 }
 
-void __attribute__((noreturn)) handle_swap_sign_transaction(chain_config_t* config) {
+void __attribute__((noreturn)) handle_swap_sign_transaction(const chain_config_t* config) {
 #ifdef HAVE_NBGL
     // On Stax, display a spinner at startup
     UX_INIT();
@@ -95,7 +95,6 @@ void __attribute__((noreturn)) handle_swap_sign_transaction(chain_config_t* conf
 
     if (N_storage.initialized != 0x01) {
         internalStorage_t storage;
-        storage.dataAllowed = 0x00;
         storage.contractDetails = 0x00;
         storage.initialized = 0x01;
         storage.displayNonce = 0x00;
@@ -113,4 +112,6 @@ void __attribute__((noreturn)) handle_swap_sign_transaction(chain_config_t* conf
     BLE_power(1, NULL);
 #endif  // HAVE_BLE
     app_main();
+    // Failsafe
+    os_sched_exit(-1);
 }

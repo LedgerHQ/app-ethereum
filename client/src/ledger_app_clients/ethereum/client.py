@@ -21,6 +21,7 @@ class StatusWord(IntEnum):
     INVALID_P1_P2 = 0x6b00
     CONDITION_NOT_SATISFIED = 0x6985
     REF_DATA_NOT_FOUND = 0x6a88
+    EXCEPTION_OVERFLOW = 0x6807
 
 
 class DomainNameTag(IntEnum):
@@ -40,14 +41,26 @@ class EthAppClient:
         self._client = client
         self._cmd_builder = CommandBuilder()
 
-    def _send(self, payload: bytes):
+    def _exchange_async(self, payload: bytes):
         return self._client.exchange_async_raw(payload)
+
+    def _exchange(self, payload: bytes):
+        return self._client.exchange_raw(payload)
 
     def response(self) -> Optional[RAPDU]:
         return self._client.last_async_response
 
+    def send_raw(self, cla: int, ins: int, p1: int, p2: int, payload: bytes):
+        header = bytearray()
+        header.append(cla)
+        header.append(ins)
+        header.append(p1)
+        header.append(p2)
+        header.append(len(payload))
+        return self._exchange(header + payload)
+
     def eip712_send_struct_def_struct_name(self, name: str):
-        return self._send(self._cmd_builder.eip712_send_struct_def_struct_name(name))
+        return self._exchange_async(self._cmd_builder.eip712_send_struct_def_struct_name(name))
 
     def eip712_send_struct_def_struct_field(self,
                                             field_type: EIP712FieldType,
@@ -55,7 +68,7 @@ class EthAppClient:
                                             type_size: int,
                                             array_levels: list,
                                             key_name: str):
-        return self._send(self._cmd_builder.eip712_send_struct_def_struct_field(
+        return self._exchange_async(self._cmd_builder.eip712_send_struct_def_struct_field(
                           field_type,
                           type_name,
                           type_size,
@@ -63,37 +76,50 @@ class EthAppClient:
                           key_name))
 
     def eip712_send_struct_impl_root_struct(self, name: str):
-        return self._send(self._cmd_builder.eip712_send_struct_impl_root_struct(name))
+        return self._exchange_async(self._cmd_builder.eip712_send_struct_impl_root_struct(name))
 
     def eip712_send_struct_impl_array(self, size: int):
-        return self._send(self._cmd_builder.eip712_send_struct_impl_array(size))
+        return self._exchange_async(self._cmd_builder.eip712_send_struct_impl_array(size))
 
     def eip712_send_struct_impl_struct_field(self, raw_value: bytes):
         chunks = self._cmd_builder.eip712_send_struct_impl_struct_field(bytearray(raw_value))
         for chunk in chunks[:-1]:
-            with self._send(chunk):
-                pass
-        return self._send(chunks[-1])
+            self._exchange(chunk)
+        return self._exchange_async(chunks[-1])
 
     def eip712_sign_new(self, bip32_path: str):
-        return self._send(self._cmd_builder.eip712_sign_new(bip32_path))
+        return self._exchange_async(self._cmd_builder.eip712_sign_new(bip32_path))
 
     def eip712_sign_legacy(self,
                            bip32_path: str,
                            domain_hash: bytes,
                            message_hash: bytes):
-        return self._send(self._cmd_builder.eip712_sign_legacy(bip32_path,
-                                                               domain_hash,
-                                                               message_hash))
+        return self._exchange_async(self._cmd_builder.eip712_sign_legacy(bip32_path,
+                                                                         domain_hash,
+                                                                         message_hash))
 
     def eip712_filtering_activate(self):
-        return self._send(self._cmd_builder.eip712_filtering_activate())
+        return self._exchange_async(self._cmd_builder.eip712_filtering_activate())
 
     def eip712_filtering_message_info(self, name: str, filters_count: int, sig: bytes):
-        return self._send(self._cmd_builder.eip712_filtering_message_info(name, filters_count, sig))
+        return self._exchange_async(self._cmd_builder.eip712_filtering_message_info(name,
+                                                                                    filters_count,
+                                                                                    sig))
 
-    def eip712_filtering_show_field(self, name: str, sig: bytes):
-        return self._send(self._cmd_builder.eip712_filtering_show_field(name, sig))
+    def eip712_filtering_amount_join_token(self, token_idx: int, sig: bytes):
+        return self._exchange_async(self._cmd_builder.eip712_filtering_amount_join_token(token_idx,
+                                                                                         sig))
+
+    def eip712_filtering_amount_join_value(self, token_idx: int, name: str, sig: bytes):
+        return self._exchange_async(self._cmd_builder.eip712_filtering_amount_join_value(token_idx,
+                                                                                         name,
+                                                                                         sig))
+
+    def eip712_filtering_datetime(self, name: str, sig: bytes):
+        return self._exchange_async(self._cmd_builder.eip712_filtering_datetime(name, sig))
+
+    def eip712_filtering_raw(self, name: str, sig: bytes):
+        return self._exchange_async(self._cmd_builder.eip712_filtering_raw(name, sig))
 
     def sign(self,
              bip32_path: str,
@@ -111,24 +137,37 @@ class EthAppClient:
         tx = prefix + rlp.encode(decoded + suffix)
         chunks = self._cmd_builder.sign(bip32_path, tx, suffix)
         for chunk in chunks[:-1]:
-            with self._send(chunk):
-                pass
-        return self._send(chunks[-1])
+            self._exchange(chunk)
+        return self._exchange_async(chunks[-1])
 
     def get_challenge(self):
-        return self._send(self._cmd_builder.get_challenge())
+        return self._exchange(self._cmd_builder.get_challenge())
 
     def get_public_addr(self,
                         display: bool = True,
                         chaincode: bool = False,
                         bip32_path: str = "m/44'/60'/0'/0/0",
-                        chain_id: Optional[int] = None):
-        return self._send(self._cmd_builder.get_public_addr(display,
-                                                            chaincode,
-                                                            bip32_path,
-                                                            chain_id))
+                        chain_id: Optional[int] = None) -> RAPDU:
+        return self._exchange_async(self._cmd_builder.get_public_addr(display,
+                                                                      chaincode,
+                                                                      bip32_path,
+                                                                      chain_id))
 
-    def provide_domain_name(self, challenge: int, name: str, addr: bytes):
+    def get_eth2_public_addr(self,
+                             display: bool = True,
+                             bip32_path: str = "m/12381/3600/0/0"):
+        return self._exchange_async(self._cmd_builder.get_eth2_public_addr(display,
+                                                                           bip32_path))
+
+    def perform_privacy_operation(self,
+                                  display: bool = True,
+                                  bip32_path: str = "m/44'/60'/0'/0/0",
+                                  pubkey: bytes = bytes()):
+        return self._exchange(self._cmd_builder.perform_privacy_operation(display,
+                                                                          bip32_path,
+                                                                          pubkey))
+
+    def provide_domain_name(self, challenge: int, name: str, addr: bytes) -> RAPDU:
         payload = format_tlv(DomainNameTag.STRUCTURE_TYPE, 3)  # TrustedDomainName
         payload += format_tlv(DomainNameTag.STRUCTURE_VERSION, 1)
         payload += format_tlv(DomainNameTag.SIGNER_KEY_ID, 0)  # test key
@@ -142,9 +181,8 @@ class EthAppClient:
 
         chunks = self._cmd_builder.provide_domain_name(payload)
         for chunk in chunks[:-1]:
-            with self._send(chunk):
-                pass
-        return self._send(chunks[-1])
+            self._exchange(chunk)
+        return self._exchange(chunks[-1])
 
     def set_plugin(self,
                    plugin_name: str,
@@ -155,7 +193,7 @@ class EthAppClient:
                    version: int = 1,
                    key_id: int = 2,
                    algo_id: int = 1,
-                   sig: Optional[bytes] = None):
+                   sig: Optional[bytes] = None) -> RAPDU:
         if sig is None:
             # Temporarily get a command with an empty signature to extract the payload and
             # compute the signature on it
@@ -170,15 +208,15 @@ class EthAppClient:
                                                bytes())
             # skip APDU header & empty sig
             sig = sign_data(Key.SET_PLUGIN, tmp[5:-1])
-        return self._send(self._cmd_builder.set_plugin(type_,
-                                                       version,
-                                                       plugin_name,
-                                                       contract_addr,
-                                                       selector,
-                                                       chain_id,
-                                                       key_id,
-                                                       algo_id,
-                                                       sig))
+        return self._exchange(self._cmd_builder.set_plugin(type_,
+                                                           version,
+                                                           plugin_name,
+                                                           contract_addr,
+                                                           selector,
+                                                           chain_id,
+                                                           key_id,
+                                                           algo_id,
+                                                           sig))
 
     def provide_nft_metadata(self,
                              collection: str,
@@ -188,7 +226,7 @@ class EthAppClient:
                              version: int = 1,
                              key_id: int = 1,
                              algo_id: int = 1,
-                             sig: Optional[bytes] = None):
+                             sig: Optional[bytes] = None) -> RAPDU:
         if sig is None:
             # Temporarily get a command with an empty signature to extract the payload and
             # compute the signature on it
@@ -202,20 +240,20 @@ class EthAppClient:
                                                             bytes())
             # skip APDU header & empty sig
             sig = sign_data(Key.NFT, tmp[5:-1])
-        return self._send(self._cmd_builder.provide_nft_information(type_,
-                                                                    version,
-                                                                    collection,
-                                                                    addr,
-                                                                    chain_id,
-                                                                    key_id,
-                                                                    algo_id,
-                                                                    sig))
+        return self._exchange(self._cmd_builder.provide_nft_information(type_,
+                                                                        version,
+                                                                        collection,
+                                                                        addr,
+                                                                        chain_id,
+                                                                        key_id,
+                                                                        algo_id,
+                                                                        sig))
 
     def set_external_plugin(self,
                             plugin_name: str,
                             contract_address: bytes,
                             method_selelector: bytes,
-                            sig: Optional[bytes] = None):
+                            sig: Optional[bytes] = None) -> RAPDU:
         if sig is None:
             # Temporarily get a command with an empty signature to extract the payload and
             # compute the signature on it
@@ -223,21 +261,23 @@ class EthAppClient:
 
             # skip APDU header & empty sig
             sig = sign_data(Key.CAL, tmp[5:])
-        return self._send(self._cmd_builder.set_external_plugin(plugin_name, contract_address, method_selelector, sig))
+        return self._exchange(self._cmd_builder.set_external_plugin(plugin_name,
+                                                                    contract_address,
+                                                                    method_selelector,
+                                                                    sig))
 
     def personal_sign(self, path: str, msg: bytes):
         chunks = self._cmd_builder.personal_sign(path, msg)
         for chunk in chunks[:-1]:
-            with self._send(chunk):
-                pass
-        return self._send(chunks[-1])
+            self._exchange(chunk)
+        return self._exchange_async(chunks[-1])
 
     def provide_token_metadata(self,
                                ticker: str,
                                addr: bytes,
                                decimals: int,
                                chain_id: int,
-                               sig: Optional[bytes] = None):
+                               sig: Optional[bytes] = None) -> RAPDU:
         if sig is None:
             # Temporarily get a command with an empty signature to extract the payload and
             # compute the signature on it
@@ -248,8 +288,8 @@ class EthAppClient:
                                                                     bytes())
             # skip APDU header & empty sig
             sig = sign_data(Key.CAL, tmp[6:])
-        return self._send(self._cmd_builder.provide_erc20_token_information(ticker,
-                                                                            addr,
-                                                                            decimals,
-                                                                            chain_id,
-                                                                            sig))
+        return self._exchange(self._cmd_builder.provide_erc20_token_information(ticker,
+                                                                                addr,
+                                                                                decimals,
+                                                                                chain_id,
+                                                                                sig))

@@ -2,6 +2,7 @@
 #include "shared_context.h"
 #include "ui_callbacks.h"
 #include "ui_nbgl.h"
+#include "uint_common.h"
 
 static void reviewReject(void) {
     io_seproxyhal_touch_address_cancel(NULL);
@@ -13,18 +14,22 @@ static void confirmTransation(void) {
 
 static void reviewChoice(bool confirm) {
     if (confirm) {
-        // display a status page and go back to main
-        nbgl_useCaseStatus("ADDRESS\nVERIFIED", true, confirmTransation);
+        nbgl_useCaseReviewStatus(STATUS_TYPE_ADDRESS_VERIFIED, confirmTransation);
     } else {
-        nbgl_useCaseStatus("Address verification\ncancelled", false, reviewReject);
+        nbgl_useCaseReviewStatus(STATUS_TYPE_ADDRESS_REJECTED, reviewReject);
     }
 }
 
-static void buildScreen(void) {
-    snprintf(strings.tmp.tmp, 100, "0x%.*H", 48, tmpCtx.publicKeyContext.publicKey.W);
-    nbgl_useCaseAddressConfirmation(strings.tmp.tmp, reviewChoice);
-}
-
 void ui_display_public_eth2(void) {
-    buildScreen();
+    array_bytes_string(strings.tmp.tmp,
+                       sizeof(strings.tmp.tmp),
+                       tmpCtx.publicKeyContext.publicKey.W,
+                       48);
+    strlcpy(g_stax_shared_buffer, "Verify ETH2\naddress", sizeof(g_stax_shared_buffer));
+    nbgl_useCaseAddressReview(strings.tmp.tmp,
+                              NULL,
+                              get_app_icon(false),
+                              g_stax_shared_buffer,
+                              NULL,
+                              reviewChoice);
 }

@@ -5,7 +5,52 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.10.4](https://github.com/ledgerhq/app-ethereum/compare/1.10.3...1.10.4) - 2023-03-08
+## [1.11.0](https://github.com/ledgerhq/app-ethereum/compare/1.10.4...1.11.0) - 2024-07-24
+
+### Added
+
+- (network) Base Sepolia
+- (network) Blast
+- (network) Blast Sepolia
+- (network) Mantle
+- (network) Mantle Sepolia
+- (network) Arbitrum Sepolia
+- (network) Linea Sepolia
+- (network) OP Sepolia
+- (network) Etherlink Mainnet
+- (network) ZetaChain
+- (network) Astar zkEVM
+- (network) Lisk
+- (network) Lisk Sepolia
+- (network) ZKsync
+- (network) BOB
+- (network) Electroneum
+- New EIP-712 filtering modes (datetime, amount-join)
+- New blind-signing warning flow before every blind-signed transaction flow
+- New "From" field in transactions containing the wallet's derived address
+- Ledger Flex support
+
+### Removed
+- (clone) Flare
+- (clone) Flare Coston
+- (clone) Eth Goerli
+- (clone) Eth Ropsten
+- Wallet ID support
+- U2F support
+- Blind-signing setting
+
+### Changed
+
+- Renamed Optimism to OP Mainnet
+- Can now store up to 5 assets information (instead of 2)
+- Can now buffer & show multiple EIP-712 fields on one page for NBGL devices
+- Renamed the "Address" field in transactions to "To"
+
+### Fixed
+
+- Handling of EIP-712 empty arrays within nested structs
+
+## [1.10.4](https://github.com/ledgerhq/app-ethereum/compare/1.10.3...1.10.4) - 2024-03-08
 
 ### Added
 
@@ -122,7 +167,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
-- EIP-191 improvements, now lets the user see the entire message one chunk at a time (255 characters for LNX & LNS+, 99 for LNS)
+- EIP-191 improvements, now lets the user see the entire message one chunk at a time
+  (255 characters for LNX & LNS+, 99 for LNS)
 
 ### Fixed
 
@@ -143,7 +189,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
-- EIP-191 signatures now show (up to 99 characters on LNS and 255 on LNX & LNS+) the actual data contained in the message (clear-signing)
+- EIP-191 signatures now show (up to 99 characters on LNS and 255 on LNX & LNS+) the actual data
+  contained in the message (clear-signing)
 
 ### Fixed
 
@@ -209,7 +256,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
-- Provide network ticker to plugins (especialy helpful for Paraswap plugin)
+- Provide network ticker to plugins (especially helpful for Paraswap plugin)
 - Polygon variant
 
 ## [1.9.10](https://github.com/ledgerhq/app-ethereum/compare/1.9.9...1.9.10) - 2021-10-08
@@ -254,7 +301,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
-- When blind signing is disabled in settings, and a transaction with smart conract interactions is sent to the app, a new warning screen pops to let the user know that the setting must be enabled to sign this kind of transactions.
+- When blind signing is disabled in settings, and a transaction with smart conract interactions is sent to the app,
+  a new warning screen pops to let the user know that the setting must be enabled to sign this kind of transactions.
 
 ## [1.9.4](https://github.com/ledgerhq/app-ethereum/compare/1.9.3...1.9.4) - 2021-9-14
 

@@ -19,7 +19,7 @@ class Network:
 
 
 def get_network_glyph_name(net: Network) -> str:
-    return "stax_chain_%u_64px" % (net.chain_id)
+    return "chain_%u_64px" % (net.chain_id)
 
 
 def get_header() -> str:

@@ -3,6 +3,7 @@
 
 #include "feature_performPrivacyOperation.h"
 #include "common_ui.h"
+#include "uint_common.h"
 
 #define P2_PUBLIC_ENCRYPTION_KEY 0x00
 #define P2_SHARED_SECRET         0x01
@@ -28,7 +29,7 @@ void handlePerformPrivacyOperation(uint8_t p1,
                                    uint8_t dataLength,
                                    unsigned int *flags,
                                    unsigned int *tx) {
-    uint8_t privateKeyData[INT256_LENGTH];
+    uint8_t privateKeyData[64];
     uint8_t privateKeyDataSwapped[INT256_LENGTH];
     bip32_path_t bip32;
     cx_err_t status = CX_OK;
@@ -53,27 +54,30 @@ void handlePerformPrivacyOperation(uint8_t p1,
 
     cx_ecfp_private_key_t privateKey;
 
-    os_perso_derive_node_bip32(
+    CX_ASSERT(os_derive_bip32_no_throw(
         CX_CURVE_256K1,
         bip32.path,
         bip32.length,
         privateKeyData,
-        (tmpCtx.publicKeyContext.getChaincode ? tmpCtx.publicKeyContext.chainCode : NULL));
-    cx_ecfp_init_private_key(CX_CURVE_256K1, privateKeyData, 32, &privateKey);
-    cx_ecfp_generate_pair(CX_CURVE_256K1, &tmpCtx.publicKeyContext.publicKey, &privateKey, 1);
-    if (!getEthAddressStringFromKey(&tmpCtx.publicKeyContext.publicKey,
-                                    tmpCtx.publicKeyContext.address,
-                                    &global_sha3,
-                                    chainConfig->chainId)) {
-        THROW(CX_INVALID_PARAMETER);
-    }
+        (tmpCtx.publicKeyContext.getChaincode ? tmpCtx.publicKeyContext.chainCode : NULL)));
+    CX_ASSERT(cx_ecfp_init_private_key_no_throw(CX_CURVE_256K1, privateKeyData, 32, &privateKey));
+    CX_ASSERT(cx_ecfp_generate_pair_no_throw(CX_CURVE_256K1,
+                                             &tmpCtx.publicKeyContext.publicKey,
+                                             &privateKey,
+                                             1));
+    getEthAddressStringFromRawKey((const uint8_t *) &tmpCtx.publicKeyContext.publicKey.W,
+                                  tmpCtx.publicKeyContext.address,
+                                  chainConfig->chainId);
     if (p2 == P2_PUBLIC_ENCRYPTION_KEY) {
         decodeScalar(privateKeyData, privateKeyDataSwapped);
-        cx_ecfp_init_private_key(CX_CURVE_Curve25519, privateKeyDataSwapped, 32, &privateKey);
-        cx_ecfp_generate_pair(CX_CURVE_Curve25519,
-                              &tmpCtx.publicKeyContext.publicKey,
-                              &privateKey,
-                              1);
+        CX_ASSERT(cx_ecfp_init_private_key_no_throw(CX_CURVE_Curve25519,
+                                                    privateKeyDataSwapped,
+                                                    32,
+                                                    &privateKey));
+        CX_ASSERT(cx_ecfp_generate_pair_no_throw(CX_CURVE_Curve25519,
+                                                 &tmpCtx.publicKeyContext.publicKey,
+                                                 &privateKey,
+                                                 1));
         explicit_bzero(privateKeyDataSwapped, sizeof(privateKeyDataSwapped));
     } else {
         memmove(tmpCtx.publicKeyContext.publicKey.W + 1, dataBuffer, 32);
@@ -86,28 +90,23 @@ void handlePerformPrivacyOperation(uint8_t p1,
         THROW(0x6A80);
     }
 
-#ifndef NO_CONSENT
-    if (p1 == P1_NON_CONFIRM)
-#endif  // NO_CONSENT
-    {
+    if (p1 == P1_NON_CONFIRM) {
         *tx = set_result_perform_privacy_operation();
         THROW(0x9000);
-    }
-#ifndef NO_CONSENT
-    else {
-        snprintf(strings.common.fullAddress,
-                 sizeof(strings.common.fullAddress),
+    } else {
+        snprintf(strings.common.toAddress,
+                 sizeof(strings.common.toAddress),
                  "0x%.*s",
                  40,
                  tmpCtx.publicKeyContext.address);
         for (uint8_t i = 0; i < 32; i++) {
             privateKeyData[i] = tmpCtx.publicKeyContext.publicKey.W[32 - i];
         }
-        snprintf(strings.common.fullAmount,
-                 sizeof(strings.common.fullAmount) - 1,
-                 "%.*H",
-                 32,
-                 privateKeyData);
+        format_hex(privateKeyData,
+                   32,
+                   strings.common.fullAmount,
+                   sizeof(strings.common.fullAmount) - 1);
+
         if (p2 == P2_PUBLIC_ENCRYPTION_KEY) {
             ui_display_privacy_public_key();
         } else {
@@ -116,5 +115,4 @@ void handlePerformPrivacyOperation(uint8_t p1,
 
         *flags |= IO_ASYNCH_REPLY;
     }
-#endif  // NO_CONSENT
 }

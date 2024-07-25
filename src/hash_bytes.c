@@ -8,7 +8,7 @@
  * @param[in] hash_ctx pointer to the hashing context
  */
 void hash_nbytes(const uint8_t *bytes_ptr, size_t n, cx_hash_t *hash_ctx) {
-    cx_hash(hash_ctx, 0, bytes_ptr, n, NULL, 0);
+    CX_ASSERT(cx_hash_no_throw(hash_ctx, 0, bytes_ptr, n, NULL, 0));
 }
 
 /**

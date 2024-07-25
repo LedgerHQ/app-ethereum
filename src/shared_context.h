@@ -22,13 +22,14 @@
 
 #define N_storage (*(volatile internalStorage_t *) PIC(&N_storage_real))
 
+#define MAX_ASSETS 5
+
 typedef struct bip32_path_t {
     uint8_t length;
     uint32_t path[MAX_BIP32_PATH];
 } bip32_path_t;
 
 typedef struct internalStorage_t {
-    bool dataAllowed;
     bool contractDetails;
     bool displayNonce;
 #ifdef HAVE_EIP712_FULL_SUPPORT
@@ -58,7 +59,9 @@ typedef struct tokenContext_t {
         };
         // This needs to be strictly 4 bytes aligned since pointers to it will be casted as
         // plugin context struct pointers (structs that contain up to 4 bytes wide elements)
-        uint8_t pluginContext[5 * INT256_LENGTH] __attribute__((aligned(4)));
+        // uint8_t pluginContext[5 * INT256_LENGTH] __attribute__((aligned(4)));
+        // TODO: use PLUGIN_CONTEXT_SIZE after eth is released with the updated plugin sdk
+        uint8_t pluginContext[10 * INT256_LENGTH] __attribute__((aligned(4)));
     };
 
     uint8_t pluginStatus;
@@ -77,9 +80,9 @@ typedef struct publicKeyContext_t {
 typedef struct transactionContext_t {
     bip32_path_t bip32;
     uint8_t hash[INT256_LENGTH];
-    union extraInfo_t extraInfo[MAX_ITEMS];
-    uint8_t tokenSet[MAX_ITEMS];
-    uint8_t currentItemIndex;
+    union extraInfo_t extraInfo[MAX_ASSETS];
+    bool assetSet[MAX_ASSETS];
+    uint8_t currentAssetIndex;
 } transactionContext_t;
 
 typedef struct messageSigningContext_t {
@@ -123,7 +126,8 @@ typedef enum {
 #define NETWORK_STRING_MAX_SIZE 19
 
 typedef struct txStringProperties_s {
-    char fullAddress[43];
+    char fromAddress[43];
+    char toAddress[43];
     char fullAmount[79];  // 2^256 is 78 digits long
     char maxFee[50];
     char nonce[8];  // 10M tx per account ought to be enough for everybody
@@ -133,7 +137,11 @@ typedef struct txStringProperties_s {
 #ifdef TARGET_NANOS
 #define SHARED_CTX_FIELD_1_SIZE 100
 #else
+#ifdef SCREEN_SIZE_WALLET
+#define SHARED_CTX_FIELD_1_SIZE 380
+#else
 #define SHARED_CTX_FIELD_1_SIZE 256
+#endif
 #endif
 #define SHARED_CTX_FIELD_2_SIZE 40
 
@@ -147,7 +155,7 @@ typedef union {
     strDataTmp_t tmp;
 } strings_t;
 
-extern chain_config_t *chainConfig;
+extern const chain_config_t *chainConfig;
 
 extern tmpCtx_t tmpCtx;
 extern txContext_t txContext;

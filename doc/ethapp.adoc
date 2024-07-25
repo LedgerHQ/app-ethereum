@@ -41,6 +41,10 @@ Application version 1.9.19 - 2022-05-17
 ### 1.10.2
   - Add domain names support
 
+### 1.11.0
+  - Add EIP-712 amount & date/time filtering
+  - PROVIDE ERC 20 TOKEN INFORMATION & PROVIDE NFT INFORMATION now send back the index where the asset has been stored
+
 ## About
 
 This application describes the APDU messages interface to communicate with the Ethereum application.
@@ -267,34 +271,38 @@ The signature is computed on
 
 ticker || address || number of decimals (uint4be) || chainId (uint4be)
 
-signed by the following secp256k1 public key 0482bbf2f34f367b2e5bc21847b6566f21f0976b22d3388a9a5e446ac62d25cf725b62a2555b2dd464a4da0ab2f4d506820543af1d242470b1b1a969a27578f353
+signed by the following secp256k1 public key 045e6c1020c14dc46442fe89f97c0b68cdb15976dc24f24c316e7b30fe4e8cc76b1489150c21514ebf440ff5dea5393d83de5358cd098fce8fd0f81daa94979183
 
 #### Coding
 
 'Command'
 
 [width="80%"]
-|==============================================================================================================================
+|======================================================================
 | *CLA* | *INS*  | *P1*               | *P2*       | *Lc*     | *Le*
-|   E0  |   0A   |  00   |   00       | variable | 00
-|==============================================================================================================================
+|   E0  |   0A   |  00                | 00         | variable | 00
+|======================================================================
 
 'Input data'
 
 [width="80%"]
-|==============================================================================================================================
-| *Description*                                                                     | *Length*
-| Length of ERC 20 ticker                                                           | 1
-| ERC 20 ticker                                                                     | variable
-| ERC 20 contract address                                                           | 20
-| Number of decimals (big endian encoded)                                           | 4
-| Chain ID (big endian encoded)                                                     | 4
-| Token information signature                                                       | variable
-|==============================================================================================================================
+|=======================================================================
+| *Description*                                    | *Length*
+| Length of ERC 20 ticker                          | 1
+| ERC 20 ticker                                    | variable
+| ERC 20 contract address                          | 20
+| Number of decimals (big endian encoded)          | 4
+| Chain ID (big endian encoded)                    | 4
+| Token information signature                      | variable
+|=======================================================================
 
 'Output data'
 
-None
+[width="80%"]
+|====================================================================
+| *Description*                                          | *Length*
+| Asset index where the information has been stored      | 1
+|====================================================================
 
 
 ### SIGN ETH EIP 712
@@ -509,7 +517,11 @@ type || version || len(collectionName) || collectionName || address || chainId |
 
 'Output data'
 
-None
+[width="80%"]
+|====================================================================
+| *Description*                                          | *Length*
+| Asset index where the information has been stored      | 1
+|====================================================================
 
 
 ### SET PLUGIN
@@ -801,7 +813,7 @@ None
 
 This command provides a trusted way of deciding what information from the JSON data to show and replace some values by more meaningful ones.
 
-This mode can be overriden by the in-app setting to fully clear-sign EIP-712 messages.
+This mode can be overridden by the in-app setting to fully clear-sign EIP-712 messages.
 
 For the signatures :
 
@@ -825,10 +837,36 @@ The signature is computed on :
 
 183 || chain ID (BE) || contract address || schema hash || filters count || display name
 
+##### Amount-join token
 
-##### Show field
+This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
+The first byte is used so that a signature of one type cannot be valid as another type.
 
-These commands should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
+The signature is computed on :
+
+11 || chain ID (BE) || contract address || schema hash || field path || token index
+
+##### Amount-join value
+
+This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
+
+A token index of 0xFF indicates the token address is in the _verifyingContract_ field of the EIP712Domain so the app won't receive an amount-join token filtering APDU. This enables support for Permit (ERC-2612) messages.
+
+The signature is computed on :
+
+22 || chain ID (BE) || contract address || schema hash || field path || display name || token index
+
+##### Date / Time
+
+This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
+
+The signature is computed on :
+
+33 || chain ID (BE) || contract address || schema hash || field path || display name
+
+##### Show raw field
+
+This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
 The first byte is used so that a signature of one type cannot be valid as another type.
 
 The signature is computed on :
@@ -843,17 +881,23 @@ _Command_
 |=========================================================================
 | *CLA* | *INS*  | *P1*               | *P2*       | *LC*     | *Le*
 |   E0  |   1E   | 00
-                                      | 00 : activate
+                                      | 00 : activation
 
                                         0F : message info
 
-                                        FF : show field
+                                        FC : date/time
+
+                                        FD : amount-join token
+
+                                        FE : amount-join value
+
+                                        FF : raw field
                                                    | variable | variable
 |=========================================================================
 
 _Input data_
 
-##### If P2 == activate
+##### If P2 == activation
 
 None
 
@@ -869,7 +913,40 @@ None
 | Signature             | variable
 |==========================================
 
-##### If P2 == show field
+##### If P2 == date / time
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Display name length   | 1
+| Display name          | variable
+| Signature length      | 1
+| Signature             | variable
+|==========================================
+
+##### If P2 == amount-join token
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Token index           | 1
+| Signature length      | 1
+| Signature             | variable
+|==========================================
+
+##### If P2 == amount-join value
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Display name length   | 1
+| Display name          | variable
+| Token index           | 1
+| Signature length      | 1
+| Signature             | variable
+|==========================================
+
+##### If P2 == show raw field
 
 [width="80%"]
 |==========================================

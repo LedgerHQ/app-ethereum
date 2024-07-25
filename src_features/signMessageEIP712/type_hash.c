@@ -51,7 +51,7 @@ static bool encode_and_hash_type(const void *const struct_ptr) {
     struct_name = get_struct_name(struct_ptr, &struct_name_length);
     hash_nbytes((uint8_t *) struct_name, struct_name_length, (cx_hash_t *) &global_sha3);
 
-    // opening struct parenthese
+    // opening struct parentheses
     hash_byte('(', (cx_hash_t *) &global_sha3);
 
     field_ptr = get_struct_fields_array(struct_ptr, &fields_count);
@@ -67,7 +67,7 @@ static bool encode_and_hash_type(const void *const struct_ptr) {
 
         field_ptr = get_next_struct_field(field_ptr);
     }
-    // closing struct parenthese
+    // closing struct parentheses
     hash_byte(')', (cx_hash_t *) &global_sha3);
 
     return true;
@@ -107,7 +107,7 @@ static void sort_dependencies(uint8_t deps_count, const void **deps) {
 /**
  * Find all the dependencies from a given structure
  *
- * @param[out] deps_count count of how many struct dependencie pointers
+ * @param[out] deps_count count of how many struct dependency pointers
  * @param[in] first_dep pointer to the first dependency pointer
  * @param[in] struct_ptr pointer to the struct we are getting the dependencies of
  * @return pointer to the first found dependency, \ref NULL otherwise
@@ -171,8 +171,9 @@ bool type_hash(const char *const struct_name, const uint8_t struct_name_length, 
     uint8_t deps_count = 0;
     const void **deps;
     void *mem_loc_bak = mem_alloc(0);
+    cx_err_t error = CX_INTERNAL_ERROR;
 
-    cx_keccak_init(&global_sha3, 256);  // init hash
+    CX_CHECK(cx_keccak_init_no_throw(&global_sha3, 256));
     deps = get_struct_dependencies(&deps_count, NULL, struct_ptr);
     if ((deps_count > 0) && (deps == NULL)) {
         return false;
@@ -191,8 +192,15 @@ bool type_hash(const char *const struct_name, const uint8_t struct_name_length, 
     mem_dealloc(mem_alloc(0) - mem_loc_bak);
 
     // copy hash into memory
-    cx_hash((cx_hash_t *) &global_sha3, CX_LAST, NULL, 0, hash_buf, KECCAK256_HASH_BYTESIZE);
+    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3,
+                              CX_LAST,
+                              NULL,
+                              0,
+                              hash_buf,
+                              KECCAK256_HASH_BYTESIZE));
     return true;
+end:
+    return false;
 }
 
 #endif  // HAVE_EIP712_FULL_SUPPORT

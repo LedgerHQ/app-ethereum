@@ -58,7 +58,7 @@ static const uint8_t *field_skip_typedesc(const uint8_t *field_ptr, const uint8_
  * @return pointer to the data right after
  */
 static const uint8_t *field_skip_typename(const uint8_t *field_ptr, const uint8_t *ptr) {
-    uint8_t size;
+    uint8_t size = 0;
 
     if (struct_field_type(field_ptr) == TYPE_CUSTOM) {
         get_string_in_mem(ptr, &size);
@@ -89,7 +89,7 @@ static const uint8_t *field_skip_typesize(const uint8_t *field_ptr, const uint8_
  * @return pointer to the data right after
  */
 static const uint8_t *field_skip_array_levels(const uint8_t *field_ptr, const uint8_t *ptr) {
-    uint8_t size;
+    uint8_t size = 0;
 
     if (struct_field_is_array(field_ptr)) {
         ptr = get_array_in_mem(ptr, &size);
@@ -108,11 +108,12 @@ static const uint8_t *field_skip_array_levels(const uint8_t *field_ptr, const ui
  * @return pointer to the data right after
  */
 static const uint8_t *field_skip_keyname(const uint8_t *field_ptr, const uint8_t *ptr) {
-    uint8_t size;
+    uint8_t size = 0;
+    uint8_t *new_ptr;
 
     (void) field_ptr;
-    ptr = get_array_in_mem(ptr, &size);
-    return ptr + size;
+    new_ptr = (uint8_t *) get_array_in_mem(ptr, &size);
+    return (const uint8_t *) (new_ptr + size);
 }
 
 /**
@@ -416,7 +417,7 @@ const uint8_t *get_structs_array(uint8_t *const length) {
  * @return pointer to struct
  */
 const uint8_t *get_structn(const char *const name, const uint8_t length) {
-    uint8_t structs_count;
+    uint8_t structs_count = 0;
     const uint8_t *struct_ptr;
     const char *struct_name;
     uint8_t name_length;

@@ -1,5 +1,0 @@
-speculos
-pytest>=6.1.1,<7.0.0
-ledgercomm>=1.1.0,<1.2.0
-ecdsa>=0.16.1,<0.17.0
-pysha3>=1.0.0,<2.0.0

@@ -1,4 +1,4 @@
-APP_LOAD_PARAMS += --path "44'/163'"
+PATH_APP_LOAD_PARAMS += "44'/163'"
 TICKER = "ELLA"
 CHAIN_ID = 64
 APPNAME = "Ellaism"

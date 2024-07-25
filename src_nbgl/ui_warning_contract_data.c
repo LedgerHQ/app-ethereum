@@ -2,20 +2,37 @@
 #include "shared_context.h"
 #include "ui_callbacks.h"
 #include "ui_nbgl.h"
+#include "feature_signTx.h"
 
-static void ui_warning_contract_data_choice(bool confirm) {
+static void ui_warning_contract_data_choice2(bool confirm) {
     if (confirm) {
-        ui_idle();
+        start_signature_flow();
     } else {
-        ui_menu_settings();
+        report_finalize_error();
+    }
+}
+
+static void ui_warning_contract_data_choice1(bool confirm) {
+    if (confirm) {
+        report_finalize_error();
+    } else {
+        nbgl_useCaseChoice(
+            NULL,
+            "The transaction cannot be trusted",
+            "Your Ledger cannot decode this transaction. If you sign it, you could be authorizing "
+            "malicious actions that can drain your wallet.\n\nLearn more: ledger.com/e8",
+            "I accept the risk",
+            "Reject transaction",
+            ui_warning_contract_data_choice2);
     }
 }
 
 void ui_warning_contract_data(void) {
-    nbgl_useCaseChoice(&C_warning64px,
-                       "This message cannot\nbe clear-signed",
-                       "Enable blind-signing in\nthe settings to sign\nthis transaction.",
-                       "Exit",
-                       "Go to settings",
-                       ui_warning_contract_data_choice);
+    nbgl_useCaseChoice(
+        &C_Warning_64px,
+        "Security risk detected",
+        "It may not be safe to sign this transaction. To continue, you'll need to review the risk.",
+        "Back to safety",
+        "Review risk",
+        ui_warning_contract_data_choice1);
 }

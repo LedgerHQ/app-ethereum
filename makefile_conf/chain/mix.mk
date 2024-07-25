@@ -1,4 +1,4 @@
-APP_LOAD_PARAMS += --path "44'/76'"
+PATH_APP_LOAD_PARAMS += "44'/76'"
 TICKER = "MIX"
 CHAIN_ID = 76
 APPNAME = "Mix"

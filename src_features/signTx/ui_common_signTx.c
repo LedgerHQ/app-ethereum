@@ -1,9 +1,10 @@
-#include "lib_standard_app/crypto_helpers.h"
+#include "crypto_helpers.h"
 #include "os_io_seproxyhal.h"
 #include "shared_context.h"
 #include "common_utils.h"
 #include "common_ui.h"
 #include "handle_swap_sign_transaction.h"
+#include "feature_signTx.h"
 
 unsigned int io_seproxyhal_touch_tx_ok(__attribute__((unused)) const bagl_element_t *e) {
     uint32_t info = 0;
@@ -109,7 +110,7 @@ unsigned int io_seproxyhal_touch_data_ok(__attribute__((unused)) const bagl_elem
     }
 
     if (txResult == USTREAM_FINISHED) {
-        finalizeParsing(false);
+        finalizeParsing();
     }
 
     return 0;

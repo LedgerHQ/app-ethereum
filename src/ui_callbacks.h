@@ -1,5 +1,4 @@
-#ifndef _UI_CALLBACKS_H_
-#define _UI_CALLBACKS_H_
+#pragma once
 
 #include "shared_context.h"
 #include "ux.h"
@@ -25,8 +24,3 @@ unsigned int io_seproxyhal_touch_privacy_cancel(const bagl_element_t *e);
 void ui_warning_contract_data(void);
 
 void io_seproxyhal_send_status(uint32_t sw);
-void format_signature_out(const uint8_t *signature);
-void finalizeParsing(bool direct);
-extraInfo_t *getKnownToken(uint8_t *contractAddress);
-
-#endif  // _UI_CALLBACKS_H_

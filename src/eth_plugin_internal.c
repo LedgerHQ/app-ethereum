@@ -25,11 +25,11 @@ const uint8_t* const ETH2_SELECTORS[NUM_ETH2_SELECTORS] = {ETH2_DEPOSIT_SELECTOR
 // All internal alias names start with 'minus'
 
 const internalEthPlugin_t INTERNAL_ETH_PLUGINS[] = {
-    {NULL, (const uint8_t**) ERC20_SELECTORS, NUM_ERC20_SELECTORS, "-erc20", erc20_plugin_call},
+    {NULL, ERC20_SELECTORS, NUM_ERC20_SELECTORS, "-erc20", erc20_plugin_call},
 
 #ifdef HAVE_ETH2
 
-    {NULL, (const uint8_t**) ETH2_SELECTORS, NUM_ETH2_SELECTORS, "-eth2", eth2_plugin_call},
+    {NULL, ETH2_SELECTORS, NUM_ETH2_SELECTORS, "-eth2", eth2_plugin_call},
 
 #endif
 

@@ -64,7 +64,7 @@ const contract_t CONTRACTS[NUM_CONTRACTS] = {
 
 bool check_contract(erc20_parameters_t *context) {
     for (size_t i = 0; i < NUM_CONTRACTS; i++) {
-        contract_t *contract = (contract_t *) PIC(&CONTRACTS[i]);
+        const contract_t *contract = (const contract_t *) PIC(&CONTRACTS[i]);
         if (memcmp(contract->address, context->destinationAddress, ADDRESS_LENGTH) == 0) {
             strlcpy(context->contract_name, contract->name, sizeof(context->contract_name));
             return true;
@@ -204,7 +204,6 @@ void erc20_plugin_call(int message, void *parameters) {
                         if (!getEthDisplayableAddress(context->destinationAddress,
                                                       msg->msg,
                                                       msg->msgLength,
-                                                      msg->pluginSharedRW->sha3,
                                                       chainConfig->chainId)) {
                             msg->result = ETH_PLUGIN_RESULT_ERROR;
                         }

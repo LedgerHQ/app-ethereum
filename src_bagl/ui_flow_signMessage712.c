@@ -12,10 +12,9 @@ static void dummy_cb(void) {
             if (ui_pos == UI_712_POS_REVIEW) {
                 ux_flow_next();
                 ui_pos = UI_712_POS_END;
-            } else  // UI_712_POS_END
-            {
-                ux_flow_prev();
-                ui_pos = UI_712_POS_REVIEW;
+            } else {
+                // Keep user at the end of the flow
+                ux_flow_next();
             }
             break;
         case EIP712_FIELD_INCOMING:
@@ -57,7 +56,7 @@ UX_STEP_INIT(
 UX_STEP_CB(
     ux_712_step_approve,
     pb,
-    ui_712_approve(NULL),
+    ui_712_approve(),
     {
       &C_icon_validate_14,
       "Approve",
@@ -65,7 +64,7 @@ UX_STEP_CB(
 UX_STEP_CB(
     ux_712_step_reject,
     pb,
-    ui_712_reject(NULL),
+    ui_712_reject(),
     {
       &C_icon_crossmark,
       "Reject",

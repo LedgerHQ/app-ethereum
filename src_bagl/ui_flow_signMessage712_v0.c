@@ -1,21 +1,20 @@
 #include "shared_context.h"
 #include "ui_callbacks.h"
 #include "common_712.h"
+#include "uint_common.h"
 
 void prepare_domain_hash_v0() {
-    snprintf(strings.tmp.tmp,
-             sizeof(strings.tmp.tmp),
-             "0x%.*H",
-             KECCAK256_HASH_BYTESIZE,
-             tmpCtx.messageSigningContext712.domainHash);
+    array_bytes_string(strings.tmp.tmp,
+                       sizeof(strings.tmp.tmp),
+                       tmpCtx.messageSigningContext712.domainHash,
+                       KECCAK256_HASH_BYTESIZE);
 }
 
 void prepare_message_hash_v0() {
-    snprintf(strings.tmp.tmp,
-             sizeof(strings.tmp.tmp),
-             "0x%.*H",
-             KECCAK256_HASH_BYTESIZE,
-             tmpCtx.messageSigningContext712.messageHash);
+    array_bytes_string(strings.tmp.tmp,
+                       sizeof(strings.tmp.tmp),
+                       tmpCtx.messageSigningContext712.messageHash,
+                       KECCAK256_HASH_BYTESIZE);
 }
 
 // clang-format off
@@ -24,7 +23,7 @@ UX_STEP_NOCB(
     pnn,
     {
       &C_icon_certificate,
-      "Sign",
+      "Review",
       "typed message",
     });
 UX_STEP_NOCB_INIT(
@@ -46,7 +45,7 @@ UX_STEP_NOCB_INIT(
 UX_STEP_CB(
     ux_sign_712_v0_flow_4_step,
     pbb,
-    ui_712_approve_cb(NULL),
+    ui_712_approve_cb(),
     {
       &C_icon_validate_14,
       "Sign",
@@ -55,7 +54,7 @@ UX_STEP_CB(
 UX_STEP_CB(
     ux_sign_712_v0_flow_5_step,
     pbb,
-    ui_712_reject_cb(NULL),
+    ui_712_reject_cb(),
     {
       &C_icon_crossmark,
       "Cancel",

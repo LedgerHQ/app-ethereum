@@ -4,80 +4,51 @@
 #include "network.h"
 
 typedef enum { PARAMETER_CONFIRMATION, SELECTOR_CONFIRMATION } e_confirmation_type;
-
-static nbgl_layoutTagValue_t pair;
-static e_confirmation_type confirm_type;
-
-static void reviewReject(void) {
-    io_seproxyhal_touch_data_cancel(NULL);
-}
-
-static void confirmTransation(void) {
-    io_seproxyhal_touch_data_ok(NULL);
-}
+static nbgl_contentTagValue_t pair;
+static nbgl_contentTagValueList_t pairsList;
 
 static void reviewChoice(bool confirm) {
     if (confirm) {
-        confirmTransation();
+        io_seproxyhal_touch_data_ok(NULL);
     } else {
-        reviewReject();
+        io_seproxyhal_touch_data_cancel(NULL);
     }
 }
 
-static bool displayTransactionPage(uint8_t page, nbgl_pageContent_t *content) {
-    if (page == 0) {
-        pair.item = (confirm_type == PARAMETER_CONFIRMATION) ? "Parameter" : "Selector";
-        pair.value = strings.tmp.tmp;
-        content->type = TAG_VALUE_LIST;
-        content->tagValueList.nbPairs = 1;
-        content->tagValueList.pairs = (nbgl_layoutTagValue_t *) &pair;
-    } else if (page == 1) {
-        snprintf(g_stax_shared_buffer,
-                 sizeof(g_stax_shared_buffer),
-                 "Confirm %s",
-                 (confirm_type == PARAMETER_CONFIRMATION) ? "parameter" : "selector");
-        content->type = INFO_LONG_PRESS, content->infoLongPress.icon = get_app_icon(true);
-        content->infoLongPress.text = g_stax_shared_buffer;
-        content->infoLongPress.longPressText = "Hold to confirm";
-    } else {
-        return false;
-    }
-    // valid page so return true
-    return true;
-}
+static void buildScreen(e_confirmation_type confirm_type) {
+    uint32_t buf_size = SHARED_BUFFER_SIZE / 2;
+    nbgl_operationType_t op = TYPE_TRANSACTION;
 
-static void reviewContinue(void) {
+    pair.item = (confirm_type == PARAMETER_CONFIRMATION) ? "Parameter" : "Selector";
+    pair.value = strings.tmp.tmp;
+    pairsList.nbPairs = 1;
+    pairsList.pairs = &pair;
     snprintf(g_stax_shared_buffer,
-             sizeof(g_stax_shared_buffer),
-             "Reject %s",
-             (confirm_type == PARAMETER_CONFIRMATION) ? "parameter" : "selector");
-    nbgl_useCaseRegularReview(0,
-                              2,
-                              g_stax_shared_buffer,
-                              NULL,
-                              displayTransactionPage,
-                              reviewChoice);
-}
-
-static void buildScreen(void) {
-    snprintf(g_stax_shared_buffer,
-             sizeof(g_stax_shared_buffer),
+             buf_size,
              "Verify %s",
              (confirm_type == PARAMETER_CONFIRMATION) ? "parameter" : "selector");
-    nbgl_useCaseReviewStart(get_app_icon(true),
-                            g_stax_shared_buffer,
-                            NULL,
-                            REJECT_BUTTON,
-                            reviewContinue,
-                            reviewReject);
+    // Finish text: replace "Verify" by "Confirm" and add questionmark
+    snprintf(g_stax_shared_buffer + buf_size,
+             buf_size,
+             "Confirm %s",
+             (confirm_type == PARAMETER_CONFIRMATION) ? "parameter" : "selector");
+
+    if (tmpContent.txContent.dataPresent) {
+        op |= BLIND_OPERATION;
+    }
+    nbgl_useCaseReview(op,
+                       &pairsList,
+                       get_tx_icon(),
+                       g_stax_shared_buffer,
+                       NULL,
+                       g_stax_shared_buffer + buf_size,
+                       reviewChoice);
 }
 
 void ui_confirm_parameter(void) {
-    confirm_type = PARAMETER_CONFIRMATION;
-    buildScreen();
+    buildScreen(PARAMETER_CONFIRMATION);
 }
 
 void ui_confirm_selector(void) {
-    confirm_type = SELECTOR_CONFIRMATION;
-    buildScreen();
+    buildScreen(SELECTOR_CONFIRMATION);
 }

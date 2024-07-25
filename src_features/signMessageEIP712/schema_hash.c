@@ -27,6 +27,7 @@ bool compute_schema_hash(void) {
     const char *name;
     uint8_t name_length;
     cx_sha224_t hash_ctx;
+    cx_err_t error = CX_INTERNAL_ERROR;
 
     cx_sha224_init(&hash_ctx);
 
@@ -61,13 +62,15 @@ bool compute_schema_hash(void) {
     hash_byte('}', (cx_hash_t *) &hash_ctx);
 
     // copy hash into context struct
-    cx_hash((cx_hash_t *) &hash_ctx,
-            CX_LAST,
-            NULL,
-            0,
-            eip712_context->schema_hash,
-            sizeof(eip712_context->schema_hash));
+    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &hash_ctx,
+                              CX_LAST,
+                              NULL,
+                              0,
+                              eip712_context->schema_hash,
+                              sizeof(eip712_context->schema_hash)));
     return true;
+end:
+    return false;
 }
 
 #endif  // HAVE_EIP712_FULL_SUPPORT

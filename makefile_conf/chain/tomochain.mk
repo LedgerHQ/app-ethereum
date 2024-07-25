@@ -1,4 +1,4 @@
-APP_LOAD_PARAMS += --path "44'/889'"
+PATH_APP_LOAD_PARAMS += "44'/889'"
 TICKER = "TOMO"
 CHAIN_ID = 88
 APPNAME = "TomoChain"

@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.11.0](https://github.com/ledgerhq/app-ethereum/compare/1.10.4...1.11.0) - 2023-07-24
+## [1.11.0](https://github.com/ledgerhq/app-ethereum/compare/1.10.4...1.11.0) - 2024-07-24
 
 ### Added
 
@@ -48,7 +48,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Handling of EIP-712 empty arrays within nested structs
 
-## [1.10.4](https://github.com/ledgerhq/app-ethereum/compare/1.10.3...1.10.4) - 2023-03-08
+## [1.10.4](https://github.com/ledgerhq/app-ethereum/compare/1.10.3...1.10.4) - 2024-03-08
 
 ### Added
 

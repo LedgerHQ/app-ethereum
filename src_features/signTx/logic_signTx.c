@@ -14,6 +14,8 @@
 
 #define ERR_SILENT_MODE_CHECK_FAILED 0x6001
 
+static bool g_use_standard_ui;
+
 static uint32_t splitBinaryParameterPart(char *result, size_t result_size, uint8_t *parameter) {
     uint32_t i;
     for (i = 0; i < 8; i++) {
@@ -82,11 +84,6 @@ customStatus_e customProcessor(txContext_t *context) {
         uint32_t copySize;
         uint32_t fieldPos = context->currentFieldPos;
         if (fieldPos == 0) {  // not reached if a plugin is available
-            if (!N_storage.dataAllowed) {
-                PRINTF("Data field forbidden\n");
-                ui_warning_contract_data();
-                return CUSTOM_FAULT;
-            }
             if (!N_storage.contractDetails) {
                 return CUSTOM_NOT_HANDLED;
             }
@@ -177,14 +174,10 @@ customStatus_e customProcessor(txContext_t *context) {
     return CUSTOM_NOT_HANDLED;
 }
 
-void reportFinalizeError(bool direct) {
+void report_finalize_error(void) {
     reset_app_context();
-    if (direct) {
-        THROW(0x6A80);
-    } else {
-        io_seproxyhal_send_status(0x6A80);
-        ui_idle();
-    }
+    io_seproxyhal_send_status(APDU_RESPONSE_INVALID_DATA);
+    ui_idle();
 }
 
 static void address_to_string(uint8_t *in,
@@ -317,7 +310,7 @@ static int strcasecmp_workaround(const char *str1, const char *str2) {
     return 0;
 }
 
-__attribute__((noinline)) static bool finalize_parsing_helper(bool direct, bool *use_standard_UI) {
+__attribute__((noinline)) static bool finalize_parsing_helper(void) {
     char displayBuffer[50];
     uint8_t decimals = WEI_TO_ETHER;
     uint64_t chain_id = get_tx_chain_id();
@@ -332,10 +325,8 @@ __attribute__((noinline)) static bool finalize_parsing_helper(bool direct, bool 
         if (chainConfig->chainId != id) {
             PRINTF("Invalid chainID %u expected %u\n", id, chainConfig->chainId);
             reset_app_context();
-            reportFinalizeError(direct);
-            if (!direct) {
-                return false;
-            }
+            report_finalize_error();
+            return false;
         }
     }
     // Store the hash
@@ -363,10 +354,8 @@ __attribute__((noinline)) static bool finalize_parsing_helper(bool direct, bool 
 
         if (!eth_plugin_call(ETH_PLUGIN_FINALIZE, (void *) &pluginFinalize)) {
             PRINTF("Plugin finalize call failed\n");
-            reportFinalizeError(direct);
-            if (!direct) {
-                return false;
-            }
+            report_finalize_error();
+            return false;
         }
         // Lookup tokens if requested
         ethPluginProvideInfo_t pluginProvideInfo;
@@ -389,10 +378,8 @@ __attribute__((noinline)) static bool finalize_parsing_helper(bool direct, bool 
             if (eth_plugin_call(ETH_PLUGIN_PROVIDE_INFO, (void *) &pluginProvideInfo) <=
                 ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
                 PRINTF("Plugin provide token call failed\n");
-                reportFinalizeError(direct);
-                if (!direct) {
-                    return false;
-                }
+                report_finalize_error();
+                return false;
             }
             pluginFinalize.result = pluginProvideInfo.result;
         }
@@ -401,7 +388,7 @@ __attribute__((noinline)) static bool finalize_parsing_helper(bool direct, bool 
             switch (pluginFinalize.uiType) {
                 case ETH_UI_TYPE_GENERIC:
                     // Use the dedicated ETH plugin UI
-                    *use_standard_UI = false;
+                    g_use_standard_ui = false;
                     tmpContent.txContent.dataPresent = false;
                     // Add the number of screens + the number of additional screens to get the total
                     // number of screens needed.
@@ -410,14 +397,12 @@ __attribute__((noinline)) static bool finalize_parsing_helper(bool direct, bool 
                     break;
                 case ETH_UI_TYPE_AMOUNT_ADDRESS:
                     // Use the standard ETH UI as this plugin uses the amount/address UI
-                    *use_standard_UI = true;
+                    g_use_standard_ui = true;
                     tmpContent.txContent.dataPresent = false;
                     if ((pluginFinalize.amount == NULL) || (pluginFinalize.address == NULL)) {
                         PRINTF("Incorrect amount/address set by plugin\n");
-                        reportFinalizeError(direct);
-                        if (!direct) {
-                            return false;
-                        }
+                        report_finalize_error();
+                        return false;
                     }
                     memmove(tmpContent.txContent.value.value, pluginFinalize.amount, 32);
                     tmpContent.txContent.value.length = 32;
@@ -430,10 +415,8 @@ __attribute__((noinline)) static bool finalize_parsing_helper(bool direct, bool 
                     break;
                 default:
                     PRINTF("ui type %d not supported\n", pluginFinalize.uiType);
-                    reportFinalizeError(direct);
-                    if (!direct) {
-                        return false;
-                    }
+                    report_finalize_error();
+                    return false;
             }
         }
     }
@@ -448,21 +431,13 @@ __attribute__((noinline)) static bool finalize_parsing_helper(bool direct, bool 
     }
 
     // User has just validated a swap but ETH received apdus about a non standard plugin / contract
-    if (G_called_from_swap && !*use_standard_UI) {
+    if (G_called_from_swap && !g_use_standard_ui) {
         PRINTF("ERR_SILENT_MODE_CHECK_FAILED, G_called_from_swap\n");
         THROW(ERR_SILENT_MODE_CHECK_FAILED);
     }
 
-    if (tmpContent.txContent.dataPresent && !N_storage.dataAllowed) {
-        reportFinalizeError(direct);
-        ui_warning_contract_data();
-        if (!direct) {
-            return false;
-        }
-    }
-
     // Prepare destination address and amount to display
-    if (*use_standard_UI) {
+    if (g_use_standard_ui) {
         // Format the address in a temporary buffer, if in swap case compare it with validated
         // address, else commit it
         address_to_string(tmpContent.txContent.destination,
@@ -541,23 +516,32 @@ end:
     return false;
 }
 
-void finalizeParsing(bool direct) {
-    bool use_standard_UI = true;
+void start_signature_flow(void) {
+    if (g_use_standard_ui) {
+        ux_approve_tx(false);
+    } else {
+        dataContext.tokenContext.pluginUiState = PLUGIN_UI_OUTSIDE;
+        dataContext.tokenContext.pluginUiCurrentItem = 0;
+        ux_approve_tx(true);
+    }
+}
 
-    if (!finalize_parsing_helper(direct, &use_standard_UI)) {
+void finalizeParsing(void) {
+    g_use_standard_ui = true;
+
+    if (!finalize_parsing_helper()) {
         return;
     }
     // If called from swap, the user has already validated a standard transaction
     // And we have already checked the fields of this transaction above
-    if (G_called_from_swap && use_standard_UI) {
+    if (G_called_from_swap && g_use_standard_ui) {
         io_seproxyhal_touch_tx_ok(NULL);
     } else {
-        if (use_standard_UI) {
-            ux_approve_tx(false);
+        // If blind-signing detected, start the warning flow beforehand
+        if (tmpContent.txContent.dataPresent) {
+            ui_warning_contract_data();
         } else {
-            dataContext.tokenContext.pluginUiState = PLUGIN_UI_OUTSIDE;
-            dataContext.tokenContext.pluginUiCurrentItem = 0;
-            ux_approve_tx(true);
+            start_signature_flow();
         }
     }
 }

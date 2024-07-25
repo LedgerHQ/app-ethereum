@@ -90,10 +90,10 @@ def test_eip712_legacy(backend: BackendInterface, scenario_navigator: NavigateWi
 
 def autonext(firmware: Firmware, navigator: Navigator, default_screenshot_path: Path):
     moves = []
-    if firmware.device.startswith("nano"):
+    if firmware.is_nano:
         moves = [NavInsID.RIGHT_CLICK]
     else:
-        moves = [NavInsID.USE_CASE_REVIEW_TAP]
+        moves = [NavInsID.SWIPE_CENTER_TO_LEFT]
     if SNAPS_CONFIG is not None:
         navigator.navigate_and_compare(default_screenshot_path,
                                        SNAPS_CONFIG.test_name,
@@ -123,22 +123,31 @@ def eip712_new_common(firmware: Firmware,
                                   golden_run)
     with app_client.eip712_sign_new(BIP32_PATH):
         moves = []
-        if firmware.device.startswith("nano"):
+        if firmware.is_nano:
             # need to skip the message hash
             if not verbose and filters is None:
-                moves = [NavInsID.RIGHT_CLICK] * 2
+                moves += [NavInsID.RIGHT_CLICK] * 2
             moves += [NavInsID.BOTH_CLICK]
         else:
+            # this move is necessary most of the times, but can't be 100% sure with the fields grouping
+            moves += [NavInsID.SWIPE_CENTER_TO_LEFT]
             # need to skip the message hash
-            moves += [NavInsID.USE_CASE_REVIEW_TAP]
+            if not verbose and filters is None:
+                moves += [NavInsID.SWIPE_CENTER_TO_LEFT]
             moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
         if SNAPS_CONFIG is not None:
+            # Could break (time-out) if given a JSON that requires less moves
+            # TODO: Maybe take list of moves as input instead of trying to guess them ?
             navigator.navigate_and_compare(default_screenshot_path,
                                            SNAPS_CONFIG.test_name,
                                            moves,
                                            snap_start_idx=SNAPS_CONFIG.idx)
         else:
-            navigator.navigate(moves)
+            # Do them one-by-one to prevent an unnecessary move from timing-out and failing the test
+            for move in moves:
+                navigator.navigate([move],
+                                   screen_change_before_first_instruction=False,
+                                   screen_change_after_last_instruction=False)
     return ResponseParser.signature(app_client.response().data)
 
 
@@ -150,7 +159,7 @@ def test_eip712_new(firmware: Firmware,
                     verbose: bool,
                     filtering: bool):
     app_client = EthAppClient(backend)
-    if firmware.device == "nanos":
+    if firmware == Firmware.NANOS:
         pytest.skip("Not supported on LNS")
 
     test_path = f"{input_file.parent}/{'-'.join(input_file.stem.split('-')[:-1])}"
@@ -411,7 +420,7 @@ def test_eip712_advanced_filtering(firmware: Firmware,
     global SNAPS_CONFIG
 
     app_client = EthAppClient(backend)
-    if firmware.device == "nanos":
+    if firmware == Firmware.NANOS:
         pytest.skip("Not supported on LNS")
 
     SNAPS_CONFIG = SnapshotsConfig(test_name + data_set.suffix)

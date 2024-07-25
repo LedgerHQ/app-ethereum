@@ -39,7 +39,6 @@ unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 void ui_idle(void);
 
 uint32_t set_result_get_publicKey(void);
-void finalizeParsing(bool);
 
 tmpCtx_t tmpCtx;
 txContext_t txContext;
@@ -549,11 +548,6 @@ __attribute__((noreturn)) void coin_main(libargs_t *args) {
 
                 if (!N_storage.initialized) {
                     internalStorage_t storage;
-#ifdef HAVE_ALLOW_DATA
-                    storage.dataAllowed = true;
-#else
-                    storage.dataAllowed = false;
-#endif
                     storage.contractDetails = false;
                     storage.displayNonce = false;
 #ifdef HAVE_EIP712_FULL_SUPPORT

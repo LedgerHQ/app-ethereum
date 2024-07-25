@@ -1,5 +1,5 @@
 #include <ctype.h>
-#include <nbgl_page.h>
+#include "nbgl_page.h"
 #include "shared_context.h"
 #include "ui_callbacks.h"
 #include "ui_nbgl.h"
@@ -25,7 +25,6 @@ static char msg_buffer[MAX_PLUGIN_ITEMS][VALUE_MAX_LEN];
 
 struct tx_approval_context_t {
     bool fromPlugin;
-    bool blindSigning;
     bool displayNetwork;
 #ifdef HAVE_DOMAIN_NAME
     bool domain_name_match;
@@ -52,16 +51,20 @@ static void reviewChoice(bool confirm) {
     }
 }
 
-static const nbgl_icon_details_t *get_tx_icon(void) {
+const nbgl_icon_details_t *get_tx_icon(void) {
     const nbgl_icon_details_t *icon = NULL;
 
     if (tx_approval_context.fromPlugin && (pluginType == EXTERNAL)) {
-        if (caller_app && caller_app->name) {
-            if ((strlen(strings.common.toAddress) == strlen(caller_app->name)) &&
-                (strcmp(strings.common.toAddress, caller_app->name) == 0)) {
+        if ((caller_app != NULL) && (caller_app->name != NULL)) {
+            if (strcmp(strings.common.toAddress, caller_app->name) == 0) {
                 icon = get_app_icon(true);
             }
         }
+        // icon is NULL in this case
+        // Check with Alex if this is expected or a bug
+    } else if ((caller_app != NULL) && !tx_approval_context.fromPlugin) {
+        // Clone case
+        icon = get_app_icon(true);
     } else {
         uint64_t chain_id = get_tx_chain_id();
         if (chain_id == chainConfig->chainId) {
@@ -174,7 +177,13 @@ static void reviewCommon(void) {
 
     pairsList.nbPairs = setTagValuePairs();
     pairsList.pairs = pairs;
+    nbgl_operationType_t op = TYPE_TRANSACTION;
 
+#if API_LEVEL >= 19
+    if (tmpContent.txContent.dataPresent) {
+        op |= BLIND_OPERATION;
+    }
+#endif
     if (tx_approval_context.fromPlugin) {
         uint32_t buf_size = SHARED_BUFFER_SIZE / 2;
         char op_name[sizeof(strings.common.fullAmount)];
@@ -195,7 +204,7 @@ static void reviewCommon(void) {
                  (pluginType == EXTERNAL ? "on " : ""),
                  strings.common.toAddress);
 
-        nbgl_useCaseReview(TYPE_TRANSACTION,
+        nbgl_useCaseReview(op,
                            &pairsList,
                            get_tx_icon(),
                            g_stax_shared_buffer,
@@ -203,7 +212,7 @@ static void reviewCommon(void) {
                            g_stax_shared_buffer + buf_size,
                            reviewChoice);
     } else {
-        nbgl_useCaseReview(TYPE_TRANSACTION,
+        nbgl_useCaseReview(op,
                            &pairsList,
                            get_tx_icon(),
                            REVIEW("transaction"),
@@ -224,8 +233,6 @@ void blind_confirm_cb(bool confirm) {
 void ux_approve_tx(bool fromPlugin) {
     memset(&tx_approval_context, 0, sizeof(tx_approval_context));
 
-    tx_approval_context.blindSigning =
-        !fromPlugin && tmpContent.txContent.dataPresent && !N_storage.contractDetails;
     tx_approval_context.fromPlugin = fromPlugin;
     tx_approval_context.displayNetwork = false;
 
@@ -234,16 +241,5 @@ void ux_approve_tx(bool fromPlugin) {
         tx_approval_context.displayNetwork = true;
     }
 
-    if (tx_approval_context.blindSigning) {
-        nbgl_useCaseChoice(&C_Important_Circle_64px,
-                           "Blind Signing",
-                           "This transaction cannot be securely interpreted by "
-                           "your Ledger device.\nIt might put "
-                           "your assets at risk.",
-                           "Continue",
-                           "Cancel",
-                           blind_confirm_cb);
-    } else {
-        reviewCommon();
-    }
+    reviewCommon();
 }

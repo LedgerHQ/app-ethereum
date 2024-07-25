@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Optional
 import pytest
 
@@ -36,27 +35,25 @@ def chain_fixture(request) -> Optional[int]:
 )
 def test_get_pk_rejected(backend: BackendInterface,
                          scenario_navigator: NavigateWithScenario,
-                         default_screenshot_path: Path,
                          path,
                          suffix):
     app_client = EthAppClient(backend)
 
     with pytest.raises(ExceptionRAPDU) as e:
         with app_client.get_public_addr(bip32_path=path):
-            scenario_navigator.address_review_reject(default_screenshot_path, f"get_pk_rejected_{suffix}")
+            scenario_navigator.address_review_reject(test_name=f"get_pk_rejected_{suffix}")
 
     assert e.value.status == StatusWord.CONDITION_NOT_SATISFIED
 
 
 def test_get_pk(backend: BackendInterface,
-                default_screenshot_path: Path,
                 scenario_navigator: NavigateWithScenario,
                 with_chaincode: bool,
                 chain: Optional[int]):
     app_client = EthAppClient(backend)
 
     with app_client.get_public_addr(chaincode=with_chaincode, chain_id=chain):
-        scenario_navigator.address_review_approve(default_screenshot_path, f"get_pk_{chain}")
+        scenario_navigator.address_review_approve(test_name=f"get_pk_{chain}")
 
     pk, _, chaincode = ResponseParser.pk_addr(app_client.response().data, with_chaincode)
     ref_pk, ref_chaincode = calculate_public_key_and_chaincode(curve=CurveChoice.Secp256k1,
@@ -69,18 +66,17 @@ def test_get_pk(backend: BackendInterface,
 def test_get_eth2_pk(firmware: Firmware,
                      backend: BackendInterface,
                      scenario_navigator: NavigateWithScenario,
-                     test_name: str,
-                     default_screenshot_path: Path):
+                     test_name: str):
 
     app_client = EthAppClient(backend)
 
     path="m/12381/3600/0/0"
     with app_client.get_eth2_public_addr(bip32_path=path):
-        scenario_navigator.address_review_approve(default_screenshot_path, test_name)
+        scenario_navigator.address_review_approve(test_name=test_name)
 
     pk = app_client.response().data
     ref_pk = bls.SkToPk(mnemonic_and_path_to_key(SPECULOS_MNEMONIC, path))
-    if firmware.name in ("stax", "flex"):
+    if firmware in (Firmware.STAX, Firmware.FLEX):
         pk = pk[1:49]
 
     assert pk == ref_pk

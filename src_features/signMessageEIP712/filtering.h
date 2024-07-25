@@ -6,6 +6,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define MAX_FILTERS 50
+
 bool filtering_message_info(const uint8_t *payload, uint8_t length);
 bool filtering_date_time(const uint8_t *payload, uint8_t length);
 bool filtering_amount_join_token(const uint8_t *payload, uint8_t length);

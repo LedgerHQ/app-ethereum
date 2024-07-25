@@ -11,6 +11,7 @@
 #include "typed_data.h"
 #include "path.h"
 #include "ui_logic.h"
+#include "filtering.h"
 
 #define FILT_MAGIC_MESSAGE_INFO      183
 #define FILT_MAGIC_AMOUNT_JOIN_TOKEN 11
@@ -188,6 +189,10 @@ bool filtering_message_info(const uint8_t *payload, uint8_t length) {
         return false;
     }
     filters_count = payload[offset++];
+    if (filters_count > MAX_FILTERS) {
+        PRINTF("%u filters planned but can only store up to %u.\n", filters_count, MAX_FILTERS);
+        return false;
+    }
     if ((offset + sizeof(sig_len)) > length) {
         return false;
     }

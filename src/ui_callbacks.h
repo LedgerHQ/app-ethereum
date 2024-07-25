@@ -24,4 +24,3 @@ unsigned int io_seproxyhal_touch_privacy_cancel(const bagl_element_t *e);
 void ui_warning_contract_data(void);
 
 void io_seproxyhal_send_status(uint32_t sw);
-void finalizeParsing(bool direct);

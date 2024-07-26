@@ -177,8 +177,7 @@ e_eip712_nfs ui_712_next_field(void) {
             handle_eip712_return_code(true);
             state = EIP712_FIELD_INCOMING;
             // So that later when we append to them, we start from an empty string
-            explicit_bzero(strings.tmp.tmp, sizeof(strings.tmp.tmp));
-            explicit_bzero(strings.tmp.tmp2, sizeof(strings.tmp.tmp2));
+            explicit_bzero(&strings, sizeof(strings));
         }
     }
     return state;
@@ -622,6 +621,7 @@ bool ui_712_init(void) {
     if ((ui_ctx = MEM_ALLOC_AND_ALIGN_TYPE(*ui_ctx))) {
         explicit_bzero(ui_ctx, sizeof(*ui_ctx));
         ui_ctx->filtering_mode = EIP712_FILTERING_BASIC;
+        explicit_bzero(&strings, sizeof(strings));
     } else {
         apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
     }

@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.11.1](https://github.com/ledgerhq/app-ethereum/compare/1.11.0...1.11.1) - 2024-07-26
+
+### Fixed
+
+- (network/clone) Wanchain
+- Refusal of EIP-712 messages after another transaction or message
+
 ## [1.11.0](https://github.com/ledgerhq/app-ethereum/compare/1.10.4...1.11.0) - 2024-07-24
 
 ### Added

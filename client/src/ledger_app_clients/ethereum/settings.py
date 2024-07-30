@@ -25,32 +25,35 @@ def get_device_settings(firmware: Firmware) -> list[SettingID]:
     ]
 
 
-def get_setting_per_page(firmware: Firmware) -> int:
-    if firmware == Firmware.STAX:
-        return 3
-    return 2
-
-
-def get_setting_position(firmware: Firmware, setting: Union[NavInsID, SettingID]) -> tuple[int, int]:
-    settings_per_page = get_setting_per_page(firmware)
+def get_setting_position(firmware: Firmware, setting_idx: int, per_page: int) -> tuple[int, int]:
     if firmware == Firmware.STAX:
         screen_height = 672  # px
         header_height = 88  # px
         footer_height = 92  # px
-        option_offset = 350  # px
+        x_offset = 350  # px
     else:
         screen_height = 600  # px
         header_height = 92  # px
         footer_height = 97  # px
-        option_offset = 420  # px
-    usable_height = screen_height - (header_height + footer_height)
-    setting_height = usable_height // settings_per_page
-    index_in_page = get_device_settings(firmware).index(SettingID(setting)) % settings_per_page
-    return option_offset, header_height + (setting_height * index_in_page) + (setting_height // 2)
+        x_offset = 420  # px
+    index_in_page = setting_idx % per_page
+    if index_in_page == 0:
+        y_offset = header_height + 10
+    elif per_page == 3:
+        if setting_idx == 1:
+            # 2nd setting over 3: middle of the screen
+            y_offset = screen_height // 2
+        else:
+            # Last setting
+            y_offset = screen_height - footer_height - 10
+    else:
+        # 2 per page, requesting the 2nd one; middle of screen is ok
+        y_offset = screen_height // 2
+    return x_offset, y_offset
 
 
 def settings_toggle(firmware: Firmware, nav: Navigator, to_toggle: list[SettingID]):
-    moves: list[Union[NavIns, NavInsID]] = list()
+    moves: list[Union[NavIns, NavInsID]] = []
     settings = get_device_settings(firmware)
     # Assume the app is on the home page
     if firmware.is_nano:
@@ -63,12 +66,12 @@ def settings_toggle(firmware: Firmware, nav: Navigator, to_toggle: list[SettingI
         moves += [NavInsID.BOTH_CLICK]  # Back
     else:
         moves += [NavInsID.USE_CASE_HOME_SETTINGS]
-        settings_per_page = get_setting_per_page(firmware)
+        settings_per_page = 3 if firmware == Firmware.STAX else 2
         for setting in settings:
             setting_idx = settings.index(setting)
             if (setting_idx > 0) and (setting_idx % settings_per_page) == 0:
                 moves += [NavInsID.USE_CASE_SETTINGS_NEXT]
             if setting in to_toggle:
-                moves += [NavIns(NavInsID.TOUCH, get_setting_position(firmware, setting))]
+                moves += [NavIns(NavInsID.TOUCH, get_setting_position(firmware, setting_idx, settings_per_page))]
         moves += [NavInsID.USE_CASE_SETTINGS_MULTI_PAGE_EXIT]
     nav.navigate(moves, screen_change_before_first_instruction=False)

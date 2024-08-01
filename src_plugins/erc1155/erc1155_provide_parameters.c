@@ -115,8 +115,7 @@ static void handle_approval_for_all(ethPluginProvideParameter_t *msg, erc1155_co
     }
 }
 
-void handle_provide_parameter_1155(void *parameters) {
-    ethPluginProvideParameter_t *msg = (ethPluginProvideParameter_t *) parameters;
+void handle_provide_parameter_1155(ethPluginProvideParameter_t *msg) {
     erc1155_context_t *context = (erc1155_context_t *) msg->pluginContext;
 
     PRINTF("erc1155 plugin provide parameter %d %.*H\n",

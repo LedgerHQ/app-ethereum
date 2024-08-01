@@ -80,6 +80,9 @@ ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
     DEFINES += ICONGLYPH_SMALL=C_chain_$(CHAIN_ID)
 endif
 
+# Don't define plugin function in the plugin SDK
+DEFINES += IS_NOT_A_PLUGIN
+
 
 # Application allowed derivation curves.
 # Possibles curves are: secp256k1, secp256r1, ed25519 and bls12381g1

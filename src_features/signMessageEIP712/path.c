@@ -655,7 +655,7 @@ uint8_t path_get_depth_count(void) {
  * @return CRC-32 checksum
  */
 uint32_t get_path_crc(void) {
-    uint32_t value = CX_CRC32_INIT;
+    uint32_t value = 0;
 
     value = cx_crc32_update(value, &path_struct->root_struct, sizeof(path_struct->root_struct));
     value = cx_crc32_update(value, &path_struct->depth_count, sizeof(path_struct->depth_count));

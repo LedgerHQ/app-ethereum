@@ -21,8 +21,7 @@ const uint8_t *const ERC721_SELECTORS[SELECTORS_COUNT] = {
     ERC721_SAFE_TRANSFER_DATA_SELECTOR,
 };
 
-static void handle_init_contract(void *parameters) {
-    ethPluginInitContract_t *msg = (ethPluginInitContract_t *) parameters;
+void handle_init_contract_721(ethPluginInitContract_t *msg) {
     erc721_context_t *context = (erc721_context_t *) msg->pluginContext;
 
     if (NO_NFT_METADATA) {
@@ -63,8 +62,7 @@ static void handle_init_contract(void *parameters) {
     }
 }
 
-static void handle_finalize(void *parameters) {
-    ethPluginFinalize_t *msg = (ethPluginFinalize_t *) parameters;
+void handle_finalize_721(ethPluginFinalize_t *msg) {
     erc721_context_t *context = (erc721_context_t *) msg->pluginContext;
 
     msg->tokenLookup1 = msg->pluginSharedRO->txContent->destination;
@@ -99,14 +97,11 @@ static void handle_finalize(void *parameters) {
     msg->result = ETH_PLUGIN_RESULT_OK;
 }
 
-static void handle_provide_info(void *parameters) {
-    ethPluginProvideInfo_t *msg = (ethPluginProvideInfo_t *) parameters;
-
+void handle_provide_info_721(ethPluginProvideInfo_t *msg) {
     msg->result = ETH_PLUGIN_RESULT_OK;
 }
 
-static void handle_query_contract_id(void *parameters) {
-    ethQueryContractID_t *msg = (ethQueryContractID_t *) parameters;
+void handle_query_contract_id_721(ethQueryContractID_t *msg) {
     erc721_context_t *context = (erc721_context_t *) msg->pluginContext;
 
     msg->result = ETH_PLUGIN_RESULT_OK;
@@ -138,22 +133,22 @@ static void handle_query_contract_id(void *parameters) {
 void erc721_plugin_call(int message, void *parameters) {
     switch (message) {
         case ETH_PLUGIN_INIT_CONTRACT: {
-            handle_init_contract(parameters);
+            handle_init_contract_721((ethPluginInitContract_t *) parameters);
         } break;
         case ETH_PLUGIN_PROVIDE_PARAMETER: {
-            handle_provide_parameter_721(parameters);
+            handle_provide_parameter_721((ethPluginProvideParameter_t *) parameters);
         } break;
         case ETH_PLUGIN_FINALIZE: {
-            handle_finalize(parameters);
+            handle_finalize_721((ethPluginFinalize_t *) parameters);
         } break;
         case ETH_PLUGIN_PROVIDE_INFO: {
-            handle_provide_info(parameters);
+            handle_provide_info_721((ethPluginProvideInfo_t *) parameters);
         } break;
         case ETH_PLUGIN_QUERY_CONTRACT_ID: {
-            handle_query_contract_id(parameters);
+            handle_query_contract_id_721((ethQueryContractID_t *) parameters);
         } break;
         case ETH_PLUGIN_QUERY_CONTRACT_UI: {
-            handle_query_contract_ui_721(parameters);
+            handle_query_contract_ui_721((ethQueryContractUI_t *) parameters);
         } break;
         default:
             PRINTF("Unhandled message %d\n", message);

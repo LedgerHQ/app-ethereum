@@ -132,8 +132,7 @@ static void set_batch_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *
     }
 }
 
-void handle_query_contract_ui_1155(void *parameters) {
-    ethQueryContractUI_t *msg = (ethQueryContractUI_t *) parameters;
+void handle_query_contract_ui_1155(ethQueryContractUI_t *msg) {
     erc1155_context_t *context = (erc1155_context_t *) msg->pluginContext;
 
     msg->result = ETH_PLUGIN_RESULT_OK;

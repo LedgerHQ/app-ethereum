@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include "ethUstream.h"
 #include "asset_info.h"
+#include "eth_plugin_interface.h"
 
 // Internal plugin for EIP 721: https://eips.ethereum.org/EIPS/eip-721
 
@@ -39,8 +40,8 @@ typedef struct erc721_context_t {
     uint8_t selectorIndex;
 } erc721_context_t;
 
-void handle_provide_parameter_721(void *parameters);
-void handle_query_contract_ui_721(void *parameters);
+void handle_provide_parameter_721(ethPluginProvideParameter_t *parameters);
+void handle_query_contract_ui_721(ethQueryContractUI_t *parameters);
 
 #endif  // HAVE_NFT_SUPPORT
 

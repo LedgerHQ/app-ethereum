@@ -121,8 +121,7 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc721_context_t *context
     }
 }
 
-void handle_query_contract_ui_721(void *parameters) {
-    ethQueryContractUI_t *msg = (ethQueryContractUI_t *) parameters;
+void handle_query_contract_ui_721(ethQueryContractUI_t *msg) {
     erc721_context_t *context = (erc721_context_t *) msg->pluginContext;
 
     msg->result = ETH_PLUGIN_RESULT_OK;

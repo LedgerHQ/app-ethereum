@@ -120,12 +120,12 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                 // Ledger-PKI APDU not yet caught by the running OS.
                 // Command code not supported
                 PRINTF("Ledger-PKI not yet supported!\n");
-                THROW(0x911C);
+                THROW(APDU_RESPONSE_CMD_CODE_NOT_SUPPORTED);
             }
 #endif  // HAVE_LEDGER_PKI
 
             if (G_io_apdu_buffer[OFFSET_CLA] != CLA) {
-                THROW(0x6E00);
+                THROW(APDU_RESPONSE_INVALID_CLA);
             }
 
             switch (G_io_apdu_buffer[OFFSET_INS]) {
@@ -296,7 +296,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
 #endif
 
                 default:
-                    THROW(0x6D00);
+                    THROW(APDU_RESPONSE_INVALID_INS);
                     break;
             }
         }
@@ -311,7 +311,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                     sw = e;
                     reset_app_context();
                     break;
-                case 0x9000:
+                case APDU_RESPONSE_OK:
                     // All is well
                     sw = e;
                     break;
@@ -369,10 +369,10 @@ void app_main(void) {
                 // no apdu received, well, reset the session, and reset the
                 // bootloader configuration
                 if (rx == 0) {
-                    THROW(ERR_APDU_EMPTY);
+                    THROW(APDU_RESPONSE_WRONG_DATA_LENGTH);
                 }
                 if (rx > OFFSET_LC && rx != (G_io_apdu_buffer[OFFSET_LC] + 5)) {
-                    THROW(ERR_APDU_SIZE_MISMATCH);
+                    THROW(APDU_RESPONSE_WRONG_DATA_LENGTH);
                 }
 
                 handleApdu(&flags, &tx);
@@ -387,17 +387,17 @@ void app_main(void) {
                         sw = e;
                         reset_app_context();
                         break;
-                    case 0x9000:
+                    case APDU_RESPONSE_OK:
                         // All is well
                         sw = e;
                         break;
                     default:
                         // Internal error
-                        sw = 0x6800 | (e & 0x7FF);
+                        sw = APDU_RESPONSE_INTERNAL_ERROR | (e & 0x7FF);
                         reset_app_context();
                         break;
                 }
-                if (e != 0x9000) {
+                if (e != APDU_RESPONSE_OK) {
                     flags &= ~IO_ASYNCH_REPLY;
                 }
                 // Unexpected exception => report

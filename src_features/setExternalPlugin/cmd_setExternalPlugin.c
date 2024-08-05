@@ -53,11 +53,12 @@ void handleSetExternalPlugin(uint8_t p1,
 #endif
                                         (uint8_t *) (workBuffer + payload_size),
                                         dataLength - payload_size);
-#ifndef HAVE_BYPASS_SIGNATURES
     if (error != CX_OK) {
+        PRINTF("Invalid signature\n");
+#ifndef HAVE_BYPASS_SIGNATURES
         THROW(APDU_RESPONSE_INVALID_DATA);
-    }
 #endif
+    }
 
     // move on to the rest of the payload parsing
     workBuffer++;
@@ -79,7 +80,7 @@ void handleSetExternalPlugin(uint8_t p1,
             memset(dataContext.tokenContext.pluginName,
                    0,
                    sizeof(dataContext.tokenContext.pluginName));
-            THROW(0x6984);
+            THROW(APDU_RESPONSE_PLUGIN_NOT_INSTALLED);
         }
         FINALLY {
         }
@@ -94,6 +95,6 @@ void handleSetExternalPlugin(uint8_t p1,
 
     pluginType = EXTERNAL;
 
-    G_io_apdu_buffer[(*tx)++] = 0x90;
-    G_io_apdu_buffer[(*tx)++] = 0x00;
+    U2BE_ENCODE(G_io_apdu_buffer, *tx, APDU_RESPONSE_OK);
+    *tx += 2;
 }

@@ -12,8 +12,6 @@
 #include "format.h"
 #include "manage_asset_info.h"
 
-#define ERR_SILENT_MODE_CHECK_FAILED 0x6001
-
 static bool g_use_standard_ui;
 
 static uint32_t splitBinaryParameterPart(char *result, size_t result_size, uint8_t *parameter) {
@@ -274,7 +272,7 @@ static void get_network_as_string(char *out, size_t out_size) {
     if (name == NULL) {
         // No network name found so simply copy the chain ID as the network name.
         if (!u64_to_string(chain_id, out, out_size)) {
-            THROW(0x6502);
+            THROW(APDU_RESPONSE_CHAINID_OUT_BUF_SMALL);
         }
     } else {
         // Network name found, simply copy it.

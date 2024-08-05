@@ -35,21 +35,21 @@ void handlePerformPrivacyOperation(uint8_t p1,
     cx_err_t status = CX_OK;
 
     if ((p1 != P1_CONFIRM) && (p1 != P1_NON_CONFIRM)) {
-        THROW(0x6B00);
+        THROW(APDU_RESPONSE_INVALID_P1_P2);
     }
 
     if ((p2 != P2_PUBLIC_ENCRYPTION_KEY) && (p2 != P2_SHARED_SECRET)) {
-        THROW(0x6700);
+        THROW(APDU_RESPONSE_INVALID_P1_P2);
     }
 
     dataBuffer = parseBip32(dataBuffer, &dataLength, &bip32);
 
     if (dataBuffer == NULL) {
-        THROW(0x6a80);
+        THROW(APDU_RESPONSE_INVALID_DATA);
     }
 
     if ((p2 == P2_SHARED_SECRET) && (dataLength < 32)) {
-        THROW(0x6700);
+        THROW(APDU_RESPONSE_WRONG_DATA_LENGTH);
     }
 
     cx_ecfp_private_key_t privateKey;
@@ -87,12 +87,12 @@ void handlePerformPrivacyOperation(uint8_t p1,
     explicit_bzero(privateKeyData, sizeof(privateKeyData));
 
     if (status != CX_OK) {
-        THROW(0x6A80);
+        THROW(APDU_RESPONSE_INVALID_DATA);
     }
 
     if (p1 == P1_NON_CONFIRM) {
         *tx = set_result_perform_privacy_operation();
-        THROW(0x9000);
+        THROW(APDU_RESPONSE_OK);
     } else {
         snprintf(strings.common.toAddress,
                  sizeof(strings.common.toAddress),

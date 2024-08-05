@@ -10,16 +10,16 @@ void handleSetEth2WithdrawalIndex(uint8_t p1,
                                   __attribute__((unused)) unsigned int *flags,
                                   __attribute__((unused)) unsigned int *tx) {
     if (dataLength != 4) {
-        THROW(0x6700);
+        THROW(APDU_RESPONSE_WRONG_DATA_LENGTH);
     }
 
     if ((p1 != 0) || (p2 != 0)) {
-        THROW(0x6B00);
+        THROW(APDU_RESPONSE_INVALID_P1_P2);
     }
 
     eth2WithdrawalIndex = U4BE(dataBuffer, 0);
 
-    THROW(0x9000);
+    THROW(APDU_RESPONSE_OK);
 }
 
 #endif

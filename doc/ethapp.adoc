@@ -1122,14 +1122,22 @@ The following standard Status Words are returned for all APDUs - some specific S
 [width="80%"]
 |===============================================================================================
 | *SW*     | *Description*
+|   6001   | Mode check fail
 |   6501   | TransactionType not supported
 |   6502   | Output buffer too small for chainId conversion
-|   6503   | Plugin error
-|   6504   | Failed to convert from int256
-|   6700   | Incorrect length
+|   68xx   | Internal error (Please report)
 |   6982   | Security status not satisfied (Canceled by user)
+|   6983   | Wrong Data length
+|   6984   | Plugin not installed
+|   6985   | Condition not satisfied
+|   6A00   | Error without info
 |   6A80   | Invalid data
+|   6A84   | Insufficient memory
+|   6A88   | Data not found
 |   6B00   | Incorrect parameter P1 or P2
+|   6D00   | Incorrect parameter INS
+|   6E00   | Incorrect parameter CLA
 |   6Fxx   | Technical problem (Internal error, please report)
 |   9000   | Normal ending of the command
+|   911C   | Command code not supported (i.e. Ledger-PKI not yet available)
 |===============================================================================================

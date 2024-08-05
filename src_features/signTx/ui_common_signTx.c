@@ -5,6 +5,7 @@
 #include "common_ui.h"
 #include "handle_swap_sign_transaction.h"
 #include "feature_signTx.h"
+#include "apdu_constants.h"
 
 unsigned int io_seproxyhal_touch_tx_ok(__attribute__((unused)) const bagl_element_t *e) {
     uint32_t info = 0;
@@ -19,7 +20,7 @@ unsigned int io_seproxyhal_touch_tx_ok(__attribute__((unused)) const bagl_elemen
                                             G_io_apdu_buffer + 1,
                                             G_io_apdu_buffer + 1 + 32,
                                             &info) != CX_OK) {
-        THROW(0x6F00);
+        THROW(APDU_RESPONSE_UNKNOWN);
     }
 
     if (txContext.txType == EIP1559 || txContext.txType == EIP2930) {
@@ -94,18 +95,18 @@ unsigned int io_seproxyhal_touch_data_ok(__attribute__((unused)) const bagl_elem
         case USTREAM_FINISHED:
             break;
         case USTREAM_PROCESSING:
-            io_seproxyhal_send_status(0x9000);
+            io_seproxyhal_send_status(APDU_RESPONSE_OK);
             ui_idle();
             break;
         case USTREAM_FAULT:
             reset_app_context();
-            io_seproxyhal_send_status(0x6A80);
+            io_seproxyhal_send_status(APDU_RESPONSE_INVALID_DATA);
             ui_idle();
             break;
         default:
             PRINTF("Unexpected parser status\n");
             reset_app_context();
-            io_seproxyhal_send_status(0x6A80);
+            io_seproxyhal_send_status(APDU_RESPONSE_INVALID_DATA);
             ui_idle();
     }
 
@@ -118,7 +119,7 @@ unsigned int io_seproxyhal_touch_data_ok(__attribute__((unused)) const bagl_elem
 
 unsigned int io_seproxyhal_touch_data_cancel(__attribute__((unused)) const bagl_element_t *e) {
     reset_app_context();
-    io_seproxyhal_send_status(0x6985);
+    io_seproxyhal_send_status(APDU_RESPONSE_CONDITION_NOT_SATISFIED);
     // Display back the original UX
     ui_idle();
     return 0;  // do not redraw the widget

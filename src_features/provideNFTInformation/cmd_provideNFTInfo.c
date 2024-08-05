@@ -70,7 +70,7 @@ void handleProvideNFTInformation(uint8_t p1,
 
     if ((pluginType != ERC721) && (pluginType != ERC1155)) {
         PRINTF("NFT metadata provided without proper plugin loaded!\n");
-        THROW(0x6985);
+        THROW(APDU_RESPONSE_CONDITION_NOT_SATISFIED);
     }
     nft = &get_current_asset_info()->nft;
 

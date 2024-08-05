@@ -221,11 +221,12 @@ void handleSetPlugin(uint8_t p1,
 #endif
                                         (uint8_t *) (workBuffer + offset),
                                         signatureLen);
-#ifndef HAVE_BYPASS_SIGNATURES
     if (error != CX_OK) {
+        PRINTF("Invalid signature\n");
+#ifndef HAVE_BYPASS_SIGNATURES
         THROW(APDU_RESPONSE_INVALID_DATA);
-    }
 #endif
+    }
 
     pluginType = getPluginType(tokenContext->pluginName, pluginNameLength);
     if (keyId == PROD_PLUGIN_KEY) {
@@ -256,6 +257,6 @@ void handleSetPlugin(uint8_t p1,
         END_TRY;
     }
 
-    G_io_apdu_buffer[(*tx)++] = 0x90;
-    G_io_apdu_buffer[(*tx)++] = 0x00;
+    U2BE_ENCODE(G_io_apdu_buffer, *tx, APDU_RESPONSE_OK);
+    *tx += 2;
 }

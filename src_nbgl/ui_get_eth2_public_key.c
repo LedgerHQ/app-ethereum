@@ -5,11 +5,11 @@
 #include "uint_common.h"
 
 static void reviewReject(void) {
-    io_seproxyhal_touch_address_cancel(NULL);
+    io_seproxyhal_touch_address_cancel();
 }
 
 static void confirmTransation(void) {
-    io_seproxyhal_touch_address_ok(NULL);
+    io_seproxyhal_touch_address_ok();
 }
 
 static void reviewChoice(bool confirm) {

@@ -27,7 +27,7 @@ UX_STEP_NOCB(
 UX_STEP_CB(
     ux_display_privacy_public_key_flow_4_step,
     pb,
-    io_seproxyhal_touch_privacy_ok(NULL),
+    io_seproxyhal_touch_privacy_ok(),
     {
       &C_icon_validate_14,
       "Approve",
@@ -35,7 +35,7 @@ UX_STEP_CB(
 UX_STEP_CB(
     ux_display_privacy_public_key_flow_5_step,
     pb,
-    io_seproxyhal_touch_privacy_cancel(NULL),
+    io_seproxyhal_touch_privacy_cancel(),
     {
       &C_icon_crossmark,
       "Reject",

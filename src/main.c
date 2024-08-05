@@ -76,10 +76,19 @@ void reset_app_context() {
     memset((uint8_t *) &tmpContent, 0, sizeof(tmpContent));
 }
 
-void io_seproxyhal_send_status(uint32_t sw) {
-    G_io_apdu_buffer[0] = ((sw >> 8) & 0xff);
-    G_io_apdu_buffer[1] = (sw & 0xff);
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+unsigned int io_seproxyhal_send_status(uint32_t sw, uint32_t tx, bool reset, bool idle) {
+    unsigned int err = 0;
+    if (reset) {
+        reset_app_context();
+    }
+    U2BE_ENCODE(G_io_apdu_buffer, tx, sw);
+    tx += 2;
+    err = io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
+    if (idle) {
+        // Display back the original UX
+        ui_idle();
+    }
+    return err;
 }
 
 const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_path_t *bip32) {

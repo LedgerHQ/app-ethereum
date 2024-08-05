@@ -11,7 +11,6 @@ static const uint8_t EIP_712_MAGIC[] = {0x19, 0x01};
 
 unsigned int ui_712_approve_cb(void) {
     uint8_t hash[INT256_LENGTH];
-    uint32_t tx = 0;
 
     io_seproxyhal_io_heartbeat();
     CX_ASSERT(cx_keccak_init_no_throw(&global_sha3, 256));
@@ -56,24 +55,9 @@ unsigned int ui_712_approve_cb(void) {
     if (info & CX_ECCINFO_xGTn) {
         G_io_apdu_buffer[0] += 2;
     }
-    tx = 65;
-    G_io_apdu_buffer[tx++] = 0x90;
-    G_io_apdu_buffer[tx++] = 0x00;
-    reset_app_context();
-    // Send back the response, do not restart the event loop
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
-    // Display back the original UX
-    ui_idle();
-    return 0;  // do not redraw the widget
+    return io_seproxyhal_send_status(APDU_RESPONSE_OK, 65, true, true);
 }
 
 unsigned int ui_712_reject_cb(void) {
-    reset_app_context();
-    G_io_apdu_buffer[0] = 0x69;
-    G_io_apdu_buffer[1] = 0x85;
-    // Send back the response, do not restart the event loop
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
-    // Display back the original UX
-    ui_idle();
-    return 0;  // do not redraw the widget
+    return io_seproxyhal_send_status(APDU_RESPONSE_CONDITION_NOT_SATISFIED, 0, true, true);
 }

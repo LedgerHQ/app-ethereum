@@ -6,11 +6,11 @@
 #include "network_icons.h"
 
 static void cancel_send(void) {
-    io_seproxyhal_touch_address_cancel(NULL);
+    io_seproxyhal_touch_address_cancel();
 }
 
 static void confirm_send(void) {
-    io_seproxyhal_touch_address_ok(NULL);
+    io_seproxyhal_touch_address_ok();
 }
 
 static void review_choice(bool confirm) {

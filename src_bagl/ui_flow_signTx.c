@@ -31,7 +31,7 @@ UX_STEP_NOCB(
 UX_STEP_CB(
     ux_confirm_selector_flow_3_step,
     pb,
-    io_seproxyhal_touch_data_ok(NULL),
+    io_seproxyhal_touch_data_ok(),
     {
       &C_icon_validate_14,
       "Approve",
@@ -39,7 +39,7 @@ UX_STEP_CB(
 UX_STEP_CB(
     ux_confirm_selector_flow_4_step,
     pb,
-    io_seproxyhal_touch_data_cancel(NULL),
+    io_seproxyhal_touch_data_cancel(),
     {
       &C_icon_crossmark,
       "Reject",
@@ -72,7 +72,7 @@ UX_STEP_NOCB(
 UX_STEP_CB(
     ux_confirm_parameter_flow_3_step,
     pb,
-    io_seproxyhal_touch_data_ok(NULL),
+    io_seproxyhal_touch_data_ok(),
     {
       &C_icon_validate_14,
       "Approve",
@@ -80,7 +80,7 @@ UX_STEP_CB(
 UX_STEP_CB(
     ux_confirm_parameter_flow_4_step,
     pb,
-    io_seproxyhal_touch_data_cancel(NULL),
+    io_seproxyhal_touch_data_cancel(),
     {
       &C_icon_crossmark,
       "Reject",
@@ -176,7 +176,7 @@ UX_STEP_NOCB(
 UX_STEP_CB(
     ux_approval_accept_step,
     pbb,
-    io_seproxyhal_touch_tx_ok(NULL),
+    io_seproxyhal_touch_tx_ok(),
     {
       &C_icon_validate_14,
       "Accept",
@@ -185,7 +185,7 @@ UX_STEP_CB(
 UX_STEP_CB(
     ux_approval_reject_step,
     pb,
-    io_seproxyhal_touch_tx_cancel(NULL),
+    io_seproxyhal_touch_tx_cancel(),
     {
       &C_icon_crossmark,
       "Reject",

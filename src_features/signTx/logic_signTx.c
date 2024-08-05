@@ -175,9 +175,7 @@ customStatus_e customProcessor(txContext_t *context) {
 }
 
 void report_finalize_error(void) {
-    reset_app_context();
-    io_seproxyhal_send_status(APDU_RESPONSE_INVALID_DATA);
-    ui_idle();
+    io_seproxyhal_send_status(APDU_RESPONSE_INVALID_DATA, 0, true, true);
 }
 
 static void address_to_string(uint8_t *in,
@@ -535,7 +533,7 @@ void finalizeParsing(void) {
     // If called from swap, the user has already validated a standard transaction
     // And we have already checked the fields of this transaction above
     if (G_called_from_swap && g_use_standard_ui) {
-        io_seproxyhal_touch_tx_ok(NULL);
+        io_seproxyhal_touch_tx_ok();
     } else {
         // If blind-signing detected, start the warning flow beforehand
         if (tmpContent.txContent.dataPresent) {

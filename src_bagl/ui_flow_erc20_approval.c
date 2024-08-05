@@ -45,7 +45,7 @@ UX_STEP_NOCB(
 UX_STEP_CB(
     ux_approval_allowance_6_step,
     pbb,
-    io_seproxyhal_touch_tx_ok(NULL),
+    io_seproxyhal_touch_tx_ok(),
     {
       &C_icon_validate_14,
       "Accept",
@@ -55,7 +55,7 @@ UX_STEP_CB(
 UX_STEP_CB(
     ux_approval_allowance_7_step,
     pb,
-    io_seproxyhal_touch_tx_cancel(NULL),
+    io_seproxyhal_touch_tx_cancel(),
     {
       &C_icon_crossmark,
       "Reject",

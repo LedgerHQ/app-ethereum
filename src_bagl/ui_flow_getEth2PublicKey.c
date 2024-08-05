@@ -31,7 +31,7 @@ UX_STEP_NOCB_INIT(
 UX_STEP_CB(
     ux_display_public_eth2_flow_3_step,
     pb,
-    io_seproxyhal_touch_eth2_address_ok(NULL),
+    io_seproxyhal_touch_eth2_address_ok(),
     {
       &C_icon_validate_14,
       "Approve",
@@ -39,7 +39,7 @@ UX_STEP_CB(
 UX_STEP_CB(
     ux_display_public_eth2_flow_4_step,
     pb,
-    io_seproxyhal_touch_address_cancel(NULL),
+    io_seproxyhal_touch_address_cancel(),
     {
       &C_icon_crossmark,
       "Reject",

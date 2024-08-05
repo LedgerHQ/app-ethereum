@@ -15,9 +15,7 @@ static void ui_error_blind_signing_choice(bool confirm) {
 
 static void ui_warning_blind_signing_choice(bool confirm) {
     if (confirm) {
-        reset_app_context();
-        io_seproxyhal_send_status(APDU_RESPONSE_CONDITION_NOT_SATISFIED);
-        ui_idle();
+        io_seproxyhal_send_status(APDU_RESPONSE_CONDITION_NOT_SATISFIED, 0, true, true);
     } else {
         start_signature_flow();
     }

@@ -195,9 +195,8 @@ encoding_functions[EIP712FieldType.DYN_BYTES] = encode_bytes_dyn
 
 
 def send_struct_impl_field(value, field):
-    # Something wrong happened if this triggers
-    if isinstance(value, list) or (field["enum"] == EIP712FieldType.CUSTOM):
-        breakpoint()
+    assert not isinstance(value, list)
+    assert field["enum"] != EIP712FieldType.CUSTOM
 
     data = encoding_functions[field["enum"]](value, field["typesize"])
 

@@ -1,11 +1,5 @@
 # Activate requested features
 # ---------------------------
-# Enables direct data signing without having to specify it in the settings. Useful when testing with speculos.
-ALLOW_DATA ?= 0
-ifneq ($(ALLOW_DATA),0)
-    DEFINES += HAVE_ALLOW_DATA
-endif
-
 # Bypass the signature verification for setExternalPlugin, setPlugin, provideERC20TokenInfo and provideNFTInfo calls
 BYPASS_SIGNATURES ?= 0
 ifneq ($(BYPASS_SIGNATURES),0)

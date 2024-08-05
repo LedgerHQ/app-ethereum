@@ -437,3 +437,94 @@ def test_eip712_advanced_filtering(firmware: Firmware,
     # verify signature
     addr = recover_message(data_set.data, vrs)
     assert addr == get_wallet_addr(app_client)
+
+
+def test_eip712_filtering_empty_array(firmware: Firmware,
+                                      backend: BackendInterface,
+                                      navigator: Navigator,
+                                      default_screenshot_path: Path,
+                                      test_name: str,
+                                      golden_run: bool):
+    global SNAPS_CONFIG
+
+    app_client = EthAppClient(backend)
+    if firmware == Firmware.NANOS:
+        pytest.skip("Not supported on LNS")
+
+    SNAPS_CONFIG = SnapshotsConfig(test_name)
+
+    data = {
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "Person": [
+                {"name": "name", "type": "string"},
+                {"name": "addr", "type": "address"},
+            ],
+            "Message": [
+                {"name": "title", "type": "string"},
+                {"name": "to", "type": "Person[]"},
+            ],
+            "Root": [
+                {"name": "text", "type": "string"},
+                {"name": "subtext", "type": "string[]"},
+                {"name": "msg_list1", "type": "Message[]"},
+                {"name": "msg_list2", "type": "Message[]"},
+            ],
+        },
+        "primaryType": "Root",
+        "domain": {
+            "name": "test",
+            "version": "1",
+            "verifyingContract": "0x0000000000000000000000000000000000000000",
+            "chainId": 1,
+        },
+        "message": {
+            "text": "This is a test",
+            "subtext": [],
+            "msg_list1": [
+                {
+                    "title": "This is a test",
+                    "to": [],
+                }
+            ],
+            "msg_list2": [],
+        }
+    }
+    filters = {
+        "name": "Empty array filtering",
+        "fields": {
+            "text": {
+                "type": "raw",
+                "name": "Text",
+            },
+            "subtext.[]": {
+                "type": "raw",
+                "name": "Sub-Text",
+            },
+            "msg_list1.[].to.[].addr": {
+                "type": "raw",
+                "name": "(1) Recipient addr",
+            },
+            "msg_list2.[].to.[].addr": {
+                "type": "raw",
+                "name": "(2) Recipient addr",
+            },
+        }
+    }
+    vrs = eip712_new_common(firmware,
+                            navigator,
+                            default_screenshot_path,
+                            app_client,
+                            data,
+                            filters,
+                            False,
+                            golden_run)
+
+    # verify signature
+    addr = recover_message(data, vrs)
+    assert addr == get_wallet_addr(app_client)

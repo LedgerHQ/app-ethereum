@@ -65,7 +65,7 @@ unsigned int io_seproxyhal_touch_tx_ok(__attribute__((unused)) const bagl_elemen
             finalize_exchange_sign_transaction(true);
         } else {
             PRINTF("Unrecoverable\n");
-            os_sched_exit(-1);
+            app_exit();
         }
     }
     reset_app_context();

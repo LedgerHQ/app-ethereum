@@ -14,6 +14,9 @@
 #include "nbgl_types.h"
 #endif
 
+extern void app_exit();
+extern void common_app_init(void);
+
 #define MAX_BIP32_PATH 10
 
 #define SELECTOR_LENGTH 4

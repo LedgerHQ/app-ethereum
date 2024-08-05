@@ -1,6 +1,7 @@
 #ifndef _APDU_CONSTANTS_H_
 #define _APDU_CONSTANTS_H_
 
+#include "offsets.h"
 #include "shared_context.h"
 
 #define APP_FLAG_DATA_ALLOWED          0x01
@@ -33,8 +34,6 @@
 #define P2_EIP712_LEGACY_IMPLEM             0x00
 #define P2_EIP712_FULL_IMPLEM               0x01
 
-#define COMMON_CLA 0xB0
-
 #define APDU_RESPONSE_OK                      0x9000
 #define APDU_RESPONSE_ERROR_NO_INFO           0x6a00
 #define APDU_RESPONSE_INVALID_DATA            0x6a80
@@ -44,8 +43,6 @@
 #define APDU_RESPONSE_CONDITION_NOT_SATISFIED 0x6985
 #define APDU_RESPONSE_REF_DATA_NOT_FOUND      0x6a88
 #define APDU_RESPONSE_UNKNOWN                 0x6f00
-
-enum { OFFSET_CLA = 0, OFFSET_INS, OFFSET_P1, OFFSET_P2, OFFSET_LC, OFFSET_CDATA };
 
 #define ERR_APDU_EMPTY         0x6982
 #define ERR_APDU_SIZE_MISMATCH 0x6983

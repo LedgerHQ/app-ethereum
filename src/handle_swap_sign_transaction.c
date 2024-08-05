@@ -134,17 +134,12 @@ void __attribute__((noreturn)) finalize_exchange_sign_transaction(bool is_succes
 }
 
 void __attribute__((noreturn)) handle_swap_sign_transaction(const chain_config_t* config) {
-#ifdef HAVE_NBGL
-    // On Stax, display a spinner at startup
-    UX_INIT();
-    nbgl_useCaseSpinner("Signing");
-#endif  // HAVE_NBGL
-
     chainConfig = config;
     reset_app_context();
     G_called_from_swap = true;
     G_swap_response_ready = false;
-    io_seproxyhal_init();
+
+    common_app_init();
 
     if (N_storage.initialized != 0x01) {
         internalStorage_t storage;
@@ -153,16 +148,14 @@ void __attribute__((noreturn)) handle_swap_sign_transaction(const chain_config_t
         nvm_write((void*) &N_storage, (void*) &storage, sizeof(internalStorage_t));
     }
 
-    PRINTF("USB power ON/OFF\n");
-    USB_power(0);
-    USB_power(1);
-#ifdef HAVE_BLE
-    // grab the current plane mode setting
-    G_io_app.plane_mode = os_setting_get(OS_SETTING_PLANEMODE, NULL, 0);
-    BLE_power(0, NULL);
-    BLE_power(1, NULL);
-#endif  // HAVE_BLE
+#ifdef HAVE_NBGL
+    nbgl_useCaseSpinner("Signing");
+#endif  // HAVE_NBGL
+
     app_main();
+
     // Failsafe
-    os_sched_exit(-1);
+    app_exit();
+    while (1)
+        ;
 }

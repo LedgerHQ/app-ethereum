@@ -34,12 +34,6 @@
 #include "crypto_helpers.h"
 #include "manage_asset_info.h"
 
-unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
-
-void ui_idle(void);
-
-uint32_t set_result_get_publicKey(void);
-
 tmpCtx_t tmpCtx;
 txContext_t txContext;
 tmpContent_t tmpContent;
@@ -57,8 +51,6 @@ uint32_t eth2WithdrawalIndex;
 #endif
 
 #include "ux.h"
-ux_state_t G_ux;
-bolos_ux_params_t G_ux_params;
 
 const internalStorage_t N_storage_real;
 
@@ -86,31 +78,6 @@ void io_seproxyhal_send_status(uint32_t sw) {
     G_io_apdu_buffer[0] = ((sw >> 8) & 0xff);
     G_io_apdu_buffer[1] = (sw & 0xff);
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
-}
-
-unsigned short io_exchange_al(unsigned char channel, unsigned short tx_len) {
-    switch (channel & ~(IO_FLAGS)) {
-        case CHANNEL_KEYBOARD:
-            break;
-
-        // multiplexed io exchange over a SPI channel and TLV encapsulated protocol
-        case CHANNEL_SPI:
-            if (tx_len) {
-                io_seproxyhal_spi_send(G_io_apdu_buffer, tx_len);
-
-                if (channel & IO_RESET_AFTER_REPLIED) {
-                    reset();
-                }
-                return 0;  // nothing received from the master so far (it's a tx
-                           // transaction)
-            } else {
-                return io_seproxyhal_spi_recv(G_io_apdu_buffer, sizeof(G_io_apdu_buffer), 0);
-            }
-
-        default:
-            THROW(INVALID_PARAMETER);
-    }
-    return 0;
 }
 
 const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_path_t *bip32) {
@@ -367,7 +334,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                     finalize_exchange_sign_transaction(false);
                 } else {
                     PRINTF("Unrecoverable\n");
-                    os_sched_exit(-1);
+                    app_exit();
                 }
             }
         }
@@ -445,73 +412,6 @@ void app_main(void) {
     }
 }
 
-// override point, but nothing more to do
-#ifdef HAVE_BAGL
-void io_seproxyhal_display(const bagl_element_t *element) {
-    io_seproxyhal_display_default(element);
-}
-#endif
-
-unsigned char io_event(__attribute__((unused)) unsigned char channel) {
-    // nothing done with the event, throw an error on the transport layer if
-    // needed
-
-    // can't have more than one tag in the reply, not supported yet.
-    switch (G_io_seproxyhal_spi_buffer[0]) {
-        case SEPROXYHAL_TAG_FINGER_EVENT:
-            UX_FINGER_EVENT(G_io_seproxyhal_spi_buffer);
-            break;
-#ifdef HAVE_BAGL
-        case SEPROXYHAL_TAG_BUTTON_PUSH_EVENT:
-            UX_BUTTON_PUSH_EVENT(G_io_seproxyhal_spi_buffer);
-            break;
-#endif  // HAVE_BAGL
-
-        case SEPROXYHAL_TAG_STATUS_EVENT:
-            if (G_io_apdu_media == IO_APDU_MEDIA_USB_HID &&
-                !(U4BE(G_io_seproxyhal_spi_buffer, 3) &
-                  SEPROXYHAL_TAG_STATUS_EVENT_FLAG_USB_POWERED)) {
-                THROW(EXCEPTION_IO_RESET);
-            }
-            __attribute__((fallthrough));
-        default:
-            UX_DEFAULT_EVENT();
-            break;
-
-        case SEPROXYHAL_TAG_DISPLAY_PROCESSED_EVENT:
-#ifdef HAVE_BAGL
-            UX_DISPLAYED_EVENT({});
-#endif  // HAVE_BAGL
-#ifdef HAVE_NBGL
-            UX_DEFAULT_EVENT();
-#endif  // HAVE_NBGL
-            break;
-
-        case SEPROXYHAL_TAG_TICKER_EVENT:
-            UX_TICKER_EVENT(G_io_seproxyhal_spi_buffer, {});
-            break;
-    }
-
-    // close the event if not done previously (by a display or whatever)
-    if (!io_seproxyhal_spi_is_status_sent()) {
-        io_seproxyhal_general_status();
-    }
-
-    // command has been processed, DO NOT reset the current APDU transport
-    return 1;
-}
-
-void app_exit() {
-    BEGIN_TRY_L(exit) {
-        TRY_L(exit) {
-            os_sched_exit(-1);
-        }
-        FINALLY_L(exit) {
-        }
-    }
-    END_TRY_L(exit);
-}
-
 void init_coin_config(chain_config_t *coin_config) {
     memset(coin_config, 0, sizeof(chain_config_t));
     strcpy(coin_config->coinName, CHAINID_COINNAME);
@@ -542,16 +442,9 @@ __attribute__((noreturn)) void coin_main(libargs_t *args) {
     reset_app_context();
 
     for (;;) {
-        UX_INIT();
-
         BEGIN_TRY {
             TRY {
-                io_seproxyhal_init();
-
-#ifdef HAVE_BLE
-                // grab the current plane mode setting
-                G_io_app.plane_mode = os_setting_get(OS_SETTING_PLANEMODE, NULL, 0);
-#endif  // HAVE_BLE
+                common_app_init();
 
                 if (!N_storage.initialized) {
                     internalStorage_t storage;
@@ -560,15 +453,7 @@ __attribute__((noreturn)) void coin_main(libargs_t *args) {
                     nvm_write((void *) &N_storage, (void *) &storage, sizeof(internalStorage_t));
                 }
 
-                USB_power(0);
-                USB_power(1);
-
                 ui_idle();
-
-#ifdef HAVE_BLE
-                BLE_power(0, NULL);
-                BLE_power(1, NULL);
-#endif  // HAVE_BLE
 
 #ifdef HAVE_DOMAIN_NAME
                 // to prevent it from having a fixed value at boot
@@ -591,7 +476,9 @@ __attribute__((noreturn)) void coin_main(libargs_t *args) {
         }
         END_TRY;
     }
-    os_sched_exit(-1);
+    app_exit();
+    while (1)
+        ;
 }
 
 __attribute__((noreturn)) void library_main(libargs_t *args) {
@@ -607,7 +494,7 @@ __attribute__((noreturn)) void library_main(libargs_t *args) {
         case CHECK_ADDRESS:
             if (handle_check_address(args->check_address, args->chain_config) != APDU_RESPONSE_OK) {
                 // Failed, non recoverable
-                os_sched_exit(-1);
+                app_exit();
             }
             break;
         case SIGN_TRANSACTION:
@@ -616,14 +503,14 @@ __attribute__((noreturn)) void library_main(libargs_t *args) {
                 handle_swap_sign_transaction(args->chain_config);
             } else {
                 // Failed to copy, non recoverable
-                os_sched_exit(-1);
+                app_exit();
             }
             break;
         case GET_PRINTABLE_AMOUNT:
             if (handle_get_printable_amount(args->get_printable_amount, args->chain_config) !=
                 APDU_RESPONSE_OK) {
                 // Failed, non recoverable
-                os_sched_exit(-1);
+                app_exit();
             }
             break;
         default:
@@ -678,7 +565,7 @@ __attribute__((noreturn)) void clone_main(libargs_t *args) {
 #endif  // HAVE_NBGL
                 os_lib_call((unsigned int *) &libcall_params);
                 // Ethereum should not return to us
-                os_sched_exit(-1);
+                app_exit();
             }
         }
         FINALLY {
@@ -687,7 +574,9 @@ __attribute__((noreturn)) void clone_main(libargs_t *args) {
     END_TRY;
 
     // os_lib_call will raise if Ethereum application is not installed. Do not try to recover.
-    os_sched_exit(-1);
+    app_exit();
+    while (1)
+        ;
 }
 
 int ethereum_main(libargs_t *args) {

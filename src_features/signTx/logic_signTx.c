@@ -435,7 +435,7 @@ __attribute__((noinline)) static bool finalize_parsing_helper(void) {
         if (G_swap_response_ready) {
             // Unreachable given current return to exchange mechanism. Safeguard against regression
             PRINTF("FATAL: safety against double sign triggered\n");
-            os_sched_exit(-1);
+            app_exit();
         }
         G_swap_response_ready = true;
     }

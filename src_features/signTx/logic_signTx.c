@@ -439,7 +439,7 @@ __attribute__((noinline)) static bool finalize_parsing_helper(void) {
     // User has just validated a swap but ETH received apdus about a non standard plugin / contract
     if (G_called_from_swap && !g_use_standard_ui) {
         PRINTF("ERR_SILENT_MODE_CHECK_FAILED, G_called_from_swap\n");
-        THROW(ERR_SILENT_MODE_CHECK_FAILED);
+        THROW(APDU_RESPONSE_MODE_CHECK_FAILED);
     }
 
     // Specific calldata check when in swap mode
@@ -448,7 +448,7 @@ __attribute__((noinline)) static bool finalize_parsing_helper(void) {
         // We are in crosschain mode and the correct calldata has been received
         if (G_swap_mode != SWAP_MODE_STANDARD && G_swap_mode != SWAP_MODE_CROSSCHAIN_SUCCESS) {
             PRINTF("Error: G_swap_mode %d refused\n", G_swap_mode);
-            THROW(ERR_SILENT_MODE_CHECK_FAILED);
+            THROW(APDU_RESPONSE_MODE_CHECK_FAILED);
         }
     }
 
@@ -472,7 +472,7 @@ __attribute__((noinline)) static bool finalize_parsing_helper(void) {
             // Ensure the values are the same that the ones that have been previously validated
             if (strcasecmp_workaround(strings.common.toAddress, displayBuffer) != 0) {
                 PRINTF("ERR_SILENT_MODE_CHECK_FAILED, address check failed\n");
-                THROW(ERR_SILENT_MODE_CHECK_FAILED);
+                THROW(APDU_RESPONSE_MODE_CHECK_FAILED);
             }
         } else {
             strlcpy(strings.common.toAddress, displayBuffer, sizeof(strings.common.toAddress));
@@ -497,7 +497,7 @@ __attribute__((noinline)) static bool finalize_parsing_helper(void) {
                 PRINTF("ERR_SILENT_MODE_CHECK_FAILED, amount check failed\n");
                 PRINTF("Expected %s\n", strings.common.fullAmount);
                 PRINTF("Received %s\n", displayBuffer);
-                THROW(ERR_SILENT_MODE_CHECK_FAILED);
+                THROW(APDU_RESPONSE_MODE_CHECK_FAILED);
             }
         } else {
             strlcpy(strings.common.fullAmount, displayBuffer, sizeof(strings.common.fullAmount));
@@ -517,7 +517,7 @@ __attribute__((noinline)) static bool finalize_parsing_helper(void) {
             PRINTF("ERR_SILENT_MODE_CHECK_FAILED, fees check failed\n");
             PRINTF("Expected %s\n", strings.common.maxFee);
             PRINTF("Received %s\n", displayBuffer);
-            THROW(ERR_SILENT_MODE_CHECK_FAILED);
+            THROW(APDU_RESPONSE_MODE_CHECK_FAILED);
         }
     } else {
         strlcpy(strings.common.maxFee, displayBuffer, sizeof(strings.common.maxFee));

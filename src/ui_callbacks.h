@@ -19,4 +19,4 @@ unsigned int io_seproxyhal_touch_eth2_address_ok(void);
 unsigned int io_seproxyhal_touch_privacy_ok(void);
 unsigned int io_seproxyhal_touch_privacy_cancel(void);
 
-unsigned int io_seproxyhal_send_status(uint32_t sw, uint32_t tx, bool reset, bool idle);
+uint16_t io_seproxyhal_send_status(uint16_t sw, uint32_t tx, bool reset, bool idle);

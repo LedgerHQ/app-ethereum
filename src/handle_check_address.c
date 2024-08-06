@@ -17,26 +17,21 @@ uint32_t handle_check_address(check_address_parameters_t* params, chain_config_t
         return APDU_RESPONSE_OK;
     }
 
-    const uint8_t* bip32_path_ptr = params->address_parameters;
-    uint8_t bip32PathLength = *(bip32_path_ptr++);
-    uint32_t bip32Path[MAX_BIP32_PATH];
     char address[51];
     uint8_t raw_pubkey[65];
     cx_err_t error = CX_INTERNAL_ERROR;
-
-    if ((bip32PathLength < 0x01) || (bip32PathLength > MAX_BIP32_PATH) ||
-        (bip32PathLength * 4 != params->address_parameters_length - 1)) {
+    bip32_path_t bip32;
+    bip32.length = params->address_parameters[0];
+    if (bip32_path_read(params->address_parameters + 1,
+                        params->address_parameters_length,
+                        bip32.path,
+                        bip32.length) == false) {
         PRINTF("Invalid path\n");
         return APDU_RESPONSE_INVALID_DATA;
     }
-    for (uint8_t i = 0; i < bip32PathLength; i++) {
-        bip32Path[i] = U4BE(bip32_path_ptr, 0);
-        bip32_path_ptr += 4;
-    }
-
     CX_CHECK(bip32_derive_get_pubkey_256(CX_CURVE_256K1,
-                                         bip32Path,
-                                         bip32PathLength,
+                                         bip32.path,
+                                         bip32.length,
                                          raw_pubkey,
                                          NULL,
                                          CX_SHA512));

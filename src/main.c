@@ -99,11 +99,6 @@ const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_
 
     bip32->length = *dataBuffer;
 
-    if (bip32->length < 0x1 || bip32->length > MAX_BIP32_PATH) {
-        PRINTF("Invalid bip32\n");
-        return NULL;
-    }
-
     dataBuffer++;
     (*dataLength)--;
 
@@ -112,11 +107,13 @@ const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_
         return NULL;
     }
 
-    for (uint8_t i = 0; i < bip32->length; i++) {
-        bip32->path[i] = U4BE(dataBuffer, 0);
-        dataBuffer += sizeof(uint32_t);
-        *dataLength -= sizeof(uint32_t);
+    if (bip32_path_read(dataBuffer, (size_t) dataLength, bip32->path, (size_t) bip32->length) ==
+        false) {
+        PRINTF("Invalid Path data\n");
+        return NULL;
     }
+    dataBuffer += bip32->length * sizeof(uint32_t);
+    *dataLength -= bip32->length * sizeof(uint32_t);
 
     return dataBuffer;
 }

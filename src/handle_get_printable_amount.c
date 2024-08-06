@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include <os.h>
 
-#include "swap_utils.h"
+#include "eth_swap_utils.h"
 #include "handle_get_printable_amount.h"
 #include "shared_context.h"
 #include "common_utils.h"

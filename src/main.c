@@ -24,7 +24,7 @@
 #include "glyphs.h"
 #include "common_utils.h"
 
-#include "swap_lib_calls.h"
+#include "eth_swap_lib_calls.h"
 #include "handle_swap_sign_transaction.h"
 #include "handle_get_printable_amount.h"
 #include "handle_check_address.h"
@@ -426,7 +426,7 @@ void init_coin_config(chain_config_t *coin_config) {
     coin_config->chainId = CHAIN_ID;
 }
 
-__attribute__((noreturn)) void coin_main(libargs_t *args) {
+__attribute__((noreturn)) void coin_main(eth_libargs_t *args) {
     chain_config_t config;
     if (args) {
         if (args->chain_config != NULL) {
@@ -496,7 +496,7 @@ __attribute__((noreturn)) void coin_main(libargs_t *args) {
         ;
 }
 
-__attribute__((noreturn)) void library_main(libargs_t *args) {
+__attribute__((noreturn)) void library_main(eth_libargs_t *args) {
     chain_config_t coin_config;
     if (args->chain_config == NULL) {
         // We have been started directly by Exchange, not by a Clone. Init default chain
@@ -537,7 +537,7 @@ __attribute__((noreturn)) void library_main(libargs_t *args) {
 /* Eth clones do not actually contain any logic, they delegate everything to the ETH application.
  * Start Eth in lib mode with the correct chain config
  */
-__attribute__((noreturn)) void clone_main(libargs_t *args) {
+__attribute__((noreturn)) void clone_main(eth_libargs_t *args) {
     PRINTF("Starting in clone_main\n");
     BEGIN_TRY {
         TRY {
@@ -594,7 +594,7 @@ __attribute__((noreturn)) void clone_main(libargs_t *args) {
         ;
 }
 
-int ethereum_main(libargs_t *args) {
+int ethereum_main(eth_libargs_t *args) {
     // exit critical section
     __asm volatile("cpsie i");
 
@@ -625,8 +625,8 @@ int ethereum_main(libargs_t *args) {
 
 __attribute__((section(".boot"))) int main(int arg0) {
 #ifdef USE_LIB_ETHEREUM
-    clone_main((libargs_t *) arg0);
+    clone_main((eth_libargs_t *) arg0);
 #else
-    return ethereum_main((libargs_t *) arg0);
+    return ethereum_main((eth_libargs_t *) arg0);
 #endif
 }

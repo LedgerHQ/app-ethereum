@@ -1,7 +1,7 @@
 #include "os_io_seproxyhal.h"
 #include "os.h"
 #include "ux.h"
-#include "swap_utils.h"
+#include "eth_swap_utils.h"
 #include "handle_swap_sign_transaction.h"
 #include "shared_context.h"
 #include "common_utils.h"

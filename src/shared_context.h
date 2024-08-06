@@ -6,6 +6,7 @@
 
 #include "os.h"
 #include "cx.h"
+#include "bip32.h"
 #include "ethUstream.h"
 #include "tx_content.h"
 #include "chainConfig.h"
@@ -16,8 +17,6 @@
 
 extern void app_exit();
 extern void common_app_init(void);
-
-#define MAX_BIP32_PATH 10
 
 #define SELECTOR_LENGTH 4
 

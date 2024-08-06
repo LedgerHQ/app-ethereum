@@ -21,4 +21,4 @@ unsigned int io_seproxyhal_touch_privacy_cancel(void);
 
 void ui_warning_contract_data(void);
 
-unsigned int io_seproxyhal_send_status(uint32_t sw, uint32_t tx, bool reset, bool idle);
+uint32_t io_seproxyhal_send_status(uint32_t sw, uint32_t tx, bool reset, bool idle);

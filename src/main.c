@@ -150,6 +150,15 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
 
     BEGIN_TRY {
         TRY {
+#ifndef HAVE_LEDGER_PKI
+            if ((G_io_apdu_buffer[OFFSET_CLA] == 0xB0 && (G_io_apdu_buffer[OFFSET_INS] == 0x06))) {
+                // Ledger-PKI APDU not yet caught by the running OS.
+                // Command code not supported
+                PRINTF("Ledger-PKI not yet supported!\n");
+                THROW(0x911C);
+            }
+#endif  // HAVE_LEDGER_PKI
+
             if (G_io_apdu_buffer[OFFSET_CLA] != CLA) {
                 THROW(0x6E00);
             }

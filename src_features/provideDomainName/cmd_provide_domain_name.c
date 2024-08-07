@@ -12,6 +12,9 @@
 #include "hash_bytes.h"
 #include "network.h"
 #include "public_keys.h"
+#ifdef HAVE_LEDGER_PKI
+#include "os_pki.h"
+#endif
 
 #define P1_FIRST_CHUNK     0x01
 #define P1_FOLLOWING_CHUNK 0x00
@@ -364,39 +367,36 @@ static bool handle_address(const s_tlv_data *data,
  */
 static bool verify_signature(const s_sig_ctx *sig_ctx) {
     uint8_t hash[INT256_LENGTH];
-    cx_ecfp_public_key_t verif_key;
     cx_err_t error = CX_INTERNAL_ERROR;
+#ifdef HAVE_DOMAIN_NAME_TEST_KEY
+    e_key_id valid_key_id = KEY_ID_TEST;
+#else
+    e_key_id valid_key_id = KEY_ID_PROD;
+#endif
+    bool ret_code = false;
+
+    if (sig_ctx->key_id != valid_key_id) {
+        PRINTF("Error: Unknown metadata key ID %u\n", sig_ctx->key_id);
+        return false;
+    }
 
     CX_CHECK(
         cx_hash_no_throw((cx_hash_t *) &sig_ctx->hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH));
-    switch (sig_ctx->key_id) {
-#ifdef HAVE_DOMAIN_NAME_TEST_KEY
-        case KEY_ID_TEST:
-#else
-        case KEY_ID_PROD:
+
+    CX_CHECK(check_signature_with_pubkey("Domain Name",
+                                         hash,
+                                         sizeof(hash),
+                                         DOMAIN_NAME_PUB_KEY,
+                                         sizeof(DOMAIN_NAME_PUB_KEY),
+#ifdef HAVE_LEDGER_PKI
+                                         CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META,
 #endif
-            CX_CHECK(cx_ecfp_init_public_key_no_throw(CX_CURVE_256K1,
-                                                      DOMAIN_NAME_PUB_KEY,
-                                                      sizeof(DOMAIN_NAME_PUB_KEY),
-                                                      &verif_key));
-            break;
-        default:
-            PRINTF("Error: Unknown metadata key ID %u\n", sig_ctx->key_id);
-            return false;
-    }
-    if (!cx_ecdsa_verify_no_throw(&verif_key,
-                                  hash,
-                                  sizeof(hash),
-                                  sig_ctx->input_sig,
-                                  sig_ctx->input_sig_size)) {
-        PRINTF("Domain name signature verification failed!\n");
-#ifndef HAVE_BYPASS_SIGNATURES
-        return false;
-#endif
-    }
-    return true;
+                                         (uint8_t *) (sig_ctx->input_sig),
+                                         sig_ctx->input_sig_size));
+
+    ret_code = true;
 end:
-    return false;
+    return ret_code;
 }
 
 /**

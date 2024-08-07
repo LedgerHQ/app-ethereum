@@ -12,6 +12,9 @@
 #include "path.h"
 #include "ui_logic.h"
 #include "filtering.h"
+#ifdef HAVE_LEDGER_PKI
+#include "os_pki.h"
+#endif
 
 #define FILT_MAGIC_MESSAGE_INFO      183
 #define FILT_MAGIC_AMOUNT_JOIN_TOKEN 11
@@ -95,26 +98,26 @@ static bool sig_verif_start(cx_sha256_t *hash_ctx, uint8_t magic) {
  */
 static bool sig_verif_end(cx_sha256_t *hash_ctx, const uint8_t *sig, uint8_t sig_length) {
     uint8_t hash[INT256_LENGTH];
-    cx_ecfp_public_key_t verifying_key;
     cx_err_t error = CX_INTERNAL_ERROR;
+    bool ret_code = false;
 
     // Finalize hash
     CX_CHECK(cx_hash_no_throw((cx_hash_t *) hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH));
 
-    CX_CHECK(cx_ecfp_init_public_key_no_throw(CX_CURVE_256K1,
-                                              LEDGER_SIGNATURE_PUBLIC_KEY,
-                                              sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
-                                              &verifying_key));
-    if (!cx_ecdsa_verify_no_throw(&verifying_key, hash, sizeof(hash), sig, sig_length)) {
-#ifndef HAVE_BYPASS_SIGNATURES
-        PRINTF("Invalid EIP-712 filtering signature\n");
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
-        return false;
+    CX_CHECK(check_signature_with_pubkey("EIP712 Filtering",
+                                         hash,
+                                         sizeof(hash),
+                                         LEDGER_SIGNATURE_PUBLIC_KEY,
+                                         sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
+#ifdef HAVE_LEDGER_PKI
+                                         CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META,
 #endif
-    }
-    return true;
+                                         (uint8_t *) (sig),
+                                         sig_length));
+
+    ret_code = true;
 end:
-    return false;
+    return ret_code;
 }
 
 /**

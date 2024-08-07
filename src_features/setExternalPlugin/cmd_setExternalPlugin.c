@@ -6,6 +6,9 @@
 #include "plugin_utils.h"
 #include "common_ui.h"
 #include "os_io_seproxyhal.h"
+#ifdef HAVE_LEDGER_PKI
+#include "os_pki.h"
+#endif
 
 void handleSetExternalPlugin(uint8_t p1,
                              uint8_t p2,
@@ -18,41 +21,43 @@ void handleSetExternalPlugin(uint8_t p1,
     UNUSED(flags);
     PRINTF("Handling set Plugin\n");
     uint8_t hash[INT256_LENGTH];
-    cx_ecfp_public_key_t tokenKey;
     uint8_t pluginNameLength = *workBuffer;
+    uint32_t params[2];
+    cx_err_t error = CX_INTERNAL_ERROR;
+
     PRINTF("plugin Name Length: %d\n", pluginNameLength);
     const size_t payload_size = 1 + pluginNameLength + ADDRESS_LENGTH + SELECTOR_SIZE;
 
     if (dataLength <= payload_size) {
         PRINTF("data too small: expected at least %d got %d\n", payload_size, dataLength);
-        THROW(0x6A80);
+        THROW(APDU_RESPONSE_INVALID_DATA);
     }
 
     if (pluginNameLength + 1 > sizeof(dataContext.tokenContext.pluginName)) {
         PRINTF("name length too big: expected max %d, got %d\n",
                sizeof(dataContext.tokenContext.pluginName),
                pluginNameLength + 1);
-        THROW(0x6A80);
+        THROW(APDU_RESPONSE_INVALID_DATA);
     }
 
     // check Ledger's signature over the payload
     cx_hash_sha256(workBuffer, payload_size, hash, sizeof(hash));
-    CX_ASSERT(cx_ecfp_init_public_key_no_throw(CX_CURVE_256K1,
-                                               LEDGER_SIGNATURE_PUBLIC_KEY,
-                                               sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
-                                               &tokenKey));
-    if (!cx_ecdsa_verify_no_throw(&tokenKey,
-                                  hash,
-                                  sizeof(hash),
-                                  workBuffer + payload_size,
-                                  dataLength - payload_size)) {
-#ifndef HAVE_BYPASS_SIGNATURES
-        PRINTF("Invalid plugin signature %.*H\n",
-               dataLength - payload_size,
-               workBuffer + payload_size);
-        THROW(0x6A80);
+
+    error = check_signature_with_pubkey("External Plugin",
+                                        hash,
+                                        sizeof(hash),
+                                        LEDGER_SIGNATURE_PUBLIC_KEY,
+                                        sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
+#ifdef HAVE_LEDGER_PKI
+                                        CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META,
 #endif
+                                        (uint8_t *) (workBuffer + payload_size),
+                                        dataLength - payload_size);
+#ifndef HAVE_BYPASS_SIGNATURES
+    if (error != CX_OK) {
+        THROW(APDU_RESPONSE_INVALID_DATA);
     }
+#endif
 
     // move on to the rest of the payload parsing
     workBuffer++;
@@ -63,7 +68,6 @@ void handleSetExternalPlugin(uint8_t p1,
     PRINTF("Check external plugin %s\n", dataContext.tokenContext.pluginName);
 
     // Check if the plugin is present on the device
-    uint32_t params[2];
     params[0] = (uint32_t) dataContext.tokenContext.pluginName;
     params[1] = ETH_PLUGIN_CHECK_PRESENCE;
     BEGIN_TRY {

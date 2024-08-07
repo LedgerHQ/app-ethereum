@@ -34,6 +34,7 @@ def common(firmware: Firmware, app_client: EthAppClient) -> int:
 
     if firmware == Firmware.NANOS:
         pytest.skip("Not supported on LNS")
+
     challenge = app_client.get_challenge()
     return ResponseParser.challenge(challenge.data)
 

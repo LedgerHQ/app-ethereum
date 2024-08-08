@@ -85,12 +85,12 @@ uint32_t handleSetExternalPlugin(const uint8_t *workBuffer, uint8_t dataLength);
 
 uint32_t handleSetPlugin(const uint8_t *workBuffer, uint8_t dataLength);
 
-void handlePerformPrivacyOperation(uint8_t p1,
-                                   uint8_t p2,
-                                   const uint8_t *workBuffer,
-                                   uint8_t dataLength,
-                                   unsigned int *flags,
-                                   unsigned int *tx);
+uint32_t handlePerformPrivacyOperation(uint8_t p1,
+                                       uint8_t p2,
+                                       const uint8_t *workBuffer,
+                                       uint8_t dataLength,
+                                       unsigned int *flags,
+                                       unsigned int *tx);
 
 #ifdef HAVE_ETH2
 

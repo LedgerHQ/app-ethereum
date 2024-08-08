@@ -125,13 +125,6 @@ uint16_t handleGetEth2PublicKey(uint8_t p1,
                                 unsigned int *flags,
                                 unsigned int *tx);
 
-void handleSetEth2WinthdrawalIndex(uint8_t p1,
-                                   uint8_t p2,
-                                   uint8_t *dataBuffer,
-                                   uint8_t dataLength,
-                                   unsigned int *flags,
-                                   unsigned int *tx);
-
 #endif
 
 extern uint16_t apdu_response_code;

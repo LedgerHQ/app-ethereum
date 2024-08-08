@@ -202,7 +202,7 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             break;
 
         case INS_SET_ETH2_WITHDRAWAL_INDEX:
-            handleSetEth2WithdrawalIndex(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags, tx);
+            sw = handleSetEth2WithdrawalIndex(cmd->p1, cmd->p2, cmd->data, cmd->lc);
             break;
 
 #endif

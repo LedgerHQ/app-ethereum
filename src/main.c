@@ -156,7 +156,7 @@ static uint32_t handleApdu(command_t *cmd, unsigned int *flags, unsigned int *tx
             break;
 
         case INS_SET_PLUGIN:
-            handleSetPlugin(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags, tx);
+            sw = handleSetPlugin(cmd->data, cmd->lc);
             break;
 
         case INS_PERFORM_PRIVACY_OPERATION:

@@ -118,12 +118,13 @@ void handlePerformPrivacyOperation(uint8_t p1,
 
 #ifdef HAVE_ETH2
 
-void handleGetEth2PublicKey(uint8_t p1,
-                            uint8_t p2,
-                            const uint8_t *dataBuffer,
-                            uint8_t dataLength,
-                            unsigned int *flags,
-                            unsigned int *tx);
+uint16_t handleGetEth2PublicKey(uint8_t p1,
+                                uint8_t p2,
+                                const uint8_t *dataBuffer,
+                                uint8_t dataLength,
+                                unsigned int *flags,
+                                unsigned int *tx);
+
 void handleSetEth2WinthdrawalIndex(uint8_t p1,
                                    uint8_t p2,
                                    uint8_t *dataBuffer,

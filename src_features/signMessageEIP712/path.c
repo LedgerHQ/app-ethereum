@@ -451,7 +451,19 @@ static bool check_and_add_array_depth(const void *depth,
 }
 
 static void backup_path(void) {
+    const void *field_ptr;
+
     memcpy(path_backup, path_struct, sizeof(*path_backup));
+    // decrease while it does not point to an array type
+    while (path_backup->depth_count > 1) {
+        if ((field_ptr = path_backup_get_nth_field(path_backup->depth_count)) == NULL) {
+            return;
+        }
+        if (struct_field_is_array(field_ptr)) {
+            break;
+        }
+        path_backup->depth_count -= 1;
+    }
 }
 
 /**
@@ -665,20 +677,42 @@ uint8_t path_get_depth_count(void) {
  * @return depth count
  */
 uint8_t path_backup_get_depth_count(void) {
-    const void *field_ptr;
-    uint8_t count = get_depth_count(path_backup);
+    return get_depth_count(path_backup);
+}
 
-    // decrease while it does not point to an array type
-    while (count > 1) {
-        if ((field_ptr = path_backup_get_nth_field(count)) == NULL) {
-            return 0;
+bool path_exists_in_backup(const char *path, size_t length) {
+    size_t offset = 0;
+    size_t i;
+    const void *field_ptr;
+    s_path tmp_path;
+
+    memcpy(&tmp_path, path_backup, sizeof(tmp_path));
+    field_ptr = get_nth_field_from(&tmp_path, NULL, tmp_path.depth_count);
+    while (offset < length) {
+        if (((offset + 1) > length) || (memcmp(path + offset, ".", 1) != 0)) {
+            PRINTF("1\n");
+            return false;
         }
-        if (struct_field_is_array(field_ptr)) {
-            break;
+        offset += 1;
+        if (((offset + 2) <= length) && (memcmp(path + offset, "[]", 2) == 0)) {
+            if (!struct_field_is_array(field_ptr)) {
+                PRINTF("2\n");
+                return false;
+            }
+            offset += 2;
+        } else if (offset < length) {
+            for (i = 0; ((offset + i) < length) && (path[offset + i] != '.'); ++i);
+            if (false) { // TODO: check if current field type has a property with this name
+                PRINTF("3\n");
+                return false;
+            }
+            offset += i;
+        } else {
+            PRINTF("4\n");
+            return false;
         }
-        count -= 1;
     }
-    return count;
+    return true;
 }
 
 /**

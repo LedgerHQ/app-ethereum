@@ -226,12 +226,7 @@ bool filtering_message_info(const uint8_t *payload, uint8_t length) {
     return true;
 }
 
-/**
- * Reconstruct the field path and hash it
- *
- * @param[in] hash_ctx the hashing context
- */
-static bool matches_backup_path(const char *path, uint8_t path_len) {
+static bool matches_backup_path(const char *path, uint8_t path_len, uint8_t *offset_ptr) {
     const void *field_ptr;
     const char *key;
     uint8_t key_len;
@@ -239,7 +234,7 @@ static bool matches_backup_path(const char *path, uint8_t path_len) {
 
     for (uint8_t i = 0; i < path_backup_get_depth_count(); ++i) {
         if (i > 0) {
-            if (memcmp(path + offset, ".", 1) != 0) {
+            if (((offset + 1) > path_len) || (memcmp(path + offset, ".", 1) != 0)) {
                 return false;
             }
             offset += 1;
@@ -247,7 +242,7 @@ static bool matches_backup_path(const char *path, uint8_t path_len) {
         if ((field_ptr = path_backup_get_nth_field(i + 1)) != NULL) {
             if ((key = get_struct_field_keyname(field_ptr, &key_len)) != NULL) {
                 // field name
-                if (memcmp(path + offset, key, key_len) != 0) {
+                if (((offset + key_len) > path_len) || (memcmp(path + offset, key, key_len) != 0)) {
                     return false;
                 }
                 offset += key_len;
@@ -258,7 +253,7 @@ static bool matches_backup_path(const char *path, uint8_t path_len) {
 
                     get_struct_field_array_lvls_array(field_ptr, &lvl_count);
                     for (int j = 0; j < lvl_count; ++j) {
-                        if (memcmp(path + offset, ".[]", 3) != 0) {
+                        if (((offset + 3) > path_len) || (memcmp(path + offset, ".[]", 3) != 0)) {
                             return false;
                         }
                         offset += 3;
@@ -267,51 +262,27 @@ static bool matches_backup_path(const char *path, uint8_t path_len) {
             }
         }
     }
+    if (offset_ptr != NULL) {
+        *offset_ptr = offset;
+    }
     return true;
 }
 
 static bool discarded_path_exists(const char *path, uint8_t path_len) {
-    const void *field_ptr;
-    const char *key;
-    uint8_t key_len;
-    uint8_t offset = 0;
-
-
-    for (uint8_t i = 0; i < path_backup_get_depth_count(); ++i) {
-        if (i > 0) {
-            offset += 1;
-        }
-        if ((field_ptr = path_backup_get_nth_field(i + 1)) != NULL) {
-            if ((key = get_struct_field_keyname(field_ptr, &key_len)) != NULL) {
-                // field name
-                offset += key_len;
-
-                // array levels
-                if (struct_field_is_array(field_ptr)) {
-                    uint8_t lvl_count;
-
-                    get_struct_field_array_lvls_array(field_ptr, &lvl_count);
-                    for (int j = 0; j < lvl_count; ++j) {
-                        offset += 3;
-                    }
-                }
-            }
-        }
-    }
     // TODO: traverse by name
-    PRINTF("offset = %u\n", offset);
     PRINTF("remaining path = \"");
-    for (int idx = offset; idx < path_len; ++idx) {
+    for (int idx = 0; idx < path_len; ++idx) {
         PRINTF("%c", path[idx]);
     }
     PRINTF("\"\n");
-    return true;
+    return path_exists_in_backup(path, path_len);
 }
 
 bool filtering_discarded_path(const uint8_t *payload, uint8_t length) {
     uint8_t path_len;
     const char *path;
     uint8_t offset = 0;
+    uint8_t path_offset;
 
     if ((offset + sizeof(path_len)) > length) {
         return false;
@@ -331,11 +302,11 @@ bool filtering_discarded_path(const uint8_t *payload, uint8_t length) {
         PRINTF("%c", path[idx]);
     }
     PRINTF("\"\n");
-    if (!matches_backup_path(path, path_len)) {
+    if (!matches_backup_path(path, path_len, &path_offset)) {
         return false;
     }
     // - typed_data.exists(path) TODO
-    if (!discarded_path_exists(path, path_len)) {
+    if (!discarded_path_exists(path + path_offset, path_len - path_offset)) {
         return false;
     }
     // - save path in memory (in ascii) TODO

@@ -142,7 +142,7 @@ static uint32_t handleApdu(command_t *cmd, unsigned int *flags, unsigned int *tx
             break;
 
         case INS_PROVIDE_ERC20_TOKEN_INFORMATION:
-            handleProvideErc20TokenInformation(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags, tx);
+            sw = handleProvideErc20TokenInformation(cmd->data, cmd->lc, tx);
             break;
 
 #ifdef HAVE_NFT_SUPPORT

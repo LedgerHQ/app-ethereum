@@ -60,12 +60,9 @@ uint32_t handleGetPublicKey(uint8_t p1,
 uint32_t handleProvideErc20TokenInformation(const uint8_t *workBuffer,
                                             uint8_t dataLength,
                                             unsigned int *tx);
-void handleProvideNFTInformation(uint8_t p1,
-                                 uint8_t p2,
-                                 const uint8_t *dataBuffer,
-                                 uint8_t dataLength,
-                                 unsigned int *flags,
-                                 unsigned int *tx);
+uint32_t handleProvideNFTInformation(const uint8_t *dataBuffer,
+                                     uint8_t dataLength,
+                                     unsigned int *tx);
 void handleSign(uint8_t p1,
                 uint8_t p2,
                 const uint8_t *dataBuffer,

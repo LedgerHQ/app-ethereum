@@ -54,12 +54,12 @@
 #define APDU_RESPONSE_OK                      0x9000
 #define APDU_RESPONSE_CMD_CODE_NOT_SUPPORTED  0x911c
 
-void handleGetPublicKey(uint8_t p1,
-                        uint8_t p2,
-                        const uint8_t *dataBuffer,
-                        uint8_t dataLength,
-                        unsigned int *flags,
-                        unsigned int *tx);
+uint16_t handleGetPublicKey(uint8_t p1,
+                            uint8_t p2,
+                            const uint8_t *dataBuffer,
+                            uint8_t dataLength,
+                            unsigned int *flags,
+                            unsigned int *tx);
 void handleProvideErc20TokenInformation(uint8_t p1,
                                         uint8_t p2,
                                         const uint8_t *workBuffer,

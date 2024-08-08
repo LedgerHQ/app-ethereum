@@ -7,7 +7,7 @@
 
 void roll_challenge(void);
 uint32_t get_challenge(void);
-void handle_get_challenge(void);
+uint32_t handle_get_challenge(unsigned int *tx);
 
 #endif  // CHALLENGE_H_
 

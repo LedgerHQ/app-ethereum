@@ -228,7 +228,7 @@ static uint32_t handleApdu(command_t *cmd, unsigned int *flags, unsigned int *tx
 
 #ifdef HAVE_DOMAIN_NAME
         case INS_ENS_GET_CHALLENGE:
-            handle_get_challenge();
+            sw = handle_get_challenge(tx);
             break;
 
         case INS_ENS_PROVIDE_INFO:

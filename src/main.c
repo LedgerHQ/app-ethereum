@@ -164,7 +164,7 @@ static uint32_t handleApdu(command_t *cmd, unsigned int *flags, unsigned int *tx
             break;
 
         case INS_SIGN:
-            handleSign(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags, tx);
+            sw = handleSign(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags);
             break;
 
         case INS_GET_APP_CONFIGURATION:

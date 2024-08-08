@@ -200,7 +200,7 @@ static uint32_t handleApdu(command_t *cmd, unsigned int *flags, unsigned int *tx
 
         case INS_GET_ETH2_PUBLIC_KEY:
             forget_known_assets();
-            handleGetEth2PublicKey(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags, tx);
+            sw = handleGetEth2PublicKey(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags, tx);
             break;
 
         case INS_SET_ETH2_WITHDRAWAL_INDEX:

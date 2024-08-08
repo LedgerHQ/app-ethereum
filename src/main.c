@@ -230,7 +230,7 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             break;
 
         case INS_ENS_PROVIDE_INFO:
-            handle_provide_domain_name(cmd->p1, cmd->p2, cmd->data, cmd->lc);
+            sw = handle_provide_domain_name(cmd->p1, cmd->data, cmd->lc);
             break;
 #endif  // HAVE_DOMAIN_NAME
 

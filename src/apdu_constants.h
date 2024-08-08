@@ -84,12 +84,7 @@ void handleSignEIP712Message_v0(uint8_t p1,
                                 unsigned int *flags,
                                 unsigned int *tx);
 
-void handleSetExternalPlugin(uint8_t p1,
-                             uint8_t p2,
-                             const uint8_t *workBuffer,
-                             uint8_t dataLength,
-                             unsigned int *flags,
-                             unsigned int *tx);
+uint16_t handleSetExternalPlugin(const uint8_t *workBuffer, uint8_t dataLength);
 
 void handleSetPlugin(uint8_t p1,
                      uint8_t p2,

@@ -150,7 +150,7 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
 #endif  // HAVE_NFT_SUPPORT
 
         case INS_SET_EXTERNAL_PLUGIN:
-            handleSetExternalPlugin(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags, tx);
+            sw = handleSetExternalPlugin(cmd->data, cmd->lc);
             break;
 
         case INS_SET_PLUGIN:

@@ -18,9 +18,24 @@
 #pragma once
 
 #include <stdint.h>
+#include "swap_lib_calls.h"
+#include "chainConfig.h"
+#include "caller_api.h"
 
-bool parse_swap_config(const uint8_t* config,
+typedef struct eth_libargs_s {
+    unsigned int id;
+    unsigned int command;
+    chain_config_t *chain_config;
+    union {
+        check_address_parameters_t *check_address;
+        create_transaction_parameters_t *create_transaction;
+        get_printable_amount_parameters_t *get_printable_amount;
+        caller_app_t *caller_app;
+    };
+} eth_libargs_t;
+
+bool parse_swap_config(const uint8_t *config,
                        uint8_t config_len,
-                       char* ticker,
-                       uint8_t* decimals,
-                       uint64_t* chain_id);
+                       char *ticker,
+                       uint8_t *decimals,
+                       uint64_t *chain_id);

@@ -83,7 +83,7 @@ static void setting_toggle_callback(int token, uint8_t index, int page) {
 
 static void app_quit(void) {
     // exit app here
-    os_sched_exit(-1);
+    app_exit();
 }
 
 const nbgl_icon_details_t *get_app_icon(bool caller_icon) {

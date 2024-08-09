@@ -34,12 +34,12 @@ struct tx_approval_context_t {
 static struct tx_approval_context_t tx_approval_context;
 
 static void reviewReject(void) {
-    io_seproxyhal_touch_tx_cancel(NULL);
+    io_seproxyhal_touch_tx_cancel();
     memset(&tx_approval_context, 0, sizeof(tx_approval_context));
 }
 
 static void confirmTransation(void) {
-    io_seproxyhal_touch_tx_ok(NULL);
+    io_seproxyhal_touch_tx_ok();
     memset(&tx_approval_context, 0, sizeof(tx_approval_context));
 }
 

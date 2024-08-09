@@ -55,7 +55,7 @@ UX_STEP_CB(
 UX_STEP_CB(
     ux_idle_flow_4_step,
     pb,
-    os_sched_exit(-1),
+    app_exit(),
     {
       &C_icon_dashboard_x,
       "Quit",

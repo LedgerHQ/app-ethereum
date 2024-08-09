@@ -6,9 +6,9 @@
 
 static void reviewChoice(bool confirm) {
     if (confirm) {
-        io_seproxyhal_touch_privacy_ok(NULL);
+        io_seproxyhal_touch_privacy_ok();
     } else {
-        io_seproxyhal_touch_privacy_cancel(NULL);
+        io_seproxyhal_touch_privacy_cancel();
     }
 }
 

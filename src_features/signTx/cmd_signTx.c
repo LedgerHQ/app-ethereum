@@ -3,18 +3,17 @@
 #include "feature_signTx.h"
 #include "eth_plugin_interface.h"
 
-void handleSign(uint8_t p1,
-                uint8_t p2,
-                const uint8_t *workBuffer,
-                uint8_t dataLength,
-                unsigned int *flags,
-                unsigned int *tx) {
-    UNUSED(tx);
+uint32_t handleSign(uint8_t p1,
+                    uint8_t p2,
+                    const uint8_t *workBuffer,
+                    uint8_t dataLength,
+                    unsigned int *flags) {
     parserStatus_e txResult;
+    uint32_t sw = 0;
 
     if (os_global_pin_is_validated() != BOLOS_UX_OK) {
         PRINTF("Device is PIN-locked");
-        THROW(0x6982);
+        return APDU_RESPONSE_SECURITY_NOT_SATISFIED;
     }
     if (p1 == P1_FIRST) {
         if (appState != APP_STATE_IDLE) {
@@ -23,19 +22,17 @@ void handleSign(uint8_t p1,
         appState = APP_STATE_SIGNING_TX;
 
         workBuffer = parseBip32(workBuffer, &dataLength, &tmpCtx.transactionContext.bip32);
-
         if (workBuffer == NULL) {
-            THROW(0x6a80);
+            return APDU_RESPONSE_INVALID_DATA;
         }
 
         tmpContent.txContent.dataPresent = false;
         dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_UNAVAILABLE;
 
         initTx(&txContext, &global_sha3, &tmpContent.txContent, customProcessor, NULL);
-
         if (dataLength < 1) {
             PRINTF("Invalid data\n");
-            THROW(0x6a80);
+            return APDU_RESPONSE_INVALID_DATA;
         }
 
         // EIP 2718: TransactionType might be present before the TransactionPayload.
@@ -49,44 +46,43 @@ void handleSign(uint8_t p1,
                 dataLength--;
             } else {
                 PRINTF("Transaction type %d not supported\n", txType);
-                THROW(0x6501);
+                return APDU_RESPONSE_TX_TYPE_NOT_SUPPORTED;
             }
         } else {
             txContext.txType = LEGACY;
         }
         PRINTF("TxType: %x\n", txContext.txType);
     } else if (p1 != P1_MORE) {
-        THROW(0x6B00);
+        return APDU_RESPONSE_INVALID_P1_P2;
     }
     if (p2 != 0) {
-        THROW(0x6B00);
+        return APDU_RESPONSE_INVALID_P1_P2;
     }
     if ((p1 == P1_MORE) && (appState != APP_STATE_SIGNING_TX)) {
         PRINTF("Signature not initialized\n");
-        THROW(0x6985);
+        return APDU_RESPONSE_CONDITION_NOT_SATISFIED;
     }
     if (txContext.currentField == RLP_NONE) {
         PRINTF("Parser not initialized\n");
-        THROW(0x6985);
+        return APDU_RESPONSE_CONDITION_NOT_SATISFIED;
     }
     txResult = processTx(&txContext, workBuffer, dataLength);
     switch (txResult) {
         case USTREAM_SUSPENDED:
             break;
         case USTREAM_FINISHED:
+            sw = finalizeParsing();
             break;
         case USTREAM_PROCESSING:
-            THROW(0x9000);
+            return APDU_RESPONSE_OK;
         case USTREAM_FAULT:
-            THROW(0x6A80);
+            return APDU_RESPONSE_INVALID_DATA;
         default:
             PRINTF("Unexpected parser status\n");
-            THROW(0x6A80);
-    }
-
-    if (txResult == USTREAM_FINISHED) {
-        finalizeParsing();
+            return APDU_RESPONSE_INVALID_DATA;
     }
 
     *flags |= IO_ASYNCH_REPLY;
+    // Return code will be sent after UI approve/cancel
+    return sw;
 }

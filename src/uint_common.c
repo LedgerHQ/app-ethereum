@@ -15,39 +15,7 @@
  *  limitations under the License.
  ********************************************************************************/
 
-// Adapted from https://github.com/calccrypto/uint256_t
-
 #include "uint_common.h"
-
-void write_u64_be(uint8_t *const buffer, uint64_t value) {
-    buffer[0] = ((value >> 56) & 0xff);
-    buffer[1] = ((value >> 48) & 0xff);
-    buffer[2] = ((value >> 40) & 0xff);
-    buffer[3] = ((value >> 32) & 0xff);
-    buffer[4] = ((value >> 24) & 0xff);
-    buffer[5] = ((value >> 16) & 0xff);
-    buffer[6] = ((value >> 8) & 0xff);
-    buffer[7] = (value & 0xff);
-}
-
-void read_u64_be(const uint8_t *const in, uint64_t *const out) {
-    uint8_t *out_ptr = (uint8_t *) out;
-    *out_ptr++ = in[7];
-    *out_ptr++ = in[6];
-    *out_ptr++ = in[5];
-    *out_ptr++ = in[4];
-    *out_ptr++ = in[3];
-    *out_ptr++ = in[2];
-    *out_ptr++ = in[1];
-    *out_ptr = in[0];
-}
-
-uint64_t readUint64BE(const uint8_t *const buffer) {
-    return (((uint64_t) buffer[0]) << 56) | (((uint64_t) buffer[1]) << 48) |
-           (((uint64_t) buffer[2]) << 40) | (((uint64_t) buffer[3]) << 32) |
-           (((uint64_t) buffer[4]) << 24) | (((uint64_t) buffer[5]) << 16) |
-           (((uint64_t) buffer[6]) << 8) | (((uint64_t) buffer[7]));
-}
 
 void reverseString(char *const str, uint32_t length) {
     uint32_t i, j;

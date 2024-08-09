@@ -173,10 +173,7 @@ static uint32_t handleApdu(command_t *cmd, unsigned int *flags, unsigned int *tx
 
         case INS_SIGN_PERSONAL_MESSAGE:
             forget_known_assets();
-            *flags |= IO_ASYNCH_REPLY;
-            if (!handleSignPersonalMessage(cmd->p1, cmd->p2, cmd->data, cmd->lc)) {
-                reset_app_context();
-            }
+            sw = handleSignPersonalMessage(cmd->p1, cmd->data, cmd->lc, flags);
             break;
 
         case INS_SIGN_EIP_712_MESSAGE:

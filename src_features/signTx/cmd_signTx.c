@@ -9,6 +9,7 @@ uint32_t handleSign(uint8_t p1,
                     uint8_t dataLength,
                     unsigned int *flags) {
     parserStatus_e txResult;
+    uint32_t sw = 0;
 
     if (os_global_pin_is_validated() != BOLOS_UX_OK) {
         PRINTF("Device is PIN-locked");
@@ -70,6 +71,7 @@ uint32_t handleSign(uint8_t p1,
         case USTREAM_SUSPENDED:
             break;
         case USTREAM_FINISHED:
+            sw = finalizeParsing();
             break;
         case USTREAM_PROCESSING:
             return APDU_RESPONSE_OK;
@@ -80,11 +82,7 @@ uint32_t handleSign(uint8_t p1,
             return APDU_RESPONSE_INVALID_DATA;
     }
 
-    if (txResult == USTREAM_FINISHED) {
-        finalizeParsing();
-    }
-
     *flags |= IO_ASYNCH_REPLY;
     // Return code will be sent after UI approve/cancel
-    return 0;
+    return sw;
 }

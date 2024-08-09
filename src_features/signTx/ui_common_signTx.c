@@ -82,6 +82,7 @@ unsigned int io_seproxyhal_touch_data_ok(void) {
         case USTREAM_SUSPENDED:
             break;
         case USTREAM_FINISHED:
+            err = finalizeParsing();
             break;
         case USTREAM_PROCESSING:
             err = io_seproxyhal_send_status(APDU_RESPONSE_OK, 0, false, true);
@@ -92,10 +93,6 @@ unsigned int io_seproxyhal_touch_data_ok(void) {
         default:
             PRINTF("Unexpected parser status\n");
             err = io_seproxyhal_send_status(APDU_RESPONSE_INVALID_DATA, 0, true, true);
-    }
-
-    if (txResult == USTREAM_FINISHED) {
-        finalizeParsing();
     }
 
     return err;

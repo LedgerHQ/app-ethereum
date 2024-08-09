@@ -180,7 +180,7 @@ static uint32_t handleApdu(command_t *cmd, unsigned int *flags, unsigned int *tx
             switch (cmd->p2) {
                 case P2_EIP712_LEGACY_IMPLEM:
                     forget_known_assets();
-                    handleSignEIP712Message_v0(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags, tx);
+                    sw = handleSignEIP712Message_v0(cmd->p1, cmd->data, cmd->lc, flags);
                     break;
 #ifdef HAVE_EIP712_FULL_SUPPORT
                 case P2_EIP712_FULL_IMPLEM:
@@ -189,7 +189,7 @@ static uint32_t handleApdu(command_t *cmd, unsigned int *flags, unsigned int *tx
                     break;
 #endif  // HAVE_EIP712_FULL_SUPPORT
                 default:
-                    THROW(APDU_RESPONSE_INVALID_P1_P2);
+                    sw = APDU_RESPONSE_INVALID_P1_P2;
             }
             break;
 

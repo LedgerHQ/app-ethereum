@@ -73,12 +73,10 @@ uint32_t handleSignPersonalMessage(uint8_t p1,
                                    const uint8_t *const payload,
                                    uint8_t length,
                                    unsigned int *flags);
-void handleSignEIP712Message_v0(uint8_t p1,
-                                uint8_t p2,
-                                const uint8_t *dataBuffer,
-                                uint8_t dataLength,
-                                unsigned int *flags,
-                                unsigned int *tx);
+uint32_t handleSignEIP712Message_v0(uint8_t p1,
+                                    const uint8_t *dataBuffer,
+                                    uint8_t dataLength,
+                                    unsigned int *flags);
 
 uint32_t handleSetExternalPlugin(const uint8_t *workBuffer, uint8_t dataLength);
 

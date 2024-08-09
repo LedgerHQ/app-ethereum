@@ -119,8 +119,8 @@ const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_
     return dataBuffer;
 }
 
-static uint32_t handleApdu(command_t *cmd, unsigned int *flags, unsigned int *tx) {
-    unsigned short sw = 0;
+static uint32_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
+    uint32_t sw = 0;
 
 #ifndef HAVE_LEDGER_PKI
     if ((cmd->cla == 0xB0) && (cmd->ins == 0x06)) {
@@ -237,9 +237,11 @@ static uint32_t handleApdu(command_t *cmd, unsigned int *flags, unsigned int *tx
 }
 
 void app_main(void) {
-    unsigned int rx = 0;
-    unsigned int tx = 0;
-    unsigned int flags = 0;
+    uint32_t rx = 0;
+    uint32_t tx = 0;
+    uint32_t flags = 0;
+    uint32_t sw = 0;
+    bool quit_now;
     command_t cmd = {0};
 
     // DESIGN NOTE: the bootloader ignores the way APDU are fetched. The only
@@ -249,8 +251,7 @@ void app_main(void) {
     // switch event, before the apdu is replied to the bootloader. This avoid
     // APDU injection faults.
     for (;;) {
-        unsigned short sw = 0;
-
+        quit_now = false;
         BEGIN_TRY {
             TRY {
                 rx = tx;
@@ -273,7 +274,9 @@ void app_main(void) {
                 if (sw == 0) {
                     continue;
                 }
-                THROW(sw);
+                if (sw != APDU_RESPONSE_OK) {
+                    THROW(sw);
+                }
             }
             CATCH(EXCEPTION_IO_RESET) {
                 // reset IO and UX before continuing
@@ -281,26 +284,19 @@ void app_main(void) {
                 return;
             }
             CATCH_OTHER(e) {
-                bool quit_now = G_called_from_swap && G_swap_response_ready;
-                switch (e & 0xF000) {
-                    case 0x6000:
-                        // Wipe the transaction context and report the exception
-                        sw = e;
-                        reset_app_context();
-                        break;
-                    case APDU_RESPONSE_OK:
-                        // All is well
-                        sw = e;
-                        break;
-                    default:
-                        // Internal error
-                        sw = APDU_RESPONSE_INTERNAL_ERROR | (e & 0x7FF);
-                        reset_app_context();
-                        break;
+                quit_now = G_called_from_swap && G_swap_response_ready;
+                if ((e & 0xF000) == 0x6000) {
+                    // Report the exception
+                    sw = e;
+                } else {
+                    // Internal error
+                    sw = APDU_RESPONSE_INTERNAL_ERROR | (e & 0x7FF);
                 }
-                if (e != APDU_RESPONSE_OK) {
-                    flags &= ~IO_ASYNCH_REPLY;
-                }
+                flags &= ~IO_ASYNCH_REPLY;
+                // Wipe the transaction context
+                reset_app_context();
+            }
+            FINALLY {
                 // Unexpected exception => report
                 U2BE_ENCODE(G_io_apdu_buffer, tx, sw);
                 tx += 2;
@@ -316,8 +312,6 @@ void app_main(void) {
                         app_exit();
                     }
                 }
-            }
-            FINALLY {
             }
         }
         END_TRY;
@@ -432,13 +426,13 @@ __attribute__((noreturn)) void library_main(eth_libargs_t *args) {
  */
 __attribute__((noreturn)) void clone_main(eth_libargs_t *args) {
     PRINTF("Starting in clone_main\n");
-    unsigned int libcall_params[5];
+    uint32_t libcall_params[5];
     chain_config_t local_chainConfig;
     init_coin_config(&local_chainConfig);
 
-    libcall_params[0] = (unsigned int) "Ethereum";
+    libcall_params[0] = (uint32_t) "Ethereum";
     libcall_params[1] = 0x100;
-    libcall_params[3] = (unsigned int) &local_chainConfig;
+    libcall_params[3] = (uint32_t) &local_chainConfig;
 
     // Clone called by Exchange, forward the request to Ethereum
     if (args != NULL) {
@@ -446,8 +440,8 @@ __attribute__((noreturn)) void clone_main(eth_libargs_t *args) {
             os_sched_exit(0);
         }
         libcall_params[2] = args->command;
-        libcall_params[4] = (unsigned int) args->get_printable_amount;
-        os_lib_call((unsigned int *) &libcall_params);
+        libcall_params[4] = (uint32_t) args->get_printable_amount;
+        os_lib_call((uint32_t *) &libcall_params);
         // Ethereum fulfilled the request and returned to us. We return to Exchange.
         os_lib_end();
     } else {
@@ -465,11 +459,11 @@ __attribute__((noreturn)) void clone_main(eth_libargs_t *args) {
         icon_details.bitmap = (const uint8_t *) bitmap;
         capp.name = app_name;
         capp.icon = &icon_details;
-        libcall_params[4] = (unsigned int) &capp;
+        libcall_params[4] = (uint32_t) &capp;
 #else
         libcall_params[4] = 0;
 #endif  // HAVE_NBGL
-        os_lib_call((unsigned int *) &libcall_params);
+        os_lib_call((uint32_t *) &libcall_params);
         // Ethereum should not return to us
         app_exit();
     }

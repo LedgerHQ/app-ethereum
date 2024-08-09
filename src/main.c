@@ -274,6 +274,7 @@ void app_main(void) {
                 if (sw == 0) {
                     continue;
                 }
+                quit_now = G_called_from_swap && G_swap_response_ready;
                 if (sw != APDU_RESPONSE_OK) {
                     THROW(sw);
                 }
@@ -284,7 +285,6 @@ void app_main(void) {
                 return;
             }
             CATCH_OTHER(e) {
-                quit_now = G_called_from_swap && G_swap_response_ready;
                 if ((e & 0xF000) == 0x6000) {
                     // Report the exception
                     sw = e;

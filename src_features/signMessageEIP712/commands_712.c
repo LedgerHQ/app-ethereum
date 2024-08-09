@@ -48,11 +48,7 @@ void handle_eip712_return_code(bool success) {
         apdu_response_code = APDU_RESPONSE_ERROR_NO_INFO;
     }
 
-    G_io_apdu_buffer[0] = (apdu_response_code >> 8) & 0xff;
-    G_io_apdu_buffer[1] = apdu_response_code & 0xff;
-
-    // Send back the response, do not restart the event loop
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+    io_seproxyhal_send_status(apdu_response_code, 0, false, false);
 
     if (!success) {
         eip712_context_deinit();

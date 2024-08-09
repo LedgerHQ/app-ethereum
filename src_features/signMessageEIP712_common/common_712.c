@@ -36,18 +36,16 @@ unsigned int ui_712_approve_cb(void) {
     PRINTF("EIP712 Message hash 0x%.*h\n", 32, tmpCtx.messageSigningContext712.messageHash);
 
     unsigned int info = 0;
-    if (bip32_derive_ecdsa_sign_rs_hash_256(CX_CURVE_256K1,
-                                            tmpCtx.messageSigningContext712.bip32.path,
-                                            tmpCtx.messageSigningContext712.bip32.length,
-                                            CX_RND_RFC6979 | CX_LAST,
-                                            CX_SHA256,
-                                            hash,
-                                            sizeof(hash),
-                                            G_io_apdu_buffer + 1,
-                                            G_io_apdu_buffer + 1 + 32,
-                                            &info) != CX_OK) {
-        THROW(APDU_RESPONSE_UNKNOWN);
-    }
+    CX_ASSERT(bip32_derive_ecdsa_sign_rs_hash_256(CX_CURVE_256K1,
+                                                  tmpCtx.messageSigningContext712.bip32.path,
+                                                  tmpCtx.messageSigningContext712.bip32.length,
+                                                  CX_RND_RFC6979 | CX_LAST,
+                                                  CX_SHA256,
+                                                  hash,
+                                                  sizeof(hash),
+                                                  G_io_apdu_buffer + 1,
+                                                  G_io_apdu_buffer + 1 + 32,
+                                                  &info));
     G_io_apdu_buffer[0] = 27;
     if (info & CX_ECCINFO_PARITY_ODD) {
         G_io_apdu_buffer[0]++;

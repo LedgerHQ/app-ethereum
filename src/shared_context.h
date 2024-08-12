@@ -30,6 +30,7 @@ typedef struct bip32_path_t {
 } bip32_path_t;
 
 typedef struct internalStorage_t {
+    bool dataAllowed;
     bool contractDetails;
     bool displayNonce;
 #ifdef HAVE_EIP712_FULL_SUPPORT

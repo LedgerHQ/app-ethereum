@@ -156,7 +156,6 @@ DISABLE_STANDARD_APP_FILES = 1
 ########################################
 
 DEFINES += CHAINID_COINNAME=\"$(TICKER)\" CHAIN_ID=$(CHAIN_ID)
-DEFINES += BUILD_YEAR=\"$(shell date +%Y)\"
 
 # Enabled Features #
 include makefile_conf/features.mk

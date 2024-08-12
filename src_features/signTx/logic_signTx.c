@@ -447,6 +447,16 @@ __attribute__((noinline)) static bool finalize_parsing_helper(void) {
         return false;
     }
 
+    // Specific calldata check when in swap mode
+    if (G_called_from_swap) {
+        // Two success cases: we are in standard mode and no calldata was received
+        // We are in crosschain mode and the correct calldata has been received
+        if (G_swap_mode != SWAP_MODE_STANDARD && G_swap_mode != SWAP_MODE_CROSSCHAIN_SUCCESS) {
+            PRINTF("Error: G_swap_mode %d refused\n", G_swap_mode);
+            THROW(ERR_SILENT_MODE_CHECK_FAILED);
+        }
+    }
+
     // Prepare destination address and amount to display
     if (g_use_standard_ui) {
         // Format the address in a temporary buffer, if in swap case compare it with validated

@@ -49,8 +49,6 @@ cx_sha3_t global_sha3;
 
 uint8_t appState;
 uint16_t apdu_response_code;
-bool G_called_from_swap;
-bool G_swap_response_ready;
 pluginType_t pluginType;
 
 #ifdef HAVE_ETH2

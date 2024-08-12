@@ -166,14 +166,30 @@ extern strings_t strings;
 extern cx_sha3_t global_sha3;
 extern const internalStorage_t N_storage_real;
 
+typedef enum swap_mode_e {
+    SWAP_MODE_STANDARD,
+    SWAP_MODE_CROSSCHAIN_PENDING_CHECK,
+    SWAP_MODE_CROSSCHAIN_SUCCESS,
+    SWAP_MODE_ERROR,
+} swap_mode_t;
+
 extern bool G_called_from_swap;
 extern bool G_swap_response_ready;
+extern swap_mode_t G_swap_mode;
+extern uint8_t G_swap_crosschain_hash[CX_SHA256_SIZE];
 
 typedef enum {
-    EXTERNAL,     //  External plugin, set by setExternalPlugin.
-    ERC721,       // Specific ERC721 internal plugin, set by setPlugin.
-    ERC1155,      // Specific ERC1155 internal plugin, set by setPlugin
-    OLD_INTERNAL  // Old internal plugin, not set by any command.
+    // External plugin, set by setExternalPlugin
+    EXTERNAL,
+    // Specific SWAP_WITH_CALLDATA internal plugin
+    // set as fallback when started if calldata is provided in swap mode
+    SWAP_WITH_CALLDATA,
+    // Specific ERC721 internal plugin, set by setPlugin
+    ERC721,
+    // Specific ERC1155 internal plugin, set by setPlugin
+    ERC1155,
+    // Old internal plugin, not set by any command
+    OLD_INTERNAL
 } pluginType_t;
 
 extern pluginType_t pluginType;

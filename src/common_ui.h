@@ -5,7 +5,8 @@
 #include <stdint.h>
 
 void ui_idle(void);
-void ui_warning_contract_data(void);
+void ui_warning_blind_signing(void);
+void ui_error_blind_signing(void);
 void ui_display_public_eth2(void);
 void ui_display_privacy_public_key(void);
 void ui_display_privacy_shared_secret(void);

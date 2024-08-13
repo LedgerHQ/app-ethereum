@@ -39,7 +39,7 @@ include ./makefile_conf/chain/$(CHAIN).mk
 
 APPVERSION_M = 1
 APPVERSION_N = 11
-APPVERSION_P = 1
+APPVERSION_P = 2
 APPVERSION = $(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 
 # Application source files
@@ -156,7 +156,6 @@ DISABLE_STANDARD_APP_FILES = 1
 ########################################
 
 DEFINES += CHAINID_COINNAME=\"$(TICKER)\" CHAIN_ID=$(CHAIN_ID)
-DEFINES += BUILD_YEAR=\"$(shell date +%Y)\"
 
 # Enabled Features #
 include makefile_conf/features.mk

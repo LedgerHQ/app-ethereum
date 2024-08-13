@@ -14,5 +14,6 @@ const nbgl_icon_details_t* get_app_icon(bool caller_icon);
 const nbgl_icon_details_t* get_tx_icon(void);
 
 void ui_idle(void);
+void ui_settings(void);
 
 #endif  // _UI_NBGL_H_

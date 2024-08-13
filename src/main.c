@@ -548,14 +548,7 @@ __attribute__((noreturn)) void coin_main(libargs_t *args) {
 
                 if (!N_storage.initialized) {
                     internalStorage_t storage;
-                    storage.contractDetails = false;
-                    storage.displayNonce = false;
-#ifdef HAVE_EIP712_FULL_SUPPORT
-                    storage.verbose_eip712 = false;
-#endif
-#ifdef HAVE_DOMAIN_NAME
-                    storage.verbose_domain_name = false;
-#endif
+                    explicit_bzero(&storage, sizeof(storage));
                     storage.initialized = true;
                     nvm_write((void *) &N_storage, (void *) &storage, sizeof(internalStorage_t));
                 }

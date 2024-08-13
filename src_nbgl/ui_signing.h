@@ -4,6 +4,7 @@
 #define SIGN_BUTTON           "Hold to sign"
 #define REJECT_BUTTON         "Reject"
 #define SIGN(msg)             "Sign " msg "?"
+#define BLIND_SIGN(msg)       "Accept risk and sign " msg "?"
 #define REVIEW(msg)           "Review " msg
 #define REJECT(msg)           "Reject " msg
 #define REJECT_QUESTION(msg)  REJECT(msg) "?"

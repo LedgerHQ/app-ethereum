@@ -212,21 +212,14 @@ static void reviewCommon(void) {
                            g_stax_shared_buffer + buf_size,
                            reviewChoice);
     } else {
-        nbgl_useCaseReview(op,
-                           &pairsList,
-                           get_tx_icon(),
-                           REVIEW("transaction"),
-                           NULL,
-                           SIGN("transaction"),
-                           reviewChoice);
-    }
-}
-
-void blind_confirm_cb(bool confirm) {
-    if (confirm) {
-        reviewCommon();
-    } else {
-        reviewReject();
+        nbgl_useCaseReview(
+            op,
+            &pairsList,
+            get_tx_icon(),
+            REVIEW("transaction"),
+            NULL,
+            tmpContent.txContent.dataPresent ? BLIND_SIGN("transaction") : SIGN("transaction"),
+            reviewChoice);
     }
 }
 

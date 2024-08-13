@@ -15,14 +15,14 @@
 
 enum {
     BLIND_SIGNING_TOKEN = FIRST_USER_TOKEN,
-    DEBUG_TOKEN,
+#ifdef HAVE_DOMAIN_NAME
+    DOMAIN_NAME_VERBOSE_TOKEN,
+#endif
     NONCE_TOKEN,
 #ifdef HAVE_EIP712_FULL_SUPPORT
     EIP712_VERBOSE_TOKEN,
 #endif
-#ifdef HAVE_DOMAIN_NAME
-    DOMAIN_NAME_VERBOSE_TOKEN
-#endif
+    DEBUG_TOKEN,
 };
 
 enum {
@@ -30,10 +30,10 @@ enum {
 #ifdef HAVE_DOMAIN_NAME
     DOMAIN_NAME_VERBOSE_ID,
 #endif
+    NONCE_ID,
 #ifdef HAVE_EIP712_FULL_SUPPORT
     EIP712_VERBOSE_ID,
 #endif
-    NONCE_ID,
     DEBUG_ID,
     SETTINGS_SWITCHES_NB
 };
@@ -61,11 +61,13 @@ static void setting_toggle_callback(int token, uint8_t index, int page) {
             switches[BLIND_SIGNING_ID].initState = (nbgl_state_t) value;
             nvm_write((void *) &N_storage.dataAllowed, (void *) &value, sizeof(value));
             break;
-        case DEBUG_TOKEN:
-            value = !N_storage.contractDetails;
-            switches[DEBUG_ID].initState = (nbgl_state_t) value;
-            nvm_write((void *) &N_storage.contractDetails, (void *) &value, sizeof(value));
+#ifdef HAVE_DOMAIN_NAME
+        case DOMAIN_NAME_VERBOSE_TOKEN:
+            value = !N_storage.verbose_domain_name;
+            switches[DOMAIN_NAME_VERBOSE_ID].initState = (nbgl_state_t) value;
+            nvm_write((void *) &N_storage.verbose_domain_name, (void *) &value, sizeof(value));
             break;
+#endif  // HAVE_DOMAIN_NAME
         case NONCE_TOKEN:
             value = !N_storage.displayNonce;
             switches[NONCE_ID].initState = (nbgl_state_t) value;
@@ -78,13 +80,11 @@ static void setting_toggle_callback(int token, uint8_t index, int page) {
             nvm_write((void *) &N_storage.verbose_eip712, (void *) &value, sizeof(value));
             break;
 #endif  // HAVE_EIP712_FULL_SUPPORT
-#ifdef HAVE_DOMAIN_NAME
-        case DOMAIN_NAME_VERBOSE_TOKEN:
-            value = !N_storage.verbose_domain_name;
-            switches[DOMAIN_NAME_VERBOSE_ID].initState = (nbgl_state_t) value;
-            nvm_write((void *) &N_storage.verbose_domain_name, (void *) &value, sizeof(value));
+        case DEBUG_TOKEN:
+            value = !N_storage.contractDetails;
+            switches[DEBUG_ID].initState = (nbgl_state_t) value;
+            nvm_write((void *) &N_storage.contractDetails, (void *) &value, sizeof(value));
             break;
-#endif  // HAVE_DOMAIN_NAME
     }
 }
 
@@ -132,6 +132,12 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
     switches[DOMAIN_NAME_VERBOSE_ID].tuneId = TUNE_TAP_CASUAL;
 #endif  // HAVE_DOMAIN_NAME
 
+    switches[NONCE_ID].initState = N_storage.displayNonce ? ON_STATE : OFF_STATE;
+    switches[NONCE_ID].text = "Nonce";
+    switches[NONCE_ID].subText = "Display nonce in transactions.";
+    switches[NONCE_ID].token = NONCE_TOKEN;
+    switches[NONCE_ID].tuneId = TUNE_TAP_CASUAL;
+
 #ifdef HAVE_EIP712_FULL_SUPPORT
     switches[EIP712_VERBOSE_ID].initState = N_storage.verbose_eip712 ? ON_STATE : OFF_STATE;
     switches[EIP712_VERBOSE_ID].text = "Raw messages";
@@ -139,12 +145,6 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
     switches[EIP712_VERBOSE_ID].token = EIP712_VERBOSE_TOKEN;
     switches[EIP712_VERBOSE_ID].tuneId = TUNE_TAP_CASUAL;
 #endif  // HAVE_EIP712_FULL_SUPPORT
-
-    switches[NONCE_ID].initState = N_storage.displayNonce ? ON_STATE : OFF_STATE;
-    switches[NONCE_ID].text = "Nonce";
-    switches[NONCE_ID].subText = "Display nonce in transactions.";
-    switches[NONCE_ID].token = NONCE_TOKEN;
-    switches[NONCE_ID].tuneId = TUNE_TAP_CASUAL;
 
     switches[DEBUG_ID].initState = N_storage.contractDetails ? ON_STATE : OFF_STATE;
     switches[DEBUG_ID].text = "Debug smart contracts";

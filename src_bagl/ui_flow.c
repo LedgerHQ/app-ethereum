@@ -12,22 +12,22 @@
 // No risk of collision as this buffer is unused in the settings menu
 #define SETTING_BLIND_SIGNING_STATE       (strings.common.fullAmount + (BUF_INCREMENT * 0))
 #define SETTING_VERBOSE_DOMAIN_NAME_STATE (strings.common.fullAmount + (BUF_INCREMENT * 1))
-#define SETTING_VERBOSE_EIP712_STATE      (strings.common.fullAmount + (BUF_INCREMENT * 2))
-#define SETTING_DISPLAY_NONCE_STATE       (strings.common.fullAmount + (BUF_INCREMENT * 3))
+#define SETTING_DISPLAY_NONCE_STATE       (strings.common.fullAmount + (BUF_INCREMENT * 2))
+#define SETTING_VERBOSE_EIP712_STATE      (strings.common.fullAmount + (BUF_INCREMENT * 3))
 #define SETTING_DISPLAY_DATA_STATE        (strings.common.fullAmount + (BUF_INCREMENT * 4))
 
 #define BOOL_TO_STATE_STR(b) (b ? ENABLED_STR : DISABLED_STR)
 
 static void display_settings(const ux_flow_step_t* const start_step);
 static void switch_settings_blind_signing(void);
+#ifdef HAVE_DOMAIN_NAME
+static void switch_settings_verbose_domain_name(void);
+#endif  // HAVE_DOMAIN_NAME
 static void switch_settings_display_data(void);
 static void switch_settings_display_nonce(void);
 #ifdef HAVE_EIP712_FULL_SUPPORT
 static void switch_settings_verbose_eip712(void);
 #endif  // HAVE_EIP712_FULL_SUPPORT
-#ifdef HAVE_DOMAIN_NAME
-static void switch_settings_verbose_domain_name(void);
-#endif  // HAVE_DOMAIN_NAME
 
 //////////////////////////////////////////////////////////////////////
 // clang-format off
@@ -105,19 +105,6 @@ UX_STEP_CB(
     });
 #endif // HAVE_DOMAIN_NAME
 
-#ifdef HAVE_EIP712_FULL_SUPPORT
-UX_STEP_CB(
-    ux_settings_flow_verbose_eip712_step,
-    bnnn,
-    switch_settings_verbose_eip712(),
-    {
-      "Raw messages",
-      "Displays raw content",
-      "from EIP712 messages",
-      SETTING_VERBOSE_EIP712_STATE
-    });
-#endif // HAVE_EIP712_FULL_SUPPORT
-
 UX_STEP_CB(
     ux_settings_flow_display_nonce_step,
 #ifdef TARGET_NANOS
@@ -137,6 +124,19 @@ UX_STEP_CB(
 #endif
       SETTING_DISPLAY_NONCE_STATE
     });
+
+#ifdef HAVE_EIP712_FULL_SUPPORT
+UX_STEP_CB(
+    ux_settings_flow_verbose_eip712_step,
+    bnnn,
+    switch_settings_verbose_eip712(),
+    {
+      "Raw messages",
+      "Displays raw content",
+      "from EIP712 messages",
+      SETTING_VERBOSE_EIP712_STATE
+    });
+#endif // HAVE_EIP712_FULL_SUPPORT
 
 UX_STEP_CB(
     ux_settings_flow_display_data_step,
@@ -173,10 +173,10 @@ UX_FLOW(ux_settings_flow,
 #ifdef HAVE_DOMAIN_NAME
         &ux_settings_flow_verbose_domain_name_step,
 #endif  // HAVE_DOMAIN_NAME
+        &ux_settings_flow_display_nonce_step,
 #ifdef HAVE_EIP712_FULL_SUPPORT
         &ux_settings_flow_verbose_eip712_step,
 #endif  // HAVE_EIP712_FULL_SUPPORT
-        &ux_settings_flow_display_nonce_step,
         &ux_settings_flow_display_data_step,
         &ux_settings_flow_back_step);
 

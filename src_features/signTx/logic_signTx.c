@@ -84,6 +84,11 @@ customStatus_e customProcessor(txContext_t *context) {
         uint32_t copySize;
         uint32_t fieldPos = context->currentFieldPos;
         if (fieldPos == 0) {  // not reached if a plugin is available
+            if (!N_storage.dataAllowed) {
+                PRINTF("Data field forbidden\n");
+                ui_error_blind_signing();
+                return CUSTOM_FAULT;
+            }
             if (!N_storage.contractDetails) {
                 return CUSTOM_NOT_HANDLED;
             }
@@ -436,6 +441,12 @@ __attribute__((noinline)) static bool finalize_parsing_helper(void) {
         THROW(ERR_SILENT_MODE_CHECK_FAILED);
     }
 
+    if (tmpContent.txContent.dataPresent && !N_storage.dataAllowed) {
+        report_finalize_error();
+        ui_error_blind_signing();
+        return false;
+    }
+
     // Prepare destination address and amount to display
     if (g_use_standard_ui) {
         // Format the address in a temporary buffer, if in swap case compare it with validated
@@ -539,7 +550,7 @@ void finalizeParsing(void) {
     } else {
         // If blind-signing detected, start the warning flow beforehand
         if (tmpContent.txContent.dataPresent) {
-            ui_warning_contract_data();
+            ui_warning_blind_signing();
         } else {
             start_signature_flow();
         }

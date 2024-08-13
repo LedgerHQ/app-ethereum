@@ -183,6 +183,15 @@ UX_STEP_CB(
       "and send",
     });
 UX_STEP_CB(
+    ux_approval_accept_blind_step,
+    pbb,
+    io_seproxyhal_touch_tx_ok(NULL),
+    {
+      &C_icon_validate_14,
+      "Accept risk",
+      "and send",
+    });
+UX_STEP_CB(
     ux_approval_reject_step,
     pb,
     io_seproxyhal_touch_tx_cancel(NULL),
@@ -197,14 +206,6 @@ UX_STEP_NOCB(
     {
       .title = "Nonce",
       .text = strings.common.nonce,
-    });
-
-UX_STEP_NOCB(ux_approval_blind_signing_reminder_step,
-    pbb,
-    {
-      &C_icon_warning,
-      "You accepted",
-      "the risks",
     });
 // clang-format on
 
@@ -256,10 +257,11 @@ void ux_approve_tx(bool fromPlugin) {
     }
 
     ux_approval_tx_flow[step++] = &ux_approval_fees_step;
-    if (!fromPlugin && tmpContent.txContent.dataPresent && !N_storage.contractDetails) {
-        ux_approval_tx_flow[step++] = &ux_approval_blind_signing_reminder_step;
+    if (tmpContent.txContent.dataPresent) {
+        ux_approval_tx_flow[step++] = &ux_approval_accept_blind_step;
+    } else {
+        ux_approval_tx_flow[step++] = &ux_approval_accept_step;
     }
-    ux_approval_tx_flow[step++] = &ux_approval_accept_step;
     ux_approval_tx_flow[step++] = &ux_approval_reject_step;
     ux_approval_tx_flow[step++] = FLOW_END_STEP;
 

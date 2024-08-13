@@ -62,6 +62,7 @@ def test_blind_sign(firmware: Firmware,
     global DEVICE_ADDR
     app_client = EthAppClient(backend)
 
+    settings_toggle(firmware, navigator, [SettingID.BLIND_SIGNING])
     if DEVICE_ADDR is None:
         with app_client.get_public_addr(bip32_path=BIP32_PATH, display=False):
             pass
@@ -77,41 +78,42 @@ def test_blind_sign(firmware: Firmware,
 
             moves = []
             if firmware.is_nano:
+                # blind signing warning
+                moves += [NavInsID.RIGHT_CLICK]
+
+                # review | from | amount | to | fees
+                moves += [NavInsID.RIGHT_CLICK] * 5
+
                 if firmware == Firmware.NANOS:
-                    moves += [NavInsID.RIGHT_CLICK] * 2
-                else:
+                    # for the two addresses
                     moves += [NavInsID.RIGHT_CLICK] * 4
 
                 if not sign:
                     moves += [NavInsID.RIGHT_CLICK]
 
                 moves += [NavInsID.BOTH_CLICK]
+            else:
+                moves += [NavInsID.USE_CASE_CHOICE_REJECT]
+
+                if firmware == Firmware.STAX:
+                    moves += [NavInsID.SWIPE_CENTER_TO_LEFT] * 2
+                else:
+                    moves += [NavInsID.SWIPE_CENTER_TO_LEFT] * 3
 
                 if sign:
-                    if firmware == Firmware.NANOS:
-                        moves += [NavInsID.RIGHT_CLICK] * 10
-                    else:
-                        moves += [NavInsID.RIGHT_CLICK] * 6
-                    moves += [NavInsID.BOTH_CLICK]
-            else:
-                if firmware == Firmware.STAX:
-                    tap_number = 2
-                else:
-                    tap_number = 3
-                if sign:
-                    moves += [NavInsID.USE_CASE_CHOICE_REJECT]
-                    moves += [NavInsID.USE_CASE_CHOICE_CONFIRM]
-                    moves += [NavInsID.SWIPE_CENTER_TO_LEFT] * tap_number
                     moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
                 else:
+                    moves += [NavInsID.USE_CASE_REVIEW_REJECT]
                     moves += [NavInsID.USE_CASE_CHOICE_CONFIRM]
+
             navigator.navigate_and_compare(default_screenshot_path,
                                            test_name,
                                            moves)
     except ExceptionRAPDU as e:
-        assert e.status == StatusWord.INVALID_DATA
+        assert not sign
+        assert e.status == StatusWord.CONDITION_NOT_SATISFIED
     else:
-        assert sign is True
+        assert sign
         # verify signature
         vrs = ResponseParser.signature(app_client.response().data)
         addr = recover_transaction(tx_params, vrs)
@@ -120,22 +122,20 @@ def test_blind_sign(firmware: Firmware,
 
 def test_blind_sign_reject_in_risk_review(firmware: Firmware,
                                           backend: BackendInterface,
-                                          navigator: Navigator,
-                                          default_screenshot_path: Path,
-                                          test_name: str):
+                                          navigator: Navigator):
     app_client = EthAppClient(backend)
 
     if firmware.is_nano:
         pytest.skip("Not supported on non-NBGL apps")
 
+    settings_toggle(firmware, navigator, [SettingID.BLIND_SIGNING])
+
     try:
         with app_client.sign(BIP32_PATH, common_tx_params()):
-            moves = [NavInsID.USE_CASE_CHOICE_REJECT] * 2
-            navigator.navigate_and_compare(default_screenshot_path,
-                                           test_name,
-                                           moves)
+            moves = [NavInsID.USE_CASE_CHOICE_CONFIRM]
+            navigator.navigate(moves)
     except ExceptionRAPDU as e:
-        assert e.status == StatusWord.INVALID_DATA
+        assert e.status == StatusWord.CONDITION_NOT_SATISFIED
     else:
         assert False  # Should have thrown
 
@@ -155,46 +155,37 @@ def test_sign_parameter_selector(firmware: Firmware,
             pass
         _, DEVICE_ADDR, _ = ResponseParser.pk_addr(app_client.response().data)
 
-    settings_toggle(firmware, navigator, [SettingID.DEBUG_DATA])
+    settings_toggle(firmware, navigator, [SettingID.BLIND_SIGNING, SettingID.DEBUG_DATA])
 
     tx_params = common_tx_params()
     data_len = len(bytes.fromhex(tx_params["data"][2:]))
-    # selector
-    flows = 1
-    data_len -= 4
-    # parameters
-    flows += data_len // 32
+    params = (data_len - 4) // 32
     with app_client.sign(BIP32_PATH, tx_params):
         moves = []
         if firmware.is_nano:
+            # verify | selector
+            moves += [NavInsID.RIGHT_CLICK] * 2 + [NavInsID.BOTH_CLICK]
             if firmware == Firmware.NANOS:
-                moves += [NavInsID.RIGHT_CLICK] * 2 + [NavInsID.BOTH_CLICK]
-                # Parameters on Nano S are split on multiple pages, hardcoded because the two parameters don't use the
-                # same amount of pages because of non-monospace fonts
+                # hardcoded for each because for some params take more pages than others
+                # parameter 1
                 moves += [NavInsID.RIGHT_CLICK] * 4 + [NavInsID.BOTH_CLICK]
+                # parameter 2
                 moves += [NavInsID.RIGHT_CLICK] * 3 + [NavInsID.BOTH_CLICK]
+                # blind signing | review | from | amount | to | fees
+                moves += [NavInsID.RIGHT_CLICK] * 10
             else:
-                moves += ([NavInsID.RIGHT_CLICK] * 2 + [NavInsID.BOTH_CLICK]) * flows
-
-            if firmware == Firmware.NANOS:
-                moves += [NavInsID.RIGHT_CLICK] * 2
-            else:
-                moves += [NavInsID.RIGHT_CLICK] * 4
-            moves += [NavInsID.BOTH_CLICK]
-
-            if firmware == Firmware.NANOS:
-                moves += [NavInsID.RIGHT_CLICK] * 9
-            else:
-                moves += [NavInsID.RIGHT_CLICK] * 5
+                # (verify | parameter) * flows
+                moves += ([NavInsID.RIGHT_CLICK] * 2 + [NavInsID.BOTH_CLICK]) * params
+                # blind signing | review | from | amount | to | fees
+                moves += [NavInsID.RIGHT_CLICK] * 6
             moves += [NavInsID.BOTH_CLICK]
         else:
+            moves += ([NavInsID.SWIPE_CENTER_TO_LEFT] * 2 + [NavInsID.USE_CASE_REVIEW_CONFIRM]) * (1 + params)
+            moves += [NavInsID.USE_CASE_CHOICE_REJECT]
             if firmware == Firmware.STAX:
                 tap_number = 2
             else:
                 tap_number = 3
-            moves += ([NavInsID.SWIPE_CENTER_TO_LEFT] * 2 + [NavInsID.USE_CASE_REVIEW_CONFIRM]) * flows
-            moves += [NavInsID.USE_CASE_CHOICE_REJECT]
-            moves += [NavInsID.USE_CASE_CHOICE_CONFIRM]
             moves += [NavInsID.SWIPE_CENTER_TO_LEFT] * tap_number
             moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
         navigator.navigate_and_compare(default_screenshot_path,
@@ -205,3 +196,28 @@ def test_sign_parameter_selector(firmware: Firmware,
     vrs = ResponseParser.signature(app_client.response().data)
     addr = recover_transaction(tx_params, vrs)
     assert addr == DEVICE_ADDR
+
+
+def test_blind_sign_not_enabled_error(firmware: Firmware,
+                                      backend: BackendInterface,
+                                      navigator: Navigator,
+                                      test_name: str,
+                                      default_screenshot_path: Path):
+    app_client = EthAppClient(backend)
+
+    try:
+        with app_client.sign(BIP32_PATH, common_tx_params()):
+            moves = []
+            if firmware.is_nano:
+                if firmware == Firmware.NANOS:
+                    moves += [NavInsID.RIGHT_CLICK]
+                moves += [NavInsID.BOTH_CLICK]
+            else:
+                moves += [NavInsID.USE_CASE_CHOICE_REJECT]
+            navigator.navigate_and_compare(default_screenshot_path,
+                                           test_name,
+                                           moves)
+    except ExceptionRAPDU as e:
+        assert e.status == StatusWord.INVALID_DATA
+    else:
+        assert False  # Should have thrown

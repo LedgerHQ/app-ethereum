@@ -12,8 +12,12 @@ void ui_idle(void) {
     ux_flow_init(0, ux_idle_flow, NULL);
 }
 
-void ui_warning_contract_data(void) {
-    ux_flow_init(0, ux_blind_signing_flow, NULL);
+void ui_error_blind_signing(void) {
+    ux_flow_init(0, ux_error_blind_signing_flow, NULL);
+}
+
+void ui_warning_blind_signing(void) {
+    ux_flow_init(0, ux_warning_blind_signing_flow, NULL);
 }
 
 void ui_display_public_eth2(void) {

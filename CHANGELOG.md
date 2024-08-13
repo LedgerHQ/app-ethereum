@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.11.2](https://github.com/ledgerhq/app-ethereum/compare/1.11.1...1.11.2) - 2024-08-13
+
+### Added
+
+- Blind-signing setting
+
+### Changed
+
+- Simplified blind-signing warnings on Flex & Stax
+- Restored blind-signing warning screen from < 1.11.0 on Nano devices
+
 ## [1.11.1](https://github.com/ledgerhq/app-ethereum/compare/1.11.0...1.11.1) - 2024-07-26
 
 ### Fixed
@@ -38,6 +49,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Ledger Flex support
 
 ### Removed
+
 - (clone) Flare
 - (clone) Flare Coston
 - (clone) Eth Goerli

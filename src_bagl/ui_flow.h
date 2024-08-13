@@ -8,7 +8,9 @@
 
 extern const ux_flow_step_t* const ux_idle_flow[];
 
-extern const ux_flow_step_t* const ux_blind_signing_flow[];
+extern const ux_flow_step_t* const ux_error_blind_signing_flow[];
+
+extern const ux_flow_step_t* const ux_warning_blind_signing_flow[];
 
 extern const ux_flow_step_t* const ux_settings_flow[];
 

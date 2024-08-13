@@ -5,22 +5,25 @@ from typing import Union
 
 
 class SettingID(Enum):
+    BLIND_SIGNING = auto()
     VERBOSE_ENS = auto()
-    VERBOSE_EIP712 = auto()
     NONCE = auto()
+    VERBOSE_EIP712 = auto()
     DEBUG_DATA = auto()
 
 
 def get_device_settings(firmware: Firmware) -> list[SettingID]:
     if firmware == Firmware.NANOS:
         return [
+            SettingID.BLIND_SIGNING,
             SettingID.NONCE,
             SettingID.DEBUG_DATA,
         ]
     return [
+        SettingID.BLIND_SIGNING,
         SettingID.VERBOSE_ENS,
-        SettingID.VERBOSE_EIP712,
         SettingID.NONCE,
+        SettingID.VERBOSE_EIP712,
         SettingID.DEBUG_DATA,
     ]
 

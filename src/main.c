@@ -273,8 +273,7 @@ void app_main(void) {
             CATCH(EXCEPTION_IO_RESET) {
                 // reset IO and UX before continuing
                 CLOSE_TRY;
-                // app_exit();
-                return;
+                app_exit();
             }
             CATCH_OTHER(e) {
                 PRINTF("=> CATCH_OTHER: 0x%x\n", e);

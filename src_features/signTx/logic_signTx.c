@@ -389,6 +389,7 @@ __attribute__((noinline)) static bool finalize_parsing_helper(void) {
             pluginFinalize.result = pluginProvideInfo.result;
         }
         if (pluginFinalize.result != ETH_PLUGIN_RESULT_FALLBACK) {
+            PRINTF("pluginFinalize.result %d successful\n", pluginFinalize.result);
             // Handle the right interface
             switch (pluginFinalize.uiType) {
                 case ETH_UI_TYPE_GENERIC:
@@ -423,6 +424,10 @@ __attribute__((noinline)) static bool finalize_parsing_helper(void) {
                     report_finalize_error();
                     return false;
             }
+        } else if (G_called_from_swap && G_swap_mode == SWAP_MODE_CROSSCHAIN_SUCCESS) {
+            PRINTF("Plugin swap_with_calldata fell back for UI with success\n");
+            // We are not bling signing, the data has been validated by the plugin
+            tmpContent.txContent.dataPresent = false;
         }
     }
 
@@ -441,12 +446,6 @@ __attribute__((noinline)) static bool finalize_parsing_helper(void) {
         THROW(ERR_SILENT_MODE_CHECK_FAILED);
     }
 
-    if (tmpContent.txContent.dataPresent && !N_storage.dataAllowed) {
-        report_finalize_error();
-        ui_error_blind_signing();
-        return false;
-    }
-
     // Specific calldata check when in swap mode
     if (G_called_from_swap) {
         // Two success cases: we are in standard mode and no calldata was received
@@ -455,6 +454,13 @@ __attribute__((noinline)) static bool finalize_parsing_helper(void) {
             PRINTF("Error: G_swap_mode %d refused\n", G_swap_mode);
             THROW(ERR_SILENT_MODE_CHECK_FAILED);
         }
+    }
+
+    if (tmpContent.txContent.dataPresent && !N_storage.dataAllowed) {
+        PRINTF("Data is present but not allowed\n");
+        report_finalize_error();
+        ui_error_blind_signing();
+        return false;
     }
 
     // Prepare destination address and amount to display

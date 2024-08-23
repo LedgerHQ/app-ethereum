@@ -287,9 +287,10 @@ static bool array_depth_list_pop(void) {
  *
  * @param[in] skip_if_array skip if path is already pointing at an array
  * @param[in] stop_at_array stop at the first downstream array
+ * @param[in] do_typehash if a typehash needs to be done when a new struct is encountered
  * @return whether the path update worked or not
  */
-static bool path_update(bool skip_if_array, bool stop_at_array) {
+static bool path_update(bool skip_if_array, bool stop_at_array, bool do_typehash) {
     uint8_t fields_count;
     const void *struct_ptr;
     const void *starting_field_ptr;
@@ -327,9 +328,7 @@ static bool path_update(bool skip_if_array, bool stop_at_array) {
             return false;
         }
 
-        // The only times they are both at false is if we are traversing an empty array,
-        // don't do a typehash in that case
-        if ((skip_if_array != false) || (stop_at_array != false)) {
+        if (do_typehash) {
             // get the struct typehash
             if (type_hash(typename, typename_len, hash) == false) {
                 return false;
@@ -399,7 +398,7 @@ bool path_set_root(const char *const struct_name, uint8_t name_length) {
     struct_state = DEFINED;
 
     // because the first field could be a struct type
-    path_update(true, true);
+    path_update(true, true, true);
     return true;
 }
 
@@ -467,7 +466,7 @@ bool path_new_array_depth(const uint8_t *const data, uint8_t length) {
     }
 
     array_size = *data;
-    if (!path_update(false, array_size > 0)) {
+    if (!path_update(false, array_size > 0, array_size > 0)) {
         return false;
     }
     array_depth_count_bak = path_struct->array_depth_count;
@@ -583,7 +582,7 @@ static bool path_advance_in_array(void) {
  *
  * @return whether the advancement was successful or not
  */
-bool path_advance(bool array_check) {
+bool path_advance(bool do_typehash) {
     bool end_reached;
 
     do {
@@ -593,7 +592,7 @@ bool path_advance(bool array_check) {
             end_reached = false;
         }
     } while (end_reached);
-    return path_update(array_check, array_check);
+    return path_update(true, true, do_typehash);
 }
 
 /**

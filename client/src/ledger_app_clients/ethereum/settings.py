@@ -31,28 +31,20 @@ def get_device_settings(firmware: Firmware) -> list[SettingID]:
 def get_setting_position(firmware: Firmware, setting_idx: int, per_page: int) -> tuple[int, int]:
     if firmware == Firmware.STAX:
         screen_height = 672  # px
+        screen_width = 400  # px
         header_height = 88  # px
         footer_height = 92  # px
-        x_offset = 350  # px
     else:
         screen_height = 600  # px
-        header_height = 92  # px
-        footer_height = 97  # px
-        x_offset = 420  # px
+        screen_width = 480  # px
+        header_height = 96  # px
+        footer_height = 96  # px
+
     index_in_page = setting_idx % per_page
-    if index_in_page == 0:
-        y_offset = header_height + 10
-    elif per_page == 3:
-        if setting_idx == 1:
-            # 2nd setting over 3: middle of the screen
-            y_offset = screen_height // 2
-        else:
-            # Last setting
-            y_offset = screen_height - footer_height - 10
-    else:
-        # 2 per page, requesting the 2nd one; middle of screen is ok
-        y_offset = screen_height // 2
-    return x_offset, y_offset
+    usable_height = screen_height - (header_height + footer_height)
+    setting_height = usable_height // per_page
+    offset = (setting_height * index_in_page) + (setting_height // 2)
+    return screen_width // 2, header_height + offset
 
 
 def settings_toggle(firmware: Firmware, nav: Navigator, to_toggle: list[SettingID]):

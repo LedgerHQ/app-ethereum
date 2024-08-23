@@ -65,13 +65,21 @@ typedef bool verificationAlgo(const cx_ecfp_public_key_t *,
 static pluginType_t getPluginType(char *pluginName, uint8_t pluginNameLength) {
     if (pluginNameLength == sizeof(ERC721_STR) - 1 &&
         strncmp(pluginName, ERC721_STR, pluginNameLength) == 0) {
+        PRINTF("Using internal plugin ERC721\n");
         return ERC721;
     } else if (pluginNameLength == sizeof(ERC1155_STR) - 1 &&
                strncmp(pluginName, ERC1155_STR, pluginNameLength) == 0) {
+        PRINTF("Using internal plugin ERC1155\n");
         return ERC1155;
     } else {
+        PRINTF("Using external plugin\n");
         return EXTERNAL;
     }
+}
+
+void set_swap_with_calldata_plugin_type(void) {
+    PRINTF("Using internal plugin SWAP_WITH_CALLDATA\n");
+    pluginType = SWAP_WITH_CALLDATA;
 }
 
 void handleSetPlugin(uint8_t p1,

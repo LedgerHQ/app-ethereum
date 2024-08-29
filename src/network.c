@@ -5,12 +5,6 @@
 #include "shared_context.h"
 #include "common_utils.h"
 
-typedef struct network_info_s {
-    const char *name;
-    const char *ticker;
-    uint64_t chain_id;
-} network_info_t;
-
 static const char *unknown_ticker = "???";
 
 // Mapping of chain ids to networks.

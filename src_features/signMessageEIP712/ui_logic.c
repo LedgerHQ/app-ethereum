@@ -258,7 +258,8 @@ static bool ui_712_format_addr(const uint8_t *data, uint8_t length, bool first) 
                                   strings.tmp.tmp,
                                   sizeof(strings.tmp.tmp),
                                   chainConfig->chainId)) {
-        THROW(APDU_RESPONSE_ERROR_NO_INFO);
+        apdu_response_code = APDU_RESPONSE_ERROR_NO_INFO;
+        return false;
     }
     return true;
 }

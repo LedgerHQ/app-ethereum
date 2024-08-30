@@ -141,12 +141,7 @@ void __attribute__((noreturn)) handle_swap_sign_transaction(const chain_config_t
 
     common_app_init();
 
-    if (N_storage.initialized != 0x01) {
-        internalStorage_t storage;
-        explicit_bzero(&storage, sizeof(storage));
-        storage.initialized = true;
-        nvm_write((void*) &N_storage, (void*) &storage, sizeof(internalStorage_t));
-    }
+    storage_init();
 
 #ifdef HAVE_NBGL
     nbgl_useCaseSpinner("Signing");

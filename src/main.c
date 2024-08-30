@@ -20,6 +20,7 @@
 #include "common_ui.h"
 
 #include "os_io_seproxyhal.h"
+#include "io.h"
 
 #include "parser.h"
 #include "glyphs.h"
@@ -239,6 +240,7 @@ void app_main(void) {
     uint32_t tx = 0;
     uint32_t flags = 0;
     uint16_t sw = APDU_NO_RESPONSE;
+    bool quit_now = false;
     command_t cmd = {0};
 
     // DESIGN NOTE: the bootloader ignores the way APDU are fetched. The only
@@ -250,75 +252,68 @@ void app_main(void) {
     for (;;) {
         BEGIN_TRY {
             TRY {
-                rx = tx;
-                tx = 0;  // ensure no race in catch_other if io_exchange throws
-                         // an error
-                rx = io_exchange(CHANNEL_APDU | flags, rx);
-                flags = 0;
+                rx = io_exchange(CHANNEL_APDU | flags, tx);
 
                 if (apdu_parser(&cmd, G_io_apdu_buffer, rx) == false) {
-                    THROW(APDU_RESPONSE_WRONG_DATA_LENGTH);
-                }
-                PRINTF("=> CLA=%02X | INS=%02X | P1=%02X | P2=%02X | Lc=%02X\n",
-                       cmd.cla,
-                       cmd.ins,
-                       cmd.p1,
-                       cmd.p2,
-                       cmd.lc);
+                    PRINTF("=> BAD LENGTH: %d\n", rx);
+                    sw = APDU_RESPONSE_WRONG_DATA_LENGTH;
+                } else {
+                    PRINTF("=> CLA=%02X | INS=%02X | P1=%02X | P2=%02X | Lc=%02X\n",
+                           cmd.cla,
+                           cmd.ins,
+                           cmd.p1,
+                           cmd.p2,
+                           cmd.lc);
 
-                sw = handleApdu(&cmd, &flags, &tx);
-                if (sw == APDU_NO_RESPONSE) {
-                    CLOSE_TRY;
-                    continue;
+                    tx = 0;
+                    flags = 0;
+                    sw = handleApdu(&cmd, &flags, &tx);
                 }
-                THROW(sw);
             }
             CATCH(EXCEPTION_IO_RESET) {
                 // reset IO and UX before continuing
                 CLOSE_TRY;
+                // app_exit();
                 return;
             }
             CATCH_OTHER(e) {
-                bool quit_now = G_called_from_swap && G_swap_response_ready;
-                switch (e & 0xF000) {
-                    case 0x6000:
-                        // Wipe the transaction context and report the exception
-                        sw = e;
-                        reset_app_context();
-                        break;
-                    case APDU_RESPONSE_OK:
-                        // All is well
-                        sw = e;
-                        break;
-                    default:
-                        // Internal error
-                        sw = APDU_RESPONSE_INTERNAL_ERROR | (e & 0x7FF);
-                        reset_app_context();
-                        break;
-                }
-                if (e != APDU_RESPONSE_OK) {
-                    flags &= ~IO_ASYNCH_REPLY;
-                }
-                // Unexpected exception => report
-                U2BE_ENCODE(G_io_apdu_buffer, tx, sw);
-                tx += 2;
-
-                // If we are in swap mode and have validated a TX, we send it and immediately quit
-                if (quit_now) {
-                    if (io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx) == 0) {
-                        // In case of success, the apdu is sent immediately and eth exits
-                        // Reaching this code means we encountered an error
-                        finalize_exchange_sign_transaction(false);
-                    } else {
-                        PRINTF("Unrecoverable\n");
-                        app_exit();
-                    }
-                }
+                PRINTF("=> CATCH_OTHER: 0x%x\n", e);
+                // Just report the exception
+                sw = e;
             }
             FINALLY {
             }
         }
         END_TRY;
+        if (sw == APDU_NO_RESPONSE) {
+            // Nothing to report
+            continue;
+        }
+        quit_now = G_called_from_swap && G_swap_response_ready;
+        if ((sw != APDU_RESPONSE_OK) && (sw != APDU_RESPONSE_CMD_CODE_NOT_SUPPORTED)) {
+            if ((sw & 0xF000) != 0x6000) {
+                // Internal error
+                sw = APDU_RESPONSE_INTERNAL_ERROR | (sw & 0x7FF);
+            }
+            reset_app_context();
+            flags &= ~IO_ASYNCH_REPLY;
+        }
+
+        // Report Status Word
+        U2BE_ENCODE(G_io_apdu_buffer, tx, sw);
+        tx += 2;
+
+        // If we are in swap mode and have validated a TX, we send it and immediately quit
+        if (quit_now) {
+            if (io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx) == 0) {
+                // In case of success, the apdu is sent immediately and eth exits
+                // Reaching this code means we encountered an error
+                finalize_exchange_sign_transaction(false);
+            } else {
+                PRINTF("Unrecoverable\n");
+                app_exit();
+            }
+        }
     }
 }
 
@@ -328,7 +323,7 @@ static void init_coin_config(chain_config_t *coin_config) {
     coin_config->chainId = CHAIN_ID;
 }
 
-static void storage_init(void) {
+void storage_init(void) {
     internalStorage_t storage;
     if (N_storage.initialized) {
         return;
@@ -339,7 +334,7 @@ static void storage_init(void) {
     nvm_write((void *) &N_storage, (void *) &storage, sizeof(internalStorage_t));
 }
 
-__attribute__((noreturn)) void coin_main(eth_libargs_t *args) {
+void coin_main(eth_libargs_t *args) {
     chain_config_t config;
     if (args) {
         if (args->chain_config != NULL) {
@@ -361,23 +356,18 @@ __attribute__((noreturn)) void coin_main(eth_libargs_t *args) {
     }
 
     reset_app_context();
+    storage_init();
+    common_app_init();
 
-    for (;;) {
-        common_app_init();
-
-        storage_init();
-
-        ui_idle();
+    io_init();
+    ui_idle();
 
 #ifdef HAVE_DOMAIN_NAME
-        // to prevent it from having a fixed value at boot
-        roll_challenge();
+    // to prevent it from having a fixed value at boot
+    roll_challenge();
 #endif  // HAVE_DOMAIN_NAME
 
-        app_main();
-    }
-    // Should not return
-    os_sched_exit(-1);
+    app_main();
 }
 
 __attribute__((noreturn)) void library_main(eth_libargs_t *args) {

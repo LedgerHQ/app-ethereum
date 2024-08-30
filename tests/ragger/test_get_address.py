@@ -21,7 +21,7 @@ def with_chaincode_fixture(request) -> bool:
     return request.param
 
 
-@pytest.fixture(name="chain", params=[None, 1, 2, 5, 137])
+@pytest.fixture(name="chain", params=[None, 1, 2, 5, 137, 138])
 def chain_fixture(request) -> Optional[int]:
     return request.param
 

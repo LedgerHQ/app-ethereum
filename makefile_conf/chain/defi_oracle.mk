@@ -1,0 +1,4 @@
+PATH_APP_LOAD_PARAMS += "44'/60'"
+TICKER = "ETH"
+CHAIN_ID = 138
+APPNAME = "Defi Oracle Meta"

@@ -164,7 +164,7 @@ void or256(const uint256_t *const number1,
     or128(&LOWER_P(number1), &LOWER_P(number2), &LOWER_P(target));
 }
 
-void mul256(const uint256_t *const number1,
+bool mul256(const uint256_t *const number1,
             const uint256_t *const number2,
             uint256_t *const target) {
     uint8_t num1[INT256_LENGTH], num2[INT256_LENGTH], result[INT256_LENGTH * 2];
@@ -173,11 +173,14 @@ void mul256(const uint256_t *const number1,
         write_u64_be(num1 + i * sizeof(uint64_t), 0, number1->elements[i / 2].elements[i % 2]);
         write_u64_be(num2 + i * sizeof(uint64_t), 0, number2->elements[i / 2].elements[i % 2]);
     }
-    CX_ASSERT(cx_math_mult_no_throw(result, num1, num2, sizeof(num1)));
+    if (cx_math_mult_no_throw(result, num1, num2, sizeof(num1)) != CX_OK) {
+        return false;
+    }
     for (uint8_t i = 0; i < 4; i++) {
         target->elements[i / 2].elements[i % 2] =
             read_u64_be((result + 32 + i * sizeof(uint64_t)), 0);
     }
+    return true;
 }
 
 void divmod256(const uint256_t *const l,

@@ -45,7 +45,7 @@ void sub256(const uint256_t *const number1,
             const uint256_t *const number2,
             uint256_t *const target);
 void or256(const uint256_t *const number1, const uint256_t *const number2, uint256_t *const target);
-void mul256(const uint256_t *const number1,
+bool mul256(const uint256_t *const number1,
             const uint256_t *const number2,
             uint256_t *const target);
 void divmod256(const uint256_t *const l,

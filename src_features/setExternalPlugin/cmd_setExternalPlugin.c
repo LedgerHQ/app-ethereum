@@ -10,15 +10,7 @@
 #include "os_pki.h"
 #endif
 
-void handleSetExternalPlugin(uint8_t p1,
-                             uint8_t p2,
-                             const uint8_t *workBuffer,
-                             uint8_t dataLength,
-                             unsigned int *flags,
-                             unsigned int *tx) {
-    UNUSED(p1);
-    UNUSED(p2);
-    UNUSED(flags);
+uint16_t handleSetExternalPlugin(const uint8_t *workBuffer, uint8_t dataLength) {
     PRINTF("Handling set Plugin\n");
     uint8_t hash[INT256_LENGTH];
     uint8_t pluginNameLength = *workBuffer;
@@ -30,14 +22,14 @@ void handleSetExternalPlugin(uint8_t p1,
 
     if (dataLength <= payload_size) {
         PRINTF("data too small: expected at least %d got %d\n", payload_size, dataLength);
-        THROW(APDU_RESPONSE_INVALID_DATA);
+        return APDU_RESPONSE_INVALID_DATA;
     }
 
     if (pluginNameLength + 1 > sizeof(dataContext.tokenContext.pluginName)) {
         PRINTF("name length too big: expected max %d, got %d\n",
                sizeof(dataContext.tokenContext.pluginName),
                pluginNameLength + 1);
-        THROW(APDU_RESPONSE_INVALID_DATA);
+        return APDU_RESPONSE_INVALID_DATA;
     }
 
     // check Ledger's signature over the payload
@@ -53,11 +45,12 @@ void handleSetExternalPlugin(uint8_t p1,
 #endif
                                         (uint8_t *) (workBuffer + payload_size),
                                         dataLength - payload_size);
-#ifndef HAVE_BYPASS_SIGNATURES
     if (error != CX_OK) {
-        THROW(APDU_RESPONSE_INVALID_DATA);
-    }
+        PRINTF("Invalid signature\n");
+#ifndef HAVE_BYPASS_SIGNATURES
+        return APDU_RESPONSE_INVALID_DATA;
 #endif
+    }
 
     // move on to the rest of the payload parsing
     workBuffer++;
@@ -79,7 +72,8 @@ void handleSetExternalPlugin(uint8_t p1,
             memset(dataContext.tokenContext.pluginName,
                    0,
                    sizeof(dataContext.tokenContext.pluginName));
-            THROW(0x6984);
+            CLOSE_TRY;
+            return APDU_RESPONSE_PLUGIN_NOT_INSTALLED;
         }
         FINALLY {
         }
@@ -87,13 +81,10 @@ void handleSetExternalPlugin(uint8_t p1,
     END_TRY;
 
     PRINTF("Plugin found\n");
-
     memmove(dataContext.tokenContext.contractAddress, workBuffer, ADDRESS_LENGTH);
     workBuffer += ADDRESS_LENGTH;
     memmove(dataContext.tokenContext.methodSelector, workBuffer, SELECTOR_SIZE);
-
     pluginType = EXTERNAL;
 
-    G_io_apdu_buffer[(*tx)++] = 0x90;
-    G_io_apdu_buffer[(*tx)++] = 0x00;
+    return APDU_RESPONSE_OK;
 }

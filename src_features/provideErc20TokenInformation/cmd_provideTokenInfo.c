@@ -9,16 +9,9 @@
 #include "os_pki.h"
 #endif
 
-void handleProvideErc20TokenInformation(uint8_t p1,
-                                        uint8_t p2,
-                                        const uint8_t *workBuffer,
-                                        uint8_t dataLength,
-                                        unsigned int *flags,
-                                        unsigned int *tx) {
-    UNUSED(p1);
-    UNUSED(p2);
-    UNUSED(flags);
-    UNUSED(tx);
+uint16_t handleProvideErc20TokenInformation(const uint8_t *workBuffer,
+                                            uint8_t dataLength,
+                                            unsigned int *tx) {
     uint32_t offset = 0;
     uint8_t tickerLength;
     uint64_t chain_id;
@@ -29,15 +22,15 @@ void handleProvideErc20TokenInformation(uint8_t p1,
     PRINTF("Provisioning currentAssetIndex %d\n", tmpCtx.transactionContext.currentAssetIndex);
 
     if (dataLength < 1) {
-        THROW(APDU_RESPONSE_INVALID_DATA);
+        return APDU_RESPONSE_INVALID_DATA;
     }
     tickerLength = workBuffer[offset++];
     dataLength--;
     if ((tickerLength + 1) > sizeof(token->ticker)) {
-        THROW(APDU_RESPONSE_INVALID_DATA);
+        return APDU_RESPONSE_INVALID_DATA;
     }
     if (dataLength < tickerLength + 20 + 4 + 4) {
-        THROW(APDU_RESPONSE_INVALID_DATA);
+        return APDU_RESPONSE_INVALID_DATA;
     }
     cx_hash_sha256(workBuffer + offset, tickerLength + 20 + 4 + 4, hash, 32);
     memmove(token->ticker, workBuffer + offset, tickerLength);
@@ -55,7 +48,7 @@ void handleProvideErc20TokenInformation(uint8_t p1,
     chain_id = U4BE(workBuffer, offset);
     if (!app_compatible_with_chain_id(&chain_id)) {
         UNSUPPORTED_CHAIN_ID_MSG(chain_id);
-        THROW(APDU_RESPONSE_INVALID_DATA);
+        return APDU_RESPONSE_INVALID_DATA;
     }
     offset += 4;
     dataLength -= 4;
@@ -70,14 +63,15 @@ void handleProvideErc20TokenInformation(uint8_t p1,
 #endif
                                         (uint8_t *) (workBuffer + offset),
                                         dataLength);
-#ifndef HAVE_BYPASS_SIGNATURES
     if (error != CX_OK) {
-        THROW(APDU_RESPONSE_INVALID_DATA);
-    }
+        PRINTF("Invalid token signature\n");
+#ifndef HAVE_BYPASS_SIGNATURES
+        return APDU_RESPONSE_INVALID_DATA;
 #endif
+    }
 
     G_io_apdu_buffer[0] = tmpCtx.transactionContext.currentAssetIndex;
     validate_current_asset_info();
-    U2BE_ENCODE(G_io_apdu_buffer, 1, APDU_RESPONSE_OK);
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 3);
+    *tx += 1;
+    return APDU_RESPONSE_OK;
 }

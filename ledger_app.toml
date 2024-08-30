@@ -3,7 +3,7 @@ build_directory = "./"
 sdk = "C"
 devices = ["nanos", "nanox", "nanos+", "stax", "flex"]
 
-[use_cases] # Coherent build options that make sense for your application
+[use_cases]
 use_test_keys = "CAL_TEST_KEY=1 DOMAIN_NAME_TEST_KEY=1 SET_PLUGIN_TEST_KEY=1 NFT_TEST_KEY=1"
 dbg_use_test_keys = "DEBUG=1 CAL_TEST_KEY=1 DOMAIN_NAME_TEST_KEY=1 SET_PLUGIN_TEST_KEY=1 NFT_TEST_KEY=1"
 cal_bypass = "BYPASS_SIGNATURES=1"

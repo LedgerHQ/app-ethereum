@@ -164,12 +164,16 @@ end:
  *
  * @param[in] hash pointer to given hash
  */
-static void feed_last_hash_depth(const uint8_t *const hash) {
+static bool feed_last_hash_depth(const uint8_t *const hash) {
     const cx_sha3_t *hash_ctx;
 
     hash_ctx = get_last_hash_ctx();
     // continue progressive hash with the array hash
-    CX_ASSERT(cx_hash_no_throw((cx_hash_t *) hash_ctx, 0, hash, KECCAK256_HASH_BYTESIZE, NULL, 0));
+    if (cx_hash_no_throw((cx_hash_t *) hash_ctx, 0, hash, KECCAK256_HASH_BYTESIZE, NULL, 0) !=
+        CX_OK) {
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -214,7 +218,9 @@ static bool path_depth_list_pop(void) {
     to_feed = finalize_hash_depth(hash);
     if (path_struct->depth_count > 0) {
         if (to_feed) {
-            feed_last_hash_depth(hash);
+            if (feed_last_hash_depth(hash) == false) {
+                return false;
+            }
         }
     } else {
         switch (path_struct->root_type) {
@@ -275,7 +281,9 @@ static bool array_depth_list_pop(void) {
     }
 
     finalize_hash_depth(hash);  // return value not checked on purpose
-    feed_last_hash_depth(hash);
+    if (feed_last_hash_depth(hash) == false) {
+        return false;
+    }
 
     path_struct->array_depth_count -= 1;
     return true;
@@ -333,7 +341,9 @@ static bool path_update(bool skip_if_array, bool stop_at_array, bool do_typehash
             if (type_hash(typename, typename_len, hash) == false) {
                 return false;
             }
-            feed_last_hash_depth(hash);
+            if (feed_last_hash_depth(hash) == false) {
+                return false;
+            }
         }
 
         // TODO: Find a better way to show inner structs in verbose mode when it might be
@@ -378,8 +388,9 @@ bool path_set_root(const char *const struct_name, uint8_t name_length) {
     if (type_hash(struct_name, name_length, hash) == false) {
         return false;
     }
-    feed_last_hash_depth(hash);
-    //
+    if (feed_last_hash_depth(hash) == false) {
+        return false;
+    }
 
     // init depth, at 0 : empty path
     path_struct->depth_count = 0;

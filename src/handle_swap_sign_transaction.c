@@ -1,7 +1,7 @@
 #include "os_io_seproxyhal.h"
 #include "os.h"
 #include "ux.h"
-#include "swap_utils.h"
+#include "eth_swap_utils.h"
 #include "handle_swap_sign_transaction.h"
 #include "shared_context.h"
 #include "common_utils.h"
@@ -134,35 +134,23 @@ void __attribute__((noreturn)) finalize_exchange_sign_transaction(bool is_succes
 }
 
 void __attribute__((noreturn)) handle_swap_sign_transaction(const chain_config_t* config) {
-#ifdef HAVE_NBGL
-    // On Stax, display a spinner at startup
-    UX_INIT();
-    nbgl_useCaseSpinner("Signing");
-#endif  // HAVE_NBGL
-
     chainConfig = config;
     reset_app_context();
     G_called_from_swap = true;
     G_swap_response_ready = false;
-    io_seproxyhal_init();
 
-    if (N_storage.initialized != 0x01) {
-        internalStorage_t storage;
-        explicit_bzero(&storage, sizeof(storage));
-        storage.initialized = true;
-        nvm_write((void*) &N_storage, (void*) &storage, sizeof(internalStorage_t));
-    }
+    common_app_init();
 
-    PRINTF("USB power ON/OFF\n");
-    USB_power(0);
-    USB_power(1);
-#ifdef HAVE_BLE
-    // grab the current plane mode setting
-    G_io_app.plane_mode = os_setting_get(OS_SETTING_PLANEMODE, NULL, 0);
-    BLE_power(0, NULL);
-    BLE_power(1, NULL);
-#endif  // HAVE_BLE
+    storage_init();
+
+#ifdef HAVE_NBGL
+    nbgl_useCaseSpinner("Signing");
+#endif  // HAVE_NBGL
+
     app_main();
+
     // Failsafe
-    os_sched_exit(-1);
+    app_exit();
+    while (1)
+        ;
 }

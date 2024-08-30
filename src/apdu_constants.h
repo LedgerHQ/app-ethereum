@@ -1,6 +1,7 @@
 #ifndef _APDU_CONSTANTS_H_
 #define _APDU_CONSTANTS_H_
 
+#include "offsets.h"
 #include "shared_context.h"
 
 #define APP_FLAG_DATA_ALLOWED          0x01
@@ -33,99 +34,72 @@
 #define P2_EIP712_LEGACY_IMPLEM             0x00
 #define P2_EIP712_FULL_IMPLEM               0x01
 
-#define COMMON_CLA 0xB0
-
-#define APDU_RESPONSE_OK                      0x9000
+#define APDU_NO_RESPONSE                      0x0000
+#define APDU_RESPONSE_MODE_CHECK_FAILED       0x6001
+#define APDU_RESPONSE_TX_TYPE_NOT_SUPPORTED   0x6501
+#define APDU_RESPONSE_CHAINID_OUT_BUF_SMALL   0x6502
+#define APDU_RESPONSE_INTERNAL_ERROR          0x6800
+#define APDU_RESPONSE_SECURITY_NOT_SATISFIED  0x6982
+#define APDU_RESPONSE_WRONG_DATA_LENGTH       0x6983
+#define APDU_RESPONSE_PLUGIN_NOT_INSTALLED    0x6984
+#define APDU_RESPONSE_CONDITION_NOT_SATISFIED 0x6985
 #define APDU_RESPONSE_ERROR_NO_INFO           0x6a00
 #define APDU_RESPONSE_INVALID_DATA            0x6a80
 #define APDU_RESPONSE_INSUFFICIENT_MEMORY     0x6a84
-#define APDU_RESPONSE_INVALID_INS             0x6d00
-#define APDU_RESPONSE_INVALID_P1_P2           0x6b00
-#define APDU_RESPONSE_CONDITION_NOT_SATISFIED 0x6985
 #define APDU_RESPONSE_REF_DATA_NOT_FOUND      0x6a88
+#define APDU_RESPONSE_INVALID_P1_P2           0x6b00
+#define APDU_RESPONSE_INVALID_INS             0x6d00
+#define APDU_RESPONSE_INVALID_CLA             0x6e00
 #define APDU_RESPONSE_UNKNOWN                 0x6f00
+#define APDU_RESPONSE_OK                      0x9000
+#define APDU_RESPONSE_CMD_CODE_NOT_SUPPORTED  0x911c
 
-enum { OFFSET_CLA = 0, OFFSET_INS, OFFSET_P1, OFFSET_P2, OFFSET_LC, OFFSET_CDATA };
-
-#define ERR_APDU_EMPTY         0x6982
-#define ERR_APDU_SIZE_MISMATCH 0x6983
-
-void handleGetPublicKey(uint8_t p1,
-                        uint8_t p2,
-                        const uint8_t *dataBuffer,
-                        uint8_t dataLength,
-                        unsigned int *flags,
-                        unsigned int *tx);
-void handleProvideErc20TokenInformation(uint8_t p1,
-                                        uint8_t p2,
-                                        const uint8_t *workBuffer,
-                                        uint8_t dataLength,
-                                        unsigned int *flags,
-                                        unsigned int *tx);
-void handleProvideNFTInformation(uint8_t p1,
-                                 uint8_t p2,
-                                 const uint8_t *dataBuffer,
-                                 uint8_t dataLength,
-                                 unsigned int *flags,
-                                 unsigned int *tx);
-void handleSign(uint8_t p1,
-                uint8_t p2,
-                const uint8_t *dataBuffer,
-                uint8_t dataLength,
-                unsigned int *flags,
-                unsigned int *tx);
-void handleGetAppConfiguration(uint8_t p1,
-                               uint8_t p2,
-                               const uint8_t *dataBuffer,
-                               uint8_t dataLength,
-                               unsigned int *flags,
-                               unsigned int *tx);
-bool handleSignPersonalMessage(uint8_t p1,
-                               uint8_t p2,
-                               const uint8_t *const payload,
-                               uint8_t length);
-void handleSignEIP712Message_v0(uint8_t p1,
-                                uint8_t p2,
-                                const uint8_t *dataBuffer,
-                                uint8_t dataLength,
-                                unsigned int *flags,
-                                unsigned int *tx);
-
-void handleSetExternalPlugin(uint8_t p1,
-                             uint8_t p2,
-                             const uint8_t *workBuffer,
-                             uint8_t dataLength,
-                             unsigned int *flags,
-                             unsigned int *tx);
-
-void handleSetPlugin(uint8_t p1,
-                     uint8_t p2,
-                     const uint8_t *workBuffer,
-                     uint8_t dataLength,
-                     unsigned int *flags,
-                     unsigned int *tx);
-
-void handlePerformPrivacyOperation(uint8_t p1,
-                                   uint8_t p2,
-                                   const uint8_t *workBuffer,
-                                   uint8_t dataLength,
-                                   unsigned int *flags,
-                                   unsigned int *tx);
-
-#ifdef HAVE_ETH2
-
-void handleGetEth2PublicKey(uint8_t p1,
+uint16_t handleGetPublicKey(uint8_t p1,
                             uint8_t p2,
                             const uint8_t *dataBuffer,
                             uint8_t dataLength,
                             unsigned int *flags,
                             unsigned int *tx);
-void handleSetEth2WinthdrawalIndex(uint8_t p1,
-                                   uint8_t p2,
-                                   uint8_t *dataBuffer,
-                                   uint8_t dataLength,
-                                   unsigned int *flags,
-                                   unsigned int *tx);
+uint16_t handleProvideErc20TokenInformation(const uint8_t *workBuffer,
+                                            uint8_t dataLength,
+                                            unsigned int *tx);
+uint16_t handleProvideNFTInformation(const uint8_t *dataBuffer,
+                                     uint8_t dataLength,
+                                     unsigned int *tx);
+uint16_t handleSign(uint8_t p1,
+                    uint8_t p2,
+                    const uint8_t *dataBuffer,
+                    uint8_t dataLength,
+                    unsigned int *flags);
+uint16_t handleGetAppConfiguration(unsigned int *tx);
+uint16_t handleSignPersonalMessage(uint8_t p1,
+                                   const uint8_t *const payload,
+                                   uint8_t length,
+                                   unsigned int *flags);
+uint16_t handleSignEIP712Message_v0(uint8_t p1,
+                                    const uint8_t *dataBuffer,
+                                    uint8_t dataLength,
+                                    unsigned int *flags);
+
+uint16_t handleSetExternalPlugin(const uint8_t *workBuffer, uint8_t dataLength);
+
+uint16_t handleSetPlugin(const uint8_t *workBuffer, uint8_t dataLength);
+
+uint16_t handlePerformPrivacyOperation(uint8_t p1,
+                                       uint8_t p2,
+                                       const uint8_t *workBuffer,
+                                       uint8_t dataLength,
+                                       unsigned int *flags,
+                                       unsigned int *tx);
+
+#ifdef HAVE_ETH2
+
+uint16_t handleGetEth2PublicKey(uint8_t p1,
+                                uint8_t p2,
+                                const uint8_t *dataBuffer,
+                                uint8_t dataLength,
+                                unsigned int *flags,
+                                unsigned int *tx);
 
 #endif
 

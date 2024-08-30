@@ -15,18 +15,21 @@ static const char SIGN_MAGIC[] =
     "\x19"
     "Ethereum Signed Message:\n";
 
+#define SET_IDLE                 \
+    do {                         \
+        if (states.ui_started) { \
+            ui_idle();           \
+        }                        \
+    } while (0)
+
 /**
  * Send a response APDU with the given Status Word
  *
  * @param[in] sw status word
  */
 static void apdu_reply(uint16_t sw) {
-    if ((sw != APDU_RESPONSE_OK) && states.ui_started) {
-        ui_idle();
-    }
-    G_io_apdu_buffer[0] = (sw >> 8) & 0xff;
-    G_io_apdu_buffer[1] = sw & 0xff;
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+    bool idle = (sw != APDU_RESPONSE_OK) && states.ui_started;
+    io_seproxyhal_send_status(sw, 0, false, idle);
 }
 
 /**
@@ -89,9 +92,10 @@ static void reset_ui_buffer(void) {
  *
  * @param[in] data the APDU payload
  * @param[in] length the payload size
- * @return pointer to the start of the start of the message; \ref NULL if it failed
+ * @param[out] sw Status Word
+ * @return pointer to the start of the message; \ref NULL if it failed
  */
-static const uint8_t *first_apdu_data(const uint8_t *data, uint8_t *length) {
+static const uint8_t *first_apdu_data(const uint8_t *data, uint8_t *length, uint16_t *sw) {
     cx_err_t error = CX_INTERNAL_ERROR;
 
     if (appState != APP_STATE_IDLE) {
@@ -100,13 +104,13 @@ static const uint8_t *first_apdu_data(const uint8_t *data, uint8_t *length) {
     appState = APP_STATE_SIGNING_MESSAGE;
     data = parseBip32(data, length, &tmpCtx.messageSigningContext.bip32);
     if (data == NULL) {
-        apdu_reply(APDU_RESPONSE_INVALID_DATA);
+        *sw = APDU_RESPONSE_INVALID_DATA;
         return NULL;
     }
 
     if (*length < sizeof(uint32_t)) {
         PRINTF("Invalid data\n");
-        apdu_reply(APDU_RESPONSE_INVALID_DATA);
+        *sw = APDU_RESPONSE_INVALID_DATA;
         return NULL;
     }
 
@@ -135,8 +139,10 @@ static const uint8_t *first_apdu_data(const uint8_t *data, uint8_t *length) {
     reset_ui_buffer();
     states.sign_state = STATE_191_HASH_DISPLAY;
     states.ui_started = false;
+    *sw = APDU_RESPONSE_OK;
     return data;
 end:
+    *sw = error;
     return NULL;
 }
 
@@ -147,15 +153,15 @@ end:
  * @param[in] length the data length
  * @return whether it was successful or not
  */
-static bool feed_hash(const uint8_t *const data, const uint8_t length) {
+static uint16_t feed_hash(const uint8_t *const data, const uint8_t length) {
     cx_err_t error = CX_INTERNAL_ERROR;
 
     if (length > tmpCtx.messageSigningContext.remainingLength) {
         PRINTF("Error: Length mismatch ! (%u > %u)!\n",
                length,
                tmpCtx.messageSigningContext.remainingLength);
-        apdu_reply(APDU_RESPONSE_INVALID_DATA);
-        return false;
+        SET_IDLE;
+        return APDU_RESPONSE_INVALID_DATA;
     }
     CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3, 0, data, length, NULL, 0));
     if ((tmpCtx.messageSigningContext.remainingLength -= length) == 0) {
@@ -167,15 +173,15 @@ static bool feed_hash(const uint8_t *const data, const uint8_t length) {
                                   tmpCtx.messageSigningContext.hash,
                                   32));
     }
-    return true;
+    error = APDU_RESPONSE_OK;
 end:
-    return false;
+    return error;
 }
 
 /**
  * Feed the UI with new data
  */
-static void feed_display(void) {
+static uint16_t feed_display(void) {
     int c;
 
     while ((unprocessed_length() > 0) && (remaining_ui_buffer_length() > 0)) {
@@ -210,57 +216,70 @@ static void feed_display(void) {
     }
 
     if ((unprocessed_length() == 0) && (tmpCtx.messageSigningContext.remainingLength > 0)) {
-        apdu_reply(APDU_RESPONSE_OK);
+        return APDU_RESPONSE_OK;
     }
+    return APDU_NO_RESPONSE;
 }
 
 /**
  * EIP-191 APDU handler
  *
  * @param[in] p1 instruction parameter 1
- * @param[in] p2 instruction parameter 2
  * @param[in] payload received data
  * @param[in] length data length
+ * @param[in] flags io_exchange flag
  * @return whether the handling of the APDU was successful or not
  */
-bool handleSignPersonalMessage(uint8_t p1,
-                               uint8_t p2,
-                               const uint8_t *const payload,
-                               uint8_t length) {
+uint16_t handleSignPersonalMessage(uint8_t p1,
+                                   const uint8_t *const payload,
+                                   uint8_t length,
+                                   unsigned int *flags) {
     const uint8_t *data = payload;
+    uint16_t sw = APDU_RESPONSE_UNKNOWN;
 
-    (void) p2;
     processed_size = 0;
     if (p1 == P1_FIRST) {
-        if ((data = first_apdu_data(data, &length)) == NULL) {
-            return false;
+        if ((data = first_apdu_data(data, &length, &sw)) == NULL) {
+            if (sw != APDU_RESPONSE_INVALID_DATA) {
+                *flags |= IO_ASYNCH_REPLY;
+            }
+            return sw;
         }
         processed_size = data - payload;
     } else if (p1 != P1_MORE) {
         PRINTF("Error: Unexpected P1 (%u)!\n", p1);
-        apdu_reply(APDU_RESPONSE_INVALID_P1_P2);
-        return false;
+        SET_IDLE;
+        return APDU_RESPONSE_INVALID_P1_P2;
     } else if (appState != APP_STATE_SIGNING_MESSAGE) {
         PRINTF("Error: App not already in signing state!\n");
-        apdu_reply(APDU_RESPONSE_INVALID_DATA);
-        return false;
+        SET_IDLE;
+        return APDU_RESPONSE_INVALID_DATA;
     }
 
-    if (!feed_hash(data, length)) {
-        return false;
+    sw = feed_hash(data, length);
+    if (sw != APDU_RESPONSE_OK) {
+        if (sw != APDU_RESPONSE_INVALID_DATA) {
+            *flags |= IO_ASYNCH_REPLY;
+        }
+        return sw;
     }
 
     if (states.sign_state == STATE_191_HASH_DISPLAY) {
-        feed_display();
-    } else  // hash only
-    {
+        sw = feed_display();
+        if (sw != APDU_RESPONSE_OK) {
+            *flags |= IO_ASYNCH_REPLY;
+        }
+    } else {
+        // hash only
         if (tmpCtx.messageSigningContext.remainingLength == 0) {
             ui_191_switch_to_sign();
+            sw = APDU_NO_RESPONSE;
+            *flags |= IO_ASYNCH_REPLY;
         } else {
-            apdu_reply(APDU_RESPONSE_OK);
+            sw = APDU_RESPONSE_OK;
         }
     }
-    return true;
+    return sw;
 }
 
 /**

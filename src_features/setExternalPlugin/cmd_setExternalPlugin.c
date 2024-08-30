@@ -72,6 +72,7 @@ uint16_t handleSetExternalPlugin(const uint8_t *workBuffer, uint8_t dataLength) 
             memset(dataContext.tokenContext.pluginName,
                    0,
                    sizeof(dataContext.tokenContext.pluginName));
+            CLOSE_TRY;
             return APDU_RESPONSE_PLUGIN_NOT_INSTALLED;
         }
         FINALLY {

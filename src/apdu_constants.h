@@ -66,12 +66,11 @@ uint16_t handleProvideErc20TokenInformation(const uint8_t *workBuffer,
 uint16_t handleProvideNFTInformation(const uint8_t *dataBuffer,
                                      uint8_t dataLength,
                                      unsigned int *tx);
-void handleSign(uint8_t p1,
-                uint8_t p2,
-                const uint8_t *dataBuffer,
-                uint8_t dataLength,
-                unsigned int *flags,
-                unsigned int *tx);
+uint16_t handleSign(uint8_t p1,
+                    uint8_t p2,
+                    const uint8_t *dataBuffer,
+                    uint8_t dataLength,
+                    unsigned int *flags);
 uint16_t handleGetAppConfiguration(unsigned int *tx);
 bool handleSignPersonalMessage(uint8_t p1,
                                uint8_t p2,

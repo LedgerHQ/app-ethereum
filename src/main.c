@@ -158,7 +158,7 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             break;
 
         case INS_PERFORM_PRIVACY_OPERATION:
-            handlePerformPrivacyOperation(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags, tx);
+            sw = handlePerformPrivacyOperation(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags, tx);
             break;
 
         case INS_SIGN:

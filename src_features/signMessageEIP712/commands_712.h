@@ -8,10 +8,17 @@
 
 #define DOMAIN_STRUCT_NAME "EIP712Domain"
 
-bool handle_eip712_struct_def(const uint8_t *const apdu_buf);
-bool handle_eip712_struct_impl(const uint8_t *const apdu_buf);
-bool handle_eip712_sign(const uint8_t *const apdu_buf);
-bool handle_eip712_filtering(const uint8_t *const apdu_buf);
+uint16_t handle_eip712_struct_def(uint8_t p2, const uint8_t *dataBuffer, uint8_t dataLength);
+uint16_t handle_eip712_struct_impl(uint8_t p1,
+                                   uint8_t p2,
+                                   const uint8_t *dataBuffer,
+                                   uint8_t dataLength,
+                                   uint32_t *flags);
+uint16_t handle_eip712_sign(const uint8_t *dataBuffer, uint8_t dataLength, uint32_t *flags);
+uint16_t handle_eip712_filtering(uint8_t p2,
+                                 const uint8_t *dataBuffer,
+                                 uint8_t dataLength,
+                                 uint32_t *flags);
 void handle_eip712_return_code(bool success);
 
 #endif  // HAVE_EIP712_FULL_SUPPORT

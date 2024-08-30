@@ -182,8 +182,7 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
                     break;
 #ifdef HAVE_EIP712_FULL_SUPPORT
                 case P2_EIP712_FULL_IMPLEM:
-                    *flags |= IO_ASYNCH_REPLY;
-                    handle_eip712_sign(G_io_apdu_buffer);
+                    sw = handle_eip712_sign(cmd->data, cmd->lc, flags);
                     break;
 #endif  // HAVE_EIP712_FULL_SUPPORT
                 default:
@@ -206,18 +205,15 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
 
 #ifdef HAVE_EIP712_FULL_SUPPORT
         case INS_EIP712_STRUCT_DEF:
-            *flags |= IO_ASYNCH_REPLY;
-            handle_eip712_struct_def(G_io_apdu_buffer);
+            sw = handle_eip712_struct_def(cmd->p2, cmd->data, cmd->lc);
             break;
 
         case INS_EIP712_STRUCT_IMPL:
-            *flags |= IO_ASYNCH_REPLY;
-            handle_eip712_struct_impl(G_io_apdu_buffer);
+            sw = handle_eip712_struct_impl(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags);
             break;
 
         case INS_EIP712_FILTERING:
-            *flags |= IO_ASYNCH_REPLY;
-            handle_eip712_filtering(G_io_apdu_buffer);
+            sw = handle_eip712_filtering(cmd->p2, cmd->data, cmd->lc, flags);
             break;
 #endif  // HAVE_EIP712_FULL_SUPPORT
 

@@ -9,6 +9,8 @@ uint16_t handleSign(uint8_t p1,
                     uint8_t dataLength,
                     unsigned int *flags) {
     parserStatus_e txResult;
+    uint16_t sw = APDU_NO_RESPONSE;
+    cx_err_t error = CX_INTERNAL_ERROR;
 
     if (os_global_pin_is_validated() != BOLOS_UX_OK) {
         PRINTF("Device is PIN-locked");
@@ -28,7 +30,10 @@ uint16_t handleSign(uint8_t p1,
         tmpContent.txContent.dataPresent = false;
         dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_UNAVAILABLE;
 
-        initTx(&txContext, &global_sha3, &tmpContent.txContent, customProcessor, NULL);
+        if (initTx(&txContext, &global_sha3, &tmpContent.txContent, customProcessor, NULL) ==
+            false) {
+            return APDU_RESPONSE_INVALID_DATA;
+        }
         if (dataLength < 1) {
             PRINTF("Invalid data\n");
             return APDU_RESPONSE_INVALID_DATA;
@@ -39,7 +44,10 @@ uint16_t handleSign(uint8_t p1,
         if (txType >= MIN_TX_TYPE && txType <= MAX_TX_TYPE) {
             // Enumerate through all supported txTypes here...
             if (txType == EIP2930 || txType == EIP1559) {
-                CX_ASSERT(cx_hash_no_throw((cx_hash_t *) &global_sha3, 0, workBuffer, 1, NULL, 0));
+                error = cx_hash_no_throw((cx_hash_t *) &global_sha3, 0, workBuffer, 1, NULL, 0);
+                if (error != CX_OK) {
+                    return error;
+                }
                 txContext.txType = txType;
                 workBuffer++;
                 dataLength--;
@@ -70,6 +78,7 @@ uint16_t handleSign(uint8_t p1,
         case USTREAM_SUSPENDED:
             break;
         case USTREAM_FINISHED:
+            sw = finalizeParsing();
             break;
         case USTREAM_PROCESSING:
             return APDU_RESPONSE_OK;
@@ -80,11 +89,7 @@ uint16_t handleSign(uint8_t p1,
             return APDU_RESPONSE_INVALID_DATA;
     }
 
-    if (txResult == USTREAM_FINISHED) {
-        finalizeParsing();
-    }
-
     *flags |= IO_ASYNCH_REPLY;
     // Return code will be sent after UI approve/cancel
-    return APDU_NO_RESPONSE;
+    return sw;
 }

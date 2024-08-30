@@ -72,7 +72,9 @@ customStatus_e customProcessor(txContext_t *context) {
             } else if (status >= ETH_PLUGIN_RESULT_SUCCESSFUL) {
                 dataContext.tokenContext.fieldIndex = 0;
                 dataContext.tokenContext.fieldOffset = 0;
-                copyTxData(context, NULL, 4);
+                if (copyTxData(context, NULL, 4) == false) {
+                    return CUSTOM_FAULT;
+                }
                 if (context->currentFieldLength == 4) {
                     return CUSTOM_NOT_HANDLED;
                 }
@@ -111,9 +113,11 @@ customStatus_e customProcessor(txContext_t *context) {
 
         PRINTF("currentFieldPos %d copySize %d\n", context->currentFieldPos, copySize);
 
-        copyTxData(context,
-                   dataContext.tokenContext.data + dataContext.tokenContext.fieldOffset,
-                   copySize);
+        if (copyTxData(context,
+                       dataContext.tokenContext.data + dataContext.tokenContext.fieldOffset,
+                       copySize) == false) {
+            return CUSTOM_FAULT;
+        }
 
         if (context->currentFieldPos == context->currentFieldLength) {
             PRINTF("\n\nIncrementing one\n");
@@ -177,22 +181,23 @@ customStatus_e customProcessor(txContext_t *context) {
     return CUSTOM_NOT_HANDLED;
 }
 
-void report_finalize_error(void) {
+static void report_finalize_error(void) {
     io_seproxyhal_send_status(APDU_RESPONSE_INVALID_DATA, 0, true, true);
 }
 
-static void address_to_string(uint8_t *in,
-                              size_t in_len,
-                              char *out,
-                              size_t out_len,
-                              uint64_t chainId) {
+static uint16_t address_to_string(uint8_t *in,
+                                  size_t in_len,
+                                  char *out,
+                                  size_t out_len,
+                                  uint64_t chainId) {
     if (in_len != 0) {
         if (!getEthDisplayableAddress(in, out, out_len, chainId)) {
-            THROW(APDU_RESPONSE_ERROR_NO_INFO);
+            return APDU_RESPONSE_ERROR_NO_INFO;
         }
     } else {
         strlcpy(out, "Contract", out_len);
     }
+    return APDU_RESPONSE_OK;
 }
 
 static void raw_fee_to_string(uint256_t *rawFee, char *displayBuffer, uint32_t displayBufferSize) {
@@ -239,7 +244,7 @@ static void raw_fee_to_string(uint256_t *rawFee, char *displayBuffer, uint32_t d
 
 // Compute the fees, transform it to a string, prepend a ticker to it and copy everything to
 // `displayBuffer` output
-static void max_transaction_fee_to_string(const txInt256_t *BEGasPrice,
+static bool max_transaction_fee_to_string(const txInt256_t *BEGasPrice,
                                           const txInt256_t *BEGasLimit,
                                           char *displayBuffer,
                                           uint32_t displayBufferSize) {
@@ -253,8 +258,11 @@ static void max_transaction_fee_to_string(const txInt256_t *BEGasPrice,
     PRINTF("Gas limit %.*H\n", BEGasLimit->length, BEGasLimit->value);
     convertUint256BE(BEGasPrice->value, BEGasPrice->length, &gasPrice);
     convertUint256BE(BEGasLimit->value, BEGasLimit->length, &gasLimit);
-    mul256(&gasPrice, &gasLimit, &rawFee);
+    if (mul256(&gasPrice, &gasLimit, &rawFee) == false) {
+        return false;
+    }
     raw_fee_to_string(&rawFee, displayBuffer, displayBufferSize);
+    return true;
 }
 
 static void nonce_to_string(const txInt256_t *nonce, char *out, size_t out_size) {
@@ -263,37 +271,40 @@ static void nonce_to_string(const txInt256_t *nonce, char *out, size_t out_size)
     tostring256(&nonce_uint256, 10, out, out_size);
 }
 
-static void get_network_as_string(char *out, size_t out_size) {
+static uint16_t get_network_as_string(char *out, size_t out_size) {
     uint64_t chain_id = get_tx_chain_id();
     const char *name = get_network_name_from_chain_id(&chain_id);
 
     if (name == NULL) {
         // No network name found so simply copy the chain ID as the network name.
         if (!u64_to_string(chain_id, out, out_size)) {
-            THROW(APDU_RESPONSE_CHAINID_OUT_BUF_SMALL);
+            return APDU_RESPONSE_CHAINID_OUT_BUF_SMALL;
         }
     } else {
         // Network name found, simply copy it.
         strlcpy(out, name, out_size);
     }
+    return APDU_RESPONSE_OK;
 }
 
-static void get_public_key(uint8_t *out, uint8_t outLength) {
+static uint16_t get_public_key(uint8_t *out, uint8_t outLength) {
     uint8_t raw_pubkey[65];
+    cx_err_t error = CX_INTERNAL_ERROR;
 
     if (outLength < ADDRESS_LENGTH) {
-        return;
+        return APDU_RESPONSE_WRONG_DATA_LENGTH;
     }
-    if (bip32_derive_get_pubkey_256(CX_CURVE_256K1,
-                                    tmpCtx.transactionContext.bip32.path,
-                                    tmpCtx.transactionContext.bip32.length,
-                                    raw_pubkey,
-                                    NULL,
-                                    CX_SHA512) != CX_OK) {
-        THROW(APDU_RESPONSE_UNKNOWN);
-    }
+    CX_CHECK(bip32_derive_get_pubkey_256(CX_CURVE_256K1,
+                                         tmpCtx.transactionContext.bip32.path,
+                                         tmpCtx.transactionContext.bip32.length,
+                                         raw_pubkey,
+                                         NULL,
+                                         CX_SHA512));
 
     getEthAddressFromRawKey(raw_pubkey, out);
+    error = APDU_RESPONSE_OK;
+end:
+    return error;
 }
 
 /* Local implementation of strncasecmp, workaround of the segfaulting base implem
@@ -311,7 +322,7 @@ static int strcasecmp_workaround(const char *str1, const char *str2) {
     return 0;
 }
 
-__attribute__((noinline)) static bool finalize_parsing_helper(void) {
+__attribute__((noinline)) static uint16_t finalize_parsing_helper(void) {
     char displayBuffer[50];
     uint8_t decimals = WEI_TO_ETHER;
     uint64_t chain_id = get_tx_chain_id();
@@ -325,9 +336,8 @@ __attribute__((noinline)) static bool finalize_parsing_helper(void) {
 
         if (chainConfig->chainId != id) {
             PRINTF("Invalid chainID %u expected %u\n", id, chainConfig->chainId);
-            reset_app_context();
             report_finalize_error();
-            return false;
+            return APDU_NO_RESPONSE;
         }
     }
     // Store the hash
@@ -339,13 +349,19 @@ __attribute__((noinline)) static bool finalize_parsing_helper(void) {
                               32));
 
     uint8_t msg_sender[ADDRESS_LENGTH] = {0};
-    get_public_key(msg_sender, sizeof(msg_sender));
+    error = get_public_key(msg_sender, sizeof(msg_sender));
+    if (error != APDU_RESPONSE_OK) {
+        goto end;
+    }
 
-    address_to_string(msg_sender,
-                      ADDRESS_LENGTH,
-                      strings.common.fromAddress,
-                      sizeof(strings.common.fromAddress),
-                      chainConfig->chainId);
+    error = address_to_string(msg_sender,
+                              ADDRESS_LENGTH,
+                              strings.common.fromAddress,
+                              sizeof(strings.common.fromAddress),
+                              chainConfig->chainId);
+    if (error != APDU_RESPONSE_OK) {
+        goto end;
+    }
     PRINTF("FROM address displayed: %s\n", strings.common.fromAddress);
     // Finalize the plugin handling
     if (dataContext.tokenContext.pluginStatus >= ETH_PLUGIN_RESULT_SUCCESSFUL) {
@@ -356,7 +372,7 @@ __attribute__((noinline)) static bool finalize_parsing_helper(void) {
         if (!eth_plugin_call(ETH_PLUGIN_FINALIZE, (void *) &pluginFinalize)) {
             PRINTF("Plugin finalize call failed\n");
             report_finalize_error();
-            return false;
+            return APDU_NO_RESPONSE;
         }
         // Lookup tokens if requested
         ethPluginProvideInfo_t pluginProvideInfo;
@@ -380,7 +396,7 @@ __attribute__((noinline)) static bool finalize_parsing_helper(void) {
                 ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
                 PRINTF("Plugin provide token call failed\n");
                 report_finalize_error();
-                return false;
+                return APDU_NO_RESPONSE;
             }
             pluginFinalize.result = pluginProvideInfo.result;
         }
@@ -404,7 +420,7 @@ __attribute__((noinline)) static bool finalize_parsing_helper(void) {
                     if ((pluginFinalize.amount == NULL) || (pluginFinalize.address == NULL)) {
                         PRINTF("Incorrect amount/address set by plugin\n");
                         report_finalize_error();
-                        return false;
+                        return APDU_NO_RESPONSE;
                     }
                     memmove(tmpContent.txContent.value.value, pluginFinalize.amount, 32);
                     tmpContent.txContent.value.length = 32;
@@ -418,7 +434,7 @@ __attribute__((noinline)) static bool finalize_parsing_helper(void) {
                 default:
                     PRINTF("ui type %d not supported\n", pluginFinalize.uiType);
                     report_finalize_error();
-                    return false;
+                    return APDU_NO_RESPONSE;
             }
         } else if (G_called_from_swap && G_swap_mode == SWAP_MODE_CROSSCHAIN_SUCCESS) {
             PRINTF("Plugin swap_with_calldata fell back for UI with success\n");
@@ -438,8 +454,8 @@ __attribute__((noinline)) static bool finalize_parsing_helper(void) {
 
     // User has just validated a swap but ETH received apdus about a non standard plugin / contract
     if (G_called_from_swap && !g_use_standard_ui) {
-        PRINTF("ERR_SILENT_MODE_CHECK_FAILED, G_called_from_swap\n");
-        THROW(APDU_RESPONSE_MODE_CHECK_FAILED);
+        PRINTF("APDU_RESPONSE_MODE_CHECK_FAILED, G_called_from_swap\n");
+        return APDU_RESPONSE_MODE_CHECK_FAILED;
     }
 
     // Specific calldata check when in swap mode
@@ -448,7 +464,7 @@ __attribute__((noinline)) static bool finalize_parsing_helper(void) {
         // We are in crosschain mode and the correct calldata has been received
         if (G_swap_mode != SWAP_MODE_STANDARD && G_swap_mode != SWAP_MODE_CROSSCHAIN_SUCCESS) {
             PRINTF("Error: G_swap_mode %d refused\n", G_swap_mode);
-            THROW(APDU_RESPONSE_MODE_CHECK_FAILED);
+            return APDU_RESPONSE_MODE_CHECK_FAILED;
         }
     }
 
@@ -463,16 +479,19 @@ __attribute__((noinline)) static bool finalize_parsing_helper(void) {
     if (g_use_standard_ui) {
         // Format the address in a temporary buffer, if in swap case compare it with validated
         // address, else commit it
-        address_to_string(tmpContent.txContent.destination,
-                          tmpContent.txContent.destinationLength,
-                          displayBuffer,
-                          sizeof(displayBuffer),
-                          chainConfig->chainId);
+        error = address_to_string(tmpContent.txContent.destination,
+                                  tmpContent.txContent.destinationLength,
+                                  displayBuffer,
+                                  sizeof(displayBuffer),
+                                  chainConfig->chainId);
+        if (error != APDU_RESPONSE_OK) {
+            goto end;
+        }
         if (G_called_from_swap) {
             // Ensure the values are the same that the ones that have been previously validated
             if (strcasecmp_workaround(strings.common.toAddress, displayBuffer) != 0) {
-                PRINTF("ERR_SILENT_MODE_CHECK_FAILED, address check failed\n");
-                THROW(APDU_RESPONSE_MODE_CHECK_FAILED);
+                PRINTF("APDU_RESPONSE_MODE_CHECK_FAILED, address check failed\n");
+                return APDU_RESPONSE_MODE_CHECK_FAILED;
             }
         } else {
             strlcpy(strings.common.toAddress, displayBuffer, sizeof(strings.common.toAddress));
@@ -488,16 +507,16 @@ __attribute__((noinline)) static bool finalize_parsing_helper(void) {
                             displayBuffer,
                             sizeof(displayBuffer))) {
             PRINTF("OVERFLOW, amount to string failed\n");
-            THROW(EXCEPTION_OVERFLOW);
+            return EXCEPTION_OVERFLOW;
         }
 
         if (G_called_from_swap) {
             // Ensure the values are the same that the ones that have been previously validated
             if (strcmp(strings.common.fullAmount, displayBuffer) != 0) {
-                PRINTF("ERR_SILENT_MODE_CHECK_FAILED, amount check failed\n");
+                PRINTF("APDU_RESPONSE_MODE_CHECK_FAILED, amount check failed\n");
                 PRINTF("Expected %s\n", strings.common.fullAmount);
                 PRINTF("Received %s\n", displayBuffer);
-                THROW(APDU_RESPONSE_MODE_CHECK_FAILED);
+                return APDU_RESPONSE_MODE_CHECK_FAILED;
             }
         } else {
             strlcpy(strings.common.fullAmount, displayBuffer, sizeof(strings.common.fullAmount));
@@ -507,17 +526,19 @@ __attribute__((noinline)) static bool finalize_parsing_helper(void) {
 
     // Compute the max fee in a temporary buffer, if in swap case compare it with validated max fee,
     // else commit it
-    max_transaction_fee_to_string(&tmpContent.txContent.gasprice,
-                                  &tmpContent.txContent.startgas,
-                                  displayBuffer,
-                                  sizeof(displayBuffer));
+    if (max_transaction_fee_to_string(&tmpContent.txContent.gasprice,
+                                      &tmpContent.txContent.startgas,
+                                      displayBuffer,
+                                      sizeof(displayBuffer)) == false) {
+        return APDU_RESPONSE_INVALID_DATA;
+    }
     if (G_called_from_swap) {
         // Ensure the values are the same that the ones that have been previously validated
         if (strcmp(strings.common.maxFee, displayBuffer) != 0) {
-            PRINTF("ERR_SILENT_MODE_CHECK_FAILED, fees check failed\n");
+            PRINTF("APDU_RESPONSE_MODE_CHECK_FAILED, fees check failed\n");
             PRINTF("Expected %s\n", strings.common.maxFee);
             PRINTF("Received %s\n", displayBuffer);
-            THROW(APDU_RESPONSE_MODE_CHECK_FAILED);
+            return APDU_RESPONSE_MODE_CHECK_FAILED;
         }
     } else {
         strlcpy(strings.common.maxFee, displayBuffer, sizeof(strings.common.maxFee));
@@ -532,11 +553,12 @@ __attribute__((noinline)) static bool finalize_parsing_helper(void) {
     PRINTF("Nonce: %s\n", strings.common.nonce);
 
     // Prepare network field
-    get_network_as_string(strings.common.network_name, sizeof(strings.common.network_name));
-    PRINTF("Network: %s\n", strings.common.network_name);
-    return true;
+    error = get_network_as_string(strings.common.network_name, sizeof(strings.common.network_name));
+    if (error == APDU_RESPONSE_OK) {
+        PRINTF("Network: %s\n", strings.common.network_name);
+    }
 end:
-    return false;
+    return error;
 }
 
 void start_signature_flow(void) {
@@ -549,11 +571,13 @@ void start_signature_flow(void) {
     }
 }
 
-void finalizeParsing(void) {
+uint16_t finalizeParsing(void) {
+    uint16_t sw = APDU_RESPONSE_UNKNOWN;
     g_use_standard_ui = true;
 
-    if (!finalize_parsing_helper()) {
-        return;
+    sw = finalize_parsing_helper();
+    if (sw != APDU_RESPONSE_OK) {
+        return sw;
     }
     // If called from swap, the user has already validated a standard transaction
     // And we have already checked the fields of this transaction above
@@ -567,4 +591,5 @@ void finalizeParsing(void) {
             start_signature_flow();
         }
     }
+    return APDU_RESPONSE_OK;
 }

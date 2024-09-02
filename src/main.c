@@ -258,12 +258,14 @@ void app_main(void) {
                     PRINTF("=> BAD LENGTH: %d\n", rx);
                     sw = APDU_RESPONSE_WRONG_DATA_LENGTH;
                 } else {
-                    PRINTF("=> CLA=%02X | INS=%02X | P1=%02X | P2=%02X | Lc=%02X\n",
+                    PRINTF("=> CLA=%02x, INS=%02x, P1=%02x, P2=%02x, LC=%02x, CDATA=%.*h\n",
                            cmd.cla,
                            cmd.ins,
                            cmd.p1,
                            cmd.p2,
-                           cmd.lc);
+                           cmd.lc,
+                           cmd.lc,
+                           cmd.data);
 
                     tx = 0;
                     flags = 0;

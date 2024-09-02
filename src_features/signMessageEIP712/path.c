@@ -370,7 +370,9 @@ bool path_set_root(const char *const struct_name, uint8_t name_length) {
         return false;
     }
 
-    path_struct->root_struct = get_structn(struct_name, name_length);
+    if ((path_struct->root_struct = get_structn(struct_name, name_length)) == NULL) {
+        return false;
+    }
 
     if (path_struct->root_struct == NULL) {
         PRINTF("Struct name not found (");

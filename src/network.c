@@ -29,7 +29,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 40, .name = "Telos EVM Mainnet", .ticker = "TLOS"},
     {.chain_id = 42, .name = "LUKSO", .ticker = "LYX"},
     {.chain_id = 50, .name = "XDC", .ticker = "XDC"},
-    {.chain_id = 51, .name = "Apothemnetwork", .ticker = "XDC"},
+    {.chain_id = 51, .name = "Apothemnetwork", .ticker = "TXDC"},
     {.chain_id = 56, .name = "BSC", .ticker = "BNB"},
     {.chain_id = 57, .name = "Syscoin", .ticker = "SYS"},
     {.chain_id = 61, .name = "Ethereum Classic", .ticker = "ETC"},

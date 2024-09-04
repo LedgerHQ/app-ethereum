@@ -119,6 +119,15 @@ def test_trusted_name_v1_non_mainnet(firmware: Firmware,
     app_client = EthAppClient(backend)
     challenge = common(firmware, app_client)
 
+    chain_id = 5
+    # pylint: disable=line-too-long
+    icon = "400040000195000093001f8b08000000000002ff85ceb10dc4300805d01fb970e9113c4a467346cb288ce092223ace80382b892ef9cd93ac0f0678881c4616d980b4bb99aa0801a5874d844ff695b5d7f6c23ad79058f79c8df7e8c5dc7d9fff13ffc61d71d7bcf32549bcef5672c5a430bb1cd6073f68c3cd3d302cd3feea88f547d6a99eb8e87ecbcdecd255b8f869033cfd932feae0c09000020000"
+    # pylint: enable=line-too-long
+    app_client.provide_network_information("Goerli",
+                                           "ETH",
+                                           chain_id,
+                                           bytes.fromhex(icon))
+
     app_client.provide_trusted_name_v1(ADDR, NAME, challenge)
 
     with app_client.sign(BIP32_PATH,
@@ -128,7 +137,7 @@ def test_trusted_name_v1_non_mainnet(firmware: Firmware,
                              "gas": GAS_LIMIT,
                              "to": ADDR,
                              "value": Web3.to_wei(AMOUNT, "ether"),
-                             "chainId": 5
+                             "chainId": chain_id
                          }):
         if firmware.is_nano:
             end_text = "Accept"

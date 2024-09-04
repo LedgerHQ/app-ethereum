@@ -59,6 +59,8 @@ typedef struct {
     s_amount_context amount;
     uint8_t filters_received;
     uint32_t filters_crc[MAX_FILTERS];
+    uint8_t discarded_path_length;
+    char discarded_path[255];
 #ifdef SCREEN_SIZE_WALLET
     char ui_pairs_buffer[(SHARED_CTX_FIELD_1_SIZE + SHARED_CTX_FIELD_2_SIZE) * 2];
 #endif
@@ -803,6 +805,28 @@ bool ui_712_push_new_filter_path(void) {
     PRINTF("Pushing new EIP-712 path CRC (%x) at index %u\n", path_crc, ui_ctx->filters_received);
     ui_ctx->filters_crc[ui_ctx->filters_received] = path_crc;
     return true;
+}
+
+/**
+ * Set a discarded filter path
+ *
+ * @param[in] path the given filter path
+ * @param[in] length the path length
+ */
+void ui_712_set_discarded_path(const char *path, uint8_t length) {
+    memcpy(ui_ctx->discarded_path, path, length);
+    ui_ctx->discarded_path_length = length;
+}
+
+/**
+ * Get the discarded filter path
+ *
+ * @param[out] length the path length
+ * @return filter path
+ */
+const char *ui_712_get_discarded_path(uint8_t *length) {
+    *length = ui_ctx->discarded_path_length;
+    return ui_ctx->discarded_path;
 }
 
 #ifdef SCREEN_SIZE_WALLET

@@ -214,7 +214,7 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             break;
 
         case INS_EIP712_FILTERING:
-            sw = handle_eip712_filtering(cmd->p2, cmd->data, cmd->lc, flags);
+            sw = handle_eip712_filtering(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags);
             break;
 #endif  // HAVE_EIP712_FULL_SUPPORT
 

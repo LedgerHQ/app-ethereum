@@ -27,6 +27,7 @@
 #define P2_IMPL_ARRAY             0x0F
 #define P2_IMPL_FIELD             P2_DEF_FIELD
 #define P2_FILT_ACTIVATE          0x00
+#define P2_FILT_DISCARDED_PATH    0x01
 #define P2_FILT_MESSAGE_INFO      0x0F
 #define P2_FILT_DATE_TIME         0xFC
 #define P2_FILT_AMOUNT_JOIN_TOKEN 0xFD
@@ -70,10 +71,12 @@ void handle_eip712_return_code(bool success) {
 /**
  * Process the EIP712 struct definition command
  *
- * @param[in] apdu_buf the APDU payload
+ * @param[in] p2 instruction parameter 2
+ * @param[in] cdata command data
+ * @param[in] length length of the command data
  * @return whether the command was successful or not
  */
-uint16_t handle_eip712_struct_def(uint8_t p2, const uint8_t *dataBuffer, uint8_t dataLength) {
+uint16_t handle_eip712_struct_def(uint8_t p2, const uint8_t *cdata, uint8_t length) {
     bool ret = true;
 
     if (eip712_context == NULL) {
@@ -86,10 +89,10 @@ uint16_t handle_eip712_struct_def(uint8_t p2, const uint8_t *dataBuffer, uint8_t
     if (ret) {
         switch (p2) {
             case P2_DEF_NAME:
-                ret = set_struct_name(dataLength, dataBuffer);
+                ret = set_struct_name(length, cdata);
                 break;
             case P2_DEF_FIELD:
-                ret = set_struct_field(dataLength, dataBuffer);
+                ret = set_struct_field(length, cdata);
                 break;
             default:
                 PRINTF("Unknown P2 0x%x\n", p2);
@@ -104,13 +107,16 @@ uint16_t handle_eip712_struct_def(uint8_t p2, const uint8_t *dataBuffer, uint8_t
 /**
  * Process the EIP712 struct implementation command
  *
- * @param[in] apdu_buf the APDU payload
+ * @param[in] p1 instruction parameter 1
+ * @param[in] p2 instruction parameter 2
+ * @param[in] cdata command data
+ * @param[in] length length of the command data
  * @return whether the command was successful or not
  */
 uint16_t handle_eip712_struct_impl(uint8_t p1,
                                    uint8_t p2,
-                                   const uint8_t *dataBuffer,
-                                   uint8_t dataLength,
+                                   const uint8_t *cdata,
+                                   uint8_t length,
                                    uint32_t *flags) {
     bool ret = false;
     bool reply_apdu = true;
@@ -121,7 +127,7 @@ uint16_t handle_eip712_struct_impl(uint8_t p1,
         switch (p2) {
             case P2_IMPL_NAME:
                 // set root type
-                ret = path_set_root((char *) dataBuffer, dataLength);
+                ret = path_set_root((char *) cdata, length);
                 if (ret) {
                     if (N_storage.verbose_eip712) {
                         ui_712_review_struct(path_get_root());
@@ -131,12 +137,12 @@ uint16_t handle_eip712_struct_impl(uint8_t p1,
                 }
                 break;
             case P2_IMPL_FIELD:
-                if ((ret = field_hash(dataBuffer, dataLength, p1 != P1_COMPLETE))) {
+                if ((ret = field_hash(cdata, length, p1 != P1_COMPLETE))) {
                     reply_apdu = false;
                 }
                 break;
             case P2_IMPL_ARRAY:
-                ret = path_new_array_depth(dataBuffer, dataLength);
+                ret = path_new_array_depth(cdata, length);
                 break;
             default:
                 PRINTF("Unknown P2 0x%x\n", p2);
@@ -154,12 +160,16 @@ uint16_t handle_eip712_struct_impl(uint8_t p1,
 /**
  * Process the EIP712 filtering command
  *
- * @param[in] apdu_buf the APDU payload
+ * @param[in] p1 instruction parameter 1
+ * @param[in] p2 instruction parameter 2
+ * @param[in] cdata command data
+ * @param[in] length length of the command data
  * @return whether the command was successful or not
  */
-uint16_t handle_eip712_filtering(uint8_t p2,
-                                 const uint8_t *dataBuffer,
-                                 uint8_t dataLength,
+uint16_t handle_eip712_filtering(uint8_t p1,
+                                 uint8_t p2,
+                                 const uint8_t *cdata,
+                                 uint8_t length,
                                  uint32_t *flags) {
     bool ret = true;
     bool reply_apdu = true;
@@ -179,23 +189,26 @@ uint16_t handle_eip712_filtering(uint8_t p2,
             }
             forget_known_assets();
             break;
+        case P2_FILT_DISCARDED_PATH:
+            ret = filtering_discarded_path(cdata, length);
+            break;
         case P2_FILT_MESSAGE_INFO:
-            ret = filtering_message_info(dataBuffer, dataLength);
+            ret = filtering_message_info(cdata, length);
             if (ret) {
                 reply_apdu = false;
             }
             break;
         case P2_FILT_DATE_TIME:
-            ret = filtering_date_time(dataBuffer, dataLength);
+            ret = filtering_date_time(cdata, length, p1 == 1);
             break;
         case P2_FILT_AMOUNT_JOIN_TOKEN:
-            ret = filtering_amount_join_token(dataBuffer, dataLength);
+            ret = filtering_amount_join_token(cdata, length, p1 == 1);
             break;
         case P2_FILT_AMOUNT_JOIN_VALUE:
-            ret = filtering_amount_join_value(dataBuffer, dataLength);
+            ret = filtering_amount_join_value(cdata, length, p1 == 1);
             break;
         case P2_FILT_RAW_FIELD:
-            ret = filtering_raw_field(dataBuffer, dataLength);
+            ret = filtering_raw_field(cdata, length, p1 == 1);
             break;
         default:
             PRINTF("Unknown P2 0x%x\n", p2);
@@ -224,7 +237,7 @@ uint16_t handle_eip712_filtering(uint8_t p2,
  * @param[in] apdu_buf the APDU payload
  * @return whether the command was successful or not
  */
-uint16_t handle_eip712_sign(const uint8_t *dataBuffer, uint8_t dataLength, uint32_t *flags) {
+uint16_t handle_eip712_sign(const uint8_t *cdata, uint8_t length, uint32_t *flags) {
     bool ret = false;
 
     if (eip712_context == NULL) {
@@ -241,7 +254,7 @@ uint16_t handle_eip712_sign(const uint8_t *dataBuffer, uint8_t dataLength, uint3
                (ui_712_remaining_filters() != 0)) {
         PRINTF("%d EIP712 filters are missing\n", ui_712_remaining_filters());
         apdu_response_code = APDU_RESPONSE_REF_DATA_NOT_FOUND;
-    } else if (parseBip32(dataBuffer, &dataLength, &tmpCtx.messageSigningContext.bip32) == NULL) {
+    } else if (parseBip32(cdata, &length, &tmpCtx.messageSigningContext.bip32) == NULL) {
         apdu_response_code = APDU_RESPONSE_INVALID_DATA;
     } else {
         if (!N_storage.verbose_eip712 && (ui_712_get_filtering_mode() == EIP712_FILTERING_BASIC)) {

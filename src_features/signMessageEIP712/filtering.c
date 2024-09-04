@@ -28,33 +28,41 @@
  * Reconstruct the field path and hash it
  *
  * @param[in] hash_ctx the hashing context
+ * @param[in] discarded if the filter targets a field that does not exist (within an empty array)
  */
-static void hash_filtering_path(cx_hash_t *hash_ctx) {
+static void hash_filtering_path(cx_hash_t *hash_ctx, bool discarded) {
     const void *field_ptr;
     const char *key;
     uint8_t key_len;
 
-    for (uint8_t i = 0; i < path_get_depth_count(); ++i) {
-        if (i > 0) {
-            hash_byte('.', hash_ctx);
-        }
-        if ((field_ptr = path_get_nth_field(i + 1)) != NULL) {
-            if ((key = get_struct_field_keyname(field_ptr, &key_len)) != NULL) {
-                // field name
-                hash_nbytes((uint8_t *) key, key_len, hash_ctx);
+    if (discarded) {
+        key = ui_712_get_discarded_path(&key_len);
+        hash_nbytes((uint8_t *) key, key_len, hash_ctx);
+    } else {
+        for (uint8_t i = 0; i < path_get_depth_count(); ++i) {
+            if (i > 0) {
+                hash_byte('.', hash_ctx);
+            }
+            if ((field_ptr = path_get_nth_field(i + 1)) != NULL) {
+                if ((key = get_struct_field_keyname(field_ptr, &key_len)) != NULL) {
+                    // field name
+                    hash_nbytes((uint8_t *) key, key_len, hash_ctx);
 
-                // array levels
-                if (struct_field_is_array(field_ptr)) {
-                    uint8_t lvl_count;
+                    // array levels
+                    if (struct_field_is_array(field_ptr)) {
+                        uint8_t lvl_count;
 
-                    get_struct_field_array_lvls_array(field_ptr, &lvl_count);
-                    for (int j = 0; j < lvl_count; ++j) {
-                        hash_nbytes((uint8_t *) ".[]", 3, hash_ctx);
+                        get_struct_field_array_lvls_array(field_ptr, &lvl_count);
+                        for (int j = 0; j < lvl_count; ++j) {
+                            hash_nbytes((uint8_t *) ".[]", 3, hash_ctx);
+                        }
                     }
                 }
             }
         }
     }
+    // so it is only usable for the following filter
+    ui_712_set_discarded_path("", 0);
 }
 
 /**
@@ -227,13 +235,103 @@ bool filtering_message_info(const uint8_t *payload, uint8_t length) {
 }
 
 /**
- * Command to display a field as a date-time
+ * Check if given path matches the backed-up path
+ *
+ * A match is found as long as the given path starts with the backed-up path.
+ *
+ * @param[in] path given path
+ * @param[in] path_len length of the path
+ * @param[out] offset_ptr offset to where the comparison stopped
+ * @return whether a match was found or not
+ */
+static bool matches_backup_path(const char *path, uint8_t path_len, uint8_t *offset_ptr) {
+    const void *field_ptr;
+    const char *key;
+    uint8_t key_len;
+    uint8_t offset = 0;
+    uint8_t lvl_count;
+
+    for (uint8_t i = 0; i < path_backup_get_depth_count(); ++i) {
+        if (i > 0) {
+            if (((offset + 1) > path_len) || (memcmp(path + offset, ".", 1) != 0)) {
+                return false;
+            }
+            offset += 1;
+        }
+        if ((field_ptr = path_backup_get_nth_field(i + 1)) != NULL) {
+            if ((key = get_struct_field_keyname(field_ptr, &key_len)) != NULL) {
+                // field name
+                if (((offset + key_len) > path_len) || (memcmp(path + offset, key, key_len) != 0)) {
+                    return false;
+                }
+                offset += key_len;
+
+                // array levels
+                if (struct_field_is_array(field_ptr)) {
+                    get_struct_field_array_lvls_array(field_ptr, &lvl_count);
+                    for (int j = 0; j < lvl_count; ++j) {
+                        if (((offset + 3) > path_len) || (memcmp(path + offset, ".[]", 3) != 0)) {
+                            return false;
+                        }
+                        offset += 3;
+                    }
+                }
+            }
+        }
+    }
+    if (offset_ptr != NULL) {
+        *offset_ptr = offset;
+    }
+    return true;
+}
+
+/**
+ * Command to provide the filter path of a discarded filtered field
+ *
+ * Some filtered fields are discarded/never received because they are contained in an array
+ * that turns out to be empty.
  *
  * @param[in] payload the payload to parse
  * @param[in] length the payload length
  * @return whether it was successful or not
  */
-bool filtering_date_time(const uint8_t *payload, uint8_t length) {
+bool filtering_discarded_path(const uint8_t *payload, uint8_t length) {
+    uint8_t path_len;
+    const char *path;
+    uint8_t offset = 0;
+    uint8_t path_offset;
+
+    if ((offset + sizeof(path_len)) > length) {
+        return false;
+    }
+    path_len = payload[offset++];
+    if ((offset + path_len) > length) {
+        return false;
+    }
+    path = (char *) &payload[offset];
+    offset += path_len;
+    if (offset < path_len) {
+        return false;
+    }
+    if (!matches_backup_path(path, path_len, &path_offset)) {
+        return false;
+    }
+    if (!path_exists_in_backup(path + path_offset, path_len - path_offset)) {
+        return false;
+    }
+    ui_712_set_discarded_path(path, path_len);
+    return true;
+}
+
+/**
+ * Command to display a field as a date-time
+ *
+ * @param[in] payload the payload to parse
+ * @param[in] length the payload length
+ * @param[in] discarded if the filter targets a field that is does not exist (within an empty array)
+ * @return whether it was successful or not
+ */
+bool filtering_date_time(const uint8_t *payload, uint8_t length, bool discarded) {
     uint8_t name_len;
     const char *name;
     uint8_t sig_len;
@@ -269,7 +367,7 @@ bool filtering_date_time(const uint8_t *payload, uint8_t length) {
     if (!sig_verif_start(&hash_ctx, FILT_MAGIC_DATETIME)) {
         return false;
     }
-    hash_filtering_path((cx_hash_t *) &hash_ctx);
+    hash_filtering_path((cx_hash_t *) &hash_ctx, discarded);
     hash_nbytes((uint8_t *) name, sizeof(char) * name_len, (cx_hash_t *) &hash_ctx);
     if (!sig_verif_end(&hash_ctx, sig, sig_len)) {
         return false;
@@ -291,9 +389,10 @@ bool filtering_date_time(const uint8_t *payload, uint8_t length) {
  *
  * @param[in] payload the payload to parse
  * @param[in] length the payload length
+ * @param[in] discarded if the filter targets a field that is does not exist (within an empty array)
  * @return whether it was successful or not
  */
-bool filtering_amount_join_token(const uint8_t *payload, uint8_t length) {
+bool filtering_amount_join_token(const uint8_t *payload, uint8_t length, bool discarded) {
     uint8_t token_idx;
     uint8_t sig_len;
     const uint8_t *sig;
@@ -323,7 +422,7 @@ bool filtering_amount_join_token(const uint8_t *payload, uint8_t length) {
     if (!sig_verif_start(&hash_ctx, FILT_MAGIC_AMOUNT_JOIN_TOKEN)) {
         return false;
     }
-    hash_filtering_path((cx_hash_t *) &hash_ctx);
+    hash_filtering_path((cx_hash_t *) &hash_ctx, discarded);
     hash_byte(token_idx, (cx_hash_t *) &hash_ctx);
     if (!sig_verif_end(&hash_ctx, sig, sig_len)) {
         return false;
@@ -343,9 +442,10 @@ bool filtering_amount_join_token(const uint8_t *payload, uint8_t length) {
  *
  * @param[in] payload the payload to parse
  * @param[in] length the payload length
+ * @param[in] discarded if the filter targets a field that is does not exist (within an empty array)
  * @return whether it was successful or not
  */
-bool filtering_amount_join_value(const uint8_t *payload, uint8_t length) {
+bool filtering_amount_join_value(const uint8_t *payload, uint8_t length, bool discarded) {
     uint8_t name_len;
     const char *name;
     uint8_t token_idx;
@@ -389,7 +489,7 @@ bool filtering_amount_join_value(const uint8_t *payload, uint8_t length) {
     if (!sig_verif_start(&hash_ctx, FILT_MAGIC_AMOUNT_JOIN_VALUE)) {
         return false;
     }
-    hash_filtering_path((cx_hash_t *) &hash_ctx);
+    hash_filtering_path((cx_hash_t *) &hash_ctx, discarded);
     hash_nbytes((uint8_t *) name, sizeof(char) * name_len, (cx_hash_t *) &hash_ctx);
     hash_byte(token_idx, (cx_hash_t *) &hash_ctx);
     if (!sig_verif_end(&hash_ctx, sig, sig_len)) {
@@ -423,9 +523,10 @@ bool filtering_amount_join_value(const uint8_t *payload, uint8_t length) {
  *
  * @param[in] payload the payload to parse
  * @param[in] length the payload length
+ * @param[in] discarded if the filter targets a field that is does not exist (within an empty array)
  * @return whether it was successful or not
  */
-bool filtering_raw_field(const uint8_t *payload, uint8_t length) {
+bool filtering_raw_field(const uint8_t *payload, uint8_t length, bool discarded) {
     uint8_t name_len;
     const char *name;
     uint8_t sig_len;
@@ -461,17 +562,19 @@ bool filtering_raw_field(const uint8_t *payload, uint8_t length) {
     if (!sig_verif_start(&hash_ctx, FILT_MAGIC_RAW_FIELD)) {
         return false;
     }
-    hash_filtering_path((cx_hash_t *) &hash_ctx);
+    hash_filtering_path((cx_hash_t *) &hash_ctx, discarded);
     hash_nbytes((uint8_t *) name, sizeof(char) * name_len, (cx_hash_t *) &hash_ctx);
     if (!sig_verif_end(&hash_ctx, sig, sig_len)) {
         return false;
     }
 
-    // Handling
-    if (name_len > 0) {  // don't substitute for an empty name
-        ui_712_set_title(name, name_len);
+    if (!discarded) {
+        // Handling
+        if (name_len > 0) {  // don't substitute for an empty name
+            ui_712_set_title(name, name_len);
+        }
+        ui_712_flag_field(true, name_len > 0, false, false);
     }
-    ui_712_flag_field(true, name_len > 0, false, false);
     return true;
 }
 

@@ -3,7 +3,7 @@
 
 import struct
 from enum import IntEnum
-from typing import Optional
+from typing import List, Optional
 from ragger.bip import pack_derivation_path
 
 from .eip712 import EIP712FieldType
@@ -25,6 +25,7 @@ class InsType(IntEnum):
     GET_CHALLENGE = 0x20
     PROVIDE_TRUSTED_NAME = 0x22
     EXTERNAL_PLUGIN_SETUP = 0x12
+    PROVIDE_NETWORK_INFORMATION = 0x30
 
 
 class P1Type(IntEnum):
@@ -32,6 +33,10 @@ class P1Type(IntEnum):
     PARTIAL_SEND = 0x01
     SIGN_FIRST_CHUNK = 0x00
     SIGN_SUBSQT_CHUNK = 0x80
+    FIRST_CHUNK = 0x01
+    FOLLOWING_CHUNK = 0x00
+    NETWORK_CONFIG = 0x00
+    NETWORK_ICON = 0x01
 
 
 class P2Type(IntEnum):
@@ -48,6 +53,8 @@ class P2Type(IntEnum):
     FILTERING_TOKEN_ADDR_CHECK = 0xfd
     FILTERING_AMOUNT_FIELD = 0xfe
     FILTERING_RAW = 0xff
+    FIRST_CHUNK = 0x01
+    NEXT_CHUNK = 0x00
 
 
 class CommandBuilder:
@@ -408,3 +415,28 @@ class CommandBuilder:
                                0x00,
                                0x00,
                                payload)
+
+    def provide_network_information(self,
+                                    slot: int,
+                                    tlv_payload: bytes,
+                                    icon: Optional[bytes] = None) -> list[bytes]:
+        chunks: List[bytes] = []
+
+        # Check if the TLV payload is larger than 0xff
+        assert len(tlv_payload) < 0xff, "Payload too large"
+        # Serialize the payload
+        chunks.append(self._serialize(InsType.PROVIDE_NETWORK_INFORMATION,
+                                      P1Type.NETWORK_CONFIG,
+                                      slot,
+                                      tlv_payload))
+
+        if icon:
+            p2 = ((slot << 4 & 0xF0)) + (P2Type.FIRST_CHUNK & 0x0F)
+            while len(icon) > 0:
+                chunks.append(self._serialize(InsType.PROVIDE_NETWORK_INFORMATION,
+                                              P1Type.NETWORK_ICON,
+                                              p2,
+                                              icon[:0xff]))
+                icon = icon[0xff:]
+                p2 = P2Type.NEXT_CHUNK
+        return chunks

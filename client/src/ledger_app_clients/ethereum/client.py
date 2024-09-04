@@ -12,6 +12,7 @@ from .eip712 import EIP712FieldType
 from .keychain import sign_data, Key
 from .tlv import format_tlv
 
+from hashlib import sha256
 from web3 import Web3
 
 
@@ -43,21 +44,25 @@ class TrustedNameSource(IntEnum):
     DNS = 0x05
 
 
-class TrustedNameTag(IntEnum):
+class FieldTag(IntEnum):
     STRUCT_TYPE = 0x01
     STRUCT_VERSION = 0x02
     NOT_VALID_AFTER = 0x10
     CHALLENGE = 0x12
     SIGNER_KEY_ID = 0x13
     SIGNER_ALGO = 0x14
-    SIGNATURE = 0x15
-    NAME = 0x20
+    DER_SIGNATURE = 0x15
+    TRUSTED_NAME = 0x20
     COIN_TYPE = 0x21
     ADDRESS = 0x22
     CHAIN_ID = 0x23
-    NAME_TYPE = 0x70
-    NAME_SOURCE = 0x71
-    NFT_ID = 0x72
+    TICKER = 0x24
+    BLOCKCHAIN_FAMILY = 0x51
+    NETWORK_NAME = 0x52
+    NETWORK_ICON_HASH = 0x53
+    TRUSTED_NAME_TYPE = 0x70
+    TRUSTED_NAME_SOURCE = 0x71
+    TRUSTED_NAME_NFT_ID = 0x72
 
 
 class PKIPubKeyUsage(IntEnum):
@@ -266,10 +271,10 @@ class EthAppClient:
             # pylint: enable=line-too-long
 
             self._pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_COIN_META, bytes.fromhex(cert_apdu))
-        payload += format_tlv(TrustedNameTag.STRUCT_TYPE, 3)  # TrustedName
-        payload += format_tlv(TrustedNameTag.SIGNER_KEY_ID, 0)  # test key
-        payload += format_tlv(TrustedNameTag.SIGNER_ALGO, 1)  # secp256k1
-        payload += format_tlv(TrustedNameTag.SIGNATURE,
+        payload += format_tlv(FieldTag.STRUCT_TYPE, 3)  # TrustedName
+        payload += format_tlv(FieldTag.SIGNER_KEY_ID, 0)  # test key
+        payload += format_tlv(FieldTag.SIGNER_ALGO, 1)  # secp256k1
+        payload += format_tlv(FieldTag.DER_SIGNATURE,
                               sign_data(Key.TRUSTED_NAME, payload))
         chunks = self._cmd_builder.provide_trusted_name(payload)
         for chunk in chunks[:-1]:
@@ -277,11 +282,11 @@ class EthAppClient:
         return self._exchange(chunks[-1])
 
     def provide_trusted_name_v1(self, addr: bytes, name: str, challenge: int) -> RAPDU:
-        payload = format_tlv(TrustedNameTag.STRUCT_VERSION, 1)
-        payload += format_tlv(TrustedNameTag.CHALLENGE, challenge)
-        payload += format_tlv(TrustedNameTag.COIN_TYPE, 0x3c)  # ETH in slip-44
-        payload += format_tlv(TrustedNameTag.NAME, name)
-        payload += format_tlv(TrustedNameTag.ADDRESS, addr)
+        payload = format_tlv(FieldTag.STRUCT_VERSION, 1)
+        payload += format_tlv(FieldTag.CHALLENGE, challenge)
+        payload += format_tlv(FieldTag.COIN_TYPE, 0x3c)  # ETH in slip-44
+        payload += format_tlv(FieldTag.TRUSTED_NAME, name)
+        payload += format_tlv(FieldTag.ADDRESS, addr)
         return self._provide_trusted_name_common(payload)
 
     def provide_trusted_name_v2(self,
@@ -293,19 +298,19 @@ class EthAppClient:
                                 nft_id: Optional[int] = None,
                                 challenge: Optional[int] = None,
                                 not_valid_after: Optional[tuple[int]] = None) -> RAPDU:
-        payload = format_tlv(TrustedNameTag.STRUCT_VERSION, 2)
-        payload += format_tlv(TrustedNameTag.NAME, name)
-        payload += format_tlv(TrustedNameTag.ADDRESS, addr)
-        payload += format_tlv(TrustedNameTag.NAME_TYPE, name_type)
-        payload += format_tlv(TrustedNameTag.NAME_SOURCE, name_source)
-        payload += format_tlv(TrustedNameTag.CHAIN_ID, chain_id)
+        payload = format_tlv(FieldTag.STRUCT_VERSION, 2)
+        payload += format_tlv(FieldTag.TRUSTED_NAME, name)
+        payload += format_tlv(FieldTag.ADDRESS, addr)
+        payload += format_tlv(FieldTag.TRUSTED_NAME_TYPE, name_type)
+        payload += format_tlv(FieldTag.TRUSTED_NAME_SOURCE, name_source)
+        payload += format_tlv(FieldTag.CHAIN_ID, chain_id)
         if nft_id is not None:
-            payload += format_tlv(TrustedNameTag.NFT_ID, nft_id)
+            payload += format_tlv(FieldTag.TRUSTED_NAME_NFT_ID, nft_id)
         if challenge is not None:
-            payload += format_tlv(TrustedNameTag.CHALLENGE, challenge)
+            payload += format_tlv(FieldTag.CHALLENGE, challenge)
         if not_valid_after is not None:
             assert len(not_valid_after) == 3
-            payload += format_tlv(TrustedNameTag.NOT_VALID_AFTER, struct.pack("BBB", *not_valid_after))
+            payload += format_tlv(FieldTag.NOT_VALID_AFTER, struct.pack("BBB", *not_valid_after))
         return self._provide_trusted_name_common(payload)
 
     def set_plugin(self,
@@ -468,3 +473,65 @@ class EthAppClient:
                                                                                 decimals,
                                                                                 chain_id,
                                                                                 sig))
+
+    def _prepare_network_info(self,
+                              name: str,
+                              ticker: str,
+                              chain_id: int,
+                              icon: Optional[bytes] = None) -> bytes:
+
+        payload = format_tlv(FieldTag.STRUCT_TYPE, 8)
+        payload += format_tlv(FieldTag.STRUCT_VERSION, 1)
+        payload += format_tlv(FieldTag.BLOCKCHAIN_FAMILY, 1)
+        payload += format_tlv(FieldTag.CHAIN_ID, chain_id.to_bytes(8, 'big'))
+        payload += format_tlv(FieldTag.NETWORK_NAME, name.encode('utf-8'))
+        payload += format_tlv(FieldTag.TICKER, ticker.encode('utf-8'))
+        if icon:
+            # Network Icon
+            payload += format_tlv(FieldTag.NETWORK_ICON_HASH, sha256(icon).digest())
+        # Append the data Signature
+        payload += format_tlv(FieldTag.DER_SIGNATURE,
+                              sign_data(Key.DYNAMIC_NETWORK, payload))
+        return payload
+
+    def provide_network_information(self,
+                                    name: str,
+                                    ticker: str,
+                                    chain_id: int,
+                                    icon: Optional[bytes] = None) -> RAPDU:
+
+        if self._pki_client is None:
+            print(f"Ledger-PKI Not supported on '{self._firmware.name}'")
+        else:
+            # pylint: disable=line-too-long
+            if self._firmware == Firmware.NANOSP:
+                cert_apdu = "01010102010211040000000212010013020002140101160400000000200F44796E616D69635F4E6574776F726B30020005310108320121332102FD8E4D2062DFE585428FF25F9C2F9AE2E515CC36F032121031B96648F50DF4CA3401013501031546304402207D0E8FA8F1C5C522D53DC487BE0A61D0609AB754F520804863AF94A91D5A8195022037C94C25FABC0F20C124C734FF627BC397BE95FFFFE9C0EC465B6006B8AA67E6"  # noqa: E501
+            elif self._firmware == Firmware.NANOX:
+                cert_apdu = "01010102010211040000000212010013020002140101160400000000200F44796E616D69635F4E6574776F726B30020005310108320121332102FD8E4D2062DFE585428FF25F9C2F9AE2E515CC36F032121031B96648F50DF4CA3401013501021546304402200EDD3F640DAD19501212261736E553544A65E62C01C5EE1814434AFB8340E98B022078B4EEDDF9F74AF172EFA65EA2CEC28C418DAF1CFC3BF09CDAFC06297BEFE15A"  # noqa: E501
+            elif self._firmware == Firmware.STAX:
+                cert_apdu = "01010102010211040000000212010013020002140101160400000000200F44796E616D69635F4E6574776F726B30020005310108320121332102FD8E4D2062DFE585428FF25F9C2F9AE2E515CC36F032121031B96648F50DF4CA340101350104154730450221009D0041DA826BCA9BD2A290066229618D9FB0C20F1AAADE801C688B8CD71183410220425D2F1614F3CED9311153B8E98FACF7DEBFC5752DA0000A9C0B86AE9F45E21E"  # noqa: E501
+            elif self._firmware == Firmware.FLEX:
+                cert_apdu = "01010102010211040000000212010013020002140101160400000000200F44796E616D69635F4E6574776F726B30020005310108320121332102FD8E4D2062DFE585428FF25F9C2F9AE2E515CC36F032121031B96648F50DF4CA34010135010515473045022100A8F9739069E91761D1B6A9ECBC31FB1AA2C00B5E8DBE3CA1F8B063A50D305E420220393A33EF9C28A346DA6700D8AD0B78F0014AE93F9F32706D0F0485F09EE161CE"  # noqa: E501
+            # pylint: enable=line-too-long
+
+            self._pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_COIN_META, bytes.fromhex(cert_apdu))
+
+        # Add fake (Boilerplate) glyphs to check the correct one will be used
+        # pylint: disable=line-too-long
+        fake_icon = "4000400001b30000b1001f8b08000000000002ff75d1bb0d03210c06609f228592116e856c70a31da37914a4146929292c1c83ff4404e5dc7c120f1b1ba2abb8c3f0312d32ccb0c03af9308568b3bdd088a29d0d4a74f2f0a6c3b46beab26abfa72f6d43fd2ab0c232b99bfd0986a7b3b07447d72aab1bd5d38d658115eb8273bddc01a3dff38d840d46ddbc5896f7c98f4ff4914fef8fa3f79b367fb0e5e6693e0df312ccaf2ef32dcbdcf9e27f967ffc1f6fe5d1a92100020000"  # noqa: E501
+        # pylint: enable=line-too-long
+        payload = self._prepare_network_info("Boilerplate", "BOL", chain_id + 1, bytes.fromhex(fake_icon))
+        chunks = self._cmd_builder.provide_network_information(0, payload, bytes.fromhex(fake_icon))
+        for chunk in chunks[:-1]:
+            response = self._exchange(chunk)
+            assert response.status == StatusWord.OK
+        response = self._exchange(chunks[-1])
+        assert response.status == StatusWord.OK
+
+        # Add the real network info
+        payload = self._prepare_network_info(name, ticker, chain_id, icon)
+        chunks = self._cmd_builder.provide_network_information(1, payload, icon)
+        for chunk in chunks[:-1]:
+            response = self._exchange(chunk)
+            assert response.status == StatusWord.OK
+        return self._exchange(chunks[-1])

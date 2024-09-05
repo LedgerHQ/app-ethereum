@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Added support for swap with calldata (Thorswap / LiFi / ...)
 
+## [1.11.3](https://github.com/ledgerhq/app-ethereum/compare/1.11.2...1.11.3) - 2024-09-04
+
+### Changed
+
+- Replaced MATIC by POL ticker for Polygon network
+
 ## [1.11.2](https://github.com/ledgerhq/app-ethereum/compare/1.11.1...1.11.2) - 2024-08-13
 
 ### Added

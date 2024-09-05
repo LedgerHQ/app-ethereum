@@ -29,19 +29,13 @@ static bool g_skipped;
 
 static void ui_191_process_state(void);
 
-static void reject_message(void) {
-    io_seproxyhal_touch_signMessage_cancel();
-}
-
-static void sign_message(void) {
-    io_seproxyhal_touch_signMessage_ok();
-}
-
 static void ui_191_finish_cb(bool confirm) {
     if (confirm) {
-        nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_SIGNED, sign_message);
+        io_seproxyhal_touch_signMessage_ok();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_SIGNED, ui_idle);
     } else {
-        nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_REJECTED, reject_message);
+        io_seproxyhal_touch_signMessage_cancel();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_REJECTED, ui_idle);
     }
 }
 

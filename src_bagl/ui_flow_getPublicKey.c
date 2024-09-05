@@ -1,5 +1,11 @@
 #include "shared_context.h"
 #include "ui_callbacks.h"
+#include "common_ui.h"
+
+static unsigned int address_ok_cb(void) {
+    ui_idle();
+    return io_seproxyhal_touch_address_ok();
+}
 
 // clang-format off
 UX_STEP_NOCB(
@@ -20,7 +26,7 @@ UX_STEP_NOCB(
 UX_STEP_CB(
     ux_display_public_flow_3_step,
     pb,
-    io_seproxyhal_touch_address_ok(),
+    address_ok_cb(),
     {
       &C_icon_validate_14,
       "Approve",
@@ -28,7 +34,7 @@ UX_STEP_CB(
 UX_STEP_CB(
     ux_display_public_flow_4_step,
     pb,
-    io_seproxyhal_touch_address_cancel(),
+    address_cancel_cb(),
     {
       &C_icon_crossmark,
       "Reject",

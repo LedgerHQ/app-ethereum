@@ -11,6 +11,16 @@
 #include "domain_name.h"
 #include "ui_domain_name.h"
 
+static unsigned int data_ok_cb(void) {
+    ui_idle();
+    return io_seproxyhal_touch_data_ok();
+}
+
+static unsigned int data_cancel_cb(void) {
+    ui_idle();
+    return io_seproxyhal_touch_data_cancel();
+}
+
 // clang-format off
 UX_STEP_NOCB(
     ux_confirm_selector_flow_1_step,
@@ -31,7 +41,7 @@ UX_STEP_NOCB(
 UX_STEP_CB(
     ux_confirm_selector_flow_3_step,
     pb,
-    io_seproxyhal_touch_data_ok(),
+    data_ok_cb(),
     {
       &C_icon_validate_14,
       "Approve",
@@ -39,7 +49,7 @@ UX_STEP_CB(
 UX_STEP_CB(
     ux_confirm_selector_flow_4_step,
     pb,
-    io_seproxyhal_touch_data_cancel(),
+    data_cancel_cb(),
     {
       &C_icon_crossmark,
       "Reject",
@@ -72,7 +82,7 @@ UX_STEP_NOCB(
 UX_STEP_CB(
     ux_confirm_parameter_flow_3_step,
     pb,
-    io_seproxyhal_touch_data_ok(),
+    data_ok_cb(),
     {
       &C_icon_validate_14,
       "Approve",
@@ -80,7 +90,7 @@ UX_STEP_CB(
 UX_STEP_CB(
     ux_confirm_parameter_flow_4_step,
     pb,
-    io_seproxyhal_touch_data_cancel(),
+    data_cancel_cb(),
     {
       &C_icon_crossmark,
       "Reject",
@@ -176,7 +186,7 @@ UX_STEP_NOCB(
 UX_STEP_CB(
     ux_approval_accept_step,
     pbb,
-    io_seproxyhal_touch_tx_ok(),
+    tx_ok_cb(),
     {
       &C_icon_validate_14,
       "Accept",
@@ -185,7 +195,7 @@ UX_STEP_CB(
 UX_STEP_CB(
     ux_approval_accept_blind_step,
     pbb,
-    io_seproxyhal_touch_tx_ok(),
+    tx_ok_cb(),
     {
       &C_icon_validate_14,
       "Accept risk",
@@ -194,7 +204,7 @@ UX_STEP_CB(
 UX_STEP_CB(
     ux_approval_reject_step,
     pb,
-    io_seproxyhal_touch_tx_cancel(),
+    tx_cancel_cb(),
     {
       &C_icon_crossmark,
       "Reject",

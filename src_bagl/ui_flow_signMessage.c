@@ -28,6 +28,16 @@ static void dummy_post_cb(void) {
     }
 }
 
+static unsigned int signMessage_ok_cb(void) {
+    ui_idle();
+    return io_seproxyhal_touch_signMessage_ok();
+}
+
+static unsigned int signMessage_cancel_cb(void) {
+    ui_idle();
+    return io_seproxyhal_touch_signMessage_cancel();
+}
+
 // clang-format off
 UX_STEP_NOCB(
     ux_191_step_review,
@@ -79,7 +89,7 @@ UX_STEP_INIT(
 UX_STEP_CB(
     ux_191_step_sign,
     pbb,
-    io_seproxyhal_touch_signMessage_ok(),
+    signMessage_ok_cb(),
     {
       &C_icon_validate_14,
       "Sign",
@@ -88,7 +98,7 @@ UX_STEP_CB(
 UX_STEP_CB(
     ux_191_step_cancel,
     pbb,
-    io_seproxyhal_touch_signMessage_cancel(),
+    signMessage_cancel_cb(),
     {
       &C_icon_crossmark,
       "Cancel",

@@ -139,10 +139,6 @@ static bool check_token_index(uint8_t idx) {
         PRINTF("Error: token index out of range (%u)\n", idx);
         return false;
     }
-    if (!tmpCtx.transactionContext.assetSet[idx]) {
-        PRINTF("Error: token not set (%u)\n", idx);
-        return false;
-    }
     return true;
 }
 

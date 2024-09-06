@@ -415,19 +415,21 @@ static bool ui_712_format_uint(const uint8_t *data, uint8_t length, bool first) 
  * @return whether it was successful or not
  */
 static bool ui_712_format_amount_join(void) {
-    const tokenDefinition_t *token;
-    token = &tmpCtx.transactionContext.extraInfo[ui_ctx->amount.idx].token;
+    const tokenDefinition_t *token = NULL;
 
+    if (tmpCtx.transactionContext.assetSet[ui_ctx->amount.idx]) {
+        token = &tmpCtx.transactionContext.extraInfo[ui_ctx->amount.idx].token;
+    }
     if ((ui_ctx->amount.joins[ui_ctx->amount.idx].value_length == INT256_LENGTH) &&
         ismaxint(ui_ctx->amount.joins[ui_ctx->amount.idx].value,
                  ui_ctx->amount.joins[ui_ctx->amount.idx].value_length)) {
         strlcpy(strings.tmp.tmp, "Unlimited ", sizeof(strings.tmp.tmp));
-        strlcat(strings.tmp.tmp, token->ticker, sizeof(strings.tmp.tmp));
+        strlcat(strings.tmp.tmp, (token != NULL) ? token->ticker : "???", sizeof(strings.tmp.tmp));
     } else {
         if (!amountToString(ui_ctx->amount.joins[ui_ctx->amount.idx].value,
                             ui_ctx->amount.joins[ui_ctx->amount.idx].value_length,
-                            token->decimals,
-                            token->ticker,
+                            (token != NULL) ? token->decimals : 0,
+                            (token != NULL) ? token->ticker : "???",
                             strings.tmp.tmp,
                             sizeof(strings.tmp.tmp))) {
             return false;
@@ -456,13 +458,23 @@ void amount_join_set_token_received(void) {
  * @return whether it was successful or not
  */
 static bool update_amount_join(const uint8_t *data, uint8_t length) {
-    tokenDefinition_t *token;
+    const tokenDefinition_t *token = NULL;
 
-    token = &tmpCtx.transactionContext.extraInfo[ui_ctx->amount.idx].token;
+    if (tmpCtx.transactionContext.assetSet[ui_ctx->amount.idx]) {
+        token = &tmpCtx.transactionContext.extraInfo[ui_ctx->amount.idx].token;
+    } else {
+        if (tmpCtx.transactionContext.currentAssetIndex == ui_ctx->amount.idx) {
+            // So that the following amount-join find their tokens in the expected indices
+            tmpCtx.transactionContext.currentAssetIndex =
+                (tmpCtx.transactionContext.currentAssetIndex + 1) % MAX_ASSETS;
+        }
+    }
     switch (ui_ctx->amount.state) {
         case AMOUNT_JOIN_STATE_TOKEN:
-            if (memcmp(data, token->address, ADDRESS_LENGTH) != 0) {
-                return false;
+            if (token != NULL) {
+                if (memcmp(data, token->address, ADDRESS_LENGTH) != 0) {
+                    return false;
+                }
             }
             amount_join_set_token_received();
             break;

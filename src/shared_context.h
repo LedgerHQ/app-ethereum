@@ -7,6 +7,7 @@
 #include "os.h"
 #include "cx.h"
 #include "bip32.h"
+#include "bip32_utils.h"
 #include "ethUstream.h"
 #include "tx_content.h"
 #include "chainConfig.h"
@@ -25,11 +26,6 @@ extern void common_app_init(void);
 #define N_storage (*(volatile internalStorage_t *) PIC(&N_storage_real))
 
 #define MAX_ASSETS 5
-
-typedef struct bip32_path_t {
-    uint8_t length;
-    uint32_t path[MAX_BIP32_PATH];
-} bip32_path_t;
 
 typedef struct internalStorage_t {
     bool dataAllowed;

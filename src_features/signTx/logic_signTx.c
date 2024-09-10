@@ -585,10 +585,13 @@ uint16_t finalizeParsing(void) {
         ui_idle();
         io_seproxyhal_touch_tx_ok();
     } else {
+#ifdef HAVE_BAGL
         // If blind-signing detected, start the warning flow beforehand
         if (tmpContent.txContent.dataPresent) {
             ui_warning_blind_signing();
-        } else {
+        } else
+#endif
+        {
             start_signature_flow();
         }
     }

@@ -13,14 +13,6 @@ static void ui_error_blind_signing_choice(bool confirm) {
     }
 }
 
-static void ui_warning_blind_signing_choice(bool confirm) {
-    if (confirm) {
-        io_seproxyhal_send_status(APDU_RESPONSE_CONDITION_NOT_SATISFIED, 0, true, true);
-    } else {
-        start_signature_flow();
-    }
-}
-
 void ui_error_blind_signing(void) {
     nbgl_useCaseChoice(&C_Warning_64px,
                        "This transaction cannot be clear-signed",
@@ -28,14 +20,4 @@ void ui_error_blind_signing(void) {
                        "Go to settings",
                        "Reject transaction",
                        ui_error_blind_signing_choice);
-}
-
-void ui_warning_blind_signing(void) {
-    nbgl_useCaseChoice(&C_Warning_64px,
-                       "Blind signing ahead",
-                       "This transaction's details are not fully verifiable. If you sign it, you "
-                       "could lose all your assets.",
-                       "Back to safety",
-                       "Continue anyway",
-                       ui_warning_blind_signing_choice);
 }

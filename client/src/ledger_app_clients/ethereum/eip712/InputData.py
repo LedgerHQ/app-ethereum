@@ -17,7 +17,8 @@ from client.client import PKIPubKeyUsage
 # global variables
 app_client: EthAppClient = None
 filtering_paths: dict = {}
-current_path: list[str] = list()
+filtering_tokens: list[dict] = []
+current_path: list[str] = []
 sig_ctx: dict[str, Any] = {}
 
 
@@ -194,18 +195,36 @@ encoding_functions[EIP712FieldType.FIX_BYTES] = encode_bytes_fix
 encoding_functions[EIP712FieldType.DYN_BYTES] = encode_bytes_dyn
 
 
+def send_filtering_token(token_idx: int):
+    assert token_idx < len(filtering_tokens)
+    if len(filtering_tokens[token_idx]) > 0:
+        token = filtering_tokens[token_idx]
+        if not token["sent"]:
+            app_client.provide_token_metadata(token["ticker"],
+                                              bytes.fromhex(token["addr"][2:]),
+                                              token["decimals"],
+                                              token["chain_id"])
+            token["sent"] = True
+
+
 def send_filter(path: str, discarded: bool):
     assert path in filtering_paths.keys()
 
-    if filtering_paths[path]["type"] == "amount_join_token":
-        send_filtering_amount_join_token(path, filtering_paths[path]["token"], discarded)
-    elif filtering_paths[path]["type"] == "amount_join_value":
+    if filtering_paths[path]["type"].startswith("amount_join_"):
         if "token" in filtering_paths[path].keys():
-            token = filtering_paths[path]["token"]
+            token_idx = filtering_paths[path]["token"]
+            send_filtering_token(token_idx)
         else:
             # Permit (ERC-2612)
-            token = 0xff
-        send_filtering_amount_join_value(path, token, filtering_paths[path]["name"], discarded)
+            send_filtering_token(0)
+            token_idx = 0xff
+        if filtering_paths[path]["type"].endswith("_token"):
+            send_filtering_amount_join_token(path, token_idx, discarded)
+        elif filtering_paths[path]["type"].endswith("_value"):
+            send_filtering_amount_join_value(path,
+                                             token_idx,
+                                             filtering_paths[path]["name"],
+                                             discarded)
     elif filtering_paths[path]["type"] == "datetime":
         send_filtering_datetime(path, filtering_paths[path]["name"], discarded)
     elif filtering_paths[path]["type"] == "raw":
@@ -353,17 +372,20 @@ def send_filtering_raw(path: str, display_name: str, discarded: bool):
 
 def prepare_filtering(filtr_data, message):
     global filtering_paths
+    global filtering_tokens
 
     if "fields" in filtr_data:
         filtering_paths = filtr_data["fields"]
     else:
         filtering_paths = {}
+
     if "tokens" in filtr_data:
-        for token in filtr_data["tokens"]:
-            app_client.provide_token_metadata(token["ticker"],
-                                              bytes.fromhex(token["addr"][2:]),
-                                              token["decimals"],
-                                              token["chain_id"])
+        filtering_tokens = filtr_data["tokens"]
+        for token in filtering_tokens:
+            if len(token) > 0:
+                token["sent"] = False
+    else:
+        filtering_tokens = []
 
 
 def handle_optional_domain_values(domain):

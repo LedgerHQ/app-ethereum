@@ -242,14 +242,14 @@ ADVANCED_DATA_SETS = [
             "name": "Advanced Filtering",
             "tokens": [
                 {
-                    "addr": "0x6b175474e89094c44da98b954eedeac495271d0f",
-                    "ticker": "DAI",
+                    "addr": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                    "ticker": "WETH",
                     "decimals": 18,
                     "chain_id": 1,
                 },
                 {
-                    "addr": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-                    "ticker": "WETH",
+                    "addr": "0x6b175474e89094c44da98b954eedeac495271d0f",
+                    "ticker": "DAI",
                     "decimals": 18,
                     "chain_id": 1,
                 },
@@ -258,20 +258,20 @@ ADVANCED_DATA_SETS = [
                 "value_send": {
                     "type": "amount_join_value",
                     "name": "Send",
-                    "token": 0,
+                    "token": 1,
                 },
                 "token_send": {
                     "type": "amount_join_token",
-                    "token": 0,
+                    "token": 1,
                 },
                 "value_recv": {
                     "type": "amount_join_value",
                     "name": "Receive",
-                    "token": 1,
+                    "token": 0,
                 },
                 "token_recv": {
                     "type": "amount_join_token",
-                    "token": 1,
+                    "token": 0,
                 },
                 "with": {
                     "type": "raw",

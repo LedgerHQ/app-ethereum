@@ -528,3 +528,114 @@ def test_eip712_filtering_empty_array(firmware: Firmware,
     # verify signature
     addr = recover_message(data, vrs)
     assert addr == get_wallet_addr(app_client)
+
+
+TOKENS = [
+    [
+        {
+            "addr": "0x1111111111111111111111111111111111111111",
+            "ticker": "SRC",
+            "decimals": 18,
+            "chain_id": 1,
+        },
+        {},
+    ],
+    [
+        {},
+        {
+            "addr": "0x2222222222222222222222222222222222222222",
+            "ticker": "DST",
+            "decimals": 18,
+            "chain_id": 1,
+        },
+    ]
+]
+
+
+@pytest.fixture(name="tokens", params=TOKENS)
+def tokens_fixture(request) -> list[dict]:
+    return request.param
+
+
+def test_eip712_advanced_missing_token(firmware: Firmware,
+                                       backend: BackendInterface,
+                                       navigator: Navigator,
+                                       default_screenshot_path: Path,
+                                       test_name: str,
+                                       tokens: list[dict],
+                                       golden_run: bool):
+    global SNAPS_CONFIG
+
+    test_name += "-%s-%s" % (len(tokens[0]) == 0, len(tokens[1]) == 0)
+    SNAPS_CONFIG = SnapshotsConfig(test_name)
+
+    app_client = EthAppClient(backend)
+    if firmware == Firmware.NANOS:
+        pytest.skip("Not supported on LNS")
+
+    data = {
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "Root": [
+                {"name": "token_from", "type": "address"},
+                {"name": "value_from", "type": "uint256"},
+                {"name": "token_to", "type": "address"},
+                {"name": "value_to", "type": "uint256"},
+            ]
+        },
+        "primaryType": "Root",
+        "domain": {
+            "name": "test",
+            "version": "1",
+            "verifyingContract": "0x0000000000000000000000000000000000000000",
+            "chainId": 1,
+        },
+        "message": {
+            "token_from": "0x1111111111111111111111111111111111111111",
+            "value_from": web3.Web3.to_wei(3.65, "ether"),
+            "token_to": "0x2222222222222222222222222222222222222222",
+            "value_to": web3.Web3.to_wei(15.47, "ether"),
+        }
+    }
+
+    filters = {
+        "name": "Token not in CAL test",
+        "tokens": tokens,
+        "fields": {
+            "token_from": {
+                "type": "amount_join_token",
+                "token": 0,
+            },
+            "value_from": {
+                "type": "amount_join_value",
+                "name": "From",
+                "token": 0,
+            },
+            "token_to": {
+                "type": "amount_join_token",
+                "token": 1,
+            },
+            "value_to": {
+                "type": "amount_join_value",
+                "name": "To",
+                "token": 1,
+            },
+        }
+    }
+    vrs = eip712_new_common(firmware,
+                            navigator,
+                            default_screenshot_path,
+                            app_client,
+                            data,
+                            filters,
+                            False,
+                            golden_run)
+
+    # verify signature
+    addr = recover_message(data, vrs)
+    assert addr == get_wallet_addr(app_client)

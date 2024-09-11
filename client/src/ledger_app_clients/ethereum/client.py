@@ -146,25 +146,30 @@ class EthAppClient:
     def eip712_filtering_activate(self):
         return self._exchange_async(self._cmd_builder.eip712_filtering_activate())
 
+    def eip712_filtering_discarded_path(self, path: str):
+        return self._exchange(self._cmd_builder.eip712_filtering_discarded_path(path))
+
     def eip712_filtering_message_info(self, name: str, filters_count: int, sig: bytes):
         return self._exchange_async(self._cmd_builder.eip712_filtering_message_info(name,
                                                                                     filters_count,
                                                                                     sig))
 
-    def eip712_filtering_amount_join_token(self, token_idx: int, sig: bytes):
+    def eip712_filtering_amount_join_token(self, token_idx: int, sig: bytes, discarded: bool):
         return self._exchange_async(self._cmd_builder.eip712_filtering_amount_join_token(token_idx,
-                                                                                         sig))
+                                                                                         sig,
+                                                                                         discarded))
 
-    def eip712_filtering_amount_join_value(self, token_idx: int, name: str, sig: bytes):
+    def eip712_filtering_amount_join_value(self, token_idx: int, name: str, sig: bytes, discarded: bool):
         return self._exchange_async(self._cmd_builder.eip712_filtering_amount_join_value(token_idx,
                                                                                          name,
-                                                                                         sig))
+                                                                                         sig,
+                                                                                         discarded))
 
-    def eip712_filtering_datetime(self, name: str, sig: bytes):
-        return self._exchange_async(self._cmd_builder.eip712_filtering_datetime(name, sig))
+    def eip712_filtering_datetime(self, name: str, sig: bytes, discarded: bool):
+        return self._exchange_async(self._cmd_builder.eip712_filtering_datetime(name, sig, discarded))
 
-    def eip712_filtering_raw(self, name: str, sig: bytes):
-        return self._exchange_async(self._cmd_builder.eip712_filtering_raw(name, sig))
+    def eip712_filtering_raw(self, name: str, sig: bytes, discarded: bool):
+        return self._exchange_async(self._cmd_builder.eip712_filtering_raw(name, sig, discarded))
 
     def sign(self,
              bip32_path: str,

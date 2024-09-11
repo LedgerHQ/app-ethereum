@@ -194,32 +194,36 @@ encoding_functions[EIP712FieldType.FIX_BYTES] = encode_bytes_fix
 encoding_functions[EIP712FieldType.DYN_BYTES] = encode_bytes_dyn
 
 
+def send_filter(path: str, discarded: bool):
+    assert path in filtering_paths.keys()
+
+    if filtering_paths[path]["type"] == "amount_join_token":
+        send_filtering_amount_join_token(path, filtering_paths[path]["token"], discarded)
+    elif filtering_paths[path]["type"] == "amount_join_value":
+        if "token" in filtering_paths[path].keys():
+            token = filtering_paths[path]["token"]
+        else:
+            # Permit (ERC-2612)
+            token = 0xff
+        send_filtering_amount_join_value(path, token, filtering_paths[path]["name"], discarded)
+    elif filtering_paths[path]["type"] == "datetime":
+        send_filtering_datetime(path, filtering_paths[path]["name"], discarded)
+    elif filtering_paths[path]["type"] == "raw":
+        send_filtering_raw(path, filtering_paths[path]["name"], discarded)
+    else:
+        assert False
+
+
 def send_struct_impl_field(value, field):
-    # Something wrong happened if this triggers
-    if isinstance(value, list) or (field["enum"] == EIP712FieldType.CUSTOM):
-        breakpoint()
+    assert not isinstance(value, list)
+    assert field["enum"] != EIP712FieldType.CUSTOM
 
     data = encoding_functions[field["enum"]](value, field["typesize"])
 
     if filtering_paths:
         path = ".".join(current_path)
         if path in filtering_paths.keys():
-            if filtering_paths[path]["type"] == "amount_join_token":
-                send_filtering_amount_join_token(filtering_paths[path]["token"])
-            elif filtering_paths[path]["type"] == "amount_join_value":
-                if "token" in filtering_paths[path].keys():
-                    token = filtering_paths[path]["token"]
-                else:
-                    # Permit (ERC-2612)
-                    token = 0xff
-                send_filtering_amount_join_value(token,
-                                                 filtering_paths[path]["name"])
-            elif filtering_paths[path]["type"] == "datetime":
-                send_filtering_datetime(filtering_paths[path]["name"])
-            elif filtering_paths[path]["type"] == "raw":
-                send_filtering_raw(filtering_paths[path]["name"])
-            else:
-                assert False
+            send_filter(path, False)
 
     with app_client.eip712_send_struct_impl_struct_field(data):
         enable_autonext()
@@ -234,6 +238,12 @@ def evaluate_field(structs, data, field, lvls_left, new_level=True):
     if len(array_lvls) > 0 and lvls_left > 0:
         with app_client.eip712_send_struct_impl_array(len(data)):
             pass
+        if len(data) == 0:
+            for path in filtering_paths.keys():
+                dpath = ".".join(current_path) + ".[]"
+                if path.startswith(dpath):
+                    app_client.eip712_filtering_discarded_path(path)
+                    send_filter(path, True)
         idx = 0
         for subdata in data:
             current_path.append("[]")
@@ -295,57 +305,49 @@ def send_filtering_message_info(display_name: str, filters_count: int):
     disable_autonext()
 
 
-def send_filtering_amount_join_token(token_idx: int):
+def send_filtering_amount_join_token(path: str, token_idx: int, discarded: bool):
     global sig_ctx
-
-    path_str = ".".join(current_path)
 
     to_sign = start_signature_payload(sig_ctx, 11)
-    to_sign += path_str.encode()
+    to_sign += path.encode()
     to_sign.append(token_idx)
     sig = keychain.sign_data(keychain.Key.CAL, to_sign)
-    with app_client.eip712_filtering_amount_join_token(token_idx, sig):
+    with app_client.eip712_filtering_amount_join_token(token_idx, sig, discarded):
         pass
 
 
-def send_filtering_amount_join_value(token_idx: int, display_name: str):
+def send_filtering_amount_join_value(path: str, token_idx: int, display_name: str, discarded: bool):
     global sig_ctx
-
-    path_str = ".".join(current_path)
 
     to_sign = start_signature_payload(sig_ctx, 22)
-    to_sign += path_str.encode()
+    to_sign += path.encode()
     to_sign += display_name.encode()
     to_sign.append(token_idx)
     sig = keychain.sign_data(keychain.Key.CAL, to_sign)
-    with app_client.eip712_filtering_amount_join_value(token_idx, display_name, sig):
+    with app_client.eip712_filtering_amount_join_value(token_idx, display_name, sig, discarded):
         pass
 
 
-def send_filtering_datetime(display_name: str):
+def send_filtering_datetime(path: str, display_name: str, discarded: bool):
     global sig_ctx
 
-    path_str = ".".join(current_path)
-
     to_sign = start_signature_payload(sig_ctx, 33)
-    to_sign += path_str.encode()
+    to_sign += path.encode()
     to_sign += display_name.encode()
     sig = keychain.sign_data(keychain.Key.CAL, to_sign)
-    with app_client.eip712_filtering_datetime(display_name, sig):
+    with app_client.eip712_filtering_datetime(display_name, sig, discarded):
         pass
 
 
 # ledgerjs doesn't actually sign anything, and instead uses already pre-computed signatures
-def send_filtering_raw(display_name):
+def send_filtering_raw(path: str, display_name: str, discarded: bool):
     global sig_ctx
 
-    path_str = ".".join(current_path)
-
     to_sign = start_signature_payload(sig_ctx, 72)
-    to_sign += path_str.encode()
+    to_sign += path.encode()
     to_sign += display_name.encode()
     sig = keychain.sign_data(keychain.Key.CAL, to_sign)
-    with app_client.eip712_filtering_raw(display_name, sig):
+    with app_client.eip712_filtering_raw(display_name, sig, discarded):
         pass
 
 

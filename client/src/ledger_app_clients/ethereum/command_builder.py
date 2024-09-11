@@ -41,6 +41,7 @@ class P2Type(IntEnum):
     LEGACY_IMPLEM = 0x00
     NEW_IMPLEM = 0x01
     FILTERING_ACTIVATE = 0x00
+    FILTERING_DISCARDED_PATH = 0x01
     FILTERING_MESSAGE_INFO = 0x0f
     FILTERING_DATETIME = 0xfc
     FILTERING_TOKEN_ADDR_CHECK = 0xfd
@@ -164,6 +165,15 @@ class CommandBuilder:
         data += sig
         return data
 
+    def eip712_filtering_discarded_path(self, path: str) -> bytes:
+        data = bytearray()
+        data.append(len(path))
+        data += path.encode()
+        return self._serialize(InsType.EIP712_SEND_FILTERING,
+                               P1Type.COMPLETE_SEND,
+                               P2Type.FILTERING_DISCARDED_PATH,
+                               data)
+
     def eip712_filtering_message_info(self, name: str, filters_count: int, sig: bytes) -> bytes:
         data = bytearray()
         data.append(len(name))
@@ -176,17 +186,17 @@ class CommandBuilder:
                                P2Type.FILTERING_MESSAGE_INFO,
                                data)
 
-    def eip712_filtering_amount_join_token(self, token_idx: int, sig: bytes) -> bytes:
+    def eip712_filtering_amount_join_token(self, token_idx: int, sig: bytes, discarded: bool) -> bytes:
         data = bytearray()
         data.append(token_idx)
         data.append(len(sig))
         data += sig
         return self._serialize(InsType.EIP712_SEND_FILTERING,
-                               P1Type.COMPLETE_SEND,
+                               int(discarded),
                                P2Type.FILTERING_TOKEN_ADDR_CHECK,
                                data)
 
-    def eip712_filtering_amount_join_value(self, token_idx: int, name: str, sig: bytes) -> bytes:
+    def eip712_filtering_amount_join_value(self, token_idx: int, name: str, sig: bytes, discarded: bool) -> bytes:
         data = bytearray()
         data.append(len(name))
         data += name.encode()
@@ -194,19 +204,19 @@ class CommandBuilder:
         data.append(len(sig))
         data += sig
         return self._serialize(InsType.EIP712_SEND_FILTERING,
-                               P1Type.COMPLETE_SEND,
+                               int(discarded),
                                P2Type.FILTERING_AMOUNT_FIELD,
                                data)
 
-    def eip712_filtering_datetime(self, name: str, sig: bytes) -> bytes:
+    def eip712_filtering_datetime(self, name: str, sig: bytes, discarded: bool) -> bytes:
         return self._serialize(InsType.EIP712_SEND_FILTERING,
-                               P1Type.COMPLETE_SEND,
+                               int(discarded),
                                P2Type.FILTERING_DATETIME,
                                self._eip712_filtering_send_name(name, sig))
 
-    def eip712_filtering_raw(self, name: str, sig: bytes) -> bytes:
+    def eip712_filtering_raw(self, name: str, sig: bytes, discarded: bool) -> bytes:
         return self._serialize(InsType.EIP712_SEND_FILTERING,
-                               P1Type.COMPLETE_SEND,
+                               int(discarded),
                                P2Type.FILTERING_RAW,
                                self._eip712_filtering_send_name(name, sig))
 

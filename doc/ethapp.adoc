@@ -45,6 +45,9 @@ Application version 1.9.19 - 2022-05-17
   - Add EIP-712 amount & date/time filtering
   - PROVIDE ERC 20 TOKEN INFORMATION & PROVIDE NFT INFORMATION now send back the index where the asset has been stored
 
+### 1.12.0
+  - Add EIP-712 discarded filter path support
+
 ## About
 
 This application describes the APDU messages interface to communicate with the Ethereum application.
@@ -828,6 +831,12 @@ Field substitution will be ignored if the full filtering is not activated.
 
 This command should come before the domain & message implementations. If activated, fields will be by default hidden unless they receive a field name substitution.
 
+##### Discarded filter path
+
+This command gives the app the absolute path of the upcoming filter which will be discarded (because it targets a field within an empty array).
+
+The next filter should be marked as discarded (with P1) to be able to use this given filter path.
+
 ##### Message info
 
 This command should come right after the implementation of the domain has been sent with *SEND STRUCT IMPLEMENTATION*, just before sending the message implementation.
@@ -880,8 +889,11 @@ _Command_
 [width="80%"]
 |=========================================================================
 | *CLA* | *INS*  | *P1*               | *P2*       | *LC*     | *Le*
-|   E0  |   1E   | 00
-                                      | 00 : activation
+|   E0  |   1E   | 00 : standard
+
+                   01 : discarded     | 00 : activation
+
+                                        01 : discarded filter path
 
                                         0F : message info
 
@@ -900,6 +912,16 @@ _Input data_
 ##### If P2 == activation
 
 None
+
+##### If P2 == discarded filter path
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Path length           | 1
+| Path                  | variable
+|==========================================
+
 
 ##### If P2 == message info
 

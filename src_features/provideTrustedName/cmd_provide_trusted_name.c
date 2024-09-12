@@ -19,7 +19,8 @@
 #define P1_FIRST_CHUNK     0x01
 #define P1_FOLLOWING_CHUNK 0x00
 
-#define ALGO_SECP256K1 1
+#define STRUCT_TYPE_TRUSTED_NAME 0x03
+#define ALGO_SECP256K1           1
 
 #define SLIP_44_ETHEREUM 60
 
@@ -139,10 +140,14 @@ static bool get_uint_from_data(const s_tlv_data *data, uint32_t *value) {
 static bool handle_structure_type(const s_tlv_data *data,
                                   s_trusted_name_info *trusted_name_info,
                                   s_sig_ctx *sig_ctx) {
-    (void) data;
+    uint32_t value;
+
     (void) trusted_name_info;
     (void) sig_ctx;
-    return true;  // unhandled for now
+    if (!get_uint_from_data(data, &value)) {
+        return false;
+    }
+    return (value == STRUCT_TYPE_TRUSTED_NAME);
 }
 
 /**

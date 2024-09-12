@@ -1,17 +1,17 @@
-#ifdef HAVE_DOMAIN_NAME
+#ifdef HAVE_TRUSTED_NAME
 
-#include "ui_domain_name.h"
-#include "domain_name.h"
+#include "ui_trusted_name.h"
+#include "trusted_name.h"
 
 //////////////////////////////////////////////////////////////////////
 // clang-format off
 UX_STEP_NOCB(
-    ux_domain_name_step,
+    ux_trusted_name_step,
     bnnn_paging,
     {
       .title = "To (domain)",
-      .text = g_domain_name
+      .text = g_trusted_name
     });
 // clang-format on
 
-#endif  // HAVE_DOMAIN_NAME
+#endif  // HAVE_TRUSTED_NAME

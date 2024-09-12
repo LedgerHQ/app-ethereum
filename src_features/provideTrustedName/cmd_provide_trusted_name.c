@@ -1,4 +1,4 @@
-#ifdef HAVE_DOMAIN_NAME
+#ifdef HAVE_TRUSTED_NAME
 
 #include <os.h>
 #include <stdint.h>
@@ -6,7 +6,7 @@
 #include <ctype.h>
 #include "common_utils.h"  // ARRAY_SIZE
 #include "apdu_constants.h"
-#include "domain_name.h"
+#include "trusted_name.h"
 #include "challenge.h"
 #include "mem.h"
 #include "hash_bytes.h"
@@ -35,7 +35,7 @@ typedef enum {
     SIGNER_KEY_ID = 0x13,
     SIGNER_ALGO = 0x14,
     SIGNATURE = 0x15,
-    DOMAIN_NAME = 0x20,
+    TRUSTED_NAME = 0x20,
     COIN_TYPE = 0x21,
     ADDRESS = 0x22
 } e_tlv_tag;
@@ -58,7 +58,7 @@ typedef struct {
     bool valid;
     char *name;
     uint8_t addr[ADDRESS_LENGTH];
-} s_domain_name_info;
+} s_trusted_name_info;
 
 typedef struct {
     e_key_id key_id;
@@ -68,7 +68,7 @@ typedef struct {
 } s_sig_ctx;
 
 typedef bool(t_tlv_handler)(const s_tlv_data *data,
-                            s_domain_name_info *domain_name_info,
+                            s_trusted_name_info *trusted_name_info,
                             s_sig_ctx *sig_ctx);
 
 typedef struct {
@@ -78,29 +78,29 @@ typedef struct {
 } s_tlv_handler;
 
 static s_tlv_payload g_tlv_payload = {0};
-static s_domain_name_info g_domain_name_info;
-char g_domain_name[DOMAIN_NAME_MAX_LENGTH + 1];
+static s_trusted_name_info g_trusted_name_info;
+char g_trusted_name[TRUSTED_NAME_MAX_LENGTH + 1];
 
 /**
- * Checks if a domain name for the given chain ID and address is known
+ * Checks if a trusted name for the given chain ID and address is known
  *
- * Always wipes the content of \ref g_domain_name_info
+ * Always wipes the content of \ref g_trusted_name_info
  *
  * @param[in] chain_id given chain ID
  * @param[in] addr given address
  * @return whether there is or not
  */
-bool has_domain_name(const uint64_t *chain_id, const uint8_t *addr) {
+bool has_trusted_name(const uint64_t *chain_id, const uint8_t *addr) {
     bool ret = false;
 
-    if (g_domain_name_info.valid) {
+    if (g_trusted_name_info.valid) {
         // Check if chain ID is known to be Ethereum-compatible (same derivation path)
         if ((chain_is_ethereum_compatible(chain_id)) &&
-            (memcmp(addr, g_domain_name_info.addr, ADDRESS_LENGTH) == 0)) {
+            (memcmp(addr, g_trusted_name_info.addr, ADDRESS_LENGTH) == 0)) {
             ret = true;
         }
     }
-    memset(&g_domain_name_info, 0, sizeof(g_domain_name_info));
+    memset(&g_trusted_name_info, 0, sizeof(g_trusted_name_info));
     return ret;
 }
 
@@ -132,15 +132,15 @@ static bool get_uint_from_data(const s_tlv_data *data, uint32_t *value) {
  * Handler for tag \ref STRUCTURE_TYPE
  *
  * @param[] data the tlv data
- * @param[] domain_name_info the domain name information
+ * @param[] trusted_name_info the trusted name information
  * @param[] sig_ctx the signature context
  * @return whether it was successful
  */
 static bool handle_structure_type(const s_tlv_data *data,
-                                  s_domain_name_info *domain_name_info,
+                                  s_trusted_name_info *trusted_name_info,
                                   s_sig_ctx *sig_ctx) {
     (void) data;
-    (void) domain_name_info;
+    (void) trusted_name_info;
     (void) sig_ctx;
     return true;  // unhandled for now
 }
@@ -149,15 +149,15 @@ static bool handle_structure_type(const s_tlv_data *data,
  * Handler for tag \ref STRUCTURE_VERSION
  *
  * @param[] data the tlv data
- * @param[] domain_name_info the domain name information
+ * @param[] trusted_name_info the trusted name information
  * @param[] sig_ctx the signature context
  * @return whether it was successful
  */
 static bool handle_structure_version(const s_tlv_data *data,
-                                     s_domain_name_info *domain_name_info,
+                                     s_trusted_name_info *trusted_name_info,
                                      s_sig_ctx *sig_ctx) {
     (void) data;
-    (void) domain_name_info;
+    (void) trusted_name_info;
     (void) sig_ctx;
     return true;  // unhandled for now
 }
@@ -166,15 +166,15 @@ static bool handle_structure_version(const s_tlv_data *data,
  * Handler for tag \ref CHALLENGE
  *
  * @param[in] data the tlv data
- * @param[] domain_name_info the domain name information
+ * @param[] trusted_name_info the trusted name information
  * @param[] sig_ctx the signature context
  * @return whether it was successful
  */
 static bool handle_challenge(const s_tlv_data *data,
-                             s_domain_name_info *domain_name_info,
+                             s_trusted_name_info *trusted_name_info,
                              s_sig_ctx *sig_ctx) {
     uint32_t value;
-    (void) domain_name_info;
+    (void) trusted_name_info;
     (void) sig_ctx;
 
     if (!get_uint_from_data(data, &value)) {
@@ -187,15 +187,15 @@ static bool handle_challenge(const s_tlv_data *data,
  * Handler for tag \ref SIGNER_KEY_ID
  *
  * @param[in] data the tlv data
- * @param[] domain_name_info the domain name information
+ * @param[] trusted_name_info the trusted name information
  * @param[out] sig_ctx the signature context
  * @return whether it was successful
  */
 static bool handle_sign_key_id(const s_tlv_data *data,
-                               s_domain_name_info *domain_name_info,
+                               s_trusted_name_info *trusted_name_info,
                                s_sig_ctx *sig_ctx) {
     uint32_t value;
-    (void) domain_name_info;
+    (void) trusted_name_info;
 
     if (!get_uint_from_data(data, &value) || (value > UINT8_MAX)) {
         return false;
@@ -208,16 +208,16 @@ static bool handle_sign_key_id(const s_tlv_data *data,
  * Handler for tag \ref SIGNER_ALGO
  *
  * @param[in] data the tlv data
- * @param[] domain_name_info the domain name information
+ * @param[] trusted_name_info the trusted name information
  * @param[] sig_ctx the signature context
  * @return whether it was successful
  */
 static bool handle_sign_algo(const s_tlv_data *data,
-                             s_domain_name_info *domain_name_info,
+                             s_trusted_name_info *trusted_name_info,
                              s_sig_ctx *sig_ctx) {
     uint32_t value;
 
-    (void) domain_name_info;
+    (void) trusted_name_info;
     (void) sig_ctx;
     if (!get_uint_from_data(data, &value)) {
         return false;
@@ -229,14 +229,14 @@ static bool handle_sign_algo(const s_tlv_data *data,
  * Handler for tag \ref SIGNATURE
  *
  * @param[in] data the tlv data
- * @param[] domain_name_info the domain name information
+ * @param[] trusted_name_info the trusted name information
  * @param[out] sig_ctx the signature context
  * @return whether it was successful
  */
 static bool handle_signature(const s_tlv_data *data,
-                             s_domain_name_info *domain_name_info,
+                             s_trusted_name_info *trusted_name_info,
                              s_sig_ctx *sig_ctx) {
-    (void) domain_name_info;
+    (void) trusted_name_info;
     sig_ctx->input_sig_size = data->length;
     sig_ctx->input_sig = data->value;
     return true;
@@ -267,18 +267,18 @@ static bool is_valid_domain_character(char c) {
 }
 
 /**
- * Handler for tag \ref DOMAIN_NAME
+ * Handler for tag \ref TRUSTED_NAME
  *
  * @param[in] data the tlv data
- * @param[out] domain_name_info the domain name information
+ * @param[out] trusted_name_info the trusted name information
  * @param[] sig_ctx the signature context
  * @return whether it was successful
  */
-static bool handle_domain_name(const s_tlv_data *data,
-                               s_domain_name_info *domain_name_info,
-                               s_sig_ctx *sig_ctx) {
+static bool handle_trusted_name(const s_tlv_data *data,
+                                s_trusted_name_info *trusted_name_info,
+                                s_sig_ctx *sig_ctx) {
     (void) sig_ctx;
-    if (data->length > DOMAIN_NAME_MAX_LENGTH) {
+    if (data->length > TRUSTED_NAME_MAX_LENGTH) {
         PRINTF("Domain name too long! (%u)\n", data->length);
         return false;
     }
@@ -292,9 +292,9 @@ static bool handle_domain_name(const s_tlv_data *data,
             PRINTF("Domain name contains non-allowed character! (0x%x)\n", data->value[idx]);
             return false;
         }
-        domain_name_info->name[idx] = data->value[idx];
+        trusted_name_info->name[idx] = data->value[idx];
     }
-    domain_name_info->name[data->length] = '\0';
+    trusted_name_info->name[data->length] = '\0';
     return true;
 }
 
@@ -302,16 +302,16 @@ static bool handle_domain_name(const s_tlv_data *data,
  * Handler for tag \ref COIN_TYPE
  *
  * @param[in] data the tlv data
- * @param[] domain_name_info the domain name information
+ * @param[] trusted_name_info the trusted name information
  * @param[] sig_ctx the signature context
  * @return whether it was successful
  */
 static bool handle_coin_type(const s_tlv_data *data,
-                             s_domain_name_info *domain_name_info,
+                             s_trusted_name_info *trusted_name_info,
                              s_sig_ctx *sig_ctx) {
     uint32_t value;
 
-    (void) domain_name_info;
+    (void) trusted_name_info;
     (void) sig_ctx;
     if (!get_uint_from_data(data, &value)) {
         return false;
@@ -323,18 +323,18 @@ static bool handle_coin_type(const s_tlv_data *data,
  * Handler for tag \ref ADDRESS
  *
  * @param[in] data the tlv data
- * @param[out] domain_name_info the domain name information
+ * @param[out] trusted_name_info the trusted name information
  * @param[] sig_ctx the signature context
  * @return whether it was successful
  */
 static bool handle_address(const s_tlv_data *data,
-                           s_domain_name_info *domain_name_info,
+                           s_trusted_name_info *trusted_name_info,
                            s_sig_ctx *sig_ctx) {
     (void) sig_ctx;
     if (data->length != ADDRESS_LENGTH) {
         return false;
     }
-    memcpy(domain_name_info->addr, data->value, ADDRESS_LENGTH);
+    memcpy(trusted_name_info->addr, data->value, ADDRESS_LENGTH);
     return true;
 }
 
@@ -349,7 +349,7 @@ static bool handle_address(const s_tlv_data *data,
 static bool verify_signature(const s_sig_ctx *sig_ctx) {
     uint8_t hash[INT256_LENGTH];
     cx_err_t error = CX_INTERNAL_ERROR;
-#ifdef HAVE_DOMAIN_NAME_TEST_KEY
+#ifdef HAVE_TRUSTED_NAME_TEST_KEY
     e_key_id valid_key_id = KEY_ID_TEST;
 #else
     e_key_id valid_key_id = KEY_ID_PROD;
@@ -367,8 +367,8 @@ static bool verify_signature(const s_sig_ctx *sig_ctx) {
     CX_CHECK(check_signature_with_pubkey("Domain Name",
                                          hash,
                                          sizeof(hash),
-                                         DOMAIN_NAME_PUB_KEY,
-                                         sizeof(DOMAIN_NAME_PUB_KEY),
+                                         TRUSTED_NAME_PUB_KEY,
+                                         sizeof(TRUSTED_NAME_PUB_KEY),
 #ifdef HAVE_LEDGER_PKI
                                          CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META,
 #endif
@@ -388,14 +388,14 @@ end:
  * @param[in] handlers list of tag / handler function pairs
  * @param[in] handler_count number of handlers
  * @param[in] data the TLV data
- * @param[out] domain_name_info the domain name information
+ * @param[out] trusted_name_info the trusted name information
  * @param[out] sig_ctx the signature context
  * @return whether it was successful
  */
 static bool handle_tlv_data(s_tlv_handler *handlers,
                             int handler_count,
                             const s_tlv_data *data,
-                            s_domain_name_info *domain_name_info,
+                            s_trusted_name_info *trusted_name_info,
                             s_sig_ctx *sig_ctx) {
     t_tlv_handler *fptr;
 
@@ -404,7 +404,7 @@ static bool handle_tlv_data(s_tlv_handler *handlers,
         if (handlers[idx].tag == data->tag) {
             handlers[idx].found += 1;
             fptr = PIC(handlers[idx].func);
-            if (!(*fptr)(data, domain_name_info, sig_ctx)) {
+            if (!(*fptr)(data, trusted_name_info, sig_ctx)) {
                 PRINTF("Error while handling tag 0x%x\n", handlers[idx].tag);
                 return false;
             }
@@ -509,12 +509,12 @@ static bool get_der_value_as_uint8(const s_tlv_payload *payload, size_t *offset,
  * Does the TLV parsing but also the SHA-256 hash of the payload.
  *
  * @param[in] payload the raw TLV payload
- * @param[out] domain_name_info the domain name information
+ * @param[out] trusted_name_info the trusted name information
  * @param[out] sig_ctx the signature context
  * @return whether it was successful
  */
 static bool parse_tlv(const s_tlv_payload *payload,
-                      s_domain_name_info *domain_name_info,
+                      s_trusted_name_info *trusted_name_info,
                       s_sig_ctx *sig_ctx) {
     s_tlv_handler handlers[] = {
         {.tag = STRUCTURE_TYPE, .func = &handle_structure_type, .found = 0},
@@ -523,7 +523,7 @@ static bool parse_tlv(const s_tlv_payload *payload,
         {.tag = SIGNER_KEY_ID, .func = &handle_sign_key_id, .found = 0},
         {.tag = SIGNER_ALGO, .func = &handle_sign_algo, .found = 0},
         {.tag = SIGNATURE, .func = &handle_signature, .found = 0},
-        {.tag = DOMAIN_NAME, .func = &handle_domain_name, .found = 0},
+        {.tag = TRUSTED_NAME, .func = &handle_trusted_name, .found = 0},
         {.tag = COIN_TYPE, .func = &handle_coin_type, .found = 0},
         {.tag = ADDRESS, .func = &handle_address, .found = 0}};
     e_tlv_step step = TLV_TAG;
@@ -558,7 +558,7 @@ static bool parse_tlv(const s_tlv_payload *payload,
                 if (!handle_tlv_data(handlers,
                                      ARRAY_SIZE(handlers),
                                      &data,
-                                     domain_name_info,
+                                     trusted_name_info,
                                      sig_ctx)) {
                     return false;
                 }
@@ -631,13 +631,13 @@ static bool handle_first_chunk(const uint8_t **data,
 }
 
 /**
- * Handle domain name APDU
+ * Handle trusted name APDU
  *
  * @param[in] p1 first APDU instruction parameter
  * @param[in] data APDU payload
  * @param[in] length payload size
  */
-uint16_t handle_provide_domain_name(uint8_t p1, const uint8_t *data, uint8_t length) {
+uint16_t handle_provide_trusted_name(uint8_t p1, const uint8_t *data, uint8_t length) {
     s_sig_ctx sig_ctx;
     uint16_t sw = APDU_NO_RESPONSE;
 
@@ -663,22 +663,22 @@ uint16_t handle_provide_domain_name(uint8_t p1, const uint8_t *data, uint8_t len
 
     // everything has been received
     if (g_tlv_payload.size == g_tlv_payload.expected_size) {
-        g_domain_name_info.name = g_domain_name;
-        if (!parse_tlv(&g_tlv_payload, &g_domain_name_info, &sig_ctx) ||
+        g_trusted_name_info.name = g_trusted_name;
+        if (!parse_tlv(&g_tlv_payload, &g_trusted_name_info, &sig_ctx) ||
             !verify_signature(&sig_ctx)) {
             free_payload(&g_tlv_payload);
             roll_challenge();  // prevent brute-force guesses
             return APDU_RESPONSE_INVALID_DATA;
         }
-        g_domain_name_info.valid = true;
+        g_trusted_name_info.valid = true;
         PRINTF("Registered : %s => %.*h\n",
-               g_domain_name_info.name,
+               g_trusted_name_info.name,
                ADDRESS_LENGTH,
-               g_domain_name_info.addr);
+               g_trusted_name_info.addr);
         free_payload(&g_tlv_payload);
         roll_challenge();  // prevent replays
     }
     return APDU_RESPONSE_OK;
 }
 
-#endif  // HAVE_DOMAIN_NAME
+#endif  // HAVE_TRUSTED_NAME

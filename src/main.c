@@ -32,7 +32,7 @@
 #include "handle_check_address.h"
 #include "commands_712.h"
 #include "challenge.h"
-#include "domain_name.h"
+#include "trusted_name.h"
 #include "crypto_helpers.h"
 #include "manage_asset_info.h"
 
@@ -218,15 +218,15 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             break;
 #endif  // HAVE_EIP712_FULL_SUPPORT
 
-#ifdef HAVE_DOMAIN_NAME
+#ifdef HAVE_TRUSTED_NAME
         case INS_ENS_GET_CHALLENGE:
             sw = handle_get_challenge(tx);
             break;
 
         case INS_ENS_PROVIDE_INFO:
-            sw = handle_provide_domain_name(cmd->p1, cmd->data, cmd->lc);
+            sw = handle_provide_trusted_name(cmd->p1, cmd->data, cmd->lc);
             break;
-#endif  // HAVE_DOMAIN_NAME
+#endif  // HAVE_TRUSTED_NAME
 
         default:
             sw = APDU_RESPONSE_INVALID_INS;
@@ -363,10 +363,10 @@ void coin_main(eth_libargs_t *args) {
     io_init();
     ui_idle();
 
-#ifdef HAVE_DOMAIN_NAME
+#ifdef HAVE_TRUSTED_NAME
     // to prevent it from having a fixed value at boot
     roll_challenge();
-#endif  // HAVE_DOMAIN_NAME
+#endif  // HAVE_TRUSTED_NAME
 
     app_main();
 }

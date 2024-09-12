@@ -8,8 +8,8 @@
 #include "ui_plugin.h"
 #include "common_ui.h"
 #include "plugins.h"
-#include "domain_name.h"
-#include "ui_domain_name.h"
+#include "trusted_name.h"
+#include "ui_trusted_name.h"
 
 static unsigned int data_ok_cb(void) {
     ui_idle();
@@ -242,19 +242,19 @@ void ux_approve_tx(bool fromPlugin) {
             ux_approval_tx_flow[step++] = &ux_approval_from_step;
         }
         ux_approval_tx_flow[step++] = &ux_approval_amount_step;
-#ifdef HAVE_DOMAIN_NAME
+#ifdef HAVE_TRUSTED_NAME
         uint64_t chain_id = get_tx_chain_id();
-        if (has_domain_name(&chain_id, tmpContent.txContent.destination)) {
-            ux_approval_tx_flow[step++] = &ux_domain_name_step;
-            if (N_storage.verbose_domain_name) {
+        if (has_trusted_name(&chain_id, tmpContent.txContent.destination)) {
+            ux_approval_tx_flow[step++] = &ux_trusted_name_step;
+            if (N_storage.verbose_trusted_name) {
                 ux_approval_tx_flow[step++] = &ux_approval_to_step;
             }
         } else {
-#endif  // HAVE_DOMAIN_NAME
+#endif  // HAVE_TRUSTED_NAME
             ux_approval_tx_flow[step++] = &ux_approval_to_step;
-#ifdef HAVE_DOMAIN_NAME
+#ifdef HAVE_TRUSTED_NAME
         }
-#endif  // HAVE_DOMAIN_NAME
+#endif  // HAVE_TRUSTED_NAME
     }
 
     if (N_storage.displayNonce) {

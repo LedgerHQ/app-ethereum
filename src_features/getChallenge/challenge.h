@@ -1,4 +1,4 @@
-#ifdef HAVE_DOMAIN_NAME
+#ifdef HAVE_TRUSTED_NAME
 
 #ifndef CHALLENGE_H_
 #define CHALLENGE_H_
@@ -11,4 +11,4 @@ uint16_t handle_get_challenge(unsigned int *tx);
 
 #endif  // CHALLENGE_H_
 
-#endif  // HAVE_DOMAIN_NAME
+#endif  // HAVE_TRUSTED_NAME

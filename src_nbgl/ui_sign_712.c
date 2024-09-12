@@ -9,7 +9,7 @@
 #include "ui_message_signing.h"
 #include "ledger_assert.h"
 
-static nbgl_contentTagValue_t pairs[6];
+static nbgl_contentTagValue_t pairs[7];
 static nbgl_contentTagValueList_t pairs_list;
 static uint8_t pair_idx;
 static size_t buf_idx;
@@ -56,7 +56,7 @@ static void message_update(bool confirm) {
         buf_idx += buf_off;
         pair_idx += 1;
         pairs_list.nbPairs = nbgl_useCaseGetNbTagValuesInPage(pair_idx, &pairs_list, 0, &flag);
-        if (pairs_list.nbPairs < pair_idx) {
+        if ((pair_idx == ARRAYLEN(pairs)) || (pairs_list.nbPairs < pair_idx)) {
             nbgl_useCaseReviewStreamingContinue(&pairs_list, message_progress);
         } else {
             message_progress(true);

@@ -320,8 +320,8 @@ void app_main(void) {
 
 static void init_coin_config(chain_config_t *coin_config) {
     memset(coin_config, 0, sizeof(chain_config_t));
-    strcpy(coin_config->coinName, CHAINID_COINNAME);
-    coin_config->chainId = CHAIN_ID;
+    strcpy(coin_config->coinName, APP_TICKER);
+    coin_config->chainId = APP_CHAIN_ID;
 }
 
 void storage_init(void) {

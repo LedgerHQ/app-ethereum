@@ -22,9 +22,9 @@ unsigned int io_seproxyhal_touch_signMessage_ok(void) {
     if (info & CX_ECCINFO_xGTn) {
         G_io_apdu_buffer[0] += 2;
     }
-    return io_seproxyhal_send_status(APDU_RESPONSE_OK, 65, true, true);
+    return io_seproxyhal_send_status(APDU_RESPONSE_OK, 65, true, false);
 }
 
 unsigned int io_seproxyhal_touch_signMessage_cancel(void) {
-    return io_seproxyhal_send_status(APDU_RESPONSE_CONDITION_NOT_SATISFIED, 0, true, true);
+    return io_seproxyhal_send_status(APDU_RESPONSE_CONDITION_NOT_SATISFIED, 0, true, false);
 }

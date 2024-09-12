@@ -2,6 +2,7 @@
 #include "ui_callbacks.h"
 #include "common_712.h"
 #include "uint_common.h"
+#include "common_ui.h"
 
 void prepare_domain_hash_v0() {
     array_bytes_string(strings.tmp.tmp,
@@ -15,6 +16,16 @@ void prepare_message_hash_v0() {
                        sizeof(strings.tmp.tmp),
                        tmpCtx.messageSigningContext712.messageHash,
                        KECCAK256_HASH_BYTESIZE);
+}
+
+static unsigned int _approve_cb(void) {
+    ui_idle();
+    return ui_712_approve_cb();
+}
+
+static unsigned int _reject_cb(void) {
+    ui_idle();
+    return ui_712_reject_cb();
 }
 
 // clang-format off
@@ -45,7 +56,7 @@ UX_STEP_NOCB_INIT(
 UX_STEP_CB(
     ux_sign_712_v0_flow_4_step,
     pbb,
-    ui_712_approve_cb(),
+    _approve_cb(),
     {
       &C_icon_validate_14,
       "Sign",
@@ -54,7 +65,7 @@ UX_STEP_CB(
 UX_STEP_CB(
     ux_sign_712_v0_flow_5_step,
     pbb,
-    ui_712_reject_cb(),
+    _reject_cb(),
     {
       &C_icon_crossmark,
       "Cancel",

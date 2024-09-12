@@ -39,7 +39,7 @@ UX_STEP_CB(
 UX_STEP_CB(
     ux_display_public_eth2_flow_4_step,
     pb,
-    io_seproxyhal_touch_address_cancel(),
+    address_cancel_cb(),
     {
       &C_icon_crossmark,
       "Reject",

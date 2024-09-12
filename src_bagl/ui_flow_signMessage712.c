@@ -2,6 +2,7 @@
 
 #include "ui_logic.h"
 #include "shared_context.h"  // strings
+#include "common_ui.h"
 
 enum { UI_712_POS_REVIEW, UI_712_POS_END };
 static uint8_t ui_pos;
@@ -26,6 +27,16 @@ static void dummy_cb(void) {
         default:
             break;
     }
+}
+
+static unsigned int _approve_cb(void) {
+    ui_idle();
+    return ui_712_approve();
+}
+
+static unsigned int _reject_cb(void) {
+    ui_idle();
+    return ui_712_reject();
 }
 
 // clang-format off
@@ -56,7 +67,7 @@ UX_STEP_INIT(
 UX_STEP_CB(
     ux_712_step_approve,
     pb,
-    ui_712_approve(),
+    _approve_cb(),
     {
       &C_icon_validate_14,
       "Approve",
@@ -64,7 +75,7 @@ UX_STEP_CB(
 UX_STEP_CB(
     ux_712_step_reject,
     pb,
-    ui_712_reject(),
+    _reject_cb(),
     {
       &C_icon_crossmark,
       "Reject",

@@ -53,9 +53,9 @@ unsigned int ui_712_approve_cb(void) {
     if (info & CX_ECCINFO_xGTn) {
         G_io_apdu_buffer[0] += 2;
     }
-    return io_seproxyhal_send_status(APDU_RESPONSE_OK, 65, true, true);
+    return io_seproxyhal_send_status(APDU_RESPONSE_OK, 65, true, false);
 }
 
 unsigned int ui_712_reject_cb(void) {
-    return io_seproxyhal_send_status(APDU_RESPONSE_CONDITION_NOT_SATISFIED, 0, true, true);
+    return io_seproxyhal_send_status(APDU_RESPONSE_CONDITION_NOT_SATISFIED, 0, true, false);
 }

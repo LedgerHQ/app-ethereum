@@ -582,6 +582,7 @@ uint16_t finalizeParsing(void) {
     // If called from swap, the user has already validated a standard transaction
     // And we have already checked the fields of this transaction above
     if (G_called_from_swap && g_use_standard_ui) {
+        ui_idle();
         io_seproxyhal_touch_tx_ok();
     } else {
         // If blind-signing detected, start the warning flow beforehand

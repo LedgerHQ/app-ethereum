@@ -23,7 +23,7 @@ class InsType(IntEnum):
     EIP712_SEND_FILTERING = 0x1e
     EIP712_SIGN = 0x0c
     GET_CHALLENGE = 0x20
-    PROVIDE_DOMAIN_NAME = 0x22
+    PROVIDE_TRUSTED_NAME = 0x22
     EXTERNAL_PLUGIN_SETUP = 0x12
 
 
@@ -260,13 +260,13 @@ class CommandBuilder:
     def get_challenge(self) -> bytes:
         return self._serialize(InsType.GET_CHALLENGE, 0x00, 0x00)
 
-    def provide_domain_name(self, tlv_payload: bytes) -> list[bytes]:
+    def provide_trusted_name(self, tlv_payload: bytes) -> list[bytes]:
         chunks = list()
         payload = struct.pack(">H", len(tlv_payload))
         payload += tlv_payload
         p1 = 1
         while len(payload) > 0:
-            chunks.append(self._serialize(InsType.PROVIDE_DOMAIN_NAME,
+            chunks.append(self._serialize(InsType.PROVIDE_TRUSTED_NAME,
                                           p1,
                                           0x00,
                                           payload[:0xff]))

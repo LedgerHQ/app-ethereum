@@ -39,18 +39,20 @@ def common(firmware: Firmware, app_client: EthAppClient) -> int:
     return ResponseParser.challenge(challenge.data)
 
 
-def test_send_fund(firmware: Firmware,
-                   backend: BackendInterface,
-                   navigator: Navigator,
-                   scenario_navigator: NavigateWithScenario,
-                   verbose: bool):
+def test_trusted_name_v1(firmware: Firmware,
+                         backend: BackendInterface,
+                         navigator: Navigator,
+                         scenario_navigator: NavigateWithScenario,
+                         verbose: bool,
+                         test_name: str):
     app_client = EthAppClient(backend)
     challenge = common(firmware, app_client)
 
     if verbose:
         settings_toggle(firmware, navigator, [SettingID.VERBOSE_ENS])
+        test_name += "_verbose"
 
-    app_client.provide_domain_name(challenge, NAME, ADDR)
+    app_client.provide_trusted_name_v1(ADDR, NAME, challenge)
 
     with app_client.sign(BIP32_PATH,
                          {
@@ -66,25 +68,26 @@ def test_send_fund(firmware: Firmware,
         else:
             end_text = "Sign"
 
-        scenario_navigator.review_approve(test_name=f"domain_name_verbose_{str(verbose)}", custom_screen_text=end_text)
+        scenario_navigator.review_approve(test_name=test_name, custom_screen_text=end_text)
 
 
-def test_send_fund_wrong_challenge(firmware: Firmware, backend: BackendInterface):
+def test_trusted_name_v1_wrong_challenge(firmware: Firmware, backend: BackendInterface):
     app_client = EthAppClient(backend)
     challenge = common(firmware, app_client)
 
     with pytest.raises(ExceptionRAPDU) as e:
-        app_client.provide_domain_name(~challenge & 0xffffffff, NAME, ADDR)
+        app_client.provide_trusted_name_v1(ADDR, NAME, ~challenge & 0xffffffff)
     assert e.value.status == StatusWord.INVALID_DATA
 
 
-def test_send_fund_wrong_addr(firmware: Firmware,
-                              backend: BackendInterface,
-                              scenario_navigator: NavigateWithScenario):
+def test_trusted_name_v1_wrong_addr(firmware: Firmware,
+                                    backend: BackendInterface,
+                                    scenario_navigator: NavigateWithScenario,
+                                    test_name: str):
     app_client = EthAppClient(backend)
     challenge = common(firmware, app_client)
 
-    app_client.provide_domain_name(challenge, NAME, ADDR)
+    app_client.provide_trusted_name_v1(ADDR, NAME, challenge)
 
     addr = bytearray(ADDR)
     addr.reverse()
@@ -103,16 +106,17 @@ def test_send_fund_wrong_addr(firmware: Firmware,
         else:
             end_text = "Sign"
 
-        scenario_navigator.review_approve(test_name="domain_name_wrong_addr", custom_screen_text=end_text)
+        scenario_navigator.review_approve(test_name=test_name, custom_screen_text=end_text)
 
 
-def test_send_fund_non_mainnet(firmware: Firmware,
-                               backend: BackendInterface,
-                               scenario_navigator: NavigateWithScenario):
+def test_trusted_name_v1_non_mainnet(firmware: Firmware,
+                                     backend: BackendInterface,
+                                     scenario_navigator: NavigateWithScenario,
+                                     test_name: str):
     app_client = EthAppClient(backend)
     challenge = common(firmware, app_client)
 
-    app_client.provide_domain_name(challenge, NAME, ADDR)
+    app_client.provide_trusted_name_v1(ADDR, NAME, challenge)
 
     with app_client.sign(BIP32_PATH,
                          {
@@ -128,16 +132,17 @@ def test_send_fund_non_mainnet(firmware: Firmware,
         else:
             end_text = "Sign"
 
-        scenario_navigator.review_approve(test_name="domain_name_non_mainnet", custom_screen_text=end_text)
+        scenario_navigator.review_approve(test_name=test_name, custom_screen_text=end_text)
 
 
-def test_send_fund_unknown_chain(firmware: Firmware,
-                                 backend: BackendInterface,
-                                 scenario_navigator: NavigateWithScenario):
+def test_trusted_name_v1_unknown_chain(firmware: Firmware,
+                                       backend: BackendInterface,
+                                       scenario_navigator: NavigateWithScenario,
+                                       test_name: str):
     app_client = EthAppClient(backend)
     challenge = common(firmware, app_client)
 
-    app_client.provide_domain_name(challenge, NAME, ADDR)
+    app_client.provide_trusted_name_v1(ADDR, NAME, challenge)
 
     with app_client.sign(BIP32_PATH,
                          {
@@ -153,40 +158,40 @@ def test_send_fund_unknown_chain(firmware: Firmware,
         else:
             end_text = "Sign"
 
-        scenario_navigator.review_approve(test_name="domain_name_unknown_chain", custom_screen_text=end_text)
+        scenario_navigator.review_approve(test_name=test_name, custom_screen_text=end_text)
 
 
-def test_send_fund_domain_too_long(firmware: Firmware, backend: BackendInterface):
+def test_trusted_name_v1_name_too_long(firmware: Firmware, backend: BackendInterface):
     app_client = EthAppClient(backend)
     challenge = common(firmware, app_client)
 
     with pytest.raises(ExceptionRAPDU) as e:
-        app_client.provide_domain_name(challenge, "ledger" + "0"*25 + ".eth", ADDR)
+        app_client.provide_trusted_name_v1(ADDR, "ledger" + "0"*25 + ".eth", challenge)
     assert e.value.status == StatusWord.INVALID_DATA
 
 
-def test_send_fund_domain_invalid_character(firmware: Firmware, backend: BackendInterface):
+def test_trusted_name_v1_name_invalid_character(firmware: Firmware, backend: BackendInterface):
     app_client = EthAppClient(backend)
     challenge = common(firmware, app_client)
 
     with pytest.raises(ExceptionRAPDU) as e:
-        app_client.provide_domain_name(challenge, "l\xe8dger.eth", ADDR)
+        app_client.provide_trusted_name_v1(ADDR, "l\xe8dger.eth", challenge)
     assert e.value.status == StatusWord.INVALID_DATA
 
 
-def test_send_fund_uppercase(firmware: Firmware, backend: BackendInterface):
+def test_trusted_name_v1_uppercase(firmware: Firmware, backend: BackendInterface):
     app_client = EthAppClient(backend)
     challenge = common(firmware, app_client)
 
     with pytest.raises(ExceptionRAPDU) as e:
-        app_client.provide_domain_name(challenge, NAME.upper(), ADDR)
+        app_client.provide_trusted_name_v1(ADDR, NAME.upper(), challenge)
     assert e.value.status == StatusWord.INVALID_DATA
 
 
-def test_send_fund_domain_non_ens(firmware: Firmware, backend: BackendInterface):
+def test_trusted_name_v1_name_non_ens(firmware: Firmware, backend: BackendInterface):
     app_client = EthAppClient(backend)
     challenge = common(firmware, app_client)
 
     with pytest.raises(ExceptionRAPDU) as e:
-        app_client.provide_domain_name(challenge, "ledger.hte", ADDR)
+        app_client.provide_trusted_name_v1(ADDR, "ledger.hte", challenge)
     assert e.value.status == StatusWord.INVALID_DATA

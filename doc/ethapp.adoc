@@ -39,7 +39,7 @@ Application version 1.9.19 - 2022-05-17
   - Update to SIGN ETH EIP712
 
 ### 1.10.2
-  - Add domain names support
+  - Add trusted names support
 
 ### 1.11.0
   - Add EIP-712 amount & date/time filtering
@@ -1014,12 +1014,13 @@ _Output data_
 |===========================================
 
 
-### PROVIDE DOMAIN NAME
+### PROVIDE TRUSTED NAME
 
 #### Description
 
-This command provides a domain name (like ENS) to be displayed during transactions in place of the address it is associated to.
-It shall be run just before a transaction involving the associated address that would be displayed on the device.
+This command provides a trusted name (like an ENS domain) to be displayed during transactions in place of the
+address it is associated to. It shall be run just before a transaction/message involving the associated
+address that would be displayed on the device.
 
 The signature is computed on the TLV payload (minus the signature obviously).
 

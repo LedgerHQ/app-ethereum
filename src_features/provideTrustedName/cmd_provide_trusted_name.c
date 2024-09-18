@@ -68,21 +68,6 @@ typedef enum {
 
 typedef enum { KEY_ID_TEST = 0x00, KEY_ID_PROD = 0x03 } e_key_id;
 
-typedef enum {
-    TYPE_ACCOUNT = 1,
-    TYPE_CONTRACT,
-    TYPE_NFT,
-} e_name_type;
-
-typedef enum {
-    SOURCE_LAB = 0,
-    SOURCE_CAL,
-    SOURCE_ENS,
-    SOURCE_UD,
-    SOURCE_FN,
-    SOURCE_DNS,
-} e_name_source;
-
 typedef struct {
     uint8_t *buf;
     uint16_t size;
@@ -125,7 +110,7 @@ typedef struct {
 } s_tlv_handler;
 
 static s_tlv_payload g_tlv_payload = {0};
-static s_trusted_name_info g_trusted_name_info;
+static s_trusted_name_info g_trusted_name_info = {0};
 char g_trusted_name[TRUSTED_NAME_MAX_LENGTH + 1];
 
 /**
@@ -134,21 +119,45 @@ char g_trusted_name[TRUSTED_NAME_MAX_LENGTH + 1];
  * Does not care about the trusted name source for now.
  * Always wipes the content of \ref g_trusted_name_info
  *
+ * @param[in] types_count number of given trusted name types
+ * @param[in] types given trusted name types
  * @param[in] chain_id given chain ID
  * @param[in] addr given address
  * @return whether there is or not
  */
-bool has_trusted_name(const uint64_t *chain_id, const uint8_t *addr) {
+bool has_trusted_name(uint8_t types_count,
+                      const e_name_type *types,
+                      const uint64_t *chain_id,
+                      const uint8_t *addr) {
     bool ret = false;
 
-    if (g_trusted_name_info.valid) {
-        // Check if chain ID is known to be Ethereum-compatible (same derivation path)
-        if ((chain_is_ethereum_compatible(chain_id)) &&
-            (memcmp(addr, g_trusted_name_info.addr, ADDRESS_LENGTH) == 0)) {
-            ret = true;
+    if (g_trusted_name_info.rcv_flags != 0) {
+        for (int i = 0; i < types_count; ++i) {
+            switch (g_trusted_name_info.struct_version) {
+                case 1:
+                    if (types[i] == TYPE_ACCOUNT) {
+                        // Check if chain ID is known to be Ethereum-compatible (same derivation
+                        // path)
+                        if ((chain_is_ethereum_compatible(chain_id)) &&
+                            (memcmp(addr, g_trusted_name_info.addr, ADDRESS_LENGTH) == 0)) {
+                            ret = true;
+                        }
+                    }
+                    break;
+                case 2:
+                    if (types[i] == g_trusted_name_info.name_type) {
+                        if (*chain_id == g_trusted_name_info.chain_id) {
+                            ret = true;
+                        }
+                    }
+                    break;
+                default:
+                    ret = false;
+            }
+            if (ret) break;
         }
+        memset(&g_trusted_name_info, 0, sizeof(g_trusted_name_info));
     }
-    memset(&g_trusted_name_info, 0, sizeof(g_trusted_name_info));
     return ret;
 }
 
@@ -917,9 +926,9 @@ uint16_t handle_provide_trusted_name(uint8_t p1, const uint8_t *data, uint8_t le
             !verify_signature(&sig_ctx)) {
             free_payload(&g_tlv_payload);
             roll_challenge();  // prevent brute-force guesses
+            g_trusted_name_info.rcv_flags = 0;
             return APDU_RESPONSE_INVALID_DATA;
         }
-        g_trusted_name_info.valid = true;
         PRINTF("Registered : %s => %.*h\n",
                g_trusted_name_info.name,
                ADDRESS_LENGTH,

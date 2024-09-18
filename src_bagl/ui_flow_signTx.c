@@ -244,7 +244,8 @@ void ux_approve_tx(bool fromPlugin) {
         ux_approval_tx_flow[step++] = &ux_approval_amount_step;
 #ifdef HAVE_TRUSTED_NAME
         uint64_t chain_id = get_tx_chain_id();
-        if (has_trusted_name(&chain_id, tmpContent.txContent.destination)) {
+        e_name_type type = TYPE_ACCOUNT;
+        if (has_trusted_name(1, &type, &chain_id, tmpContent.txContent.destination)) {
             ux_approval_tx_flow[step++] = &ux_trusted_name_step;
             if (N_storage.verbose_trusted_name) {
                 ux_approval_tx_flow[step++] = &ux_approval_to_step;

@@ -15,7 +15,7 @@ on:
         type: choice
         required: true
         default: 'Raise an error (default)'
-        description: CI behavior if the test snaphots are different than expected.
+        description: CI behavior if the test snapshots are different than expected.
         options:
           - 'Raise an error (default)'
           - 'Open a PR'
@@ -32,7 +32,7 @@ jobs:
     uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_build.yml@v1
     with:
       upload_app_binaries_artifact: "ragger_elfs"
-      flags: "CAL_TEST_KEY=1 TRUSTED_NAME_TEST_KEY=1 SET_PLUGIN_TEST_KEY=1 NFT_TEST_KEY=1"
+      flags: "CAL_TEST_KEY=1 TRUSTED_NAME_TEST_KEY=1 SET_PLUGIN_TEST_KEY=1 NFT_TEST_KEY=1 DYNAMIC_NETWORK_TEST_KEY=1"
 
   ragger_tests:
     name: Run ragger tests using the reusable workflow

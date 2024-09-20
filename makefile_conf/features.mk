@@ -57,6 +57,14 @@ ifneq ($(TARGET_NAME),TARGET_NANOS)
     endif
 endif
 
+# Dynamic Networks
+DYNAMIC_NETWORK_TEST_KEY ?= 0
+ifneq ($(DYNAMIC_NETWORK_TEST_KEY),0)
+    # Key used in our test framework
+    DEFINES += HAVE_DYNAMIC_NETWORK_TEST_KEY
+endif
+
+
 # Check features incompatibilities
 # --------------------------------
 # NFTs

@@ -189,6 +189,18 @@ class EthAppClient:
     def eip712_filtering_datetime(self, name: str, sig: bytes, discarded: bool):
         return self._exchange_async(self._cmd_builder.eip712_filtering_datetime(name, sig, discarded))
 
+    def eip712_filtering_trusted_name(self,
+                                      name: str,
+                                      name_type: list[int],
+                                      name_source: list[int],
+                                      sig: bytes,
+                                      discarded: bool):
+        return self._exchange_async(self._cmd_builder.eip712_filtering_trusted_name(name,
+                                                                                    name_type,
+                                                                                    name_source,
+                                                                                    sig,
+                                                                                    discarded))
+
     def eip712_filtering_raw(self, name: str, sig: bytes, discarded: bool):
         return self._exchange_async(self._cmd_builder.eip712_filtering_raw(name, sig, discarded))
 

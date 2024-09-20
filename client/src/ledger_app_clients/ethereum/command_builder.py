@@ -43,6 +43,7 @@ class P2Type(IntEnum):
     FILTERING_ACTIVATE = 0x00
     FILTERING_DISCARDED_PATH = 0x01
     FILTERING_MESSAGE_INFO = 0x0f
+    FILTERING_TRUSTED_NAME = 0xfb
     FILTERING_DATETIME = 0xfc
     FILTERING_TOKEN_ADDR_CHECK = 0xfd
     FILTERING_AMOUNT_FIELD = 0xfe
@@ -213,6 +214,28 @@ class CommandBuilder:
                                int(discarded),
                                P2Type.FILTERING_DATETIME,
                                self._eip712_filtering_send_name(name, sig))
+
+    def eip712_filtering_trusted_name(self,
+                                      name: str,
+                                      name_types: list[int],
+                                      name_sources: list[int],
+                                      sig: bytes,
+                                      discarded: bool) -> bytes:
+        data = bytearray()
+        data.append(len(name))
+        data += name.encode()
+        data.append(len(name_types))
+        for t in name_types:
+            data.append(t)
+        data.append(len(name_sources))
+        for s in name_sources:
+            data.append(s)
+        data.append(len(sig))
+        data += sig
+        return self._serialize(InsType.EIP712_SEND_FILTERING,
+                               int(discarded),
+                               P2Type.FILTERING_TRUSTED_NAME,
+                               data)
 
     def eip712_filtering_raw(self, name: str, sig: bytes, discarded: bool) -> bytes:
         return self._serialize(InsType.EIP712_SEND_FILTERING,

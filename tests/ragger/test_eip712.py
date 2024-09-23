@@ -13,10 +13,11 @@ from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator, NavInsID
 from ragger.navigator.navigation_scenario import NavigateWithScenario
+from ragger.error import ExceptionRAPDU
 
 import client.response_parser as ResponseParser
 from client.utils import recover_message
-from client.client import EthAppClient, TrustedNameType, TrustedNameSource
+from client.client import EthAppClient, StatusWord, TrustedNameType, TrustedNameSource
 from client.eip712 import InputData
 from client.settings import SettingID, settings_toggle
 
@@ -158,6 +159,7 @@ def test_eip712_new(firmware: Firmware,
                     input_file: Path,
                     verbose: bool,
                     filtering: bool):
+    settings_to_toggle: list[SettingID] = []
     app_client = EthAppClient(backend)
     if firmware == Firmware.NANOS:
         pytest.skip("Not supported on LNS")
@@ -172,9 +174,14 @@ def test_eip712_new(firmware: Firmware,
                 filters = json.load(f)
         except (IOError, json.decoder.JSONDecodeError) as e:
             pytest.skip(f"{filterfile.name}: {e.strerror}")
+    else:
+        settings_to_toggle.append(SettingID.BLIND_SIGNING)
 
     if verbose:
-        settings_toggle(firmware, navigator, [SettingID.VERBOSE_EIP712])
+        settings_to_toggle.append(SettingID.VERBOSE_EIP712)
+
+    if len(settings_to_toggle) > 0:
+        settings_toggle(firmware, navigator, settings_to_toggle)
 
     with open(input_file, encoding="utf-8") as file:
         data = json.load(file)
@@ -748,3 +755,24 @@ def test_eip712_advanced_trusted_name(firmware: Firmware,
     # verify signature
     addr = recover_message(data, vrs)
     assert addr == get_wallet_addr(app_client)
+
+
+def test_eip712_bs_not_activated_error(firmware: Firmware,
+                                       backend: BackendInterface,
+                                       navigator: Navigator,
+                                       default_screenshot_path: Path):
+    app_client = EthAppClient(backend)
+    if firmware == Firmware.NANOS:
+        pytest.skip("Not supported on LNS")
+
+    with pytest.raises(ExceptionRAPDU) as e:
+        eip712_new_common(firmware,
+                          navigator,
+                          default_screenshot_path,
+                          app_client,
+                          ADVANCED_DATA_SETS[0].data,
+                          None,
+                          False,
+                          False)
+    InputData.disable_autonext()  # so the timer stops firing
+    assert e.value.status == StatusWord.INVALID_DATA

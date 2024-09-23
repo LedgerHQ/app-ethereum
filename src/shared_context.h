@@ -34,9 +34,9 @@ typedef struct internalStorage_t {
 #ifdef HAVE_EIP712_FULL_SUPPORT
     bool verbose_eip712;
 #endif  // HAVE_EIP712_FULL_SUPPORT
-#ifdef HAVE_DOMAIN_NAME
-    bool verbose_domain_name;
-#endif  // HAVE_DOMAIN_NAME
+#ifdef HAVE_TRUSTED_NAME
+    bool verbose_trusted_name;
+#endif  // HAVE_TRUSTED_NAME
     bool initialized;
 } internalStorage_t;
 

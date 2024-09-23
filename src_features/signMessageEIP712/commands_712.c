@@ -29,6 +29,7 @@
 #define P2_FILT_ACTIVATE          0x00
 #define P2_FILT_DISCARDED_PATH    0x01
 #define P2_FILT_MESSAGE_INFO      0x0F
+#define P2_FILT_CONTRACT_NAME     0xFB
 #define P2_FILT_DATE_TIME         0xFC
 #define P2_FILT_AMOUNT_JOIN_TOKEN 0xFD
 #define P2_FILT_AMOUNT_JOIN_VALUE 0xFE
@@ -198,6 +199,11 @@ uint16_t handle_eip712_filtering(uint8_t p1,
                 reply_apdu = false;
             }
             break;
+#ifdef HAVE_TRUSTED_NAME
+        case P2_FILT_CONTRACT_NAME:
+            ret = filtering_trusted_name(cdata, length, p1 == 1);
+            break;
+#endif
         case P2_FILT_DATE_TIME:
             ret = filtering_date_time(cdata, length, p1 == 1);
             break;

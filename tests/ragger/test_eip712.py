@@ -16,7 +16,7 @@ from ragger.navigator.navigation_scenario import NavigateWithScenario
 
 import client.response_parser as ResponseParser
 from client.utils import recover_message
-from client.client import EthAppClient
+from client.client import EthAppClient, TrustedNameType, TrustedNameSource
 from client.eip712 import InputData
 from client.settings import SettingID, settings_toggle
 
@@ -627,6 +627,115 @@ def test_eip712_advanced_missing_token(firmware: Firmware,
             },
         }
     }
+    vrs = eip712_new_common(firmware,
+                            navigator,
+                            default_screenshot_path,
+                            app_client,
+                            data,
+                            filters,
+                            False,
+                            golden_run)
+
+    # verify signature
+    addr = recover_message(data, vrs)
+    assert addr == get_wallet_addr(app_client)
+
+
+TRUSTED_NAMES = [
+    (TrustedNameType.CONTRACT, TrustedNameSource.CAL, "Validator contract"),
+    (TrustedNameType.ACCOUNT, TrustedNameSource.ENS, "validator.eth"),
+]
+
+FILT_TN_TYPES = [
+    [TrustedNameType.CONTRACT],
+    [TrustedNameType.ACCOUNT],
+    [TrustedNameType.CONTRACT, TrustedNameType.ACCOUNT],
+    [TrustedNameType.ACCOUNT, TrustedNameType.CONTRACT],
+]
+
+
+@pytest.fixture(name="trusted_name", params=TRUSTED_NAMES)
+def trusted_name_fixture(request) -> tuple:
+    return request.param
+
+
+@pytest.fixture(name="filt_tn_types", params=FILT_TN_TYPES)
+def filt_tn_types_fixture(request) -> list[TrustedNameType]:
+    return request.param
+
+
+def test_eip712_advanced_trusted_name(firmware: Firmware,
+                                      backend: BackendInterface,
+                                      navigator: Navigator,
+                                      default_screenshot_path: Path,
+                                      test_name: str,
+                                      trusted_name: tuple,
+                                      filt_tn_types: list[TrustedNameType],
+                                      golden_run: bool):
+    global SNAPS_CONFIG
+
+    test_name += "_%s_with" % (str(trusted_name[0]).split(".")[-1].lower())
+    for t in filt_tn_types:
+        test_name += "_%s" % (str(t).split(".")[-1].lower())
+    SNAPS_CONFIG = SnapshotsConfig(test_name)
+
+    app_client = EthAppClient(backend)
+    if firmware == Firmware.NANOS:
+        pytest.skip("Not supported on LNS")
+
+    data = {
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "Root": [
+                {"name": "validator", "type": "address"},
+                {"name": "enable", "type": "bool"},
+            ]
+        },
+        "primaryType": "Root",
+        "domain": {
+            "name": "test",
+            "version": "1",
+            "verifyingContract": "0x0000000000000000000000000000000000000000",
+            "chainId": 1,
+        },
+        "message": {
+            "validator": "0x1111111111111111111111111111111111111111",
+            "enable": True,
+        }
+    }
+
+    filters = {
+        "name": "Trusted name test",
+        "fields": {
+            "validator": {
+                "type": "trusted_name",
+                "name": "Validator",
+                "tn_type": filt_tn_types,
+                "tn_source": [TrustedNameSource.CAL],
+            },
+            "enable": {
+                "type": "raw",
+                "name": "State",
+            },
+        }
+    }
+
+    if trusted_name[0] is TrustedNameType.ACCOUNT:
+        challenge = ResponseParser.challenge(app_client.get_challenge().data)
+    else:
+        challenge = None
+
+    app_client.provide_trusted_name_v2(bytes.fromhex(data["message"]["validator"][2:]),
+                                       trusted_name[2],
+                                       trusted_name[0],
+                                       trusted_name[1],
+                                       data["domain"]["chainId"],
+                                       challenge=challenge)
     vrs = eip712_new_common(firmware,
                             navigator,
                             default_screenshot_path,

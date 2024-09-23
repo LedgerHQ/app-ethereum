@@ -1,4 +1,4 @@
-#ifdef HAVE_DOMAIN_NAME
+#ifdef HAVE_TRUSTED_NAME
 
 #include <os.h>
 #include <os_io.h>
@@ -34,4 +34,4 @@ uint16_t handle_get_challenge(unsigned int *tx) {
     return APDU_RESPONSE_OK;
 }
 
-#endif  // HAVE_DOMAIN_NAME
+#endif  // HAVE_TRUSTED_NAME

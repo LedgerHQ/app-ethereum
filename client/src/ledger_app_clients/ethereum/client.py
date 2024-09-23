@@ -1,4 +1,5 @@
 import rlp
+import struct
 from enum import IntEnum
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
@@ -27,16 +28,36 @@ class StatusWord(IntEnum):
     NOT_IMPLEMENTED = 0x911c
 
 
-class DomainNameTag(IntEnum):
-    STRUCTURE_TYPE = 0x01
-    STRUCTURE_VERSION = 0x02
+class TrustedNameType(IntEnum):
+    ACCOUNT = 0x01
+    CONTRACT = 0x02
+    NFT = 0x03
+
+
+class TrustedNameSource(IntEnum):
+    LAB = 0x00
+    CAL = 0x01
+    ENS = 0x02
+    UD = 0x03
+    FN = 0x04
+    DNS = 0x05
+
+
+class TrustedNameTag(IntEnum):
+    STRUCT_TYPE = 0x01
+    STRUCT_VERSION = 0x02
+    NOT_VALID_AFTER = 0x10
     CHALLENGE = 0x12
     SIGNER_KEY_ID = 0x13
     SIGNER_ALGO = 0x14
     SIGNATURE = 0x15
-    DOMAIN_NAME = 0x20
+    NAME = 0x20
     COIN_TYPE = 0x21
     ADDRESS = 0x22
+    CHAIN_ID = 0x23
+    NAME_TYPE = 0x70
+    NAME_SOURCE = 0x71
+    NFT_ID = 0x72
 
 
 class PKIPubKeyUsage(IntEnum):
@@ -168,6 +189,18 @@ class EthAppClient:
     def eip712_filtering_datetime(self, name: str, sig: bytes, discarded: bool):
         return self._exchange_async(self._cmd_builder.eip712_filtering_datetime(name, sig, discarded))
 
+    def eip712_filtering_trusted_name(self,
+                                      name: str,
+                                      name_type: list[int],
+                                      name_source: list[int],
+                                      sig: bytes,
+                                      discarded: bool):
+        return self._exchange_async(self._cmd_builder.eip712_filtering_trusted_name(name,
+                                                                                    name_type,
+                                                                                    name_source,
+                                                                                    sig,
+                                                                                    discarded))
+
     def eip712_filtering_raw(self, name: str, sig: bytes, discarded: bool):
         return self._exchange_async(self._cmd_builder.eip712_filtering_raw(name, sig, discarded))
 
@@ -217,8 +250,7 @@ class EthAppClient:
                                                                           bip32_path,
                                                                           pubkey))
 
-    def provide_domain_name(self, challenge: int, name: str, addr: bytes) -> RAPDU:
-
+    def _provide_trusted_name_common(self, payload: bytes) -> RAPDU:
         if self._pki_client is None:
             print(f"Ledger-PKI Not supported on '{self._firmware.name}'")
         else:
@@ -234,22 +266,47 @@ class EthAppClient:
             # pylint: enable=line-too-long
 
             self._pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_COIN_META, bytes.fromhex(cert_apdu))
-
-        payload = format_tlv(DomainNameTag.STRUCTURE_TYPE, 3)  # TrustedDomainName
-        payload += format_tlv(DomainNameTag.STRUCTURE_VERSION, 1)
-        payload += format_tlv(DomainNameTag.SIGNER_KEY_ID, 0)  # test key
-        payload += format_tlv(DomainNameTag.SIGNER_ALGO, 1)  # secp256k1
-        payload += format_tlv(DomainNameTag.CHALLENGE, challenge)
-        payload += format_tlv(DomainNameTag.COIN_TYPE, 0x3c)  # ETH in slip-44
-        payload += format_tlv(DomainNameTag.DOMAIN_NAME, name)
-        payload += format_tlv(DomainNameTag.ADDRESS, addr)
-        payload += format_tlv(DomainNameTag.SIGNATURE,
-                              sign_data(Key.DOMAIN_NAME, payload))
-
-        chunks = self._cmd_builder.provide_domain_name(payload)
+        payload += format_tlv(TrustedNameTag.STRUCT_TYPE, 3)  # TrustedName
+        payload += format_tlv(TrustedNameTag.SIGNER_KEY_ID, 0)  # test key
+        payload += format_tlv(TrustedNameTag.SIGNER_ALGO, 1)  # secp256k1
+        payload += format_tlv(TrustedNameTag.SIGNATURE,
+                              sign_data(Key.TRUSTED_NAME, payload))
+        chunks = self._cmd_builder.provide_trusted_name(payload)
         for chunk in chunks[:-1]:
             self._exchange(chunk)
         return self._exchange(chunks[-1])
+
+    def provide_trusted_name_v1(self, addr: bytes, name: str, challenge: int) -> RAPDU:
+        payload = format_tlv(TrustedNameTag.STRUCT_VERSION, 1)
+        payload += format_tlv(TrustedNameTag.CHALLENGE, challenge)
+        payload += format_tlv(TrustedNameTag.COIN_TYPE, 0x3c)  # ETH in slip-44
+        payload += format_tlv(TrustedNameTag.NAME, name)
+        payload += format_tlv(TrustedNameTag.ADDRESS, addr)
+        return self._provide_trusted_name_common(payload)
+
+    def provide_trusted_name_v2(self,
+                                addr: bytes,
+                                name: str,
+                                name_type: TrustedNameType,
+                                name_source: TrustedNameSource,
+                                chain_id: int,
+                                nft_id: Optional[int] = None,
+                                challenge: Optional[int] = None,
+                                not_valid_after: Optional[tuple[int]] = None) -> RAPDU:
+        payload = format_tlv(TrustedNameTag.STRUCT_VERSION, 2)
+        payload += format_tlv(TrustedNameTag.NAME, name)
+        payload += format_tlv(TrustedNameTag.ADDRESS, addr)
+        payload += format_tlv(TrustedNameTag.NAME_TYPE, name_type)
+        payload += format_tlv(TrustedNameTag.NAME_SOURCE, name_source)
+        payload += format_tlv(TrustedNameTag.CHAIN_ID, chain_id)
+        if nft_id is not None:
+            payload += format_tlv(TrustedNameTag.NFT_ID, nft_id)
+        if challenge is not None:
+            payload += format_tlv(TrustedNameTag.CHALLENGE, challenge)
+        if not_valid_after is not None:
+            assert len(not_valid_after) == 3
+            payload += format_tlv(TrustedNameTag.NOT_VALID_AFTER, struct.pack("BBB", *not_valid_after))
+        return self._provide_trusted_name_common(payload)
 
     def set_plugin(self,
                    plugin_name: str,

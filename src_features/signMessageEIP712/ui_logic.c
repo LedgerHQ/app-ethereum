@@ -19,6 +19,7 @@
 #include "common_ui.h"
 #include "uint_common.h"
 #include "filtering.h"
+#include "trusted_name.h"
 
 #define AMOUNT_JOIN_FLAG_TOKEN (1 << 0)
 #define AMOUNT_JOIN_FLAG_VALUE (1 << 1)
@@ -42,6 +43,7 @@ typedef enum {
 #define UI_712_FIELD_NAME_PROVIDED (1 << 1)
 #define UI_712_AMOUNT_JOIN         (1 << 2)
 #define UI_712_DATETIME            (1 << 3)
+#define UI_712_TRUSTED_NAME        (1 << 4)
 
 typedef struct {
     s_amount_join joins[MAX_ASSETS];
@@ -61,6 +63,9 @@ typedef struct {
     uint32_t filters_crc[MAX_FILTERS];
     uint8_t discarded_path_length;
     char discarded_path[255];
+#ifdef HAVE_TRUSTED_NAME
+    e_name_type name_types;
+#endif
 #ifdef SCREEN_SIZE_WALLET
     char ui_pairs_buffer[(SHARED_CTX_FIELD_1_SIZE + SHARED_CTX_FIELD_2_SIZE) * 2];
 #endif
@@ -491,6 +496,37 @@ static bool update_amount_join(const uint8_t *data, uint8_t length) {
     return true;
 }
 
+#ifdef HAVE_TRUSTED_NAME
+/**
+ * Try to substitute given address by a matching contract name
+ *
+ * Fallback on showing the address if no match is found.
+ *
+ * @param[in] data the data that needs formatting
+ * @param[in] length its length
+ * @return whether it was successful or not
+ */
+static bool ui_712_format_trusted_name(const uint8_t *data, uint8_t length) {
+    uint8_t types_count = 0;
+    e_name_type types[8];
+    uint8_t types_bak = ui_ctx->name_types;
+
+    if (length != ADDRESS_LENGTH) {
+        return false;
+    }
+    for (int i = 0; types_bak > 0; ++i) {
+        if (types_bak & 1) {
+            types[types_count++] = i;
+        }
+        types_bak >>= 1;
+    }
+    if (has_trusted_name(types_count, types, &eip712_context->chain_id, data)) {
+        strlcpy(strings.tmp.tmp, g_trusted_name, sizeof(strings.tmp.tmp));
+    }
+    return true;
+}
+#endif
+
 /**
  * Format given data as a human-readable date/time representation
  *
@@ -606,6 +642,14 @@ bool ui_712_feed_to_display(const void *field_ptr,
         }
     }
 
+#ifdef HAVE_TRUSTED_NAME
+    if (ui_ctx->field_flags & UI_712_TRUSTED_NAME) {
+        if (!ui_712_format_trusted_name(data, length)) {
+            return false;
+        }
+    }
+#endif
+
     // Check if this field is supposed to be displayed
     if (last && ui_712_field_shown()) {
         ui_712_redraw_generic_step();
@@ -682,8 +726,13 @@ unsigned int ui_712_reject() {
  * @param[in] name_provided if a substitution name has been provided
  * @param[in] token_join if this field is part of a token join
  * @param[in] datetime if this field should be shown and formatted as a date/time
+ * @param[in] trusted_name if this field should be shown as a trusted contract name
  */
-void ui_712_flag_field(bool show, bool name_provided, bool token_join, bool datetime) {
+void ui_712_flag_field(bool show,
+                       bool name_provided,
+                       bool token_join,
+                       bool datetime,
+                       bool trusted_name) {
     if (show) {
         ui_ctx->field_flags |= UI_712_FIELD_SHOWN;
     }
@@ -695,6 +744,9 @@ void ui_712_flag_field(bool show, bool name_provided, bool token_join, bool date
     }
     if (datetime) {
         ui_ctx->field_flags |= UI_712_DATETIME;
+    }
+    if (trusted_name) {
+        ui_ctx->field_flags |= UI_712_TRUSTED_NAME;
     }
 }
 
@@ -840,6 +892,16 @@ const char *ui_712_get_discarded_path(uint8_t *length) {
     *length = ui_ctx->discarded_path_length;
     return ui_ctx->discarded_path;
 }
+
+#ifdef HAVE_TRUSTED_NAME
+void ui_712_set_trusted_name_requirements(uint8_t types_count, const e_name_type *types) {
+    // pack into one byte to save on space
+    ui_ctx->name_types = 0;
+    for (int i = 0; i < types_count; ++i) {
+        ui_ctx->name_types |= (1 << types[i]);
+    }
+}
+#endif
 
 #ifdef SCREEN_SIZE_WALLET
 /*

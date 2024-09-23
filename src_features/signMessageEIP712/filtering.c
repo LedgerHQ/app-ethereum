@@ -15,11 +15,13 @@
 #ifdef HAVE_LEDGER_PKI
 #include "os_pki.h"
 #endif
+#include "trusted_name.h"
 
 #define FILT_MAGIC_MESSAGE_INFO      183
 #define FILT_MAGIC_AMOUNT_JOIN_TOKEN 11
 #define FILT_MAGIC_AMOUNT_JOIN_VALUE 22
 #define FILT_MAGIC_DATETIME          33
+#define FILT_MAGIC_TRUSTED_NAME      44
 #define FILT_MAGIC_RAW_FIELD         72
 
 #define TOKEN_IDX_ADDR_IN_DOMAIN 0xff
@@ -319,6 +321,119 @@ bool filtering_discarded_path(const uint8_t *payload, uint8_t length) {
     return true;
 }
 
+#ifdef HAVE_TRUSTED_NAME
+/**
+ * Command to display a field as a trusted name
+ *
+ * @param[in] payload the payload to parse
+ * @param[in] length the payload length
+ * @param[in] discarded if the filter targets a field that is does not exist (within an empty array)
+ * @return whether it was successful or not
+ */
+bool filtering_trusted_name(const uint8_t *payload, uint8_t length, bool discarded) {
+    uint8_t name_len;
+    const char *name;
+    uint8_t types_count;
+    e_name_type *types;
+    uint8_t sources_count;
+    e_name_source *sources;
+    uint8_t sig_len;
+    const uint8_t *sig;
+    uint8_t offset = 0;
+
+    if (path_get_root_type() != ROOT_MESSAGE) {
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        return false;
+    }
+
+    // Parsing
+    if ((offset + sizeof(name_len)) > length) {
+        return false;
+    }
+    name_len = payload[offset++];
+    if ((offset + name_len) > length) {
+        return false;
+    }
+    name = (char *) &payload[offset];
+    offset += name_len;
+    if ((offset + sizeof(types_count)) > length) {
+        return false;
+    }
+    types_count = payload[offset++];
+    if ((offset + types_count) > length) {
+        return false;
+    }
+    types = (e_name_type *) &payload[offset];
+    // sanity check
+    for (int i = 0; i < types_count; ++i) {
+        switch (types[i]) {
+            case TYPE_ACCOUNT:
+            case TYPE_CONTRACT:
+                break;
+            default:
+                return false;
+        }
+    }
+    offset += types_count;
+    if ((offset + sizeof(sources_count)) > length) {
+        return false;
+    }
+    sources_count = payload[offset++];
+    if ((offset + sources_count) > length) {
+        return false;
+    }
+    sources = (e_name_source *) &payload[offset];
+    // sanity check
+    for (int i = 0; i < sources_count; ++i) {
+        switch (sources[i]) {
+            case SOURCE_LAB:
+            case SOURCE_CAL:
+            case SOURCE_ENS:
+            case SOURCE_UD:
+            case SOURCE_FN:
+            case SOURCE_DNS:
+                break;
+            default:
+                return false;
+        }
+    }
+    offset += sources_count;
+    //
+    if ((offset + sizeof(sig_len)) > length) {
+        return false;
+    }
+    sig_len = payload[offset++];
+    if ((offset + sig_len) != length) {
+        return false;
+    }
+    sig = &payload[offset];
+
+    // Verification
+    cx_sha256_t hash_ctx;
+    if (!sig_verif_start(&hash_ctx, FILT_MAGIC_TRUSTED_NAME)) {
+        return false;
+    }
+    hash_filtering_path((cx_hash_t *) &hash_ctx, discarded);
+    hash_nbytes((uint8_t *) name, sizeof(char) * name_len, (cx_hash_t *) &hash_ctx);
+    hash_nbytes(types, types_count, (cx_hash_t *) &hash_ctx);
+    hash_nbytes(sources, sources_count, (cx_hash_t *) &hash_ctx);
+    if (!sig_verif_end(&hash_ctx, sig, sig_len)) {
+        return false;
+    }
+
+    // Handling
+    if (!check_typename("address")) {
+        return false;
+    }
+    if (name_len > 0) {  // don't substitute for an empty name
+        ui_712_set_title(name, name_len);
+    }
+    ui_712_flag_field(true, name_len > 0, false, false, true);
+    ui_712_set_trusted_name_requirements(types_count, types);
+    return true;
+}
+#endif  // HAVE_TRUSTED_NAME
+
 /**
  * Command to display a field as a date-time
  *
@@ -376,7 +491,7 @@ bool filtering_date_time(const uint8_t *payload, uint8_t length, bool discarded)
     if (name_len > 0) {  // don't substitute for an empty name
         ui_712_set_title(name, name_len);
     }
-    ui_712_flag_field(true, name_len > 0, false, true);
+    ui_712_flag_field(true, name_len > 0, false, true, false);
     return true;
 }
 
@@ -428,7 +543,7 @@ bool filtering_amount_join_token(const uint8_t *payload, uint8_t length, bool di
     if (!check_typename("address") || !check_token_index(token_idx)) {
         return false;
     }
-    ui_712_flag_field(false, false, true, false);
+    ui_712_flag_field(false, false, true, false, false);
     ui_712_token_join_prepare_addr_check(token_idx);
     return true;
 }
@@ -509,7 +624,7 @@ bool filtering_amount_join_value(const uint8_t *payload, uint8_t length, bool di
     if (!check_typename("uint") || !check_token_index(token_idx)) {
         return false;
     }
-    ui_712_flag_field(false, false, true, false);
+    ui_712_flag_field(false, false, true, false, false);
     ui_712_token_join_prepare_amount(token_idx, name, name_len);
     return true;
 }
@@ -569,7 +684,7 @@ bool filtering_raw_field(const uint8_t *payload, uint8_t length, bool discarded)
         if (name_len > 0) {  // don't substitute for an empty name
             ui_712_set_title(name, name_len);
         }
-        ui_712_flag_field(true, name_len > 0, false, false);
+        ui_712_flag_field(true, name_len > 0, false, false, false);
     }
     return true;
 }

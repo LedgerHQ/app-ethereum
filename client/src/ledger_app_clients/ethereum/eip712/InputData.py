@@ -227,6 +227,12 @@ def send_filter(path: str, discarded: bool):
                                              discarded)
     elif filtering_paths[path]["type"] == "datetime":
         send_filtering_datetime(path, filtering_paths[path]["name"], discarded)
+    elif filtering_paths[path]["type"] == "trusted_name":
+        send_filtering_trusted_name(path,
+                                    filtering_paths[path]["name"],
+                                    filtering_paths[path]["tn_type"],
+                                    filtering_paths[path]["tn_source"],
+                                    discarded)
     elif filtering_paths[path]["type"] == "raw":
         send_filtering_raw(path, filtering_paths[path]["name"], discarded)
     else:
@@ -355,6 +361,25 @@ def send_filtering_datetime(path: str, display_name: str, discarded: bool):
     to_sign += display_name.encode()
     sig = keychain.sign_data(keychain.Key.CAL, to_sign)
     with app_client.eip712_filtering_datetime(display_name, sig, discarded):
+        pass
+
+
+def send_filtering_trusted_name(path: str,
+                                display_name: str,
+                                name_type: list[int],
+                                name_source: list[int],
+                                discarded: bool):
+    global sig_ctx
+
+    to_sign = start_signature_payload(sig_ctx, 44)
+    to_sign += path.encode()
+    to_sign += display_name.encode()
+    for t in name_type:
+        to_sign.append(t)
+    for s in name_source:
+        to_sign.append(s)
+    sig = keychain.sign_data(keychain.Key.CAL, to_sign)
+    with app_client.eip712_filtering_trusted_name(display_name, name_type, name_source, sig, discarded):
         pass
 
 

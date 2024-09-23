@@ -5,7 +5,7 @@
 #include "ui_nbgl.h"
 #include "ui_signing.h"
 #include "plugins.h"
-#include "domain_name.h"
+#include "trusted_name.h"
 #include "caller_api.h"
 #include "network_icons.h"
 #include "network.h"
@@ -26,8 +26,8 @@ static char msg_buffer[MAX_PLUGIN_ITEMS][VALUE_MAX_LEN];
 struct tx_approval_context_t {
     bool fromPlugin;
     bool displayNetwork;
-#ifdef HAVE_DOMAIN_NAME
-    bool domain_name_match;
+#ifdef HAVE_TRUSTED_NAME
+    bool trusted_name_match;
 #endif
 };
 
@@ -130,21 +130,22 @@ static uint8_t setTagValuePairs(void) {
         pairs[nbPairs].value = strings.common.fullAmount;
         nbPairs++;
 
-#ifdef HAVE_DOMAIN_NAME
+#ifdef HAVE_TRUSTED_NAME
         uint64_t chain_id = get_tx_chain_id();
-        tx_approval_context.domain_name_match =
-            has_domain_name(&chain_id, tmpContent.txContent.destination);
-        if (tx_approval_context.domain_name_match) {
+        e_name_type type = TYPE_ACCOUNT;
+        tx_approval_context.trusted_name_match =
+            has_trusted_name(1, &type, &chain_id, tmpContent.txContent.destination);
+        if (tx_approval_context.trusted_name_match) {
             pairs[nbPairs].item = "To (domain)";
-            pairs[nbPairs].value = g_domain_name;
+            pairs[nbPairs].value = g_trusted_name;
             nbPairs++;
         }
-        if (!tx_approval_context.domain_name_match || N_storage.verbose_domain_name) {
+        if (!tx_approval_context.trusted_name_match || N_storage.verbose_trusted_name) {
 #endif
             pairs[nbPairs].item = "To";
             pairs[nbPairs].value = strings.common.toAddress;
             nbPairs++;
-#ifdef HAVE_DOMAIN_NAME
+#ifdef HAVE_TRUSTED_NAME
         }
 #endif
         if (N_storage.displayNonce) {

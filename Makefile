@@ -153,7 +153,7 @@ ENABLE_NBGL_QRCODE = 1
 #        Main app configuration        #
 ########################################
 
-DEFINES += CHAINID_COINNAME=\"$(TICKER)\" CHAIN_ID=$(CHAIN_ID)
+DEFINES += APP_TICKER=\"$(TICKER)\" APP_CHAIN_ID=$(CHAIN_ID)
 
 # Enabled Features #
 include makefile_conf/features.mk

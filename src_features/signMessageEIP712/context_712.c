@@ -55,6 +55,7 @@ bool eip712_context_init(void) {
     // Since they are optional, they might not be provided by the JSON data
     explicit_bzero(eip712_context->contract_addr, sizeof(eip712_context->contract_addr));
     eip712_context->chain_id = 0;
+    eip712_context->go_home_on_failure = true;
 
     struct_state = NOT_INITIALIZED;
 

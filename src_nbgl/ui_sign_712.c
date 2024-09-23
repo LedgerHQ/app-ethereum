@@ -8,11 +8,13 @@
 #include "nbgl_use_case.h"
 #include "ui_message_signing.h"
 #include "ledger_assert.h"
+#include "apdu_constants.h"
 
 static nbgl_contentTagValue_t pairs[7];
 static nbgl_contentTagValueList_t pairs_list;
 static uint8_t pair_idx;
 static size_t buf_idx;
+static bool filtered;
 
 static void message_progress(bool confirm) {
     char *buf;
@@ -66,13 +68,26 @@ static void message_update(bool confirm) {
     }
 }
 
-void ui_712_start(void) {
+static void ui_712_start_common(bool has_filtering) {
     explicit_bzero(&pairs, sizeof(pairs));
     explicit_bzero(&pairs_list, sizeof(pairs_list));
     pairs_list.pairs = pairs;
     pair_idx = 0;
     buf_idx = 0;
+    filtered = has_filtering;
+}
 
+void ui_712_start_unfiltered(void) {
+    ui_712_start_common(false);
+    nbgl_useCaseReviewStreamingBlindSigningStart(TYPE_MESSAGE,
+                                                 &C_Review_64px,
+                                                 TEXT_REVIEW_EIP712,
+                                                 NULL,
+                                                 message_update);
+}
+
+void ui_712_start(void) {
+    ui_712_start_common(true);
     nbgl_useCaseReviewStreamingStart(TYPE_MESSAGE,
                                      &C_Review_64px,
                                      TEXT_REVIEW_EIP712,
@@ -90,7 +105,8 @@ void ui_712_switch_to_sign(void) {
         pair_idx = 0;
         nbgl_useCaseReviewStreamingContinue(&pairs_list, message_progress);
     } else {
-        nbgl_useCaseReviewStreamingFinish(TEXT_SIGN_EIP712, ui_typed_message_review_choice);
+        nbgl_useCaseReviewStreamingFinish(filtered ? TEXT_SIGN_EIP712 : TEXT_BLIND_SIGN_EIP712,
+                                          ui_typed_message_review_choice);
     }
 }
 

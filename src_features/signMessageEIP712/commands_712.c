@@ -44,14 +44,19 @@
  * @param[in] success whether the command was successful
  */
 static void apdu_reply(bool success) {
+    bool home = true;
+
     if (success) {
         apdu_response_code = APDU_RESPONSE_OK;
     } else {
         if (apdu_response_code == APDU_RESPONSE_OK) {  // somehow not set
             apdu_response_code = APDU_RESPONSE_ERROR_NO_INFO;
         }
+        if (eip712_context != NULL) {
+            home = eip712_context->go_home_on_failure;
+        }
         eip712_context_deinit();
-        ui_idle();
+        if (home) ui_idle();
     }
 }
 

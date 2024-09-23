@@ -4,6 +4,7 @@
 #include "feature_signTx.h"
 #include "ui_nbgl.h"
 #include "apdu_constants.h"
+#include "context_712.h"
 
 static void ui_error_blind_signing_choice(bool confirm) {
     if (confirm) {

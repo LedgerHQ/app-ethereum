@@ -135,9 +135,14 @@ uint16_t handle_eip712_struct_impl(uint8_t p1,
                 // set root type
                 ret = path_set_root((char *) cdata, length);
                 if (ret) {
+#ifdef SCREEN_SIZE_WALLET
+                    if (ui_712_get_filtering_mode() == EIP712_FILTERING_BASIC) {
+#else
                     if (N_storage.verbose_eip712) {
-                        ui_712_review_struct(path_get_root());
-                        reply_apdu = false;
+#endif
+                        if ((ret = ui_712_review_struct(path_get_root()))) {
+                            reply_apdu = false;
+                        }
                     }
                     ui_712_field_flags_reset();
                 }
@@ -268,9 +273,11 @@ uint16_t handle_eip712_sign(const uint8_t *cdata, uint8_t length, uint32_t *flag
     } else if (parseBip32(cdata, &length, &tmpCtx.messageSigningContext.bip32) == NULL) {
         apdu_response_code = APDU_RESPONSE_INVALID_DATA;
     } else {
+#ifndef SCREEN_SIZE_WALLET
         if (!N_storage.verbose_eip712 && (ui_712_get_filtering_mode() == EIP712_FILTERING_BASIC)) {
             ui_712_message_hash();
         }
+#endif
         ret = true;
         ui_712_end_sign();
     }

@@ -30,7 +30,7 @@ unsigned int ui_712_reject();
 void ui_712_set_title(const char *str, size_t length);
 void ui_712_set_value(const char *str, size_t length);
 void ui_712_message_hash(void);
-void ui_712_redraw_generic_step(void);
+bool ui_712_redraw_generic_step(void);
 void ui_712_flag_field(bool show,
                        bool name_provided,
                        bool token_join,

@@ -54,7 +54,7 @@ typedef struct {
 typedef struct {
     bool shown;
     bool end_reached;
-    uint8_t filtering_mode;
+    e_eip712_filtering_mode filtering_mode;
     uint8_t filters_to_process;
     uint8_t field_flags;
     uint8_t structs_to_review;
@@ -154,13 +154,26 @@ void ui_712_set_value(const char *str, size_t length) {
 /**
  * Redraw the dynamic UI step that shows EIP712 information
  */
-void ui_712_redraw_generic_step(void) {
+bool ui_712_redraw_generic_step(void) {
     if (!ui_ctx->shown) {  // Initialize if it is not already
-        ui_712_start();
+        if ((ui_ctx->filtering_mode == EIP712_FILTERING_BASIC) && !N_storage.dataAllowed &&
+            !N_storage.verbose_eip712) {
+            // Both settings not enabled => Error
+            ui_error_blind_signing();
+            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+            eip712_context->go_home_on_failure = false;
+            return false;
+        }
+        if (ui_ctx->filtering_mode == EIP712_FILTERING_BASIC) {
+            ui_712_start_unfiltered();
+        } else {
+            ui_712_start();
+        }
         ui_ctx->shown = true;
     } else {
         ui_712_switch_to_message();
     }
+    return true;
 }
 
 /**
@@ -652,7 +665,7 @@ bool ui_712_feed_to_display(const void *field_ptr,
 
     // Check if this field is supposed to be displayed
     if (last && ui_712_field_shown()) {
-        ui_712_redraw_generic_step();
+        if (!ui_712_redraw_generic_step()) return false;
     }
     return true;
 }

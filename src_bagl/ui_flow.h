@@ -32,4 +32,6 @@ extern const ux_flow_step_t* const ux_display_privacy_shared_secret_flow[];
 
 extern const ux_flow_step_t* ux_approval_tx_flow[15];
 
+extern const ux_flow_step_t ux_warning_blind_signing_warn_step;
+
 #endif  // _UI_FLOW_H_

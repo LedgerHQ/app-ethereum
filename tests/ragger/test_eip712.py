@@ -13,26 +13,20 @@ from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator, NavInsID
 from ragger.navigator.navigation_scenario import NavigateWithScenario
+from ragger.error import ExceptionRAPDU
 
 import client.response_parser as ResponseParser
 from client.utils import recover_message
-from client.client import EthAppClient, TrustedNameType, TrustedNameSource
+from client.client import EthAppClient, StatusWord, TrustedNameType, TrustedNameSource
 from client.eip712 import InputData
 from client.settings import SettingID, settings_toggle
 
 
-class SnapshotsConfig:
-    test_name: str
-    idx: int
-
-    def __init__(self, test_name: str, idx: int = 0):
-        self.test_name = test_name
-        self.idx = idx
-
-
 BIP32_PATH = "m/44'/60'/0'/0/0"
-SNAPS_CONFIG: Optional[SnapshotsConfig] = None
+autonext_idx: int
+snapshots_dirname: Optional[str] = None
 WALLET_ADDR: Optional[bytes] = None
+unfiltered_flow: bool
 
 
 def eip712_json_path() -> str:
@@ -89,23 +83,28 @@ def test_eip712_legacy(backend: BackendInterface, scenario_navigator: NavigateWi
 
 
 def autonext(firmware: Firmware, navigator: Navigator, default_screenshot_path: Path):
+    global autonext_idx
+
     moves = []
     if firmware.is_nano:
         moves = [NavInsID.RIGHT_CLICK]
     else:
-        moves = [NavInsID.SWIPE_CENTER_TO_LEFT]
-    if SNAPS_CONFIG is not None:
+        if autonext_idx == 0 and unfiltered_flow:
+            moves = [NavInsID.USE_CASE_CHOICE_REJECT]
+        else:
+            moves = [NavInsID.SWIPE_CENTER_TO_LEFT]
+    if snapshots_dirname is not None:
         navigator.navigate_and_compare(default_screenshot_path,
-                                       SNAPS_CONFIG.test_name,
+                                       snapshots_dirname,
                                        moves,
                                        screen_change_before_first_instruction=False,
                                        screen_change_after_last_instruction=False,
-                                       snap_start_idx=SNAPS_CONFIG.idx)
-        SNAPS_CONFIG.idx += 1
+                                       snap_start_idx=autonext_idx)
     else:
         navigator.navigate(moves,
                            screen_change_before_first_instruction=False,
                            screen_change_after_last_instruction=False)
+    autonext_idx += 1
 
 
 def eip712_new_common(firmware: Firmware,
@@ -116,11 +115,16 @@ def eip712_new_common(firmware: Firmware,
                       filters: Optional[dict],
                       verbose: bool,
                       golden_run: bool):
+    global autonext_idx
+    global unfiltered_flow
+
+    autonext_idx = 0
     assert InputData.process_data(app_client,
                                   json_data,
                                   filters,
                                   partial(autonext, firmware, navigator, default_screenshot_path),
                                   golden_run)
+    unfiltered_flow = False  # reset value
     with app_client.eip712_sign_new(BIP32_PATH):
         moves = []
         if firmware.is_nano:
@@ -135,13 +139,13 @@ def eip712_new_common(firmware: Firmware,
             if not verbose and filters is None:
                 moves += [NavInsID.SWIPE_CENTER_TO_LEFT]
             moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
-        if SNAPS_CONFIG is not None:
+        if snapshots_dirname is not None:
             # Could break (time-out) if given a JSON that requires less moves
             # TODO: Maybe take list of moves as input instead of trying to guess them ?
             navigator.navigate_and_compare(default_screenshot_path,
-                                           SNAPS_CONFIG.test_name,
+                                           snapshots_dirname,
                                            moves,
-                                           snap_start_idx=SNAPS_CONFIG.idx)
+                                           snap_start_idx=autonext_idx)
         else:
             # Do them one-by-one to prevent an unnecessary move from timing-out and failing the test
             for move in moves:
@@ -158,6 +162,9 @@ def test_eip712_new(firmware: Firmware,
                     input_file: Path,
                     verbose: bool,
                     filtering: bool):
+    global unfiltered_flow
+
+    settings_to_toggle: list[SettingID] = []
     app_client = EthAppClient(backend)
     if firmware == Firmware.NANOS:
         pytest.skip("Not supported on LNS")
@@ -172,9 +179,17 @@ def test_eip712_new(firmware: Firmware,
                 filters = json.load(f)
         except (IOError, json.decoder.JSONDecodeError) as e:
             pytest.skip(f"{filterfile.name}: {e.strerror}")
+    else:
+        settings_to_toggle.append(SettingID.BLIND_SIGNING)
 
     if verbose:
-        settings_toggle(firmware, navigator, [SettingID.VERBOSE_EIP712])
+        settings_to_toggle.append(SettingID.VERBOSE_EIP712)
+
+    if not filters or verbose:
+        unfiltered_flow = True
+
+    if len(settings_to_toggle) > 0:
+        settings_toggle(firmware, navigator, settings_to_toggle)
 
     with open(input_file, encoding="utf-8") as file:
         data = json.load(file)
@@ -417,13 +432,13 @@ def test_eip712_advanced_filtering(firmware: Firmware,
                                    test_name: str,
                                    data_set: DataSet,
                                    golden_run: bool):
-    global SNAPS_CONFIG
+    global snapshots_dirname
 
     app_client = EthAppClient(backend)
     if firmware == Firmware.NANOS:
         pytest.skip("Not supported on LNS")
 
-    SNAPS_CONFIG = SnapshotsConfig(test_name + data_set.suffix)
+    snapshots_dirname = test_name + data_set.suffix
 
     vrs = eip712_new_common(firmware,
                             navigator,
@@ -445,13 +460,13 @@ def test_eip712_filtering_empty_array(firmware: Firmware,
                                       default_screenshot_path: Path,
                                       test_name: str,
                                       golden_run: bool):
-    global SNAPS_CONFIG
+    global snapshots_dirname
 
     app_client = EthAppClient(backend)
     if firmware == Firmware.NANOS:
         pytest.skip("Not supported on LNS")
 
-    SNAPS_CONFIG = SnapshotsConfig(test_name)
+    snapshots_dirname = test_name
 
     data = {
         "types": {
@@ -564,10 +579,10 @@ def test_eip712_advanced_missing_token(firmware: Firmware,
                                        test_name: str,
                                        tokens: list[dict],
                                        golden_run: bool):
-    global SNAPS_CONFIG
+    global snapshots_dirname
 
     test_name += "-%s-%s" % (len(tokens[0]) == 0, len(tokens[1]) == 0)
-    SNAPS_CONFIG = SnapshotsConfig(test_name)
+    snapshots_dirname = test_name
 
     app_client = EthAppClient(backend)
     if firmware == Firmware.NANOS:
@@ -672,12 +687,12 @@ def test_eip712_advanced_trusted_name(firmware: Firmware,
                                       trusted_name: tuple,
                                       filt_tn_types: list[TrustedNameType],
                                       golden_run: bool):
-    global SNAPS_CONFIG
+    global snapshots_dirname
 
     test_name += "_%s_with" % (str(trusted_name[0]).split(".")[-1].lower())
     for t in filt_tn_types:
         test_name += "_%s" % (str(t).split(".")[-1].lower())
-    SNAPS_CONFIG = SnapshotsConfig(test_name)
+    snapshots_dirname = test_name
 
     app_client = EthAppClient(backend)
     if firmware == Firmware.NANOS:
@@ -748,3 +763,24 @@ def test_eip712_advanced_trusted_name(firmware: Firmware,
     # verify signature
     addr = recover_message(data, vrs)
     assert addr == get_wallet_addr(app_client)
+
+
+def test_eip712_bs_not_activated_error(firmware: Firmware,
+                                       backend: BackendInterface,
+                                       navigator: Navigator,
+                                       default_screenshot_path: Path):
+    app_client = EthAppClient(backend)
+    if firmware == Firmware.NANOS:
+        pytest.skip("Not supported on LNS")
+
+    with pytest.raises(ExceptionRAPDU) as e:
+        eip712_new_common(firmware,
+                          navigator,
+                          default_screenshot_path,
+                          app_client,
+                          ADVANCED_DATA_SETS[0].data,
+                          None,
+                          False,
+                          False)
+    InputData.disable_autonext()  # so the timer stops firing
+    assert e.value.status == StatusWord.INVALID_DATA

@@ -167,20 +167,23 @@ static uint8_t setTagValuePairs(void) {
     return nbPairs;
 }
 
-static void reviewCommon(void) {
+void ux_approve_tx(bool fromPlugin) {
     explicit_bzero(&pairsList, sizeof(pairsList));
+    explicit_bzero(&tx_approval_context, sizeof(tx_approval_context));
+    tx_approval_context.fromPlugin = fromPlugin;
+
+    uint64_t chain_id = get_tx_chain_id();
+    if (chainConfig->chainId == ETHEREUM_MAINNET_CHAINID && chain_id != chainConfig->chainId) {
+        tx_approval_context.displayNetwork = true;
+    } else {
+        tx_approval_context.displayNetwork = false;
+    }
 
     pairsList.nbPairs = setTagValuePairs();
     pairsList.pairs = pairs;
-    nbgl_operationType_t op = TYPE_TRANSACTION;
 
-#if API_LEVEL >= 19
-    if (tmpContent.txContent.dataPresent) {
-        op |= BLIND_OPERATION;
-    }
-#endif
+    uint32_t buf_size = SHARED_BUFFER_SIZE / 2;
     if (tx_approval_context.fromPlugin) {
-        uint32_t buf_size = SHARED_BUFFER_SIZE / 2;
         char op_name[sizeof(strings.common.fullAmount)];
         plugin_ui_get_id();
 
@@ -198,36 +201,30 @@ static void reviewCommon(void) {
                  op_name,
                  (pluginType == EXTERNAL ? "on " : ""),
                  strings.common.toAddress);
+    } else {
+        snprintf(g_stax_shared_buffer, buf_size, REVIEW("transaction"));
+        snprintf(
+            g_stax_shared_buffer + buf_size,
+            buf_size,
+            tmpContent.txContent.dataPresent ? BLIND_SIGN("transaction") : SIGN("transaction"));
+    }
 
-        nbgl_useCaseReview(op,
+    if (tmpContent.txContent.dataPresent) {
+        nbgl_useCaseReviewBlindSigning(TYPE_TRANSACTION,
+                                       &pairsList,
+                                       get_tx_icon(),
+                                       g_stax_shared_buffer,
+                                       NULL,
+                                       g_stax_shared_buffer + buf_size,
+                                       NULL,
+                                       reviewChoice);
+    } else {
+        nbgl_useCaseReview(TYPE_TRANSACTION,
                            &pairsList,
                            get_tx_icon(),
                            g_stax_shared_buffer,
                            NULL,
                            g_stax_shared_buffer + buf_size,
                            reviewChoice);
-    } else {
-        nbgl_useCaseReview(
-            op,
-            &pairsList,
-            get_tx_icon(),
-            REVIEW("transaction"),
-            NULL,
-            tmpContent.txContent.dataPresent ? BLIND_SIGN("transaction") : SIGN("transaction"),
-            reviewChoice);
     }
-}
-
-void ux_approve_tx(bool fromPlugin) {
-    memset(&tx_approval_context, 0, sizeof(tx_approval_context));
-
-    tx_approval_context.fromPlugin = fromPlugin;
-    tx_approval_context.displayNetwork = false;
-
-    uint64_t chain_id = get_tx_chain_id();
-    if (chainConfig->chainId == ETHEREUM_MAINNET_CHAINID && chain_id != chainConfig->chainId) {
-        tx_approval_context.displayNetwork = true;
-    }
-
-    reviewCommon();
 }

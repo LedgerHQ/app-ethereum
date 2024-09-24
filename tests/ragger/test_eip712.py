@@ -131,6 +131,7 @@ def eip712_new_common(firmware: Firmware,
     global autonext_idx
     global unfiltered_flow
     global skip_flow
+    global snapshots_dirname
 
     autonext_idx = 0
     assert InputData.process_data(app_client,
@@ -169,6 +170,7 @@ def eip712_new_common(firmware: Firmware,
     # reset values
     unfiltered_flow = False
     skip_flow = False
+    snapshots_dirname = None
 
     return ResponseParser.signature(app_client.response().data)
 

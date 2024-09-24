@@ -11,7 +11,7 @@ import web3
 
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
-from ragger.navigator import Navigator, NavInsID
+from ragger.navigator import Navigator, NavInsID, NavIns
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 from ragger.error import ExceptionRAPDU
 
@@ -26,7 +26,8 @@ BIP32_PATH = "m/44'/60'/0'/0/0"
 autonext_idx: int
 snapshots_dirname: Optional[str] = None
 WALLET_ADDR: Optional[bytes] = None
-unfiltered_flow: bool
+unfiltered_flow: bool = False
+skip_flow: bool = False
 
 
 def eip712_json_path() -> str:
@@ -92,7 +93,19 @@ def autonext(firmware: Firmware, navigator: Navigator, default_screenshot_path: 
         if autonext_idx == 0 and unfiltered_flow:
             moves = [NavInsID.USE_CASE_CHOICE_REJECT]
         else:
-            moves = [NavInsID.SWIPE_CENTER_TO_LEFT]
+            if autonext_idx == 2 and skip_flow:
+                InputData.disable_autonext()  # so the timer stops firing
+                if firmware == Firmware.STAX:
+                    skip_btn_pos = (355, 44)
+                else:  # FLEX
+                    skip_btn_pos = (420, 49)
+                moves = [
+                    # Ragger does not handle the skip button
+                    NavIns(NavInsID.TOUCH, skip_btn_pos),
+                    NavInsID.USE_CASE_CHOICE_CONFIRM,
+                ]
+            else:
+                moves = [NavInsID.SWIPE_CENTER_TO_LEFT]
     if snapshots_dirname is not None:
         navigator.navigate_and_compare(default_screenshot_path,
                                        snapshots_dirname,
@@ -104,7 +117,7 @@ def autonext(firmware: Firmware, navigator: Navigator, default_screenshot_path: 
         navigator.navigate(moves,
                            screen_change_before_first_instruction=False,
                            screen_change_after_last_instruction=False)
-    autonext_idx += 1
+    autonext_idx += len(moves)
 
 
 def eip712_new_common(firmware: Firmware,
@@ -117,6 +130,8 @@ def eip712_new_common(firmware: Firmware,
                       golden_run: bool):
     global autonext_idx
     global unfiltered_flow
+    global skip_flow
+    global snapshots_dirname
 
     autonext_idx = 0
     assert InputData.process_data(app_client,
@@ -124,7 +139,6 @@ def eip712_new_common(firmware: Firmware,
                                   filters,
                                   partial(autonext, firmware, navigator, default_screenshot_path),
                                   golden_run)
-    unfiltered_flow = False  # reset value
     with app_client.eip712_sign_new(BIP32_PATH):
         moves = []
         if firmware.is_nano:
@@ -133,11 +147,12 @@ def eip712_new_common(firmware: Firmware,
                 moves += [NavInsID.RIGHT_CLICK] * 2
             moves += [NavInsID.BOTH_CLICK]
         else:
-            # this move is necessary most of the times, but can't be 100% sure with the fields grouping
-            moves += [NavInsID.SWIPE_CENTER_TO_LEFT]
-            # need to skip the message hash
-            if not verbose and filters is None:
+            if not skip_flow:
+                # this move is necessary most of the times, but can't be 100% sure with the fields grouping
                 moves += [NavInsID.SWIPE_CENTER_TO_LEFT]
+                # need to skip the message hash
+                if not verbose and filters is None:
+                    moves += [NavInsID.SWIPE_CENTER_TO_LEFT]
             moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
         if snapshots_dirname is not None:
             # Could break (time-out) if given a JSON that requires less moves
@@ -152,6 +167,11 @@ def eip712_new_common(firmware: Firmware,
                 navigator.navigate([move],
                                    screen_change_before_first_instruction=False,
                                    screen_change_after_last_instruction=False)
+    # reset values
+    unfiltered_flow = False
+    skip_flow = False
+    snapshots_dirname = None
+
     return ResponseParser.signature(app_client.response().data)
 
 
@@ -784,3 +804,35 @@ def test_eip712_bs_not_activated_error(firmware: Firmware,
                           False)
     InputData.disable_autonext()  # so the timer stops firing
     assert e.value.status == StatusWord.INVALID_DATA
+
+
+def test_eip712_skip(firmware: Firmware,
+                     backend: BackendInterface,
+                     navigator: Navigator,
+                     default_screenshot_path: Path,
+                     test_name: str,
+                     golden_run: bool):
+    global unfiltered_flow
+    global skip_flow
+
+    app_client = EthAppClient(backend)
+    if firmware.is_nano:
+        pytest.skip("Not supported on Nano devices")
+
+    unfiltered_flow = True
+    skip_flow = True
+    settings_toggle(firmware, navigator, [SettingID.BLIND_SIGNING])
+    with open(input_files()[0], encoding="utf-8") as file:
+        data = json.load(file)
+    vrs = eip712_new_common(firmware,
+                            navigator,
+                            default_screenshot_path,
+                            app_client,
+                            data,
+                            None,
+                            False,
+                            golden_run)
+
+    # verify signature
+    addr = recover_message(data, vrs)
+    assert addr == get_wallet_addr(app_client)

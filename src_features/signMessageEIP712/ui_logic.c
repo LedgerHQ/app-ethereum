@@ -82,7 +82,11 @@ static bool ui_712_field_shown(void) {
     bool ret = false;
 
     if (ui_ctx->filtering_mode == EIP712_FILTERING_BASIC) {
+#ifdef SCREEN_SIZE_WALLET
+        if (true) {
+#else
         if (N_storage.verbose_eip712 || (path_get_root_type() == ROOT_DOMAIN)) {
+#endif
             ret = true;
         }
     } else {  // EIP712_FILTERING_FULL
@@ -153,6 +157,8 @@ void ui_712_set_value(const char *str, size_t length) {
 
 /**
  * Redraw the dynamic UI step that shows EIP712 information
+ *
+ * @return whether it was successful or not
  */
 bool ui_712_redraw_generic_step(void) {
     if (!ui_ctx->shown) {  // Initialize if it is not already
@@ -207,21 +213,22 @@ e_eip712_nfs ui_712_next_field(void) {
  * Used to notify of a new struct to review
  *
  * @param[in] struct_ptr pointer to the structure to be shown
+ * @return whether it was successful or not
  */
-void ui_712_review_struct(const void *struct_ptr) {
+bool ui_712_review_struct(const void *struct_ptr) {
     const char *struct_name;
     uint8_t struct_name_length;
     const char *title = "Review struct";
 
     if (ui_ctx == NULL) {
-        return;
+        return false;
     }
 
     ui_712_set_title(title, strlen(title));
     if ((struct_name = get_struct_name(struct_ptr, &struct_name_length)) != NULL) {
         ui_712_set_value(struct_name, struct_name_length);
     }
-    ui_712_redraw_generic_step();
+    return ui_712_redraw_generic_step();
 }
 
 /**
@@ -680,7 +687,11 @@ void ui_712_end_sign(void) {
         return;
     }
 
+#ifdef SCREEN_SIZE_WALLET
+    if (true) {
+#else
     if (N_storage.verbose_eip712 || (ui_ctx->filtering_mode == EIP712_FILTERING_FULL)) {
+#endif
         ui_ctx->end_reached = true;
         ui_712_switch_to_sign();
     }
@@ -812,7 +823,11 @@ void ui_712_field_flags_reset(void) {
  * Makes it so the user will have to go through a "Review struct" screen
  */
 void ui_712_queue_struct_to_review(void) {
+#ifdef SCREEN_SIZE_WALLET
+    if (true) {
+#else
     if (N_storage.verbose_eip712) {
+#endif
         ui_ctx->structs_to_review += 1;
     }
 }

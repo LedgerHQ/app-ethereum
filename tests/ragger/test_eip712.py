@@ -26,7 +26,7 @@ BIP32_PATH = "m/44'/60'/0'/0/0"
 autonext_idx: int
 snapshots_dirname: Optional[str] = None
 WALLET_ADDR: Optional[bytes] = None
-unfiltered_flow: bool
+unfiltered_flow: bool = False
 
 
 def eip712_json_path() -> str:

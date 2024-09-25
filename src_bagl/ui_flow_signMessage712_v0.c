@@ -3,6 +3,7 @@
 #include "common_712.h"
 #include "uint_common.h"
 #include "common_ui.h"
+#include "ui_flow.h"  // ux_warning_blind_signing_warn_step
 
 void prepare_domain_hash_v0() {
     array_bytes_string(strings.tmp.tmp,
@@ -59,8 +60,8 @@ UX_STEP_CB(
     _approve_cb(),
     {
       &C_icon_validate_14,
-      "Sign",
-      "message",
+      "Accept risk",
+      "and sign",
     });
 UX_STEP_CB(
     ux_sign_712_v0_flow_5_step,
@@ -74,6 +75,7 @@ UX_STEP_CB(
 // clang-format on
 
 UX_FLOW(ux_sign_712_v0_flow,
+        &ux_warning_blind_signing_warn_step,
         &ux_sign_712_v0_flow_1_step,
         &ux_sign_712_v0_flow_2_step,
         &ux_sign_712_v0_flow_3_step,

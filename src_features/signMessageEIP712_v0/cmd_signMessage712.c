@@ -15,6 +15,10 @@ uint16_t handleSignEIP712Message_v0(uint8_t p1,
         reset_app_context();
     }
 
+    if (!N_storage.dataAllowed) {
+        ui_error_blind_signing();
+        return APDU_RESPONSE_INVALID_DATA;
+    }
     workBuffer = parseBip32(workBuffer, &dataLength, &tmpCtx.messageSigningContext.bip32);
     if ((workBuffer == NULL) || (dataLength < (KECCAK256_HASH_BYTESIZE * 2))) {
         return APDU_RESPONSE_INVALID_DATA;

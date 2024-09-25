@@ -32,11 +32,12 @@ void ui_sign_712_v0(void) {
     pairs_list.pairs = pairs;
     pairs_list.nbMaxLinesForValue = 0;
 
-    nbgl_useCaseReview(TYPE_MESSAGE,
-                       &pairs_list,
-                       &C_Review_64px,
-                       TEXT_REVIEW_EIP712,
-                       NULL,
-                       TEXT_SIGN_EIP712,
-                       ui_typed_message_review_choice);
+    nbgl_useCaseReviewBlindSigning(TYPE_TRANSACTION,
+                                   &pairs_list,
+                                   &C_Review_64px,
+                                   TEXT_REVIEW_EIP712,
+                                   NULL,
+                                   TEXT_BLIND_SIGN_EIP712,
+                                   NULL,
+                                   ui_typed_message_review_choice);
 }

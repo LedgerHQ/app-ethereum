@@ -31,6 +31,8 @@
 #define P2_CHAINCODE                        0x01
 #define P1_FIRST                            0x00
 #define P1_MORE                             0x80
+#define P1_FIRST_CHUNK                      0x01
+#define P1_FOLLOWING_CHUNK                  0x00
 #define P2_EIP712_LEGACY_IMPLEM             0x00
 #define P2_EIP712_FULL_IMPLEM               0x01
 

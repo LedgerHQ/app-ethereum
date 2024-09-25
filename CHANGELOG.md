@@ -5,11 +5,57 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.12.0](https://github.com/ledgerhq/app-ethereum/compare/1.11.0...1.11.1) - 2024-??-??
+## [1.12.0](https://github.com/ledgerhq/app-ethereum/compare/1.11.3...1.12.0) - 2024-09-27
 
 ### Added
 
+- Ledger PKI support
 - Added support for swap with calldata (Thorswap / LiFi / ...)
+- (network) PulseChain Testnet
+- The app now provides the derivation path to its plugins
+- Support for Trusted Name V2 payloads
+- EIP-712 filtering on trusted names
+
+### Removed
+
+- (clone) ApothemNetwork
+- (clone) Binance Smart Chain
+- (clone) BTTC
+- (clone) Conflux eSpace
+- (clone) Cube
+- (clone) KardiaChain
+- (clone) Meter
+- (clone) MultiVAC
+- (clone) OKXChain
+- (clone) POA
+- (clone) Polygon
+- (clone) Shyft
+
+### Fixed
+
+- (network) Apothemnetwork ticker
+- Missing error handling on EIP-712, which could lead to a crash of the app
+- EIP-712 filtering on fields within an empty array (requires client support with a new APDU)
+- EIP-712 amount-join filtering with missing token information
+- EIP-712 UI-code overflow on Stax which could lead to a crash of the app
+
+### Changed
+
+- (clone) Astar Polkadot EVM, removed Ethereum derivation path
+- (clone) EnergyWebChain, removed Ethereum derivation path
+- (clone) Ethereum Classic, removed Ethereum derivation path
+- (clone) Moonbeam, removed Ethereum derivation path
+- (clone) Moonriver, removed Ethereum derivation path
+- (clone) Oasys, removed Ethereum derivation path
+- (clone) Shiden EVM, removed Ethereum derivation path
+- (clone) Songbird, removed Ethereum derivation path
+- (clone) TecraCoin, removed Ethereum derivation path
+- (clone) TecraTestnet, removed Ethereum derivation path
+- (clone) Volta, removed Ethereum derivation path
+- (clone) XDC Network, removed Ethereum derivation path
+- Now the app sends back its response immediately instead of after the Transaction/Message signed/rejected screen on Stax & Flex
+- Added blind-signing friction to EIP-712 v0 & unfiltered flows
+- EIP-712 unfiltered flow now defaults to raw/verbose mode on Stax & Flex, but adds a skip button
 
 ## [1.11.3](https://github.com/ledgerhq/app-ethereum/compare/1.11.2...1.11.3) - 2024-09-04
 

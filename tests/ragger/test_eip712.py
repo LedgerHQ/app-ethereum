@@ -12,7 +12,6 @@ import web3
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator, NavInsID, NavIns
-from ragger.navigator.navigation_scenario import NavigateWithScenario
 from ragger.error import ExceptionRAPDU
 
 import client.response_parser as ResponseParser
@@ -68,14 +67,27 @@ def get_wallet_addr(client: EthAppClient) -> bytes:
     return WALLET_ADDR
 
 
-def test_eip712_legacy(backend: BackendInterface, scenario_navigator: NavigateWithScenario):
+def test_eip712_v0(firmware: Firmware, backend: BackendInterface, navigator: Navigator):
     app_client = EthAppClient(backend)
 
+    settings_toggle(firmware, navigator, [SettingID.BLIND_SIGNING])
     with open(input_files()[0], encoding="utf-8") as file:
         data = json.load(file)
     smsg = encode_typed_data(full_message=data)
     with app_client.eip712_sign_legacy(BIP32_PATH, smsg.header, smsg.body):
-        scenario_navigator.review_approve(custom_screen_text="Sign", do_comparison=False)
+        moves = []
+        if firmware.is_nano:
+            moves += [NavInsID.RIGHT_CLICK] * 2
+            if firmware == Firmware.NANOS:
+                moves += [NavInsID.RIGHT_CLICK] * 8
+            else:
+                moves += [NavInsID.RIGHT_CLICK] * 4
+            moves += [NavInsID.BOTH_CLICK]
+        else:
+            moves += [NavInsID.USE_CASE_CHOICE_REJECT]
+            moves += [NavInsID.SWIPE_CENTER_TO_LEFT] * 2
+            moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
+        navigator.navigate(moves)
 
     vrs = ResponseParser.signature(app_client.response().data)
     recovered_addr = recover_message(data, vrs)

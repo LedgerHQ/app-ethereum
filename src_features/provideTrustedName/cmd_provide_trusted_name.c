@@ -156,7 +156,7 @@ bool has_trusted_name(uint8_t types_count,
             }
             if (ret) break;
         }
-        memset(&g_trusted_name_info, 0, sizeof(g_trusted_name_info));
+        explicit_bzero(&g_trusted_name_info, sizeof(g_trusted_name_info));
     }
     return ret;
 }

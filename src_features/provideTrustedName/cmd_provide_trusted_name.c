@@ -156,7 +156,7 @@ bool has_trusted_name(uint8_t types_count,
             }
             if (ret) break;
         }
-        memset(&g_trusted_name_info, 0, sizeof(g_trusted_name_info));
+        explicit_bzero(&g_trusted_name_info, sizeof(g_trusted_name_info));
     }
     return ret;
 }
@@ -809,7 +809,8 @@ static bool parse_tlv(const s_tlv_payload *payload,
                 break;
 
             case TLV_VALUE:
-                if (offset >= payload->size) {
+                if ((offset + data.length) > payload->size) {
+                    PRINTF("Error: value would go beyond the TLV payload!\n");
                     return false;
                 }
                 data.value = &payload->buf[offset];
@@ -832,6 +833,10 @@ static bool parse_tlv(const s_tlv_payload *payload,
             default:
                 return false;
         }
+    }
+    if (step != TLV_TAG) {
+        PRINTF("Error: unexpected data at the end of the TLV payload!\n");
+        return false;
     }
     return verify_struct(trusted_name_info);
 }

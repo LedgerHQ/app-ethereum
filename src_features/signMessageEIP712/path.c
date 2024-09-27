@@ -708,7 +708,6 @@ bool path_exists_in_backup(const char *path, size_t length) {
     size_t offset = 0;
     size_t i;
     const void *field_ptr;
-    s_path tmp_path;
     const char *typename;
     uint8_t typename_len;
     const void *struct_ptr;
@@ -716,8 +715,7 @@ bool path_exists_in_backup(const char *path, size_t length) {
     const char *key;
     uint8_t key_len;
 
-    memcpy(&tmp_path, path_backup, sizeof(tmp_path));
-    field_ptr = get_nth_field_from(&tmp_path, NULL, tmp_path.depth_count);
+    field_ptr = get_nth_field_from(path_backup, NULL, path_backup->depth_count);
     while (offset < length) {
         if (((offset + 1) > length) || (memcmp(path + offset, ".", 1) != 0)) {
             return false;
@@ -753,35 +751,6 @@ bool path_exists_in_backup(const char *path, size_t length) {
         }
     }
     return true;
-}
-
-/**
- * Generate a unique checksum out of the current path
- *
- * Goes over the fields of the \ref path_struct with a few exceptions : we skip the root_type since
- * we already go over root_struct, and in array_depths we only go over path_index since it would
- * otherwise generate a different CRC for different fields which are targeted by the same filtering
- * path.
- *
- * @return CRC-32 checksum
- */
-uint32_t get_path_crc(void) {
-    uint32_t value = 0;
-
-    value = cx_crc32_update(value, &path_struct->root_struct, sizeof(path_struct->root_struct));
-    value = cx_crc32_update(value, &path_struct->depth_count, sizeof(path_struct->depth_count));
-    value = cx_crc32_update(value,
-                            path_struct->depths,
-                            sizeof(path_struct->depths[0]) * path_struct->depth_count);
-    value = cx_crc32_update(value,
-                            &path_struct->array_depth_count,
-                            sizeof(path_struct->array_depth_count));
-    for (int i = 0; i < path_struct->array_depth_count; ++i) {
-        value = cx_crc32_update(value,
-                                &path_struct->array_depths[i].path_index,
-                                sizeof(path_struct->array_depths[i].path_index));
-    }
-    return value;
 }
 
 /**

@@ -708,7 +708,6 @@ bool path_exists_in_backup(const char *path, size_t length) {
     size_t offset = 0;
     size_t i;
     const void *field_ptr;
-    s_path tmp_path;
     const char *typename;
     uint8_t typename_len;
     const void *struct_ptr;
@@ -716,8 +715,7 @@ bool path_exists_in_backup(const char *path, size_t length) {
     const char *key;
     uint8_t key_len;
 
-    memcpy(&tmp_path, path_backup, sizeof(tmp_path));
-    field_ptr = get_nth_field_from(&tmp_path, NULL, tmp_path.depth_count);
+    field_ptr = get_nth_field_from(path_backup, NULL, path_backup->depth_count);
     while (offset < length) {
         if (((offset + 1) > length) || (memcmp(path + offset, ".", 1) != 0)) {
             return false;

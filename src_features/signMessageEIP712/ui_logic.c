@@ -882,11 +882,10 @@ bool ui_712_show_raw_key(const void *field_ptr) {
 /**
  * Push a new filter path
  *
+ * @param[in] path_crc CRC of the filter path
  * @return if the path was pushed or not (in case it was already present)
  */
-bool ui_712_push_new_filter_path(void) {
-    uint32_t path_crc = get_path_crc();
-
+bool ui_712_push_new_filter_path(uint32_t path_crc) {
     // check if already present
     for (int i = 0; i < ui_ctx->filters_received; ++i) {
         if (ui_ctx->filters_crc[i] == path_crc) {

@@ -27,12 +27,13 @@
 #define TOKEN_IDX_ADDR_IN_DOMAIN 0xff
 
 /**
- * Reconstruct the field path and hash it
+ * Reconstruct the field path and hash it for the signature and the CRC
  *
  * @param[in] hash_ctx the hashing context
  * @param[in] discarded if the filter targets a field that does not exist (within an empty array)
+ * @param[out] path_crc pointer to the CRC of the filter path
  */
-static void hash_filtering_path(cx_hash_t *hash_ctx, bool discarded) {
+static void hash_filtering_path(cx_hash_t *hash_ctx, bool discarded, uint32_t *path_crc) {
     const void *field_ptr;
     const char *key;
     uint8_t key_len;
@@ -40,15 +41,18 @@ static void hash_filtering_path(cx_hash_t *hash_ctx, bool discarded) {
     if (discarded) {
         key = ui_712_get_discarded_path(&key_len);
         hash_nbytes((uint8_t *) key, key_len, hash_ctx);
+        *path_crc = cx_crc32_update(*path_crc, key, key_len);
     } else {
         for (uint8_t i = 0; i < path_get_depth_count(); ++i) {
             if (i > 0) {
                 hash_byte('.', hash_ctx);
+                *path_crc = cx_crc32_update(*path_crc, ".", 1);
             }
             if ((field_ptr = path_get_nth_field(i + 1)) != NULL) {
                 if ((key = get_struct_field_keyname(field_ptr, &key_len)) != NULL) {
                     // field name
                     hash_nbytes((uint8_t *) key, key_len, hash_ctx);
+                    *path_crc = cx_crc32_update(*path_crc, key, key_len);
 
                     // array levels
                     if (struct_field_is_array(field_ptr)) {
@@ -57,6 +61,7 @@ static void hash_filtering_path(cx_hash_t *hash_ctx, bool discarded) {
                         get_struct_field_array_lvls_array(field_ptr, &lvl_count);
                         for (int j = 0; j < lvl_count; ++j) {
                             hash_nbytes((uint8_t *) ".[]", 3, hash_ctx);
+                            *path_crc = cx_crc32_update(*path_crc, ".[]", 3);
                         }
                     }
                 }
@@ -328,9 +333,13 @@ bool filtering_discarded_path(const uint8_t *payload, uint8_t length) {
  * @param[in] payload the payload to parse
  * @param[in] length the payload length
  * @param[in] discarded if the filter targets a field that is does not exist (within an empty array)
+ * @param[out] path_crc pointer to the CRC of the filter path
  * @return whether it was successful or not
  */
-bool filtering_trusted_name(const uint8_t *payload, uint8_t length, bool discarded) {
+bool filtering_trusted_name(const uint8_t *payload,
+                            uint8_t length,
+                            bool discarded,
+                            uint32_t *path_crc) {
     uint8_t name_len;
     const char *name;
     uint8_t types_count;
@@ -413,7 +422,7 @@ bool filtering_trusted_name(const uint8_t *payload, uint8_t length, bool discard
     if (!sig_verif_start(&hash_ctx, FILT_MAGIC_TRUSTED_NAME)) {
         return false;
     }
-    hash_filtering_path((cx_hash_t *) &hash_ctx, discarded);
+    hash_filtering_path((cx_hash_t *) &hash_ctx, discarded, path_crc);
     hash_nbytes((uint8_t *) name, sizeof(char) * name_len, (cx_hash_t *) &hash_ctx);
     hash_nbytes(types, types_count, (cx_hash_t *) &hash_ctx);
     hash_nbytes(sources, sources_count, (cx_hash_t *) &hash_ctx);
@@ -440,9 +449,13 @@ bool filtering_trusted_name(const uint8_t *payload, uint8_t length, bool discard
  * @param[in] payload the payload to parse
  * @param[in] length the payload length
  * @param[in] discarded if the filter targets a field that is does not exist (within an empty array)
+ * @param[out] path_crc pointer to the CRC of the filter path
  * @return whether it was successful or not
  */
-bool filtering_date_time(const uint8_t *payload, uint8_t length, bool discarded) {
+bool filtering_date_time(const uint8_t *payload,
+                         uint8_t length,
+                         bool discarded,
+                         uint32_t *path_crc) {
     uint8_t name_len;
     const char *name;
     uint8_t sig_len;
@@ -478,7 +491,7 @@ bool filtering_date_time(const uint8_t *payload, uint8_t length, bool discarded)
     if (!sig_verif_start(&hash_ctx, FILT_MAGIC_DATETIME)) {
         return false;
     }
-    hash_filtering_path((cx_hash_t *) &hash_ctx, discarded);
+    hash_filtering_path((cx_hash_t *) &hash_ctx, discarded, path_crc);
     hash_nbytes((uint8_t *) name, sizeof(char) * name_len, (cx_hash_t *) &hash_ctx);
     if (!sig_verif_end(&hash_ctx, sig, sig_len)) {
         return false;
@@ -501,9 +514,13 @@ bool filtering_date_time(const uint8_t *payload, uint8_t length, bool discarded)
  * @param[in] payload the payload to parse
  * @param[in] length the payload length
  * @param[in] discarded if the filter targets a field that is does not exist (within an empty array)
+ * @param[out] path_crc pointer to the CRC of the filter path
  * @return whether it was successful or not
  */
-bool filtering_amount_join_token(const uint8_t *payload, uint8_t length, bool discarded) {
+bool filtering_amount_join_token(const uint8_t *payload,
+                                 uint8_t length,
+                                 bool discarded,
+                                 uint32_t *path_crc) {
     uint8_t token_idx;
     uint8_t sig_len;
     const uint8_t *sig;
@@ -533,7 +550,7 @@ bool filtering_amount_join_token(const uint8_t *payload, uint8_t length, bool di
     if (!sig_verif_start(&hash_ctx, FILT_MAGIC_AMOUNT_JOIN_TOKEN)) {
         return false;
     }
-    hash_filtering_path((cx_hash_t *) &hash_ctx, discarded);
+    hash_filtering_path((cx_hash_t *) &hash_ctx, discarded, path_crc);
     hash_byte(token_idx, (cx_hash_t *) &hash_ctx);
     if (!sig_verif_end(&hash_ctx, sig, sig_len)) {
         return false;
@@ -554,9 +571,13 @@ bool filtering_amount_join_token(const uint8_t *payload, uint8_t length, bool di
  * @param[in] payload the payload to parse
  * @param[in] length the payload length
  * @param[in] discarded if the filter targets a field that is does not exist (within an empty array)
+ * @param[out] path_crc pointer to the CRC of the filter path
  * @return whether it was successful or not
  */
-bool filtering_amount_join_value(const uint8_t *payload, uint8_t length, bool discarded) {
+bool filtering_amount_join_value(const uint8_t *payload,
+                                 uint8_t length,
+                                 bool discarded,
+                                 uint32_t *path_crc) {
     uint8_t name_len;
     const char *name;
     uint8_t token_idx;
@@ -600,7 +621,7 @@ bool filtering_amount_join_value(const uint8_t *payload, uint8_t length, bool di
     if (!sig_verif_start(&hash_ctx, FILT_MAGIC_AMOUNT_JOIN_VALUE)) {
         return false;
     }
-    hash_filtering_path((cx_hash_t *) &hash_ctx, discarded);
+    hash_filtering_path((cx_hash_t *) &hash_ctx, discarded, path_crc);
     hash_nbytes((uint8_t *) name, sizeof(char) * name_len, (cx_hash_t *) &hash_ctx);
     hash_byte(token_idx, (cx_hash_t *) &hash_ctx);
     if (!sig_verif_end(&hash_ctx, sig, sig_len)) {
@@ -635,9 +656,13 @@ bool filtering_amount_join_value(const uint8_t *payload, uint8_t length, bool di
  * @param[in] payload the payload to parse
  * @param[in] length the payload length
  * @param[in] discarded if the filter targets a field that is does not exist (within an empty array)
+ * @param[out] path_crc pointer to the CRC of the filter path
  * @return whether it was successful or not
  */
-bool filtering_raw_field(const uint8_t *payload, uint8_t length, bool discarded) {
+bool filtering_raw_field(const uint8_t *payload,
+                         uint8_t length,
+                         bool discarded,
+                         uint32_t *path_crc) {
     uint8_t name_len;
     const char *name;
     uint8_t sig_len;
@@ -673,7 +698,7 @@ bool filtering_raw_field(const uint8_t *payload, uint8_t length, bool discarded)
     if (!sig_verif_start(&hash_ctx, FILT_MAGIC_RAW_FIELD)) {
         return false;
     }
-    hash_filtering_path((cx_hash_t *) &hash_ctx, discarded);
+    hash_filtering_path((cx_hash_t *) &hash_ctx, discarded, path_crc);
     hash_nbytes((uint8_t *) name, sizeof(char) * name_len, (cx_hash_t *) &hash_ctx);
     if (!sig_verif_end(&hash_ctx, sig, sig_len)) {
         return false;

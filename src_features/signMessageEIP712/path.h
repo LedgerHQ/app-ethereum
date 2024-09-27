@@ -40,7 +40,6 @@ bool path_exists_in_backup(const char *path, size_t length);
 const void *path_get_nth_field_to_last(uint8_t n);
 uint8_t path_get_depth_count(void);
 uint8_t path_backup_get_depth_count(void);
-uint32_t get_path_crc(void);
 
 #endif  // HAVE_EIP712_FULL_SUPPORT
 

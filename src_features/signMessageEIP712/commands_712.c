@@ -184,6 +184,7 @@ uint16_t handle_eip712_filtering(uint8_t p1,
                                  uint32_t *flags) {
     bool ret = true;
     bool reply_apdu = true;
+    uint32_t path_crc = 0;
 
     if (eip712_context == NULL) {
         apdu_reply(false);
@@ -211,20 +212,20 @@ uint16_t handle_eip712_filtering(uint8_t p1,
             break;
 #ifdef HAVE_TRUSTED_NAME
         case P2_FILT_CONTRACT_NAME:
-            ret = filtering_trusted_name(cdata, length, p1 == 1);
+            ret = filtering_trusted_name(cdata, length, p1 == 1, &path_crc);
             break;
 #endif
         case P2_FILT_DATE_TIME:
-            ret = filtering_date_time(cdata, length, p1 == 1);
+            ret = filtering_date_time(cdata, length, p1 == 1, &path_crc);
             break;
         case P2_FILT_AMOUNT_JOIN_TOKEN:
-            ret = filtering_amount_join_token(cdata, length, p1 == 1);
+            ret = filtering_amount_join_token(cdata, length, p1 == 1, &path_crc);
             break;
         case P2_FILT_AMOUNT_JOIN_VALUE:
-            ret = filtering_amount_join_value(cdata, length, p1 == 1);
+            ret = filtering_amount_join_value(cdata, length, p1 == 1, &path_crc);
             break;
         case P2_FILT_RAW_FIELD:
-            ret = filtering_raw_field(cdata, length, p1 == 1);
+            ret = filtering_raw_field(cdata, length, p1 == 1, &path_crc);
             break;
         default:
             PRINTF("Unknown P2 0x%x\n", p2);
@@ -232,7 +233,7 @@ uint16_t handle_eip712_filtering(uint8_t p1,
             ret = false;
     }
     if ((p2 > P2_FILT_MESSAGE_INFO) && ret) {
-        if (ui_712_push_new_filter_path()) {
+        if (ui_712_push_new_filter_path(path_crc)) {
             if (!ui_712_filters_counter_incr()) {
                 ret = false;
                 apdu_response_code = APDU_RESPONSE_INVALID_DATA;

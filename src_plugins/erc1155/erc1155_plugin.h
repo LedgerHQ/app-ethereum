@@ -8,6 +8,7 @@
 #include "ethUstream.h"
 #include "uint256.h"
 #include "asset_info.h"
+#include "eth_plugin_interface.h"
 
 // Internal plugin for EIP 1155: https://eips.ethereum.org/EIPS/eip-1155
 
@@ -48,8 +49,8 @@ typedef struct erc1155_context_t {
     uint8_t selectorIndex;
 } erc1155_context_t;
 
-void handle_provide_parameter_1155(void *parameters);
-void handle_query_contract_ui_1155(void *parameters);
+void handle_provide_parameter_1155(ethPluginProvideParameter_t *parameters);
+void handle_query_contract_ui_1155(ethQueryContractUI_t *parameters);
 
 #endif  // HAVE_NFT_SUPPORT
 

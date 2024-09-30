@@ -16,6 +16,7 @@
  ********************************************************************************/
 
 #pragma once
+#include <stdint.h>
 
 static const uint8_t LEDGER_SIGNATURE_PUBLIC_KEY[] = {
 #if defined(HAVE_CAL_TEST_KEY)
@@ -63,8 +64,9 @@ static const uint8_t LEDGER_NFT_METADATA_PUBLIC_KEY[] = {
 #endif
 };
 
-static const uint8_t DOMAIN_NAME_PUB_KEY[] = {
-#ifdef HAVE_DOMAIN_NAME_TEST_KEY
+#ifdef HAVE_TRUSTED_NAME
+static const uint8_t TRUSTED_NAME_PUB_KEY[] = {
+#ifdef HAVE_TRUSTED_NAME_TEST_KEY
     0x04, 0xb9, 0x1f, 0xbe, 0xc1, 0x73, 0xe3, 0xba, 0x4a, 0x71, 0x4e, 0x01, 0x4e, 0xbc,
     0x82, 0x7b, 0x6f, 0x89, 0x9a, 0x9f, 0xa7, 0xf4, 0xac, 0x76, 0x9c, 0xde, 0x28, 0x43,
     0x17, 0xa0, 0x0f, 0x4f, 0x65, 0x0f, 0x09, 0xf0, 0x9a, 0xa4, 0xff, 0x5a, 0x31, 0x76,
@@ -78,6 +80,7 @@ static const uint8_t DOMAIN_NAME_PUB_KEY[] = {
     0xae, 0xf5, 0xaf, 0xcf, 0x90, 0xe8, 0x40, 0x88, 0x71
 #endif
 };
+#endif  // HAVE_TRUSTED_NAME
 
 // Only used for signing NFT plugins (ERC721 and ERC1155)
 static const uint8_t LEDGER_NFT_SELECTOR_PUBLIC_KEY[] = {
@@ -101,3 +104,14 @@ static const uint8_t LEDGER_NFT_SELECTOR_PUBLIC_KEY[] = {
     0x92, 0xc7, 0xc6, 0x48, 0x0d, 0x39, 0xce, 0xbb, 0xa3
 #endif
 };
+
+extern int check_signature_with_pubkey(const char *tag,
+                                       uint8_t *buffer,
+                                       const uint8_t bufLen,
+                                       const uint8_t *PubKey,
+                                       const uint8_t keyLen,
+#ifdef HAVE_LEDGER_PKI
+                                       const uint8_t keyUsageExp,
+#endif
+                                       uint8_t *signature,
+                                       const uint8_t sigLen);

@@ -1,4 +1,4 @@
-#ifdef HAVE_DOMAIN_NAME
+#ifdef HAVE_TRUSTED_NAME
 
 #ifndef CHALLENGE_H_
 #define CHALLENGE_H_
@@ -7,8 +7,8 @@
 
 void roll_challenge(void);
 uint32_t get_challenge(void);
-void handle_get_challenge(void);
+uint16_t handle_get_challenge(unsigned int *tx);
 
 #endif  // CHALLENGE_H_
 
-#endif  // HAVE_DOMAIN_NAME
+#endif  // HAVE_TRUSTED_NAME

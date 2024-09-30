@@ -27,7 +27,9 @@
 #define P2_IMPL_ARRAY             0x0F
 #define P2_IMPL_FIELD             P2_DEF_FIELD
 #define P2_FILT_ACTIVATE          0x00
+#define P2_FILT_DISCARDED_PATH    0x01
 #define P2_FILT_MESSAGE_INFO      0x0F
+#define P2_FILT_CONTRACT_NAME     0xFB
 #define P2_FILT_DATE_TIME         0xFC
 #define P2_FILT_AMOUNT_JOIN_TOKEN 0xFD
 #define P2_FILT_AMOUNT_JOIN_VALUE 0xFE
@@ -41,130 +43,157 @@
  *
  * @param[in] success whether the command was successful
  */
-void handle_eip712_return_code(bool success) {
+static void apdu_reply(bool success) {
+    bool home = true;
+
     if (success) {
         apdu_response_code = APDU_RESPONSE_OK;
-    } else if (apdu_response_code == APDU_RESPONSE_OK) {  // somehow not set
-        apdu_response_code = APDU_RESPONSE_ERROR_NO_INFO;
-    }
-
-    G_io_apdu_buffer[0] = (apdu_response_code >> 8) & 0xff;
-    G_io_apdu_buffer[1] = apdu_response_code & 0xff;
-
-    // Send back the response, do not restart the event loop
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
-
-    if (!success) {
+    } else {
+        if (apdu_response_code == APDU_RESPONSE_OK) {  // somehow not set
+            apdu_response_code = APDU_RESPONSE_ERROR_NO_INFO;
+        }
+        if (eip712_context != NULL) {
+            home = eip712_context->go_home_on_failure;
+        }
         eip712_context_deinit();
-        ui_idle();
+        if (home) ui_idle();
     }
+}
+
+/**
+ * Send the response to the previous APDU command
+ *
+ * In case of an error it uses the global variable to retrieve the error code and resets
+ * the app context
+ *
+ * @param[in] success whether the command was successful
+ */
+void handle_eip712_return_code(bool success) {
+    apdu_reply(success);
+
+    io_seproxyhal_send_status(apdu_response_code, 0, false, false);
 }
 
 /**
  * Process the EIP712 struct definition command
  *
- * @param[in] apdu_buf the APDU payload
+ * @param[in] p2 instruction parameter 2
+ * @param[in] cdata command data
+ * @param[in] length length of the command data
  * @return whether the command was successful or not
  */
-bool handle_eip712_struct_def(const uint8_t *const apdu_buf) {
+uint16_t handle_eip712_struct_def(uint8_t p2, const uint8_t *cdata, uint8_t length) {
     bool ret = true;
 
     if (eip712_context == NULL) {
         ret = eip712_context_init();
     }
-
     if (struct_state == DEFINED) {
         ret = false;
     }
 
     if (ret) {
-        switch (apdu_buf[OFFSET_P2]) {
+        switch (p2) {
             case P2_DEF_NAME:
-                ret = set_struct_name(apdu_buf[OFFSET_LC], &apdu_buf[OFFSET_CDATA]);
+                ret = set_struct_name(length, cdata);
                 break;
             case P2_DEF_FIELD:
-                ret = set_struct_field(apdu_buf[OFFSET_LC], &apdu_buf[OFFSET_CDATA]);
+                ret = set_struct_field(length, cdata);
                 break;
             default:
-                PRINTF("Unknown P2 0x%x for APDU 0x%x\n",
-                       apdu_buf[OFFSET_P2],
-                       apdu_buf[OFFSET_INS]);
+                PRINTF("Unknown P2 0x%x\n", p2);
                 apdu_response_code = APDU_RESPONSE_INVALID_P1_P2;
                 ret = false;
         }
     }
-    handle_eip712_return_code(ret);
-    return ret;
+    apdu_reply(ret);
+    return apdu_response_code;
 }
 
 /**
  * Process the EIP712 struct implementation command
  *
- * @param[in] apdu_buf the APDU payload
+ * @param[in] p1 instruction parameter 1
+ * @param[in] p2 instruction parameter 2
+ * @param[in] cdata command data
+ * @param[in] length length of the command data
  * @return whether the command was successful or not
  */
-bool handle_eip712_struct_impl(const uint8_t *const apdu_buf) {
+uint16_t handle_eip712_struct_impl(uint8_t p1,
+                                   uint8_t p2,
+                                   const uint8_t *cdata,
+                                   uint8_t length,
+                                   uint32_t *flags) {
     bool ret = false;
     bool reply_apdu = true;
 
     if (eip712_context == NULL) {
         apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
     } else {
-        switch (apdu_buf[OFFSET_P2]) {
+        switch (p2) {
             case P2_IMPL_NAME:
                 // set root type
-                ret = path_set_root((char *) &apdu_buf[OFFSET_CDATA], apdu_buf[OFFSET_LC]);
+                ret = path_set_root((char *) cdata, length);
                 if (ret) {
+#ifdef SCREEN_SIZE_WALLET
+                    if (ui_712_get_filtering_mode() == EIP712_FILTERING_BASIC) {
+#else
                     if (N_storage.verbose_eip712) {
-                        ui_712_review_struct(path_get_root());
-                        reply_apdu = false;
+#endif
+                        if ((ret = ui_712_review_struct(path_get_root()))) {
+                            reply_apdu = false;
+                        }
                     }
                     ui_712_field_flags_reset();
                 }
                 break;
             case P2_IMPL_FIELD:
-                if ((ret = field_hash(&apdu_buf[OFFSET_CDATA],
-                                      apdu_buf[OFFSET_LC],
-                                      apdu_buf[OFFSET_P1] != P1_COMPLETE))) {
+                if ((ret = field_hash(cdata, length, p1 != P1_COMPLETE))) {
                     reply_apdu = false;
                 }
                 break;
             case P2_IMPL_ARRAY:
-                ret = path_new_array_depth(&apdu_buf[OFFSET_CDATA], apdu_buf[OFFSET_LC]);
+                ret = path_new_array_depth(cdata, length);
                 break;
             default:
-                PRINTF("Unknown P2 0x%x for APDU 0x%x\n",
-                       apdu_buf[OFFSET_P2],
-                       apdu_buf[OFFSET_INS]);
+                PRINTF("Unknown P2 0x%x\n", p2);
                 apdu_response_code = APDU_RESPONSE_INVALID_P1_P2;
         }
     }
     if (reply_apdu) {
-        handle_eip712_return_code(ret);
+        apdu_reply(ret);
+        return apdu_response_code;
     }
-    return ret;
+    *flags |= IO_ASYNCH_REPLY;
+    return APDU_NO_RESPONSE;
 }
 
 /**
  * Process the EIP712 filtering command
  *
- * @param[in] apdu_buf the APDU payload
+ * @param[in] p1 instruction parameter 1
+ * @param[in] p2 instruction parameter 2
+ * @param[in] cdata command data
+ * @param[in] length length of the command data
  * @return whether the command was successful or not
  */
-bool handle_eip712_filtering(const uint8_t *const apdu_buf) {
+uint16_t handle_eip712_filtering(uint8_t p1,
+                                 uint8_t p2,
+                                 const uint8_t *cdata,
+                                 uint8_t length,
+                                 uint32_t *flags) {
     bool ret = true;
     bool reply_apdu = true;
+    uint32_t path_crc = 0;
 
     if (eip712_context == NULL) {
-        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
-        return false;
+        apdu_reply(false);
+        return APDU_RESPONSE_CONDITION_NOT_SATISFIED;
     }
-    if ((apdu_buf[OFFSET_P2] != P2_FILT_ACTIVATE) &&
-        (ui_712_get_filtering_mode() != EIP712_FILTERING_FULL)) {
-        handle_eip712_return_code(true);
-        return true;
+    if ((p2 != P2_FILT_ACTIVATE) && (ui_712_get_filtering_mode() != EIP712_FILTERING_FULL)) {
+        return APDU_RESPONSE_OK;
     }
-    switch (apdu_buf[OFFSET_P2]) {
+    switch (p2) {
         case P2_FILT_ACTIVATE:
             if (!N_storage.verbose_eip712) {
                 ui_712_set_filtering_mode(EIP712_FILTERING_FULL);
@@ -172,31 +201,39 @@ bool handle_eip712_filtering(const uint8_t *const apdu_buf) {
             }
             forget_known_assets();
             break;
+        case P2_FILT_DISCARDED_PATH:
+            ret = filtering_discarded_path(cdata, length);
+            break;
         case P2_FILT_MESSAGE_INFO:
-            ret = filtering_message_info(&apdu_buf[OFFSET_CDATA], apdu_buf[OFFSET_LC]);
+            ret = filtering_message_info(cdata, length);
             if (ret) {
                 reply_apdu = false;
             }
             break;
+#ifdef HAVE_TRUSTED_NAME
+        case P2_FILT_CONTRACT_NAME:
+            ret = filtering_trusted_name(cdata, length, p1 == 1, &path_crc);
+            break;
+#endif
         case P2_FILT_DATE_TIME:
-            ret = filtering_date_time(&apdu_buf[OFFSET_CDATA], apdu_buf[OFFSET_LC]);
+            ret = filtering_date_time(cdata, length, p1 == 1, &path_crc);
             break;
         case P2_FILT_AMOUNT_JOIN_TOKEN:
-            ret = filtering_amount_join_token(&apdu_buf[OFFSET_CDATA], apdu_buf[OFFSET_LC]);
+            ret = filtering_amount_join_token(cdata, length, p1 == 1, &path_crc);
             break;
         case P2_FILT_AMOUNT_JOIN_VALUE:
-            ret = filtering_amount_join_value(&apdu_buf[OFFSET_CDATA], apdu_buf[OFFSET_LC]);
+            ret = filtering_amount_join_value(cdata, length, p1 == 1, &path_crc);
             break;
         case P2_FILT_RAW_FIELD:
-            ret = filtering_raw_field(&apdu_buf[OFFSET_CDATA], apdu_buf[OFFSET_LC]);
+            ret = filtering_raw_field(cdata, length, p1 == 1, &path_crc);
             break;
         default:
-            PRINTF("Unknown P2 0x%x for APDU 0x%x\n", apdu_buf[OFFSET_P2], apdu_buf[OFFSET_INS]);
+            PRINTF("Unknown P2 0x%x\n", p2);
             apdu_response_code = APDU_RESPONSE_INVALID_P1_P2;
             ret = false;
     }
-    if ((apdu_buf[OFFSET_P2] > P2_FILT_MESSAGE_INFO) && ret) {
-        if (ui_712_push_new_filter_path()) {
+    if ((p2 > P2_FILT_MESSAGE_INFO) && ret) {
+        if (ui_712_push_new_filter_path(path_crc)) {
             if (!ui_712_filters_counter_incr()) {
                 ret = false;
                 apdu_response_code = APDU_RESPONSE_INVALID_DATA;
@@ -204,9 +241,11 @@ bool handle_eip712_filtering(const uint8_t *const apdu_buf) {
         }
     }
     if (reply_apdu) {
-        handle_eip712_return_code(ret);
+        apdu_reply(ret);
+        return apdu_response_code;
     }
-    return ret;
+    *flags |= IO_ASYNCH_REPLY;
+    return APDU_NO_RESPONSE;
 }
 
 /**
@@ -215,9 +254,8 @@ bool handle_eip712_filtering(const uint8_t *const apdu_buf) {
  * @param[in] apdu_buf the APDU payload
  * @return whether the command was successful or not
  */
-bool handle_eip712_sign(const uint8_t *const apdu_buf) {
+uint16_t handle_eip712_sign(const uint8_t *cdata, uint8_t length, uint32_t *flags) {
     bool ret = false;
-    uint8_t length = apdu_buf[OFFSET_LC];
 
     if (eip712_context == NULL) {
         apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
@@ -233,18 +271,24 @@ bool handle_eip712_sign(const uint8_t *const apdu_buf) {
                (ui_712_remaining_filters() != 0)) {
         PRINTF("%d EIP712 filters are missing\n", ui_712_remaining_filters());
         apdu_response_code = APDU_RESPONSE_REF_DATA_NOT_FOUND;
-    } else if (parseBip32(&apdu_buf[OFFSET_CDATA], &length, &tmpCtx.messageSigningContext.bip32) !=
-               NULL) {
+    } else if (parseBip32(cdata, &length, &tmpCtx.messageSigningContext.bip32) == NULL) {
+        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+    } else {
+#ifndef SCREEN_SIZE_WALLET
         if (!N_storage.verbose_eip712 && (ui_712_get_filtering_mode() == EIP712_FILTERING_BASIC)) {
             ui_712_message_hash();
         }
+#endif
         ret = true;
         ui_712_end_sign();
     }
+
     if (!ret) {
-        handle_eip712_return_code(ret);
+        apdu_reply(false);
+        return apdu_response_code;
     }
-    return ret;
+    *flags |= IO_ASYNCH_REPLY;
+    return APDU_NO_RESPONSE;
 }
 
 #endif  // HAVE_EIP712_FULL_SUPPORT

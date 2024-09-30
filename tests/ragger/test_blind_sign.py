@@ -34,7 +34,7 @@ def common_tx_params() -> dict:
             abi=json.load(file),
             address=None
         )
-    data = contract.encodeABI("approve", [
+    data = contract.encode_abi("approve", [
         # Uniswap Protocol: Permit2
         bytes.fromhex("000000000022d473030f116ddee9f6b43ac78ba3"),
         Web3.to_wei("2", "ether")

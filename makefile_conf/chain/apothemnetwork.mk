@@ -1,4 +1,0 @@
-PATH_APP_LOAD_PARAMS += "44'/550'"
-TICKER = "TXDC"
-CHAIN_ID = 51
-APPNAME = "ApothemNetwork"

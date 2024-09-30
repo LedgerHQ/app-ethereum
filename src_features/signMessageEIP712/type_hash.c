@@ -129,7 +129,12 @@ static const void **get_struct_dependencies(uint8_t *const deps_count,
             // get struct name
             arg_structname = get_struct_field_typename(field_ptr, &arg_structname_length);
             // from its name, get the pointer to its definition
-            arg_struct_ptr = get_structn(arg_structname, arg_structname_length);
+            if ((arg_struct_ptr = get_structn(arg_structname, arg_structname_length)) == NULL) {
+                PRINTF("Error: could not find EIP-712 dependency struct \"");
+                for (int i = 0; i < arg_structname_length; ++i) PRINTF("%c", arg_structname[i]);
+                PRINTF("\" during type_hash\n");
+                return NULL;
+            }
 
             // check if it is not already present in the dependencies array
             for (dep_idx = 0; dep_idx < *deps_count; ++dep_idx) {
@@ -167,12 +172,18 @@ static const void **get_struct_dependencies(uint8_t *const deps_count,
  * @return whether the type_hash was successful or not
  */
 bool type_hash(const char *const struct_name, const uint8_t struct_name_length, uint8_t *hash_buf) {
-    const void *const struct_ptr = get_structn(struct_name, struct_name_length);
+    const void *struct_ptr;
     uint8_t deps_count = 0;
     const void **deps;
     void *mem_loc_bak = mem_alloc(0);
     cx_err_t error = CX_INTERNAL_ERROR;
 
+    if ((struct_ptr = get_structn(struct_name, struct_name_length)) == NULL) {
+        PRINTF("Error: could not find EIP-712 struct \"");
+        for (int i = 0; i < struct_name_length; ++i) PRINTF("%c", struct_name[i]);
+        PRINTF("\" for type_hash\n");
+        return false;
+    }
     CX_CHECK(cx_keccak_init_no_throw(&global_sha3, 256));
     deps = get_struct_dependencies(&deps_count, NULL, struct_ptr);
     if ((deps_count > 0) && (deps == NULL)) {

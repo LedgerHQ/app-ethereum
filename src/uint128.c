@@ -19,13 +19,14 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "read.h"
 #include "uint128.h"
 #include "uint_common.h"
 #include "common_utils.h"  // HEXDIGITS
 
 void readu128BE(const uint8_t *const buffer, uint128_t *const target) {
-    UPPER_P(target) = readUint64BE(buffer);
-    LOWER_P(target) = readUint64BE(buffer + 8);
+    UPPER_P(target) = read_u64_be(buffer, 0);
+    LOWER_P(target) = read_u64_be(buffer + 8, 0);
 }
 
 bool zero128(const uint128_t *const number) {

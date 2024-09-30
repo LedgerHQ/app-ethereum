@@ -9,7 +9,7 @@ from enum import Enum, auto
 # Example: for an entry in the Enum named DEV, its PEM file must be at keychain/dev.pem
 class Key(Enum):
     CAL = auto()
-    DOMAIN_NAME = auto()
+    TRUSTED_NAME = auto()
     SET_PLUGIN = auto()
     NFT = auto()
 

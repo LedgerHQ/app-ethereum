@@ -7,6 +7,7 @@
 
 void erc721_plugin_call(int message, void* parameters);
 void erc1155_plugin_call(int message, void* parameters);
+void swap_with_calldata_plugin_call(int message, void* parameters);
 
 typedef bool (*const PluginAvailableCheck)(void);
 typedef void (*PluginCall)(int, void*);

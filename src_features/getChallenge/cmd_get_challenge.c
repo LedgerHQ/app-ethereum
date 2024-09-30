@@ -1,4 +1,4 @@
-#ifdef HAVE_DOMAIN_NAME
+#ifdef HAVE_TRUSTED_NAME
 
 #include <os.h>
 #include <os_io.h>
@@ -27,12 +27,11 @@ uint32_t get_challenge(void) {
 /**
  * Send back the current challenge
  */
-void handle_get_challenge(void) {
+uint16_t handle_get_challenge(unsigned int *tx) {
     PRINTF("New challenge -> %u\n", get_challenge());
     U4BE_ENCODE(G_io_apdu_buffer, 0, get_challenge());
-    U2BE_ENCODE(G_io_apdu_buffer, 4, APDU_RESPONSE_OK);
-
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 6);
+    *tx += 4;
+    return APDU_RESPONSE_OK;
 }
 
-#endif  // HAVE_DOMAIN_NAME
+#endif  // HAVE_TRUSTED_NAME

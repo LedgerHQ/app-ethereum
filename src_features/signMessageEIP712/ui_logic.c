@@ -19,6 +19,7 @@
 #include "common_ui.h"
 #include "uint_common.h"
 #include "filtering.h"
+#include "trusted_name.h"
 
 #define AMOUNT_JOIN_FLAG_TOKEN (1 << 0)
 #define AMOUNT_JOIN_FLAG_VALUE (1 << 1)
@@ -42,6 +43,7 @@ typedef enum {
 #define UI_712_FIELD_NAME_PROVIDED (1 << 1)
 #define UI_712_AMOUNT_JOIN         (1 << 2)
 #define UI_712_DATETIME            (1 << 3)
+#define UI_712_TRUSTED_NAME        (1 << 4)
 
 typedef struct {
     s_amount_join joins[MAX_ASSETS];
@@ -52,13 +54,18 @@ typedef struct {
 typedef struct {
     bool shown;
     bool end_reached;
-    uint8_t filtering_mode;
+    e_eip712_filtering_mode filtering_mode;
     uint8_t filters_to_process;
     uint8_t field_flags;
     uint8_t structs_to_review;
     s_amount_context amount;
     uint8_t filters_received;
     uint32_t filters_crc[MAX_FILTERS];
+    uint8_t discarded_path_length;
+    char discarded_path[255];
+#ifdef HAVE_TRUSTED_NAME
+    e_name_type name_types;
+#endif
 #ifdef SCREEN_SIZE_WALLET
     char ui_pairs_buffer[(SHARED_CTX_FIELD_1_SIZE + SHARED_CTX_FIELD_2_SIZE) * 2];
 #endif
@@ -75,7 +82,11 @@ static bool ui_712_field_shown(void) {
     bool ret = false;
 
     if (ui_ctx->filtering_mode == EIP712_FILTERING_BASIC) {
+#ifdef SCREEN_SIZE_WALLET
+        if (true) {
+#else
         if (N_storage.verbose_eip712 || (path_get_root_type() == ROOT_DOMAIN)) {
+#endif
             ret = true;
         }
     } else {  // EIP712_FILTERING_FULL
@@ -146,14 +157,29 @@ void ui_712_set_value(const char *str, size_t length) {
 
 /**
  * Redraw the dynamic UI step that shows EIP712 information
+ *
+ * @return whether it was successful or not
  */
-void ui_712_redraw_generic_step(void) {
+bool ui_712_redraw_generic_step(void) {
     if (!ui_ctx->shown) {  // Initialize if it is not already
-        ui_712_start();
+        if ((ui_ctx->filtering_mode == EIP712_FILTERING_BASIC) && !N_storage.dataAllowed &&
+            !N_storage.verbose_eip712) {
+            // Both settings not enabled => Error
+            ui_error_blind_signing();
+            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+            eip712_context->go_home_on_failure = false;
+            return false;
+        }
+        if (ui_ctx->filtering_mode == EIP712_FILTERING_BASIC) {
+            ui_712_start_unfiltered();
+        } else {
+            ui_712_start();
+        }
         ui_ctx->shown = true;
     } else {
         ui_712_switch_to_message();
     }
+    return true;
 }
 
 /**
@@ -187,21 +213,22 @@ e_eip712_nfs ui_712_next_field(void) {
  * Used to notify of a new struct to review
  *
  * @param[in] struct_ptr pointer to the structure to be shown
+ * @return whether it was successful or not
  */
-void ui_712_review_struct(const void *struct_ptr) {
+bool ui_712_review_struct(const void *struct_ptr) {
     const char *struct_name;
     uint8_t struct_name_length;
     const char *title = "Review struct";
 
     if (ui_ctx == NULL) {
-        return;
+        return false;
     }
 
     ui_712_set_title(title, strlen(title));
     if ((struct_name = get_struct_name(struct_ptr, &struct_name_length)) != NULL) {
         ui_712_set_value(struct_name, struct_name_length);
     }
-    ui_712_redraw_generic_step();
+    return ui_712_redraw_generic_step();
 }
 
 /**
@@ -258,7 +285,8 @@ static bool ui_712_format_addr(const uint8_t *data, uint8_t length, bool first) 
                                   strings.tmp.tmp,
                                   sizeof(strings.tmp.tmp),
                                   chainConfig->chainId)) {
-        THROW(APDU_RESPONSE_ERROR_NO_INFO);
+        apdu_response_code = APDU_RESPONSE_ERROR_NO_INFO;
+        return false;
     }
     return true;
 }
@@ -412,19 +440,21 @@ static bool ui_712_format_uint(const uint8_t *data, uint8_t length, bool first) 
  * @return whether it was successful or not
  */
 static bool ui_712_format_amount_join(void) {
-    const tokenDefinition_t *token;
-    token = &tmpCtx.transactionContext.extraInfo[ui_ctx->amount.idx].token;
+    const tokenDefinition_t *token = NULL;
 
+    if (tmpCtx.transactionContext.assetSet[ui_ctx->amount.idx]) {
+        token = &tmpCtx.transactionContext.extraInfo[ui_ctx->amount.idx].token;
+    }
     if ((ui_ctx->amount.joins[ui_ctx->amount.idx].value_length == INT256_LENGTH) &&
         ismaxint(ui_ctx->amount.joins[ui_ctx->amount.idx].value,
                  ui_ctx->amount.joins[ui_ctx->amount.idx].value_length)) {
         strlcpy(strings.tmp.tmp, "Unlimited ", sizeof(strings.tmp.tmp));
-        strlcat(strings.tmp.tmp, token->ticker, sizeof(strings.tmp.tmp));
+        strlcat(strings.tmp.tmp, (token != NULL) ? token->ticker : "???", sizeof(strings.tmp.tmp));
     } else {
         if (!amountToString(ui_ctx->amount.joins[ui_ctx->amount.idx].value,
                             ui_ctx->amount.joins[ui_ctx->amount.idx].value_length,
-                            token->decimals,
-                            token->ticker,
+                            (token != NULL) ? token->decimals : 0,
+                            (token != NULL) ? token->ticker : "???",
                             strings.tmp.tmp,
                             sizeof(strings.tmp.tmp))) {
             return false;
@@ -453,13 +483,23 @@ void amount_join_set_token_received(void) {
  * @return whether it was successful or not
  */
 static bool update_amount_join(const uint8_t *data, uint8_t length) {
-    tokenDefinition_t *token;
+    const tokenDefinition_t *token = NULL;
 
-    token = &tmpCtx.transactionContext.extraInfo[ui_ctx->amount.idx].token;
+    if (tmpCtx.transactionContext.assetSet[ui_ctx->amount.idx]) {
+        token = &tmpCtx.transactionContext.extraInfo[ui_ctx->amount.idx].token;
+    } else {
+        if (tmpCtx.transactionContext.currentAssetIndex == ui_ctx->amount.idx) {
+            // So that the following amount-join find their tokens in the expected indices
+            tmpCtx.transactionContext.currentAssetIndex =
+                (tmpCtx.transactionContext.currentAssetIndex + 1) % MAX_ASSETS;
+        }
+    }
     switch (ui_ctx->amount.state) {
         case AMOUNT_JOIN_STATE_TOKEN:
-            if (memcmp(data, token->address, ADDRESS_LENGTH) != 0) {
-                return false;
+            if (token != NULL) {
+                if (memcmp(data, token->address, ADDRESS_LENGTH) != 0) {
+                    return false;
+                }
             }
             amount_join_set_token_received();
             break;
@@ -475,6 +515,37 @@ static bool update_amount_join(const uint8_t *data, uint8_t length) {
     }
     return true;
 }
+
+#ifdef HAVE_TRUSTED_NAME
+/**
+ * Try to substitute given address by a matching contract name
+ *
+ * Fallback on showing the address if no match is found.
+ *
+ * @param[in] data the data that needs formatting
+ * @param[in] length its length
+ * @return whether it was successful or not
+ */
+static bool ui_712_format_trusted_name(const uint8_t *data, uint8_t length) {
+    uint8_t types_count = 0;
+    e_name_type types[8];
+    uint8_t types_bak = ui_ctx->name_types;
+
+    if (length != ADDRESS_LENGTH) {
+        return false;
+    }
+    for (int i = 0; types_bak > 0; ++i) {
+        if (types_bak & 1) {
+            types[types_count++] = i;
+        }
+        types_bak >>= 1;
+    }
+    if (has_trusted_name(types_count, types, &eip712_context->chain_id, data)) {
+        strlcpy(strings.tmp.tmp, g_trusted_name, sizeof(strings.tmp.tmp));
+    }
+    return true;
+}
+#endif
 
 /**
  * Format given data as a human-readable date/time representation
@@ -591,9 +662,17 @@ bool ui_712_feed_to_display(const void *field_ptr,
         }
     }
 
+#ifdef HAVE_TRUSTED_NAME
+    if (ui_ctx->field_flags & UI_712_TRUSTED_NAME) {
+        if (!ui_712_format_trusted_name(data, length)) {
+            return false;
+        }
+    }
+#endif
+
     // Check if this field is supposed to be displayed
     if (last && ui_712_field_shown()) {
-        ui_712_redraw_generic_step();
+        if (!ui_712_redraw_generic_step()) return false;
     }
     return true;
 }
@@ -608,7 +687,11 @@ void ui_712_end_sign(void) {
         return;
     }
 
+#ifdef SCREEN_SIZE_WALLET
+    if (true) {
+#else
     if (N_storage.verbose_eip712 || (ui_ctx->filtering_mode == EIP712_FILTERING_FULL)) {
+#endif
         ui_ctx->end_reached = true;
         ui_712_switch_to_sign();
     }
@@ -667,8 +750,13 @@ unsigned int ui_712_reject() {
  * @param[in] name_provided if a substitution name has been provided
  * @param[in] token_join if this field is part of a token join
  * @param[in] datetime if this field should be shown and formatted as a date/time
+ * @param[in] trusted_name if this field should be shown as a trusted contract name
  */
-void ui_712_flag_field(bool show, bool name_provided, bool token_join, bool datetime) {
+void ui_712_flag_field(bool show,
+                       bool name_provided,
+                       bool token_join,
+                       bool datetime,
+                       bool trusted_name) {
     if (show) {
         ui_ctx->field_flags |= UI_712_FIELD_SHOWN;
     }
@@ -680,6 +768,9 @@ void ui_712_flag_field(bool show, bool name_provided, bool token_join, bool date
     }
     if (datetime) {
         ui_ctx->field_flags |= UI_712_DATETIME;
+    }
+    if (trusted_name) {
+        ui_ctx->field_flags |= UI_712_TRUSTED_NAME;
     }
 }
 
@@ -732,7 +823,11 @@ void ui_712_field_flags_reset(void) {
  * Makes it so the user will have to go through a "Review struct" screen
  */
 void ui_712_queue_struct_to_review(void) {
+#ifdef SCREEN_SIZE_WALLET
+    if (true) {
+#else
     if (N_storage.verbose_eip712) {
+#endif
         ui_ctx->structs_to_review += 1;
     }
 }
@@ -787,11 +882,10 @@ bool ui_712_show_raw_key(const void *field_ptr) {
 /**
  * Push a new filter path
  *
+ * @param[in] path_crc CRC of the filter path
  * @return if the path was pushed or not (in case it was already present)
  */
-bool ui_712_push_new_filter_path(void) {
-    uint32_t path_crc = get_path_crc();
-
+bool ui_712_push_new_filter_path(uint32_t path_crc) {
     // check if already present
     for (int i = 0; i < ui_ctx->filters_received; ++i) {
         if (ui_ctx->filters_crc[i] == path_crc) {
@@ -803,6 +897,38 @@ bool ui_712_push_new_filter_path(void) {
     ui_ctx->filters_crc[ui_ctx->filters_received] = path_crc;
     return true;
 }
+
+/**
+ * Set a discarded filter path
+ *
+ * @param[in] path the given filter path
+ * @param[in] length the path length
+ */
+void ui_712_set_discarded_path(const char *path, uint8_t length) {
+    memcpy(ui_ctx->discarded_path, path, length);
+    ui_ctx->discarded_path_length = length;
+}
+
+/**
+ * Get the discarded filter path
+ *
+ * @param[out] length the path length
+ * @return filter path
+ */
+const char *ui_712_get_discarded_path(uint8_t *length) {
+    *length = ui_ctx->discarded_path_length;
+    return ui_ctx->discarded_path;
+}
+
+#ifdef HAVE_TRUSTED_NAME
+void ui_712_set_trusted_name_requirements(uint8_t types_count, const e_name_type *types) {
+    // pack into one byte to save on space
+    ui_ctx->name_types = 0;
+    for (int i = 0; i < types_count; ++i) {
+        ui_ctx->name_types |= (1 << types[i]);
+    }
+}
+#endif
 
 #ifdef SCREEN_SIZE_WALLET
 /*

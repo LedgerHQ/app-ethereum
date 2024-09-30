@@ -4,22 +4,13 @@
 #include "feature_signTx.h"
 #include "ui_nbgl.h"
 #include "apdu_constants.h"
+#include "context_712.h"
 
 static void ui_error_blind_signing_choice(bool confirm) {
     if (confirm) {
         ui_settings();
     } else {
         ui_idle();
-    }
-}
-
-static void ui_warning_blind_signing_choice(bool confirm) {
-    if (confirm) {
-        reset_app_context();
-        io_seproxyhal_send_status(APDU_RESPONSE_CONDITION_NOT_SATISFIED);
-        ui_idle();
-    } else {
-        start_signature_flow();
     }
 }
 
@@ -30,14 +21,4 @@ void ui_error_blind_signing(void) {
                        "Go to settings",
                        "Reject transaction",
                        ui_error_blind_signing_choice);
-}
-
-void ui_warning_blind_signing(void) {
-    nbgl_useCaseChoice(&C_Warning_64px,
-                       "Blind signing ahead",
-                       "This transaction's details are not fully verifiable. If you sign it, you "
-                       "could lose all your assets.",
-                       "Back to safety",
-                       "Continue anyway",
-                       ui_warning_blind_signing_choice);
 }

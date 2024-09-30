@@ -12,10 +12,13 @@ from client.client import EthAppClient, EIP712FieldType
 
 from ragger.firmware import Firmware
 
+from client.client import PKIPubKeyUsage
+
 # global variables
 app_client: EthAppClient = None
 filtering_paths: dict = {}
-current_path: list[str] = list()
+filtering_tokens: list[dict] = []
+current_path: list[str] = []
 sig_ctx: dict[str, Any] = {}
 
 
@@ -192,32 +195,60 @@ encoding_functions[EIP712FieldType.FIX_BYTES] = encode_bytes_fix
 encoding_functions[EIP712FieldType.DYN_BYTES] = encode_bytes_dyn
 
 
+def send_filtering_token(token_idx: int):
+    assert token_idx < len(filtering_tokens)
+    if len(filtering_tokens[token_idx]) > 0:
+        token = filtering_tokens[token_idx]
+        if not token["sent"]:
+            app_client.provide_token_metadata(token["ticker"],
+                                              bytes.fromhex(token["addr"][2:]),
+                                              token["decimals"],
+                                              token["chain_id"])
+            token["sent"] = True
+
+
+def send_filter(path: str, discarded: bool):
+    assert path in filtering_paths.keys()
+
+    if filtering_paths[path]["type"].startswith("amount_join_"):
+        if "token" in filtering_paths[path].keys():
+            token_idx = filtering_paths[path]["token"]
+            send_filtering_token(token_idx)
+        else:
+            # Permit (ERC-2612)
+            send_filtering_token(0)
+            token_idx = 0xff
+        if filtering_paths[path]["type"].endswith("_token"):
+            send_filtering_amount_join_token(path, token_idx, discarded)
+        elif filtering_paths[path]["type"].endswith("_value"):
+            send_filtering_amount_join_value(path,
+                                             token_idx,
+                                             filtering_paths[path]["name"],
+                                             discarded)
+    elif filtering_paths[path]["type"] == "datetime":
+        send_filtering_datetime(path, filtering_paths[path]["name"], discarded)
+    elif filtering_paths[path]["type"] == "trusted_name":
+        send_filtering_trusted_name(path,
+                                    filtering_paths[path]["name"],
+                                    filtering_paths[path]["tn_type"],
+                                    filtering_paths[path]["tn_source"],
+                                    discarded)
+    elif filtering_paths[path]["type"] == "raw":
+        send_filtering_raw(path, filtering_paths[path]["name"], discarded)
+    else:
+        assert False
+
+
 def send_struct_impl_field(value, field):
-    # Something wrong happened if this triggers
-    if isinstance(value, list) or (field["enum"] == EIP712FieldType.CUSTOM):
-        breakpoint()
+    assert not isinstance(value, list)
+    assert field["enum"] != EIP712FieldType.CUSTOM
 
     data = encoding_functions[field["enum"]](value, field["typesize"])
 
     if filtering_paths:
         path = ".".join(current_path)
         if path in filtering_paths.keys():
-            if filtering_paths[path]["type"] == "amount_join_token":
-                send_filtering_amount_join_token(filtering_paths[path]["token"])
-            elif filtering_paths[path]["type"] == "amount_join_value":
-                if "token" in filtering_paths[path].keys():
-                    token = filtering_paths[path]["token"]
-                else:
-                    # Permit (ERC-2612)
-                    token = 0xff
-                send_filtering_amount_join_value(token,
-                                                 filtering_paths[path]["name"])
-            elif filtering_paths[path]["type"] == "datetime":
-                send_filtering_datetime(filtering_paths[path]["name"])
-            elif filtering_paths[path]["type"] == "raw":
-                send_filtering_raw(filtering_paths[path]["name"])
-            else:
-                assert False
+            send_filter(path, False)
 
     with app_client.eip712_send_struct_impl_struct_field(data):
         enable_autonext()
@@ -232,6 +263,12 @@ def evaluate_field(structs, data, field, lvls_left, new_level=True):
     if len(array_lvls) > 0 and lvls_left > 0:
         with app_client.eip712_send_struct_impl_array(len(data)):
             pass
+        if len(data) == 0:
+            for path in filtering_paths.keys():
+                dpath = ".".join(current_path) + ".[]"
+                if path.startswith(dpath):
+                    app_client.eip712_filtering_discarded_path(path)
+                    send_filter(path, True)
         idx = 0
         for subdata in data:
             current_path.append("[]")
@@ -293,73 +330,87 @@ def send_filtering_message_info(display_name: str, filters_count: int):
     disable_autonext()
 
 
-def send_filtering_amount_join_token(token_idx: int):
+def send_filtering_amount_join_token(path: str, token_idx: int, discarded: bool):
     global sig_ctx
-
-    path_str = ".".join(current_path)
 
     to_sign = start_signature_payload(sig_ctx, 11)
-    to_sign += path_str.encode()
+    to_sign += path.encode()
     to_sign.append(token_idx)
     sig = keychain.sign_data(keychain.Key.CAL, to_sign)
-    with app_client.eip712_filtering_amount_join_token(token_idx, sig):
+    with app_client.eip712_filtering_amount_join_token(token_idx, sig, discarded):
         pass
 
 
-def send_filtering_amount_join_value(token_idx: int, display_name: str):
+def send_filtering_amount_join_value(path: str, token_idx: int, display_name: str, discarded: bool):
     global sig_ctx
-
-    path_str = ".".join(current_path)
 
     to_sign = start_signature_payload(sig_ctx, 22)
-    to_sign += path_str.encode()
+    to_sign += path.encode()
     to_sign += display_name.encode()
     to_sign.append(token_idx)
     sig = keychain.sign_data(keychain.Key.CAL, to_sign)
-    with app_client.eip712_filtering_amount_join_value(token_idx, display_name, sig):
+    with app_client.eip712_filtering_amount_join_value(token_idx, display_name, sig, discarded):
         pass
 
 
-def send_filtering_datetime(display_name: str):
+def send_filtering_datetime(path: str, display_name: str, discarded: bool):
     global sig_ctx
 
-    path_str = ".".join(current_path)
-
     to_sign = start_signature_payload(sig_ctx, 33)
-    to_sign += path_str.encode()
+    to_sign += path.encode()
     to_sign += display_name.encode()
     sig = keychain.sign_data(keychain.Key.CAL, to_sign)
-    with app_client.eip712_filtering_datetime(display_name, sig):
+    with app_client.eip712_filtering_datetime(display_name, sig, discarded):
+        pass
+
+
+def send_filtering_trusted_name(path: str,
+                                display_name: str,
+                                name_type: list[int],
+                                name_source: list[int],
+                                discarded: bool):
+    global sig_ctx
+
+    to_sign = start_signature_payload(sig_ctx, 44)
+    to_sign += path.encode()
+    to_sign += display_name.encode()
+    for t in name_type:
+        to_sign.append(t)
+    for s in name_source:
+        to_sign.append(s)
+    sig = keychain.sign_data(keychain.Key.CAL, to_sign)
+    with app_client.eip712_filtering_trusted_name(display_name, name_type, name_source, sig, discarded):
         pass
 
 
 # ledgerjs doesn't actually sign anything, and instead uses already pre-computed signatures
-def send_filtering_raw(display_name):
+def send_filtering_raw(path: str, display_name: str, discarded: bool):
     global sig_ctx
 
-    path_str = ".".join(current_path)
-
     to_sign = start_signature_payload(sig_ctx, 72)
-    to_sign += path_str.encode()
+    to_sign += path.encode()
     to_sign += display_name.encode()
     sig = keychain.sign_data(keychain.Key.CAL, to_sign)
-    with app_client.eip712_filtering_raw(display_name, sig):
+    with app_client.eip712_filtering_raw(display_name, sig, discarded):
         pass
 
 
 def prepare_filtering(filtr_data, message):
     global filtering_paths
+    global filtering_tokens
 
     if "fields" in filtr_data:
         filtering_paths = filtr_data["fields"]
     else:
         filtering_paths = {}
+
     if "tokens" in filtr_data:
-        for token in filtr_data["tokens"]:
-            app_client.provide_token_metadata(token["ticker"],
-                                              bytes.fromhex(token["addr"][2:]),
-                                              token["decimals"],
-                                              token["chain_id"])
+        filtering_tokens = filtr_data["tokens"]
+        for token in filtering_tokens:
+            if len(token) > 0:
+                token["sent"] = False
+    else:
+        filtering_tokens = []
 
 
 def handle_optional_domain_values(domain):
@@ -449,6 +500,22 @@ def process_data(aclient: EthAppClient,
         with app_client.eip712_filtering_activate():
             pass
         prepare_filtering(filters, message)
+
+    if aclient._pki_client is None:
+        print(f"Ledger-PKI Not supported on '{aclient._firmware.name}'")
+    else:
+        # pylint: disable=line-too-long
+        if aclient._firmware == Firmware.NANOSP:
+            cert_apdu = "0101010201021004010200001104000000021201001302000214010116040000000020104549503731325f46696c746572696e67300200053101083201213321024cca8fad496aa5040a00a7eb2f5cc3b85376d88ba147a7d7054a99c64056188734010135010315473045022100ef197e5b1cabb3de5dfc62f965db8536b0463d272c6fea38ebc73605715b1df9022017bef619d52a9728b37a9b5a33f0143bcdcc714694eed07c326796ffbb7c2958"  # noqa: E501
+        elif aclient._firmware == Firmware.NANOX:
+            cert_apdu = "0101010201021104000000021201001302000214010116040000000020104549503731325F46696C746572696E67300200053101083201213321024CCA8FAD496AA5040A00A7EB2F5CC3B85376D88BA147A7D7054A99C64056188734010135010215473045022100E07E129B0DC2A571D5205C3DB43BF4BB3463A2E9D2A4EEDBEC8FD3518CC5A95902205F80306EEF785C4D45BDCA1F25394A1341571BD1921C2740392DD22EB1ACDD8B"  # noqa: E501
+        elif aclient._firmware == Firmware.STAX:
+            cert_apdu = "0101010201021104000000021201001302000214010116040000000020104549503731325F46696C746572696E67300200053101083201213321024CCA8FAD496AA5040A00A7EB2F5CC3B85376D88BA147A7D7054A99C6405618873401013501041546304402204EA7B30F0EEFEF25FAB3ADDA6609E25296C41DD1C5969A92FAE6B600AAC2902E02206212054E123F5F965F787AE7EE565E243F21B11725626D3FF058522D6BDCD995"  # noqa: E501
+        elif aclient._firmware == Firmware.FLEX:
+            cert_apdu = "0101010201021104000000021201001302000214010116040000000020104549503731325F46696C746572696E67300200053101083201213321024CCA8FAD496AA5040A00A7EB2F5CC3B85376D88BA147A7D7054A99C6405618873401013501051546304402205FB5E970065A95C57F00FFA3964946251815527613724ED6745C37E303934BE702203CC9F4124B42806F0A7CA765CFAB5AADEB280C35AB8F809FC49ADC97D9B9CE15"  # noqa: E501
+        # pylint: enable=line-too-long
+
+        aclient._pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_COIN_META, bytes.fromhex(cert_apdu))
 
     # send domain implementation
     with app_client.eip712_send_struct_impl_root_struct(domain_typename):

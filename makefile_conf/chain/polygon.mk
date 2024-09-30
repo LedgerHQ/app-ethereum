@@ -1,4 +1,0 @@
-PATH_APP_LOAD_PARAMS += "44'/60'"
-TICKER = "POL"
-CHAIN_ID = 137
-APPNAME = "Polygon"

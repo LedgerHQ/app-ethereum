@@ -4,19 +4,13 @@
 #include "ui_nbgl.h"
 #include "uint_common.h"
 
-static void reviewReject(void) {
-    io_seproxyhal_touch_address_cancel(NULL);
-}
-
-static void confirmTransation(void) {
-    io_seproxyhal_touch_address_ok(NULL);
-}
-
 static void reviewChoice(bool confirm) {
     if (confirm) {
-        nbgl_useCaseReviewStatus(STATUS_TYPE_ADDRESS_VERIFIED, confirmTransation);
+        io_seproxyhal_touch_address_ok();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_ADDRESS_VERIFIED, ui_idle);
     } else {
-        nbgl_useCaseReviewStatus(STATUS_TYPE_ADDRESS_REJECTED, reviewReject);
+        io_seproxyhal_touch_address_cancel();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_ADDRESS_REJECTED, ui_idle);
     }
 }
 

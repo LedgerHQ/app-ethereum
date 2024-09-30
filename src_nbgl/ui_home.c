@@ -15,8 +15,8 @@
 
 enum {
     BLIND_SIGNING_TOKEN = FIRST_USER_TOKEN,
-#ifdef HAVE_DOMAIN_NAME
-    DOMAIN_NAME_VERBOSE_TOKEN,
+#ifdef HAVE_TRUSTED_NAME
+    TRUSTED_NAME_VERBOSE_TOKEN,
 #endif
     NONCE_TOKEN,
 #ifdef HAVE_EIP712_FULL_SUPPORT
@@ -27,8 +27,8 @@ enum {
 
 enum {
     BLIND_SIGNING_ID,
-#ifdef HAVE_DOMAIN_NAME
-    DOMAIN_NAME_VERBOSE_ID,
+#ifdef HAVE_TRUSTED_NAME
+    TRUSTED_NAME_VERBOSE_ID,
 #endif
     NONCE_ID,
 #ifdef HAVE_EIP712_FULL_SUPPORT
@@ -61,13 +61,13 @@ static void setting_toggle_callback(int token, uint8_t index, int page) {
             switches[BLIND_SIGNING_ID].initState = (nbgl_state_t) value;
             nvm_write((void *) &N_storage.dataAllowed, (void *) &value, sizeof(value));
             break;
-#ifdef HAVE_DOMAIN_NAME
-        case DOMAIN_NAME_VERBOSE_TOKEN:
-            value = !N_storage.verbose_domain_name;
-            switches[DOMAIN_NAME_VERBOSE_ID].initState = (nbgl_state_t) value;
-            nvm_write((void *) &N_storage.verbose_domain_name, (void *) &value, sizeof(value));
+#ifdef HAVE_TRUSTED_NAME
+        case TRUSTED_NAME_VERBOSE_TOKEN:
+            value = !N_storage.verbose_trusted_name;
+            switches[TRUSTED_NAME_VERBOSE_ID].initState = (nbgl_state_t) value;
+            nvm_write((void *) &N_storage.verbose_trusted_name, (void *) &value, sizeof(value));
             break;
-#endif  // HAVE_DOMAIN_NAME
+#endif  // HAVE_TRUSTED_NAME
         case NONCE_TOKEN:
             value = !N_storage.displayNonce;
             switches[NONCE_ID].initState = (nbgl_state_t) value;
@@ -90,7 +90,7 @@ static void setting_toggle_callback(int token, uint8_t index, int page) {
 
 static void app_quit(void) {
     // exit app here
-    os_sched_exit(-1);
+    app_exit();
 }
 
 const nbgl_icon_details_t *get_app_icon(bool caller_icon) {
@@ -123,14 +123,14 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
     switches[BLIND_SIGNING_ID].token = BLIND_SIGNING_TOKEN;
     switches[BLIND_SIGNING_ID].tuneId = TUNE_TAP_CASUAL;
 
-#ifdef HAVE_DOMAIN_NAME
-    switches[DOMAIN_NAME_VERBOSE_ID].initState =
-        N_storage.verbose_domain_name ? ON_STATE : OFF_STATE;
-    switches[DOMAIN_NAME_VERBOSE_ID].text = "ENS addresses";
-    switches[DOMAIN_NAME_VERBOSE_ID].subText = "Display the resolved address of ENS domains.";
-    switches[DOMAIN_NAME_VERBOSE_ID].token = DOMAIN_NAME_VERBOSE_TOKEN;
-    switches[DOMAIN_NAME_VERBOSE_ID].tuneId = TUNE_TAP_CASUAL;
-#endif  // HAVE_DOMAIN_NAME
+#ifdef HAVE_TRUSTED_NAME
+    switches[TRUSTED_NAME_VERBOSE_ID].initState =
+        N_storage.verbose_trusted_name ? ON_STATE : OFF_STATE;
+    switches[TRUSTED_NAME_VERBOSE_ID].text = "ENS addresses";
+    switches[TRUSTED_NAME_VERBOSE_ID].subText = "Display the resolved address of ENS domains.";
+    switches[TRUSTED_NAME_VERBOSE_ID].token = TRUSTED_NAME_VERBOSE_TOKEN;
+    switches[TRUSTED_NAME_VERBOSE_ID].tuneId = TUNE_TAP_CASUAL;
+#endif  // HAVE_TRUSTED_NAME
 
     switches[NONCE_ID].initState = N_storage.displayNonce ? ON_STATE : OFF_STATE;
     switches[NONCE_ID].text = "Nonce";

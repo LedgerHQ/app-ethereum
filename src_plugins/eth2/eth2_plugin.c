@@ -207,7 +207,8 @@ void eth2_plugin_call(int message, void *parameters) {
                                         ticker,
                                         msg->msg,
                                         100)) {
-                        THROW(EXCEPTION_OVERFLOW);
+                        msg->result = ETH_PLUGIN_RESULT_ERROR;
+                        break;
                     }
                     msg->result = ETH_PLUGIN_RESULT_OK;
                 } break;

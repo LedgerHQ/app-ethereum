@@ -9,6 +9,9 @@
 #include "network.h"
 #include "public_keys.h"
 #include "manage_asset_info.h"
+#ifdef HAVE_LEDGER_PKI
+#include "os_pki.h"
+#endif
 
 #define TYPE_SIZE        1
 #define VERSION_SIZE     1
@@ -39,77 +42,70 @@ typedef bool verificationAlgo(const cx_ecfp_public_key_t *,
                               unsigned char *,
                               unsigned int);
 
-void handleProvideNFTInformation(uint8_t p1,
-                                 uint8_t p2,
-                                 const uint8_t *workBuffer,
-                                 uint8_t dataLength,
-                                 unsigned int *flags,
-                                 unsigned int *tx) {
-    UNUSED(p1);
-    UNUSED(p2);
-    UNUSED(tx);
-    UNUSED(flags);
+uint16_t handleProvideNFTInformation(const uint8_t *workBuffer,
+                                     uint8_t dataLength,
+                                     unsigned int *tx) {
     uint8_t hash[INT256_LENGTH];
-    cx_ecfp_public_key_t nftKey;
+    nftInfo_t *nft = NULL;
+    size_t offset = 0;
+    size_t payloadSize = 0;
+    uint8_t collectionNameLength = 0;
+    uint64_t chain_id = 0;
+    uint8_t signatureLen = 0;
+    cx_err_t error = CX_INTERNAL_ERROR;
+#ifdef HAVE_NFT_STAGING_KEY
+    uint8_t valid_keyId = STAGING_NFT_METADATA_KEY;
+#else
+    uint8_t valid_keyId = PROD_NFT_METADATA_KEY;
+#endif
+
     PRINTF("In handle provide NFTInformation\n");
 
     if ((pluginType != ERC721) && (pluginType != ERC1155)) {
         PRINTF("NFT metadata provided without proper plugin loaded!\n");
-        THROW(0x6985);
+        return APDU_RESPONSE_CONDITION_NOT_SATISFIED;
     }
-    nftInfo_t *nft = &get_current_asset_info()->nft;
+    nft = &get_current_asset_info()->nft;
 
     PRINTF("Provisioning currentAssetIndex %d\n", tmpCtx.transactionContext.currentAssetIndex);
-
-    size_t offset = 0;
 
     if (dataLength <= HEADER_SIZE) {
         PRINTF("Data too small for headers: expected at least %d, got %d\n",
                HEADER_SIZE,
                dataLength);
-        THROW(APDU_RESPONSE_INVALID_DATA);
+        return APDU_RESPONSE_INVALID_DATA;
     }
 
-    uint8_t type = workBuffer[offset];
-    switch (type) {
-        case TYPE_1:
-            break;
-        default:
-            PRINTF("Unsupported type %d\n", type);
-            THROW(APDU_RESPONSE_INVALID_DATA);
-            break;
+    if (workBuffer[offset] != TYPE_1) {
+        PRINTF("Unsupported type %d\n", workBuffer[offset]);
+        return APDU_RESPONSE_INVALID_DATA;
     }
     offset += TYPE_SIZE;
 
-    uint8_t version = workBuffer[offset];
-    switch (version) {
-        case VERSION_1:
-            break;
-        default:
-            PRINTF("Unsupported version %d\n", version);
-            THROW(APDU_RESPONSE_INVALID_DATA);
-            break;
+    if (workBuffer[offset] != VERSION_1) {
+        PRINTF("Unsupported version %d\n", workBuffer[offset]);
+        return APDU_RESPONSE_INVALID_DATA;
     }
     offset += VERSION_SIZE;
 
-    uint8_t collectionNameLength = workBuffer[offset];
+    collectionNameLength = workBuffer[offset];
     offset += NAME_LENGTH_SIZE;
 
     // Size of the payload (everything except the signature)
-    size_t payloadSize = HEADER_SIZE + collectionNameLength + ADDRESS_LENGTH + CHAIN_ID_SIZE +
-                         KEY_ID_SIZE + ALGORITHM_ID_SIZE;
+    payloadSize = HEADER_SIZE + collectionNameLength + ADDRESS_LENGTH + CHAIN_ID_SIZE +
+                  KEY_ID_SIZE + ALGORITHM_ID_SIZE;
     if (dataLength < payloadSize) {
         PRINTF("Data too small for payload: expected at least %d, got %d\n",
                payloadSize,
                dataLength);
-        THROW(APDU_RESPONSE_INVALID_DATA);
+        return APDU_RESPONSE_INVALID_DATA;
     }
 
     if (collectionNameLength > COLLECTION_NAME_MAX_LEN) {
         PRINTF("CollectionName too big: expected max %d, got %d\n",
                COLLECTION_NAME_MAX_LEN,
                collectionNameLength);
-        THROW(APDU_RESPONSE_INVALID_DATA);
+        return APDU_RESPONSE_INVALID_DATA;
     }
 
     // Safe because we've checked the size before.
@@ -124,85 +120,72 @@ void handleProvideNFTInformation(uint8_t p1,
     PRINTF("Address: %.*H\n", ADDRESS_LENGTH, workBuffer + offset);
     offset += ADDRESS_LENGTH;
 
-    uint64_t chain_id = u64_from_BE(workBuffer + offset, CHAIN_ID_SIZE);
+    chain_id = u64_from_BE(workBuffer + offset, CHAIN_ID_SIZE);
     // this prints raw data, so to have a more meaningful print, display
     // the buffer before the endianness swap
     PRINTF("ChainID: %.*H\n", sizeof(chain_id), (workBuffer + offset));
     if (!app_compatible_with_chain_id(&chain_id)) {
         UNSUPPORTED_CHAIN_ID_MSG(chain_id);
-        THROW(APDU_RESPONSE_INVALID_DATA);
+        return APDU_RESPONSE_INVALID_DATA;
     }
     offset += CHAIN_ID_SIZE;
 
-    uint8_t keyId = workBuffer[offset];
-    const uint8_t *rawKey;
-    uint8_t rawKeyLen;
-
-    PRINTF("KeyID: %d\n", keyId);
-    switch (keyId) {
-#ifdef HAVE_NFT_STAGING_KEY
-        case STAGING_NFT_METADATA_KEY:
-#endif
-        case PROD_NFT_METADATA_KEY:
-            rawKey = LEDGER_NFT_METADATA_PUBLIC_KEY;
-            rawKeyLen = sizeof(LEDGER_NFT_METADATA_PUBLIC_KEY);
-            break;
-        default:
-            PRINTF("KeyID %d not supported\n", keyId);
-            THROW(APDU_RESPONSE_INVALID_DATA);
-            break;
+    if (workBuffer[offset] != valid_keyId) {
+        PRINTF("Unsupported KeyID %d\n", workBuffer[offset]);
+        return APDU_RESPONSE_INVALID_DATA;
     }
-    PRINTF("RawKey: %.*H\n", rawKeyLen, rawKey);
     offset += KEY_ID_SIZE;
 
-    uint8_t algorithmId = workBuffer[offset];
-    PRINTF("Algorithm: %d\n", algorithmId);
-
-    if (algorithmId != ALGORITHM_ID_1) {
-        PRINTF("Incorrect algorithmId %d\n", algorithmId);
-        THROW(APDU_RESPONSE_INVALID_DATA);
+    if (workBuffer[offset] != ALGORITHM_ID_1) {
+        PRINTF("Incorrect algorithmId %d\n", workBuffer[offset]);
+        return APDU_RESPONSE_INVALID_DATA;
     }
     offset += ALGORITHM_ID_SIZE;
+
     PRINTF("hashing: %.*H\n", payloadSize, workBuffer);
     cx_hash_sha256(workBuffer, payloadSize, hash, sizeof(hash));
 
     if (dataLength < payloadSize + SIGNATURE_LENGTH_SIZE) {
         PRINTF("Data too short to hold signature length\n");
-        THROW(APDU_RESPONSE_INVALID_DATA);
+        return APDU_RESPONSE_INVALID_DATA;
     }
 
-    uint8_t signatureLen = workBuffer[offset];
+    signatureLen = workBuffer[offset];
     PRINTF("Signature len: %d\n", signatureLen);
     if (signatureLen < MIN_DER_SIG_SIZE || signatureLen > MAX_DER_SIG_SIZE) {
         PRINTF("SignatureLen too big or too small. Must be between %d and %d, got %d\n",
                MIN_DER_SIG_SIZE,
                MAX_DER_SIG_SIZE,
                signatureLen);
-        THROW(APDU_RESPONSE_INVALID_DATA);
+        return APDU_RESPONSE_INVALID_DATA;
     }
     offset += SIGNATURE_LENGTH_SIZE;
 
     if (dataLength < payloadSize + SIGNATURE_LENGTH_SIZE + signatureLen) {
         PRINTF("Signature could not fit in data\n");
-        THROW(APDU_RESPONSE_INVALID_DATA);
+        return APDU_RESPONSE_INVALID_DATA;
     }
 
-    CX_ASSERT(cx_ecfp_init_public_key_no_throw(CX_CURVE_256K1, rawKey, rawKeyLen, &nftKey));
-    if (!cx_ecdsa_verify_no_throw(&nftKey,
-                                  hash,
-                                  sizeof(hash),
-                                  (uint8_t *) workBuffer + offset,
-                                  signatureLen)) {
-#ifndef HAVE_BYPASS_SIGNATURES
-        PRINTF("Invalid NFT signature\n");
-        THROW(APDU_RESPONSE_INVALID_DATA);
+    error = check_signature_with_pubkey("NFT Info",
+                                        hash,
+                                        sizeof(hash),
+                                        LEDGER_NFT_METADATA_PUBLIC_KEY,
+                                        sizeof(LEDGER_NFT_METADATA_PUBLIC_KEY),
+#ifdef HAVE_LEDGER_PKI
+                                        CERTIFICATE_PUBLIC_KEY_USAGE_NFT_METADATA,
 #endif
+                                        (uint8_t *) (workBuffer + offset),
+                                        signatureLen);
+#ifndef HAVE_BYPASS_SIGNATURES
+    if (error != CX_OK) {
+        return APDU_RESPONSE_INVALID_DATA;
     }
+#endif
 
     G_io_apdu_buffer[0] = tmpCtx.transactionContext.currentAssetIndex;
     validate_current_asset_info();
-    U2BE_ENCODE(G_io_apdu_buffer, 1, APDU_RESPONSE_OK);
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 3);
+    *tx += 1;
+    return APDU_RESPONSE_OK;
 }
 
 #endif  // HAVE_NFT_SUPPORT

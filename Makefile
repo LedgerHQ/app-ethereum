@@ -27,8 +27,6 @@ include $(BOLOS_SDK)/Makefile.defines
 
 ifeq ($(CHAIN),)
     CHAIN = ethereum
-    # Temporary definition to ensure VSCode extension works... To be cleaned later
-    APPNAME = Ethereum
 endif
 
 SUPPORTED_CHAINS = $(shell find makefile_conf/chain/ -type f -name '*.mk'| sed 's/.*\/\(.*\).mk/\1/g' | sort)
@@ -38,8 +36,8 @@ endif
 include ./makefile_conf/chain/$(CHAIN).mk
 
 APPVERSION_M = 1
-APPVERSION_N = 11
-APPVERSION_P = 3
+APPVERSION_N = 12
+APPVERSION_P = 0
 APPVERSION = $(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 
 # Application source files
@@ -51,9 +49,6 @@ else
 endif
 APP_SOURCE_FILES += $(filter-out ./ethereum-plugin-sdk/src/main.c, $(wildcard ./ethereum-plugin-sdk/src/*.c))
 INCLUDES_PATH += ./ethereum-plugin-sdk/src
-APP_SOURCE_FILES += ${BOLOS_SDK}/lib_standard_app/crypto_helpers.c
-APP_SOURCE_FILES += ${BOLOS_SDK}/lib_standard_app/format.c
-INCLUDES_PATH += ${BOLOS_SDK}/lib_standard_app
 
 ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
 NETWORK_ICONS_FILE = $(GEN_SRC_DIR)/net_icons.gen.c
@@ -79,6 +74,9 @@ ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
     DEFINES += ICONBITMAP=C_chain_$(CHAIN_ID)_64px_bitmap
     DEFINES += ICONGLYPH_SMALL=C_chain_$(CHAIN_ID)
 endif
+
+# Don't define plugin function in the plugin SDK
+DEFINES += IS_NOT_A_PLUGIN
 
 
 # Application allowed derivation curves.
@@ -141,7 +139,7 @@ ENABLE_NBGL_QRCODE = 1
 ########################################
 # These advanced settings allow to disable some feature that are by
 # default enabled in the SDK `Makefile.standard_app`.
-DISABLE_STANDARD_APP_FILES = 1
+#DISABLE_STANDARD_APP_FILES = 1
 #DISABLE_DEFAULT_IO_SEPROXY_BUFFER_SIZE = 1 # To allow custom size declaration
 #DISABLE_STANDARD_APP_DEFINES = 1 # Will set all the following disablers
 #DISABLE_STANDARD_SNPRINTF = 1
@@ -155,7 +153,7 @@ DISABLE_STANDARD_APP_FILES = 1
 #        Main app configuration        #
 ########################################
 
-DEFINES += CHAINID_COINNAME=\"$(TICKER)\" CHAIN_ID=$(CHAIN_ID)
+DEFINES += APP_TICKER=\"$(TICKER)\" APP_CHAIN_ID=$(CHAIN_ID)
 
 # Enabled Features #
 include makefile_conf/features.mk

@@ -9,9 +9,9 @@ static nbgl_contentTagValueList_t pairsList;
 
 static void reviewChoice(bool confirm) {
     if (confirm) {
-        io_seproxyhal_touch_data_ok(NULL);
+        io_seproxyhal_touch_data_ok();
     } else {
-        io_seproxyhal_touch_data_cancel(NULL);
+        io_seproxyhal_touch_data_cancel();
     }
 }
 

@@ -49,4 +49,19 @@ void ui_confirm_parameter(void) {
     ux_flow_init(0, ux_confirm_parameter_flow, NULL);
 }
 
+unsigned int address_cancel_cb(void) {
+    ui_idle();
+    return io_seproxyhal_touch_address_cancel();
+}
+
+unsigned int tx_ok_cb(void) {
+    ui_idle();
+    return io_seproxyhal_touch_tx_ok();
+}
+
+unsigned int tx_cancel_cb(void) {
+    ui_idle();
+    return io_seproxyhal_touch_tx_cancel();
+}
+
 #endif  // HAVE_BAGL

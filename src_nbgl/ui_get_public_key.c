@@ -1,23 +1,17 @@
-#include <nbgl_page.h>
+#include "nbgl_use_case.h"
 #include "shared_context.h"
 #include "ui_callbacks.h"
 #include "ui_nbgl.h"
 #include "network.h"
 #include "network_icons.h"
 
-static void cancel_send(void) {
-    io_seproxyhal_touch_address_cancel(NULL);
-}
-
-static void confirm_send(void) {
-    io_seproxyhal_touch_address_ok(NULL);
-}
-
 static void review_choice(bool confirm) {
     if (confirm) {
-        nbgl_useCaseReviewStatus(STATUS_TYPE_ADDRESS_VERIFIED, confirm_send);
+        io_seproxyhal_touch_address_ok();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_ADDRESS_VERIFIED, ui_idle);
     } else {
-        nbgl_useCaseReviewStatus(STATUS_TYPE_ADDRESS_REJECTED, cancel_send);
+        io_seproxyhal_touch_address_cancel();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_ADDRESS_REJECTED, ui_idle);
     }
 }
 

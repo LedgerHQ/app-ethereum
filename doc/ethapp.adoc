@@ -39,11 +39,15 @@ Application version 1.9.19 - 2022-05-17
   - Update to SIGN ETH EIP712
 
 ### 1.10.2
-  - Add domain names support
+  - Add trusted names support
 
 ### 1.11.0
-  - Add EIP-712 amount & date/time filtering
+  - Add EIP-712 amount-join & date/time filtering
   - PROVIDE ERC 20 TOKEN INFORMATION & PROVIDE NFT INFORMATION now send back the index where the asset has been stored
+
+### 1.12.0
+  - Add EIP-712 discarded filter path support
+  - Add EIP-712 trusted name filtering
 
 ## About
 
@@ -828,6 +832,12 @@ Field substitution will be ignored if the full filtering is not activated.
 
 This command should come before the domain & message implementations. If activated, fields will be by default hidden unless they receive a field name substitution.
 
+##### Discarded filter path
+
+This command gives the app the absolute path of the upcoming filter which will be discarded (because it targets a field within an empty array).
+
+The next filter should be marked as discarded (with P1) to be able to use this given filter path.
+
 ##### Message info
 
 This command should come right after the implementation of the domain has been sent with *SEND STRUCT IMPLEMENTATION*, just before sending the message implementation.
@@ -849,6 +859,7 @@ The signature is computed on :
 ##### Amount-join value
 
 This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
+The first byte is used so that a signature of one type cannot be valid as another type.
 
 A token index of 0xFF indicates the token address is in the _verifyingContract_ field of the EIP712Domain so the app won't receive an amount-join token filtering APDU. This enables support for Permit (ERC-2612) messages.
 
@@ -859,10 +870,20 @@ The signature is computed on :
 ##### Date / Time
 
 This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
+The first byte is used so that a signature of one type cannot be valid as another type.
 
 The signature is computed on :
 
 33 || chain ID (BE) || contract address || schema hash || field path || display name
+
+##### Trusted name
+
+This command should come right after the implementation of the domain has been sent with *SEND STRUCT IMPLEMENTATION*, just before sending the message implementation.
+The first byte is used so that a signature of one type cannot be valid as another type.
+
+The signature is computed on :
+
+44 || chain ID (BE) || contract address || schema hash || field path || display name || name types || name sources
 
 ##### Show raw field
 
@@ -880,10 +901,15 @@ _Command_
 [width="80%"]
 |=========================================================================
 | *CLA* | *INS*  | *P1*               | *P2*       | *LC*     | *Le*
-|   E0  |   1E   | 00
-                                      | 00 : activation
+|   E0  |   1E   | 00 : standard
+
+                   01 : discarded     | 00 : activation
+
+                                        01 : discarded filter path
 
                                         0F : message info
+
+                                        FB : trusted name
 
                                         FC : date/time
 
@@ -901,6 +927,15 @@ _Input data_
 
 None
 
+##### If P2 == discarded filter path
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Path length           | 1
+| Path                  | variable
+|==========================================
+
 ##### If P2 == message info
 
 [width="80%"]
@@ -909,6 +944,21 @@ None
 | Display name length   | 1
 | Display name          | variable
 | Filters count         | 1
+| Signature length      | 1
+| Signature             | variable
+|==========================================
+
+##### If P2 == trusted name
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Display name length   | 1
+| Display name          | variable
+| Name types count      | 1
+| Name types            | variable
+| Name sources count    | 1
+| Name sources          | variable
 | Signature length      | 1
 | Signature             | variable
 |==========================================
@@ -992,12 +1042,13 @@ _Output data_
 |===========================================
 
 
-### PROVIDE DOMAIN NAME
+### PROVIDE TRUSTED NAME
 
 #### Description
 
-This command provides a domain name (like ENS) to be displayed during transactions in place of the address it is associated to.
-It shall be run just before a transaction involving the associated address that would be displayed on the device.
+This command provides a trusted name (like an ENS domain) to be displayed during transactions in place of the
+address it is associated to. It shall be run just before a transaction/message involving the associated
+address that would be displayed on the device.
 
 The signature is computed on the TLV payload (minus the signature obviously).
 
@@ -1122,14 +1173,22 @@ The following standard Status Words are returned for all APDUs - some specific S
 [width="80%"]
 |===============================================================================================
 | *SW*     | *Description*
+|   6001   | Mode check fail
 |   6501   | TransactionType not supported
 |   6502   | Output buffer too small for chainId conversion
-|   6503   | Plugin error
-|   6504   | Failed to convert from int256
-|   6700   | Incorrect length
+|   68xx   | Internal error (Please report)
 |   6982   | Security status not satisfied (Canceled by user)
+|   6983   | Wrong Data length
+|   6984   | Plugin not installed
+|   6985   | Condition not satisfied
+|   6A00   | Error without info
 |   6A80   | Invalid data
+|   6A84   | Insufficient memory
+|   6A88   | Data not found
 |   6B00   | Incorrect parameter P1 or P2
+|   6D00   | Incorrect parameter INS
+|   6E00   | Incorrect parameter CLA
 |   6Fxx   | Technical problem (Internal error, please report)
 |   9000   | Normal ending of the command
+|   911C   | Command code not supported (i.e. Ledger-PKI not yet available)
 |===============================================================================================

@@ -65,11 +65,12 @@ def common_test_nft(firmware: Firmware,
             pass
         _, DEVICE_ADDR, _ = ResponseParser.pk_addr(app_client.response().data)
 
-    data = collec.contract.encodeABI(action.fn_name, action.fn_args)
+    data = collec.contract.encode_abi(action.fn_name, action.fn_args)
     app_client.set_plugin(plugin_name,
                           collec.addr,
                           get_selector_from_data(data),
                           collec.chain_id)
+
     app_client.provide_nft_metadata(collec.name, collec.addr, collec.chain_id)
     tx_params = {
         "nonce": NONCE,

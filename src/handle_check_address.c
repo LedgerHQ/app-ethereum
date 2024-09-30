@@ -7,40 +7,34 @@
 
 #define ZERO(x) explicit_bzero(&x, sizeof(x))
 
-void handle_check_address(check_address_parameters_t* params, const chain_config_t* chain_config) {
+uint16_t handle_check_address(check_address_parameters_t* params, chain_config_t* chain_config) {
     params->result = 0;
     PRINTF("Params on the address %d\n", (unsigned int) params);
     PRINTF("Address to check %s\n", params->address_to_check);
     PRINTF("Inside handle_check_address\n");
     if (params->address_to_check == 0) {
         PRINTF("Address to check == 0\n");
-        return;
+        return APDU_RESPONSE_OK;
     }
 
-    const uint8_t* bip32_path_ptr = params->address_parameters;
-    uint8_t bip32PathLength = *(bip32_path_ptr++);
-    uint32_t bip32Path[MAX_BIP32_PATH];
     char address[51];
     uint8_t raw_pubkey[65];
-
-    if ((bip32PathLength < 0x01) || (bip32PathLength > MAX_BIP32_PATH) ||
-        (bip32PathLength * 4 != params->address_parameters_length - 1)) {
+    cx_err_t error = CX_INTERNAL_ERROR;
+    bip32_path_t bip32;
+    bip32.length = params->address_parameters[0];
+    if (bip32_path_read(params->address_parameters + 1,
+                        params->address_parameters_length,
+                        bip32.path,
+                        bip32.length) == false) {
         PRINTF("Invalid path\n");
-        return;
+        return APDU_RESPONSE_INVALID_DATA;
     }
-    for (uint8_t i = 0; i < bip32PathLength; i++) {
-        bip32Path[i] = U4BE(bip32_path_ptr, 0);
-        bip32_path_ptr += 4;
-    }
-
-    if (bip32_derive_get_pubkey_256(CX_CURVE_256K1,
-                                    bip32Path,
-                                    bip32PathLength,
-                                    raw_pubkey,
-                                    NULL,
-                                    CX_SHA512) != CX_OK) {
-        THROW(APDU_RESPONSE_UNKNOWN);
-    }
+    CX_CHECK(bip32_derive_get_pubkey_256(CX_CURVE_256K1,
+                                         bip32.path,
+                                         bip32.length,
+                                         raw_pubkey,
+                                         NULL,
+                                         CX_SHA512));
 
     getEthAddressStringFromRawKey((const uint8_t*) raw_pubkey, address, chain_config->chainId);
 
@@ -55,4 +49,7 @@ void handle_check_address(check_address_parameters_t* params, const chain_config
         PRINTF("Addresses match\n");
         params->result = 1;
     }
+    error = APDU_RESPONSE_OK;
+end:
+    return error;
 }

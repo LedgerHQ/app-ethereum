@@ -6,6 +6,8 @@
 
 #include "os.h"
 #include "cx.h"
+#include "bip32.h"
+#include "bip32_utils.h"
 #include "ethUstream.h"
 #include "tx_content.h"
 #include "chainConfig.h"
@@ -14,7 +16,8 @@
 #include "nbgl_types.h"
 #endif
 
-#define MAX_BIP32_PATH 10
+extern void app_exit();
+extern void common_app_init(void);
 
 #define SELECTOR_LENGTH 4
 
@@ -24,11 +27,6 @@
 
 #define MAX_ASSETS 5
 
-typedef struct bip32_path_t {
-    uint8_t length;
-    uint32_t path[MAX_BIP32_PATH];
-} bip32_path_t;
-
 typedef struct internalStorage_t {
     bool dataAllowed;
     bool contractDetails;
@@ -36,9 +34,9 @@ typedef struct internalStorage_t {
 #ifdef HAVE_EIP712_FULL_SUPPORT
     bool verbose_eip712;
 #endif  // HAVE_EIP712_FULL_SUPPORT
-#ifdef HAVE_DOMAIN_NAME
-    bool verbose_domain_name;
-#endif  // HAVE_DOMAIN_NAME
+#ifdef HAVE_TRUSTED_NAME
+    bool verbose_trusted_name;
+#endif  // HAVE_TRUSTED_NAME
     bool initialized;
 } internalStorage_t;
 
@@ -166,14 +164,30 @@ extern strings_t strings;
 extern cx_sha3_t global_sha3;
 extern const internalStorage_t N_storage_real;
 
+typedef enum swap_mode_e {
+    SWAP_MODE_STANDARD,
+    SWAP_MODE_CROSSCHAIN_PENDING_CHECK,
+    SWAP_MODE_CROSSCHAIN_SUCCESS,
+    SWAP_MODE_ERROR,
+} swap_mode_t;
+
 extern bool G_called_from_swap;
 extern bool G_swap_response_ready;
+extern swap_mode_t G_swap_mode;
+extern uint8_t G_swap_crosschain_hash[CX_SHA256_SIZE];
 
 typedef enum {
-    EXTERNAL,     //  External plugin, set by setExternalPlugin.
-    ERC721,       // Specific ERC721 internal plugin, set by setPlugin.
-    ERC1155,      // Specific ERC1155 internal plugin, set by setPlugin
-    OLD_INTERNAL  // Old internal plugin, not set by any command.
+    // External plugin, set by setExternalPlugin
+    EXTERNAL,
+    // Specific SWAP_WITH_CALLDATA internal plugin
+    // set as fallback when started if calldata is provided in swap mode
+    SWAP_WITH_CALLDATA,
+    // Specific ERC721 internal plugin, set by setPlugin
+    ERC721,
+    // Specific ERC1155 internal plugin, set by setPlugin
+    ERC1155,
+    // Old internal plugin, not set by any command
+    OLD_INTERNAL
 } pluginType_t;
 
 extern pluginType_t pluginType;
@@ -185,5 +199,6 @@ extern uint32_t eth2WithdrawalIndex;
 
 void reset_app_context(void);
 const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_path_t *bip32);
+void storage_init(void);
 
 #endif  // _SHARED_CONTEXT_H_

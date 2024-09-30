@@ -8,8 +8,18 @@
 #include "ui_plugin.h"
 #include "common_ui.h"
 #include "plugins.h"
-#include "domain_name.h"
-#include "ui_domain_name.h"
+#include "trusted_name.h"
+#include "ui_trusted_name.h"
+
+static unsigned int data_ok_cb(void) {
+    ui_idle();
+    return io_seproxyhal_touch_data_ok();
+}
+
+static unsigned int data_cancel_cb(void) {
+    ui_idle();
+    return io_seproxyhal_touch_data_cancel();
+}
 
 // clang-format off
 UX_STEP_NOCB(
@@ -31,7 +41,7 @@ UX_STEP_NOCB(
 UX_STEP_CB(
     ux_confirm_selector_flow_3_step,
     pb,
-    io_seproxyhal_touch_data_ok(NULL),
+    data_ok_cb(),
     {
       &C_icon_validate_14,
       "Approve",
@@ -39,7 +49,7 @@ UX_STEP_CB(
 UX_STEP_CB(
     ux_confirm_selector_flow_4_step,
     pb,
-    io_seproxyhal_touch_data_cancel(NULL),
+    data_cancel_cb(),
     {
       &C_icon_crossmark,
       "Reject",
@@ -72,7 +82,7 @@ UX_STEP_NOCB(
 UX_STEP_CB(
     ux_confirm_parameter_flow_3_step,
     pb,
-    io_seproxyhal_touch_data_ok(NULL),
+    data_ok_cb(),
     {
       &C_icon_validate_14,
       "Approve",
@@ -80,7 +90,7 @@ UX_STEP_CB(
 UX_STEP_CB(
     ux_confirm_parameter_flow_4_step,
     pb,
-    io_seproxyhal_touch_data_cancel(NULL),
+    data_cancel_cb(),
     {
       &C_icon_crossmark,
       "Reject",
@@ -176,7 +186,7 @@ UX_STEP_NOCB(
 UX_STEP_CB(
     ux_approval_accept_step,
     pbb,
-    io_seproxyhal_touch_tx_ok(NULL),
+    tx_ok_cb(),
     {
       &C_icon_validate_14,
       "Accept",
@@ -185,7 +195,7 @@ UX_STEP_CB(
 UX_STEP_CB(
     ux_approval_accept_blind_step,
     pbb,
-    io_seproxyhal_touch_tx_ok(NULL),
+    tx_ok_cb(),
     {
       &C_icon_validate_14,
       "Accept risk",
@@ -194,7 +204,7 @@ UX_STEP_CB(
 UX_STEP_CB(
     ux_approval_reject_step,
     pb,
-    io_seproxyhal_touch_tx_cancel(NULL),
+    tx_cancel_cb(),
     {
       &C_icon_crossmark,
       "Reject",
@@ -232,19 +242,20 @@ void ux_approve_tx(bool fromPlugin) {
             ux_approval_tx_flow[step++] = &ux_approval_from_step;
         }
         ux_approval_tx_flow[step++] = &ux_approval_amount_step;
-#ifdef HAVE_DOMAIN_NAME
+#ifdef HAVE_TRUSTED_NAME
         uint64_t chain_id = get_tx_chain_id();
-        if (has_domain_name(&chain_id, tmpContent.txContent.destination)) {
-            ux_approval_tx_flow[step++] = &ux_domain_name_step;
-            if (N_storage.verbose_domain_name) {
+        e_name_type type = TYPE_ACCOUNT;
+        if (has_trusted_name(1, &type, &chain_id, tmpContent.txContent.destination)) {
+            ux_approval_tx_flow[step++] = &ux_trusted_name_step;
+            if (N_storage.verbose_trusted_name) {
                 ux_approval_tx_flow[step++] = &ux_approval_to_step;
             }
         } else {
-#endif  // HAVE_DOMAIN_NAME
+#endif  // HAVE_TRUSTED_NAME
             ux_approval_tx_flow[step++] = &ux_approval_to_step;
-#ifdef HAVE_DOMAIN_NAME
+#ifdef HAVE_TRUSTED_NAME
         }
-#endif  // HAVE_DOMAIN_NAME
+#endif  // HAVE_TRUSTED_NAME
     }
 
     if (N_storage.displayNonce) {

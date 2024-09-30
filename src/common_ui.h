@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "ui_logic.h"
 
 void ui_idle(void);
 void ui_warning_blind_signing(void);
@@ -24,6 +25,7 @@ void ui_191_switch_to_question(void);
 
 // EIP-712
 void ui_712_start(void);
+void ui_712_start_unfiltered(void);
 void ui_712_switch_to_message(void);
 void ui_712_switch_to_sign(void);
 

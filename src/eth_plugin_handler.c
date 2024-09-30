@@ -4,6 +4,7 @@
 #include "plugin_utils.h"
 #include "shared_context.h"
 #include "network.h"
+#include "cmd_setPlugin.h"
 
 void eth_plugin_prepare_init(ethPluginInitContract_t *init,
                              const uint8_t *selector,
@@ -153,10 +154,13 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
             break;
     }
 
-    // Do not handle a plugin if running in swap mode
     if (G_called_from_swap && (contractAddress != NULL)) {
-        PRINTF("eth_plug_init aborted in swap mode\n");
-        return 0;
+        PRINTF("contractAddress == %.*H\n", 20, contractAddress);
+        PRINTF("selector == %.*H\n", 20, contractAddress);
+        PRINTF("Fallback on swap_with_calldata plugin\n");
+        set_swap_with_calldata_plugin_type();
+        dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
+        contractAddress = NULL;
     }
 
     eth_plugin_result_t status = ETH_PLUGIN_RESULT_UNAVAILABLE;
@@ -207,6 +211,7 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
                 (uint8_t *) &dataContext.tokenContext.pluginContext;
             ((ethPluginInitContract_t *) parameter)->pluginContextLength =
                 sizeof(dataContext.tokenContext.pluginContext);
+            ((ethPluginInitContract_t *) parameter)->bip32 = &tmpCtx.transactionContext.bip32;
             break;
         case ETH_PLUGIN_PROVIDE_PARAMETER:
             PRINTF("-- PLUGIN PROVIDE PARAMETER --\n");
@@ -269,6 +274,10 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
                 }
             }
             END_TRY;
+            break;
+        }
+        case SWAP_WITH_CALLDATA: {
+            swap_with_calldata_plugin_call(method, parameter);
             break;
         }
 #ifdef HAVE_NFT_SUPPORT

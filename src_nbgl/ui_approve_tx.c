@@ -5,7 +5,7 @@
 #include "ui_nbgl.h"
 #include "ui_signing.h"
 #include "plugins.h"
-#include "domain_name.h"
+#include "trusted_name.h"
 #include "caller_api.h"
 #include "network_icons.h"
 #include "network.h"
@@ -26,28 +26,22 @@ static char msg_buffer[MAX_PLUGIN_ITEMS][VALUE_MAX_LEN];
 struct tx_approval_context_t {
     bool fromPlugin;
     bool displayNetwork;
-#ifdef HAVE_DOMAIN_NAME
-    bool domain_name_match;
+#ifdef HAVE_TRUSTED_NAME
+    bool trusted_name_match;
 #endif
 };
 
 static struct tx_approval_context_t tx_approval_context;
 
-static void reviewReject(void) {
-    io_seproxyhal_touch_tx_cancel(NULL);
-    memset(&tx_approval_context, 0, sizeof(tx_approval_context));
-}
-
-static void confirmTransation(void) {
-    io_seproxyhal_touch_tx_ok(NULL);
-    memset(&tx_approval_context, 0, sizeof(tx_approval_context));
-}
-
 static void reviewChoice(bool confirm) {
     if (confirm) {
-        nbgl_useCaseReviewStatus(STATUS_TYPE_TRANSACTION_SIGNED, confirmTransation);
+        io_seproxyhal_touch_tx_ok();
+        memset(&tx_approval_context, 0, sizeof(tx_approval_context));
+        nbgl_useCaseReviewStatus(STATUS_TYPE_TRANSACTION_SIGNED, ui_idle);
     } else {
-        nbgl_useCaseReviewStatus(STATUS_TYPE_TRANSACTION_REJECTED, reviewReject);
+        io_seproxyhal_touch_tx_cancel();
+        memset(&tx_approval_context, 0, sizeof(tx_approval_context));
+        nbgl_useCaseReviewStatus(STATUS_TYPE_TRANSACTION_REJECTED, ui_idle);
     }
 }
 
@@ -136,21 +130,22 @@ static uint8_t setTagValuePairs(void) {
         pairs[nbPairs].value = strings.common.fullAmount;
         nbPairs++;
 
-#ifdef HAVE_DOMAIN_NAME
+#ifdef HAVE_TRUSTED_NAME
         uint64_t chain_id = get_tx_chain_id();
-        tx_approval_context.domain_name_match =
-            has_domain_name(&chain_id, tmpContent.txContent.destination);
-        if (tx_approval_context.domain_name_match) {
+        e_name_type type = TYPE_ACCOUNT;
+        tx_approval_context.trusted_name_match =
+            has_trusted_name(1, &type, &chain_id, tmpContent.txContent.destination);
+        if (tx_approval_context.trusted_name_match) {
             pairs[nbPairs].item = "To (domain)";
-            pairs[nbPairs].value = g_domain_name;
+            pairs[nbPairs].value = g_trusted_name;
             nbPairs++;
         }
-        if (!tx_approval_context.domain_name_match || N_storage.verbose_domain_name) {
+        if (!tx_approval_context.trusted_name_match || N_storage.verbose_trusted_name) {
 #endif
             pairs[nbPairs].item = "To";
             pairs[nbPairs].value = strings.common.toAddress;
             nbPairs++;
-#ifdef HAVE_DOMAIN_NAME
+#ifdef HAVE_TRUSTED_NAME
         }
 #endif
         if (N_storage.displayNonce) {
@@ -172,20 +167,23 @@ static uint8_t setTagValuePairs(void) {
     return nbPairs;
 }
 
-static void reviewCommon(void) {
+void ux_approve_tx(bool fromPlugin) {
     explicit_bzero(&pairsList, sizeof(pairsList));
+    explicit_bzero(&tx_approval_context, sizeof(tx_approval_context));
+    tx_approval_context.fromPlugin = fromPlugin;
+
+    uint64_t chain_id = get_tx_chain_id();
+    if (chainConfig->chainId == ETHEREUM_MAINNET_CHAINID && chain_id != chainConfig->chainId) {
+        tx_approval_context.displayNetwork = true;
+    } else {
+        tx_approval_context.displayNetwork = false;
+    }
 
     pairsList.nbPairs = setTagValuePairs();
     pairsList.pairs = pairs;
-    nbgl_operationType_t op = TYPE_TRANSACTION;
 
-#if API_LEVEL >= 19
-    if (tmpContent.txContent.dataPresent) {
-        op |= BLIND_OPERATION;
-    }
-#endif
+    uint32_t buf_size = SHARED_BUFFER_SIZE / 2;
     if (tx_approval_context.fromPlugin) {
-        uint32_t buf_size = SHARED_BUFFER_SIZE / 2;
         char op_name[sizeof(strings.common.fullAmount)];
         plugin_ui_get_id();
 
@@ -203,36 +201,30 @@ static void reviewCommon(void) {
                  op_name,
                  (pluginType == EXTERNAL ? "on " : ""),
                  strings.common.toAddress);
+    } else {
+        snprintf(g_stax_shared_buffer, buf_size, REVIEW("transaction"));
+        snprintf(
+            g_stax_shared_buffer + buf_size,
+            buf_size,
+            tmpContent.txContent.dataPresent ? BLIND_SIGN("transaction") : SIGN("transaction"));
+    }
 
-        nbgl_useCaseReview(op,
+    if (tmpContent.txContent.dataPresent) {
+        nbgl_useCaseReviewBlindSigning(TYPE_TRANSACTION,
+                                       &pairsList,
+                                       get_tx_icon(),
+                                       g_stax_shared_buffer,
+                                       NULL,
+                                       g_stax_shared_buffer + buf_size,
+                                       NULL,
+                                       reviewChoice);
+    } else {
+        nbgl_useCaseReview(TYPE_TRANSACTION,
                            &pairsList,
                            get_tx_icon(),
                            g_stax_shared_buffer,
                            NULL,
                            g_stax_shared_buffer + buf_size,
                            reviewChoice);
-    } else {
-        nbgl_useCaseReview(
-            op,
-            &pairsList,
-            get_tx_icon(),
-            REVIEW("transaction"),
-            NULL,
-            tmpContent.txContent.dataPresent ? BLIND_SIGN("transaction") : SIGN("transaction"),
-            reviewChoice);
     }
-}
-
-void ux_approve_tx(bool fromPlugin) {
-    memset(&tx_approval_context, 0, sizeof(tx_approval_context));
-
-    tx_approval_context.fromPlugin = fromPlugin;
-    tx_approval_context.displayNetwork = false;
-
-    uint64_t chain_id = get_tx_chain_id();
-    if (chainConfig->chainId == ETHEREUM_MAINNET_CHAINID && chain_id != chainConfig->chainId) {
-        tx_approval_context.displayNetwork = true;
-    }
-
-    reviewCommon();
 }

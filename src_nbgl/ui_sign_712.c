@@ -66,7 +66,8 @@ static void message_update(bool confirm) {
             pairs[pair_idx].value = memmove(buf + buf_idx, strings.tmp.tmp, buf_off);
             buf_idx += buf_off;
             pair_idx += 1;
-            pairs_list.nbPairs = nbgl_useCaseGetNbTagValuesInPage(pair_idx, &pairs_list, 0, &flag);
+            pairs_list.nbPairs =
+                nbgl_useCaseGetNbTagValuesInPageExt(pair_idx, &pairs_list, 0, !filtered, &flag);
         }
         if (!review_skipped && ((pair_idx == ARRAYLEN(pairs)) || (pairs_list.nbPairs < pair_idx))) {
             nbgl_useCaseReviewStreamingContinueExt(&pairs_list, message_progress, review_skip);

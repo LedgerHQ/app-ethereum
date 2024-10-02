@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.12.1](https://github.com/ledgerhq/app-ethereum/compare/1.12.0...1.12.1) - 2024-10-02
+
+### Fixed
+
+- Review of EIP-191 messages getting stuck and not responding to APDUs
+
 ## [1.12.0](https://github.com/ledgerhq/app-ethereum/compare/1.11.3...1.12.0) - 2024-09-27
 
 ### Added

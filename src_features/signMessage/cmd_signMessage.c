@@ -311,8 +311,13 @@ void skip_rest_of_message(void) {
  * The user has decided to see the next chunk of the message
  */
 void continue_displaying_message(void) {
+    uint16_t sw = APDU_RESPONSE_OK;
+
     reset_ui_buffer();
     if (unprocessed_length() > 0) {
-        feed_display();
+        sw = feed_display();
+    }
+    if (sw != APDU_NO_RESPONSE) {
+        io_seproxyhal_send_status(sw, 0, sw != APDU_RESPONSE_OK, sw != APDU_RESPONSE_OK);
     }
 }

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 
 - Review of EIP-191 messages getting stuck and not responding to APDUs
+- (clone) Ethereum Classic, gave it back the Ethereum derivation path
 
 ## [1.12.0](https://github.com/ledgerhq/app-ethereum/compare/1.11.3...1.12.0) - 2024-09-27
 

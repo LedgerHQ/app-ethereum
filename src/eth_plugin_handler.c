@@ -140,13 +140,21 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
         case ERC721:
 #endif  // HAVE_NFT_SUPPORT
         case EXTERNAL:
+            PRINTF("eth_plugin_perform_init_default\n");
             eth_plugin_perform_init_default(contractAddress, init);
             contractAddress = NULL;
             break;
         case OLD_INTERNAL:
+            PRINTF("eth_plugin_perform_init_old_internal\n");
             if (eth_plugin_perform_init_old_internal(contractAddress, init)) {
                 contractAddress = NULL;
             }
+            break;
+        case SWAP_WITH_CALLDATA:
+            PRINTF("contractAddress == %.*H\n", 20, contractAddress);
+            PRINTF("Fallback on swap_with_calldata plugin\n");
+            contractAddress = NULL;
+            dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
             break;
         default:
             PRINTF("Unsupported pluginType %d\n", pluginType);
@@ -154,20 +162,16 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
             break;
     }
 
-    if (G_called_from_swap && (contractAddress != NULL)) {
-        PRINTF("contractAddress == %.*H\n", 20, contractAddress);
-        PRINTF("selector == %.*H\n", 20, contractAddress);
-        PRINTF("Fallback on swap_with_calldata plugin\n");
-        set_swap_with_calldata_plugin_type();
-        dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
-        contractAddress = NULL;
-    }
-
     eth_plugin_result_t status = ETH_PLUGIN_RESULT_UNAVAILABLE;
 
     if (contractAddress != NULL) {
         PRINTF("No plugin available for %.*H\n", 20, contractAddress);
-        return status;
+        if (G_called_from_swap) {
+            PRINTF("Not supported in swap mode\n");
+            return ETH_PLUGIN_RESULT_ERROR;
+        } else {
+            return status;
+        }
     }
 
     PRINTF("eth_plugin_init\n");

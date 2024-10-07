@@ -6,6 +6,7 @@
 #include "shared_context.h"
 #include "common_utils.h"
 #include "network.h"
+#include "cmd_setPlugin.h"
 #ifdef HAVE_NBGL
 #include "nbgl_use_case.h"
 #endif  // HAVE_NBGL
@@ -138,6 +139,10 @@ void __attribute__((noreturn)) handle_swap_sign_transaction(const chain_config_t
     reset_app_context();
     G_called_from_swap = true;
     G_swap_response_ready = false;
+    // If we are in crosschain context, automatically register the CROSSCHAIN plugin
+    if (G_swap_mode == SWAP_MODE_CROSSCHAIN_PENDING_CHECK) {
+        set_swap_with_calldata_plugin_type();
+    }
 
     common_app_init();
 

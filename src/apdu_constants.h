@@ -25,12 +25,15 @@
 #define INS_EIP712_FILTERING                0x1E
 #define INS_ENS_GET_CHALLENGE               0x20
 #define INS_ENS_PROVIDE_INFO                0x22
+#define INS_PROVIDE_NETWORK_CONFIGURATION   0x30
 #define P1_CONFIRM                          0x01
 #define P1_NON_CONFIRM                      0x00
 #define P2_NO_CHAINCODE                     0x00
 #define P2_CHAINCODE                        0x01
 #define P1_FIRST                            0x00
 #define P1_MORE                             0x80
+#define P1_FIRST_CHUNK                      0x01
+#define P1_FOLLOWING_CHUNK                  0x00
 #define P2_EIP712_LEGACY_IMPLEM             0x00
 #define P2_EIP712_FULL_IMPLEM               0x01
 
@@ -54,6 +57,11 @@
 #define APDU_RESPONSE_OK                      0x9000
 #define APDU_RESPONSE_CMD_CODE_NOT_SUPPORTED  0x911c
 
+uint16_t handleNetworkConfiguration(uint8_t p1,
+                                    uint8_t p2,
+                                    const uint8_t *data,
+                                    uint8_t length,
+                                    unsigned int *tx);
 uint16_t handleGetPublicKey(uint8_t p1,
                             uint8_t p2,
                             const uint8_t *dataBuffer,

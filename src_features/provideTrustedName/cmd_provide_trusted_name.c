@@ -16,9 +16,6 @@
 #include "os_pki.h"
 #endif
 
-#define P1_FIRST_CHUNK     0x01
-#define P1_FOLLOWING_CHUNK 0x00
-
 #define STRUCT_TYPE_TRUSTED_NAME 0x03
 #define ALGO_SECP256K1           1
 

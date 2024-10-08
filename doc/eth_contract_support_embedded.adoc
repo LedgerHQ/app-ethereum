@@ -1,10 +1,6 @@
-Ethereum application : Embedded Contract Support
+= Ethereum application : Embedded Contract Support
 ================================================
-Ledger Firmware Team <hello@ledger.fr>
-Application version 1.3.0 - 05th of July 2020
 
-## 1.3.0
-  - Initial release
 
 ## About
 

@@ -135,6 +135,9 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
     }
 
     switch (cmd->ins) {
+        case INS_PROVIDE_NETWORK_CONFIGURATION:
+            sw = handleNetworkConfiguration(cmd->p1, cmd->p2, cmd->data, cmd->lc, tx);
+            break;
         case INS_GET_PUBLIC_KEY:
             forget_known_assets();
             sw = handleGetPublicKey(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags, tx);

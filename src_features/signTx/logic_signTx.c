@@ -57,7 +57,8 @@ customStatus_e customProcessor(txContext_t *context) {
             dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_UNAVAILABLE;
             // If contract debugging mode is activated, do not go through the plugin activation
             // as they wouldn't be displayed if the plugin consumes all data but fallbacks
-            if (!N_storage.contractDetails) {
+            // Still go through plugin activation in Swap context
+            if (!N_storage.contractDetails || G_called_from_swap) {
                 eth_plugin_prepare_init(&pluginInit,
                                         context->workBuffer,
                                         context->currentFieldLength);

@@ -87,7 +87,8 @@ uint16_t handleSign(uint8_t p1,
                 // We have encountered an error while trying to sign a SWAP type transaction
                 // Return dedicated error code and flag an early exit back to Exchange
                 G_swap_response_ready = true;
-                return APDU_RESPONSE_MODE_CHECK_FAILED;
+                send_swap_error(ERROR_GENERIC, "Wrong mode", NULL);
+                return APDU_NO_RESPONSE;
             } else {
                 return APDU_RESPONSE_INVALID_DATA;
             }

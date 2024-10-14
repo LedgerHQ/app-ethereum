@@ -560,17 +560,17 @@ static bool handle_nft_id(const s_tlv_data *data,
 static bool verify_signature(const s_sig_ctx *sig_ctx) {
     uint8_t hash[INT256_LENGTH];
     cx_err_t error = CX_INTERNAL_ERROR;
-#ifdef HAVE_TRUSTED_NAME_TEST_KEY
-    e_key_id valid_key_id = KEY_ID_TEST;
-#else
-    e_key_id valid_key_id = KEY_ID_PROD;
-#endif
+//#ifdef HAVE_TRUSTED_NAME_TEST_KEY
+//    e_key_id valid_key_id = KEY_ID_TEST;
+//#else
+//    e_key_id valid_key_id = KEY_ID_PROD;
+//#endif
     bool ret_code = false;
 
-    if (sig_ctx->key_id != valid_key_id) {
-        PRINTF("Error: Unknown metadata key ID %u\n", sig_ctx->key_id);
-        return false;
-    }
+    //if (sig_ctx->key_id != valid_key_id) {
+    //    PRINTF("Error: Unknown metadata key ID %u\n", sig_ctx->key_id);
+    //    return false;
+    //}
 
     CX_CHECK(
         cx_hash_no_throw((cx_hash_t *) &sig_ctx->hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH));
@@ -578,8 +578,8 @@ static bool verify_signature(const s_sig_ctx *sig_ctx) {
     CX_CHECK(check_signature_with_pubkey("Domain Name",
                                          hash,
                                          sizeof(hash),
-                                         TRUSTED_NAME_PUB_KEY,
-                                         sizeof(TRUSTED_NAME_PUB_KEY),
+                                         LEDGER_SIGNATURE_PUBLIC_KEY,
+                                         sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
 #ifdef HAVE_LEDGER_PKI
                                          CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META,
 #endif

@@ -11,6 +11,8 @@
 #include "crypto_helpers.h"
 #include "format.h"
 #include "manage_asset_info.h"
+#include "handle_swap_sign_transaction.h"
+#include "os_math.h"
 
 static bool g_use_standard_ui;
 
@@ -323,6 +325,56 @@ static int strcasecmp_workaround(const char *str1, const char *str2) {
     return 0;
 }
 
+__attribute__((noreturn)) void send_swap_error(uint8_t error_code,
+                                               app_code_t app_code,
+                                               const char *str1,
+                                               const char *str2) {
+    uint32_t tx = 0;
+    uint len = 0;
+    PRINTF("APDU_RESPONSE_MODE_CHECK_FAILED: 0x%x\n", error_code);
+    // Set RAPDU error codes
+    G_io_apdu_buffer[tx++] = error_code;
+    G_io_apdu_buffer[tx++] = app_code;
+    // Set RAPDU error message
+    if (str1 != NULL) {
+        PRINTF("Expected %s\n", str1);
+        // If the string is too long, truncate it
+        len = MIN(strlen((const char *) str1), sizeof(G_io_apdu_buffer) - tx - 2);
+        memmove(G_io_apdu_buffer + tx, str1, len);
+        tx += len;
+        if (len < strlen((const char *) str1)) {
+            PRINTF("Truncated %s to %d bytes\n", str1, len);
+            G_io_apdu_buffer[tx - 1] = '*';
+        }
+    }
+    if (str2 != NULL) {
+        PRINTF("Received %s\n", str2);
+        // Do we have enough space to add a separator?
+        if ((tx + 1 + 2) < sizeof(G_io_apdu_buffer)) {
+            G_io_apdu_buffer[tx++] = '#';
+        }
+        // Do we have enough space to add at least one character?
+        if ((tx + 1 + 2) < sizeof(G_io_apdu_buffer)) {
+            // If the string is too long, truncate it
+            len = MIN(strlen((const char *) str2), sizeof(G_io_apdu_buffer) - tx - 2);
+            memmove(G_io_apdu_buffer + tx, str2, len);
+            tx += len;
+            if (len < strlen((const char *) str2)) {
+                PRINTF("Truncated %s to %d bytes\n", str2, len);
+                G_io_apdu_buffer[tx - 1] = '*';
+            }
+        }
+    }
+    // Set RAPDU status word, with previous check we are sure there is at least 2 bytes left
+    U2BE_ENCODE(G_io_apdu_buffer, tx, APDU_RESPONSE_MODE_CHECK_FAILED);
+    tx += 2;
+    // Send RAPDU
+    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
+    // In case of success, the apdu is sent immediately and eth exits
+    // Reaching this code means we encountered an error
+    finalize_exchange_sign_transaction(false);
+}
+
 __attribute__((noinline)) static uint16_t finalize_parsing_helper(void) {
     char displayBuffer[50];
     uint8_t decimals = WEI_TO_ETHER;
@@ -453,19 +505,20 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(void) {
         G_swap_response_ready = true;
     }
 
-    // User has just validated a swap but ETH received apdus about a non standard plugin / contract
-    if (G_called_from_swap && !g_use_standard_ui) {
-        PRINTF("APDU_RESPONSE_MODE_CHECK_FAILED, G_called_from_swap\n");
-        return APDU_RESPONSE_MODE_CHECK_FAILED;
-    }
-
-    // Specific calldata check when in swap mode
     if (G_called_from_swap) {
+        // User has just validated a swap but ETH received apdus about a non standard plugin /
+        // contract
+        if (!g_use_standard_ui) {
+            send_swap_error(ERROR_WRONG_METHOD, APP_CODE_NO_STANDARD_UI, NULL, NULL);
+            // unreachable
+            os_sched_exit(0);
+        }
         // Two success cases: we are in standard mode and no calldata was received
         // We are in crosschain mode and the correct calldata has been received
         if (G_swap_mode != SWAP_MODE_STANDARD && G_swap_mode != SWAP_MODE_CROSSCHAIN_SUCCESS) {
-            PRINTF("Error: G_swap_mode %d refused\n", G_swap_mode);
-            return APDU_RESPONSE_MODE_CHECK_FAILED;
+            send_swap_error(ERROR_CROSSCHAIN_WRONG_MODE, APP_CODE_DEFAULT, NULL, NULL);
+            // unreachable
+            os_sched_exit(0);
         }
     }
 
@@ -491,8 +544,12 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(void) {
         if (G_called_from_swap) {
             // Ensure the values are the same that the ones that have been previously validated
             if (strcasecmp_workaround(strings.common.toAddress, displayBuffer) != 0) {
-                PRINTF("APDU_RESPONSE_MODE_CHECK_FAILED, address check failed\n");
-                return APDU_RESPONSE_MODE_CHECK_FAILED;
+                send_swap_error(ERROR_WRONG_DESTINATION,
+                                APP_CODE_DEFAULT,
+                                strings.common.toAddress,
+                                displayBuffer);
+                // unreachable
+                os_sched_exit(0);
             }
         } else {
             strlcpy(strings.common.toAddress, displayBuffer, sizeof(strings.common.toAddress));
@@ -514,10 +571,12 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(void) {
         if (G_called_from_swap) {
             // Ensure the values are the same that the ones that have been previously validated
             if (strcmp(strings.common.fullAmount, displayBuffer) != 0) {
-                PRINTF("APDU_RESPONSE_MODE_CHECK_FAILED, amount check failed\n");
-                PRINTF("Expected %s\n", strings.common.fullAmount);
-                PRINTF("Received %s\n", displayBuffer);
-                return APDU_RESPONSE_MODE_CHECK_FAILED;
+                send_swap_error(ERROR_WRONG_AMOUNT,
+                                APP_CODE_DEFAULT,
+                                strings.common.fullAmount,
+                                displayBuffer);
+                // unreachable
+                os_sched_exit(0);
             }
         } else {
             strlcpy(strings.common.fullAmount, displayBuffer, sizeof(strings.common.fullAmount));
@@ -536,10 +595,12 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(void) {
     if (G_called_from_swap) {
         // Ensure the values are the same that the ones that have been previously validated
         if (strcmp(strings.common.maxFee, displayBuffer) != 0) {
-            PRINTF("APDU_RESPONSE_MODE_CHECK_FAILED, fees check failed\n");
-            PRINTF("Expected %s\n", strings.common.maxFee);
-            PRINTF("Received %s\n", displayBuffer);
-            return APDU_RESPONSE_MODE_CHECK_FAILED;
+            send_swap_error(ERROR_WRONG_FEES,
+                            APP_CODE_DEFAULT,
+                            strings.common.maxFee,
+                            displayBuffer);
+            // unreachable
+            os_sched_exit(0);
         }
     } else {
         strlcpy(strings.common.maxFee, displayBuffer, sizeof(strings.common.maxFee));

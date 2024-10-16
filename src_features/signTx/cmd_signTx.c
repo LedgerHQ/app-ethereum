@@ -87,10 +87,11 @@ uint16_t handleSign(uint8_t p1,
                 // We have encountered an error while trying to sign a SWAP type transaction
                 // Return dedicated error code and flag an early exit back to Exchange
                 G_swap_response_ready = true;
-                return APDU_RESPONSE_MODE_CHECK_FAILED;
-            } else {
-                return APDU_RESPONSE_INVALID_DATA;
+                send_swap_error(ERROR_GENERIC, APP_CODE_CALLDATA_ISSUE, NULL, NULL);
+                // unreachable
+                os_sched_exit(0);
             }
+            return APDU_RESPONSE_INVALID_DATA;
         default:
             PRINTF("Unexpected parser status\n");
             return APDU_RESPONSE_INVALID_DATA;

@@ -1,7 +1,8 @@
 #ifndef _SIGN_TX_H_
 #define _SIGN_TX_H_
 
-#include "shared_context.h"
+#include <stdbool.h>
+#include "ethUstream.h"
 
 // Error codes for swap, to be moved in SDK?
 #define ERROR_WRONG_AMOUNT            0x01
@@ -27,7 +28,7 @@ typedef enum {
 } plugin_ui_state_t;
 
 customStatus_e customProcessor(txContext_t *context);
-uint16_t finalizeParsing();
+uint16_t finalize_parsing(void);
 void ux_approve_tx(bool fromPlugin);
 void start_signature_flow(void);
 

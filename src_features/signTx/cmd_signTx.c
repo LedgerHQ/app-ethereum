@@ -10,7 +10,6 @@ typedef enum {
 static uint16_t handle_first_sign_chunk(const uint8_t *payload, uint8_t length, uint8_t *offset) {
     uint8_t length_tmp = length;
     uint8_t tx_type;
-    cx_err_t error = CX_INTERNAL_ERROR;
 
     if (appState != APP_STATE_IDLE) {
         reset_app_context();
@@ -44,9 +43,9 @@ static uint16_t handle_first_sign_chunk(const uint8_t *payload, uint8_t length, 
                 PRINTF("Transaction type %d not supported\n", tx_type);
                 return APDU_RESPONSE_TX_TYPE_NOT_SUPPORTED;
         }
-        error = cx_hash_no_throw((cx_hash_t *) &global_sha3, 0, &tx_type, sizeof(tx_type), NULL, 0);
-        if (error != CX_OK) {
-            return error;
+        if (cx_hash_no_throw((cx_hash_t *) &global_sha3, 0, &tx_type, sizeof(tx_type), NULL, 0) !=
+            CX_OK) {
+            return APDU_RESPONSE_INVALID_DATA;
         }
         txContext.txType = tx_type;
         *offset += sizeof(tx_type);

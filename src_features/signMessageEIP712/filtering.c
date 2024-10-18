@@ -2,7 +2,6 @@
 
 #include "filtering.h"
 #include "hash_bytes.h"
-#include "ethUstream.h"      // INT256_LENGTH
 #include "apdu_constants.h"  // APDU return codes
 #include "public_keys.h"
 #include "manage_asset_info.h"

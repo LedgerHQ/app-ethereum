@@ -3,7 +3,6 @@
 #include "eth_plugin_handler.h"
 #include "shared_context.h"
 #include "plugin_utils.h"
-#include "ethUstream.h"
 #include "common_utils.h"
 
 typedef enum { ERC20_TRANSFER = 0, ERC20_APPROVE } erc20Selector_t;

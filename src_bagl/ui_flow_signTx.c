@@ -2,7 +2,6 @@
 #include "ui_callbacks.h"
 #include "chainConfig.h"
 #include "common_utils.h"
-#include "feature_signTx.h"
 #include "network.h"
 #include "eth_plugin_handler.h"
 #include "ui_plugin.h"

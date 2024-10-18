@@ -5,7 +5,6 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "ethUstream.h"
 #include "uint256.h"
 #include "asset_info.h"
 #include "eth_plugin_interface.h"

@@ -54,11 +54,16 @@ static bool check_cmd_length(txContext_t *context, const char *name, uint32_t le
     return true;
 }
 
-bool init_tx(txContext_t *context, cx_sha3_t *sha3, txContent_t *content) {
+bool init_tx(txContext_t *context, cx_sha3_t *sha3, txContent_t *content, bool store_calldata) {
     explicit_bzero(context, sizeof(*context));
     context->sha3 = sha3;
     context->content = content;
     context->currentField = RLP_NONE + 1;
+#ifdef HAVE_GENERIC_TX_PARSER
+    context->store_calldata = store_calldata;
+#else
+    UNUSED(store_calldata);
+#endif
     if (cx_keccak_init_no_throw(context->sha3, 256) != CX_OK) {
         return false;
     }

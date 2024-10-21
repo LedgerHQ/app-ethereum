@@ -22,6 +22,9 @@
 #include "rlp_utils.h"
 #include "common_utils.h"
 #include "feature_signTx.h"
+#ifdef HAVE_GENERIC_TX_PARSER
+#include "calldata.h"
+#endif
 
 static bool check_fields(txContext_t *context, const char *name, uint32_t length) {
     UNUSED(name);  // Just for the case where DEBUG is not enabled
@@ -292,6 +295,16 @@ static bool processData(txContext_t *context) {
         if (copySize == 1 && *context->workBuffer == 0x00) {
             context->content->dataPresent = false;
         }
+#ifdef HAVE_GENERIC_TX_PARSER
+        if (context->store_calldata) {
+            if (context->currentFieldPos == 0) {
+                if (!calldata_init(context->currentFieldLength)) {
+                    return false;
+                }
+            }
+            calldata_append(context->workBuffer, copySize);
+        }
+#endif
         if (copyTxData(context, NULL, copySize) == false) {
             return false;
         }

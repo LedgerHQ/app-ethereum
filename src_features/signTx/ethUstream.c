@@ -22,6 +22,7 @@
 #include "rlp_utils.h"
 #include "common_utils.h"
 #include "feature_signTx.h"
+#include "mem.h"
 
 static bool check_fields(txContext_t *context, const char *name, uint32_t length) {
     UNUSED(name);  // Just for the case where DEBUG is not enabled
@@ -292,6 +293,18 @@ static bool processData(txContext_t *context) {
         if (copySize == 1 && *context->workBuffer == 0x00) {
             context->content->dataPresent = false;
         }
+#ifdef HAVE_GENERIC_TX_PARSER
+        if (context->store_calldata) {
+            if (context->currentFieldPos == 0) {
+                if ((context->calldata.ptr = mem_alloc(context->currentFieldLength)) == NULL) {
+                    return false;
+                }
+                context->calldata.size = 0;
+            }
+            memcpy(context->calldata.ptr + context->calldata.size, context->workBuffer, copySize);
+            context->calldata.size += copySize;
+        }
+#endif
         if (copyTxData(context, NULL, copySize) == false) {
             return false;
         }

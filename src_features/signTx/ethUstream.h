@@ -103,6 +103,11 @@ typedef enum parserStatus_e {
     USTREAM_CONTINUE     // Used internally to signify we can keep on parsing
 } parserStatus_e;
 
+typedef struct {
+    uint8_t *ptr;
+    uint32_t size;
+} s_calldata;
+
 typedef struct txContext_t {
     uint8_t currentField;
     cx_sha3_t *sha3;
@@ -122,6 +127,7 @@ typedef struct txContext_t {
     uint32_t remaining_rlp_size;
 #ifdef HAVE_GENERIC_TX_PARSER
     bool store_calldata;
+    s_calldata calldata;
 #endif
 } txContext_t;
 

@@ -118,7 +118,7 @@ uint16_t handleSign(uint8_t p1,
         case USTREAM_SUSPENDED:
             break;
         case USTREAM_FINISHED:
-            sw = finalize_parsing();
+            sw = finalize_parsing(&txContext);
             break;
         case USTREAM_PROCESSING:
             return APDU_RESPONSE_OK;

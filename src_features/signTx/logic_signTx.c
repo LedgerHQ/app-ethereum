@@ -13,6 +13,7 @@
 #include "manage_asset_info.h"
 #include "handle_swap_sign_transaction.h"
 #include "os_math.h"
+#include "calldata.h"
 
 static bool g_use_standard_ui;
 
@@ -633,7 +634,7 @@ void start_signature_flow(void) {
     }
 }
 
-uint16_t finalize_parsing(void) {
+uint16_t finalize_parsing(const txContext_t *context) {
     uint16_t sw = APDU_RESPONSE_UNKNOWN;
     g_use_standard_ui = true;
 
@@ -641,20 +642,32 @@ uint16_t finalize_parsing(void) {
     if (sw != APDU_RESPONSE_OK) {
         return sw;
     }
-    // If called from swap, the user has already validated a standard transaction
-    // And we have already checked the fields of this transaction above
-    if (G_called_from_swap && g_use_standard_ui) {
-        ui_idle();
-        io_seproxyhal_touch_tx_ok();
+#ifdef HAVE_GENERIC_TX_PARSER
+    if (context->store_calldata) {
+        if (calldata_get_selector() == NULL) {
+            PRINTF("Asked to store calldata but none was provided!\n");
+            return APDU_RESPONSE_INVALID_DATA;
+        }
     } else {
-#ifdef HAVE_BAGL
-        // If blind-signing detected, start the warning flow beforehand
-        if (tmpContent.txContent.dataPresent) {
-            ui_warning_blind_signing();
-        } else
+#else
+    (void) context;
+    {
 #endif
-        {
-            start_signature_flow();
+        // If called from swap, the user has already validated a standard transaction
+        // And we have already checked the fields of this transaction above
+        if (G_called_from_swap && g_use_standard_ui) {
+            ui_idle();
+            io_seproxyhal_touch_tx_ok();
+        } else {
+#ifdef HAVE_BAGL
+            // If blind-signing detected, start the warning flow beforehand
+            if (tmpContent.txContent.dataPresent) {
+                ui_warning_blind_signing();
+            } else
+#endif
+            {
+                start_signature_flow();
+            }
         }
     }
     return APDU_RESPONSE_OK;

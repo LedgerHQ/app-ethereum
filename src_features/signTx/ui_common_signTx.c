@@ -80,7 +80,7 @@ unsigned int io_seproxyhal_touch_data_ok(void) {
         case USTREAM_SUSPENDED:
             break;
         case USTREAM_FINISHED:
-            err = finalize_parsing();
+            err = finalize_parsing(&txContext);
             break;
         case USTREAM_PROCESSING:
             err = io_seproxyhal_send_status(APDU_RESPONSE_OK, 0, false, true);

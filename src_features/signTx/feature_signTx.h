@@ -28,7 +28,7 @@ typedef enum {
 } plugin_ui_state_t;
 
 customStatus_e customProcessor(txContext_t *context);
-uint16_t finalize_parsing(void);
+uint16_t finalize_parsing(const txContext_t *context);
 void ux_approve_tx(bool fromPlugin);
 void start_signature_flow(void);
 

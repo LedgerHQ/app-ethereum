@@ -94,10 +94,16 @@ customStatus_e customProcessor(txContext_t *context) {
         uint32_t copySize;
         uint32_t fieldPos = context->currentFieldPos;
         if (fieldPos == 0) {  // not reached if a plugin is available
-            if (!N_storage.dataAllowed) {
-                PRINTF("Data field forbidden\n");
-                ui_error_blind_signing();
-                return CUSTOM_FAULT;
+#ifdef HAVE_GENERIC_TX_PARSER
+            if (!context->store_calldata) {
+#else
+            {
+#endif
+                if (!N_storage.dataAllowed) {
+                    PRINTF("Data field forbidden\n");
+                    ui_error_blind_signing();
+                    return CUSTOM_FAULT;
+                }
             }
             if (!N_storage.contractDetails) {
                 return CUSTOM_NOT_HANDLED;
@@ -382,7 +388,7 @@ __attribute__((noreturn)) void send_swap_error(uint8_t error_code,
     finalize_exchange_sign_transaction(false);
 }
 
-__attribute__((noinline)) static uint16_t finalize_parsing_helper(void) {
+__attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContext_t *context) {
     char displayBuffer[50];
     uint8_t decimals = WEI_TO_ETHER;
     uint64_t chain_id = get_tx_chain_id();
@@ -529,11 +535,18 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(void) {
         }
     }
 
-    if (tmpContent.txContent.dataPresent && !N_storage.dataAllowed) {
-        PRINTF("Data is present but not allowed\n");
-        report_finalize_error();
-        ui_error_blind_signing();
-        return false;
+#ifdef HAVE_GENERIC_TX_PARSER
+    if (!context->store_calldata) {
+#else
+    (void) context;
+    {
+#endif
+        if (tmpContent.txContent.dataPresent && !N_storage.dataAllowed) {
+            PRINTF("Data is present but not allowed\n");
+            report_finalize_error();
+            ui_error_blind_signing();
+            return false;
+        }
     }
 
     // Prepare destination address and amount to display
@@ -644,7 +657,7 @@ uint16_t finalize_parsing(const txContext_t *context) {
     uint16_t sw = APDU_RESPONSE_UNKNOWN;
     g_use_standard_ui = true;
 
-    sw = finalize_parsing_helper();
+    sw = finalize_parsing_helper(context);
     if (sw != APDU_RESPONSE_OK) {
         return sw;
     }

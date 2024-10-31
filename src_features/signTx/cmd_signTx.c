@@ -63,6 +63,36 @@ static uint16_t handle_first_sign_chunk(const uint8_t *payload,
     return APDU_NO_RESPONSE;
 }
 
+uint16_t handle_parsing_status(parserStatus_e status) {
+    uint16_t sw = APDU_NO_RESPONSE;
+
+    switch (status) {
+        case USTREAM_SUSPENDED:
+            break;
+        case USTREAM_FINISHED:
+            sw = finalize_parsing(&txContext);
+            break;
+        case USTREAM_PROCESSING:
+            sw = APDU_RESPONSE_OK;
+            break;
+        case USTREAM_FAULT:
+            if (G_called_from_swap) {
+                // We have encountered an error while trying to sign a SWAP type transaction
+                // Return dedicated error code and flag an early exit back to Exchange
+                G_swap_response_ready = true;
+                send_swap_error(ERROR_GENERIC, APP_CODE_CALLDATA_ISSUE, NULL, NULL);
+                // unreachable
+                os_sched_exit(0);
+            }
+            sw = APDU_RESPONSE_INVALID_DATA;
+            break;
+        default:
+            PRINTF("Unexpected parser status\n");
+            sw = APDU_RESPONSE_INVALID_DATA;
+    }
+    return sw;
+}
+
 uint16_t handleSign(uint8_t p1,
                     uint8_t p2,
                     const uint8_t *payload,
@@ -114,27 +144,14 @@ uint16_t handleSign(uint8_t p1,
         PRINTF("Parser not initialized\n");
         return APDU_RESPONSE_CONDITION_NOT_SATISFIED;
     }
-    switch (process_tx(&txContext, &payload[offset], length - offset)) {
-        case USTREAM_SUSPENDED:
-            break;
-        case USTREAM_FINISHED:
-            sw = finalize_parsing(&txContext);
-            break;
-        case USTREAM_PROCESSING:
-            return APDU_RESPONSE_OK;
-        case USTREAM_FAULT:
-            if (G_called_from_swap) {
-                // We have encountered an error while trying to sign a SWAP type transaction
-                // Return dedicated error code and flag an early exit back to Exchange
-                G_swap_response_ready = true;
-                send_swap_error(ERROR_GENERIC, APP_CODE_CALLDATA_ISSUE, NULL, NULL);
-                // unreachable
-                os_sched_exit(0);
-            }
-            return APDU_RESPONSE_INVALID_DATA;
-        default:
-            PRINTF("Unexpected parser status\n");
-            return APDU_RESPONSE_INVALID_DATA;
+    parserStatus_e pstatus = process_tx(&txContext, &payload[offset], length - offset);
+    sw = handle_parsing_status(pstatus);
+    if ((pstatus == USTREAM_FINISHED) && (sw == APDU_RESPONSE_OK)) {
+        // don't respond now, will be done after review
+        sw = APDU_NO_RESPONSE;
+    }
+    if (sw != APDU_NO_RESPONSE) {
+        return sw;
     }
 
     *flags |= IO_ASYNCH_REPLY;

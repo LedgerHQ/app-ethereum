@@ -1,6 +1,7 @@
 #ifndef _SIGN_TX_H_
 #define _SIGN_TX_H_
 
+#include <stdint.h>
 #include <stdbool.h>
 #include "ethUstream.h"
 
@@ -33,5 +34,7 @@ void ux_approve_tx(bool fromPlugin);
 void start_signature_flow(void);
 
 void send_swap_error(uint8_t error_code, app_code_t app_code, const char *str1, const char *str2);
+
+uint16_t handle_parsing_status(parserStatus_e status);
 
 #endif  // _SIGN_TX_H_

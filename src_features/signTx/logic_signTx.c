@@ -61,12 +61,18 @@ customStatus_e customProcessor(txContext_t *context) {
             // If contract debugging mode is activated, do not go through the plugin activation
             // as they wouldn't be displayed if the plugin consumes all data but fallbacks
             // Still go through plugin activation in Swap context
-            if (!N_storage.contractDetails || G_called_from_swap) {
-                eth_plugin_prepare_init(&pluginInit,
-                                        context->workBuffer,
-                                        context->currentFieldLength);
-                dataContext.tokenContext.pluginStatus =
-                    eth_plugin_perform_init(tmpContent.txContent.destination, &pluginInit);
+#ifdef HAVE_GENERIC_TX_PARSER
+            if (!context->store_calldata) {
+#else
+            {
+#endif
+                if (!N_storage.contractDetails || G_called_from_swap) {
+                    eth_plugin_prepare_init(&pluginInit,
+                                            context->workBuffer,
+                                            context->currentFieldLength);
+                    dataContext.tokenContext.pluginStatus =
+                        eth_plugin_perform_init(tmpContent.txContent.destination, &pluginInit);
+                }
             }
             PRINTF("pluginstatus %d\n", dataContext.tokenContext.pluginStatus);
             eth_plugin_result_t status = dataContext.tokenContext.pluginStatus;

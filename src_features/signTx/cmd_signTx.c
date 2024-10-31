@@ -146,9 +146,11 @@ uint16_t handleSign(uint8_t p1,
     }
     parserStatus_e pstatus = process_tx(&txContext, &payload[offset], length - offset);
     sw = handle_parsing_status(pstatus);
-    if ((pstatus == USTREAM_FINISHED) && (sw == APDU_RESPONSE_OK)) {
-        // don't respond now, will be done after review
-        sw = APDU_NO_RESPONSE;
+    if (p2 == SIGN_MODE_BASIC) {
+        if ((pstatus == USTREAM_FINISHED) && (sw == APDU_RESPONSE_OK)) {
+            // don't respond now, will be done after review
+            sw = APDU_NO_RESPONSE;
+        }
     }
     if (sw != APDU_NO_RESPONSE) {
         return sw;

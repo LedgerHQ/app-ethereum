@@ -9,12 +9,14 @@ def der_encode(value: int) -> bytes:
     return value_bytes
 
 
-def format_tlv(tag: int, value: Union[int, str, bytes]) -> bytes:
+def format_tlv(tag: int, value: Union[int, str, bytes, bytearray]) -> bytes:
     if isinstance(value, int):
         # max() to have minimum length of 1
         value = value.to_bytes(max(1, (value.bit_length() + 7) // 8), 'big')
     elif isinstance(value, str):
         value = value.encode()
+    elif isinstance(value, bytearray):
+        value = bytes(value)
 
     assert isinstance(value, bytes), f"Unhandled TLV formatting for type : {type(value)}"
 

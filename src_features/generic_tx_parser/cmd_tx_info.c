@@ -7,6 +7,7 @@
 #include "public_keys.h" // LEDGER_SIGNATURE_PUBLIC_KEY
 #include "gtp_tx_info.h"
 #include "read.h" // read_u*_be
+#include "gtp_field_table.h"
 
 static uint16_t g_tlv_size;
 static uint16_t g_tlv_pos;
@@ -112,6 +113,7 @@ uint16_t handle_tx_info(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *paylo
             return APDU_RESPONSE_UNKNOWN;
         }
         g_tx_info = ctx.tx_info;
+        field_table_init();
     }
     return APDU_RESPONSE_OK;
 }

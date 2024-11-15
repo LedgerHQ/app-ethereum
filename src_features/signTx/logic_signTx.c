@@ -260,10 +260,10 @@ static void raw_fee_to_string(uint256_t *rawFee, char *displayBuffer, uint32_t d
 
 // Compute the fees, transform it to a string, prepend a ticker to it and copy everything to
 // `displayBuffer` output
-static bool max_transaction_fee_to_string(const txInt256_t *BEGasPrice,
-                                          const txInt256_t *BEGasLimit,
-                                          char *displayBuffer,
-                                          uint32_t displayBufferSize) {
+bool max_transaction_fee_to_string(const txInt256_t *BEGasPrice,
+                                   const txInt256_t *BEGasLimit,
+                                   char *displayBuffer,
+                                   uint32_t displayBufferSize) {
     // Use temporary variables to convert values to uint256_t
     uint256_t gasPrice = {0};
     uint256_t gasLimit = {0};
@@ -287,7 +287,7 @@ static void nonce_to_string(const txInt256_t *nonce, char *out, size_t out_size)
     tostring256(&nonce_uint256, 10, out, out_size);
 }
 
-static uint16_t get_network_as_string(char *out, size_t out_size) {
+uint16_t get_network_as_string(char *out, size_t out_size) {
     uint64_t chain_id = get_tx_chain_id();
     const char *name = get_network_name_from_chain_id(&chain_id);
 

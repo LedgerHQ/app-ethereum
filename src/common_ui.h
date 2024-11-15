@@ -29,6 +29,9 @@ void ui_712_start_unfiltered(void);
 void ui_712_switch_to_message(void);
 void ui_712_switch_to_sign(void);
 
+// Generic clear-signing
+bool ui_gcs(void);
+
 #include "ui_callbacks.h"
 #include <string.h>
 

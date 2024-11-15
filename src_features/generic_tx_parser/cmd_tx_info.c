@@ -58,7 +58,10 @@ uint16_t handle_tx_info(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *paylo
     return APDU_RESPONSE_OK;
 }
 
+void ui_gcs_cleanup(void);
+
 void gcs_cleanup(void) {
+    ui_gcs_cleanup();
     field_table_cleanup();
     if (g_tx_info != NULL) {
         mem_dealloc(sizeof(*g_tx_info));

@@ -6,6 +6,7 @@
 #ifdef HAVE_GENERIC_TX_PARSER
 #include "gtp_tx_info.h"
 #endif
+#include "common_ui.h"
 
 typedef enum {
     SIGN_MODE_BASIC = 0,
@@ -138,6 +139,9 @@ uint16_t handleSign(uint8_t p1,
             if (!validate_instruction_hash()) {
                 PRINTF("Error: instructions hash mismatch!\n");
                 return APDU_RESPONSE_INVALID_DATA;
+            }
+            if (!ui_gcs()) {
+                return APDU_RESPONSE_INTERNAL_ERROR;
             }
             *flags |= IO_ASYNCH_REPLY;
             return APDU_NO_RESPONSE;

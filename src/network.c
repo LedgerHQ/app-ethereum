@@ -61,6 +61,8 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 3776, .name = "Astar zkEVM", .ticker = "ETH"},
     {.chain_id = 4201, .name = "LUKSO Testnet", .ticker = "LYXt"},
     {.chain_id = 4202, .name = "Lisk Sepolia Testnet", .ticker = "ETH"},
+    {.chain_id = 4689, .name = "IoTeX", .ticker = "IOTX"},
+    {.chain_id = 4690, .name = "IoTeX Testnet", .ticker = "IOTX"},
     {.chain_id = 4919, .name = "Venidium", .ticker = "XVM"},
     {.chain_id = 5000, .name = "Mantle", .ticker = "MNT"},
     {.chain_id = 5003, .name = "Mantle Sepolia", .ticker = "MNT"},

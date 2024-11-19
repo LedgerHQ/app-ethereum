@@ -303,7 +303,7 @@ static uint16_t get_network_as_string(char *out, size_t out_size) {
     return APDU_RESPONSE_OK;
 }
 
-static uint16_t get_public_key(uint8_t *out, uint8_t outLength) {
+uint16_t get_public_key(uint8_t *out, uint8_t outLength) {
     uint8_t raw_pubkey[65];
     cx_err_t error = CX_INTERNAL_ERROR;
 

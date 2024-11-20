@@ -206,7 +206,7 @@ void eth2_plugin_call(int message, void *parameters) {
                                         decimals,
                                         ticker,
                                         msg->msg,
-                                        100)) {
+                                        msg->msgLength)) {
                         msg->result = ETH_PLUGIN_RESULT_ERROR;
                         break;
                     }

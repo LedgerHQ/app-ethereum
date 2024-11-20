@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.13.0](https://github.com/ledgerhq/app-ethereum/compare/1.12.2...1.13.0) - 2024-XX-XX
+
+## [1.12.2](https://github.com/ledgerhq/app-ethereum/compare/1.12.1...1.12.2) - 2024-10-24
+
+### Fixed
+
+- Token swap with calldata
+
 ## [1.12.1](https://github.com/ledgerhq/app-ethereum/compare/1.12.0...1.12.1) - 2024-10-02
 
 ### Fixed

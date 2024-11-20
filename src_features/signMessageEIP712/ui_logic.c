@@ -21,6 +21,7 @@
 #include "filtering.h"
 #include "trusted_name.h"
 #include "network.h"
+#include "time_format.h"
 
 #define AMOUNT_JOIN_FLAG_TOKEN (1 << 0)
 #define AMOUNT_JOIN_FLAG_VALUE (1 << 1)
@@ -556,32 +557,9 @@ static bool ui_712_format_trusted_name(const uint8_t *data, uint8_t length) {
  * @return whether it was successful or not
  */
 static bool ui_712_format_datetime(const uint8_t *data, uint8_t length) {
-    struct tm tstruct;
-    int shown_hour;
     time_t timestamp = u64_from_BE(data, length);
 
-    if (gmtime_r(&timestamp, &tstruct) == NULL) {
-        return false;
-    }
-    if (tstruct.tm_hour == 0) {
-        shown_hour = 12;
-    } else {
-        shown_hour = tstruct.tm_hour;
-        if (shown_hour > 12) {
-            shown_hour -= 12;
-        }
-    }
-    snprintf(strings.tmp.tmp,
-             sizeof(strings.tmp.tmp),
-             "%04d-%02d-%02d\n%02d:%02d:%02d %s UTC",
-             tstruct.tm_year + 1900,
-             tstruct.tm_mon + 1,
-             tstruct.tm_mday,
-             shown_hour,
-             tstruct.tm_min,
-             tstruct.tm_sec,
-             (tstruct.tm_hour < 12) ? "AM" : "PM");
-    return true;
+    return time_format_to_utc(&timestamp, strings.tmp.tmp, sizeof(strings.tmp.tmp));
 }
 
 /**

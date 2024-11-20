@@ -61,10 +61,6 @@ uint16_t handleProvideNFTInformation(const uint8_t *workBuffer,
 
     PRINTF("In handle provide NFTInformation\n");
 
-    if ((pluginType != ERC721) && (pluginType != ERC1155)) {
-        PRINTF("NFT metadata provided without proper plugin loaded!\n");
-        return APDU_RESPONSE_CONDITION_NOT_SATISFIED;
-    }
     nft = &get_current_asset_info()->nft;
 
     PRINTF("Provisioning currentAssetIndex %d\n", tmpCtx.transactionContext.currentAssetIndex);

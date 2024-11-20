@@ -6,7 +6,7 @@
 #include "shared_context.h"
 #include "common_utils.h"
 
-static const char *unknown_ticker = "???";
+const char g_unknown_ticker[] = "???";
 
 // Mapping of chain ids to networks.
 static const network_info_t NETWORK_MAPPING[] = {
@@ -180,7 +180,7 @@ const char *get_displayable_ticker(const uint64_t *chain_id, const chain_config_
         if (*chain_id == chain_cfg->chainId) {
             ticker = chain_cfg->coinName;
         } else {
-            ticker = unknown_ticker;
+            ticker = g_unknown_ticker;
         }
     }
     return ticker;

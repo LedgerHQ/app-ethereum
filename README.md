@@ -28,11 +28,18 @@
 - [Quick start guide](#quick-start-guide)
   - [With VSCode](#with-vscode)
   - [With a terminal](#with-a-terminal)
+    - [Linux (Ubuntu)](#linux-ubuntu)
+    - [macOS](#macos)
+    - [Windows (with PowerShell)](#windows-with-powershell)
 - [Compilation and load](#compilation-and-load)
   - [Compilation](#compilation)
   - [Loading on a physical device](#loading-on-a-physical-device)
+    - [Linux (Ubuntu)](#linux-ubuntu-1)
+    - [macOS / Windows (with PowerShell)](#macos--windows-with-powershell)
 - [Tests](#tests)
   - [Functional Tests (Ragger based)](#functional-tests-ragger-based)
+    - [Linux (Ubuntu)](#linux-ubuntu-2)
+    - [macOS / Windows](#macos--windows)
   - [Unit Tests](#unit-tests)
 - [Contributing](#contributing)
 
@@ -40,7 +47,7 @@
 
 ## About the project
 
-Ethereum wallet application framework for Nano S, Nano S Plus and Nano X.
+Ethereum wallet application framework for Nano S, Nano S Plus, Nano X, Stax and Flex.
 Ledger Blue is not maintained anymore, but the app can still be compiled for this target using the branch [`blue-final-release`](https://github.com/LedgerHQ/app-ethereum/tree/blue-final-release).
 
 ## Documentation

@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 #include "mem.h"
+#include "os_print.h"
 
 #define SIZE_MEM_BUFFER 10240
 
@@ -42,6 +43,7 @@ void mem_reset(void) {
 void *mem_alloc(size_t size) {
     if ((mem_idx + size) > SIZE_MEM_BUFFER)  // Buffer exceeded
     {
+        PRINTF("Error: mem_alloc(%u) failed!\n", size);
         return NULL;
     }
     mem_idx += size;

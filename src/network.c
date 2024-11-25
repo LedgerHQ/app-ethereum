@@ -6,7 +6,7 @@
 #include "shared_context.h"
 #include "common_utils.h"
 
-static const char *unknown_ticker = "???";
+const char g_unknown_ticker[] = "???";
 
 // Mapping of chain ids to networks.
 static const network_info_t NETWORK_MAPPING[] = {
@@ -111,18 +111,21 @@ static const network_info_t NETWORK_MAPPING[] = {
 };
 
 static const network_info_t *get_network_from_chain_id(const uint64_t *chain_id) {
-    // Look if the network is available
-    for (size_t i = 0; i < MAX_DYNAMIC_NETWORKS; i++) {
-        if (DYNAMIC_NETWORK_INFO[i].chain_id == *chain_id) {
-            PRINTF("[NETWORK] - Found dynamic %s\n", DYNAMIC_NETWORK_INFO[i].name);
-            return (const network_info_t *) &DYNAMIC_NETWORK_INFO[i];
+    if (*chain_id != 0) {
+        // Look if the network is available
+        for (size_t i = 0; i < MAX_DYNAMIC_NETWORKS; i++) {
+            if (DYNAMIC_NETWORK_INFO[i].chain_id == *chain_id) {
+                PRINTF("[NETWORK] - Found dynamic %s\n", DYNAMIC_NETWORK_INFO[i].name);
+                return (const network_info_t *) &DYNAMIC_NETWORK_INFO[i];
+            }
         }
-    }
-    // Fallback to hardcoded table
-    for (size_t i = 0; i < ARRAYLEN(NETWORK_MAPPING); i++) {
-        if (NETWORK_MAPPING[i].chain_id == *chain_id) {
-            PRINTF("[NETWORK] - Fallback on hardcoded list. Found %s\n", NETWORK_MAPPING[i].name);
-            return (const network_info_t *) &NETWORK_MAPPING[i];
+        // Fallback to hardcoded table
+        for (size_t i = 0; i < ARRAYLEN(NETWORK_MAPPING); i++) {
+            if (NETWORK_MAPPING[i].chain_id == *chain_id) {
+                PRINTF("[NETWORK] - Fallback on hardcoded list. Found %s\n",
+                       NETWORK_MAPPING[i].name);
+                return (const network_info_t *) &NETWORK_MAPPING[i];
+            }
         }
     }
     return NULL;
@@ -177,7 +180,7 @@ const char *get_displayable_ticker(const uint64_t *chain_id, const chain_config_
         if (*chain_id == chain_cfg->chainId) {
             ticker = chain_cfg->coinName;
         } else {
-            ticker = unknown_ticker;
+            ticker = g_unknown_ticker;
         }
     }
     return ticker;

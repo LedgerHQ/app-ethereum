@@ -174,16 +174,37 @@ static bool field_hash_domain_special_fields(const void *const field_ptr,
                                              uint8_t data_length) {
     const char *key;
     uint8_t keylen;
+    const char *ethermint_vc = "cosmos";
 
     key = get_struct_field_keyname(field_ptr, &keylen);
     // copy contract address into context
     if (strncmp(key, "verifyingContract", keylen) == 0) {
-        if (data_length != sizeof(eip712_context->contract_addr)) {
-            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
-            PRINTF("Unexpected verifyingContract length!\n");
-            return false;
+        switch (struct_field_type(field_ptr)) {
+            case TYPE_SOL_ADDRESS:
+                if (data_length > sizeof(eip712_context->contract_addr)) {
+                    apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+                    PRINTF("Error: verifyingContract too big\n");
+                    return false;
+                }
+                break;
+            case TYPE_SOL_STRING:
+                // hardcoded check for their non-standard implementation
+                if ((data_length != strlen(ethermint_vc)) ||
+                    (strncmp((char *) data, ethermint_vc, data_length) != 0)) {
+                    apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+                    PRINTF("Error: non standard verifyingContract\n");
+                    return false;
+                }
+                break;
+            default:
+                apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+                PRINTF("Error: unexpected type for verifyingContract (%u)!\n",
+                       struct_field_type(field_ptr));
+                return false;
         }
         memcpy(eip712_context->contract_addr, data, data_length);
+        explicit_bzero(&eip712_context->contract_addr[data_length],
+                       sizeof(eip712_context->contract_addr) - data_length);
     } else if (strncmp(key, "chainId", keylen) == 0) {
         eip712_context->chain_id = u64_from_BE(data, data_length);
     }

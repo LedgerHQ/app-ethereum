@@ -5,7 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.13.0](https://github.com/ledgerhq/app-ethereum/compare/1.12.2...1.13.0) - 2024-XX-XX
+## [1.13.0](https://github.com/ledgerhq/app-ethereum/compare/1.12.2...1.13.0) - 2024-11-26
+
+### Added
+
+- (clone) IoTeX
+- (network) Defi Oracle Meta
+- (network) IoTeX
+- (network) IoTeX Testnet
+- (network) Neo X Mainnet
+- (network) Neo X Testnet
+- (network) Bitlayer
+- (network) Bitlayer Testnet
+- Dynamic network handling, can get new networks at runtime from the CAL instead of from the hardcoded list
+- Support for Ethermint's non-standard EIP-712 verifyingContract
+
+### Changed
+
+- Improved error handling in swap mode
+- Provide NFT info APDU does not require a loaded NFT (721/1155) internal plugin anymore
+
+### Fixed
+
+- Potential overflow on the UI buffer used for amounts
+- RLP parsing issue with legacy transactions
 
 ## [1.12.2](https://github.com/ledgerhq/app-ethereum/compare/1.12.1...1.12.2) - 2024-10-24
 

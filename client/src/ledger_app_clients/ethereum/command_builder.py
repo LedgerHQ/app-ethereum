@@ -262,7 +262,7 @@ class CommandBuilder:
                                0x00,
                                data)
 
-    def sign(self, bip32_path: str, rlp_data: bytes, vrs: list) -> list[bytes]:
+    def sign(self, bip32_path: str, rlp_data: bytes, p2: int) -> list[bytes]:
         apdus = list()
         payload = pack_derivation_path(bip32_path)
         payload += rlp_data
@@ -270,7 +270,7 @@ class CommandBuilder:
         while len(payload) > 0:
             apdus.append(self._serialize(InsType.SIGN,
                                          p1,
-                                         0x00,
+                                         p2,
                                          payload[:0xff]))
             payload = payload[0xff:]
             p1 = P1Type.SIGN_SUBSQT_CHUNK

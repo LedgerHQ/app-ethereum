@@ -77,6 +77,12 @@ class PKIPubKeyUsage(IntEnum):
     PUBKEY_USAGE_SEED_ID_AUTH = 0x09
 
 
+class SignMode(IntEnum):
+    BASIC = 0x00
+    STORE = 0x01
+    START_FLOW = 0x02
+
+
 class PKIClient:
     _CLA: int = 0xB0
     _INS: int = 0x06
@@ -211,7 +217,8 @@ class EthAppClient:
 
     def sign(self,
              bip32_path: str,
-             tx_params: dict):
+             tx_params: dict,
+             mode: SignMode = SignMode.BASIC):
         tx = Web3().eth.account.create().sign_transaction(tx_params).rawTransaction
         prefix = bytes()
         suffix = []
@@ -223,7 +230,7 @@ class EthAppClient:
                 suffix = [int(tx_params["chainId"]), bytes(), bytes()]
         decoded = rlp.decode(tx)[:-3]  # remove already computed signature
         tx = prefix + rlp.encode(decoded + suffix)
-        chunks = self._cmd_builder.sign(bip32_path, tx, suffix)
+        chunks = self._cmd_builder.sign(bip32_path, tx, mode)
         for chunk in chunks[:-1]:
             self._exchange(chunk)
         return self._exchange_async(chunks[-1])

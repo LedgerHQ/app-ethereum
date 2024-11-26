@@ -16,7 +16,11 @@
  ********************************************************************************/
 
 #pragma once
+
 #include <stdint.h>
+#ifdef HAVE_LEDGER_PKI
+#include "os_pki.h"
+#endif
 
 static const uint8_t LEDGER_SIGNATURE_PUBLIC_KEY[] = {
 #if defined(HAVE_CAL_TEST_KEY)
@@ -105,13 +109,13 @@ static const uint8_t LEDGER_NFT_SELECTOR_PUBLIC_KEY[] = {
 #endif
 };
 
-extern int check_signature_with_pubkey(const char *tag,
-                                       uint8_t *buffer,
-                                       const uint8_t bufLen,
-                                       const uint8_t *PubKey,
-                                       const uint8_t keyLen,
+int check_signature_with_pubkey(const char *tag,
+                                uint8_t *buffer,
+                                const uint8_t bufLen,
+                                const uint8_t *PubKey,
+                                const uint8_t keyLen,
 #ifdef HAVE_LEDGER_PKI
-                                       const uint8_t keyUsageExp,
+                                const uint8_t keyUsageExp,
 #endif
-                                       uint8_t *signature,
-                                       const uint8_t sigLen);
+                                uint8_t *signature,
+                                const uint8_t sigLen);

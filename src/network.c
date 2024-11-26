@@ -6,7 +6,7 @@
 #include "shared_context.h"
 #include "common_utils.h"
 
-static const char *unknown_ticker = "???";
+const char g_unknown_ticker[] = "???";
 
 // Mapping of chain ids to networks.
 static const network_info_t NETWORK_MAPPING[] = {
@@ -34,6 +34,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 100, .name = "Gnosis", .ticker = "xDAI"},
     {.chain_id = 106, .name = "Velas EVM", .ticker = "VLX"},
     {.chain_id = 137, .name = "Polygon", .ticker = "POL"},
+    {.chain_id = 138, .name = "Defi Oracle Meta", .ticker = "ETH"},
     {.chain_id = 196, .name = "OKBChain Mainnet", .ticker = "OKB"},
     {.chain_id = 199, .name = "BTTC", .ticker = "BTT"},
     {.chain_id = 246, .name = "EnergyWebChain", .ticker = "EWT"},
@@ -61,6 +62,8 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 3776, .name = "Astar zkEVM", .ticker = "ETH"},
     {.chain_id = 4201, .name = "LUKSO Testnet", .ticker = "LYXt"},
     {.chain_id = 4202, .name = "Lisk Sepolia Testnet", .ticker = "ETH"},
+    {.chain_id = 4689, .name = "IoTeX", .ticker = "IOTX"},
+    {.chain_id = 4690, .name = "IoTeX Testnet", .ticker = "IOTX"},
     {.chain_id = 4919, .name = "Venidium", .ticker = "XVM"},
     {.chain_id = 5000, .name = "Mantle", .ticker = "MNT"},
     {.chain_id = 5003, .name = "Mantle Sepolia", .ticker = "MNT"},
@@ -79,6 +82,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 42793, .name = "Etherlink Mainnet", .ticker = "XTZ"},
     {.chain_id = 43114, .name = "Avalanche", .ticker = "AVAX"},
     {.chain_id = 44787, .name = "Celo Alfajores", .ticker = "aCELO"},
+    {.chain_id = 47763, .name = "Neo X Mainnet", .ticker = "GAS"},
     {.chain_id = 52014, .name = "Electroneum", .ticker = "ETN"},
     {.chain_id = 59141, .name = "Linea Sepolia", .ticker = "ETH"},
     {.chain_id = 59144, .name = "Linea", .ticker = "ETH"},
@@ -88,6 +92,8 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 73799, .name = "Volta", .ticker = "VOLTA"},
     {.chain_id = 81457, .name = "Blast", .ticker = "ETH"},
     {.chain_id = 84532, .name = "Base Sepolia", .ticker = "ETH"},
+    {.chain_id = 200810, .name = "Bitlayer Testnet", .ticker = "BTC"},
+    {.chain_id = 200901, .name = "Bitlayer", .ticker = "BTC"},
     {.chain_id = 421614, .name = "Arbitrum Sepolia", .ticker = "ETH"},
     {.chain_id = 534351, .name = "Scroll Sepolia", .ticker = "ETH"},
     {.chain_id = 534352, .name = "Scroll", .ticker = "ETH"},
@@ -95,6 +101,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 5201420, .name = "Electroneum Testnet", .ticker = "ETN"},
     {.chain_id = 11155111, .name = "Sepolia", .ticker = "ETH"},
     {.chain_id = 11155420, .name = "OP Sepolia", .ticker = "ETH"},
+    {.chain_id = 12227332, .name = "Neo X Testnet", .ticker = "GAS"},
     {.chain_id = 20531811, .name = "TecraTestnet", .ticker = "TCR"},
     {.chain_id = 20531812, .name = "Tecra", .ticker = "TCR"},
     {.chain_id = 168587773, .name = "Blast Sepolia", .ticker = "ETH"},
@@ -104,18 +111,21 @@ static const network_info_t NETWORK_MAPPING[] = {
 };
 
 static const network_info_t *get_network_from_chain_id(const uint64_t *chain_id) {
-    // Look if the network is available
-    for (size_t i = 0; i < MAX_DYNAMIC_NETWORKS; i++) {
-        if (DYNAMIC_NETWORK_INFO[i].chain_id == *chain_id) {
-            PRINTF("[NETWORK] - Found dynamic %s\n", DYNAMIC_NETWORK_INFO[i].name);
-            return (const network_info_t *) &DYNAMIC_NETWORK_INFO[i];
+    if (*chain_id != 0) {
+        // Look if the network is available
+        for (size_t i = 0; i < MAX_DYNAMIC_NETWORKS; i++) {
+            if (DYNAMIC_NETWORK_INFO[i].chain_id == *chain_id) {
+                PRINTF("[NETWORK] - Found dynamic %s\n", DYNAMIC_NETWORK_INFO[i].name);
+                return (const network_info_t *) &DYNAMIC_NETWORK_INFO[i];
+            }
         }
-    }
-    // Fallback to hardcoded table
-    for (size_t i = 0; i < ARRAYLEN(NETWORK_MAPPING); i++) {
-        if (NETWORK_MAPPING[i].chain_id == *chain_id) {
-            PRINTF("[NETWORK] - Fallback on hardcoded list. Found %s\n", NETWORK_MAPPING[i].name);
-            return (const network_info_t *) &NETWORK_MAPPING[i];
+        // Fallback to hardcoded table
+        for (size_t i = 0; i < ARRAYLEN(NETWORK_MAPPING); i++) {
+            if (NETWORK_MAPPING[i].chain_id == *chain_id) {
+                PRINTF("[NETWORK] - Fallback on hardcoded list. Found %s\n",
+                       NETWORK_MAPPING[i].name);
+                return (const network_info_t *) &NETWORK_MAPPING[i];
+            }
         }
     }
     return NULL;
@@ -170,7 +180,7 @@ const char *get_displayable_ticker(const uint64_t *chain_id, const chain_config_
         if (*chain_id == chain_cfg->chainId) {
             ticker = chain_cfg->coinName;
         } else {
-            ticker = unknown_ticker;
+            ticker = g_unknown_ticker;
         }
     }
     return ticker;

@@ -24,6 +24,7 @@ typedef struct network_info_s {
     } while (0)
 
 extern network_info_t DYNAMIC_NETWORK_INFO[];
+extern const char g_unknown_ticker[];
 
 const char *get_network_name_from_chain_id(const uint64_t *chain_id);
 const char *get_network_ticker_from_chain_id(const uint64_t *chain_id);

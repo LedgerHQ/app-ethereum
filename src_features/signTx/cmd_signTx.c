@@ -12,10 +12,6 @@ uint16_t handleSign(uint8_t p1,
     uint16_t sw = APDU_NO_RESPONSE;
     cx_err_t error = CX_INTERNAL_ERROR;
 
-    if (os_global_pin_is_validated() != BOLOS_UX_OK) {
-        PRINTF("Device is PIN-locked");
-        return APDU_RESPONSE_SECURITY_NOT_SATISFIED;
-    }
     if (p1 == P1_FIRST) {
         if (appState != APP_STATE_IDLE) {
             reset_app_context();

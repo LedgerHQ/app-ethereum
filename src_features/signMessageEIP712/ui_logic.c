@@ -20,6 +20,7 @@
 #include "uint_common.h"
 #include "filtering.h"
 #include "trusted_name.h"
+#include "network.h"
 
 #define AMOUNT_JOIN_FLAG_TOKEN (1 << 0)
 #define AMOUNT_JOIN_FLAG_VALUE (1 << 1)
@@ -449,12 +450,14 @@ static bool ui_712_format_amount_join(void) {
         ismaxint(ui_ctx->amount.joins[ui_ctx->amount.idx].value,
                  ui_ctx->amount.joins[ui_ctx->amount.idx].value_length)) {
         strlcpy(strings.tmp.tmp, "Unlimited ", sizeof(strings.tmp.tmp));
-        strlcat(strings.tmp.tmp, (token != NULL) ? token->ticker : "???", sizeof(strings.tmp.tmp));
+        strlcat(strings.tmp.tmp,
+                (token != NULL) ? token->ticker : g_unknown_ticker,
+                sizeof(strings.tmp.tmp));
     } else {
         if (!amountToString(ui_ctx->amount.joins[ui_ctx->amount.idx].value,
                             ui_ctx->amount.joins[ui_ctx->amount.idx].value_length,
                             (token != NULL) ? token->decimals : 0,
-                            (token != NULL) ? token->ticker : "???",
+                            (token != NULL) ? token->ticker : g_unknown_ticker,
                             strings.tmp.tmp,
                             sizeof(strings.tmp.tmp))) {
             return false;

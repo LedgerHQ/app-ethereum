@@ -1,8 +1,5 @@
 #include "apdu_constants.h"
 #include "public_keys.h"
-#ifdef HAVE_LEDGER_PKI
-#include "os_pki.h"
-#endif
 
 #define KEY_USAGE_STR(x)                                                               \
     (x == CERTIFICATE_PUBLIC_KEY_USAGE_GENUINE_CHECK          ? "GENUINE_CHECK"        \

@@ -1,53 +1,6 @@
-Ethereum application : Common Technical Specifications
+= Ethereum application : Common Technical Specifications
 =======================================================
-Ledger Firmware Team <hello@ledger.fr>
-Application version 1.9.19 - 2022-05-17
-
-## Version history
-
-### 1.0
-  - Initial release
-
-### 1.1
-  - Add GET APP CONFIGURATION
-  - Add an option to return the chain code in GET ETH PUBLIC ADDRESS
-
-### 1.2
-  - Add SIGN ETH PERSONAL MESSAGE
-
-### 1.1.10
-  - Add PROVIDE ERC 20 TOKEN INFORMATION
-
-### 1.5.0
-  - Add SIGN ETH EIP 712
-  - Add GET ETH2 PUBLIC KEY
-
-### 1.7.6
-  - Add SET EXTERNAL PLUGIN
-
-### 1.9.13
-  - Add SET PLUGIN
-
-### 1.9.17
-  - Add PROVIDE NFT INFORMATION
-
-### 1.9.18
-  - Add PERFORM PRIVACY OPERATION
-
-### 1.10.0
-  - Add EIP712 STRUCT DEFINITION & EIP712 STRUCT IMPLEMENTATION
-  - Update to SIGN ETH EIP712
-
-### 1.10.2
-  - Add trusted names support
-
-### 1.11.0
-  - Add EIP-712 amount-join & date/time filtering
-  - PROVIDE ERC 20 TOKEN INFORMATION & PROVIDE NFT INFORMATION now send back the index where the asset has been stored
-
-### 1.12.0
-  - Add EIP-712 discarded filter path support
-  - Add EIP-712 trusted name filtering
+:toc:
 
 ## About
 
@@ -60,6 +13,34 @@ The application covers the following functionalities :
   - Provide callbacks to validate the data associated to an Ethereum transaction
 
 The application interface can be accessed over HID or BLE
+
+## APDUs list
+
+The following APDUs are managed by the application. They are detailed in the following chapters.
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                                     | *Instruction*
+| GET ETH PUBLIC ADDRESS                                                            | 0x02
+| SIGN ETH TRANSACTION                                                              | 0x04
+| GET APP CONFIGURATION                                                             | 0x06
+| SIGN ETH PERSONAL MESSAGE                                                         | 0x08
+| PROVIDE ERC 20 TOKEN INFORMATION                                                  | 0x0A
+| SIGN ETH EIP 712                                                                  | 0x0C
+| GET ETH2 PUBLIC KEY                                                               | 0x0E
+| SET ETH2 WITHDRAWAL INDEX                                                         | 0x10
+| SET EXTERNAL PLUGIN                                                               | 0x12
+| PROVIDE NFT INFORMATION                                                           | 0x14
+| SET PLUGIN                                                                        | 0x16
+| PERFORM PRIVACY OPERATION                                                         | 0x18
+| EIP712 SEND STRUCT DEFINITION                                                     | 0x1A
+| EIP712 SEND STRUCT IMPLEMENTATION                                                 | 0x1C
+| EIP712 FILTERING                                                                  | 0x1E
+| GET CHALLENGE                                                                     | 0x20
+| PROVIDE DOMAIN NAME                                                               | 0x22
+| PROVIDE NETWORK INFORMATION                                                       | 0x30
+|==============================================================================================================================
+
 
 ## General purpose APDUs
 
@@ -1089,6 +1070,92 @@ _Output data_
 None
 
 
+### PROVIDE NETWORK CONFIGURATION
+
+#### Description
+
+This command handles the dynamic networks configuration, allowing to access funds
+without needing to update the application for each new network.
+
+This configuration must be send before any access to a network and stays valid until a new config is sent.
+Up to *2* different configurations can be used. The targeted slot is configured automatically to the next available one.
+
+The configuration is sent in TLV (Tag-Length-Value) mode, whereas the icon itself is send as raw bytes in dedicated chunk(s).
+The configuration doesn't include the icon itself, but only its hash (`sha256`), and it is signed.
+
+For the configuration, the following tags are supported:
+
+[width="80%"]
+|===============================================================
+| *Tag name*        | *Tag value* | *Length (byte)*   | *Value*
+| STRUCTURE_TYPE    | 0x01        | 0x01              | 0x08 (for TYPE_DYNAMIC_NETWORK)
+| STRUCTURE_VERSION | 0x02        | 0x01              | 0x01
+| BLOCKCHAIN_FAMILY | 0x51        | 0x01              | 0x01 (for Ethereum)
+| CHAIN_ID          | 0x23        | 0x08              | (`uint64_t` value)
+| NETWORK_NAME      | 0x52        | variable (max 31) | string without '\0'
+| NETWORK_TICKER    | 0x24        | variable (max 10) | string without '\0'
+| NETWORK_ICON_HASH | 0x53        | 0x20              | _sha256_ of the network icon, sent separately
+| SIGNATURE         | 0x15        | variable          | Signature of the TLV payload data
+|===============================================================
+
+The signature is mandatory, and is computed on the full payload data, using `CX_CURVE_SECP256K1`.
+
+#### Coding
+
+_Command_
+
+[width="80%"]
+|==============================================================
+| *CLA*     | *INS*    | *P1*             | *P2*                       | *LC*     | *Le*
+.3+| E0  .3+| 30       | 00               | 00 : Network configuration | variable | variable
+                       | 01 : First chunk
+
+                         00: Next chunks  | 01 : Network Icon          | variable | variable
+                       | 00               | 02 : Get Info              |          |
+|==============================================================
+
+_Input data_
+
+##### If P1 == Network configuration
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| TLV payload data      | variable
+|==========================================
+
+##### If P1 == Network Icon
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Icon data             | variable
+|==========================================
+
+> Notes:
+>
+>  - No need to specify the full size because it is already included in the data header
+>
+>  - The icon is not supported on Nano devices and the corresponding APDU will be ignored.
+>
+>  - Depending on its size, it may be split on several chunks. The maximum allowed bitmap size is `1KB`.
+>
+>  - The data correspond the hex string generated by the script `<SDK_PATH>/lib_nbgl/tools/icon2glyph.py`, with parameter `--hexbitmap`
+
+_Output data_
+
+##### If P1 == Get Info
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Number of networks    | 1
+| Networks chain_id     | 8
+| ...                   | 8
+| Networks chain_id     | 8
+|==========================================
+
+
 ## Transport protocol
 
 ### General transport description
@@ -1172,23 +1239,23 @@ The following standard Status Words are returned for all APDUs - some specific S
 
 [width="80%"]
 |===============================================================================================
-| *SW*     | *Description*
-|   6001   | Mode check fail
-|   6501   | TransactionType not supported
-|   6502   | Output buffer too small for chainId conversion
-|   68xx   | Internal error (Please report)
-|   6982   | Security status not satisfied (Canceled by user)
-|   6983   | Wrong Data length
-|   6984   | Plugin not installed
-|   6985   | Condition not satisfied
-|   6A00   | Error without info
-|   6A80   | Invalid data
-|   6A84   | Insufficient memory
-|   6A88   | Data not found
-|   6B00   | Incorrect parameter P1 or P2
-|   6D00   | Incorrect parameter INS
-|   6E00   | Incorrect parameter CLA
-|   6Fxx   | Technical problem (Internal error, please report)
-|   9000   | Normal ending of the command
-|   911C   | Command code not supported (i.e. Ledger-PKI not yet available)
+| *SW*      | *Description*
+|   0x6001  | Mode check fail
+|   0x6501  | TransactionType not supported
+|   0x6502  | Output buffer too small for chainId conversion
+|   0x68xx  | Internal error (Please report)
+|   0x6982  | Security status not satisfied (Canceled by user)
+|   0x6983  | Wrong Data length
+|   0x6984  | Plugin not installed
+|   0x6985  | Condition not satisfied
+|   0x6A00  | Error without info
+|   0x6A80  | Invalid data
+|   0x6A84  | Insufficient memory
+|   0x6A88  | Data not found
+|   0x6B00  | Incorrect parameter P1 or P2
+|   0x6D00  | Incorrect parameter INS
+|   0x6E00  | Incorrect parameter CLA
+|   0x6Fxx  | Technical problem (Internal error, please report)
+|   0x9000  | Normal ending of the command
+|   0x911C  | Command code not supported (i.e. Ledger-PKI not yet available)
 |===============================================================================================

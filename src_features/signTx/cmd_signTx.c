@@ -12,10 +12,6 @@ uint16_t handleSign(uint8_t p1,
     uint16_t sw = APDU_NO_RESPONSE;
     cx_err_t error = CX_INTERNAL_ERROR;
 
-    if (os_global_pin_is_validated() != BOLOS_UX_OK) {
-        PRINTF("Device is PIN-locked");
-        return APDU_RESPONSE_SECURITY_NOT_SATISFIED;
-    }
     if (p1 == P1_FIRST) {
         if (appState != APP_STATE_IDLE) {
             reset_app_context();
@@ -87,10 +83,11 @@ uint16_t handleSign(uint8_t p1,
                 // We have encountered an error while trying to sign a SWAP type transaction
                 // Return dedicated error code and flag an early exit back to Exchange
                 G_swap_response_ready = true;
-                return APDU_RESPONSE_MODE_CHECK_FAILED;
-            } else {
-                return APDU_RESPONSE_INVALID_DATA;
+                send_swap_error(ERROR_GENERIC, APP_CODE_CALLDATA_ISSUE, NULL, NULL);
+                // unreachable
+                os_sched_exit(0);
             }
+            return APDU_RESPONSE_INVALID_DATA;
         default:
             PRINTF("Unexpected parser status\n");
             return APDU_RESPONSE_INVALID_DATA;

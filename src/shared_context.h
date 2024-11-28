@@ -127,7 +127,7 @@ typedef enum {
 typedef struct txStringProperties_s {
     char fromAddress[43];
     char toAddress[43];
-    char fullAmount[79];  // 2^256 is 78 digits long
+    char fullAmount[MAX_TICKER_LEN + 1 + 78 + 1];  // 2^256 is 78 digits long
     char maxFee[50];
     char nonce[8];  // 10M tx per account ought to be enough for everybody
     char network_name[NETWORK_STRING_MAX_SIZE + 1];

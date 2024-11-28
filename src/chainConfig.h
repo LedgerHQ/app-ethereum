@@ -21,9 +21,10 @@
 #include <stdint.h>
 
 #include "os.h"
+#include "asset_info.h"
 
 typedef struct chain_config_s {
-    char coinName[10];  // ticker
+    char coinName[MAX_TICKER_LEN];  // ticker
     uint64_t chainId;
 } chain_config_t;
 

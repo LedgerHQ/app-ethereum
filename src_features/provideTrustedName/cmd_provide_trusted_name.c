@@ -63,7 +63,7 @@ typedef enum {
     NFT_ID = 0x72,
 } e_tlv_tag;
 
-typedef enum { KEY_ID_TEST = 0x00, KEY_ID_PROD = 0x03 } e_key_id;
+typedef enum { TN_KEY_ID_DOMAIN_SVC = 0x03, TN_KEY_ID_CAL = 0x06 } e_tn_key_id;
 
 typedef struct {
     uint8_t *buf;
@@ -90,7 +90,7 @@ typedef struct {
 } s_trusted_name_info;
 
 typedef struct {
-    e_key_id key_id;
+    e_tn_key_id key_id;
     uint8_t input_sig_size;
     const uint8_t *input_sig;
     cx_sha256_t hash_ctx;
@@ -592,16 +592,22 @@ static bool handle_nft_id(const s_tlv_data *data,
 static bool verify_signature(const s_sig_ctx *sig_ctx) {
     uint8_t hash[INT256_LENGTH];
     cx_err_t error = CX_INTERNAL_ERROR;
-#ifdef HAVE_TRUSTED_NAME_TEST_KEY
-    e_key_id valid_key_id = KEY_ID_TEST;
-#else
-    e_key_id valid_key_id = KEY_ID_PROD;
-#endif
     bool ret_code = false;
+    const uint8_t *pk;
+    size_t pk_size;
 
-    if (sig_ctx->key_id != valid_key_id) {
-        PRINTF("Error: Unknown metadata key ID %u\n", sig_ctx->key_id);
-        return false;
+    switch (sig_ctx->key_id) {
+        case TN_KEY_ID_DOMAIN_SVC:
+            pk = TRUSTED_NAME_PUB_KEY;
+            pk_size = sizeof(TRUSTED_NAME_PUB_KEY);
+            break;
+        case TN_KEY_ID_CAL:
+            pk = LEDGER_SIGNATURE_PUBLIC_KEY;
+            pk_size = sizeof(LEDGER_SIGNATURE_PUBLIC_KEY);
+            break;
+        default:
+            PRINTF("Error: Unknown metadata key ID %u\n", sig_ctx->key_id);
+            return false;
     }
 
     CX_CHECK(
@@ -610,8 +616,8 @@ static bool verify_signature(const s_sig_ctx *sig_ctx) {
     CX_CHECK(check_signature_with_pubkey("Domain Name",
                                          hash,
                                          sizeof(hash),
-                                         TRUSTED_NAME_PUB_KEY,
-                                         sizeof(TRUSTED_NAME_PUB_KEY),
+                                         pk,
+                                         pk_size,
 #ifdef HAVE_LEDGER_PKI
                                          CERTIFICATE_PUBLIC_KEY_USAGE_TRUSTED_NAME,
 #endif

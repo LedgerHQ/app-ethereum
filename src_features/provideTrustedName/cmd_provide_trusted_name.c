@@ -511,6 +511,9 @@ static bool handle_trusted_name_type(const s_tlv_data *data,
         case TN_TYPE_CONTRACT:
             break;
         case TN_TYPE_NFT_COLLECTION:
+        case TN_TYPE_TOKEN:
+        case TN_TYPE_WALLET:
+        case TN_TYPE_CONTEXT_ADDRESS:
         default:
             PRINTF("Error: unsupported trusted name type (%u)!\n", value);
             return false;
@@ -545,6 +548,7 @@ static bool handle_trusted_name_source(const s_tlv_data *data,
         case TN_SOURCE_UD:
         case TN_SOURCE_FN:
         case TN_SOURCE_DNS:
+        case TN_SOURCE_DYNAMIC_RESOLVER:
         default:
             PRINTF("Error: unsupported trusted name source (%u)!\n", value);
             return false;

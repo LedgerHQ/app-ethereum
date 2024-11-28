@@ -12,6 +12,9 @@ typedef enum {
     TN_TYPE_ACCOUNT = 1,
     TN_TYPE_CONTRACT,
     TN_TYPE_NFT_COLLECTION,
+    TN_TYPE_TOKEN,
+    TN_TYPE_WALLET,
+    TN_TYPE_CONTEXT_ADDRESS,
     _TN_TYPE_COUNT_,
 } e_name_type;
 
@@ -25,6 +28,7 @@ typedef enum {
     TN_SOURCE_UD,
     TN_SOURCE_FN,
     TN_SOURCE_DNS,
+    TN_SOURCE_DYNAMIC_RESOLVER,
     TN_SOURCE_COUNT,
 } e_name_source;
 

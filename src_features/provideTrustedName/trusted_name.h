@@ -9,18 +9,23 @@
 #define TRUSTED_NAME_MAX_LENGTH 30
 
 typedef enum {
-    TYPE_ACCOUNT = 1,
-    TYPE_CONTRACT,
-    TYPE_NFT,
+    TN_TYPE_ACCOUNT = 1,
+    TN_TYPE_CONTRACT,
+    TN_TYPE_NFT_COLLECTION,
+    _TN_TYPE_COUNT_,
 } e_name_type;
 
+// because the enum does not start at 0
+#define TN_TYPE_COUNT (_TN_TYPE_COUNT_ - TN_TYPE_ACCOUNT)
+
 typedef enum {
-    SOURCE_LAB = 0,
-    SOURCE_CAL,
-    SOURCE_ENS,
-    SOURCE_UD,
-    SOURCE_FN,
-    SOURCE_DNS,
+    TN_SOURCE_LAB = 0,
+    TN_SOURCE_CAL,
+    TN_SOURCE_ENS,
+    TN_SOURCE_UD,
+    TN_SOURCE_FN,
+    TN_SOURCE_DNS,
+    TN_SOURCE_COUNT,
 } e_name_source;
 
 bool has_trusted_name(uint8_t types_count,

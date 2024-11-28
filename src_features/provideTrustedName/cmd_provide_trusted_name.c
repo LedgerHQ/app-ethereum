@@ -132,7 +132,7 @@ bool has_trusted_name(uint8_t types_count,
         for (int i = 0; i < types_count; ++i) {
             switch (g_trusted_name_info.struct_version) {
                 case 1:
-                    if (types[i] == TYPE_ACCOUNT) {
+                    if (types[i] == TN_TYPE_ACCOUNT) {
                         // Check if chain ID is known to be Ethereum-compatible (same derivation
                         // path)
                         if ((chain_is_ethereum_compatible(chain_id)) &&
@@ -378,7 +378,7 @@ static bool handle_trusted_name(const s_tlv_data *data,
         return false;
     }
     if ((trusted_name_info->struct_version == 1) ||
-        (trusted_name_info->name_type == TYPE_ACCOUNT)) {
+        (trusted_name_info->name_type == TN_TYPE_ACCOUNT)) {
         // TODO: Remove once other domain name providers are supported
         if ((data->length < 5) ||
             (strncmp(".eth", (char *) &data->value[data->length - 4], 4) != 0)) {
@@ -474,10 +474,10 @@ static bool handle_trusted_name_type(const s_tlv_data *data,
         return false;
     }
     switch (value) {
-        case TYPE_ACCOUNT:
-        case TYPE_CONTRACT:
+        case TN_TYPE_ACCOUNT:
+        case TN_TYPE_CONTRACT:
             break;
-        case TYPE_NFT:
+        case TN_TYPE_NFT_COLLECTION:
         default:
             PRINTF("Error: unsupported trusted name type (%u)!\n", value);
             return false;
@@ -505,13 +505,13 @@ static bool handle_trusted_name_source(const s_tlv_data *data,
         return false;
     }
     switch (value) {
-        case SOURCE_CAL:
-        case SOURCE_ENS:
+        case TN_SOURCE_CAL:
+        case TN_SOURCE_ENS:
             break;
-        case SOURCE_LAB:
-        case SOURCE_UD:
-        case SOURCE_FN:
-        case SOURCE_DNS:
+        case TN_SOURCE_LAB:
+        case TN_SOURCE_UD:
+        case TN_SOURCE_FN:
+        case TN_SOURCE_DNS:
         default:
             PRINTF("Error: unsupported trusted name source (%u)!\n", value);
             return false;
@@ -651,8 +651,8 @@ static bool verify_struct(const s_trusted_name_info *trusted_name_info) {
                 return false;
             }
             switch (trusted_name_info->name_type) {
-                case TYPE_ACCOUNT:
-                    if (trusted_name_info->name_source == SOURCE_CAL) {
+                case TN_TYPE_ACCOUNT:
+                    if (trusted_name_info->name_source == TN_SOURCE_CAL) {
                         PRINTF("Error: cannot accept an account name from the CAL!\n");
                         return false;
                     }
@@ -661,8 +661,8 @@ static bool verify_struct(const s_trusted_name_info *trusted_name_info) {
                         return false;
                     }
                     break;
-                case TYPE_CONTRACT:
-                    if (trusted_name_info->name_source != SOURCE_CAL) {
+                case TN_TYPE_CONTRACT:
+                    if (trusted_name_info->name_source != TN_SOURCE_CAL) {
                         PRINTF("Error: cannot accept a contract name from given source (%u)!\n",
                                trusted_name_info->name_source);
                         return false;

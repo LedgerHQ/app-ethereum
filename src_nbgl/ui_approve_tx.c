@@ -148,7 +148,7 @@ static uint8_t setTagValuePairs(void) {
 
 #ifdef HAVE_TRUSTED_NAME
         uint64_t chain_id = get_tx_chain_id();
-        e_name_type type = TYPE_ACCOUNT;
+        e_name_type type = TN_TYPE_ACCOUNT;
         tx_approval_context.trusted_name_match =
             has_trusted_name(1, &type, &chain_id, tmpContent.txContent.destination);
         if (tx_approval_context.trusted_name_match) {

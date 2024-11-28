@@ -134,7 +134,7 @@ static uint8_t setTagValuePairs(void) {
         uint64_t chain_id = get_tx_chain_id();
         e_name_type type = TN_TYPE_ACCOUNT;
         tx_approval_context.trusted_name_match =
-            has_trusted_name(1, &type, &chain_id, tmpContent.txContent.destination);
+            get_trusted_name(1, &type, 0, NULL, &chain_id, tmpContent.txContent.destination);
         if (tx_approval_context.trusted_name_match) {
             pairs[nbPairs].item = "To (domain)";
             pairs[nbPairs].value = g_trusted_name;

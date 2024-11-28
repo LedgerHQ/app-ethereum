@@ -376,8 +376,8 @@ bool filtering_trusted_name(const uint8_t *payload,
     // sanity check
     for (int i = 0; i < types_count; ++i) {
         switch (types[i]) {
-            case TYPE_ACCOUNT:
-            case TYPE_CONTRACT:
+            case TN_TYPE_ACCOUNT:
+            case TN_TYPE_CONTRACT:
                 break;
             default:
                 return false;
@@ -395,12 +395,12 @@ bool filtering_trusted_name(const uint8_t *payload,
     // sanity check
     for (int i = 0; i < sources_count; ++i) {
         switch (sources[i]) {
-            case SOURCE_LAB:
-            case SOURCE_CAL:
-            case SOURCE_ENS:
-            case SOURCE_UD:
-            case SOURCE_FN:
-            case SOURCE_DNS:
+            case TN_SOURCE_LAB:
+            case TN_SOURCE_CAL:
+            case TN_SOURCE_ENS:
+            case TN_SOURCE_UD:
+            case TN_SOURCE_FN:
+            case TN_SOURCE_DNS:
                 break;
             default:
                 return false;

@@ -36,9 +36,9 @@ endif
 include ./makefile_conf/chain/$(CHAIN).mk
 
 APPVERSION_M = 1
-APPVERSION_N = 13
+APPVERSION_N = 14
 APPVERSION_P = 0
-APPVERSION = $(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
+APPVERSION = $(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)-dev
 
 # Application source files
 APP_SOURCE_PATH += src src_features src_plugins

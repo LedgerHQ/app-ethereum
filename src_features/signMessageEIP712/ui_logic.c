@@ -543,7 +543,7 @@ static bool ui_712_format_trusted_name(const uint8_t *data, uint8_t length) {
         }
         types_bak >>= 1;
     }
-    if (has_trusted_name(types_count, types, &eip712_context->chain_id, data)) {
+    if (get_trusted_name(types_count, types, 0, NULL, &eip712_context->chain_id, data) != NULL) {
         strlcpy(strings.tmp.tmp, g_trusted_name, sizeof(strings.tmp.tmp));
     }
     return true;

@@ -110,10 +110,56 @@ static s_tlv_payload g_tlv_payload = {0};
 static s_trusted_name_info g_trusted_name_info = {0};
 char g_trusted_name[TRUSTED_NAME_MAX_LENGTH + 1];
 
+static bool matching_type(e_name_type type, uint8_t type_count, const e_name_type *types) {
+    for (int i = 0; i < type_count; ++i) {
+        if (type == types[i]) return true;
+    }
+    return false;
+}
+
+static bool matching_source(e_name_source source,
+                            uint8_t source_count,
+                            const e_name_source *sources) {
+    for (int i = 0; i < source_count; ++i) {
+        if (source == sources[i]) return true;
+    }
+    return false;
+}
+
+static bool matching_trusted_name(const s_trusted_name_info *trusted_name,
+                                  uint8_t type_count,
+                                  const e_name_type *types,
+                                  uint8_t source_count,
+                                  const e_name_source *sources,
+                                  const uint64_t *chain_id,
+                                  const uint8_t *addr) {
+    switch (trusted_name->struct_version) {
+        case 1:
+            if (!matching_type(TN_TYPE_ACCOUNT, type_count, types)) {
+                return false;
+            }
+            if (!chain_is_ethereum_compatible(chain_id)) {
+                return false;
+            }
+            break;
+        case 2:
+            if (!matching_type(trusted_name->name_type, type_count, types)) {
+                return false;
+            }
+            if (!matching_source(trusted_name->name_source, source_count, sources)) {
+                return false;
+            }
+            if (*chain_id != trusted_name->chain_id) {
+                return false;
+            }
+            break;
+    }
+    return memcmp(addr, trusted_name->addr, ADDRESS_LENGTH) == 0;
+}
+
 /**
  * Checks if a trusted name matches the given parameters
  *
- * Does not care about the trusted name source for now.
  * Always wipes the content of \ref g_trusted_name_info
  *
  * @param[in] types_count number of given trusted name types
@@ -122,36 +168,23 @@ char g_trusted_name[TRUSTED_NAME_MAX_LENGTH + 1];
  * @param[in] addr given address
  * @return whether there is or not
  */
-bool has_trusted_name(uint8_t types_count,
-                      const e_name_type *types,
-                      const uint64_t *chain_id,
-                      const uint8_t *addr) {
-    bool ret = false;
+const char *get_trusted_name(uint8_t type_count,
+                             const e_name_type *types,
+                             uint8_t source_count,
+                             const e_name_source *sources,
+                             const uint64_t *chain_id,
+                             const uint8_t *addr) {
+    const char *ret = NULL;
 
     if (g_trusted_name_info.rcv_flags != 0) {
-        for (int i = 0; i < types_count; ++i) {
-            switch (g_trusted_name_info.struct_version) {
-                case 1:
-                    if (types[i] == TN_TYPE_ACCOUNT) {
-                        // Check if chain ID is known to be Ethereum-compatible (same derivation
-                        // path)
-                        if ((chain_is_ethereum_compatible(chain_id)) &&
-                            (memcmp(addr, g_trusted_name_info.addr, ADDRESS_LENGTH) == 0)) {
-                            ret = true;
-                        }
-                    }
-                    break;
-                case 2:
-                    if (types[i] == g_trusted_name_info.name_type) {
-                        if (*chain_id == g_trusted_name_info.chain_id) {
-                            ret = true;
-                        }
-                    }
-                    break;
-                default:
-                    ret = false;
-            }
-            if (ret) break;
+        if (matching_trusted_name(&g_trusted_name_info,
+                                  type_count,
+                                  types,
+                                  source_count,
+                                  sources,
+                                  chain_id,
+                                  addr)) {
+            ret = g_trusted_name_info.name;
         }
         explicit_bzero(&g_trusted_name_info, sizeof(g_trusted_name_info));
     }

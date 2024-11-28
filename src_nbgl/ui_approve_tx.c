@@ -149,8 +149,9 @@ static uint8_t setTagValuePairs(void) {
 #ifdef HAVE_TRUSTED_NAME
         uint64_t chain_id = get_tx_chain_id();
         e_name_type type = TN_TYPE_ACCOUNT;
+        e_name_source source = TN_SOURCE_ENS;
         tx_approval_context.trusted_name_match =
-            has_trusted_name(1, &type, &chain_id, tmpContent.txContent.destination);
+            get_trusted_name(1, &type, 1, &source, &chain_id, tmpContent.txContent.destination);
         if (tx_approval_context.trusted_name_match) {
             pairs[nbPairs].item = "To (domain)";
             pairs[nbPairs].value = g_trusted_name;

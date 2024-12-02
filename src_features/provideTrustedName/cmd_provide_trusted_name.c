@@ -222,8 +222,11 @@ static bool handle_not_valid_after(const s_tlv_data *data,
     if (data->length != ARRAYLEN(app_version)) {
         return false;
     }
-    do {
-        if (data->value[i] < app_version[i]) {
+
+    for (; i < (int) ARRAYLEN(app_version); ++i) {
+        if (data->value[i] > app_version[i]) {
+            break;
+        } else if (data->value[i] < app_version[i]) {
             PRINTF("Expired trusted name : %u.%u.%u < %u.%u.%u\n",
                    data->value[0],
                    data->value[1],
@@ -233,8 +236,7 @@ static bool handle_not_valid_after(const s_tlv_data *data,
                    app_version[2]);
             return false;
         }
-        i += 1;
-    } while ((i < (int) ARRAYLEN(app_version)) && (data->value[i] == app_version[i]));
+    }
     return true;
 }
 

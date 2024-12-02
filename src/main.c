@@ -242,6 +242,16 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             break;
 #endif  // HAVE_ENUM_VALUE
 
+#ifdef HAVE_GENERIC_TX_PARSER
+        case INS_GTP_TRANSACTION_INFO:
+            // TODO
+            break;
+
+        case INS_GTP_FIELD:
+            // TODO
+            break;
+#endif  // HAVE_GENERIC_TX_PARSER
+
         default:
             sw = APDU_RESPONSE_INVALID_INS;
             break;

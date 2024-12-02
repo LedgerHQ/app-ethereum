@@ -40,6 +40,7 @@
 #include "mem.h"
 #endif
 #include "cmd_enum_value.h"
+#include "cmd_tx_info.h"
 
 tmpCtx_t tmpCtx;
 txContext_t txContext;
@@ -244,7 +245,7 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
 
 #ifdef HAVE_GENERIC_TX_PARSER
         case INS_GTP_TRANSACTION_INFO:
-            // TODO
+            sw = handle_tx_info(cmd->p1, cmd->p2, cmd->lc, cmd->data);
             break;
 
         case INS_GTP_FIELD:

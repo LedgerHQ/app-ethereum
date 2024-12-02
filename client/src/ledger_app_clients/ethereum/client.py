@@ -530,3 +530,9 @@ class EthAppClient:
             assert response.status == StatusWord.OK
         response = self._exchange(chunks[-1])
         assert response.status == StatusWord.OK
+
+    def provide_enum_value(self, payload: bytes) -> RAPDU:
+        chunks = self._cmd_builder.provide_enum_value(payload)
+        for chunk in chunks[:-1]:
+            self._exchange(chunk)
+        return self._exchange(chunks[-1])

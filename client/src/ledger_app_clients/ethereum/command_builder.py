@@ -15,6 +15,7 @@ class InsType(IntEnum):
     SIGN = 0x04
     PERSONAL_SIGN = 0x08
     PROVIDE_ERC20_TOKEN_INFORMATION = 0x0a
+    EXTERNAL_PLUGIN_SETUP = 0x12
     PROVIDE_NFT_INFORMATION = 0x14
     SET_PLUGIN = 0x16
     PERFORM_PRIVACY_OPERATION = 0x18
@@ -25,6 +26,7 @@ class InsType(IntEnum):
     GET_CHALLENGE = 0x20
     PROVIDE_TRUSTED_NAME = 0x22
     PROVIDE_ENUM_VALUE = 0x24
+    PROVIDE_TRANSACTION_INFO = 0x26
     PROVIDE_NETWORK_INFORMATION = 0x30
 
 
@@ -444,3 +446,6 @@ class CommandBuilder:
 
     def provide_enum_value(self, tlv_payload: bytes) -> list[bytes]:
         return self.common_tlv_serialize(tlv_payload, InsType.PROVIDE_ENUM_VALUE)
+
+    def provide_transaction_info(self, tlv_payload: bytes) -> list[bytes]:
+        return self.common_tlv_serialize(tlv_payload, InsType.PROVIDE_TRANSACTION_INFO)

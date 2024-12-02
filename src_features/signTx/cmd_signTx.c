@@ -3,6 +3,9 @@
 #include "feature_signTx.h"
 #include "eth_plugin_interface.h"
 #include "apdu_constants.h"
+#ifdef HAVE_GENERIC_TX_PARSER
+#include "gtp_tx_info.h"
+#endif
 
 typedef enum {
     SIGN_MODE_BASIC = 0,
@@ -132,7 +135,10 @@ uint16_t handleSign(uint8_t p1,
             if (length != 0) {
                 return APDU_RESPONSE_INVALID_DATA;
             }
-            // TODO: check hash
+            if (!validate_instruction_hash()) {
+                PRINTF("Error: instructions hash mismatch!\n");
+                return APDU_RESPONSE_INVALID_DATA;
+            }
             *flags |= IO_ASYNCH_REPLY;
             return APDU_NO_RESPONSE;
 #endif

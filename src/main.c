@@ -40,6 +40,7 @@
 #include "mem.h"
 #endif
 #include "cmd_enum_value.h"
+#include "cmd_tx_info.h"
 
 tmpCtx_t tmpCtx;
 txContext_t txContext;
@@ -77,6 +78,11 @@ void reset_app_context() {
 #endif
     memset((uint8_t *) &tmpCtx, 0, sizeof(tmpCtx));
     forget_known_assets();
+#ifdef HAVE_GENERIC_TX_PARSER
+    if (txContext.store_calldata) {
+        gcs_cleanup();
+    }
+#endif
     memset((uint8_t *) &txContext, 0, sizeof(txContext));
     memset((uint8_t *) &tmpContent, 0, sizeof(tmpContent));
 }
@@ -244,7 +250,7 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
 
 #ifdef HAVE_GENERIC_TX_PARSER
         case INS_GTP_TRANSACTION_INFO:
-            // TODO
+            sw = handle_tx_info(cmd->p1, cmd->p2, cmd->lc, cmd->data);
             break;
 
         case INS_GTP_FIELD:

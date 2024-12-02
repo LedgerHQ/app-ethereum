@@ -543,3 +543,9 @@ class EthAppClient:
         for chunk in chunks[:-1]:
             self._exchange(chunk)
         return self._exchange(chunks[-1])
+
+    def provide_transaction_info(self, payload: bytes) -> RAPDU:
+        chunks = self._cmd_builder.provide_transaction_info(payload)
+        for chunk in chunks[:-1]:
+            self._exchange(chunk)
+        return self._exchange(chunks[-1])

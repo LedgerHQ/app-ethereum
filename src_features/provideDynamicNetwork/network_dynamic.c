@@ -493,6 +493,10 @@ static uint16_t parse_tlv(const uint8_t *data, uint8_t length) {
     cx_sha256_init(&sig_ctx.hash_ctx);
     // handle TLV payload
     while (offset != length) {
+        if ((offset + 2) > length) {
+            sw = APDU_RESPONSE_INVALID_DATA;
+            break;
+        }
         tag_start_off = offset;
         field_tag = data[offset++];
         field_len = data[offset++];

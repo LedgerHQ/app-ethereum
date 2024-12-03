@@ -15,3 +15,5 @@ __version__.py
 
 .vscode
 .idea
+
+fuzzing/CORPUS/

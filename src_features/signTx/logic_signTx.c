@@ -343,7 +343,7 @@ __attribute__((noreturn)) void send_swap_error(uint8_t error_code,
                                                const char *str1,
                                                const char *str2) {
     uint32_t tx = 0;
-    uint len = 0;
+    size_t len = 0;
     PRINTF("APDU_RESPONSE_MODE_CHECK_FAILED: 0x%x\n", error_code);
     // Set RAPDU error codes
     G_io_apdu_buffer[tx++] = error_code;

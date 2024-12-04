@@ -37,6 +37,9 @@ typedef struct internalStorage_t {
 #ifdef HAVE_TRUSTED_NAME
     bool verbose_trusted_name;
 #endif  // HAVE_TRUSTED_NAME
+#ifdef HAVE_WEB3_CHECKS
+    bool web3checks;
+#endif
     bool initialized;
 } internalStorage_t;
 

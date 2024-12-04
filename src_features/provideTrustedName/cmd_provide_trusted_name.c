@@ -609,7 +609,7 @@ static bool verify_signature(const s_sig_ctx *sig_ctx) {
                                          TRUSTED_NAME_PUB_KEY,
                                          sizeof(TRUSTED_NAME_PUB_KEY),
 #ifdef HAVE_LEDGER_PKI
-                                         CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META,
+                                         CERTIFICATE_PUBLIC_KEY_USAGE_TRUSTED_NAME,
 #endif
                                          (uint8_t *) (sig_ctx->input_sig),
                                          sig_ctx->input_sig_size));

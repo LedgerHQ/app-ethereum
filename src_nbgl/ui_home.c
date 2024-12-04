@@ -23,6 +23,7 @@ enum {
     EIP712_VERBOSE_TOKEN,
 #endif
     DEBUG_TOKEN,
+    W3CHECK_TOKEN,
 };
 
 enum {
@@ -35,6 +36,7 @@ enum {
     EIP712_VERBOSE_ID,
 #endif
     DEBUG_ID,
+    W3CHECK_ID,
     SETTINGS_SWITCHES_NB
 };
 
@@ -84,6 +86,11 @@ static void setting_toggle_callback(int token, uint8_t index, int page) {
             value = !N_storage.contractDetails;
             switches[DEBUG_ID].initState = (nbgl_state_t) value;
             nvm_write((void *) &N_storage.contractDetails, (void *) &value, sizeof(value));
+            break;
+        case W3CHECK_TOKEN:
+            value = !N_storage.web3checks;
+            switches[W3CHECK_ID].initState = (nbgl_state_t) value;
+            nvm_write((void *) &N_storage.web3checks, (void *) &value, sizeof(value));
             break;
     }
 }
@@ -151,6 +158,13 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
     switches[DEBUG_ID].subText = "Display contract data details.";
     switches[DEBUG_ID].token = DEBUG_TOKEN;
     switches[DEBUG_ID].tuneId = TUNE_TAP_CASUAL;
+
+    switches[W3CHECK_ID].initState = N_storage.web3checks ? ON_STATE : OFF_STATE;
+    switches[W3CHECK_ID].text = "Web3 Checks";
+    switches[W3CHECK_ID].subText =
+        "Scan transactions for threats and scams. Provided by Blockaid. Learn more: ledger.com/w3c";
+    switches[W3CHECK_ID].token = W3CHECK_TOKEN;
+    switches[W3CHECK_ID].tuneId = TUNE_TAP_CASUAL;
 
     contents[0].type = SWITCHES_LIST;
     contents[0].content.switchesList.nbSwitches = SETTINGS_SWITCHES_NB;

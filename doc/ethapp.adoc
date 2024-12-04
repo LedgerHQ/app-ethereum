@@ -189,6 +189,8 @@ None
         0x01 : arbitrary data signature enabled by user
 
         0x02 : ERC 20 Token information needs to be provided externally
+
+        0x10 : Web3 Check enabled
                                                                                     | 01
 | Application major version                                                         | 01
 | Application minor version                                                         | 01

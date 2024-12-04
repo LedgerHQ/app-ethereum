@@ -6,6 +6,8 @@
 
 #define APP_FLAG_DATA_ALLOWED          0x01
 #define APP_FLAG_EXTERNAL_TOKEN_NEEDED 0x02
+#define APP_FLAG_W3C_ENABLE            0x10
+#define APP_FLAG_W3C_OPT_IN            0x20
 
 #define CLA                                 0xE0
 #define INS_GET_PUBLIC_KEY                  0x02

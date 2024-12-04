@@ -27,6 +27,11 @@ typedef struct internalStorage_t {
 #ifdef HAVE_TRUSTED_NAME
     bool verbose_trusted_name;
 #endif  // HAVE_TRUSTED_NAME
+#ifdef HAVE_WEB3_CHECKS
+    bool w3c_enable;
+    // hidden setting (not shown in the UI)
+    bool w3c_opt_in;
+#endif
     bool initialized;
 } internalStorage_t;
 

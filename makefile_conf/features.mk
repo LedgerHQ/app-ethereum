@@ -67,6 +67,10 @@ ifneq ($(TARGET_NAME),TARGET_NANOS)
     DEFINES += HAVE_DYNAMIC_NETWORKS
 endif
 
+# Web3 Checks
+ifneq ($(TARGET_NAME),TARGET_NANOS)
+    DEFINES	+= HAVE_WEB3_CHECKS
+endif
 
 # Check features incompatibilities
 # --------------------------------

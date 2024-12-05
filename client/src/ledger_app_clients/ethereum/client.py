@@ -4,6 +4,7 @@ from typing import Optional, Tuple
 from hashlib import sha256
 import rlp
 from web3 import Web3
+from eth_utils import keccak
 
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
@@ -14,6 +15,7 @@ from .command_builder import CommandBuilder
 from .eip712 import EIP712FieldType
 from .keychain import sign_data, Key
 from .tlv import format_tlv
+from .response_parser import pk_addr
 
 
 class StatusWord(IntEnum):
@@ -57,12 +59,17 @@ class FieldTag(IntEnum):
     ADDRESS = 0x22
     CHAIN_ID = 0x23
     TICKER = 0x24
+    TX_HASH = 0x27
     BLOCKCHAIN_FAMILY = 0x51
     NETWORK_NAME = 0x52
     NETWORK_ICON_HASH = 0x53
     TRUSTED_NAME_TYPE = 0x70
     TRUSTED_NAME_SOURCE = 0x71
     TRUSTED_NAME_NFT_ID = 0x72
+    W3C_NORMALIZED_RISK = 0x80
+    W3C_NORMALIZED_CATEGORY = 0x81
+    W3C_PROVIDER_MSG = 0x82
+    W3C_TINY_URL = 0x83
 
 
 class PKIPubKeyUsage(IntEnum):
@@ -75,6 +82,7 @@ class PKIPubKeyUsage(IntEnum):
     PUBKEY_USAGE_PLUGIN_METADATA = 0x07
     PUBKEY_USAGE_COIN_META = 0x08
     PUBKEY_USAGE_SEED_ID_AUTH = 0x09
+    PUBKEY_USAGE_TX_SIMU_SIGNER = 0x0a
     PUBKEY_USAGE_CALLDATA = 0x0b
     PUBKEY_USAGE_NETWORK = 0x0c
 
@@ -146,6 +154,9 @@ class EthAppClient:
         header.append(p2)
         header.append(len(payload))
         return self._exchange_async(header + payload)
+
+    def get_app_configuration(self):
+        return self._exchange(self._cmd_builder.get_app_configuration())
 
     def eip712_send_struct_def_struct_name(self, name: str):
         return self._exchange_async(self._cmd_builder.eip712_send_struct_def_struct_name(name))
@@ -226,10 +237,9 @@ class EthAppClient:
     def eip712_filtering_raw(self, name: str, sig: bytes, discarded: bool):
         return self._exchange_async(self._cmd_builder.eip712_filtering_raw(name, sig, discarded))
 
-    def sign(self,
-             bip32_path: str,
-             tx_params: dict,
-             mode: SignMode = SignMode.BASIC):
+    def serialize_tx(self, tx_params: dict) -> Tuple[bytes, bytes]:
+        """Computes the serialized TX and its hash"""
+
         tx = Web3().eth.account.create().sign_transaction(tx_params).rawTransaction
         prefix = bytes()
         suffix = []
@@ -239,8 +249,16 @@ class EthAppClient:
         else:  # legacy
             if "chainId" in tx_params:
                 suffix = [int(tx_params["chainId"]), bytes(), bytes()]
-        decoded = rlp.decode(tx)[:-3]  # remove already computed signature
-        tx = prefix + rlp.encode(decoded + suffix)
+        decoded_tx = rlp.decode(tx)[:-3]  # remove already computed signature
+        encoded_tx = prefix + rlp.encode(decoded_tx + suffix)
+        tx_hash = keccak(encoded_tx)
+        return encoded_tx, tx_hash
+
+    def sign(self,
+             bip32_path: str,
+             tx_params: dict,
+             mode: SignMode = SignMode.BASIC):
+        tx, _ = self.serialize_tx(tx_params)
         chunks = self._cmd_builder.sign(bip32_path, tx, mode)
         for chunk in chunks[:-1]:
             self._exchange(chunk)
@@ -606,3 +624,63 @@ class EthAppClient:
         for chunk in chunks[:-1]:
             self._exchange(chunk)
         return self._exchange(chunks[-1])
+
+    def _prepare_tx_simulation(self,
+                               tx_hash: bytes,
+                               risk: int,
+                               category: int,
+                               message: str,
+                               url: str,
+                               chain_id: int) -> bytes:
+
+        with self.get_public_addr(False):
+            pass
+        response = self.response()
+        assert response
+        _, DEVICE_ADDR, _ = pk_addr(response.data)
+
+        # Construct the TLV payload
+        payload: bytes = format_tlv(FieldTag.STRUCT_TYPE, 9)
+        payload += format_tlv(FieldTag.STRUCT_VERSION, 1)
+        payload += format_tlv(FieldTag.CHAIN_ID, chain_id.to_bytes(8, 'big'))
+        payload += format_tlv(FieldTag.TX_HASH, tx_hash)
+        payload += format_tlv(FieldTag.ADDRESS, DEVICE_ADDR)
+        payload += format_tlv(FieldTag.W3C_NORMALIZED_RISK, risk.to_bytes(2, 'big'))
+        payload += format_tlv(FieldTag.W3C_NORMALIZED_CATEGORY, category)
+        payload += format_tlv(FieldTag.W3C_PROVIDER_MSG, message.encode('utf-8'))
+        payload += format_tlv(FieldTag.W3C_TINY_URL, url.encode('utf-8'))
+        # Append the data Signature
+        payload += format_tlv(FieldTag.DER_SIGNATURE, sign_data(Key.W3C, payload))
+        return payload
+
+    def provide_tx_simulation(self,
+                              tx_hash: bytes,
+                              risk: int,
+                              category: int,
+                              message: str,
+                              url: str,
+                              chain_id: int) -> RAPDU:
+
+        if self._pki_client is None:
+            print(f"Ledger-PKI Not supported on '{self._firmware.name}'")
+        else:
+            # pylint: disable=line-too-long
+            if self._firmware == Firmware.NANOSP:
+                cert_apdu = "01010102010211040000000212010013020002140101160400000000200A573343204C65646765723002000531010A320121332103DA154C97512390BDFDD0E2178523EF7B2486B7A7DD5B507079D2F3641AEF550134010135010315473045022100EABC9E26361DD551E30F52604884E5D0DAEF9EDD63848C45DA0B446DEE870BF002206AC308F46D04E5B23CC8D62F9C062E3AF931E3EEF9C2509AFA768A891CA8F10B"  # noqa: E501
+            elif self._firmware == Firmware.NANOX:
+                cert_apdu = "01010102010211040000000212010013020002140101160400000000200A573343204C65646765723002000531010A320121332103DA154C97512390BDFDD0E2178523EF7B2486B7A7DD5B507079D2F3641AEF550134010135010215473045022100B9EC810718F85C110CF60E7C5A8A6A4F783F3E0918E93861A8FCDCE7CFF4D405022047BD29E3F2B8EFD3FC7451FA19EE3147C38BEF83246DC396E7A10B2D2A44DB30"  # noqa: E501
+            elif self._firmware == Firmware.STAX:
+                cert_apdu = "01010102010211040000000212010013020002140101160400000000200A573343204C65646765723002000531010A320121332103DA154C97512390BDFDD0E2178523EF7B2486B7A7DD5B507079D2F3641AEF550134010135010415473045022100C490C9DD99F7D1A39D3AE9D448762DEAA17694C9BCF00454503498D2BA883DFE02204AEAD903C2B3A106206D7C2B1ACAA6DD20B6B41EE6AEF38F060F05EC4D7813BB"  # noqa: E501
+            elif self._firmware == Firmware.FLEX:
+                cert_apdu = "01010102010211040000000212010013020002140101160400000000200A573343204C65646765723002000531010A320121332103DA154C97512390BDFDD0E2178523EF7B2486B7A7DD5B507079D2F3641AEF550134010135010515473045022100FFDE724191BAA18250C7A93404D57CE13465797979EAF64239DB221BA679C5A402206E02953F47D32299F82616713D3DBA39CF8A09EF948B23446A6DDE610F80D066"  # noqa: E501
+            else:
+                print(f"Invalid device '{self._firmware.name}'")
+                cert_apdu = ""
+            # pylint: enable=line-too-long
+            if cert_apdu:
+                self._pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_TX_SIMU_SIGNER, bytes.fromhex(cert_apdu))
+
+        # Add the network info
+        payload = self._prepare_tx_simulation(tx_hash, risk, category, message, url, chain_id)
+        response = self._exchange(self._cmd_builder.provide_tx_simulation(payload))
+        return response

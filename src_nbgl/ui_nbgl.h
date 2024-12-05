@@ -13,6 +13,9 @@ extern nbgl_page_t* pageContext;
 const nbgl_icon_details_t* get_app_icon(bool caller_icon);
 const nbgl_icon_details_t* get_tx_icon(void);
 
+// Global Warning struct for NBGL review flows
+extern nbgl_warning_t warning;
+
 void ui_idle(void);
 void ui_settings(void);
 

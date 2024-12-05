@@ -4,6 +4,9 @@
 #include "caller_api.h"
 #include "network.h"
 
+// Global Warning struct for NBGL review flows
+nbgl_warning_t warning;
+
 // settings info definition
 #define SETTING_INFO_NB 2
 

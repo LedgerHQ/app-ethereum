@@ -5,7 +5,7 @@ import rlp
 
 # eth_account requires it for some reason
 def normalize_vrs(vrs: tuple) -> tuple:
-    vrs_l = list()
+    vrs_l = []
     for elem in vrs:
         vrs_l.append(elem.lstrip(b'\x00'))
     return tuple(vrs_l)

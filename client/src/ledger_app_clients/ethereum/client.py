@@ -1,19 +1,19 @@
-import rlp
 import struct
 from enum import IntEnum
+from typing import Optional
+from hashlib import sha256
+import rlp
+from web3 import Web3
+
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from ragger.error import ExceptionRAPDU
 from ragger.utils import RAPDU
-from typing import Optional
 
 from .command_builder import CommandBuilder
 from .eip712 import EIP712FieldType
 from .keychain import sign_data, Key
 from .tlv import format_tlv
-
-from hashlib import sha256
-from web3 import Web3
 
 
 class StatusWord(IntEnum):
@@ -90,7 +90,7 @@ class PKIClient:
     def __init__(self, client: BackendInterface) -> None:
         self._client = client
 
-    def send_certificate(self, p1: PKIPubKeyUsage, payload: bytes) -> RAPDU:
+    def send_certificate(self, p1: PKIPubKeyUsage, payload: bytes) -> None:
         try:
             response = self.send_raw(p1, payload)
             assert response.status == StatusWord.OK
@@ -284,9 +284,13 @@ class EthAppClient:
                 cert_apdu = "01010102010211040000000212010013020002140101160400000000200B446F6D61696E5F4E616D6530020007310108320121332102B91FBEC173E3BA4A714E014EBC827B6F899A9FA7F4AC769CDE284317A00F4F65340101350104154630440220741DB4E738749D4188436419B20B9AEF8F07581312A9B3C9BAA3F3E879690F6002204C4A3510569247777BC43DB830D129ACA8985B88552E2E234E14D8AA2863026B"  # noqa: E501
             elif self._firmware == Firmware.FLEX:
                 cert_apdu = "01010102010211040000000212010013020002140101160400000000200B446F6D61696E5F4E616D6530020007310108320121332102B91FBEC173E3BA4A714E014EBC827B6F899A9FA7F4AC769CDE284317A00F4F65340101350105154730450221008B6BBCE1716C0A06F110C77FE181F8395D1692441459A106411463F01A45D4A7022044AB69037E6FA9D1D1A409E00B202C2D4451D464C8E5D4962D509FE63153FE93"  # noqa: E501
+            else:
+                print(f"Invalid device '{self._firmware.name}'")
+                cert_apdu = ""
             # pylint: enable=line-too-long
+            if cert_apdu:
+                self._pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_COIN_META, bytes.fromhex(cert_apdu))
 
-            self._pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_COIN_META, bytes.fromhex(cert_apdu))
         payload += format_tlv(FieldTag.STRUCT_TYPE, 3)  # TrustedName
         if name_source == TrustedNameSource.CAL:
             key_id = 6
@@ -358,9 +362,12 @@ class EthAppClient:
                 cert_apdu = "01010102010211040000000212010013020002140101160400000000200A53657420506C7567696E30020003310107320121332103C055BC4ECF055E2D85085D35127A3DE6705C7F885055CD7071E87671BF191FE334010135010415473045022100B8AF9667C190B60BF350D8F8CA66A4BCEA22BF47D757CB7F88F8D16C7794BCDC02205F7D6C8E9294F73744A82E1062B10FFEB809252682112E71A419EFC78227211B"  # noqa: E501
             elif self._firmware == Firmware.FLEX:
                 cert_apdu = "01010102010211040000000212010013020002140101160400000000200A53657420506C7567696E30020003310107320121332103C055BC4ECF055E2D85085D35127A3DE6705C7F885055CD7071E87671BF191FE334010135010515473045022100F5069D8BCEDCF7CC55273266E3871B09FFCACD084B5753347A809DDDA67E6235022003CE65364BFA96B6FE7A9D8C13EC87B8E727E8B7BF4A63176F5D61AB8F97807E"  # noqa: E501
+            else:
+                print(f"Invalid device '{self._firmware.name}'")
+                cert_apdu = ""
             # pylint: enable=line-too-long
-
-            self._pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_PLUGIN_METADATA, bytes.fromhex(cert_apdu))
+            if cert_apdu:
+                self._pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_PLUGIN_METADATA, bytes.fromhex(cert_apdu))
 
         if sig is None:
             # Temporarily get a command with an empty signature to extract the payload and
@@ -408,9 +415,12 @@ class EthAppClient:
                 cert_apdu = "0101010201021104000000021201001302000214010116040000000020084E46545F496E666F300200043101033201213321023CFB5FB31905F4BD39D9D535A40C26AAB51C5D7D3219B28AC942B980FB206CFB3401013501041546304402201DEE04EC830FFDE5C98A708EC6865605FC14FF6105A54BE5230F2B954C673B940220581A0A5E42A7779140963703E43B3BEABE4C69284EDEF00E76BB5875E0810C9B"  # noqa: E501
             elif self._firmware == Firmware.FLEX:
                 cert_apdu = "0101010201021104000000021201001302000214010116040000000020084E46545F496E666F300200043101033201213321023CFB5FB31905F4BD39D9D535A40C26AAB51C5D7D3219B28AC942B980FB206CFB340101350105154730450221009ABCC7056D54C1B5DBB353178B13850C20521EE6884AA415AA61B329DB1D87F602204E308F273B8D18080184695438577F770524F717E5D08EE20ECBF1BC599F3538"  # noqa: E501
+            else:
+                print(f"Invalid device '{self._firmware.name}'")
+                cert_apdu = ""
             # pylint: enable=line-too-long
-
-            self._pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_NFT_METADATA, bytes.fromhex(cert_apdu))
+            if cert_apdu:
+                self._pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_NFT_METADATA, bytes.fromhex(cert_apdu))
 
         if sig is None:
             # Temporarily get a command with an empty signature to extract the payload and
@@ -476,9 +486,12 @@ class EthAppClient:
                 cert_apdu = "01010102010211040000000212010013020002140101160400000000200B45524332305F546F6B656E300200063101083201213321024CCA8FAD496AA5040A00A7EB2F5CC3B85376D88BA147A7D7054A99C6405618873401013501041546304402206731FCD3E2432C5CA162381392FD17AD3A41EEF852E1D706F21A656AB165263602204B89FAE8DBAF191E2D79FB00EBA80D613CB7EDF0BE960CB6F6B29D96E1437F5F"  # noqa: E501
             elif self._firmware == Firmware.FLEX:
                 cert_apdu = "01010102010211040000000212010013020002140101160400000000200B45524332305F546F6B656E300200063101083201213321024CCA8FAD496AA5040A00A7EB2F5CC3B85376D88BA147A7D7054A99C64056188734010135010515473045022100B59EA8B958AA40578A6FBE9BBFB761020ACD5DBD8AA863C11DA17F42B2AFDE790220186316059EFA58811337D47C7F815F772EA42BBBCEA4AE123D1118C80588F5CB"  # noqa: E501
+            else:
+                print(f"Invalid device '{self._firmware.name}'")
+                cert_apdu = ""
             # pylint: enable=line-too-long
-
-            self._pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_COIN_META, bytes.fromhex(cert_apdu))
+            if cert_apdu:
+                self._pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_COIN_META, bytes.fromhex(cert_apdu))
 
         if sig is None:
             # Temporarily get a command with an empty signature to extract the payload and
@@ -520,7 +533,7 @@ class EthAppClient:
                                     name: str,
                                     ticker: str,
                                     chain_id: int,
-                                    icon: Optional[bytes] = None) -> RAPDU:
+                                    icon: Optional[bytes] = None) -> None:
 
         if self._pki_client is None:
             print(f"Ledger-PKI Not supported on '{self._firmware.name}'")
@@ -534,9 +547,12 @@ class EthAppClient:
                 cert_apdu = "01010102010211040000000212010013020002140101160400000000200B45524332305F546F6B656E300200063101083201213321024CCA8FAD496AA5040A00A7EB2F5CC3B85376D88BA147A7D7054A99C6405618873401013501041546304402206731FCD3E2432C5CA162381392FD17AD3A41EEF852E1D706F21A656AB165263602204B89FAE8DBAF191E2D79FB00EBA80D613CB7EDF0BE960CB6F6B29D96E1437F5F"  # noqa: E501
             elif self._firmware == Firmware.FLEX:
                 cert_apdu = "01010102010211040000000212010013020002140101160400000000200B45524332305F546F6B656E300200063101083201213321024CCA8FAD496AA5040A00A7EB2F5CC3B85376D88BA147A7D7054A99C64056188734010135010515473045022100B59EA8B958AA40578A6FBE9BBFB761020ACD5DBD8AA863C11DA17F42B2AFDE790220186316059EFA58811337D47C7F815F772EA42BBBCEA4AE123D1118C80588F5CB"  # noqa: E501
+            else:
+                print(f"Ledger-PKI Not supported on '{self._firmware.name}'")
+                cert_apdu = ""
             # pylint: enable=line-too-long
-
-            self._pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_COIN_META, bytes.fromhex(cert_apdu))
+            if cert_apdu:
+                self._pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_COIN_META, bytes.fromhex(cert_apdu))
 
         # Add the network info
         payload = self._prepare_network_info(name, ticker, chain_id, icon)

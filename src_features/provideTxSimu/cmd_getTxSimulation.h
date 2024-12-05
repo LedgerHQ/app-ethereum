@@ -36,3 +36,5 @@ void checkTxSimulationParams(void);
 
 const char *getTxSimuScoreStr(void);
 const char *getTxSimuCategoryStr(void);
+
+void ui_display_tx_simulation(bool is_demo);

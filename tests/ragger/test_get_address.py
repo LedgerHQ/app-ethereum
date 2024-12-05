@@ -66,6 +66,8 @@ def test_get_pk(backend: BackendInterface,
         # pylint: enable=line-too-long
     else:
         name = ""
+        ticker = ""
+        icon = ""
 
     if name:
         app_client.provide_network_information(name, ticker, chain, bytes.fromhex(icon))

@@ -38,7 +38,8 @@ def common(firmware: Firmware,
            tx_params: dict,
            test_name: str = "",
            path: str = BIP32_PATH,
-           confirm: bool = False):
+           confirm: bool = False,
+           with_simu: bool = False):
     app_client = EthAppClient(backend)
 
     if tx_params["chainId"] == 3:
@@ -76,6 +77,12 @@ def common(firmware: Firmware,
             end_text = "Accept"
         else:
             end_text = "Sign"
+
+        if with_simu:
+            navigator.navigate_and_compare(default_screenshot_path,
+                                           f"{test_name}/confirm",
+                                           [NavInsID.USE_CASE_CHOICE_REJECT],
+                                           screen_change_after_last_instruction=False)
 
         scenario_navigator.review_approve(custom_screen_text=end_text, do_comparison=test_name!="")
 

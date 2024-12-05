@@ -10,6 +10,9 @@
 #define TEXT_SIGN_EIP712       SIGN(TEXT_TYPED_MESSAGE)
 #define TEXT_BLIND_SIGN_EIP712 BLIND_SIGN(TEXT_TYPED_MESSAGE)
 
+void ui_typed_message_review_choice_v0(bool confirm);
+#ifdef HAVE_EIP712_FULL_SUPPORT
 void ui_typed_message_review_choice(bool confirm);
+#endif
 
 #endif  // UI_MESSAGE_SIGNING_H_

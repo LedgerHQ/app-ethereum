@@ -5,6 +5,334 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.13.0](https://github.com/ledgerhq/app-ethereum/compare/1.12.2...1.13.0) - 2024-11-26
+
+### Added
+
+- (clone) IoTeX
+- (network) Defi Oracle Meta
+- (network) IoTeX
+- (network) IoTeX Testnet
+- (network) Neo X Mainnet
+- (network) Neo X Testnet
+- (network) Bitlayer
+- (network) Bitlayer Testnet
+- Dynamic network handling, can get new networks at runtime from the CAL instead of from the hardcoded list
+- Support for Ethermint's non-standard EIP-712 verifyingContract
+
+### Changed
+
+- Improved error handling in swap mode
+- Provide NFT info APDU does not require a loaded NFT (721/1155) internal plugin anymore
+
+### Fixed
+
+- Potential overflow on the UI buffer used for amounts
+- RLP parsing issue with legacy transactions
+
+## [1.12.2](https://github.com/ledgerhq/app-ethereum/compare/1.12.1...1.12.2) - 2024-10-24
+
+### Fixed
+
+- Token swap with calldata
+
+## [1.12.1](https://github.com/ledgerhq/app-ethereum/compare/1.12.0...1.12.1) - 2024-10-02
+
+### Fixed
+
+- Review of EIP-191 messages getting stuck and not responding to APDUs
+- (clone) Ethereum Classic, gave it back the Ethereum derivation path
+
+## [1.12.0](https://github.com/ledgerhq/app-ethereum/compare/1.11.3...1.12.0) - 2024-09-27
+
+### Added
+
+- Ledger PKI support
+- Added support for swap with calldata (Thorswap / LiFi / ...)
+- (network) PulseChain Testnet
+- The app now provides the derivation path to its plugins
+- Support for Trusted Name V2 payloads
+- EIP-712 filtering on trusted names
+
+### Removed
+
+- (clone) ApothemNetwork
+- (clone) Binance Smart Chain
+- (clone) BTTC
+- (clone) Conflux eSpace
+- (clone) Cube
+- (clone) KardiaChain
+- (clone) Meter
+- (clone) MultiVAC
+- (clone) OKXChain
+- (clone) POA
+- (clone) Polygon
+- (clone) Shyft
+
+### Fixed
+
+- (network) Apothemnetwork ticker
+- Missing error handling on EIP-712, which could lead to a crash of the app
+- EIP-712 filtering on fields within an empty array (requires client support with a new APDU)
+- EIP-712 amount-join filtering with missing token information
+- EIP-712 UI-code overflow on Stax which could lead to a crash of the app
+
+### Changed
+
+- (clone) Astar Polkadot EVM, removed Ethereum derivation path
+- (clone) EnergyWebChain, removed Ethereum derivation path
+- (clone) Ethereum Classic, removed Ethereum derivation path
+- (clone) Moonbeam, removed Ethereum derivation path
+- (clone) Moonriver, removed Ethereum derivation path
+- (clone) Oasys, removed Ethereum derivation path
+- (clone) Shiden EVM, removed Ethereum derivation path
+- (clone) Songbird, removed Ethereum derivation path
+- (clone) TecraCoin, removed Ethereum derivation path
+- (clone) TecraTestnet, removed Ethereum derivation path
+- (clone) Volta, removed Ethereum derivation path
+- (clone) XDC Network, removed Ethereum derivation path
+- Now the app sends back its response immediately instead of after the Transaction/Message signed/rejected screen on Stax & Flex
+- Added blind-signing friction to EIP-712 v0 & unfiltered flows
+- EIP-712 unfiltered flow now defaults to raw/verbose mode on Stax & Flex, but adds a skip button
+
+## [1.11.3](https://github.com/ledgerhq/app-ethereum/compare/1.11.2...1.11.3) - 2024-09-04
+
+### Changed
+
+- Replaced MATIC by POL ticker for Polygon network
+
+## [1.11.2](https://github.com/ledgerhq/app-ethereum/compare/1.11.1...1.11.2) - 2024-08-13
+
+### Added
+
+- Blind-signing setting
+
+### Changed
+
+- Simplified blind-signing warnings on Flex & Stax
+- Restored blind-signing warning screen from < 1.11.0 on Nano devices
+
+## [1.11.1](https://github.com/ledgerhq/app-ethereum/compare/1.11.0...1.11.1) - 2024-07-26
+
+### Fixed
+
+- (network/clone) Wanchain
+- Refusal of EIP-712 messages after another transaction or message
+
+## [1.11.0](https://github.com/ledgerhq/app-ethereum/compare/1.10.4...1.11.0) - 2024-07-24
+
+### Added
+
+- (network) Base Sepolia
+- (network) Blast
+- (network) Blast Sepolia
+- (network) Mantle
+- (network) Mantle Sepolia
+- (network) Arbitrum Sepolia
+- (network) Linea Sepolia
+- (network) OP Sepolia
+- (network) Etherlink Mainnet
+- (network) ZetaChain
+- (network) Astar zkEVM
+- (network) Lisk
+- (network) Lisk Sepolia
+- (network) ZKsync
+- (network) BOB
+- (network) Electroneum
+- New EIP-712 filtering modes (datetime, amount-join)
+- New blind-signing warning flow before every blind-signed transaction flow
+- New "From" field in transactions containing the wallet's derived address
+- Ledger Flex support
+
+### Removed
+
+- (clone) Flare
+- (clone) Flare Coston
+- (clone) Eth Goerli
+- (clone) Eth Ropsten
+- Wallet ID support
+- U2F support
+- Blind-signing setting
+
+### Changed
+
+- Renamed Optimism to OP Mainnet
+- Can now store up to 5 assets information (instead of 2)
+- Can now buffer & show multiple EIP-712 fields on one page for NBGL devices
+- Renamed the "Address" field in transactions to "To"
+
+### Fixed
+
+- Handling of EIP-712 empty arrays within nested structs
+
+## [1.10.4](https://github.com/ledgerhq/app-ethereum/compare/1.10.3...1.10.4) - 2024-03-08
+
+### Added
+
+- Addresses in EIP-712 messages can now be displayed as a token ticker or a trusted domain name if a match is found
+- Stax app now has icons of the other supported EVM chains
+- (network) Bitcichain
+- (network) Core
+- (network) Bitrock Mainnet
+- (network) Numbers Protocol
+- (network) Linea
+- (network) Holesky
+
+### Removed
+
+- Starkware support
+- (clone) kUSD
+- (clone) Tobalaba
+
+### Changed
+
+- Can now clear-sign NFT operations on other EVM chains without a clone app
+- Can now swap on other EVM chains without a clone app
+- Improved RAM usage
+- Now shows an explicit ??? ticker when it is unknown instead of falling back to the native chain ticker
+
+### Fixed
+
+- Refusal of transactions with very large chain IDs even within specs
+- Refusal of 10 character-long token tickers
+- (network) Wanchain chain ID
+- (network) Sepolia chain ID
+
+## [1.10.3](https://github.com/ledgerhq/app-ethereum/compare/1.10.2...1.10.3) - 2023-07-27
+
+### Added
+
+- (network) LUKSO mainnet & testnet
+- (network) Chiado
+- (network) PulseChain
+- (network) Neon EVM mainnet & devnet
+- (network) Venidium
+- (network) Telos EVM mainnet
+- (network) OKBChain mainnet
+- (network) Polygon zkEVM
+- (network) Base
+- (network) Sepolia
+- ENS on chains that share the Ethereum derivation path
+- Ledger Stax support
+
+### Changed
+
+- (network) xDai renamed to Gnosis
+
+### Fixed
+
+- Missing context cleanup between plugin calls
+- Miscellaneous swap issues
+- Improper EIP-712 array handling
+
+## [1.10.2](https://github.com/ledgerhq/app-ethereum/compare/1.10.1...1.10.2) - 2023-04-24
+
+### Added
+
+- (clone) ID4Good
+- (network) Cronos
+- (network) Scroll
+- (network) KCC
+- (network) Rootstock
+- (network) Evmos
+- (network) Metis Andromeda
+- (network) Kava EVM
+- (network) Klaytn Cypress
+- (network) Syscoin
+- (network) Velas EVM
+- (network) Boba Network
+- (network) Energi
+- Domain names support (LNX / LNS+)
+
+### Changed
+
+- Starknet blind signing wording
+
+### Fixed
+
+- Missing 44'/60' derivation path for XDC Network
+- Small visual glitch with EIP-712 verbose mode with the "Review struct" page
+- Possible overflow with very large transactions
+- EnergyWebChain ticker
+- Arbitrum ticker
+- Error handling on EIP-191 APDUs
+- Swap transactions handling
+
+## [1.10.1](https://github.com/ledgerhq/app-ethereum/compare/1.10.0...1.10.1) - 2022-11-09
+
+### Fixed
+
+- App/device crash with fast button clicks on slow APDU transport on the new EIP-712 signature UI
+
+## [1.10.0](https://github.com/ledgerhq/app-ethereum/compare/1.9.20...1.10.0) - 2022-10-26
+
+### Changed
+
+- EIP-712 signatures are now computed on-device and display their content (clear-signing) (LNX & LNS+)
+
+## [1.9.20](https://github.com/ledgerhq/app-ethereum/compare/1.9.19...1.9.20) - 2022-10-10
+
+### Added
+
+- (clone) XDCNetwork
+- (clone) Meter
+- (clone) Multivac
+- (clone) Tecra
+- (clone) ApothemNetwork
+
+### Changed
+
+- EIP-191 improvements, now lets the user see the entire message one chunk at a time
+  (255 characters for LNX & LNS+, 99 for LNS)
+
+### Fixed
+
+- Allow swap with variants
+
+### Removed
+
+- Compound support (will become its own plugin)
+
+## [1.9.19](https://github.com/ledgerhq/app-ethereum/compare/1.9.18...1.9.19) - 2022-06-15
+
+### Added
+
+- (clone) OKXChain
+- (clone) Cube
+- (clone) Astar EVM
+- (clone) Shiden EVM
+
+### Changed
+
+- EIP-191 signatures now show (up to 99 characters on LNS and 255 on LNX & LNS+) the actual data
+  contained in the message (clear-signing)
+
+### Fixed
+
+- Bug with huge swap amounts
+
+## [1.9.18](https://github.com/ledgerhq/app-ethereum/compare/1.9.17...1.9.18) - 2022-04-25
+
+### Added
+
+- Easier way of adding a chain into the Makefile
+- EIP 1024 support
+- (clone) Conflux chain
+- (clone) Moonbeam chain
+- (clone) KardiaChain
+- (clone) BitTorrent Chain
+- (clone) Wethio chain
+
+### Changed
+
+- More uniform naming between the ERC-721 & ERC-1155 screens
+
+### Fixed
+
+- CI (mostly Zemu tests)
+- App crashing when trying to approve an NFT transaction without having received the NFT information beforehand
+- App refusing to approve an NFT transaction with a long collection name
+
 ## [1.9.17](https://github.com/ledgerhq/app-ethereum/compare/1.9.16...1.9.17) - 2022-01-14
 
 ### Added
@@ -25,7 +353,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
-- Fixed stark order signature on LNS 
+- Fixed stark order signature on LNS
 
 ## [1.9.13](https://github.com/ledgerhq/app-ethereum/compare/1.9.12...1.9.13) - 2021-11-17
 
@@ -37,13 +365,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
-- Fixed stark order signature on LNX 
+- Fixed stark order signature on LNX
 
 ## [1.9.11](https://github.com/ledgerhq/app-ethereum/compare/1.9.10...1.9.11) - 2021-10-12
 
 ### Added
 
-- Provide network ticker to plugins (especialy helpful for Paraswap plugin)
+- Provide network ticker to plugins (especially helpful for Paraswap plugin)
 - Polygon variant
 
 ## [1.9.10](https://github.com/ledgerhq/app-ethereum/compare/1.9.9...1.9.10) - 2021-10-08
@@ -88,7 +416,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
-- When blind signing is disabled in settings, and a transaction with smart conract interactions is sent to the app, a new warning screen pops to let the user know that the setting must be enabled to sign this kind of transactions.
+- When blind signing is disabled in settings, and a transaction with smart conract interactions is sent to the app,
+  a new warning screen pops to let the user know that the setting must be enabled to sign this kind of transactions.
 
 ## [1.9.4](https://github.com/ledgerhq/app-ethereum/compare/1.9.3...1.9.4) - 2021-9-14
 

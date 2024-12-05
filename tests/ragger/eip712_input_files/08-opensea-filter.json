@@ -1,0 +1,21 @@
+{
+    "name": "OpenSea",
+    "fields": {
+        "maker": {
+            "type": "raw",
+            "name": "Maker"
+        },
+        "taker": {
+            "type": "raw",
+            "name": "Taker"
+        },
+        "basePrice": {
+            "type": "raw",
+            "name": "Base Price"
+        },
+        "expirationTime": {
+            "type": "raw",
+            "name": "Expiration Time"
+        }
+    }
+}

@@ -1,0 +1,26 @@
+name: Misspellings CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+      - main
+      - develop
+  pull_request:
+
+jobs:
+  misspell:
+    name: Check misspellings
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Check misspellings
+        uses: codespell-project/actions-codespell@v2
+        with:
+          builtin: clear,rare
+          check_filenames: true
+          path: src, src_bagl, src_features, src_nbgl, src_plugin_sdk, src_plugins, doc, client

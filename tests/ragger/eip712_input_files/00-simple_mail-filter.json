@@ -1,0 +1,13 @@
+{
+    "name": "Test JSON",
+    "fields": {
+        "from.name": {
+            "type": "raw",
+            "name": "From"
+        },
+        "to.name": {
+            "type": "raw",
+            "name": "To"
+        }
+    }
+}

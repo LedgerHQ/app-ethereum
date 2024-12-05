@@ -1,0 +1,21 @@
+{
+    "name": "Depthy Test",
+    "fields": {
+        "contents": {
+            "type": "raw",
+            "name": "Message"
+        },
+        "from.name": {
+            "type": "raw",
+            "name": "Sender"
+        },
+        "to.members.[].name": {
+            "type": "raw",
+            "name": "Recipient"
+        },
+        "attach.list.[].name": {
+            "type": "raw",
+            "name": "Attachment"
+        }
+    }
+}

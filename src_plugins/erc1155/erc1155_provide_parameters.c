@@ -1,7 +1,10 @@
 #ifdef HAVE_NFT_SUPPORT
 
+#include <string.h>
 #include "erc1155_plugin.h"
+#include "plugin_utils.h"
 #include "eth_plugin_internal.h"
+#include "common_utils.h"
 
 static void handle_safe_transfer(ethPluginProvideParameter_t *msg, erc1155_context_t *context) {
     uint8_t new_value[INT256_LENGTH];
@@ -112,8 +115,7 @@ static void handle_approval_for_all(ethPluginProvideParameter_t *msg, erc1155_co
     }
 }
 
-void handle_provide_parameter_1155(void *parameters) {
-    ethPluginProvideParameter_t *msg = (ethPluginProvideParameter_t *) parameters;
+void handle_provide_parameter_1155(ethPluginProvideParameter_t *msg) {
     erc1155_context_t *context = (erc1155_context_t *) msg->pluginContext;
 
     PRINTF("erc1155 plugin provide parameter %d %.*H\n",

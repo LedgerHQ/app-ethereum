@@ -1,0 +1,4 @@
+PATH_APP_LOAD_PARAMS += "44'/554'"
+TICKER = "SGB"
+CHAIN_ID = 19
+APPNAME = "Songbird"

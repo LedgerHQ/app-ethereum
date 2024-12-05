@@ -1,0 +1,67 @@
+{
+    "domain": {
+        "chainId": 5,
+        "name": "Empty Arrays",
+        "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+        "version": "1"
+    },
+    "message": {
+        "test1": [],
+        "test2": [
+            [
+                "one",
+                "two"
+            ],
+            [],
+            [
+                "three",
+                "four"
+            ]
+        ],
+        "test3": [
+            {
+                "sub": [
+                    {
+                        "sub": [],
+                        "value": 3
+                    }
+                ],
+                "value": 1
+            }
+        ],
+        "test4": [
+            {
+                "sub": [],
+                "value": 2
+            }
+        ],
+        "test5": []
+    },
+    "primaryType": "Struct",
+    "types": {
+        "EIP712Domain": [
+            { "name": "name", "type": "string" },
+            { "name": "version", "type": "string" },
+            { "name": "chainId", "type": "uint256" },
+            { "name": "verifyingContract", "type": "address" }
+        ],
+        "Struct": [
+            { "name": "test1", "type": "uint8[]" },
+            { "name": "test2", "type": "string[][]" },
+            { "name": "test3", "type": "Top[]" },
+            { "name": "test4", "type": "Top[]" },
+            { "name": "test5", "type": "Top[]" }
+        ],
+        "Bottom": [
+            { "name": "value", "type": "uint8" }
+        ],
+        "Mid": [
+            { "name": "sub", "type": "Bottom[]" },
+            { "name": "value", "type": "uint8" }
+        ],
+        "Top": [
+            { "name": "sub", "type": "Mid[]" },
+            { "name": "value", "type": "uint8" }
+        ]
+    }
+}

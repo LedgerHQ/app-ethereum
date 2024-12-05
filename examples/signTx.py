@@ -96,6 +96,8 @@ tx = UnsignedTransaction(
 )
 
 encodedTx = encode(tx, UnsignedTransaction)
+
+# To test an EIP-1559 transaction, uncomment this line
 # encodedTx = bytearray.fromhex(
 # "02ef0306843b9aca008504a817c80082520894b2bb2b958afa2e96dab3f3ce7162b87daea39017872386f26fc1000080c0")
 

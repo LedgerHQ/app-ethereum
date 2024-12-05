@@ -108,7 +108,12 @@ typedef union {
     tokenContext_t tokenContext;
 } dataContext_t;
 
-typedef enum { APP_STATE_IDLE, APP_STATE_SIGNING_TX, APP_STATE_SIGNING_MESSAGE } app_state_t;
+typedef enum {
+    APP_STATE_IDLE,
+    APP_STATE_SIGNING_TX,
+    APP_STATE_SIGNING_MESSAGE,
+    APP_STATE_SIGNING_EIP712
+} app_state_t;
 
 typedef enum {
     CONTRACT_NONE,

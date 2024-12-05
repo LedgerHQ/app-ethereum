@@ -31,16 +31,18 @@
 #define INS_GTP_TRANSACTION_INFO            0x26
 #define INS_GTP_FIELD                       0x28
 #define INS_PROVIDE_NETWORK_CONFIGURATION   0x30
-#define P1_CONFIRM                          0x01
-#define P1_NON_CONFIRM                      0x00
-#define P2_NO_CHAINCODE                     0x00
-#define P2_CHAINCODE                        0x01
-#define P1_FIRST                            0x00
-#define P1_MORE                             0x80
-#define P1_FIRST_CHUNK                      0x01
-#define P1_FOLLOWING_CHUNK                  0x00
-#define P2_EIP712_LEGACY_IMPLEM             0x00
-#define P2_EIP712_FULL_IMPLEM               0x01
+#define INS_PROVIDE_TX_SIMULATION           0x32
+
+#define P1_CONFIRM              0x01
+#define P1_NON_CONFIRM          0x00
+#define P2_NO_CHAINCODE         0x00
+#define P2_CHAINCODE            0x01
+#define P1_FIRST                0x00
+#define P1_MORE                 0x80
+#define P1_FIRST_CHUNK          0x01
+#define P1_FOLLOWING_CHUNK      0x00
+#define P2_EIP712_LEGACY_IMPLEM 0x00
+#define P2_EIP712_FULL_IMPLEM   0x01
 
 #define APDU_NO_RESPONSE                      0x0000
 #define APDU_RESPONSE_MODE_CHECK_FAILED       0x6001

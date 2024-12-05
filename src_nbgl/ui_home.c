@@ -1,6 +1,10 @@
 #include "ui_nbgl.h"
 #include "caller_api.h"
 #include "network.h"
+#include "cmd_get_tx_simulation.h"
+
+// Global Warning struct for NBGL review flows
+nbgl_warning_t warning;
 
 // settings info definition
 #define SETTING_INFO_NB 2
@@ -60,6 +64,7 @@ static void setting_toggle_callback(int token, uint8_t index, int page) {
     switch (token) {
 #ifdef HAVE_WEB3_CHECKS
         case WEB3_CHECK_TOKEN:
+            handleTxSimulationOptIn(false);
             value = !N_storage.w3c_enable;
             switches[WEB3_CHECK_ID].initState = (nbgl_state_t) value;
             nvm_write((void *) &N_storage.w3c_enable, (void *) &value, sizeof(value));

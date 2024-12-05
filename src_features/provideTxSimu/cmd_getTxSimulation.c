@@ -564,8 +564,18 @@ uint16_t handleTxSimulation(uint8_t p1, const uint8_t *data, uint8_t length) {
         return APDU_RESPONSE_INVALID_P1_P2;
     }
     sw = parse_tlv(data, length);
+    if (sw != APDU_RESPONSE_OK) {
+        return sw;
+    }
 
-    return sw;
+#ifdef HAVE_NBGL
+    if (p1 == P1_DEMO) {
+        // Display the TX Simulation parameters
+        ui_display_tx_simulation(false, true);
+    }
+#endif
+
+    return APDU_RESPONSE_OK;
 }
 
 /**

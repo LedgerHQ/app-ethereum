@@ -26,6 +26,7 @@ class InsType(IntEnum):
     PROVIDE_TRUSTED_NAME = 0x22
     EXTERNAL_PLUGIN_SETUP = 0x12
     PROVIDE_NETWORK_INFORMATION = 0x30
+    PROVIDE_TX_SIMULATION = 0x32
 
 
 class P1Type(IntEnum):
@@ -427,3 +428,9 @@ class CommandBuilder:
                 icon = icon[0xff:]
                 p1 = P1Type.FOLLOWING_CHUNK
         return chunks
+
+    def provide_tx_simulation(self, tlv_payload: bytes) -> bytes:
+        # Check if the TLV payload is larger than 0xff
+        assert len(tlv_payload) < 0xff, "Payload too large"
+        # Serialize the payload
+        return self._serialize(InsType.PROVIDE_TX_SIMULATION, 0x00, 0x00, tlv_payload)

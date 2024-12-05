@@ -13,6 +13,7 @@ class InsType(IntEnum):
     GET_PUBLIC_ADDR = 0x02
     GET_ETH2_PUBLIC_ADDR = 0x0e
     SIGN = 0x04
+    GET_APP_CONFIGURATION = 0x06
     PERSONAL_SIGN = 0x08
     PROVIDE_ERC20_TOKEN_INFORMATION = 0x0a
     PROVIDE_NFT_INFORMATION = 0x14
@@ -26,6 +27,7 @@ class InsType(IntEnum):
     PROVIDE_TRUSTED_NAME = 0x22
     EXTERNAL_PLUGIN_SETUP = 0x12
     PROVIDE_NETWORK_INFORMATION = 0x30
+    PROVIDE_TX_SIMULATION = 0x32
 
 
 class P1Type(IntEnum):
@@ -35,6 +37,8 @@ class P1Type(IntEnum):
     SIGN_SUBSQT_CHUNK = 0x80
     FIRST_CHUNK = 0x01
     FOLLOWING_CHUNK = 0x00
+    TX_SIMU_NORMAL = 0x00
+    TX_SIMU_DEMO = 0x01
 
 
 class P2Type(IntEnum):
@@ -77,6 +81,11 @@ class CommandBuilder:
                                P1Type.COMPLETE_SEND,
                                P2Type.STRUCT_NAME,
                                name.encode())
+
+    def get_app_configuration(self) -> bytes:
+        return self._serialize(InsType.GET_APP_CONFIGURATION,
+                               0x00,
+                               0x00)
 
     def eip712_send_struct_def_struct_field(self,
                                             field_type: EIP712FieldType,
@@ -427,3 +436,10 @@ class CommandBuilder:
                 icon = icon[0xff:]
                 p1 = P1Type.FOLLOWING_CHUNK
         return chunks
+
+    def provide_tx_simulation(self, demo: bool, tlv_payload: bytes) -> bytes:
+        # Check if the TLV payload is larger than 0xff
+        assert len(tlv_payload) < 0xff, "Payload too large"
+        # Serialize the payload
+        p1 = P1Type.TX_SIMU_DEMO if demo else P1Type.TX_SIMU_NORMAL
+        return self._serialize(InsType.PROVIDE_TX_SIMULATION, p1, 0x00, tlv_payload)

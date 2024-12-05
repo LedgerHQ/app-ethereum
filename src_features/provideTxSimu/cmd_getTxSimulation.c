@@ -453,8 +453,16 @@ uint16_t handleTxSimulation(const uint8_t *data, uint8_t length) {
     uint16_t sw = APDU_RESPONSE_UNKNOWN;
 
     sw = parse_tlv(data, length);
+    if (sw != APDU_RESPONSE_OK) {
+        return sw;
+    }
 
-    return sw;
+#ifdef HAVE_NBGL
+    // Display the TX Simulation parameters
+    ui_display_tx_simulation();
+#endif
+
+    return APDU_RESPONSE_OK;
 }
 
 /**

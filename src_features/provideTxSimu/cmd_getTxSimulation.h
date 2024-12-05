@@ -32,3 +32,5 @@ uint16_t handleTxSimulation(const uint8_t *data, uint8_t length);
 tx_simulation_risk_t getTxSimuRiskScore(void);
 const char *getTxSimuRiskScorStr(void);
 const char *getTxSimuRiskcategory(void);
+
+void ui_display_tx_simulation(void);

@@ -123,7 +123,7 @@ class CommandBuilder:
                                data)
 
     def eip712_send_struct_impl_struct_field(self, data: bytearray) -> list[bytes]:
-        chunks = list()
+        chunks = []
         # Add a 16-bit integer with the data's byte length (network byte order)
         data_w_length = bytearray()
         data_w_length.append((len(data) & 0xff00) >> 8)
@@ -261,8 +261,8 @@ class CommandBuilder:
                                0x00,
                                data)
 
-    def sign(self, bip32_path: str, rlp_data: bytes, vrs: list) -> list[bytes]:
-        apdus = list()
+    def sign(self, bip32_path: str, rlp_data: bytes) -> list[bytes]:
+        apdus = []
         payload = pack_derivation_path(bip32_path)
         payload += rlp_data
         p1 = P1Type.SIGN_FIRST_CHUNK
@@ -279,7 +279,7 @@ class CommandBuilder:
         return self._serialize(InsType.GET_CHALLENGE, 0x00, 0x00)
 
     def provide_trusted_name(self, tlv_payload: bytes) -> list[bytes]:
-        chunks = list()
+        chunks = []
         payload = struct.pack(">H", len(tlv_payload))
         payload += tlv_payload
         p1 = 1
@@ -374,7 +374,7 @@ class CommandBuilder:
         payload = pack_derivation_path(path)
         payload += struct.pack(">I", len(msg))
         payload += msg
-        chunks = list()
+        chunks = []
         p1 = P1Type.SIGN_FIRST_CHUNK
         while len(payload) > 0:
             chunk_size = 0xff

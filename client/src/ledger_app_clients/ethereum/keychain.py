@@ -1,8 +1,8 @@
 import os
 import hashlib
+from enum import Enum, auto
 from ecdsa import SigningKey
 from ecdsa.util import sigencode_der
-from enum import Enum, auto
 
 
 # Private key PEM files have to be named the same (lowercase) as their corresponding enum entries
@@ -14,20 +14,18 @@ class Key(Enum):
     NFT = auto()
 
 
-_keys: dict[Key, SigningKey] = dict()
+_keys: dict[Key, SigningKey] = {}
 
 
 # Open the corresponding PEM file and load its key in the global dict
 def _init_key(key: Key):
-    global _keys
-    with open("%s/keychain/%s.pem" % (os.path.dirname(__file__), key.name.lower())) as pem_file:
+    with open(f"{os.path.dirname(__file__)}/keychain/{key.name.lower()}.pem", encoding="utf-8") as pem_file:
         _keys[key] = SigningKey.from_pem(pem_file.read(), hashlib.sha256)
     assert (key in _keys) and (_keys[key] is not None)
 
 
 # Generate a SECP256K1 signature of the given data with the given key
 def sign_data(key: Key, data: bytes) -> bytes:
-    global _keys
     if key not in _keys:
         _init_key(key)
     return _keys[key].sign_deterministic(data, sigencode=sigencode_der)

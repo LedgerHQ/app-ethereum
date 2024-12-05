@@ -101,6 +101,8 @@ def main(output_dir: str) -> bool:
                 m = re.search(expr,
                               line)
                 assert(m.lastindex == 3)
+                if m.group(1) != "1":
+                    continue
                 networks.append(Network(int(m.group(1)),
                                         m.group(2),
                                         m.group(3)))

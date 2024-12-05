@@ -1,0 +1,203 @@
+---
+name: Open PRs in Ethereum plugins to update SDK
+
+on:
+  workflow_dispatch:
+  # TODO add auto trigger once finalized
+
+jobs:
+  build-repositories-matrix:
+    name: Build repo matrix
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.CI_BOT_TOKEN }}
+    steps:
+      - name: List plugin repositories
+        id: list-repos
+        run: |
+          # Retrieve the list of repositories from LedgerHQ organization
+          raw_repo_list=$(gh repo list LedgerHQ -L 2000 \
+                          --json name \
+                          --json isPrivate \
+                          --json isArchived \
+                          --jq '.[] | select(.isPrivate == false and .isArchived == false and select(.name | startswith("app-plugin-"))) | .name')
+          # Format the repository list as a JSON array
+          formatted_repo_list="["
+          while IFS= read -r repo; do
+            formatted_repo_list+="\"$repo\", "
+          done < <(echo "$raw_repo_list")
+          formatted_repo_list=${formatted_repo_list%%, }"]"
+          echo "Formatted Repository List: $formatted_repo_list"
+          # Set output
+          echo "repo_list=$formatted_repo_list" >> $GITHUB_OUTPUT
+    outputs:
+      repo-matrix: ${{ steps.list-repos.outputs.repo_list }}
+
+
+  get-sdk-ref:
+    name: Get latest SDK reference
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout SDK repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          repository: LedgerHQ/ethereum-plugin-sdk
+          ref: develop
+      - name: Retrieve SDK reference
+        id: get-hash
+        run: |
+          # Get the short SHA reference of the latest commit in the SDK repository
+          sdk_ref=$(git rev-parse --short HEAD)
+          echo "SDK Reference: $sdk_ref"
+          # Set output
+          echo "sdk_ref=$sdk_ref" >> $GITHUB_OUTPUT
+    outputs:
+      sdk_ref: ${{ steps.get-hash.outputs.sdk_ref }}
+
+
+  open-issue:
+    name: Open SDK update summary issue
+    runs-on: ubuntu-latest
+    needs: get-sdk-ref
+    env:
+      GITHUB_TOKEN: ${{ secrets.CI_BOT_TOKEN }}
+    steps:
+      - name: Create 'auto' label if missing
+        run: |
+          if [[ -z $(gh label list --repo ${{ github.repository }} --search auto) ]]; then
+            gh label create 'auto' --repo ${{ github.repository }} --color 'b4a8d1' --description 'Automatically created'
+          fi
+      - name: Open SDK Update Issue
+        id: open-issue
+        run: |
+          # Create a new issue with the SDK reference in the SDK repository
+          issue_url=$(gh issue create \
+                        --repo ${{ github.repository }} \
+                        --label auto \
+                        --title "Bumping Eth plugin SDK to latest version ${{ needs.get-sdk-ref.outputs.sdk_ref }}" \
+                        --body "Placeholder")
+          echo "Issue URL: $issue_url"
+          # Set output
+          echo "issue_url=$issue_url" >> $GITHUB_OUTPUT
+    outputs:
+      issue_url: ${{ steps.open-issue.outputs.issue_url }}
+
+
+  open-prs:
+    name: Open pull requests
+    runs-on: ubuntu-latest
+    needs: [build-repositories-matrix, open-issue, get-sdk-ref]
+    strategy:
+      fail-fast: false
+      matrix:
+        repo: ${{ fromJSON(needs.build-repositories-matrix.outputs.repo-matrix) }}
+    env:
+      GITHUB_TOKEN: ${{ secrets.CI_BOT_TOKEN }}
+
+    steps:
+      - name: Checkout plugin repository
+        uses: actions/checkout@v4
+        with:
+          repository: LedgerHQ/${{ matrix.repo }}
+          submodules: recursive
+          ref: develop
+          # by default the action uses fetch-depth = 1, which creates
+          # shallow repositories from which we can't push
+          fetch-depth: 0
+          # needed, else the push inside the action will use default credentials
+          # instead of provided ones
+          persist-credentials: false
+
+      - name: Update submodule
+        run: |
+          cd ethereum-plugin-sdk/
+          git checkout ${{ needs.get-sdk-ref.outputs.sdk_ref }}
+
+      - name: Commit changes
+        id: commit-changes
+        run: |
+          # Set credentials for commit creation
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          # Branch name and title will be unique by design
+          branch_name="auto/bump_sdk_to_${{ needs.get-sdk-ref.outputs.sdk_ref }}"
+          title="[auto-update] Bump SDK to latest develop version ${{ needs.get-sdk-ref.outputs.sdk_ref }}"
+          echo "Branch Name: $branch_name"
+          echo "Title: $title"
+          git status
+          git commit -am "$title"
+          # Set output
+          echo "title=$title" >> $GITHUB_OUTPUT
+          echo "branch_name=$branch_name" >> $GITHUB_OUTPUT
+
+      - name: Push commit
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.CI_BOT_TOKEN }}
+          branch: ${{ steps.commit-changes.outputs.branch_name }}
+          repository: LedgerHQ/${{ matrix.repo }}
+          force: true
+
+      - name: Create 'auto' label if missing
+        run: |
+          if [[ -z $(gh label list --search auto) ]]; then
+            gh label create 'auto' --color 'b4a8d1' --description 'Automatically created'
+          fi
+
+      - name: Create pull request and comment on SDK issue
+        run: |
+          # Github limits the number of possible PR being opened in a given time window.
+          # The limits are 20 creation per minute and 150 per hour.
+          # As suggested in the Github documentation, put a sleep between each POST call
+          # 3 seconds should be sufficient but let's sleep 4 seconds just in case.
+          sleep $((4 * ${{ strategy.job-index }}))
+          # Create the PR with a placeholder body. Will be consolidated at a later step
+          pr_url=$(gh pr create \
+                     --base 'develop' \
+                     --head '${{ steps.commit-changes.outputs.branch_name }}' \
+                     --label 'auto' \
+                     --title '${{ steps.commit-changes.outputs.title }}' \
+                     --body 'Created by a Github workflow')
+          echo "Pull request URL: $pr_url"
+          # Log the url of the PR in the issue on SDK side. We'll collect them from the issue later
+          gh issue comment "${{ needs.open-issue.outputs.issue_url }}" --body "OPENED $pr_url"
+
+
+  clean-issue:
+    name: Clean SDK update summary issue
+    runs-on: ubuntu-latest
+    needs: [get-sdk-ref, open-issue, open-prs]
+    env:
+      GITHUB_TOKEN: ${{ secrets.CI_BOT_TOKEN }}
+    steps:
+      - name: Collect all comments on the SDK issue
+        run: |
+          # Get the full text of the issue: metadata + title + rich comments
+          content="$(gh issue view --comments "${{ needs.open-issue.outputs.issue_url }}")"
+          # New header of the issue body
+          header="Bumping Ethereum plugin SDK to latest version ${{ needs.get-sdk-ref.outputs.sdk_ref }} for all Ethereum plugins:"
+          # Filter the full text of the issue to collect only the PR urls
+          lines=""
+          while IFS= read -r line; do
+            if [[ "$line" =~ "OPENED" ]]; then
+              lines+=$(echo "$line" | cut -d ' ' -f2)$'\n'
+            fi
+          done < <(echo "$content")
+          # Use print to resolve the '\n' chars
+          new_body="$(printf "$header\n$lines")"
+          echo "New issue body: $new_body"
+          # Set the consolidated body of the issue
+          gh issue edit "${{ needs.open-issue.outputs.issue_url }}" --body "$new_body"
+
+      - name: Clean comments on the SDK issue
+        run: |
+          # gh api uses id instead of url
+          issue_id="$(basename "${{ needs.open-issue.outputs.issue_url }}")"
+          # Get url of all comments on the issue
+          comment_urls="$(gh api "repos/${{ github.repository }}/issues/${issue_id}/comments" --jq '.[].url')"
+          # Delete each comment using the Github REST api
+          while IFS= read -r url; do
+            echo "Deleting comment: $comment_urls"
+            gh api -X DELETE "$url"
+          done < <(echo "$comment_urls")

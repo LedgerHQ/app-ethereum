@@ -1,0 +1,45 @@
+{
+    "domain": {
+        "chainId": 1,
+        "name": "Signed Ints test",
+        "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+        "version": "1"
+    },
+    "message": {
+        "neg256" : "-256",
+        "pos256" : "256",
+        "neg128" : "-128",
+        "pos128" : "128",
+        "neg64" : "-64",
+        "pos64" : "64",
+        "neg32" : "-32",
+        "pos32" : "32",
+        "neg16" : "-16",
+        "pos16" : "16",
+        "neg8" : "-8",
+        "pos8" : "8"
+    },
+    "primaryType": "Test",
+    "types": {
+        "EIP712Domain": [
+            { "name": "name", "type": "string" },
+            { "name": "version", "type": "string" },
+            { "name": "chainId", "type": "uint256" },
+            { "name": "verifyingContract", "type": "address" }
+        ],
+        "Test": [
+            { "name": "neg256", "type": "int256" },
+            { "name": "pos256", "type": "int256" },
+            { "name": "neg128", "type": "int128" },
+            { "name": "pos128", "type": "int128" },
+            { "name": "neg64", "type": "int64" },
+            { "name": "pos64", "type": "int64" },
+            { "name": "neg32", "type": "int32" },
+            { "name": "pos32", "type": "int32" },
+            { "name": "neg16", "type": "int16" },
+            { "name": "pos16", "type": "int16" },
+            { "name": "neg8", "type": "int8" },
+            { "name": "pos8", "type": "int8" }
+        ]
+    }
+}

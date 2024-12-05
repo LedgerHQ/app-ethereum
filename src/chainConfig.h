@@ -21,52 +21,13 @@
 #include <stdint.h>
 
 #include "os.h"
-
-typedef enum chain_kind_e {
-    CHAIN_KIND_ETHEREUM,
-    CHAIN_KIND_MOONRIVER,
-    CHAIN_KIND_ETHEREUM_CLASSIC,
-    CHAIN_KIND_EXPANSE,
-    CHAIN_KIND_POA,
-    CHAIN_KIND_RSK,
-    CHAIN_KIND_UBIQ,
-    CHAIN_KIND_WANCHAIN,
-    CHAIN_KIND_KUSD,
-    CHAIN_KIND_PIRL,
-    CHAIN_KIND_AKROMA,
-    CHAIN_KIND_MUSICOIN,
-    CHAIN_KIND_CALLISTO,
-    CHAIN_KIND_ETHERSOCIAL,
-    CHAIN_KIND_ELLAISM,
-    CHAIN_KIND_ETHER1,
-    CHAIN_KIND_ETHERGEM,
-    CHAIN_KIND_ATHEIOS,
-    CHAIN_KIND_GOCHAIN,
-    CHAIN_KIND_MIX,
-    CHAIN_KIND_REOSC,
-    CHAIN_KIND_HPB,
-    CHAIN_KIND_TOMOCHAIN,
-    CHAIN_KIND_TOBALABA,
-    CHAIN_KIND_DEXON,
-    CHAIN_KIND_VOLTA,
-    CHAIN_KIND_EWC,
-    CHAIN_KIND_ARTIS_SIGMA1,
-    CHAIN_KIND_ARTIS_TAU1,
-    CHAIN_KIND_WEBCHAIN,
-    CHAIN_KIND_THUNDERCORE,
-    CHAIN_KIND_FLARE,
-    CHAIN_KIND_BSC,
-    CHAIN_KIND_SONGBIRD,
-    CHAIN_KIND_POLYGON,
-    CHAIN_KIND_SHYFT
-} chain_kind_t;
+#include "asset_info.h"
 
 typedef struct chain_config_s {
-    char coinName[10];  // ticker
+    char coinName[MAX_TICKER_LEN];  // ticker
     uint64_t chainId;
-    chain_kind_t kind;
 } chain_config_t;
 
 #define ETHEREUM_MAINNET_CHAINID 1
 
-#endif /* _CHAIN_CONFIG_H_ */
+#endif  // _CHAIN_CONFIG_H_

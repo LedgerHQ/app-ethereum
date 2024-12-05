@@ -1,0 +1,51 @@
+[build-system]
+requires = [
+    "setuptools>=45",
+    "setuptools_scm[toml]>=6.2",
+    "wheel"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ledger_app_clients.ethereum"
+authors = [
+    { name = "Ledger", email = "hello@ledger.fr" }
+]
+description = "Ledger Ethereum Python client"
+readme = { file = "README.md", content-type = "text/markdown" }
+# license = { file = "LICENSE" }
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS :: MacOS X",
+]
+dynamic = [ "version" ]
+requires-python = ">=3.7"
+dependencies = [
+    "ragger[speculos]",
+    "web3~=6.0",
+]
+
+[tools.setuptools]
+include-package-data = true
+
+[tool.setuptools_scm]
+version_file = "src/ledger_app_clients/ethereum/__version__.py"
+local_scheme = "no-local-version"
+root = "../"
+git_describe_command = "git describe --dirty --tags --long --match client-*[0-9]*"
+fallback_version = "0.0.0"
+
+[project.urls]
+Home = "https://github.com/LedgerHQ/app-ethereum"
+
+[tool.mypy]
+ignore_missing_imports = true
+
+[tool.flake8]
+max-line-length = 120

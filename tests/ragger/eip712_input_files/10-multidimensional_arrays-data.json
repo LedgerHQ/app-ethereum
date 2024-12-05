@@ -1,0 +1,42 @@
+{
+    "types": {
+        "EIP712Domain": [
+            { "name": "name", "type": "string" },
+            { "name": "version", "type": "string" },
+            { "name": "chainId", "type": "uint256" },
+            { "name": "verifyingContract", "type": "address" }
+        ],
+        "Test": [
+            { "type": "uint8[][][][]", "name": "depthy" }
+        ]
+    },
+    "primaryType": "Test",
+    "domain": {
+        "chainId": 1,
+        "name": "Depth Test",
+        "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+        "version": "1"
+    },
+    "message": {
+        "depthy": [
+            [
+                [
+                    [
+                        "1",
+                        "2"
+                    ],
+                    [
+                        "3"
+                    ]
+                ],
+                [
+                    [
+                        "4",
+                        "5",
+                        "6"
+                    ]
+                ]
+            ]
+        ]
+    }
+}

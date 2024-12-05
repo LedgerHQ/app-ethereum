@@ -1,5 +1,6 @@
 #ifdef HAVE_ETH2
 
+#include <string.h>
 #include "shared_context.h"
 
 uint32_t set_result_get_eth2_publicKey() {
@@ -9,4 +10,4 @@ uint32_t set_result_get_eth2_publicKey() {
     return tx;
 }
 
-#endif
+#endif  // HAVE_ETH2

@@ -1,24 +1,23 @@
-#ifndef __SHARED_CONTEXT_H__
-
-#define __SHARED_CONTEXT_H__
+#ifndef _SHARED_CONTEXT_H_
+#define _SHARED_CONTEXT_H_
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <string.h>
 
 #include "os.h"
 #include "cx.h"
-#include "os_io_seproxyhal.h"
+#include "bip32.h"
+#include "bip32_utils.h"
 #include "ethUstream.h"
-#include "ethUtils.h"
-#include "uint256.h"
-#include "tokens.h"
+#include "tx_content.h"
 #include "chainConfig.h"
-#include "nft.h"
+#include "asset_info.h"
+#ifdef HAVE_NBGL
+#include "nbgl_types.h"
+#endif
 
-#define MAX_BIP32_PATH 10
-
-#define WEI_TO_ETHER 18
+extern void app_exit();
+extern void common_app_init(void);
 
 #define SELECTOR_LENGTH 4
 
@@ -26,34 +25,26 @@
 
 #define N_storage (*(volatile internalStorage_t *) PIC(&N_storage_real))
 
+#define MAX_ASSETS 5
+
 typedef struct internalStorage_t {
-    unsigned char dataAllowed;
-    unsigned char contractDetails;
-    unsigned char displayNonce;
-    uint8_t initialized;
+    bool dataAllowed;
+    bool contractDetails;
+    bool displayNonce;
+#ifdef HAVE_EIP712_FULL_SUPPORT
+    bool verbose_eip712;
+#endif  // HAVE_EIP712_FULL_SUPPORT
+#ifdef HAVE_TRUSTED_NAME
+    bool verbose_trusted_name;
+#endif  // HAVE_TRUSTED_NAME
+    bool initialized;
 } internalStorage_t;
-
-#ifdef HAVE_STARKWARE
-
-typedef enum starkQuantumType_e {
-
-    STARK_QUANTUM_LEGACY = 0x00,
-    STARK_QUANTUM_ETH,
-    STARK_QUANTUM_ERC20,
-    STARK_QUANTUM_ERC721,
-    STARK_QUANTUM_MINTABLE_ERC20,
-    STARK_QUANTUM_MINTABLE_ERC721
-
-} starkQuantumType_e;
-
-#endif
 
 typedef struct tokenContext_t {
     char pluginName[PLUGIN_ID_LENGTH];
-    uint8_t pluginStatus;
 
     uint8_t data[INT256_LENGTH];
-    uint8_t fieldIndex;
+    uint16_t fieldIndex;
     uint8_t fieldOffset;
 
     uint8_t pluginUiMaxItems;
@@ -65,17 +56,18 @@ typedef struct tokenContext_t {
             uint8_t contractAddress[ADDRESS_LENGTH];
             uint8_t methodSelector[SELECTOR_LENGTH];
         };
-        uint8_t pluginContext[5 * INT256_LENGTH];
+        // This needs to be strictly 4 bytes aligned since pointers to it will be casted as
+        // plugin context struct pointers (structs that contain up to 4 bytes wide elements)
+        // uint8_t pluginContext[5 * INT256_LENGTH] __attribute__((aligned(4)));
+        // TODO: use PLUGIN_CONTEXT_SIZE after eth is released with the updated plugin sdk
+        uint8_t pluginContext[10 * INT256_LENGTH] __attribute__((aligned(4)));
     };
 
-#ifdef HAVE_STARKWARE
-    uint8_t quantum[32];
-    uint8_t mintingBlob[32];
-    uint8_t quantumIndex;
-    uint8_t quantumType;
-#endif
+    uint8_t pluginStatus;
 
 } tokenContext_t;
+
+_Static_assert((offsetof(tokenContext_t, pluginContext) % 4) == 0, "Plugin context not aligned");
 
 typedef struct publicKeyContext_t {
     cx_ecfp_public_key_t publicKey;
@@ -84,30 +76,22 @@ typedef struct publicKeyContext_t {
     bool getChaincode;
 } publicKeyContext_t;
 
-typedef union extraInfo_t {
-    tokenDefinition_t token;
-    nftInfo_t nft;
-} extraInfo_t;
-
 typedef struct transactionContext_t {
-    uint8_t pathLength;
-    uint32_t bip32Path[MAX_BIP32_PATH];
+    bip32_path_t bip32;
     uint8_t hash[INT256_LENGTH];
-    union extraInfo_t extraInfo[MAX_ITEMS];
-    uint8_t tokenSet[MAX_ITEMS];
-    uint8_t currentItemIndex;
+    union extraInfo_t extraInfo[MAX_ASSETS];
+    bool assetSet[MAX_ASSETS];
+    uint8_t currentAssetIndex;
 } transactionContext_t;
 
 typedef struct messageSigningContext_t {
-    uint8_t pathLength;
-    uint32_t bip32Path[MAX_BIP32_PATH];
+    bip32_path_t bip32;
     uint8_t hash[INT256_LENGTH];
     uint32_t remainingLength;
 } messageSigningContext_t;
 
 typedef struct messageSigningContext712_t {
-    uint8_t pathLength;
-    uint32_t bip32Path[MAX_BIP32_PATH];
+    bip32_path_t bip32;
     uint8_t domainHash[32];
     uint8_t messageHash[32];
 } messageSigningContext712_t;
@@ -125,27 +109,8 @@ typedef union {
     char tmp[100];
 } tmpContent_t;
 
-#ifdef HAVE_STARKWARE
-
-typedef struct starkContext_t {
-    uint8_t w1[32];
-    uint8_t w2[32];
-    uint8_t w3[32];
-    uint8_t w4[32];
-    uint8_t conditional;
-    uint8_t transferDestination[32];
-    uint8_t fact[32];
-    uint8_t conditionAddress[20];
-} starkContext_t;
-
-#endif
-
 typedef union {
     tokenContext_t tokenContext;
-
-#ifdef HAVE_STARKWARE
-    starkContext_t starkContext;
-#endif
 } dataContext_t;
 
 typedef enum { APP_STATE_IDLE, APP_STATE_SIGNING_TX, APP_STATE_SIGNING_MESSAGE } app_state_t;
@@ -154,34 +119,32 @@ typedef enum {
     CONTRACT_NONE,
     CONTRACT_ERC20,
     CONTRACT_ALLOWANCE,
-#ifdef HAVE_STARKWARE
-    CONTRACT_STARKWARE_REGISTER,
-    CONTRACT_STARKWARE_DEPOSIT_TOKEN,
-    CONTRACT_STARKWARE_DEPOSIT_ETH,
-    CONTRACT_STARKWARE_WITHDRAW,
-    CONTRACT_STARKWARE_DEPOSIT_CANCEL,
-    CONTRACT_STARKWARE_DEPOSIT_RECLAIM,
-    CONTRACT_STARKWARE_FULL_WITHDRAWAL,
-    CONTRACT_STARKWARE_FREEZE,
-    CONTRACT_STARKWARE_ESCAPE,
-    CONTRACT_STARKWARE_VERIFY_ESCAPE
-#endif
 } contract_call_t;
 
-#define NETWORK_STRING_MAX_SIZE 16
+// must be able to hold in decimal up to : floor(MAX_UINT64 / 2) - 36
+#define NETWORK_STRING_MAX_SIZE 19
 
-typedef struct txStringProperties_t {
-    char fullAddress[43];
-    char fullAmount[79];  // 2^256 is 78 digits long
+typedef struct txStringProperties_s {
+    char fromAddress[43];
+    char toAddress[43];
+    char fullAmount[MAX_TICKER_LEN + 1 + 78 + 1];  // 2^256 is 78 digits long
     char maxFee[50];
     char nonce[8];  // 10M tx per account ought to be enough for everybody
-    char network_name[NETWORK_STRING_MAX_SIZE];
+    char network_name[NETWORK_STRING_MAX_SIZE + 1];
 } txStringProperties_t;
 
+#ifdef TARGET_NANOS
 #define SHARED_CTX_FIELD_1_SIZE 100
+#else
+#ifdef SCREEN_SIZE_WALLET
+#define SHARED_CTX_FIELD_1_SIZE 380
+#else
+#define SHARED_CTX_FIELD_1_SIZE 256
+#endif
+#endif
 #define SHARED_CTX_FIELD_2_SIZE 40
 
-typedef struct strDataTmp_t {
+typedef struct strDataTmp_s {
     char tmp[SHARED_CTX_FIELD_1_SIZE];
     char tmp2[SHARED_CTX_FIELD_2_SIZE];
 } strDataTmp_t;
@@ -191,7 +154,7 @@ typedef union {
     strDataTmp_t tmp;
 } strings_t;
 
-extern chain_config_t *chainConfig;
+extern const chain_config_t *chainConfig;
 
 extern tmpCtx_t tmpCtx;
 extern txContext_t txContext;
@@ -201,25 +164,41 @@ extern strings_t strings;
 extern cx_sha3_t global_sha3;
 extern const internalStorage_t N_storage_real;
 
-extern bool called_from_swap;
+typedef enum swap_mode_e {
+    SWAP_MODE_STANDARD,
+    SWAP_MODE_CROSSCHAIN_PENDING_CHECK,
+    SWAP_MODE_CROSSCHAIN_SUCCESS,
+    SWAP_MODE_ERROR,
+} swap_mode_t;
+
+extern bool G_called_from_swap;
+extern bool G_swap_response_ready;
+extern swap_mode_t G_swap_mode;
+extern uint8_t G_swap_crosschain_hash[CX_SHA256_SIZE];
 
 typedef enum {
-    EXTERNAL,     //  External plugin, set by setExternalPlugin.
-    ERC721,       // Specific ERC721 internal plugin, set by setPlugin.
-    ERC1155,      // Specific ERC1155 internal plugin, set by setPlugin
-    OLD_INTERNAL  // Old internal plugin, not set by any command.
+    // External plugin, set by setExternalPlugin
+    EXTERNAL,
+    // Specific SWAP_WITH_CALLDATA internal plugin
+    // set as fallback when started if calldata is provided in swap mode
+    SWAP_WITH_CALLDATA,
+    // Specific ERC721 internal plugin, set by setPlugin
+    ERC721,
+    // Specific ERC1155 internal plugin, set by setPlugin
+    ERC1155,
+    // Old internal plugin, not set by any command
+    OLD_INTERNAL
 } pluginType_t;
 
 extern pluginType_t pluginType;
 
 extern uint8_t appState;
-#ifdef HAVE_STARKWARE
-extern bool quantumSet;
-#endif
 #ifdef HAVE_ETH2
 extern uint32_t eth2WithdrawalIndex;
 #endif
 
 void reset_app_context(void);
+const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_path_t *bip32);
+void storage_init(void);
 
-#endif  // __SHARED_CONTEXT_H__
+#endif  // _SHARED_CONTEXT_H_

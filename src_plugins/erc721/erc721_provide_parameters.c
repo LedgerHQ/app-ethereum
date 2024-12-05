@@ -1,6 +1,7 @@
 #ifdef HAVE_NFT_SUPPORT
 
 #include "erc721_plugin.h"
+#include "plugin_utils.h"
 #include "eth_plugin_internal.h"
 
 static void handle_approve(ethPluginProvideParameter_t *msg, erc721_context_t *context) {
@@ -62,8 +63,7 @@ static void handle_approval_for_all(ethPluginProvideParameter_t *msg, erc721_con
     }
 }
 
-void handle_provide_parameter_721(void *parameters) {
-    ethPluginProvideParameter_t *msg = (ethPluginProvideParameter_t *) parameters;
+void handle_provide_parameter_721(ethPluginProvideParameter_t *msg) {
     erc721_context_t *context = (erc721_context_t *) msg->pluginContext;
 
     PRINTF("erc721 plugin provide parameter %d %.*H\n",

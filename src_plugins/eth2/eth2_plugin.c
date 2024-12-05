@@ -4,8 +4,7 @@
 #include "eth_plugin_internal.h"
 #include "eth_plugin_handler.h"
 #include "shared_context.h"
-#include "ethUtils.h"
-#include "utils.h"
+#include "common_utils.h"
 
 void getEth2PublicKey(uint32_t *bip32Path, uint8_t bip32PathLength, uint8_t *out);
 
@@ -117,11 +116,13 @@ void eth2_plugin_call(int message, void *parameters) {
 
                     // Use a temporary buffer to store the string representation.
                     char tmp[ETH2_DEPOSIT_PUBKEY_LENGTH];
-                    getEthDisplayableAddress((uint8_t *) context->deposit_address,
-                                             tmp,
-                                             sizeof(tmp),
-                                             msg->pluginSharedRW->sha3,
-                                             chainConfig->chainId);
+                    if (!getEthDisplayableAddress((uint8_t *) context->deposit_address,
+                                                  tmp,
+                                                  sizeof(tmp),
+                                                  chainConfig->chainId)) {
+                        msg->result = ETH_PLUGIN_RESULT_ERROR;
+                        return;
+                    }
 
                     // Copy back the string to the global variable.
                     strlcpy(context->deposit_address, tmp, ETH2_DEPOSIT_PUBKEY_LENGTH);
@@ -198,21 +199,24 @@ void eth2_plugin_call(int message, void *parameters) {
             switch (msg->screenIndex) {
                 case 0: {  // Amount screen
                     uint8_t decimals = WEI_TO_ETHER;
-                    char *ticker = chainConfig->coinName;
+                    const char *ticker = chainConfig->coinName;
                     strlcpy(msg->title, "Amount", msg->titleLength);
-                    amountToString(tmpContent.txContent.value.value,
-                                   tmpContent.txContent.value.length,
-                                   decimals,
-                                   ticker,
-                                   msg->msg,
-                                   100);
+                    if (!amountToString(tmpContent.txContent.value.value,
+                                        tmpContent.txContent.value.length,
+                                        decimals,
+                                        ticker,
+                                        msg->msg,
+                                        msg->msgLength)) {
+                        msg->result = ETH_PLUGIN_RESULT_ERROR;
+                        break;
+                    }
                     msg->result = ETH_PLUGIN_RESULT_OK;
                 } break;
                 case 1: {  // Deposit pubkey screen
                     strlcpy(msg->title, "Validator", msg->titleLength);
                     strlcpy(msg->msg, context->deposit_address, msg->msgLength);
                     msg->result = ETH_PLUGIN_RESULT_OK;
-                }
+                } break;
                 default:
                     break;
             }

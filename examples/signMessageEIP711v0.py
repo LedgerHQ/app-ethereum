@@ -59,7 +59,7 @@ if args.path == None:
 domainHash = binascii.unhexlify(args.domainHash)
 messageHash = binascii.unhexlify(args.messageHash)
 
-encodedTx = domainHash + messageHash 
+encodedTx = domainHash + messageHash
 
 donglePath = parse_bip32_path(args.path)
 apdu = bytearray.fromhex("e00c0000")

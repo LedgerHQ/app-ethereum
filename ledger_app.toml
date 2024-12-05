@@ -1,0 +1,14 @@
+[app]
+build_directory = "./"
+sdk = "C"
+devices = ["nanos", "nanox", "nanos+", "stax", "flex"]
+
+[use_cases]
+use_test_keys = "CAL_TEST_KEY=1 TRUSTED_NAME_TEST_KEY=1 SET_PLUGIN_TEST_KEY=1 NFT_TEST_KEY=1"
+dbg_use_test_keys = "DEBUG=1 CAL_TEST_KEY=1 TRUSTED_NAME_TEST_KEY=1 SET_PLUGIN_TEST_KEY=1 NFT_TEST_KEY=1"
+cal_bypass = "BYPASS_SIGNATURES=1"
+dbg_cal_bypass = "DEBUG=1 BYPASS_SIGNATURES=1"
+
+[tests]
+unit_directory = "./tests/unit"
+pytest_directory = "./tests/ragger"

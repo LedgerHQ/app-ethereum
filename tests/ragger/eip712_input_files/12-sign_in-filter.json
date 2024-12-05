@@ -1,0 +1,13 @@
+{
+    "name": "Ethereum sign-in",
+    "fields": {
+        "curDate": {
+            "type": "raw",
+            "name": "Timestamp"
+        },
+        "id": {
+            "type": "raw",
+            "name": "Identifier"
+        }
+    }
+}

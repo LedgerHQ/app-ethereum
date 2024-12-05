@@ -1,0 +1,43 @@
+= Ethereum application : Embedded Contract Support
+================================================
+
+
+## About
+
+This document described how a specific device UI for a smart contract can be added in the current version of the Ethereum application, before plugins are added
+
+## Standard support
+
+The application already includes dedicated UI support for those specific contract calls :
+
+   * ERC 20 approve(address, uint256) - implementation in *src_features/erc20_approval*
+   * ERC 20 transfer(address, uint256) - implementation in *src_features/signTx*
+
+## Requirements
+
+The following data is necessary for a specific contract support
+
+   * Smart contract ABI (at least for calls that are to be supported by the application)
+
+The following data is optional for a specific contract support
+
+   * Contract address (can be optional if supported by multiple instances)
+
+### Computing a function selector
+
+A function selector is computed as in https://solidity.readthedocs.io/en/v0.5.3/abi-spec.html#function-selector
+
+```
+The first four bytes of the call data for a function call specifies the function to be called. It is the first (left, high-order in big-endian) four bytes of the Keccak-256 (SHA-3) hash of the signature of the function. The signature is defined as the canonical expression of the basic prototype without data location specifier, i.e. the function name with the parenthesised list of parameter types. Parameter types are split by a single comma - no spaces are used.
+```
+
+The following online tool can be used to compute selectors https://emn178.github.io/online-tools/keccak_256.html
+
+
+## Using ERC 20 token tickers
+
+A UI implementation might want to convert an ERC 20 token contract address to a ticker for easier validation
+
+2 tickers can be temporarily provisioned to the application by using the PROVIDE ERC 20 TOKEN INFORMATION APDU, described in *src_features/provideErc20TokenInformation* - the UI can then iterate on the provisioned tickers to display relevant information to the user
+
+The same mechanism will be extended to support well known contract addresses in the future

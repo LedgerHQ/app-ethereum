@@ -1,0 +1,46 @@
+{
+    "domain": {
+        "chainId": 1,
+        "name": "Long String Mail",
+        "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+        "version": "1"
+    },
+    "message": {
+        "contents": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Etiam fermentum interdum tortor, nec elementum enim dignissim ac. Proin at leo sit amet nisl ultrices mollis quis a nunc. Aliquam lobortis a libero non lobortis. Morbi elementum eleifend ante et malesuada. Proin eget fermentum risus. Vestibulum cursus dignissim mollis. In viverra, mi ac accumsan elementum, tellus metus dictum nisi, vel tincidunt odio erat in odio. Aenean nec lorem auctor, tempor ante eget, aliquet purus. Donec fringilla felis iaculis, venenatis ligula egestas, dignissim orci. Aliquam id rhoncus ante, cursus consectetur mauris. Nunc porttitor urna urna, et tristique eros maximus vestibulum. Curabitur pretium a est non porttitor. Cras mollis efficitur sem ut porta. Proin commodo volutpat iaculis. Maecenas ut nulla mi. Aenean ultrices sollicitudin enim, non luctus magna efficitur et. Sed varius sem odio, in sodales erat porta in. Nunc blandit finibus maximus. Mauris nunc tellus, interdum non laoreet sed, aliquet non.",
+        "from": {
+            "name": "Cow",
+            "wallets": [
+                "0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826",
+                "0xDeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF"
+            ]
+        },
+        "to": [
+            {
+                "name": "Bob",
+                "wallets": [
+                    "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB",
+                    "0xB0BdaBea57B0BDABeA57b0bdABEA57b0BDabEa57",
+                    "0xB0B0b0b0b0b0B000000000000000000000000000"
+                ]
+            }
+        ]
+    },
+    "primaryType": "Mail",
+    "types": {
+        "EIP712Domain": [
+            { "name": "name", "type": "string" },
+            { "name": "version", "type": "string" },
+            { "name": "chainId", "type": "uint256" },
+            { "name": "verifyingContract", "type": "address" }
+        ],
+        "Mail": [
+            { "name": "from", "type": "Person" },
+            { "name": "to", "type": "Person[]" },
+            { "name": "contents", "type": "string" }
+        ],
+        "Person": [
+            { "name": "name", "type": "string" },
+            { "name": "wallets", "type": "address[]" }
+        ]
+    }
+}

@@ -2,9 +2,9 @@
 #include "eth_plugin_internal.h"
 #include "eth_plugin_handler.h"
 #include "shared_context.h"
-#include "ethUtils.h"
+#include "plugin_utils.h"
 #include "ethUstream.h"
-#include "utils.h"
+#include "common_utils.h"
 
 typedef enum { ERC20_TRANSFER = 0, ERC20_APPROVE } erc20Selector_t;
 
@@ -64,30 +64,13 @@ const contract_t CONTRACTS[NUM_CONTRACTS] = {
 
 bool check_contract(erc20_parameters_t *context) {
     for (size_t i = 0; i < NUM_CONTRACTS; i++) {
-        contract_t *contract = (contract_t *) PIC(&CONTRACTS[i]);
+        const contract_t *contract = (const contract_t *) PIC(&CONTRACTS[i]);
         if (memcmp(contract->address, context->destinationAddress, ADDRESS_LENGTH) == 0) {
             strlcpy(context->contract_name, contract->name, sizeof(context->contract_name));
             return true;
         }
     }
     return false;
-}
-
-bool erc20_plugin_available_check() {
-#ifdef HAVE_STARKWARE
-    if (quantumSet) {
-        switch (dataContext.tokenContext.quantumType) {
-            case STARK_QUANTUM_LEGACY:
-            case STARK_QUANTUM_ETH:
-            case STARK_QUANTUM_ERC20:
-            case STARK_QUANTUM_MINTABLE_ERC20:
-                return true;
-            default:
-                return false;
-        }
-    }
-#endif
-    return true;
 }
 
 void erc20_plugin_call(int message, void *parameters) {
@@ -182,7 +165,11 @@ void erc20_plugin_call(int message, void *parameters) {
 
         case ETH_PLUGIN_QUERY_CONTRACT_ID: {
             ethQueryContractID_t *msg = (ethQueryContractID_t *) parameters;
+#ifdef HAVE_NBGL
+            strlcpy(msg->name, "ERC20 token", msg->nameLength);
+#else
             strlcpy(msg->name, "Type", msg->nameLength);
+#endif
             strlcpy(msg->version, "Approve", msg->versionLength);
             msg->result = ETH_PLUGIN_RESULT_OK;
         } break;
@@ -197,12 +184,15 @@ void erc20_plugin_call(int message, void *parameters) {
                         strlcpy(msg->msg, "Unlimited ", msg->msgLength);
                         strlcat(msg->msg, context->ticker, msg->msgLength);
                     } else {
-                        amountToString(context->amount,
-                                       sizeof(context->amount),
-                                       context->decimals,
-                                       context->ticker,
-                                       msg->msg,
-                                       100);
+                        if (!amountToString(context->amount,
+                                            sizeof(context->amount),
+                                            context->decimals,
+                                            context->ticker,
+                                            msg->msg,
+                                            msg->msgLength)) {
+                            msg->result = ETH_PLUGIN_RESULT_ERROR;
+                            break;
+                        }
                     }
                     msg->result = ETH_PLUGIN_RESULT_OK;
                     break;
@@ -212,11 +202,12 @@ void erc20_plugin_call(int message, void *parameters) {
                         strlcpy(msg->msg, context->contract_name, msg->msgLength);
                     } else {
                         strlcpy(msg->title, "Address", msg->titleLength);
-                        getEthDisplayableAddress(context->destinationAddress,
-                                                 msg->msg,
-                                                 msg->msgLength,
-                                                 msg->pluginSharedRW->sha3,
-                                                 chainConfig->chainId);
+                        if (!getEthDisplayableAddress(context->destinationAddress,
+                                                      msg->msg,
+                                                      msg->msgLength,
+                                                      chainConfig->chainId)) {
+                            msg->result = ETH_PLUGIN_RESULT_ERROR;
+                        }
                     }
 
                     msg->result = ETH_PLUGIN_RESULT_OK;

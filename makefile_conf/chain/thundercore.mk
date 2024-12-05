@@ -1,0 +1,4 @@
+PATH_APP_LOAD_PARAMS += "44'/1001'"
+TICKER = "TT"
+CHAIN_ID = 108
+APPNAME = "ThunderCore"

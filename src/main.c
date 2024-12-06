@@ -39,6 +39,7 @@
 #ifdef HAVE_DYN_MEM_ALLOC
 #include "mem.h"
 #endif
+#include "cmd_enum_value.h"
 
 tmpCtx_t tmpCtx;
 txContext_t txContext;
@@ -234,6 +235,12 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             sw = handle_provide_trusted_name(cmd->p1, cmd->data, cmd->lc);
             break;
 #endif  // HAVE_TRUSTED_NAME
+
+#ifdef HAVE_ENUM_VALUE
+        case INS_PROVIDE_ENUM_VALUE:
+            sw = handle_enum_value(cmd->p1, cmd->p2, cmd->lc, cmd->data);
+            break;
+#endif  // HAVE_ENUM_VALUE
 
         default:
             sw = APDU_RESPONSE_INVALID_INS;

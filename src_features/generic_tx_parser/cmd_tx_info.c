@@ -9,6 +9,7 @@
 #include "gtp_tx_info.h"
 #include "tlv.h"
 #include "tlv_apdu.h"
+#include "gtp_field_table.h"
 
 extern s_tx_info *g_tx_info;
 extern cx_sha3_t hash_ctx;
@@ -80,6 +81,7 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_fr
     if (cx_sha3_init_no_throw(&hash_ctx, 256) != CX_OK) {
         return false;
     }
+    field_table_init();
     return true;
 }
 
@@ -105,6 +107,7 @@ uint16_t handle_tx_info(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *paylo
 }
 
 void gcs_cleanup(void) {
+    field_table_cleanup();
     mem_dealloc(sizeof(*g_tx_info));
     g_tx_info = NULL;
     if (txContext.calldata.ptr != NULL) {

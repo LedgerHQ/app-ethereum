@@ -36,6 +36,9 @@
 #include "crypto_helpers.h"
 #include "manage_asset_info.h"
 #include "network_dynamic.h"
+#ifdef HAVE_DYN_MEM_ALLOC
+#include "mem.h"
+#endif
 
 tmpCtx_t tmpCtx;
 txContext_t txContext;
@@ -366,6 +369,9 @@ void coin_main(eth_libargs_t *args) {
 
     io_init();
     ui_idle();
+#ifdef HAVE_DYN_MEM_ALLOC
+    mem_init();
+#endif
 
 #ifdef HAVE_TRUSTED_NAME
     // to prevent it from having a fixed value at boot

@@ -69,6 +69,7 @@ uint32_t io_seproxyhal_touch_tx_ok(void) {
 }
 
 unsigned int io_seproxyhal_touch_tx_cancel(void) {
+    reset_app_context();
     return io_seproxyhal_send_status(APDU_RESPONSE_CONDITION_NOT_SATISFIED, 0, true, false);
 }
 
@@ -97,5 +98,6 @@ unsigned int io_seproxyhal_touch_data_ok(void) {
 }
 
 unsigned int io_seproxyhal_touch_data_cancel(void) {
+    reset_app_context();
     return io_seproxyhal_send_status(APDU_RESPONSE_CONDITION_NOT_SATISFIED, 0, true, true);
 }

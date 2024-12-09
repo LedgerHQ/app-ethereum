@@ -10,6 +10,7 @@ class SettingID(Enum):
     NONCE = auto()
     VERBOSE_EIP712 = auto()
     DEBUG_DATA = auto()
+    W3C = auto()
 
 
 def get_device_settings(firmware: Firmware) -> list[SettingID]:
@@ -18,6 +19,7 @@ def get_device_settings(firmware: Firmware) -> list[SettingID]:
             SettingID.BLIND_SIGNING,
             SettingID.NONCE,
             SettingID.DEBUG_DATA,
+            SettingID.W3C,
         ]
     return [
         SettingID.BLIND_SIGNING,
@@ -25,6 +27,7 @@ def get_device_settings(firmware: Firmware) -> list[SettingID]:
         SettingID.NONCE,
         SettingID.VERBOSE_EIP712,
         SettingID.DEBUG_DATA,
+        SettingID.W3C,
     ]
 
 
@@ -66,7 +69,10 @@ def settings_toggle(firmware: Firmware, nav: Navigator, to_toggle: list[SettingI
             setting_idx = settings.index(setting)
             if (setting_idx > 0) and (setting_idx % settings_per_page) == 0:
                 moves += [NavInsID.USE_CASE_SETTINGS_NEXT]
-            if setting in to_toggle:
+            if setting == SettingID.W3C:
+                moves += [NavInsID.USE_CASE_SETTINGS_NEXT]
+                moves += [NavIns(NavInsID.TOUCH, get_setting_position(firmware, 0, settings_per_page))]
+            elif setting in to_toggle:
                 moves += [NavIns(NavInsID.TOUCH, get_setting_position(firmware, setting_idx, settings_per_page))]
         moves += [NavInsID.USE_CASE_SETTINGS_MULTI_PAGE_EXIT]
     nav.navigate(moves, screen_change_before_first_instruction=False)

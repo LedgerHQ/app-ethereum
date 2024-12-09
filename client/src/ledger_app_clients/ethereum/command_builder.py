@@ -433,4 +433,4 @@ class CommandBuilder:
         # Check if the TLV payload is larger than 0xff
         assert len(tlv_payload) < 0xff, "Payload too large"
         # Serialize the payload
-        return self._serialize(InsType.PROVIDE_TX_SIMULATION, 0x00, 0x00, tlv_payload)
+        return self._serialize(InsType.PROVIDE_TX_SIMULATION, 0x01, 0x00, tlv_payload)

@@ -34,7 +34,7 @@ void field_table_cleanup(void) {
     mem_dealloc(ptr - table.start);
 }
 
-bool add_to_field_table(uint8_t type, const char *key, const char *value) {
+bool add_to_field_table(e_param_type type, const char *key, const char *value) {
     int offset = 0;
     uint8_t *ptr;
     uint8_t key_len = strlen(key) + 1;

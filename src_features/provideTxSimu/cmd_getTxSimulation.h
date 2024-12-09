@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #define HASH_SIZE 32
 #define MSG_SIZE  30
@@ -8,6 +9,7 @@
 
 // clang-format off
 typedef enum {
+    RISK_UNKNOWN,
     RISK_BENIGN,
     RISK_WARNING,
     RISK_MALICIOUS,
@@ -27,10 +29,12 @@ typedef struct tx_simu_s {
 // Global structure to store the tx simultion parameters
 extern tx_simulation_t TX_SIMULATION;
 
-uint16_t handleTxSimulation(const uint8_t *data, uint8_t length);
+uint16_t handleTxSimulation(uint8_t p1, const uint8_t *data, uint8_t length);
+void clearTxSimulation(void);
+bool checkTxSimulationParams(void);
 
 tx_simulation_risk_t getTxSimuRiskScore(void);
 const char *getTxSimuRiskScorStr(void);
 const char *getTxSimuRiskcategory(void);
 
-void ui_display_tx_simulation(void);
+void ui_display_tx_simulation(bool is_demo);

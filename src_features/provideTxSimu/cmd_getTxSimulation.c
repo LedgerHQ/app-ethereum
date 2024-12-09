@@ -9,6 +9,7 @@
 #ifdef HAVE_LEDGER_PKI
 #include "os_pki.h"
 #endif
+#include "network.h"
 
 #define DER_LONG_FORM_FLAG        0x80  // 8th bit set
 #define DER_FIRST_BYTE_VALUE_MASK 0x7f
@@ -18,6 +19,9 @@
 
 #define THRESHOLD_RISK_WARNING   0x5556
 #define THRESHOLD_RISK_MALICIOUS 0xAAAB
+
+#define P1_NORMAL 0x00
+#define P1_DEMO   0x01
 
 // clang-format off
 enum {
@@ -46,6 +50,7 @@ static const char *const TX_SIMULATION_CATEGORY[CATEGORY_NB_MAX] = {
 };
 
 static const char *const TX_SIMULATION_RISK[RISK_NB_MAX] = {
+    "UNKNOWN (W3C Issue)",
     "BENIGN",
     "RISK (WARNING)",
     "THREAT (MALICIOUS)"
@@ -444,25 +449,66 @@ static uint16_t parse_tlv(const uint8_t *data, uint8_t length) {
 /**
  * @brief Handle Tx Simulation APDU.
  *
+ * @param[in] p1 APDU parameter 1
  * @param[in] data buffer received
  * @param[in] length of the buffer
- * @param[in] tx output length
  * @return APDU Response code
  */
-uint16_t handleTxSimulation(const uint8_t *data, uint8_t length) {
+uint16_t handleTxSimulation(uint8_t p1, const uint8_t *data, uint8_t length) {
     uint16_t sw = APDU_RESPONSE_UNKNOWN;
 
+    if (!N_storage.web3checks) {
+        PRINTF("Error: Web3 checks are disabled!\n");
+        return APDU_RESPONSE_CMD_CODE_NOT_SUPPORTED;
+    }
+    if ((p1 != P1_NORMAL) && (p1 != P1_DEMO)) {
+        PRINTF("Error: Unexpected P1 (%u)!\n", p1);
+        return APDU_RESPONSE_INVALID_P1_P2;
+    }
     sw = parse_tlv(data, length);
     if (sw != APDU_RESPONSE_OK) {
         return sw;
     }
 
 #ifdef HAVE_NBGL
-    // Display the TX Simulation parameters
-    ui_display_tx_simulation();
+    if (p1 == P1_DEMO) {
+        // Display the TX Simulation parameters
+        ui_display_tx_simulation(true);
+    }
 #endif
 
     return APDU_RESPONSE_OK;
+}
+
+/**
+ * @brief Clear the TX Simulation parameters.
+ *
+ */
+void clearTxSimulation(void) {
+    explicit_bzero(&TX_SIMULATION, sizeof(tx_simulation_t));
+}
+
+/**
+ * @brief Check the TX vs TX Simulation parameters (CHAIN_ID, TX_HASH).
+ *
+ * @return if the current Tx is the one corresponding to the simulation
+ */
+bool checkTxSimulationParams(void) {
+    uint64_t chain_id = get_tx_chain_id();
+
+    if (TX_SIMULATION.chain_id != chain_id) {
+        PRINTF("[TX SIMU] Chain_ID mismatch: %u != %u\n", TX_SIMULATION.chain_id, chain_id);
+        return false;
+    }
+    if (memcmp(TX_SIMULATION.tx_hash, tmpCtx.transactionContext.hash, HASH_SIZE) != 0) {
+        PRINTF("[TX SIMU] TX_HASH mismatch: %.*h != %.*h\n",
+               HASH_SIZE,
+               TX_SIMULATION.tx_hash,
+               INT256_LENGTH,
+               tmpCtx.transactionContext.hash);
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -471,6 +517,10 @@ uint16_t handleTxSimulation(const uint8_t *data, uint8_t length) {
  * @return risk score
  */
 tx_simulation_risk_t getTxSimuRiskScore(void) {
+    uint8_t hash[INT256_LENGTH] = {0};
+    if ((TX_SIMULATION.chain_id == 0) || memcmp(TX_SIMULATION.tx_hash, hash, HASH_SIZE) == 0) {
+        return RISK_UNKNOWN;
+    }
     if (TX_SIMULATION.risk < THRESHOLD_RISK_WARNING) {
         return RISK_BENIGN;
     }

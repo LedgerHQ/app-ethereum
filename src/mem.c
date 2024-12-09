@@ -41,8 +41,8 @@ void mem_reset(void) {
  * @return Allocated memory pointer; \ref NULL if not enough space left.
  */
 void *mem_alloc(size_t size) {
-    if ((mem_idx + size) > SIZE_MEM_BUFFER)  // Buffer exceeded
-    {
+    // Buffer exceeded
+    if ((mem_idx + size) > sizeof(mem_buffer)) {
         PRINTF("Error: mem_alloc(%u) failed!\n", size);
         return NULL;
     }
@@ -56,8 +56,9 @@ void *mem_alloc(size_t size) {
  * @param[in] size Requested deallocation size in bytes
  */
 void mem_dealloc(size_t size) {
-    if (size > mem_idx)  // More than is already allocated
-    {
+    // More than is already allocated
+    if (size > mem_idx) {
+        PRINTF("Warning: mem_dealloc(%u) with a value larger than allocated!\n", size);
         mem_idx = 0;
     } else {
         mem_idx -= size;

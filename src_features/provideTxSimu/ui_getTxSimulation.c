@@ -10,6 +10,7 @@
 #include "os_io_seproxyhal.h"
 #include "cmd_getTxSimulation.h"
 #include "network_icons.h"
+#include "feature_signTx.h"
 
 static void tx_simulation_cb(int token, uint8_t index);
 
@@ -21,6 +22,8 @@ static void tx_simulation_cb(int token, uint8_t index);
 
 // contexts for background and modal pages
 static nbgl_layout_t layoutCtx = {0};
+
+static bool g_is_demo = false;
 
 // clang-format off
 enum {
@@ -36,6 +39,7 @@ static void ui_display_tx_cb(bool confirm) {
     nbgl_reviewStatusType_t status =
         confirm ? STATUS_TYPE_TRANSACTION_SIGNED : STATUS_TYPE_TRANSACTION_REJECTED;
     nbgl_useCaseReviewStatus(status, ui_idle);
+    clearTxSimulation();
 }
 
 /**
@@ -99,6 +103,8 @@ static void ui_display_tx_simulation_details(uint8_t token) {
     nbgl_layoutDescription_t layoutDescription = {0};
     nbgl_layoutHeader_t header = {0};
     nbgl_layoutQRCode_t qrCode = {0};
+    nbgl_contentCenter_t contentCenter = {0};
+    tx_simulation_risk_t score = getTxSimuRiskScore();
 
     // Add page layout
     layoutDescription.onActionCallback = tx_simulation_cb;
@@ -106,9 +112,15 @@ static void ui_display_tx_simulation_details(uint8_t token) {
 
     // Add top bar
     header.type = HEADER_BACK_AND_TEXT;
-    header.separationLine = true;
+    if ((score != RISK_UNKNOWN) || (token != TOKEN_RISK)) {
+        header.separationLine = true;
+    }
     if (token == TOKEN_BS) {
-        header.backAndText.token = TOKEN_INFO;
+        if (score == RISK_BENIGN) {
+            header.backAndText.token = TOKEN_BACK;
+        } else {
+            header.backAndText.token = TOKEN_INFO;
+        }
         header.backAndText.text = "Blind signing report";
     } else {
         if (N_storage.dataAllowed) {
@@ -116,9 +128,9 @@ static void ui_display_tx_simulation_details(uint8_t token) {
         } else {
             header.backAndText.token = TOKEN_BACK;
         }
-        if (getTxSimuRiskScore() == RISK_MALICIOUS) {
+        if (score == RISK_MALICIOUS) {
             header.backAndText.text = "Web3 Checks\nthreat report";
-        } else {
+        } else if (score == RISK_WARNING) {
             header.backAndText.text = "Web3 Checks\nrisk report";
         }
     }
@@ -128,32 +140,38 @@ static void ui_display_tx_simulation_details(uint8_t token) {
         return;
     }
 
-    // Add separation line
-    status = nbgl_layoutAddSeparationLine(layoutCtx);
-    if (status < 0) {
-        return;
-    }
-
-    // Add QrCode
-    if (token == TOKEN_BS) {
-        qrCode.url = "ledger.com/e8";
-        qrCode.text1 = "ledger.com/e8";
-        header.backAndText.text = "Blind signing report";
-        qrCode.text2 = "Scan to learn about the risks of blind signing.";
-    } else {
-        qrCode.url = PIC(TX_SIMULATION.tiny_url);
-        qrCode.text1 = PIC(TX_SIMULATION.tiny_url);
-        if (getTxSimuRiskScore() == RISK_MALICIOUS) {
-            qrCode.text2 = "Scan to view the threat report from Blockaid.";
-        } else {
-            qrCode.text2 = "Scan to view the risk report from Blockaid.";
+    if ((token == TOKEN_RISK) && (score == RISK_UNKNOWN)) {
+        // W3C Issue, Add Center Info (icon and info)
+        contentCenter.icon = &IMPORTANT_ICON;
+        contentCenter.title = "Web3 Checks could not verify this transaction";
+        contentCenter.description =
+            "An issue prevented Web3 Checks from running. Get help: ledger.com/e11";
+        status = nbgl_layoutAddContentCenter(layoutCtx, &contentCenter);
+        if (status < 0) {
+            return;
         }
-    }
-    qrCode.largeText1 = true;
-    qrCode.offsetY = 40;
-    status = nbgl_layoutAddQRCode(layoutCtx, &qrCode);
-    if (status < 0) {
-        return;
+    } else {
+        // Add QrCode
+        if (token == TOKEN_BS) {
+            qrCode.url = "ledger.com/e8";
+            qrCode.text1 = "ledger.com/e8";
+            header.backAndText.text = "Blind signing report";
+            qrCode.text2 = "Scan to learn about the risks of blind signing.";
+        } else {
+            qrCode.url = PIC(TX_SIMULATION.tiny_url);
+            qrCode.text1 = PIC(TX_SIMULATION.tiny_url);
+            if (getTxSimuRiskScore() == RISK_MALICIOUS) {
+                qrCode.text2 = "Scan to view the threat report from Blockaid.";
+            } else {
+                qrCode.text2 = "Scan to view the risk report from Blockaid.";
+            }
+        }
+        qrCode.largeText1 = true;
+        qrCode.offsetY = 40;
+        status = nbgl_layoutAddQRCode(layoutCtx, &qrCode);
+        if (status < 0) {
+            return;
+        }
     }
 
     // Draw the page
@@ -186,12 +204,6 @@ static void ui_display_tx_simulation_report_security(void) {
         return;
     }
 
-    // Add separation line
-    status = nbgl_layoutAddSeparationLine(layoutCtx);
-    if (status < 0) {
-        return;
-    }
-
     // Add touchable bar for the Blind Signing
     bar.text = "Blind signing";
     bar.subText = "This transaction cannot be fully decoded.";
@@ -204,12 +216,22 @@ static void ui_display_tx_simulation_report_security(void) {
         return;
     }
     // Add touchable bar for the Risk
-    if (score == RISK_WARNING) {
-        bar.text = "Risk detected";
-        bar.subText = "Web3 Checks found a risk: Losing swap";
-    } else if (score == RISK_MALICIOUS) {
-        bar.text = "Threat detected";
-        bar.subText = "Web3 Checks found a threat: Known drainer contract";
+    switch (score) {
+        case RISK_UNKNOWN:
+            bar.text = "Web3 Checks issue";
+            bar.subText = "Web3 Checks could not verify this transaction.";
+            break;
+        case RISK_WARNING:
+            bar.text = "Risk detected";
+            bar.subText = "Web3 Checks found a risk: Losing swap";
+            break;
+        case RISK_MALICIOUS:
+            bar.text = "Threat detected";
+            bar.subText = "Web3 Checks found a threat: Known drainer contract";
+            break;
+        default:
+            // Should not happen!
+            break;
     }
     bar.iconLeft = &IMPORTANT_ICON;
     bar.iconRight = &CHEVRON_NEXT_ICON;
@@ -231,27 +253,41 @@ static void ui_display_tx_simulation_report_security(void) {
  * @param index Value of the activated widget (for radio buttons, switches...)
  */
 static void tx_simulation_cb(int token, uint8_t index) {
-    PRINTF("Account callback: %d - %d\n", token, index);
+    tx_simulation_risk_t score = getTxSimuRiskScore();
+
     switch (token) {
         case TOKEN_BS:
-            // Top right 'Info' button
+            // Detail 'Blind Signing' bar button
             ui_display_tx_simulation_details(TOKEN_BS);
             break;
         case TOKEN_RISK:
+            // Detail 'Risk' bar button
             ui_display_tx_simulation_details(TOKEN_RISK);
             break;
         case TOKEN_INFO:
-            // Top right 'Info' button
+            // Top right button
             if (N_storage.dataAllowed) {
-                ui_display_tx_simulation_report_security();
+                if (score == RISK_BENIGN) {
+                    // Blind Signing only Info
+                    ui_display_tx_simulation_details(TOKEN_BS);
+                } else {
+                    // Blind Signing + Risk Info
+                    ui_display_tx_simulation_report_security();
+                }
             } else {
+                // Risk only Info
                 ui_display_tx_simulation_details(TOKEN_RISK);
             }
             break;
         case TOKEN_CHOICE:
-            if ((getTxSimuRiskScore() == RISK_BENIGN) || (index == 1)) {
-                // Start TX
-                ui_display_tx_simulation_values();
+            if ((score == RISK_BENIGN) || (index == 1)) {
+                if (g_is_demo) {
+                    // Display the parameters without starting the TX
+                    ui_display_tx_simulation_values();
+                } else {
+                    // Start TX
+                    ux_approve_tx(false);
+                }
                 break;
             } else {
                 // Back to safety
@@ -260,7 +296,7 @@ static void tx_simulation_cb(int token, uint8_t index) {
             break;
         case TOKEN_BACK:
             // Quit the page
-            ui_display_tx_simulation();
+            ui_display_tx_simulation(g_is_demo);
             break;
         default:
             break;
@@ -270,8 +306,9 @@ static void tx_simulation_cb(int token, uint8_t index) {
 /**
  * @brief Display the transaction simulation result
  *
+ * @param[in] is_demo Flag to display the parameters without starting the TX
  */
-void ui_display_tx_simulation(void) {
+void ui_display_tx_simulation(bool is_demo) {
     int status = -1;
     nbgl_layoutDescription_t layoutDescription = {0};
     nbgl_contentCenter_t contentCenter = {0};
@@ -283,7 +320,7 @@ void ui_display_tx_simulation(void) {
     layoutDescription.onActionCallback = tx_simulation_cb;
     layoutCtx = nbgl_layoutGet(&layoutDescription);
 
-    if (score != RISK_BENIGN) {
+    if ((score != RISK_BENIGN || N_storage.dataAllowed)) {
         // Add top right button
         status = nbgl_layoutAddTopRightButton(layoutCtx,
                                               &C_SecurityShield_64px,
@@ -295,31 +332,54 @@ void ui_display_tx_simulation(void) {
     }
 
     // Add Center Info (icon and info)
-    contentCenter.icon = &C_Warning_64px;
-    if (score == RISK_BENIGN) {
-        contentCenter.icon = &C_Check_Circle_64px;
-        contentCenter.title = "NO Threat detected";
-        contentCenter.description = "This transaction was scanned as benign by Web3 Checks.";
-    } else {
-        if (N_storage.dataAllowed) {
-            // Case Blind Signing + Web3Cheks Malicious
-            contentCenter.title = "Dangerous transaction:";
-            contentCenter.description =
-                "This transaction cannot be fully decoded and was marked as risky by Web3 Checks.";
-        } else {
-            if (score == RISK_MALICIOUS) {
-                // Case Web3Cheks Malicious
-                contentCenter.title = "Threat detected:";
-                contentCenter.smallTitle = "Known drainer contract";
+    switch (score) {
+        case RISK_UNKNOWN:
+            // W3C Down
+            if (N_storage.dataAllowed) {
+                contentCenter.icon = &C_Warning_64px;
+                contentCenter.title = "Dangerous transaction:";
                 contentCenter.description =
-                    "This transaction was scanned as malicious by Web3 Checks.";
+                    "This transaction cannot be fully decoded and was not verified by Web3 Checks.";
             } else {
-                // Case Web3Cheks Warning
-                contentCenter.title = "Risk detected:";
-                contentCenter.smallTitle = "Losing trade";
-                contentCenter.description = "This transaction was scanned as risky by Web3 Checks.";
+                contentCenter.icon = &IMPORTANT_ICON;
+                contentCenter.title = "Web3 Checks could not verify this message";
+                contentCenter.description =
+                    "An issue prevented Web3 Checks from running. Get help: ledger.com/e11";
             }
-        }
+            break;
+
+        case RISK_BENIGN:
+            // W3C Pass, Demo mode only, else, we don't run this function
+            contentCenter.icon = &C_Check_Circle_64px;
+            contentCenter.title = "NO Threat detected";
+            contentCenter.description = "This transaction was scanned as benign by Web3 Checks.";
+            break;
+
+        default:
+            contentCenter.icon = &C_Warning_64px;
+            if (N_storage.dataAllowed) {
+                // Case Blind Signing + Web3Cheks Malicious
+                contentCenter.title = "Dangerous transaction:";
+                // clang-format off
+                contentCenter.description =
+                    "This transaction cannot be fully decoded and was marked as risky by Web3 Checks.";
+                // clang-format on
+            } else {
+                if (score == RISK_MALICIOUS) {
+                    // Case Web3Cheks Malicious
+                    contentCenter.title = "Threat detected:";
+                    contentCenter.smallTitle = "Known drainer contract";
+                    contentCenter.description =
+                        "This transaction was scanned as malicious by Web3 Checks.";
+                } else {
+                    // Case Web3Cheks Warning
+                    contentCenter.title = "Risk detected:";
+                    contentCenter.smallTitle = "Losing trade";
+                    contentCenter.description =
+                        "This transaction was scanned as risky by Web3 Checks.";
+                }
+            }
+            break;
     }
     status = nbgl_layoutAddContentCenter(layoutCtx, &contentCenter);
     if (status < 0) {
@@ -327,7 +387,7 @@ void ui_display_tx_simulation(void) {
     }
 
     if (score == RISK_BENIGN) {
-        // Add button
+        // Add button, Demo mode only, else, we don't run this function
         button.text = "Continue";
         button.token = TOKEN_CHOICE;
         button.style = BLACK_BACKGROUND;
@@ -347,6 +407,7 @@ void ui_display_tx_simulation(void) {
         return;
     }
 
+    g_is_demo = is_demo;
     // Draw the page
     nbgl_layoutDraw(layoutCtx);
 }

@@ -13,6 +13,7 @@
 #include "manage_asset_info.h"
 #include "handle_swap_sign_transaction.h"
 #include "os_math.h"
+#include "cmd_getTxSimulation.h"
 
 static bool g_use_standard_ui;
 
@@ -625,7 +626,17 @@ end:
 
 void start_signature_flow(void) {
     if (g_use_standard_ui) {
-        ux_approve_tx(false);
+        if ((!N_storage.web3checks) ||
+            ((N_storage.web3checks) && getTxSimuRiskScore() == RISK_BENIGN)) {
+            // W3Checks disabled or benign transaction
+            ux_approve_tx(false);
+        } else {
+            // W3Checks enabled
+            checkTxSimulationParams();
+#ifdef HAVE_NBGL
+            ui_display_tx_simulation(false);
+#endif
+        }
     } else {
         dataContext.tokenContext.pluginUiState = PLUGIN_UI_OUTSIDE;
         dataContext.tokenContext.pluginUiCurrentItem = 0;

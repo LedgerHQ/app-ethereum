@@ -10,6 +10,7 @@
 #include "network_icons.h"
 #include "network.h"
 #include "ledger_assert.h"
+#include "cmd_getTxSimulation.h"
 
 // 1 more than actually displayed on screen, because of calculations in StaticReview
 #define MAX_PLUGIN_ITEMS 8
@@ -43,6 +44,7 @@ static void reviewChoice(bool confirm) {
         memset(&tx_approval_context, 0, sizeof(tx_approval_context));
         nbgl_useCaseReviewStatus(STATUS_TYPE_TRANSACTION_REJECTED, ui_idle);
     }
+    clearTxSimulation();
 }
 
 const nbgl_icon_details_t *get_tx_icon(void) {

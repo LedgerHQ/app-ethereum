@@ -14,6 +14,7 @@
 #include "handle_swap_sign_transaction.h"
 #include "os_math.h"
 #include "calldata.h"
+#include "cmd_getTxSimulation.h"
 
 static bool g_use_standard_ui;
 
@@ -343,7 +344,7 @@ __attribute__((noreturn)) void send_swap_error(uint8_t error_code,
                                                const char *str1,
                                                const char *str2) {
     uint32_t tx = 0;
-    uint len = 0;
+    uint32_t len = 0;
     PRINTF("APDU_RESPONSE_MODE_CHECK_FAILED: 0x%x\n", error_code);
     // Set RAPDU error codes
     G_io_apdu_buffer[tx++] = error_code;
@@ -644,13 +645,28 @@ end:
 }
 
 void start_signature_flow(void) {
-    if (g_use_standard_ui) {
-        ux_approve_tx(false);
-    } else {
+    bool from_plugin = false;
+    if (!g_use_standard_ui) {
         dataContext.tokenContext.pluginUiState = PLUGIN_UI_OUTSIDE;
         dataContext.tokenContext.pluginUiCurrentItem = 0;
-        ux_approve_tx(true);
+        from_plugin = true;
     }
+
+#ifdef HAVE_WEB3_CHECKS
+    if ((!N_storage.web3checks) || (TX_SIMULATION.score == SCORE_BENIGN)) {
+        // W3Checks disabled or benign transaction
+#endif
+        ux_approve_tx(from_plugin);
+#ifdef HAVE_WEB3_CHECKS
+    } else {
+        // W3Checks enabled => Verify parameters of the Transaction
+        checkTxSimulationParams();
+#ifdef HAVE_NBGL
+        // Display the transaction simulation result before going to the approval flow
+        ui_display_tx_simulation(from_plugin, false);
+#endif
+    }
+#endif
 }
 
 uint16_t finalize_parsing(const txContext_t *context) {

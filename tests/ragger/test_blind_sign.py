@@ -51,8 +51,7 @@ def common_tx_params() -> dict:
     }
 
 
-# Token approval, would require loading the "internal plugin" &
-# providing the token metadata from the CAL
+# Token approval, would require providing the token metadata from the CAL
 def test_blind_sign(firmware: Firmware,
                     backend: BackendInterface,
                     navigator: Navigator,
@@ -81,12 +80,29 @@ def test_blind_sign(firmware: Firmware,
                 # blind signing warning
                 moves += [NavInsID.RIGHT_CLICK]
 
-                # review | from | amount | to | fees
-                moves += [NavInsID.RIGHT_CLICK] * 5
+                # review
+                moves += [NavInsID.RIGHT_CLICK]
 
+                # tx hash
                 if firmware == Firmware.NANOS:
-                    # for the two addresses
                     moves += [NavInsID.RIGHT_CLICK] * 4
+                else:
+                    moves += [NavInsID.RIGHT_CLICK] * 2
+
+                # from
+                if firmware == Firmware.NANOS:
+                    moves += [NavInsID.RIGHT_CLICK] * 3
+                else:
+                    moves += [NavInsID.RIGHT_CLICK]
+
+                # to
+                if firmware == Firmware.NANOS:
+                    moves += [NavInsID.RIGHT_CLICK] * 3
+                else:
+                    moves += [NavInsID.RIGHT_CLICK]
+
+                # fees
+                moves += [NavInsID.RIGHT_CLICK]
 
                 if not sign:
                     moves += [NavInsID.RIGHT_CLICK]
@@ -95,10 +111,7 @@ def test_blind_sign(firmware: Firmware,
             else:
                 moves += [NavInsID.USE_CASE_CHOICE_REJECT]
 
-                if firmware == Firmware.STAX:
-                    moves += [NavInsID.SWIPE_CENTER_TO_LEFT] * 2
-                else:
-                    moves += [NavInsID.SWIPE_CENTER_TO_LEFT] * 3
+                moves += [NavInsID.SWIPE_CENTER_TO_LEFT] * 3
 
                 if sign:
                     moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
@@ -171,21 +184,18 @@ def test_sign_parameter_selector(firmware: Firmware,
                 moves += [NavInsID.RIGHT_CLICK] * 4 + [NavInsID.BOTH_CLICK]
                 # parameter 2
                 moves += [NavInsID.RIGHT_CLICK] * 3 + [NavInsID.BOTH_CLICK]
-                # blind signing | review | from | amount | to | fees
-                moves += [NavInsID.RIGHT_CLICK] * 10
+                # blind signing | review | tx hash | from | to | fees
+                moves += [NavInsID.RIGHT_CLICK] * 13
             else:
                 # (verify | parameter) * flows
                 moves += ([NavInsID.RIGHT_CLICK] * 2 + [NavInsID.BOTH_CLICK]) * params
                 # blind signing | review | from | amount | to | fees
-                moves += [NavInsID.RIGHT_CLICK] * 6
+                moves += [NavInsID.RIGHT_CLICK] * 7
             moves += [NavInsID.BOTH_CLICK]
         else:
             moves += ([NavInsID.SWIPE_CENTER_TO_LEFT] * 2 + [NavInsID.USE_CASE_REVIEW_CONFIRM]) * (1 + params)
             moves += [NavInsID.USE_CASE_CHOICE_REJECT]
-            if firmware == Firmware.STAX:
-                tap_number = 2
-            else:
-                tap_number = 3
+            tap_number = 3
             moves += [NavInsID.SWIPE_CENTER_TO_LEFT] * tap_number
             moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
         navigator.navigate_and_compare(default_screenshot_path,

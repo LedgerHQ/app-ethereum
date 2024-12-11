@@ -201,7 +201,7 @@ void erc20_plugin_call(int message, void *parameters) {
                         strlcpy(msg->title, "Contract", msg->titleLength);
                         strlcpy(msg->msg, context->contract_name, msg->msgLength);
                     } else {
-                        strlcpy(msg->title, "Address", msg->titleLength);
+                        strlcpy(msg->title, "Approve to", msg->titleLength);
                         if (!getEthDisplayableAddress(context->destinationAddress,
                                                       msg->msg,
                                                       msg->msgLength,

@@ -284,9 +284,21 @@ def test_trusted_name_v2_missing_challenge(firmware: Firmware, backend: BackendI
     assert e.value.status == StatusWord.INVALID_DATA
 
 
-def test_trusted_name_v2_expired(firmware: Firmware, backend: BackendInterface):
+def test_trusted_name_v2_expired(firmware: Firmware, backend: BackendInterface, app_version: tuple[int, int, int]):
     app_client = EthAppClient(backend)
     challenge = common(firmware, app_client)
+
+    # convert to list and reverse
+    app_version = list(app_version)
+    app_version.reverse()
+    # simulate a previous version number by decrementing the first non-zero value
+    for idx, v in enumerate(app_version):
+        if v > 0:
+            app_version[idx] -= 1
+            break
+    # reverse and convert back
+    app_version.reverse()
+    app_version = tuple(app_version)
 
     with pytest.raises(ExceptionRAPDU) as e:
         app_client.provide_trusted_name_v2(ADDR,
@@ -295,5 +307,5 @@ def test_trusted_name_v2_expired(firmware: Firmware, backend: BackendInterface):
                                            TrustedNameSource.ENS,
                                            CHAIN_ID,
                                            challenge=challenge,
-                                           not_valid_after=(0, 1, 2))
+                                           not_valid_after=app_version)
     assert e.value.status == StatusWord.INVALID_DATA

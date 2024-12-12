@@ -112,6 +112,16 @@ UX_STEP_NOCB(ux_approval_review_step,
       "Review",
       "transaction",
     });
+UX_STEP_NOCB(ux_approval_tx_hash_step,
+    bnnn_paging,
+    {
+#ifdef TARGET_NANOS
+      .title = "TX hash",
+#else
+      .title = "Transaction hash",
+#endif
+      .text = strings.common.fullAmount
+    });
 UX_STEP_NOCB(
     ux_approval_amount_step,
     bnnn_paging,
@@ -237,11 +247,23 @@ void ux_approve_tx(bool fromPlugin) {
         ux_approval_tx_flow[step++] = &ux_plugin_approval_display_step;
         ux_approval_tx_flow[step++] = &ux_plugin_approval_after_step;
     } else {
+        if (tmpContent.txContent.dataPresent) {
+#pragma GCC diagnostic ignored "-Wformat"
+            snprintf(strings.common.fullAmount,
+                     sizeof(strings.common.fullAmount),
+                     "0x%.*h",
+                     sizeof(tmpCtx.transactionContext.hash),
+                     tmpCtx.transactionContext.hash);
+#pragma GCC diagnostic warning "-Wformat"
+            ux_approval_tx_flow[step++] = &ux_approval_tx_hash_step;
+        }
         // We're in a regular transaction, just show the amount and the address
         if (strings.common.fromAddress[0] != 0) {
             ux_approval_tx_flow[step++] = &ux_approval_from_step;
         }
-        ux_approval_tx_flow[step++] = &ux_approval_amount_step;
+        if (!tmpContent.txContent.dataPresent) {
+            ux_approval_tx_flow[step++] = &ux_approval_amount_step;
+        }
 #ifdef HAVE_TRUSTED_NAME
         uint64_t chain_id = get_tx_chain_id();
         e_name_type type = TYPE_ACCOUNT;

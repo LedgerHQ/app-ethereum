@@ -122,14 +122,14 @@ static uint8_t setTagValuePairs(void) {
     } else {
         if (tmpContent.txContent.dataPresent) {
 #pragma GCC diagnostic ignored "-Wformat"
-            snprintf(strings.common.fullAmount,
-                     sizeof(strings.common.fullAmount),
+            snprintf(strings.common.tx_hash,
+                     sizeof(strings.common.tx_hash),
                      "0x%.*h",
                      sizeof(tmpCtx.transactionContext.hash),
                      tmpCtx.transactionContext.hash);
 #pragma GCC diagnostic warning "-Wformat"
             pairs[nbPairs].item = "Transaction hash";
-            pairs[nbPairs].value = strings.common.fullAmount;
+            pairs[nbPairs].value = strings.common.tx_hash;
             nbPairs++;
         }
 
@@ -139,7 +139,8 @@ static uint8_t setTagValuePairs(void) {
             nbPairs++;
         }
 
-        if (!tmpContent.txContent.dataPresent) {
+        if (!tmpContent.txContent.dataPresent ||
+            !allzeroes(tmpContent.txContent.value.value, tmpContent.txContent.value.length)) {
             pairs[nbPairs].item = "Amount";
             pairs[nbPairs].value = strings.common.fullAmount;
             nbPairs++;

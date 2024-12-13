@@ -120,7 +120,7 @@ UX_STEP_NOCB(ux_approval_tx_hash_step,
 #else
       .title = "Transaction hash",
 #endif
-      .text = strings.common.fullAmount
+      .text = strings.common.tx_hash
     });
 UX_STEP_NOCB(
     ux_approval_amount_step,
@@ -249,8 +249,8 @@ void ux_approve_tx(bool fromPlugin) {
     } else {
         if (tmpContent.txContent.dataPresent) {
 #pragma GCC diagnostic ignored "-Wformat"
-            snprintf(strings.common.fullAmount,
-                     sizeof(strings.common.fullAmount),
+            snprintf(strings.common.tx_hash,
+                     sizeof(strings.common.tx_hash),
                      "0x%.*h",
                      sizeof(tmpCtx.transactionContext.hash),
                      tmpCtx.transactionContext.hash);
@@ -261,7 +261,8 @@ void ux_approve_tx(bool fromPlugin) {
         if (strings.common.fromAddress[0] != 0) {
             ux_approval_tx_flow[step++] = &ux_approval_from_step;
         }
-        if (!tmpContent.txContent.dataPresent) {
+        if (!tmpContent.txContent.dataPresent ||
+            !allzeroes(tmpContent.txContent.value.value, tmpContent.txContent.value.length)) {
             ux_approval_tx_flow[step++] = &ux_approval_amount_step;
         }
 #ifdef HAVE_TRUSTED_NAME

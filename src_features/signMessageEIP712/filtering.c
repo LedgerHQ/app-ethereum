@@ -342,9 +342,9 @@ bool filtering_trusted_name(const uint8_t *payload,
                             uint32_t *path_crc) {
     uint8_t name_len;
     const char *name;
-    uint8_t types_count;
+    uint8_t type_count;
     e_name_type *types;
-    uint8_t sources_count;
+    uint8_t source_count;
     e_name_source *sources;
     uint8_t sig_len;
     const uint8_t *sig;
@@ -365,48 +365,30 @@ bool filtering_trusted_name(const uint8_t *payload,
     }
     name = (char *) &payload[offset];
     offset += name_len;
-    if ((offset + sizeof(types_count)) > length) {
+    if ((offset + sizeof(type_count)) > length) {
         return false;
     }
-    types_count = payload[offset++];
-    if ((offset + types_count) > length) {
+    type_count = payload[offset++];
+    if (type_count > TN_TYPE_COUNT) {
+        return false;
+    }
+    if ((offset + type_count) > length) {
         return false;
     }
     types = (e_name_type *) &payload[offset];
-    // sanity check
-    for (int i = 0; i < types_count; ++i) {
-        switch (types[i]) {
-            case TYPE_ACCOUNT:
-            case TYPE_CONTRACT:
-                break;
-            default:
-                return false;
-        }
-    }
-    offset += types_count;
-    if ((offset + sizeof(sources_count)) > length) {
+    offset += type_count;
+    if ((offset + sizeof(source_count)) > length) {
         return false;
     }
-    sources_count = payload[offset++];
-    if ((offset + sources_count) > length) {
+    source_count = payload[offset++];
+    if (source_count > TN_SOURCE_COUNT) {
+        return false;
+    }
+    if ((offset + source_count) > length) {
         return false;
     }
     sources = (e_name_source *) &payload[offset];
-    // sanity check
-    for (int i = 0; i < sources_count; ++i) {
-        switch (sources[i]) {
-            case SOURCE_LAB:
-            case SOURCE_CAL:
-            case SOURCE_ENS:
-            case SOURCE_UD:
-            case SOURCE_FN:
-            case SOURCE_DNS:
-                break;
-            default:
-                return false;
-        }
-    }
-    offset += sources_count;
+    offset += source_count;
     //
     if ((offset + sizeof(sig_len)) > length) {
         return false;
@@ -424,8 +406,8 @@ bool filtering_trusted_name(const uint8_t *payload,
     }
     hash_filtering_path((cx_hash_t *) &hash_ctx, discarded, path_crc);
     hash_nbytes((uint8_t *) name, sizeof(char) * name_len, (cx_hash_t *) &hash_ctx);
-    hash_nbytes(types, types_count, (cx_hash_t *) &hash_ctx);
-    hash_nbytes(sources, sources_count, (cx_hash_t *) &hash_ctx);
+    hash_nbytes(types, type_count, (cx_hash_t *) &hash_ctx);
+    hash_nbytes(sources, source_count, (cx_hash_t *) &hash_ctx);
     if (!sig_verif_end(&hash_ctx, sig, sig_len)) {
         return false;
     }
@@ -438,7 +420,7 @@ bool filtering_trusted_name(const uint8_t *payload,
         ui_712_set_title(name, name_len);
     }
     ui_712_flag_field(true, name_len > 0, false, false, true);
-    ui_712_set_trusted_name_requirements(types_count, types);
+    ui_712_set_trusted_name_requirements(type_count, types, source_count, sources);
     return true;
 }
 #endif  // HAVE_TRUSTED_NAME

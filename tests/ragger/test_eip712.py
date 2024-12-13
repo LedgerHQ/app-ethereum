@@ -763,7 +763,7 @@ def test_eip712_advanced_trusted_name(firmware: Firmware,
                 "type": "trusted_name",
                 "name": "Validator",
                 "tn_type": filt_tn_types,
-                "tn_source": [TrustedNameSource.CAL],
+                "tn_source": [TrustedNameSource.CAL, TrustedNameSource.ENS],
             },
             "enable": {
                 "type": "raw",

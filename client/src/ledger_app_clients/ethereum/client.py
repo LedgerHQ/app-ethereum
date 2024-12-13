@@ -255,7 +255,7 @@ class EthAppClient:
                                                                           bip32_path,
                                                                           pubkey))
 
-    def _provide_trusted_name_common(self, payload: bytes) -> RAPDU:
+    def _provide_trusted_name_common(self, payload: bytes, name_source: TrustedNameSource) -> RAPDU:
         if self._pki_client is None:
             print(f"Ledger-PKI Not supported on '{self._firmware.name}'")
         else:
@@ -272,10 +272,16 @@ class EthAppClient:
 
             self._pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_COIN_META, bytes.fromhex(cert_apdu))
         payload += format_tlv(FieldTag.STRUCT_TYPE, 3)  # TrustedName
-        payload += format_tlv(FieldTag.SIGNER_KEY_ID, 0)  # test key
+        if name_source == TrustedNameSource.CAL:
+            key_id = 6
+            key = Key.CAL
+        else:
+            key_id = 3
+            key = Key.TRUSTED_NAME
+        payload += format_tlv(FieldTag.SIGNER_KEY_ID, key_id)  # test key
         payload += format_tlv(FieldTag.SIGNER_ALGO, 1)  # secp256k1
         payload += format_tlv(FieldTag.DER_SIGNATURE,
-                              sign_data(Key.TRUSTED_NAME, payload))
+                              sign_data(key, payload))
         chunks = self._cmd_builder.provide_trusted_name(payload)
         for chunk in chunks[:-1]:
             self._exchange(chunk)
@@ -287,7 +293,7 @@ class EthAppClient:
         payload += format_tlv(FieldTag.COIN_TYPE, 0x3c)  # ETH in slip-44
         payload += format_tlv(FieldTag.TRUSTED_NAME, name)
         payload += format_tlv(FieldTag.ADDRESS, addr)
-        return self._provide_trusted_name_common(payload)
+        return self._provide_trusted_name_common(payload, TrustedNameSource.ENS)
 
     def provide_trusted_name_v2(self,
                                 addr: bytes,
@@ -311,7 +317,7 @@ class EthAppClient:
         if not_valid_after is not None:
             assert len(not_valid_after) == 3
             payload += format_tlv(FieldTag.NOT_VALID_AFTER, struct.pack("BBB", *not_valid_after))
-        return self._provide_trusted_name_common(payload)
+        return self._provide_trusted_name_common(payload, name_source)
 
     def set_plugin(self,
                    plugin_name: str,

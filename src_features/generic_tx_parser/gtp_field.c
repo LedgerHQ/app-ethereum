@@ -28,6 +28,7 @@ typedef union {
 #endif
     s_param_datetime_context datetime_ctx;
     s_param_duration_context duration_ctx;
+    s_param_unit_context unit_ctx;
 } u_param_context;
 
 static bool handle_version(const s_tlv_data *data, s_field_ctx *context) {
@@ -66,6 +67,7 @@ static bool handle_param_type(const s_tlv_data *data, s_field_ctx *context) {
 #endif
         case PARAM_TYPE_DATETIME:
         case PARAM_TYPE_DURATION:
+        case PARAM_TYPE_UNIT:
             break;
         default:
             PRINTF("Error: Unsupported param type (%u)\n", context->field->param_type);
@@ -113,6 +115,10 @@ static bool handle_param(const s_tlv_data *data, s_field_ctx *context) {
         case PARAM_TYPE_DURATION:
             handler = (f_tlv_data_handler) &handle_param_duration_struct;
             param_ctx.duration_ctx.param = &context->field->param_duration;
+            break;
+        case PARAM_TYPE_UNIT:
+            handler = (f_tlv_data_handler) &handle_param_unit_struct;
+            param_ctx.unit_ctx.param = &context->field->param_unit;
             break;
         default:
             return false;
@@ -194,6 +200,9 @@ bool format_field(const s_field *field) {
             break;
         case PARAM_TYPE_DURATION:
             ret = format_param_duration(&field->param_duration, field->name);
+            break;
+        case PARAM_TYPE_UNIT:
+            ret = format_param_unit(&field->param_unit, field->name);
             break;
         default:
             ret = false;

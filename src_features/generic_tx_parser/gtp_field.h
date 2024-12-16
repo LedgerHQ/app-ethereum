@@ -10,6 +10,7 @@
 #include "gtp_param_nft.h"
 #include "gtp_param_datetime.h"
 #include "gtp_param_duration.h"
+#include "gtp_param_unit.h"
 
 typedef enum {
     PARAM_TYPE_RAW = 0,
@@ -18,6 +19,7 @@ typedef enum {
     PARAM_TYPE_NFT,
     PARAM_TYPE_DATETIME,
     PARAM_TYPE_DURATION,
+    PARAM_TYPE_UNIT,
 } e_param_type;
 
 typedef struct {
@@ -33,6 +35,7 @@ typedef struct {
 #endif
         s_param_datetime param_datetime;
         s_param_duration param_duration;
+        s_param_unit param_unit;
     };
 } s_field;
 

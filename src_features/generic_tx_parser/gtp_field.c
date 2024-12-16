@@ -22,6 +22,7 @@ enum {
 typedef union {
     s_param_raw_context raw_ctx;
     s_param_amount_context amount_ctx;
+    s_param_token_amount_context token_amount_ctx;
 } u_param_context;
 
 static bool handle_version(const s_tlv_data *data, s_field_ctx *context) {
@@ -54,6 +55,7 @@ static bool handle_param_type(const s_tlv_data *data, s_field_ctx *context) {
     switch (context->field->param_type) {
         case PARAM_TYPE_RAW:
         case PARAM_TYPE_AMOUNT:
+        case PARAM_TYPE_TOKEN_AMOUNT:
             break;
         default:
             PRINTF("Error: Unsupported param type (%u)\n", context->field->param_type);
@@ -83,6 +85,10 @@ static bool handle_param(const s_tlv_data *data, s_field_ctx *context) {
         case PARAM_TYPE_AMOUNT:
             handler = (f_tlv_data_handler) &handle_param_amount_struct;
             param_ctx.amount_ctx.param = &context->field->param_amount;
+            break;
+        case PARAM_TYPE_TOKEN_AMOUNT:
+            handler = (f_tlv_data_handler) &handle_param_token_amount_struct;
+            param_ctx.token_amount_ctx.param = &context->field->param_token_amount;
             break;
         default:
             return false;
@@ -150,6 +156,9 @@ bool format_field(const s_field *field) {
             break;
         case PARAM_TYPE_AMOUNT:
             ret = format_param_amount(&field->param_amount, field->name);
+            break;
+        case PARAM_TYPE_TOKEN_AMOUNT:
+            ret = format_param_token_amount(&field->param_token_amount, field->name);
             break;
         default:
             ret = false;

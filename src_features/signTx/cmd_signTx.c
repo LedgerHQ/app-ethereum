@@ -58,8 +58,8 @@ static uint16_t handle_first_sign_chunk(const uint8_t *payload, uint8_t length, 
 
 uint16_t handleSign(uint8_t p1,
                     uint8_t p2,
-                    const uint8_t *workBuffer,
-                    uint8_t dataLength,
+                    const uint8_t *payload,
+                    uint8_t length,
                     unsigned int *flags) {
     uint16_t sw = APDU_NO_RESPONSE;
     uint8_t offset = 0;
@@ -68,7 +68,7 @@ uint16_t handleSign(uint8_t p1,
         case SIGN_MODE_BASIC:
             switch (p1) {
                 case P1_FIRST:
-                    if ((sw = handle_first_sign_chunk(workBuffer, dataLength, &offset)) !=
+                    if ((sw = handle_first_sign_chunk(payload, length, &offset)) !=
                         APDU_NO_RESPONSE) {
                         return sw;
                     }
@@ -91,7 +91,7 @@ uint16_t handleSign(uint8_t p1,
         PRINTF("Parser not initialized\n");
         return APDU_RESPONSE_CONDITION_NOT_SATISFIED;
     }
-    switch (processTx(&txContext, &workBuffer[offset], dataLength - offset)) {
+    switch (processTx(&txContext, &payload[offset], length - offset)) {
         case USTREAM_SUSPENDED:
             break;
         case USTREAM_FINISHED:

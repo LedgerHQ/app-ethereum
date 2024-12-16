@@ -12,6 +12,7 @@
 #include "gtp_param_duration.h"
 #include "gtp_param_unit.h"
 #include "gtp_param_enum.h"
+#include "gtp_param_trusted_name.h"
 
 typedef enum {
     PARAM_TYPE_RAW = 0,
@@ -22,6 +23,7 @@ typedef enum {
     PARAM_TYPE_DURATION,
     PARAM_TYPE_UNIT,
     PARAM_TYPE_ENUM,
+    PARAM_TYPE_TRUSTED_NAME,
 } e_param_type;
 
 typedef struct {
@@ -40,6 +42,9 @@ typedef struct {
         s_param_unit param_unit;
 #ifdef HAVE_ENUM_VALUE
         s_param_enum param_enum;
+#endif
+#ifdef HAVE_TRUSTED_NAME
+        s_param_trusted_name param_trusted_name;
 #endif
     };
 } s_field;

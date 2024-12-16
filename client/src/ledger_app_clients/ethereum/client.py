@@ -136,6 +136,15 @@ class EthAppClient:
         header.append(len(payload))
         return self._exchange(header + payload)
 
+    def send_raw_async(self, cla: int, ins: int, p1: int, p2: int, payload: bytes):
+        header = bytearray()
+        header.append(cla)
+        header.append(ins)
+        header.append(p1)
+        header.append(p2)
+        header.append(len(payload))
+        return self._exchange_async(header + payload)
+
     def eip712_send_struct_def_struct_name(self, name: str):
         return self._exchange_async(self._cmd_builder.eip712_send_struct_def_struct_name(name))
 

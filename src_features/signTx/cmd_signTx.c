@@ -24,7 +24,7 @@ static uint16_t handle_first_sign_chunk(const uint8_t *payload, uint8_t length, 
     tmpContent.txContent.dataPresent = false;
     dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_UNAVAILABLE;
 
-    if (initTx(&txContext, &global_sha3, &tmpContent.txContent, customProcessor, NULL) == false) {
+    if (init_tx(&txContext, &global_sha3, &tmpContent.txContent) == false) {
         return APDU_RESPONSE_INVALID_DATA;
     }
     if (*offset >= length) {
@@ -91,11 +91,11 @@ uint16_t handleSign(uint8_t p1,
         PRINTF("Parser not initialized\n");
         return APDU_RESPONSE_CONDITION_NOT_SATISFIED;
     }
-    switch (processTx(&txContext, &payload[offset], length - offset)) {
+    switch (process_tx(&txContext, &payload[offset], length - offset)) {
         case USTREAM_SUSPENDED:
             break;
         case USTREAM_FINISHED:
-            sw = finalizeParsing();
+            sw = finalize_parsing();
             break;
         case USTREAM_PROCESSING:
             return APDU_RESPONSE_OK;

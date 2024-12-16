@@ -633,7 +633,7 @@ void start_signature_flow(void) {
     }
 }
 
-uint16_t finalizeParsing(void) {
+uint16_t finalize_parsing(void) {
     uint16_t sw = APDU_RESPONSE_UNKNOWN;
     g_use_standard_ui = true;
 

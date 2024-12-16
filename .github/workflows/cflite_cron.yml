@@ -1,0 +1,40 @@
+name: ClusterFuzzLite cron tasks
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main  # Use your actual default branch here.
+  schedule:
+    - cron: '0 13 * * 6'  # At 01:00 PM, only on Saturday
+permissions: read-all
+jobs:
+  Fuzzing:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - mode: batch
+            sanitizer: address
+          - mode: batch
+            sanitizer: memory
+          - mode: prune
+            sanitizer: address
+          - mode: coverage
+            sanitizer: coverage
+    steps:
+      - name: Build Fuzzers (${{ matrix.mode }} - ${{ matrix.sanitizer }})
+        id: build
+        uses: google/clusterfuzzlite/actions/build_fuzzers@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          language: c # Change this to the language you are fuzzing.
+          sanitizer: ${{ matrix.sanitizer }}
+      - name: Run Fuzzers (${{ matrix.mode }} - ${{ matrix.sanitizer }})
+        id: run
+        uses: google/clusterfuzzlite/actions/run_fuzzers@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          fuzz-seconds: 300 # 5 minutes
+          mode: ${{ matrix.mode }}
+          sanitizer: ${{ matrix.sanitizer }}

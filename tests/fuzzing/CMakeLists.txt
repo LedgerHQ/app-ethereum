@@ -1,0 +1,184 @@
+cmake_minimum_required(VERSION 3.10)
+
+if(${CMAKE_VERSION} VERSION_LESS 3.10)
+    cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
+endif()
+
+# project information
+project(Fuzzer
+        VERSION 1.0
+	      DESCRIPTION "Eth Fuzzer"
+        LANGUAGES C)
+
+set(CMAKE_C_COMPILER clang)
+
+set(CMAKE_BUILD_TYPE "Debug")
+
+# compatible with ClusterFuzzLite
+if (NOT DEFINED ENV{LIB_FUZZING_ENGINE})
+	set(COMPILATION_FLAGS_ "-g -Wall -fsanitize=fuzzer,address,undefined")
+else()
+	set(COMPILATION_FLAGS_ "$ENV{LIB_FUZZING_ENGINE} $ENV{CXXFLAGS}")
+endif()
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+string(REPLACE " " ";" COMPILATION_FLAGS ${COMPILATION_FLAGS_})
+
+# specify C standard
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED True)
+set(CMAKE_C_FLAGS_DEBUG
+    "${CMAKE_C_FLAGS_DEBUG} -Wall -Wextra -Wno-unused-function -DFUZZ -pedantic -g -O0"
+)
+
+# guard against in-source builds
+if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
+  message(FATAL_ERROR "In-source builds not allowed. Please make a new directory (called a build directory) and run CMake from there. You may need to remove CMakeCache.txt. ")
+endif()
+
+set(TARGET_DEVICE flex)
+if (NOT DEFINED BOLOS_SDK)
+  message(FATAL_ERROR "BOLOS_SDK environment variable not found.")
+endif()
+
+set(DEFINES
+    gcc
+    APPNAME=\"Fuzzing\"
+    API_LEVEL=21
+    TARGET=\"flex\"
+    TARGET_NAME=\"TARGET_FLEX\"
+    APPVERSION=\"1.1.0\"
+    SDK_NAME=\"ledger-secure-sdk\"
+    SDK_VERSION=\"v21.3.3\"
+    SDK_HASH=\"d88d4db3c93665f52b5b1f45099d9d36dfaa06ba\"
+    gcc
+    __IO=volatile
+    NDEBUG
+    HAVE_BAGL_FONT_INTER_REGULAR_28PX
+    HAVE_BAGL_FONT_INTER_SEMIBOLD_28PX
+    HAVE_BAGL_FONT_INTER_MEDIUM_36PX
+    HAVE_INAPP_BLE_PAIRING
+    HAVE_NBGL
+    HAVE_PIEZO_SOUND
+    HAVE_SE_TOUCH
+    HAVE_SE_EINK_DISPLAY
+    NBGL_PAGE
+    NBGL_USE_CASE
+    SCREEN_SIZE_WALLET
+    HAVE_FAST_HOLD_TO_APPROVE
+    HAVE_LEDGER_PKI
+    HAVE_NES_CRYPT
+    HAVE_ST_AES
+    NATIVE_LITTLE_ENDIAN
+    HAVE_CRC
+    HAVE_HASH
+    HAVE_RIPEMD160
+    HAVE_SHA224
+    HAVE_SHA256
+    HAVE_SHA3
+    HAVE_SHA384
+    HAVE_SHA512
+    HAVE_SHA512_WITH_BLOCK_ALT_METHOD
+    HAVE_SHA512_WITH_BLOCK_ALT_METHOD_M0
+    HAVE_BLAKE2
+    HAVE_HMAC
+    HAVE_PBKDF2
+    HAVE_AES
+    HAVE_MATH
+    HAVE_RNG
+    HAVE_RNG_RFC6979
+    HAVE_RNG_SP800_90A
+    HAVE_ECC
+    HAVE_ECC_WEIERSTRASS
+    HAVE_ECC_TWISTED_EDWARDS
+    HAVE_ECC_MONTGOMERY
+    HAVE_SECP256K1_CURVE
+    HAVE_SECP256R1_CURVE
+    HAVE_SECP384R1_CURVE
+    HAVE_SECP521R1_CURVE
+    HAVE_FR256V1_CURVE
+    HAVE_STARK256_CURVE
+    HAVE_BRAINPOOL_P256R1_CURVE
+    HAVE_BRAINPOOL_P256T1_CURVE
+    HAVE_BRAINPOOL_P320R1_CURVE
+    HAVE_BRAINPOOL_P320T1_CURVE
+    HAVE_BRAINPOOL_P384R1_CURVE
+    HAVE_BRAINPOOL_P384T1_CURVE
+    HAVE_BRAINPOOL_P512R1_CURVE
+    HAVE_BRAINPOOL_P512T1_CURVE
+    HAVE_BLS12_381_G1_CURVE
+    HAVE_CV25519_CURVE
+    HAVE_CV448_CURVE
+    HAVE_ED25519_CURVE
+    HAVE_ED448_CURVE
+    HAVE_ECDH
+    HAVE_ECDSA
+    HAVE_EDDSA
+    HAVE_ECSCHNORR
+    HAVE_X25519
+    HAVE_X448
+    HAVE_AES_GCM
+    HAVE_CMAC
+    HAVE_AES_SIV
+    COIN_VARIANT=1
+    HAVE_BOLOS_APP_STACK_CANARY
+    IO_SEPROXYHAL_BUFFER_SIZE_B=300
+    HAVE_BLE
+    BLE_COMMAND_TIMEOUT_MS=2000
+    HAVE_BLE_APDU
+    BLE_SEGMENT_SIZE=32
+    HAVE_DEBUG_THROWS
+    NBGL_QRCODE
+    MAJOR_VERSION=1
+    MINOR_VERSION=1
+    PATCH_VERSION=0
+    IO_HID_EP_LENGTH=64
+    HAVE_SPRINTF
+    HAVE_SNPRINTF_FORMAT_U
+    HAVE_IO_USB
+    HAVE_L4_USBLIB
+    IO_USB_MAX_ENDPOINTS=4
+    HAVE_USB_APDU
+    USB_SEGMENT_SIZE=64
+    HAVE_WEBUSB
+    WEBUSB_URL_SIZE_B=0
+    WEBUSB_URL=
+    OS_IO_SEPROXYHAL
+    STANDARD_APP_SYNC_RAPDU
+    HAVE_GENERIC_TX_PARSER
+    HAVE_TRUSTED_NAME
+    HAVE_DYN_MEM_ALLOC
+    HAVE_SWAP
+    HAVE_ENUM_VALUE
+    HAVE_NFT_SUPPORT
+)
+set(DEFINE ${DEFINES} HAVE_PRINTF PRINTF=printf)
+
+add_compile_definitions(${DEFINES})
+
+FILE(GLOB_RECURSE SDK_STD_SOURCES ${BOLOS_SDK}/lib_standard_app/write.c src/mock.c)
+
+
+include_directories(
+  ${CMAKE_SOURCE_DIR}/../../ethereum-plugin-sdk/src/
+  ${CMAKE_SOURCE_DIR}/../../src
+  ${CMAKE_SOURCE_DIR}/../../src_features/provideDynamicNetwork/
+  ${BOLOS_SDK}/include
+  ${BOLOS_SDK}/lib_standard_app
+  ${BOLOS_SDK}/target/${TARGET_DEVICE}/include
+  ${BOLOS_SDK}/lib_cxng/include
+  ${BOLOS_SDK}/lib_cxng/src
+  ${BOLOS_SDK}/lib_ux_nbgl
+  ${BOLOS_SDK}/lib_nbgl/include
+  ${CMAKE_SOURCE_DIR}/src
+)
+
+FILE(GLOB_RECURSE SOURCES
+  ${CMAKE_SOURCE_DIR}/../../src_features/provideDynamicNetwork/*.c
+  ${CMAKE_SOURCE_DIR}/../../src/hash_bytes.c
+)
+
+add_executable(fuzz_app_eth src/fuzz_app_eth.c ${SDK_STD_SOURCES} ${SOURCES})
+target_compile_options(fuzz_app_eth PUBLIC ${COMPILATION_FLAGS})
+target_link_options(fuzz_app_eth PUBLIC ${COMPILATION_FLAGS})

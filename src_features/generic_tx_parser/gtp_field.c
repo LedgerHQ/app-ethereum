@@ -32,6 +32,9 @@ typedef union {
 #ifdef HAVE_ENUM_VALUE
     s_param_enum_context enum_ctx;
 #endif
+#ifdef HAVE_TRUSTED_NAME
+    s_param_trusted_name_context trusted_name_ctx;
+#endif
 } u_param_context;
 
 static bool handle_version(const s_tlv_data *data, s_field_ctx *context) {
@@ -73,6 +76,9 @@ static bool handle_param_type(const s_tlv_data *data, s_field_ctx *context) {
         case PARAM_TYPE_UNIT:
 #ifdef HAVE_ENUM_VALUE
         case PARAM_TYPE_ENUM:
+#endif
+#ifdef HAVE_TRUSTED_NAME
+        case PARAM_TYPE_TRUSTED_NAME:
 #endif
             break;
         default:
@@ -130,6 +136,12 @@ static bool handle_param(const s_tlv_data *data, s_field_ctx *context) {
         case PARAM_TYPE_ENUM:
             handler = (f_tlv_data_handler) &handle_param_enum_struct;
             param_ctx.enum_ctx.param = &context->field->param_enum;
+            break;
+#endif
+#ifdef HAVE_TRUSTED_NAME
+        case PARAM_TYPE_TRUSTED_NAME:
+            handler = (f_tlv_data_handler) &handle_param_trusted_name_struct;
+            param_ctx.trusted_name_ctx.param = &context->field->param_trusted_name;
             break;
 #endif
         default:
@@ -219,6 +231,11 @@ bool format_field(const s_field *field) {
 #ifdef HAVE_ENUM_VALUE
         case PARAM_TYPE_ENUM:
             ret = format_param_enum(&field->param_enum, field->name);
+            break;
+#endif
+#ifdef HAVE_TRUSTED_NAME
+        case PARAM_TYPE_TRUSTED_NAME:
+            ret = format_param_trusted_name(&field->param_trusted_name, field->name);
             break;
 #endif
         default:

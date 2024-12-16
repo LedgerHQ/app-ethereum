@@ -23,6 +23,9 @@ typedef union {
     s_param_raw_context raw_ctx;
     s_param_amount_context amount_ctx;
     s_param_token_amount_context token_amount_ctx;
+#ifdef HAVE_NFT_SUPPORT
+    s_param_nft_context nft_ctx;
+#endif
 } u_param_context;
 
 static bool handle_version(const s_tlv_data *data, s_field_ctx *context) {
@@ -56,6 +59,9 @@ static bool handle_param_type(const s_tlv_data *data, s_field_ctx *context) {
         case PARAM_TYPE_RAW:
         case PARAM_TYPE_AMOUNT:
         case PARAM_TYPE_TOKEN_AMOUNT:
+#ifdef HAVE_NFT_SUPPORT
+        case PARAM_TYPE_NFT:
+#endif
             break;
         default:
             PRINTF("Error: Unsupported param type (%u)\n", context->field->param_type);
@@ -90,6 +96,12 @@ static bool handle_param(const s_tlv_data *data, s_field_ctx *context) {
             handler = (f_tlv_data_handler) &handle_param_token_amount_struct;
             param_ctx.token_amount_ctx.param = &context->field->param_token_amount;
             break;
+#ifdef HAVE_NFT_SUPPORT
+        case PARAM_TYPE_NFT:
+            handler = (f_tlv_data_handler) &handle_param_nft_struct;
+            param_ctx.nft_ctx.param = &context->field->param_nft;
+            break;
+#endif
         default:
             return false;
     }
@@ -160,6 +172,11 @@ bool format_field(const s_field *field) {
         case PARAM_TYPE_TOKEN_AMOUNT:
             ret = format_param_token_amount(&field->param_token_amount, field->name);
             break;
+#ifdef HAVE_NFT_SUPPORT
+        case PARAM_TYPE_NFT:
+            ret = format_param_nft(&field->param_nft, field->name);
+            break;
+#endif
         default:
             ret = false;
     }

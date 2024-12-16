@@ -6,10 +6,12 @@
 #include "tlv.h"
 #include "gtp_param_raw.h"
 #include "gtp_param_amount.h"
+#include "gtp_param_token_amount.h"
 
 typedef enum {
     PARAM_TYPE_RAW = 0,
     PARAM_TYPE_AMOUNT,
+    PARAM_TYPE_TOKEN_AMOUNT,
 } e_param_type;
 
 typedef struct {
@@ -19,6 +21,7 @@ typedef struct {
     union {
         s_param_raw param_raw;
         s_param_amount param_amount;
+        s_param_token_amount param_token_amount;
     };
 } s_field;
 

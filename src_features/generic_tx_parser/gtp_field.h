@@ -8,12 +8,14 @@
 #include "gtp_param_amount.h"
 #include "gtp_param_token_amount.h"
 #include "gtp_param_nft.h"
+#include "gtp_param_datetime.h"
 
 typedef enum {
     PARAM_TYPE_RAW = 0,
     PARAM_TYPE_AMOUNT,
     PARAM_TYPE_TOKEN_AMOUNT,
     PARAM_TYPE_NFT,
+    PARAM_TYPE_DATETIME,
 } e_param_type;
 
 typedef struct {
@@ -27,6 +29,7 @@ typedef struct {
 #ifdef HAVE_NFT_SUPPORT
         s_param_nft param_nft;
 #endif
+        s_param_datetime param_datetime;
     };
 } s_field;
 

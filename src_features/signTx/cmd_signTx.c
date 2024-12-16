@@ -2,12 +2,18 @@
 #include "apdu_constants.h"
 #include "feature_signTx.h"
 #include "eth_plugin_interface.h"
+#include "apdu_constants.h"
 
 typedef enum {
     SIGN_MODE_BASIC = 0,
+    SIGN_MODE_STORE = 1,
+    SIGN_MODE_START_FLOW = 2,
 } e_sign_mode;
 
-static uint16_t handle_first_sign_chunk(const uint8_t *payload, uint8_t length, uint8_t *offset) {
+static uint16_t handle_first_sign_chunk(const uint8_t *payload,
+                                        uint8_t length,
+                                        uint8_t *offset,
+                                        e_sign_mode mode) {
     uint8_t length_tmp = length;
     uint8_t tx_type;
 
@@ -24,7 +30,8 @@ static uint16_t handle_first_sign_chunk(const uint8_t *payload, uint8_t length, 
     tmpContent.txContent.dataPresent = false;
     dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_UNAVAILABLE;
 
-    if (init_tx(&txContext, &global_sha3, &tmpContent.txContent) == false) {
+    if (init_tx(&txContext, &global_sha3, &tmpContent.txContent, mode == SIGN_MODE_STORE) ==
+        false) {
         return APDU_RESPONSE_INVALID_DATA;
     }
     if (*offset >= length) {
@@ -66,9 +73,12 @@ uint16_t handleSign(uint8_t p1,
 
     switch (p2) {
         case SIGN_MODE_BASIC:
+#ifdef HAVE_GENERIC_TX_PARSER
+        case SIGN_MODE_STORE:
+#endif
             switch (p1) {
                 case P1_FIRST:
-                    if ((sw = handle_first_sign_chunk(payload, length, &offset)) !=
+                    if ((sw = handle_first_sign_chunk(payload, length, &offset, p2)) !=
                         APDU_NO_RESPONSE) {
                         return sw;
                     }
@@ -83,6 +93,19 @@ uint16_t handleSign(uint8_t p1,
                     return APDU_RESPONSE_INVALID_P1_P2;
             }
             break;
+#ifdef HAVE_GENERIC_TX_PARSER
+        case SIGN_MODE_START_FLOW:
+            if (appState != APP_STATE_SIGNING_TX) {
+                PRINTF("Signature not initialized\n");
+                return APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+            }
+            if (length != 0) {
+                return APDU_RESPONSE_INVALID_DATA;
+            }
+            // TODO: check hash
+            *flags |= IO_ASYNCH_REPLY;
+            return APDU_NO_RESPONSE;
+#endif
         default:
             return APDU_RESPONSE_INVALID_P1_P2;
     }

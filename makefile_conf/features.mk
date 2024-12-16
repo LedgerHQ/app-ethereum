@@ -36,6 +36,10 @@ ifneq ($(TARGET_NAME),TARGET_NANOS)
     DEFINES	+= HAVE_EIP712_FULL_SUPPORT
 endif
 
+ifneq ($(TARGET_NAME),TARGET_NANOS)
+    DEFINES	+= HAVE_GENERIC_TX_PARSER
+endif
+
 # CryptoAssetsList key
 CAL_TEST_KEY ?= 0
 ifneq ($(CAL_TEST_KEY),0)

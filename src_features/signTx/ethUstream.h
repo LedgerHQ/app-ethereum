@@ -118,9 +118,14 @@ typedef struct txContext_t {
     uint32_t commandLength;
     txContent_t *content;
     uint8_t txType;
+    bool rlp_size_known;
+    uint32_t remaining_rlp_size;
+#ifdef HAVE_GENERIC_TX_PARSER
+    bool store_calldata;
+#endif
 } txContext_t;
 
-bool init_tx(txContext_t *context, cx_sha3_t *sha3, txContent_t *content);
+bool init_tx(txContext_t *context, cx_sha3_t *sha3, txContent_t *content, bool store_calldata);
 parserStatus_e process_tx(txContext_t *context, const uint8_t *buffer, size_t length);
 parserStatus_e continueTx(txContext_t *context);
 bool copyTxData(txContext_t *context, uint8_t *out, uint32_t length);

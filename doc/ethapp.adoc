@@ -113,14 +113,20 @@ The input data is the RLP encoded transaction (as per https://github.com/ethereu
 
 [width="80%"]
 |==============================================================================================================================
-| *CLA* | *INS*  | *P1*               | *P2*       | *Lc*     | *Le*
+| *CLA* | *INS*  | *P1*               | *P2*                        | *Lc*     | *Le*
 |   E0  |   04   |  00 : first transaction data block
 
                     80 : subsequent transaction data block
-                                      |   00 | variable | variable
+                                      |   00 : process & start flow
+
+                                          01 : store only
+
+                                          02 : start flow           | variable | variable
 |==============================================================================================================================
 
 'Input data (first transaction data block)'
+
+If P2 == 0x02, then no data is provided.
 
 [width="80%"]
 |==============================================================================================================================
@@ -142,6 +148,8 @@ The input data is the RLP encoded transaction (as per https://github.com/ethereu
 
 
 'Output data'
+
+If P2 == 0x01, then no data is returned.
 
 [width="80%"]
 |==============================================================================================================================
@@ -1041,6 +1049,117 @@ _Command_
 |==============================================================
 | *CLA* | *INS*  | *P1*               | *P2*       | *LC*
 |   E0  |   22   | 01 : first chunk
+
+                   00 : following chunk
+                                      | 00         | 00
+|==============================================================
+
+_Input data_
+
+##### If P1 == first chunk
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Payload length        | 2
+| TLV payload           | variable
+|==========================================
+
+##### If P1 == following chunk
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| TLV payload           | variable
+|==========================================
+
+_Output data_
+
+None
+
+
+### PROVIDE ENUM VALUE
+
+_Command_
+
+[width="80%"]
+|==============================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *LC*
+|   E0  |   24   | 01 : first chunk
+
+                   00 : following chunk
+                                      | 00         | 00
+|==============================================================
+
+_Input data_
+
+##### If P1 == first chunk
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Payload length        | 2
+| TLV payload           | variable
+|==========================================
+
+##### If P1 == following chunk
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| TLV payload           | variable
+|==========================================
+
+_Output data_
+
+None
+
+
+### TRANSACTION INFO
+
+_Command_
+
+[width="80%"]
+|==============================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *LC*
+|   E0  |   26   | 01 : first chunk
+
+                   00 : following chunk
+                                      | 00         | 00
+|==============================================================
+
+_Input data_
+
+##### If P1 == first chunk
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Payload length        | 2
+| TLV payload           | variable
+|==========================================
+
+##### If P1 == following chunk
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| TLV payload           | variable
+|==========================================
+
+_Output data_
+
+None
+
+
+### TRANSACTION FIELD DESCRIPTION
+
+_Command_
+
+[width="80%"]
+|==============================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *LC*
+|   E0  |   28   | 01 : first chunk
 
                    00 : following chunk
                                       | 00         | 00

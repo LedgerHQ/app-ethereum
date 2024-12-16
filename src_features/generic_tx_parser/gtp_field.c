@@ -27,6 +27,7 @@ typedef union {
     s_param_nft_context nft_ctx;
 #endif
     s_param_datetime_context datetime_ctx;
+    s_param_duration_context duration_ctx;
 } u_param_context;
 
 static bool handle_version(const s_tlv_data *data, s_field_ctx *context) {
@@ -64,6 +65,7 @@ static bool handle_param_type(const s_tlv_data *data, s_field_ctx *context) {
         case PARAM_TYPE_NFT:
 #endif
         case PARAM_TYPE_DATETIME:
+        case PARAM_TYPE_DURATION:
             break;
         default:
             PRINTF("Error: Unsupported param type (%u)\n", context->field->param_type);
@@ -107,6 +109,10 @@ static bool handle_param(const s_tlv_data *data, s_field_ctx *context) {
         case PARAM_TYPE_DATETIME:
             handler = (f_tlv_data_handler) &handle_param_datetime_struct;
             param_ctx.datetime_ctx.param = &context->field->param_datetime;
+            break;
+        case PARAM_TYPE_DURATION:
+            handler = (f_tlv_data_handler) &handle_param_duration_struct;
+            param_ctx.duration_ctx.param = &context->field->param_duration;
             break;
         default:
             return false;
@@ -185,6 +191,9 @@ bool format_field(const s_field *field) {
 #endif
         case PARAM_TYPE_DATETIME:
             ret = format_param_datetime(&field->param_datetime, field->name);
+            break;
+        case PARAM_TYPE_DURATION:
+            ret = format_param_duration(&field->param_duration, field->name);
             break;
         default:
             ret = false;

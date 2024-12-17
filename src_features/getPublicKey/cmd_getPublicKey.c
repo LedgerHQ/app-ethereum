@@ -6,6 +6,26 @@
 #include "os_io_seproxyhal.h"
 #include "crypto_helpers.h"
 
+uint16_t get_public_key(uint8_t *out, uint8_t outLength) {
+    uint8_t raw_pubkey[65];
+    cx_err_t error = CX_INTERNAL_ERROR;
+
+    if (outLength < ADDRESS_LENGTH) {
+        return APDU_RESPONSE_WRONG_DATA_LENGTH;
+    }
+    CX_CHECK(bip32_derive_get_pubkey_256(CX_CURVE_256K1,
+                                         tmpCtx.transactionContext.bip32.path,
+                                         tmpCtx.transactionContext.bip32.length,
+                                         raw_pubkey,
+                                         NULL,
+                                         CX_SHA512));
+
+    getEthAddressFromRawKey(raw_pubkey, out);
+    error = APDU_RESPONSE_OK;
+end:
+    return error;
+}
+
 uint16_t handleGetPublicKey(uint8_t p1,
                             uint8_t p2,
                             const uint8_t *dataBuffer,

@@ -13,6 +13,8 @@
 #include "manage_asset_info.h"
 #include "handle_swap_sign_transaction.h"
 #include "os_math.h"
+#include "feature_getPublicKey.h"
+#include "cmd_getTxSimulation.h"
 
 static bool g_use_standard_ui;
 
@@ -290,26 +292,6 @@ static uint16_t get_network_as_string(char *out, size_t out_size) {
     return APDU_RESPONSE_OK;
 }
 
-static uint16_t get_public_key(uint8_t *out, uint8_t outLength) {
-    uint8_t raw_pubkey[65];
-    cx_err_t error = CX_INTERNAL_ERROR;
-
-    if (outLength < ADDRESS_LENGTH) {
-        return APDU_RESPONSE_WRONG_DATA_LENGTH;
-    }
-    CX_CHECK(bip32_derive_get_pubkey_256(CX_CURVE_256K1,
-                                         tmpCtx.transactionContext.bip32.path,
-                                         tmpCtx.transactionContext.bip32.length,
-                                         raw_pubkey,
-                                         NULL,
-                                         CX_SHA512));
-
-    getEthAddressFromRawKey(raw_pubkey, out);
-    error = APDU_RESPONSE_OK;
-end:
-    return error;
-}
-
 /* Local implementation of strncasecmp, workaround of the segfaulting base implem
  * Remove once strncasecmp is fixed
  */
@@ -330,7 +312,7 @@ __attribute__((noreturn)) void send_swap_error(uint8_t error_code,
                                                const char *str1,
                                                const char *str2) {
     uint32_t tx = 0;
-    uint len = 0;
+    uint32_t len = 0;
     PRINTF("APDU_RESPONSE_MODE_CHECK_FAILED: 0x%x\n", error_code);
     // Set RAPDU error codes
     G_io_apdu_buffer[tx++] = error_code;
@@ -625,7 +607,21 @@ end:
 
 void start_signature_flow(void) {
     if (g_use_standard_ui) {
-        ux_approve_tx(false);
+#ifdef HAVE_WEB3_CHECKS
+        if ((!N_storage.web3checks) ||
+            ((N_storage.web3checks) && TX_SIMULATION.score == SCORE_BENIGN)) {
+            // W3Checks disabled or benign transaction
+#endif
+            ux_approve_tx(false);
+#ifdef HAVE_WEB3_CHECKS
+        } else {
+            // W3Checks enabled
+            checkTxSimulationParams();
+#ifdef HAVE_NBGL
+            ui_display_tx_simulation(false);
+#endif
+        }
+#endif
     } else {
         dataContext.tokenContext.pluginUiState = PLUGIN_UI_OUTSIDE;
         dataContext.tokenContext.pluginUiCurrentItem = 0;

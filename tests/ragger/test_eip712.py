@@ -613,7 +613,7 @@ def test_eip712_advanced_missing_token(firmware: Firmware,
                                        golden_run: bool):
     global snapshots_dirname
 
-    test_name += "-%s-%s" % (len(tokens[0]) == 0, len(tokens[1]) == 0)
+    test_name += f"-{len(tokens[0]) == 0}-{len(tokens[1]) == 0}"
     snapshots_dirname = test_name
 
     app_client = EthAppClient(backend)
@@ -721,9 +721,9 @@ def test_eip712_advanced_trusted_name(firmware: Firmware,
                                       golden_run: bool):
     global snapshots_dirname
 
-    test_name += "_%s_with" % (str(trusted_name[0]).split(".")[-1].lower())
+    test_name += f"_{str(trusted_name[0]).rsplit('.', maxsplit=1)[-1].lower()}_with"
     for t in filt_tn_types:
-        test_name += "_%s" % (str(t).split(".")[-1].lower())
+        test_name += f"_{str(t).rsplit('.', maxsplit=1)[-1].lower()}"
     snapshots_dirname = test_name
 
     app_client = EthAppClient(backend)
@@ -822,7 +822,6 @@ def test_eip712_skip(firmware: Firmware,
                      backend: BackendInterface,
                      navigator: Navigator,
                      default_screenshot_path: Path,
-                     test_name: str,
                      golden_run: bool):
     global unfiltered_flow
     global skip_flow

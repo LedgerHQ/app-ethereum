@@ -5,7 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.14.0](https://github.com/ledgerhq/app-ethereum/compare/1.13.0...1.14.0) - 202x-xx-xx
+## [1.14.0](https://github.com/ledgerhq/app-ethereum/compare/1.13.0...1.14.0) - 2024-12-19
+
+### Added
+
+- (network) Zero
+- Generic clear-signing support
+
+### Changed
+
+- Renamed "Address" field in ERC-20 approval flow to "Approve to"
+- Blind-signing flow now shows transaction hash (keccak-256 of the RLP without v/r/s)
+- Blind-signing flow now hides the amount if it is 0
+
+### Fixed
+
+- Version comparison in trusted name feature
+- Key ID & public key used for trusted names coming from CAL
+- PKI key usage in trusted name feature
 
 ## [1.13.0](https://github.com/ledgerhq/app-ethereum/compare/1.12.2...1.13.0) - 2024-11-26
 

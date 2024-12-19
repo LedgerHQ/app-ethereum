@@ -109,6 +109,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 245022926, .name = "Neon EVM Devnet", .ticker = "NEON"},
     {.chain_id = 245022934, .name = "Neon EVM Mainnet", .ticker = "NEON"},
     {.chain_id = 11297108109, .name = "Palm Network", .ticker = "PALM"},
+	{.chain_id = 153153, .name = "Odyssey Chain", .ticker = "DIONE"},
 };
 
 static const network_info_t *get_network_from_chain_id(const uint64_t *chain_id) {

@@ -36,6 +36,12 @@
 #include "crypto_helpers.h"
 #include "manage_asset_info.h"
 #include "network_dynamic.h"
+#ifdef HAVE_DYN_MEM_ALLOC
+#include "mem.h"
+#endif
+#include "cmd_enum_value.h"
+#include "cmd_tx_info.h"
+#include "cmd_field.h"
 
 tmpCtx_t tmpCtx;
 txContext_t txContext;
@@ -73,6 +79,11 @@ void reset_app_context() {
 #endif
     memset((uint8_t *) &tmpCtx, 0, sizeof(tmpCtx));
     forget_known_assets();
+#ifdef HAVE_GENERIC_TX_PARSER
+    if (txContext.store_calldata) {
+        gcs_cleanup();
+    }
+#endif
     memset((uint8_t *) &txContext, 0, sizeof(txContext));
     memset((uint8_t *) &tmpContent, 0, sizeof(tmpContent));
 }
@@ -232,6 +243,22 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             break;
 #endif  // HAVE_TRUSTED_NAME
 
+#ifdef HAVE_ENUM_VALUE
+        case INS_PROVIDE_ENUM_VALUE:
+            sw = handle_enum_value(cmd->p1, cmd->p2, cmd->lc, cmd->data);
+            break;
+#endif  // HAVE_ENUM_VALUE
+
+#ifdef HAVE_GENERIC_TX_PARSER
+        case INS_GTP_TRANSACTION_INFO:
+            sw = handle_tx_info(cmd->p1, cmd->p2, cmd->lc, cmd->data);
+            break;
+
+        case INS_GTP_FIELD:
+            sw = handle_field(cmd->p1, cmd->p2, cmd->lc, cmd->data);
+            break;
+#endif  // HAVE_GENERIC_TX_PARSER
+
         default:
             sw = APDU_RESPONSE_INVALID_INS;
             break;
@@ -366,6 +393,9 @@ void coin_main(eth_libargs_t *args) {
 
     io_init();
     ui_idle();
+#ifdef HAVE_DYN_MEM_ALLOC
+    mem_init();
+#endif
 
 #ifdef HAVE_TRUSTED_NAME
     // to prevent it from having a fixed value at boot

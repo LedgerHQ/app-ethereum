@@ -25,16 +25,12 @@
 #include "common_utils.h"
 #include "tx_content.h"
 
-struct txContext_t;
-
 typedef enum customStatus_e {
     CUSTOM_NOT_HANDLED,
     CUSTOM_HANDLED,
     CUSTOM_SUSPENDED,
     CUSTOM_FAULT
 } customStatus_e;
-
-typedef customStatus_e (*ustreamProcess_t)(struct txContext_t *context);
 
 // First variant of every Tx enum.
 #define RLP_NONE 0
@@ -120,17 +116,16 @@ typedef struct txContext_t {
     uint32_t rlpBufferPos;
     const uint8_t *workBuffer;
     uint32_t commandLength;
-    ustreamProcess_t customProcessor;
     txContent_t *content;
-    void *extra;
     uint8_t txType;
+    bool rlp_size_known;
+    uint32_t remaining_rlp_size;
+#ifdef HAVE_GENERIC_TX_PARSER
+    bool store_calldata;
+#endif
 } txContext_t;
 
-bool initTx(txContext_t *context,
-            cx_sha3_t *sha3,
-            txContent_t *content,
-            ustreamProcess_t customProcessor,
-            void *extra);
-parserStatus_e processTx(txContext_t *context, const uint8_t *buffer, uint32_t length);
+bool init_tx(txContext_t *context, cx_sha3_t *sha3, txContent_t *content, bool store_calldata);
+parserStatus_e process_tx(txContext_t *context, const uint8_t *buffer, size_t length);
 parserStatus_e continueTx(txContext_t *context);
 bool copyTxData(txContext_t *context, uint8_t *out, uint32_t length);

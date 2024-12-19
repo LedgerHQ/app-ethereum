@@ -21,9 +21,10 @@
 #include "ethUstream.h"
 #include "rlp_utils.h"
 #include "common_utils.h"
-
-#define MAX_INT256  32
-#define MAX_ADDRESS 20
+#include "feature_signTx.h"
+#ifdef HAVE_GENERIC_TX_PARSER
+#include "calldata.h"
+#endif
 
 static bool check_fields(txContext_t *context, const char *name, uint32_t length) {
     UNUSED(name);  // Just for the case where DEBUG is not enabled
@@ -56,17 +57,16 @@ static bool check_cmd_length(txContext_t *context, const char *name, uint32_t le
     return true;
 }
 
-bool initTx(txContext_t *context,
-            cx_sha3_t *sha3,
-            txContent_t *content,
-            ustreamProcess_t customProcessor,
-            void *extra) {
-    memset(context, 0, sizeof(txContext_t));
+bool init_tx(txContext_t *context, cx_sha3_t *sha3, txContent_t *content, bool store_calldata) {
+    explicit_bzero(context, sizeof(*context));
     context->sha3 = sha3;
     context->content = content;
-    context->customProcessor = customProcessor;
-    context->extra = extra;
     context->currentField = RLP_NONE + 1;
+#ifdef HAVE_GENERIC_TX_PARSER
+    context->store_calldata = store_calldata;
+#else
+    UNUSED(store_calldata);
+#endif
     if (cx_keccak_init_no_throw(context->sha3, 256) != CX_OK) {
         return false;
     }
@@ -150,7 +150,7 @@ static bool processAccessList(txContext_t *context) {
 }
 
 static bool processChainID(txContext_t *context) {
-    if (check_fields(context, "RLP_CHAINID", MAX_INT256) == false) {
+    if (check_fields(context, "RLP_CHAINID", INT256_LENGTH) == false) {
         return false;
     }
 
@@ -170,7 +170,7 @@ static bool processChainID(txContext_t *context) {
 }
 
 static bool processNonce(txContext_t *context) {
-    if (check_fields(context, "RLP_NONCE", MAX_INT256) == false) {
+    if (check_fields(context, "RLP_NONCE", INT256_LENGTH) == false) {
         return false;
     }
 
@@ -190,7 +190,7 @@ static bool processNonce(txContext_t *context) {
 }
 
 static bool processStartGas(txContext_t *context) {
-    if (check_fields(context, "RLP_STARTGAS", MAX_INT256) == false) {
+    if (check_fields(context, "RLP_STARTGAS", INT256_LENGTH) == false) {
         return false;
     }
 
@@ -217,7 +217,7 @@ static bool processGasLimit(txContext_t *context) {
 }
 
 static bool processGasprice(txContext_t *context) {
-    if (check_fields(context, "RLP_GASPRICE", MAX_INT256) == false) {
+    if (check_fields(context, "RLP_GASPRICE", INT256_LENGTH) == false) {
         return false;
     }
 
@@ -239,7 +239,7 @@ static bool processGasprice(txContext_t *context) {
 }
 
 static bool processValue(txContext_t *context) {
-    if (check_fields(context, "RLP_VALUE", MAX_INT256) == false) {
+    if (check_fields(context, "RLP_VALUE", INT256_LENGTH) == false) {
         return false;
     }
 
@@ -261,7 +261,7 @@ static bool processValue(txContext_t *context) {
 }
 
 static bool processTo(txContext_t *context) {
-    if (check_fields(context, "RLP_TO", MAX_ADDRESS) == false) {
+    if (check_fields(context, "RLP_TO", ADDRESS_LENGTH) == false) {
         return false;
     }
 
@@ -295,6 +295,16 @@ static bool processData(txContext_t *context) {
         if (copySize == 1 && *context->workBuffer == 0x00) {
             context->content->dataPresent = false;
         }
+#ifdef HAVE_GENERIC_TX_PARSER
+        if (context->store_calldata) {
+            if (context->currentFieldPos == 0) {
+                if (!calldata_init(context->currentFieldLength)) {
+                    return false;
+                }
+            }
+            calldata_append(context->workBuffer, copySize);
+        }
+#endif
         if (copyTxData(context, NULL, copySize) == false) {
             return false;
         }
@@ -540,22 +550,20 @@ static parserStatus_e processTxInternal(txContext_t *context) {
                 return status;
             }
         }
-        if (context->customProcessor != NULL) {
-            customStatus = context->customProcessor(context);
-            PRINTF("After customprocessor\n");
-            switch (customStatus) {
-                case CUSTOM_NOT_HANDLED:
-                case CUSTOM_HANDLED:
-                    break;
-                case CUSTOM_SUSPENDED:
-                    return USTREAM_SUSPENDED;
-                case CUSTOM_FAULT:
-                    PRINTF("Custom processor aborted\n");
-                    return USTREAM_FAULT;
-                default:
-                    PRINTF("Unhandled custom processor status\n");
-                    return USTREAM_FAULT;
-            }
+        customStatus = customProcessor(context);
+        PRINTF("After customprocessor\n");
+        switch (customStatus) {
+            case CUSTOM_NOT_HANDLED:
+            case CUSTOM_HANDLED:
+                break;
+            case CUSTOM_SUSPENDED:
+                return USTREAM_SUSPENDED;
+            case CUSTOM_FAULT:
+                PRINTF("Custom processor aborted\n");
+                return USTREAM_FAULT;
+            default:
+                PRINTF("Unhandled custom processor status\n");
+                return USTREAM_FAULT;
         }
         if (customStatus == CUSTOM_NOT_HANDLED) {
             PRINTF("Current field: %d\n", context->currentField);
@@ -584,8 +592,8 @@ static parserStatus_e processTxInternal(txContext_t *context) {
     PRINTF("end of here\n");
 }
 
-parserStatus_e processTx(txContext_t *context, const uint8_t *buffer, uint32_t length) {
-    context->workBuffer = buffer;
+parserStatus_e process_tx(txContext_t *context, const uint8_t *payload, size_t length) {
+    context->workBuffer = payload;
     context->commandLength = length;
     return processTxInternal(context);
 }

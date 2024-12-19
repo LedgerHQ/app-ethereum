@@ -77,6 +77,12 @@ class PKIPubKeyUsage(IntEnum):
     PUBKEY_USAGE_SEED_ID_AUTH = 0x09
 
 
+class SignMode(IntEnum):
+    BASIC = 0x00
+    STORE = 0x01
+    START_FLOW = 0x02
+
+
 class PKIClient:
     _CLA: int = 0xB0
     _INS: int = 0x06
@@ -129,6 +135,15 @@ class EthAppClient:
         header.append(p2)
         header.append(len(payload))
         return self._exchange(header + payload)
+
+    def send_raw_async(self, cla: int, ins: int, p1: int, p2: int, payload: bytes):
+        header = bytearray()
+        header.append(cla)
+        header.append(ins)
+        header.append(p1)
+        header.append(p2)
+        header.append(len(payload))
+        return self._exchange_async(header + payload)
 
     def eip712_send_struct_def_struct_name(self, name: str):
         return self._exchange_async(self._cmd_builder.eip712_send_struct_def_struct_name(name))
@@ -211,7 +226,8 @@ class EthAppClient:
 
     def sign(self,
              bip32_path: str,
-             tx_params: dict):
+             tx_params: dict,
+             mode: SignMode = SignMode.BASIC):
         tx = Web3().eth.account.create().sign_transaction(tx_params).rawTransaction
         prefix = bytes()
         suffix = []
@@ -223,7 +239,7 @@ class EthAppClient:
                 suffix = [int(tx_params["chainId"]), bytes(), bytes()]
         decoded = rlp.decode(tx)[:-3]  # remove already computed signature
         tx = prefix + rlp.encode(decoded + suffix)
-        chunks = self._cmd_builder.sign(bip32_path, tx, suffix)
+        chunks = self._cmd_builder.sign(bip32_path, tx, mode)
         for chunk in chunks[:-1]:
             self._exchange(chunk)
         return self._exchange_async(chunks[-1])
@@ -530,3 +546,15 @@ class EthAppClient:
             assert response.status == StatusWord.OK
         response = self._exchange(chunks[-1])
         assert response.status == StatusWord.OK
+
+    def provide_enum_value(self, payload: bytes) -> RAPDU:
+        chunks = self._cmd_builder.provide_enum_value(payload)
+        for chunk in chunks[:-1]:
+            self._exchange(chunk)
+        return self._exchange(chunks[-1])
+
+    def provide_transaction_info(self, payload: bytes) -> RAPDU:
+        chunks = self._cmd_builder.provide_transaction_info(payload)
+        for chunk in chunks[:-1]:
+            self._exchange(chunk)
+        return self._exchange(chunks[-1])

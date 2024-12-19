@@ -13,6 +13,7 @@
 #include "manage_asset_info.h"
 #include "handle_swap_sign_transaction.h"
 #include "os_math.h"
+#include "calldata.h"
 
 static bool g_use_standard_ui;
 
@@ -60,12 +61,18 @@ customStatus_e customProcessor(txContext_t *context) {
             // If contract debugging mode is activated, do not go through the plugin activation
             // as they wouldn't be displayed if the plugin consumes all data but fallbacks
             // Still go through plugin activation in Swap context
-            if (!N_storage.contractDetails || G_called_from_swap) {
-                eth_plugin_prepare_init(&pluginInit,
-                                        context->workBuffer,
-                                        context->currentFieldLength);
-                dataContext.tokenContext.pluginStatus =
-                    eth_plugin_perform_init(tmpContent.txContent.destination, &pluginInit);
+#ifdef HAVE_GENERIC_TX_PARSER
+            if (!context->store_calldata) {
+#else
+            {
+#endif
+                if (!N_storage.contractDetails || G_called_from_swap) {
+                    eth_plugin_prepare_init(&pluginInit,
+                                            context->workBuffer,
+                                            context->currentFieldLength);
+                    dataContext.tokenContext.pluginStatus =
+                        eth_plugin_perform_init(tmpContent.txContent.destination, &pluginInit);
+                }
             }
             PRINTF("pluginstatus %d\n", dataContext.tokenContext.pluginStatus);
             eth_plugin_result_t status = dataContext.tokenContext.pluginStatus;
@@ -87,10 +94,16 @@ customStatus_e customProcessor(txContext_t *context) {
         uint32_t copySize;
         uint32_t fieldPos = context->currentFieldPos;
         if (fieldPos == 0) {  // not reached if a plugin is available
-            if (!N_storage.dataAllowed) {
-                PRINTF("Data field forbidden\n");
-                ui_error_blind_signing();
-                return CUSTOM_FAULT;
+#ifdef HAVE_GENERIC_TX_PARSER
+            if (!context->store_calldata) {
+#else
+            {
+#endif
+                if (!N_storage.dataAllowed) {
+                    PRINTF("Data field forbidden\n");
+                    ui_error_blind_signing();
+                    return CUSTOM_FAULT;
+                }
             }
             if (!N_storage.contractDetails) {
                 return CUSTOM_NOT_HANDLED;
@@ -247,10 +260,10 @@ static void raw_fee_to_string(uint256_t *rawFee, char *displayBuffer, uint32_t d
 
 // Compute the fees, transform it to a string, prepend a ticker to it and copy everything to
 // `displayBuffer` output
-static bool max_transaction_fee_to_string(const txInt256_t *BEGasPrice,
-                                          const txInt256_t *BEGasLimit,
-                                          char *displayBuffer,
-                                          uint32_t displayBufferSize) {
+bool max_transaction_fee_to_string(const txInt256_t *BEGasPrice,
+                                   const txInt256_t *BEGasLimit,
+                                   char *displayBuffer,
+                                   uint32_t displayBufferSize) {
     // Use temporary variables to convert values to uint256_t
     uint256_t gasPrice = {0};
     uint256_t gasLimit = {0};
@@ -274,7 +287,7 @@ static void nonce_to_string(const txInt256_t *nonce, char *out, size_t out_size)
     tostring256(&nonce_uint256, 10, out, out_size);
 }
 
-static uint16_t get_network_as_string(char *out, size_t out_size) {
+uint16_t get_network_as_string(char *out, size_t out_size) {
     uint64_t chain_id = get_tx_chain_id();
     const char *name = get_network_name_from_chain_id(&chain_id);
 
@@ -290,7 +303,7 @@ static uint16_t get_network_as_string(char *out, size_t out_size) {
     return APDU_RESPONSE_OK;
 }
 
-static uint16_t get_public_key(uint8_t *out, uint8_t outLength) {
+uint16_t get_public_key(uint8_t *out, uint8_t outLength) {
     uint8_t raw_pubkey[65];
     cx_err_t error = CX_INTERNAL_ERROR;
 
@@ -375,7 +388,7 @@ __attribute__((noreturn)) void send_swap_error(uint8_t error_code,
     finalize_exchange_sign_transaction(false);
 }
 
-__attribute__((noinline)) static uint16_t finalize_parsing_helper(void) {
+__attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContext_t *context) {
     char displayBuffer[50];
     uint8_t decimals = WEI_TO_ETHER;
     uint64_t chain_id = get_tx_chain_id();
@@ -522,11 +535,18 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(void) {
         }
     }
 
-    if (tmpContent.txContent.dataPresent && !N_storage.dataAllowed) {
-        PRINTF("Data is present but not allowed\n");
-        report_finalize_error();
-        ui_error_blind_signing();
-        return false;
+#ifdef HAVE_GENERIC_TX_PARSER
+    if (!context->store_calldata) {
+#else
+    (void) context;
+    {
+#endif
+        if (tmpContent.txContent.dataPresent && !N_storage.dataAllowed) {
+            PRINTF("Data is present but not allowed\n");
+            report_finalize_error();
+            ui_error_blind_signing();
+            return false;
+        }
     }
 
     // Prepare destination address and amount to display
@@ -633,28 +653,40 @@ void start_signature_flow(void) {
     }
 }
 
-uint16_t finalizeParsing(void) {
+uint16_t finalize_parsing(const txContext_t *context) {
     uint16_t sw = APDU_RESPONSE_UNKNOWN;
     g_use_standard_ui = true;
 
-    sw = finalize_parsing_helper();
+    sw = finalize_parsing_helper(context);
     if (sw != APDU_RESPONSE_OK) {
         return sw;
     }
-    // If called from swap, the user has already validated a standard transaction
-    // And we have already checked the fields of this transaction above
-    if (G_called_from_swap && g_use_standard_ui) {
-        ui_idle();
-        io_seproxyhal_touch_tx_ok();
+#ifdef HAVE_GENERIC_TX_PARSER
+    if (context->store_calldata) {
+        if (calldata_get_selector() == NULL) {
+            PRINTF("Asked to store calldata but none was provided!\n");
+            return APDU_RESPONSE_INVALID_DATA;
+        }
     } else {
-#ifdef HAVE_BAGL
-        // If blind-signing detected, start the warning flow beforehand
-        if (tmpContent.txContent.dataPresent) {
-            ui_warning_blind_signing();
-        } else
+#else
+    (void) context;
+    {
 #endif
-        {
-            start_signature_flow();
+        // If called from swap, the user has already validated a standard transaction
+        // And we have already checked the fields of this transaction above
+        if (G_called_from_swap && g_use_standard_ui) {
+            ui_idle();
+            io_seproxyhal_touch_tx_ok();
+        } else {
+#ifdef HAVE_BAGL
+            // If blind-signing detected, start the warning flow beforehand
+            if (tmpContent.txContent.dataPresent) {
+                ui_warning_blind_signing();
+            } else
+#endif
+            {
+                start_signature_flow();
+            }
         }
     }
     return APDU_RESPONSE_OK;

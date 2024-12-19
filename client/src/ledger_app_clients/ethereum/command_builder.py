@@ -15,6 +15,7 @@ class InsType(IntEnum):
     SIGN = 0x04
     PERSONAL_SIGN = 0x08
     PROVIDE_ERC20_TOKEN_INFORMATION = 0x0a
+    EXTERNAL_PLUGIN_SETUP = 0x12
     PROVIDE_NFT_INFORMATION = 0x14
     SET_PLUGIN = 0x16
     PERFORM_PRIVACY_OPERATION = 0x18
@@ -24,7 +25,8 @@ class InsType(IntEnum):
     EIP712_SIGN = 0x0c
     GET_CHALLENGE = 0x20
     PROVIDE_TRUSTED_NAME = 0x22
-    EXTERNAL_PLUGIN_SETUP = 0x12
+    PROVIDE_ENUM_VALUE = 0x24
+    PROVIDE_TRANSACTION_INFO = 0x26
     PROVIDE_NETWORK_INFORMATION = 0x30
 
 
@@ -261,7 +263,7 @@ class CommandBuilder:
                                0x00,
                                data)
 
-    def sign(self, bip32_path: str, rlp_data: bytes, vrs: list) -> list[bytes]:
+    def sign(self, bip32_path: str, rlp_data: bytes, p2: int) -> list[bytes]:
         apdus = list()
         payload = pack_derivation_path(bip32_path)
         payload += rlp_data
@@ -269,7 +271,7 @@ class CommandBuilder:
         while len(payload) > 0:
             apdus.append(self._serialize(InsType.SIGN,
                                          p1,
-                                         0x00,
+                                         p2,
                                          payload[:0xff]))
             payload = payload[0xff:]
             p1 = P1Type.SIGN_SUBSQT_CHUNK
@@ -427,3 +429,23 @@ class CommandBuilder:
                 icon = icon[0xff:]
                 p1 = P1Type.FOLLOWING_CHUNK
         return chunks
+
+    def common_tlv_serialize(self, tlv_payload: bytes, ins: InsType) -> list[bytes]:
+        chunks = list()
+        payload = struct.pack(">H", len(tlv_payload))
+        payload += tlv_payload
+        p1 = 1
+        while len(payload) > 0:
+            chunks.append(self._serialize(ins,
+                                          p1,
+                                          0x00,
+                                          payload[:0xff]))
+            payload = payload[0xff:]
+            p1 = 0
+        return chunks
+
+    def provide_enum_value(self, tlv_payload: bytes) -> list[bytes]:
+        return self.common_tlv_serialize(tlv_payload, InsType.PROVIDE_ENUM_VALUE)
+
+    def provide_transaction_info(self, tlv_payload: bytes) -> list[bytes]:
+        return self.common_tlv_serialize(tlv_payload, InsType.PROVIDE_TRANSACTION_INFO)

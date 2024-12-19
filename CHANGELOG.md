@@ -5,9 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.15.0](https://github.com/ledgerhq/app-ethereum/compare/1.14.0...1.15.0) - 2025-xx-xx
+## [1.15.0](../../compare/1.14.0...1.15.0) - 2025-xx-xx
 
-## [1.14.0](https://github.com/ledgerhq/app-ethereum/compare/1.13.0...1.14.0) - 2024-12-19
+## [1.14.0](../../compare/1.13.0...1.14.0) - 2024-12-19
 
 ### Added
 
@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Key ID & public key used for trusted names coming from CAL
 - PKI key usage in trusted name feature
 
-## [1.13.0](https://github.com/ledgerhq/app-ethereum/compare/1.12.2...1.13.0) - 2024-11-26
+## [1.13.0](../../compare/1.12.2...1.13.0) - 2024-11-26
 
 ### Added
 
@@ -51,20 +51,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Potential overflow on the UI buffer used for amounts
 - RLP parsing issue with legacy transactions
 
-## [1.12.2](https://github.com/ledgerhq/app-ethereum/compare/1.12.1...1.12.2) - 2024-10-24
+## [1.12.2](../../compare/1.12.1...1.12.2) - 2024-10-24
 
 ### Fixed
 
 - Token swap with calldata
 
-## [1.12.1](https://github.com/ledgerhq/app-ethereum/compare/1.12.0...1.12.1) - 2024-10-02
+## [1.12.1](../../compare/1.12.0...1.12.1) - 2024-10-02
 
 ### Fixed
 
 - Review of EIP-191 messages getting stuck and not responding to APDUs
 - (clone) Ethereum Classic, gave it back the Ethereum derivation path
 
-## [1.12.0](https://github.com/ledgerhq/app-ethereum/compare/1.11.3...1.12.0) - 2024-09-27
+## [1.12.0](../../compare/1.11.3...1.12.0) - 2024-09-27
 
 ### Added
 
@@ -116,13 +116,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Added blind-signing friction to EIP-712 v0 & unfiltered flows
 - EIP-712 unfiltered flow now defaults to raw/verbose mode on Stax & Flex, but adds a skip button
 
-## [1.11.3](https://github.com/ledgerhq/app-ethereum/compare/1.11.2...1.11.3) - 2024-09-04
+## [1.11.3](../../compare/1.11.2...1.11.3) - 2024-09-04
 
 ### Changed
 
 - Replaced MATIC by POL ticker for Polygon network
 
-## [1.11.2](https://github.com/ledgerhq/app-ethereum/compare/1.11.1...1.11.2) - 2024-08-13
+## [1.11.2](../../compare/1.11.1...1.11.2) - 2024-08-13
 
 ### Added
 
@@ -133,14 +133,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Simplified blind-signing warnings on Flex & Stax
 - Restored blind-signing warning screen from < 1.11.0 on Nano devices
 
-## [1.11.1](https://github.com/ledgerhq/app-ethereum/compare/1.11.0...1.11.1) - 2024-07-26
+## [1.11.1](../../compare/1.11.0...1.11.1) - 2024-07-26
 
 ### Fixed
 
 - (network/clone) Wanchain
 - Refusal of EIP-712 messages after another transaction or message
 
-## [1.11.0](https://github.com/ledgerhq/app-ethereum/compare/1.10.4...1.11.0) - 2024-07-24
+## [1.11.0](../../compare/1.10.4...1.11.0) - 2024-07-24
 
 ### Added
 
@@ -186,7 +186,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Handling of EIP-712 empty arrays within nested structs
 
-## [1.10.4](https://github.com/ledgerhq/app-ethereum/compare/1.10.3...1.10.4) - 2024-03-08
+## [1.10.4](../../compare/1.10.3...1.10.4) - 2024-03-08
 
 ### Added
 
@@ -219,7 +219,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - (network) Wanchain chain ID
 - (network) Sepolia chain ID
 
-## [1.10.3](https://github.com/ledgerhq/app-ethereum/compare/1.10.2...1.10.3) - 2023-07-27
+## [1.10.3](../../compare/1.10.2...1.10.3) - 2023-07-27
 
 ### Added
 
@@ -246,7 +246,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Miscellaneous swap issues
 - Improper EIP-712 array handling
 
-## [1.10.2](https://github.com/ledgerhq/app-ethereum/compare/1.10.1...1.10.2) - 2023-04-24
+## [1.10.2](../../compare/1.10.1...1.10.2) - 2023-04-24
 
 ### Added
 
@@ -279,19 +279,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Error handling on EIP-191 APDUs
 - Swap transactions handling
 
-## [1.10.1](https://github.com/ledgerhq/app-ethereum/compare/1.10.0...1.10.1) - 2022-11-09
+## [1.10.1](../../compare/1.10.0...1.10.1) - 2022-11-09
 
 ### Fixed
 
 - App/device crash with fast button clicks on slow APDU transport on the new EIP-712 signature UI
 
-## [1.10.0](https://github.com/ledgerhq/app-ethereum/compare/1.9.20...1.10.0) - 2022-10-26
+## [1.10.0](../../compare/1.9.20...1.10.0) - 2022-10-26
 
 ### Changed
 
 - EIP-712 signatures are now computed on-device and display their content (clear-signing) (LNX & LNS+)
 
-## [1.9.20](https://github.com/ledgerhq/app-ethereum/compare/1.9.19...1.9.20) - 2022-10-10
+## [1.9.20](../../compare/1.9.19...1.9.20) - 2022-10-10
 
 ### Added
 
@@ -314,7 +314,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Compound support (will become its own plugin)
 
-## [1.9.19](https://github.com/ledgerhq/app-ethereum/compare/1.9.18...1.9.19) - 2022-06-15
+## [1.9.19](../../compare/1.9.18...1.9.19) - 2022-06-15
 
 ### Added
 
@@ -332,7 +332,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Bug with huge swap amounts
 
-## [1.9.18](https://github.com/ledgerhq/app-ethereum/compare/1.9.17...1.9.18) - 2022-04-25
+## [1.9.18](../../compare/1.9.17...1.9.18) - 2022-04-25
 
 ### Added
 
@@ -354,19 +354,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - App crashing when trying to approve an NFT transaction without having received the NFT information beforehand
 - App refusing to approve an NFT transaction with a long collection name
 
-## [1.9.17](https://github.com/ledgerhq/app-ethereum/compare/1.9.16...1.9.17) - 2022-01-14
+## [1.9.17](../../compare/1.9.16...1.9.17) - 2022-01-14
 
 ### Added
 
 - Support for Non-Fungible Tokens (ERC-721 & ERC-1155)
 
-## [1.9.16](https://github.com/ledgerhq/app-ethereum/compare/1.9.14...1.9.16) - 2022-01-13
+## [1.9.16](../../compare/1.9.14...1.9.16) - 2022-01-13
 
 ### Added
 
 - Shyft variant
 
-## [1.9.14](https://github.com/ledgerhq/app-ethereum/compare/1.9.13...1.9.14) - 2021-11-30
+## [1.9.14](../../compare/1.9.13...1.9.14) - 2021-11-30
 
 ### Added
 
@@ -376,38 +376,38 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Fixed stark order signature on LNS
 
-## [1.9.13](https://github.com/ledgerhq/app-ethereum/compare/1.9.12...1.9.13) - 2021-11-17
+## [1.9.13](../../compare/1.9.12...1.9.13) - 2021-11-17
 
 ### Changed
 
 - Small improvement in app size
 
-## [1.9.12](https://github.com/ledgerhq/app-ethereum/compare/1.9.11...1.9.12) - 2021-11-12
+## [1.9.12](../../compare/1.9.11...1.9.12) - 2021-11-12
 
 ### Fixed
 
 - Fixed stark order signature on LNX
 
-## [1.9.11](https://github.com/ledgerhq/app-ethereum/compare/1.9.10...1.9.11) - 2021-10-12
+## [1.9.11](../../compare/1.9.10...1.9.11) - 2021-10-12
 
 ### Added
 
 - Provide network ticker to plugins (especially helpful for Paraswap plugin)
 - Polygon variant
 
-## [1.9.10](https://github.com/ledgerhq/app-ethereum/compare/1.9.9...1.9.10) - 2021-10-08
+## [1.9.10](../../compare/1.9.9...1.9.10) - 2021-10-08
 
 ### Added
 
 - Add new app: Moonriver
 
-## [1.9.9](https://github.com/ledgerhq/app-ethereum/compare/1.9.8...1.9.9) - 2021-10-08
+## [1.9.9](../../compare/1.9.8...1.9.9) - 2021-10-08
 
 ### Changed
 
 - Rollback the revert in wording change of "Contract data" in "Blind signing" that was introduced in v1.9.8
 
-## [1.9.8](https://github.com/ledgerhq/app-ethereum/compare/1.9.7...1.9.8) - 2021-10-06
+## [1.9.8](../../compare/1.9.7...1.9.8) - 2021-10-06
 
 ### Changed
 
@@ -417,19 +417,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Goerli now has its own standalone app, with hardcoded deversifi tokens
 
-## [1.9.7](https://github.com/ledgerhq/app-ethereum/compare/1.9.6...1.9.7) - 2021-9-30
+## [1.9.7](../../compare/1.9.6...1.9.7) - 2021-9-30
 
 ### Fixed
 
 - Fixed a bug where amounts displayed where wrong when the amount was huge (>=2^87)
 
-## [1.9.6](https://github.com/ledgerhq/app-ethereum/compare/1.9.5...1.9.6) - 2021-9-29
+## [1.9.6](../../compare/1.9.5...1.9.6) - 2021-9-29
 
 ### Fixed
 
 - Fixed a bug where fees displayed were wrong on Starkware transactions
 
-## [1.9.5](https://github.com/ledgerhq/app-ethereum/compare/1.9.4...1.9.5) - 2021-9-27
+## [1.9.5](../../compare/1.9.4...1.9.5) - 2021-9-27
 
 ### Changed
 
@@ -440,13 +440,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - When blind signing is disabled in settings, and a transaction with smart conract interactions is sent to the app,
   a new warning screen pops to let the user know that the setting must be enabled to sign this kind of transactions.
 
-## [1.9.4](https://github.com/ledgerhq/app-ethereum/compare/1.9.3...1.9.4) - 2021-9-14
+## [1.9.4](../../compare/1.9.3...1.9.4) - 2021-9-14
 
 ### Added
 
 - Added Arbitrum network
 
-## [1.9.3](https://github.com/ledgerhq/app-ethereum/compare/1.9.2...1.9.3) - 2021-9-03
+## [1.9.3](../../compare/1.9.2...1.9.3) - 2021-9-03
 
 ### Added
 
@@ -461,7 +461,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Increased plugin interface to version 2
 - Remove support for Theta and Flare
 
-## [1.9.2](https://github.com/ledgerhq/app-ethereum/compare/1.9.0...1.9.2) - 2021-8-11
+## [1.9.2](../../compare/1.9.0...1.9.2) - 2021-8-11
 
 ### Added
 
@@ -472,20 +472,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fixed BSC icon colors.
 - Fixed theta tokens.
 
-## [1.9.0](https://github.com/ledgerhq/app-ethereum/compare/1.8.8...1.9.0) - 2021-8-05
+## [1.9.0](../../compare/1.8.8...1.9.0) - 2021-8-05
 
 ### Added
 
 - Added support for EIP-1559 and EIP-2930 style transactions.
 
-## [1.8.8](https://github.com/ledgerhq/app-ethereum/compare/1.8.7...1.8.8) - 2021-7-21
+## [1.8.8](../../compare/1.8.7...1.8.8) - 2021-7-21
 
 ### Added
 
 - Added support for BSC.
 - Add support for Lido plugin
 
-## [1.8.7](https://github.com/ledgerhq/app-ethereum/compare/1.8.6...1.8.7) - 2021-7-9
+## [1.8.7](../../compare/1.8.6...1.8.7) - 2021-7-9
 
 ### Added
 
@@ -496,7 +496,7 @@ Remove `m/44'/60'` derivation path authorisation for Theta app.
 
 `additional_screens` was introduced previously but wasn't properly initialized in some cases.
 
-## [1.8.6](https://github.com/ledgerhq/app-ethereum/compare/1.8.5...1.8.6) - 2021-7-5
+## [1.8.6](../../compare/1.8.5...1.8.6) - 2021-7-5
 
 ### Added
 
@@ -507,63 +507,63 @@ When the network is known, amounts and fees are displayed in the network unit in
 
 Fix some compilation warning
 
-## [1.8.5](https://github.com/ledgerhq/app-ethereum/compare/1.7.9...1.8.5) - 2021-6-8
+## [1.8.5](../../compare/1.7.9...1.8.5) - 2021-6-8
 
 ### Added
 
 - Added support for external plugins.
 
-## [1.7.9](https://github.com/ledgerhq/app-ethereum/compare/1.7.8...1.7.9) - 2021-6-2
+## [1.7.9](../../compare/1.7.8...1.7.9) - 2021-6-2
 
 ### Added
 
 - Added support for Flare Network and Theta Chain.
 
-## [1.7.8](https://github.com/ledgerhq/app-ethereum/compare/1.7.7...1.7.8) - 2021-5-20
+## [1.7.8](../../compare/1.7.7...1.7.8) - 2021-5-20
 
 ### Fixed
 
 - Fixed a bug where transaction would sometimes not get properly signed.
 
-## [1.7.7](https://github.com/ledgerhq/app-ethereum/compare/1.7.6...1.7.7) - 2021-5-19
+## [1.7.7](../../compare/1.7.6...1.7.7) - 2021-5-19
 
 ### Special
 
 - Version bump needed for deployment reasons, nothing changed.
 
-## [1.7.6](https://github.com/ledgerhq/app-ethereum/compare/1.7.5...1.7.6) - 2021-5-14
+## [1.7.6](../../compare/1.7.5...1.7.6) - 2021-5-14
 
 ### Special
 
 - Version bump needed for deployment reasons, nothing changed.
 
-## [1.7.7](https://github.com/ledgerhq/app-ethereum/compare/1.7.6...1.7.7) - 2021-5-19
+## [1.7.7](../../compare/1.7.6...1.7.7) - 2021-5-19
 
 - N/A
 
-## [1.7.6](https://github.com/ledgerhq/app-ethereum/compare/1.7.6...1.7.6) - 2021-5-14
+## [1.7.6](../../compare/1.7.6...1.7.6) - 2021-5-14
 
 - N/A
 
-## [1.7.5](https://github.com/ledgerhq/app-ethereum/compare/1.7.4...1.7.5) - 2021-5-10
+## [1.7.5](../../compare/1.7.4...1.7.5) - 2021-5-10
 
 ### Fixed
 
 - Fixed a bug with cx_ecfp_scalar_mult
 
-## [1.7.4](https://github.com/ledgerhq/app-ethereum/compare/1.7.3...1.7.4) - 2021-5-6
+## [1.7.4](../../compare/1.7.3...1.7.4) - 2021-5-6
 
 ### Fixed
 
 - Fixed a bug that prevented using Ethereum sidechains
 
-## [1.7.3](https://github.com/ledgerhq/app-ethereum/compare/1.7.2...1.7.3) - 2021-5-5
+## [1.7.3](../../compare/1.7.2...1.7.3) - 2021-5-5
 
 ### Added
 
 - Enable Ethereum 2 deposit on Nano S 2.0.0
 
-## [1.7.2](https://github.com/ledgerhq/app-ethereum/compare/1.7.1...1.7.2) - 2021-5-5
+## [1.7.2](../../compare/1.7.1...1.7.2) - 2021-5-5
 
 ### Added
 
@@ -572,38 +572,38 @@ Fix some compilation warning
   - Abort signing when the account index of the withdrawal key is higher than INDEX_MAX.
   - Check that the destination field of the transaction is Ethereum 2 deposit contract.
 
-## [1.7.1](https://github.com/ledgerhq/app-ethereum/compare/1.7.0...1.7.1) - 2021-5-5
+## [1.7.1](../../compare/1.7.0...1.7.1) - 2021-5-5
 
 ### Added
 
 - Support for Berlin hard fork: EIP2718 (transaction types) and EIP2930 (access list transactions)
 - Display ChainID when transacting on chains which are not ethereum (BSC, Polygon, etc)
 
-## [1.7.0](https://github.com/ledgerhq/app-ethereum/compare/1.6.6...1.7.0) - 2021-4-30
+## [1.7.0](../../compare/1.6.6...1.7.0) - 2021-4-30
 
 ### Added
 
 - Wallet ID feature now available on Nano X
 
-## [1.6.6](https://github.com/ledgerhq/app-ethereum/compare/1.6.5...1.6.6) - 2021-4-16
+## [1.6.6](../../compare/1.6.5...1.6.6) - 2021-4-16
 
 ### Added
 
 - Improved Starkware support
 
-## [1.6.5](https://github.com/ledgerhq/app-ethereum/compare/1.6.4...1.6.5) - 2021-2-12
+## [1.6.5](../../compare/1.6.4...1.6.5) - 2021-2-12
 
 ### Added
 
 - Add a setting to enable nonce display when approving transactions
 
-## [1.6.4](https://github.com/ledgerhq/app-ethereum/compare/1.6.3...1.6.4) - 2021-1-12
+## [1.6.4](../../compare/1.6.3...1.6.4) - 2021-1-12
 
 ### Fixed
 
 - "warning" icon wasn't correctly displayed
 
-## [1.6.3](https://github.com/ledgerhq/app-ethereum/compare/1.6.2...1.6.3) - 2020-12-10
+## [1.6.3](../../compare/1.6.2...1.6.3) - 2020-12-10
 
 ### Added
 

@@ -3,7 +3,6 @@
 #include "eth_plugin_handler.h"
 #include "shared_context.h"
 #include "plugin_utils.h"
-#include "ethUstream.h"
 #include "common_utils.h"
 
 typedef enum { ERC20_TRANSFER = 0, ERC20_APPROVE } erc20Selector_t;
@@ -201,7 +200,7 @@ void erc20_plugin_call(int message, void *parameters) {
                         strlcpy(msg->title, "Contract", msg->titleLength);
                         strlcpy(msg->msg, context->contract_name, msg->msgLength);
                     } else {
-                        strlcpy(msg->title, "Address", msg->titleLength);
+                        strlcpy(msg->title, "Approve to", msg->titleLength);
                         if (!getEthDisplayableAddress(context->destinationAddress,
                                                       msg->msg,
                                                       msg->msgLength,

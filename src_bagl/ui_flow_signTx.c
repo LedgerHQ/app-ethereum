@@ -2,7 +2,6 @@
 #include "ui_callbacks.h"
 #include "chainConfig.h"
 #include "common_utils.h"
-#include "feature_signTx.h"
 #include "network.h"
 #include "eth_plugin_handler.h"
 #include "ui_plugin.h"
@@ -111,6 +110,16 @@ UX_STEP_NOCB(ux_approval_review_step,
       &C_icon_eye,
       "Review",
       "transaction",
+    });
+UX_STEP_NOCB(ux_approval_tx_hash_step,
+    bnnn_paging,
+    {
+#ifdef TARGET_NANOS
+      .title = "TX hash",
+#else
+      .title = "Transaction hash",
+#endif
+      .text = strings.common.tx_hash
     });
 UX_STEP_NOCB(
     ux_approval_amount_step,
@@ -237,15 +246,30 @@ void ux_approve_tx(bool fromPlugin) {
         ux_approval_tx_flow[step++] = &ux_plugin_approval_display_step;
         ux_approval_tx_flow[step++] = &ux_plugin_approval_after_step;
     } else {
+        if (tmpContent.txContent.dataPresent) {
+#pragma GCC diagnostic ignored "-Wformat"
+            snprintf(strings.common.tx_hash,
+                     sizeof(strings.common.tx_hash),
+                     "0x%.*h",
+                     sizeof(tmpCtx.transactionContext.hash),
+                     tmpCtx.transactionContext.hash);
+#pragma GCC diagnostic warning "-Wformat"
+            ux_approval_tx_flow[step++] = &ux_approval_tx_hash_step;
+        }
         // We're in a regular transaction, just show the amount and the address
         if (strings.common.fromAddress[0] != 0) {
             ux_approval_tx_flow[step++] = &ux_approval_from_step;
         }
-        ux_approval_tx_flow[step++] = &ux_approval_amount_step;
+        if (!tmpContent.txContent.dataPresent ||
+            !allzeroes(tmpContent.txContent.value.value, tmpContent.txContent.value.length)) {
+            ux_approval_tx_flow[step++] = &ux_approval_amount_step;
+        }
 #ifdef HAVE_TRUSTED_NAME
         uint64_t chain_id = get_tx_chain_id();
-        e_name_type type = TYPE_ACCOUNT;
-        if (has_trusted_name(1, &type, &chain_id, tmpContent.txContent.destination)) {
+        e_name_type type = TN_TYPE_ACCOUNT;
+        e_name_source source = TN_SOURCE_ENS;
+        if (get_trusted_name(1, &type, 1, &source, &chain_id, tmpContent.txContent.destination) !=
+            NULL) {
             ux_approval_tx_flow[step++] = &ux_trusted_name_step;
             if (N_storage.verbose_trusted_name) {
                 ux_approval_tx_flow[step++] = &ux_approval_to_step;

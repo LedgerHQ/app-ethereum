@@ -1,7 +1,6 @@
 #include <nbgl_page.h>
 #include "shared_context.h"
 #include "ui_callbacks.h"
-#include "feature_signTx.h"
 #include "ui_nbgl.h"
 #include "apdu_constants.h"
 #include "context_712.h"

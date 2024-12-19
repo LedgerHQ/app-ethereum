@@ -73,26 +73,12 @@ unsigned int io_seproxyhal_touch_tx_cancel(void) {
 }
 
 unsigned int io_seproxyhal_touch_data_ok(void) {
-    parserStatus_e txResult = USTREAM_FINISHED;
-    txResult = continueTx(&txContext);
     unsigned int err = 0;
-    switch (txResult) {
-        case USTREAM_SUSPENDED:
-            break;
-        case USTREAM_FINISHED:
-            err = finalizeParsing();
-            break;
-        case USTREAM_PROCESSING:
-            err = io_seproxyhal_send_status(APDU_RESPONSE_OK, 0, false, true);
-            break;
-        case USTREAM_FAULT:
-            err = io_seproxyhal_send_status(APDU_RESPONSE_INVALID_DATA, 0, true, true);
-            break;
-        default:
-            PRINTF("Unexpected parser status\n");
-            err = io_seproxyhal_send_status(APDU_RESPONSE_INVALID_DATA, 0, true, true);
+    parserStatus_e pstatus = continueTx(&txContext);
+    uint16_t sw = handle_parsing_status(pstatus);
+    if ((pstatus != USTREAM_SUSPENDED) && (pstatus != USTREAM_FINISHED)) {
+        err = io_seproxyhal_send_status(sw, 0, sw != APDU_RESPONSE_OK, true);
     }
-
     return err;
 }
 

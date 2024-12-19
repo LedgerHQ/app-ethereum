@@ -39,5 +39,5 @@ void ui_sign_712_v0(void) {
                                    NULL,
                                    TEXT_BLIND_SIGN_EIP712,
                                    NULL,
-                                   ui_typed_message_review_choice);
+                                   ui_typed_message_review_choice_v0);
 }

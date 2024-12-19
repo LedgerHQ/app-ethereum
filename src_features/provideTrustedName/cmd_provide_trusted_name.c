@@ -63,7 +63,7 @@ typedef enum {
     NFT_ID = 0x72,
 } e_tlv_tag;
 
-typedef enum { KEY_ID_TEST = 0x00, KEY_ID_PROD = 0x03 } e_key_id;
+typedef enum { TN_KEY_ID_DOMAIN_SVC = 0x03, TN_KEY_ID_CAL = 0x06 } e_tn_key_id;
 
 typedef struct {
     uint8_t *buf;
@@ -90,7 +90,7 @@ typedef struct {
 } s_trusted_name_info;
 
 typedef struct {
-    e_key_id key_id;
+    e_tn_key_id key_id;
     uint8_t input_sig_size;
     const uint8_t *input_sig;
     cx_sha256_t hash_ctx;
@@ -110,10 +110,56 @@ static s_tlv_payload g_tlv_payload = {0};
 static s_trusted_name_info g_trusted_name_info = {0};
 char g_trusted_name[TRUSTED_NAME_MAX_LENGTH + 1];
 
+static bool matching_type(e_name_type type, uint8_t type_count, const e_name_type *types) {
+    for (int i = 0; i < type_count; ++i) {
+        if (type == types[i]) return true;
+    }
+    return false;
+}
+
+static bool matching_source(e_name_source source,
+                            uint8_t source_count,
+                            const e_name_source *sources) {
+    for (int i = 0; i < source_count; ++i) {
+        if (source == sources[i]) return true;
+    }
+    return false;
+}
+
+static bool matching_trusted_name(const s_trusted_name_info *trusted_name,
+                                  uint8_t type_count,
+                                  const e_name_type *types,
+                                  uint8_t source_count,
+                                  const e_name_source *sources,
+                                  const uint64_t *chain_id,
+                                  const uint8_t *addr) {
+    switch (trusted_name->struct_version) {
+        case 1:
+            if (!matching_type(TN_TYPE_ACCOUNT, type_count, types)) {
+                return false;
+            }
+            if (!chain_is_ethereum_compatible(chain_id)) {
+                return false;
+            }
+            break;
+        case 2:
+            if (!matching_type(trusted_name->name_type, type_count, types)) {
+                return false;
+            }
+            if (!matching_source(trusted_name->name_source, source_count, sources)) {
+                return false;
+            }
+            if (*chain_id != trusted_name->chain_id) {
+                return false;
+            }
+            break;
+    }
+    return memcmp(addr, trusted_name->addr, ADDRESS_LENGTH) == 0;
+}
+
 /**
  * Checks if a trusted name matches the given parameters
  *
- * Does not care about the trusted name source for now.
  * Always wipes the content of \ref g_trusted_name_info
  *
  * @param[in] types_count number of given trusted name types
@@ -122,36 +168,23 @@ char g_trusted_name[TRUSTED_NAME_MAX_LENGTH + 1];
  * @param[in] addr given address
  * @return whether there is or not
  */
-bool has_trusted_name(uint8_t types_count,
-                      const e_name_type *types,
-                      const uint64_t *chain_id,
-                      const uint8_t *addr) {
-    bool ret = false;
+const char *get_trusted_name(uint8_t type_count,
+                             const e_name_type *types,
+                             uint8_t source_count,
+                             const e_name_source *sources,
+                             const uint64_t *chain_id,
+                             const uint8_t *addr) {
+    const char *ret = NULL;
 
     if (g_trusted_name_info.rcv_flags != 0) {
-        for (int i = 0; i < types_count; ++i) {
-            switch (g_trusted_name_info.struct_version) {
-                case 1:
-                    if (types[i] == TYPE_ACCOUNT) {
-                        // Check if chain ID is known to be Ethereum-compatible (same derivation
-                        // path)
-                        if ((chain_is_ethereum_compatible(chain_id)) &&
-                            (memcmp(addr, g_trusted_name_info.addr, ADDRESS_LENGTH) == 0)) {
-                            ret = true;
-                        }
-                    }
-                    break;
-                case 2:
-                    if (types[i] == g_trusted_name_info.name_type) {
-                        if (*chain_id == g_trusted_name_info.chain_id) {
-                            ret = true;
-                        }
-                    }
-                    break;
-                default:
-                    ret = false;
-            }
-            if (ret) break;
+        if (matching_trusted_name(&g_trusted_name_info,
+                                  type_count,
+                                  types,
+                                  source_count,
+                                  sources,
+                                  chain_id,
+                                  addr)) {
+            ret = g_trusted_name_info.name;
         }
         explicit_bzero(&g_trusted_name_info, sizeof(g_trusted_name_info));
     }
@@ -215,14 +248,13 @@ static bool handle_not_valid_after(const s_tlv_data *data,
                                    s_trusted_name_info *trusted_name_info,
                                    s_sig_ctx *sig_ctx) {
     const uint8_t app_version[] = {MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION};
-    int i = 0;
 
     (void) trusted_name_info;
     (void) sig_ctx;
     if (data->length != ARRAYLEN(app_version)) {
         return false;
     }
-    do {
+    for (int i = 0; i < (int) ARRAYLEN(app_version); ++i) {
         if (data->value[i] < app_version[i]) {
             PRINTF("Expired trusted name : %u.%u.%u < %u.%u.%u\n",
                    data->value[0],
@@ -233,8 +265,7 @@ static bool handle_not_valid_after(const s_tlv_data *data,
                    app_version[2]);
             return false;
         }
-        i += 1;
-    } while ((i < (int) ARRAYLEN(app_version)) && (data->value[i] == app_version[i]));
+    }
     return true;
 }
 
@@ -380,7 +411,7 @@ static bool handle_trusted_name(const s_tlv_data *data,
         return false;
     }
     if ((trusted_name_info->struct_version == 1) ||
-        (trusted_name_info->name_type == TYPE_ACCOUNT)) {
+        (trusted_name_info->name_type == TN_TYPE_ACCOUNT)) {
         // TODO: Remove once other domain name providers are supported
         if ((data->length < 5) ||
             (strncmp(".eth", (char *) &data->value[data->length - 4], 4) != 0)) {
@@ -476,10 +507,13 @@ static bool handle_trusted_name_type(const s_tlv_data *data,
         return false;
     }
     switch (value) {
-        case TYPE_ACCOUNT:
-        case TYPE_CONTRACT:
+        case TN_TYPE_ACCOUNT:
+        case TN_TYPE_CONTRACT:
             break;
-        case TYPE_NFT:
+        case TN_TYPE_NFT_COLLECTION:
+        case TN_TYPE_TOKEN:
+        case TN_TYPE_WALLET:
+        case TN_TYPE_CONTEXT_ADDRESS:
         default:
             PRINTF("Error: unsupported trusted name type (%u)!\n", value);
             return false;
@@ -507,13 +541,14 @@ static bool handle_trusted_name_source(const s_tlv_data *data,
         return false;
     }
     switch (value) {
-        case SOURCE_CAL:
-        case SOURCE_ENS:
+        case TN_SOURCE_CAL:
+        case TN_SOURCE_ENS:
             break;
-        case SOURCE_LAB:
-        case SOURCE_UD:
-        case SOURCE_FN:
-        case SOURCE_DNS:
+        case TN_SOURCE_LAB:
+        case TN_SOURCE_UD:
+        case TN_SOURCE_FN:
+        case TN_SOURCE_DNS:
+        case TN_SOURCE_DYNAMIC_RESOLVER:
         default:
             PRINTF("Error: unsupported trusted name source (%u)!\n", value);
             return false;
@@ -557,16 +592,22 @@ static bool handle_nft_id(const s_tlv_data *data,
 static bool verify_signature(const s_sig_ctx *sig_ctx) {
     uint8_t hash[INT256_LENGTH];
     cx_err_t error = CX_INTERNAL_ERROR;
-#ifdef HAVE_TRUSTED_NAME_TEST_KEY
-    e_key_id valid_key_id = KEY_ID_TEST;
-#else
-    e_key_id valid_key_id = KEY_ID_PROD;
-#endif
     bool ret_code = false;
+    const uint8_t *pk;
+    size_t pk_size;
 
-    if (sig_ctx->key_id != valid_key_id) {
-        PRINTF("Error: Unknown metadata key ID %u\n", sig_ctx->key_id);
-        return false;
+    switch (sig_ctx->key_id) {
+        case TN_KEY_ID_DOMAIN_SVC:
+            pk = TRUSTED_NAME_PUB_KEY;
+            pk_size = sizeof(TRUSTED_NAME_PUB_KEY);
+            break;
+        case TN_KEY_ID_CAL:
+            pk = LEDGER_SIGNATURE_PUBLIC_KEY;
+            pk_size = sizeof(LEDGER_SIGNATURE_PUBLIC_KEY);
+            break;
+        default:
+            PRINTF("Error: Unknown metadata key ID %u\n", sig_ctx->key_id);
+            return false;
     }
 
     CX_CHECK(
@@ -575,10 +616,10 @@ static bool verify_signature(const s_sig_ctx *sig_ctx) {
     CX_CHECK(check_signature_with_pubkey("Domain Name",
                                          hash,
                                          sizeof(hash),
-                                         TRUSTED_NAME_PUB_KEY,
-                                         sizeof(TRUSTED_NAME_PUB_KEY),
+                                         pk,
+                                         pk_size,
 #ifdef HAVE_LEDGER_PKI
-                                         CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META,
+                                         CERTIFICATE_PUBLIC_KEY_USAGE_TRUSTED_NAME,
 #endif
                                          (uint8_t *) (sig_ctx->input_sig),
                                          sig_ctx->input_sig_size));
@@ -653,8 +694,8 @@ static bool verify_struct(const s_trusted_name_info *trusted_name_info) {
                 return false;
             }
             switch (trusted_name_info->name_type) {
-                case TYPE_ACCOUNT:
-                    if (trusted_name_info->name_source == SOURCE_CAL) {
+                case TN_TYPE_ACCOUNT:
+                    if (trusted_name_info->name_source == TN_SOURCE_CAL) {
                         PRINTF("Error: cannot accept an account name from the CAL!\n");
                         return false;
                     }
@@ -663,8 +704,8 @@ static bool verify_struct(const s_trusted_name_info *trusted_name_info) {
                         return false;
                     }
                     break;
-                case TYPE_CONTRACT:
-                    if (trusted_name_info->name_source != SOURCE_CAL) {
+                case TN_TYPE_CONTRACT:
+                    if (trusted_name_info->name_source != TN_SOURCE_CAL) {
                         PRINTF("Error: cannot accept a contract name from given source (%u)!\n",
                                trusted_name_info->name_source);
                         return false;

@@ -120,21 +120,38 @@ static uint8_t setTagValuePairs(void) {
         pairs[nbPairs].value = strings.common.maxFee;
         nbPairs++;
     } else {
+        if (tmpContent.txContent.dataPresent) {
+#pragma GCC diagnostic ignored "-Wformat"
+            snprintf(strings.common.tx_hash,
+                     sizeof(strings.common.tx_hash),
+                     "0x%.*h",
+                     sizeof(tmpCtx.transactionContext.hash),
+                     tmpCtx.transactionContext.hash);
+#pragma GCC diagnostic warning "-Wformat"
+            pairs[nbPairs].item = "Transaction hash";
+            pairs[nbPairs].value = strings.common.tx_hash;
+            nbPairs++;
+        }
+
         if (strings.common.fromAddress[0] != 0) {
             pairs[nbPairs].item = "From";
             pairs[nbPairs].value = strings.common.fromAddress;
             nbPairs++;
         }
 
-        pairs[nbPairs].item = "Amount";
-        pairs[nbPairs].value = strings.common.fullAmount;
-        nbPairs++;
+        if (!tmpContent.txContent.dataPresent ||
+            !allzeroes(tmpContent.txContent.value.value, tmpContent.txContent.value.length)) {
+            pairs[nbPairs].item = "Amount";
+            pairs[nbPairs].value = strings.common.fullAmount;
+            nbPairs++;
+        }
 
 #ifdef HAVE_TRUSTED_NAME
         uint64_t chain_id = get_tx_chain_id();
-        e_name_type type = TYPE_ACCOUNT;
+        e_name_type type = TN_TYPE_ACCOUNT;
+        e_name_source source = TN_SOURCE_ENS;
         tx_approval_context.trusted_name_match =
-            has_trusted_name(1, &type, &chain_id, tmpContent.txContent.destination);
+            get_trusted_name(1, &type, 1, &source, &chain_id, tmpContent.txContent.destination);
         if (tx_approval_context.trusted_name_match) {
             pairs[nbPairs].item = "To (domain)";
             pairs[nbPairs].value = g_trusted_name;

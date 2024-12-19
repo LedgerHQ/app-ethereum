@@ -21,6 +21,7 @@
 #include "filtering.h"
 #include "trusted_name.h"
 #include "network.h"
+#include "time_format.h"
 
 #define AMOUNT_JOIN_FLAG_TOKEN (1 << 0)
 #define AMOUNT_JOIN_FLAG_VALUE (1 << 1)
@@ -65,7 +66,10 @@ typedef struct {
     uint8_t discarded_path_length;
     char discarded_path[255];
 #ifdef HAVE_TRUSTED_NAME
-    e_name_type name_types;
+    uint8_t tn_type_count;
+    uint8_t tn_source_count;
+    e_name_type tn_types[TN_TYPE_COUNT];
+    e_name_source tn_sources[TN_SOURCE_COUNT];
 #endif
 #ifdef SCREEN_SIZE_WALLET
     char ui_pairs_buffer[(SHARED_CTX_FIELD_1_SIZE + SHARED_CTX_FIELD_2_SIZE) * 2];
@@ -530,20 +534,15 @@ static bool update_amount_join(const uint8_t *data, uint8_t length) {
  * @return whether it was successful or not
  */
 static bool ui_712_format_trusted_name(const uint8_t *data, uint8_t length) {
-    uint8_t types_count = 0;
-    e_name_type types[8];
-    uint8_t types_bak = ui_ctx->name_types;
-
     if (length != ADDRESS_LENGTH) {
         return false;
     }
-    for (int i = 0; types_bak > 0; ++i) {
-        if (types_bak & 1) {
-            types[types_count++] = i;
-        }
-        types_bak >>= 1;
-    }
-    if (has_trusted_name(types_count, types, &eip712_context->chain_id, data)) {
+    if (get_trusted_name(ui_ctx->tn_type_count,
+                         ui_ctx->tn_types,
+                         ui_ctx->tn_source_count,
+                         ui_ctx->tn_sources,
+                         &eip712_context->chain_id,
+                         data) != NULL) {
         strlcpy(strings.tmp.tmp, g_trusted_name, sizeof(strings.tmp.tmp));
     }
     return true;
@@ -558,32 +557,9 @@ static bool ui_712_format_trusted_name(const uint8_t *data, uint8_t length) {
  * @return whether it was successful or not
  */
 static bool ui_712_format_datetime(const uint8_t *data, uint8_t length) {
-    struct tm tstruct;
-    int shown_hour;
     time_t timestamp = u64_from_BE(data, length);
 
-    if (gmtime_r(&timestamp, &tstruct) == NULL) {
-        return false;
-    }
-    if (tstruct.tm_hour == 0) {
-        shown_hour = 12;
-    } else {
-        shown_hour = tstruct.tm_hour;
-        if (shown_hour > 12) {
-            shown_hour -= 12;
-        }
-    }
-    snprintf(strings.tmp.tmp,
-             sizeof(strings.tmp.tmp),
-             "%04d-%02d-%02d\n%02d:%02d:%02d %s UTC",
-             tstruct.tm_year + 1900,
-             tstruct.tm_mon + 1,
-             tstruct.tm_mday,
-             shown_hour,
-             tstruct.tm_min,
-             tstruct.tm_sec,
-             (tstruct.tm_hour < 12) ? "AM" : "PM");
-    return true;
+    return time_format_to_utc(&timestamp, strings.tmp.tmp, sizeof(strings.tmp.tmp));
 }
 
 /**
@@ -924,12 +900,14 @@ const char *ui_712_get_discarded_path(uint8_t *length) {
 }
 
 #ifdef HAVE_TRUSTED_NAME
-void ui_712_set_trusted_name_requirements(uint8_t types_count, const e_name_type *types) {
-    // pack into one byte to save on space
-    ui_ctx->name_types = 0;
-    for (int i = 0; i < types_count; ++i) {
-        ui_ctx->name_types |= (1 << types[i]);
-    }
+void ui_712_set_trusted_name_requirements(uint8_t type_count,
+                                          const e_name_type *types,
+                                          uint8_t source_count,
+                                          const e_name_source *sources) {
+    ui_ctx->tn_type_count = type_count;
+    memcpy(ui_ctx->tn_types, types, type_count);
+    ui_ctx->tn_source_count = source_count;
+    memcpy(ui_ctx->tn_sources, sources, source_count);
 }
 #endif
 

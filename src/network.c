@@ -108,6 +108,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 168587773, .name = "Blast Sepolia", .ticker = "ETH"},
     {.chain_id = 245022926, .name = "Neon EVM Devnet", .ticker = "NEON"},
     {.chain_id = 245022934, .name = "Neon EVM Mainnet", .ticker = "NEON"},
+    {.chain_id = 994873017, .name = "Lumia", .ticker = "LUMIA"},
     {.chain_id = 11297108109, .name = "Palm Network", .ticker = "PALM"},
 };
 

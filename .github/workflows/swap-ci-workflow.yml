@@ -1,0 +1,17 @@
+---
+name: Swap functional tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+      - develop
+  pull_request:
+
+jobs:
+  job_functional_tests:
+    uses: LedgerHQ/app-exchange/.github/workflows/reusable_swap_functional_tests.yml@develop
+    with:
+      branch_for_ethereum: ${{ github.ref }}
+      test_filter: '"ETH or eth or Ethereum or ethereum"'

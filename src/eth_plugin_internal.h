@@ -1,23 +1,20 @@
-#ifndef __ETH_PLUGIN_INTERNAL_H__
+#pragma once
 
+#include <stdint.h>
+#include <stdbool.h>
+#include "shared_context.h"
 #include "eth_plugin_interface.h"
-
-#define SELECTOR_SIZE    4
-#define PARAMETER_LENGTH 32
-#define RUN_APPLICATION  1
-
-void copy_address(uint8_t* dst, uint8_t* parameter, uint8_t dst_size);
-
-void copy_parameter(uint8_t* dst, uint8_t* parameter, uint8_t dst_size);
 
 void erc721_plugin_call(int message, void* parameters);
 void erc1155_plugin_call(int message, void* parameters);
+void swap_with_calldata_plugin_call(int message, void* parameters);
 
-typedef bool (*PluginAvailableCheck)(void);
+typedef bool (*const PluginAvailableCheck)(void);
+typedef void (*PluginCall)(int, void*);
 
 typedef struct internalEthPlugin_t {
     PluginAvailableCheck availableCheck;
-    const uint8_t** selectors;
+    const uint8_t* const* selectors;
     uint8_t num_selectors;
     char alias[10];
     PluginCall impl;
@@ -26,9 +23,6 @@ typedef struct internalEthPlugin_t {
 #define NUM_ERC20_SELECTORS 2
 extern const uint8_t* const ERC20_SELECTORS[NUM_ERC20_SELECTORS];
 
-#define NUM_COMPOUND_SELECTORS 4
-extern const uint8_t* const COMPOUND_SELECTORS[NUM_COMPOUND_SELECTORS];
-
 #ifdef HAVE_ETH2
 
 #define NUM_ETH2_SELECTORS 1
@@ -36,13 +30,4 @@ extern const uint8_t* const ETH2_SELECTORS[NUM_ETH2_SELECTORS];
 
 #endif
 
-#ifdef HAVE_STARKWARE
-
-#define NUM_STARKWARE_SELECTORS 20
-extern const uint8_t* const STARKWARE_SELECTORS[NUM_STARKWARE_SELECTORS];
-
-#endif
-
 extern internalEthPlugin_t const INTERNAL_ETH_PLUGINS[];
-
-#endif

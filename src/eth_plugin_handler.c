@@ -1,10 +1,14 @@
 #include <string.h>
 #include "eth_plugin_handler.h"
 #include "eth_plugin_internal.h"
+#include "plugin_utils.h"
 #include "shared_context.h"
 #include "network.h"
+#include "cmd_setPlugin.h"
 
-void eth_plugin_prepare_init(ethPluginInitContract_t *init, uint8_t *selector, uint32_t dataSize) {
+void eth_plugin_prepare_init(ethPluginInitContract_t *init,
+                             const uint8_t *selector,
+                             uint32_t dataSize) {
     memset((uint8_t *) init, 0, sizeof(ethPluginInitContract_t));
     init->selector = selector;
     init->dataSize = dataSize;
@@ -44,27 +48,28 @@ void eth_plugin_prepare_query_contract_UI(ethQueryContractUI_t *queryContractUI,
                                           uint32_t titleLength,
                                           char *msg,
                                           uint32_t msgLength) {
+    uint64_t chain_id;
+
     memset((uint8_t *) queryContractUI, 0, sizeof(ethQueryContractUI_t));
 
     // If no extra information was found, set the pointer to NULL
-    if (allzeroes(&tmpCtx.transactionContext.extraInfo[1], sizeof(union extraInfo_t))) {
+    if (NO_EXTRA_INFO(tmpCtx, 0)) {
         queryContractUI->item1 = NULL;
     } else {
-        queryContractUI->item1 = &tmpCtx.transactionContext.extraInfo[1];
+        queryContractUI->item1 = &tmpCtx.transactionContext.extraInfo[0];
     }
 
     // If no extra information was found, set the pointer to NULL
-    if (allzeroes(&tmpCtx.transactionContext.extraInfo[0], sizeof(union extraInfo_t))) {
+    if (NO_EXTRA_INFO(tmpCtx, 1)) {
         queryContractUI->item2 = NULL;
     } else {
-        queryContractUI->item2 = &tmpCtx.transactionContext.extraInfo[0];
+        queryContractUI->item2 = &tmpCtx.transactionContext.extraInfo[1];
     }
 
-    strlcpy(queryContractUI->network_ticker, get_network_ticker(), MAX_TICKER_LEN);
-
     queryContractUI->screenIndex = screenIndex;
+    chain_id = get_tx_chain_id();
     strlcpy(queryContractUI->network_ticker,
-            get_network_ticker(),
+            get_displayable_ticker(&chain_id, chainConfig),
             sizeof(queryContractUI->network_ticker));
     queryContractUI->title = title;
     queryContractUI->titleLength = titleLength;
@@ -98,11 +103,11 @@ static void eth_plugin_perform_init_default(uint8_t *contractAddress,
 static bool eth_plugin_perform_init_old_internal(uint8_t *contractAddress,
                                                  ethPluginInitContract_t *init) {
     uint8_t i, j;
-    const uint8_t **selectors;
+    const uint8_t *const *selectors;
 
     // Search internal plugin list
     for (i = 0;; i++) {
-        selectors = (const uint8_t **) PIC(INTERNAL_ETH_PLUGINS[i].selectors);
+        selectors = (const uint8_t *const *) PIC(INTERNAL_ETH_PLUGINS[i].selectors);
         if (selectors == NULL) {
             break;
         }
@@ -135,13 +140,21 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
         case ERC721:
 #endif  // HAVE_NFT_SUPPORT
         case EXTERNAL:
+            PRINTF("eth_plugin_perform_init_default\n");
             eth_plugin_perform_init_default(contractAddress, init);
             contractAddress = NULL;
             break;
         case OLD_INTERNAL:
+            PRINTF("eth_plugin_perform_init_old_internal\n");
             if (eth_plugin_perform_init_old_internal(contractAddress, init)) {
                 contractAddress = NULL;
             }
+            break;
+        case SWAP_WITH_CALLDATA:
+            PRINTF("contractAddress == %.*H\n", 20, contractAddress);
+            PRINTF("Fallback on swap_with_calldata plugin\n");
+            contractAddress = NULL;
+            dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
             break;
         default:
             PRINTF("Unsupported pluginType %d\n", pluginType);
@@ -149,17 +162,16 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
             break;
     }
 
-    // Do not handle a plugin if running in swap mode
-    if (called_from_swap && (contractAddress != NULL)) {
-        PRINTF("eth_plug_init aborted in swap mode\n");
-        return 0;
-    }
-
     eth_plugin_result_t status = ETH_PLUGIN_RESULT_UNAVAILABLE;
 
     if (contractAddress != NULL) {
         PRINTF("No plugin available for %.*H\n", 20, contractAddress);
-        return status;
+        if (G_called_from_swap) {
+            PRINTF("Not supported in swap mode\n");
+            return ETH_PLUGIN_RESULT_ERROR;
+        } else {
+            return status;
+        }
     }
 
     PRINTF("eth_plugin_init\n");
@@ -203,7 +215,7 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
                 (uint8_t *) &dataContext.tokenContext.pluginContext;
             ((ethPluginInitContract_t *) parameter)->pluginContextLength =
                 sizeof(dataContext.tokenContext.pluginContext);
-            ((ethPluginInitContract_t *) parameter)->alias = dataContext.tokenContext.pluginName;
+            ((ethPluginInitContract_t *) parameter)->bip32 = &tmpCtx.transactionContext.bip32;
             break;
         case ETH_PLUGIN_PROVIDE_PARAMETER:
             PRINTF("-- PLUGIN PROVIDE PARAMETER --\n");
@@ -266,6 +278,10 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
                 }
             }
             END_TRY;
+            break;
+        }
+        case SWAP_WITH_CALLDATA: {
+            swap_with_calldata_plugin_call(method, parameter);
             break;
         }
 #ifdef HAVE_NFT_SUPPORT
@@ -345,13 +361,13 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
             }
             break;
         case ETH_PLUGIN_QUERY_CONTRACT_ID:
-            if (((ethQueryContractID_t *) parameter)->result <= ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
-                return ETH_PLUGIN_RESULT_UNAVAILABLE;
+            if (((ethQueryContractID_t *) parameter)->result != ETH_PLUGIN_RESULT_OK) {
+                return ETH_PLUGIN_RESULT_ERROR;
             }
             break;
         case ETH_PLUGIN_QUERY_CONTRACT_UI:
-            if (((ethQueryContractUI_t *) parameter)->result <= ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
-                return ETH_PLUGIN_RESULT_UNAVAILABLE;
+            if (((ethQueryContractUI_t *) parameter)->result != ETH_PLUGIN_RESULT_OK) {
+                return ETH_PLUGIN_RESULT_ERROR;
             }
             break;
         default:

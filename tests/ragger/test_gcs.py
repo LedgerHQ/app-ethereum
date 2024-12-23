@@ -1,3 +1,5 @@
+from pathlib import Path
+from typing import Optional
 import struct
 import json
 import hashlib
@@ -6,20 +8,21 @@ from web3 import Web3
 
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
+from ragger.navigator import Navigator, NavInsID
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 
 
 from constants import ABIS_FOLDER
 
 import client.response_parser as ResponseParser
-from client.client import EthAppClient, SignMode, TrustedNameType, TrustedNameSource
+from client.client import EthAppClient, SignMode, TrustedNameType, TrustedNameSource, StatusWord
 from client.utils import get_selector_from_data
 from client.gcs import (
     Field, ParamType, ParamRaw, Value, TypeFamily, DataPath, PathTuple, ParamTrustedName,
     ParamNFT, ParamDatetime, DatetimeType, ParamTokenAmount, ContainerPath,
     PathLeaf, PathLeafType, PathRef, PathArray, TxInfo
 )
-
+from client.tx_simu import TxSimu
 
 
 def test_gcs_nft(firmware: Firmware,
@@ -219,8 +222,11 @@ def test_gcs_nft(firmware: Firmware,
 
 def test_gcs_poap(firmware: Firmware,
                   backend: BackendInterface,
+                  navigator: Navigator,
                   scenario_navigator: NavigateWithScenario,
-                  test_name: str):
+                  test_name: str,
+                  default_screenshot_path: Path,
+                  simu_params: Optional[TxSimu] = None):
     app_client = EthAppClient(backend)
 
     if firmware == Firmware.NANOS:
@@ -250,6 +256,14 @@ def test_gcs_poap(firmware: Firmware,
         "chainId": 1
     }
     # pylint: enable=line-too-long
+
+    if simu_params is not None:
+        _, tx_hash = app_client.serialize_tx(tx_params)
+        simu_params.tx_hash = tx_hash
+        simu_params.chain_id = tx_params["chainId"]
+        response = app_client.provide_tx_simulation(simu_params)
+        assert response.status == StatusWord.OK
+
     with app_client.sign("m/44'/60'/0'/0/0", tx_params, SignMode.STORE):
         pass
 
@@ -382,7 +396,14 @@ def test_gcs_poap(firmware: Firmware,
         app_client.send_raw(0xe0, 0x28, 0x01, 0x00, struct.pack(">H", len(payload)) + payload)
 
     with app_client.send_raw_async(0xe0, 0x04, 0x00, 0x02, bytes()):
-        scenario_navigator.review_approve(test_name=test_name, custom_screen_text="Sign transaction")
+        if simu_params is not None:
+            navigator.navigate_and_compare(default_screenshot_path,
+                                            f"{test_name}/warning",
+                                            [NavInsID.USE_CASE_CHOICE_REJECT],
+                                            screen_change_after_last_instruction=False)
+
+        scenario_navigator.review_approve(test_name=test_name,
+                                          custom_screen_text=r"(Sign transaction|Accept (risk|threat))")
 
 
 def test_gcs_1inch(firmware: Firmware,

@@ -38,7 +38,7 @@ def common(firmware: Firmware,
            tx_params: dict,
            test_name: str = "",
            path: str = BIP32_PATH,
-           confirm: bool = False):
+           with_simu: bool = False):
     app_client = EthAppClient(backend)
 
     if tx_params["chainId"] == 3:
@@ -66,18 +66,16 @@ def common(firmware: Firmware,
     _, DEVICE_ADDR, _ = ResponseParser.pk_addr(app_client.response().data)
 
     with app_client.sign(path, tx_params):
-        if not firmware.is_nano and confirm:
+        if with_simu:
             navigator.navigate_and_compare(default_screenshot_path,
-                                           f"{test_name}/confirm",
-                                           [NavInsID.USE_CASE_CHOICE_CONFIRM],
+                                           f"{test_name}/warning",
+                                           [NavInsID.USE_CASE_CHOICE_REJECT],
                                            screen_change_after_last_instruction=False)
-
         if firmware.is_nano:
             end_text = "Accept"
         else:
-            end_text = "Sign"
-
-        scenario_navigator.review_approve(custom_screen_text=end_text, do_comparison=test_name!="")
+            end_text = r"(Sign|Accept (risk|threat))"
+        scenario_navigator.review_approve(test_name=test_name, custom_screen_text=end_text, do_comparison=test_name!="")
 
     # verify signature
     vrs = ResponseParser.signature(app_client.response().data)
@@ -213,7 +211,14 @@ def test_sign_simple(firmware: Firmware,
         "value": Web3.to_wei(AMOUNT2, "ether"),
         "chainId": CHAIN_ID
     }
-    common(firmware, backend, navigator, scenario_navigator, default_screenshot_path, tx_params, test_name, "m/44'/60'/1'/0/0")
+    common(firmware,
+           backend,
+           navigator,
+           scenario_navigator,
+           default_screenshot_path,
+           tx_params,
+           test_name,
+           BIP32_PATH2)
 
 
 def test_sign_limit_nonce(firmware: Firmware,
@@ -230,7 +235,14 @@ def test_sign_limit_nonce(firmware: Firmware,
         "value": 0x08762,
         "chainId": CHAIN_ID
     }
-    common(firmware, backend, navigator, scenario_navigator, default_screenshot_path, tx_params, test_name, "m/44'/60'/1'/0/0")
+    common(firmware,
+           backend,
+           navigator,
+           scenario_navigator,
+           default_screenshot_path,
+           tx_params,
+           test_name,
+           BIP32_PATH2)
 
 
 def test_sign_nonce_display(firmware: Firmware,
@@ -250,7 +262,14 @@ def test_sign_nonce_display(firmware: Firmware,
         "value": Web3.to_wei(AMOUNT2, "ether"),
         "chainId": CHAIN_ID
     }
-    common(firmware, backend, navigator, scenario_navigator, default_screenshot_path, tx_params, test_name, "m/44'/60'/1'/0/0")
+    common(firmware,
+           backend,
+           navigator,
+           scenario_navigator,
+           default_screenshot_path,
+           tx_params,
+           test_name,
+           BIP32_PATH2)
 
 
 def test_sign_reject(backend: BackendInterface, scenario_navigator: NavigateWithScenario):
@@ -262,7 +281,7 @@ def test_sign_reject(backend: BackendInterface, scenario_navigator: NavigateWith
         "value": Web3.to_wei(AMOUNT2, "ether"),
         "chainId": CHAIN_ID
     }
-    common_reject(backend, scenario_navigator, tx_params, "m/44'/60'/1'/0/0")
+    common_reject(backend, scenario_navigator, tx_params, BIP32_PATH2)
 
 
 def test_sign_error_transaction_type(backend: BackendInterface):
@@ -310,4 +329,10 @@ def test_sign_eip_2930(firmware: Firmware,
             }
         ],
     }
-    common(firmware, backend, navigator, scenario_navigator, default_screenshot_path, tx_params, test_name)
+    common(firmware,
+           backend,
+           navigator,
+           scenario_navigator,
+           default_screenshot_path,
+           tx_params,
+           test_name)

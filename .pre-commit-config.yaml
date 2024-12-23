@@ -39,7 +39,7 @@ repos:
         types_or: [markdown]
 
   - repo: https://github.com/PyCQA/pylint
-    rev: v2.16.2
+    rev: v3.3.2
     hooks:
       - id: pylint
         types: [python]

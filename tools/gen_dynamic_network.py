@@ -3,7 +3,6 @@
 import os
 import subprocess
 import sys
-import struct
 import logging
 import re
 from hashlib import sha256

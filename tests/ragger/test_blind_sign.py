@@ -9,6 +9,7 @@ from web3 import Web3
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator, NavInsID
+from ragger.navigator.navigation_scenario import NavigateWithScenario
 from ragger.error import ExceptionRAPDU
 
 from constants import ABIS_FOLDER
@@ -63,22 +64,35 @@ def common_tx_params(amount: float) -> dict:
 def test_blind_sign(firmware: Firmware,
                     backend: BackendInterface,
                     navigator: Navigator,
+                    scenario_navigator: NavigateWithScenario,
                     default_screenshot_path: Path,
                     test_name: str,
                     reject: bool,
-                    amount: float):
+                    amount: float,
+                    with_simu: bool = False):
     global DEVICE_ADDR
     app_client = EthAppClient(backend)
 
     if reject and amount > 0.0:
         pytest.skip()
+
+    tx_params = common_tx_params(amount)
+
+    if not reject and with_simu:
+        risk = 0x8234
+        category = 2
+        message = "This is a test message"
+        url = "https://www.ledger.com"
+        _, tx_hash = app_client.serialize_tx(tx_params)
+        response = app_client.provide_tx_simulation(tx_hash, risk, category, message, url, tx_params["chainId"], False)
+        assert response.status == StatusWord.OK
+
     settings_toggle(firmware, navigator, [SettingID.BLIND_SIGNING])
     if DEVICE_ADDR is None:
         with app_client.get_public_addr(bip32_path=BIP32_PATH, display=False):
             pass
         _, DEVICE_ADDR, _ = ResponseParser.pk_addr(app_client.response().data)
 
-    tx_params = common_tx_params(amount)
     try:
         with app_client.sign(BIP32_PATH, tx_params):
             if reject:
@@ -87,57 +101,30 @@ def test_blind_sign(firmware: Firmware,
             if amount > 0.0:
                 test_name += "_nonzero"
 
-            moves = []
             if firmware.is_nano:
-                # blind signing warning
-                moves += [NavInsID.RIGHT_CLICK]
-
-                # review
-                moves += [NavInsID.RIGHT_CLICK]
-
-                # tx hash
-                if firmware == Firmware.NANOS:
-                    moves += [NavInsID.RIGHT_CLICK] * 4
-                else:
-                    moves += [NavInsID.RIGHT_CLICK] * 2
-
-                # from
-                if firmware == Firmware.NANOS:
-                    moves += [NavInsID.RIGHT_CLICK] * 3
-                else:
-                    moves += [NavInsID.RIGHT_CLICK]
-
-                # amount
-                if amount > 0.0:
-                    moves += [NavInsID.RIGHT_CLICK]
-
-                # to
-                if firmware == Firmware.NANOS:
-                    moves += [NavInsID.RIGHT_CLICK] * 3
-                else:
-                    moves += [NavInsID.RIGHT_CLICK]
-
-                # fees
-                moves += [NavInsID.RIGHT_CLICK]
-
-                if reject:
-                    moves += [NavInsID.RIGHT_CLICK]
-
-                moves += [NavInsID.BOTH_CLICK]
+                end_text = "^Accept risk"
+                moves = [NavInsID.RIGHT_CLICK]
             else:
-                moves += [NavInsID.USE_CASE_CHOICE_REJECT]
+                end_text = "^Hold to sign$"
+                moves = [NavInsID.USE_CASE_CHOICE_REJECT]
 
-                moves += [NavInsID.SWIPE_CENTER_TO_LEFT] * 3
-
-                if not reject:
-                    moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
-                else:
-                    moves += [NavInsID.USE_CASE_REVIEW_REJECT]
-                    moves += [NavInsID.USE_CASE_CHOICE_CONFIRM]
-
+            if with_simu:
+                # TX Simulation confirmation
+                navigator.navigate_and_compare(default_screenshot_path,
+                                               f"{test_name}/confirm",
+                                               moves,
+                                               screen_change_after_last_instruction=False)
+            # Blind Signing Warning
             navigator.navigate_and_compare(default_screenshot_path,
-                                           test_name,
-                                           moves)
+                                            f"{test_name}/warning",
+                                            moves,
+                                            screen_change_after_last_instruction=False)
+
+            if reject:
+                scenario_navigator.review_reject(test_name=test_name)
+            else:
+                scenario_navigator.review_approve(test_name=test_name, custom_screen_text=end_text)
+
     except ExceptionRAPDU as e:
         assert reject
         assert e.status == StatusWord.CONDITION_NOT_SATISFIED

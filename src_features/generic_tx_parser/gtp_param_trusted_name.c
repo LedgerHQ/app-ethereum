@@ -78,7 +78,7 @@ bool format_param_trusted_name(const s_param_trusted_name *param, const char *na
     char *buf = strings.tmp.tmp;
     size_t buf_size = sizeof(strings.tmp.tmp);
     uint64_t chain_id;
-    uint8_t addr[ADDRESS_LENGTH];
+    uint8_t addr[ADDRESS_LENGTH] = {0};
     const char *tname;
     e_param_type param_type;
 

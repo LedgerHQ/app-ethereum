@@ -28,7 +28,7 @@ static bool handle_version(const s_tlv_data *data, s_enum_value_ctx *context) {
 }
 
 static bool handle_chain_id(const s_tlv_data *data, s_enum_value_ctx *context) {
-    uint8_t buf[sizeof(context->enum_value.entry.chain_id)];
+    uint8_t buf[sizeof(context->enum_value.entry.chain_id)] = {0};
 
     if (data->length > sizeof(buf)) {
         return false;

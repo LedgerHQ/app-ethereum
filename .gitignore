@@ -16,4 +16,11 @@ __version__.py
 .vscode
 .idea
 
-fuzzing/CORPUS/
+# Fuzzing
+tests/fuzzing/corpus/
+tests/fuzzing/out/
+default.profraw
+default.profdata
+fuzz-*.log
+crash-*
+report.html

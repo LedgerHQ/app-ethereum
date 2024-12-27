@@ -11,7 +11,6 @@ any kind of access violation, the fuzzing process is stopped, a report regarding
 and the input that triggered the bug is written to disk under the name `crash-*`.
 The vulnerable input file created can be passed as an argument to the fuzzer to triage the issue.
 
-> **Note**: Usually we want to write a separate fuzz target for each functionality.
 
 ## Manual usage based on Ledger container
 
@@ -37,17 +36,19 @@ Once in the container, go into the `tests/fuzzing` folder to compile the fuzzer:
 cd tests/fuzzing
 
 # cmake initialization
-cmake -DBOLOS_SDK=/opt/ledger-secure-sdk -Bbuild -H.
+cmake -DBOLOS_SDK=/opt/ledger-secure-sdk -DCMAKE_C_COMPILER=/usr/bin/clang -Bbuild -S.
 
 # Fuzzer compilation
-make -C build
+cmake --build build
 ```
 
 ### Run
 
 ```console
-./build/fuzz_app_eth
+./build/fuzzer -max_len=8192
 ```
+
+If you want to do a fuzzing campain on more than one core and compute the coverage results, you can use the `local_run.sh` script within the container.
 
 ## Full usage based on `clusterfuzzlite` container
 
@@ -79,5 +80,5 @@ docker run --rm --privileged -e FUZZING_LANGUAGE=c -v "$(realpath .)/tests/fuzzi
 ### Run
 
 ```console
-docker run --rm --privileged -e FUZZING_ENGINE=libfuzzer -e RUN_FUZZER_MODE=interactive -v "$(realpath .)/tests/fuzzing/corpus:/tmp/fuzz_corpus" -v "$(realpath .)/tests/fuzzing/out:/out" -ti gcr.io/oss-fuzz-base/base-runner run_fuzzer fuzz_app_eth
+docker run --rm --privileged -e FUZZING_ENGINE=libfuzzer -e RUN_FUZZER_MODE=interactive -v "$(realpath .)/tests/fuzzing/corpus:/tmp/fuzz_corpus" -v "$(realpath .)/tests/fuzzing/out:/out" -ti gcr.io/oss-fuzz-base/base-runner run_fuzzer fuzzer
 ```

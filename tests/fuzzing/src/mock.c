@@ -1,11 +1,26 @@
+#include <string.h>
 #include <stdlib.h>
 
 #include "cx_errors.h"
 #include "cx_sha256.h"
 #include "cx_sha3.h"
 
+size_t strlcpy(char *dst, const char *src, size_t size) {
+    return strncpy(dst, src, size);
+}
+
+size_t strlcat(char *dst, const char *src, size_t size) {
+    return strncat(dst, src, size);
+}
+
 cx_err_t cx_sha256_init_no_throw(cx_sha256_t *hash) {
     memset(hash, 0, sizeof(cx_sha256_t));
+    return CX_OK;
+}
+
+cx_err_t cx_sha3_init_no_throw(cx_sha3_t *hash PLENGTH(sizeof(cx_sha3_t)), size_t size) {
+    UNUSED(size);
+    memset(hash, 0, sizeof(cx_sha3_t));
     return CX_OK;
 }
 
@@ -67,44 +82,31 @@ int check_signature_with_pubkey(const char *tag,
     return CX_OK;
 }
 
-uint64_t u64_from_BE(const uint8_t *in, uint8_t size) {
-    uint8_t i = 0;
-    uint64_t res = 0;
-
-    while (i < size && i < sizeof(res)) {
-        res <<= 8;
-        res |= in[i];
-        i++;
-    }
-
-    return res;
+void *pic(void *addr) {
+    return addr;
 }
 
-bool u64_to_string(uint64_t src, char *dst, uint8_t dst_size) {
-    // Copy the numbers in ASCII format.
-    uint8_t i = 0;
-    do {
-        // Checking `i + 1` to make sure we have enough space for '\0'.
-        if (i + 1 >= dst_size) {
-            return false;
-        }
-        dst[i] = src % 10 + '0';
-        src /= 10;
-        i++;
-    } while (src);
+cx_err_t cx_math_mult_no_throw(uint8_t *r, const uint8_t *a, const uint8_t *b, size_t len) {
+    UNUSED(r);
+    UNUSED(a);
+    UNUSED(b);
+    UNUSED(len);
+    return CX_OK;
+}
 
-    // Null terminate string
-    dst[i] = '\0';
+void cx_rng_no_throw(uint8_t *buffer, size_t len) {
+    if (len > 0) buffer[len - 1] = 0;
+}
 
-    // Revert the string
-    i--;
-    uint8_t j = 0;
-    while (j < i) {
-        char tmp = dst[i];
-        dst[i] = dst[j];
-        dst[j] = tmp;
-        i--;
-        j++;
-    }
-    return true;
+uint16_t get_public_key(uint8_t *out, uint8_t outLength) {
+    if (outLength > 0) out[outLength - 1] = 0;
+    return 0;
+}
+
+void ui_gcs_cleanup(void) {
+}
+
+size_t cx_hash_sha256(const uint8_t *in, size_t in_len, uint8_t *out, size_t out_len) {
+    if (in_len > 0 && out_len > 0) out[out_len - 1] = in[in_len - 1];
+    return CX_OK;
 }

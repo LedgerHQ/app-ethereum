@@ -1,45 +1,40 @@
-cmake_minimum_required(VERSION 3.10)
-
-if(${CMAKE_VERSION} VERSION_LESS 3.10)
-    cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
-endif()
+cmake_minimum_required(VERSION 3.14)
 
 # project information
-project(Fuzzer
+project(EthereumAppFuzzer
         VERSION 1.0
 	      DESCRIPTION "Eth Fuzzer"
         LANGUAGES C)
 
-set(CMAKE_C_COMPILER clang)
+if (NOT CMAKE_C_COMPILER_ID MATCHES "Clang")
+  message(FATAL_ERROR "Fuzzer needs to be built with Clang")
+endif()
 
-set(CMAKE_BUILD_TYPE "Debug")
+# guard against bad build-type strings
+if (NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "Debug")
+endif()
+
+# default fuzz device target
+if (NOT TARGET_DEVICE)
+  set(TARGET_DEVICE "flex")
+endif()
+
+if (NOT DEFINED BOLOS_SDK)
+  set(BOLOS_SDK /opt/${TARGET_DEVICE}-secure-sdk)
+endif()
 
 # compatible with ClusterFuzzLite
 if (NOT DEFINED ENV{LIB_FUZZING_ENGINE})
-	set(COMPILATION_FLAGS_ "-g -Wall -fsanitize=fuzzer,address,undefined")
+	set(COMPILATION_FLAGS -g -O0 -Wall -Wextra -fsanitize=fuzzer,address,undefined -fprofile-instr-generate -fcoverage-mapping)
 else()
-	set(COMPILATION_FLAGS_ "$ENV{LIB_FUZZING_ENGINE} $ENV{CXXFLAGS}")
+	set(COMPILATION_FLAGS "$ENV{LIB_FUZZING_ENGINE} $ENV{CFLAGS}")
+  separate_arguments(COMPILATION_FLAGS)
 endif()
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-string(REPLACE " " ";" COMPILATION_FLAGS ${COMPILATION_FLAGS_})
-
-# specify C standard
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED True)
-set(CMAKE_C_FLAGS_DEBUG
-    "${CMAKE_C_FLAGS_DEBUG} -Wall -Wextra -Wno-unused-function -DFUZZ -pedantic -g -O0"
-)
 
 # guard against in-source builds
 if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
   message(FATAL_ERROR "In-source builds not allowed. Please make a new directory (called a build directory) and run CMake from there. You may need to remove CMakeCache.txt. ")
-endif()
-
-set(TARGET_DEVICE flex)
-if (NOT DEFINED BOLOS_SDK)
-  message(FATAL_ERROR "BOLOS_SDK environment variable not found.")
 endif()
 
 set(DEFINES
@@ -47,7 +42,7 @@ set(DEFINES
     APPNAME=\"Fuzzing\"
     API_LEVEL=21
     TARGET=\"flex\"
-    TARGET_NAME=\"TARGET_FLEX\"
+    TARGET_NAME=\"TARGET_FUZZ\"
     APPVERSION=\"1.1.0\"
     SDK_NAME=\"ledger-secure-sdk\"
     SDK_VERSION=\"v21.3.3\"
@@ -153,32 +148,64 @@ set(DEFINES
     HAVE_ENUM_VALUE
     HAVE_NFT_SUPPORT
 )
-set(DEFINE ${DEFINES} HAVE_PRINTF PRINTF=printf)
 
 add_compile_definitions(${DEFINES})
 
-FILE(GLOB_RECURSE SDK_STD_SOURCES ${BOLOS_SDK}/lib_standard_app/write.c src/mock.c)
-
+FILE(
+  GLOB_RECURSE SDK_STD_SOURCES 
+  ${BOLOS_SDK}/lib_standard_app/*.c 
+  ${CMAKE_SOURCE_DIR}/../../ethereum-plugin-sdk/src/*.c 
+  ./src/mock.c
+)
+list(
+  REMOVE_ITEM SDK_STD_SOURCES 
+  ${BOLOS_SDK}/lib_standard_app/io.c 
+  ${CMAKE_SOURCE_DIR}/../../ethereum-plugin-sdk/src/main.c 
+  ${BOLOS_SDK}/lib_standard_app/main.c 
+  ${BOLOS_SDK}/lib_standard_app/crypto_helpers.c
+)
 
 include_directories(
   ${CMAKE_SOURCE_DIR}/../../ethereum-plugin-sdk/src/
   ${CMAKE_SOURCE_DIR}/../../src
+  ${CMAKE_SOURCE_DIR}/../../src_features/generic_tx_parser/
+  ${CMAKE_SOURCE_DIR}/../../src_features/provide_enum_value/
   ${CMAKE_SOURCE_DIR}/../../src_features/provideDynamicNetwork/
+  ${CMAKE_SOURCE_DIR}/../../src_features/signTx/
+  ${CMAKE_SOURCE_DIR}/../../src_features/provideTrustedName/
+  ${CMAKE_SOURCE_DIR}/../../src_features/getChallenge/
+  ${CMAKE_SOURCE_DIR}/../../src_features/signMessageEIP712/
   ${BOLOS_SDK}/include
-  ${BOLOS_SDK}/lib_standard_app
   ${BOLOS_SDK}/target/${TARGET_DEVICE}/include
   ${BOLOS_SDK}/lib_cxng/include
   ${BOLOS_SDK}/lib_cxng/src
   ${BOLOS_SDK}/lib_ux_nbgl
   ${BOLOS_SDK}/lib_nbgl/include
-  ${CMAKE_SOURCE_DIR}/src
+  ${BOLOS_SDK}/lib_standard_app/
+  ${CMAKE_SOURCE_DIR}/src/
 )
 
 FILE(GLOB_RECURSE SOURCES
+  ${CMAKE_SOURCE_DIR}/../../src_features/generic_tx_parser/*.c
+  ${CMAKE_SOURCE_DIR}/../../src_features/provideTrustedName/*.c
+  ${CMAKE_SOURCE_DIR}/../../src_features/getChallenge/*.c
+  ${CMAKE_SOURCE_DIR}/../../src_features/provide_enum_value/*.c
   ${CMAKE_SOURCE_DIR}/../../src_features/provideDynamicNetwork/*.c
+  ${CMAKE_SOURCE_DIR}/../../src_features/provideNFTInformation/*.c
+  ${CMAKE_SOURCE_DIR}/../../src/mem.c
+  ${CMAKE_SOURCE_DIR}/../../src/mem_utils.c
+  ${CMAKE_SOURCE_DIR}/../../src/network.c
+  ${CMAKE_SOURCE_DIR}/../../src/tlv.c
+  ${CMAKE_SOURCE_DIR}/../../src/tlv_apdu.c
+  ${CMAKE_SOURCE_DIR}/../../src/uint128.c
+  ${CMAKE_SOURCE_DIR}/../../src/uint256.c
+  ${CMAKE_SOURCE_DIR}/../../src/time_format.c
+  ${CMAKE_SOURCE_DIR}/../../src/uint_common.c
+  ${CMAKE_SOURCE_DIR}/../../src/utils.c
+  ${CMAKE_SOURCE_DIR}/../../src/manage_asset_info.c
   ${CMAKE_SOURCE_DIR}/../../src/hash_bytes.c
 )
 
-add_executable(fuzz_app_eth src/fuzz_app_eth.c ${SDK_STD_SOURCES} ${SOURCES})
-target_compile_options(fuzz_app_eth PUBLIC ${COMPILATION_FLAGS})
-target_link_options(fuzz_app_eth PUBLIC ${COMPILATION_FLAGS})
+add_executable(fuzzer src/fuzzer.c ${SDK_STD_SOURCES} ${SOURCES})
+target_compile_options(fuzzer PRIVATE ${COMPILATION_FLAGS})
+target_link_options(fuzzer PRIVATE ${COMPILATION_FLAGS})

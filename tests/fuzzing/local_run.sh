@@ -4,7 +4,7 @@
 rm -rf build
 
 # Build the fuzzer
-cmake -B build -S . -DCMAKE_C_COMPILER=/usr/bin/clang
+cmake -B build -S . -DCMAKE_C_COMPILER=/usr/bin/clang -DSANITIZER=address
 cmake --build build
 
 # Create the corpus directory if it doesn't exist

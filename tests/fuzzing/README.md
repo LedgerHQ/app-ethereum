@@ -36,7 +36,7 @@ Once in the container, go into the `tests/fuzzing` folder to compile the fuzzer:
 cd tests/fuzzing
 
 # cmake initialization
-cmake -DBOLOS_SDK=/opt/ledger-secure-sdk -DCMAKE_C_COMPILER=/usr/bin/clang -Bbuild -S.
+cmake -DBOLOS_SDK=/opt/ledger-secure-sdk -DCMAKE_C_COMPILER=/usr/bin/clang -DSANITIZER=[address|memory] -B build -S .
 
 # Fuzzer compilation
 cmake --build build
@@ -48,7 +48,7 @@ cmake --build build
 ./build/fuzzer -max_len=8192
 ```
 
-If you want to do a fuzzing campain on more than one core and compute the coverage results, you can use the `local_run.sh` script within the container.
+If you want to do a fuzzing campain on more than one core and compute the coverage results, you can use the `local_run.sh` script within the container (it'll only run the address and UB sanitizers).
 
 ## Full usage based on `clusterfuzzlite` container
 

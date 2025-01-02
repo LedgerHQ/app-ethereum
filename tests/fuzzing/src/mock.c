@@ -5,8 +5,6 @@
 #include "cx_sha256.h"
 #include "cx_sha3.h"
 
-#define explicit_bzero(X, Y) memset_s(X, 0, Y)
-
 /** MemorySanitizer does not wrap explicit_bzero https://github.com/google/sanitizers/issues/1507
  * which results in false positives when running MemorySanitizer.
  */
@@ -69,13 +67,13 @@ size_t strlcat(char *dst, const char *src, size_t size) {
 }
 
 cx_err_t cx_sha256_init_no_throw(cx_sha256_t *hash) {
-    memset(hash, 0, sizeof(cx_sha256_t));
+    memset_s(hash, 0, sizeof(cx_sha256_t));
     return CX_OK;
 }
 
 cx_err_t cx_sha3_init_no_throw(cx_sha3_t *hash PLENGTH(sizeof(cx_sha3_t)), size_t size) {
     UNUSED(size);
-    memset(hash, 0, sizeof(cx_sha3_t));
+    memset_s(hash, 0, sizeof(cx_sha3_t));
     return CX_OK;
 }
 
@@ -87,7 +85,7 @@ cx_err_t cx_hash_no_throw(cx_hash_t *hash,
                           size_t out_len) {
     UNUSED(hash);
     UNUSED(mode);
-    explicit_bzero(out, out_len);  // let's initialize the buffer
+    memset_s(out, 0, out_len);  // let's initialize the buffer
     // if arrays are not empty, read the last element of in and write it in the last element of out
     if (len > 0 && out_len > 0) out[out_len - 1] = in[len - 1];
     return CX_OK;
@@ -103,7 +101,7 @@ cx_err_t cx_keccak_256_hash_iovec(const cx_iovec_t *iovec,
                                   uint8_t digest[static CX_KECCAK_256_SIZE]) {
     UNUSED(iovec);
     UNUSED(iovec_len);
-    explicit_bzero(digest, CX_SHA256_SIZE);
+    memset_s(digest, 0, CX_SHA256_SIZE);
     return CX_OK;
 }
 
@@ -112,7 +110,7 @@ cx_err_t cx_sha256_hash_iovec(const cx_iovec_t *iovec,
                               uint8_t digest[static CX_SHA256_SIZE]) {
     UNUSED(iovec);
     UNUSED(iovec_len);
-    explicit_bzero(digest, CX_SHA256_SIZE);
+    memset_s(digest, 0, CX_SHA256_SIZE);
     return CX_OK;
 }
 
@@ -152,11 +150,11 @@ cx_err_t cx_math_mult_no_throw(uint8_t *r, const uint8_t *a, const uint8_t *b, s
 }
 
 void cx_rng_no_throw(uint8_t *buffer, size_t len) {
-    explicit_bzero(buffer, len);
+    memset_s(buffer, 0, len);
 }
 
 uint16_t get_public_key(uint8_t *out, uint8_t outLength) {
-    explicit_bzero(out, outLength);
+    memset_s(out, 0, outLength);
     return 0;
 }
 
@@ -164,7 +162,7 @@ void ui_gcs_cleanup(void) {
 }
 
 size_t cx_hash_sha256(const uint8_t *in, size_t in_len, uint8_t *out, size_t out_len) {
-    explicit_bzero(out, out_len);  // let's initialize the buffer
+    memset_s(out, 0, out_len);  // let's initialize the buffer
     // if arrays are not empty, read the last element of in and write it in the last element of out
     if (in_len > 0 && out_len > 0) out[out_len - 1] = in[in_len - 1];
     return CX_OK;

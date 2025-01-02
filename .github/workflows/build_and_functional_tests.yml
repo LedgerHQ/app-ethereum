@@ -27,37 +27,9 @@ on:
   pull_request:
 
 jobs:
-  build_application:
-    name: Build application using the reusable workflow
-    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_build.yml@v1
+  job_call_build_and_test:
+    name: Build and test
+    uses: ./.github/workflows/reusable_build_and_functional_tests.yml
     with:
-      upload_app_binaries_artifact: "ragger_elfs"
-      flags: "CAL_TEST_KEY=1 TRUSTED_NAME_TEST_KEY=1 SET_PLUGIN_TEST_KEY=1 NFT_TEST_KEY=1"
-
-  ragger_tests:
-    name: Run ragger tests using the reusable workflow
-    needs: build_application
-    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_ragger_tests.yml@v1
-    with:
-      download_app_binaries_artifact: "ragger_elfs"
-      regenerate_snapshots: ${{ inputs.golden_run == 'Open a PR' }}
-
-  build_clone_app:
-    name: Build Clone app using the reusable workflow
-    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_build.yml@v1
-    with:
-      flags: "CHAIN=thundercore"
-      upload_app_binaries_artifact: "clone_elfs"
-
-  ragger_clone_tests:
-    name: Run ragger Clone tests using the reusable workflow
-    needs:
-      - build_application
-      - build_clone_app
-    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_ragger_tests.yml@v1
-    with:
-      download_app_binaries_artifact: "ragger_elfs"
-      additional_app_binaries_artifact: "clone_elfs"
-      additional_app_binaries_artifact_dir: ./tests/ragger/.test_dependencies/clone/build/
-      test_options: "--with_lib_mode"
+      branch_for_ethereum: ${{ github.ref }}
       regenerate_snapshots: ${{ inputs.golden_run == 'Open a PR' }}

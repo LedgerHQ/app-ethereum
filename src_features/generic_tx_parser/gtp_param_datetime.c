@@ -68,7 +68,7 @@ bool format_param_datetime(const s_param_datetime *param, const char *name) {
     s_parsed_value_collection collec;
     char *buf = strings.tmp.tmp;
     size_t buf_size = sizeof(strings.tmp.tmp);
-    uint8_t time_buf[sizeof(uint32_t)];
+    uint8_t time_buf[sizeof(uint32_t)] = {0};
     time_t timestamp;
     uint256_t block_height;
 

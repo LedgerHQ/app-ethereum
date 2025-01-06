@@ -822,7 +822,7 @@ static bool parse_tlv(const s_tlv_payload *payload,
         {.tag = NFT_ID, .func = &handle_nft_id},
     };
     e_tlv_step step = TLV_TAG;
-    s_tlv_data data;
+    s_tlv_data data = {0};
     size_t offset = 0;
     size_t tag_start_off;
 

@@ -15,6 +15,7 @@
 #ifdef HAVE_LEDGER_PKI
 #include "os_pki.h"
 #endif
+#include "tlv.h"
 
 #define P2_NETWORK_CONFIG 0x00
 #define P2_NETWORK_ICON   0x01
@@ -483,103 +484,6 @@ static void print_network_info(void) {
 }
 
 /**
- * @brief Parse the TLV payload containing the Network configuration.
- *
- * @param[in] data buffer received
- * @param[in] length of the buffer
- * @return APDU Response code
- */
-static uint16_t parse_tlv(const uint8_t *data, uint8_t length) {
-    uint16_t offset = 0;
-    uint16_t field_tag = 0;
-    uint16_t field_len = 0;
-    uint16_t sw = APDU_RESPONSE_INTERNAL_ERROR;
-    uint16_t tag_start_off;
-    s_sig_ctx sig_ctx = {0};
-
-    // Set the current slot here, because the corresponding icon will be received
-    // separately, after the network configuration, and should keep the same slot
-    g_current_slot = (g_current_slot + 1) % MAX_DYNAMIC_NETWORKS;
-
-    // Reset the structures
-    explicit_bzero(&DYNAMIC_NETWORK_INFO[g_current_slot], sizeof(network_info_t));
-#ifdef HAVE_NBGL
-    explicit_bzero(&g_network_icon[g_current_slot], sizeof(network_icon_t));
-#endif
-    // Initialize the hash context
-    cx_sha256_init(&sig_ctx.hash_ctx);
-    // handle TLV payload
-    while (offset != length) {
-        if ((offset + 2) > length) {
-            sw = APDU_RESPONSE_INVALID_DATA;
-            break;
-        }
-        tag_start_off = offset;
-        field_tag = data[offset++];
-        field_len = data[offset++];
-        if ((offset + field_len) > length) {
-            PRINTF("Field length mismatch (%d/%d)!\n", (offset + field_len), length);
-            sw = APDU_RESPONSE_INVALID_DATA;
-            break;
-        }
-        switch (field_tag) {
-            case TAG_STRUCTURE_TYPE:
-                sw = parse_struct_type(data + offset, field_len);
-                break;
-            case TAG_STRUCTURE_VERSION:
-                sw = parse_struct_version(data + offset, field_len);
-                break;
-            case TAG_BLOCKCHAIN_FAMILY:
-                sw = parse_blockchain_family(data + offset, field_len);
-                break;
-            case TAG_CHAIN_ID:
-                sw = parse_chain_id(data + offset, field_len);
-                break;
-            case TAG_NETWORK_NAME:
-                sw = parse_name(data + offset, field_len);
-                break;
-            case TAG_TICKER:
-                sw = parse_ticker(data + offset, field_len);
-                break;
-            case TAG_NETWORK_ICON_HASH:
-#ifdef HAVE_NBGL
-                sw = parse_icon_hash(data + offset, field_len);
-#endif
-                break;
-            case TAG_DER_SIGNATURE:
-                sw = parse_signature(data + offset, field_len, &sig_ctx);
-                break;
-            default:
-                PRINTF("Skipping unknown tag: %d\n", field_tag);
-                sw = APDU_RESPONSE_OK;
-                break;
-        }
-        if (sw != APDU_RESPONSE_OK) {
-            break;
-        }
-        offset += field_len;
-        if (field_tag != TAG_DER_SIGNATURE) {  // the signature wasn't computed on itself
-            hash_nbytes(data + tag_start_off,
-                        (offset - tag_start_off),
-                        (cx_hash_t *) &sig_ctx.hash_ctx);
-        }
-    }
-    if (sw == APDU_RESPONSE_OK) {
-        if (verify_signature(&sig_ctx) == false) {
-            PRINTF("Signature verification failed!\n");
-            sw = APDU_RESPONSE_INVALID_DATA;
-        }
-    }
-    if (sw == APDU_RESPONSE_OK) {
-        print_network_info();
-    } else {
-        // Reset the structure
-        explicit_bzero(&DYNAMIC_NETWORK_INFO[g_current_slot], sizeof(network_info_t));
-    }
-    return sw;
-}
-
-/**
  * @brief Returns the current network configuration.
  *
  * @return APDU length
@@ -603,6 +507,71 @@ static uint16_t handle_get_config(void) {
     G_io_apdu_buffer[0] = nb_networks;
 
     return tx;
+}
+
+static bool handle_dyn_net_struct(const s_tlv_data *data, s_sig_ctx *context) {
+    bool ret;
+
+    switch (data->tag) {
+        case TAG_STRUCTURE_TYPE:
+            ret = parse_struct_type(data->value, data->length);
+            break;
+        case TAG_STRUCTURE_VERSION:
+            ret = parse_struct_version(data->value, data->length);
+            break;
+        case TAG_BLOCKCHAIN_FAMILY:
+            ret = parse_blockchain_family(data->value, data->length);
+            break;
+        case TAG_CHAIN_ID:
+            ret = parse_chain_id(data->value, data->length);
+            break;
+        case TAG_NETWORK_NAME:
+            ret = parse_name(data->value, data->length);
+            break;
+        case TAG_TICKER:
+            ret = parse_ticker(data->value, data->length);
+            break;
+        case TAG_NETWORK_ICON_HASH:
+#ifdef HAVE_NBGL
+            ret = parse_icon_hash(data->value, data->length);
+#else
+            ret = true;
+#endif
+            break;
+        case TAG_DER_SIGNATURE:
+            ret = parse_signature(data->value, data->length, context);
+            break;
+        default:
+            PRINTF(TLV_TAG_ERROR_MSG, data->tag);
+            ret = false;
+    }
+    if (ret && (data->tag != TAG_DER_SIGNATURE)) {
+        hash_nbytes(data->raw, data->raw_size, (cx_hash_t *) &context->hash_ctx);
+    }
+    return ret;
+}
+
+static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
+    s_sig_ctx ctx = {0};
+
+    // Set the current slot here, because the corresponding icon will be received
+    // separately, after the network configuration, and should keep the same slot
+    g_current_slot = (g_current_slot + 1) % MAX_DYNAMIC_NETWORKS;
+
+    // Reset the structures
+    explicit_bzero(&DYNAMIC_NETWORK_INFO[g_current_slot], sizeof(network_info_t));
+#ifdef HAVE_NBGL
+    explicit_bzero(&g_network_icon[g_current_slot], sizeof(network_icon_t));
+#endif
+    // Initialize the hash context
+    cx_sha256_init(&ctx.hash_ctx);
+    if (!tlv_parse(payload, size, (f_tlv_data_handler) &handle_dyn_net_struct, &ctx) ||
+        !verify_signature(&ctx)) {
+        explicit_bzero(&DYNAMIC_NETWORK_INFO[g_current_slot], sizeof(network_info_t));
+        return false;
+    }
+    print_network_info();
+    return true;
 }
 
 /**
@@ -629,7 +598,11 @@ uint16_t handleNetworkConfiguration(uint8_t p1,
                 sw = APDU_RESPONSE_INVALID_P1_P2;
                 break;
             }
-            sw = parse_tlv(data, length);
+            if (handle_tlv_payload(data, length)) {
+                sw = APDU_RESPONSE_OK;
+            } else {
+                sw = APDU_RESPONSE_INVALID_DATA;
+            }
             break;
 
         case P2_NETWORK_ICON:

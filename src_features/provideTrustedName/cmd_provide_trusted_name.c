@@ -613,7 +613,7 @@ static bool verify_signature(const s_sig_ctx *sig_ctx) {
     CX_CHECK(
         cx_hash_no_throw((cx_hash_t *) &sig_ctx->hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH));
 
-    CX_CHECK(check_signature_with_pubkey("Domain Name",
+    CX_CHECK(check_signature_with_pubkey("Trusted Name",
                                          hash,
                                          sizeof(hash),
                                          pk,

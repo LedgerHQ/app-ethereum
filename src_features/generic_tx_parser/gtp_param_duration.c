@@ -52,7 +52,8 @@ bool handle_param_duration_struct(const s_tlv_data *data, s_param_duration_conte
 }
 
 bool format_param_duration(const s_param_duration *param, const char *name) {
-    s_parsed_value_collection collec;
+    bool ret = true;
+    s_parsed_value_collection collec = {0};
     char *buf = strings.tmp.tmp;
     size_t buf_size = sizeof(strings.tmp.tmp);
     uint16_t days;
@@ -63,45 +64,48 @@ bool format_param_duration(const s_param_duration *param, const char *name) {
     uint8_t raw_buf[sizeof(remaining)] = {0};
     int off;
 
-    if (!value_get(&param->value, &collec)) {
-        return false;
+    if ((ret = value_get(&param->value, &collec))) {
+        for (int i = 0; i < collec.size; ++i) {
+            off = 0;
+            buf_shrink_expand(collec.value[i].ptr,
+                              collec.value[i].length,
+                              raw_buf,
+                              sizeof(raw_buf));
+            remaining = read_u64_be(raw_buf, 0);
+
+            days = remaining / SECONDS_IN_DAY;
+            if (days > 0) {
+                snprintf(&buf[off], buf_size - off, "%dd", days);
+                off = strlen(buf);
+            }
+            remaining %= SECONDS_IN_DAY;
+
+            hours = remaining / SECONDS_IN_HOUR;
+            if (hours > 0) {
+                snprintf(&buf[off], buf_size - off, "%02dh", hours);
+                off = strlen(buf);
+            }
+            remaining %= SECONDS_IN_HOUR;
+
+            minutes = remaining / SECONDS_IN_MINUTE;
+            if (minutes > 0) {
+                snprintf(&buf[off], buf_size - off, "%02dm", minutes);
+                off = strlen(buf);
+            }
+            remaining %= SECONDS_IN_MINUTE;
+
+            seconds = (uint8_t) remaining;
+            if ((seconds > 0) || (off == 0)) {
+                snprintf(&buf[off], buf_size - off, "%02ds", seconds);
+            }
+
+            if (!(ret = add_to_field_table(PARAM_TYPE_DURATION, name, buf))) {
+                break;
+            }
+        }
     }
-    for (int i = 0; i < collec.size; ++i) {
-        off = 0;
-        buf_shrink_expand(collec.value[i].ptr, collec.value[i].length, raw_buf, sizeof(raw_buf));
-        remaining = read_u64_be(raw_buf, 0);
-
-        days = remaining / SECONDS_IN_DAY;
-        if (days > 0) {
-            snprintf(&buf[off], buf_size - off, "%dd", days);
-            off = strlen(buf);
-        }
-        remaining %= SECONDS_IN_DAY;
-
-        hours = remaining / SECONDS_IN_HOUR;
-        if (hours > 0) {
-            snprintf(&buf[off], buf_size - off, "%02dh", hours);
-            off = strlen(buf);
-        }
-        remaining %= SECONDS_IN_HOUR;
-
-        minutes = remaining / SECONDS_IN_MINUTE;
-        if (minutes > 0) {
-            snprintf(&buf[off], buf_size - off, "%02dm", minutes);
-            off = strlen(buf);
-        }
-        remaining %= SECONDS_IN_MINUTE;
-
-        seconds = (uint8_t) remaining;
-        if ((seconds > 0) || (off == 0)) {
-            snprintf(&buf[off], buf_size - off, "%02ds", seconds);
-        }
-
-        if (!add_to_field_table(PARAM_TYPE_DURATION, name, buf)) {
-            return false;
-        }
-    }
-    return true;
+    value_cleanup(&param->value, &collec);
+    return ret;
 }
 
 #endif  // HAVE_GENERIC_TX_PARSER

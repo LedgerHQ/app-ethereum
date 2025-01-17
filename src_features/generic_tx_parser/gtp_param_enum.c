@@ -59,32 +59,37 @@ bool handle_param_enum_struct(const s_tlv_data *data, s_param_enum_context *cont
 }
 
 bool format_param_enum(const s_param_enum *param, const char *name) {
+    bool ret;
     uint64_t chain_id;
-    s_parsed_value_collection collec;
+    s_parsed_value_collection collec = {0};
     const char *enum_name;
     uint8_t value;
     const uint8_t *selector;
 
-    if (!value_get(&param->value, &collec)) {
-        return false;
-    }
-    chain_id = get_tx_chain_id();
-    for (int i = 0; i < collec.size; ++i) {
-        if (collec.value[i].length == 0) return false;
-        value = collec.value[i].ptr[collec.value[i].length - 1];
-        if ((selector = calldata_get_selector()) == NULL) {
-            return false;
+    if ((ret = value_get(&param->value, &collec))) {
+        chain_id = get_tx_chain_id();
+        for (int i = 0; i < collec.size; ++i) {
+            if (collec.value[i].length == 0) {
+                ret = false;
+                break;
+            }
+            value = collec.value[i].ptr[collec.value[i].length - 1];
+            if ((selector = calldata_get_selector()) == NULL) {
+                ret = false;
+                break;
+            }
+            enum_name = get_matching_enum_name(&chain_id,
+                                               txContext.content->destination,
+                                               selector,
+                                               param->id,
+                                               value);
+            if (!(ret = add_to_field_table(PARAM_TYPE_ENUM, name, enum_name))) {
+                break;
+            }
         }
-        enum_name = get_matching_enum_name(&chain_id,
-                                           txContext.content->destination,
-                                           selector,
-                                           param->id,
-                                           value);
-        if (!add_to_field_table(PARAM_TYPE_ENUM, name, enum_name)) {
-            return false;
-        }
     }
-    return true;
+    value_cleanup(&param->value, &collec);
+    return ret;
 }
 
 #endif  // HAVE_ENUM_VALUE

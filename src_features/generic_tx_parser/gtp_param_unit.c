@@ -81,33 +81,42 @@ bool handle_param_unit_struct(const s_tlv_data *data, s_param_unit_context *cont
 }
 
 bool format_param_unit(const s_param_unit *param, const char *name) {
-    s_parsed_value_collection collec;
+    bool ret;
+    s_parsed_value_collection collec = {0};
     char *buf = strings.tmp.tmp;
     size_t buf_size = sizeof(strings.tmp.tmp);
     char tmp[80];
     size_t off;
 
-    if (!value_get(&param->value, &collec)) {
-        return false;
-    }
-    for (int i = 0; i < collec.size; ++i) {
-        if (!uint256_to_decimal(collec.value[i].ptr, collec.value[i].length, tmp, sizeof(tmp))) {
-            return false;
-        }
-        if (!adjustDecimals(tmp, strnlen(tmp, sizeof(tmp)), buf, buf_size, param->decimals)) {
-            return false;
-        }
-        if (param->base[0] == '\0') {
-            return false;
-        }
-        off = strlen(buf);
-        snprintf(&buf[off], buf_size - off, " %s", param->base);
+    if ((ret = value_get(&param->value, &collec))) {
+        for (int i = 0; i < collec.size; ++i) {
+            if (!(ret = uint256_to_decimal(collec.value[i].ptr,
+                                           collec.value[i].length,
+                                           tmp,
+                                           sizeof(tmp)))) {
+                break;
+            }
+            if (!(ret = adjustDecimals(tmp,
+                                       strnlen(tmp, sizeof(tmp)),
+                                       buf,
+                                       buf_size,
+                                       param->decimals))) {
+                break;
+            }
+            if (param->base[0] == '\0') {
+                ret = false;
+                break;
+            }
+            off = strlen(buf);
+            snprintf(&buf[off], buf_size - off, " %s", param->base);
 
-        if (!add_to_field_table(PARAM_TYPE_UNIT, name, buf)) {
-            return false;
+            if (!(ret = add_to_field_table(PARAM_TYPE_UNIT, name, buf))) {
+                break;
+            }
         }
     }
-    return true;
+    value_cleanup(&param->value, &collec);
+    return ret;
 }
 
 #endif  // HAVE_GENERIC_TX_PARSER

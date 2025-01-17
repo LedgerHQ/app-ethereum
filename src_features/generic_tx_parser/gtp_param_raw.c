@@ -146,42 +146,42 @@ static bool format_string(const s_value *def,
 }
 
 bool format_param_raw(const s_param_raw *param, const char *name) {
-    bool ret = false;
-    s_parsed_value_collection collec;
+    bool ret;
+    s_parsed_value_collection collec = {0};
     char *buf = strings.tmp.tmp;
     size_t buf_size = sizeof(strings.tmp.tmp);
 
-    if (!value_get(&param->value, &collec)) {
-        return false;
-    }
-    for (int i = 0; i < collec.size; ++i) {
-        switch (param->value.type_family) {
-            case TF_UINT:
-                ret = format_uint(&param->value, &collec.value[i], buf, buf_size);
-                break;
-            case TF_INT:
-                ret = format_int(&param->value, &collec.value[i], buf, buf_size);
-                break;
-            case TF_ADDRESS:
-                ret = format_addr(&param->value, &collec.value[i], buf, buf_size);
-                break;
-            case TF_BOOL:
-                ret = format_bool(&param->value, &collec.value[i], buf, buf_size);
-                break;
-            case TF_BYTES:
-                ret = format_bytes(&param->value, &collec.value[i], buf, buf_size);
-                break;
-            case TF_STRING:
-                ret = format_string(&param->value, &collec.value[i], buf, buf_size);
-                break;
-            case TF_UFIXED:
-            case TF_FIXED:
-            default:
-                ret = false;
+    if ((ret = value_get(&param->value, &collec))) {
+        for (int i = 0; i < collec.size; ++i) {
+            switch (param->value.type_family) {
+                case TF_UINT:
+                    ret = format_uint(&param->value, &collec.value[i], buf, buf_size);
+                    break;
+                case TF_INT:
+                    ret = format_int(&param->value, &collec.value[i], buf, buf_size);
+                    break;
+                case TF_ADDRESS:
+                    ret = format_addr(&param->value, &collec.value[i], buf, buf_size);
+                    break;
+                case TF_BOOL:
+                    ret = format_bool(&param->value, &collec.value[i], buf, buf_size);
+                    break;
+                case TF_BYTES:
+                    ret = format_bytes(&param->value, &collec.value[i], buf, buf_size);
+                    break;
+                case TF_STRING:
+                    ret = format_string(&param->value, &collec.value[i], buf, buf_size);
+                    break;
+                case TF_UFIXED:
+                case TF_FIXED:
+                default:
+                    ret = false;
+            }
+            if (ret) ret = add_to_field_table(PARAM_TYPE_RAW, name, buf);
+            if (!ret) break;
         }
-        if (ret) ret = add_to_field_table(PARAM_TYPE_RAW, name, buf);
-        if (!ret) break;
     }
+    value_cleanup(&param->value, &collec);
     return ret;
 }
 

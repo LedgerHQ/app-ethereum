@@ -72,7 +72,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 7000, .name = "ZetaChain", .ticker = "ZETA"},
     {.chain_id = 7171, .name = "Bitrock Mainnet", .ticker = "BROCK"},
     {.chain_id = 7341, .name = "Shyft", .ticker = "SHFT"},
-    {.chain_id = 8217, .name = "Klaytn Cypress", .ticker = "KLAY"},
+    {.chain_id = 8217, .name = "Kaia Mainnet", .ticker = "KAIA"},
     {.chain_id = 8453, .name = "Base", .ticker = "ETH"},
     {.chain_id = 9001, .name = "Evmos", .ticker = "EVMOS"},
     {.chain_id = 10200, .name = "Chiado", .ticker = "xDAI"},

@@ -59,7 +59,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 1818, .name = "Cube", .ticker = "CUBE"},
     {.chain_id = 1868, .name = "Soneium Mainnet", .ticker = "ETH"},
     {.chain_id = 1907, .name = "Bitcichain", .ticker = "BITCI"},
-    {.chain_id = 1946, .name = "Soneium Testnet Minato", .ticket = "ETH"},
+    {.chain_id = 1946, .name = "Soneium Testnet Minato", .ticker = "ETH"},
     {.chain_id = 2222, .name = "Kava EVM", .ticker = "KAVA"},
     {.chain_id = 3776, .name = "Astar zkEVM", .ticker = "ETH"},
     {.chain_id = 4201, .name = "LUKSO Testnet", .ticker = "LYXt"},

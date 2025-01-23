@@ -5,6 +5,7 @@
 #include "cx.h"
 #include "apdu_constants.h"
 #include "mem.h"
+#include "mem_utils.h"
 #include "gtp_tx_info.h"
 #include "tlv.h"
 #include "tlv_apdu.h"
@@ -12,6 +13,7 @@
 #include "gtp_field_table.h"
 
 extern cx_sha3_t hash_ctx;
+static uint8_t g_tx_info_alignment;
 
 static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_free) {
     s_tx_info_ctx ctx = {0};
@@ -45,6 +47,7 @@ uint16_t handle_tx_info(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *paylo
             return APDU_RESPONSE_CONDITION_NOT_SATISFIED;
         }
 
+        g_tx_info_alignment = mem_align(__alignof__(*g_tx_info));
         if ((g_tx_info = mem_alloc(sizeof(*g_tx_info))) == NULL) {
             return APDU_RESPONSE_INSUFFICIENT_MEMORY;
         }
@@ -66,6 +69,7 @@ void gcs_cleanup(void) {
     if (g_tx_info != NULL) {
         mem_dealloc(sizeof(*g_tx_info));
         g_tx_info = NULL;
+        mem_dealloc(g_tx_info_alignment);
     }
     calldata_cleanup();
 }

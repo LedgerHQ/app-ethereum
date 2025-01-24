@@ -281,14 +281,14 @@ bool verify_tx_info_struct(const s_tx_info_ctx *context) {
         return false;
     }
 
-    // TODO: change to LEDGER_CALLDATA_DESCRIPTOR key once available
     if (check_signature_with_pubkey("TX info",
                                     hash,
                                     sizeof(hash),
-                                    LEDGER_SIGNATURE_PUBLIC_KEY,
-                                    sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
+                                    NULL,
+                                    0,
 #ifdef HAVE_LEDGER_PKI
-                                    CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META,
+                                    // TODO: change once SDK has the enum value for this
+                                    0x0b,
 #endif
                                     (uint8_t *) context->tx_info->signature,
                                     context->tx_info->signature_len) != CX_OK) {

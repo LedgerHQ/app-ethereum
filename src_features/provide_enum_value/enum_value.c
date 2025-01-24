@@ -150,14 +150,14 @@ bool verify_enum_value_struct(const s_enum_value_ctx *context) {
         PRINTF("Could not finalize struct hash!\n");
         return false;
     }
-    // TODO: change to LEDGER_CALLDATA_DESCRIPTOR key once available
     if (check_signature_with_pubkey("enum value",
                                     hash,
                                     sizeof(hash),
-                                    LEDGER_SIGNATURE_PUBLIC_KEY,
-                                    sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
+                                    NULL,
+                                    0,
 #ifdef HAVE_LEDGER_PKI
-                                    CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META,
+                                    // TODO: change once SDK has the enum value for this
+                                    0x0b,
 #endif
                                     (uint8_t *) context->enum_value.signature,
                                     context->enum_value.signature_length) != CX_OK) {

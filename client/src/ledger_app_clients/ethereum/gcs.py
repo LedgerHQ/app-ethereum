@@ -67,7 +67,7 @@ class TxInfo():
             payload += format_tlv(0x0a, self.deploy_date)
         signature = self.signature
         if signature is None:
-            signature = sign_data(Key.CAL, payload)
+            signature = sign_data(Key.CALLDATA, payload)
         payload += format_tlv(0xff, signature)
         return payload
 

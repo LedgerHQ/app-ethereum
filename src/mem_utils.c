@@ -37,6 +37,22 @@ char *mem_alloc_and_format_uint(uint32_t value, uint8_t *const length) {
 }
 
 /**
+ * Align memory by a given value
+ *
+ * @param[in] alignment given alignment value
+ * @return size of the padding required for proper alignment
+ */
+uint8_t mem_align(size_t alignment) {
+    uint8_t diff = (uintptr_t) mem_alloc(0) % alignment;
+
+    if (diff > 0) {
+        diff = alignment - diff;
+        mem_alloc(diff);
+    }
+    return diff;
+}
+
+/**
  * Allocate and align, required when dealing with pointers of multi-bytes data
  * like structures that will be dereferenced at runtime.
  *
@@ -46,14 +62,7 @@ char *mem_alloc_and_format_uint(uint32_t value, uint8_t *const length) {
  * @return pointer to the memory area, \ref NULL if the allocation failed
  */
 void *mem_alloc_and_align(size_t size, size_t alignment) {
-    uint8_t align_diff = (uintptr_t) mem_alloc(0) % alignment;
-
-    if (align_diff > 0)  // alignment needed
-    {
-        if (mem_alloc(alignment - align_diff) == NULL) {
-            return NULL;
-        }
-    }
+    mem_align(alignment);
     return mem_alloc(size);
 }
 

@@ -74,7 +74,8 @@ bool handle_param_trusted_name_struct(const s_tlv_data *data,
 }
 
 bool format_param_trusted_name(const s_param_trusted_name *param, const char *name) {
-    s_parsed_value_collection values;
+    bool ret;
+    s_parsed_value_collection values = {0};
     char *buf = strings.tmp.tmp;
     size_t buf_size = sizeof(strings.tmp.tmp);
     uint64_t chain_id;
@@ -82,29 +83,29 @@ bool format_param_trusted_name(const s_param_trusted_name *param, const char *na
     const char *tname;
     e_param_type param_type;
 
-    if (!value_get(&param->value, &values)) {
-        return false;
-    }
-    chain_id = get_tx_chain_id();
-    for (int i = 0; i < values.size; ++i) {
-        buf_shrink_expand(values.value[i].ptr, values.value[i].length, addr, sizeof(addr));
-        if ((tname = get_trusted_name(param->type_count,
-                                      param->types,
-                                      param->source_count,
-                                      param->sources,
-                                      &chain_id,
-                                      addr)) != NULL) {
-            strlcpy(buf, tname, buf_size);
-            param_type = PARAM_TYPE_TRUSTED_NAME;
-        } else {
-            getEthDisplayableAddress(addr, buf, buf_size, chainConfig->chainId);
-            param_type = PARAM_TYPE_RAW;
+    if ((ret = value_get(&param->value, &values))) {
+        chain_id = get_tx_chain_id();
+        for (int i = 0; i < values.size; ++i) {
+            buf_shrink_expand(values.value[i].ptr, values.value[i].length, addr, sizeof(addr));
+            if ((tname = get_trusted_name(param->type_count,
+                                          param->types,
+                                          param->source_count,
+                                          param->sources,
+                                          &chain_id,
+                                          addr)) != NULL) {
+                strlcpy(buf, tname, buf_size);
+                param_type = PARAM_TYPE_TRUSTED_NAME;
+            } else {
+                getEthDisplayableAddress(addr, buf, buf_size, chainConfig->chainId);
+                param_type = PARAM_TYPE_RAW;
+            }
+            if (!(ret = add_to_field_table(param_type, name, buf))) {
+                break;
+            }
         }
-        if (!add_to_field_table(param_type, name, buf)) {
-            return false;
-        }
     }
-    return true;
+    value_cleanup(&param->value, &values);
+    return ret;
 }
 
 #endif  // HAVE_TRUSTED_NAME

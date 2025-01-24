@@ -53,5 +53,6 @@ typedef struct {
 
 bool handle_value_struct(const s_tlv_data *data, s_value_context *context);
 bool value_get(const s_value *value, s_parsed_value_collection *collection);
+void value_cleanup(const s_value *value, const s_parsed_value_collection *collection);
 
 #endif  // !GTP_VALUE_H_

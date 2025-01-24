@@ -65,40 +65,38 @@ bool handle_param_datetime_struct(const s_tlv_data *data, s_param_datetime_conte
 }
 
 bool format_param_datetime(const s_param_datetime *param, const char *name) {
-    s_parsed_value_collection collec;
+    bool ret;
+    s_parsed_value_collection collec = {0};
     char *buf = strings.tmp.tmp;
     size_t buf_size = sizeof(strings.tmp.tmp);
     uint8_t time_buf[sizeof(uint32_t)] = {0};
     time_t timestamp;
     uint256_t block_height;
 
-    if (!value_get(&param->value, &collec)) {
-        return false;
-    }
-    for (int i = 0; i < collec.size; ++i) {
-        switch (param->type) {
-            case DT_UNIX:
+    if ((ret = value_get(&param->value, &collec))) {
+        for (int i = 0; i < collec.size; ++i) {
+            if (param->type == DT_UNIX) {
                 buf_shrink_expand(collec.value[i].ptr,
                                   collec.value[i].length,
                                   time_buf,
                                   sizeof(time_buf));
                 timestamp = read_u32_be(time_buf, 0);
-                if (!time_format_to_utc(&timestamp, buf, buf_size)) {
-                    return false;
+                if (!(ret = time_format_to_utc(&timestamp, buf, buf_size))) {
+                    break;
                 }
-                break;
-            case DT_BLOCKHEIGHT:
+            } else if (param->type == DT_BLOCKHEIGHT) {
                 convertUint256BE(collec.value[i].ptr, collec.value[i].length, &block_height);
-                if (!tostring256(&block_height, 10, buf, buf_size)) {
-                    return false;
+                if (!(ret = tostring256(&block_height, 10, buf, buf_size))) {
+                    break;
                 }
+            }
+            if (!(ret = add_to_field_table(PARAM_TYPE_DATETIME, name, buf))) {
                 break;
-        }
-        if (!add_to_field_table(PARAM_TYPE_DATETIME, name, buf)) {
-            return false;
+            }
         }
     }
-    return true;
+    value_cleanup(&param->value, &collec);
+    return ret;
 }
 
 #endif  // HAVE_GENERIC_TX_PARSER

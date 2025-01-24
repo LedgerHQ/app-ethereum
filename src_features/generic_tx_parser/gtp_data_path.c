@@ -2,10 +2,12 @@
 
 #include <string.h>  // memcpy / explicit_bzero
 #include "os_print.h"
+#include "os_math.h"  // MIN
 #include "gtp_data_path.h"
 #include "read.h"
 #include "utils.h"
 #include "calldata.h"
+#include "mem.h"
 
 enum {
     TAG_VERSION = 0x00,
@@ -141,6 +143,8 @@ static bool path_leaf(const s_leaf_args *leaf,
                       s_parsed_value_collection *collection) {
     uint8_t buf[sizeof(uint16_t)];
     const uint8_t *chunk;
+    uint8_t *leaf_buf;
+    uint8_t cpy_length;
 
     if (collection->size > MAX_VALUE_COLLECTION_SIZE) {
         return false;
@@ -148,27 +152,38 @@ static bool path_leaf(const s_leaf_args *leaf,
 
     switch (leaf->type) {
         case LEAF_TYPE_STATIC:
-            collection->value[collection->size].length = CALLDATA_CHUNK_SIZE;
+            collection->value[collection->size].size = CALLDATA_CHUNK_SIZE;
             break;
 
         case LEAF_TYPE_DYNAMIC:
             if ((chunk = calldata_get_chunk(*offset)) == NULL) {
                 return false;
             }
-            // TODO: properly handle multi-chunk dynamic values once calldata compression
-            // is implemented
             buf_shrink_expand(chunk, CALLDATA_CHUNK_SIZE, buf, sizeof(buf));
-            collection->value[collection->size].length = read_u16_be(buf, 0);
+            collection->value[collection->size].size = read_u16_be(buf, 0);
             *offset += 1;
             break;
 
         default:
             return false;
     }
-    if ((chunk = calldata_get_chunk(*offset)) == NULL) {
+    collection->value[collection->size].length = collection->value[collection->size].size;
+    collection->value[collection->size].offset = 0;
+    if ((leaf_buf = mem_rev_alloc(collection->value[collection->size].length)) == NULL) {
         return false;
     }
-    collection->value[collection->size].ptr = chunk;
+    for (int chunk_idx = 0;
+         (chunk_idx * CALLDATA_CHUNK_SIZE) < collection->value[collection->size].length;
+         ++chunk_idx) {
+        if ((chunk = calldata_get_chunk(*offset + chunk_idx)) == NULL) {
+            return false;
+        }
+        cpy_length =
+            MIN(CALLDATA_CHUNK_SIZE,
+                collection->value[collection->size].length - (chunk_idx * CALLDATA_CHUNK_SIZE));
+        memcpy(leaf_buf + (chunk_idx * CALLDATA_CHUNK_SIZE), chunk, cpy_length);
+    }
+    collection->value[collection->size].ptr = leaf_buf;
     collection->size += 1;
     return true;
 }
@@ -200,6 +215,7 @@ static bool path_slice(const s_slice_args *slice, s_parsed_value_collection *col
     }
     collection->value[collection->size - 1].ptr += start;
     collection->value[collection->size - 1].length = (end - start);
+    collection->value[collection->size - 1].offset += start;
     return true;
 }
 
@@ -306,6 +322,12 @@ bool data_path_get(const s_data_path *data_path, s_parsed_value_collection *coll
         arrays_update(&arinf);
     } while (arinf.depth > 0);
     return true;
+}
+
+void data_path_cleanup(const s_parsed_value_collection *collection) {
+    for (int i = 0; i < collection->size; ++i) {
+        mem_rev_dealloc(collection->value[i].size);
+    }
 }
 
 #endif  // HAVE_GENERIC_TX_PARSER

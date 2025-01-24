@@ -4,8 +4,10 @@
 #include <stdint.h>
 
 typedef struct {
-    uint16_t length;
     const uint8_t *ptr;
+    uint16_t size;    // allocated size
+    uint16_t offset;  // slice
+    uint16_t length;  // slice
 } s_parsed_value;
 
 #define MAX_VALUE_COLLECTION_SIZE 16

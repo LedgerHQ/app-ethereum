@@ -15,13 +15,15 @@
 #define SIZE_MEM_BUFFER 10240
 
 static uint8_t mem_buffer[SIZE_MEM_BUFFER];
-static size_t mem_idx;
+static uint16_t mem_idx;
+static uint16_t mem_rev_idx;
 
 /**
  * Initializes the memory buffer index
  */
 void mem_init(void) {
     mem_idx = 0;
+    mem_rev_idx = 0;
 }
 
 /**
@@ -42,7 +44,7 @@ void mem_reset(void) {
  */
 void *mem_alloc(size_t size) {
     // Buffer exceeded
-    if ((mem_idx + size) > sizeof(mem_buffer)) {
+    if ((mem_idx + size) > (sizeof(mem_buffer) - mem_rev_idx)) {
         PRINTF("Error: mem_alloc(%u) failed!\n", size);
         return NULL;
     }
@@ -62,6 +64,37 @@ void mem_dealloc(size_t size) {
         mem_idx = 0;
     } else {
         mem_idx -= size;
+    }
+}
+
+/**
+ * Same as \ref mem_alloc but in reverse
+ *
+ * @param[in] size Requested allocation size in bytes
+ * @return Allocated memory pointer; \ref NULL if not enough space left.
+ */
+void *mem_rev_alloc(size_t size) {
+    // Buffer exceeded
+    if ((sizeof(mem_buffer) - (mem_rev_idx + size)) < mem_idx) {
+        PRINTF("Error: mem_rev_alloc(%u) failed!\n", size);
+        return NULL;
+    }
+    mem_rev_idx += size;
+    return &mem_buffer[sizeof(mem_buffer) - mem_rev_idx];
+}
+
+/**
+ * Same as \ref mem_dealloc but in reverse
+ *
+ * @param[in] size Requested deallocation size in bytes
+ */
+void mem_rev_dealloc(size_t size) {
+    // More than is already allocated
+    if (size > mem_rev_idx) {
+        PRINTF("Warning: mem_rev_dealloc(%u) with a value larger than allocated!\n", size);
+        mem_rev_idx = 0;
+    } else {
+        mem_rev_idx -= size;
     }
 }
 

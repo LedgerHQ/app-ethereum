@@ -67,7 +67,7 @@ def test_get_pk(backend: BackendInterface,
     else:
         name = ""
 
-    if name:
+    if (app_client._firmware != Firmware.NANOS) and name:
         app_client.provide_network_information(name, ticker, chain, bytes.fromhex(icon))
 
     with app_client.get_public_addr(chaincode=with_chaincode, chain_id=chain):

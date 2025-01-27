@@ -62,6 +62,12 @@ ifneq ($(TARGET_NAME),TARGET_NANOS)
     endif
 endif
 
+# Dynamic networks
+ifneq ($(TARGET_NAME),TARGET_NANOS)
+    DEFINES += HAVE_DYNAMIC_NETWORKS
+endif
+
+
 # Check features incompatibilities
 # --------------------------------
 # NFTs

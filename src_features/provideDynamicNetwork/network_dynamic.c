@@ -435,34 +435,26 @@ static uint16_t parse_signature(const uint8_t *data, uint16_t field_len, s_sig_c
  */
 static bool verify_signature(s_sig_ctx *sig_ctx) {
     uint8_t hash[INT256_LENGTH];
-    cx_err_t error = CX_INTERNAL_ERROR;
-    bool ret_code = false;
 
-    CX_CHECK(
-        cx_hash_no_throw((cx_hash_t *) &sig_ctx->hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH));
+    if (cx_hash_no_throw((cx_hash_t *) &sig_ctx->hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH) !=
+        CX_OK) {
+        return false;
+    }
 
+    if (check_signature_with_pubkey("Dynamic Network",
+                                    hash,
+                                    sizeof(hash),
+                                    NULL,
+                                    0,
 #ifdef HAVE_LEDGER_PKI
-    CX_CHECK(check_signature_with_pubkey("Dynamic Network",
-                                         hash,
-                                         sizeof(hash),
-                                         LEDGER_SIGNATURE_PUBLIC_KEY,
-                                         sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
-                                         CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META,
-                                         (uint8_t *) (sig_ctx->sig),
-                                         sig_ctx->sig_size));
-#else
-    CX_CHECK(check_signature_with_pubkey("Dynamic Network",
-                                         hash,
-                                         sizeof(hash),
-                                         LEDGER_SIGNATURE_PUBLIC_KEY,
-                                         sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
-                                         (uint8_t *) (sig_ctx->sig),
-                                         sig_ctx->sig_size));
+                                    // TODO: change once SDK has the enum value for this
+                                    0x0c,
 #endif
-
-    ret_code = true;
-end:
-    return ret_code;
+                                    (uint8_t *) (sig_ctx->sig),
+                                    sig_ctx->sig_size) != CX_OK) {
+        return false;
+    }
+    return true;
 }
 
 /**

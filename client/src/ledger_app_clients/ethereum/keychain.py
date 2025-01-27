@@ -13,6 +13,7 @@ class Key(Enum):
     SET_PLUGIN = auto()
     NFT = auto()
     CALLDATA = auto()
+    NETWORK = auto()
 
 
 _keys: dict[Key, SigningKey] = dict()

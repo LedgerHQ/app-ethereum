@@ -1,3 +1,5 @@
+#ifdef HAVE_DYNAMIC_NETWORKS
+
 #include <string.h>
 #include <ctype.h>
 #include "os_utils.h"
@@ -629,3 +631,5 @@ uint16_t handleNetworkConfiguration(uint8_t p1,
 
     return sw;
 }
+
+#endif  // HAVE_DYNAMIC_NETWORKS

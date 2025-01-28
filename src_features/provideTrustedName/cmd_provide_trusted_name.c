@@ -63,7 +63,7 @@ typedef enum {
     NFT_ID = 0x72,
 } e_tlv_tag;
 
-typedef enum { TN_KEY_ID_DOMAIN_SVC = 0x03, TN_KEY_ID_CAL = 0x06 } e_tn_key_id;
+typedef enum { TN_KEY_ID_DOMAIN_SVC = 0x07, TN_KEY_ID_CAL = 0x09 } e_tn_key_id;
 
 typedef struct {
     bool valid;

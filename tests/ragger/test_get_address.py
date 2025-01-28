@@ -46,7 +46,8 @@ def test_get_pk_rejected(backend: BackendInterface,
     assert e.value.status == StatusWord.CONDITION_NOT_SATISFIED
 
 
-def test_get_pk(backend: BackendInterface,
+def test_get_pk(firmware: Firmware,
+                backend: BackendInterface,
                 scenario_navigator: NavigateWithScenario,
                 with_chaincode: bool,
                 chain: Optional[int]):
@@ -66,8 +67,10 @@ def test_get_pk(backend: BackendInterface,
         # pylint: enable=line-too-long
     else:
         name = ""
+        ticker = ""
+        icon = ""
 
-    if (app_client._firmware != Firmware.NANOS) and name:
+    if (firmware != Firmware.NANOS) and name:
         app_client.provide_network_information(name, ticker, chain, bytes.fromhex(icon))
 
     with app_client.get_public_addr(chaincode=with_chaincode, chain_id=chain):

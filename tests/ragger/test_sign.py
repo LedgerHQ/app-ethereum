@@ -55,6 +55,8 @@ def common(firmware: Firmware,
         # pylint: enable=line-too-long
     else:
         name = ""
+        ticker = ""
+        icon = ""
 
     if (app_client._firmware != Firmware.NANOS) and name:
         app_client.provide_network_information(name, ticker, tx_params["chainId"], bytes.fromhex(icon))

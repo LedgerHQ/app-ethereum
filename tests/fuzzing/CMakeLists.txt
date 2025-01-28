@@ -154,21 +154,22 @@ set(DEFINES
     HAVE_SWAP
     HAVE_ENUM_VALUE
     HAVE_NFT_SUPPORT
+    HAVE_DYNAMIC_NETWORKS
 )
 
 add_compile_definitions(${DEFINES})
 
 FILE(
-  GLOB_RECURSE SDK_STD_SOURCES 
-  ${BOLOS_SDK}/lib_standard_app/*.c 
-  ${CMAKE_SOURCE_DIR}/../../ethereum-plugin-sdk/src/*.c 
+  GLOB_RECURSE SDK_STD_SOURCES
+  ${BOLOS_SDK}/lib_standard_app/*.c
+  ${CMAKE_SOURCE_DIR}/../../ethereum-plugin-sdk/src/*.c
   ./src/mock.c
 )
 list(
-  REMOVE_ITEM SDK_STD_SOURCES 
-  ${BOLOS_SDK}/lib_standard_app/io.c 
-  ${CMAKE_SOURCE_DIR}/../../ethereum-plugin-sdk/src/main.c 
-  ${BOLOS_SDK}/lib_standard_app/main.c 
+  REMOVE_ITEM SDK_STD_SOURCES
+  ${BOLOS_SDK}/lib_standard_app/io.c
+  ${CMAKE_SOURCE_DIR}/../../ethereum-plugin-sdk/src/main.c
+  ${BOLOS_SDK}/lib_standard_app/main.c
   ${BOLOS_SDK}/lib_standard_app/crypto_helpers.c
 )
 

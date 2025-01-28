@@ -10,6 +10,8 @@
 #include "network_icons.h"
 #include "network.h"
 #include "ledger_assert.h"
+#include "cmd_getTxSimulation.h"
+#include "utils.h"
 
 // 1 more than actually displayed on screen, because of calculations in StaticReview
 #define MAX_PLUGIN_ITEMS 8
@@ -43,6 +45,9 @@ static void reviewChoice(bool confirm) {
         memset(&tx_approval_context, 0, sizeof(tx_approval_context));
         nbgl_useCaseReviewStatus(STATUS_TYPE_TRANSACTION_REJECTED, ui_idle);
     }
+#ifdef HAVE_WEB3_CHECKS
+    clearTxSimulation();
+#endif
 }
 
 const nbgl_icon_details_t *get_tx_icon(void) {
@@ -226,16 +231,15 @@ void ux_approve_tx(bool fromPlugin) {
             tmpContent.txContent.dataPresent ? BLIND_SIGN("transaction") : SIGN("transaction"));
     }
 
+    explicit_bzero(&warning, sizeof(nbgl_warning_t));
+#ifdef HAVE_WEB3_CHECKS
+    setTxSimuWarning(&warning, true, true);
+#endif
     if (tmpContent.txContent.dataPresent) {
-        nbgl_useCaseReviewBlindSigning(TYPE_TRANSACTION,
-                                       &pairsList,
-                                       get_tx_icon(),
-                                       g_stax_shared_buffer,
-                                       NULL,
-                                       g_stax_shared_buffer + buf_size,
-                                       NULL,
-                                       reviewChoice);
-    } else {
+        warning.predefinedSet |= SET_BIT(BLIND_SIGNING_WARN);
+    }
+
+    if (warning.predefinedSet == 0) {
         nbgl_useCaseReview(TYPE_TRANSACTION,
                            &pairsList,
                            get_tx_icon(),
@@ -243,5 +247,15 @@ void ux_approve_tx(bool fromPlugin) {
                            NULL,
                            g_stax_shared_buffer + buf_size,
                            reviewChoice);
+    } else {
+        nbgl_useCaseReviewWithWarning(TYPE_TRANSACTION,
+                                      &pairsList,
+                                      get_tx_icon(),
+                                      g_stax_shared_buffer,
+                                      NULL,
+                                      g_stax_shared_buffer + buf_size,
+                                      NULL,
+                                      &warning,
+                                      reviewChoice);
     }
 }

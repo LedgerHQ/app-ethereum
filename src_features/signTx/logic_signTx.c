@@ -435,7 +435,8 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
 
         pluginFinalize.address = msg_sender;
 
-        if (!eth_plugin_call(ETH_PLUGIN_FINALIZE, (void *) &pluginFinalize)) {
+        if (eth_plugin_call(ETH_PLUGIN_FINALIZE, (void *) &pluginFinalize) <
+            ETH_PLUGIN_RESULT_SUCCESSFUL) {
             PRINTF("Plugin finalize call failed\n");
             report_finalize_error();
             return APDU_NO_RESPONSE;

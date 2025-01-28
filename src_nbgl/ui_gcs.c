@@ -10,7 +10,9 @@
 #include "ui_callbacks.h"
 #include "feature_signTx.h"
 #include "apdu_constants.h"
+#include "cmd_get_tx_simulation.h"
 
+static nbgl_tipBox_t tip_box;
 static nbgl_layoutTagValueList_t g_pair_list;
 static size_t g_alloc_size;
 
@@ -151,19 +153,27 @@ bool ui_gcs(void) {
     nbgl_contentTagValue_t *pairs;
     s_field_table_entry entry;
     bool show_network;
-    nbgl_tipBox_t tip_box;
     const void *mem_before = mem_alloc(0);
+
+    explicit_bzero(&warning, sizeof(nbgl_warning_t));
+#ifdef HAVE_WEB3_CHECKS
+    setTxSimuWarning(&warning, true, true);
+#endif
 
     snprintf(tmp_buf, tmp_buf_size, "Review transaction to %s", get_operation_type());
     if ((review_title = _strdup(tmp_buf)) == NULL) {
         return cleanup_on_error(mem_before);
     }
-    snprintf(tmp_buf, tmp_buf_size, "Sign transaction to %s?", get_operation_type());
+    snprintf(tmp_buf,
+             tmp_buf_size,
+             "%s transaction to %s?",
+             ui_tx_simulation_finish_str(),
+             get_operation_type());
     if ((sign_title = _strdup(tmp_buf)) == NULL) {
         return cleanup_on_error(mem_before);
     }
     explicit_bzero(&tip_box, sizeof(tip_box));
-    tip_box.icon = &ICON_APP_REVIEW_INFO;
+    tip_box.icon = &ICON_APP_WARNING;
     tip_box.text = NULL;
     tip_box.modalTitle = "Contract information";
     tip_box.type = INFOS_LIST;
@@ -214,8 +224,8 @@ bool ui_gcs(void) {
         PRINTF("Error: Could not format the max fees!\n");
     }
     pairs[g_pair_list.nbPairs - 1].value = _strdup(tmp_buf);
-
     g_pair_list.pairs = pairs;
+
     nbgl_useCaseAdvancedReview(TYPE_TRANSACTION,
                                &g_pair_list,
                                get_tx_icon(),
@@ -223,7 +233,7 @@ bool ui_gcs(void) {
                                NULL,
                                sign_title,
                                &tip_box,
-                               NULL,
+                               &warning,
                                review_choice);
     g_alloc_size = mem_alloc(0) - mem_before;
     return true;

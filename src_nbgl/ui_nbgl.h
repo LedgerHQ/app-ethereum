@@ -8,15 +8,9 @@
 #ifdef SCREEN_SIZE_WALLET
 #define ICON_APP_WARNING C_Warning_64px
 #define ICON_APP_REVIEW  C_Review_64px
-#if defined(TARGET_STAX)
-#define ICON_APP_REVIEW_INFO C_Question_32px
 #else
-#define ICON_APP_REVIEW_INFO C_Question_40px
-#endif
-#else
-#define ICON_APP_WARNING     C_icon_warning
-#define ICON_APP_REVIEW      C_icon_certificate
-#define ICON_APP_REVIEW_INFO C_icon_eye
+#define ICON_APP_WARNING C_icon_warning
+#define ICON_APP_REVIEW  C_icon_certificate
 #endif
 
 #define SHARED_BUFFER_SIZE SHARED_CTX_FIELD_1_SIZE

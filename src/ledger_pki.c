@@ -11,6 +11,9 @@
      : x == CERTIFICATE_PUBLIC_KEY_USAGE_PLUGIN_METADATA      ? "PLUGIN_METADATA"      \
      : x == CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META            ? "COIN_META"            \
      : x == CERTIFICATE_PUBLIC_KEY_USAGE_SEED_ID_AUTH         ? "SEED_ID_AUTH"         \
+     : x == CERTIFICATE_PUBLIC_KEY_USAGE_TX_SIMU_SIGNER       ? "TX_SIMU_SIGNER"       \
+     : x == CERTIFICATE_PUBLIC_KEY_USAGE_CALLDATA             ? "CALLDATA"             \
+     : x == CERTIFICATE_PUBLIC_KEY_USAGE_NETWORK              ? "NETWORK"              \
                                                               : "Unknown")
 
 int check_signature_with_pubkey(const char *tag,

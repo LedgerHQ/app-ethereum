@@ -155,6 +155,7 @@ set(DEFINES
     HAVE_ENUM_VALUE
     HAVE_NFT_SUPPORT
     HAVE_DYNAMIC_NETWORKS
+    explicit_bzero=bzero # Fix for https://github.com/google/sanitizers/issues/1507
 )
 
 add_compile_definitions(${DEFINES})

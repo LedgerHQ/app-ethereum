@@ -49,8 +49,8 @@ else:
 
 @pytest.fixture(name="app_version")
 def app_version_fixture(request) -> tuple[int, int, int]:
-    with open(Path(__file__).parent.parent.parent / "Makefile") as f:
-        parsed = dict()
+    with open(Path(__file__).parent.parent.parent / "Makefile", encoding="utf-8") as f:
+        parsed = {}
         for m in re.findall(r"^APPVERSION_(\w)\s*=\s*(\d*)$", f.read(), re.MULTILINE):
             parsed[m[0]] = int(m[1])
     return (parsed["M"], parsed["N"], parsed["P"])

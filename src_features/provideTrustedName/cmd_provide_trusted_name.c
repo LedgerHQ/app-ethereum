@@ -657,6 +657,7 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_fr
     if (to_free) mem_dealloc(size);
     if (!parsing_success || !verify_struct(&ctx) || !verify_signature(&ctx)) {
         roll_challenge();  // prevent brute-force guesses
+        explicit_bzero(&g_trusted_name_info, sizeof(g_trusted_name_info));
         return false;
     }
     PRINTF("Registered : %s => %.*h\n",

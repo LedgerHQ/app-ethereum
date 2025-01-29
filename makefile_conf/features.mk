@@ -68,7 +68,9 @@ ifneq ($(TARGET_NAME),TARGET_NANOS)
 endif
 
 # Web3 Checks
-ifneq ($(TARGET_NAME),TARGET_NANOS)
+# TODO: remove this check once the web3 checks are implemented on all targets
+# ifneq ($(TARGET_NAME),TARGET_NANOS)
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
     DEFINES	+= HAVE_WEB3_CHECKS
 endif
 

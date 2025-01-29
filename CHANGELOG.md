@@ -5,7 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.15.0](../../compare/1.14.0...1.15.0) - 2025-xx-xx
+## [1.15.0](../../compare/1.14.0...1.15.0) - 2025-01-30
+
+### Added
+
+- (clone) Harmony
+- (network) Sonic
+- (network) Soneium
+- (network) Swellchain
+- (network) Swellchain Testnet
+- (network) Soneium Testnet Minato
+- (network) Bahamut
+- (network) Odyssey Chain
+- (network) Lumia
+- (network) Harmony ONE S0
+- (network) Harmony ONE S1
+
+### Removed
+
+- (clone) ARTIS tau1
+- (clone) TecraTestnet
+- (clone) Volta
+- Dynamic networks support from LNS
+
+### Changed
+
+- (network) Klaytn Cypress renamed to Kaia Mainnet
+- Switched to production PKI key usages
 
 ## [1.14.0](../../compare/1.13.0...1.14.0) - 2024-12-19
 

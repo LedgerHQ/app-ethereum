@@ -504,7 +504,7 @@ static uint16_t handle_get_config(void) {
 }
 
 static bool handle_dyn_net_struct(const s_tlv_data *data, s_sig_ctx *context) {
-    bool ret;
+    uint16_t ret = APDU_RESPONSE_INTERNAL_ERROR;
 
     switch (data->tag) {
         case TAG_STRUCTURE_TYPE:
@@ -529,7 +529,7 @@ static bool handle_dyn_net_struct(const s_tlv_data *data, s_sig_ctx *context) {
 #ifdef HAVE_NBGL
             ret = parse_icon_hash(data->value, data->length);
 #else
-            ret = true;
+            ret = APDU_RESPONSE_OK;
 #endif
             break;
         case TAG_DER_SIGNATURE:
@@ -537,12 +537,12 @@ static bool handle_dyn_net_struct(const s_tlv_data *data, s_sig_ctx *context) {
             break;
         default:
             PRINTF(TLV_TAG_ERROR_MSG, data->tag);
-            ret = false;
+            ret = APDU_RESPONSE_OK;
     }
-    if (ret && (data->tag != TAG_DER_SIGNATURE)) {
+    if ((ret == APDU_RESPONSE_OK) && (data->tag != TAG_DER_SIGNATURE)) {
         hash_nbytes(data->raw, data->raw_size, (cx_hash_t *) &context->hash_ctx);
     }
-    return ret;
+    return (ret == APDU_RESPONSE_OK);
 }
 
 static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {

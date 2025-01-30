@@ -55,7 +55,7 @@ static bool handle_version(const s_tlv_data *data, s_tx_info_ctx *context) {
 
 static bool handle_chain_id(const s_tlv_data *data, s_tx_info_ctx *context) {
     uint64_t chain_id;
-    uint8_t buf[sizeof(chain_id)];
+    uint8_t buf[sizeof(chain_id)] = {0};
 
     if (data->length > sizeof(buf)) {
         return false;
@@ -72,7 +72,7 @@ static bool handle_chain_id(const s_tlv_data *data, s_tx_info_ctx *context) {
 }
 
 static bool handle_contract_addr(const s_tlv_data *data, s_tx_info_ctx *context) {
-    uint8_t buf[ADDRESS_LENGTH];
+    uint8_t buf[ADDRESS_LENGTH] = {0};
 
     if (data->length > sizeof(buf)) {
         return false;
@@ -165,7 +165,7 @@ static bool handle_contract_name(const s_tlv_data *data, s_tx_info_ctx *context)
 }
 
 static bool handle_deploy_date(const s_tlv_data *data, s_tx_info_ctx *context) {
-    uint8_t buf[sizeof(uint32_t)];
+    uint8_t buf[sizeof(uint32_t)] = {0};
     time_t timestamp;
 
     if (data->length > sizeof(buf)) {
@@ -281,14 +281,14 @@ bool verify_tx_info_struct(const s_tx_info_ctx *context) {
         return false;
     }
 
-    // TODO: change to LEDGER_CALLDATA_DESCRIPTOR key once available
     if (check_signature_with_pubkey("TX info",
                                     hash,
                                     sizeof(hash),
-                                    LEDGER_SIGNATURE_PUBLIC_KEY,
-                                    sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
+                                    NULL,
+                                    0,
 #ifdef HAVE_LEDGER_PKI
-                                    CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META,
+                                    // TODO: change once SDK has the enum value for this
+                                    0x0b,
 #endif
                                     (uint8_t *) context->tx_info->signature,
                                     context->tx_info->signature_len) != CX_OK) {

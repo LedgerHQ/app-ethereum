@@ -35,6 +35,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 106, .name = "Velas EVM", .ticker = "VLX"},
     {.chain_id = 137, .name = "Polygon", .ticker = "POL"},
     {.chain_id = 138, .name = "Defi Oracle Meta", .ticker = "ETH"},
+    {.chain_id = 146, .name = "Sonic", .ticker = "S"},
     {.chain_id = 196, .name = "OKBChain Mainnet", .ticker = "OKB"},
     {.chain_id = 199, .name = "BTTC", .ticker = "BTT"},
     {.chain_id = 246, .name = "EnergyWebChain", .ticker = "EWT"},
@@ -57,7 +58,11 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 1284, .name = "Moonbeam", .ticker = "GLMR"},
     {.chain_id = 1285, .name = "Moonriver", .ticker = "MOVR"},
     {.chain_id = 1818, .name = "Cube", .ticker = "CUBE"},
+    {.chain_id = 1868, .name = "Soneium", .ticker = "ETH"},
     {.chain_id = 1907, .name = "Bitcichain", .ticker = "BITCI"},
+    {.chain_id = 1923, .name = "Swellchain", .ticker = "ETH"},
+    {.chain_id = 1924, .name = "Swellchain Testnet", .ticker = "ETH"},
+    {.chain_id = 1946, .name = "Soneium Testnet Minato", .ticker = "ETH"},
     {.chain_id = 2222, .name = "Kava EVM", .ticker = "KAVA"},
     {.chain_id = 3776, .name = "Astar zkEVM", .ticker = "ETH"},
     {.chain_id = 4201, .name = "LUKSO Testnet", .ticker = "LYXt"},
@@ -67,10 +72,11 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 4919, .name = "Venidium", .ticker = "XVM"},
     {.chain_id = 5000, .name = "Mantle", .ticker = "MNT"},
     {.chain_id = 5003, .name = "Mantle Sepolia", .ticker = "MNT"},
+    {.chain_id = 5165, .name = "Bahamut", .ticker = "FTN"},
     {.chain_id = 7000, .name = "ZetaChain", .ticker = "ZETA"},
     {.chain_id = 7171, .name = "Bitrock Mainnet", .ticker = "BROCK"},
     {.chain_id = 7341, .name = "Shyft", .ticker = "SHFT"},
-    {.chain_id = 8217, .name = "Klaytn Cypress", .ticker = "KLAY"},
+    {.chain_id = 8217, .name = "Kaia Mainnet", .ticker = "KAIA"},
     {.chain_id = 8453, .name = "Base", .ticker = "ETH"},
     {.chain_id = 9001, .name = "Evmos", .ticker = "EVMOS"},
     {.chain_id = 10200, .name = "Chiado", .ticker = "xDAI"},
@@ -92,6 +98,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 73799, .name = "Volta", .ticker = "VOLTA"},
     {.chain_id = 81457, .name = "Blast", .ticker = "ETH"},
     {.chain_id = 84532, .name = "Base Sepolia", .ticker = "ETH"},
+    {.chain_id = 153153, .name = "Odyssey Chain", .ticker = "DIONE"},
     {.chain_id = 200810, .name = "Bitlayer Testnet", .ticker = "BTC"},
     {.chain_id = 200901, .name = "Bitlayer", .ticker = "BTC"},
     {.chain_id = 421614, .name = "Arbitrum Sepolia", .ticker = "ETH"},
@@ -108,11 +115,15 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 168587773, .name = "Blast Sepolia", .ticker = "ETH"},
     {.chain_id = 245022926, .name = "Neon EVM Devnet", .ticker = "NEON"},
     {.chain_id = 245022934, .name = "Neon EVM Mainnet", .ticker = "NEON"},
+    {.chain_id = 994873017, .name = "Lumia", .ticker = "LUMIA"},
+    {.chain_id = 1666600000, .name = "Harmony ONE S0", .ticker = "ONE"},
+    {.chain_id = 1666600001, .name = "Harmony ONE S1", .ticker = "ONE"},
     {.chain_id = 11297108109, .name = "Palm Network", .ticker = "PALM"},
 };
 
 static const network_info_t *get_network_from_chain_id(const uint64_t *chain_id) {
     if (*chain_id != 0) {
+#ifdef HAVE_DYNAMIC_NETWORKS
         // Look if the network is available
         for (size_t i = 0; i < MAX_DYNAMIC_NETWORKS; i++) {
             if (DYNAMIC_NETWORK_INFO[i].chain_id == *chain_id) {
@@ -120,6 +131,8 @@ static const network_info_t *get_network_from_chain_id(const uint64_t *chain_id)
                 return (const network_info_t *) &DYNAMIC_NETWORK_INFO[i];
             }
         }
+#endif  // HAVE_DYNAMIC_NETWORKS
+
         // Fallback to hardcoded table
         for (size_t i = 0; i < ARRAYLEN(NETWORK_MAPPING); i++) {
             if (NETWORK_MAPPING[i].chain_id == *chain_id) {

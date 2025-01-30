@@ -60,7 +60,7 @@ bool format_param_duration(const s_param_duration *param, const char *name) {
     uint8_t minutes;
     uint8_t seconds;
     uint64_t remaining;
-    uint8_t raw_buf[sizeof(remaining)];
+    uint8_t raw_buf[sizeof(remaining)] = {0};
     int off;
 
     if (!value_get(&param->value, &collec)) {

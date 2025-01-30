@@ -147,9 +147,6 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
     }
 
     switch (cmd->ins) {
-        case INS_PROVIDE_NETWORK_CONFIGURATION:
-            sw = handleNetworkConfiguration(cmd->p1, cmd->p2, cmd->data, cmd->lc, tx);
-            break;
         case INS_GET_PUBLIC_KEY:
             forget_known_assets();
             sw = handleGetPublicKey(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags, tx);
@@ -207,7 +204,6 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             break;
 
 #ifdef HAVE_ETH2
-
         case INS_GET_ETH2_PUBLIC_KEY:
             forget_known_assets();
             sw = handleGetEth2PublicKey(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags, tx);
@@ -216,8 +212,7 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
         case INS_SET_ETH2_WITHDRAWAL_INDEX:
             sw = handleSetEth2WithdrawalIndex(cmd->p1, cmd->p2, cmd->data, cmd->lc);
             break;
-
-#endif
+#endif  // HAVE_ETH2
 
 #ifdef HAVE_EIP712_FULL_SUPPORT
         case INS_EIP712_STRUCT_DEF:
@@ -258,6 +253,12 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             sw = handle_field(cmd->p1, cmd->p2, cmd->lc, cmd->data);
             break;
 #endif  // HAVE_GENERIC_TX_PARSER
+
+#ifdef HAVE_DYNAMIC_NETWORKS
+        case INS_PROVIDE_NETWORK_CONFIGURATION:
+            sw = handleNetworkConfiguration(cmd->p1, cmd->p2, cmd->data, cmd->lc, tx);
+            break;
+#endif  // HAVE_DYNAMIC_NETWORKS
 
         default:
             sw = APDU_RESPONSE_INVALID_INS;

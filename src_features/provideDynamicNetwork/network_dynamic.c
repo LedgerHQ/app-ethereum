@@ -1,3 +1,5 @@
+#ifdef HAVE_DYNAMIC_NETWORKS
+
 #include <string.h>
 #include <ctype.h>
 #include "os_utils.h"
@@ -288,6 +290,7 @@ static uint16_t parse_icon_buffer(void) {
     uint8_t digest[CX_SHA256_SIZE];
     const uint8_t *data = g_network_icon[g_current_slot].bitmap;
     const uint16_t field_len = g_icon_payload.received_size;
+    cx_err_t error = CX_INTERNAL_ERROR;
 
     // Check the icon header
     sw = check_icon_header(data, field_len, &img_len);
@@ -298,7 +301,7 @@ static uint16_t parse_icon_buffer(void) {
     CHECK_FIELD_OVERFLOW("NETWORK_ICON", g_network_icon[g_current_slot].bitmap);
 
     // Check icon hash
-    cx_sha256_hash(data, field_len, digest);
+    CX_CHECK(cx_sha256_hash(data, field_len, digest));
     if (memcmp(digest, g_network_icon[g_current_slot].hash, CX_SHA256_SIZE) != 0) {
         PRINTF("NETWORK_ICON hash mismatch!\n");
         return APDU_RESPONSE_INVALID_DATA;
@@ -313,7 +316,9 @@ static uint16_t parse_icon_buffer(void) {
     DYNAMIC_NETWORK_INFO[g_current_slot].icon.isFile = true;
     COPY_FIELD(DYNAMIC_NETWORK_INFO[g_current_slot].icon.bitmap);
     print_icon_info();
-    return APDU_RESPONSE_OK;
+    error = APDU_RESPONSE_OK;
+end:
+    return error;
 }
 
 /**
@@ -376,6 +381,12 @@ static uint16_t handle_next_icon_chunk(const uint8_t *data, uint8_t length) {
  */
 static uint16_t handle_icon_chunks(uint8_t p1, const uint8_t *data, uint8_t length) {
     uint16_t sw = APDU_RESPONSE_UNKNOWN;
+    uint8_t hash[CX_SHA256_SIZE] = {0};
+
+    if (memcmp(g_network_icon[g_current_slot].hash, hash, CX_SHA256_SIZE) == 0) {
+        PRINTF("Error: Icon hash not set!\n");
+        return APDU_RESPONSE_INVALID_DATA;
+    }
 
     // Check the received chunk index
     if (p1 == P1_FIRST_CHUNK) {
@@ -426,26 +437,26 @@ static uint16_t parse_signature(const uint8_t *data, uint16_t field_len, s_sig_c
  */
 static bool verify_signature(s_sig_ctx *sig_ctx) {
     uint8_t hash[INT256_LENGTH];
-    cx_err_t error = CX_INTERNAL_ERROR;
-    bool ret_code = false;
 
-    CX_CHECK(
-        cx_hash_no_throw((cx_hash_t *) &sig_ctx->hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH));
+    if (cx_hash_no_throw((cx_hash_t *) &sig_ctx->hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH) !=
+        CX_OK) {
+        return false;
+    }
 
-    CX_CHECK(check_signature_with_pubkey("Dynamic Network",
-                                         hash,
-                                         sizeof(hash),
-                                         LEDGER_SIGNATURE_PUBLIC_KEY,
-                                         sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
+    if (check_signature_with_pubkey("Dynamic Network",
+                                    hash,
+                                    sizeof(hash),
+                                    NULL,
+                                    0,
 #ifdef HAVE_LEDGER_PKI
-                                         CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META,
+                                    // TODO: change once SDK has the enum value for this
+                                    0x0c,
 #endif
-                                         (uint8_t *) (sig_ctx->sig),
-                                         sig_ctx->sig_size));
-
-    ret_code = true;
-end:
-    return ret_code;
+                                    (uint8_t *) (sig_ctx->sig),
+                                    sig_ctx->sig_size) != CX_OK) {
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -647,3 +658,5 @@ uint16_t handleNetworkConfiguration(uint8_t p1,
 
     return sw;
 }
+
+#endif  // HAVE_DYNAMIC_NETWORKS

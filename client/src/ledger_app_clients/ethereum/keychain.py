@@ -12,6 +12,8 @@ class Key(Enum):
     TRUSTED_NAME = auto()
     SET_PLUGIN = auto()
     NFT = auto()
+    CALLDATA = auto()
+    NETWORK = auto()
 
 
 _keys: dict[Key, SigningKey] = dict()

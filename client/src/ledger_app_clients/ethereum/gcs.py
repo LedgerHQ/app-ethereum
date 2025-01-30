@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from enum import IntEnum
 import struct
 
@@ -171,14 +171,18 @@ class PathSlice:
         return payload
 
 
-PathElement = PathTuple | PathArray | PathRef | PathLeaf | PathSlice
+# XXX:
+#  Only defined while type checking in progress as this requires py3.10+
+#  and package available from py3.7 and upward.
+if TYPE_CHECKING:
+    PathElement = PathTuple | PathArray | PathRef | PathLeaf | PathSlice
 
 
 class DataPath:
     version: int
-    path: list[PathElement]
+    path: list["PathElement"]
 
-    def __init__(self, version: int, path: list[PathElement]):
+    def __init__(self, version: int, path: list["PathElement"]):
         self.version = version
         self.path = path
 
@@ -445,24 +449,28 @@ class ParamEnum():
         return payload
 
 
-ParamUnion = ParamRaw | \
-             ParamAmount | \
-             ParamTokenAmount | \
-             ParamNFT | \
-             ParamDatetime | \
-             ParamDuration | \
-             ParamUnit | \
-             ParamTrustedName | \
-             ParamEnum
+# XXX:
+#  Only defined while type checking in progress as this requires py3.10+
+#  and package available from py3.7 and upward.
+if TYPE_CHECKING:
+    ParamUnion = ParamRaw | \
+                ParamAmount | \
+                ParamTokenAmount | \
+                ParamNFT | \
+                ParamDatetime | \
+                ParamDuration | \
+                ParamUnit | \
+                ParamTrustedName | \
+                ParamEnum
 
 
 class Field:
     version: int
     name: str
     param_type: ParamType
-    param: ParamUnion
+    param: "ParamUnion"
 
-    def __init__(self, version: int, name: str, param_type: ParamType, param: ParamUnion):
+    def __init__(self, version: int, name: str, param_type: ParamType, param: "ParamUnion"):
         self.version = version
         self.name = name
         self.param_type = param_type

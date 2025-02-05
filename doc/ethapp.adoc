@@ -39,6 +39,7 @@ The following APDUs are managed by the application. They are detailed in the fol
 | GET CHALLENGE                                                                     | 0x20
 | PROVIDE DOMAIN NAME                                                               | 0x22
 | PROVIDE NETWORK INFORMATION                                                       | 0x30
+| PROVIDE TX SIMULATION                                                             | 0x32
 |==============================================================================================================================
 
 
@@ -54,7 +55,7 @@ The address can be optionally checked on the device before being returned.
 
 #### Coding
 
-'Command'
+_Command_
 
 [width="80%"]
 |==============================================================================================================================
@@ -67,7 +68,7 @@ The address can be optionally checked on the device before being returned.
                                           01 : return the chain code | variable | variable
 |==============================================================================================================================
 
-'Input data'
+_Input data_
 
 [width="80%"]
 |==============================================================================================================================
@@ -79,7 +80,7 @@ The address can be optionally checked on the device before being returned.
 | Chain ID (big endian) (optional)                                                  | 8
 |==============================================================================================================================
 
-'Output data'
+_Output data_
 
 [width="80%"]
 |==============================================================================================================================
@@ -109,7 +110,7 @@ The input data is the RLP encoded transaction (as per https://github.com/ethereu
 
 #### Coding
 
-'Command'
+_Command_
 
 [width="80%"]
 |==============================================================================================================================
@@ -124,7 +125,7 @@ The input data is the RLP encoded transaction (as per https://github.com/ethereu
                                           02 : start flow           | variable | variable
 |==============================================================================================================================
 
-'Input data (first transaction data block)'
+_Input data (first transaction data block)_
 
 If P2 == 0x02, then no data is provided.
 
@@ -138,7 +139,7 @@ If P2 == 0x02, then no data is provided.
 | RLP transaction chunk                                                             | variable
 |==============================================================================================================================
 
-'Input data (other transaction data block)'
+_Input data (other transaction data block)_
 
 [width="80%"]
 |==============================================================================================================================
@@ -147,7 +148,7 @@ If P2 == 0x02, then no data is provided.
 |==============================================================================================================================
 
 
-'Output data'
+_Output data_
 
 If P2 == 0x01, then no data is returned.
 
@@ -168,7 +169,7 @@ This command returns specific application configuration
 
 #### Coding
 
-'Command'
+_Command_
 
 [width="80%"]
 |==============================================================================================================================
@@ -176,11 +177,11 @@ This command returns specific application configuration
 |   E0  |   06   |  00                |   00       | 00       | 04
 |==============================================================================================================================
 
-'Input data'
+_Input data_
 
 None
 
-'Output data'
+_Output data_
 
 [width="80%"]
 |==============================================================================================================================
@@ -189,6 +190,8 @@ None
         0x01 : arbitrary data signature enabled by user
 
         0x02 : ERC 20 Token information needs to be provided externally
+
+        0x10 : Web3 Check enabled
                                                                                     | 01
 | Application major version                                                         | 01
 | Application minor version                                                         | 01
@@ -208,7 +211,7 @@ The input data is the message to sign, streamed to the device in 255 bytes maxim
 
 #### Coding
 
-'Command'
+_Command_
 
 [width="80%"]
 |==============================================================================================================================
@@ -219,7 +222,7 @@ The input data is the message to sign, streamed to the device in 255 bytes maxim
                                       |   00       | variable | variable
 |==============================================================================================================================
 
-'Input data (first message data block)'
+_Input data (first message data block)_
 
 [width="80%"]
 |==============================================================================================================================
@@ -232,7 +235,7 @@ The input data is the message to sign, streamed to the device in 255 bytes maxim
 | Message chunk                                                                     | variable
 |==============================================================================================================================
 
-'Input data (other transaction data block)'
+_Input data (other transaction data block)_
 
 [width="80%"]
 |==============================================================================================================================
@@ -241,7 +244,7 @@ The input data is the message to sign, streamed to the device in 255 bytes maxim
 |==============================================================================================================================
 
 
-'Output data'
+_Output data_
 
 [width="80%"]
 |==============================================================================================================================
@@ -268,7 +271,7 @@ signed by the following secp256k1 public key 045e6c1020c14dc46442fe89f97c0b68cdb
 
 #### Coding
 
-'Command'
+_Command_
 
 [width="80%"]
 |======================================================================
@@ -276,7 +279,7 @@ signed by the following secp256k1 public key 045e6c1020c14dc46442fe89f97c0b68cdb
 |   E0  |   0A   |  00                | 00         | variable | 00
 |======================================================================
 
-'Input data'
+_Input data_
 
 [width="80%"]
 |=======================================================================
@@ -289,7 +292,7 @@ signed by the following secp256k1 public key 045e6c1020c14dc46442fe89f97c0b68cdb
 | Token information signature                      | variable
 |=======================================================================
 
-'Output data'
+_Output data_
 
 [width="80%"]
 |====================================================================
@@ -314,7 +317,7 @@ last, after all the EIP712 SEND STRUCT DEFINITION & SEND STRUCT IMPLEMENTATION.
 
 #### Coding
 
-'Command'
+_Command_
 
 [width="80%"]
 |==============================================================================================================================
@@ -327,7 +330,7 @@ last, after all the EIP712 SEND STRUCT DEFINITION & SEND STRUCT IMPLEMENTATION.
                                                               | variable
 |==============================================================================================================================
 
-'Input data'
+_Input data_
 
 [width="80%"]
 |==============================================================================================================================
@@ -340,7 +343,7 @@ last, after all the EIP712 SEND STRUCT DEFINITION & SEND STRUCT IMPLEMENTATION.
 | Message hash *(only for v0)*                                                      | 32
 |==============================================================================================================================
 
-'Output data'
+_Output data_
 
 [width="80%"]
 |==============================================================================================================================
@@ -361,7 +364,7 @@ This command has been supported since firmware version 1.6.0
 
 #### Coding
 
-'Command'
+_Command_
 
 [width="80%"]
 |==============================================================================================================================
@@ -372,7 +375,7 @@ This command has been supported since firmware version 1.6.0
                                       |   00      | variable | variable
 |==============================================================================================================================
 
-'Input data'
+_Input data_
 
 [width="80%"]
 |==============================================================================================================================
@@ -383,7 +386,7 @@ This command has been supported since firmware version 1.6.0
 | Last derivation index (big endian)                                                | 4
 |==============================================================================================================================
 
-'Output data'
+_Output data_
 
 [width="80%"]
 |==============================================================================================================================
@@ -404,7 +407,7 @@ This command has been supported since firmware version 1.5.0
 
 #### Coding
 
-'Command'
+_Command_
 
 [width="80%"]
 |==============================================================================================================================
@@ -413,7 +416,7 @@ This command has been supported since firmware version 1.5.0
                                       |   00      | variable | variable
 |==============================================================================================================================
 
-'Input data'
+_Input data_
 
 [width="80%"]
 |==============================================================================================================================
@@ -421,7 +424,7 @@ This command has been supported since firmware version 1.5.0
 | Withdrawal key index (big endian)                                                 | 4
 |==============================================================================================================================
 
-'Output data'
+_Output data_
 
 None
 
@@ -444,7 +447,7 @@ signed by the following secp256k1 public key 0482bbf2f34f367b2e5bc21847b6566f21f
 
 #### Coding
 
-'Command'
+_Command_
 
 [width="80%"]
 |==============================================================================================================================
@@ -452,7 +455,7 @@ signed by the following secp256k1 public key 0482bbf2f34f367b2e5bc21847b6566f21f
 |   E0  |   12   |  00   |   00       | variable   | 00
 |==============================================================================================================================
 
-'Input data'
+_Input data_
 
 [width="80%"]
 |==============================================================================================================================
@@ -464,7 +467,7 @@ signed by the following secp256k1 public key 0482bbf2f34f367b2e5bc21847b6566f21f
 | signature                                                                         | variable
 |==============================================================================================================================
 
-'Output data'
+_Output data_
 
 None
 
@@ -483,7 +486,7 @@ type || version || len(collectionName) || collectionName || address || chainId |
 
 #### Coding
 
-'Command'
+_Command_
 
 [width="80%"]
 |==============================================================================================================================
@@ -491,7 +494,7 @@ type || version || len(collectionName) || collectionName || address || chainId |
 |   E0  |   14   |  00   |   00       | variable | 00
 |==============================================================================================================================
 
-'Input data'
+_Input data_
 
 [width="80%"]
 |==============================================================================================================================
@@ -508,7 +511,7 @@ type || version || len(collectionName) || collectionName || address || chainId |
 | Signature                                                                         | variable
 |==============================================================================================================================
 
-'Output data'
+_Output data_
 
 [width="80%"]
 |====================================================================
@@ -537,7 +540,7 @@ type || version || len(pluginName) || pluginName || address || selector || chain
 
 #### Coding
 
-'Command'
+_Command_
 
 [width="80%"]
 |==============================================================================================================================
@@ -545,7 +548,7 @@ type || version || len(pluginName) || pluginName || address || selector || chain
 |   E0  |   16   |  00   |   00       | variable   | 00
 |==============================================================================================================================
 
-'Input data'
+_Input data_
 
 [width="80%"]
 |==============================================================================================================================
@@ -563,7 +566,7 @@ type || version || len(pluginName) || pluginName || address || selector || chain
 | Signature                                                                         | variable
 |==============================================================================================================================
 
-'Output data'
+_Output data_
 
 None
 
@@ -579,7 +582,7 @@ All data can be optionally checked on the device before being returned.
 
 #### Coding
 
-'Command'
+_Command_
 
 [width="80%"]
 |==============================================================================================================================
@@ -592,7 +595,7 @@ All data can be optionally checked on the device before being returned.
                                           01 : return the shared secret | variable | variable
 |==============================================================================================================================
 
-'Input data'
+_Input data_
 
 [width="80%"]
 |==============================================================================================================================
@@ -604,7 +607,7 @@ All data can be optionally checked on the device before being returned.
 | Third party public key on Curve25519, if returning the shared secret              | 32
 |==============================================================================================================================
 
-'Output data'
+_Output data_
 
 [width="80%"]
 |==============================================================================================================================
@@ -1196,7 +1199,7 @@ None
 This command handles the dynamic networks configuration, allowing to access funds
 without needing to update the application for each new network.
 
-This configuration must be send before any access to a network and stays valid until a new config is sent.
+This configuration must be sent before any access to a network and stays valid until a new config is sent.
 Up to *2* different configurations can be used. The targeted slot is configured automatically to the next available one.
 
 The configuration is sent in TLV (Tag-Length-Value) mode, whereas the icon itself is send as raw bytes in dedicated chunk(s).
@@ -1273,6 +1276,60 @@ _Output data_
 | ...                   | 8
 | Networks chain_id     | 8
 |==========================================
+
+### PROVIDE TX SIMULATION
+
+#### Description
+
+This command handles the Transaction Simulation information, allowing to evaluate and verify the risk.
+
+This information must be sent before any transaction to be verified and confirmed.
+It will be displayed in the review flow only if the corresponding setting is _Enabled_.
+
+The information is sent in TLV (Tag-Length-Value) mode. The following tags are supported:
+
+[width="80%"]
+|===============================================================================================
+| *Tag name*              | *Tag value* | *Length (byte)*   | *Value*
+| STRUCTURE_TYPE          | 0x01        | 0x01              | 0x09 (for TYPE_TX_SIMULATION)
+| STRUCTURE_VERSION       | 0x02        | 0x01              | 0x01
+| ADDRESS                 | 0x22        | 0x14              | Ethereum `From` Address
+| CHAIN_ID                | 0x23        | 0x08              | (`uint64_t` value)
+| TX_HASH                 | 0x27        | 0x20              | Hash of the Tx that was simulated
+| W3C_NORMALIZED_RISK     | 0x80        | 0x02              | Normalized risk score of the transaction.
+| W3C_NORMALIZED_CATEGORY | 0x81        | 0x01              | Main category explaining the risk score
+| W3C_PROVIDER_MSG        | 0x82        | variable (max 30) | Provider specific message explaining the risk score
+| W3C_TINY_URL            | 0x33        | variable (max 30) | URL to access the full report
+| SIGNATURE               | 0x15        | variable          | Signature of the TLV payload data
+|===============================================================================================
+
+The signature is mandatory, and is computed on the full payload data, using `CX_CURVE_SECP256K1`.
+
+The App will verify the validity of this simulation using the fields:
+
+- `ADDRESS`
+- `CHAIN_ID`
+- `TX_HASH`
+
+If one of those 3 fields are not correct (and don't correspond to the current TX), the check status is considered _Unknown_.
+
+The Risk score is normalized and interpreted like this:
+
+- `0x0000` to `0x5555`: Benign
+- `0x5556` to `0xAAAA`: Warning
+- `0xAAAB` to `0xFFFF`: Malicious
+
+_Input data_
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| TLV payload           | variable
+|==========================================
+
+_Output data_
+
+None
 
 
 ## Transport protocol
@@ -1354,7 +1411,7 @@ Requests are encoded using the standard BLE 20 bytes MTU size
 
 The following standard Status Words are returned for all APDUs - some specific Status Words can be used for specific commands and are mentioned in the command description.
 
-'Status Words'
+_Status Words_
 
 [width="80%"]
 |===============================================================================================

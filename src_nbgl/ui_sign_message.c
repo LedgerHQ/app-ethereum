@@ -8,6 +8,7 @@
 #include "common_ui.h"
 #include "ui_message_signing.h"
 #include "ui_signing.h"
+#include "cmd_getTxSimulation.h"
 
 #define TEXT_REVIEW_EIP191 REVIEW(TEXT_MESSAGE)
 #define TEXT_SIGN_EIP191   SIGN(TEXT_MESSAGE)
@@ -91,6 +92,18 @@ static void ui_191_show_message(void) {
     nbgl_useCaseReviewStreamingContinueExt(&pairs_list, ui_191_data_cb, ui_191_skip_cb);
 }
 
+#ifdef HAVE_WEB3_CHECKS
+static void ui_191_w3c_cb(bool confirm) {
+    if (confirm) {
+        // User has clicked on "Reject transaction"
+        ui_191_finish_cb(false);
+    } else {
+        // User has clicked on "Sign anyway"
+        nbgl_useCaseReviewStreamingFinish(TEXT_SIGN_EIP191, ui_191_finish_cb);
+    }
+}
+#endif
+
 static void ui_191_process_state(void) {
     switch (g_action) {
         case UI_191_ACTION_IDLE:
@@ -102,6 +115,18 @@ static void ui_191_process_state(void) {
             }
             break;
         case UI_191_ACTION_GO_TO_SIGN:
+#ifdef HAVE_WEB3_CHECKS
+            if (checkTxSimulationParams(true, true) == false) {
+                nbgl_useCaseChoice(&C_Warning_64px,
+                                   "Transaction Check issue",
+                                   "This transaction status is not available "
+                                   "because of technical error.",
+                                   "Reject transaction",
+                                   "Sign anyway",
+                                   ui_191_w3c_cb);
+                return;
+            }
+#endif
             nbgl_useCaseReviewStreamingFinish(TEXT_SIGN_EIP191, ui_191_finish_cb);
             break;
     }
@@ -113,11 +138,24 @@ void ui_191_start(void) {
     g_rcv_buffer_idx = 0;
     g_skipped = false;
 
-    nbgl_useCaseReviewStreamingStart(TYPE_MESSAGE | SKIPPABLE_OPERATION,
-                                     &C_Review_64px,
-                                     TEXT_REVIEW_EIP191,
-                                     NULL,
-                                     ui_191_data_cb);
+    explicit_bzero(&warning, sizeof(nbgl_warning_t));
+#ifdef HAVE_WEB3_CHECKS
+    setTxSimuWarning(&warning, false, true);
+#endif
+    if (warning.predefinedSet == 0) {
+        nbgl_useCaseReviewStreamingStart(TYPE_MESSAGE | SKIPPABLE_OPERATION,
+                                         &C_Review_64px,
+                                         TEXT_REVIEW_EIP191,
+                                         NULL,
+                                         ui_191_data_cb);
+    } else {
+        nbgl_useCaseReviewStreamingWithWarningStart(TYPE_MESSAGE | SKIPPABLE_OPERATION,
+                                                    &C_Review_64px,
+                                                    TEXT_REVIEW_EIP191,
+                                                    NULL,
+                                                    &warning,
+                                                    ui_191_data_cb);
+    }
 }
 
 void ui_191_switch_to_message(void) {
@@ -128,7 +166,7 @@ void ui_191_switch_to_message(void) {
 void ui_191_switch_to_sign(void) {
     g_action = UI_191_ACTION_GO_TO_SIGN;
     if (g_skipped) {
-        nbgl_useCaseReviewStreamingFinish(TEXT_SIGN_EIP191, ui_191_finish_cb);
+        ui_191_process_state();
     } else if (g_display_buffer_idx > 0) {
         // still on an incomplete display buffer, show it before the last page
         ui_191_show_message();

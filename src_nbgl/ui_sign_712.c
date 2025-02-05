@@ -9,6 +9,8 @@
 #include "ui_message_signing.h"
 #include "ledger_assert.h"
 #include "apdu_constants.h"
+#include "cmd_getTxSimulation.h"
+#include "utils.h"
 
 static nbgl_contentTagValue_t pairs[7];
 static nbgl_contentTagValueList_t pairs_list;
@@ -87,29 +89,61 @@ static void ui_712_start_common(bool has_filtering) {
     buf_idx = 0;
     filtered = has_filtering;
     review_skipped = false;
+    if (appState != APP_STATE_IDLE) {
+        reset_app_context();
+    }
+    appState = APP_STATE_SIGNING_EIP712;
+    explicit_bzero(&warning, sizeof(nbgl_warning_t));
+#ifdef HAVE_WEB3_CHECKS
+    setTxSimuWarning(&warning, false, false);
+#endif
 }
 
 void ui_712_start_unfiltered(void) {
     ui_712_start_common(false);
-    nbgl_useCaseReviewStreamingBlindSigningStart(TYPE_MESSAGE | SKIPPABLE_OPERATION,
-                                                 &C_Review_64px,
-                                                 TEXT_REVIEW_EIP712,
-                                                 NULL,
-                                                 message_update);
+    warning.predefinedSet |= SET_BIT(BLIND_SIGNING_WARN);
+    nbgl_useCaseReviewStreamingWithWarningStart(TYPE_MESSAGE | SKIPPABLE_OPERATION,
+                                                &C_Review_64px,
+                                                TEXT_REVIEW_EIP712,
+                                                NULL,
+                                                &warning,
+                                                message_update);
 }
 
 void ui_712_start(void) {
     ui_712_start_common(true);
-    nbgl_useCaseReviewStreamingStart(TYPE_MESSAGE,
-                                     &C_Review_64px,
-                                     TEXT_REVIEW_EIP712,
-                                     NULL,
-                                     message_update);
+    if (warning.predefinedSet == 0) {
+        nbgl_useCaseReviewStreamingStart(TYPE_MESSAGE,
+                                         &C_Review_64px,
+                                         TEXT_REVIEW_EIP712,
+                                         NULL,
+                                         message_update);
+    } else {
+        nbgl_useCaseReviewStreamingWithWarningStart(TYPE_MESSAGE,
+                                                    &C_Review_64px,
+                                                    TEXT_REVIEW_EIP712,
+                                                    NULL,
+                                                    &warning,
+                                                    message_update);
+    }
 }
 
 void ui_712_switch_to_message(void) {
     message_update(true);
 }
+
+#ifdef HAVE_WEB3_CHECKS
+static void ui_712_w3c_cb(bool confirm) {
+    if (confirm) {
+        // User has clicked on "Reject transaction"
+        ui_typed_message_review_choice(false);
+    } else {
+        // User has clicked on "Sign anyway"
+        nbgl_useCaseReviewStreamingFinish(filtered ? TEXT_SIGN_EIP712 : TEXT_BLIND_SIGN_EIP712,
+                                          ui_typed_message_review_choice);
+    }
+}
+#endif
 
 void ui_712_switch_to_sign(void) {
     if (!review_skipped && (pair_idx > 0)) {
@@ -117,6 +151,18 @@ void ui_712_switch_to_sign(void) {
         pair_idx = 0;
         nbgl_useCaseReviewStreamingContinueExt(&pairs_list, message_progress, review_skip);
     } else {
+#ifdef HAVE_WEB3_CHECKS
+        if (checkTxSimulationParams(true, true) == false) {
+            nbgl_useCaseChoice(&C_Warning_64px,
+                               "Transaction Check issue",
+                               "This transaction status is not available "
+                               "because of technical error.",
+                               "Reject transaction",
+                               "Sign anyway",
+                               ui_712_w3c_cb);
+            return;
+        }
+#endif
         nbgl_useCaseReviewStreamingFinish(filtered ? TEXT_SIGN_EIP712 : TEXT_BLIND_SIGN_EIP712,
                                           ui_typed_message_review_choice);
     }

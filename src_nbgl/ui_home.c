@@ -4,6 +4,9 @@
 #include "caller_api.h"
 #include "network.h"
 
+// Global Warning struct for NBGL review flows
+nbgl_warning_t warning;
+
 // settings info definition
 #define SETTING_INFO_NB 2
 
@@ -23,6 +26,7 @@ enum {
     EIP712_VERBOSE_TOKEN,
 #endif
     DEBUG_TOKEN,
+    W3CHECK_TOKEN,
 };
 
 enum {
@@ -35,6 +39,9 @@ enum {
     EIP712_VERBOSE_ID,
 #endif
     DEBUG_ID,
+#ifdef HAVE_WEB3_CHECKS
+    W3CHECK_ID,
+#endif
     SETTINGS_SWITCHES_NB
 };
 
@@ -85,6 +92,13 @@ static void setting_toggle_callback(int token, uint8_t index, int page) {
             switches[DEBUG_ID].initState = (nbgl_state_t) value;
             nvm_write((void *) &N_storage.contractDetails, (void *) &value, sizeof(value));
             break;
+#ifdef HAVE_WEB3_CHECKS
+        case W3CHECK_TOKEN:
+            value = !N_storage.web3checks;
+            switches[W3CHECK_ID].initState = (nbgl_state_t) value;
+            nvm_write((void *) &N_storage.web3checks, (void *) &value, sizeof(value));
+            break;
+#endif  // HAVE_WEB3_CHECKS
     }
 }
 
@@ -151,6 +165,15 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
     switches[DEBUG_ID].subText = "Display contract data details.";
     switches[DEBUG_ID].token = DEBUG_TOKEN;
     switches[DEBUG_ID].tuneId = TUNE_TAP_CASUAL;
+
+#ifdef HAVE_WEB3_CHECKS
+    switches[W3CHECK_ID].initState = N_storage.web3checks ? ON_STATE : OFF_STATE;
+    switches[W3CHECK_ID].text = "Transaction checks";
+    switches[W3CHECK_ID].subText =
+        "Scans transactions for security threats. Learn more: ledger.com/w3c";
+    switches[W3CHECK_ID].token = W3CHECK_TOKEN;
+    switches[W3CHECK_ID].tuneId = TUNE_TAP_CASUAL;
+#endif  // HAVE_WEB3_CHECKS
 
     contents[0].type = SWITCHES_LIST;
     contents[0].content.switchesList.nbSwitches = SETTINGS_SWITCHES_NB;

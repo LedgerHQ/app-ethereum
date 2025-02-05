@@ -13,6 +13,7 @@ class InsType(IntEnum):
     GET_PUBLIC_ADDR = 0x02
     GET_ETH2_PUBLIC_ADDR = 0x0e
     SIGN = 0x04
+    GET_APP_CONFIGURATION = 0x06
     PERSONAL_SIGN = 0x08
     PROVIDE_ERC20_TOKEN_INFORMATION = 0x0a
     EXTERNAL_PLUGIN_SETUP = 0x12
@@ -28,6 +29,7 @@ class InsType(IntEnum):
     PROVIDE_ENUM_VALUE = 0x24
     PROVIDE_TRANSACTION_INFO = 0x26
     PROVIDE_NETWORK_INFORMATION = 0x30
+    PROVIDE_TX_SIMULATION = 0x32
 
 
 class P1Type(IntEnum):
@@ -80,6 +82,11 @@ class CommandBuilder:
                                P2Type.STRUCT_NAME,
                                name.encode())
 
+    def get_app_configuration(self) -> bytes:
+        return self._serialize(InsType.GET_APP_CONFIGURATION,
+                               0x00,
+                               0x00)
+
     def eip712_send_struct_def_struct_field(self,
                                             field_type: EIP712FieldType,
                                             type_name: str,
@@ -125,7 +132,7 @@ class CommandBuilder:
                                data)
 
     def eip712_send_struct_impl_struct_field(self, data: bytearray) -> list[bytes]:
-        chunks = list()
+        chunks = []
         # Add a 16-bit integer with the data's byte length (network byte order)
         data_w_length = bytearray()
         data_w_length.append((len(data) & 0xff00) >> 8)
@@ -264,7 +271,7 @@ class CommandBuilder:
                                data)
 
     def sign(self, bip32_path: str, rlp_data: bytes, p2: int) -> list[bytes]:
-        apdus = list()
+        apdus = []
         payload = pack_derivation_path(bip32_path)
         payload += rlp_data
         p1 = P1Type.SIGN_FIRST_CHUNK
@@ -281,7 +288,7 @@ class CommandBuilder:
         return self._serialize(InsType.GET_CHALLENGE, 0x00, 0x00)
 
     def provide_trusted_name(self, tlv_payload: bytes) -> list[bytes]:
-        chunks = list()
+        chunks = []
         payload = struct.pack(">H", len(tlv_payload))
         payload += tlv_payload
         p1 = 1
@@ -376,7 +383,7 @@ class CommandBuilder:
         payload = pack_derivation_path(path)
         payload += struct.pack(">I", len(msg))
         payload += msg
-        chunks = list()
+        chunks = []
         p1 = P1Type.SIGN_FIRST_CHUNK
         while len(payload) > 0:
             chunk_size = 0xff
@@ -431,7 +438,7 @@ class CommandBuilder:
         return chunks
 
     def common_tlv_serialize(self, tlv_payload: bytes, ins: InsType) -> list[bytes]:
-        chunks = list()
+        chunks = []
         payload = struct.pack(">H", len(tlv_payload))
         payload += tlv_payload
         p1 = 1
@@ -449,3 +456,9 @@ class CommandBuilder:
 
     def provide_transaction_info(self, tlv_payload: bytes) -> list[bytes]:
         return self.common_tlv_serialize(tlv_payload, InsType.PROVIDE_TRANSACTION_INFO)
+
+    def provide_tx_simulation(self, tlv_payload: bytes) -> bytes:
+        # Check if the TLV payload is larger than 0xff
+        assert len(tlv_payload) < 0xff, "Payload too large"
+        # Serialize the payload
+        return self._serialize(InsType.PROVIDE_TX_SIMULATION, 0x00, 0x00, tlv_payload)

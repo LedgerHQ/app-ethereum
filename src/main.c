@@ -42,6 +42,7 @@
 #include "cmd_enum_value.h"
 #include "cmd_tx_info.h"
 #include "cmd_field.h"
+#include "cmd_getTxSimulation.h"
 
 tmpCtx_t tmpCtx;
 txContext_t txContext;
@@ -259,6 +260,12 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             sw = handleNetworkConfiguration(cmd->p1, cmd->p2, cmd->data, cmd->lc, tx);
             break;
 #endif  // HAVE_DYNAMIC_NETWORKS
+
+#ifdef HAVE_WEB3_CHECKS
+        case INS_PROVIDE_TX_SIMULATION:
+            sw = handleTxSimulation(cmd->data, cmd->lc);
+            break;
+#endif
 
         default:
             sw = APDU_RESPONSE_INVALID_INS;

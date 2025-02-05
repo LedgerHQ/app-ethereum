@@ -11,6 +11,7 @@ import web3
 
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
+from ragger.firmware.touch.positions import POSITIONS
 from ragger.navigator import Navigator, NavInsID, NavIns
 from ragger.error import ExceptionRAPDU
 
@@ -25,7 +26,7 @@ BIP32_PATH = "m/44'/60'/0'/0/0"
 autonext_idx: int
 snapshots_dirname: Optional[str] = None
 WALLET_ADDR: Optional[bytes] = None
-unfiltered_flow: bool = False
+validate_warning: bool = False
 skip_flow: bool = False
 
 
@@ -102,18 +103,15 @@ def autonext(firmware: Firmware, navigator: Navigator, default_screenshot_path: 
     if firmware.is_nano:
         moves = [NavInsID.RIGHT_CLICK]
     else:
-        if autonext_idx == 0 and unfiltered_flow:
+        if autonext_idx == 0 and validate_warning:
             moves = [NavInsID.USE_CASE_CHOICE_REJECT]
         else:
             if autonext_idx == 2 and skip_flow:
                 InputData.disable_autonext()  # so the timer stops firing
-                if firmware == Firmware.STAX:
-                    skip_btn_pos = (355, 44)
-                else:  # FLEX
-                    skip_btn_pos = (420, 49)
                 moves = [
                     # Ragger does not handle the skip button
-                    NavIns(NavInsID.TOUCH, skip_btn_pos),
+                    NavIns(NavInsID.TOUCH, POSITIONS["RightHeader"][firmware]),
+                    # NavIns(NavInsID.TOUCH, skip_btn_pos),
                     NavInsID.USE_CASE_CHOICE_CONFIRM,
                 ]
             else:
@@ -141,7 +139,7 @@ def eip712_new_common(firmware: Firmware,
                       verbose: bool,
                       golden_run: bool):
     global autonext_idx
-    global unfiltered_flow
+    global validate_warning
     global skip_flow
     global snapshots_dirname
 
@@ -180,7 +178,7 @@ def eip712_new_common(firmware: Firmware,
                                    screen_change_before_first_instruction=False,
                                    screen_change_after_last_instruction=False)
     # reset values
-    unfiltered_flow = False
+    validate_warning = False
     skip_flow = False
     snapshots_dirname = None
 
@@ -194,7 +192,7 @@ def test_eip712_new(firmware: Firmware,
                     input_file: Path,
                     verbose: bool,
                     filtering: bool):
-    global unfiltered_flow
+    global validate_warning
 
     settings_to_toggle: list[SettingID] = []
     app_client = EthAppClient(backend)
@@ -218,7 +216,7 @@ def test_eip712_new(firmware: Firmware,
         settings_to_toggle.append(SettingID.VERBOSE_EIP712)
 
     if not filters or verbose:
-        unfiltered_flow = True
+        validate_warning = True
 
     if len(settings_to_toggle) > 0:
         settings_toggle(firmware, navigator, settings_to_toggle)
@@ -491,8 +489,10 @@ def test_eip712_filtering_empty_array(firmware: Firmware,
                                       navigator: Navigator,
                                       default_screenshot_path: Path,
                                       test_name: str,
-                                      golden_run: bool):
+                                      golden_run: bool,
+                                      simu_params: Optional[dict] = None):
     global snapshots_dirname
+    global validate_warning
 
     app_client = EthAppClient(backend)
     if firmware == Firmware.NANOS:
@@ -563,6 +563,18 @@ def test_eip712_filtering_empty_array(firmware: Firmware,
             },
         }
     }
+
+    if simu_params is not None:
+        validate_warning = True
+        smsg = encode_typed_data(full_message=data)
+        response = app_client.provide_tx_simulation(smsg.body,
+                                                    simu_params["risk"],
+                                                    simu_params["category"],
+                                                    simu_params["message"],
+                                                    simu_params["url"],
+                                                    simu_params["chain_id"])
+        assert response.status == StatusWord.OK
+
     vrs = eip712_new_common(firmware,
                             navigator,
                             default_screenshot_path,
@@ -613,7 +625,7 @@ def test_eip712_advanced_missing_token(firmware: Firmware,
                                        golden_run: bool):
     global snapshots_dirname
 
-    test_name += "-%s-%s" % (len(tokens[0]) == 0, len(tokens[1]) == 0)
+    test_name += f"-{len(tokens[0]) == 0}-{len(tokens[1]) == 0}"
     snapshots_dirname = test_name
 
     app_client = EthAppClient(backend)
@@ -721,9 +733,9 @@ def test_eip712_advanced_trusted_name(firmware: Firmware,
                                       golden_run: bool):
     global snapshots_dirname
 
-    test_name += "_%s_with" % (str(trusted_name[0]).split(".")[-1].lower())
+    test_name += f"_{str(trusted_name[0]).rsplit('.', maxsplit=1)[-1].lower()}_with"
     for t in filt_tn_types:
-        test_name += "_%s" % (str(t).split(".")[-1].lower())
+        test_name += f"_{str(t).rsplit('.', maxsplit=1)[-1].lower()}"
     snapshots_dirname = test_name
 
     app_client = EthAppClient(backend)
@@ -822,16 +834,15 @@ def test_eip712_skip(firmware: Firmware,
                      backend: BackendInterface,
                      navigator: Navigator,
                      default_screenshot_path: Path,
-                     test_name: str,
                      golden_run: bool):
-    global unfiltered_flow
+    global validate_warning
     global skip_flow
 
     app_client = EthAppClient(backend)
     if firmware.is_nano:
         pytest.skip("Not supported on Nano devices")
 
-    unfiltered_flow = True
+    validate_warning = True
     skip_flow = True
     settings_toggle(firmware, navigator, [SettingID.BLIND_SIGNING])
     with open(input_files()[0], encoding="utf-8") as file:

@@ -13,4 +13,4 @@ on:
 jobs:
   job_check_SDK:
     name: Check Ethereum plugin SDK submodule is up-to-date
-    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_check_ethereum_sdk.yml@v1
+    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_check_ethereum_sdk.yml@debian

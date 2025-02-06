@@ -19,7 +19,7 @@ on:
 jobs:
   check_linting:
     name: Check linting using the reusable workflow
-    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_lint.yml@v1
+    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_lint.yml@debian
     with:
       source: './'
       extensions: 'h,c'

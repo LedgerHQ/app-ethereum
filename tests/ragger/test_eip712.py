@@ -721,9 +721,9 @@ def test_eip712_advanced_trusted_name(firmware: Firmware,
                                       golden_run: bool):
     global snapshots_dirname
 
-    test_name += "_%s_with" % (str(trusted_name[0]).split(".")[-1].lower())
+    test_name += "_%s_with" % (trusted_name[0].name.lower())
     for t in filt_tn_types:
-        test_name += "_%s" % (str(t).split(".")[-1].lower())
+        test_name += "_%s" % (t.name.lower())
     snapshots_dirname = test_name
 
     app_client = EthAppClient(backend)

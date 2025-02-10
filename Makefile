@@ -125,6 +125,7 @@ HAVE_APPLICATION_FLAG_LIBRARY = 1
 # Application communication interfaces #
 ########################################
 ENABLE_BLUETOOTH = 1
+ENABLE_SWAP = 1
 #ENABLE_NFC = 1
 
 ########################################

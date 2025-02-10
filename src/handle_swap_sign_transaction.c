@@ -11,12 +11,6 @@
 #include "nbgl_use_case.h"
 #endif  // HAVE_NBGL
 
-// Remember if we have been started by the Exchange application or not
-bool G_called_from_swap;
-
-// Set this boolean when a transaction is signed in Swap mode. Safety against double sign
-bool G_swap_response_ready;
-
 // Save the BSS address where we will write the return value when finished
 static uint8_t* G_swap_sign_return_value_address;
 
@@ -152,7 +146,7 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
     return true;
 }
 
-void __attribute__((noreturn)) finalize_exchange_sign_transaction(bool is_success) {
+void __attribute__((noreturn)) swap_finalize_exchange_sign_transaction(bool is_success) {
     *G_swap_sign_return_value_address = is_success;
     os_lib_end();
 }

@@ -11,9 +11,6 @@
 #include "nbgl_use_case.h"
 #endif  // HAVE_NBGL
 
-// Save the BSS address where we will write the return value when finished
-static uint8_t* G_swap_sign_return_value_address;
-
 // Standard or crosschain swap type
 swap_mode_t G_swap_mode;
 
@@ -138,7 +135,7 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
     // Full reset the global variables
     os_explicit_zero_BSS_segment();
     // Keep the address at which we'll reply the signing status
-    G_swap_sign_return_value_address = &sign_transaction_params->result;
+    G_swap_signing_return_value_address = &sign_transaction_params->result;
     // Commit the values read from exchange to the clean global space
     G_swap_mode = swap_mode;
     memcpy(G_swap_crosschain_hash, swap_crosschain_hash, sizeof(G_swap_crosschain_hash));
@@ -147,7 +144,7 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
 }
 
 void __attribute__((noreturn)) swap_finalize_exchange_sign_transaction(bool is_success) {
-    *G_swap_sign_return_value_address = is_success;
+    *G_swap_signing_return_value_address = is_success;
     os_lib_end();
 }
 

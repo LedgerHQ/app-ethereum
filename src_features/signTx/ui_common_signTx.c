@@ -1,3 +1,4 @@
+#include "swap_entrypoints.h"
 #include "crypto_helpers.h"
 #include "os_io_seproxyhal.h"
 #include "shared_context.h"

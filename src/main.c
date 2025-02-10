@@ -30,6 +30,7 @@
 #include "handle_swap_sign_transaction.h"
 #include "handle_get_printable_amount.h"
 #include "handle_check_address.h"
+#include "swap_entrypoints.h"
 #include "commands_712.h"
 #include "challenge.h"
 #include "trusted_name.h"

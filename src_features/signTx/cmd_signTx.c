@@ -3,6 +3,7 @@
 #include "feature_signTx.h"
 #include "eth_plugin_interface.h"
 #include "apdu_constants.h"
+#include "swap_error_code_helpers.h"
 #ifdef HAVE_GENERIC_TX_PARSER
 #include "gtp_tx_info.h"
 #endif
@@ -84,7 +85,9 @@ uint16_t handle_parsing_status(parserStatus_e status) {
                 // We have encountered an error while trying to sign a SWAP type transaction
                 // Return dedicated error code and flag an early exit back to Exchange
                 G_swap_response_ready = true;
-                send_swap_error(ERROR_GENERIC, APP_CODE_CALLDATA_ISSUE, NULL, NULL);
+                send_swap_error_simple(APDU_RESPONSE_MODE_CHECK_FAILED,
+                                       SWAP_EC_ERROR_GENERIC,
+                                       APP_CODE_CALLDATA_ISSUE);
                 // unreachable
                 os_sched_exit(0);
             }

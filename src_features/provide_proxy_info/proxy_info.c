@@ -181,6 +181,16 @@ bool verify_proxy_info_struct(const s_proxy_info_ctx *context) {
         return false;
     }
     memcpy(&g_proxy_info, &context->proxy_info, sizeof(g_proxy_info));
+    PRINTF("================== PROXY INFO ====================\n");
+    PRINTF("chain ID = %u\n", (uint32_t) g_proxy_info.chain_id);
+    PRINTF("address = 0x%.*h\n", sizeof(g_proxy_info.address), g_proxy_info.address);
+    PRINTF("implementation address = 0x%.*h\n",
+           sizeof(g_proxy_info.implem_address),
+           g_proxy_info.implem_address);
+    if (g_proxy_info.has_selector) {
+        PRINTF("selector = 0x%.*h\n", sizeof(g_proxy_info.selector), g_proxy_info.selector);
+    }
+    PRINTF("==================================================\n");
     return true;
 }
 

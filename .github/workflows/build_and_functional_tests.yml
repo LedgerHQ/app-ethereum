@@ -15,7 +15,7 @@ on:
         type: choice
         required: true
         default: 'Raise an error (default)'
-        description: CI behavior if the test snaphots are different than expected.
+        description: CI behavior if the test snapshots are different than expected.
         options:
           - 'Raise an error (default)'
           - 'Open a PR'

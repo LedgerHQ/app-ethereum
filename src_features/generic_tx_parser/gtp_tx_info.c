@@ -287,8 +287,7 @@ bool verify_tx_info_struct(const s_tx_info_ctx *context) {
                                     NULL,
                                     0,
 #ifdef HAVE_LEDGER_PKI
-                                    // TODO: change once SDK has the enum value for this
-                                    0x0b,
+                                    CERTIFICATE_PUBLIC_KEY_USAGE_CALLDATA,
 #endif
                                     (uint8_t *) context->tx_info->signature,
                                     context->tx_info->signature_len) != CX_OK) {

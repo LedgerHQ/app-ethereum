@@ -1,7 +1,5 @@
 #ifdef HAVE_EIP712_FULL_SUPPORT
 
-#include <string.h>
-#include <stdint.h>
 #include "context_712.h"
 #include "mem.h"
 #include "mem_utils.h"

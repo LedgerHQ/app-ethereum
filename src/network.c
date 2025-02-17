@@ -1,4 +1,3 @@
-#include <string.h>
 #include "os_utils.h"
 #include "os_pic.h"
 #include "network.h"

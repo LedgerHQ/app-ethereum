@@ -1,22 +1,10 @@
 #ifndef _SHARED_CONTEXT_H_
 #define _SHARED_CONTEXT_H_
 
-#include <stdbool.h>
-#include <stdint.h>
-
-#include "os.h"
-#include "cx.h"
-#include "bip32.h"
 #include "bip32_utils.h"
 #include "ethUstream.h"
-#include "tx_content.h"
 #include "chainConfig.h"
-#include "asset_info.h"
 #include "swap_utils.h"
-
-#ifdef HAVE_NBGL
-#include "nbgl_types.h"
-#endif
 
 extern void app_exit(void);
 extern void common_app_init(void);

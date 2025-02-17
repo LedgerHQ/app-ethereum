@@ -1,9 +1,7 @@
 #ifdef HAVE_ENUM_VALUE
 
-#include <string.h>
 #include "cmd_enum_value.h"
 #include "apdu_constants.h"
-#include "read.h"
 #include "mem.h"
 #include "enum_value.h"
 #include "tlv_apdu.h"

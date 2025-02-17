@@ -1,14 +1,9 @@
 #ifdef HAVE_EIP712_FULL_SUPPORT
 
-#include <string.h>  // explicit_bzero
 #include "common_ui.h"
 #include "ui_nbgl.h"
 #include "ui_logic.h"
-#include "common_712.h"
-#include "nbgl_use_case.h"
 #include "ui_message_signing.h"
-#include "ledger_assert.h"
-#include "apdu_constants.h"
 
 static nbgl_contentTagValue_t pairs[7];
 static nbgl_contentTagValueList_t pairs_list;
@@ -92,7 +87,7 @@ static void ui_712_start_common(bool has_filtering) {
 void ui_712_start_unfiltered(void) {
     ui_712_start_common(false);
     nbgl_useCaseReviewStreamingBlindSigningStart(TYPE_MESSAGE | SKIPPABLE_OPERATION,
-                                                 &C_Review_64px,
+                                                 &ICON_APP_REVIEW,
                                                  TEXT_REVIEW_EIP712,
                                                  NULL,
                                                  message_update);
@@ -101,7 +96,7 @@ void ui_712_start_unfiltered(void) {
 void ui_712_start(void) {
     ui_712_start_common(true);
     nbgl_useCaseReviewStreamingStart(TYPE_MESSAGE,
-                                     &C_Review_64px,
+                                     &ICON_APP_REVIEW,
                                      TEXT_REVIEW_EIP712,
                                      NULL,
                                      message_update);

@@ -1,6 +1,4 @@
-#include "common_ui.h"
 #include "ui_nbgl.h"
-#include "nbgl_use_case.h"
 #include "caller_api.h"
 #include "network.h"
 

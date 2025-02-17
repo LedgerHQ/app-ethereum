@@ -1,8 +1,7 @@
 #ifdef HAVE_TRUSTED_NAME
 
-#include <os.h>
-#include <os_io.h>
-#include <cx.h>
+#include "os_io.h"
+#include "cx.h"
 #include "apdu_constants.h"
 #include "challenge.h"
 

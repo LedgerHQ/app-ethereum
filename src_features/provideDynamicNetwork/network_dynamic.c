@@ -450,8 +450,7 @@ static bool verify_signature(s_sig_ctx *sig_ctx) {
                                     NULL,
                                     0,
 #ifdef HAVE_LEDGER_PKI
-                                    // TODO: change once SDK has the enum value for this
-                                    0x0c,
+                                    CERTIFICATE_PUBLIC_KEY_USAGE_NETWORK,
 #endif
                                     (uint8_t *) (sig_ctx->sig),
                                     sig_ctx->sig_size) != CX_OK) {

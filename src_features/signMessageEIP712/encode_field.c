@@ -1,10 +1,7 @@
 #ifdef HAVE_EIP712_FULL_SUPPORT
 
-#include <stdlib.h>
-#include <string.h>
 #include "encode_field.h"
 #include "mem.h"
-#include "shared_context.h"
 #include "apdu_constants.h"  // APDU response codes
 
 typedef enum { MSB, LSB } e_padding_type;

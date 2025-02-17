@@ -163,7 +163,7 @@ bool ui_gcs(void) {
         return cleanup_on_error(mem_before);
     }
     explicit_bzero(&tip_box, sizeof(tip_box));
-    tip_box.icon = &C_review_info_button;
+    tip_box.icon = &ICON_APP_REVIEW_INFO;
     tip_box.text = NULL;
     tip_box.modalTitle = "Contract information";
     tip_box.type = INFOS_LIST;

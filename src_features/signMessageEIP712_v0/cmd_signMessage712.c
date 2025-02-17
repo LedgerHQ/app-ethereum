@@ -1,4 +1,3 @@
-#include "shared_context.h"
 #include "apdu_constants.h"
 #include "common_utils.h"
 #include "common_ui.h"

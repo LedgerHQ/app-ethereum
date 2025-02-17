@@ -1,8 +1,5 @@
-#include "shared_context.h"
 #include "apdu_constants.h"
 #include "public_keys.h"
-#include "common_ui.h"
-#include "os_io_seproxyhal.h"
 #include "network.h"
 #include "manage_asset_info.h"
 #ifdef HAVE_LEDGER_PKI

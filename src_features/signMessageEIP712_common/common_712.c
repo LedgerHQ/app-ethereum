@@ -1,11 +1,8 @@
-#include "shared_context.h"
 #include "apdu_constants.h"
 #include "os_io_seproxyhal.h"
 #include "crypto_helpers.h"
 #include "ui_callbacks.h"
 #include "common_712.h"
-#include "ui_callbacks.h"
-#include "common_ui.h"
 
 static const uint8_t EIP_712_MAGIC[] = {0x19, 0x01};
 

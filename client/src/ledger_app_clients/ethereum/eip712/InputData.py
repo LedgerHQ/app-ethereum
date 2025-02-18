@@ -452,7 +452,9 @@ def process_data(aclient: EthAppClient,
     global app_client
     global autonext_handler
     global is_golden_run
+    global current_path
 
+    current_path = []
     # deepcopy because this function modifies the dict
     data_json = copy.deepcopy(data_json)
     app_client = aclient

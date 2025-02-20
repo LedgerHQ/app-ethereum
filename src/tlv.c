@@ -3,6 +3,7 @@
 #include "tlv.h"
 #include "os_print.h"  // PRINTF
 #include "read.h"      // read_u32_be
+#include "utils.h"     // buf_shrink_expand
 
 typedef enum { TLV_STATE_TAG, TLV_STATE_LENGTH, TLV_STATE_VALUE } e_tlv_state;
 
@@ -30,8 +31,7 @@ static bool parse_der_value(const uint8_t *payload,
             PRINTF("Unexpectedly long DER-encoded value (%u bytes)\n", byte_length);
             return false;
         }
-        memset(buf, 0, (sizeof(buf) - byte_length));
-        memcpy(buf + (sizeof(buf) - byte_length), &payload[*offset], byte_length);
+        buf_shrink_expand(&payload[*offset], byte_length, buf, sizeof(buf));
         *value = read_u32_be(buf, 0);
         *offset += byte_length;
     } else {  // short form

@@ -4,6 +4,7 @@
 #include "cx_errors.h"
 #include "cx_sha256.h"
 #include "cx_sha3.h"
+#include "buffer.h"
 
 /** MemorySanitizer does not wrap explicit_bzero https://github.com/google/sanitizers/issues/1507
  * which results in false positives when running MemorySanitizer.
@@ -166,4 +167,17 @@ size_t cx_hash_sha256(const uint8_t *in, size_t in_len, uint8_t *out, size_t out
     // if arrays are not empty, read the last element of in and write it in the last element of out
     if (in_len > 0 && out_len > 0) out[out_len - 1] = in[in_len - 1];
     return CX_OK;
+}
+
+typedef unsigned char bolos_task_status_t;
+
+void os_sched_exit(__attribute__((unused)) bolos_task_status_t exit_code) {
+    return;
+}
+
+int io_send_response_buffers(const buffer_t *rdatalist, size_t count, uint16_t sw) {
+    UNUSED(rdatalist);
+    UNUSED(count);
+    UNUSED(sw);
+    return 0;
 }

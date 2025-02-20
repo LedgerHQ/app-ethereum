@@ -30,6 +30,7 @@
 #include "handle_swap_sign_transaction.h"
 #include "handle_get_printable_amount.h"
 #include "handle_check_address.h"
+#include "swap_entrypoints.h"
 #include "commands_712.h"
 #include "challenge.h"
 #include "trusted_name.h"
@@ -341,7 +342,7 @@ void app_main(void) {
             if (io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx) == 0) {
                 // In case of success, the apdu is sent immediately and eth exits
                 // Reaching this code means we encountered an error
-                finalize_exchange_sign_transaction(false);
+                swap_finalize_exchange_sign_transaction(false);
             } else {
                 PRINTF("Unrecoverable\n");
                 app_exit();

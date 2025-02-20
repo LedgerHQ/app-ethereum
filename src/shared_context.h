@@ -12,6 +12,8 @@
 #include "tx_content.h"
 #include "chainConfig.h"
 #include "asset_info.h"
+#include "swap_utils.h"
+
 #ifdef HAVE_NBGL
 #include "nbgl_types.h"
 #endif
@@ -172,8 +174,6 @@ typedef enum swap_mode_e {
     SWAP_MODE_ERROR,
 } swap_mode_t;
 
-extern bool G_called_from_swap;
-extern bool G_swap_response_ready;
 extern swap_mode_t G_swap_mode;
 extern uint8_t G_swap_crosschain_hash[CX_SHA256_SIZE];
 

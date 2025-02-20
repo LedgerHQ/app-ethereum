@@ -90,6 +90,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 44787, .name = "Celo Alfajores", .ticker = "aCELO"},
     {.chain_id = 47763, .name = "Neo X Mainnet", .ticker = "GAS"},
     {.chain_id = 52014, .name = "Electroneum", .ticker = "ETN"},
+    {.chain_id = 57054, .name = "Sonic Blaze Testnet", .ticker = "S"},
     {.chain_id = 59141, .name = "Linea Sepolia", .ticker = "ETH"},
     {.chain_id = 59144, .name = "Linea", .ticker = "ETH"},
     {.chain_id = 60808, .name = "BOB", .ticker = "ETH"},

@@ -8,9 +8,19 @@
 
 #ifdef HAVE_DYN_MEM_ALLOC
 static uint8_t *g_tlv_payload = NULL;
-static uint16_t g_tlv_size;
-static uint16_t g_tlv_pos;
-static bool g_dyn;
+static uint16_t g_tlv_size = 0;
+static uint16_t g_tlv_pos = 0;
+static bool g_dyn = false;
+
+static void reset_state(void) {
+    if (g_tlv_payload != NULL) {
+        mem_dealloc(g_tlv_size);
+    }
+    g_tlv_payload = NULL;
+    g_tlv_size = 0;
+    g_tlv_pos = 0;
+    g_dyn = false;
+}
 #endif
 
 bool tlv_from_apdu(bool first_chunk,
@@ -36,8 +46,7 @@ bool tlv_from_apdu(bool first_chunk,
 #ifdef HAVE_DYN_MEM_ALLOC
             if (g_tlv_payload != NULL) {
                 PRINTF("Error: remnants from an incomplete TLV payload!\n");
-                mem_dealloc(g_tlv_size);
-                g_tlv_payload = NULL;
+                reset_state();
                 return false;
             }
 
@@ -55,6 +64,7 @@ bool tlv_from_apdu(bool first_chunk,
     }
 #ifdef HAVE_DYN_MEM_ALLOC
     if (g_dyn && (g_tlv_payload == NULL)) {
+        reset_state();
         return false;
     }
 #endif
@@ -62,10 +72,7 @@ bool tlv_from_apdu(bool first_chunk,
     if ((g_tlv_pos + chunk_length) > g_tlv_size) {
         PRINTF("TLV payload bigger than expected!\n");
 #ifdef HAVE_DYN_MEM_ALLOC
-        if (g_dyn) {
-            mem_dealloc(g_tlv_size);
-            g_tlv_payload = NULL;
-        }
+        reset_state();
 #endif
         return false;
     }
@@ -81,7 +88,7 @@ bool tlv_from_apdu(bool first_chunk,
     if (g_tlv_pos == g_tlv_size) {
 #ifdef HAVE_DYN_MEM_ALLOC
         ret = (*handler)(g_dyn ? g_tlv_payload : &payload[offset], g_tlv_size, g_dyn);
-        g_tlv_payload = NULL;
+        reset_state();
 #else
         ret = (*handler)(&payload[offset], g_tlv_size, false);
 #endif

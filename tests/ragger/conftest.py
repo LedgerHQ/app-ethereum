@@ -18,33 +18,14 @@ from ragger.conftest import configuration
 # ragger.configuration.OPTIONAL_CONFIGURATION
 # Please refer to ragger/conftest/configuration.py for their descriptions and accepted values
 
-
-def pytest_addoption(parser):
-    parser.addoption("--with_lib_mode", action="store_true", help="Run the test with Library Mode")
+configuration.OPTIONAL.ALLOWED_SETUPS = ["default", "lib_mode"]
 
 
-pattern = f"{Path(__file__).parent}/test_*.py"
-testFiles = [path.basename(x) for x in glob.glob(pattern)]
-collect_ignore = []
-if "--with_lib_mode" in sys.argv:
-
-    # ==============================================================================
-    # /!\ Tests are started in Library mode: unselect (ignore) unrelated modules /!\
-    # ==============================================================================
-
-    warnings.warn("Main app is started in library mode")
-
-    configuration.OPTIONAL.MAIN_APP_DIR = "tests/ragger/.test_dependencies/"
-
-    collect_ignore += [f for f in testFiles if "test_clone" not in f]
-
-else:
-
-    # ===========================================================================
-    # /!\ Standards tests without Library mode: unselect (ignore) clone tests /!\
-    # ===========================================================================
-
-    collect_ignore += [f for f in testFiles if "test_clone" in f]
+def pytest_configure(config):
+    current_setup = config.getoption("--setup")
+    if current_setup == "lib_mode":
+        warnings.warn("Main app is started in library mode")
+        configuration.OPTIONAL.MAIN_APP_DIR = "tests/ragger/.test_dependencies/"
 
 
 @pytest.fixture(name="app_version")

@@ -10,6 +10,7 @@ class SettingID(Enum):
     VERBOSE_ENS = auto()
     NONCE = auto()
     VERBOSE_EIP712 = auto()
+    DISABLE_EIP7702_WHITELIST = auto()
     DEBUG_DATA = auto()
 
 
@@ -35,6 +36,7 @@ def get_device_settings(firmware: Firmware) -> list[SettingID]:
         SettingID.VERBOSE_ENS,
         SettingID.NONCE,
         SettingID.VERBOSE_EIP712,
+        SettingID.DISABLE_EIP7702_WHITELIST,
         SettingID.DEBUG_DATA,
     ]
 

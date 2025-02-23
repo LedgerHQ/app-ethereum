@@ -671,3 +671,14 @@ class EthAppClient:
         for chunk in chunks[:-1]:
             self._exchange(chunk)
         return self._exchange(chunks[-1])
+
+    def sign_eip7702_authorization(self,
+                        bip32_path: str,
+                        delegate: bytes,
+                        nonce: int,
+                        chain_id: Optional[int] = None) -> RAPDU:
+        return self._exchange_async(self._cmd_builder.sign_eip7702_authorization(bip32_path,
+                                                                      delegate,
+                                                                      nonce,
+                                                                      chain_id))
+

@@ -19,7 +19,7 @@ uint32_t io_seproxyhal_touch_tx_ok(void) {
                                                   G_io_apdu_buffer + 1 + 32,
                                                   &info));
 
-    if (txContext.txType == EIP1559 || txContext.txType == EIP2930) {
+    if (txContext.txType == EIP1559 || txContext.txType == EIP2930 || txContext.txType == EIP7702) {
         if (info & CX_ECCINFO_PARITY_ODD) {
             G_io_apdu_buffer[0] = 1;
         } else {

@@ -149,6 +149,25 @@ static bool processAccessList(txContext_t *context) {
     return true;
 }
 
+static bool processAuthList(txContext_t *context) {
+    if (check_empty_list(context, "RLP_AUTH_LIST") == false) {
+        return false;
+    }
+
+    if (context->currentFieldPos < context->currentFieldLength) {
+        uint32_t copySize =
+            MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
+        if (copyTxData(context, NULL, copySize) == false) {
+            return false;
+        }
+    }
+    if (context->currentFieldPos == context->currentFieldLength) {
+        context->currentField++;
+        context->processingField = false;
+    }
+    return true;
+}
+
 static bool processChainID(txContext_t *context) {
     if (check_fields(context, "RLP_CHAINID", INT256_LENGTH) == false) {
         return false;
@@ -358,6 +377,59 @@ static bool processV(txContext_t *context) {
     }
     return true;
 }
+
+static bool processEIP7702Tx(txContext_t *context) {
+    bool ret = false;
+    switch (context->currentField) {
+        case EIP7702_RLP_CONTENT: {
+            ret = processContent(context);
+            break;
+        }
+        case EIP7702_RLP_CHAINID: {
+            ret = processChainID(context);
+            break;
+        }
+        case EIP7702_RLP_NONCE: {
+            ret = processNonce(context);
+            break;
+        }
+        case EIP7702_RLP_MAX_FEE_PER_GAS: {
+            ret = processGasprice(context);
+            break;
+        }
+        case EIP7702_RLP_GASLIMIT: {
+            ret = processGasLimit(context);
+            break;
+        }
+        case EIP7702_RLP_TO: {
+            ret = processTo(context);
+            break;
+        }
+        case EIP7702_RLP_VALUE: {
+            ret = processValue(context);
+            break;
+        }
+        case EIP7702_RLP_DATA: {
+            ret = processData(context);
+            break;
+        }
+        case EIP7702_RLP_ACCESS_LIST: {
+            ret = processAccessList(context);
+            break;
+        }
+        case EIP7702_RLP_AUTH_LIST: {
+            ret = processAuthList(context);
+            break;
+        }
+        case EIP7702_RLP_MAX_PRIORITY_FEE_PER_GAS:
+            ret = processAndDiscard(context);
+            break;
+        default:
+            PRINTF("Invalid RLP decoder context\n");
+    }
+    return ret;
+}
+
 
 static bool processEIP1559Tx(txContext_t *context) {
     bool ret = false;
@@ -580,6 +652,11 @@ static parserStatus_e processTxInternal(txContext_t *context) {
                     break;
                 case EIP1559:
                     if (processEIP1559Tx(context) == false) {
+                        return USTREAM_FAULT;
+                    }
+                    break;
+                case EIP7702:
+                    if (processEIP7702Tx(context) == false) {
                         return USTREAM_FAULT;
                     }
                     break;

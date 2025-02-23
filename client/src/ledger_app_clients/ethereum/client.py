@@ -212,19 +212,25 @@ class EthAppClient:
     def eip712_filtering_raw(self, name: str, sig: bytes, discarded: bool):
         return self._exchange_async(self._cmd_builder.eip712_filtering_raw(name, sig, discarded))
 
-    def serialize_tx(self, tx_params: dict) -> Tuple[bytes, bytes]:
+    def serialize_tx(self, tx_params: dict, tx_raw: bytes = None) -> Tuple[bytes, bytes]:
         """Computes the serialized TX and its hash"""
 
-        tx = Web3().eth.account.create().sign_transaction(tx_params).rawTransaction
+        if tx_raw is not None:
+            tx = tx_raw
+        else:
+            tx = Web3().eth.account.create().sign_transaction(tx_params).rawTransaction
         prefix = bytes()
         suffix = []
-        if tx[0] in [0x01, 0x02]:
+        if tx[0] in [0x01, 0x02, 0x04]:
             prefix = tx[:1]
             tx = tx[len(prefix):]
         else:  # legacy
             if "chainId" in tx_params:
                 suffix = [int(tx_params["chainId"]), bytes(), bytes()]
-        decoded_tx = rlp.decode(tx)[:-3]  # remove already computed signature
+        if tx_raw is None:        
+            decoded_tx = rlp.decode(tx)[:-3]  # remove already computed signature
+        else:
+            decoded_tx = rlp.decode(tx)
         encoded_tx = prefix + rlp.encode(decoded_tx + suffix)
         tx_hash = keccak(encoded_tx)
         return encoded_tx, tx_hash
@@ -232,8 +238,9 @@ class EthAppClient:
     def sign(self,
              bip32_path: str,
              tx_params: dict,
+             tx_raw : bytes = None, # Introduced for 7702 until web3.py supports authorization lists 
              mode: SignMode = SignMode.BASIC):
-        tx, _ = self.serialize_tx(tx_params)
+        tx, _ = self.serialize_tx(tx_params, tx_raw)
         chunks = self._cmd_builder.sign(bip32_path, tx, mode)
         for chunk in chunks[:-1]:
             self._exchange(chunk)

@@ -25,10 +25,13 @@ def recover_message(msg, vrs: tuple) -> bytes:
     return bytes.fromhex(addr[2:])
 
 
-def recover_transaction(tx_params, vrs: tuple) -> bytes:
-    raw_tx = Account.create().sign_transaction(tx_params).rawTransaction
+def recover_transaction(tx_params, vrs: tuple, raw_tx_param:bytes = None) -> bytes:
+    if raw_tx_param is None:
+        raw_tx = Account.create().sign_transaction(tx_params).rawTransaction
+    else:
+        raw_tx = raw_tx_param
     prefix = bytes()
-    if raw_tx[0] in [0x01, 0x02]:
+    if raw_tx[0] in [0x01, 0x02, 0x04]:
         prefix = raw_tx[:1]
         raw_tx = raw_tx[len(prefix):]
     else:
@@ -58,6 +61,9 @@ def recover_transaction(tx_params, vrs: tuple) -> bytes:
             # Pre EIP-155 TX
             assert False
     decoded = rlp.decode(raw_tx)
-    reencoded = rlp.encode(decoded[:-3] + list(normalize_vrs(vrs)))
+    if raw_tx_param is None:
+        reencoded = rlp.encode(decoded[:-3] + list(normalize_vrs(vrs)))
+    else:
+        reencoded = rlp.encode(decoded + list(normalize_vrs(vrs)))
     addr = Account.recover_transaction(prefix + reencoded)
     return bytes.fromhex(addr[2:])

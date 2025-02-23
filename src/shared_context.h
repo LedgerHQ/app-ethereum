@@ -32,6 +32,9 @@ typedef struct internalStorage_t {
     // hidden setting (not shown in the UI)
     bool w3c_opt_in;
 #endif
+#ifdef HAVE_EIP7702_WHITELIST
+    bool eip7702_whitelist_disabled;
+#endif // HAVE_EIP7702_WHITELIST
     bool initialized;
 } internalStorage_t;
 
@@ -91,11 +94,17 @@ typedef struct messageSigningContext712_t {
     uint8_t messageHash[32];
 } messageSigningContext712_t;
 
+typedef struct authSigningContext7702_t {
+    bip32_path_t bip32;
+    uint8_t authHash[INT256_LENGTH];
+} authSigningContext7702_t;
+
 typedef union {
     publicKeyContext_t publicKeyContext;
     transactionContext_t transactionContext;
     messageSigningContext_t messageSigningContext;
     messageSigningContext712_t messageSigningContext712;
+    authSigningContext7702_t authSigningContext7702;
 } tmpCtx_t;
 
 typedef union {

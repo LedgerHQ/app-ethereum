@@ -33,6 +33,7 @@
 #define INS_PROVIDE_PROXY_INFO              0x2A
 #define INS_PROVIDE_NETWORK_CONFIGURATION   0x30
 #define INS_PROVIDE_TX_SIMULATION           0x32
+#define INS_SIGN_EIP7702_AUTHORIZATION      0x34
 
 #define P1_CONFIRM              0x01
 #define P1_NON_CONFIRM          0x00

@@ -10,8 +10,8 @@
 #define MAX_NETWORK_LEN 32  // 31 characters + '\0'
 
 typedef struct network_info_s {
-    const char name[MAX_NETWORK_LEN];
-    const char ticker[MAX_TICKER_LEN];
+    char name[MAX_NETWORK_LEN];
+    char ticker[MAX_TICKER_LEN];
     uint64_t chain_id;
 #ifdef HAVE_NBGL
     nbgl_icon_details_t icon;

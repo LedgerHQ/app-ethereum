@@ -244,18 +244,12 @@ static uint16_t handle_get_config(void) {
 }
 
 static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
-    s_sig_ctx ctx = {0};
+    s_network_info_ctx ctx = {0};
 
     // Set the current slot here, because the corresponding icon will be received
     // separately, after the network configuration, and should keep the same slot
     g_current_network_slot = (g_current_network_slot + 1) % MAX_DYNAMIC_NETWORKS;
 
-    // Reset the structures
-    explicit_bzero(&DYNAMIC_NETWORK_INFO[g_current_network_slot], sizeof(network_info_t));
-#ifdef HAVE_NBGL
-    explicit_bzero(g_network_icon_bitmap[g_current_network_slot],
-                   sizeof(g_network_icon_bitmap[g_current_network_slot]));
-#endif
     // Initialize the hash context
     cx_sha256_init(&ctx.hash_ctx);
     if (!tlv_parse(payload, size, (f_tlv_data_handler) &handle_network_info_struct, &ctx) ||

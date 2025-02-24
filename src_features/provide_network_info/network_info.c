@@ -41,7 +41,7 @@ network_info_t DYNAMIC_NETWORK_INFO[MAX_DYNAMIC_NETWORKS] = {0};
  * @param[out] context struct context
  * @return whether the handling was successful
  */
-static bool handle_struct_type(const s_tlv_data *data, s_sig_ctx *context) {
+static bool handle_struct_type(const s_tlv_data *data, s_network_info_ctx *context) {
     (void) context;
     if (data->length != sizeof(uint8_t)) {
         return false;
@@ -56,7 +56,7 @@ static bool handle_struct_type(const s_tlv_data *data, s_sig_ctx *context) {
  * @param[out] context struct context
  * @return whether the handling was successful
  */
-static bool handle_struct_version(const s_tlv_data *data, s_sig_ctx *context) {
+static bool handle_struct_version(const s_tlv_data *data, s_network_info_ctx *context) {
     (void) context;
     if (data->length != sizeof(uint8_t)) {
         return false;
@@ -71,7 +71,7 @@ static bool handle_struct_version(const s_tlv_data *data, s_sig_ctx *context) {
  * @param[out] context struct context
  * @return whether the handling was successful
  */
-static bool handle_blockchain_family(const s_tlv_data *data, s_sig_ctx *context) {
+static bool handle_blockchain_family(const s_tlv_data *data, s_network_info_ctx *context) {
     (void) context;
     if (data->length != sizeof(uint8_t)) {
         return false;
@@ -86,7 +86,7 @@ static bool handle_blockchain_family(const s_tlv_data *data, s_sig_ctx *context)
  * @param[out] context struct context
  * @return whether the handling was successful
  */
-static bool handle_chain_id(const s_tlv_data *data, s_sig_ctx *context) {
+static bool handle_chain_id(const s_tlv_data *data, s_network_info_ctx *context) {
     uint64_t chain_id;
     uint8_t buf[sizeof(chain_id)];
     uint64_t max_range;
@@ -113,7 +113,7 @@ static bool handle_chain_id(const s_tlv_data *data, s_sig_ctx *context) {
             return false;
         }
     }
-    DYNAMIC_NETWORK_INFO[g_current_network_slot].chain_id = chain_id;
+    context->network.chain_id = chain_id;
     return true;
 }
 
@@ -141,9 +141,9 @@ static bool check_name(const uint8_t *name, uint16_t len) {
  * @param[out] context struct context
  * @return whether the handling was successful
  */
-static bool handle_name(const s_tlv_data *data, s_sig_ctx *context) {
+static bool handle_name(const s_tlv_data *data, s_network_info_ctx *context) {
     (void) context;
-    if (data->length >= sizeof(DYNAMIC_NETWORK_INFO[g_current_network_slot].name)) {
+    if (data->length >= sizeof(context->network.name)) {
         return false;
     }
     // Check if the name is printable
@@ -151,8 +151,8 @@ static bool handle_name(const s_tlv_data *data, s_sig_ctx *context) {
         PRINTF("NETWORK_NAME is not printable!\n");
         return false;
     }
-    memcpy(DYNAMIC_NETWORK_INFO[g_current_network_slot].name, data->value, data->length);
-    DYNAMIC_NETWORK_INFO[g_current_network_slot].name[data->length] = '\0';
+    memcpy(context->network.name, data->value, data->length);
+    context->network.name[data->length] = '\0';
     return true;
 }
 
@@ -163,9 +163,9 @@ static bool handle_name(const s_tlv_data *data, s_sig_ctx *context) {
  * @param[out] context struct context
  * @return whether the handling was successful
  */
-static bool handle_ticker(const s_tlv_data *data, s_sig_ctx *context) {
+static bool handle_ticker(const s_tlv_data *data, s_network_info_ctx *context) {
     (void) context;
-    if (data->length >= sizeof(DYNAMIC_NETWORK_INFO[g_current_network_slot].ticker)) {
+    if (data->length >= sizeof(context->network.ticker)) {
         return false;
     }
     // Check if the ticker is printable
@@ -173,8 +173,8 @@ static bool handle_ticker(const s_tlv_data *data, s_sig_ctx *context) {
         PRINTF("NETWORK_TICKER is not printable!\n");
         return false;
     }
-    memcpy(DYNAMIC_NETWORK_INFO[g_current_network_slot].ticker, data->value, data->length);
-    DYNAMIC_NETWORK_INFO[g_current_network_slot].ticker[data->length] = '\0';
+    memcpy(context->network.ticker, data->value, data->length);
+    context->network.ticker[data->length] = '\0';
     return true;
 }
 
@@ -186,14 +186,11 @@ static bool handle_ticker(const s_tlv_data *data, s_sig_ctx *context) {
  * @param[out] context struct context
  * @return whether the handling was successful
  */
-static bool handle_icon_hash(const s_tlv_data *data, s_sig_ctx *context) {
+static bool handle_icon_hash(const s_tlv_data *data, s_network_info_ctx *context) {
     if (data->length > sizeof(g_network_icon_hash[g_current_network_slot])) {
         return false;
     }
-    buf_shrink_expand(data->value,
-                      data->length,
-                      g_network_icon_hash[g_current_network_slot],
-                      sizeof(g_network_icon_hash[g_current_network_slot]));
+    buf_shrink_expand(data->value, data->length, context->icon_hash, sizeof(context->icon_hash));
     return true;
 }
 #endif
@@ -205,13 +202,16 @@ static bool handle_icon_hash(const s_tlv_data *data, s_sig_ctx *context) {
  * @param[out] context struct context
  * @return whether the handling was successful
  */
-static bool handle_signature(const s_tlv_data *data, s_sig_ctx *context) {
-    context->sig_size = data->length;
-    context->sig = data->value;
+static bool handle_signature(const s_tlv_data *data, s_network_info_ctx *context) {
+    if (data->length > sizeof(context->signature)) {
+        return false;
+    }
+    context->signature_length = data->length;
+    memcpy(context->signature, data->value, data->length);
     return true;
 }
 
-bool handle_network_info_struct(const s_tlv_data *data, s_sig_ctx *context) {
+bool handle_network_info_struct(const s_tlv_data *data, s_network_info_ctx *context) {
     bool ret;
 
     switch (data->tag) {
@@ -261,7 +261,7 @@ bool handle_network_info_struct(const s_tlv_data *data, s_sig_ctx *context) {
  * @param[in] context struct context
  * @return whether it was successful
  */
-bool verify_network_info_struct(s_sig_ctx *context) {
+bool verify_network_info_struct(const s_network_info_ctx *context) {
     uint8_t hash[INT256_LENGTH];
 
     if (cx_hash_no_throw((cx_hash_t *) &context->hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH) !=
@@ -277,10 +277,18 @@ bool verify_network_info_struct(s_sig_ctx *context) {
 #ifdef HAVE_LEDGER_PKI
                                     CERTIFICATE_PUBLIC_KEY_USAGE_NETWORK,
 #endif
-                                    (uint8_t *) (context->sig),
-                                    context->sig_size) != CX_OK) {
+                                    (uint8_t *) context->signature,
+                                    context->signature_length) != CX_OK) {
         return false;
     }
+    memcpy(&DYNAMIC_NETWORK_INFO[g_current_network_slot],
+           &context->network,
+           sizeof(network_info_t));
+#ifdef HAVE_NBGL
+    memcpy(g_network_icon_hash[g_current_network_slot],
+           context->icon_hash,
+           sizeof(context->icon_hash));
+#endif
     return true;
 }
 

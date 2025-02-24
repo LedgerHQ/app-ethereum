@@ -1,23 +1,13 @@
 #ifdef HAVE_TRUSTED_NAME
 
-#include <stdint.h>
-#include <string.h>
 #include <ctype.h>
-#include "common_utils.h"  // ARRAY_SIZE
-#include "apdu_constants.h"
 #include "trusted_name.h"
-#include "challenge.h"
-#include "mem.h"
-#include "hash_bytes.h"
-#include "network.h"
-#include "public_keys.h"
-#ifdef HAVE_LEDGER_PKI
-#include "os_pki.h"
-#endif
-#include "utils.h"
+#include "network.h"  // chain_is_ethereum_compatible
+#include "utils.h"    // SET_BIT
 #include "read.h"
-#include "tlv.h"
-#include "tlv_apdu.h"
+#include "challenge.h"
+#include "hash_bytes.h"
+#include "public_keys.h"
 
 typedef enum { STRUCT_TYPE_TRUSTED_NAME = 0x03 } e_struct_type;
 
@@ -62,29 +52,7 @@ typedef enum {
     NFT_ID = 0x72,
 } e_tlv_tag;
 
-typedef enum { TN_KEY_ID_DOMAIN_SVC = 0x07, TN_KEY_ID_CAL = 0x09 } e_tn_key_id;
-
-typedef struct {
-    bool valid;
-    uint8_t struct_version;
-    char *name;
-    uint8_t addr[ADDRESS_LENGTH];
-    uint64_t chain_id;
-    e_name_type name_type;
-    e_name_source name_source;
-    uint8_t nft_id[INT256_LENGTH];
-} s_trusted_name_info;
-
-typedef struct {
-    s_trusted_name_info *info;
-    e_tn_key_id key_id;
-    uint8_t input_sig_size;
-    uint8_t input_sig[73];
-    cx_sha256_t hash_ctx;
-    uint32_t rcv_flags;
-} s_trusted_name_ctx;
-
-static s_trusted_name_info g_trusted_name_info = {0};
+s_trusted_name_info g_trusted_name_info = {0};
 char g_trusted_name[TRUSTED_NAME_MAX_LENGTH + 1];
 
 static bool matching_type(e_name_type type, uint8_t type_count, const e_name_type *types) {
@@ -480,114 +448,7 @@ static bool handle_nft_id(const s_tlv_data *data, s_trusted_name_ctx *ctx) {
     return true;  // unhandled for now
 }
 
-/**
- * Verify the signature context
- *
- * Verify the SHA-256 hash of the payload against the public key
- *
- * @param[in] ctx the trusted name context
- * @return whether it was successful
- */
-static bool verify_signature(const s_trusted_name_ctx *ctx) {
-    uint8_t hash[INT256_LENGTH];
-    cx_err_t error = CX_INTERNAL_ERROR;
-    bool ret_code = false;
-    const uint8_t *pk;
-    size_t pk_size;
-
-    switch (ctx->key_id) {
-        case TN_KEY_ID_DOMAIN_SVC:
-            pk = TRUSTED_NAME_PUB_KEY;
-            pk_size = sizeof(TRUSTED_NAME_PUB_KEY);
-            break;
-        case TN_KEY_ID_CAL:
-            pk = LEDGER_SIGNATURE_PUBLIC_KEY;
-            pk_size = sizeof(LEDGER_SIGNATURE_PUBLIC_KEY);
-            break;
-        default:
-            PRINTF("Error: Unknown metadata key ID %u\n", ctx->key_id);
-            return false;
-    }
-
-    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &ctx->hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH));
-
-    CX_CHECK(check_signature_with_pubkey("Trusted Name",
-                                         hash,
-                                         sizeof(hash),
-                                         pk,
-                                         pk_size,
-#ifdef HAVE_LEDGER_PKI
-                                         CERTIFICATE_PUBLIC_KEY_USAGE_TRUSTED_NAME,
-#endif
-                                         (uint8_t *) (ctx->input_sig),
-                                         ctx->input_sig_size));
-
-    ret_code = true;
-end:
-    return ret_code;
-}
-
-/**
- * Verify the validity of the received trusted struct
- *
- * @param[in] ctx the trusted name context
- * @return whether the struct is valid
- */
-static bool verify_struct(const s_trusted_name_ctx *ctx) {
-    uint32_t required_flags;
-
-    if (!(SET_BIT(STRUCT_VERSION_RCV_BIT) & ctx->rcv_flags)) {
-        PRINTF("Error: no struct version specified!\n");
-        return false;
-    }
-    required_flags = SET_BIT(STRUCT_TYPE_RCV_BIT) | SET_BIT(STRUCT_VERSION_RCV_BIT) |
-                     SET_BIT(SIGNER_KEY_ID_RCV_BIT) | SET_BIT(SIGNER_ALGO_RCV_BIT) |
-                     SET_BIT(SIGNATURE_RCV_BIT) | SET_BIT(TRUSTED_NAME_RCV_BIT) |
-                     SET_BIT(ADDRESS_RCV_BIT);
-    switch (ctx->info->struct_version) {
-        case 1:
-            required_flags |= SET_BIT(CHALLENGE_RCV_BIT) | SET_BIT(COIN_TYPE_RCV_BIT);
-            if ((ctx->rcv_flags & required_flags) != required_flags) {
-                return false;
-            }
-            break;
-        case 2:
-            required_flags |= SET_BIT(CHAIN_ID_RCV_BIT) | SET_BIT(TRUSTED_NAME_TYPE_RCV_BIT) |
-                              SET_BIT(TRUSTED_NAME_SOURCE_RCV_BIT);
-            if ((ctx->rcv_flags & required_flags) != required_flags) {
-                return false;
-            }
-            switch (ctx->info->name_type) {
-                case TN_TYPE_ACCOUNT:
-                    if (ctx->info->name_source == TN_SOURCE_CAL) {
-                        PRINTF("Error: cannot accept an account name from the CAL!\n");
-                        return false;
-                    }
-                    if (!(ctx->rcv_flags & SET_BIT(CHALLENGE_RCV_BIT))) {
-                        PRINTF("Error: trusted account name requires a challenge!\n");
-                        return false;
-                    }
-                    break;
-                case TN_TYPE_CONTRACT:
-                    if (ctx->info->name_source != TN_SOURCE_CAL) {
-                        PRINTF("Error: cannot accept a contract name from given source (%u)!\n",
-                               ctx->info->name_source);
-                        return false;
-                    }
-                    break;
-                default:
-                    return false;
-            }
-            break;
-        default:
-            PRINTF("Error: unsupported trusted name struct version (%u) !\n",
-                   ctx->info->struct_version);
-            return false;
-    }
-    return true;
-}
-
-static bool handle_trusted_name_struct(const s_tlv_data *data, s_trusted_name_ctx *context) {
+bool handle_trusted_name_struct(const s_tlv_data *data, s_trusted_name_ctx *context) {
     bool ret;
 
     (void) context;
@@ -644,41 +505,115 @@ static bool handle_trusted_name_struct(const s_tlv_data *data, s_trusted_name_ct
     return ret;
 }
 
-static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_free) {
-    s_trusted_name_ctx ctx = {0};
-    bool parsing_success;
+/**
+ * Verify the validity of the received trusted struct
+ *
+ * @param[in] ctx the trusted name context
+ * @return whether the struct is valid
+ */
+bool verify_trusted_name_struct(const s_trusted_name_ctx *ctx) {
+    uint32_t required_flags;
 
-    g_trusted_name_info.name = g_trusted_name;
-    ctx.info = &g_trusted_name_info;
-    cx_sha256_init(&ctx.hash_ctx);
-    parsing_success =
-        tlv_parse(payload, size, (f_tlv_data_handler) &handle_trusted_name_struct, &ctx);
-    if (to_free) mem_dealloc(size);
-    if (!parsing_success || !verify_struct(&ctx) || !verify_signature(&ctx)) {
-        roll_challenge();  // prevent brute-force guesses
-        explicit_bzero(&g_trusted_name_info, sizeof(g_trusted_name_info));
+    if (!(SET_BIT(STRUCT_VERSION_RCV_BIT) & ctx->rcv_flags)) {
+        PRINTF("Error: no struct version specified!\n");
         return false;
+    }
+    required_flags = SET_BIT(STRUCT_TYPE_RCV_BIT) | SET_BIT(STRUCT_VERSION_RCV_BIT) |
+                     SET_BIT(SIGNER_KEY_ID_RCV_BIT) | SET_BIT(SIGNER_ALGO_RCV_BIT) |
+                     SET_BIT(SIGNATURE_RCV_BIT) | SET_BIT(TRUSTED_NAME_RCV_BIT) |
+                     SET_BIT(ADDRESS_RCV_BIT);
+    switch (ctx->info->struct_version) {
+        case 1:
+            required_flags |= SET_BIT(CHALLENGE_RCV_BIT) | SET_BIT(COIN_TYPE_RCV_BIT);
+            if ((ctx->rcv_flags & required_flags) != required_flags) {
+                return false;
+            }
+            break;
+        case 2:
+            required_flags |= SET_BIT(CHAIN_ID_RCV_BIT) | SET_BIT(TRUSTED_NAME_TYPE_RCV_BIT) |
+                              SET_BIT(TRUSTED_NAME_SOURCE_RCV_BIT);
+            if ((ctx->rcv_flags & required_flags) != required_flags) {
+                return false;
+            }
+            switch (ctx->info->name_type) {
+                case TN_TYPE_ACCOUNT:
+                    if (ctx->info->name_source == TN_SOURCE_CAL) {
+                        PRINTF("Error: cannot accept an account name from the CAL!\n");
+                        return false;
+                    }
+                    if (!(ctx->rcv_flags & SET_BIT(CHALLENGE_RCV_BIT))) {
+                        PRINTF("Error: trusted account name requires a challenge!\n");
+                        return false;
+                    }
+                    break;
+                case TN_TYPE_CONTRACT:
+                    if (ctx->info->name_source != TN_SOURCE_CAL) {
+                        PRINTF("Error: cannot accept a contract name from given source (%u)!\n",
+                               ctx->info->name_source);
+                        return false;
+                    }
+                    break;
+                default:
+                    return false;
+            }
+            break;
+        default:
+            PRINTF("Error: unsupported trusted name struct version (%u) !\n",
+                   ctx->info->struct_version);
+            return false;
     }
     PRINTF("Registered : %s => %.*h\n",
            g_trusted_name_info.name,
            ADDRESS_LENGTH,
            g_trusted_name_info.addr);
-    roll_challenge();  // prevent replays
     return true;
 }
 
 /**
- * Handle trusted name APDU
+ * Verify the signature context
  *
- * @param[in] p1 first APDU instruction parameter
- * @param[in] data APDU payload
- * @param[in] length payload size
+ * Verify the SHA-256 hash of the payload against the public key
+ *
+ * @param[in] ctx the trusted name context
+ * @return whether it was successful
  */
-uint16_t handle_provide_trusted_name(uint8_t p1, const uint8_t *data, uint8_t length) {
-    if (!tlv_from_apdu(p1 == P1_FIRST_CHUNK, length, data, &handle_tlv_payload)) {
-        return APDU_RESPONSE_INVALID_DATA;
+bool verify_trusted_name_signature(const s_trusted_name_ctx *ctx) {
+    uint8_t hash[INT256_LENGTH];
+    cx_err_t error = CX_INTERNAL_ERROR;
+    bool ret_code = false;
+    const uint8_t *pk;
+    size_t pk_size;
+
+    switch (ctx->key_id) {
+        case TN_KEY_ID_DOMAIN_SVC:
+            pk = TRUSTED_NAME_PUB_KEY;
+            pk_size = sizeof(TRUSTED_NAME_PUB_KEY);
+            break;
+        case TN_KEY_ID_CAL:
+            pk = LEDGER_SIGNATURE_PUBLIC_KEY;
+            pk_size = sizeof(LEDGER_SIGNATURE_PUBLIC_KEY);
+            break;
+        default:
+            PRINTF("Error: Unknown metadata key ID %u\n", ctx->key_id);
+            return false;
     }
-    return APDU_RESPONSE_OK;
+
+    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &ctx->hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH));
+
+    CX_CHECK(check_signature_with_pubkey("Trusted Name",
+                                         hash,
+                                         sizeof(hash),
+                                         pk,
+                                         pk_size,
+#ifdef HAVE_LEDGER_PKI
+                                         CERTIFICATE_PUBLIC_KEY_USAGE_TRUSTED_NAME,
+#endif
+                                         (uint8_t *) (ctx->input_sig),
+                                         ctx->input_sig_size));
+
+    ret_code = true;
+end:
+    return ret_code;
 }
 
 #endif  // HAVE_TRUSTED_NAME

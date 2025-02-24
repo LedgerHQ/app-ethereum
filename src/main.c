@@ -33,7 +33,7 @@
 #include "swap_entrypoints.h"
 #include "commands_712.h"
 #include "challenge.h"
-#include "trusted_name.h"
+#include "cmd_trusted_name.h"
 #include "crypto_helpers.h"
 #include "manage_asset_info.h"
 #include "cmd_network_info.h"
@@ -235,7 +235,7 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             break;
 
         case INS_ENS_PROVIDE_INFO:
-            sw = handle_provide_trusted_name(cmd->p1, cmd->data, cmd->lc);
+            sw = handle_trusted_name(cmd->p1, cmd->data, cmd->lc);
             break;
 #endif  // HAVE_TRUSTED_NAME
 

@@ -1,12 +1,5 @@
-#include <stdint.h>
-#include <os.h>
-
+#include "os.h"
 #include "eth_swap_utils.h"
-#include "handle_get_printable_amount.h"
-#include "shared_context.h"
-#include "common_utils.h"
-#include "uint256.h"
-#include "string.h"
 #include "network.h"
 #include "apdu_constants.h"
 

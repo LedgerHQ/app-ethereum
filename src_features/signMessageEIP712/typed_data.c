@@ -1,7 +1,5 @@
 #ifdef HAVE_EIP712_FULL_SUPPORT
 
-#include <stdlib.h>
-#include <string.h>
 #include "typed_data.h"
 #include "sol_typenames.h"
 #include "apdu_constants.h"  // APDU response codes

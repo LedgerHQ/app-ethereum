@@ -1,15 +1,13 @@
 #include <ctype.h>
-#include "nbgl_page.h"
 #include "shared_context.h"
 #include "ui_callbacks.h"
+#include "ui_message_signing.h"
 #include "ui_nbgl.h"
-#include "ui_signing.h"
 #include "plugins.h"
 #include "trusted_name.h"
 #include "caller_api.h"
 #include "network_icons.h"
 #include "network.h"
-#include "ledger_assert.h"
 
 // 1 more than actually displayed on screen, because of calculations in StaticReview
 #define MAX_PLUGIN_ITEMS 8
@@ -219,11 +217,10 @@ void ux_approve_tx(bool fromPlugin) {
                  (pluginType == EXTERNAL ? "on " : ""),
                  strings.common.toAddress);
     } else {
-        snprintf(g_stax_shared_buffer, buf_size, REVIEW("transaction"));
-        snprintf(
-            g_stax_shared_buffer + buf_size,
-            buf_size,
-            tmpContent.txContent.dataPresent ? BLIND_SIGN("transaction") : SIGN("transaction"));
+        snprintf(g_stax_shared_buffer, buf_size, TEXT_REVIEW_TRANSACTION);
+        snprintf(g_stax_shared_buffer + buf_size,
+                 buf_size,
+                 tmpContent.txContent.dataPresent ? TEXT_BLIND_TRANSACTION : TEXT_SIGN_TRANSACTION);
     }
 
     if (tmpContent.txContent.dataPresent) {

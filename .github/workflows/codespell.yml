@@ -23,4 +23,4 @@ jobs:
         with:
           builtin: clear,rare
           check_filenames: true
-          path: src, src_bagl, src_features, src_nbgl, src_plugin_sdk, src_plugins, doc, client
+          path: src, src_bagl, src_features, src_nbgl, src_plugins, doc, client

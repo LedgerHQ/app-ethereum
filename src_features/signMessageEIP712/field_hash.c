@@ -6,7 +6,6 @@
 #include "path.h"
 #include "mem.h"
 #include "mem_utils.h"
-#include "shared_context.h"
 #include "ui_logic.h"
 #include "context_712.h"     // contract_addr
 #include "common_utils.h"    // u64_from_BE

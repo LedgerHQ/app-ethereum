@@ -8,6 +8,7 @@
 #include "gtp_tx_info.h"
 #endif
 #include "common_ui.h"
+#include "ui_callbacks.h"
 
 typedef enum {
     SIGN_MODE_BASIC = 0,

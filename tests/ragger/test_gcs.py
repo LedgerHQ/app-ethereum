@@ -1,21 +1,21 @@
 import struct
 import json
 import hashlib
+import pytest
+from web3 import Web3
 
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
-from ragger.navigator import Navigator
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 
-import pytest
-from web3 import Web3
+
+from constants import ABIS_FOLDER
 
 import client.response_parser as ResponseParser
 from client.client import EthAppClient, SignMode, TrustedNameType, TrustedNameSource
 from client.utils import get_selector_from_data
 from client.gcs import *
 
-from constants import ABIS_FOLDER
 
 
 def test_nft(firmware: Firmware,
@@ -227,6 +227,7 @@ def test_poap(firmware: Firmware,
             abi=json.load(file),
             address=None
         )
+    # pylint: disable=line-too-long
     data = contract.encode_abi("mintToken", [
         175676,
         7163978,
@@ -244,6 +245,7 @@ def test_poap(firmware: Firmware,
         "data": data,
         "chainId": 1
     }
+    # pylint: enable=line-too-long
     with app_client.sign("m/44'/60'/0'/0/0", tx_params, SignMode.STORE):
         pass
 

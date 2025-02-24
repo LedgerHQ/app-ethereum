@@ -1,13 +1,11 @@
 #ifdef HAVE_EIP712_FULL_SUPPORT
 
-#include <stdint.h>
 #include <string.h>
 #include "path.h"
 #include "mem.h"
 #include "context_712.h"
 #include "commands_712.h"
 #include "type_hash.h"
-#include "shared_context.h"
 #include "mem_utils.h"
 #include "apdu_constants.h"  // APDU response codes
 #include "typed_data.h"

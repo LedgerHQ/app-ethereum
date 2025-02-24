@@ -1,16 +1,7 @@
-#include "nbgl_page.h"
-#include "shared_context.h"
 #include "ui_callbacks.h"
 #include "ui_nbgl.h"
 #include "sign_message.h"
-#include "glyphs.h"
-#include "nbgl_use_case.h"
-#include "common_ui.h"
 #include "ui_message_signing.h"
-#include "ui_signing.h"
-
-#define TEXT_REVIEW_EIP191 REVIEW(TEXT_MESSAGE)
-#define TEXT_SIGN_EIP191   SIGN(TEXT_MESSAGE)
 
 typedef enum {
     UI_191_ACTION_IDLE = 0,
@@ -50,11 +41,11 @@ static bool ui_191_update_display_buffer(void) {
 
     g_stax_shared_buffer[g_display_buffer_idx] = '\0';
     strlcat(g_stax_shared_buffer + g_display_buffer_idx,
-            strings.tmp.tmp + g_rcv_buffer_idx,
+            UI_191_BUFFER + g_rcv_buffer_idx,
             sizeof(g_stax_shared_buffer) - g_display_buffer_idx);
     reached = nbgl_getTextMaxLenInNbLines(LARGE_MEDIUM_FONT,
                                           (char *) g_stax_shared_buffer,
-                                          SCREEN_WIDTH - (2 * BORDER_MARGIN),
+                                          AVAILABLE_WIDTH,
                                           NB_MAX_LINES_IN_REVIEW,
                                           &len,
                                           false);
@@ -114,7 +105,7 @@ void ui_191_start(void) {
     g_skipped = false;
 
     nbgl_useCaseReviewStreamingStart(TYPE_MESSAGE | SKIPPABLE_OPERATION,
-                                     &C_Review_64px,
+                                     &ICON_APP_REVIEW,
                                      TEXT_REVIEW_EIP191,
                                      NULL,
                                      ui_191_data_cb);

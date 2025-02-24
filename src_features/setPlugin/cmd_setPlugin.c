@@ -1,12 +1,7 @@
-#include "shared_context.h"
 #include "apdu_constants.h"
-#include "asset_info.h"
 #include "eth_plugin_interface.h"
 #include "eth_plugin_internal.h"
 #include "plugin_utils.h"
-#include "common_utils.h"
-#include "common_ui.h"
-#include "os_io_seproxyhal.h"
 #include "network.h"
 #include "public_keys.h"
 #ifdef HAVE_LEDGER_PKI

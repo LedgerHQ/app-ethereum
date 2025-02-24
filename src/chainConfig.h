@@ -18,9 +18,6 @@
 #ifndef _CHAIN_CONFIG_H_
 #define _CHAIN_CONFIG_H_
 
-#include <stdint.h>
-
-#include "os.h"
 #include "asset_info.h"
 
 typedef struct chain_config_s {

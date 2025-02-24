@@ -1,9 +1,5 @@
 #ifdef HAVE_EIP712_FULL_SUPPORT
 
-#include <stdlib.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include "commands_712.h"
 #include "apdu_constants.h"  // APDU response codes
 #include "context_712.h"
 #include "field_hash.h"
@@ -12,9 +8,9 @@
 #include "typed_data.h"
 #include "schema_hash.h"
 #include "filtering.h"
-#include "common_712.h"
 #include "common_ui.h"  // ui_idle
 #include "manage_asset_info.h"
+#include "ui_callbacks.h"
 
 // APDUs P1
 #define P1_COMPLETE 0x00

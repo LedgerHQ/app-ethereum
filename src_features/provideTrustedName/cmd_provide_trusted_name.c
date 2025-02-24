@@ -1,6 +1,5 @@
 #ifdef HAVE_TRUSTED_NAME
 
-#include <os.h>
 #include <stdint.h>
 #include <string.h>
 #include <ctype.h>

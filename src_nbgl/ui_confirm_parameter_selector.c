@@ -1,7 +1,5 @@
-#include "common_ui.h"
-#include "ui_signing.h"
 #include "ui_nbgl.h"
-#include "network.h"
+#include "ui_callbacks.h"
 
 typedef enum { PARAMETER_CONFIRMATION, SELECTOR_CONFIRMATION } e_confirmation_type;
 static nbgl_contentTagValue_t pair;

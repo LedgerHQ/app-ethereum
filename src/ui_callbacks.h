@@ -3,10 +3,6 @@
 #include "shared_context.h"
 #include "ux.h"
 
-#ifdef HAVE_NBGL
-typedef int bagl_element_t;
-#endif
-
 unsigned int io_seproxyhal_touch_tx_ok(void);
 unsigned int io_seproxyhal_touch_tx_cancel(void);
 unsigned int io_seproxyhal_touch_address_ok(void);

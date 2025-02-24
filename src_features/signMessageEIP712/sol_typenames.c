@@ -1,7 +1,5 @@
 #ifdef HAVE_EIP712_FULL_SUPPORT
 
-#include <stdint.h>
-#include <string.h>
 #include "sol_typenames.h"
 #include "mem.h"
 #include "os_pic.h"

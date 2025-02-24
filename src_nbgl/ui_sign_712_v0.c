@@ -1,6 +1,3 @@
-#include <string.h>    // explicit_bzero
-#include "os_utils.h"  // ARRAYLEN
-#include "common_ui.h"
 #include "ui_nbgl.h"
 #include "common_712.h"
 #include "ui_message_signing.h"
@@ -34,7 +31,7 @@ void ui_sign_712_v0(void) {
 
     nbgl_useCaseReviewBlindSigning(TYPE_TRANSACTION,
                                    &pairs_list,
-                                   &C_Review_64px,
+                                   &ICON_APP_REVIEW,
                                    TEXT_REVIEW_EIP712,
                                    NULL,
                                    TEXT_BLIND_SIGN_EIP712,

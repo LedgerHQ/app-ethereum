@@ -1,25 +1,18 @@
 #ifdef HAVE_EIP712_FULL_SUPPORT
 
-#include <stdlib.h>
-#include <stdbool.h>
-#include <time.h>
 #include "ui_logic.h"
 #include "mem.h"
 #include "mem_utils.h"
 #include "os_io.h"
-#include "shared_context.h"
 #include "common_utils.h"  // uint256_to_decimal
 #include "common_712.h"
 #include "context_712.h"     // eip712_context_deinit
-#include "uint256.h"         // tostring256 && tostring256_signed
 #include "path.h"            // path_get_root_type
 #include "apdu_constants.h"  // APDU response codes
 #include "typed_data.h"
 #include "commands_712.h"
 #include "common_ui.h"
-#include "uint_common.h"
 #include "filtering.h"
-#include "trusted_name.h"
 #include "network.h"
 #include "time_format.h"
 

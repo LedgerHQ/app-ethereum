@@ -1,7 +1,7 @@
 from enum import Enum, auto
+from typing import Union
 from ragger.firmware import Firmware
 from ragger.navigator import Navigator, NavInsID, NavIns
-from typing import Union
 
 
 class SettingID(Enum):

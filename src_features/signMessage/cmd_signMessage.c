@@ -1,9 +1,8 @@
-#include <stdbool.h>
 #include <ctype.h>
-#include <string.h>
 #include "apdu_constants.h"
 #include "sign_message.h"
 #include "common_ui.h"
+#include "ui_callbacks.h"
 
 static uint8_t processed_size;
 static struct {

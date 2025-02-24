@@ -1,9 +1,8 @@
 #ifndef _COMMON_UI_H_
 #define _COMMON_UI_H_
 
-#include <stdbool.h>
 #include <stdint.h>
-#include "ui_logic.h"
+#include <stdbool.h>
 
 void ui_idle(void);
 void ui_warning_blind_signing(void);
@@ -31,8 +30,5 @@ void ui_712_switch_to_sign(void);
 
 // Generic clear-signing
 bool ui_gcs(void);
-
-#include "ui_callbacks.h"
-#include <string.h>
 
 #endif  // _COMMON_UI_H_

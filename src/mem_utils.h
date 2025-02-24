@@ -4,7 +4,6 @@
 #ifdef HAVE_DYN_MEM_ALLOC
 
 #include <stdint.h>
-#include <stdbool.h>
 
 #define MEM_ALLOC_AND_ALIGN_TYPE(type) mem_alloc_and_align(sizeof(type), __alignof__(type))
 

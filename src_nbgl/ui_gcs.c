@@ -223,6 +223,7 @@ bool ui_gcs(void) {
                                NULL,
                                sign_title,
                                &tip_box,
+                               NULL,
                                review_choice);
     g_alloc_size = mem_alloc(0) - mem_before;
     return true;

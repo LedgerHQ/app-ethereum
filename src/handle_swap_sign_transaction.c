@@ -157,7 +157,7 @@ void __attribute__((noreturn)) handle_swap_sign_transaction(const chain_config_t
 
     storage_init();
 
-#ifdef HAVE_NBGL
+#ifdef SCREEN_SIZE_WALLET
     nbgl_useCaseSpinner("Signing");
 #endif  // HAVE_NBGL
 

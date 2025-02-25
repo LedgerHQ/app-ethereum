@@ -179,9 +179,9 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/../../src
   ${CMAKE_SOURCE_DIR}/../../src_features/generic_tx_parser/
   ${CMAKE_SOURCE_DIR}/../../src_features/provide_enum_value/
-  ${CMAKE_SOURCE_DIR}/../../src_features/provideDynamicNetwork/
+  ${CMAKE_SOURCE_DIR}/../../src_features/provide_network_info/
   ${CMAKE_SOURCE_DIR}/../../src_features/signTx/
-  ${CMAKE_SOURCE_DIR}/../../src_features/provideTrustedName/
+  ${CMAKE_SOURCE_DIR}/../../src_features/provide_trusted_name/
   ${CMAKE_SOURCE_DIR}/../../src_features/getChallenge/
   ${CMAKE_SOURCE_DIR}/../../src_features/signMessageEIP712/
   ${BOLOS_SDK}/include
@@ -196,10 +196,10 @@ include_directories(
 
 FILE(GLOB_RECURSE SOURCES
   ${CMAKE_SOURCE_DIR}/../../src_features/generic_tx_parser/*.c
-  ${CMAKE_SOURCE_DIR}/../../src_features/provideTrustedName/*.c
+  ${CMAKE_SOURCE_DIR}/../../src_features/provide_trusted_name/*.c
   ${CMAKE_SOURCE_DIR}/../../src_features/getChallenge/*.c
   ${CMAKE_SOURCE_DIR}/../../src_features/provide_enum_value/*.c
-  ${CMAKE_SOURCE_DIR}/../../src_features/provideDynamicNetwork/*.c
+  ${CMAKE_SOURCE_DIR}/../../src_features/provide_network_info/*.c
   ${CMAKE_SOURCE_DIR}/../../src_features/provideNFTInformation/*.c
   ${CMAKE_SOURCE_DIR}/../../src/mem.c
   ${CMAKE_SOURCE_DIR}/../../src/mem_utils.c

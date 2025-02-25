@@ -1,7 +1,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "network_dynamic.h"
+#include "cmd_trusted_name.h"
+
+#include "cmd_network_info.h"
 
 #include "cmd_field.h"
 #include "cmd_tx_info.h"
@@ -76,8 +78,7 @@ int fuzzDynamicNetworks(const uint8_t *data, size_t size) {
         p2 = data[offset++];
         len = data[offset++];
         if (size - offset < len) return 0;
-        if (handleNetworkConfiguration(p1, p2, data + offset, len, &tx) != APDU_RESPONSE_OK)
-            return 1;
+        if (handle_network_info(p1, p2, data + offset, len, &tx) != APDU_RESPONSE_OK) return 1;
         offset += len;
     }
     return 0;
@@ -93,7 +94,7 @@ int fuzzTrustedNames(const uint8_t *data, size_t size) {
         p1 = data[offset++];
         len = data[offset++];
         if (size - offset < len) return 0;
-        if (handle_provide_trusted_name(p1, data + offset, len) != APDU_RESPONSE_OK) return 1;
+        if (handle_trusted_name(p1, data + offset, len) != APDU_RESPONSE_OK) return 1;
         offset += len;
     }
     return 0;

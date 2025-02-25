@@ -68,7 +68,6 @@ extern char g_trusted_name[TRUSTED_NAME_MAX_LENGTH + 1];
 
 bool handle_trusted_name_struct(const s_tlv_data *data, s_trusted_name_ctx *context);
 bool verify_trusted_name_struct(const s_trusted_name_ctx *ctx);
-bool verify_trusted_name_signature(const s_trusted_name_ctx *ctx);
 
 #endif  // !TRUSTED_NAME_H_
 

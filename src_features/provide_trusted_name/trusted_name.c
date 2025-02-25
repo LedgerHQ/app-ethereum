@@ -506,6 +506,53 @@ bool handle_trusted_name_struct(const s_tlv_data *data, s_trusted_name_ctx *cont
 }
 
 /**
+ * Verify the signature context
+ *
+ * Verify the SHA-256 hash of the payload against the public key
+ *
+ * @param[in] ctx the trusted name context
+ * @return whether it was successful
+ */
+static bool verify_trusted_name_signature(const s_trusted_name_ctx *ctx) {
+    uint8_t hash[INT256_LENGTH];
+    const uint8_t *pk;
+    size_t pk_size;
+
+    switch (ctx->key_id) {
+        case TN_KEY_ID_DOMAIN_SVC:
+            pk = TRUSTED_NAME_PUB_KEY;
+            pk_size = sizeof(TRUSTED_NAME_PUB_KEY);
+            break;
+        case TN_KEY_ID_CAL:
+            pk = LEDGER_SIGNATURE_PUBLIC_KEY;
+            pk_size = sizeof(LEDGER_SIGNATURE_PUBLIC_KEY);
+            break;
+        default:
+            PRINTF("Error: Unknown metadata key ID %u\n", ctx->key_id);
+            return false;
+    }
+
+    if (cx_hash_no_throw((cx_hash_t *) &ctx->hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH) !=
+        CX_OK) {
+        return false;
+    }
+
+    if (check_signature_with_pubkey("Trusted Name",
+                                    hash,
+                                    sizeof(hash),
+                                    pk,
+                                    pk_size,
+#ifdef HAVE_LEDGER_PKI
+                                    CERTIFICATE_PUBLIC_KEY_USAGE_TRUSTED_NAME,
+#endif
+                                    (uint8_t *) (ctx->input_sig),
+                                    ctx->input_sig_size) != CX_OK) {
+        return false;
+    }
+    return true;
+}
+
+/**
  * Verify the validity of the received trusted struct
  *
  * @param[in] ctx the trusted name context
@@ -562,58 +609,16 @@ bool verify_trusted_name_struct(const s_trusted_name_ctx *ctx) {
                    ctx->info->struct_version);
             return false;
     }
+
+    if (!verify_trusted_name_signature(ctx)) {
+        return false;
+    }
+
     PRINTF("Registered : %s => %.*h\n",
            g_trusted_name_info.name,
            ADDRESS_LENGTH,
            g_trusted_name_info.addr);
     return true;
-}
-
-/**
- * Verify the signature context
- *
- * Verify the SHA-256 hash of the payload against the public key
- *
- * @param[in] ctx the trusted name context
- * @return whether it was successful
- */
-bool verify_trusted_name_signature(const s_trusted_name_ctx *ctx) {
-    uint8_t hash[INT256_LENGTH];
-    cx_err_t error = CX_INTERNAL_ERROR;
-    bool ret_code = false;
-    const uint8_t *pk;
-    size_t pk_size;
-
-    switch (ctx->key_id) {
-        case TN_KEY_ID_DOMAIN_SVC:
-            pk = TRUSTED_NAME_PUB_KEY;
-            pk_size = sizeof(TRUSTED_NAME_PUB_KEY);
-            break;
-        case TN_KEY_ID_CAL:
-            pk = LEDGER_SIGNATURE_PUBLIC_KEY;
-            pk_size = sizeof(LEDGER_SIGNATURE_PUBLIC_KEY);
-            break;
-        default:
-            PRINTF("Error: Unknown metadata key ID %u\n", ctx->key_id);
-            return false;
-    }
-
-    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &ctx->hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH));
-
-    CX_CHECK(check_signature_with_pubkey("Trusted Name",
-                                         hash,
-                                         sizeof(hash),
-                                         pk,
-                                         pk_size,
-#ifdef HAVE_LEDGER_PKI
-                                         CERTIFICATE_PUBLIC_KEY_USAGE_TRUSTED_NAME,
-#endif
-                                         (uint8_t *) (ctx->input_sig),
-                                         ctx->input_sig_size));
-
-    ret_code = true;
-end:
-    return ret_code;
 }
 
 #endif  // HAVE_TRUSTED_NAME

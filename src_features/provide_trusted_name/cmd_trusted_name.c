@@ -18,8 +18,7 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_fr
     parsing_success =
         tlv_parse(payload, size, (f_tlv_data_handler) &handle_trusted_name_struct, &ctx);
     if (to_free) mem_dealloc(size);
-    if (!parsing_success || !verify_trusted_name_struct(&ctx) ||
-        !verify_trusted_name_signature(&ctx)) {
+    if (!parsing_success || !verify_trusted_name_struct(&ctx)) {
         roll_challenge();  // prevent brute-force guesses
         explicit_bzero(&g_trusted_name_info, sizeof(g_trusted_name_info));
         return false;

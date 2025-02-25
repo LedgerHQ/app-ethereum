@@ -48,7 +48,7 @@ typedef struct {
 } s_trusted_name_info;
 
 typedef struct {
-    s_trusted_name_info *info;
+    s_trusted_name_info trusted_name;
     e_tn_key_id key_id;
     uint8_t input_sig_size;
     uint8_t input_sig[73];
@@ -63,7 +63,6 @@ const char *get_trusted_name(uint8_t type_count,
                              const uint64_t *chain_id,
                              const uint8_t *addr);
 
-extern s_trusted_name_info g_trusted_name_info;
 extern char g_trusted_name[TRUSTED_NAME_MAX_LENGTH + 1];
 
 bool handle_trusted_name_struct(const s_tlv_data *data, s_trusted_name_ctx *context);

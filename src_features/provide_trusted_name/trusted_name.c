@@ -52,7 +52,7 @@ typedef enum {
     NFT_ID = 0x72,
 } e_tlv_tag;
 
-s_trusted_name_info g_trusted_name_info = {0};
+static s_trusted_name_info g_trusted_name_info = {0};
 char g_trusted_name[TRUSTED_NAME_MAX_LENGTH + 1];
 
 static bool matching_type(e_name_type type, uint8_t type_count, const e_name_type *types) {
@@ -138,14 +138,14 @@ const char *get_trusted_name(uint8_t type_count,
  * Handler for tag \ref STRUCT_TYPE
  *
  * @param[in] data the tlv data
- * @param[out] ctx the trusted name context
+ * @param[out] context the trusted name context
  * @return whether it was successful
  */
-static bool handle_struct_type(const s_tlv_data *data, s_trusted_name_ctx *ctx) {
+static bool handle_struct_type(const s_tlv_data *data, s_trusted_name_ctx *context) {
     if (data->length != sizeof(e_struct_type)) {
         return false;
     }
-    ctx->rcv_flags |= SET_BIT(STRUCT_TYPE_RCV_BIT);
+    context->rcv_flags |= SET_BIT(STRUCT_TYPE_RCV_BIT);
     return (data->value[0] == STRUCT_TYPE_TRUSTED_NAME);
 }
 
@@ -153,13 +153,13 @@ static bool handle_struct_type(const s_tlv_data *data, s_trusted_name_ctx *ctx) 
  * Handler for tag \ref NOT_VALID_AFTER
  *
  * @param[in] data the tlv data
- * @param[] ctx the trusted name context
+ * @param[] context the trusted name context
  * @return whether it was successful
  */
-static bool handle_not_valid_after(const s_tlv_data *data, s_trusted_name_ctx *ctx) {
+static bool handle_not_valid_after(const s_tlv_data *data, s_trusted_name_ctx *context) {
     const uint8_t app_version[] = {MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION};
 
-    (void) ctx;
+    (void) context;
     if (data->length != ARRAYLEN(app_version)) {
         return false;
     }
@@ -182,15 +182,15 @@ static bool handle_not_valid_after(const s_tlv_data *data, s_trusted_name_ctx *c
  * Handler for tag \ref STRUCT_VERSION
  *
  * @param[in] data the tlv data
- * @param[out] ctx the trusted name context
+ * @param[out] context the trusted name context
  * @return whether it was successful
  */
-static bool handle_struct_version(const s_tlv_data *data, s_trusted_name_ctx *ctx) {
-    if (data->length != sizeof(ctx->info->struct_version)) {
+static bool handle_struct_version(const s_tlv_data *data, s_trusted_name_ctx *context) {
+    if (data->length != sizeof(context->trusted_name.struct_version)) {
         return false;
     }
-    ctx->info->struct_version = data->value[0];
-    ctx->rcv_flags |= SET_BIT(STRUCT_VERSION_RCV_BIT);
+    context->trusted_name.struct_version = data->value[0];
+    context->rcv_flags |= SET_BIT(STRUCT_VERSION_RCV_BIT);
     return true;
 }
 
@@ -198,17 +198,17 @@ static bool handle_struct_version(const s_tlv_data *data, s_trusted_name_ctx *ct
  * Handler for tag \ref CHALLENGE
  *
  * @param[in] data the tlv data
- * @param[out] ctx the trusted name context
+ * @param[out] context the trusted name context
  * @return whether it was successful
  */
-static bool handle_challenge(const s_tlv_data *data, s_trusted_name_ctx *ctx) {
+static bool handle_challenge(const s_tlv_data *data, s_trusted_name_ctx *context) {
     uint8_t buf[sizeof(uint32_t)];
 
     if (data->length > sizeof(buf)) {
         return false;
     }
     buf_shrink_expand(data->value, data->length, buf, sizeof(buf));
-    ctx->rcv_flags |= SET_BIT(CHALLENGE_RCV_BIT);
+    context->rcv_flags |= SET_BIT(CHALLENGE_RCV_BIT);
     return (read_u32_be(buf, 0) == get_challenge());
 }
 
@@ -216,10 +216,10 @@ static bool handle_challenge(const s_tlv_data *data, s_trusted_name_ctx *ctx) {
  * Handler for tag \ref SIGNER_KEY_ID
  *
  * @param[in] data the tlv data
- * @param[out] ctx the trusted name context
+ * @param[out] context the trusted name context
  * @return whether it was successful
  */
-static bool handle_sign_key_id(const s_tlv_data *data, s_trusted_name_ctx *ctx) {
+static bool handle_sign_key_id(const s_tlv_data *data, s_trusted_name_ctx *context) {
     // for some reason this is sent as 2 bytes
     uint16_t value;
     uint8_t buf[sizeof(value)];
@@ -232,8 +232,8 @@ static bool handle_sign_key_id(const s_tlv_data *data, s_trusted_name_ctx *ctx) 
     if (value > UINT8_MAX) {
         return false;
     }
-    ctx->key_id = value;
-    ctx->rcv_flags |= SET_BIT(SIGNER_KEY_ID_RCV_BIT);
+    context->key_id = value;
+    context->rcv_flags |= SET_BIT(SIGNER_KEY_ID_RCV_BIT);
     return true;
 }
 
@@ -241,10 +241,10 @@ static bool handle_sign_key_id(const s_tlv_data *data, s_trusted_name_ctx *ctx) 
  * Handler for tag \ref SIGNER_ALGO
  *
  * @param[in] data the tlv data
- * @param[out] ctx the trusted name context
+ * @param[out] context the trusted name context
  * @return whether it was successful
  */
-static bool handle_sign_algo(const s_tlv_data *data, s_trusted_name_ctx *ctx) {
+static bool handle_sign_algo(const s_tlv_data *data, s_trusted_name_ctx *context) {
     // for some reason this is sent as 2 bytes
     uint8_t buf[sizeof(uint16_t)];
 
@@ -252,7 +252,7 @@ static bool handle_sign_algo(const s_tlv_data *data, s_trusted_name_ctx *ctx) {
         return false;
     }
     buf_shrink_expand(data->value, data->length, buf, sizeof(buf));
-    ctx->rcv_flags |= SET_BIT(SIGNER_ALGO_RCV_BIT);
+    context->rcv_flags |= SET_BIT(SIGNER_ALGO_RCV_BIT);
     return (read_u16_be(buf, 0) == SIG_ALGO_SECP256K1);
 }
 
@@ -260,16 +260,16 @@ static bool handle_sign_algo(const s_tlv_data *data, s_trusted_name_ctx *ctx) {
  * Handler for tag \ref SIGNATURE
  *
  * @param[in] data the tlv data
- * @param[out] ctx the trusted name context
+ * @param[out] context the trusted name context
  * @return whether it was successful
  */
-static bool handle_signature(const s_tlv_data *data, s_trusted_name_ctx *ctx) {
-    if (data->length > sizeof(ctx->input_sig)) {
+static bool handle_signature(const s_tlv_data *data, s_trusted_name_ctx *context) {
+    if (data->length > sizeof(context->input_sig)) {
         return false;
     }
-    ctx->input_sig_size = data->length;
-    memcpy(ctx->input_sig, data->value, data->length);
-    ctx->rcv_flags |= SET_BIT(SIGNATURE_RCV_BIT);
+    context->input_sig_size = data->length;
+    memcpy(context->input_sig, data->value, data->length);
+    context->rcv_flags |= SET_BIT(SIGNATURE_RCV_BIT);
     return true;
 }
 
@@ -301,15 +301,16 @@ static bool is_valid_account_character(char c) {
  * Handler for tag \ref TRUSTED_NAME
  *
  * @param[in] data the tlv data
- * @param[out] ctx the trusted name context
+ * @param[out] context the trusted name context
  * @return whether it was successful
  */
-static bool handle_trusted_name(const s_tlv_data *data, s_trusted_name_ctx *ctx) {
+static bool handle_trusted_name(const s_tlv_data *data, s_trusted_name_ctx *context) {
     if (data->length > TRUSTED_NAME_MAX_LENGTH) {
         PRINTF("Domain name too long! (%u)\n", data->length);
         return false;
     }
-    if ((ctx->info->struct_version == 1) || (ctx->info->name_type == TN_TYPE_ACCOUNT)) {
+    if ((context->trusted_name.struct_version == 1) ||
+        (context->trusted_name.name_type == TN_TYPE_ACCOUNT)) {
         // TODO: Remove once other domain name providers are supported
         if ((data->length < 5) ||
             (strncmp(".eth", (char *) &data->value[data->length - 4], 4) != 0)) {
@@ -321,13 +322,13 @@ static bool handle_trusted_name(const s_tlv_data *data, s_trusted_name_ctx *ctx)
                 PRINTF("Domain name contains non-allowed character! (0x%x)\n", data->value[idx]);
                 return false;
             }
-            ctx->info->name[idx] = data->value[idx];
+            context->trusted_name.name[idx] = data->value[idx];
         }
     } else {
-        memcpy(ctx->info->name, data->value, data->length);
+        memcpy(context->trusted_name.name, data->value, data->length);
     }
-    ctx->info->name[data->length] = '\0';
-    ctx->rcv_flags |= SET_BIT(TRUSTED_NAME_RCV_BIT);
+    context->trusted_name.name[data->length] = '\0';
+    context->rcv_flags |= SET_BIT(TRUSTED_NAME_RCV_BIT);
     return true;
 }
 
@@ -335,14 +336,14 @@ static bool handle_trusted_name(const s_tlv_data *data, s_trusted_name_ctx *ctx)
  * Handler for tag \ref COIN_TYPE
  *
  * @param[in] data the tlv data
- * @param[out] ctx the trusted name context
+ * @param[out] context the trusted name context
  * @return whether it was successful
  */
-static bool handle_coin_type(const s_tlv_data *data, s_trusted_name_ctx *ctx) {
+static bool handle_coin_type(const s_tlv_data *data, s_trusted_name_ctx *context) {
     if (data->length != sizeof(e_coin_type)) {
         return false;
     }
-    ctx->rcv_flags |= SET_BIT(COIN_TYPE_RCV_BIT);
+    context->rcv_flags |= SET_BIT(COIN_TYPE_RCV_BIT);
     return (data->value[0] == SLIP_44_ETHEREUM);
 }
 
@@ -350,15 +351,15 @@ static bool handle_coin_type(const s_tlv_data *data, s_trusted_name_ctx *ctx) {
  * Handler for tag \ref ADDRESS
  *
  * @param[in] data the tlv data
- * @param[out] ctx the trusted name context
+ * @param[out] context the trusted name context
  * @return whether it was successful
  */
-static bool handle_address(const s_tlv_data *data, s_trusted_name_ctx *ctx) {
+static bool handle_address(const s_tlv_data *data, s_trusted_name_ctx *context) {
     if (data->length != ADDRESS_LENGTH) {
         return false;
     }
-    memcpy(ctx->info->addr, data->value, ADDRESS_LENGTH);
-    ctx->rcv_flags |= SET_BIT(ADDRESS_RCV_BIT);
+    memcpy(context->trusted_name.addr, data->value, ADDRESS_LENGTH);
+    context->rcv_flags |= SET_BIT(ADDRESS_RCV_BIT);
     return true;
 }
 
@@ -366,12 +367,12 @@ static bool handle_address(const s_tlv_data *data, s_trusted_name_ctx *ctx) {
  * Handler for tag \ref CHAIN_ID
  *
  * @param[in] data the tlv data
- * @param[out] ctx the trusted name context
+ * @param[out] context the trusted name context
  * @return whether it was successful
  */
-static bool handle_chain_id(const s_tlv_data *data, s_trusted_name_ctx *ctx) {
-    ctx->info->chain_id = u64_from_BE(data->value, data->length);
-    ctx->rcv_flags |= SET_BIT(CHAIN_ID_RCV_BIT);
+static bool handle_chain_id(const s_tlv_data *data, s_trusted_name_ctx *context) {
+    context->trusted_name.chain_id = u64_from_BE(data->value, data->length);
+    context->rcv_flags |= SET_BIT(CHAIN_ID_RCV_BIT);
     return true;
 }
 
@@ -379,15 +380,15 @@ static bool handle_chain_id(const s_tlv_data *data, s_trusted_name_ctx *ctx) {
  * Handler for tag \ref TRUSTED_NAME_TYPE
  *
  * @param[in] data the tlv data
- * @param[in,out] ctx the trusted name context
+ * @param[in,out] context the trusted name context
  * @return whether it was successful
  */
-static bool handle_trusted_name_type(const s_tlv_data *data, s_trusted_name_ctx *ctx) {
+static bool handle_trusted_name_type(const s_tlv_data *data, s_trusted_name_ctx *context) {
     if (data->length != sizeof(e_name_type)) {
         return false;
     }
-    ctx->info->name_type = data->value[0];
-    switch (ctx->info->name_type) {
+    context->trusted_name.name_type = data->value[0];
+    switch (context->trusted_name.name_type) {
         case TN_TYPE_ACCOUNT:
         case TN_TYPE_CONTRACT:
             break;
@@ -396,10 +397,10 @@ static bool handle_trusted_name_type(const s_tlv_data *data, s_trusted_name_ctx 
         case TN_TYPE_WALLET:
         case TN_TYPE_CONTEXT_ADDRESS:
         default:
-            PRINTF("Error: unsupported trusted name type (%u)!\n", ctx->info->name_type);
+            PRINTF("Error: unsupported trusted name type (%u)!\n", context->trusted_name.name_type);
             return false;
     }
-    ctx->rcv_flags |= SET_BIT(TRUSTED_NAME_TYPE_RCV_BIT);
+    context->rcv_flags |= SET_BIT(TRUSTED_NAME_TYPE_RCV_BIT);
     return true;
 }
 
@@ -407,15 +408,15 @@ static bool handle_trusted_name_type(const s_tlv_data *data, s_trusted_name_ctx 
  * Handler for tag \ref TRUSTED_NAME_SOURCE
  *
  * @param[in] data the tlv data
- * @param[out] ctx the trusted name context
+ * @param[out] context the trusted name context
  * @return whether it was successful
  */
-static bool handle_trusted_name_source(const s_tlv_data *data, s_trusted_name_ctx *ctx) {
+static bool handle_trusted_name_source(const s_tlv_data *data, s_trusted_name_ctx *context) {
     if (data->length != sizeof(e_name_source)) {
         return false;
     }
-    ctx->info->name_source = data->value[0];
-    switch (ctx->info->name_source) {
+    context->trusted_name.name_source = data->value[0];
+    switch (context->trusted_name.name_source) {
         case TN_SOURCE_CAL:
         case TN_SOURCE_ENS:
             break;
@@ -425,10 +426,11 @@ static bool handle_trusted_name_source(const s_tlv_data *data, s_trusted_name_ct
         case TN_SOURCE_DNS:
         case TN_SOURCE_DYNAMIC_RESOLVER:
         default:
-            PRINTF("Error: unsupported trusted name source (%u)!\n", ctx->info->name_source);
+            PRINTF("Error: unsupported trusted name source (%u)!\n",
+                   context->trusted_name.name_source);
             return false;
     }
-    ctx->rcv_flags |= SET_BIT(TRUSTED_NAME_SOURCE_RCV_BIT);
+    context->rcv_flags |= SET_BIT(TRUSTED_NAME_SOURCE_RCV_BIT);
     return true;
 }
 
@@ -436,15 +438,18 @@ static bool handle_trusted_name_source(const s_tlv_data *data, s_trusted_name_ct
  * Handler for tag \ref NFT_ID
  *
  * @param[in] data the tlv data
- * @param[out] ctx the trusted name context
+ * @param[out] context the trusted name context
  * @return whether it was successful
  */
-static bool handle_nft_id(const s_tlv_data *data, s_trusted_name_ctx *ctx) {
-    if (data->length > sizeof(ctx->info->nft_id)) {
+static bool handle_nft_id(const s_tlv_data *data, s_trusted_name_ctx *context) {
+    if (data->length > sizeof(context->trusted_name.nft_id)) {
         return false;
     }
-    buf_shrink_expand(data->value, data->length, ctx->info->nft_id, sizeof(ctx->info->nft_id));
-    ctx->rcv_flags |= SET_BIT(NFT_ID_RCV_BIT);
+    buf_shrink_expand(data->value,
+                      data->length,
+                      context->trusted_name.nft_id,
+                      sizeof(context->trusted_name.nft_id));
+    context->rcv_flags |= SET_BIT(NFT_ID_RCV_BIT);
     return true;  // unhandled for now
 }
 
@@ -510,15 +515,15 @@ bool handle_trusted_name_struct(const s_tlv_data *data, s_trusted_name_ctx *cont
  *
  * Verify the SHA-256 hash of the payload against the public key
  *
- * @param[in] ctx the trusted name context
+ * @param[in] context the trusted name context
  * @return whether it was successful
  */
-static bool verify_trusted_name_signature(const s_trusted_name_ctx *ctx) {
+static bool verify_trusted_name_signature(const s_trusted_name_ctx *context) {
     uint8_t hash[INT256_LENGTH];
     const uint8_t *pk;
     size_t pk_size;
 
-    switch (ctx->key_id) {
+    switch (context->key_id) {
         case TN_KEY_ID_DOMAIN_SVC:
             pk = TRUSTED_NAME_PUB_KEY;
             pk_size = sizeof(TRUSTED_NAME_PUB_KEY);
@@ -528,11 +533,11 @@ static bool verify_trusted_name_signature(const s_trusted_name_ctx *ctx) {
             pk_size = sizeof(LEDGER_SIGNATURE_PUBLIC_KEY);
             break;
         default:
-            PRINTF("Error: Unknown metadata key ID %u\n", ctx->key_id);
+            PRINTF("Error: Unknown metadata key ID %u\n", context->key_id);
             return false;
     }
 
-    if (cx_hash_no_throw((cx_hash_t *) &ctx->hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH) !=
+    if (cx_hash_no_throw((cx_hash_t *) &context->hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH) !=
         CX_OK) {
         return false;
     }
@@ -545,8 +550,8 @@ static bool verify_trusted_name_signature(const s_trusted_name_ctx *ctx) {
 #ifdef HAVE_LEDGER_PKI
                                     CERTIFICATE_PUBLIC_KEY_USAGE_TRUSTED_NAME,
 #endif
-                                    (uint8_t *) (ctx->input_sig),
-                                    ctx->input_sig_size) != CX_OK) {
+                                    (uint8_t *) (context->input_sig),
+                                    context->input_sig_size) != CX_OK) {
         return false;
     }
     return true;
@@ -555,13 +560,13 @@ static bool verify_trusted_name_signature(const s_trusted_name_ctx *ctx) {
 /**
  * Verify the validity of the received trusted struct
  *
- * @param[in] ctx the trusted name context
+ * @param[in] context the trusted name context
  * @return whether the struct is valid
  */
-bool verify_trusted_name_struct(const s_trusted_name_ctx *ctx) {
+bool verify_trusted_name_struct(const s_trusted_name_ctx *context) {
     uint32_t required_flags;
 
-    if (!(SET_BIT(STRUCT_VERSION_RCV_BIT) & ctx->rcv_flags)) {
+    if (!(SET_BIT(STRUCT_VERSION_RCV_BIT) & context->rcv_flags)) {
         PRINTF("Error: no struct version specified!\n");
         return false;
     }
@@ -569,34 +574,34 @@ bool verify_trusted_name_struct(const s_trusted_name_ctx *ctx) {
                      SET_BIT(SIGNER_KEY_ID_RCV_BIT) | SET_BIT(SIGNER_ALGO_RCV_BIT) |
                      SET_BIT(SIGNATURE_RCV_BIT) | SET_BIT(TRUSTED_NAME_RCV_BIT) |
                      SET_BIT(ADDRESS_RCV_BIT);
-    switch (ctx->info->struct_version) {
+    switch (context->trusted_name.struct_version) {
         case 1:
             required_flags |= SET_BIT(CHALLENGE_RCV_BIT) | SET_BIT(COIN_TYPE_RCV_BIT);
-            if ((ctx->rcv_flags & required_flags) != required_flags) {
+            if ((context->rcv_flags & required_flags) != required_flags) {
                 return false;
             }
             break;
         case 2:
             required_flags |= SET_BIT(CHAIN_ID_RCV_BIT) | SET_BIT(TRUSTED_NAME_TYPE_RCV_BIT) |
                               SET_BIT(TRUSTED_NAME_SOURCE_RCV_BIT);
-            if ((ctx->rcv_flags & required_flags) != required_flags) {
+            if ((context->rcv_flags & required_flags) != required_flags) {
                 return false;
             }
-            switch (ctx->info->name_type) {
+            switch (context->trusted_name.name_type) {
                 case TN_TYPE_ACCOUNT:
-                    if (ctx->info->name_source == TN_SOURCE_CAL) {
+                    if (context->trusted_name.name_source == TN_SOURCE_CAL) {
                         PRINTF("Error: cannot accept an account name from the CAL!\n");
                         return false;
                     }
-                    if (!(ctx->rcv_flags & SET_BIT(CHALLENGE_RCV_BIT))) {
+                    if (!(context->rcv_flags & SET_BIT(CHALLENGE_RCV_BIT))) {
                         PRINTF("Error: trusted account name requires a challenge!\n");
                         return false;
                     }
                     break;
                 case TN_TYPE_CONTRACT:
-                    if (ctx->info->name_source != TN_SOURCE_CAL) {
+                    if (context->trusted_name.name_source != TN_SOURCE_CAL) {
                         PRINTF("Error: cannot accept a contract name from given source (%u)!\n",
-                               ctx->info->name_source);
+                               context->trusted_name.name_source);
                         return false;
                     }
                     break;
@@ -606,13 +611,15 @@ bool verify_trusted_name_struct(const s_trusted_name_ctx *ctx) {
             break;
         default:
             PRINTF("Error: unsupported trusted name struct version (%u) !\n",
-                   ctx->info->struct_version);
+                   context->trusted_name.struct_version);
             return false;
     }
 
-    if (!verify_trusted_name_signature(ctx)) {
+    if (!verify_trusted_name_signature(context)) {
         return false;
     }
+
+    memcpy(&g_trusted_name_info, &context->trusted_name, sizeof(g_trusted_name_info));
 
     PRINTF("Registered : %s => %.*h\n",
            g_trusted_name_info.name,

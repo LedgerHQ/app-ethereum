@@ -50,6 +50,7 @@ class Action:
 def common_test_nft(firmware: Firmware,
                     backend: BackendInterface,
                     scenario_navigator: NavigateWithScenario,
+                    test_name: str,
                     collec: NFTCollection,
                     action: Action,
                     reject: bool,
@@ -102,9 +103,8 @@ def common_test_nft(firmware: Firmware,
         "data": data,
     }
     with app_client.sign(BIP32_PATH, tx_params):
-        test_name  = f"{plugin_name.lower()}_{action.fn_name}_{str(collec.chain_id)}"
+        test_name += f"_{action.fn_name}_{str(collec.chain_id)}"
         if reject:
-            test_name += "-rejected"
             scenario_navigator.review_reject(test_name=test_name)
         else:
             if firmware.is_nano:
@@ -123,10 +123,11 @@ def common_test_nft_reject(test_fn: Callable,
                            firmware: Firmware,
                            backend: BackendInterface,
                            scenario_navigator: NavigateWithScenario,
+                           test_name: str,
                            collec: NFTCollection,
                            action: Action):
     with pytest.raises(ExceptionRAPDU) as e:
-        test_fn(firmware, backend, scenario_navigator, collec, action, True)
+        test_fn(firmware, backend, scenario_navigator, test_name, collec, action, True)
     assert e.value.status == StatusWord.CONDITION_NOT_SATISFIED
 
 # ERC-721
@@ -173,28 +174,32 @@ def action_721_fixture(request) -> Action:
     return request.param
 
 
-def test_erc721(firmware: Firmware,
-                backend: BackendInterface,
-                scenario_navigator: NavigateWithScenario,
-                collec_721: NFTCollection,
-                action_721: Action,
-                reject: bool = False):
+def test_nft_erc721(firmware: Firmware,
+                    backend: BackendInterface,
+                    scenario_navigator: NavigateWithScenario,
+                    test_name: str,
+                    collec_721: NFTCollection,
+                    action_721: Action,
+                    reject: bool = False):
     common_test_nft(firmware,
                     backend,
                     scenario_navigator,
+                    test_name,
                     collec_721,
                     action_721,
                     reject,
                     ERC721_PLUGIN)
 
 
-def test_erc721_reject(firmware: Firmware,
-                       backend: BackendInterface,
-                       scenario_navigator: NavigateWithScenario):
-    common_test_nft_reject(test_erc721,
+def test_nft_erc721_reject(firmware: Firmware,
+                           backend: BackendInterface,
+                           scenario_navigator: NavigateWithScenario,
+                           test_name: str):
+    common_test_nft_reject(test_nft_erc721,
                            firmware,
                            backend,
                            scenario_navigator,
+                           test_name,
                            collecs_721[0],
                            actions_721[0])
 
@@ -248,27 +253,31 @@ def action_1155_fixture(request) -> Action:
     return request.param
 
 
-def test_erc1155(firmware: Firmware,
-                 backend: BackendInterface,
-                 scenario_navigator: NavigateWithScenario,
-                 collec_1155: NFTCollection,
-                 action_1155: Action,
-                 reject: bool = False):
+def test_nft_erc1155(firmware: Firmware,
+                     backend: BackendInterface,
+                     scenario_navigator: NavigateWithScenario,
+                     test_name: str,
+                     collec_1155: NFTCollection,
+                     action_1155: Action,
+                     reject: bool = False):
     common_test_nft(firmware,
                     backend,
                     scenario_navigator,
+                    test_name,
                     collec_1155,
                     action_1155,
                     reject,
                     ERC1155_PLUGIN)
 
 
-def test_erc1155_reject(firmware: Firmware,
-                        backend: BackendInterface,
-                        scenario_navigator: NavigateWithScenario):
-    common_test_nft_reject(test_erc1155,
+def test_nft_erc1155_reject(firmware: Firmware,
+                            backend: BackendInterface,
+                            scenario_navigator: NavigateWithScenario,
+                            test_name: str):
+    common_test_nft_reject(test_nft_erc1155,
                            firmware,
                            backend,
                            scenario_navigator,
+                           test_name,
                            collecs_1155[0],
                            actions_1155[0])

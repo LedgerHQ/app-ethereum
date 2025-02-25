@@ -14,14 +14,18 @@ from constants import ABIS_FOLDER
 import client.response_parser as ResponseParser
 from client.client import EthAppClient, SignMode, TrustedNameType, TrustedNameSource
 from client.utils import get_selector_from_data
-from client.gcs import *
+from client.gcs import (
+    Field, ParamType, ParamRaw, Value, TypeFamily, DataPath, PathTuple, ParamTrustedName,
+    ParamNFT, ParamDatetime, DatetimeType, ParamTokenAmount, ContainerPath,
+    PathLeaf, PathLeafType, PathRef, PathArray, TxInfo
+)
 
 
 
-def test_nft(firmware: Firmware,
-             backend: BackendInterface,
-             scenario_navigator: NavigateWithScenario,
-             test_name: str):
+def test_gcs_nft(firmware: Firmware,
+                 backend: BackendInterface,
+                 scenario_navigator: NavigateWithScenario,
+                 test_name: str):
     app_client = EthAppClient(backend)
 
     if firmware == Firmware.NANOS:
@@ -213,10 +217,10 @@ def test_nft(firmware: Firmware,
         scenario_navigator.review_approve(test_name=test_name, custom_screen_text="Sign transaction")
 
 
-def test_poap(firmware: Firmware,
-              backend: BackendInterface,
-              scenario_navigator: NavigateWithScenario,
-              test_name: str):
+def test_gcs_poap(firmware: Firmware,
+                  backend: BackendInterface,
+                  scenario_navigator: NavigateWithScenario,
+                  test_name: str):
     app_client = EthAppClient(backend)
 
     if firmware == Firmware.NANOS:
@@ -381,10 +385,10 @@ def test_poap(firmware: Firmware,
         scenario_navigator.review_approve(test_name=test_name, custom_screen_text="Sign transaction")
 
 
-def test_1inch(firmware: Firmware,
-               backend: BackendInterface,
-               scenario_navigator: NavigateWithScenario,
-               test_name: str):
+def test_gcs_1inch(firmware: Firmware,
+                   backend: BackendInterface,
+                   scenario_navigator: NavigateWithScenario,
+                   test_name: str):
     app_client = EthAppClient(backend)
 
     if firmware == Firmware.NANOS:

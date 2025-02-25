@@ -58,7 +58,7 @@ def common(firmware: Firmware,
         ticker = ""
         icon = ""
 
-    if (app_client._firmware != Firmware.NANOS) and name:
+    if (firmware != Firmware.NANOS) and name:
         app_client.provide_network_information(name, ticker, tx_params["chainId"], bytes.fromhex(icon))
 
     with app_client.get_public_addr(bip32_path=path, display=False):
@@ -147,12 +147,12 @@ def test_legacy_send_error(backend: BackendInterface):
 
 
 # Transfer bsc
-def test_legacy_send_bsc(firmware: Firmware,
-                         backend: BackendInterface,
-                         navigator: Navigator,
-                         scenario_navigator: NavigateWithScenario,
-                         test_name: str,
-                         default_screenshot_path: Path):
+def test_sign_legacy_send_bsc(firmware: Firmware,
+                              backend: BackendInterface,
+                              navigator: Navigator,
+                              scenario_navigator: NavigateWithScenario,
+                              test_name: str,
+                              default_screenshot_path: Path):
     tx_params: dict = {
         "nonce": 1,
         "gasPrice": Web3.to_wei(GAS_PRICE2, 'gwei'),
@@ -165,12 +165,12 @@ def test_legacy_send_bsc(firmware: Firmware,
 
 
 # Transfer on network 112233445566 on Ethereum
-def test_legacy_chainid(firmware: Firmware,
-                        backend: BackendInterface,
-                        navigator: Navigator,
-                        scenario_navigator: NavigateWithScenario,
-                        test_name: str,
-                        default_screenshot_path: Path):
+def test_sign_legacy_chainid(firmware: Firmware,
+                             backend: BackendInterface,
+                             navigator: Navigator,
+                             scenario_navigator: NavigateWithScenario,
+                             test_name: str,
+                             default_screenshot_path: Path):
     tx_params: dict = {
         "nonce": NONCE2,
         "gasPrice": Web3.to_wei(GAS_PRICE, 'gwei'),

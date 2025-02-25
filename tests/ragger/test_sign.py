@@ -58,7 +58,7 @@ def common(firmware: Firmware,
         ticker = ""
         icon = ""
 
-    if (app_client._firmware != Firmware.NANOS) and name:
+    if (firmware != Firmware.NANOS) and name:
         app_client.provide_network_information(name, ticker, tx_params["chainId"], bytes.fromhex(icon))
 
     with app_client.get_public_addr(bip32_path=path, display=False):

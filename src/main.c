@@ -33,10 +33,10 @@
 #include "swap_entrypoints.h"
 #include "commands_712.h"
 #include "challenge.h"
-#include "trusted_name.h"
+#include "cmd_trusted_name.h"
 #include "crypto_helpers.h"
 #include "manage_asset_info.h"
-#include "network_dynamic.h"
+#include "cmd_network_info.h"
 #ifdef HAVE_DYN_MEM_ALLOC
 #include "mem.h"
 #endif
@@ -235,7 +235,7 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             break;
 
         case INS_ENS_PROVIDE_INFO:
-            sw = handle_provide_trusted_name(cmd->p1, cmd->data, cmd->lc);
+            sw = handle_trusted_name(cmd->p1, cmd->data, cmd->lc);
             break;
 #endif  // HAVE_TRUSTED_NAME
 
@@ -257,7 +257,7 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
 
 #ifdef HAVE_DYNAMIC_NETWORKS
         case INS_PROVIDE_NETWORK_CONFIGURATION:
-            sw = handleNetworkConfiguration(cmd->p1, cmd->p2, cmd->data, cmd->lc, tx);
+            sw = handle_network_info(cmd->p1, cmd->p2, cmd->data, cmd->lc, tx);
             break;
 #endif  // HAVE_DYNAMIC_NETWORKS
 

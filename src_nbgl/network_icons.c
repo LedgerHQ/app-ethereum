@@ -1,7 +1,7 @@
 #include "os_utils.h"
 #include "os_pic.h"
 #include "network.h"
-#include "network_dynamic.h"
+#include "network_info.h"
 #include "net_icons.gen.h"
 
 /**

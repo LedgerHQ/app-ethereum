@@ -281,6 +281,11 @@ bool verify_network_info_struct(const s_network_info_ctx *context) {
                                     context->signature_length) != CX_OK) {
         return false;
     }
+
+    // Set the current slot here, because the corresponding icon will be received
+    // separately, after the network configuration, and should keep the same slot
+    g_current_network_slot = (g_current_network_slot + 1) % MAX_DYNAMIC_NETWORKS;
+
     memcpy(&DYNAMIC_NETWORK_INFO[g_current_network_slot],
            &context->network,
            sizeof(network_info_t));

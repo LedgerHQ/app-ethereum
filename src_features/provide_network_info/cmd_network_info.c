@@ -249,10 +249,6 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_fr
     bool parsing_ret;
     s_network_info_ctx ctx = {0};
 
-    // Set the current slot here, because the corresponding icon will be received
-    // separately, after the network configuration, and should keep the same slot
-    g_current_network_slot = (g_current_network_slot + 1) % MAX_DYNAMIC_NETWORKS;
-
     // Initialize the hash context
     cx_sha256_init(&ctx.hash_ctx);
     parsing_ret = tlv_parse(payload, size, (f_tlv_data_handler) &handle_network_info_struct, &ctx);

@@ -297,6 +297,9 @@ def test_tx_simulation_eip191(firmware: Firmware,
     if config in ("benign", "warning"):
         pytest.skip("Skipping useless tests")
 
+    # TODO Re-activate when partners are ready for eip191
+    pytest.skip("Skip until partners are ready for eip191")
+
     app_client = EthAppClient(backend)
 
     __common_setting_handling(firmware, navigator, app_client, True)

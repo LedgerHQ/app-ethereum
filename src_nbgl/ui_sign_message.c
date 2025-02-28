@@ -4,6 +4,9 @@
 #include "ui_message_signing.h"
 #include "cmd_get_tx_simulation.h"
 
+// TODO Re-activate when partners are ready for eip191
+#undef HAVE_WEB3_CHECKS
+
 typedef enum {
     UI_191_ACTION_IDLE = 0,
     UI_191_ACTION_ADVANCE_IN_MESSAGE,

@@ -258,7 +258,6 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_fr
     parsing_ret = tlv_parse(payload, size, (f_tlv_data_handler) &handle_network_info_struct, &ctx);
     if (to_free) mem_dealloc(sizeof(size));
     if (!parsing_ret || !verify_network_info_struct(&ctx)) {
-        explicit_bzero(&DYNAMIC_NETWORK_INFO[g_current_network_slot], sizeof(network_info_t));
         return false;
     }
     print_network_info();

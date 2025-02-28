@@ -212,7 +212,7 @@ static void print_network_info(void) {
     u64_to_string(DYNAMIC_NETWORK_INFO[g_current_network_slot].chain_id,
                   chain_str,
                   sizeof(chain_str));
-    PRINTF("[NETWORK] - Registered in slot %d: %s (%s), for chain_id %s\n",
+    PRINTF("[NETWORK] - Registered in slot %u: \"%s\" (%s), for chain_id %s\n",
            g_current_network_slot,
            DYNAMIC_NETWORK_INFO[g_current_network_slot].name,
            DYNAMIC_NETWORK_INFO[g_current_network_slot].ticker,

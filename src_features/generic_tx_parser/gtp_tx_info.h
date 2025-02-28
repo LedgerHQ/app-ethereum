@@ -7,6 +7,7 @@
 #include "common_utils.h"  // ADDRESS_LENGTH, INT256_LENGTH
 #include "calldata.h"
 #include "tlv.h"
+#include "signature.h"
 
 typedef struct {
     uint8_t version;
@@ -22,7 +23,7 @@ typedef struct {
     // YYYY-MM-DD\0
     char deploy_date[4 + 1 + 2 + 1 + 2 + 1];
     uint8_t signature_len;
-    uint8_t signature[73];
+    uint8_t signature[ECDSA_SIGNATURE_MAX_LENGTH];
 } s_tx_info;
 
 typedef struct {

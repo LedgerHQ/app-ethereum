@@ -581,13 +581,15 @@ def test_gcs_proxy(firmware: Firmware,
     if firmware == Firmware.NANOS:
         pytest.skip("Not supported on LNS")
 
+    new_owner = bytes.fromhex("2222222222222222222222222222222222222222")
+
     with open(f"{ABIS_FOLDER}/proxy_implem.abi.json") as file:
         contract = Web3().eth.contract(
             abi=json.load(file),
             address=None
         )
     data = contract.encode_abi("transferOwnership", [
-        bytes.fromhex("d8dA6BF26964aF9D7eEd9e03E53415D37aA96045"),
+        new_owner,
     ])
     tx_params = {
         "nonce": 1,
@@ -606,8 +608,8 @@ def test_gcs_proxy(firmware: Firmware,
         Field(
             1,
             "New owner",
-            ParamType.RAW,
-            ParamRaw(
+            ParamType.TRUSTED_NAME,
+            ParamTrustedName(
                 1,
                 Value(
                     1,
@@ -619,7 +621,9 @@ def test_gcs_proxy(firmware: Firmware,
                             PathLeaf(PathLeafType.STATIC),
                         ]
                     ),
-                )
+                ),
+                [TrustedNameType.CONTRACT],
+                [TrustedNameSource.CAL],
             )
         ),
     ]
@@ -656,9 +660,27 @@ def test_gcs_proxy(firmware: Firmware,
 
     app_client.provide_transaction_info(tx_info.serialize())
 
+    # also test proxy trusted names
+    impl_contract = bytes.fromhex("1111111111111111111111111111111111111111")
+    proxy_info = ProxyInfo(
+        ResponseParser.challenge(app_client.get_challenge().data),
+        new_owner,
+        tx_info.chain_id,
+        impl_contract,
+    )
+
+    app_client.provide_proxy_info(proxy_info.serialize())
+
+    app_client.provide_trusted_name_v2(impl_contract,
+                                       "some contract",
+                                       TrustedNameType.CONTRACT,
+                                       TrustedNameSource.CAL,
+                                       tx_info.chain_id,
+                                       challenge=ResponseParser.challenge(app_client.get_challenge().data))
+
     for field in fields:
         payload = field.serialize()
         app_client.send_raw(0xe0, 0x28, 0x01, 0x00, struct.pack(">H", len(payload)) + payload)
 
     with app_client.send_raw_async(0xe0, 0x04, 0x00, 0x02, bytes()):
-        scenario_navigator.review_approve(custom_screen_text="Sign transaction", do_comparison=False)
+        scenario_navigator.review_approve(test_name=test_name, custom_screen_text="Sign transaction")

@@ -264,7 +264,7 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
 
 #ifdef HAVE_WEB3_CHECKS
         case INS_PROVIDE_TX_SIMULATION:
-            sw = handleTxSimulation(cmd->p1, cmd->data, cmd->lc, flags);
+            sw = handleTxSimulation(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags);
             break;
 #endif
 

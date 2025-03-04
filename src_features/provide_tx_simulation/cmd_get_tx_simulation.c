@@ -7,6 +7,8 @@
 #include "public_keys.h"
 #include "feature_signTx.h"
 #include "tlv.h"
+#include "tlv_apdu.h"
+#include "mem.h"
 #include "utils.h"
 #include "nbgl_use_case.h"
 #ifdef HAVE_LEDGER_PKI
@@ -478,9 +480,11 @@ static bool handle_tx_simu_tlv(const s_tlv_data *data, s_tx_simu_ctx *context) {
  *
  * @param[in] payload buffer received
  * @param[in] size of the buffer
- * @return APDU Response code
+ * @param[in] to_free if the payload needs to be freed
+ * @return whether the TLV payload was handled successfully or not
  */
-static uint16_t handle_tlv_payload(const uint8_t *payload, uint16_t size) {
+static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_free) {
+    bool parsing_ret;
     s_tx_simu_ctx ctx = {0};
 
     ctx.simu = &TX_SIMULATION;
@@ -489,18 +493,19 @@ static uint16_t handle_tlv_payload(const uint8_t *payload, uint16_t size) {
     // Initialize the hash context
     cx_sha256_init(&ctx.hash_ctx);
 
-    if (!tlv_parse(payload, size, (f_tlv_data_handler) &handle_tx_simu_tlv, &ctx) ||
-        !verify_fields(ctx.rcv_flags) || !verify_signature(&ctx)) {
+    parsing_ret = tlv_parse(payload, size, (f_tlv_data_handler) &handle_tx_simu_tlv, &ctx);
+    if (to_free) mem_dealloc(size);
+    if (!parsing_ret || !verify_fields(ctx.rcv_flags) || !verify_signature(&ctx)) {
         explicit_bzero(&TX_SIMULATION, sizeof(tx_simulation_t));
         explicit_bzero(&ctx, sizeof(s_tx_simu_ctx));
-        return APDU_RESPONSE_INVALID_DATA;
+        return false;
     }
     if (strlen(ctx.simu->partner) == 0) {
         // Set a default value for partner
         snprintf((char *) ctx.simu->partner, sizeof(ctx.simu->partner), "Web3 Checks");
     }
     print_simulation_info(&ctx);
-    return APDU_RESPONSE_OK;
+    return true;
 }
 
 /**
@@ -530,7 +535,11 @@ void handleTxSimulationOptIn(bool response_expected) {
  * @param[in] length of the buffer
  * @return APDU Response code
  */
-uint16_t handleTxSimulation(uint8_t p1, const uint8_t *data, uint8_t length, unsigned int *flags) {
+uint16_t handleTxSimulation(uint8_t p1,
+                            uint8_t p2,
+                            const uint8_t *data,
+                            uint8_t length,
+                            unsigned int *flags) {
     uint16_t sw = APDU_RESPONSE_INTERNAL_ERROR;
 
     switch (p1) {
@@ -541,7 +550,11 @@ uint16_t handleTxSimulation(uint8_t p1, const uint8_t *data, uint8_t length, uns
                 sw = APDU_RESPONSE_CMD_CODE_NOT_SUPPORTED;
                 break;
             }
-            sw = handle_tlv_payload(data, length);
+            if (!tlv_from_apdu(p2 == P1_FIRST_CHUNK, length, data, &handle_tlv_payload)) {
+                sw = APDU_RESPONSE_INVALID_DATA;
+            } else {
+                sw = APDU_RESPONSE_OK;
+            }
             break;
         case 0x01:
             // TX Simulation Opt-In

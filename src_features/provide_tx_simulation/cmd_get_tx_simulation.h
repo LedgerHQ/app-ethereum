@@ -44,7 +44,11 @@ typedef struct tx_simu_s {
 // Global structure to store the tx simultion parameters
 extern tx_simulation_t TX_SIMULATION;
 
-uint16_t handleTxSimulation(uint8_t p1, const uint8_t *data, uint8_t length, unsigned int *flags);
+uint16_t handleTxSimulation(uint8_t p1,
+                            uint8_t p2,
+                            const uint8_t *data,
+                            uint8_t length,
+                            unsigned int *flags);
 void handleTxSimulationOptIn(bool response_expected);
 void ui_tx_simulation_error(nbgl_choiceCallback_t callback);
 void ui_tx_simulation_opt_in(bool response_expected);

@@ -438,25 +438,34 @@ class CommandBuilder:
                 p1 = P1Type.FOLLOWING_CHUNK
         return chunks
 
-    def common_tlv_serialize(self, tlv_payload: bytes, ins: InsType) -> list[bytes]:
+    def common_tlv_serialize(self,
+                             ins: InsType,
+                             tlv_payload: bytes,
+                             p1l: list[int] = [0x01, 0x00],
+                             p2l: list[int] = [0x00]) -> list[bytes]:
+        assert len(p1l) in [1, 2]
+        assert len(p2l) in [1, 2]
         chunks = []
         payload = struct.pack(">H", len(tlv_payload))
         payload += tlv_payload
-        p1 = 1
+        p1 = p1l[0]
+        p2 = p2l[0]
         while len(payload) > 0:
             chunks.append(self._serialize(ins,
                                           p1,
-                                          0x00,
+                                          p2,
                                           payload[:0xff]))
             payload = payload[0xff:]
-            p1 = 0
+            # -1 so it works with a list of 1 or 2 items
+            p1 = p1l[-1]
+            p2 = p2l[-1]
         return chunks
 
     def provide_enum_value(self, tlv_payload: bytes) -> list[bytes]:
-        return self.common_tlv_serialize(tlv_payload, InsType.PROVIDE_ENUM_VALUE)
+        return self.common_tlv_serialize(InsType.PROVIDE_ENUM_VALUE, tlv_payload)
 
     def provide_transaction_info(self, tlv_payload: bytes) -> list[bytes]:
-        return self.common_tlv_serialize(tlv_payload, InsType.PROVIDE_TRANSACTION_INFO)
+        return self.common_tlv_serialize(InsType.PROVIDE_TRANSACTION_INFO, tlv_payload)
 
     def opt_in_tx_simulation(self) -> bytes:
         # Serialize the payload

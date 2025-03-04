@@ -189,11 +189,16 @@ bool ui_gcs(void) {
         return cleanup_on_error(mem_before);
     }
 
-    g_pair_list.nbPairs = field_table_size() + 1;
+    explicit_bzero(&g_pair_list, sizeof(g_pair_list));
+    // TX fields
+    g_pair_list.nbPairs += field_table_size();
     show_network = get_tx_chain_id() != chainConfig->chainId;
     if (show_network) {
         g_pair_list.nbPairs += 1;
     }
+    // Fees
+    g_pair_list.nbPairs += 1;
+
     if ((pairs = mem_alloc_and_align(sizeof(*pairs) * g_pair_list.nbPairs, __alignof__(*pairs))) ==
         NULL) {
         return cleanup_on_error(mem_before);

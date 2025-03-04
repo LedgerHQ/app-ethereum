@@ -60,7 +60,7 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
         return false;
     }
     if ((value = get_creator_legal_name()) != NULL) {
-        snprintf(tmp_buf, tmp_buf_size, "Contract owner");
+        snprintf(tmp_buf, tmp_buf_size, "Smart contract owner");
         if ((keys[count] = _strdup(tmp_buf)) == NULL) {
             return false;
         }
@@ -76,7 +76,7 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
     }
 
     if ((value = get_contract_name()) != NULL) {
-        snprintf(tmp_buf, tmp_buf_size, "Contract");
+        snprintf(tmp_buf, tmp_buf_size, "Smart contract");
         if ((keys[count] = _strdup(tmp_buf)) == NULL) {
             return false;
         }

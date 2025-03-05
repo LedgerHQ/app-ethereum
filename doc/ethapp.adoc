@@ -1346,14 +1346,27 @@ _Command_
 
 [width="80%"]
 |==============================================================
-| *CLA*     | *INS*    | *P1*                       | *P2*       | *LC*     | *Le*
-.2+| E0  .2+| 32       | 00 : TX Simulation Payload | 00         | variable | variable
-                       | 01 : TX Simulation Opt-In  | 00         | 00       | 00
+| *CLA*     | *INS*    | *P1*                       | *P2*                 | *LC*     | *Le*
+.2+| E0  .2+| 32       | 00 : TX Simulation Payload | 01 : first chunk
+
+                                                      00 : following chunk | variable | variable
+                       | 01 : TX Simulation Opt-In  | 00                   | 00       | 00
 |==============================================================
 
 _Input data_
 
 ##### If P1 == TX Simulation Payload
+
+###### If P2 == first chunk
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Payload length        | 2
+| TLV payload           | variable
+|==========================================
+
+###### If P2 == following chunk
 
 [width="80%"]
 |==========================================

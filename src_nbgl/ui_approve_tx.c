@@ -220,14 +220,14 @@ void ux_approve_tx(bool fromPlugin) {
         get_lowercase_operation(op_name, sizeof(op_name));
         snprintf(g_stax_shared_buffer,
                  buf_size,
-                 "Review transaction\nto %s\n%s%s",
+                 "Review transaction to %s %s%s",
                  op_name,
                  (pluginType == EXTERNAL ? "on " : ""),
                  strings.common.toAddress);
         // Finish text: replace "Review" by "Sign" and add questionmark
         snprintf(g_stax_shared_buffer + buf_size,
                  buf_size,
-                 "%s transaction\nto %s\n%s%s?",
+                 "%s transaction to %s %s%s?",
                  ui_tx_simulation_finish_str(),
                  op_name,
                  (pluginType == EXTERNAL ? "on " : ""),

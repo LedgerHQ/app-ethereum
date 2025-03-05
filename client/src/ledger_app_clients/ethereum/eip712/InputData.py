@@ -428,7 +428,7 @@ def next_timeout(_signum: int, _frame):
 
 def enable_autonext():
     if app_client._client.firmware in (Firmware.STAX, Firmware.FLEX):
-        delay = 1/3
+        delay = 1/2
     else:
         delay = 1/4
 

@@ -632,5 +632,7 @@ class EthAppClient:
             _, from_addr, _ = pk_addr(response.data)
             simu_params.from_addr = from_addr
 
-        response = self._exchange(self._cmd_builder.provide_tx_simulation(simu_params.serialize()))
-        return response
+        chunks = self._cmd_builder.provide_tx_simulation(simu_params.serialize())
+        for chunk in chunks[:-1]:
+            self._exchange(chunk)
+        return self._exchange(chunks[-1])

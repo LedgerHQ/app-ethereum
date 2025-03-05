@@ -471,8 +471,5 @@ class CommandBuilder:
         # Serialize the payload
         return self._serialize(InsType.PROVIDE_TX_SIMULATION, P1Type.OPT_IN_W3C, 0x00)
 
-    def provide_tx_simulation(self, tlv_payload: bytes) -> bytes:
-        # Check if the TLV payload is larger than 0xff
-        assert len(tlv_payload) < 0xff, "Payload too large"
-        # Serialize the payload
-        return self._serialize(InsType.PROVIDE_TX_SIMULATION, 0x00, 0x00, tlv_payload)
+    def provide_tx_simulation(self, tlv_payload: bytes) -> list[bytes]:
+        return self.common_tlv_serialize(InsType.PROVIDE_TX_SIMULATION, tlv_payload, p1l=[0x00], p2l=[0x01, 0x00])

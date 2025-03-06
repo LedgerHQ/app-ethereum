@@ -26,8 +26,8 @@ GAS_LIMIT = 21000
 AMOUNT = 1.22
 
 
-@pytest.fixture(name="verbose", params=[False, True])
-def verbose_fixture(request) -> bool:
+@pytest.fixture(name="verbose_ens", params=[False, True])
+def verbose_ens_fixture(request) -> bool:
     return request.param
 
 
@@ -46,12 +46,12 @@ def test_trusted_name_v1(firmware: Firmware,
                          backend: BackendInterface,
                          navigator: Navigator,
                          scenario_navigator: NavigateWithScenario,
-                         verbose: bool,
+                         verbose_ens: bool,
                          test_name: str):
     app_client = EthAppClient(backend)
     challenge = common(firmware, app_client)
 
-    if verbose:
+    if verbose_ens:
         settings_toggle(firmware, navigator, [SettingID.VERBOSE_ENS])
         test_name += "_verbose"
 

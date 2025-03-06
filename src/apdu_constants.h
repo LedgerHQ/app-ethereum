@@ -30,6 +30,7 @@
 #define INS_PROVIDE_ENUM_VALUE              0x24
 #define INS_GTP_TRANSACTION_INFO            0x26
 #define INS_GTP_FIELD                       0x28
+#define INS_PROVIDE_PROXY_INFO              0x2A
 #define INS_PROVIDE_NETWORK_CONFIGURATION   0x30
 #define INS_PROVIDE_TX_SIMULATION           0x32
 

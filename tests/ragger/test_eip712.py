@@ -48,8 +48,8 @@ def input_file_fixture(request) -> str:
     return Path(request.param)
 
 
-@pytest.fixture(name="verbose", params=[True, False])
-def verbose_fixture(request) -> bool:
+@pytest.fixture(name="verbose_raw", params=[True, False])
+def verbose_raw_fixture(request) -> bool:
     return request.param
 
 
@@ -204,7 +204,7 @@ def test_eip712_new(firmware: Firmware,
                     navigator: Navigator,
                     default_screenshot_path: Path,
                     input_file: Path,
-                    verbose: bool,
+                    verbose_raw: bool,
                     filtering: bool):
     global validate_warning
 
@@ -226,10 +226,10 @@ def test_eip712_new(firmware: Firmware,
     else:
         settings_to_toggle.append(SettingID.BLIND_SIGNING)
 
-    if verbose:
+    if verbose_raw:
         settings_to_toggle.append(SettingID.VERBOSE_EIP712)
 
-    if not filters or verbose:
+    if not filters or verbose_raw:
         validate_warning = True
 
     if len(settings_to_toggle) > 0:
@@ -243,7 +243,7 @@ def test_eip712_new(firmware: Firmware,
                                 app_client,
                                 data,
                                 filters,
-                                verbose,
+                                verbose_raw,
                                 False)
 
         recovered_addr = recover_message(data, vrs)

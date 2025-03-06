@@ -12,7 +12,6 @@
 #include "apdu_constants.h"
 #include "cmd_get_tx_simulation.h"
 
-static nbgl_tipBox_t tip_box;
 static nbgl_layoutTagValueList_t g_pair_list;
 static size_t g_alloc_size;
 
@@ -61,7 +60,7 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
         return false;
     }
     if ((value = get_creator_legal_name()) != NULL) {
-        snprintf(tmp_buf, tmp_buf_size, "Contract owner");
+        snprintf(tmp_buf, tmp_buf_size, "Smart contract owner");
         if ((keys[count] = _strdup(tmp_buf)) == NULL) {
             return false;
         }
@@ -77,7 +76,7 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
     }
 
     if ((value = get_contract_name()) != NULL) {
-        snprintf(tmp_buf, tmp_buf_size, "Contract");
+        snprintf(tmp_buf, tmp_buf_size, "Smart contract");
         if ((keys[count] = _strdup(tmp_buf)) == NULL) {
             return false;
         }
@@ -147,12 +146,13 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
 bool ui_gcs(void) {
     char *tmp_buf = strings.tmp.tmp;
     size_t tmp_buf_size = sizeof(strings.tmp.tmp);
-    size_t off;
     const char *review_title;
     const char *sign_title;
     nbgl_contentTagValue_t *pairs;
     s_field_table_entry entry;
     bool show_network;
+    nbgl_contentValueExt_t *ext;
+    nbgl_contentInfoList_t *infolist;
     const void *mem_before = mem_alloc(0);
 
     explicit_bzero(&warning, sizeof(nbgl_warning_t));
@@ -172,40 +172,52 @@ bool ui_gcs(void) {
     if ((sign_title = _strdup(tmp_buf)) == NULL) {
         return cleanup_on_error(mem_before);
     }
-    explicit_bzero(&tip_box, sizeof(tip_box));
-    tip_box.icon = &ICON_APP_WARNING;
-    tip_box.text = NULL;
-    tip_box.modalTitle = "Contract information";
-    tip_box.type = INFOS_LIST;
-    if (!prepare_infos(&tip_box.infos)) {
-        return cleanup_on_error(mem_before);
-    }
-    snprintf(tmp_buf, tmp_buf_size, "Interaction with a\nsmart contract");
-    off = strlen(tmp_buf);
-    if (get_creator_name()) {
-        snprintf(tmp_buf + off, tmp_buf_size - off, " from:\n%s", get_creator_name());
-    }
-    if ((tip_box.text = _strdup(tmp_buf)) == NULL) {
-        return cleanup_on_error(mem_before);
-    }
 
-    g_pair_list.nbPairs = field_table_size() + 1;
+    explicit_bzero(&g_pair_list, sizeof(g_pair_list));
+    // Contract info
+    g_pair_list.nbPairs += 1;
+    // TX fields
+    g_pair_list.nbPairs += field_table_size();
     show_network = get_tx_chain_id() != chainConfig->chainId;
     if (show_network) {
         g_pair_list.nbPairs += 1;
     }
+    // Fees
+    g_pair_list.nbPairs += 1;
+
     if ((pairs = mem_alloc_and_align(sizeof(*pairs) * g_pair_list.nbPairs, __alignof__(*pairs))) ==
         NULL) {
         return cleanup_on_error(mem_before);
     }
     explicit_bzero(pairs, sizeof(*pairs) * g_pair_list.nbPairs);
 
+    pairs[0].item = _strdup("Interaction with");
+    pairs[0].value = get_creator_name();
+    if (pairs[0].value == NULL) {
+        // not great, but this cannot be NULL
+        pairs[0].value = _strdup("a smart contract");
+    }
+    if ((ext = mem_alloc_and_align(sizeof(*ext), __alignof__(*ext))) == NULL) {
+        return cleanup_on_error(mem_before);
+    }
+    explicit_bzero(ext, sizeof(*ext));
+    if ((infolist = mem_alloc_and_align(sizeof(*infolist), __alignof__(*infolist))) == NULL) {
+        return cleanup_on_error(mem_before);
+    }
+    if (!prepare_infos(infolist)) {
+        return cleanup_on_error(mem_before);
+    }
+    ext->infolist = infolist;
+    ext->aliasType = INFO_LIST_ALIAS;
+    pairs[0].extension = ext;
+    pairs[0].aliasValue = 1;
+
     for (int i = 0; i < (int) field_table_size(); ++i) {
         if (!get_from_field_table(i, &entry)) {
             return cleanup_on_error(mem_before);
         }
-        pairs[i].item = entry.key;
-        pairs[i].value = entry.value;
+        pairs[1 + i].item = entry.key;
+        pairs[1 + i].value = entry.value;
     }
 
     if (show_network) {
@@ -232,7 +244,7 @@ bool ui_gcs(void) {
                                review_title,
                                NULL,
                                sign_title,
-                               &tip_box,
+                               NULL,
                                &warning,
                                review_choice);
     g_alloc_size = mem_alloc(0) - mem_before;

@@ -8,13 +8,13 @@
 #include "tlv.h"
 
 bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_free) {
+    bool parsing_ret;
     s_enum_value_ctx ctx = {0};
 
     cx_sha256_init(&ctx.struct_hash);
-    if (!tlv_parse(payload, size, (f_tlv_data_handler) &handle_enum_value_struct, &ctx)) {
-        return false;
-    }
+    parsing_ret = tlv_parse(payload, size, (f_tlv_data_handler) &handle_enum_value_struct, &ctx);
     if (to_free) mem_dealloc(sizeof(size));
+    if (!parsing_ret) return false;
     if (!verify_enum_value_struct(&ctx)) {
         return false;
     }

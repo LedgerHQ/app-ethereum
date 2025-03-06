@@ -5,6 +5,8 @@
 #include "apdu_constants.h"
 #include "network_info.h"
 #include "write.h"
+#include "tlv_apdu.h"
+#include "mem.h"
 
 #define P2_NETWORK_CONFIG 0x00
 #define P2_NETWORK_ICON   0x01
@@ -210,7 +212,7 @@ static void print_network_info(void) {
     u64_to_string(DYNAMIC_NETWORK_INFO[g_current_network_slot].chain_id,
                   chain_str,
                   sizeof(chain_str));
-    PRINTF("[NETWORK] - Registered in slot %d: %s (%s), for chain_id %s\n",
+    PRINTF("[NETWORK] - Registered in slot %u: \"%s\" (%s), for chain_id %s\n",
            g_current_network_slot,
            DYNAMIC_NETWORK_INFO[g_current_network_slot].name,
            DYNAMIC_NETWORK_INFO[g_current_network_slot].ticker,
@@ -243,18 +245,15 @@ static uint16_t handle_get_config(void) {
     return tx;
 }
 
-static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
+static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_free) {
+    bool parsing_ret;
     s_network_info_ctx ctx = {0};
-
-    // Set the current slot here, because the corresponding icon will be received
-    // separately, after the network configuration, and should keep the same slot
-    g_current_network_slot = (g_current_network_slot + 1) % MAX_DYNAMIC_NETWORKS;
 
     // Initialize the hash context
     cx_sha256_init(&ctx.hash_ctx);
-    if (!tlv_parse(payload, size, (f_tlv_data_handler) &handle_network_info_struct, &ctx) ||
-        !verify_network_info_struct(&ctx)) {
-        explicit_bzero(&DYNAMIC_NETWORK_INFO[g_current_network_slot], sizeof(network_info_t));
+    parsing_ret = tlv_parse(payload, size, (f_tlv_data_handler) &handle_network_info_struct, &ctx);
+    if (to_free) mem_dealloc(sizeof(size));
+    if (!parsing_ret || !verify_network_info_struct(&ctx)) {
         return false;
     }
     print_network_info();
@@ -280,16 +279,10 @@ uint16_t handle_network_info(uint8_t p1,
 
     switch (p2) {
         case P2_NETWORK_CONFIG:
-            if (p1 != 0x00) {
-                PRINTF("Error: Unexpected P1 (%u)!\n", p1);
-                sw = APDU_RESPONSE_INVALID_P1_P2;
-                break;
+            if (!tlv_from_apdu(p1 == P1_FIRST_CHUNK, length, data, &handle_tlv_payload)) {
+                return APDU_RESPONSE_INVALID_DATA;
             }
-            if (handle_tlv_payload(data, length)) {
-                sw = APDU_RESPONSE_OK;
-            } else {
-                sw = APDU_RESPONSE_INVALID_DATA;
-            }
+            sw = APDU_RESPONSE_OK;
             break;
 
         case P2_NETWORK_ICON:

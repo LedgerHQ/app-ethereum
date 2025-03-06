@@ -1230,25 +1230,38 @@ _Command_
 
 [width="80%"]
 |==============================================================
-| *CLA*     | *INS*    | *P1*             | *P2*                       | *LC*     | *Le*
-.3+| E0  .3+| 30       | 00               | 00 : Network configuration | variable | variable
-                       | 01 : First chunk
+| *CLA*     | *INS*    | *P1*             | *P2*                       | *LC*
+.2+| E0     .2+| 30    | 01 : first chunk
 
-                         00: Next chunks  | 01 : Network Icon          | variable | variable
-                       | 00               | 02 : Get Info              |          |
+                         00 : following chunk
+                                          | 00 : Network configuration
+
+                                            01 : Network icon          | variable
+                       | 00               | 02 : Get info              | 0
 |==============================================================
 
 _Input data_
 
-##### If P1 == Network configuration
+##### If P2 == Network configuration
+
+###### If P1 == first chunk
 
 [width="80%"]
 |==========================================
 | *Description*         | *Length (byte)*
-| TLV payload data      | variable
+| Payload length        | 2
+| TLV payload           | variable
 |==========================================
 
-##### If P1 == Network Icon
+###### If P1 == following chunk
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| TLV payload           | variable
+|==========================================
+
+##### If P2 == Network Icon
 
 [width="80%"]
 |==========================================
@@ -1268,7 +1281,7 @@ _Input data_
 
 _Output data_
 
-##### If P1 == Get Info
+##### If P2 == Get Info
 
 [width="80%"]
 |==========================================

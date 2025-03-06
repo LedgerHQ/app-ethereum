@@ -90,7 +90,6 @@ static bool handle_chain_id(const s_tlv_data *data, s_network_info_ctx *context)
     uint64_t chain_id;
     uint8_t buf[sizeof(chain_id)];
     uint64_t max_range;
-    uint8_t i;
 
     (void) context;
     if (data->length > sizeof(buf)) {
@@ -105,13 +104,6 @@ static bool handle_chain_id(const s_tlv_data *data, s_network_info_ctx *context)
     if ((chain_id > max_range) || (chain_id == 0)) {
         PRINTF("Unsupported chain ID: %u\n", chain_id);
         return false;
-    }
-    // Check if the chain_id is already registered
-    for (i = 0; i < MAX_DYNAMIC_NETWORKS; i++) {
-        if (DYNAMIC_NETWORK_INFO[i].chain_id == chain_id) {
-            PRINTF("CHAIN_ID already exist!\n");
-            return false;
-        }
     }
     context->network.chain_id = chain_id;
     return true;
@@ -281,6 +273,19 @@ bool verify_network_info_struct(const s_network_info_ctx *context) {
                                     context->signature_length) != CX_OK) {
         return false;
     }
+
+    // Check if the chain ID is already registered, if so delete it silently to prevent duplicates
+    for (int i = 0; i < MAX_DYNAMIC_NETWORKS; ++i) {
+        if (DYNAMIC_NETWORK_INFO[i].chain_id == context->network.chain_id) {
+            explicit_bzero(&DYNAMIC_NETWORK_INFO[i], sizeof(DYNAMIC_NETWORK_INFO[i]));
+            break;
+        }
+    }
+
+    // Set the current slot here, because the corresponding icon will be received
+    // separately, after the network configuration, and should keep the same slot
+    g_current_network_slot = (g_current_network_slot + 1) % MAX_DYNAMIC_NETWORKS;
+
     memcpy(&DYNAMIC_NETWORK_INFO[g_current_network_slot],
            &context->network,
            sizeof(network_info_t));

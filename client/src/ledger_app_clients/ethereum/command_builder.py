@@ -13,6 +13,7 @@ class InsType(IntEnum):
     GET_PUBLIC_ADDR = 0x02
     GET_ETH2_PUBLIC_ADDR = 0x0e
     SIGN = 0x04
+    GET_APP_CONFIGURATION = 0x06
     PERSONAL_SIGN = 0x08
     PROVIDE_ERC20_TOKEN_INFORMATION = 0x0a
     EXTERNAL_PLUGIN_SETUP = 0x12
@@ -28,6 +29,7 @@ class InsType(IntEnum):
     PROVIDE_ENUM_VALUE = 0x24
     PROVIDE_TRANSACTION_INFO = 0x26
     PROVIDE_NETWORK_INFORMATION = 0x30
+    PROVIDE_TX_SIMULATION = 0x32
 
 
 class P1Type(IntEnum):
@@ -37,6 +39,7 @@ class P1Type(IntEnum):
     SIGN_SUBSQT_CHUNK = 0x80
     FIRST_CHUNK = 0x01
     FOLLOWING_CHUNK = 0x00
+    OPT_IN_W3C = 0x01
 
 
 class P2Type(IntEnum):
@@ -79,6 +82,11 @@ class CommandBuilder:
                                P1Type.COMPLETE_SEND,
                                P2Type.STRUCT_NAME,
                                name.encode())
+
+    def get_app_configuration(self) -> bytes:
+        return self._serialize(InsType.GET_APP_CONFIGURATION,
+                               0x00,
+                               0x00)
 
     def eip712_send_struct_def_struct_field(self,
                                             field_type: EIP712FieldType,
@@ -430,22 +438,38 @@ class CommandBuilder:
                 p1 = P1Type.FOLLOWING_CHUNK
         return chunks
 
-    def common_tlv_serialize(self, tlv_payload: bytes, ins: InsType) -> list[bytes]:
+    def common_tlv_serialize(self,
+                             ins: InsType,
+                             tlv_payload: bytes,
+                             p1l: list[int] = [0x01, 0x00],
+                             p2l: list[int] = [0x00]) -> list[bytes]:
+        assert len(p1l) in [1, 2]
+        assert len(p2l) in [1, 2]
         chunks = []
         payload = struct.pack(">H", len(tlv_payload))
         payload += tlv_payload
-        p1 = 1
+        p1 = p1l[0]
+        p2 = p2l[0]
         while len(payload) > 0:
             chunks.append(self._serialize(ins,
                                           p1,
-                                          0x00,
+                                          p2,
                                           payload[:0xff]))
             payload = payload[0xff:]
-            p1 = 0
+            # -1 so it works with a list of 1 or 2 items
+            p1 = p1l[-1]
+            p2 = p2l[-1]
         return chunks
 
     def provide_enum_value(self, tlv_payload: bytes) -> list[bytes]:
-        return self.common_tlv_serialize(tlv_payload, InsType.PROVIDE_ENUM_VALUE)
+        return self.common_tlv_serialize(InsType.PROVIDE_ENUM_VALUE, tlv_payload)
 
     def provide_transaction_info(self, tlv_payload: bytes) -> list[bytes]:
-        return self.common_tlv_serialize(tlv_payload, InsType.PROVIDE_TRANSACTION_INFO)
+        return self.common_tlv_serialize(InsType.PROVIDE_TRANSACTION_INFO, tlv_payload)
+
+    def opt_in_tx_simulation(self) -> bytes:
+        # Serialize the payload
+        return self._serialize(InsType.PROVIDE_TX_SIMULATION, P1Type.OPT_IN_W3C, 0x00)
+
+    def provide_tx_simulation(self, tlv_payload: bytes) -> list[bytes]:
+        return self.common_tlv_serialize(InsType.PROVIDE_TX_SIMULATION, tlv_payload, p1l=[0x00], p2l=[0x01, 0x00])

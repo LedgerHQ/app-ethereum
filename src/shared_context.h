@@ -27,6 +27,11 @@ typedef struct internalStorage_t {
 #ifdef HAVE_TRUSTED_NAME
     bool verbose_trusted_name;
 #endif  // HAVE_TRUSTED_NAME
+#ifdef HAVE_WEB3_CHECKS
+    bool w3c_enable;
+    // hidden setting (not shown in the UI)
+    bool w3c_opt_in;
+#endif
     bool initialized;
 } internalStorage_t;
 
@@ -103,7 +108,12 @@ typedef union {
     tokenContext_t tokenContext;
 } dataContext_t;
 
-typedef enum { APP_STATE_IDLE, APP_STATE_SIGNING_TX, APP_STATE_SIGNING_MESSAGE } app_state_t;
+typedef enum {
+    APP_STATE_IDLE,
+    APP_STATE_SIGNING_TX,
+    APP_STATE_SIGNING_MESSAGE,
+    APP_STATE_SIGNING_EIP712
+} app_state_t;
 
 typedef enum {
     CONTRACT_NONE,

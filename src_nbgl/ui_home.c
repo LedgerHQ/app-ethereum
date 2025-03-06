@@ -1,6 +1,10 @@
 #include "ui_nbgl.h"
 #include "caller_api.h"
 #include "network.h"
+#include "cmd_get_tx_simulation.h"
+
+// Global Warning struct for NBGL review flows
+nbgl_warning_t warning;
 
 // settings info definition
 #define SETTING_INFO_NB 2
@@ -12,7 +16,8 @@
 #define FORMAT_PLUGIN "This app enables clear\nsigning transactions for\nthe %s dApp."
 
 enum {
-    BLIND_SIGNING_TOKEN = FIRST_USER_TOKEN,
+    WEB3_CHECK_TOKEN = FIRST_USER_TOKEN,
+    BLIND_SIGNING_TOKEN,
 #ifdef HAVE_TRUSTED_NAME
     TRUSTED_NAME_VERBOSE_TOKEN,
 #endif
@@ -24,6 +29,9 @@ enum {
 };
 
 enum {
+#ifdef HAVE_WEB3_CHECKS
+    WEB3_CHECK_ID,
+#endif
     BLIND_SIGNING_ID,
 #ifdef HAVE_TRUSTED_NAME
     TRUSTED_NAME_VERBOSE_ID,
@@ -54,6 +62,14 @@ static void setting_toggle_callback(int token, uint8_t index, int page) {
     bool value;
 
     switch (token) {
+#ifdef HAVE_WEB3_CHECKS
+        case WEB3_CHECK_TOKEN:
+            handleTxSimulationOptIn(false);
+            value = !N_storage.w3c_enable;
+            switches[WEB3_CHECK_ID].initState = (nbgl_state_t) value;
+            nvm_write((void *) &N_storage.w3c_enable, (void *) &value, sizeof(value));
+            break;
+#endif  // HAVE_WEB3_CHECKS
         case BLIND_SIGNING_TOKEN:
             value = !N_storage.dataAllowed;
             switches[BLIND_SIGNING_ID].initState = (nbgl_state_t) value;
@@ -149,6 +165,15 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
     switches[DEBUG_ID].subText = "Display contract data details.";
     switches[DEBUG_ID].token = DEBUG_TOKEN;
     switches[DEBUG_ID].tuneId = TUNE_TAP_CASUAL;
+
+#ifdef HAVE_WEB3_CHECKS
+    switches[WEB3_CHECK_ID].initState = N_storage.w3c_enable ? ON_STATE : OFF_STATE;
+    switches[WEB3_CHECK_ID].text = "Transaction checks";
+    switches[WEB3_CHECK_ID].subText =
+        "Scans transactions for security threats. Learn more: ledger.com/w3c";
+    switches[WEB3_CHECK_ID].token = WEB3_CHECK_TOKEN;
+    switches[WEB3_CHECK_ID].tuneId = TUNE_TAP_CASUAL;
+#endif  // HAVE_WEB3_CHECKS
 
     contents[0].type = SWITCHES_LIST;
     contents[0].content.switchesList.nbSwitches = SETTINGS_SWITCHES_NB;

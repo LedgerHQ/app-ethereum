@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Callable, Optional, Any
 import json
 import pytest
@@ -6,6 +7,7 @@ from web3 import Web3
 from ragger.error import ExceptionRAPDU
 from ragger.firmware import Firmware
 from ragger.backend import BackendInterface
+from ragger.navigator import Navigator, NavInsID
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 
 from constants import ABIS_FOLDER
@@ -13,6 +15,7 @@ from constants import ABIS_FOLDER
 from client.client import EthAppClient, StatusWord
 import client.response_parser as ResponseParser
 from client.utils import get_selector_from_data, recover_transaction
+from client.tx_simu import TxSimu
 
 
 BIP32_PATH = "m/44'/60'/0'/0/0"
@@ -49,17 +52,38 @@ class Action:
 
 def common_test_nft(firmware: Firmware,
                     backend: BackendInterface,
+                    navigator: Navigator,
                     scenario_navigator: NavigateWithScenario,
+                    default_screenshot_path: Path,
                     test_name: str,
                     collec: NFTCollection,
                     action: Action,
                     reject: bool,
-                    plugin_name: str):
+                    plugin_name: str,
+                    simu_params: Optional[TxSimu] = None):
     global DEVICE_ADDR
     app_client = EthAppClient(backend)
 
     if firmware == Firmware.NANOS:
         pytest.skip("Not supported on LNS")
+
+    data = collec.contract.encode_abi(action.fn_name, action.fn_args)
+    tx_params = {
+        "nonce": NONCE,
+        "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
+        "gas": GAS_LIMIT,
+        "to": collec.addr,
+        "value": 0,
+        "chainId": collec.chain_id,
+        "data": data,
+    }
+    if not reject and simu_params is not None:
+        _, tx_hash = app_client.serialize_tx(tx_params)
+        simu_params.from_addr = DEVICE_ADDR
+        simu_params.tx_hash = tx_hash
+        simu_params.chain_id = tx_params["chainId"]
+        response = app_client.provide_tx_simulation(simu_params)
+        assert response.status == StatusWord.OK
 
     if collec.chain_id == 5:
         name = "Goerli"
@@ -86,22 +110,13 @@ def common_test_nft(firmware: Firmware,
             pass
         _, DEVICE_ADDR, _ = ResponseParser.pk_addr(app_client.response().data)
 
-    data = collec.contract.encode_abi(action.fn_name, action.fn_args)
     app_client.set_plugin(plugin_name,
                           collec.addr,
                           get_selector_from_data(data),
                           collec.chain_id)
 
     app_client.provide_nft_metadata(collec.name, collec.addr, collec.chain_id)
-    tx_params = {
-        "nonce": NONCE,
-        "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
-        "gas": GAS_LIMIT,
-        "to": collec.addr,
-        "value": 0,
-        "chainId": collec.chain_id,
-        "data": data,
-    }
+
     with app_client.sign(BIP32_PATH, tx_params):
         test_name += f"_{action.fn_name}_{str(collec.chain_id)}"
         if reject:
@@ -110,7 +125,13 @@ def common_test_nft(firmware: Firmware,
             if firmware.is_nano:
                 end_text = "Accept"
             else:
-                end_text = "Sign"
+                end_text = r"(Sign|Accept (risk|threat))"
+            if simu_params is not None:
+                navigator.navigate_and_compare(default_screenshot_path,
+                                               f"{test_name}/warning",
+                                               [NavInsID.USE_CASE_CHOICE_REJECT],
+                                               screen_change_after_last_instruction=False)
+
             scenario_navigator.review_approve(test_name=test_name, custom_screen_text=end_text)
 
     # verify signature
@@ -122,12 +143,22 @@ def common_test_nft(firmware: Firmware,
 def common_test_nft_reject(test_fn: Callable,
                            firmware: Firmware,
                            backend: BackendInterface,
+                           navigator: Navigator,
                            scenario_navigator: NavigateWithScenario,
+                           default_screenshot_path: Path,
                            test_name: str,
                            collec: NFTCollection,
                            action: Action):
     with pytest.raises(ExceptionRAPDU) as e:
-        test_fn(firmware, backend, scenario_navigator, test_name, collec, action, True)
+        test_fn(firmware,
+                backend,
+                navigator,
+                scenario_navigator,
+                default_screenshot_path,
+                test_name,
+                collec,
+                action,
+                True)
     assert e.value.status == StatusWord.CONDITION_NOT_SATISFIED
 
 # ERC-721
@@ -176,14 +207,18 @@ def action_721_fixture(request) -> Action:
 
 def test_nft_erc721(firmware: Firmware,
                     backend: BackendInterface,
+                    navigator: Navigator,
                     scenario_navigator: NavigateWithScenario,
+                    default_screenshot_path: Path,
                     test_name: str,
                     collec_721: NFTCollection,
                     action_721: Action,
                     reject: bool = False):
     common_test_nft(firmware,
                     backend,
+                    navigator,
                     scenario_navigator,
+                    default_screenshot_path,
                     test_name,
                     collec_721,
                     action_721,
@@ -193,12 +228,16 @@ def test_nft_erc721(firmware: Firmware,
 
 def test_nft_erc721_reject(firmware: Firmware,
                            backend: BackendInterface,
+                           navigator: Navigator,
                            scenario_navigator: NavigateWithScenario,
+                           default_screenshot_path: Path,
                            test_name: str):
     common_test_nft_reject(test_nft_erc721,
                            firmware,
                            backend,
+                           navigator,
                            scenario_navigator,
+                           default_screenshot_path,
                            test_name,
                            collecs_721[0],
                            actions_721[0])
@@ -255,14 +294,18 @@ def action_1155_fixture(request) -> Action:
 
 def test_nft_erc1155(firmware: Firmware,
                      backend: BackendInterface,
+                     navigator: Navigator,
                      scenario_navigator: NavigateWithScenario,
+                     default_screenshot_path: Path,
                      test_name: str,
                      collec_1155: NFTCollection,
                      action_1155: Action,
                      reject: bool = False):
     common_test_nft(firmware,
                     backend,
+                    navigator,
                     scenario_navigator,
+                    default_screenshot_path,
                     test_name,
                     collec_1155,
                     action_1155,
@@ -272,12 +315,16 @@ def test_nft_erc1155(firmware: Firmware,
 
 def test_nft_erc1155_reject(firmware: Firmware,
                             backend: BackendInterface,
+                            navigator: Navigator,
                             scenario_navigator: NavigateWithScenario,
+                            default_screenshot_path: Path,
                             test_name: str):
     common_test_nft_reject(test_nft_erc1155,
                            firmware,
                            backend,
+                           navigator,
                            scenario_navigator,
+                           default_screenshot_path,
                            test_name,
                            collecs_1155[0],
                            actions_1155[0])

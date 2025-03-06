@@ -3,7 +3,7 @@
 
 import struct
 from enum import IntEnum
-from typing import List, Optional
+from typing import Optional
 from ragger.bip import pack_derivation_path
 
 from .eip712 import EIP712FieldType
@@ -414,30 +414,6 @@ class CommandBuilder:
                                0x00,
                                payload)
 
-    def provide_network_information(self,
-                                    tlv_payload: bytes,
-                                    icon: Optional[bytes] = None) -> list[bytes]:
-        chunks: List[bytes] = []
-
-        # Check if the TLV payload is larger than 0xff
-        assert len(tlv_payload) < 0xff, "Payload too large"
-        # Serialize the payload
-        chunks.append(self._serialize(InsType.PROVIDE_NETWORK_INFORMATION,
-                                      0x00,
-                                      P2Type.NETWORK_CONFIG,
-                                      tlv_payload))
-
-        if icon:
-            p1 = P1Type.FIRST_CHUNK
-            while len(icon) > 0:
-                chunks.append(self._serialize(InsType.PROVIDE_NETWORK_INFORMATION,
-                                              p1,
-                                              P2Type.NETWORK_ICON,
-                                              icon[:0xff]))
-                icon = icon[0xff:]
-                p1 = P1Type.FOLLOWING_CHUNK
-        return chunks
-
     def common_tlv_serialize(self,
                              ins: InsType,
                              tlv_payload: bytes,
@@ -459,6 +435,24 @@ class CommandBuilder:
             # -1 so it works with a list of 1 or 2 items
             p1 = p1l[-1]
             p2 = p2l[-1]
+        return chunks
+
+    def provide_network_information(self,
+                                    tlv_payload: bytes,
+                                    icon: Optional[bytes] = None) -> list[bytes]:
+        chunks = self.common_tlv_serialize(InsType.PROVIDE_NETWORK_INFORMATION,
+                                           tlv_payload,
+                                           p2l=[P2Type.NETWORK_CONFIG])
+
+        if icon:
+            p1 = P1Type.FIRST_CHUNK
+            while len(icon) > 0:
+                chunks.append(self._serialize(InsType.PROVIDE_NETWORK_INFORMATION,
+                                              p1,
+                                              P2Type.NETWORK_ICON,
+                                              icon[:0xff]))
+                icon = icon[0xff:]
+                p1 = P1Type.FOLLOWING_CHUNK
         return chunks
 
     def provide_enum_value(self, tlv_payload: bytes) -> list[bytes]:

@@ -44,6 +44,7 @@
 #include "cmd_tx_info.h"
 #include "cmd_field.h"
 #include "cmd_get_tx_simulation.h"
+#include "cmd_proxy_info.h"
 
 tmpCtx_t tmpCtx;
 txContext_t txContext;
@@ -255,6 +256,12 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             sw = handle_field(cmd->p1, cmd->p2, cmd->lc, cmd->data);
             break;
 #endif  // HAVE_GENERIC_TX_PARSER
+
+#if defined(HAVE_EIP712_FULL_SUPPORT) || defined(HAVE_GENERIC_TX_PARSER)
+        case INS_PROVIDE_PROXY_INFO:
+            sw = handle_proxy_info(cmd->p1, cmd->p2, cmd->lc, cmd->data);
+            break;
+#endif
 
 #ifdef HAVE_DYNAMIC_NETWORKS
         case INS_PROVIDE_NETWORK_CONFIGURATION:

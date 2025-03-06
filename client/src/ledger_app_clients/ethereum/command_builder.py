@@ -28,6 +28,7 @@ class InsType(IntEnum):
     PROVIDE_TRUSTED_NAME = 0x22
     PROVIDE_ENUM_VALUE = 0x24
     PROVIDE_TRANSACTION_INFO = 0x26
+    PROVIDE_PROXY_INFO = 0x2a
     PROVIDE_NETWORK_INFORMATION = 0x30
     PROVIDE_TX_SIMULATION = 0x32
 
@@ -467,3 +468,6 @@ class CommandBuilder:
 
     def provide_tx_simulation(self, tlv_payload: bytes) -> list[bytes]:
         return self.common_tlv_serialize(InsType.PROVIDE_TX_SIMULATION, tlv_payload, p1l=[0x00], p2l=[0x01, 0x00])
+
+    def provide_proxy_info(self, tlv_payload: bytes) -> list[bytes]:
+        return self.common_tlv_serialize(InsType.PROVIDE_PROXY_INFO, tlv_payload)

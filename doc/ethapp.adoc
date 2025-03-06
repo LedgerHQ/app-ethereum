@@ -1122,6 +1122,9 @@ None
 
 ### TRANSACTION INFO
 
+#### Description
+#### Coding
+
 _Command_
 
 [width="80%"]
@@ -1159,12 +1162,59 @@ None
 
 ### TRANSACTION FIELD DESCRIPTION
 
+#### Description
+#### Coding
+
 _Command_
 
 [width="80%"]
 |==============================================================
 | *CLA* | *INS*  | *P1*               | *P2*       | *LC*
 |   E0  |   28   | 01 : first chunk
+
+                   00 : following chunk
+                                      | 00         | 00
+|==============================================================
+
+_Input data_
+
+##### If P1 == first chunk
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Payload length        | 2
+| TLV payload           | variable
+|==========================================
+
+##### If P1 == following chunk
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| TLV payload           | variable
+|==========================================
+
+_Output data_
+
+None
+
+
+### PROVIDE PROXY INFO
+
+#### Description
+
+This command provides the app with the knowledge that a contract address is a proxy to another contract on a specific chain.
+This can also (optionally) be restricted to a specific function within the contract.
+
+#### Coding
+
+_Command_
+
+[width="80%"]
+|==============================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *LC*
+|   E0  |   2A   | 01 : first chunk
 
                    00 : following chunk
                                       | 00         | 00

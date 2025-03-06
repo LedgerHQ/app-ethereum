@@ -23,6 +23,7 @@ from client.gcs import (
     PathLeaf, PathLeafType, PathRef, PathArray, TxInfo
 )
 from client.tx_simu import TxSimu
+from client.proxy_info import ProxyInfo
 
 
 def test_gcs_nft(firmware: Firmware,
@@ -562,6 +563,120 @@ def test_gcs_1inch(firmware: Firmware,
     app_client.provide_transaction_info(tx_info.serialize())
 
     app_client.provide_token_metadata("USDC", bytes.fromhex("A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"), 6, 1)
+
+    for field in fields:
+        payload = field.serialize()
+        app_client.send_raw(0xe0, 0x28, 0x01, 0x00, struct.pack(">H", len(payload)) + payload)
+
+    with app_client.send_raw_async(0xe0, 0x04, 0x00, 0x02, bytes()):
+        scenario_navigator.review_approve(test_name=test_name, custom_screen_text="Sign transaction")
+
+
+def test_gcs_proxy(firmware: Firmware,
+                   backend: BackendInterface,
+                   scenario_navigator: NavigateWithScenario,
+                   test_name: str):
+    app_client = EthAppClient(backend)
+
+    if firmware == Firmware.NANOS:
+        pytest.skip("Not supported on LNS")
+
+    new_owner = bytes.fromhex("2222222222222222222222222222222222222222")
+
+    with open(f"{ABIS_FOLDER}/proxy_implem.abi.json") as file:
+        contract = Web3().eth.contract(
+            abi=json.load(file),
+            address=None
+        )
+    data = contract.encode_abi("transferOwnership", [
+        new_owner,
+    ])
+    tx_params = {
+        "nonce": 1,
+        "maxFeePerGas": Web3.to_wei(100, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(10, "gwei"),
+        "gas": 230,
+        # address of the proxy contract
+        "to": bytes.fromhex("39053d51b77dc0d36036fc1fcc8cb819df8ef37a"),
+        "data": data,
+        "chainId": 1
+    }
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, SignMode.STORE):
+        pass
+
+    fields = [
+        Field(
+            1,
+            "New owner",
+            ParamType.TRUSTED_NAME,
+            ParamTrustedName(
+                1,
+                Value(
+                    1,
+                    TypeFamily.ADDRESS,
+                    data_path=DataPath(
+                        1,
+                        [
+                            PathTuple(0),
+                            PathLeaf(PathLeafType.STATIC),
+                        ]
+                    ),
+                ),
+                [TrustedNameType.CONTRACT],
+                [TrustedNameSource.CAL],
+            )
+        ),
+    ]
+
+    # compute instructions hash
+    inst_hash = hashlib.sha3_256()
+    for field in fields:
+        inst_hash.update(field.serialize())
+
+    tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        # address of the implementation contract
+        bytes.fromhex("1784be6401339fc0fedf7e9379409f5c1bfe9dda"),
+        get_selector_from_data(tx_params["data"]),
+        inst_hash.digest(),
+        "transfer ownership",
+        creator_name="EigenLayer",
+        creator_legal_name="Eigen Labs",
+        creator_url="https://eigenlayer.xyz",
+        contract_name="Delegation Manager",
+        deploy_date=1711098731,
+    )
+
+    proxy_info = ProxyInfo(
+        ResponseParser.challenge(app_client.get_challenge().data),
+        tx_info.contract_addr,
+        tx_info.chain_id,
+        tx_params["to"],
+        tx_info.selector,
+    )
+
+    app_client.provide_proxy_info(proxy_info.serialize())
+
+    app_client.provide_transaction_info(tx_info.serialize())
+
+    # also test proxy trusted names
+    impl_contract = bytes.fromhex("1111111111111111111111111111111111111111")
+    proxy_info = ProxyInfo(
+        ResponseParser.challenge(app_client.get_challenge().data),
+        new_owner,
+        tx_info.chain_id,
+        impl_contract,
+    )
+
+    app_client.provide_proxy_info(proxy_info.serialize())
+
+    app_client.provide_trusted_name_v2(impl_contract,
+                                       "some contract",
+                                       TrustedNameType.CONTRACT,
+                                       TrustedNameSource.CAL,
+                                       tx_info.chain_id,
+                                       challenge=ResponseParser.challenge(app_client.get_challenge().data))
 
     for field in fields:
         payload = field.serialize()

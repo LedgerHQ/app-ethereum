@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "network.h"
 #include "tlv.h"
+#include "signature.h"
 
 #define MAX_DYNAMIC_NETWORKS 2  // Nb configurations max to store
 
@@ -12,7 +13,7 @@ typedef struct {
     network_info_t network;
     uint8_t icon_hash[CX_SHA256_SIZE];
     uint8_t signature_length;
-    uint8_t signature[73];
+    uint8_t signature[ECDSA_SIGNATURE_MAX_LENGTH];
     cx_sha256_t hash_ctx;
 } s_network_info_ctx;
 

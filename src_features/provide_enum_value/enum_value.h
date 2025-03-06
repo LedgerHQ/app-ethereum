@@ -6,6 +6,7 @@
 #include "plugin_utils.h"  // SELECTOR_SIZE
 #include "tlv.h"
 #include "cx.h"
+#include "signature.h"
 
 typedef struct {
     uint64_t chain_id;
@@ -20,7 +21,7 @@ typedef struct {
     uint8_t version;
     s_enum_value_entry entry;
     uint8_t signature_length;
-    uint8_t signature[73];
+    uint8_t signature[ECDSA_SIGNATURE_MAX_LENGTH];
 } s_enum_value;
 
 typedef struct {

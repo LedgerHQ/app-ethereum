@@ -184,6 +184,7 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/../../src_features/provide_trusted_name/
   ${CMAKE_SOURCE_DIR}/../../src_features/getChallenge/
   ${CMAKE_SOURCE_DIR}/../../src_features/signMessageEIP712/
+  ${CMAKE_SOURCE_DIR}/../../src_features/provide_proxy_info/
   ${BOLOS_SDK}/include
   ${BOLOS_SDK}/target/${TARGET_DEVICE}/include
   ${BOLOS_SDK}/lib_cxng/include
@@ -201,6 +202,7 @@ FILE(GLOB_RECURSE SOURCES
   ${CMAKE_SOURCE_DIR}/../../src_features/provide_enum_value/*.c
   ${CMAKE_SOURCE_DIR}/../../src_features/provide_network_info/*.c
   ${CMAKE_SOURCE_DIR}/../../src_features/provideNFTInformation/*.c
+  ${CMAKE_SOURCE_DIR}/../../src_features/provide_proxy_info/*.c
   ${CMAKE_SOURCE_DIR}/../../src/mem.c
   ${CMAKE_SOURCE_DIR}/../../src/mem_utils.c
   ${CMAKE_SOURCE_DIR}/../../src/network.c

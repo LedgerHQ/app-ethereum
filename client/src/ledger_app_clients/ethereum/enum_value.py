@@ -54,6 +54,6 @@ class EnumValue:
         payload += format_tlv(Tag.NAME, self.name)
         sig = self.signature
         if sig is None:
-            sig = sign_data(Key.CAL, payload)
+            sig = sign_data(Key.CALLDATA, payload)
         payload += format_tlv(Tag.SIGNATURE, sig)
         return payload

@@ -15,6 +15,7 @@
 #include "os_pki.h"
 #endif
 #include "trusted_name.h"
+#include "proxy_info.h"
 
 #define FILT_MAGIC_MESSAGE_INFO      183
 #define FILT_MAGIC_AMOUNT_JOIN_TOKEN 11
@@ -80,6 +81,7 @@ static void hash_filtering_path(cx_hash_t *hash_ctx, bool discarded, uint32_t *p
  */
 static bool sig_verif_start(cx_sha256_t *hash_ctx, uint8_t magic) {
     uint64_t chain_id;
+    const uint8_t *addr;
 
     cx_sha256_init(hash_ctx);
 
@@ -91,9 +93,14 @@ static bool sig_verif_start(cx_sha256_t *hash_ctx, uint8_t magic) {
     hash_nbytes((uint8_t *) &chain_id, sizeof(chain_id), (cx_hash_t *) hash_ctx);
 
     // Contract address
-    hash_nbytes(eip712_context->contract_addr,
-                sizeof(eip712_context->contract_addr),
-                (cx_hash_t *) hash_ctx);
+    // we can't compare the returned address with anything since filtering payloads are signed on an
+    // address which is not provided
+    if ((addr =
+             get_proxy_contract(&eip712_context->chain_id, eip712_context->contract_addr, NULL)) ==
+        NULL) {
+        addr = eip712_context->contract_addr;
+    }
+    hash_nbytes(addr, ADDRESS_LENGTH, (cx_hash_t *) hash_ctx);
 
     // Schema hash
     hash_nbytes(eip712_context->schema_hash,

@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include "common_utils.h"  // ADDRESS_LENGTH
 #include "tlv.h"
+#include "signature.h"
 
 #define TRUSTED_NAME_MAX_LENGTH 30
 
@@ -53,7 +54,7 @@ typedef struct {
     s_trusted_name_info trusted_name;
     e_tn_key_id key_id;
     uint8_t input_sig_size;
-    uint8_t input_sig[73];
+    uint8_t input_sig[ECDSA_SIGNATURE_MAX_LENGTH];
     cx_sha256_t hash_ctx;
     uint32_t rcv_flags;
 } s_trusted_name_ctx;

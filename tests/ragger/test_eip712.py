@@ -21,6 +21,7 @@ from client.client import EthAppClient, StatusWord, TrustedNameType, TrustedName
 from client.eip712 import InputData
 from client.settings import SettingID, settings_toggle
 from client.tx_simu import TxSimu
+from client.proxy_info import ProxyInfo
 
 
 BIP32_PATH = "m/44'/60'/0'/0/0"
@@ -44,7 +45,7 @@ def input_files() -> list[str]:
 
 
 @pytest.fixture(name="input_file", params=input_files())
-def input_file_fixture(request) -> str:
+def input_file_fixture(request) -> Path:
     return Path(request.param)
 
 
@@ -199,6 +200,11 @@ def eip712_new_common(firmware: Firmware,
     return ResponseParser.signature(app_client.response().data)
 
 
+def get_filter_file_from_data_file(data_file: Path) -> Path:
+    test_path = f"{data_file.parent}/{'-'.join(data_file.stem.split('-')[:-1])}"
+    return Path(f"{test_path}-filter.json")
+
+
 def test_eip712_new(firmware: Firmware,
                     backend: BackendInterface,
                     navigator: Navigator,
@@ -213,12 +219,10 @@ def test_eip712_new(firmware: Firmware,
     if firmware == Firmware.NANOS:
         pytest.skip("Not supported on LNS")
 
-    test_path = f"{input_file.parent}/{'-'.join(input_file.stem.split('-')[:-1])}"
-
     filters = None
     if filtering:
         try:
-            filterfile = Path(f"{test_path}-filter.json")
+            filterfile = get_filter_file_from_data_file(input_file)
             with open(filterfile, encoding="utf-8") as f:
                 filters = json.load(f)
         except (IOError, json.decoder.JSONDecodeError) as e:
@@ -866,6 +870,46 @@ def test_eip712_skip(firmware: Firmware,
                             None,
                             False,
                             golden_run)
+
+    # verify signature
+    addr = recover_message(data, vrs)
+    assert addr == get_wallet_addr(app_client)
+
+
+def test_eip712_proxy(firmware: Firmware,
+                      backend: BackendInterface,
+                      navigator: Navigator,
+                      default_screenshot_path: Path):
+    app_client = EthAppClient(backend)
+    if firmware == Firmware.NANOS:
+        pytest.skip("Not supported on LNS")
+
+    input_file = input_files()[0]
+    with open(input_file) as file:
+        data = json.load(file)
+    with open(get_filter_file_from_data_file(Path(input_file))) as file:
+        filters = json.load(file)
+    # change its name & set a different address than the one in verifyingContract
+    filters["name"] = "Proxy test"
+    filters["address"] = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+    proxy_info = ProxyInfo(
+        ResponseParser.challenge(app_client.get_challenge().data),
+        bytes.fromhex(filters["address"][2:]),
+        int(data["domain"]["chainId"]),
+        bytes.fromhex(data["domain"]["verifyingContract"][2:]),
+    )
+
+    app_client.provide_proxy_info(proxy_info.serialize())
+
+    vrs = eip712_new_common(firmware,
+                            navigator,
+                            default_screenshot_path,
+                            app_client,
+                            data,
+                            filters,
+                            False,
+                            False)
 
     # verify signature
     addr = recover_message(data, vrs)

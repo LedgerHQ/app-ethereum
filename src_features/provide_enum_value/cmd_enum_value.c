@@ -7,7 +7,7 @@
 #include "tlv_apdu.h"
 #include "tlv.h"
 
-bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_free) {
+static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_free) {
     bool parsing_ret;
     s_enum_value_ctx ctx = {0};
 

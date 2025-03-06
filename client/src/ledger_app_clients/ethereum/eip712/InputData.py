@@ -406,9 +406,12 @@ def handle_optional_domain_values(domain):
         domain["verifyingContract"] = "0x0000000000000000000000000000000000000000"
 
 
-def init_signature_context(types, domain):
+def init_signature_context(types, domain, filters):
     handle_optional_domain_values(domain)
-    caddr = domain["verifyingContract"]
+    if "address" in filters:
+        caddr = filters["address"]
+    else:
+        caddr = domain["verifyingContract"]
     if caddr.startswith("0x"):
         caddr = caddr[2:]
     sig_ctx["caddr"] = bytearray.fromhex(caddr)
@@ -452,7 +455,9 @@ def process_data(aclient: EthAppClient,
     global app_client
     global autonext_handler
     global is_golden_run
+    global current_path
 
+    current_path = []
     # deepcopy because this function modifies the dict
     data_json = copy.deepcopy(data_json)
     app_client = aclient
@@ -469,7 +474,7 @@ def process_data(aclient: EthAppClient,
     is_golden_run = golden_run
 
     if filters:
-        init_signature_context(types, domain)
+        init_signature_context(types, domain, filters)
 
     # send types definition
     for key in types.keys():

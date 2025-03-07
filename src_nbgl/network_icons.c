@@ -2,7 +2,9 @@
 #include "os_pic.h"
 #include "network.h"
 #include "network_info.h"
+#ifdef SCREEN_SIZE_WALLET
 #include "net_icons.gen.h"
+#endif
 
 /**
  * Get the network icon from a given chain ID
@@ -20,11 +22,13 @@ const nbgl_icon_details_t *get_network_icon_from_chain_id(const uint64_t *chain_
             return PIC(&DYNAMIC_NETWORK_INFO[i].icon);
         }
     }
+#ifdef SCREEN_SIZE_WALLET
     for (size_t i = 0; i < ARRAYLEN(g_network_icons); ++i) {
         if ((uint64_t) PIC(g_network_icons[i].chain_id) == *chain_id) {
             PRINTF("[NETWORK_ICONS] - Fallback on hardcoded list.\n");
             return PIC(g_network_icons[i].icon);
         }
     }
+#endif
     return NULL;
 }

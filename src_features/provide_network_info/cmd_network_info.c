@@ -34,6 +34,10 @@ static network_payload_t g_icon_payload = {0};
  * @return APDU Response code
  */
 static bool check_icon_header(const uint8_t *data, uint16_t length, uint16_t *buffer_size) {
+    uint16_t width = 0;
+    uint16_t height = 0;
+    uint16_t expected_px = 0;
+
     // The chunk starts by the Image Header (8 Bytes):
     //   - Width (2 Bytes)
     //   - Height (2 Bytes)
@@ -41,6 +45,17 @@ static bool check_icon_header(const uint8_t *data, uint16_t length, uint16_t *bu
     //   - Img buffer size (3 Bytes)
     if (length < 8) {
         PRINTF("NETWORK_ICON header length mismatch (%d)!\n", length);
+        return false;
+    }
+    width = U2LE(data, 0);
+    height = U2LE(data, 2);
+#ifdef SCREEN_SIZE_WALLET
+    expected_px = 64;
+#else
+    expected_px = 14;
+#endif
+    if ((width != expected_px) || (height != expected_px)) {
+        PRINTF("NETWORK_ICON size mismatch (%dx%d)!\n", width, height);
         return false;
     }
     *buffer_size = 8 + data[5] + (data[6] << 8) + (data[7] << 16);

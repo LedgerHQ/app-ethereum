@@ -131,7 +131,11 @@ static uint8_t setTagValuePairs(void) {
                      sizeof(tmpCtx.transactionContext.hash),
                      tmpCtx.transactionContext.hash);
 #pragma GCC diagnostic warning "-Wformat"
+#ifdef SCREEN_SIZE_WALLET
             pairs[nbPairs].item = "Transaction hash";
+#else
+            pairs[nbPairs].item = "Tx hash";
+#endif
             pairs[nbPairs].value = strings.common.tx_hash;
             nbPairs++;
         }
@@ -156,7 +160,7 @@ static uint8_t setTagValuePairs(void) {
         tx_approval_context.trusted_name_match =
             get_trusted_name(1, &type, 1, &source, &chain_id, tmpContent.txContent.destination);
         if (tx_approval_context.trusted_name_match) {
-            pairs[nbPairs].item = "To (domain)";
+            pairs[nbPairs].item = "To";
             pairs[nbPairs].value = g_trusted_name;
             nbPairs++;
         }

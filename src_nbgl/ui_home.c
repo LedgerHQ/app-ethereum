@@ -141,7 +141,7 @@ const nbgl_icon_details_t *get_app_icon(bool caller_icon) {
 static void prepare_and_display_home(const char *appname, const char *tagline, uint8_t page) {
     switches[BLIND_SIGNING_ID].initState = N_storage.dataAllowed ? ON_STATE : OFF_STATE;
     switches[BLIND_SIGNING_ID].text = "Blind signing";
-    switches[BLIND_SIGNING_ID].subText = "Enable transaction blind signing.";
+    switches[BLIND_SIGNING_ID].subText = "Enable transaction blind signing";
     switches[BLIND_SIGNING_ID].token = BLIND_SIGNING_TOKEN;
 #ifdef HAVE_PIEZO_SOUND
     switches[BLIND_SIGNING_ID].tuneId = TUNE_TAP_CASUAL;
@@ -151,7 +151,11 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
     switches[TRUSTED_NAME_VERBOSE_ID].initState =
         N_storage.verbose_trusted_name ? ON_STATE : OFF_STATE;
     switches[TRUSTED_NAME_VERBOSE_ID].text = "ENS addresses";
-    switches[TRUSTED_NAME_VERBOSE_ID].subText = "Display the resolved address of ENS domains.";
+#ifdef SCREEN_SIZE_WALLET
+    switches[TRUSTED_NAME_VERBOSE_ID].subText = "Display the resolved address of ENS domains";
+#else
+    switches[TRUSTED_NAME_VERBOSE_ID].subText = "Display resolved addresses from ENS";
+#endif
     switches[TRUSTED_NAME_VERBOSE_ID].token = TRUSTED_NAME_VERBOSE_TOKEN;
 #ifdef HAVE_PIEZO_SOUND
     switches[TRUSTED_NAME_VERBOSE_ID].tuneId = TUNE_TAP_CASUAL;
@@ -160,7 +164,7 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
 
     switches[NONCE_ID].initState = N_storage.displayNonce ? ON_STATE : OFF_STATE;
     switches[NONCE_ID].text = "Nonce";
-    switches[NONCE_ID].subText = "Display nonce in transactions.";
+    switches[NONCE_ID].subText = "Display nonce in transactions";
     switches[NONCE_ID].token = NONCE_TOKEN;
 #ifdef HAVE_PIEZO_SOUND
     switches[NONCE_ID].tuneId = TUNE_TAP_CASUAL;
@@ -169,7 +173,7 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
 #ifdef HAVE_EIP712_FULL_SUPPORT
     switches[EIP712_VERBOSE_ID].initState = N_storage.verbose_eip712 ? ON_STATE : OFF_STATE;
     switches[EIP712_VERBOSE_ID].text = "Raw messages";
-    switches[EIP712_VERBOSE_ID].subText = "Display raw content from EIP712 messages.";
+    switches[EIP712_VERBOSE_ID].subText = "Displays raw content of EIP712 messages";
     switches[EIP712_VERBOSE_ID].token = EIP712_VERBOSE_TOKEN;
 #ifdef HAVE_PIEZO_SOUND
     switches[EIP712_VERBOSE_ID].tuneId = TUNE_TAP_CASUAL;
@@ -178,8 +182,13 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
 
 #ifdef HAVE_EIP7702
     switches[EIP7702_ID].initState = N_storage.eip7702_enable ? ON_STATE : OFF_STATE;
+#ifdef SCREEN_SIZE_WALLET
     switches[EIP7702_ID].text = "Smart account upgrade";
     switches[EIP7702_ID].subText = "Enable EIP-7702 authorizations for smart contract delegation";
+#else
+    switches[EIP7702_ID].text = "Smart accounts";
+    switches[EIP7702_ID].subText = "Enable EIP-7702 authorizations";
+#endif
     switches[EIP7702_ID].token = EIP7702_TOKEN;
 #ifdef HAVE_PIEZO_SOUND
     switches[EIP7702_ID].tuneId = TUNE_TAP_CASUAL;
@@ -187,8 +196,13 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
 #endif  // HAVE_EIP7702
 
     switches[DEBUG_ID].initState = N_storage.contractDetails ? ON_STATE : OFF_STATE;
+#ifdef SCREEN_SIZE_WALLET
     switches[DEBUG_ID].text = "Debug smart contracts";
-    switches[DEBUG_ID].subText = "Display contract data details.";
+    switches[DEBUG_ID].subText = "Display contract data details";
+#else
+    switches[DEBUG_ID].text = "Debug contracts";
+    switches[DEBUG_ID].subText = "Display contract\ndata details";
+#endif
     switches[DEBUG_ID].token = DEBUG_TOKEN;
 #ifdef HAVE_PIEZO_SOUND
     switches[DEBUG_ID].tuneId = TUNE_TAP_CASUAL;

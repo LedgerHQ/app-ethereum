@@ -64,9 +64,7 @@ typedef struct {
     e_name_type tn_types[TN_TYPE_COUNT];
     e_name_source tn_sources[TN_SOURCE_COUNT];
 #endif
-#ifdef SCREEN_SIZE_WALLET
     char ui_pairs_buffer[(SHARED_CTX_FIELD_1_SIZE + SHARED_CTX_FIELD_2_SIZE) * 2];
-#endif
 } t_ui_context;
 
 static t_ui_context *ui_ctx = NULL;
@@ -910,7 +908,6 @@ void ui_712_set_trusted_name_requirements(uint8_t type_count,
 }
 #endif
 
-#ifdef SCREEN_SIZE_WALLET
 /*
  * Get UI pairs buffer
  *
@@ -921,6 +918,5 @@ char *get_ui_pairs_buffer(size_t *size) {
     *size = sizeof(ui_ctx->ui_pairs_buffer);
     return ui_ctx->ui_pairs_buffer;
 }
-#endif
 
 #endif  // HAVE_EIP712_FULL_SUPPORT

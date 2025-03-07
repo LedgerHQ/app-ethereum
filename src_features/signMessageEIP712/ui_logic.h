@@ -57,9 +57,7 @@ void ui_712_set_trusted_name_requirements(uint8_t type_count,
                                           uint8_t source_count,
                                           const e_name_source *sources);
 #endif
-#ifdef SCREEN_SIZE_WALLET
 char *get_ui_pairs_buffer(size_t *size);
-#endif
 
 #endif  // HAVE_EIP712_FULL_SUPPORT
 

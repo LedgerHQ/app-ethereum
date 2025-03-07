@@ -40,10 +40,12 @@ def test_gcs_nft(firmware: Firmware,
             abi=json.load(file),
             address=None
         )
-    recipient_addr = bytes.fromhex("1111111111111111111111111111111111111111")
+    with app_client.get_public_addr(bip32_path="m/44'/60'/0'/0/0", display=False):
+        pass
+    _, device_addr, _ = ResponseParser.pk_addr(app_client.response().data)
     data = contract.encode_abi("safeBatchTransferFrom", [
-        bytes.fromhex("Dad77910DbDFdE764fC21FCD4E74D71bBACA6D8D"),
-        recipient_addr,
+        bytes.fromhex("1111111111111111111111111111111111111111"),
+        bytes.fromhex("d8da6bf26964af9d7eed9e03e53415d37aa96045"),
         [
             0xff,
             0xffff,
@@ -75,25 +77,6 @@ def test_gcs_nft(firmware: Firmware,
             Field(
                 1,
                 "From",
-                ParamType.RAW,
-                ParamRaw(
-                    1,
-                    Value(
-                        1,
-                        TypeFamily.ADDRESS,
-                        data_path=DataPath(
-                            1,
-                            [
-                                PathTuple(0),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
-                        ),
-                    )
-                )
-            ),
-            Field(
-                1,
-                "To",
                 ParamType.TRUSTED_NAME,
                 ParamTrustedName(
                     1,
@@ -103,7 +86,7 @@ def test_gcs_nft(firmware: Firmware,
                         data_path=DataPath(
                             1,
                             [
-                                PathTuple(1),
+                                PathTuple(0),
                                 PathLeaf(PathLeafType.STATIC),
                             ]
                         ),
@@ -116,6 +99,30 @@ def test_gcs_nft(firmware: Firmware,
                         TrustedNameSource.ENS,
                         TrustedNameSource.FN,
                     ],
+                    [
+                        bytes.fromhex("0000000000000000000000000000000000000000"),
+                        bytes.fromhex("1111111111111111111111111111111111111111"),
+                        bytes.fromhex("2222222222222222222222222222222222222222"),
+                    ],
+                )
+            ),
+            Field(
+                1,
+                "To",
+                ParamType.RAW,
+                ParamRaw(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(1),
+                                PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                    )
                 )
             ),
             Field(
@@ -205,7 +212,7 @@ def test_gcs_nft(firmware: Firmware,
 
     app_client.provide_transaction_info(tx_info.serialize())
     challenge = ResponseParser.challenge(app_client.get_challenge().data)
-    app_client.provide_trusted_name_v2(recipient_addr,
+    app_client.provide_trusted_name_v2(device_addr,
                                        "gerard.eth",
                                        TrustedNameType.ACCOUNT,
                                        TrustedNameSource.ENS,

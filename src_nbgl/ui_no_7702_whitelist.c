@@ -1,6 +1,6 @@
 #ifdef HAVE_EIP7702_WHITELIST
 
-#include <nbgl_page.h>
+#include "nbgl_use_case.h"
 #include "shared_context.h"
 #include "ui_callbacks.h"
 #include "ui_nbgl.h"
@@ -11,7 +11,7 @@ static void ui_error_no_7702_whitelist_choice(bool confirm) {
 }
 
 void ui_error_no_7702_whitelist(void) {
-    nbgl_useCaseChoice(&C_Warning_64px,
+    nbgl_useCaseChoice(&ICON_APP_WARNING,
                        "This authorization cannot be signed",
                        "This authorization involves a delegation to a smart contract which is not "
                        "in the whitelist.",

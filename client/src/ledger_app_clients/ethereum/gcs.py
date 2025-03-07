@@ -409,12 +409,19 @@ class ParamTrustedName():
     value: Value
     types: list[TrustedNameType]
     sources: list[TrustedNameSource]
+    sender_addrs: Optional[list[bytes]]
 
-    def __init__(self, version: int, value: Value, types: list[TrustedNameType], sources: list[TrustedNameSource]):
+    def __init__(self,
+                 version: int,
+                 value: Value,
+                 types: list[TrustedNameType],
+                 sources: list[TrustedNameSource],
+                 sender_addrs: Optional[list[bytes]] = None):
         self.version = version
         self.value = value
         self.types = types
         self.sources = sources
+        self.sender_addrs = sender_addrs
 
     def serialize(self) -> bytes:
         payload = bytearray()
@@ -428,6 +435,9 @@ class ParamTrustedName():
         for source in self.sources:
             sources.append(source)
         payload += format_tlv(0x03, sources)
+        if self.sender_addrs is not None:
+            for addr in self.sender_addrs:
+                payload += format_tlv(0x04, addr)
         return payload
 
 

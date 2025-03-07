@@ -19,7 +19,7 @@ ifeq ($(BOLOS_SDK),)
     $(error Environment variable BOLOS_SDK is not set)
 endif
 
-include $(BOLOS_SDK)/Makefile.defines
+include $(BOLOS_SDK)/Makefile.target
 
 ########################################
 #        Mandatory configuration       #
@@ -42,10 +42,10 @@ APPVERSION = $(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)-dev
 
 # Application source files
 APP_SOURCE_PATH += src src_features src_plugins
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
-    APP_SOURCE_PATH += src_nbgl
-else
+ifeq ($(TARGET_NAME),TARGET_NANOS)
     APP_SOURCE_PATH += src_bagl
+else
+    APP_SOURCE_PATH += src_nbgl
 endif
 APP_SOURCE_FILES += $(filter-out ./ethereum-plugin-sdk/src/main.c, $(wildcard ./ethereum-plugin-sdk/src/*.c))
 INCLUDES_PATH += ./ethereum-plugin-sdk/src
@@ -72,7 +72,11 @@ ICON_FLEX = icons/flex_app_chain_$(CHAIN_ID).gif
 ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
     DEFINES += ICONGLYPH=C_chain_$(CHAIN_ID)_64px
     DEFINES += ICONBITMAP=C_chain_$(CHAIN_ID)_64px_bitmap
-    DEFINES += ICONGLYPH_SMALL=C_chain_$(CHAIN_ID)
+else
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_NANOS2))
+    DEFINES += ICONGLYPH=C_chain_$(CHAIN_ID)_14px
+    DEFINES += ICONBITMAP=C_chain_$(CHAIN_ID)_14px_bitmap
+endif
 endif
 
 # Don't define plugin function in the plugin SDK
@@ -128,6 +132,9 @@ endif
 ENABLE_BLUETOOTH = 1
 ENABLE_SWAP = 1
 #ENABLE_NFC = 1
+ifneq ($(TARGET_NAME),TARGET_NANOS)
+ENABLE_NBGL_FOR_NANO_DEVICES = 1
+endif
 
 ########################################
 #         NBGL custom features         #
@@ -147,7 +154,6 @@ ENABLE_NBGL_QRCODE = 1
 #DISABLE_STANDARD_SNPRINTF = 1
 #DISABLE_STANDARD_USB = 1
 #DISABLE_STANDARD_WEBUSB = 1
-#DISABLE_STANDARD_BAGL_UX_FLOW = 1
 #DISABLE_DEBUG_LEDGER_ASSERT = 1
 #DISABLE_DEBUG_THROW = 1
 

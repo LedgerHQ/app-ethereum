@@ -1,5 +1,4 @@
 #ifdef HAVE_NBGL
-#ifdef HAVE_WEB3_CHECKS
 
 #include "apdu_constants.h"
 #include "utils.h"
@@ -9,6 +8,8 @@
 #include "ui_callbacks.h"
 #include "ui_callbacks.h"
 #include "cmd_get_tx_simulation.h"
+
+#ifdef HAVE_WEB3_CHECKS
 
 #define HOW_TO_INFO_NB 3
 

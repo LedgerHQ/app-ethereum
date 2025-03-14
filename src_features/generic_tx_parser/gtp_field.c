@@ -35,6 +35,7 @@ typedef union {
 #ifdef HAVE_TRUSTED_NAME
     s_param_trusted_name_context trusted_name_ctx;
 #endif
+    s_param_token_context token_ctx;
 } u_param_context;
 
 static bool handle_version(const s_tlv_data *data, s_field_ctx *context) {
@@ -80,6 +81,7 @@ static bool handle_param_type(const s_tlv_data *data, s_field_ctx *context) {
 #ifdef HAVE_TRUSTED_NAME
         case PARAM_TYPE_TRUSTED_NAME:
 #endif
+        case PARAM_TYPE_TOKEN:
             break;
         default:
             PRINTF("Error: Unsupported param type (%u)\n", context->field->param_type);
@@ -144,6 +146,10 @@ static bool handle_param(const s_tlv_data *data, s_field_ctx *context) {
             param_ctx.trusted_name_ctx.param = &context->field->param_trusted_name;
             break;
 #endif
+        case PARAM_TYPE_TOKEN:
+            handler = (f_tlv_data_handler) &handle_param_token_struct;
+            param_ctx.token_ctx.param = &context->field->param_token;
+            break;
         default:
             return false;
     }
@@ -238,6 +244,9 @@ bool format_field(const s_field *field) {
             ret = format_param_trusted_name(&field->param_trusted_name, field->name);
             break;
 #endif
+        case PARAM_TYPE_TOKEN:
+            ret = format_param_token(&field->param_token, field->name);
+            break;
         default:
             ret = false;
     }

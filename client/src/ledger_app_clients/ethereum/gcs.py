@@ -1,13 +1,13 @@
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 from enum import IntEnum
 import struct
 
-from .tlv import format_tlv
+from .tlv import TlvSerializable
 from .keychain import sign_data, Key
 from .client import TrustedNameType, TrustedNameSource
 
 
-class TxInfo():
+class TxInfo(TlvSerializable):
     version: int
     chain_id: int
     contract_addr: bytes
@@ -49,26 +49,26 @@ class TxInfo():
 
     def serialize(self) -> bytes:
         payload = bytearray()
-        payload += format_tlv(0x00, self.version)
-        payload += format_tlv(0x01, self.chain_id)
-        payload += format_tlv(0x02, self.contract_addr)
-        payload += format_tlv(0x03, self.selector)
-        payload += format_tlv(0x04, self.fields_hash)
-        payload += format_tlv(0x05, self.operation_type)
+        payload += self.serialize_field(0x00, self.version)
+        payload += self.serialize_field(0x01, self.chain_id)
+        payload += self.serialize_field(0x02, self.contract_addr)
+        payload += self.serialize_field(0x03, self.selector)
+        payload += self.serialize_field(0x04, self.fields_hash)
+        payload += self.serialize_field(0x05, self.operation_type)
         if self.creator_name is not None:
-            payload += format_tlv(0x06, self.creator_name)
+            payload += self.serialize_field(0x06, self.creator_name)
         if self.creator_legal_name is not None:
-            payload += format_tlv(0x07, self.creator_legal_name)
+            payload += self.serialize_field(0x07, self.creator_legal_name)
         if self.creator_url is not None:
-            payload += format_tlv(0x08, self.creator_url)
+            payload += self.serialize_field(0x08, self.creator_url)
         if self.contract_name is not None:
-            payload += format_tlv(0x09, self.contract_name)
+            payload += self.serialize_field(0x09, self.contract_name)
         if self.deploy_date is not None:
-            payload += format_tlv(0x0a, self.deploy_date)
+            payload += self.serialize_field(0x0a, self.deploy_date)
         signature = self.signature
         if signature is None:
             signature = sign_data(Key.CALLDATA, payload)
-        payload += format_tlv(0xff, signature)
+        payload += self.serialize_field(0xff, signature)
         return payload
 
 
@@ -96,7 +96,7 @@ class TypeFamily(IntEnum):
     STRING = 0x08
 
 
-class PathTuple:
+class PathTuple(TlvSerializable):
     value: int
 
     def __init__(self, value: int):
@@ -106,7 +106,7 @@ class PathTuple:
         return struct.pack(">H", self.value)
 
 
-class PathArray:
+class PathArray(TlvSerializable):
     weight: int
     start: Optional[int]
     end: Optional[int]
@@ -121,15 +121,15 @@ class PathArray:
 
     def serialize(self) -> bytes:
         payload = bytearray()
-        payload += format_tlv(0x01, self.weight)
+        payload += self.serialize_field(0x01, self.weight)
         if self.start is not None:
-            payload += format_tlv(0x02, struct.pack(">h", self.start))
+            payload += self.serialize_field(0x02, struct.pack(">h", self.start))
         if self.end is not None:
-            payload += format_tlv(0x03, struct.pack(">h", self.end))
+            payload += self.serialize_field(0x03, struct.pack(">h", self.end))
         return payload
 
 
-class PathRef:
+class PathRef(TlvSerializable):
     def __init__(self):
         pass
 
@@ -144,7 +144,7 @@ class PathLeafType(IntEnum):
     DYNAMIC = 0x04
 
 
-class PathLeaf:
+class PathLeaf(TlvSerializable):
     type: PathLeafType
 
     def __init__(self, type: PathLeafType):
@@ -154,7 +154,7 @@ class PathLeaf:
         return struct.pack("B", self.type)
 
 
-class PathSlice:
+class PathSlice(TlvSerializable):
     start: Optional[int]
     end: Optional[int]
 
@@ -165,30 +165,23 @@ class PathSlice:
     def serialize(self) -> bytes:
         payload = bytearray()
         if self.start is not None:
-            payload += format_tlv(0x01, struct.pack(">h", self.start))
+            payload += self.serialize_field(0x01, struct.pack(">h", self.start))
         if self.end is not None:
-            payload += format_tlv(0x02, struct.pack(">h", self.end))
+            payload += self.serialize_field(0x02, struct.pack(">h", self.end))
         return payload
 
 
-# XXX:
-#  Only defined while type checking in progress as this requires py3.10+
-#  and package available from py3.7 and upward.
-if TYPE_CHECKING:
-    PathElement = PathTuple | PathArray | PathRef | PathLeaf | PathSlice
-
-
-class DataPath:
+class DataPath(TlvSerializable):
     version: int
-    path: list["PathElement"]
+    path: list[TlvSerializable]
 
-    def __init__(self, version: int, path: list["PathElement"]):
+    def __init__(self, version: int, path: list[TlvSerializable]):
         self.version = version
         self.path = path
 
     def serialize(self) -> bytes:
         payload = bytearray()
-        payload += format_tlv(0x00, self.version)
+        payload += self.serialize_field(0x00, self.version)
         for node in self.path:
             if isinstance(node, PathTuple):
                 tag = 0x01
@@ -202,7 +195,7 @@ class DataPath:
                 tag = 0x05
             else:
                 assert False, f"Unknown path node type : {type(node)}"
-            payload += format_tlv(tag, node.serialize())
+            payload += self.serialize_field(tag, node.serialize())
         return payload
 
 
@@ -212,7 +205,7 @@ class ContainerPath(IntEnum):
     VALUE = 0x02
 
 
-class Value:
+class Value(TlvSerializable):
     version: int
     type_family: TypeFamily
     type_size: Optional[int]
@@ -236,20 +229,20 @@ class Value:
 
     def serialize(self) -> bytes:
         payload = bytearray()
-        payload += format_tlv(0x00, self.version)
-        payload += format_tlv(0x01, self.type_family)
+        payload += self.serialize_field(0x00, self.version)
+        payload += self.serialize_field(0x01, self.type_family)
         if self.type_size is not None:
-            payload += format_tlv(0x02, self.type_size)
+            payload += self.serialize_field(0x02, self.type_size)
         if self.data_path is not None:
-            payload += format_tlv(0x03, self.data_path.serialize())
+            payload += self.serialize_field(0x03, self.data_path.serialize())
         if self.container_path is not None:
-            payload += format_tlv(0x04, self.container_path)
+            payload += self.serialize_field(0x04, self.container_path)
         if self.constant is not None:
-            payload += format_tlv(0x05, self.constant)
+            payload += self.serialize_field(0x05, self.constant)
         return payload
 
 
-class ParamRaw:
+class ParamRaw(TlvSerializable):
     version: int
     value: Value
 
@@ -259,12 +252,12 @@ class ParamRaw:
 
     def serialize(self) -> bytes:
         payload = bytearray()
-        payload += format_tlv(0x00, self.version)
-        payload += format_tlv(0x01, self.value.serialize())
+        payload += self.serialize_field(0x00, self.version)
+        payload += self.serialize_field(0x01, self.value.serialize())
         return payload
 
 
-class ParamAmount:
+class ParamAmount(TlvSerializable):
     version: int
     value: Value
 
@@ -274,12 +267,12 @@ class ParamAmount:
 
     def serialize(self) -> bytes:
         payload = bytearray()
-        payload += format_tlv(0x00, self.version)
-        payload += format_tlv(0x01, self.value.serialize())
+        payload += self.serialize_field(0x00, self.version)
+        payload += self.serialize_field(0x01, self.value.serialize())
         return payload
 
 
-class ParamTokenAmount:
+class ParamTokenAmount(TlvSerializable):
     version: int
     value: Value
     token: Optional[Value]
@@ -303,21 +296,21 @@ class ParamTokenAmount:
 
     def serialize(self) -> bytes:
         payload = bytearray()
-        payload += format_tlv(0x00, self.version)
-        payload += format_tlv(0x01, self.value.serialize())
+        payload += self.serialize_field(0x00, self.version)
+        payload += self.serialize_field(0x01, self.value.serialize())
         if self.token is not None:
-            payload += format_tlv(0x02, self.token.serialize())
+            payload += self.serialize_field(0x02, self.token.serialize())
         if self.native_currency is not None:
             for nat_cur in self.native_currency:
-                payload += format_tlv(0x03, nat_cur)
+                payload += self.serialize_field(0x03, nat_cur)
         if self.threshold is not None:
-            payload += format_tlv(0x04, self.threshold)
+            payload += self.serialize_field(0x04, self.threshold)
         if self.above_threshold_msg is not None:
-            payload += format_tlv(0x05, self.above_threshold_msg)
+            payload += self.serialize_field(0x05, self.above_threshold_msg)
         return payload
 
 
-class ParamNFT():
+class ParamNFT(TlvSerializable):
     version: int
     id: Value
     collection: Value
@@ -329,9 +322,9 @@ class ParamNFT():
 
     def serialize(self) -> bytes:
         payload = bytearray()
-        payload += format_tlv(0x00, self.version)
-        payload += format_tlv(0x01, self.id.serialize())
-        payload += format_tlv(0x02, self.collection.serialize())
+        payload += self.serialize_field(0x00, self.version)
+        payload += self.serialize_field(0x01, self.id.serialize())
+        payload += self.serialize_field(0x02, self.collection.serialize())
         return payload
 
 
@@ -340,7 +333,7 @@ class DatetimeType(IntEnum):
     DT_BLOCKHEIGHT = 0x01
 
 
-class ParamDatetime():
+class ParamDatetime(TlvSerializable):
     version: int
     value: Value
     type: DatetimeType
@@ -352,13 +345,13 @@ class ParamDatetime():
 
     def serialize(self) -> bytes:
         payload = bytearray()
-        payload += format_tlv(0x00, self.version)
-        payload += format_tlv(0x01, self.value.serialize())
-        payload += format_tlv(0x02, self.type)
+        payload += self.serialize_field(0x00, self.version)
+        payload += self.serialize_field(0x01, self.value.serialize())
+        payload += self.serialize_field(0x02, self.type)
         return payload
 
 
-class ParamDuration():
+class ParamDuration(TlvSerializable):
     version: int
     value: Value
 
@@ -368,12 +361,12 @@ class ParamDuration():
 
     def serialize(self) -> bytes:
         payload = bytearray()
-        payload += format_tlv(0x00, self.version)
-        payload += format_tlv(0x01, self.value.serialize())
+        payload += self.serialize_field(0x00, self.version)
+        payload += self.serialize_field(0x01, self.value.serialize())
         return payload
 
 
-class ParamUnit():
+class ParamUnit(TlvSerializable):
     version: int
     value: Value
     base: str
@@ -394,17 +387,17 @@ class ParamUnit():
 
     def serialize(self) -> bytes:
         payload = bytearray()
-        payload += format_tlv(0x00, self.version)
-        payload += format_tlv(0x01, self.value.serialize())
-        payload += format_tlv(0x02, self.base)
+        payload += self.serialize_field(0x00, self.version)
+        payload += self.serialize_field(0x01, self.value.serialize())
+        payload += self.serialize_field(0x02, self.base)
         if self.decimals is not None:
-            payload += format_tlv(0x03, self.decimals)
+            payload += self.serialize_field(0x03, self.decimals)
         if self.prefix is not None:
-            payload += format_tlv(0x04, self.prefix)
+            payload += self.serialize_field(0x04, self.prefix)
         return payload
 
 
-class ParamTrustedName():
+class ParamTrustedName(TlvSerializable):
     version: int
     value: Value
     types: list[TrustedNameType]
@@ -425,23 +418,23 @@ class ParamTrustedName():
 
     def serialize(self) -> bytes:
         payload = bytearray()
-        payload += format_tlv(0x00, self.version)
-        payload += format_tlv(0x01, self.value.serialize())
+        payload += self.serialize_field(0x00, self.version)
+        payload += self.serialize_field(0x01, self.value.serialize())
         types = bytearray()
         for type in self.types:
             types.append(type)
-        payload += format_tlv(0x02, types)
+        payload += self.serialize_field(0x02, types)
         sources = bytearray()
         for source in self.sources:
             sources.append(source)
-        payload += format_tlv(0x03, sources)
+        payload += self.serialize_field(0x03, sources)
         if self.sender_addrs is not None:
             for addr in self.sender_addrs:
-                payload += format_tlv(0x04, addr)
+                payload += self.serialize_field(0x04, addr)
         return payload
 
 
-class ParamEnum():
+class ParamEnum(TlvSerializable):
     version: int
     id: int
     value: Value
@@ -453,34 +446,19 @@ class ParamEnum():
 
     def serialize(self) -> bytes:
         payload = bytearray()
-        payload += format_tlv(0x00, self.version)
-        payload += format_tlv(0x01, self.id)
-        payload += format_tlv(0x02, self.value.serialize())
+        payload += self.serialize_field(0x00, self.version)
+        payload += self.serialize_field(0x01, self.id)
+        payload += self.serialize_field(0x02, self.value.serialize())
         return payload
 
 
-# XXX:
-#  Only defined while type checking in progress as this requires py3.10+
-#  and package available from py3.7 and upward.
-if TYPE_CHECKING:
-    ParamUnion = ParamRaw | \
-                ParamAmount | \
-                ParamTokenAmount | \
-                ParamNFT | \
-                ParamDatetime | \
-                ParamDuration | \
-                ParamUnit | \
-                ParamTrustedName | \
-                ParamEnum
-
-
-class Field:
+class Field(TlvSerializable):
     version: int
     name: str
     param_type: ParamType
-    param: "ParamUnion"
+    param: TlvSerializable
 
-    def __init__(self, version: int, name: str, param_type: ParamType, param: "ParamUnion"):
+    def __init__(self, version: int, name: str, param_type: ParamType, param: TlvSerializable):
         self.version = version
         self.name = name
         self.param_type = param_type
@@ -488,8 +466,8 @@ class Field:
 
     def serialize(self) -> bytes:
         payload = bytearray()
-        payload += format_tlv(0x00, self.version)
-        payload += format_tlv(0x01, self.name)
-        payload += format_tlv(0x02, self.param_type)
-        payload += format_tlv(0x03, self.param.serialize())
+        payload += self.serialize_field(0x00, self.version)
+        payload += self.serialize_field(0x01, self.name)
+        payload += self.serialize_field(0x02, self.param_type)
+        payload += self.serialize_field(0x03, self.param.serialize())
         return payload

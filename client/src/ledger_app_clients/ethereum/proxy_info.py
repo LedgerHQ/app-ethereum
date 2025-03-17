@@ -1,6 +1,6 @@
 from enum import IntEnum
 from typing import Optional
-from .tlv import format_tlv
+from .tlv import TlvSerializable
 from .keychain import sign_data, Key
 
 
@@ -15,7 +15,7 @@ class Tag(IntEnum):
     SIGNATURE = 0x15
 
 
-class ProxyInfo:
+class ProxyInfo(TlvSerializable):
     challenge: int
     address: bytes
     chain_id: int
@@ -39,16 +39,16 @@ class ProxyInfo:
 
     def serialize(self) -> bytes:
         payload = bytearray()
-        payload += format_tlv(Tag.STRUCT_TYPE, 0x26)
-        payload += format_tlv(Tag.STRUCT_VERSION, 1)
-        payload += format_tlv(Tag.CHALLENGE, self.challenge)
-        payload += format_tlv(Tag.ADDRESS, self.address)
-        payload += format_tlv(Tag.CHAIN_ID, self.chain_id)
+        payload += self.serialize_field(Tag.STRUCT_TYPE, 0x26)
+        payload += self.serialize_field(Tag.STRUCT_VERSION, 1)
+        payload += self.serialize_field(Tag.CHALLENGE, self.challenge)
+        payload += self.serialize_field(Tag.ADDRESS, self.address)
+        payload += self.serialize_field(Tag.CHAIN_ID, self.chain_id)
         if self.selector is not None:
-            payload += format_tlv(Tag.SELECTOR, self.selector)
-        payload += format_tlv(Tag.IMPL_ADDRESS, self.impl_address)
+            payload += self.serialize_field(Tag.SELECTOR, self.selector)
+        payload += self.serialize_field(Tag.IMPL_ADDRESS, self.impl_address)
         sig = self.signature
         if sig is None:
             sig = sign_data(Key.CALLDATA, payload)
-        payload += format_tlv(Tag.SIGNATURE, sig)
+        payload += self.serialize_field(Tag.SIGNATURE, sig)
         return payload

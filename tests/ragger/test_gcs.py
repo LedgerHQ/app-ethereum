@@ -406,9 +406,9 @@ def test_gcs_poap(firmware: Firmware,
     with app_client.send_raw_async(0xe0, 0x04, 0x00, 0x02, bytes()):
         if simu_params is not None:
             navigator.navigate_and_compare(default_screenshot_path,
-                                            f"{test_name}/warning",
-                                            [NavInsID.USE_CASE_CHOICE_REJECT],
-                                            screen_change_after_last_instruction=False)
+                                           f"{test_name}/warning",
+                                           [NavInsID.USE_CASE_CHOICE_REJECT],
+                                           screen_change_after_last_instruction=False)
 
         scenario_navigator.review_approve(test_name=test_name,
                                           custom_screen_text=r"(Sign transaction|Accept (risk|threat))")

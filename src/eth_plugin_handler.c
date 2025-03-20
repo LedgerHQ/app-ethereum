@@ -272,6 +272,7 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
                     os_lib_call(params);
                 }
                 CATCH_OTHER(e) {
+                    (void) e;
                     PRINTF("Plugin call exception for %s\n", alias);
                 }
                 FINALLY {

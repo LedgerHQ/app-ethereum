@@ -65,6 +65,7 @@ uint16_t handleSetExternalPlugin(const uint8_t *workBuffer, uint8_t dataLength) 
             os_lib_call(params);
         }
         CATCH_OTHER(e) {
+            (void) e;
             PRINTF("%s external plugin is not present\n", dataContext.tokenContext.pluginName);
             memset(dataContext.tokenContext.pluginName,
                    0,

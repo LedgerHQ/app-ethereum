@@ -95,6 +95,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 62320, .name = "Celo Baklava", .ticker = "bCELO"},
     {.chain_id = 62621, .name = "Multivac", .ticker = "MTV"},
     {.chain_id = 73799, .name = "Volta", .ticker = "VOLTA"},
+    {.chain_id = 80094, .name = "Berachain", .ticker = "BERA"},
     {.chain_id = 81457, .name = "Blast", .ticker = "ETH"},
     {.chain_id = 84532, .name = "Base Sepolia", .ticker = "ETH"},
     {.chain_id = 153153, .name = "Odyssey Chain", .ticker = "DIONE"},

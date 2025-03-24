@@ -83,6 +83,7 @@ class ParamType(IntEnum):
     ENUM = 0x07
     TRUSTED_NAME = 0x08
     CALLDATA = 0x09
+    TOKEN = 0x0a
 
 
 class TypeFamily(IntEnum):
@@ -449,6 +450,26 @@ class ParamEnum(TlvSerializable):
         payload += self.serialize_field(0x00, self.version)
         payload += self.serialize_field(0x01, self.id)
         payload += self.serialize_field(0x02, self.value.serialize())
+        return payload
+
+
+class ParamToken(TlvSerializable):
+    version: int
+    addr: Value
+    native_currency: Optional[list[bytes]]
+
+    def __init__(self, version, addr: Value, native_currency: Optional[list[bytes]] = None):
+        self.version = version
+        self.addr = addr
+        self.native_currency = native_currency
+
+    def serialize(self) -> bytes:
+        payload = bytearray()
+        payload += self.serialize_field(0x00, self.version)
+        payload += self.serialize_field(0x01, self.addr.serialize())
+        if self.native_currency is not None:
+            for nat_cur in self.native_currency:
+                payload += self.serialize_field(0x02, nat_cur)
         return payload
 
 

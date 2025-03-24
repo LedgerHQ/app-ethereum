@@ -22,21 +22,19 @@ static void review7702Choice(bool confirm) {
 void ui_sign_7702_auth(void) {
 	    pairs[0].item = "Account";
     	pairs[0].value = strings.common.fromAddress;
-    	pairs[1].item = "Delegate";
+    	pairs[1].item = "Delegate to";
     	pairs[1].value = strings.common.toAddress;
-    	pairs[2].item = "Nonce";
-    	pairs[2].value = strings.common.nonce;
-    	pairs[3].item = "Network";
-    	pairs[3].value = strings.common.network_name;
+    	pairs[2].item = "Delegation on network";
+    	pairs[2].value = strings.common.network_name;
 
-    	pairsList.nbPairs = 4;
+    	pairsList.nbPairs = 3;
     	pairsList.pairs = pairs;
 
 	    nbgl_useCaseReview(TYPE_OPERATION,
                        &pairsList,
                        get_app_icon(true),
-                       "You are authorizing\nthe upgrade of your account\ninto a smart account",
+                       "Review authorization\nto upgrade into smart\ncontract account ?",
                        NULL,
-                       "Sign authorization ?",
+                       "Sign authorization to\nupgrade into smart\ncontract account ?",
                        review7702Choice);	
 }

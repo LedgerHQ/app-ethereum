@@ -1,3 +1,5 @@
+#ifdef HAVE_EIP7702
+
 #include "shared_context.h"
 #include "apdu_constants.h"
 #include "common_ui.h"
@@ -82,7 +84,6 @@ uint16_t handleSignEIP7702Authorization(uint8_t p1,
 	uint64_t chain_id64;
 	cx_err_t error = CX_INTERNAL_ERROR;
 	cx_ecfp_public_key_t publicKey;
-	uint64_t nonce64;
 	const char *networkName;
 #ifdef HAVE_EIP7702_WHITELIST
 	const char* delegateName;
@@ -117,6 +118,13 @@ uint16_t handleSignEIP7702Authorization(uint8_t p1,
 	if (dataLength != 0) {
 		return APDU_RESPONSE_INVALID_DATA;
 	}
+
+	// Reject if not enabled
+	if (!N_storage.eip7702_enable) {
+		ui_error_no_7702();
+		return APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+	}
+
 	// Compute the authorization hash
  	// keccak(MAGIC || rlp([chain_id, address, nonce]))
  	// * Compute the size of the RLP list data
@@ -176,17 +184,9 @@ uint16_t handleSignEIP7702Authorization(uint8_t p1,
     // Check if the delegate is on the whitelist for this chainId
     delegateName = get_delegate_name(&chain_id64, delegate);
     if (delegateName == NULL) {
-    	// If it's not in the whitelist, display the contract address if the whitelist is disabled
-    	if (N_storage.eip7702_whitelist_disabled) {
-		    if (!getEthDisplayableAddress(delegate, strings.common.toAddress, sizeof(strings.common.toAddress), chain_id64)) {
-    			return APDU_RESPONSE_UNKNOWN;    	
-    		}
-    	}
-    	else {
-    		// Or reject the command
-    		ui_error_no_7702_whitelist();
-    		return APDU_RESPONSE_CONDITION_NOT_SATISFIED;
-    	}
+    	// Reject if not in the whitelist
+    	ui_error_no_7702_whitelist();
+    	return APDU_RESPONSE_CONDITION_NOT_SATISFIED;
     }
     else {
     	strlcpy(strings.common.toAddress, delegateName, sizeof(strings.common.toAddress));
@@ -196,15 +196,6 @@ uint16_t handleSignEIP7702Authorization(uint8_t p1,
     	return APDU_RESPONSE_UNKNOWN;    	
     }
 #endif // HAVE_EIP7702_WHITELIST
-    // * Nonce
-    nonce64 = u64_from_BE(nonce, nonceLength);
-    if (!u64_to_string(nonce64, strings.common.nonce, sizeof(strings.common.nonce))) {
-    	//return APDU_RESPONSE_UNKNOWN;
-    	// Do not crash if the nonce is too long
-    	// TBD : shared_context.nonce should be 21 bytes long to support BCD 2**64
-    	strings.common.nonce[0] = '?';
-    	strings.common.nonce[1] = '\0';
-    }
     // * ChainId
     if (chain_id64 == CHAIN_ID_ALL) {
     	// handle special wildcard case
@@ -232,3 +223,5 @@ uint16_t handleSignEIP7702Authorization(uint8_t p1,
 end:
 	return error;
 }
+
+#endif // HAVE_EIP7702

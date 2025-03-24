@@ -275,9 +275,12 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             sw = handleTxSimulation(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags);
             break;
 #endif
+
+#ifdef HAVE_EIP7702            
         case INS_SIGN_EIP7702_AUTHORIZATION:
             sw = handleSignEIP7702Authorization(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags, tx);
             break;
+#endif // HAVE_EIP7702            
 
         default:
             sw = APDU_RESPONSE_INVALID_INS;

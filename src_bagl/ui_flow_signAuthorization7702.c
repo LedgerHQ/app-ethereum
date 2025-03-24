@@ -1,19 +1,12 @@
 #include "ui_callbacks.h"
 
 // clang-format off
-UX_STEP_NOCB(ux_auth7702_review_step_1,
+UX_STEP_NOCB(ux_auth7702_review_step,
     pnn,
     {
       &C_icon_warning,
-      "You are authorizing",
-      "the upgrade of your",
-    });
-UX_STEP_NOCB(ux_auth7702_review_step_2,
-    pnn,
-    {
-      &C_icon_warning,
-      "account into a",
-      "smart account",
+      "Review",
+      "authorization",
     });
 UX_STEP_NOCB(ux_auth7702_account_step,
     bnnn_paging,
@@ -24,19 +17,13 @@ UX_STEP_NOCB(ux_auth7702_account_step,
 UX_STEP_NOCB(ux_auth7702_delegate_step,
     bnnn_paging,
     {
-      .title = "Delegate",
+      .title = "Delegate to",
       .text = strings.common.toAddress
-    });
-UX_STEP_NOCB(ux_auth7702_nonce_step,
-    bnnn_paging,
-    {
-      .title = "Nonce",
-      .text = strings.common.nonce
     });
 UX_STEP_NOCB(ux_auth7702_network_step,
     bnnn_paging,
     {
-      .title = "Network",
+      .title = "Delegate on network",
       .text = strings.common.network_name
     });
 UX_STEP_CB(
@@ -46,7 +33,7 @@ UX_STEP_CB(
     {
       &C_icon_validate_14,
       "Accept",
-      "and sign",
+      "and send",
     });
 UX_STEP_CB(
     ux_auth7702_reject_step,
@@ -58,11 +45,9 @@ UX_STEP_CB(
     });
 
 UX_FLOW(ux_auth7702_flow,
-	&ux_auth7702_review_step_1,
-	&ux_auth7702_review_step_2,
+	&ux_auth7702_review_step,
 	&ux_auth7702_account_step,
 	&ux_auth7702_delegate_step,
-	&ux_auth7702_nonce_step,
 	&ux_auth7702_network_step,
 	&ux_auth7702_accept_step,
 	&ux_auth7702_reject_step);

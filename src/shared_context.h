@@ -32,9 +32,9 @@ typedef struct internalStorage_t {
     // hidden setting (not shown in the UI)
     bool w3c_opt_in;
 #endif
-#ifdef HAVE_EIP7702_WHITELIST
-    bool eip7702_whitelist_disabled;
-#endif // HAVE_EIP7702_WHITELIST
+#ifdef HAVE_EIP7702
+    bool eip7702_enable;
+#endif // HAVE_EIP7702
     bool initialized;
 } internalStorage_t;
 

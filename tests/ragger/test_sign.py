@@ -40,7 +40,6 @@ def common(firmware: Firmware,
            test_name: str = "",
            path: str = BIP32_PATH,
            with_simu: bool = False,
-           confirm: bool = False,
            v: bytes = None,
            r: bytes = None,
            s: bytes = None):
@@ -366,7 +365,7 @@ def test_sign_eip_7702(firmware: Firmware,
     }
     tx_raw = bytes.fromhex("04f888018205390101825208941212121212121212121212121212121212121212872386f26fc1000080c0f85ef85c8094020202020202020202020202020202020202020282053901a0a24f35cafc6b408ce32539d4bd89a67edd4d6303fc676dfddf93b98405b7ee5ea0159456babe656692959ca3d829ca269e8f82387c91e40a33633d190dda7a3c5c")
     common(firmware, backend, navigator, scenario_navigator, default_screenshot_path, tx_params, tx_raw, test_name,
-        BIP32_PATH, False, False,
+        BIP32_PATH, False,
         bytes.fromhex("01"),
         bytes.fromhex("9800 ce04 ecb4 6aeb de0f ea80 c663 9225 5eb1 3c3b 3597 aeec 2224 47f6 e1bf cfaf"),
         bytes.fromhex("787e b825 81e1 a51d 8956 f21a 0ccd 0b96 d8de 14b0 4c11 de0b 7dcb 5e40 0219 902b"))

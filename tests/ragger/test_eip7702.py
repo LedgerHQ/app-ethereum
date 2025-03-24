@@ -92,6 +92,7 @@ def test_eip7702_in_whitelist(firmware: Firmware,
                                 backend: BackendInterface,
                                 scenario_navigator: NavigateWithScenario,
                                 test_name: str):
+    settings_toggle(firmware, scenario_navigator.navigator, [SettingID.EIP7702])
     common(firmware, backend, scenario_navigator, test_name, TEST_ADDRESS_1, NONCE, CHAIN_ID_1, 
         bytes.fromhex("00"),
         bytes.fromhex("f82e 50a7 55fa 989f 4bb9 b36b 15af b442 4ce9 cda6 9752 fd17 a7eb 1473 7d96 3e62"),
@@ -101,6 +102,7 @@ def test_eip7702_in_whitelist_all_chain_whitelisted(firmware: Firmware,
                                 backend: BackendInterface,
                                 scenario_navigator: NavigateWithScenario,
                                 test_name: str):
+    settings_toggle(firmware, scenario_navigator.navigator, [SettingID.EIP7702])
     common(firmware, backend, scenario_navigator, test_name, TEST_ADDRESS_0, NONCE, CHAIN_ID_2,
         bytes.fromhex("00"),
         bytes.fromhex("0378 f7ac 482e c728 b65d 19d0 3943 bbb3 fe73 07c7 2c64 6e7d 2d0c 11be e81e b2b9"),
@@ -110,6 +112,7 @@ def test_eip7702_in_whitelist_all_chain_param(firmware: Firmware,
                                 backend: BackendInterface,
                                 scenario_navigator: NavigateWithScenario,
                                 test_name: str):
+    settings_toggle(firmware, scenario_navigator.navigator, [SettingID.EIP7702])
     common(firmware, backend, scenario_navigator, test_name, TEST_ADDRESS_2, NONCE, CHAIN_ID_0,
         bytes.fromhex("01"),
         bytes.fromhex("a24f 35ca fc6b 408c e325 39d4 bd89 a67e dd4d 6303 fc67 6dfd df93 b984 05b7 ee5e"),
@@ -119,6 +122,7 @@ def test_eip7702_in_whitelist_max(firmware: Firmware,
                                 backend: BackendInterface,
                                 scenario_navigator: NavigateWithScenario,
                                 test_name: str):
+    settings_toggle(firmware, scenario_navigator.navigator, [SettingID.EIP7702])
     common(firmware, backend, scenario_navigator, test_name, TEST_ADDRESS_MAX, NONCE_MAX, CHAIN_ID_MAX,
         bytes.fromhex("00"),
         bytes.fromhex("a07c 6808 9449 8c21 e80f ebb0 11ae 5d62 ede6 645d 77d7 c902 db06 5d5a 082d d220"),
@@ -129,20 +133,18 @@ def test_eip7702_in_whitelist_wrong_chain(firmware: Firmware,
                                 backend: BackendInterface,
                                 scenario_navigator: NavigateWithScenario,
                                 test_name: str):
+    settings_toggle(firmware, scenario_navigator.navigator, [SettingID.EIP7702])
     common_rejected(firmware, backend, scenario_navigator, test_name, TEST_ADDRESS_2, NONCE, CHAIN_ID_1)
 
 def test_eip7702_not_in_whitelist(firmware: Firmware,
                                 backend: BackendInterface,
                                 scenario_navigator: NavigateWithScenario,
                                 test_name: str):
+    settings_toggle(firmware, scenario_navigator.navigator, [SettingID.EIP7702])
     common_rejected(firmware, backend, scenario_navigator, test_name, TEST_ADDRESS_NO_WHITELIST, NONCE, CHAIN_ID_1)
 
-def test_eip7702_not_in_whitelist_forced(firmware: Firmware,
+def test_eip7702_not_enabled(firmware: Firmware,
                                 backend: BackendInterface,
                                 scenario_navigator: NavigateWithScenario,
                                 test_name: str):
-    settings_toggle(firmware, scenario_navigator.navigator, [SettingID.DISABLE_EIP7702_WHITELIST])
-    common(firmware, backend, scenario_navigator, test_name, TEST_ADDRESS_NO_WHITELIST, NONCE, CHAIN_ID_1,
-        bytes.fromhex("00"),
-        bytes.fromhex("db6f fe6f faf7 5e1b 1db2 e0d2 a31f 36c1 60d5 8750 0df4 e753 0d34 c3c0 39aa 17b2"),
-        bytes.fromhex("46c5 f666 febe 8130 28ea 0d0b 776b b4c0 64b5 17f6 c27f 7ed3 cc43 2fe1 0eff 7f47"))
+    common_rejected(firmware, backend, scenario_navigator, test_name, TEST_ADDRESS_1, NONCE, CHAIN_ID_1)

@@ -11,7 +11,7 @@ class SettingID(Enum):
     NONCE = auto()
     VERBOSE_EIP712 = auto()
     DEBUG_DATA = auto()
-    DISABLE_EIP7702_WHITELIST = auto()
+    EIP7702 = auto()
 
 def get_device_settings(firmware: Firmware) -> list[SettingID]:
     """Get the list of settings available on the device"""
@@ -28,7 +28,7 @@ def get_device_settings(firmware: Firmware) -> list[SettingID]:
             SettingID.NONCE,
             SettingID.VERBOSE_EIP712,
             SettingID.DEBUG_DATA,
-            SettingID.DISABLE_EIP7702_WHITELIST,
+            SettingID.EIP7702,
         ]
     return [
         SettingID.WEB3_CHECK,
@@ -37,7 +37,7 @@ def get_device_settings(firmware: Firmware) -> list[SettingID]:
         SettingID.NONCE,
         SettingID.VERBOSE_EIP712,
         SettingID.DEBUG_DATA,
-        SettingID.DISABLE_EIP7702_WHITELIST,
+        SettingID.EIP7702,
     ]
 
 
@@ -77,7 +77,7 @@ def get_setting_position(firmware: Firmware, setting: SettingID) -> tuple[int, i
             page, y = 2, 130
         else:
             page, y = 2, 315
-    elif setting == SettingID.DISABLE_EIP7702_WHITELIST:
+    elif setting == SettingID.EIP7702:
         if firmware == Firmware.STAX:
             page, y = 2, 300
         else:

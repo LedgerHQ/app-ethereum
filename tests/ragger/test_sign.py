@@ -71,7 +71,7 @@ def common(firmware: Firmware,
     _, DEVICE_ADDR, _ = ResponseParser.pk_addr(app_client.response().data)
 
     with app_client.sign(path, tx_params, tx_raw):
-        if with_simu and (not firmware.is_nano and confirm):
+        if with_simu:
             navigator.navigate_and_compare(default_screenshot_path,
                                            f"{test_name}/warning",
                                            [NavInsID.USE_CASE_CHOICE_REJECT],

@@ -195,10 +195,10 @@ UX_FLOW(ux_settings_flow,
 #ifdef HAVE_EIP712_FULL_SUPPORT
         &ux_settings_flow_verbose_eip712_step,
 #endif  // HAVE_EIP712_FULL_SUPPORT
+        &ux_settings_flow_display_data_step,
 #ifdef HAVE_EIP7702_WHITELIST
         &ux_settings_flow_7702_whitelist_step,
-#endif        
-        &ux_settings_flow_display_data_step,
+#endif
         &ux_settings_flow_back_step);
 
 static void display_settings(const ux_flow_step_t* const start_step) {

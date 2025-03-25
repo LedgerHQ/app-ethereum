@@ -16,7 +16,7 @@ static void ui_error_no_7702_choice(bool confirm) {
 void ui_error_no_7702(void) {
     nbgl_useCaseChoice(&C_Warning_64px,
                        "This authorization cannot be signed",
-                       "Enable Smart Account Upgrade in the settings to sign this transaction.",
+                       "Enable smart account upgrade in the settings to sign this authorization.",
                        "Go to settings",
                        "Reject authorization",
                        ui_error_no_7702_choice);

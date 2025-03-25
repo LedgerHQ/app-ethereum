@@ -4,7 +4,7 @@
 UX_STEP_NOCB(ux_auth7702_review_step,
     pnn,
     {
-      &C_icon_warning,
+      &C_icon_eye,
       "Review",
       "authorization",
     });

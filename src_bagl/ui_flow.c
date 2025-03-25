@@ -350,8 +350,8 @@ UX_STEP_CB(
     ui_idle(),
     {
       &C_icon_crossmark,
-      "Authorization to a smart",
-      "contract not whitelisted",
+      "Authorization to a non",
+      "whitelisted contract",
     });
 #endif
 #endif //HAVE_EIP7702_WHITELIST

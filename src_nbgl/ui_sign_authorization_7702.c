@@ -24,7 +24,7 @@ void ui_sign_7702_auth(void) {
     	pairs[0].value = strings.common.fromAddress;
     	pairs[1].item = "Delegate to";
     	pairs[1].value = strings.common.toAddress;
-    	pairs[2].item = "Delegation on network";
+    	pairs[2].item = "Delegate on network";
     	pairs[2].value = strings.common.network_name;
 
     	pairsList.nbPairs = 3;
@@ -32,7 +32,7 @@ void ui_sign_7702_auth(void) {
 
 	    nbgl_useCaseReview(TYPE_OPERATION,
                        &pairsList,
-                       get_app_icon(true),
+                       &ICON_APP_REVIEW,
                        "Review authorization\nto upgrade into smart\ncontract account ?",
                        NULL,
                        "Sign authorization to\nupgrade into smart\ncontract account ?",

@@ -12,7 +12,7 @@ static void ui_error_no_7702_whitelist_choice(bool confirm) {
 
 void ui_error_no_7702_whitelist(void) {
     nbgl_useCaseChoice(&C_Warning_64px,
-                       "This 7702 authorisation cannot be signed",
+                       "This authorization cannot be signed",
                        "This authorization involves a delegation to a smart contract which is not in the whitelist.",
                        "Back to safety",
                        "",

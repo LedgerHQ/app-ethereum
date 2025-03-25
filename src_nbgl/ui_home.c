@@ -168,9 +168,9 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
 
 #ifdef HAVE_WEB3_CHECKS
     switches[WEB3_CHECK_ID].initState = N_storage.w3c_enable ? ON_STATE : OFF_STATE;
-    switches[WEB3_CHECK_ID].text = "Transaction checks";
+    switches[WEB3_CHECK_ID].text = "Transaction Check";
     switches[WEB3_CHECK_ID].subText =
-        "Scans transactions for security threats. Learn more: ledger.com/w3c";
+        "Get real-time warnings about risky transactions. Learn more: ledger.com/tx-check";
     switches[WEB3_CHECK_ID].token = WEB3_CHECK_TOKEN;
     switches[WEB3_CHECK_ID].tuneId = TUNE_TAP_CASUAL;
 #endif  // HAVE_WEB3_CHECKS

@@ -152,9 +152,14 @@ void ui_tx_simulation_opt_in(bool response_expected) {
                                               .token = WARNING_CHOICE_TOKEN,
                                               .style = ROUNDED_AND_FOOTER_STYLE,
                                               .tuneId = TUNE_TAP_CASUAL};
-    nbgl_layoutHeader_t headerDesc = {.type = HEADER_EMPTY,
+
+    nbgl_layoutHeader_t headerDesc = {.type = HEADER_EXTENDED_BACK,
                                       .separationLine = false,
-                                      .emptySpace.height = MEDIUM_CENTERING_HEADER};
+                                      .extendedBack.actionIcon = &QUESTION_CIRCLE_ICON,
+                                      .extendedBack.backToken = NBGL_INVALID_TOKEN,
+                                      .extendedBack.tuneId = TUNE_TAP_CASUAL,
+                                      .extendedBack.text = NULL,
+                                      .extendedBack.actionToken = WARNING_BUTTON_TOKEN};
 
     g_response_expected = response_expected;
     layoutDescription.withLeftBorder = true;
@@ -164,14 +169,12 @@ void ui_tx_simulation_opt_in(bool response_expected) {
     // add header
     nbgl_layoutAddHeader(layoutCtx, &headerDesc);
 
-    // add Top right info button
-    nbgl_layoutAddTopRightButton(layoutCtx, &QUESTION_ICON, WARNING_BUTTON_TOKEN, TUNE_TAP_CASUAL);
-
     // add main content
     info.title = "Enable\nTransaction Check?";
     info.description =
-        "Get real-time warnings about risky transactions, powered by "
-        "service providers. Learn more: ledger.com/tx-check";
+        "Get real-time warnings about risky Ethereum transactions. "
+        "Powered by service providers.";
+    info.subText = "By enabling, you accept T&Cs: ledger.com/tx-check";
     nbgl_layoutAddContentCenter(layoutCtx, &info);
 
     // add button and footer on bottom

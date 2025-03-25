@@ -502,7 +502,7 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_fr
     }
     if (strlen(ctx.simu->partner) == 0) {
         // Set a default value for partner
-        snprintf((char *) ctx.simu->partner, sizeof(ctx.simu->partner), "Web3 Checks");
+        snprintf((char *) ctx.simu->partner, sizeof(ctx.simu->partner), "Transaction Checks");
     }
     print_simulation_info(&ctx);
     return true;

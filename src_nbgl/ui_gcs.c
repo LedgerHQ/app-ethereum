@@ -209,6 +209,9 @@ bool ui_gcs(void) {
     }
     ext->infolist = infolist;
     ext->aliasType = INFO_LIST_ALIAS;
+    if ((ext->backText = get_creator_name()) == NULL) {
+        ext->backText = _strdup("Smart contract information");
+    }
     pairs[0].extension = ext;
     pairs[0].aliasValue = 1;
 

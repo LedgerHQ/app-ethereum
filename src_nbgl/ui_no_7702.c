@@ -22,4 +22,4 @@ void ui_error_no_7702(void) {
                        ui_error_no_7702_choice);
 }
 
-#endif // HAVE_EIP7702
+#endif  // HAVE_EIP7702

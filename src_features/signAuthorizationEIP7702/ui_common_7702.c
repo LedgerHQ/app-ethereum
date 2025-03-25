@@ -16,16 +16,16 @@ unsigned int auth_7702_ok_cb(void) {
                                                   G_io_apdu_buffer + 1,
                                                   G_io_apdu_buffer + 1 + 32,
                                                   &info));
-	if (info & CX_ECCINFO_PARITY_ODD) {
-            G_io_apdu_buffer[0] = 1;
+    if (info & CX_ECCINFO_PARITY_ODD) {
+        G_io_apdu_buffer[0] = 1;
     } else {
-            G_io_apdu_buffer[0] = 0;
+        G_io_apdu_buffer[0] = 0;
     }
     ui_idle();
     return io_seproxyhal_send_status(APDU_RESPONSE_OK, 65, false, false);
 }
 
 unsigned int auth_7702_cancel_cb(void) {
-	ui_idle();
-	return io_seproxyhal_send_status(APDU_RESPONSE_CONDITION_NOT_SATISFIED, 0, true, false);
+    ui_idle();
+    return io_seproxyhal_send_status(APDU_RESPONSE_CONDITION_NOT_SATISFIED, 0, true, false);
 }

@@ -31,7 +31,7 @@ static void switch_settings_verbose_eip712(void);
 #endif  // HAVE_EIP712_FULL_SUPPORT
 #ifdef HAVE_EIP7702
 static void switch_settings_eip7702(void);
-#endif // HAVE_EIP7702
+#endif  // HAVE_EIP7702
 
 //////////////////////////////////////////////////////////////////////
 // clang-format off
@@ -207,7 +207,7 @@ UX_FLOW(ux_settings_flow,
         &ux_settings_flow_display_data_step,
 #ifdef HAVE_EIP7702
         &ux_settings_flow_7702_step,
-#endif // HAVE_EIP7702
+#endif  // HAVE_EIP7702
         &ux_settings_flow_back_step);
 
 static void display_settings(const ux_flow_step_t* const start_step) {
@@ -227,10 +227,8 @@ static void display_settings(const ux_flow_step_t* const start_step) {
             BUF_INCREMENT);
 #endif  // HAVE_TRUSTED_NAME
 #ifdef HAVE_EIP7702
-    strlcpy(SETTING_EIP7702_STATE,
-            BOOL_TO_STATE_STR(N_storage.eip7702_enable),
-            BUF_INCREMENT);
-#endif //HAVE_EIP7702
+    strlcpy(SETTING_EIP7702_STATE, BOOL_TO_STATE_STR(N_storage.eip7702_enable), BUF_INCREMENT);
+#endif  // HAVE_EIP7702
 
     ux_flow_init(0, ux_settings_flow, start_step);
 }
@@ -269,7 +267,7 @@ static void switch_settings_verbose_trusted_name(void) {
 static void switch_settings_eip7702(void) {
     toggle_setting(&N_storage.eip7702_enable, &ux_settings_flow_7702_step);
 }
-#endif // HAVE_EIP7702
+#endif  // HAVE_EIP7702
 
 //////////////////////////////////////////////////////////////////////
 // clang-format off
@@ -371,6 +369,6 @@ UX_FLOW(ux_error_7702_not_enabled_flow, &ux_error_7702_not_enabled_step);
 
 #ifdef HAVE_EIP7702_WHITELIST
 UX_FLOW(ux_error_7702_not_whitelisted_flow, &ux_error_7702_not_whitelisted_step);
-#endif //HAVE_EIP7702_WHITELIST
+#endif  // HAVE_EIP7702_WHITELIST
 
-#endif // HAVE_EIP7702
+#endif  // HAVE_EIP7702

@@ -34,7 +34,7 @@ typedef struct internalStorage_t {
 #endif
 #ifdef HAVE_EIP7702
     bool eip7702_enable;
-#endif // HAVE_EIP7702
+#endif  // HAVE_EIP7702
     bool initialized;
 } internalStorage_t;
 

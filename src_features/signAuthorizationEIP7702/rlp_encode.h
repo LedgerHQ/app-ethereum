@@ -14,7 +14,10 @@
  * @param [in] output_size size of the output buffer in bytes
  * @return size of the RLP encoded number in bytes, or 0
  */
-uint8_t rlpEncodeNumber(const uint8_t *number, uint8_t numberLength, uint8_t *output, size_t output_size);
+uint8_t rlpEncodeNumber(const uint8_t *number,
+                        uint8_t numberLength,
+                        uint8_t *output,
+                        size_t output_size);
 
 /**
  * @brief Get the length of a number encoded according to RLP - see
@@ -26,8 +29,8 @@ uint8_t rlpEncodeNumber(const uint8_t *number, uint8_t numberLength, uint8_t *ou
 uint8_t rlpGetEncodedNumberLength(const uint8_t *number, uint8_t numberLength);
 
 /**
- * @brief Get the length of the header of an RLP list whose elements have a size between 0 and 255 bytes - see
- * https://github.com/ethereum/wiki/wiki/RLP
+ * @brief Get the length of the header of an RLP list whose elements have a size between 0 and 255
+ * bytes - see https://github.com/ethereum/wiki/wiki/RLP
  * @param [in] size size of the elements of the list in bytes
  * @param [out] output buffer to store the header of the RLP encoded list
  * @param [in] output_size size of the output buffer in bytes

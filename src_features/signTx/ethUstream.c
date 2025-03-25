@@ -430,7 +430,6 @@ static bool processEIP7702Tx(txContext_t *context) {
     return ret;
 }
 
-
 static bool processEIP1559Tx(txContext_t *context) {
     bool ret = false;
     switch (context->currentField) {

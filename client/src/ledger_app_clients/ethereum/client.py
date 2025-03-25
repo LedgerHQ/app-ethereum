@@ -227,7 +227,7 @@ class EthAppClient:
         else:  # legacy
             if "chainId" in tx_params:
                 suffix = [int(tx_params["chainId"]), bytes(), bytes()]
-        if tx_raw is None:        
+        if tx_raw is None:
             decoded_tx = rlp.decode(tx)[:-3]  # remove already computed signature
         else:
             decoded_tx = rlp.decode(tx)
@@ -238,7 +238,7 @@ class EthAppClient:
     def sign(self,
              bip32_path: str,
              tx_params: dict,
-             tx_raw : bytes = None, # Introduced for 7702 until web3.py supports authorization lists 
+             tx_raw: bytes = None,  # Introduced for 7702 until web3.py supports authorization lists
              mode: SignMode = SignMode.BASIC):
         tx, _ = self.serialize_tx(tx_params, tx_raw)
         chunks = self._cmd_builder.sign(bip32_path, tx, mode)
@@ -680,12 +680,11 @@ class EthAppClient:
         return self._exchange(chunks[-1])
 
     def sign_eip7702_authorization(self,
-                        bip32_path: str,
-                        delegate: bytes,
-                        nonce: int,
-                        chain_id: Optional[int] = None) -> RAPDU:
+                                   bip32_path: str,
+                                   delegate: bytes,
+                                   nonce: int,
+                                   chain_id: Optional[int] = None) -> RAPDU:
         return self._exchange_async(self._cmd_builder.sign_eip7702_authorization(bip32_path,
-                                                                      delegate,
-                                                                      nonce,
-                                                                      chain_id))
-
+                                                                                 delegate,
+                                                                                 nonce,
+                                                                                 chain_id))

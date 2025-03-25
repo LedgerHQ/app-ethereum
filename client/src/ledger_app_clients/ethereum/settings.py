@@ -13,6 +13,7 @@ class SettingID(Enum):
     DEBUG_DATA = auto()
     EIP7702 = auto()
 
+
 def get_device_settings(firmware: Firmware) -> list[SettingID]:
     """Get the list of settings available on the device"""
     if firmware == Firmware.NANOS:

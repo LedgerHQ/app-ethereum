@@ -34,6 +34,7 @@ class InsType(IntEnum):
     PROVIDE_TX_SIMULATION = 0x32
     SIGN_EIP7702_AUTHORIZATION = 0x34
 
+
 class P1Type(IntEnum):
     COMPLETE_SEND = 0x00
     PARTIAL_SEND = 0x01
@@ -69,7 +70,6 @@ class CommandBuilder:
         if i == 0:
             return b"\x00"
         return i.to_bytes(math.ceil(i.bit_length() / 8), 'big')
-
 
     def _serialize(self,
                    ins: InsType,
@@ -463,15 +463,19 @@ class CommandBuilder:
                 p1 = P1Type.FOLLOWING_CHUNK
         return chunks
 
-    def sign_eip7702_authorization(self, bip32_path: str, delegate:bytes, nonce: int, chain_id: Optional[int]) -> bytes:
+    def sign_eip7702_authorization(self,
+                                   bip32_path: str,
+                                   delegate: bytes,
+                                   nonce: int,
+                                   chain_id: Optional[int]) -> bytes:
         data = pack_derivation_path(bip32_path)
         data += delegate
         if chain_id is None:
             chain_id = 0
         tmp = self._intToBytes(chain_id)
-        data += struct.pack(">B", len(tmp)) + tmp 
+        data += struct.pack(">B", len(tmp)) + tmp
         tmp = self._intToBytes(nonce)
-        data += struct.pack(">B", len(tmp)) + tmp         
+        data += struct.pack(">B", len(tmp)) + tmp
         return self._serialize(InsType.SIGN_EIP7702_AUTHORIZATION,
                                0x00,
                                0x00,

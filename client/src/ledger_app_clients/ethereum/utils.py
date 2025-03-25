@@ -1,3 +1,4 @@
+from typing import Optional
 from eth_account import Account
 from eth_account.messages import encode_defunct, encode_typed_data
 import rlp
@@ -25,7 +26,7 @@ def recover_message(msg, vrs: tuple) -> bytes:
     return bytes.fromhex(addr[2:])
 
 
-def recover_transaction(tx_params, vrs: tuple, raw_tx_param: bytes = None) -> bytes:
+def recover_transaction(tx_params, vrs: tuple, raw_tx_param: Optional[bytes] = None) -> bytes:
     if raw_tx_param is None:
         raw_tx = Account.create().sign_transaction(tx_params).rawTransaction
     else:

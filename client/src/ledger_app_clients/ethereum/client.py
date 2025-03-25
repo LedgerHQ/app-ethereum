@@ -212,7 +212,7 @@ class EthAppClient:
     def eip712_filtering_raw(self, name: str, sig: bytes, discarded: bool):
         return self._exchange_async(self._cmd_builder.eip712_filtering_raw(name, sig, discarded))
 
-    def serialize_tx(self, tx_params: dict, tx_raw: bytes = None) -> Tuple[bytes, bytes]:
+    def serialize_tx(self, tx_params: dict, tx_raw: Optional[bytes] = None) -> Tuple[bytes, bytes]:
         """Computes the serialized TX and its hash"""
 
         if tx_raw is not None:
@@ -238,7 +238,7 @@ class EthAppClient:
     def sign(self,
              bip32_path: str,
              tx_params: dict,
-             tx_raw: bytes = None,  # Introduced for 7702 until web3.py supports authorization lists
+             tx_raw: Optional[bytes] = None,  # Introduced for 7702 until web3.py supports authorization lists
              mode: SignMode = SignMode.BASIC):
         tx, _ = self.serialize_tx(tx_params, tx_raw)
         chunks = self._cmd_builder.sign(bip32_path, tx, mode)

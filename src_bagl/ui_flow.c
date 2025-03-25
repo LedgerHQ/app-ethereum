@@ -145,12 +145,21 @@ UX_STEP_CB(
 #ifdef HAVE_EIP7702
 UX_STEP_CB(
     ux_settings_flow_7702_step,
+#ifdef TARGET_NANOS
+    bnnn_paging,
+#else
     bnnn,
+#endif
     switch_settings_eip7702(),
     {
+#ifdef TARGET_NANOS
+      .title = "Smart accounts",
+      .text =
+#else
       "Smart accounts",
       "Enable EIP7702",
       "authorizations",
+#endif      
       SETTING_EIP7702_STATE
     });
 #endif // HAVE_EIP7702

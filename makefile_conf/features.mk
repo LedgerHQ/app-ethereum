@@ -75,10 +75,12 @@ ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
 endif
 
 # EIP 7702
-DEFINES += HAVE_EIP7702
-DEFINES += HAVE_EIP7702_WHITELIST
-# Test mode
-DEFINES += HAVE_EIP7702_WHITELIST_TEST
+ifneq ($(TARGET_NAME),TARGET_NANOS)
+    DEFINES += HAVE_EIP7702
+    DEFINES += HAVE_EIP7702_WHITELIST
+    # Test mode
+    DEFINES += HAVE_EIP7702_WHITELIST_TEST
+endif
 
 # Check features incompatibilities
 # --------------------------------

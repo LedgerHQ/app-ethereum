@@ -19,7 +19,7 @@ from client.client import EthAppClient, SignMode, TrustedNameType, TrustedNameSo
 from client.utils import get_selector_from_data
 from client.gcs import (
     Field, ParamType, ParamRaw, Value, TypeFamily, DataPath, PathTuple, ParamTrustedName,
-    ParamNFT, ParamDatetime, DatetimeType, ParamTokenAmount, ContainerPath,
+    ParamNFT, ParamDatetime, DatetimeType, ParamTokenAmount, ParamToken, ContainerPath,
     PathLeaf, PathLeafType, PathRef, PathArray, TxInfo
 )
 from client.tx_simu import TxSimu
@@ -406,9 +406,9 @@ def test_gcs_poap(firmware: Firmware,
     with app_client.send_raw_async(0xe0, 0x04, 0x00, 0x02, bytes()):
         if simu_params is not None:
             navigator.navigate_and_compare(default_screenshot_path,
-                                            f"{test_name}/warning",
-                                            [NavInsID.USE_CASE_CHOICE_REJECT],
-                                            screen_change_after_last_instruction=False)
+                                           f"{test_name}/warning",
+                                           [NavInsID.USE_CASE_CHOICE_REJECT],
+                                           screen_change_after_last_instruction=False)
 
         scenario_navigator.review_approve(test_name=test_name,
                                           custom_screen_text=r"(Sign transaction|Accept (risk|threat))")
@@ -684,6 +684,129 @@ def test_gcs_proxy(firmware: Firmware,
                                        TrustedNameSource.CAL,
                                        tx_info.chain_id,
                                        challenge=ResponseParser.challenge(app_client.get_challenge().data))
+
+    for field in fields:
+        payload = field.serialize()
+        app_client.send_raw(0xe0, 0x28, 0x01, 0x00, struct.pack(">H", len(payload)) + payload)
+
+    with app_client.send_raw_async(0xe0, 0x04, 0x00, 0x02, bytes()):
+        scenario_navigator.review_approve(test_name=test_name, custom_screen_text="Sign transaction")
+
+
+def test_gcs_4226(firmware: Firmware,
+                  backend: BackendInterface,
+                  scenario_navigator: NavigateWithScenario,
+                  test_name: str):
+    app_client = EthAppClient(backend)
+
+    if firmware == Firmware.NANOS:
+        pytest.skip("Not supported on LNS")
+
+    with open(f"{ABIS_FOLDER}/rSWELL.abi.json") as file:
+        contract = Web3().eth.contract(
+            abi=json.load(file),
+            address=None
+        )
+    data = contract.encode_abi("deposit", [
+        Web3.to_wei(4.20, "ether"),
+        bytes.fromhex("Dad77910DbDFdE764fC21FCD4E74D71bBACA6D8D"),
+    ])
+    tx_params = {
+        "nonce": 235,
+        "maxFeePerGas": Web3.to_wei(3, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(1, "gwei"),
+        "gas": 128872,
+        "to": bytes.fromhex("358d94b5b2F147D741088803d932Acb566acB7B6"),
+        "data": data,
+        "chainId": 1
+    }
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, SignMode.STORE):
+        pass
+
+    swell_token_addr = bytes.fromhex("0a6e7ba5042b38349e437ec6db6214aec7b35676")
+    fields = [
+            Field(
+                1,
+                "Deposit asset",
+                ParamType.TOKEN_AMOUNT,
+                ParamTokenAmount(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.UINT,
+                        type_size=32,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(0),
+                                PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                    ),
+                    token=Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        constant=swell_token_addr,
+                    ),
+                )
+            ),
+            Field(
+                1,
+                "Receive shares",
+                ParamType.TOKEN,
+                ParamToken(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        container_path=ContainerPath.TO,
+                    ),
+                )
+            ),
+            Field(
+                1,
+                "Send shares to",
+                ParamType.RAW,
+                ParamToken(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(1),
+                                PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                    ),
+                )
+            ),
+    ]
+
+    # compute instructions hash
+    inst_hash = hashlib.sha3_256()
+    for field in fields:
+        inst_hash.update(field.serialize())
+
+    tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        tx_params["to"],
+        get_selector_from_data(tx_params["data"]),
+        inst_hash.digest(),
+        "deposit",
+        creator_name="Swell",
+        creator_legal_name="Swell Network",
+        creator_url="www.swellnetwork.io",
+        contract_name="rSWELL Token",
+        deploy_date=1726817291
+    )
+
+    app_client.provide_transaction_info(tx_info.serialize())
+
+    app_client.provide_token_metadata("rSWELL", tx_params["to"], 18, 1)
+    app_client.provide_token_metadata("SWELL", swell_token_addr, 18, 1)
 
     for field in fields:
         payload = field.serialize()

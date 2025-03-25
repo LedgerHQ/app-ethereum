@@ -256,11 +256,11 @@ static void switch_settings_verbose_trusted_name(void) {
 }
 #endif  // HAVE_TRUSTED_NAME
 
-#ifdef HAVE_EIP712_FULL_SUPPORT
+#ifdef HAVE_EIP7702
 static void switch_settings_eip7702(void) {
     toggle_setting(&N_storage.eip7702_enable, &ux_settings_flow_7702_step);
 }
-#endif // HAVE_EIP712_FULL_SUPPORT
+#endif // HAVE_EIP7702
 
 //////////////////////////////////////////////////////////////////////
 // clang-format off

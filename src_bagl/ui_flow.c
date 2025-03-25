@@ -350,7 +350,7 @@ UX_STEP_CB(
     ui_idle(),
     {
       &C_icon_crossmark,
-      "Authorization to a non",
+      "Authorization to non",
       "whitelisted contract",
     });
 #endif

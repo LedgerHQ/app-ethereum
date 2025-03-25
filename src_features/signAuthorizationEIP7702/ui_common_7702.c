@@ -21,11 +21,9 @@ unsigned int auth_7702_ok_cb(void) {
     } else {
         G_io_apdu_buffer[0] = 0;
     }
-    ui_idle();
-    return io_seproxyhal_send_status(APDU_RESPONSE_OK, 65, false, false);
+    return io_seproxyhal_send_status(APDU_RESPONSE_OK, 65, false, true);
 }
 
 unsigned int auth_7702_cancel_cb(void) {
-    ui_idle();
-    return io_seproxyhal_send_status(APDU_RESPONSE_CONDITION_NOT_SATISFIED, 0, true, false);
+    return io_seproxyhal_send_status(APDU_RESPONSE_CONDITION_NOT_SATISFIED, 0, true, true);
 }

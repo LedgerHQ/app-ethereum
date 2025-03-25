@@ -62,15 +62,9 @@ end:
     return error;
 }
 
-uint16_t handleSignEIP7702Authorization(uint8_t p1,
-                                        uint8_t p2,
-                                        const uint8_t *dataBuffer,
+uint16_t handleSignEIP7702Authorization(const uint8_t *dataBuffer,
                                         uint8_t dataLength,
-                                        unsigned int *flags,
-                                        unsigned int *tx) {
-    UNUSED(p1);
-    UNUSED(p2);
-    UNUSED(tx);
+                                        unsigned int *flags) {
     uint8_t delegate[20];
     uint8_t chainId[32];
     uint8_t chainIdLength = sizeof(chainId);

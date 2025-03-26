@@ -5,7 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.17.0](../../compare/1.16.0...1.17.0) - 2025-xx-xx
+
 ## [1.16.0](../../compare/1.15.0...1.16.0) - 2025-xx-xx
+
+### Added
+
+- (network) Berachain
+- Transaction check
+- Support for proxy contract clear-signing
+- New clear-signing formatter for token ticker (without an amount)
+
+### Changed
+
+- The calldata is now compressed in RAM, enabling the support of even larger transactions
+- Fixed values of trusted names key IDs
+- Improved error handling with plugins
+- Moved button to see contract info to the first key-value pair (Flex/Stax)
 
 ## [1.15.0](../../compare/1.14.0...1.15.0) - 2025-01-30
 

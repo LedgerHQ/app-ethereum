@@ -299,3 +299,16 @@ In version 1 of the protocol:
 |---------|------|-----------------|--------------------------|----------|-----------------|
 | START   | 0x01 | int16           | start index (inclusive)  | x        |                 |
 | END     | 0x02 | int16           | end index (exclusive)    | x        |                 |
+
+## PROXY_INFO
+
+| Name           | Tag  | Payload type    | Description                     | Optional |
+|----------------|------|-----------------|---------------------------------|----------|
+| STRUCT_TYPE    | 0x01 | uint8           | structure type                  |          |
+| STRUCT_VERSION | 0x02 | uint8           | structure version               |          |
+| CHALLENGE      | 0x12 | uint32          | challenge to ensure freshness   |          |
+| ADDRESS        | 0x22 | uint8[20]       | proxy contract address          |          |
+| CHAIN_ID       | 0x23 | uint64          | EVM chain identifier            |          |
+| SELECTOR       | 0x28 | uint[4]         | function selector               | x        |
+| IMPL_ADDRESS   | 0x29 | uint8[20]       | implementation contract address |          |
+| SIGNATURE      | 0x15 | uint8[]         | signature of the structure      |          |

@@ -5,6 +5,10 @@
 
 #include "cmd_network_info.h"
 
+#include "cmd_get_tx_simulation.h"
+
+#include "cmd_proxy_info.h"
+
 #include "cmd_field.h"
 #include "cmd_tx_info.h"
 #include "cmd_enum_value.h"
@@ -15,6 +19,7 @@
 
 #include "shared_context.h"
 #include "tlv.h"
+#include "mem.h"
 #include "apdu_constants.h"
 
 // Fuzzing harness interface
@@ -34,6 +39,7 @@ const chain_config_t *chainConfig = &config;
 uint8_t appState;
 tmpCtx_t tmpCtx;
 strings_t strings;
+const internalStorage_t N_storage_real = {.w3c_enable = true, .w3c_opt_in = true};
 
 int fuzzGenericParserFieldCmd(const uint8_t *data, size_t size) {
     s_field field = {0};
@@ -105,6 +111,55 @@ int fuzzNFTInfo(const uint8_t *data, size_t size) {
     return handleProvideNFTInformation(data, size, &tx) != APDU_RESPONSE_OK;
 }
 
+int fuzzProxyInfo(const uint8_t *data, size_t size) {
+    if (size < 1) return 0;
+    return handle_proxy_info(data[0], 0, size - 1, data + 1);
+}
+
+int fuzzTxSimulation(const uint8_t *data, size_t size) {
+    unsigned int flags;
+    if (size < 2) return 0;
+
+    if (handleTxSimulation(data[0], data[1], data + 2, size - 2, &flags) != APDU_RESPONSE_OK)
+        return 1;
+
+    getTxSimuRiskStr();
+    getTxSimuCategoryStr();
+    return 0;
+}
+
+int fuzzCalldata(const uint8_t *data, size_t size) {
+    calldata_cleanup();
+    while (size > 0) {
+        switch (data[0]) {
+            case 'I':
+                data++;
+                size--;
+                calldata_init(500);
+                break;
+            case 'W':
+                size--;
+                data++;
+                if (size < 1 || size < data[0] + 1) return 0;
+                calldata_append(data + 1, data[0]);
+                size -= (1 + data[0]);
+                data += 1 + data[0];
+                break;
+            case 'R':
+                size--;
+                data++;
+                if (size < 1) return 0;
+                calldata_get_chunk(data[0]);
+                size--;
+                data++;
+                break;
+            default:
+                return 0;
+        }
+    }
+    return 0;
+}
+
 // Array of fuzzing harness functions
 harness harnesses[] = {
     fuzzGenericParserFieldCmd,
@@ -113,6 +168,9 @@ harness harnesses[] = {
     fuzzDynamicNetworks,
     fuzzTrustedNames,
     fuzzNFTInfo,
+    fuzzProxyInfo,
+    fuzzTxSimulation,
+    fuzzCalldata,
 };
 
 /* Main fuzzing handler called by libfuzzer */
@@ -125,6 +183,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     explicit_bzero(&strings, sizeof(strings_t));
     explicit_bzero(&G_io_apdu_buffer, 260);
     explicit_bzero(&sha3, sizeof(sha3));
+
+    calldata_cleanup();
+    mem_reset();
 
     uint8_t target;
 

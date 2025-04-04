@@ -70,7 +70,7 @@ def test_gcs_nft(firmware: Firmware,
         "data": data,
         "chainId": 1
     }
-    with app_client.sign("m/44'/60'/0'/0/0", tx_params, SignMode.STORE):
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
         pass
 
     fields = [
@@ -272,7 +272,7 @@ def test_gcs_poap(firmware: Firmware,
         response = app_client.provide_tx_simulation(simu_params)
         assert response.status == StatusWord.OK
 
-    with app_client.sign("m/44'/60'/0'/0/0", tx_params, SignMode.STORE):
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
         pass
 
     fields = [
@@ -451,7 +451,7 @@ def test_gcs_1inch(firmware: Firmware,
         "data": data,
         "chainId": 1
     }
-    with app_client.sign("m/44'/60'/0'/0/0", tx_params, SignMode.STORE):
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
         pass
 
     fields = [
@@ -608,7 +608,7 @@ def test_gcs_proxy(firmware: Firmware,
         "data": data,
         "chainId": 1
     }
-    with app_client.sign("m/44'/60'/0'/0/0", tx_params, SignMode.STORE):
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
         pass
 
     fields = [
@@ -720,7 +720,7 @@ def test_gcs_4226(firmware: Firmware,
         "data": data,
         "chainId": 1
     }
-    with app_client.sign("m/44'/60'/0'/0/0", tx_params, SignMode.STORE):
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
         pass
 
     swell_token_addr = bytes.fromhex("0a6e7ba5042b38349e437ec6db6214aec7b35676")

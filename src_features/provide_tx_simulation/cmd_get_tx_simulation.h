@@ -6,6 +6,9 @@
 #include <stdbool.h>
 #include "common_utils.h"
 #include "nbgl_use_case.h"
+#ifdef HAVE_LEDGER_PKI
+#include "os_pki.h"
+#endif
 
 #define HASH_SIZE    32
 #define MSG_SIZE     25
@@ -40,6 +43,9 @@ typedef struct tx_simu_s {
     tx_simulation_type_t type;
     uint8_t category;
 } tx_simulation_t;
+
+_Static_assert(CERTIFICATE_TRUSTED_NAME_MAXLEN > PARTNER_SIZE - 1,
+               "Partner size is too big to get the trusted name");
 
 // Global structure to store the tx simultion parameters
 extern tx_simulation_t TX_SIMULATION;

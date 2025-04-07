@@ -64,7 +64,7 @@ static void setting_toggle_callback(int token, uint8_t index, int page) {
     switch (token) {
 #ifdef HAVE_WEB3_CHECKS
         case WEB3_CHECK_TOKEN:
-            handleTxSimulationOptIn(false);
+            handle_tx_simulation_opt_in(false);
             value = !N_storage.w3c_enable;
             switches[WEB3_CHECK_ID].initState = (nbgl_state_t) value;
             nvm_write((void *) &N_storage.w3c_enable, (void *) &value, sizeof(value));

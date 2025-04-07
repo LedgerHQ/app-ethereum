@@ -171,10 +171,12 @@ bool calldata_append(const uint8_t *buffer, size_t size) {
 }
 
 void calldata_cleanup(void) {
-    mem_dealloc(g_calldata->chunks_size);
-    mem_dealloc(sizeof(*g_calldata));
-    g_calldata = NULL;
-    mem_dealloc(g_calldata_alignment);
+    if (g_calldata != NULL) {
+        mem_dealloc(g_calldata->chunks_size);
+        mem_dealloc(sizeof(*g_calldata));
+        g_calldata = NULL;
+        mem_dealloc(g_calldata_alignment);
+    }
 }
 
 static bool has_valid_calldata(const s_calldata *calldata) {

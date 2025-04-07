@@ -498,14 +498,14 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_fr
 
     ctx.simu = &TX_SIMULATION;
     // Reset the structures
-    explicit_bzero(&TX_SIMULATION, sizeof(tx_simulation_t));
+    explicit_bzero(&TX_SIMULATION, sizeof(TX_SIMULATION));
     // Initialize the hash context
     cx_sha256_init(&ctx.hash_ctx);
 
     parsing_ret = tlv_parse(payload, size, (f_tlv_data_handler) &handle_tx_simu_tlv, &ctx);
     if (to_free) mem_dealloc(size);
     if (!parsing_ret || !verify_fields(&ctx) || !verify_signature(&ctx)) {
-        explicit_bzero(&TX_SIMULATION, sizeof(tx_simulation_t));
+        explicit_bzero(&TX_SIMULATION, sizeof(TX_SIMULATION));
         explicit_bzero(&ctx, sizeof(s_tx_simu_ctx));
         return false;
     }
@@ -585,7 +585,7 @@ uint16_t handle_tx_simulation(uint8_t p1,
  *
  */
 void clear_tx_simulation(void) {
-    explicit_bzero(&TX_SIMULATION, sizeof(tx_simulation_t));
+    explicit_bzero(&TX_SIMULATION, sizeof(TX_SIMULATION));
 }
 
 /**

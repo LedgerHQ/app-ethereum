@@ -80,7 +80,7 @@ static bool compress_chunk(s_calldata *calldata) {
         start_idx = strip_left;
     } else {
         strip_dir = CHUNK_STRIP_RIGHT;
-        stripped_size = strip_right;
+        stripped_size = CALLDATA_CHUNK_SIZE - strip_right;
         start_idx = 0;
     }
     chunk_info |= strip_dir << CHUNK_INFO_DIR_OFFSET;

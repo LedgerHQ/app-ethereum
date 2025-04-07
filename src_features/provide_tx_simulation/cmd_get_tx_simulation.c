@@ -1,6 +1,5 @@
 #ifdef HAVE_WEB3_CHECKS
 
-#include <ctype.h>
 #include "cmd_get_tx_simulation.h"
 #include "apdu_constants.h"
 #include "hash_bytes.h"
@@ -107,23 +106,6 @@ tx_simulation_t TX_SIMULATION = {0};
     do {                                                    \
         memmove((void *) field, data->value, data->length); \
     } while (0)
-
-/**
- * @brief Check the name is printable.
- *
- * @param[in] data buffer received
- * @param[in] name Name to check
- * @param[in] len Length of the name
- * @return True/False
- */
-static bool check_name(const uint8_t *name, uint16_t len) {
-    for (uint16_t i = 0; i < len; i++) {
-        if (!isprint(name[i])) {
-            return false;
-        }
-    }
-    return true;
-}
 
 /**
  * @brief Parse the STRUCTURE_TYPE value.

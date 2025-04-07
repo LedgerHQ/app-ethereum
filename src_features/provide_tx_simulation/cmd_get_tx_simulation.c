@@ -379,10 +379,10 @@ end:
  *
  * Check the mandatory fields are present
  *
- * @param[in] rcv_bit indicates received fields
+ * @param[in] context TX Simu context
  * @return whether it was successful
  */
-static bool verify_fields(uint32_t rcv_bit) {
+static bool verify_fields(s_tx_simu_ctx *context) {
     uint32_t expected_fields;
 
     expected_fields = (1 << BIT_STRUCTURE_TYPE) | (1 << BIT_STRUCTURE_VERSION) |
@@ -390,7 +390,14 @@ static bool verify_fields(uint32_t rcv_bit) {
                       (1 << BIT_W3C_NORMALIZED_CATEGORY) | (1 << BIT_W3C_TINY_URL) |
                       (1 << BIT_W3C_SIMU_TYPE) | (1 << BIT_DER_SIGNATURE);
 
-    return ((rcv_bit & expected_fields) == expected_fields);
+    if (context->simu->type == SIMU_TYPE_TRANSACTION) {
+        expected_fields |= (1 << BIT_CHAIN_ID);
+    }
+    if (context->simu->type == SIMU_TYPE_TYPED_DATA) {
+        expected_fields |= (1 << BIT_DOMAIN_HASH);
+    }
+
+    return ((context->rcv_flags & expected_fields) == expected_fields);
 }
 
 /**
@@ -497,7 +504,7 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_fr
 
     parsing_ret = tlv_parse(payload, size, (f_tlv_data_handler) &handle_tx_simu_tlv, &ctx);
     if (to_free) mem_dealloc(size);
-    if (!parsing_ret || !verify_fields(ctx.rcv_flags) || !verify_signature(&ctx)) {
+    if (!parsing_ret || !verify_fields(&ctx) || !verify_signature(&ctx)) {
         explicit_bzero(&TX_SIMULATION, sizeof(tx_simulation_t));
         explicit_bzero(&ctx, sizeof(s_tx_simu_ctx));
         return false;

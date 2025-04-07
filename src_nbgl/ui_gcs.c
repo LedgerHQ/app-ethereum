@@ -157,7 +157,7 @@ bool ui_gcs(void) {
 
     explicit_bzero(&warning, sizeof(nbgl_warning_t));
 #ifdef HAVE_WEB3_CHECKS
-    setTxSimuWarning(&warning, true, true);
+    set_tx_simulation_warning(&warning, true, true);
 #endif
 
     snprintf(tmp_buf, tmp_buf_size, "Review transaction to %s", get_operation_type());

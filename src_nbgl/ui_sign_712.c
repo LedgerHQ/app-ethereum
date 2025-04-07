@@ -90,7 +90,7 @@ static void ui_712_start_common(void) {
     appState = APP_STATE_SIGNING_EIP712;
     explicit_bzero(&warning, sizeof(nbgl_warning_t));
 #ifdef HAVE_WEB3_CHECKS
-    setTxSimuWarning(&warning, false, false);
+    set_tx_simulation_warning(&warning, false, false);
 #endif
 }
 
@@ -150,7 +150,7 @@ void ui_712_switch_to_sign(void) {
         nbgl_useCaseReviewStreamingContinueExt(&pairs_list, message_progress, review_skip);
     } else {
 #ifdef HAVE_WEB3_CHECKS
-        if (checkTxSimulationParams(true, true) == false) {
+        if (check_tx_simulation_params(true, true) == false) {
             ui_tx_simulation_error(ui_712_w3c_cb);
             return;
         }

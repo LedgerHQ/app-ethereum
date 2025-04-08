@@ -1,6 +1,5 @@
 #ifdef HAVE_WEB3_CHECKS
 
-#include <ctype.h>
 #include "cmd_get_tx_simulation.h"
 #include "apdu_constants.h"
 #include "hash_bytes.h"
@@ -107,23 +106,6 @@ tx_simulation_t TX_SIMULATION = {0};
     do {                                                    \
         memmove((void *) field, data->value, data->length); \
     } while (0)
-
-/**
- * @brief Check the name is printable.
- *
- * @param[in] data buffer received
- * @param[in] name Name to check
- * @param[in] len Length of the name
- * @return True/False
- */
-static bool check_name(const uint8_t *name, uint16_t len) {
-    for (uint16_t i = 0; i < len; i++) {
-        if (!isprint(name[i])) {
-            return false;
-        }
-    }
-    return true;
-}
 
 /**
  * @brief Parse the STRUCTURE_TYPE value.
@@ -379,10 +361,10 @@ end:
  *
  * Check the mandatory fields are present
  *
- * @param[in] rcv_bit indicates received fields
+ * @param[in] context TX Simu context
  * @return whether it was successful
  */
-static bool verify_fields(uint32_t rcv_bit) {
+static bool verify_fields(s_tx_simu_ctx *context) {
     uint32_t expected_fields;
 
     expected_fields = (1 << BIT_STRUCTURE_TYPE) | (1 << BIT_STRUCTURE_VERSION) |
@@ -390,7 +372,14 @@ static bool verify_fields(uint32_t rcv_bit) {
                       (1 << BIT_W3C_NORMALIZED_CATEGORY) | (1 << BIT_W3C_TINY_URL) |
                       (1 << BIT_W3C_SIMU_TYPE) | (1 << BIT_DER_SIGNATURE);
 
-    return ((rcv_bit & expected_fields) == expected_fields);
+    if (context->simu->type == SIMU_TYPE_TRANSACTION) {
+        expected_fields |= (1 << BIT_CHAIN_ID);
+    }
+    if (context->simu->type == SIMU_TYPE_TYPED_DATA) {
+        expected_fields |= (1 << BIT_DOMAIN_HASH);
+    }
+
+    return ((context->rcv_flags & expected_fields) == expected_fields);
 }
 
 /**
@@ -411,8 +400,10 @@ static void print_simulation_info(s_tx_simu_ctx *context) {
         u64_to_string(context->simu->chain_id, chain_str, sizeof(chain_str));
         PRINTF("[TX SIMU] -    ChainID: %s\n", chain_str);
     }
-    PRINTF("[TX SIMU] -    Risk: %d -> %s\n", context->simu->risk, getTxSimuRiskStr());
-    PRINTF("[TX SIMU] -    Category: %d -> %s\n", context->simu->category, getTxSimuCategoryStr());
+    PRINTF("[TX SIMU] -    Risk: %d -> %s\n", context->simu->risk, get_tx_simulation_risk_str());
+    PRINTF("[TX SIMU] -    Category: %d -> %s\n",
+           context->simu->category,
+           get_tx_simulation_category_str());
     PRINTF("[TX SIMU] -    Provider Msg: %s\n", context->simu->provider_msg);
     PRINTF("[TX SIMU] -    Tiny URL: %s\n", context->simu->tiny_url);
 }
@@ -489,14 +480,14 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_fr
 
     ctx.simu = &TX_SIMULATION;
     // Reset the structures
-    explicit_bzero(&TX_SIMULATION, sizeof(tx_simulation_t));
+    explicit_bzero(&TX_SIMULATION, sizeof(TX_SIMULATION));
     // Initialize the hash context
     cx_sha256_init(&ctx.hash_ctx);
 
     parsing_ret = tlv_parse(payload, size, (f_tlv_data_handler) &handle_tx_simu_tlv, &ctx);
     if (to_free) mem_dealloc(size);
-    if (!parsing_ret || !verify_fields(ctx.rcv_flags) || !verify_signature(&ctx)) {
-        explicit_bzero(&TX_SIMULATION, sizeof(tx_simulation_t));
+    if (!parsing_ret || !verify_fields(&ctx) || !verify_signature(&ctx)) {
+        explicit_bzero(&TX_SIMULATION, sizeof(TX_SIMULATION));
         explicit_bzero(&ctx, sizeof(s_tx_simu_ctx));
         return false;
     }
@@ -513,7 +504,7 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_fr
  *
  * @param[in] response_expected indicates if a response is expected
  */
-void handleTxSimulationOptIn(bool response_expected) {
+void handle_tx_simulation_opt_in(bool response_expected) {
     if (N_storage.w3c_opt_in) {
         // Web3 Checks already Opt-In
         PRINTF("Web3 Checks already Opt-in!\n");
@@ -530,16 +521,17 @@ void handleTxSimulationOptIn(bool response_expected) {
 /**
  * @brief Handle Tx Simulation APDU.
  *
- * @param[in] p1 APDU parameter 1
+ * @param[in] p1 APDU parameter 1 (indicates Data payload or Opt-In request)
+ * @param[in] p2 APDU parameter 2 (indicates if the payload is the first chunk)
  * @param[in] data buffer received
  * @param[in] length of the buffer
  * @return APDU Response code
  */
-uint16_t handleTxSimulation(uint8_t p1,
-                            uint8_t p2,
-                            const uint8_t *data,
-                            uint8_t length,
-                            unsigned int *flags) {
+uint16_t handle_tx_simulation(uint8_t p1,
+                              uint8_t p2,
+                              const uint8_t *data,
+                              uint8_t length,
+                              unsigned int *flags) {
     uint16_t sw = APDU_RESPONSE_INTERNAL_ERROR;
 
     switch (p1) {
@@ -558,7 +550,7 @@ uint16_t handleTxSimulation(uint8_t p1,
             break;
         case 0x01:
             // TX Simulation Opt-In
-            handleTxSimulationOptIn(true);
+            handle_tx_simulation_opt_in(true);
             *flags |= IO_ASYNCH_REPLY;
             sw = APDU_NO_RESPONSE;
             break;
@@ -574,8 +566,8 @@ uint16_t handleTxSimulation(uint8_t p1,
  * @brief Clear the TX Simulation parameters.
  *
  */
-void clearTxSimulation(void) {
-    explicit_bzero(&TX_SIMULATION, sizeof(tx_simulation_t));
+void clear_tx_simulation(void) {
+    explicit_bzero(&TX_SIMULATION, sizeof(TX_SIMULATION));
 }
 
 /**
@@ -585,7 +577,7 @@ void clearTxSimulation(void) {
  * @param[in] checkFromAddr flag to check the FROM address
  * @return whether it was successful
  */
-bool checkTxSimulationParams(bool checkTxHash, bool checkFromAddr) {
+bool check_tx_simulation_params(bool checkTxHash, bool checkFromAddr) {
     uint8_t msg_sender[ADDRESS_LENGTH] = {0};
     uint64_t chain_id = get_tx_chain_id();
     uint8_t *hash = NULL;
@@ -703,13 +695,13 @@ bool checkTxSimulationParams(bool checkTxHash, bool checkFromAddr) {
  * @param[in] checkTxHash flag to check the TX_HASH
  * @param[in] checkFromAddr flag to check the FROM address
  */
-void setTxSimuWarning(nbgl_warning_t *p_warning, bool checkTxHash, bool checkFromAddr) {
+void set_tx_simulation_warning(nbgl_warning_t *p_warning, bool checkTxHash, bool checkFromAddr) {
     if (!N_storage.w3c_enable) {
         // W3Checks disabled
         return;
     }
     // W3Checks enabled => Verify parameters of the Transaction
-    checkTxSimulationParams(checkTxHash, checkFromAddr);
+    check_tx_simulation_params(checkTxHash, checkFromAddr);
     switch (TX_SIMULATION.risk) {
         case RISK_UNKNOWN:
             p_warning->predefinedSet |= SET_BIT(W3C_ISSUE_WARN);
@@ -727,7 +719,7 @@ void setTxSimuWarning(nbgl_warning_t *p_warning, bool checkTxHash, bool checkFro
             break;
     }
     p_warning->reportProvider = PIC(TX_SIMULATION.partner);
-    p_warning->providerMessage = getTxSimuCategoryStr();
+    p_warning->providerMessage = get_tx_simulation_category_str();
     p_warning->reportUrl = PIC(TX_SIMULATION.tiny_url);
 }
 
@@ -736,7 +728,7 @@ void setTxSimuWarning(nbgl_warning_t *p_warning, bool checkTxHash, bool checkFro
  *
  * @return risk as a string
  */
-const char *getTxSimuRiskStr(void) {
+const char *get_tx_simulation_risk_str(void) {
     switch (TX_SIMULATION.risk) {
         case RISK_UNKNOWN:
             return "UNKNOWN (W3C Issue)";
@@ -757,7 +749,7 @@ const char *getTxSimuRiskStr(void) {
  *
  * @return category string
  */
-const char *getTxSimuCategoryStr(void) {
+const char *get_tx_simulation_category_str(void) {
     // Unknown category string
     switch (TX_SIMULATION.risk) {
         case RISK_UNKNOWN:

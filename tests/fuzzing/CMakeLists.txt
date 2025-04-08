@@ -24,9 +24,12 @@ if (NOT DEFINED BOLOS_SDK)
   set(BOLOS_SDK /opt/${TARGET_DEVICE}-secure-sdk)
 endif()
 
+# some flags to mimic the embedded build (such as packed enums)
+set(CUSTOM_C_FLAGS -fdata-sections -ffunction-sections -funsigned-char -fshort-enums)
+
 # compatible with ClusterFuzzLite
 if (NOT DEFINED ENV{LIB_FUZZING_ENGINE})
-	set(COMPILATION_FLAGS -g -O0 -Wall -Wextra -fprofile-instr-generate -fcoverage-mapping)
+	set(COMPILATION_FLAGS ${CUSTOM_C_FLAGS} -g -O0 -Wall -Wextra -fprofile-instr-generate -fcoverage-mapping)
   if (SANITIZER MATCHES "address")
     set(COMPILATION_FLAGS ${COMPILATION_FLAGS} -fsanitize=fuzzer,address,undefined)
   elseif (SANITIZER MATCHES "memory")
@@ -35,7 +38,7 @@ if (NOT DEFINED ENV{LIB_FUZZING_ENGINE})
     message(FATAL_ERROR "Unkown sanitizer type. It must be set to `address` or `memory`.")
   endif()
 else()
-	set(COMPILATION_FLAGS "$ENV{LIB_FUZZING_ENGINE} $ENV{CFLAGS}")
+	set(COMPILATION_FLAGS "$ENV{LIB_FUZZING_ENGINE} $ENV{CFLAGS} ${CUSTOM_C_FLAGS}")
   separate_arguments(COMPILATION_FLAGS)
 endif()
 
@@ -155,6 +158,7 @@ set(DEFINES
     HAVE_ENUM_VALUE
     HAVE_NFT_SUPPORT
     HAVE_DYNAMIC_NETWORKS
+    HAVE_WEB3_CHECKS
     explicit_bzero=bzero # Fix for https://github.com/google/sanitizers/issues/1507
 )
 
@@ -185,6 +189,7 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/../../src_features/getChallenge/
   ${CMAKE_SOURCE_DIR}/../../src_features/signMessageEIP712/
   ${CMAKE_SOURCE_DIR}/../../src_features/provide_proxy_info/
+  ${CMAKE_SOURCE_DIR}/../../src_features/provide_tx_simulation/
   ${BOLOS_SDK}/include
   ${BOLOS_SDK}/target/${TARGET_DEVICE}/include
   ${BOLOS_SDK}/lib_cxng/include
@@ -203,6 +208,7 @@ FILE(GLOB_RECURSE SOURCES
   ${CMAKE_SOURCE_DIR}/../../src_features/provide_network_info/*.c
   ${CMAKE_SOURCE_DIR}/../../src_features/provideNFTInformation/*.c
   ${CMAKE_SOURCE_DIR}/../../src_features/provide_proxy_info/*.c
+  ${CMAKE_SOURCE_DIR}/../../src_features/provide_tx_simulation/*.c
   ${CMAKE_SOURCE_DIR}/../../src/mem.c
   ${CMAKE_SOURCE_DIR}/../../src/mem_utils.c
   ${CMAKE_SOURCE_DIR}/../../src/network.c

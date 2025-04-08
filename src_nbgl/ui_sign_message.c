@@ -114,7 +114,7 @@ static void ui_191_process_state(void) {
             break;
         case UI_191_ACTION_GO_TO_SIGN:
 #ifdef HAVE_WEB3_CHECKS
-            if (checkTxSimulationParams(true, true) == false) {
+            if (check_tx_simulation_params(true, true) == false) {
                 ui_tx_simulation_error(ui_191_w3c_cb);
                 return;
             }
@@ -136,7 +136,7 @@ void ui_191_start(void) {
 
     explicit_bzero(&warning, sizeof(nbgl_warning_t));
 #ifdef HAVE_WEB3_CHECKS
-    setTxSimuWarning(&warning, false, true);
+    set_tx_simulation_warning(&warning, false, true);
 #endif
     if (warning.predefinedSet == 0) {
         nbgl_useCaseReviewStreamingStart(TYPE_MESSAGE | SKIPPABLE_OPERATION,

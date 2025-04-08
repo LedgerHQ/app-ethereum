@@ -43,8 +43,16 @@ void mem_reset(void) {
  * @return Allocated memory pointer; \ref NULL if not enough space left.
  */
 void *mem_alloc(size_t size) {
+    size_t new_idx;
+    size_t free_size;
+
+    if (__builtin_add_overflow((size_t) mem_idx, size, &new_idx) ||
+        __builtin_sub_overflow(sizeof(mem_buffer), (size_t) mem_rev_idx, &free_size)) {
+        PRINTF("Error: overflow detected!\n");
+        return NULL;
+    }
     // Buffer exceeded
-    if ((mem_idx + size) > (sizeof(mem_buffer) - mem_rev_idx)) {
+    if (new_idx > free_size) {
         PRINTF("Error: mem_alloc(%u) failed!\n", size);
         return NULL;
     }
@@ -74,8 +82,16 @@ void mem_dealloc(size_t size) {
  * @return Allocated memory pointer; \ref NULL if not enough space left.
  */
 void *mem_rev_alloc(size_t size) {
+    size_t free_size;
+    size_t new_rev_idx;
+
+    if (__builtin_add_overflow((size_t) mem_rev_idx, size, &new_rev_idx) ||
+        __builtin_sub_overflow(sizeof(mem_buffer), new_rev_idx, &free_size)) {
+        PRINTF("Error: overflow detected!\n");
+        return NULL;
+    }
     // Buffer exceeded
-    if ((sizeof(mem_buffer) - (mem_rev_idx + size)) < mem_idx) {
+    if (free_size < mem_idx) {
         PRINTF("Error: mem_rev_alloc(%u) failed!\n", size);
         return NULL;
     }

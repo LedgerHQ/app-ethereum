@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <string.h>
 #include "utils.h"
 
@@ -28,4 +29,21 @@ void str_cpy_explicit_trunc(const char *src, size_t src_size, char *dst, size_t 
         memcpy(dst, src, off);
         memcpy(&dst[off], trunc_marker, sizeof(trunc_marker));
     }
+}
+
+/**
+ * @brief Check the name is printable.
+ *
+ * @param[in] data buffer received
+ * @param[in] name Name to check
+ * @param[in] len Length of the name
+ * @return True/False
+ */
+bool check_name(const uint8_t *name, uint16_t len) {
+    for (uint16_t i = 0; i < len; i++) {
+        if (!isprint(name[i])) {
+            return false;
+        }
+    }
+    return true;
 }

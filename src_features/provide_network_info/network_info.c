@@ -219,7 +219,7 @@ bool handle_network_info_struct(const s_tlv_data *data, s_network_info_ctx *cont
             break;
         default:
             PRINTF(TLV_TAG_ERROR_MSG, data->tag);
-            ret = true;  // TODO: shouldn't it be false ?
+            ret = true;
     }
     if (ret && (data->tag != TAG_DER_SIGNATURE)) {
         hash_nbytes(data->raw, data->raw_size, (cx_hash_t *) &context->hash_ctx);

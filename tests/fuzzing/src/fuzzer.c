@@ -120,11 +120,11 @@ int fuzzTxSimulation(const uint8_t *data, size_t size) {
     unsigned int flags;
     if (size < 2) return 0;
 
-    if (handleTxSimulation(data[0], data[1], data + 2, size - 2, &flags) != APDU_RESPONSE_OK)
+    if (handle_tx_simulation(data[0], data[1], data + 2, size - 2, &flags) != APDU_RESPONSE_OK)
         return 1;
 
-    getTxSimuRiskStr();
-    getTxSimuCategoryStr();
+    get_tx_simulation_risk_str();
+    get_tx_simulation_category_str();
     return 0;
 }
 

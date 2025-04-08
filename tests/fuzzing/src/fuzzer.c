@@ -129,12 +129,12 @@ int fuzzTxSimulation(const uint8_t *data, size_t size) {
 }
 
 int fuzzCalldata(const uint8_t *data, size_t size) {
-    calldata_cleanup();
     while (size > 0) {
         switch (data[0]) {
             case 'I':
                 data++;
                 size--;
+                mem_reset();
                 calldata_init(500);
                 break;
             case 'W':

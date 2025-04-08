@@ -88,7 +88,7 @@ _Output data_
 | Public Key length                                                                 | 1
 | Uncompressed Public Key                                                           | var
 | Ethereum address length                                                           | 1
-| Ethereum address                                                                  | var
+| ASCII-encoded Ethereum address                                                    | var
 | Chain code if requested                                                           | 32
 |==============================================================================================================================
 

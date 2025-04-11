@@ -61,13 +61,15 @@ void field_table_cleanup(void) {
 bool add_to_field_table(e_param_type type, const char *key, const char *value) {
     int offset = 0;
     uint8_t *ptr;
-    uint8_t key_len = strlen(key) + 1;
-    uint16_t value_len = strlen(value) + 1;
+    uint8_t key_len;
+    uint16_t value_len;
 
     if ((key == NULL) || (value == NULL)) {
         PRINTF("Error: NULL key/value!\n");
         return false;
     }
+    key_len = strlen(key) + 1;
+    value_len = strlen(value) + 1;
     PRINTF(">>> \"%s\": \"%s\"\n", key, value);
     if ((ptr = mem_alloc(sizeof(type) + sizeof(uint8_t) + sizeof(uint16_t) + key_len +
                          value_len)) == NULL) {

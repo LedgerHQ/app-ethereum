@@ -6,6 +6,9 @@
 #include <stdbool.h>
 #include "common_utils.h"
 #include "nbgl_use_case.h"
+#ifdef HAVE_LEDGER_PKI
+#include "os_pki.h"
+#endif
 
 #define HASH_SIZE    32
 #define MSG_SIZE     25
@@ -41,24 +44,27 @@ typedef struct tx_simu_s {
     uint8_t category;
 } tx_simulation_t;
 
+_Static_assert(CERTIFICATE_TRUSTED_NAME_MAXLEN > PARTNER_SIZE - 1,
+               "Partner size is too big to get the trusted name");
+
 // Global structure to store the tx simultion parameters
 extern tx_simulation_t TX_SIMULATION;
 
-uint16_t handleTxSimulation(uint8_t p1,
-                            uint8_t p2,
-                            const uint8_t *data,
-                            uint8_t length,
-                            unsigned int *flags);
-void handleTxSimulationOptIn(bool response_expected);
+uint16_t handle_tx_simulation(uint8_t p1,
+                              uint8_t p2,
+                              const uint8_t *data,
+                              uint8_t length,
+                              unsigned int *flags);
+void handle_tx_simulation_opt_in(bool response_expected);
 void ui_tx_simulation_error(nbgl_choiceCallback_t callback);
 void ui_tx_simulation_opt_in(bool response_expected);
 
-void clearTxSimulation(void);
-bool checkTxSimulationParams(bool checkTxHash, bool checkFromAddr);
-void setTxSimuWarning(nbgl_warning_t *p_warning, bool checkTxHash, bool checkFromAddr);
+void clear_tx_simulation(void);
+bool check_tx_simulation_params(bool checkTxHash, bool checkFromAddr);
+void set_tx_simulation_warning(nbgl_warning_t *p_warning, bool checkTxHash, bool checkFromAddr);
 
-const char *getTxSimuRiskStr(void);
-const char *getTxSimuCategoryStr(void);
+const char *get_tx_simulation_risk_str(void);
+const char *get_tx_simulation_category_str(void);
 
 #endif  // HAVE_WEB3_CHECKS
 

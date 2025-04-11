@@ -5,6 +5,7 @@
 #include "cx_sha256.h"
 #include "cx_sha3.h"
 #include "buffer.h"
+#include "lcx_ecfp.h"
 
 /** MemorySanitizer does not wrap explicit_bzero https://github.com/google/sanitizers/issues/1507
  * which results in false positives when running MemorySanitizer.
@@ -180,4 +181,19 @@ int io_send_response_buffers(const buffer_t *rdatalist, size_t count, uint16_t s
     UNUSED(count);
     UNUSED(sw);
     return 0;
+}
+
+uint16_t io_seproxyhal_send_status(uint16_t sw, uint32_t tx, bool reset, bool idle) {
+    return 0;
+}
+
+uint32_t os_pki_get_info(uint8_t *key_usage,
+                         uint8_t *trusted_name,
+                         size_t *trusted_name_len,
+                         cx_ecfp_384_public_key_t *public_key) {
+    memcpy(trusted_name, "trusted name", sizeof("trusted name"));
+    return 0;
+}
+
+void ui_tx_simulation_opt_in(bool response_expected) {
 }

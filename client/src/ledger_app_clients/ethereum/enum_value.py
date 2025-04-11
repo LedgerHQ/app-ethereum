@@ -1,6 +1,6 @@
 from enum import IntEnum
 from typing import Optional
-from .tlv import format_tlv
+from .tlv import TlvSerializable
 from .keychain import sign_data, Key
 
 
@@ -15,7 +15,7 @@ class Tag(IntEnum):
     SIGNATURE = 0xff
 
 
-class EnumValue:
+class EnumValue(TlvSerializable):
     version: int
     chain_id: int
     contract_addr: bytes
@@ -45,15 +45,15 @@ class EnumValue:
 
     def serialize(self) -> bytes:
         payload = bytearray()
-        payload += format_tlv(Tag.VERSION, self.version)
-        payload += format_tlv(Tag.CHAIN_ID, self.chain_id)
-        payload += format_tlv(Tag.CONTRACT_ADDR, self.contract_addr)
-        payload += format_tlv(Tag.SELECTOR, self.selector)
-        payload += format_tlv(Tag.ID, self.id)
-        payload += format_tlv(Tag.VALUE, self.value)
-        payload += format_tlv(Tag.NAME, self.name)
+        payload += self.serialize_field(Tag.VERSION, self.version)
+        payload += self.serialize_field(Tag.CHAIN_ID, self.chain_id)
+        payload += self.serialize_field(Tag.CONTRACT_ADDR, self.contract_addr)
+        payload += self.serialize_field(Tag.SELECTOR, self.selector)
+        payload += self.serialize_field(Tag.ID, self.id)
+        payload += self.serialize_field(Tag.VALUE, self.value)
+        payload += self.serialize_field(Tag.NAME, self.name)
         sig = self.signature
         if sig is None:
             sig = sign_data(Key.CALLDATA, payload)
-        payload += format_tlv(Tag.SIGNATURE, sig)
+        payload += self.serialize_field(Tag.SIGNATURE, sig)
         return payload

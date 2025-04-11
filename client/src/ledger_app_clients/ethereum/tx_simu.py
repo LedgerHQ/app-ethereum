@@ -1,7 +1,7 @@
 from typing import Optional
 from enum import IntEnum
 
-from .tlv import format_tlv, FieldTag
+from .tlv import TlvSerializable, FieldTag
 from .keychain import sign_data, Key
 
 
@@ -11,7 +11,7 @@ class SimuType(IntEnum):
     PERSONAL_MESSAGE = 0x02
 
 
-class TxSimu:
+class TxSimu(TlvSerializable):
     simu_type: SimuType
     risk: int
     category: int
@@ -46,21 +46,21 @@ class TxSimu:
         assert self.from_addr is not None, "From address is required"
         assert self.tx_hash is not None, "Transaction hash is required"
         # Construct the TLV payload
-        payload: bytes = format_tlv(FieldTag.STRUCT_TYPE, 9)
-        payload += format_tlv(FieldTag.STRUCT_VERSION, 1)
-        payload += format_tlv(FieldTag.W3C_SIMULATION_TYPE, self.simu_type)
-        payload += format_tlv(FieldTag.ADDRESS, self.from_addr)
-        payload += format_tlv(FieldTag.TX_HASH, self.tx_hash)
-        payload += format_tlv(FieldTag.W3C_NORMALIZED_RISK, self.risk)
-        payload += format_tlv(FieldTag.W3C_NORMALIZED_CATEGORY, self.category)
-        payload += format_tlv(FieldTag.W3C_TINY_URL, self.tiny_url.encode('utf-8'))
+        payload: bytes = self.serialize_field(FieldTag.STRUCT_TYPE, 9)
+        payload += self.serialize_field(FieldTag.STRUCT_VERSION, 1)
+        payload += self.serialize_field(FieldTag.W3C_SIMULATION_TYPE, self.simu_type)
+        payload += self.serialize_field(FieldTag.ADDRESS, self.from_addr)
+        payload += self.serialize_field(FieldTag.TX_HASH, self.tx_hash)
+        payload += self.serialize_field(FieldTag.W3C_NORMALIZED_RISK, self.risk)
+        payload += self.serialize_field(FieldTag.W3C_NORMALIZED_CATEGORY, self.category)
+        payload += self.serialize_field(FieldTag.W3C_TINY_URL, self.tiny_url.encode('utf-8'))
         if self.chain_id:
-            payload += format_tlv(FieldTag.CHAIN_ID, self.chain_id.to_bytes(8, 'big'))
+            payload += self.serialize_field(FieldTag.CHAIN_ID, self.chain_id.to_bytes(8, 'big'))
         if self.domain_hash:
-            payload += format_tlv(FieldTag.DOMAIN_HASH, self.domain_hash)
+            payload += self.serialize_field(FieldTag.DOMAIN_HASH, self.domain_hash)
         if self.provider_message:
-            payload += format_tlv(FieldTag.W3C_PROVIDER_MSG, self.provider_message.encode('utf-8'))
+            payload += self.serialize_field(FieldTag.W3C_PROVIDER_MSG, self.provider_message.encode('utf-8'))
 
         # Append the data Signature
-        payload += format_tlv(FieldTag.DER_SIGNATURE, sign_data(Key.WEB3_CHECK, payload))
+        payload += self.serialize_field(FieldTag.DER_SIGNATURE, sign_data(Key.WEB3_CHECK, payload))
         return payload

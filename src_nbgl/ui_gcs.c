@@ -157,7 +157,7 @@ bool ui_gcs(void) {
 
     explicit_bzero(&warning, sizeof(nbgl_warning_t));
 #ifdef HAVE_WEB3_CHECKS
-    setTxSimuWarning(&warning, true, true);
+    set_tx_simulation_warning(&warning, true, true);
 #endif
 
     snprintf(tmp_buf, tmp_buf_size, "Review transaction to %s", get_operation_type());
@@ -209,6 +209,9 @@ bool ui_gcs(void) {
     }
     ext->infolist = infolist;
     ext->aliasType = INFO_LIST_ALIAS;
+    if ((ext->backText = get_creator_name()) == NULL) {
+        ext->backText = _strdup("Smart contract information");
+    }
     pairs[0].extension = ext;
     pairs[0].aliasValue = 1;
 

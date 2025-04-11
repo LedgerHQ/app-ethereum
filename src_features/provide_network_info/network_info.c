@@ -1,6 +1,5 @@
 #ifdef HAVE_DYNAMIC_NETWORKS
 
-#include <ctype.h>
 #include "network_info.h"
 #include "utils.h"
 #include "read.h"
@@ -106,23 +105,6 @@ static bool handle_chain_id(const s_tlv_data *data, s_network_info_ctx *context)
         return false;
     }
     context->network.chain_id = chain_id;
-    return true;
-}
-
-/**
- * @brief Check the name is printable.
- *
- * @param[in] data buffer received
- * @param[in] name Name to check
- * @param[in] len Length of the name
- * @return True/False
- */
-static bool check_name(const uint8_t *name, uint16_t len) {
-    for (uint16_t i = 0; i < len; i++) {
-        if (!isprint(name[i])) {
-            return false;
-        }
-    }
     return true;
 }
 
@@ -237,7 +219,7 @@ bool handle_network_info_struct(const s_tlv_data *data, s_network_info_ctx *cont
             break;
         default:
             PRINTF(TLV_TAG_ERROR_MSG, data->tag);
-            ret = true;  // TODO: shouldn't it be false ?
+            ret = true;
     }
     if (ret && (data->tag != TAG_DER_SIGNATURE)) {
         hash_nbytes(data->raw, data->raw_size, (cx_hash_t *) &context->hash_ctx);

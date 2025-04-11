@@ -13,6 +13,7 @@
 #include "gtp_param_unit.h"
 #include "gtp_param_enum.h"
 #include "gtp_param_trusted_name.h"
+#include "gtp_param_token.h"
 
 typedef enum {
     PARAM_TYPE_RAW = 0,
@@ -24,6 +25,8 @@ typedef enum {
     PARAM_TYPE_UNIT,
     PARAM_TYPE_ENUM,
     PARAM_TYPE_TRUSTED_NAME,
+    PARAM_TYPE_CALLDATA,
+    PARAM_TYPE_TOKEN,
 } e_param_type;
 
 typedef struct {
@@ -46,6 +49,7 @@ typedef struct {
 #ifdef HAVE_TRUSTED_NAME
         s_param_trusted_name param_trusted_name;
 #endif
+        s_param_token param_token;
     };
 } s_field;
 

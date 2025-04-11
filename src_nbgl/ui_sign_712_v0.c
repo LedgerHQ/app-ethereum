@@ -31,9 +31,13 @@ void ui_sign_712_v0(void) {
     pairs_list.pairs = pairs;
     pairs_list.nbMaxLinesForValue = 0;
 
+    if (appState != APP_STATE_IDLE) {
+        reset_app_context();
+    }
+    appState = APP_STATE_SIGNING_EIP712;
     explicit_bzero(&warning, sizeof(nbgl_warning_t));
 #ifdef HAVE_WEB3_CHECKS
-    setTxSimuWarning(&warning, true, true);
+    set_tx_simulation_warning(&warning, true, true);
 #endif
     warning.predefinedSet |= SET_BIT(BLIND_SIGNING_WARN);
 

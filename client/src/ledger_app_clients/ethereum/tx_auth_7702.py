@@ -18,17 +18,20 @@ class TxAuth7702(TlvSerializable):
     bip32_path: str
     delegate: bytes
     nonce: int
-    chain_id: Optional[int] = 0
+    chain_id: int
 
     def __init__(self,
                  bip32_path: str,
                  delegate: bytes,
                  nonce: int,
-                 chain_id: Optional[int] = 0) -> None:
+                 chain_id: Optional[int]) -> None:
         self.bip32_path = bip32_path
         self.delegate = delegate
         self.nonce = nonce
-        self.chain_id = chain_id
+        if chain_id is None:
+        	self.chain_id = 0
+        else:
+        	self.chain_id = chain_id
 
     def serialize(self) -> bytes:
         payload: bytes = self.serialize_field(FieldTag.STRUCT_VERSION, 1)

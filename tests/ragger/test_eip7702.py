@@ -73,9 +73,6 @@ def common_rejected(firmware: Firmware,
         with app_client.sign_eip7702_authorization(BIP32_PATH, delegate, nonce, chain_id):
             moves = []
             if firmware.is_nano:
-                if firmware == Firmware.NANOS:
-                    time.sleep(0.5)  # seems to take some time
-                    moves += [NavInsID.RIGHT_CLICK]
                 moves += [NavInsID.BOTH_CLICK]
             else:
                 moves += [NavInsID.USE_CASE_CHOICE_REJECT]
@@ -92,6 +89,8 @@ def test_eip7702_in_whitelist(firmware: Firmware,
                                 backend: BackendInterface,
                                 scenario_navigator: NavigateWithScenario,
                                 test_name: str):
+    if firmware == Firmware.NANOS:
+        pytest.skip("Not supported on LNS")
     settings_toggle(firmware, scenario_navigator.navigator, [SettingID.EIP7702])
     common(firmware, backend, scenario_navigator, test_name, TEST_ADDRESS_1, NONCE, CHAIN_ID_1, 
         bytes.fromhex("00"),
@@ -102,6 +101,8 @@ def test_eip7702_in_whitelist_all_chain_whitelisted(firmware: Firmware,
                                 backend: BackendInterface,
                                 scenario_navigator: NavigateWithScenario,
                                 test_name: str):
+    if firmware == Firmware.NANOS:
+        pytest.skip("Not supported on LNS")
     settings_toggle(firmware, scenario_navigator.navigator, [SettingID.EIP7702])
     common(firmware, backend, scenario_navigator, test_name, TEST_ADDRESS_0, NONCE, CHAIN_ID_2,
         bytes.fromhex("00"),
@@ -112,6 +113,8 @@ def test_eip7702_in_whitelist_all_chain_param(firmware: Firmware,
                                 backend: BackendInterface,
                                 scenario_navigator: NavigateWithScenario,
                                 test_name: str):
+    if firmware == Firmware.NANOS:
+        pytest.skip("Not supported on LNS")
     settings_toggle(firmware, scenario_navigator.navigator, [SettingID.EIP7702])
     common(firmware, backend, scenario_navigator, test_name, TEST_ADDRESS_2, NONCE, CHAIN_ID_0,
         bytes.fromhex("01"),
@@ -122,6 +125,8 @@ def test_eip7702_in_whitelist_max(firmware: Firmware,
                                 backend: BackendInterface,
                                 scenario_navigator: NavigateWithScenario,
                                 test_name: str):
+    if firmware == Firmware.NANOS:
+        pytest.skip("Not supported on LNS")
     settings_toggle(firmware, scenario_navigator.navigator, [SettingID.EIP7702])
     common(firmware, backend, scenario_navigator, test_name, TEST_ADDRESS_MAX, NONCE_MAX, CHAIN_ID_MAX,
         bytes.fromhex("00"),
@@ -133,6 +138,8 @@ def test_eip7702_in_whitelist_wrong_chain(firmware: Firmware,
                                 backend: BackendInterface,
                                 scenario_navigator: NavigateWithScenario,
                                 test_name: str):
+    if firmware == Firmware.NANOS:
+        pytest.skip("Not supported on LNS")
     settings_toggle(firmware, scenario_navigator.navigator, [SettingID.EIP7702])
     common_rejected(firmware, backend, scenario_navigator, test_name, TEST_ADDRESS_2, NONCE, CHAIN_ID_1)
 
@@ -140,6 +147,8 @@ def test_eip7702_not_in_whitelist(firmware: Firmware,
                                 backend: BackendInterface,
                                 scenario_navigator: NavigateWithScenario,
                                 test_name: str):
+    if firmware == Firmware.NANOS:
+        pytest.skip("Not supported on LNS")
     settings_toggle(firmware, scenario_navigator.navigator, [SettingID.EIP7702])
     common_rejected(firmware, backend, scenario_navigator, test_name, TEST_ADDRESS_NO_WHITELIST, NONCE, CHAIN_ID_1)
 
@@ -147,4 +156,6 @@ def test_eip7702_not_enabled(firmware: Firmware,
                                 backend: BackendInterface,
                                 scenario_navigator: NavigateWithScenario,
                                 test_name: str):
+    if firmware == Firmware.NANOS:
+        pytest.skip("Not supported on LNS")
     common_rejected(firmware, backend, scenario_navigator, test_name, TEST_ADDRESS_1, NONCE, CHAIN_ID_1)

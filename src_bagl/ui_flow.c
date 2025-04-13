@@ -145,21 +145,12 @@ UX_STEP_CB(
 #ifdef HAVE_EIP7702
 UX_STEP_CB(
     ux_settings_flow_7702_step,
-#ifdef TARGET_NANOS
-    bnnn_paging,
-#else
     bnnn,
-#endif
     switch_settings_eip7702(),
     {
-#ifdef TARGET_NANOS
-      .title = "Smart accounts",
-      .text =
-#else
       "Smart accounts",
       "Enable EIP7702",
       "authorizations",
-#endif      
       SETTING_EIP7702_STATE
     });
 #endif // HAVE_EIP7702
@@ -319,16 +310,6 @@ UX_FLOW(ux_warning_blind_signing_flow,
 
 //////////////////////////////////////////////////////////////////////
 // clang-format off
-#ifdef TARGET_NANOS
-UX_STEP_CB(
-    ux_error_7702_not_enabled_step,
-    bnnn_paging,
-    ui_idle(),
-    {
-      "Error",
-      "7702 not enabled",
-    });
-#else
 UX_STEP_CB(
     ux_error_7702_not_enabled_step,
     pnn,
@@ -338,19 +319,8 @@ UX_STEP_CB(
       "Smart accounts must",
       "be enabled in Settings",
     });
-#endif
 
 #ifdef HAVE_EIP7702_WHITELIST
-#ifdef TARGET_NANOS
-UX_STEP_CB(
-    ux_error_7702_not_whitelisted_step,
-    bnnn_paging,
-    ui_idle(),
-    {
-      "Error",
-      "7702 not enabled",
-    });
-#else
 UX_STEP_CB(
     ux_error_7702_not_whitelisted_step,
     pnn,
@@ -360,7 +330,6 @@ UX_STEP_CB(
       "Authorization to non",
       "whitelisted contract",
     });
-#endif
 #endif //HAVE_EIP7702_WHITELIST
 
 // clang-format on

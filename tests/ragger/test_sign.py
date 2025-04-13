@@ -1,3 +1,5 @@
+import pytest
+
 from pathlib import Path
 from web3 import Web3
 

@@ -10,7 +10,7 @@ from client.client import EthAppClient, StatusWord
 from client.settings import SettingID, settings_toggle
 import client.response_parser as ResponseParser
 from client.utils import recover_message
-
+from client.tx_auth_7702 import TxAuth7702
 
 BIP32_PATH = "m/44'/60'/0'/0/0"
 TEST_ADDRESS_0 = bytes.fromhex("00" * 20)
@@ -47,7 +47,8 @@ def common(firmware: Firmware,
     else:
         end_text = ".*Sign.*"
 
-    with app_client.sign_eip7702_authorization(BIP32_PATH, delegate, nonce, chain_id):
+    auth_params = TxAuth7702(BIP32_PATH, delegate, nonce, chain_id)
+    with app_client.sign_eip7702_authorization(auth_params):
         scenario.review_approve(test_name=test_name, custom_screen_text=end_text)
     vrs = ResponseParser.signature(app_client.response().data)
     if v != None:
@@ -70,7 +71,8 @@ def common_rejected(firmware: Firmware,
 #        with app_client.sign_eip7702_authorization(BIP32_PATH, delegate, nonce, chain_id):
 #            scenario.review_reject(custom_screen_text=".*7702*")
     try:
-        with app_client.sign_eip7702_authorization(BIP32_PATH, delegate, nonce, chain_id):
+        auth_params = TxAuth7702(BIP32_PATH, delegate, nonce, chain_id)
+        with app_client.sign_eip7702_authorization(auth_params):
             moves = []
             if firmware.is_nano:
                 moves += [NavInsID.BOTH_CLICK]

@@ -17,6 +17,7 @@ from .keychain import sign_data, Key
 from .tlv import format_tlv, FieldTag
 from .response_parser import pk_addr
 from .tx_simu import TxSimu
+from .tx_auth_7702 import TxAuth7702
 
 
 class StatusWord(IntEnum):
@@ -679,12 +680,8 @@ class EthAppClient:
             self._exchange(chunk)
         return self._exchange(chunks[-1])
 
-    def sign_eip7702_authorization(self,
-                                   bip32_path: str,
-                                   delegate: bytes,
-                                   nonce: int,
-                                   chain_id: Optional[int] = None) -> RAPDU:
-        return self._exchange_async(self._cmd_builder.sign_eip7702_authorization(bip32_path,
-                                                                                 delegate,
-                                                                                 nonce,
-                                                                                 chain_id))
+    def sign_eip7702_authorization(self, auth_params: TxAuth7702) -> RAPDU:
+        chunks = self._cmd_builder.sign_eip7702_authorization(auth_params.serialize())
+        for chunk in chunks[:-1]:
+            self._exchange(chunk)
+        return self._exchange_async(chunks[-1])

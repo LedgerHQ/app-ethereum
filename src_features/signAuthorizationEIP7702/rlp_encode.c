@@ -1,3 +1,5 @@
+#ifdef HAVE_EIP7702
+
 #include "rlp_encode.h"
 
 #define RLP_NUMBER8_MAX 0x7F
@@ -36,12 +38,31 @@ uint8_t rlpGetEncodedNumberLength(const uint8_t *number, uint8_t numberLength) {
     if (numberLength == 1) {
         if (number[0] <= RLP_NUMBER8_MAX) {
             return 1;
-        } else {
-            return 2;
         }
-    } else {
-        return numberLength + 1;
     }
+    return numberLength + 1;
+}
+
+uint8_t rlpGetSmallestNumber64EncodingSize(uint64_t number) {
+    uint8_t size = 1;
+    while (number) {
+        number >>= 8;
+        if (number == 0) {
+            return size;
+        }
+        size++;
+    }
+    return 0;
+}
+
+uint8_t rlpGetEncodedNumber64Length(uint64_t number) {
+    uint8_t size = rlpGetSmallestNumber64EncodingSize(number);
+    if (size == 1) {
+        if (number <= RLP_NUMBER8_MAX) {
+            return 1;
+        }
+    }
+    return size + 1;
 }
 
 uint8_t rlpEncodeListHeader8(uint8_t size, uint8_t *output, size_t output_size) {
@@ -57,3 +78,5 @@ uint8_t rlpEncodeListHeader8(uint8_t size, uint8_t *output, size_t output_size) 
         return 2;
     }
 }
+
+#endif  // HAVE_EIP7702

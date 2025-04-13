@@ -1470,24 +1470,30 @@ _Command_
 [width="80%"]
 |==============================================================
 | *CLA* | *INS*  | *P1*               | *P2*       | *LC*
-|   E0  |   34   | 00                 | 00         | 00
+|   E0  |   34   | 01 : first chunk
+
+                   00 : following chunk
+                                      | 00         | 00
 |==============================================================
 
 _Input data_
 
+##### If P1 == first chunk
+
 [width="80%"]
-|==========================================
-| *Description*         | *Length (byte)*
-| Number of BIP 32 derivations to perform (max 10)                                  | 1
-| First derivation index (big endian)                                               | 4
-| ...                                                                               | 4
-| Last derivation index (big endian)                                                | 4
-| Delegate address                                                                  | 20
-| Length of Chain ID (max 32)                                                       | 1
-| Chain ID (smallest big endian encoding)                                           | variable
-| Length of Nonce (max 8)                                                           | 1
-| Nonce (smallest big endian encoding)                                              | variable
-|==========================================
+|====================================================================
+| *Description*                                     | *Length (byte)*
+| struct size (BE)                                  | 2
+| link:tlv_structs.md#auth_7702[AUTH_7702 struct] | variable
+|====================================================================
+
+##### If P1 == following chunk
+
+[width="80%"]
+|====================================================================
+| *Description*                                     | *Length (byte)*
+| link:tlv_structs.md#auth_7702[AUTH_7702 struct] | variable
+|====================================================================
 
 _Output data_
 

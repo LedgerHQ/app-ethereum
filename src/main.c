@@ -278,7 +278,7 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
 
 #ifdef HAVE_EIP7702
         case INS_SIGN_EIP7702_AUTHORIZATION:
-            sw = handleSignEIP7702Authorization(cmd->data, cmd->lc, flags);
+            sw = handleSignEIP7702Authorization(cmd->p1, cmd->data, cmd->lc, flags);
             break;
 #endif  // HAVE_EIP7702
 

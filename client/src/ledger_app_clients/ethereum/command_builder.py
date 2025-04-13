@@ -463,23 +463,8 @@ class CommandBuilder:
                 p1 = P1Type.FOLLOWING_CHUNK
         return chunks
 
-    def sign_eip7702_authorization(self,
-                                   bip32_path: str,
-                                   delegate: bytes,
-                                   nonce: int,
-                                   chain_id: Optional[int]) -> bytes:
-        data = pack_derivation_path(bip32_path)
-        data += delegate
-        if chain_id is None:
-            chain_id = 0
-        tmp = self._intToBytes(chain_id)
-        data += struct.pack(">B", len(tmp)) + tmp
-        tmp = self._intToBytes(nonce)
-        data += struct.pack(">B", len(tmp)) + tmp
-        return self._serialize(InsType.SIGN_EIP7702_AUTHORIZATION,
-                               0x00,
-                               0x00,
-                               data)
+    def sign_eip7702_authorization(self, tlv_payload: bytes) -> list[bytes]:
+        return self.common_tlv_serialize(InsType.SIGN_EIP7702_AUTHORIZATION, tlv_payload)
 
     def provide_enum_value(self, tlv_payload: bytes) -> list[bytes]:
         return self.common_tlv_serialize(InsType.PROVIDE_ENUM_VALUE, tlv_payload)

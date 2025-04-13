@@ -29,9 +29,9 @@ class TxAuth7702(TlvSerializable):
         self.delegate = delegate
         self.nonce = nonce
         if chain_id is None:
-        	self.chain_id = 0
+            self.chain_id = 0
         else:
-        	self.chain_id = chain_id
+            self.chain_id = chain_id
 
     def serialize(self) -> bytes:
         payload: bytes = self.serialize_field(FieldTag.STRUCT_VERSION, 1)

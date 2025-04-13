@@ -359,7 +359,8 @@ def test_sign_eip_7702(firmware: Firmware,
                        scenario_navigator: NavigateWithScenario,
                        test_name: str,
                        default_screenshot_path: Path):
-
+    if firmware == Firmware.NANOS:
+        pytest.skip("Not supported on LNS")
     tx_params = {
         "chainId" : 1
     }

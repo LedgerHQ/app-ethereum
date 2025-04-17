@@ -181,7 +181,7 @@ def test_tx_simulation_sign(firmware: Firmware,
                    scenario_navigator,
                    default_screenshot_path,
                    tx_params,
-                   test_name + f"_{config}",
+                   test_name=test_name + f"_{config}",
                    with_simu=config not in ("benign", "issue"))
 
 
@@ -216,7 +216,7 @@ def test_tx_simulation_no_simu(firmware: Firmware,
                    scenario_navigator,
                    default_screenshot_path,
                    tx_params,
-                   test_name,
+                   test_name=test_name,
                    with_simu=False)
 
 

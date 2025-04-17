@@ -69,20 +69,25 @@ bool format_param_datetime(const s_param_datetime *param, const char *name) {
     s_parsed_value_collection collec = {0};
     char *buf = strings.tmp.tmp;
     size_t buf_size = sizeof(strings.tmp.tmp);
-    uint8_t time_buf[sizeof(uint32_t)] = {0};
+    uint8_t time_buf[sizeof(time_t)] = {0};
     time_t timestamp;
     uint256_t block_height;
 
     if ((ret = value_get(&param->value, &collec))) {
         for (int i = 0; i < collec.size; ++i) {
             if (param->type == DT_UNIX) {
-                buf_shrink_expand(collec.value[i].ptr,
-                                  collec.value[i].length,
-                                  time_buf,
-                                  sizeof(time_buf));
-                timestamp = read_u32_be(time_buf, 0);
-                if (!(ret = time_format_to_utc(&timestamp, buf, buf_size))) {
-                    break;
+                if ((collec.value[i].length >= param->value.type_size) &&
+                    ismaxint((uint8_t *) collec.value[i].ptr, collec.value[i].length)) {
+                    snprintf(buf, buf_size, "Unlimited");
+                } else {
+                    buf_shrink_expand(collec.value[i].ptr,
+                                      collec.value[i].length,
+                                      time_buf,
+                                      sizeof(time_buf));
+                    timestamp = read_u64_be(time_buf, 0);
+                    if (!(ret = time_format_to_utc(&timestamp, buf, buf_size))) {
+                        break;
+                    }
                 }
             } else if (param->type == DT_BLOCKHEIGHT) {
                 convertUint256BE(collec.value[i].ptr, collec.value[i].length, &block_height);

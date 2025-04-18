@@ -149,6 +149,8 @@ static bool processAccessList(txContext_t *context) {
     return true;
 }
 
+#ifdef HAVE_EIP7702
+
 static bool processAuthList(txContext_t *context) {
     if (check_empty_list(context, "RLP_AUTH_LIST") == false) {
         return false;
@@ -167,6 +169,8 @@ static bool processAuthList(txContext_t *context) {
     }
     return true;
 }
+
+#endif  // HAVE_EIP7702
 
 static bool processChainID(txContext_t *context) {
     if (check_fields(context, "RLP_CHAINID", INT256_LENGTH) == false) {
@@ -378,6 +382,8 @@ static bool processV(txContext_t *context) {
     return true;
 }
 
+#ifdef HAVE_EIP7702
+
 static bool processEIP7702Tx(txContext_t *context) {
     bool ret = false;
     switch (context->currentField) {
@@ -429,6 +435,8 @@ static bool processEIP7702Tx(txContext_t *context) {
     }
     return ret;
 }
+
+#endif  // HAVE_EIP7702
 
 static bool processEIP1559Tx(txContext_t *context) {
     bool ret = false;
@@ -654,11 +662,13 @@ static parserStatus_e processTxInternal(txContext_t *context) {
                         return USTREAM_FAULT;
                     }
                     break;
+#ifdef HAVE_EIP7702
                 case EIP7702:
                     if (processEIP7702Tx(context) == false) {
                         return USTREAM_FAULT;
                     }
                     break;
+#endif  // HAVE_EIP7702
                 default:
                     PRINTF("Transaction type %d is not supported\n", context->txType);
                     return USTREAM_FAULT;

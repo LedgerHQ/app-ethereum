@@ -39,8 +39,11 @@ static uint32_t splitBinaryParameterPart(char *result, size_t result_size, uint8
 customStatus_e customProcessor(txContext_t *context) {
     if (((context->txType == LEGACY && context->currentField == LEGACY_RLP_DATA) ||
          (context->txType == EIP2930 && context->currentField == EIP2930_RLP_DATA) ||
-         (context->txType == EIP1559 && context->currentField == EIP1559_RLP_DATA) ||
-         (context->txType == EIP7702 && context->currentField == EIP7702_RLP_DATA)) &&
+         (context->txType == EIP1559 && context->currentField == EIP1559_RLP_DATA)
+#ifdef HAVE_EIP7702
+         || (context->txType == EIP7702 && context->currentField == EIP7702_RLP_DATA)
+#endif  // HAVE_EIP7702
+             ) &&
         (context->currentFieldLength != 0)) {
         context->content->dataPresent = true;
         // If handling a new contract rather than a function call, abort immediately

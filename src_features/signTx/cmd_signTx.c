@@ -51,7 +51,9 @@ static uint16_t handle_first_sign_chunk(const uint8_t *payload,
         switch (tx_type) {
             case EIP1559:
             case EIP2930:
+#ifdef HAVE_EIP7702
             case EIP7702:
+#endif  // HAVE_EIP7702
                 break;
             default:
                 PRINTF("Transaction type %d not supported\n", tx_type);

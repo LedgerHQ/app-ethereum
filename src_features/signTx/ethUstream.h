@@ -35,11 +35,22 @@ typedef enum customStatus_e {
 // First variant of every Tx enum.
 #define RLP_NONE 0
 
+#ifdef HAVE_EIP7702
+
 #define PARSING_IS_DONE(ctx)                                              \
     ((ctx->txType == LEGACY && ctx->currentField == LEGACY_RLP_DONE) ||   \
      (ctx->txType == EIP2930 && ctx->currentField == EIP2930_RLP_DONE) || \
      (ctx->txType == EIP1559 && ctx->currentField == EIP1559_RLP_DONE) || \
      (ctx->txType == EIP7702 && ctx->currentField == EIP7702_RLP_DONE))
+
+#else
+
+#define PARSING_IS_DONE(ctx)                                              \
+    ((ctx->txType == LEGACY && ctx->currentField == LEGACY_RLP_DONE) ||   \
+     (ctx->txType == EIP2930 && ctx->currentField == EIP2930_RLP_DONE) || \
+     (ctx->txType == EIP1559 && ctx->currentField == EIP1559_RLP_DONE))
+
+#endif  // HAVE_EIP7702
 
 typedef enum rlpLegacyTxField_e {
     LEGACY_RLP_NONE = RLP_NONE,
@@ -85,6 +96,8 @@ typedef enum rlpEIP1559TxField_e {
     EIP1559_RLP_DONE
 } rlpEIP1559TxField_e;
 
+#ifdef HAVE_EIP7702
+
 typedef enum rlpEIP7702TxField_e {
     EIP7702_RLP_NONE = RLP_NONE,
     EIP7702_RLP_CONTENT,
@@ -101,6 +114,8 @@ typedef enum rlpEIP7702TxField_e {
     EIP7702_RLP_DONE
 } rlpEIP7702TxField_e;
 
+#endif  // HAVE_EIP7702
+
 #define MIN_TX_TYPE 0x00
 #define MAX_TX_TYPE 0x7f
 
@@ -109,7 +124,9 @@ typedef enum rlpEIP7702TxField_e {
 typedef enum txType_e {
     EIP2930 = 0x01,
     EIP1559 = 0x02,
+#ifdef HAVE_EIP7702
     EIP7702 = 0x04,
+#endif             // HAVE_EIP7702
     LEGACY = 0xc0  // Legacy tx are greater than or equal to 0xc0.
 } txType_e;
 

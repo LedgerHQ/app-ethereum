@@ -36,4 +36,11 @@ def test_clone_thundercore(firmware: Firmware,
         "value": Web3.to_wei(VALUE, "ether"),
         "chainId": 108
     }
-    common(firmware, backend, navigator, scenario_navigator, default_screenshot_path, tx_params, test_name, BIP32_PATH)
+    common(firmware,
+           backend,
+           navigator,
+           scenario_navigator,
+           default_screenshot_path,
+           tx_params,
+           test_name=test_name,
+           path=BIP32_PATH)

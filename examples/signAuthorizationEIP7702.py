@@ -27,10 +27,16 @@ import binascii
 import math
 import rlp
 
-def intToBytes(i: int) -> bytes:
-    if i == 0:
-        return b"\x00"
-    return i.to_bytes(math.ceil(i.bit_length() / 8), 'big')
+
+
+def der_encode(value):
+    value_bytes = value.to_bytes(max(1, (value.bit_length() + 7) // 8), 'big')
+    if value >= 0x80:
+        value_bytes = (0x80 | len(value_bytes)).to_bytes(1, 'big') + value_bytes
+    return value_bytes
+
+def tlv_encode(tag, value):
+    return der_encode(tag) + der_encode(len(value)) + value
 
 def parse_bip32_path(path):
     if len(path) == 0:
@@ -39,6 +45,7 @@ def parse_bip32_path(path):
     elements = path.split('/')
     for pathElement in elements:
         element = pathElement.split('\'')
+        result = result + der_encode(0x01) + der_encode(0x04)
         if len(element) == 1:
             result = result + struct.pack(">I", int(element[0]))
         else:
@@ -56,17 +63,18 @@ args = parser.parse_args()
 if args.path == None:
     args.path = "44'/60'/0'/0/0"
 
+tmp = tlv_encode(0x00, struct.pack(">B", 0x01))
+tmp += parse_bip32_path(args.path)
 data = binascii.unhexlify(args.delegate[2:])
-tmp = intToBytes(args.chainid)
-data += struct.pack(">B", len(tmp)) + tmp
-tmp = intToBytes(args.nonce)
-data += struct.pack(">B", len(tmp)) + tmp
+tmp += tlv_encode(0x02, data)
+tmp += tlv_encode(0x03, struct.pack(">Q", args.chainid))
+tmp += tlv_encode(0x04, struct.pack(">Q", args.nonce))
 
-donglePath = parse_bip32_path(args.path)
-apdu = bytearray.fromhex("e0320000")
-apdu += struct.pack(">B", len(donglePath) + 1 + len(data))
-apdu += struct.pack(">B", len(donglePath) // 4)
-apdu += donglePath + data
+tmp = struct.pack(">H", len(tmp)) + tmp
+
+apdu = bytearray.fromhex("e0340100")
+apdu += struct.pack(">B", len(tmp))
+apdu += tmp
 
 dongle = getDongle(True)
 result = dongle.exchange(bytes(apdu))
@@ -81,4 +89,3 @@ print("s = " + binascii.hexlify(s).decode('utf-8'))
 
 rlpData = [ args.chainid, binascii.unhexlify(args.delegate[2:]), args.nonce, v, r, s ]
 print(binascii.hexlify(rlp.encode(rlpData)).decode('utf-8'))
-

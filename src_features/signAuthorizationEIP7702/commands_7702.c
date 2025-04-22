@@ -60,6 +60,7 @@ uint16_t hashRLP64(uint64_t data, uint8_t *rlpTmp, uint8_t rlpTmpLength) {
 static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size, bool to_free) {
     s_auth_7702_ctx auth_7702_ctx = {0};
     s_auth_7702 *auth7702 = &auth_7702_ctx.auth_7702;
+    bool parsing_ret;
     uint8_t rlpDataSize = 0;
     uint8_t rlpTmp[40];
     uint8_t hashSize;
@@ -71,11 +72,10 @@ static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size, bool to_fre
     const char *delegateName;
 #endif
 
-    if (!tlv_parse(payload, size, (f_tlv_data_handler) handle_auth_7702_struct, &auth_7702_ctx)) {
-        return false;
-    }
+    parsing_ret =
+        tlv_parse(payload, size, (f_tlv_data_handler) handle_auth_7702_struct, &auth_7702_ctx);
     if (to_free) mem_dealloc(size);
-    if (!verify_auth_7702_struct(&auth_7702_ctx)) {
+    if (!parsing_ret || !verify_auth_7702_struct(&auth_7702_ctx)) {
         return false;
     }
 

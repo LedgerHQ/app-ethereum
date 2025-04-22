@@ -79,10 +79,6 @@ static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size, bool to_fre
         return false;
     }
 
-    memmove((void *) &tmpCtx.authSigningContext7702.bip32,
-            (void *) &auth7702->bip32,
-            sizeof(bip32_path_t));
-
     // Reject if not enabled
     if (!N_storage.eip7702_enable) {
         ui_error_no_7702();
@@ -198,6 +194,13 @@ uint16_t handleSignEIP7702Authorization(uint8_t p1,
                                         unsigned int *flags) {
     g_7702_sw = APDU_RESPONSE_OK;
     g_7702_flags = *flags;
+    if (p1 == P1_FIRST_CHUNK) {
+        if ((dataBuffer =
+                 parseBip32(dataBuffer, &dataLength, &tmpCtx.authSigningContext7702.bip32)) ==
+            NULL) {
+            return APDU_RESPONSE_INVALID_DATA;
+        }
+    }
     if (!tlv_from_apdu(p1 == P1_FIRST_CHUNK, dataLength, dataBuffer, &handleAuth7702TLV)) {
         return APDU_RESPONSE_INVALID_DATA;
     }

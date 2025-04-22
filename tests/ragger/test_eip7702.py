@@ -47,8 +47,8 @@ def common(firmware: Firmware,
     else:
         end_text = ".*Sign.*"
 
-    auth_params = TxAuth7702(BIP32_PATH, delegate, nonce, chain_id)
-    with app_client.sign_eip7702_authorization(auth_params):
+    auth_params = TxAuth7702(delegate, nonce, chain_id)
+    with app_client.sign_eip7702_authorization(BIP32_PATH, auth_params):
         scenario.review_approve(test_name=test_name, custom_screen_text=end_text)
     vrs = ResponseParser.signature(app_client.response().data)
     if v != None:
@@ -71,8 +71,8 @@ def common_rejected(firmware: Firmware,
 #        with app_client.sign_eip7702_authorization(BIP32_PATH, delegate, nonce, chain_id):
 #            scenario.review_reject(custom_screen_text=".*7702*")
     try:
-        auth_params = TxAuth7702(BIP32_PATH, delegate, nonce, chain_id)
-        with app_client.sign_eip7702_authorization(auth_params):
+        auth_params = TxAuth7702(delegate, nonce, chain_id)
+        with app_client.sign_eip7702_authorization(BIP32_PATH, auth_params):
             moves = []
             if firmware.is_nano:
                 moves += [NavInsID.BOTH_CLICK]
@@ -87,14 +87,14 @@ def common_rejected(firmware: Firmware,
     else:
         assert False  # An exception should have been raised
 
-def test_eip7702_in_whitelist(firmware: Firmware, 
+def test_eip7702_in_whitelist(firmware: Firmware,
                                 backend: BackendInterface,
                                 scenario_navigator: NavigateWithScenario,
                                 test_name: str):
     if firmware == Firmware.NANOS:
         pytest.skip("Not supported on LNS")
     settings_toggle(firmware, scenario_navigator.navigator, [SettingID.EIP7702])
-    common(firmware, backend, scenario_navigator, test_name, TEST_ADDRESS_1, NONCE, CHAIN_ID_1, 
+    common(firmware, backend, scenario_navigator, test_name, TEST_ADDRESS_1, NONCE, CHAIN_ID_1,
         bytes.fromhex("00"),
         bytes.fromhex("f82e 50a7 55fa 989f 4bb9 b36b 15af b442 4ce9 cda6 9752 fd17 a7eb 1473 7d96 3e62"),
         bytes.fromhex("07c9 c91d 6140 b45e a52f 29de 7a5e ffb9 dd34 0607 a26e 225c 4027 8e91 c405 4492"))

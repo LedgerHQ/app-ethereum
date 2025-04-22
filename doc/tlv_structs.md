@@ -318,7 +318,6 @@ In version 1 of the protocol:
 | Name           | Tag  | Payload type    | Description                     | Optional |
 |----------------|------|-----------------|---------------------------------|----------|
 | STRUCT_VERSION | 0x00 | uint8           | structure version (currently 1) |          |
-| DERIVATION_IDX | 0x01 | uint32          | BIP32 derivation path item      |          |
-| DELEGATE_ADDR  | 0x02 | uint8[20]       | delegate address                |          |
-| CHAIN_ID       | 0x03 | uint64          | Chain ID (00 for no restriction)|          |
-| NONCE          | 0x04 | uint64          | nonce                           |          |
+| DELEGATE_ADDR  | 0x01 | uint8[20]       | delegate address                |          |
+| CHAIN_ID       | 0x02 | uint64          | chain ID (0 for no restriction) |          |
+| NONCE          | 0x03 | uint64          | nonce                           |          |

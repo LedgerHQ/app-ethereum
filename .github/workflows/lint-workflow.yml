@@ -23,7 +23,6 @@ jobs:
     with:
       source: './'
       extensions: 'h,c'
-      version: 12
 
   yamllint:
     name: Check yaml files

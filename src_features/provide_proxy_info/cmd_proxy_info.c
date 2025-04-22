@@ -8,13 +8,12 @@
 
 static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_free) {
     s_proxy_info_ctx ctx = {0};
+    bool parsing_ret;
 
     cx_sha256_init(&ctx.struct_hash);
-    if (!tlv_parse(payload, size, (f_tlv_data_handler) &handle_proxy_info_struct, &ctx)) {
-        return false;
-    }
+    parsing_ret = tlv_parse(payload, size, (f_tlv_data_handler) &handle_proxy_info_struct, &ctx);
     if (to_free) mem_dealloc(sizeof(size));
-    if (!verify_proxy_info_struct(&ctx)) {
+    if (!parsing_ret || !verify_proxy_info_struct(&ctx)) {
         return false;
     }
     return true;

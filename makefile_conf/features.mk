@@ -74,6 +74,14 @@ ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
     DEFINES	+= HAVE_WEB3_CHECKS
 endif
 
+# EIP 7702
+ifneq ($(TARGET_NAME),TARGET_NANOS)
+    DEFINES += HAVE_EIP7702
+    DEFINES += HAVE_EIP7702_WHITELIST
+    # Test mode
+    DEFINES += HAVE_EIP7702_WHITELIST_TEST
+endif
+
 # Check features incompatibilities
 # --------------------------------
 # NFTs

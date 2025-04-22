@@ -65,4 +65,22 @@ unsigned int tx_cancel_cb(void) {
     return io_seproxyhal_touch_tx_cancel();
 }
 
+#ifdef HAVE_EIP7702
+
+void ui_sign_7702_auth(void) {
+    ux_flow_init(0, ux_auth7702_flow, NULL);
+}
+
+void ui_error_no_7702(void) {
+    ux_flow_init(0, ux_error_7702_not_enabled_flow, NULL);
+}
+
+#ifdef HAVE_EIP7702_WHITELIST
+void ui_error_no_7702_whitelist(void) {
+    ux_flow_init(0, ux_error_7702_not_whitelisted_flow, NULL);
+}
+#endif  // HAVE_EIP7702_WHITELIST
+
+#endif  // HAVE_EIP7702
+
 #endif  // HAVE_BAGL

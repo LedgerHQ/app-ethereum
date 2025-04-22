@@ -2,6 +2,7 @@
 # https://github.com/LedgerHQ/app-ethereum/blob/develop/doc/ethapp.adoc
 
 import struct
+import math
 from enum import IntEnum
 from typing import Optional
 from ragger.bip import pack_derivation_path
@@ -31,6 +32,7 @@ class InsType(IntEnum):
     PROVIDE_PROXY_INFO = 0x2a
     PROVIDE_NETWORK_INFORMATION = 0x30
     PROVIDE_TX_SIMULATION = 0x32
+    SIGN_EIP7702_AUTHORIZATION = 0x34
 
 
 class P1Type(IntEnum):
@@ -63,6 +65,11 @@ class P2Type(IntEnum):
 
 class CommandBuilder:
     _CLA: int = 0xE0
+
+    def _intToBytes(self, i: int) -> bytes:
+        if i == 0:
+            return b"\x00"
+        return i.to_bytes(math.ceil(i.bit_length() / 8), 'big')
 
     def _serialize(self,
                    ins: InsType,
@@ -455,6 +462,9 @@ class CommandBuilder:
                 icon = icon[0xff:]
                 p1 = P1Type.FOLLOWING_CHUNK
         return chunks
+
+    def sign_eip7702_authorization(self, tlv_payload: bytes) -> list[bytes]:
+        return self.common_tlv_serialize(InsType.SIGN_EIP7702_AUTHORIZATION, tlv_payload)
 
     def provide_enum_value(self, tlv_payload: bytes) -> list[bytes]:
         return self.common_tlv_serialize(InsType.PROVIDE_ENUM_VALUE, tlv_payload)

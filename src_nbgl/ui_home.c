@@ -25,6 +25,9 @@ enum {
 #ifdef HAVE_EIP712_FULL_SUPPORT
     EIP712_VERBOSE_TOKEN,
 #endif
+#ifdef HAVE_EIP7702
+    EIP7702_TOKEN,
+#endif  // HAVE_EIP7702
     DEBUG_TOKEN,
 };
 
@@ -41,6 +44,9 @@ enum {
     EIP712_VERBOSE_ID,
 #endif
     DEBUG_ID,
+#if HAVE_EIP7702
+    EIP7702_ID,
+#endif  // HAVE_EIP7702
     SETTINGS_SWITCHES_NB
 };
 
@@ -94,6 +100,13 @@ static void setting_toggle_callback(int token, uint8_t index, int page) {
             nvm_write((void *) &N_storage.verbose_eip712, (void *) &value, sizeof(value));
             break;
 #endif  // HAVE_EIP712_FULL_SUPPORT
+#ifdef HAVE_EIP7702
+        case EIP7702_TOKEN:
+            value = !N_storage.eip7702_enable;
+            switches[EIP7702_ID].initState = (nbgl_state_t) value;
+            nvm_write((void *) &N_storage.eip7702_enable, (void *) &value, sizeof(value));
+            break;
+#endif  // HAVE_EIP7702
         case DEBUG_TOKEN:
             value = !N_storage.contractDetails;
             switches[DEBUG_ID].initState = (nbgl_state_t) value;
@@ -159,6 +172,14 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
     switches[EIP712_VERBOSE_ID].token = EIP712_VERBOSE_TOKEN;
     switches[EIP712_VERBOSE_ID].tuneId = TUNE_TAP_CASUAL;
 #endif  // HAVE_EIP712_FULL_SUPPORT
+
+#ifdef HAVE_EIP7702
+    switches[EIP7702_ID].initState = N_storage.eip7702_enable ? ON_STATE : OFF_STATE;
+    switches[EIP7702_ID].text = "Smart account upgrade";
+    switches[EIP7702_ID].subText = "Enable EIP-7702 authorizations for smart contract delegation";
+    switches[EIP7702_ID].token = EIP7702_TOKEN;
+    switches[EIP7702_ID].tuneId = TUNE_TAP_CASUAL;
+#endif  // HAVE_EIP7702
 
     switches[DEBUG_ID].initState = N_storage.contractDetails ? ON_STATE : OFF_STATE;
     switches[DEBUG_ID].text = "Debug smart contracts";

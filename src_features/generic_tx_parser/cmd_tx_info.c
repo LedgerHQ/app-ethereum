@@ -17,13 +17,14 @@ static uint8_t g_tx_info_alignment;
 
 static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_free) {
     s_tx_info_ctx ctx = {0};
+    bool parsing_ret;
 
     ctx.tx_info = g_tx_info;
     explicit_bzero(ctx.tx_info, sizeof(*ctx.tx_info));
     cx_sha256_init((cx_sha256_t *) &ctx.struct_hash);
-    if (!tlv_parse(payload, size, (f_tlv_data_handler) &handle_tx_info_struct, &ctx)) return false;
+    parsing_ret = tlv_parse(payload, size, (f_tlv_data_handler) &handle_tx_info_struct, &ctx);
     if (to_free) mem_dealloc(sizeof(size));
-    if (!verify_tx_info_struct(&ctx)) {
+    if (!parsing_ret || !verify_tx_info_struct(&ctx)) {
         return false;
     }
     if (cx_sha3_init_no_throw(&hash_ctx, 256) != CX_OK) {

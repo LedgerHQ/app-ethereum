@@ -29,6 +29,6 @@ class TxAuth7702(TlvSerializable):
     def serialize(self) -> bytes:
         payload: bytes = self.serialize_field(FieldTag.STRUCT_VERSION, 1)
         payload += self.serialize_field(FieldTag.DELEGATE_ADDR, self.delegate)
-        payload += self.serialize_field(FieldTag.NONCE, self.nonce.to_bytes(8, 'big'))
-        payload += self.serialize_field(FieldTag.CHAIN_ID, self.chain_id.to_bytes(8, 'big'))
+        payload += self.serialize_field(FieldTag.CHAIN_ID, self.chain_id)
+        payload += self.serialize_field(FieldTag.NONCE, self.nonce)
         return payload

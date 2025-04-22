@@ -31,28 +31,37 @@ static bool handle_version(const s_tlv_data *data, s_auth_7702_ctx *context) {
 }
 
 static bool handle_delegate_addr(const s_tlv_data *data, s_auth_7702_ctx *context) {
-    if (data->length != sizeof(context->auth_7702.delegate)) {
+    uint8_t buf[sizeof(context->auth_7702.delegate)];
+
+    if (data->length > sizeof(buf)) {
         return false;
     }
-    memmove(context->auth_7702.delegate, data->value, sizeof(context->auth_7702.delegate));
+    buf_shrink_expand(data->value, data->length, buf, sizeof(buf));
+    memmove(context->auth_7702.delegate, buf, sizeof(buf));
     context->mask_parsed |= SET_BIT(BIT_DELEGATE_ADDR);
     return true;
 }
 
 static bool handle_chain_id(const s_tlv_data *data, s_auth_7702_ctx *context) {
-    if (data->length != sizeof(uint64_t)) {
+    uint8_t buf[sizeof(context->auth_7702.chainId)];
+
+    if (data->length > sizeof(buf)) {
         return false;
     }
-    context->auth_7702.chainId = read_u64_be(data->value, 0);
+    buf_shrink_expand(data->value, data->length, buf, sizeof(buf));
+    context->auth_7702.chainId = read_u64_be(buf, 0);
     context->mask_parsed |= SET_BIT(BIT_CHAIN_ID);
     return true;
 }
 
 static bool handle_nonce(const s_tlv_data *data, s_auth_7702_ctx *context) {
-    if (data->length != sizeof(uint64_t)) {
+    uint8_t buf[sizeof(context->auth_7702.nonce)];
+
+    if (data->length > sizeof(buf)) {
         return false;
     }
-    context->auth_7702.nonce = read_u64_be(data->value, 0);
+    buf_shrink_expand(data->value, data->length, buf, sizeof(buf));
+    context->auth_7702.nonce = read_u64_be(buf, 0);
     context->mask_parsed |= SET_BIT(BIT_NONCE);
     return true;
 }

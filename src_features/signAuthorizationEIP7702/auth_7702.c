@@ -27,7 +27,8 @@ static bool handle_version(const s_tlv_data *data, s_auth_7702_ctx *context) {
         return false;
     }
     context->mask_parsed |= SET_BIT(BIT_VERSION);
-    return (data->value[0] == STRUCT_VERSION);
+    context->version = data->value[0];
+    return true;
 }
 
 static bool handle_delegate_addr(const s_tlv_data *data, s_auth_7702_ctx *context) {
@@ -89,8 +90,8 @@ bool handle_auth_7702_struct(const s_tlv_data *data, s_auth_7702_ctx *context) {
     return ret;
 }
 
-bool verify_auth_7702_struct(s_auth_7702_ctx *context) {
-    return ((context->mask_parsed & MASK_ALL) == MASK_ALL);
+bool verify_auth_7702_struct(const s_auth_7702_ctx *context) {
+    return ((context->mask_parsed & MASK_ALL) == MASK_ALL) && (context->version == STRUCT_VERSION);
 }
 
 #endif  // HAVE_EIP7702

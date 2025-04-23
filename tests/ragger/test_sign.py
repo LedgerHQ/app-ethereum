@@ -81,11 +81,11 @@ def common(firmware: Firmware,
             end_text = "Accept"
         else:
             end_text = r"(Sign|Accept (risk|threat))"
-        scenario_navigator.review_approve(test_name=test_name, custom_screen_text=end_text, do_comparison=test_name!="")
+        scenario_navigator.review_approve(test_name=test_name, custom_screen_text=end_text, do_comparison=test_name != "")
 
     # verify signature
     vrs = ResponseParser.signature(app_client.response().data)
-    if v is not None: # temporary until web3.py supports 7702
+    if v is not None:  # temporary until web3.py supports 7702
         print(vrs)
         print(v)
         print(r)
@@ -174,7 +174,14 @@ def test_sign_legacy_send_bsc(firmware: Firmware,
         "value": Web3.to_wei(AMOUNT2, "ether"),
         "chainId": 56
     }
-    common(firmware, backend, navigator, scenario_navigator, default_screenshot_path, tx_params, None, test_name, BIP32_PATH2)
+    common(firmware,
+           backend,
+           navigator,
+           scenario_navigator,
+           default_screenshot_path,
+           tx_params,
+           test_name=test_name,
+           path=BIP32_PATH2)
 
 
 # Transfer on network 112233445566 on Ethereum
@@ -192,7 +199,14 @@ def test_sign_legacy_chainid(firmware: Firmware,
         "value": Web3.to_wei(AMOUNT2, "ether"),
         "chainId": 112233445566
     }
-    common(firmware, backend, navigator, scenario_navigator, default_screenshot_path, tx_params, None, test_name, BIP32_PATH2)
+    common(firmware,
+           backend,
+           navigator,
+           scenario_navigator,
+           default_screenshot_path,
+           tx_params,
+           test_name=test_name,
+           path=BIP32_PATH2)
 
 
 def test_1559(firmware: Firmware,
@@ -232,9 +246,8 @@ def test_sign_simple(firmware: Firmware,
            scenario_navigator,
            default_screenshot_path,
            tx_params,
-           None,
-           test_name,
-           BIP32_PATH2)
+           test_name=test_name,
+           path=BIP32_PATH2)
 
 
 def test_sign_limit_nonce(firmware: Firmware,
@@ -257,9 +270,8 @@ def test_sign_limit_nonce(firmware: Firmware,
            scenario_navigator,
            default_screenshot_path,
            tx_params,
-           None,
-           test_name,
-           BIP32_PATH2)
+           test_name=test_name,
+           path=BIP32_PATH2)
 
 
 def test_sign_nonce_display(firmware: Firmware,
@@ -285,9 +297,9 @@ def test_sign_nonce_display(firmware: Firmware,
            scenario_navigator,
            default_screenshot_path,
            tx_params,
-           None,
-           test_name,
-           BIP32_PATH2)
+           test_name=test_name,
+           path=BIP32_PATH2)
+
 
 def test_sign_reject(backend: BackendInterface, scenario_navigator: NavigateWithScenario):
     tx_params: dict = {
@@ -352,8 +364,8 @@ def test_sign_eip_2930(firmware: Firmware,
            scenario_navigator,
            default_screenshot_path,
            tx_params,
-           None,
-           test_name)
+           test_name=test_name)
+
 
 def test_sign_eip_7702(firmware: Firmware,
                        backend: BackendInterface,
@@ -364,11 +376,19 @@ def test_sign_eip_7702(firmware: Firmware,
     if firmware == Firmware.NANOS:
         pytest.skip("Not supported on LNS")
     tx_params = {
-        "chainId" : 1
+        "chainId": 1
     }
     tx_raw = bytes.fromhex("04f888018205390101825208941212121212121212121212121212121212121212872386f26fc1000080c0f85ef85c8094020202020202020202020202020202020202020282053901a0a24f35cafc6b408ce32539d4bd89a67edd4d6303fc676dfddf93b98405b7ee5ea0159456babe656692959ca3d829ca269e8f82387c91e40a33633d190dda7a3c5c")
-    common(firmware, backend, navigator, scenario_navigator, default_screenshot_path, tx_params, tx_raw, test_name,
-        BIP32_PATH, False,
-        bytes.fromhex("01"),
-        bytes.fromhex("9800 ce04 ecb4 6aeb de0f ea80 c663 9225 5eb1 3c3b 3597 aeec 2224 47f6 e1bf cfaf"),
-        bytes.fromhex("787e b825 81e1 a51d 8956 f21a 0ccd 0b96 d8de 14b0 4c11 de0b 7dcb 5e40 0219 902b"))
+    common(firmware,
+           backend,
+           navigator,
+           scenario_navigator,
+           default_screenshot_path,
+           tx_params,
+           tx_raw,
+           test_name=test_name,
+           path=BIP32_PATH,
+           with_simu=False,
+           v=bytes.fromhex("01"),
+           r=bytes.fromhex("9800ce04ecb46aebde0fea80c66392255eb13c3b3597aeec222447f6e1bfcfaf"),
+           s=bytes.fromhex("787eb82581e1a51d8956f21a0ccd0b96d8de14b04c11de0b7dcb5e400219902b"))

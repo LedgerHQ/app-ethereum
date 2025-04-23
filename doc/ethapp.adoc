@@ -1483,15 +1483,19 @@ _Input data_
 [width="80%"]
 |====================================================================
 | *Description*                                     | *Length (byte)*
+| Number of BIP 32 derivations to perform (max 10)  | 1
+| First derivation index (BE)                       | 4
+| ...                                               | 4
+| Last derivation index (BE)                        | 4
 | struct size (BE)                                  | 2
-| link:tlv_structs.md#auth_7702[AUTH_7702 struct] | variable
+| link:tlv_structs.md#auth_7702[AUTH_7702 struct]   | variable
 |====================================================================
 
 ##### If P1 == following chunk
 
 [width="80%"]
 |====================================================================
-| *Description*                                     | *Length (byte)*
+| *Description*                                   | *Length (byte)*
 | link:tlv_structs.md#auth_7702[AUTH_7702 struct] | variable
 |====================================================================
 

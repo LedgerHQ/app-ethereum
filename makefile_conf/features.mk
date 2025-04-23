@@ -78,8 +78,11 @@ endif
 ifneq ($(TARGET_NAME),TARGET_NANOS)
     DEFINES += HAVE_EIP7702
     DEFINES += HAVE_EIP7702_WHITELIST
-    # Test mode
-    DEFINES += HAVE_EIP7702_WHITELIST_TEST
+
+    EIP7702_TEST_WHITELIST ?= 0
+    ifneq ($(EIP7702_TEST_WHITELIST),0)
+        DEFINES += HAVE_EIP7702_WHITELIST_TEST
+    endif
 endif
 
 # Check features incompatibilities

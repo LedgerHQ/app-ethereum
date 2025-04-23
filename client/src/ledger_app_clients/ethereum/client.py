@@ -219,7 +219,7 @@ class EthAppClient:
         if tx_raw is not None:
             tx = tx_raw
         else:
-            tx = Web3().eth.account.create().sign_transaction(tx_params).rawTransaction
+            tx = Web3().eth.account.create().sign_transaction(tx_params).raw_transaction
         prefix = bytes()
         suffix = []
         if tx[0] in [0x01, 0x02, 0x04]:

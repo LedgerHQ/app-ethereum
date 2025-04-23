@@ -28,7 +28,7 @@ def recover_message(msg, vrs: tuple) -> bytes:
 
 def recover_transaction(tx_params, vrs: tuple, raw_tx_param: Optional[bytes] = None) -> bytes:
     if raw_tx_param is None:
-        raw_tx = Account.create().sign_transaction(tx_params).rawTransaction
+        raw_tx = Account.create().sign_transaction(tx_params).raw_transaction
     else:
         raw_tx = raw_tx_param
     prefix = bytes()

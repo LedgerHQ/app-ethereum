@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 *******************************************************************************
 *   Ledger Ethereum App
@@ -20,13 +20,10 @@
 from __future__ import print_function
 
 from ledgerblue.comm import getDongle
-from ledgerblue.commException import CommException
 import argparse
 import struct
 import binascii
-import math
 import rlp
-
 
 
 def der_encode(value):
@@ -35,17 +32,19 @@ def der_encode(value):
         value_bytes = (0x80 | len(value_bytes)).to_bytes(1, 'big') + value_bytes
     return value_bytes
 
+
 def tlv_encode(tag, value):
     return der_encode(tag) + der_encode(len(value)) + value
 
-def parse_bip32_path(path):
+
+def parse_bip32_path(path: str):
     if len(path) == 0:
         return b""
     result = b""
     elements = path.split('/')
+    result += len(elements).to_bytes(1, "big")
     for pathElement in elements:
         element = pathElement.split('\'')
-        result = result + der_encode(0x01) + der_encode(0x04)
         if len(element) == 1:
             result = result + struct.pack(">I", int(element[0]))
         else:
@@ -54,23 +53,19 @@ def parse_bip32_path(path):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--path', help="BIP 32 path to retrieve")
+parser.add_argument('--path', help="BIP 32 path to retrieve", default="44'/60'/0'/0/0")
 parser.add_argument('--chainid', help="Chain ID", type=int, required=True)
 parser.add_argument('--nonce', help="Account Nonce", type=int, required=True)
 parser.add_argument('--delegate', help="Delegate address", type=str, required=True)
 args = parser.parse_args()
 
-if args.path == None:
-    args.path = "44'/60'/0'/0/0"
-
 tmp = tlv_encode(0x00, struct.pack(">B", 0x01))
-tmp += parse_bip32_path(args.path)
 data = binascii.unhexlify(args.delegate[2:])
-tmp += tlv_encode(0x02, data)
-tmp += tlv_encode(0x03, struct.pack(">Q", args.chainid))
-tmp += tlv_encode(0x04, struct.pack(">Q", args.nonce))
+tmp += tlv_encode(0x01, data)
+tmp += tlv_encode(0x02, struct.pack(">Q", args.chainid))
+tmp += tlv_encode(0x03, struct.pack(">Q", args.nonce))
 
-tmp = struct.pack(">H", len(tmp)) + tmp
+tmp = parse_bip32_path(args.path) + struct.pack(">H", len(tmp)) + tmp
 
 apdu = bytearray.fromhex("e0340100")
 apdu += struct.pack(">B", len(tmp))
@@ -80,12 +75,12 @@ dongle = getDongle(True)
 result = dongle.exchange(bytes(apdu))
 
 v = result[0]
-r = result[1 : 1 + 32]
-s = result[1 + 32 :]
+r = result[1:1 + 32]
+s = result[1 + 32:]
 
 print("v = " + str(v))
 print("r = " + binascii.hexlify(r).decode('utf-8'))
 print("s = " + binascii.hexlify(s).decode('utf-8'))
 
-rlpData = [ args.chainid, binascii.unhexlify(args.delegate[2:]), args.nonce, v, r, s ]
+rlpData = [args.chainid, binascii.unhexlify(args.delegate[2:]), args.nonce, v, r, s]
 print(binascii.hexlify(rlp.encode(rlpData)).decode('utf-8'))

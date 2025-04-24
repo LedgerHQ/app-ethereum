@@ -1,6 +1,6 @@
 import struct
 from enum import IntEnum
-from typing import Optional, Tuple
+from typing import Optional
 from hashlib import sha256
 import rlp
 from web3 import Web3
@@ -213,13 +213,10 @@ class EthAppClient:
     def eip712_filtering_raw(self, name: str, sig: bytes, discarded: bool):
         return self._exchange_async(self._cmd_builder.eip712_filtering_raw(name, sig, discarded))
 
-    def serialize_tx(self, tx_params: dict, tx_raw: Optional[bytes] = None) -> Tuple[bytes, bytes]:
+    def serialize_tx(self, tx_params: dict) -> tuple[bytes, bytes]:
         """Computes the serialized TX and its hash"""
 
-        if tx_raw is not None:
-            tx = tx_raw
-        else:
-            tx = Web3().eth.account.create().sign_transaction(tx_params).rawTransaction
+        tx = Web3().eth.account.create().sign_transaction(tx_params).raw_transaction
         prefix = bytes()
         suffix = []
         if tx[0] in [0x01, 0x02, 0x04]:
@@ -228,10 +225,7 @@ class EthAppClient:
         else:  # legacy
             if "chainId" in tx_params:
                 suffix = [int(tx_params["chainId"]), bytes(), bytes()]
-        if tx_raw is None:
-            decoded_tx = rlp.decode(tx)[:-3]  # remove already computed signature
-        else:
-            decoded_tx = rlp.decode(tx)
+        decoded_tx = rlp.decode(tx)[:-3]  # remove already computed signature
         encoded_tx = prefix + rlp.encode(decoded_tx + suffix)
         tx_hash = keccak(encoded_tx)
         return encoded_tx, tx_hash
@@ -239,9 +233,8 @@ class EthAppClient:
     def sign(self,
              bip32_path: str,
              tx_params: dict,
-             tx_raw: Optional[bytes] = None,  # Introduced for 7702 until web3.py supports authorization lists
              mode: SignMode = SignMode.BASIC):
-        tx, _ = self.serialize_tx(tx_params, tx_raw)
+        tx, _ = self.serialize_tx(tx_params)
         chunks = self._cmd_builder.sign(bip32_path, tx, mode)
         for chunk in chunks[:-1]:
             self._exchange(chunk)
@@ -338,7 +331,7 @@ class EthAppClient:
                                 chain_id: int,
                                 nft_id: Optional[int] = None,
                                 challenge: Optional[int] = None,
-                                not_valid_after: Optional[Tuple[int]] = None) -> RAPDU:
+                                not_valid_after: Optional[tuple[int, int, int]] = None) -> RAPDU:
         payload = format_tlv(FieldTag.STRUCT_VERSION, 2)
         payload += format_tlv(FieldTag.TRUSTED_NAME, name)
         payload += format_tlv(FieldTag.ADDRESS, addr)

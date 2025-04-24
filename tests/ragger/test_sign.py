@@ -389,6 +389,6 @@ def test_sign_eip_7702(firmware: Firmware,
            test_name=test_name,
            path=BIP32_PATH,
            with_simu=False,
-           v=bytes.fromhex("01"),
-           r=bytes.fromhex("9800ce04ecb46aebde0fea80c66392255eb13c3b3597aeec222447f6e1bfcfaf"),
-           s=bytes.fromhex("787eb82581e1a51d8956f21a0ccd0b96d8de14b04c11de0b7dcb5e400219902b"))
+           v=0x01,
+           r=0x9800ce04ecb46aebde0fea80c66392255eb13c3b3597aeec222447f6e1bfcfaf,
+           s=0x787eb82581e1a51d8956f21a0ccd0b96d8de14b04c11de0b7dcb5e400219902b)

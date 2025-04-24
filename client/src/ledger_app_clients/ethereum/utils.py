@@ -4,14 +4,6 @@ from eth_account.messages import encode_defunct, encode_typed_data
 import rlp
 
 
-# eth_account requires it for some reason
-def normalize_vrs(vrs: tuple) -> tuple:
-    vrs_l = []
-    for elem in vrs:
-        vrs_l.append(elem.lstrip(b'\x00'))
-    return tuple(vrs_l)
-
-
 def get_selector_from_data(data: str) -> bytes:
     raw_data = bytes.fromhex(data[2:])
     return raw_data[:4]
@@ -22,7 +14,7 @@ def recover_message(msg, vrs: tuple) -> bytes:
         smsg = encode_typed_data(full_message=msg)
     else:  # EIP-191
         smsg = encode_defunct(primitive=msg)
-    addr = Account.recover_message(smsg, normalize_vrs(vrs))
+    addr = Account.recover_message(smsg, vrs)
     return bytes.fromhex(addr[2:])
 
 
@@ -44,7 +36,7 @@ def recover_transaction(tx_params, vrs: tuple, raw_tx_param: Optional[bytes] = N
                 trunc_chain_id >>= 8
 
             trunc_target = trunc_chain_id * 2 + 35
-            trunc_v = int.from_bytes(vrs[0], "big")
+            trunc_v = vrs[0]
 
             if (trunc_target & 0xff) == trunc_v:
                 parity = 0
@@ -56,15 +48,14 @@ def recover_transaction(tx_params, vrs: tuple, raw_tx_param: Optional[bytes] = N
 
             # https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md
             full_v = parity + tx_params["chainId"] * 2 + 35
-            # 9 bytes would be big enough even for the biggest chain ID
-            vrs = (int(full_v).to_bytes(9, "big"), vrs[1], vrs[2])
+            vrs = (full_v, vrs[1], vrs[2])
         else:
             # Pre EIP-155 TX
             assert False
     decoded = rlp.decode(raw_tx)
     if raw_tx_param is None:
-        reencoded = rlp.encode(decoded[:-3] + list(normalize_vrs(vrs)))
+        reencoded = rlp.encode(decoded[:-3] + list(vrs))
     else:
-        reencoded = rlp.encode(decoded + list(normalize_vrs(vrs)))
+        reencoded = rlp.encode(decoded + list(vrs))
     addr = Account.recover_transaction(prefix + reencoded)
     return bytes.fromhex(addr[2:])

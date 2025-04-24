@@ -12,7 +12,7 @@ from ragger.navigator.navigation_scenario import NavigateWithScenario
 from client.client import EthAppClient, StatusWord
 import client.response_parser as ResponseParser
 from client.settings import SettingID, settings_toggle
-from client.utils import recover_transaction
+from client.utils import recover_transaction, get_authorization_obj
 
 
 # Values used across all tests
@@ -38,13 +38,9 @@ def common(firmware: Firmware,
            scenario_navigator: NavigateWithScenario,
            default_screenshot_path: Path,
            tx_params: dict,
-           tx_raw: bytes = None,
            test_name: str = "",
            path: str = BIP32_PATH,
-           with_simu: bool = False,
-           v: bytes = None,
-           r: bytes = None,
-           s: bytes = None):
+           with_simu: bool = False):
     app_client = EthAppClient(backend)
 
     if tx_params["chainId"] == 3:
@@ -71,7 +67,7 @@ def common(firmware: Firmware,
         pass
     _, DEVICE_ADDR, _ = ResponseParser.pk_addr(app_client.response().data)
 
-    with app_client.sign(path, tx_params, tx_raw):
+    with app_client.sign(path, tx_params):
         if with_simu:
             navigator.navigate_and_compare(default_screenshot_path,
                                            f"{test_name}/warning",
@@ -85,17 +81,8 @@ def common(firmware: Firmware,
 
     # verify signature
     vrs = ResponseParser.signature(app_client.response().data)
-    if v is not None:  # temporary until web3.py supports 7702
-        print(vrs)
-        print(v)
-        print(r)
-        print(s)
-        assert v == vrs[0]
-        assert r == vrs[1]
-        assert s == vrs[2]
-    else:
-        addr = recover_transaction(tx_params, vrs, tx_raw)
-        assert addr == DEVICE_ADDR
+    addr = recover_transaction(tx_params, vrs)
+    assert addr == DEVICE_ADDR
 
 
 def common_reject(backend: BackendInterface,
@@ -376,19 +363,26 @@ def test_sign_eip_7702(firmware: Firmware,
     if firmware == Firmware.NANOS:
         pytest.skip("Not supported on LNS")
     tx_params = {
-        "chainId": 1
+        "chainId": 1,
+        "nonce": 1337,
+        "maxPriorityFeePerGas": 0x01,
+        "maxFeePerGas": 0x01,
+        "gas": 21000,
+        "to": bytes.fromhex("1212121212121212121212121212121212121212"),
+        "value": Web3.to_wei(0.01, "ether"),
+        "authorizationList": [
+            get_authorization_obj(0, 1337, bytes.fromhex("1212121212121212121212121212121212121212"), (
+                0x01,
+                0xa24f35cafc6b408ce32539d4bd89a67edd4d6303fc676dfddf93b98405b7ee5e,
+                0x159456babe656692959ca3d829ca269e8f82387c91e40a33633d190dda7a3c5c,
+            ))
+        ],
     }
-    tx_raw = bytes.fromhex("04f888018205390101825208941212121212121212121212121212121212121212872386f26fc1000080c0f85ef85c8094020202020202020202020202020202020202020282053901a0a24f35cafc6b408ce32539d4bd89a67edd4d6303fc676dfddf93b98405b7ee5ea0159456babe656692959ca3d829ca269e8f82387c91e40a33633d190dda7a3c5c")
     common(firmware,
            backend,
            navigator,
            scenario_navigator,
            default_screenshot_path,
            tx_params,
-           tx_raw,
            test_name=test_name,
-           path=BIP32_PATH,
-           with_simu=False,
-           v=0x01,
-           r=0x9800ce04ecb46aebde0fea80c66392255eb13c3b3597aeec222447f6e1bfcfaf,
-           s=0x787eb82581e1a51d8956f21a0ccd0b96d8de14b04c11de0b7dcb5e400219902b)
+           path=BIP32_PATH)

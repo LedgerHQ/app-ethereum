@@ -1,5 +1,6 @@
 import pytest
 
+from typing import Optional
 from ragger.error import ExceptionRAPDU
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
@@ -10,6 +11,8 @@ from client.client import EthAppClient, StatusWord
 from client.settings import SettingID, settings_toggle
 import client.response_parser as ResponseParser
 from client.tx_auth_7702 import TxAuth7702
+
+from client.utils import recover_authorization
 
 BIP32_PATH = "m/44'/60'/0'/0/0"
 TEST_ADDRESS_0 = bytes.fromhex("00" * 20)
@@ -24,6 +27,8 @@ CHAIN_ID_MAX = 0xFFFFFFFFFFFFFFFF
 NONCE = 1337
 NONCE_MAX = 0xFFFFFFFFFFFFFFFF
 
+DEVICE_ADDR: Optional[bytes] = None
+
 # Test vectors computed with
 # cast wallet sign-auth $ADDRESS --mnemonic $MNEMONIC --mnemonic-derivation-path "m/44'/60'/0'/0/0" --nonce $NONCE --chain $CHAINID
 # Decoded by https://codechain-io.github.io/rlp-debugger/
@@ -35,11 +40,9 @@ def common(firmware: Firmware,
            test_name: str,
            delegate: bytes,
            nonce: int,
-           chain_id: int,
-           v: int = None,
-           r: int = None,
-           s: int = None):
+           chain_id: int):
 
+    global DEVICE_ADDR
     app_client = EthAppClient(backend)
 
     if firmware.is_nano:
@@ -47,11 +50,15 @@ def common(firmware: Firmware,
     else:
         end_text = ".*Sign.*"
 
+    if DEVICE_ADDR is None:
+        with app_client.get_public_addr(bip32_path=BIP32_PATH, display=False):
+            pass
+        _, DEVICE_ADDR, _ = ResponseParser.pk_addr(app_client.response().data)
     auth_params = TxAuth7702(delegate, nonce, chain_id)
     with app_client.sign_eip7702_authorization(BIP32_PATH, auth_params):
         scenario.review_approve(test_name=test_name, custom_screen_text=end_text)
     vrs = ResponseParser.signature(app_client.response().data)
-    assert vrs == (v, r, s)
+    assert recover_authorization(chain_id, nonce, delegate, vrs) == DEVICE_ADDR
 
 
 def common_rejected(firmware: Firmware,
@@ -95,10 +102,7 @@ def test_eip7702_in_whitelist(firmware: Firmware,
            test_name,
            TEST_ADDRESS_1,
            NONCE,
-           CHAIN_ID_1,
-           0x00,
-           0xf82e50a755fa989f4bb9b36b15afb4424ce9cda69752fd17a7eb14737d963e62,
-           0x07c9c91d6140b45ea52f29de7a5effb9dd340607a26e225c40278e91c4054492)
+           CHAIN_ID_1)
 
 
 def test_eip7702_in_whitelist_all_chain_whitelisted(firmware: Firmware,
@@ -114,10 +118,7 @@ def test_eip7702_in_whitelist_all_chain_whitelisted(firmware: Firmware,
            test_name,
            TEST_ADDRESS_0,
            NONCE,
-           CHAIN_ID_2,
-           0x00,
-           0x0378f7ac482ec728b65d19d03943bbb3fe7307c72c646e7d2d0c11bee81eb2b9,
-           0x332266ec3ef996bf835c50a833006b4c80398d597d0e684619db4d51a384a38d)
+           CHAIN_ID_2)
 
 
 def test_eip7702_in_whitelist_all_chain_param(firmware: Firmware,
@@ -133,10 +134,7 @@ def test_eip7702_in_whitelist_all_chain_param(firmware: Firmware,
            test_name,
            TEST_ADDRESS_2,
            NONCE,
-           CHAIN_ID_0,
-           0x01,
-           0xa24f35cafc6b408ce32539d4bd89a67edd4d6303fc676dfddf93b98405b7ee5e,
-           0x159456babe656692959ca3d829ca269e8f82387c91e40a33633d190dda7a3c5c)
+           CHAIN_ID_0)
 
 
 def test_eip7702_in_whitelist_max(firmware: Firmware,
@@ -152,10 +150,7 @@ def test_eip7702_in_whitelist_max(firmware: Firmware,
            test_name,
            TEST_ADDRESS_MAX,
            NONCE_MAX,
-           CHAIN_ID_MAX,
-           0x00,
-           0xa07c680894498c21e80febb011ae5d62ede6645d77d7c902db065d5a082dd220,
-           0x6b5c62225cf65a6240c2583dacc1641c8d692ed3bd00473cc3e28fe1a4f52294)
+           CHAIN_ID_MAX)
 
 
 def test_eip7702_in_whitelist_wrong_chain(firmware: Firmware,

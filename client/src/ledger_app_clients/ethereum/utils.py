@@ -1,6 +1,8 @@
-from typing import Optional
 from eth_account import Account
 from eth_account.messages import encode_defunct, encode_typed_data
+from eth_account.datastructures import SignedSetCodeAuthorization
+from eth_account.typed_transactions.set_code_transaction import Authorization
+from eth_keys.datatypes import Signature
 import rlp
 
 
@@ -18,11 +20,8 @@ def recover_message(msg, vrs: tuple[int, int, int]) -> bytes:
     return bytes.fromhex(addr[2:])
 
 
-def recover_transaction(tx_params, vrs: tuple[int, int, int], raw_tx_param: Optional[bytes] = None) -> bytes:
-    if raw_tx_param is None:
-        raw_tx = Account.create().sign_transaction(tx_params).raw_transaction
-    else:
-        raw_tx = raw_tx_param
+def recover_transaction(tx_params, vrs: tuple[int, int, int]) -> bytes:
+    raw_tx = Account.create().sign_transaction(tx_params).raw_transaction
     prefix = bytes()
     if raw_tx[0] in [0x01, 0x02, 0x04]:
         prefix = raw_tx[:1]
@@ -53,9 +52,30 @@ def recover_transaction(tx_params, vrs: tuple[int, int, int], raw_tx_param: Opti
             # Pre EIP-155 TX
             assert False
     decoded = rlp.decode(raw_tx)
-    if raw_tx_param is None:
-        reencoded = rlp.encode(decoded[:-3] + list(vrs))
-    else:
-        reencoded = rlp.encode(decoded + list(vrs))
+    reencoded = rlp.encode(decoded[:-3] + list(vrs))
     addr = Account.recover_transaction(prefix + reencoded)
     return bytes.fromhex(addr[2:])
+
+
+# Code inspired by :
+# https://github.com/ethereum/eth-account/blob/a1ba20c9a112d3534ac3296f21f51e2f5127bf9b/eth_account/account.py#L1057
+def get_authorization_obj(chain_id: int,
+                          nonce: int,
+                          address: bytes,
+                          vrs: tuple[int, int, int]) -> SignedSetCodeAuthorization:
+    unsigned_authorization = Authorization(chain_id, address, nonce)
+    sig = Signature(vrs=vrs)
+    return SignedSetCodeAuthorization(
+        chain_id=chain_id,
+        address=address,
+        nonce=nonce,
+        y_parity=sig.v,
+        r=sig.r,
+        s=sig.s,
+        signature=sig,
+        authorization_hash=unsigned_authorization.hash(),
+    )
+
+
+def recover_authorization(chain_id: int, nonce: int, address: bytes, vrs: tuple[int, int, int]) -> bytes:
+    return get_authorization_obj(chain_id, nonce, address, vrs).authority

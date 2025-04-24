@@ -1,6 +1,6 @@
 import struct
 from enum import IntEnum
-from typing import Optional, Tuple
+from typing import Optional
 from hashlib import sha256
 import rlp
 from web3 import Web3
@@ -213,7 +213,7 @@ class EthAppClient:
     def eip712_filtering_raw(self, name: str, sig: bytes, discarded: bool):
         return self._exchange_async(self._cmd_builder.eip712_filtering_raw(name, sig, discarded))
 
-    def serialize_tx(self, tx_params: dict, tx_raw: Optional[bytes] = None) -> Tuple[bytes, bytes]:
+    def serialize_tx(self, tx_params: dict, tx_raw: Optional[bytes] = None) -> tuple[bytes, bytes]:
         """Computes the serialized TX and its hash"""
 
         if tx_raw is not None:
@@ -338,7 +338,7 @@ class EthAppClient:
                                 chain_id: int,
                                 nft_id: Optional[int] = None,
                                 challenge: Optional[int] = None,
-                                not_valid_after: Optional[Tuple[int]] = None) -> RAPDU:
+                                not_valid_after: Optional[tuple[int, int, int]] = None) -> RAPDU:
         payload = format_tlv(FieldTag.STRUCT_VERSION, 2)
         payload += format_tlv(FieldTag.TRUSTED_NAME, name)
         payload += format_tlv(FieldTag.ADDRESS, addr)

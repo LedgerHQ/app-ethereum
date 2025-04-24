@@ -9,7 +9,7 @@ def get_selector_from_data(data: str) -> bytes:
     return raw_data[:4]
 
 
-def recover_message(msg, vrs: tuple) -> bytes:
+def recover_message(msg, vrs: tuple[int, int, int]) -> bytes:
     if isinstance(msg, dict):  # EIP-712
         smsg = encode_typed_data(full_message=msg)
     else:  # EIP-191
@@ -18,7 +18,7 @@ def recover_message(msg, vrs: tuple) -> bytes:
     return bytes.fromhex(addr[2:])
 
 
-def recover_transaction(tx_params, vrs: tuple, raw_tx_param: Optional[bytes] = None) -> bytes:
+def recover_transaction(tx_params, vrs: tuple[int, int, int], raw_tx_param: Optional[bytes] = None) -> bytes:
     if raw_tx_param is None:
         raw_tx = Account.create().sign_transaction(tx_params).raw_transaction
     else:

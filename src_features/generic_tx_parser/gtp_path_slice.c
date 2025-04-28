@@ -28,11 +28,11 @@ static bool handle_end(const s_tlv_data *data, s_path_slice_context *context) {
     X(0x01, TAG_START, handle_start, ENFORCE_UNIQUE_TAG) \
     X(0x02, TAG_END,   handle_end,   ENFORCE_UNIQUE_TAG)
 
-DEFINE_TLV_PARSER(TLV_TAGS, parse_tlv_slice_struct)
+DEFINE_TLV_PARSER(TLV_TAGS, parse_tlv_slice)
 
 bool handle_slice_struct(const s_tlv_data *data, s_path_slice_context *context) {
     buffer_t payload_buffer = {.ptr = data->value, .size = data->length};
-    return parse_tlv_slice_struct(&payload_buffer, context, NULL);
+    return parse_tlv_slice(&payload_buffer, context, NULL);
 }
 
 #endif  // HAVE_GENERIC_TX_PARSER

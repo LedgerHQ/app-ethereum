@@ -114,7 +114,9 @@ static void ui_191_process_state(void) {
             break;
         case UI_191_ACTION_GO_TO_SIGN:
 #ifdef HAVE_WEB3_CHECKS
-            if (check_tx_simulation_params(true, true) == false) {
+            if ((TX_SIMULATION.risk != RISK_UNKNOWN) &&
+                ((check_tx_simulation_hash() == false) ||
+                 check_tx_simulation_from_address() == false)) {
                 ui_tx_simulation_error(ui_191_w3c_cb);
                 return;
             }

@@ -150,7 +150,8 @@ void ui_712_switch_to_sign(void) {
         nbgl_useCaseReviewStreamingContinueExt(&pairs_list, message_progress, review_skip);
     } else {
 #ifdef HAVE_WEB3_CHECKS
-        if (check_tx_simulation_params(true, true) == false) {
+        if ((TX_SIMULATION.risk != RISK_UNKNOWN) && ((check_tx_simulation_hash() == false) ||
+                                                     check_tx_simulation_from_address() == false)) {
             ui_tx_simulation_error(ui_712_w3c_cb);
             return;
         }

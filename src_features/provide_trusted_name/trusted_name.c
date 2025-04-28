@@ -173,7 +173,9 @@ static bool handle_not_valid_after(const s_tlv_data *data, s_trusted_name_ctx *c
         return false;
     }
     for (int i = 0; i < (int) ARRAYLEN(app_version); ++i) {
-        if (data->value[i] < app_version[i]) {
+        if (data->value[i] > app_version[i]) {
+            break;
+        } else if (data->value[i] < app_version[i]) {
             PRINTF("Expired trusted name : %u.%u.%u < %u.%u.%u\n",
                    data->value[0],
                    data->value[1],

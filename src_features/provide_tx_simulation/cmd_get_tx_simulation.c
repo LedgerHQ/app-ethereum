@@ -571,17 +571,92 @@ void clear_tx_simulation(void) {
 }
 
 /**
+ * @brief Check the TX HASH vs Simulation payload.
+ *
+ * @return whether it was successful
+ */
+bool check_tx_simulation_hash(void) {
+    uint8_t *hash = NULL;
+    uint8_t *hash2 = NULL;
+
+    if (!N_storage.w3c_enable) {
+        // W3Checks disabled
+        return true;
+    }
+    switch (appState) {
+        case APP_STATE_SIGNING_TX:
+            hash = tmpCtx.transactionContext.hash;
+            break;
+        case APP_STATE_SIGNING_MESSAGE:
+            hash = tmpCtx.messageSigningContext.hash;
+            break;
+        case APP_STATE_SIGNING_EIP712:
+            hash = tmpCtx.messageSigningContext712.messageHash;
+            hash2 = tmpCtx.messageSigningContext712.domainHash;
+            break;
+        default:
+            PRINTF("[TX SIMU] Invalid app State %d!\n", appState);
+            TX_SIMULATION.risk = RISK_UNKNOWN;
+            return false;
+    }
+    if (memcmp(TX_SIMULATION.tx_hash, hash, HASH_SIZE) != 0) {
+        PRINTF("[TX SIMU] TX_HASH mismatch: %.*h != %.*h\n",
+               HASH_SIZE,
+               TX_SIMULATION.tx_hash,
+               HASH_SIZE,
+               hash);
+        PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
+        TX_SIMULATION.risk = RISK_UNKNOWN;
+        return false;
+    }
+    if ((hash2 != NULL) && (memcmp(TX_SIMULATION.domain_hash, hash2, HASH_SIZE)) != 0) {
+        PRINTF("[TX SIMU] DOMAIN_HASH mismatch: %.*h != %.*h\n",
+               HASH_SIZE,
+               TX_SIMULATION.domain_hash,
+               HASH_SIZE,
+               hash);
+        PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
+        TX_SIMULATION.risk = RISK_UNKNOWN;
+        return false;
+    }
+    return true;
+}
+
+/**
+ * @brief Check the FROM_ADDRESS vs Simulation payload.
+ *
+ * @return whether it was successful
+ */
+bool check_tx_simulation_from_address(void) {
+    uint8_t msg_sender[ADDRESS_LENGTH] = {0};
+    if (get_public_key(msg_sender, sizeof(msg_sender)) != APDU_RESPONSE_OK) {
+        PRINTF("[TX SIMU] Unable to get the public key!\n");
+        PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
+        TX_SIMULATION.risk = RISK_UNKNOWN;
+        return false;
+    }
+    if (memcmp(TX_SIMULATION.addr, msg_sender, ADDRESS_LENGTH) != 0) {
+        PRINTF("[TX SIMU] FROM addr mismatch: %.*h != %.*h\n",
+               ADDRESS_LENGTH,
+               TX_SIMULATION.addr,
+               ADDRESS_LENGTH,
+               msg_sender);
+        PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
+        TX_SIMULATION.risk = RISK_UNKNOWN;
+        return false;
+    }
+    return true;
+}
+
+/**
  * @brief Check the TX vs Simulation parameters (CHAIN_ID, TX_HASH).
  *
  * @param[in] checkTxHash flag to check the TX_HASH
  * @param[in] checkFromAddr flag to check the FROM address
  * @return whether it was successful
  */
-bool check_tx_simulation_params(bool checkTxHash, bool checkFromAddr) {
-    uint8_t msg_sender[ADDRESS_LENGTH] = {0};
+static bool check_tx_simulation_params(bool checkTxHash, bool checkFromAddr) {
     uint64_t chain_id = get_tx_chain_id();
-    uint8_t *hash = NULL;
-    uint8_t *hash2 = NULL;
 
     if (!N_storage.w3c_enable) {
         // W3Checks disabled
@@ -630,58 +705,12 @@ bool check_tx_simulation_params(bool checkTxHash, bool checkFromAddr) {
         return false;
     }
     if (checkFromAddr) {
-        if (get_public_key(msg_sender, sizeof(msg_sender)) != APDU_RESPONSE_OK) {
-            PRINTF("[TX SIMU] Unable to get the public key!\n");
-            PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
-            TX_SIMULATION.risk = RISK_UNKNOWN;
-            return false;
-        }
-        if (memcmp(TX_SIMULATION.addr, msg_sender, ADDRESS_LENGTH) != 0) {
-            PRINTF("[TX SIMU] FROM addr mismatch: %.*h != %.*h\n",
-                   ADDRESS_LENGTH,
-                   TX_SIMULATION.addr,
-                   ADDRESS_LENGTH,
-                   msg_sender);
-            PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
-            TX_SIMULATION.risk = RISK_UNKNOWN;
+        if (check_tx_simulation_from_address() == false) {
             return false;
         }
     }
     if (checkTxHash) {
-        switch (appState) {
-            case APP_STATE_SIGNING_TX:
-                hash = tmpCtx.transactionContext.hash;
-                break;
-            case APP_STATE_SIGNING_MESSAGE:
-                hash = tmpCtx.messageSigningContext.hash;
-                break;
-            case APP_STATE_SIGNING_EIP712:
-                hash = tmpCtx.messageSigningContext712.messageHash;
-                hash2 = tmpCtx.messageSigningContext712.domainHash;
-                break;
-            default:
-                PRINTF("[TX SIMU] Invalid app State %d!\n", appState);
-                TX_SIMULATION.risk = RISK_UNKNOWN;
-                return false;
-        }
-        if (memcmp(TX_SIMULATION.tx_hash, hash, HASH_SIZE) != 0) {
-            PRINTF("[TX SIMU] TX_HASH mismatch: %.*h != %.*h\n",
-                   HASH_SIZE,
-                   TX_SIMULATION.tx_hash,
-                   HASH_SIZE,
-                   hash);
-            PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
-            TX_SIMULATION.risk = RISK_UNKNOWN;
-            return false;
-        }
-        if ((hash2 != NULL) && (memcmp(TX_SIMULATION.domain_hash, hash2, HASH_SIZE)) != 0) {
-            PRINTF("[TX SIMU] DOMAIN_HASH mismatch: %.*h != %.*h\n",
-                   HASH_SIZE,
-                   TX_SIMULATION.domain_hash,
-                   HASH_SIZE,
-                   hash);
-            PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
-            TX_SIMULATION.risk = RISK_UNKNOWN;
+        if (check_tx_simulation_hash() == false) {
             return false;
         }
     }

@@ -1,7 +1,6 @@
-#ifdef HAVE_TRUSTED_NAME
+#pragma once
 
-#ifndef TRUSTED_NAME_H_
-#define TRUSTED_NAME_H_
+#ifdef HAVE_TRUSTED_NAME
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -35,30 +34,6 @@ typedef enum {
     TN_SOURCE_COUNT,
 } e_name_source;
 
-typedef enum { TN_KEY_ID_DOMAIN_SVC = 0x07, TN_KEY_ID_CAL = 0x09 } e_tn_key_id;
-
-typedef struct {
-    bool valid;
-    uint8_t struct_version;
-    char *name;
-    uint8_t addr[ADDRESS_LENGTH];
-    uint64_t chain_id;
-    e_name_type name_type;
-    e_name_source name_source;
-#ifdef HAVE_NFT_SUPPORT
-    uint8_t nft_id[INT256_LENGTH];
-#endif
-} s_trusted_name_info;
-
-typedef struct {
-    s_trusted_name_info trusted_name;
-    e_tn_key_id key_id;
-    uint8_t input_sig_size;
-    uint8_t input_sig[ECDSA_SIGNATURE_MAX_LENGTH];
-    cx_sha256_t hash_ctx;
-    uint32_t rcv_flags;
-} s_trusted_name_ctx;
-
 const char *get_trusted_name(uint8_t type_count,
                              const e_name_type *types,
                              uint8_t source_count,
@@ -68,9 +43,6 @@ const char *get_trusted_name(uint8_t type_count,
 
 extern char g_trusted_name[TRUSTED_NAME_MAX_LENGTH + 1];
 
-bool handle_trusted_name_struct(const s_tlv_data *data, s_trusted_name_ctx *context);
-bool verify_trusted_name_struct(const s_trusted_name_ctx *ctx);
-
-#endif  // !TRUSTED_NAME_H_
+bool handle_tlv_trusted_name_payload(const uint8_t *payload, uint16_t size, bool to_free);
 
 #endif  // !HAVE_TRUSTED_NAME

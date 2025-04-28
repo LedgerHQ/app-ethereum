@@ -24,7 +24,7 @@ int check_signature_with_pubkey(const char *tag,
 #ifdef HAVE_LEDGER_PKI
                                 const uint8_t keyUsageExp,
 #endif
-                                uint8_t *signature,
+                                const uint8_t *signature,
                                 const uint8_t sigLen) {
     UNUSED(tag);
     cx_ecfp_public_key_t verif_key = {0};
@@ -50,7 +50,7 @@ int check_signature_with_pubkey(const char *tag,
                KEY_USAGE_STR(key_usage));
 
         // Checking the signature with PKI
-        if (!os_pki_verify(buffer, bufLen, signature, sigLen)) {
+        if (!os_pki_verify(buffer, bufLen, (uint8_t *)signature, sigLen)) {
             PRINTF("%s: Invalid signature\n", tag);
 #ifndef HAVE_BYPASS_SIGNATURES
             error = APDU_RESPONSE_INVALID_DATA;

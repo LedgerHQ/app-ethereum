@@ -78,8 +78,9 @@ static bool handle_slice(const s_tlv_data *data, s_data_path_context *context) {
 
     ctx.args = &context->data_path->elements[context->data_path->size].slice;
     explicit_bzero(ctx.args, sizeof(*ctx.args));
-    if (!tlv_parse(data->value, data->length, (f_tlv_data_handler) &handle_slice_struct, &ctx))
+    if (!handle_slice_struct(data, &ctx)){
         return false;
+    }
     context->data_path->elements[context->data_path->size].type = ELEMENT_TYPE_SLICE;
     context->data_path->size += 1;
     return true;

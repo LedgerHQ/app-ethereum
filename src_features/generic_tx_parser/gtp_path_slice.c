@@ -2,12 +2,8 @@
 
 #include "gtp_path_slice.h"
 #include "os_print.h"
+#include "tlv_library.h"
 #include "read.h"
-
-enum {
-    TAG_START = 0x01,
-    TAG_END = 0x02,
-};
 
 static bool handle_start(const s_tlv_data *data, s_path_slice_context *context) {
     if (data->length != sizeof(context->args->start)) {
@@ -27,21 +23,16 @@ static bool handle_end(const s_tlv_data *data, s_path_slice_context *context) {
     return true;
 }
 
-bool handle_slice_struct(const s_tlv_data *data, s_path_slice_context *context) {
-    bool ret;
+// clang-format off
+#define TLV_TAGS(X)                                      \
+    X(0x01, TAG_START, handle_start, ENFORCE_UNIQUE_TAG) \
+    X(0x02, TAG_END,   handle_end,   ENFORCE_UNIQUE_TAG)
 
-    switch (data->tag) {
-        case TAG_START:
-            ret = handle_start(data, context);
-            break;
-        case TAG_END:
-            ret = handle_end(data, context);
-            break;
-        default:
-            PRINTF(TLV_TAG_ERROR_MSG, data->tag);
-            ret = false;
-    }
-    return ret;
+DEFINE_TLV_PARSER(TLV_TAGS, parse_tlv_slice_struct)
+
+bool handle_slice_struct(const s_tlv_data *data, s_path_slice_context *context) {
+    buffer_t payload_buffer = {.ptr = data->value, .size = data->length};
+    return parse_tlv_slice_struct(&payload_buffer, context, NULL);
 }
 
 #endif  // HAVE_GENERIC_TX_PARSER

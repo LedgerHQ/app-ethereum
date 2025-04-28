@@ -60,7 +60,8 @@ void ui_tx_simulation_error(nbgl_choiceCallback_t callback);
 void ui_tx_simulation_opt_in(bool response_expected);
 
 void clear_tx_simulation(void);
-bool check_tx_simulation_params(bool checkTxHash, bool checkFromAddr);
+bool check_tx_simulation_hash(void);
+bool check_tx_simulation_from_address(void);
 void set_tx_simulation_warning(nbgl_warning_t *p_warning, bool checkTxHash, bool checkFromAddr);
 
 const char *get_tx_simulation_risk_str(void);

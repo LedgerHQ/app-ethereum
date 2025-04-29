@@ -17,6 +17,9 @@
 #include "gtp_tx_info.h"
 #include "enum_value.h"
 
+#include "auth_7702.h"
+#include "commands_7702.h"
+
 #include "shared_context.h"
 #include "tlv.h"
 #include "mem.h"
@@ -26,6 +29,7 @@
 typedef int (*harness)(const uint8_t *data, size_t size);
 
 // Global state required by the app features
+cx_sha3_t global_sha3;
 cx_sha3_t sha3;
 unsigned char G_io_apdu_buffer[260];
 tmpContent_t tmpContent;
@@ -39,7 +43,12 @@ const chain_config_t *chainConfig = &config;
 uint8_t appState;
 tmpCtx_t tmpCtx;
 strings_t strings;
-const internalStorage_t N_storage_real = {.w3c_enable = true, .w3c_opt_in = true};
+// Mock the storage to enable wanted features
+const internalStorage_t N_storage_real = {
+    .w3c_enable = true,
+    .w3c_opt_in = true,
+    .eip7702_enable = true,
+};
 
 int fuzzGenericParserFieldCmd(const uint8_t *data, size_t size) {
     s_field field = {0};
@@ -160,6 +169,24 @@ int fuzzCalldata(const uint8_t *data, size_t size) {
     return 0;
 }
 
+int fuzzEIP7702(const uint8_t *data, size_t size) {
+    size_t offset = 0;
+    size_t len = 0;
+    uint8_t p1;
+    unsigned int flags;
+
+    while (size - offset > 3) {
+        if (data[offset++] == 0) break;
+        p1 = data[offset++];
+        len = data[offset++];
+        if (size - offset < len) return 0;
+        if (handleSignEIP7702Authorization(p1, data + offset, len, &flags) != APDU_RESPONSE_OK)
+            return 1;
+        offset += len;
+    }
+    return 0;
+}
+
 // Array of fuzzing harness functions
 harness harnesses[] = {
     fuzzGenericParserFieldCmd,
@@ -171,6 +198,7 @@ harness harnesses[] = {
     fuzzProxyInfo,
     fuzzTxSimulation,
     fuzzCalldata,
+    fuzzEIP7702,
 };
 
 /* Main fuzzing handler called by libfuzzer */
@@ -183,6 +211,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     explicit_bzero(&strings, sizeof(strings_t));
     explicit_bzero(&G_io_apdu_buffer, 260);
     explicit_bzero(&sha3, sizeof(sha3));
+    explicit_bzero(&global_sha3, sizeof(global_sha3));
 
     calldata_cleanup();
     mem_reset();

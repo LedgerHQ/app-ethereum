@@ -159,6 +159,8 @@ set(DEFINES
     HAVE_NFT_SUPPORT
     HAVE_DYNAMIC_NETWORKS
     HAVE_WEB3_CHECKS
+    HAVE_EIP7702
+    HAVE_EIP7702_WHITELIST
     explicit_bzero=bzero # Fix for https://github.com/google/sanitizers/issues/1507
 )
 
@@ -190,6 +192,7 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/../../src_features/signMessageEIP712/
   ${CMAKE_SOURCE_DIR}/../../src_features/provide_proxy_info/
   ${CMAKE_SOURCE_DIR}/../../src_features/provide_tx_simulation/
+  ${CMAKE_SOURCE_DIR}/../../src_features/signAuthorizationEIP7702/
   ${BOLOS_SDK}/include
   ${BOLOS_SDK}/target/${TARGET_DEVICE}/include
   ${BOLOS_SDK}/lib_cxng/include
@@ -209,6 +212,7 @@ FILE(GLOB_RECURSE SOURCES
   ${CMAKE_SOURCE_DIR}/../../src_features/provideNFTInformation/*.c
   ${CMAKE_SOURCE_DIR}/../../src_features/provide_proxy_info/*.c
   ${CMAKE_SOURCE_DIR}/../../src_features/provide_tx_simulation/*.c
+  ${CMAKE_SOURCE_DIR}/../../src_features/signAuthorizationEIP7702/*.c
   ${CMAKE_SOURCE_DIR}/../../src/mem.c
   ${CMAKE_SOURCE_DIR}/../../src/mem_utils.c
   ${CMAKE_SOURCE_DIR}/../../src/network.c

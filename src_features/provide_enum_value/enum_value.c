@@ -1,6 +1,5 @@
 #ifdef HAVE_ENUM_VALUE
 
-#include <string.h>
 #include "enum_value.h"
 #include "read.h"
 #include "public_keys.h"
@@ -156,8 +155,7 @@ bool verify_enum_value_struct(const s_enum_value_ctx *context) {
                                     NULL,
                                     0,
 #ifdef HAVE_LEDGER_PKI
-                                    // TODO: change once SDK has the enum value for this
-                                    0x0b,
+                                    CERTIFICATE_PUBLIC_KEY_USAGE_CALLDATA,
 #endif
                                     (uint8_t *) context->enum_value.signature,
                                     context->enum_value.signature_length) != CX_OK) {

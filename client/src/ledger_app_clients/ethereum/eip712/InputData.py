@@ -7,12 +7,12 @@ import copy
 from typing import Any, Callable, Optional, Union
 import struct
 
-from client import keychain
-from client.client import EthAppClient, EIP712FieldType
-
 from ragger.firmware import Firmware
 
+from client import keychain
+from client.client import EthAppClient, EIP712FieldType
 from client.client import PKIPubKeyUsage
+
 
 # global variables
 app_client: EthAppClient = None
@@ -34,7 +34,7 @@ is_golden_run: bool
 # Input  = "uint8[2][][4]"          |   "bool"
 # Output = ('uint8', [2, None, 4])  |   ('bool', [])
 def get_array_levels(typename):
-    array_lvls = list()
+    array_lvls = []
     regex = re.compile(r"(.*)\[([0-9]*)\]$")
 
     while True:
@@ -109,7 +109,7 @@ def send_struct_def_field(typename, keyname):
     (typename, array_lvls) = get_array_levels(typename)
     (typename, typesize) = get_typesize(typename)
 
-    if typename in parsing_type_functions.keys():
+    if typename in parsing_type_functions:
         (type_enum, typesize) = parsing_type_functions[typename](typesize)
     else:
         type_enum = EIP712FieldType.CUSTOM
@@ -278,8 +278,7 @@ def evaluate_field(structs, data, field, lvls_left, new_level=True):
             idx += 1
         if array_lvls[lvls_left - 1] is not None:
             if array_lvls[lvls_left - 1] != idx:
-                print("Mismatch in array size! Got %d, expected %d\n" %
-                      (idx, array_lvls[lvls_left - 1]),
+                print(f"Mismatch in array size! Got {idx}, expected {array_lvls[lvls_left - 1]}\n",
                       file=sys.stderr)
                 return False
     else:
@@ -298,8 +297,7 @@ def send_struct_impl(structs, data, structname):
     if structname not in structs.keys():
         return False
 
-    struct = structs[structname]
-    for f in struct:
+    for f in structs[structname]:
         if not evaluate_field(structs, data[f["name"]], f, len(f["array_lvls"])):
             return False
     return True
@@ -318,8 +316,6 @@ def start_signature_payload(ctx: dict, magic: int) -> bytearray:
 
 # ledgerjs doesn't actually sign anything, and instead uses already pre-computed signatures
 def send_filtering_message_info(display_name: str, filters_count: int):
-    global sig_ctx
-
     to_sign = start_signature_payload(sig_ctx, 183)
     to_sign.append(filters_count)
     to_sign += display_name.encode()
@@ -331,8 +327,6 @@ def send_filtering_message_info(display_name: str, filters_count: int):
 
 
 def send_filtering_amount_join_token(path: str, token_idx: int, discarded: bool):
-    global sig_ctx
-
     to_sign = start_signature_payload(sig_ctx, 11)
     to_sign += path.encode()
     to_sign.append(token_idx)
@@ -342,8 +336,6 @@ def send_filtering_amount_join_token(path: str, token_idx: int, discarded: bool)
 
 
 def send_filtering_amount_join_value(path: str, token_idx: int, display_name: str, discarded: bool):
-    global sig_ctx
-
     to_sign = start_signature_payload(sig_ctx, 22)
     to_sign += path.encode()
     to_sign += display_name.encode()
@@ -354,8 +346,6 @@ def send_filtering_amount_join_value(path: str, token_idx: int, display_name: st
 
 
 def send_filtering_datetime(path: str, display_name: str, discarded: bool):
-    global sig_ctx
-
     to_sign = start_signature_payload(sig_ctx, 33)
     to_sign += path.encode()
     to_sign += display_name.encode()
@@ -369,8 +359,6 @@ def send_filtering_trusted_name(path: str,
                                 name_type: list[int],
                                 name_source: list[int],
                                 discarded: bool):
-    global sig_ctx
-
     to_sign = start_signature_payload(sig_ctx, 44)
     to_sign += path.encode()
     to_sign += display_name.encode()
@@ -385,8 +373,6 @@ def send_filtering_trusted_name(path: str,
 
 # ledgerjs doesn't actually sign anything, and instead uses already pre-computed signatures
 def send_filtering_raw(path: str, display_name: str, discarded: bool):
-    global sig_ctx
-
     to_sign = start_signature_payload(sig_ctx, 72)
     to_sign += path.encode()
     to_sign += display_name.encode()
@@ -395,7 +381,7 @@ def send_filtering_raw(path: str, display_name: str, discarded: bool):
         pass
 
 
-def prepare_filtering(filtr_data, message):
+def prepare_filtering(filtr_data):
     global filtering_paths
     global filtering_tokens
 
@@ -420,11 +406,12 @@ def handle_optional_domain_values(domain):
         domain["verifyingContract"] = "0x0000000000000000000000000000000000000000"
 
 
-def init_signature_context(types, domain):
-    global sig_ctx
-
+def init_signature_context(types, domain, filters):
     handle_optional_domain_values(domain)
-    caddr = domain["verifyingContract"]
+    if "address" in filters:
+        caddr = filters["address"]
+    else:
+        caddr = domain["verifyingContract"]
     if caddr.startswith("0x"):
         caddr = caddr[2:]
     sig_ctx["caddr"] = bytearray.fromhex(caddr)
@@ -444,7 +431,7 @@ def next_timeout(_signum: int, _frame):
 
 def enable_autonext():
     if app_client._client.firmware in (Firmware.STAX, Firmware.FLEX):
-        delay = 1/3
+        delay = 1/2
     else:
         delay = 1/4
 
@@ -465,11 +452,12 @@ def process_data(aclient: EthAppClient,
                  filters: Optional[dict] = None,
                  autonext: Optional[Callable] = None,
                  golden_run: bool = False) -> bool:
-    global sig_ctx
     global app_client
     global autonext_handler
     global is_golden_run
+    global current_path
 
+    current_path = []
     # deepcopy because this function modifies the dict
     data_json = copy.deepcopy(data_json)
     app_client = aclient
@@ -486,7 +474,7 @@ def process_data(aclient: EthAppClient,
     is_golden_run = golden_run
 
     if filters:
-        init_signature_context(types, domain)
+        init_signature_context(types, domain, filters)
 
     # send types definition
     for key in types.keys():
@@ -499,7 +487,7 @@ def process_data(aclient: EthAppClient,
     if filters:
         with app_client.eip712_filtering_activate():
             pass
-        prepare_filtering(filters, message)
+        prepare_filtering(filters)
 
     if aclient._pki_client is None:
         print(f"Ledger-PKI Not supported on '{aclient._firmware.name}'")
@@ -513,9 +501,12 @@ def process_data(aclient: EthAppClient,
             cert_apdu = "0101010201021104000000021201001302000214010116040000000020104549503731325F46696C746572696E67300200053101083201213321024CCA8FAD496AA5040A00A7EB2F5CC3B85376D88BA147A7D7054A99C6405618873401013501041546304402204EA7B30F0EEFEF25FAB3ADDA6609E25296C41DD1C5969A92FAE6B600AAC2902E02206212054E123F5F965F787AE7EE565E243F21B11725626D3FF058522D6BDCD995"  # noqa: E501
         elif aclient._firmware == Firmware.FLEX:
             cert_apdu = "0101010201021104000000021201001302000214010116040000000020104549503731325F46696C746572696E67300200053101083201213321024CCA8FAD496AA5040A00A7EB2F5CC3B85376D88BA147A7D7054A99C6405618873401013501051546304402205FB5E970065A95C57F00FFA3964946251815527613724ED6745C37E303934BE702203CC9F4124B42806F0A7CA765CFAB5AADEB280C35AB8F809FC49ADC97D9B9CE15"  # noqa: E501
+        else:
+            print(f"Invalid device '{aclient._firmware.name}'")
+            cert_apdu = ""
         # pylint: enable=line-too-long
-
-        aclient._pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_COIN_META, bytes.fromhex(cert_apdu))
+        if cert_apdu:
+            aclient._pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_COIN_META, bytes.fromhex(cert_apdu))
 
     # send domain implementation
     with app_client.eip712_send_struct_impl_root_struct(domain_typename):

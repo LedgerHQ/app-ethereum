@@ -1,20 +1,16 @@
 #ifdef HAVE_EIP712_FULL_SUPPORT
 
-#include <string.h>  // explicit_bzero
 #include "common_ui.h"
 #include "ui_nbgl.h"
 #include "ui_logic.h"
-#include "common_712.h"
-#include "nbgl_use_case.h"
 #include "ui_message_signing.h"
-#include "ledger_assert.h"
-#include "apdu_constants.h"
+#include "cmd_get_tx_simulation.h"
+#include "utils.h"
 
 static nbgl_contentTagValue_t pairs[7];
 static nbgl_contentTagValueList_t pairs_list;
 static uint8_t pair_idx;
 static size_t buf_idx;
-static bool filtered;
 static bool review_skipped;
 
 static void message_progress(bool confirm) {
@@ -53,6 +49,7 @@ static void message_update(bool confirm) {
     size_t buf_size;
     size_t buf_off;
     bool flag;
+    bool skippable;
 
     buf = get_ui_pairs_buffer(&buf_size);
     if (confirm) {
@@ -66,8 +63,9 @@ static void message_update(bool confirm) {
             pairs[pair_idx].value = memmove(buf + buf_idx, strings.tmp.tmp, buf_off);
             buf_idx += buf_off;
             pair_idx += 1;
+            skippable = warning.predefinedSet & SET_BIT(BLIND_SIGNING_WARN);
             pairs_list.nbPairs =
-                nbgl_useCaseGetNbTagValuesInPageExt(pair_idx, &pairs_list, 0, !filtered, &flag);
+                nbgl_useCaseGetNbTagValuesInPageExt(pair_idx, &pairs_list, 0, skippable, &flag);
         }
         if (!review_skipped && ((pair_idx == ARRAYLEN(pairs)) || (pairs_list.nbPairs < pair_idx))) {
             nbgl_useCaseReviewStreamingContinueExt(&pairs_list, message_progress, review_skip);
@@ -79,37 +77,71 @@ static void message_update(bool confirm) {
     }
 }
 
-static void ui_712_start_common(bool has_filtering) {
+static void ui_712_start_common(void) {
     explicit_bzero(&pairs, sizeof(pairs));
     explicit_bzero(&pairs_list, sizeof(pairs_list));
     pairs_list.pairs = pairs;
     pair_idx = 0;
     buf_idx = 0;
-    filtered = has_filtering;
     review_skipped = false;
+    if (appState != APP_STATE_IDLE) {
+        reset_app_context();
+    }
+    appState = APP_STATE_SIGNING_EIP712;
+    explicit_bzero(&warning, sizeof(nbgl_warning_t));
+#ifdef HAVE_WEB3_CHECKS
+    set_tx_simulation_warning(&warning, false, false);
+#endif
 }
 
 void ui_712_start_unfiltered(void) {
-    ui_712_start_common(false);
-    nbgl_useCaseReviewStreamingBlindSigningStart(TYPE_MESSAGE | SKIPPABLE_OPERATION,
-                                                 &C_Review_64px,
-                                                 TEXT_REVIEW_EIP712,
-                                                 NULL,
-                                                 message_update);
+    ui_712_start_common();
+    warning.predefinedSet |= SET_BIT(BLIND_SIGNING_WARN);
+    nbgl_useCaseAdvancedReviewStreamingStart(TYPE_MESSAGE | SKIPPABLE_OPERATION,
+                                             &ICON_APP_REVIEW,
+                                             "Review typed message",
+                                             NULL,
+                                             &warning,
+                                             message_update);
 }
 
 void ui_712_start(void) {
-    ui_712_start_common(true);
-    nbgl_useCaseReviewStreamingStart(TYPE_MESSAGE,
-                                     &C_Review_64px,
-                                     TEXT_REVIEW_EIP712,
-                                     NULL,
-                                     message_update);
+    ui_712_start_common();
+    if (warning.predefinedSet == 0) {
+        nbgl_useCaseReviewStreamingStart(TYPE_MESSAGE,
+                                         &ICON_APP_REVIEW,
+                                         "Review typed message",
+                                         NULL,
+                                         message_update);
+    } else {
+        nbgl_useCaseAdvancedReviewStreamingStart(TYPE_MESSAGE,
+                                                 &ICON_APP_REVIEW,
+                                                 "Review typed message",
+                                                 NULL,
+                                                 &warning,
+                                                 message_update);
+    }
 }
 
 void ui_712_switch_to_message(void) {
     message_update(true);
 }
+
+#ifdef HAVE_WEB3_CHECKS
+static void ui_712_w3c_cb(bool confirm) {
+    if (confirm) {
+        // User has clicked on "Reject transaction"
+        ui_typed_message_review_choice(false);
+    } else {
+        // User has clicked on "Sign anyway"
+        snprintf(g_stax_shared_buffer,
+                 sizeof(g_stax_shared_buffer),
+                 "%s typed message?",
+                 ui_tx_simulation_finish_str());
+        nbgl_useCaseReviewStreamingFinish(g_stax_shared_buffer, ui_typed_message_review_choice);
+    }
+}
+#endif
 
 void ui_712_switch_to_sign(void) {
     if (!review_skipped && (pair_idx > 0)) {
@@ -117,8 +149,18 @@ void ui_712_switch_to_sign(void) {
         pair_idx = 0;
         nbgl_useCaseReviewStreamingContinueExt(&pairs_list, message_progress, review_skip);
     } else {
-        nbgl_useCaseReviewStreamingFinish(filtered ? TEXT_SIGN_EIP712 : TEXT_BLIND_SIGN_EIP712,
-                                          ui_typed_message_review_choice);
+#ifdef HAVE_WEB3_CHECKS
+        if ((TX_SIMULATION.risk != RISK_UNKNOWN) && ((check_tx_simulation_hash() == false) ||
+                                                     check_tx_simulation_from_address() == false)) {
+            ui_tx_simulation_error(ui_712_w3c_cb);
+            return;
+        }
+#endif
+        snprintf(g_stax_shared_buffer,
+                 sizeof(g_stax_shared_buffer),
+                 "%s typed message?",
+                 ui_tx_simulation_finish_str());
+        nbgl_useCaseReviewStreamingFinish(g_stax_shared_buffer, ui_typed_message_review_choice);
     }
 }
 

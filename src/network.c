@@ -1,8 +1,7 @@
-#include <string.h>
 #include "os_utils.h"
 #include "os_pic.h"
 #include "network.h"
-#include "network_dynamic.h"
+#include "network_info.h"
 #include "shared_context.h"
 #include "common_utils.h"
 
@@ -96,6 +95,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 62320, .name = "Celo Baklava", .ticker = "bCELO"},
     {.chain_id = 62621, .name = "Multivac", .ticker = "MTV"},
     {.chain_id = 73799, .name = "Volta", .ticker = "VOLTA"},
+    {.chain_id = 80094, .name = "Berachain", .ticker = "BERA"},
     {.chain_id = 81457, .name = "Blast", .ticker = "ETH"},
     {.chain_id = 84532, .name = "Base Sepolia", .ticker = "ETH"},
     {.chain_id = 153153, .name = "Odyssey Chain", .ticker = "DIONE"},
@@ -127,7 +127,9 @@ static const network_info_t *get_network_from_chain_id(const uint64_t *chain_id)
         // Look if the network is available
         for (size_t i = 0; i < MAX_DYNAMIC_NETWORKS; i++) {
             if (DYNAMIC_NETWORK_INFO[i].chain_id == *chain_id) {
-                PRINTF("[NETWORK] - Found dynamic %s\n", DYNAMIC_NETWORK_INFO[i].name);
+                PRINTF("[NETWORK] - Found dynamic \"%s\" in slot %u\n",
+                       DYNAMIC_NETWORK_INFO[i].name,
+                       i);
                 return (const network_info_t *) &DYNAMIC_NETWORK_INFO[i];
             }
         }

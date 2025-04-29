@@ -3,6 +3,7 @@
 #include "common_ui.h"
 #include "ux.h"
 #include "ui_flow.h"
+#include "ui_callbacks.h"
 
 void ui_idle(void) {
     // reserve a display stack slot if none yet

@@ -1,7 +1,6 @@
-#include "shared_context.h"
 #include "apdu_constants.h"
 #include "feature_getPublicKey.h"
-#include "common_ui.h"
+#include "ui_callbacks.h"
 
 unsigned int io_seproxyhal_touch_address_ok(void) {
     uint32_t tx = set_result_get_publicKey();

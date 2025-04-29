@@ -15,13 +15,15 @@
 #define SIZE_MEM_BUFFER 10240
 
 static uint8_t mem_buffer[SIZE_MEM_BUFFER];
-static size_t mem_idx;
+static uint16_t mem_idx;
+static uint16_t mem_rev_idx;
 
 /**
  * Initializes the memory buffer index
  */
 void mem_init(void) {
     mem_idx = 0;
+    mem_rev_idx = 0;
 }
 
 /**
@@ -41,8 +43,16 @@ void mem_reset(void) {
  * @return Allocated memory pointer; \ref NULL if not enough space left.
  */
 void *mem_alloc(size_t size) {
+    size_t new_idx;
+    size_t free_size;
+
+    if (__builtin_add_overflow((size_t) mem_idx, size, &new_idx) ||
+        __builtin_sub_overflow(sizeof(mem_buffer), (size_t) mem_rev_idx, &free_size)) {
+        PRINTF("Error: overflow detected!\n");
+        return NULL;
+    }
     // Buffer exceeded
-    if ((mem_idx + size) > sizeof(mem_buffer)) {
+    if (new_idx > free_size) {
         PRINTF("Error: mem_alloc(%u) failed!\n", size);
         return NULL;
     }
@@ -62,6 +72,45 @@ void mem_dealloc(size_t size) {
         mem_idx = 0;
     } else {
         mem_idx -= size;
+    }
+}
+
+/**
+ * Same as \ref mem_alloc but in reverse
+ *
+ * @param[in] size Requested allocation size in bytes
+ * @return Allocated memory pointer; \ref NULL if not enough space left.
+ */
+void *mem_rev_alloc(size_t size) {
+    size_t free_size;
+    size_t new_rev_idx;
+
+    if (__builtin_add_overflow((size_t) mem_rev_idx, size, &new_rev_idx) ||
+        __builtin_sub_overflow(sizeof(mem_buffer), new_rev_idx, &free_size)) {
+        PRINTF("Error: overflow detected!\n");
+        return NULL;
+    }
+    // Buffer exceeded
+    if (free_size < mem_idx) {
+        PRINTF("Error: mem_rev_alloc(%u) failed!\n", size);
+        return NULL;
+    }
+    mem_rev_idx += size;
+    return &mem_buffer[sizeof(mem_buffer) - mem_rev_idx];
+}
+
+/**
+ * Same as \ref mem_dealloc but in reverse
+ *
+ * @param[in] size Requested deallocation size in bytes
+ */
+void mem_rev_dealloc(size_t size) {
+    // More than is already allocated
+    if (size > mem_rev_idx) {
+        PRINTF("Warning: mem_rev_dealloc(%u) with a value larger than allocated!\n", size);
+        mem_rev_idx = 0;
+    } else {
+        mem_rev_idx -= size;
     }
 }
 

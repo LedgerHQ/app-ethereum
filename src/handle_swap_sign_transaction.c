@@ -1,24 +1,10 @@
-#include "os_io_seproxyhal.h"
-#include "os.h"
-#include "ux.h"
 #include "eth_swap_utils.h"
-#include "handle_swap_sign_transaction.h"
 #include "shared_context.h"
-#include "common_utils.h"
 #include "network.h"
 #include "cmd_setPlugin.h"
 #ifdef HAVE_NBGL
 #include "nbgl_use_case.h"
 #endif  // HAVE_NBGL
-
-// Remember if we have been started by the Exchange application or not
-bool G_called_from_swap;
-
-// Set this boolean when a transaction is signed in Swap mode. Safety against double sign
-bool G_swap_response_ready;
-
-// Save the BSS address where we will write the return value when finished
-static uint8_t* G_swap_sign_return_value_address;
 
 // Standard or crosschain swap type
 swap_mode_t G_swap_mode;
@@ -144,7 +130,7 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
     // Full reset the global variables
     os_explicit_zero_BSS_segment();
     // Keep the address at which we'll reply the signing status
-    G_swap_sign_return_value_address = &sign_transaction_params->result;
+    G_swap_signing_return_value_address = &sign_transaction_params->result;
     // Commit the values read from exchange to the clean global space
     G_swap_mode = swap_mode;
     memcpy(G_swap_crosschain_hash, swap_crosschain_hash, sizeof(G_swap_crosschain_hash));
@@ -152,8 +138,8 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
     return true;
 }
 
-void __attribute__((noreturn)) finalize_exchange_sign_transaction(bool is_success) {
-    *G_swap_sign_return_value_address = is_success;
+void __attribute__((noreturn)) swap_finalize_exchange_sign_transaction(bool is_success) {
+    *G_swap_signing_return_value_address = is_success;
     os_lib_end();
 }
 
@@ -171,7 +157,7 @@ void __attribute__((noreturn)) handle_swap_sign_transaction(const chain_config_t
 
     storage_init();
 
-#ifdef HAVE_NBGL
+#ifdef SCREEN_SIZE_WALLET
     nbgl_useCaseSpinner("Signing");
 #endif  // HAVE_NBGL
 

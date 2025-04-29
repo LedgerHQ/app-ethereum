@@ -1,8 +1,5 @@
-#include "common_ui.h"
-#include "ui_signing.h"
 #include "ui_nbgl.h"
-#include "nbgl_use_case.h"
-#include "nbgl_content.h"
+#include "ui_callbacks.h"
 
 static void reviewChoice(bool confirm) {
     if (confirm) {

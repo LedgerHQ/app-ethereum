@@ -15,7 +15,7 @@ on:
         type: choice
         required: true
         default: 'Raise an error (default)'
-        description: CI behavior if the test snaphots are different than expected.
+        description: CI behavior if the test snapshots are different than expected.
         options:
           - 'Raise an error (default)'
           - 'Open a PR'
@@ -59,5 +59,5 @@ jobs:
       download_app_binaries_artifact: "ragger_elfs"
       additional_app_binaries_artifact: "clone_elfs"
       additional_app_binaries_artifact_dir: ./tests/ragger/.test_dependencies/clone/build/
-      test_options: "--with_lib_mode"
+      test_options: "--setup lib_mode"
       regenerate_snapshots: ${{ inputs.golden_run == 'Open a PR' }}

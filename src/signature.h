@@ -1,0 +1,6 @@
+#ifndef SIGNATURE_H_
+#define SIGNATURE_H_
+
+#define ECDSA_SIGNATURE_MAX_LENGTH 73
+
+#endif  // SIGNATURE_H_

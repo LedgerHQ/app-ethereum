@@ -35,19 +35,23 @@ def chain_fixture(request) -> Optional[int]:
 )
 def test_get_pk_rejected(backend: BackendInterface,
                          scenario_navigator: NavigateWithScenario,
-                         path,
-                         suffix):
+                         test_name: str,
+                         path: str,
+                         suffix: str):
     app_client = EthAppClient(backend)
 
+    test_name += f"_{suffix}"
     with pytest.raises(ExceptionRAPDU) as e:
         with app_client.get_public_addr(bip32_path=path):
-            scenario_navigator.address_review_reject(test_name=f"get_pk_rejected_{suffix}")
+            scenario_navigator.address_review_reject(test_name=test_name)
 
     assert e.value.status == StatusWord.CONDITION_NOT_SATISFIED
 
 
-def test_get_pk(backend: BackendInterface,
+def test_get_pk(firmware: Firmware,
+                backend: BackendInterface,
                 scenario_navigator: NavigateWithScenario,
+                test_name: str,
                 with_chaincode: bool,
                 chain: Optional[int]):
     app_client = EthAppClient(backend)
@@ -66,12 +70,15 @@ def test_get_pk(backend: BackendInterface,
         # pylint: enable=line-too-long
     else:
         name = ""
+        ticker = ""
+        icon = ""
 
-    if (app_client._firmware != Firmware.NANOS) and name:
+    if (firmware != Firmware.NANOS) and name:
         app_client.provide_network_information(name, ticker, chain, bytes.fromhex(icon))
 
+    test_name += f"_{chain}"
     with app_client.get_public_addr(chaincode=with_chaincode, chain_id=chain):
-        scenario_navigator.address_review_approve(test_name=f"get_pk_{chain}")
+        scenario_navigator.address_review_approve(test_name=test_name)
 
     pk, _, chaincode = ResponseParser.pk_addr(app_client.response().data, with_chaincode)
     ref_pk, ref_chaincode = calculate_public_key_and_chaincode(curve=CurveChoice.Secp256k1,

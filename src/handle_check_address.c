@@ -1,8 +1,5 @@
 #include "handle_check_address.h"
 #include "apdu_constants.h"
-#include "os.h"
-#include "shared_context.h"
-#include "string.h"
 #include "crypto_helpers.h"
 
 #define ZERO(x) explicit_bzero(&x, sizeof(x))

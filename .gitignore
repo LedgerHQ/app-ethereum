@@ -19,8 +19,12 @@ __version__.py
 # Fuzzing
 tests/fuzzing/corpus/
 tests/fuzzing/out/
+tests/fuzzing/CMakeFiles/
 default.profraw
 default.profdata
 fuzz-*.log
 crash-*
 report.html
+
+# LSP
+.cache/

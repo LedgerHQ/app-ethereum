@@ -2,8 +2,6 @@
 #define MANAGE_ASSET_INFO_H_
 
 #include "shared_context.h"
-#include "common_utils.h"
-#include "asset_info.h"
 
 void forget_known_assets(void);
 int get_asset_index_by_addr(const uint8_t *addr);

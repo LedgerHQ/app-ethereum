@@ -10,6 +10,7 @@
 #include "time_format.h"
 #include "calldata.h"
 #include "public_keys.h"  // LEDGER_SIGNATURE_PUBLIC_KEY
+#include "proxy_info.h"
 
 enum {
     BIT_VERSION = 0,
@@ -78,10 +79,6 @@ static bool handle_contract_addr(const s_tlv_data *data, s_tx_info_ctx *context)
         return false;
     }
     buf_shrink_expand(data->value, data->length, buf, sizeof(buf));
-    if (memcmp(buf, txContext.content->destination, sizeof(buf)) != 0) {
-        PRINTF("Error: contract address mismatch!\n");
-        return false;
-    }
     memcpy(context->tx_info->contract_addr, buf, sizeof(buf));
     context->set_flags |= SET_BIT(BIT_CONTRACT_ADDR);
     return true;
@@ -245,6 +242,8 @@ bool handle_tx_info_struct(const s_tlv_data *data, s_tx_info_ctx *context) {
 bool verify_tx_info_struct(const s_tx_info_ctx *context) {
     uint16_t required_bits = 0;
     uint8_t hash[INT256_LENGTH];
+    const uint8_t *proxy_parent;
+    uint64_t tx_chain_id;
 
     // check if struct version was provided
     required_bits |= SET_BIT(BIT_VERSION);
@@ -270,6 +269,19 @@ bool verify_tx_info_struct(const s_tx_info_ctx *context) {
         return false;
     }
 
+    tx_chain_id = get_tx_chain_id();
+    if (((proxy_parent = get_proxy_contract(&tx_chain_id,
+                                            txContext.content->destination,
+                                            context->tx_info->selector)) == NULL) ||
+        (memcmp(proxy_parent, context->tx_info->contract_addr, ADDRESS_LENGTH) != 0)) {
+        if (memcmp(context->tx_info->contract_addr,
+                   txContext.content->destination,
+                   ADDRESS_LENGTH) != 0) {
+            PRINTF("Error: contract address mismatch!\n");
+            return false;
+        }
+    }
+
     // verify signature
     if (cx_hash_no_throw((cx_hash_t *) &context->struct_hash,
                          CX_LAST,
@@ -287,8 +299,7 @@ bool verify_tx_info_struct(const s_tx_info_ctx *context) {
                                     NULL,
                                     0,
 #ifdef HAVE_LEDGER_PKI
-                                    // TODO: change once SDK has the enum value for this
-                                    0x0b,
+                                    CERTIFICATE_PUBLIC_KEY_USAGE_CALLDATA,
 #endif
                                     (uint8_t *) context->tx_info->signature,
                                     context->tx_info->signature_len) != CX_OK) {

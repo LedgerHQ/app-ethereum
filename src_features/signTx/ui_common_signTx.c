@@ -1,11 +1,9 @@
+#include "swap_entrypoints.h"
 #include "crypto_helpers.h"
-#include "os_io_seproxyhal.h"
-#include "shared_context.h"
-#include "common_utils.h"
-#include "common_ui.h"
 #include "handle_swap_sign_transaction.h"
 #include "feature_signTx.h"
 #include "apdu_constants.h"
+#include "ui_callbacks.h"
 
 uint32_t io_seproxyhal_touch_tx_ok(void) {
     uint32_t info = 0;
@@ -58,7 +56,7 @@ uint32_t io_seproxyhal_touch_tx_ok(void) {
 
         // If we are in swap mode and have validated a TX, we send it and immediately quit
         if (err == 0) {
-            finalize_exchange_sign_transaction(true);
+            swap_finalize_exchange_sign_transaction(true);
         } else {
             PRINTF("Unrecoverable\n");
             app_exit();

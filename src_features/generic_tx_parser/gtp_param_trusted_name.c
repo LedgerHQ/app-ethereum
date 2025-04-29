@@ -7,12 +7,15 @@
 #include "gtp_field_table.h"
 #include "utils.h"
 #include "shared_context.h"
+#include "feature_signTx.h"  // get_public_key
+#include "apdu_constants.h"
 
 enum {
     TAG_VERSION = 0x00,
     TAG_VALUE = 0x01,
     TAG_TYPES = 0x02,
     TAG_SOURCES = 0x03,
+    TAG_SENDER_ADDR = 0x04,
 };
 
 static bool handle_version(const s_tlv_data *data, s_param_trusted_name_context *context) {
@@ -49,6 +52,19 @@ static bool handle_sources(const s_tlv_data *data, s_param_trusted_name_context 
     return true;
 }
 
+static bool handle_sender_addr(const s_tlv_data *data, s_param_trusted_name_context *context) {
+    if ((data->length > sizeof(context->param->sender_addr)) ||
+        (context->param->sender_addr_count == ARRAYLEN(context->param->sender_addr))) {
+        return false;
+    }
+    buf_shrink_expand(data->value,
+                      data->length,
+                      context->param->sender_addr[context->param->sender_addr_count],
+                      sizeof(context->param->sender_addr[context->param->sender_addr_count]));
+    context->param->sender_addr_count += 1;
+    return true;
+}
+
 bool handle_param_trusted_name_struct(const s_tlv_data *data,
                                       s_param_trusted_name_context *context) {
     bool ret;
@@ -66,6 +82,9 @@ bool handle_param_trusted_name_struct(const s_tlv_data *data,
         case TAG_SOURCES:
             ret = handle_sources(data, context);
             break;
+        case TAG_SENDER_ADDR:
+            ret = handle_sender_addr(data, context);
+            break;
         default:
             PRINTF(TLV_TAG_ERROR_MSG, data->tag);
             ret = false;
@@ -74,7 +93,8 @@ bool handle_param_trusted_name_struct(const s_tlv_data *data,
 }
 
 bool format_param_trusted_name(const s_param_trusted_name *param, const char *name) {
-    s_parsed_value_collection values;
+    bool ret;
+    s_parsed_value_collection values = {0};
     char *buf = strings.tmp.tmp;
     size_t buf_size = sizeof(strings.tmp.tmp);
     uint64_t chain_id;
@@ -82,29 +102,37 @@ bool format_param_trusted_name(const s_param_trusted_name *param, const char *na
     const char *tname;
     e_param_type param_type;
 
-    if (!value_get(&param->value, &values)) {
-        return false;
-    }
-    chain_id = get_tx_chain_id();
-    for (int i = 0; i < values.size; ++i) {
-        buf_shrink_expand(values.value[i].ptr, values.value[i].length, addr, sizeof(addr));
-        if ((tname = get_trusted_name(param->type_count,
-                                      param->types,
-                                      param->source_count,
-                                      param->sources,
-                                      &chain_id,
-                                      addr)) != NULL) {
-            strlcpy(buf, tname, buf_size);
-            param_type = PARAM_TYPE_TRUSTED_NAME;
-        } else {
-            getEthDisplayableAddress(addr, buf, buf_size, chainConfig->chainId);
-            param_type = PARAM_TYPE_RAW;
+    if ((ret = value_get(&param->value, &values))) {
+        chain_id = get_tx_chain_id();
+        for (int i = 0; i < values.size; ++i) {
+            buf_shrink_expand(values.value[i].ptr, values.value[i].length, addr, sizeof(addr));
+            // replace by wallet addr if a match is found
+            for (uint8_t idx = 0; idx < param->sender_addr_count; ++idx) {
+                if (memcmp(addr, param->sender_addr[idx], ADDRESS_LENGTH) == 0) {
+                    ret = get_public_key(addr, sizeof(addr)) == APDU_RESPONSE_OK;
+                    break;
+                }
+            }
+            if (!ret) break;
+            if ((tname = get_trusted_name(param->type_count,
+                                          param->types,
+                                          param->source_count,
+                                          param->sources,
+                                          &chain_id,
+                                          addr)) != NULL) {
+                strlcpy(buf, tname, buf_size);
+                param_type = PARAM_TYPE_TRUSTED_NAME;
+            } else {
+                getEthDisplayableAddress(addr, buf, buf_size, chainConfig->chainId);
+                param_type = PARAM_TYPE_RAW;
+            }
+            if (!(ret = add_to_field_table(param_type, name, buf))) {
+                break;
+            }
         }
-        if (!add_to_field_table(param_type, name, buf)) {
-            return false;
-        }
     }
-    return true;
+    value_cleanup(&param->value, &values);
+    return ret;
 }
 
 #endif  // HAVE_TRUSTED_NAME

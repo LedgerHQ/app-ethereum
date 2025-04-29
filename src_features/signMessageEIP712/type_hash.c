@@ -1,12 +1,8 @@
 #ifdef HAVE_EIP712_FULL_SUPPORT
 
-#include <stdlib.h>
-#include <string.h>
-#include <stdbool.h>
 #include "mem.h"
 #include "mem_utils.h"
 #include "type_hash.h"
-#include "shared_context.h"
 #include "format_hash_field_type.h"
 #include "hash_bytes.h"
 #include "apdu_constants.h"  // APDU response codes

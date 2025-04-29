@@ -3,7 +3,6 @@
 import os
 import subprocess
 import sys
-import struct
 import logging
 import re
 from hashlib import sha256
@@ -202,8 +201,7 @@ def generate_tlv_payload(name: str,
         # Network Icon Hash
         payload += format_tlv(NetworkInfoTag.NETWORK_ICON_HASH, sha256(icon).digest())
     # Append the data Signature
-    payload += format_tlv(NetworkInfoTag.DER_SIGNATURE,
-                              sign_data(Key.CAL, payload))
+    payload += format_tlv(NetworkInfoTag.DER_SIGNATURE, sign_data(Key.NETWORK, payload))
 
     # Return the constructed TLV payload as bytes
     return payload

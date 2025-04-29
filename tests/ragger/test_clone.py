@@ -1,3 +1,5 @@
+import pytest
+
 from pathlib import Path
 from web3 import Web3
 
@@ -19,6 +21,7 @@ VALUE = 0.31415
 
 
 # Transfer on Clone app
+@pytest.mark.needs_setup('lib_mode')
 def test_clone_thundercore(firmware: Firmware,
                            backend: BackendInterface,
                            navigator: Navigator,

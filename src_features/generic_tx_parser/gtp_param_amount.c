@@ -45,31 +45,32 @@ bool handle_param_amount_struct(const s_tlv_data *data, s_param_amount_context *
 }
 
 bool format_param_amount(const s_param_amount *param, const char *name) {
+    bool ret;
     uint64_t chain_id;
     const char *ticker;
-    s_parsed_value_collection collec;
+    s_parsed_value_collection collec = {0};
     char *buf = strings.tmp.tmp;
     size_t buf_size = sizeof(strings.tmp.tmp);
 
-    if (!value_get(&param->value, &collec)) {
-        return false;
-    }
-    chain_id = get_tx_chain_id();
-    ticker = get_displayable_ticker(&chain_id, chainConfig);
-    for (int i = 0; i < collec.size; ++i) {
-        if (!amountToString(collec.value[i].ptr,
-                            collec.value[i].length,
-                            WEI_TO_ETHER,
-                            ticker,
-                            buf,
-                            buf_size)) {
-            return false;
+    if ((ret = value_get(&param->value, &collec))) {
+        chain_id = get_tx_chain_id();
+        ticker = get_displayable_ticker(&chain_id, chainConfig);
+        for (int i = 0; i < collec.size; ++i) {
+            if (!(ret = amountToString(collec.value[i].ptr,
+                                       collec.value[i].length,
+                                       WEI_TO_ETHER,
+                                       ticker,
+                                       buf,
+                                       buf_size))) {
+                break;
+            }
+            if (!(ret = add_to_field_table(PARAM_TYPE_AMOUNT, name, buf))) {
+                break;
+            }
         }
-        if (!add_to_field_table(PARAM_TYPE_AMOUNT, name, buf)) {
-            return false;
-        }
     }
-    return true;
+    value_cleanup(&param->value, &collec);
+    return ret;
 }
 
 #endif  // HAVE_GENERIC_TX_PARSER

@@ -53,8 +53,9 @@ bool handle_param_nft_struct(const s_tlv_data *data, s_param_nft_context *contex
 }
 
 bool format_param_nft(const s_param_nft *param, const char *name) {
-    s_parsed_value_collection collections;
-    s_parsed_value_collection ids;
+    bool ret;
+    s_parsed_value_collection collections = {0};
+    s_parsed_value_collection ids = {0};
     const extraInfo_t *asset;
     char *buf = strings.tmp.tmp;
     size_t buf_size = sizeof(strings.tmp.tmp);
@@ -62,36 +63,43 @@ bool format_param_nft(const s_param_nft *param, const char *name) {
     uint8_t addr_buf[ADDRESS_LENGTH];
     char tmp[80];
 
-    if (!value_get(&param->collection, &collections)) {
-        return false;
-    }
-    if (!value_get(&param->id, &ids)) {
-        return false;
-    }
-    if (collections.size == 0) {
-        return false;
-    }
-    if ((collections.size != 1) && (collections.size != ids.size)) {
-        return false;
-    }
-    for (int i = 0; i < ids.size; ++i) {
-        collection_idx = (i >= collections.size) ? 0 : i;
-        buf_shrink_expand(collections.value[collection_idx].ptr,
-                          collections.value[collection_idx].length,
-                          addr_buf,
-                          sizeof(addr_buf));
-        if ((asset = (const extraInfo_t *) get_asset_info_by_addr(addr_buf)) == NULL) {
-            return false;
+    if ((ret = value_get(&param->collection, &collections))) {
+        if ((ret = value_get(&param->id, &ids))) {
+            if (collections.size == 0) {
+                ret = false;
+            } else {
+                if ((collections.size != 1) && (collections.size != ids.size)) {
+                    ret = false;
+                } else {
+                    for (int i = 0; i < ids.size; ++i) {
+                        collection_idx = (i >= collections.size) ? 0 : i;
+                        buf_shrink_expand(collections.value[collection_idx].ptr,
+                                          collections.value[collection_idx].length,
+                                          addr_buf,
+                                          sizeof(addr_buf));
+                        if ((asset = (const extraInfo_t *) get_asset_info_by_addr(addr_buf)) ==
+                            NULL) {
+                            ret = false;
+                            break;
+                        }
+                        if (!(ret = uint256_to_decimal(ids.value[i].ptr,
+                                                       ids.value[i].length,
+                                                       tmp,
+                                                       sizeof(tmp)))) {
+                            break;
+                        }
+                        snprintf(buf, buf_size, "%s #%s", asset->nft.collectionName, tmp);
+                        if (!(ret = add_to_field_table(PARAM_TYPE_NFT, name, buf))) {
+                            break;
+                        }
+                    }
+                }
+            }
         }
-        if (!uint256_to_decimal(ids.value[i].ptr, ids.value[i].length, tmp, sizeof(tmp))) {
-            return false;
-        }
-        snprintf(buf, buf_size, "%s #%s", asset->nft.collectionName, tmp);
-        if (!add_to_field_table(PARAM_TYPE_NFT, name, buf)) {
-            return false;
-        }
     }
-    return true;
+    value_cleanup(&param->collection, &collections);
+    value_cleanup(&param->id, &ids);
+    return ret;
 }
 
 #endif  // HAVE_NFT_SUPPORT

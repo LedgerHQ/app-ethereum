@@ -1,11 +1,7 @@
 #ifdef HAVE_NFT_SUPPORT
 
-#include "shared_context.h"
 #include "apdu_constants.h"
 #include "asset_info.h"
-#include "common_utils.h"
-#include "common_ui.h"
-#include "os_io_seproxyhal.h"
 #include "network.h"
 #include "public_keys.h"
 #include "manage_asset_info.h"

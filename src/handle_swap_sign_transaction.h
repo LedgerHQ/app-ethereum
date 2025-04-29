@@ -8,4 +8,4 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
 
 void __attribute__((noreturn)) handle_swap_sign_transaction(const chain_config_t* config);
 
-void __attribute__((noreturn)) finalize_exchange_sign_transaction(bool is_success);
+void __attribute__((noreturn)) swap_finalize_exchange_sign_transaction(bool is_success);

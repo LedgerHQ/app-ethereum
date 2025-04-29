@@ -1,15 +1,15 @@
 #include <ctype.h>
-#include "nbgl_page.h"
 #include "shared_context.h"
 #include "ui_callbacks.h"
+#include "ui_message_signing.h"
 #include "ui_nbgl.h"
-#include "ui_signing.h"
 #include "plugins.h"
 #include "trusted_name.h"
 #include "caller_api.h"
 #include "network_icons.h"
 #include "network.h"
-#include "ledger_assert.h"
+#include "cmd_get_tx_simulation.h"
+#include "utils.h"
 
 // 1 more than actually displayed on screen, because of calculations in StaticReview
 #define MAX_PLUGIN_ITEMS 8
@@ -43,6 +43,9 @@ static void reviewChoice(bool confirm) {
         memset(&tx_approval_context, 0, sizeof(tx_approval_context));
         nbgl_useCaseReviewStatus(STATUS_TYPE_TRANSACTION_REJECTED, ui_idle);
     }
+#ifdef HAVE_WEB3_CHECKS
+    clear_tx_simulation();
+#endif
 }
 
 const nbgl_icon_details_t *get_tx_icon(void) {
@@ -185,11 +188,14 @@ static uint8_t setTagValuePairs(void) {
 }
 
 void ux_approve_tx(bool fromPlugin) {
+    uint64_t chain_id = 0;
+    uint16_t buf_size = SHARED_BUFFER_SIZE / 2;
+
     explicit_bzero(&pairsList, sizeof(pairsList));
     explicit_bzero(&tx_approval_context, sizeof(tx_approval_context));
     tx_approval_context.fromPlugin = fromPlugin;
 
-    uint64_t chain_id = get_tx_chain_id();
+    chain_id = get_tx_chain_id();
     if (chainConfig->chainId == ETHEREUM_MAINNET_CHAINID && chain_id != chainConfig->chainId) {
         tx_approval_context.displayNetwork = true;
     } else {
@@ -199,7 +205,14 @@ void ux_approve_tx(bool fromPlugin) {
     pairsList.nbPairs = setTagValuePairs();
     pairsList.pairs = pairs;
 
-    uint32_t buf_size = SHARED_BUFFER_SIZE / 2;
+    explicit_bzero(&warning, sizeof(nbgl_warning_t));
+    if (tmpContent.txContent.dataPresent) {
+        warning.predefinedSet |= SET_BIT(BLIND_SIGNING_WARN);
+    }
+#ifdef HAVE_WEB3_CHECKS
+    set_tx_simulation_warning(&warning, true, true);
+#endif
+
     if (tx_approval_context.fromPlugin) {
         char op_name[sizeof(strings.common.fullAmount)];
         plugin_ui_get_id();
@@ -207,35 +220,27 @@ void ux_approve_tx(bool fromPlugin) {
         get_lowercase_operation(op_name, sizeof(op_name));
         snprintf(g_stax_shared_buffer,
                  buf_size,
-                 "Review transaction\nto %s\n%s%s",
+                 "Review transaction to %s %s%s",
                  op_name,
                  (pluginType == EXTERNAL ? "on " : ""),
                  strings.common.toAddress);
         // Finish text: replace "Review" by "Sign" and add questionmark
         snprintf(g_stax_shared_buffer + buf_size,
                  buf_size,
-                 "Sign transaction\nto %s\n%s%s",
+                 "%s transaction to %s %s%s?",
+                 ui_tx_simulation_finish_str(),
                  op_name,
                  (pluginType == EXTERNAL ? "on " : ""),
                  strings.common.toAddress);
     } else {
-        snprintf(g_stax_shared_buffer, buf_size, REVIEW("transaction"));
-        snprintf(
-            g_stax_shared_buffer + buf_size,
-            buf_size,
-            tmpContent.txContent.dataPresent ? BLIND_SIGN("transaction") : SIGN("transaction"));
+        snprintf(g_stax_shared_buffer, buf_size, "Review transaction");
+        snprintf(g_stax_shared_buffer + buf_size,
+                 buf_size,
+                 "%s transaction?",
+                 ui_tx_simulation_finish_str());
     }
 
-    if (tmpContent.txContent.dataPresent) {
-        nbgl_useCaseReviewBlindSigning(TYPE_TRANSACTION,
-                                       &pairsList,
-                                       get_tx_icon(),
-                                       g_stax_shared_buffer,
-                                       NULL,
-                                       g_stax_shared_buffer + buf_size,
-                                       NULL,
-                                       reviewChoice);
-    } else {
+    if (warning.predefinedSet == 0) {
         nbgl_useCaseReview(TYPE_TRANSACTION,
                            &pairsList,
                            get_tx_icon(),
@@ -243,5 +248,15 @@ void ux_approve_tx(bool fromPlugin) {
                            NULL,
                            g_stax_shared_buffer + buf_size,
                            reviewChoice);
+    } else {
+        nbgl_useCaseAdvancedReview(TYPE_TRANSACTION,
+                                   &pairsList,
+                                   get_tx_icon(),
+                                   g_stax_shared_buffer,
+                                   NULL,
+                                   g_stax_shared_buffer + buf_size,
+                                   NULL,
+                                   &warning,
+                                   reviewChoice);
     }
 }

@@ -35,6 +35,6 @@ jobs:
         uses: google/clusterfuzzlite/actions/run_fuzzers@v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          fuzz-seconds: 300  # 5 minutes
+          fuzz-seconds: 900  # 15 minutes
           mode: ${{ matrix.mode }}
           sanitizer: ${{ matrix.sanitizer }}

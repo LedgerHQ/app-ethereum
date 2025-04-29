@@ -113,73 +113,80 @@ static bool match_native(const uint8_t *addr, const s_param_token_amount *param)
     return false;
 }
 
-bool format_param_token_amount(const s_param_token_amount *param, const char *name) {
-    s_parsed_value_collection collec_value;
-    s_parsed_value_collection collec_token;
+static bool process_token_amount(const s_param_token_amount *param,
+                                 const char *name,
+                                 s_parsed_value *value,
+                                 s_parsed_value *token) {
     char *buf = strings.tmp.tmp;
     size_t buf_size = sizeof(strings.tmp.tmp);
     uint8_t addr_buf[ADDRESS_LENGTH];
-
-    if (!value_get(&param->value, &collec_value)) {
-        return false;
-    }
-    if (param->has_token) {
-        if (!value_get(&param->token, &collec_token)) {
-            return false;
-        }
-        if (collec_value.size != collec_token.size) {
-            PRINTF("Error: mismatch between counts of value & token!\n");
-            return false;
-        }
-    } else {
-        explicit_bzero(&collec_token, sizeof(collec_token));
-    }
+    uint256_t zero256 = {0};
+    uint256_t val256;
+    const tokenDefinition_t *token_def;
     uint64_t chain_id = get_tx_chain_id();
     const char *ticker = g_unknown_ticker;
     uint8_t decimals = 0;
-    for (int i = 0; i < collec_value.size; ++i) {
-        if (param->has_token) {
-            buf_shrink_expand(collec_token.value[i].ptr,
-                              collec_token.value[i].length,
-                              addr_buf,
-                              sizeof(addr_buf));
-            if (match_native(addr_buf, param)) {
-                ticker = get_displayable_ticker(&chain_id, chainConfig);
-                decimals = WEI_TO_ETHER;
-            } else {
-                const tokenDefinition_t *token;
-                if ((token = (const tokenDefinition_t *) get_asset_info_by_addr(addr_buf)) !=
-                    NULL) {
-                    ticker = token->ticker;
-                    decimals = token->decimals;
-                }
-            }
-        }
-        uint256_t zero256 = {0};
-        uint256_t val256;
 
-        convertUint256BE(collec_value.value[i].ptr, collec_value.value[i].length, &val256);
-        if (!equal256(&param->threshold, &zero256) && gte256(&val256, &param->threshold)) {
-            if (param->above_threshold_msg[0] != '\0') {
-                snprintf(buf, buf_size, "%s %s", param->above_threshold_msg, ticker);
-            } else {
-                snprintf(buf, buf_size, "Unlimited %s", ticker);
-            }
+    if (param->has_token) {
+        buf_shrink_expand(token->ptr, token->length, addr_buf, sizeof(addr_buf));
+        if (match_native(addr_buf, param)) {
+            ticker = get_displayable_ticker(&chain_id, chainConfig);
+            decimals = WEI_TO_ETHER;
         } else {
-            if (!amountToString(collec_value.value[i].ptr,
-                                collec_value.value[i].length,
-                                decimals,
-                                ticker,
-                                buf,
-                                buf_size)) {
-                return false;
+            if ((token_def = (const tokenDefinition_t *) get_asset_info_by_addr(addr_buf)) !=
+                NULL) {
+                ticker = token_def->ticker;
+                decimals = token_def->decimals;
             }
         }
-        if (!add_to_field_table(PARAM_TYPE_AMOUNT, name, buf)) {
+    }
+
+    convertUint256BE(value->ptr, value->length, &val256);
+    if (!equal256(&param->threshold, &zero256) && gte256(&val256, &param->threshold)) {
+        if (param->above_threshold_msg[0] != '\0') {
+            snprintf(buf, buf_size, "%s %s", param->above_threshold_msg, ticker);
+        } else {
+            snprintf(buf, buf_size, "Unlimited %s", ticker);
+        }
+    } else {
+        if (!amountToString(value->ptr, value->length, decimals, ticker, buf, buf_size)) {
             return false;
         }
     }
+    if (!add_to_field_table(PARAM_TYPE_AMOUNT, name, buf)) {
+        return false;
+    }
     return true;
+}
+
+bool format_param_token_amount(const s_param_token_amount *param, const char *name) {
+    bool ret;
+    s_parsed_value_collection collec_value = {0};
+    s_parsed_value_collection collec_token = {0};
+
+    if ((ret = value_get(&param->value, &collec_value))) {
+        if (param->has_token) {
+            if ((ret = value_get(&param->token, &collec_token))) {
+                if (collec_value.size != collec_token.size) {
+                    PRINTF("Error: mismatch between counts of value & token!\n");
+                    ret = false;
+                }
+            }
+        }
+        if (ret) {
+            for (int i = 0; i < collec_value.size; ++i) {
+                if (!(ret = process_token_amount(param,
+                                                 name,
+                                                 &collec_value.value[i],
+                                                 &collec_token.value[i]))) {
+                    break;
+                }
+            }
+        }
+    }
+    value_cleanup(&param->value, &collec_value);
+    value_cleanup(&param->token, &collec_token);
+    return ret;
 }
 
 #endif  // HAVE_GENERIC_TX_PARSER

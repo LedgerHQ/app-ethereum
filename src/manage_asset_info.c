@@ -1,5 +1,4 @@
 #include "manage_asset_info.h"
-#include "shared_context.h"
 
 void forget_known_assets(void) {
     memset(tmpCtx.transactionContext.assetSet, false, MAX_ASSETS);

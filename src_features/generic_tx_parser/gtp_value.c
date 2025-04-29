@@ -159,4 +159,10 @@ bool value_get(const s_value *value, s_parsed_value_collection *collection) {
     return ret;
 }
 
+void value_cleanup(const s_value *value, const s_parsed_value_collection *collection) {
+    if (value->source == SOURCE_CALLDATA) {
+        data_path_cleanup(collection);
+    }
+}
+
 #endif  // HAVE_GENERIC_TX_PARSER

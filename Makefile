@@ -36,7 +36,7 @@ endif
 include ./makefile_conf/chain/$(CHAIN).mk
 
 APPVERSION_M = 1
-APPVERSION_N = 15
+APPVERSION_N = 16
 APPVERSION_P = 0
 APPVERSION = $(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 
@@ -103,12 +103,6 @@ PATH_APP_LOAD_PARAMS += "45'" "44'/1'"
 VARIANT_PARAM = CHAIN
 VARIANT_VALUES = $(SUPPORTED_CHAINS)
 
-# Activate dependency only for specific CHAIN
-ifneq ($(CHAIN),ethereum)
-    DEP_APP_LOAD_PARAMS = Ethereum:$(APPVERSION)
-    DEFINES_LIB = USE_LIB_ETHEREUM
-endif
-
 # Enabling DEBUG flag will enable PRINTF and disable optimizations
 #DEBUG = 1
 
@@ -117,14 +111,22 @@ endif
 ########################################
 # See SDK `include/appflags.h` for the purpose of each permission
 #HAVE_APPLICATION_FLAG_DERIVE_MASTER = 1
-HAVE_APPLICATION_FLAG_GLOBAL_PIN = 1
-HAVE_APPLICATION_FLAG_BOLOS_SETTINGS = 1
-HAVE_APPLICATION_FLAG_LIBRARY = 1
+#HAVE_APPLICATION_FLAG_GLOBAL_PIN = 1
+#HAVE_APPLICATION_FLAG_BOLOS_SETTINGS = 1
+ifeq ($(CHAIN),ethereum)
+    HAVE_APPLICATION_FLAG_LIBRARY = 1
+else
+    # Activate dependency only for specific CHAIN
+    DEP_APP_LOAD_PARAMS = Ethereum:$(APPVERSION)
+    DEFINES_LIB = USE_LIB_ETHEREUM
+endif
+
 
 ########################################
 # Application communication interfaces #
 ########################################
 ENABLE_BLUETOOTH = 1
+ENABLE_SWAP = 1
 #ENABLE_NFC = 1
 
 ########################################

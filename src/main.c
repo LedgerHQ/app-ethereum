@@ -30,18 +30,21 @@
 #include "handle_swap_sign_transaction.h"
 #include "handle_get_printable_amount.h"
 #include "handle_check_address.h"
+#include "swap_entrypoints.h"
 #include "commands_712.h"
 #include "challenge.h"
-#include "trusted_name.h"
+#include "cmd_trusted_name.h"
 #include "crypto_helpers.h"
 #include "manage_asset_info.h"
-#include "network_dynamic.h"
+#include "cmd_network_info.h"
 #ifdef HAVE_DYN_MEM_ALLOC
 #include "mem.h"
 #endif
 #include "cmd_enum_value.h"
 #include "cmd_tx_info.h"
 #include "cmd_field.h"
+#include "cmd_get_tx_simulation.h"
+#include "cmd_proxy_info.h"
 
 tmpCtx_t tmpCtx;
 txContext_t txContext;
@@ -234,7 +237,7 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             break;
 
         case INS_ENS_PROVIDE_INFO:
-            sw = handle_provide_trusted_name(cmd->p1, cmd->data, cmd->lc);
+            sw = handle_trusted_name(cmd->p1, cmd->data, cmd->lc);
             break;
 #endif  // HAVE_TRUSTED_NAME
 
@@ -254,11 +257,23 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             break;
 #endif  // HAVE_GENERIC_TX_PARSER
 
+#if defined(HAVE_EIP712_FULL_SUPPORT) || defined(HAVE_GENERIC_TX_PARSER)
+        case INS_PROVIDE_PROXY_INFO:
+            sw = handle_proxy_info(cmd->p1, cmd->p2, cmd->lc, cmd->data);
+            break;
+#endif
+
 #ifdef HAVE_DYNAMIC_NETWORKS
         case INS_PROVIDE_NETWORK_CONFIGURATION:
-            sw = handleNetworkConfiguration(cmd->p1, cmd->p2, cmd->data, cmd->lc, tx);
+            sw = handle_network_info(cmd->p1, cmd->p2, cmd->data, cmd->lc, tx);
             break;
 #endif  // HAVE_DYNAMIC_NETWORKS
+
+#ifdef HAVE_WEB3_CHECKS
+        case INS_PROVIDE_TX_SIMULATION:
+            sw = handle_tx_simulation(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags);
+            break;
+#endif
 
         default:
             sw = APDU_RESPONSE_INVALID_INS;
@@ -341,7 +356,7 @@ void app_main(void) {
             if (io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx) == 0) {
                 // In case of success, the apdu is sent immediately and eth exits
                 // Reaching this code means we encountered an error
-                finalize_exchange_sign_transaction(false);
+                swap_finalize_exchange_sign_transaction(false);
             } else {
                 PRINTF("Unrecoverable\n");
                 app_exit();

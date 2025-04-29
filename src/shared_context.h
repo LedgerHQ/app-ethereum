@@ -1,20 +1,10 @@
 #ifndef _SHARED_CONTEXT_H_
 #define _SHARED_CONTEXT_H_
 
-#include <stdbool.h>
-#include <stdint.h>
-
-#include "os.h"
-#include "cx.h"
-#include "bip32.h"
 #include "bip32_utils.h"
 #include "ethUstream.h"
-#include "tx_content.h"
 #include "chainConfig.h"
-#include "asset_info.h"
-#ifdef HAVE_NBGL
-#include "nbgl_types.h"
-#endif
+#include "swap_utils.h"
 
 extern void app_exit(void);
 extern void common_app_init(void);
@@ -37,6 +27,11 @@ typedef struct internalStorage_t {
 #ifdef HAVE_TRUSTED_NAME
     bool verbose_trusted_name;
 #endif  // HAVE_TRUSTED_NAME
+#ifdef HAVE_WEB3_CHECKS
+    bool w3c_enable;
+    // hidden setting (not shown in the UI)
+    bool w3c_opt_in;
+#endif
     bool initialized;
 } internalStorage_t;
 
@@ -113,7 +108,12 @@ typedef union {
     tokenContext_t tokenContext;
 } dataContext_t;
 
-typedef enum { APP_STATE_IDLE, APP_STATE_SIGNING_TX, APP_STATE_SIGNING_MESSAGE } app_state_t;
+typedef enum {
+    APP_STATE_IDLE,
+    APP_STATE_SIGNING_TX,
+    APP_STATE_SIGNING_MESSAGE,
+    APP_STATE_SIGNING_EIP712
+} app_state_t;
 
 typedef enum {
     CONTRACT_NONE,
@@ -172,8 +172,6 @@ typedef enum swap_mode_e {
     SWAP_MODE_ERROR,
 } swap_mode_t;
 
-extern bool G_called_from_swap;
-extern bool G_swap_response_ready;
 extern swap_mode_t G_swap_mode;
 extern uint8_t G_swap_crosschain_hash[CX_SHA256_SIZE];
 

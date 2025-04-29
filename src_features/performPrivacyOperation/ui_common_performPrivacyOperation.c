@@ -1,7 +1,5 @@
-#include "shared_context.h"
 #include "apdu_constants.h"
-#include "feature_getPublicKey.h"
-#include "common_ui.h"
+#include "ui_callbacks.h"
 #include "feature_performPrivacyOperation.h"
 
 unsigned int io_seproxyhal_touch_privacy_ok(void) {

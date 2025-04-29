@@ -29,6 +29,7 @@ endif
 # Dynamic memory allocator
 ifneq ($(TARGET_NAME),TARGET_NANOS)
     DEFINES += HAVE_DYN_MEM_ALLOC
+    ENABLE_DYNAMIC_ALLOC = 1
 endif
 
 # EIP-712

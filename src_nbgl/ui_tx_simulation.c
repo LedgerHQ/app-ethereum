@@ -27,6 +27,9 @@ static bool g_response_expected;
  * @param[in] callback Callback to be called after the user has made a choice
  */
 void ui_tx_simulation_error(nbgl_choiceCallback_t callback) {
+#ifdef HAVE_PIEZO_SOUND
+    io_seproxyhal_play_tune(TUNE_NEUTRAL);
+#endif  // HAVE_PIEZO_SOUND
     nbgl_useCaseChoice(&C_Denied_Circle_64px,
                        "Transaction Check failed because of technical reasons",
                        "Reject this transaction and try again. "
@@ -180,6 +183,9 @@ void ui_tx_simulation_opt_in(bool response_expected) {
     // add button and footer on bottom
     nbgl_layoutAddChoiceButtons(layoutCtx, &buttonsInfo);
 
+#ifdef HAVE_PIEZO_SOUND
+    io_seproxyhal_play_tune(TUNE_LOOK_AT_ME);
+#endif  // HAVE_PIEZO_SOUND
     nbgl_layoutDraw(layoutCtx);
     nbgl_refresh();
 }

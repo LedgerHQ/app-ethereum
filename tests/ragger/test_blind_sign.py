@@ -24,8 +24,6 @@ from client.tx_simu import TxSimu
 BIP32_PATH = "m/44'/60'/0'/0/0"
 DEVICE_ADDR: Optional[bytes] = None
 
-# TODO: do one test with nonce display
-
 
 @pytest.fixture(name="reject", params=[False, True])
 def reject_fixture(request) -> bool:
@@ -35,6 +33,14 @@ def reject_fixture(request) -> bool:
 @pytest.fixture(name="amount", params=[0.0, 1.2])
 def amount_fixture(request) -> float:
     return request.param
+
+
+def common_get_address(app_client: EthAppClient) -> None:
+    global DEVICE_ADDR
+    if DEVICE_ADDR is None:
+        with app_client.get_public_addr(bip32_path=BIP32_PATH, display=False):
+            pass
+        _, DEVICE_ADDR, _ = ResponseParser.pk_addr(app_client.response().data)
 
 
 def common_tx_params(amount: float) -> dict:
@@ -61,21 +67,51 @@ def common_tx_params(amount: float) -> dict:
     }
 
 
+def common_blind_sign(scenario_navigator: NavigateWithScenario,
+                      test_name: str,
+                      app_client: EthAppClient,
+                      tx_params: dict,
+                      reject: bool = False) -> dict:
+    try:
+        with app_client.sign(BIP32_PATH, tx_params):
+            if reject:
+                test_name += "_rejected"
+
+            if tx_params["value"] > 0.0:
+                test_name += "_nonzero"
+
+            if reject:
+                scenario_navigator.review_reject_with_warning(test_name=test_name)
+            else:
+                scenario_navigator.review_approve_with_warning(test_name=test_name)
+
+    except ExceptionRAPDU as e:
+        assert reject
+        assert e.status == StatusWord.CONDITION_NOT_SATISFIED
+    else:
+        assert not reject
+        # verify signature
+        vrs = ResponseParser.signature(app_client.response().data)
+        addr = recover_transaction(tx_params, vrs)
+        assert addr == DEVICE_ADDR
+
+
 # Token approval, would require providing the token metadata from the CAL
 def test_blind_sign(firmware: Firmware,
                     backend: BackendInterface,
                     navigator: Navigator,
                     scenario_navigator: NavigateWithScenario,
-                    default_screenshot_path: Path,
                     test_name: str,
                     reject: bool,
                     amount: float,
                     simu_params: Optional[TxSimu] = None):
-    global DEVICE_ADDR
-    app_client = EthAppClient(backend)
-
     if reject and amount > 0.0:
         pytest.skip()
+
+    app_client = EthAppClient(backend)
+    common_get_address(app_client)
+
+    settings_toggle(firmware, navigator, [SettingID.BLIND_SIGNING])
 
     tx_params = common_tx_params(amount)
 
@@ -87,48 +123,29 @@ def test_blind_sign(firmware: Firmware,
         response = app_client.provide_tx_simulation(simu_params)
         assert response.status == StatusWord.OK
 
-    settings_toggle(firmware, navigator, [SettingID.BLIND_SIGNING])
-    if DEVICE_ADDR is None:
-        with app_client.get_public_addr(bip32_path=BIP32_PATH, display=False):
-            pass
-        _, DEVICE_ADDR, _ = ResponseParser.pk_addr(app_client.response().data)
+    common_blind_sign(scenario_navigator,
+                      test_name,
+                      app_client,
+                      tx_params,
+                      reject)
 
-    try:
-        with app_client.sign(BIP32_PATH, tx_params):
-            if reject:
-                test_name += "_rejected"
 
-            if amount > 0.0:
-                test_name += "_nonzero"
+# Token approval, would require providing the token metadata from the CAL
+def test_blind_sign_nonce(firmware: Firmware,
+                          backend: BackendInterface,
+                          navigator: Navigator,
+                          scenario_navigator: NavigateWithScenario,
+                          test_name: str):
+    app_client = EthAppClient(backend)
+    common_get_address(app_client)
 
-            if firmware.is_nano:
-                end_text = "^Accept risk"
-                moves = [NavInsID.RIGHT_CLICK]
-            else:
-                end_text = "^Hold to sign$"
-                moves = [NavInsID.USE_CASE_CHOICE_REJECT]
+    settings_toggle(firmware, navigator, [SettingID.BLIND_SIGNING, SettingID.NONCE])
 
-            if not firmware.is_nano:
-                # Warning Screen
-                navigator.navigate_and_compare(default_screenshot_path,
-                                               f"{test_name}/warning",
-                                               moves,
-                                               screen_change_after_last_instruction=False)
-
-            if reject:
-                scenario_navigator.review_reject(test_name=test_name)
-            else:
-                scenario_navigator.review_approve(test_name=test_name, custom_screen_text=end_text)
-
-    except ExceptionRAPDU as e:
-        assert reject
-        assert e.status == StatusWord.CONDITION_NOT_SATISFIED
-    else:
-        assert not reject
-        # verify signature
-        vrs = ResponseParser.signature(app_client.response().data)
-        addr = recover_transaction(tx_params, vrs)
-        assert addr == DEVICE_ADDR
+    tx_params = common_tx_params(1.2)
+    common_blind_sign(scenario_navigator,
+                      test_name,
+                      app_client,
+                      tx_params)
 
 
 def test_blind_sign_reject_in_risk_review(firmware: Firmware,
@@ -158,13 +175,8 @@ def test_sign_parameter_selector(firmware: Firmware,
                                  navigator: Navigator,
                                  test_name: str,
                                  default_screenshot_path: Path):
-    global DEVICE_ADDR
     app_client = EthAppClient(backend)
-
-    if DEVICE_ADDR is None:
-        with app_client.get_public_addr(bip32_path=BIP32_PATH, display=False):
-            pass
-        _, DEVICE_ADDR, _ = ResponseParser.pk_addr(app_client.response().data)
+    common_get_address(app_client)
 
     settings_toggle(firmware, navigator, [SettingID.BLIND_SIGNING, SettingID.DEBUG_DATA])
 

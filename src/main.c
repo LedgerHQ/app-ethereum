@@ -417,7 +417,7 @@ void coin_main(eth_libargs_t *args) {
     io_init();
     ui_idle();
 #ifdef HAVE_DYN_MEM_ALLOC
-    mem_init();
+    mem_legacy_init();
 #endif
 
 #ifdef HAVE_TRUSTED_NAME

@@ -32,8 +32,8 @@ void ui_sign_7702_auth(void) {
     nbgl_useCaseReview(TYPE_OPERATION,
                        &pairsList,
                        &ICON_APP_REVIEW,
-                       "Review authorization\nto upgrade into smart\ncontract account ?",
+                       "Review authorization to upgrade into smart contract account?",
                        NULL,
-                       "Sign authorization to\nupgrade into smart\ncontract account ?",
+                       "Sign authorization to upgrade into smart contract account?",
                        review7702Choice);
 }

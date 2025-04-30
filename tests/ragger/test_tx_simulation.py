@@ -255,7 +255,6 @@ def test_tx_simulation_blind_sign(firmware: Firmware,
                                   navigator: Navigator,
                                   scenario_navigator: NavigateWithScenario,
                                   test_name: str,
-                                  default_screenshot_path: Path,
                                   config: str) -> None:
     """Test the TX Simulation APDU with a Blind Sign transaction"""
 
@@ -276,7 +275,6 @@ def test_tx_simulation_blind_sign(firmware: Firmware,
                backend,
                navigator,
                scenario_navigator,
-               default_screenshot_path,
                test_name,
                False,
                0.0,

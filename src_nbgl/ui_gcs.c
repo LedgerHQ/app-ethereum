@@ -13,7 +13,6 @@
 #include "cmd_get_tx_simulation.h"
 
 static nbgl_layoutTagValueList_t g_pair_list;
-static size_t g_alloc_size;
 
 static void review_choice(bool confirm) {
     if (confirm) {
@@ -29,14 +28,15 @@ static char *_strdup(const char *src) {
     char *dst;
     size_t length = strlen(src) + 1;
 
-    if ((dst = mem_legacy_alloc(length)) != NULL) {
+    if ((dst = app_mem_alloc(length)) != NULL) {
         memmove(dst, src, length);
     }
     return dst;
 }
 
 static bool cleanup_on_error(const void *mem_before) {
-    mem_legacy_dealloc(mem_legacy_alloc(0) - mem_before);
+    //mem_legacy_dealloc(mem_legacy_alloc(0) - mem_before);
+    // TODO
     return false;
 }
 
@@ -49,14 +49,12 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
     uint8_t count = 0;
     const char **keys;
     const char **values;
-    nbgl_contentValueExt_t *extensions;
+    nbgl_contentValueExt_t *extensions = NULL;
     const char *value;
     int contract_idx = -1;
 
-    if (((keys = mem_legacy_alloc_and_align(sizeof(*keys) * MAX_INFO_COUNT, __alignof__(*keys))) ==
-         NULL) ||
-        ((values = mem_legacy_alloc_and_align(sizeof(*values) * MAX_INFO_COUNT,
-                                              __alignof__(*values))) == NULL)) {
+    if (((keys = app_mem_alloc(sizeof(*keys) * MAX_INFO_COUNT)) == NULL) ||
+        ((values = app_mem_alloc(sizeof(*values) * MAX_INFO_COUNT)) == NULL)) {
         return false;
     }
     if ((value = get_creator_legal_name()) != NULL) {
@@ -100,11 +98,12 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
         count += 1;
     }
 
-    if ((extensions = mem_legacy_alloc_and_align(sizeof(*extensions) * count,
-                                                 __alignof__(*extensions))) == NULL) {
-        return false;
+    if (count > 0) {
+        if ((extensions = app_mem_alloc(sizeof(*extensions) * count)) == NULL) {
+            return false;
+        }
+        explicit_bzero(extensions, sizeof(*extensions) * count);
     }
-    explicit_bzero(extensions, sizeof(*extensions) * count);
 
     if (contract_idx != -1) {
         if (!getEthDisplayableAddress((uint8_t *) get_contract_addr(),
@@ -148,12 +147,12 @@ bool ui_gcs(void) {
     size_t tmp_buf_size = sizeof(strings.tmp.tmp);
     const char *review_title;
     const char *sign_title;
-    nbgl_contentTagValue_t *pairs;
-    s_field_table_entry entry;
+    nbgl_contentTagValue_t *pairs = NULL;
+    const s_field_table_entry *field;
     bool show_network;
-    nbgl_contentValueExt_t *ext;
-    nbgl_contentInfoList_t *infolist;
-    const void *mem_before = mem_legacy_alloc(0);
+    nbgl_contentValueExt_t *ext = NULL;
+    nbgl_contentInfoList_t *infolist = NULL;
+    void *mem_before = NULL;
 
     explicit_bzero(&warning, sizeof(nbgl_warning_t));
 #ifdef HAVE_WEB3_CHECKS
@@ -185,8 +184,7 @@ bool ui_gcs(void) {
     // Fees
     g_pair_list.nbPairs += 1;
 
-    if ((pairs = mem_legacy_alloc_and_align(sizeof(*pairs) * g_pair_list.nbPairs,
-                                            __alignof__(*pairs))) == NULL) {
+    if ((pairs = app_mem_alloc(sizeof(*pairs) * g_pair_list.nbPairs)) == NULL) {
         return cleanup_on_error(mem_before);
     }
     explicit_bzero(pairs, sizeof(*pairs) * g_pair_list.nbPairs);
@@ -197,12 +195,11 @@ bool ui_gcs(void) {
         // not great, but this cannot be NULL
         pairs[0].value = _strdup("a smart contract");
     }
-    if ((ext = mem_legacy_alloc_and_align(sizeof(*ext), __alignof__(*ext))) == NULL) {
+    if ((ext = app_mem_alloc(sizeof(*ext))) == NULL) {
         return cleanup_on_error(mem_before);
     }
     explicit_bzero(ext, sizeof(*ext));
-    if ((infolist = mem_legacy_alloc_and_align(sizeof(*infolist), __alignof__(*infolist))) ==
-        NULL) {
+    if ((infolist = app_mem_alloc(sizeof(*infolist))) == NULL) {
         return cleanup_on_error(mem_before);
     }
     if (!prepare_infos(infolist)) {
@@ -217,11 +214,11 @@ bool ui_gcs(void) {
     pairs[0].aliasValue = 1;
 
     for (int i = 0; i < (int) field_table_size(); ++i) {
-        if (!get_from_field_table(i, &entry)) {
+        if ((field = get_from_field_table(i)) == NULL) {
             return cleanup_on_error(mem_before);
         }
-        pairs[1 + i].item = entry.key;
-        pairs[1 + i].value = entry.value;
+        pairs[1 + i].item = field->key;
+        pairs[1 + i].value = field->value;
     }
 
     if (show_network) {
@@ -251,12 +248,12 @@ bool ui_gcs(void) {
                                NULL,
                                &warning,
                                review_choice);
-    g_alloc_size = mem_legacy_alloc(0) - mem_before;
     return true;
 }
 
 void ui_gcs_cleanup(void) {
-    mem_legacy_dealloc(g_alloc_size);
+    //mem_legacy_dealloc(g_alloc_size);
+    // TODO
 }
 
 #endif  // HAVE_GENERIC_TX_PARSER

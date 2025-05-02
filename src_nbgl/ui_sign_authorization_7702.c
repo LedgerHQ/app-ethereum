@@ -5,7 +5,7 @@
 #include "nbgl_use_case.h"
 #include "common_ui.h"
 
-static nbgl_contentTagValue_t pairs[4] = {0};
+static nbgl_contentTagValue_t pairs[3] = {0};
 static nbgl_contentTagValueList_t pairsList = {0};
 
 static void review7702Choice(bool confirm) {
@@ -26,7 +26,7 @@ void ui_sign_7702_auth(void) {
     pairs[2].item = "Delegate on network";
     pairs[2].value = strings.common.network_name;
 
-    pairsList.nbPairs = 3;
+    pairsList.nbPairs = ARRAYLEN(pairs);
     pairsList.pairs = pairs;
 
     nbgl_useCaseReview(TYPE_OPERATION,

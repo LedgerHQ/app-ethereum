@@ -15,7 +15,7 @@ from client.tx_auth_7702 import TxAuth7702
 from client.utils import recover_authorization
 
 BIP32_PATH = "m/44'/60'/0'/0/0"
-TEST_ADDRESS_0 = bytes.fromhex("00" * 20)
+ADDRESS_REVOCATION = bytes.fromhex("00" * 20)
 TEST_ADDRESS_1 = bytes.fromhex("01" * 20)
 TEST_ADDRESS_2 = bytes.fromhex("02" * 20)
 TEST_ADDRESS_NO_WHITELIST = bytes.fromhex("42" * 20)
@@ -116,7 +116,8 @@ def test_eip7702_in_whitelist_all_chain_whitelisted(firmware: Firmware,
            backend,
            scenario_navigator,
            test_name,
-           TEST_ADDRESS_0,
+           # Simple7702Account, which is whitelisted for all chains
+           bytes.fromhex("4Cd241E8d1510e30b2076397afc7508Ae59C66c9"),
            NONCE,
            CHAIN_ID_2)
 
@@ -180,3 +181,19 @@ def test_eip7702_not_enabled(firmware: Firmware,
     if firmware == Firmware.NANOS:
         pytest.skip("Not supported on LNS")
     common_rejected(firmware, backend, scenario_navigator, test_name, TEST_ADDRESS_1, NONCE, CHAIN_ID_1)
+
+
+def test_eip7702_revocation(firmware: Firmware,
+                            backend: BackendInterface,
+                            scenario_navigator: NavigateWithScenario,
+                            test_name: str):
+    if firmware == Firmware.NANOS:
+        pytest.skip("Not supported on LNS")
+    settings_toggle(firmware, scenario_navigator.navigator, [SettingID.EIP7702])
+    common(firmware,
+           backend,
+           scenario_navigator,
+           test_name,
+           ADDRESS_REVOCATION,
+           NONCE,
+           CHAIN_ID_1)

@@ -202,6 +202,7 @@ bool ui_gcs(void) {
     if ((infolist = app_mem_alloc(sizeof(*infolist))) == NULL) {
         return cleanup_on_error(mem_before);
     }
+    explicit_bzero(infolist, sizeof(*infolist));
     if (!prepare_infos(infolist)) {
         return cleanup_on_error(mem_before);
     }

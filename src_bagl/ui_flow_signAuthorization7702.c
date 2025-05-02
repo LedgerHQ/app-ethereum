@@ -43,11 +43,12 @@ UX_STEP_CB(
       &C_icon_crossmark,
       "Reject",
     });
+// clang-format off
 
 UX_FLOW(ux_auth7702_flow,
-	&ux_auth7702_review_step,
-	&ux_auth7702_account_step,
-	&ux_auth7702_delegate_step,
-	&ux_auth7702_network_step,
-	&ux_auth7702_accept_step,
-	&ux_auth7702_reject_step);
+        &ux_auth7702_review_step,
+        &ux_auth7702_account_step,
+        &ux_auth7702_delegate_step,
+        &ux_auth7702_network_step,
+        &ux_auth7702_accept_step,
+        &ux_auth7702_reject_step);

@@ -117,5 +117,5 @@ int check_signature_with_pubkey(const char *tag,
 #ifdef HAVE_LEDGER_PKI
                                 const uint8_t keyUsageExp,
 #endif
-                                uint8_t *signature,
+                                const uint8_t *signature,
                                 const uint8_t sigLen);

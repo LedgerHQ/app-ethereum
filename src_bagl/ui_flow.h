@@ -38,6 +38,8 @@ extern const ux_flow_step_t ux_warning_blind_signing_warn_step;
 
 extern const ux_flow_step_t* const ux_auth7702_flow[];
 
+extern const ux_flow_step_t* const ux_revocation7702_flow[];
+
 extern const ux_flow_step_t* const ux_error_7702_not_enabled_flow[];
 
 #ifdef HAVE_EIP7702_WHITELIST

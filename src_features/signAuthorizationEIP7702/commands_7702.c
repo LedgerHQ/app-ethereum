@@ -136,26 +136,28 @@ static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size, bool to_fre
     strings.common.fromAddress[1] = 'x';
     getEthAddressStringFromRawKey(publicKey.W, strings.common.fromAddress + 2, auth7702->chainId);
     // * Delegate
+    if (!allzeroes(auth7702->delegate, sizeof(auth7702->delegate))) {
 #ifdef HAVE_EIP7702_WHITELIST
-    // Check if the delegate is on the whitelist for this chainId
-    delegateName = get_delegate_name(&auth7702->chainId, auth7702->delegate);
-    if (delegateName == NULL) {
-        // Reject if not in the whitelist
-        ui_error_no_7702_whitelist();
-        g_7702_sw = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
-        return false;
-    } else {
-        strlcpy(strings.common.toAddress, delegateName, sizeof(strings.common.toAddress));
-    }
+        // Check if the delegate is on the whitelist for this chainId
+        delegateName = get_delegate_name(&auth7702->chainId, auth7702->delegate);
+        if (delegateName == NULL) {
+            // Reject if not in the whitelist
+            ui_error_no_7702_whitelist();
+            g_7702_sw = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+            return false;
+        } else {
+            strlcpy(strings.common.toAddress, delegateName, sizeof(strings.common.toAddress));
+        }
 #else
-    if (!getEthDisplayableAddress(delegate,
-                                  strings.common.toAddress,
-                                  sizeof(strings.common.toAddress),
-                                  auth7702->chainId)) {
-        g_7702_sw = APDU_RESPONSE_UNKNOWN;
-        return false;
-    }
+        if (!getEthDisplayableAddress(delegate,
+                                      strings.common.toAddress,
+                                      sizeof(strings.common.toAddress),
+                                      auth7702->chainId)) {
+            g_7702_sw = APDU_RESPONSE_UNKNOWN;
+            return false;
+        }
 #endif  // HAVE_EIP7702_WHITELIST
+    }
     // * ChainId
     if (auth7702->chainId == CHAIN_ID_ALL) {
         // handle special wildcard case
@@ -177,7 +179,11 @@ static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size, bool to_fre
         }
     }
 
-    ui_sign_7702_auth();
+    if (allzeroes(auth7702->delegate, sizeof(auth7702->delegate))) {
+        ui_sign_7702_revocation();
+    } else {
+        ui_sign_7702_auth();
+    }
     return true;
 
 end:

@@ -33,6 +33,7 @@ bool ui_gcs(void);
 
 // EIP-7702
 void ui_sign_7702_auth(void);
+void ui_sign_7702_revocation(void);
 #ifdef HAVE_EIP7702
 void ui_error_no_7702(void);
 #ifdef HAVE_EIP7702_WHITELIST

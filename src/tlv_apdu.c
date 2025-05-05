@@ -14,7 +14,7 @@ static bool g_dyn = false;
 
 static void reset_state(bool free) {
     if ((g_tlv_payload != NULL) && free) {
-        mem_legacy_dealloc(g_tlv_size);
+        app_mem_free(g_tlv_payload);
     }
     g_tlv_payload = NULL;
     g_tlv_size = 0;
@@ -51,7 +51,7 @@ bool tlv_from_apdu(bool first_chunk,
             }
 
             g_dyn = true;
-            g_tlv_payload = mem_legacy_alloc(g_tlv_size);
+            g_tlv_payload = app_mem_alloc(g_tlv_size);
         } else {
             g_dyn = false;
 #else

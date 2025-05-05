@@ -10,13 +10,28 @@
 
 #include <stdint.h>
 #include "mem.h"
+#include "mem_alloc.h"
 #include "os_print.h"
 
 #define SIZE_MEM_BUFFER 10240
 
-static uint8_t mem_buffer[SIZE_MEM_BUFFER];
+static uint8_t mem_buffer[SIZE_MEM_BUFFER] __attribute__((aligned(8)));
 static uint16_t mem_legacy_idx;
 static uint16_t mem_legacy_rev_idx;
+static mem_ctx_t mem_ctx = NULL;
+
+bool app_mem_init(void) {
+    mem_ctx = mem_init(mem_buffer, sizeof(mem_buffer));
+    return mem_ctx != NULL;
+}
+
+void *app_mem_alloc(size_t size) {
+    return mem_alloc(mem_ctx, size);
+}
+
+void app_mem_free(void *ptr) {
+    mem_free(mem_ctx, ptr);
+}
 
 /**
  * Initializes the memory buffer index

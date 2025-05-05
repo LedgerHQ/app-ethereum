@@ -3,7 +3,12 @@
 
 #ifdef HAVE_DYN_MEM_ALLOC
 
+#include <stdbool.h>
 #include <stdlib.h>
+
+bool app_mem_init(void);
+void *app_mem_alloc(size_t size);
+void app_mem_free(void *ptr);
 
 void mem_legacy_init(void);
 void mem_legacy_reset(void);

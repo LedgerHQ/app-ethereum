@@ -79,7 +79,8 @@ static bool compress_chunk(s_calldata *calldata) {
     if (calldata->chunks == NULL) {
         calldata->chunks = chunk;
     } else {
-        for (tmp = calldata->chunks; tmp->next != NULL; tmp = tmp->next);
+        for (tmp = calldata->chunks; tmp->next != NULL; tmp = tmp->next)
+            ;
         tmp->next = chunk;
     }
     return true;
@@ -142,11 +143,17 @@ bool calldata_append(const uint8_t *buffer, size_t size) {
         g_calldata->received_size += cpy_length;
     }
     if (g_calldata->received_size == g_calldata->expected_size) {
-        //PRINTF("calldata reduced by ~%u%% with compression (%u -> %u bytes)\n",
-        //       100 - (100 * (CALLDATA_SELECTOR_SIZE + g_calldata->chunks_size) /
-        //              g_calldata->received_size),
-        //       g_calldata->received_size,
-        //       CALLDATA_SELECTOR_SIZE + g_calldata->chunks_size);
+        // get allocated size
+        size_t compressed_size = sizeof(*g_calldata);
+        for (s_calldata_chunk *chunk = g_calldata->chunks; chunk != NULL; chunk = chunk->next) {
+            compressed_size += sizeof(*chunk);
+            compressed_size += chunk->size;
+        }
+
+        PRINTF("calldata size reduced by ~%u%% with compression (%u -> %u bytes)\n",
+               100 - (100 * compressed_size / g_calldata->received_size),
+               g_calldata->received_size,
+               compressed_size);
     }
     return true;
 }

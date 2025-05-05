@@ -96,11 +96,11 @@ def test_eip712_v0(firmware: Firmware,
     with app_client.eip712_sign_legacy(BIP32_PATH, smsg.header, smsg.body):
         moves = []
         if firmware.is_nano:
-            moves += [NavInsID.RIGHT_CLICK] * 2
             if firmware == Firmware.NANOS:
-                moves += [NavInsID.RIGHT_CLICK] * 8
+                moves += [NavInsID.RIGHT_CLICK] * 10
             else:
-                moves += [NavInsID.RIGHT_CLICK] * 4
+                moves += [NavInsID.BOTH_CLICK]
+                moves += [NavInsID.RIGHT_CLICK] * 5
             moves += [NavInsID.BOTH_CLICK]
         else:
             moves += [NavInsID.USE_CASE_CHOICE_REJECT]
@@ -117,7 +117,10 @@ def autonext(firmware: Firmware, navigator: Navigator, default_screenshot_path: 
 
     moves = []
     if firmware.is_nano:
-        moves = [NavInsID.RIGHT_CLICK]
+        if firmware != Firmware.NANOS and autonext_idx == 0 and validate_warning:
+            moves = [NavInsID.BOTH_CLICK]
+        else:
+            moves = [NavInsID.RIGHT_CLICK]
     else:
         if autonext_idx == 0 and validate_warning:
             moves = [NavInsID.USE_CASE_CHOICE_REJECT]
@@ -151,7 +154,6 @@ def eip712_new_common(firmware: Firmware,
                       app_client: EthAppClient,
                       json_data: dict,
                       filters: Optional[dict],
-                      verbose: bool,
                       golden_run: bool):
     global autonext_idx
     global validate_warning
@@ -165,33 +167,23 @@ def eip712_new_common(firmware: Firmware,
                                   partial(autonext, firmware, navigator, default_screenshot_path),
                                   golden_run)
     with app_client.eip712_sign_new(BIP32_PATH):
-        moves = []
         if firmware.is_nano:
-            # need to skip the message hash
-            if not verbose and filters is None:
-                moves += [NavInsID.RIGHT_CLICK] * 2
-            moves += [NavInsID.BOTH_CLICK]
+            nav_ins = NavInsID.RIGHT_CLICK
+            val_ins = NavInsID.BOTH_CLICK
+            text = "Approve" if firmware == Firmware.NANOS else "Sign message"
         else:
-            if not skip_flow:
-                # this move is necessary most of the times, but can't be 100% sure with the fields grouping
-                moves += [NavInsID.SWIPE_CENTER_TO_LEFT]
-                # need to skip the message hash
-                if not verbose and filters is None:
-                    moves += [NavInsID.SWIPE_CENTER_TO_LEFT]
-            moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
+            nav_ins = NavInsID.SWIPE_CENTER_TO_LEFT
+            val_ins = NavInsID.USE_CASE_REVIEW_CONFIRM
+            text = "Hold to sign"
         if snapshots_dirname is not None:
-            # Could break (time-out) if given a JSON that requires less moves
-            # TODO: Maybe take list of moves as input instead of trying to guess them ?
-            navigator.navigate_and_compare(default_screenshot_path,
-                                           snapshots_dirname,
-                                           moves,
-                                           snap_start_idx=autonext_idx)
+            navigator.navigate_until_text_and_compare(nav_ins,
+                                                      [val_ins],
+                                                      text,
+                                                      default_screenshot_path,
+                                                      snapshots_dirname,
+                                                      snap_start_idx=autonext_idx)
         else:
-            # Do them one-by-one to prevent an unnecessary move from timing-out and failing the test
-            for move in moves:
-                navigator.navigate([move],
-                                   screen_change_before_first_instruction=False,
-                                   screen_change_after_last_instruction=False)
+            navigator.navigate_until_text(nav_ins, [val_ins], text)
     # reset values
     validate_warning = False
     skip_flow = False
@@ -247,7 +239,6 @@ def test_eip712_new(firmware: Firmware,
                                 app_client,
                                 data,
                                 filters,
-                                verbose_raw,
                                 False)
 
         recovered_addr = recover_message(data, vrs)
@@ -494,7 +485,6 @@ def test_eip712_advanced_filtering(firmware: Firmware,
                             app_client,
                             data_set.data,
                             data_set.filters,
-                            False,
                             golden_run)
 
     # verify signature
@@ -596,7 +586,6 @@ def test_eip712_filtering_empty_array(firmware: Firmware,
                             app_client,
                             data,
                             filters,
-                            False,
                             golden_run)
 
     # verify signature
@@ -707,7 +696,6 @@ def test_eip712_advanced_missing_token(firmware: Firmware,
                             app_client,
                             data,
                             filters,
-                            False,
                             golden_run)
 
     # verify signature
@@ -816,7 +804,6 @@ def test_eip712_advanced_trusted_name(firmware: Firmware,
                             app_client,
                             data,
                             filters,
-                            False,
                             golden_run)
 
     # verify signature
@@ -839,7 +826,6 @@ def test_eip712_bs_not_activated_error(firmware: Firmware,
                           app_client,
                           ADVANCED_DATA_SETS[0].data,
                           None,
-                          False,
                           False)
     InputData.disable_autonext()  # so the timer stops firing
     assert e.value.status == StatusWord.INVALID_DATA
@@ -868,7 +854,6 @@ def test_eip712_skip(firmware: Firmware,
                             app_client,
                             data,
                             None,
-                            False,
                             golden_run)
 
     # verify signature
@@ -885,9 +870,9 @@ def test_eip712_proxy(firmware: Firmware,
         pytest.skip("Not supported on LNS")
 
     input_file = input_files()[0]
-    with open(input_file) as file:
+    with open(input_file, encoding="utf-8") as file:
         data = json.load(file)
-    with open(get_filter_file_from_data_file(Path(input_file))) as file:
+    with open(get_filter_file_from_data_file(Path(input_file)), encoding="utf-8") as file:
         filters = json.load(file)
     # change its name & set a different address than the one in verifyingContract
     filters["name"] = "Proxy test"
@@ -908,7 +893,6 @@ def test_eip712_proxy(firmware: Firmware,
                             app_client,
                             data,
                             filters,
-                            False,
                             False)
 
     # verify signature

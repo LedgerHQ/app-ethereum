@@ -66,12 +66,7 @@ def test_trusted_name_v1(firmware: Firmware,
                              "value": Web3.to_wei(AMOUNT, "ether"),
                              "chainId": CHAIN_ID
                          }):
-        if firmware.is_nano:
-            end_text = "Accept"
-        else:
-            end_text = "Sign"
-
-        scenario_navigator.review_approve(test_name=test_name, custom_screen_text=end_text)
+        scenario_navigator.review_approve(test_name=test_name)
 
 
 def test_trusted_name_v1_wrong_challenge(firmware: Firmware, backend: BackendInterface):
@@ -104,12 +99,8 @@ def test_trusted_name_v1_wrong_addr(firmware: Firmware,
                              "value": Web3.to_wei(AMOUNT, "ether"),
                              "chainId": CHAIN_ID
                          }):
-        if firmware.is_nano:
-            end_text = "Accept"
-        else:
-            end_text = "Sign"
 
-        scenario_navigator.review_approve(test_name=test_name, custom_screen_text=end_text)
+        scenario_navigator.review_approve(test_name=test_name)
 
 
 def test_trusted_name_v1_non_mainnet(firmware: Firmware,
@@ -120,9 +111,12 @@ def test_trusted_name_v1_non_mainnet(firmware: Firmware,
     challenge = common(firmware, app_client)
 
     chain_id = 5
-    # pylint: disable=line-too-long
-    icon = "400040000195000093001f8b08000000000002ff85ceb10dc4300805d01fb970e9113c4a467346cb288ce092223ace80382b892ef9cd93ac0f0678881c4616d980b4bb99aa0801a5874d844ff695b5d7f6c23ad79058f79c8df7e8c5dc7d9fff13ffc61d71d7bcf32549bcef5672c5a430bb1cd6073f68c3cd3d302cd3feea88f547d6a99eb8e87ecbcdecd255b8f869033cfd932feae0c09000020000"
-    # pylint: enable=line-too-long
+    if firmware.is_nano:
+        icon = ""
+    else:
+        # pylint: disable=line-too-long
+        icon = "400040000195000093001f8b08000000000002ff85ceb10dc4300805d01fb970e9113c4a467346cb288ce092223ace80382b892ef9cd93ac0f0678881c4616d980b4bb99aa0801a5874d844ff695b5d7f6c23ad79058f79c8df7e8c5dc7d9fff13ffc61d71d7bcf32549bcef5672c5a430bb1cd6073f68c3cd3d302cd3feea88f547d6a99eb8e87ecbcdecd255b8f869033cfd932feae0c09000020000"
+        # pylint: enable=line-too-long
     app_client.provide_network_information("Goerli",
                                            "ETH",
                                            chain_id,
@@ -139,12 +133,8 @@ def test_trusted_name_v1_non_mainnet(firmware: Firmware,
                              "value": Web3.to_wei(AMOUNT, "ether"),
                              "chainId": chain_id
                          }):
-        if firmware.is_nano:
-            end_text = "Accept"
-        else:
-            end_text = "Sign"
 
-        scenario_navigator.review_approve(test_name=test_name, custom_screen_text=end_text)
+        scenario_navigator.review_approve(test_name=test_name)
 
 
 def test_trusted_name_v1_unknown_chain(firmware: Firmware,
@@ -165,12 +155,8 @@ def test_trusted_name_v1_unknown_chain(firmware: Firmware,
                              "value": Web3.to_wei(AMOUNT, "ether"),
                              "chainId": 9
                          }):
-        if firmware.is_nano:
-            end_text = "Accept"
-        else:
-            end_text = "Sign"
 
-        scenario_navigator.review_approve(test_name=test_name, custom_screen_text=end_text)
+        scenario_navigator.review_approve(test_name=test_name)
 
 
 def test_trusted_name_v1_name_too_long(firmware: Firmware, backend: BackendInterface):
@@ -232,12 +218,8 @@ def test_trusted_name_v2(firmware: Firmware,
                              "value": Web3.to_wei(AMOUNT, "ether"),
                              "chainId": CHAIN_ID
                          }):
-        if firmware.is_nano:
-            end_text = "Accept"
-        else:
-            end_text = "Sign"
 
-        scenario_navigator.review_approve(test_name=test_name, custom_screen_text=end_text)
+        scenario_navigator.review_approve(test_name=test_name)
 
 
 def test_trusted_name_v2_wrong_chainid(firmware: Firmware,
@@ -263,12 +245,8 @@ def test_trusted_name_v2_wrong_chainid(firmware: Firmware,
                              "value": Web3.to_wei(AMOUNT, "ether"),
                              "chainId": CHAIN_ID + 1,
                          }):
-        if firmware.is_nano:
-            end_text = "Accept"
-        else:
-            end_text = "Sign"
 
-        scenario_navigator.review_approve(test_name=test_name, custom_screen_text=end_text)
+        scenario_navigator.review_approve(test_name=test_name)
 
 
 def test_trusted_name_v2_missing_challenge(firmware: Firmware, backend: BackendInterface):

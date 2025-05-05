@@ -32,8 +32,8 @@ def test_settings(firmware: Firmware,
                   setting: List[SettingID]):
     """Check the settings"""
 
-    if firmware.is_nano:
-        pytest.skip("Skipping on Nano")
+    if firmware.is_nano and SettingID.WEB3_CHECK in setting:
+        pytest.skip("Skipping W3C on Nano")
 
     moves = get_settings_moves(firmware, setting)
     navigator.navigate_and_compare(default_screenshot_path,

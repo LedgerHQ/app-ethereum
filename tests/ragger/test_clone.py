@@ -1,11 +1,8 @@
 import pytest
-
-from pathlib import Path
 from web3 import Web3
 
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
-from ragger.navigator import Navigator
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 
 from test_sign import common
@@ -24,9 +21,7 @@ VALUE = 0.31415
 @pytest.mark.needs_setup('lib_mode')
 def test_clone_thundercore(firmware: Firmware,
                            backend: BackendInterface,
-                           navigator: Navigator,
                            scenario_navigator: NavigateWithScenario,
-                           default_screenshot_path: Path,
                            test_name: str):
     tx_params: dict = {
         "nonce": NONCE,
@@ -38,9 +33,7 @@ def test_clone_thundercore(firmware: Firmware,
     }
     common(firmware,
            backend,
-           navigator,
            scenario_navigator,
-           default_screenshot_path,
            tx_params,
-           test_name=test_name,
-           path=BIP32_PATH)
+           test_name,
+           BIP32_PATH)

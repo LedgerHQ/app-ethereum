@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Optional
 import struct
 import json
@@ -8,7 +7,6 @@ from web3 import Web3
 
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
-from ragger.navigator import Navigator, NavInsID
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 
 
@@ -225,15 +223,13 @@ def test_gcs_nft(firmware: Firmware,
         app_client.send_raw(0xe0, 0x28, 0x01, 0x00, struct.pack(">H", len(payload)) + payload)
 
     with app_client.send_raw_async(0xe0, 0x04, 0x00, 0x02, bytes()):
-        scenario_navigator.review_approve(test_name=test_name, custom_screen_text="Sign transaction")
+        scenario_navigator.review_approve(test_name=test_name)
 
 
 def test_gcs_poap(firmware: Firmware,
                   backend: BackendInterface,
-                  navigator: Navigator,
                   scenario_navigator: NavigateWithScenario,
                   test_name: str,
-                  default_screenshot_path: Path,
                   simu_params: Optional[TxSimu] = None):
     app_client = EthAppClient(backend)
 
@@ -405,13 +401,9 @@ def test_gcs_poap(firmware: Firmware,
 
     with app_client.send_raw_async(0xe0, 0x04, 0x00, 0x02, bytes()):
         if simu_params is not None:
-            navigator.navigate_and_compare(default_screenshot_path,
-                                           f"{test_name}/warning",
-                                           [NavInsID.USE_CASE_CHOICE_REJECT],
-                                           screen_change_after_last_instruction=False)
-
-        scenario_navigator.review_approve(test_name=test_name,
-                                          custom_screen_text=r"(Sign transaction|Accept (risk|threat))")
+            scenario_navigator.review_approve_with_warning(test_name=test_name)
+        else:
+            scenario_navigator.review_approve(test_name=test_name)
 
 
 def test_gcs_1inch(firmware: Firmware,
@@ -576,7 +568,7 @@ def test_gcs_1inch(firmware: Firmware,
         app_client.send_raw(0xe0, 0x28, 0x01, 0x00, struct.pack(">H", len(payload)) + payload)
 
     with app_client.send_raw_async(0xe0, 0x04, 0x00, 0x02, bytes()):
-        scenario_navigator.review_approve(test_name=test_name, custom_screen_text="Sign transaction")
+        scenario_navigator.review_approve(test_name=test_name)
 
 
 def test_gcs_proxy(firmware: Firmware,
@@ -590,7 +582,7 @@ def test_gcs_proxy(firmware: Firmware,
 
     new_owner = bytes.fromhex("2222222222222222222222222222222222222222")
 
-    with open(f"{ABIS_FOLDER}/proxy_implem.abi.json") as file:
+    with open(f"{ABIS_FOLDER}/proxy_implem.abi.json", encoding="utf-8") as file:
         contract = Web3().eth.contract(
             abi=json.load(file),
             address=None
@@ -690,7 +682,7 @@ def test_gcs_proxy(firmware: Firmware,
         app_client.send_raw(0xe0, 0x28, 0x01, 0x00, struct.pack(">H", len(payload)) + payload)
 
     with app_client.send_raw_async(0xe0, 0x04, 0x00, 0x02, bytes()):
-        scenario_navigator.review_approve(test_name=test_name, custom_screen_text="Sign transaction")
+        scenario_navigator.review_approve(test_name=test_name)
 
 
 def test_gcs_4226(firmware: Firmware,
@@ -702,7 +694,7 @@ def test_gcs_4226(firmware: Firmware,
     if firmware == Firmware.NANOS:
         pytest.skip("Not supported on LNS")
 
-    with open(f"{ABIS_FOLDER}/rSWELL.abi.json") as file:
+    with open(f"{ABIS_FOLDER}/rSWELL.abi.json", encoding="utf-8") as file:
         contract = Web3().eth.contract(
             abi=json.load(file),
             address=None
@@ -813,4 +805,4 @@ def test_gcs_4226(firmware: Firmware,
         app_client.send_raw(0xe0, 0x28, 0x01, 0x00, struct.pack(">H", len(payload)) + payload)
 
     with app_client.send_raw_async(0xe0, 0x04, 0x00, 0x02, bytes()):
-        scenario_navigator.review_approve(test_name=test_name, custom_screen_text="Sign transaction")
+        scenario_navigator.review_approve(test_name=test_name)

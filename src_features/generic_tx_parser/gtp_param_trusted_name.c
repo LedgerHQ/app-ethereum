@@ -7,7 +7,7 @@
 #include "gtp_field_table.h"
 #include "utils.h"
 #include "shared_context.h"
-#include "feature_signTx.h"  // get_public_key
+#include "getPublicKey.h"
 #include "apdu_constants.h"
 
 enum {

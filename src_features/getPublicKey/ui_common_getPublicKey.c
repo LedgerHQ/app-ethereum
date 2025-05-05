@@ -1,5 +1,5 @@
 #include "apdu_constants.h"
-#include "feature_getPublicKey.h"
+#include "getPublicKey.h"
 #include "ui_callbacks.h"
 
 unsigned int io_seproxyhal_touch_address_ok(void) {

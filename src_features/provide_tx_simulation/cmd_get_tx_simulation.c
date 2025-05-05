@@ -4,7 +4,7 @@
 #include "apdu_constants.h"
 #include "hash_bytes.h"
 #include "public_keys.h"
-#include "feature_signTx.h"
+#include "getPublicKey.h"
 #include "tlv.h"
 #include "tlv_apdu.h"
 #include "mem.h"

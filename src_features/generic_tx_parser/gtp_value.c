@@ -5,7 +5,7 @@
 #include "gtp_data_path.h"
 #include "shared_context.h"  // txContext
 #include "apdu_constants.h"  // APDU_RESPONSE_OK
-#include "feature_signTx.h"  // get_public_key
+#include "getPublicKey.h"
 #include "gtp_parsed_value.h"
 
 enum {

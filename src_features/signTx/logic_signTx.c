@@ -292,22 +292,6 @@ static void nonce_to_string(const txInt256_t *nonce, char *out, size_t out_size)
     tostring256(&nonce_uint256, 10, out, out_size);
 }
 
-uint16_t get_network_as_string(char *out, size_t out_size) {
-    uint64_t chain_id = get_tx_chain_id();
-    const char *name = get_network_name_from_chain_id(&chain_id);
-
-    if (name == NULL) {
-        // No network name found so simply copy the chain ID as the network name.
-        if (!u64_to_string(chain_id, out, out_size)) {
-            return APDU_RESPONSE_CHAINID_OUT_BUF_SMALL;
-        }
-    } else {
-        // Network name found, simply copy it.
-        strlcpy(out, name, out_size);
-    }
-    return APDU_RESPONSE_OK;
-}
-
 uint16_t get_public_key(uint8_t *out, uint8_t outLength) {
     uint8_t raw_pubkey[65];
     cx_err_t error = CX_INTERNAL_ERROR;

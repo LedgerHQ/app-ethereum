@@ -152,8 +152,16 @@ bool calldata_append(const uint8_t *buffer, size_t size) {
 }
 
 void calldata_cleanup(void) {
+    s_calldata_chunk *chunk;
+    s_calldata_chunk *next;
+
     if (g_calldata != NULL) {
-        // free linked list
+        chunk = g_calldata->chunks;
+        while (chunk != NULL) {
+            next = chunk->next;
+            app_mem_free(chunk);
+            chunk = next;
+        }
         app_mem_free(g_calldata);
         g_calldata = NULL;
     }

@@ -278,16 +278,17 @@ static bool prepare_kv_info(uint8_t idx) {
 
 static bool prepare_key_value(uint8_t idx) {
     bool found = false;
-    s_field_table_entry field;
+    const s_field_table_entry *field;
 
     switch (level) {
         case TX_INFO:
             found = prepare_kv_info(idx);
             break;
         case TOP_LEVEL:
-            if ((found = get_from_field_table(idx - 1, &field))) {
-                strncpy(strings.tmp.tmp2, field.key, sizeof(strings.tmp.tmp2));
-                strncpy(strings.tmp.tmp, field.value, sizeof(strings.tmp.tmp));
+            field = get_from_field_table(idx - 1);
+            if ((found = (field != NULL))) {
+                strncpy(strings.tmp.tmp2, field->key, sizeof(strings.tmp.tmp2));
+                strncpy(strings.tmp.tmp, field->value, sizeof(strings.tmp.tmp));
             }
             break;
         default:

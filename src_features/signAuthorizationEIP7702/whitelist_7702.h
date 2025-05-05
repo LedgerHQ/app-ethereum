@@ -6,7 +6,7 @@
 #include <stdbool.h>
 #include "common_utils.h"
 
-#define MAX_NAME_LEN 21  // 20 characters + '\0'
+#define MAX_NAME_LEN 31  // 30 characters + '\0'
 
 typedef struct eip7702_whitelist_s {
     const uint8_t address[ADDRESS_LENGTH];

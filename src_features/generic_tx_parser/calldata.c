@@ -200,6 +200,7 @@ const uint8_t *calldata_get_selector(void) {
 
 const uint8_t *calldata_get_chunk(int idx) {
     size_t offset = 0;
+    size_t offset_after;
 
     if (!has_valid_calldata(g_calldata) || (g_calldata->chunks == NULL)) {
         return NULL;
@@ -208,7 +209,10 @@ const uint8_t *calldata_get_chunk(int idx) {
         if (offset > g_calldata->chunks_size) return NULL;
         offset += sizeof(chunk_info_t) + CHUNK_INFO_SIZE(g_calldata->chunks[offset]);
     }
-    if (!decompress_chunk(g_calldata, offset)) return NULL;
+    offset_after = offset + sizeof(chunk_info_t) + CHUNK_INFO_SIZE(g_calldata->chunks[offset]);
+    if ((offset_after > g_calldata->chunks_size) || !decompress_chunk(g_calldata, offset)) {
+        return NULL;
+    }
     return g_calldata->chunk;
 }
 

@@ -312,21 +312,6 @@ end:
     return error;
 }
 
-/* Local implementation of strncasecmp, workaround of the segfaulting base implem
- * Remove once strncasecmp is fixed
- */
-static int strcasecmp_workaround(const char *str1, const char *str2) {
-    unsigned char c1, c2;
-    do {
-        c1 = *str1++;
-        c2 = *str2++;
-        if (toupper(c1) != toupper(c2)) {
-            return toupper(c1) - toupper(c2);
-        }
-    } while (c1 != '\0');
-    return 0;
-}
-
 __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContext_t *context) {
     char displayBuffer[50];
     uint8_t decimals = WEI_TO_ETHER;
@@ -507,7 +492,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
         }
         if (G_called_from_swap) {
             // Ensure the values are the same that the ones that have been previously validated
-            if (strcasecmp_workaround(strings.common.toAddress, displayBuffer) != 0) {
+            if (strcmp(strings.common.toAddress, displayBuffer) != 0) {
                 PRINTF("Error comparing destination addresses\n");
                 send_swap_error_with_string(APDU_RESPONSE_MODE_CHECK_FAILED,
                                             SWAP_EC_ERROR_WRONG_DESTINATION,

@@ -13,6 +13,7 @@
 #include "rlp_encode.h"
 #include "whitelist_7702.h"
 #include "auth_7702.h"
+#include "getPublicKey.h"
 
 // Avoid saving the full structure when parsing
 // Alternative option : add a callback to f_tlv_payload_handler
@@ -126,15 +127,13 @@ static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size, bool to_fre
                               sizeof(tmpCtx.authSigningContext7702.authHash)));
     // Prepare information to be displayed
     // * Address to be delegated
-    CX_CHECK(bip32_derive_get_pubkey_256(CX_CURVE_256K1,
-                                         tmpCtx.authSigningContext7702.bip32.path,
-                                         tmpCtx.authSigningContext7702.bip32.length,
-                                         publicKey.W,
-                                         NULL,
-                                         CX_SHA512));
     strings.common.fromAddress[0] = '0';
     strings.common.fromAddress[1] = 'x';
-    getEthAddressStringFromRawKey(publicKey.W, strings.common.fromAddress + 2, auth7702->chainId);
+    CX_CHECK(get_public_key_string(&tmpCtx.authSigningContext7702.bip32,
+                                   publicKey.W,
+                                   strings.common.fromAddress + 2,
+                                   NULL,
+                                   auth7702->chainId));
     // * Delegate
     if (!allzeroes(auth7702->delegate, sizeof(auth7702->delegate))) {
 #ifdef HAVE_EIP7702_WHITELIST

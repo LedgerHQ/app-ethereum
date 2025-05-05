@@ -1,6 +1,7 @@
 #include "handle_check_address.h"
 #include "apdu_constants.h"
 #include "crypto_helpers.h"
+#include "getPublicKey.h"
 
 #define ZERO(x) explicit_bzero(&x, sizeof(x))
 
@@ -26,14 +27,7 @@ uint16_t handle_check_address(check_address_parameters_t* params, chain_config_t
         PRINTF("Invalid path\n");
         return APDU_RESPONSE_INVALID_DATA;
     }
-    CX_CHECK(bip32_derive_get_pubkey_256(CX_CURVE_256K1,
-                                         bip32.path,
-                                         bip32.length,
-                                         raw_pubkey,
-                                         NULL,
-                                         CX_SHA512));
-
-    getEthAddressStringFromRawKey((const uint8_t*) raw_pubkey, address, chain_config->chainId);
+    CX_CHECK(get_public_key_string(&bip32, raw_pubkey, address, NULL, chain_config->chainId));
 
     uint8_t offset_0x = 0;
     if (memcmp(params->address_to_check, "0x", 2) == 0) {

@@ -71,6 +71,10 @@ void ui_sign_7702_auth(void) {
     ux_flow_init(0, ux_auth7702_flow, NULL);
 }
 
+void ui_sign_7702_revocation(void) {
+    ux_flow_init(0, ux_revocation7702_flow, NULL);
+}
+
 void ui_error_no_7702(void) {
     ux_flow_init(0, ux_error_7702_not_enabled_flow, NULL);
 }

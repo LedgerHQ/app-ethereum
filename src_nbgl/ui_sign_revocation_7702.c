@@ -5,7 +5,7 @@
 #include "nbgl_use_case.h"
 #include "common_ui.h"
 
-static nbgl_contentTagValue_t pairs[3] = {0};
+static nbgl_contentTagValue_t pairs[2] = {0};
 static nbgl_contentTagValueList_t pairsList = {0};
 
 static void review7702Choice(bool confirm) {
@@ -18,13 +18,11 @@ static void review7702Choice(bool confirm) {
     }
 }
 
-void ui_sign_7702_auth(void) {
+void ui_sign_7702_revocation(void) {
     pairs[0].item = "Account";
     pairs[0].value = strings.common.fromAddress;
-    pairs[1].item = "Delegate to";
-    pairs[1].value = strings.common.toAddress;
-    pairs[2].item = "Delegate on network";
-    pairs[2].value = strings.common.network_name;
+    pairs[1].item = "Revoke on network";
+    pairs[1].value = strings.common.network_name;
 
     pairsList.nbPairs = ARRAYLEN(pairs);
     pairsList.pairs = pairs;
@@ -32,8 +30,8 @@ void ui_sign_7702_auth(void) {
     nbgl_useCaseReview(TYPE_OPERATION,
                        &pairsList,
                        &ICON_APP_REVIEW,
-                       "Review authorization to upgrade into smart contract account?",
+                       "Review authorization to revoke smart contract delegation?",
                        NULL,
-                       "Sign authorization to upgrade into smart contract account?",
+                       "Sign authorization to revoke smart contract delegation?",
                        review7702Choice);
 }

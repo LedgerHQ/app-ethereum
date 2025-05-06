@@ -30,6 +30,12 @@ endif
 ifneq ($(TARGET_NAME),TARGET_NANOS)
     DEFINES += HAVE_DYN_MEM_ALLOC
     ENABLE_DYNAMIC_ALLOC = 1
+    ifneq ($(DEBUG), 0)
+        MEMORY_PROFILING ?= 0
+        ifneq ($(MEMORY_PROFILING),0)
+            DEFINES += HAVE_MEMORY_PROFILING
+        endif
+    endif
 endif
 
 # EIP-712

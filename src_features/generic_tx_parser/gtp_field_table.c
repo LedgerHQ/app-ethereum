@@ -27,15 +27,15 @@ void field_table_cleanup(void) {
     s_field_table_node *node;
     s_field_table_node *next;
 
-    if (g_table.nodes != NULL) {
-        node = g_table.nodes;
-        for (size_t i = 0; i < g_table.size; ++i) {
-            next = node->next;
-            app_mem_free(node);
-            node = next;
-        }
-        g_table.nodes = NULL;
+    node = g_table.nodes;
+    while (node != NULL) {
+        next = node->next;
+        if (node->field.key != NULL) app_mem_free(node->field.key);
+        if (node->field.value != NULL) app_mem_free(node->field.value);
+        app_mem_free(node);
+        node = next;
     }
+    g_table.nodes = NULL;
 }
 
 bool add_to_field_table(e_param_type type, const char *key, const char *value) {

@@ -166,6 +166,9 @@ void calldata_cleanup(void) {
         chunk = g_calldata->chunks;
         while (chunk != NULL) {
             next = chunk->next;
+            if (chunk->buf != NULL) {
+                app_mem_free(chunk->buf);
+            }
             app_mem_free(chunk);
             chunk = next;
         }

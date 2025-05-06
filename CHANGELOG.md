@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.18.0](../../compare/1.17.0...1.18.0) - 2025-xx-xx
+
 ## [1.17.0](../../compare/1.16.0...1.17.0) - 2025-05-05
 
 ### Added

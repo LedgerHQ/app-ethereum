@@ -13,7 +13,7 @@
 
 extern cx_sha3_t hash_ctx;
 
-static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_free) {
+static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
     s_tx_info_ctx ctx = {0};
     bool parsing_ret;
 

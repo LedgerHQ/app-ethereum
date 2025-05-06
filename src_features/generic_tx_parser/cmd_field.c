@@ -9,7 +9,7 @@
 #include "cmd_tx_info.h"
 #include "gtp_tx_info.h"
 
-static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_free) {
+static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
     s_field field = {0};
     s_field_ctx ctx = {0};
     bool parsing_ret;

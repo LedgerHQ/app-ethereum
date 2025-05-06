@@ -244,7 +244,7 @@ static uint16_t handle_get_config(void) {
     return tx;
 }
 
-static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_free) {
+static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
     bool parsing_ret;
     s_network_info_ctx ctx = {0};
 

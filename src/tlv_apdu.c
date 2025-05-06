@@ -87,10 +87,10 @@ bool tlv_from_apdu(bool first_chunk,
 
     if (g_tlv_pos == g_tlv_size) {
 #ifdef HAVE_DYN_MEM_ALLOC
-        ret = (*handler)(g_dyn ? g_tlv_payload : &payload[offset], g_tlv_size, g_dyn);
+        ret = (*handler)(g_dyn ? g_tlv_payload : &payload[offset], g_tlv_size);
         reset_state(false);  // already deallocated in the handler
 #else
-        ret = (*handler)(&payload[offset], g_tlv_size, false);
+        ret = (*handler)(&payload[offset], g_tlv_size);
 #endif
     }
     return ret;

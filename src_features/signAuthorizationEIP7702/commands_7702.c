@@ -7,7 +7,6 @@
 #include "network.h"
 #include "crypto_helpers.h"
 #include "write.h"
-#include "mem.h"
 #include "commands_7702.h"
 #include "shared_7702.h"
 #include "rlp_encode.h"
@@ -56,7 +55,7 @@ uint16_t hashRLP64(uint64_t data, uint8_t *rlpTmp, uint8_t rlpTmpLength) {
     return hashRLP(tmp + sizeof(tmp) - encodingLength, encodingLength, rlpTmp, rlpTmpLength);
 }
 
-static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size, bool to_free) {
+static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size) {
     s_auth_7702_ctx auth_7702_ctx = {0};
     s_auth_7702 *auth7702 = &auth_7702_ctx.auth_7702;
     bool parsing_ret;

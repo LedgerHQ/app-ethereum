@@ -470,10 +470,9 @@ static bool handle_tx_simu_tlv(const s_tlv_data *data, s_tx_simu_ctx *context) {
  *
  * @param[in] payload buffer received
  * @param[in] size of the buffer
- * @param[in] to_free if the payload needs to be freed
  * @return whether the TLV payload was handled successfully or not
  */
-static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_free) {
+static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
     bool parsing_ret;
     s_tx_simu_ctx ctx = {0};
 

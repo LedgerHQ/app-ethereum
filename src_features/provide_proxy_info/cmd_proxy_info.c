@@ -5,7 +5,7 @@
 #include "tlv_apdu.h"
 #include "apdu_constants.h"
 
-static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_free) {
+static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
     s_proxy_info_ctx ctx = {0};
     bool parsing_ret;
 

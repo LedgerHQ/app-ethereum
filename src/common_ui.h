@@ -31,4 +31,14 @@ void ui_712_switch_to_sign(void);
 // Generic clear-signing
 bool ui_gcs(void);
 
+// EIP-7702
+void ui_sign_7702_auth(void);
+void ui_sign_7702_revocation(void);
+#ifdef HAVE_EIP7702
+void ui_error_no_7702(void);
+#ifdef HAVE_EIP7702_WHITELIST
+void ui_error_no_7702_whitelist(void);
+#endif  // HAVE_EIP7702_WHITELIST
+#endif  // HAVE_EIP7702
+
 #endif  // _COMMON_UI_H_

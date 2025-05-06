@@ -16,19 +16,20 @@ readme = { file = "README.md", content-type = "text/markdown" }
 # license = { file = "LICENSE" }
 classifiers = [
     "License :: OSI Approved :: Apache Software License",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Operating System :: POSIX :: Linux",
     "Operating System :: Microsoft :: Windows",
     "Operating System :: MacOS :: MacOS X",
 ]
 dynamic = [ "version" ]
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 dependencies = [
     "ragger[speculos]",
-    "web3~=6.0",
+    "web3~=7.0",
 ]
 
 [tools.setuptools]

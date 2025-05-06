@@ -1,5 +1,5 @@
 pytest
 ecdsa
-web3~=6.0
+web3~=7.0
 ragger[speculos]
 py_ecc

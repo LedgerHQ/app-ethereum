@@ -97,7 +97,7 @@ _Output data_
 
 #### Description
 
-https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1559.md
+The application supports signing legacy or EIP 2718 (https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2718.md) transactions for Type 2 (https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1559.md) and Type 4 (https://github.com/ethereum/EIPs/blob/master/EIPS/eip-7702.md)
 
 This command signs an Ethereum transaction after having the user validate the following parameters
 
@@ -1454,6 +1454,60 @@ None
 | *Description*              | *Length*
 | Web3 Check setting status  | 1
 |====================================
+
+### SIGN EIP 7702 AUTHORIZATION
+
+#### Description
+
+This command computes the signature for an element of a EIP 7702 Authorization list (https://github.com/ethereum/EIPs/blob/master/EIPS/eip-7702.md) on the given account, for the given delegate, chain ID and nonce.
+
+The user is prompted to confirm the operation before the signature is issued.
+
+#### Coding
+
+_Command_
+
+[width="80%"]
+|==============================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *LC*
+|   E0  |   34   | 01 : first chunk
+
+                   00 : following chunk
+                                      | 00         | 00
+|==============================================================
+
+_Input data_
+
+##### If P1 == first chunk
+
+[width="80%"]
+|====================================================================
+| *Description*                                     | *Length (byte)*
+| Number of BIP 32 derivations to perform (max 10)  | 1
+| First derivation index (BE)                       | 4
+| ...                                               | 4
+| Last derivation index (BE)                        | 4
+| struct size (BE)                                  | 2
+| link:tlv_structs.md#auth_7702[AUTH_7702 struct]   | variable
+|====================================================================
+
+##### If P1 == following chunk
+
+[width="80%"]
+|====================================================================
+| *Description*                                   | *Length (byte)*
+| link:tlv_structs.md#auth_7702[AUTH_7702 struct] | variable
+|====================================================================
+
+_Output data_
+
+[width="80%"]
+|==============================================================================================================================
+| *Description*                                                                     | *Length*
+| Signature parity (0 even, 1 odd) - use as is in EIP 7702                          | 1
+| r                                                                                 | 32
+| s                                                                                 | 32
+|==============================================================================================================================
 
 ## Transport protocol
 

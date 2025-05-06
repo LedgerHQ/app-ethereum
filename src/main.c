@@ -45,6 +45,7 @@
 #include "cmd_field.h"
 #include "cmd_get_tx_simulation.h"
 #include "cmd_proxy_info.h"
+#include "commands_7702.h"
 
 tmpCtx_t tmpCtx;
 txContext_t txContext;
@@ -274,6 +275,12 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             sw = handle_tx_simulation(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags);
             break;
 #endif
+
+#ifdef HAVE_EIP7702
+        case INS_SIGN_EIP7702_AUTHORIZATION:
+            sw = handleSignEIP7702Authorization(cmd->p1, cmd->data, cmd->lc, flags);
+            break;
+#endif  // HAVE_EIP7702
 
         default:
             sw = APDU_RESPONSE_INVALID_INS;

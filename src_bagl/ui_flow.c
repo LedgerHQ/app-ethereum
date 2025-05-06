@@ -15,6 +15,7 @@
 #define SETTING_DISPLAY_NONCE_STATE        (strings.common.fullAmount + (BUF_INCREMENT * 2))
 #define SETTING_VERBOSE_EIP712_STATE       (strings.common.fullAmount + (BUF_INCREMENT * 3))
 #define SETTING_DISPLAY_DATA_STATE         (strings.common.fullAmount + (BUF_INCREMENT * 4))
+#define SETTING_EIP7702_STATE              (strings.common.fullAmount + (BUF_INCREMENT * 5))
 
 #define BOOL_TO_STATE_STR(b) (b ? ENABLED_STR : DISABLED_STR)
 
@@ -28,6 +29,9 @@ static void switch_settings_display_nonce(void);
 #ifdef HAVE_EIP712_FULL_SUPPORT
 static void switch_settings_verbose_eip712(void);
 #endif  // HAVE_EIP712_FULL_SUPPORT
+#ifdef HAVE_EIP7702
+static void switch_settings_eip7702(void);
+#endif  // HAVE_EIP7702
 
 //////////////////////////////////////////////////////////////////////
 // clang-format off
@@ -138,6 +142,20 @@ UX_STEP_CB(
     });
 #endif // HAVE_EIP712_FULL_SUPPORT
 
+#ifdef HAVE_EIP7702
+UX_STEP_CB(
+    ux_settings_flow_7702_step,
+    bnnn,
+    switch_settings_eip7702(),
+    {
+      "Smart accounts",
+      "Enable EIP7702",
+      "authorizations",
+      SETTING_EIP7702_STATE
+    });
+#endif // HAVE_EIP7702
+
+
 UX_STEP_CB(
     ux_settings_flow_display_data_step,
 #ifdef TARGET_NANOS
@@ -178,6 +196,9 @@ UX_FLOW(ux_settings_flow,
         &ux_settings_flow_verbose_eip712_step,
 #endif  // HAVE_EIP712_FULL_SUPPORT
         &ux_settings_flow_display_data_step,
+#ifdef HAVE_EIP7702
+        &ux_settings_flow_7702_step,
+#endif  // HAVE_EIP7702
         &ux_settings_flow_back_step);
 
 static void display_settings(const ux_flow_step_t* const start_step) {
@@ -196,6 +217,9 @@ static void display_settings(const ux_flow_step_t* const start_step) {
             BOOL_TO_STATE_STR(N_storage.verbose_trusted_name),
             BUF_INCREMENT);
 #endif  // HAVE_TRUSTED_NAME
+#ifdef HAVE_EIP7702
+    strlcpy(SETTING_EIP7702_STATE, BOOL_TO_STATE_STR(N_storage.eip7702_enable), BUF_INCREMENT);
+#endif  // HAVE_EIP7702
 
     ux_flow_init(0, ux_settings_flow, start_step);
 }
@@ -229,6 +253,12 @@ static void switch_settings_verbose_trusted_name(void) {
     toggle_setting(&N_storage.verbose_trusted_name, &ux_settings_flow_verbose_trusted_name_step);
 }
 #endif  // HAVE_TRUSTED_NAME
+
+#ifdef HAVE_EIP7702
+static void switch_settings_eip7702(void) {
+    toggle_setting(&N_storage.eip7702_enable, &ux_settings_flow_7702_step);
+}
+#endif  // HAVE_EIP7702
 
 //////////////////////////////////////////////////////////////////////
 // clang-format off
@@ -275,3 +305,39 @@ UX_FLOW(ux_error_blind_signing_flow, &ux_error_blind_signing_step);
 UX_FLOW(ux_warning_blind_signing_flow,
         &ux_warning_blind_signing_warn_step,
         &ux_warning_blind_signing_jump_step);
+
+#ifdef HAVE_EIP7702
+
+//////////////////////////////////////////////////////////////////////
+// clang-format off
+UX_STEP_CB(
+    ux_error_7702_not_enabled_step,
+    pnn,
+    ui_idle(),
+    {
+      &C_icon_crossmark,
+      "Smart accounts must",
+      "be enabled in Settings",
+    });
+
+#ifdef HAVE_EIP7702_WHITELIST
+UX_STEP_CB(
+    ux_error_7702_not_whitelisted_step,
+    pnn,
+    ui_idle(),
+    {
+      &C_icon_crossmark,
+      "Authorization to non",
+      "whitelisted contract",
+    });
+#endif //HAVE_EIP7702_WHITELIST
+
+// clang-format on
+
+UX_FLOW(ux_error_7702_not_enabled_flow, &ux_error_7702_not_enabled_step);
+
+#ifdef HAVE_EIP7702_WHITELIST
+UX_FLOW(ux_error_7702_not_whitelisted_flow, &ux_error_7702_not_whitelisted_step);
+#endif  // HAVE_EIP7702_WHITELIST
+
+#endif  // HAVE_EIP7702

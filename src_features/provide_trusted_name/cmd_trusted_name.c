@@ -10,14 +10,13 @@
 
 static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_free) {
     s_trusted_name_ctx ctx = {0};
-    bool parsing_success;
+    bool parsing_ret;
 
     ctx.trusted_name.name = g_trusted_name;
     cx_sha256_init(&ctx.hash_ctx);
-    parsing_success =
-        tlv_parse(payload, size, (f_tlv_data_handler) &handle_trusted_name_struct, &ctx);
+    parsing_ret = tlv_parse(payload, size, (f_tlv_data_handler) &handle_trusted_name_struct, &ctx);
     if (to_free) mem_dealloc(size);
-    if (!parsing_success || !verify_trusted_name_struct(&ctx)) {
+    if (!parsing_ret || !verify_trusted_name_struct(&ctx)) {
         roll_challenge();  // prevent brute-force guesses
         return false;
     }

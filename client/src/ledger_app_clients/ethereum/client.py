@@ -1,6 +1,6 @@
 import struct
 from enum import IntEnum
-from typing import Optional, Tuple
+from typing import Optional
 from hashlib import sha256
 import rlp
 from web3 import Web3
@@ -17,6 +17,7 @@ from .keychain import sign_data, Key
 from .tlv import format_tlv, FieldTag
 from .response_parser import pk_addr
 from .tx_simu import TxSimu
+from .tx_auth_7702 import TxAuth7702
 
 
 class StatusWord(IntEnum):
@@ -212,13 +213,13 @@ class EthAppClient:
     def eip712_filtering_raw(self, name: str, sig: bytes, discarded: bool):
         return self._exchange_async(self._cmd_builder.eip712_filtering_raw(name, sig, discarded))
 
-    def serialize_tx(self, tx_params: dict) -> Tuple[bytes, bytes]:
+    def serialize_tx(self, tx_params: dict) -> tuple[bytes, bytes]:
         """Computes the serialized TX and its hash"""
 
-        tx = Web3().eth.account.create().sign_transaction(tx_params).rawTransaction
+        tx = Web3().eth.account.create().sign_transaction(tx_params).raw_transaction
         prefix = bytes()
         suffix = []
-        if tx[0] in [0x01, 0x02]:
+        if tx[0] in [0x01, 0x02, 0x04]:
             prefix = tx[:1]
             tx = tx[len(prefix):]
         else:  # legacy
@@ -330,7 +331,7 @@ class EthAppClient:
                                 chain_id: int,
                                 nft_id: Optional[int] = None,
                                 challenge: Optional[int] = None,
-                                not_valid_after: Optional[Tuple[int]] = None) -> RAPDU:
+                                not_valid_after: Optional[tuple[int, int, int]] = None) -> RAPDU:
         payload = format_tlv(FieldTag.STRUCT_VERSION, 2)
         payload += format_tlv(FieldTag.TRUSTED_NAME, name)
         payload += format_tlv(FieldTag.ADDRESS, addr)
@@ -671,3 +672,9 @@ class EthAppClient:
         for chunk in chunks[:-1]:
             self._exchange(chunk)
         return self._exchange(chunks[-1])
+
+    def sign_eip7702_authorization(self, bip32_path: str, auth_params: TxAuth7702) -> RAPDU:
+        chunks = self._cmd_builder.sign_eip7702_authorization(bip32_path, auth_params.serialize())
+        for chunk in chunks[:-1]:
+            self._exchange(chunk)
+        return self._exchange_async(chunks[-1])

@@ -312,3 +312,12 @@ In version 1 of the protocol:
 | SELECTOR       | 0x28 | uint[4]         | function selector               | x        |
 | IMPL_ADDRESS   | 0x29 | uint8[20]       | implementation contract address |          |
 | SIGNATURE      | 0x15 | uint8[]         | signature of the structure      |          |
+
+## AUTH_7702
+
+| Name           | Tag  | Payload type    | Description                     | Optional |
+|----------------|------|-----------------|---------------------------------|----------|
+| STRUCT_VERSION | 0x00 | uint8           | structure version (currently 1) |          |
+| DELEGATE_ADDR  | 0x01 | uint8[20]       | delegate address                |          |
+| CHAIN_ID       | 0x02 | uint64          | chain ID (0 for no restriction) |          |
+| NONCE          | 0x03 | uint64          | nonce                           |          |

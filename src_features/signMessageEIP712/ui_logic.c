@@ -547,11 +547,17 @@ static bool ui_712_format_trusted_name(const uint8_t *data, uint8_t length) {
  *
  * @param[in] data the data that needs formatting
  * @param[in] length its length
+ * @param[in] field_ptr pointer to the new struct field
  * @return whether it was successful or not
  */
-static bool ui_712_format_datetime(const uint8_t *data, uint8_t length) {
-    time_t timestamp = u64_from_BE(data, length);
+static bool ui_712_format_datetime(const uint8_t *data, uint8_t length, const void *field_ptr) {
+    time_t timestamp;
 
+    if ((length >= get_struct_field_typesize(field_ptr)) && ismaxint((uint8_t *) data, length)) {
+        snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "Unlimited");
+        return true;
+    }
+    timestamp = u64_from_BE(data, length);
     return time_format_to_utc(&timestamp, strings.tmp.tmp, sizeof(strings.tmp.tmp));
 }
 
@@ -629,7 +635,7 @@ bool ui_712_feed_to_display(const void *field_ptr,
     }
 
     if (ui_ctx->field_flags & UI_712_DATETIME) {
-        if (!ui_712_format_datetime(data, length)) {
+        if (!ui_712_format_datetime(data, length, field_ptr)) {
             return false;
         }
     }

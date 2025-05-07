@@ -1,7 +1,7 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
 #include "common_utils.h"
-#include "feature_getPublicKey.h"
+#include "getPublicKey.h"
 #include "common_ui.h"
 #include "os_io_seproxyhal.h"
 #include "crypto_helpers.h"
@@ -34,16 +34,12 @@ uint16_t handleGetPublicKey(uint8_t p1,
     }
 
     tmpCtx.publicKeyContext.getChaincode = (p2 == P2_CHAINCODE);
-    CX_CHECK(bip32_derive_get_pubkey_256(
-        CX_CURVE_256K1,
-        bip32.path,
-        bip32.length,
+    CX_CHECK(get_public_key_string(
+        &bip32,
         tmpCtx.publicKeyContext.publicKey.W,
+        tmpCtx.publicKeyContext.address,
         (tmpCtx.publicKeyContext.getChaincode ? tmpCtx.publicKeyContext.chainCode : NULL),
-        CX_SHA512));
-    getEthAddressStringFromRawKey(tmpCtx.publicKeyContext.publicKey.W,
-                                  tmpCtx.publicKeyContext.address,
-                                  chainConfig->chainId);
+        chainConfig->chainId));
 
     uint64_t chain_id = chainConfig->chainId;
     if (dataLength >= sizeof(chain_id)) {

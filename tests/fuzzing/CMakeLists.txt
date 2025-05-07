@@ -35,7 +35,7 @@ if (NOT DEFINED ENV{LIB_FUZZING_ENGINE})
   elseif (SANITIZER MATCHES "memory")
     set(COMPILATION_FLAGS ${COMPILATION_FLAGS} -fsanitize=fuzzer,memory,undefined -fsanitize-memory-track-origins -fsanitize=fuzzer-no-link)
   else()
-    message(FATAL_ERROR "Unkown sanitizer type. It must be set to `address` or `memory`.")
+    message(FATAL_ERROR "Unknown sanitizer type. It must be set to `address` or `memory`.")
   endif()
 else()
 	set(COMPILATION_FLAGS "$ENV{LIB_FUZZING_ENGINE} $ENV{CFLAGS} ${CUSTOM_C_FLAGS}")
@@ -184,6 +184,7 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/../../ethereum-plugin-sdk/src/
   ${CMAKE_SOURCE_DIR}/../../src
   ${CMAKE_SOURCE_DIR}/../../src_features/generic_tx_parser/
+  ${CMAKE_SOURCE_DIR}/../../src_features/getPublicKey/
   ${CMAKE_SOURCE_DIR}/../../src_features/provide_enum_value/
   ${CMAKE_SOURCE_DIR}/../../src_features/provide_network_info/
   ${CMAKE_SOURCE_DIR}/../../src_features/signTx/

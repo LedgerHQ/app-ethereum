@@ -36,6 +36,65 @@ static char *_strdup(const char *src) {
     return dst;
 }
 
+static void free_pair_extension_infolist_elem(const struct nbgl_contentInfoList_s *infolist,
+                                              int idx) {
+    if (infolist->infoTypes[idx] != NULL) {
+        app_mem_free((void *) infolist->infoTypes[idx]);
+    }
+    if (infolist->infoContents[idx] != NULL) {
+        app_mem_free((void *) infolist->infoContents[idx]);
+    }
+    if (infolist->infoExtensions != NULL) {
+        if (infolist->infoExtensions[idx].title != NULL) {
+            app_mem_free((void *) infolist->infoExtensions[idx].title);
+        }
+        if (infolist->infoExtensions[idx].explanation != NULL) {
+            app_mem_free((void *) infolist->infoExtensions[idx].explanation);
+        }
+        if (infolist->infoExtensions[idx].fullValue != NULL) {
+            app_mem_free((void *) infolist->infoExtensions[idx].fullValue);
+        }
+    }
+}
+
+static void free_pair_extension(const nbgl_contentValueExt_t *ext) {
+    if (ext->backText != NULL) {
+        app_mem_free((void *) ext->backText);
+    }
+    if (ext->infolist != NULL) {
+        for (int i = 0; i < ext->infolist->nbInfos; ++i) {
+            free_pair_extension_infolist_elem(ext->infolist, i);
+        }
+        if (ext->infolist->infoTypes != NULL) {
+            app_mem_free((void *) ext->infolist->infoTypes);
+        }
+        if (ext->infolist->infoContents != NULL) {
+            app_mem_free((void *) ext->infolist->infoContents);
+        }
+
+        if (ext->infolist->infoExtensions != NULL) {
+            app_mem_free((void *) ext->infolist->infoExtensions);
+        }
+        app_mem_free((void *) ext->infolist);
+    }
+    app_mem_free((void *) ext);
+}
+
+static void free_pair(const nbgl_contentTagValueList_t *pair_list, int idx) {
+    // Only a few pairs are created from the UI, and need to be freed :
+    // - the first one, that leads to the contract infos
+    // - the second to last one, that shows the Network (optional)
+    // - the last one, that shows the TX fees
+    if ((idx == 0) || (idx == (pair_list->nbPairs - 1)) ||
+        ((get_tx_chain_id() != chainConfig->chainId) && (idx == (pair_list->nbPairs - 2)))) {
+        if (pair_list->pairs[idx].item != NULL) app_mem_free((void *) pair_list->pairs[idx].item);
+        if (pair_list->pairs[idx].value != NULL) app_mem_free((void *) pair_list->pairs[idx].value);
+    }
+    if (pair_list->pairs[idx].extension != NULL) {
+        free_pair_extension(pair_list->pairs[idx].extension);
+    }
+}
+
 static bool cleanup_on_error(void) {
     if (g_review_title != NULL) {
         app_mem_free(g_review_title);
@@ -48,52 +107,9 @@ static bool cleanup_on_error(void) {
     if (g_pair_list != NULL) {
         if (g_pair_list->pairs != NULL) {
             for (int i = 0; i < g_pair_list->nbPairs; ++i) {
-                if ((i == 0) ||
-                    (i == (g_pair_list->nbPairs - 1)) ||
-                    ((get_tx_chain_id() != chainConfig->chainId) && (i == (g_pair_list->nbPairs - 2)))) {
-                    if (g_pair_list->pairs[i].item != NULL) app_mem_free((void*)g_pair_list->pairs[i].item);
-                    if (g_pair_list->pairs[i].value != NULL) app_mem_free((void*)g_pair_list->pairs[i].value);
-                }
-                if (g_pair_list->pairs[i].extension != NULL) {
-                    if (g_pair_list->pairs[i].extension->backText != NULL) {
-                        app_mem_free((void*)g_pair_list->pairs[i].extension->backText);
-                    }
-                    if (g_pair_list->pairs[i].extension->infolist != NULL) {
-                        for (int y = 0; y < g_pair_list->pairs[i].extension->infolist->nbInfos; ++y) {
-                            if (g_pair_list->pairs[i].extension->infolist->infoTypes[y] != NULL) {
-                                app_mem_free((void*)g_pair_list->pairs[i].extension->infolist->infoTypes[y]);
-                            }
-                            if (g_pair_list->pairs[i].extension->infolist->infoContents[y] != NULL) {
-                                app_mem_free((void*)g_pair_list->pairs[i].extension->infolist->infoContents[y]);
-                            }
-                        }
-                        if (g_pair_list->pairs[i].extension->infolist->infoTypes != NULL) {
-                            app_mem_free((void*)g_pair_list->pairs[i].extension->infolist->infoTypes);
-                        }
-                        if (g_pair_list->pairs[i].extension->infolist->infoContents != NULL) {
-                            app_mem_free((void*)g_pair_list->pairs[i].extension->infolist->infoContents);
-                        }
-
-                        if (g_pair_list->pairs[i].extension->infolist->infoExtensions != NULL) {
-                            for (int y = 0; y < g_pair_list->pairs[i].extension->infolist->nbInfos; ++y) {
-                                if (g_pair_list->pairs[i].extension->infolist->infoExtensions[y].title != NULL) {
-                                    app_mem_free((void*)g_pair_list->pairs[i].extension->infolist->infoExtensions[y].title);
-                                }
-                                if (g_pair_list->pairs[i].extension->infolist->infoExtensions[y].explanation != NULL) {
-                                    app_mem_free((void*)g_pair_list->pairs[i].extension->infolist->infoExtensions[y].explanation);
-                                }
-                                if (g_pair_list->pairs[i].extension->infolist->infoExtensions[y].fullValue != NULL) {
-                                    app_mem_free((void*)g_pair_list->pairs[i].extension->infolist->infoExtensions[y].fullValue);
-                                }
-                            }
-                            app_mem_free((void*)g_pair_list->pairs[i].extension->infolist->infoExtensions);
-                        }
-                        app_mem_free((void*)g_pair_list->pairs[i].extension->infolist);
-                    }
-                    app_mem_free((void*)g_pair_list->pairs[i].extension);
-                }
+                free_pair(g_pair_list, i);
             }
-            app_mem_free((void*)g_pair_list->pairs);
+            app_mem_free((void *) g_pair_list->pairs);
         }
         app_mem_free(g_pair_list);
         g_pair_list = NULL;

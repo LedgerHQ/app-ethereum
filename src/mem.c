@@ -11,7 +11,9 @@
 #include "mem_alloc.h"
 #include "os_print.h"
 
-#define SIZE_MEM_BUFFER 10240
+#define SIZE_MEM_BUFFER_MAIN 10240
+#define SIZE_MEM_BUFFER_ALT  2048
+#define SIZE_MEM_BUFFER      (SIZE_MEM_BUFFER_MAIN + SIZE_MEM_BUFFER_ALT)
 
 static uint8_t mem_buffer[SIZE_MEM_BUFFER] __attribute__((aligned(8)));
 static uint16_t mem_legacy_idx;
@@ -49,6 +51,8 @@ void app_mem_free_impl(void *ptr, const char *file, int line) {
  */
 void mem_legacy_init(void) {
     mem_legacy_idx = 0;
+    // initialize the new allocator to still be able to use it, just in case
+    mem_ctx = mem_init(mem_buffer + SIZE_MEM_BUFFER_MAIN, SIZE_MEM_BUFFER_ALT);
 }
 
 /**
@@ -75,7 +79,7 @@ void *mem_legacy_alloc(size_t size) {
         return NULL;
     }
     // Buffer exceeded
-    if (new_idx > sizeof(mem_buffer)) {
+    if (new_idx > SIZE_MEM_BUFFER_MAIN) {
         PRINTF("Error: mem_alloc(%u) failed!\n", size);
         return NULL;
     }

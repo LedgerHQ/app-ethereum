@@ -47,13 +47,17 @@ static bool ui_191_update_display_buffer(void) {
     strlcat(g_stax_shared_buffer + g_display_buffer_idx,
             UI_191_BUFFER + g_rcv_buffer_idx,
             sizeof(g_stax_shared_buffer) - g_display_buffer_idx);
+#ifdef SCREEN_SIZE_WALLET
     reached = nbgl_getTextMaxLenInNbLines(LARGE_MEDIUM_FONT,
                                           (char *) g_stax_shared_buffer,
                                           AVAILABLE_WIDTH,
                                           NB_MAX_LINES_IN_REVIEW,
                                           &len,
                                           false);
-
+#else   // SCREEN_SIZE_WALLET
+    len = strlen(g_stax_shared_buffer);
+    reached = (strlen(UI_191_BUFFER) - len) > 0;
+#endif  // SCREEN_SIZE_WALLET
     g_rcv_buffer_idx += (len - g_display_buffer_idx);
     g_display_buffer_idx = len;
     g_stax_shared_buffer[g_display_buffer_idx] = '\0';
@@ -63,6 +67,7 @@ static bool ui_191_update_display_buffer(void) {
         question_switcher();
         return false;
     }
+
     g_display_buffer_idx = 0;
     return true;
 }

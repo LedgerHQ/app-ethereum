@@ -1,4 +1,3 @@
-#include "nbgl_page.h"
 #include "shared_context.h"
 #include "ui_callbacks.h"
 #include "ui_nbgl.h"

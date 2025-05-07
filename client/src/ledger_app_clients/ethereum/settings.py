@@ -95,7 +95,9 @@ def get_settings_moves(firmware: Firmware,
     settings = get_device_settings(firmware)
     # Assume the app is on the 1st page of Settings
     if firmware.is_nano:
-        moves += [NavInsID.RIGHT_CLICK] * 2
+        moves += [NavInsID.RIGHT_CLICK]
+        if firmware == Firmware.NANOS:
+            moves += [NavInsID.RIGHT_CLICK]
         moves += [NavInsID.BOTH_CLICK]
         for setting in settings:
             if setting in to_toggle:

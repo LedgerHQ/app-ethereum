@@ -292,7 +292,7 @@ static void nonce_to_string(const txInt256_t *nonce, char *out, size_t out_size)
     tostring256(&nonce_uint256, 10, out, out_size);
 }
 
-/* Local implementation of strncasecmp, workaround of the segfaulting base implem
+/* Local implementation of strncasecmp, workaround of the segfaulting base implem on return value
  * Remove once strncasecmp is fixed
  */
 static int strcasecmp_workaround(const char *str1, const char *str2) {

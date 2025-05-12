@@ -56,7 +56,7 @@ static bool ui_191_update_display_buffer(void) {
                                           false);
 #else   // SCREEN_SIZE_WALLET
     len = strlen(g_stax_shared_buffer);
-    reached = (strlen(UI_191_BUFFER) - len) > 0;
+    reached = (g_rcv_buffer_idx == 0);
 #endif  // SCREEN_SIZE_WALLET
     g_rcv_buffer_idx += (len - g_display_buffer_idx);
     g_display_buffer_idx = len;
@@ -168,6 +168,10 @@ void ui_191_switch_to_message(void) {
 
 void ui_191_switch_to_sign(void) {
     g_action = UI_191_ACTION_GO_TO_SIGN;
+#ifndef SCREEN_SIZE_WALLET
+    // For Nano, if we're here the entire message has already been reviewed, so force skip
+    g_skipped = true;
+#endif
     if (g_skipped) {
         ui_191_process_state();
     } else if (g_display_buffer_idx > 0) {

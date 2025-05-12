@@ -8,13 +8,13 @@
 #include "common_ui.h"
 #include "ui_callbacks.h"
 #include "apdu_constants.h"
-#include "crypto_helpers.h"
 #include "format.h"
 #include "manage_asset_info.h"
 #include "handle_swap_sign_transaction.h"
 #include "os_math.h"
 #include "calldata.h"
 #include "swap_error_code_helpers.h"
+#include "getPublicKey.h"
 
 static bool g_use_standard_ui;
 
@@ -292,43 +292,7 @@ static void nonce_to_string(const txInt256_t *nonce, char *out, size_t out_size)
     tostring256(&nonce_uint256, 10, out, out_size);
 }
 
-uint16_t get_network_as_string(char *out, size_t out_size) {
-    uint64_t chain_id = get_tx_chain_id();
-    const char *name = get_network_name_from_chain_id(&chain_id);
-
-    if (name == NULL) {
-        // No network name found so simply copy the chain ID as the network name.
-        if (!u64_to_string(chain_id, out, out_size)) {
-            return APDU_RESPONSE_CHAINID_OUT_BUF_SMALL;
-        }
-    } else {
-        // Network name found, simply copy it.
-        strlcpy(out, name, out_size);
-    }
-    return APDU_RESPONSE_OK;
-}
-
-uint16_t get_public_key(uint8_t *out, uint8_t outLength) {
-    uint8_t raw_pubkey[65];
-    cx_err_t error = CX_INTERNAL_ERROR;
-
-    if (outLength < ADDRESS_LENGTH) {
-        return APDU_RESPONSE_WRONG_DATA_LENGTH;
-    }
-    CX_CHECK(bip32_derive_get_pubkey_256(CX_CURVE_256K1,
-                                         tmpCtx.transactionContext.bip32.path,
-                                         tmpCtx.transactionContext.bip32.length,
-                                         raw_pubkey,
-                                         NULL,
-                                         CX_SHA512));
-
-    getEthAddressFromRawKey(raw_pubkey, out);
-    error = APDU_RESPONSE_OK;
-end:
-    return error;
-}
-
-/* Local implementation of strncasecmp, workaround of the segfaulting base implem
+/* Local implementation of strncasecmp, workaround of the segfaulting base implem on return value
  * Remove once strncasecmp is fixed
  */
 static int strcasecmp_workaround(const char *str1, const char *str2) {

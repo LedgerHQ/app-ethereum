@@ -26,11 +26,9 @@ void start_signature_flow(void);
 
 uint16_t handle_parsing_status(parserStatus_e status);
 
-uint16_t get_public_key(uint8_t *out, uint8_t outLength);
 bool max_transaction_fee_to_string(const txInt256_t *BEGasPrice,
                                    const txInt256_t *BEGasLimit,
                                    char *displayBuffer,
                                    uint32_t displayBufferSize);
-uint16_t get_network_as_string(char *out, size_t out_size);
 
 #endif  // _SIGN_TX_H_

@@ -162,6 +162,19 @@ uint16_t get_public_key(uint8_t *out, uint8_t outLength) {
     return 0;
 }
 
+uint16_t get_public_key_string(bip32_path_t *bip32,
+                               uint8_t *pubKey,
+                               char *address,
+                               uint8_t *chainCode,
+                               uint64_t chainId) {
+    UNUSED(bip32);
+    UNUSED(pubKey);
+    UNUSED(chainCode);
+    UNUSED(chainId);
+    memset_s(address, 0, 10);
+    return 0;
+}
+
 void ui_gcs_cleanup(void) {
 }
 

@@ -4,6 +4,7 @@
 #include "network_info.h"
 #include "shared_context.h"
 #include "common_utils.h"
+#include "apdu_constants.h"
 
 const char g_unknown_ticker[] = "???";
 
@@ -154,6 +155,22 @@ const char *get_network_name_from_chain_id(const uint64_t *chain_id) {
         return NULL;
     }
     return PIC(net->name);
+}
+
+uint16_t get_network_as_string(char *out, size_t out_size) {
+    uint64_t chain_id = get_tx_chain_id();
+    const char *name = get_network_name_from_chain_id(&chain_id);
+
+    if (name == NULL) {
+        // No network name found so simply copy the chain ID as the network name.
+        if (!u64_to_string(chain_id, out, out_size)) {
+            return APDU_RESPONSE_CHAINID_OUT_BUF_SMALL;
+        }
+    } else {
+        // Network name found, simply copy it.
+        strlcpy(out, name, out_size);
+    }
+    return APDU_RESPONSE_OK;
 }
 
 const char *get_network_ticker_from_chain_id(const uint64_t *chain_id) {

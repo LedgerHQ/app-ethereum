@@ -65,9 +65,7 @@ uint32_t eth2WithdrawalIndex;
 
 const internalStorage_t N_storage_real;
 
-#ifdef HAVE_NBGL
 caller_app_t *caller_app = NULL;
-#endif
 const chain_config_t *chainConfig;
 
 void reset_app_context() {
@@ -373,7 +371,6 @@ void coin_main(eth_libargs_t *args) {
         if (args->chain_config != NULL) {
             chainConfig = args->chain_config;
         }
-#ifdef HAVE_NBGL
         if ((caller_app = args->caller_app) != NULL) {
             if (chainConfig != NULL) {
                 caller_app->type = CALLER_TYPE_CLONE;
@@ -381,7 +378,6 @@ void coin_main(eth_libargs_t *args) {
                 caller_app->type = CALLER_TYPE_PLUGIN;
             }
         }
-#endif
     }
     if (chainConfig == NULL) {
         init_coin_config(&config);
@@ -466,8 +462,7 @@ __attribute__((noreturn)) void clone_main(eth_libargs_t *args) {
     } else {
         // Clone called from Dashboard, start Ethereum
         libcall_params[2] = RUN_APPLICATION;
-// On Stax, forward our icon to Ethereum
-#ifdef HAVE_NBGL
+        // On Stax, forward our icon to Ethereum
         const char app_name[] = APPNAME;
         caller_app_t capp;
         nbgl_icon_details_t icon_details;
@@ -479,9 +474,6 @@ __attribute__((noreturn)) void clone_main(eth_libargs_t *args) {
         capp.name = app_name;
         capp.icon = &icon_details;
         libcall_params[4] = (uint32_t) &capp;
-#else
-        libcall_params[4] = 0;
-#endif  // HAVE_NBGL
         os_lib_call((uint32_t *) &libcall_params);
         // Ethereum should not return to us
         app_exit();

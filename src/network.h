@@ -3,9 +3,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "chainConfig.h"
-#ifdef HAVE_NBGL
 #include "nbgl_types.h"
-#endif
 
 #define MAX_NETWORK_LEN 32  // 31 characters + '\0'
 
@@ -13,9 +11,7 @@ typedef struct network_info_s {
     char name[MAX_NETWORK_LEN];
     char ticker[MAX_TICKER_LEN];
     uint64_t chain_id;
-#ifdef HAVE_NBGL
     nbgl_icon_details_t icon;
-#endif
 } network_info_t;
 
 #define UNSUPPORTED_CHAIN_ID_MSG(id)                                              \

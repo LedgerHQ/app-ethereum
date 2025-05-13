@@ -109,12 +109,8 @@ void handle_query_contract_id_721(ethQueryContractID_t *msg) {
     switch (context->selectorIndex) {
         case SET_APPROVAL_FOR_ALL:
         case APPROVE:
-#ifdef HAVE_NBGL
             strlcpy(msg->version, "manage", msg->versionLength);
             strlcat(msg->name, " allowance", msg->nameLength);
-#else
-            strlcpy(msg->version, "Allowance", msg->versionLength);
-#endif
             break;
         case SAFE_TRANSFER:
         case SAFE_TRANSFER_DATA:

@@ -17,9 +17,7 @@ typedef struct {
     cx_sha256_t hash_ctx;
 } s_network_info_ctx;
 
-#ifdef HAVE_NBGL
 extern uint8_t g_network_icon_hash[MAX_DYNAMIC_NETWORKS][CX_SHA256_SIZE];
-#endif
 extern network_info_t DYNAMIC_NETWORK_INFO[MAX_DYNAMIC_NETWORKS];
 extern uint8_t g_current_network_slot;
 

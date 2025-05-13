@@ -1,5 +1,3 @@
-#ifdef HAVE_NBGL
-
 #include "apdu_constants.h"
 #include "utils.h"
 #include "nbgl_use_case.h"
@@ -208,5 +206,3 @@ const char *ui_tx_simulation_finish_str(void) {
     }
     return "Sign";
 }
-
-#endif  // HAVE_NBGL

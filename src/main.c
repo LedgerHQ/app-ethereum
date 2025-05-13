@@ -234,11 +234,9 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             break;
 #endif  // HAVE_TRUSTED_NAME
 
-#ifdef HAVE_ENUM_VALUE
         case INS_PROVIDE_ENUM_VALUE:
             sw = handle_enum_value(cmd->p1, cmd->p2, cmd->lc, cmd->data);
             break;
-#endif  // HAVE_ENUM_VALUE
 
 #ifdef HAVE_GENERIC_TX_PARSER
         case INS_GTP_TRANSACTION_INFO:

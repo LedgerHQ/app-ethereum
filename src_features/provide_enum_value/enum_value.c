@@ -1,5 +1,3 @@
-#ifdef HAVE_ENUM_VALUE
-
 #include "enum_value.h"
 #include "read.h"
 #include "public_keys.h"
@@ -178,5 +176,3 @@ const char *get_matching_enum_name(const uint64_t *chain_id,
     }
     return NULL;
 }
-
-#endif  // HAVE_ENUM_VALUE

@@ -41,9 +41,7 @@ typedef struct {
         s_param_datetime param_datetime;
         s_param_duration param_duration;
         s_param_unit param_unit;
-#ifdef HAVE_ENUM_VALUE
         s_param_enum param_enum;
-#endif
 #ifdef HAVE_TRUSTED_NAME
         s_param_trusted_name param_trusted_name;
 #endif

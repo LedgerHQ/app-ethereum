@@ -1,5 +1,4 @@
 #ifdef HAVE_GENERIC_TX_PARSER
-#ifdef HAVE_ENUM_VALUE
 
 #include "gtp_param_enum.h"
 #include "network.h"
@@ -92,5 +91,4 @@ bool format_param_enum(const s_param_enum *param, const char *name) {
     return ret;
 }
 
-#endif  // HAVE_ENUM_VALUE
 #endif  // HAVE_GENERIC_TX_PARSER

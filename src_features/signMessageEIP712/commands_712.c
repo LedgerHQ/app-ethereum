@@ -204,11 +204,9 @@ uint16_t handle_eip712_filtering(uint8_t p1,
                 reply_apdu = false;
             }
             break;
-#ifdef HAVE_TRUSTED_NAME
         case P2_FILT_CONTRACT_NAME:
             ret = filtering_trusted_name(cdata, length, p1 == 1, &path_crc);
             break;
-#endif
         case P2_FILT_DATE_TIME:
             ret = filtering_date_time(cdata, length, p1 == 1, &path_crc);
             break;

@@ -18,9 +18,7 @@ nbgl_warning_t warning;
 enum {
     WEB3_CHECK_TOKEN = FIRST_USER_TOKEN,
     BLIND_SIGNING_TOKEN,
-#ifdef HAVE_TRUSTED_NAME
     TRUSTED_NAME_VERBOSE_TOKEN,
-#endif
     NONCE_TOKEN,
     EIP712_VERBOSE_TOKEN,
 #ifdef HAVE_EIP7702
@@ -34,9 +32,7 @@ enum {
     WEB3_CHECK_ID,
 #endif
     BLIND_SIGNING_ID,
-#ifdef HAVE_TRUSTED_NAME
     TRUSTED_NAME_VERBOSE_ID,
-#endif
     NONCE_ID,
     EIP712_VERBOSE_ID,
     DEBUG_ID,
@@ -77,13 +73,11 @@ static void setting_toggle_callback(int token, uint8_t index, int page) {
             switches[BLIND_SIGNING_ID].initState = (nbgl_state_t) value;
             nvm_write((void *) &N_storage.dataAllowed, (void *) &value, sizeof(value));
             break;
-#ifdef HAVE_TRUSTED_NAME
         case TRUSTED_NAME_VERBOSE_TOKEN:
             value = !N_storage.verbose_trusted_name;
             switches[TRUSTED_NAME_VERBOSE_ID].initState = (nbgl_state_t) value;
             nvm_write((void *) &N_storage.verbose_trusted_name, (void *) &value, sizeof(value));
             break;
-#endif  // HAVE_TRUSTED_NAME
         case NONCE_TOKEN:
             value = !N_storage.displayNonce;
             switches[NONCE_ID].initState = (nbgl_state_t) value;
@@ -141,7 +135,6 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
     switches[BLIND_SIGNING_ID].tuneId = TUNE_TAP_CASUAL;
 #endif
 
-#ifdef HAVE_TRUSTED_NAME
     switches[TRUSTED_NAME_VERBOSE_ID].initState =
         N_storage.verbose_trusted_name ? ON_STATE : OFF_STATE;
     switches[TRUSTED_NAME_VERBOSE_ID].text = "ENS addresses";
@@ -154,7 +147,6 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
 #ifdef HAVE_PIEZO_SOUND
     switches[TRUSTED_NAME_VERBOSE_ID].tuneId = TUNE_TAP_CASUAL;
 #endif
-#endif  // HAVE_TRUSTED_NAME
 
     switches[NONCE_ID].initState = N_storage.displayNonce ? ON_STATE : OFF_STATE;
     switches[NONCE_ID].text = "Nonce";

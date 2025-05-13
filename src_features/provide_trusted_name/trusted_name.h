@@ -1,5 +1,3 @@
-#ifdef HAVE_TRUSTED_NAME
-
 #ifndef TRUSTED_NAME_H_
 #define TRUSTED_NAME_H_
 
@@ -70,5 +68,3 @@ bool handle_trusted_name_struct(const s_tlv_data *data, s_trusted_name_ctx *cont
 bool verify_trusted_name_struct(const s_trusted_name_ctx *ctx);
 
 #endif  // !TRUSTED_NAME_H_
-
-#endif  // !HAVE_TRUSTED_NAME

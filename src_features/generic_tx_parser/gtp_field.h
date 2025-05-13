@@ -42,9 +42,7 @@ typedef struct {
         s_param_duration param_duration;
         s_param_unit param_unit;
         s_param_enum param_enum;
-#ifdef HAVE_TRUSTED_NAME
         s_param_trusted_name param_trusted_name;
-#endif
         s_param_token param_token;
     };
 } s_field;

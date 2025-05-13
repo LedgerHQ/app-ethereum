@@ -1,5 +1,3 @@
-#ifdef HAVE_TRUSTED_NAME
-
 #include <stdbool.h>
 #include "cmd_trusted_name.h"
 #include "trusted_name.h"
@@ -37,5 +35,3 @@ uint16_t handle_trusted_name(uint8_t p1, const uint8_t *data, uint8_t length) {
     }
     return APDU_RESPONSE_OK;
 }
-
-#endif  // HAVE_TRUSTED_NAME

@@ -1,5 +1,3 @@
-#ifdef HAVE_TRUSTED_NAME
-
 #ifndef CMD_TRUSTED_NAME_H_
 #define CMD_TRUSTED_NAME_H_
 
@@ -8,5 +6,3 @@
 uint16_t handle_trusted_name(uint8_t p1, const uint8_t *data, uint8_t length);
 
 #endif  // !CMD_TRUSTED_NAME_H_
-
-#endif  // !HAVE_TRUSTED_NAME

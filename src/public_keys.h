@@ -68,7 +68,6 @@ static const uint8_t LEDGER_NFT_METADATA_PUBLIC_KEY[] = {
 #endif
 };
 
-#ifdef HAVE_TRUSTED_NAME
 static const uint8_t TRUSTED_NAME_PUB_KEY[] = {
 #ifdef HAVE_TRUSTED_NAME_TEST_KEY
     0x04, 0xb9, 0x1f, 0xbe, 0xc1, 0x73, 0xe3, 0xba, 0x4a, 0x71, 0x4e, 0x01, 0x4e, 0xbc,
@@ -84,7 +83,6 @@ static const uint8_t TRUSTED_NAME_PUB_KEY[] = {
     0xae, 0xf5, 0xaf, 0xcf, 0x90, 0xe8, 0x40, 0x88, 0x71
 #endif
 };
-#endif  // HAVE_TRUSTED_NAME
 
 // Only used for signing NFT plugins (ERC721 and ERC1155)
 static const uint8_t LEDGER_NFT_SELECTOR_PUBLIC_KEY[] = {

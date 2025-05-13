@@ -222,7 +222,6 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             sw = handle_eip712_filtering(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags);
             break;
 
-#ifdef HAVE_TRUSTED_NAME
         case INS_ENS_GET_CHALLENGE:
             sw = handle_get_challenge(tx);
             break;
@@ -230,7 +229,6 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
         case INS_ENS_PROVIDE_INFO:
             sw = handle_trusted_name(cmd->p1, cmd->data, cmd->lc);
             break;
-#endif  // HAVE_TRUSTED_NAME
 
         case INS_PROVIDE_ENUM_VALUE:
             sw = handle_enum_value(cmd->p1, cmd->p2, cmd->lc, cmd->data);
@@ -402,10 +400,8 @@ void coin_main(eth_libargs_t *args) {
     ui_idle();
     mem_init();
 
-#ifdef HAVE_TRUSTED_NAME
     // to prevent it from having a fixed value at boot
     roll_challenge();
-#endif  // HAVE_TRUSTED_NAME
 
     app_main();
 }

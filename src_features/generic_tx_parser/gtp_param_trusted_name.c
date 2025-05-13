@@ -1,5 +1,3 @@
-#ifdef HAVE_TRUSTED_NAME
-
 #include "gtp_param_trusted_name.h"
 #include "network.h"
 #include "trusted_name.h"
@@ -133,5 +131,3 @@ bool format_param_trusted_name(const s_param_trusted_name *param, const char *na
     value_cleanup(&param->value, &values);
     return ret;
 }
-
-#endif  // HAVE_TRUSTED_NAME

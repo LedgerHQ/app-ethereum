@@ -26,9 +26,7 @@ static char msg_buffer[MAX_PLUGIN_ITEMS][VALUE_MAX_LEN];
 struct tx_approval_context_t {
     bool fromPlugin;
     bool displayNetwork;
-#ifdef HAVE_TRUSTED_NAME
     bool trusted_name_match;
-#endif
 };
 
 static struct tx_approval_context_t tx_approval_context;
@@ -153,25 +151,22 @@ static uint8_t setTagValuePairs(void) {
             nbPairs++;
         }
 
-#ifdef HAVE_TRUSTED_NAME
         uint64_t chain_id = get_tx_chain_id();
         e_name_type type = TN_TYPE_ACCOUNT;
         e_name_source source = TN_SOURCE_ENS;
         tx_approval_context.trusted_name_match =
             get_trusted_name(1, &type, 1, &source, &chain_id, tmpContent.txContent.destination);
+
         if (tx_approval_context.trusted_name_match) {
             pairs[nbPairs].item = "To";
             pairs[nbPairs].value = g_trusted_name;
             nbPairs++;
         }
         if (!tx_approval_context.trusted_name_match || N_storage.verbose_trusted_name) {
-#endif
             pairs[nbPairs].item = "To";
             pairs[nbPairs].value = strings.common.toAddress;
             nbPairs++;
-#ifdef HAVE_TRUSTED_NAME
         }
-#endif
         if (N_storage.displayNonce) {
             pairs[nbPairs].item = "Nonce";
             pairs[nbPairs].value = strings.common.nonce;

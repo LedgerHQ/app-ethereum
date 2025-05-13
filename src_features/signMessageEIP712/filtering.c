@@ -330,7 +330,6 @@ bool filtering_discarded_path(const uint8_t *payload, uint8_t length) {
     return true;
 }
 
-#ifdef HAVE_TRUSTED_NAME
 /**
  * Command to display a field as a trusted name
  *
@@ -427,8 +426,6 @@ bool filtering_trusted_name(const uint8_t *payload,
     ui_712_set_trusted_name_requirements(type_count, types, source_count, sources);
     return true;
 }
-#endif  // HAVE_TRUSTED_NAME
-
 /**
  * Command to display a field as a date-time
  *

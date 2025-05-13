@@ -45,9 +45,7 @@ typedef struct {
     uint64_t chain_id;
     e_name_type name_type;
     e_name_source name_source;
-#ifdef HAVE_NFT_SUPPORT
     uint8_t nft_id[INT256_LENGTH];
-#endif
 } s_trusted_name_info;
 
 typedef struct {

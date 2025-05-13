@@ -1,8 +1,6 @@
 #ifndef _ERC721_PLUGIN_H_
 #define _ERC721_PLUGIN_H_
 
-#ifdef HAVE_NFT_SUPPORT
-
 #include <stdbool.h>
 #include <stdint.h>
 #include "asset_info.h"
@@ -41,7 +39,5 @@ typedef struct erc721_context_t {
 
 void handle_provide_parameter_721(ethPluginProvideParameter_t *parameters);
 void handle_query_contract_ui_721(ethQueryContractUI_t *parameters);
-
-#endif  // HAVE_NFT_SUPPORT
 
 #endif  // _ERC721_PLUGIN_H_

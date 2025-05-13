@@ -445,7 +445,6 @@ static bool handle_trusted_name_source(const s_tlv_data *data, s_trusted_name_ct
     return true;
 }
 
-#ifdef HAVE_NFT_SUPPORT
 /**
  * Handler for tag \ref NFT_ID
  *
@@ -464,7 +463,6 @@ static bool handle_nft_id(const s_tlv_data *data, s_trusted_name_ctx *context) {
     context->rcv_flags |= SET_BIT(NFT_ID_RCV_BIT);
     return true;  // unhandled for now
 }
-#endif
 
 bool handle_trusted_name_struct(const s_tlv_data *data, s_trusted_name_ctx *context) {
     bool ret;
@@ -510,11 +508,9 @@ bool handle_trusted_name_struct(const s_tlv_data *data, s_trusted_name_ctx *cont
         case TRUSTED_NAME_SOURCE:
             ret = handle_trusted_name_source(data, context);
             break;
-#ifdef HAVE_NFT_SUPPORT
         case NFT_ID:
             ret = handle_nft_id(data, context);
             break;
-#endif
         default:
             PRINTF(TLV_TAG_ERROR_MSG, data->tag);
             ret = false;

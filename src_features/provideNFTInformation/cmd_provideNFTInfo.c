@@ -1,5 +1,3 @@
-#ifdef HAVE_NFT_SUPPORT
-
 #include "apdu_constants.h"
 #include "asset_info.h"
 #include "network.h"
@@ -179,5 +177,3 @@ uint16_t handleProvideNFTInformation(const uint8_t *workBuffer,
     *tx += 1;
     return APDU_RESPONSE_OK;
 }
-
-#endif  // HAVE_NFT_SUPPORT

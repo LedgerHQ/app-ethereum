@@ -1,5 +1,3 @@
-#ifdef HAVE_NFT_SUPPORT
-
 #include <string.h>
 #include "erc1155_plugin.h"
 #include "plugin_utils.h"
@@ -148,5 +146,3 @@ void erc1155_plugin_call(int message, void *parameters) {
             break;
     }
 }
-
-#endif  // HAVE_NFT_SUPPORT

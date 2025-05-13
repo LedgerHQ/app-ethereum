@@ -160,11 +160,9 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             sw = handleProvideErc20TokenInformation(cmd->data, cmd->lc, tx);
             break;
 
-#ifdef HAVE_NFT_SUPPORT
         case INS_PROVIDE_NFT_INFORMATION:
             sw = handleProvideNFTInformation(cmd->data, cmd->lc, tx);
             break;
-#endif  // HAVE_NFT_SUPPORT
 
         case INS_SET_EXTERNAL_PLUGIN:
             sw = handleSetExternalPlugin(cmd->data, cmd->lc);

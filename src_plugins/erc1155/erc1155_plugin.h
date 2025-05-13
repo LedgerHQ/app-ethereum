@@ -1,8 +1,6 @@
 #ifndef _ERC1155_PLUGIN_H_
 #define _ERC1155_PLUGIN_H_
 
-#ifdef HAVE_NFT_SUPPORT
-
 #include <stdbool.h>
 #include <stdint.h>
 #include "uint256.h"
@@ -50,7 +48,5 @@ typedef struct erc1155_context_t {
 
 void handle_provide_parameter_1155(ethPluginProvideParameter_t *parameters);
 void handle_query_contract_ui_1155(ethQueryContractUI_t *parameters);
-
-#endif  // HAVE_NFT_SUPPORT
 
 #endif  // _ERC1155_PLUGIN_H_

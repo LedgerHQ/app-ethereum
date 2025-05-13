@@ -1,8 +1,6 @@
 #ifndef GTP_PARAM_NFT_H_
 #define GTP_PARAM_NFT_H_
 
-#ifdef HAVE_NFT_SUPPORT
-
 #include <stdint.h>
 #include <stdbool.h>
 #include "tlv.h"
@@ -20,7 +18,5 @@ typedef struct {
 
 bool handle_param_nft_struct(const s_tlv_data *data, s_param_nft_context *context);
 bool format_param_nft(const s_param_nft *param, const char *name);
-
-#endif
 
 #endif  // !GTP_PARAM_NFT_H_

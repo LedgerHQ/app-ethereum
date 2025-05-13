@@ -1,5 +1,3 @@
-#ifdef HAVE_EIP7702
-
 #include "auth_7702.h"
 #include "utils.h"
 #include "read.h"
@@ -93,5 +91,3 @@ bool handle_auth_7702_struct(const s_tlv_data *data, s_auth_7702_ctx *context) {
 bool verify_auth_7702_struct(const s_auth_7702_ctx *context) {
     return ((context->mask_parsed & MASK_ALL) == MASK_ALL) && (context->version == STRUCT_VERSION);
 }
-
-#endif  // HAVE_EIP7702

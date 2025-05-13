@@ -1,5 +1,3 @@
-#ifdef HAVE_EIP7702
-
 #include "rlp_encode.h"
 
 #define RLP_NUMBER8_MAX 0x7F
@@ -78,5 +76,3 @@ uint8_t rlpEncodeListHeader8(uint8_t size, uint8_t *output, size_t output_size) 
         return 2;
     }
 }
-
-#endif  // HAVE_EIP7702

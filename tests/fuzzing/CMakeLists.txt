@@ -153,8 +153,6 @@ set(DEFINES
     STANDARD_APP_SYNC_RAPDU
     HAVE_SWAP
     HAVE_WEB3_CHECKS
-    HAVE_EIP7702
-    HAVE_EIP7702_WHITELIST
     explicit_bzero=bzero # Fix for https://github.com/google/sanitizers/issues/1507
 )
 

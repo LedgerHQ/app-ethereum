@@ -1,5 +1,3 @@
-#ifdef HAVE_EIP7702_WHITELIST
-
 #include <string.h>
 #include "os_utils.h"
 #include "os_pic.h"
@@ -47,5 +45,3 @@ const char *get_delegate_name(const uint64_t *chain_id, const uint8_t *address) 
     }
     return NULL;
 }
-
-#endif  // HAVE_EIP7702_WHITELIST

@@ -7,7 +7,7 @@
 nbgl_warning_t warning;
 
 // settings info definition
-#define SETTING_INFO_NB 2
+#define SETTING_INFO_NB 3
 
 // settings menu definition
 #define SETTING_CONTENTS_NB 1
@@ -44,15 +44,15 @@ enum {
     EIP712_VERBOSE_ID,
 #endif
     DEBUG_ID,
-#if HAVE_EIP7702
+#ifdef HAVE_EIP7702
     EIP7702_ID,
 #endif  // HAVE_EIP7702
     SETTINGS_SWITCHES_NB
 };
 
 // settings definition
-static const char *const infoTypes[SETTING_INFO_NB] = {"Version", "Developer"};
-static const char *const infoContents[SETTING_INFO_NB] = {APPVERSION, "Ledger"};
+static const char *const infoTypes[SETTING_INFO_NB] = {"Version", "Developer", "Copyright"};
+static const char *const infoContents[SETTING_INFO_NB] = {APPVERSION, "Ledger", "Ledger (c) 2025"};
 
 static nbgl_contentInfoList_t infoList = {0};
 static nbgl_contentSwitch_t switches[SETTINGS_SWITCHES_NB] = {0};
@@ -115,11 +115,6 @@ static void setting_toggle_callback(int token, uint8_t index, int page) {
     }
 }
 
-static void app_quit(void) {
-    // exit app here
-    app_exit();
-}
-
 const nbgl_icon_details_t *get_app_icon(bool caller_icon) {
     const nbgl_icon_details_t *icon = NULL;
 
@@ -146,46 +141,72 @@ const nbgl_icon_details_t *get_app_icon(bool caller_icon) {
 static void prepare_and_display_home(const char *appname, const char *tagline, uint8_t page) {
     switches[BLIND_SIGNING_ID].initState = N_storage.dataAllowed ? ON_STATE : OFF_STATE;
     switches[BLIND_SIGNING_ID].text = "Blind signing";
-    switches[BLIND_SIGNING_ID].subText = "Enable transaction blind signing.";
+    switches[BLIND_SIGNING_ID].subText = "Enable transaction blind signing";
     switches[BLIND_SIGNING_ID].token = BLIND_SIGNING_TOKEN;
+#ifdef HAVE_PIEZO_SOUND
     switches[BLIND_SIGNING_ID].tuneId = TUNE_TAP_CASUAL;
+#endif
 
 #ifdef HAVE_TRUSTED_NAME
     switches[TRUSTED_NAME_VERBOSE_ID].initState =
         N_storage.verbose_trusted_name ? ON_STATE : OFF_STATE;
     switches[TRUSTED_NAME_VERBOSE_ID].text = "ENS addresses";
-    switches[TRUSTED_NAME_VERBOSE_ID].subText = "Display the resolved address of ENS domains.";
+#ifdef SCREEN_SIZE_WALLET
+    switches[TRUSTED_NAME_VERBOSE_ID].subText = "Display the resolved address of ENS domains";
+#else
+    switches[TRUSTED_NAME_VERBOSE_ID].subText = "Display resolved addresses from ENS";
+#endif
     switches[TRUSTED_NAME_VERBOSE_ID].token = TRUSTED_NAME_VERBOSE_TOKEN;
+#ifdef HAVE_PIEZO_SOUND
     switches[TRUSTED_NAME_VERBOSE_ID].tuneId = TUNE_TAP_CASUAL;
+#endif
 #endif  // HAVE_TRUSTED_NAME
 
     switches[NONCE_ID].initState = N_storage.displayNonce ? ON_STATE : OFF_STATE;
     switches[NONCE_ID].text = "Nonce";
-    switches[NONCE_ID].subText = "Display nonce in transactions.";
+    switches[NONCE_ID].subText = "Display nonce in transactions";
     switches[NONCE_ID].token = NONCE_TOKEN;
+#ifdef HAVE_PIEZO_SOUND
     switches[NONCE_ID].tuneId = TUNE_TAP_CASUAL;
+#endif
 
 #ifdef HAVE_EIP712_FULL_SUPPORT
     switches[EIP712_VERBOSE_ID].initState = N_storage.verbose_eip712 ? ON_STATE : OFF_STATE;
     switches[EIP712_VERBOSE_ID].text = "Raw messages";
-    switches[EIP712_VERBOSE_ID].subText = "Display raw content from EIP712 messages.";
+    switches[EIP712_VERBOSE_ID].subText = "Displays raw content of EIP712 messages";
     switches[EIP712_VERBOSE_ID].token = EIP712_VERBOSE_TOKEN;
+#ifdef HAVE_PIEZO_SOUND
     switches[EIP712_VERBOSE_ID].tuneId = TUNE_TAP_CASUAL;
+#endif
 #endif  // HAVE_EIP712_FULL_SUPPORT
 
 #ifdef HAVE_EIP7702
     switches[EIP7702_ID].initState = N_storage.eip7702_enable ? ON_STATE : OFF_STATE;
+#ifdef SCREEN_SIZE_WALLET
     switches[EIP7702_ID].text = "Smart account upgrade";
     switches[EIP7702_ID].subText = "Enable EIP-7702 authorizations for smart contract delegation";
+#else
+    switches[EIP7702_ID].text = "Smart accounts";
+    switches[EIP7702_ID].subText = "Enable EIP-7702 authorizations";
+#endif
     switches[EIP7702_ID].token = EIP7702_TOKEN;
+#ifdef HAVE_PIEZO_SOUND
     switches[EIP7702_ID].tuneId = TUNE_TAP_CASUAL;
+#endif
 #endif  // HAVE_EIP7702
 
     switches[DEBUG_ID].initState = N_storage.contractDetails ? ON_STATE : OFF_STATE;
+#ifdef SCREEN_SIZE_WALLET
     switches[DEBUG_ID].text = "Debug smart contracts";
-    switches[DEBUG_ID].subText = "Display contract data details.";
+    switches[DEBUG_ID].subText = "Display contract data details";
+#else
+    switches[DEBUG_ID].text = "Debug contracts";
+    switches[DEBUG_ID].subText = "Display contract\ndata details";
+#endif
     switches[DEBUG_ID].token = DEBUG_TOKEN;
+#ifdef HAVE_PIEZO_SOUND
     switches[DEBUG_ID].tuneId = TUNE_TAP_CASUAL;
+#endif
 
 #ifdef HAVE_WEB3_CHECKS
     switches[WEB3_CHECK_ID].initState = N_storage.w3c_enable ? ON_STATE : OFF_STATE;
@@ -216,7 +237,7 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
                                 &settingContents,
                                 &infoList,
                                 NULL,
-                                app_quit);
+                                app_exit);
 }
 
 /**

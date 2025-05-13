@@ -1,6 +1,6 @@
+from typing import Optional
 import pytest
 
-from typing import Optional
 from ragger.error import ExceptionRAPDU
 from ragger.backend import BackendInterface
 from ragger.firmware import Firmware
@@ -29,13 +29,14 @@ NONCE_MAX = 0xFFFFFFFFFFFFFFFF
 
 DEVICE_ADDR: Optional[bytes] = None
 
+# pylint: disable=line-too-long
 # Test vectors computed with
 # cast wallet sign-auth $ADDRESS --mnemonic $MNEMONIC --mnemonic-derivation-path "m/44'/60'/0'/0/0" --nonce $NONCE --chain $CHAINID
 # Decoded by https://codechain-io.github.io/rlp-debugger/
+# pylint: enable=line-too-long
 
 
-def common(firmware: Firmware,
-           backend: BackendInterface,
+def common(backend: BackendInterface,
            scenario: NavigateWithScenario,
            test_name: str,
            delegate: bytes,
@@ -45,18 +46,13 @@ def common(firmware: Firmware,
     global DEVICE_ADDR
     app_client = EthAppClient(backend)
 
-    if firmware.is_nano:
-        end_text = "Accept"
-    else:
-        end_text = ".*Sign.*"
-
     if DEVICE_ADDR is None:
         with app_client.get_public_addr(bip32_path=BIP32_PATH, display=False):
             pass
         _, DEVICE_ADDR, _ = ResponseParser.pk_addr(app_client.response().data)
     auth_params = TxAuth7702(delegate, nonce, chain_id)
     with app_client.sign_eip7702_authorization(BIP32_PATH, auth_params):
-        scenario.review_approve(test_name=test_name, custom_screen_text=end_text)
+        scenario.review_approve(test_name=test_name)
     vrs = ResponseParser.signature(app_client.response().data)
     assert recover_authorization(chain_id, nonce, delegate, vrs) == DEVICE_ADDR
 
@@ -76,6 +72,8 @@ def common_rejected(firmware: Firmware,
         with app_client.sign_eip7702_authorization(BIP32_PATH, auth_params):
             moves = []
             if firmware.is_nano:
+                if firmware != Firmware.NANOS:
+                    moves += [NavInsID.RIGHT_CLICK] * 3
                 moves += [NavInsID.BOTH_CLICK]
             else:
                 moves += [NavInsID.USE_CASE_CHOICE_REJECT]
@@ -96,8 +94,7 @@ def test_eip7702_in_whitelist(firmware: Firmware,
     if firmware == Firmware.NANOS:
         pytest.skip("Not supported on LNS")
     settings_toggle(firmware, scenario_navigator.navigator, [SettingID.EIP7702])
-    common(firmware,
-           backend,
+    common(backend,
            scenario_navigator,
            test_name,
            TEST_ADDRESS_1,
@@ -112,8 +109,7 @@ def test_eip7702_in_whitelist_all_chain_whitelisted(firmware: Firmware,
     if firmware == Firmware.NANOS:
         pytest.skip("Not supported on LNS")
     settings_toggle(firmware, scenario_navigator.navigator, [SettingID.EIP7702])
-    common(firmware,
-           backend,
+    common(backend,
            scenario_navigator,
            test_name,
            # Simple7702Account, which is whitelisted for all chains
@@ -129,8 +125,7 @@ def test_eip7702_in_whitelist_all_chain_param(firmware: Firmware,
     if firmware == Firmware.NANOS:
         pytest.skip("Not supported on LNS")
     settings_toggle(firmware, scenario_navigator.navigator, [SettingID.EIP7702])
-    common(firmware,
-           backend,
+    common(backend,
            scenario_navigator,
            test_name,
            TEST_ADDRESS_2,
@@ -145,8 +140,7 @@ def test_eip7702_in_whitelist_max(firmware: Firmware,
     if firmware == Firmware.NANOS:
         pytest.skip("Not supported on LNS")
     settings_toggle(firmware, scenario_navigator.navigator, [SettingID.EIP7702])
-    common(firmware,
-           backend,
+    common(backend,
            scenario_navigator,
            test_name,
            TEST_ADDRESS_MAX,
@@ -190,8 +184,7 @@ def test_eip7702_revocation(firmware: Firmware,
     if firmware == Firmware.NANOS:
         pytest.skip("Not supported on LNS")
     settings_toggle(firmware, scenario_navigator.navigator, [SettingID.EIP7702])
-    common(firmware,
-           backend,
+    common(backend,
            scenario_navigator,
            test_name,
            ADDRESS_REVOCATION,

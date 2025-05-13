@@ -1,4 +1,4 @@
-#include "nbgl_page.h"
+#include "nbgl_use_case.h"
 #include "shared_context.h"
 #include "ui_callbacks.h"
 #include "ui_nbgl.h"
@@ -23,7 +23,11 @@ void ui_sign_7702_auth(void) {
     pairs[0].value = strings.common.fromAddress;
     pairs[1].item = "Delegate to";
     pairs[1].value = strings.common.toAddress;
+#ifdef SCREEN_SIZE_WALLET
     pairs[2].item = "Delegate on network";
+#else
+    pairs[2].item = "On network";
+#endif
     pairs[2].value = strings.common.network_name;
 
     pairsList.nbPairs = ARRAYLEN(pairs);

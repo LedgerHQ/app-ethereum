@@ -13,6 +13,8 @@ static uint8_t pair_idx;
 static size_t buf_idx;
 static bool review_skipped;
 
+nbgl_callback_t skip_callback = NULL;
+
 static void message_progress(bool confirm) {
     char *buf;
     size_t buf_size;
@@ -39,10 +41,12 @@ static void message_progress(bool confirm) {
     }
 }
 
+#ifdef SCREEN_SIZE_WALLET
 static void review_skip(void) {
     review_skipped = true;
     message_progress(true);
 }
+#endif  // SCREEN_SIZE_WALLET
 
 static void message_update(bool confirm) {
     char *buf;
@@ -68,7 +72,7 @@ static void message_update(bool confirm) {
                 nbgl_useCaseGetNbTagValuesInPageExt(pair_idx, &pairs_list, 0, skippable, &flag);
         }
         if (!review_skipped && ((pair_idx == ARRAYLEN(pairs)) || (pairs_list.nbPairs < pair_idx))) {
-            nbgl_useCaseReviewStreamingContinueExt(&pairs_list, message_progress, review_skip);
+            nbgl_useCaseReviewStreamingContinueExt(&pairs_list, message_progress, skip_callback);
         } else {
             message_progress(true);
         }
@@ -84,6 +88,9 @@ static void ui_712_start_common(void) {
     pair_idx = 0;
     buf_idx = 0;
     review_skipped = false;
+#ifdef SCREEN_SIZE_WALLET
+    skip_callback = review_skip;
+#endif  // SCREEN_SIZE_WALLET
     if (appState != APP_STATE_IDLE) {
         reset_app_context();
     }
@@ -147,7 +154,7 @@ void ui_712_switch_to_sign(void) {
     if (!review_skipped && (pair_idx > 0)) {
         pairs_list.nbPairs = pair_idx;
         pair_idx = 0;
-        nbgl_useCaseReviewStreamingContinueExt(&pairs_list, message_progress, review_skip);
+        nbgl_useCaseReviewStreamingContinueExt(&pairs_list, message_progress, skip_callback);
     } else {
 #ifdef HAVE_WEB3_CHECKS
         if ((TX_SIMULATION.risk != RISK_UNKNOWN) && ((check_tx_simulation_hash() == false) ||

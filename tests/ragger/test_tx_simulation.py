@@ -149,7 +149,6 @@ def test_tx_simulation_sign(firmware: Firmware,
                             navigator: Navigator,
                             scenario_navigator: NavigateWithScenario,
                             test_name: str,
-                            default_screenshot_path: Path,
                             config: str) -> None:
     """Test the TX Simulation APDU with a simple transaction"""
 
@@ -177,9 +176,7 @@ def test_tx_simulation_sign(firmware: Firmware,
 
     sign_tx_common(firmware,
                    backend,
-                   navigator,
                    scenario_navigator,
-                   default_screenshot_path,
                    tx_params,
                    test_name=test_name + f"_{config}",
                    with_simu=config not in ("benign", "issue"))
@@ -189,8 +186,7 @@ def test_tx_simulation_no_simu(firmware: Firmware,
                                backend: BackendInterface,
                                navigator: Navigator,
                                scenario_navigator: NavigateWithScenario,
-                               test_name: str,
-                               default_screenshot_path: Path) -> None:
+                               test_name: str) -> None:
     """Test the TX Transaction APDU without TX Simulation APDU
         but with the WEB3_CHECK setting enabled"""
 
@@ -212,9 +208,7 @@ def test_tx_simulation_no_simu(firmware: Firmware,
 
     sign_tx_common(firmware,
                    backend,
-                   navigator,
                    scenario_navigator,
-                   default_screenshot_path,
                    tx_params,
                    test_name=test_name,
                    with_simu=False)
@@ -224,7 +218,6 @@ def test_tx_simulation_nft(firmware: Firmware,
                            backend: BackendInterface,
                            navigator: Navigator,
                            scenario_navigator: NavigateWithScenario,
-                           default_screenshot_path: Path,
                            test_name: str) -> None:
     """Test the TX Simulation APDU with a Plugin & NFT transaction"""
 
@@ -239,9 +232,7 @@ def test_tx_simulation_nft(firmware: Firmware,
 
     common_test_nft(firmware,
                     backend,
-                    navigator,
                     scenario_navigator,
-                    default_screenshot_path,
                     test_name,
                     collecs_721[0],
                     actions_721[0],
@@ -270,12 +261,11 @@ def test_tx_simulation_blind_sign(firmware: Firmware,
     else:
         simu_params = None
 
-    test_name += f"_{config}"
     blind_sign(firmware,
                backend,
                navigator,
                scenario_navigator,
-               test_name,
+               test_name + f"_{config}",
                False,
                0.0,
                simu_params)
@@ -367,8 +357,7 @@ def test_tx_simulation_gcs(firmware: Firmware,
                            backend: BackendInterface,
                            navigator: Navigator,
                            scenario_navigator: NavigateWithScenario,
-                           test_name: str,
-                           default_screenshot_path: Path) -> None:
+                           test_name: str) -> None:
     """Test the TX Simulation APDU with a Message Streaming based on EIP712"""
 
     if firmware.is_nano:
@@ -382,8 +371,6 @@ def test_tx_simulation_gcs(firmware: Firmware,
 
     sign_gcs_poap(firmware,
                   backend,
-                  navigator,
                   scenario_navigator,
                   test_name,
-                  default_screenshot_path,
                   simu_params)

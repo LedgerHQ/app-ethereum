@@ -185,11 +185,13 @@ static uint16_t feed_display(void) {
 
     while ((unprocessed_length() > 0) && (remaining_ui_buffer_length() > 0)) {
         c = *(char *) unprocessed_data();
-        if (isspace(c))  // to replace all white-space characters as spaces
-        {
+#ifndef SCREEN_SIZE_WALLET
+        if (isspace(c)) {
+            // to replace all white-space characters as spaces
             c = ' ';
         }
-        if (isprint(c)) {
+#endif  // SCREEN_SIZE_WALLET
+        if (isprint(c) || isspace(c)) {
             sprintf(remaining_ui_buffer(), "%c", (char) c);
             processed_size += 1;
         } else {

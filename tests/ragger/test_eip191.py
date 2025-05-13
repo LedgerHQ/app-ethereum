@@ -40,7 +40,7 @@ def common(backend: BackendInterface,
         pass
     _, DEVICE_ADDR, _ = ResponseParser.pk_addr(app_client.response().data)
 
-    if simu_params:
+    if simu_params is not None:
         simu_params.from_addr = DEVICE_ADDR
         handle_simulation(app_client, msg, simu_params)
 
@@ -48,9 +48,9 @@ def common(backend: BackendInterface,
         with app_client.personal_sign(BIP32_PATH, msg.encode('utf-8')):
             if simu_params is not None:
                 navigator.navigate_and_compare(default_screenshot_path,
-                                            f"{test_name}/warning",
-                                            [NavInsID.USE_CASE_CHOICE_REJECT],
-                                            screen_change_after_last_instruction=False)
+                                               f"{test_name}/warning",
+                                               [NavInsID.USE_CASE_CHOICE_REJECT],
+                                               screen_change_after_last_instruction=False)
 
             if simu_params and "tx_hash" in simu_params:
                 navigator.navigate_until_text_and_compare(NavInsID.SWIPE_CENTER_TO_LEFT,
@@ -59,7 +59,7 @@ def common(backend: BackendInterface,
                                                         default_screenshot_path,
                                                         test_name)
             else:
-                scenario.review_approve(test_name=test_name, custom_screen_text=r"(Sign|Accept (risk|threat))")
+                scenario.review_approve(test_name=test_name)
 
     except ExceptionRAPDU as err:
         if simu_params and "tx_hash" in simu_params:
@@ -112,8 +112,7 @@ def test_personal_sign_opensea(firmware: Firmware,
     common(backend, navigator, scenario_navigator, default_screenshot_path, test_name, msg)
 
 
-def test_personal_sign_reject(firmware: Firmware,
-                              backend: BackendInterface,
+def test_personal_sign_reject(backend: BackendInterface,
                               scenario_navigator: NavigateWithScenario):
 
     msg = "This is an reject sign"
@@ -122,11 +121,7 @@ def test_personal_sign_reject(firmware: Firmware,
 
     try:
         with app_client.personal_sign(BIP32_PATH, msg.encode('utf-8')):
-            if firmware.is_nano:
-                end_text = "Cancel"
-            else:
-                end_text = "Sign"
-            scenario_navigator.review_reject(custom_screen_text=end_text)
+            scenario_navigator.review_reject()
 
     except ExceptionRAPDU as e:
         assert e.status == StatusWord.CONDITION_NOT_SATISFIED

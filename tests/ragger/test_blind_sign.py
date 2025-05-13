@@ -153,14 +153,18 @@ def test_blind_sign_reject_in_risk_review(firmware: Firmware,
                                           navigator: Navigator):
     app_client = EthAppClient(backend)
 
-    if firmware.is_nano:
-        pytest.skip("Not supported on non-NBGL apps")
+    if firmware == Firmware.NANOS:
+        pytest.skip("Not supported on Nano S devices")
 
     settings_toggle(firmware, navigator, [SettingID.BLIND_SIGNING])
 
+    moves = []
+    if firmware.is_nano:
+        moves += [NavInsID.RIGHT_CLICK] + [NavInsID.BOTH_CLICK]
+    else:
+        moves += [NavInsID.USE_CASE_CHOICE_CONFIRM]
     try:
         with app_client.sign(BIP32_PATH, common_tx_params(0.0)):
-            moves = [NavInsID.USE_CASE_CHOICE_CONFIRM]
             navigator.navigate(moves)
     except ExceptionRAPDU as e:
         assert e.status == StatusWord.CONDITION_NOT_SATISFIED
@@ -196,7 +200,7 @@ def test_sign_parameter_selector(firmware: Firmware,
                 # (verify | parameter) * flows
                 moves += ([NavInsID.RIGHT_CLICK] * 2 + [NavInsID.BOTH_CLICK]) * params
                 # blind signing | review | from | amount | to | fees
-                moves += [NavInsID.RIGHT_CLICK] * 7
+                moves += [NavInsID.BOTH_CLICK] + [NavInsID.RIGHT_CLICK] * 6
             moves += [NavInsID.BOTH_CLICK]
         else:
             moves += ([NavInsID.SWIPE_CENTER_TO_LEFT] * 2 + [NavInsID.USE_CASE_REVIEW_CONFIRM]) * (1 + params)

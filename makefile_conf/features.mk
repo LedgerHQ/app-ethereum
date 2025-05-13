@@ -41,9 +41,6 @@ ifneq ($(TRUSTED_NAME_TEST_KEY),0)
     DEFINES += HAVE_TRUSTED_NAME_TEST_KEY
 endif
 
-# Dynamic networks
-DEFINES += HAVE_DYNAMIC_NETWORKS
-
 # Transaction Checks
 # TODO: remove this check once the web3 checks are implemented on all targets
 ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))

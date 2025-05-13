@@ -246,11 +246,9 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             sw = handle_proxy_info(cmd->p1, cmd->p2, cmd->lc, cmd->data);
             break;
 
-#ifdef HAVE_DYNAMIC_NETWORKS
         case INS_PROVIDE_NETWORK_CONFIGURATION:
             sw = handle_network_info(cmd->p1, cmd->p2, cmd->data, cmd->lc, tx);
             break;
-#endif  // HAVE_DYNAMIC_NETWORKS
 
 #ifdef HAVE_WEB3_CHECKS
         case INS_PROVIDE_TX_SIMULATION:

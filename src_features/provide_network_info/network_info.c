@@ -1,5 +1,3 @@
-#ifdef HAVE_DYNAMIC_NETWORKS
-
 #include "network_info.h"
 #include "utils.h"
 #include "read.h"
@@ -278,5 +276,3 @@ bool verify_network_info_struct(const s_network_info_ctx *context) {
 #endif
     return true;
 }
-
-#endif  // HAVE_DYNAMIC_NETWORKS

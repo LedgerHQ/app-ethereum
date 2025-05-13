@@ -1,5 +1,3 @@
-#ifdef HAVE_DYNAMIC_NETWORKS
-
 #include <stdbool.h>
 #include "cmd_network_info.h"
 #include "apdu_constants.h"
@@ -332,5 +330,3 @@ uint16_t handle_network_info(uint8_t p1,
 
     return sw;
 }
-
-#endif  // HAVE_DYNAMIC_NETWORKS

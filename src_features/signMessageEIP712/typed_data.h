@@ -1,8 +1,6 @@
 #ifndef TYPED_DATA_H_
 #define TYPED_DATA_H_
 
-#ifdef HAVE_EIP712_FULL_SUPPORT
-
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -59,7 +57,5 @@ bool set_struct_name(uint8_t length, const uint8_t *const name);
 bool set_struct_field(uint8_t length, const uint8_t *const data);
 bool typed_data_init(void);
 void typed_data_deinit(void);
-
-#endif  // HAVE_EIP712_FULL_SUPPORT
 
 #endif  // TYPED_DATA_H_

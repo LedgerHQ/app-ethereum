@@ -22,9 +22,7 @@ enum {
     TRUSTED_NAME_VERBOSE_TOKEN,
 #endif
     NONCE_TOKEN,
-#ifdef HAVE_EIP712_FULL_SUPPORT
     EIP712_VERBOSE_TOKEN,
-#endif
 #ifdef HAVE_EIP7702
     EIP7702_TOKEN,
 #endif  // HAVE_EIP7702
@@ -40,9 +38,7 @@ enum {
     TRUSTED_NAME_VERBOSE_ID,
 #endif
     NONCE_ID,
-#ifdef HAVE_EIP712_FULL_SUPPORT
     EIP712_VERBOSE_ID,
-#endif
     DEBUG_ID,
 #ifdef HAVE_EIP7702
     EIP7702_ID,
@@ -93,13 +89,11 @@ static void setting_toggle_callback(int token, uint8_t index, int page) {
             switches[NONCE_ID].initState = (nbgl_state_t) value;
             nvm_write((void *) &N_storage.displayNonce, (void *) &value, sizeof(value));
             break;
-#ifdef HAVE_EIP712_FULL_SUPPORT
         case EIP712_VERBOSE_TOKEN:
             value = !N_storage.verbose_eip712;
             switches[EIP712_VERBOSE_ID].initState = (nbgl_state_t) value;
             nvm_write((void *) &N_storage.verbose_eip712, (void *) &value, sizeof(value));
             break;
-#endif  // HAVE_EIP712_FULL_SUPPORT
 #ifdef HAVE_EIP7702
         case EIP7702_TOKEN:
             value = !N_storage.eip7702_enable;
@@ -170,7 +164,6 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
     switches[NONCE_ID].tuneId = TUNE_TAP_CASUAL;
 #endif
 
-#ifdef HAVE_EIP712_FULL_SUPPORT
     switches[EIP712_VERBOSE_ID].initState = N_storage.verbose_eip712 ? ON_STATE : OFF_STATE;
     switches[EIP712_VERBOSE_ID].text = "Raw messages";
     switches[EIP712_VERBOSE_ID].subText = "Displays raw content of EIP712 messages";
@@ -178,7 +171,6 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
 #ifdef HAVE_PIEZO_SOUND
     switches[EIP712_VERBOSE_ID].tuneId = TUNE_TAP_CASUAL;
 #endif
-#endif  // HAVE_EIP712_FULL_SUPPORT
 
 #ifdef HAVE_EIP7702
     switches[EIP7702_ID].initState = N_storage.eip7702_enable ? ON_STATE : OFF_STATE;

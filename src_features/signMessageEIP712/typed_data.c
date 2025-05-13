@@ -1,5 +1,3 @@
-#ifdef HAVE_EIP712_FULL_SUPPORT
-
 #include "typed_data.h"
 #include "sol_typenames.h"
 #include "apdu_constants.h"  // APDU response codes
@@ -744,5 +742,3 @@ bool set_struct_field(uint8_t length, const uint8_t *const data) {
     }
     return true;
 }
-
-#endif  // HAVE_EIP712_FULL_SUPPORT

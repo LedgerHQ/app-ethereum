@@ -1,5 +1,3 @@
-#ifdef HAVE_EIP712_FULL_SUPPORT
-
 #include "ui_logic.h"
 #include "mem.h"
 #include "mem_utils.h"
@@ -918,5 +916,3 @@ char *get_ui_pairs_buffer(size_t *size) {
     *size = sizeof(ui_ctx->ui_pairs_buffer);
     return ui_ctx->ui_pairs_buffer;
 }
-
-#endif  // HAVE_EIP712_FULL_SUPPORT

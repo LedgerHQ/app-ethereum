@@ -1,8 +1,6 @@
 #ifndef EIP712_CTX_H_
 #define EIP712_CTX_H_
 
-#ifdef HAVE_EIP712_FULL_SUPPORT
-
 #include <stdbool.h>
 #include "common_utils.h"
 
@@ -20,7 +18,5 @@ void eip712_context_deinit(void);
 
 typedef enum { NOT_INITIALIZED, INITIALIZED, DEFINED } e_struct_init;
 extern e_struct_init struct_state;
-
-#endif  // HAVE_EIP712_FULL_SUPPORT
 
 #endif  // EIP712_CTX_H_

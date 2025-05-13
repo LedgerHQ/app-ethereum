@@ -1,8 +1,6 @@
 #ifndef UI_LOGIC_712_H_
 #define UI_LOGIC_712_H_
 
-#ifdef HAVE_EIP712_FULL_SUPPORT
-
 #include <stdint.h>
 #include "ux.h"
 #include "uint256.h"
@@ -58,7 +56,5 @@ void ui_712_set_trusted_name_requirements(uint8_t type_count,
                                           const e_name_source *sources);
 #endif
 char *get_ui_pairs_buffer(size_t *size);
-
-#endif  // HAVE_EIP712_FULL_SUPPORT
 
 #endif  // UI_LOGIC_712_H_

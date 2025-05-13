@@ -1,4 +1,4 @@
-#if defined(HAVE_EIP712_FULL_SUPPORT) || defined(HAVE_GENERIC_TX_PARSER)
+#ifdef HAVE_GENERIC_TX_PARSER
 
 #include "cmd_proxy_info.h"
 #include "proxy_info.h"

@@ -1,5 +1,3 @@
-#ifdef HAVE_EIP712_FULL_SUPPORT
-
 #include "schema_hash.h"
 #include "hash_bytes.h"
 #include "typed_data.h"
@@ -72,5 +70,3 @@ bool compute_schema_hash(void) {
 end:
     return false;
 }
-
-#endif  // HAVE_EIP712_FULL_SUPPORT

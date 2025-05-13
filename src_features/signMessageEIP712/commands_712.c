@@ -1,5 +1,3 @@
-#ifdef HAVE_EIP712_FULL_SUPPORT
-
 #include "apdu_constants.h"  // APDU response codes
 #include "context_712.h"
 #include "field_hash.h"
@@ -286,5 +284,3 @@ uint16_t handle_eip712_sign(const uint8_t *cdata, uint8_t length, uint32_t *flag
     *flags |= IO_ASYNCH_REPLY;
     return APDU_NO_RESPONSE;
 }
-
-#endif  // HAVE_EIP712_FULL_SUPPORT

@@ -21,9 +21,7 @@ typedef struct internalStorage_t {
     bool dataAllowed;
     bool contractDetails;
     bool displayNonce;
-#ifdef HAVE_EIP712_FULL_SUPPORT
     bool verbose_eip712;
-#endif  // HAVE_EIP712_FULL_SUPPORT
 #ifdef HAVE_TRUSTED_NAME
     bool verbose_trusted_name;
 #endif  // HAVE_TRUSTED_NAME

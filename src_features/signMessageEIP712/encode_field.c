@@ -1,5 +1,3 @@
-#ifdef HAVE_EIP712_FULL_SUPPORT
-
 #include "encode_field.h"
 #include "mem.h"
 #include "apdu_constants.h"  // APDU response codes
@@ -129,5 +127,3 @@ void *encode_address(const uint8_t *const value, uint8_t length) {
     }
     return encode_uint(value, length);
 }
-
-#endif  // HAVE_EIP712_FULL_SUPPORT

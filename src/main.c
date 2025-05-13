@@ -193,11 +193,9 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
                     forget_known_assets();
                     sw = handleSignEIP712Message_v0(cmd->p1, cmd->data, cmd->lc, flags);
                     break;
-#ifdef HAVE_EIP712_FULL_SUPPORT
                 case P2_EIP712_FULL_IMPLEM:
                     sw = handle_eip712_sign(cmd->data, cmd->lc, flags);
                     break;
-#endif  // HAVE_EIP712_FULL_SUPPORT
                 default:
                     sw = APDU_RESPONSE_INVALID_P1_P2;
             }
@@ -214,7 +212,6 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             break;
 #endif  // HAVE_ETH2
 
-#ifdef HAVE_EIP712_FULL_SUPPORT
         case INS_EIP712_STRUCT_DEF:
             sw = handle_eip712_struct_def(cmd->p2, cmd->data, cmd->lc);
             break;
@@ -226,7 +223,6 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
         case INS_EIP712_FILTERING:
             sw = handle_eip712_filtering(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags);
             break;
-#endif  // HAVE_EIP712_FULL_SUPPORT
 
 #ifdef HAVE_TRUSTED_NAME
         case INS_ENS_GET_CHALLENGE:
@@ -254,7 +250,7 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             break;
 #endif  // HAVE_GENERIC_TX_PARSER
 
-#if defined(HAVE_EIP712_FULL_SUPPORT) || defined(HAVE_GENERIC_TX_PARSER)
+#ifdef HAVE_GENERIC_TX_PARSER
         case INS_PROVIDE_PROXY_INFO:
             sw = handle_proxy_info(cmd->p1, cmd->p2, cmd->lc, cmd->data);
             break;

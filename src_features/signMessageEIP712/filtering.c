@@ -1,5 +1,3 @@
-#ifdef HAVE_EIP712_FULL_SUPPORT
-
 #include "filtering.h"
 #include "hash_bytes.h"
 #include "apdu_constants.h"  // APDU return codes
@@ -701,5 +699,3 @@ bool filtering_raw_field(const uint8_t *payload,
     }
     return true;
 }
-
-#endif  // HAVE_EIP712_FULL_SUPPORT

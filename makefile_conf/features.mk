@@ -23,9 +23,6 @@ ifneq ($(NFT_STAGING_KEY),0)
     DEFINES += HAVE_NFT_STAGING_KEY
 endif
 
-# Dynamic memory allocator
-DEFINES += HAVE_DYN_MEM_ALLOC
-
 # EIP-712
 DEFINES	+= HAVE_EIP712_FULL_SUPPORT
 

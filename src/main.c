@@ -81,11 +81,9 @@ void reset_app_context() {
 #endif
     memset((uint8_t *) &tmpCtx, 0, sizeof(tmpCtx));
     forget_known_assets();
-#ifdef HAVE_GENERIC_TX_PARSER
     if (txContext.store_calldata) {
         gcs_cleanup();
     }
-#endif
     memset((uint8_t *) &txContext, 0, sizeof(txContext));
     memset((uint8_t *) &tmpContent, 0, sizeof(tmpContent));
 }
@@ -238,7 +236,6 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             sw = handle_enum_value(cmd->p1, cmd->p2, cmd->lc, cmd->data);
             break;
 
-#ifdef HAVE_GENERIC_TX_PARSER
         case INS_GTP_TRANSACTION_INFO:
             sw = handle_tx_info(cmd->p1, cmd->p2, cmd->lc, cmd->data);
             break;
@@ -246,13 +243,10 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
         case INS_GTP_FIELD:
             sw = handle_field(cmd->p1, cmd->p2, cmd->lc, cmd->data);
             break;
-#endif  // HAVE_GENERIC_TX_PARSER
 
-#ifdef HAVE_GENERIC_TX_PARSER
         case INS_PROVIDE_PROXY_INFO:
             sw = handle_proxy_info(cmd->p1, cmd->p2, cmd->lc, cmd->data);
             break;
-#endif
 
 #ifdef HAVE_DYNAMIC_NETWORKS
         case INS_PROVIDE_NETWORK_CONFIGURATION:

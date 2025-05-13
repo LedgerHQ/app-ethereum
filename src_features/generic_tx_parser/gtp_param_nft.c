@@ -1,5 +1,3 @@
-#ifdef HAVE_GENERIC_TX_PARSER
-
 #include "gtp_param_nft.h"
 #include "manage_asset_info.h"
 #include "utils.h"
@@ -100,5 +98,3 @@ bool format_param_nft(const s_param_nft *param, const char *name) {
     value_cleanup(&param->id, &ids);
     return ret;
 }
-
-#endif  // HAVE_GENERIC_TX_PARSER

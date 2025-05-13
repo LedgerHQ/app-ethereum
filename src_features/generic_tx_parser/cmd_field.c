@@ -1,5 +1,3 @@
-#ifdef HAVE_GENERIC_TX_PARSER
-
 #include "cmd_field.h"
 #include "cx.h"
 #include "apdu_constants.h"
@@ -50,5 +48,3 @@ uint16_t handle_field(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *payload
     }
     return APDU_RESPONSE_OK;
 }
-
-#endif  // HAVE_GENERIC_TX_PARSER

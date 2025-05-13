@@ -1,5 +1,3 @@
-#ifdef HAVE_GENERIC_TX_PARSER
-
 #include <string.h>
 #include "cmd_tx_info.h"
 #include "cx.h"
@@ -74,5 +72,3 @@ void gcs_cleanup(void) {
     }
     calldata_cleanup();
 }
-
-#endif  // HAVE_GENERIC_TX_PARSER

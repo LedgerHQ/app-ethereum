@@ -1,5 +1,3 @@
-#ifdef HAVE_GENERIC_TX_PARSER
-
 #include "gtp_param_amount.h"
 #include "network.h"
 #include "common_utils.h"
@@ -72,5 +70,3 @@ bool format_param_amount(const s_param_amount *param, const char *name) {
     value_cleanup(&param->value, &collec);
     return ret;
 }
-
-#endif  // HAVE_GENERIC_TX_PARSER

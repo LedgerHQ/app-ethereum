@@ -66,11 +66,7 @@ customStatus_e customProcessor(txContext_t *context) {
             // If contract debugging mode is activated, do not go through the plugin activation
             // as they wouldn't be displayed if the plugin consumes all data but fallbacks
             // Still go through plugin activation in Swap context
-#ifdef HAVE_GENERIC_TX_PARSER
             if (!context->store_calldata) {
-#else
-            {
-#endif
                 if (!N_storage.contractDetails || G_called_from_swap) {
                     eth_plugin_prepare_init(&pluginInit,
                                             context->workBuffer,
@@ -99,11 +95,7 @@ customStatus_e customProcessor(txContext_t *context) {
         uint32_t copySize;
         uint32_t fieldPos = context->currentFieldPos;
         if (fieldPos == 0) {  // not reached if a plugin is available
-#ifdef HAVE_GENERIC_TX_PARSER
             if (!context->store_calldata) {
-#else
-            {
-#endif
                 if (!N_storage.dataAllowed) {
                     PRINTF("Data field forbidden\n");
                     ui_error_blind_signing();
@@ -459,12 +451,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
         }
     }
 
-#ifdef HAVE_GENERIC_TX_PARSER
     if (!context->store_calldata) {
-#else
-    (void) context;
-    {
-#endif
         if (tmpContent.txContent.dataPresent && !N_storage.dataAllowed) {
             PRINTF("Data is present but not allowed\n");
             report_finalize_error();
@@ -594,17 +581,12 @@ uint16_t finalize_parsing(const txContext_t *context) {
     if (sw != APDU_RESPONSE_OK) {
         return sw;
     }
-#ifdef HAVE_GENERIC_TX_PARSER
     if (context->store_calldata) {
         if (calldata_get_selector() == NULL) {
             PRINTF("Asked to store calldata but none was provided!\n");
             return APDU_RESPONSE_INVALID_DATA;
         }
     } else {
-#else
-    (void) context;
-    {
-#endif
         // If called from swap, the user has already validated a standard transaction
         // And we have already checked the fields of this transaction above
         if (G_called_from_swap && g_use_standard_ui) {

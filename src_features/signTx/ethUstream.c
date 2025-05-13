@@ -22,9 +22,7 @@
 #include "rlp_utils.h"
 #include "common_utils.h"
 #include "feature_signTx.h"
-#ifdef HAVE_GENERIC_TX_PARSER
 #include "calldata.h"
-#endif
 
 static bool check_fields(txContext_t *context, const char *name, uint32_t length) {
     UNUSED(name);  // Just for the case where DEBUG is not enabled
@@ -62,11 +60,7 @@ bool init_tx(txContext_t *context, cx_sha3_t *sha3, txContent_t *content, bool s
     context->sha3 = sha3;
     context->content = content;
     context->currentField = RLP_NONE + 1;
-#ifdef HAVE_GENERIC_TX_PARSER
     context->store_calldata = store_calldata;
-#else
-    UNUSED(store_calldata);
-#endif
     if (cx_keccak_init_no_throw(context->sha3, 256) != CX_OK) {
         return false;
     }
@@ -318,7 +312,6 @@ static bool processData(txContext_t *context) {
         if (copySize == 1 && *context->workBuffer == 0x00) {
             context->content->dataPresent = false;
         }
-#ifdef HAVE_GENERIC_TX_PARSER
         if (context->store_calldata) {
             if (context->currentFieldPos == 0) {
                 if (!calldata_init(context->currentFieldLength)) {
@@ -327,7 +320,6 @@ static bool processData(txContext_t *context) {
             }
             calldata_append(context->workBuffer, copySize);
         }
-#endif
         if (copyTxData(context, NULL, copySize) == false) {
             return false;
         }

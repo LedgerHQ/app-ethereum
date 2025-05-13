@@ -1,5 +1,3 @@
-#ifdef HAVE_GENERIC_TX_PARSER
-
 #include <time.h>
 #include "gtp_tx_info.h"
 #include "read.h"
@@ -366,5 +364,3 @@ bool validate_instruction_hash(void) {
     }
     return memcmp(g_tx_info->fields_hash, hash, sizeof(hash)) == 0;
 }
-
-#endif  // HAVE_GENERIC_TX_PARSER

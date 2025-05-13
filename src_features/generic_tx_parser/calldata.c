@@ -1,5 +1,3 @@
-#ifdef HAVE_GENERIC_TX_PARSER
-
 #include <string.h>
 #include "os_math.h"  // MIN
 #include "calldata.h"
@@ -130,7 +128,7 @@ bool calldata_append(const uint8_t *buffer, size_t size) {
     // selector handling
     if (g_calldata->chunks == NULL) {
         if (size < CALLDATA_SELECTOR_SIZE) {
-            // somehow getting an imcomplete selector
+            // somehow getting an incomplete selector
             calldata_cleanup();
             return false;
         }
@@ -215,5 +213,3 @@ const uint8_t *calldata_get_chunk(int idx) {
     }
     return g_calldata->chunk;
 }
-
-#endif  // HAVE_GENERIC_TX_PARSER

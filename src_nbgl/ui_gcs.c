@@ -1,5 +1,3 @@
-#ifdef HAVE_GENERIC_TX_PARSER
-
 #include <string.h>
 #include "ui_nbgl.h"
 #include "gtp_tx_info.h"
@@ -257,5 +255,3 @@ bool ui_gcs(void) {
 void ui_gcs_cleanup(void) {
     mem_dealloc(g_alloc_size);
 }
-
-#endif  // HAVE_GENERIC_TX_PARSER

@@ -1,5 +1,3 @@
-#ifdef HAVE_GENERIC_TX_PARSER
-
 #include <inttypes.h>
 #include "os_print.h"
 #include "gtp_param_raw.h"
@@ -184,5 +182,3 @@ bool format_param_raw(const s_param_raw *param, const char *name) {
     value_cleanup(&param->value, &collec);
     return ret;
 }
-
-#endif  // HAVE_GENERIC_TX_PARSER

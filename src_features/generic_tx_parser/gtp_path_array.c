@@ -1,5 +1,3 @@
-#ifdef HAVE_GENERIC_TX_PARSER
-
 #include <stdint.h>
 #include <string.h>
 #include "gtp_path_array.h"
@@ -58,5 +56,3 @@ bool handle_array_struct(const s_tlv_data *data, s_path_array_context *context) 
     }
     return ret;
 }
-
-#endif  // HAVE_GENERIC_TX_PARSER

@@ -1,5 +1,3 @@
-#ifdef HAVE_GENERIC_TX_PARSER
-
 #include <string.h>
 #include "gtp_field.h"
 #include "utils.h"
@@ -236,5 +234,3 @@ bool format_field(const s_field *field) {
     }
     return ret;
 }
-
-#endif  // HAVE_GENERIC_TX_PARSER

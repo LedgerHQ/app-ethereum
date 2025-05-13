@@ -23,8 +23,6 @@ ifneq ($(NFT_STAGING_KEY),0)
     DEFINES += HAVE_NFT_STAGING_KEY
 endif
 
-DEFINES	+= HAVE_GENERIC_TX_PARSER
-
 # CryptoAssetsList key
 CAL_TEST_KEY ?= 0
 ifneq ($(CAL_TEST_KEY),0)

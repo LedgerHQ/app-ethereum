@@ -1,5 +1,3 @@
-#ifdef HAVE_GENERIC_TX_PARSER
-
 #include "proxy_info.h"
 #include "read.h"
 #include "utils.h"  // buf_shrink_expand
@@ -241,5 +239,3 @@ const uint8_t *get_implem_contract(const uint64_t *chain_id,
     }
     return g_proxy_info.implem_address;
 }
-
-#endif

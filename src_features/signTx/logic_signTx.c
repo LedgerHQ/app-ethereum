@@ -589,15 +589,7 @@ uint16_t finalize_parsing(const txContext_t *context) {
         if (G_called_from_swap && g_use_standard_ui) {
             io_seproxyhal_touch_tx_ok();
         } else {
-#ifdef HAVE_BAGL
-            // If blind-signing detected, start the warning flow beforehand
-            if (tmpContent.txContent.dataPresent) {
-                ui_warning_blind_signing();
-            } else
-#endif
-            {
-                start_signature_flow();
-            }
+            start_signature_flow();
         }
     }
     return APDU_RESPONSE_OK;

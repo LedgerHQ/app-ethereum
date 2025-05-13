@@ -96,11 +96,8 @@ def test_eip712_v0(firmware: Firmware,
     with app_client.eip712_sign_legacy(BIP32_PATH, smsg.header, smsg.body):
         moves = []
         if firmware.is_nano:
-            if firmware == Firmware.NANOS:
-                moves += [NavInsID.RIGHT_CLICK] * 10
-            else:
-                moves += [NavInsID.BOTH_CLICK]
-                moves += [NavInsID.RIGHT_CLICK] * 5
+            moves += [NavInsID.BOTH_CLICK]
+            moves += [NavInsID.RIGHT_CLICK] * 5
             moves += [NavInsID.BOTH_CLICK]
         else:
             moves += [NavInsID.USE_CASE_CHOICE_REJECT]
@@ -117,7 +114,7 @@ def autonext(firmware: Firmware, navigator: Navigator, default_screenshot_path: 
 
     moves = []
     if firmware.is_nano:
-        if firmware != Firmware.NANOS and autonext_idx == 0 and validate_warning:
+        if autonext_idx == 0 and validate_warning:
             moves = [NavInsID.BOTH_CLICK]
         else:
             moves = [NavInsID.RIGHT_CLICK]
@@ -170,7 +167,7 @@ def eip712_new_common(firmware: Firmware,
         if firmware.is_nano:
             nav_ins = NavInsID.RIGHT_CLICK
             val_ins = NavInsID.BOTH_CLICK
-            text = "Approve" if firmware == Firmware.NANOS else "Sign message"
+            text = "Sign message"
         else:
             nav_ins = NavInsID.SWIPE_CENTER_TO_LEFT
             val_ins = NavInsID.USE_CASE_REVIEW_CONFIRM
@@ -208,8 +205,6 @@ def test_eip712_new(firmware: Firmware,
 
     settings_to_toggle: list[SettingID] = []
     app_client = EthAppClient(backend)
-    if firmware == Firmware.NANOS:
-        pytest.skip("Not supported on LNS")
 
     filters = None
     if filtering:
@@ -474,8 +469,6 @@ def test_eip712_advanced_filtering(firmware: Firmware,
     global snapshots_dirname
 
     app_client = EthAppClient(backend)
-    if firmware == Firmware.NANOS:
-        pytest.skip("Not supported on LNS")
 
     snapshots_dirname = test_name + data_set.suffix
 
@@ -503,8 +496,6 @@ def test_eip712_filtering_empty_array(firmware: Firmware,
     global validate_warning
 
     app_client = EthAppClient(backend)
-    if firmware == Firmware.NANOS:
-        pytest.skip("Not supported on LNS")
 
     snapshots_dirname = test_name
 
@@ -633,8 +624,6 @@ def test_eip712_advanced_missing_token(firmware: Firmware,
     snapshots_dirname = test_name
 
     app_client = EthAppClient(backend)
-    if firmware == Firmware.NANOS:
-        pytest.skip("Not supported on LNS")
 
     data = {
         "types": {
@@ -742,8 +731,6 @@ def test_eip712_advanced_trusted_name(firmware: Firmware,
     snapshots_dirname = test_name
 
     app_client = EthAppClient(backend)
-    if firmware == Firmware.NANOS:
-        pytest.skip("Not supported on LNS")
 
     data = {
         "types": {
@@ -816,8 +803,6 @@ def test_eip712_bs_not_activated_error(firmware: Firmware,
                                        navigator: Navigator,
                                        default_screenshot_path: Path):
     app_client = EthAppClient(backend)
-    if firmware == Firmware.NANOS:
-        pytest.skip("Not supported on LNS")
 
     with pytest.raises(ExceptionRAPDU) as e:
         eip712_new_common(firmware,
@@ -866,8 +851,6 @@ def test_eip712_proxy(firmware: Firmware,
                       navigator: Navigator,
                       default_screenshot_path: Path):
     app_client = EthAppClient(backend)
-    if firmware == Firmware.NANOS:
-        pytest.skip("Not supported on LNS")
 
     input_file = input_files()[0]
     with open(input_file, encoding="utf-8") as file:

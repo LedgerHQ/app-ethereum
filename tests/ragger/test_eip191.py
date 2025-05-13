@@ -1,11 +1,9 @@
 from pathlib import Path
 from typing import Optional
-import pytest
 from Crypto.Hash import keccak
 
 from ragger.error import ExceptionRAPDU
 from ragger.backend import BackendInterface
-from ragger.firmware import Firmware
 from ragger.navigator import Navigator, NavInsID
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 
@@ -94,15 +92,11 @@ def test_personal_sign_non_ascii(backend: BackendInterface,
     common(backend, navigator, scenario_navigator, default_screenshot_path, test_name, msg)
 
 
-def test_personal_sign_opensea(firmware: Firmware,
-                               backend: BackendInterface,
+def test_personal_sign_opensea(backend: BackendInterface,
                                navigator: Navigator,
                                scenario_navigator: NavigateWithScenario,
                                default_screenshot_path: Path,
                                test_name: str):
-
-    if firmware == Firmware.NANOS:
-        pytest.skip("Not supported on LNS")
 
     msg = "Welcome to OpenSea!\n\n"
     msg += "Click to sign in and accept the OpenSea Terms of Service: https://opensea.io/tos\n\n"

@@ -369,8 +369,7 @@ def test_tx_simulation_gcs(firmware: Firmware,
 
     simu_params = __get_simu_params("warning", SimuType.TRANSACTION)
 
-    sign_gcs_poap(firmware,
-                  backend,
+    sign_gcs_poap(backend,
                   scenario_navigator,
                   test_name,
                   simu_params)

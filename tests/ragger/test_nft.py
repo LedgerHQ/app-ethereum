@@ -60,9 +60,6 @@ def common_test_nft(firmware: Firmware,
     global DEVICE_ADDR
     app_client = EthAppClient(backend)
 
-    if firmware == Firmware.NANOS:
-        pytest.skip("Not supported on LNS")
-
     data = collec.contract.encode_abi(action.fn_name, action.fn_args)
     tx_params = {
         "nonce": NONCE,

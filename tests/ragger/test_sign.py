@@ -1,4 +1,3 @@
-import pytest
 from web3 import Web3
 
 from ragger.error import ExceptionRAPDU
@@ -57,7 +56,7 @@ def common(firmware: Firmware,
             icon = "4000400021ff0100fd011f8b08000000000002ffdd554b6ac330101d61f0225090307861c81d5c0c5d1482afe20b945c293941aed2e05d21e810012d0c42d58c64eb63d7dd475944d14833f3deccbc18f322ebf190c6e8875f32373f016a6314e32000b8e873fb0580dd8c69c1ad32336b6e0f7bba468b6501141e1e288c5be7d47e07a8aa0feba77bc70fc031b7c71e6db422f75f67d9ded20b6d8268a4649317c9fd69857022f21c85f6e790e4a3683f0a61112a214e84274278a5fd005048ccbd243e0e51720d46e08e960189d66d8470a26488c223e57e4e118eb4bff8ba4ca26a288d258121d8712311809652063617ffd0af3b47b96a5089578527b2d98c6f5d7844e70fef14e08bfacfcc44126ea48d4847070297757815e2166a75899acfb712774de2d0617dafc1cec86fbda0539e7488fa8f88f66ea8bf1c42b7dee8ac0f762c5df4fe38dba77ffcfbaff6148663c9aff4b460ee6b7c7e082c2dcd8a9f3ef0639f157bfc62d8ddfa2860a1bef5babe737fa09d6df4874748ece3466b7a25636d99fbafc0fe149ff6ac0b1a33f1d2786958684d2698e64327f39128c0325f8c8ae44ad144088d9fcf667b3edd7c9b68be674e4388541f783e08a9be3cf34152e9fd21d7a795be65eebfad3e76561fa7aeeb2ad4c7665f5fd9795f9f0bb9a9effa2f7d37231748abe08201dbf87ff0e2f843ddf7f378957f4df30b82b2cf8e00080000"
             # pylint: enable=line-too-long
 
-    if firmware != Firmware.NANOS and name:
+    if name:
         app_client.provide_network_information(name, ticker, tx_params["chainId"], bytes.fromhex(icon))
 
     with app_client.get_public_addr(bip32_path=path, display=False):
@@ -322,8 +321,6 @@ def test_sign_eip_7702(firmware: Firmware,
                        backend: BackendInterface,
                        scenario_navigator: NavigateWithScenario,
                        test_name: str):
-    if firmware == Firmware.NANOS:
-        pytest.skip("Not supported on LNS")
     tx_params = {
         "chainId": 1,
         "nonce": 1337,

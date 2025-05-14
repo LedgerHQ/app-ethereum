@@ -3,9 +3,7 @@
 #include "network.h"
 #include "public_keys.h"
 #include "manage_asset_info.h"
-#ifdef HAVE_LEDGER_PKI
 #include "os_pki.h"
-#endif
 
 #define TYPE_SIZE        1
 #define VERSION_SIZE     1
@@ -161,9 +159,7 @@ uint16_t handleProvideNFTInformation(const uint8_t *workBuffer,
                                         sizeof(hash),
                                         LEDGER_NFT_METADATA_PUBLIC_KEY,
                                         sizeof(LEDGER_NFT_METADATA_PUBLIC_KEY),
-#ifdef HAVE_LEDGER_PKI
                                         CERTIFICATE_PUBLIC_KEY_USAGE_NFT_METADATA,
-#endif
                                         (uint8_t *) (workBuffer + offset),
                                         signatureLen);
 #ifndef HAVE_BYPASS_SIGNATURES

@@ -170,9 +170,7 @@ bool verify_proxy_info_struct(const s_proxy_info_ctx *context) {
                                     sizeof(hash),
                                     NULL,
                                     0,
-#ifdef HAVE_LEDGER_PKI
                                     CERTIFICATE_PUBLIC_KEY_USAGE_CALLDATA,
-#endif
                                     (uint8_t *) context->signature,
                                     context->signature_length) != CX_OK) {
         PRINTF("Error: signature verification failed!\n");

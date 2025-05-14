@@ -238,9 +238,7 @@ bool verify_network_info_struct(const s_network_info_ctx *context) {
                                     sizeof(hash),
                                     NULL,
                                     0,
-#ifdef HAVE_LEDGER_PKI
                                     CERTIFICATE_PUBLIC_KEY_USAGE_NETWORK,
-#endif
                                     (uint8_t *) context->signature,
                                     context->signature_length) != CX_OK) {
         return false;

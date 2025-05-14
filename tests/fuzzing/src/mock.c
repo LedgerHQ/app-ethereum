@@ -123,18 +123,14 @@ int check_signature_with_pubkey(const char *tag,
                                 const uint8_t bufLen,
                                 const uint8_t *PubKey,
                                 const uint8_t keyLen,
-#ifdef HAVE_LEDGER_PKI
                                 const uint8_t keyUsageExp,
-#endif
                                 uint8_t *signature,
                                 const uint8_t sigLen) {
     UNUSED(tag);
     UNUSED(buffer);
     UNUSED(bufLen);
     UNUSED(PubKey);
-#ifdef HAVE_LEDGER_PKI
     UNUSED(keyUsageExp);
-#endif
     UNUSED(keyLen);
     UNUSED(signature);
     UNUSED(sigLen);

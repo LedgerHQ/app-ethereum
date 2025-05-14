@@ -131,15 +131,6 @@ const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_
 static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
     uint16_t sw = APDU_NO_RESPONSE;
 
-#ifndef HAVE_LEDGER_PKI
-    if ((cmd->cla == 0xB0) && (cmd->ins == 0x06)) {
-        // Ledger-PKI APDU not yet caught by the running OS.
-        // Command code not supported
-        PRINTF("Ledger-PKI not yet supported!\n");
-        return APDU_RESPONSE_CMD_CODE_NOT_SUPPORTED;
-    }
-#endif  // HAVE_LEDGER_PKI
-
     if (cmd->cla != CLA) {
         return APDU_RESPONSE_INVALID_CLA;
     }

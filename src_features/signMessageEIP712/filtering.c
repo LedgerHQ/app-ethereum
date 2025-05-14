@@ -9,9 +9,7 @@
 #include "path.h"
 #include "ui_logic.h"
 #include "filtering.h"
-#ifdef HAVE_LEDGER_PKI
 #include "os_pki.h"
-#endif
 #include "trusted_name.h"
 #include "proxy_info.h"
 
@@ -128,9 +126,7 @@ static bool sig_verif_end(cx_sha256_t *hash_ctx, const uint8_t *sig, uint8_t sig
                                          sizeof(hash),
                                          LEDGER_SIGNATURE_PUBLIC_KEY,
                                          sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
-#ifdef HAVE_LEDGER_PKI
                                          CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META,
-#endif
                                          (uint8_t *) (sig),
                                          sig_length));
 

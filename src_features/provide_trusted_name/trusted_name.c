@@ -556,9 +556,7 @@ static bool verify_trusted_name_signature(const s_trusted_name_ctx *context) {
                                     sizeof(hash),
                                     pk,
                                     pk_size,
-#ifdef HAVE_LEDGER_PKI
                                     CERTIFICATE_PUBLIC_KEY_USAGE_TRUSTED_NAME,
-#endif
                                     (uint8_t *) (context->input_sig),
                                     context->input_sig_size) != CX_OK) {
         return false;

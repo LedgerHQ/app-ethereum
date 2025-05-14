@@ -152,9 +152,7 @@ bool verify_enum_value_struct(const s_enum_value_ctx *context) {
                                     sizeof(hash),
                                     NULL,
                                     0,
-#ifdef HAVE_LEDGER_PKI
                                     CERTIFICATE_PUBLIC_KEY_USAGE_CALLDATA,
-#endif
                                     (uint8_t *) context->enum_value.signature,
                                     context->enum_value.signature_length) != CX_OK) {
         return false;

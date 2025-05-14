@@ -8,7 +8,6 @@ from ragger.navigator import Navigator, NavInsID, NavIns
 class SettingID(Enum):
     WEB3_CHECK = auto()
     BLIND_SIGNING = auto()
-    VERBOSE_ENS = auto()
     NONCE = auto()
     VERBOSE_EIP712 = auto()
     DEBUG_DATA = auto()
@@ -17,24 +16,22 @@ class SettingID(Enum):
 
 # Settings Positions per device. Returns the tuple (page, x, y)
 SETTINGS_POSITIONS = {
-    DeviceType.FLEX: {
-        SettingID.WEB3_CHECK: (0, 420, 140),
-        SettingID.BLIND_SIGNING: (0, 420, 350),
-        SettingID.VERBOSE_ENS: (1, 420, 140),
-        SettingID.NONCE: (1, 420, 315),
-        SettingID.VERBOSE_EIP712: (2, 420, 140),
-        SettingID.DEBUG_DATA: (2, 420, 315),
-        SettingID.EIP7702: (3, 420, 140),
-    },
     DeviceType.STAX: {
         SettingID.WEB3_CHECK: (0, 350, 130),
         SettingID.BLIND_SIGNING: (0, 350, 335),
-        SettingID.VERBOSE_ENS: (1, 350, 130),
-        SettingID.NONCE: (1, 350, 300),
-        SettingID.VERBOSE_EIP712: (1, 350, 445),
-        SettingID.DEBUG_DATA: (2, 350, 130),
-        SettingID.EIP7702: (2, 350, 300),
-    }
+        SettingID.NONCE: (1, 350, 130),
+        SettingID.VERBOSE_EIP712: (1, 350, 270),
+        SettingID.DEBUG_DATA: (1, 350, 445),
+        SettingID.EIP7702: (2, 350, 130),
+    },
+    DeviceType.FLEX: {
+        SettingID.WEB3_CHECK: (0, 420, 130),
+        SettingID.BLIND_SIGNING: (0, 420, 350),
+        SettingID.NONCE: (1, 420, 130),
+        SettingID.VERBOSE_EIP712: (1, 420, 270),
+        SettingID.DEBUG_DATA: (2, 420, 140),
+        SettingID.EIP7702: (2, 420, 270),
+    },
 }
 
 
@@ -44,7 +41,6 @@ def get_device_settings(device: Device) -> list[SettingID]:
     if device.is_nano:
         return [
             SettingID.BLIND_SIGNING,
-            SettingID.VERBOSE_ENS,
             SettingID.NONCE,
             SettingID.VERBOSE_EIP712,
             SettingID.DEBUG_DATA,
@@ -53,7 +49,6 @@ def get_device_settings(device: Device) -> list[SettingID]:
     return [
         SettingID.WEB3_CHECK,
         SettingID.BLIND_SIGNING,
-        SettingID.VERBOSE_ENS,
         SettingID.NONCE,
         SettingID.VERBOSE_EIP712,
         SettingID.DEBUG_DATA,

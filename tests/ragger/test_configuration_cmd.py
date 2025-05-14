@@ -16,7 +16,6 @@ from client.settings import SettingID, get_settings_moves
     [
         ("web3_check", [SettingID.WEB3_CHECK]),
         ("blind_sign", [SettingID.BLIND_SIGNING]),
-        ("trusted_name", [SettingID.VERBOSE_ENS]),
         ("nonce", [SettingID.NONCE]),
         ("eip712_token", [SettingID.VERBOSE_EIP712]),
         ("debug_token", [SettingID.DEBUG_DATA]),

@@ -93,7 +93,11 @@ static void free_pair(const nbgl_contentTagValueList_t *pair_list, int idx) {
     }
 }
 
+#ifdef SCREEN_SIZE_WALLET
 #define MAX_INFO_COUNT 3
+#else
+#define MAX_INFO_COUNT 4
+#endif
 
 static bool prepare_infos(nbgl_contentInfoList_t *infos) {
     char *tmp_buf = strings.tmp.tmp;
@@ -102,9 +106,11 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
     uint8_t count = 0;
     const char **keys;
     const char **values;
-    nbgl_contentValueExt_t *extensions;
     const char *value;
+#ifdef SCREEN_SIZE_WALLET
+    nbgl_contentValueExt_t *extensions;
     int contract_idx = -1;
+#endif
 
     infos->nbInfos = MAX_INFO_COUNT;
     if ((keys = app_mem_alloc(sizeof(*keys) * MAX_INFO_COUNT)) == NULL) return false;
@@ -116,7 +122,14 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
     infos->infoContents = values;
 
     if ((value = get_creator_legal_name()) != NULL) {
-        snprintf(tmp_buf, tmp_buf_size, "Smart contract owner");
+        snprintf(tmp_buf,
+                 tmp_buf_size,
+#ifdef SCREEN_SIZE_WALLET
+                 "Smart contract owner"
+#else
+                 "Contract owner"
+#endif
+        );
         if ((keys[count] = _strdup(tmp_buf)) == NULL) {
             return false;
         }
@@ -132,7 +145,14 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
     }
 
     if ((value = get_contract_name()) != NULL) {
-        snprintf(tmp_buf, tmp_buf_size, "Smart contract");
+        snprintf(tmp_buf,
+                 tmp_buf_size,
+#ifdef SCREEN_SIZE_WALLET
+                 "Smart contract"
+#else
+                 "Contract"
+#endif
+        );
         if ((keys[count] = _strdup(tmp_buf)) == NULL) {
             return false;
         }
@@ -140,9 +160,27 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
         if ((values[count] = _strdup(tmp_buf)) == NULL) {
             return false;
         }
+#ifdef SCREEN_SIZE_WALLET
         contract_idx = count;
+#endif
         count += 1;
     }
+
+#ifndef SCREEN_SIZE_WALLET
+    if (!getEthDisplayableAddress((uint8_t *) get_contract_addr(),
+                                  tmp_buf,
+                                  tmp_buf_size,
+                                  chainConfig->chainId)) {
+        return false;
+    }
+    if ((keys[count] = _strdup("Contract address")) == NULL) {
+        return false;
+    }
+    if ((values[count] = _strdup(tmp_buf)) == NULL) {
+        return false;
+    }
+    count += 1;
+#endif
 
     if ((value = get_deploy_date()) != NULL) {
         snprintf(tmp_buf, tmp_buf_size, "Deployed on");
@@ -156,6 +194,7 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
         count += 1;
     }
 
+#ifdef SCREEN_SIZE_WALLET
     if (contract_idx != -1) {
         if ((extensions = app_mem_alloc(sizeof(*extensions) * count)) == NULL) {
             return false;
@@ -191,6 +230,7 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
         }
         extensions[contract_idx].aliasType = QR_CODE_ALIAS;
     }
+#endif
 
     infos->nbInfos = count;
     return true;

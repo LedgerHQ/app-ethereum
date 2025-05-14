@@ -1,5 +1,4 @@
-#ifndef _UI_NBGL_H_
-#define _UI_NBGL_H_
+#pragma once
 
 #include "nbgl_use_case.h"
 #include "shared_context.h"
@@ -24,5 +23,3 @@ extern nbgl_warning_t warning;
 
 void ui_idle(void);
 void ui_settings(void);
-
-#endif  // _UI_NBGL_H_

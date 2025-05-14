@@ -1,5 +1,4 @@
-#ifndef UI_LOGIC_712_H_
-#define UI_LOGIC_712_H_
+#pragma once
 
 #include <stdint.h>
 #include "ux.h"
@@ -54,5 +53,3 @@ void ui_712_set_trusted_name_requirements(uint8_t type_count,
                                           uint8_t source_count,
                                           const e_name_source *sources);
 char *get_ui_pairs_buffer(size_t *size);
-
-#endif  // UI_LOGIC_712_H_

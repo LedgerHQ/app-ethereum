@@ -1,5 +1,4 @@
-#ifndef TRUSTED_NAME_H_
-#define TRUSTED_NAME_H_
+#pragma once
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -66,5 +65,3 @@ extern char g_trusted_name[TRUSTED_NAME_MAX_LENGTH + 1];
 
 bool handle_trusted_name_struct(const s_tlv_data *data, s_trusted_name_ctx *context);
 bool verify_trusted_name_struct(const s_trusted_name_ctx *ctx);
-
-#endif  // !TRUSTED_NAME_H_

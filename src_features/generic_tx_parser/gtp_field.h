@@ -1,5 +1,4 @@
-#ifndef GTP_FIELD_H_
-#define GTP_FIELD_H_
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -55,5 +54,3 @@ typedef struct {
 bool handle_field_struct(const s_tlv_data *data, s_field_ctx *context);
 bool verify_field_struct(const s_field_ctx *context);
 bool format_field(const s_field *field);
-
-#endif  // !GTP_FIELD_H_

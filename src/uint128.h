@@ -17,8 +17,7 @@
 
 // Adapted from https://github.com/calccrypto/uint256_t
 
-#ifndef _UINT128_H_
-#define _UINT128_H_
+#pragma once
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -58,5 +57,3 @@ bool tostring128_signed(const uint128_t *const number,
                         uint32_t out_length);
 void convertUint64BEto128(const uint8_t *const data, uint32_t length, uint128_t *const target);
 void convertUint128BE(const uint8_t *const data, uint32_t length, uint128_t *const target);
-
-#endif  // _UINT128_H_

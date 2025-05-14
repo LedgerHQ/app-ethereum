@@ -1,5 +1,4 @@
-#ifndef _SIGN_TX_H_
-#define _SIGN_TX_H_
+#pragma once
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -30,5 +29,3 @@ bool max_transaction_fee_to_string(const txInt256_t *BEGasPrice,
                                    const txInt256_t *BEGasLimit,
                                    char *displayBuffer,
                                    uint32_t displayBufferSize);
-
-#endif  // _SIGN_TX_H_

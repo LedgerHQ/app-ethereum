@@ -1,5 +1,4 @@
-#ifndef GTP_PARAM_TRUSTED_NAME_H_
-#define GTP_PARAM_TRUSTED_NAME_H_
+#pragma once
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -27,5 +26,3 @@ typedef struct {
 bool handle_param_trusted_name_struct(const s_tlv_data *data,
                                       s_param_trusted_name_context *context);
 bool format_param_trusted_name(const s_param_trusted_name *param, const char *name);
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef TYPED_DATA_H_
-#define TYPED_DATA_H_
+#pragma once
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -57,5 +56,3 @@ bool set_struct_name(uint8_t length, const uint8_t *const name);
 bool set_struct_field(uint8_t length, const uint8_t *const data);
 bool typed_data_init(void);
 void typed_data_deinit(void);
-
-#endif  // TYPED_DATA_H_

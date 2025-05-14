@@ -1,5 +1,4 @@
-#ifndef FILTERING_H_
-#define FILTERING_H_
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -28,5 +27,3 @@ bool filtering_raw_field(const uint8_t *payload,
                          bool discarded,
                          uint32_t *path_crc);
 bool filtering_discarded_path(const uint8_t *payload, uint8_t length);
-
-#endif  // FILTERING_H_

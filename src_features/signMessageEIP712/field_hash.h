@@ -1,5 +1,4 @@
-#ifndef FIELD_HASH_H_
-#define FIELD_HASH_H_
+#pragma once
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -16,5 +15,3 @@ typedef struct {
 bool field_hash_init(void);
 void field_hash_deinit(void);
 bool field_hash(const uint8_t *data, uint8_t data_length, bool partial);
-
-#endif  // FIELD_HASH_H_

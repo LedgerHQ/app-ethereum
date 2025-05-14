@@ -15,8 +15,7 @@
  *  limitations under the License.
  ********************************************************************************/
 
-#ifndef _CHAIN_CONFIG_H_
-#define _CHAIN_CONFIG_H_
+#pragma once
 
 #include "asset_info.h"
 
@@ -26,5 +25,3 @@ typedef struct chain_config_s {
 } chain_config_t;
 
 #define ETHEREUM_MAINNET_CHAINID 1
-
-#endif  // _CHAIN_CONFIG_H_

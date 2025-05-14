@@ -1,5 +1,4 @@
-#ifndef _ERC721_PLUGIN_H_
-#define _ERC721_PLUGIN_H_
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -39,5 +38,3 @@ typedef struct erc721_context_t {
 
 void handle_provide_parameter_721(ethPluginProvideParameter_t *parameters);
 void handle_query_contract_ui_721(ethQueryContractUI_t *parameters);
-
-#endif  // _ERC721_PLUGIN_H_

@@ -1,5 +1,4 @@
-#ifndef _COMMON_UI_H_
-#define _COMMON_UI_H_
+#pragma once
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -36,5 +35,3 @@ void ui_sign_7702_auth(void);
 void ui_sign_7702_revocation(void);
 void ui_error_no_7702(void);
 void ui_error_no_7702_whitelist(void);
-
-#endif  // _COMMON_UI_H_

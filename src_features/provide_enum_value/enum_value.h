@@ -1,5 +1,4 @@
-#ifndef ENUM_VALUE_H_
-#define ENUM_VALUE_H_
+#pragma once
 
 #include <stdbool.h>
 #include "common_utils.h"  // ADDRESS_LENGTH
@@ -36,5 +35,3 @@ const char *get_matching_enum_name(const uint64_t *chain_id,
                                    const uint8_t *selector,
                                    uint8_t id,
                                    uint8_t value);
-
-#endif  // !ENUM_VALUE_H_

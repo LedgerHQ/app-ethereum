@@ -19,6 +19,7 @@
 
 static nbgl_contentTagValue_t pairs[MAX_PAIRS];
 static nbgl_contentTagValueList_t pairsList;
+static nbgl_contentValueExt_t extension = {0};
 // these buffers are used as circular
 static char title_buffer[MAX_PLUGIN_ITEMS][TAG_MAX_LEN];
 static char msg_buffer[MAX_PLUGIN_ITEMS][VALUE_MAX_LEN];
@@ -156,17 +157,19 @@ static uint8_t setTagValuePairs(void) {
         e_name_source source = TN_SOURCE_ENS;
         tx_approval_context.trusted_name_match =
             get_trusted_name(1, &type, 1, &source, &chain_id, tmpContent.txContent.destination);
-
+        pairs[nbPairs].item = "To";
         if (tx_approval_context.trusted_name_match) {
-            pairs[nbPairs].item = "To";
             pairs[nbPairs].value = g_trusted_name;
-            nbPairs++;
-        }
-        if (!tx_approval_context.trusted_name_match || N_storage.verbose_trusted_name) {
-            pairs[nbPairs].item = "To";
+            extension.aliasType = ENS_ALIAS;
+            extension.title = g_trusted_name;
+            extension.fullValue = strings.common.toAddress;
+            extension.explanation = strings.common.toAddress;
+            pairs[nbPairs].extension = &extension;
+            pairs[nbPairs].aliasValue = 1;
+        } else {
             pairs[nbPairs].value = strings.common.toAddress;
-            nbPairs++;
         }
+        nbPairs++;
         if (N_storage.displayNonce) {
             pairs[nbPairs].item = "Nonce";
             pairs[nbPairs].value = strings.common.nonce;

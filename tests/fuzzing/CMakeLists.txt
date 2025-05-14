@@ -193,6 +193,7 @@ include_directories(
   ${BOLOS_SDK}/lib_ux_nbgl
   ${BOLOS_SDK}/lib_nbgl/include
   ${BOLOS_SDK}/lib_standard_app/
+  ${BOLOS_SDK}/lib_alloc/
   ${CMAKE_SOURCE_DIR}/src/
 )
 

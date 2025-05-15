@@ -73,6 +73,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 5000, .name = "Mantle", .ticker = "MNT"},
     {.chain_id = 5003, .name = "Mantle Sepolia", .ticker = "MNT"},
     {.chain_id = 5165, .name = "Bahamut", .ticker = "FTN"},
+    {.chain_id = 6342, .name = "MegaETH Testnet", .ticker = "ETH"},
     {.chain_id = 7000, .name = "ZetaChain", .ticker = "ZETA"},
     {.chain_id = 7171, .name = "Bitrock Mainnet", .ticker = "BROCK"},
     {.chain_id = 7341, .name = "Shyft", .ticker = "SHFT"},

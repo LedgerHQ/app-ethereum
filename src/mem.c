@@ -15,7 +15,6 @@
 
 static uint8_t mem_buffer[SIZE_MEM_BUFFER] __attribute__((aligned(8)));
 static uint16_t mem_legacy_idx;
-static uint16_t mem_legacy_rev_idx;
 static mem_ctx_t mem_ctx = NULL;
 
 bool app_mem_init(void) {
@@ -50,7 +49,6 @@ void app_mem_free_impl(void *ptr, const char *file, int line) {
  */
 void mem_legacy_init(void) {
     mem_legacy_idx = 0;
-    mem_legacy_rev_idx = 0;
 }
 
 /**
@@ -71,15 +69,13 @@ void mem_legacy_reset(void) {
  */
 void *mem_legacy_alloc(size_t size) {
     size_t new_idx;
-    size_t free_size;
 
-    if (__builtin_add_overflow((size_t) mem_legacy_idx, size, &new_idx) ||
-        __builtin_sub_overflow(sizeof(mem_buffer), (size_t) mem_legacy_rev_idx, &free_size)) {
+    if (__builtin_add_overflow((size_t) mem_legacy_idx, size, &new_idx)) {
         PRINTF("Error: overflow detected!\n");
         return NULL;
     }
     // Buffer exceeded
-    if (new_idx > free_size) {
+    if (new_idx > sizeof(mem_buffer)) {
         PRINTF("Error: mem_alloc(%u) failed!\n", size);
         return NULL;
     }
@@ -99,44 +95,5 @@ void mem_legacy_dealloc(size_t size) {
         mem_legacy_idx = 0;
     } else {
         mem_legacy_idx -= size;
-    }
-}
-
-/**
- * Same as \ref mem_alloc but in reverse
- *
- * @param[in] size Requested allocation size in bytes
- * @return Allocated memory pointer; \ref NULL if not enough space left.
- */
-void *mem_legacy_rev_alloc(size_t size) {
-    size_t free_size;
-    size_t new_rev_idx;
-
-    if (__builtin_add_overflow((size_t) mem_legacy_rev_idx, size, &new_rev_idx) ||
-        __builtin_sub_overflow(sizeof(mem_buffer), new_rev_idx, &free_size)) {
-        PRINTF("Error: overflow detected!\n");
-        return NULL;
-    }
-    // Buffer exceeded
-    if (free_size < mem_legacy_idx) {
-        PRINTF("Error: mem_rev_alloc(%u) failed!\n", size);
-        return NULL;
-    }
-    mem_legacy_rev_idx += size;
-    return &mem_buffer[sizeof(mem_buffer) - mem_legacy_rev_idx];
-}
-
-/**
- * Same as \ref mem_dealloc but in reverse
- *
- * @param[in] size Requested deallocation size in bytes
- */
-void mem_legacy_rev_dealloc(size_t size) {
-    // More than is already allocated
-    if (size > mem_legacy_rev_idx) {
-        PRINTF("Warning: mem_rev_dealloc(%u) with a value larger than allocated!\n", size);
-        mem_legacy_rev_idx = 0;
-    } else {
-        mem_legacy_rev_idx -= size;
     }
 }

@@ -1,19 +1,17 @@
 #include <stdbool.h>
 #include "cmd_trusted_name.h"
 #include "trusted_name.h"
-#include "mem.h"
 #include "challenge.h"
 #include "tlv_apdu.h"
 #include "apdu_constants.h"
 
-static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_free) {
+static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
     s_trusted_name_ctx ctx = {0};
     bool parsing_ret;
 
     ctx.trusted_name.name = g_trusted_name;
     cx_sha256_init(&ctx.hash_ctx);
     parsing_ret = tlv_parse(payload, size, (f_tlv_data_handler) &handle_trusted_name_struct, &ctx);
-    if (to_free) mem_legacy_dealloc(size);
     if (!parsing_ret || !verify_trusted_name_struct(&ctx)) {
         roll_challenge();  // prevent brute-force guesses
         return false;

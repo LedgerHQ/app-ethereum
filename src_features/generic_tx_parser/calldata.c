@@ -5,50 +5,36 @@
 #include "mem.h"
 #include "mem_utils.h"
 
-typedef struct {
-    uint8_t selector[CALLDATA_SELECTOR_SIZE];
-    // chunk_info (8 bit):
-    // ........
-    //   ^^^^^^ byte size
-    //  ^ unused
-    // ^ strip direction : 0 LEFT, 1 RIGHT
-    //
-    // chunk_info (1) | chunk (n) | chunk info (1) | chunk (n) | ...
-    uint8_t *chunks;
-    size_t chunks_size;
-    size_t expected_size;
-    size_t received_size;
-    uint8_t chunk[CALLDATA_CHUNK_SIZE];
-    size_t chunk_size;
-} s_calldata;
-
-static s_calldata *g_calldata = NULL;
-static uint8_t g_calldata_alignment;
-
 typedef enum {
     CHUNK_STRIP_LEFT = 0,
     CHUNK_STRIP_RIGHT = 1,
 } e_chunk_strip_dir;
 
-#define CHUNK_INFO_SIZE_MASK   0x3f
-#define CHUNK_INFO_SIZE_OFFSET 0
+typedef struct calldata_chunk {
+    e_chunk_strip_dir dir : 1;
+    uint8_t size : 7;
+    uint8_t *buf;
+    struct calldata_chunk *next;
+} s_calldata_chunk;
 
-#define CHUNK_INFO_DIR_MASK   0x01
-#define CHUNK_INFO_DIR_OFFSET 7
+typedef struct {
+    size_t expected_size;
+    size_t received_size;
 
-#define CHUNK_INFO_SIZE(v) \
-    ((v & (CHUNK_INFO_SIZE_MASK << CHUNK_INFO_SIZE_OFFSET)) >> CHUNK_INFO_SIZE_OFFSET)
-#define CHUNK_INFO_DIR(v) \
-    ((v & (CHUNK_INFO_DIR_MASK << CHUNK_INFO_DIR_OFFSET)) >> CHUNK_INFO_DIR_OFFSET)
+    uint8_t selector[CALLDATA_SELECTOR_SIZE];
+    s_calldata_chunk *chunks;  // linked list
 
-typedef uint8_t chunk_info_t;
+    uint8_t chunk[CALLDATA_CHUNK_SIZE];
+    size_t chunk_size;
+} s_calldata;
+
+static s_calldata *g_calldata = NULL;
 
 bool calldata_init(size_t size) {
     if (g_calldata != NULL) {
         calldata_cleanup();
     }
-    g_calldata_alignment = mem_legacy_align(__alignof__(*g_calldata));
-    if ((g_calldata = mem_legacy_alloc(sizeof(*g_calldata))) == NULL) {
+    if ((g_calldata = app_mem_alloc(sizeof(*g_calldata))) == NULL) {
         return false;
     }
     explicit_bzero(g_calldata, sizeof(*g_calldata));
@@ -59,59 +45,55 @@ bool calldata_init(size_t size) {
 static bool compress_chunk(s_calldata *calldata) {
     uint8_t strip_left = 0;
     uint8_t strip_right = 0;
-    chunk_info_t chunk_info = 0;
-    e_chunk_strip_dir strip_dir;
-    uint8_t stripped_size;
     uint8_t start_idx;
-    uint8_t *ptr;
+    s_calldata_chunk *chunk;
+    s_calldata_chunk *tmp;
 
+    if ((chunk = app_mem_alloc(sizeof(*chunk))) == NULL) {
+        return false;
+    }
+    explicit_bzero(chunk, sizeof(*chunk));
     for (int i = 0; (i < CALLDATA_CHUNK_SIZE) && (calldata->chunk[i] == 0x00); ++i) {
         strip_left += 1;
     }
     for (int i = CALLDATA_CHUNK_SIZE - 1; (i >= 0) && (calldata->chunk[i] == 0x00); --i) {
         strip_right += 1;
     }
-
     if (strip_left >= strip_right) {
-        strip_dir = CHUNK_STRIP_LEFT;
-        stripped_size = CALLDATA_CHUNK_SIZE - strip_left;
+        chunk->dir = CHUNK_STRIP_LEFT;
+        chunk->size = CALLDATA_CHUNK_SIZE - strip_left;
         start_idx = strip_left;
     } else {
-        strip_dir = CHUNK_STRIP_RIGHT;
-        stripped_size = CALLDATA_CHUNK_SIZE - strip_right;
+        chunk->dir = CHUNK_STRIP_RIGHT;
+        chunk->size = CALLDATA_CHUNK_SIZE - strip_right;
         start_idx = 0;
     }
-    chunk_info |= strip_dir << CHUNK_INFO_DIR_OFFSET;
-    chunk_info |= stripped_size << CHUNK_INFO_SIZE_OFFSET;
-    if ((ptr = mem_legacy_alloc(sizeof(chunk_info) + stripped_size)) == NULL) {
+    if ((chunk->size > 0) && ((chunk->buf = app_mem_alloc(chunk->size)) == NULL)) {
+        app_mem_free(chunk);
         return false;
     }
+    memcpy(chunk->buf, calldata->chunk + start_idx, chunk->size);
+
     if (calldata->chunks == NULL) {
-        calldata->chunks = ptr;
+        calldata->chunks = chunk;
     } else {
-        if ((calldata->chunks + calldata->chunks_size) != ptr) {
-            // something was allocated in between two compressed chunks
-            return false;
-        }
+        for (tmp = calldata->chunks; tmp->next != NULL; tmp = tmp->next)
+            ;
+        tmp->next = chunk;
     }
-    calldata->chunks_size += sizeof(chunk_info) + stripped_size;
-    memcpy(ptr, &chunk_info, sizeof(chunk_info));
-    memcpy(ptr + sizeof(chunk_info), calldata->chunk + start_idx, stripped_size);
     return true;
 }
 
-static bool decompress_chunk(s_calldata *calldata, size_t offset) {
-    chunk_info_t chunk_info = calldata->chunks[offset];
-    const uint8_t *compressed_chunk = &calldata->chunks[offset + sizeof(chunk_info)];
+static bool decompress_chunk(const s_calldata_chunk *chunk, uint8_t *out) {
     size_t diff;
 
-    diff = CALLDATA_CHUNK_SIZE - CHUNK_INFO_SIZE(chunk_info);
-    if (CHUNK_INFO_DIR(chunk_info) == CHUNK_STRIP_LEFT) {
-        explicit_bzero(calldata->chunk, diff);
-        memcpy(&calldata->chunk[diff], compressed_chunk, CHUNK_INFO_SIZE(chunk_info));
+    diff = CALLDATA_CHUNK_SIZE - chunk->size;
+    if (chunk->dir == CHUNK_STRIP_LEFT) {
+        explicit_bzero(out, diff);
+        memcpy(&out[diff], chunk->buf, chunk->size);
     } else {
-        memcpy(calldata->chunk, compressed_chunk, CHUNK_INFO_SIZE(chunk_info));
-        explicit_bzero(&calldata->chunk[CHUNK_INFO_SIZE(chunk_info)], diff);
+        memcpy(out, chunk->buf, chunk->size);
+        explicit_bzero(&out[chunk->size], diff);
     }
     return true;
 }
@@ -159,21 +141,38 @@ bool calldata_append(const uint8_t *buffer, size_t size) {
         g_calldata->received_size += cpy_length;
     }
     if (g_calldata->received_size == g_calldata->expected_size) {
-        PRINTF("calldata reduced by ~%u%% with compression (%u -> %u bytes)\n",
-               100 - (100 * (CALLDATA_SELECTOR_SIZE + g_calldata->chunks_size) /
-                      g_calldata->received_size),
+#ifdef HAVE_PRINTF
+        // get allocated size
+        size_t compressed_size = sizeof(*g_calldata);
+        for (s_calldata_chunk *chunk = g_calldata->chunks; chunk != NULL; chunk = chunk->next) {
+            compressed_size += sizeof(*chunk);
+            compressed_size += chunk->size;
+        }
+
+        PRINTF("calldata size went from %u to %u bytes with compression\n",
                g_calldata->received_size,
-               CALLDATA_SELECTOR_SIZE + g_calldata->chunks_size);
+               compressed_size);
+#endif
     }
     return true;
 }
 
 void calldata_cleanup(void) {
+    s_calldata_chunk *chunk;
+    s_calldata_chunk *next;
+
     if (g_calldata != NULL) {
-        mem_legacy_dealloc(g_calldata->chunks_size);
-        mem_legacy_dealloc(sizeof(*g_calldata));
+        chunk = g_calldata->chunks;
+        while (chunk != NULL) {
+            next = chunk->next;
+            if (chunk->buf != NULL) {
+                app_mem_free(chunk->buf);
+            }
+            app_mem_free(chunk);
+            chunk = next;
+        }
+        app_mem_free(g_calldata);
         g_calldata = NULL;
-        mem_legacy_dealloc(g_calldata_alignment);
     }
 }
 
@@ -197,19 +196,16 @@ const uint8_t *calldata_get_selector(void) {
 }
 
 const uint8_t *calldata_get_chunk(int idx) {
-    size_t offset = 0;
-    size_t offset_after;
+    s_calldata_chunk *chunk;
 
     if (!has_valid_calldata(g_calldata) || (g_calldata->chunks == NULL)) {
         return NULL;
     }
+    chunk = g_calldata->chunks;
     for (int i = 0; i < idx; ++i) {
-        if (offset > g_calldata->chunks_size) return NULL;
-        offset += sizeof(chunk_info_t) + CHUNK_INFO_SIZE(g_calldata->chunks[offset]);
+        if (chunk->next == NULL) return NULL;
+        chunk = chunk->next;
     }
-    offset_after = offset + sizeof(chunk_info_t) + CHUNK_INFO_SIZE(g_calldata->chunks[offset]);
-    if ((offset_after > g_calldata->chunks_size) || !decompress_chunk(g_calldata, offset)) {
-        return NULL;
-    }
+    if (!decompress_chunk(chunk, g_calldata->chunk)) return NULL;
     return g_calldata->chunk;
 }

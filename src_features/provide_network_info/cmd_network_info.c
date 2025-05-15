@@ -4,7 +4,6 @@
 #include "network_info.h"
 #include "write.h"
 #include "tlv_apdu.h"
-#include "mem.h"
 
 #define P2_NETWORK_CONFIG 0x00
 #define P2_NETWORK_ICON   0x01
@@ -254,14 +253,13 @@ static uint16_t handle_get_config(void) {
     return tx;
 }
 
-static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_free) {
+static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
     bool parsing_ret;
     s_network_info_ctx ctx = {0};
 
     // Initialize the hash context
     cx_sha256_init(&ctx.hash_ctx);
     parsing_ret = tlv_parse(payload, size, (f_tlv_data_handler) &handle_network_info_struct, &ctx);
-    if (to_free) mem_legacy_dealloc(sizeof(size));
     if (!parsing_ret || !verify_network_info_struct(&ctx)) {
         return false;
     }

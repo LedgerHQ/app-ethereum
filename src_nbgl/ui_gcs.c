@@ -27,14 +27,14 @@ static char *_strdup(const char *src) {
     char *dst;
     size_t length = strlen(src) + 1;
 
-    if ((dst = mem_alloc(length)) != NULL) {
+    if ((dst = mem_legacy_alloc(length)) != NULL) {
         memmove(dst, src, length);
     }
     return dst;
 }
 
 static bool cleanup_on_error(const void *mem_before) {
-    mem_dealloc(mem_alloc(0) - mem_before);
+    mem_legacy_dealloc(mem_legacy_alloc(0) - mem_before);
     return false;
 }
 
@@ -51,10 +51,10 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
     const char *value;
     int contract_idx = -1;
 
-    if (((keys = mem_alloc_and_align(sizeof(*keys) * MAX_INFO_COUNT, __alignof__(*keys))) ==
+    if (((keys = mem_legacy_alloc_and_align(sizeof(*keys) * MAX_INFO_COUNT, __alignof__(*keys))) ==
          NULL) ||
-        ((values = mem_alloc_and_align(sizeof(*values) * MAX_INFO_COUNT, __alignof__(*values))) ==
-         NULL)) {
+        ((values = mem_legacy_alloc_and_align(sizeof(*values) * MAX_INFO_COUNT,
+                                              __alignof__(*values))) == NULL)) {
         return false;
     }
     if ((value = get_creator_legal_name()) != NULL) {
@@ -98,8 +98,8 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
         count += 1;
     }
 
-    if ((extensions = mem_alloc_and_align(sizeof(*extensions) * count, __alignof__(*extensions))) ==
-        NULL) {
+    if ((extensions = mem_legacy_alloc_and_align(sizeof(*extensions) * count,
+                                                 __alignof__(*extensions))) == NULL) {
         return false;
     }
     explicit_bzero(extensions, sizeof(*extensions) * count);
@@ -151,7 +151,7 @@ bool ui_gcs(void) {
     bool show_network;
     nbgl_contentValueExt_t *ext;
     nbgl_contentInfoList_t *infolist;
-    const void *mem_before = mem_alloc(0);
+    const void *mem_before = mem_legacy_alloc(0);
 
     explicit_bzero(&warning, sizeof(nbgl_warning_t));
 #ifdef HAVE_WEB3_CHECKS
@@ -183,8 +183,8 @@ bool ui_gcs(void) {
     // Fees
     g_pair_list.nbPairs += 1;
 
-    if ((pairs = mem_alloc_and_align(sizeof(*pairs) * g_pair_list.nbPairs, __alignof__(*pairs))) ==
-        NULL) {
+    if ((pairs = mem_legacy_alloc_and_align(sizeof(*pairs) * g_pair_list.nbPairs,
+                                            __alignof__(*pairs))) == NULL) {
         return cleanup_on_error(mem_before);
     }
     explicit_bzero(pairs, sizeof(*pairs) * g_pair_list.nbPairs);
@@ -195,11 +195,12 @@ bool ui_gcs(void) {
         // not great, but this cannot be NULL
         pairs[0].value = _strdup("a smart contract");
     }
-    if ((ext = mem_alloc_and_align(sizeof(*ext), __alignof__(*ext))) == NULL) {
+    if ((ext = mem_legacy_alloc_and_align(sizeof(*ext), __alignof__(*ext))) == NULL) {
         return cleanup_on_error(mem_before);
     }
     explicit_bzero(ext, sizeof(*ext));
-    if ((infolist = mem_alloc_and_align(sizeof(*infolist), __alignof__(*infolist))) == NULL) {
+    if ((infolist = mem_legacy_alloc_and_align(sizeof(*infolist), __alignof__(*infolist))) ==
+        NULL) {
         return cleanup_on_error(mem_before);
     }
     if (!prepare_infos(infolist)) {
@@ -248,10 +249,10 @@ bool ui_gcs(void) {
                                NULL,
                                &warning,
                                review_choice);
-    g_alloc_size = mem_alloc(0) - mem_before;
+    g_alloc_size = mem_legacy_alloc(0) - mem_before;
     return true;
 }
 
 void ui_gcs_cleanup(void) {
-    mem_dealloc(g_alloc_size);
+    mem_legacy_dealloc(g_alloc_size);
 }

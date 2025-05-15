@@ -140,7 +140,7 @@ static bool path_depth_list_push(void) {
  * @return pointer to the hashing context
  */
 static cx_sha3_t *get_last_hash_ctx(void) {
-    return ((cx_sha3_t *) mem_alloc(0)) - 1;
+    return ((cx_sha3_t *) mem_legacy_alloc(0)) - 1;
 }
 
 /**
@@ -159,7 +159,7 @@ static bool finalize_hash_depth(uint8_t *hash) {
     // finalize hash
     CX_CHECK(
         cx_hash_no_throw((cx_hash_t *) hash_ctx, CX_LAST, NULL, 0, hash, KECCAK256_HASH_BYTESIZE));
-    mem_dealloc(sizeof(*hash_ctx));  // remove hash context
+    mem_legacy_dealloc(sizeof(*hash_ctx));  // remove hash context
     return hashed_bytes > 0;
 end:
     return false;

@@ -31,13 +31,13 @@ static bool format_hash_field_type_size(const void *const field_ptr, cx_hash_t *
             apdu_response_code = APDU_RESPONSE_INVALID_DATA;
             return false;
     }
-    uint_str_ptr = mem_alloc_and_format_uint(field_size, &uint_str_len);
+    uint_str_ptr = mem_legacy_alloc_and_format_uint(field_size, &uint_str_len);
     if (uint_str_ptr == NULL) {
         apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
         return false;
     }
     hash_nbytes((uint8_t *) uint_str_ptr, uint_str_len, hash_ctx);
-    mem_dealloc(uint_str_len);
+    mem_legacy_dealloc(uint_str_len);
     return true;
 }
 
@@ -63,12 +63,13 @@ static bool format_hash_field_type_array_levels(const void *const field_ptr, cx_
             case ARRAY_DYNAMIC:
                 break;
             case ARRAY_FIXED_SIZE:
-                if ((uint_str_ptr = mem_alloc_and_format_uint(array_size, &uint_str_len)) == NULL) {
+                if ((uint_str_ptr = mem_legacy_alloc_and_format_uint(array_size, &uint_str_len)) ==
+                    NULL) {
                     apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
                     return false;
                 }
                 hash_nbytes((uint8_t *) uint_str_ptr, uint_str_len, hash_ctx);
-                mem_dealloc(uint_str_len);
+                mem_legacy_dealloc(uint_str_len);
                 break;
             default:
                 // should not be in here :^)

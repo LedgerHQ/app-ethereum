@@ -116,7 +116,7 @@ static uint8_t *field_hash_finalize_dynamic(void) {
     uint8_t *value;
     cx_err_t error = CX_INTERNAL_ERROR;
 
-    if ((value = mem_alloc(KECCAK256_HASH_BYTESIZE)) == NULL) {
+    if ((value = mem_legacy_alloc(KECCAK256_HASH_BYTESIZE)) == NULL) {
         apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
         return NULL;
     }
@@ -153,7 +153,7 @@ static void field_hash_feed_parent(e_type field_type, const uint8_t *const hash)
     // continue the progressive hash on it
     hash_nbytes(hash, len, (cx_hash_t *) hash_ctx);
     // deallocate it
-    mem_dealloc(len);
+    mem_legacy_dealloc(len);
 }
 
 /**

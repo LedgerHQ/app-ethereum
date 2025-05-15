@@ -13,22 +13,22 @@
 #define SIZE_MEM_BUFFER 10240
 
 static uint8_t mem_buffer[SIZE_MEM_BUFFER];
-static uint16_t mem_idx;
-static uint16_t mem_rev_idx;
+static uint16_t mem_legacy_idx;
+static uint16_t mem_legacy_rev_idx;
 
 /**
  * Initializes the memory buffer index
  */
-void mem_init(void) {
-    mem_idx = 0;
-    mem_rev_idx = 0;
+void mem_legacy_init(void) {
+    mem_legacy_idx = 0;
+    mem_legacy_rev_idx = 0;
 }
 
 /**
  * Resets the memory buffer index
  */
-void mem_reset(void) {
-    mem_init();
+void mem_legacy_reset(void) {
+    mem_legacy_init();
 }
 
 /**
@@ -40,12 +40,12 @@ void mem_reset(void) {
  * @param[in] size Requested allocation size in bytes
  * @return Allocated memory pointer; \ref NULL if not enough space left.
  */
-void *mem_alloc(size_t size) {
+void *mem_legacy_alloc(size_t size) {
     size_t new_idx;
     size_t free_size;
 
-    if (__builtin_add_overflow((size_t) mem_idx, size, &new_idx) ||
-        __builtin_sub_overflow(sizeof(mem_buffer), (size_t) mem_rev_idx, &free_size)) {
+    if (__builtin_add_overflow((size_t) mem_legacy_idx, size, &new_idx) ||
+        __builtin_sub_overflow(sizeof(mem_buffer), (size_t) mem_legacy_rev_idx, &free_size)) {
         PRINTF("Error: overflow detected!\n");
         return NULL;
     }
@@ -54,8 +54,8 @@ void *mem_alloc(size_t size) {
         PRINTF("Error: mem_alloc(%u) failed!\n", size);
         return NULL;
     }
-    mem_idx += size;
-    return &mem_buffer[mem_idx - size];
+    mem_legacy_idx += size;
+    return &mem_buffer[mem_legacy_idx - size];
 }
 
 /**
@@ -63,13 +63,13 @@ void *mem_alloc(size_t size) {
  *
  * @param[in] size Requested deallocation size in bytes
  */
-void mem_dealloc(size_t size) {
+void mem_legacy_dealloc(size_t size) {
     // More than is already allocated
-    if (size > mem_idx) {
+    if (size > mem_legacy_idx) {
         PRINTF("Warning: mem_dealloc(%u) with a value larger than allocated!\n", size);
-        mem_idx = 0;
+        mem_legacy_idx = 0;
     } else {
-        mem_idx -= size;
+        mem_legacy_idx -= size;
     }
 }
 
@@ -79,22 +79,22 @@ void mem_dealloc(size_t size) {
  * @param[in] size Requested allocation size in bytes
  * @return Allocated memory pointer; \ref NULL if not enough space left.
  */
-void *mem_rev_alloc(size_t size) {
+void *mem_legacy_rev_alloc(size_t size) {
     size_t free_size;
     size_t new_rev_idx;
 
-    if (__builtin_add_overflow((size_t) mem_rev_idx, size, &new_rev_idx) ||
+    if (__builtin_add_overflow((size_t) mem_legacy_rev_idx, size, &new_rev_idx) ||
         __builtin_sub_overflow(sizeof(mem_buffer), new_rev_idx, &free_size)) {
         PRINTF("Error: overflow detected!\n");
         return NULL;
     }
     // Buffer exceeded
-    if (free_size < mem_idx) {
+    if (free_size < mem_legacy_idx) {
         PRINTF("Error: mem_rev_alloc(%u) failed!\n", size);
         return NULL;
     }
-    mem_rev_idx += size;
-    return &mem_buffer[sizeof(mem_buffer) - mem_rev_idx];
+    mem_legacy_rev_idx += size;
+    return &mem_buffer[sizeof(mem_buffer) - mem_legacy_rev_idx];
 }
 
 /**
@@ -102,12 +102,12 @@ void *mem_rev_alloc(size_t size) {
  *
  * @param[in] size Requested deallocation size in bytes
  */
-void mem_rev_dealloc(size_t size) {
+void mem_legacy_rev_dealloc(size_t size) {
     // More than is already allocated
-    if (size > mem_rev_idx) {
+    if (size > mem_legacy_rev_idx) {
         PRINTF("Warning: mem_rev_dealloc(%u) with a value larger than allocated!\n", size);
-        mem_rev_idx = 0;
+        mem_legacy_rev_idx = 0;
     } else {
-        mem_rev_idx -= size;
+        mem_legacy_rev_idx -= size;
     }
 }

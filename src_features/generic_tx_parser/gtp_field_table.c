@@ -51,7 +51,7 @@ void field_table_cleanup(void) {
         for (size_t i = 0; i < g_table.size; ++i) {
             ptr = get_next_table_entry(ptr, NULL);
         }
-        mem_dealloc(ptr - g_table.start);
+        mem_legacy_dealloc(ptr - g_table.start);
         g_table.start = NULL;
     }
 }
@@ -69,8 +69,8 @@ bool add_to_field_table(e_param_type type, const char *key, const char *value) {
     key_len = strlen(key) + 1;
     value_len = strlen(value) + 1;
     PRINTF(">>> \"%s\": \"%s\"\n", key, value);
-    if ((ptr = mem_alloc(sizeof(type) + sizeof(uint8_t) + sizeof(uint16_t) + key_len +
-                         value_len)) == NULL) {
+    if ((ptr = mem_legacy_alloc(sizeof(type) + sizeof(uint8_t) + sizeof(uint16_t) + key_len +
+                                value_len)) == NULL) {
         return false;
     }
     if ((g_table.start == NULL) && (g_table.size == 0)) {

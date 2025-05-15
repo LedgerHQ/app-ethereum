@@ -21,7 +21,7 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_fr
     explicit_bzero(ctx.tx_info, sizeof(*ctx.tx_info));
     cx_sha256_init((cx_sha256_t *) &ctx.struct_hash);
     parsing_ret = tlv_parse(payload, size, (f_tlv_data_handler) &handle_tx_info_struct, &ctx);
-    if (to_free) mem_dealloc(sizeof(size));
+    if (to_free) mem_legacy_dealloc(sizeof(size));
     if (!parsing_ret || !verify_tx_info_struct(&ctx)) {
         return false;
     }
@@ -46,8 +46,8 @@ uint16_t handle_tx_info(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *paylo
             return APDU_RESPONSE_CONDITION_NOT_SATISFIED;
         }
 
-        g_tx_info_alignment = mem_align(__alignof__(*g_tx_info));
-        if ((g_tx_info = mem_alloc(sizeof(*g_tx_info))) == NULL) {
+        g_tx_info_alignment = mem_legacy_align(__alignof__(*g_tx_info));
+        if ((g_tx_info = mem_legacy_alloc(sizeof(*g_tx_info))) == NULL) {
             return APDU_RESPONSE_INSUFFICIENT_MEMORY;
         }
     }
@@ -66,9 +66,9 @@ void gcs_cleanup(void) {
     ui_gcs_cleanup();
     field_table_cleanup();
     if (g_tx_info != NULL) {
-        mem_dealloc(sizeof(*g_tx_info));
+        mem_legacy_dealloc(sizeof(*g_tx_info));
         g_tx_info = NULL;
-        mem_dealloc(g_tx_info_alignment);
+        mem_legacy_dealloc(g_tx_info_alignment);
     }
     calldata_cleanup();
 }

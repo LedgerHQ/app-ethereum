@@ -481,7 +481,7 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_fr
     cx_sha256_init(&ctx.hash_ctx);
 
     parsing_ret = tlv_parse(payload, size, (f_tlv_data_handler) &handle_tx_simu_tlv, &ctx);
-    if (to_free) mem_dealloc(size);
+    if (to_free) mem_legacy_dealloc(size);
     if (!parsing_ret || !verify_fields(&ctx) || !verify_signature(&ctx)) {
         explicit_bzero(&TX_SIMULATION, sizeof(TX_SIMULATION));
         explicit_bzero(&ctx, sizeof(s_tx_simu_ctx));

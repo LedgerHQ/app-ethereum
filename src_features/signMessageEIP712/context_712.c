@@ -20,7 +20,7 @@ s_eip712_context *eip712_context = NULL;
  */
 bool eip712_context_init(void) {
     // init global variables
-    mem_init();
+    mem_legacy_init();
 
     if ((eip712_context = MEM_ALLOC_AND_ALIGN_TYPE(*eip712_context)) == NULL) {
         apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
@@ -66,7 +66,7 @@ void eip712_context_deinit(void) {
     path_deinit();
     field_hash_deinit();
     ui_712_deinit();
-    mem_reset();
+    mem_legacy_reset();
     eip712_context = NULL;
     reset_app_context();
 }

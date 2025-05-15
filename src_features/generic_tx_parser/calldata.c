@@ -47,8 +47,8 @@ bool calldata_init(size_t size) {
     if (g_calldata != NULL) {
         calldata_cleanup();
     }
-    g_calldata_alignment = mem_align(__alignof__(*g_calldata));
-    if ((g_calldata = mem_alloc(sizeof(*g_calldata))) == NULL) {
+    g_calldata_alignment = mem_legacy_align(__alignof__(*g_calldata));
+    if ((g_calldata = mem_legacy_alloc(sizeof(*g_calldata))) == NULL) {
         return false;
     }
     explicit_bzero(g_calldata, sizeof(*g_calldata));
@@ -83,7 +83,7 @@ static bool compress_chunk(s_calldata *calldata) {
     }
     chunk_info |= strip_dir << CHUNK_INFO_DIR_OFFSET;
     chunk_info |= stripped_size << CHUNK_INFO_SIZE_OFFSET;
-    if ((ptr = mem_alloc(sizeof(chunk_info) + stripped_size)) == NULL) {
+    if ((ptr = mem_legacy_alloc(sizeof(chunk_info) + stripped_size)) == NULL) {
         return false;
     }
     if (calldata->chunks == NULL) {
@@ -170,10 +170,10 @@ bool calldata_append(const uint8_t *buffer, size_t size) {
 
 void calldata_cleanup(void) {
     if (g_calldata != NULL) {
-        mem_dealloc(g_calldata->chunks_size);
-        mem_dealloc(sizeof(*g_calldata));
+        mem_legacy_dealloc(g_calldata->chunks_size);
+        mem_legacy_dealloc(sizeof(*g_calldata));
         g_calldata = NULL;
-        mem_dealloc(g_calldata_alignment);
+        mem_legacy_dealloc(g_calldata_alignment);
     }
 }
 

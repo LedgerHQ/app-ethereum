@@ -70,7 +70,7 @@ static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size, bool to_fre
 
     parsing_ret =
         tlv_parse(payload, size, (f_tlv_data_handler) handle_auth_7702_struct, &auth_7702_ctx);
-    if (to_free) mem_dealloc(size);
+    if (to_free) mem_legacy_dealloc(size);
     if (!parsing_ret || !verify_auth_7702_struct(&auth_7702_ctx)) {
         g_7702_sw = APDU_RESPONSE_INVALID_DATA;
         return false;

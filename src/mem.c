@@ -8,13 +8,42 @@
 
 #include <stdint.h>
 #include "mem.h"
+#include "mem_alloc.h"
 #include "os_print.h"
 
 #define SIZE_MEM_BUFFER 10240
 
-static uint8_t mem_buffer[SIZE_MEM_BUFFER];
+static uint8_t mem_buffer[SIZE_MEM_BUFFER] __attribute__((aligned(8)));
 static uint16_t mem_legacy_idx;
 static uint16_t mem_legacy_rev_idx;
+static mem_ctx_t mem_ctx = NULL;
+
+bool app_mem_init(void) {
+    mem_ctx = mem_init(mem_buffer, sizeof(mem_buffer));
+    return mem_ctx != NULL;
+}
+
+void *app_mem_alloc_impl(size_t size, const char *file, int line) {
+    void *ptr;
+    ptr = mem_alloc(mem_ctx, size);
+#ifdef HAVE_MEMORY_PROFILING
+    PRINTF("==MP alloc;%u;0x%p;%s:%u\n", size, ptr, file, line);
+#else
+    (void) file;
+    (void) line;
+#endif
+    return ptr;
+}
+
+void app_mem_free_impl(void *ptr, const char *file, int line) {
+#ifdef HAVE_MEMORY_PROFILING
+    PRINTF("==MP free;0x%p;%s:%u\n", ptr, file, line);
+#else
+    (void) file;
+    (void) line;
+#endif
+    mem_free(mem_ctx, ptr);
+}
 
 /**
  * Initializes the memory buffer index

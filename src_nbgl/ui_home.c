@@ -18,16 +18,10 @@ nbgl_warning_t warning;
 enum {
     WEB3_CHECK_TOKEN = FIRST_USER_TOKEN,
     BLIND_SIGNING_TOKEN,
-#ifdef HAVE_TRUSTED_NAME
     TRUSTED_NAME_VERBOSE_TOKEN,
-#endif
     NONCE_TOKEN,
-#ifdef HAVE_EIP712_FULL_SUPPORT
     EIP712_VERBOSE_TOKEN,
-#endif
-#ifdef HAVE_EIP7702
     EIP7702_TOKEN,
-#endif  // HAVE_EIP7702
     DEBUG_TOKEN,
 };
 
@@ -36,17 +30,11 @@ enum {
     WEB3_CHECK_ID,
 #endif
     BLIND_SIGNING_ID,
-#ifdef HAVE_TRUSTED_NAME
     TRUSTED_NAME_VERBOSE_ID,
-#endif
     NONCE_ID,
-#ifdef HAVE_EIP712_FULL_SUPPORT
     EIP712_VERBOSE_ID,
-#endif
     DEBUG_ID,
-#ifdef HAVE_EIP7702
     EIP7702_ID,
-#endif  // HAVE_EIP7702
     SETTINGS_SWITCHES_NB
 };
 
@@ -81,32 +69,26 @@ static void setting_toggle_callback(int token, uint8_t index, int page) {
             switches[BLIND_SIGNING_ID].initState = (nbgl_state_t) value;
             nvm_write((void *) &N_storage.dataAllowed, (void *) &value, sizeof(value));
             break;
-#ifdef HAVE_TRUSTED_NAME
         case TRUSTED_NAME_VERBOSE_TOKEN:
             value = !N_storage.verbose_trusted_name;
             switches[TRUSTED_NAME_VERBOSE_ID].initState = (nbgl_state_t) value;
             nvm_write((void *) &N_storage.verbose_trusted_name, (void *) &value, sizeof(value));
             break;
-#endif  // HAVE_TRUSTED_NAME
         case NONCE_TOKEN:
             value = !N_storage.displayNonce;
             switches[NONCE_ID].initState = (nbgl_state_t) value;
             nvm_write((void *) &N_storage.displayNonce, (void *) &value, sizeof(value));
             break;
-#ifdef HAVE_EIP712_FULL_SUPPORT
         case EIP712_VERBOSE_TOKEN:
             value = !N_storage.verbose_eip712;
             switches[EIP712_VERBOSE_ID].initState = (nbgl_state_t) value;
             nvm_write((void *) &N_storage.verbose_eip712, (void *) &value, sizeof(value));
             break;
-#endif  // HAVE_EIP712_FULL_SUPPORT
-#ifdef HAVE_EIP7702
         case EIP7702_TOKEN:
             value = !N_storage.eip7702_enable;
             switches[EIP7702_ID].initState = (nbgl_state_t) value;
             nvm_write((void *) &N_storage.eip7702_enable, (void *) &value, sizeof(value));
             break;
-#endif  // HAVE_EIP7702
         case DEBUG_TOKEN:
             value = !N_storage.contractDetails;
             switches[DEBUG_ID].initState = (nbgl_state_t) value;
@@ -147,7 +129,6 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
     switches[BLIND_SIGNING_ID].tuneId = TUNE_TAP_CASUAL;
 #endif
 
-#ifdef HAVE_TRUSTED_NAME
     switches[TRUSTED_NAME_VERBOSE_ID].initState =
         N_storage.verbose_trusted_name ? ON_STATE : OFF_STATE;
     switches[TRUSTED_NAME_VERBOSE_ID].text = "ENS addresses";
@@ -160,7 +141,6 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
 #ifdef HAVE_PIEZO_SOUND
     switches[TRUSTED_NAME_VERBOSE_ID].tuneId = TUNE_TAP_CASUAL;
 #endif
-#endif  // HAVE_TRUSTED_NAME
 
     switches[NONCE_ID].initState = N_storage.displayNonce ? ON_STATE : OFF_STATE;
     switches[NONCE_ID].text = "Nonce";
@@ -170,7 +150,6 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
     switches[NONCE_ID].tuneId = TUNE_TAP_CASUAL;
 #endif
 
-#ifdef HAVE_EIP712_FULL_SUPPORT
     switches[EIP712_VERBOSE_ID].initState = N_storage.verbose_eip712 ? ON_STATE : OFF_STATE;
     switches[EIP712_VERBOSE_ID].text = "Raw messages";
     switches[EIP712_VERBOSE_ID].subText = "Displays raw content of EIP712 messages";
@@ -178,9 +157,7 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
 #ifdef HAVE_PIEZO_SOUND
     switches[EIP712_VERBOSE_ID].tuneId = TUNE_TAP_CASUAL;
 #endif
-#endif  // HAVE_EIP712_FULL_SUPPORT
 
-#ifdef HAVE_EIP7702
     switches[EIP7702_ID].initState = N_storage.eip7702_enable ? ON_STATE : OFF_STATE;
 #ifdef SCREEN_SIZE_WALLET
     switches[EIP7702_ID].text = "Smart account upgrade";
@@ -193,7 +170,6 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
 #ifdef HAVE_PIEZO_SOUND
     switches[EIP7702_ID].tuneId = TUNE_TAP_CASUAL;
 #endif
-#endif  // HAVE_EIP7702
 
     switches[DEBUG_ID].initState = N_storage.contractDetails ? ON_STATE : OFF_STATE;
 #ifdef SCREEN_SIZE_WALLET

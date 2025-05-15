@@ -1,5 +1,3 @@
-#ifdef HAVE_EIP712_FULL_SUPPORT
-
 #include "context_712.h"
 #include "mem.h"
 #include "mem_utils.h"
@@ -72,5 +70,3 @@ void eip712_context_deinit(void) {
     eip712_context = NULL;
     reset_app_context();
 }
-
-#endif

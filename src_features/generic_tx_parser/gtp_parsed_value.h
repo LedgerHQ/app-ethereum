@@ -1,5 +1,4 @@
-#ifndef GTP_PARSED_VALUE_H_
-#define GTP_PARSED_VALUE_H_
+#pragma once
 
 #include <stdint.h>
 
@@ -16,5 +15,3 @@ typedef struct {
     uint8_t size;
     s_parsed_value value[MAX_VALUE_COLLECTION_SIZE];
 } s_parsed_value_collection;
-
-#endif  // !GTP_PARSED_VALUE_H_

@@ -1,7 +1,4 @@
-#if defined(HAVE_EIP712_FULL_SUPPORT) || defined(HAVE_GENERIC_TX_PARSER)
-
-#ifndef PROXY_INFO_H_
-#define PROXY_INFO_H_
+#pragma once
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -36,7 +33,3 @@ const uint8_t *get_proxy_contract(const uint64_t *chain_id,
 const uint8_t *get_implem_contract(const uint64_t *chain_id,
                                    const uint8_t *addr,
                                    const uint8_t *selector);
-
-#endif  // PROXY_INFO_H_
-
-#endif

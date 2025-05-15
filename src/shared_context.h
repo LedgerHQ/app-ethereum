@@ -1,5 +1,4 @@
-#ifndef _SHARED_CONTEXT_H_
-#define _SHARED_CONTEXT_H_
+#pragma once
 
 #include "bip32_utils.h"
 #include "ethUstream.h"
@@ -21,20 +20,14 @@ typedef struct internalStorage_t {
     bool dataAllowed;
     bool contractDetails;
     bool displayNonce;
-#ifdef HAVE_EIP712_FULL_SUPPORT
     bool verbose_eip712;
-#endif  // HAVE_EIP712_FULL_SUPPORT
-#ifdef HAVE_TRUSTED_NAME
     bool verbose_trusted_name;
-#endif  // HAVE_TRUSTED_NAME
 #ifdef HAVE_WEB3_CHECKS
     bool w3c_enable;
     // hidden setting (not shown in the UI)
     bool w3c_opt_in;
 #endif
-#ifdef HAVE_EIP7702
     bool eip7702_enable;
-#endif  // HAVE_EIP7702
     bool initialized;
 } internalStorage_t;
 
@@ -94,23 +87,17 @@ typedef struct messageSigningContext712_t {
     uint8_t messageHash[32];
 } messageSigningContext712_t;
 
-#ifdef HAVE_EIP7702
-
 typedef struct authSigningContext7702_t {
     bip32_path_t bip32;
     uint8_t authHash[INT256_LENGTH];
 } authSigningContext7702_t;
-
-#endif  // HAVE_EIP7702
 
 typedef union {
     publicKeyContext_t publicKeyContext;
     transactionContext_t transactionContext;
     messageSigningContext_t messageSigningContext;
     messageSigningContext712_t messageSigningContext712;
-#ifdef HAVE_EIP7702
     authSigningContext7702_t authSigningContext7702;
-#endif  // HAVE_EIP7702
 } tmpCtx_t;
 
 typedef union {
@@ -149,14 +136,10 @@ typedef struct txStringProperties_s {
     char tx_hash[2 + (INT256_LENGTH * 2) + 1];
 } txStringProperties_t;
 
-#ifdef TARGET_NANOS
-#define SHARED_CTX_FIELD_1_SIZE 100
-#else
 #ifdef SCREEN_SIZE_WALLET
 #define SHARED_CTX_FIELD_1_SIZE 380
 #else
 #define SHARED_CTX_FIELD_1_SIZE 256
-#endif
 #endif
 #define SHARED_CTX_FIELD_2_SIZE 40
 
@@ -214,5 +197,3 @@ extern uint32_t eth2WithdrawalIndex;
 void reset_app_context(void);
 const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_path_t *bip32);
 void storage_init(void);
-
-#endif  // _SHARED_CONTEXT_H_

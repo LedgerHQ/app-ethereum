@@ -1,5 +1,3 @@
-#ifdef HAVE_EIP7702_WHITELIST
-
 #pragma once
 
 #include <stdint.h>
@@ -15,5 +13,3 @@ typedef struct eip7702_whitelist_s {
 } eip7702_whitelist_t;
 
 const char *get_delegate_name(const uint64_t *chain_id, const uint8_t *address);
-
-#endif  // HAVE_EIP7702_WHITELIST

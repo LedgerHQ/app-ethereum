@@ -1,5 +1,3 @@
-#ifdef HAVE_EIP7702_WHITELIST
-
 #include "nbgl_use_case.h"
 #include "shared_context.h"
 #include "ui_callbacks.h"
@@ -23,5 +21,3 @@ void ui_error_no_7702_whitelist(void) {
                        "",
                        ui_error_no_7702_whitelist_choice);
 }
-
-#endif  // HAVE_EIP7702_WHITELIST

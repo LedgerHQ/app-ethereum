@@ -1,5 +1,3 @@
-#ifdef HAVE_EIP712_FULL_SUPPORT
-
 #include "common_ui.h"
 #include "ui_nbgl.h"
 #include "ui_logic.h"
@@ -170,5 +168,3 @@ void ui_712_switch_to_sign(void) {
         nbgl_useCaseReviewStreamingFinish(g_stax_shared_buffer, ui_typed_message_review_choice);
     }
 }
-
-#endif  // HAVE_EIP712_FULL_SUPPORT

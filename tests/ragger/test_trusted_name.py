@@ -31,10 +31,7 @@ def verbose_ens_fixture(request) -> bool:
     return request.param
 
 
-def common(firmware: Firmware, app_client: EthAppClient, get_challenge: bool = True) -> Optional[int]:
-
-    if firmware == Firmware.NANOS:
-        pytest.skip("Not supported on LNS")
+def common(app_client: EthAppClient, get_challenge: bool = True) -> Optional[int]:
 
     if get_challenge:
         challenge = app_client.get_challenge()
@@ -49,7 +46,7 @@ def test_trusted_name_v1(firmware: Firmware,
                          verbose_ens: bool,
                          test_name: str):
     app_client = EthAppClient(backend)
-    challenge = common(firmware, app_client)
+    challenge = common(app_client)
 
     if verbose_ens:
         settings_toggle(firmware, navigator, [SettingID.VERBOSE_ENS])
@@ -69,21 +66,20 @@ def test_trusted_name_v1(firmware: Firmware,
         scenario_navigator.review_approve(test_name=test_name)
 
 
-def test_trusted_name_v1_wrong_challenge(firmware: Firmware, backend: BackendInterface):
+def test_trusted_name_v1_wrong_challenge(backend: BackendInterface):
     app_client = EthAppClient(backend)
-    challenge = common(firmware, app_client)
+    challenge = common(app_client)
 
     with pytest.raises(ExceptionRAPDU) as e:
         app_client.provide_trusted_name_v1(ADDR, NAME, ~challenge & 0xffffffff)
     assert e.value.status == StatusWord.INVALID_DATA
 
 
-def test_trusted_name_v1_wrong_addr(firmware: Firmware,
-                                    backend: BackendInterface,
+def test_trusted_name_v1_wrong_addr(backend: BackendInterface,
                                     scenario_navigator: NavigateWithScenario,
                                     test_name: str):
     app_client = EthAppClient(backend)
-    challenge = common(firmware, app_client)
+    challenge = common(app_client)
 
     app_client.provide_trusted_name_v1(ADDR, NAME, challenge)
 
@@ -108,7 +104,7 @@ def test_trusted_name_v1_non_mainnet(firmware: Firmware,
                                      scenario_navigator: NavigateWithScenario,
                                      test_name: str):
     app_client = EthAppClient(backend)
-    challenge = common(firmware, app_client)
+    challenge = common(app_client)
 
     chain_id = 5
     if firmware.is_nano:
@@ -137,12 +133,11 @@ def test_trusted_name_v1_non_mainnet(firmware: Firmware,
         scenario_navigator.review_approve(test_name=test_name)
 
 
-def test_trusted_name_v1_unknown_chain(firmware: Firmware,
-                                       backend: BackendInterface,
+def test_trusted_name_v1_unknown_chain(backend: BackendInterface,
                                        scenario_navigator: NavigateWithScenario,
                                        test_name: str):
     app_client = EthAppClient(backend)
-    challenge = common(firmware, app_client)
+    challenge = common(app_client)
 
     app_client.provide_trusted_name_v1(ADDR, NAME, challenge)
 
@@ -159,48 +154,47 @@ def test_trusted_name_v1_unknown_chain(firmware: Firmware,
         scenario_navigator.review_approve(test_name=test_name)
 
 
-def test_trusted_name_v1_name_too_long(firmware: Firmware, backend: BackendInterface):
+def test_trusted_name_v1_name_too_long(backend: BackendInterface):
     app_client = EthAppClient(backend)
-    challenge = common(firmware, app_client)
+    challenge = common(app_client)
 
     with pytest.raises(ExceptionRAPDU) as e:
         app_client.provide_trusted_name_v1(ADDR, "ledger" + "0"*25 + ".eth", challenge)
     assert e.value.status == StatusWord.INVALID_DATA
 
 
-def test_trusted_name_v1_name_invalid_character(firmware: Firmware, backend: BackendInterface):
+def test_trusted_name_v1_name_invalid_character(backend: BackendInterface):
     app_client = EthAppClient(backend)
-    challenge = common(firmware, app_client)
+    challenge = common(app_client)
 
     with pytest.raises(ExceptionRAPDU) as e:
         app_client.provide_trusted_name_v1(ADDR, "l\xe8dger.eth", challenge)
     assert e.value.status == StatusWord.INVALID_DATA
 
 
-def test_trusted_name_v1_uppercase(firmware: Firmware, backend: BackendInterface):
+def test_trusted_name_v1_uppercase(backend: BackendInterface):
     app_client = EthAppClient(backend)
-    challenge = common(firmware, app_client)
+    challenge = common(app_client)
 
     with pytest.raises(ExceptionRAPDU) as e:
         app_client.provide_trusted_name_v1(ADDR, NAME.upper(), challenge)
     assert e.value.status == StatusWord.INVALID_DATA
 
 
-def test_trusted_name_v1_name_non_ens(firmware: Firmware, backend: BackendInterface):
+def test_trusted_name_v1_name_non_ens(backend: BackendInterface):
     app_client = EthAppClient(backend)
-    challenge = common(firmware, app_client)
+    challenge = common(app_client)
 
     with pytest.raises(ExceptionRAPDU) as e:
         app_client.provide_trusted_name_v1(ADDR, "ledger.hte", challenge)
     assert e.value.status == StatusWord.INVALID_DATA
 
 
-def test_trusted_name_v2(firmware: Firmware,
-                         backend: BackendInterface,
+def test_trusted_name_v2(backend: BackendInterface,
                          scenario_navigator: NavigateWithScenario,
                          test_name: str):
     app_client = EthAppClient(backend)
-    challenge = common(firmware, app_client)
+    challenge = common(app_client)
 
     app_client.provide_trusted_name_v2(ADDR,
                                        NAME,
@@ -222,12 +216,11 @@ def test_trusted_name_v2(firmware: Firmware,
         scenario_navigator.review_approve(test_name=test_name)
 
 
-def test_trusted_name_v2_wrong_chainid(firmware: Firmware,
-                                       backend: BackendInterface,
+def test_trusted_name_v2_wrong_chainid(backend: BackendInterface,
                                        scenario_navigator: NavigateWithScenario,
                                        test_name: str):
     app_client = EthAppClient(backend)
-    challenge = common(firmware, app_client)
+    challenge = common(app_client)
 
     app_client.provide_trusted_name_v2(ADDR,
                                        NAME,
@@ -249,9 +242,9 @@ def test_trusted_name_v2_wrong_chainid(firmware: Firmware,
         scenario_navigator.review_approve(test_name=test_name)
 
 
-def test_trusted_name_v2_missing_challenge(firmware: Firmware, backend: BackendInterface):
+def test_trusted_name_v2_missing_challenge(backend: BackendInterface):
     app_client = EthAppClient(backend)
-    common(firmware, app_client, False)
+    common(app_client, False)
 
     with pytest.raises(ExceptionRAPDU) as e:
         app_client.provide_trusted_name_v2(ADDR,
@@ -262,9 +255,9 @@ def test_trusted_name_v2_missing_challenge(firmware: Firmware, backend: BackendI
     assert e.value.status == StatusWord.INVALID_DATA
 
 
-def test_trusted_name_v2_expired(firmware: Firmware, backend: BackendInterface, app_version: tuple[int, int, int]):
+def test_trusted_name_v2_expired(backend: BackendInterface, app_version: tuple[int, int, int]):
     app_client = EthAppClient(backend)
-    challenge = common(firmware, app_client)
+    challenge = common(app_client)
 
     # convert to list and reverse
     app_version = list(app_version)

@@ -1,5 +1,3 @@
-#ifdef HAVE_EIP712_FULL_SUPPORT
-
 #include "mem.h"
 #include "mem_utils.h"
 #include "type_hash.h"
@@ -209,5 +207,3 @@ bool type_hash(const char *const struct_name, const uint8_t struct_name_length, 
 end:
     return false;
 }
-
-#endif  // HAVE_EIP712_FULL_SUPPORT

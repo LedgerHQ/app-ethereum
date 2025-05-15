@@ -1,5 +1,4 @@
-#ifndef GTP_PARAM_TOKEN_
-#define GTP_PARAM_TOKEN_
+#pragma once
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -22,5 +21,3 @@ typedef struct {
 
 bool handle_param_token_struct(const s_tlv_data *data, s_param_token_context *context);
 bool format_param_token(const s_param_token *param, const char *name);
-
-#endif  // !GTP_PARAM_TOKEN_

@@ -16,12 +16,6 @@ class SettingID(Enum):
 
 def get_device_settings(firmware: Firmware) -> list[SettingID]:
     """Get the list of settings available on the device"""
-    if firmware == Firmware.NANOS:
-        return [
-            SettingID.BLIND_SIGNING,
-            SettingID.NONCE,
-            SettingID.DEBUG_DATA,
-        ]
     if firmware.is_nano:
         return [
             SettingID.BLIND_SIGNING,
@@ -95,10 +89,7 @@ def get_settings_moves(firmware: Firmware,
     settings = get_device_settings(firmware)
     # Assume the app is on the 1st page of Settings
     if firmware.is_nano:
-        moves += [NavInsID.RIGHT_CLICK]
-        if firmware == Firmware.NANOS:
-            moves += [NavInsID.RIGHT_CLICK]
-        moves += [NavInsID.BOTH_CLICK]
+        moves += [NavInsID.RIGHT_CLICK, NavInsID.BOTH_CLICK]
         for setting in settings:
             if setting in to_toggle:
                 moves += [NavInsID.BOTH_CLICK]

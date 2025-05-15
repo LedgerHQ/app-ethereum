@@ -1,5 +1,4 @@
-#ifndef GTP_DATA_PATH_H_
-#define GTP_DATA_PATH_H_
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -57,5 +56,3 @@ typedef struct {
 bool handle_data_path_struct(const s_tlv_data *data, s_data_path_context *context);
 void data_path_cleanup(const s_parsed_value_collection *collection);
 bool data_path_get(const s_data_path *data_path, s_parsed_value_collection *collection);
-
-#endif  // GTP_DATA_PATH_H_

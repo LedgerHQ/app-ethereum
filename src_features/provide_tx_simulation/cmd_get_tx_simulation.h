@@ -6,9 +6,7 @@
 #include <stdbool.h>
 #include "common_utils.h"
 #include "nbgl_use_case.h"
-#ifdef HAVE_LEDGER_PKI
 #include "os_pki.h"
-#endif
 
 #define HASH_SIZE    32
 #define MSG_SIZE     25

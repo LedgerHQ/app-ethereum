@@ -1,5 +1,3 @@
-#ifdef HAVE_DYN_MEM_ALLOC
-
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -65,5 +63,3 @@ void *mem_alloc_and_align(size_t size, size_t alignment) {
     mem_align(alignment);
     return mem_alloc(size);
 }
-
-#endif  // HAVE_DYN_MEM_ALLOC

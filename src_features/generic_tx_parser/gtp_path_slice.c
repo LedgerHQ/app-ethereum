@@ -1,5 +1,3 @@
-#ifdef HAVE_GENERIC_TX_PARSER
-
 #include "gtp_path_slice.h"
 #include "os_print.h"
 #include "read.h"
@@ -43,5 +41,3 @@ bool handle_slice_struct(const s_tlv_data *data, s_path_slice_context *context) 
     }
     return ret;
 }
-
-#endif  // HAVE_GENERIC_TX_PARSER

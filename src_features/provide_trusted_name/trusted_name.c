@@ -1,5 +1,3 @@
-#ifdef HAVE_TRUSTED_NAME
-
 #include <ctype.h>
 #include "trusted_name.h"
 #include "network.h"  // chain_is_ethereum_compatible
@@ -445,7 +443,6 @@ static bool handle_trusted_name_source(const s_tlv_data *data, s_trusted_name_ct
     return true;
 }
 
-#ifdef HAVE_NFT_SUPPORT
 /**
  * Handler for tag \ref NFT_ID
  *
@@ -464,7 +461,6 @@ static bool handle_nft_id(const s_tlv_data *data, s_trusted_name_ctx *context) {
     context->rcv_flags |= SET_BIT(NFT_ID_RCV_BIT);
     return true;  // unhandled for now
 }
-#endif
 
 bool handle_trusted_name_struct(const s_tlv_data *data, s_trusted_name_ctx *context) {
     bool ret;
@@ -510,11 +506,9 @@ bool handle_trusted_name_struct(const s_tlv_data *data, s_trusted_name_ctx *cont
         case TRUSTED_NAME_SOURCE:
             ret = handle_trusted_name_source(data, context);
             break;
-#ifdef HAVE_NFT_SUPPORT
         case NFT_ID:
             ret = handle_nft_id(data, context);
             break;
-#endif
         default:
             PRINTF(TLV_TAG_ERROR_MSG, data->tag);
             ret = false;
@@ -562,9 +556,7 @@ static bool verify_trusted_name_signature(const s_trusted_name_ctx *context) {
                                     sizeof(hash),
                                     pk,
                                     pk_size,
-#ifdef HAVE_LEDGER_PKI
                                     CERTIFICATE_PUBLIC_KEY_USAGE_TRUSTED_NAME,
-#endif
                                     (uint8_t *) (context->input_sig),
                                     context->input_sig_size) != CX_OK) {
         return false;
@@ -642,5 +634,3 @@ bool verify_trusted_name_struct(const s_trusted_name_ctx *context) {
            g_trusted_name_info.addr);
     return true;
 }
-
-#endif  // HAVE_TRUSTED_NAME

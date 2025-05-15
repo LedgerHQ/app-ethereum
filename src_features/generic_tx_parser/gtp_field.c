@@ -1,5 +1,3 @@
-#ifdef HAVE_GENERIC_TX_PARSER
-
 #include <string.h>
 #include "gtp_field.h"
 #include "utils.h"
@@ -23,18 +21,12 @@ typedef union {
     s_param_raw_context raw_ctx;
     s_param_amount_context amount_ctx;
     s_param_token_amount_context token_amount_ctx;
-#ifdef HAVE_NFT_SUPPORT
     s_param_nft_context nft_ctx;
-#endif
     s_param_datetime_context datetime_ctx;
     s_param_duration_context duration_ctx;
     s_param_unit_context unit_ctx;
-#ifdef HAVE_ENUM_VALUE
     s_param_enum_context enum_ctx;
-#endif
-#ifdef HAVE_TRUSTED_NAME
     s_param_trusted_name_context trusted_name_ctx;
-#endif
     s_param_token_context token_ctx;
 } u_param_context;
 
@@ -69,18 +61,12 @@ static bool handle_param_type(const s_tlv_data *data, s_field_ctx *context) {
         case PARAM_TYPE_RAW:
         case PARAM_TYPE_AMOUNT:
         case PARAM_TYPE_TOKEN_AMOUNT:
-#ifdef HAVE_NFT_SUPPORT
         case PARAM_TYPE_NFT:
-#endif
         case PARAM_TYPE_DATETIME:
         case PARAM_TYPE_DURATION:
         case PARAM_TYPE_UNIT:
-#ifdef HAVE_ENUM_VALUE
         case PARAM_TYPE_ENUM:
-#endif
-#ifdef HAVE_TRUSTED_NAME
         case PARAM_TYPE_TRUSTED_NAME:
-#endif
         case PARAM_TYPE_TOKEN:
             break;
         default:
@@ -116,12 +102,10 @@ static bool handle_param(const s_tlv_data *data, s_field_ctx *context) {
             handler = (f_tlv_data_handler) &handle_param_token_amount_struct;
             param_ctx.token_amount_ctx.param = &context->field->param_token_amount;
             break;
-#ifdef HAVE_NFT_SUPPORT
         case PARAM_TYPE_NFT:
             handler = (f_tlv_data_handler) &handle_param_nft_struct;
             param_ctx.nft_ctx.param = &context->field->param_nft;
             break;
-#endif
         case PARAM_TYPE_DATETIME:
             handler = (f_tlv_data_handler) &handle_param_datetime_struct;
             param_ctx.datetime_ctx.param = &context->field->param_datetime;
@@ -134,18 +118,14 @@ static bool handle_param(const s_tlv_data *data, s_field_ctx *context) {
             handler = (f_tlv_data_handler) &handle_param_unit_struct;
             param_ctx.unit_ctx.param = &context->field->param_unit;
             break;
-#ifdef HAVE_ENUM_VALUE
         case PARAM_TYPE_ENUM:
             handler = (f_tlv_data_handler) &handle_param_enum_struct;
             param_ctx.enum_ctx.param = &context->field->param_enum;
             break;
-#endif
-#ifdef HAVE_TRUSTED_NAME
         case PARAM_TYPE_TRUSTED_NAME:
             handler = (f_tlv_data_handler) &handle_param_trusted_name_struct;
             param_ctx.trusted_name_ctx.param = &context->field->param_trusted_name;
             break;
-#endif
         case PARAM_TYPE_TOKEN:
             handler = (f_tlv_data_handler) &handle_param_token_struct;
             param_ctx.token_ctx.param = &context->field->param_token;
@@ -220,11 +200,9 @@ bool format_field(const s_field *field) {
         case PARAM_TYPE_TOKEN_AMOUNT:
             ret = format_param_token_amount(&field->param_token_amount, field->name);
             break;
-#ifdef HAVE_NFT_SUPPORT
         case PARAM_TYPE_NFT:
             ret = format_param_nft(&field->param_nft, field->name);
             break;
-#endif
         case PARAM_TYPE_DATETIME:
             ret = format_param_datetime(&field->param_datetime, field->name);
             break;
@@ -234,16 +212,12 @@ bool format_field(const s_field *field) {
         case PARAM_TYPE_UNIT:
             ret = format_param_unit(&field->param_unit, field->name);
             break;
-#ifdef HAVE_ENUM_VALUE
         case PARAM_TYPE_ENUM:
             ret = format_param_enum(&field->param_enum, field->name);
             break;
-#endif
-#ifdef HAVE_TRUSTED_NAME
         case PARAM_TYPE_TRUSTED_NAME:
             ret = format_param_trusted_name(&field->param_trusted_name, field->name);
             break;
-#endif
         case PARAM_TYPE_TOKEN:
             ret = format_param_token(&field->param_token, field->name);
             break;
@@ -252,5 +226,3 @@ bool format_field(const s_field *field) {
     }
     return ret;
 }
-
-#endif  // HAVE_GENERIC_TX_PARSER

@@ -1,7 +1,4 @@
-#ifndef UI_LOGIC_712_H_
-#define UI_LOGIC_712_H_
-
-#ifdef HAVE_EIP712_FULL_SUPPORT
+#pragma once
 
 #include <stdint.h>
 #include "ux.h"
@@ -51,14 +48,8 @@ bool ui_712_show_raw_key(const void *field_ptr);
 bool ui_712_push_new_filter_path(uint32_t path_crc);
 void ui_712_set_discarded_path(const char *path, uint8_t length);
 const char *ui_712_get_discarded_path(uint8_t *length);
-#ifdef HAVE_TRUSTED_NAME
 void ui_712_set_trusted_name_requirements(uint8_t type_count,
                                           const e_name_type *types,
                                           uint8_t source_count,
                                           const e_name_source *sources);
-#endif
 char *get_ui_pairs_buffer(size_t *size);
-
-#endif  // HAVE_EIP712_FULL_SUPPORT
-
-#endif  // UI_LOGIC_712_H_

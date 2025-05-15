@@ -1,5 +1,4 @@
-#ifndef CALLDATA_H_
-#define CALLDATA_H_
+#pragma once
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -13,5 +12,3 @@ bool calldata_append(const uint8_t *buffer, size_t size);
 void calldata_cleanup(void);
 const uint8_t *calldata_get_selector(void);
 const uint8_t *calldata_get_chunk(int idx);
-
-#endif  // !CALLDATA_H_

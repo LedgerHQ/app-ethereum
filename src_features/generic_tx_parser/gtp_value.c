@@ -1,5 +1,3 @@
-#ifdef HAVE_GENERIC_TX_PARSER
-
 #include "os_print.h"
 #include "gtp_value.h"
 #include "gtp_data_path.h"
@@ -164,5 +162,3 @@ void value_cleanup(const s_value *value, const s_parsed_value_collection *collec
         data_path_cleanup(collection);
     }
 }
-
-#endif  // HAVE_GENERIC_TX_PARSER

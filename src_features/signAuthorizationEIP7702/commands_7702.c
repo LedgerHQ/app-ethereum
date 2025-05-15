@@ -1,5 +1,3 @@
-#ifdef HAVE_EIP7702
-
 #include "shared_context.h"
 #include "apdu_constants.h"
 #include "tlv_apdu.h"
@@ -68,9 +66,7 @@ static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size, bool to_fre
     cx_err_t error = CX_INTERNAL_ERROR;
     cx_ecfp_public_key_t publicKey;
     const char *networkName;
-#ifdef HAVE_EIP7702_WHITELIST
     const char *delegateName;
-#endif
 
     parsing_ret =
         tlv_parse(payload, size, (f_tlv_data_handler) handle_auth_7702_struct, &auth_7702_ctx);
@@ -136,7 +132,6 @@ static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size, bool to_fre
                                    auth7702->chainId));
     // * Delegate
     if (!allzeroes(auth7702->delegate, sizeof(auth7702->delegate))) {
-#ifdef HAVE_EIP7702_WHITELIST
         // Check if the delegate is on the whitelist for this chainId
         delegateName = get_delegate_name(&auth7702->chainId, auth7702->delegate);
         if (delegateName == NULL) {
@@ -147,15 +142,6 @@ static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size, bool to_fre
         } else {
             strlcpy(strings.common.toAddress, delegateName, sizeof(strings.common.toAddress));
         }
-#else
-        if (!getEthDisplayableAddress(delegate,
-                                      strings.common.toAddress,
-                                      sizeof(strings.common.toAddress),
-                                      auth7702->chainId)) {
-            g_7702_sw = APDU_RESPONSE_UNKNOWN;
-            return false;
-        }
-#endif  // HAVE_EIP7702_WHITELIST
     }
     // * ChainId
     if (auth7702->chainId == CHAIN_ID_ALL) {
@@ -209,5 +195,3 @@ uint16_t handleSignEIP7702Authorization(uint8_t p1,
     *flags |= IO_ASYNCH_REPLY;
     return APDU_NO_RESPONSE;
 }
-
-#endif  // HAVE_EIP7702

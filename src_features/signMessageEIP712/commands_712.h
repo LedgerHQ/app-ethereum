@@ -1,7 +1,4 @@
-#ifndef EIP712_H_
-#define EIP712_H_
-
-#ifdef HAVE_EIP712_FULL_SUPPORT
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -21,7 +18,3 @@ uint16_t handle_eip712_filtering(uint8_t p1,
                                  uint8_t length,
                                  uint32_t *flags);
 void handle_eip712_return_code(bool success);
-
-#endif  // HAVE_EIP712_FULL_SUPPORT
-
-#endif  // EIP712_H_

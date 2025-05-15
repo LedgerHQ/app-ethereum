@@ -41,12 +41,7 @@ APPVERSION_P = 0
 APPVERSION = $(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)-dev
 
 # Application source files
-APP_SOURCE_PATH += src src_features src_plugins
-ifeq ($(TARGET_NAME),TARGET_NANOS)
-    APP_SOURCE_PATH += src_bagl
-else
-    APP_SOURCE_PATH += src_nbgl
-endif
+APP_SOURCE_PATH += src src_features src_plugins src_nbgl
 APP_SOURCE_FILES += $(filter-out ./ethereum-plugin-sdk/src/main.c, $(wildcard ./ethereum-plugin-sdk/src/*.c))
 INCLUDES_PATH += ./ethereum-plugin-sdk/src
 
@@ -62,7 +57,6 @@ endif
 
 # Application icons following guidelines:
 # https://developers.ledger.com/docs/embedded-app/design-requirements/#device-icon
-ICON_NANOS = icons/nanos_app_chain_$(CHAIN_ID).gif
 ICON_NANOX = icons/nanox_app_chain_$(CHAIN_ID).gif
 ICON_NANOSP = icons/nanox_app_chain_$(CHAIN_ID).gif
 ICON_STAX = icons/stax_app_chain_$(CHAIN_ID).gif
@@ -132,9 +126,7 @@ endif
 ENABLE_BLUETOOTH = 1
 ENABLE_SWAP = 1
 #ENABLE_NFC = 1
-ifneq ($(TARGET_NAME),TARGET_NANOS)
 ENABLE_NBGL_FOR_NANO_DEVICES = 1
-endif
 
 ########################################
 #         NBGL custom features         #

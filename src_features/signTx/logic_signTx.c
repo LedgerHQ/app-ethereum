@@ -39,11 +39,8 @@ static uint32_t splitBinaryParameterPart(char *result, size_t result_size, uint8
 customStatus_e customProcessor(txContext_t *context) {
     if (((context->txType == LEGACY && context->currentField == LEGACY_RLP_DATA) ||
          (context->txType == EIP2930 && context->currentField == EIP2930_RLP_DATA) ||
-         (context->txType == EIP1559 && context->currentField == EIP1559_RLP_DATA)
-#ifdef HAVE_EIP7702
-         || (context->txType == EIP7702 && context->currentField == EIP7702_RLP_DATA)
-#endif  // HAVE_EIP7702
-             ) &&
+         (context->txType == EIP1559 && context->currentField == EIP1559_RLP_DATA) ||
+         (context->txType == EIP7702 && context->currentField == EIP7702_RLP_DATA)) &&
         (context->currentFieldLength != 0)) {
         context->content->dataPresent = true;
         // If handling a new contract rather than a function call, abort immediately
@@ -66,11 +63,7 @@ customStatus_e customProcessor(txContext_t *context) {
             // If contract debugging mode is activated, do not go through the plugin activation
             // as they wouldn't be displayed if the plugin consumes all data but fallbacks
             // Still go through plugin activation in Swap context
-#ifdef HAVE_GENERIC_TX_PARSER
             if (!context->store_calldata) {
-#else
-            {
-#endif
                 if (!N_storage.contractDetails || G_called_from_swap) {
                     eth_plugin_prepare_init(&pluginInit,
                                             context->workBuffer,
@@ -99,11 +92,7 @@ customStatus_e customProcessor(txContext_t *context) {
         uint32_t copySize;
         uint32_t fieldPos = context->currentFieldPos;
         if (fieldPos == 0) {  // not reached if a plugin is available
-#ifdef HAVE_GENERIC_TX_PARSER
             if (!context->store_calldata) {
-#else
-            {
-#endif
                 if (!N_storage.dataAllowed) {
                     PRINTF("Data field forbidden\n");
                     ui_error_blind_signing();
@@ -459,12 +448,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
         }
     }
 
-#ifdef HAVE_GENERIC_TX_PARSER
     if (!context->store_calldata) {
-#else
-    (void) context;
-    {
-#endif
         if (tmpContent.txContent.dataPresent && !N_storage.dataAllowed) {
             PRINTF("Data is present but not allowed\n");
             report_finalize_error();
@@ -594,31 +578,18 @@ uint16_t finalize_parsing(const txContext_t *context) {
     if (sw != APDU_RESPONSE_OK) {
         return sw;
     }
-#ifdef HAVE_GENERIC_TX_PARSER
     if (context->store_calldata) {
         if (calldata_get_selector() == NULL) {
             PRINTF("Asked to store calldata but none was provided!\n");
             return APDU_RESPONSE_INVALID_DATA;
         }
     } else {
-#else
-    (void) context;
-    {
-#endif
         // If called from swap, the user has already validated a standard transaction
         // And we have already checked the fields of this transaction above
         if (G_called_from_swap && g_use_standard_ui) {
             io_seproxyhal_touch_tx_ok();
         } else {
-#ifdef HAVE_BAGL
-            // If blind-signing detected, start the warning flow beforehand
-            if (tmpContent.txContent.dataPresent) {
-                ui_warning_blind_signing();
-            } else
-#endif
-            {
-                start_signature_flow();
-            }
+            start_signature_flow();
         }
     }
     return APDU_RESPONSE_OK;

@@ -1,5 +1,3 @@
-#ifdef HAVE_GENERIC_TX_PARSER
-
 #include <string.h>
 #include "os_print.h"
 #include "gtp_field_table.h"
@@ -109,5 +107,3 @@ bool get_from_field_table(int index, s_field_table_entry *entry) {
     }
     return true;
 }
-
-#endif  // HAVE_GENERIC_TX_PARSER

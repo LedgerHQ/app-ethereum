@@ -17,8 +17,7 @@
 
 // Adapted from https://github.com/calccrypto/uint256_t
 
-#ifndef _UINT256_H_
-#define _UINT256_H_
+#pragma once
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -58,5 +57,3 @@ bool tostring256_signed(const uint256_t *const number,
                         char *const out,
                         uint32_t out_length);
 void convertUint256BE(const uint8_t *const data, uint32_t length, uint256_t *const target);
-
-#endif  // _UINT256_H_

@@ -100,9 +100,7 @@ class EthAppClient:
         self._firmware = client.firmware
         self._cmd_builder = CommandBuilder()
         self._pki_client: Optional[PKIClient] = None
-        if self._firmware != Firmware.NANOS:
-            # LedgerPKI not supported on Nanos
-            self._pki_client = PKIClient(self._client)
+        self._pki_client = PKIClient(self._client)
 
     def _exchange_async(self, payload: bytes):
         return self._client.exchange_async_raw(payload)

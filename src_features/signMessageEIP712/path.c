@@ -1,5 +1,3 @@
-#ifdef HAVE_EIP712_FULL_SUPPORT
-
 #include <string.h>
 #include "path.h"
 #include "mem.h"
@@ -775,5 +773,3 @@ bool path_init(void) {
 void path_deinit(void) {
     path_struct = NULL;
 }
-
-#endif  // HAVE_EIP712_FULL_SUPPORT

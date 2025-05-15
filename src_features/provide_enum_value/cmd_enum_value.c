@@ -1,5 +1,3 @@
-#ifdef HAVE_ENUM_VALUE
-
 #include "cmd_enum_value.h"
 #include "apdu_constants.h"
 #include "mem.h"
@@ -28,5 +26,3 @@ uint16_t handle_enum_value(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *pa
     }
     return APDU_RESPONSE_OK;
 }
-
-#endif  // HAVE_ENUM_VALUE

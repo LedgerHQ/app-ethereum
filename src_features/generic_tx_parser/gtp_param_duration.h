@@ -1,5 +1,4 @@
-#ifndef GTP_PARAM_DURATION_H_
-#define GTP_PARAM_DURATION_H_
+#pragma once
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -17,5 +16,3 @@ typedef struct {
 
 bool handle_param_duration_struct(const s_tlv_data *data, s_param_duration_context *context);
 bool format_param_duration(const s_param_duration *param, const char *name);
-
-#endif  // !GTP_PARAM_DURATION_H_

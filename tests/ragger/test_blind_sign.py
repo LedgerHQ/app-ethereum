@@ -1,7 +1,6 @@
 from pathlib import Path
 import json
 from typing import Optional
-import time
 
 import pytest
 from web3 import Web3
@@ -153,9 +152,6 @@ def test_blind_sign_reject_in_risk_review(firmware: Firmware,
                                           navigator: Navigator):
     app_client = EthAppClient(backend)
 
-    if firmware == Firmware.NANOS:
-        pytest.skip("Not supported on Nano S devices")
-
     settings_toggle(firmware, navigator, [SettingID.BLIND_SIGNING])
 
     moves = []
@@ -192,16 +188,10 @@ def test_sign_parameter_selector(firmware: Firmware,
         if firmware.is_nano:
             # verify | selector
             moves += [NavInsID.RIGHT_CLICK] * 2 + [NavInsID.BOTH_CLICK]
-            if firmware == Firmware.NANOS:
-                moves += ([NavInsID.RIGHT_CLICK] * 4 + [NavInsID.BOTH_CLICK]) * params
-                # blind signing | review | tx hash | from | to | fees
-                moves += [NavInsID.RIGHT_CLICK] * 13
-            else:
-                # (verify | parameter) * flows
-                moves += ([NavInsID.RIGHT_CLICK] * 2 + [NavInsID.BOTH_CLICK]) * params
-                # blind signing | review | from | amount | to | fees
-                moves += [NavInsID.BOTH_CLICK] + [NavInsID.RIGHT_CLICK] * 6
-            moves += [NavInsID.BOTH_CLICK]
+            # (verify | parameter) * flows
+            moves += ([NavInsID.RIGHT_CLICK] * 2 + [NavInsID.BOTH_CLICK]) * params
+            # blind signing | review | from | amount | to | fees
+            moves += [NavInsID.BOTH_CLICK] + [NavInsID.RIGHT_CLICK] * 6 + [NavInsID.BOTH_CLICK]
         else:
             moves += ([NavInsID.SWIPE_CENTER_TO_LEFT] * 2 + [NavInsID.USE_CASE_REVIEW_CONFIRM]) * (1 + params)
             moves += [NavInsID.USE_CASE_CHOICE_REJECT]
@@ -229,9 +219,6 @@ def test_blind_sign_not_enabled_error(firmware: Firmware,
         with app_client.sign(BIP32_PATH, common_tx_params(0.0)):
             moves = []
             if firmware.is_nano:
-                if firmware == Firmware.NANOS:
-                    time.sleep(0.5)  # seems to take some time
-                    moves += [NavInsID.RIGHT_CLICK]
                 moves += [NavInsID.BOTH_CLICK]
             else:
                 moves += [NavInsID.USE_CASE_CHOICE_REJECT]

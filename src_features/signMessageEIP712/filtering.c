@@ -1,5 +1,3 @@
-#ifdef HAVE_EIP712_FULL_SUPPORT
-
 #include "filtering.h"
 #include "hash_bytes.h"
 #include "apdu_constants.h"  // APDU return codes
@@ -11,9 +9,7 @@
 #include "path.h"
 #include "ui_logic.h"
 #include "filtering.h"
-#ifdef HAVE_LEDGER_PKI
 #include "os_pki.h"
-#endif
 #include "trusted_name.h"
 #include "proxy_info.h"
 
@@ -130,9 +126,7 @@ static bool sig_verif_end(cx_sha256_t *hash_ctx, const uint8_t *sig, uint8_t sig
                                          sizeof(hash),
                                          LEDGER_SIGNATURE_PUBLIC_KEY,
                                          sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
-#ifdef HAVE_LEDGER_PKI
                                          CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META,
-#endif
                                          (uint8_t *) (sig),
                                          sig_length));
 
@@ -332,7 +326,6 @@ bool filtering_discarded_path(const uint8_t *payload, uint8_t length) {
     return true;
 }
 
-#ifdef HAVE_TRUSTED_NAME
 /**
  * Command to display a field as a trusted name
  *
@@ -429,8 +422,6 @@ bool filtering_trusted_name(const uint8_t *payload,
     ui_712_set_trusted_name_requirements(type_count, types, source_count, sources);
     return true;
 }
-#endif  // HAVE_TRUSTED_NAME
-
 /**
  * Command to display a field as a date-time
  *
@@ -701,5 +692,3 @@ bool filtering_raw_field(const uint8_t *payload,
     }
     return true;
 }
-
-#endif  // HAVE_EIP712_FULL_SUPPORT

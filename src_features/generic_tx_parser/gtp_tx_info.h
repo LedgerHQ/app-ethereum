@@ -1,5 +1,4 @@
-#ifndef GTP_TX_INFO_H_
-#define GTP_TX_INFO_H_
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -46,5 +45,3 @@ const uint8_t *get_contract_addr(void);
 const char *get_deploy_date(void);
 cx_hash_t *get_fields_hash_ctx(void);
 bool validate_instruction_hash(void);
-
-#endif  // !GTP_TX_INFO_H_

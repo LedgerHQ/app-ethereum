@@ -10,9 +10,7 @@
 #include "mem.h"
 #include "utils.h"
 #include "nbgl_use_case.h"
-#ifdef HAVE_LEDGER_PKI
 #include "os_pki.h"
-#endif
 #include "network.h"
 #include "ui_callbacks.h"
 
@@ -333,9 +331,7 @@ static bool verify_signature(s_tx_simu_ctx *context) {
                                          sizeof(hash),
                                          NULL,
                                          0,
-#ifdef HAVE_LEDGER_PKI
                                          CERTIFICATE_PUBLIC_KEY_USAGE_TX_SIMU_SIGNER,
-#endif
                                          (uint8_t *) (context->sig),
                                          context->sig_size));
 

@@ -2,9 +2,7 @@
 #include "shared_context.h"
 #include "network.h"
 #include "cmd_setPlugin.h"
-#ifdef HAVE_NBGL
 #include "nbgl_use_case.h"
-#endif  // HAVE_NBGL
 
 // Standard or crosschain swap type
 swap_mode_t G_swap_mode;
@@ -159,7 +157,7 @@ void __attribute__((noreturn)) handle_swap_sign_transaction(const chain_config_t
 
 #ifdef SCREEN_SIZE_WALLET
     nbgl_useCaseSpinner("Signing");
-#endif  // HAVE_NBGL
+#endif  // SCREEN_SIZE_WALLET
 
     app_main();
 

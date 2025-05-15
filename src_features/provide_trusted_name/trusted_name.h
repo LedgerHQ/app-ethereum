@@ -1,7 +1,4 @@
-#ifdef HAVE_TRUSTED_NAME
-
-#ifndef TRUSTED_NAME_H_
-#define TRUSTED_NAME_H_
+#pragma once
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -45,9 +42,7 @@ typedef struct {
     uint64_t chain_id;
     e_name_type name_type;
     e_name_source name_source;
-#ifdef HAVE_NFT_SUPPORT
     uint8_t nft_id[INT256_LENGTH];
-#endif
 } s_trusted_name_info;
 
 typedef struct {
@@ -70,7 +65,3 @@ extern char g_trusted_name[TRUSTED_NAME_MAX_LENGTH + 1];
 
 bool handle_trusted_name_struct(const s_tlv_data *data, s_trusted_name_ctx *context);
 bool verify_trusted_name_struct(const s_trusted_name_ctx *ctx);
-
-#endif  // !TRUSTED_NAME_H_
-
-#endif  // !HAVE_TRUSTED_NAME

@@ -1,5 +1,3 @@
-#ifdef HAVE_EIP7702
-
 #include "nbgl_use_case.h"
 #include "shared_context.h"
 #include "ui_callbacks.h"
@@ -25,5 +23,3 @@ void ui_error_no_7702(void) {
                        "Reject authorization",
                        ui_error_no_7702_choice);
 }
-
-#endif  // HAVE_EIP7702

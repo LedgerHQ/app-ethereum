@@ -18,8 +18,6 @@ void ui_typed_message_review_choice_v0(bool confirm) {
     ui_typed_message_review_choice_common(confirm, ui_712_approve_cb, ui_712_reject_cb);
 }
 
-#ifdef HAVE_EIP712_FULL_SUPPORT
 void ui_typed_message_review_choice(bool confirm) {
     ui_typed_message_review_choice_common(confirm, ui_712_approve, ui_712_reject);
 }
-#endif

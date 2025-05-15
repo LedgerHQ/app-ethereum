@@ -1,5 +1,3 @@
-#ifdef HAVE_NFT_SUPPORT
-
 #include "erc721_plugin.h"
 #include "plugin_utils.h"
 #include "eth_plugin_internal.h"
@@ -93,5 +91,3 @@ void handle_provide_parameter_721(ethPluginProvideParameter_t *msg) {
             break;
     }
 }
-
-#endif  // HAVE_NFT_SUPPORT

@@ -1,5 +1,3 @@
-#ifdef HAVE_DYNAMIC_NETWORKS
-
 #include "network_info.h"
 #include "utils.h"
 #include "read.h"
@@ -27,9 +25,7 @@ enum {
 // Global variable to store the current slot
 uint8_t g_current_network_slot = 0;
 
-#ifdef HAVE_NBGL
 uint8_t g_network_icon_hash[MAX_DYNAMIC_NETWORKS][CX_SHA256_SIZE] = {0};
-#endif
 // Global structure to store the dynamic network information
 network_info_t DYNAMIC_NETWORK_INFO[MAX_DYNAMIC_NETWORKS] = {0};
 
@@ -152,7 +148,6 @@ static bool handle_ticker(const s_tlv_data *data, s_network_info_ctx *context) {
     return true;
 }
 
-#ifdef HAVE_NBGL
 /**
  * @brief Parse the NETWORK_ICON_HASH value.
  *
@@ -167,7 +162,6 @@ static bool handle_icon_hash(const s_tlv_data *data, s_network_info_ctx *context
     buf_shrink_expand(data->value, data->length, context->icon_hash, sizeof(context->icon_hash));
     return true;
 }
-#endif
 
 /**
  * @brief Parse the SIGNATURE value.
@@ -208,11 +202,7 @@ bool handle_network_info_struct(const s_tlv_data *data, s_network_info_ctx *cont
             ret = handle_ticker(data, context);
             break;
         case TAG_NETWORK_ICON_HASH:
-#ifdef HAVE_NBGL
             ret = handle_icon_hash(data, context);
-#else
-            ret = true;
-#endif
             break;
         case TAG_DER_SIGNATURE:
             ret = handle_signature(data, context);
@@ -248,9 +238,7 @@ bool verify_network_info_struct(const s_network_info_ctx *context) {
                                     sizeof(hash),
                                     NULL,
                                     0,
-#ifdef HAVE_LEDGER_PKI
                                     CERTIFICATE_PUBLIC_KEY_USAGE_NETWORK,
-#endif
                                     (uint8_t *) context->signature,
                                     context->signature_length) != CX_OK) {
         return false;
@@ -271,12 +259,8 @@ bool verify_network_info_struct(const s_network_info_ctx *context) {
     memcpy(&DYNAMIC_NETWORK_INFO[g_current_network_slot],
            &context->network,
            sizeof(network_info_t));
-#ifdef HAVE_NBGL
     memcpy(g_network_icon_hash[g_current_network_slot],
            context->icon_hash,
            sizeof(context->icon_hash));
-#endif
     return true;
 }
-
-#endif  // HAVE_DYNAMIC_NETWORKS

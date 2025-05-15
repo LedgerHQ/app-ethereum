@@ -1,5 +1,3 @@
-#ifdef HAVE_EIP712_FULL_SUPPORT
-
 #include "ui_logic.h"
 #include "mem.h"
 #include "mem_utils.h"
@@ -58,12 +56,10 @@ typedef struct {
     uint32_t filters_crc[MAX_FILTERS];
     uint8_t discarded_path_length;
     char discarded_path[255];
-#ifdef HAVE_TRUSTED_NAME
     uint8_t tn_type_count;
     uint8_t tn_source_count;
     e_name_type tn_types[TN_TYPE_COUNT];
     e_name_source tn_sources[TN_SOURCE_COUNT];
-#endif
     char ui_pairs_buffer[(SHARED_CTX_FIELD_1_SIZE + SHARED_CTX_FIELD_2_SIZE) * 2];
 } t_ui_context;
 
@@ -514,7 +510,6 @@ static bool update_amount_join(const uint8_t *data, uint8_t length) {
     return true;
 }
 
-#ifdef HAVE_TRUSTED_NAME
 /**
  * Try to substitute given address by a matching contract name
  *
@@ -538,7 +533,6 @@ static bool ui_712_format_trusted_name(const uint8_t *data, uint8_t length) {
     }
     return true;
 }
-#endif
 
 /**
  * Format given data as a human-readable date/time representation
@@ -638,13 +632,11 @@ bool ui_712_feed_to_display(const void *field_ptr,
         }
     }
 
-#ifdef HAVE_TRUSTED_NAME
     if (ui_ctx->field_flags & UI_712_TRUSTED_NAME) {
         if (!ui_712_format_trusted_name(data, length)) {
             return false;
         }
     }
-#endif
 
     // Check if this field is supposed to be displayed
     if (last && ui_712_field_shown()) {
@@ -896,7 +888,6 @@ const char *ui_712_get_discarded_path(uint8_t *length) {
     return ui_ctx->discarded_path;
 }
 
-#ifdef HAVE_TRUSTED_NAME
 void ui_712_set_trusted_name_requirements(uint8_t type_count,
                                           const e_name_type *types,
                                           uint8_t source_count,
@@ -906,7 +897,6 @@ void ui_712_set_trusted_name_requirements(uint8_t type_count,
     ui_ctx->tn_source_count = source_count;
     memcpy(ui_ctx->tn_sources, sources, source_count);
 }
-#endif
 
 /*
  * Get UI pairs buffer
@@ -918,5 +908,3 @@ char *get_ui_pairs_buffer(size_t *size) {
     *size = sizeof(ui_ctx->ui_pairs_buffer);
     return ui_ctx->ui_pairs_buffer;
 }
-
-#endif  // HAVE_EIP712_FULL_SUPPORT

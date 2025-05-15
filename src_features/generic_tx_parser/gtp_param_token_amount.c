@@ -1,5 +1,3 @@
-#ifdef HAVE_GENERIC_TX_PARSER
-
 #include <string.h>
 #include "gtp_param_token_amount.h"
 #include "network.h"
@@ -188,5 +186,3 @@ bool format_param_token_amount(const s_param_token_amount *param, const char *na
     value_cleanup(&param->token, &collec_token);
     return ret;
 }
-
-#endif  // HAVE_GENERIC_TX_PARSER

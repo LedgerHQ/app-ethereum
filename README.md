@@ -224,10 +224,10 @@ pip install -r tests/ragger/requirements.txt
 
 Then you can:
 
-Run the functional tests (here for nanos but available for any device once you have built the binaries):
+Run the functional tests (here for flex but available for any device once you have built the binaries):
 
 ```shell
-pytest tests/ragger/ --tb=short -v --device nanos
+pytest tests/ragger/ --tb=short -v --device flex
 ```
 
 Please see the corresponding ducomentation [USAGE](tests/ragger/usage.md)
@@ -235,7 +235,7 @@ Please see the corresponding ducomentation [USAGE](tests/ragger/usage.md)
 Or run your app directly with Speculos
 
 ```shell
-speculos --model nanos build/nanos/bin/app.elf
+speculos build/flex/bin/app.elf
 ```
 
 #### macOS / Windows

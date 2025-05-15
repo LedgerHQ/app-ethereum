@@ -1,5 +1,3 @@
-#ifdef HAVE_GENERIC_TX_PARSER
-
 #include <time.h>
 #include "gtp_tx_info.h"
 #include "read.h"
@@ -298,9 +296,7 @@ bool verify_tx_info_struct(const s_tx_info_ctx *context) {
                                     sizeof(hash),
                                     NULL,
                                     0,
-#ifdef HAVE_LEDGER_PKI
                                     CERTIFICATE_PUBLIC_KEY_USAGE_CALLDATA,
-#endif
                                     (uint8_t *) context->tx_info->signature,
                                     context->tx_info->signature_len) != CX_OK) {
         return false;
@@ -366,5 +362,3 @@ bool validate_instruction_hash(void) {
     }
     return memcmp(g_tx_info->fields_hash, hash, sizeof(hash)) == 0;
 }
-
-#endif  // HAVE_GENERIC_TX_PARSER

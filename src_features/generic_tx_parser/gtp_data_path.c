@@ -1,5 +1,3 @@
-#ifdef HAVE_GENERIC_TX_PARSER
-
 #include <string.h>  // memcpy / explicit_bzero
 #include "os_print.h"
 #include "os_math.h"  // MIN
@@ -329,5 +327,3 @@ void data_path_cleanup(const s_parsed_value_collection *collection) {
         mem_rev_dealloc(collection->value[i].size);
     }
 }
-
-#endif  // HAVE_GENERIC_TX_PARSER

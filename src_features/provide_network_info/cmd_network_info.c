@@ -1,5 +1,3 @@
-#ifdef HAVE_DYNAMIC_NETWORKS
-
 #include <stdbool.h>
 #include "cmd_network_info.h"
 #include "apdu_constants.h"
@@ -14,7 +12,6 @@
 
 #define MAX_ICON_LEN 1024
 
-#ifdef HAVE_NBGL
 typedef struct {
     uint16_t received_size;
     uint16_t expected_size;
@@ -23,9 +20,7 @@ typedef struct {
 static uint8_t g_network_icon_bitmap[MAX_DYNAMIC_NETWORKS][MAX_ICON_LEN] = {0};
 // Global structure to temporary store the network icon APDU
 static network_payload_t g_icon_payload = {0};
-#endif
 
-#ifdef HAVE_NBGL
 /**
  * @brief Check the NETWORK_ICON header.
  *
@@ -213,7 +208,6 @@ static uint16_t handle_icon_chunks(uint8_t p1, const uint8_t *data, uint8_t leng
     }
     return APDU_RESPONSE_OK;
 }
-#endif
 
 /**
  * @brief Print the registered network.
@@ -301,12 +295,7 @@ uint16_t handle_network_info(uint8_t p1,
             break;
 
         case P2_NETWORK_ICON:
-#ifdef HAVE_NBGL
             sw = handle_icon_chunks(p1, data, length);
-#else
-            PRINTF("Warning: Network icon not supported!\n");
-            sw = APDU_RESPONSE_OK;
-#endif
             break;
 
         case P2_GET_INFO:
@@ -323,14 +312,10 @@ uint16_t handle_network_info(uint8_t p1,
             break;
     }
 
-#ifdef HAVE_NBGL
     if ((sw != APDU_RESPONSE_OK) ||
         (g_icon_payload.received_size == g_icon_payload.expected_size)) {
         explicit_bzero(&g_icon_payload, sizeof(g_icon_payload));
     }
-#endif
 
     return sw;
 }
-
-#endif  // HAVE_DYNAMIC_NETWORKS

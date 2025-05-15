@@ -124,7 +124,6 @@ static const network_info_t NETWORK_MAPPING[] = {
 
 static const network_info_t *get_network_from_chain_id(const uint64_t *chain_id) {
     if (*chain_id != 0) {
-#ifdef HAVE_DYNAMIC_NETWORKS
         // Look if the network is available
         for (size_t i = 0; i < MAX_DYNAMIC_NETWORKS; i++) {
             if (DYNAMIC_NETWORK_INFO[i].chain_id == *chain_id) {
@@ -134,7 +133,6 @@ static const network_info_t *get_network_from_chain_id(const uint64_t *chain_id)
                 return (const network_info_t *) &DYNAMIC_NETWORK_INFO[i];
             }
         }
-#endif  // HAVE_DYNAMIC_NETWORKS
 
         // Fallback to hardcoded table
         for (size_t i = 0; i < ARRAYLEN(NETWORK_MAPPING); i++) {
@@ -196,9 +194,7 @@ uint64_t get_tx_chain_id(void) {
             break;
         case EIP2930:
         case EIP1559:
-#ifdef HAVE_EIP7702
         case EIP7702:
-#endif  // HAVE_EIP7702
             chain_id = u64_from_BE(tmpContent.txContent.chainID.value,
                                    tmpContent.txContent.chainID.length);
             break;

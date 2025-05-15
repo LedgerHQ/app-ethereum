@@ -1,5 +1,4 @@
-#ifndef _APDU_CONSTANTS_H_
-#define _APDU_CONSTANTS_H_
+#pragma once
 
 #include "offsets.h"
 #include "shared_context.h"
@@ -116,5 +115,3 @@ uint16_t handleGetEth2PublicKey(uint8_t p1,
 #endif
 
 extern uint16_t apdu_response_code;
-
-#endif  // _APDU_CONSTANTS_H_

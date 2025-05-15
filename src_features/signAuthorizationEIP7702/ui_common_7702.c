@@ -1,5 +1,3 @@
-#ifdef HAVE_EIP7702
-
 #include "shared_context.h"
 #include "common_ui.h"
 #include "ui_callbacks.h"
@@ -29,5 +27,3 @@ unsigned int auth_7702_ok_cb(void) {
 unsigned int auth_7702_cancel_cb(void) {
     return io_seproxyhal_send_status(APDU_RESPONSE_CONDITION_NOT_SATISFIED, 0, true, true);
 }
-
-#endif  // HAVE_EIP7702

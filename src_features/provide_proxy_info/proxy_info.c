@@ -1,5 +1,3 @@
-#if defined(HAVE_EIP712_FULL_SUPPORT) || defined(HAVE_GENERIC_TX_PARSER)
-
 #include "proxy_info.h"
 #include "read.h"
 #include "utils.h"  // buf_shrink_expand
@@ -172,9 +170,7 @@ bool verify_proxy_info_struct(const s_proxy_info_ctx *context) {
                                     sizeof(hash),
                                     NULL,
                                     0,
-#ifdef HAVE_LEDGER_PKI
                                     CERTIFICATE_PUBLIC_KEY_USAGE_CALLDATA,
-#endif
                                     (uint8_t *) context->signature,
                                     context->signature_length) != CX_OK) {
         PRINTF("Error: signature verification failed!\n");
@@ -241,5 +237,3 @@ const uint8_t *get_implem_contract(const uint64_t *chain_id,
     }
     return g_proxy_info.implem_address;
 }
-
-#endif

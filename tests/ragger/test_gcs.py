@@ -2,11 +2,9 @@ from typing import Optional
 import struct
 import json
 import hashlib
-import pytest
 from web3 import Web3
 
 from ragger.backend import BackendInterface
-from ragger.firmware import Firmware
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 
 
@@ -24,14 +22,10 @@ from client.tx_simu import TxSimu
 from client.proxy_info import ProxyInfo
 
 
-def test_gcs_nft(firmware: Firmware,
-                 backend: BackendInterface,
+def test_gcs_nft(backend: BackendInterface,
                  scenario_navigator: NavigateWithScenario,
                  test_name: str):
     app_client = EthAppClient(backend)
-
-    if firmware == Firmware.NANOS:
-        pytest.skip("Not supported on LNS")
 
     with open(f"{ABIS_FOLDER}/erc1155.json", encoding="utf-8") as file:
         contract = Web3().eth.contract(
@@ -226,15 +220,11 @@ def test_gcs_nft(firmware: Firmware,
         scenario_navigator.review_approve(test_name=test_name)
 
 
-def test_gcs_poap(firmware: Firmware,
-                  backend: BackendInterface,
+def test_gcs_poap(backend: BackendInterface,
                   scenario_navigator: NavigateWithScenario,
                   test_name: str,
                   simu_params: Optional[TxSimu] = None):
     app_client = EthAppClient(backend)
-
-    if firmware == Firmware.NANOS:
-        pytest.skip("Not supported on LNS")
 
     with open(f"{ABIS_FOLDER}/poap.abi.json", encoding="utf-8") as file:
         contract = Web3().eth.contract(
@@ -406,14 +396,10 @@ def test_gcs_poap(firmware: Firmware,
             scenario_navigator.review_approve(test_name=test_name)
 
 
-def test_gcs_1inch(firmware: Firmware,
-                   backend: BackendInterface,
+def test_gcs_1inch(backend: BackendInterface,
                    scenario_navigator: NavigateWithScenario,
                    test_name: str):
     app_client = EthAppClient(backend)
-
-    if firmware == Firmware.NANOS:
-        pytest.skip("Not supported on LNS")
 
     with open(f"{ABIS_FOLDER}/1inch.abi.json", encoding="utf-8") as file:
         contract = Web3().eth.contract(
@@ -571,14 +557,10 @@ def test_gcs_1inch(firmware: Firmware,
         scenario_navigator.review_approve(test_name=test_name)
 
 
-def test_gcs_proxy(firmware: Firmware,
-                   backend: BackendInterface,
+def test_gcs_proxy(backend: BackendInterface,
                    scenario_navigator: NavigateWithScenario,
                    test_name: str):
     app_client = EthAppClient(backend)
-
-    if firmware == Firmware.NANOS:
-        pytest.skip("Not supported on LNS")
 
     new_owner = bytes.fromhex("2222222222222222222222222222222222222222")
 
@@ -685,14 +667,10 @@ def test_gcs_proxy(firmware: Firmware,
         scenario_navigator.review_approve(test_name=test_name)
 
 
-def test_gcs_4226(firmware: Firmware,
-                  backend: BackendInterface,
+def test_gcs_4226(backend: BackendInterface,
                   scenario_navigator: NavigateWithScenario,
                   test_name: str):
     app_client = EthAppClient(backend)
-
-    if firmware == Firmware.NANOS:
-        pytest.skip("Not supported on LNS")
 
     with open(f"{ABIS_FOLDER}/rSWELL.abi.json", encoding="utf-8") as file:
         contract = Web3().eth.contract(

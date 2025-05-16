@@ -66,6 +66,7 @@ with `ParamType` enum defined as:
 | ENUM         | 0x07  |
 | TRUSTED_NAME | 0x08  |
 | CALLDATA     | 0x09  |
+| TOKEN        | 0x0a  |
 
 > [!CAUTION]
 >  - `NAME` max length ?

@@ -4,7 +4,6 @@ import json
 import hashlib
 from web3 import Web3
 
-from ragger.backend import BackendInterface
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 
 
@@ -22,9 +21,8 @@ from client.tx_simu import TxSimu
 from client.proxy_info import ProxyInfo
 
 
-def test_gcs_nft(backend: BackendInterface,
-                 scenario_navigator: NavigateWithScenario,
-                 test_name: str):
+def test_gcs_nft(scenario_navigator: NavigateWithScenario, test_name: str):
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
 
     with open(f"{ABIS_FOLDER}/erc1155.json", encoding="utf-8") as file:
@@ -220,10 +218,10 @@ def test_gcs_nft(backend: BackendInterface,
         scenario_navigator.review_approve(test_name=test_name)
 
 
-def test_gcs_poap(backend: BackendInterface,
-                  scenario_navigator: NavigateWithScenario,
+def test_gcs_poap(scenario_navigator: NavigateWithScenario,
                   test_name: str,
                   simu_params: Optional[TxSimu] = None):
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
 
     with open(f"{ABIS_FOLDER}/poap.abi.json", encoding="utf-8") as file:
@@ -396,9 +394,8 @@ def test_gcs_poap(backend: BackendInterface,
             scenario_navigator.review_approve(test_name=test_name)
 
 
-def test_gcs_1inch(backend: BackendInterface,
-                   scenario_navigator: NavigateWithScenario,
-                   test_name: str):
+def test_gcs_1inch(scenario_navigator: NavigateWithScenario, test_name: str):
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
 
     with open(f"{ABIS_FOLDER}/1inch.abi.json", encoding="utf-8") as file:
@@ -557,9 +554,8 @@ def test_gcs_1inch(backend: BackendInterface,
         scenario_navigator.review_approve(test_name=test_name)
 
 
-def test_gcs_proxy(backend: BackendInterface,
-                   scenario_navigator: NavigateWithScenario,
-                   test_name: str):
+def test_gcs_proxy(scenario_navigator: NavigateWithScenario, test_name: str):
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
 
     new_owner = bytes.fromhex("2222222222222222222222222222222222222222")
@@ -667,9 +663,8 @@ def test_gcs_proxy(backend: BackendInterface,
         scenario_navigator.review_approve(test_name=test_name)
 
 
-def test_gcs_4226(backend: BackendInterface,
-                  scenario_navigator: NavigateWithScenario,
-                  test_name: str):
+def test_gcs_4226(scenario_navigator: NavigateWithScenario, test_name: str):
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
 
     with open(f"{ABIS_FOLDER}/rSWELL.abi.json", encoding="utf-8") as file:

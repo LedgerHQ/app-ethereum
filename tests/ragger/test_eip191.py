@@ -1,10 +1,8 @@
-from pathlib import Path
 from typing import Optional
 from Crypto.Hash import keccak
 
 from ragger.error import ExceptionRAPDU
-from ragger.backend import BackendInterface
-from ragger.navigator import Navigator, NavInsID
+from ragger.navigator import NavInsID
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 
 from client.client import EthAppClient, StatusWord
@@ -24,14 +22,14 @@ def handle_simulation(app_client: EthAppClient, msg: str, simu_params: TxSimu) -
     assert response.status == StatusWord.OK
 
 
-def common(backend: BackendInterface,
-           navigator: Navigator,
-           scenario: NavigateWithScenario,
-           default_screenshot_path: Path,
+def common(scenario_navigator: NavigateWithScenario,
            test_name: str,
            msg: str,
            simu_params: Optional[TxSimu] = None):
 
+    backend = scenario_navigator.backend
+    navigator = scenario_navigator.navigator
+    screenshot_path = scenario_navigator.screenshot_path
     app_client = EthAppClient(backend)
 
     with app_client.get_public_addr(display=False):
@@ -45,7 +43,7 @@ def common(backend: BackendInterface,
     try:
         with app_client.personal_sign(BIP32_PATH, msg.encode('utf-8')):
             if simu_params is not None:
-                navigator.navigate_and_compare(default_screenshot_path,
+                navigator.navigate_and_compare(screenshot_path,
                                                f"{test_name}/warning",
                                                [NavInsID.USE_CASE_CHOICE_REJECT],
                                                screen_change_after_last_instruction=False)
@@ -54,10 +52,10 @@ def common(backend: BackendInterface,
                 navigator.navigate_until_text_and_compare(NavInsID.SWIPE_CENTER_TO_LEFT,
                                                         [NavInsID.USE_CASE_CHOICE_CONFIRM],
                                                         "Transaction Check",
-                                                        default_screenshot_path,
+                                                        screenshot_path,
                                                         test_name)
             else:
-                scenario.review_approve(test_name=test_name)
+                scenario_navigator.review_approve(test_name=test_name)
 
     except ExceptionRAPDU as err:
         if simu_params and "tx_hash" in simu_params:
@@ -72,47 +70,34 @@ def common(backend: BackendInterface,
         assert addr == DEVICE_ADDR
 
 
-def test_personal_sign_metamask(backend: BackendInterface,
-                                navigator: Navigator,
-                                scenario_navigator: NavigateWithScenario,
-                                default_screenshot_path: Path,
-                                test_name: str):
+def test_personal_sign_metamask(scenario_navigator: NavigateWithScenario, test_name: str):
 
     msg = "Example `personal_sign` message"
-    common(backend, navigator, scenario_navigator, default_screenshot_path, test_name, msg)
+    common(scenario_navigator, test_name, msg)
 
 
-def test_personal_sign_non_ascii(backend: BackendInterface,
-                                 navigator: Navigator,
-                                 scenario_navigator: NavigateWithScenario,
-                                 default_screenshot_path: Path,
-                                 test_name: str):
+def test_personal_sign_non_ascii(scenario_navigator: NavigateWithScenario, test_name: str):
 
     msg = "0x9c22ff5f21f0b81b113e63f7db6da94fedef11b2119b4088b89664fb9a3cb658"
-    common(backend, navigator, scenario_navigator, default_screenshot_path, test_name, msg)
+    common(scenario_navigator, test_name, msg)
 
 
-def test_personal_sign_opensea(backend: BackendInterface,
-                               navigator: Navigator,
-                               scenario_navigator: NavigateWithScenario,
-                               default_screenshot_path: Path,
-                               test_name: str):
+def test_personal_sign_opensea(scenario_navigator: NavigateWithScenario, test_name: str):
 
     msg = "Welcome to OpenSea!\n\n"
     msg += "Click to sign in and accept the OpenSea Terms of Service: https://opensea.io/tos\n\n"
     msg += "This request will not trigger a blockchain transaction or cost any gas fees.\n\n"
     msg += "Your authentication status will reset after 24 hours.\n\n"
     msg += "Wallet address:\n0x9858effd232b4033e47d90003d41ec34ecaeda94\n\nNonce:\n2b02c8a0-f74f-4554-9821-a28054dc9121"
-    common(backend, navigator, scenario_navigator, default_screenshot_path, test_name, msg)
+    common(scenario_navigator, test_name, msg)
 
 
-def test_personal_sign_reject(backend: BackendInterface,
-                              scenario_navigator: NavigateWithScenario):
+def test_personal_sign_reject(scenario_navigator: NavigateWithScenario):
 
-    msg = "This is an reject sign"
-
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
 
+    msg = "This is an reject sign"
     try:
         with app_client.personal_sign(BIP32_PATH, msg.encode('utf-8')):
             scenario_navigator.review_reject()

@@ -1,8 +1,6 @@
 from typing import Optional
 
 from ragger.error import ExceptionRAPDU
-from ragger.backend import BackendInterface
-from ragger.firmware import Firmware
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 from ragger.navigator import NavInsID
 
@@ -35,14 +33,14 @@ DEVICE_ADDR: Optional[bytes] = None
 # pylint: enable=line-too-long
 
 
-def common(backend: BackendInterface,
-           scenario: NavigateWithScenario,
+def common(scenario_navigator: NavigateWithScenario,
            test_name: str,
            delegate: bytes,
            nonce: int,
            chain_id: int):
 
     global DEVICE_ADDR
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
 
     if DEVICE_ADDR is None:
@@ -51,31 +49,31 @@ def common(backend: BackendInterface,
         _, DEVICE_ADDR, _ = ResponseParser.pk_addr(app_client.response().data)
     auth_params = TxAuth7702(delegate, nonce, chain_id)
     with app_client.sign_eip7702_authorization(BIP32_PATH, auth_params):
-        scenario.review_approve(test_name=test_name)
+        scenario_navigator.review_approve(test_name=test_name)
     vrs = ResponseParser.signature(app_client.response().data)
     assert recover_authorization(chain_id, nonce, delegate, vrs) == DEVICE_ADDR
 
 
-def common_rejected(firmware: Firmware,
-                    backend: BackendInterface,
-                    scenario: NavigateWithScenario,
+def common_rejected(scenario_navigator: NavigateWithScenario,
                     test_name: str,
                     delegate: bytes,
                     nonce: int,
                     chain_id: int):
 
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
+    device = backend.device
 
     try:
         auth_params = TxAuth7702(delegate, nonce, chain_id)
         with app_client.sign_eip7702_authorization(BIP32_PATH, auth_params):
             moves = []
-            if firmware.is_nano:
+            if device.is_nano:
                 moves += [NavInsID.RIGHT_CLICK] * 3
                 moves += [NavInsID.BOTH_CLICK]
             else:
                 moves += [NavInsID.USE_CASE_CHOICE_REJECT]
-            scenario.navigator.navigate_and_compare(scenario.screenshot_path,
+            scenario_navigator.navigator.navigate_and_compare(scenario_navigator.screenshot_path,
                                                     test_name,
                                                     moves)
 
@@ -85,26 +83,20 @@ def common_rejected(firmware: Firmware,
         assert False  # An exception should have been raised
 
 
-def test_eip7702_in_whitelist(firmware: Firmware,
-                              backend: BackendInterface,
-                              scenario_navigator: NavigateWithScenario,
-                              test_name: str):
-    settings_toggle(firmware, scenario_navigator.navigator, [SettingID.EIP7702])
-    common(backend,
-           scenario_navigator,
+def test_eip7702_in_whitelist(scenario_navigator: NavigateWithScenario, test_name: str):
+    device = scenario_navigator.backend.device
+    settings_toggle(device, scenario_navigator.navigator, [SettingID.EIP7702])
+    common(scenario_navigator,
            test_name,
            TEST_ADDRESS_1,
            NONCE,
            CHAIN_ID_1)
 
 
-def test_eip7702_in_whitelist_all_chain_whitelisted(firmware: Firmware,
-                                                    backend: BackendInterface,
-                                                    scenario_navigator: NavigateWithScenario,
-                                                    test_name: str):
-    settings_toggle(firmware, scenario_navigator.navigator, [SettingID.EIP7702])
-    common(backend,
-           scenario_navigator,
+def test_eip7702_in_whitelist_all_chain_whitelisted(scenario_navigator: NavigateWithScenario, test_name: str):
+    device = scenario_navigator.backend.device
+    settings_toggle(device, scenario_navigator.navigator, [SettingID.EIP7702])
+    common(scenario_navigator,
            test_name,
            # Simple7702Account, which is whitelisted for all chains
            bytes.fromhex("4Cd241E8d1510e30b2076397afc7508Ae59C66c9"),
@@ -112,62 +104,46 @@ def test_eip7702_in_whitelist_all_chain_whitelisted(firmware: Firmware,
            CHAIN_ID_2)
 
 
-def test_eip7702_in_whitelist_all_chain_param(firmware: Firmware,
-                                              backend: BackendInterface,
-                                              scenario_navigator: NavigateWithScenario,
-                                              test_name: str):
-    settings_toggle(firmware, scenario_navigator.navigator, [SettingID.EIP7702])
-    common(backend,
-           scenario_navigator,
+def test_eip7702_in_whitelist_all_chain_param(scenario_navigator: NavigateWithScenario, test_name: str):
+    device = scenario_navigator.backend.device
+    settings_toggle(device, scenario_navigator.navigator, [SettingID.EIP7702])
+    common(scenario_navigator,
            test_name,
            TEST_ADDRESS_2,
            NONCE,
            CHAIN_ID_0)
 
 
-def test_eip7702_in_whitelist_max(firmware: Firmware,
-                                  backend: BackendInterface,
-                                  scenario_navigator: NavigateWithScenario,
-                                  test_name: str):
-    settings_toggle(firmware, scenario_navigator.navigator, [SettingID.EIP7702])
-    common(backend,
-           scenario_navigator,
+def test_eip7702_in_whitelist_max(scenario_navigator: NavigateWithScenario, test_name: str):
+    device = scenario_navigator.backend.device
+    settings_toggle(device, scenario_navigator.navigator, [SettingID.EIP7702])
+    common(scenario_navigator,
            test_name,
            TEST_ADDRESS_MAX,
            NONCE_MAX,
            CHAIN_ID_MAX)
 
 
-def test_eip7702_in_whitelist_wrong_chain(firmware: Firmware,
-                                          backend: BackendInterface,
-                                          scenario_navigator: NavigateWithScenario,
-                                          test_name: str):
-    settings_toggle(firmware, scenario_navigator.navigator, [SettingID.EIP7702])
-    common_rejected(firmware, backend, scenario_navigator, test_name, TEST_ADDRESS_2, NONCE, CHAIN_ID_1)
+def test_eip7702_in_whitelist_wrong_chain(scenario_navigator: NavigateWithScenario, test_name: str):
+    device = scenario_navigator.backend.device
+    settings_toggle(device, scenario_navigator.navigator, [SettingID.EIP7702])
+    common_rejected(scenario_navigator, test_name, TEST_ADDRESS_2, NONCE, CHAIN_ID_1)
 
 
-def test_eip7702_not_in_whitelist(firmware: Firmware,
-                                  backend: BackendInterface,
-                                  scenario_navigator: NavigateWithScenario,
-                                  test_name: str):
-    settings_toggle(firmware, scenario_navigator.navigator, [SettingID.EIP7702])
-    common_rejected(firmware, backend, scenario_navigator, test_name, TEST_ADDRESS_NO_WHITELIST, NONCE, CHAIN_ID_1)
+def test_eip7702_not_in_whitelist(scenario_navigator: NavigateWithScenario, test_name: str):
+    device = scenario_navigator.backend.device
+    settings_toggle(device, scenario_navigator.navigator, [SettingID.EIP7702])
+    common_rejected(scenario_navigator, test_name, TEST_ADDRESS_NO_WHITELIST, NONCE, CHAIN_ID_1)
 
 
-def test_eip7702_not_enabled(firmware: Firmware,
-                             backend: BackendInterface,
-                             scenario_navigator: NavigateWithScenario,
-                             test_name: str):
-    common_rejected(firmware, backend, scenario_navigator, test_name, TEST_ADDRESS_1, NONCE, CHAIN_ID_1)
+def test_eip7702_not_enabled(scenario_navigator: NavigateWithScenario, test_name: str):
+    common_rejected(scenario_navigator, test_name, TEST_ADDRESS_1, NONCE, CHAIN_ID_1)
 
 
-def test_eip7702_revocation(firmware: Firmware,
-                            backend: BackendInterface,
-                            scenario_navigator: NavigateWithScenario,
-                            test_name: str):
-    settings_toggle(firmware, scenario_navigator.navigator, [SettingID.EIP7702])
-    common(backend,
-           scenario_navigator,
+def test_eip7702_revocation(scenario_navigator: NavigateWithScenario, test_name: str):
+    device = scenario_navigator.backend.device
+    settings_toggle(device, scenario_navigator.navigator, [SettingID.EIP7702])
+    common(scenario_navigator,
            test_name,
            ADDRESS_REVOCATION,
            NONCE,

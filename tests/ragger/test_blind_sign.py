@@ -6,7 +6,6 @@ import pytest
 from web3 import Web3
 
 from ragger.backend import BackendInterface
-from ragger.firmware import Firmware
 from ragger.navigator import Navigator, NavInsID
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 from ragger.error import ExceptionRAPDU
@@ -70,7 +69,7 @@ def common_blind_sign(scenario_navigator: NavigateWithScenario,
                       test_name: str,
                       app_client: EthAppClient,
                       tx_params: dict,
-                      reject: bool = False) -> dict:
+                      reject: bool = False):
     try:
         with app_client.sign(BIP32_PATH, tx_params):
             if reject:
@@ -96,9 +95,7 @@ def common_blind_sign(scenario_navigator: NavigateWithScenario,
 
 
 # Token approval, would require providing the token metadata from the CAL
-def test_blind_sign(firmware: Firmware,
-                    backend: BackendInterface,
-                    navigator: Navigator,
+def test_blind_sign(navigator: Navigator,
                     scenario_navigator: NavigateWithScenario,
                     test_name: str,
                     reject: bool,
@@ -107,10 +104,13 @@ def test_blind_sign(firmware: Firmware,
     if reject and amount > 0.0:
         pytest.skip()
 
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
+    device = backend.device
+
     common_get_address(app_client)
 
-    settings_toggle(firmware, navigator, [SettingID.BLIND_SIGNING])
+    settings_toggle(device, navigator, [SettingID.BLIND_SIGNING])
 
     tx_params = common_tx_params(amount)
 
@@ -130,15 +130,16 @@ def test_blind_sign(firmware: Firmware,
 
 
 # Token approval, would require providing the token metadata from the CAL
-def test_blind_sign_nonce(firmware: Firmware,
-                          backend: BackendInterface,
-                          navigator: Navigator,
+def test_blind_sign_nonce(navigator: Navigator,
                           scenario_navigator: NavigateWithScenario,
                           test_name: str):
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
+    device = backend.device
+
     common_get_address(app_client)
 
-    settings_toggle(firmware, navigator, [SettingID.BLIND_SIGNING, SettingID.NONCE])
+    settings_toggle(device, navigator, [SettingID.BLIND_SIGNING, SettingID.NONCE])
 
     tx_params = common_tx_params(1.2)
     common_blind_sign(scenario_navigator,
@@ -147,15 +148,14 @@ def test_blind_sign_nonce(firmware: Firmware,
                       tx_params)
 
 
-def test_blind_sign_reject_in_risk_review(firmware: Firmware,
-                                          backend: BackendInterface,
-                                          navigator: Navigator):
+def test_blind_sign_reject_in_risk_review(backend: BackendInterface, navigator: Navigator):
     app_client = EthAppClient(backend)
+    device = backend.device
 
-    settings_toggle(firmware, navigator, [SettingID.BLIND_SIGNING])
+    settings_toggle(device, navigator, [SettingID.BLIND_SIGNING])
 
     moves = []
-    if firmware.is_nano:
+    if device.is_nano:
         moves += [NavInsID.RIGHT_CLICK] + [NavInsID.BOTH_CLICK]
     else:
         moves += [NavInsID.USE_CASE_CHOICE_CONFIRM]
@@ -170,22 +170,23 @@ def test_blind_sign_reject_in_risk_review(firmware: Firmware,
 
 # Token approval, would require loading the "internal plugin" &
 # providing the token metadata from the CAL
-def test_sign_parameter_selector(firmware: Firmware,
-                                 backend: BackendInterface,
+def test_sign_parameter_selector(backend: BackendInterface,
                                  navigator: Navigator,
                                  test_name: str,
                                  default_screenshot_path: Path):
     app_client = EthAppClient(backend)
+    device = backend.device
+
     common_get_address(app_client)
 
-    settings_toggle(firmware, navigator, [SettingID.BLIND_SIGNING, SettingID.DEBUG_DATA])
+    settings_toggle(device, navigator, [SettingID.BLIND_SIGNING, SettingID.DEBUG_DATA])
 
     tx_params = common_tx_params(0.0)
     data_len = len(bytes.fromhex(tx_params["data"][2:]))
     params = (data_len - 4) // 32
     with app_client.sign(BIP32_PATH, tx_params):
         moves = []
-        if firmware.is_nano:
+        if device.is_nano:
             # verify | selector
             moves += [NavInsID.RIGHT_CLICK] * 2 + [NavInsID.BOTH_CLICK]
             # (verify | parameter) * flows
@@ -208,17 +209,17 @@ def test_sign_parameter_selector(firmware: Firmware,
     assert addr == DEVICE_ADDR
 
 
-def test_blind_sign_not_enabled_error(firmware: Firmware,
-                                      backend: BackendInterface,
+def test_blind_sign_not_enabled_error(backend: BackendInterface,
                                       navigator: Navigator,
                                       test_name: str,
                                       default_screenshot_path: Path):
     app_client = EthAppClient(backend)
+    device = backend.device
 
     try:
         with app_client.sign(BIP32_PATH, common_tx_params(0.0)):
             moves = []
-            if firmware.is_nano:
+            if device.is_nano:
                 moves += [NavInsID.BOTH_CLICK]
             else:
                 moves += [NavInsID.USE_CASE_CHOICE_REJECT]

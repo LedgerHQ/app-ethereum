@@ -2,8 +2,9 @@ from pathlib import Path
 from typing import List
 import pytest
 
+from ledgered.devices import Device
+
 from ragger.backend import BackendInterface
-from ragger.firmware import Firmware
 from ragger.navigator import Navigator
 from ragger.utils.misc import get_current_app_name_and_version
 
@@ -24,7 +25,7 @@ from client.settings import SettingID, get_settings_moves
         ("multiple3", [SettingID.BLIND_SIGNING, SettingID.WEB3_CHECK]),
     ]
 )
-def test_settings(firmware: Firmware,
+def test_settings(device: Device,
                   navigator: Navigator,
                   test_name: str,
                   default_screenshot_path: Path,
@@ -32,10 +33,10 @@ def test_settings(firmware: Firmware,
                   setting: List[SettingID]):
     """Check the settings"""
 
-    if firmware.is_nano and SettingID.WEB3_CHECK in setting:
+    if device.is_nano and SettingID.WEB3_CHECK in setting:
         pytest.skip("Skipping W3C on Nano")
 
-    moves = get_settings_moves(firmware, setting)
+    moves = get_settings_moves(device, setting)
     navigator.navigate_and_compare(default_screenshot_path,
                                    f"{test_name}/{name}",
                                    moves, screen_change_before_first_instruction=False)

@@ -1,8 +1,6 @@
 import pytest
 from web3 import Web3
 
-from ragger.backend import BackendInterface
-from ragger.firmware import Firmware
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 
 from test_sign import common
@@ -19,10 +17,7 @@ VALUE = 0.31415
 
 # Transfer on Clone app
 @pytest.mark.needs_setup('lib_mode')
-def test_clone_thundercore(firmware: Firmware,
-                           backend: BackendInterface,
-                           scenario_navigator: NavigateWithScenario,
-                           test_name: str):
+def test_clone_thundercore(scenario_navigator: NavigateWithScenario, test_name: str):
     tx_params: dict = {
         "nonce": NONCE,
         "gasPrice": Web3.to_wei(GAS_PRICE, 'gwei'),
@@ -31,9 +26,4 @@ def test_clone_thundercore(firmware: Firmware,
         "value": Web3.to_wei(VALUE, "ether"),
         "chainId": 108
     }
-    common(firmware,
-           backend,
-           scenario_navigator,
-           tx_params,
-           test_name,
-           BIP32_PATH)
+    common(scenario_navigator, tx_params, test_name, BIP32_PATH)

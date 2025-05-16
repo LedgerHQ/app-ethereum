@@ -3,9 +3,10 @@ from enum import IntEnum
 from web3 import Web3
 import pytest
 
+from ledgered.devices import Device
+
 from ragger.error import ExceptionRAPDU
 from ragger.backend import BackendInterface
-from ragger.firmware import Firmware
 from ragger.navigator import Navigator, NavInsID
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 
@@ -32,7 +33,7 @@ def config_fixture(request) -> str:
     return request.param
 
 
-def __common_setting_handling(firmware: Firmware,
+def __common_setting_handling(device: Device,
                               navigator: Navigator,
                               app_client: EthAppClient,
                               expected: bool) -> None:
@@ -43,7 +44,7 @@ def __common_setting_handling(firmware: Firmware,
     flags = response.data[0]
     if bool(flags & W3CFlags.W3C_ENABLE) != expected:
         # Toggle the WEB3_CHECK setting
-        settings_toggle(firmware, navigator, [SettingID.WEB3_CHECK])
+        settings_toggle(device, navigator, [SettingID.WEB3_CHECK])
 
 
 def __get_simu_params(risk: str, simu_type: SimuType) -> TxSimu:
@@ -76,17 +77,16 @@ def __handle_simulation(app_client: EthAppClient, simu_params: TxSimu) -> None:
     assert response.status == StatusWord.OK
 
 
-def test_tx_simulation_opt_in(firmware: Firmware,
-                              backend: BackendInterface,
+def test_tx_simulation_opt_in(backend: BackendInterface,
                               navigator: Navigator,
                               test_name: str,
                               default_screenshot_path: Path) -> None:
     """Test the TX Simulation Opt-In feature."""
 
-    if firmware.is_nano:
-        pytest.skip("Not yet supported on Nano")
-
     app_client = EthAppClient(backend)
+    device = backend.device
+    if device.is_nano:
+        pytest.skip("Not yet supported on Nano")
 
     response = app_client.get_app_configuration()
     assert response.status == StatusWord.OK
@@ -103,19 +103,17 @@ def test_tx_simulation_opt_in(firmware: Firmware,
     assert response.data[0] & mask == mask
 
 
-def test_tx_simulation_disabled(firmware: Firmware,
-                                backend: BackendInterface,
-                                navigator: Navigator) -> None:
+def test_tx_simulation_disabled(backend: BackendInterface, navigator: Navigator) -> None:
     """Test the TX Simulation APDU with the WEB3_CHECK setting disabled.
         It should return an error
     """
 
-    if firmware.is_nano:
+    app_client = EthAppClient(backend)
+    device = backend.device
+    if device.is_nano:
         pytest.skip("Not yet supported on Nano")
 
-    app_client = EthAppClient(backend)
-
-    __common_setting_handling(firmware, navigator, app_client, False)
+    __common_setting_handling(device, navigator, app_client, False)
 
     simu_params = __get_simu_params("benign", SimuType.TRANSACTION)
     simu_params.chain_id = 5
@@ -127,37 +125,36 @@ def test_tx_simulation_disabled(firmware: Firmware,
         assert False  # An exception should have been raised
 
 
-def test_tx_simulation_enabled(firmware: Firmware,
-                               backend: BackendInterface,
-                               navigator: Navigator) -> None:
+def test_tx_simulation_enabled(backend: BackendInterface, navigator: Navigator) -> None:
     """Test the TX Simulation APDU with the WEB3_CHECK setting enabled"""
 
-    if firmware.is_nano:
+    app_client = EthAppClient(backend)
+    device = backend.device
+
+    if device.is_nano:
         pytest.skip("Not yet supported on Nano")
 
-    app_client = EthAppClient(backend)
-
-    __common_setting_handling(firmware, navigator, app_client, True)
+    __common_setting_handling(device, navigator, app_client, True)
 
     simu_params = __get_simu_params("benign", SimuType.TRANSACTION)
     simu_params.chain_id = 5
     __handle_simulation(app_client, simu_params)
 
 
-def test_tx_simulation_sign(firmware: Firmware,
-                            backend: BackendInterface,
-                            navigator: Navigator,
+def test_tx_simulation_sign(navigator: Navigator,
                             scenario_navigator: NavigateWithScenario,
                             test_name: str,
                             config: str) -> None:
     """Test the TX Simulation APDU with a simple transaction"""
 
-    if firmware.is_nano:
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+    device = backend.device
+
+    if device.is_nano:
         pytest.skip("Not yet supported on Nano")
 
-    app_client = EthAppClient(backend)
-
-    __common_setting_handling(firmware, navigator, app_client, True)
+    __common_setting_handling(device, navigator, app_client, True)
 
     tx_params: dict = {
         "nonce": 21,
@@ -174,28 +171,26 @@ def test_tx_simulation_sign(firmware: Firmware,
         simu_params.tx_hash = tx_hash
         __handle_simulation(app_client, simu_params)
 
-    sign_tx_common(firmware,
-                   backend,
-                   scenario_navigator,
+    sign_tx_common(scenario_navigator,
                    tx_params,
-                   test_name=test_name + f"_{config}",
+                   test_name + f"_{config}",
                    with_simu=config not in ("benign", "issue"))
 
 
-def test_tx_simulation_no_simu(firmware: Firmware,
-                               backend: BackendInterface,
-                               navigator: Navigator,
+def test_tx_simulation_no_simu(navigator: Navigator,
                                scenario_navigator: NavigateWithScenario,
                                test_name: str) -> None:
     """Test the TX Transaction APDU without TX Simulation APDU
         but with the WEB3_CHECK setting enabled"""
 
-    if firmware.is_nano:
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+    device = backend.device
+
+    if device.is_nano:
         pytest.skip("Not yet supported on Nano")
 
-    app_client = EthAppClient(backend)
-
-    __common_setting_handling(firmware, navigator, app_client, True)
+    __common_setting_handling(device, navigator, app_client, True)
 
     tx_params: dict = {
         "nonce": 21,
@@ -206,33 +201,29 @@ def test_tx_simulation_no_simu(firmware: Firmware,
         "chainId": 5
     }
 
-    sign_tx_common(firmware,
-                   backend,
-                   scenario_navigator,
+    sign_tx_common(scenario_navigator,
                    tx_params,
-                   test_name=test_name,
+                   test_name,
                    with_simu=False)
 
 
-def test_tx_simulation_nft(firmware: Firmware,
-                           backend: BackendInterface,
-                           navigator: Navigator,
+def test_tx_simulation_nft(navigator: Navigator,
                            scenario_navigator: NavigateWithScenario,
                            test_name: str) -> None:
     """Test the TX Simulation APDU with a Plugin & NFT transaction"""
 
-    if firmware.is_nano:
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+    device = backend.device
+
+    if device.is_nano:
         pytest.skip("Not yet supported on Nano")
 
-    app_client = EthAppClient(backend)
-
-    __common_setting_handling(firmware, navigator, app_client, True)
+    __common_setting_handling(device, navigator, app_client, True)
 
     simu_params = __get_simu_params("warning", SimuType.TRANSACTION)
 
-    common_test_nft(firmware,
-                    backend,
-                    scenario_navigator,
+    common_test_nft(scenario_navigator,
                     test_name,
                     collecs_721[0],
                     actions_721[0],
@@ -241,29 +232,27 @@ def test_tx_simulation_nft(firmware: Firmware,
                     simu_params)
 
 
-def test_tx_simulation_blind_sign(firmware: Firmware,
-                                  backend: BackendInterface,
-                                  navigator: Navigator,
+def test_tx_simulation_blind_sign(navigator: Navigator,
                                   scenario_navigator: NavigateWithScenario,
                                   test_name: str,
                                   config: str) -> None:
     """Test the TX Simulation APDU with a Blind Sign transaction"""
 
-    if firmware.is_nano:
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+    device = backend.device
+
+    if device.is_nano:
         pytest.skip("Not yet supported on Nano")
 
-    app_client = EthAppClient(backend)
-
-    __common_setting_handling(firmware, navigator, app_client, True)
+    __common_setting_handling(device, navigator, app_client, True)
 
     if config != "issue":
         simu_params = __get_simu_params(config, SimuType.TRANSACTION)
     else:
         simu_params = None
 
-    blind_sign(firmware,
-               backend,
-               navigator,
+    blind_sign(navigator,
                scenario_navigator,
                test_name + f"_{config}",
                False,
@@ -271,26 +260,25 @@ def test_tx_simulation_blind_sign(firmware: Firmware,
                simu_params)
 
 
-def test_tx_simulation_eip191(firmware: Firmware,
-                              backend: BackendInterface,
-                              navigator: Navigator,
+def test_tx_simulation_eip191(navigator: Navigator,
                               scenario_navigator: NavigateWithScenario,
                               test_name: str,
-                              default_screenshot_path: Path,
                               config: str) -> None:
     """Test the TX Simulation APDU with a Message Streaming based on EIP191"""
-
-    if firmware.is_nano:
-        pytest.skip("Not yet supported on Nano")
-    if config in ("benign", "warning"):
-        pytest.skip("Skipping useless tests")
 
     # TODO Re-activate when partners are ready for eip191
     pytest.skip("Skip until partners are ready for eip191")
 
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
+    device = backend.device
 
-    __common_setting_handling(firmware, navigator, app_client, True)
+    if device.is_nano:
+        pytest.skip("Not yet supported on Nano")
+    if config in ("benign", "warning"):
+        pytest.skip("Skipping useless tests")
+
+    __common_setting_handling(device, navigator, app_client, True)
 
     simu_params = __get_simu_params(config, SimuType.PERSONAL_MESSAGE)
     msg = "Example `personal_sign` message with TX Simulation"
@@ -299,33 +287,29 @@ def test_tx_simulation_eip191(firmware: Firmware,
         simu_params.tx_hash = bytes.fromhex("deadbeaf"*8)
         test_name += f"_{config}"
 
-    sign_eip191(backend,
-                navigator,
-                scenario_navigator,
-                default_screenshot_path,
+    sign_eip191(scenario_navigator,
                 test_name,
                 msg,
                 simu_params)
 
 
-def test_tx_simulation_eip712(firmware: Firmware,
-                              backend: BackendInterface,
+def test_tx_simulation_eip712(backend: BackendInterface,
                               navigator: Navigator,
                               test_name: str,
                               default_screenshot_path: Path) -> None:
     """Test the TX Simulation APDU with a Message Streaming based on EIP712"""
 
-    if firmware.is_nano:
+    app_client = EthAppClient(backend)
+    device = backend.device
+
+    if device.is_nano:
         pytest.skip("Not yet supported on Nano")
 
-    app_client = EthAppClient(backend)
-
-    __common_setting_handling(firmware, navigator, app_client, True)
+    __common_setting_handling(device, navigator, app_client, True)
 
     simu_params = __get_simu_params("threat", SimuType.TYPED_DATA)
 
-    sign_eip712(firmware,
-                backend,
+    sign_eip712(backend,
                 navigator,
                 default_screenshot_path,
                 test_name,
@@ -333,43 +317,36 @@ def test_tx_simulation_eip712(firmware: Firmware,
                 simu_params)
 
 
-def test_tx_simulation_eip712_v0(firmware: Firmware,
-                                 backend: BackendInterface,
-                                 navigator: Navigator) -> None:
+def test_tx_simulation_eip712_v0(backend: BackendInterface, navigator: Navigator) -> None:
     """Test the TX Simulation APDU with a Message Streaming based on EIP712_v0"""
 
-    if firmware.is_nano:
+    app_client = EthAppClient(backend)
+    device = backend.device
+
+    if device.is_nano:
         pytest.skip("Not yet supported on Nano")
 
-    app_client = EthAppClient(backend)
-
-    __common_setting_handling(firmware, navigator, app_client, True)
+    __common_setting_handling(device, navigator, app_client, True)
 
     simu_params = __get_simu_params("threat", SimuType.TYPED_DATA)
 
-    sign_eip712_v0(firmware,
-                   backend,
-                   navigator,
-                   simu_params)
+    sign_eip712_v0(backend, navigator, simu_params)
 
 
-def test_tx_simulation_gcs(firmware: Firmware,
-                           backend: BackendInterface,
-                           navigator: Navigator,
+def test_tx_simulation_gcs(navigator: Navigator,
                            scenario_navigator: NavigateWithScenario,
                            test_name: str) -> None:
     """Test the TX Simulation APDU with a Message Streaming based on EIP712"""
 
-    if firmware.is_nano:
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+    device = backend.device
+
+    if device.is_nano:
         pytest.skip("Not yet supported on Nano")
 
-    app_client = EthAppClient(backend)
-
-    __common_setting_handling(firmware, navigator, app_client, True)
+    __common_setting_handling(device, navigator, app_client, True)
 
     simu_params = __get_simu_params("warning", SimuType.TRANSACTION)
 
-    sign_gcs_poap(backend,
-                  scenario_navigator,
-                  test_name,
-                  simu_params)
+    sign_gcs_poap(scenario_navigator, test_name, simu_params)

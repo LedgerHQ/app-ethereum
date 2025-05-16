@@ -3,7 +3,6 @@ import pytest
 from web3 import Web3
 
 from ragger.backend import BackendInterface
-from ragger.firmware import Firmware
 from ragger.error import ExceptionRAPDU
 from ragger.navigator import Navigator
 from ragger.navigator.navigation_scenario import NavigateWithScenario
@@ -32,24 +31,24 @@ def verbose_ens_fixture(request) -> bool:
 
 
 def common(app_client: EthAppClient, get_challenge: bool = True) -> Optional[int]:
-
     if get_challenge:
         challenge = app_client.get_challenge()
         return ResponseParser.challenge(challenge.data)
     return None
 
 
-def test_trusted_name_v1(firmware: Firmware,
-                         backend: BackendInterface,
-                         navigator: Navigator,
+def test_trusted_name_v1(navigator: Navigator,
                          scenario_navigator: NavigateWithScenario,
                          verbose_ens: bool,
                          test_name: str):
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
+    device = backend.device
+
     challenge = common(app_client)
 
     if verbose_ens:
-        settings_toggle(firmware, navigator, [SettingID.VERBOSE_ENS])
+        settings_toggle(device, navigator, [SettingID.VERBOSE_ENS])
         test_name += "_verbose"
 
     app_client.provide_trusted_name_v1(ADDR, NAME, challenge)
@@ -75,9 +74,8 @@ def test_trusted_name_v1_wrong_challenge(backend: BackendInterface):
     assert e.value.status == StatusWord.INVALID_DATA
 
 
-def test_trusted_name_v1_wrong_addr(backend: BackendInterface,
-                                    scenario_navigator: NavigateWithScenario,
-                                    test_name: str):
+def test_trusted_name_v1_wrong_addr(scenario_navigator: NavigateWithScenario, test_name: str):
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
     challenge = common(app_client)
 
@@ -99,15 +97,15 @@ def test_trusted_name_v1_wrong_addr(backend: BackendInterface,
         scenario_navigator.review_approve(test_name=test_name)
 
 
-def test_trusted_name_v1_non_mainnet(firmware: Firmware,
-                                     backend: BackendInterface,
-                                     scenario_navigator: NavigateWithScenario,
-                                     test_name: str):
+def test_trusted_name_v1_non_mainnet(scenario_navigator: NavigateWithScenario, test_name: str):
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
+    device = backend.device
+
     challenge = common(app_client)
 
     chain_id = 5
-    if firmware.is_nano:
+    if device.is_nano:
         icon = ""
     else:
         # pylint: disable=line-too-long
@@ -133,9 +131,8 @@ def test_trusted_name_v1_non_mainnet(firmware: Firmware,
         scenario_navigator.review_approve(test_name=test_name)
 
 
-def test_trusted_name_v1_unknown_chain(backend: BackendInterface,
-                                       scenario_navigator: NavigateWithScenario,
-                                       test_name: str):
+def test_trusted_name_v1_unknown_chain(scenario_navigator: NavigateWithScenario, test_name: str):
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
     challenge = common(app_client)
 
@@ -190,9 +187,8 @@ def test_trusted_name_v1_name_non_ens(backend: BackendInterface):
     assert e.value.status == StatusWord.INVALID_DATA
 
 
-def test_trusted_name_v2(backend: BackendInterface,
-                         scenario_navigator: NavigateWithScenario,
-                         test_name: str):
+def test_trusted_name_v2(scenario_navigator: NavigateWithScenario, test_name: str):
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
     challenge = common(app_client)
 
@@ -216,9 +212,8 @@ def test_trusted_name_v2(backend: BackendInterface,
         scenario_navigator.review_approve(test_name=test_name)
 
 
-def test_trusted_name_v2_wrong_chainid(backend: BackendInterface,
-                                       scenario_navigator: NavigateWithScenario,
-                                       test_name: str):
+def test_trusted_name_v2_wrong_chainid(scenario_navigator: NavigateWithScenario, test_name: str):
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
     challenge = common(app_client)
 

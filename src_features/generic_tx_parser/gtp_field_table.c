@@ -3,10 +3,13 @@
 #include "gtp_field_table.h"
 #include "mem.h"
 
-// type (1) | key_length (1) | value_length (2) | key ($key_length) | value ($value_length)
+typedef struct field_table_node {
+    s_field_table_entry field;
+    struct field_table_node *next;
+} s_field_table_node;
 
 typedef struct {
-    const uint8_t *start;
+    s_field_table_node *nodes;
     size_t size;
 } s_field_table;
 
@@ -16,75 +19,62 @@ void field_table_init(void) {
     explicit_bzero(&g_table, sizeof(g_table));
 }
 
-static const uint8_t *get_next_table_entry(const uint8_t *ptr, s_field_table_entry *entry) {
-    uint8_t key_len;
-    uint16_t value_len;
-
-    if (ptr == NULL) {
-        return NULL;
-    }
-    if (entry != NULL) {
-        memcpy(&entry->type, ptr, sizeof(entry->type));
-    }
-    ptr += sizeof(entry->type);
-    memcpy(&key_len, ptr, sizeof(key_len));
-    ptr += sizeof(key_len);
-    memcpy(&value_len, ptr, sizeof(value_len));
-    ptr += sizeof(value_len);
-    if (entry != NULL) {
-        entry->key = (char *) ptr;
-    }
-    ptr += key_len;
-    if (entry != NULL) {
-        entry->value = (char *) ptr;
-    }
-    ptr += value_len;
-    return ptr;
-}
-
 // after this function, field_table_init() will have to be called before using any other field_table
 // function
 void field_table_cleanup(void) {
-    const uint8_t *ptr = g_table.start;
+    s_field_table_node *node;
+    s_field_table_node *next;
 
-    if (ptr != NULL) {
-        for (size_t i = 0; i < g_table.size; ++i) {
-            ptr = get_next_table_entry(ptr, NULL);
-        }
-        mem_dealloc(ptr - g_table.start);
-        g_table.start = NULL;
+    node = g_table.nodes;
+    while (node != NULL) {
+        next = node->next;
+        if (node->field.key != NULL) app_mem_free(node->field.key);
+        if (node->field.value != NULL) app_mem_free(node->field.value);
+        app_mem_free(node);
+        node = next;
     }
+    g_table.nodes = NULL;
 }
 
 bool add_to_field_table(e_param_type type, const char *key, const char *value) {
-    int offset = 0;
-    uint8_t *ptr;
     uint8_t key_len;
     uint16_t value_len;
+    s_field_table_node *node;
+    s_field_table_node *tmp;
 
     if ((key == NULL) || (value == NULL)) {
         PRINTF("Error: NULL key/value!\n");
         return false;
     }
-    key_len = strlen(key) + 1;
-    value_len = strlen(value) + 1;
-    PRINTF(">>> \"%s\": \"%s\"\n", key, value);
-    if ((ptr = mem_alloc(sizeof(type) + sizeof(uint8_t) + sizeof(uint16_t) + key_len +
-                         value_len)) == NULL) {
+    if ((node = app_mem_alloc(sizeof(*node))) == NULL) {
         return false;
     }
-    if ((g_table.start == NULL) && (g_table.size == 0)) {
-        g_table.start = ptr;
+    key_len = strlen(key) + 1;
+    value_len = strlen(value) + 1;
+    if ((node->field.key = app_mem_alloc(key_len)) == NULL) {
+        app_mem_free(node);
+        return false;
     }
-    memcpy(&ptr[offset], &type, sizeof(type));
-    offset += sizeof(type);
-    memcpy(&ptr[offset], &key_len, sizeof(key_len));
-    offset += sizeof(key_len);
-    memcpy(&ptr[offset], &value_len, sizeof(value_len));
-    offset += sizeof(value_len);
-    memcpy(&ptr[offset], key, key_len);
-    offset += key_len;
-    memcpy(&ptr[offset], value, value_len);
+    if ((node->field.value = app_mem_alloc(value_len)) == NULL) {
+        app_mem_free(node->field.key);
+        app_mem_free(node);
+        return false;
+    }
+    PRINTF(">>> \"%s\": \"%s\"\n", key, value);
+
+    node->field.type = type;
+    memcpy(node->field.key, key, key_len);
+    memcpy(node->field.value, value, value_len);
+    node->next = NULL;
+
+    if (g_table.nodes == NULL) {
+        g_table.nodes = node;
+    } else {
+        for (tmp = g_table.nodes; tmp->next != NULL; tmp = tmp->next)
+            ;
+        tmp->next = node;
+    }
+
     g_table.size += 1;
     return true;
 }
@@ -93,17 +83,15 @@ size_t field_table_size(void) {
     return g_table.size;
 }
 
-bool get_from_field_table(int index, s_field_table_entry *entry) {
-    const uint8_t *ptr = g_table.start;
+const s_field_table_entry *get_from_field_table(int index) {
+    const s_field_table_node *node = g_table.nodes;
 
     if ((size_t) index >= g_table.size) {
-        return false;
+        return NULL;
     }
-    if (ptr == NULL) {
-        return false;
+    for (int i = 0; i < index; ++i) {
+        if (node == NULL) return NULL;
+        node = node->next;
     }
-    for (int i = 0; i <= index; ++i) {
-        ptr = get_next_table_entry(ptr, entry);
-    }
-    return true;
+    return &node->field;
 }

@@ -52,6 +52,14 @@ ifneq ($(EIP7702_TEST_WHITELIST),0)
     DEFINES += HAVE_EIP7702_WHITELIST_TEST
 endif
 
+ENABLE_DYNAMIC_ALLOC = 1
+ifneq ($(DEBUG), 0)
+    MEMORY_PROFILING ?= 0
+    ifneq ($(MEMORY_PROFILING),0)
+        DEFINES += HAVE_MEMORY_PROFILING
+    endif
+endif
+
 # Check features incompatibilities
 # --------------------------------
 # NFTs

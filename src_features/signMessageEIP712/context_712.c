@@ -19,9 +19,10 @@ s_eip712_context *eip712_context = NULL;
  * @return a boolean indicating if the initialization was successful or not
  */
 bool eip712_context_init(void) {
-    // init global variables
-    mem_init();
+    // switch to legacy allocator
+    mem_legacy_init();
 
+    // init global variables
     if ((eip712_context = MEM_ALLOC_AND_ALIGN_TYPE(*eip712_context)) == NULL) {
         apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
         return false;
@@ -66,7 +67,8 @@ void eip712_context_deinit(void) {
     path_deinit();
     field_hash_deinit();
     ui_712_deinit();
-    mem_reset();
+    // switch back to SDK allocator
+    app_mem_init();
     eip712_context = NULL;
     reset_app_context();
 }

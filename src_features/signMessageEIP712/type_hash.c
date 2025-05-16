@@ -169,7 +169,7 @@ bool type_hash(const char *const struct_name, const uint8_t struct_name_length, 
     const void *struct_ptr;
     uint8_t deps_count = 0;
     const void **deps;
-    void *mem_loc_bak = mem_alloc(0);
+    void *mem_loc_bak = mem_legacy_alloc(0);
     cx_err_t error = CX_INTERNAL_ERROR;
 
     if ((struct_ptr = get_structn(struct_name, struct_name_length)) == NULL) {
@@ -194,7 +194,7 @@ bool type_hash(const char *const struct_name, const uint8_t struct_name_length, 
         }
         deps += 1;
     }
-    mem_dealloc(mem_alloc(0) - mem_loc_bak);
+    mem_legacy_dealloc(mem_legacy_alloc(0) - mem_loc_bak);
 
     // copy hash into memory
     CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3,

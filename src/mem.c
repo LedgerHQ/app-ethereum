@@ -8,27 +8,58 @@
 
 #include <stdint.h>
 #include "mem.h"
+#include "mem_alloc.h"
 #include "os_print.h"
 
-#define SIZE_MEM_BUFFER 10240
+#define SIZE_MEM_BUFFER_MAIN 10240
+#define SIZE_MEM_BUFFER_ALT  2048
+#define SIZE_MEM_BUFFER      (SIZE_MEM_BUFFER_MAIN + SIZE_MEM_BUFFER_ALT)
 
-static uint8_t mem_buffer[SIZE_MEM_BUFFER];
-static uint16_t mem_idx;
-static uint16_t mem_rev_idx;
+static uint8_t mem_buffer[SIZE_MEM_BUFFER] __attribute__((aligned(8)));
+static uint16_t mem_legacy_idx;
+static mem_ctx_t mem_ctx = NULL;
+
+bool app_mem_init(void) {
+    mem_ctx = mem_init(mem_buffer, sizeof(mem_buffer));
+    return mem_ctx != NULL;
+}
+
+void *app_mem_alloc_impl(size_t size, const char *file, int line) {
+    void *ptr;
+    ptr = mem_alloc(mem_ctx, size);
+#ifdef HAVE_MEMORY_PROFILING
+    PRINTF("==MP alloc;%u;0x%p;%s:%u\n", size, ptr, file, line);
+#else
+    (void) file;
+    (void) line;
+#endif
+    return ptr;
+}
+
+void app_mem_free_impl(void *ptr, const char *file, int line) {
+#ifdef HAVE_MEMORY_PROFILING
+    PRINTF("==MP free;0x%p;%s:%u\n", ptr, file, line);
+#else
+    (void) file;
+    (void) line;
+#endif
+    mem_free(mem_ctx, ptr);
+}
 
 /**
  * Initializes the memory buffer index
  */
-void mem_init(void) {
-    mem_idx = 0;
-    mem_rev_idx = 0;
+void mem_legacy_init(void) {
+    mem_legacy_idx = 0;
+    // initialize the new allocator to still be able to use it, just in case
+    mem_ctx = mem_init(mem_buffer + SIZE_MEM_BUFFER_MAIN, SIZE_MEM_BUFFER_ALT);
 }
 
 /**
  * Resets the memory buffer index
  */
-void mem_reset(void) {
-    mem_init();
+void mem_legacy_reset(void) {
+    mem_legacy_init();
 }
 
 /**
@@ -40,22 +71,20 @@ void mem_reset(void) {
  * @param[in] size Requested allocation size in bytes
  * @return Allocated memory pointer; \ref NULL if not enough space left.
  */
-void *mem_alloc(size_t size) {
+void *mem_legacy_alloc(size_t size) {
     size_t new_idx;
-    size_t free_size;
 
-    if (__builtin_add_overflow((size_t) mem_idx, size, &new_idx) ||
-        __builtin_sub_overflow(sizeof(mem_buffer), (size_t) mem_rev_idx, &free_size)) {
+    if (__builtin_add_overflow((size_t) mem_legacy_idx, size, &new_idx)) {
         PRINTF("Error: overflow detected!\n");
         return NULL;
     }
     // Buffer exceeded
-    if (new_idx > free_size) {
+    if (new_idx > SIZE_MEM_BUFFER_MAIN) {
         PRINTF("Error: mem_alloc(%u) failed!\n", size);
         return NULL;
     }
-    mem_idx += size;
-    return &mem_buffer[mem_idx - size];
+    mem_legacy_idx += size;
+    return &mem_buffer[mem_legacy_idx - size];
 }
 
 /**
@@ -63,51 +92,12 @@ void *mem_alloc(size_t size) {
  *
  * @param[in] size Requested deallocation size in bytes
  */
-void mem_dealloc(size_t size) {
+void mem_legacy_dealloc(size_t size) {
     // More than is already allocated
-    if (size > mem_idx) {
+    if (size > mem_legacy_idx) {
         PRINTF("Warning: mem_dealloc(%u) with a value larger than allocated!\n", size);
-        mem_idx = 0;
+        mem_legacy_idx = 0;
     } else {
-        mem_idx -= size;
-    }
-}
-
-/**
- * Same as \ref mem_alloc but in reverse
- *
- * @param[in] size Requested allocation size in bytes
- * @return Allocated memory pointer; \ref NULL if not enough space left.
- */
-void *mem_rev_alloc(size_t size) {
-    size_t free_size;
-    size_t new_rev_idx;
-
-    if (__builtin_add_overflow((size_t) mem_rev_idx, size, &new_rev_idx) ||
-        __builtin_sub_overflow(sizeof(mem_buffer), new_rev_idx, &free_size)) {
-        PRINTF("Error: overflow detected!\n");
-        return NULL;
-    }
-    // Buffer exceeded
-    if (free_size < mem_idx) {
-        PRINTF("Error: mem_rev_alloc(%u) failed!\n", size);
-        return NULL;
-    }
-    mem_rev_idx += size;
-    return &mem_buffer[sizeof(mem_buffer) - mem_rev_idx];
-}
-
-/**
- * Same as \ref mem_dealloc but in reverse
- *
- * @param[in] size Requested deallocation size in bytes
- */
-void mem_rev_dealloc(size_t size) {
-    // More than is already allocated
-    if (size > mem_rev_idx) {
-        PRINTF("Warning: mem_rev_dealloc(%u) with a value larger than allocated!\n", size);
-        mem_rev_idx = 0;
-    } else {
-        mem_rev_idx -= size;
+        mem_legacy_idx -= size;
     }
 }

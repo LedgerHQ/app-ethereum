@@ -6,12 +6,12 @@
 
 typedef struct {
     e_param_type type;
-    const char *key;
-    const char *value;
+    char *key;
+    char *value;
 } s_field_table_entry;
 
 void field_table_init(void);
 void field_table_cleanup(void);
 bool add_to_field_table(e_param_type type, const char *key, const char *value);
 size_t field_table_size(void);
-bool get_from_field_table(int index, s_field_table_entry *entry);
+const s_field_table_entry *get_from_field_table(int index);

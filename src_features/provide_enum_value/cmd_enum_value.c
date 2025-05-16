@@ -1,17 +1,15 @@
 #include "cmd_enum_value.h"
 #include "apdu_constants.h"
-#include "mem.h"
 #include "enum_value.h"
 #include "tlv_apdu.h"
 #include "tlv.h"
 
-static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_free) {
+static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
     bool parsing_ret;
     s_enum_value_ctx ctx = {0};
 
     cx_sha256_init(&ctx.struct_hash);
     parsing_ret = tlv_parse(payload, size, (f_tlv_data_handler) &handle_enum_value_struct, &ctx);
-    if (to_free) mem_dealloc(sizeof(size));
     if (!parsing_ret) return false;
     if (!verify_enum_value_struct(&ctx)) {
         return false;

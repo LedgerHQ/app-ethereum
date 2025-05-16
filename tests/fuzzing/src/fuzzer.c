@@ -22,7 +22,6 @@
 
 #include "shared_context.h"
 #include "tlv.h"
-#include "mem.h"
 #include "apdu_constants.h"
 
 // Fuzzing harness interface
@@ -143,7 +142,6 @@ int fuzzCalldata(const uint8_t *data, size_t size) {
             case 'I':
                 data++;
                 size--;
-                mem_reset();
                 calldata_init(500);
                 break;
             case 'W':
@@ -214,7 +212,6 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     explicit_bzero(&global_sha3, sizeof(global_sha3));
 
     calldata_cleanup();
-    mem_reset();
 
     uint8_t target;
 

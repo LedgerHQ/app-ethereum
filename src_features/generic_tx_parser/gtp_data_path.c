@@ -167,7 +167,7 @@ static bool path_leaf(const s_leaf_args *leaf,
     }
     collection->value[collection->size].length = collection->value[collection->size].size;
     collection->value[collection->size].offset = 0;
-    if ((leaf_buf = mem_rev_alloc(collection->value[collection->size].length)) == NULL) {
+    if ((leaf_buf = app_mem_alloc(collection->value[collection->size].length)) == NULL) {
         return false;
     }
     for (int chunk_idx = 0;
@@ -324,6 +324,6 @@ bool data_path_get(const s_data_path *data_path, s_parsed_value_collection *coll
 
 void data_path_cleanup(const s_parsed_value_collection *collection) {
     for (int i = 0; i < collection->size; ++i) {
-        mem_rev_dealloc(collection->value[i].size);
+        app_mem_free((void *) collection->value[i].ptr);
     }
 }

@@ -31,7 +31,7 @@ static bool find_enum_matches(const uint8_t enum_to_idx[TYPES_COUNT - 1][IDX_COU
             {
                 *enum_match |= TYPENAME_MORE_TYPE;
             }
-            if ((enum_match = mem_alloc(sizeof(uint8_t))) == NULL) {
+            if ((enum_match = mem_legacy_alloc(sizeof(uint8_t))) == NULL) {
                 apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
                 return false;
             }
@@ -66,7 +66,7 @@ bool sol_typenames_init(void) {
     uint8_t *typename_len_ptr;
     char *typename_ptr;
 
-    if ((sol_typenames = mem_alloc(sizeof(uint8_t))) == NULL) {
+    if ((sol_typenames = mem_legacy_alloc(sizeof(uint8_t))) == NULL) {
         return false;
     }
     *(sol_typenames) = 0;
@@ -74,14 +74,14 @@ bool sol_typenames_init(void) {
     for (uint8_t t_idx = 0; t_idx < ARRAY_SIZE(typenames); ++t_idx) {
         // if at least one match was found
         if (find_enum_matches(enum_to_idx, t_idx)) {
-            if ((typename_len_ptr = mem_alloc(sizeof(uint8_t))) == NULL) {
+            if ((typename_len_ptr = mem_legacy_alloc(sizeof(uint8_t))) == NULL) {
                 apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
                 return false;
             }
             // get pointer to the allocated space just above
             *typename_len_ptr = strlen(PIC(typenames[t_idx]));
 
-            if ((typename_ptr = mem_alloc(sizeof(char) * *typename_len_ptr)) == NULL) {
+            if ((typename_ptr = mem_legacy_alloc(sizeof(char) * *typename_len_ptr)) == NULL) {
                 apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
                 return false;
             }

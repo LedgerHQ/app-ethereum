@@ -44,6 +44,7 @@
 #include "cmd_get_tx_simulation.h"
 #include "cmd_proxy_info.h"
 #include "commands_7702.h"
+#include "sign_message.h"
 
 tmpCtx_t tmpCtx;
 txContext_t txContext;
@@ -70,6 +71,9 @@ const chain_config_t *chainConfig;
 
 void reset_app_context() {
     // PRINTF("!!RESET_APP_CONTEXT\n");
+    if (appState == APP_STATE_SIGNING_MESSAGE) {
+        message_cleanup();
+    }
     appState = APP_STATE_IDLE;
     G_called_from_swap = false;
     G_swap_response_ready = false;

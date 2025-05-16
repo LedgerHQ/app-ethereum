@@ -191,6 +191,15 @@ and `TrustedNameSource` enum defined as:
 > [!CAUTION]
 >  - `SOURCES` array max length ?
 
+### PARAM_CALLDATA
+
+| Name            | Tag  | Payload type | Description                             | Optional | Source / value                                              |
+|-----------------|------|--------------|-----------------------------------------|----------|-------------------------------------------------------------|
+| VERSION         | 0x00 | uint8        | struct version                          |          | constant: `0x0`                                             |
+| CONTRACT_ADDR   | 0x01 | VALUE        | contract address of the calldata        |          |                                                             |
+| CHAIN_ID        | 0x02 | VALUE        | contract chain ID of the calldata       | x        |                                                             |
+| SELECTOR        | 0x03 | VALUE        | function selector of the calldata       | x        |                                                             |
+
 ### PARAM_TOKEN
 
 | Name            | Tag  | Payload type | Description                             | Optional | Source / value                                                                   |

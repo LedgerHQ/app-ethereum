@@ -15,7 +15,7 @@
 #define SIZE_MEM_BUFFER_ALT  2048
 #define SIZE_MEM_BUFFER      (SIZE_MEM_BUFFER_MAIN + SIZE_MEM_BUFFER_ALT)
 
-static uint8_t mem_buffer[SIZE_MEM_BUFFER] __attribute__((aligned(8)));
+static uint8_t mem_buffer[SIZE_MEM_BUFFER] __attribute__((aligned(sizeof(intmax_t))));
 static uint16_t mem_legacy_idx;
 static mem_ctx_t mem_ctx = NULL;
 

@@ -128,7 +128,11 @@ static void ui_191_process_state(void) {
 #endif
             snprintf(g_stax_shared_buffer,
                      sizeof(g_stax_shared_buffer),
+#ifdef SCREEN_SIZE_WALLET
                      "%s message?",
+#else
+                     "%s message",
+#endif
                      ui_tx_simulation_finish_str());
             nbgl_useCaseReviewStreamingFinish(g_stax_shared_buffer, ui_191_finish_cb);
             break;

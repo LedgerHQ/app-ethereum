@@ -224,6 +224,7 @@ void ux_approve_tx(bool fromPlugin) {
                  (pluginType == EXTERNAL ? "on " : ""),
                  strings.common.toAddress);
         // Finish text: replace "Review" by "Sign" and add questionmark
+#ifdef SCREEN_SIZE_WALLET
         snprintf(g_stax_shared_buffer + buf_size,
                  buf_size,
                  "%s transaction to %s %s%s?",
@@ -231,11 +232,21 @@ void ux_approve_tx(bool fromPlugin) {
                  op_name,
                  (pluginType == EXTERNAL ? "on " : ""),
                  strings.common.toAddress);
+#else
+        snprintf(g_stax_shared_buffer + buf_size,
+                 buf_size,
+                 "%s transaction",
+                 ui_tx_simulation_finish_str());
+#endif
     } else {
         snprintf(g_stax_shared_buffer, buf_size, "Review transaction");
         snprintf(g_stax_shared_buffer + buf_size,
                  buf_size,
+#ifdef SCREEN_SIZE_WALLET
                  "%s transaction?",
+#else
+                 "%s transaction",
+#endif
                  ui_tx_simulation_finish_str());
     }
 

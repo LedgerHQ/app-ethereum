@@ -40,7 +40,9 @@ enum {
     TAG_SIGNATURE = 0xff,
 };
 
+// turn into a linked list (with a child pointer)
 s_tx_info *g_tx_info = NULL;
+// move it into the s_tx_info so that each tx_info can have its own hash
 cx_sha3_t hash_ctx;
 
 static bool handle_version(const s_tlv_data *data, s_tx_info_ctx *context) {

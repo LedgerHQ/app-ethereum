@@ -27,6 +27,7 @@ typedef union {
     s_param_unit_context unit_ctx;
     s_param_enum_context enum_ctx;
     s_param_trusted_name_context trusted_name_ctx;
+    //s_param_calldata_context calldata_ctx;
     s_param_token_context token_ctx;
 } u_param_context;
 
@@ -67,6 +68,7 @@ static bool handle_param_type(const s_tlv_data *data, s_field_ctx *context) {
         case PARAM_TYPE_UNIT:
         case PARAM_TYPE_ENUM:
         case PARAM_TYPE_TRUSTED_NAME:
+        // case PARAM_TYPE_CALLDATA:
         case PARAM_TYPE_TOKEN:
             break;
         default:
@@ -126,6 +128,10 @@ static bool handle_param(const s_tlv_data *data, s_field_ctx *context) {
             handler = (f_tlv_data_handler) &handle_param_trusted_name_struct;
             param_ctx.trusted_name_ctx.param = &context->field->param_trusted_name;
             break;
+        //case PARAM_TYPE_CALLDATA:
+        //    handler = (f_tlv_data_handler) &handle_param_calldata_struct;
+        //    param_ctx.token_ctx.param = &context->field->param_calldata;
+        //    break;
         case PARAM_TYPE_TOKEN:
             handler = (f_tlv_data_handler) &handle_param_token_struct;
             param_ctx.token_ctx.param = &context->field->param_token;
@@ -218,6 +224,15 @@ bool format_field(const s_field *field) {
         case PARAM_TYPE_TRUSTED_NAME:
             ret = format_param_trusted_name(&field->param_trusted_name, field->name);
             break;
+        //case PARAM_TYPE_CALLDATA:
+        //    * extract selector from calldata (first 4 bytes of the field)
+        //    * check that it matches with a previously received child tx_info (address, chain_id and selector)
+        //        * and that the tx_info has received all its fields (hash finished and matches the fields_hash)
+        //    * will probably need to decompress the child calldata from the parent calldata,
+        //      and recompress it to make it easier to process it (and maybe store it into the child tx_info?)
+        //    * format all the stored child fields (linked list of s_field struct)
+        //    ret = format_param_calldata(&field->param_calldata, field->name);
+        //    break;
         case PARAM_TYPE_TOKEN:
             ret = format_param_token(&field->param_token, field->name);
             break;

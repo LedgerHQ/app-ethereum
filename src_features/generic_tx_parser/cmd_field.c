@@ -21,6 +21,8 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
         PRINTF("Error: could not verify the field struct!\n");
         return false;
     }
+    // if field is part of a child calldata, store it into a linked list of s_field structs (inside the child tx_info?)
+    // don't format it now because it will be done later (when we received a matching parent PARAM_TYPE_CALLDATA)
     if (!format_field(&field)) {
         PRINTF("Error while formatting the field\n");
         return false;

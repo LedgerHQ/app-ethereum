@@ -141,7 +141,11 @@ static void ui_712_w3c_cb(bool confirm) {
         // User has clicked on "Sign anyway"
         snprintf(g_stax_shared_buffer,
                  sizeof(g_stax_shared_buffer),
+#ifdef SCREEN_SIZE_WALLET
                  "%s typed message?",
+#else
+                 "%s message",
+#endif
                  ui_tx_simulation_finish_str());
         nbgl_useCaseReviewStreamingFinish(g_stax_shared_buffer, ui_typed_message_review_choice);
     }
@@ -161,10 +165,14 @@ void ui_712_switch_to_sign(void) {
             return;
         }
 #endif
+#ifdef SCREEN_SIZE_WALLET
         snprintf(g_stax_shared_buffer,
                  sizeof(g_stax_shared_buffer),
                  "%s typed message?",
                  ui_tx_simulation_finish_str());
+#else
+        snprintf(g_stax_shared_buffer, sizeof(g_stax_shared_buffer), "Sign message");
+#endif
         nbgl_useCaseReviewStreamingFinish(g_stax_shared_buffer, ui_typed_message_review_choice);
     }
 }

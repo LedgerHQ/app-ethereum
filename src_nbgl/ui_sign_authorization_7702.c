@@ -38,6 +38,10 @@ void ui_sign_7702_auth(void) {
                        &ICON_APP_REVIEW,
                        "Review authorization to upgrade into smart contract account?",
                        NULL,
+#ifdef SCREEN_SIZE_WALLET
                        "Sign authorization to upgrade into smart contract account?",
+#else
+                       "Sign operation",
+#endif
                        review7702Choice);
 }

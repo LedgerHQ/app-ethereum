@@ -276,11 +276,15 @@ bool ui_gcs(void) {
         ui_gcs_cleanup();
         return false;
     }
+#ifdef SCREEN_SIZE_WALLET
     snprintf(tmp_buf,
              tmp_buf_size,
              "%s transaction to %s?",
              ui_tx_simulation_finish_str(),
              get_operation_type());
+#else
+    snprintf(tmp_buf, tmp_buf_size, "%s transaction", ui_tx_simulation_finish_str());
+#endif
     if ((g_sign_title = _strdup(tmp_buf)) == NULL) {
         ui_gcs_cleanup();
         return false;

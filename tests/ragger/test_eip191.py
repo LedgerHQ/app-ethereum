@@ -41,7 +41,7 @@ def common(scenario_navigator: NavigateWithScenario,
         handle_simulation(app_client, msg, simu_params)
 
     try:
-        with app_client.personal_sign(BIP32_PATH, msg.encode('utf-8')):
+        with app_client.personal_sign(BIP32_PATH, msg.encode('ascii')):
             if simu_params is not None:
                 navigator.navigate_and_compare(screenshot_path,
                                                f"{test_name}/warning",
@@ -66,7 +66,7 @@ def common(scenario_navigator: NavigateWithScenario,
     if simu_params is None or "tx_hash" not in simu_params:
         # verify signature
         vrs = ResponseParser.signature(app_client.response().data)
-        addr = recover_message(msg.encode('utf-8'), vrs)
+        addr = recover_message(msg.encode('ascii'), vrs)
         assert addr == DEVICE_ADDR
 
 
@@ -99,7 +99,7 @@ def test_personal_sign_reject(scenario_navigator: NavigateWithScenario):
 
     msg = "This is an reject sign"
     try:
-        with app_client.personal_sign(BIP32_PATH, msg.encode('utf-8')):
+        with app_client.personal_sign(BIP32_PATH, msg.encode('ascii')):
             scenario_navigator.review_reject()
 
     except ExceptionRAPDU as e:

@@ -50,10 +50,10 @@ def common(scenario_navigator: NavigateWithScenario,
 
             if simu_params and "tx_hash" in simu_params:
                 navigator.navigate_until_text_and_compare(NavInsID.SWIPE_CENTER_TO_LEFT,
-                                                        [NavInsID.USE_CASE_CHOICE_CONFIRM],
-                                                        "Transaction Check",
-                                                        screenshot_path,
-                                                        test_name)
+                                                          [NavInsID.USE_CASE_CHOICE_CONFIRM],
+                                                          "Transaction Check",
+                                                          screenshot_path,
+                                                          test_name)
             else:
                 scenario_navigator.review_approve(test_name=test_name)
 

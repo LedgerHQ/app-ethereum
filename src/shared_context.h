@@ -21,7 +21,6 @@ typedef struct internalStorage_t {
     bool contractDetails;
     bool displayNonce;
     bool verbose_eip712;
-    bool verbose_trusted_name;
 #ifdef HAVE_WEB3_CHECKS
     bool w3c_enable;
     // hidden setting (not shown in the UI)

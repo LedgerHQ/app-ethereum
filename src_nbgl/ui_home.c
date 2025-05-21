@@ -18,7 +18,6 @@ nbgl_warning_t warning;
 enum {
     WEB3_CHECK_TOKEN = FIRST_USER_TOKEN,
     BLIND_SIGNING_TOKEN,
-    TRUSTED_NAME_VERBOSE_TOKEN,
     NONCE_TOKEN,
     EIP712_VERBOSE_TOKEN,
     EIP7702_TOKEN,
@@ -30,7 +29,6 @@ enum {
     WEB3_CHECK_ID,
 #endif
     BLIND_SIGNING_ID,
-    TRUSTED_NAME_VERBOSE_ID,
     NONCE_ID,
     EIP712_VERBOSE_ID,
     DEBUG_ID,
@@ -68,11 +66,6 @@ static void setting_toggle_callback(int token, uint8_t index, int page) {
             value = !N_storage.dataAllowed;
             switches[BLIND_SIGNING_ID].initState = (nbgl_state_t) value;
             nvm_write((void *) &N_storage.dataAllowed, (void *) &value, sizeof(value));
-            break;
-        case TRUSTED_NAME_VERBOSE_TOKEN:
-            value = !N_storage.verbose_trusted_name;
-            switches[TRUSTED_NAME_VERBOSE_ID].initState = (nbgl_state_t) value;
-            nvm_write((void *) &N_storage.verbose_trusted_name, (void *) &value, sizeof(value));
             break;
         case NONCE_TOKEN:
             value = !N_storage.displayNonce;
@@ -127,19 +120,6 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
     switches[BLIND_SIGNING_ID].token = BLIND_SIGNING_TOKEN;
 #ifdef HAVE_PIEZO_SOUND
     switches[BLIND_SIGNING_ID].tuneId = TUNE_TAP_CASUAL;
-#endif
-
-    switches[TRUSTED_NAME_VERBOSE_ID].initState =
-        N_storage.verbose_trusted_name ? ON_STATE : OFF_STATE;
-    switches[TRUSTED_NAME_VERBOSE_ID].text = "ENS addresses";
-#ifdef SCREEN_SIZE_WALLET
-    switches[TRUSTED_NAME_VERBOSE_ID].subText = "Display the resolved address of ENS domains";
-#else
-    switches[TRUSTED_NAME_VERBOSE_ID].subText = "Display resolved addresses from ENS";
-#endif
-    switches[TRUSTED_NAME_VERBOSE_ID].token = TRUSTED_NAME_VERBOSE_TOKEN;
-#ifdef HAVE_PIEZO_SOUND
-    switches[TRUSTED_NAME_VERBOSE_ID].tuneId = TUNE_TAP_CASUAL;
 #endif
 
     switches[NONCE_ID].initState = N_storage.displayNonce ? ON_STATE : OFF_STATE;

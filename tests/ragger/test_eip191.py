@@ -69,7 +69,7 @@ def common(scenario_navigator: NavigateWithScenario,
     if simu_params is None or "tx_hash" not in simu_params:
         # verify signature
         vrs = ResponseParser.signature(app_client.response().data)
-        addr = recover_message(msg.encode('ascii'), vrs)
+        addr = recover_message(msg, vrs)
         assert addr == DEVICE_ADDR
 
 

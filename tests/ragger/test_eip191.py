@@ -24,7 +24,7 @@ def handle_simulation(app_client: EthAppClient, msg: str, simu_params: TxSimu) -
 
 def common(scenario_navigator: NavigateWithScenario,
            test_name: str,
-           msg: str,
+           msg: str | bytes,
            simu_params: Optional[TxSimu] = None):
 
     backend = scenario_navigator.backend
@@ -40,8 +40,11 @@ def common(scenario_navigator: NavigateWithScenario,
         simu_params.from_addr = DEVICE_ADDR
         handle_simulation(app_client, msg, simu_params)
 
+    if isinstance(msg, str):
+        msg = msg.encode('ascii')
+
     try:
-        with app_client.personal_sign(BIP32_PATH, msg.encode('ascii')):
+        with app_client.personal_sign(BIP32_PATH, msg):
             if simu_params is not None:
                 navigator.navigate_and_compare(screenshot_path,
                                                f"{test_name}/warning",
@@ -78,7 +81,7 @@ def test_personal_sign_metamask(scenario_navigator: NavigateWithScenario, test_n
 
 def test_personal_sign_non_ascii(scenario_navigator: NavigateWithScenario, test_name: str):
 
-    msg = "0x9c22ff5f21f0b81b113e63f7db6da94fedef11b2119b4088b89664fb9a3cb658"
+    msg = bytes.fromhex("9c22ff5f21f0b81b113e63f7db6da94fedef11b2119b4088b89664fb9a3cb658")
     common(scenario_navigator, test_name, msg)
 
 

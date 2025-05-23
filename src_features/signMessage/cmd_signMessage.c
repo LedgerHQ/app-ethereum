@@ -3,121 +3,70 @@
 #include "sign_message.h"
 #include "common_ui.h"
 #include "ui_callbacks.h"
+#include "mem.h"
 
-static uint8_t processed_size;
-static struct {
-    sign_message_state sign_state : 1;
-    bool ui_started : 1;
-} states;
+typedef struct {
+    uint16_t msg_length;
+    uint16_t processed_size;
+    char *received_buffer;
+    char *display_buffer;
+} signMsgCtx_t;
+
+static signMsgCtx_t signMsgCtx = {0};
 
 static const char SIGN_MAGIC[] =
     "\x19"
     "Ethereum Signed Message:\n";
 
-#define SET_IDLE                 \
-    do {                         \
-        if (states.ui_started) { \
-            ui_idle();           \
-        }                        \
-    } while (0)
-
 /**
- * Send a response APDU with the given Status Word
- *
- * @param[in] sw status word
+ * Cleanup buffer and go back to main screen
  */
-static void apdu_reply(uint16_t sw) {
-    bool idle = (sw != APDU_RESPONSE_OK) && states.ui_started;
-    io_seproxyhal_send_status(sw, 0, false, idle);
-}
-
-/**
- * Get unprocessed data from last received APDU
- *
- * @return pointer to data in APDU buffer
- */
-static const uint8_t *unprocessed_data(void) {
-    return &G_io_apdu_buffer[OFFSET_CDATA] + processed_size;
-}
-
-/**
- * Get size of unprocessed data from last received APDU
- *
- * @return size of data in bytes
- */
-static size_t unprocessed_length(void) {
-    return G_io_apdu_buffer[OFFSET_LC] - processed_size;
-}
-
-/**
- * Get used space from UI buffer
- *
- * @return size in bytes
- */
-static size_t ui_buffer_length(void) {
-    return strlen(UI_191_BUFFER);
-}
-
-/**
- * Get remaining space from UI buffer
- *
- * @return size in bytes
- */
-static size_t remaining_ui_buffer_length(void) {
-    // -1 for the ending NULL byte
-    return (sizeof(UI_191_BUFFER) - 1) - ui_buffer_length();
-}
-
-/**
- * Get free space from UI buffer
- *
- * @return pointer to the free space
- */
-static char *remaining_ui_buffer(void) {
-    return &UI_191_BUFFER[ui_buffer_length()];
-}
-
-/**
- * Reset the UI buffer
- *
- * Simply sets its first byte to a NULL character
- */
-static void reset_ui_buffer(void) {
-    UI_191_BUFFER[0] = '\0';
+static void set_idle(void) {
+    message_cleanup();
+    ui_idle();
 }
 
 /**
  * Handle the data specific to the first APDU of an EIP-191 signature
  *
- * @param[in] data the APDU payload
- * @param[in] length the payload size
- * @param[out] sw Status Word
- * @return pointer to the start of the message; \ref NULL if it failed
+ * @param[in,out] data the APDU payload
+ * @param[in,out] length the payload size
+ * @return whether it was successful or not
  */
-static const uint8_t *first_apdu_data(const uint8_t *data, uint8_t *length, uint16_t *sw) {
+static uint16_t first_apdu_data(uint8_t **data, uint8_t *length) {
     cx_err_t error = CX_INTERNAL_ERROR;
 
-    if (appState != APP_STATE_IDLE) {
-        apdu_reply(APDU_RESPONSE_CONDITION_NOT_SATISFIED);
-    }
-    appState = APP_STATE_SIGNING_MESSAGE;
-    data = parseBip32(data, length, &tmpCtx.messageSigningContext.bip32);
-    if (data == NULL) {
-        *sw = APDU_RESPONSE_INVALID_DATA;
-        return NULL;
-    }
+    // Initialize the Message Context
+    message_cleanup();
+    explicit_bzero(&tmpCtx.messageSigningContext, sizeof(tmpCtx.messageSigningContext));
 
+    // Parse the derivation path
+    *data = (uint8_t *) parseBip32(*data, length, &tmpCtx.messageSigningContext.bip32);
+    if (*data == NULL) {
+        return APDU_RESPONSE_INVALID_DATA;
+    }
+    // Check if the length is valid
     if (*length < sizeof(uint32_t)) {
         PRINTF("Invalid data\n");
-        *sw = APDU_RESPONSE_INVALID_DATA;
-        return NULL;
+        return APDU_RESPONSE_INVALID_DATA;
     }
 
-    tmpCtx.messageSigningContext.remainingLength = U4BE(data, 0);
-    data += sizeof(uint32_t);
+    // Get the message length
+    signMsgCtx.msg_length = U4BE(*data, 0);
+
+    // Allocate the buffer for the message
+    signMsgCtx.received_buffer = app_mem_alloc(signMsgCtx.msg_length);
+    if (signMsgCtx.received_buffer == NULL) {
+        PRINTF("Error: Not enough memory!\n");
+        return APDU_RESPONSE_INSUFFICIENT_MEMORY;
+    }
+    explicit_bzero(signMsgCtx.received_buffer, signMsgCtx.msg_length);
+
+    // Skip data & length to the message itself
+    *data += sizeof(uint32_t);
     *length -= sizeof(uint32_t);
 
-    // Initialize message header + length
+    // Initialize message header + length hash
     CX_CHECK(cx_keccak_init_no_throw(&global_sha3, 256));
     CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3,
                               0,
@@ -125,101 +74,121 @@ static const uint8_t *first_apdu_data(const uint8_t *data, uint8_t *length, uint
                               sizeof(SIGN_MAGIC) - 1,
                               NULL,
                               0));
-    snprintf(strings.tmp.tmp2,
-             sizeof(strings.tmp.tmp2),
-             "%u",
-             tmpCtx.messageSigningContext.remainingLength);
+    snprintf(strings.tmp.tmp2, sizeof(strings.tmp.tmp2), "%u", signMsgCtx.msg_length);
     CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3,
                               0,
                               (uint8_t *) strings.tmp.tmp2,
                               strlen(strings.tmp.tmp2),
                               NULL,
                               0));
-    reset_ui_buffer();
-    states.sign_state = STATE_191_HASH_DISPLAY;
-    states.ui_started = false;
-    *sw = APDU_RESPONSE_OK;
-    return data;
-end:
-    *sw = error;
-    return NULL;
-}
-
-/**
- * Feed the progressive hash with new data
- *
- * @param[in] data the new data
- * @param[in] length the data length
- * @return whether it was successful or not
- */
-static uint16_t feed_hash(const uint8_t *const data, const uint8_t length) {
-    cx_err_t error = CX_INTERNAL_ERROR;
-
-    if (length > tmpCtx.messageSigningContext.remainingLength) {
-        PRINTF("Error: Length mismatch ! (%u > %u)!\n",
-               length,
-               tmpCtx.messageSigningContext.remainingLength);
-        SET_IDLE;
-        return APDU_RESPONSE_INVALID_DATA;
-    }
-    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3, 0, data, length, NULL, 0));
-    if ((tmpCtx.messageSigningContext.remainingLength -= length) == 0) {
-        // Finalize hash
-        CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3,
-                                  CX_LAST,
-                                  NULL,
-                                  0,
-                                  tmpCtx.messageSigningContext.hash,
-                                  32));
-    }
     error = APDU_RESPONSE_OK;
 end:
     return error;
 }
 
 /**
- * Feed the UI with new data
+ * Process the received data and hash with new data
+ *
+ * @param[in] data the new data
+ * @param[in] length the data length
+ * @return whether it was successful or not
  */
-static uint16_t feed_display(void) {
-    int c;
+static uint16_t process_data(const uint8_t *const data, const uint8_t length) {
+    cx_err_t error = CX_INTERNAL_ERROR;
 
-    while ((unprocessed_length() > 0) && (remaining_ui_buffer_length() > 0)) {
-        c = *(char *) unprocessed_data();
-#ifndef SCREEN_SIZE_WALLET
-        if (isspace(c)) {
-            // to replace all white-space characters as spaces
-            c = ' ';
+    // Hash the data
+    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3, 0, data, length, NULL, 0));
+
+    // Copy the data to the buffer
+    memcpy(&signMsgCtx.received_buffer[signMsgCtx.processed_size], data, length);
+
+    // Decrease the remaining length
+    signMsgCtx.processed_size += length;
+
+    error = APDU_RESPONSE_OK;
+end:
+    return error;
+}
+
+/**
+ * Finalize the hash computation, and prepare display buffer
+ *
+ * @return whether it was successful or not
+ */
+static uint16_t final_process(void) {
+    cx_err_t error = CX_INTERNAL_ERROR;
+    bool is_hex = false;
+    uint16_t buffer_length = 0;
+    uint16_t i = 0;
+#ifdef SCREEN_SIZE_NANO
+    char c;
+    uint16_t j = 0;
+#endif  // SCREEN_SIZE_NANO
+
+    // Finalize hash
+    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3,
+                              CX_LAST,
+                              NULL,
+                              0,
+                              tmpCtx.messageSigningContext.hash,
+                              32));
+
+    // Display buffer length
+    buffer_length = signMsgCtx.msg_length;
+
+    // Determine if the buffer is Ascii or hex
+    for (i = 0; i < signMsgCtx.msg_length; i++) {
+        if (!isprint((int) signMsgCtx.received_buffer[i]) &&
+            !isspace((int) signMsgCtx.received_buffer[i])) {
+            // Hexadecimal message
+            is_hex = true;
+            buffer_length *= 2;  // To convert hex byte to char
+            buffer_length += 2;  // for "0x"
+            break;
         }
-#endif  // SCREEN_SIZE_WALLET
-        if (isprint(c) || isspace(c)) {
-            sprintf(remaining_ui_buffer(), "%c", (char) c);
-            processed_size += 1;
-        } else {
-            if (remaining_ui_buffer_length() >= 4)  // 4 being the fixed length of \x00
-            {
-                snprintf(remaining_ui_buffer(), remaining_ui_buffer_length(), "\\x%02x", c);
-                processed_size += 1;
-            } else {
-                // fill the rest of the UI buffer spaces, to consider the buffer full
-                memset(remaining_ui_buffer(), ' ', remaining_ui_buffer_length());
+    }
+    // Allocate the buffer for the display
+    buffer_length++;  // for the NULL byte
+    signMsgCtx.display_buffer = app_mem_alloc(buffer_length);
+    if (signMsgCtx.display_buffer == NULL) {
+        PRINTF("Error: Not enough memory!\n");
+        error = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+        goto end;
+    }
+    explicit_bzero(signMsgCtx.display_buffer, buffer_length);
+
+    if (is_hex) {
+        // Copy the "0x" prefix
+        memcpy(signMsgCtx.display_buffer, "0x", 2);
+        // Convert the message to ascii
+        if (bytes_to_lowercase_hex(signMsgCtx.display_buffer + 2,
+                                   buffer_length - 2,
+                                   (const uint8_t *) signMsgCtx.received_buffer,
+                                   signMsgCtx.msg_length) < 0) {
+            // SHould never happen, buffer is large enough
+            PRINTF("Error: Not enough memory!\n");
+            error = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+            goto end;
+        }
+    } else {
+#ifdef SCREEN_SIZE_NANO
+        for (i = 0; i < signMsgCtx.msg_length; i++) {
+            c = signMsgCtx.received_buffer[i];
+            if (isspace((int) c)) {
+                // to replace all white-space characters as spaces
+                c = ' ';
             }
+            signMsgCtx.display_buffer[j++] = c;
         }
+#else   // SCREEN_SIZE_NANO
+        // Copy the message to the display buffer
+        memcpy(signMsgCtx.display_buffer, signMsgCtx.received_buffer, signMsgCtx.msg_length);
+#endif  // SCREEN_SIZE_NANO
     }
 
-    if ((remaining_ui_buffer_length() == 0) ||
-        (tmpCtx.messageSigningContext.remainingLength == 0)) {
-        if (!states.ui_started) {
-            ui_191_start();
-            states.ui_started = true;
-        } else {
-            ui_191_switch_to_message();
-        }
-    }
-
-    if ((unprocessed_length() == 0) && (tmpCtx.messageSigningContext.remainingLength > 0)) {
-        return APDU_RESPONSE_OK;
-    }
-    return APDU_NO_RESPONSE;
+    error = APDU_RESPONSE_OK;
+end:
+    return error;
 }
 
 /**
@@ -235,90 +204,69 @@ uint16_t handleSignPersonalMessage(uint8_t p1,
                                    const uint8_t *const payload,
                                    uint8_t length,
                                    unsigned int *flags) {
-    const uint8_t *data = payload;
+    uint8_t *data = (uint8_t *) payload;
     uint16_t sw = APDU_RESPONSE_UNKNOWN;
 
-    processed_size = 0;
     if (p1 == P1_FIRST) {
-        if ((data = first_apdu_data(data, &length, &sw)) == NULL) {
-            if (sw != APDU_RESPONSE_INVALID_DATA) {
-                *flags |= IO_ASYNCH_REPLY;
-            }
+        // Check if the app is in idle state
+        if (appState != APP_STATE_IDLE) {
+            set_idle();
+            return APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        }
+        appState = APP_STATE_SIGNING_MESSAGE;
+
+        sw = first_apdu_data(&data, &length);
+        if (sw != APDU_RESPONSE_OK) {
             return sw;
         }
-        processed_size = data - payload;
     } else if (p1 != P1_MORE) {
         PRINTF("Error: Unexpected P1 (%u)!\n", p1);
-        SET_IDLE;
+        set_idle();
         return APDU_RESPONSE_INVALID_P1_P2;
     } else if (appState != APP_STATE_SIGNING_MESSAGE) {
         PRINTF("Error: App not already in signing state!\n");
-        SET_IDLE;
+        set_idle();
         return APDU_RESPONSE_INVALID_DATA;
     }
 
-    sw = feed_hash(data, length);
+    // Check if the received chunk data is too long
+    if ((length + signMsgCtx.processed_size) > signMsgCtx.msg_length) {
+        PRINTF("Error: Length mismatch ! (%u > %u)!\n",
+               (length + signMsgCtx.processed_size),
+               signMsgCtx.msg_length);
+        set_idle();
+        return APDU_RESPONSE_INVALID_DATA;
+    }
+
+    // Hash the data and copy the data to the buffer
+    sw = process_data(data, length);
     if (sw != APDU_RESPONSE_OK) {
-        if (sw != APDU_RESPONSE_INVALID_DATA) {
-            *flags |= IO_ASYNCH_REPLY;
-        }
         return sw;
     }
 
-    if (states.sign_state == STATE_191_HASH_DISPLAY) {
-        sw = feed_display();
+    // Start the UI if the buffer is fully received
+    if (signMsgCtx.processed_size == signMsgCtx.msg_length) {
+        sw = final_process();
         if (sw != APDU_RESPONSE_OK) {
-            *flags |= IO_ASYNCH_REPLY;
+            set_idle();
+            return sw;
         }
-    } else {
-        // hash only
-        if (tmpCtx.messageSigningContext.remainingLength == 0) {
-            ui_191_switch_to_sign();
-            sw = APDU_NO_RESPONSE;
-            *flags |= IO_ASYNCH_REPLY;
-        } else {
-            sw = APDU_RESPONSE_OK;
-        }
+        ui_191_start(signMsgCtx.display_buffer);
+        *flags |= IO_ASYNCH_REPLY;
+        return APDU_NO_RESPONSE;
     }
-    return sw;
+    return APDU_RESPONSE_OK;
 }
 
 /**
- * Decide whether to show the question to show more of the message or not
+ * Cleanup buffer
  */
-void question_switcher(void) {
-    if ((states.sign_state == STATE_191_HASH_DISPLAY) &&
-        ((tmpCtx.messageSigningContext.remainingLength > 0) || (unprocessed_length() > 0))) {
-        ui_191_switch_to_question();
-    } else {
-        // Go to Sign / Cancel
-        ui_191_switch_to_sign();
+void message_cleanup(void) {
+    if (signMsgCtx.received_buffer != NULL) {
+        app_mem_free((void *) signMsgCtx.received_buffer);
     }
-}
-
-/**
- * The user has decided to skip the rest of the message
- */
-void skip_rest_of_message(void) {
-    states.sign_state = STATE_191_HASH_ONLY;
-    if (tmpCtx.messageSigningContext.remainingLength > 0) {
-        apdu_reply(APDU_RESPONSE_OK);
-    } else {
-        ui_191_switch_to_sign();
+    if (signMsgCtx.display_buffer != NULL) {
+        app_mem_free((void *) signMsgCtx.display_buffer);
     }
-}
-
-/**
- * The user has decided to see the next chunk of the message
- */
-void continue_displaying_message(void) {
-    uint16_t sw = APDU_RESPONSE_OK;
-
-    reset_ui_buffer();
-    if (unprocessed_length() > 0) {
-        sw = feed_display();
-    }
-    if (sw != APDU_NO_RESPONSE) {
-        io_seproxyhal_send_status(sw, 0, sw != APDU_RESPONSE_OK, sw != APDU_RESPONSE_OK);
-    }
+    explicit_bzero(&signMsgCtx, sizeof(signMsgCtx));
 }

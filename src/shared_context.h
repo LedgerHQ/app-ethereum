@@ -77,7 +77,6 @@ typedef struct transactionContext_t {
 typedef struct messageSigningContext_t {
     bip32_path_t bip32;
     uint8_t hash[INT256_LENGTH];
-    uint32_t remainingLength;
 } messageSigningContext_t;
 
 typedef struct messageSigningContext712_t {

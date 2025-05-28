@@ -22,6 +22,7 @@ enum {
     EIP712_VERBOSE_TOKEN,
     EIP7702_TOKEN,
     DEBUG_TOKEN,
+    HASH_TOKEN,
 };
 
 enum {
@@ -33,6 +34,7 @@ enum {
     EIP712_VERBOSE_ID,
     DEBUG_ID,
     EIP7702_ID,
+    HASH_ID,
     SETTINGS_SWITCHES_NB
 };
 
@@ -86,6 +88,11 @@ static void setting_toggle_callback(int token, uint8_t index, int page) {
             value = !N_storage.contractDetails;
             switches[DEBUG_ID].initState = (nbgl_state_t) value;
             nvm_write((void *) &N_storage.contractDetails, (void *) &value, sizeof(value));
+            break;
+        case HASH_TOKEN:
+            value = !N_storage.displayHash;
+            switches[HASH_ID].initState = (nbgl_state_t) value;
+            nvm_write((void *) &N_storage.displayHash, (void *) &value, sizeof(value));
             break;
     }
 }
@@ -172,6 +179,18 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
     switches[WEB3_CHECK_ID].token = WEB3_CHECK_TOKEN;
     switches[WEB3_CHECK_ID].tuneId = TUNE_TAP_CASUAL;
 #endif  // HAVE_WEB3_CHECKS
+
+    switches[HASH_ID].initState = N_storage.displayHash ? ON_STATE : OFF_STATE;
+    switches[HASH_ID].text = "Transaction Hash";
+#ifdef SCREEN_SIZE_WALLET
+    switches[HASH_ID].subText = "Always display the transaction or message hash";
+#else
+    switches[HASH_ID].subText = "Always display the transaction hash";
+#endif
+    switches[HASH_ID].token = HASH_TOKEN;
+#ifdef HAVE_PIEZO_SOUND
+    switches[HASH_ID].tuneId = TUNE_TAP_CASUAL;
+#endif
 
     contents[0].type = SWITCHES_LIST;
     contents[0].content.switchesList.nbSwitches = SETTINGS_SWITCHES_NB;

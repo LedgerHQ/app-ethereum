@@ -1,4 +1,5 @@
 #include "common_ui.h"
+#include "common_712.h"
 #include "ui_nbgl.h"
 #include "ui_logic.h"
 #include "ui_message_signing.h"
@@ -10,6 +11,7 @@ static nbgl_contentTagValueList_t pairs_list;
 static uint8_t pair_idx;
 static size_t buf_idx;
 static bool review_skipped;
+static bool hash_displayed;
 
 nbgl_callback_t skip_callback = NULL;
 
@@ -86,6 +88,7 @@ static void ui_712_start_common(void) {
     pair_idx = 0;
     buf_idx = 0;
     review_skipped = false;
+    hash_displayed = false;
 #ifdef SCREEN_SIZE_WALLET
     skip_callback = review_skip;
 #endif  // SCREEN_SIZE_WALLET
@@ -158,6 +161,17 @@ void ui_712_switch_to_sign(void) {
         pair_idx = 0;
         nbgl_useCaseReviewStreamingContinueExt(&pairs_list, message_progress, skip_callback);
     } else {
+        if (N_storage.displayHash && !hash_displayed) {
+            // If the hash is not displayed yet, we need to format it and display it
+            // Prepare the pairs list with the hashes
+            eip712_format_hash(pairs, ARRAYLEN(pairs), &pairs_list);
+            pairs[0].forcePageStart = 1;
+            hash_displayed = true;
+            pair_idx = 0;
+            // Continue with the pairs list but no more skip needed here
+            nbgl_useCaseReviewStreamingContinue(&pairs_list, message_progress);
+            return;
+        }
 #ifdef HAVE_WEB3_CHECKS
         if ((TX_SIMULATION.risk != RISK_UNKNOWN) && ((check_tx_simulation_hash() == false) ||
                                                      check_tx_simulation_from_address() == false)) {

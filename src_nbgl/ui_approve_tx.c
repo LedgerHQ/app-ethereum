@@ -185,7 +185,7 @@ static uint8_t setTagValuePairs(void) {
 
         // Display the Transaction hash
         // ----------------------------
-        if (tmpContent.txContent.dataPresent) {
+        if ((N_storage.displayHash) || (tmpContent.txContent.dataPresent)) {
             // Copy the "0x" prefix
             strlcpy(strings.common.tx_hash, "0x", 3);
             if (bytes_to_lowercase_hex(strings.common.tx_hash + 2,

@@ -27,6 +27,7 @@ typedef struct internalStorage_t {
     bool w3c_opt_in;
 #endif
     bool eip7702_enable;
+    bool displayHash;
     bool initialized;
 } internalStorage_t;
 

@@ -465,13 +465,20 @@ def test_eip712_advanced_filtering(backend: BackendInterface,
                                    default_screenshot_path: Path,
                                    test_name: str,
                                    data_set: DataSet,
-                                   golden_run: bool):
+                                   golden_run: bool,
+                                   verbose_raw: bool):
     global snapshots_dirname
+
+    if verbose_raw and data_set.suffix:
+        pytest.skip("Skipping Verbose mode for this data sets")
 
     app_client = EthAppClient(backend)
     device = backend.device
 
     snapshots_dirname = test_name + data_set.suffix
+    if verbose_raw:
+        settings_toggle(device, navigator, [SettingID.DISPLAY_HASH])
+        snapshots_dirname += "-verbose"
 
     vrs = eip712_new_common(device,
                             navigator,

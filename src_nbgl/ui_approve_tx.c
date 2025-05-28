@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include "os_utils.h"
 #include "shared_context.h"
 #include "ui_callbacks.h"
 #include "ui_message_signing.h"
@@ -122,29 +123,16 @@ static uint8_t setTagValuePairs(void) {
         pairs[nbPairs].value = strings.common.maxFee;
         nbPairs++;
     } else {
-        if (tmpContent.txContent.dataPresent) {
-#pragma GCC diagnostic ignored "-Wformat"
-            snprintf(strings.common.tx_hash,
-                     sizeof(strings.common.tx_hash),
-                     "0x%.*h",
-                     sizeof(tmpCtx.transactionContext.hash),
-                     tmpCtx.transactionContext.hash);
-#pragma GCC diagnostic warning "-Wformat"
-#ifdef SCREEN_SIZE_WALLET
-            pairs[nbPairs].item = "Transaction hash";
-#else
-            pairs[nbPairs].item = "Tx hash";
-#endif
-            pairs[nbPairs].value = strings.common.tx_hash;
-            nbPairs++;
-        }
-
+        // Display the From address
+        // ------------------------
         if (strings.common.fromAddress[0] != 0) {
             pairs[nbPairs].item = "From";
             pairs[nbPairs].value = strings.common.fromAddress;
             nbPairs++;
         }
 
+        // Display the Amount
+        // ------------------
         if (!tmpContent.txContent.dataPresent ||
             !allzeroes(tmpContent.txContent.value.value, tmpContent.txContent.value.length)) {
             pairs[nbPairs].item = "Amount";
@@ -152,6 +140,8 @@ static uint8_t setTagValuePairs(void) {
             nbPairs++;
         }
 
+        // Display the To address
+        // ----------------------
         uint64_t chain_id = get_tx_chain_id();
         e_name_type type = TN_TYPE_ACCOUNT;
         e_name_source source = TN_SOURCE_ENS;
@@ -170,20 +160,46 @@ static uint8_t setTagValuePairs(void) {
             pairs[nbPairs].value = strings.common.toAddress;
         }
         nbPairs++;
+
+        // Display the Nonce
+        // -----------------
         if (N_storage.displayNonce) {
             pairs[nbPairs].item = "Nonce";
             pairs[nbPairs].value = strings.common.nonce;
             nbPairs++;
         }
 
+        // Display the Max fees
+        // --------------------
         pairs[nbPairs].item = "Max fees";
         pairs[nbPairs].value = strings.common.maxFee;
         nbPairs++;
 
+        // Display the Network
+        // -------------------
         if (tx_approval_context.displayNetwork) {
             pairs[nbPairs].item = "Network";
             pairs[nbPairs].value = strings.common.network_name;
             nbPairs++;
+        }
+
+        // Display the Transaction hash
+        // ----------------------------
+        if (tmpContent.txContent.dataPresent) {
+            // Copy the "0x" prefix
+            strlcpy(strings.common.tx_hash, "0x", 3);
+            if (bytes_to_lowercase_hex(strings.common.tx_hash + 2,
+                                       sizeof(strings.common.tx_hash) - 2,
+                                       (const uint8_t *) tmpCtx.transactionContext.hash,
+                                       INT256_LENGTH) >= 0) {
+#ifdef SCREEN_SIZE_WALLET
+                pairs[nbPairs].item = "Transaction hash";
+#else
+                pairs[nbPairs].item = "Tx hash";
+#endif
+                pairs[nbPairs].value = strings.common.tx_hash;
+                nbPairs++;
+            }
         }
     }
     return nbPairs;

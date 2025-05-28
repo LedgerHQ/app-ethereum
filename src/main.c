@@ -70,7 +70,6 @@ caller_app_t *caller_app = NULL;
 const chain_config_t *chainConfig;
 
 void reset_app_context() {
-    // PRINTF("!!RESET_APP_CONTEXT\n");
     if (appState == APP_STATE_SIGNING_MESSAGE) {
         message_cleanup();
     }

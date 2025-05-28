@@ -25,7 +25,7 @@ static void *field_encode(const uint8_t *const value,
         apdu_response_code = APDU_RESPONSE_INVALID_DATA;
         return NULL;
     }
-    if ((padded_value = mem_legacy_alloc(EIP_712_ENCODED_FIELD_LENGTH)) != NULL) {
+    if ((padded_value = app_mem_alloc(EIP_712_ENCODED_FIELD_LENGTH)) != NULL) {
         switch (ptype) {
             case MSB:
                 memset(padded_value, pval, EIP_712_ENCODED_FIELD_LENGTH - length);

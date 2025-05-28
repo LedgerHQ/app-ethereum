@@ -24,16 +24,6 @@ static void review_choice(bool confirm) {
     }
 }
 
-static char *_strdup(const char *src) {
-    char *dst;
-    size_t length = strlen(src) + 1;
-
-    if ((dst = app_mem_alloc(length)) != NULL) {
-        memmove(dst, src, length);
-    }
-    return dst;
-}
-
 static void free_pair_extension_infolist_elem(const struct nbgl_contentInfoList_s *infolist,
                                               int idx) {
     if (infolist->infoTypes[idx] != NULL) {
@@ -130,7 +120,7 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
                  "Contract owner"
 #endif
         );
-        if ((keys[count] = _strdup(tmp_buf)) == NULL) {
+        if ((keys[count] = app_mem_strdup(tmp_buf)) == NULL) {
             return false;
         }
         snprintf(tmp_buf, tmp_buf_size, "%s", value);
@@ -138,7 +128,7 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
             off = strlen(tmp_buf);
             snprintf(tmp_buf + off, tmp_buf_size - off, "\n%s", value);
         }
-        if ((values[count] = _strdup(tmp_buf)) == NULL) {
+        if ((values[count] = app_mem_strdup(tmp_buf)) == NULL) {
             return false;
         }
         count += 1;
@@ -153,11 +143,11 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
                  "Contract"
 #endif
         );
-        if ((keys[count] = _strdup(tmp_buf)) == NULL) {
+        if ((keys[count] = app_mem_strdup(tmp_buf)) == NULL) {
             return false;
         }
         snprintf(tmp_buf, tmp_buf_size, "%s", value);
-        if ((values[count] = _strdup(tmp_buf)) == NULL) {
+        if ((values[count] = app_mem_strdup(tmp_buf)) == NULL) {
             return false;
         }
 #ifdef SCREEN_SIZE_WALLET
@@ -173,10 +163,10 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
                                   chainConfig->chainId)) {
         return false;
     }
-    if ((keys[count] = _strdup("Contract address")) == NULL) {
+    if ((keys[count] = app_mem_strdup("Contract address")) == NULL) {
         return false;
     }
-    if ((values[count] = _strdup(tmp_buf)) == NULL) {
+    if ((values[count] = app_mem_strdup(tmp_buf)) == NULL) {
         return false;
     }
     count += 1;
@@ -184,11 +174,11 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
 
     if ((value = get_deploy_date()) != NULL) {
         snprintf(tmp_buf, tmp_buf_size, "Deployed on");
-        if ((keys[count] = _strdup(tmp_buf)) == NULL) {
+        if ((keys[count] = app_mem_strdup(tmp_buf)) == NULL) {
             return false;
         }
         snprintf(tmp_buf, tmp_buf_size, "%s", value);
-        if ((values[count] = _strdup(tmp_buf)) == NULL) {
+        if ((values[count] = app_mem_strdup(tmp_buf)) == NULL) {
             return false;
         }
         count += 1;
@@ -209,20 +199,20 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
                                       chainConfig->chainId)) {
             return false;
         }
-        if ((extensions[contract_idx].title = _strdup(tmp_buf)) == NULL) {
+        if ((extensions[contract_idx].title = app_mem_strdup(tmp_buf)) == NULL) {
             return false;
         }
         // Etherscan only for mainnet
         if (get_tx_chain_id() == ETHEREUM_MAINNET_CHAINID) {
-            if ((extensions[contract_idx].explanation = _strdup("Scan to view on Etherscan")) ==
-                NULL) {
+            if ((extensions[contract_idx].explanation =
+                     app_mem_strdup("Scan to view on Etherscan")) == NULL) {
                 return false;
             }
             snprintf(tmp_buf,
                      tmp_buf_size,
                      "https://etherscan.io/address/%s",
                      extensions[contract_idx].title);
-            if ((extensions[contract_idx].fullValue = _strdup(tmp_buf)) == NULL) {
+            if ((extensions[contract_idx].fullValue = app_mem_strdup(tmp_buf)) == NULL) {
                 return false;
             }
         } else {
@@ -272,7 +262,7 @@ bool ui_gcs(void) {
 #endif
 
     snprintf(tmp_buf, tmp_buf_size, "Review transaction to %s", get_operation_type());
-    if ((g_review_title = _strdup(tmp_buf)) == NULL) {
+    if ((g_review_title = app_mem_strdup(tmp_buf)) == NULL) {
         ui_gcs_cleanup();
         return false;
     }
@@ -285,7 +275,7 @@ bool ui_gcs(void) {
 #else
     snprintf(tmp_buf, tmp_buf_size, "%s transaction", ui_tx_simulation_finish_str());
 #endif
-    if ((g_sign_title = _strdup(tmp_buf)) == NULL) {
+    if ((g_sign_title = app_mem_strdup(tmp_buf)) == NULL) {
         ui_gcs_cleanup();
         return false;
     }
@@ -314,13 +304,13 @@ bool ui_gcs(void) {
     explicit_bzero(pairs, sizeof(*pairs) * g_pair_list->nbPairs);
     g_pair_list->pairs = pairs;
 
-    pairs[0].item = _strdup("Interaction with");
+    pairs[0].item = app_mem_strdup("Interaction with");
     pairs[0].value = get_creator_name();
     if (pairs[0].value == NULL) {
         // not great, but this cannot be NULL
-        pairs[0].value = _strdup("a smart contract");
+        pairs[0].value = app_mem_strdup("a smart contract");
     } else {
-        pairs[0].value = _strdup(pairs[0].value);
+        pairs[0].value = app_mem_strdup(pairs[0].value);
     }
     if ((ext = app_mem_alloc(sizeof(*ext))) == NULL) {
         ui_gcs_cleanup();
@@ -342,9 +332,9 @@ bool ui_gcs(void) {
     }
     ext->aliasType = INFO_LIST_ALIAS;
     if ((ext->backText = get_creator_name()) == NULL) {
-        ext->backText = _strdup("Smart contract information");
+        ext->backText = app_mem_strdup("Smart contract information");
     } else {
-        ext->backText = _strdup(ext->backText);
+        ext->backText = app_mem_strdup(ext->backText);
     }
     pairs[0].aliasValue = 1;
 
@@ -358,22 +348,22 @@ bool ui_gcs(void) {
     }
 
     if (show_network) {
-        pairs[g_pair_list->nbPairs - 2].item = _strdup("Network");
+        pairs[g_pair_list->nbPairs - 2].item = app_mem_strdup("Network");
         if (get_network_as_string(tmp_buf, tmp_buf_size) != APDU_RESPONSE_OK) {
             ui_gcs_cleanup();
             return false;
         }
-        pairs[g_pair_list->nbPairs - 2].value = _strdup(tmp_buf);
+        pairs[g_pair_list->nbPairs - 2].value = app_mem_strdup(tmp_buf);
     }
 
-    pairs[g_pair_list->nbPairs - 1].item = _strdup("Max fees");
+    pairs[g_pair_list->nbPairs - 1].item = app_mem_strdup("Max fees");
     if (max_transaction_fee_to_string(&tmpContent.txContent.gasprice,
                                       &tmpContent.txContent.startgas,
                                       tmp_buf,
                                       tmp_buf_size) == false) {
         PRINTF("Error: Could not format the max fees!\n");
     }
-    pairs[g_pair_list->nbPairs - 1].value = _strdup(tmp_buf);
+    pairs[g_pair_list->nbPairs - 1].value = app_mem_strdup(tmp_buf);
 
     nbgl_useCaseAdvancedReview(TYPE_TRANSACTION,
                                g_pair_list,

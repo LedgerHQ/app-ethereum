@@ -30,14 +30,16 @@
  * @param[out] path_crc pointer to the CRC of the filter path
  */
 static void hash_filtering_path(cx_hash_t *hash_ctx, bool discarded, uint32_t *path_crc) {
-    const void *field_ptr;
+    const s_struct_712_field *field_ptr;
     const char *key;
-    uint8_t key_len;
+    const char *path;
+    uint8_t path_len;
 
     if (discarded) {
-        key = ui_712_get_discarded_path(&key_len);
-        hash_nbytes((uint8_t *) key, key_len, hash_ctx);
-        *path_crc = cx_crc32_update(*path_crc, key, key_len);
+        path = ui_712_get_discarded_path();
+        path_len = strlen(path);
+        hash_nbytes((uint8_t *) path, path_len, hash_ctx);
+        *path_crc = cx_crc32_update(*path_crc, path, path_len);
     } else {
         for (uint8_t i = 0; i < path_get_depth_count(); ++i) {
             if (i > 0) {
@@ -45,17 +47,14 @@ static void hash_filtering_path(cx_hash_t *hash_ctx, bool discarded, uint32_t *p
                 *path_crc = cx_crc32_update(*path_crc, ".", 1);
             }
             if ((field_ptr = path_get_nth_field(i + 1)) != NULL) {
-                if ((key = get_struct_field_keyname(field_ptr, &key_len)) != NULL) {
+                if ((key = field_ptr->key_name) != NULL) {
                     // field name
-                    hash_nbytes((uint8_t *) key, key_len, hash_ctx);
-                    *path_crc = cx_crc32_update(*path_crc, key, key_len);
+                    hash_nbytes((uint8_t *) key, strlen(key), hash_ctx);
+                    *path_crc = cx_crc32_update(*path_crc, key, strlen(key));
 
                     // array levels
-                    if (struct_field_is_array(field_ptr)) {
-                        uint8_t lvl_count;
-
-                        get_struct_field_array_lvls_array(field_ptr, &lvl_count);
-                        for (int j = 0; j < lvl_count; ++j) {
+                    if (field_ptr->type_is_array) {
+                        for (int j = 0; j < field_ptr->array_level_count; ++j) {
                             hash_nbytes((uint8_t *) ".[]", 3, hash_ctx);
                             *path_crc = cx_crc32_update(*path_crc, ".[]", 3);
                         }
@@ -65,7 +64,7 @@ static void hash_filtering_path(cx_hash_t *hash_ctx, bool discarded, uint32_t *p
         }
     }
     // so it is only usable for the following filter
-    ui_712_set_discarded_path("", 0);
+    ui_712_clear_discarded_path();
 }
 
 /**
@@ -159,7 +158,8 @@ static bool check_typename(const char *expected) {
     uint8_t typename_len = 0;
     const char *typename;
 
-    typename = get_struct_field_typename(path_get_field(), &typename_len);
+    typename = get_struct_field_typename(path_get_field());
+    typename_len = strlen(typename);
     if ((typename_len != strlen(expected)) || (strncmp(typename, expected, typename_len) != 0)) {
         PRINTF("Error: expected field of type \"%s\" but got \"", expected);
         for (int i = 0; i < typename_len; ++i) PRINTF("%c", typename[i]);
@@ -248,11 +248,9 @@ bool filtering_message_info(const uint8_t *payload, uint8_t length) {
  * @return whether a match was found or not
  */
 static bool matches_backup_path(const char *path, uint8_t path_len, uint8_t *offset_ptr) {
-    const void *field_ptr;
+    const s_struct_712_field *field_ptr;
     const char *key;
-    uint8_t key_len;
     uint8_t offset = 0;
-    uint8_t lvl_count;
 
     for (uint8_t i = 0; i < path_backup_get_depth_count(); ++i) {
         if (i > 0) {
@@ -262,17 +260,17 @@ static bool matches_backup_path(const char *path, uint8_t path_len, uint8_t *off
             offset += 1;
         }
         if ((field_ptr = path_backup_get_nth_field(i + 1)) != NULL) {
-            if ((key = get_struct_field_keyname(field_ptr, &key_len)) != NULL) {
+            if ((key = field_ptr->key_name) != NULL) {
                 // field name
-                if (((offset + key_len) > path_len) || (memcmp(path + offset, key, key_len) != 0)) {
+                if (((offset + strlen(key)) > path_len) ||
+                    (memcmp(path + offset, key, strlen(key)) != 0)) {
                     return false;
                 }
-                offset += key_len;
+                offset += strlen(key);
 
                 // array levels
-                if (struct_field_is_array(field_ptr)) {
-                    get_struct_field_array_lvls_array(field_ptr, &lvl_count);
-                    for (int j = 0; j < lvl_count; ++j) {
+                if (field_ptr->type_is_array) {
+                    for (int j = 0; j < field_ptr->array_level_count; ++j) {
                         if (((offset + 3) > path_len) || (memcmp(path + offset, ".[]", 3) != 0)) {
                             return false;
                         }
@@ -646,14 +644,15 @@ bool filtering_amount_join_value(const uint8_t *payload,
         token_idx = (uint8_t) resolved_idx;
         // simulate as if we had received a token-join addr
         ui_712_token_join_prepare_addr_check(token_idx);
-        amount_join_set_token_received();
+        if (!amount_join_set_token_received()) {
+            return false;
+        }
     }
     if (!check_typename("uint") || !check_token_index(token_idx)) {
         return false;
     }
     ui_712_flag_field(false, false, true, false, false);
-    ui_712_token_join_prepare_amount(token_idx, name, name_len);
-    return true;
+    return ui_712_token_join_prepare_amount(token_idx, name, name_len);
 }
 
 /**

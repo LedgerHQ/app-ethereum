@@ -19,14 +19,17 @@ s_eip712_context *eip712_context = NULL;
  * @return a boolean indicating if the initialization was successful or not
  */
 bool eip712_context_init(void) {
-    // switch to legacy allocator
-    mem_legacy_init();
+    if (eip712_context != NULL) {
+        eip712_context_deinit();
+        return false;
+    }
 
     // init global variables
-    if ((eip712_context = MEM_ALLOC_AND_ALIGN_TYPE(*eip712_context)) == NULL) {
+    if ((eip712_context = app_mem_alloc(sizeof(*eip712_context))) == NULL) {
         apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
         return false;
     }
+    explicit_bzero(eip712_context, sizeof(*eip712_context));
 
     if (sol_typenames_init() == false) {
         return false;
@@ -44,14 +47,10 @@ bool eip712_context_init(void) {
         return false;
     }
 
-    if (typed_data_init() == false)  // this needs to be initialized last !
-    {
+    if (typed_data_init() == false) {
         return false;
     }
 
-    // Since they are optional, they might not be provided by the JSON data
-    explicit_bzero(eip712_context->contract_addr, sizeof(eip712_context->contract_addr));
-    eip712_context->chain_id = 0;
     eip712_context->go_home_on_failure = true;
 
     struct_state = NOT_INITIALIZED;
@@ -67,8 +66,6 @@ void eip712_context_deinit(void) {
     path_deinit();
     field_hash_deinit();
     ui_712_deinit();
-    // switch back to SDK allocator
-    app_mem_init();
     eip712_context = NULL;
     reset_app_context();
 }

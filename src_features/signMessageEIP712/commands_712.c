@@ -225,11 +225,8 @@ uint16_t handle_eip712_filtering(uint8_t p1,
             ret = false;
     }
     if ((p2 > P2_FILT_MESSAGE_INFO) && ret) {
-        if (ui_712_push_new_filter_path(path_crc)) {
-            if (!ui_712_filters_counter_incr()) {
-                ret = false;
-                apdu_response_code = APDU_RESPONSE_INVALID_DATA;
-            }
+        if (!ui_712_push_new_filter_path(path_crc)) {
+            ret = false;
         }
     }
     if (reply_apdu) {

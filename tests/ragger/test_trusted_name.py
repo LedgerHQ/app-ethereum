@@ -9,6 +9,8 @@ from ragger.error import ExceptionRAPDU
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 from ragger.navigator import Navigator, NavInsID, NavIns
 
+from dynamic_networks import DynamicNetworkIcon
+
 import client.response_parser as ResponseParser
 from client.client import EthAppClient, TrustedNameType, TrustedNameSource
 from client.status_word import StatusWord
@@ -129,34 +131,27 @@ def test_trusted_name_v1_wrong_addr(scenario_navigator: NavigateWithScenario, te
 def test_trusted_name_v1_non_mainnet(scenario_navigator: NavigateWithScenario, test_name: str):
     backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
-    device = backend.device
 
     challenge = common(app_client)
 
-    chain_id = 5
-    if device.is_nano:
-        icon = ""
-    else:
-        # pylint: disable=line-too-long
-        icon = "400040000195000093001f8b08000000000002ff85ceb10dc4300805d01fb970e9113c4a467346cb288ce092223ace80382b892ef9cd93ac0f0678881c4616d980b4bb99aa0801a5874d844ff695b5d7f6c23ad79058f79c8df7e8c5dc7d9fff13ffc61d71d7bcf32549bcef5672c5a430bb1cd6073f68c3cd3d302cd3feea88f547d6a99eb8e87ecbcdecd255b8f869033cfd932feae0c09000020000"
-        # pylint: enable=line-too-long
-    app_client.provide_network_information("Goerli",
-                                           "ETH",
-                                           chain_id,
-                                           bytes.fromhex(icon))
+    tx_params: dict = {
+        "nonce": NONCE,
+        "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
+        "gas": GAS_LIMIT,
+        "to": ADDR,
+        "value": Web3.to_wei(AMOUNT, "ether"),
+        "chainId": 5
+    }
+
+    # Send Network information (name, ticker, icon)
+    dyn_network = DynamicNetworkIcon(backend.device)
+    name, ticker, icon = dyn_network.get_network_params(tx_params["chainId"])
+    if name and ticker:
+        app_client.provide_network_information(name, ticker, tx_params["chainId"], icon)
 
     app_client.provide_trusted_name_v1(ADDR, NAME, challenge)
 
-    with app_client.sign(BIP32_PATH,
-                         {
-                             "nonce": NONCE,
-                             "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
-                             "gas": GAS_LIMIT,
-                             "to": ADDR,
-                             "value": Web3.to_wei(AMOUNT, "ether"),
-                             "chainId": chain_id
-                         }):
-
+    with app_client.sign(BIP32_PATH, tx_params):
         scenario_navigator.review_approve(test_name=test_name)
 
 

@@ -1,0 +1,4 @@
+PATH_APP_LOAD_PARAMS += "44'/60'"
+TICKER = "S"
+CHAIN_ID = 146
+APPNAME = "Sonic"

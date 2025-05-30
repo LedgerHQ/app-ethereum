@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+- (clone) Sonic
 - (network) HyperEVM
 - New setting to see TX hash / EIP-712 domain & message hashes even while clear-signing
 - The resolved address can now be checked when an ENS is displayed

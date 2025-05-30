@@ -8,7 +8,8 @@ from ragger.navigator.navigation_scenario import NavigateWithScenario
 
 from constants import ABIS_FOLDER
 
-from client.client import EthAppClient, StatusWord
+from client.client import EthAppClient
+from client.status_word import StatusWord
 import client.response_parser as ResponseParser
 from client.utils import get_selector_from_data, recover_transaction
 from client.tx_simu import TxSimu

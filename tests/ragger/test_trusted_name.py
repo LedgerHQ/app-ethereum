@@ -10,7 +10,8 @@ from ragger.navigator.navigation_scenario import NavigateWithScenario
 from ragger.navigator import Navigator, NavInsID, NavIns
 
 import client.response_parser as ResponseParser
-from client.client import EthAppClient, StatusWord, TrustedNameType, TrustedNameSource
+from client.client import EthAppClient, TrustedNameType, TrustedNameSource
+from client.status_word import StatusWord
 
 
 # Values used across all tests

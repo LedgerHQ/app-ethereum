@@ -5,7 +5,8 @@ from ragger.backend import BackendInterface
 from ragger.navigator import Navigator
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 
-from client.client import EthAppClient, StatusWord
+from client.client import EthAppClient
+from client.status_word import StatusWord
 import client.response_parser as ResponseParser
 from client.settings import SettingID, settings_toggle
 from client.utils import recover_transaction, get_authorization_obj

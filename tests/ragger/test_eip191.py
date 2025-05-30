@@ -5,7 +5,8 @@ from ragger.error import ExceptionRAPDU
 from ragger.navigator import NavInsID
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 
-from client.client import EthAppClient, StatusWord
+from client.client import EthAppClient
+from client.status_word import StatusWord
 import client.response_parser as ResponseParser
 from client.utils import recover_message
 from client.tx_simu import TxSimu

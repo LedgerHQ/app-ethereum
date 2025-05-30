@@ -18,7 +18,8 @@ from ragger.error import ExceptionRAPDU
 
 import client.response_parser as ResponseParser
 from client.utils import recover_message
-from client.client import EthAppClient, StatusWord, TrustedNameType, TrustedNameSource
+from client.client import EthAppClient, TrustedNameType, TrustedNameSource
+from client.status_word import StatusWord
 from client.eip712 import InputData
 from client.settings import SettingID, settings_toggle
 from client.tx_simu import TxSimu

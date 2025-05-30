@@ -10,7 +10,8 @@ from ragger.error import ExceptionRAPDU
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 from ragger.bip import calculate_public_key_and_chaincode, CurveChoice
 
-from client.client import EthAppClient, StatusWord
+from client.client import EthAppClient
+from client.status_word import StatusWord
 import client.response_parser as ResponseParser
 
 

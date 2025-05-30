@@ -18,7 +18,8 @@ from test_eip712 import test_eip712_filtering_empty_array as sign_eip712
 from test_eip712 import test_eip712_v0 as sign_eip712_v0
 from test_gcs import test_gcs_poap as sign_gcs_poap
 
-from client.client import EthAppClient, StatusWord
+from client.client import EthAppClient
+from client.status_word import StatusWord
 from client.settings import SettingID, settings_toggle
 from client.tx_simu import SimuType, TxSimu
 

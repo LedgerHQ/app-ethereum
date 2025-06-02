@@ -66,10 +66,14 @@ ICON_FLEX = icons/flex_app_chain_$(CHAIN_ID).gif
 ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
     DEFINES += ICONGLYPH=C_chain_$(CHAIN_ID)_64px
     DEFINES += ICONBITMAP=C_chain_$(CHAIN_ID)_64px_bitmap
+    DEFINES += ICONHOME=C_chain_$(CHAIN_ID)_64px
 else
 ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_NANOS2))
     DEFINES += ICONGLYPH=C_chain_$(CHAIN_ID)_14px
     DEFINES += ICONBITMAP=C_chain_$(CHAIN_ID)_14px_bitmap
+
+    ICON_HOME_NANO = glyphs/home_chain_$(CHAIN_ID)_14px.gif
+    DEFINES += ICONHOME=C_home_chain_$(CHAIN_ID)_14px
 endif
 endif
 

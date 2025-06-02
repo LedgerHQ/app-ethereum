@@ -106,6 +106,22 @@ const nbgl_icon_details_t *get_app_icon(bool caller_icon) {
     return icon;
 }
 
+static const nbgl_icon_details_t *get_home_icon(void) {
+    const nbgl_icon_details_t *icon = NULL;
+
+    if (caller_app) {
+        if (caller_app->icon) {
+            icon = caller_app->icon;
+        }
+    } else {
+        icon = &ICONHOME;
+    }
+    if (icon == NULL) {
+        PRINTF("%s returned NULL!\n", __func__);
+    }
+    return icon;
+}
+
 /**
  * Prepare settings, app infos and call the HomeAndSettings use case
  *
@@ -187,7 +203,7 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
     infoList.infoContents = infoContents;
 
     nbgl_useCaseHomeAndSettings(appname,
-                                get_app_icon(true),
+                                get_home_icon(),
                                 tagline,
                                 page,
                                 &settingContents,

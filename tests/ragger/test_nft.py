@@ -8,7 +8,7 @@ from ragger.navigator.navigation_scenario import NavigateWithScenario
 
 from constants import ABIS_FOLDER
 
-from dynamic_networks import DynamicNetworkIcon
+from dynamic_networks import DynamicNetwork
 
 from client.client import EthAppClient
 from client.status_word import StatusWord
@@ -79,10 +79,7 @@ def common_test_nft(scenario_navigator: NavigateWithScenario,
         assert response.status == StatusWord.OK
 
     # Send Network information (name, ticker, icon)
-    dyn_network = DynamicNetworkIcon(backend.device)
-    name, ticker, icon = dyn_network.get_network_params(collec.chain_id)
-    if name and ticker:
-        app_client.provide_network_information(name, ticker, collec.chain_id, icon)
+    app_client.provide_network_information(DynamicNetwork(backend.device, collec.chain_id))
 
     if DEVICE_ADDR is None:  # to only have to request it once
         with app_client.get_public_addr(display=False):

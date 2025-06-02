@@ -1,13 +1,14 @@
 import struct
 from enum import IntEnum
 from typing import Optional
-from hashlib import sha256
 import rlp
 from web3 import Web3
 from eth_utils import keccak
 
 from ragger.backend import BackendInterface
 from ragger.utils import RAPDU
+
+from dynamic_networks import DynamicNetwork
 
 from .command_builder import CommandBuilder
 from .eip712 import EIP712FieldType
@@ -385,37 +386,16 @@ class EthAppClient:
                                                                                 chain_id,
                                                                                 sig))
 
-    def _prepare_network_info(self,
-                              name: str,
-                              ticker: str,
-                              chain_id: int,
-                              icon: Optional[bytes] = None) -> bytes:
+    def provide_network_information(self, network_params: DynamicNetwork) -> None:
 
-        payload = format_tlv(FieldTag.STRUCT_TYPE, 8)
-        payload += format_tlv(FieldTag.STRUCT_VERSION, 1)
-        payload += format_tlv(FieldTag.BLOCKCHAIN_FAMILY, 1)
-        payload += format_tlv(FieldTag.CHAIN_ID, chain_id.to_bytes(8, 'big'))
-        payload += format_tlv(FieldTag.NETWORK_NAME, name.encode('utf-8'))
-        payload += format_tlv(FieldTag.TICKER, ticker.encode('utf-8'))
-        if icon:
-            # Network Icon
-            payload += format_tlv(FieldTag.NETWORK_ICON_HASH, sha256(icon).digest())
-        # Append the data Signature
-        payload += format_tlv(FieldTag.DER_SIGNATURE, sign_data(Key.NETWORK, payload))
-        return payload
-
-    def provide_network_information(self,
-                                    name: str,
-                                    ticker: str,
-                                    chain_id: int,
-                                    icon: Optional[bytes] = None) -> None:
-
+        if not network_params.name or not network_params.ticker:
+            return
         # Send ledgerPKI certificate
         self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_NETWORK)
 
         # Add the network info
-        payload = self._prepare_network_info(name, ticker, chain_id, icon)
-        chunks = self._cmd_builder.provide_network_information(payload, icon)
+        chunks = self._cmd_builder.provide_network_information(network_params.serialize(),
+                                                               network_params.icon)
         for chunk in chunks[:-1]:
             response = self._exchange(chunk)
             assert response.status == StatusWord.OK

@@ -1,6 +1,9 @@
 from typing import Dict, TypedDict, Optional
+from hashlib import sha256
 from ledgered.devices import Device, DeviceType
 
+from client.tlv import TlvSerializable, FieldTag
+from client.keychain import sign_data, Key
 
 class IconDict(TypedDict):
     Name: str
@@ -46,25 +49,46 @@ DYNAMIC_ICONS: Dict[int, IconDict] = {
 # pylint: enable=line-too-long
 
 
-class DynamicNetworkIcon:
-    """Class to handle dynamic network icons based on chain ID."""
-    def __init__(self, device: Device) -> None:
-        self._device_type = device.type
+class DynamicNetwork(TlvSerializable):
+    chain_id: Optional[int]
+    name: str
+    ticker: str
+    icon: bytes
 
-    def get_network_params(self, chain_id: Optional[int]) -> tuple[str, str, bytes]:
-        name = ""
-        ticker = ""
-        icon = ""
+    def __init__(self, device: Device, chain_id: Optional[int]) -> None:
         if chain_id and chain_id in DYNAMIC_ICONS:
-            name = DYNAMIC_ICONS[chain_id]["Name"]
-            ticker = DYNAMIC_ICONS[chain_id]["Ticker"]
-            dev_type = self._device_type
+            self.chain_id = chain_id
+            self.name = DYNAMIC_ICONS[chain_id]["Name"]
+            self.ticker = DYNAMIC_ICONS[chain_id]["Ticker"]
+            dev_type = device.type
             if dev_type == DeviceType.NANOSP:
                 # Same icons
                 dev_type = DeviceType.NANOX
             elif dev_type == DeviceType.STAX:
                 # Same icons
                 dev_type = DeviceType.FLEX
-            icon = DYNAMIC_ICONS[chain_id]["Icon"][dev_type]
+            self.icon = bytes.fromhex(DYNAMIC_ICONS[chain_id]["Icon"][dev_type])
+        else:
+            # If no icon is found, return empty values
+            self.chain_id = None
+            self.name = ""
+            self.ticker = ""
+            self.icon = b""
 
-        return name, ticker, bytes.fromhex(icon) if icon else b""
+    def serialize(self) -> bytes:
+        assert self.chain_id is not None, "Chain_id required"
+        assert self.name, "Name is required"
+        assert self.ticker, "Ticker is required"
+        # Construct the TLV payload
+        payload: bytes = self.serialize_field(FieldTag.STRUCT_TYPE, 8)
+        payload += self.serialize_field(FieldTag.STRUCT_VERSION, 1)
+        payload += self.serialize_field(FieldTag.BLOCKCHAIN_FAMILY, 1)
+        payload += self.serialize_field(FieldTag.CHAIN_ID, self.chain_id.to_bytes(8, 'big'))
+        payload += self.serialize_field(FieldTag.NETWORK_NAME, self.name.encode('utf-8'))
+        payload += self.serialize_field(FieldTag.TICKER, self.ticker.encode('utf-8'))
+        if self.icon:
+            # Network Icon
+            payload += self.serialize_field(FieldTag.NETWORK_ICON_HASH, sha256(self.icon).digest())
+        # Append the data Signature
+        payload += self.serialize_field(FieldTag.DER_SIGNATURE, sign_data(Key.NETWORK, payload))
+        return payload

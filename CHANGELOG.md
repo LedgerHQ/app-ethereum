@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - EIP-7702 authorization signing
 - Type 4 transaction signing
+- (clone) Sonic
 
 ### Changed
 

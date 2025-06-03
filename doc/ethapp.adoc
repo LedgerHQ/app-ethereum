@@ -879,6 +879,15 @@ The signature is computed on :
 
 44 || chain ID (BE) || contract address || schema hash || field path || display name || name types || name sources
 
+##### Calldata
+
+This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
+The first byte is used so that a signature of one type cannot be valid as another type.
+
+The signature is computed on :
+
+55 || chain ID (BE) || contract address || schema hash || field path || display name
+
 ##### Show raw field
 
 This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
@@ -902,6 +911,8 @@ _Command_
                                         01 : discarded filter path
 
                                         0F : message info
+
+                                        FA : calldata
 
                                         FB : trusted name
 

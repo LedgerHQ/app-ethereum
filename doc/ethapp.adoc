@@ -872,7 +872,7 @@ The signature is computed on :
 
 ##### Trusted name
 
-This command should come right after the implementation of the domain has been sent with *SEND STRUCT IMPLEMENTATION*, just before sending the message implementation.
+This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
 The first byte is used so that a signature of one type cannot be valid as another type.
 
 The signature is computed on :

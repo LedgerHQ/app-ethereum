@@ -10,7 +10,8 @@ from ragger.navigator.navigation_scenario import NavigateWithScenario
 from constants import ABIS_FOLDER
 
 import client.response_parser as ResponseParser
-from client.client import EthAppClient, SignMode, TrustedNameType, TrustedNameSource, StatusWord
+from client.client import EthAppClient, SignMode, TrustedNameType, TrustedNameSource
+from client.status_word import StatusWord
 from client.utils import get_selector_from_data
 from client.gcs import (
     Field, ParamType, ParamRaw, Value, TypeFamily, DataPath, PathTuple, ParamTrustedName,

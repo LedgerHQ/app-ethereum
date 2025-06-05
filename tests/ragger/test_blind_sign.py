@@ -12,7 +12,8 @@ from ragger.error import ExceptionRAPDU
 
 from constants import ABIS_FOLDER
 
-from client.client import EthAppClient, StatusWord
+from client.client import EthAppClient
+from client.status_word import StatusWord
 from client.settings import SettingID, settings_toggle
 import client.response_parser as ResponseParser
 from client.utils import recover_transaction

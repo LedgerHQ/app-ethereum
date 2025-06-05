@@ -3,7 +3,9 @@ import pytest
 from ragger.backend import BackendInterface
 from ragger.backend.speculos import SpeculosBackend
 
-from client.client import EthAppClient, StatusWord
+from client.client import EthAppClient
+from client.status_word import StatusWord
+
 
 
 def test_perform_privacy_operation_public(backend: BackendInterface):

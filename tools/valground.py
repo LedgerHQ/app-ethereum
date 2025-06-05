@@ -3,6 +3,7 @@
 # pytest --device nanosp -s -k my_special_test 2>&1 | ./valground.py
 
 import sys
+from typing import Optional
 
 
 class Allocation:
@@ -20,13 +21,17 @@ class Memory:
     allocd_max: int
     allocd_current: int
     alloc_count: int
+    addr: int
+    size: int
 
-    def __init__(self):
+    def __init__(self, addr: int, size: int):
         self.allocs = {}
         self.allocd_overtime = 0
         self.allocd_max = 0
         self.allocd_current = 0
         self.alloc_count = 0
+        self.addr = addr
+        self.size = size
 
     def alloc(self, ptr: int, size: int, code_loc: str):
         self.allocs[ptr] = Allocation(size, code_loc)
@@ -41,8 +46,25 @@ class Memory:
         self.allocd_current -= self.allocs[ptr].size
         del self.allocs[ptr]
 
+    def __del__(self):
+        if len(self.allocs) == 0:
+            print("No memory leak detected, congrats!")
+        else:
+            print("Memory leaks :")
+            for addr, info in self.allocs.items():
+                print("- [0x%.08x] %u bytes from %s" % (addr,
+                                                        info.size,
+                                                        info.code_location))
 
-mem = Memory()
+        print("\n=== Summary ===")
+        print("Total overtime = %u bytes" % (self.allocd_overtime))
+        used_percentage = self.allocd_max / self.size * 100
+        print("Max overtime = %u bytes (%.02f%% full)" % (self.allocd_max,
+                                                          used_percentage))
+        print("Allocations = %u" % (self.alloc_count))
+
+
+mem: Optional[Memory] = None
 
 for line in sys.stdin:
     line = line.rstrip()
@@ -55,21 +77,14 @@ for line in sys.stdin:
             words = line.split(";")
             assert len(words) > 2
 
-            if words[0] == "alloc":
+            if words[0] == "init":
+                mem = Memory(int(words[1], base=0), int(words[2], base=0))
+            elif words[0] == "alloc":
                 mem.alloc(int(words[2], base=0), int(words[1], base=0), words[3])
             elif words[0] == "free":
                 mem.free(int(words[1], base=0), words[2])
             else:
                 assert False
 
-if len(mem.allocs) == 0:
-    print("No memory leak detected, congrats!")
-else:
-    print("Memory leaks :")
-    for addr, info in mem.allocs.items():
-        print("- [0x%.08x] %u bytes from %s" % (addr, info.size, info.code_location))
-
-print("\n=== Summary ===")
-print("Total overtime = %u bytes" % (mem.allocd_overtime))
-print("Max overtime = %u bytes" % (mem.allocd_max))
-print("Allocations = %u" % (mem.alloc_count))
+if mem is None:
+    print("No memory profiling was found.")

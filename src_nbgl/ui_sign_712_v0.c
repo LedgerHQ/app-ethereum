@@ -7,30 +7,7 @@
 static nbgl_contentTagValue_t pairs[2];
 static nbgl_contentTagValueList_t pairs_list;
 
-static char *format_hash(const uint8_t *hash, char *buffer, size_t buffer_size, size_t offset) {
-    array_bytes_string(buffer + offset, buffer_size - offset, hash, KECCAK256_HASH_BYTESIZE);
-    return buffer + offset;
-}
-
 void ui_sign_712_v0(void) {
-    explicit_bzero(pairs, sizeof(pairs));
-    explicit_bzero(&pairs_list, sizeof(pairs_list));
-
-    pairs[0].item = "Domain hash";
-    pairs[0].value = format_hash(tmpCtx.messageSigningContext712.domainHash,
-                                 strings.tmp.tmp,
-                                 sizeof(strings.tmp.tmp),
-                                 0);
-    pairs[1].item = "Message hash";
-    pairs[1].value = format_hash(tmpCtx.messageSigningContext712.messageHash,
-                                 strings.tmp.tmp,
-                                 sizeof(strings.tmp.tmp),
-                                 70);
-
-    pairs_list.nbPairs = ARRAYLEN(pairs);
-    pairs_list.pairs = pairs;
-    pairs_list.nbMaxLinesForValue = 0;
-
     if (appState != APP_STATE_IDLE) {
         reset_app_context();
     }
@@ -40,6 +17,9 @@ void ui_sign_712_v0(void) {
     set_tx_simulation_warning(&warning, true, true);
 #endif
     warning.predefinedSet |= SET_BIT(BLIND_SIGNING_WARN);
+
+    // Initialize the pairs and pairs_list structures
+    eip712_format_hash(pairs, ARRAYLEN(pairs), &pairs_list);
 
     snprintf(g_stax_shared_buffer,
              sizeof(g_stax_shared_buffer),

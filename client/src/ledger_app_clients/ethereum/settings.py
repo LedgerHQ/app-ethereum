@@ -12,6 +12,7 @@ class SettingID(Enum):
     VERBOSE_EIP712 = auto()
     DEBUG_DATA = auto()
     EIP7702 = auto()
+    DISPLAY_HASH = auto()
 
 
 # Settings Positions per device. Returns the tuple (page, x, y)
@@ -23,6 +24,7 @@ SETTINGS_POSITIONS = {
         SettingID.VERBOSE_EIP712: (1, 350, 270),
         SettingID.DEBUG_DATA: (1, 350, 445),
         SettingID.EIP7702: (2, 350, 130),
+        SettingID.DISPLAY_HASH: (2, 350, 335),
     },
     DeviceType.FLEX: {
         SettingID.WEB3_CHECK: (0, 420, 130),
@@ -31,6 +33,7 @@ SETTINGS_POSITIONS = {
         SettingID.VERBOSE_EIP712: (1, 420, 270),
         SettingID.DEBUG_DATA: (2, 420, 140),
         SettingID.EIP7702: (2, 420, 270),
+        SettingID.DISPLAY_HASH: (3, 420, 130),
     },
 }
 
@@ -38,22 +41,18 @@ SETTINGS_POSITIONS = {
 # The order of the settings is important, as it is used to navigate
 def get_device_settings(device: Device) -> list[SettingID]:
     """Get the list of settings available on the device"""
-    if device.is_nano:
-        return [
-            SettingID.BLIND_SIGNING,
-            SettingID.NONCE,
-            SettingID.VERBOSE_EIP712,
-            SettingID.DEBUG_DATA,
-            SettingID.EIP7702,
-        ]
-    return [
-        SettingID.WEB3_CHECK,
+    all_settings = []
+    if not device.is_nano:
+        all_settings.append(SettingID.WEB3_CHECK)
+    all_settings += [
         SettingID.BLIND_SIGNING,
         SettingID.NONCE,
         SettingID.VERBOSE_EIP712,
         SettingID.DEBUG_DATA,
         SettingID.EIP7702,
+        SettingID.DISPLAY_HASH,
     ]
+    return all_settings
 
 
 def get_settings_moves(device: Device,

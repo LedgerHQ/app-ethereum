@@ -19,6 +19,7 @@ from client.settings import SettingID, get_settings_moves
         ("nonce", [SettingID.NONCE]),
         ("eip712_token", [SettingID.VERBOSE_EIP712]),
         ("debug_token", [SettingID.DEBUG_DATA]),
+        ("hash", [SettingID.DISPLAY_HASH]),
         ("multiple1", [SettingID.BLIND_SIGNING, SettingID.DEBUG_DATA]),
         ("multiple2", [SettingID.BLIND_SIGNING, SettingID.VERBOSE_EIP712]),
         ("multiple3", [SettingID.BLIND_SIGNING, SettingID.WEB3_CHECK]),

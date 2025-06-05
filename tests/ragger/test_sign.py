@@ -1,3 +1,4 @@
+import pytest
 from web3 import Web3
 
 from ragger.error import ExceptionRAPDU
@@ -29,6 +30,11 @@ GAS_PRICE2 = 5
 GAS_LIMIT = 21000
 AMOUNT = 1.22
 AMOUNT2 = 0.31415
+
+
+@pytest.fixture(name="display_hash", params=[True, False])
+def display_hash_fixture(request) -> bool:
+    return request.param
 
 
 def common(scenario_navigator: NavigateWithScenario,
@@ -154,7 +160,7 @@ def test_1559(scenario_navigator: NavigateWithScenario):
     common(scenario_navigator, tx_params)
 
 
-def test_sign_simple(scenario_navigator: NavigateWithScenario, test_name: str):
+def test_sign_simple(scenario_navigator: NavigateWithScenario, test_name: str, display_hash: bool):
     tx_params: dict = {
         "nonce": NONCE2,
         "gasPrice": Web3.to_wei(GAS_PRICE, 'gwei'),
@@ -163,6 +169,10 @@ def test_sign_simple(scenario_navigator: NavigateWithScenario, test_name: str):
         "value": Web3.to_wei(AMOUNT2, "ether"),
         "chainId": CHAIN_ID
     }
+
+    if display_hash:
+        settings_toggle(scenario_navigator.backend.device, scenario_navigator.navigator, [SettingID.DISPLAY_HASH])
+        test_name += "_display_hash"
     common(scenario_navigator, tx_params, test_name, BIP32_PATH2)
 
 

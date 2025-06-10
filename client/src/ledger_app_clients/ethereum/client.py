@@ -341,6 +341,10 @@ class EthAppClient:
                             contract_address: bytes,
                             method_selelector: bytes,
                             sig: Optional[bytes] = None) -> RAPDU:
+
+        # Send ledgerPKI certificate
+        self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_COIN_META)
+
         if sig is None:
             # Temporarily get a command with an empty signature to extract the payload and
             # compute the signature on it

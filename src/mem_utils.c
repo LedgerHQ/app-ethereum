@@ -28,36 +28,6 @@ const char *mem_alloc_and_format_uint(uint32_t value) {
     return mem_ptr;
 }
 
-/**
- * Align memory by a given value
- *
- * @param[in] alignment given alignment value
- * @return size of the padding required for proper alignment
- */
-uint8_t mem_legacy_align(size_t alignment) {
-    uint8_t diff = (uintptr_t) mem_legacy_alloc(0) % alignment;
-
-    if (diff > 0) {
-        diff = alignment - diff;
-        mem_legacy_alloc(diff);
-    }
-    return diff;
-}
-
-/**
- * Allocate and align, required when dealing with pointers of multi-bytes data
- * like structures that will be dereferenced at runtime.
- *
- * @param[in] size the size of the data we want to allocate in memory
- * @param[in] alignment the byte alignment needed
- *
- * @return pointer to the memory area, \ref NULL if the allocation failed
- */
-void *mem_legacy_alloc_and_align(size_t size, size_t alignment) {
-    mem_legacy_align(alignment);
-    return mem_legacy_alloc(size);
-}
-
 char *app_mem_strdup(const char *src) {
     char *dst;
     size_t length = strlen(src) + 1;

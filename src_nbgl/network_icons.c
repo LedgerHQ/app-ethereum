@@ -16,10 +16,10 @@
  */
 const nbgl_icon_details_t *get_network_icon_from_chain_id(const uint64_t *chain_id) {
     for (size_t i = 0; i < MAX_DYNAMIC_NETWORKS; ++i) {
-        if ((DYNAMIC_NETWORK_INFO[i].chain_id == *chain_id) &&
-            (DYNAMIC_NETWORK_INFO[i].icon.bitmap != NULL)) {
-            PRINTF("[NETWORK_ICONS] - Found dynamic %s\n", DYNAMIC_NETWORK_INFO[i].name);
-            return PIC(&DYNAMIC_NETWORK_INFO[i].icon);
+        if ((DYNAMIC_NETWORK_INFO[i]) && (DYNAMIC_NETWORK_INFO[i]->chain_id == *chain_id) &&
+            (DYNAMIC_NETWORK_INFO[i]->icon.bitmap != NULL)) {
+            PRINTF("[NETWORK_ICONS] - Found dynamic %s\n", DYNAMIC_NETWORK_INFO[i]->name);
+            return PIC(&DYNAMIC_NETWORK_INFO[i]->icon);
         }
     }
 #ifdef SCREEN_SIZE_WALLET

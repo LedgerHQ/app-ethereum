@@ -126,11 +126,11 @@ static const network_info_t *get_network_from_chain_id(const uint64_t *chain_id)
     if (*chain_id != 0) {
         // Look if the network is available
         for (size_t i = 0; i < MAX_DYNAMIC_NETWORKS; i++) {
-            if (DYNAMIC_NETWORK_INFO[i].chain_id == *chain_id) {
+            if ((DYNAMIC_NETWORK_INFO[i]) && (DYNAMIC_NETWORK_INFO[i]->chain_id == *chain_id)) {
                 PRINTF("[NETWORK] - Found dynamic \"%s\" in slot %u\n",
-                       DYNAMIC_NETWORK_INFO[i].name,
+                       DYNAMIC_NETWORK_INFO[i]->name,
                        i);
-                return (const network_info_t *) &DYNAMIC_NETWORK_INFO[i];
+                return (const network_info_t *) DYNAMIC_NETWORK_INFO[i];
             }
         }
 

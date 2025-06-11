@@ -46,6 +46,7 @@
 #include "commands_7702.h"
 #include "sign_message.h"
 #include "ui_utils.h"
+#include "network_info.h"
 
 tmpCtx_t tmpCtx;
 txContext_t txContext;
@@ -92,6 +93,7 @@ void reset_app_context(void) {
 }
 
 void app_quit(void) {
+    network_info_cleanup(MAX_DYNAMIC_NETWORKS);
     reset_app_context();
     app_exit();
 }

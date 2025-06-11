@@ -4,9 +4,7 @@
 #include "ethUstream.h"
 #include "chainConfig.h"
 #include "swap_utils.h"
-
-extern void app_exit(void);
-extern void common_app_init(void);
+#include "main_std_app.h"
 
 #define SELECTOR_LENGTH 4
 
@@ -193,6 +191,7 @@ extern uint8_t appState;
 extern uint32_t eth2WithdrawalIndex;
 #endif
 
+void app_quit(void);
 void reset_app_context(void);
 const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_path_t *bip32);
 void storage_init(void);

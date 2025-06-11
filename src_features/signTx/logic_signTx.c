@@ -422,7 +422,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
         if (G_swap_response_ready) {
             // Unreachable given current return to exchange mechanism. Safeguard against regression
             PRINTF("FATAL: safety against double sign triggered\n");
-            app_exit();
+            app_quit();
         }
         G_swap_response_ready = true;
     }

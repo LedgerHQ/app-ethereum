@@ -228,7 +228,7 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
                                 &settingContents,
                                 &infoList,
                                 NULL,
-                                app_exit);
+                                app_quit);
 }
 
 /**

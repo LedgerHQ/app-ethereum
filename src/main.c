@@ -69,7 +69,7 @@ const internalStorage_t N_storage_real;
 caller_app_t *caller_app = NULL;
 const chain_config_t *chainConfig;
 
-void reset_app_context() {
+void reset_app_context(void) {
     if (appState == APP_STATE_SIGNING_MESSAGE) {
         message_cleanup();
     }
@@ -87,6 +87,11 @@ void reset_app_context() {
     }
     memset((uint8_t *) &txContext, 0, sizeof(txContext));
     memset((uint8_t *) &tmpContent, 0, sizeof(tmpContent));
+}
+
+void app_quit(void) {
+    reset_app_context();
+    app_exit();
 }
 
 uint16_t io_seproxyhal_send_status(uint16_t sw, uint32_t tx, bool reset, bool idle) {
@@ -299,7 +304,7 @@ void app_main(void) {
             CATCH(EXCEPTION_IO_RESET) {
                 // reset IO and UX before continuing
                 CLOSE_TRY;
-                app_exit();
+                app_quit();
             }
             CATCH_OTHER(e) {
                 PRINTF("=> CATCH_OTHER: 0x%x\n", e);
@@ -336,7 +341,7 @@ void app_main(void) {
                 swap_finalize_exchange_sign_transaction(false);
             } else {
                 PRINTF("Unrecoverable\n");
-                app_exit();
+                app_quit();
             }
         }
     }
@@ -405,7 +410,7 @@ __attribute__((noreturn)) void library_main(eth_libargs_t *args) {
         case CHECK_ADDRESS:
             if (handle_check_address(args->check_address, args->chain_config) != APDU_RESPONSE_OK) {
                 // Failed, non recoverable
-                app_exit();
+                app_quit();
             }
             break;
         case SIGN_TRANSACTION:
@@ -414,14 +419,14 @@ __attribute__((noreturn)) void library_main(eth_libargs_t *args) {
                 handle_swap_sign_transaction(args->chain_config);
             } else {
                 // Failed to copy, non recoverable
-                app_exit();
+                app_quit();
             }
             break;
         case GET_PRINTABLE_AMOUNT:
             if (handle_get_printable_amount(args->get_printable_amount, args->chain_config) !=
                 APDU_RESPONSE_OK) {
                 // Failed, non recoverable
-                app_exit();
+                app_quit();
             }
             break;
         default:
@@ -470,7 +475,7 @@ __attribute__((noreturn)) void clone_main(eth_libargs_t *args) {
         libcall_params[4] = (uint32_t) &capp;
         os_lib_call((uint32_t *) &libcall_params);
         // Ethereum should not return to us
-        app_exit();
+        app_quit();
     }
 
     // os_lib_call will raise if Ethereum application is not installed. Do not try to recover.
@@ -491,7 +496,7 @@ int ethereum_main(eth_libargs_t *args) {
     }
 
     if (args->id != 0x100) {
-        app_exit();
+        app_quit();
         return 0;
     }
     switch (args->command) {

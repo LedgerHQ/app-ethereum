@@ -59,7 +59,7 @@ uint32_t io_seproxyhal_touch_tx_ok(void) {
             swap_finalize_exchange_sign_transaction(true);
         } else {
             PRINTF("Unrecoverable\n");
-            app_exit();
+            app_quit();
         }
     }
     reset_app_context();

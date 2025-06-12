@@ -303,16 +303,25 @@ In version 1 of the protocol:
 
 ## PROXY_INFO
 
-| Name           | Tag  | Payload type    | Description                     | Optional |
-|----------------|------|-----------------|---------------------------------|----------|
-| STRUCT_TYPE    | 0x01 | uint8           | structure type                  |          |
-| STRUCT_VERSION | 0x02 | uint8           | structure version               |          |
-| CHALLENGE      | 0x12 | uint32          | challenge to ensure freshness   |          |
-| ADDRESS        | 0x22 | uint8[20]       | proxy contract address          |          |
-| CHAIN_ID       | 0x23 | uint64          | EVM chain identifier            |          |
-| SELECTOR       | 0x28 | uint[4]         | function selector               | x        |
-| IMPL_ADDRESS   | 0x29 | uint8[20]       | implementation contract address |          |
-| SIGNATURE      | 0x15 | uint8[]         | signature of the structure      |          |
+| Name            | Tag  | Payload type     | Description                     | Optional |
+|-----------------|------|------------------|---------------------------------|----------|
+| STRUCT_TYPE     | 0x01 | uint8            | structure type                  |          |
+| STRUCT_VERSION  | 0x02 | uint8            | structure version               |          |
+| CHALLENGE       | 0x12 | uint32           | challenge to ensure freshness   |          |
+| ADDRESS         | 0x22 | uint8[20]        | proxy contract address          |          |
+| CHAIN_ID        | 0x23 | uint64           | EVM chain identifier            |          |
+| SELECTOR        | 0x41 | uint[4]          | function selector               | x        |
+| IMPL_ADDRESS    | 0x42 | uint8[20]        | implementation contract address |          |
+| DELEGATION_TYPE | 0x43 | `DelegationType` | type of delegation              |          |
+| SIGNATURE       | 0x15 | uint8[]          | signature of the structure      |          |
+
+with `DelegationType` enum defined as :
+
+| Name                 | Value |
+|----------------------|-------|
+| PROXY                | 0x01  |
+| ISSUED_FROM_FACTORY  | 0x02  |
+| DELEGATOR            | 0x03  |
 
 ## AUTH_7702
 

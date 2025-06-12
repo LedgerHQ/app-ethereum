@@ -1,3 +1,4 @@
+#include "nbgl_use_case.h"
 #include "ui_nbgl.h"
 #include "caller_api.h"
 #include "network.h"
@@ -260,23 +261,26 @@ static void get_appname_and_tagline(const char **appname, const char **tagline) 
 }
 
 /**
- * Go to home screen
+ * Go to the requested start page
  */
-void ui_idle(void) {
+static void ui_start_page(uint8_t page) {
     const char *appname = NULL;
     const char *tagline = NULL;
 
     get_appname_and_tagline(&appname, &tagline);
-    prepare_and_display_home(appname, tagline, INIT_HOME_PAGE);
+    prepare_and_display_home(appname, tagline, page);
+}
+
+/**
+ * Go to home screen
+ */
+void ui_idle(void) {
+    ui_start_page(INIT_HOME_PAGE);
 }
 
 /**
  * Go to settings screen
  */
 void ui_settings(void) {
-    const char *appname = NULL;
-    const char *tagline = NULL;
-
-    get_appname_and_tagline(&appname, &tagline);
-    prepare_and_display_home(appname, tagline, 0);
+    ui_start_page(0);
 }

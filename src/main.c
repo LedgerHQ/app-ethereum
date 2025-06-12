@@ -251,7 +251,7 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             sw = handle_network_info(cmd->p1, cmd->p2, cmd->data, cmd->lc, tx);
             break;
 
-#ifdef HAVE_WEB3_CHECKS
+#ifdef HAVE_TRANSACTION_CHECKS
         case INS_PROVIDE_TX_SIMULATION:
             sw = handle_tx_simulation(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags);
             break;

@@ -25,7 +25,7 @@ void ui_sign_712_v0(void) {
     }
 
     explicit_bzero(&warning, sizeof(nbgl_warning_t));
-#ifdef HAVE_WEB3_CHECKS
+#ifdef HAVE_TRANSACTION_CHECKS
     set_tx_simulation_warning(&warning, true, true);
 #endif
     warning.predefinedSet |= SET_BIT(BLIND_SIGNING_WARN);

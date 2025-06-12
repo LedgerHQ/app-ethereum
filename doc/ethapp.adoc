@@ -191,9 +191,9 @@ _Output data_
 
         0x02 : ERC 20 Token information needs to be provided externally
 
-        0x10 : Web3 Check enabled
+        0x10 : Transaction Check enabled
 
-        0x20 : Web3 Check Opt-In done
+        0x20 : Transaction Check Opt-In done
                                                                                     | 01
 | Application major version                                                         | 01
 | Application minor version                                                         | 01
@@ -1364,21 +1364,21 @@ It will be displayed in the review flow only if the corresponding setting is _En
 The information is sent in TLV (Tag-Length-Value) mode. The following tags are supported:
 
 [width="80%"]
-|===============================================================================================
-| *Tag name*              | *Tag value* | *Length (byte)*   | *Value*
-| STRUCTURE_TYPE          | 0x01        | 0x01              | 0x09 (for `TYPE_TX_SIMULATION`)
-| STRUCTURE_VERSION       | 0x02        | 0x01              | 0x01
-| ADDRESS                 | 0x22        | 0x14              | Ethereum `From` Address
-| CHAIN_ID                | 0x23        | 0x08              | (`uint64_t` value)
-| TX_HASH                 | 0x27        | 0x20              | Hash of the Tx that was simulated
-| DOMAIN_HASH             | 0x28        | 0x20              | _Domain Hash_ for EIP712
-| W3C_NORMALIZED_RISK     | 0x80        | 0x01              | Normalized risk score of the transaction.
-| W3C_NORMALIZED_CATEGORY | 0x81        | 0x01              | Main category explaining the risk score
-| W3C_PROVIDER_MSG        | 0x82        | variable (max 30) | Provider specific message explaining the risk score
-| W3C_TINY_URL            | 0x83        | variable (max 30) | URL to access the full report
-| W3C_SIMULATION_TYPE     | 0x84        | 0x01              | Type of simulation
-| SIGNATURE               | 0x15        | variable          | Signature of the TLV payload data
-|===============================================================================================
+|======================================================================================================================
+| *Tag name*                    | *Tag value* | *Length (byte)*   | *Value*
+| STRUCTURE_TYPE                | 0x01        | 0x01              | 0x09 (for `TYPE_TX_SIMULATION`)
+| STRUCTURE_VERSION             | 0x02        | 0x01              | 0x01
+| ADDRESS                       | 0x22        | 0x14              | Ethereum `From` Address
+| CHAIN_ID                      | 0x23        | 0x08              | (`uint64_t` value)
+| TX_HASH                       | 0x27        | 0x20              | Hash of the Tx that was simulated
+| DOMAIN_HASH                   | 0x28        | 0x20              | _Domain Hash_ for EIP712
+| TX_CHECKS_NORMALIZED_RISK     | 0x80        | 0x01              | Normalized risk score of the transaction.
+| TX_CHECKS_NORMALIZED_CATEGORY | 0x81        | 0x01              | Main category explaining the risk score
+| TX_CHECKS_PROVIDER_MSG        | 0x82        | variable (max 30) | Provider specific message explaining the risk score
+| TX_CHECKS_TINY_URL            | 0x83        | variable (max 30) | URL to access the full report
+| TX_CHECKS_SIMULATION_TYPE     | 0x84        | 0x01              | Type of simulation
+| SIGNATURE                     | 0x15        | variable          | Signature of the TLV payload data
+|======================================================================================================================
 
 The signature is mandatory, and is computed on the full payload data, using `CX_CURVE_SECP256K1`.
 
@@ -1450,10 +1450,10 @@ None
 ##### If P1 == TX Simulation Opt-In
 
 [width="80%"]
-|====================================
-| *Description*              | *Length*
-| Web3 Check setting status  | 1
-|====================================
+|=============================================
+| *Description*                     | *Length*
+| Transaction Check setting status  | 1
+|=============================================
 
 ### SIGN EIP 7702 AUTHORIZATION
 

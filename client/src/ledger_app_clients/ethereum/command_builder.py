@@ -42,7 +42,7 @@ class P1Type(IntEnum):
     SIGN_SUBSQT_CHUNK = 0x80
     FIRST_CHUNK = 0x01
     FOLLOWING_CHUNK = 0x00
-    OPT_IN_W3C = 0x01
+    OPT_IN_TX_CHECK = 0x01
 
 
 class P2Type(IntEnum):
@@ -477,7 +477,7 @@ class CommandBuilder:
 
     def opt_in_tx_simulation(self) -> bytes:
         # Serialize the payload
-        return self._serialize(InsType.PROVIDE_TX_SIMULATION, P1Type.OPT_IN_W3C, 0x00)
+        return self._serialize(InsType.PROVIDE_TX_SIMULATION, P1Type.OPT_IN_TX_CHECK, 0x00)
 
     def provide_tx_simulation(self, tlv_payload: bytes) -> list[bytes]:
         return self.common_tlv_serialize(InsType.PROVIDE_TX_SIMULATION, tlv_payload, p1l=[0x00], p2l=[0x01, 0x00])

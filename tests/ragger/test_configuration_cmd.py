@@ -14,7 +14,7 @@ from client.settings import SettingID, get_settings_moves
 @pytest.mark.parametrize(
     "name, setting",
     [
-        ("web3_check", [SettingID.WEB3_CHECK]),
+        ("tx_checks", [SettingID.TRANSACTION_CHECKS]),
         ("blind_sign", [SettingID.BLIND_SIGNING]),
         ("nonce", [SettingID.NONCE]),
         ("eip712_token", [SettingID.VERBOSE_EIP712]),
@@ -22,7 +22,7 @@ from client.settings import SettingID, get_settings_moves
         ("hash", [SettingID.DISPLAY_HASH]),
         ("multiple1", [SettingID.BLIND_SIGNING, SettingID.DEBUG_DATA]),
         ("multiple2", [SettingID.BLIND_SIGNING, SettingID.VERBOSE_EIP712]),
-        ("multiple3", [SettingID.BLIND_SIGNING, SettingID.WEB3_CHECK]),
+        ("multiple3", [SettingID.BLIND_SIGNING, SettingID.TRANSACTION_CHECKS]),
     ]
 )
 def test_settings(device: Device,
@@ -33,8 +33,8 @@ def test_settings(device: Device,
                   setting: List[SettingID]):
     """Check the settings"""
 
-    if device.is_nano and SettingID.WEB3_CHECK in setting:
-        pytest.skip("Skipping W3C on Nano")
+    if device.is_nano and SettingID.TRANSACTION_CHECKS in setting:
+        pytest.skip("Skipping TX_CHECK on Nano")
 
     moves = get_settings_moves(device, setting)
     navigator.navigate_and_compare(default_screenshot_path,

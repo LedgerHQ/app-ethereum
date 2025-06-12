@@ -44,8 +44,8 @@ tmpCtx_t tmpCtx;
 strings_t strings;
 // Mock the storage to enable wanted features
 const internalStorage_t N_storage_real = {
-    .w3c_enable = true,
-    .w3c_opt_in = true,
+    .tx_check_enable = true,
+    .tx_check_opt_in = true,
     .eip7702_enable = true,
 };
 

@@ -17,7 +17,7 @@ nbgl_warning_t warning;
 #define FORMAT_PLUGIN "This app enables clear\nsigning transactions for\nthe %s dApp."
 
 enum {
-    WEB3_CHECK_TOKEN = FIRST_USER_TOKEN,
+    TRANSACTION_CHECKS_TOKEN = FIRST_USER_TOKEN,
     BLIND_SIGNING_TOKEN,
     NONCE_TOKEN,
     EIP712_VERBOSE_TOKEN,
@@ -27,8 +27,8 @@ enum {
 };
 
 enum {
-#ifdef HAVE_WEB3_CHECKS
-    WEB3_CHECK_ID,
+#ifdef HAVE_TRANSACTION_CHECKS
+    TRANSACTION_CHECKS_ID,
 #endif
     BLIND_SIGNING_ID,
     NONCE_ID,
@@ -57,14 +57,14 @@ static void setting_toggle_callback(int token, uint8_t index, int page) {
     bool value;
 
     switch (token) {
-#ifdef HAVE_WEB3_CHECKS
-        case WEB3_CHECK_TOKEN:
+#ifdef HAVE_TRANSACTION_CHECKS
+        case TRANSACTION_CHECKS_TOKEN:
             handle_tx_simulation_opt_in(false);
-            value = !N_storage.w3c_enable;
-            switches[WEB3_CHECK_ID].initState = (nbgl_state_t) value;
-            nvm_write((void *) &N_storage.w3c_enable, (void *) &value, sizeof(value));
+            value = !N_storage.tx_check_enable;
+            switches[TRANSACTION_CHECKS_ID].initState = (nbgl_state_t) value;
+            nvm_write((void *) &N_storage.tx_check_enable, (void *) &value, sizeof(value));
             break;
-#endif  // HAVE_WEB3_CHECKS
+#endif  // HAVE_TRANSACTION_CHECKS
         case BLIND_SIGNING_TOKEN:
             value = !N_storage.dataAllowed;
             switches[BLIND_SIGNING_ID].initState = (nbgl_state_t) value;
@@ -188,14 +188,14 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
     switches[DEBUG_ID].tuneId = TUNE_TAP_CASUAL;
 #endif
 
-#ifdef HAVE_WEB3_CHECKS
-    switches[WEB3_CHECK_ID].initState = N_storage.w3c_enable ? ON_STATE : OFF_STATE;
-    switches[WEB3_CHECK_ID].text = "Transaction Check";
-    switches[WEB3_CHECK_ID].subText =
+#ifdef HAVE_TRANSACTION_CHECKS
+    switches[TRANSACTION_CHECKS_ID].initState = N_storage.tx_check_enable ? ON_STATE : OFF_STATE;
+    switches[TRANSACTION_CHECKS_ID].text = "Transaction Check";
+    switches[TRANSACTION_CHECKS_ID].subText =
         "Get real-time warnings about risky transactions. Learn more: ledger.com/tx-check";
-    switches[WEB3_CHECK_ID].token = WEB3_CHECK_TOKEN;
-    switches[WEB3_CHECK_ID].tuneId = TUNE_TAP_CASUAL;
-#endif  // HAVE_WEB3_CHECKS
+    switches[TRANSACTION_CHECKS_ID].token = TRANSACTION_CHECKS_TOKEN;
+    switches[TRANSACTION_CHECKS_ID].tuneId = TUNE_TAP_CASUAL;
+#endif  // HAVE_TRANSACTION_CHECKS
 
     switches[HASH_ID].initState = N_storage.displayHash ? ON_STATE : OFF_STATE;
     switches[HASH_ID].text = "Transaction hash";

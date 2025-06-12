@@ -8,6 +8,12 @@
 #include "calldata.h"      // CALLDATA_SELECTOR_SIZE
 #include "signature.h"
 
+typedef enum {
+    DELEGATION_TYPE_PROXY = 0,
+    DELEGATION_TYPE_ISSUED_FROM_FACTORY = 1,
+    DELEGATION_TYPE_DELEGATOR = 2,
+} e_delegation_type;
+
 typedef struct {
     uint64_t chain_id;
     uint8_t address[ADDRESS_LENGTH];
@@ -18,6 +24,7 @@ typedef struct {
 
 typedef struct {
     uint8_t version;
+    e_delegation_type delegation_type;
     uint32_t challenge;
     s_proxy_info proxy_info;
     uint8_t signature_length;

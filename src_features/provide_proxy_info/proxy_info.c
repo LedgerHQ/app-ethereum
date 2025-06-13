@@ -23,10 +23,11 @@ static s_proxy_info g_proxy_info = {0};
 static bool handle_type(const s_tlv_data *data, s_proxy_info_ctx *context) {
     (void) context;
 
-    if (data->length != sizeof(uint8_t)) {
+    if (data->length != sizeof(context->struct_type)) {
         return false;
     }
-    return data->value[0] == TYPE_PROXY_INFO;
+    context->struct_type = data->value[0];
+    return true;
 }
 
 static bool handle_version(const s_tlv_data *data, s_proxy_info_ctx *context) {
@@ -169,6 +170,10 @@ bool verify_proxy_info_struct(const s_proxy_info_ctx *context) {
                          hash,
                          sizeof(hash)) != CX_OK) {
         PRINTF("Error: could not finalize struct hash!\n");
+        return false;
+    }
+    if (context->struct_type != TYPE_PROXY_INFO) {
+        PRINTF("Error: unknown struct type (%u)!\n", context->struct_type);
         return false;
     }
     challenge = get_challenge();

@@ -23,6 +23,7 @@ typedef struct {
 } s_proxy_info;
 
 typedef struct {
+    uint8_t struct_type;
     uint8_t version;
     e_delegation_type delegation_type;
     uint32_t challenge;

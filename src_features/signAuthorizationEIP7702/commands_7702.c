@@ -11,6 +11,7 @@
 #include "whitelist_7702.h"
 #include "auth_7702.h"
 #include "getPublicKey.h"
+#include "mem_utils.h"
 
 // Avoid saving the full structure when parsing
 // Alternative option : add a callback to f_tlv_payload_handler

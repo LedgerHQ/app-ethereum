@@ -24,6 +24,7 @@ void ui_712_switch_to_sign(void);
 
 // Generic clear-signing
 bool ui_gcs(void);
+void ui_gcs_cleanup(void);
 
 // EIP-7702
 void ui_sign_7702_auth(void);

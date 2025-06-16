@@ -367,7 +367,7 @@ bool ui_gcs(void) {
 
     nbgl_useCaseAdvancedReview(TYPE_TRANSACTION,
                                g_pair_list,
-                               get_tx_icon(),
+                               get_tx_icon(false),
                                g_review_title,
                                NULL,
                                g_sign_title,

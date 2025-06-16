@@ -36,7 +36,7 @@ static void buildScreen(e_confirmation_type confirm_type) {
     }
     nbgl_useCaseReview(op,
                        &pairsList,
-                       get_tx_icon(),
+                       get_tx_icon(false),
                        g_stax_shared_buffer,
                        NULL,
                        g_stax_shared_buffer + buf_size,

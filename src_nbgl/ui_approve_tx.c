@@ -48,10 +48,17 @@ static void reviewChoice(bool confirm) {
 #endif
 }
 
-const nbgl_icon_details_t *get_tx_icon(void) {
+/**
+ * Retrieve the icon for the Transaction
+ *
+ * @param[in] fromPlugin If true, the data is coming from a plugin, otherwise it is a standard
+ * transaction
+ * @return Pointer to the icon details structure, or NULL if no icon is available
+ */
+const nbgl_icon_details_t *get_tx_icon(bool fromPlugin) {
     const nbgl_icon_details_t *icon = NULL;
 
-    if (tx_approval_context.fromPlugin && (pluginType == EXTERNAL)) {
+    if (fromPlugin && (pluginType == EXTERNAL)) {
         if ((caller_app != NULL) && (caller_app->name != NULL)) {
             if (strcmp(strings.common.toAddress, caller_app->name) == 0) {
                 icon = get_app_icon(true);
@@ -59,7 +66,7 @@ const nbgl_icon_details_t *get_tx_icon(void) {
         }
         // icon is NULL in this case
         // Check with Alex if this is expected or a bug
-    } else if ((caller_app != NULL) && !tx_approval_context.fromPlugin) {
+    } else if ((caller_app != NULL) && !fromPlugin) {
         // Clone case
         icon = get_app_icon(true);
     } else {
@@ -272,7 +279,7 @@ void ux_approve_tx(bool fromPlugin) {
     if (warning.predefinedSet == 0) {
         nbgl_useCaseReview(TYPE_TRANSACTION,
                            &pairsList,
-                           get_tx_icon(),
+                           get_tx_icon(fromPlugin),
                            g_stax_shared_buffer,
                            NULL,
                            g_stax_shared_buffer + buf_size,
@@ -280,7 +287,7 @@ void ux_approve_tx(bool fromPlugin) {
     } else {
         nbgl_useCaseAdvancedReview(TYPE_TRANSACTION,
                                    &pairsList,
-                                   get_tx_icon(),
+                                   get_tx_icon(fromPlugin),
                                    g_stax_shared_buffer,
                                    NULL,
                                    g_stax_shared_buffer + buf_size,

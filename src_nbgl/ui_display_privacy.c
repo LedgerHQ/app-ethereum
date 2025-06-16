@@ -22,7 +22,7 @@ static void buildFirstPage(const char *review_string) {
 
     nbgl_useCaseReview(TYPE_OPERATION,
                        &pairsList,
-                       get_tx_icon(),
+                       get_tx_icon(false),
                        review_string,
                        NULL,
                        review_string,

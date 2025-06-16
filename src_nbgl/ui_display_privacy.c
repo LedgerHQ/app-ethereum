@@ -1,5 +1,6 @@
 #include "ui_nbgl.h"
 #include "ui_callbacks.h"
+#include "ui_utils.h"
 
 static void reviewChoice(bool confirm) {
     if (confirm) {
@@ -7,21 +8,23 @@ static void reviewChoice(bool confirm) {
     } else {
         io_seproxyhal_touch_privacy_cancel();
     }
+    ui_pairs_cleanup();
 }
 
 static void buildFirstPage(const char *review_string) {
-    static nbgl_contentTagValue_t pairs[2] = {0};
-    static nbgl_contentTagValueList_t pairsList = {0};
+    // Initialize the buffers
+    if (!ui_pairs_init(2)) {
+        // Initialization failed, cleanup and return
+        return;
+    }
 
-    pairs[0].item = "Address";
-    pairs[0].value = strings.common.toAddress;
-    pairs[1].item = "Key";
-    pairs[1].value = strings.common.fullAmount;
-    pairsList.nbPairs = 2;
-    pairsList.pairs = pairs;
+    g_pairs[0].item = "Address";
+    g_pairs[0].value = strings.common.toAddress;
+    g_pairs[1].item = "Key";
+    g_pairs[1].value = strings.common.fullAmount;
 
     nbgl_useCaseReview(TYPE_OPERATION,
-                       &pairsList,
+                       g_pairsList,
                        get_tx_icon(false),
                        review_string,
                        NULL,

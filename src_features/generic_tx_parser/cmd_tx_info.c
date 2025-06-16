@@ -9,6 +9,8 @@
 #include "calldata.h"
 #include "gtp_field_table.h"
 #include "common_ui.h"
+#include "ui_utils.h"
+#include "mem_utils.h"
 
 static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
     s_tx_info_ctx ctx = {0};
@@ -57,9 +59,6 @@ uint16_t handle_tx_info(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *paylo
 void gcs_cleanup(void) {
     ui_gcs_cleanup();
     field_table_cleanup();
-    if (g_tx_info != NULL) {
-        app_mem_free(g_tx_info);
-        g_tx_info = NULL;
-    }
+    mem_buffer_cleanup((void **) &g_tx_info);
     calldata_cleanup();
 }

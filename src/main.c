@@ -45,6 +45,7 @@
 #include "cmd_proxy_info.h"
 #include "commands_7702.h"
 #include "sign_message.h"
+#include "ui_utils.h"
 
 tmpCtx_t tmpCtx;
 txContext_t txContext;
@@ -87,6 +88,7 @@ void reset_app_context(void) {
     }
     memset((uint8_t *) &txContext, 0, sizeof(txContext));
     memset((uint8_t *) &tmpContent, 0, sizeof(tmpContent));
+    ui_all_cleanup();
 }
 
 void app_quit(void) {

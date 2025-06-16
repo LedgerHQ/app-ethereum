@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include "os_print.h"
 #include "mem.h"
 #include "mem_utils.h"
 
@@ -36,4 +37,40 @@ char *app_mem_strdup(const char *src) {
         memcpy(dst, src, length);
     }
     return dst;
+}
+
+/**
+ * Allocate buffer and Clear it
+ *
+ * @param[out] buffer Pointer to the buffer to allocate
+ * @param[in] size Size of the buffer to allocate
+ * @return true if the allocation was successful, false otherwise
+ */
+bool mem_buffer_allocate(void **buffer, uint16_t size) {
+    if (size != 0) {
+        // Check if the buffer is already allocated
+        if (*buffer != NULL) {
+            PRINTF("Buffer already allocated, freeing it before reallocating\n");
+            app_mem_free(*buffer);
+        }
+        // Allocate the Title message buffer
+        if ((*buffer = app_mem_alloc(size)) == NULL) {
+            PRINTF("Memory allocation failed for buffer of size %u\n", size);
+            return false;
+        }
+        explicit_bzero(*buffer, size);
+    }
+    return true;
+}
+
+/**
+ * Cleanup allocated memory
+ *
+ * @param[in] buffer Pointer to the buffer to deallocate
+ */
+void mem_buffer_cleanup(void **buffer) {
+    if (*buffer != NULL) {
+        app_mem_free(*buffer);
+        *buffer = NULL;
+    }
 }

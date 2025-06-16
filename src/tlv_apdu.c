@@ -2,17 +2,16 @@
 #include "tlv_apdu.h"
 #include "read.h"
 #include "mem.h"
+#include "mem_utils.h"
 #include "os_print.h"
+#include "ui_utils.h"
 
 static uint8_t *g_tlv_payload = NULL;
 static uint16_t g_tlv_size = 0;
 static uint16_t g_tlv_pos = 0;
 
 static void reset_state(void) {
-    if (g_tlv_payload != NULL) {
-        app_mem_free(g_tlv_payload);
-        g_tlv_payload = NULL;
-    }
+    mem_buffer_cleanup((void **) &g_tlv_payload);
     g_tlv_size = 0;
     g_tlv_pos = 0;
 }

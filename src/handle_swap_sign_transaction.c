@@ -3,12 +3,13 @@
 #include "network.h"
 #include "cmd_setPlugin.h"
 #include "nbgl_use_case.h"
+#include "mem.h"
 
 // Standard or crosschain swap type
 swap_mode_t G_swap_mode;
 
 // On crosschain swap, save the hash promised by the partner
-uint8_t G_swap_crosschain_hash[CX_SHA256_SIZE];
+uint8_t* G_swap_crosschain_hash = NULL;
 
 typedef enum extra_id_type_e {
     EXTRA_ID_TYPE_NATIVE,
@@ -22,7 +23,7 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
     // We need this "trick" as the input data position can overlap with app-ethereum globals
     txStringProperties_t stack_data;
     uint8_t destination_address_extra_data[CX_SHA256_SIZE + 1];
-    uint8_t swap_crosschain_hash[sizeof(G_swap_crosschain_hash)];
+    uint8_t swap_crosschain_hash[CX_SHA256_SIZE];
     swap_mode_t swap_mode;
 
     explicit_bzero(&stack_data, sizeof(stack_data));
@@ -131,13 +132,19 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
     G_swap_signing_return_value_address = &sign_transaction_params->result;
     // Commit the values read from exchange to the clean global space
     G_swap_mode = swap_mode;
-    memcpy(G_swap_crosschain_hash, swap_crosschain_hash, sizeof(G_swap_crosschain_hash));
+
+    if ((G_swap_crosschain_hash = app_mem_alloc(CX_SHA256_SIZE)) == NULL) {
+        PRINTF("Memory allocation failed for G_swap_crosschain_hash\n");
+        return false;
+    }
+    memcpy(G_swap_crosschain_hash, swap_crosschain_hash, CX_SHA256_SIZE);
     memcpy(&strings.common, &stack_data, sizeof(stack_data));
     return true;
 }
 
 void __attribute__((noreturn)) swap_finalize_exchange_sign_transaction(bool is_success) {
     *G_swap_signing_return_value_address = is_success;
+    app_mem_free(G_swap_crosschain_hash);
     os_lib_end();
 }
 

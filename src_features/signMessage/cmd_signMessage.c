@@ -3,7 +3,8 @@
 #include "sign_message.h"
 #include "common_ui.h"
 #include "ui_callbacks.h"
-#include "mem.h"
+#include "ui_utils.h"
+#include "mem_utils.h"
 
 typedef struct {
     uint16_t msg_length;
@@ -12,7 +13,7 @@ typedef struct {
     char *display_buffer;
 } signMsgCtx_t;
 
-static signMsgCtx_t signMsgCtx = {0};
+static signMsgCtx_t *signMsgCtx = NULL;
 
 static const char SIGN_MAGIC[] =
     "\x19"
@@ -51,16 +52,20 @@ static uint16_t first_apdu_data(uint8_t **data, uint8_t *length) {
         return APDU_RESPONSE_INVALID_DATA;
     }
 
+    if (mem_buffer_allocate((void **) &signMsgCtx, sizeof(signMsgCtx_t)) == false) {
+        PRINTF("Memory allocation failed for Sign Context\n");
+        return false;
+    }
+
     // Get the message length
-    signMsgCtx.msg_length = U4BE(*data, 0);
+    signMsgCtx->msg_length = U4BE(*data, 0);
 
     // Allocate the buffer for the message
-    signMsgCtx.received_buffer = app_mem_alloc(signMsgCtx.msg_length);
-    if (signMsgCtx.received_buffer == NULL) {
+    if (mem_buffer_allocate((void **) &(signMsgCtx->received_buffer), signMsgCtx->msg_length) ==
+        false) {
         PRINTF("Error: Not enough memory!\n");
         return APDU_RESPONSE_INSUFFICIENT_MEMORY;
     }
-    explicit_bzero(signMsgCtx.received_buffer, signMsgCtx.msg_length);
 
     // Skip data & length to the message itself
     *data += sizeof(uint32_t);
@@ -74,11 +79,11 @@ static uint16_t first_apdu_data(uint8_t **data, uint8_t *length) {
                               sizeof(SIGN_MAGIC) - 1,
                               NULL,
                               0));
-    snprintf(strings.tmp.tmp2, sizeof(strings.tmp.tmp2), "%u", signMsgCtx.msg_length);
+    snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "%u", signMsgCtx->msg_length);
     CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3,
                               0,
-                              (uint8_t *) strings.tmp.tmp2,
-                              strlen(strings.tmp.tmp2),
+                              (uint8_t *) strings.tmp.tmp,
+                              strlen(strings.tmp.tmp),
                               NULL,
                               0));
     error = APDU_RESPONSE_OK;
@@ -100,10 +105,10 @@ static uint16_t process_data(const uint8_t *const data, const uint8_t length) {
     CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3, 0, data, length, NULL, 0));
 
     // Copy the data to the buffer
-    memcpy(&signMsgCtx.received_buffer[signMsgCtx.processed_size], data, length);
+    memcpy(&signMsgCtx->received_buffer[signMsgCtx->processed_size], data, length);
 
     // Decrease the remaining length
-    signMsgCtx.processed_size += length;
+    signMsgCtx->processed_size += length;
 
     error = APDU_RESPONSE_OK;
 end:
@@ -134,12 +139,12 @@ static uint16_t final_process(void) {
                               32));
 
     // Display buffer length
-    buffer_length = signMsgCtx.msg_length;
+    buffer_length = signMsgCtx->msg_length;
 
     // Determine if the buffer is Ascii or hex
-    for (i = 0; i < signMsgCtx.msg_length; i++) {
-        if (!isprint((int) signMsgCtx.received_buffer[i]) &&
-            !isspace((int) signMsgCtx.received_buffer[i])) {
+    for (i = 0; i < signMsgCtx->msg_length; i++) {
+        if (!isprint((int) signMsgCtx->received_buffer[i]) &&
+            !isspace((int) signMsgCtx->received_buffer[i])) {
             // Hexadecimal message
             is_hex = true;
             buffer_length *= 2;  // To convert hex byte to char
@@ -149,22 +154,20 @@ static uint16_t final_process(void) {
     }
     // Allocate the buffer for the display
     buffer_length++;  // for the NULL byte
-    signMsgCtx.display_buffer = app_mem_alloc(buffer_length);
-    if (signMsgCtx.display_buffer == NULL) {
+    if (mem_buffer_allocate((void **) &(signMsgCtx->display_buffer), buffer_length) == false) {
         PRINTF("Error: Not enough memory!\n");
         error = APDU_RESPONSE_INSUFFICIENT_MEMORY;
         goto end;
     }
-    explicit_bzero(signMsgCtx.display_buffer, buffer_length);
 
     if (is_hex) {
         // Copy the "0x" prefix
-        memcpy(signMsgCtx.display_buffer, "0x", 2);
+        memcpy(signMsgCtx->display_buffer, "0x", 2);
         // Convert the message to ascii
-        if (bytes_to_lowercase_hex(signMsgCtx.display_buffer + 2,
+        if (bytes_to_lowercase_hex(signMsgCtx->display_buffer + 2,
                                    buffer_length - 2,
-                                   (const uint8_t *) signMsgCtx.received_buffer,
-                                   signMsgCtx.msg_length) < 0) {
+                                   (const uint8_t *) signMsgCtx->received_buffer,
+                                   signMsgCtx->msg_length) < 0) {
             // SHould never happen, buffer is large enough
             PRINTF("Error: Not enough memory!\n");
             error = APDU_RESPONSE_INSUFFICIENT_MEMORY;
@@ -172,17 +175,17 @@ static uint16_t final_process(void) {
         }
     } else {
 #ifdef SCREEN_SIZE_NANO
-        for (i = 0; i < signMsgCtx.msg_length; i++) {
-            c = signMsgCtx.received_buffer[i];
+        for (i = 0; i < signMsgCtx->msg_length; i++) {
+            c = signMsgCtx->received_buffer[i];
             if (isspace((int) c)) {
                 // to replace all white-space characters as spaces
                 c = ' ';
             }
-            signMsgCtx.display_buffer[j++] = c;
+            signMsgCtx->display_buffer[j++] = c;
         }
 #else   // SCREEN_SIZE_NANO
         // Copy the message to the display buffer
-        memcpy(signMsgCtx.display_buffer, signMsgCtx.received_buffer, signMsgCtx.msg_length);
+        memcpy(signMsgCtx->display_buffer, signMsgCtx->received_buffer, signMsgCtx->msg_length);
 #endif  // SCREEN_SIZE_NANO
     }
 
@@ -230,10 +233,10 @@ uint16_t handleSignPersonalMessage(uint8_t p1,
     }
 
     // Check if the received chunk data is too long
-    if ((length + signMsgCtx.processed_size) > signMsgCtx.msg_length) {
+    if ((length + signMsgCtx->processed_size) > signMsgCtx->msg_length) {
         PRINTF("Error: Length mismatch ! (%u > %u)!\n",
-               (length + signMsgCtx.processed_size),
-               signMsgCtx.msg_length);
+               (length + signMsgCtx->processed_size),
+               signMsgCtx->msg_length);
         set_idle();
         return APDU_RESPONSE_INVALID_DATA;
     }
@@ -245,13 +248,13 @@ uint16_t handleSignPersonalMessage(uint8_t p1,
     }
 
     // Start the UI if the buffer is fully received
-    if (signMsgCtx.processed_size == signMsgCtx.msg_length) {
+    if (signMsgCtx->processed_size == signMsgCtx->msg_length) {
         sw = final_process();
         if (sw != APDU_RESPONSE_OK) {
             set_idle();
             return sw;
         }
-        ui_191_start(signMsgCtx.display_buffer);
+        ui_191_start(signMsgCtx->display_buffer);
         *flags |= IO_ASYNCH_REPLY;
         return APDU_NO_RESPONSE;
     }
@@ -262,11 +265,9 @@ uint16_t handleSignPersonalMessage(uint8_t p1,
  * Cleanup buffer
  */
 void message_cleanup(void) {
-    if (signMsgCtx.received_buffer != NULL) {
-        app_mem_free((void *) signMsgCtx.received_buffer);
+    if (signMsgCtx != NULL) {
+        mem_buffer_cleanup((void **) &signMsgCtx->received_buffer);
+        mem_buffer_cleanup((void **) &signMsgCtx->display_buffer);
     }
-    if (signMsgCtx.display_buffer != NULL) {
-        app_mem_free((void *) signMsgCtx.display_buffer);
-    }
-    explicit_bzero(&signMsgCtx, sizeof(signMsgCtx));
+    mem_buffer_cleanup((void **) &signMsgCtx);
 }

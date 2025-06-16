@@ -1,9 +1,11 @@
 #include "ui_nbgl.h"
 #include "ui_callbacks.h"
+#include "ui_utils.h"
+
+#define TITLE_MSG_LEN  20
+#define FINISH_MSG_LEN 20
 
 typedef enum { PARAMETER_CONFIRMATION, SELECTOR_CONFIRMATION } e_confirmation_type;
-static nbgl_contentTagValue_t pair;
-static nbgl_contentTagValueList_t pairsList;
 
 static void reviewChoice(bool confirm) {
     if (confirm) {
@@ -11,23 +13,33 @@ static void reviewChoice(bool confirm) {
     } else {
         io_seproxyhal_touch_data_cancel();
     }
+    // No cleanup here, will be done with transaction review
 }
 
 static void buildScreen(e_confirmation_type confirm_type) {
-    uint32_t buf_size = SHARED_BUFFER_SIZE / 2;
     nbgl_operationType_t op = TYPE_TRANSACTION;
 
-    pair.item = (confirm_type == PARAMETER_CONFIRMATION) ? "Parameter" : "Selector";
-    pair.value = strings.tmp.tmp;
-    pairsList.nbPairs = 1;
-    pairsList.pairs = &pair;
-    snprintf(g_stax_shared_buffer,
-             buf_size,
+    // Initialize the buffers
+    if (!ui_pairs_init(1)) {
+        // Initialization failed, cleanup and return
+        return;
+    }
+    // Initialize the buffers
+    if (!ui_buffers_init(TITLE_MSG_LEN, 0, FINISH_MSG_LEN)) {
+        // Initialization failed, cleanup and return
+        return;
+    }
+
+    g_pairs->item = (confirm_type == PARAMETER_CONFIRMATION) ? "Parameter" : "Selector";
+    g_pairs->value = strings.tmp.tmp;
+
+    snprintf(g_titleMsg,
+             TITLE_MSG_LEN,
              "Verify %s",
              (confirm_type == PARAMETER_CONFIRMATION) ? "parameter" : "selector");
-    // Finish text: replace "Verify" by "Confirm" and add questionmark
-    snprintf(g_stax_shared_buffer + buf_size,
-             buf_size,
+    // Finish text: replace "Verify" by "Confirm"
+    snprintf(g_finishMsg,
+             FINISH_MSG_LEN,
              "Confirm %s",
              (confirm_type == PARAMETER_CONFIRMATION) ? "parameter" : "selector");
 
@@ -35,11 +47,11 @@ static void buildScreen(e_confirmation_type confirm_type) {
         op |= BLIND_OPERATION;
     }
     nbgl_useCaseReview(op,
-                       &pairsList,
+                       g_pairsList,
                        get_tx_icon(false),
-                       g_stax_shared_buffer,
+                       g_titleMsg,
                        NULL,
-                       g_stax_shared_buffer + buf_size,
+                       g_finishMsg,
                        reviewChoice);
 }
 

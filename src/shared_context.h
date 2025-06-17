@@ -162,7 +162,7 @@ typedef enum swap_mode_e {
 } swap_mode_t;
 
 extern swap_mode_t G_swap_mode;
-extern uint8_t *G_swap_crosschain_hash;
+extern uint8_t G_swap_crosschain_hash[CX_SHA256_SIZE];
 
 typedef enum {
     // External plugin, set by setExternalPlugin

@@ -14,6 +14,7 @@
 #include "utils.h"
 #include "mem_utils.h"
 #include "ui_utils.h"
+#include "enum_value.h"
 
 #define TAG_MAX_LEN   43
 #define VALUE_MAX_LEN 79
@@ -36,6 +37,7 @@ static void _cleanup(void) {
     mem_buffer_cleanup((void **) &plugin_buffers);
     mem_buffer_cleanup((void **) &extension);
     ui_all_cleanup();
+    enum_value_cleanup();
 }
 
 // Review callback function to handle user confirmation or cancellation

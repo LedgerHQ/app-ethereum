@@ -35,3 +35,4 @@ const char *get_matching_enum_name(const uint64_t *chain_id,
                                    const uint8_t *selector,
                                    uint8_t id,
                                    uint8_t value);
+void enum_value_cleanup(void);

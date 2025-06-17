@@ -6,13 +6,14 @@ from ragger.backend import BackendInterface
 from ragger.navigator import Navigator
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 
-from dynamic_networks import DynamicNetwork
+from dynamic_networks_cfg import get_network_config
 
 from client.client import EthAppClient
 from client.status_word import StatusWord
 import client.response_parser as ResponseParser
 from client.settings import SettingID, settings_toggle
 from client.utils import recover_transaction, get_authorization_obj
+from client.dynamic_networks import DynamicNetwork
 
 
 # Values used across all tests
@@ -46,7 +47,9 @@ def common(scenario_navigator: NavigateWithScenario,
     app_client = EthAppClient(backend)
 
     # Send Network information (name, ticker, icon)
-    app_client.provide_network_information(DynamicNetwork(backend.device, tx_params["chainId"]))
+    name, ticker, icon = get_network_config(backend.device.type, tx_params["chainId"])
+    if name and ticker:
+        app_client.provide_network_information(DynamicNetwork(name, ticker, tx_params["chainId"], icon))
 
     with app_client.get_public_addr(bip32_path=path, display=False):
         pass

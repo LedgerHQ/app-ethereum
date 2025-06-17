@@ -11,6 +11,7 @@
 #include "cmd_get_tx_simulation.h"
 #include "ui_utils.h"
 #include "enum_value.h"
+#include "proxy_info.h"
 
 static void review_choice(bool confirm) {
     if (confirm) {
@@ -234,6 +235,7 @@ void ui_gcs_cleanup(void) {
     }
     ui_all_cleanup();
     enum_value_cleanup();
+    proxy_cleanup();
 }
 
 bool ui_gcs(void) {

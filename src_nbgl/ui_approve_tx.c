@@ -15,6 +15,7 @@
 #include "mem_utils.h"
 #include "ui_utils.h"
 #include "enum_value.h"
+#include "proxy_info.h"
 
 #define TAG_MAX_LEN   43
 #define VALUE_MAX_LEN 79
@@ -38,6 +39,7 @@ static void _cleanup(void) {
     mem_buffer_cleanup((void **) &extension);
     ui_all_cleanup();
     enum_value_cleanup();
+    proxy_cleanup();
 }
 
 // Review callback function to handle user confirmation or cancellation

@@ -41,3 +41,4 @@ const uint8_t *get_proxy_contract(const uint64_t *chain_id,
 const uint8_t *get_implem_contract(const uint64_t *chain_id,
                                    const uint8_t *addr,
                                    const uint8_t *selector);
+void proxy_cleanup(void);

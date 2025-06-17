@@ -31,6 +31,8 @@ static plugin_buffers_t *plugin_buffers = NULL;
  * Cleanup allocated memory
  */
 static void _cleanup(void) {
+    mem_buffer_cleanup((void **) &g_trusted_name);
+    mem_buffer_cleanup((void **) &g_trusted_name_info);
     mem_buffer_cleanup((void **) &plugin_buffers);
     mem_buffer_cleanup((void **) &extension);
     ui_all_cleanup();

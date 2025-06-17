@@ -224,18 +224,14 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
 }
 
 void ui_gcs_cleanup(void) {
-    ui_buffers_cleanup();
-    if (g_pairsList != NULL) {
-        if (g_pairsList->pairs != NULL) {
-            for (int i = 0; i < g_pairsList->nbPairs; ++i) {
-                free_pair(g_pairsList, i);
-            }
-            app_mem_free(g_pairs);
-            g_pairs = NULL;
+    mem_buffer_cleanup((void **) &g_trusted_name);
+    mem_buffer_cleanup((void **) &g_trusted_name_info);
+    if ((g_pairsList != NULL) && (g_pairsList->pairs != NULL)) {
+        for (int i = 0; i < g_pairsList->nbPairs; ++i) {
+            free_pair(g_pairsList, i);
         }
-        app_mem_free(g_pairsList);
-        g_pairsList = NULL;
     }
+    ui_all_cleanup();
 }
 
 bool ui_gcs(void) {

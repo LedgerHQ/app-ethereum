@@ -7,6 +7,8 @@
 #include "hash_bytes.h"
 #include "public_keys.h"
 #include "proxy_info.h"
+#include "ui_utils.h"
+#include "mem_utils.h"
 
 typedef enum { STRUCT_TYPE_TRUSTED_NAME = 0x03 } e_struct_type;
 
@@ -51,8 +53,8 @@ typedef enum {
     NFT_ID = 0x72,
 } e_tlv_tag;
 
-static s_trusted_name_info g_trusted_name_info = {0};
-char g_trusted_name[TRUSTED_NAME_MAX_LENGTH + 1];
+s_trusted_name_info *g_trusted_name_info = NULL;
+char *g_trusted_name = NULL;
 
 static bool matching_type(e_name_type type, uint8_t type_count, const e_name_type *types) {
     for (int i = 0; i < type_count; ++i) {
@@ -128,16 +130,19 @@ const char *get_trusted_name(uint8_t type_count,
                              const uint8_t *addr) {
     const char *ret = NULL;
 
-    if (matching_trusted_name(&g_trusted_name_info,
+    if (g_trusted_name_info == NULL) {
+        return NULL;
+    }
+    if (matching_trusted_name(g_trusted_name_info,
                               type_count,
                               types,
                               source_count,
                               sources,
                               chain_id,
                               addr)) {
-        ret = g_trusted_name_info.name;
+        ret = g_trusted_name_info->name;
     }
-    explicit_bzero(&g_trusted_name_info, sizeof(g_trusted_name_info));
+    explicit_bzero(g_trusted_name_info, sizeof(s_trusted_name_info));
     return ret;
 }
 
@@ -626,11 +631,17 @@ bool verify_trusted_name_struct(const s_trusted_name_ctx *context) {
         return false;
     }
 
-    memcpy(&g_trusted_name_info, &context->trusted_name, sizeof(g_trusted_name_info));
+    // Allocate the Trusted Name buffer
+    if (mem_buffer_allocate((void **) &g_trusted_name_info, sizeof(s_trusted_name_info)) == false) {
+        PRINTF("Memory allocation failed for Trusted Name\n");
+        return false;
+    }
+
+    memcpy(g_trusted_name_info, &context->trusted_name, sizeof(s_trusted_name_info));
 
     PRINTF("Registered : %s => %.*h\n",
-           g_trusted_name_info.name,
+           g_trusted_name_info->name,
            ADDRESS_LENGTH,
-           g_trusted_name_info.addr);
+           g_trusted_name_info->addr);
     return true;
 }

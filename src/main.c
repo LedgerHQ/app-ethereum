@@ -388,8 +388,8 @@ void coin_main(eth_libargs_t *args) {
     common_app_init();
 
     io_init();
-    ui_idle();
     app_mem_init();
+    ui_idle();
 
     // to prevent it from having a fixed value at boot
     roll_challenge();

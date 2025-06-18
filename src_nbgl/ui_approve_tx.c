@@ -281,9 +281,11 @@ static uint8_t getNbPairs(bool displayNetwork, bool fromPlugin) {
  *
  * @param[in] fromPlugin If true, the data is coming from a plugin, otherwise it is a standard
  * transaction
+ * @param[in] title_len Length of the Title message buffer
+ * @param[in] finish_len Length of the Finish message buffer
  * @return whether the initialization was successful
  */
-static bool ux_init(bool fromPlugin) {
+static bool ux_init(bool fromPlugin, uint8_t title_len, uint8_t finish_len) {
     uint64_t chain_id = 0;
     uint16_t buf_size = 0;
     uint8_t nbPairs = 0;
@@ -301,7 +303,13 @@ static bool ux_init(bool fromPlugin) {
     // Initialize the buffers
     if (!ui_pairs_init(nbPairs)) {
         // Initialization failed, cleanup and return
-        goto error2;
+        goto error;
+    }
+
+    // Initialize the buffers
+    if (!ui_buffers_init(title_len, 0, finish_len)) {
+        // Initialization failed, cleanup and return
+        goto error;
     }
 
     if (fromPlugin == true) {
@@ -325,18 +333,9 @@ static bool ux_init(bool fromPlugin) {
     // Retrieve the Tag/Value g_pairs to display
     setTagValuePairs(displayNetwork, fromPlugin);
 
-    // Initialize the warning structure
-    explicit_bzero(&warning, sizeof(nbgl_warning_t));
-    if (tmpContent.txContent.dataPresent) {
-        warning.predefinedSet |= SET_BIT(BLIND_SIGNING_WARN);
-    }
-#ifdef HAVE_WEB3_CHECKS
-    set_tx_simulation_warning(&warning, true, true);
-#endif
     return true;
 error:
     io_seproxyhal_send_status(APDU_RESPONSE_INSUFFICIENT_MEMORY, 0, true, true);
-error2:
     _cleanup();
     return false;
 }
@@ -348,68 +347,91 @@ error2:
  * transaction
  */
 void ux_approve_tx(bool fromPlugin) {
-    uint16_t buf_size = 0;
+    char op_name[sizeof(strings.common.fullAmount)];
+    const char *title_prefix = "Review transaction";
+    const char *tx_check_str = NULL;
+    char suffix_str[100];    // Suffix string buffer
+    uint8_t title_len = 1;   // Initialize lengths to 1 for '\0' character
+    uint8_t finish_len = 1;  // Initialize lengths to 1 for '\0' character
+
+    // Initialize the warning structure
+    explicit_bzero(&warning, sizeof(nbgl_warning_t));
+    if (tmpContent.txContent.dataPresent) {
+        warning.predefinedSet |= SET_BIT(BLIND_SIGNING_WARN);
+    }
+#ifdef HAVE_WEB3_CHECKS
+    set_tx_simulation_warning(&warning, true, true);
+#endif
+    tx_check_str = ui_tx_simulation_finish_str();
+
+    // Compute the title and finish message lengths
+    title_len += strlen(title_prefix);
+    finish_len += strlen(tx_check_str);
+    finish_len += 12;  // strlen(" transaction");
+    if (fromPlugin) {
+        plugin_ui_get_id();
+        get_lowercase_operation(op_name, sizeof(op_name));
+
+        title_len += 4;  // strlen(" to ");
+        title_len += strlen(op_name);
+        title_len += strlen((pluginType == EXTERNAL ? " on " : " "));
+        title_len += strlen(strings.common.toAddress);
+
+#ifdef SCREEN_SIZE_WALLET
+        finish_len += 4;  // strlen(" to ");
+        finish_len += strlen(op_name);
+        finish_len += strlen((pluginType == EXTERNAL ? " on " : " "));
+        finish_len += strlen(strings.common.toAddress);
+#endif
+    }
+#ifdef SCREEN_SIZE_WALLET
+    finish_len += 1;  // strlen("?");
+#endif
 
     // Initialize the buffers
-    if (!ux_init(fromPlugin)) {
+    if (!ux_init(fromPlugin, title_len, finish_len)) {
         // Initialization failed, cleanup and return
         return;
     }
 
-    buf_size = SHARED_BUFFER_SIZE / 2;
+    // Prepare the title and finish messages
+    strlcpy(g_titleMsg, title_prefix, title_len);
+    snprintf(g_finishMsg, finish_len, "%s transaction", tx_check_str);
     if (fromPlugin) {
-        char op_name[sizeof(strings.common.fullAmount)];
-        plugin_ui_get_id();
+        // Prepare the suffix
+        snprintf(suffix_str,
+                 title_len,
+                 " to %s %s%s",
+                 op_name,
+                 (pluginType == EXTERNAL ? "on " : ""),
+                 strings.common.toAddress);
 
-        get_lowercase_operation(op_name, sizeof(op_name));
-        snprintf(g_stax_shared_buffer,
-                 buf_size,
-                 "Review transaction to %s %s%s",
-                 op_name,
-                 (pluginType == EXTERNAL ? "on " : ""),
-                 strings.common.toAddress);
-        // Finish text: replace "Review" by "Sign" and add questionmark
+        strlcat(g_titleMsg, suffix_str, title_len);
+
 #ifdef SCREEN_SIZE_WALLET
-        snprintf(g_stax_shared_buffer + buf_size,
-                 buf_size,
-                 "%s transaction to %s %s%s?",
-                 ui_tx_simulation_finish_str(),
-                 op_name,
-                 (pluginType == EXTERNAL ? "on " : ""),
-                 strings.common.toAddress);
-#else
-        snprintf(g_stax_shared_buffer + buf_size,
-                 buf_size,
-                 "%s transaction",
-                 ui_tx_simulation_finish_str());
+        strlcat(g_finishMsg, suffix_str, finish_len);
 #endif
-    } else {
-        snprintf(g_stax_shared_buffer, buf_size, "Review transaction");
-        snprintf(g_stax_shared_buffer + buf_size,
-                 buf_size,
-#ifdef SCREEN_SIZE_WALLET
-                 "%s transaction?",
-#else
-                 "%s transaction",
-#endif
-                 ui_tx_simulation_finish_str());
     }
+#ifdef SCREEN_SIZE_WALLET
+    strlcat(g_finishMsg, "?", finish_len);
+#endif
 
+    // Start the review process
     if (warning.predefinedSet == 0) {
         nbgl_useCaseReview(TYPE_TRANSACTION,
                            g_pairsList,
                            get_tx_icon(fromPlugin),
-                           g_stax_shared_buffer,
+                           g_titleMsg,
                            NULL,
-                           g_stax_shared_buffer + buf_size,
+                           g_finishMsg,
                            reviewChoice);
     } else {
         nbgl_useCaseAdvancedReview(TYPE_TRANSACTION,
                                    g_pairsList,
                                    get_tx_icon(fromPlugin),
-                                   g_stax_shared_buffer,
+                                   g_titleMsg,
                                    NULL,
-                                   g_stax_shared_buffer + buf_size,
+                                   g_finishMsg,
                                    NULL,
                                    &warning,
                                    reviewChoice);

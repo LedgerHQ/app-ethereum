@@ -139,25 +139,39 @@ void ui_712_switch_to_message(void) {
 
 #ifdef HAVE_WEB3_CHECKS
 static void ui_712_w3c_cb(bool confirm) {
+    const char *tx_check_str = NULL;
+#ifdef SCREEN_SIZE_WALLET
+    const char *title_suffix = " typed message?";
+#else
+    const char *title_suffix = " message";
+#endif
+    uint8_t finish_len = 1;  // Initialize lengths to 1 for '\0' character
+
     if (confirm) {
         // User has clicked on "Reject transaction"
         ui_typed_message_review_choice(false);
     } else {
+        tx_check_str = ui_tx_simulation_finish_str();
+        finish_len += strlen(tx_check_str);
+        finish_len += strlen(title_suffix);
+        ui_buffers_init(0, 0, finish_len);
         // User has clicked on "Sign anyway"
-        snprintf(g_stax_shared_buffer,
-                 sizeof(g_stax_shared_buffer),
-#ifdef SCREEN_SIZE_WALLET
-                 "%s typed message?",
-#else
-                 "%s message",
-#endif
-                 ui_tx_simulation_finish_str());
-        nbgl_useCaseReviewStreamingFinish(g_stax_shared_buffer, ui_typed_message_review_choice);
+        snprintf(g_finishMsg, finish_len, "%s%s", tx_check_str, title_suffix);
+        nbgl_useCaseReviewStreamingFinish(g_finishMsg, ui_typed_message_review_choice);
     }
 }
 #endif
 
 void ui_712_switch_to_sign(void) {
+#ifdef SCREEN_SIZE_WALLET
+    const char *tx_check_str = ui_tx_simulation_finish_str();
+    const char *title_suffix = " typed message?";
+#else
+    const char *tx_check_str = "Sign";
+    const char *title_suffix = " message";
+#endif
+    uint8_t finish_len = 1;  // Initialize lengths to 1 for '\0' character
+
     if (!review_skipped && (pair_idx > 0)) {
         g_pairsList->nbPairs = pair_idx;
         pair_idx = 0;
@@ -181,14 +195,10 @@ void ui_712_switch_to_sign(void) {
             return;
         }
 #endif
-#ifdef SCREEN_SIZE_WALLET
-        snprintf(g_stax_shared_buffer,
-                 sizeof(g_stax_shared_buffer),
-                 "%s typed message?",
-                 ui_tx_simulation_finish_str());
-#else
-        snprintf(g_stax_shared_buffer, sizeof(g_stax_shared_buffer), "Sign message");
-#endif
-        nbgl_useCaseReviewStreamingFinish(g_stax_shared_buffer, ui_typed_message_review_choice);
+        finish_len += strlen(tx_check_str);
+        finish_len += strlen(title_suffix);
+        ui_buffers_init(0, 0, finish_len);
+        snprintf(g_finishMsg, finish_len, "%s%s", tx_check_str, title_suffix);
+        nbgl_useCaseReviewStreamingFinish(g_finishMsg, ui_typed_message_review_choice);
     }
 }

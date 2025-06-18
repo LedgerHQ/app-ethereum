@@ -12,9 +12,6 @@
 #define ICON_APP_REVIEW  C_icon_certificate
 #endif
 
-#define SHARED_BUFFER_SIZE SHARED_CTX_FIELD_1_SIZE
-extern char g_stax_shared_buffer[SHARED_BUFFER_SIZE];
-
 const nbgl_icon_details_t* get_app_icon(bool caller_icon);
 const nbgl_icon_details_t* get_tx_icon(bool fromPlugin);
 

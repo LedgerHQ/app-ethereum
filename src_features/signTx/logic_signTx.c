@@ -168,10 +168,6 @@ customStatus_e customProcessor(txContext_t *context) {
             } else {
                 uint32_t offset = 0;
                 uint32_t i;
-                snprintf(strings.tmp.tmp2,
-                         sizeof(strings.tmp.tmp2),
-                         "Field %d",
-                         dataContext.tokenContext.fieldIndex);
                 for (i = 0; i < 4; i++) {
                     offset += splitBinaryParameterPart(strings.tmp.tmp + offset,
                                                        sizeof(strings.tmp.tmp) - offset,

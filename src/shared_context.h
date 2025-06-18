@@ -99,8 +99,6 @@ typedef union {
 
 typedef union {
     txContent_t txContent;
-    cx_sha256_t sha2;
-    char tmp[100];
 } tmpContent_t;
 
 typedef union {
@@ -133,11 +131,7 @@ typedef struct txStringProperties_s {
     char tx_hash[2 + (INT256_LENGTH * 2) + 1];
 } txStringProperties_t;
 
-#ifdef SCREEN_SIZE_WALLET
 #define SHARED_CTX_FIELD_1_SIZE 380
-#else
-#define SHARED_CTX_FIELD_1_SIZE 256
-#endif
 #define SHARED_CTX_FIELD_2_SIZE 40
 
 typedef struct strDataTmp_s {

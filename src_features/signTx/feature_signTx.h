@@ -18,8 +18,6 @@ typedef enum {
 
 } plugin_ui_state_t;
 
-extern cx_sha3_t *g_tx_hash_ctx;
-
 customStatus_e customProcessor(txContext_t *context);
 uint16_t finalize_parsing(const txContext_t *context);
 void ux_approve_tx(bool fromPlugin);

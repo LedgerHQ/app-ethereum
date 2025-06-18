@@ -15,7 +15,6 @@
 #include "calldata.h"
 #include "swap_error_code_helpers.h"
 #include "getPublicKey.h"
-#include "mem.h"
 
 static bool g_use_standard_ui;
 
@@ -312,7 +311,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
         }
     }
     // Store the hash
-    CX_CHECK(cx_hash_no_throw((cx_hash_t *) g_tx_hash_ctx,
+    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3,
                               CX_LAST,
                               tmpCtx.transactionContext.hash,
                               0,
@@ -344,8 +343,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
             ETH_PLUGIN_RESULT_SUCCESSFUL) {
             PRINTF("Plugin finalize call failed\n");
             report_finalize_error();
-            error = APDU_NO_RESPONSE;
-            goto end;
+            return APDU_NO_RESPONSE;
         }
         // Lookup tokens if requested
         ethPluginProvideInfo_t pluginProvideInfo;
@@ -369,8 +367,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
                 ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
                 PRINTF("Plugin provide token call failed\n");
                 report_finalize_error();
-                error = APDU_NO_RESPONSE;
-                goto end;
+                return APDU_NO_RESPONSE;
             }
             pluginFinalize.result = pluginProvideInfo.result;
         }
@@ -394,8 +391,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
                     if ((pluginFinalize.amount == NULL) || (pluginFinalize.address == NULL)) {
                         PRINTF("Incorrect amount/address set by plugin\n");
                         report_finalize_error();
-                        error = APDU_NO_RESPONSE;
-                        goto end;
+                        return APDU_NO_RESPONSE;
                     }
                     memmove(tmpContent.txContent.value.value, pluginFinalize.amount, 32);
                     tmpContent.txContent.value.length = 32;
@@ -409,8 +405,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
                 default:
                     PRINTF("ui type %d not supported\n", pluginFinalize.uiType);
                     report_finalize_error();
-                    error = APDU_NO_RESPONSE;
-                    goto end;
+                    return APDU_NO_RESPONSE;
             }
         } else if (G_called_from_swap && G_swap_mode == SWAP_MODE_CROSSCHAIN_SUCCESS) {
             PRINTF("Plugin swap_with_calldata fell back for UI with success\n");
@@ -454,8 +449,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
             PRINTF("Data is present but not allowed\n");
             report_finalize_error();
             ui_error_blind_signing();
-            error = false;
-            goto end;
+            return false;
         }
     }
 
@@ -498,8 +492,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
                             displayBuffer,
                             sizeof(displayBuffer))) {
             PRINTF("OVERFLOW, amount to string failed\n");
-            error = EXCEPTION_OVERFLOW;
-            goto end;
+            return EXCEPTION_OVERFLOW;
         }
 
         if (G_called_from_swap) {
@@ -527,8 +520,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
                                       &tmpContent.txContent.startgas,
                                       displayBuffer,
                                       sizeof(displayBuffer)) == false) {
-        error = APDU_RESPONSE_INVALID_DATA;
-        goto end;
+        return APDU_RESPONSE_INVALID_DATA;
     }
     if (G_called_from_swap) {
         // Ensure the values are the same that the ones that have been previously validated
@@ -561,7 +553,6 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
         PRINTF("Network: %s\n", strings.common.network_name);
     }
 end:
-    mem_buffer_cleanup((void **) &g_tx_hash_ctx);
     return error;
 }
 

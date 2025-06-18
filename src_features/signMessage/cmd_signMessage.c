@@ -13,6 +13,7 @@ typedef struct {
     char *display_buffer;
 } signMsgCtx_t;
 
+cx_sha3_t *g_msg_hash_ctx = NULL;
 static signMsgCtx_t *signMsgCtx = NULL;
 
 static const char SIGN_MAGIC[] =
@@ -24,6 +25,7 @@ static const char SIGN_MAGIC[] =
  */
 static void set_idle(void) {
     message_cleanup();
+    mem_buffer_cleanup((void **) &g_msg_hash_ctx);
     ui_idle();
 }
 
@@ -54,7 +56,7 @@ static uint16_t first_apdu_data(uint8_t **data, uint8_t *length) {
 
     if (mem_buffer_allocate((void **) &signMsgCtx, sizeof(signMsgCtx_t)) == false) {
         PRINTF("Memory allocation failed for Sign Context\n");
-        return false;
+        return APDU_RESPONSE_INSUFFICIENT_MEMORY;
     }
 
     // Get the message length
@@ -71,16 +73,21 @@ static uint16_t first_apdu_data(uint8_t **data, uint8_t *length) {
     *data += sizeof(uint32_t);
     *length -= sizeof(uint32_t);
 
+    if (mem_buffer_allocate((void **) &g_msg_hash_ctx, sizeof(cx_sha3_t)) == false) {
+        PRINTF("Memory allocation failed for Sign Hash\n");
+        return APDU_RESPONSE_INSUFFICIENT_MEMORY;
+    }
+
     // Initialize message header + length hash
-    CX_CHECK(cx_keccak_init_no_throw(&global_sha3, 256));
-    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3,
+    CX_CHECK(cx_keccak_init_no_throw(g_msg_hash_ctx, 256));
+    CX_CHECK(cx_hash_no_throw((cx_hash_t *) g_msg_hash_ctx,
                               0,
                               (uint8_t *) SIGN_MAGIC,
                               sizeof(SIGN_MAGIC) - 1,
                               NULL,
                               0));
     snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "%u", signMsgCtx->msg_length);
-    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3,
+    CX_CHECK(cx_hash_no_throw((cx_hash_t *) g_msg_hash_ctx,
                               0,
                               (uint8_t *) strings.tmp.tmp,
                               strlen(strings.tmp.tmp),
@@ -102,7 +109,7 @@ static uint16_t process_data(const uint8_t *const data, const uint8_t length) {
     cx_err_t error = CX_INTERNAL_ERROR;
 
     // Hash the data
-    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3, 0, data, length, NULL, 0));
+    CX_CHECK(cx_hash_no_throw((cx_hash_t *) g_msg_hash_ctx, 0, data, length, NULL, 0));
 
     // Copy the data to the buffer
     memcpy(&signMsgCtx->received_buffer[signMsgCtx->processed_size], data, length);
@@ -131,7 +138,7 @@ static uint16_t final_process(void) {
 #endif  // SCREEN_SIZE_NANO
 
     // Finalize hash
-    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3,
+    CX_CHECK(cx_hash_no_throw((cx_hash_t *) g_msg_hash_ctx,
                               CX_LAST,
                               NULL,
                               0,
@@ -191,6 +198,7 @@ static uint16_t final_process(void) {
 
     error = APDU_RESPONSE_OK;
 end:
+    mem_buffer_cleanup((void **) &g_msg_hash_ctx);
     return error;
 }
 

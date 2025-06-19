@@ -79,7 +79,7 @@ static const void *get_nth_field(uint8_t *fields_count_ptr, uint8_t n) {
  * @param[out] the number of fields in the depth of the returned field
  * @return the field which the path points to
  */
-static inline const void *get_field(uint8_t *const fields_count) {
+static inline const void *get_field(uint8_t *fields_count) {
     return get_nth_field(fields_count, path_struct->depth_count);
 }
 
@@ -187,7 +187,7 @@ end:
  *
  * @param[in] hash pointer to given hash
  */
-static bool feed_last_hash_depth(const uint8_t *const hash) {
+static bool feed_last_hash_depth(const uint8_t *hash) {
     const cx_sha3_t *hash_ctx;
 
     hash_ctx = get_last_hash_ctx();
@@ -386,7 +386,7 @@ static bool path_update(bool skip_if_array, bool stop_at_array, bool do_typehash
  * @param[in] name_length the root struct name length
  * @return boolean indicating if it was successful or not
  */
-bool path_set_root(const char *const struct_name, uint8_t name_length) {
+bool path_set_root(const char *struct_name, uint8_t name_length) {
     uint8_t hash[KECCAK256_HASH_BYTESIZE];
 
     if (path_struct == NULL) {

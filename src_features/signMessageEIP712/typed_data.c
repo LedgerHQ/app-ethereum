@@ -78,7 +78,7 @@ const s_struct_712 *get_structn(const char *name, uint8_t length) {
  * @param[in] name name
  * @return whether it was successful
  */
-bool set_struct_name(uint8_t length, const uint8_t *const name) {
+bool set_struct_name(uint8_t length, const uint8_t *name) {
     s_struct_712 *new_struct;
 
     if (name == NULL) {
@@ -112,7 +112,7 @@ bool set_struct_name(uint8_t length, const uint8_t *const name) {
  * @return whether it was successful or not
  */
 static bool set_struct_field_typedesc(s_struct_712_field *field,
-                                      const uint8_t *const data,
+                                      const uint8_t *data,
                                       uint8_t *data_idx,
                                       uint8_t length) {
     uint8_t typedesc;
@@ -138,7 +138,7 @@ static bool set_struct_field_typedesc(s_struct_712_field *field,
  * @return whether it was successful
  */
 static bool set_struct_field_custom_typename(s_struct_712_field *field,
-                                             const uint8_t *const data,
+                                             const uint8_t *data,
                                              uint8_t *data_idx,
                                              uint8_t length) {
     uint8_t typename_len;
@@ -176,7 +176,7 @@ static bool set_struct_field_custom_typename(s_struct_712_field *field,
  * @return whether it was successful
  */
 static bool set_struct_field_array(s_struct_712_field *field,
-                                   const uint8_t *const data,
+                                   const uint8_t *data,
                                    uint8_t *data_idx,
                                    uint8_t length) {
     if ((*data_idx + sizeof(field->array_level_count)) > length)  // check buffer bound
@@ -225,7 +225,7 @@ static bool set_struct_field_array(s_struct_712_field *field,
  * @return whether it was successful
  */
 static bool set_struct_field_typesize(s_struct_712_field *field,
-                                      const uint8_t *const data,
+                                      const uint8_t *data,
                                       uint8_t *data_idx,
                                       uint8_t length) {
     // copy TypeSize
@@ -246,7 +246,7 @@ static bool set_struct_field_typesize(s_struct_712_field *field,
  * @return whether it was successful
  */
 static bool set_struct_field_keyname(s_struct_712_field *field,
-                                     const uint8_t *const data,
+                                     const uint8_t *data,
                                      uint8_t *data_idx,
                                      uint8_t length) {
     uint8_t keyname_len;
@@ -283,7 +283,7 @@ static bool set_struct_field_keyname(s_struct_712_field *field,
  * @param[in] data the field data
  * @return whether it was successful
  */
-bool set_struct_field(uint8_t length, const uint8_t *const data) {
+bool set_struct_field(uint8_t length, const uint8_t *data) {
     uint8_t data_idx = 0;
 
     if ((data == NULL) || (length == 0)) {

@@ -147,7 +147,7 @@ static bool compare_struct_deps(const s_struct_dep *a, const s_struct_dep *b) {
  * @param[out] hash_buf buffer containing the resulting type_hash
  * @return whether the type_hash was successful or not
  */
-bool type_hash(const char *const struct_name, const uint8_t struct_name_length, uint8_t *hash_buf) {
+bool type_hash(const char *struct_name, const uint8_t struct_name_length, uint8_t *hash_buf) {
     const void *struct_ptr;
     s_struct_dep *deps;
     cx_err_t error = CX_INTERNAL_ERROR;

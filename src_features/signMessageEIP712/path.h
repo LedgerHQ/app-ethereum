@@ -24,7 +24,7 @@ typedef struct {
     e_root_type root_type;
 } s_path;
 
-bool path_set_root(const char *const struct_name, uint8_t length);
+bool path_set_root(const char *struct_name, uint8_t length);
 const void *path_get_field(void);
 bool path_advance(bool do_typehash);
 bool path_init(void);

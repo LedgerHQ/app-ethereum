@@ -8,8 +8,6 @@ from eth_utils import keccak
 from ragger.backend import BackendInterface
 from ragger.utils import RAPDU
 
-from dynamic_networks import DynamicNetwork
-
 from .command_builder import CommandBuilder
 from .eip712 import EIP712FieldType
 from .keychain import sign_data, Key
@@ -19,6 +17,7 @@ from .tx_simu import TxSimu
 from .tx_auth_7702 import TxAuth7702
 from .status_word import StatusWord
 from .ledger_pki import PKIClient, PKIPubKeyUsage
+from .dynamic_networks import DynamicNetwork
 
 
 class TrustedNameType(IntEnum):
@@ -342,6 +341,10 @@ class EthAppClient:
                             contract_address: bytes,
                             method_selelector: bytes,
                             sig: Optional[bytes] = None) -> RAPDU:
+
+        # Send ledgerPKI certificate
+        self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_COIN_META)
+
         if sig is None:
             # Temporarily get a command with an empty signature to extract the payload and
             # compute the signature on it
@@ -387,9 +390,6 @@ class EthAppClient:
                                                                                 sig))
 
     def provide_network_information(self, network_params: DynamicNetwork) -> None:
-
-        if not network_params.name or not network_params.ticker:
-            return
         # Send ledgerPKI certificate
         self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_NETWORK)
 

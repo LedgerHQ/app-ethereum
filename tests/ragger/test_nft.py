@@ -8,13 +8,14 @@ from ragger.navigator.navigation_scenario import NavigateWithScenario
 
 from constants import ABIS_FOLDER
 
-from dynamic_networks import DynamicNetwork
+from dynamic_networks_cfg import get_network_config
 
 from client.client import EthAppClient
 from client.status_word import StatusWord
 import client.response_parser as ResponseParser
 from client.utils import get_selector_from_data, recover_transaction
 from client.tx_simu import TxSimu
+from client.dynamic_networks import DynamicNetwork
 
 
 BIP32_PATH = "m/44'/60'/0'/0/0"
@@ -79,7 +80,9 @@ def common_test_nft(scenario_navigator: NavigateWithScenario,
         assert response.status == StatusWord.OK
 
     # Send Network information (name, ticker, icon)
-    app_client.provide_network_information(DynamicNetwork(backend.device, collec.chain_id))
+    name, ticker, icon = get_network_config(backend.device.type, collec.chain_id)
+    if name and ticker:
+        app_client.provide_network_information(DynamicNetwork(name, ticker, collec.chain_id, icon))
 
     if DEVICE_ADDR is None:  # to only have to request it once
         with app_client.get_public_addr(display=False):

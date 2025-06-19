@@ -9,11 +9,12 @@ from ragger.error import ExceptionRAPDU
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 from ragger.navigator import Navigator, NavInsID, NavIns
 
-from dynamic_networks import DynamicNetwork
+from dynamic_networks_cfg import get_network_config
 
 import client.response_parser as ResponseParser
 from client.client import EthAppClient, TrustedNameType, TrustedNameSource
 from client.status_word import StatusWord
+from client.dynamic_networks import DynamicNetwork
 
 
 # Values used across all tests
@@ -144,7 +145,9 @@ def test_trusted_name_v1_non_mainnet(scenario_navigator: NavigateWithScenario, t
     }
 
     # Send Network information (name, ticker, icon)
-    app_client.provide_network_information(DynamicNetwork(backend.device, tx_params["chainId"]))
+    name, ticker, icon = get_network_config(backend.device.type, tx_params["chainId"])
+    if name and ticker:
+        app_client.provide_network_information(DynamicNetwork(name, ticker, tx_params["chainId"], icon))
 
     app_client.provide_trusted_name_v1(ADDR, NAME, challenge)
 

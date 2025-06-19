@@ -38,7 +38,10 @@ bool field_hash_init(void) {
  * Deinitialize the field hash context
  */
 void field_hash_deinit(void) {
-    fh = NULL;
+    if (fh != NULL) {
+        app_mem_free(fh);
+        fh = NULL;
+    }
 }
 
 /**

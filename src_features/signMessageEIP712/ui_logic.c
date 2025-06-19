@@ -71,6 +71,23 @@ typedef struct {
 
 static t_ui_context *ui_ctx = NULL;
 
+// to be used as a \ref f_list_node_del
+static void delete_filter_crc(s_filter_crc *fcrc) {
+    app_mem_free(fcrc);
+}
+
+// to be used as a \ref f_list_node_del
+static void delete_ui_pair(s_ui_712_pair *pair) {
+    if (pair->key != NULL) app_mem_free(pair->key);
+    if (pair->value != NULL) app_mem_free(pair->value);
+    app_mem_free(pair);
+}
+
+// to be used as a \ref f_list_node_del
+static void delete_amount_join(s_amount_join *join) {
+    app_mem_free(join);
+}
+
 /**
  * Checks on the UI context to determine if the next EIP 712 field should be shown
  *
@@ -485,7 +502,9 @@ static bool ui_712_format_amount_join(void) {
     }
     ui_ctx->field_flags |= UI_712_FIELD_SHOWN;
     ui_712_set_title(amount_join->name, strlen(amount_join->name));
-    explicit_bzero(amount_join, sizeof(*amount_join));
+    flist_remove((s_flist_node **) &ui_ctx->amount.joins,
+                 (s_flist_node *) amount_join,
+                 (f_list_node_del) delete_amount_join);
     return true;
 }
 
@@ -730,7 +749,18 @@ bool ui_712_init(void) {
  * Deinit function that simply unsets the struct pointer to NULL
  */
 void ui_712_deinit(void) {
-    ui_ctx = NULL;
+    if (ui_ctx != NULL) {
+        app_mem_free(ui_ctx);
+        if (ui_ctx->filters_crc != NULL)
+            flist_clear((s_flist_node **) &ui_ctx->filters_crc,
+                        (f_list_node_del) &delete_filter_crc);
+        if (ui_ctx->ui_pairs != NULL)
+            flist_clear((s_flist_node **) &ui_ctx->ui_pairs, (f_list_node_del) &delete_ui_pair);
+        if (ui_ctx->amount.joins != NULL)
+            flist_clear((s_flist_node **) &ui_ctx->amount.joins,
+                        (f_list_node_del) &delete_amount_join);
+        ui_ctx = NULL;
+    }
 }
 
 /**
@@ -1005,7 +1035,7 @@ void ui_712_delete_pairs(size_t keep) {
     size = flist_size((s_flist_node **) &ui_ctx->ui_pairs);
     if (size > 0) {
         while (size > keep) {
-            flist_pop_front((s_flist_node **) &ui_ctx->ui_pairs, NULL);
+            flist_pop_front((s_flist_node **) &ui_ctx->ui_pairs, (f_list_node_del) &delete_ui_pair);
             size -= 1;
         }
     }

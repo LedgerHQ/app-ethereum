@@ -22,7 +22,7 @@ bool sol_typenames_init(void) {
     uint8_t count = TYPES_COUNT - 1;  // because 0 is custom (so not solidity)
 
     if (g_sol_types != NULL) {
-        g_sol_types = NULL;
+        sol_typenames_deinit();
         return false;
     }
     if ((g_sol_types = app_mem_alloc(sizeof(*g_sol_types) * count)) == NULL) {
@@ -61,6 +61,16 @@ bool sol_typenames_init(void) {
         }
     }
     return true;
+}
+
+void sol_typenames_deinit(void) {
+    if (g_sol_types != NULL) {
+        for (int i = 0; i < (TYPES_COUNT - 1); ++i) {
+            app_mem_free(g_sol_types[i].name);
+        }
+        app_mem_free(g_sol_types);
+        g_sol_types = NULL;
+    }
 }
 
 /**

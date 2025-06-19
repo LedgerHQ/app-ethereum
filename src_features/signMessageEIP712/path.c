@@ -156,8 +156,13 @@ cx_sha3_t *get_last_hash_ctx(void) {
     return &((s_hash_ctx *) hash_ctx)->hash;
 }
 
+// to be used as a \ref f_list_node_del
+static void delete_hash_ctx(s_hash_ctx *ctx) {
+    app_mem_free(ctx);
+}
+
 static void remove_last_hash_ctx(void) {
-    flist_pop_back((s_flist_node **) &g_hash_ctxs, NULL);
+    flist_pop_back((s_flist_node **) &g_hash_ctxs, (f_list_node_del) &delete_hash_ctx);
 }
 
 /**
@@ -221,6 +226,7 @@ static bool push_new_hash_depth(bool init) {
     flist_push_back((s_flist_node **) &g_hash_ctxs, (s_flist_node *) hash_ctx);
     return true;
 end:
+    app_mem_free(hash_ctx);
     return false;
 }
 
@@ -788,5 +794,13 @@ bool path_init(void) {
  * De-initialize the path context
  */
 void path_deinit(void) {
-    path_struct = NULL;
+    if (path_struct != NULL) {
+        app_mem_free(path_struct);
+        path_struct = NULL;
+    }
+    if (path_backup != NULL) {
+        app_mem_free(path_backup);
+        path_backup = NULL;
+    }
+    flist_clear((s_flist_node **) &g_hash_ctxs, (f_list_node_del) &delete_hash_ctx);
 }

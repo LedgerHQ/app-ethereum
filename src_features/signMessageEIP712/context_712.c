@@ -66,6 +66,8 @@ void eip712_context_deinit(void) {
     path_deinit();
     field_hash_deinit();
     ui_712_deinit();
+    sol_typenames_deinit();
+    app_mem_free(eip712_context);
     eip712_context = NULL;
     reset_app_context();
 }

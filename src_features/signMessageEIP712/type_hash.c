@@ -139,6 +139,11 @@ static bool compare_struct_deps(const s_struct_dep *a, const s_struct_dep *b) {
     return true;
 }
 
+// to be used as a \ref f_list_node_del
+static void delete_struct_dep(s_struct_dep *sdep) {
+    app_mem_free(sdep);
+}
+
 /**
  * Encode the structure's type and hash it
  *
@@ -175,6 +180,7 @@ bool type_hash(const char *struct_name, const uint8_t struct_name_length, uint8_
         }
     }
 
+    flist_clear((s_flist_node **) &deps, (f_list_node_del) &delete_struct_dep);
     // copy hash into memory
     CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3,
                               CX_LAST,

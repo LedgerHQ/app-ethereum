@@ -20,8 +20,24 @@ bool typed_data_init(void) {
     return true;
 }
 
+// to be used as a \ref f_list_node_del
+static void delete_field(s_struct_712_field *f) {
+    if (f->type_name != NULL) app_mem_free(f->type_name);
+    if (f->array_levels != NULL) app_mem_free(f->array_levels);
+    if (f->key_name != NULL) app_mem_free(f->key_name);
+    app_mem_free(f);
+}
+
+// to be used as a \ref f_list_node_del
+static void delete_struct(s_struct_712 *s) {
+    if (s->name != NULL) app_mem_free(s->name);
+    if (s->fields != NULL)
+        flist_clear((s_flist_node **) &s->fields, (f_list_node_del) &delete_field);
+    app_mem_free(s);
+}
+
 void typed_data_deinit(void) {
-    g_structs = NULL;
+    flist_clear((s_flist_node **) &g_structs, (f_list_node_del) &delete_struct);
 }
 
 /**

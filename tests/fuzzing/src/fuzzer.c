@@ -20,6 +20,9 @@
 #include "auth_7702.h"
 #include "commands_7702.h"
 
+#include "safe_descriptor.h"
+#include "signer_descriptor.h"
+
 #include "shared_context.h"
 #include "tlv.h"
 #include "apdu_constants.h"
@@ -187,6 +190,14 @@ int fuzzEIP7702(const uint8_t *data, size_t size) {
     return 0;
 }
 
+int fuzzSafeCmd(const uint8_t *data, size_t size) {
+    return handle_safe_tlv_payload(data, size);
+}
+
+int fuzzSignerCmd(const uint8_t *data, size_t size) {
+    return handle_signer_tlv_payload(data, size);
+}
+
 // Array of fuzzing harness functions
 harness harnesses[] = {
     fuzzGenericParserFieldCmd,
@@ -199,6 +210,8 @@ harness harnesses[] = {
     fuzzTxSimulation,
     fuzzCalldata,
     fuzzEIP7702,
+    fuzzSafeCmd,
+    fuzzSignerCmd,
 };
 
 /* Main fuzzing handler called by libfuzzer */

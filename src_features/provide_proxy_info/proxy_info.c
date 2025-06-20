@@ -10,8 +10,9 @@ enum {
     TAG_CHALLENGE = 0x012,
     TAG_ADDRESS = 0x22,
     TAG_CHAIN_ID = 0x23,
-    TAG_SELECTOR = 0x28,
-    TAG_IMPLEM_ADDRESS = 0x29,
+    TAG_SELECTOR = 0x41,
+    TAG_IMPLEM_ADDRESS = 0x42,
+    TAG_DELEGATION_TYPE = 0x43,
     TAG_SIGNATURE = 0x15,
 };
 
@@ -22,10 +23,11 @@ static s_proxy_info g_proxy_info = {0};
 static bool handle_type(const s_tlv_data *data, s_proxy_info_ctx *context) {
     (void) context;
 
-    if (data->length != sizeof(uint8_t)) {
+    if (data->length != sizeof(context->struct_type)) {
         return false;
     }
-    return data->value[0] == TYPE_PROXY_INFO;
+    context->struct_type = data->value[0];
+    return true;
 }
 
 static bool handle_version(const s_tlv_data *data, s_proxy_info_ctx *context) {
@@ -92,6 +94,14 @@ static bool handle_implem_address(const s_tlv_data *data, s_proxy_info_ctx *cont
     return true;
 }
 
+static bool handle_delegation_type(const s_tlv_data *data, s_proxy_info_ctx *context) {
+    if (data->length != sizeof(context->delegation_type)) {
+        return false;
+    }
+    context->delegation_type = data->value[0];
+    return true;
+}
+
 static bool handle_signature(const s_tlv_data *data, s_proxy_info_ctx *context) {
     if (data->length > sizeof(context->signature)) {
         return false;
@@ -126,6 +136,9 @@ bool handle_proxy_info_struct(const s_tlv_data *data, s_proxy_info_ctx *context)
         case TAG_IMPLEM_ADDRESS:
             ret = handle_implem_address(data, context);
             break;
+        case TAG_DELEGATION_TYPE:
+            ret = handle_delegation_type(data, context);
+            break;
         case TAG_SIGNATURE:
             ret = handle_signature(data, context);
             break;
@@ -159,10 +172,18 @@ bool verify_proxy_info_struct(const s_proxy_info_ctx *context) {
         PRINTF("Error: could not finalize struct hash!\n");
         return false;
     }
+    if (context->struct_type != TYPE_PROXY_INFO) {
+        PRINTF("Error: unknown struct type (%u)!\n", context->struct_type);
+        return false;
+    }
     challenge = get_challenge();
     roll_challenge();
     if (context->challenge != challenge) {
         PRINTF("Error: challenge mismatch!\n");
+        return false;
+    }
+    if (context->delegation_type != DELEGATION_TYPE_PROXY) {
+        PRINTF("Error: unsupported delegation type (%u)!\n", context->delegation_type);
         return false;
     }
     if (check_signature_with_pubkey("proxy info",

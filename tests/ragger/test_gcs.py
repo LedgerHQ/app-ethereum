@@ -631,7 +631,7 @@ def test_gcs_proxy(scenario_navigator: NavigateWithScenario, test_name: str):
         tx_info.contract_addr,
         tx_info.chain_id,
         tx_params["to"],
-        tx_info.selector,
+        selector=tx_info.selector,
     )
 
     app_client.provide_proxy_info(proxy_info.serialize())

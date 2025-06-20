@@ -33,6 +33,7 @@ class InsType(IntEnum):
     PROVIDE_NETWORK_INFORMATION = 0x30
     PROVIDE_TX_SIMULATION = 0x32
     SIGN_EIP7702_AUTHORIZATION = 0x34
+    PROVIDE_SAFE_ACCOUNT = 0x36
 
 
 class P1Type(IntEnum):
@@ -484,3 +485,6 @@ class CommandBuilder:
 
     def provide_proxy_info(self, tlv_payload: bytes) -> list[bytes]:
         return self.common_tlv_serialize(InsType.PROVIDE_PROXY_INFO, tlv_payload)
+
+    def provide_safe_account(self, tlv_payload: bytes, p2: int) -> list[bytes]:
+        return self.common_tlv_serialize(InsType.PROVIDE_SAFE_ACCOUNT, tlv_payload, p2l=[p2])

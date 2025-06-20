@@ -28,6 +28,9 @@ class FieldTag(IntEnum):
     TX_CHECKS_PROVIDER_MSG = 0x82
     TX_CHECKS_TINY_URL = 0x83
     TX_CHECKS_SIMULATION_TYPE = 0x84
+    THRESHOLD = 0xa0,
+    SIGNERS_COUNT = 0xa1,
+    LESM_ROLE = 0xa2,
 
 
 class TlvSerializable:

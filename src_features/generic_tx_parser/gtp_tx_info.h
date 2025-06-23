@@ -23,6 +23,7 @@ typedef struct {
     char deploy_date[4 + 1 + 2 + 1 + 2 + 1];
     uint8_t signature_len;
     uint8_t signature[ECDSA_SIGNATURE_MAX_LENGTH];
+    cx_sha3_t fields_hash_ctx;
 } s_tx_info;
 
 typedef struct {

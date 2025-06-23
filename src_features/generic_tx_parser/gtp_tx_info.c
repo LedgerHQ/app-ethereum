@@ -41,7 +41,6 @@ enum {
 };
 
 s_tx_info *g_tx_info = NULL;
-cx_sha3_t hash_ctx;
 
 static bool handle_version(const s_tlv_data *data, s_tx_info_ctx *context) {
     if (data->length != sizeof(context->tx_info->version)) {
@@ -351,13 +350,18 @@ const char *get_deploy_date(void) {
 }
 
 cx_hash_t *get_fields_hash_ctx(void) {
-    return (cx_hash_t *) &hash_ctx;
+    return (cx_hash_t *) &g_tx_info->fields_hash_ctx;
 }
 
 bool validate_instruction_hash(void) {
     uint8_t hash[sizeof(g_tx_info->fields_hash)];
 
-    if (cx_hash_no_throw((cx_hash_t *) &hash_ctx, CX_LAST, NULL, 0, hash, sizeof(hash)) != CX_OK) {
+    if (cx_hash_no_throw((cx_hash_t *) &g_tx_info->fields_hash_ctx,
+                         CX_LAST,
+                         NULL,
+                         0,
+                         hash,
+                         sizeof(hash)) != CX_OK) {
         return false;
     }
     return memcmp(g_tx_info->fields_hash, hash, sizeof(hash)) == 0;

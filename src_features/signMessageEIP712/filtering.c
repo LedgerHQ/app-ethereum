@@ -375,6 +375,19 @@ bool filtering_trusted_name(const uint8_t *payload,
         return false;
     }
     types = (e_name_type *) &payload[offset];
+    for (int i = 0; i < type_count; ++i) {
+        switch (types[i]) {
+            case TN_TYPE_ACCOUNT:
+            case TN_TYPE_CONTRACT:
+            case TN_TYPE_NFT_COLLECTION:
+            case TN_TYPE_TOKEN:
+            case TN_TYPE_WALLET:
+            case TN_TYPE_CONTEXT_ADDRESS:
+                break;
+            default:
+                return false;
+        }
+    }
     offset += type_count;
     if ((offset + sizeof(source_count)) > length) {
         return false;
@@ -387,6 +400,20 @@ bool filtering_trusted_name(const uint8_t *payload,
         return false;
     }
     sources = (e_name_source *) &payload[offset];
+    for (int i = 0; i < source_count; ++i) {
+        switch (sources[i]) {
+            case TN_SOURCE_LAB:
+            case TN_SOURCE_CAL:
+            case TN_SOURCE_ENS:
+            case TN_SOURCE_UD:
+            case TN_SOURCE_FN:
+            case TN_SOURCE_DNS:
+            case TN_SOURCE_DYNAMIC_RESOLVER:
+                break;
+            default:
+                return false;
+        }
+    }
     offset += source_count;
     //
     if ((offset + sizeof(sig_len)) > length) {

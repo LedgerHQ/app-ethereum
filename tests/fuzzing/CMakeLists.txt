@@ -207,6 +207,7 @@ FILE(GLOB_RECURSE SOURCES
   ${CMAKE_SOURCE_DIR}/../../src_features/provide_proxy_info/*.c
   ${CMAKE_SOURCE_DIR}/../../src_features/provide_tx_simulation/*.c
   ${CMAKE_SOURCE_DIR}/../../src_features/signAuthorizationEIP7702/*.c
+  ${CMAKE_SOURCE_DIR}/../../src/list.c
   ${CMAKE_SOURCE_DIR}/../../src/mem.c
   ${CMAKE_SOURCE_DIR}/../../src/mem_utils.c
   ${CMAKE_SOURCE_DIR}/../../src/network.c

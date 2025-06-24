@@ -16,8 +16,3 @@
 bool app_mem_init(void);
 void *app_mem_alloc_impl(size_t size, const char *file, int line);
 void app_mem_free_impl(void *ptr, const char *file, int line);
-
-void mem_legacy_init(void);
-void mem_legacy_reset(void);
-void *mem_legacy_alloc(size_t size);
-void mem_legacy_dealloc(size_t size);

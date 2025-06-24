@@ -5,6 +5,7 @@
 #include "hash_bytes.h"
 #include "apdu_constants.h"  // APDU response codes
 #include "typed_data.h"
+#include "list.h"
 
 /**
  * Encode & hash the given structure field
@@ -12,9 +13,8 @@
  * @param[in] field_ptr pointer to the struct field
  * @return \ref true it finished correctly, \ref false if it didn't (memory allocation)
  */
-static bool encode_and_hash_field(const void *const field_ptr) {
+static bool encode_and_hash_field(const s_struct_712_field *field_ptr) {
     const char *name;
-    uint8_t length;
 
     if (!format_hash_field_type(field_ptr, (cx_hash_t *) &global_sha3)) {
         return false;
@@ -23,8 +23,8 @@ static bool encode_and_hash_field(const void *const field_ptr) {
     hash_byte(' ', (cx_hash_t *) &global_sha3);
 
     // field name
-    name = get_struct_field_keyname(field_ptr, &length);
-    hash_nbytes((uint8_t *) name, length, (cx_hash_t *) &global_sha3);
+    name = field_ptr->key_name;
+    hash_nbytes((uint8_t *) name, strlen(name), (cx_hash_t *) &global_sha3);
     return true;
 }
 
@@ -35,31 +35,27 @@ static bool encode_and_hash_field(const void *const field_ptr) {
  * @param[in] str_length length of the formatted string in memory
  * @return pointer of the string in memory, \ref NULL in case of an error
  */
-static bool encode_and_hash_type(const void *const struct_ptr) {
+static bool encode_and_hash_type(const s_struct_712 *struct_ptr) {
     const char *struct_name;
-    uint8_t struct_name_length;
-    const uint8_t *field_ptr;
-    uint8_t fields_count;
+    const s_struct_712_field *field_ptr;
 
     // struct name
-    struct_name = get_struct_name(struct_ptr, &struct_name_length);
-    hash_nbytes((uint8_t *) struct_name, struct_name_length, (cx_hash_t *) &global_sha3);
+    struct_name = struct_ptr->name;
+    hash_nbytes((uint8_t *) struct_name, strlen(struct_name), (cx_hash_t *) &global_sha3);
 
     // opening struct parentheses
     hash_byte('(', (cx_hash_t *) &global_sha3);
 
-    field_ptr = get_struct_fields_array(struct_ptr, &fields_count);
-    for (uint8_t idx = 0; idx < fields_count; ++idx) {
+    for (field_ptr = struct_ptr->fields; field_ptr != NULL;
+         field_ptr = (s_struct_712_field *) ((s_flist_node *) field_ptr)->next) {
         // comma separating struct fields
-        if (idx > 0) {
+        if (field_ptr != struct_ptr->fields) {
             hash_byte(',', (cx_hash_t *) &global_sha3);
         }
 
         if (encode_and_hash_field(field_ptr) == false) {
             return NULL;
         }
-
-        field_ptr = get_next_struct_field(field_ptr);
     }
     // closing struct parentheses
     hash_byte(')', (cx_hash_t *) &global_sha3);
@@ -67,36 +63,10 @@ static bool encode_and_hash_type(const void *const struct_ptr) {
     return true;
 }
 
-/**
- * Sort the given structs based by alphabetical order
- *
- * @param[in] deps_count count of how many struct dependencies pointers
- * @param[in,out] deps pointer to the first dependency pointer
- */
-static void sort_dependencies(uint8_t deps_count, const void **deps) {
-    bool changed;
-    const void *tmp_ptr;
-    const char *name1, *name2;
-    uint8_t namelen1, namelen2;
-    int str_cmp_result;
-
-    do {
-        changed = false;
-        for (size_t idx = 0; (idx + 1) < deps_count; ++idx) {
-            name1 = get_struct_name(*(deps + idx), &namelen1);
-            name2 = get_struct_name(*(deps + idx + 1), &namelen2);
-
-            str_cmp_result = strncmp(name1, name2, MIN(namelen1, namelen2));
-            if ((str_cmp_result > 0) || ((str_cmp_result == 0) && (namelen1 > namelen2))) {
-                tmp_ptr = *(deps + idx);
-                *(deps + idx) = *(deps + idx + 1);
-                *(deps + idx + 1) = tmp_ptr;
-
-                changed = true;
-            }
-        }
-    } while (changed);
-}
+typedef struct struct_dep {
+    s_flist_node _list;
+    const s_struct_712 *s;
+} s_struct_dep;
 
 /**
  * Find all the dependencies from a given structure
@@ -106,55 +76,72 @@ static void sort_dependencies(uint8_t deps_count, const void **deps) {
  * @param[in] struct_ptr pointer to the struct we are getting the dependencies of
  * @return pointer to the first found dependency, \ref NULL otherwise
  */
-static const void **get_struct_dependencies(uint8_t *const deps_count,
-                                            const void **first_dep,
-                                            const void *const struct_ptr) {
-    uint8_t fields_count;
-    const void *field_ptr;
+static bool get_struct_dependencies(s_struct_dep **first_dep, const s_struct_712 *struct_ptr) {
+    const s_struct_712_field *field_ptr;
     const char *arg_structname;
-    uint8_t arg_structname_length;
-    const void *arg_struct_ptr;
-    size_t dep_idx;
-    const void **new_dep;
+    const s_struct_712 *arg_struct_ptr;
+    s_struct_dep *tmp;
+    s_struct_dep *new_dep;
 
-    field_ptr = get_struct_fields_array(struct_ptr, &fields_count);
-    for (uint8_t idx = 0; idx < fields_count; ++idx) {
-        if (struct_field_type(field_ptr) == TYPE_CUSTOM) {
+    for (field_ptr = struct_ptr->fields; field_ptr != NULL;
+         field_ptr = (s_struct_712_field *) ((s_flist_node *) field_ptr)->next) {
+        if (field_ptr->type == TYPE_CUSTOM) {
             // get struct name
-            arg_structname = get_struct_field_typename(field_ptr, &arg_structname_length);
+            arg_structname = get_struct_field_typename(field_ptr);
             // from its name, get the pointer to its definition
-            if ((arg_struct_ptr = get_structn(arg_structname, arg_structname_length)) == NULL) {
+            if ((arg_struct_ptr = get_structn(arg_structname, strlen(arg_structname))) == NULL) {
                 PRINTF("Error: could not find EIP-712 dependency struct \"");
-                for (int i = 0; i < arg_structname_length; ++i) PRINTF("%c", arg_structname[i]);
+                for (int i = 0; i < (int) strlen(arg_structname); ++i)
+                    PRINTF("%c", arg_structname[i]);
                 PRINTF("\" during type_hash\n");
-                return NULL;
+                return false;
             }
 
             // check if it is not already present in the dependencies array
-            for (dep_idx = 0; dep_idx < *deps_count; ++dep_idx) {
+            for (tmp = *first_dep; tmp != NULL;
+                 tmp = (s_struct_dep *) ((s_flist_node *) tmp)->next) {
                 // it's a match!
-                if (*(first_dep + dep_idx) == arg_struct_ptr) {
+                if (tmp->s == arg_struct_ptr) {
                     break;
                 }
             }
             // if it's not present in the array, add it and recurse into it
-            if (dep_idx == *deps_count) {
-                *deps_count += 1;
-                if ((new_dep = MEM_ALLOC_AND_ALIGN_TYPE(void *)) == NULL) {
+            if (tmp == NULL) {
+                if ((new_dep = app_mem_alloc(sizeof(s_struct_dep))) == NULL) {
                     apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
-                    return NULL;
+                    return false;
                 }
-                if (*deps_count == 1) {
-                    first_dep = new_dep;
-                }
-                *new_dep = arg_struct_ptr;
+                explicit_bzero(new_dep, sizeof(*new_dep));
+                new_dep->s = arg_struct_ptr;
+                flist_push_back((s_flist_node **) first_dep, (s_flist_node *) new_dep);
                 // TODO: Move away from recursive calls
-                get_struct_dependencies(deps_count, first_dep, arg_struct_ptr);
+                get_struct_dependencies(first_dep, arg_struct_ptr);
             }
         }
-        field_ptr = get_next_struct_field(field_ptr);
     }
-    return first_dep;
+    return true;
+}
+
+static bool compare_struct_deps(const s_struct_dep *a, const s_struct_dep *b) {
+    const char *name1, *name2;
+    size_t namelen1, namelen2;
+    int str_cmp_result;
+
+    name1 = a->s->name;
+    namelen1 = strlen(name1);
+    name2 = b->s->name;
+    namelen2 = strlen(name2);
+
+    str_cmp_result = strncmp(name1, name2, MIN(namelen1, namelen2));
+    if ((str_cmp_result > 0) || ((str_cmp_result == 0) && (namelen1 > namelen2))) {
+        return false;
+    }
+    return true;
+}
+
+// to be used as a \ref f_list_node_del
+static void delete_struct_dep(s_struct_dep *sdep) {
+    app_mem_free(sdep);
 }
 
 /**
@@ -165,11 +152,9 @@ static const void **get_struct_dependencies(uint8_t *const deps_count,
  * @param[out] hash_buf buffer containing the resulting type_hash
  * @return whether the type_hash was successful or not
  */
-bool type_hash(const char *const struct_name, const uint8_t struct_name_length, uint8_t *hash_buf) {
+bool type_hash(const char *struct_name, const uint8_t struct_name_length, uint8_t *hash_buf) {
     const void *struct_ptr;
-    uint8_t deps_count = 0;
-    const void **deps;
-    void *mem_loc_bak = mem_legacy_alloc(0);
+    s_struct_dep *deps;
     cx_err_t error = CX_INTERNAL_ERROR;
 
     if ((struct_ptr = get_structn(struct_name, struct_name_length)) == NULL) {
@@ -179,23 +164,23 @@ bool type_hash(const char *const struct_name, const uint8_t struct_name_length, 
         return false;
     }
     CX_CHECK(cx_keccak_init_no_throw(&global_sha3, 256));
-    deps = get_struct_dependencies(&deps_count, NULL, struct_ptr);
-    if ((deps_count > 0) && (deps == NULL)) {
+    deps = NULL;
+    if (!get_struct_dependencies(&deps, struct_ptr)) {
         return false;
     }
-    sort_dependencies(deps_count, deps);
+    flist_sort((s_flist_node **) &deps, (f_list_node_cmp) &compare_struct_deps);
     if (encode_and_hash_type(struct_ptr) == false) {
         return false;
     }
     // loop over each struct and generate string
-    for (int idx = 0; idx < deps_count; ++idx) {
-        if (encode_and_hash_type(*deps) == false) {
+    for (const s_struct_dep *tmp = deps; tmp != NULL;
+         tmp = (s_struct_dep *) ((s_flist_node *) tmp)->next) {
+        if (encode_and_hash_type(tmp->s) == false) {
             return false;
         }
-        deps += 1;
     }
-    mem_legacy_dealloc(mem_legacy_alloc(0) - mem_loc_bak);
 
+    flist_clear((s_flist_node **) &deps, (f_list_node_del) &delete_struct_dep);
     // copy hash into memory
     CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3,
                               CX_LAST,

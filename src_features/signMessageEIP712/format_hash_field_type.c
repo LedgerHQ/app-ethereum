@@ -13,13 +13,12 @@
  * @param[in] hash_ctx pointer to the hashing context
  * @return whether the formatting & hashing were successful or not
  */
-static bool format_hash_field_type_size(const void *const field_ptr, cx_hash_t *hash_ctx) {
+static bool format_hash_field_type_size(const s_struct_712_field *field_ptr, cx_hash_t *hash_ctx) {
     uint16_t field_size;
-    char *uint_str_ptr;
-    uint8_t uint_str_len;
+    const char *uint_str_ptr;
 
-    field_size = get_struct_field_typesize(field_ptr);
-    switch (struct_field_type(field_ptr)) {
+    field_size = field_ptr->type_size;
+    switch (field_ptr->type) {
         case TYPE_SOL_INT:
         case TYPE_SOL_UINT:
             field_size *= 8;  // bytes -> bits
@@ -31,13 +30,13 @@ static bool format_hash_field_type_size(const void *const field_ptr, cx_hash_t *
             apdu_response_code = APDU_RESPONSE_INVALID_DATA;
             return false;
     }
-    uint_str_ptr = mem_legacy_alloc_and_format_uint(field_size, &uint_str_len);
+    uint_str_ptr = mem_alloc_and_format_uint(field_size);
     if (uint_str_ptr == NULL) {
         apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
         return false;
     }
-    hash_nbytes((uint8_t *) uint_str_ptr, uint_str_len, hash_ctx);
-    mem_legacy_dealloc(uint_str_len);
+    hash_nbytes((uint8_t *) uint_str_ptr, strlen(uint_str_ptr), hash_ctx);
+    app_mem_free((void *) uint_str_ptr);
     return true;
 }
 
@@ -48,28 +47,24 @@ static bool format_hash_field_type_size(const void *const field_ptr, cx_hash_t *
  * @param[in] hash_ctx pointer to the hashing context
  * @return whether the formatting & hashing were successful or not
  */
-static bool format_hash_field_type_array_levels(const void *const field_ptr, cx_hash_t *hash_ctx) {
-    uint8_t array_size;
-    char *uint_str_ptr;
-    uint8_t uint_str_len;
-    const void *lvl_ptr;
-    uint8_t lvls_count;
+static bool format_hash_field_type_array_levels(const s_struct_712_field *field_ptr,
+                                                cx_hash_t *hash_ctx) {
+    const char *uint_str_ptr;
 
-    lvl_ptr = get_struct_field_array_lvls_array(field_ptr, &lvls_count);
-    while (lvls_count-- > 0) {
+    for (int i = 0; i < field_ptr->array_level_count; ++i) {
         hash_byte('[', hash_ctx);
 
-        switch (struct_field_array_depth(lvl_ptr, &array_size)) {
+        switch (field_ptr->array_levels[i].type) {
             case ARRAY_DYNAMIC:
                 break;
             case ARRAY_FIXED_SIZE:
-                if ((uint_str_ptr = mem_legacy_alloc_and_format_uint(array_size, &uint_str_len)) ==
+                if ((uint_str_ptr = mem_alloc_and_format_uint(field_ptr->array_levels[i].size)) ==
                     NULL) {
                     apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
                     return false;
                 }
-                hash_nbytes((uint8_t *) uint_str_ptr, uint_str_len, hash_ctx);
-                mem_legacy_dealloc(uint_str_len);
+                hash_nbytes((uint8_t *) uint_str_ptr, strlen(uint_str_ptr), hash_ctx);
+                app_mem_free((void *) uint_str_ptr);
                 break;
             default:
                 // should not be in here :^)
@@ -77,7 +72,6 @@ static bool format_hash_field_type_array_levels(const void *const field_ptr, cx_
                 return false;
         }
         hash_byte(']', hash_ctx);
-        lvl_ptr = get_next_struct_field_array_lvl(lvl_ptr);
     }
     return true;
 }
@@ -89,23 +83,22 @@ static bool format_hash_field_type_array_levels(const void *const field_ptr, cx_
  * @param[in] hash_ctx pointer to the hashing context
  * @return whether the formatting & hashing were successful or not
  */
-bool format_hash_field_type(const void *const field_ptr, cx_hash_t *hash_ctx) {
+bool format_hash_field_type(const s_struct_712_field *field_ptr, cx_hash_t *hash_ctx) {
     const char *name;
-    uint8_t length;
 
     // field type name
-    name = get_struct_field_typename(field_ptr, &length);
-    hash_nbytes((uint8_t *) name, length, hash_ctx);
+    name = get_struct_field_typename(field_ptr);
+    hash_nbytes((uint8_t *) name, strlen(name), hash_ctx);
 
     // field type size
-    if (struct_field_has_typesize(field_ptr)) {
+    if (field_ptr->type_has_size) {
         if (!format_hash_field_type_size(field_ptr, hash_ctx)) {
             return false;
         }
     }
 
     // field type array levels
-    if (struct_field_is_array(field_ptr)) {
+    if (field_ptr->type_is_array) {
         if (!format_hash_field_type_array_levels(field_ptr, hash_ctx)) {
             return false;
         }

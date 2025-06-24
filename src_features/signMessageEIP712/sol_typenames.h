@@ -2,7 +2,8 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "typed_data.h"
 
 bool sol_typenames_init(void);
-
-const char *get_struct_field_sol_typename(const uint8_t *ptr, uint8_t *const length);
+void sol_typenames_deinit(void);
+const char *get_struct_field_sol_typename(const s_struct_712_field *field_ptr);

@@ -6,31 +6,36 @@
 #include "cmd_get_tx_simulation.h"
 #include "utils.h"
 
-static nbgl_contentTagValue_t pairs[7];
+#ifdef SCREEN_SIZE_WALLET
+#define PAIR_COUNT 7
+#else
+#define PAIR_COUNT 2
+#endif
+
+static nbgl_contentTagValue_t pairs[PAIR_COUNT];
 static nbgl_contentTagValueList_t pairs_list;
 static uint8_t pair_idx;
-static size_t buf_idx;
 static bool review_skipped;
 static bool hash_displayed;
 
-nbgl_callback_t skip_callback = NULL;
+static nbgl_callback_t skip_callback = NULL;
 
 static void message_progress(bool confirm) {
-    char *buf;
-    size_t buf_size;
-    size_t shift_off;
-
     if (!review_skipped) {
+#ifdef SCREEN_SIZE_WALLET
         if (pairs_list.nbPairs < pair_idx) {
-            buf = get_ui_pairs_buffer(&buf_size);
-            memmove(&pairs[0], &pairs[pairs_list.nbPairs], sizeof(pairs[0]));
-            memmove(buf, pairs[0].item, (buf + buf_idx) - pairs[0].item);
-            shift_off = pairs[0].item - buf;
-            buf_idx -= shift_off;
-            pairs[0].value -= shift_off;
-            pairs[0].item = buf;
-            pair_idx = 1;
+            ui_712_delete_pairs(pair_idx - pairs_list.nbPairs);
+            const s_ui_712_pair *tmp = ui_712_get_pairs();
+            if (tmp != NULL) {
+                pairs[0].item = tmp->key;
+                pairs[0].value = tmp->value;
+            }
+            pair_idx = pair_idx - pairs_list.nbPairs;
         }
+#else
+        ui_712_delete_pairs(0);
+        pair_idx = 0;
+#endif
     }
     if (confirm) {
         if (ui_712_next_field() == EIP712_NO_MORE_FIELD) {
@@ -49,29 +54,30 @@ static void review_skip(void) {
 #endif  // SCREEN_SIZE_WALLET
 
 static void message_update(bool confirm) {
-    char *buf;
-    size_t buf_size;
-    size_t buf_off;
     bool flag;
     bool skippable;
 
-    buf = get_ui_pairs_buffer(&buf_size);
     if (confirm) {
         if (!review_skipped) {
-            buf_off = strlen(strings.tmp.tmp2) + 1;
-            LEDGER_ASSERT((buf_idx + buf_off) < buf_size, "UI pairs buffer overflow");
-            pairs[pair_idx].item = memmove(buf + buf_idx, strings.tmp.tmp2, buf_off);
-            buf_idx += buf_off;
-            buf_off = strlen(strings.tmp.tmp) + 1;
-            LEDGER_ASSERT((buf_idx + buf_off) < buf_size, "UI pairs buffer overflow");
-            pairs[pair_idx].value = memmove(buf + buf_idx, strings.tmp.tmp, buf_off);
-            buf_idx += buf_off;
-            pair_idx += 1;
+            LEDGER_ASSERT(ui_712_push_new_pair(strings.tmp.tmp2, strings.tmp.tmp), "Out of memory");
+            const s_ui_712_pair *tmp;
+            for (tmp = ui_712_get_pairs(); (s_ui_712_pair *) ((s_flist_node *) tmp)->next != NULL;
+                 tmp = (s_ui_712_pair *) ((s_flist_node *) tmp)->next)
+                ;
+            if (tmp != NULL) {
+                pairs[pair_idx].item = tmp->key;
+                pairs[pair_idx].value = tmp->value;
+                pair_idx += 1;
+            }
             skippable = warning.predefinedSet & SET_BIT(BLIND_SIGNING_WARN);
             pairs_list.nbPairs =
                 nbgl_useCaseGetNbTagValuesInPageExt(pair_idx, &pairs_list, 0, skippable, &flag);
         }
+#ifdef SCREEN_SIZE_WALLET
         if (!review_skipped && ((pair_idx == ARRAYLEN(pairs)) || (pairs_list.nbPairs < pair_idx))) {
+#else
+        if (!review_skipped) {
+#endif
             nbgl_useCaseReviewStreamingContinueExt(&pairs_list, message_progress, skip_callback);
         } else {
             message_progress(true);
@@ -86,7 +92,6 @@ static void ui_712_start_common(void) {
     explicit_bzero(&pairs_list, sizeof(pairs_list));
     pairs_list.pairs = pairs;
     pair_idx = 0;
-    buf_idx = 0;
     review_skipped = false;
     hash_displayed = false;
 #ifdef SCREEN_SIZE_WALLET

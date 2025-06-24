@@ -40,7 +40,7 @@ enum {
     TAG_SIGNATURE = 0xff,
 };
 
-s_tx_info *g_tx_info = NULL;
+static s_tx_info *g_tx_info = NULL;
 
 static bool handle_version(const s_tlv_data *data, s_tx_info_ctx *context) {
     if (data->length != sizeof(context->tx_info->version)) {
@@ -366,4 +366,8 @@ bool validate_instruction_hash(void) {
         return false;
     }
     return memcmp(g_tx_info->fields_hash, hash, sizeof(hash)) == 0;
+}
+
+void push_new_tx_ctx(s_tx_info *tx_info) {
+    flist_push_back((s_flist_node **) &g_tx_info, (s_flist_node *) tx_info);
 }

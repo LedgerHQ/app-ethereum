@@ -10,7 +10,7 @@ typedef struct {
     char *value;
 } s_field_table_entry;
 
-void field_table_init(void);
+bool field_table_init(void);
 void field_table_cleanup(void);
 bool add_to_field_table(e_param_type type, const char *key, const char *value);
 size_t field_table_size(void);

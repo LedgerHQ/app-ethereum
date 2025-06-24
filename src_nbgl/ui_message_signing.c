@@ -1,6 +1,7 @@
 #include "ui_nbgl.h"
 #include "ui_logic.h"
 #include "common_712.h"
+#include "ui_utils.h"
 
 static void ui_typed_message_review_choice_common(bool confirm,
                                                   unsigned int (*approve_func)(),
@@ -12,6 +13,7 @@ static void ui_typed_message_review_choice_common(bool confirm,
         reject_func();
         nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_REJECTED, ui_idle);
     }
+    ui_all_cleanup();
 }
 
 void ui_typed_message_review_choice_v0(bool confirm) {

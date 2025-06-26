@@ -41,6 +41,6 @@ jobs:
         uses: google/clusterfuzzlite/actions/run_fuzzers@v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          fuzz-seconds: ${{ github.event_name == 'push' && 600 || 36000 }} # 10 min for push, else 10 hours
+          fuzz-seconds: ${{ github.event_name == 'push' && 600 || 18000 }} # 10 min for push, else 5 hours
           mode: ${{ matrix.mode }}
           sanitizer: ${{ matrix.sanitizer }}

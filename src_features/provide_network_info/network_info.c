@@ -1,8 +1,11 @@
+#include "cmd_network_info.h"
 #include "network_info.h"
 #include "utils.h"
 #include "read.h"
 #include "hash_bytes.h"
 #include "public_keys.h"
+#include "ui_utils.h"
+#include "mem_utils.h"
 
 #define TYPE_DYNAMIC_NETWORK   0x08
 #define NETWORK_STRUCT_VERSION 0x01
@@ -24,10 +27,10 @@ enum {
 
 // Global variable to store the current slot
 uint8_t g_current_network_slot = 0;
-
-uint8_t g_network_icon_hash[MAX_DYNAMIC_NETWORKS][CX_SHA256_SIZE] = {0};
+// Temporary buffer for icon bitmap hash
+uint8_t *g_network_icon_hash = NULL;
 // Global structure to store the dynamic network information
-network_info_t DYNAMIC_NETWORK_INFO[MAX_DYNAMIC_NETWORKS] = {0};
+network_info_t *DYNAMIC_NETWORK_INFO[MAX_DYNAMIC_NETWORKS] = {0};
 
 /**
  * @brief Parse the STRUCTURE_TYPE value.
@@ -156,7 +159,7 @@ static bool handle_ticker(const s_tlv_data *data, s_network_info_ctx *context) {
  * @return whether the handling was successful
  */
 static bool handle_icon_hash(const s_tlv_data *data, s_network_info_ctx *context) {
-    if (data->length > sizeof(g_network_icon_hash[g_current_network_slot])) {
+    if (data->length > CX_SHA256_SIZE) {
         return false;
     }
     buf_shrink_expand(data->value, data->length, context->icon_hash, sizeof(context->icon_hash));
@@ -179,6 +182,13 @@ static bool handle_signature(const s_tlv_data *data, s_network_info_ctx *context
     return true;
 }
 
+/**
+ * @brief Handle a TLV structure from the payload.
+ *
+ * @param[in] data data to handle
+ * @param[out] context struct context
+ * @return whether the handling was successful
+ */
 bool handle_network_info_struct(const s_tlv_data *data, s_network_info_ctx *context) {
     bool ret;
 
@@ -226,10 +236,14 @@ bool handle_network_info_struct(const s_tlv_data *data, s_network_info_ctx *cont
  * @return whether it was successful
  */
 bool verify_network_info_struct(const s_network_info_ctx *context) {
-    uint8_t hash[INT256_LENGTH];
+    uint8_t hash[CX_SHA256_SIZE];
 
-    if (cx_hash_no_throw((cx_hash_t *) &context->hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH) !=
-        CX_OK) {
+    if (cx_hash_no_throw((cx_hash_t *) &context->hash_ctx,
+                         CX_LAST,
+                         NULL,
+                         0,
+                         hash,
+                         CX_SHA256_SIZE) != CX_OK) {
         return false;
     }
 
@@ -246,21 +260,37 @@ bool verify_network_info_struct(const s_network_info_ctx *context) {
 
     // Check if the chain ID is already registered, if so delete it silently to prevent duplicates
     for (int i = 0; i < MAX_DYNAMIC_NETWORKS; ++i) {
-        if (DYNAMIC_NETWORK_INFO[i].chain_id == context->network.chain_id) {
-            explicit_bzero(&DYNAMIC_NETWORK_INFO[i], sizeof(DYNAMIC_NETWORK_INFO[i]));
+        if ((DYNAMIC_NETWORK_INFO[i]) &&
+            (DYNAMIC_NETWORK_INFO[i]->chain_id == context->network.chain_id)) {
+            PRINTF("Network information already exist... Deleting it first!\n");
+            network_info_cleanup(i);
             break;
         }
     }
 
-    // Set the current slot here, because the corresponding icon will be received
-    // separately, after the network configuration, and should keep the same slot
-    g_current_network_slot = (g_current_network_slot + 1) % MAX_DYNAMIC_NETWORKS;
+    // Free if already allocated, and reallocate the new size
+    if (mem_buffer_allocate((void **) &(DYNAMIC_NETWORK_INFO[g_current_network_slot]),
+                            sizeof(network_info_t)) == false) {
+        PRINTF("Memory allocation failed for icon hash\n");
+        return false;
+    }
+    // Copy the network information to the global array
+    memcpy(DYNAMIC_NETWORK_INFO[g_current_network_slot], &context->network, sizeof(network_info_t));
 
-    memcpy(&DYNAMIC_NETWORK_INFO[g_current_network_slot],
-           &context->network,
-           sizeof(network_info_t));
-    memcpy(g_network_icon_hash[g_current_network_slot],
-           context->icon_hash,
-           sizeof(context->icon_hash));
+    // Check if the icon hash is provided
+    explicit_bzero(hash, sizeof(hash));
+    if (memcmp(hash, context->icon_hash, CX_SHA256_SIZE) == 0) {
+        PRINTF("/!\\ Icon hash is not provided!\n");
+        // Prepare for next slot
+        g_current_network_slot = (g_current_network_slot + 1) % MAX_DYNAMIC_NETWORKS;
+        return true;
+    }
+
+    // Copy the icon hash to the global array
+    if (mem_buffer_allocate((void **) &g_network_icon_hash, CX_SHA256_SIZE) == false) {
+        PRINTF("Memory allocation failed for icon hash\n");
+        return false;
+    }
+    memcpy(g_network_icon_hash, context->icon_hash, CX_SHA256_SIZE);
     return true;
 }

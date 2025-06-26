@@ -11,10 +11,12 @@
 #include "whitelist_7702.h"
 #include "auth_7702.h"
 #include "getPublicKey.h"
+#include "mem_utils.h"
 
 // Avoid saving the full structure when parsing
 // Alternative option : add a callback to f_tlv_payload_handler
 static uint16_t g_7702_sw;
+cx_sha3_t *g_7702_hash_ctx = NULL;
 
 #define MAGIC_7702 5
 
@@ -34,7 +36,7 @@ uint16_t hashRLP(const uint8_t *data, uint8_t dataLength, uint8_t *rlpTmp, uint8
     if (hashSize == 0) {
         return APDU_RESPONSE_UNKNOWN;
     }
-    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3, 0, rlpTmp, hashSize, NULL, 0));
+    CX_CHECK(cx_hash_no_throw((cx_hash_t *) g_7702_hash_ctx, 0, rlpTmp, hashSize, NULL, 0));
     return APDU_NO_RESPONSE;
 end:
     return error;
@@ -57,7 +59,8 @@ uint16_t hashRLP64(uint64_t data, uint8_t *rlpTmp, uint8_t rlpTmpLength) {
 static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size) {
     s_auth_7702_ctx auth_7702_ctx = {0};
     s_auth_7702 *auth7702 = &auth_7702_ctx.auth_7702;
-    bool parsing_ret;
+    bool parsing_ret = false;
+    bool ret = false;
     uint8_t rlpDataSize = 0;
     uint8_t rlpTmp[40];
     uint8_t hashSize;
@@ -67,18 +70,21 @@ static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size) {
     const char *networkName;
     const char *delegateName;
 
+    // Default internal error triggered by CX_CHECK
+    g_7702_sw = APDU_RESPONSE_UNKNOWN;
+
     parsing_ret =
         tlv_parse(payload, size, (f_tlv_data_handler) handle_auth_7702_struct, &auth_7702_ctx);
     if (!parsing_ret || !verify_auth_7702_struct(&auth_7702_ctx)) {
         g_7702_sw = APDU_RESPONSE_INVALID_DATA;
-        return false;
+        goto end;
     }
 
     // Reject if not enabled
     if (!N_storage.eip7702_enable) {
         ui_error_no_7702();
         g_7702_sw = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
-        return false;
+        goto end;
     }
 
     // Compute the authorization hash
@@ -94,26 +100,29 @@ static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size) {
     hashSize = rlpEncodeListHeader8(rlpDataSize, rlpTmp + 1, sizeof(rlpTmp) - 1);
     if (hashSize == 0) {
         g_7702_sw = APDU_RESPONSE_UNKNOWN;
-        return false;
+        goto end;
     }
-    CX_CHECK(cx_keccak_init_no_throw(&global_sha3, 256));
-    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3, 0, rlpTmp, hashSize + 1, NULL, 0));
+    if (mem_buffer_allocate((void **) &g_7702_hash_ctx, sizeof(cx_sha3_t)) == false) {
+        goto end;
+    }
+    CX_CHECK(cx_keccak_init_no_throw(g_7702_hash_ctx, 256));
+    CX_CHECK(cx_hash_no_throw((cx_hash_t *) g_7702_hash_ctx, 0, rlpTmp, hashSize + 1, NULL, 0));
     sw = hashRLP64(auth7702->chainId, rlpTmp, sizeof(rlpTmp));
     if (sw != APDU_NO_RESPONSE) {
         g_7702_sw = sw;
-        return false;
+        goto end;
     }
     sw = hashRLP(auth7702->delegate, sizeof(auth7702->delegate), rlpTmp, sizeof(rlpTmp));
     if (sw != APDU_NO_RESPONSE) {
         g_7702_sw = sw;
-        return false;
+        goto end;
     }
     sw = hashRLP64(auth7702->nonce, rlpTmp, sizeof(rlpTmp));
     if (sw != APDU_NO_RESPONSE) {
         g_7702_sw = sw;
-        return false;
+        goto end;
     }
-    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3,
+    CX_CHECK(cx_hash_no_throw((cx_hash_t *) g_7702_hash_ctx,
                               CX_LAST,
                               NULL,
                               0,
@@ -136,7 +145,7 @@ static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size) {
             // Reject if not in the whitelist
             ui_error_no_7702_whitelist();
             g_7702_sw = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
-            return false;
+            goto end;
         } else {
             strlcpy(strings.common.toAddress, delegateName, sizeof(strings.common.toAddress));
         }
@@ -167,12 +176,11 @@ static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size) {
     } else {
         ui_sign_7702_auth();
     }
-    return true;
+    ret = true;
 
 end:
-    // Internal error triggered by CX_CHECK
-    g_7702_sw = APDU_RESPONSE_UNKNOWN;
-    return false;
+    mem_buffer_cleanup((void **) &g_7702_hash_ctx);
+    return ret;
 }
 
 uint16_t handleSignEIP7702Authorization(uint8_t p1,

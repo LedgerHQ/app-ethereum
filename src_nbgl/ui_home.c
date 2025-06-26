@@ -2,6 +2,7 @@
 #include "caller_api.h"
 #include "network.h"
 #include "cmd_get_tx_simulation.h"
+#include "mem_utils.h"
 
 // Global Warning struct for NBGL review flows
 nbgl_warning_t warning;
@@ -48,7 +49,7 @@ static nbgl_content_t contents[SETTING_CONTENTS_NB] = {0};
 static nbgl_genericContents_t settingContents = {0};
 
 // Buffer used all throughout the NBGL code
-char g_stax_shared_buffer[SHARED_BUFFER_SIZE] = {0};
+static char *g_tag_line = NULL;
 
 static void setting_toggle_callback(int token, uint8_t index, int page) {
     UNUSED(index);
@@ -228,7 +229,7 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
                                 &settingContents,
                                 &infoList,
                                 NULL,
-                                app_exit);
+                                app_quit);
 }
 
 /**
@@ -238,13 +239,19 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
  */
 static void get_appname_and_tagline(const char **appname, const char **tagline) {
     uint64_t mainnet_chain_id;
+    uint8_t line_len = 1;  // Initialize lengths to 1 for '\0' character
 
     if (caller_app) {
         *appname = caller_app->name;
 
         if (caller_app->type == CALLER_TYPE_PLUGIN) {
-            snprintf(g_stax_shared_buffer, sizeof(g_stax_shared_buffer), FORMAT_PLUGIN, *appname);
-            *tagline = g_stax_shared_buffer;
+            line_len += strlen(FORMAT_PLUGIN);
+            line_len += strlen(caller_app->name);
+            // Allocate the buffer - will never be deallocated...
+            if (mem_buffer_allocate((void **) &g_tag_line, line_len) == true) {
+                snprintf(g_tag_line, line_len, FORMAT_PLUGIN, *appname);
+                *tagline = g_tag_line;
+            }
         }
     } else {  // Ethereum app
         mainnet_chain_id = ETHEREUM_MAINNET_CHAINID;

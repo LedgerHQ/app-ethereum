@@ -9,10 +9,9 @@
 #include "feature_signTx.h"
 #include "apdu_constants.h"
 #include "cmd_get_tx_simulation.h"
-
-static nbgl_contentTagValueList_t *g_pair_list = NULL;
-static char *g_review_title = NULL;
-static char *g_sign_title = NULL;
+#include "ui_utils.h"
+#include "enum_value.h"
+#include "proxy_info.h"
 
 static void review_choice(bool confirm) {
     if (confirm) {
@@ -227,34 +226,26 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
 }
 
 void ui_gcs_cleanup(void) {
-    if (g_review_title != NULL) {
-        app_mem_free(g_review_title);
-        g_review_title = NULL;
-    }
-    if (g_sign_title != NULL) {
-        app_mem_free(g_sign_title);
-        g_sign_title = NULL;
-    }
-    if (g_pair_list != NULL) {
-        if (g_pair_list->pairs != NULL) {
-            for (int i = 0; i < g_pair_list->nbPairs; ++i) {
-                free_pair(g_pair_list, i);
-            }
-            app_mem_free((void *) g_pair_list->pairs);
+    mem_buffer_cleanup((void **) &g_trusted_name);
+    mem_buffer_cleanup((void **) &g_trusted_name_info);
+    if ((g_pairsList != NULL) && (g_pairsList->pairs != NULL)) {
+        for (int i = 0; i < g_pairsList->nbPairs; ++i) {
+            free_pair(g_pairsList, i);
         }
-        app_mem_free(g_pair_list);
-        g_pair_list = NULL;
     }
+    ui_all_cleanup();
+    enum_value_cleanup();
+    proxy_cleanup();
 }
 
 bool ui_gcs(void) {
     char *tmp_buf = strings.tmp.tmp;
     size_t tmp_buf_size = sizeof(strings.tmp.tmp);
-    nbgl_contentTagValue_t *pairs = NULL;
     const s_field_table_entry *field;
     bool show_network;
     nbgl_contentValueExt_t *ext = NULL;
     nbgl_contentInfoList_t *infolist = NULL;
+    uint8_t nbPairs = 0;
 
     explicit_bzero(&warning, sizeof(nbgl_warning_t));
 #ifdef HAVE_WEB3_CHECKS
@@ -262,7 +253,7 @@ bool ui_gcs(void) {
 #endif
 
     snprintf(tmp_buf, tmp_buf_size, "Review transaction to %s", get_operation_type());
-    if ((g_review_title = app_mem_strdup(tmp_buf)) == NULL) {
+    if ((g_titleMsg = app_mem_strdup(tmp_buf)) == NULL) {
         ui_gcs_cleanup();
         return false;
     }
@@ -275,49 +266,41 @@ bool ui_gcs(void) {
 #else
     snprintf(tmp_buf, tmp_buf_size, "%s transaction", ui_tx_simulation_finish_str());
 #endif
-    if ((g_sign_title = app_mem_strdup(tmp_buf)) == NULL) {
+    if ((g_finishMsg = app_mem_strdup(tmp_buf)) == NULL) {
         ui_gcs_cleanup();
         return false;
     }
-
-    if ((g_pair_list = app_mem_alloc(sizeof(*g_pair_list))) == NULL) {
-        ui_gcs_cleanup();
-        return false;
-    }
-    explicit_bzero(g_pair_list, sizeof(*g_pair_list));
 
     // Contract info
-    g_pair_list->nbPairs += 1;
+    nbPairs += 1;
     // TX fields
-    g_pair_list->nbPairs += field_table_size();
+    nbPairs += field_table_size();
     show_network = get_tx_chain_id() != chainConfig->chainId;
     if (show_network) {
-        g_pair_list->nbPairs += 1;
+        nbPairs += 1;
     }
     // Fees
-    g_pair_list->nbPairs += 1;
+    nbPairs += 1;
 
-    if ((pairs = app_mem_alloc(sizeof(*pairs) * g_pair_list->nbPairs)) == NULL) {
+    if (!ui_pairs_init(nbPairs)) {
         ui_gcs_cleanup();
         return false;
     }
-    explicit_bzero(pairs, sizeof(*pairs) * g_pair_list->nbPairs);
-    g_pair_list->pairs = pairs;
 
-    pairs[0].item = app_mem_strdup("Interaction with");
-    pairs[0].value = get_creator_name();
-    if (pairs[0].value == NULL) {
+    g_pairs[0].item = app_mem_strdup("Interaction with");
+    g_pairs[0].value = get_creator_name();
+    if (g_pairs[0].value == NULL) {
         // not great, but this cannot be NULL
-        pairs[0].value = app_mem_strdup("a smart contract");
+        g_pairs[0].value = app_mem_strdup("a smart contract");
     } else {
-        pairs[0].value = app_mem_strdup(pairs[0].value);
+        g_pairs[0].value = app_mem_strdup(g_pairs[0].value);
     }
     if ((ext = app_mem_alloc(sizeof(*ext))) == NULL) {
         ui_gcs_cleanup();
         return false;
     }
     explicit_bzero(ext, sizeof(*ext));
-    pairs[0].extension = ext;
+    g_pairs[0].extension = ext;
 
     if ((infolist = app_mem_alloc(sizeof(*infolist))) == NULL) {
         ui_gcs_cleanup();
@@ -336,41 +319,41 @@ bool ui_gcs(void) {
     } else {
         ext->backText = app_mem_strdup(ext->backText);
     }
-    pairs[0].aliasValue = 1;
+    g_pairs[0].aliasValue = 1;
 
     for (int i = 0; i < (int) field_table_size(); ++i) {
         if ((field = get_from_field_table(i)) == NULL) {
             ui_gcs_cleanup();
             return false;
         }
-        pairs[1 + i].item = field->key;
-        pairs[1 + i].value = field->value;
+        g_pairs[1 + i].item = field->key;
+        g_pairs[1 + i].value = field->value;
     }
 
     if (show_network) {
-        pairs[g_pair_list->nbPairs - 2].item = app_mem_strdup("Network");
+        g_pairs[g_pairsList->nbPairs - 2].item = app_mem_strdup("Network");
         if (get_network_as_string(tmp_buf, tmp_buf_size) != APDU_RESPONSE_OK) {
             ui_gcs_cleanup();
             return false;
         }
-        pairs[g_pair_list->nbPairs - 2].value = app_mem_strdup(tmp_buf);
+        g_pairs[g_pairsList->nbPairs - 2].value = app_mem_strdup(tmp_buf);
     }
 
-    pairs[g_pair_list->nbPairs - 1].item = app_mem_strdup("Max fees");
+    g_pairs[g_pairsList->nbPairs - 1].item = app_mem_strdup("Max fees");
     if (max_transaction_fee_to_string(&tmpContent.txContent.gasprice,
                                       &tmpContent.txContent.startgas,
                                       tmp_buf,
                                       tmp_buf_size) == false) {
         PRINTF("Error: Could not format the max fees!\n");
     }
-    pairs[g_pair_list->nbPairs - 1].value = app_mem_strdup(tmp_buf);
+    g_pairs[g_pairsList->nbPairs - 1].value = app_mem_strdup(tmp_buf);
 
     nbgl_useCaseAdvancedReview(TYPE_TRANSACTION,
-                               g_pair_list,
-                               get_tx_icon(),
-                               g_review_title,
+                               g_pairsList,
+                               get_tx_icon(false),
+                               g_titleMsg,
                                NULL,
-                               g_sign_title,
+                               g_finishMsg,
                                NULL,
                                &warning,
                                review_choice);

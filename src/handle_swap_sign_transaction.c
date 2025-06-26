@@ -162,7 +162,7 @@ void __attribute__((noreturn)) handle_swap_sign_transaction(const chain_config_t
     app_main();
 
     // Failsafe
-    app_exit();
+    app_quit();
     while (1)
         ;
 }

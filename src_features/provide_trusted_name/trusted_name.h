@@ -61,7 +61,8 @@ const char *get_trusted_name(uint8_t type_count,
                              const uint64_t *chain_id,
                              const uint8_t *addr);
 
-extern char g_trusted_name[TRUSTED_NAME_MAX_LENGTH + 1];
+extern s_trusted_name_info *g_trusted_name_info;
+extern char *g_trusted_name;
 
 bool handle_trusted_name_struct(const s_tlv_data *data, s_trusted_name_ctx *context);
 bool verify_trusted_name_struct(const s_trusted_name_ctx *ctx);

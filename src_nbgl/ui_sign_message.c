@@ -1,12 +1,11 @@
 #include "ui_callbacks.h"
 #include "ui_nbgl.h"
 #include "cmd_get_tx_simulation.h"
+#include "ui_utils.h"
 
+#define FINISH_MSG_LEN 32
 // TODO Re-activate when partners are ready for eip191
 #undef HAVE_WEB3_CHECKS
-
-static nbgl_contentTagValue_t pair;
-static nbgl_contentTagValueList_t pairs_list;
 
 static void ui_191_finish_cb(bool confirm) {
     if (confirm) {
@@ -16,42 +15,45 @@ static void ui_191_finish_cb(bool confirm) {
         io_seproxyhal_touch_signMessage_cancel();
         nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_REJECTED, ui_idle);
     }
+    ui_all_cleanup();
 }
 
 void ui_191_start(const char *message) {
+    // Initialize the buffers
+    if (!ui_pairs_init(1)) {
+        // Initialization failed, cleanup and return
+        return;
+    }
+    // Initialize the buffers
+    if (!ui_buffers_init(0, 0, FINISH_MSG_LEN)) {
+        // Initialization failed, cleanup and return
+        return;
+    }
+
     explicit_bzero(&warning, sizeof(nbgl_warning_t));
 #ifdef HAVE_WEB3_CHECKS
     set_tx_simulation_warning(&warning, false, true);
 #endif
-#ifdef SCREEN_SIZE_WALLET
-    snprintf(g_stax_shared_buffer,
-             sizeof(g_stax_shared_buffer),
+
+    snprintf(g_finishMsg,
+             FINISH_MSG_LEN,
 #ifdef SCREEN_SIZE_WALLET
              "%s message?",
 #else
              "%s message",
 #endif
              ui_tx_simulation_finish_str());
-#else
-    snprintf(g_stax_shared_buffer,
-             sizeof(g_stax_shared_buffer),
-             "%s message",
-             ui_tx_simulation_finish_str());
-#endif
-    explicit_bzero(&pair, sizeof(pair));
-    explicit_bzero(&pairs_list, sizeof(pairs_list));
-    pairs_list.nbPairs = 1;
-    pairs_list.pairs = &pair;
-    pairs_list.wrapping = true;
-    pair.item = "Message";
-    pair.value = message;
+
+    g_pairsList->wrapping = true;
+    g_pairs->item = "Message";
+    g_pairs->value = message;
 
     nbgl_useCaseAdvancedReview(TYPE_MESSAGE | SKIPPABLE_OPERATION,
-                               &pairs_list,
+                               g_pairsList,
                                &ICON_APP_REVIEW,
                                "Review message",
                                NULL,
-                               g_stax_shared_buffer,
+                               g_finishMsg,
                                NULL,
                                &warning,
                                ui_191_finish_cb);

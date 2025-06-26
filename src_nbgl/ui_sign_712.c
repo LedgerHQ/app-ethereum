@@ -5,6 +5,7 @@
 #include "ui_message_signing.h"
 #include "cmd_get_tx_simulation.h"
 #include "utils.h"
+#include "ui_utils.h"
 
 #ifdef SCREEN_SIZE_WALLET
 #define PAIR_COUNT 7
@@ -12,8 +13,6 @@
 #define PAIR_COUNT 2
 #endif
 
-static nbgl_contentTagValue_t pairs[PAIR_COUNT];
-static nbgl_contentTagValueList_t pairs_list;
 static uint8_t pair_idx;
 static bool review_skipped;
 static bool hash_displayed;
@@ -23,14 +22,14 @@ static nbgl_callback_t skip_callback = NULL;
 static void message_progress(bool confirm) {
     if (!review_skipped) {
 #ifdef SCREEN_SIZE_WALLET
-        if (pairs_list.nbPairs < pair_idx) {
-            ui_712_delete_pairs(pair_idx - pairs_list.nbPairs);
+        if (g_pairsList->nbPairs < pair_idx) {
+            ui_712_delete_pairs(pair_idx - g_pairsList->nbPairs);
             const s_ui_712_pair *tmp = ui_712_get_pairs();
             if (tmp != NULL) {
-                pairs[0].item = tmp->key;
-                pairs[0].value = tmp->value;
+                g_pairs[0].item = tmp->key;
+                g_pairs[0].value = tmp->value;
             }
-            pair_idx = pair_idx - pairs_list.nbPairs;
+            pair_idx = pair_idx - g_pairsList->nbPairs;
         }
 #else
         ui_712_delete_pairs(0);
@@ -65,20 +64,20 @@ static void message_update(bool confirm) {
                  tmp = (s_ui_712_pair *) ((s_flist_node *) tmp)->next)
                 ;
             if (tmp != NULL) {
-                pairs[pair_idx].item = tmp->key;
-                pairs[pair_idx].value = tmp->value;
+                g_pairs[pair_idx].item = tmp->key;
+                g_pairs[pair_idx].value = tmp->value;
                 pair_idx += 1;
             }
             skippable = warning.predefinedSet & SET_BIT(BLIND_SIGNING_WARN);
-            pairs_list.nbPairs =
-                nbgl_useCaseGetNbTagValuesInPageExt(pair_idx, &pairs_list, 0, skippable, &flag);
+            g_pairsList->nbPairs =
+                nbgl_useCaseGetNbTagValuesInPageExt(pair_idx, g_pairsList, 0, skippable, &flag);
         }
 #ifdef SCREEN_SIZE_WALLET
-        if (!review_skipped && ((pair_idx == ARRAYLEN(pairs)) || (pairs_list.nbPairs < pair_idx))) {
+        if (!review_skipped && ((pair_idx == PAIR_COUNT) || (g_pairsList->nbPairs < pair_idx))) {
 #else
         if (!review_skipped) {
 #endif
-            nbgl_useCaseReviewStreamingContinueExt(&pairs_list, message_progress, skip_callback);
+            nbgl_useCaseReviewStreamingContinueExt(g_pairsList, message_progress, skip_callback);
         } else {
             message_progress(true);
         }
@@ -88,9 +87,7 @@ static void message_update(bool confirm) {
 }
 
 static void ui_712_start_common(void) {
-    explicit_bzero(&pairs, sizeof(pairs));
-    explicit_bzero(&pairs_list, sizeof(pairs_list));
-    pairs_list.pairs = pairs;
+    ui_pairs_init(PAIR_COUNT);
     pair_idx = 0;
     review_skipped = false;
     hash_displayed = false;
@@ -142,39 +139,53 @@ void ui_712_switch_to_message(void) {
 
 #ifdef HAVE_WEB3_CHECKS
 static void ui_712_w3c_cb(bool confirm) {
+    const char *tx_check_str = NULL;
+#ifdef SCREEN_SIZE_WALLET
+    const char *title_suffix = " typed message?";
+#else
+    const char *title_suffix = " message";
+#endif
+    uint8_t finish_len = 1;  // Initialize lengths to 1 for '\0' character
+
     if (confirm) {
         // User has clicked on "Reject transaction"
         ui_typed_message_review_choice(false);
     } else {
+        tx_check_str = ui_tx_simulation_finish_str();
+        finish_len += strlen(tx_check_str);
+        finish_len += strlen(title_suffix);
+        ui_buffers_init(0, 0, finish_len);
         // User has clicked on "Sign anyway"
-        snprintf(g_stax_shared_buffer,
-                 sizeof(g_stax_shared_buffer),
-#ifdef SCREEN_SIZE_WALLET
-                 "%s typed message?",
-#else
-                 "%s message",
-#endif
-                 ui_tx_simulation_finish_str());
-        nbgl_useCaseReviewStreamingFinish(g_stax_shared_buffer, ui_typed_message_review_choice);
+        snprintf(g_finishMsg, finish_len, "%s%s", tx_check_str, title_suffix);
+        nbgl_useCaseReviewStreamingFinish(g_finishMsg, ui_typed_message_review_choice);
     }
 }
 #endif
 
 void ui_712_switch_to_sign(void) {
+#ifdef SCREEN_SIZE_WALLET
+    const char *tx_check_str = ui_tx_simulation_finish_str();
+    const char *title_suffix = " typed message?";
+#else
+    const char *tx_check_str = "Sign";
+    const char *title_suffix = " message";
+#endif
+    uint8_t finish_len = 1;  // Initialize lengths to 1 for '\0' character
+
     if (!review_skipped && (pair_idx > 0)) {
-        pairs_list.nbPairs = pair_idx;
+        g_pairsList->nbPairs = pair_idx;
         pair_idx = 0;
-        nbgl_useCaseReviewStreamingContinueExt(&pairs_list, message_progress, skip_callback);
+        nbgl_useCaseReviewStreamingContinueExt(g_pairsList, message_progress, skip_callback);
     } else {
         if (N_storage.displayHash && !hash_displayed) {
             // If the hash is not displayed yet, we need to format it and display it
             // Prepare the pairs list with the hashes
-            eip712_format_hash(pairs, ARRAYLEN(pairs), &pairs_list);
-            pairs[0].forcePageStart = 1;
+            eip712_format_hash(g_pairs, PAIR_COUNT, g_pairsList);
+            g_pairs[0].forcePageStart = 1;
             hash_displayed = true;
             pair_idx = 0;
             // Continue with the pairs list but no more skip needed here
-            nbgl_useCaseReviewStreamingContinue(&pairs_list, message_progress);
+            nbgl_useCaseReviewStreamingContinue(g_pairsList, message_progress);
             return;
         }
 #ifdef HAVE_WEB3_CHECKS
@@ -184,14 +195,10 @@ void ui_712_switch_to_sign(void) {
             return;
         }
 #endif
-#ifdef SCREEN_SIZE_WALLET
-        snprintf(g_stax_shared_buffer,
-                 sizeof(g_stax_shared_buffer),
-                 "%s typed message?",
-                 ui_tx_simulation_finish_str());
-#else
-        snprintf(g_stax_shared_buffer, sizeof(g_stax_shared_buffer), "Sign message");
-#endif
-        nbgl_useCaseReviewStreamingFinish(g_stax_shared_buffer, ui_typed_message_review_choice);
+        finish_len += strlen(tx_check_str);
+        finish_len += strlen(title_suffix);
+        ui_buffers_init(0, 0, finish_len);
+        snprintf(g_finishMsg, finish_len, "%s%s", tx_check_str, title_suffix);
+        nbgl_useCaseReviewStreamingFinish(g_finishMsg, ui_typed_message_review_choice);
     }
 }

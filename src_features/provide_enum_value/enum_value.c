@@ -2,6 +2,8 @@
 #include "read.h"
 #include "public_keys.h"
 #include "utils.h"
+#include "ui_utils.h"
+#include "mem_utils.h"
 
 enum {
     TAG_VERSION = 0x00,
@@ -14,7 +16,7 @@ enum {
     TAG_SIGNATURE = 0xff,
 };
 
-static s_enum_value_entry g_enum_value = {0};
+static s_enum_value_entry *g_enum_value = NULL;
 
 static bool handle_version(const s_tlv_data *data, s_enum_value_ctx *context) {
     if (data->length != sizeof(context->enum_value.version)) {
@@ -157,7 +159,12 @@ bool verify_enum_value_struct(const s_enum_value_ctx *context) {
                                     context->enum_value.signature_length) != CX_OK) {
         return false;
     }
-    memcpy(&g_enum_value, &context->enum_value.entry, sizeof(g_enum_value));
+    if (mem_buffer_allocate((void **) &g_enum_value, sizeof(s_enum_value_entry)) == false) {
+        PRINTF("Error: Not enough memory!\n");
+        return false;
+    }
+
+    memcpy(g_enum_value, &context->enum_value.entry, sizeof(s_enum_value_entry));
     return true;
 }
 
@@ -166,11 +173,15 @@ const char *get_matching_enum_name(const uint64_t *chain_id,
                                    const uint8_t *selector,
                                    uint8_t id,
                                    uint8_t value) {
-    if ((*chain_id == g_enum_value.chain_id) &&
-        (memcmp(contract_addr, g_enum_value.contract_addr, ADDRESS_LENGTH) == 0) &&
-        (memcmp(selector, g_enum_value.selector, SELECTOR_SIZE) == 0) && (id == g_enum_value.id) &&
-        (value == g_enum_value.value)) {
-        return g_enum_value.name;
+    if ((g_enum_value != NULL) && (*chain_id == g_enum_value->chain_id) &&
+        (memcmp(contract_addr, g_enum_value->contract_addr, ADDRESS_LENGTH) == 0) &&
+        (memcmp(selector, g_enum_value->selector, SELECTOR_SIZE) == 0) &&
+        (id == g_enum_value->id) && (value == g_enum_value->value)) {
+        return g_enum_value->name;
     }
     return NULL;
+}
+
+void enum_value_cleanup(void) {
+    mem_buffer_cleanup((void **) &g_enum_value);
 }

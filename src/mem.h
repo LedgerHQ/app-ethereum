@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #ifdef HAVE_MEMORY_PROFILING
 #define MP_FILE __FILE__

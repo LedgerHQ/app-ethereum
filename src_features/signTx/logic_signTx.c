@@ -168,10 +168,6 @@ customStatus_e customProcessor(txContext_t *context) {
             } else {
                 uint32_t offset = 0;
                 uint32_t i;
-                snprintf(strings.tmp.tmp2,
-                         sizeof(strings.tmp.tmp2),
-                         "Field %d",
-                         dataContext.tokenContext.fieldIndex);
                 for (i = 0; i < 4; i++) {
                     offset += splitBinaryParameterPart(strings.tmp.tmp + offset,
                                                        sizeof(strings.tmp.tmp) - offset,
@@ -422,7 +418,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
         if (G_swap_response_ready) {
             // Unreachable given current return to exchange mechanism. Safeguard against regression
             PRINTF("FATAL: safety against double sign triggered\n");
-            app_exit();
+            app_quit();
         }
         G_swap_response_ready = true;
     }

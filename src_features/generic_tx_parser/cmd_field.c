@@ -6,6 +6,7 @@
 #include "gtp_field.h"
 #include "cmd_tx_info.h"
 #include "gtp_tx_info.h"
+#include "tx_ctx.h"
 
 static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
     s_field field = {0};
@@ -22,8 +23,10 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
         return false;
     }
     if (!format_field(&field)) {
-        PRINTF("Error while formatting the field\n");
         return false;
+    }
+    while (!tx_ctx_is_root() && validate_instruction_hash()) {
+        tx_ctx_pop();
     }
     return true;
 }
@@ -35,7 +38,7 @@ uint16_t handle_field(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *payload
         return APDU_RESPONSE_CONDITION_NOT_SATISFIED;
     }
 
-    if (g_tx_info == NULL) {
+    if (get_current_tx_info() == NULL) {
         PRINTF("Error: Field received without a TX info!\n");
         gcs_cleanup();
         return APDU_RESPONSE_CONDITION_NOT_SATISFIED;

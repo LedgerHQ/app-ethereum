@@ -23,6 +23,10 @@
 #include "common_utils.h"
 #include "feature_signTx.h"
 #include "calldata.h"
+#include "tx_ctx.h"  // g_parked_calldata
+#include "utils.h"
+#include "shared_context.h"  // tmpContent
+#include "read.h"            // read_u64_be
 
 static bool check_fields(txContext_t *context, const char *name, uint32_t length) {
     UNUSED(name);  // Just for the case where DEBUG is not enabled
@@ -296,6 +300,8 @@ static bool processTo(txContext_t *context) {
 }
 
 static bool processData(txContext_t *context) {
+    uint32_t offset = 0;
+
     PRINTF("PROCESS DATA\n");
     if (check_fields(context, "RLP_DATA", 0) == false) {
         return false;
@@ -310,17 +316,54 @@ static bool processData(txContext_t *context) {
         }
         if (context->store_calldata) {
             if (context->currentFieldPos == 0) {
-                if (!calldata_init(context->currentFieldLength)) {
+                if (copySize < 4) {
+                    PRINTF("Was about to initialize a calldata without a complete selector (%u)!\n",
+                           copySize);
+                    return false;
+                }
+                offset = CALLDATA_SELECTOR_SIZE;
+                if ((g_parked_calldata = calldata_init(context->currentFieldLength - offset,
+                                                       context->workBuffer)) == NULL) {
                     return false;
                 }
             }
-            calldata_append(context->workBuffer, copySize);
+            if (!calldata_append(g_parked_calldata,
+                                 context->workBuffer + offset,
+                                 copySize - offset))
+                return false;
         }
         if (copyTxData(context, NULL, copySize) == false) {
             return false;
         }
     }
     if (context->currentFieldPos == context->currentFieldLength) {
+        if (context->store_calldata) {
+            uint8_t to[ADDRESS_LENGTH];
+            uint8_t amount[INT256_LENGTH];
+            uint64_t chain_id;
+            uint8_t chain_id_buf[sizeof(chain_id)];
+
+            buf_shrink_expand(tmpContent.txContent.destination,
+                              tmpContent.txContent.destinationLength,
+                              to,
+                              sizeof(to));
+            buf_shrink_expand(tmpContent.txContent.value.value,
+                              tmpContent.txContent.value.length,
+                              amount,
+                              sizeof(amount));
+            buf_shrink_expand(tmpContent.txContent.chainID.value,
+                              tmpContent.txContent.chainID.length,
+                              chain_id_buf,
+                              sizeof(chain_id_buf));
+            chain_id = read_u64_be(chain_id_buf, 0);
+
+            if (!tx_ctx_init(g_parked_calldata, NULL, to, amount, &chain_id)) {
+                calldata_delete(g_parked_calldata);
+                g_parked_calldata = NULL;
+                return false;
+            }
+            g_parked_calldata = NULL;
+        }
         PRINTF("incrementing field\n");
         context->currentField++;
         context->processingField = false;

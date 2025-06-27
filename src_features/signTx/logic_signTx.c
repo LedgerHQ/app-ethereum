@@ -17,6 +17,7 @@
 #include "getPublicKey.h"
 #include "mem.h"
 #include "mem_utils.h"
+#include "tx_ctx.h"
 
 static bool g_use_standard_ui;
 
@@ -589,7 +590,8 @@ uint16_t finalize_parsing(const txContext_t *context) {
         return sw;
     }
     if (context->store_calldata) {
-        if (calldata_get_selector() == NULL) {
+        if ((get_current_calldata() == NULL) ||
+            (calldata_get_selector(get_current_calldata()) == NULL)) {
             PRINTF("Asked to store calldata but none was provided!\n");
             return APDU_RESPONSE_INVALID_DATA;
         }

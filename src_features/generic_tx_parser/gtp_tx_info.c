@@ -2,13 +2,13 @@
 #include "gtp_tx_info.h"
 #include "read.h"
 #include "hash_bytes.h"
-#include "network.h"         // get_tx_chain_id
-#include "shared_context.h"  // txContext
 #include "utils.h"
 #include "time_format.h"
 #include "calldata.h"
 #include "public_keys.h"  // LEDGER_SIGNATURE_PUBLIC_KEY
 #include "proxy_info.h"
+#include "mem.h"
+#include "tx_ctx.h"
 
 enum {
     BIT_VERSION = 0,
@@ -40,8 +40,6 @@ enum {
     TAG_SIGNATURE = 0xff,
 };
 
-s_tx_info *g_tx_info = NULL;
-
 static bool handle_version(const s_tlv_data *data, s_tx_info_ctx *context) {
     if (data->length != sizeof(context->tx_info->version)) {
         return false;
@@ -60,10 +58,6 @@ static bool handle_chain_id(const s_tlv_data *data, s_tx_info_ctx *context) {
     }
     buf_shrink_expand(data->value, data->length, buf, sizeof(buf));
     chain_id = read_u64_be(buf, 0);
-    if (chain_id != get_tx_chain_id()) {
-        PRINTF("Error: chain ID mismatch!\n");
-        return false;
-    }
     context->tx_info->chain_id = chain_id;
     context->set_flags |= SET_BIT(BIT_CHAIN_ID);
     return true;
@@ -89,12 +83,14 @@ static bool handle_selector(const s_tlv_data *data, s_tx_info_ctx *context) {
         return false;
     }
     buf_shrink_expand(data->value, data->length, buf, sizeof(buf));
-    if ((selector = calldata_get_selector()) == NULL) {
-        return false;
-    }
-    if (memcmp(selector, buf, sizeof(buf)) != 0) {
-        PRINTF("Error: selector mismatch!\n");
-        return false;
+    if (get_tx_ctx_count() == 0) {
+        if ((selector = calldata_get_selector(g_parked_calldata)) == NULL) {
+            return false;
+        }
+        if (memcmp(selector, buf, sizeof(buf)) != 0) {
+            PRINTF("Error: selector mismatch!\n");
+            return false;
+        }
     }
     memcpy(context->tx_info->selector, buf, sizeof(buf));
     context->set_flags |= SET_BIT(BIT_SELECTOR);
@@ -239,8 +235,6 @@ bool handle_tx_info_struct(const s_tlv_data *data, s_tx_info_ctx *context) {
 bool verify_tx_info_struct(const s_tx_info_ctx *context) {
     uint16_t required_bits = 0;
     uint8_t hash[INT256_LENGTH];
-    const uint8_t *proxy_parent;
-    uint64_t tx_chain_id;
 
     // check if struct version was provided
     required_bits |= SET_BIT(BIT_VERSION);
@@ -264,19 +258,6 @@ bool verify_tx_info_struct(const s_tx_info_ctx *context) {
     if ((context->set_flags & required_bits) != required_bits) {
         PRINTF("Error: missing required field(s)\n");
         return false;
-    }
-
-    tx_chain_id = get_tx_chain_id();
-    if (((proxy_parent = get_implem_contract(&tx_chain_id,
-                                             txContext.content->destination,
-                                             context->tx_info->selector)) == NULL) ||
-        (memcmp(proxy_parent, context->tx_info->contract_addr, ADDRESS_LENGTH) != 0)) {
-        if (memcmp(context->tx_info->contract_addr,
-                   txContext.content->destination,
-                   ADDRESS_LENGTH) != 0) {
-            PRINTF("Error: contract address mismatch!\n");
-            return false;
-        }
     }
 
     // verify signature
@@ -303,67 +284,55 @@ bool verify_tx_info_struct(const s_tx_info_ctx *context) {
     return true;
 }
 
-const char *get_operation_type(void) {
-    if (g_tx_info->operation_type[0] == '\0') {
+const char *get_operation_type(const s_tx_info *tx_info) {
+    if ((tx_info == NULL) || (tx_info->operation_type[0] == '\0')) {
         return NULL;
     }
-    return g_tx_info->operation_type;
+    return tx_info->operation_type;
 }
 
-const char *get_creator_name(void) {
-    if (g_tx_info->creator_name[0] == '\0') {
+const char *get_creator_name(const s_tx_info *tx_info) {
+    if ((tx_info == NULL) || (tx_info->creator_name[0] == '\0')) {
         return NULL;
     }
-    return g_tx_info->creator_name;
+    return tx_info->creator_name;
 }
 
-const char *get_creator_legal_name(void) {
-    if (g_tx_info->creator_legal_name[0] == '\0') {
+const char *get_creator_legal_name(const s_tx_info *tx_info) {
+    if ((tx_info == NULL) || (tx_info->creator_legal_name[0] == '\0')) {
         return NULL;
     }
-    return g_tx_info->creator_legal_name;
+    return tx_info->creator_legal_name;
 }
 
-const char *get_creator_url(void) {
-    if (g_tx_info->creator_url[0] == '\0') {
+const char *get_creator_url(const s_tx_info *tx_info) {
+    if ((tx_info == NULL) || (tx_info->creator_url[0] == '\0')) {
         return NULL;
     }
-    return g_tx_info->creator_url;
+    return tx_info->creator_url;
 }
 
-const char *get_contract_name(void) {
-    if (g_tx_info->contract_name[0] == '\0') {
+const char *get_contract_name(const s_tx_info *tx_info) {
+    if ((tx_info == NULL) || (tx_info->contract_name[0] == '\0')) {
         return NULL;
     }
-    return g_tx_info->contract_name;
+    return tx_info->contract_name;
 }
 
-const uint8_t *get_contract_addr(void) {
-    return g_tx_info->contract_addr;
-}
-
-const char *get_deploy_date(void) {
-    if (g_tx_info->deploy_date[0] == '\0') {
+const uint8_t *get_contract_addr(const s_tx_info *tx_info) {
+    if (tx_info == NULL) {
         return NULL;
     }
-    return g_tx_info->deploy_date;
+    return tx_info->contract_addr;
 }
 
-cx_hash_t *get_fields_hash_ctx(void) {
-    return (cx_hash_t *) &g_tx_info->fields_hash_ctx;
-}
-
-bool validate_instruction_hash(void) {
-    uint8_t hash[sizeof(g_tx_info->fields_hash)];
-
-    if (g_tx_info == NULL) return false;
-    if (cx_hash_no_throw((cx_hash_t *) &g_tx_info->fields_hash_ctx,
-                         CX_LAST,
-                         NULL,
-                         0,
-                         hash,
-                         sizeof(hash)) != CX_OK) {
-        return false;
+const char *get_deploy_date(const s_tx_info *tx_info) {
+    if ((tx_info == NULL) || (tx_info->deploy_date[0] == '\0')) {
+        return NULL;
     }
-    return memcmp(g_tx_info->fields_hash, hash, sizeof(hash)) == 0;
+    return tx_info->deploy_date;
+}
+
+void delete_tx_info(s_tx_info *node) {
+    app_mem_free(node);
 }

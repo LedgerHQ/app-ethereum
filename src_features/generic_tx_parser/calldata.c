@@ -6,41 +6,18 @@
 #include "mem_utils.h"
 #include "list.h"
 
-typedef enum {
-    CHUNK_STRIP_LEFT = 0,
-    CHUNK_STRIP_RIGHT = 1,
-} e_chunk_strip_dir;
+s_calldata *calldata_init(size_t size, const uint8_t selector[CALLDATA_SELECTOR_SIZE]) {
+    s_calldata *calldata;
 
-typedef struct {
-    s_flist_node _list;
-    e_chunk_strip_dir dir : 1;
-    uint8_t size : 7;
-    uint8_t *buf;
-} s_calldata_chunk;
-
-typedef struct {
-    size_t expected_size;
-    size_t received_size;
-
-    uint8_t selector[CALLDATA_SELECTOR_SIZE];
-    s_calldata_chunk *chunks;
-
-    uint8_t chunk[CALLDATA_CHUNK_SIZE];
-    size_t chunk_size;
-} s_calldata;
-
-static s_calldata *g_calldata = NULL;
-
-bool calldata_init(size_t size) {
-    if (g_calldata != NULL) {
-        calldata_cleanup();
+    if ((calldata = app_mem_alloc(sizeof(*calldata))) == NULL) {
+        return NULL;
     }
-    if ((g_calldata = app_mem_alloc(sizeof(*g_calldata))) == NULL) {
-        return false;
+    explicit_bzero(calldata, sizeof(*calldata));
+    calldata->expected_size = size;
+    if (selector != NULL) {
+        memcpy(calldata->selector, selector, CALLDATA_SELECTOR_SIZE);
     }
-    explicit_bzero(g_calldata, sizeof(*g_calldata));
-    g_calldata->expected_size = size;
-    return true;
+    return calldata;
 }
 
 static bool compress_chunk(s_calldata *calldata) {
@@ -106,63 +83,48 @@ static bool decompress_chunk(const s_calldata_chunk *chunk, uint8_t *out) {
     return true;
 }
 
-bool calldata_append(const uint8_t *buffer, size_t size) {
+bool calldata_append(s_calldata *calldata, const uint8_t *buffer, size_t size) {
     uint8_t cpy_length;
 
-    if (g_calldata == NULL) return false;
-    if ((g_calldata->received_size + size) > g_calldata->expected_size) {
-        calldata_cleanup();
+    if (calldata == NULL) return false;
+    if ((calldata->received_size + size) > calldata->expected_size) {
         return false;
-    }
-
-    // selector handling
-    if (g_calldata->chunks == NULL) {
-        if (size < CALLDATA_SELECTOR_SIZE) {
-            // somehow getting an incomplete selector
-            calldata_cleanup();
-            return false;
-        }
-        memcpy(g_calldata->selector, buffer, CALLDATA_SELECTOR_SIZE);
-        buffer += CALLDATA_SELECTOR_SIZE;
-        size -= CALLDATA_SELECTOR_SIZE;
-        g_calldata->received_size += CALLDATA_SELECTOR_SIZE;
     }
 
     // chunk handling
     while (size > 0) {
-        if (g_calldata->received_size > g_calldata->expected_size) {
-            calldata_cleanup();
+        if (calldata->received_size > calldata->expected_size) {
             return false;
         }
-        cpy_length = MIN(size, (sizeof(g_calldata->chunk) - g_calldata->chunk_size));
-        memcpy(&g_calldata->chunk[g_calldata->chunk_size], buffer, cpy_length);
-        g_calldata->chunk_size += cpy_length;
-        if (g_calldata->chunk_size == CALLDATA_CHUNK_SIZE) {
-            if (!compress_chunk(g_calldata)) {
-                calldata_cleanup();
+        cpy_length = MIN(size, (sizeof(calldata->chunk) - calldata->chunk_size));
+        memcpy(&calldata->chunk[calldata->chunk_size], buffer, cpy_length);
+        calldata->chunk_size += cpy_length;
+        if (calldata->chunk_size == CALLDATA_CHUNK_SIZE) {
+            if (!compress_chunk(calldata)) {
                 return false;
             }
-            g_calldata->chunk_size = 0;
+            calldata->chunk_size = 0;
         }
         buffer += cpy_length;
         size -= cpy_length;
-        g_calldata->received_size += cpy_length;
+        calldata->received_size += cpy_length;
     }
-    if (g_calldata->received_size == g_calldata->expected_size) {
 #ifdef HAVE_PRINTF
+    if (calldata->received_size == calldata->expected_size) {
         // get allocated size
-        size_t compressed_size = sizeof(*g_calldata);
-        for (s_calldata_chunk *chunk = g_calldata->chunks; chunk != NULL;
+        size_t compressed_size = sizeof(*calldata);
+        for (s_calldata_chunk *chunk = calldata->chunks; chunk != NULL;
              chunk = (s_calldata_chunk *) ((s_flist_node *) chunk)->next) {
             compressed_size += sizeof(*chunk);
             compressed_size += chunk->size;
         }
 
         PRINTF("calldata size went from %u to %u bytes with compression\n",
-               g_calldata->received_size,
+               calldata->received_size,
                compressed_size);
-#endif
+        calldata_dump(calldata);
     }
+#endif
     return true;
 }
 
@@ -174,13 +136,9 @@ static void delete_calldata_chunk(s_calldata_chunk *node) {
     app_mem_free(node);
 }
 
-void calldata_cleanup(void) {
-    if (g_calldata != NULL) {
-        flist_clear((s_flist_node **) &g_calldata->chunks,
-                    (f_list_node_del) &delete_calldata_chunk);
-        app_mem_free(g_calldata);
-        g_calldata = NULL;
-    }
+void calldata_delete(s_calldata *node) {
+    flist_clear((s_flist_node **) &node->chunks, (f_list_node_del) &delete_calldata_chunk);
+    app_mem_free(node);
 }
 
 static bool has_valid_calldata(const s_calldata *calldata) {
@@ -195,24 +153,42 @@ static bool has_valid_calldata(const s_calldata *calldata) {
     return true;
 }
 
-const uint8_t *calldata_get_selector(void) {
-    if (!has_valid_calldata(g_calldata)) {
+const uint8_t *calldata_get_selector(const s_calldata *calldata) {
+    if (!has_valid_calldata(calldata)) {
         return NULL;
     }
-    return g_calldata->selector;
+    return calldata->selector;
 }
 
-const uint8_t *calldata_get_chunk(int idx) {
+const uint8_t *calldata_get_chunk(s_calldata *calldata, int idx) {
     s_calldata_chunk *chunk;
 
-    if (!has_valid_calldata(g_calldata) || (g_calldata->chunks == NULL)) {
+    if (!has_valid_calldata(calldata) || (calldata->chunks == NULL)) {
         return NULL;
     }
-    chunk = g_calldata->chunks;
+    chunk = calldata->chunks;
     for (int i = 0; i < idx; ++i) {
         if (((s_flist_node *) chunk)->next == NULL) return NULL;
         chunk = (s_calldata_chunk *) ((s_flist_node *) chunk)->next;
     }
-    if (!decompress_chunk(chunk, g_calldata->chunk)) return NULL;
-    return g_calldata->chunk;
+    if (!decompress_chunk(chunk, calldata->chunk)) return NULL;
+    return calldata->chunk;
+}
+
+void calldata_dump(const s_calldata *calldata) {
+#ifdef HAVE_PRINTF
+    int i = 0;
+    uint8_t buf[CALLDATA_CHUNK_SIZE];
+
+    PRINTF("=== calldata at 0x%p ===\n", calldata);
+    PRINTF("selector = 0x%.*h\n", sizeof(calldata->selector), calldata->selector);
+    for (s_calldata_chunk *chunk = calldata->chunks; chunk != NULL;
+         chunk = (s_calldata_chunk *) ((s_flist_node *) chunk)->next) {
+        if (!decompress_chunk(chunk, buf)) break;
+        PRINTF("[%02u] %.*h\n", i++, CALLDATA_CHUNK_SIZE, buf);
+    }
+    PRINTF("========================\n");
+#else
+    (void) calldata;
+#endif
 }

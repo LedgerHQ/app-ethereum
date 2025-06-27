@@ -4,11 +4,11 @@
 #include "eth_plugin_interface.h"
 #include "apdu_constants.h"
 #include "swap_error_code_helpers.h"
-#include "gtp_tx_info.h"
 #include "common_ui.h"
 #include "ui_callbacks.h"
 #include "mem.h"
 #include "mem_utils.h"
+#include "tx_ctx.h"
 
 typedef enum {
     SIGN_MODE_BASIC = 0,

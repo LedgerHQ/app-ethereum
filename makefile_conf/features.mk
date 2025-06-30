@@ -42,9 +42,9 @@ ifneq ($(TRUSTED_NAME_TEST_KEY),0)
 endif
 
 # Transaction Checks
-# TODO: remove this check once the web3 checks are implemented on all targets
+# TODO: remove this check once the Transaction checks are implemented on all targets
 ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
-    DEFINES	+= HAVE_WEB3_CHECKS
+    DEFINES	+= HAVE_TRANSACTION_CHECKS
 endif
 
 EIP7702_TEST_WHITELIST ?= 0

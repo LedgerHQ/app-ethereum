@@ -19,10 +19,10 @@ typedef struct internalStorage_t {
     bool contractDetails;
     bool displayNonce;
     bool verbose_eip712;
-#ifdef HAVE_WEB3_CHECKS
-    bool w3c_enable;
+#ifdef HAVE_TRANSACTION_CHECKS
+    bool tx_check_enable;
     // hidden setting (not shown in the UI)
-    bool w3c_opt_in;
+    bool tx_check_opt_in;
 #endif
     bool eip7702_enable;
     bool displayHash;

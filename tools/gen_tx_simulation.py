@@ -21,11 +21,11 @@ class TxSimulationTag(IntEnum):
     ADDRESS = 0x22
     CHAIN_ID = 0x23
     TX_HASH = 0x27
-    W3C_NORMALIZED_RISK = 0x80
-    W3C_NORMALIZED_CATEGORY = 0x81
-    W3C_PROVIDER_MSG = 0x82
-    W3C_TINY_URL = 0x83
-    W3C_SIMULATION_TYPE = 0x84
+    TX_CHECKS_NORMALIZED_RISK = 0x80
+    TX_CHECKS_NORMALIZED_CATEGORY = 0x81
+    TX_CHECKS_PROVIDER_MSG = 0x82
+    TX_CHECKS_TINY_URL = 0x83
+    TX_CHECKS_SIMULATION_TYPE = 0x84
     DER_SIGNATURE = 0x15
 
 
@@ -48,7 +48,7 @@ def init_parser() -> argparse.ArgumentParser:
     parser.add_argument("--category", "-C", type=int, required=True, help="Category")
     parser.add_argument("--message", "-M", help="Provider Message")
     parser.add_argument("--url", "-U", required=True, help="Report Tiny URL")
-    parser.add_argument("--unknown", "-u", action='store_true', help="Set TX_HASH to 0x00 to simulate unknown W3C status")
+    parser.add_argument("--unknown", "-u", action='store_true', help="Set TX_HASH to 0x00 to simulate unknown TX_CHECK status")
     parser.add_argument("--verbose", "-v", action='store_true', help="Verbose mode")
     return parser
 
@@ -108,7 +108,7 @@ def generate_tlv_payload(risk: int,
         message (str): The provider message for the TX Simulation.
         url (str): The tiny URL for the TX Simulation.
         chain_id (int): The unique identifier for the blockchain network.
-        unknown (bool): The flag to indicate the unknown status of the W3C.
+        unknown (bool): The flag to indicate the unknown status of the TX_CHECK.
 
     Returns:
         bytes: The generated TLV payload.
@@ -122,14 +122,14 @@ def generate_tlv_payload(risk: int,
     if chain_id != 0:
         payload += format_tlv(TxSimulationTag.CHAIN_ID, chain_id.to_bytes(8, 'big'))
     payload += format_tlv(TxSimulationTag.TX_HASH, tx_hash)
-    payload += format_tlv(TxSimulationTag.W3C_NORMALIZED_RISK, risk)
-    payload += format_tlv(TxSimulationTag.W3C_NORMALIZED_CATEGORY, category)
+    payload += format_tlv(TxSimulationTag.TX_CHECKS_NORMALIZED_RISK, risk)
+    payload += format_tlv(TxSimulationTag.TX_CHECKS_NORMALIZED_CATEGORY, category)
     if message:
-        payload += format_tlv(TxSimulationTag.W3C_PROVIDER_MSG, message.encode('utf-8'))
-    payload += format_tlv(TxSimulationTag.W3C_TINY_URL, url.encode('utf-8'))
-    payload += format_tlv(TxSimulationTag.W3C_SIMULATION_TYPE, 0)
+        payload += format_tlv(TxSimulationTag.TX_CHECKS_PROVIDER_MSG, message.encode('utf-8'))
+    payload += format_tlv(TxSimulationTag.TX_CHECKS_TINY_URL, url.encode('utf-8'))
+    payload += format_tlv(TxSimulationTag.TX_CHECKS_SIMULATION_TYPE, 0)
     # Append the data Signature
-    payload += format_tlv(TxSimulationTag.DER_SIGNATURE, sign_data(Key.W3C, payload))
+    payload += format_tlv(TxSimulationTag.DER_SIGNATURE, sign_data(Key.TRANSACTION_CHECK, payload))
 
     # Return the constructed TLV payload as bytes
     return payload

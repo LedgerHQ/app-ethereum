@@ -14,7 +14,7 @@ class Key(Enum):
     NFT = auto()
     CALLDATA = auto()
     NETWORK = auto()
-    WEB3_CHECK = auto()
+    TRANSACTION_CHECKS = auto()
 
 
 _keys: dict[Key, SigningKey] = {}

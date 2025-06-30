@@ -6,7 +6,7 @@ from ragger.navigator import Navigator, NavInsID, NavIns
 
 
 class SettingID(Enum):
-    WEB3_CHECK = auto()
+    TRANSACTION_CHECKS = auto()
     BLIND_SIGNING = auto()
     NONCE = auto()
     VERBOSE_EIP712 = auto()
@@ -18,7 +18,7 @@ class SettingID(Enum):
 # Settings Positions per device. Returns the tuple (page, x, y)
 SETTINGS_POSITIONS = {
     DeviceType.STAX: {
-        SettingID.WEB3_CHECK: (0, 350, 130),
+        SettingID.TRANSACTION_CHECKS: (0, 350, 130),
         SettingID.BLIND_SIGNING: (0, 350, 335),
         SettingID.NONCE: (1, 350, 130),
         SettingID.VERBOSE_EIP712: (1, 350, 270),
@@ -27,7 +27,7 @@ SETTINGS_POSITIONS = {
         SettingID.DISPLAY_HASH: (2, 350, 335),
     },
     DeviceType.FLEX: {
-        SettingID.WEB3_CHECK: (0, 420, 130),
+        SettingID.TRANSACTION_CHECKS: (0, 420, 130),
         SettingID.BLIND_SIGNING: (0, 420, 350),
         SettingID.NONCE: (1, 420, 130),
         SettingID.VERBOSE_EIP712: (1, 420, 270),
@@ -43,7 +43,7 @@ def get_device_settings(device: Device) -> list[SettingID]:
     """Get the list of settings available on the device"""
     all_settings = []
     if not device.is_nano:
-        all_settings.append(SettingID.WEB3_CHECK)
+        all_settings.append(SettingID.TRANSACTION_CHECKS)
     all_settings += [
         SettingID.BLIND_SIGNING,
         SettingID.NONCE,
@@ -76,7 +76,7 @@ def get_settings_moves(device: Device,
                 page, x, y = SETTINGS_POSITIONS[device.type][setting]
                 moves += [NavInsID.USE_CASE_SETTINGS_NEXT] * (page - current_page)
                 moves += [NavIns(NavInsID.TOUCH, (x, y))]
-                if setting == SettingID.WEB3_CHECK:
+                if setting == SettingID.TRANSACTION_CHECKS:
                     # Assume Opt-In is not done, Add a confirmation step
                     moves += [NavInsID.USE_CASE_CHOICE_CONFIRM]
                     # Dismiss the notification

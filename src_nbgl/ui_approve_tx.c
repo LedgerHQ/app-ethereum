@@ -52,7 +52,7 @@ static void reviewChoice(bool confirm) {
         nbgl_useCaseReviewStatus(STATUS_TYPE_TRANSACTION_REJECTED, ui_idle);
     }
     _cleanup();
-#ifdef HAVE_WEB3_CHECKS
+#ifdef HAVE_TRANSACTION_CHECKS
     clear_tx_simulation();
 #endif
 }
@@ -359,7 +359,7 @@ void ux_approve_tx(bool fromPlugin) {
     if (tmpContent.txContent.dataPresent) {
         warning.predefinedSet |= SET_BIT(BLIND_SIGNING_WARN);
     }
-#ifdef HAVE_WEB3_CHECKS
+#ifdef HAVE_TRANSACTION_CHECKS
     set_tx_simulation_warning(&warning, true, true);
 #endif
     tx_check_str = ui_tx_simulation_finish_str();

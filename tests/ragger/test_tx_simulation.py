@@ -24,9 +24,9 @@ from client.settings import SettingID, settings_toggle
 from client.tx_simu import SimuType, TxSimu
 
 
-class W3CFlags(IntEnum):
-    W3C_ENABLE = 0x10
-    W3C_OPT_IN = 0x20
+class TxCheckFlags(IntEnum):
+    TX_CHECKS_ENABLE = 0x10
+    TX_CHECKS_OPT_IN = 0x20
 
 
 @pytest.fixture(name="config", params=["benign", "threat", "warning", "issue"])
@@ -43,9 +43,9 @@ def __common_setting_handling(device: Device,
     response = app_client.get_app_configuration()
     assert response.status == StatusWord.OK
     flags = response.data[0]
-    if bool(flags & W3CFlags.W3C_ENABLE) != expected:
-        # Toggle the WEB3_CHECK setting
-        settings_toggle(device, navigator, [SettingID.WEB3_CHECK])
+    if bool(flags & TxCheckFlags.TX_CHECKS_ENABLE) != expected:
+        # Toggle the TRANSACTION_CHECKS setting
+        settings_toggle(device, navigator, [SettingID.TRANSACTION_CHECKS])
 
 
 def __get_simu_params(risk: str, simu_type: SimuType) -> TxSimu:
@@ -91,7 +91,7 @@ def test_tx_simulation_opt_in(backend: BackendInterface,
 
     response = app_client.get_app_configuration()
     assert response.status == StatusWord.OK
-    assert response.data[0] & W3CFlags.W3C_OPT_IN == 0
+    assert response.data[0] & TxCheckFlags.TX_CHECKS_OPT_IN == 0
 
     with app_client.opt_in_tx_simulation():
         navigator.navigate_and_compare(default_screenshot_path,
@@ -100,12 +100,12 @@ def test_tx_simulation_opt_in(backend: BackendInterface,
 
     response = app_client.get_app_configuration()
     assert response.status == StatusWord.OK
-    mask = W3CFlags.W3C_OPT_IN | W3CFlags.W3C_ENABLE
+    mask = TxCheckFlags.TX_CHECKS_OPT_IN | TxCheckFlags.TX_CHECKS_ENABLE
     assert response.data[0] & mask == mask
 
 
 def test_tx_simulation_disabled(backend: BackendInterface, navigator: Navigator) -> None:
-    """Test the TX Simulation APDU with the WEB3_CHECK setting disabled.
+    """Test the TX Simulation APDU with the TRANSACTION_CHECKS setting disabled.
         It should return an error
     """
 
@@ -127,7 +127,7 @@ def test_tx_simulation_disabled(backend: BackendInterface, navigator: Navigator)
 
 
 def test_tx_simulation_enabled(backend: BackendInterface, navigator: Navigator) -> None:
-    """Test the TX Simulation APDU with the WEB3_CHECK setting enabled"""
+    """Test the TX Simulation APDU with the TRANSACTION_CHECKS setting enabled"""
 
     app_client = EthAppClient(backend)
     device = backend.device
@@ -182,7 +182,7 @@ def test_tx_simulation_no_simu(navigator: Navigator,
                                scenario_navigator: NavigateWithScenario,
                                test_name: str) -> None:
     """Test the TX Transaction APDU without TX Simulation APDU
-        but with the WEB3_CHECK setting enabled"""
+        but with the TRANSACTION_CHECKS setting enabled"""
 
     backend = scenario_navigator.backend
     app_client = EthAppClient(backend)

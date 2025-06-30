@@ -152,7 +152,7 @@ set(DEFINES
     OS_IO_SEPROXYHAL
     STANDARD_APP_SYNC_RAPDU
     HAVE_SWAP
-    HAVE_WEB3_CHECKS
+    HAVE_TRANSACTION_CHECKS
     explicit_bzero=bzero # Fix for https://github.com/google/sanitizers/issues/1507
 )
 

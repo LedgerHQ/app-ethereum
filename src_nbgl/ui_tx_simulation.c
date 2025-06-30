@@ -7,7 +7,7 @@
 #include "ui_callbacks.h"
 #include "cmd_get_tx_simulation.h"
 
-#ifdef HAVE_WEB3_CHECKS
+#ifdef HAVE_TRANSACTION_CHECKS
 
 #define HOW_TO_INFO_NB 3
 
@@ -117,15 +117,15 @@ static void opt_in_action_cb(int token, uint8_t index) {
     switch (token) {
         case WARNING_CHOICE_TOKEN:
             // Set the opt-in flag
-            nvm_write((void *) &N_storage.w3c_opt_in, (void *) &opt_in, sizeof(opt_in));
+            nvm_write((void *) &N_storage.tx_check_opt_in, (void *) &opt_in, sizeof(opt_in));
             confirm = (index == 0 ? true : false);
-            if (confirm != N_storage.w3c_enable) {
-                // Set the Web3 Check flag
-                nvm_write((void *) &N_storage.w3c_enable, (void *) &confirm, sizeof(confirm));
+            if (confirm != N_storage.tx_check_enable) {
+                // Set the Transaction Check flag
+                nvm_write((void *) &N_storage.tx_check_enable, (void *) &confirm, sizeof(confirm));
             }
             if (g_response_expected) {
                 // just respond the current state and return to idle screen
-                G_io_apdu_buffer[0] = N_storage.w3c_enable;
+                G_io_apdu_buffer[0] = N_storage.tx_check_enable;
                 io_seproxyhal_send_status(APDU_RESPONSE_OK, 1, false, false);
                 finalise_opt_in(confirm, ui_idle);
             } else {
@@ -189,7 +189,7 @@ void ui_tx_simulation_opt_in(bool response_expected) {
     nbgl_refresh();
 }
 
-#endif  // HAVE_WEB3_CHECKS
+#endif  // HAVE_TRANSACTION_CHECKS
 
 /**
  * @brief Determine the Review finish title prefix.

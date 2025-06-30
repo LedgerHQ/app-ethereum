@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef HAVE_WEB3_CHECKS
+#ifdef HAVE_TRANSACTION_CHECKS
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -65,6 +65,6 @@ void set_tx_simulation_warning(nbgl_warning_t *p_warning, bool checkTxHash, bool
 const char *get_tx_simulation_risk_str(void);
 const char *get_tx_simulation_category_str(void);
 
-#endif  // HAVE_WEB3_CHECKS
+#endif  // HAVE_TRANSACTION_CHECKS
 
 const char *ui_tx_simulation_finish_str(void);

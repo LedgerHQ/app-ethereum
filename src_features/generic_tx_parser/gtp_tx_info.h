@@ -8,6 +8,7 @@
 #include "tlv.h"
 #include "signature.h"
 #include "list.h"
+#include "gtp_field.h"
 
 typedef struct {
     s_flist_node _list;
@@ -26,6 +27,7 @@ typedef struct {
     uint8_t signature_len;
     uint8_t signature[ECDSA_SIGNATURE_MAX_LENGTH];
     cx_sha3_t fields_hash_ctx;
+    s_field_list_node *fields;
 } s_tx_info;
 
 typedef struct {

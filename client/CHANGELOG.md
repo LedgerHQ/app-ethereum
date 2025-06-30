@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2025-06-30
+
+### Added
+
+- Support for Python *3.11*, *3.12* & *3.13*
+- Support for Tx Simulation
+- Support for EIP7702
+- Support for Dynamic Networks
+- Support for LedgerPKI certificates
+- Support for Generic Clear-Signing
+- Support for ETH2 Public Key
+- Support for Privacy Operation
+- Full TLV module to automatically manage this kind of data structure in APDUs (`Class TlvSerializable`)
+
+### Fixed
+
+- Linter warnings/errors
+
+### Removed
+
+- Support for Python *3.7* & *3.8*
+
+### Changed
+
+- Minimum Python version *3.9*
+- Rename `DOMAIN_NAME` by `TRUSTED_NAME`
+- `(v,r,s)` returned by signature are now `int` instead of `bytes`
+- Move Status Words definitions in a dedicated module
+- Improve `GET_APP_CONFIGURATION` APDU
+
 ## [0.4.1] - 2024-04-15
 
 ### Added

@@ -21,9 +21,11 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
         PRINTF("Error: could not verify the field struct!\n");
         return false;
     }
-    if (!format_field(&field)) {
-        PRINTF("Error while formatting the field\n");
-        return false;
+    if (get_tx_ctx_count() == 1) {
+        if (!format_field(&field)) {
+            PRINTF("Error while formatting the field\n");
+            return false;
+        }
     }
     return true;
 }

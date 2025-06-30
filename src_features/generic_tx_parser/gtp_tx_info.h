@@ -47,3 +47,5 @@ const char *get_deploy_date(void);
 cx_hash_t *get_fields_hash_ctx(void);
 bool validate_instruction_hash(void);
 void push_new_tx_ctx(s_tx_info *tx_info);
+s_tx_info *get_last_tx_ctx(void);
+void tx_info_cleanup(void);

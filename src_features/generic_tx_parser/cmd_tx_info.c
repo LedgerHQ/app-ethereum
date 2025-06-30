@@ -43,13 +43,9 @@ uint16_t handle_tx_info(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *paylo
     return APDU_RESPONSE_OK;
 }
 
-static void delete_tx_info(s_tx_info *node) {
-    app_mem_free(node);
-}
-
 void gcs_cleanup(void) {
     ui_gcs_cleanup();
     field_table_cleanup();
-    flist_clear((s_flist_node **) &g_tx_info, (f_list_node_del) &delete_tx_info);
+    tx_info_cleanup();
     calldata_cleanup();
 }

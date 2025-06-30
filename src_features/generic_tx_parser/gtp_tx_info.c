@@ -9,6 +9,7 @@
 #include "calldata.h"
 #include "public_keys.h"  // LEDGER_SIGNATURE_PUBLIC_KEY
 #include "proxy_info.h"
+#include "mem.h"
 
 enum {
     BIT_VERSION = 0,
@@ -370,4 +371,22 @@ bool validate_instruction_hash(void) {
 
 void push_new_tx_ctx(s_tx_info *tx_info) {
     flist_push_back((s_flist_node **) &g_tx_info, (s_flist_node *) tx_info);
+}
+
+s_tx_info *get_last_tx_ctx(void) {
+    s_tx_info *tmp = g_tx_info;
+
+    if (tmp == NULL) return NULL;
+    while (((s_flist_node *) tmp)->next != NULL) {
+        tmp = (s_tx_info *) ((s_flist_node *) tmp)->next;
+    }
+    return tmp;
+}
+
+static void delete_tx_info(s_tx_info *node) {
+    app_mem_free(node);
+}
+
+void tx_info_cleanup(void) {
+    flist_clear((s_flist_node **) &g_tx_info, (f_list_node_del) &delete_tx_info);
 }

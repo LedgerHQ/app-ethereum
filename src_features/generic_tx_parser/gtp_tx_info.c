@@ -387,6 +387,18 @@ size_t get_tx_ctx_count(void) {
     return flist_size((s_flist_node **) &g_tx_info);
 }
 
+bool push_field_into_tx_ctx(const s_field *field) {
+    s_field_list_node *node;
+
+    if ((node = app_mem_alloc(sizeof(*node))) == NULL) {
+        return false;
+    }
+    explicit_bzero(node, sizeof(*node));
+    memcpy(&node->field, field, sizeof(*field));
+    flist_push_back((s_flist_node **) &g_tx_info->fields, (s_flist_node *) node);
+    return true;
+}
+
 static void delete_tx_info(s_tx_info *node) {
     app_mem_free(node);
 }

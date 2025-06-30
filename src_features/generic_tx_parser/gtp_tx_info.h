@@ -51,4 +51,5 @@ bool validate_instruction_hash(void);
 void push_new_tx_ctx(s_tx_info *tx_info);
 s_tx_info *get_last_tx_ctx(void);
 size_t get_tx_ctx_count(void);
+bool push_field_into_tx_ctx(const s_field *field);
 void tx_info_cleanup(void);

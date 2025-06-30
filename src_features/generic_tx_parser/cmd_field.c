@@ -26,6 +26,8 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
             PRINTF("Error while formatting the field\n");
             return false;
         }
+    } else {
+        if (!push_field_into_tx_ctx(&field)) return false;
     }
     return true;
 }

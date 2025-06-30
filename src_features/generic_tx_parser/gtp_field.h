@@ -13,6 +13,7 @@
 #include "gtp_param_enum.h"
 #include "gtp_param_trusted_name.h"
 #include "gtp_param_token.h"
+#include "list.h"
 
 typedef enum {
     PARAM_TYPE_RAW = 0,
@@ -45,6 +46,11 @@ typedef struct {
         s_param_token param_token;
     };
 } s_field;
+
+typedef struct {
+    s_flist_node _list;
+    s_field field;
+} s_field_list_node;
 
 typedef struct {
     s_field *field;

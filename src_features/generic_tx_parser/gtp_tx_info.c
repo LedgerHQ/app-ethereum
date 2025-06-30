@@ -383,6 +383,10 @@ s_tx_info *get_last_tx_ctx(void) {
     return tmp;
 }
 
+size_t get_tx_ctx_count(void) {
+    return flist_size((s_flist_node **) &g_tx_info);
+}
+
 static void delete_tx_info(s_tx_info *node) {
     app_mem_free(node);
 }

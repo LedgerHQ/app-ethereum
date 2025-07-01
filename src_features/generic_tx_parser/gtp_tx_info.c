@@ -399,7 +399,12 @@ bool push_field_into_tx_ctx(const s_field *field) {
     return true;
 }
 
+static void delete_field(s_field_list_node *node) {
+    app_mem_free(node);
+}
+
 static void delete_tx_info(s_tx_info *node) {
+    if (node->fields != NULL) flist_clear((s_flist_node **) &node->fields, (f_list_node_del) &delete_field);
     app_mem_free(node);
 }
 

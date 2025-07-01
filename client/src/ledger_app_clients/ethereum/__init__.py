@@ -1,4 +1,7 @@
+from importlib.metadata import version, PackageNotFoundError
+
 try:
-    from __version__ import __version__  # noqa
-except ImportError:
-    __version__ = "unknown version"  # noqa
+    __version__ = version("ledger_app_clients.ethereum")
+except PackageNotFoundError:
+    # package is not installed
+    pass

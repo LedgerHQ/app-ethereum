@@ -162,7 +162,7 @@ typedef enum swap_mode_e {
 } swap_mode_t;
 
 extern swap_mode_t G_swap_mode;
-extern uint8_t G_swap_crosschain_hash[CX_SHA256_SIZE];
+extern uint8_t *G_swap_crosschain_hash;
 
 typedef enum {
     // External plugin, set by setExternalPlugin
@@ -188,4 +188,3 @@ extern uint32_t eth2WithdrawalIndex;
 void app_quit(void);
 void reset_app_context(void);
 const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_path_t *bip32);
-void storage_init(void);

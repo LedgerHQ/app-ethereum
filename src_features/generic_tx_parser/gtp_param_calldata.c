@@ -6,9 +6,10 @@
 
 enum {
     TAG_VERSION = 0x00,
-    TAG_CONTRACT_ADDR = 0x01,
-    TAG_CHAIN_ID = 0x02,
-    TAG_SELECTOR = 0x03,
+    TAG_CALLDATA = 0x01,
+    TAG_CONTRACT_ADDR = 0x02,
+    TAG_CHAIN_ID = 0x03,
+    TAG_SELECTOR = 0x04,
 };
 
 static bool handle_version(const s_tlv_data *data, s_param_calldata_context *context) {
@@ -17,6 +18,14 @@ static bool handle_version(const s_tlv_data *data, s_param_calldata_context *con
     }
     context->param->version = data->value[0];
     return true;
+}
+
+static bool handle_calldata(const s_tlv_data *data, s_param_calldata_context *context) {
+    s_value_context ctx = {0};
+
+    ctx.value = &context->param->calldata;
+    explicit_bzero(ctx.value, sizeof(*ctx.value));
+    return tlv_parse(data->value, data->length, (f_tlv_data_handler) &handle_value_struct, &ctx);
 }
 
 static bool handle_contract_addr(const s_tlv_data *data, s_param_calldata_context *context) {
@@ -51,6 +60,9 @@ bool handle_param_calldata_struct(const s_tlv_data *data, s_param_calldata_conte
     switch (data->tag) {
         case TAG_VERSION:
             ret = handle_version(data, context);
+            break;
+        case TAG_CALLDATA:
+            ret = handle_calldata(data, context);
             break;
         case TAG_CONTRACT_ADDR:
             ret = handle_contract_addr(data, context);

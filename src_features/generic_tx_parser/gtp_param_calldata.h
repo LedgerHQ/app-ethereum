@@ -7,6 +7,7 @@
 
 typedef struct {
     uint8_t version;
+    s_value calldata;
     s_value contract_addr;
     bool has_chain_id;
     s_value chain_id;

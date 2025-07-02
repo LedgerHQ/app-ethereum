@@ -190,7 +190,7 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
     char *alias;
     uint8_t i;
 
-    pluginRW.sha3 = &global_sha3;
+    pluginRW.sha3 = NULL;
     pluginRO.txContent = &tmpContent.txContent;
 
     if (dataContext.tokenContext.pluginStatus <= ETH_PLUGIN_RESULT_UNSUCCESSFUL) {

@@ -62,7 +62,7 @@ static const uint8_t *field_hash_prepare(const s_struct_712_field *field_ptr,
     *data_length -= sizeof(uint16_t);
     fh->state = FHS_WAITING_FOR_MORE;
     if (IS_DYN(field_ptr->type)) {
-        CX_CHECK(cx_keccak_init_no_throw(&global_sha3, 256));
+        CX_CHECK(cx_keccak_init_no_throw(&eip712_context->hash_ctx, 256));
     }
     return data;
 end:
@@ -124,7 +124,7 @@ static uint8_t *field_hash_finalize_dynamic(void) {
         return NULL;
     }
     // copy hash into memory
-    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3,
+    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &eip712_context->hash_ctx,
                               CX_LAST,
                               NULL,
                               0,
@@ -281,7 +281,7 @@ bool field_hash(const uint8_t *data, uint8_t data_length, bool partial) {
     fh->remaining_size -= data_length;
     // if a dynamic type -> continue progressive hash
     if (IS_DYN(field_ptr->type)) {
-        hash_nbytes(data, data_length, (cx_hash_t *) &global_sha3);
+        hash_nbytes(data, data_length, (cx_hash_t *) &eip712_context->hash_ctx);
     }
     if (!ui_712_feed_to_display(field_ptr, data, data_length, first, fh->remaining_size == 0)) {
         return false;

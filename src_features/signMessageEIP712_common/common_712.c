@@ -8,22 +8,23 @@ static const uint8_t EIP_712_MAGIC[] = {0x19, 0x01};
 
 unsigned int ui_712_approve_cb(void) {
     uint8_t hash[INT256_LENGTH];
+    cx_sha3_t hash_ctx;
 
     io_seproxyhal_io_heartbeat();
-    CX_ASSERT(cx_keccak_init_no_throw(&global_sha3, 256));
-    CX_ASSERT(cx_hash_no_throw((cx_hash_t *) &global_sha3,
+    CX_ASSERT(cx_keccak_init_no_throw(&hash_ctx, 256));
+    CX_ASSERT(cx_hash_no_throw((cx_hash_t *) &hash_ctx,
                                0,
                                (uint8_t *) EIP_712_MAGIC,
                                sizeof(EIP_712_MAGIC),
                                NULL,
                                0));
-    CX_ASSERT(cx_hash_no_throw((cx_hash_t *) &global_sha3,
+    CX_ASSERT(cx_hash_no_throw((cx_hash_t *) &hash_ctx,
                                0,
                                tmpCtx.messageSigningContext712.domainHash,
                                sizeof(tmpCtx.messageSigningContext712.domainHash),
                                NULL,
                                0));
-    CX_ASSERT(cx_hash_no_throw((cx_hash_t *) &global_sha3,
+    CX_ASSERT(cx_hash_no_throw((cx_hash_t *) &hash_ctx,
                                CX_LAST,
                                tmpCtx.messageSigningContext712.messageHash,
                                sizeof(tmpCtx.messageSigningContext712.messageHash),

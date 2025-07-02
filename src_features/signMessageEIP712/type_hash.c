@@ -5,6 +5,7 @@
 #include "hash_bytes.h"
 #include "apdu_constants.h"  // APDU response codes
 #include "typed_data.h"
+#include "context_712.h"
 #include "list.h"
 
 /**
@@ -16,15 +17,15 @@
 static bool encode_and_hash_field(const s_struct_712_field *field_ptr) {
     const char *name;
 
-    if (!format_hash_field_type(field_ptr, (cx_hash_t *) &global_sha3)) {
+    if (!format_hash_field_type(field_ptr, (cx_hash_t *) &eip712_context->hash_ctx)) {
         return false;
     }
     // space between field type name and field name
-    hash_byte(' ', (cx_hash_t *) &global_sha3);
+    hash_byte(' ', (cx_hash_t *) &eip712_context->hash_ctx);
 
     // field name
     name = field_ptr->key_name;
-    hash_nbytes((uint8_t *) name, strlen(name), (cx_hash_t *) &global_sha3);
+    hash_nbytes((uint8_t *) name, strlen(name), (cx_hash_t *) &eip712_context->hash_ctx);
     return true;
 }
 
@@ -41,16 +42,16 @@ static bool encode_and_hash_type(const s_struct_712 *struct_ptr) {
 
     // struct name
     struct_name = struct_ptr->name;
-    hash_nbytes((uint8_t *) struct_name, strlen(struct_name), (cx_hash_t *) &global_sha3);
+    hash_nbytes((uint8_t *) struct_name, strlen(struct_name), (cx_hash_t *) &eip712_context->hash_ctx);
 
     // opening struct parentheses
-    hash_byte('(', (cx_hash_t *) &global_sha3);
+    hash_byte('(', (cx_hash_t *) &eip712_context->hash_ctx);
 
     for (field_ptr = struct_ptr->fields; field_ptr != NULL;
          field_ptr = (s_struct_712_field *) ((s_flist_node *) field_ptr)->next) {
         // comma separating struct fields
         if (field_ptr != struct_ptr->fields) {
-            hash_byte(',', (cx_hash_t *) &global_sha3);
+            hash_byte(',', (cx_hash_t *) &eip712_context->hash_ctx);
         }
 
         if (encode_and_hash_field(field_ptr) == false) {
@@ -58,7 +59,7 @@ static bool encode_and_hash_type(const s_struct_712 *struct_ptr) {
         }
     }
     // closing struct parentheses
-    hash_byte(')', (cx_hash_t *) &global_sha3);
+    hash_byte(')', (cx_hash_t *) &eip712_context->hash_ctx);
 
     return true;
 }
@@ -163,7 +164,7 @@ bool type_hash(const char *struct_name, const uint8_t struct_name_length, uint8_
         PRINTF("\" for type_hash\n");
         return false;
     }
-    CX_CHECK(cx_keccak_init_no_throw(&global_sha3, 256));
+    CX_CHECK(cx_keccak_init_no_throw(&eip712_context->hash_ctx, 256));
     deps = NULL;
     if (!get_struct_dependencies(&deps, struct_ptr)) {
         return false;
@@ -182,7 +183,7 @@ bool type_hash(const char *struct_name, const uint8_t struct_name_length, uint8_
 
     flist_clear((s_flist_node **) &deps, (f_list_node_del) &delete_struct_dep);
     // copy hash into memory
-    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3,
+    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &eip712_context->hash_ctx,
                               CX_LAST,
                               NULL,
                               0,

@@ -8,6 +8,7 @@ typedef struct {
     uint64_t chain_id;
     uint8_t schema_hash[224 / 8];
     bool go_home_on_failure;
+    cx_sha3_t hash_ctx;
 } s_eip712_context;
 
 extern s_eip712_context *eip712_context;

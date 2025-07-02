@@ -16,7 +16,6 @@
 #include "swap_error_code_helpers.h"
 #include "getPublicKey.h"
 #include "mem.h"
-#include "mem_utils.h"
 
 static bool g_use_standard_ui;
 
@@ -313,11 +312,10 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
         }
     }
     // Store the hash
-    if (g_tx_hash_ctx == NULL) {
-        error = APDU_RESPONSE_INSUFFICIENT_MEMORY;
-        goto end;
+    if (context->sha3 == NULL) {
+        return APDU_RESPONSE_INSUFFICIENT_MEMORY;
     }
-    CX_CHECK(cx_hash_no_throw((cx_hash_t *) g_tx_hash_ctx,
+    CX_CHECK(cx_hash_no_throw((cx_hash_t *) context->sha3,
                               CX_LAST,
                               tmpCtx.transactionContext.hash,
                               0,
@@ -566,7 +564,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
         PRINTF("Network: %s\n", strings.common.network_name);
     }
 end:
-    mem_buffer_cleanup((void **) &g_tx_hash_ctx);
+    app_mem_free(context->sha3);
     return error;
 }
 

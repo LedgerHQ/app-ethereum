@@ -16,8 +16,6 @@ typedef enum {
     SIGN_MODE_START_FLOW = 2,
 } e_sign_mode;
 
-cx_sha3_t *g_tx_hash_ctx = NULL;
-
 static uint16_t handle_first_sign_chunk(const uint8_t *payload,
                                         uint8_t length,
                                         uint8_t *offset,
@@ -38,11 +36,7 @@ static uint16_t handle_first_sign_chunk(const uint8_t *payload,
     tmpContent.txContent.dataPresent = false;
     dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_UNAVAILABLE;
 
-    if (mem_buffer_allocate((void **) &g_tx_hash_ctx, sizeof(cx_sha3_t)) == false) {
-        return APDU_RESPONSE_INSUFFICIENT_MEMORY;
-    }
-    if (init_tx(&txContext, g_tx_hash_ctx, &tmpContent.txContent, mode == SIGN_MODE_STORE) ==
-        false) {
+    if (init_tx(&txContext, &tmpContent.txContent, mode == SIGN_MODE_STORE) == false) {
         return APDU_RESPONSE_INVALID_DATA;
     }
     if (*offset >= length) {
@@ -62,7 +56,7 @@ static uint16_t handle_first_sign_chunk(const uint8_t *payload,
                 PRINTF("Transaction type %d not supported\n", tx_type);
                 return APDU_RESPONSE_TX_TYPE_NOT_SUPPORTED;
         }
-        if (cx_hash_no_throw((cx_hash_t *) g_tx_hash_ctx, 0, &tx_type, sizeof(tx_type), NULL, 0) !=
+        if (cx_hash_no_throw((cx_hash_t *) txContext.sha3, 0, &tx_type, sizeof(tx_type), NULL, 0) !=
             CX_OK) {
             return APDU_RESPONSE_INVALID_DATA;
         }

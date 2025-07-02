@@ -23,6 +23,7 @@
 #include "common_utils.h"
 #include "feature_signTx.h"
 #include "calldata.h"
+#include "mem.h"
 
 static bool check_fields(txContext_t *context, const char *name, uint32_t length) {
     UNUSED(name);  // Just for the case where DEBUG is not enabled
@@ -55,9 +56,11 @@ static bool check_cmd_length(txContext_t *context, const char *name, uint32_t le
     return true;
 }
 
-bool init_tx(txContext_t *context, cx_sha3_t *sha3, txContent_t *content, bool store_calldata) {
+bool init_tx(txContext_t *context, txContent_t *content, bool store_calldata) {
     explicit_bzero(context, sizeof(*context));
-    context->sha3 = sha3;
+    if ((context->sha3 = app_mem_alloc(sizeof(*context->sha3))) == NULL) {
+        return false;
+    }
     context->content = content;
     context->currentField = RLP_NONE + 1;
     context->store_calldata = store_calldata;

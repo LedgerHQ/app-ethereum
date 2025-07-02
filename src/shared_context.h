@@ -151,7 +151,6 @@ extern txContext_t txContext;
 extern tmpContent_t tmpContent;
 extern dataContext_t dataContext;
 extern strings_t strings;
-extern cx_sha3_t global_sha3;
 extern const internalStorage_t N_storage_real;
 
 typedef enum swap_mode_e {

@@ -53,7 +53,6 @@ txContext_t txContext;
 tmpContent_t tmpContent;
 dataContext_t dataContext;
 strings_t strings;
-cx_sha3_t global_sha3;
 
 uint8_t appState;
 uint16_t apdu_response_code;

@@ -6,7 +6,7 @@
 
 static const uint8_t EIP_712_MAGIC[] = {0x19, 0x01};
 
-unsigned int ui_712_approve_cb(void) {
+void ui_712_approve_cb(void) {
     uint8_t hash[INT256_LENGTH];
 
     io_seproxyhal_io_heartbeat();
@@ -50,11 +50,11 @@ unsigned int ui_712_approve_cb(void) {
     if (info & CX_ECCINFO_xGTn) {
         G_io_apdu_buffer[0] += 2;
     }
-    return io_seproxyhal_send_status(APDU_RESPONSE_OK, 65, true, false);
+    io_seproxyhal_send_status(APDU_RESPONSE_OK, 65, true, false);
 }
 
-unsigned int ui_712_reject_cb(void) {
-    return io_seproxyhal_send_status(APDU_RESPONSE_CONDITION_NOT_SATISFIED, 0, true, false);
+void ui_712_reject_cb(void) {
+    io_seproxyhal_send_status(APDU_RESPONSE_CONDITION_NOT_SATISFIED, 0, true, false);
 }
 
 static char *format_hash(const uint8_t *hash, char *buffer, size_t buffer_size, size_t offset) {

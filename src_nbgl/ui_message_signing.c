@@ -4,8 +4,8 @@
 #include "ui_utils.h"
 
 static void ui_typed_message_review_choice_common(bool confirm,
-                                                  unsigned int (*approve_func)(),
-                                                  unsigned int (*reject_func)()) {
+                                                  nbgl_callback_t approve_func,
+                                                  nbgl_callback_t reject_func) {
     if (confirm) {
         approve_func();
         nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_SIGNED, ui_idle);

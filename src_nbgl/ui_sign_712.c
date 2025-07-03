@@ -104,27 +104,23 @@ static void ui_712_start_common(void) {
 #endif
 }
 
-void ui_712_start_unfiltered(void) {
+void ui_712_start(e_eip712_filtering_mode filtering) {
+    uint32_t operation = TYPE_MESSAGE;
     ui_712_start_common();
-    warning.predefinedSet |= SET_BIT(BLIND_SIGNING_WARN);
-    nbgl_useCaseAdvancedReviewStreamingStart(TYPE_MESSAGE | SKIPPABLE_OPERATION,
-                                             &ICON_APP_REVIEW,
-                                             "Review typed message",
-                                             NULL,
-                                             &warning,
-                                             message_update);
-}
+    if (filtering == EIP712_FILTERING_BASIC) {
+        // If the user has requested a filtered view, we will not show the warning
+        warning.predefinedSet |= SET_BIT(BLIND_SIGNING_WARN);
+        operation |= SKIPPABLE_OPERATION;
+    }
 
-void ui_712_start(void) {
-    ui_712_start_common();
     if (warning.predefinedSet == 0) {
-        nbgl_useCaseReviewStreamingStart(TYPE_MESSAGE,
+        nbgl_useCaseReviewStreamingStart(operation,
                                          &ICON_APP_REVIEW,
                                          "Review typed message",
                                          NULL,
                                          message_update);
     } else {
-        nbgl_useCaseAdvancedReviewStreamingStart(TYPE_MESSAGE,
+        nbgl_useCaseAdvancedReviewStreamingStart(operation,
                                                  &ICON_APP_REVIEW,
                                                  "Review typed message",
                                                  NULL,

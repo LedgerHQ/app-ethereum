@@ -53,7 +53,6 @@ typedef struct filter_crc {
 } s_filter_crc;
 
 typedef struct {
-    bool shown;
     bool end_reached;
     e_eip712_filtering_mode filtering_mode;
     uint8_t filters_to_process;
@@ -98,12 +97,12 @@ static bool ui_712_field_shown(void) {
 
     if (ui_ctx->filtering_mode == EIP712_FILTERING_BASIC) {
 #ifdef SCREEN_SIZE_WALLET
-        if (true) {
+        ret = true;
 #else
         if (N_storage.verbose_eip712 || (path_get_root_type() == ROOT_DOMAIN)) {
-#endif
             ret = true;
         }
+#endif
     } else {  // EIP712_FILTERING_FULL
         if (ui_ctx->field_flags & UI_712_FIELD_SHOWN) {
             ret = true;
@@ -176,7 +175,7 @@ void ui_712_set_value(const char *str, size_t length) {
  * @return whether it was successful or not
  */
 bool ui_712_redraw_generic_step(void) {
-    if (!ui_ctx->shown) {  // Initialize if it is not already
+    if (appState != APP_STATE_SIGNING_EIP712) {  // Initialize if it is not already
         if ((ui_ctx->filtering_mode == EIP712_FILTERING_BASIC) && !N_storage.dataAllowed &&
             !N_storage.verbose_eip712) {
             // Both settings not enabled => Error
@@ -185,12 +184,7 @@ bool ui_712_redraw_generic_step(void) {
             eip712_context->go_home_on_failure = false;
             return false;
         }
-        if (ui_ctx->filtering_mode == EIP712_FILTERING_BASIC) {
-            ui_712_start_unfiltered();
-        } else {
-            ui_712_start();
-        }
-        ui_ctx->shown = true;
+        ui_712_start(ui_ctx->filtering_mode);
     } else {
         ui_712_switch_to_message();
     }
@@ -248,7 +242,7 @@ bool ui_712_review_struct(const s_struct_712 *struct_ptr) {
 /**
  * Show the hash of the message on the generic UI step
  */
-void ui_712_message_hash(void) {
+bool ui_712_message_hash(void) {
     const char *title = "Message hash";
 
     ui_712_set_title(title, strlen(title));
@@ -257,7 +251,7 @@ void ui_712_message_hash(void) {
                        tmpCtx.messageSigningContext712.messageHash,
                        KECCAK256_HASH_BYTESIZE);
     ui_ctx->end_reached = true;
-    ui_712_redraw_generic_step();
+    return ui_712_redraw_generic_step();
 }
 
 /**
@@ -701,7 +695,7 @@ bool ui_712_feed_to_display(const s_struct_712_field *field_ptr,
 
     // Check if this field is supposed to be displayed
     if (last && ui_712_field_shown()) {
-        if (!ui_712_redraw_generic_step()) return false;
+        return ui_712_redraw_generic_step();
     }
     return true;
 }
@@ -737,7 +731,7 @@ bool ui_712_init(void) {
 
     if ((ui_ctx = app_mem_alloc(sizeof(*ui_ctx)))) {
         explicit_bzero(ui_ctx, sizeof(*ui_ctx));
-        ui_ctx->filtering_mode = EIP712_FILTERING_BASIC;
+        ui_712_set_filtering_mode(EIP712_FILTERING_BASIC);
         explicit_bzero(&strings, sizeof(strings));
     } else {
         apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
@@ -766,26 +760,20 @@ void ui_712_deinit(void) {
 /**
  * Approve button handling, calls the common handler function then
  * deinitializes the EIP712 context altogether.
- * @param[in] e unused here, just needed to match the UI function signature
- * @return unused here, just needed to match the UI function signature
  */
-unsigned int ui_712_approve() {
+void ui_712_approve(void) {
     ui_712_approve_cb();
     eip712_context_deinit();
-    return 0;
 }
 
 /**
  * Reject button handling, calls the common handler function then
  * deinitializes the EIP712 context altogether.
 
- * @param[in] e unused here, just needed to match the UI function signature
- * @return unused here, just needed to match the UI function signature
  */
-unsigned int ui_712_reject() {
+void ui_712_reject(void) {
     ui_712_reject_cb();
     eip712_context_deinit();
-    return 0;
 }
 
 /**

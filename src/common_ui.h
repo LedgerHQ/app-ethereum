@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "ui_logic.h"
 
 void ui_idle(void);
 void ui_error_blind_signing(void);
@@ -17,8 +18,7 @@ void ui_confirm_parameter(void);
 void ui_191_start(const char *message);
 
 // EIP-712
-void ui_712_start(void);
-void ui_712_start_unfiltered(void);
+void ui_712_start(e_eip712_filtering_mode filtering);
 void ui_712_switch_to_message(void);
 void ui_712_switch_to_sign(void);
 

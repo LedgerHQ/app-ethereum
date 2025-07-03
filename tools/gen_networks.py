@@ -117,5 +117,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("OUTPUT_DIR")
     args = parser.parse_args()
+    # also created by the SDK, but just in case this script is called too soon
+    os.makedirs(args.OUTPUT_DIR, exist_ok=True)
     assert os.path.isdir(args.OUTPUT_DIR)
     quit(0 if main(args.OUTPUT_DIR) else 1)

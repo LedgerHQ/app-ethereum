@@ -291,9 +291,10 @@ void app_main(void) {
                     PRINTF("=> BAD LENGTH: %d\n", rx);
                     sw = APDU_RESPONSE_WRONG_DATA_LENGTH;
                 } else {
-                    PRINTF("=> CLA=%02x, INS=%02x, P1=%02x, P2=%02x, LC=%02x, CDATA=%.*h\n",
+                    PRINTF("=> CLA=%02x, INS=%02x (%s), P1=%02x, P2=%02x, LC=%02x, CDATA=%.*h\n",
                            cmd.cla,
                            cmd.ins,
+                           INS_STR(cmd.ins),
                            cmd.p1,
                            cmd.p2,
                            cmd.lc,
@@ -370,11 +371,14 @@ static void storage_init(void) {
 
 // Common initialization for the application, both in Standalone or Library mode (Swap)
 static void app_init(bool library_mode) {
+    if (library_mode == false) {
+        // If we are not in library mode, 1st init is the dynamic memory
+        app_mem_init();
+    }
     reset_app_context();
     common_app_init();
     storage_init();
     if (library_mode == false) {
-        app_mem_init();
         // If we are not in library mode, we need to initialize the UX
         io_init();
         ui_idle();

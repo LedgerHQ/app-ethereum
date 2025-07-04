@@ -32,7 +32,7 @@ jobs:
     uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_build.yml@v1
     with:
       upload_app_binaries_artifact: "ragger_elfs"
-      flags: "EIP7702_TEST_WHITELIST=1"
+      flags: "whitelist_keys"
 
   ragger_tests:
     name: Run ragger tests using the reusable workflow

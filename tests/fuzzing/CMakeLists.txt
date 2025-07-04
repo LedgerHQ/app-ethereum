@@ -150,6 +150,7 @@ set(DEFINES
     WEBUSB_URL_SIZE_B=0
     WEBUSB_URL=
     OS_IO_SEPROXYHAL
+    OS_IO_SEPH_BUFFER_SIZE=259
     STANDARD_APP_SYNC_RAPDU
     HAVE_SWAP
     HAVE_TRANSACTION_CHECKS
@@ -189,6 +190,8 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/../../src_nbgl/
   ${BOLOS_SDK}/include
   ${BOLOS_SDK}/target/${TARGET_DEVICE}/include
+  ${BOLOS_SDK}/io/include
+  ${BOLOS_SDK}/io_legacy/include
   ${BOLOS_SDK}/lib_cxng/include
   ${BOLOS_SDK}/lib_cxng/src
   ${BOLOS_SDK}/lib_ux_nbgl

@@ -47,5 +47,6 @@ jobs:
       publish: ${{ startsWith(github.ref, 'refs/tags/') }}
       package_directory: ./client/
       jfrog_deployment: false
+      release: false
     secrets:
       pypi_token: ${{ secrets.PYPI_PUBLIC_API_TOKEN  }}

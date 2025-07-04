@@ -18,6 +18,7 @@
 | SIGNATURE          | 0xff | uint8[]      | signature of all the other struct fields             |          | computed by CAL                                            |
 
 > [!CAUTION]
+>
 > - `$.metadata.owner` is optional, made `CREATOR_NAME` optional
 > - `$.metadata.info.legalName` is optional, made `CREATOR_LEGAL_NAME` optional
 > - `$.display.formats.<selector>.intent` is optional, possible fallbacks: `$.display.formats.<selector>.$id`, `$.display.formats.<selector>`
@@ -38,7 +39,8 @@
 | SIGNATURE     | 0xff | uint8[]        | signature of all the other struct fields                                 |          | computed by CAL                                            |
 
 > [!CAUTION]
->  - `NAME` max length ?
+>
+> - `NAME` max length ?
 
 ## FIELD
 
@@ -69,7 +71,8 @@ with `ParamType` enum defined as:
 | TOKEN        | 0x0a  |
 
 > [!CAUTION]
->  - `NAME` max length ?
+>
+> - `NAME` max length ?
 
 ### PARAM_RAW
 
@@ -79,7 +82,8 @@ with `ParamType` enum defined as:
 | VALUE   | 0x01 | VALUE        | reference to value to display |          | `$.display.formats.<format id>.fields.[<field id>].path` |
 
 > [!CAUTION]
->  - not possible to provide static value ?
+>
+> - not possible to provide static value ?
 
 ### PARAM_AMOUNT
 
@@ -96,14 +100,15 @@ with `ParamType` enum defined as:
 | VALUE               | 0x01 | VALUE        | reference to value to display             |          | `$.display.formats.<format id>.fields.[<field id>].path`                         |
 | TOKEN               | 0x02 | VALUE        | reference to token address                | x        | `$.display.formats.<format id>.fields.[<field id>].params.tokenPath`             |
 | NATIVE_CURRENCY     | 0x03 | uint8[20]    | address to interpret as native currency   | x        | `$.display.formats.<format id>.fields.[<field id>].params.nativeCurrencyAddress` |
-| THRESHOLD           | 0x04 | uint256      | unlimited amount threshold                | x        | `$.display.formats.<format id>.fields.[<field id>].params.threshold`             |                                                                              |
-| ABOVE_THRESHOLD_MSG | 0x05 | char[]       | unlimited amount label                    | x        | `$.display.formats.<format id>.fields.[<field id>].params.message`               |                                                                              |
+| THRESHOLD           | 0x04 | uint256      | unlimited amount threshold                | x        | `$.display.formats.<format id>.fields.[<field id>].params.threshold`             |
+| ABOVE_THRESHOLD_MSG | 0x05 | char[]       | unlimited amount label                    | x        | `$.display.formats.<format id>.fields.[<field id>].params.message`               |
 
 This struct can contain `NATIVE_CURRENCY` multiple times for multiple addresses.
 
 > [!CAUTION]
->  - `NATIVE_CURRENCY` max count ?
->  - `ABOVE_THRESHOLD_MSG` max length ?
+>
+> - `NATIVE_CURRENCY` max count ?
+> - `ABOVE_THRESHOLD_MSG` max length ?
 
 ### PARAM_NFT
 
@@ -139,7 +144,8 @@ This struct can contain `NATIVE_CURRENCY` multiple times for multiple addresses.
 | PREFIX   | 0x04 | bool         | defaults to false             | x        | `$.display.formats.<format id>.fields.[<field id>].params.prefix`   |
 
 > [!CAUTION]
->  - `BASE` max length ?
+>
+> - `BASE` max length ?
 
 ### PARAM_ENUM
 
@@ -150,7 +156,8 @@ This struct can contain `NATIVE_CURRENCY` multiple times for multiple addresses.
 | VALUE   | 0x02 | VALUE        | reference to value to display |          | `$.display.formats.<format id>.fields.[<field id>].path` |
 
 > [!CAUTION]
->  - needs reference to enum ?
+>
+> - needs reference to enum ?
 
 ### PARAM_TRUSTED_NAME
 
@@ -187,9 +194,9 @@ and `TrustedNameSource` enum defined as:
 | DNS                | 0x05  | DNS                |
 | DYNAMIC_RESOLVER   | 0x06  | Dynamic Resolver   |
 
-
 > [!CAUTION]
->  - `SOURCES` array max length ?
+>
+> - `SOURCES` array max length ?
 
 ### PARAM_TOKEN
 
@@ -248,9 +255,9 @@ with `TypeFamily` enum defined as:
 | BYTES   | 0x07  |
 | STRING  | 0x08  |
 
-
 > [!CAUTION]
->  - `PATH` max allowed length ?
+>
+> - `PATH` max allowed length ?
 
 ### DATA_PATH
 
@@ -275,16 +282,18 @@ with `PathLeafType` enum defined as:
 The payload must contain exactly one of `TUPLE`, `ARRAY`, `REF`, `LEAF` or `SLICE`.
 
 In version 1 of the protocol:
- - `ARRAY_LEAF` and `TUPLE_LEAF` are forbidden
- - `ARRAY` with no payload means the same format should be applied to each array element. It can be used several
+
+- `ARRAY_LEAF` and `TUPLE_LEAF` are forbidden
+- `ARRAY` with no payload means the same format should be applied to each array element. It can be used several
    times in a single path, in which case the application will recurse into sub-arrays (depth first)
- - `LEAF` can only be used in last position of the path, expect if followed by a slice
- - `SLICE` can only be used when all these conditions are met:
-    - in last position of the path
-    - previous element is `ARRAY_LEAF` or `DYNAMIC_LEAF` with `TYPE_FAMILY` = `BYTES` or `STRING`
+- `LEAF` can only be used in last position of the path, expect if followed by a slice
+- `SLICE` can only be used when all these conditions are met:
+  - in last position of the path
+  - previous element is `ARRAY_LEAF` or `DYNAMIC_LEAF` with `TYPE_FAMILY` = `BYTES` or `STRING`
 
 > [!CAUTION]
->  - What about [non-standard packed mode](https://docs.soliditylang.org/en/latest/abi-spec.html#non-standard-packed-mode) ?
+>
+> - What about [non-standard packed mode](https://docs.soliditylang.org/en/latest/abi-spec.html#non-standard-packed-mode) ?
 
 ### ARRAY_ELEMENT
 
@@ -331,3 +340,56 @@ with `DelegationType` enum defined as :
 | DELEGATE_ADDR  | 0x01 | uint8[20]       | delegate address                |          |
 | CHAIN_ID       | 0x02 | uint64          | chain ID (0 for no restriction) |          |
 | NONCE          | 0x03 | uint64          | nonce                           |          |
+
+## NETWORK_INFO
+
+| Name              | Tag  | Payload type | Description                   | Value                           |
+|-------------------|------|--------------|-------------------------------|---------------------------------|
+| STRUCTURE_TYPE    | 0x01 | uint8        | Structure type                | `0x08` (`TYPE_DYNAMIC_NETWORK`) |
+| STRUCTURE_VERSION | 0x02 | uint8        | Structure version             | `0x01`                          |
+| BLOCKCHAIN_FAMILY | 0x51 | uint8        | Family                        | `0x01` (`Ethereum`)             |
+| CHAIN_ID          | 0x23 | uint64       | Network chain ID              |                                 |
+| NETWORK_NAME      | 0x52 | char[31]     | Network name (without '\0')   |                                 |
+| NETWORK_TICKER    | 0x24 | char[10]     | Network ticker (without '\0') |                                 |
+| NETWORK_ICON_HASH | 0x53 | uint8[32]    | _sha256_ of the network icon  |                                 |
+| SIGNATURE         | 0x15 | uint8[]      | Signature of the structure    |                                 |
+
+The signature is computed on the full payload data, using `CX_CURVE_SECP256K1`.
+
+## TX_SIMULATION
+
+| Name                          | Tag  | Payload type | Description                              | Value                           |
+|-------------------------------|------|--------------|------------------------------------------|---------------------------------|
+| STRUCTURE_TYPE                | 0x01 | uint8        | Structure type                           | `0x09` (`TYPE_TX_SIMULATION`)   |
+| STRUCTURE_VERSION             | 0x02 | uint8        | Structure version                        | `0x01`                          |
+| ADDRESS                       | 0x22 | uint8[20]    | Ethereum `From` Address                  |                                 |
+| CHAIN_ID                      | 0x23 | uint64       | Transaction chain ID                     |                                 |
+| TX_HASH                       | 0x27 | uint8[32]    | Hash of the Tx that was simulated        |                                 |
+| DOMAIN_HASH                   | 0x28 | uint8[32]    | _Domain Hash_ for EIP712                 |                                 |
+| TX_CHECKS_NORMALIZED_RISK     | 0x80 | uint8        | Normalized risk score of the transaction |                                 |
+| TX_CHECKS_NORMALIZED_CATEGORY | 0x81 | uint8        | Main category explaining the risk score  |                                 |
+| TX_CHECKS_PROVIDER_MSG        | 0x82 | char[30]     | Provider specific message                |                                 |
+| TX_CHECKS_TINY_URL            | 0x83 | char[30]     | URL to access the full report            |                                 |
+| TX_CHECKS_SIMULATION_TYPE     | 0x84 | uint8        | Type of simulation                       |                                 |
+| SIGNATURE                     | 0x15 | uint8[]      | Signature of the structure               |                                 |
+
+The signature is computed on the full payload data, using `CX_CURVE_SECP256K1`.
+
+The _Risk Score_ is normalized and interpreted like this:
+
+- `0`: Benign
+- `1`: Warning
+- `2`: Malicious
+
+The _Main Category_ is normalized and interpreted like this:
+
+- `1`: Others
+- `2`: Address
+- `3`: dApp
+- `4`: Losing Operation
+
+The _Simulation Type_ is normalized and interpreted like this:
+
+- `0`: Transaction
+- `1`: Typed Data (EIP-712)
+- `2`: Personal Message (EIP-191)

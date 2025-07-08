@@ -49,6 +49,10 @@ static bool compress_chunk(s_calldata *calldata) {
     uint8_t start_idx;
     s_calldata_chunk *chunk;
 
+    if (calldata == NULL) {
+        return false;
+    }
+
     if ((chunk = app_mem_alloc(sizeof(*chunk))) == NULL) {
         return false;
     }
@@ -68,12 +72,13 @@ static bool compress_chunk(s_calldata *calldata) {
         chunk->size = CALLDATA_CHUNK_SIZE - strip_right;
         start_idx = 0;
     }
-    if ((chunk->size > 0) && ((chunk->buf = app_mem_alloc(chunk->size)) == NULL)) {
-        app_mem_free(chunk);
-        return false;
+    if (chunk->size > 0) {
+        if ((chunk->buf = app_mem_alloc(chunk->size)) == NULL) {
+            app_mem_free(chunk);
+            return false;
+        }
+        memcpy(chunk->buf, calldata->chunk + start_idx, chunk->size);
     }
-    memcpy(chunk->buf, calldata->chunk + start_idx, chunk->size);
-
     flist_push_back((s_flist_node **) &calldata->chunks, (s_flist_node *) chunk);
     return true;
 }
@@ -81,6 +86,14 @@ static bool compress_chunk(s_calldata *calldata) {
 static bool decompress_chunk(const s_calldata_chunk *chunk, uint8_t *out) {
     size_t diff;
 
+    if ((chunk == NULL) || (out == NULL)) {
+        // Should never happen, but just in case
+        return false;
+    }
+    if ((chunk->buf == NULL) || (chunk->size == 0)) {
+        // nothing to decompress
+        return true;
+    }
     diff = CALLDATA_CHUNK_SIZE - chunk->size;
     if (chunk->dir == CHUNK_STRIP_LEFT) {
         explicit_bzero(out, diff);

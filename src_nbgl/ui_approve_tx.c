@@ -350,9 +350,9 @@ void ux_approve_tx(bool fromPlugin) {
     char op_name[sizeof(strings.common.fullAmount)];
     const char *title_prefix = "Review transaction";
     const char *tx_check_str = NULL;
-    char suffix_str[100];    // Suffix string buffer
-    uint8_t title_len = 1;   // Initialize lengths to 1 for '\0' character
-    uint8_t finish_len = 1;  // Initialize lengths to 1 for '\0' character
+    char *suffix_str = NULL;  // Suffix string buffer
+    uint8_t title_len = 1;    // Initialize lengths to 1 for '\0' character
+    uint8_t finish_len = 1;   // Initialize lengths to 1 for '\0' character
 
     // Initialize the warning structure
     explicit_bzero(&warning, sizeof(nbgl_warning_t));
@@ -399,6 +399,10 @@ void ux_approve_tx(bool fromPlugin) {
     snprintf(g_finishMsg, finish_len, "%s transaction", tx_check_str);
     if (fromPlugin) {
         // Prepare the suffix
+        if (mem_buffer_allocate((void **) &suffix_str, title_len) == false) {
+            // Memory allocation failed, cleanup and return
+            return;
+        }
         snprintf(suffix_str,
                  title_len,
                  " to %s %s%s",
@@ -411,6 +415,7 @@ void ux_approve_tx(bool fromPlugin) {
 #ifdef SCREEN_SIZE_WALLET
         strlcat(g_finishMsg, suffix_str, finish_len);
 #endif
+        mem_buffer_cleanup((void **) &suffix_str);
     }
 #ifdef SCREEN_SIZE_WALLET
     strlcat(g_finishMsg, "?", finish_len);

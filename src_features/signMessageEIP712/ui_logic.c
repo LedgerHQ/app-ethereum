@@ -750,7 +750,6 @@ bool ui_712_init(void) {
  */
 void ui_712_deinit(void) {
     if (ui_ctx != NULL) {
-        app_mem_free(ui_ctx);
         if (ui_ctx->filters_crc != NULL)
             flist_clear((s_flist_node **) &ui_ctx->filters_crc,
                         (f_list_node_del) &delete_filter_crc);
@@ -759,6 +758,7 @@ void ui_712_deinit(void) {
         if (ui_ctx->amount.joins != NULL)
             flist_clear((s_flist_node **) &ui_ctx->amount.joins,
                         (f_list_node_del) &delete_amount_join);
+        app_mem_free(ui_ctx);
         ui_ctx = NULL;
     }
 }

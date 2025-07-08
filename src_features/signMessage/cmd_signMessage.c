@@ -240,6 +240,12 @@ uint16_t handleSignPersonalMessage(uint8_t p1,
         return APDU_RESPONSE_INVALID_DATA;
     }
 
+    // Check if the data is valid
+    if (signMsgCtx == NULL) {
+        PRINTF("Error: Invalid data received!\n");
+        set_idle();
+        return APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+    }
     // Check if the received chunk data is too long
     if ((length + signMsgCtx->processed_size) > signMsgCtx->msg_length) {
         PRINTF("Error: Length mismatch ! (%u > %u)!\n",

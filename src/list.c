@@ -74,8 +74,12 @@ void flist_remove(s_flist_node **list, s_flist_node *node, f_list_node_del func)
         } else {
             it = *list;
             if (it != NULL) {
-                for (; it->next != node; it = it->next)
+                for (; (it->next != node) && (it->next != NULL); it = it->next)
                     ;
+                if (it->next == NULL) {
+                    // node not found
+                    return;
+                }
                 tmp = it->next->next;
                 if (func != NULL) func(it->next);
                 it->next = tmp;

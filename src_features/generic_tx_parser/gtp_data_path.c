@@ -174,6 +174,7 @@ static bool path_leaf(const s_leaf_args *leaf,
          (chunk_idx * CALLDATA_CHUNK_SIZE) < collection->value[collection->size].length;
          ++chunk_idx) {
         if ((chunk = calldata_get_chunk(*offset + chunk_idx)) == NULL) {
+            app_mem_free(leaf_buf);
             return false;
         }
         cpy_length =

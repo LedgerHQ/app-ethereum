@@ -83,5 +83,6 @@ bool handle_param_calldata_struct(const s_tlv_data *data, s_param_calldata_conte
 bool format_param_calldata(const s_param_calldata *param, const char *name) {
     (void) param;
     (void) name;
+    // TODO: get calldata, push it into linked-list of it (compressed)
     return false;
 }

@@ -19,6 +19,7 @@ typedef struct {
 } s_calldata_chunk;
 
 typedef struct {
+    s_flist_node _list;
     size_t expected_size;
     size_t received_size;
 

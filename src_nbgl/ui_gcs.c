@@ -12,6 +12,7 @@
 #include "ui_utils.h"
 #include "enum_value.h"
 #include "proxy_info.h"
+#include "explorers.h"
 
 static void review_choice(bool confirm) {
     if (confirm) {
@@ -202,14 +203,17 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
             return false;
         }
         // Etherscan only for mainnet
-        if (get_tx_chain_id() == ETHEREUM_MAINNET_CHAINID) {
+        uint64_t tx_chain_id = get_tx_chain_id();
+        const char *explorer_name = get_explorer_name_from_chain_id(&tx_chain_id);
+        if (explorer_name != NULL && explorer_name[0] != '\0') {
             if ((extensions[contract_idx].explanation =
-                     app_mem_strdup("Scan to view on Etherscan")) == NULL) {
+                     app_mem_strdup("Scan to view on explorer")) == NULL) {
                 return false;
             }
             snprintf(tmp_buf,
                      tmp_buf_size,
-                     "https://etherscan.io/address/%s",
+                     "%s%s",
+                     explorer_name,
                      extensions[contract_idx].title);
             if ((extensions[contract_idx].fullValue = app_mem_strdup(tmp_buf)) == NULL) {
                 return false;

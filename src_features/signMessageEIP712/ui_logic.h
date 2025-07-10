@@ -9,11 +9,6 @@
 #include "list.h"
 
 typedef enum { EIP712_FILTERING_BASIC, EIP712_FILTERING_FULL } e_eip712_filtering_mode;
-typedef enum {
-    EIP712_FIELD_LATER,
-    EIP712_FIELD_INCOMING,
-    EIP712_NO_MORE_FIELD
-} e_eip712_nfs;  // next field state
 
 typedef struct ui_712_pair {
     s_flist_node _list;
@@ -23,7 +18,6 @@ typedef struct ui_712_pair {
 
 bool ui_712_init(void);
 void ui_712_deinit(void);
-e_eip712_nfs ui_712_next_field(void);
 bool ui_712_review_struct(const s_struct_712 *struct_ptr);
 bool ui_712_feed_to_display(const s_struct_712_field *field_ptr,
                             const uint8_t *data,
@@ -61,6 +55,4 @@ void ui_712_set_trusted_name_requirements(uint8_t type_count,
                                           const e_name_type *types,
                                           uint8_t source_count,
                                           const e_name_source *sources);
-const s_ui_712_pair *ui_712_get_pairs(void);
-bool ui_712_push_new_pair(const char *key, const char *value);
-void ui_712_delete_pairs(size_t keep);
+void ui_712_push_pairs(void);

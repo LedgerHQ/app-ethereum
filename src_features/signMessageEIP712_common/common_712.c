@@ -2,7 +2,11 @@
 #include "os_io_seproxyhal.h"
 #include "crypto_helpers.h"
 #include "ui_callbacks.h"
-#include "common_712.h"
+#include "utils.h"
+#include "ui_utils.h"
+#include "ui_logic.h"
+#include "ui_nbgl.h"
+#include "cmd_get_tx_simulation.h"
 
 static const uint8_t EIP_712_MAGIC[] = {0x19, 0x01};
 
@@ -62,27 +66,35 @@ static char *format_hash(const uint8_t *hash, char *buffer, size_t buffer_size, 
     return buffer + offset;
 }
 
-void eip712_format_hash(nbgl_contentTagValue_t *pairs,
-                        uint8_t nbPairs,
-                        nbgl_contentTagValueList_t *pairs_list) {
-    explicit_bzero(pairs, sizeof(nbgl_contentTagValue_t) * nbPairs);
-    explicit_bzero(pairs_list, sizeof(nbgl_contentTagValueList_t));
+void eip712_format_hash(uint8_t index) {
+    g_pairs[index].item = "Domain hash";
+    g_pairs[index].value = format_hash(tmpCtx.messageSigningContext712.domainHash,
+                                       strings.tmp.tmp,
+                                       sizeof(strings.tmp.tmp),
+                                       0);
+    index++;
+    g_pairs[index].item = "Message hash";
+    g_pairs[index].value = format_hash(tmpCtx.messageSigningContext712.messageHash,
+                                       strings.tmp.tmp,
+                                       sizeof(strings.tmp.tmp),
+                                       70);
+}
 
-    if (nbPairs < 2) {
-        return;  // Ensure we have enough space for two pairs
+/**
+ * Initialize EIP712 flow
+ *
+ * @param filtering the filtering mode to use for the EIP712 flow
+ *
+ */
+void ui_712_start(e_eip712_filtering_mode filtering) {
+    if (appState != APP_STATE_IDLE) {
+        reset_app_context();
     }
-    pairs[0].item = "Domain hash";
-    pairs[0].value = format_hash(tmpCtx.messageSigningContext712.domainHash,
-                                 strings.tmp.tmp,
-                                 sizeof(strings.tmp.tmp),
-                                 0);
-    pairs[1].item = "Message hash";
-    pairs[1].value = format_hash(tmpCtx.messageSigningContext712.messageHash,
-                                 strings.tmp.tmp,
-                                 sizeof(strings.tmp.tmp),
-                                 70);
-
-    pairs_list->nbPairs = 2;
-    pairs_list->pairs = pairs;
-    pairs_list->nbMaxLinesForValue = 0;
+    appState = APP_STATE_SIGNING_EIP712;
+    memset(&strings, 0, sizeof(strings));
+    memset(&warning, 0, sizeof(nbgl_warning_t));
+    if (filtering == EIP712_FILTERING_BASIC) {
+        // If the user has requested a filtered view, we will not show the warning
+        warning.predefinedSet |= SET_BIT(BLIND_SIGNING_WARN);
+    }
 }

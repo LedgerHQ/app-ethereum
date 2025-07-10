@@ -14,6 +14,7 @@
 #include "network.h"
 #include "time_format.h"
 #include "list.h"
+#include "ui_utils.h"
 
 #define AMOUNT_JOIN_FLAG_TOKEN  (1 << 0)
 #define AMOUNT_JOIN_FLAG_VALUE  (1 << 1)
@@ -88,6 +89,32 @@ static void delete_amount_join(s_amount_join *join) {
 }
 
 /**
+ * Called to fetch the next field if they have not all been processed yet
+ *
+ * Also handles the special "Review struct" screen of the verbose mode
+ *
+ * @return the next field state
+ */
+static bool ui_712_next_field(void) {
+    bool ret = false;
+
+    if (ui_ctx == NULL) {
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+    } else {
+        if (ui_ctx->structs_to_review > 0) {
+            ret = ui_712_review_struct(path_get_nth_field_to_last(ui_ctx->structs_to_review));
+            ui_ctx->structs_to_review -= 1;
+        } else if (!ui_ctx->end_reached) {
+            handle_eip712_return_code(true);
+            // So that later when we append to them, we start from an empty string
+            explicit_bzero(&strings, sizeof(strings));
+            ret = true;
+        }
+    }
+    return ret;
+}
+
+/**
  * Checks on the UI context to determine if the next EIP 712 field should be shown
  *
  * @return whether the next field should be shown
@@ -112,34 +139,6 @@ static bool ui_712_field_shown(void) {
 }
 
 /**
- * Set UI buffer
- *
- * @param[in] src source buffer
- * @param[in] src_length source buffer size
- * @param[in] dst destination buffer
- * @param[in] dst_length destination buffer length
- * @param[in] explicit_trunc if truncation should be explicitly shown
- */
-static void ui_712_set_buf(const char *src,
-                           size_t src_length,
-                           char *dst,
-                           size_t dst_length,
-                           bool explicit_trunc) {
-    uint8_t cpy_length;
-
-    if (src_length < dst_length) {
-        cpy_length = src_length;
-    } else {
-        cpy_length = dst_length - 1;
-    }
-    memcpy(dst, src, cpy_length);
-    dst[cpy_length] = '\0';
-    if (explicit_trunc && (cpy_length < src_length)) {
-        memcpy(dst + cpy_length - 3, "...", 3);
-    }
-}
-
-/**
  * Skip the field if needed and reset its UI flags
  */
 void ui_712_finalize_field(void) {
@@ -156,17 +155,52 @@ void ui_712_finalize_field(void) {
  * @param[in] length its length
  */
 void ui_712_set_title(const char *str, size_t length) {
-    ui_712_set_buf(str, length, strings.tmp.tmp2, sizeof(strings.tmp.tmp2), false);
+    s_ui_712_pair *new_pair = NULL;
+
+    if (mem_buffer_allocate((void **) &new_pair, sizeof(*new_pair)) == false) {
+        return;
+    }
+    flist_push_back((s_flist_node **) &ui_ctx->ui_pairs, (s_flist_node *) new_pair);
+    if (mem_buffer_allocate((void **) &new_pair->key, length + 1) == false) {
+        return;
+    }
+    memcpy(new_pair->key, str, length);
 }
 
 /**
  * Set a new value for the EIP-712 generic UX_STEP
  *
+ * @note The parameters may be NULL if the value is already formatted into strings.tmp.tmp
+ *
  * @param[in] str the new value
  * @param[in] length its length
  */
 void ui_712_set_value(const char *str, size_t length) {
-    ui_712_set_buf(str, length, strings.tmp.tmp, sizeof(strings.tmp.tmp), true);
+    s_ui_712_pair *tmp = ui_ctx->ui_pairs;
+
+    if (tmp == NULL) {
+        // No pairs created yet
+        return;
+    }
+    while (((s_flist_node *) tmp)->next != NULL) {
+        tmp = (s_ui_712_pair *) ((s_flist_node *) tmp)->next;
+    }
+    if (tmp->value != NULL) {
+        PRINTF("Value already exist for tag %s: %s\n", tmp->key, tmp->value);
+        return;
+    }
+    if ((str != NULL) && (length > 0)) {
+        // buffer is directly provided with parameters
+        if (mem_buffer_allocate((void **) &tmp->value, length + 1) == false) {
+            return;
+        }
+        memcpy(tmp->value, str, length);
+    } else if (strlen(strings.tmp.tmp) > 0) {
+        // Add the value from the global variable strings.tmp.tmp
+        if ((tmp->value = app_mem_strdup(strings.tmp.tmp)) == NULL) {
+            return;
+        }
+    }
 }
 
 /**
@@ -185,37 +219,13 @@ bool ui_712_redraw_generic_step(void) {
             return false;
         }
         ui_712_start(ui_ctx->filtering_mode);
+        handle_eip712_return_code(true);
     } else {
-        ui_712_switch_to_message();
-    }
-    return true;
-}
-
-/**
- * Called to fetch the next field if they have not all been processed yet
- *
- * Also handles the special "Review struct" screen of the verbose mode
- *
- * @return the next field state
- */
-e_eip712_nfs ui_712_next_field(void) {
-    e_eip712_nfs state = EIP712_NO_MORE_FIELD;
-
-    if (ui_ctx == NULL) {
-        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
-    } else {
-        if (ui_ctx->structs_to_review > 0) {
-            ui_712_review_struct(path_get_nth_field_to_last(ui_ctx->structs_to_review));
-            ui_ctx->structs_to_review -= 1;
-            state = EIP712_FIELD_LATER;
-        } else if (!ui_ctx->end_reached) {
-            handle_eip712_return_code(true);
-            state = EIP712_FIELD_INCOMING;
-            // So that later when we append to them, we start from an empty string
-            explicit_bzero(&strings, sizeof(strings));
+        if (ui_712_next_field() == false) {
+            ui_sign_712();
         }
     }
-    return state;
+    return true;
 }
 
 /**
@@ -250,6 +260,7 @@ bool ui_712_message_hash(void) {
                        sizeof(strings.tmp.tmp),
                        tmpCtx.messageSigningContext712.messageHash,
                        KECCAK256_HASH_BYTESIZE);
+    ui_712_set_value(NULL, 0);
     ui_ctx->end_reached = true;
     return ui_712_redraw_generic_step();
 }
@@ -695,6 +706,9 @@ bool ui_712_feed_to_display(const s_struct_712_field *field_ptr,
 
     // Check if this field is supposed to be displayed
     if (last && ui_712_field_shown()) {
+        // This is the last chunk, we can now set the value
+        ui_712_set_value(NULL, 0);
+
         return ui_712_redraw_generic_step();
     }
     return true;
@@ -716,7 +730,7 @@ void ui_712_end_sign(void) {
     if (N_storage.verbose_eip712 || (ui_ctx->filtering_mode == EIP712_FILTERING_FULL)) {
 #endif
         ui_ctx->end_reached = true;
-        ui_712_switch_to_sign();
+        ui_sign_712();
     }
 }
 
@@ -992,39 +1006,32 @@ void ui_712_set_trusted_name_requirements(uint8_t type_count,
     memcpy(ui_ctx->tn_sources, sources, source_count);
 }
 
-const s_ui_712_pair *ui_712_get_pairs(void) {
-    return ui_ctx->ui_pairs;
-}
+/**
+ * Set the tag/value pairs for the review
+ *
+ */
+void ui_712_push_pairs(void) {
+    uint16_t nbPairs = 0;
+    uint16_t pair = 0;
+    s_ui_712_pair *tmp = NULL;
 
-bool ui_712_push_new_pair(const char *key, const char *value) {
-    s_ui_712_pair *new_pair;
-
-    // allocate pair
-    if ((new_pair = app_mem_alloc(sizeof(*new_pair))) == NULL) {
-        return false;
+    // Initialize the pairs list
+    nbPairs = flist_size((s_flist_node **) &ui_ctx->ui_pairs);
+    if (N_storage.displayHash) {
+        nbPairs += 2;
     }
-    explicit_bzero(new_pair, sizeof(*new_pair));
-
-    flist_push_back((s_flist_node **) &ui_ctx->ui_pairs, (s_flist_node *) new_pair);
-
-    if ((new_pair->key = app_mem_strdup(key)) == NULL) {
-        return false;
+    ui_pairs_init(nbPairs);
+    // Initialize the tag/value pairs from the chain list
+    tmp = ui_ctx->ui_pairs;
+    while (tmp != NULL) {
+        g_pairs[pair].item = tmp->key;
+        g_pairs[pair].value = tmp->value;
+        tmp = (s_ui_712_pair *) ((s_flist_node *) tmp)->next;
+        pair++;
     }
-
-    if ((new_pair->value = app_mem_strdup(value)) == NULL) {
-        return false;
-    }
-    return true;
-}
-
-void ui_712_delete_pairs(size_t keep) {
-    size_t size;
-
-    size = flist_size((s_flist_node **) &ui_ctx->ui_pairs);
-    if (size > 0) {
-        while (size > keep) {
-            flist_pop_front((s_flist_node **) &ui_ctx->ui_pairs, (f_list_node_del) &delete_ui_pair);
-            size -= 1;
-        }
+    if (N_storage.displayHash) {
+        // Prepare the pairs list with the hashes
+        eip712_format_hash(pair);
+        g_pairs[pair].forcePageStart = 1;
     }
 }

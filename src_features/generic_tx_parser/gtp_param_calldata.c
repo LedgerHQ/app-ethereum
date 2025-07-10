@@ -81,8 +81,24 @@ bool handle_param_calldata_struct(const s_tlv_data *data, s_param_calldata_conte
 }
 
 bool format_param_calldata(const s_param_calldata *param, const char *name) {
+    bool ret = true;
+    s_parsed_value_collection calldatas = {0};
+    s_parsed_value_collection contract_addrs = {0};
+    s_parsed_value_collection chain_ids = {0};
+    s_parsed_value_collection selectors = {0};
+
     (void) param;
     (void) name;
-    // TODO: get calldata, push it into linked-list of it (compressed)
-    return false;
+    if ((ret = value_get(&param->calldata, &calldatas))) {
+        if ((ret = value_get(&param->contract_addr, &contract_addrs)) && (contract_addrs.size == calldatas.size)) {
+            if (!param->has_chain_id || ((ret = value_get(&param->chain_id, &chain_ids)) && (chain_ids.size == calldatas.size))) {
+                if (!param->has_selector || ((ret = value_get(&param->selector, &selectors)) && (selectors.size == calldatas.size))) {
+                    for (int i = 0; i < calldatas.size; ++i) {
+                        PRINTF("calldata -> 0x%.*h\n", calldatas.value[i].length, &calldatas.value[i].ptr[calldatas.value[i].offset]);
+                    }
+                }
+            }
+        }
+    }
+    return ret;
 }

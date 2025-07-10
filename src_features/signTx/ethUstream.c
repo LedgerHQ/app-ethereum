@@ -296,6 +296,8 @@ static bool processTo(txContext_t *context) {
 }
 
 static bool processData(txContext_t *context) {
+    uint32_t offset = 0;
+
     PRINTF("PROCESS DATA\n");
     if (check_fields(context, "RLP_DATA", 0) == false) {
         return false;
@@ -310,11 +312,16 @@ static bool processData(txContext_t *context) {
         }
         if (context->store_calldata) {
             if (context->currentFieldPos == 0) {
-                if (!calldata_init(context->currentFieldLength)) {
+                if (copySize < 4) {
+                    PRINTF("Was about to initialize a calldata without a complete selector (%u)!\n", copySize);
+                    return false;
+                }
+                offset = CALLDATA_SELECTOR_SIZE;
+                if (!calldata_init(context->currentFieldLength - offset, context->workBuffer)) {
                     return false;
                 }
             }
-            calldata_append(context->workBuffer, copySize);
+            calldata_append(context->workBuffer + offset, copySize - offset);
         }
         if (copyTxData(context, NULL, copySize) == false) {
             return false;

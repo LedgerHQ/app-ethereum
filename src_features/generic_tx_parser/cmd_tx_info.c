@@ -47,5 +47,5 @@ void gcs_cleanup(void) {
     ui_gcs_cleanup();
     field_table_cleanup();
     tx_info_cleanup();
-    calldata_cleanup();
+    //calldata_cleanup();
 }

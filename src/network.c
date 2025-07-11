@@ -50,6 +50,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 592, .name = "Astar", .ticker = "ASTR"},
     {.chain_id = 888, .name = "Wanchain", .ticker = "WAN"},
     {.chain_id = 943, .name = "PulseChain Testnet", .ticker = "tPLS"},
+    {.chain_id = 999, .name = "HyperEVM", .ticker = "HYPE"},
     {.chain_id = 1030, .name = "Conflux", .ticker = "CFX"},
     {.chain_id = 1088, .name = "Metis Andromeda", .ticker = "METIS"},
     {.chain_id = 1101, .name = "Polygon zkEVM", .ticker = "ETH"},

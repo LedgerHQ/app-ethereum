@@ -26,18 +26,21 @@ BIP32_PATH = "m/44'/60'/0'/0/0"
 DEVICE_ADDR: Optional[bytes] = None
 
 
-@pytest.fixture(autouse=True)
-def init_wallet_addr(backend: BackendInterface):
-    """Initialize wallet address before each test"""
-
+def set_wallet_addr(backend: BackendInterface) -> bytes:
     global DEVICE_ADDR
 
     # don't ask again if we already have it
     if DEVICE_ADDR is None:
-        app_client = EthAppClient(backend)
-        with app_client.get_public_addr(display=False):
+        client = EthAppClient(backend)
+        with client.get_public_addr(display=False):
             pass
-        _, DEVICE_ADDR, _ = ResponseParser.pk_addr(app_client.response().data)
+        _, DEVICE_ADDR, _ = ResponseParser.pk_addr(client.response().data)
+
+
+@pytest.fixture(autouse=True)
+def init_wallet_addr(backend: BackendInterface):
+    """Initialize wallet address before each test"""
+    set_wallet_addr(backend)
 
 
 def eip712_json_path() -> str:
@@ -76,6 +79,7 @@ def test_eip712_v0(scenario_navigator: NavigateWithScenario, simu_params: Option
     smsg = encode_typed_data(full_message=data)
 
     if simu_params is not None:
+        set_wallet_addr(scenario_navigator.backend)
         simu_params.from_addr = DEVICE_ADDR
         simu_params.tx_hash = smsg.body
         simu_params.domain_hash = smsg.header
@@ -446,13 +450,14 @@ def test_eip712_filtering_empty_array(scenario_navigator: NavigateWithScenario,
     }
 
     if simu_params is not None:
+        set_wallet_addr(scenario_navigator.backend)
         smsg = encode_typed_data(full_message=data)
         simu_params.tx_hash = smsg.body
         simu_params.domain_hash = smsg.header
         response = app_client.provide_tx_simulation(simu_params)
         assert response.status == StatusWord.OK
 
-    eip712_new_common(scenario_navigator, data, filters, test_name)
+    eip712_new_common(scenario_navigator, data, filters, test_name, with_warning=bool(simu_params is not None))
 
 
 TOKENS = [

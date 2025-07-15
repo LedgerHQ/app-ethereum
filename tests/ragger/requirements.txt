@@ -1,3 +1,4 @@
+colorama
 pytest
 ecdsa
 web3~=7.0

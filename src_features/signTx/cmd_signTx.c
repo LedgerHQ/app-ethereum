@@ -169,6 +169,9 @@ uint16_t handleSign(uint8_t p1,
         }
     }
     if (sw != APDU_NO_RESPONSE) {
+        if ((sw != APDU_RESPONSE_OK) && (g_tx_hash_ctx != NULL)) {
+            mem_buffer_cleanup((void **) &g_tx_hash_ctx);
+        }
         return sw;
     }
 

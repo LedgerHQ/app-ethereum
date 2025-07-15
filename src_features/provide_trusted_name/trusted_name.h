@@ -66,3 +66,4 @@ extern char *g_trusted_name;
 
 bool handle_trusted_name_struct(const s_tlv_data *data, s_trusted_name_ctx *context);
 bool verify_trusted_name_struct(const s_trusted_name_ctx *ctx);
+void trusted_name_cleanup(void);

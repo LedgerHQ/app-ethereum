@@ -2,7 +2,7 @@ from enum import IntEnum
 
 from ledgered.devices import DeviceType
 
-from ragger.backend import BackendInterface
+from ragger.backend import BackendInterface, SpeculosBackend
 from ragger.utils import RAPDU
 
 from .status_word import StatusWord
@@ -123,6 +123,9 @@ class PKIClient:
         self._backend = backend
 
     def send_certificate(self, key_usage: PKIPubKeyUsage, from_CAL: bool = False) -> None:
+        if not isinstance(self._backend, SpeculosBackend):
+            print("Warning: Only Speculos supports test PKI certificates.")
+            return
         certificates = PKI_CERTIFICATES_CAL if from_CAL else PKI_CERTIFICATES
         if key_usage not in certificates:
             raise ValueError(f"Unsupported key usage {key_usage}")

@@ -92,6 +92,7 @@ static bool decompress_chunk(const s_calldata_chunk *chunk, uint8_t *out) {
     }
     if ((chunk->buf == NULL) || (chunk->size == 0)) {
         // nothing to decompress
+        explicit_bzero(out, CALLDATA_CHUNK_SIZE);
         return true;
     }
     diff = CALLDATA_CHUNK_SIZE - chunk->size;

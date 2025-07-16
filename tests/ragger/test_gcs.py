@@ -15,8 +15,8 @@ from client.status_word import StatusWord
 from client.utils import get_selector_from_data
 from client.gcs import (
     Field, ParamType, ParamRaw, Value, TypeFamily, DataPath, PathTuple, ParamTrustedName,
-    ParamNFT, ParamDatetime, DatetimeType, ParamTokenAmount, ParamToken, ContainerPath,
-    PathLeaf, PathLeafType, PathRef, PathArray, TxInfo
+    ParamNFT, ParamDatetime, DatetimeType, ParamTokenAmount, ParamToken, ParamCalldata,
+    ContainerPath, PathLeaf, PathLeafType, PathRef, PathArray, TxInfo
 )
 from client.tx_simu import TxSimu
 from client.proxy_info import ProxyInfo
@@ -763,3 +763,173 @@ def test_gcs_4226(scenario_navigator: NavigateWithScenario, test_name: str):
 
     with app_client.send_raw_async(0xe0, 0x04, 0x00, 0x02, bytes()):
         scenario_navigator.review_approve(test_name=test_name)
+
+
+def test_gcs_nested(scenario_navigator: NavigateWithScenario, test_name: str):
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    with open(f"{ABIS_FOLDER}/safe_l2_setup_1.4.1.abi.json", encoding="utf-8") as f:
+        safe_l2_setup = Web3().eth.contract(
+            abi=json.load(f),
+            address=bytes.fromhex("BD89A1CE4DDe368FFAB0eC35506eEcE0b1fFdc54")
+        )
+    data = safe_l2_setup.encode_abi("setupToL2", [
+        bytes.fromhex("29fcB43b46531BcA003ddC8FCB67FFE91900C762")
+    ])
+    with open(f"{ABIS_FOLDER}/safe_1.4.1.abi.json", encoding="utf-8") as f:
+        safe = Web3().eth.contract(
+            abi=json.load(f),
+            address=bytes.fromhex("41675C099F32341bf84BFc5382aF534df5C7461a")
+        )
+    data = safe.encode_abi("setup", [
+        [
+            bytes.fromhex("6535d5F76F021FE65E2ac73D086dF4b4Bd7ee5D9"),
+            bytes.fromhex("3fB2C8699C3D0Cedde210F383435C537C86D91B8")
+        ],
+        2,
+        safe_l2_setup.address,
+        data,
+        bytes.fromhex("fd0732Dc9E303f09fCEf3a7388Ad10A83459Ec99"),
+        bytes.fromhex("0000000000000000000000000000000000000000"),
+        0,
+        bytes.fromhex("5afe7A11E7000000000000000000000000000000")
+    ])
+    with open(f"{ABIS_FOLDER}/safe_proxy_factory_1.4.1.abi.json", encoding="utf-8") as f:
+        safe_proxy_factory = Web3().eth.contract(
+            abi=json.load(f),
+            address=bytes.fromhex("4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67")
+        )
+    data = safe_proxy_factory.encode_abi("createProxyWithNonce", [
+        safe.address,
+        data,
+        0
+    ])
+    tx_params = {
+        "nonce": 75,
+        "maxFeePerGas": Web3.to_wei(4.2, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(2, "gwei"),
+        "gas": 291314,
+        "to": safe_proxy_factory.address,
+        "data": data,
+        "chainId": 1
+    }
+
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    fields = [
+            # Field(
+            #     1,
+            #     "_singleton",
+            #     ParamRaw(
+            #         1,
+            #         Value(
+            #             1,
+            #             TypeFamily.ADDRESS,
+            #             data_path=DataPath(
+            #                 1,
+            #                 [
+            #                     PathTuple(0),
+            #                     PathLeaf(PathLeafType.STATIC),
+            #                 ]
+            #             ),
+            #         ),
+            #     )
+            # ),
+            # Field(
+            #     1,
+            #     "initializer",
+            #     ParamRaw(
+            #         1,
+            #         Value(
+            #             1,
+            #             TypeFamily.BYTES,
+            #             data_path=DataPath(
+            #                 1,
+            #                 [
+            #                     PathTuple(1),
+            #                     PathRef(),
+            #                     PathLeaf(PathLeafType.DYNAMIC),
+            #                 ]
+            #             ),
+            #         ),
+            #     )
+            # ),
+            Field(
+                1,
+                "setup",
+                ParamCalldata(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.BYTES,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(1),
+                                PathRef(),
+                                PathLeaf(PathLeafType.DYNAMIC),
+                            ]
+                        ),
+                    ),
+                    Value(
+                        1,
+                        TypeFamily.BYTES,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(0),
+                                PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                    ),
+                )
+            ),
+            Field(
+                1,
+                "saltNonce",
+                ParamRaw(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.UINT,
+                        type_size=32,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(2),
+                                PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                    ),
+                )
+            ),
+    ]
+
+    # compute instructions hash
+    inst_hash = hashlib.sha3_256()
+    for field in fields:
+        inst_hash.update(field.serialize())
+
+    tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        tx_params["to"],
+        get_selector_from_data(tx_params["data"]),
+        inst_hash.digest(),
+        "create a Safe account",
+        creator_name="Safe",
+        creator_legal_name="Safe Ecosystem Foundation",
+        creator_url="safe.global",
+    )
+
+    app_client.provide_transaction_info(tx_info.serialize())
+
+    for field in fields:
+        payload = field.serialize()
+        app_client.send_raw(0xe0, 0x28, 0x01, 0x00, struct.pack(">H", len(payload)) + payload)
+
+    with app_client.send_raw_async(0xe0, 0x04, 0x00, 0x02, bytes()):
+        pass
+        # scenario_navigator.review_approve(test_name=test_name, do_comparison=False)

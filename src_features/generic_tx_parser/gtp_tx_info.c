@@ -356,6 +356,7 @@ cx_hash_t *get_fields_hash_ctx(void) {
 bool validate_instruction_hash(void) {
     uint8_t hash[sizeof(g_tx_info->fields_hash)];
 
+    if (g_tx_info == NULL) return false;
     if (cx_hash_no_throw((cx_hash_t *) &g_tx_info->fields_hash_ctx,
                          CX_LAST,
                          NULL,

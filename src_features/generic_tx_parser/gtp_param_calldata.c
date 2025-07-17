@@ -95,6 +95,11 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
                 if (!param->has_selector || ((ret = value_get(&param->selector, &selectors)) && (selectors.size == calldatas.size))) {
                     for (int i = 0; i < calldatas.size; ++i) {
                         PRINTF("calldata -> 0x%.*h\n", calldatas.value[i].length, &calldatas.value[i].ptr[calldatas.value[i].offset]);
+                        // TODO: handle given selector
+                        calldata_init(calldatas.value[i].length - CALLDATA_SELECTOR_SIZE,
+                                      &calldatas.value[i].ptr[calldatas.value[i].offset]);
+                        calldata_append(&calldatas.value[i].ptr[calldatas.value[i].offset + CALLDATA_SELECTOR_SIZE],
+                                        calldatas.value[i].length - CALLDATA_SELECTOR_SIZE);
                     }
                 }
             }

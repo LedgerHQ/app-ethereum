@@ -172,14 +172,17 @@ static void delete_calldata_chunk(s_calldata_chunk *node) {
     app_mem_free(node);
 }
 
-void calldata_cleanup(void) {
-    s_calldata *calldata = get_last_calldata(g_calldata);
+static void delete_calldata(s_calldata *node) {
+    flist_clear((s_flist_node **) &node->chunks, (f_list_node_del) &delete_calldata_chunk);
+    app_mem_free(node);
+}
 
-    if (calldata != NULL) {
-        flist_clear((s_flist_node **) &calldata->chunks,
-                    (f_list_node_del) &delete_calldata_chunk);
-        app_mem_free(calldata);
-    }
+void calldata_pop(void) {
+    flist_pop_back((s_flist_node **) &g_calldata, (f_list_node_del) &delete_calldata);
+}
+
+void calldata_cleanup(void) {
+    flist_clear((s_flist_node **) &g_calldata, (f_list_node_del) &delete_calldata);
 }
 
 static bool has_valid_calldata(const s_calldata *calldata) {

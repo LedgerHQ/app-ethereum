@@ -10,6 +10,7 @@
 
 bool calldata_init(size_t size, const uint8_t selector[CALLDATA_SELECTOR_SIZE]);
 bool calldata_append(const uint8_t *buffer, size_t size);
+void calldata_pop(void);
 void calldata_cleanup(void);
 const uint8_t *calldata_get_selector(void);
 const uint8_t *calldata_get_chunk(int idx);

@@ -33,6 +33,7 @@
 #define INS_PROVIDE_NETWORK_CONFIGURATION   0x30
 #define INS_PROVIDE_TX_SIMULATION           0x32
 #define INS_SIGN_EIP7702_AUTHORIZATION      0x34
+#define INS_PROVIDE_SAFE_ACCOUNT            0x36
 
 #define INS_STR(x)                                                             \
     (x == INS_GET_PUBLIC_KEY                    ? "GET_PUBLIC_KEY"             \
@@ -59,6 +60,7 @@
      : x == INS_PROVIDE_NETWORK_CONFIGURATION   ? "PROVIDE_NETWORK_CONFIG"     \
      : x == INS_PROVIDE_TX_SIMULATION           ? "PROVIDE_TX_SIMULATION"      \
      : x == INS_SIGN_EIP7702_AUTHORIZATION      ? "SIGN_EIP7702_AUTHORIZATION" \
+     : x == INS_PROVIDE_SAFE_ACCOUNT            ? "PROVIDE_SAFE_ACCOUNT"       \
                                                 : "Unknown")
 #define P1_CONFIRM              0x01
 #define P1_NON_CONFIRM          0x00
@@ -84,6 +86,7 @@
 #define APDU_RESPONSE_INVALID_DATA            0x6a80
 #define APDU_RESPONSE_INSUFFICIENT_MEMORY     0x6a84
 #define APDU_RESPONSE_REF_DATA_NOT_FOUND      0x6a88
+#define APDU_RESPONSE_FILE_ALREADY_EXIST      0x6a89
 #define APDU_RESPONSE_INVALID_P1_P2           0x6b00
 #define APDU_RESPONSE_INVALID_INS             0x6d00
 #define APDU_RESPONSE_INVALID_CLA             0x6e00
@@ -139,5 +142,11 @@ uint16_t handleGetEth2PublicKey(uint8_t p1,
                                 unsigned int *tx);
 
 #endif
+
+uint16_t handle_safe_account(uint8_t p1,
+                             uint8_t p2,
+                             const uint8_t *data,
+                             uint8_t length,
+                             uint32_t *flags);
 
 extern uint16_t apdu_response_code;

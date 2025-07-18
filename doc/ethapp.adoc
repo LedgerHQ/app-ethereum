@@ -41,6 +41,7 @@ The following APDUs are managed by the application. They are detailed in the fol
 | PROVIDE NETWORK INFORMATION                                                       | 0x30
 | PROVIDE TX SIMULATION                                                             | 0x32
 | SIGN EIP 7702 AUTHORIZATION                                                       | 0x34
+| PROVIDE SAFE ACCOUNT                                                              | 0x36
 |==============================================================================================================================
 
 
@@ -1456,6 +1457,82 @@ _Output data_
 | r                                                                                 | 32
 | s                                                                                 | 32
 |==============================================================================================================================
+
+### PROVIDE SAFE ACCOUNT
+
+#### Description
+
+This command provides the Safe Account descriptors.
+
+The descriptors are then presented to the user to validate the Transaction Signers.
+
+There are 2 sub-commands:
+
+- One command to send the Safe descriptor
+- One command to send the Signers descriptors
+
+> Notes: The `Safe descriptor` should be sent only once, and *before* the Signers descriptors
+
+The information is sent in TLV (Tag-Length-Value) mode.
+
+#### Coding
+
+_Command_
+
+[width="80%"]
+|==============================================================================================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *Lc*     | *Le*
+|   E0  |   36   |  00 : first chunk
+
+                    01 : following chunk
+                                      |   00 : Safe descriptor
+
+                                          01 : Signer descriptor | variable | variable
+|==============================================================================================================================
+
+_Input data_
+
+##### If P2 == Safe Account info descriptor
+
+###### If P1 == first chunk
+
+[width="80%"]
+|====================================================================
+| *Description*                                                   | *Length (byte)*
+| Payload length                                                  | 2
+| link:tlv_structs.md#safe_descriptor[SAFE_DESCRIPTOR struct]     | variable
+|====================================================================
+
+###### If P1 == following chunk
+
+[width="80%"]
+|====================================================================
+| *Description*                                                   | *Length (byte)*
+| link:tlv_structs.md#safe_descriptor[SAFE_DESCRIPTOR struct]     | variable
+|====================================================================
+
+##### If P2 == Signer info descriptor
+
+###### If P1 == first chunk
+
+[width="80%"]
+|====================================================================
+| *Description*                                                   | *Length (byte)*
+| Payload length                                                  | 2
+| link:tlv_structs.md#signer_descriptor[SIGNER_DESCRIPTOR struct] | variable
+|====================================================================
+
+###### If P1 == following chunk
+
+[width="80%"]
+|====================================================================
+| *Description*                                                   | *Length (byte)*
+| link:tlv_structs.md#signer_descriptor[SIGNER_DESCRIPTOR struct] | variable
+|====================================================================
+
+_Output data_
+
+None
 
 ## Transport protocol
 

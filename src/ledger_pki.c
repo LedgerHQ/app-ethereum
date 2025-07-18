@@ -14,6 +14,7 @@
      : x == CERTIFICATE_PUBLIC_KEY_USAGE_TX_SIMU_SIGNER       ? "TX_SIMU_SIGNER"       \
      : x == CERTIFICATE_PUBLIC_KEY_USAGE_CALLDATA             ? "CALLDATA"             \
      : x == CERTIFICATE_PUBLIC_KEY_USAGE_NETWORK              ? "NETWORK"              \
+     : x == CERTIFICATE_PUBLIC_KEY_USAGE_LES_MULTISIG         ? "SAFE"                 \
                                                               : "Unknown")
 
 int check_signature_with_pubkey(const char *tag,

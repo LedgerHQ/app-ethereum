@@ -12,6 +12,7 @@ void ui_display_privacy_shared_secret(void);
 void ui_display_public_key(const uint64_t *chain_id);
 void ui_confirm_selector(void);
 void ui_confirm_parameter(void);
+void ui_display_safe_account(void);
 
 // EIP-191
 void ui_191_start(const char *message);

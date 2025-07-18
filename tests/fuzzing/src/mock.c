@@ -230,6 +230,9 @@ void ui_sign_7702_auth(void) {
 void ui_sign_7702_revocation(void) {
 }
 
+void ui_display_safe_account(void) {
+}
+
 cx_err_t cx_keccak_init_no_throw(cx_sha3_t *hash PLENGTH(sizeof(cx_sha3_t)), size_t size) {
     UNUSED(size);
     memset_s(hash, 0, sizeof(cx_sha3_t));

@@ -15,6 +15,7 @@ class Key(Enum):
     CALLDATA = auto()
     NETWORK = auto()
     TRANSACTION_CHECKS = auto()
+    SAFE = auto()
 
 
 _keys: dict[Key, SigningKey] = {}

@@ -18,6 +18,7 @@ from .tx_auth_7702 import TxAuth7702
 from .status_word import StatusWord
 from .ledger_pki import PKIClient, PKIPubKeyUsage
 from .dynamic_networks import DynamicNetwork
+from .safe import SafeAccount, AccountType
 
 
 class TrustedNameType(IntEnum):
@@ -451,6 +452,16 @@ class EthAppClient:
 
     def sign_eip7702_authorization(self, bip32_path: str, auth_params: TxAuth7702):
         chunks = self._cmd_builder.sign_eip7702_authorization(bip32_path, auth_params.serialize())
+        for chunk in chunks[:-1]:
+            self._exchange(chunk)
+        return self._exchange_async(chunks[-1])
+
+    def provide_safe_account(self, safe_params: SafeAccount):
+        # Send ledgerPKI certificate - only for SAFE accounts
+        if safe_params.account_type == AccountType.SAFE:
+            self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_SAFE_ACCOUNT)
+
+        chunks = self._cmd_builder.provide_safe_account(safe_params.serialize(), safe_params.account_type)
         for chunk in chunks[:-1]:
             self._exchange(chunk)
         return self._exchange_async(chunks[-1])

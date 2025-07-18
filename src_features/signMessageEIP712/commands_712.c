@@ -263,12 +263,12 @@ uint16_t handle_eip712_sign(const uint8_t *cdata, uint8_t length, uint32_t *flag
     } else if (parseBip32(cdata, &length, &tmpCtx.messageSigningContext.bip32) == NULL) {
         apdu_response_code = APDU_RESPONSE_INVALID_DATA;
     } else {
+        ret = true;
 #ifndef SCREEN_SIZE_WALLET
         if (!N_storage.verbose_eip712 && (ui_712_get_filtering_mode() == EIP712_FILTERING_BASIC)) {
-            ui_712_message_hash();
+            ret = ui_712_message_hash();
         }
 #endif
-        ret = true;
         ui_712_end_sign();
     }
 

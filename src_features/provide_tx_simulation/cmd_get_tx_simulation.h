@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "common_utils.h"
-#include "nbgl_use_case.h"
 #include "os_pki.h"
 
 #define HASH_SIZE    32
@@ -54,13 +53,10 @@ uint16_t handle_tx_simulation(uint8_t p1,
                               uint8_t length,
                               unsigned int *flags);
 void handle_tx_simulation_opt_in(bool response_expected);
-void ui_tx_simulation_error(nbgl_choiceCallback_t callback);
 void ui_tx_simulation_opt_in(bool response_expected);
 
 void clear_tx_simulation(void);
-bool check_tx_simulation_hash(void);
-bool check_tx_simulation_from_address(void);
-void set_tx_simulation_warning(nbgl_warning_t *p_warning, bool checkTxHash, bool checkFromAddr);
+void set_tx_simulation_warning(void);
 
 const char *get_tx_simulation_risk_str(void);
 const char *get_tx_simulation_category_str(void);

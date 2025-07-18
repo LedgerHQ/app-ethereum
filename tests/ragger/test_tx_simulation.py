@@ -294,44 +294,36 @@ def test_tx_simulation_eip191(navigator: Navigator,
                 simu_params)
 
 
-def test_tx_simulation_eip712(backend: BackendInterface,
-                              navigator: Navigator,
-                              test_name: str,
-                              default_screenshot_path: Path) -> None:
+def test_tx_simulation_eip712(scenario_navigator: NavigateWithScenario, test_name: str) -> None:
     """Test the TX Simulation APDU with a Message Streaming based on EIP712"""
 
-    app_client = EthAppClient(backend)
-    device = backend.device
+    app_client = EthAppClient(scenario_navigator.backend)
 
-    if device.is_nano:
+    if scenario_navigator.backend.device.is_nano:
         pytest.skip("Not yet supported on Nano")
 
-    __common_setting_handling(device, navigator, app_client, True)
+    __common_setting_handling(scenario_navigator.backend.device, scenario_navigator.navigator, app_client, True)
 
     simu_params = __get_simu_params("threat", SimuType.TYPED_DATA)
 
-    sign_eip712(backend,
-                navigator,
-                default_screenshot_path,
+    sign_eip712(scenario_navigator,
                 test_name,
-                False,
                 simu_params)
 
 
-def test_tx_simulation_eip712_v0(backend: BackendInterface, navigator: Navigator) -> None:
+def test_tx_simulation_eip712_v0(scenario_navigator: NavigateWithScenario) -> None:
     """Test the TX Simulation APDU with a Message Streaming based on EIP712_v0"""
 
-    app_client = EthAppClient(backend)
-    device = backend.device
+    app_client = EthAppClient(scenario_navigator.backend)
 
-    if device.is_nano:
+    if scenario_navigator.backend.device.is_nano:
         pytest.skip("Not yet supported on Nano")
 
-    __common_setting_handling(device, navigator, app_client, True)
+    __common_setting_handling(scenario_navigator.backend.device, scenario_navigator.navigator, app_client, True)
 
     simu_params = __get_simu_params("threat", SimuType.TYPED_DATA)
 
-    sign_eip712_v0(backend, navigator, simu_params)
+    sign_eip712_v0(scenario_navigator, simu_params)
 
 
 def test_tx_simulation_gcs(navigator: Navigator,

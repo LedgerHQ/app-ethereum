@@ -1,15 +1,14 @@
 import hashlib
 import json
 import re
-import signal
-import sys
 import copy
-from typing import Any, Callable, Optional, Union
+from typing import Any, Optional, Union
 import struct
 
 from client import keychain
 from client.client import EthAppClient, EIP712FieldType
 from client.ledger_pki import PKIPubKeyUsage
+from client.status_word import StatusWord
 
 
 # global variables
@@ -18,14 +17,6 @@ filtering_paths: dict = {}
 filtering_tokens: list[dict] = []
 current_path: list[str] = []
 sig_ctx: dict[str, Any] = {}
-
-
-def default_handler():
-    raise RuntimeError("Uninitialized handler")
-
-
-autonext_handler: Callable = default_handler
-is_golden_run: bool
 
 
 # From a string typename, extract the type and all the array depth
@@ -119,6 +110,11 @@ def send_struct_def_field(typename, keyname):
                                                         array_lvls,
                                                         keyname):
         pass
+
+    response = app_client.response()
+    assert response.status == StatusWord.OK, \
+        f"Error sending field def {keyname} of type {typename}: {response.status}"
+
     return (typename, type_enum, typesize, array_lvls)
 
 
@@ -198,10 +194,12 @@ def send_filtering_token(token_idx: int):
     if len(filtering_tokens[token_idx]) > 0:
         token = filtering_tokens[token_idx]
         if not token["sent"]:
-            app_client.provide_token_metadata(token["ticker"],
-                                              bytes.fromhex(token["addr"][2:]),
-                                              token["decimals"],
-                                              token["chain_id"])
+            response = app_client.provide_token_metadata(token["ticker"],
+                                                         bytes.fromhex(token["addr"][2:]),
+                                                         token["decimals"],
+                                                         token["chain_id"])
+            assert response.status == StatusWord.OK, \
+                f"Error sending token metadata for {token['ticker']}: {response.status}"
             token["sent"] = True
 
 
@@ -249,8 +247,10 @@ def send_struct_impl_field(value, field):
             send_filter(path, False)
 
     with app_client.eip712_send_struct_impl_struct_field(data):
-        enable_autonext()
-    disable_autonext()
+        pass
+    response = app_client.response()
+    assert response.status == StatusWord.OK, \
+        f"Error sending field {field['name']} of type {field['type']}: {response.status}"
 
 
 def evaluate_field(structs, data, field, lvls_left, new_level=True):
@@ -261,44 +261,42 @@ def evaluate_field(structs, data, field, lvls_left, new_level=True):
     if len(array_lvls) > 0 and lvls_left > 0:
         with app_client.eip712_send_struct_impl_array(len(data)):
             pass
+        response = app_client.response()
+        assert response.status == StatusWord.OK, \
+            f"Error sending array {field['name']} of type {field['type']}: {response.status}"
         if len(data) == 0:
             for path in filtering_paths.keys():
                 dpath = ".".join(current_path) + ".[]"
                 if path.startswith(dpath):
-                    app_client.eip712_filtering_discarded_path(path)
+                    response = app_client.eip712_filtering_discarded_path(path)
+                    assert response.status == StatusWord.OK, \
+                        f"Error sending discarded path {path}: {response.status}"
                     send_filter(path, True)
         idx = 0
         for subdata in data:
             current_path.append("[]")
-            if not evaluate_field(structs, subdata, field, lvls_left - 1, False):
-                return False
+            evaluate_field(structs, subdata, field, lvls_left - 1, False)
             current_path.pop()
             idx += 1
         if array_lvls[lvls_left - 1] is not None:
-            if array_lvls[lvls_left - 1] != idx:
-                print(f"Mismatch in array size! Got {idx}, expected {array_lvls[lvls_left - 1]}\n",
-                      file=sys.stderr)
-                return False
+            assert array_lvls[lvls_left - 1] == idx, \
+                f"Mismatch in array size! Got {idx}, expected {array_lvls[lvls_left - 1]}"
     else:
         if field["enum"] == EIP712FieldType.CUSTOM:
-            if not send_struct_impl(structs, data, field["type"]):
-                return False
+            send_struct_impl(structs, data, field["type"])
         else:
             send_struct_impl_field(data, field)
     if new_level:
         current_path.pop()
-    return True
 
 
 def send_struct_impl(structs, data, structname):
     # Check if it is a struct we don't known
-    if structname not in structs.keys():
-        return False
+    assert structname in structs.keys(), \
+        f"Unknown struct {structname} in types definition"
 
     for f in structs[structname]:
-        if not evaluate_field(structs, data[f["name"]], f, len(f["array_lvls"])):
-            return False
-    return True
+        evaluate_field(structs, data[f["name"]], f, len(f["array_lvls"]))
 
 
 def start_signature_payload(ctx: dict, magic: int) -> bytearray:
@@ -320,8 +318,10 @@ def send_filtering_message_info(display_name: str, filters_count: int):
 
     sig = keychain.sign_data(keychain.Key.CAL, to_sign)
     with app_client.eip712_filtering_message_info(display_name, filters_count, sig):
-        enable_autonext()
-    disable_autonext()
+        pass
+    response = app_client.response()
+    assert response.status == StatusWord.OK, \
+        f"Error sending filtering message info for {display_name}: {response.status}"
 
 
 def send_filtering_amount_join_token(path: str, token_idx: int, discarded: bool):
@@ -331,6 +331,9 @@ def send_filtering_amount_join_token(path: str, token_idx: int, discarded: bool)
     sig = keychain.sign_data(keychain.Key.CAL, to_sign)
     with app_client.eip712_filtering_amount_join_token(token_idx, sig, discarded):
         pass
+    response = app_client.response()
+    assert response.status == StatusWord.OK, \
+        f"Error sending filtering amount join token for {path} with token index {token_idx}: {response.status}"
 
 
 def send_filtering_amount_join_value(path: str, token_idx: int, display_name: str, discarded: bool):
@@ -341,6 +344,9 @@ def send_filtering_amount_join_value(path: str, token_idx: int, display_name: st
     sig = keychain.sign_data(keychain.Key.CAL, to_sign)
     with app_client.eip712_filtering_amount_join_value(token_idx, display_name, sig, discarded):
         pass
+    response = app_client.response()
+    assert response.status == StatusWord.OK, \
+        f"Error sending filtering amount join value for {path} with token index {token_idx}: {response.status}"
 
 
 def send_filtering_datetime(path: str, display_name: str, discarded: bool):
@@ -350,6 +356,9 @@ def send_filtering_datetime(path: str, display_name: str, discarded: bool):
     sig = keychain.sign_data(keychain.Key.CAL, to_sign)
     with app_client.eip712_filtering_datetime(display_name, sig, discarded):
         pass
+    response = app_client.response()
+    assert response.status == StatusWord.OK, \
+        f"Error sending filtering datetime for {path}: {response.status}"
 
 
 def send_filtering_trusted_name(path: str,
@@ -367,6 +376,9 @@ def send_filtering_trusted_name(path: str,
     sig = keychain.sign_data(keychain.Key.CAL, to_sign)
     with app_client.eip712_filtering_trusted_name(display_name, name_type, name_source, sig, discarded):
         pass
+    response = app_client.response()
+    assert response.status == StatusWord.OK, \
+        f"Error sending filtering trusted name for {path}: {response.status}"
 
 
 # ledgerjs doesn't actually sign anything, and instead uses already pre-computed signatures
@@ -377,6 +389,9 @@ def send_filtering_raw(path: str, display_name: str, discarded: bool):
     sig = keychain.sign_data(keychain.Key.CAL, to_sign)
     with app_client.eip712_filtering_raw(display_name, sig, discarded):
         pass
+    response = app_client.response()
+    assert response.status == StatusWord.OK, \
+        f"Error sending filtering raw for {path}: {response.status}"
 
 
 def prepare_filtering(filtr_data):
@@ -423,33 +438,10 @@ def init_signature_context(types, domain, filters):
     sig_ctx["schema_hash"] = bytearray.fromhex(schema_hash.hexdigest())
 
 
-def next_timeout(_signum: int, _frame):
-    autonext_handler()
-
-
-def enable_autonext():
-    delay = 1/4 if app_client.device.is_nano else 1/2
-
-    # golden run has to be slower to make sure we take good snapshots
-    # and not processing/loading screens
-    if is_golden_run:
-        delay *= 3
-
-    signal.setitimer(signal.ITIMER_REAL, delay, delay)
-
-
-def disable_autonext():
-    signal.setitimer(signal.ITIMER_REAL, 0, 0)
-
-
 def process_data(aclient: EthAppClient,
                  data_json: dict,
-                 filters: Optional[dict] = None,
-                 autonext: Optional[Callable] = None,
-                 golden_run: bool = False) -> bool:
+                 filters: Optional[dict] = None) -> None:
     global app_client
-    global autonext_handler
-    global is_golden_run
     global current_path
 
     current_path = []
@@ -462,12 +454,6 @@ def process_data(aclient: EthAppClient,
     domain = data_json["domain"]
     message = data_json["message"]
 
-    if autonext:
-        autonext_handler = autonext
-        signal.signal(signal.SIGALRM, next_timeout)
-
-    is_golden_run = golden_run
-
     if filters:
         init_signature_context(types, domain, filters)
 
@@ -475,6 +461,9 @@ def process_data(aclient: EthAppClient,
     for key in types.keys():
         with app_client.eip712_send_struct_def_struct_name(key):
             pass
+        response = app_client.response()
+        assert response.status == StatusWord.OK, \
+            f"Error sending struct def {key}: {response.status}"
         for f in types[key]:
             (f["type"], f["enum"], f["typesize"], f["array_lvls"]) = \
              send_struct_def_field(f["type"], f["name"])
@@ -482,6 +471,9 @@ def process_data(aclient: EthAppClient,
     if filters:
         with app_client.eip712_filtering_activate():
             pass
+        response = app_client.response()
+        assert response.status == StatusWord.OK, \
+            f"Error activating filtering: {response.status}"
         prepare_filtering(filters)
 
     # Send ledgerPKI certificate
@@ -489,10 +481,11 @@ def process_data(aclient: EthAppClient,
 
     # send domain implementation
     with app_client.eip712_send_struct_impl_root_struct(domain_typename):
-        enable_autonext()
-    disable_autonext()
-    if not send_struct_impl(types, domain, domain_typename):
-        return False
+        pass
+    response = app_client.response()
+    assert response.status == StatusWord.OK, \
+        f"Error sending domain root struct {domain_typename}: {response.status}"
+    send_struct_impl(types, domain, domain_typename)
 
     if filters:
         if filters and "name" in filters:
@@ -502,9 +495,8 @@ def process_data(aclient: EthAppClient,
 
     # send message implementation
     with app_client.eip712_send_struct_impl_root_struct(message_typename):
-        enable_autonext()
-    disable_autonext()
-    if not send_struct_impl(types, message, message_typename):
-        return False
-
-    return True
+        pass
+    response = app_client.response()
+    assert response.status == StatusWord.OK, \
+        f"Error sending message root struct {message_typename}: {response.status}"
+    send_struct_impl(types, message, message_typename)

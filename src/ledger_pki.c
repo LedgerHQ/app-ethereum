@@ -32,10 +32,7 @@ int check_signature_with_pubkey(const char *tag,
     uint8_t trusted_name[CERTIFICATE_TRUSTED_NAME_MAXLEN] = {0};
     cx_ecfp_384_public_key_t public_key = {0};
 
-    PRINTF(
-        "[%s] "
-        "=======================================================================================\n",
-        tag);
+    PRINTF("[%s] ==================================================================\n", tag);
     error = os_pki_get_info(&key_usage, trusted_name, &trusted_name_len, &public_key);
     if ((error == 0) && (key_usage == keyUsageExp)) {
         PRINTF("[%s] Certificate '%s' loaded for usage 0x%x (%s)\n",

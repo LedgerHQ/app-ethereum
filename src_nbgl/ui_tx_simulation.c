@@ -21,24 +21,6 @@ enum {
 static bool g_response_expected;
 
 /**
- * @brief Display the transaction simulation error popup
- *
- * @param[in] callback Callback to be called after the user has made a choice
- */
-void ui_tx_simulation_error(nbgl_choiceCallback_t callback) {
-#ifdef HAVE_PIEZO_SOUND
-    io_seproxyhal_play_tune(TUNE_NEUTRAL);
-#endif  // HAVE_PIEZO_SOUND
-    nbgl_useCaseChoice(&C_Denied_Circle_64px,
-                       "Transaction Check failed because of technical reasons",
-                       "Reject this transaction and try again. "
-                       "If the issue persists, get help at: ledger.com/e9",
-                       "Reject transaction",
-                       "Continue anyway",
-                       callback);
-}
-
-/**
  * @brief Callback called when user press a button on the opt-in explain screen
  *
  * @param[in] token Id of the pressed widget (button)

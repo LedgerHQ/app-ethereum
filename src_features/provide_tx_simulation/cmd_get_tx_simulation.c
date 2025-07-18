@@ -12,6 +12,7 @@
 #include "os_pki.h"
 #include "network.h"
 #include "ui_callbacks.h"
+#include "ui_nbgl.h"
 
 #define TYPE_TX_SIMULATION 0x09
 #define STRUCT_VERSION     0x01
@@ -571,7 +572,7 @@ void clear_tx_simulation(void) {
  *
  * @return whether it was successful
  */
-bool check_tx_simulation_hash(void) {
+static bool check_tx_simulation_hash(void) {
     uint8_t *hash = NULL;
     uint8_t *hash2 = NULL;
 
@@ -623,7 +624,7 @@ bool check_tx_simulation_hash(void) {
  *
  * @return whether it was successful
  */
-bool check_tx_simulation_from_address(void) {
+static bool check_tx_simulation_from_address(void) {
     uint8_t msg_sender[ADDRESS_LENGTH] = {0};
     if (get_public_key(msg_sender, sizeof(msg_sender)) != APDU_RESPONSE_OK) {
         PRINTF("[TX SIMU] Unable to get the public key!\n");
@@ -645,19 +646,28 @@ bool check_tx_simulation_from_address(void) {
 }
 
 /**
- * @brief Check the TX vs Simulation parameters (CHAIN_ID, TX_HASH).
+ * @brief Check the CHAIN_ID vs Simulation payload.
  *
- * @param[in] checkTxHash flag to check the TX_HASH
- * @param[in] checkFromAddr flag to check the FROM address
  * @return whether it was successful
  */
-static bool check_tx_simulation_params(bool checkTxHash, bool checkFromAddr) {
+static bool check_tx_simulation_chain_id(void) {
     uint64_t chain_id = get_tx_chain_id();
-
-    if (!N_storage.tx_check_enable) {
-        // Transaction Checks disabled
-        return true;
+    // Check Chain_ID in case of a standard transaction (No EIP191, No EIP712)
+    if ((appState == APP_STATE_SIGNING_TX) && (TX_SIMULATION.chain_id != chain_id)) {
+        PRINTF("[TX SIMU] Chain_ID mismatch: %u != %u\n", TX_SIMULATION.chain_id, chain_id);
+        PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
+        TX_SIMULATION.risk = RISK_UNKNOWN;
+        return false;
     }
+    return true;
+}
+
+/**
+ * @brief Check the validity of the Simulation parameters.
+ *
+ * @return whether it was successful
+ */
+static bool check_tx_simulation_validity(void) {
     switch (TX_SIMULATION.type) {
         case SIMU_TYPE_TRANSACTION:
             if (appState != APP_STATE_SIGNING_TX) {
@@ -693,22 +703,30 @@ static bool check_tx_simulation_params(bool checkTxHash, bool checkFromAddr) {
         PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
         return false;
     }
-    // Check Chain_ID in case of a standard transaction (No EIP191, No EIP712)
-    if ((appState == APP_STATE_SIGNING_TX) && (TX_SIMULATION.chain_id != chain_id)) {
-        PRINTF("[TX SIMU] Chain_ID mismatch: %u != %u\n", TX_SIMULATION.chain_id, chain_id);
-        PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
-        TX_SIMULATION.risk = RISK_UNKNOWN;
+    return true;
+}
+
+/**
+ * @brief Check the TX vs Simulation parameters (CHAIN_ID, TX_HASH).
+ *
+ * @return whether it was successful
+ */
+static bool check_tx_simulation_params(void) {
+    if (!N_storage.tx_check_enable) {
+        // Transaction Checks disabled
+        return true;
+    }
+    if (check_tx_simulation_validity() == false) {
         return false;
     }
-    if (checkFromAddr) {
-        if (check_tx_simulation_from_address() == false) {
-            return false;
-        }
+    if (check_tx_simulation_chain_id() == false) {
+        return false;
     }
-    if (checkTxHash) {
-        if (check_tx_simulation_hash() == false) {
-            return false;
-        }
+    if (check_tx_simulation_from_address() == false) {
+        return false;
+    }
+    if (check_tx_simulation_hash() == false) {
+        return false;
     }
     return true;
 }
@@ -716,36 +734,33 @@ static bool check_tx_simulation_params(bool checkTxHash, bool checkFromAddr) {
 /**
  * @brief Configure the warning predefined set for the NBGL review flows.
  *
- * @param[in] p_warning Warning structure for NBGL review flows
- * @param[in] checkTxHash flag to check the TX_HASH
- * @param[in] checkFromAddr flag to check the FROM address
  */
-void set_tx_simulation_warning(nbgl_warning_t *p_warning, bool checkTxHash, bool checkFromAddr) {
+void set_tx_simulation_warning(void) {
     if (!N_storage.tx_check_enable) {
         // Transaction Checks disabled
         return;
     }
     // Transaction Checks enabled => Verify parameters of the Transaction
-    check_tx_simulation_params(checkTxHash, checkFromAddr);
+    check_tx_simulation_params();
     switch (TX_SIMULATION.risk) {
         case RISK_UNKNOWN:
-            p_warning->predefinedSet |= SET_BIT(W3C_ISSUE_WARN);
+            warning.predefinedSet |= SET_BIT(W3C_ISSUE_WARN);
             break;
         case RISK_BENIGN:
-            p_warning->predefinedSet |= SET_BIT(W3C_NO_THREAT_WARN);
+            warning.predefinedSet |= SET_BIT(W3C_NO_THREAT_WARN);
             break;
         case RISK_WARNING:
-            p_warning->predefinedSet |= SET_BIT(W3C_RISK_DETECTED_WARN);
+            warning.predefinedSet |= SET_BIT(W3C_RISK_DETECTED_WARN);
             break;
         case RISK_MALICIOUS:
-            p_warning->predefinedSet |= SET_BIT(W3C_THREAT_DETECTED_WARN);
+            warning.predefinedSet |= SET_BIT(W3C_THREAT_DETECTED_WARN);
             break;
         default:
             break;
     }
-    p_warning->reportProvider = PIC(TX_SIMULATION.partner);
-    p_warning->providerMessage = get_tx_simulation_category_str();
-    p_warning->reportUrl = PIC(TX_SIMULATION.tiny_url);
+    warning.reportProvider = PIC(TX_SIMULATION.partner);
+    warning.providerMessage = get_tx_simulation_category_str();
+    warning.reportUrl = PIC(TX_SIMULATION.tiny_url);
 }
 
 /**

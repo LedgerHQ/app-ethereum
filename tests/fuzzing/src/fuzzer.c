@@ -23,6 +23,7 @@
 #include "shared_context.h"
 #include "tlv.h"
 #include "apdu_constants.h"
+#include "nbgl_use_case.h"
 
 // Fuzzing harness interface
 typedef int (*harness)(const uint8_t *data, size_t size);
@@ -42,6 +43,7 @@ const chain_config_t *chainConfig = &config;
 uint8_t appState;
 tmpCtx_t tmpCtx;
 strings_t strings;
+nbgl_warning_t warning;
 // Mock the storage to enable wanted features
 const internalStorage_t N_storage_real = {
     .tx_check_enable = true,

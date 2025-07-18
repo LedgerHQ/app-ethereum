@@ -232,7 +232,7 @@ bool filtering_message_info(const uint8_t *payload, uint8_t length) {
     if (!N_storage.verbose_eip712) {
         ui_712_set_title("Contract", 8);
         ui_712_set_value(name, name_len);
-        ui_712_redraw_generic_step();
+        return ui_712_redraw_generic_step();
     }
     return true;
 }

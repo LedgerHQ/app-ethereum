@@ -100,10 +100,15 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
                                       &calldatas.value[i].ptr[calldatas.value[i].offset]);
                         calldata_append(&calldatas.value[i].ptr[calldatas.value[i].offset + CALLDATA_SELECTOR_SIZE],
                                         calldatas.value[i].length - CALLDATA_SELECTOR_SIZE);
+                        calldata_pop();
                     }
                 }
             }
         }
     }
+    value_cleanup(&param->calldata, &calldatas);
+    value_cleanup(&param->contract_addr, &contract_addrs);
+    value_cleanup(&param->chain_id, &chain_ids);
+    value_cleanup(&param->selector, &selectors);
     return ret;
 }

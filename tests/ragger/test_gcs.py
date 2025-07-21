@@ -933,3 +933,5 @@ def test_gcs_nested(scenario_navigator: NavigateWithScenario, test_name: str):
     with app_client.send_raw_async(0xe0, 0x04, 0x00, 0x02, bytes()):
         pass
         # scenario_navigator.review_approve(test_name=test_name, do_comparison=False)
+    import time
+    time.sleep(1)

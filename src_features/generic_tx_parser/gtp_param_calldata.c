@@ -89,6 +89,9 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
 
     (void) param;
     (void) name;
+    if (get_tx_ctx_count() == 1) {
+        return false;
+    }
     if ((ret = value_get(&param->calldata, &calldatas))) {
         if ((ret = value_get(&param->contract_addr, &contract_addrs)) && (contract_addrs.size == calldatas.size)) {
             if (!param->has_chain_id || ((ret = value_get(&param->chain_id, &chain_ids)) && (chain_ids.size == calldatas.size))) {
@@ -100,6 +103,8 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
                                       &calldatas.value[i].ptr[calldatas.value[i].offset]);
                         calldata_append(&calldatas.value[i].ptr[calldatas.value[i].offset + CALLDATA_SELECTOR_SIZE],
                                         calldatas.value[i].length - CALLDATA_SELECTOR_SIZE);
+                        // TODO: format saved fields
+                        calldata_move_to_parent();
                         calldata_pop();
                     }
                 }
@@ -110,5 +115,6 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
     value_cleanup(&param->contract_addr, &contract_addrs);
     value_cleanup(&param->chain_id, &chain_ids);
     value_cleanup(&param->selector, &selectors);
+    //tx_info_pop();
     return ret;
 }

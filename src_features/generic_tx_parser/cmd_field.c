@@ -21,13 +21,18 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
         PRINTF("Error: could not verify the field struct!\n");
         return false;
     }
-    if (get_tx_ctx_count() == 1) {
+    if (tx_ctx_is_root()) {
+        PRINTF("Formatting now!\n");
         if (!format_field(&field)) {
             PRINTF("Error while formatting the field\n");
             return false;
         }
     } else {
+        PRINTF("Saving for later formatting...\n");
         if (!push_field_into_tx_ctx(&field)) return false;
+        if (validate_instruction_hash()) {
+            tx_info_move_to_parent();
+        }
     }
     return true;
 }
@@ -39,7 +44,7 @@ uint16_t handle_field(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *payload
         return APDU_RESPONSE_CONDITION_NOT_SATISFIED;
     }
 
-    if (get_last_tx_ctx() == NULL) {
+    if (get_current_tx_ctx() == NULL) {
         PRINTF("Error: Field received without a TX info!\n");
         gcs_cleanup();
         return APDU_RESPONSE_CONDITION_NOT_SATISFIED;

@@ -41,7 +41,8 @@ enum {
     TAG_SIGNATURE = 0xff,
 };
 
-static s_tx_info *g_tx_info = NULL;
+static s_tx_info *g_tx_info_list = NULL;
+static s_tx_info *g_tx_info_current = NULL;
 
 static bool handle_version(const s_tlv_data *data, s_tx_info_ctx *context) {
     if (data->length != sizeof(context->tx_info->version)) {
@@ -305,60 +306,60 @@ bool verify_tx_info_struct(const s_tx_info_ctx *context) {
 }
 
 const char *get_operation_type(void) {
-    if (g_tx_info->operation_type[0] == '\0') {
+    if (g_tx_info_current->operation_type[0] == '\0') {
         return NULL;
     }
-    return g_tx_info->operation_type;
+    return g_tx_info_current->operation_type;
 }
 
 const char *get_creator_name(void) {
-    if (g_tx_info->creator_name[0] == '\0') {
+    if (g_tx_info_current->creator_name[0] == '\0') {
         return NULL;
     }
-    return g_tx_info->creator_name;
+    return g_tx_info_current->creator_name;
 }
 
 const char *get_creator_legal_name(void) {
-    if (g_tx_info->creator_legal_name[0] == '\0') {
+    if (g_tx_info_current->creator_legal_name[0] == '\0') {
         return NULL;
     }
-    return g_tx_info->creator_legal_name;
+    return g_tx_info_current->creator_legal_name;
 }
 
 const char *get_creator_url(void) {
-    if (g_tx_info->creator_url[0] == '\0') {
+    if (g_tx_info_current->creator_url[0] == '\0') {
         return NULL;
     }
-    return g_tx_info->creator_url;
+    return g_tx_info_current->creator_url;
 }
 
 const char *get_contract_name(void) {
-    if (g_tx_info->contract_name[0] == '\0') {
+    if (g_tx_info_current->contract_name[0] == '\0') {
         return NULL;
     }
-    return g_tx_info->contract_name;
+    return g_tx_info_current->contract_name;
 }
 
 const uint8_t *get_contract_addr(void) {
-    return g_tx_info->contract_addr;
+    return g_tx_info_current->contract_addr;
 }
 
 const char *get_deploy_date(void) {
-    if (g_tx_info->deploy_date[0] == '\0') {
+    if (g_tx_info_current->deploy_date[0] == '\0') {
         return NULL;
     }
-    return g_tx_info->deploy_date;
+    return g_tx_info_current->deploy_date;
 }
 
 cx_hash_t *get_fields_hash_ctx(void) {
-    return (cx_hash_t *) &g_tx_info->fields_hash_ctx;
+    return (cx_hash_t *) &g_tx_info_current->fields_hash_ctx;
 }
 
-bool validate_instruction_hash(void) {
-    uint8_t hash[sizeof(g_tx_info->fields_hash)];
+static bool validate_inst_hash_on(const s_tx_info *tx_info) {
+    uint8_t hash[sizeof(tx_info->fields_hash)];
 
-    if (g_tx_info == NULL) return false;
-    if (cx_hash_no_throw((cx_hash_t *) &g_tx_info->fields_hash_ctx,
+    if (tx_info == NULL) return false;
+    if (cx_hash_no_throw((cx_hash_t *) &tx_info->fields_hash_ctx,
                          CX_LAST,
                          NULL,
                          0,
@@ -366,25 +367,24 @@ bool validate_instruction_hash(void) {
                          sizeof(hash)) != CX_OK) {
         return false;
     }
-    return memcmp(g_tx_info->fields_hash, hash, sizeof(hash)) == 0;
+    return memcmp(tx_info->fields_hash, hash, sizeof(hash)) == 0;
+}
+
+bool validate_instruction_hash(void) {
+    return validate_inst_hash_on(g_tx_info_current);
 }
 
 void push_new_tx_ctx(s_tx_info *tx_info) {
-    flist_push_back((s_flist_node **) &g_tx_info, (s_flist_node *) tx_info);
+    flist_push_back((s_flist_node **) &g_tx_info_list, (s_flist_node *) tx_info);
+    g_tx_info_current = tx_info;
 }
 
-s_tx_info *get_last_tx_ctx(void) {
-    s_tx_info *tmp = g_tx_info;
-
-    if (tmp == NULL) return NULL;
-    while (((s_flist_node *) tmp)->next != NULL) {
-        tmp = (s_tx_info *) ((s_flist_node *) tmp)->next;
-    }
-    return tmp;
+bool tx_ctx_is_root(void) {
+    return g_tx_info_current == g_tx_info_list;
 }
 
 size_t get_tx_ctx_count(void) {
-    return flist_size((s_flist_node **) &g_tx_info);
+    return flist_size((s_flist_node **) &g_tx_info_list);
 }
 
 bool push_field_into_tx_ctx(const s_field *field) {
@@ -395,8 +395,12 @@ bool push_field_into_tx_ctx(const s_field *field) {
     }
     explicit_bzero(node, sizeof(*node));
     memcpy(&node->field, field, sizeof(*field));
-    flist_push_back((s_flist_node **) &g_tx_info->fields, (s_flist_node *) node);
+    flist_push_back((s_flist_node **) &g_tx_info_current->fields, (s_flist_node *) node);
     return true;
+}
+
+s_tx_info *get_current_tx_ctx(void) {
+    return g_tx_info_current;
 }
 
 static void delete_field(s_field_list_node *node) {
@@ -408,6 +412,21 @@ static void delete_tx_info(s_tx_info *node) {
     app_mem_free(node);
 }
 
+// TODO: make doubly linked
+// g_tx_info_current = g_tx_info_current->prev;
+void tx_info_move_to_parent(void) {
+    s_flist_node *tmp = (s_flist_node *) g_tx_info_list;
+
+    while ((tmp != NULL) && (tmp->next != (s_flist_node *) g_tx_info_current)) {
+        tmp = tmp->next;
+    }
+    g_tx_info_current = (s_tx_info *) tmp;
+}
+
+void tx_info_pop(void) {
+    flist_pop_back((s_flist_node **) &g_tx_info_list, (f_list_node_del) &delete_tx_info);
+}
+
 void tx_info_cleanup(void) {
-    flist_clear((s_flist_node **) &g_tx_info, (f_list_node_del) &delete_tx_info);
+    flist_clear((s_flist_node **) &g_tx_info_list, (f_list_node_del) &delete_tx_info);
 }

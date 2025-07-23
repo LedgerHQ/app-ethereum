@@ -30,16 +30,8 @@ typedef struct {
     size_t chunk_size;
 } s_calldata;
 
-static s_calldata *g_calldata = NULL;
-
-static s_calldata *get_last_calldata(s_calldata *list) {
-    s_calldata *last;
-
-    for (last = list;
-         (last != NULL) && (((s_flist_node *) last)->next != NULL);
-         last = (s_calldata *) ((s_flist_node *) last)->next);
-    return last;
-}
+static s_calldata *g_calldata_list = NULL;
+static s_calldata *g_calldata_current = NULL;
 
 bool calldata_init(size_t size, const uint8_t selector[CALLDATA_SELECTOR_SIZE]) {
     s_calldata *calldata;
@@ -52,7 +44,8 @@ bool calldata_init(size_t size, const uint8_t selector[CALLDATA_SELECTOR_SIZE]) 
     if (selector != NULL) {
         memcpy(calldata->selector, selector, CALLDATA_SELECTOR_SIZE);
     }
-    flist_push_back((s_flist_node **) &g_calldata, (s_flist_node *) calldata);
+    flist_push_back((s_flist_node **) &g_calldata_list, (s_flist_node *) calldata);
+    g_calldata_current = calldata;
     return true;
 }
 
@@ -121,7 +114,7 @@ static bool decompress_chunk(const s_calldata_chunk *chunk, uint8_t *out) {
 
 bool calldata_append(const uint8_t *buffer, size_t size) {
     uint8_t cpy_length;
-    s_calldata *calldata = get_last_calldata(g_calldata);
+    s_calldata *calldata = g_calldata_current;
 
     if (calldata == NULL) return false;
     if ((calldata->received_size + size) > calldata->expected_size) {
@@ -164,6 +157,15 @@ bool calldata_append(const uint8_t *buffer, size_t size) {
     return true;
 }
 
+void calldata_move_to_parent(void) {
+    s_flist_node *tmp = (s_flist_node *) g_calldata_list;
+
+    while ((tmp != NULL) && (tmp->next != (s_flist_node *) g_calldata_current)) {
+        tmp = tmp->next;
+    }
+    g_calldata_current = (s_calldata *) tmp;
+}
+
 // to be used as a \ref f_list_node_del
 static void delete_calldata_chunk(s_calldata_chunk *node) {
     if (node->buf != NULL) {
@@ -178,11 +180,11 @@ static void delete_calldata(s_calldata *node) {
 }
 
 void calldata_pop(void) {
-    flist_pop_back((s_flist_node **) &g_calldata, (f_list_node_del) &delete_calldata);
+    flist_pop_back((s_flist_node **) &g_calldata_list, (f_list_node_del) &delete_calldata);
 }
 
 void calldata_cleanup(void) {
-    flist_clear((s_flist_node **) &g_calldata, (f_list_node_del) &delete_calldata);
+    flist_clear((s_flist_node **) &g_calldata_list, (f_list_node_del) &delete_calldata);
 }
 
 static bool has_valid_calldata(const s_calldata *calldata) {
@@ -198,7 +200,7 @@ static bool has_valid_calldata(const s_calldata *calldata) {
 }
 
 const uint8_t *calldata_get_selector(void) {
-    s_calldata *calldata = get_last_calldata(g_calldata);
+    s_calldata *calldata = g_calldata_current;
 
     if (!has_valid_calldata(calldata)) {
         return NULL;
@@ -207,7 +209,7 @@ const uint8_t *calldata_get_selector(void) {
 }
 
 const uint8_t *calldata_get_chunk(int idx) {
-    s_calldata *calldata = get_last_calldata(g_calldata);
+    s_calldata *calldata = g_calldata_current;
     s_calldata_chunk *chunk;
 
     if (!has_valid_calldata(calldata) || (calldata->chunks == NULL)) {

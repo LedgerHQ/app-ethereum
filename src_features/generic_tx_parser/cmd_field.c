@@ -21,18 +21,9 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
         PRINTF("Error: could not verify the field struct!\n");
         return false;
     }
-    if (tx_ctx_is_root()) {
-        PRINTF("Formatting now!\n");
-        if (!format_field(&field)) {
-            PRINTF("Error while formatting the field\n");
-            return false;
-        }
-    } else {
-        PRINTF("Saving for later formatting...\n");
-        if (!push_field_into_tx_ctx(&field)) return false;
-        if (validate_instruction_hash()) {
-            tx_info_move_to_parent();
-        }
+    if (!format_field(&field)) {
+        PRINTF("Error while formatting the field\n");
+        return false;
     }
     return true;
 }

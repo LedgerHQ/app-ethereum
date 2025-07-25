@@ -3,6 +3,7 @@
 #include "common_utils.h"
 #include "gtp_field_table.h"
 #include "shared_context.h"
+#include "mem.h"
 
 enum {
     TAG_VERSION = 0x00,
@@ -11,6 +12,8 @@ enum {
     TAG_CHAIN_ID = 0x03,
     TAG_SELECTOR = 0x04,
 };
+
+s_calldata_list *g_calldata = NULL;
 
 static bool handle_version(const s_tlv_data *data, s_param_calldata_context *context) {
     if (data->length != sizeof(context->param->version)) {
@@ -81,40 +84,12 @@ bool handle_param_calldata_struct(const s_tlv_data *data, s_param_calldata_conte
 }
 
 bool format_param_calldata(const s_param_calldata *param, const char *name) {
-    bool ret = true;
-    s_parsed_value_collection calldatas = {0};
-    s_parsed_value_collection contract_addrs = {0};
-    s_parsed_value_collection chain_ids = {0};
-    s_parsed_value_collection selectors = {0};
+    s_calldata_list *node;
 
-    (void) param;
     (void) name;
-    if (get_tx_ctx_count() == 1) {
-        return false;
-    }
-    if ((ret = value_get(&param->calldata, &calldatas))) {
-        if ((ret = value_get(&param->contract_addr, &contract_addrs)) && (contract_addrs.size == calldatas.size)) {
-            if (!param->has_chain_id || ((ret = value_get(&param->chain_id, &chain_ids)) && (chain_ids.size == calldatas.size))) {
-                if (!param->has_selector || ((ret = value_get(&param->selector, &selectors)) && (selectors.size == calldatas.size))) {
-                    for (int i = 0; i < calldatas.size; ++i) {
-                        PRINTF("calldata -> 0x%.*h\n", calldatas.value[i].length, &calldatas.value[i].ptr[calldatas.value[i].offset]);
-                        // TODO: handle given selector
-                        calldata_init(calldatas.value[i].length - CALLDATA_SELECTOR_SIZE,
-                                      &calldatas.value[i].ptr[calldatas.value[i].offset]);
-                        calldata_append(&calldatas.value[i].ptr[calldatas.value[i].offset + CALLDATA_SELECTOR_SIZE],
-                                        calldatas.value[i].length - CALLDATA_SELECTOR_SIZE);
-                        // TODO: format saved fields
-                        calldata_move_to_parent();
-                        calldata_pop();
-                    }
-                }
-            }
-        }
-    }
-    value_cleanup(&param->calldata, &calldatas);
-    value_cleanup(&param->contract_addr, &contract_addrs);
-    value_cleanup(&param->chain_id, &chain_ids);
-    value_cleanup(&param->selector, &selectors);
-    //tx_info_pop();
-    return ret;
+    if ((node = app_mem_alloc(sizeof(*node))) == NULL) return false;
+    explicit_bzero(node, sizeof(*node));
+    memcpy(&node->value, param, sizeof(node->value));
+    flist_push_back((s_flist_node **) &g_calldata, (s_flist_node *) node);
+    return true;
 }

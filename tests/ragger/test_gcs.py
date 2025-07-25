@@ -819,43 +819,24 @@ def test_gcs_nested(scenario_navigator: NavigateWithScenario, test_name: str):
         pass
 
     fields = [
-            # Field(
-            #     1,
-            #     "_singleton",
-            #     ParamRaw(
-            #         1,
-            #         Value(
-            #             1,
-            #             TypeFamily.ADDRESS,
-            #             data_path=DataPath(
-            #                 1,
-            #                 [
-            #                     PathTuple(0),
-            #                     PathLeaf(PathLeafType.STATIC),
-            #                 ]
-            #             ),
-            #         ),
-            #     )
-            # ),
-            # Field(
-            #     1,
-            #     "initializer",
-            #     ParamRaw(
-            #         1,
-            #         Value(
-            #             1,
-            #             TypeFamily.BYTES,
-            #             data_path=DataPath(
-            #                 1,
-            #                 [
-            #                     PathTuple(1),
-            #                     PathRef(),
-            #                     PathLeaf(PathLeafType.DYNAMIC),
-            #                 ]
-            #             ),
-            #         ),
-            #     )
-            # ),
+            Field(
+                1,
+                "_singleton",
+                ParamRaw(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(0),
+                                PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                    ),
+                )
+            ),
             Field(
                 1,
                 "setup",
@@ -929,7 +910,7 @@ def test_gcs_nested(scenario_navigator: NavigateWithScenario, test_name: str):
     sub_fields = [
             Field(
                 1,
-                "owners",
+                "_owners",
                 ParamRaw(
                     1,
                     Value(
@@ -941,6 +922,62 @@ def test_gcs_nested(scenario_navigator: NavigateWithScenario, test_name: str):
                                 PathTuple(0),
                                 PathLeaf(PathLeafType.ARRAY),
                                 PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                    ),
+                )
+            ),
+            Field(
+                1,
+                "_threshold",
+                ParamRaw(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.UINT,
+                        type_size=32,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(1),
+                                PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                    ),
+                )
+            ),
+            Field(
+                1,
+                "to",
+                ParamRaw(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(2),
+                                PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                    ),
+                )
+            ),
+            Field(
+                1,
+                "data",
+                ParamRaw(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.BYTES,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(3),
+                                PathRef(),
+                                PathLeaf(PathLeafType.DYNAMIC),
                             ]
                         ),
                     ),

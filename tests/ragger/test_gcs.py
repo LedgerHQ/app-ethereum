@@ -67,7 +67,6 @@ def test_gcs_nft(scenario_navigator: NavigateWithScenario, test_name: str):
             Field(
                 1,
                 "From",
-                ParamType.TRUSTED_NAME,
                 ParamTrustedName(
                     1,
                     Value(
@@ -99,7 +98,6 @@ def test_gcs_nft(scenario_navigator: NavigateWithScenario, test_name: str):
             Field(
                 1,
                 "To",
-                ParamType.RAW,
                 ParamRaw(
                     1,
                     Value(
@@ -118,7 +116,6 @@ def test_gcs_nft(scenario_navigator: NavigateWithScenario, test_name: str):
             Field(
                 1,
                 "NFTs",
-                ParamType.NFT,
                 ParamNFT(
                     1,
                     Value(
@@ -145,7 +142,6 @@ def test_gcs_nft(scenario_navigator: NavigateWithScenario, test_name: str):
             Field(
                 1,
                 "Values",
-                ParamType.RAW,
                 ParamRaw(
                     1,
                     Value(
@@ -167,7 +163,6 @@ def test_gcs_nft(scenario_navigator: NavigateWithScenario, test_name: str):
             Field(
                 1,
                 "Data",
-                ParamType.RAW,
                 ParamRaw(
                     1,
                     Value(
@@ -262,7 +257,6 @@ def test_gcs_poap(scenario_navigator: NavigateWithScenario,
             Field(
                 1,
                 "Event ID",
-                ParamType.RAW,
                 ParamRaw(
                     1,
                     Value(
@@ -282,7 +276,6 @@ def test_gcs_poap(scenario_navigator: NavigateWithScenario,
             Field(
                 1,
                 "Token ID",
-                ParamType.RAW,
                 ParamRaw(
                     1,
                     Value(
@@ -302,7 +295,6 @@ def test_gcs_poap(scenario_navigator: NavigateWithScenario,
             Field(
                 1,
                 "Receiver",
-                ParamType.RAW,
                 ParamRaw(
                     1,
                     Value(
@@ -321,7 +313,6 @@ def test_gcs_poap(scenario_navigator: NavigateWithScenario,
             Field(
                 1,
                 "Expiration time",
-                ParamType.DATETIME,
                 ParamDatetime(
                     1,
                     Value(
@@ -342,7 +333,6 @@ def test_gcs_poap(scenario_navigator: NavigateWithScenario,
             Field(
                 1,
                 "Signature",
-                ParamType.RAW,
                 ParamRaw(
                     1,
                     Value(
@@ -431,7 +421,6 @@ def test_gcs_1inch(scenario_navigator: NavigateWithScenario, test_name: str):
             Field(
                 1,
                 "Executor",
-                ParamType.RAW,
                 ParamRaw(
                     1,
                     Value(
@@ -450,7 +439,6 @@ def test_gcs_1inch(scenario_navigator: NavigateWithScenario, test_name: str):
             Field(
                 1,
                 "Send",
-                ParamType.TOKEN_AMOUNT,
                 ParamTokenAmount(
                     1,
                     Value(
@@ -486,7 +474,6 @@ def test_gcs_1inch(scenario_navigator: NavigateWithScenario, test_name: str):
             Field(
                 1,
                 "Receive",
-                ParamType.TOKEN_AMOUNT,
                 ParamTokenAmount(
                     1,
                     Value(
@@ -582,7 +569,6 @@ def test_gcs_proxy(scenario_navigator: NavigateWithScenario, test_name: str):
         Field(
             1,
             "New owner",
-            ParamType.TRUSTED_NAME,
             ParamTrustedName(
                 1,
                 Value(
@@ -689,7 +675,6 @@ def test_gcs_4226(scenario_navigator: NavigateWithScenario, test_name: str):
             Field(
                 1,
                 "Deposit asset",
-                ParamType.TOKEN_AMOUNT,
                 ParamTokenAmount(
                     1,
                     Value(
@@ -714,7 +699,6 @@ def test_gcs_4226(scenario_navigator: NavigateWithScenario, test_name: str):
             Field(
                 1,
                 "Receive shares",
-                ParamType.TOKEN,
                 ParamToken(
                     1,
                     Value(
@@ -727,8 +711,7 @@ def test_gcs_4226(scenario_navigator: NavigateWithScenario, test_name: str):
             Field(
                 1,
                 "Send shares to",
-                ParamType.RAW,
-                ParamToken(
+                ParamRaw(
                     1,
                     Value(
                         1,

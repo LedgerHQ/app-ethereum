@@ -325,6 +325,6 @@ bool data_path_get(const s_data_path *data_path, s_parsed_value_collection *coll
 
 void data_path_cleanup(const s_parsed_value_collection *collection) {
     for (int i = 0; i < collection->size; ++i) {
-        app_mem_free((void *) collection->value[i].ptr);
+        app_mem_free((void *) collection->value[i].ptr - collection->value[i].offset);
     }
 }

@@ -1,7 +1,7 @@
 [app]
 build_directory = "./"
 sdk = "C"
-devices = ["nanos", "nanox", "nanos+", "stax", "flex"]
+devices = ["nanos", "nanox", "nanos+", "stax", "flex", "apex_p"]
 
 [use_cases]
 use_test_keys = "CAL_TEST_KEY=1 TRUSTED_NAME_TEST_KEY=1 SET_PLUGIN_TEST_KEY=1 NFT_TEST_KEY=1"

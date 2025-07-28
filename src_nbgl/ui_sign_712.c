@@ -92,7 +92,7 @@ static void ui_712_start_common(bool has_filtering) {
 void ui_712_start_unfiltered(void) {
     ui_712_start_common(false);
     nbgl_useCaseReviewStreamingBlindSigningStart(TYPE_MESSAGE | SKIPPABLE_OPERATION,
-                                                 &C_Review_64px,
+                                                 &LARGE_REVIEW_ICON,
                                                  TEXT_REVIEW_EIP712,
                                                  NULL,
                                                  message_update);
@@ -101,7 +101,7 @@ void ui_712_start_unfiltered(void) {
 void ui_712_start(void) {
     ui_712_start_common(true);
     nbgl_useCaseReviewStreamingStart(TYPE_MESSAGE,
-                                     &C_Review_64px,
+                                     &LARGE_REVIEW_ICON,
                                      TEXT_REVIEW_EIP712,
                                      NULL,
                                      message_update);

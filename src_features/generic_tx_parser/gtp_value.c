@@ -125,10 +125,9 @@ bool value_get(const s_value *value, s_parsed_value_collection *collection) {
                             return false;  // Memory allocation failed
                         }
                     }
-                    if ((ret = get_public_key(from_address, sizeof(from_address)) ==
-                               APDU_RESPONSE_OK)) {
+                    if ((ret = get_public_key(from_address, ADDRESS_LENGTH) == APDU_RESPONSE_OK)) {
                         collection->value[0].ptr = from_address;
-                        collection->value[0].length = sizeof(from_address);
+                        collection->value[0].length = ADDRESS_LENGTH;
                         collection->size = 1;
                     }
                     break;

@@ -40,7 +40,7 @@
 
 ## About the project
 
-Ethereum wallet application framework for Ledger Nano S, Ledger Nano S Plus, Ledger Nano X, Ledger Flex and Ledger Stax.
+Ethereum wallet application framework for Ledger devices.
 Ledger Blue is not maintained anymore, but the app can still be compiled for this target using the branch [`blue-final-release`](https://github.com/LedgerHQ/app-ethereum/tree/blue-final-release).
 
 ## Documentation
@@ -153,6 +153,8 @@ You can choose which device to compile and load for by setting the `BOLOS_SDK` e
 - `BOLOS_SDK=$NANOX_SDK`
 - `BOLOS_SDK=$NANOSP_SDK`
 - `BOLOS_SDK=$STAX_SDK`
+- `BOLOS_SDK=$FLEX_SDK`
+- `BOLOS_SDK=$APEX_P_SDK`
 
 ### Loading on a physical device
 

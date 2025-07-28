@@ -45,14 +45,14 @@ APP_SOURCE_PATH += src src_features src_plugins src_nbgl
 APP_SOURCE_FILES += $(filter-out ./ethereum-plugin-sdk/src/main.c, $(wildcard ./ethereum-plugin-sdk/src/*.c))
 INCLUDES_PATH += ./ethereum-plugin-sdk/src
 
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
-NETWORK_ICONS_FILE = $(GEN_SRC_DIR)/net_icons.gen.c
-NETWORK_ICONS_DIR = $(shell dirname "$(NETWORK_ICONS_FILE)")
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX TARGET_APEX_M TARGET_APEX_P))
+    NETWORK_ICONS_FILE = $(GEN_SRC_DIR)/net_icons.gen.c
+    NETWORK_ICONS_DIR = $(shell dirname "$(NETWORK_ICONS_FILE)")
 
-$(NETWORK_ICONS_FILE):
-	$(shell python3 tools/gen_networks.py "$(NETWORK_ICONS_DIR)")
+    $(NETWORK_ICONS_FILE):
+    	$(shell python3 tools/gen_networks.py "$(NETWORK_ICONS_DIR)")
 
-APP_SOURCE_FILES += $(NETWORK_ICONS_FILE)
+    APP_SOURCE_FILES += $(NETWORK_ICONS_FILE)
 endif
 
 # Application icons following guidelines:
@@ -61,20 +61,24 @@ ICON_NANOX = icons/nanox_app_chain_$(CHAIN_ID).gif
 ICON_NANOSP = icons/nanox_app_chain_$(CHAIN_ID).gif
 ICON_STAX = icons/stax_app_chain_$(CHAIN_ID).gif
 ICON_FLEX = icons/flex_app_chain_$(CHAIN_ID).gif
+ICON_APEX_M = icons/apex_app_chain_$(CHAIN_ID).gif
+ICON_APEX_P = icons/apex_app_chain_$(CHAIN_ID).gif
 
 #prepare hsm generation
 ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
     DEFINES += ICONGLYPH=C_chain_$(CHAIN_ID)_64px
     DEFINES += ICONBITMAP=C_chain_$(CHAIN_ID)_64px_bitmap
     DEFINES += ICONHOME=C_chain_$(CHAIN_ID)_64px
-else
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_NANOS2))
+else ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME), TARGET_APEX_M TARGET_APEX_P))
+    DEFINES += ICONGLYPH=C_chain_$(CHAIN_ID)_48px
+    DEFINES += ICONBITMAP=C_chain_$(CHAIN_ID)_48px_bitmap
+    DEFINES += ICONHOME=C_chain_$(CHAIN_ID)_48px
+else ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_NANOS2))
     DEFINES += ICONGLYPH=C_chain_$(CHAIN_ID)_14px
     DEFINES += ICONBITMAP=C_chain_$(CHAIN_ID)_14px_bitmap
 
     ICON_HOME_NANO = glyphs/home_chain_$(CHAIN_ID)_14px.gif
     DEFINES += ICONHOME=C_home_chain_$(CHAIN_ID)_14px
-endif
 endif
 
 # Don't define plugin function in the plugin SDK

@@ -1,7 +1,7 @@
 [app]
 build_directory = "./"
 sdk = "C"
-devices = ["nanox", "nanos+", "stax", "flex"]
+devices = ["apex_p", "nanox", "nanos+", "stax", "flex"]
 
 [use_cases]
 whitelist_keys = "EIP7702_TEST_WHITELIST=1"

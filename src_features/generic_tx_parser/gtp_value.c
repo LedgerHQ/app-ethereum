@@ -114,9 +114,7 @@ bool value_get(const s_value *value, s_parsed_value_collection *collection) {
     switch (value->source) {
         case SOURCE_CALLDATA:
             collection->size = 0;
-            // TODO: prepare nested calldata
             ret = data_path_get(&value->data_path, collection);
-            // TODO: cleanup nested calldata
             break;
 
         case SOURCE_RLP:

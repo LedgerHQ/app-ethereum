@@ -1003,12 +1003,12 @@ def test_gcs_nested(scenario_navigator: NavigateWithScenario, test_name: str):
 
     for field in fields:
         payload = field.serialize()
-        app_client.send_raw(0xe0, 0x28, 0x01, 0x00, struct.pack(">H", len(payload)) + payload)
         if field.param.type == ParamType.CALLDATA:
             app_client.provide_transaction_info(sub_tx_info.serialize())
             for sub_field in sub_fields:
                 sub_payload = sub_field.serialize()
                 app_client.send_raw(0xe0, 0x28, 0x01, 0x00, struct.pack(">H", len(sub_payload)) + sub_payload)
+        app_client.send_raw(0xe0, 0x28, 0x01, 0x00, struct.pack(">H", len(payload)) + payload)
 
     with app_client.send_raw_async(0xe0, 0x04, 0x00, 0x02, bytes()):
         pass

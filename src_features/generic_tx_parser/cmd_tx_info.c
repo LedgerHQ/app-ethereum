@@ -27,7 +27,6 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
     if (cx_sha3_init_no_throw(&ctx.tx_info->fields_hash_ctx, 256) != CX_OK) {
         return false;
     }
-
     push_new_tx_ctx(ctx.tx_info);
     return field_table_init();
 }

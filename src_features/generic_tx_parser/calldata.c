@@ -31,6 +31,7 @@ typedef struct {
 } s_calldata;
 
 static s_calldata *g_calldata_list = NULL;
+static s_calldata *g_calldata_current = NULL;
 
 bool calldata_init(size_t size, const uint8_t selector[CALLDATA_SELECTOR_SIZE]) {
     s_calldata *calldata;
@@ -44,15 +45,8 @@ bool calldata_init(size_t size, const uint8_t selector[CALLDATA_SELECTOR_SIZE]) 
         memcpy(calldata->selector, selector, CALLDATA_SELECTOR_SIZE);
     }
     flist_push_back((s_flist_node **) &g_calldata_list, (s_flist_node *) calldata);
+    g_calldata_current = calldata;
     return true;
-}
-
-static s_calldata *get_current_calldata(void) {
-    s_flist_node *tmp;
-
-    // return last one
-    for (tmp = (s_flist_node *) g_calldata_list; (tmp != NULL) && (tmp->next != NULL); tmp = tmp->next);
-    return (s_calldata *) tmp;
 }
 
 static bool compress_chunk(s_calldata *calldata) {
@@ -120,7 +114,7 @@ static bool decompress_chunk(const s_calldata_chunk *chunk, uint8_t *out) {
 
 bool calldata_append(const uint8_t *buffer, size_t size) {
     uint8_t cpy_length;
-    s_calldata *calldata = get_current_calldata();
+    s_calldata *calldata = g_calldata_current;
 
     if (calldata == NULL) return false;
     if ((calldata->received_size + size) > calldata->expected_size) {
@@ -163,6 +157,15 @@ bool calldata_append(const uint8_t *buffer, size_t size) {
     return true;
 }
 
+void calldata_move_to_parent(void) {
+    s_flist_node *tmp = (s_flist_node *) g_calldata_list;
+
+    while ((tmp != NULL) && (tmp->next != (s_flist_node *) g_calldata_current)) {
+        tmp = tmp->next;
+    }
+    g_calldata_current = (s_calldata *) tmp;
+}
+
 // to be used as a \ref f_list_node_del
 static void delete_calldata_chunk(s_calldata_chunk *node) {
     if (node->buf != NULL) {
@@ -197,7 +200,7 @@ static bool has_valid_calldata(const s_calldata *calldata) {
 }
 
 const uint8_t *calldata_get_selector(void) {
-    s_calldata *calldata = get_current_calldata();
+    s_calldata *calldata = g_calldata_current;
 
     if (!has_valid_calldata(calldata)) {
         return NULL;
@@ -206,7 +209,7 @@ const uint8_t *calldata_get_selector(void) {
 }
 
 const uint8_t *calldata_get_chunk(int idx) {
-    s_calldata *calldata = get_current_calldata();
+    s_calldata *calldata = g_calldata_current;
     s_calldata_chunk *chunk;
 
     if (!has_valid_calldata(calldata) || (calldata->chunks == NULL)) {

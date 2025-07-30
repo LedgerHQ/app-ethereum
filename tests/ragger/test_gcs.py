@@ -839,7 +839,7 @@ def test_gcs_nested(scenario_navigator: NavigateWithScenario, test_name: str):
             ),
             Field(
                 1,
-                "setup",
+                "initializer",
                 ParamCalldata(
                     1,
                     Value(
@@ -978,6 +978,79 @@ def test_gcs_nested(scenario_navigator: NavigateWithScenario, test_name: str):
                                 PathTuple(3),
                                 PathRef(),
                                 PathLeaf(PathLeafType.DYNAMIC),
+                            ]
+                        ),
+                    ),
+                )
+            ),
+            Field(
+                1,
+                "fallbackHandler",
+                ParamRaw(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(4),
+                                PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                    ),
+                )
+            ),
+            Field(
+                1,
+                "paymentToken",
+                ParamRaw(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(5),
+                                PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                    ),
+                )
+            ),
+            Field(
+                1,
+                "payment",
+                ParamRaw(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.UINT,
+                        type_size=32,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(6),
+                                PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                    ),
+                )
+            ),
+            Field(
+                1,
+                "paymentReceiver",
+                ParamRaw(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(7),
+                                PathLeaf(PathLeafType.STATIC),
                             ]
                         ),
                     ),

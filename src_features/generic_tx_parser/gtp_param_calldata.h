@@ -9,11 +9,14 @@ typedef struct {
     uint8_t version;
     s_value calldata;
     s_value contract_addr;
-    // TODO: add from / value
     bool has_chain_id;
     s_value chain_id;
     bool has_selector;
     s_value selector;
+    bool has_amount;
+    s_value amount;
+    bool has_spender;
+    s_value spender;
 } s_param_calldata;
 
 typedef struct {

@@ -19,7 +19,7 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
         return NULL;
     }
     explicit_bzero(ctx.tx_info, sizeof(*ctx.tx_info));
-    cx_sha256_init((cx_sha256_t *) &ctx.struct_hash);
+    cx_sha256_init(&ctx.struct_hash);
     parsing_ret = tlv_parse(payload, size, (f_tlv_data_handler) &handle_tx_info_struct, &ctx);
     if (!parsing_ret || !verify_tx_info_struct(&ctx)) {
         return false;
@@ -28,6 +28,9 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
         return false;
     }
     push_new_tx_ctx(ctx.tx_info);
+    if (get_tx_ctx_count() > 1) {
+        return true;
+    }
     return field_table_init();
 }
 

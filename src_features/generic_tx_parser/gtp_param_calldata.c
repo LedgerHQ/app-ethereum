@@ -3,6 +3,7 @@
 #include "common_utils.h"
 #include "gtp_field_table.h"
 #include "shared_context.h"
+#include "gtp_tx_info.h"
 
 enum {
     TAG_VERSION = 0x00,
@@ -103,8 +104,8 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
                                       &calldatas.value[i].ptr[calldatas.value[i].offset]);
                         calldata_append(&calldatas.value[i].ptr[calldatas.value[i].offset + CALLDATA_SELECTOR_SIZE],
                                         calldatas.value[i].length - CALLDATA_SELECTOR_SIZE);
+                        // TODO: find matching tx info
                         // TODO: format saved fields
-                        calldata_move_to_parent();
                         calldata_pop();
                     }
                 }

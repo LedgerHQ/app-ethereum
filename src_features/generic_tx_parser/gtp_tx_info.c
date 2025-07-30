@@ -356,10 +356,13 @@ cx_hash_t *get_fields_hash_ctx(void) {
 }
 
 static bool validate_inst_hash_on(const s_tx_info *tx_info) {
+    cx_sha3_t hash_ctx;
     uint8_t hash[sizeof(tx_info->fields_hash)];
 
     if (tx_info == NULL) return false;
-    if (cx_hash_no_throw((cx_hash_t *) &tx_info->fields_hash_ctx,
+    // copy it locally, because the cx_hash call will modify it
+    memcpy(&hash_ctx, &tx_info->fields_hash_ctx, sizeof(hash_ctx));
+    if (cx_hash_no_throw((cx_hash_t *) &hash_ctx,
                          CX_LAST,
                          NULL,
                          0,

@@ -267,7 +267,7 @@ bool verify_tx_info_struct(const s_tx_info_ctx *context) {
     }
 
     tx_chain_id = get_tx_chain_id();
-    if (((proxy_parent = get_proxy_contract(&tx_chain_id,
+    if (((proxy_parent = get_implem_contract(&tx_chain_id,
                                             txContext.content->destination,
                                             context->tx_info->selector)) == NULL) ||
         (memcmp(proxy_parent, context->tx_info->contract_addr, ADDRESS_LENGTH) != 0)) {

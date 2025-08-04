@@ -628,9 +628,9 @@ def test_gcs_proxy(scenario_navigator: NavigateWithScenario, test_name: str):
 
     proxy_info = ProxyInfo(
         ResponseParser.challenge(app_client.get_challenge().data),
-        tx_info.contract_addr,
-        tx_info.chain_id,
         tx_params["to"],
+        tx_info.chain_id,
+        tx_info.contract_addr,
         selector=tx_info.selector,
     )
 

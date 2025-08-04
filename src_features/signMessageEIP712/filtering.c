@@ -91,7 +91,7 @@ static bool sig_verif_start(cx_sha256_t *hash_ctx, uint8_t magic) {
     // we can't compare the returned address with anything since filtering payloads are signed on an
     // address which is not provided
     if ((addr =
-             get_proxy_contract(&eip712_context->chain_id, eip712_context->contract_addr, NULL)) ==
+             get_implem_contract(&eip712_context->chain_id, eip712_context->contract_addr, NULL)) ==
         NULL) {
         addr = eip712_context->contract_addr;
     }

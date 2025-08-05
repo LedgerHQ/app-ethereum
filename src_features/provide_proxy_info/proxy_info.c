@@ -193,7 +193,7 @@ bool verify_proxy_info_struct(const s_proxy_info_ctx *context) {
                                     sizeof(hash),
                                     NULL,
                                     0,
-                                    CERTIFICATE_PUBLIC_KEY_USAGE_CALLDATA,
+                                    CERTIFICATE_PUBLIC_KEY_USAGE_TRUSTED_NAME,
                                     (uint8_t *) context->signature,
                                     context->signature_length) != CX_OK) {
         PRINTF("Error: signature verification failed!\n");
@@ -244,9 +244,10 @@ const uint8_t *get_proxy_contract(const uint64_t *chain_id,
         PRINTF("Error: Proxy info not initialized!\n");
         return NULL;
     }
+
     if (!check_proxy_params(chain_id,
                             addr,
-                            selector,
+                            g_proxy_info->has_selector ? selector : NULL,
                             &g_proxy_info->chain_id,
                             g_proxy_info->implem_address,
                             g_proxy_info->selector)) {
@@ -262,9 +263,10 @@ const uint8_t *get_implem_contract(const uint64_t *chain_id,
         PRINTF("Error: Proxy info not initialized!\n");
         return NULL;
     }
+
     if (!check_proxy_params(chain_id,
                             addr,
-                            selector,
+                            g_proxy_info->has_selector ? selector : NULL,
                             &g_proxy_info->chain_id,
                             g_proxy_info->address,
                             g_proxy_info->selector)) {

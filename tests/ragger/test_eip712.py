@@ -659,9 +659,9 @@ def test_eip712_proxy(scenario_navigator: NavigateWithScenario):
 
     proxy_info = ProxyInfo(
         ResponseParser.challenge(app_client.get_challenge().data),
-        bytes.fromhex(filters["address"][2:]),
-        int(data["domain"]["chainId"]),
         bytes.fromhex(data["domain"]["verifyingContract"][2:]),
+        int(data["domain"]["chainId"]),
+        bytes.fromhex(filters["address"][2:]),
     )
 
     app_client.provide_proxy_info(proxy_info.serialize())

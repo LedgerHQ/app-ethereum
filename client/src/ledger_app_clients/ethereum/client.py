@@ -442,7 +442,7 @@ class EthAppClient:
 
     def provide_proxy_info(self, payload: bytes) -> RAPDU:
         # Send ledgerPKI certificate
-        self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_CALLDATA)
+        self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_TRUSTED_NAME)
 
         chunks = self._cmd_builder.provide_proxy_info(payload)
         for chunk in chunks[:-1]:

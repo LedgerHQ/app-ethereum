@@ -57,3 +57,5 @@ bool push_field_into_tx_ctx(const s_field *field);
 void tx_info_move_to_parent(void);
 void tx_info_pop(void);
 void tx_info_cleanup(void);
+bool find_matching_tx_info(const uint8_t *contract_addr, const uint8_t *selector);
+s_field_list_node *get_fields_list(void);

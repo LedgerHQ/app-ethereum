@@ -14,3 +14,4 @@ void calldata_pop(void);
 void calldata_cleanup(void);
 const uint8_t *calldata_get_selector(void);
 const uint8_t *calldata_get_chunk(int idx);
+void calldata_dump(void);

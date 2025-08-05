@@ -219,3 +219,25 @@ const uint8_t *calldata_get_chunk(int idx) {
     if (!decompress_chunk(chunk, calldata->chunk)) return NULL;
     return calldata->chunk;
 }
+
+void calldata_dump(void) {
+    s_calldata *calldata = get_current_calldata();
+    int i = 0;
+
+    PRINTF("=== calldata at 0x%p ===\n", calldata);
+    PRINTF("selector = 0x%.*h\n", sizeof(calldata->selector), calldata->selector);
+    for (s_calldata_chunk *chunk = calldata->chunks;
+         chunk != NULL;
+         chunk = (s_calldata_chunk *) ((s_flist_node *) chunk)->next) {
+        PRINTF("[%02u] ", i++);
+        if (chunk->dir == CHUNK_STRIP_LEFT) {
+            for (int y = 0; y < (CALLDATA_CHUNK_SIZE - chunk->size); ++y) PRINTF("%02x", 0);
+        }
+        PRINTF("%.*h", chunk->size, chunk->buf);
+        if (chunk->dir == CHUNK_STRIP_RIGHT) {
+            for (int y = 0; y < (CALLDATA_CHUNK_SIZE - chunk->size); ++y) PRINTF("%02x", 0);
+        }
+        PRINTF("\n");
+    }
+    PRINTF("========================\n");
+}

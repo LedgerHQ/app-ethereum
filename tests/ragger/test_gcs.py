@@ -774,7 +774,7 @@ def test_gcs_nested(scenario_navigator: NavigateWithScenario, test_name: str):
             abi=json.load(f),
             address=bytes.fromhex("BD89A1CE4DDe368FFAB0eC35506eEcE0b1fFdc54")
         )
-    data = safe_l2_setup.encode_abi("setupToL2", [
+    safe_l2_setup_data = safe_l2_setup.encode_abi("setupToL2", [
         bytes.fromhex("29fcB43b46531BcA003ddC8FCB67FFE91900C762")
     ])
     with open(f"{ABIS_FOLDER}/safe_1.4.1.abi.json", encoding="utf-8") as f:
@@ -782,14 +782,14 @@ def test_gcs_nested(scenario_navigator: NavigateWithScenario, test_name: str):
             abi=json.load(f),
             address=bytes.fromhex("41675C099F32341bf84BFc5382aF534df5C7461a")
         )
-    data = safe.encode_abi("setup", [
+    safe_data = safe.encode_abi("setup", [
         [
             bytes.fromhex("6535d5F76F021FE65E2ac73D086dF4b4Bd7ee5D9"),
             bytes.fromhex("3fB2C8699C3D0Cedde210F383435C537C86D91B8")
         ],
         2,
         safe_l2_setup.address,
-        data,
+        safe_l2_setup_data,
         bytes.fromhex("fd0732Dc9E303f09fCEf3a7388Ad10A83459Ec99"),
         bytes.fromhex("0000000000000000000000000000000000000000"),
         0,
@@ -802,7 +802,7 @@ def test_gcs_nested(scenario_navigator: NavigateWithScenario, test_name: str):
         )
     data = safe_proxy_factory.encode_abi("createProxyWithNonce", [
         safe.address,
-        data,
+        safe_data,
         0
     ])
     tx_params = {
@@ -920,7 +920,8 @@ def test_gcs_nested(scenario_navigator: NavigateWithScenario, test_name: str):
                             1,
                             [
                                 PathTuple(0),
-                                PathLeaf(PathLeafType.ARRAY),
+                                PathRef(),
+                                PathArray(1),
                                 PathLeaf(PathLeafType.STATIC),
                             ]
                         ),
@@ -967,7 +968,7 @@ def test_gcs_nested(scenario_navigator: NavigateWithScenario, test_name: str):
             Field(
                 1,
                 "data",
-                ParamRaw(
+                ParamCalldata(
                     1,
                     Value(
                         1,
@@ -978,6 +979,17 @@ def test_gcs_nested(scenario_navigator: NavigateWithScenario, test_name: str):
                                 PathTuple(3),
                                 PathRef(),
                                 PathLeaf(PathLeafType.DYNAMIC),
+                            ]
+                        ),
+                    ),
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(2),
+                                PathLeaf(PathLeafType.STATIC),
                             ]
                         ),
                     ),
@@ -1065,9 +1077,45 @@ def test_gcs_nested(scenario_navigator: NavigateWithScenario, test_name: str):
     sub_tx_info = TxInfo(
         1,
         tx_params["chainId"],
-        tx_params["to"],
-        get_selector_from_data(tx_params["data"]),
+        safe.address,
+        get_selector_from_data(safe_data),
         sub_inst_hash.digest(),
+        "create a Safe account",
+        creator_name="Safe",
+        creator_legal_name="Safe Ecosystem Foundation",
+        creator_url="safe.global",
+    )
+
+    sub_sub_fields = [
+            Field(
+                1,
+                "l2Singleton",
+                ParamRaw(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(0),
+                                PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                    ),
+                )
+            ),
+    ]
+    # compute instructions hash
+    sub_sub_inst_hash = hashlib.sha3_256()
+    for sub_sub_field in sub_sub_fields:
+        sub_sub_inst_hash.update(sub_sub_field.serialize())
+    sub_sub_tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        safe_l2_setup.address,
+        get_selector_from_data(safe_l2_setup_data),
+        sub_sub_inst_hash.digest(),
         "create a Safe account",
         creator_name="Safe",
         creator_legal_name="Safe Ecosystem Foundation",
@@ -1080,6 +1128,11 @@ def test_gcs_nested(scenario_navigator: NavigateWithScenario, test_name: str):
             app_client.provide_transaction_info(sub_tx_info.serialize())
             for sub_field in sub_fields:
                 sub_payload = sub_field.serialize()
+                if sub_field.param.type == ParamType.CALLDATA:
+                    app_client.provide_transaction_info(sub_sub_tx_info.serialize())
+                    for sub_sub_field in sub_sub_fields:
+                        sub_sub_payload = sub_sub_field.serialize()
+                        app_client.send_raw(0xe0, 0x28, 0x01, 0x00, struct.pack(">H", len(sub_sub_payload)) + sub_sub_payload)
                 app_client.send_raw(0xe0, 0x28, 0x01, 0x00, struct.pack(">H", len(sub_payload)) + sub_payload)
         app_client.send_raw(0xe0, 0x28, 0x01, 0x00, struct.pack(">H", len(payload)) + payload)
 

@@ -94,9 +94,11 @@ static bool handle_selector(const s_tlv_data *data, s_tx_info_ctx *context) {
     if ((selector = calldata_get_selector()) == NULL) {
         return false;
     }
-    if (memcmp(selector, buf, sizeof(buf)) != 0) {
-        PRINTF("Error: selector mismatch!\n");
-        return false;
+    if (get_tx_ctx_count() == 0) {
+        if (memcmp(selector, buf, sizeof(buf)) != 0) {
+            PRINTF("Error: selector mismatch!\n");
+            return false;
+        }
     }
     memcpy(context->tx_info->selector, buf, sizeof(buf));
     context->set_flags |= SET_BIT(BIT_SELECTOR);
@@ -268,16 +270,18 @@ bool verify_tx_info_struct(const s_tx_info_ctx *context) {
         return false;
     }
 
-    tx_chain_id = get_tx_chain_id();
-    if (((proxy_parent = get_implem_contract(&tx_chain_id,
-                                             txContext.content->destination,
-                                             context->tx_info->selector)) == NULL) ||
-        (memcmp(proxy_parent, context->tx_info->contract_addr, ADDRESS_LENGTH) != 0)) {
-        if (memcmp(context->tx_info->contract_addr,
-                   txContext.content->destination,
-                   ADDRESS_LENGTH) != 0) {
-            PRINTF("Error: contract address mismatch!\n");
-            return false;
+    if (get_tx_ctx_count() == 0) {
+        tx_chain_id = get_tx_chain_id();
+        if (((proxy_parent = get_implem_contract(&tx_chain_id,
+                                                 txContext.content->destination,
+                                                 context->tx_info->selector)) == NULL) ||
+            (memcmp(proxy_parent, context->tx_info->contract_addr, ADDRESS_LENGTH) != 0)) {
+            if (memcmp(context->tx_info->contract_addr,
+                       txContext.content->destination,
+                       ADDRESS_LENGTH) != 0) {
+                PRINTF("Error: contract address mismatch!\n");
+                return false;
+            }
         }
     }
 
@@ -432,4 +436,21 @@ void tx_info_pop(void) {
 
 void tx_info_cleanup(void) {
     flist_clear((s_flist_node **) &g_tx_info_list, (f_list_node_del) &delete_tx_info);
+}
+
+bool find_matching_tx_info(const uint8_t *contract_addr, const uint8_t *selector) {
+    for (s_tx_info *tmp = g_tx_info_list;
+         tmp != NULL;
+         tmp = (s_tx_info *) ((s_flist_node *) tmp)->next) {
+        if ((memcmp(contract_addr, tmp->contract_addr, ADDRESS_LENGTH) == 0) &&
+            (memcmp(selector, tmp->selector, CALLDATA_SELECTOR_SIZE) == 0)) {
+            g_tx_info_current = tmp;
+            return true;
+        }
+    }
+    return false;
+}
+
+s_field_list_node *get_fields_list(void) {
+    return g_tx_info_current->fields;
 }

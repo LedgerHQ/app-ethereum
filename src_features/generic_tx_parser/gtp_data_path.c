@@ -141,7 +141,7 @@ static bool path_leaf(const s_leaf_args *leaf,
                       s_parsed_value_collection *collection) {
     uint8_t buf[sizeof(uint16_t)];
     const uint8_t *chunk;
-    uint8_t *leaf_buf;
+    uint8_t *leaf_buf = NULL;
     uint8_t cpy_length;
 
     if (collection->size > MAX_VALUE_COLLECTION_SIZE) {
@@ -167,20 +167,22 @@ static bool path_leaf(const s_leaf_args *leaf,
     }
     collection->value[collection->size].length = collection->value[collection->size].size;
     collection->value[collection->size].offset = 0;
-    if ((leaf_buf = app_mem_alloc(collection->value[collection->size].length)) == NULL) {
-        return false;
-    }
-    for (int chunk_idx = 0;
-         (chunk_idx * CALLDATA_CHUNK_SIZE) < collection->value[collection->size].length;
-         ++chunk_idx) {
-        if ((chunk = calldata_get_chunk(*offset + chunk_idx)) == NULL) {
-            app_mem_free(leaf_buf);
+    if (collection->value[collection->size].length > 0) {
+        if ((leaf_buf = app_mem_alloc(collection->value[collection->size].length)) == NULL) {
             return false;
         }
-        cpy_length =
-            MIN(CALLDATA_CHUNK_SIZE,
-                collection->value[collection->size].length - (chunk_idx * CALLDATA_CHUNK_SIZE));
-        memcpy(leaf_buf + (chunk_idx * CALLDATA_CHUNK_SIZE), chunk, cpy_length);
+        for (int chunk_idx = 0;
+             (chunk_idx * CALLDATA_CHUNK_SIZE) < collection->value[collection->size].length;
+             ++chunk_idx) {
+            if ((chunk = calldata_get_chunk(*offset + chunk_idx)) == NULL) {
+                app_mem_free(leaf_buf);
+                return false;
+            }
+            cpy_length =
+                MIN(CALLDATA_CHUNK_SIZE,
+                    collection->value[collection->size].length - (chunk_idx * CALLDATA_CHUNK_SIZE));
+            memcpy(leaf_buf + (chunk_idx * CALLDATA_CHUNK_SIZE), chunk, cpy_length);
+        }
     }
     collection->value[collection->size].ptr = leaf_buf;
     collection->size += 1;
@@ -325,6 +327,8 @@ bool data_path_get(const s_data_path *data_path, s_parsed_value_collection *coll
 
 void data_path_cleanup(const s_parsed_value_collection *collection) {
     for (int i = 0; i < collection->size; ++i) {
-        app_mem_free((void *) collection->value[i].ptr - collection->value[i].offset);
+        if (collection->value[i].ptr != NULL) {
+            app_mem_free((void *) collection->value[i].ptr - collection->value[i].offset);
+        }
     }
 }

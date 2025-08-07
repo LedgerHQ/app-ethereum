@@ -5,7 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.18.0](../../compare/1.17.0...1.18.0) - 2025-xx-xx
+## [1.19.0](../../compare/1.18.0...1.19.0) - 2025-xx-xx
+
+## [1.18.0](../../compare/1.17.0...1.18.0) - 2025-08-05
+
+### Added
+
+- (clone) Sonic
+- (network) HyperEVM
+- New setting to see TX hash / EIP-712 domain & message hashes even while clear-signing
+- The resolved address can now be checked when an ENS is displayed
+
+### Fixed
+
+- Proxy implementation (spec alignment)
+
+### Changed
+
+- Overall UI changes on Nano devices (with the migration to NBGL)
+- EIP-191 flow no longer uses streaming
+- Renamed EIP-7702 contract `MetaMask Delegation` to `MetaMask Gator`
 
 ## [1.17.0](../../compare/1.16.0...1.17.0) - 2025-05-05
 

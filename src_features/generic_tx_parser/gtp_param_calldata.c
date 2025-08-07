@@ -93,42 +93,44 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
 
     (void) param;
     (void) name;
-    if (get_tx_ctx_count() == 1) {
-        return false;
-    }
     if ((ret = value_get(&param->calldata, &calldatas))) {
         if ((ret = value_get(&param->contract_addr, &contract_addrs)) && (contract_addrs.size == calldatas.size)) {
             if (!param->has_chain_id || ((ret = value_get(&param->chain_id, &chain_ids)) && (chain_ids.size == calldatas.size))) {
                 if (!param->has_selector || ((ret = value_get(&param->selector, &selectors)) && (selectors.size == calldatas.size))) {
                     for (int i = 0; i < calldatas.size; ++i) {
-                        uint8_t contract_addr[ADDRESS_LENGTH];
+                        if (calldatas.value[i].length > 0) {
+                            if (get_tx_ctx_count() == 1) {
+                                return false;
+                            }
+                            uint8_t contract_addr[ADDRESS_LENGTH];
 
-                        buf_shrink_expand(contract_addrs.value[i].ptr,
-                                          contract_addrs.value[i].length,
-                                          contract_addr,
-                                          sizeof(contract_addr));
-                        if (!find_matching_tx_info(contract_addr, calldatas.value[i].ptr)) {
-                            ret = false;
-                            break;
+                            buf_shrink_expand(contract_addrs.value[i].ptr,
+                                              contract_addrs.value[i].length,
+                                              contract_addr,
+                                              sizeof(contract_addr));
+                            if (!find_matching_tx_info(contract_addr, calldatas.value[i].ptr)) {
+                                ret = false;
+                                break;
+                            }
+                            PRINTF("calldata -> 0x%.*h\n", calldatas.value[i].length, &calldatas.value[i].ptr[calldatas.value[i].offset]);
+                            // TODO: handle given selector
+                            calldata_init(calldatas.value[i].length - CALLDATA_SELECTOR_SIZE,
+                                          &calldatas.value[i].ptr[calldatas.value[i].offset]);
+                            calldata_append(&calldatas.value[i].ptr[calldatas.value[i].offset + CALLDATA_SELECTOR_SIZE],
+                                            calldatas.value[i].length - CALLDATA_SELECTOR_SIZE);
+                            const s_field_list_node *field;
+                            for (field = get_fields_list();
+                                 field != NULL;
+                                 field = (const s_field_list_node*) ((s_flist_node *) field)->next) {
+                                if (!format_field(&field->field)) break;
+                            }
+                            if (field != NULL) {
+                                ret = false;
+                                break;
+                            }
+                            calldata_pop();
+                            tx_info_move_to_parent();
                         }
-                        PRINTF("calldata -> 0x%.*h\n", calldatas.value[i].length, &calldatas.value[i].ptr[calldatas.value[i].offset]);
-                        // TODO: handle given selector
-                        calldata_init(calldatas.value[i].length - CALLDATA_SELECTOR_SIZE,
-                                      &calldatas.value[i].ptr[calldatas.value[i].offset]);
-                        calldata_append(&calldatas.value[i].ptr[calldatas.value[i].offset + CALLDATA_SELECTOR_SIZE],
-                                        calldatas.value[i].length - CALLDATA_SELECTOR_SIZE);
-                        const s_field_list_node *field;
-                        for (field = get_fields_list();
-                             field != NULL;
-                             field = (const s_field_list_node*) ((s_flist_node *) field)->next) {
-                            if (!format_field(&field->field)) break;
-                        }
-                        if (field != NULL) {
-                            ret = false;
-                            break;
-                        }
-                        calldata_pop();
-                        tx_info_move_to_parent();
                     }
                 }
             }

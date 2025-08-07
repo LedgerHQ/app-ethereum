@@ -1,12 +1,13 @@
-#ifdef HAVE_GENERIC_TX_PARSER
-
 #include "os_print.h"
 #include "gtp_value.h"
 #include "gtp_data_path.h"
 #include "shared_context.h"  // txContext
 #include "apdu_constants.h"  // APDU_RESPONSE_OK
-#include "feature_signTx.h"  // get_public_key
+#include "getPublicKey.h"
 #include "gtp_parsed_value.h"
+#include "mem.h"
+#include "mem_utils.h"
+#include "ui_utils.h"
 
 enum {
     TAG_VERSION = 0x00,
@@ -105,7 +106,7 @@ bool handle_value_struct(const s_tlv_data *data, s_value_context *context) {
 }
 
 // have to be declared here since it is not stored anywhere else
-static uint8_t from_address[ADDRESS_LENGTH];
+static uint8_t *from_address = NULL;
 
 bool value_get(const s_value *value, s_parsed_value_collection *collection) {
     bool ret;
@@ -119,10 +120,14 @@ bool value_get(const s_value *value, s_parsed_value_collection *collection) {
         case SOURCE_RLP:
             switch (value->container_path) {
                 case CP_FROM:
-                    if ((ret = get_public_key(from_address, sizeof(from_address)) ==
-                               APDU_RESPONSE_OK)) {
+                    if (from_address == NULL) {
+                        if ((from_address = app_mem_alloc(ADDRESS_LENGTH)) == NULL) {
+                            return false;  // Memory allocation failed
+                        }
+                    }
+                    if ((ret = get_public_key(from_address, ADDRESS_LENGTH) == APDU_RESPONSE_OK)) {
                         collection->value[0].ptr = from_address;
-                        collection->value[0].length = sizeof(from_address);
+                        collection->value[0].length = ADDRESS_LENGTH;
                         collection->size = 1;
                     }
                     break;
@@ -162,7 +167,8 @@ bool value_get(const s_value *value, s_parsed_value_collection *collection) {
 void value_cleanup(const s_value *value, const s_parsed_value_collection *collection) {
     if (value->source == SOURCE_CALLDATA) {
         data_path_cleanup(collection);
+    } else if ((value->source == SOURCE_RLP && value->container_path == CP_FROM)) {
+        // No specific cleanup needed for RLP source
+        mem_buffer_cleanup((void **) &from_address);
     }
 }
-
-#endif  // HAVE_GENERIC_TX_PARSER

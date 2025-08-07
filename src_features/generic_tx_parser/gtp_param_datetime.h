@@ -1,5 +1,4 @@
-#ifndef GTP_PARAM_DATETIME_H_
-#define GTP_PARAM_DATETIME_H_
+#pragma once
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -23,5 +22,3 @@ typedef struct {
 
 bool handle_param_datetime_struct(const s_tlv_data *data, s_param_datetime_context *context);
 bool format_param_datetime(const s_param_datetime *param, const char *name);
-
-#endif  // !GTP_PARAM_DATETIME_H_

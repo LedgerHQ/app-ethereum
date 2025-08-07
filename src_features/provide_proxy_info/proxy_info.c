@@ -1,10 +1,10 @@
-#if defined(HAVE_EIP712_FULL_SUPPORT) || defined(HAVE_GENERIC_TX_PARSER)
-
 #include "proxy_info.h"
 #include "read.h"
 #include "utils.h"  // buf_shrink_expand
 #include "challenge.h"
 #include "public_keys.h"
+#include "ui_utils.h"
+#include "mem_utils.h"
 
 enum {
     TAG_STRUCT_TYPE = 0x01,
@@ -12,22 +12,24 @@ enum {
     TAG_CHALLENGE = 0x012,
     TAG_ADDRESS = 0x22,
     TAG_CHAIN_ID = 0x23,
-    TAG_SELECTOR = 0x28,
-    TAG_IMPLEM_ADDRESS = 0x29,
+    TAG_SELECTOR = 0x41,
+    TAG_IMPLEM_ADDRESS = 0x42,
+    TAG_DELEGATION_TYPE = 0x43,
     TAG_SIGNATURE = 0x15,
 };
 
 #define TYPE_PROXY_INFO 0x26
 
-static s_proxy_info g_proxy_info = {0};
+static s_proxy_info *g_proxy_info = NULL;
 
 static bool handle_type(const s_tlv_data *data, s_proxy_info_ctx *context) {
     (void) context;
 
-    if (data->length != sizeof(uint8_t)) {
+    if (data->length != sizeof(context->struct_type)) {
         return false;
     }
-    return data->value[0] == TYPE_PROXY_INFO;
+    context->struct_type = data->value[0];
+    return true;
 }
 
 static bool handle_version(const s_tlv_data *data, s_proxy_info_ctx *context) {
@@ -94,6 +96,14 @@ static bool handle_implem_address(const s_tlv_data *data, s_proxy_info_ctx *cont
     return true;
 }
 
+static bool handle_delegation_type(const s_tlv_data *data, s_proxy_info_ctx *context) {
+    if (data->length != sizeof(context->delegation_type)) {
+        return false;
+    }
+    context->delegation_type = data->value[0];
+    return true;
+}
+
 static bool handle_signature(const s_tlv_data *data, s_proxy_info_ctx *context) {
     if (data->length > sizeof(context->signature)) {
         return false;
@@ -128,6 +138,9 @@ bool handle_proxy_info_struct(const s_tlv_data *data, s_proxy_info_ctx *context)
         case TAG_IMPLEM_ADDRESS:
             ret = handle_implem_address(data, context);
             break;
+        case TAG_DELEGATION_TYPE:
+            ret = handle_delegation_type(data, context);
+            break;
         case TAG_SIGNATURE:
             ret = handle_signature(data, context);
             break;
@@ -161,10 +174,18 @@ bool verify_proxy_info_struct(const s_proxy_info_ctx *context) {
         PRINTF("Error: could not finalize struct hash!\n");
         return false;
     }
+    if (context->struct_type != TYPE_PROXY_INFO) {
+        PRINTF("Error: unknown struct type (%u)!\n", context->struct_type);
+        return false;
+    }
     challenge = get_challenge();
     roll_challenge();
     if (context->challenge != challenge) {
         PRINTF("Error: challenge mismatch!\n");
+        return false;
+    }
+    if (context->delegation_type != DELEGATION_TYPE_PROXY) {
+        PRINTF("Error: unsupported delegation type (%u)!\n", context->delegation_type);
         return false;
     }
     if (check_signature_with_pubkey("proxy info",
@@ -172,23 +193,25 @@ bool verify_proxy_info_struct(const s_proxy_info_ctx *context) {
                                     sizeof(hash),
                                     NULL,
                                     0,
-#ifdef HAVE_LEDGER_PKI
-                                    CERTIFICATE_PUBLIC_KEY_USAGE_CALLDATA,
-#endif
+                                    CERTIFICATE_PUBLIC_KEY_USAGE_TRUSTED_NAME,
                                     (uint8_t *) context->signature,
                                     context->signature_length) != CX_OK) {
         PRINTF("Error: signature verification failed!\n");
         return false;
     }
-    memcpy(&g_proxy_info, &context->proxy_info, sizeof(g_proxy_info));
+    if (mem_buffer_allocate((void **) &g_proxy_info, sizeof(s_proxy_info)) == false) {
+        PRINTF("Error: Not enough memory!\n");
+        return false;
+    }
+    memcpy(g_proxy_info, &context->proxy_info, sizeof(s_proxy_info));
     PRINTF("================== PROXY INFO ====================\n");
-    PRINTF("chain ID = %u\n", (uint32_t) g_proxy_info.chain_id);
-    PRINTF("address = 0x%.*h\n", sizeof(g_proxy_info.address), g_proxy_info.address);
+    PRINTF("chain ID = %u\n", (uint32_t) g_proxy_info->chain_id);
+    PRINTF("address = 0x%.*h\n", sizeof(g_proxy_info->address), g_proxy_info->address);
     PRINTF("implementation address = 0x%.*h\n",
-           sizeof(g_proxy_info.implem_address),
-           g_proxy_info.implem_address);
-    if (g_proxy_info.has_selector) {
-        PRINTF("selector = 0x%.*h\n", sizeof(g_proxy_info.selector), g_proxy_info.selector);
+           sizeof(g_proxy_info->implem_address),
+           g_proxy_info->implem_address);
+    if (g_proxy_info->has_selector) {
+        PRINTF("selector = 0x%.*h\n", sizeof(g_proxy_info->selector), g_proxy_info->selector);
     }
     PRINTF("==================================================\n");
     return true;
@@ -217,29 +240,41 @@ static bool check_proxy_params(const uint64_t *chain_id,
 const uint8_t *get_proxy_contract(const uint64_t *chain_id,
                                   const uint8_t *addr,
                                   const uint8_t *selector) {
-    if (!check_proxy_params(chain_id,
-                            addr,
-                            selector,
-                            &g_proxy_info.chain_id,
-                            g_proxy_info.implem_address,
-                            g_proxy_info.selector)) {
+    if (g_proxy_info == NULL) {
+        PRINTF("Error: Proxy info not initialized!\n");
         return NULL;
     }
-    return g_proxy_info.address;
+
+    if (!check_proxy_params(chain_id,
+                            addr,
+                            g_proxy_info->has_selector ? selector : NULL,
+                            &g_proxy_info->chain_id,
+                            g_proxy_info->implem_address,
+                            g_proxy_info->selector)) {
+        return NULL;
+    }
+    return g_proxy_info->address;
 }
 
 const uint8_t *get_implem_contract(const uint64_t *chain_id,
                                    const uint8_t *addr,
                                    const uint8_t *selector) {
-    if (!check_proxy_params(chain_id,
-                            addr,
-                            selector,
-                            &g_proxy_info.chain_id,
-                            g_proxy_info.address,
-                            g_proxy_info.selector)) {
+    if (g_proxy_info == NULL) {
+        PRINTF("Error: Proxy info not initialized!\n");
         return NULL;
     }
-    return g_proxy_info.implem_address;
+
+    if (!check_proxy_params(chain_id,
+                            addr,
+                            g_proxy_info->has_selector ? selector : NULL,
+                            &g_proxy_info->chain_id,
+                            g_proxy_info->address,
+                            g_proxy_info->selector)) {
+        return NULL;
+    }
+    return g_proxy_info->implem_address;
 }
 
-#endif
+void proxy_cleanup(void) {
+    mem_buffer_cleanup((void **) &g_proxy_info);
+}

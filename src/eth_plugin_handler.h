@@ -1,5 +1,4 @@
-#ifndef _ETH_PLUGIN_HANDLER_H_
-#define _ETH_PLUGIN_HANDLER_H_
+#pragma once
 
 #include "eth_plugin_interface.h"
 
@@ -32,5 +31,3 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
                                             ethPluginInitContract_t *init);
 // NULL for cached address, or base contract address
 eth_plugin_result_t eth_plugin_call(int method, void *parameter);
-
-#endif  // _ETH_PLUGIN_HANDLER_H_

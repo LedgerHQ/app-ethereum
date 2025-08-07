@@ -1,16 +1,13 @@
-#ifdef HAVE_GENERIC_TX_PARSER
-
 #include "cmd_field.h"
 #include "cx.h"
 #include "apdu_constants.h"
-#include "mem.h"
 #include "tlv.h"
 #include "tlv_apdu.h"
 #include "gtp_field.h"
 #include "cmd_tx_info.h"
 #include "gtp_tx_info.h"
 
-static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_free) {
+static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
     s_field field = {0};
     s_field_ctx ctx = {0};
     bool parsing_ret;
@@ -19,7 +16,6 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_fr
     ctx.field = &field;
     parsing_ret = tlv_parse(payload, size, (f_tlv_data_handler) &handle_field_struct, &ctx);
     hashing_ret = cx_hash_no_throw(get_fields_hash_ctx(), 0, payload, size, NULL, 0) == CX_OK;
-    if (to_free) mem_dealloc(size);
     if (!parsing_ret || !hashing_ret) return false;
     if (!verify_field_struct(&ctx)) {
         PRINTF("Error: could not verify the field struct!\n");
@@ -50,5 +46,3 @@ uint16_t handle_field(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *payload
     }
     return APDU_RESPONSE_OK;
 }
-
-#endif  // HAVE_GENERIC_TX_PARSER

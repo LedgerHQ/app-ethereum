@@ -19,7 +19,7 @@ ifeq ($(BOLOS_SDK),)
     $(error Environment variable BOLOS_SDK is not set)
 endif
 
-include $(BOLOS_SDK)/Makefile.defines
+include $(BOLOS_SDK)/Makefile.target
 
 ########################################
 #        Mandatory configuration       #
@@ -36,17 +36,12 @@ endif
 include ./makefile_conf/chain/$(CHAIN).mk
 
 APPVERSION_M = 1
-APPVERSION_N = 17
+APPVERSION_N = 18
 APPVERSION_P = 0
 APPVERSION = $(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 
 # Application source files
-APP_SOURCE_PATH += src src_features src_plugins
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
-    APP_SOURCE_PATH += src_nbgl
-else
-    APP_SOURCE_PATH += src_bagl
-endif
+APP_SOURCE_PATH += src src_features src_plugins src_nbgl
 APP_SOURCE_FILES += $(filter-out ./ethereum-plugin-sdk/src/main.c, $(wildcard ./ethereum-plugin-sdk/src/*.c))
 INCLUDES_PATH += ./ethereum-plugin-sdk/src
 
@@ -62,7 +57,6 @@ endif
 
 # Application icons following guidelines:
 # https://developers.ledger.com/docs/embedded-app/design-requirements/#device-icon
-ICON_NANOS = icons/nanos_app_chain_$(CHAIN_ID).gif
 ICON_NANOX = icons/nanox_app_chain_$(CHAIN_ID).gif
 ICON_NANOSP = icons/nanox_app_chain_$(CHAIN_ID).gif
 ICON_STAX = icons/stax_app_chain_$(CHAIN_ID).gif
@@ -72,7 +66,15 @@ ICON_FLEX = icons/flex_app_chain_$(CHAIN_ID).gif
 ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
     DEFINES += ICONGLYPH=C_chain_$(CHAIN_ID)_64px
     DEFINES += ICONBITMAP=C_chain_$(CHAIN_ID)_64px_bitmap
-    DEFINES += ICONGLYPH_SMALL=C_chain_$(CHAIN_ID)
+    DEFINES += ICONHOME=C_chain_$(CHAIN_ID)_64px
+else
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_NANOS2))
+    DEFINES += ICONGLYPH=C_chain_$(CHAIN_ID)_14px
+    DEFINES += ICONBITMAP=C_chain_$(CHAIN_ID)_14px_bitmap
+
+    ICON_HOME_NANO = glyphs/home_chain_$(CHAIN_ID)_14px.gif
+    DEFINES += ICONHOME=C_home_chain_$(CHAIN_ID)_14px
+endif
 endif
 
 # Don't define plugin function in the plugin SDK
@@ -128,6 +130,7 @@ endif
 ENABLE_BLUETOOTH = 1
 ENABLE_SWAP = 1
 #ENABLE_NFC = 1
+ENABLE_NBGL_FOR_NANO_DEVICES = 1
 
 ########################################
 #         NBGL custom features         #
@@ -147,7 +150,6 @@ ENABLE_NBGL_QRCODE = 1
 #DISABLE_STANDARD_SNPRINTF = 1
 #DISABLE_STANDARD_USB = 1
 #DISABLE_STANDARD_WEBUSB = 1
-#DISABLE_STANDARD_BAGL_UX_FLOW = 1
 #DISABLE_DEBUG_LEDGER_ASSERT = 1
 #DISABLE_DEBUG_THROW = 1
 

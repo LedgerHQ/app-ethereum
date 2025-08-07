@@ -1,5 +1,3 @@
-#ifdef HAVE_GENERIC_TX_PARSER
-
 #include <time.h>
 #include "gtp_tx_info.h"
 #include "read.h"
@@ -43,7 +41,6 @@ enum {
 };
 
 s_tx_info *g_tx_info = NULL;
-cx_sha3_t hash_ctx;
 
 static bool handle_version(const s_tlv_data *data, s_tx_info_ctx *context) {
     if (data->length != sizeof(context->tx_info->version)) {
@@ -270,9 +267,9 @@ bool verify_tx_info_struct(const s_tx_info_ctx *context) {
     }
 
     tx_chain_id = get_tx_chain_id();
-    if (((proxy_parent = get_proxy_contract(&tx_chain_id,
-                                            txContext.content->destination,
-                                            context->tx_info->selector)) == NULL) ||
+    if (((proxy_parent = get_implem_contract(&tx_chain_id,
+                                             txContext.content->destination,
+                                             context->tx_info->selector)) == NULL) ||
         (memcmp(proxy_parent, context->tx_info->contract_addr, ADDRESS_LENGTH) != 0)) {
         if (memcmp(context->tx_info->contract_addr,
                    txContext.content->destination,
@@ -298,9 +295,7 @@ bool verify_tx_info_struct(const s_tx_info_ctx *context) {
                                     sizeof(hash),
                                     NULL,
                                     0,
-#ifdef HAVE_LEDGER_PKI
                                     CERTIFICATE_PUBLIC_KEY_USAGE_CALLDATA,
-#endif
                                     (uint8_t *) context->tx_info->signature,
                                     context->tx_info->signature_len) != CX_OK) {
         return false;
@@ -355,16 +350,20 @@ const char *get_deploy_date(void) {
 }
 
 cx_hash_t *get_fields_hash_ctx(void) {
-    return (cx_hash_t *) &hash_ctx;
+    return (cx_hash_t *) &g_tx_info->fields_hash_ctx;
 }
 
 bool validate_instruction_hash(void) {
     uint8_t hash[sizeof(g_tx_info->fields_hash)];
 
-    if (cx_hash_no_throw((cx_hash_t *) &hash_ctx, CX_LAST, NULL, 0, hash, sizeof(hash)) != CX_OK) {
+    if (g_tx_info == NULL) return false;
+    if (cx_hash_no_throw((cx_hash_t *) &g_tx_info->fields_hash_ctx,
+                         CX_LAST,
+                         NULL,
+                         0,
+                         hash,
+                         sizeof(hash)) != CX_OK) {
         return false;
     }
     return memcmp(g_tx_info->fields_hash, hash, sizeof(hash)) == 0;
 }
-
-#endif  // HAVE_GENERIC_TX_PARSER

@@ -1,5 +1,3 @@
-#ifdef HAVE_NFT_SUPPORT
-
 #include <string.h>
 #include "erc721_plugin.h"
 #include "eth_plugin_internal.h"
@@ -143,5 +141,3 @@ void handle_query_contract_ui_721(ethQueryContractUI_t *msg) {
             break;
     }
 }
-
-#endif  // HAVE_NFT_SUPPORT

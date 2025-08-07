@@ -7,11 +7,9 @@ import copy
 from typing import Any, Callable, Optional, Union
 import struct
 
-from ragger.firmware import Firmware
-
 from client import keychain
 from client.client import EthAppClient, EIP712FieldType
-from client.client import PKIPubKeyUsage
+from client.ledger_pki import PKIPubKeyUsage
 
 
 # global variables
@@ -430,10 +428,7 @@ def next_timeout(_signum: int, _frame):
 
 
 def enable_autonext():
-    if app_client._client.firmware in (Firmware.STAX, Firmware.FLEX):
-        delay = 1/2
-    else:
-        delay = 1/4
+    delay = 1/4 if app_client.device.is_nano else 1/2
 
     # golden run has to be slower to make sure we take good snapshots
     # and not processing/loading screens
@@ -489,24 +484,8 @@ def process_data(aclient: EthAppClient,
             pass
         prepare_filtering(filters)
 
-    if aclient._pki_client is None:
-        print(f"Ledger-PKI Not supported on '{aclient._firmware.name}'")
-    else:
-        # pylint: disable=line-too-long
-        if aclient._firmware == Firmware.NANOSP:
-            cert_apdu = "0101010201021004010200001104000000021201001302000214010116040000000020104549503731325f46696c746572696e67300200053101083201213321024cca8fad496aa5040a00a7eb2f5cc3b85376d88ba147a7d7054a99c64056188734010135010315473045022100ef197e5b1cabb3de5dfc62f965db8536b0463d272c6fea38ebc73605715b1df9022017bef619d52a9728b37a9b5a33f0143bcdcc714694eed07c326796ffbb7c2958"  # noqa: E501
-        elif aclient._firmware == Firmware.NANOX:
-            cert_apdu = "0101010201021104000000021201001302000214010116040000000020104549503731325F46696C746572696E67300200053101083201213321024CCA8FAD496AA5040A00A7EB2F5CC3B85376D88BA147A7D7054A99C64056188734010135010215473045022100E07E129B0DC2A571D5205C3DB43BF4BB3463A2E9D2A4EEDBEC8FD3518CC5A95902205F80306EEF785C4D45BDCA1F25394A1341571BD1921C2740392DD22EB1ACDD8B"  # noqa: E501
-        elif aclient._firmware == Firmware.STAX:
-            cert_apdu = "0101010201021104000000021201001302000214010116040000000020104549503731325F46696C746572696E67300200053101083201213321024CCA8FAD496AA5040A00A7EB2F5CC3B85376D88BA147A7D7054A99C6405618873401013501041546304402204EA7B30F0EEFEF25FAB3ADDA6609E25296C41DD1C5969A92FAE6B600AAC2902E02206212054E123F5F965F787AE7EE565E243F21B11725626D3FF058522D6BDCD995"  # noqa: E501
-        elif aclient._firmware == Firmware.FLEX:
-            cert_apdu = "0101010201021104000000021201001302000214010116040000000020104549503731325F46696C746572696E67300200053101083201213321024CCA8FAD496AA5040A00A7EB2F5CC3B85376D88BA147A7D7054A99C6405618873401013501051546304402205FB5E970065A95C57F00FFA3964946251815527613724ED6745C37E303934BE702203CC9F4124B42806F0A7CA765CFAB5AADEB280C35AB8F809FC49ADC97D9B9CE15"  # noqa: E501
-        else:
-            print(f"Invalid device '{aclient._firmware.name}'")
-            cert_apdu = ""
-        # pylint: enable=line-too-long
-        if cert_apdu:
-            aclient._pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_COIN_META, bytes.fromhex(cert_apdu))
+    # Send ledgerPKI certificate
+    app_client.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_COIN_META)
 
     # send domain implementation
     with app_client.eip712_send_struct_impl_root_struct(domain_typename):

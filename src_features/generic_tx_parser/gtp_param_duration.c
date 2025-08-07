@@ -1,5 +1,3 @@
-#ifdef HAVE_GENERIC_TX_PARSER
-
 #include "gtp_param_duration.h"
 #include "read.h"
 #include "gtp_field_table.h"
@@ -107,5 +105,3 @@ bool format_param_duration(const s_param_duration *param, const char *name) {
     value_cleanup(&param->value, &collec);
     return ret;
 }
-
-#endif  // HAVE_GENERIC_TX_PARSER

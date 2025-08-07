@@ -1,5 +1,3 @@
-#ifdef HAVE_NFT_SUPPORT
-
 #include <string.h>
 #include "erc1155_plugin.h"
 #include "plugin_utils.h"
@@ -103,12 +101,8 @@ void handle_query_contract_id_1155(ethQueryContractID_t *msg) {
 
     switch (context->selectorIndex) {
         case SET_APPROVAL_FOR_ALL:
-#ifdef HAVE_NBGL
             strlcpy(msg->version, "manage", msg->versionLength);
             strlcat(msg->name, " allowance", msg->nameLength);
-#else
-            strlcpy(msg->version, "Allowance", msg->versionLength);
-#endif
             break;
         case SAFE_TRANSFER:
             strlcpy(msg->version, "Transfer", msg->versionLength);
@@ -148,5 +142,3 @@ void erc1155_plugin_call(int message, void *parameters) {
             break;
     }
 }
-
-#endif  // HAVE_NFT_SUPPORT

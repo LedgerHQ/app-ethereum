@@ -1,5 +1,3 @@
-#ifdef HAVE_EIP712_FULL_SUPPORT
-
 #include "ui_logic.h"
 #include "mem.h"
 #include "mem_utils.h"
@@ -15,18 +13,21 @@
 #include "filtering.h"
 #include "network.h"
 #include "time_format.h"
+#include "list.h"
 
-#define AMOUNT_JOIN_FLAG_TOKEN (1 << 0)
-#define AMOUNT_JOIN_FLAG_VALUE (1 << 1)
+#define AMOUNT_JOIN_FLAG_TOKEN  (1 << 0)
+#define AMOUNT_JOIN_FLAG_VALUE  (1 << 1)
+#define AMOUNT_JOIN_NAME_LENGTH 25
 
-typedef struct {
-    // display name, not NULL-terminated
-    char name[25];
-    uint8_t name_length;
-    uint8_t value[INT256_LENGTH];
-    uint8_t value_length;
+typedef struct amount_join {
+    s_flist_node _list;
+    // display name, NULL-terminated
+    char name[AMOUNT_JOIN_NAME_LENGTH + 1];
     // indicates the steps the token join has gone through
     uint8_t flags;
+    uint8_t token_idx;
+    uint8_t value_length;
+    uint8_t value[INT256_LENGTH];
 } s_amount_join;
 
 typedef enum {
@@ -41,10 +42,15 @@ typedef enum {
 #define UI_712_TRUSTED_NAME        (1 << 4)
 
 typedef struct {
-    s_amount_join joins[MAX_ASSETS];
+    s_amount_join *joins;
     uint8_t idx;
     e_amount_join_state state;
 } s_amount_context;
+
+typedef struct filter_crc {
+    s_flist_node _list;
+    uint32_t value;
+} s_filter_crc;
 
 typedef struct {
     bool shown;
@@ -54,22 +60,33 @@ typedef struct {
     uint8_t field_flags;
     uint8_t structs_to_review;
     s_amount_context amount;
-    uint8_t filters_received;
-    uint32_t filters_crc[MAX_FILTERS];
-    uint8_t discarded_path_length;
-    char discarded_path[255];
-#ifdef HAVE_TRUSTED_NAME
+    s_filter_crc *filters_crc;
+    char *discarded_path;
     uint8_t tn_type_count;
     uint8_t tn_source_count;
     e_name_type tn_types[TN_TYPE_COUNT];
     e_name_source tn_sources[TN_SOURCE_COUNT];
-#endif
-#ifdef SCREEN_SIZE_WALLET
-    char ui_pairs_buffer[(SHARED_CTX_FIELD_1_SIZE + SHARED_CTX_FIELD_2_SIZE) * 2];
-#endif
+    s_ui_712_pair *ui_pairs;
 } t_ui_context;
 
 static t_ui_context *ui_ctx = NULL;
+
+// to be used as a \ref f_list_node_del
+static void delete_filter_crc(s_filter_crc *fcrc) {
+    app_mem_free(fcrc);
+}
+
+// to be used as a \ref f_list_node_del
+static void delete_ui_pair(s_ui_712_pair *pair) {
+    if (pair->key != NULL) app_mem_free(pair->key);
+    if (pair->value != NULL) app_mem_free(pair->value);
+    app_mem_free(pair);
+}
+
+// to be used as a \ref f_list_node_del
+static void delete_amount_join(s_amount_join *join) {
+    app_mem_free(join);
+}
 
 /**
  * Checks on the UI context to determine if the next EIP 712 field should be shown
@@ -213,9 +230,8 @@ e_eip712_nfs ui_712_next_field(void) {
  * @param[in] struct_ptr pointer to the structure to be shown
  * @return whether it was successful or not
  */
-bool ui_712_review_struct(const void *struct_ptr) {
+bool ui_712_review_struct(const s_struct_712 *struct_ptr) {
     const char *struct_name;
-    uint8_t struct_name_length;
     const char *title = "Review struct";
 
     if (ui_ctx == NULL) {
@@ -223,8 +239,8 @@ bool ui_712_review_struct(const void *struct_ptr) {
     }
 
     ui_712_set_title(title, strlen(title));
-    if ((struct_name = get_struct_name(struct_ptr, &struct_name_length)) != NULL) {
-        ui_712_set_value(struct_name, struct_name_length);
+    if ((struct_name = struct_ptr->name) != NULL) {
+        ui_712_set_value(struct_name, strlen(struct_name));
     }
     return ui_712_redraw_generic_step();
 }
@@ -358,7 +374,7 @@ static bool ui_712_format_bytes(const uint8_t *data, uint8_t length, bool first,
 static bool ui_712_format_int(const uint8_t *data,
                               uint8_t length,
                               bool first,
-                              const void *field_ptr) {
+                              const s_struct_712_field *field_ptr) {
     uint256_t value256;
     uint128_t value128;
     int32_t value32;
@@ -368,7 +384,7 @@ static bool ui_712_format_int(const uint8_t *data,
     if (!first) {
         return false;
     }
-    switch (get_struct_field_typesize(field_ptr) * 8) {
+    switch (field_ptr->type_size * 8) {
         case 256:
             convertUint256BE(data, length, &value256);
             tostring256_signed(&value256, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
@@ -432,6 +448,27 @@ static bool ui_712_format_uint(const uint8_t *data, uint8_t length, bool first) 
     return true;
 }
 
+static s_amount_join *get_amount_join(uint8_t token_idx) {
+    s_amount_join *tmp;
+    s_amount_join *new;
+
+    for (tmp = ui_ctx->amount.joins; tmp != NULL;
+         tmp = (s_amount_join *) ((s_flist_node *) tmp)->next) {
+        if (tmp->token_idx == token_idx) break;
+    }
+    if (tmp != NULL) return tmp;
+
+    // does not exist, create it
+    if ((new = app_mem_alloc(sizeof(*new))) == NULL) {
+        return NULL;
+    }
+    explicit_bzero(new, sizeof(*new));
+    new->token_idx = token_idx;
+
+    flist_push_back((s_flist_node **) &ui_ctx->amount.joins, (s_flist_node *) new);
+    return new;
+}
+
 /**
  * Format given data as an amount with its ticker and value with correct decimals
  *
@@ -439,20 +476,23 @@ static bool ui_712_format_uint(const uint8_t *data, uint8_t length, bool first) 
  */
 static bool ui_712_format_amount_join(void) {
     const tokenDefinition_t *token = NULL;
+    s_amount_join *amount_join;
 
     if (tmpCtx.transactionContext.assetSet[ui_ctx->amount.idx]) {
         token = &tmpCtx.transactionContext.extraInfo[ui_ctx->amount.idx].token;
     }
-    if ((ui_ctx->amount.joins[ui_ctx->amount.idx].value_length == INT256_LENGTH) &&
-        ismaxint(ui_ctx->amount.joins[ui_ctx->amount.idx].value,
-                 ui_ctx->amount.joins[ui_ctx->amount.idx].value_length)) {
+    if ((amount_join = get_amount_join(ui_ctx->amount.idx)) == NULL) {
+        return false;
+    }
+    if ((amount_join->value_length == INT256_LENGTH) &&
+        ismaxint(amount_join->value, amount_join->value_length)) {
         strlcpy(strings.tmp.tmp, "Unlimited ", sizeof(strings.tmp.tmp));
         strlcat(strings.tmp.tmp,
                 (token != NULL) ? token->ticker : g_unknown_ticker,
                 sizeof(strings.tmp.tmp));
     } else {
-        if (!amountToString(ui_ctx->amount.joins[ui_ctx->amount.idx].value,
-                            ui_ctx->amount.joins[ui_ctx->amount.idx].value_length,
+        if (!amountToString(amount_join->value,
+                            amount_join->value_length,
                             (token != NULL) ? token->decimals : 0,
                             (token != NULL) ? token->ticker : g_unknown_ticker,
                             strings.tmp.tmp,
@@ -461,18 +501,22 @@ static bool ui_712_format_amount_join(void) {
         }
     }
     ui_ctx->field_flags |= UI_712_FIELD_SHOWN;
-    ui_712_set_title(ui_ctx->amount.joins[ui_ctx->amount.idx].name,
-                     ui_ctx->amount.joins[ui_ctx->amount.idx].name_length);
-    explicit_bzero(&ui_ctx->amount.joins[ui_ctx->amount.idx],
-                   sizeof(ui_ctx->amount.joins[ui_ctx->amount.idx]));
+    ui_712_set_title(amount_join->name, strlen(amount_join->name));
+    flist_remove((s_flist_node **) &ui_ctx->amount.joins,
+                 (s_flist_node *) amount_join,
+                 (f_list_node_del) delete_amount_join);
     return true;
 }
 
 /**
  * Simply mark the current amount-join's token address as received
  */
-void amount_join_set_token_received(void) {
-    ui_ctx->amount.joins[ui_ctx->amount.idx].flags |= AMOUNT_JOIN_FLAG_TOKEN;
+bool amount_join_set_token_received(void) {
+    s_amount_join *amount_join = get_amount_join(ui_ctx->amount.idx);
+
+    if (amount_join == NULL) return false;
+    amount_join->flags |= AMOUNT_JOIN_FLAG_TOKEN;
+    return true;
 }
 
 /**
@@ -484,6 +528,7 @@ void amount_join_set_token_received(void) {
  */
 static bool update_amount_join(const uint8_t *data, uint8_t length) {
     const tokenDefinition_t *token = NULL;
+    s_amount_join *amount_join;
 
     if (tmpCtx.transactionContext.assetSet[ui_ctx->amount.idx]) {
         token = &tmpCtx.transactionContext.extraInfo[ui_ctx->amount.idx].token;
@@ -501,13 +546,18 @@ static bool update_amount_join(const uint8_t *data, uint8_t length) {
                     return false;
                 }
             }
-            amount_join_set_token_received();
+            if (!amount_join_set_token_received()) {
+                return false;
+            }
             break;
 
         case AMOUNT_JOIN_STATE_VALUE:
-            memcpy(ui_ctx->amount.joins[ui_ctx->amount.idx].value, data, length);
-            ui_ctx->amount.joins[ui_ctx->amount.idx].value_length = length;
-            ui_ctx->amount.joins[ui_ctx->amount.idx].flags |= AMOUNT_JOIN_FLAG_VALUE;
+            if ((amount_join = get_amount_join(ui_ctx->amount.idx)) == NULL) {
+                return false;
+            }
+            memcpy(amount_join->value, data, length);
+            amount_join->value_length = length;
+            amount_join->flags |= AMOUNT_JOIN_FLAG_VALUE;
             break;
 
         default:
@@ -516,7 +566,6 @@ static bool update_amount_join(const uint8_t *data, uint8_t length) {
     return true;
 }
 
-#ifdef HAVE_TRUSTED_NAME
 /**
  * Try to substitute given address by a matching contract name
  *
@@ -540,7 +589,6 @@ static bool ui_712_format_trusted_name(const uint8_t *data, uint8_t length) {
     }
     return true;
 }
-#endif
 
 /**
  * Format given data as a human-readable date/time representation
@@ -550,10 +598,12 @@ static bool ui_712_format_trusted_name(const uint8_t *data, uint8_t length) {
  * @param[in] field_ptr pointer to the new struct field
  * @return whether it was successful or not
  */
-static bool ui_712_format_datetime(const uint8_t *data, uint8_t length, const void *field_ptr) {
+static bool ui_712_format_datetime(const uint8_t *data,
+                                   uint8_t length,
+                                   const s_struct_712_field *field_ptr) {
     time_t timestamp;
 
-    if ((length >= get_struct_field_typesize(field_ptr)) && ismaxint((uint8_t *) data, length)) {
+    if ((length >= field_ptr->type_size) && ismaxint((uint8_t *) data, length)) {
         snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "Unlimited");
         return true;
     }
@@ -570,7 +620,7 @@ static bool ui_712_format_datetime(const uint8_t *data, uint8_t length, const vo
  * @param[in] first if this is the first chunk
  * @param[in] last if this is the last chunk
  */
-bool ui_712_feed_to_display(const void *field_ptr,
+bool ui_712_feed_to_display(const s_struct_712_field *field_ptr,
                             const uint8_t *data,
                             uint8_t length,
                             bool first,
@@ -585,7 +635,7 @@ bool ui_712_feed_to_display(const void *field_ptr,
     }
     // Value
     if (ui_712_field_shown()) {
-        switch (struct_field_type(field_ptr)) {
+        switch (field_ptr->type) {
             case TYPE_SOL_STRING:
                 ui_712_format_str(data, length, last);
                 break;
@@ -626,8 +676,11 @@ bool ui_712_feed_to_display(const void *field_ptr,
             return false;
         }
 
-        if (ui_ctx->amount.joins[ui_ctx->amount.idx].flags ==
-            (AMOUNT_JOIN_FLAG_TOKEN | AMOUNT_JOIN_FLAG_VALUE)) {
+        s_amount_join *amount_join = get_amount_join(ui_ctx->amount.idx);
+        if (amount_join == NULL) {
+            return false;
+        }
+        if (amount_join->flags == (AMOUNT_JOIN_FLAG_TOKEN | AMOUNT_JOIN_FLAG_VALUE)) {
             if (!ui_712_format_amount_join()) {
                 return false;
             }
@@ -640,13 +693,11 @@ bool ui_712_feed_to_display(const void *field_ptr,
         }
     }
 
-#ifdef HAVE_TRUSTED_NAME
     if (ui_ctx->field_flags & UI_712_TRUSTED_NAME) {
         if (!ui_712_format_trusted_name(data, length)) {
             return false;
         }
     }
-#endif
 
     // Check if this field is supposed to be displayed
     if (last && ui_712_field_shown()) {
@@ -679,7 +730,12 @@ void ui_712_end_sign(void) {
  * Initializes the UI context structure in memory
  */
 bool ui_712_init(void) {
-    if ((ui_ctx = MEM_ALLOC_AND_ALIGN_TYPE(*ui_ctx))) {
+    if (ui_ctx != NULL) {
+        ui_712_deinit();
+        return false;
+    }
+
+    if ((ui_ctx = app_mem_alloc(sizeof(*ui_ctx)))) {
         explicit_bzero(ui_ctx, sizeof(*ui_ctx));
         ui_ctx->filtering_mode = EIP712_FILTERING_BASIC;
         explicit_bzero(&strings, sizeof(strings));
@@ -693,7 +749,18 @@ bool ui_712_init(void) {
  * Deinit function that simply unsets the struct pointer to NULL
  */
 void ui_712_deinit(void) {
-    ui_ctx = NULL;
+    if (ui_ctx != NULL) {
+        if (ui_ctx->filters_crc != NULL)
+            flist_clear((s_flist_node **) &ui_ctx->filters_crc,
+                        (f_list_node_del) &delete_filter_crc);
+        if (ui_ctx->ui_pairs != NULL)
+            flist_clear((s_flist_node **) &ui_ctx->ui_pairs, (f_list_node_del) &delete_ui_pair);
+        if (ui_ctx->amount.joins != NULL)
+            flist_clear((s_flist_node **) &ui_ctx->amount.joins,
+                        (f_list_node_del) &delete_amount_join);
+        app_mem_free(ui_ctx);
+        ui_ctx = NULL;
+    }
 }
 
 /**
@@ -785,7 +852,12 @@ void ui_712_set_filters_count(uint8_t count) {
  * @return number of filters
  */
 uint8_t ui_712_remaining_filters(void) {
-    return ui_ctx->filters_to_process - ui_ctx->filters_received;
+    uint8_t filter_count = 0;
+
+    for (const s_filter_crc *tmp = ui_ctx->filters_crc; tmp != NULL;
+         tmp = (s_filter_crc *) ((s_flist_node *) tmp)->next)
+        filter_count += 1;
+    return ui_ctx->filters_to_process - filter_count;
 }
 
 /**
@@ -810,31 +882,24 @@ void ui_712_queue_struct_to_review(void) {
     }
 }
 
-/**
- * Increment the filters counter
- *
- * @return if the counter could be incremented
- */
-bool ui_712_filters_counter_incr(void) {
-    if (ui_ctx->filters_received > ui_ctx->filters_to_process) {
-        return false;
-    }
-    ui_ctx->filters_received += 1;
-    return true;
-}
-
 void ui_712_token_join_prepare_addr_check(uint8_t index) {
     ui_ctx->amount.idx = index;
     ui_ctx->amount.state = AMOUNT_JOIN_STATE_TOKEN;
 }
 
-void ui_712_token_join_prepare_amount(uint8_t index, const char *name, uint8_t name_length) {
-    uint8_t cpy_len = MIN(sizeof(ui_ctx->amount.joins[index].name), name_length);
+bool ui_712_token_join_prepare_amount(uint8_t index, const char *name, uint8_t name_length) {
+    s_amount_join *amount_join = get_amount_join(index);
+    uint8_t cpy_len;
 
+    if (amount_join == NULL) {
+        return false;
+    }
+    cpy_len = MIN(sizeof(amount_join->name) - 1, name_length);
     ui_ctx->amount.idx = index;
     ui_ctx->amount.state = AMOUNT_JOIN_STATE_VALUE;
-    memcpy(ui_ctx->amount.joins[index].name, name, cpy_len);
-    ui_ctx->amount.joins[index].name_length = cpy_len;
+    memcpy(amount_join->name, name, cpy_len);
+    amount_join->name[cpy_len] = '\0';
+    return true;
 }
 
 /**
@@ -843,16 +908,15 @@ void ui_712_token_join_prepare_amount(uint8_t index, const char *name, uint8_t n
  * @param[in] field_ptr pointer to the field
  * @return whether it was successful or not
  */
-bool ui_712_show_raw_key(const void *field_ptr) {
+bool ui_712_show_raw_key(const s_struct_712_field *field_ptr) {
     const char *key;
-    uint8_t key_len;
 
-    if ((key = get_struct_field_keyname(field_ptr, &key_len)) == NULL) {
+    if ((key = field_ptr->key_name) == NULL) {
         return false;
     }
 
     if (ui_712_field_shown() && !(ui_ctx->field_flags & UI_712_FIELD_NAME_PROVIDED)) {
-        ui_712_set_title(key, key_len);
+        ui_712_set_title(key, strlen(key));
     }
     return true;
 }
@@ -861,18 +925,37 @@ bool ui_712_show_raw_key(const void *field_ptr) {
  * Push a new filter path
  *
  * @param[in] path_crc CRC of the filter path
- * @return if the path was pushed or not (in case it was already present)
+ * @return whether it was successful or not
  */
 bool ui_712_push_new_filter_path(uint32_t path_crc) {
+    s_filter_crc *tmp;
+    s_filter_crc *new_crc;
+    uint8_t filter_count = 0;
+
     // check if already present
-    for (int i = 0; i < ui_ctx->filters_received; ++i) {
-        if (ui_ctx->filters_crc[i] == path_crc) {
-            PRINTF("EIP-712 path CRC (%x) already found at index %u!\n", path_crc, i);
-            return false;
+    for (tmp = ui_ctx->filters_crc; tmp != NULL;
+         tmp = (s_filter_crc *) ((s_flist_node *) tmp)->next) {
+        if (tmp->value == path_crc) {
+            PRINTF("EIP-712 path CRC (%x) already found!\n", path_crc);
+            return true;
         }
+        filter_count += 1;
     }
-    PRINTF("Pushing new EIP-712 path CRC (%x) at index %u\n", path_crc, ui_ctx->filters_received);
-    ui_ctx->filters_crc[ui_ctx->filters_received] = path_crc;
+
+    if (filter_count >= ui_ctx->filters_to_process) {
+        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        return false;
+    }
+    // allocate it
+    if ((new_crc = app_mem_alloc(sizeof(*new_crc))) == NULL) {
+        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+        return false;
+    }
+    explicit_bzero(new_crc, sizeof(*new_crc));
+    new_crc->value = path_crc;
+
+    PRINTF("Pushing new EIP-712 path CRC (%x)\n", path_crc);
+    flist_push_back((s_flist_node **) &ui_ctx->filters_crc, (s_flist_node *) new_crc);
     return true;
 }
 
@@ -881,24 +964,36 @@ bool ui_712_push_new_filter_path(uint32_t path_crc) {
  *
  * @param[in] path the given filter path
  * @param[in] length the path length
+ * @return whether it was successful or not
  */
-void ui_712_set_discarded_path(const char *path, uint8_t length) {
+bool ui_712_set_discarded_path(const char *path, uint8_t length) {
+    if (ui_ctx->discarded_path != NULL) {
+        return false;
+    }
+    if ((ui_ctx->discarded_path = app_mem_alloc(length + 1)) == NULL) {
+        return false;
+    }
     memcpy(ui_ctx->discarded_path, path, length);
-    ui_ctx->discarded_path_length = length;
+    ui_ctx->discarded_path[length] = '\0';
+    return true;
 }
 
 /**
  * Get the discarded filter path
  *
- * @param[out] length the path length
  * @return filter path
  */
-const char *ui_712_get_discarded_path(uint8_t *length) {
-    *length = ui_ctx->discarded_path_length;
+const char *ui_712_get_discarded_path(void) {
     return ui_ctx->discarded_path;
 }
 
-#ifdef HAVE_TRUSTED_NAME
+void ui_712_clear_discarded_path(void) {
+    if (ui_ctx->discarded_path != NULL) {
+        app_mem_free(ui_ctx->discarded_path);
+        ui_ctx->discarded_path = NULL;
+    }
+}
+
 void ui_712_set_trusted_name_requirements(uint8_t type_count,
                                           const e_name_type *types,
                                           uint8_t source_count,
@@ -908,19 +1003,40 @@ void ui_712_set_trusted_name_requirements(uint8_t type_count,
     ui_ctx->tn_source_count = source_count;
     memcpy(ui_ctx->tn_sources, sources, source_count);
 }
-#endif
 
-#ifdef SCREEN_SIZE_WALLET
-/*
- * Get UI pairs buffer
- *
- * @param[out] size buffer size
- * @return pointer to the buffer
- */
-char *get_ui_pairs_buffer(size_t *size) {
-    *size = sizeof(ui_ctx->ui_pairs_buffer);
-    return ui_ctx->ui_pairs_buffer;
+const s_ui_712_pair *ui_712_get_pairs(void) {
+    return ui_ctx->ui_pairs;
 }
-#endif
 
-#endif  // HAVE_EIP712_FULL_SUPPORT
+bool ui_712_push_new_pair(const char *key, const char *value) {
+    s_ui_712_pair *new_pair;
+
+    // allocate pair
+    if ((new_pair = app_mem_alloc(sizeof(*new_pair))) == NULL) {
+        return false;
+    }
+    explicit_bzero(new_pair, sizeof(*new_pair));
+
+    flist_push_back((s_flist_node **) &ui_ctx->ui_pairs, (s_flist_node *) new_pair);
+
+    if ((new_pair->key = app_mem_strdup(key)) == NULL) {
+        return false;
+    }
+
+    if ((new_pair->value = app_mem_strdup(value)) == NULL) {
+        return false;
+    }
+    return true;
+}
+
+void ui_712_delete_pairs(size_t keep) {
+    size_t size;
+
+    size = flist_size((s_flist_node **) &ui_ctx->ui_pairs);
+    if (size > 0) {
+        while (size > keep) {
+            flist_pop_front((s_flist_node **) &ui_ctx->ui_pairs, (f_list_node_del) &delete_ui_pair);
+            size -= 1;
+        }
+    }
+}

@@ -1,7 +1,4 @@
-#if defined(HAVE_EIP712_FULL_SUPPORT) || defined(HAVE_GENERIC_TX_PARSER)
-
-#ifndef PROXY_INFO_H_
-#define PROXY_INFO_H_
+#pragma once
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -10,6 +7,12 @@
 #include "common_utils.h"  // ADDRESS_LENGTH
 #include "calldata.h"      // CALLDATA_SELECTOR_SIZE
 #include "signature.h"
+
+typedef enum {
+    DELEGATION_TYPE_PROXY = 0,
+    DELEGATION_TYPE_ISSUED_FROM_FACTORY = 1,
+    DELEGATION_TYPE_DELEGATOR = 2,
+} e_delegation_type;
 
 typedef struct {
     uint64_t chain_id;
@@ -20,7 +23,9 @@ typedef struct {
 } s_proxy_info;
 
 typedef struct {
+    uint8_t struct_type;
     uint8_t version;
+    e_delegation_type delegation_type;
     uint32_t challenge;
     s_proxy_info proxy_info;
     uint8_t signature_length;
@@ -36,7 +41,4 @@ const uint8_t *get_proxy_contract(const uint64_t *chain_id,
 const uint8_t *get_implem_contract(const uint64_t *chain_id,
                                    const uint8_t *addr,
                                    const uint8_t *selector);
-
-#endif  // PROXY_INFO_H_
-
-#endif
+void proxy_cleanup(void);

@@ -1,5 +1,4 @@
-#ifndef GTP_PATH_ARRAY_H_
-#define GTP_PATH_ARRAY_H_
+#pragma once
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -18,5 +17,3 @@ typedef struct {
 } s_path_array_context;
 
 bool handle_array_struct(const s_tlv_data *data, s_path_array_context *context);
-
-#endif  // !GTP_PATH_ARRAY_H_

@@ -1,5 +1,4 @@
-#ifndef GTP_FIELD_H_
-#define GTP_FIELD_H_
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -37,18 +36,12 @@ typedef struct {
         s_param_raw param_raw;
         s_param_amount param_amount;
         s_param_token_amount param_token_amount;
-#ifdef HAVE_NFT_SUPPORT
         s_param_nft param_nft;
-#endif
         s_param_datetime param_datetime;
         s_param_duration param_duration;
         s_param_unit param_unit;
-#ifdef HAVE_ENUM_VALUE
         s_param_enum param_enum;
-#endif
-#ifdef HAVE_TRUSTED_NAME
         s_param_trusted_name param_trusted_name;
-#endif
         s_param_token param_token;
     };
 } s_field;
@@ -61,5 +54,3 @@ typedef struct {
 bool handle_field_struct(const s_tlv_data *data, s_field_ctx *context);
 bool verify_field_struct(const s_field_ctx *context);
 bool format_field(const s_field *field);
-
-#endif  // !GTP_FIELD_H_

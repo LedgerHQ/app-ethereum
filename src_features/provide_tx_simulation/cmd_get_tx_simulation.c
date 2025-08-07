@@ -1,18 +1,15 @@
-#ifdef HAVE_WEB3_CHECKS
+#ifdef HAVE_TRANSACTION_CHECKS
 
 #include "cmd_get_tx_simulation.h"
 #include "apdu_constants.h"
 #include "hash_bytes.h"
 #include "public_keys.h"
-#include "feature_signTx.h"
+#include "getPublicKey.h"
 #include "tlv.h"
 #include "tlv_apdu.h"
-#include "mem.h"
 #include "utils.h"
 #include "nbgl_use_case.h"
-#ifdef HAVE_LEDGER_PKI
 #include "os_pki.h"
-#endif
 #include "network.h"
 #include "ui_callbacks.h"
 
@@ -33,11 +30,11 @@ enum {
     TAG_CHAIN_ID = 0x23,
     TAG_TX_HASH = 0x27,
     TAG_DOMAIN_HASH = 0x28,
-    TAG_W3C_NORMALIZED_RISK = 0x80,
-    TAG_W3C_NORMALIZED_CATEGORY = 0x81,
-    TAG_W3C_PROVIDER_MSG = 0x82,
-    TAG_W3C_TINY_URL = 0x83,
-    TAG_W3C_SIMU_TYPE = 0x84,
+    TAG_TX_CHECKS_NORMALIZED_RISK = 0x80,
+    TAG_TX_CHECKS_NORMALIZED_CATEGORY = 0x81,
+    TAG_TX_CHECKS_PROVIDER_MSG = 0x82,
+    TAG_TX_CHECKS_TINY_URL = 0x83,
+    TAG_TX_CHECKS_SIMU_TYPE = 0x84,
     TAG_DER_SIGNATURE = 0x15,
 };
 
@@ -48,11 +45,11 @@ enum {
     BIT_CHAIN_ID,
     BIT_TX_HASH,
     BIT_DOMAIN_HASH,
-    BIT_W3C_NORMALIZED_RISK,
-    BIT_W3C_NORMALIZED_CATEGORY,
-    BIT_W3C_PROVIDER_MSG,
-    BIT_W3C_TINY_URL,
-    BIT_W3C_SIMU_TYPE,
+    BIT_TX_CHECKS_NORMALIZED_RISK,
+    BIT_TX_CHECKS_NORMALIZED_CATEGORY,
+    BIT_TX_CHECKS_PROVIDER_MSG,
+    BIT_TX_CHECKS_TINY_URL,
+    BIT_TX_CHECKS_SIMU_TYPE,
     BIT_DER_SIGNATURE,
 };
 
@@ -211,90 +208,92 @@ static uint16_t parse_chain_id(const s_tlv_data *data, s_tx_simu_ctx *context) {
 }
 
 /**
- * @brief Parse the W3C_NORMALIZED_RISK value.
+ * @brief Parse the TX_CHECKS_NORMALIZED_RISK value.
  *
  * @param[in] data the tlv data
  * @param[in] context TX Simu context
  * @return APDU Response code
  */
 static uint16_t parse_risk(const s_tlv_data *data, s_tx_simu_ctx *context) {
-    CHECK_FIELD_LENGTH("W3C_NORMALIZED_RISK", data->length, sizeof(context->simu->risk));
+    CHECK_FIELD_LENGTH("TX_CHECKS_NORMALIZED_RISK", data->length, sizeof(context->simu->risk));
     if (data->value[0] >= RISK_MALICIOUS) {
-        PRINTF("W3C_NORMALIZED_RISK out of range: %d\n", data->value[0]);
+        PRINTF("TX_CHECKS_NORMALIZED_RISK out of range: %d\n", data->value[0]);
         return APDU_RESPONSE_INVALID_DATA;
     }
     context->simu->risk = data->value[0] + 1;  // Because 0 is "unknown"
-    context->rcv_flags |= SET_BIT(BIT_W3C_NORMALIZED_RISK);
+    context->rcv_flags |= SET_BIT(BIT_TX_CHECKS_NORMALIZED_RISK);
     return APDU_RESPONSE_OK;
 }
 
 /**
- * @brief Parse the W3C_NORMALIZED_CATEGORY value.
+ * @brief Parse the TX_CHECKS_NORMALIZED_CATEGORY value.
  *
  * @param[in] data the tlv data
  * @param[in] context TX Simu context
  * @return APDU Response code
  */
 static uint16_t parse_category(const s_tlv_data *data, s_tx_simu_ctx *context) {
-    CHECK_FIELD_LENGTH("W3C_NNORMALIZED_CATEGORY", data->length, sizeof(context->simu->category));
+    CHECK_FIELD_LENGTH("TX_CHECKS_NORMALIZED_CATEGORY",
+                       data->length,
+                       sizeof(context->simu->category));
     context->simu->category = data->value[0];
-    context->rcv_flags |= SET_BIT(BIT_W3C_NORMALIZED_CATEGORY);
+    context->rcv_flags |= SET_BIT(BIT_TX_CHECKS_NORMALIZED_CATEGORY);
     return APDU_RESPONSE_OK;
 }
 
 /**
- * @brief Parse the W3C_SIMU_TYPE value.
+ * @brief Parse the TX_CHECKS_SIMU_TYPE value.
  *
  * @param[in] data the tlv data
  * @param[in] context TX Simu context
  * @return APDU Response code
  */
 static uint16_t parse_type(const s_tlv_data *data, s_tx_simu_ctx *context) {
-    CHECK_FIELD_LENGTH("W3C_SIMU_TYPE", data->length, sizeof(context->simu->type));
+    CHECK_FIELD_LENGTH("TX_CHECKS_SIMU_TYPE", data->length, sizeof(context->simu->type));
     if (data->value[0] >= SIMU_TYPE_PERSONAL_MESSAGE) {
-        PRINTF("W3C_SIMU_TYPE out of range: %d\n", data->value[0]);
+        PRINTF("TX_CHECKS_SIMU_TYPE out of range: %d\n", data->value[0]);
         return APDU_RESPONSE_INVALID_DATA;
     }
     context->simu->type = data->value[0] + 1;  // Because 0 is "unknown"
-    context->rcv_flags |= SET_BIT(BIT_W3C_SIMU_TYPE);
+    context->rcv_flags |= SET_BIT(BIT_TX_CHECKS_SIMU_TYPE);
     return APDU_RESPONSE_OK;
 }
 
 /**
- * @brief Parse the W3C_PROVIDER_MSG value.
+ * @brief Parse the TX_CHECKS_PROVIDER_MSG value.
  *
  * @param[in] data the tlv data
  * @param[in] context TX Simu context
  * @return APDU Response code
  */
 static uint16_t parse_provider_msg(const s_tlv_data *data, s_tx_simu_ctx *context) {
-    CHECK_FIELD_OVERFLOW("W3C_PROVIDER_MSG", context->simu->provider_msg, data->length);
+    CHECK_FIELD_OVERFLOW("TX_CHECKS_PROVIDER_MSG", context->simu->provider_msg, data->length);
     // Check if the name is printable
     if (!check_name(data->value, data->length)) {
-        PRINTF("W3C_PROVIDER_MSG is not printable!\n");
+        PRINTF("TX_CHECKS_PROVIDER_MSG is not printable!\n");
         return APDU_RESPONSE_INVALID_DATA;
     }
     COPY_FIELD(context->simu->provider_msg, data);
-    context->rcv_flags |= SET_BIT(BIT_W3C_PROVIDER_MSG);
+    context->rcv_flags |= SET_BIT(BIT_TX_CHECKS_PROVIDER_MSG);
     return APDU_RESPONSE_OK;
 }
 
 /**
- * @brief Parse the W3C_TINY_URL value.
+ * @brief Parse the TX_CHECKS_TINY_URL value.
  *
  * @param[in] data the tlv data
  * @param[in] context TX Simu context
  * @return APDU Response code
  */
 static uint16_t parse_tiny_url(const s_tlv_data *data, s_tx_simu_ctx *context) {
-    CHECK_FIELD_OVERFLOW("W3C_TINY_URL", context->simu->tiny_url, data->length);
+    CHECK_FIELD_OVERFLOW("TX_CHECKS_TINY_URL", context->simu->tiny_url, data->length);
     // Check if the name is printable
     if (!check_name(data->value, data->length)) {
-        PRINTF("W3C_TINY_URL is not printable!\n");
+        PRINTF("TX_CHECKS_TINY_URL is not printable!\n");
         return APDU_RESPONSE_INVALID_DATA;
     }
     COPY_FIELD(context->simu->tiny_url, data);
-    context->rcv_flags |= SET_BIT(BIT_W3C_TINY_URL);
+    context->rcv_flags |= SET_BIT(BIT_TX_CHECKS_TINY_URL);
     return APDU_RESPONSE_OK;
 }
 
@@ -333,9 +332,7 @@ static bool verify_signature(s_tx_simu_ctx *context) {
                                          sizeof(hash),
                                          NULL,
                                          0,
-#ifdef HAVE_LEDGER_PKI
                                          CERTIFICATE_PUBLIC_KEY_USAGE_TX_SIMU_SIGNER,
-#endif
                                          (uint8_t *) (context->sig),
                                          context->sig_size));
 
@@ -368,9 +365,10 @@ static bool verify_fields(s_tx_simu_ctx *context) {
     uint32_t expected_fields;
 
     expected_fields = (1 << BIT_STRUCTURE_TYPE) | (1 << BIT_STRUCTURE_VERSION) |
-                      (1 << BIT_TX_HASH) | (1 << BIT_ADDRESS) | (1 << BIT_W3C_NORMALIZED_RISK) |
-                      (1 << BIT_W3C_NORMALIZED_CATEGORY) | (1 << BIT_W3C_TINY_URL) |
-                      (1 << BIT_W3C_SIMU_TYPE) | (1 << BIT_DER_SIGNATURE);
+                      (1 << BIT_TX_HASH) | (1 << BIT_ADDRESS) |
+                      (1 << BIT_TX_CHECKS_NORMALIZED_RISK) |
+                      (1 << BIT_TX_CHECKS_NORMALIZED_CATEGORY) | (1 << BIT_TX_CHECKS_TINY_URL) |
+                      (1 << BIT_TX_CHECKS_SIMU_TYPE) | (1 << BIT_DER_SIGNATURE);
 
     if (context->simu->type == SIMU_TYPE_TRANSACTION) {
         expected_fields |= (1 << BIT_CHAIN_ID);
@@ -437,19 +435,19 @@ static bool handle_tx_simu_tlv(const s_tlv_data *data, s_tx_simu_ctx *context) {
         case TAG_DOMAIN_HASH:
             sw = parse_domain_hash(data, context);
             break;
-        case TAG_W3C_NORMALIZED_RISK:
+        case TAG_TX_CHECKS_NORMALIZED_RISK:
             sw = parse_risk(data, context);
             break;
-        case TAG_W3C_NORMALIZED_CATEGORY:
+        case TAG_TX_CHECKS_NORMALIZED_CATEGORY:
             sw = parse_category(data, context);
             break;
-        case TAG_W3C_PROVIDER_MSG:
+        case TAG_TX_CHECKS_PROVIDER_MSG:
             sw = parse_provider_msg(data, context);
             break;
-        case TAG_W3C_TINY_URL:
+        case TAG_TX_CHECKS_TINY_URL:
             sw = parse_tiny_url(data, context);
             break;
-        case TAG_W3C_SIMU_TYPE:
+        case TAG_TX_CHECKS_SIMU_TYPE:
             sw = parse_type(data, context);
             break;
         case TAG_DER_SIGNATURE:
@@ -471,10 +469,9 @@ static bool handle_tx_simu_tlv(const s_tlv_data *data, s_tx_simu_ctx *context) {
  *
  * @param[in] payload buffer received
  * @param[in] size of the buffer
- * @param[in] to_free if the payload needs to be freed
  * @return whether the TLV payload was handled successfully or not
  */
-static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_free) {
+static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
     bool parsing_ret;
     s_tx_simu_ctx ctx = {0};
 
@@ -485,7 +482,6 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_fr
     cx_sha256_init(&ctx.hash_ctx);
 
     parsing_ret = tlv_parse(payload, size, (f_tlv_data_handler) &handle_tx_simu_tlv, &ctx);
-    if (to_free) mem_dealloc(size);
     if (!parsing_ret || !verify_fields(&ctx) || !verify_signature(&ctx)) {
         explicit_bzero(&TX_SIMULATION, sizeof(TX_SIMULATION));
         explicit_bzero(&ctx, sizeof(s_tx_simu_ctx));
@@ -505,12 +501,12 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size, bool to_fr
  * @param[in] response_expected indicates if a response is expected
  */
 void handle_tx_simulation_opt_in(bool response_expected) {
-    if (N_storage.w3c_opt_in) {
-        // Web3 Checks already Opt-In
-        PRINTF("Web3 Checks already Opt-in!\n");
+    if (N_storage.tx_check_opt_in) {
+        // TX_CHECKS_ Checks already Opt-In
+        PRINTF("TX_CHECKS_ Checks already Opt-in!\n");
         if (response_expected) {
             // just respond the current state and return to idle screen
-            G_io_apdu_buffer[0] = N_storage.w3c_enable;
+            G_io_apdu_buffer[0] = N_storage.tx_check_enable;
             io_seproxyhal_send_status(APDU_RESPONSE_OK, 1, false, true);
         }
         return;
@@ -537,8 +533,8 @@ uint16_t handle_tx_simulation(uint8_t p1,
     switch (p1) {
         case 0x00:
             // TX Simulation data
-            if (!N_storage.w3c_enable) {
-                PRINTF("Error: Web3 check is disabled!\n");
+            if (!N_storage.tx_check_enable) {
+                PRINTF("Error: TX_CHECKS_ check is disabled!\n");
                 sw = APDU_RESPONSE_CMD_CODE_NOT_SUPPORTED;
                 break;
             }
@@ -579,8 +575,8 @@ bool check_tx_simulation_hash(void) {
     uint8_t *hash = NULL;
     uint8_t *hash2 = NULL;
 
-    if (!N_storage.w3c_enable) {
-        // W3Checks disabled
+    if (!N_storage.tx_check_enable) {
+        // Transaction Checks disabled
         return true;
     }
     switch (appState) {
@@ -658,8 +654,8 @@ bool check_tx_simulation_from_address(void) {
 static bool check_tx_simulation_params(bool checkTxHash, bool checkFromAddr) {
     uint64_t chain_id = get_tx_chain_id();
 
-    if (!N_storage.w3c_enable) {
-        // W3Checks disabled
+    if (!N_storage.tx_check_enable) {
+        // Transaction Checks disabled
         return true;
     }
     switch (TX_SIMULATION.type) {
@@ -725,11 +721,11 @@ static bool check_tx_simulation_params(bool checkTxHash, bool checkFromAddr) {
  * @param[in] checkFromAddr flag to check the FROM address
  */
 void set_tx_simulation_warning(nbgl_warning_t *p_warning, bool checkTxHash, bool checkFromAddr) {
-    if (!N_storage.w3c_enable) {
-        // W3Checks disabled
+    if (!N_storage.tx_check_enable) {
+        // Transaction Checks disabled
         return;
     }
-    // W3Checks enabled => Verify parameters of the Transaction
+    // Transaction Checks enabled => Verify parameters of the Transaction
     check_tx_simulation_params(checkTxHash, checkFromAddr);
     switch (TX_SIMULATION.risk) {
         case RISK_UNKNOWN:
@@ -760,7 +756,7 @@ void set_tx_simulation_warning(nbgl_warning_t *p_warning, bool checkTxHash, bool
 const char *get_tx_simulation_risk_str(void) {
     switch (TX_SIMULATION.risk) {
         case RISK_UNKNOWN:
-            return "UNKNOWN (W3C Issue)";
+            return "UNKNOWN (Transaction Check Issue)";
         case RISK_BENIGN:
             return "BENIGN";
         case RISK_WARNING:
@@ -818,4 +814,4 @@ const char *get_tx_simulation_category_str(void) {
     return "Unknown";
 }
 
-#endif  // HAVE_WEB3_CHECKS
+#endif  // HAVE_TRANSACTION_CHECKS

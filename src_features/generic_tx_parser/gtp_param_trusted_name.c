@@ -1,13 +1,10 @@
-#ifdef HAVE_GENERIC_TX_PARSER
-#ifdef HAVE_TRUSTED_NAME
-
 #include "gtp_param_trusted_name.h"
 #include "network.h"
 #include "trusted_name.h"
 #include "gtp_field_table.h"
 #include "utils.h"
 #include "shared_context.h"
-#include "feature_signTx.h"  // get_public_key
+#include "getPublicKey.h"
 #include "apdu_constants.h"
 
 enum {
@@ -134,6 +131,3 @@ bool format_param_trusted_name(const s_param_trusted_name *param, const char *na
     value_cleanup(&param->value, &values);
     return ret;
 }
-
-#endif  // HAVE_TRUSTED_NAME
-#endif  // HAVE_GENERIC_TX_PARSER

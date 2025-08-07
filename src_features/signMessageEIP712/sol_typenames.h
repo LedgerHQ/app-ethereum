@@ -1,15 +1,9 @@
-#ifndef SOL_TYPENAMES_H_
-#define SOL_TYPENAMES_H_
-
-#ifdef HAVE_EIP712_FULL_SUPPORT
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "typed_data.h"
 
 bool sol_typenames_init(void);
-
-const char *get_struct_field_sol_typename(const uint8_t *ptr, uint8_t *const length);
-
-#endif  // HAVE_EIP712_FULL_SUPPORT
-
-#endif  // SOL_TYPENAMES_H_
+void sol_typenames_deinit(void);
+const char *get_struct_field_sol_typename(const s_struct_712_field *field_ptr);

@@ -15,8 +15,7 @@
  *  limitations under the License.
  ********************************************************************************/
 
-#ifndef _UINT_COMMON_H_
-#define _UINT_COMMON_H_
+#pragma once
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -29,5 +28,3 @@
 #define LOWER(x)   x.elements[1]
 
 void reverseString(char *const str, uint32_t length);
-
-#endif  //_UINT_COMMON_H_

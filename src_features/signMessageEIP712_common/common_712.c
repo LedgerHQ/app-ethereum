@@ -56,3 +56,33 @@ unsigned int ui_712_approve_cb(void) {
 unsigned int ui_712_reject_cb(void) {
     return io_seproxyhal_send_status(APDU_RESPONSE_CONDITION_NOT_SATISFIED, 0, true, false);
 }
+
+static char *format_hash(const uint8_t *hash, char *buffer, size_t buffer_size, size_t offset) {
+    array_bytes_string(buffer + offset, buffer_size - offset, hash, KECCAK256_HASH_BYTESIZE);
+    return buffer + offset;
+}
+
+void eip712_format_hash(nbgl_contentTagValue_t *pairs,
+                        uint8_t nbPairs,
+                        nbgl_contentTagValueList_t *pairs_list) {
+    explicit_bzero(pairs, sizeof(nbgl_contentTagValue_t) * nbPairs);
+    explicit_bzero(pairs_list, sizeof(nbgl_contentTagValueList_t));
+
+    if (nbPairs < 2) {
+        return;  // Ensure we have enough space for two pairs
+    }
+    pairs[0].item = "Domain hash";
+    pairs[0].value = format_hash(tmpCtx.messageSigningContext712.domainHash,
+                                 strings.tmp.tmp,
+                                 sizeof(strings.tmp.tmp),
+                                 0);
+    pairs[1].item = "Message hash";
+    pairs[1].value = format_hash(tmpCtx.messageSigningContext712.messageHash,
+                                 strings.tmp.tmp,
+                                 sizeof(strings.tmp.tmp),
+                                 70);
+
+    pairs_list->nbPairs = 2;
+    pairs_list->pairs = pairs;
+    pairs_list->nbMaxLinesForValue = 0;
+}

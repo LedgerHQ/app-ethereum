@@ -6,6 +6,9 @@
 #include "cx_sha3.h"
 #include "buffer.h"
 #include "lcx_ecfp.h"
+#include "mem_alloc.h"
+
+#include "bip32_utils.h"
 
 /** MemorySanitizer does not wrap explicit_bzero https://github.com/google/sanitizers/issues/1507
  * which results in false positives when running MemorySanitizer.
@@ -121,18 +124,14 @@ int check_signature_with_pubkey(const char *tag,
                                 const uint8_t bufLen,
                                 const uint8_t *PubKey,
                                 const uint8_t keyLen,
-#ifdef HAVE_LEDGER_PKI
                                 const uint8_t keyUsageExp,
-#endif
                                 uint8_t *signature,
                                 const uint8_t sigLen) {
     UNUSED(tag);
     UNUSED(buffer);
     UNUSED(bufLen);
     UNUSED(PubKey);
-#ifdef HAVE_LEDGER_PKI
     UNUSED(keyUsageExp);
-#endif
     UNUSED(keyLen);
     UNUSED(signature);
     UNUSED(sigLen);
@@ -160,6 +159,19 @@ uint16_t get_public_key(uint8_t *out, uint8_t outLength) {
     return 0;
 }
 
+uint16_t get_public_key_string(bip32_path_t *bip32,
+                               uint8_t *pubKey,
+                               char *address,
+                               uint8_t *chainCode,
+                               uint64_t chainId) {
+    UNUSED(bip32);
+    UNUSED(pubKey);
+    UNUSED(chainCode);
+    UNUSED(chainId);
+    memset_s(address, 0, 10);
+    return 0;
+}
+
 void ui_gcs_cleanup(void) {
 }
 
@@ -184,6 +196,10 @@ int io_send_response_buffers(const buffer_t *rdatalist, size_t count, uint16_t s
 }
 
 uint16_t io_seproxyhal_send_status(uint16_t sw, uint32_t tx, bool reset, bool idle) {
+    UNUSED(sw);
+    UNUSED(tx);
+    UNUSED(reset);
+    UNUSED(idle);
     return 0;
 }
 
@@ -191,9 +207,124 @@ uint32_t os_pki_get_info(uint8_t *key_usage,
                          uint8_t *trusted_name,
                          size_t *trusted_name_len,
                          cx_ecfp_384_public_key_t *public_key) {
+    UNUSED(key_usage);
+    UNUSED(trusted_name_len);
+    UNUSED(public_key);
     memcpy(trusted_name, "trusted name", sizeof("trusted name"));
     return 0;
 }
 
 void ui_tx_simulation_opt_in(bool response_expected) {
+    UNUSED(response_expected);
+}
+
+void ui_error_no_7702(void) {
+}
+
+void ui_error_no_7702_whitelist(void) {
+}
+
+void ui_sign_7702_auth(void) {
+}
+
+void ui_sign_7702_revocation(void) {
+}
+
+cx_err_t cx_keccak_init_no_throw(cx_sha3_t *hash PLENGTH(sizeof(cx_sha3_t)), size_t size) {
+    UNUSED(size);
+    memset_s(hash, 0, sizeof(cx_sha3_t));
+    return CX_OK;
+}
+
+cx_err_t bip32_derive_with_seed_get_pubkey_256(unsigned int derivation_mode,
+                                               cx_curve_t curve,
+                                               const uint32_t *path,
+                                               size_t path_len,
+                                               uint8_t raw_pubkey[static 65],
+                                               uint8_t *chain_code,
+                                               cx_md_t hashID,
+                                               unsigned char *seed,
+                                               size_t seed_len) {
+    UNUSED(derivation_mode);
+    UNUSED(curve);
+    UNUSED(path);
+    UNUSED(path_len);
+    UNUSED(chain_code);
+    UNUSED(hashID);
+    UNUSED(seed);
+    UNUSED(seed_len);
+    memset(raw_pubkey, 0, 65);
+    return CX_OK;
+}
+
+cx_err_t bip32_derive_with_seed_ecdsa_sign_rs_hash_256(unsigned int derivation_mode,
+                                                       cx_curve_t curve,
+                                                       const uint32_t *path,
+                                                       size_t path_len,
+                                                       uint32_t sign_mode,
+                                                       cx_md_t hashID,
+                                                       const uint8_t *hash,
+                                                       size_t hash_len,
+                                                       uint8_t sig_r[static 32],
+                                                       uint8_t sig_s[static 32],
+                                                       uint32_t *info,
+                                                       unsigned char *seed,
+                                                       size_t seed_len) {
+    UNUSED(derivation_mode);
+    UNUSED(curve);
+    UNUSED(path);
+    UNUSED(path_len);
+    UNUSED(sign_mode);
+    UNUSED(hashID);
+    UNUSED(hash);
+    UNUSED(hash_len);
+    UNUSED(info);
+    UNUSED(seed);
+    UNUSED(seed_len);
+    memset(sig_r, 0, 32);
+    memset(sig_s, 0, 32);
+    return CX_OK;
+}
+
+// Duplicate from main.c...
+const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_path_t *bip32) {
+    if (*dataLength < 1) {
+        PRINTF("Invalid data\n");
+        return NULL;
+    }
+
+    bip32->length = *dataBuffer;
+
+    dataBuffer++;
+    (*dataLength)--;
+
+    if (*dataLength < sizeof(uint32_t) * (bip32->length)) {
+        PRINTF("Invalid data\n");
+        return NULL;
+    }
+
+    if (bip32_path_read(dataBuffer, (size_t) dataLength, bip32->path, (size_t) bip32->length) ==
+        false) {
+        PRINTF("Invalid Path data\n");
+        return NULL;
+    }
+    dataBuffer += bip32->length * sizeof(uint32_t);
+    *dataLength -= bip32->length * sizeof(uint32_t);
+
+    return dataBuffer;
+}
+
+mem_ctx_t mem_init(void *heap_start, size_t heap_size) {
+    (void) heap_size;
+    return heap_start;
+}
+
+void *mem_alloc(mem_ctx_t ctx, size_t nb_bytes) {
+    (void) ctx;
+    return malloc(nb_bytes);
+}
+
+void mem_free(mem_ctx_t ctx, void *ptr) {
+    (void) ctx;
+    free(ptr);
 }

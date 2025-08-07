@@ -40,6 +40,7 @@ The following APDUs are managed by the application. They are detailed in the fol
 | PROVIDE DOMAIN NAME                                                               | 0x22
 | PROVIDE NETWORK INFORMATION                                                       | 0x30
 | PROVIDE TX SIMULATION                                                             | 0x32
+| SIGN EIP 7702 AUTHORIZATION                                                       | 0x34
 |==============================================================================================================================
 
 
@@ -191,9 +192,9 @@ _Output data_
 
         0x02 : ERC 20 Token information needs to be provided externally
 
-        0x10 : Web3 Check enabled
+        0x10 : Transaction Check enabled
 
-        0x20 : Web3 Check Opt-In done
+        0x20 : Transaction Check Opt-In done
                                                                                     | 01
 | Application major version                                                         | 01
 | Application minor version                                                         | 01
@@ -872,7 +873,7 @@ The signature is computed on :
 
 ##### Trusted name
 
-This command should come right after the implementation of the domain has been sent with *SEND STRUCT IMPLEMENTATION*, just before sending the message implementation.
+This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
 The first byte is used so that a signature of one type cannot be valid as another type.
 
 The signature is computed on :
@@ -1257,22 +1258,7 @@ Up to *2* different configurations can be used. The targeted slot is configured 
 The configuration is sent in TLV (Tag-Length-Value) mode, whereas the icon itself is send as raw bytes in dedicated chunk(s).
 The configuration doesn't include the icon itself, but only its hash (`sha256`), and it is signed.
 
-For the configuration, the following tags are supported:
-
-[width="80%"]
-|===============================================================
-| *Tag name*        | *Tag value* | *Length (byte)*   | *Value*
-| STRUCTURE_TYPE    | 0x01        | 0x01              | 0x08 (for `TYPE_DYNAMIC_NETWORK`)
-| STRUCTURE_VERSION | 0x02        | 0x01              | 0x01
-| BLOCKCHAIN_FAMILY | 0x51        | 0x01              | 0x01 (for Ethereum)
-| CHAIN_ID          | 0x23        | 0x08              | (`uint64_t` value)
-| NETWORK_NAME      | 0x52        | variable (max 31) | string without '\0'
-| NETWORK_TICKER    | 0x24        | variable (max 10) | string without '\0'
-| NETWORK_ICON_HASH | 0x53        | 0x20              | _sha256_ of the network icon, sent separately
-| SIGNATURE         | 0x15        | variable          | Signature of the TLV payload data
-|===============================================================
-
-The signature is mandatory, and is computed on the full payload data, using `CX_CURVE_SECP256K1`.
+The TLV description is available link:tlv_structs.md#network_info[here]
 
 #### Coding
 
@@ -1361,47 +1347,9 @@ There are 2 sub-commands:
 The Transaction Simulation information must be sent before any transaction to be verified and confirmed.
 It will be displayed in the review flow only if the corresponding setting is _Enabled_.
 
-The information is sent in TLV (Tag-Length-Value) mode. The following tags are supported:
+The information is sent in TLV (Tag-Length-Value) mode.
 
-[width="80%"]
-|===============================================================================================
-| *Tag name*              | *Tag value* | *Length (byte)*   | *Value*
-| STRUCTURE_TYPE          | 0x01        | 0x01              | 0x09 (for `TYPE_TX_SIMULATION`)
-| STRUCTURE_VERSION       | 0x02        | 0x01              | 0x01
-| ADDRESS                 | 0x22        | 0x14              | Ethereum `From` Address
-| CHAIN_ID                | 0x23        | 0x08              | (`uint64_t` value)
-| TX_HASH                 | 0x27        | 0x20              | Hash of the Tx that was simulated
-| DOMAIN_HASH             | 0x28        | 0x20              | _Domain Hash_ for EIP712
-| W3C_NORMALIZED_RISK     | 0x80        | 0x01              | Normalized risk score of the transaction.
-| W3C_NORMALIZED_CATEGORY | 0x81        | 0x01              | Main category explaining the risk score
-| W3C_PROVIDER_MSG        | 0x82        | variable (max 30) | Provider specific message explaining the risk score
-| W3C_TINY_URL            | 0x83        | variable (max 30) | URL to access the full report
-| W3C_SIMULATION_TYPE     | 0x84        | 0x01              | Type of simulation
-| SIGNATURE               | 0x15        | variable          | Signature of the TLV payload data
-|===============================================================================================
-
-The signature is mandatory, and is computed on the full payload data, using `CX_CURVE_SECP256K1`.
-
-Then, the App will verify the validity of this simulation using the fields:
-
-- `ADDRESS`
-- `CHAIN_ID`
-- `TX_HASH`
-- `SIMULATION_TYPE`
-
-If one of those fields are not correct (or don't correspond to the current TX), the check status is considered _Unknown_.
-
-The _Risk Score_ is normalized and interpreted like this:
-
-- `0`: Benign
-- `1`: Warning
-- `2`: Malicious
-
-The _Simulation Type_ is normalized and interpreted like this:
-
-- `0`: Transaction
-- `1`: Typed Data (EIP-712)
-- `2`: Personal Message (EIP-191)
+The TLV description is available link:tlv_structs.md#tx_simulation[here]
 
 #### Coding
 
@@ -1450,10 +1398,10 @@ None
 ##### If P1 == TX Simulation Opt-In
 
 [width="80%"]
-|====================================
-| *Description*              | *Length*
-| Web3 Check setting status  | 1
-|====================================
+|=============================================
+| *Description*                     | *Length*
+| Transaction Check setting status  | 1
+|=============================================
 
 ### SIGN EIP 7702 AUTHORIZATION
 

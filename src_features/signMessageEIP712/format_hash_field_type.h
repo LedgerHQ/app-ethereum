@@ -1,12 +1,6 @@
-#ifndef FORMAT_HASH_FIELD_TYPE_H_
-#define FORMAT_HASH_FIELD_TYPE_H_
-
-#ifdef HAVE_EIP712_FULL_SUPPORT
+#pragma once
 
 #include "cx.h"
+#include "typed_data.h"
 
-bool format_hash_field_type(const void *const field_ptr, cx_hash_t *hash_ctx);
-
-#endif  // HAVE_EIP712_FULL_SUPPORT
-
-#endif  // FORMAT_HASH_FIELD_TYPE_H_
+bool format_hash_field_type(const s_struct_712_field *field_ptr, cx_hash_t *hash_ctx);

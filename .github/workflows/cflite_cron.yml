@@ -3,13 +3,19 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main  # Use your actual default branch here.
+      - develop
+      - master
   schedule:
-    - cron: '0 13 * * 6'  # At 01:00 PM, only on Saturday
+    - cron: '0 17 * * 6'  # At 05:00 PM, only on Saturday
+
 permissions: read-all
+
 jobs:
   Fuzzing:
     runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ matrix.mode }}-${{ matrix.sanitizer }}-${{ github.ref }}
+      cancel-in-progress: true
     strategy:
       fail-fast: false
       matrix:
@@ -35,6 +41,6 @@ jobs:
         uses: google/clusterfuzzlite/actions/run_fuzzers@v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          fuzz-seconds: 900  # 15 minutes
+          fuzz-seconds: ${{ github.event_name == 'push' && 600 || 18000 }} # 10 min for push, else 5 hours
           mode: ${{ matrix.mode }}
           sanitizer: ${{ matrix.sanitizer }}

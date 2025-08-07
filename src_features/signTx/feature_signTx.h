@@ -1,5 +1,4 @@
-#ifndef _SIGN_TX_H_
-#define _SIGN_TX_H_
+#pragma once
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -19,6 +18,8 @@ typedef enum {
 
 } plugin_ui_state_t;
 
+extern cx_sha3_t *g_tx_hash_ctx;
+
 customStatus_e customProcessor(txContext_t *context);
 uint16_t finalize_parsing(const txContext_t *context);
 void ux_approve_tx(bool fromPlugin);
@@ -26,11 +27,7 @@ void start_signature_flow(void);
 
 uint16_t handle_parsing_status(parserStatus_e status);
 
-uint16_t get_public_key(uint8_t *out, uint8_t outLength);
 bool max_transaction_fee_to_string(const txInt256_t *BEGasPrice,
                                    const txInt256_t *BEGasLimit,
                                    char *displayBuffer,
                                    uint32_t displayBufferSize);
-uint16_t get_network_as_string(char *out, size_t out_size);
-
-#endif  // _SIGN_TX_H_

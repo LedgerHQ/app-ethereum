@@ -1,21 +1,17 @@
-from pathlib import Path
 from typing import Optional
 import struct
 import json
 import hashlib
-import pytest
 from web3 import Web3
 
-from ragger.backend import BackendInterface
-from ragger.firmware import Firmware
-from ragger.navigator import Navigator, NavInsID
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 
 
 from constants import ABIS_FOLDER
 
 import client.response_parser as ResponseParser
-from client.client import EthAppClient, SignMode, TrustedNameType, TrustedNameSource, StatusWord
+from client.client import EthAppClient, SignMode, TrustedNameType, TrustedNameSource
+from client.status_word import StatusWord
 from client.utils import get_selector_from_data
 from client.gcs import (
     Field, ParamType, ParamRaw, Value, TypeFamily, DataPath, PathTuple, ParamTrustedName,
@@ -26,14 +22,9 @@ from client.tx_simu import TxSimu
 from client.proxy_info import ProxyInfo
 
 
-def test_gcs_nft(firmware: Firmware,
-                 backend: BackendInterface,
-                 scenario_navigator: NavigateWithScenario,
-                 test_name: str):
+def test_gcs_nft(scenario_navigator: NavigateWithScenario, test_name: str):
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
-
-    if firmware == Firmware.NANOS:
-        pytest.skip("Not supported on LNS")
 
     with open(f"{ABIS_FOLDER}/erc1155.json", encoding="utf-8") as file:
         contract = Web3().eth.contract(
@@ -225,20 +216,14 @@ def test_gcs_nft(firmware: Firmware,
         app_client.send_raw(0xe0, 0x28, 0x01, 0x00, struct.pack(">H", len(payload)) + payload)
 
     with app_client.send_raw_async(0xe0, 0x04, 0x00, 0x02, bytes()):
-        scenario_navigator.review_approve(test_name=test_name, custom_screen_text="Sign transaction")
+        scenario_navigator.review_approve(test_name=test_name)
 
 
-def test_gcs_poap(firmware: Firmware,
-                  backend: BackendInterface,
-                  navigator: Navigator,
-                  scenario_navigator: NavigateWithScenario,
+def test_gcs_poap(scenario_navigator: NavigateWithScenario,
                   test_name: str,
-                  default_screenshot_path: Path,
                   simu_params: Optional[TxSimu] = None):
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
-
-    if firmware == Firmware.NANOS:
-        pytest.skip("Not supported on LNS")
 
     with open(f"{ABIS_FOLDER}/poap.abi.json", encoding="utf-8") as file:
         contract = Web3().eth.contract(
@@ -405,23 +390,14 @@ def test_gcs_poap(firmware: Firmware,
 
     with app_client.send_raw_async(0xe0, 0x04, 0x00, 0x02, bytes()):
         if simu_params is not None:
-            navigator.navigate_and_compare(default_screenshot_path,
-                                           f"{test_name}/warning",
-                                           [NavInsID.USE_CASE_CHOICE_REJECT],
-                                           screen_change_after_last_instruction=False)
-
-        scenario_navigator.review_approve(test_name=test_name,
-                                          custom_screen_text=r"(Sign transaction|Accept (risk|threat))")
+            scenario_navigator.review_approve_with_warning(test_name=test_name)
+        else:
+            scenario_navigator.review_approve(test_name=test_name)
 
 
-def test_gcs_1inch(firmware: Firmware,
-                   backend: BackendInterface,
-                   scenario_navigator: NavigateWithScenario,
-                   test_name: str):
+def test_gcs_1inch(scenario_navigator: NavigateWithScenario, test_name: str):
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
-
-    if firmware == Firmware.NANOS:
-        pytest.skip("Not supported on LNS")
 
     with open(f"{ABIS_FOLDER}/1inch.abi.json", encoding="utf-8") as file:
         contract = Web3().eth.contract(
@@ -576,21 +552,16 @@ def test_gcs_1inch(firmware: Firmware,
         app_client.send_raw(0xe0, 0x28, 0x01, 0x00, struct.pack(">H", len(payload)) + payload)
 
     with app_client.send_raw_async(0xe0, 0x04, 0x00, 0x02, bytes()):
-        scenario_navigator.review_approve(test_name=test_name, custom_screen_text="Sign transaction")
+        scenario_navigator.review_approve(test_name=test_name)
 
 
-def test_gcs_proxy(firmware: Firmware,
-                   backend: BackendInterface,
-                   scenario_navigator: NavigateWithScenario,
-                   test_name: str):
+def test_gcs_proxy(scenario_navigator: NavigateWithScenario, test_name: str):
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
-
-    if firmware == Firmware.NANOS:
-        pytest.skip("Not supported on LNS")
 
     new_owner = bytes.fromhex("2222222222222222222222222222222222222222")
 
-    with open(f"{ABIS_FOLDER}/proxy_implem.abi.json") as file:
+    with open(f"{ABIS_FOLDER}/proxy_implem.abi.json", encoding="utf-8") as file:
         contract = Web3().eth.contract(
             abi=json.load(file),
             address=None
@@ -657,10 +628,10 @@ def test_gcs_proxy(firmware: Firmware,
 
     proxy_info = ProxyInfo(
         ResponseParser.challenge(app_client.get_challenge().data),
-        tx_info.contract_addr,
-        tx_info.chain_id,
         tx_params["to"],
-        tx_info.selector,
+        tx_info.chain_id,
+        tx_info.contract_addr,
+        selector=tx_info.selector,
     )
 
     app_client.provide_proxy_info(proxy_info.serialize())
@@ -690,19 +661,14 @@ def test_gcs_proxy(firmware: Firmware,
         app_client.send_raw(0xe0, 0x28, 0x01, 0x00, struct.pack(">H", len(payload)) + payload)
 
     with app_client.send_raw_async(0xe0, 0x04, 0x00, 0x02, bytes()):
-        scenario_navigator.review_approve(test_name=test_name, custom_screen_text="Sign transaction")
+        scenario_navigator.review_approve(test_name=test_name)
 
 
-def test_gcs_4226(firmware: Firmware,
-                  backend: BackendInterface,
-                  scenario_navigator: NavigateWithScenario,
-                  test_name: str):
+def test_gcs_4226(scenario_navigator: NavigateWithScenario, test_name: str):
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
 
-    if firmware == Firmware.NANOS:
-        pytest.skip("Not supported on LNS")
-
-    with open(f"{ABIS_FOLDER}/rSWELL.abi.json") as file:
+    with open(f"{ABIS_FOLDER}/rSWELL.abi.json", encoding="utf-8") as file:
         contract = Web3().eth.contract(
             abi=json.load(file),
             address=None
@@ -813,4 +779,4 @@ def test_gcs_4226(firmware: Firmware,
         app_client.send_raw(0xe0, 0x28, 0x01, 0x00, struct.pack(">H", len(payload)) + payload)
 
     with app_client.send_raw_async(0xe0, 0x04, 0x00, 0x02, bytes()):
-        scenario_navigator.review_approve(test_name=test_name, custom_screen_text="Sign transaction")
+        scenario_navigator.review_approve(test_name=test_name)

@@ -1,5 +1,3 @@
-#ifdef HAVE_TRUSTED_NAME
-
 #include "os_io.h"
 #include "cx.h"
 #include "apdu_constants.h"
@@ -32,5 +30,3 @@ uint16_t handle_get_challenge(unsigned int *tx) {
     *tx += 4;
     return APDU_RESPONSE_OK;
 }
-
-#endif  // HAVE_TRUSTED_NAME

@@ -1,5 +1,4 @@
-#ifndef GTP_PARAM_AMOUNT_H_
-#define GTP_PARAM_AMOUNT_H_
+#pragma once
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -17,5 +16,3 @@ typedef struct {
 
 bool handle_param_amount_struct(const s_tlv_data *data, s_param_amount_context *context);
 bool format_param_amount(const s_param_amount *param, const char *name);
-
-#endif  // !GTP_PARAM_AMOUNT_H_

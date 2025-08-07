@@ -19,11 +19,7 @@ uint32_t io_seproxyhal_touch_tx_ok(void) {
                                                   G_io_apdu_buffer + 1 + 32,
                                                   &info));
 
-    if (txContext.txType == EIP1559 || txContext.txType == EIP2930
-#ifdef HAVE_EIP7702
-        || txContext.txType == EIP7702
-#endif  // HAVE_EIP7702
-    ) {
+    if (txContext.txType == EIP1559 || txContext.txType == EIP2930 || txContext.txType == EIP7702) {
         if (info & CX_ECCINFO_PARITY_ODD) {
             G_io_apdu_buffer[0] = 1;
         } else {
@@ -63,7 +59,7 @@ uint32_t io_seproxyhal_touch_tx_ok(void) {
             swap_finalize_exchange_sign_transaction(true);
         } else {
             PRINTF("Unrecoverable\n");
-            app_exit();
+            app_quit();
         }
     }
     reset_app_context();

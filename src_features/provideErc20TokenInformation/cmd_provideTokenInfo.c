@@ -2,9 +2,7 @@
 #include "public_keys.h"
 #include "network.h"
 #include "manage_asset_info.h"
-#ifdef HAVE_LEDGER_PKI
 #include "os_pki.h"
-#endif
 
 uint16_t handleProvideErc20TokenInformation(const uint8_t *workBuffer,
                                             uint8_t dataLength,
@@ -55,9 +53,7 @@ uint16_t handleProvideErc20TokenInformation(const uint8_t *workBuffer,
                                         sizeof(hash),
                                         LEDGER_SIGNATURE_PUBLIC_KEY,
                                         sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
-#ifdef HAVE_LEDGER_PKI
                                         CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META,
-#endif
                                         (uint8_t *) (workBuffer + offset),
                                         dataLength);
     if (error != CX_OK) {

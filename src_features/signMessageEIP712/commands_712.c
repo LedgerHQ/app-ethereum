@@ -1,5 +1,3 @@
-#ifdef HAVE_EIP712_FULL_SUPPORT
-
 #include "apdu_constants.h"  // APDU response codes
 #include "context_712.h"
 #include "field_hash.h"
@@ -206,11 +204,9 @@ uint16_t handle_eip712_filtering(uint8_t p1,
                 reply_apdu = false;
             }
             break;
-#ifdef HAVE_TRUSTED_NAME
         case P2_FILT_CONTRACT_NAME:
             ret = filtering_trusted_name(cdata, length, p1 == 1, &path_crc);
             break;
-#endif
         case P2_FILT_DATE_TIME:
             ret = filtering_date_time(cdata, length, p1 == 1, &path_crc);
             break;
@@ -229,11 +225,8 @@ uint16_t handle_eip712_filtering(uint8_t p1,
             ret = false;
     }
     if ((p2 > P2_FILT_MESSAGE_INFO) && ret) {
-        if (ui_712_push_new_filter_path(path_crc)) {
-            if (!ui_712_filters_counter_incr()) {
-                ret = false;
-                apdu_response_code = APDU_RESPONSE_INVALID_DATA;
-            }
+        if (!ui_712_push_new_filter_path(path_crc)) {
+            ret = false;
         }
     }
     if (reply_apdu) {
@@ -286,5 +279,3 @@ uint16_t handle_eip712_sign(const uint8_t *cdata, uint8_t length, uint32_t *flag
     *flags |= IO_ASYNCH_REPLY;
     return APDU_NO_RESPONSE;
 }
-
-#endif  // HAVE_EIP712_FULL_SUPPORT

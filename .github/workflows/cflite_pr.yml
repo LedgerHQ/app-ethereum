@@ -1,9 +1,9 @@
 name: ClusterFuzzLite PR fuzzing
 on:
   pull_request:
-    paths:
-      - '**'
+
 permissions: read-all
+
 jobs:
   PR:
     runs-on: ubuntu-latest
@@ -19,8 +19,8 @@ jobs:
         id: build
         uses: google/clusterfuzzlite/actions/build_fuzzers@v1
         with:
-          language: c  # Change this to the language you are fuzzing.
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          language: c  # Change this to the language you are fuzzing.
           sanitizer: ${{ matrix.sanitizer }}
           # Optional but recommended: used to only run fuzzers that are affected
           # by the PR.

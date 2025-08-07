@@ -13,32 +13,14 @@ ifneq ($(SET_PLUGIN_TEST_KEY),0)
 endif
 
 # NFTs
-ifneq ($(TARGET_NAME),TARGET_NANOS)
-    DEFINES	+= HAVE_NFT_SUPPORT
-    NFT_TEST_KEY ?= 0
-    ifneq ($(NFT_TEST_KEY),0)
-        DEFINES += HAVE_NFT_TEST_KEY
-    endif
-    NFT_STAGING_KEY ?= 0
-    ifneq ($(NFT_STAGING_KEY),0)
-        # Key used by the staging backend
-        DEFINES += HAVE_NFT_STAGING_KEY
-    endif
+NFT_TEST_KEY ?= 0
+ifneq ($(NFT_TEST_KEY),0)
+    DEFINES += HAVE_NFT_TEST_KEY
 endif
-
-# Dynamic memory allocator
-ifneq ($(TARGET_NAME),TARGET_NANOS)
-    DEFINES += HAVE_DYN_MEM_ALLOC
-endif
-
-# EIP-712
-ifneq ($(TARGET_NAME),TARGET_NANOS)
-    DEFINES	+= HAVE_EIP712_FULL_SUPPORT
-endif
-
-ifneq ($(TARGET_NAME),TARGET_NANOS)
-    DEFINES	+= HAVE_ENUM_VALUE
-    DEFINES	+= HAVE_GENERIC_TX_PARSER
+NFT_STAGING_KEY ?= 0
+ifneq ($(NFT_STAGING_KEY),0)
+    # Key used by the staging backend
+    DEFINES += HAVE_NFT_STAGING_KEY
 endif
 
 # CryptoAssetsList key
@@ -54,34 +36,27 @@ ifneq ($(CAL_STAGING_KEY),0)
 endif
 
 # ENS
-ifneq ($(TARGET_NAME),TARGET_NANOS)
-    DEFINES += HAVE_TRUSTED_NAME
-    TRUSTED_NAME_TEST_KEY ?= 0
-    ifneq ($(TRUSTED_NAME_TEST_KEY),0)
-        DEFINES += HAVE_TRUSTED_NAME_TEST_KEY
-    endif
+TRUSTED_NAME_TEST_KEY ?= 0
+ifneq ($(TRUSTED_NAME_TEST_KEY),0)
+    DEFINES += HAVE_TRUSTED_NAME_TEST_KEY
 endif
 
-# Dynamic networks
-ifneq ($(TARGET_NAME),TARGET_NANOS)
-    DEFINES += HAVE_DYNAMIC_NETWORKS
-endif
-
-# Web3 Checks
-# TODO: remove this check once the web3 checks are implemented on all targets
-# ifneq ($(TARGET_NAME),TARGET_NANOS)
+# Transaction Checks
+# TODO: remove this check once the Transaction checks are implemented on all targets
 ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
-    DEFINES	+= HAVE_WEB3_CHECKS
+    DEFINES	+= HAVE_TRANSACTION_CHECKS
 endif
 
-# EIP 7702
-ifneq ($(TARGET_NAME),TARGET_NANOS)
-    DEFINES += HAVE_EIP7702
-    DEFINES += HAVE_EIP7702_WHITELIST
+EIP7702_TEST_WHITELIST ?= 0
+ifneq ($(EIP7702_TEST_WHITELIST),0)
+    DEFINES += HAVE_EIP7702_WHITELIST_TEST
+endif
 
-    EIP7702_TEST_WHITELIST ?= 0
-    ifneq ($(EIP7702_TEST_WHITELIST),0)
-        DEFINES += HAVE_EIP7702_WHITELIST_TEST
+ENABLE_DYNAMIC_ALLOC = 1
+ifneq ($(DEBUG), 0)
+    MEMORY_PROFILING ?= 0
+    ifneq ($(MEMORY_PROFILING),0)
+        DEFINES += HAVE_MEMORY_PROFILING
     endif
 endif
 

@@ -8,13 +8,15 @@
 #include "common_ui.h"
 #include "ui_callbacks.h"
 #include "apdu_constants.h"
-#include "crypto_helpers.h"
 #include "format.h"
 #include "manage_asset_info.h"
 #include "handle_swap_sign_transaction.h"
 #include "os_math.h"
 #include "calldata.h"
 #include "swap_error_code_helpers.h"
+#include "getPublicKey.h"
+#include "mem.h"
+#include "mem_utils.h"
 
 static bool g_use_standard_ui;
 
@@ -39,11 +41,8 @@ static uint32_t splitBinaryParameterPart(char *result, size_t result_size, uint8
 customStatus_e customProcessor(txContext_t *context) {
     if (((context->txType == LEGACY && context->currentField == LEGACY_RLP_DATA) ||
          (context->txType == EIP2930 && context->currentField == EIP2930_RLP_DATA) ||
-         (context->txType == EIP1559 && context->currentField == EIP1559_RLP_DATA)
-#ifdef HAVE_EIP7702
-         || (context->txType == EIP7702 && context->currentField == EIP7702_RLP_DATA)
-#endif  // HAVE_EIP7702
-             ) &&
+         (context->txType == EIP1559 && context->currentField == EIP1559_RLP_DATA) ||
+         (context->txType == EIP7702 && context->currentField == EIP7702_RLP_DATA)) &&
         (context->currentFieldLength != 0)) {
         context->content->dataPresent = true;
         // If handling a new contract rather than a function call, abort immediately
@@ -66,11 +65,7 @@ customStatus_e customProcessor(txContext_t *context) {
             // If contract debugging mode is activated, do not go through the plugin activation
             // as they wouldn't be displayed if the plugin consumes all data but fallbacks
             // Still go through plugin activation in Swap context
-#ifdef HAVE_GENERIC_TX_PARSER
             if (!context->store_calldata) {
-#else
-            {
-#endif
                 if (!N_storage.contractDetails || G_called_from_swap) {
                     eth_plugin_prepare_init(&pluginInit,
                                             context->workBuffer,
@@ -99,11 +94,7 @@ customStatus_e customProcessor(txContext_t *context) {
         uint32_t copySize;
         uint32_t fieldPos = context->currentFieldPos;
         if (fieldPos == 0) {  // not reached if a plugin is available
-#ifdef HAVE_GENERIC_TX_PARSER
             if (!context->store_calldata) {
-#else
-            {
-#endif
                 if (!N_storage.dataAllowed) {
                     PRINTF("Data field forbidden\n");
                     ui_error_blind_signing();
@@ -179,10 +170,6 @@ customStatus_e customProcessor(txContext_t *context) {
             } else {
                 uint32_t offset = 0;
                 uint32_t i;
-                snprintf(strings.tmp.tmp2,
-                         sizeof(strings.tmp.tmp2),
-                         "Field %d",
-                         dataContext.tokenContext.fieldIndex);
                 for (i = 0; i < 4; i++) {
                     offset += splitBinaryParameterPart(strings.tmp.tmp + offset,
                                                        sizeof(strings.tmp.tmp) - offset,
@@ -292,43 +279,7 @@ static void nonce_to_string(const txInt256_t *nonce, char *out, size_t out_size)
     tostring256(&nonce_uint256, 10, out, out_size);
 }
 
-uint16_t get_network_as_string(char *out, size_t out_size) {
-    uint64_t chain_id = get_tx_chain_id();
-    const char *name = get_network_name_from_chain_id(&chain_id);
-
-    if (name == NULL) {
-        // No network name found so simply copy the chain ID as the network name.
-        if (!u64_to_string(chain_id, out, out_size)) {
-            return APDU_RESPONSE_CHAINID_OUT_BUF_SMALL;
-        }
-    } else {
-        // Network name found, simply copy it.
-        strlcpy(out, name, out_size);
-    }
-    return APDU_RESPONSE_OK;
-}
-
-uint16_t get_public_key(uint8_t *out, uint8_t outLength) {
-    uint8_t raw_pubkey[65];
-    cx_err_t error = CX_INTERNAL_ERROR;
-
-    if (outLength < ADDRESS_LENGTH) {
-        return APDU_RESPONSE_WRONG_DATA_LENGTH;
-    }
-    CX_CHECK(bip32_derive_get_pubkey_256(CX_CURVE_256K1,
-                                         tmpCtx.transactionContext.bip32.path,
-                                         tmpCtx.transactionContext.bip32.length,
-                                         raw_pubkey,
-                                         NULL,
-                                         CX_SHA512));
-
-    getEthAddressFromRawKey(raw_pubkey, out);
-    error = APDU_RESPONSE_OK;
-end:
-    return error;
-}
-
-/* Local implementation of strncasecmp, workaround of the segfaulting base implem
+/* Local implementation of strncasecmp, workaround of the segfaulting base implem on return value
  * Remove once strncasecmp is fixed
  */
 static int strcasecmp_workaround(const char *str1, const char *str2) {
@@ -362,7 +313,11 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
         }
     }
     // Store the hash
-    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3,
+    if (g_tx_hash_ctx == NULL) {
+        error = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+        goto end;
+    }
+    CX_CHECK(cx_hash_no_throw((cx_hash_t *) g_tx_hash_ctx,
                               CX_LAST,
                               tmpCtx.transactionContext.hash,
                               0,
@@ -394,7 +349,8 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
             ETH_PLUGIN_RESULT_SUCCESSFUL) {
             PRINTF("Plugin finalize call failed\n");
             report_finalize_error();
-            return APDU_NO_RESPONSE;
+            error = APDU_NO_RESPONSE;
+            goto end;
         }
         // Lookup tokens if requested
         ethPluginProvideInfo_t pluginProvideInfo;
@@ -418,7 +374,8 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
                 ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
                 PRINTF("Plugin provide token call failed\n");
                 report_finalize_error();
-                return APDU_NO_RESPONSE;
+                error = APDU_NO_RESPONSE;
+                goto end;
             }
             pluginFinalize.result = pluginProvideInfo.result;
         }
@@ -442,7 +399,8 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
                     if ((pluginFinalize.amount == NULL) || (pluginFinalize.address == NULL)) {
                         PRINTF("Incorrect amount/address set by plugin\n");
                         report_finalize_error();
-                        return APDU_NO_RESPONSE;
+                        error = APDU_NO_RESPONSE;
+                        goto end;
                     }
                     memmove(tmpContent.txContent.value.value, pluginFinalize.amount, 32);
                     tmpContent.txContent.value.length = 32;
@@ -456,7 +414,8 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
                 default:
                     PRINTF("ui type %d not supported\n", pluginFinalize.uiType);
                     report_finalize_error();
-                    return APDU_NO_RESPONSE;
+                    error = APDU_NO_RESPONSE;
+                    goto end;
             }
         } else if (G_called_from_swap && G_swap_mode == SWAP_MODE_CROSSCHAIN_SUCCESS) {
             PRINTF("Plugin swap_with_calldata fell back for UI with success\n");
@@ -469,7 +428,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
         if (G_swap_response_ready) {
             // Unreachable given current return to exchange mechanism. Safeguard against regression
             PRINTF("FATAL: safety against double sign triggered\n");
-            app_exit();
+            app_quit();
         }
         G_swap_response_ready = true;
     }
@@ -495,17 +454,13 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
         }
     }
 
-#ifdef HAVE_GENERIC_TX_PARSER
     if (!context->store_calldata) {
-#else
-    (void) context;
-    {
-#endif
         if (tmpContent.txContent.dataPresent && !N_storage.dataAllowed) {
             PRINTF("Data is present but not allowed\n");
             report_finalize_error();
             ui_error_blind_signing();
-            return false;
+            error = APDU_NO_RESPONSE;
+            goto end;
         }
     }
 
@@ -548,7 +503,8 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
                             displayBuffer,
                             sizeof(displayBuffer))) {
             PRINTF("OVERFLOW, amount to string failed\n");
-            return EXCEPTION_OVERFLOW;
+            error = EXCEPTION_OVERFLOW;
+            goto end;
         }
 
         if (G_called_from_swap) {
@@ -576,7 +532,8 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
                                       &tmpContent.txContent.startgas,
                                       displayBuffer,
                                       sizeof(displayBuffer)) == false) {
-        return APDU_RESPONSE_INVALID_DATA;
+        error = APDU_RESPONSE_INVALID_DATA;
+        goto end;
     }
     if (G_called_from_swap) {
         // Ensure the values are the same that the ones that have been previously validated
@@ -609,6 +566,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
         PRINTF("Network: %s\n", strings.common.network_name);
     }
 end:
+    mem_buffer_cleanup((void **) &g_tx_hash_ctx);
     return error;
 }
 
@@ -630,31 +588,18 @@ uint16_t finalize_parsing(const txContext_t *context) {
     if (sw != APDU_RESPONSE_OK) {
         return sw;
     }
-#ifdef HAVE_GENERIC_TX_PARSER
     if (context->store_calldata) {
         if (calldata_get_selector() == NULL) {
             PRINTF("Asked to store calldata but none was provided!\n");
             return APDU_RESPONSE_INVALID_DATA;
         }
     } else {
-#else
-    (void) context;
-    {
-#endif
         // If called from swap, the user has already validated a standard transaction
         // And we have already checked the fields of this transaction above
         if (G_called_from_swap && g_use_standard_ui) {
             io_seproxyhal_touch_tx_ok();
         } else {
-#ifdef HAVE_BAGL
-            // If blind-signing detected, start the warning flow beforehand
-            if (tmpContent.txContent.dataPresent) {
-                ui_warning_blind_signing();
-            } else
-#endif
-            {
-                start_signature_flow();
-            }
+            start_signature_flow();
         }
     }
     return APDU_RESPONSE_OK;

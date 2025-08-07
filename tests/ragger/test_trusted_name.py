@@ -1,16 +1,20 @@
-from typing import Optional
+from pathlib import Path
 import pytest
 from web3 import Web3
 
+from ledgered.devices import DeviceType
+
 from ragger.backend import BackendInterface
-from ragger.firmware import Firmware
 from ragger.error import ExceptionRAPDU
-from ragger.navigator import Navigator
 from ragger.navigator.navigation_scenario import NavigateWithScenario
+from ragger.navigator import Navigator, NavInsID, NavIns
+
+from dynamic_networks_cfg import get_network_config
 
 import client.response_parser as ResponseParser
-from client.client import EthAppClient, StatusWord, TrustedNameType, TrustedNameSource
-from client.settings import SettingID, settings_toggle
+from client.client import EthAppClient, TrustedNameType, TrustedNameSource
+from client.status_word import StatusWord
+from client.dynamic_networks import DynamicNetwork
 
 
 # Values used across all tests
@@ -26,34 +30,17 @@ GAS_LIMIT = 21000
 AMOUNT = 1.22
 
 
-@pytest.fixture(name="verbose_ens", params=[False, True])
-def verbose_ens_fixture(request) -> bool:
-    return request.param
+def common(app_client: EthAppClient) -> int:
+    challenge = app_client.get_challenge()
+    return ResponseParser.challenge(challenge.data)
 
 
-def common(firmware: Firmware, app_client: EthAppClient, get_challenge: bool = True) -> Optional[int]:
-
-    if firmware == Firmware.NANOS:
-        pytest.skip("Not supported on LNS")
-
-    if get_challenge:
-        challenge = app_client.get_challenge()
-        return ResponseParser.challenge(challenge.data)
-    return None
-
-
-def test_trusted_name_v1(firmware: Firmware,
-                         backend: BackendInterface,
-                         navigator: Navigator,
-                         scenario_navigator: NavigateWithScenario,
-                         verbose_ens: bool,
+def test_trusted_name_v1(scenario_navigator: NavigateWithScenario,
                          test_name: str):
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
-    challenge = common(firmware, app_client)
 
-    if verbose_ens:
-        settings_toggle(firmware, navigator, [SettingID.VERBOSE_ENS])
-        test_name += "_verbose"
+    challenge = common(app_client)
 
     app_client.provide_trusted_name_v1(ADDR, NAME, challenge)
 
@@ -66,29 +53,63 @@ def test_trusted_name_v1(firmware: Firmware,
                              "value": Web3.to_wei(AMOUNT, "ether"),
                              "chainId": CHAIN_ID
                          }):
-        if firmware.is_nano:
-            end_text = "Accept"
-        else:
-            end_text = "Sign"
-
-        scenario_navigator.review_approve(test_name=test_name, custom_screen_text=end_text)
+        scenario_navigator.review_approve(test_name=test_name)
 
 
-def test_trusted_name_v1_wrong_challenge(firmware: Firmware, backend: BackendInterface):
+def test_trusted_name_v1_verbose(navigator: Navigator,
+                                 scenario_navigator: NavigateWithScenario,
+                                 default_screenshot_path: Path,
+                                 test_name: str):
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
-    challenge = common(firmware, app_client)
+    device = backend.device
+
+    challenge = common(app_client)
+
+    app_client.provide_trusted_name_v1(ADDR, NAME, challenge)
+
+    moves = []
+    if device.is_nano:
+        moves += [NavInsID.RIGHT_CLICK] * 3
+        moves += [NavInsID.BOTH_CLICK] + [NavInsID.RIGHT_CLICK] + [NavInsID.BOTH_CLICK]
+    else:
+        moves += [NavInsID.SWIPE_CENTER_TO_LEFT]
+        ENS_POSITIONS = {
+            DeviceType.FLEX: (420, 380),
+            DeviceType.STAX: (350, 360)
+        }
+        moves += [NavIns(NavInsID.TOUCH, ENS_POSITIONS[device.type])]
+        moves += [NavInsID.LEFT_HEADER_TAP]
+
+    with app_client.sign(BIP32_PATH,
+                         {
+                             "nonce": NONCE,
+                             "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
+                             "gas": GAS_LIMIT,
+                             "to": ADDR,
+                             "value": Web3.to_wei(AMOUNT, "ether"),
+                             "chainId": CHAIN_ID
+                         }):
+        navigator.navigate_and_compare(default_screenshot_path,
+                                       f"{test_name}/part1",
+                                       moves,
+                                       screen_change_after_last_instruction=False)
+        scenario_navigator.review_approve(test_name=f"{test_name}/part2")
+
+
+def test_trusted_name_v1_wrong_challenge(backend: BackendInterface):
+    app_client = EthAppClient(backend)
+    challenge = common(app_client)
 
     with pytest.raises(ExceptionRAPDU) as e:
         app_client.provide_trusted_name_v1(ADDR, NAME, ~challenge & 0xffffffff)
     assert e.value.status == StatusWord.INVALID_DATA
 
 
-def test_trusted_name_v1_wrong_addr(firmware: Firmware,
-                                    backend: BackendInterface,
-                                    scenario_navigator: NavigateWithScenario,
-                                    test_name: str):
+def test_trusted_name_v1_wrong_addr(scenario_navigator: NavigateWithScenario, test_name: str):
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
-    challenge = common(firmware, app_client)
+    challenge = common(app_client)
 
     app_client.provide_trusted_name_v1(ADDR, NAME, challenge)
 
@@ -104,55 +125,40 @@ def test_trusted_name_v1_wrong_addr(firmware: Firmware,
                              "value": Web3.to_wei(AMOUNT, "ether"),
                              "chainId": CHAIN_ID
                          }):
-        if firmware.is_nano:
-            end_text = "Accept"
-        else:
-            end_text = "Sign"
 
-        scenario_navigator.review_approve(test_name=test_name, custom_screen_text=end_text)
+        scenario_navigator.review_approve(test_name=test_name)
 
 
-def test_trusted_name_v1_non_mainnet(firmware: Firmware,
-                                     backend: BackendInterface,
-                                     scenario_navigator: NavigateWithScenario,
-                                     test_name: str):
+def test_trusted_name_v1_non_mainnet(scenario_navigator: NavigateWithScenario, test_name: str):
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
-    challenge = common(firmware, app_client)
 
-    chain_id = 5
-    # pylint: disable=line-too-long
-    icon = "400040000195000093001f8b08000000000002ff85ceb10dc4300805d01fb970e9113c4a467346cb288ce092223ace80382b892ef9cd93ac0f0678881c4616d980b4bb99aa0801a5874d844ff695b5d7f6c23ad79058f79c8df7e8c5dc7d9fff13ffc61d71d7bcf32549bcef5672c5a430bb1cd6073f68c3cd3d302cd3feea88f547d6a99eb8e87ecbcdecd255b8f869033cfd932feae0c09000020000"
-    # pylint: enable=line-too-long
-    app_client.provide_network_information("Goerli",
-                                           "ETH",
-                                           chain_id,
-                                           bytes.fromhex(icon))
+    challenge = common(app_client)
+
+    tx_params: dict = {
+        "nonce": NONCE,
+        "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
+        "gas": GAS_LIMIT,
+        "to": ADDR,
+        "value": Web3.to_wei(AMOUNT, "ether"),
+        "chainId": 5
+    }
+
+    # Send Network information (name, ticker, icon)
+    name, ticker, icon = get_network_config(backend.device.type, tx_params["chainId"])
+    if name and ticker:
+        app_client.provide_network_information(DynamicNetwork(name, ticker, tx_params["chainId"], icon))
 
     app_client.provide_trusted_name_v1(ADDR, NAME, challenge)
 
-    with app_client.sign(BIP32_PATH,
-                         {
-                             "nonce": NONCE,
-                             "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
-                             "gas": GAS_LIMIT,
-                             "to": ADDR,
-                             "value": Web3.to_wei(AMOUNT, "ether"),
-                             "chainId": chain_id
-                         }):
-        if firmware.is_nano:
-            end_text = "Accept"
-        else:
-            end_text = "Sign"
-
-        scenario_navigator.review_approve(test_name=test_name, custom_screen_text=end_text)
+    with app_client.sign(BIP32_PATH, tx_params):
+        scenario_navigator.review_approve(test_name=test_name)
 
 
-def test_trusted_name_v1_unknown_chain(firmware: Firmware,
-                                       backend: BackendInterface,
-                                       scenario_navigator: NavigateWithScenario,
-                                       test_name: str):
+def test_trusted_name_v1_unknown_chain(scenario_navigator: NavigateWithScenario, test_name: str):
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
-    challenge = common(firmware, app_client)
+    challenge = common(app_client)
 
     app_client.provide_trusted_name_v1(ADDR, NAME, challenge)
 
@@ -165,56 +171,50 @@ def test_trusted_name_v1_unknown_chain(firmware: Firmware,
                              "value": Web3.to_wei(AMOUNT, "ether"),
                              "chainId": 9
                          }):
-        if firmware.is_nano:
-            end_text = "Accept"
-        else:
-            end_text = "Sign"
 
-        scenario_navigator.review_approve(test_name=test_name, custom_screen_text=end_text)
+        scenario_navigator.review_approve(test_name=test_name)
 
 
-def test_trusted_name_v1_name_too_long(firmware: Firmware, backend: BackendInterface):
+def test_trusted_name_v1_name_too_long(backend: BackendInterface):
     app_client = EthAppClient(backend)
-    challenge = common(firmware, app_client)
+    challenge = common(app_client)
 
     with pytest.raises(ExceptionRAPDU) as e:
         app_client.provide_trusted_name_v1(ADDR, "ledger" + "0"*25 + ".eth", challenge)
     assert e.value.status == StatusWord.INVALID_DATA
 
 
-def test_trusted_name_v1_name_invalid_character(firmware: Firmware, backend: BackendInterface):
+def test_trusted_name_v1_name_invalid_character(backend: BackendInterface):
     app_client = EthAppClient(backend)
-    challenge = common(firmware, app_client)
+    challenge = common(app_client)
 
     with pytest.raises(ExceptionRAPDU) as e:
         app_client.provide_trusted_name_v1(ADDR, "l\xe8dger.eth", challenge)
     assert e.value.status == StatusWord.INVALID_DATA
 
 
-def test_trusted_name_v1_uppercase(firmware: Firmware, backend: BackendInterface):
+def test_trusted_name_v1_uppercase(backend: BackendInterface):
     app_client = EthAppClient(backend)
-    challenge = common(firmware, app_client)
+    challenge = common(app_client)
 
     with pytest.raises(ExceptionRAPDU) as e:
         app_client.provide_trusted_name_v1(ADDR, NAME.upper(), challenge)
     assert e.value.status == StatusWord.INVALID_DATA
 
 
-def test_trusted_name_v1_name_non_ens(firmware: Firmware, backend: BackendInterface):
+def test_trusted_name_v1_name_non_ens(backend: BackendInterface):
     app_client = EthAppClient(backend)
-    challenge = common(firmware, app_client)
+    challenge = common(app_client)
 
     with pytest.raises(ExceptionRAPDU) as e:
         app_client.provide_trusted_name_v1(ADDR, "ledger.hte", challenge)
     assert e.value.status == StatusWord.INVALID_DATA
 
 
-def test_trusted_name_v2(firmware: Firmware,
-                         backend: BackendInterface,
-                         scenario_navigator: NavigateWithScenario,
-                         test_name: str):
+def test_trusted_name_v2(scenario_navigator: NavigateWithScenario, test_name: str):
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
-    challenge = common(firmware, app_client)
+    challenge = common(app_client)
 
     app_client.provide_trusted_name_v2(ADDR,
                                        NAME,
@@ -232,20 +232,14 @@ def test_trusted_name_v2(firmware: Firmware,
                              "value": Web3.to_wei(AMOUNT, "ether"),
                              "chainId": CHAIN_ID
                          }):
-        if firmware.is_nano:
-            end_text = "Accept"
-        else:
-            end_text = "Sign"
 
-        scenario_navigator.review_approve(test_name=test_name, custom_screen_text=end_text)
+        scenario_navigator.review_approve(test_name=test_name)
 
 
-def test_trusted_name_v2_wrong_chainid(firmware: Firmware,
-                                       backend: BackendInterface,
-                                       scenario_navigator: NavigateWithScenario,
-                                       test_name: str):
+def test_trusted_name_v2_wrong_chainid(scenario_navigator: NavigateWithScenario, test_name: str):
+    backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
-    challenge = common(firmware, app_client)
+    challenge = common(app_client)
 
     app_client.provide_trusted_name_v2(ADDR,
                                        NAME,
@@ -263,17 +257,12 @@ def test_trusted_name_v2_wrong_chainid(firmware: Firmware,
                              "value": Web3.to_wei(AMOUNT, "ether"),
                              "chainId": CHAIN_ID + 1,
                          }):
-        if firmware.is_nano:
-            end_text = "Accept"
-        else:
-            end_text = "Sign"
 
-        scenario_navigator.review_approve(test_name=test_name, custom_screen_text=end_text)
+        scenario_navigator.review_approve(test_name=test_name)
 
 
-def test_trusted_name_v2_missing_challenge(firmware: Firmware, backend: BackendInterface):
+def test_trusted_name_v2_missing_challenge(backend: BackendInterface):
     app_client = EthAppClient(backend)
-    common(firmware, app_client, False)
 
     with pytest.raises(ExceptionRAPDU) as e:
         app_client.provide_trusted_name_v2(ADDR,
@@ -284,21 +273,21 @@ def test_trusted_name_v2_missing_challenge(firmware: Firmware, backend: BackendI
     assert e.value.status == StatusWord.INVALID_DATA
 
 
-def test_trusted_name_v2_expired(firmware: Firmware, backend: BackendInterface, app_version: tuple[int, int, int]):
+def test_trusted_name_v2_expired(backend: BackendInterface, app_version: tuple[int, int, int]):
     app_client = EthAppClient(backend)
-    challenge = common(firmware, app_client)
+    challenge = common(app_client)
 
     # convert to list and reverse
-    app_version = list(app_version)
-    app_version.reverse()
+    app_version_list: list[int] = list(app_version)
+    app_version_list.reverse()
     # simulate a previous version number by decrementing the first non-zero value
-    for idx, v in enumerate(app_version):
+    for idx, v in enumerate(app_version_list):
         if v > 0:
-            app_version[idx] -= 1
+            app_version_list[idx] -= 1
             break
     # reverse and convert back
-    app_version.reverse()
-    app_version = tuple(app_version)
+    app_version_list.reverse()
+    app_version = (app_version_list[0], app_version_list[1], app_version_list[2])  # Ensure exactly 3 elements
 
     with pytest.raises(ExceptionRAPDU) as e:
         app_client.provide_trusted_name_v2(ADDR,

@@ -1,5 +1,4 @@
-#ifndef GTP_PATH_SLICE_H_
-#define GTP_PATH_SLICE_H_
+#pragma once
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -17,5 +16,3 @@ typedef struct {
 } s_path_slice_context;
 
 bool handle_slice_struct(const s_tlv_data *data, s_path_slice_context *context);
-
-#endif  // !GTP_PATH_SLICE_H_

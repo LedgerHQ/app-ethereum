@@ -1,0 +1,14 @@
+from enum import IntEnum
+
+
+class StatusWord(IntEnum):
+    OK = 0x9000
+    ERROR_NO_INFO = 0x6a00
+    INVALID_DATA = 0x6a80
+    INSUFFICIENT_MEMORY = 0x6a84
+    INVALID_INS = 0x6d00
+    INVALID_P1_P2 = 0x6b00
+    CONDITION_NOT_SATISFIED = 0x6985
+    REF_DATA_NOT_FOUND = 0x6a88
+    EXCEPTION_OVERFLOW = 0x6807
+    NOT_IMPLEMENTED = 0x911c

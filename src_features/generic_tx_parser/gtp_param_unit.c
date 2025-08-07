@@ -1,5 +1,3 @@
-#ifdef HAVE_GENERIC_TX_PARSER
-
 #include "gtp_param_unit.h"
 #include "gtp_field_table.h"
 #include "shared_context.h"
@@ -118,5 +116,3 @@ bool format_param_unit(const s_param_unit *param, const char *name) {
     value_cleanup(&param->value, &collec);
     return ret;
 }
-
-#endif  // HAVE_GENERIC_TX_PARSER

@@ -1,5 +1,4 @@
-#ifndef TLV_H_
-#define TLV_H_
+#pragma once
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -20,5 +19,3 @@ typedef struct {
 typedef bool (*f_tlv_data_handler)(const s_tlv_data *, void *);
 
 bool tlv_parse(const uint8_t *payload, uint16_t size, f_tlv_data_handler handler, void *context);
-
-#endif  // !TLV_H_

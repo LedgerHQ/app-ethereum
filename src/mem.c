@@ -35,7 +35,10 @@ void *app_mem_alloc_impl(size_t size, const char *file, int line) {
     void *ptr;
     ptr = mem_alloc(mem_ctx, size);
 #ifdef HAVE_MEMORY_PROFILING
-    PRINTF(MP_LOG_PREFIX "alloc;%u;0x%p;%s:%u\n", size, ptr, file, line);
+    if ((file != NULL) && (line > 0)) {
+        // Do not track the allocation in logs, because this buffer is expected to stay allocated
+        PRINTF(MP_LOG_PREFIX "alloc;%u;0x%p;%s:%u\n", size, ptr, file, line);
+    }
 #else
     (void) file;
     (void) line;

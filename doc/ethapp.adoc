@@ -881,6 +881,71 @@ The signature is computed on :
 
 44 || chain ID (BE) || contract address || schema hash || field path || display name || name types || name sources
 
+##### Calldata info
+
+This command should come before the first other calldata filter of the same calldata index.
+The first byte is used so that a signature of one type cannot be valid as another type.
+
+The signature is not computed on a field path, because this is not tied to a field within the message and is valid as long as the app receives it during the EIP-712 flow and before any other calldata filter.
+
+The signature is computed on :
+
+55 || chain ID (BE) || contract address || schema hash || calldata index || filter flags
+
+##### Calldata value
+
+This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
+The first byte is used so that a signature of one type cannot be valid as another type.
+
+The signature is computed on :
+
+66 || chain ID (BE) || contract address || schema hash || field path || calldata index
+
+##### Calldata callee
+
+This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
+The first byte is used so that a signature of one type cannot be valid as another type.
+
+The signature is computed on :
+
+77 || chain ID (BE) || contract address || schema hash || field path || calldata index
+
+##### Calldata chain ID
+
+This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
+The first byte is used so that a signature of one type cannot be valid as another type.
+
+The signature is computed on :
+
+88 || chain ID (BE) || contract address || schema hash || field path || calldata index
+
+##### Calldata selector
+
+This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
+The first byte is used so that a signature of one type cannot be valid as another type.
+
+The signature is computed on :
+
+99 || chain ID (BE) || contract address || schema hash || field path || calldata index
+
+##### Calldata amount
+
+This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
+The first byte is used so that a signature of one type cannot be valid as another type.
+
+The signature is computed on :
+
+110 || chain ID (BE) || contract address || schema hash || field path || calldata index
+
+##### Calldata spender
+
+This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
+The first byte is used so that a signature of one type cannot be valid as another type.
+
+The signature is computed on :
+
+121 || chain ID (BE) || contract address || schema hash || field path || calldata index
+
 ##### Show raw field
 
 This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
@@ -904,6 +969,20 @@ _Command_
                                         01 : discarded filter path
 
                                         0F : message info
+
+                                        F4 : calldata spender
+
+                                        F5 : calldata amount
+
+                                        F6 : calldata selector
+
+                                        F7 : calldata chain ID
+
+                                        F8 : calldata callee
+
+                                        F9 : calldata value
+
+                                        FA : calldata info
 
                                         FB : trusted name
 
@@ -940,6 +1019,87 @@ None
 | Display name length   | 1
 | Display name          | variable
 | Filters count         | 1
+| Signature length      | 1
+| Signature             | variable
+|==========================================
+
+##### If P2 == calldata info
+
+The filter flags are simple booleans which indicate if the filter should be expected or not.
+A callee filter flag set to `false` means the verifyingContract from the EIP712Domain should be used as the callee address.
+
+The calldata index is there to differentiate calldatas the message contains multiple and if they are presented in a way where the filters would be intertwined (the app would start receiving filters about a second calldata before receiving all the filter from the first one).
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Calldata index        | 1
+| Value filter flag     | 1
+| Callee filter flag    | 1
+| Chain ID filter flag  | 1
+| Selector filter flag  | 1
+| Amount filter flag    | 1
+| Spender filter flag   | 1
+| Signature length      | 1
+| Signature             | variable
+|==========================================
+
+##### If P2 == calldata value
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Calldata index        | 1
+| Signature length      | 1
+| Signature             | variable
+|==========================================
+
+##### If P2 == calldata callee
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Calldata index        | 1
+| Signature length      | 1
+| Signature             | variable
+|==========================================
+
+##### If P2 == calldata chain ID
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Calldata index        | 1
+| Signature length      | 1
+| Signature             | variable
+|==========================================
+
+##### If P2 == calldata selector
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Calldata index        | 1
+| Signature length      | 1
+| Signature             | variable
+|==========================================
+
+##### If P2 == calldata amount
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Calldata index        | 1
+| Signature length      | 1
+| Signature             | variable
+|==========================================
+
+##### If P2 == calldata spender
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Calldata index        | 1
 | Signature length      | 1
 | Signature             | variable
 |==========================================

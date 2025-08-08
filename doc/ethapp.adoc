@@ -837,7 +837,7 @@ The next filter should be marked as discarded (with P1) to be able to use this g
 ##### Message info
 
 This command should come right after the implementation of the domain has been sent with *SEND STRUCT IMPLEMENTATION*, just before sending the message implementation.
-The first byte is used so that a signature of one type cannot be valid as another type.
+The first byte is used as a magic number so that a signature of one type cannot be valid as another type.
 
 The signature is computed on :
 
@@ -846,7 +846,7 @@ The signature is computed on :
 ##### Amount-join token
 
 This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
-The first byte is used so that a signature of one type cannot be valid as another type.
+The first byte is used as a magic number so that a signature of one type cannot be valid as another type.
 
 The signature is computed on :
 
@@ -855,7 +855,7 @@ The signature is computed on :
 ##### Amount-join value
 
 This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
-The first byte is used so that a signature of one type cannot be valid as another type.
+The first byte is used as a magic number so that a signature of one type cannot be valid as another type.
 
 A token index of 0xFF indicates the token address is in the _verifyingContract_ field of the EIP712Domain so the app won't receive an amount-join token filtering APDU. This enables support for Permit (ERC-2612) messages.
 
@@ -866,7 +866,7 @@ The signature is computed on :
 ##### Date / Time
 
 This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
-The first byte is used so that a signature of one type cannot be valid as another type.
+The first byte is used as a magic number so that a signature of one type cannot be valid as another type.
 
 The signature is computed on :
 
@@ -875,16 +875,81 @@ The signature is computed on :
 ##### Trusted name
 
 This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
-The first byte is used so that a signature of one type cannot be valid as another type.
+The first byte is used as a magic number so that a signature of one type cannot be valid as another type.
 
 The signature is computed on :
 
 44 || chain ID (BE) || contract address || schema hash || field path || display name || name types || name sources
 
+##### Calldata info
+
+This command should come before the first other calldata filter of the same calldata index.
+The first byte is used as a magic number so that a signature of one type cannot be valid as another type.
+
+The signature is not computed on a field path, because this is not tied to a field within the message and is valid as long as the app receives it during the EIP-712 flow and before any other calldata filter.
+
+The signature is computed on :
+
+55 || chain ID (BE) || contract address || schema hash || calldata index || filter flags
+
+##### Calldata value
+
+This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
+The first byte is used as a magic number so that a signature of one type cannot be valid as another type.
+
+The signature is computed on :
+
+66 || chain ID (BE) || contract address || schema hash || field path || calldata index
+
+##### Calldata callee
+
+This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
+The first byte is used as a magic number so that a signature of one type cannot be valid as another type.
+
+The signature is computed on :
+
+77 || chain ID (BE) || contract address || schema hash || field path || calldata index
+
+##### Calldata chain ID
+
+This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
+The first byte is used as a magic number so that a signature of one type cannot be valid as another type.
+
+The signature is computed on :
+
+88 || chain ID (BE) || contract address || schema hash || field path || calldata index
+
+##### Calldata selector
+
+This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
+The first byte is used as a magic number so that a signature of one type cannot be valid as another type.
+
+The signature is computed on :
+
+99 || chain ID (BE) || contract address || schema hash || field path || calldata index
+
+##### Calldata amount
+
+This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
+The first byte is used as a magic number so that a signature of one type cannot be valid as another type.
+
+The signature is computed on :
+
+110 || chain ID (BE) || contract address || schema hash || field path || calldata index
+
+##### Calldata spender
+
+This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
+The first byte is used as a magic number so that a signature of one type cannot be valid as another type.
+
+The signature is computed on :
+
+121 || chain ID (BE) || contract address || schema hash || field path || calldata index
+
 ##### Show raw field
 
 This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
-The first byte is used so that a signature of one type cannot be valid as another type.
+The first byte is used as a magic number so that a signature of one type cannot be valid as another type.
 
 The signature is computed on :
 
@@ -904,6 +969,20 @@ _Command_
                                         01 : discarded filter path
 
                                         0F : message info
+
+                                        F4 : calldata spender
+
+                                        F5 : calldata amount
+
+                                        F6 : calldata selector
+
+                                        F7 : calldata chain ID
+
+                                        F8 : calldata callee
+
+                                        F9 : calldata value
+
+                                        FA : calldata info
 
                                         FB : trusted name
 
@@ -940,6 +1019,97 @@ None
 | Display name length   | 1
 | Display name          | variable
 | Filters count         | 1
+| Signature length      | 1
+| Signature             | variable
+|==========================================
+
+##### If P2 == calldata info
+
+The calldata index is there to differentiate calldatas if the message contains multiple and if they are presented in a
+way where the filters would be intertwined (the app would start receiving filters about a second calldata before
+receiving all the filters from the first one).
+
+This command is not counted towards the `Filters count` of the `message info` command, but other calldata commands are.
+
+[width="80%"]
+|====================================================================
+| *Description*         | *Type*                    | *Length (byte)*
+| Calldata index        | uint8                     | 1
+| Value filter flag     | bool                      | 1
+| Callee filter flag    | `CalldataParamPresence`   | 1
+| Chain ID filter flag  | bool                      | 1
+| Selector filter flag  | bool                      | 1
+| Amount filter flag    | bool                      | 1
+| Spender filter flag   | `CalldataParamPresence`   | 1
+| Signature length      | bool                      | 1
+| Signature             | bool                      | variable
+|====================================================================
+
+enum CalldataParamPresence
+|=========================================================
+| *Name*                                 | *integer value*
+| None                                   | 0
+| Present (filtered message field)       | 1
+| Present (domain's `verifyingContract`) | 2
+|=========================================================
+
+
+##### If P2 == calldata value
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Calldata index        | 1
+| Signature length      | 1
+| Signature             | variable
+|==========================================
+
+##### If P2 == calldata callee
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Calldata index        | 1
+| Signature length      | 1
+| Signature             | variable
+|==========================================
+
+##### If P2 == calldata chain ID
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Calldata index        | 1
+| Signature length      | 1
+| Signature             | variable
+|==========================================
+
+##### If P2 == calldata selector
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Calldata index        | 1
+| Signature length      | 1
+| Signature             | variable
+|==========================================
+
+##### If P2 == calldata amount
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Calldata index        | 1
+| Signature length      | 1
+| Signature             | variable
+|==========================================
+
+##### If P2 == calldata spender
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Calldata index        | 1
 | Signature length      | 1
 | Signature             | variable
 |==========================================

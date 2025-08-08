@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import struct
 import subprocess
 import sys
 import logging
@@ -64,9 +65,9 @@ logger = logging.getLogger(__name__)
 def init_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Generate hex string for network icon, in NBGL format.")
     parser.add_argument("--icon", "-i", help="Input icon to process.")
-    parser.add_argument("--name", "-n", required=True, help="Network name")
-    parser.add_argument("--ticker", "-t", required=True, help="Network ticker")
-    parser.add_argument("--chainid", "-c", type=int, required=True, help="Network chain_id")
+    parser.add_argument("--name", "-n", help="Network name")
+    parser.add_argument("--ticker", "-t", help="Network ticker")
+    parser.add_argument("--chainid", "-c", type=int, help="Network chain_id")
     parser.add_argument("--verbose", "-v", action='store_true', help="Verbose mode")
     return parser
 
@@ -191,17 +192,22 @@ def generate_tlv_payload(name: str,
         bytes: The generated TLV payload.
     """
 
-    payload: bytes = format_tlv(NetworkInfoTag.STRUCTURE_TYPE, 8)
-    payload += format_tlv(NetworkInfoTag.STRUCTURE_VERSION, 1)
-    payload += format_tlv(NetworkInfoTag.BLOCKCHAIN_FAMILY, 1)
-    payload += format_tlv(NetworkInfoTag.CHAIN_ID, chain_id.to_bytes(8, 'big'))
-    payload += format_tlv(NetworkInfoTag.NETWORK_NAME, name.encode('utf-8'))
-    payload += format_tlv(NetworkInfoTag.TICKER, ticker.encode('utf-8'))
+    tlv_payload: bytes = format_tlv(NetworkInfoTag.STRUCTURE_TYPE, 8)
+    tlv_payload += format_tlv(NetworkInfoTag.STRUCTURE_VERSION, 1)
+    tlv_payload += format_tlv(NetworkInfoTag.BLOCKCHAIN_FAMILY, 1)
+    tlv_payload += format_tlv(NetworkInfoTag.CHAIN_ID, chain_id.to_bytes(8, 'big'))
+    tlv_payload += format_tlv(NetworkInfoTag.NETWORK_NAME, name.encode('utf-8'))
+    tlv_payload += format_tlv(NetworkInfoTag.TICKER, ticker.encode('utf-8'))
     if icon:
         # Network Icon Hash
-        payload += format_tlv(NetworkInfoTag.NETWORK_ICON_HASH, sha256(icon).digest())
+        tlv_payload += format_tlv(NetworkInfoTag.NETWORK_ICON_HASH, sha256(icon).digest())
     # Append the data Signature
-    payload += format_tlv(NetworkInfoTag.DER_SIGNATURE, sign_data(Key.NETWORK, payload))
+    tlv_payload += format_tlv(NetworkInfoTag.DER_SIGNATURE, sign_data(Key.NETWORK, tlv_payload))
+
+    # Append the payload length and the data
+    payload: bytes = bytes()
+    payload += struct.pack(">H", len(tlv_payload))
+    payload += tlv_payload
 
     # Return the constructed TLV payload as bytes
     return payload
@@ -231,7 +237,7 @@ def prepare_network_information(name: str,
     # Check if the payload is larger than 0xff
     assert len(payload) < 0xff, "Payload too large"
     # Serialize the payload
-    chunks.append(serialize(0x00, P2Type.NETWORK_CONFIG, payload))
+    chunks.append(serialize(0x01, P2Type.NETWORK_CONFIG, payload))
 
     if icon:
         # Serialize the icon
@@ -274,10 +280,11 @@ def main() -> None:
     else:
         image_data = None
 
-    chunks = prepare_network_information(args.name, args.ticker, args.chainid, image_data)
-    # Print each chunk with its index
-    for i, chunk in enumerate(chunks):
-        logger.info(f"Chunk {i}[{len(chunk)}]: {chunk.hex()}")
+    if args.chainid and args.name and args.ticker:
+        chunks = prepare_network_information(args.name, args.ticker, args.chainid, image_data)
+        # Print each chunk with its index
+        for i, chunk in enumerate(chunks):
+            logger.info(f"Chunk {i}[{len(chunk)}]: {chunk.hex()}")
 
 
 if __name__ == "__main__":

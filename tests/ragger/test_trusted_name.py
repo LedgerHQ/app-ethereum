@@ -76,7 +76,8 @@ def test_trusted_name_v1_verbose(navigator: Navigator,
         moves += [NavInsID.SWIPE_CENTER_TO_LEFT]
         ENS_POSITIONS = {
             DeviceType.FLEX: (420, 380),
-            DeviceType.STAX: (350, 360)
+            DeviceType.STAX: (350, 360),
+            DeviceType.APEX_P: (270, 250)
         }
         moves += [NavIns(NavInsID.TOUCH, ENS_POSITIONS[device.type])]
         moves += [NavInsID.LEFT_HEADER_TAP]

@@ -383,7 +383,9 @@ bool validate_instruction_hash(void) {
 
 void push_new_tx_ctx(s_tx_info *tx_info) {
     flist_push_back((s_flist_node **) &g_tx_info_list, (s_flist_node *) tx_info);
+    if (g_tx_info_current == NULL) {
     g_tx_info_current = tx_info;
+    }
 }
 
 bool tx_ctx_is_root(void) {
@@ -394,6 +396,7 @@ size_t get_tx_ctx_count(void) {
     return flist_size((s_flist_node **) &g_tx_info_list);
 }
 
+// TODO: RM
 bool push_field_into_tx_ctx(const s_field *field) {
     s_field_list_node *node;
 
@@ -410,12 +413,13 @@ s_tx_info *get_current_tx_ctx(void) {
     return g_tx_info_current;
 }
 
+// TODO: RM
 static void delete_field(s_field_list_node *node) {
     app_mem_free(node);
 }
 
 static void delete_tx_info(s_tx_info *node) {
-    if (node->fields != NULL) flist_clear((s_flist_node **) &node->fields, (f_list_node_del) &delete_field);
+    if (node->fields != NULL) flist_clear((s_flist_node **) &node->fields, (f_list_node_del) &delete_field); // TODO: RM
     app_mem_free(node);
 }
 
@@ -450,7 +454,7 @@ bool find_matching_tx_info(const uint8_t *contract_addr, const uint8_t *selector
     }
     return false;
 }
-
+ // TODO: RM
 s_field_list_node *get_fields_list(void) {
     return g_tx_info_current->fields;
 }

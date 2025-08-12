@@ -21,12 +21,21 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
         PRINTF("Error: could not verify the field struct!\n");
         return false;
     }
+#if 0
     if (tx_ctx_is_root()) {
+#endif
         PRINTF("Formatting now!\n");
         if (!format_field(&field)) {
             PRINTF("Error while formatting the field\n");
             return false;
         }
+        if ((field.param_type != PARAM_TYPE_CALLDATA) && !tx_ctx_is_root()) {
+            if (validate_instruction_hash()) {
+                calldata_pop();
+                tx_info_move_to_parent();
+            }
+        }
+#if 0
     } else {
         PRINTF("Saving for later formatting...\n");
         if (!push_field_into_tx_ctx(&field)) return false;
@@ -34,6 +43,7 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
             tx_info_move_to_parent();
         }
     }
+#endif
     return true;
 }
 

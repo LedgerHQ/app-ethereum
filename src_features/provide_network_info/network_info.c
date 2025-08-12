@@ -270,10 +270,8 @@ bool verify_network_info_struct(const s_network_info_ctx *context) {
 
     // Free if already allocated, and reallocate the new size
     // Do not track the allocation in logs, because this buffer is expected to stay allocated
-    if (mem_buffer_allocate_impl((void **) &(DYNAMIC_NETWORK_INFO[g_current_network_slot]),
-                                 sizeof(network_info_t),
-                                 NULL,
-                                 0) == false) {
+    if (mem_buffer_persistent((void **) &(DYNAMIC_NETWORK_INFO[g_current_network_slot]),
+                              sizeof(network_info_t)) == false) {
         PRINTF("Memory allocation failed for icon hash\n");
         return false;
     }

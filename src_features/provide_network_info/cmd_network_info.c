@@ -139,10 +139,8 @@ static uint16_t handle_first_icon_chunk(const uint8_t *data, uint8_t length) {
     }
 
     // Do not track the allocation in logs, because this buffer is expected to stay allocated
-    if (mem_buffer_allocate_impl((void **) &(g_icon_bitmap[g_current_network_slot]),
-                                 img_len,
-                                 NULL,
-                                 0) == false) {
+    if (mem_buffer_persistent((void **) &(g_icon_bitmap[g_current_network_slot]), img_len) ==
+        false) {
         PRINTF("Error: Not enough memory for icon bitmap!\n");
         return APDU_RESPONSE_INSUFFICIENT_MEMORY;
     }
@@ -362,14 +360,14 @@ void network_info_cleanup(uint8_t slot) {
     if (slot == MAX_DYNAMIC_NETWORKS) {
         // Cleanup all slots
         for (slot = 0; slot < MAX_DYNAMIC_NETWORKS; slot++) {
-            mem_buffer_cleanup_impl((void **) &(g_icon_bitmap[slot]), NULL, 0);
-            mem_buffer_cleanup_impl((void **) &(DYNAMIC_NETWORK_INFO[slot]), NULL, 0);
+            mem_buffer_cleanup((void **) &(g_icon_bitmap[slot]));
+            mem_buffer_cleanup((void **) &(DYNAMIC_NETWORK_INFO[slot]));
         }
     } else {
         // Cleanup only the specified slot
-        mem_buffer_cleanup_impl((void **) &(g_icon_bitmap[slot]), NULL, 0);
-        mem_buffer_cleanup_impl((void **) &(DYNAMIC_NETWORK_INFO[slot]), NULL, 0);
+        mem_buffer_cleanup((void **) &(g_icon_bitmap[slot]));
+        mem_buffer_cleanup((void **) &(DYNAMIC_NETWORK_INFO[slot]));
     }
     // Free the icon hash if it was allocated
-    mem_buffer_cleanup_impl((void **) &g_network_icon_hash, NULL, 0);
+    mem_buffer_cleanup((void **) &g_network_icon_hash);
 }

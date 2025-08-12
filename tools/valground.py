@@ -42,6 +42,7 @@ class Allocation:
 # ===============================================================================
 class Memory:
     allocs: dict[Allocation]
+    persists: dict[Allocation]
     allocd_overtime: int
     allocd_max: int
     allocd_current: int
@@ -53,6 +54,7 @@ class Memory:
 
     def __init__(self, addr: int, size: int, test_name: str) -> None:
         self.allocs = {}
+        self.persists = {}
         self.allocd_overtime = 0
         self.allocd_max = 0
         self.allocd_current = 0
@@ -62,19 +64,26 @@ class Memory:
         self.test_name = test_name
         self.free_errors = []
 
-    def alloc(self, ptr: int, size: int, code_loc: str) -> None:
-        self.allocs[ptr] = Allocation(size, code_loc)
+    def alloc(self, ptr: int, size: int, code_loc: str, persist: bool) -> None:
+        if persist:
+            self.persists[ptr] = Allocation(size, code_loc)
+        else:
+            self.allocs[ptr] = Allocation(size, code_loc)
         self.allocd_current += size
         self.allocd_max = max(self.allocd_max, self.allocd_current)
         self.allocd_overtime += size
         self.alloc_count += 1
 
     def free(self, ptr: int, code_loc: str) -> None:
-        if ptr not in self.allocs:
+        if ptr not in self.allocs and ptr not in self.persists:
             self.free_errors.append(code_loc)
             return
-        self.allocd_current -= self.allocs[ptr].size
-        del self.allocs[ptr]
+        if ptr in self.allocs:
+            self.allocd_current -= self.allocs[ptr].size
+            del self.allocs[ptr]
+        else:
+            self.allocd_current -= self.persists[ptr].size
+            del self.persists[ptr]
 
     def summary(self, quiet: bool = False) -> bool:
         print("")
@@ -112,6 +121,12 @@ class Memory:
             else:
                 print(info_str)
             print("Allocations = %u" % (self.alloc_count))
+            if len(self.persists) > 0:
+                print(f"{COLORS['fg_yellow']}Persistent memory allocations:")
+                for addr, info in list(self.persists.items()):
+                    print(f"- {info.size} bytes from {info.code_location}")
+                    del self.persists[addr]
+                print(f"{COLORS['all_reset']}", end='')
 
         return len(self.allocs) + len(self.free_errors) == 0
 
@@ -220,8 +235,8 @@ def main() -> None:
                         if mem.summary(args.quiet) is False:
                             ret_code = 1
                     mem = Memory(int(words[1], base=0), int(words[2], base=0), test_name)
-                elif words[0] == "alloc":
-                    mem.alloc(int(words[2], base=0), int(words[1], base=0), words[3])
+                elif words[0] in ("alloc", "persist"):
+                    mem.alloc(int(words[2], base=0), int(words[1], base=0), words[3], words[0] == "persist")
                 elif words[0] == "free":
                     mem.free(int(words[1], base=0), words[2])
                 else:

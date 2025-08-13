@@ -84,18 +84,35 @@ bool handle_param_calldata_struct(const s_tlv_data *data, s_param_calldata_conte
     return ret;
 }
 
+#include "mem.h"
+#include "list.h"
+
+typedef struct {
+    s_flist_node _list;
+    s_param_calldata param;
+    uint8_t index;
+} s_param_calldata_node;
+static s_param_calldata_node *param_calldata_list = NULL;
+
 bool format_param_calldata(const s_param_calldata *param, const char *name) {
     bool ret = true;
     s_parsed_value_collection calldatas = {0};
     s_parsed_value_collection contract_addrs = {0};
     s_parsed_value_collection chain_ids = {0};
     s_parsed_value_collection selectors = {0};
+    s_param_calldata_node *node;
 
     (void) name;
     if ((ret = value_get(&param->calldata, &calldatas))) {
         if ((ret = value_get(&param->contract_addr, &contract_addrs)) && (contract_addrs.size == calldatas.size)) {
             if (!param->has_chain_id || ((ret = value_get(&param->chain_id, &chain_ids)) && (chain_ids.size == calldatas.size))) {
                 if (!param->has_selector || ((ret = value_get(&param->selector, &selectors)) && (selectors.size == calldatas.size))) {
+                    node = app_mem_alloc(sizeof(*node));
+                    if ((ret = (node != NULL))) {
+                        explicit_bzero(node, sizeof(*node));
+                        memcpy(&node->param, param, sizeof(*node));
+                        flist_push_back((s_flist_node **) &param_calldata_list, (s_flist_node *) node);
+                    }
                     for (int i = 0; i < calldatas.size; ++i) {
                         if (calldatas.value[i].length > 0) {
                             uint8_t contract_addr[ADDRESS_LENGTH];

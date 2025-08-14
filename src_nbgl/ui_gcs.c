@@ -12,6 +12,7 @@
 #include "ui_utils.h"
 #include "enum_value.h"
 #include "proxy_info.h"
+#include "trusted_name.h"
 
 static void review_choice(bool confirm) {
     if (confirm) {
@@ -226,8 +227,7 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
 }
 
 void ui_gcs_cleanup(void) {
-    mem_buffer_cleanup((void **) &g_trusted_name);
-    mem_buffer_cleanup((void **) &g_trusted_name_info);
+    trusted_name_cleanup();
     if ((g_pairsList != NULL) && (g_pairsList->pairs != NULL)) {
         for (int i = 0; i < g_pairsList->nbPairs; ++i) {
             free_pair(g_pairsList, i);

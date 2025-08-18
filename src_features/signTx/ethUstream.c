@@ -317,11 +317,11 @@ static bool processData(txContext_t *context) {
                     return false;
                 }
                 offset = CALLDATA_SELECTOR_SIZE;
-                if (!calldata_init(context->currentFieldLength - offset, context->workBuffer)) {
+                if ((g_calldata_root = calldata_init(context->currentFieldLength - offset, context->workBuffer)) == NULL) {
                     return false;
                 }
             }
-            calldata_append(context->workBuffer + offset, copySize - offset);
+            calldata_append(g_calldata_root, context->workBuffer + offset, copySize - offset);
         }
         if (copyTxData(context, NULL, copySize) == false) {
             return false;

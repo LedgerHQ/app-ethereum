@@ -71,7 +71,7 @@ bool format_param_enum(const s_param_enum *param, const char *name) {
                 break;
             }
             value = collec.value[i].ptr[collec.value[i].length - 1];
-            if ((selector = calldata_get_selector()) == NULL) {
+            if ((selector = calldata_get_selector(g_calldata_root)) == NULL) {
                 ret = false;
                 break;
             }

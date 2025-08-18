@@ -31,7 +31,7 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
         }
         if ((field.param_type != PARAM_TYPE_CALLDATA) && !tx_ctx_is_root()) {
             if (validate_instruction_hash()) {
-                calldata_pop();
+                //calldata_pop();
                 tx_info_move_to_parent();
             }
         }

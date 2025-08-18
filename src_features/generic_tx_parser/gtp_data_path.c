@@ -127,7 +127,7 @@ static bool path_ref(uint32_t *offset, uint32_t *ref_offset) {
     uint8_t buf[sizeof(uint16_t)];
     const uint8_t *chunk;
 
-    if ((chunk = calldata_get_chunk(*offset)) == NULL) {
+    if ((chunk = calldata_get_chunk(g_calldata_root, *offset)) == NULL) {
         return false;
     }
     buf_shrink_expand(chunk, CALLDATA_CHUNK_SIZE, buf, sizeof(buf));
@@ -154,7 +154,7 @@ static bool path_leaf(const s_leaf_args *leaf,
             break;
 
         case LEAF_TYPE_DYNAMIC:
-            if ((chunk = calldata_get_chunk(*offset)) == NULL) {
+            if ((chunk = calldata_get_chunk(g_calldata_root, *offset)) == NULL) {
                 return false;
             }
             buf_shrink_expand(chunk, CALLDATA_CHUNK_SIZE, buf, sizeof(buf));
@@ -174,7 +174,7 @@ static bool path_leaf(const s_leaf_args *leaf,
         for (int chunk_idx = 0;
              (chunk_idx * CALLDATA_CHUNK_SIZE) < collection->value[collection->size].length;
              ++chunk_idx) {
-            if ((chunk = calldata_get_chunk(*offset + chunk_idx)) == NULL) {
+            if ((chunk = calldata_get_chunk(g_calldata_root, *offset + chunk_idx)) == NULL) {
                 app_mem_free(leaf_buf);
                 return false;
             }
@@ -242,7 +242,7 @@ static bool path_array(const s_array_args *array,
     if (arrays_info->index >= MAX_ARRAYS) {
         return false;
     }
-    if ((chunk = calldata_get_chunk(*offset)) == NULL) {
+    if ((chunk = calldata_get_chunk(g_calldata_root, *offset)) == NULL) {
         return false;
     }
     buf_shrink_expand(chunk, CALLDATA_CHUNK_SIZE, buf, sizeof(buf));

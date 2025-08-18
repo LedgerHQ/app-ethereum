@@ -94,6 +94,11 @@ typedef struct {
 } s_param_calldata_node;
 static s_param_calldata_node *param_calldata_list = NULL;
 
+//typedef struct {
+//    s_calldata *calldata;
+//    s_tx_info *tx_info;
+//};
+
 bool format_param_calldata(const s_param_calldata *param, const char *name) {
     bool ret = true;
     s_parsed_value_collection calldatas = {0};
@@ -128,9 +133,9 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
                             PRINTF("calldata -> 0x%.*h\n", calldatas.value[i].length, &calldatas.value[i].ptr[calldatas.value[i].offset]);
                             // TODO: handle given selector
                             // TODO: check return value of the two calldata calls
-                            calldata_init(calldatas.value[i].length - CALLDATA_SELECTOR_SIZE,
+                            s_calldata *cd = calldata_init(calldatas.value[i].length - CALLDATA_SELECTOR_SIZE,
                                           &calldatas.value[i].ptr[calldatas.value[i].offset]);
-                            calldata_append(&calldatas.value[i].ptr[calldatas.value[i].offset + CALLDATA_SELECTOR_SIZE],
+                            calldata_append(cd, &calldatas.value[i].ptr[calldatas.value[i].offset + CALLDATA_SELECTOR_SIZE],
                                             calldatas.value[i].length - CALLDATA_SELECTOR_SIZE);
                             // TODO: stop right there
 #if 0

@@ -589,7 +589,7 @@ uint16_t finalize_parsing(const txContext_t *context) {
         return sw;
     }
     if (context->store_calldata) {
-        if (calldata_get_selector() == NULL) {
+        if (calldata_get_selector(g_calldata_root) == NULL) {
             PRINTF("Asked to store calldata but none was provided!\n");
             return APDU_RESPONSE_INVALID_DATA;
         }

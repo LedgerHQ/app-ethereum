@@ -91,7 +91,7 @@ static bool handle_selector(const s_tlv_data *data, s_tx_info_ctx *context) {
         return false;
     }
     buf_shrink_expand(data->value, data->length, buf, sizeof(buf));
-    if ((selector = calldata_get_selector()) == NULL) {
+    if ((selector = calldata_get_selector(g_calldata_root)) == NULL) {
         return false;
     }
     if (get_tx_ctx_count() == 0) {

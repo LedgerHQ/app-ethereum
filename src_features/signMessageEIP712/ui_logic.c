@@ -68,6 +68,7 @@ typedef struct {
     e_name_type tn_types[TN_TYPE_COUNT];
     e_name_source tn_sources[TN_SOURCE_COUNT];
     s_ui_712_pair *ui_pairs;
+    s_eip712_calldata_info *calldata_info;
 } t_ui_context;
 
 static t_ui_context *ui_ctx = NULL;
@@ -754,6 +755,10 @@ bool ui_712_init(void) {
     return ui_ctx != NULL;
 }
 
+static void delete_calldata_info(s_eip712_calldata_info *node) {
+    app_mem_free(node);
+}
+
 /**
  * Deinit function that simply unsets the struct pointer to NULL
  */
@@ -767,6 +772,9 @@ void ui_712_deinit(void) {
         if (ui_ctx->amount.joins != NULL)
             flist_clear((s_flist_node **) &ui_ctx->amount.joins,
                         (f_list_node_del) &delete_amount_join);
+        if (ui_ctx->calldata_info != NULL) {
+            flist_clear((s_flist_node **) &ui_ctx->calldata_info, (f_list_node_del) &delete_calldata_info);
+        }
         app_mem_free(ui_ctx);
         ui_ctx = NULL;
     }
@@ -1034,4 +1042,19 @@ void ui_712_push_pairs(void) {
         eip712_format_hash(pair);
         g_pairs[pair].forcePageStart = 1;
     }
+}
+
+void add_calldata_info(s_eip712_calldata_info *node) {
+    flist_push_back((s_flist_node **) &ui_ctx->calldata_info, (s_flist_node *) node);
+}
+
+s_eip712_calldata_info *get_calldata_info(uint8_t index) {
+    for (s_eip712_calldata_info *tmp = ui_ctx->calldata_info;
+         tmp != NULL;
+         tmp = (s_eip712_calldata_info *) ((s_flist_node *) tmp)->next) {
+        if (index == tmp->index) {
+            return tmp;
+        }
+    }
+    return NULL;
 }

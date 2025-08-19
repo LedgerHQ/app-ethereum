@@ -217,9 +217,11 @@ uint16_t handle_eip712_filtering(uint8_t p1,
         case P2_FILT_CALLDATA_CHAIN_ID:
         case P2_FILT_CALLDATA_CALLEE:
         case P2_FILT_CALLDATA_VALUE:
-        case P2_FILT_CALLDATA_INFO:
             // TODO
             return false;
+        case P2_FILT_CALLDATA_INFO:
+            ret = filtering_calldata_info(cdata, length);
+            break;
         case P2_FILT_CONTRACT_NAME:
             ret = filtering_trusted_name(cdata, length, p1 == 1, &path_crc);
             break;
@@ -240,7 +242,7 @@ uint16_t handle_eip712_filtering(uint8_t p1,
             apdu_response_code = APDU_RESPONSE_INVALID_P1_P2;
             ret = false;
     }
-    if ((p2 > P2_FILT_MESSAGE_INFO) && ret) {
+    if ((p2 > P2_FILT_MESSAGE_INFO) && (p2 != P2_FILT_CALLDATA_INFO) && ret) {
         if (!ui_712_push_new_filter_path(path_crc)) {
             ret = false;
         }

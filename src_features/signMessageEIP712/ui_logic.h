@@ -16,6 +16,23 @@ typedef struct ui_712_pair {
     char *value;
 } s_ui_712_pair;
 
+typedef enum {
+    CALLDATA_FLAG_ADDR_NONE = 0,
+    CALLDATA_FLAG_ADDR_FILTER = 1,
+    CALLDATA_FLAG_ADDR_VERIFYING_CONTRACT = 2,
+} e_calldata_addr_flag;
+
+typedef struct {
+    s_flist_node _list;
+    uint8_t index;
+    bool value_filter;
+    e_calldata_addr_flag callee_filter;
+    bool chain_id_filter;
+    bool selector_filter;
+    bool amount_filter;
+    e_calldata_addr_flag spender_filter;
+} s_eip712_calldata_info;
+
 bool ui_712_init(void);
 void ui_712_deinit(void);
 bool ui_712_review_struct(const s_struct_712 *struct_ptr);
@@ -57,3 +74,5 @@ void ui_712_set_trusted_name_requirements(uint8_t type_count,
                                           uint8_t source_count,
                                           const e_name_source *sources);
 void ui_712_push_pairs(void);
+void add_calldata_info(s_eip712_calldata_info *node);
+s_eip712_calldata_info *get_calldata_info(uint8_t index);

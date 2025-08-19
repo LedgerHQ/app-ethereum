@@ -12,6 +12,7 @@
 #include "os_pki.h"
 #include "trusted_name.h"
 #include "proxy_info.h"
+#include "mem.h"
 
 #define FILT_MAGIC_MESSAGE_INFO      183
 #define FILT_MAGIC_CALLDATA_INFO     55
@@ -328,6 +329,124 @@ bool filtering_discarded_path(const uint8_t *payload, uint8_t length) {
         return false;
     }
     ui_712_set_discarded_path(path, path_len);
+    return true;
+}
+
+/**
+ * Command to give the calldata info/context
+ *
+ * @param[in] payload the payload to parse
+ * @param[in] length the payload length
+ * @return whether it was successful or not
+ */
+bool filtering_calldata_info(const uint8_t *payload, uint8_t length) {
+    uint8_t offset = 0;
+    uint8_t index;
+    bool value_flag;
+    e_calldata_addr_flag callee_flag;
+    bool chain_id_flag;
+    bool selector_flag;
+    bool amount_flag;
+    e_calldata_addr_flag spender_flag;
+    uint8_t sig_len;
+    const uint8_t *sig;
+    s_eip712_calldata_info *calldata_info;
+
+    if (path_get_root_type() != ROOT_MESSAGE) {
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        return false;
+    }
+
+    // Parsing
+    if ((offset + sizeof(index)) > length) {
+        return false;
+    }
+    index = payload[offset++];
+
+    if ((offset + sizeof(value_flag)) > length) {
+        return false;
+    }
+    value_flag = payload[offset++];
+    // mandatory
+    if (!value_flag) return false;
+
+    if ((offset + sizeof(callee_flag)) > length) {
+        return false;
+    }
+    callee_flag = payload[offset++];
+    switch (callee_flag) {
+        case CALLDATA_FLAG_ADDR_FILTER:
+        case CALLDATA_FLAG_ADDR_VERIFYING_CONTRACT:
+            break;
+        default:
+            return false;
+    }
+
+    if ((offset + sizeof(chain_id_flag)) > length) {
+        return false;
+    }
+    chain_id_flag = payload[offset++];
+
+    if ((offset + sizeof(selector_flag)) > length) {
+        return false;
+    }
+    selector_flag = payload[offset++];
+
+    if ((offset + sizeof(amount_flag)) > length) {
+        return false;
+    }
+    amount_flag = payload[offset++];
+
+    if ((offset + sizeof(spender_flag)) > length) {
+        return false;
+    }
+    spender_flag = payload[offset++];
+    switch (spender_flag) {
+        case CALLDATA_FLAG_ADDR_NONE:
+        case CALLDATA_FLAG_ADDR_FILTER:
+        case CALLDATA_FLAG_ADDR_VERIFYING_CONTRACT:
+            break;
+        default:
+            return false;
+    }
+
+    if ((offset + sizeof(sig_len)) > length) {
+        return false;
+    }
+    sig_len = payload[offset++];
+    if ((offset + sig_len) != length) {
+        return false;
+    }
+    sig = &payload[offset];
+
+    // Verification
+    cx_sha256_t hash_ctx;
+    if (!sig_verif_start(&hash_ctx, FILT_MAGIC_CALLDATA_INFO)) {
+        return false;
+    }
+    hash_byte(index, (cx_hash_t *) &hash_ctx);
+    hash_byte(value_flag, (cx_hash_t *) &hash_ctx);
+    hash_byte(callee_flag, (cx_hash_t *) &hash_ctx);
+    hash_byte(chain_id_flag, (cx_hash_t *) &hash_ctx);
+    hash_byte(selector_flag, (cx_hash_t *) &hash_ctx);
+    hash_byte(amount_flag, (cx_hash_t *) &hash_ctx);
+    hash_byte(spender_flag, (cx_hash_t *) &hash_ctx);
+    if (!sig_verif_end(&hash_ctx, sig, sig_len)) {
+        return false;
+    }
+    if ((calldata_info = app_mem_alloc(sizeof(*calldata_info))) == NULL) {
+        return false;
+    }
+    explicit_bzero(calldata_info, sizeof(*calldata_info));
+    calldata_info->index = index;
+    calldata_info->value_filter = value_flag ? true : false;
+    calldata_info->callee_filter = callee_flag;
+    calldata_info->chain_id_filter = chain_id_flag ? true : false;
+    calldata_info->selector_filter = selector_flag ? true : false;
+    calldata_info->amount_filter = amount_flag ? true : false;
+    calldata_info->spender_filter = spender_flag;
+    add_calldata_info(calldata_info);
+    PRINTF("New calldata info (index=%u)\n", index);
     return true;
 }
 

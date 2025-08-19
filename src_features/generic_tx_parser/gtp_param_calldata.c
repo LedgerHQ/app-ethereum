@@ -5,6 +5,7 @@
 #include "shared_context.h"
 #include "gtp_tx_info.h"
 #include "utils.h"
+#include "read.h"
 
 enum {
     TAG_VERSION = 0x00,
@@ -91,7 +92,6 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
     s_parsed_value_collection chain_ids = {0};
     s_parsed_value_collection selectors = {0};
 
-    (void) param;
     (void) name;
     if ((ret = value_get(&param->calldata, &calldatas))) {
         if ((ret = value_get(&param->contract_addr, &contract_addrs)) && (contract_addrs.size == calldatas.size)) {
@@ -103,21 +103,46 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
                                 return false;
                             }
                             uint8_t contract_addr[ADDRESS_LENGTH];
+                            uint8_t selector[CALLDATA_SELECTOR_SIZE];
+                            const uint8_t *calldata;
+                            size_t calldata_length;
+                            uint64_t chain_id;
+                            uint8_t chain_id_buf[sizeof(chain_id)];
+
+                            if (param->has_chain_id) {
+                                buf_shrink_expand(chain_ids.value[i].ptr,
+                                                  chain_ids.value[i].length,
+                                                  chain_id_buf,
+                                                  sizeof(chain_id_buf));
+                                chain_id = read_u64_be(chain_id_buf, 0);
+                            } else {
+                                s_tx_info *tx_info = get_current_tx_ctx();
+                                if (tx_info == NULL) return false;
+                                chain_id = tx_info->chain_id;
+                            }
+
+                            if (param->has_selector) {
+                                buf_shrink_expand(selectors.value[i].ptr, selectors.value[i].length, selector, sizeof(selector));
+                                calldata = calldatas.value[i].ptr;
+                                calldata_length = calldatas.value[i].length;
+                            } else {
+                                if (calldatas.value[i].length < CALLDATA_SELECTOR_SIZE) return false;
+                                memcpy(selector, calldatas.value[i].ptr, CALLDATA_SELECTOR_SIZE);
+                                calldata = calldatas.value[i].ptr + CALLDATA_SELECTOR_SIZE;
+                                calldata_length = calldatas.value[i].length - CALLDATA_SELECTOR_SIZE;
+                            }
 
                             buf_shrink_expand(contract_addrs.value[i].ptr,
                                               contract_addrs.value[i].length,
                                               contract_addr,
                                               sizeof(contract_addr));
-                            if (!find_matching_tx_info(contract_addr, calldatas.value[i].ptr)) {
+                            if (!find_matching_tx_info(contract_addr, selector, &chain_id)) {
                                 ret = false;
                                 break;
                             }
-                            PRINTF("calldata -> 0x%.*h\n", calldatas.value[i].length, &calldatas.value[i].ptr[calldatas.value[i].offset]);
-                            // TODO: handle given selector
-                            calldata_init(calldatas.value[i].length - CALLDATA_SELECTOR_SIZE,
-                                          &calldatas.value[i].ptr[calldatas.value[i].offset]);
-                            calldata_append(&calldatas.value[i].ptr[calldatas.value[i].offset + CALLDATA_SELECTOR_SIZE],
-                                            calldatas.value[i].length - CALLDATA_SELECTOR_SIZE);
+                            PRINTF("[0x%.*h] -> 0x%.*h\n", sizeof(selector), selector, calldata_length, calldata);
+                            calldata_init(calldata_length, selector);
+                            calldata_append(calldata, calldata_length);
                             const s_field_list_node *field;
                             for (field = get_fields_list();
                                  field != NULL;

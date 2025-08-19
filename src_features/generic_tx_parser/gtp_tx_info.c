@@ -438,12 +438,13 @@ void tx_info_cleanup(void) {
     flist_clear((s_flist_node **) &g_tx_info_list, (f_list_node_del) &delete_tx_info);
 }
 
-bool find_matching_tx_info(const uint8_t *contract_addr, const uint8_t *selector) {
+bool find_matching_tx_info(const uint8_t *contract_addr, const uint8_t *selector, const uint64_t *chain_id) {
     for (s_tx_info *tmp = g_tx_info_list;
          tmp != NULL;
          tmp = (s_tx_info *) ((s_flist_node *) tmp)->next) {
         if ((memcmp(contract_addr, tmp->contract_addr, ADDRESS_LENGTH) == 0) &&
-            (memcmp(selector, tmp->selector, CALLDATA_SELECTOR_SIZE) == 0)) {
+            (memcmp(selector, tmp->selector, CALLDATA_SELECTOR_SIZE) == 0) &&
+            (*chain_id == tmp->chain_id)) {
             g_tx_info_current = tmp;
             return true;
         }

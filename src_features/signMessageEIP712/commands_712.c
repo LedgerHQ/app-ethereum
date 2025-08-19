@@ -23,6 +23,13 @@
 #define P2_FILT_ACTIVATE          0x00
 #define P2_FILT_DISCARDED_PATH    0x01
 #define P2_FILT_MESSAGE_INFO      0x0F
+#define P2_FILT_CALLDATA_SPENDER  0xF4
+#define P2_FILT_CALLDATA_AMOUNT   0xF5
+#define P2_FILT_CALLDATA_SELECTOR 0xF6
+#define P2_FILT_CALLDATA_CHAIN_ID 0xF7
+#define P2_FILT_CALLDATA_CALLEE   0xF8
+#define P2_FILT_CALLDATA_VALUE    0xF9
+#define P2_FILT_CALLDATA_INFO     0xFA
 #define P2_FILT_CONTRACT_NAME     0xFB
 #define P2_FILT_DATE_TIME         0xFC
 #define P2_FILT_AMOUNT_JOIN_TOKEN 0xFD
@@ -204,6 +211,15 @@ uint16_t handle_eip712_filtering(uint8_t p1,
                 reply_apdu = false;
             }
             break;
+        case P2_FILT_CALLDATA_SPENDER:
+        case P2_FILT_CALLDATA_AMOUNT:
+        case P2_FILT_CALLDATA_SELECTOR:
+        case P2_FILT_CALLDATA_CHAIN_ID:
+        case P2_FILT_CALLDATA_CALLEE:
+        case P2_FILT_CALLDATA_VALUE:
+        case P2_FILT_CALLDATA_INFO:
+            // TODO
+            return false;
         case P2_FILT_CONTRACT_NAME:
             ret = filtering_trusted_name(cdata, length, p1 == 1, &path_crc);
             break;

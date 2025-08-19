@@ -41,6 +41,7 @@ typedef enum {
 #define UI_712_AMOUNT_JOIN         (1 << 2)
 #define UI_712_DATETIME            (1 << 3)
 #define UI_712_TRUSTED_NAME        (1 << 4)
+#define UI_712_CALLDATA            (1 << 5)
 
 typedef struct {
     s_amount_join *joins;
@@ -803,7 +804,8 @@ void ui_712_flag_field(bool show,
                        bool name_provided,
                        bool token_join,
                        bool datetime,
-                       bool trusted_name) {
+                       bool trusted_name,
+                       bool calldata) {
     if (show) {
         ui_ctx->field_flags |= UI_712_FIELD_SHOWN;
     }
@@ -818,6 +820,9 @@ void ui_712_flag_field(bool show,
     }
     if (trusted_name) {
         ui_ctx->field_flags |= UI_712_TRUSTED_NAME;
+    }
+    if (calldata) {
+        ui_ctx->field_flags |= UI_712_CALLDATA;
     }
 }
 

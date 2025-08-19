@@ -14,6 +14,13 @@
 #include "proxy_info.h"
 
 #define FILT_MAGIC_MESSAGE_INFO      183
+#define FILT_MAGIC_CALLDATA_INFO     55
+#define FILT_MAGIC_CALLDATA_VALUE    66
+#define FILT_MAGIC_CALLDATA_CALLEE   77
+#define FILT_MAGIC_CALLDATA_CHAIN_ID 88
+#define FILT_MAGIC_CALLDATA_SELECTOR 99
+#define FILT_MAGIC_CALLDATA_AMOUNT   110
+#define FILT_MAGIC_CALLDATA_SPENDER  121
 #define FILT_MAGIC_AMOUNT_JOIN_TOKEN 11
 #define FILT_MAGIC_AMOUNT_JOIN_VALUE 22
 #define FILT_MAGIC_DATETIME          33
@@ -443,7 +450,7 @@ bool filtering_trusted_name(const uint8_t *payload,
     if (name_len > 0) {  // don't substitute for an empty name
         ui_712_set_title(name, name_len);
     }
-    ui_712_flag_field(true, name_len > 0, false, false, true);
+    ui_712_flag_field(true, name_len > 0, false, false, true, false);
     ui_712_set_trusted_name_requirements(type_count, types, source_count, sources);
     return true;
 }
@@ -508,7 +515,7 @@ bool filtering_date_time(const uint8_t *payload,
     if (name_len > 0) {  // don't substitute for an empty name
         ui_712_set_title(name, name_len);
     }
-    ui_712_flag_field(true, name_len > 0, false, true, false);
+    ui_712_flag_field(true, name_len > 0, false, true, false, false);
     return true;
 }
 
@@ -564,7 +571,7 @@ bool filtering_amount_join_token(const uint8_t *payload,
     if (!check_typename("address") || !check_token_index(token_idx)) {
         return false;
     }
-    ui_712_flag_field(false, false, true, false, false);
+    ui_712_flag_field(false, false, true, false, false, false);
     ui_712_token_join_prepare_addr_check(token_idx);
     return true;
 }
@@ -651,7 +658,7 @@ bool filtering_amount_join_value(const uint8_t *payload,
     if (!check_typename("uint") || !check_token_index(token_idx)) {
         return false;
     }
-    ui_712_flag_field(false, false, true, false, false);
+    ui_712_flag_field(false, false, true, false, false, false);
     return ui_712_token_join_prepare_amount(token_idx, name, name_len);
 }
 
@@ -714,7 +721,7 @@ bool filtering_raw_field(const uint8_t *payload,
         if (name_len > 0) {  // don't substitute for an empty name
             ui_712_set_title(name, name_len);
         }
-        ui_712_flag_field(true, name_len > 0, false, false, false);
+        ui_712_flag_field(true, name_len > 0, false, false, false, false);
     }
     return true;
 }

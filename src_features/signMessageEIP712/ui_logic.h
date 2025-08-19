@@ -35,7 +35,8 @@ void ui_712_flag_field(bool show,
                        bool name_provided,
                        bool token_join,
                        bool datetime,
-                       bool contract_name);
+                       bool trusted_name,
+                       bool calldata);
 void ui_712_field_flags_reset(void);
 void ui_712_finalize_field(void);
 void ui_712_set_filtering_mode(e_eip712_filtering_mode mode);

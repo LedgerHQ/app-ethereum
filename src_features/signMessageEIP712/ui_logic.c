@@ -854,12 +854,7 @@ void ui_712_set_filters_count(uint8_t count) {
  * @return number of filters
  */
 uint8_t ui_712_remaining_filters(void) {
-    uint8_t filter_count = 0;
-
-    for (const s_filter_crc *tmp = ui_ctx->filters_crc; tmp != NULL;
-         tmp = (s_filter_crc *) ((s_flist_node *) tmp)->next)
-        filter_count += 1;
-    return ui_ctx->filters_to_process - filter_count;
+    return ui_ctx->filters_to_process - flist_size((s_flist_node **) &ui_ctx->filters_crc);
 }
 
 /**

@@ -333,6 +333,65 @@ bool filtering_discarded_path(const uint8_t *payload, uint8_t length) {
 }
 
 /**
+ * TODO: Command to display a field as a trusted name
+ *
+ * @param[in] payload the payload to parse
+ * @param[in] length the payload length
+ * @param[in] discarded if the filter targets a field that is does not exist (within an empty array)
+ * @param[out] path_crc pointer to the CRC of the filter path
+ * @return whether it was successful or not
+ */
+bool filtering_calldata_value(const uint8_t *payload,
+                              uint8_t length,
+                              bool discarded,
+                              uint32_t *path_crc) {
+    uint8_t offset = 0;
+    uint8_t index;
+    uint8_t sig_len;
+    const uint8_t *sig;
+
+    if (path_get_root_type() != ROOT_MESSAGE) {
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        return false;
+    }
+
+    // Parsing
+    if ((offset + sizeof(index)) > length) {
+        return false;
+    }
+    index = payload[offset++];
+
+    if ((offset + sizeof(sig_len)) > length) {
+        return false;
+    }
+    sig_len = payload[offset++];
+    if ((offset + sig_len) != length) {
+        return false;
+    }
+    sig = &payload[offset];
+
+    // Verification
+    cx_sha256_t hash_ctx;
+    if (!sig_verif_start(&hash_ctx, FILT_MAGIC_CALLDATA_VALUE)) {
+        return false;
+    }
+    hash_filtering_path((cx_hash_t *) &hash_ctx, discarded, path_crc);
+    hash_byte(index, (cx_hash_t *) &hash_ctx);
+    if (!sig_verif_end(&hash_ctx, sig, sig_len)) {
+        return false;
+    }
+
+    // Handling
+    if (get_calldata_info(index) == NULL) {
+        PRINTF("Error: no matching calldata info (index=%u)\n", index);
+        return false;
+    }
+    ui_712_flag_field(false, false, false, false, false, true);
+    // init & append the calldata already even if we don't have the selector (will be updated when we get it)
+    return true;
+}
+
+/**
  * Command to give the calldata info/context
  *
  * @param[in] payload the payload to parse

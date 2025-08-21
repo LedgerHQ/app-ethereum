@@ -14,7 +14,7 @@ from ragger.error import ExceptionRAPDU
 
 import client.response_parser as ResponseParser
 from client.utils import recover_message
-from client.client import EthAppClient, TrustedNameType, TrustedNameSource
+from client.client import EthAppClient, TrustedNameType, TrustedNameSource, EIP712CalldataParamPresence
 from client.status_word import StatusWord
 from client.eip712 import InputData
 from client.settings import SettingID, settings_toggle
@@ -666,4 +666,38 @@ def test_eip712_proxy(scenario_navigator: NavigateWithScenario):
 
     app_client.provide_proxy_info(proxy_info.serialize())
 
+    eip712_new_common(scenario_navigator, data, filters)
+
+
+def test_eip712_calldata(scenario_navigator: NavigateWithScenario):
+    # app_client = EthAppClient(scenario_navigator.backend)
+
+    with open("%s/safe.json" % (eip712_json_path()), encoding="utf-8") as file:
+        data = json.load(file)
+
+    filters = {
+        "name": "Calldata test",
+        "calldatas": [
+            {
+                "index": 0,
+                "value_flag": True,
+                "callee_flag": EIP712CalldataParamPresence.PRESENT_FILTERED,
+                "chain_id_flag": False,
+                "selector_flag": False,
+                "amount_flag": False,
+                "spender_flag": EIP712CalldataParamPresence.NONE,
+            },
+        ],
+        "fields": {
+            "to": {
+                "type": "calldata_callee",
+                "index": 0,
+            },
+            "data": {
+                "type": "calldata_value",
+                "name": "calldata",
+                "index": 0,
+            },
+        }
+    }
     eip712_new_common(scenario_navigator, data, filters)

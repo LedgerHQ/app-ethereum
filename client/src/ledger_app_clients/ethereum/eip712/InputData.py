@@ -433,6 +433,12 @@ def init_signature_context(types, domain, filters):
     for i in range(8):
         sig_ctx["chainid"].append(chainid & (0xff << (i * 8)))
     sig_ctx["chainid"].reverse()
+
+    # Order type fields
+    for type_name in types.keys():
+        for i in range(len(types[type_name])):
+            types[type_name][i] = dict(sorted(types[type_name][i].items()))
+
     schema_str = json.dumps(types).replace(" ", "")
     schema_hash = hashlib.sha224(schema_str.encode())
     sig_ctx["schema_hash"] = bytearray.fromhex(schema_hash.hexdigest())

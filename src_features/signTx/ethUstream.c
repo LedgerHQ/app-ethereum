@@ -385,6 +385,9 @@ static bool processEIP7702Tx(txContext_t *context) {
             ret = processNonce(context);
             break;
         }
+        case EIP7702_RLP_MAX_PRIORITY_FEE_PER_GAS:
+            ret = processAndDiscard(context);
+            break;
         case EIP7702_RLP_MAX_FEE_PER_GAS: {
             ret = processGasprice(context);
             break;
@@ -413,9 +416,6 @@ static bool processEIP7702Tx(txContext_t *context) {
             ret = processAuthList(context);
             break;
         }
-        case EIP7702_RLP_MAX_PRIORITY_FEE_PER_GAS:
-            ret = processAndDiscard(context);
-            break;
         default:
             PRINTF("Invalid RLP decoder context\n");
     }
@@ -437,6 +437,9 @@ static bool processEIP1559Tx(txContext_t *context) {
             ret = processNonce(context);
             break;
         }
+        case EIP1559_RLP_MAX_PRIORITY_FEE_PER_GAS:
+            ret = processAndDiscard(context);
+            break;
         case EIP1559_RLP_MAX_FEE_PER_GAS: {
             ret = processGasprice(context);
             break;
@@ -461,9 +464,6 @@ static bool processEIP1559Tx(txContext_t *context) {
             ret = processAccessList(context);
             break;
         }
-        case EIP1559_RLP_MAX_PRIORITY_FEE_PER_GAS:
-            ret = processAndDiscard(context);
-            break;
         default:
             PRINTF("Invalid RLP decoder context\n");
     }
@@ -530,12 +530,12 @@ static bool processLegacyTx(txContext_t *context) {
         case LEGACY_RLP_DATA:
             ret = processData(context);
             break;
+        case LEGACY_RLP_V:
+            ret = processV(context);
+            break;
         case LEGACY_RLP_R:
         case LEGACY_RLP_S:
             ret = processAndDiscard(context);
-            break;
-        case LEGACY_RLP_V:
-            ret = processV(context);
             break;
         default:
             PRINTF("Invalid RLP decoder context\n");

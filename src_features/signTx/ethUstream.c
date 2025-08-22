@@ -416,6 +416,11 @@ static bool processEIP7702Tx(txContext_t *context) {
             ret = processAuthList(context);
             break;
         }
+        case EIP7702_RLP_Y_PARITY:
+        case EIP7702_RLP_R:
+        case EIP7702_RLP_S:
+            ret = processAndDiscard(context);
+            break;
         default:
             PRINTF("Invalid RLP decoder context\n");
     }
@@ -464,6 +469,11 @@ static bool processEIP1559Tx(txContext_t *context) {
             ret = processAccessList(context);
             break;
         }
+        case EIP1559_RLP_Y_PARITY:
+        case EIP1559_RLP_R:
+        case EIP1559_RLP_S:
+            ret = processAndDiscard(context);
+            break;
         default:
             PRINTF("Invalid RLP decoder context\n");
     }
@@ -499,6 +509,11 @@ static bool processEIP2930Tx(txContext_t *context) {
             break;
         case EIP2930_RLP_ACCESS_LIST:
             ret = processAccessList(context);
+            break;
+        case EIP2930_RLP_Y_PARITY:
+        case EIP2930_RLP_R:
+        case EIP2930_RLP_S:
+            ret = processAndDiscard(context);
             break;
         default:
             PRINTF("Invalid RLP decoder context\n");

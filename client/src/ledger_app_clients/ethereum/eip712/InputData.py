@@ -15,6 +15,7 @@ from client.status_word import StatusWord
 app_client: EthAppClient = None
 filtering_paths: dict = {}
 filtering_tokens: list[dict] = []
+filtering_calldatas: list[dict] = []
 current_path: list[str] = []
 sig_ctx: dict[str, Any] = {}
 
@@ -229,6 +230,25 @@ def send_filter(path: str, discarded: bool):
                                     filtering_paths[path]["tn_type"],
                                     filtering_paths[path]["tn_source"],
                                     discarded)
+    elif filtering_paths[path]["type"].startswith("calldata_"):
+        calldata_index = filtering_paths[path]["index"]
+        for calldata in filtering_calldatas:
+            if calldata["index"] == calldata_index:
+                if not calldata["sent"]:
+                    send_filtering_calldata_info(calldata["index"],
+                                                 calldata["value_flag"],
+                                                 calldata["callee_flag"],
+                                                 calldata["chain_id_flag"],
+                                                 calldata["selector_flag"],
+                                                 calldata["amount_flag"],
+                                                 calldata["spender_flag"])
+                    calldata["sent"] = True
+        if filtering_paths[path]["type"].endswith("_value"):
+            send_filtering_calldata_value(path, calldata_index, discarded)
+        elif filtering_paths[path]["type"].endswith("_callee"):
+            send_filtering_calldata_callee(path, calldata_index, discarded)
+        else:
+            assert False
     elif filtering_paths[path]["type"] == "raw":
         send_filtering_raw(path, filtering_paths[path]["name"], discarded)
     else:
@@ -381,6 +401,54 @@ def send_filtering_trusted_name(path: str,
         f"Error sending filtering trusted name for {path}: {response.status}"
 
 
+def send_filtering_calldata_info(index: int,
+                                 value_filter_flag: bool,
+                                 callee_filter_flag: int,
+                                 chain_id_filter_flag: bool,
+                                 selector_filter_flag: bool,
+                                 amount_filter_flag: bool,
+                                 spender_filter_flag: int):
+    to_sign = start_signature_payload(sig_ctx, 55)
+    to_sign.append(index)
+    to_sign.append(value_filter_flag)
+    to_sign.append(int(callee_filter_flag))
+    to_sign.append(chain_id_filter_flag)
+    to_sign.append(selector_filter_flag)
+    to_sign.append(amount_filter_flag)
+    to_sign.append(int(spender_filter_flag))
+    sig = keychain.sign_data(keychain.Key.CAL, to_sign)
+    response = app_client.eip712_filtering_calldata_info(index,
+                                                         value_filter_flag,
+                                                         callee_filter_flag,
+                                                         chain_id_filter_flag,
+                                                         selector_filter_flag,
+                                                         amount_filter_flag,
+                                                         spender_filter_flag,
+                                                         sig)
+    assert response.status == StatusWord.OK, \
+        f"Error sending filtering calldata info for {path}: {response.status}"
+
+
+def send_filtering_calldata_value(path: str, index: int, discarded: bool):
+    to_sign = start_signature_payload(sig_ctx, 66)
+    to_sign += path.encode()
+    to_sign.append(index)
+    sig = keychain.sign_data(keychain.Key.CAL, to_sign)
+    response = app_client.eip712_filtering_calldata_value(index, sig, discarded)
+    assert response.status == StatusWord.OK, \
+        f"Error sending filtering calldata value for {path}: {response.status}"
+
+
+def send_filtering_calldata_callee(path: str, index: int, discarded: bool):
+    to_sign = start_signature_payload(sig_ctx, 77)
+    to_sign += path.encode()
+    to_sign.append(index)
+    sig = keychain.sign_data(keychain.Key.CAL, to_sign)
+    response = app_client.eip712_filtering_calldata_callee(index, sig, discarded)
+    assert response.status == StatusWord.OK, \
+        f"Error sending filtering calldata callee for {path}: {response.status}"
+
+
 # ledgerjs doesn't actually sign anything, and instead uses already pre-computed signatures
 def send_filtering_raw(path: str, display_name: str, discarded: bool):
     to_sign = start_signature_payload(sig_ctx, 72)
@@ -397,6 +465,7 @@ def send_filtering_raw(path: str, display_name: str, discarded: bool):
 def prepare_filtering(filtr_data):
     global filtering_paths
     global filtering_tokens
+    global filtering_calldatas
 
     if "fields" in filtr_data:
         filtering_paths = filtr_data["fields"]
@@ -410,6 +479,11 @@ def prepare_filtering(filtr_data):
                 token["sent"] = False
     else:
         filtering_tokens = []
+
+    if "calldatas" in filtr_data:
+        filtering_calldatas = filtr_data["calldatas"]
+        for calldata in filtering_calldatas:
+            calldata["sent"] = False
 
 
 def handle_optional_domain_values(domain):

@@ -15,6 +15,7 @@
 #include "time_format.h"
 #include "list.h"
 #include "ui_utils.h"
+#include "utils.h"
 
 #define AMOUNT_JOIN_FLAG_TOKEN  (1 << 0)
 #define AMOUNT_JOIN_FLAG_VALUE  (1 << 1)
@@ -69,6 +70,7 @@ typedef struct {
     e_name_source tn_sources[TN_SOURCE_COUNT];
     s_ui_712_pair *ui_pairs;
     s_eip712_calldata_info *calldata_info;
+    uint8_t calldata_index;
 } t_ui_context;
 
 static t_ui_context *ui_ctx = NULL;
@@ -618,20 +620,55 @@ static bool ui_712_format_datetime(const uint8_t *data,
     return time_format_to_utc(&timestamp, strings.tmp.tmp, sizeof(strings.tmp.tmp));
 }
 
+static bool update_calldata(const uint8_t *data, uint8_t length, const uint16_t *complete_length, bool last) {
+    s_eip712_calldata_info *calldata_info = get_calldata_info(ui_ctx->calldata_index);
+    const uint8_t *selector;
+
+    if (calldata_info == NULL) return false;
+    switch (calldata_info->state) {
+        case EIP712_CALLDATA_VALUE:
+            if (calldata_info->value_received) return false;
+            if (complete_length != NULL) {
+                selector = data;
+                data += CALLDATA_SELECTOR_SIZE;
+                length -= CALLDATA_SELECTOR_SIZE;
+                calldata_init(*complete_length - CALLDATA_SELECTOR_SIZE, selector);
+            }
+            calldata_append(data, length);
+            if (last) calldata_info->value_received = true;
+            break;
+        case EIP712_CALLDATA_CALLEE:
+            if (calldata_info->callee_received) return false;
+            if (!last) return false;
+            buf_shrink_expand(data, length, calldata_info->callee, sizeof(calldata_info->callee));
+            PRINTF("callee => 0x%.*h\n", sizeof(calldata_info->callee), calldata_info->callee);
+            if (last) calldata_info->callee_received = true;
+            break;
+        default:
+            return false;
+    }
+    if (calldata_all_received(ui_ctx->calldata_index)) {
+        PRINTF("GCS time !\n");
+    }
+    return true;
+}
+
 /**
  * Formats and feeds the given input data to the display buffers
  *
  * @param[in] field_ptr pointer to the new struct field
  * @param[in] data pointer to the field's raw value
  * @param[in] length field's raw value byte-length
- * @param[in] first if this is the first chunk
+ * @param[in] complete_length pointer to complete length if first chunk, \ref NULL otherwise
  * @param[in] last if this is the last chunk
  */
 bool ui_712_feed_to_display(const s_struct_712_field *field_ptr,
                             const uint8_t *data,
                             uint8_t length,
-                            bool first,
+                            const uint16_t *complete_length,
                             bool last) {
+    bool first = complete_length != NULL;
+
     if (ui_ctx == NULL) {
         apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
         return false;
@@ -704,6 +741,10 @@ bool ui_712_feed_to_display(const s_struct_712_field *field_ptr,
         if (!ui_712_format_trusted_name(data, length)) {
             return false;
         }
+    }
+
+    if (ui_ctx->field_flags & UI_712_CALLDATA) {
+        update_calldata(data, length, complete_length, last);
     }
 
     // Check if this field is supposed to be displayed
@@ -1057,4 +1098,29 @@ s_eip712_calldata_info *get_calldata_info(uint8_t index) {
         }
     }
     return NULL;
+}
+
+void calldata_info_set_state(uint8_t index, e_eip712_calldata_state state) {
+    s_eip712_calldata_info *calldata_info = get_calldata_info(index);
+
+    ui_ctx->calldata_index = index;
+    if (calldata_info != NULL) {
+        calldata_info->state = state;
+    }
+}
+
+bool calldata_all_received(uint8_t index) {
+    const s_eip712_calldata_info *calldata_info = get_calldata_info(index);
+
+    if (calldata_info != NULL) {
+        if (calldata_info->value_received &&
+            calldata_info->callee_received &&
+            calldata_info->chain_id_received &&
+            calldata_info->selector_received &&
+            calldata_info->amount_received &&
+            calldata_info->spender_received) {
+            return true;
+        }
+    }
+    return false;
 }

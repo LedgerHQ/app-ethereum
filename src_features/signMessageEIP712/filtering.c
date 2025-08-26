@@ -387,6 +387,7 @@ bool filtering_calldata_callee(const uint8_t *payload,
         return false;
     }
     ui_712_flag_field(false, false, false, false, false, true);
+    calldata_info_set_state(index, EIP712_CALLDATA_CALLEE);
     return true;
 }
 
@@ -445,6 +446,7 @@ bool filtering_calldata_value(const uint8_t *payload,
         return false;
     }
     ui_712_flag_field(false, false, false, false, false, true);
+    calldata_info_set_state(index, EIP712_CALLDATA_VALUE);
     // init & append the calldata already even if we don't have the selector (will be updated when we get it)
     return true;
 }
@@ -559,9 +561,13 @@ bool filtering_calldata_info(const uint8_t *payload, uint8_t length) {
     calldata_info->value_filter = value_flag ? true : false;
     calldata_info->callee_filter = callee_flag;
     calldata_info->chain_id_filter = chain_id_flag ? true : false;
+    if (!calldata_info->chain_id_filter) calldata_info->chain_id_received = true;
     calldata_info->selector_filter = selector_flag ? true : false;
+    if (!calldata_info->selector_filter) calldata_info->selector_received = true;
     calldata_info->amount_filter = amount_flag ? true : false;
+    if (!calldata_info->amount_filter) calldata_info->amount_received = true;
     calldata_info->spender_filter = spender_flag;
+    if (!calldata_info->spender_filter) calldata_info->spender_received = true;
     add_calldata_info(calldata_info);
     PRINTF("New calldata info (index=%u)\n", index);
     return true;

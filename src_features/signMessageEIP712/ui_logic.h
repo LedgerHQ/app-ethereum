@@ -7,6 +7,7 @@
 #include "typed_data.h"
 #include "trusted_name.h"
 #include "list.h"
+#include "calldata.h"
 
 typedef enum { EIP712_FILTERING_BASIC, EIP712_FILTERING_FULL } e_eip712_filtering_mode;
 
@@ -40,6 +41,26 @@ typedef struct {
     bool selector_filter;
     bool amount_filter;
     e_calldata_addr_flag spender_filter;
+
+    e_eip712_calldata_state state;
+
+    // value is stored in the calldata linked-list
+    bool value_received;
+
+    uint8_t callee[ADDRESS_LENGTH];
+    bool callee_received;
+
+    uint64_t chain_id;
+    bool chain_id_received;
+
+    uint8_t selector[CALLDATA_SELECTOR_SIZE];
+    bool selector_received;
+
+    uint256_t amount;
+    bool amount_received;
+
+    uint8_t spender[ADDRESS_LENGTH];
+    bool spender_received;
 } s_eip712_calldata_info;
 
 bool ui_712_init(void);
@@ -48,7 +69,7 @@ bool ui_712_review_struct(const s_struct_712 *struct_ptr);
 bool ui_712_feed_to_display(const s_struct_712_field *field_ptr,
                             const uint8_t *data,
                             uint8_t length,
-                            bool first,
+                            const uint16_t *complete_length,
                             bool last);
 void ui_712_end_sign(void);
 void ui_712_approve(void);
@@ -85,3 +106,5 @@ void ui_712_set_trusted_name_requirements(uint8_t type_count,
 void ui_712_push_pairs(void);
 void add_calldata_info(s_eip712_calldata_info *node);
 s_eip712_calldata_info *get_calldata_info(uint8_t index);
+void calldata_info_set_state(uint8_t index, e_eip712_calldata_state state);
+bool calldata_all_received(uint8_t index);

@@ -146,8 +146,7 @@ class CommandBuilder:
         chunks = []
         # Add a 16-bit integer with the data's byte length (network byte order)
         data_w_length = bytearray()
-        data_w_length.append((len(data) & 0xff00) >> 8)
-        data_w_length.append(len(data) & 0x00ff)
+        data_w_length += struct.pack(">H", len(data))
         data_w_length += data
         while len(data_w_length) > 0:
             p1 = P1Type.PARTIAL_SEND if len(data_w_length) > 0xff else P1Type.COMPLETE_SEND

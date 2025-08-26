@@ -22,6 +22,15 @@ typedef enum {
     CALLDATA_FLAG_ADDR_VERIFYING_CONTRACT = 2,
 } e_calldata_addr_flag;
 
+typedef enum {
+    EIP712_CALLDATA_VALUE,
+    EIP712_CALLDATA_CALLEE,
+    EIP712_CALLDATA_CHAIN_ID,
+    EIP712_CALLDATA_SELECTOR,
+    EIP712_CALLDATA_AMOUNT,
+    EIP712_CALLDATA_SPENDER,
+} e_eip712_calldata_state;
+
 typedef struct {
     s_flist_node _list;
     uint8_t index;

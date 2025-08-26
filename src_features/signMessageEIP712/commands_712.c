@@ -215,9 +215,11 @@ uint16_t handle_eip712_filtering(uint8_t p1,
         case P2_FILT_CALLDATA_AMOUNT:
         case P2_FILT_CALLDATA_SELECTOR:
         case P2_FILT_CALLDATA_CHAIN_ID:
-        case P2_FILT_CALLDATA_CALLEE:
             // TODO
             return false;
+        case P2_FILT_CALLDATA_CALLEE:
+            ret = filtering_calldata_callee(cdata, length, p1 == 1, &path_crc);
+            break;
         case P2_FILT_CALLDATA_VALUE:
             ret = filtering_calldata_value(cdata, length, p1 == 1, &path_crc);
             break;

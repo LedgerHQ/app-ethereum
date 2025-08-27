@@ -157,6 +157,7 @@ bool calldata_append(const uint8_t *buffer, size_t size) {
         PRINTF("calldata size went from %u to %u bytes with compression\n",
                calldata->received_size,
                compressed_size);
+        calldata_dump();
 #endif
     }
     return true;

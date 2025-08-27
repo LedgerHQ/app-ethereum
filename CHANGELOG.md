@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.18.1](../../compare/1.18.0...1.18.1) - 2025-08-27
+
+### Fixed
+
+- Crash with long clickable trusted names on Nano devices (SDK update)
+
 ## [1.18.0](../../compare/1.17.0...1.18.0) - 2025-08-05
 
 ### Added

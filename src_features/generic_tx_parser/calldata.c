@@ -229,15 +229,8 @@ void calldata_dump(void) {
     for (s_calldata_chunk *chunk = calldata->chunks;
          chunk != NULL;
          chunk = (s_calldata_chunk *) ((s_flist_node *) chunk)->next) {
-        PRINTF("[%02u] ", i++);
-        if (chunk->dir == CHUNK_STRIP_LEFT) {
-            for (int y = 0; y < (CALLDATA_CHUNK_SIZE - chunk->size); ++y) PRINTF("%02x", 0);
-        }
-        PRINTF("%.*h", chunk->size, chunk->buf);
-        if (chunk->dir == CHUNK_STRIP_RIGHT) {
-            for (int y = 0; y < (CALLDATA_CHUNK_SIZE - chunk->size); ++y) PRINTF("%02x", 0);
-        }
-        PRINTF("\n");
+        if (!decompress_chunk(chunk, calldata->chunk)) break;
+        PRINTF("[%02u] %.*h\n", i++, CALLDATA_CHUNK_SIZE, calldata->chunk);
     }
     PRINTF("========================\n");
 }

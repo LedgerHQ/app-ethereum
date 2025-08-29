@@ -2,8 +2,9 @@ import hashlib
 import json
 import re
 import copy
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, Callable
 import struct
+import functools
 
 from client import keychain
 from client.client import EthAppClient, EIP712FieldType
@@ -16,6 +17,7 @@ app_client: EthAppClient = None
 filtering_paths: dict = {}
 filtering_tokens: list[dict] = []
 filtering_calldatas: list[dict] = []
+filtering_gcs_handler: Optional[Callable] = None
 current_path: list[str] = []
 sig_ctx: dict[str, Any] = {}
 
@@ -204,7 +206,8 @@ def send_filtering_token(token_idx: int):
             token["sent"] = True
 
 
-def send_filter(path: str, discarded: bool):
+def send_filter(path: str, discarded: bool) -> Optional[Callable]:
+    ret: Optional[Callable] = None
     assert path in filtering_paths.keys()
 
     if filtering_paths[path]["type"].startswith("amount_join_"):
@@ -243,31 +246,43 @@ def send_filter(path: str, discarded: bool):
                                                  calldata["amount_flag"],
                                                  calldata["spender_flag"])
                     calldata["sent"] = True
+                break
         if filtering_paths[path]["type"].endswith("_value"):
             send_filtering_calldata_value(path, calldata_index, discarded)
         elif filtering_paths[path]["type"].endswith("_callee"):
             send_filtering_calldata_callee(path, calldata_index, discarded)
         else:
             assert False
+        calldata["path_count"] -= 1
+        if calldata["path_count"] == 0:
+            ret = functools.partial(filtering_gcs_handler, calldata["index"])
     elif filtering_paths[path]["type"] == "raw":
         send_filtering_raw(path, filtering_paths[path]["name"], discarded)
     else:
         assert False
+
+    return ret
 
 
 def send_struct_impl_field(value, field):
     assert not isinstance(value, list)
     assert field["enum"] != EIP712FieldType.CUSTOM
 
+    callback: Optional[Callable] = None
+
     data = encoding_functions[field["enum"]](value, field["typesize"])
 
     if filtering_paths:
         path = ".".join(current_path)
         if path in filtering_paths.keys():
-            send_filter(path, False)
+            callback = send_filter(path, False)
 
     with app_client.eip712_send_struct_impl_struct_field(data):
         pass
+
+    if callback is not None:
+        callback()
+
     response = app_client.response()
     assert response.status == StatusWord.OK, \
         f"Error sending field {field['name']} of type {field['type']}: {response.status}"
@@ -462,10 +477,11 @@ def send_filtering_raw(path: str, display_name: str, discarded: bool):
         f"Error sending filtering raw for {path}: {response.status}"
 
 
-def prepare_filtering(filtr_data):
+def prepare_filtering(data_json, filtr_data):
     global filtering_paths
     global filtering_tokens
     global filtering_calldatas
+    global filtering_gcs_handler
 
     if "fields" in filtr_data:
         filtering_paths = filtr_data["fields"]
@@ -484,6 +500,14 @@ def prepare_filtering(filtr_data):
         filtering_calldatas = filtr_data["calldatas"]
         for calldata in filtering_calldatas:
             calldata["sent"] = False
+            calldata["path_count"] = 0
+            for path in filtering_paths.values():
+                if path["type"].startswith("calldata_"):
+                    if path["index"] == calldata["index"]:
+                        calldata["path_count"] += 1
+
+    if "gcs_handler" in filtr_data:
+        filtering_gcs_handler = functools.partial(filtr_data["gcs_handler"], app_client, data_json)
 
 
 def handle_optional_domain_values(domain):
@@ -554,7 +578,7 @@ def process_data(aclient: EthAppClient,
         response = app_client.response()
         assert response.status == StatusWord.OK, \
             f"Error activating filtering: {response.status}"
-        prepare_filtering(filters)
+        prepare_filtering(data_json, filters)
 
     # Send ledgerPKI certificate
     app_client.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_COIN_META)

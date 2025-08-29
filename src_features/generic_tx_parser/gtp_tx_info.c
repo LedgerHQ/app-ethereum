@@ -62,10 +62,12 @@ static bool handle_chain_id(const s_tlv_data *data, s_tx_info_ctx *context) {
     }
     buf_shrink_expand(data->value, data->length, buf, sizeof(buf));
     chain_id = read_u64_be(buf, 0);
+#if 0
     if (chain_id != get_tx_chain_id()) {
         PRINTF("Error: chain ID mismatch!\n");
         return false;
     }
+#endif
     context->tx_info->chain_id = chain_id;
     context->set_flags |= SET_BIT(BIT_CHAIN_ID);
     return true;
@@ -271,6 +273,7 @@ bool verify_tx_info_struct(const s_tx_info_ctx *context) {
     }
 
     if (get_tx_ctx_count() == 0) {
+        if (appState == APP_STATE_SIGNING_TX) { // TODO
         tx_chain_id = get_tx_chain_id();
         if (((proxy_parent = get_implem_contract(&tx_chain_id,
                                                  txContext.content->destination,
@@ -282,6 +285,7 @@ bool verify_tx_info_struct(const s_tx_info_ctx *context) {
                 PRINTF("Error: contract address mismatch!\n");
                 return false;
             }
+        }
         }
     }
 

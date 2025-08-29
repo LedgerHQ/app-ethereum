@@ -28,7 +28,7 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
         return false;
     }
     push_new_tx_ctx(ctx.tx_info);
-    if (get_tx_ctx_count() > 1) {
+    if ((appState == APP_STATE_SIGNING_EIP712) || (get_tx_ctx_count() > 1)) {
         return true;
     }
     return field_table_init();
@@ -36,7 +36,7 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
 
 uint16_t handle_tx_info(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *payload) {
     (void) p2;
-    if (appState != APP_STATE_SIGNING_TX) {
+    if ((appState != APP_STATE_SIGNING_TX) && (appState != APP_STATE_SIGNING_EIP712)) {
         PRINTF("App not in TX signing mode!\n");
         return APDU_RESPONSE_CONDITION_NOT_SATISFIED;
     }

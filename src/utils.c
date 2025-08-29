@@ -47,3 +47,22 @@ bool check_name(const uint8_t *name, uint16_t len) {
     }
     return true;
 }
+
+/**
+ * @brief Checks if a string contains only displayable ASCII characters.
+ *
+ * This function determines if all characters in the provided string are within the
+ * range of displayable ASCII characters (from 0x20 to 0x7E).
+ *
+ * @param str A pointer to the string to be checked.
+ * @param len The length of the string to be checked.
+ */
+
+bool is_displayable_ascii(const char *str, size_t len) {
+    for (size_t i = 0; i < len; i++) {
+        if (str[i] < 0x20 || str[i] > 0x7E) {
+            return false;
+        }
+    }
+    return true;
+}

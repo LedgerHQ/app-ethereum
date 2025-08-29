@@ -5,11 +5,12 @@
 #include "plugin_utils.h"
 #include "common_utils.h"
 #include "format.h"
+#include "utils.h"
 
 typedef enum { ERC20_TRANSFER = 0, ERC20_APPROVE } erc20Selector_t;
 
 #define MAX_CONTRACT_NAME_LEN 15
-#define MAX_EXTRA_DATA_SLOTS 2
+#define MAX_EXTRA_DATA_SLOTS  2
 
 typedef struct erc20_parameters_t {
     uint8_t selectorIndex;
@@ -18,7 +19,7 @@ typedef struct erc20_parameters_t {
     char ticker[MAX_TICKER_LEN];
     uint8_t decimals;
     char contract_name[MAX_CONTRACT_NAME_LEN];
-    char extra_data[MAX_EXTRA_DATA_SLOTS*32+1];
+    char extra_data[MAX_EXTRA_DATA_SLOTS * 32 + 1];
     uint8_t extra_data_len;
 } erc20_parameters_t;
 
@@ -30,7 +31,7 @@ void erc20_plugin_call(int message, void *parameters) {
 
             memset(context->extra_data, 0, sizeof(context->extra_data));
             context->extra_data_len = 0;
-            
+
             // enforce that ETH amount should be 0
             if (!allzeroes(msg->pluginSharedRO->txContent->value.value, 32)) {
                 PRINTF("Err: Transaction amount is not 0\n");
@@ -71,9 +72,9 @@ void erc20_plugin_call(int message, void *parameters) {
                     msg->result = ETH_PLUGIN_RESULT_OK;
                     break;
                 default:
-                    if (msg->parameterOffset <= 4 + 32 + MAX_EXTRA_DATA_SLOTS*32) {
+                    if (msg->parameterOffset <= 4 + 32 + MAX_EXTRA_DATA_SLOTS * 32) {
                         // store extra data for possible later use
-                        size_t extra_data_offset = msg->parameterOffset - (4 + 32 +32);
+                        size_t extra_data_offset = msg->parameterOffset - (4 + 32 + 32);
                         memmove(context->extra_data + extra_data_offset, msg->parameter, 32);
                         context->extra_data[extra_data_offset + 32] = '\0';
                         context->extra_data_len += 32;
@@ -166,7 +167,7 @@ void erc20_plugin_call(int message, void *parameters) {
                     } else {
                         strlcpy(msg->title, "Approve to", msg->titleLength);
                     }
-                        
+
                     if (!getEthDisplayableAddress(context->destinationAddress,
                                                   msg->msg,
                                                   msg->msgLength,
@@ -176,12 +177,12 @@ void erc20_plugin_call(int message, void *parameters) {
                     msg->result = ETH_PLUGIN_RESULT_OK;
                     break;
                 case 2: {
-                    uint8_t extra_data_len = strnlen(context->extra_data,context->extra_data_len);
+                    uint8_t extra_data_len = strnlen(context->extra_data, context->extra_data_len);
 
                     PRINTF("Extra Data Length %d\n", extra_data_len);
                     PRINTF("Message Length %d\n", msg->msgLength);
 
-                    if (extra_data_len ==0 ) {
+                    if (extra_data_len == 0) {
                         // should not happen
                         msg->result = ETH_PLUGIN_RESULT_ERROR;
                         break;
@@ -195,7 +196,7 @@ void erc20_plugin_call(int message, void *parameters) {
 
                         if (extra_data_len >= msg->msgLength) {
                             // truncate
-                            extra_data_len = msg->msgLength -1;
+                            extra_data_len = msg->msgLength - 1;
                             context->extra_data[extra_data_len] = '\0';
                         }
                         strlcpy(msg->msg, context->extra_data, msg->msgLength);
@@ -203,16 +204,16 @@ void erc20_plugin_call(int message, void *parameters) {
                         // display as hex
                         PRINTF("Display as Hex string\n");
 
-                        if (extra_data_len*2 + 3 > msg->msgLength) {
+                        if (extra_data_len * 2 + 3 > msg->msgLength) {
                             // truncate
-                            extra_data_len = (msg->msgLength -3)/2;
+                            extra_data_len = (msg->msgLength - 3) / 2;
                         }
                         msg->msg[0] = '0';
                         msg->msg[1] = 'x';
                         if (format_hex((const uint8_t *) context->extra_data,
-                                        extra_data_len,
-                                        msg->msg + 2,
-                                        msg->msgLength - 2) < 0) {
+                                       extra_data_len,
+                                       msg->msg + 2,
+                                       msg->msgLength - 2) < 0) {
                             msg->result = ETH_PLUGIN_RESULT_ERROR;
                             break;
                         }

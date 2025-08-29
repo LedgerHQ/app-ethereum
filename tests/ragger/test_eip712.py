@@ -4,6 +4,9 @@ from pathlib import Path
 import json
 from typing import Optional
 from ctypes import c_uint64
+import hashlib
+import struct
+
 import pytest
 from eth_account.messages import encode_typed_data
 import web3
@@ -13,13 +16,19 @@ from ragger.navigator import NavigateWithScenario
 from ragger.error import ExceptionRAPDU
 
 import client.response_parser as ResponseParser
-from client.utils import recover_message
+from client.utils import recover_message, get_selector_from_data
 from client.client import EthAppClient, TrustedNameType, TrustedNameSource, EIP712CalldataParamPresence
 from client.status_word import StatusWord
 from client.eip712 import InputData
 from client.settings import SettingID, settings_toggle
 from client.tx_simu import TxSimu
 from client.proxy_info import ProxyInfo
+
+from client.gcs import (
+    Field, ParamType, ParamRaw, Value, TypeFamily, DataPath, PathTuple, ParamTrustedName,
+    ParamNFT, ParamDatetime, DatetimeType, ParamTokenAmount, ParamToken, ParamCalldata,
+    ParamAmount, ContainerPath, PathLeaf, PathLeafType, PathRef, PathArray, TxInfo
+)
 
 
 BIP32_PATH = "m/44'/60'/0'/0/0"
@@ -669,6 +678,53 @@ def test_eip712_proxy(scenario_navigator: NavigateWithScenario):
     eip712_new_common(scenario_navigator, data, filters)
 
 
+def gcs_handler(app_client: EthAppClient, json_data: dict, index: int) -> None:
+    # GCS commands
+    # - TX info
+    # - field descriptors
+    fields = [
+        Field(
+            1,
+            "to",
+            ParamRaw(
+                1,
+                Value(
+                    1,
+                    TypeFamily.ADDRESS,
+                    data_path=DataPath(
+                        1,
+                        [
+                            PathTuple(0),
+                            PathLeaf(PathLeafType.STATIC),
+                        ]
+                    ),
+                ),
+            )
+        ),
+    ]
+    # compute instructions hash
+    inst_hash = hashlib.sha3_256()
+    for field in fields:
+        inst_hash.update(field.serialize())
+    tx_info = TxInfo(
+        1,
+        json_data["domain"]["chainId"],
+        bytes.fromhex(json_data["message"]["to"][2:]),
+        get_selector_from_data(json_data["message"]["data"]),
+        inst_hash.digest(),
+        "",
+        contract_name="USDC",
+    )
+    app_client.provide_token_metadata(tx_info.contract_name, tx_info.contract_addr, 6, tx_info.chain_id)
+
+    app_client.provide_transaction_info(tx_info.serialize())
+
+    for field in fields:
+        payload = field.serialize()
+        app_client.send_raw(0xe0, 0x28, 0x01, 0x00, struct.pack(">H", len(payload)) + payload)
+
+
+# https://etherscan.io/tx/0x184e37d639a073cf2c04a348162afede4b956513709356b9750f6db44ce9cfdf
 def test_eip712_calldata(scenario_navigator: NavigateWithScenario):
     # app_client = EthAppClient(scenario_navigator.backend)
 
@@ -688,6 +744,7 @@ def test_eip712_calldata(scenario_navigator: NavigateWithScenario):
                 "spender_flag": EIP712CalldataParamPresence.NONE,
             },
         ],
+        "gcs_handler": gcs_handler,
         "fields": {
             "to": {
                 "type": "calldata_callee",
@@ -700,4 +757,5 @@ def test_eip712_calldata(scenario_navigator: NavigateWithScenario):
             },
         }
     }
+
     eip712_new_common(scenario_navigator, data, filters)

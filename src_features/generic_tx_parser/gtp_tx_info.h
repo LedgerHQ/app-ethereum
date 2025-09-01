@@ -50,7 +50,7 @@ const char *get_deploy_date(void);
 cx_hash_t *get_fields_hash_ctx(void);
 bool validate_instruction_hash(void);
 void push_new_tx_ctx(s_tx_info *tx_info);
-s_tx_info *get_current_tx_ctx(void);
+s_tx_info *get_current_tx_info(void);
 bool tx_ctx_is_root(void);
 size_t get_tx_ctx_count(void);
 bool push_field_into_tx_ctx(const s_field *field);

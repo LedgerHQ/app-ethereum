@@ -44,7 +44,7 @@ uint16_t handle_field(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *payload
         return APDU_RESPONSE_CONDITION_NOT_SATISFIED;
     }
 
-    if (get_current_tx_ctx() == NULL) {
+    if (get_current_tx_info() == NULL) {
         PRINTF("Error: Field received without a TX info!\n");
         gcs_cleanup();
         return APDU_RESPONSE_CONDITION_NOT_SATISFIED;

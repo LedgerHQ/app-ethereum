@@ -406,7 +406,7 @@ bool push_field_into_tx_ctx(const s_field *field) {
     return true;
 }
 
-s_tx_info *get_current_tx_ctx(void) {
+s_tx_info *get_current_tx_info(void) {
     return g_tx_info_current;
 }
 

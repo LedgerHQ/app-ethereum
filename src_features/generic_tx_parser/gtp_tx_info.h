@@ -11,7 +11,6 @@
 #include "gtp_field.h"
 
 typedef struct {
-    s_flist_node _list;
     uint8_t version;
     uint64_t chain_id;
     uint8_t contract_addr[ADDRESS_LENGTH];

@@ -6,30 +6,6 @@
 #include "mem_utils.h"
 #include "list.h"
 
-typedef enum {
-    CHUNK_STRIP_LEFT = 0,
-    CHUNK_STRIP_RIGHT = 1,
-} e_chunk_strip_dir;
-
-typedef struct {
-    s_flist_node _list;
-    e_chunk_strip_dir dir : 1;
-    uint8_t size : 7;
-    uint8_t *buf;
-} s_calldata_chunk;
-
-typedef struct {
-    s_flist_node _list;
-    size_t expected_size;
-    size_t received_size;
-
-    uint8_t selector[CALLDATA_SELECTOR_SIZE];
-    s_calldata_chunk *chunks;
-
-    uint8_t chunk[CALLDATA_CHUNK_SIZE];
-    size_t chunk_size;
-} s_calldata;
-
 static s_calldata *g_calldata_list = NULL;
 
 bool calldata_init(size_t size, const uint8_t selector[CALLDATA_SELECTOR_SIZE]) {

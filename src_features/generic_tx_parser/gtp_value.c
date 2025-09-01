@@ -118,6 +118,7 @@ bool value_get(const s_value *value, s_parsed_value_collection *collection) {
             break;
 
         case SOURCE_RLP:
+            // TODO: find a solution for nested
             switch (value->container_path) {
                 case CP_FROM:
                     if (from_address == NULL) {

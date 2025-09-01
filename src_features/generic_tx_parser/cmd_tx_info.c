@@ -9,7 +9,7 @@
 #include "calldata.h"
 #include "gtp_field_table.h"
 #include "common_ui.h"
-#include "list.h"
+#include "tx_ctx.h"
 
 static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
     s_tx_info_ctx ctx = {0};
@@ -24,14 +24,15 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
     if (!parsing_ret || !verify_tx_info_struct(&ctx)) {
         return false;
     }
-    if (cx_sha3_init_no_throw(&ctx.tx_info->fields_hash_ctx, 256) != CX_OK) {
-        return false;
-    }
-    push_new_tx_ctx(ctx.tx_info);
-    if (get_tx_ctx_count() > 1) {
-        return true;
-    }
-    return field_table_init();
+    //if (cx_sha3_init_no_throw(&ctx.tx_info->fields_hash_ctx, 256) != CX_OK) {
+    //    return false;
+    //}
+    //push_new_tx_ctx(ctx.tx_info);
+    //if (get_tx_ctx_count() > 1) {
+    //    return true;
+    //}
+    //return field_table_init();
+    return new_tx_ctx(ctx.tx_info);
 }
 
 uint16_t handle_tx_info(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *payload) {

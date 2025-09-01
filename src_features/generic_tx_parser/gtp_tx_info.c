@@ -10,6 +10,7 @@
 #include "public_keys.h"  // LEDGER_SIGNATURE_PUBLIC_KEY
 #include "proxy_info.h"
 #include "mem.h"
+#include "tx_ctx.h"
 
 enum {
     BIT_VERSION = 0,
@@ -355,9 +356,9 @@ const char *get_deploy_date(void) {
     return g_tx_info_current->deploy_date;
 }
 
-cx_hash_t *get_fields_hash_ctx(void) {
-    return (cx_hash_t *) &g_tx_info_current->fields_hash_ctx;
-}
+//cx_hash_t *get_fields_hash_ctx(void) {
+//    return (cx_hash_t *) &g_tx_info_current->fields_hash_ctx;
+//}
 
 static bool validate_inst_hash_on(const s_tx_info *tx_info) {
     cx_sha3_t hash_ctx;
@@ -381,18 +382,18 @@ bool validate_instruction_hash(void) {
     return validate_inst_hash_on(g_tx_info_current);
 }
 
-void push_new_tx_ctx(s_tx_info *tx_info) {
-    flist_push_back((s_flist_node **) &g_tx_info_list, (s_flist_node *) tx_info);
-    g_tx_info_current = tx_info;
-}
+//void push_new_tx_ctx(s_tx_info *tx_info) {
+//    flist_push_back((s_flist_node **) &g_tx_info_list, (s_flist_node *) tx_info);
+//    g_tx_info_current = tx_info;
+//}
 
-bool tx_ctx_is_root(void) {
-    return g_tx_info_current == g_tx_info_list;
-}
+//bool tx_ctx_is_root(void) {
+//    return g_tx_info_current == g_tx_info_list;
+//}
 
-size_t get_tx_ctx_count(void) {
-    return flist_size((s_flist_node **) &g_tx_info_list);
-}
+//size_t get_tx_ctx_count(void) {
+//    return flist_size((s_flist_node **) &g_tx_info_list);
+//}
 
 bool push_field_into_tx_ctx(const s_field *field) {
     s_field_list_node *node;

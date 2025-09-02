@@ -1400,6 +1400,8 @@ def test_gcs_nested_execTransaction_send(scenario_navigator: NavigateWithScenari
 
     with app_client.send_raw_async(0xe0, 0x04, 0x00, 0x02, bytes()):
         pass
+    import time
+    time.sleep(1)
 
 # https://etherscan.io/tx/0xbeafe22c9e3ddcf85b06f65a56cc3ea8f5b02c323cc433c93c103ad3526db88d
 def test_gcs_nested_execTransaction_addOwnerWithThreshold(scenario_navigator: NavigateWithScenario, test_name: str):
@@ -1725,6 +1727,8 @@ def test_gcs_nested_execTransaction_addOwnerWithThreshold(scenario_navigator: Na
 
     with app_client.send_raw_async(0xe0, 0x04, 0x00, 0x02, bytes()):
         pass
+    import time
+    time.sleep(1)
 
 
 # https://etherscan.io/tx/0x5047fedc98f46d2afd94d0a2813ddf0c8fe777ec0739ffd327586a91e1e5a89a
@@ -2032,6 +2036,8 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
 
     with app_client.send_raw_async(0xe0, 0x04, 0x00, 0x02, bytes()):
         pass
+    import time
+    time.sleep(1)
 
 
 # https://etherscan.io/tx/0x9ec7666616fe831d004c4f3d9f6a01cd51550e7e0f3af563ab1457ed558c2da5

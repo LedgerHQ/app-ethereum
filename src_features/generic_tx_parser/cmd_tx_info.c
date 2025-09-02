@@ -21,14 +21,6 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
     if (!parsing_ret || !verify_tx_info_struct(&ctx)) {
         return false;
     }
-    //if (cx_sha3_init_no_throw(&ctx.tx_info->fields_hash_ctx, 256) != CX_OK) {
-    //    return false;
-    //}
-    //push_new_tx_ctx(ctx.tx_info);
-    //if (get_tx_ctx_count() > 1) {
-    //    return true;
-    //}
-    //return field_table_init();
     if (!new_tx_ctx(ctx.tx_info, g_parked_calldata)) return false;
     g_parked_calldata = NULL;
     return true;

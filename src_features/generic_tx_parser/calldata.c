@@ -6,8 +6,6 @@
 #include "mem_utils.h"
 #include "list.h"
 
-//static s_calldata *g_calldata_list = NULL;
-
 s_calldata *calldata_init(size_t size, const uint8_t selector[CALLDATA_SELECTOR_SIZE]) {
     s_calldata *calldata;
 
@@ -19,7 +17,6 @@ s_calldata *calldata_init(size_t size, const uint8_t selector[CALLDATA_SELECTOR_
     if (selector != NULL) {
         memcpy(calldata->selector, selector, CALLDATA_SELECTOR_SIZE);
     }
-    //flist_push_back((s_flist_node **) &g_calldata_list, (s_flist_node *) calldata);
     return calldata;
 }
 
@@ -86,13 +83,6 @@ static bool decompress_chunk(const s_calldata_chunk *chunk, uint8_t *out) {
     return true;
 }
 
-//s_calldata *get_current_calldata(void) {
-//    s_flist_node *tmp = (s_flist_node *) g_calldata_list;
-//
-//    while ((tmp != NULL) && (tmp->next != NULL)) tmp = tmp->next;
-//    return (s_calldata *) tmp;
-//}
-
 bool calldata_append(s_calldata *calldata, const uint8_t *buffer, size_t size) {
     uint8_t cpy_length;
 
@@ -150,14 +140,6 @@ void delete_calldata(s_calldata *node) {
     flist_clear((s_flist_node **) &node->chunks, (f_list_node_del) &delete_calldata_chunk);
     app_mem_free(node);
 }
-
-//void calldata_pop(void) {
-//    flist_pop_back((s_flist_node **) &g_calldata_list, (f_list_node_del) &delete_calldata);
-//}
-
-//void calldata_cleanup(void) {
-//    flist_clear((s_flist_node **) &g_calldata_list, (f_list_node_del) &delete_calldata);
-//}
 
 static bool has_valid_calldata(const s_calldata *calldata) {
     if (calldata == NULL) {

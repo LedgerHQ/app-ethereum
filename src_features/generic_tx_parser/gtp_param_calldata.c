@@ -169,7 +169,6 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
                                 ret = false;
                                 break;
                             }
-                            //calldata_pop();
                             tx_ctx_move_to_parent();
                         }
                     }
@@ -181,6 +180,5 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
     value_cleanup(&param->contract_addr, &contract_addrs);
     value_cleanup(&param->chain_id, &chain_ids);
     value_cleanup(&param->selector, &selectors);
-    //tx_info_pop();
     return ret;
 }

@@ -26,4 +26,8 @@ const s_tx_ctx *get_current_tx_ctx(void);
 bool tx_ctx_is_root(void);
 size_t get_tx_ctx_count(void);
 cx_hash_t *get_fields_hash_ctx(void);
+const s_tx_info *get_current_tx_info(void);
+bool validate_instruction_hash(void);
+bool push_field_into_tx_ctx(const s_field *field);
+void tx_ctx_move_to_parent(void);
 bool new_tx_ctx(const s_tx_info *tx_info);

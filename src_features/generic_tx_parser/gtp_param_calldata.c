@@ -117,7 +117,7 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
                                                   sizeof(chain_id_buf));
                                 chain_id = read_u64_be(chain_id_buf, 0);
                             } else {
-                                s_tx_info *tx_info = get_current_tx_info();
+                                const s_tx_info *tx_info = get_current_tx_info();
                                 if (tx_info == NULL) return false;
                                 chain_id = tx_info->chain_id;
                             }
@@ -154,7 +154,7 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
                                 break;
                             }
                             calldata_pop();
-                            tx_info_move_to_parent();
+                            tx_ctx_move_to_parent();
                         }
                     }
                 }

@@ -360,27 +360,27 @@ const char *get_deploy_date(void) {
 //    return (cx_hash_t *) &g_tx_info_current->fields_hash_ctx;
 //}
 
-static bool validate_inst_hash_on(const s_tx_info *tx_info) {
-    cx_sha3_t hash_ctx;
-    uint8_t hash[sizeof(tx_info->fields_hash)];
-
-    if (tx_info == NULL) return false;
-    // copy it locally, because the cx_hash call will modify it
-    memcpy(&hash_ctx, &tx_info->fields_hash_ctx, sizeof(hash_ctx));
-    if (cx_hash_no_throw((cx_hash_t *) &hash_ctx,
-                         CX_LAST,
-                         NULL,
-                         0,
-                         hash,
-                         sizeof(hash)) != CX_OK) {
-        return false;
-    }
-    return memcmp(tx_info->fields_hash, hash, sizeof(hash)) == 0;
-}
-
-bool validate_instruction_hash(void) {
-    return validate_inst_hash_on(g_tx_info_current);
-}
+//static bool validate_inst_hash_on(const s_tx_info *tx_info) {
+//    cx_sha3_t hash_ctx;
+//    uint8_t hash[sizeof(tx_info->fields_hash)];
+//
+//    if (tx_info == NULL) return false;
+//    // copy it locally, because the cx_hash call will modify it
+//    memcpy(&hash_ctx, &tx_info->fields_hash_ctx, sizeof(hash_ctx));
+//    if (cx_hash_no_throw((cx_hash_t *) &hash_ctx,
+//                         CX_LAST,
+//                         NULL,
+//                         0,
+//                         hash,
+//                         sizeof(hash)) != CX_OK) {
+//        return false;
+//    }
+//    return memcmp(tx_info->fields_hash, hash, sizeof(hash)) == 0;
+//}
+//
+//bool validate_instruction_hash(void) {
+//    return validate_inst_hash_on(g_tx_info_current);
+//}
 
 //void push_new_tx_ctx(s_tx_info *tx_info) {
 //    flist_push_back((s_flist_node **) &g_tx_info_list, (s_flist_node *) tx_info);
@@ -395,21 +395,21 @@ bool validate_instruction_hash(void) {
 //    return flist_size((s_flist_node **) &g_tx_info_list);
 //}
 
-bool push_field_into_tx_ctx(const s_field *field) {
-    s_field_list_node *node;
+//bool push_field_into_tx_ctx(const s_field *field) {
+//    s_field_list_node *node;
+//
+//    if ((node = app_mem_alloc(sizeof(*node))) == NULL) {
+//        return false;
+//    }
+//    explicit_bzero(node, sizeof(*node));
+//    memcpy(&node->field, field, sizeof(*field));
+//    flist_push_back((s_flist_node **) &g_tx_info_current->fields, (s_flist_node *) node);
+//    return true;
+//}
 
-    if ((node = app_mem_alloc(sizeof(*node))) == NULL) {
-        return false;
-    }
-    explicit_bzero(node, sizeof(*node));
-    memcpy(&node->field, field, sizeof(*field));
-    flist_push_back((s_flist_node **) &g_tx_info_current->fields, (s_flist_node *) node);
-    return true;
-}
-
-s_tx_info *get_current_tx_info(void) {
-    return g_tx_info_current;
-}
+//s_tx_info *get_current_tx_info(void) {
+//    return g_tx_info_current;
+//}
 
 static void delete_field(s_field_list_node *node) {
     app_mem_free(node);
@@ -422,18 +422,14 @@ static void delete_tx_info(s_tx_info *node) {
 
 // TODO: make doubly linked
 // g_tx_info_current = g_tx_info_current->prev;
-void tx_info_move_to_parent(void) {
-    s_flist_node *tmp = (s_flist_node *) g_tx_info_list;
-
-    while ((tmp != NULL) && (tmp->next != (s_flist_node *) g_tx_info_current)) {
-        tmp = tmp->next;
-    }
-    g_tx_info_current = (s_tx_info *) tmp;
-}
-
-void tx_info_pop(void) {
-    flist_pop_back((s_flist_node **) &g_tx_info_list, (f_list_node_del) &delete_tx_info);
-}
+//void tx_info_move_to_parent(void) {
+//    s_flist_node *tmp = (s_flist_node *) g_tx_info_list;
+//
+//    while ((tmp != NULL) && (tmp->next != (s_flist_node *) g_tx_info_current)) {
+//        tmp = tmp->next;
+//    }
+//    g_tx_info_current = (s_tx_info *) tmp;
+//}
 
 void tx_info_cleanup(void) {
     flist_clear((s_flist_node **) &g_tx_info_list, (f_list_node_del) &delete_tx_info);

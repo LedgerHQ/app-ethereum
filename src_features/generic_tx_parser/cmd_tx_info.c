@@ -6,9 +6,6 @@
 #include "gtp_tx_info.h"
 #include "tlv.h"
 #include "tlv_apdu.h"
-#include "calldata.h"
-#include "gtp_field_table.h"
-#include "common_ui.h"
 #include "tx_ctx.h"
 
 static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
@@ -45,11 +42,4 @@ uint16_t handle_tx_info(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *paylo
         return APDU_RESPONSE_INVALID_DATA;
     }
     return APDU_RESPONSE_OK;
-}
-
-void gcs_cleanup(void) {
-    ui_gcs_cleanup();
-    field_table_cleanup();
-    tx_info_cleanup();
-    calldata_cleanup();
 }

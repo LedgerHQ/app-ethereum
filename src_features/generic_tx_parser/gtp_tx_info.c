@@ -42,8 +42,8 @@ enum {
     TAG_SIGNATURE = 0xff,
 };
 
-static s_tx_info *g_tx_info_list = NULL;
-static s_tx_info *g_tx_info_current = NULL;
+//static s_tx_info *g_tx_info_list = NULL;
+//static s_tx_info *g_tx_info_current = NULL;
 
 static bool handle_version(const s_tlv_data *data, s_tx_info_ctx *context) {
     if (data->length != sizeof(context->tx_info->version)) {
@@ -310,50 +310,53 @@ bool verify_tx_info_struct(const s_tx_info_ctx *context) {
     return true;
 }
 
-const char *get_operation_type(void) {
-    if (g_tx_info_current->operation_type[0] == '\0') {
+const char *get_operation_type(const s_tx_info *tx_info) {
+    if ((tx_info == NULL) || (tx_info->operation_type[0] == '\0')) {
         return NULL;
     }
-    return g_tx_info_current->operation_type;
+    return tx_info->operation_type;
 }
 
-const char *get_creator_name(void) {
-    if (g_tx_info_current->creator_name[0] == '\0') {
+const char *get_creator_name(const s_tx_info *tx_info) {
+    if ((tx_info == NULL) || (tx_info->creator_name[0] == '\0')) {
         return NULL;
     }
-    return g_tx_info_current->creator_name;
+    return tx_info->creator_name;
 }
 
-const char *get_creator_legal_name(void) {
-    if (g_tx_info_current->creator_legal_name[0] == '\0') {
+const char *get_creator_legal_name(const s_tx_info *tx_info) {
+    if ((tx_info == NULL) || (tx_info->creator_legal_name[0] == '\0')) {
         return NULL;
     }
-    return g_tx_info_current->creator_legal_name;
+    return tx_info->creator_legal_name;
 }
 
-const char *get_creator_url(void) {
-    if (g_tx_info_current->creator_url[0] == '\0') {
+const char *get_creator_url(const s_tx_info *tx_info) {
+    if ((tx_info == NULL) || (tx_info->creator_url[0] == '\0')) {
         return NULL;
     }
-    return g_tx_info_current->creator_url;
+    return tx_info->creator_url;
 }
 
-const char *get_contract_name(void) {
-    if (g_tx_info_current->contract_name[0] == '\0') {
+const char *get_contract_name(const s_tx_info *tx_info) {
+    if ((tx_info == NULL) || (tx_info->contract_name[0] == '\0')) {
         return NULL;
     }
-    return g_tx_info_current->contract_name;
+    return tx_info->contract_name;
 }
 
-const uint8_t *get_contract_addr(void) {
-    return g_tx_info_current->contract_addr;
-}
-
-const char *get_deploy_date(void) {
-    if (g_tx_info_current->deploy_date[0] == '\0') {
+const uint8_t *get_contract_addr(const s_tx_info *tx_info) {
+    if (tx_info == NULL) {
         return NULL;
     }
-    return g_tx_info_current->deploy_date;
+    return tx_info->contract_addr;
+}
+
+const char *get_deploy_date(const s_tx_info *tx_info) {
+    if ((tx_info == NULL) || (tx_info->deploy_date[0] == '\0')) {
+        return NULL;
+    }
+    return tx_info->deploy_date;
 }
 
 //cx_hash_t *get_fields_hash_ctx(void) {
@@ -411,12 +414,11 @@ const char *get_deploy_date(void) {
 //    return g_tx_info_current;
 //}
 
-static void delete_field(s_field_list_node *node) {
-    app_mem_free(node);
-}
+//static void delete_field(s_field_list_node *node) {
+//    app_mem_free(node);
+//}
 
-static void delete_tx_info(s_tx_info *node) {
-    if (node->fields != NULL) flist_clear((s_flist_node **) &node->fields, (f_list_node_del) &delete_field);
+void delete_tx_info(s_tx_info *node) {
     app_mem_free(node);
 }
 
@@ -431,24 +433,24 @@ static void delete_tx_info(s_tx_info *node) {
 //    g_tx_info_current = (s_tx_info *) tmp;
 //}
 
-void tx_info_cleanup(void) {
-    flist_clear((s_flist_node **) &g_tx_info_list, (f_list_node_del) &delete_tx_info);
-}
+//void tx_info_cleanup(void) {
+//    flist_clear((s_flist_node **) &g_tx_info_list, (f_list_node_del) &delete_tx_info);
+//}
 
-bool find_matching_tx_info(const uint8_t *contract_addr, const uint8_t *selector, const uint64_t *chain_id) {
-    for (s_tx_info *tmp = g_tx_info_list;
-         tmp != NULL;
-         tmp = (s_tx_info *) ((s_flist_node *) tmp)->next) {
-        if ((memcmp(contract_addr, tmp->contract_addr, ADDRESS_LENGTH) == 0) &&
-            (memcmp(selector, tmp->selector, CALLDATA_SELECTOR_SIZE) == 0) &&
-            (*chain_id == tmp->chain_id)) {
-            g_tx_info_current = tmp;
-            return true;
-        }
-    }
-    return false;
-}
+//bool find_matching_tx_info(const uint8_t *contract_addr, const uint8_t *selector, const uint64_t *chain_id) {
+//    for (s_tx_info *tmp = g_tx_info_list;
+//         tmp != NULL;
+//         tmp = (s_tx_info *) ((s_flist_node *) tmp)->next) {
+//        if ((memcmp(contract_addr, tmp->contract_addr, ADDRESS_LENGTH) == 0) &&
+//            (memcmp(selector, tmp->selector, CALLDATA_SELECTOR_SIZE) == 0) &&
+//            (*chain_id == tmp->chain_id)) {
+//            g_tx_info_current = tmp;
+//            return true;
+//        }
+//    }
+//    return false;
+//}
 
-s_field_list_node *get_fields_list(void) {
-    return g_tx_info_current->fields;
-}
+//s_field_list_node *get_fields_list(void) {
+//    return g_tx_info_current->fields;
+//}

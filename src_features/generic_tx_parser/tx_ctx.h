@@ -11,7 +11,7 @@
 
 typedef struct {
     s_flist_node _list;
-    const s_tx_info *tx_info;
+    s_tx_info *tx_info;
     s_calldata *calldata;
     uint8_t from[ADDRESS_LENGTH];
     uint8_t to[ADDRESS_LENGTH];
@@ -30,4 +30,9 @@ const s_tx_info *get_current_tx_info(void);
 bool validate_instruction_hash(void);
 bool push_field_into_tx_ctx(const s_field *field);
 void tx_ctx_move_to_parent(void);
-bool new_tx_ctx(const s_tx_info *tx_info);
+bool find_matching_tx_ctx(const uint8_t *contract_addr,
+                          const uint8_t *selector,
+                          const uint64_t *chain_id);
+s_field_list_node *get_fields_list(void);
+bool new_tx_ctx(s_tx_info *tx_info);
+void gcs_cleanup(void);

@@ -48,6 +48,7 @@
 #include "ui_utils.h"
 #include "network_info.h"
 #include "cmd_safe_account.h"
+#include "tx_ctx.h"
 
 tmpCtx_t tmpCtx;
 txContext_t txContext;

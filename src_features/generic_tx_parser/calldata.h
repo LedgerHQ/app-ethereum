@@ -33,8 +33,7 @@ typedef struct {
 
 bool calldata_init(size_t size, const uint8_t selector[CALLDATA_SELECTOR_SIZE]);
 bool calldata_append(const uint8_t *buffer, size_t size);
-void calldata_pop(void);
-void calldata_cleanup(void);
+void delete_calldata(s_calldata *node);
 const uint8_t *calldata_get_selector(void);
 const uint8_t *calldata_get_chunk(int idx);
 void calldata_dump(void);

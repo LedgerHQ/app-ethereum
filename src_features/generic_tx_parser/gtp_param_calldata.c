@@ -137,7 +137,7 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
                                               contract_addrs.value[i].length,
                                               contract_addr,
                                               sizeof(contract_addr));
-                            if (!find_matching_tx_info(contract_addr, selector, &chain_id)) {
+                            if (!find_matching_tx_ctx(contract_addr, selector, &chain_id)) {
                                 ret = false;
                                 break;
                             }
@@ -153,7 +153,7 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
                                 ret = false;
                                 break;
                             }
-                            calldata_pop();
+                            //calldata_pop();
                             tx_ctx_move_to_parent();
                         }
                     }

@@ -29,6 +29,21 @@ s_calldata *get_current_calldata(void) {
     return g_tx_ctx_current->calldata;
 }
 
+const uint8_t *get_current_tx_from(void) {
+    if (g_tx_ctx_current == NULL) return NULL;
+    return g_tx_ctx_current->from;
+}
+
+const uint8_t *get_current_tx_to(void) {
+    if (g_tx_ctx_current == NULL) return NULL;
+    return g_tx_ctx_current->to;
+}
+
+const uint8_t *get_current_tx_amount(void) {
+    if (g_tx_ctx_current == NULL) return NULL;
+    return g_tx_ctx_current->amount;
+}
+
 static bool validate_inst_hash_on(const s_tx_ctx *tx_ctx) {
     cx_sha3_t hash_ctx;
     uint8_t hash[sizeof(tx_ctx->tx_info->fields_hash)];

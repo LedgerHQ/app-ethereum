@@ -139,6 +139,24 @@ bool set_calldata_into_tx_ctx(s_calldata *calldata) {
     return true;
 }
 
+bool set_tx_ctx_from(const uint8_t *value) {
+    if (g_tx_ctx_current == NULL) return false;
+    memcpy(g_tx_ctx_current->from, value, ADDRESS_LENGTH);
+    return true;
+}
+
+bool set_tx_ctx_to(const uint8_t *value) {
+    if (g_tx_ctx_current == NULL) return false;
+    memcpy(g_tx_ctx_current->to, value, ADDRESS_LENGTH);
+    return true;
+}
+
+bool set_tx_ctx_amount(const uint8_t *value) {
+    if (g_tx_ctx_current == NULL) return false;
+    memcpy(g_tx_ctx_current->amount, value, INT256_LENGTH);
+    return true;
+}
+
 bool new_tx_ctx(s_tx_info *tx_info, s_calldata *calldata) {
     s_tx_ctx *node;
 
@@ -152,10 +170,10 @@ bool new_tx_ctx(s_tx_info *tx_info, s_calldata *calldata) {
         return false;
     }
     flist_push_back((s_flist_node **) &g_tx_ctx_list, (s_flist_node *) node);
-    if (node == g_tx_ctx_list) {
-        if (!field_table_init()) return false;
-    }
     g_tx_ctx_current = node;
+    if (tx_ctx_is_root()) {
+        return field_table_init();
+    }
     return true;
 }
 

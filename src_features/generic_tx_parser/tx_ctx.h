@@ -40,5 +40,8 @@ bool find_matching_tx_ctx(const uint8_t *contract_addr,
                           const uint64_t *chain_id);
 s_field_list_node *get_fields_list(void);
 bool set_calldata_into_tx_ctx(s_calldata *calldata);
+bool set_tx_ctx_from(const uint8_t *value);
+bool set_tx_ctx_to(const uint8_t *value);
+bool set_tx_ctx_amount(const uint8_t *value);
 bool new_tx_ctx(s_tx_info *tx_info, s_calldata *calldata);
 void gcs_cleanup(void);

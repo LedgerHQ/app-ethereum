@@ -105,10 +105,11 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
                             }
                             uint8_t contract_addr[ADDRESS_LENGTH];
                             uint8_t selector[CALLDATA_SELECTOR_SIZE];
-                            const uint8_t *calldata;
+                            const uint8_t *calldata_buf;
                             size_t calldata_length;
                             uint64_t chain_id;
                             uint8_t chain_id_buf[sizeof(chain_id)];
+                            s_calldata *calldata;
 
                             if (param->has_chain_id) {
                                 buf_shrink_expand(chain_ids.value[i].ptr,
@@ -118,18 +119,22 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
                                 chain_id = read_u64_be(chain_id_buf, 0);
                             } else {
                                 const s_tx_info *tx_info = get_current_tx_info();
-                                if (tx_info == NULL) return false;
+                                if (tx_info == NULL) {
+                                    return false;
+                                }
                                 chain_id = tx_info->chain_id;
                             }
 
                             if (param->has_selector) {
                                 buf_shrink_expand(selectors.value[i].ptr, selectors.value[i].length, selector, sizeof(selector));
-                                calldata = calldatas.value[i].ptr;
+                                calldata_buf = calldatas.value[i].ptr;
                                 calldata_length = calldatas.value[i].length;
                             } else {
-                                if (calldatas.value[i].length < CALLDATA_SELECTOR_SIZE) return false;
+                                if (calldatas.value[i].length < CALLDATA_SELECTOR_SIZE) {
+                                    return false;
+                                }
                                 memcpy(selector, calldatas.value[i].ptr, CALLDATA_SELECTOR_SIZE);
-                                calldata = calldatas.value[i].ptr + CALLDATA_SELECTOR_SIZE;
+                                calldata_buf = calldatas.value[i].ptr + CALLDATA_SELECTOR_SIZE;
                                 calldata_length = calldatas.value[i].length - CALLDATA_SELECTOR_SIZE;
                             }
 
@@ -141,8 +146,16 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
                                 ret = false;
                                 break;
                             }
-                            calldata_init(calldata_length, selector);
-                            calldata_append(calldata, calldata_length);
+                            if (((calldata = calldata_init(calldata_length, selector)) == NULL) ||
+                                 !calldata_append(calldata, calldata_buf, calldata_length)) {
+                                ret = false;
+                                break;
+                            }
+                            if (!set_calldata_into_tx_ctx(calldata)) {
+                                delete_calldata(calldata);
+                                ret = false;
+                                break;
+                            }
                             const s_field_list_node *field;
                             for (field = get_fields_list();
                                  field != NULL;

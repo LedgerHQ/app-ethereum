@@ -29,7 +29,9 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
     //    return true;
     //}
     //return field_table_init();
-    return new_tx_ctx(ctx.tx_info);
+    if (!new_tx_ctx(ctx.tx_info, g_parked_calldata)) return false;
+    g_parked_calldata = NULL;
+    return true;
 }
 
 uint16_t handle_tx_info(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *payload) {

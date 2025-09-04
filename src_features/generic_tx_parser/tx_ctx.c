@@ -5,10 +5,7 @@
 
 static s_tx_ctx *g_tx_ctx_list = NULL;
 static s_tx_ctx *g_tx_ctx_current = NULL;
-
-const s_tx_ctx *get_current_tx_ctx(void) {
-    return g_tx_ctx_current;
-}
+s_calldata *g_parked_calldata = NULL;
 
 bool tx_ctx_is_root(void) {
     return (g_tx_ctx_list != NULL) && (g_tx_ctx_current == g_tx_ctx_list);
@@ -25,6 +22,11 @@ cx_hash_t *get_fields_hash_ctx(void) {
 const s_tx_info *get_current_tx_info(void) {
     if (g_tx_ctx_current == NULL) return NULL;
     return g_tx_ctx_current->tx_info;
+}
+
+s_calldata *get_current_calldata(void) {
+    if (g_tx_ctx_current == NULL) return NULL;
+    return g_tx_ctx_current->calldata;
 }
 
 static bool validate_inst_hash_on(const s_tx_ctx *tx_ctx) {
@@ -108,6 +110,7 @@ static void delete_tx_ctx(s_tx_ctx *node) {
     if (node->fields != NULL) {
         flist_clear((s_flist_node **) &node->fields, (f_list_node_del) &delete_field);
     }
+    app_mem_free(node);
 }
 
 void tx_ctx_cleanup(void) {
@@ -115,12 +118,20 @@ void tx_ctx_cleanup(void) {
     g_tx_ctx_current = NULL;
 }
 
-bool new_tx_ctx(s_tx_info *tx_info) {
+bool set_calldata_into_tx_ctx(s_calldata *calldata) {
+    if (g_tx_ctx_current == NULL) return false;
+    g_tx_ctx_current->calldata = calldata;
+    return true;
+}
+
+bool new_tx_ctx(s_tx_info *tx_info, s_calldata *calldata) {
     s_tx_ctx *node;
+
     if ((node = app_mem_alloc(sizeof(*node))) == NULL) {
         return false;
     }
     explicit_bzero(node, sizeof(*node));
+    node->calldata = calldata;
     node->tx_info = tx_info;
     if (cx_sha3_init_no_throw(&node->fields_hash_ctx, 256) != CX_OK) {
         return false;
@@ -137,5 +148,6 @@ void gcs_cleanup(void) {
     ui_gcs_cleanup();
     field_table_cleanup();
     tx_ctx_cleanup();
-    //calldata_cleanup();
+    // just in case
+    if (g_parked_calldata != NULL) delete_calldata(g_parked_calldata);
 }

@@ -4,6 +4,7 @@
 #include "gtp_field_table.h"
 #include "calldata.h"
 #include "shared_context.h"
+#include "tx_ctx.h"
 
 enum {
     TAG_VERSION = 0x00,
@@ -71,7 +72,7 @@ bool format_param_enum(const s_param_enum *param, const char *name) {
                 break;
             }
             value = collec.value[i].ptr[collec.value[i].length - 1];
-            if ((selector = calldata_get_selector()) == NULL) {
+            if ((selector = calldata_get_selector(get_current_calldata())) == NULL) {
                 ret = false;
                 break;
             }

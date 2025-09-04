@@ -23,6 +23,7 @@
 #include "common_utils.h"
 #include "feature_signTx.h"
 #include "calldata.h"
+#include "tx_ctx.h" // g_parked_calldata
 
 static bool check_fields(txContext_t *context, const char *name, uint32_t length) {
     UNUSED(name);  // Just for the case where DEBUG is not enabled
@@ -317,11 +318,11 @@ static bool processData(txContext_t *context) {
                     return false;
                 }
                 offset = CALLDATA_SELECTOR_SIZE;
-                if (!calldata_init(context->currentFieldLength - offset, context->workBuffer)) {
+                if ((g_parked_calldata = calldata_init(context->currentFieldLength - offset, context->workBuffer)) == NULL) {
                     return false;
                 }
             }
-            calldata_append(context->workBuffer + offset, copySize - offset);
+            if (!calldata_append(g_parked_calldata, context->workBuffer + offset, copySize - offset)) return false;
         }
         if (copyTxData(context, NULL, copySize) == false) {
             return false;

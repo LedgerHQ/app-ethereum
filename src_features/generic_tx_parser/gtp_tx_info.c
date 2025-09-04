@@ -92,10 +92,10 @@ static bool handle_selector(const s_tlv_data *data, s_tx_info_ctx *context) {
         return false;
     }
     buf_shrink_expand(data->value, data->length, buf, sizeof(buf));
-    if ((selector = calldata_get_selector()) == NULL) {
-        return false;
-    }
     if (get_tx_ctx_count() == 0) {
+        if ((selector = calldata_get_selector(g_parked_calldata)) == NULL) {
+            return false;
+        }
         if (memcmp(selector, buf, sizeof(buf)) != 0) {
             PRINTF("Error: selector mismatch!\n");
             return false;

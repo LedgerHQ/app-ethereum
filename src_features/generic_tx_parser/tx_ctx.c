@@ -3,6 +3,9 @@
 #include "gtp_field_table.h"
 #include "proxy_info.h"
 #include "common_ui.h" // ui_gcs_cleanup
+#include "shared_context.h" // appState
+#include "utils.h" // buf_shrink_expand
+#include "getPublicKey.h"
 
 static s_tx_ctx *g_tx_ctx_list = NULL;
 static s_tx_ctx *g_tx_ctx_current = NULL;
@@ -170,6 +173,28 @@ bool new_tx_ctx(s_tx_info *tx_info, s_calldata *calldata) {
     explicit_bzero(node, sizeof(*node));
     node->calldata = calldata;
     node->tx_info = tx_info;
+    if (get_tx_ctx_count() == 0) {
+        get_public_key(node->from, ADDRESS_LENGTH);
+        if (appState == APP_STATE_SIGNING_TX) {
+            buf_shrink_expand(tmpContent.txContent.destination,
+                              tmpContent.txContent.destinationLength,
+                              node->to,
+                              sizeof(node->to));
+            buf_shrink_expand(tmpContent.txContent.value.value,
+                              tmpContent.txContent.value.length,
+                              node->amount,
+                              sizeof(node->amount));
+        }
+    } else {
+        // as default, copy value from last tx context
+        const s_tx_ctx *tmp = g_tx_ctx_list;
+        while (((const s_flist_node *) tmp)->next != NULL) {
+            tmp = (const s_tx_ctx *) ((const s_flist_node *) tmp)->next;
+        }
+        memcpy(node->from, tmp->from, sizeof(node->from));
+        memcpy(node->to, tmp->to, sizeof(node->to));
+        memcpy(node->amount, tmp->amount, sizeof(node->amount));
+    }
     if (cx_sha3_init_no_throw(&node->fields_hash_ctx, 256) != CX_OK) {
         return false;
     }

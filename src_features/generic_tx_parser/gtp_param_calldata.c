@@ -60,6 +60,24 @@ static bool handle_selector(const s_tlv_data *data, s_param_calldata_context *co
     return tlv_parse(data->value, data->length, (f_tlv_data_handler) &handle_value_struct, &ctx);
 }
 
+static bool handle_amount(const s_tlv_data *data, s_param_calldata_context *context) {
+    s_value_context ctx = {0};
+
+    ctx.value = &context->param->amount;
+    explicit_bzero(ctx.value, sizeof(*ctx.value));
+    context->param->has_amount = true;
+    return tlv_parse(data->value, data->length, (f_tlv_data_handler) &handle_value_struct, &ctx);
+}
+
+static bool handle_spender(const s_tlv_data *data, s_param_calldata_context *context) {
+    s_value_context ctx = {0};
+
+    ctx.value = &context->param->spender;
+    explicit_bzero(ctx.value, sizeof(*ctx.value));
+    context->param->has_spender = true;
+    return tlv_parse(data->value, data->length, (f_tlv_data_handler) &handle_value_struct, &ctx);
+}
+
 bool handle_param_calldata_struct(const s_tlv_data *data, s_param_calldata_context *context) {
     bool ret;
 
@@ -78,6 +96,12 @@ bool handle_param_calldata_struct(const s_tlv_data *data, s_param_calldata_conte
             break;
         case TAG_SELECTOR:
             ret = handle_selector(data, context);
+            break;
+        case TAG_AMOUNT:
+            ret = handle_amount(data, context);
+            break;
+        case TAG_SPENDER:
+            ret = handle_spender(data, context);
             break;
         default:
             PRINTF(TLV_TAG_ERROR_MSG, data->tag);

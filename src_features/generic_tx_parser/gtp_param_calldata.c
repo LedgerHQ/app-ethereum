@@ -140,7 +140,6 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
                                 ret = false;
                                 break;
                             }
-                            PRINTF("[0x%.*h] -> 0x%.*h\n", sizeof(selector), selector, calldata_length, calldata);
                             calldata_init(calldata_length, selector);
                             calldata_append(calldata, calldata_length);
                             const s_field_list_node *field;

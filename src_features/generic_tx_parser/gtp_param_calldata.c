@@ -101,7 +101,8 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
                     for (int i = 0; i < calldatas.size; ++i) {
                         if (calldatas.value[i].length > 0) {
                             if (get_tx_ctx_count() == 1) {
-                                return false;
+                                ret = false;
+                                break;
                             }
                             uint8_t contract_addr[ADDRESS_LENGTH];
                             uint8_t selector[CALLDATA_SELECTOR_SIZE];
@@ -120,7 +121,8 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
                             } else {
                                 const s_tx_info *tx_info = get_current_tx_info();
                                 if (tx_info == NULL) {
-                                    return false;
+                                    ret = false;
+                                    break;
                                 }
                                 chain_id = tx_info->chain_id;
                             }
@@ -131,7 +133,8 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
                                 calldata_length = calldatas.value[i].length;
                             } else {
                                 if (calldatas.value[i].length < CALLDATA_SELECTOR_SIZE) {
-                                    return false;
+                                    ret = false;
+                                    break;
                                 }
                                 memcpy(selector, calldatas.value[i].ptr, CALLDATA_SELECTOR_SIZE);
                                 calldata_buf = calldatas.value[i].ptr + CALLDATA_SELECTOR_SIZE;

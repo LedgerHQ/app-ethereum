@@ -241,7 +241,7 @@ bool handle_tx_info_struct(const s_tlv_data *data, s_tx_info_ctx *context) {
 bool verify_tx_info_struct(const s_tx_info_ctx *context) {
     uint16_t required_bits = 0;
     uint8_t hash[INT256_LENGTH];
-    const uint8_t *proxy_parent;
+    const uint8_t *proxy_implem;
     uint64_t tx_chain_id;
 
     // check if struct version was provided
@@ -270,16 +270,14 @@ bool verify_tx_info_struct(const s_tx_info_ctx *context) {
 
     if (get_tx_ctx_count() == 0) {
         tx_chain_id = get_tx_chain_id();
-        if (((proxy_parent = get_implem_contract(&tx_chain_id,
-                                                 txContext.content->destination,
-                                                 context->tx_info->selector)) == NULL) ||
-            (memcmp(proxy_parent, context->tx_info->contract_addr, ADDRESS_LENGTH) != 0)) {
-            if (memcmp(context->tx_info->contract_addr,
-                       txContext.content->destination,
-                       ADDRESS_LENGTH) != 0) {
-                PRINTF("Error: contract address mismatch!\n");
-                return false;
-            }
+        proxy_implem = get_implem_contract(&tx_chain_id,
+                                           txContext.content->destination,
+                                           context->tx_info->selector);
+        if (memcmp((proxy_implem != NULL) ? proxy_implem : txContext.content->destination,
+                   context->tx_info->contract_addr,
+                   ADDRESS_LENGTH) != 0) {
+            PRINTF("Error: contract address mismatch!\n");
+            return false;
         }
     }
 

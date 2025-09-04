@@ -1,6 +1,7 @@
 #include "tx_ctx.h"
 #include "mem.h"
 #include "gtp_field_table.h"
+#include "proxy_info.h"
 #include "common_ui.h" // ui_gcs_cleanup
 
 static s_tx_ctx *g_tx_ctx_list = NULL;
@@ -93,10 +94,13 @@ void tx_ctx_move_to_parent(void) {
 bool find_matching_tx_ctx(const uint8_t *contract_addr,
                           const uint8_t *selector,
                           const uint64_t *chain_id) {
+    const uint8_t *proxy_implem;
+
+    proxy_implem = get_implem_contract(chain_id, contract_addr, selector);
     for (s_tx_ctx *tmp = g_tx_ctx_list;
          tmp != NULL;
          tmp = (s_tx_ctx *) ((s_flist_node *) tmp)->next) {
-        if ((memcmp(contract_addr, tmp->tx_info->contract_addr, ADDRESS_LENGTH) == 0) &&
+        if ((memcmp((proxy_implem != NULL) ? proxy_implem : contract_addr, tmp->tx_info->contract_addr, ADDRESS_LENGTH) == 0) &&
             (memcmp(selector, tmp->tx_info->selector, CALLDATA_SELECTOR_SIZE) == 0) &&
             (*chain_id == tmp->tx_info->chain_id)) {
             g_tx_ctx_current = tmp;

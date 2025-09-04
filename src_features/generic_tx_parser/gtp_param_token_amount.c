@@ -4,6 +4,7 @@
 #include "utils.h"
 #include "gtp_field_table.h"
 #include "manage_asset_info.h"
+#include "tx_ctx.h"
 
 enum {
     TAG_VERSION = 0x00,
@@ -121,7 +122,7 @@ static bool process_token_amount(const s_param_token_amount *param,
     uint256_t zero256 = {0};
     uint256_t val256;
     const tokenDefinition_t *token_def;
-    uint64_t chain_id = get_tx_chain_id();
+    uint64_t chain_id = get_current_tx_info()->chain_id;
     const char *ticker = g_unknown_ticker;
     uint8_t decimals = 0;
 

@@ -65,7 +65,7 @@ bool format_param_enum(const s_param_enum *param, const char *name) {
     const uint8_t *selector;
 
     if ((ret = value_get(&param->value, &collec))) {
-        chain_id = get_tx_chain_id();
+        chain_id = get_current_tx_info()->chain_id;
         for (int i = 0; i < collec.size; ++i) {
             if (collec.value[i].length == 0) {
                 ret = false;

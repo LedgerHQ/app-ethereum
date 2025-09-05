@@ -54,9 +54,7 @@ To compile it and load it on a device, please check out our [developer portal](h
 We have the concept of plugins in the ETH app.
 Find the documentations here:
 
-- [Blog Ethereum plugins](https://blog.ledger.com/ethereum-plugins/)
-- [Ethereum application Plugins : Technical Specifications](https://github.com/LedgerHQ/app-ethereum/blob/master/doc/ethapp_plugins.asc)
-- [Plugin guide](https://hackmd.io/300Ukv5gSbCbVcp3cZuwRQ)
+- [Plugin guide](https://ethereum-plugin-sdk.ledger.com)
 - [Boilerplate plugin](https://github.com/LedgerHQ/app-plugin-boilerplate)
 
 ## Quick start guide

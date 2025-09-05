@@ -191,6 +191,8 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
                             set_tx_ctx_from(from);
                         }
 
+                        add_to_field_table(0, "Transaction type", get_current_tx_info()->operation_type);
+
                         if (((calldata = calldata_init(calldata_length, selector)) == NULL) ||
                              !calldata_append(calldata, calldata_buf, calldata_length)) {
                             ret = false;

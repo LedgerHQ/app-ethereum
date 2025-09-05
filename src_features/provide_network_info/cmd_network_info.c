@@ -45,7 +45,11 @@ static bool check_icon_header(const uint8_t *data, uint16_t length, uint16_t *bu
     width = U2LE(data, 0);
     height = U2LE(data, 2);
 #ifdef SCREEN_SIZE_WALLET
+#ifdef TARGET_APEX
+    expected_px = 48;
+#else
     expected_px = 64;
+#endif
 #else
     expected_px = 14;
 #endif

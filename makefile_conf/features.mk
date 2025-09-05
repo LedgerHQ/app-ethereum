@@ -43,12 +43,12 @@ endif
 
 # Transaction Checks
 # TODO: remove this check once the Transaction checks are implemented on all targets
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX TARGET_APEX_M TARGET_APEX_P))
     DEFINES	+= HAVE_TRANSACTION_CHECKS
 endif
 
 # Safe Account
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX TARGET_APEX_M TARGET_APEX_P))
     DEFINES	+= HAVE_SAFE_ACCOUNT
 endif
 

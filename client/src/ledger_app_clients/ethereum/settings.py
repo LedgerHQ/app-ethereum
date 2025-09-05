@@ -35,6 +35,24 @@ SETTINGS_POSITIONS = {
         SettingID.EIP7702: (2, 420, 270),
         SettingID.DISPLAY_HASH: (3, 420, 130),
     },
+    DeviceType.APEX_P: {
+        SettingID.TRANSACTION_CHECKS: (0, 260, 90),
+        SettingID.BLIND_SIGNING: (0, 260, 235),
+        SettingID.NONCE: (1, 260, 90),
+        SettingID.VERBOSE_EIP712: (1, 260, 190),
+        SettingID.DEBUG_DATA: (2, 260, 90),
+        SettingID.EIP7702: (2, 260, 190),
+        SettingID.DISPLAY_HASH: (3, 260, 90),
+    },
+    DeviceType.APEX_M: {
+        SettingID.TRANSACTION_CHECKS: (0, 260, 90),
+        SettingID.BLIND_SIGNING: (0, 260, 235),
+        SettingID.NONCE: (1, 260, 90),
+        SettingID.VERBOSE_EIP712: (1, 260, 190),
+        SettingID.DEBUG_DATA: (2, 260, 90),
+        SettingID.EIP7702: (2, 260, 190),
+        SettingID.DISPLAY_HASH: (3, 260, 90),
+    },
 }
 
 

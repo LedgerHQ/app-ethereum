@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import struct
 import logging
 from enum import IntEnum
 from pathlib import Path
@@ -116,20 +117,25 @@ def generate_tlv_payload(risk: int,
 
     # Construct the TLV payload
     tx_hash = bytes.fromhex("00"*32) if unknown else bytes.fromhex("deadbeaf"*8)
-    payload: bytes = format_tlv(TxSimulationTag.STRUCTURE_TYPE, 9)
-    payload += format_tlv(TxSimulationTag.STRUCTURE_VERSION, 1)
-    payload += format_tlv(TxSimulationTag.ADDRESS, bytes.fromhex(addr))
+    tlv_payload: bytes = format_tlv(TxSimulationTag.STRUCTURE_TYPE, 9)
+    tlv_payload += format_tlv(TxSimulationTag.STRUCTURE_VERSION, 1)
+    tlv_payload += format_tlv(TxSimulationTag.ADDRESS, bytes.fromhex(addr))
     if chain_id != 0:
-        payload += format_tlv(TxSimulationTag.CHAIN_ID, chain_id.to_bytes(8, 'big'))
-    payload += format_tlv(TxSimulationTag.TX_HASH, tx_hash)
-    payload += format_tlv(TxSimulationTag.TX_CHECKS_NORMALIZED_RISK, risk)
-    payload += format_tlv(TxSimulationTag.TX_CHECKS_NORMALIZED_CATEGORY, category)
+        tlv_payload += format_tlv(TxSimulationTag.CHAIN_ID, chain_id.to_bytes(8, 'big'))
+    tlv_payload += format_tlv(TxSimulationTag.TX_HASH, tx_hash)
+    tlv_payload += format_tlv(TxSimulationTag.TX_CHECKS_NORMALIZED_RISK, risk)
+    tlv_payload += format_tlv(TxSimulationTag.TX_CHECKS_NORMALIZED_CATEGORY, category)
     if message:
-        payload += format_tlv(TxSimulationTag.TX_CHECKS_PROVIDER_MSG, message.encode('utf-8'))
-    payload += format_tlv(TxSimulationTag.TX_CHECKS_TINY_URL, url.encode('utf-8'))
-    payload += format_tlv(TxSimulationTag.TX_CHECKS_SIMULATION_TYPE, 0)
+        tlv_payload += format_tlv(TxSimulationTag.TX_CHECKS_PROVIDER_MSG, message.encode('utf-8'))
+    tlv_payload += format_tlv(TxSimulationTag.TX_CHECKS_TINY_URL, url.encode('utf-8'))
+    tlv_payload += format_tlv(TxSimulationTag.TX_CHECKS_SIMULATION_TYPE, 0)
     # Append the data Signature
-    payload += format_tlv(TxSimulationTag.DER_SIGNATURE, sign_data(Key.TRANSACTION_CHECK, payload))
+    tlv_payload += format_tlv(TxSimulationTag.DER_SIGNATURE, sign_data(Key.TRANSACTION_CHECK, tlv_payload))
+
+    # Append the payload length and the data
+    payload: bytes = bytes()
+    payload += struct.pack(">H", len(tlv_payload))
+    payload += tlv_payload
 
     # Return the constructed TLV payload as bytes
     return payload

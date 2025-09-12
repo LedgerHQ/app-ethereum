@@ -29,6 +29,7 @@ class InsType(IntEnum):
     PROVIDE_TRUSTED_NAME = 0x22
     PROVIDE_ENUM_VALUE = 0x24
     PROVIDE_TRANSACTION_INFO = 0x26
+    PROVIDE_TRANSACTION_FIELD_DESC = 0x28
     PROVIDE_PROXY_INFO = 0x2a
     PROVIDE_NETWORK_INFORMATION = 0x30
     PROVIDE_TX_SIMULATION = 0x32
@@ -280,15 +281,21 @@ class CommandBuilder:
                                0x00,
                                data)
 
-    def sign(self, bip32_path: str, rlp_data: bytes, p2: int) -> list[bytes]:
-        apdus = []
-        payload = pack_derivation_path(bip32_path)
-        payload += rlp_data
+    def sign(self,
+             mode: int,
+             bip32_path: Optional[str] = None,
+             rlp_data: Optional[bytes] = None) -> list[bytes]:
+        apdus: list[bytes] = []
+        payload = bytearray()
+        if bip32_path is not None:
+            payload = pack_derivation_path(bip32_path)
+        if rlp_data is not None:
+            payload += rlp_data
         p1 = P1Type.SIGN_FIRST_CHUNK
-        while len(payload) > 0:
+        while (len(payload) > 0) or ((len(apdus) == 0) and (len(payload) == 0)):
             apdus.append(self._serialize(InsType.SIGN,
                                          p1,
-                                         p2,
+                                         mode,
                                          payload[:0xff]))
             payload = payload[0xff:]
             p1 = P1Type.SIGN_SUBSQT_CHUNK
@@ -475,6 +482,9 @@ class CommandBuilder:
 
     def provide_transaction_info(self, tlv_payload: bytes) -> list[bytes]:
         return self.common_tlv_serialize(InsType.PROVIDE_TRANSACTION_INFO, tlv_payload)
+
+    def provide_transaction_field_desc(self, tlv_payload: bytes) -> list[bytes]:
+        return self.common_tlv_serialize(InsType.PROVIDE_TRANSACTION_FIELD_DESC, tlv_payload)
 
     def opt_in_tx_simulation(self) -> bytes:
         # Serialize the payload

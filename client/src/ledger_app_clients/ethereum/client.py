@@ -176,11 +176,14 @@ class EthAppClient:
         return encoded_tx, tx_hash
 
     def sign(self,
-             bip32_path: str,
-             tx_params: dict,
+             bip32_path: Optional[str] = None,
+             tx_params: Optional[dict] = None,
              mode: SignMode = SignMode.BASIC):
-        tx, _ = self.serialize_tx(tx_params)
-        chunks = self._cmd_builder.sign(bip32_path, tx, mode)
+        if tx_params is None:
+            tx = None
+        else:
+            tx, _ = self.serialize_tx(tx_params)
+        chunks = self._cmd_builder.sign(mode, bip32_path, tx)
         for chunk in chunks[:-1]:
             self._exchange(chunk)
         return self._exchange_async(chunks[-1])
@@ -417,6 +420,12 @@ class EthAppClient:
         self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_CALLDATA)
 
         chunks = self._cmd_builder.provide_transaction_info(payload)
+        for chunk in chunks[:-1]:
+            self._exchange(chunk)
+        return self._exchange(chunks[-1])
+
+    def provide_transaction_field_desc(self, payload: bytes) -> RAPDU:
+        chunks = self._cmd_builder.provide_transaction_field_desc(payload)
         for chunk in chunks[:-1]:
             self._exchange(chunk)
         return self._exchange(chunks[-1])

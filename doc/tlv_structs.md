@@ -38,10 +38,6 @@
 | NAME          | 0x06 | char[]         | enum entry name (ASCII)                                                  |          | `$.metadata.enums.<enum id>.<enum entry>.name`             |
 | SIGNATURE     | 0xff | uint8[]        | signature of all the other struct fields                                 |          | computed by CAL                                            |
 
-> [!CAUTION]
->
-> - `NAME` max length ?
-
 ## FIELD
 
 It contains no signature since the signed TRANSACTION_INFO struct already has a hash of all the FIELD
@@ -70,20 +66,12 @@ with `ParamType` enum defined as:
 | CALLDATA     | 0x09  |
 | TOKEN        | 0x0a  |
 
-> [!CAUTION]
->
-> - `NAME` max length ?
-
 ### PARAM_RAW
 
 | Name    | Tag  | Payload type | Description                   | Optional | Source / value                                           |
 |---------|------|--------------|-------------------------------|----------|----------------------------------------------------------|
 | VERSION | 0x00 | uint8        | struct version                |          | constant: `0x0`                                          |
 | VALUE   | 0x01 | VALUE        | reference to value to display |          | `$.display.formats.<format id>.fields.[<field id>].path` |
-
-> [!CAUTION]
->
-> - not possible to provide static value ?
 
 ### PARAM_AMOUNT
 
@@ -104,11 +92,6 @@ with `ParamType` enum defined as:
 | ABOVE_THRESHOLD_MSG | 0x05 | char[]       | unlimited amount label                    | x        | `$.display.formats.<format id>.fields.[<field id>].params.message`               |
 
 This struct can contain `NATIVE_CURRENCY` multiple times for multiple addresses.
-
-> [!CAUTION]
->
-> - `NATIVE_CURRENCY` max count ?
-> - `ABOVE_THRESHOLD_MSG` max length ?
 
 ### PARAM_NFT
 
@@ -143,10 +126,6 @@ This struct can contain `NATIVE_CURRENCY` multiple times for multiple addresses.
 | DECIMALS | 0x03 | uint8        | defaults to 0                 | x        | `$.display.formats.<format id>.fields.[<field id>].params.decimals` |
 | PREFIX   | 0x04 | bool         | defaults to false             | x        | `$.display.formats.<format id>.fields.[<field id>].params.prefix`   |
 
-> [!CAUTION]
->
-> - `BASE` max length ?
-
 ### PARAM_ENUM
 
 | Name    | Tag  | Payload type | Description                   | Optional | Source / value                                           |
@@ -154,10 +133,6 @@ This struct can contain `NATIVE_CURRENCY` multiple times for multiple addresses.
 | VERSION | 0x00 | uint8        | struct version                |          | constant: `0x0`                                          |
 | ID      | 0x01 | uint8        |                               |          |                                                          |
 | VALUE   | 0x02 | VALUE        | reference to value to display |          | `$.display.formats.<format id>.fields.[<field id>].path` |
-
-> [!CAUTION]
->
-> - needs reference to enum ?
 
 ### PARAM_TRUSTED_NAME
 
@@ -193,10 +168,6 @@ and `TrustedNameSource` enum defined as:
 | FREENAME           | 0x04  | Freename           |
 | DNS                | 0x05  | DNS                |
 | DYNAMIC_RESOLVER   | 0x06  | Dynamic Resolver   |
-
-> [!CAUTION]
->
-> - `SOURCES` array max length ?
 
 ### PARAM_CALLDATA
 
@@ -267,10 +238,6 @@ with `TypeFamily` enum defined as:
 | BYTES   | 0x07  |
 | STRING  | 0x08  |
 
-> [!CAUTION]
->
-> - `PATH` max allowed length ?
-
 ### DATA_PATH
 
 | Name    | Tag  | Payload type    | Description                                                                                                                               | Optional | Source / value  |
@@ -302,10 +269,6 @@ In version 1 of the protocol:
 - `SLICE` can only be used when all these conditions are met:
   - in last position of the path
   - previous element is `ARRAY_LEAF` or `DYNAMIC_LEAF` with `TYPE_FAMILY` = `BYTES` or `STRING`
-
-> [!CAUTION]
->
-> - What about [non-standard packed mode](https://docs.soliditylang.org/en/latest/abi-spec.html#non-standard-packed-mode) ?
 
 ### ARRAY_ELEMENT
 

@@ -1,5 +1,4 @@
 from typing import Optional
-import struct
 import json
 import hashlib
 from web3 import Web3
@@ -212,10 +211,9 @@ def test_gcs_nft(scenario_navigator: NavigateWithScenario, test_name: str):
     app_client.provide_nft_metadata("OpenSea Shared Storefront", tx_params["to"], tx_params["chainId"])
 
     for field in fields:
-        payload = field.serialize()
-        app_client.send_raw(0xe0, 0x28, 0x01, 0x00, struct.pack(">H", len(payload)) + payload)
+        app_client.provide_transaction_field_desc(field.serialize())
 
-    with app_client.send_raw_async(0xe0, 0x04, 0x00, 0x02, bytes()):
+    with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve(test_name=test_name)
 
 
@@ -385,10 +383,9 @@ def test_gcs_poap(scenario_navigator: NavigateWithScenario,
     app_client.provide_transaction_info(tx_info.serialize())
 
     for field in fields:
-        payload = field.serialize()
-        app_client.send_raw(0xe0, 0x28, 0x01, 0x00, struct.pack(">H", len(payload)) + payload)
+        app_client.provide_transaction_field_desc(field.serialize())
 
-    with app_client.send_raw_async(0xe0, 0x04, 0x00, 0x02, bytes()):
+    with app_client.sign(mode=SignMode.START_FLOW):
         if simu_params is not None:
             scenario_navigator.review_approve_with_warning(test_name=test_name)
         else:
@@ -548,10 +545,9 @@ def test_gcs_1inch(scenario_navigator: NavigateWithScenario, test_name: str):
     app_client.provide_token_metadata("USDC", bytes.fromhex("A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"), 6, 1)
 
     for field in fields:
-        payload = field.serialize()
-        app_client.send_raw(0xe0, 0x28, 0x01, 0x00, struct.pack(">H", len(payload)) + payload)
+        app_client.provide_transaction_field_desc(field.serialize())
 
-    with app_client.send_raw_async(0xe0, 0x04, 0x00, 0x02, bytes()):
+    with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve(test_name=test_name)
 
 
@@ -657,10 +653,9 @@ def test_gcs_proxy(scenario_navigator: NavigateWithScenario, test_name: str):
                                        challenge=ResponseParser.challenge(app_client.get_challenge().data))
 
     for field in fields:
-        payload = field.serialize()
-        app_client.send_raw(0xe0, 0x28, 0x01, 0x00, struct.pack(">H", len(payload)) + payload)
+        app_client.provide_transaction_field_desc(field.serialize())
 
-    with app_client.send_raw_async(0xe0, 0x04, 0x00, 0x02, bytes()):
+    with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve(test_name=test_name)
 
 
@@ -775,8 +770,7 @@ def test_gcs_4226(scenario_navigator: NavigateWithScenario, test_name: str):
     app_client.provide_token_metadata("SWELL", swell_token_addr, 18, 1)
 
     for field in fields:
-        payload = field.serialize()
-        app_client.send_raw(0xe0, 0x28, 0x01, 0x00, struct.pack(">H", len(payload)) + payload)
+        app_client.provide_transaction_field_desc(field.serialize())
 
-    with app_client.send_raw_async(0xe0, 0x04, 0x00, 0x02, bytes()):
+    with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve(test_name=test_name)

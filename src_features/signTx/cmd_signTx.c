@@ -147,6 +147,10 @@ uint16_t handleSign(uint8_t p1,
                 PRINTF("Error: instructions hash mismatch!\n");
                 return APDU_RESPONSE_INVALID_DATA;
             }
+            if (get_tx_ctx_count() != 1) {
+                PRINTF("Error: remnant unprocessed TX context!\n");
+                return APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+            }
             if (!ui_gcs()) {
                 return APDU_RESPONSE_INTERNAL_ERROR;
             }

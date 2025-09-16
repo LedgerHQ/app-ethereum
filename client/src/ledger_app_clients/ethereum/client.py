@@ -36,6 +36,12 @@ class TrustedNameSource(IntEnum):
     DNS = 0x05
 
 
+class EIP712CalldataParamPresence(IntEnum):
+    NONE = 0x00
+    PRESENT_FILTERED = 0x01
+    PRESENT_VERIFYING_CONTRACT = 0x02
+
+
 class SignMode(IntEnum):
     BASIC = 0x00
     STORE = 0x01
@@ -52,7 +58,7 @@ class EthAppClient:
     def _exchange_async(self, payload: bytes):
         return self._backend.exchange_async_raw(payload)
 
-    def _exchange(self, payload: bytes):
+    def _exchange(self, payload: bytes) -> RAPDU:
         return self._backend.exchange_raw(payload)
 
     def response(self) -> Optional[RAPDU]:
@@ -155,6 +161,60 @@ class EthAppClient:
                                                                                     sig,
                                                                                     discarded))
 
+    def eip712_filtering_calldata_info(self,
+                                       index: int,
+                                       value_filter_flag: bool,
+                                       callee_filter_flag: int,
+                                       chain_id_filter_flag: bool,
+                                       selector_filter_flag: bool,
+                                       amount_filter_flag: bool,
+                                       spender_filter_flag: int,
+                                       sig: bytes):
+        return self._exchange(self._cmd_builder.eip712_filtering_calldata_info(index,
+                                                                               value_filter_flag,
+                                                                               callee_filter_flag,
+                                                                               chain_id_filter_flag,
+                                                                               selector_filter_flag,
+                                                                               amount_filter_flag,
+                                                                               spender_filter_flag,
+                                                                               sig))
+
+    def eip712_filtering_calldata_value(self,
+                                        index: int,
+                                        sig: bytes,
+                                        discarded: bool):
+        return self._exchange(self._cmd_builder.eip712_filtering_calldata_value(index, sig, discarded))
+
+    def eip712_filtering_calldata_callee(self,
+                                         index: int,
+                                         sig: bytes,
+                                         discarded: bool):
+        return self._exchange(self._cmd_builder.eip712_filtering_calldata_callee(index, sig, discarded))
+
+    def eip712_filtering_calldata_chain_id(self,
+                                           index: int,
+                                           sig: bytes,
+                                           discarded: bool):
+        return self._exchange(self._cmd_builder.eip712_filtering_calldata_chain_id(index, sig, discarded))
+
+    def eip712_filtering_calldata_selector(self,
+                                           index: int,
+                                           sig: bytes,
+                                           discarded: bool):
+        return self._exchange(self._cmd_builder.eip712_filtering_calldata_selector(index, sig, discarded))
+
+    def eip712_filtering_calldata_amount(self,
+                                         index: int,
+                                         sig: bytes,
+                                         discarded: bool):
+        return self._exchange(self._cmd_builder.eip712_filtering_calldata_amount(index, sig, discarded))
+
+    def eip712_filtering_calldata_spender(self,
+                                          index: int,
+                                          sig: bytes,
+                                          discarded: bool):
+        return self._exchange(self._cmd_builder.eip712_filtering_calldata_spender(index, sig, discarded))
+
     def eip712_filtering_raw(self, name: str, sig: bytes, discarded: bool):
         return self._exchange_async(self._cmd_builder.eip712_filtering_raw(name, sig, discarded))
 
@@ -188,7 +248,7 @@ class EthAppClient:
             self._exchange(chunk)
         return self._exchange_async(chunks[-1])
 
-    def get_challenge(self):
+    def get_challenge(self) -> RAPDU:
         return self._exchange(self._cmd_builder.get_challenge())
 
     def get_public_addr(self,

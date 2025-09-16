@@ -241,6 +241,12 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
                             break;
                         }
                     } else {
+                        if (i > 0) {
+                            // within a batch execution, if any TX other than the first one has en
+                            // empty calldata we won't be able to properly diplay it in order
+                            ret = false;
+                            break;
+                        }
                         if (!process_fallback(param,
                                               &contract_addrs.value[i],
                                               &amounts.value[i],

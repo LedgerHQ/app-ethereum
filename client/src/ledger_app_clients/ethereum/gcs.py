@@ -466,6 +466,48 @@ class ParamEnum(FieldParam):
         return payload
 
 
+class ParamCalldata(FieldParam):
+    version: int
+    calldata: Value
+    contract_addr: Value
+    chain_id: Optional[Value]
+    selector: Optional[Value]
+    amount: Optional[Value]
+    spender: Optional[Value]
+
+    def __init__(self,
+                 version: int,
+                 calldata: Value,
+                 contract_addr: Value,
+                 chain_id: Optional[Value] = None,
+                 selector: Optional[Value] = None,
+                 amount: Optional[Value] = None,
+                 spender: Optional[Value] = None):
+        self.type = ParamType.CALLDATA
+        self.version = version
+        self.calldata = calldata
+        self.contract_addr = contract_addr
+        self.chain_id = chain_id
+        self.selector = selector
+        self.amount = amount
+        self.spender = spender
+
+    def serialize(self) -> bytes:
+        payload = bytearray()
+        payload += self.serialize_field(0x00, self.version)
+        payload += self.serialize_field(0x01, self.calldata.serialize())
+        payload += self.serialize_field(0x02, self.contract_addr.serialize())
+        if self.chain_id is not None:
+            payload += self.serialize_field(0x03, self.chain_id.serialize())
+        if self.selector is not None:
+            payload += self.serialize_field(0x04, self.selector.serialize())
+        if self.amount is not None:
+            payload += self.serialize_field(0x05, self.amount.serialize())
+        if self.spender is not None:
+            payload += self.serialize_field(0x06, self.spender.serialize())
+        return payload
+
+
 class ParamToken(FieldParam):
     version: int
     addr: Value

@@ -2,8 +2,10 @@ import fnmatch
 import os
 from pathlib import Path
 import json
-from typing import Optional
+from typing import Optional, Callable
 from ctypes import c_uint64
+import hashlib
+
 import pytest
 from eth_account.messages import encode_typed_data
 import web3
@@ -13,13 +15,19 @@ from ragger.navigator import NavigateWithScenario
 from ragger.error import ExceptionRAPDU
 
 import client.response_parser as ResponseParser
-from client.utils import recover_message
-from client.client import EthAppClient, TrustedNameType, TrustedNameSource
+from client.utils import recover_message, get_selector_from_data
+from client.client import EthAppClient, TrustedNameType, TrustedNameSource, EIP712CalldataParamPresence
 from client.status_word import StatusWord
 from client.eip712 import InputData
 from client.settings import SettingID, settings_toggle
 from client.tx_simu import TxSimu
 from client.proxy_info import ProxyInfo
+
+from client.gcs import (
+    Field, ParamType, ParamRaw, Value, TypeFamily, DataPath, PathTuple, ParamTrustedName,
+    ParamNFT, ParamDatetime, DatetimeType, ParamTokenAmount, ParamToken, ParamCalldata,
+    ParamAmount, ContainerPath, PathLeaf, PathLeafType, PathRef, PathArray, TxInfo
+)
 
 
 BIP32_PATH = "m/44'/60'/0'/0/0"
@@ -667,3 +675,99 @@ def test_eip712_proxy(scenario_navigator: NavigateWithScenario):
     app_client.provide_proxy_info(proxy_info.serialize())
 
     eip712_new_common(scenario_navigator, data, filters)
+
+
+def gcs_handler(app_client: EthAppClient, json_data: dict) -> None:
+    fields = [
+        Field(
+            1,
+            "Amount",
+            ParamTokenAmount(
+                1,
+                Value(
+                    1,
+                    TypeFamily.UINT,
+                    type_size=32,
+                    data_path=DataPath(
+                        1,
+                        [
+                            PathTuple(1),
+                            PathLeaf(PathLeafType.STATIC),
+                        ]
+                    ),
+                ),
+                token=Value(
+                    1,
+                    TypeFamily.ADDRESS,
+                    container_path=ContainerPath.TO,
+                ),
+            )
+        ),
+    ]
+    # compute instructions hash
+    inst_hash = hashlib.sha3_256()
+    for field in fields:
+        inst_hash.update(field.serialize())
+    tx_info = TxInfo(
+        1,
+        json_data["domain"]["chainId"],
+        bytes.fromhex(json_data["message"]["to"][2:]),
+        get_selector_from_data(json_data["message"]["data"]),
+        inst_hash.digest(),
+        "Token transfer",
+        contract_name="USDC",
+    )
+    app_client.provide_token_metadata(tx_info.contract_name, tx_info.contract_addr, 6, tx_info.chain_id)
+
+    app_client.provide_transaction_info(tx_info.serialize())
+
+    for field in fields:
+        app_client.provide_transaction_field_desc(field.serialize())
+
+
+def eip712_calldata_common(scenario_navigator: NavigateWithScenario,
+                           test_name: str,
+                           filename: str,
+                           handler: Optional[Callable] = None):
+    with open("%s/%s.json" % (eip712_json_path(), filename)) as file:
+        data = json.load(file)
+
+    filters = {
+        "name": "Calldata test",
+        "calldatas": [
+            {
+                "index": 0,
+                "handler": handler,
+                "value_flag": True,
+                "callee_flag": EIP712CalldataParamPresence.PRESENT_FILTERED,
+                "chain_id_flag": False,
+                "selector_flag": False,
+                "amount_flag": True,
+                "spender_flag": EIP712CalldataParamPresence.NONE,
+            },
+        ],
+        "fields": {
+            "to": {
+                "type": "calldata_callee",
+                "index": 0,
+            },
+            "value": {
+                "type": "calldata_amount",
+                "index": 0,
+            },
+            "data": {
+                "type": "calldata_value",
+                "index": 0,
+            },
+        }
+    }
+
+    eip712_new_common(scenario_navigator, data, filters, test_name)
+
+
+def test_eip712_calldata(scenario_navigator: NavigateWithScenario, test_name: str):
+    eip712_calldata_common(scenario_navigator, test_name, "safe", gcs_handler)
+
+
+def test_eip712_calldata_empty_send(scenario_navigator: NavigateWithScenario, test_name: str):
+    eip712_calldata_common(scenario_navigator, test_name, "safe_empty")

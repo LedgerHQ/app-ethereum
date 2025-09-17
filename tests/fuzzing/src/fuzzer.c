@@ -141,19 +141,24 @@ int fuzzTxSimulation(const uint8_t *data, size_t size) {
     return 0;
 }
 
+static s_calldata *g_calldata = NULL;
+
 int fuzzCalldata(const uint8_t *data, size_t size) {
     while (size > 0) {
         switch (data[0]) {
             case 'I':
                 data++;
                 size--;
-                calldata_init(500);
+                if (g_calldata != NULL) {
+                    calldata_delete(g_calldata);
+                }
+                g_calldata = calldata_init(500, NULL);
                 break;
             case 'W':
                 size--;
                 data++;
                 if (size < 1 || size < data[0] + 1) return 0;
-                calldata_append(data + 1, data[0]);
+                calldata_append(g_calldata, data + 1, data[0]);
                 size -= (1 + data[0]);
                 data += 1 + data[0];
                 break;
@@ -161,7 +166,7 @@ int fuzzCalldata(const uint8_t *data, size_t size) {
                 size--;
                 data++;
                 if (size < 1) return 0;
-                calldata_get_chunk(data[0]);
+                calldata_get_chunk(g_calldata, data[0]);
                 size--;
                 data++;
                 break;
@@ -225,8 +230,6 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     explicit_bzero(&G_io_apdu_buffer, 260);
     explicit_bzero(&sha3, sizeof(sha3));
     explicit_bzero(&global_sha3, sizeof(global_sha3));
-
-    calldata_cleanup();
 
     uint8_t target;
 

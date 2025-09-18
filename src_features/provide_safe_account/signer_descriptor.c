@@ -37,7 +37,7 @@ enum {
 
 typedef struct {
     signers_descriptor_t *signers;
-    uint8_t addess_count;
+    uint8_t address_count;
     uint8_t sig_size;
     uint8_t *sig;
     cx_sha256_t hash_ctx;
@@ -142,11 +142,11 @@ static bool handle_challenge(const s_tlv_data *data, s_signer_ctx *context) {
 static bool handle_address(const s_tlv_data *data, s_signer_ctx *context) {
     CHECK_FIELD_LENGTH("ADDRESS", data->length, ADDRESS_LENGTH);
     CHECK_EMPTY_BUFFER("ADDRESS", data->value, data->length);
-    if (context->addess_count >= SAFE_DESC->signers_count) {
+    if (context->address_count >= SAFE_DESC->signers_count) {
         PRINTF("Error: Too many addresses in Signer descriptor!\n");
         return false;
     }
-    COPY_FIELD(context->signers->data[context->addess_count++].address, data);
+    COPY_FIELD(context->signers->data[context->address_count++].address, data);
     context->rcv_flags |= SET_BIT(BIT_ADDRESS);
     return true;
 }
@@ -225,7 +225,7 @@ static void print_signer_info(const s_signer_ctx *context) {
 
     PRINTF("****************************************************************************\n");
     PRINTF("[SAFE ACCOUNT] - Retrieved Signer Descriptor:\n");
-    for (i = 0; i < context->addess_count; i++) {
+    for (i = 0; i < context->address_count; i++) {
         PRINTF("[SAFE ACCOUNT] -    Address[%d]: %.*h\n",
                i,
                ADDRESS_LENGTH,
@@ -250,7 +250,7 @@ static bool verify_signer_struct(const s_signer_ctx *context) {
         PRINTF("Error: Signature verification failed for Signer descriptor!\n");
         return false;
     }
-    if (context->addess_count < SAFE_DESC->signers_count) {
+    if (context->address_count < SAFE_DESC->signers_count) {
         PRINTF("Error: Too few addresses in Signer descriptor!\n");
         return false;
     }
@@ -347,7 +347,6 @@ bool handle_signer_tlv_payload(const uint8_t *payload, uint16_t size) {
 void clear_signer_descriptor(void) {
     if (SIGNER_DESC.data != NULL) {
         app_mem_free(SIGNER_DESC.data);
-        SIGNER_DESC.data = NULL;
     }
     explicit_bzero(&SIGNER_DESC, sizeof(SIGNER_DESC));
 }

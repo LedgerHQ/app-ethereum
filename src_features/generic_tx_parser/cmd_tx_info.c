@@ -31,7 +31,7 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
 
 uint16_t handle_tx_info(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *payload) {
     (void) p2;
-    if (appState != APP_STATE_SIGNING_TX) {
+    if ((appState != APP_STATE_SIGNING_TX) && (appState != APP_STATE_SIGNING_EIP712)) {
         PRINTF("App not in TX signing mode!\n");
         return APDU_RESPONSE_CONDITION_NOT_SATISFIED;
     }

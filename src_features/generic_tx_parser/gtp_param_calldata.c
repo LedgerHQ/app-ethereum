@@ -110,10 +110,6 @@ bool handle_param_calldata_struct(const s_tlv_data *data, s_param_calldata_conte
     return ret;
 }
 
-static bool set_intent_field(const char *value) {
-    return add_to_field_table(0, "Transaction type", value);
-}
-
 static bool process_nested_calldata(const s_param_calldata *param,
                                     const s_parsed_value *calldata,
                                     const s_parsed_value *contract_addr,

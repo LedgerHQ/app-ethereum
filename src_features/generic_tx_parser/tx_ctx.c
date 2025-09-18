@@ -6,6 +6,7 @@
 #include "shared_context.h"  // appState
 #include "utils.h"           // buf_shrink_expand
 #include "getPublicKey.h"
+#include "context_712.h"
 
 static s_tx_ctx *g_tx_ctx_list = NULL;
 static s_tx_ctx *g_tx_ctx_current = NULL;
@@ -86,6 +87,8 @@ void tx_ctx_pop(void) {
         }
     }
     flist_remove((s_flist_node **) &g_tx_ctx_list, old_current, (f_list_node_del) &delete_tx_ctx);
+    // set proper current pointer when list becomes empty
+    if (g_tx_ctx_list == NULL) g_tx_ctx_current = NULL;
 }
 
 bool find_matching_tx_ctx(const uint8_t *contract_addr,
@@ -116,8 +119,12 @@ void tx_ctx_cleanup(void) {
 bool set_tx_info_into_tx_ctx(s_tx_info *tx_info) {
     if (g_tx_ctx_current == NULL) return false;
     g_tx_ctx_current->tx_info = tx_info;
-    if (!tx_ctx_is_root()) {
-        return add_to_field_table(0, "Transaction type", get_current_tx_info()->operation_type);
+    if (tx_ctx_is_root()) {
+        if (appState == APP_STATE_SIGNING_EIP712) {
+            return set_intent_field(tx_info->operation_type);
+        }
+    } else {
+        return set_intent_field(tx_info->operation_type);
     }
     return true;
 }
@@ -128,6 +135,7 @@ bool tx_ctx_init(s_calldata *calldata,
                  const uint8_t *amount,
                  const uint64_t *chain_id) {
     s_tx_ctx *node;
+    s_eip712_calldata_info *calldata_info;
 
     if ((node = app_mem_alloc(sizeof(*node))) == NULL) {
         return false;
@@ -136,6 +144,14 @@ bool tx_ctx_init(s_calldata *calldata,
     node->calldata = calldata;
     if (get_tx_ctx_count() == 0) {
         get_public_key(node->from, ADDRESS_LENGTH);
+        if (appState == APP_STATE_SIGNING_EIP712) {
+            calldata_info = get_current_calldata_info();
+            if (!calldata_info_all_received(calldata_info) || calldata_info->processed) {
+                app_mem_free(node);
+                return false;
+            }
+            calldata_info->processed = true;
+        }
     } else {
         // as default, copy value from last tx context
         const s_tx_ctx *tmp = g_tx_ctx_list;
@@ -159,7 +175,7 @@ bool tx_ctx_init(s_calldata *calldata,
     }
     flist_push_back((s_flist_node **) &g_tx_ctx_list, (s_flist_node *) node);
     g_tx_ctx_current = node;
-    if (tx_ctx_is_root()) {
+    if ((appState == APP_STATE_SIGNING_TX) && tx_ctx_is_root()) {
         return field_table_init();
     }
     return true;

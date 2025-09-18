@@ -256,6 +256,7 @@ static bool field_hash_finalize(const s_struct_712_field *field_ptr,
 bool field_hash(const uint8_t *data, uint8_t data_length, bool partial) {
     const s_struct_712_field *field_ptr;
     bool first = fh->state == FHS_IDLE;
+    uint16_t total_length = 0;
 
     if ((fh == NULL) || ((field_ptr = path_get_field()) == NULL)) {
         apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
@@ -273,6 +274,7 @@ bool field_hash(const uint8_t *data, uint8_t data_length, bool partial) {
         }
 
         data = field_hash_prepare(field_ptr, data, &data_length);
+        total_length = fh->remaining_size;
     }
     if (data_length > fh->remaining_size) {
         apdu_response_code = APDU_RESPONSE_INVALID_DATA;
@@ -283,7 +285,11 @@ bool field_hash(const uint8_t *data, uint8_t data_length, bool partial) {
     if (IS_DYN(field_ptr->type)) {
         hash_nbytes(data, data_length, (cx_hash_t *) &global_sha3);
     }
-    if (!ui_712_feed_to_display(field_ptr, data, data_length, first, fh->remaining_size == 0)) {
+    if (!ui_712_feed_to_display(field_ptr,
+                                data,
+                                data_length,
+                                first ? &total_length : NULL,
+                                fh->remaining_size == 0)) {
         return false;
     }
     if (fh->remaining_size == 0) {

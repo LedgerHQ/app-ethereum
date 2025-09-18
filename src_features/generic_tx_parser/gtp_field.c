@@ -2,6 +2,7 @@
 #include "gtp_field.h"
 #include "utils.h"
 #include "os_print.h"
+#include "shared_context.h"  // strings
 
 enum {
     BIT_VERSION = 0,
@@ -233,5 +234,7 @@ bool format_field(const s_field *field) {
         default:
             ret = false;
     }
+    // so that EIP-712 error-handling does trigger
+    strings.tmp.tmp[0] = '\0';
     return ret;
 }

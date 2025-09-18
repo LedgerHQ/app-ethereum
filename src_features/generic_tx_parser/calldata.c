@@ -14,10 +14,16 @@ s_calldata *calldata_init(size_t size, const uint8_t selector[CALLDATA_SELECTOR_
     }
     explicit_bzero(calldata, sizeof(*calldata));
     calldata->expected_size = size;
-    if (selector != NULL) {
-        memcpy(calldata->selector, selector, CALLDATA_SELECTOR_SIZE);
-    }
+    calldata_set_selector(calldata, selector);
     return calldata;
+}
+
+bool calldata_set_selector(s_calldata *calldata, const uint8_t selector[CALLDATA_SELECTOR_SIZE]) {
+    if ((calldata == NULL) || (selector == NULL)) {
+        return false;
+    }
+    memcpy(calldata->selector, selector, sizeof(calldata->selector));
+    return true;
 }
 
 static bool compress_chunk(s_calldata *calldata) {

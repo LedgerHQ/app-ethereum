@@ -3,6 +3,8 @@
 #include "gtp_field_table.h"
 #include "mem.h"
 #include "list.h"
+#include "shared_context.h"  // appState
+#include "ui_logic.h"
 
 typedef struct {
     s_flist_node _list;
@@ -39,6 +41,11 @@ bool add_to_field_table(e_param_type type, const char *key, const char *value) {
         PRINTF("Error: NULL key/value!\n");
         return false;
     }
+    if (appState == APP_STATE_SIGNING_EIP712) {
+        ui_712_set_title(key, strlen(key));
+        ui_712_set_value(value, strlen(value));
+        return true;
+    }
     if ((node = app_mem_alloc(sizeof(*node))) == NULL) {
         return false;
     }
@@ -62,6 +69,10 @@ bool add_to_field_table(e_param_type type, const char *key, const char *value) {
 
     flist_push_back((s_flist_node **) &g_table, (s_flist_node *) node);
     return true;
+}
+
+bool set_intent_field(const char *value) {
+    return add_to_field_table(0, "Transaction type", value);
 }
 
 size_t field_table_size(void) {

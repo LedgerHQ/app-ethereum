@@ -243,11 +243,16 @@ class Value(TlvSerializable):
         return payload
 
 
-class ParamRaw(TlvSerializable):
+class FieldParam(TlvSerializable):
+    type: ParamType
+
+
+class ParamRaw(FieldParam):
     version: int
     value: Value
 
     def __init__(self, version: int, value: Value):
+        self.type = ParamType.RAW
         self.version = version
         self.value = value
 
@@ -258,11 +263,12 @@ class ParamRaw(TlvSerializable):
         return payload
 
 
-class ParamAmount(TlvSerializable):
+class ParamAmount(FieldParam):
     version: int
     value: Value
 
     def __init__(self, version: int, value: Value):
+        self.type = ParamType.AMOUNT
         self.version = version
         self.value = value
 
@@ -273,7 +279,7 @@ class ParamAmount(TlvSerializable):
         return payload
 
 
-class ParamTokenAmount(TlvSerializable):
+class ParamTokenAmount(FieldParam):
     version: int
     value: Value
     token: Optional[Value]
@@ -288,6 +294,7 @@ class ParamTokenAmount(TlvSerializable):
                  native_currency: Optional[list[bytes]] = None,
                  threshold: Optional[int] = None,
                  above_threshold_msg: Optional[str] = None):
+        self.type = ParamType.TOKEN_AMOUNT
         self.version = version
         self.value = value
         self.token = token
@@ -311,12 +318,13 @@ class ParamTokenAmount(TlvSerializable):
         return payload
 
 
-class ParamNFT(TlvSerializable):
+class ParamNFT(FieldParam):
     version: int
     id: Value
     collection: Value
 
     def __init__(self, version: int, id: Value, collection: Value):
+        self.type = ParamType.NFT
         self.version = version
         self.id = id
         self.collection = collection
@@ -334,29 +342,31 @@ class DatetimeType(IntEnum):
     DT_BLOCKHEIGHT = 0x01
 
 
-class ParamDatetime(TlvSerializable):
+class ParamDatetime(FieldParam):
     version: int
     value: Value
-    type: DatetimeType
+    dt_type: DatetimeType
 
     def __init__(self, version: int, value: Value, type: DatetimeType):
+        self.type = ParamType.DATETIME
         self.version = version
         self.value = value
-        self.type = type
+        self.dt_type = type
 
     def serialize(self) -> bytes:
         payload = bytearray()
         payload += self.serialize_field(0x00, self.version)
         payload += self.serialize_field(0x01, self.value.serialize())
-        payload += self.serialize_field(0x02, self.type)
+        payload += self.serialize_field(0x02, self.dt_type)
         return payload
 
 
-class ParamDuration(TlvSerializable):
+class ParamDuration(FieldParam):
     version: int
     value: Value
 
     def __init__(self, version: int, value: Value):
+        self.type = ParamType.DURATION
         self.version = version
         self.value = value
 
@@ -367,7 +377,7 @@ class ParamDuration(TlvSerializable):
         return payload
 
 
-class ParamUnit(TlvSerializable):
+class ParamUnit(FieldParam):
     version: int
     value: Value
     base: str
@@ -380,6 +390,7 @@ class ParamUnit(TlvSerializable):
                  base: str,
                  decimals: Optional[int] = None,
                  prefix: Optional[bool] = None):
+        self.type = ParamType.UNIT
         self.version = version
         self.value = value
         self.base = base
@@ -398,7 +409,7 @@ class ParamUnit(TlvSerializable):
         return payload
 
 
-class ParamTrustedName(TlvSerializable):
+class ParamTrustedName(FieldParam):
     version: int
     value: Value
     types: list[TrustedNameType]
@@ -411,6 +422,7 @@ class ParamTrustedName(TlvSerializable):
                  types: list[TrustedNameType],
                  sources: list[TrustedNameSource],
                  sender_addrs: Optional[list[bytes]] = None):
+        self.type = ParamType.TRUSTED_NAME
         self.version = version
         self.value = value
         self.types = types
@@ -435,12 +447,13 @@ class ParamTrustedName(TlvSerializable):
         return payload
 
 
-class ParamEnum(TlvSerializable):
+class ParamEnum(FieldParam):
     version: int
     id: int
     value: Value
 
     def __init__(self, version: int, id: int, value: Value):
+        self.type = ParamType.ENUM
         self.version = version
         self.id = id
         self.value = value
@@ -453,12 +466,55 @@ class ParamEnum(TlvSerializable):
         return payload
 
 
-class ParamToken(TlvSerializable):
+class ParamCalldata(FieldParam):
+    version: int
+    calldata: Value
+    contract_addr: Value
+    chain_id: Optional[Value]
+    selector: Optional[Value]
+    amount: Optional[Value]
+    spender: Optional[Value]
+
+    def __init__(self,
+                 version: int,
+                 calldata: Value,
+                 contract_addr: Value,
+                 chain_id: Optional[Value] = None,
+                 selector: Optional[Value] = None,
+                 amount: Optional[Value] = None,
+                 spender: Optional[Value] = None):
+        self.type = ParamType.CALLDATA
+        self.version = version
+        self.calldata = calldata
+        self.contract_addr = contract_addr
+        self.chain_id = chain_id
+        self.selector = selector
+        self.amount = amount
+        self.spender = spender
+
+    def serialize(self) -> bytes:
+        payload = bytearray()
+        payload += self.serialize_field(0x00, self.version)
+        payload += self.serialize_field(0x01, self.calldata.serialize())
+        payload += self.serialize_field(0x02, self.contract_addr.serialize())
+        if self.chain_id is not None:
+            payload += self.serialize_field(0x03, self.chain_id.serialize())
+        if self.selector is not None:
+            payload += self.serialize_field(0x04, self.selector.serialize())
+        if self.amount is not None:
+            payload += self.serialize_field(0x05, self.amount.serialize())
+        if self.spender is not None:
+            payload += self.serialize_field(0x06, self.spender.serialize())
+        return payload
+
+
+class ParamToken(FieldParam):
     version: int
     addr: Value
     native_currency: Optional[list[bytes]]
 
     def __init__(self, version, addr: Value, native_currency: Optional[list[bytes]] = None):
+        self.type = ParamType.TOKEN
         self.version = version
         self.addr = addr
         self.native_currency = native_currency
@@ -476,19 +532,17 @@ class ParamToken(TlvSerializable):
 class Field(TlvSerializable):
     version: int
     name: str
-    param_type: ParamType
-    param: TlvSerializable
+    param: FieldParam
 
-    def __init__(self, version: int, name: str, param_type: ParamType, param: TlvSerializable):
+    def __init__(self, version: int, name: str, param: FieldParam):
         self.version = version
         self.name = name
-        self.param_type = param_type
         self.param = param
 
     def serialize(self) -> bytes:
         payload = bytearray()
         payload += self.serialize_field(0x00, self.version)
         payload += self.serialize_field(0x01, self.name)
-        payload += self.serialize_field(0x02, self.param_type)
+        payload += self.serialize_field(0x02, self.param.type)
         payload += self.serialize_field(0x03, self.param.serialize())
         return payload

@@ -5,6 +5,7 @@
 #include "manage_asset_info.h"
 #include "network.h"
 #include "gtp_field_table.h"
+#include "tx_ctx.h"
 
 enum {
     TAG_VERSION = 0x00,
@@ -80,7 +81,8 @@ bool format_param_token(const s_param_token *param, const char *name) {
     uint64_t chain_id;
     const char *ticker = NULL;
 
-    chain_id = get_tx_chain_id();
+    if (get_current_tx_info() == NULL) return false;
+    chain_id = get_current_tx_info()->chain_id;
     if ((ret = value_get(&param->address, &collec))) {
         for (int i = 0; i < collec.size; ++i) {
             buf_shrink_expand(collec.value[i].ptr, collec.value[i].length, addr, sizeof(addr));

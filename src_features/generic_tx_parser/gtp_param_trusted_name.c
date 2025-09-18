@@ -6,6 +6,7 @@
 #include "shared_context.h"
 #include "getPublicKey.h"
 #include "apdu_constants.h"
+#include "tx_ctx.h"
 
 enum {
     TAG_VERSION = 0x00,
@@ -100,7 +101,8 @@ bool format_param_trusted_name(const s_param_trusted_name *param, const char *na
     e_param_type param_type;
 
     if ((ret = value_get(&param->value, &values))) {
-        chain_id = get_tx_chain_id();
+        if (get_current_tx_info() == NULL) return false;
+        chain_id = get_current_tx_info()->chain_id;
         for (int i = 0; i < values.size; ++i) {
             buf_shrink_expand(values.value[i].ptr, values.value[i].length, addr, sizeof(addr));
             // replace by wallet addr if a match is found

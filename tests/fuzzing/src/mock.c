@@ -331,3 +331,24 @@ void mem_free(mem_ctx_t ctx, void *ptr) {
     (void) ctx;
     free(ptr);
 }
+
+void ui_712_set_title(const char *str, size_t length) {
+    (void) str;
+    (void) length;
+}
+
+void ui_712_set_value(const char *str, size_t length) {
+    (void) str;
+    (void) length;
+}
+
+typedef void s_eip712_calldata_info;
+
+s_eip712_calldata_info *get_current_calldata_info(void) {
+    return NULL;
+}
+
+bool calldata_info_all_received(const s_eip712_calldata_info *calldata_info) {
+    (void) calldata_info;
+    return false;
+}

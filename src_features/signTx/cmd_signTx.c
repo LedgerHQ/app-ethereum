@@ -4,11 +4,11 @@
 #include "eth_plugin_interface.h"
 #include "apdu_constants.h"
 #include "swap_error_code_helpers.h"
-#include "gtp_tx_info.h"
 #include "common_ui.h"
 #include "ui_callbacks.h"
 #include "mem.h"
 #include "mem_utils.h"
+#include "tx_ctx.h"
 
 typedef enum {
     SIGN_MODE_BASIC = 0,
@@ -146,6 +146,10 @@ uint16_t handleSign(uint8_t p1,
             if (!validate_instruction_hash()) {
                 PRINTF("Error: instructions hash mismatch!\n");
                 return APDU_RESPONSE_INVALID_DATA;
+            }
+            if (get_tx_ctx_count() != 1) {
+                PRINTF("Error: remnant unprocessed TX context!\n");
+                return APDU_RESPONSE_CONDITION_NOT_SATISFIED;
             }
             if (!ui_gcs()) {
                 return APDU_RESPONSE_INTERNAL_ERROR;

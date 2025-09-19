@@ -117,14 +117,29 @@ void tx_ctx_cleanup(void) {
 }
 
 bool set_tx_info_into_tx_ctx(s_tx_info *tx_info) {
+    cx_sha3_t ctx;
+    uint8_t hash[INT256_LENGTH];
+
     if (g_tx_ctx_current == NULL) return false;
     g_tx_ctx_current->tx_info = tx_info;
     if (tx_ctx_is_root()) {
         if (appState == APP_STATE_SIGNING_EIP712) {
-            return set_intent_field(tx_info->operation_type);
+            if (!set_intent_field(tx_info->operation_type)) return false;
         }
     } else {
-        return set_intent_field(tx_info->operation_type);
+        if (!set_intent_field(tx_info->operation_type)) return false;
+    }
+
+    if ((appState == APP_STATE_SIGNING_EIP712) || !tx_ctx_is_root()) {
+        if (cx_sha3_init_no_throw(&ctx, 256) != CX_OK) {
+            return false;
+        }
+        if (cx_hash_no_throw((cx_hash_t *) &ctx, CX_LAST, NULL, 0, hash, sizeof(hash)) != CX_OK) {
+            return false;
+        }
+        if (memcmp(hash, tx_info->fields_hash, sizeof(hash)) == 0) {
+            tx_ctx_pop();
+        }
     }
     return true;
 }

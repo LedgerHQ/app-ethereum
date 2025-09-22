@@ -725,6 +725,22 @@ def gcs_handler(app_client: EthAppClient, json_data: dict) -> None:
         app_client.provide_transaction_field_desc(field.serialize())
 
 
+def gcs_handler_no_param(app_client: EthAppClient, json_data: dict) -> None:
+    tx_info = TxInfo(
+        1,
+        json_data["domain"]["chainId"],
+        bytes.fromhex(json_data["message"]["to"][2:]),
+        get_selector_from_data(json_data["message"]["data"]),
+        hashlib.sha3_256().digest(),
+        "get total supply",
+        creator_name="WETH",
+        creator_legal_name="Wrapped Ether",
+        creator_url="weth.io",
+    )
+
+    app_client.provide_transaction_info(tx_info.serialize())
+
+
 def eip712_calldata_common(scenario_navigator: NavigateWithScenario,
                            test_name: str,
                            filename: str,
@@ -771,3 +787,7 @@ def test_eip712_calldata(scenario_navigator: NavigateWithScenario, test_name: st
 
 def test_eip712_calldata_empty_send(scenario_navigator: NavigateWithScenario, test_name: str):
     eip712_calldata_common(scenario_navigator, test_name, "safe_empty")
+
+
+def test_eip712_calldata_no_param(scenario_navigator: NavigateWithScenario, test_name: str):
+    eip712_calldata_common(scenario_navigator, test_name, "safe_calldata_no_param", gcs_handler_no_param)

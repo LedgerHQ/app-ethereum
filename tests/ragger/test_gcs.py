@@ -1865,3 +1865,160 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve(test_name=test_name)
+
+
+def test_gcs_nested_no_param(scenario_navigator: NavigateWithScenario, test_name: str):
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    with open(f"{ABIS_FOLDER}/erc20.json", encoding="utf-8") as f:
+        sub_contract = Web3().eth.contract(
+            abi=json.load(f),
+            address=bytes.fromhex("c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")
+        )
+    sub_data = sub_contract.encode_abi("totalSupply", [])
+
+    with open(f"{ABIS_FOLDER}/safe_1.4.1.abi.json", encoding="utf-8") as f:
+        contract = Web3().eth.contract(
+            abi=json.load(f),
+            address=bytes.fromhex("23F8abfC2824C397cCB3DA89ae772984107dDB99")
+        )
+    data = contract.encode_abi("execTransaction", [
+        sub_contract.address,
+        Web3.to_wei(0, "ether"),
+        sub_data,
+        0,
+        0,
+        0,
+        0,
+        bytes.fromhex("0000000000000000000000000000000000000000"),
+        bytes.fromhex("0000000000000000000000000000000000000000"),
+        bytes(),
+    ])
+
+    tx_params = {
+        "nonce": 79,
+        "maxFeePerGas": Web3.to_wei(4.8, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(2, "gwei"),
+        "gas": 5118,
+        "to": contract.address,
+        "data": data,
+        "chainId": 1
+    }
+
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    fields = [
+        Field(
+            1,
+            "data",
+            ParamCalldata(
+                1,
+                Value(
+                    1,
+                    TypeFamily.BYTES,
+                    data_path=DataPath(
+                        1,
+                        [
+                            PathTuple(2),
+                            PathRef(),
+                            PathLeaf(PathLeafType.DYNAMIC),
+                        ]
+                    ),
+                ),
+                Value(
+                    1,
+                    TypeFamily.ADDRESS,
+                    data_path=DataPath(
+                        1,
+                        [
+                            PathTuple(0),
+                            PathLeaf(PathLeafType.STATIC),
+                        ]
+                    ),
+                ),
+            )
+        ),
+    ]
+
+    # compute instructions hash
+    inst_hash = hashlib.sha3_256()
+    for field in fields:
+        inst_hash.update(field.serialize())
+
+    tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        tx_params["to"],
+        get_selector_from_data(tx_params["data"]),
+        inst_hash.digest(),
+        "execute a Safe action",
+        creator_name="Safe",
+        creator_legal_name="Safe Ecosystem Foundation",
+        creator_url="safe.global",
+    )
+
+    app_client.provide_transaction_info(tx_info.serialize())
+
+    sub_tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        sub_contract.address,
+        get_selector_from_data(sub_data),
+        hashlib.sha3_256().digest(),
+        "get total supply",
+        creator_name="WETH",
+        creator_legal_name="Wrapped Ether",
+        creator_url="weth.io",
+    )
+
+    for field in fields:
+        app_client.provide_transaction_field_desc(field.serialize())
+        if field.param.type == ParamType.CALLDATA:
+            app_client.provide_transaction_info(sub_tx_info.serialize())
+
+    with app_client.sign(mode=SignMode.START_FLOW):
+        scenario_navigator.review_approve(test_name=test_name)
+
+
+def test_gcs_no_param(scenario_navigator: NavigateWithScenario, test_name: str):
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    with open(f"{ABIS_FOLDER}/erc20.json", encoding="utf-8") as f:
+        contract = Web3().eth.contract(
+            abi=json.load(f),
+            address=bytes.fromhex("c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")
+        )
+    data = contract.encode_abi("totalSupply", [])
+
+    tx_params = {
+        "nonce": 79,
+        "maxFeePerGas": Web3.to_wei(4.8, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(2, "gwei"),
+        "gas": 5118,
+        "to": contract.address,
+        "data": data,
+        "chainId": 1
+    }
+
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        contract.address,
+        get_selector_from_data(data),
+        hashlib.sha3_256().digest(),
+        "get total supply",
+        creator_name="WETH",
+        creator_legal_name="Wrapped Ether",
+        creator_url="weth.io",
+    )
+
+    app_client.provide_transaction_info(tx_info.serialize())
+
+    with app_client.sign(mode=SignMode.START_FLOW):
+        scenario_navigator.review_approve(test_name=test_name)

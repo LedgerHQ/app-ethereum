@@ -189,6 +189,8 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/../../src_features/provide_tx_simulation/
   ${CMAKE_SOURCE_DIR}/../../src_features/signAuthorizationEIP7702/
   ${CMAKE_SOURCE_DIR}/../../src_features/provide_safe_account/
+  ${CMAKE_SOURCE_DIR}/../../src_features/signMessageEIP712_common/
+  ${CMAKE_SOURCE_DIR}/../../src_features/signMessageEIP712/
   ${CMAKE_SOURCE_DIR}/../../src_nbgl/
   ${BOLOS_SDK}/include
   ${BOLOS_SDK}/target/${TARGET_DEVICE}/include
@@ -214,6 +216,8 @@ FILE(GLOB_RECURSE SOURCES
   ${CMAKE_SOURCE_DIR}/../../src_features/provide_tx_simulation/*.c
   ${CMAKE_SOURCE_DIR}/../../src_features/signAuthorizationEIP7702/*.c
   ${CMAKE_SOURCE_DIR}/../../src_features/provide_safe_account/*.c
+  ${CMAKE_SOURCE_DIR}/../../src_features/signMessageEIP712/*.c
+  ${CMAKE_SOURCE_DIR}/../../src_features/signMessageEIP712_common/*.c
   ${CMAKE_SOURCE_DIR}/../../src/list.c
   ${CMAKE_SOURCE_DIR}/../../src_nbgl/ui_utils.c
   ${CMAKE_SOURCE_DIR}/../../src/mem.c

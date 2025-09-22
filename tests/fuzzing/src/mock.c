@@ -332,23 +332,24 @@ void mem_free(mem_ctx_t ctx, void *ptr) {
     free(ptr);
 }
 
-void ui_712_set_title(const char *str, size_t length) {
-    (void) str;
-    (void) length;
+void ui_idle(void) {
 }
 
-void ui_712_set_value(const char *str, size_t length) {
-    (void) str;
-    (void) length;
+void ui_error_blind_signing(void) {
 }
 
-typedef void s_eip712_calldata_info;
-
-s_eip712_calldata_info *get_current_calldata_info(void) {
-    return NULL;
+void ui_sign_712(void) {
 }
 
-bool calldata_info_all_received(const s_eip712_calldata_info *calldata_info) {
-    (void) calldata_info;
-    return false;
+void io_seproxyhal_io_heartbeat(void) {
+}
+
+uint32_t cx_crc32_update(uint32_t crc_state, const void *buf, size_t len) {
+    crc_state = ((char *) buf)[len];
+    return crc_state;
+}
+
+cx_err_t cx_sha224_init_no_throw(cx_sha256_t *hash) {
+    memset(hash, 0, sizeof(cx_sha256_t));
+    return CX_OK;
 }

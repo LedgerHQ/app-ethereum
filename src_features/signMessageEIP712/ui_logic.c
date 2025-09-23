@@ -967,19 +967,23 @@ static void delete_calldata_info(s_eip712_calldata_info *node) {
  */
 void ui_712_deinit(void) {
     if (ui_ctx != NULL) {
-        if (ui_ctx->filters_crc != NULL)
+        if (ui_ctx->filters_crc != NULL) {
             flist_clear((s_flist_node **) &ui_ctx->filters_crc,
                         (f_list_node_del) &delete_filter_crc);
-        if (ui_ctx->ui_pairs != NULL)
+        }
+        if (ui_ctx->ui_pairs != NULL) {
             flist_clear((s_flist_node **) &ui_ctx->ui_pairs, (f_list_node_del) &delete_ui_pair);
-        if (ui_ctx->amount.joins != NULL)
+        }
+        if (ui_ctx->amount.joins != NULL) {
             flist_clear((s_flist_node **) &ui_ctx->amount.joins,
                         (f_list_node_del) &delete_amount_join);
+        }
         if (ui_ctx->calldata_info != NULL) {
             flist_clear((s_flist_node **) &ui_ctx->calldata_info,
                         (f_list_node_del) &delete_calldata_info);
             gcs_cleanup();
         }
+        ui_712_clear_discarded_path();
         app_mem_free(ui_ctx);
         ui_ctx = NULL;
     }

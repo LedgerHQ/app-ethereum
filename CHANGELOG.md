@@ -5,7 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.19.0](../../compare/1.18.1...1.19.0) - 2025-xx-xx
+## [1.19.0](../../compare/1.18.1...1.19.0) - 2025-09-24
+
+### Added
+
+- A smart account `GET_PUBLIC_KEY` equivalent
+- Transaction nested calldata clear-signing
+- EIP-712 calldata clear-signing
+
+### Fixed
+
+- IoTeX icons
+
+### Changed
+
+- EIP-712 flow no longer uses streaming
 
 ## [1.18.1](../../compare/1.18.0...1.18.1) - 2025-08-27
 

@@ -622,6 +622,13 @@ static bool ui_712_format_datetime(const uint8_t *data,
     return time_format_to_utc(&timestamp, strings.tmp.tmp, sizeof(strings.tmp.tmp));
 }
 
+static void ui_712_set_intent_field(const char *value) {
+    const char key[] = "Transaction type";
+
+    ui_712_set_title(key, strlen(key));
+    ui_712_set_value(value, strlen(value));
+}
+
 static bool handle_fallback_empty_calldata(const s_eip712_calldata_info *calldata_info) {
     char *buf = strings.tmp.tmp;
     size_t buf_size = sizeof(strings.tmp.tmp);
@@ -629,9 +636,8 @@ static bool handle_fallback_empty_calldata(const s_eip712_calldata_info *calldat
     uint8_t decimals;
     const char *ticker;
 
-    if (!allzeroes(calldata_info->amount, sizeof(calldata_info->amount))) {
-        ui_712_set_title("Transaction type", 16);
-        ui_712_set_value("Send", 4);
+    if (calldata_info->amount_state == CALLDATA_INFO_PARAM_SET) {
+        ui_712_set_intent_field("Send");
 
         if (calldata_info->chain_id != 0) {
             chain_id = calldata_info->chain_id;
@@ -651,15 +657,17 @@ static bool handle_fallback_empty_calldata(const s_eip712_calldata_info *calldat
         }
         ui_712_set_title("Amount", 6);
         ui_712_set_value(buf, strlen(buf));
-        if (!getEthDisplayableAddress((uint8_t *) calldata_info->callee,
-                                      buf,
-                                      buf_size,
-                                      chainConfig->chainId)) {
-            return false;
-        }
-        ui_712_set_title("To", 2);
-        ui_712_set_value(buf, strlen(buf));
+    } else {
+        ui_712_set_intent_field("Empty transaction");
     }
+    if (!getEthDisplayableAddress((uint8_t *) calldata_info->callee,
+                                  buf,
+                                  buf_size,
+                                  chainConfig->chainId)) {
+        return false;
+    }
+    ui_712_set_title("To", 2);
+    ui_712_set_value(buf, strlen(buf));
     return true;
 }
 

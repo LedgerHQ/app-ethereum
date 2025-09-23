@@ -179,7 +179,7 @@ static bool process_fallback(const s_param_calldata *param,
     size_t buf_size = sizeof(strings.tmp.tmp);
 
     (void) spender;
-    if (param->has_amount && !allzeroes(amount->ptr, amount->length)) {
+    if (param->has_amount) {
         if (!set_intent_field("Send")) {
             return false;
         }
@@ -192,13 +192,15 @@ static bool process_fallback(const s_param_calldata *param,
         if (!add_to_field_table(PARAM_TYPE_AMOUNT, "Amount", buf)) {
             return false;
         }
-        buf_shrink_expand(contract_addr->ptr, contract_addr->length, addr, sizeof(addr));
-        if (!getEthDisplayableAddress(addr, buf, buf_size, chainConfig->chainId)) {
-            return false;
-        }
-        if (!add_to_field_table(PARAM_TYPE_RAW, "To", buf)) {
-            return false;
-        }
+    } else {
+        if (!set_intent_field("Empty transaction")) return false;
+    }
+    buf_shrink_expand(contract_addr->ptr, contract_addr->length, addr, sizeof(addr));
+    if (!getEthDisplayableAddress(addr, buf, buf_size, chainConfig->chainId)) {
+        return false;
+    }
+    if (!add_to_field_table(PARAM_TYPE_RAW, "To", buf)) {
+        return false;
     }
     return true;
 }

@@ -802,26 +802,38 @@ bool filtering_calldata_info(const uint8_t *payload, uint8_t length) {
     explicit_bzero(calldata_info, sizeof(*calldata_info));
     calldata_info->index = index;
 
-    if (callee_flag == CALLDATA_FLAG_ADDR_VERIFYING_CONTRACT) {
-        memcpy(calldata_info->callee, eip712_context->contract_addr, sizeof(calldata_info->callee));
-        calldata_info->callee_received = true;
+    calldata_info->value_state = CALLDATA_INFO_PARAM_UNSET;
+    switch (callee_flag) {
+        case CALLDATA_FLAG_ADDR_FILTER:
+            calldata_info->callee_state = CALLDATA_INFO_PARAM_UNSET;
+            break;
+        case CALLDATA_FLAG_ADDR_VERIFYING_CONTRACT:
+            memcpy(calldata_info->callee,
+                   eip712_context->contract_addr,
+                   sizeof(calldata_info->callee));
+            calldata_info->callee_state = CALLDATA_INFO_PARAM_SET;
+            break;
+        default:
+            break;
     }
-    if (!chain_id_flag) {
+    if (chain_id_flag) {
+        calldata_info->chain_id_state = CALLDATA_INFO_PARAM_UNSET;
+    } else {
         calldata_info->chain_id = eip712_context->chain_id;
-        calldata_info->chain_id_received = true;
+        calldata_info->chain_id_state = CALLDATA_INFO_PARAM_SET;
     }
-    if (!selector_flag) calldata_info->selector_received = true;
-    if (!amount_flag) calldata_info->amount_received = true;
+    if (selector_flag) calldata_info->selector_state = CALLDATA_INFO_PARAM_UNSET;
+    if (amount_flag) calldata_info->amount_state = CALLDATA_INFO_PARAM_UNSET;
     switch (spender_flag) {
         case CALLDATA_FLAG_ADDR_VERIFYING_CONTRACT:
             memcpy(calldata_info->spender,
                    eip712_context->contract_addr,
                    sizeof(calldata_info->spender));
-            calldata_info->spender_received = true;
+            calldata_info->spender_state = CALLDATA_INFO_PARAM_SET;
             break;
         case CALLDATA_FLAG_ADDR_NONE:
             get_public_key(calldata_info->spender, sizeof(calldata_info->spender));
-            calldata_info->spender_received = true;
+            calldata_info->spender_state = CALLDATA_INFO_PARAM_SET;
             break;
         default:
             break;

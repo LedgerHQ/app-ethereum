@@ -671,23 +671,20 @@ static bool update_calldata_value(const uint8_t *data,
     const uint8_t *selector = NULL;
     size_t calldata_size;
 
-    if (calldata_info->value_received) return false;
+    if (calldata_info->value_state != CALLDATA_INFO_PARAM_UNSET) return false;
     if (complete_length != NULL) {
         calldata_size = *complete_length;
         if (calldata_size > 0) {
-            if (calldata_info->selector_received) {
-                if (allzeroes(calldata_info->selector, sizeof(calldata_info->selector))) {
-                    if ((length < CALLDATA_SELECTOR_SIZE) ||
-                        (calldata_size < CALLDATA_SELECTOR_SIZE)) {
-                        return false;
-                    }
-                    selector = data;
-                    data += CALLDATA_SELECTOR_SIZE;
-                    length -= CALLDATA_SELECTOR_SIZE;
-                    calldata_size -= CALLDATA_SELECTOR_SIZE;
-                } else {
-                    selector = calldata_info->selector;
+            if (calldata_info->selector_state == CALLDATA_INFO_PARAM_NONE) {
+                if ((length < CALLDATA_SELECTOR_SIZE) || (calldata_size < CALLDATA_SELECTOR_SIZE)) {
+                    return false;
                 }
+                selector = data;
+                data += CALLDATA_SELECTOR_SIZE;
+                length -= CALLDATA_SELECTOR_SIZE;
+                calldata_size -= CALLDATA_SELECTOR_SIZE;
+            } else if (calldata_info->selector_state == CALLDATA_INFO_PARAM_NONE) {
+                selector = calldata_info->selector;
             }
             if ((g_parked_calldata = calldata_init(calldata_size, selector)) == NULL) {
                 return false;
@@ -702,7 +699,7 @@ static bool update_calldata_value(const uint8_t *data,
         // won't receive a TX info & descriptors about a non-existent calldata
         calldata_info->processed = true;
     }
-    if (last) calldata_info->value_received = true;
+    if (last) calldata_info->value_state = CALLDATA_INFO_PARAM_SET;
     return true;
 }
 
@@ -710,10 +707,10 @@ static bool update_calldata_callee(const uint8_t *data,
                                    uint8_t length,
                                    bool last,
                                    s_eip712_calldata_info *calldata_info) {
-    if (calldata_info->callee_received) return false;
+    if (calldata_info->callee_state != CALLDATA_INFO_PARAM_UNSET) return false;
     if (!last) return false;
     buf_shrink_expand(data, length, calldata_info->callee, sizeof(calldata_info->callee));
-    calldata_info->callee_received = true;
+    calldata_info->callee_state = CALLDATA_INFO_PARAM_SET;
     return true;
 }
 
@@ -723,11 +720,11 @@ static bool update_calldata_chain_id(const uint8_t *data,
                                      s_eip712_calldata_info *calldata_info) {
     uint8_t chain_id_buf[sizeof(uint64_t)];
 
-    if (calldata_info->chain_id_received) return false;
+    if (calldata_info->chain_id_state != CALLDATA_INFO_PARAM_UNSET) return false;
     if (!last) return false;
     buf_shrink_expand(data, length, chain_id_buf, sizeof(chain_id_buf));
     calldata_info->chain_id = read_u64_be(chain_id_buf, 0);
-    calldata_info->chain_id_received = true;
+    calldata_info->chain_id_state = CALLDATA_INFO_PARAM_SET;
     return true;
 }
 
@@ -735,11 +732,11 @@ static bool update_calldata_selector(const uint8_t *data,
                                      uint8_t length,
                                      bool last,
                                      s_eip712_calldata_info *calldata_info) {
-    if (calldata_info->selector_received) return false;
+    if (calldata_info->selector_state != CALLDATA_INFO_PARAM_UNSET) return false;
     if (!last) return false;
     buf_shrink_expand(data, length, calldata_info->selector, sizeof(calldata_info->selector));
-    calldata_info->selector_received = true;
-    if (calldata_info->value_received) {
+    calldata_info->selector_state = CALLDATA_INFO_PARAM_SET;
+    if (calldata_info->value_state == CALLDATA_INFO_PARAM_SET) {
         calldata_set_selector(g_parked_calldata, calldata_info->selector);
     }
     return true;
@@ -749,10 +746,10 @@ static bool update_calldata_amount(const uint8_t *data,
                                    uint8_t length,
                                    bool last,
                                    s_eip712_calldata_info *calldata_info) {
-    if (calldata_info->amount_received) return false;
+    if (calldata_info->amount_state != CALLDATA_INFO_PARAM_UNSET) return false;
     if (!last) return false;
     buf_shrink_expand(data, length, calldata_info->amount, sizeof(calldata_info->amount));
-    calldata_info->amount_received = true;
+    calldata_info->amount_state = CALLDATA_INFO_PARAM_SET;
     return true;
 }
 
@@ -760,10 +757,10 @@ static bool update_calldata_spender(const uint8_t *data,
                                     uint8_t length,
                                     bool last,
                                     s_eip712_calldata_info *calldata_info) {
-    if (calldata_info->spender_received) return false;
+    if (calldata_info->spender_state != CALLDATA_INFO_PARAM_UNSET) return false;
     if (!last) return false;
     buf_shrink_expand(data, length, calldata_info->spender, sizeof(calldata_info->spender));
-    calldata_info->spender_received = true;
+    calldata_info->spender_state = CALLDATA_INFO_PARAM_SET;
     return true;
 }
 
@@ -1288,12 +1285,35 @@ void calldata_info_set_state(uint8_t index, e_eip712_calldata_state state) {
 }
 
 bool calldata_info_all_received(const s_eip712_calldata_info *calldata_info) {
-    if (calldata_info != NULL) {
-        if (calldata_info->value_received && calldata_info->callee_received &&
-            calldata_info->chain_id_received && calldata_info->selector_received &&
-            calldata_info->amount_received && calldata_info->spender_received) {
-            return true;
-        }
+    if (calldata_info->value_state != CALLDATA_INFO_PARAM_SET) return false;
+    if (calldata_info->callee_state != CALLDATA_INFO_PARAM_SET) return false;
+    switch (calldata_info->chain_id_state) {
+        case CALLDATA_INFO_PARAM_NONE:
+        case CALLDATA_INFO_PARAM_SET:
+            break;
+        default:
+            return false;
     }
-    return false;
+    switch (calldata_info->selector_state) {
+        case CALLDATA_INFO_PARAM_NONE:
+        case CALLDATA_INFO_PARAM_SET:
+            break;
+        default:
+            return false;
+    }
+    switch (calldata_info->amount_state) {
+        case CALLDATA_INFO_PARAM_NONE:
+        case CALLDATA_INFO_PARAM_SET:
+            break;
+        default:
+            return false;
+    }
+    switch (calldata_info->spender_state) {
+        case CALLDATA_INFO_PARAM_NONE:
+        case CALLDATA_INFO_PARAM_SET:
+            break;
+        default:
+            return false;
+    }
+    return true;
 }

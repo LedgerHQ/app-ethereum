@@ -137,6 +137,7 @@ bool tx_ctx_init(s_calldata *calldata,
     s_tx_ctx *node;
     s_eip712_calldata_info *calldata_info;
 
+    if (calldata == NULL) return false;
     if ((node = app_mem_alloc(sizeof(*node))) == NULL) {
         return false;
     }

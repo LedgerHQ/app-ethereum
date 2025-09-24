@@ -19,28 +19,18 @@ on:
 
 jobs:
   lint:
-    name: Linting
-    runs-on: ubuntu-latest
-    steps:
-      - name: Clone
-        uses: actions/checkout@v4
-      - run: pip install flake8 flake8-pyproject
-      - name: Flake8 lint Python code
-        run: (cd client && flake8 src/)
-
-  mypy:
-    name: Type checking
-    runs-on: ubuntu-latest
-    steps:
-      - name: Clone
-        uses: actions/checkout@v4
-      - run: pip install mypy
-      - name: Mypy type checking
-        run: (cd client && mypy src/)
+    name: Call Ledger Python linters
+    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_python_checks.yml@v1
+    with:
+      run_linter: flake8
+      run_type_check: true
+      src_directory: src
+      setup_directory: client
+      req_directory: client
 
   package_and_deploy:
     name: Build and deploy the Ethereum client Python package
-    needs: [lint, mypy]
+    needs: [lint]
     uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_pypi_deployment.yml@v1
     with:
       package_name: ledger_app_clients.ethereum
@@ -49,4 +39,4 @@ jobs:
       jfrog_deployment: false
       release: false
     secrets:
-      pypi_token: ${{ secrets.PYPI_PUBLIC_API_TOKEN  }}
+      pypi_token: ${{ secrets.PYPI_PUBLIC_API_TOKEN }}

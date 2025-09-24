@@ -67,6 +67,9 @@ static char *format_hash(const uint8_t *hash, char *buffer, size_t buffer_size, 
 }
 
 void eip712_format_hash(uint8_t index) {
+    if ((g_pairs == NULL) || (g_pairsList == NULL) || (index >= g_pairsList->nbPairs)) {
+        return;
+    }
     g_pairs[index].item = "Domain hash";
     g_pairs[index].value = format_hash(tmpCtx.messageSigningContext712.domainHash,
                                        strings.tmp.tmp,

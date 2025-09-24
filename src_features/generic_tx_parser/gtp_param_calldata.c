@@ -179,7 +179,7 @@ static bool process_fallback(const s_param_calldata *param,
     size_t buf_size = sizeof(strings.tmp.tmp);
 
     (void) spender;
-    if (param->has_amount && !allzeroes(amount->ptr, amount->length)) {
+    if (param->has_amount) {
         if (!set_intent_field("Send")) {
             return false;
         }
@@ -192,19 +192,51 @@ static bool process_fallback(const s_param_calldata *param,
         if (!add_to_field_table(PARAM_TYPE_AMOUNT, "Amount", buf)) {
             return false;
         }
-        buf_shrink_expand(contract_addr->ptr, contract_addr->length, addr, sizeof(addr));
-        if (!getEthDisplayableAddress(addr, buf, buf_size, chainConfig->chainId)) {
-            return false;
-        }
-        if (!add_to_field_table(PARAM_TYPE_RAW, "To", buf)) {
-            return false;
-        }
+    } else {
+        if (!set_intent_field("Empty transaction")) return false;
+    }
+    buf_shrink_expand(contract_addr->ptr, contract_addr->length, addr, sizeof(addr));
+    if (!getEthDisplayableAddress(addr, buf, buf_size, chainConfig->chainId)) {
+        return false;
+    }
+    if (!add_to_field_table(PARAM_TYPE_RAW, "To", buf)) {
+        return false;
+    }
+    return true;
+}
+
+static bool check_param(const s_param_calldata *param,
+                        s_parsed_value_collection *calldatas,
+                        s_parsed_value_collection *contract_addrs,
+                        s_parsed_value_collection *chain_ids,
+                        s_parsed_value_collection *selectors,
+                        s_parsed_value_collection *amounts,
+                        s_parsed_value_collection *spenders) {
+    if (!value_get(&param->calldata, calldatas)) return false;
+    if (!value_get(&param->contract_addr, contract_addrs)) return false;
+    if (contract_addrs->size != calldatas->size) return false;
+
+    if (param->has_chain_id) {
+        if (!value_get(&param->chain_id, chain_ids)) return false;
+        if (chain_ids->size != calldatas->size) return false;
+    }
+    if (param->has_selector) {
+        if (!value_get(&param->selector, selectors)) return false;
+        if (selectors->size != calldatas->size) return false;
+    }
+    if (param->has_amount) {
+        if (!value_get(&param->amount, amounts)) return false;
+        if (amounts->size != calldatas->size) return false;
+    }
+    if (param->has_spender) {
+        if (!value_get(&param->spender, spenders)) return false;
+        if (spenders->size != calldatas->size) return false;
     }
     return true;
 }
 
 bool format_param_calldata(const s_param_calldata *param, const char *name) {
-    bool ret = true;
+    bool ret;
     s_parsed_value_collection calldatas = {0};
     s_parsed_value_collection contract_addrs = {0};
     s_parsed_value_collection chain_ids = {0};
@@ -213,44 +245,38 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
     s_parsed_value_collection spenders = {0};
 
     (void) name;
-    if ((ret = value_get(&param->calldata, &calldatas))) {
-        if ((ret = value_get(&param->contract_addr, &contract_addrs)) &&
-            (contract_addrs.size == calldatas.size)) {
-            if ((!param->has_chain_id || ((ret = value_get(&param->chain_id, &chain_ids)) &&
-                                          (chain_ids.size == calldatas.size))) &&
-                (!param->has_selector || ((ret = value_get(&param->selector, &selectors)) &&
-                                          (selectors.size == calldatas.size))) &&
-                (!param->has_amount || ((ret = value_get(&param->amount, &amounts)) &&
-                                        (amounts.size == calldatas.size))) &&
-                (!param->has_spender || ((ret = value_get(&param->spender, &spenders)) &&
-                                         (spenders.size == calldatas.size)))) {
-                for (int i = 0; i < calldatas.size; ++i) {
-                    if (calldatas.value[i].length > 0) {
-                        if (!process_nested_calldata(param,
-                                                     &calldatas.value[i],
-                                                     &contract_addrs.value[i],
-                                                     &chain_ids.value[i],
-                                                     &selectors.value[i],
-                                                     &amounts.value[i],
-                                                     &spenders.value[i])) {
-                            ret = false;
-                            break;
-                        }
-                    } else {
-                        if (i > 0) {
-                            // within a batch execution, if any TX other than the first one has en
-                            // empty calldata we won't be able to properly diplay it in order
-                            ret = false;
-                            break;
-                        }
-                        if (!process_fallback(param,
-                                              &contract_addrs.value[i],
-                                              &amounts.value[i],
-                                              &spenders.value[i])) {
-                            ret = false;
-                            break;
-                        }
-                    }
+    if ((ret = check_param(param,
+                           &calldatas,
+                           &contract_addrs,
+                           &chain_ids,
+                           &selectors,
+                           &amounts,
+                           &spenders))) {
+        for (int i = 0; i < calldatas.size; ++i) {
+            if (calldatas.value[i].length > 0) {
+                if (!process_nested_calldata(param,
+                                             &calldatas.value[i],
+                                             &contract_addrs.value[i],
+                                             &chain_ids.value[i],
+                                             &selectors.value[i],
+                                             &amounts.value[i],
+                                             &spenders.value[i])) {
+                    ret = false;
+                    break;
+                }
+            } else {
+                if (i > 0) {
+                    // within a batch execution, if any TX other than the first one has en
+                    // empty calldata we won't be able to properly diplay it in order
+                    ret = false;
+                    break;
+                }
+                if (!process_fallback(param,
+                                      &contract_addrs.value[i],
+                                      &amounts.value[i],
+                                      &spenders.value[i])) {
+                    ret = false;
+                    break;
                 }
             }
         }

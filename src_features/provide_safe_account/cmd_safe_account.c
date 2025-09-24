@@ -52,6 +52,10 @@ uint16_t handle_safe_account(uint8_t p1,
                 sw = APDU_RESPONSE_OK;  // No error for P1_SAFE_DESCRIPTOR if SAFE_DESC is NULL
             }
             break;
+        default:
+            PRINTF("Error: Invalid P2 (%u)\n", p2);
+            sw = APDU_RESPONSE_INVALID_P1_P2;
+            break;
     }
 
     if (sw != APDU_RESPONSE_OK) {

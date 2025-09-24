@@ -38,14 +38,16 @@
  * @param[in] discarded if the filter targets a field that does not exist (within an empty array)
  * @param[out] path_crc pointer to the CRC of the filter path
  */
-static void hash_filtering_path(cx_hash_t *hash_ctx, bool discarded, uint32_t *path_crc) {
+static bool hash_filtering_path(cx_hash_t *hash_ctx, bool discarded, uint32_t *path_crc) {
     const s_struct_712_field *field_ptr;
     const char *key;
     const char *path;
     uint8_t path_len;
 
     if (discarded) {
-        path = ui_712_get_discarded_path();
+        if ((path = ui_712_get_discarded_path()) == NULL) {
+            return false;
+        }
         path_len = strlen(path);
         hash_nbytes((uint8_t *) path, path_len, hash_ctx);
         *path_crc = cx_crc32_update(*path_crc, path, path_len);
@@ -55,18 +57,19 @@ static void hash_filtering_path(cx_hash_t *hash_ctx, bool discarded, uint32_t *p
                 hash_byte('.', hash_ctx);
                 *path_crc = cx_crc32_update(*path_crc, ".", 1);
             }
-            if ((field_ptr = path_get_nth_field(i + 1)) != NULL) {
-                if ((key = field_ptr->key_name) != NULL) {
-                    // field name
-                    hash_nbytes((uint8_t *) key, strlen(key), hash_ctx);
-                    *path_crc = cx_crc32_update(*path_crc, key, strlen(key));
+            if ((field_ptr = path_get_nth_field(i + 1)) == NULL) {
+                return false;
+            }
+            if ((key = field_ptr->key_name) != NULL) {
+                // field name
+                hash_nbytes((uint8_t *) key, strlen(key), hash_ctx);
+                *path_crc = cx_crc32_update(*path_crc, key, strlen(key));
 
-                    // array levels
-                    if (field_ptr->type_is_array) {
-                        for (int j = 0; j < field_ptr->array_level_count; ++j) {
-                            hash_nbytes((uint8_t *) ".[]", 3, hash_ctx);
-                            *path_crc = cx_crc32_update(*path_crc, ".[]", 3);
-                        }
+                // array levels
+                if (field_ptr->type_is_array) {
+                    for (int j = 0; j < field_ptr->array_level_count; ++j) {
+                        hash_nbytes((uint8_t *) ".[]", 3, hash_ctx);
+                        *path_crc = cx_crc32_update(*path_crc, ".[]", 3);
                     }
                 }
             }
@@ -74,6 +77,7 @@ static void hash_filtering_path(cx_hash_t *hash_ctx, bool discarded, uint32_t *p
     }
     // so it is only usable for the following filter
     ui_712_clear_discarded_path();
+    return true;
 }
 
 /**
@@ -167,7 +171,9 @@ static bool check_typename(const char *expected) {
     uint8_t typename_len = 0;
     const char *typename;
 
-    typename = get_struct_field_typename(path_get_field());
+    if ((typename = get_struct_field_typename(path_get_field())) == NULL) {
+        return false;
+    }
     typename_len = strlen(typename);
     if ((typename_len != strlen(expected)) || (strncmp(typename, expected, typename_len) != 0)) {
         PRINTF("Error: expected field of type \"%s\" but got \"", expected);
@@ -796,26 +802,38 @@ bool filtering_calldata_info(const uint8_t *payload, uint8_t length) {
     explicit_bzero(calldata_info, sizeof(*calldata_info));
     calldata_info->index = index;
 
-    if (callee_flag == CALLDATA_FLAG_ADDR_VERIFYING_CONTRACT) {
-        memcpy(calldata_info->callee, eip712_context->contract_addr, sizeof(calldata_info->callee));
-        calldata_info->callee_received = true;
+    calldata_info->value_state = CALLDATA_INFO_PARAM_UNSET;
+    switch (callee_flag) {
+        case CALLDATA_FLAG_ADDR_FILTER:
+            calldata_info->callee_state = CALLDATA_INFO_PARAM_UNSET;
+            break;
+        case CALLDATA_FLAG_ADDR_VERIFYING_CONTRACT:
+            memcpy(calldata_info->callee,
+                   eip712_context->contract_addr,
+                   sizeof(calldata_info->callee));
+            calldata_info->callee_state = CALLDATA_INFO_PARAM_SET;
+            break;
+        default:
+            break;
     }
-    if (!chain_id_flag) {
+    if (chain_id_flag) {
+        calldata_info->chain_id_state = CALLDATA_INFO_PARAM_UNSET;
+    } else {
         calldata_info->chain_id = eip712_context->chain_id;
-        calldata_info->chain_id_received = true;
+        calldata_info->chain_id_state = CALLDATA_INFO_PARAM_SET;
     }
-    if (!selector_flag) calldata_info->selector_received = true;
-    if (!amount_flag) calldata_info->amount_received = true;
+    if (selector_flag) calldata_info->selector_state = CALLDATA_INFO_PARAM_UNSET;
+    if (amount_flag) calldata_info->amount_state = CALLDATA_INFO_PARAM_UNSET;
     switch (spender_flag) {
         case CALLDATA_FLAG_ADDR_VERIFYING_CONTRACT:
             memcpy(calldata_info->spender,
                    eip712_context->contract_addr,
                    sizeof(calldata_info->spender));
-            calldata_info->spender_received = true;
+            calldata_info->spender_state = CALLDATA_INFO_PARAM_SET;
             break;
         case CALLDATA_FLAG_ADDR_NONE:
             get_public_key(calldata_info->spender, sizeof(calldata_info->spender));
-            calldata_info->spender_received = true;
+            calldata_info->spender_state = CALLDATA_INFO_PARAM_SET;
             break;
         default:
             break;

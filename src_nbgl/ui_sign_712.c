@@ -28,7 +28,9 @@ static void ui_712_start_review(nbgl_operationType_t operationType,
     // Initialize the finish title string
     finish_len += strlen(tx_check_str);
     finish_len += strlen(title_suffix);
-    ui_buffers_init(0, 0, finish_len);
+    if (!ui_buffers_init(0, 0, finish_len)) {
+        return;
+    }
     snprintf(g_finishMsg, finish_len, "%s%s", tx_check_str, title_suffix);
 #ifdef HAVE_TRANSACTION_CHECKS
     set_tx_simulation_warning();

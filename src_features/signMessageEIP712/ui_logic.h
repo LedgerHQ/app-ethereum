@@ -32,20 +32,27 @@ typedef enum {
     EIP712_CALLDATA_SPENDER,
 } e_eip712_calldata_state;
 
+typedef enum {
+    CALLDATA_INFO_PARAM_NONE = 0,
+    CALLDATA_INFO_PARAM_UNSET,
+    CALLDATA_INFO_PARAM_SET,
+} e_calldata_info_param_state;
+
 typedef struct {
     s_flist_node _list;
     uint8_t index;
     e_eip712_calldata_state state;
 
-    bool value_received : 1;  // value is stored in the calldata linked-list
-    bool callee_received : 1;
-    bool chain_id_received : 1;
-    bool selector_received : 1;
-    bool amount_received : 1;
-    bool spender_received : 1;
+    e_calldata_info_param_state value_state : 2;
+    e_calldata_info_param_state callee_state : 2;
+    e_calldata_info_param_state chain_id_state : 2;
+    e_calldata_info_param_state selector_state : 2;
+    e_calldata_info_param_state amount_state : 2;
+    e_calldata_info_param_state spender_state : 2;
 
     bool processed : 1;
 
+    // value is stored in the TX context
     uint8_t callee[ADDRESS_LENGTH];
     uint64_t chain_id;
     uint8_t selector[CALLDATA_SELECTOR_SIZE];

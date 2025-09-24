@@ -177,21 +177,21 @@ list(
 include_directories(
   ${CMAKE_SOURCE_DIR}/../../ethereum-plugin-sdk/src/
   ${CMAKE_SOURCE_DIR}/../../src
-  ${CMAKE_SOURCE_DIR}/../../src_features/generic_tx_parser/
-  ${CMAKE_SOURCE_DIR}/../../src_features/getPublicKey/
-  ${CMAKE_SOURCE_DIR}/../../src_features/provide_enum_value/
-  ${CMAKE_SOURCE_DIR}/../../src_features/provide_network_info/
-  ${CMAKE_SOURCE_DIR}/../../src_features/signTx/
-  ${CMAKE_SOURCE_DIR}/../../src_features/provide_trusted_name/
-  ${CMAKE_SOURCE_DIR}/../../src_features/getChallenge/
-  ${CMAKE_SOURCE_DIR}/../../src_features/signMessageEIP712/
-  ${CMAKE_SOURCE_DIR}/../../src_features/provide_proxy_info/
-  ${CMAKE_SOURCE_DIR}/../../src_features/provide_tx_simulation/
-  ${CMAKE_SOURCE_DIR}/../../src_features/signAuthorizationEIP7702/
-  ${CMAKE_SOURCE_DIR}/../../src_features/provide_safe_account/
-  ${CMAKE_SOURCE_DIR}/../../src_features/signMessageEIP712_common/
-  ${CMAKE_SOURCE_DIR}/../../src_features/signMessageEIP712/
-  ${CMAKE_SOURCE_DIR}/../../src_nbgl/
+  ${CMAKE_SOURCE_DIR}/../../src/features/generic_tx_parser/
+  ${CMAKE_SOURCE_DIR}/../../src/features/getPublicKey/
+  ${CMAKE_SOURCE_DIR}/../../src/features/provide_enum_value/
+  ${CMAKE_SOURCE_DIR}/../../src/features/provide_network_info/
+  ${CMAKE_SOURCE_DIR}/../../src/features/signTx/
+  ${CMAKE_SOURCE_DIR}/../../src/features/provide_trusted_name/
+  ${CMAKE_SOURCE_DIR}/../../src/features/getChallenge/
+  ${CMAKE_SOURCE_DIR}/../../src/features/signMessageEIP712/
+  ${CMAKE_SOURCE_DIR}/../../src/features/provide_proxy_info/
+  ${CMAKE_SOURCE_DIR}/../../src/features/provide_tx_simulation/
+  ${CMAKE_SOURCE_DIR}/../../src/features/signAuthorizationEIP7702/
+  ${CMAKE_SOURCE_DIR}/../../src/features/provide_safe_account/
+  ${CMAKE_SOURCE_DIR}/../../src/features/signMessageEIP712_common/
+  ${CMAKE_SOURCE_DIR}/../../src/features/signMessageEIP712/
+  ${CMAKE_SOURCE_DIR}/../../src/nbgl/
   ${BOLOS_SDK}/include
   ${BOLOS_SDK}/target/${TARGET_DEVICE}/include
   ${BOLOS_SDK}/io/include
@@ -206,20 +206,20 @@ include_directories(
 )
 
 FILE(GLOB_RECURSE SOURCES
-  ${CMAKE_SOURCE_DIR}/../../src_features/generic_tx_parser/*.c
-  ${CMAKE_SOURCE_DIR}/../../src_features/provide_trusted_name/*.c
-  ${CMAKE_SOURCE_DIR}/../../src_features/getChallenge/*.c
-  ${CMAKE_SOURCE_DIR}/../../src_features/provide_enum_value/*.c
-  ${CMAKE_SOURCE_DIR}/../../src_features/provide_network_info/*.c
-  ${CMAKE_SOURCE_DIR}/../../src_features/provideNFTInformation/*.c
-  ${CMAKE_SOURCE_DIR}/../../src_features/provide_proxy_info/*.c
-  ${CMAKE_SOURCE_DIR}/../../src_features/provide_tx_simulation/*.c
-  ${CMAKE_SOURCE_DIR}/../../src_features/signAuthorizationEIP7702/*.c
-  ${CMAKE_SOURCE_DIR}/../../src_features/provide_safe_account/*.c
-  ${CMAKE_SOURCE_DIR}/../../src_features/signMessageEIP712/*.c
-  ${CMAKE_SOURCE_DIR}/../../src_features/signMessageEIP712_common/*.c
+  ${CMAKE_SOURCE_DIR}/../../src/features/generic_tx_parser/*.c
+  ${CMAKE_SOURCE_DIR}/../../src/features/provide_trusted_name/*.c
+  ${CMAKE_SOURCE_DIR}/../../src/features/getChallenge/*.c
+  ${CMAKE_SOURCE_DIR}/../../src/features/provide_enum_value/*.c
+  ${CMAKE_SOURCE_DIR}/../../src/features/provide_network_info/*.c
+  ${CMAKE_SOURCE_DIR}/../../src/features/provideNFTInformation/*.c
+  ${CMAKE_SOURCE_DIR}/../../src/features/provide_proxy_info/*.c
+  ${CMAKE_SOURCE_DIR}/../../src/features/provide_tx_simulation/*.c
+  ${CMAKE_SOURCE_DIR}/../../src/features/signAuthorizationEIP7702/*.c
+  ${CMAKE_SOURCE_DIR}/../../src/features/provide_safe_account/*.c
+  ${CMAKE_SOURCE_DIR}/../../src/features/signMessageEIP712/*.c
+  ${CMAKE_SOURCE_DIR}/../../src/features/signMessageEIP712_common/*.c
   ${CMAKE_SOURCE_DIR}/../../src/list.c
-  ${CMAKE_SOURCE_DIR}/../../src_nbgl/ui_utils.c
+  ${CMAKE_SOURCE_DIR}/../../src/nbgl/ui_utils.c
   ${CMAKE_SOURCE_DIR}/../../src/mem.c
   ${CMAKE_SOURCE_DIR}/../../src/mem_utils.c
   ${CMAKE_SOURCE_DIR}/../../src/network.c

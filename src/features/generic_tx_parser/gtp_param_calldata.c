@@ -267,7 +267,7 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
             } else {
                 if (i > 0) {
                     // within a batch execution, if any TX other than the first one has en
-                    // empty calldata we won't be able to properly diplay it in order
+                    // empty calldata we won't be able to properly display it in order
                     ret = false;
                     break;
                 }

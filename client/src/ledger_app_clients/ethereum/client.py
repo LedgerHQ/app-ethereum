@@ -18,6 +18,7 @@ from .tx_auth_7702 import TxAuth7702
 from .status_word import StatusWord
 from .ledger_pki import PKIClient, PKIPubKeyUsage
 from .dynamic_networks import DynamicNetwork
+from .safe import SafeAccount, AccountType
 
 
 class TrustedNameType(IntEnum):
@@ -33,6 +34,12 @@ class TrustedNameSource(IntEnum):
     UD = 0x03
     FN = 0x04
     DNS = 0x05
+
+
+class EIP712CalldataParamPresence(IntEnum):
+    NONE = 0x00
+    PRESENT_FILTERED = 0x01
+    PRESENT_VERIFYING_CONTRACT = 0x02
 
 
 class SignMode(IntEnum):
@@ -51,7 +58,7 @@ class EthAppClient:
     def _exchange_async(self, payload: bytes):
         return self._backend.exchange_async_raw(payload)
 
-    def _exchange(self, payload: bytes):
+    def _exchange(self, payload: bytes) -> RAPDU:
         return self._backend.exchange_raw(payload)
 
     def response(self) -> Optional[RAPDU]:
@@ -154,6 +161,60 @@ class EthAppClient:
                                                                                     sig,
                                                                                     discarded))
 
+    def eip712_filtering_calldata_info(self,
+                                       index: int,
+                                       value_filter_flag: bool,
+                                       callee_filter_flag: int,
+                                       chain_id_filter_flag: bool,
+                                       selector_filter_flag: bool,
+                                       amount_filter_flag: bool,
+                                       spender_filter_flag: int,
+                                       sig: bytes):
+        return self._exchange(self._cmd_builder.eip712_filtering_calldata_info(index,
+                                                                               value_filter_flag,
+                                                                               callee_filter_flag,
+                                                                               chain_id_filter_flag,
+                                                                               selector_filter_flag,
+                                                                               amount_filter_flag,
+                                                                               spender_filter_flag,
+                                                                               sig))
+
+    def eip712_filtering_calldata_value(self,
+                                        index: int,
+                                        sig: bytes,
+                                        discarded: bool):
+        return self._exchange(self._cmd_builder.eip712_filtering_calldata_value(index, sig, discarded))
+
+    def eip712_filtering_calldata_callee(self,
+                                         index: int,
+                                         sig: bytes,
+                                         discarded: bool):
+        return self._exchange(self._cmd_builder.eip712_filtering_calldata_callee(index, sig, discarded))
+
+    def eip712_filtering_calldata_chain_id(self,
+                                           index: int,
+                                           sig: bytes,
+                                           discarded: bool):
+        return self._exchange(self._cmd_builder.eip712_filtering_calldata_chain_id(index, sig, discarded))
+
+    def eip712_filtering_calldata_selector(self,
+                                           index: int,
+                                           sig: bytes,
+                                           discarded: bool):
+        return self._exchange(self._cmd_builder.eip712_filtering_calldata_selector(index, sig, discarded))
+
+    def eip712_filtering_calldata_amount(self,
+                                         index: int,
+                                         sig: bytes,
+                                         discarded: bool):
+        return self._exchange(self._cmd_builder.eip712_filtering_calldata_amount(index, sig, discarded))
+
+    def eip712_filtering_calldata_spender(self,
+                                          index: int,
+                                          sig: bytes,
+                                          discarded: bool):
+        return self._exchange(self._cmd_builder.eip712_filtering_calldata_spender(index, sig, discarded))
+
     def eip712_filtering_raw(self, name: str, sig: bytes, discarded: bool):
         return self._exchange_async(self._cmd_builder.eip712_filtering_raw(name, sig, discarded))
 
@@ -175,16 +236,19 @@ class EthAppClient:
         return encoded_tx, tx_hash
 
     def sign(self,
-             bip32_path: str,
-             tx_params: dict,
+             bip32_path: Optional[str] = None,
+             tx_params: Optional[dict] = None,
              mode: SignMode = SignMode.BASIC):
-        tx, _ = self.serialize_tx(tx_params)
-        chunks = self._cmd_builder.sign(bip32_path, tx, mode)
+        if tx_params is None:
+            tx = None
+        else:
+            tx, _ = self.serialize_tx(tx_params)
+        chunks = self._cmd_builder.sign(mode, bip32_path, tx)
         for chunk in chunks[:-1]:
             self._exchange(chunk)
         return self._exchange_async(chunks[-1])
 
-    def get_challenge(self):
+    def get_challenge(self) -> RAPDU:
         return self._exchange(self._cmd_builder.get_challenge())
 
     def get_public_addr(self,
@@ -420,6 +484,12 @@ class EthAppClient:
             self._exchange(chunk)
         return self._exchange(chunks[-1])
 
+    def provide_transaction_field_desc(self, payload: bytes) -> RAPDU:
+        chunks = self._cmd_builder.provide_transaction_field_desc(payload)
+        for chunk in chunks[:-1]:
+            self._exchange(chunk)
+        return self._exchange(chunks[-1])
+
     def opt_in_tx_simulation(self):
         return self._exchange_async(self._cmd_builder.opt_in_tx_simulation())
 
@@ -451,6 +521,16 @@ class EthAppClient:
 
     def sign_eip7702_authorization(self, bip32_path: str, auth_params: TxAuth7702):
         chunks = self._cmd_builder.sign_eip7702_authorization(bip32_path, auth_params.serialize())
+        for chunk in chunks[:-1]:
+            self._exchange(chunk)
+        return self._exchange_async(chunks[-1])
+
+    def provide_safe_account(self, safe_params: SafeAccount):
+        # Send ledgerPKI certificate - only for SAFE accounts
+        if safe_params.account_type == AccountType.SAFE:
+            self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_SAFE_ACCOUNT)
+
+        chunks = self._cmd_builder.provide_safe_account(safe_params.serialize(), safe_params.account_type)
         for chunk in chunks[:-1]:
             self._exchange(chunk)
         return self._exchange_async(chunks[-1])

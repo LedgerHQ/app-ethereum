@@ -132,11 +132,9 @@ typedef struct txStringProperties_s {
 } txStringProperties_t;
 
 #define SHARED_CTX_FIELD_1_SIZE 380
-#define SHARED_CTX_FIELD_2_SIZE 40
 
 typedef struct strDataTmp_s {
     char tmp[SHARED_CTX_FIELD_1_SIZE];
-    char tmp2[SHARED_CTX_FIELD_2_SIZE];
 } strDataTmp_t;
 
 typedef union {

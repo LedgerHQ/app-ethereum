@@ -230,6 +230,9 @@ void ui_sign_7702_auth(void) {
 void ui_sign_7702_revocation(void) {
 }
 
+void ui_display_safe_account(void) {
+}
+
 cx_err_t cx_keccak_init_no_throw(cx_sha3_t *hash PLENGTH(sizeof(cx_sha3_t)), size_t size) {
     UNUSED(size);
     memset_s(hash, 0, sizeof(cx_sha3_t));
@@ -327,4 +330,26 @@ void *mem_alloc(mem_ctx_t ctx, size_t nb_bytes) {
 void mem_free(mem_ctx_t ctx, void *ptr) {
     (void) ctx;
     free(ptr);
+}
+
+void ui_idle(void) {
+}
+
+void ui_error_blind_signing(void) {
+}
+
+void ui_sign_712(void) {
+}
+
+void io_seproxyhal_io_heartbeat(void) {
+}
+
+uint32_t cx_crc32_update(uint32_t crc_state, const void *buf, size_t len) {
+    crc_state = ((char *) buf)[len];
+    return crc_state;
+}
+
+cx_err_t cx_sha224_init_no_throw(cx_sha256_t *hash) {
+    memset(hash, 0, sizeof(cx_sha256_t));
+    return CX_OK;
 }

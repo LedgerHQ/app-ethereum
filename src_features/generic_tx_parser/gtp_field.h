@@ -12,7 +12,9 @@
 #include "gtp_param_unit.h"
 #include "gtp_param_enum.h"
 #include "gtp_param_trusted_name.h"
+#include "gtp_param_calldata.h"
 #include "gtp_param_token.h"
+#include "list.h"
 
 typedef enum {
     PARAM_TYPE_RAW = 0,
@@ -42,6 +44,7 @@ typedef struct {
         s_param_unit param_unit;
         s_param_enum param_enum;
         s_param_trusted_name param_trusted_name;
+        s_param_calldata param_calldata;
         s_param_token param_token;
     };
 } s_field;

@@ -12,6 +12,8 @@
 #include "ui_utils.h"
 #include "enum_value.h"
 #include "proxy_info.h"
+#include "trusted_name.h"
+#include "tx_ctx.h"
 
 static void review_choice(bool confirm) {
     if (confirm) {
@@ -110,7 +112,7 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
     explicit_bzero(keys, sizeof(*values) * MAX_INFO_COUNT);
     infos->infoContents = values;
 
-    if ((value = get_creator_legal_name()) != NULL) {
+    if ((value = get_creator_legal_name(get_current_tx_info())) != NULL) {
         snprintf(tmp_buf,
                  tmp_buf_size,
 #ifdef SCREEN_SIZE_WALLET
@@ -123,7 +125,7 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
             return false;
         }
         snprintf(tmp_buf, tmp_buf_size, "%s", value);
-        if ((value = get_creator_url()) != NULL) {
+        if ((value = get_creator_url(get_current_tx_info())) != NULL) {
             off = strlen(tmp_buf);
             snprintf(tmp_buf + off, tmp_buf_size - off, "\n%s", value);
         }
@@ -133,7 +135,7 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
         count += 1;
     }
 
-    if ((value = get_contract_name()) != NULL) {
+    if ((value = get_contract_name(get_current_tx_info())) != NULL) {
         snprintf(tmp_buf,
                  tmp_buf_size,
 #ifdef SCREEN_SIZE_WALLET
@@ -156,7 +158,7 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
     }
 
 #ifndef SCREEN_SIZE_WALLET
-    if (!getEthDisplayableAddress((uint8_t *) get_contract_addr(),
+    if (!getEthDisplayableAddress((uint8_t *) get_contract_addr(get_current_tx_info()),
                                   tmp_buf,
                                   tmp_buf_size,
                                   chainConfig->chainId)) {
@@ -171,7 +173,7 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
     count += 1;
 #endif
 
-    if ((value = get_deploy_date()) != NULL) {
+    if ((value = get_deploy_date(get_current_tx_info())) != NULL) {
         snprintf(tmp_buf, tmp_buf_size, "Deployed on");
         if ((keys[count] = app_mem_strdup(tmp_buf)) == NULL) {
             return false;
@@ -192,7 +194,7 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
         infos->infoExtensions = extensions;
         infos->withExtensions = true;
 
-        if (!getEthDisplayableAddress((uint8_t *) get_contract_addr(),
+        if (!getEthDisplayableAddress((uint8_t *) get_contract_addr(get_current_tx_info()),
                                       tmp_buf,
                                       tmp_buf_size,
                                       chainConfig->chainId)) {
@@ -226,8 +228,7 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
 }
 
 void ui_gcs_cleanup(void) {
-    mem_buffer_cleanup((void **) &g_trusted_name);
-    mem_buffer_cleanup((void **) &g_trusted_name_info);
+    trusted_name_cleanup();
     if ((g_pairsList != NULL) && (g_pairsList->pairs != NULL)) {
         for (int i = 0; i < g_pairsList->nbPairs; ++i) {
             free_pair(g_pairsList, i);
@@ -249,10 +250,13 @@ bool ui_gcs(void) {
 
     explicit_bzero(&warning, sizeof(nbgl_warning_t));
 #ifdef HAVE_TRANSACTION_CHECKS
-    set_tx_simulation_warning(&warning, true, true);
+    set_tx_simulation_warning();
 #endif
 
-    snprintf(tmp_buf, tmp_buf_size, "Review transaction to %s", get_operation_type());
+    snprintf(tmp_buf,
+             tmp_buf_size,
+             "Review transaction to %s",
+             get_operation_type(get_current_tx_info()));
     if ((g_titleMsg = app_mem_strdup(tmp_buf)) == NULL) {
         ui_gcs_cleanup();
         return false;
@@ -262,7 +266,7 @@ bool ui_gcs(void) {
              tmp_buf_size,
              "%s transaction to %s?",
              ui_tx_simulation_finish_str(),
-             get_operation_type());
+             get_operation_type(get_current_tx_info()));
 #else
     snprintf(tmp_buf, tmp_buf_size, "%s transaction", ui_tx_simulation_finish_str());
 #endif
@@ -288,7 +292,7 @@ bool ui_gcs(void) {
     }
 
     g_pairs[0].item = app_mem_strdup("Interaction with");
-    g_pairs[0].value = get_creator_name();
+    g_pairs[0].value = get_creator_name(get_current_tx_info());
     if (g_pairs[0].value == NULL) {
         // not great, but this cannot be NULL
         g_pairs[0].value = app_mem_strdup("a smart contract");
@@ -314,7 +318,7 @@ bool ui_gcs(void) {
         return false;
     }
     ext->aliasType = INFO_LIST_ALIAS;
-    if ((ext->backText = get_creator_name()) == NULL) {
+    if ((ext->backText = get_creator_name(get_current_tx_info())) == NULL) {
         ext->backText = app_mem_strdup("Smart contract information");
     } else {
         ext->backText = app_mem_strdup(ext->backText);

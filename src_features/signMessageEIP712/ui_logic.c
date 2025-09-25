@@ -14,6 +14,10 @@
 #include "network.h"
 #include "time_format.h"
 #include "list.h"
+#include "ui_utils.h"
+#include "utils.h"
+#include "tx_ctx.h"  // g_parked_calldata
+#include "read.h"    // read_u64_be
 
 #define AMOUNT_JOIN_FLAG_TOKEN  (1 << 0)
 #define AMOUNT_JOIN_FLAG_VALUE  (1 << 1)
@@ -40,6 +44,7 @@ typedef enum {
 #define UI_712_AMOUNT_JOIN         (1 << 2)
 #define UI_712_DATETIME            (1 << 3)
 #define UI_712_TRUSTED_NAME        (1 << 4)
+#define UI_712_CALLDATA            (1 << 5)
 
 typedef struct {
     s_amount_join *joins;
@@ -53,7 +58,6 @@ typedef struct filter_crc {
 } s_filter_crc;
 
 typedef struct {
-    bool shown;
     bool end_reached;
     e_eip712_filtering_mode filtering_mode;
     uint8_t filters_to_process;
@@ -67,6 +71,8 @@ typedef struct {
     e_name_type tn_types[TN_TYPE_COUNT];
     e_name_source tn_sources[TN_SOURCE_COUNT];
     s_ui_712_pair *ui_pairs;
+    s_eip712_calldata_info *calldata_info;
+    uint8_t calldata_index;
 } t_ui_context;
 
 static t_ui_context *ui_ctx = NULL;
@@ -89,6 +95,32 @@ static void delete_amount_join(s_amount_join *join) {
 }
 
 /**
+ * Called to fetch the next field if they have not all been processed yet
+ *
+ * Also handles the special "Review struct" screen of the verbose mode
+ *
+ * @return the next field state
+ */
+static bool ui_712_next_field(void) {
+    bool ret = false;
+
+    if (ui_ctx == NULL) {
+        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+    } else {
+        if (ui_ctx->structs_to_review > 0) {
+            ret = ui_712_review_struct(path_get_nth_field_to_last(ui_ctx->structs_to_review));
+            ui_ctx->structs_to_review -= 1;
+        } else if (!ui_ctx->end_reached) {
+            handle_eip712_return_code(true);
+            // So that later when we append to them, we start from an empty string
+            explicit_bzero(&strings, sizeof(strings));
+            ret = true;
+        }
+    }
+    return ret;
+}
+
+/**
  * Checks on the UI context to determine if the next EIP 712 field should be shown
  *
  * @return whether the next field should be shown
@@ -98,46 +130,18 @@ static bool ui_712_field_shown(void) {
 
     if (ui_ctx->filtering_mode == EIP712_FILTERING_BASIC) {
 #ifdef SCREEN_SIZE_WALLET
-        if (true) {
+        ret = true;
 #else
         if (N_storage.verbose_eip712 || (path_get_root_type() == ROOT_DOMAIN)) {
-#endif
             ret = true;
         }
+#endif
     } else {  // EIP712_FILTERING_FULL
         if (ui_ctx->field_flags & UI_712_FIELD_SHOWN) {
             ret = true;
         }
     }
     return ret;
-}
-
-/**
- * Set UI buffer
- *
- * @param[in] src source buffer
- * @param[in] src_length source buffer size
- * @param[in] dst destination buffer
- * @param[in] dst_length destination buffer length
- * @param[in] explicit_trunc if truncation should be explicitly shown
- */
-static void ui_712_set_buf(const char *src,
-                           size_t src_length,
-                           char *dst,
-                           size_t dst_length,
-                           bool explicit_trunc) {
-    uint8_t cpy_length;
-
-    if (src_length < dst_length) {
-        cpy_length = src_length;
-    } else {
-        cpy_length = dst_length - 1;
-    }
-    memcpy(dst, src, cpy_length);
-    dst[cpy_length] = '\0';
-    if (explicit_trunc && (cpy_length < src_length)) {
-        memcpy(dst + cpy_length - 3, "...", 3);
-    }
 }
 
 /**
@@ -157,17 +161,52 @@ void ui_712_finalize_field(void) {
  * @param[in] length its length
  */
 void ui_712_set_title(const char *str, size_t length) {
-    ui_712_set_buf(str, length, strings.tmp.tmp2, sizeof(strings.tmp.tmp2), false);
+    s_ui_712_pair *new_pair = NULL;
+
+    if (mem_buffer_allocate((void **) &new_pair, sizeof(*new_pair)) == false) {
+        return;
+    }
+    flist_push_back((s_flist_node **) &ui_ctx->ui_pairs, (s_flist_node *) new_pair);
+    if (mem_buffer_allocate((void **) &new_pair->key, length + 1) == false) {
+        return;
+    }
+    memcpy(new_pair->key, str, length);
 }
 
 /**
  * Set a new value for the EIP-712 generic UX_STEP
  *
+ * @note The parameters may be NULL if the value is already formatted into strings.tmp.tmp
+ *
  * @param[in] str the new value
  * @param[in] length its length
  */
 void ui_712_set_value(const char *str, size_t length) {
-    ui_712_set_buf(str, length, strings.tmp.tmp, sizeof(strings.tmp.tmp), true);
+    s_ui_712_pair *tmp = ui_ctx->ui_pairs;
+
+    if (tmp == NULL) {
+        // No pairs created yet
+        return;
+    }
+    while (((s_flist_node *) tmp)->next != NULL) {
+        tmp = (s_ui_712_pair *) ((s_flist_node *) tmp)->next;
+    }
+    if (tmp->value != NULL) {
+        PRINTF("Value already exist for tag %s: %s\n", tmp->key, tmp->value);
+        return;
+    }
+    if ((str != NULL) && (length > 0)) {
+        // buffer is directly provided with parameters
+        if (mem_buffer_allocate((void **) &tmp->value, length + 1) == false) {
+            return;
+        }
+        memcpy(tmp->value, str, length);
+    } else if (strlen(strings.tmp.tmp) > 0) {
+        // Add the value from the global variable strings.tmp.tmp
+        if ((tmp->value = app_mem_strdup(strings.tmp.tmp)) == NULL) {
+            return;
+        }
+    }
 }
 
 /**
@@ -176,7 +215,7 @@ void ui_712_set_value(const char *str, size_t length) {
  * @return whether it was successful or not
  */
 bool ui_712_redraw_generic_step(void) {
-    if (!ui_ctx->shown) {  // Initialize if it is not already
+    if (appState != APP_STATE_SIGNING_EIP712) {  // Initialize if it is not already
         if ((ui_ctx->filtering_mode == EIP712_FILTERING_BASIC) && !N_storage.dataAllowed &&
             !N_storage.verbose_eip712) {
             // Both settings not enabled => Error
@@ -185,43 +224,14 @@ bool ui_712_redraw_generic_step(void) {
             eip712_context->go_home_on_failure = false;
             return false;
         }
-        if (ui_ctx->filtering_mode == EIP712_FILTERING_BASIC) {
-            ui_712_start_unfiltered();
-        } else {
-            ui_712_start();
-        }
-        ui_ctx->shown = true;
+        ui_712_start(ui_ctx->filtering_mode);
+        handle_eip712_return_code(true);
     } else {
-        ui_712_switch_to_message();
+        if (ui_712_next_field() == false) {
+            ui_sign_712();
+        }
     }
     return true;
-}
-
-/**
- * Called to fetch the next field if they have not all been processed yet
- *
- * Also handles the special "Review struct" screen of the verbose mode
- *
- * @return the next field state
- */
-e_eip712_nfs ui_712_next_field(void) {
-    e_eip712_nfs state = EIP712_NO_MORE_FIELD;
-
-    if (ui_ctx == NULL) {
-        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
-    } else {
-        if (ui_ctx->structs_to_review > 0) {
-            ui_712_review_struct(path_get_nth_field_to_last(ui_ctx->structs_to_review));
-            ui_ctx->structs_to_review -= 1;
-            state = EIP712_FIELD_LATER;
-        } else if (!ui_ctx->end_reached) {
-            handle_eip712_return_code(true);
-            state = EIP712_FIELD_INCOMING;
-            // So that later when we append to them, we start from an empty string
-            explicit_bzero(&strings, sizeof(strings));
-        }
-    }
-    return state;
 }
 
 /**
@@ -248,7 +258,7 @@ bool ui_712_review_struct(const s_struct_712 *struct_ptr) {
 /**
  * Show the hash of the message on the generic UI step
  */
-void ui_712_message_hash(void) {
+bool ui_712_message_hash(void) {
     const char *title = "Message hash";
 
     ui_712_set_title(title, strlen(title));
@@ -256,8 +266,9 @@ void ui_712_message_hash(void) {
                        sizeof(strings.tmp.tmp),
                        tmpCtx.messageSigningContext712.messageHash,
                        KECCAK256_HASH_BYTESIZE);
+    ui_712_set_value(NULL, 0);
     ui_ctx->end_reached = true;
-    ui_712_redraw_generic_step();
+    return ui_712_redraw_generic_step();
 }
 
 /**
@@ -611,20 +622,221 @@ static bool ui_712_format_datetime(const uint8_t *data,
     return time_format_to_utc(&timestamp, strings.tmp.tmp, sizeof(strings.tmp.tmp));
 }
 
+static void ui_712_set_intent_field(const char *value) {
+    const char key[] = "Transaction type";
+
+    ui_712_set_title(key, strlen(key));
+    ui_712_set_value(value, strlen(value));
+}
+
+static bool handle_fallback_empty_calldata(const s_eip712_calldata_info *calldata_info) {
+    char *buf = strings.tmp.tmp;
+    size_t buf_size = sizeof(strings.tmp.tmp);
+    uint64_t chain_id;
+    uint8_t decimals;
+    const char *ticker;
+
+    if (calldata_info->amount_state == CALLDATA_INFO_PARAM_SET) {
+        ui_712_set_intent_field("Send");
+
+        if (calldata_info->chain_id != 0) {
+            chain_id = calldata_info->chain_id;
+        } else {
+            chain_id = eip712_context->chain_id;
+        }
+
+        ticker = get_displayable_ticker(&chain_id, chainConfig);
+        decimals = WEI_TO_ETHER;
+        if (!amountToString(calldata_info->amount,
+                            sizeof(calldata_info->amount),
+                            decimals,
+                            ticker,
+                            buf,
+                            buf_size)) {
+            return false;
+        }
+        ui_712_set_title("Amount", 6);
+        ui_712_set_value(buf, strlen(buf));
+    } else {
+        ui_712_set_intent_field("Empty transaction");
+    }
+    if (!getEthDisplayableAddress((uint8_t *) calldata_info->callee,
+                                  buf,
+                                  buf_size,
+                                  chainConfig->chainId)) {
+        return false;
+    }
+    ui_712_set_title("To", 2);
+    ui_712_set_value(buf, strlen(buf));
+    return true;
+}
+
+static bool update_calldata_value(const uint8_t *data,
+                                  uint8_t length,
+                                  const uint16_t *complete_length,
+                                  bool last,
+                                  s_eip712_calldata_info *calldata_info) {
+    const uint8_t *selector = NULL;
+    size_t calldata_size;
+
+    if (calldata_info->value_state != CALLDATA_INFO_PARAM_UNSET) return false;
+    if (complete_length != NULL) {
+        calldata_size = *complete_length;
+        if (calldata_size > 0) {
+            if (calldata_info->selector_state == CALLDATA_INFO_PARAM_NONE) {
+                if ((length < CALLDATA_SELECTOR_SIZE) || (calldata_size < CALLDATA_SELECTOR_SIZE)) {
+                    return false;
+                }
+                selector = data;
+                data += CALLDATA_SELECTOR_SIZE;
+                length -= CALLDATA_SELECTOR_SIZE;
+                calldata_size -= CALLDATA_SELECTOR_SIZE;
+            } else if (calldata_info->selector_state == CALLDATA_INFO_PARAM_NONE) {
+                selector = calldata_info->selector;
+            }
+            if ((g_parked_calldata = calldata_init(calldata_size, selector)) == NULL) {
+                return false;
+            }
+        }
+    }
+    if (g_parked_calldata != NULL) {
+        if (!calldata_append(g_parked_calldata, data, length)) {
+            return false;
+        }
+    } else {
+        // won't receive a TX info & descriptors about a non-existent calldata
+        calldata_info->processed = true;
+    }
+    if (last) calldata_info->value_state = CALLDATA_INFO_PARAM_SET;
+    return true;
+}
+
+static bool update_calldata_callee(const uint8_t *data,
+                                   uint8_t length,
+                                   bool last,
+                                   s_eip712_calldata_info *calldata_info) {
+    if (calldata_info->callee_state != CALLDATA_INFO_PARAM_UNSET) return false;
+    if (!last) return false;
+    buf_shrink_expand(data, length, calldata_info->callee, sizeof(calldata_info->callee));
+    calldata_info->callee_state = CALLDATA_INFO_PARAM_SET;
+    return true;
+}
+
+static bool update_calldata_chain_id(const uint8_t *data,
+                                     uint8_t length,
+                                     bool last,
+                                     s_eip712_calldata_info *calldata_info) {
+    uint8_t chain_id_buf[sizeof(uint64_t)];
+
+    if (calldata_info->chain_id_state != CALLDATA_INFO_PARAM_UNSET) return false;
+    if (!last) return false;
+    buf_shrink_expand(data, length, chain_id_buf, sizeof(chain_id_buf));
+    calldata_info->chain_id = read_u64_be(chain_id_buf, 0);
+    calldata_info->chain_id_state = CALLDATA_INFO_PARAM_SET;
+    return true;
+}
+
+static bool update_calldata_selector(const uint8_t *data,
+                                     uint8_t length,
+                                     bool last,
+                                     s_eip712_calldata_info *calldata_info) {
+    if (calldata_info->selector_state != CALLDATA_INFO_PARAM_UNSET) return false;
+    if (!last) return false;
+    buf_shrink_expand(data, length, calldata_info->selector, sizeof(calldata_info->selector));
+    calldata_info->selector_state = CALLDATA_INFO_PARAM_SET;
+    if (calldata_info->value_state == CALLDATA_INFO_PARAM_SET) {
+        calldata_set_selector(g_parked_calldata, calldata_info->selector);
+    }
+    return true;
+}
+
+static bool update_calldata_amount(const uint8_t *data,
+                                   uint8_t length,
+                                   bool last,
+                                   s_eip712_calldata_info *calldata_info) {
+    if (calldata_info->amount_state != CALLDATA_INFO_PARAM_UNSET) return false;
+    if (!last) return false;
+    buf_shrink_expand(data, length, calldata_info->amount, sizeof(calldata_info->amount));
+    calldata_info->amount_state = CALLDATA_INFO_PARAM_SET;
+    return true;
+}
+
+static bool update_calldata_spender(const uint8_t *data,
+                                    uint8_t length,
+                                    bool last,
+                                    s_eip712_calldata_info *calldata_info) {
+    if (calldata_info->spender_state != CALLDATA_INFO_PARAM_UNSET) return false;
+    if (!last) return false;
+    buf_shrink_expand(data, length, calldata_info->spender, sizeof(calldata_info->spender));
+    calldata_info->spender_state = CALLDATA_INFO_PARAM_SET;
+    return true;
+}
+
+static bool update_calldata(const uint8_t *data,
+                            uint8_t length,
+                            const uint16_t *complete_length,
+                            bool last) {
+    s_eip712_calldata_info *calldata_info = get_calldata_info(ui_ctx->calldata_index);
+
+    if (calldata_info == NULL) return false;
+    switch (calldata_info->state) {
+        case EIP712_CALLDATA_VALUE:
+            if (!update_calldata_value(data, length, complete_length, last, calldata_info))
+                return false;
+            break;
+        case EIP712_CALLDATA_CALLEE:
+            if (!update_calldata_callee(data, length, last, calldata_info)) return false;
+            break;
+        case EIP712_CALLDATA_CHAIN_ID:
+            if (!update_calldata_chain_id(data, length, last, calldata_info)) return false;
+            break;
+        case EIP712_CALLDATA_SELECTOR:
+            if (!update_calldata_selector(data, length, last, calldata_info)) return false;
+            break;
+        case EIP712_CALLDATA_AMOUNT:
+            if (!update_calldata_amount(data, length, last, calldata_info)) return false;
+            break;
+        case EIP712_CALLDATA_SPENDER:
+            if (!update_calldata_spender(data, length, last, calldata_info)) return false;
+            break;
+        default:
+            return false;
+    }
+    if (calldata_info_all_received(calldata_info)) {
+        if (g_parked_calldata == NULL) {
+            if (!handle_fallback_empty_calldata(calldata_info)) return false;
+        } else {
+            if (!tx_ctx_init(g_parked_calldata,
+                             calldata_info->spender,
+                             calldata_info->callee,
+                             calldata_info->amount,
+                             &calldata_info->chain_id)) {
+                calldata_delete(g_parked_calldata);
+                g_parked_calldata = NULL;
+                return false;
+            }
+            g_parked_calldata = NULL;
+        }
+    }
+    return true;
+}
+
 /**
  * Formats and feeds the given input data to the display buffers
  *
  * @param[in] field_ptr pointer to the new struct field
  * @param[in] data pointer to the field's raw value
  * @param[in] length field's raw value byte-length
- * @param[in] first if this is the first chunk
+ * @param[in] complete_length pointer to complete length if first chunk, \ref NULL otherwise
  * @param[in] last if this is the last chunk
  */
 bool ui_712_feed_to_display(const s_struct_712_field *field_ptr,
                             const uint8_t *data,
                             uint8_t length,
-                            bool first,
+                            const uint16_t *complete_length,
                             bool last) {
+    bool first = complete_length != NULL;
+
     if (ui_ctx == NULL) {
         apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
         return false;
@@ -699,9 +911,18 @@ bool ui_712_feed_to_display(const s_struct_712_field *field_ptr,
         }
     }
 
+    if (ui_ctx->field_flags & UI_712_CALLDATA) {
+        if (!update_calldata(data, length, complete_length, last)) {
+            return false;
+        }
+    }
+
     // Check if this field is supposed to be displayed
     if (last && ui_712_field_shown()) {
-        if (!ui_712_redraw_generic_step()) return false;
+        // This is the last chunk, we can now set the value
+        ui_712_set_value(NULL, 0);
+
+        return ui_712_redraw_generic_step();
     }
     return true;
 }
@@ -722,7 +943,7 @@ void ui_712_end_sign(void) {
     if (N_storage.verbose_eip712 || (ui_ctx->filtering_mode == EIP712_FILTERING_FULL)) {
 #endif
         ui_ctx->end_reached = true;
-        ui_712_switch_to_sign();
+        ui_sign_712();
     }
 }
 
@@ -737,7 +958,7 @@ bool ui_712_init(void) {
 
     if ((ui_ctx = app_mem_alloc(sizeof(*ui_ctx)))) {
         explicit_bzero(ui_ctx, sizeof(*ui_ctx));
-        ui_ctx->filtering_mode = EIP712_FILTERING_BASIC;
+        ui_712_set_filtering_mode(EIP712_FILTERING_BASIC);
         explicit_bzero(&strings, sizeof(strings));
     } else {
         apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
@@ -745,19 +966,32 @@ bool ui_712_init(void) {
     return ui_ctx != NULL;
 }
 
+static void delete_calldata_info(s_eip712_calldata_info *node) {
+    app_mem_free(node);
+}
+
 /**
  * Deinit function that simply unsets the struct pointer to NULL
  */
 void ui_712_deinit(void) {
     if (ui_ctx != NULL) {
-        if (ui_ctx->filters_crc != NULL)
+        if (ui_ctx->filters_crc != NULL) {
             flist_clear((s_flist_node **) &ui_ctx->filters_crc,
                         (f_list_node_del) &delete_filter_crc);
-        if (ui_ctx->ui_pairs != NULL)
+        }
+        if (ui_ctx->ui_pairs != NULL) {
             flist_clear((s_flist_node **) &ui_ctx->ui_pairs, (f_list_node_del) &delete_ui_pair);
-        if (ui_ctx->amount.joins != NULL)
+        }
+        if (ui_ctx->amount.joins != NULL) {
             flist_clear((s_flist_node **) &ui_ctx->amount.joins,
                         (f_list_node_del) &delete_amount_join);
+        }
+        if (ui_ctx->calldata_info != NULL) {
+            flist_clear((s_flist_node **) &ui_ctx->calldata_info,
+                        (f_list_node_del) &delete_calldata_info);
+            gcs_cleanup();
+        }
+        ui_712_clear_discarded_path();
         app_mem_free(ui_ctx);
         ui_ctx = NULL;
     }
@@ -766,26 +1000,20 @@ void ui_712_deinit(void) {
 /**
  * Approve button handling, calls the common handler function then
  * deinitializes the EIP712 context altogether.
- * @param[in] e unused here, just needed to match the UI function signature
- * @return unused here, just needed to match the UI function signature
  */
-unsigned int ui_712_approve() {
+void ui_712_approve(void) {
     ui_712_approve_cb();
     eip712_context_deinit();
-    return 0;
 }
 
 /**
  * Reject button handling, calls the common handler function then
  * deinitializes the EIP712 context altogether.
 
- * @param[in] e unused here, just needed to match the UI function signature
- * @return unused here, just needed to match the UI function signature
  */
-unsigned int ui_712_reject() {
+void ui_712_reject(void) {
     ui_712_reject_cb();
     eip712_context_deinit();
-    return 0;
 }
 
 /**
@@ -801,7 +1029,8 @@ void ui_712_flag_field(bool show,
                        bool name_provided,
                        bool token_join,
                        bool datetime,
-                       bool trusted_name) {
+                       bool trusted_name,
+                       bool calldata) {
     if (show) {
         ui_ctx->field_flags |= UI_712_FIELD_SHOWN;
     }
@@ -816,6 +1045,9 @@ void ui_712_flag_field(bool show,
     }
     if (trusted_name) {
         ui_ctx->field_flags |= UI_712_TRUSTED_NAME;
+    }
+    if (calldata) {
+        ui_ctx->field_flags |= UI_712_CALLDATA;
     }
 }
 
@@ -852,12 +1084,7 @@ void ui_712_set_filters_count(uint8_t count) {
  * @return number of filters
  */
 uint8_t ui_712_remaining_filters(void) {
-    uint8_t filter_count = 0;
-
-    for (const s_filter_crc *tmp = ui_ctx->filters_crc; tmp != NULL;
-         tmp = (s_filter_crc *) ((s_flist_node *) tmp)->next)
-        filter_count += 1;
-    return ui_ctx->filters_to_process - filter_count;
+    return ui_ctx->filters_to_process - flist_size((s_flist_node **) &ui_ctx->filters_crc);
 }
 
 /**
@@ -1004,39 +1231,101 @@ void ui_712_set_trusted_name_requirements(uint8_t type_count,
     memcpy(ui_ctx->tn_sources, sources, source_count);
 }
 
-const s_ui_712_pair *ui_712_get_pairs(void) {
-    return ui_ctx->ui_pairs;
+/**
+ * Set the tag/value pairs for the review
+ *
+ */
+void ui_712_push_pairs(void) {
+    uint8_t nbPairs = 0;
+    uint8_t pair = 0;
+    s_ui_712_pair *tmp = NULL;
+
+    // Initialize the pairs list
+    nbPairs = flist_size((s_flist_node **) &ui_ctx->ui_pairs);
+    if (N_storage.displayHash) {
+        nbPairs += 2;
+    }
+    ui_pairs_init(nbPairs);
+    // Initialize the tag/value pairs from the chain list
+    tmp = ui_ctx->ui_pairs;
+    while (tmp != NULL) {
+        g_pairs[pair].item = tmp->key;
+        g_pairs[pair].value = tmp->value;
+        tmp = (s_ui_712_pair *) ((s_flist_node *) tmp)->next;
+        pair++;
+    }
+    if (N_storage.displayHash) {
+        // Prepare the pairs list with the hashes
+        eip712_format_hash(pair);
+        g_pairs[pair].forcePageStart = 1;
+    }
 }
 
-bool ui_712_push_new_pair(const char *key, const char *value) {
-    s_ui_712_pair *new_pair;
+void add_calldata_info(s_eip712_calldata_info *node) {
+    flist_push_back((s_flist_node **) &ui_ctx->calldata_info, (s_flist_node *) node);
+}
 
-    // allocate pair
-    if ((new_pair = app_mem_alloc(sizeof(*new_pair))) == NULL) {
-        return false;
+s_eip712_calldata_info *get_calldata_info(uint8_t index) {
+    for (s_eip712_calldata_info *tmp = ui_ctx->calldata_info; tmp != NULL;
+         tmp = (s_eip712_calldata_info *) ((s_flist_node *) tmp)->next) {
+        if (index == tmp->index) {
+            return tmp;
+        }
     }
-    explicit_bzero(new_pair, sizeof(*new_pair));
+    return NULL;
+}
 
-    flist_push_back((s_flist_node **) &ui_ctx->ui_pairs, (s_flist_node *) new_pair);
+s_eip712_calldata_info *get_current_calldata_info(void) {
+    return get_calldata_info(ui_ctx->calldata_index);
+}
 
-    if ((new_pair->key = app_mem_strdup(key)) == NULL) {
-        return false;
-    }
-
-    if ((new_pair->value = app_mem_strdup(value)) == NULL) {
-        return false;
+bool all_calldata_info_processed(void) {
+    for (const s_eip712_calldata_info *tmp = ui_ctx->calldata_info; tmp != NULL;
+         tmp = (const s_eip712_calldata_info *) ((const s_flist_node *) tmp)->next) {
+        if (!tmp->processed) return false;
     }
     return true;
 }
 
-void ui_712_delete_pairs(size_t keep) {
-    size_t size;
+void calldata_info_set_state(uint8_t index, e_eip712_calldata_state state) {
+    s_eip712_calldata_info *calldata_info = get_calldata_info(index);
 
-    size = flist_size((s_flist_node **) &ui_ctx->ui_pairs);
-    if (size > 0) {
-        while (size > keep) {
-            flist_pop_front((s_flist_node **) &ui_ctx->ui_pairs, (f_list_node_del) &delete_ui_pair);
-            size -= 1;
-        }
+    ui_ctx->calldata_index = index;
+    if (calldata_info != NULL) {
+        calldata_info->state = state;
     }
+}
+
+bool calldata_info_all_received(const s_eip712_calldata_info *calldata_info) {
+    if (calldata_info->value_state != CALLDATA_INFO_PARAM_SET) return false;
+    if (calldata_info->callee_state != CALLDATA_INFO_PARAM_SET) return false;
+    switch (calldata_info->chain_id_state) {
+        case CALLDATA_INFO_PARAM_NONE:
+        case CALLDATA_INFO_PARAM_SET:
+            break;
+        default:
+            return false;
+    }
+    switch (calldata_info->selector_state) {
+        case CALLDATA_INFO_PARAM_NONE:
+        case CALLDATA_INFO_PARAM_SET:
+            break;
+        default:
+            return false;
+    }
+    switch (calldata_info->amount_state) {
+        case CALLDATA_INFO_PARAM_NONE:
+        case CALLDATA_INFO_PARAM_SET:
+            break;
+        default:
+            return false;
+    }
+    switch (calldata_info->spender_state) {
+        case CALLDATA_INFO_PARAM_NONE:
+        case CALLDATA_INFO_PARAM_SET:
+            break;
+        default:
+            return false;
+    }
+    return true;
 }

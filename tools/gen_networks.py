@@ -5,6 +5,7 @@ import sys
 import re
 import argparse
 from pathlib import Path
+from functools import partial
 
 
 class Network:
@@ -18,8 +19,16 @@ class Network:
         self.ticker = ticker
 
 
-def get_network_glyph_name(net: Network) -> str:
-    return "chain_%u_64px" % (net.chain_id)
+def get_network_glyph_size(path: str):
+    return 64 if path.split("/")[1] in ["stax", "flex"] else 48
+
+
+def get_network_glyph_name(net: Network, path: str) -> str:
+    return "chain_%u_%upx" % (net.chain_id, get_network_glyph_size(path))
+
+
+def get_network_glyph_path(net: Network, path: str) -> str:
+    return "glyphs/%s.gif" % (get_network_glyph_name(net, path))
 
 
 def get_header() -> str:
@@ -62,8 +71,8 @@ const network_icon_t g_network_icons[%u] = {\
 """ % (os.path.basename(path), len(networks)), file=out)
 
         for net in networks:
-            glyph_name = get_network_glyph_name(net)
-            glyph_file = "glyphs/%s.gif" % (glyph_name)
+            glyph_name = get_network_glyph_name(net, path)
+            glyph_file = get_network_glyph_path(net, path)
             if os.path.isfile(glyph_file):
                 if os.path.islink(glyph_file):
                     glyph_name = Path(os.path.realpath(glyph_file)).stem
@@ -85,8 +94,8 @@ def gen_icons_array(networks: list[Network], path: str) -> bool:
     return True
 
 
-def network_icon_exists(net: Network) -> bool:
-    return os.path.isfile("glyphs/%s.gif" % (get_network_glyph_name(net)))
+def network_icon_exists(net: Network, path: str) -> bool:
+    return os.path.isfile(get_network_glyph_path(net, path))
 
 
 def main(output_dir: str) -> bool:
@@ -107,7 +116,8 @@ def main(output_dir: str) -> bool:
 
     networks.sort(key=lambda x: x.chain_id)
 
-    if not gen_icons_array(list(filter(network_icon_exists, networks)),
+    if not gen_icons_array(list(filter(partial(network_icon_exists, path=output_dir),
+                                       networks)),
                            output_dir):
         return False
     return True

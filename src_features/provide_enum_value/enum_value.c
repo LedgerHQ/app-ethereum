@@ -4,6 +4,7 @@
 #include "utils.h"
 #include "ui_utils.h"
 #include "mem_utils.h"
+#include "proxy_info.h"
 
 enum {
     TAG_VERSION = 0x00,
@@ -173,8 +174,13 @@ const char *get_matching_enum_name(const uint64_t *chain_id,
                                    const uint8_t *selector,
                                    uint8_t id,
                                    uint8_t value) {
+    const uint8_t *proxy_implem;
+
+    proxy_implem = get_implem_contract(chain_id, contract_addr, selector);
     if ((g_enum_value != NULL) && (*chain_id == g_enum_value->chain_id) &&
-        (memcmp(contract_addr, g_enum_value->contract_addr, ADDRESS_LENGTH) == 0) &&
+        (memcmp((proxy_implem != NULL) ? proxy_implem : contract_addr,
+                g_enum_value->contract_addr,
+                ADDRESS_LENGTH) == 0) &&
         (memcmp(selector, g_enum_value->selector, SELECTOR_SIZE) == 0) &&
         (id == g_enum_value->id) && (value == g_enum_value->value)) {
         return g_enum_value->name;

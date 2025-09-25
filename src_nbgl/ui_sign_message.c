@@ -32,7 +32,7 @@ void ui_191_start(const char *message) {
 
     explicit_bzero(&warning, sizeof(nbgl_warning_t));
 #ifdef HAVE_TRANSACTION_CHECKS
-    set_tx_simulation_warning(&warning, false, true);
+    set_tx_simulation_warning();
 #endif
 
     snprintf(g_finishMsg,

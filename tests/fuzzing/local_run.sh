@@ -7,6 +7,11 @@ rm -rf build
 cmake -B build -S . -DCMAKE_C_COMPILER=/usr/bin/clang -DSANITIZER=address
 cmake --build build
 
+if ! [ -f ./build/fuzzer ]; then
+    echo "Build failed, please check the output above."
+    exit 1
+fi
+
 # Create the corpus directory if it doesn't exist
 if ! [ -d ./corpus ]; then
     mkdir corpus
@@ -26,7 +31,7 @@ then
     exit 0
 fi
 
-# Remove previous artifcats
+# Remove previous artifacts
 rm default.profdata default.profraw
 
 # Run profiling on the corpus

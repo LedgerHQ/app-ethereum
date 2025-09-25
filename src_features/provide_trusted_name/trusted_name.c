@@ -56,6 +56,11 @@ typedef enum {
 s_trusted_name_info *g_trusted_name_info = NULL;
 char *g_trusted_name = NULL;
 
+void trusted_name_cleanup(void) {
+    mem_buffer_cleanup((void **) &g_trusted_name);
+    mem_buffer_cleanup((void **) &g_trusted_name_info);
+}
+
 static bool matching_type(e_name_type type, uint8_t type_count, const e_name_type *types) {
     for (int i = 0; i < type_count; ++i) {
         if (type == types[i]) return true;

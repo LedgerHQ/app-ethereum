@@ -1,9 +1,27 @@
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
 
-const char *mem_alloc_and_format_uint(uint32_t value);
-char *app_mem_strdup(const char *s);
+#ifdef HAVE_MEMORY_PROFILING
+#define MP_FILE __FILE__
+#define MP_LINE __LINE__
+#else
+#define MP_FILE NULL
+#define MP_LINE 0
+#endif
+#define mem_buffer_allocate(ptr, size)   mem_buffer_allocate_impl(ptr, size, false, MP_FILE, MP_LINE)
+#define mem_buffer_persistent(ptr, size) mem_buffer_allocate_impl(ptr, size, true, MP_FILE, MP_LINE)
+#define mem_buffer_cleanup(ptr)          mem_buffer_cleanup_impl(ptr, MP_FILE, MP_LINE)
+#define mem_alloc_and_format_uint(value) mem_alloc_and_format_uint_impl(value, MP_FILE, MP_LINE)
+#define app_mem_strdup(ptr)              app_mem_strdup_impl(ptr, MP_FILE, MP_LINE)
 
-bool mem_buffer_allocate(void **buffer, uint16_t size);
-void mem_buffer_cleanup(void **buffer);
+const char *mem_alloc_and_format_uint_impl(uint32_t value, const char *file, int line);
+char *app_mem_strdup_impl(const char *s, const char *file, int line);
+
+bool mem_buffer_allocate_impl(void **buffer,
+                              uint16_t size,
+                              bool persistent,
+                              const char *file,
+                              int line);
+void mem_buffer_cleanup_impl(void **buffer, const char *file, int line);

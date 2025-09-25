@@ -45,7 +45,11 @@ static bool check_icon_header(const uint8_t *data, uint16_t length, uint16_t *bu
     width = U2LE(data, 0);
     height = U2LE(data, 2);
 #ifdef SCREEN_SIZE_WALLET
+#ifdef TARGET_APEX
+    expected_px = 48;
+#else
     expected_px = 64;
+#endif
 #else
     expected_px = 14;
 #endif
@@ -138,7 +142,9 @@ static uint16_t handle_first_icon_chunk(const uint8_t *data, uint8_t length) {
         return APDU_RESPONSE_INVALID_DATA;
     }
 
-    if (mem_buffer_allocate((void **) &(g_icon_bitmap[g_current_network_slot]), img_len) == false) {
+    // Do not track the allocation in logs, because this buffer is expected to stay allocated
+    if (mem_buffer_persistent((void **) &(g_icon_bitmap[g_current_network_slot]), img_len) ==
+        false) {
         PRINTF("Error: Not enough memory for icon bitmap!\n");
         return APDU_RESPONSE_INSUFFICIENT_MEMORY;
     }

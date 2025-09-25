@@ -9,10 +9,12 @@
 #include "common_ui.h"  // ui_idle
 #include "manage_asset_info.h"
 #include "ui_callbacks.h"
+#include "tx_ctx.h"  // get_tx_ctx_count
 
 // APDUs P1
-#define P1_COMPLETE 0x00
-#define P1_PARTIAL  0xFF
+#define P1_COMPLETE  0x00
+#define P1_PARTIAL   0xFF
+#define P1_DISCARDED 0x01
 
 // APDUs P2
 #define P2_DEF_NAME               0x00
@@ -23,6 +25,13 @@
 #define P2_FILT_ACTIVATE          0x00
 #define P2_FILT_DISCARDED_PATH    0x01
 #define P2_FILT_MESSAGE_INFO      0x0F
+#define P2_FILT_CALLDATA_SPENDER  0xF4
+#define P2_FILT_CALLDATA_AMOUNT   0xF5
+#define P2_FILT_CALLDATA_SELECTOR 0xF6
+#define P2_FILT_CALLDATA_CHAIN_ID 0xF7
+#define P2_FILT_CALLDATA_CALLEE   0xF8
+#define P2_FILT_CALLDATA_VALUE    0xF9
+#define P2_FILT_CALLDATA_INFO     0xFA
 #define P2_FILT_CONTRACT_NAME     0xFB
 #define P2_FILT_DATE_TIME         0xFC
 #define P2_FILT_AMOUNT_JOIN_TOKEN 0xFD
@@ -204,27 +213,48 @@ uint16_t handle_eip712_filtering(uint8_t p1,
                 reply_apdu = false;
             }
             break;
+        case P2_FILT_CALLDATA_SPENDER:
+            ret = filtering_calldata_spender(cdata, length, p1 == P1_DISCARDED, &path_crc);
+            break;
+        case P2_FILT_CALLDATA_AMOUNT:
+            ret = filtering_calldata_amount(cdata, length, p1 == P1_DISCARDED, &path_crc);
+            break;
+        case P2_FILT_CALLDATA_SELECTOR:
+            ret = filtering_calldata_selector(cdata, length, p1 == P1_DISCARDED, &path_crc);
+            break;
+        case P2_FILT_CALLDATA_CHAIN_ID:
+            ret = filtering_calldata_chain_id(cdata, length, p1 == P1_DISCARDED, &path_crc);
+            break;
+        case P2_FILT_CALLDATA_CALLEE:
+            ret = filtering_calldata_callee(cdata, length, p1 == P1_DISCARDED, &path_crc);
+            break;
+        case P2_FILT_CALLDATA_VALUE:
+            ret = filtering_calldata_value(cdata, length, p1 == P1_DISCARDED, &path_crc);
+            break;
+        case P2_FILT_CALLDATA_INFO:
+            ret = filtering_calldata_info(cdata, length);
+            break;
         case P2_FILT_CONTRACT_NAME:
-            ret = filtering_trusted_name(cdata, length, p1 == 1, &path_crc);
+            ret = filtering_trusted_name(cdata, length, p1 == P1_DISCARDED, &path_crc);
             break;
         case P2_FILT_DATE_TIME:
-            ret = filtering_date_time(cdata, length, p1 == 1, &path_crc);
+            ret = filtering_date_time(cdata, length, p1 == P1_DISCARDED, &path_crc);
             break;
         case P2_FILT_AMOUNT_JOIN_TOKEN:
-            ret = filtering_amount_join_token(cdata, length, p1 == 1, &path_crc);
+            ret = filtering_amount_join_token(cdata, length, p1 == P1_DISCARDED, &path_crc);
             break;
         case P2_FILT_AMOUNT_JOIN_VALUE:
-            ret = filtering_amount_join_value(cdata, length, p1 == 1, &path_crc);
+            ret = filtering_amount_join_value(cdata, length, p1 == P1_DISCARDED, &path_crc);
             break;
         case P2_FILT_RAW_FIELD:
-            ret = filtering_raw_field(cdata, length, p1 == 1, &path_crc);
+            ret = filtering_raw_field(cdata, length, p1 == P1_DISCARDED, &path_crc);
             break;
         default:
             PRINTF("Unknown P2 0x%x\n", p2);
             apdu_response_code = APDU_RESPONSE_INVALID_P1_P2;
             ret = false;
     }
-    if ((p2 > P2_FILT_MESSAGE_INFO) && ret) {
+    if ((p2 > P2_FILT_MESSAGE_INFO) && (p2 != P2_FILT_CALLDATA_INFO) && ret) {
         if (!ui_712_push_new_filter_path(path_crc)) {
             ret = false;
         }
@@ -260,15 +290,18 @@ uint16_t handle_eip712_sign(const uint8_t *cdata, uint8_t length, uint32_t *flag
                (ui_712_remaining_filters() != 0)) {
         PRINTF("%d EIP712 filters are missing\n", ui_712_remaining_filters());
         apdu_response_code = APDU_RESPONSE_REF_DATA_NOT_FOUND;
+    } else if (!all_calldata_info_processed() || (get_tx_ctx_count() != 0)) {
+        PRINTF("Unprocessed calldata\n");
+        apdu_response_code = APDU_RESPONSE_REF_DATA_NOT_FOUND;
     } else if (parseBip32(cdata, &length, &tmpCtx.messageSigningContext.bip32) == NULL) {
         apdu_response_code = APDU_RESPONSE_INVALID_DATA;
     } else {
+        ret = true;
 #ifndef SCREEN_SIZE_WALLET
         if (!N_storage.verbose_eip712 && (ui_712_get_filtering_mode() == EIP712_FILTERING_BASIC)) {
-            ui_712_message_hash();
+            ret = ui_712_message_hash();
         }
 #endif
-        ret = true;
         ui_712_end_sign();
     }
 

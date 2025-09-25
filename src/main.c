@@ -47,6 +47,8 @@
 #include "sign_message.h"
 #include "ui_utils.h"
 #include "network_info.h"
+#include "cmd_safe_account.h"
+#include "tx_ctx.h"
 
 tmpCtx_t tmpCtx;
 txContext_t txContext;
@@ -89,6 +91,9 @@ void reset_app_context(void) {
     }
     memset((uint8_t *) &txContext, 0, sizeof(txContext));
     memset((uint8_t *) &tmpContent, 0, sizeof(tmpContent));
+#ifdef HAVE_SAFE_ACCOUNT
+    clear_safe_account();
+#endif
     ui_all_cleanup();
 }
 
@@ -260,6 +265,12 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
         case INS_SIGN_EIP7702_AUTHORIZATION:
             sw = handleSignEIP7702Authorization(cmd->p1, cmd->data, cmd->lc, flags);
             break;
+
+#ifdef HAVE_SAFE_ACCOUNT
+        case INS_PROVIDE_SAFE_ACCOUNT:
+            sw = handle_safe_account(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags);
+            break;
+#endif
 
         default:
             sw = APDU_RESPONSE_INVALID_INS;

@@ -35,6 +35,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 106, .name = "Velas EVM", .ticker = "VLX"},
     {.chain_id = 137, .name = "Polygon", .ticker = "POL"},
     {.chain_id = 138, .name = "Defi Oracle Meta", .ticker = "ETH"},
+    {.chain_id = 143, .name = "Monad Mainnet", .ticker = "MON"},
     {.chain_id = 146, .name = "Sonic", .ticker = "S"},
     {.chain_id = 196, .name = "OKBChain Mainnet", .ticker = "OKB"},
     {.chain_id = 199, .name = "BTTC", .ticker = "BTT"},

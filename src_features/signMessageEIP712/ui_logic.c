@@ -201,7 +201,7 @@ void ui_712_set_value(const char *str, size_t length) {
             return;
         }
         memcpy(tmp->value, str, length);
-    } else if (strlen(strings.tmp.tmp) > 0) {
+    } else {
         // Add the value from the global variable strings.tmp.tmp
         if ((tmp->value = app_mem_strdup(strings.tmp.tmp)) == NULL) {
             return;

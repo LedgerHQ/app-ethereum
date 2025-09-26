@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [1.20.0](../../compare/1.19.0...1.20.0) - 2025-xx-xx
 
+## [1.19.1](../../compare/1.19.0...1.19.1) - 2025-09-26
+
+### Fixed
+
+- Crash with empty field values in EIP-712 messages
+
 ## [1.19.0](../../compare/1.18.1...1.19.0) - 2025-09-24
 
 ### Added

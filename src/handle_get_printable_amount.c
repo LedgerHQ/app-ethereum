@@ -29,7 +29,7 @@ uint16_t handle_get_printable_amount(get_printable_amount_parameters_t* params,
         if (chain_id == 0) {
             chain_id = config->chainId;
         }
-        strlcpy(ticker, get_displayable_ticker(&chain_id, config), sizeof(ticker));
+        strlcpy(ticker, get_displayable_ticker(&chain_id, config, false), sizeof(ticker));
         decimals = WEI_TO_ETHER;
     }
 

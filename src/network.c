@@ -123,15 +123,17 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 11297108109, .name = "Palm Network", .ticker = "PALM"},
 };
 
-static const network_info_t *get_network_from_chain_id(const uint64_t *chain_id) {
+static const network_info_t *get_network_from_chain_id(const uint64_t *chain_id, bool dynamic) {
     if (*chain_id != 0) {
         // Look if the network is available
-        for (size_t i = 0; i < MAX_DYNAMIC_NETWORKS; i++) {
-            if ((DYNAMIC_NETWORK_INFO[i]) && (DYNAMIC_NETWORK_INFO[i]->chain_id == *chain_id)) {
-                PRINTF("[NETWORK] - Found dynamic \"%s\" in slot %u\n",
-                       DYNAMIC_NETWORK_INFO[i]->name,
-                       i);
-                return (const network_info_t *) DYNAMIC_NETWORK_INFO[i];
+        if (dynamic == true) {
+            for (size_t i = 0; i < MAX_DYNAMIC_NETWORKS; i++) {
+                if ((DYNAMIC_NETWORK_INFO[i]) && (DYNAMIC_NETWORK_INFO[i]->chain_id == *chain_id)) {
+                    PRINTF("[NETWORK] - Found dynamic \"%s\" in slot %u\n",
+                           DYNAMIC_NETWORK_INFO[i]->name,
+                           i);
+                    return (const network_info_t *) DYNAMIC_NETWORK_INFO[i];
+                }
             }
         }
 
@@ -148,7 +150,7 @@ static const network_info_t *get_network_from_chain_id(const uint64_t *chain_id)
 }
 
 const char *get_network_name_from_chain_id(const uint64_t *chain_id) {
-    const network_info_t *net = get_network_from_chain_id(chain_id);
+    const network_info_t *net = get_network_from_chain_id(chain_id, true);
 
     if (net == NULL) {
         return NULL;
@@ -172,8 +174,8 @@ uint16_t get_network_as_string(char *out, size_t out_size) {
     return APDU_RESPONSE_OK;
 }
 
-const char *get_network_ticker_from_chain_id(const uint64_t *chain_id) {
-    const network_info_t *net = get_network_from_chain_id(chain_id);
+const char *get_network_ticker_from_chain_id(const uint64_t *chain_id, bool dynamic) {
+    const network_info_t *net = get_network_from_chain_id(chain_id, dynamic);
 
     if (net == NULL) {
         return NULL;
@@ -182,7 +184,7 @@ const char *get_network_ticker_from_chain_id(const uint64_t *chain_id) {
 }
 
 bool chain_is_ethereum_compatible(const uint64_t *chain_id) {
-    return get_network_from_chain_id(chain_id) != NULL;
+    return get_network_from_chain_id(chain_id, true) != NULL;
 }
 
 // Returns the chain ID. Defaults to 0 if txType was not found (For TX).
@@ -206,8 +208,10 @@ uint64_t get_tx_chain_id(void) {
     return chain_id;
 }
 
-const char *get_displayable_ticker(const uint64_t *chain_id, const chain_config_t *chain_cfg) {
-    const char *ticker = get_network_ticker_from_chain_id(chain_id);
+const char *get_displayable_ticker(const uint64_t *chain_id,
+                                   const chain_config_t *chain_cfg,
+                                   bool dynamic) {
+    const char *ticker = get_network_ticker_from_chain_id(chain_id, dynamic);
 
     if (ticker == NULL) {
         if (*chain_id == chain_cfg->chainId) {

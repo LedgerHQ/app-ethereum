@@ -23,11 +23,13 @@ extern const char g_unknown_ticker[];
 
 const char *get_network_name_from_chain_id(const uint64_t *chain_id);
 uint16_t get_network_as_string(char *out, size_t out_size);
-const char *get_network_ticker_from_chain_id(const uint64_t *chain_id);
+const char *get_network_ticker_from_chain_id(const uint64_t *chain_id, bool dynamic);
 
 bool chain_is_ethereum_compatible(const uint64_t *chain_id);
 bool app_compatible_with_chain_id(const uint64_t *chain_id);
 
 uint64_t get_tx_chain_id(void);
 
-const char *get_displayable_ticker(const uint64_t *chain_id, const chain_config_t *chain_cfg);
+const char *get_displayable_ticker(const uint64_t *chain_id,
+                                   const chain_config_t *chain_cfg,
+                                   bool dynamic);

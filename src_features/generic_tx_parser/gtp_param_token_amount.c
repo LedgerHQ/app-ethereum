@@ -131,7 +131,7 @@ static bool process_token_amount(const s_param_token_amount *param,
     if (param->has_token) {
         buf_shrink_expand(token->ptr, token->length, addr_buf, sizeof(addr_buf));
         if (match_native(addr_buf, param)) {
-            ticker = get_displayable_ticker(&chain_id, chainConfig);
+            ticker = get_displayable_ticker(&chain_id, chainConfig, true);
             decimals = WEI_TO_ETHER;
         } else {
             if ((token_def = (const tokenDefinition_t *) get_asset_info_by_addr(addr_buf)) !=

@@ -90,7 +90,7 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
     PRINTF("chain_id = %d\n", (uint32_t) chain_id);
 
     // If the amount is a fee, its value is nominated in NATIVE even if we're doing an ERC20 swap
-    const char* native_ticker = get_displayable_ticker(&chain_id, config);
+    const char* native_ticker = get_displayable_ticker(&chain_id, config, false);
     uint8_t native_decimals = WEI_TO_ETHER;
     if (!amountToString(sign_transaction_params->fee_amount,
                         sign_transaction_params->fee_amount_length,

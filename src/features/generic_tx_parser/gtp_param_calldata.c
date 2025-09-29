@@ -184,7 +184,7 @@ static bool process_fallback(const s_param_calldata *param,
             return false;
         }
         if (get_current_tx_info() == NULL) return false;
-        ticker = get_displayable_ticker(&get_current_tx_info()->chain_id, chainConfig);
+        ticker = get_displayable_ticker(&get_current_tx_info()->chain_id, chainConfig, true);
         decimals = WEI_TO_ETHER;
         if (!amountToString(amount->ptr, amount->length, decimals, ticker, buf, buf_size)) {
             return false;

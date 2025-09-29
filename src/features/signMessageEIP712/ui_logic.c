@@ -645,7 +645,7 @@ static bool handle_fallback_empty_calldata(const s_eip712_calldata_info *calldat
             chain_id = eip712_context->chain_id;
         }
 
-        ticker = get_displayable_ticker(&chain_id, chainConfig);
+        ticker = get_displayable_ticker(&chain_id, chainConfig, true);
         decimals = WEI_TO_ETHER;
         if (!amountToString(calldata_info->amount,
                             sizeof(calldata_info->amount),

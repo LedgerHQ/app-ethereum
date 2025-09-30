@@ -5,6 +5,7 @@
 #include "chainConfig.h"
 #include "swap_utils.h"
 #include "main_std_app.h"
+#include "eth_plugin_interface.h"
 
 #define SELECTOR_LENGTH 4
 
@@ -47,9 +48,7 @@ typedef struct tokenContext_t {
         };
         // This needs to be strictly 4 bytes aligned since pointers to it will be casted as
         // plugin context struct pointers (structs that contain up to 4 bytes wide elements)
-        // uint8_t pluginContext[5 * INT256_LENGTH] __attribute__((aligned(4)));
-        // TODO: use PLUGIN_CONTEXT_SIZE after eth is released with the updated plugin sdk
-        uint8_t pluginContext[10 * INT256_LENGTH] __attribute__((aligned(4)));
+        uint8_t pluginContext[PLUGIN_CONTEXT_SIZE] __attribute__((aligned(4)));
     };
 
     uint8_t pluginStatus;

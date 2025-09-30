@@ -75,8 +75,8 @@ def common_rejected(scenario_navigator: NavigateWithScenario,
             else:
                 moves += [NavInsID.USE_CASE_CHOICE_REJECT]
             scenario_navigator.navigator.navigate_and_compare(scenario_navigator.screenshot_path,
-                                                    test_name,
-                                                    moves)
+                                                              test_name,
+                                                              moves)
 
     except ExceptionRAPDU as e:
         assert e.status == StatusWord.CONDITION_NOT_SATISFIED

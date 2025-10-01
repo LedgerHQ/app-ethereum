@@ -57,7 +57,7 @@ void handle_finalize_1155(ethPluginFinalize_t *msg) {
     erc1155_context_t *context = (erc1155_context_t *) msg->pluginContext;
 
     if (context->selectorIndex != SAFE_BATCH_TRANSFER) {
-        msg->tokenLookup1 = msg->pluginSharedRO->txContent->destination;
+        msg->tokenLookup1 = msg->txContent->destination;
     } else {
         msg->tokenLookup1 = NULL;
     }
@@ -78,8 +78,7 @@ void handle_finalize_1155(ethPluginFinalize_t *msg) {
             return;
     }
     // Check if some ETH is attached to this tx
-    if (!allzeroes((void *) &msg->pluginSharedRO->txContent->value,
-                   sizeof(msg->pluginSharedRO->txContent->value))) {
+    if (!allzeroes((void *) &msg->txContent->value, sizeof(msg->txContent->value))) {
         // Those functions are not payable so return an error.
         msg->result = ETH_PLUGIN_RESULT_ERROR;
         return;

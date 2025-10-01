@@ -37,7 +37,7 @@ void eth2_plugin_call(int message, void *parameters) {
             ethPluginInitContract_t *msg = (ethPluginInitContract_t *) parameters;
             eth2_deposit_parameters_t *context = (eth2_deposit_parameters_t *) msg->pluginContext;
             if (memcmp(deposit_contract_address,
-                       msg->pluginSharedRO->txContent->destination,
+                       msg->txContent->destination,
                        sizeof(deposit_contract_address)) != 0) {
                 PRINTF("eth2plugin: failed to check deposit contract\n");
                 context->valid = 0;

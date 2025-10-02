@@ -12,5 +12,5 @@ uint16_t handleGetAppConfiguration(unsigned int *tx) {
     G_io_apdu_buffer[2] = MINOR_VERSION;
     G_io_apdu_buffer[3] = PATCH_VERSION;
     *tx = 4;
-    return APDU_RESPONSE_OK;
+    return SWO_SUCCESS;
 }

@@ -70,15 +70,15 @@ tx_simulation_t TX_SIMULATION = {0};
     do {                                        \
         if (len != expected) {                  \
             PRINTF("%s Size mismatch!\n", tag); \
-            return APDU_RESPONSE_INVALID_DATA;  \
+            return SWO_INCORRECT_DATA;          \
         }                                       \
     } while (0)
-#define CHECK_FIELD_OVERFLOW(tag, field, len)         \
-    do {                                              \
-        if (len >= sizeof(field)) {                   \
-            PRINTF("%s Size overflow!\n", tag);       \
-            return APDU_RESPONSE_INSUFFICIENT_MEMORY; \
-        }                                             \
+#define CHECK_FIELD_OVERFLOW(tag, field, len)   \
+    do {                                        \
+        if (len >= sizeof(field)) {             \
+            PRINTF("%s Size overflow!\n", tag); \
+            return SWO_INSUFFICIENT_MEMORY;     \
+        }                                       \
     } while (0)
 
 // Macro to check the field value
@@ -86,17 +86,17 @@ tx_simulation_t TX_SIMULATION = {0};
     do {                                         \
         if (value != expected) {                 \
             PRINTF("%s Value mismatch!\n", tag); \
-            return APDU_RESPONSE_INVALID_DATA;   \
+            return SWO_INCORRECT_DATA;           \
         }                                        \
     } while (0)
 
 // Macro to check the field value
-#define CHECK_EMPTY_BUFFER(tag, field, len)    \
-    do {                                       \
-        if (memcmp(field, empty, len) == 0) {  \
-            PRINTF("%s Zero buffer!\n", tag);  \
-            return APDU_RESPONSE_INVALID_DATA; \
-        }                                      \
+#define CHECK_EMPTY_BUFFER(tag, field, len)   \
+    do {                                      \
+        if (memcmp(field, empty, len) == 0) { \
+            PRINTF("%s Zero buffer!\n", tag); \
+            return SWO_INCORRECT_DATA;        \
+        }                                     \
     } while (0)
 
 // Macro to copy the field
@@ -116,7 +116,7 @@ static uint16_t parse_struct_type(const s_tlv_data *data, s_tx_simu_ctx *context
     CHECK_FIELD_LENGTH("STRUCTURE_TYPE", data->length, 1);
     CHECK_FIELD_VALUE("STRUCTURE_TYPE", data->value[0], TYPE_TX_SIMULATION);
     context->rcv_flags |= SET_BIT(BIT_STRUCTURE_TYPE);
-    return APDU_RESPONSE_OK;
+    return SWO_SUCCESS;
 }
 
 /**
@@ -130,7 +130,7 @@ static uint16_t parse_struct_version(const s_tlv_data *data, s_tx_simu_ctx *cont
     CHECK_FIELD_LENGTH("STRUCTURE_VERSION", data->length, 1);
     CHECK_FIELD_VALUE("STRUCTURE_VERSION", data->value[0], STRUCT_VERSION);
     context->rcv_flags |= SET_BIT(BIT_STRUCTURE_VERSION);
-    return APDU_RESPONSE_OK;
+    return SWO_SUCCESS;
 }
 
 /**
@@ -146,7 +146,7 @@ static uint16_t parse_tx_hash(const s_tlv_data *data, s_tx_simu_ctx *context) {
     CHECK_EMPTY_BUFFER("TX_HASH", data->value, data->length);
     COPY_FIELD(context->simu->tx_hash, data);
     context->rcv_flags |= SET_BIT(BIT_TX_HASH);
-    return APDU_RESPONSE_OK;
+    return SWO_SUCCESS;
 }
 
 /**
@@ -162,7 +162,7 @@ static uint16_t parse_domain_hash(const s_tlv_data *data, s_tx_simu_ctx *context
     CHECK_EMPTY_BUFFER("DOMAIN_HASH", data->value, data->length);
     COPY_FIELD(context->simu->domain_hash, data);
     context->rcv_flags |= SET_BIT(BIT_DOMAIN_HASH);
-    return APDU_RESPONSE_OK;
+    return SWO_SUCCESS;
 }
 
 /**
@@ -178,7 +178,7 @@ static uint16_t parse_address(const s_tlv_data *data, s_tx_simu_ctx *context) {
     CHECK_EMPTY_BUFFER("ADDRESS", data->value, data->length);
     COPY_FIELD(context->simu->addr, data);
     context->rcv_flags |= SET_BIT(BIT_ADDRESS);
-    return APDU_RESPONSE_OK;
+    return SWO_SUCCESS;
 }
 
 /**
@@ -200,12 +200,12 @@ static uint16_t parse_chain_id(const s_tlv_data *data, s_tx_simu_ctx *context) {
     // Check if the chain_id is supported
     if ((chain_id > max_range) || (chain_id == 0)) {
         PRINTF("Unsupported chain ID: %u\n", chain_id);
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
 
     context->simu->chain_id = chain_id;
     context->rcv_flags |= SET_BIT(BIT_CHAIN_ID);
-    return APDU_RESPONSE_OK;
+    return SWO_SUCCESS;
 }
 
 /**
@@ -219,11 +219,11 @@ static uint16_t parse_risk(const s_tlv_data *data, s_tx_simu_ctx *context) {
     CHECK_FIELD_LENGTH("TX_CHECKS_NORMALIZED_RISK", data->length, sizeof(context->simu->risk));
     if (data->value[0] >= RISK_MALICIOUS) {
         PRINTF("TX_CHECKS_NORMALIZED_RISK out of range: %d\n", data->value[0]);
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
     context->simu->risk = data->value[0] + 1;  // Because 0 is "unknown"
     context->rcv_flags |= SET_BIT(BIT_TX_CHECKS_NORMALIZED_RISK);
-    return APDU_RESPONSE_OK;
+    return SWO_SUCCESS;
 }
 
 /**
@@ -239,7 +239,7 @@ static uint16_t parse_category(const s_tlv_data *data, s_tx_simu_ctx *context) {
                        sizeof(context->simu->category));
     context->simu->category = data->value[0];
     context->rcv_flags |= SET_BIT(BIT_TX_CHECKS_NORMALIZED_CATEGORY);
-    return APDU_RESPONSE_OK;
+    return SWO_SUCCESS;
 }
 
 /**
@@ -253,11 +253,11 @@ static uint16_t parse_type(const s_tlv_data *data, s_tx_simu_ctx *context) {
     CHECK_FIELD_LENGTH("TX_CHECKS_SIMU_TYPE", data->length, sizeof(context->simu->type));
     if (data->value[0] >= SIMU_TYPE_PERSONAL_MESSAGE) {
         PRINTF("TX_CHECKS_SIMU_TYPE out of range: %d\n", data->value[0]);
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
     context->simu->type = data->value[0] + 1;  // Because 0 is "unknown"
     context->rcv_flags |= SET_BIT(BIT_TX_CHECKS_SIMU_TYPE);
-    return APDU_RESPONSE_OK;
+    return SWO_SUCCESS;
 }
 
 /**
@@ -272,11 +272,11 @@ static uint16_t parse_provider_msg(const s_tlv_data *data, s_tx_simu_ctx *contex
     // Check if the name is printable
     if (!check_name(data->value, data->length)) {
         PRINTF("TX_CHECKS_PROVIDER_MSG is not printable!\n");
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
     COPY_FIELD(context->simu->provider_msg, data);
     context->rcv_flags |= SET_BIT(BIT_TX_CHECKS_PROVIDER_MSG);
-    return APDU_RESPONSE_OK;
+    return SWO_SUCCESS;
 }
 
 /**
@@ -291,11 +291,11 @@ static uint16_t parse_tiny_url(const s_tlv_data *data, s_tx_simu_ctx *context) {
     // Check if the name is printable
     if (!check_name(data->value, data->length)) {
         PRINTF("TX_CHECKS_TINY_URL is not printable!\n");
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
     COPY_FIELD(context->simu->tiny_url, data);
     context->rcv_flags |= SET_BIT(BIT_TX_CHECKS_TINY_URL);
-    return APDU_RESPONSE_OK;
+    return SWO_SUCCESS;
 }
 
 /**
@@ -309,7 +309,7 @@ static uint16_t parse_signature(const s_tlv_data *data, s_tx_simu_ctx *context) 
     context->sig_size = data->length;
     context->sig = (uint8_t *) data->value;
     context->rcv_flags |= SET_BIT(BIT_DER_SIGNATURE);
-    return APDU_RESPONSE_OK;
+    return SWO_SUCCESS;
 }
 
 /**
@@ -415,7 +415,7 @@ static void print_simulation_info(s_tx_simu_ctx *context) {
  * @return APDU Response code
  */
 static bool handle_tx_simu_tlv(const s_tlv_data *data, s_tx_simu_ctx *context) {
-    uint16_t sw = APDU_RESPONSE_INTERNAL_ERROR;
+    uint16_t sw = SWO_NOT_SUPPORTED_ERROR_NO_INFO;
 
     switch (data->tag) {
         case TAG_STRUCTURE_TYPE:
@@ -456,13 +456,13 @@ static bool handle_tx_simu_tlv(const s_tlv_data *data, s_tx_simu_ctx *context) {
             break;
         default:
             PRINTF(TLV_TAG_ERROR_MSG, data->tag);
-            sw = APDU_RESPONSE_OK;
+            sw = SWO_SUCCESS;
             break;
     }
-    if ((sw == APDU_RESPONSE_OK) && (data->tag != TAG_DER_SIGNATURE)) {
+    if ((sw == SWO_SUCCESS) && (data->tag != TAG_DER_SIGNATURE)) {
         hash_nbytes(data->raw, data->raw_size, (cx_hash_t *) &context->hash_ctx);
     }
-    return (sw == APDU_RESPONSE_OK);
+    return (sw == SWO_SUCCESS);
 }
 
 /**
@@ -508,7 +508,7 @@ void handle_tx_simulation_opt_in(bool response_expected) {
         if (response_expected) {
             // just respond the current state and return to idle screen
             G_io_apdu_buffer[0] = N_storage.tx_check_enable;
-            io_seproxyhal_send_status(APDU_RESPONSE_OK, 1, false, true);
+            io_seproxyhal_send_status(SWO_SUCCESS, 1, false, true);
         }
         return;
     }
@@ -529,20 +529,20 @@ uint16_t handle_tx_simulation(uint8_t p1,
                               const uint8_t *data,
                               uint8_t length,
                               unsigned int *flags) {
-    uint16_t sw = APDU_RESPONSE_INTERNAL_ERROR;
+    uint16_t sw = SWO_NOT_SUPPORTED_ERROR_NO_INFO;
 
     switch (p1) {
         case 0x00:
             // TX Simulation data
             if (!N_storage.tx_check_enable) {
                 PRINTF("Error: TX_CHECKS_ check is disabled!\n");
-                sw = APDU_RESPONSE_CMD_CODE_NOT_SUPPORTED;
+                sw = SWO_COMMAND_CODE_NOT_SUPPORTED;
                 break;
             }
             if (!tlv_from_apdu(p2 == P1_FIRST_CHUNK, length, data, &handle_tlv_payload)) {
-                sw = APDU_RESPONSE_INVALID_DATA;
+                sw = SWO_INCORRECT_DATA;
             } else {
-                sw = APDU_RESPONSE_OK;
+                sw = SWO_SUCCESS;
             }
             break;
         case 0x01:
@@ -553,7 +553,7 @@ uint16_t handle_tx_simulation(uint8_t p1,
             break;
         default:
             PRINTF("Error: Unexpected P1 (%u)!\n", p1);
-            sw = APDU_RESPONSE_INVALID_P1_P2;
+            sw = SWO_WRONG_P1_P2;
             break;
     }
     return sw;
@@ -626,7 +626,7 @@ static bool check_tx_simulation_hash(void) {
  */
 static bool check_tx_simulation_from_address(void) {
     uint8_t msg_sender[ADDRESS_LENGTH] = {0};
-    if (get_public_key(msg_sender, sizeof(msg_sender)) != APDU_RESPONSE_OK) {
+    if (get_public_key(msg_sender, sizeof(msg_sender)) != SWO_SUCCESS) {
         PRINTF("[TX SIMU] Unable to get the public key!\n");
         PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
         TX_SIMULATION.risk = RISK_UNKNOWN;

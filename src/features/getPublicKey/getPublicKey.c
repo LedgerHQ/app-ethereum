@@ -27,7 +27,7 @@ uint16_t get_public_key(uint8_t *out, uint8_t outLength) {
     cx_err_t error = CX_INTERNAL_ERROR;
 
     if (outLength < ADDRESS_LENGTH) {
-        return APDU_RESPONSE_WRONG_DATA_LENGTH;
+        return SWO_AUTH_METHOD_BLOCKED;
     }
     CX_CHECK(bip32_derive_get_pubkey_256(CX_CURVE_256K1,
                                          tmpCtx.transactionContext.bip32.path,
@@ -37,7 +37,7 @@ uint16_t get_public_key(uint8_t *out, uint8_t outLength) {
                                          CX_SHA512));
 
     getEthAddressFromRawKey(raw_pubkey, out);
-    error = APDU_RESPONSE_OK;
+    error = SWO_SUCCESS;
 end:
     return error;
 }

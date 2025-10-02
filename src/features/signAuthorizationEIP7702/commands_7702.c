@@ -34,7 +34,7 @@ uint16_t hashRLP(const uint8_t *data, uint8_t dataLength, uint8_t *rlpTmp, uint8
 
     hashSize = rlpEncodeNumber(data, dataLength, rlpTmp, rlpTmpLength);
     if (hashSize == 0) {
-        return APDU_RESPONSE_UNKNOWN;
+        return SWO_UNKNOWN;
     }
     CX_CHECK(cx_hash_no_throw((cx_hash_t *) g_7702_hash_ctx, 0, rlpTmp, hashSize, NULL, 0));
     return APDU_NO_RESPONSE;
@@ -71,19 +71,19 @@ static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size) {
     const char *delegateName;
 
     // Default internal error triggered by CX_CHECK
-    g_7702_sw = APDU_RESPONSE_UNKNOWN;
+    g_7702_sw = SWO_UNKNOWN;
 
     parsing_ret =
         tlv_parse(payload, size, (f_tlv_data_handler) handle_auth_7702_struct, &auth_7702_ctx);
     if (!parsing_ret || !verify_auth_7702_struct(&auth_7702_ctx)) {
-        g_7702_sw = APDU_RESPONSE_INVALID_DATA;
+        g_7702_sw = SWO_INCORRECT_DATA;
         goto end;
     }
 
     // Reject if not enabled
     if (!N_storage.eip7702_enable) {
         ui_error_no_7702();
-        g_7702_sw = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        g_7702_sw = SWO_CONDITIONS_NOT_SATISFIED;
         goto end;
     }
 
@@ -99,7 +99,7 @@ static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size) {
     rlpTmp[0] = MAGIC_7702;
     hashSize = rlpEncodeListHeader8(rlpDataSize, rlpTmp + 1, sizeof(rlpTmp) - 1);
     if (hashSize == 0) {
-        g_7702_sw = APDU_RESPONSE_UNKNOWN;
+        g_7702_sw = SWO_UNKNOWN;
         goto end;
     }
     if (mem_buffer_allocate((void **) &g_7702_hash_ctx, sizeof(cx_sha3_t)) == false) {
@@ -144,7 +144,7 @@ static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size) {
         if (delegateName == NULL) {
             // Reject if not in the whitelist
             ui_error_no_7702_whitelist();
-            g_7702_sw = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+            g_7702_sw = SWO_CONDITIONS_NOT_SATISFIED;
             goto end;
         } else {
             strlcpy(strings.common.toAddress, delegateName, sizeof(strings.common.toAddress));
@@ -161,7 +161,7 @@ static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size) {
             if (!u64_to_string(auth7702->chainId,
                                strings.common.network_name,
                                sizeof(strings.common.network_name))) {
-                // return APDU_RESPONSE_UNKNOWN;
+                // return SWO_UNKNOWN;
                 // Do not crash if the chain id is too long
                 strings.common.network_name[0] = '?';
                 strings.common.network_name[1] = '\0';
@@ -187,12 +187,12 @@ uint16_t handleSignEIP7702Authorization(uint8_t p1,
                                         const uint8_t *dataBuffer,
                                         uint8_t dataLength,
                                         unsigned int *flags) {
-    g_7702_sw = APDU_RESPONSE_UNKNOWN;
+    g_7702_sw = SWO_UNKNOWN;
     if (p1 == P1_FIRST_CHUNK) {
         if ((dataBuffer =
                  parseBip32(dataBuffer, &dataLength, &tmpCtx.authSigningContext7702.bip32)) ==
             NULL) {
-            return APDU_RESPONSE_INVALID_DATA;
+            return SWO_INCORRECT_DATA;
         }
     }
     if (!tlv_from_apdu(p1 == P1_FIRST_CHUNK, dataLength, dataBuffer, &handleAuth7702TLV)) {

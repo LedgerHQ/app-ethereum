@@ -39,7 +39,7 @@ uint16_t handle_trusted_name(uint8_t p1, const uint8_t *data, uint8_t length) {
     if (!tlv_from_apdu(p1 == P1_FIRST_CHUNK, length, data, &handle_tlv_payload)) {
         mem_buffer_cleanup((void **) &g_trusted_name);
         mem_buffer_cleanup((void **) &g_trusted_name_info);
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
-    return APDU_RESPONSE_OK;
+    return SWO_SUCCESS;
 }

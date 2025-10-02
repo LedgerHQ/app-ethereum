@@ -335,7 +335,7 @@ static bool ux_init(bool fromPlugin, uint8_t title_len, uint8_t finish_len) {
 
     return true;
 error:
-    io_seproxyhal_send_status(APDU_RESPONSE_INSUFFICIENT_MEMORY, 0, true, true);
+    io_seproxyhal_send_status(SWO_INSUFFICIENT_MEMORY, 0, true, true);
     _cleanup();
     return false;
 }

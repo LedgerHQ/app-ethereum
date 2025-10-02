@@ -173,12 +173,12 @@ static void setTagValuePairs(void) {
 static void review_cb(bool confirm) {
     if (confirm) {
         // User confirmed the Safe Account
-        _cleanup(APDU_RESPONSE_OK);
+        _cleanup(SWO_SUCCESS);
         nbgl_useCaseStatus("Safe Address validated", true, ui_idle);
         return;
     } else {
         // User rejected the Safe Account
-        _cleanup(APDU_RESPONSE_CONDITION_NOT_SATISFIED);
+        _cleanup(SWO_CONDITIONS_NOT_SATISFIED);
         nbgl_useCaseStatus("Safe Address rejected", false, ui_idle);
     }
 }
@@ -191,7 +191,7 @@ void ui_display_safe_account(void) {
     // Memory allocations
     if (_prepare_memory() == false) {
         // Memory allocation failed in _prepare_memory
-        _cleanup(APDU_RESPONSE_INSUFFICIENT_MEMORY);
+        _cleanup(SWO_INSUFFICIENT_MEMORY);
         return;
     }
     // Prepare strings for display

@@ -191,7 +191,7 @@ customStatus_e customProcessor(txContext_t *context) {
 }
 
 static void report_finalize_error(void) {
-    io_seproxyhal_send_status(APDU_RESPONSE_INVALID_DATA, 0, true, true);
+    io_seproxyhal_send_status(SWO_INCORRECT_DATA, 0, true, true);
 }
 
 static uint16_t address_to_string(uint8_t *in,
@@ -201,12 +201,12 @@ static uint16_t address_to_string(uint8_t *in,
                                   uint64_t chainId) {
     if (in_len != 0) {
         if (!getEthDisplayableAddress(in, out, out_len, chainId)) {
-            return APDU_RESPONSE_ERROR_NO_INFO;
+            return SWO_PARAMETER_ERROR_NO_INFO;
         }
     } else {
         strlcpy(out, "Contract", out_len);
     }
-    return APDU_RESPONSE_OK;
+    return SWO_SUCCESS;
 }
 
 static void raw_fee_to_string(uint256_t *rawFee, char *out_buffer, uint32_t out_buffer_size) {
@@ -308,7 +308,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
     }
     // Store the hash
     if (g_tx_hash_ctx == NULL) {
-        error = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+        error = SWO_INSUFFICIENT_MEMORY;
         goto end;
     }
     CX_CHECK(cx_hash_no_throw((cx_hash_t *) g_tx_hash_ctx,
@@ -320,7 +320,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
 
     uint8_t msg_sender[ADDRESS_LENGTH] = {0};
     error = get_public_key(msg_sender, sizeof(msg_sender));
-    if (error != APDU_RESPONSE_OK) {
+    if (error != SWO_SUCCESS) {
         goto end;
     }
 
@@ -329,7 +329,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
                               strings.common.fromAddress,
                               sizeof(strings.common.fromAddress),
                               chainConfig->chainId);
-    if (error != APDU_RESPONSE_OK) {
+    if (error != SWO_SUCCESS) {
         goto end;
     }
     PRINTF("FROM address displayed: %s\n", strings.common.fromAddress);
@@ -467,7 +467,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
                                   displayBuffer,
                                   sizeof(displayBuffer),
                                   chainConfig->chainId);
-        if (error != APDU_RESPONSE_OK) {
+        if (error != SWO_SUCCESS) {
             goto end;
         }
         if (G_called_from_swap) {
@@ -526,7 +526,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
                                       &tmpContent.txContent.startgas,
                                       displayBuffer,
                                       sizeof(displayBuffer)) == false) {
-        error = APDU_RESPONSE_INVALID_DATA;
+        error = SWO_INCORRECT_DATA;
         goto end;
     }
     if (G_called_from_swap) {
@@ -556,7 +556,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
 
     // Prepare network field
     error = get_network_as_string(strings.common.network_name, sizeof(strings.common.network_name));
-    if (error == APDU_RESPONSE_OK) {
+    if (error == SWO_SUCCESS) {
         PRINTF("Network: %s\n", strings.common.network_name);
     }
 end:
@@ -575,18 +575,18 @@ void start_signature_flow(void) {
 }
 
 uint16_t finalize_parsing(const txContext_t *context) {
-    uint16_t sw = APDU_RESPONSE_UNKNOWN;
+    uint16_t sw = SWO_UNKNOWN;
     g_use_standard_ui = true;
 
     sw = finalize_parsing_helper(context);
-    if (sw != APDU_RESPONSE_OK) {
+    if (sw != SWO_SUCCESS) {
         return sw;
     }
     if (context->store_calldata) {
         if ((get_current_calldata() == NULL) ||
             (calldata_get_selector(get_current_calldata()) == NULL)) {
             PRINTF("Asked to store calldata but none was provided!\n");
-            return APDU_RESPONSE_INVALID_DATA;
+            return SWO_INCORRECT_DATA;
         }
     } else {
         // If called from swap, the user has already validated a standard transaction
@@ -597,5 +597,5 @@ uint16_t finalize_parsing(const txContext_t *context) {
             start_signature_flow();
         }
     }
-    return APDU_RESPONSE_OK;
+    return SWO_SUCCESS;
 }

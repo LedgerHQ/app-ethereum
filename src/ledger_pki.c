@@ -46,7 +46,7 @@ int check_signature_with_pubkey(const char *tag,
         if (!os_pki_verify(buffer, bufLen, signature, sigLen)) {
             PRINTF("%s: Invalid signature\n", tag);
 #ifndef HAVE_BYPASS_SIGNATURES
-            error = APDU_RESPONSE_INVALID_DATA;
+            error = SWO_INCORRECT_DATA;
             goto end;
 #endif
         }
@@ -56,7 +56,7 @@ int check_signature_with_pubkey(const char *tag,
         if (!cx_ecdsa_verify_no_throw(&verif_key, buffer, bufLen, signature, sigLen)) {
             PRINTF("%s: Invalid signature\n", tag);
 #ifndef HAVE_BYPASS_SIGNATURES
-            error = APDU_RESPONSE_INVALID_DATA;
+            error = SWO_INCORRECT_DATA;
             goto end;
 #endif
         }

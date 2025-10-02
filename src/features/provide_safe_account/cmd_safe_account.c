@@ -25,40 +25,40 @@ uint16_t handle_safe_account(uint8_t p1,
                              const uint8_t *data,
                              uint8_t length,
                              uint32_t *flags) {
-    uint16_t sw = APDU_RESPONSE_INTERNAL_ERROR;
+    uint16_t sw = SWO_NOT_SUPPORTED_ERROR_NO_INFO;
 
     // Check error cases
     if (p1 != P1_FIRST_CHUNK && p1 != P1_FOLLOWING_CHUNK) {
         PRINTF("Error: Invalid P1 (%u)\n", p1);
-        return APDU_RESPONSE_INVALID_P1_P2;
+        return SWO_WRONG_P1_P2;
     }
     switch (p2) {
         case SAFE_DESCRIPTOR:
             if (SAFE_DESC != NULL) {
                 PRINTF("Error: Safe descriptor already exists!\n");
-                sw = APDU_RESPONSE_FILE_ALREADY_EXIST;
+                sw = SWO_FILE_ALREADY_EXISTS;
             } else {
-                sw = APDU_RESPONSE_OK;  // No error for P1_SAFE_DESCRIPTOR if SAFE_DESC is NULL
+                sw = SWO_SUCCESS;  // No error for P1_SAFE_DESCRIPTOR if SAFE_DESC is NULL
             }
             break;
         case SIGNER_DESCRIPTOR:
             if (SAFE_DESC == NULL) {
                 PRINTF("Error: Safe descriptor does not exist!\n");
-                sw = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+                sw = SWO_CONDITIONS_NOT_SATISFIED;
             } else if (SIGNER_DESC.data != NULL) {
                 PRINTF("Error: Signer descriptor already exists!\n");
-                sw = APDU_RESPONSE_FILE_ALREADY_EXIST;
+                sw = SWO_FILE_ALREADY_EXISTS;
             } else {
-                sw = APDU_RESPONSE_OK;  // No error for P1_SAFE_DESCRIPTOR if SAFE_DESC is NULL
+                sw = SWO_SUCCESS;  // No error for P1_SAFE_DESCRIPTOR if SAFE_DESC is NULL
             }
             break;
         default:
             PRINTF("Error: Invalid P2 (%u)\n", p2);
-            sw = APDU_RESPONSE_INVALID_P1_P2;
+            sw = SWO_WRONG_P1_P2;
             break;
     }
 
-    if (sw != APDU_RESPONSE_OK) {
+    if (sw != SWO_SUCCESS) {
         return sw;  // Return early if there is an error
     }
 
@@ -66,21 +66,21 @@ uint16_t handle_safe_account(uint8_t p1,
     switch (p2) {
         case SAFE_DESCRIPTOR:
             if (!tlv_from_apdu(p1 == P1_FIRST_CHUNK, length, data, &handle_safe_tlv_payload)) {
-                sw = APDU_RESPONSE_INVALID_DATA;
+                sw = SWO_INCORRECT_DATA;
             } else {
-                sw = APDU_RESPONSE_OK;
+                sw = SWO_SUCCESS;
             }
             break;
         case SIGNER_DESCRIPTOR:
             if (!tlv_from_apdu(p1 == P1_FIRST_CHUNK, length, data, &handle_signer_tlv_payload)) {
-                sw = APDU_RESPONSE_INVALID_DATA;
+                sw = SWO_INCORRECT_DATA;
             } else {
-                sw = APDU_RESPONSE_OK;
+                sw = SWO_SUCCESS;
             }
             break;
         default:
             PRINTF("Error: Unexpected P1 (%u)!\n", p1);
-            sw = APDU_RESPONSE_INVALID_P1_P2;
+            sw = SWO_WRONG_P1_P2;
             break;
     }
 

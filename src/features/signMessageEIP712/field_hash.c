@@ -26,7 +26,7 @@ bool field_hash_init(void) {
     }
 
     if ((fh = app_mem_alloc(sizeof(*fh))) == NULL) {
-        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+        apdu_response_code = SWO_INSUFFICIENT_MEMORY;
         return false;
     }
     explicit_bzero(fh, sizeof(*fh));
@@ -102,7 +102,7 @@ static const uint8_t *field_hash_finalize_static(const s_struct_712_field *field
             break;
         case TYPE_CUSTOM:
         default:
-            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+            apdu_response_code = SWO_INCORRECT_DATA;
             PRINTF("Unknown solidity type!\n");
     }
     return value;
@@ -120,7 +120,7 @@ static uint8_t *field_hash_finalize_dynamic(void) {
     cx_err_t error = CX_INTERNAL_ERROR;
 
     if ((value = app_mem_alloc(KECCAK256_HASH_BYTESIZE)) == NULL) {
-        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+        apdu_response_code = SWO_INSUFFICIENT_MEMORY;
         return NULL;
     }
     // copy hash into memory
@@ -181,7 +181,7 @@ static bool field_hash_domain_special_fields(const s_struct_712_field *field_ptr
         switch (field_ptr->type) {
             case TYPE_SOL_ADDRESS:
                 if (data_length > sizeof(eip712_context->contract_addr)) {
-                    apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+                    apdu_response_code = SWO_INCORRECT_DATA;
                     PRINTF("Error: verifyingContract too big\n");
                     return false;
                 }
@@ -190,13 +190,13 @@ static bool field_hash_domain_special_fields(const s_struct_712_field *field_ptr
                 // hardcoded check for their non-standard implementation
                 if ((data_length != strlen(ethermint_vc)) ||
                     (strncmp((char *) data, ethermint_vc, data_length) != 0)) {
-                    apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+                    apdu_response_code = SWO_INCORRECT_DATA;
                     PRINTF("Error: non standard verifyingContract\n");
                     return false;
                 }
                 break;
             default:
-                apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+                apdu_response_code = SWO_INCORRECT_DATA;
                 PRINTF("Error: unexpected type for verifyingContract (%u)!\n", field_ptr->type);
                 return false;
         }
@@ -259,7 +259,7 @@ bool field_hash(const uint8_t *data, uint8_t data_length, bool partial) {
     uint16_t total_length = 0;
 
     if ((fh == NULL) || ((field_ptr = path_get_field()) == NULL)) {
-        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        apdu_response_code = SWO_CONDITIONS_NOT_SATISFIED;
         return false;
     }
 
@@ -269,7 +269,7 @@ bool field_hash(const uint8_t *data, uint8_t data_length, bool partial) {
             return false;
         }
         if (data_length < 2) {
-            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+            apdu_response_code = SWO_INCORRECT_DATA;
             return false;
         }
 
@@ -277,7 +277,7 @@ bool field_hash(const uint8_t *data, uint8_t data_length, bool partial) {
         total_length = fh->remaining_size;
     }
     if (data_length > fh->remaining_size) {
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        apdu_response_code = SWO_INCORRECT_DATA;
         return false;
     }
     fh->remaining_size -= data_length;
@@ -295,7 +295,7 @@ bool field_hash(const uint8_t *data, uint8_t data_length, bool partial) {
     if (fh->remaining_size == 0) {
         if (partial)  // only makes sense if marked as complete
         {
-            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+            apdu_response_code = SWO_INCORRECT_DATA;
             return false;
         }
         if (field_hash_finalize(field_ptr, data, data_length) == false) {
@@ -304,7 +304,7 @@ bool field_hash(const uint8_t *data, uint8_t data_length, bool partial) {
     } else {
         if (!partial || !IS_DYN(field_ptr->type))  // only makes sense if marked as partial
         {
-            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+            apdu_response_code = SWO_INCORRECT_DATA;
             return false;
         }
         handle_eip712_return_code(true);

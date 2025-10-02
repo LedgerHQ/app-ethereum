@@ -45,7 +45,7 @@ void ui_display_public_key(const uint64_t *chain_id) {
     // Initialize the buffers
     if (!ui_buffers_init(title_len, 0, 0)) {
         // Initialization failed, cleanup and return
-        io_seproxyhal_send_status(APDU_RESPONSE_INSUFFICIENT_MEMORY, 0, true, true);
+        io_seproxyhal_send_status(SWO_INSUFFICIENT_MEMORY, 0, true, true);
         return;
     }
     // Prepare the title message

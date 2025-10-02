@@ -2,6 +2,7 @@
 
 #include "offsets.h"
 #include "shared_context.h"
+#include "status_words.h"
 
 #define APP_FLAG_DATA_ALLOWED          0x01
 #define APP_FLAG_EXTERNAL_TOKEN_NEEDED 0x02
@@ -73,26 +74,8 @@
 #define P2_EIP712_LEGACY_IMPLEM 0x00
 #define P2_EIP712_FULL_IMPLEM   0x01
 
-#define APDU_NO_RESPONSE                      0x0000
-#define APDU_RESPONSE_MODE_CHECK_FAILED       0x6001
-#define APDU_RESPONSE_TX_TYPE_NOT_SUPPORTED   0x6501
-#define APDU_RESPONSE_CHAINID_OUT_BUF_SMALL   0x6502
-#define APDU_RESPONSE_INTERNAL_ERROR          0x6800
-#define APDU_RESPONSE_SECURITY_NOT_SATISFIED  0x6982
-#define APDU_RESPONSE_WRONG_DATA_LENGTH       0x6983
-#define APDU_RESPONSE_PLUGIN_NOT_INSTALLED    0x6984
-#define APDU_RESPONSE_CONDITION_NOT_SATISFIED 0x6985
-#define APDU_RESPONSE_ERROR_NO_INFO           0x6a00
-#define APDU_RESPONSE_INVALID_DATA            0x6a80
-#define APDU_RESPONSE_INSUFFICIENT_MEMORY     0x6a84
-#define APDU_RESPONSE_REF_DATA_NOT_FOUND      0x6a88
-#define APDU_RESPONSE_FILE_ALREADY_EXIST      0x6a89
-#define APDU_RESPONSE_INVALID_P1_P2           0x6b00
-#define APDU_RESPONSE_INVALID_INS             0x6d00
-#define APDU_RESPONSE_INVALID_CLA             0x6e00
-#define APDU_RESPONSE_UNKNOWN                 0x6f00
-#define APDU_RESPONSE_OK                      0x9000
-#define APDU_RESPONSE_CMD_CODE_NOT_SUPPORTED  0x911c
+#define APDU_NO_RESPONSE                0x0000
+#define APDU_RESPONSE_MODE_CHECK_FAILED 0x6001
 
 uint16_t handleGetPublicKey(uint8_t p1,
                             uint8_t p2,

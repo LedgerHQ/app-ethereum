@@ -28,5 +28,5 @@ uint16_t handle_get_challenge(unsigned int *tx) {
     PRINTF("New challenge -> %u\n", get_challenge());
     U4BE_ENCODE(G_io_apdu_buffer, 0, get_challenge());
     *tx += 4;
-    return APDU_RESPONSE_OK;
+    return SWO_SUCCESS;
 }

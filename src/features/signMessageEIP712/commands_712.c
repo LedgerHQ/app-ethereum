@@ -50,10 +50,10 @@ static void apdu_reply(bool success) {
     bool home = true;
 
     if (success) {
-        apdu_response_code = APDU_RESPONSE_OK;
+        apdu_response_code = SWO_SUCCESS;
     } else {
-        if (apdu_response_code == APDU_RESPONSE_OK) {  // somehow not set
-            apdu_response_code = APDU_RESPONSE_ERROR_NO_INFO;
+        if (apdu_response_code == SWO_SUCCESS) {  // somehow not set
+            apdu_response_code = SWO_PARAMETER_ERROR_NO_INFO;
         }
         if (eip712_context != NULL) {
             home = eip712_context->go_home_on_failure;
@@ -105,7 +105,7 @@ uint16_t handle_eip712_struct_def(uint8_t p2, const uint8_t *cdata, uint8_t leng
                 break;
             default:
                 PRINTF("Unknown P2 0x%x\n", p2);
-                apdu_response_code = APDU_RESPONSE_INVALID_P1_P2;
+                apdu_response_code = SWO_WRONG_P1_P2;
                 ret = false;
         }
     }
@@ -131,7 +131,7 @@ uint16_t handle_eip712_struct_impl(uint8_t p1,
     bool reply_apdu = true;
 
     if (eip712_context == NULL) {
-        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        apdu_response_code = SWO_CONDITIONS_NOT_SATISFIED;
     } else {
         switch (p2) {
             case P2_IMPL_NAME:
@@ -160,7 +160,7 @@ uint16_t handle_eip712_struct_impl(uint8_t p1,
                 break;
             default:
                 PRINTF("Unknown P2 0x%x\n", p2);
-                apdu_response_code = APDU_RESPONSE_INVALID_P1_P2;
+                apdu_response_code = SWO_WRONG_P1_P2;
         }
     }
     if (reply_apdu) {
@@ -191,10 +191,10 @@ uint16_t handle_eip712_filtering(uint8_t p1,
 
     if (eip712_context == NULL) {
         apdu_reply(false);
-        return APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        return SWO_CONDITIONS_NOT_SATISFIED;
     }
     if ((p2 != P2_FILT_ACTIVATE) && (ui_712_get_filtering_mode() != EIP712_FILTERING_FULL)) {
-        return APDU_RESPONSE_OK;
+        return SWO_SUCCESS;
     }
     switch (p2) {
         case P2_FILT_ACTIVATE:
@@ -251,7 +251,7 @@ uint16_t handle_eip712_filtering(uint8_t p1,
             break;
         default:
             PRINTF("Unknown P2 0x%x\n", p2);
-            apdu_response_code = APDU_RESPONSE_INVALID_P1_P2;
+            apdu_response_code = SWO_WRONG_P1_P2;
             ret = false;
     }
     if ((p2 > P2_FILT_MESSAGE_INFO) && (p2 != P2_FILT_CALLDATA_INFO) && ret) {
@@ -277,7 +277,7 @@ uint16_t handle_eip712_sign(const uint8_t *cdata, uint8_t length, uint32_t *flag
     bool ret = false;
 
     if (eip712_context == NULL) {
-        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        apdu_response_code = SWO_CONDITIONS_NOT_SATISFIED;
     }
     // if the final hashes are still zero or if there are some unimplemented fields
     else if (allzeroes(tmpCtx.messageSigningContext712.domainHash,
@@ -285,16 +285,16 @@ uint16_t handle_eip712_sign(const uint8_t *cdata, uint8_t length, uint32_t *flag
              allzeroes(tmpCtx.messageSigningContext712.messageHash,
                        sizeof(tmpCtx.messageSigningContext712.messageHash)) ||
              (path_get_field() != NULL)) {
-        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        apdu_response_code = SWO_CONDITIONS_NOT_SATISFIED;
     } else if ((ui_712_get_filtering_mode() == EIP712_FILTERING_FULL) &&
                (ui_712_remaining_filters() != 0)) {
         PRINTF("%d EIP712 filters are missing\n", ui_712_remaining_filters());
-        apdu_response_code = APDU_RESPONSE_REF_DATA_NOT_FOUND;
+        apdu_response_code = SWO_REFERENCED_DATA_NOT_FOUND;
     } else if (!all_calldata_info_processed() || (get_tx_ctx_count() != 0)) {
         PRINTF("Unprocessed calldata\n");
-        apdu_response_code = APDU_RESPONSE_REF_DATA_NOT_FOUND;
+        apdu_response_code = SWO_REFERENCED_DATA_NOT_FOUND;
     } else if (parseBip32(cdata, &length, &tmpCtx.messageSigningContext.bip32) == NULL) {
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        apdu_response_code = SWO_INCORRECT_DATA;
     } else {
         ret = true;
 #ifndef SCREEN_SIZE_WALLET

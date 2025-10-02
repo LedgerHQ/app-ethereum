@@ -108,7 +108,7 @@ static bool get_struct_dependencies(s_struct_dep **first_dep, const s_struct_712
             // if it's not present in the array, add it and recurse into it
             if (tmp == NULL) {
                 if ((new_dep = app_mem_alloc(sizeof(s_struct_dep))) == NULL) {
-                    apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+                    apdu_response_code = SWO_INSUFFICIENT_MEMORY;
                     return false;
                 }
                 explicit_bzero(new_dep, sizeof(*new_dep));

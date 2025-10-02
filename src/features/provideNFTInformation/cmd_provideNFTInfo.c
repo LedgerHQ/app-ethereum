@@ -61,18 +61,18 @@ uint16_t handleProvideNFTInformation(const uint8_t *workBuffer,
         PRINTF("Data too small for headers: expected at least %d, got %d\n",
                HEADER_SIZE,
                dataLength);
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
 
     if (workBuffer[offset] != TYPE_1) {
         PRINTF("Unsupported type %d\n", workBuffer[offset]);
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
     offset += TYPE_SIZE;
 
     if (workBuffer[offset] != VERSION_1) {
         PRINTF("Unsupported version %d\n", workBuffer[offset]);
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
     offset += VERSION_SIZE;
 
@@ -86,14 +86,14 @@ uint16_t handleProvideNFTInformation(const uint8_t *workBuffer,
         PRINTF("Data too small for payload: expected at least %d, got %d\n",
                payloadSize,
                dataLength);
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
 
     if (collectionNameLength > COLLECTION_NAME_MAX_LEN) {
         PRINTF("CollectionName too big: expected max %d, got %d\n",
                COLLECTION_NAME_MAX_LEN,
                collectionNameLength);
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
 
     // Safe because we've checked the size before.
@@ -114,19 +114,19 @@ uint16_t handleProvideNFTInformation(const uint8_t *workBuffer,
     PRINTF("ChainID: %.*H\n", sizeof(chain_id), (workBuffer + offset));
     if (!app_compatible_with_chain_id(&chain_id)) {
         UNSUPPORTED_CHAIN_ID_MSG(chain_id);
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
     offset += CHAIN_ID_SIZE;
 
     if (workBuffer[offset] != valid_keyId) {
         PRINTF("Unsupported KeyID %d\n", workBuffer[offset]);
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
     offset += KEY_ID_SIZE;
 
     if (workBuffer[offset] != ALGORITHM_ID_1) {
         PRINTF("Incorrect algorithmId %d\n", workBuffer[offset]);
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
     offset += ALGORITHM_ID_SIZE;
 
@@ -135,7 +135,7 @@ uint16_t handleProvideNFTInformation(const uint8_t *workBuffer,
 
     if (dataLength < payloadSize + SIGNATURE_LENGTH_SIZE) {
         PRINTF("Data too short to hold signature length\n");
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
 
     signatureLen = workBuffer[offset];
@@ -145,13 +145,13 @@ uint16_t handleProvideNFTInformation(const uint8_t *workBuffer,
                MIN_DER_SIG_SIZE,
                MAX_DER_SIG_SIZE,
                signatureLen);
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
     offset += SIGNATURE_LENGTH_SIZE;
 
     if (dataLength < payloadSize + SIGNATURE_LENGTH_SIZE + signatureLen) {
         PRINTF("Signature could not fit in data\n");
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
 
     error = check_signature_with_pubkey("NFT Info",
@@ -164,12 +164,12 @@ uint16_t handleProvideNFTInformation(const uint8_t *workBuffer,
                                         signatureLen);
 #ifndef HAVE_BYPASS_SIGNATURES
     if (error != CX_OK) {
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
 #endif
 
     G_io_apdu_buffer[0] = tmpCtx.transactionContext.currentAssetIndex;
     validate_current_asset_info();
     *tx += 1;
-    return APDU_RESPONSE_OK;
+    return SWO_SUCCESS;
 }

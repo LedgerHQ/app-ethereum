@@ -26,7 +26,7 @@ bool sol_typenames_init(void) {
         return false;
     }
     if ((g_sol_types = app_mem_alloc(sizeof(*g_sol_types) * count)) == NULL) {
-        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+        apdu_response_code = SWO_INSUFFICIENT_MEMORY;
         return false;
     }
     for (int i = 0; i < count; ++i) {
@@ -52,11 +52,11 @@ bool sol_typenames_init(void) {
                 g_sol_types[i].name = app_mem_strdup("bytes");
                 break;
             default:
-                apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+                apdu_response_code = SWO_INCORRECT_DATA;
                 return false;
         }
         if (g_sol_types[i].name == NULL) {
-            apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+            apdu_response_code = SWO_INSUFFICIENT_MEMORY;
             return false;
         }
     }
@@ -85,6 +85,6 @@ const char *get_struct_field_sol_typename(const s_struct_712_field *field_ptr) {
             return g_sol_types[i].name;
         }
     }
-    apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+    apdu_response_code = SWO_INCORRECT_DATA;
     return NULL;  // Not found
 }

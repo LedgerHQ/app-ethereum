@@ -17,14 +17,14 @@ uint16_t handleSetExternalPlugin(const uint8_t *workBuffer, uint8_t dataLength) 
 
     if (dataLength <= payload_size) {
         PRINTF("data too small: expected at least %d got %d\n", payload_size, dataLength);
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
 
     if (pluginNameLength + 1 > sizeof(dataContext.tokenContext.pluginName)) {
         PRINTF("name length too big: expected max %d, got %d\n",
                sizeof(dataContext.tokenContext.pluginName),
                pluginNameLength + 1);
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
 
     // check Ledger's signature over the payload
@@ -41,7 +41,7 @@ uint16_t handleSetExternalPlugin(const uint8_t *workBuffer, uint8_t dataLength) 
     if (error != CX_OK) {
         PRINTF("Invalid signature\n");
 #ifndef HAVE_BYPASS_SIGNATURES
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
 #endif
     }
 
@@ -67,7 +67,7 @@ uint16_t handleSetExternalPlugin(const uint8_t *workBuffer, uint8_t dataLength) 
                    0,
                    sizeof(dataContext.tokenContext.pluginName));
             CLOSE_TRY;
-            return APDU_RESPONSE_PLUGIN_NOT_INSTALLED;
+            return SWO_REFERENCED_DATA_BLOCKED;
         }
         FINALLY {
         }
@@ -80,5 +80,5 @@ uint16_t handleSetExternalPlugin(const uint8_t *workBuffer, uint8_t dataLength) 
     memmove(dataContext.tokenContext.methodSelector, workBuffer, SELECTOR_SIZE);
     pluginType = EXTERNAL;
 
-    return APDU_RESPONSE_OK;
+    return SWO_SUCCESS;
 }

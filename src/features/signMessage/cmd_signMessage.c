@@ -46,17 +46,17 @@ static uint16_t first_apdu_data(uint8_t **data, uint8_t *length) {
     // Parse the derivation path
     *data = (uint8_t *) parseBip32(*data, length, &tmpCtx.messageSigningContext.bip32);
     if (*data == NULL) {
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
     // Check if the length is valid
     if (*length < sizeof(uint32_t)) {
         PRINTF("Invalid data\n");
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
 
     if (mem_buffer_allocate((void **) &signMsgCtx, sizeof(signMsgCtx_t)) == false) {
         PRINTF("Memory allocation failed for Sign Context\n");
-        return APDU_RESPONSE_INSUFFICIENT_MEMORY;
+        return SWO_INSUFFICIENT_MEMORY;
     }
 
     // Get the message length
@@ -66,7 +66,7 @@ static uint16_t first_apdu_data(uint8_t **data, uint8_t *length) {
     if (mem_buffer_allocate((void **) &(signMsgCtx->received_buffer), signMsgCtx->msg_length) ==
         false) {
         PRINTF("Error: Not enough memory!\n");
-        return APDU_RESPONSE_INSUFFICIENT_MEMORY;
+        return SWO_INSUFFICIENT_MEMORY;
     }
 
     // Skip data & length to the message itself
@@ -75,7 +75,7 @@ static uint16_t first_apdu_data(uint8_t **data, uint8_t *length) {
 
     if (mem_buffer_allocate((void **) &g_msg_hash_ctx, sizeof(cx_sha3_t)) == false) {
         PRINTF("Memory allocation failed for Sign Hash\n");
-        return APDU_RESPONSE_INSUFFICIENT_MEMORY;
+        return SWO_INSUFFICIENT_MEMORY;
     }
 
     // Initialize message header + length hash
@@ -93,7 +93,7 @@ static uint16_t first_apdu_data(uint8_t **data, uint8_t *length) {
                               strlen(strings.tmp.tmp),
                               NULL,
                               0));
-    error = APDU_RESPONSE_OK;
+    error = SWO_SUCCESS;
 end:
     return error;
 }
@@ -117,7 +117,7 @@ static uint16_t process_data(const uint8_t *const data, const uint8_t length) {
     // Decrease the remaining length
     signMsgCtx->processed_size += length;
 
-    error = APDU_RESPONSE_OK;
+    error = SWO_SUCCESS;
 end:
     return error;
 }
@@ -163,7 +163,7 @@ static uint16_t final_process(void) {
     buffer_length++;  // for the NULL byte
     if (mem_buffer_allocate((void **) &(signMsgCtx->display_buffer), buffer_length) == false) {
         PRINTF("Error: Not enough memory!\n");
-        error = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+        error = SWO_INSUFFICIENT_MEMORY;
         goto end;
     }
 
@@ -177,7 +177,7 @@ static uint16_t final_process(void) {
                                    signMsgCtx->msg_length) < 0) {
             // SHould never happen, buffer is large enough
             PRINTF("Error: Not enough memory!\n");
-            error = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+            error = SWO_INSUFFICIENT_MEMORY;
             goto end;
         }
     } else {
@@ -196,7 +196,7 @@ static uint16_t final_process(void) {
 #endif  // SCREEN_SIZE_NANO
     }
 
-    error = APDU_RESPONSE_OK;
+    error = SWO_SUCCESS;
 end:
     mem_buffer_cleanup((void **) &g_msg_hash_ctx);
     return error;
@@ -216,35 +216,35 @@ uint16_t handleSignPersonalMessage(uint8_t p1,
                                    uint8_t length,
                                    unsigned int *flags) {
     uint8_t *data = (uint8_t *) payload;
-    uint16_t sw = APDU_RESPONSE_UNKNOWN;
+    uint16_t sw = SWO_UNKNOWN;
 
     if (p1 == P1_FIRST) {
         // Check if the app is in idle state
         if (appState != APP_STATE_IDLE) {
             set_idle();
-            return APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+            return SWO_CONDITIONS_NOT_SATISFIED;
         }
         appState = APP_STATE_SIGNING_MESSAGE;
 
         sw = first_apdu_data(&data, &length);
-        if (sw != APDU_RESPONSE_OK) {
+        if (sw != SWO_SUCCESS) {
             return sw;
         }
     } else if (p1 != P1_MORE) {
         PRINTF("Error: Unexpected P1 (%u)!\n", p1);
         set_idle();
-        return APDU_RESPONSE_INVALID_P1_P2;
+        return SWO_WRONG_P1_P2;
     } else if (appState != APP_STATE_SIGNING_MESSAGE) {
         PRINTF("Error: App not already in signing state!\n");
         set_idle();
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
 
     // Check if the data is valid
     if (signMsgCtx == NULL) {
         PRINTF("Error: Invalid data received!\n");
         set_idle();
-        return APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        return SWO_CONDITIONS_NOT_SATISFIED;
     }
     // Check if the received chunk data is too long
     if ((length + signMsgCtx->processed_size) > signMsgCtx->msg_length) {
@@ -252,19 +252,19 @@ uint16_t handleSignPersonalMessage(uint8_t p1,
                (length + signMsgCtx->processed_size),
                signMsgCtx->msg_length);
         set_idle();
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
 
     // Hash the data and copy the data to the buffer
     sw = process_data(data, length);
-    if (sw != APDU_RESPONSE_OK) {
+    if (sw != SWO_SUCCESS) {
         return sw;
     }
 
     // Start the UI if the buffer is fully received
     if (signMsgCtx->processed_size == signMsgCtx->msg_length) {
         sw = final_process();
-        if (sw != APDU_RESPONSE_OK) {
+        if (sw != SWO_SUCCESS) {
             set_idle();
             return sw;
         }
@@ -272,7 +272,7 @@ uint16_t handleSignPersonalMessage(uint8_t p1,
         *flags |= IO_ASYNCH_REPLY;
         return APDU_NO_RESPONSE;
     }
-    return APDU_RESPONSE_OK;
+    return SWO_SUCCESS;
 }
 
 /**

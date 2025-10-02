@@ -26,7 +26,7 @@ void ui_display_public_eth2(void) {
     // Initialize the buffers
     if (!ui_buffers_init(title_len, ETH2_ADDRESS_STR, 0)) {
         // Initialization failed, cleanup and return
-        io_seproxyhal_send_status(APDU_RESPONSE_INSUFFICIENT_MEMORY, 0, true, true);
+        io_seproxyhal_send_status(SWO_INSUFFICIENT_MEMORY, 0, true, true);
         return;
     }
     // Prepare the title message

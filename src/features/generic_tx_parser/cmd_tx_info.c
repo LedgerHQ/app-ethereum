@@ -33,10 +33,10 @@ uint16_t handle_tx_info(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *paylo
     (void) p2;
     if ((appState != APP_STATE_SIGNING_TX) && (appState != APP_STATE_SIGNING_EIP712)) {
         PRINTF("App not in TX signing mode!\n");
-        return APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        return SWO_CONDITIONS_NOT_SATISFIED;
     }
     if (!tlv_from_apdu(p1 == P1_FIRST_CHUNK, lc, payload, &handle_tlv_payload)) {
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
-    return APDU_RESPONSE_OK;
+    return SWO_SUCCESS;
 }

@@ -31,3 +31,7 @@ report.html
 
 # LSP
 .cache/
+
+# i18n implementation documentation
+I18N_IMPLEMENTATION.md
+I18N_TODO.md

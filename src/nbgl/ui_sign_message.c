@@ -2,6 +2,7 @@
 #include "ui_nbgl.h"
 #include "cmd_get_tx_simulation.h"
 #include "ui_utils.h"
+#include "i18n/i18n.h"
 
 #define FINISH_MSG_LEN 32
 // TODO Re-activate when partners are ready for eip191
@@ -45,13 +46,13 @@ void ui_191_start(const char *message) {
              ui_tx_simulation_finish_str());
 
     g_pairsList->wrapping = true;
-    g_pairs->item = "Message";
+    g_pairs->item = STR(MESSAGE);
     g_pairs->value = message;
 
     nbgl_useCaseAdvancedReview(TYPE_MESSAGE | SKIPPABLE_OPERATION,
                                g_pairsList,
                                &ICON_APP_REVIEW,
-                               "Review message",
+                               STR(REVIEW_MESSAGE),
                                NULL,
                                g_finishMsg,
                                NULL,

@@ -6,6 +6,7 @@
 #include "ui_callbacks.h"
 #include "ui_callbacks.h"
 #include "cmd_get_tx_simulation.h"
+#include "i18n/i18n.h"
 
 #ifdef HAVE_TRANSACTION_CHECKS
 
@@ -48,9 +49,9 @@ static void ui_tx_simulation_explain(void) {
     layoutDescription.onActionCallback = opt_in_explain_cb;
     layoutCtx = nbgl_layoutGet(&layoutDescription);
     const char *rowTexts[HOW_TO_INFO_NB] = {
-        "Transaction is checked for threats before signing.",
-        "The result is displayed: Critical threat, potential risk or no threat.",
-        "Scan the QR Code on your Ledger device for details on any threat or risk.",
+        STR(TX_CHECK_INFO_1),
+        STR(TX_CHECK_INFO_2),
+        STR(TX_CHECK_INFO_3),
     };
     const nbgl_icon_details_t *rowIcons[HOW_TO_INFO_NB] = {
         &PRIVACY_ICON,
@@ -62,7 +63,7 @@ static void ui_tx_simulation_explain(void) {
     nbgl_layoutAddHeader(layoutCtx, &headerDesc);
 
     // add title
-    info.title = "How it works";
+    info.title = STR(HOW_IT_WORKS);
     info.nbRows = HOW_TO_INFO_NB;
     info.rowTexts = rowTexts;
     info.rowIcons = rowIcons;
@@ -80,7 +81,7 @@ static void ui_tx_simulation_explain(void) {
  */
 static void finalise_opt_in(bool confirm, nbgl_callback_t callback) {
     if (confirm) {
-        nbgl_useCaseStatus("Transaction Check enabled", true, callback);
+        nbgl_useCaseStatus(STR(TX_CHECK_ENABLED), true, callback);
     } else {
         callback();
     }
@@ -131,8 +132,8 @@ void ui_tx_simulation_opt_in(bool response_expected) {
     nbgl_layout_t *layoutCtx = NULL;
     nbgl_layoutDescription_t layoutDescription = {0};
     nbgl_contentCenter_t info = {0};
-    nbgl_layoutChoiceButtons_t buttonsInfo = {.topText = "Yes, enable",
-                                              .bottomText = "Maybe later",
+    nbgl_layoutChoiceButtons_t buttonsInfo = {.topText = STR(YES_ENABLE),
+                                              .bottomText = STR(MAYBE_LATER),
                                               .token = WARNING_CHOICE_TOKEN,
                                               .style = ROUNDED_AND_FOOTER_STYLE,
                                               .tuneId = TUNE_TAP_CASUAL};
@@ -154,11 +155,9 @@ void ui_tx_simulation_opt_in(bool response_expected) {
     nbgl_layoutAddHeader(layoutCtx, &headerDesc);
 
     // add main content
-    info.title = "Enable\nTransaction Check?";
-    info.description =
-        "Get real-time warnings about risky Ethereum transactions. "
-        "Powered by service providers.";
-    info.subText = "By enabling, you accept T&Cs: ledger.com/tx-check";
+    info.title = STR(ENABLE_TX_CHECK);
+    info.description = STR(TX_CHECK_DESC_LONG);
+    info.subText = STR(TX_CHECK_TCS);
     nbgl_layoutAddContentCenter(layoutCtx, &info);
 
     // add button and footer on bottom
@@ -180,11 +179,11 @@ void ui_tx_simulation_opt_in(bool response_expected) {
  */
 const char *ui_tx_simulation_finish_str(void) {
     if (warning.predefinedSet & SET_BIT(W3C_THREAT_DETECTED_WARN)) {
-        return "Accept threat and sign";
+        return STR(ACCEPT_THREAT_AND_SIGN);
     }
     if ((warning.predefinedSet & SET_BIT(W3C_RISK_DETECTED_WARN)) ||
         (warning.predefinedSet & SET_BIT(BLIND_SIGNING_WARN))) {
-        return "Accept risk and sign";
+        return STR(ACCEPT_RISK_AND_SIGN);
     }
-    return "Sign";
+    return STR(SIGN);
 }

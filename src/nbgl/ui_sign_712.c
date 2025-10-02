@@ -6,6 +6,7 @@
 #include "cmd_get_tx_simulation.h"
 #include "ui_utils.h"
 #include "mem_utils.h"
+#include "i18n/i18n.h"
 
 /**
  * Trigger the EIP712 review flow
@@ -39,7 +40,7 @@ static void ui_712_start_review(nbgl_operationType_t operationType,
     nbgl_useCaseAdvancedReview(operationType,
                                g_pairsList,
                                &ICON_APP_REVIEW,
-                               "Review typed message",
+                               STR(REVIEW_TYPED_MESSAGE),
                                NULL,
                                g_finishMsg,
                                NULL,

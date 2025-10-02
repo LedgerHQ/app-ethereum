@@ -4,6 +4,7 @@
 #include "network.h"
 #include "cmd_get_tx_simulation.h"
 #include "mem_utils.h"
+#include "i18n/i18n.h"
 
 // Global Warning struct for NBGL review flows
 nbgl_warning_t warning;
@@ -25,6 +26,7 @@ enum {
     EIP7702_TOKEN,
     DEBUG_TOKEN,
     HASH_TOKEN,
+    LANGUAGE_TOKEN,
 };
 
 enum {
@@ -37,12 +39,13 @@ enum {
     DEBUG_ID,
     EIP7702_ID,
     HASH_ID,
+    LANGUAGE_ID,
     SETTINGS_SWITCHES_NB
 };
 
 // settings definition
-static const char *const infoTypes[SETTING_INFO_NB] = {"Version", "Developer", "Copyright"};
-static const char *const infoContents[SETTING_INFO_NB] = {APPVERSION, "Ledger", "Ledger (c) 2025"};
+static const char *infoTypes[SETTING_INFO_NB];
+static const char *infoContents[SETTING_INFO_NB];
 
 static nbgl_contentInfoList_t infoList = {0};
 static nbgl_contentSwitch_t switches[SETTINGS_SWITCHES_NB] = {0};
@@ -96,6 +99,15 @@ static void setting_toggle_callback(int token, uint8_t index, int page) {
             switches[HASH_ID].initState = (nbgl_state_t) value;
             nvm_write((void *) &N_storage.displayHash, (void *) &value, sizeof(value));
             break;
+        case LANGUAGE_TOKEN: {
+            language_e lang = i18n_get_language();
+            lang = (lang == LANG_ENGLISH) ? LANG_FRENCH : LANG_ENGLISH;
+            i18n_set_language(lang);
+            switches[LANGUAGE_ID].initState = (lang == LANG_FRENCH) ? ON_STATE : OFF_STATE;
+            // Refresh the entire UI to apply language change
+            ui_idle();
+            break;
+        }
     }
 }
 
@@ -139,25 +151,33 @@ static const nbgl_icon_details_t *get_home_icon(void) {
  * @param[in] page to start on
  */
 static void prepare_and_display_home(const char *appname, const char *tagline, uint8_t page) {
+    // Initialize info fields with translated strings
+    infoTypes[0] = STR(VERSION);
+    infoTypes[1] = STR(DEVELOPER);
+    infoTypes[2] = STR(COPYRIGHT);
+    infoContents[0] = APPVERSION;
+    infoContents[1] = "Ledger";
+    infoContents[2] = STR(COPYRIGHT);
+
     switches[BLIND_SIGNING_ID].initState = N_storage.dataAllowed ? ON_STATE : OFF_STATE;
-    switches[BLIND_SIGNING_ID].text = "Blind signing";
-    switches[BLIND_SIGNING_ID].subText = "Enable transaction blind signing";
+    switches[BLIND_SIGNING_ID].text = STR(BLIND_SIGNING);
+    switches[BLIND_SIGNING_ID].subText = STR(BLIND_SIGNING_DESC);
     switches[BLIND_SIGNING_ID].token = BLIND_SIGNING_TOKEN;
 #ifdef HAVE_PIEZO_SOUND
     switches[BLIND_SIGNING_ID].tuneId = TUNE_TAP_CASUAL;
 #endif
 
     switches[NONCE_ID].initState = N_storage.displayNonce ? ON_STATE : OFF_STATE;
-    switches[NONCE_ID].text = "Nonce";
-    switches[NONCE_ID].subText = "Display nonce in transactions";
+    switches[NONCE_ID].text = STR(NONCE);
+    switches[NONCE_ID].subText = STR(NONCE_DESC);
     switches[NONCE_ID].token = NONCE_TOKEN;
 #ifdef HAVE_PIEZO_SOUND
     switches[NONCE_ID].tuneId = TUNE_TAP_CASUAL;
 #endif
 
     switches[EIP712_VERBOSE_ID].initState = N_storage.verbose_eip712 ? ON_STATE : OFF_STATE;
-    switches[EIP712_VERBOSE_ID].text = "Raw messages";
-    switches[EIP712_VERBOSE_ID].subText = "Displays raw content of EIP712 messages";
+    switches[EIP712_VERBOSE_ID].text = STR(RAW_MESSAGES);
+    switches[EIP712_VERBOSE_ID].subText = STR(RAW_MESSAGES_DESC);
     switches[EIP712_VERBOSE_ID].token = EIP712_VERBOSE_TOKEN;
 #ifdef HAVE_PIEZO_SOUND
     switches[EIP712_VERBOSE_ID].tuneId = TUNE_TAP_CASUAL;
@@ -165,11 +185,11 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
 
     switches[EIP7702_ID].initState = N_storage.eip7702_enable ? ON_STATE : OFF_STATE;
 #ifdef SCREEN_SIZE_WALLET
-    switches[EIP7702_ID].text = "Smart account upgrade";
-    switches[EIP7702_ID].subText = "Enable EIP-7702 authorizations for smart contract delegation";
+    switches[EIP7702_ID].text = STR(SMART_ACCOUNTS_WALLET);
+    switches[EIP7702_ID].subText = STR(SMART_ACCOUNTS_WALLET_DESC);
 #else
-    switches[EIP7702_ID].text = "Smart accounts";
-    switches[EIP7702_ID].subText = "Enable EIP-7702 authorizations";
+    switches[EIP7702_ID].text = STR(SMART_ACCOUNTS);
+    switches[EIP7702_ID].subText = STR(SMART_ACCOUNTS_DESC);
 #endif
     switches[EIP7702_ID].token = EIP7702_TOKEN;
 #ifdef HAVE_PIEZO_SOUND
@@ -178,11 +198,11 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
 
     switches[DEBUG_ID].initState = N_storage.contractDetails ? ON_STATE : OFF_STATE;
 #ifdef SCREEN_SIZE_WALLET
-    switches[DEBUG_ID].text = "Debug smart contracts";
-    switches[DEBUG_ID].subText = "Display contract data details";
+    switches[DEBUG_ID].text = STR(DEBUG_CONTRACTS_WALLET);
+    switches[DEBUG_ID].subText = STR(DEBUG_CONTRACTS_WALLET_DESC);
 #else
-    switches[DEBUG_ID].text = "Debug contracts";
-    switches[DEBUG_ID].subText = "Display contract\ndata details";
+    switches[DEBUG_ID].text = STR(DEBUG_CONTRACTS);
+    switches[DEBUG_ID].subText = STR(DEBUG_CONTRACTS_DESC);
 #endif
     switches[DEBUG_ID].token = DEBUG_TOKEN;
 #ifdef HAVE_PIEZO_SOUND
@@ -191,23 +211,31 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
 
 #ifdef HAVE_TRANSACTION_CHECKS
     switches[TRANSACTION_CHECKS_ID].initState = N_storage.tx_check_enable ? ON_STATE : OFF_STATE;
-    switches[TRANSACTION_CHECKS_ID].text = "Transaction Check";
-    switches[TRANSACTION_CHECKS_ID].subText =
-        "Get real-time warnings about risky transactions. Learn more: ledger.com/tx-check";
+    switches[TRANSACTION_CHECKS_ID].text = STR(TRANSACTION_CHECK);
+    switches[TRANSACTION_CHECKS_ID].subText = STR(TRANSACTION_CHECK_DESC);
     switches[TRANSACTION_CHECKS_ID].token = TRANSACTION_CHECKS_TOKEN;
     switches[TRANSACTION_CHECKS_ID].tuneId = TUNE_TAP_CASUAL;
 #endif  // HAVE_TRANSACTION_CHECKS
 
     switches[HASH_ID].initState = N_storage.displayHash ? ON_STATE : OFF_STATE;
-    switches[HASH_ID].text = "Transaction hash";
+    switches[HASH_ID].text = STR(TRANSACTION_HASH);
 #ifdef SCREEN_SIZE_WALLET
-    switches[HASH_ID].subText = "Always display the transaction or message hash";
+    switches[HASH_ID].subText = STR(TRANSACTION_HASH_DESC_WALLET);
 #else
-    switches[HASH_ID].subText = "Always display the transaction hash";
+    switches[HASH_ID].subText = STR(TRANSACTION_HASH_DESC);
 #endif
     switches[HASH_ID].token = HASH_TOKEN;
 #ifdef HAVE_PIEZO_SOUND
     switches[HASH_ID].tuneId = TUNE_TAP_CASUAL;
+#endif
+
+    switches[LANGUAGE_ID].initState =
+        (i18n_get_language() == LANG_FRENCH) ? ON_STATE : OFF_STATE;
+    switches[LANGUAGE_ID].text = "Language / Langue";
+    switches[LANGUAGE_ID].subText = "English / Français";
+    switches[LANGUAGE_ID].token = LANGUAGE_TOKEN;
+#ifdef HAVE_PIEZO_SOUND
+    switches[LANGUAGE_ID].tuneId = TUNE_TAP_CASUAL;
 #endif
 
     contents[0].type = SWITCHES_LIST;

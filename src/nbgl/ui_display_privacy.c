@@ -1,6 +1,7 @@
 #include "ui_nbgl.h"
 #include "ui_callbacks.h"
 #include "ui_utils.h"
+#include "i18n/i18n.h"
 
 static void reviewChoice(bool confirm) {
     if (confirm) {
@@ -18,9 +19,9 @@ static void buildFirstPage(const char *review_string) {
         return;
     }
 
-    g_pairs[0].item = "Address";
+    g_pairs[0].item = STR(ADDRESS);
     g_pairs[0].value = strings.common.toAddress;
-    g_pairs[1].item = "Key";
+    g_pairs[1].item = STR(KEY);
     g_pairs[1].value = strings.common.fullAmount;
 
     nbgl_useCaseReview(TYPE_OPERATION,
@@ -33,9 +34,9 @@ static void buildFirstPage(const char *review_string) {
 }
 
 void ui_display_privacy_public_key(void) {
-    buildFirstPage("Provide public\nprivacy key");
+    buildFirstPage(STR(PROVIDE_PRIVACY_KEY));
 }
 
 void ui_display_privacy_shared_secret(void) {
-    buildFirstPage("Provide public\nsecret key");
+    buildFirstPage(STR(PROVIDE_SECRET_KEY));
 }

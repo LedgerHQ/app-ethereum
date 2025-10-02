@@ -4,6 +4,7 @@
 #include "nbgl_use_case.h"
 #include "common_ui.h"
 #include "ui_utils.h"
+#include "i18n/i18n.h"
 
 static void review7702Choice(bool confirm) {
     if (confirm) {
@@ -23,20 +24,20 @@ void ui_sign_7702_revocation(void) {
         return;
     }
 
-    g_pairs[0].item = "Account";
+    g_pairs[0].item = STR(ACCOUNT);
     g_pairs[0].value = strings.common.fromAddress;
-    g_pairs[1].item = "Revoke on network";
+    g_pairs[1].item = STR(REVOKE_ON_NETWORK);
     g_pairs[1].value = strings.common.network_name;
 
     nbgl_useCaseReview(TYPE_OPERATION,
                        g_pairsList,
                        &ICON_APP_REVIEW,
-                       "Review authorization to revoke smart contract delegation?",
+                       STR(REVIEW_AUTH_REVOKE),
                        NULL,
 #ifdef SCREEN_SIZE_WALLET
-                       "Sign authorization to revoke smart contract delegation?",
+                       STR(SIGN_AUTH_REVOKE),
 #else
-                       "Sign operation",
+                       STR(SIGN_OPERATION),
 #endif
                        review7702Choice);
 }

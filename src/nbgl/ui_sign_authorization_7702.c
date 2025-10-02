@@ -5,6 +5,7 @@
 #include "ui_nbgl.h"
 #include "common_ui.h"
 #include "ui_utils.h"
+#include "i18n/i18n.h"
 
 static void review7702Choice(bool confirm) {
     if (confirm) {
@@ -24,26 +25,26 @@ void ui_sign_7702_auth(void) {
         return;
     }
 
-    g_pairs[0].item = "Account";
+    g_pairs[0].item = STR(ACCOUNT);
     g_pairs[0].value = strings.common.fromAddress;
-    g_pairs[1].item = "Delegate to";
+    g_pairs[1].item = STR(DELEGATE_TO);
     g_pairs[1].value = strings.common.toAddress;
 #ifdef SCREEN_SIZE_WALLET
-    g_pairs[2].item = "Delegate on network";
+    g_pairs[2].item = STR(DELEGATE_ON_NETWORK);
 #else
-    g_pairs[2].item = "On network";
+    g_pairs[2].item = STR(ON_NETWORK);
 #endif
     g_pairs[2].value = strings.common.network_name;
 
     nbgl_useCaseReview(TYPE_OPERATION,
                        g_pairsList,
                        &ICON_APP_REVIEW,
-                       "Review authorization to upgrade into smart contract account?",
+                       STR(REVIEW_AUTH_UPGRADE),
                        NULL,
 #ifdef SCREEN_SIZE_WALLET
-                       "Sign authorization to upgrade into smart contract account?",
+                       STR(SIGN_AUTH_UPGRADE),
 #else
-                       "Sign operation",
+                       STR(SIGN_OPERATION),
 #endif
                        review7702Choice);
 }

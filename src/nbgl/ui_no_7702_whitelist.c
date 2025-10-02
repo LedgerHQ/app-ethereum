@@ -2,6 +2,7 @@
 #include "shared_context.h"
 #include "ui_callbacks.h"
 #include "ui_nbgl.h"
+#include "i18n/i18n.h"
 
 static void ui_error_no_7702_whitelist_choice(bool confirm) {
     UNUSED(confirm);
@@ -11,13 +12,12 @@ static void ui_error_no_7702_whitelist_choice(bool confirm) {
 void ui_error_no_7702_whitelist(void) {
     nbgl_useCaseChoice(&ICON_APP_WARNING,
 #ifdef SCREEN_SIZE_WALLET
-                       "This authorization cannot be signed",
+                       STR(AUTH_CANNOT_BE_SIGNED),
 #else
-                       "Unable to sign",
+                       STR(UNABLE_TO_SIGN),
 #endif
-                       "This authorization involves a delegation to a smart contract which is not "
-                       "in the whitelist.",
-                       "Back to safety",
+                       STR(AUTH_NOT_IN_WHITELIST),
+                       STR(BACK_TO_SAFETY),
                        "",
                        ui_error_no_7702_whitelist_choice);
 }

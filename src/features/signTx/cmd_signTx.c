@@ -130,7 +130,7 @@ uint16_t handleSign(uint8_t p1,
                 case P1_MORE:
                     if (appState != APP_STATE_SIGNING_TX) {
                         PRINTF("Signature not initialized\n");
-                        return SWO_CONDITIONS_NOT_SATISFIED;
+                        return SWO_COMMAND_NOT_ALLOWED;
                     }
                     break;
                 default:
@@ -140,7 +140,7 @@ uint16_t handleSign(uint8_t p1,
         case SIGN_MODE_START_FLOW:
             if (appState != APP_STATE_SIGNING_TX) {
                 PRINTF("Signature not initialized\n");
-                return SWO_CONDITIONS_NOT_SATISFIED;
+                return SWO_COMMAND_NOT_ALLOWED;
             }
             if (length != 0) {
                 return SWO_INCORRECT_DATA;
@@ -151,7 +151,7 @@ uint16_t handleSign(uint8_t p1,
             }
             if (get_tx_ctx_count() != 1) {
                 PRINTF("Error: remnant unprocessed TX context!\n");
-                return SWO_CONDITIONS_NOT_SATISFIED;
+                return SWO_COMMAND_NOT_ALLOWED;
             }
             if (!ui_gcs()) {
                 return SWO_NOT_SUPPORTED_ERROR_NO_INFO;
@@ -164,7 +164,7 @@ uint16_t handleSign(uint8_t p1,
 
     if (txContext.currentField == RLP_NONE) {
         PRINTF("Parser not initialized\n");
-        return SWO_CONDITIONS_NOT_SATISFIED;
+        return SWO_COMMAND_NOT_ALLOWED;
     }
     parserStatus_e pstatus = process_tx(&txContext, &payload[offset], length - offset);
     sw = handle_parsing_status(pstatus);

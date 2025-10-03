@@ -36,13 +36,13 @@ uint16_t handle_field(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *payload
     (void) p2;
     if ((appState != APP_STATE_SIGNING_TX) && (appState != APP_STATE_SIGNING_EIP712)) {
         PRINTF("App not in TX signing mode!\n");
-        return SWO_CONDITIONS_NOT_SATISFIED;
+        return SWO_COMMAND_NOT_ALLOWED;
     }
 
     if (get_current_tx_info() == NULL) {
         PRINTF("Error: Field received without a TX info!\n");
         gcs_cleanup();
-        return SWO_CONDITIONS_NOT_SATISFIED;
+        return SWO_COMMAND_NOT_ALLOWED;
     }
 
     if (!tlv_from_apdu(p1 == P1_FIRST_CHUNK, lc, payload, &handle_tlv_payload)) {

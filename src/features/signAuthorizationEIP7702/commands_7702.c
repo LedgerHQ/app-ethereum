@@ -83,7 +83,7 @@ static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size) {
     // Reject if not enabled
     if (!N_storage.eip7702_enable) {
         ui_error_no_7702();
-        g_7702_sw = SWO_CONDITIONS_NOT_SATISFIED;
+        g_7702_sw = SWO_COMMAND_NOT_ALLOWED;
         goto end;
     }
 
@@ -144,7 +144,7 @@ static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size) {
         if (delegateName == NULL) {
             // Reject if not in the whitelist
             ui_error_no_7702_whitelist();
-            g_7702_sw = SWO_CONDITIONS_NOT_SATISFIED;
+            g_7702_sw = SWO_COMMAND_NOT_ALLOWED;
             goto end;
         } else {
             strlcpy(strings.common.toAddress, delegateName, sizeof(strings.common.toAddress));

@@ -71,7 +71,7 @@ const s_struct_712 *get_structn(const char *name, uint8_t length) {
     const s_struct_712 *struct_ptr;
 
     if (name == NULL) {
-        apdu_response_code = SWO_CONDITIONS_NOT_SATISFIED;
+        apdu_response_code = SWO_INCORRECT_DATA;
         return NULL;
     }
     for (struct_ptr = get_struct_list(); struct_ptr != NULL;
@@ -83,7 +83,7 @@ const s_struct_712 *get_structn(const char *name, uint8_t length) {
             }
         }
     }
-    apdu_response_code = SWO_CONDITIONS_NOT_SATISFIED;
+    apdu_response_code = SWO_INCORRECT_DATA;
     return NULL;
 }
 
@@ -98,7 +98,7 @@ bool set_struct_name(uint8_t length, const uint8_t *name) {
     s_struct_712 *new_struct;
 
     if (name == NULL) {
-        apdu_response_code = SWO_CONDITIONS_NOT_SATISFIED;
+        apdu_response_code = SWO_INCORRECT_DATA;
         return false;
     }
 
@@ -306,12 +306,12 @@ bool set_struct_field(uint8_t length, const uint8_t *data) {
         apdu_response_code = SWO_INCORRECT_DATA;
         return false;
     } else if (g_structs == NULL) {
-        apdu_response_code = SWO_CONDITIONS_NOT_SATISFIED;
+        apdu_response_code = SWO_INCORRECT_DATA;
         return false;
     }
 
     if (struct_state == NOT_INITIALIZED) {
-        apdu_response_code = SWO_CONDITIONS_NOT_SATISFIED;
+        apdu_response_code = SWO_INCORRECT_DATA;
         return false;
     }
 
@@ -326,7 +326,7 @@ bool set_struct_field(uint8_t length, const uint8_t *data) {
     if (new_field->type_has_size) {
         // TYPESIZE and TYPE_CUSTOM are mutually exclusive
         if (new_field->type == TYPE_CUSTOM) {
-            apdu_response_code = SWO_CONDITIONS_NOT_SATISFIED;
+            apdu_response_code = SWO_INCORRECT_DATA;
             return false;
         }
 

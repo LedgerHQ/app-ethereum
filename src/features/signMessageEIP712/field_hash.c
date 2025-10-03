@@ -259,7 +259,7 @@ bool field_hash(const uint8_t *data, uint8_t data_length, bool partial) {
     uint16_t total_length = 0;
 
     if ((fh == NULL) || ((field_ptr = path_get_field()) == NULL)) {
-        apdu_response_code = SWO_CONDITIONS_NOT_SATISFIED;
+        apdu_response_code = SWO_INCORRECT_DATA;
         return false;
     }
 

@@ -44,7 +44,7 @@ uint16_t handle_safe_account(uint8_t p1,
         case SIGNER_DESCRIPTOR:
             if (SAFE_DESC == NULL) {
                 PRINTF("Error: Safe descriptor does not exist!\n");
-                sw = SWO_CONDITIONS_NOT_SATISFIED;
+                sw = SWO_COMMAND_NOT_ALLOWED;
             } else if (SIGNER_DESC.data != NULL) {
                 PRINTF("Error: Signer descriptor already exists!\n");
                 sw = SWO_FILE_ALREADY_EXISTS;

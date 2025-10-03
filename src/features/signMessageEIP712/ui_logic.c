@@ -105,7 +105,7 @@ static bool ui_712_next_field(void) {
     bool ret = false;
 
     if (ui_ctx == NULL) {
-        apdu_response_code = SWO_CONDITIONS_NOT_SATISFIED;
+        apdu_response_code = SWO_INCORRECT_DATA;
     } else {
         if (ui_ctx->structs_to_review > 0) {
             ret = ui_712_review_struct(path_get_nth_field_to_last(ui_ctx->structs_to_review));
@@ -838,7 +838,7 @@ bool ui_712_feed_to_display(const s_struct_712_field *field_ptr,
     bool first = complete_length != NULL;
 
     if (ui_ctx == NULL) {
-        apdu_response_code = SWO_CONDITIONS_NOT_SATISFIED;
+        apdu_response_code = SWO_INCORRECT_DATA;
         return false;
     }
 
@@ -933,7 +933,7 @@ bool ui_712_feed_to_display(const s_struct_712_field *field_ptr,
  */
 void ui_712_end_sign(void) {
     if (ui_ctx == NULL) {
-        apdu_response_code = SWO_CONDITIONS_NOT_SATISFIED;
+        apdu_response_code = SWO_COMMAND_NOT_ALLOWED;
         return;
     }
 

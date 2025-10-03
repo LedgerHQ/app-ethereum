@@ -222,7 +222,7 @@ uint16_t handleSignPersonalMessage(uint8_t p1,
         // Check if the app is in idle state
         if (appState != APP_STATE_IDLE) {
             set_idle();
-            return SWO_CONDITIONS_NOT_SATISFIED;
+            return SWO_COMMAND_NOT_ALLOWED;
         }
         appState = APP_STATE_SIGNING_MESSAGE;
 
@@ -244,7 +244,7 @@ uint16_t handleSignPersonalMessage(uint8_t p1,
     if (signMsgCtx == NULL) {
         PRINTF("Error: Invalid data received!\n");
         set_idle();
-        return SWO_CONDITIONS_NOT_SATISFIED;
+        return SWO_INCORRECT_DATA;
     }
     // Check if the received chunk data is too long
     if ((length + signMsgCtx->processed_size) > signMsgCtx->msg_length) {

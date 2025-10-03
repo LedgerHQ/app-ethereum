@@ -131,7 +131,7 @@ uint16_t handle_eip712_struct_impl(uint8_t p1,
     bool reply_apdu = true;
 
     if (eip712_context == NULL) {
-        apdu_response_code = SWO_CONDITIONS_NOT_SATISFIED;
+        apdu_response_code = SWO_COMMAND_NOT_ALLOWED;
     } else {
         switch (p2) {
             case P2_IMPL_NAME:
@@ -191,7 +191,7 @@ uint16_t handle_eip712_filtering(uint8_t p1,
 
     if (eip712_context == NULL) {
         apdu_reply(false);
-        return SWO_CONDITIONS_NOT_SATISFIED;
+        return SWO_COMMAND_NOT_ALLOWED;
     }
     if ((p2 != P2_FILT_ACTIVATE) && (ui_712_get_filtering_mode() != EIP712_FILTERING_FULL)) {
         return SWO_SUCCESS;
@@ -277,7 +277,7 @@ uint16_t handle_eip712_sign(const uint8_t *cdata, uint8_t length, uint32_t *flag
     bool ret = false;
 
     if (eip712_context == NULL) {
-        apdu_response_code = SWO_CONDITIONS_NOT_SATISFIED;
+        apdu_response_code = SWO_COMMAND_NOT_ALLOWED;
     }
     // if the final hashes are still zero or if there are some unimplemented fields
     else if (allzeroes(tmpCtx.messageSigningContext712.domainHash,
@@ -285,7 +285,7 @@ uint16_t handle_eip712_sign(const uint8_t *cdata, uint8_t length, uint32_t *flag
              allzeroes(tmpCtx.messageSigningContext712.messageHash,
                        sizeof(tmpCtx.messageSigningContext712.messageHash)) ||
              (path_get_field() != NULL)) {
-        apdu_response_code = SWO_CONDITIONS_NOT_SATISFIED;
+        apdu_response_code = SWO_INCORRECT_DATA;
     } else if ((ui_712_get_filtering_mode() == EIP712_FILTERING_FULL) &&
                (ui_712_remaining_filters() != 0)) {
         PRINTF("%d EIP712 filters are missing\n", ui_712_remaining_filters());

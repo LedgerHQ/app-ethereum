@@ -48,7 +48,7 @@ void ui_191_start(const char *message) {
     g_pairs->item = "Message";
     g_pairs->value = message;
 
-    nbgl_useCaseAdvancedReview(TYPE_MESSAGE | SKIPPABLE_OPERATION,
+    nbgl_useCaseAdvancedReview(TYPE_MESSAGE,
                                g_pairsList,
                                &ICON_APP_REVIEW,
                                "Review message",

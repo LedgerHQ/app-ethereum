@@ -228,7 +228,7 @@ bool ui_712_redraw_generic_step(void) {
         handle_eip712_return_code(true);
     } else {
         if (ui_712_next_field() == false) {
-            ui_sign_712();
+            ui_sign_712(ui_ctx->filtering_mode);
         }
     }
     return true;
@@ -943,7 +943,7 @@ void ui_712_end_sign(void) {
     if (N_storage.verbose_eip712 || (ui_ctx->filtering_mode == EIP712_FILTERING_FULL)) {
 #endif
         ui_ctx->end_reached = true;
-        ui_sign_712();
+        ui_sign_712(ui_ctx->filtering_mode);
     }
 }
 

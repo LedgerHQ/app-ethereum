@@ -8,18 +8,21 @@
 #include "mem_utils.h"
 
 /**
- * Trigger the EIP712 review flow
+ * @brief Trigger the EIP712 review flow
  *
+ * @param filtering_mode the filtering mode to use
  * @param operationType the type of operation to review
  * @param choiceCallback the callback to call when the user makes a choice
  *
  */
-static void ui_712_start_review(nbgl_operationType_t operationType,
+static void ui_712_start_review(e_eip712_filtering_mode filtering_mode,
+                                nbgl_operationType_t operationType,
                                 nbgl_choiceCallback_t choiceCallback) {
 #ifdef SCREEN_SIZE_WALLET
     const char *tx_check_str = ui_tx_simulation_finish_str();
     const char *title_suffix = " typed message?";
 #else
+    UNUSED(filtering_mode);
     const char *tx_check_str = "Sign";
     const char *title_suffix = " message";
 #endif
@@ -36,6 +39,19 @@ static void ui_712_start_review(nbgl_operationType_t operationType,
     set_tx_simulation_warning();
 #endif
 
+    // Use review with skip button in case of raw message
+#ifdef SCREEN_SIZE_WALLET
+    if (filtering_mode == EIP712_FILTERING_BASIC) {
+        operationType |= SKIPPABLE_OPERATION;
+    } else
+#endif
+    {
+        if (N_storage.verbose_eip712) {
+            // In verbose mode, we allow skipping
+            operationType |= SKIPPABLE_OPERATION;
+        }
+    }
+
     nbgl_useCaseAdvancedReview(operationType,
                                g_pairsList,
                                &ICON_APP_REVIEW,
@@ -48,18 +64,18 @@ static void ui_712_start_review(nbgl_operationType_t operationType,
 }
 
 /**
- * Start EIP712 signature review flow
+ * @brief Start EIP712 signature review flow
  *
  */
-void ui_sign_712(void) {
+void ui_sign_712(e_eip712_filtering_mode filtering_mode) {
     // Initialize the pairs list
     ui_712_push_pairs();
 
-    ui_712_start_review(TYPE_MESSAGE, ui_typed_message_review_choice);
+    ui_712_start_review(filtering_mode, TYPE_MESSAGE, ui_typed_message_review_choice);
 }
 
 /**
- * Start EIP712 signature review flow in Legacy (v0) mode
+ * @brief Start EIP712 signature review flow in Legacy (v0) mode
  *
  */
 void ui_sign_712_v0(void) {
@@ -74,5 +90,7 @@ void ui_sign_712_v0(void) {
     // Initialize the tag/value pairs
     eip712_format_hash(0);
 
-    ui_712_start_review(TYPE_TRANSACTION, ui_typed_message_review_choice_v0);
+    ui_712_start_review(EIP712_FILTERING_BASIC,
+                        TYPE_TRANSACTION,
+                        ui_typed_message_review_choice_v0);
 }

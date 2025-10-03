@@ -18,7 +18,7 @@ void ui_display_safe_account(void);
 void ui_191_start(const char *message);
 
 // EIP-712
-void ui_sign_712(void);
+void ui_sign_712(e_eip712_filtering_mode filtering_mode);
 void ui_sign_712_v0(void);
 
 // Generic clear-signing

@@ -118,7 +118,7 @@ def test_legacy_send_error(backend: BackendInterface):
         "gasPrice": 56775612312210000000001234554332,
         "gas": GAS_LIMIT,
         "to": ADDR3,
-        "value": 12345678912345678912345678000000000000000000,
+        "value": 123456789123456789123456789000000000000000001,
         "chainId": CHAIN_ID
     }
     common_fail(backend, tx_params, StatusWord.EXCEPTION_OVERFLOW, path=BIP32_PATH2)

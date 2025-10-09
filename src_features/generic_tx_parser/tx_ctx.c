@@ -86,9 +86,12 @@ void tx_ctx_pop(void) {
             break;
         }
     }
+    if (g_tx_ctx_current == (s_tx_ctx *) old_current) {
+        // there was no previous one
+        // there might still be some elements in the list but after the one that we're removing
+        g_tx_ctx_current = NULL;
+    }
     flist_remove((s_flist_node **) &g_tx_ctx_list, old_current, (f_list_node_del) &delete_tx_ctx);
-    // set proper current pointer when list becomes empty
-    if (g_tx_ctx_list == NULL) g_tx_ctx_current = NULL;
 }
 
 bool find_matching_tx_ctx(const uint8_t *contract_addr,

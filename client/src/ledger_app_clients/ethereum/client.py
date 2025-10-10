@@ -25,6 +25,7 @@ class TrustedNameType(IntEnum):
     ACCOUNT = 0x01
     CONTRACT = 0x02
     NFT = 0x03
+    TOKEN = 0x04
 
 
 class TrustedNameSource(IntEnum):

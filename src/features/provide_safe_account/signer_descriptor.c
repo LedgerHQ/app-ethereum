@@ -16,7 +16,7 @@
 #include "read.h"
 #include "mem.h"
 
-#define TYPE_VERIFIABLE_ADDRESS 0x27
+#define TYPE_VERIFIABLE_ADDRESS 0x0A
 #define STRUCT_VERSION          0x01
 
 enum {

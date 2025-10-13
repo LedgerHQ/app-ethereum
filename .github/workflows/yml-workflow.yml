@@ -1,5 +1,5 @@
 ---
-name: Code style check
+name: Yaml style check
 
 # This workflow will run linting checks to ensure a level of uniformization among all Ledger applications.
 #
@@ -19,7 +19,4 @@ on:
 jobs:
   check_linting:
     name: Check linting using the reusable workflow
-    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_lint.yml@v1
-    with:
-      source: './'
-      extensions: 'h,c'
+    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_yaml_lint.yml@v1

@@ -1,0 +1,18 @@
+name: ClusterFuzzLite fuzzing tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 13 * * 6'  # At 01:00 PM, only on Saturday
+
+permissions: read-all
+
+jobs:
+  Fuzzing:
+    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_clusterfuzz_tests.yml@v1
+    with:
+      exec_mode: ${{ github.event_name }}

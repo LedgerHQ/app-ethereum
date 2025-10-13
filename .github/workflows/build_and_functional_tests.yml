@@ -76,6 +76,29 @@ jobs:
     uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_ragger_tests.yml@v1
     with:
       download_app_binaries_artifact: "memory_elfs"
-      test_options: " -s 2>&1 | tools/valground.py -q"
       run_for_devices: '["nanox"]'
       upload_snapshots_on_failure: false
+      capture_file: pytest-logs-combined
+
+  ragger_mem__results:
+    name: Process pytest logs
+    if: always()
+    needs: ragger_mem_tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone
+        uses: actions/checkout@v4
+
+      - name: Download and process pytest logs
+        if: always()
+        uses: actions/download-artifact@v4
+        with:
+          name: pytest-logs-combined
+          path: logs
+
+      - name: Process logs with valground
+        if: always()
+        run: |
+          if [ -f logs/pytest-logs-combined.log ]; then
+            cat logs/pytest-logs-combined.log | tools/valground.py -q
+          fi

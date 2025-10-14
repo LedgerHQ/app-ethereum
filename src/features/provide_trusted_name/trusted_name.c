@@ -106,7 +106,8 @@ static bool matching_trusted_name(const s_trusted_name_info *trusted_name,
                 return false;
             }
 
-            if (trusted_name->name_type == TN_TYPE_CONTRACT) {
+            if ((trusted_name->name_type == TN_TYPE_CONTRACT) ||
+                (trusted_name->name_type == TN_TYPE_TOKEN)) {
                 if ((tmp = get_implem_contract(chain_id, addr, NULL)) != NULL) {
                     addr = tmp;
                 }
@@ -410,9 +411,9 @@ static bool handle_trusted_name_type(const s_tlv_data *data, s_trusted_name_ctx 
     switch (context->trusted_name.name_type) {
         case TN_TYPE_ACCOUNT:
         case TN_TYPE_CONTRACT:
+        case TN_TYPE_TOKEN:
             break;
         case TN_TYPE_NFT_COLLECTION:
-        case TN_TYPE_TOKEN:
         case TN_TYPE_WALLET:
         case TN_TYPE_CONTEXT_ADDRESS:
         default:
@@ -616,6 +617,7 @@ bool verify_trusted_name_struct(const s_trusted_name_ctx *context) {
                     }
                     break;
                 case TN_TYPE_CONTRACT:
+                case TN_TYPE_TOKEN:
                     if (context->trusted_name.name_source != TN_SOURCE_CAL) {
                         PRINTF("Error: cannot accept a contract name from given source (%u)!\n",
                                context->trusted_name.name_source);

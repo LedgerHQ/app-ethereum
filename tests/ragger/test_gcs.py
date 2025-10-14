@@ -2022,3 +2022,131 @@ def test_gcs_no_param(scenario_navigator: NavigateWithScenario, test_name: str):
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve(test_name=test_name)
+
+
+def test_gcs_trusted_name_token(scenario_navigator: NavigateWithScenario, test_name: str):
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    tokens = [
+        {
+            "name": "WETH",
+            "address": bytes.fromhex("c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"),
+        },
+        {
+            "name": "USDC",
+            "address": bytes.fromhex("A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"),
+        },
+    ]
+
+    with open(f"{ABIS_FOLDER}/1inch.abi.json", encoding="utf-8") as file:
+        contract = Web3().eth.contract(
+            abi=json.load(file),
+            address=None
+        )
+    data = contract.encode_abi("swap", [
+        bytes.fromhex("F313B370D28760b98A2E935E56Be92Feb2c4EC04"),
+        [
+            tokens[0]["address"],
+            tokens[1]["address"],
+            bytes.fromhex("F313B370D28760b98A2E935E56Be92Feb2c4EC04"),
+            bytes.fromhex("Dad77910DbDFdE764fC21FCD4E74D71bBACA6D8D"),
+            Web3.to_wei(0.22, "ether"),
+            682119805,
+            0,
+        ],
+        bytes(),
+    ])
+    tx_params = {
+        "nonce": 235,
+        "maxFeePerGas": Web3.to_wei(100, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(10, "gwei"),
+        "gas": 44001,
+        # Aggregation Router V6
+        "to": bytes.fromhex("111111125421cA6dc452d289314280a0f8842A65"),
+        "data": data,
+        "chainId": 1
+    }
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    fields = [
+            Field(
+                1,
+                "Send token",
+                ParamTrustedName(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(1),
+                                PathTuple(0),
+                                PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                    ),
+                    [TrustedNameType.TOKEN],
+                    [TrustedNameSource.CAL],
+                )
+            ),
+            Field(
+                1,
+                "Receive token",
+                ParamTrustedName(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(1),
+                                PathTuple(1),
+                                PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                    ),
+                    [TrustedNameType.TOKEN],
+                    [TrustedNameSource.CAL],
+                )
+            ),
+    ]
+
+    # compute instructions hash
+    inst_hash = hashlib.sha3_256()
+    for field in fields:
+        inst_hash.update(field.serialize())
+
+    tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        tx_params["to"],
+        get_selector_from_data(tx_params["data"]),
+        inst_hash.digest(),
+        "swap",
+        creator_name="1inch",
+        creator_legal_name="1inch Network",
+        creator_url="1inch.io",
+        contract_name="Aggregation Router V6",
+        deploy_date=1707724800
+    )
+
+    app_client.provide_transaction_info(tx_info.serialize())
+
+    i = 0
+    for field in fields:
+        challenge = ResponseParser.challenge(app_client.get_challenge().data)
+        app_client.provide_trusted_name_v2(tokens[i]["address"],
+                                           tokens[i]["name"],
+                                           TrustedNameType.TOKEN,
+                                           TrustedNameSource.CAL,
+                                           tx_params["chainId"],
+                                           challenge=challenge)
+        app_client.provide_transaction_field_desc(field.serialize())
+        i += 1
+
+    with app_client.sign(mode=SignMode.START_FLOW):
+        scenario_navigator.review_approve(test_name=test_name)

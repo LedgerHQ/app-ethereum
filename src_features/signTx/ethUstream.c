@@ -27,6 +27,7 @@
 #include "utils.h"
 #include "shared_context.h"  // tmpContent
 #include "read.h"            // read_u64_be
+#include "network.h"         // get_tx_chain_id
 
 static bool check_fields(txContext_t *context, const char *name, uint32_t length) {
     UNUSED(name);  // Just for the case where DEBUG is not enabled
@@ -337,33 +338,6 @@ static bool processData(txContext_t *context) {
         }
     }
     if (context->currentFieldPos == context->currentFieldLength) {
-        if (context->store_calldata) {
-            uint8_t to[ADDRESS_LENGTH];
-            uint8_t amount[INT256_LENGTH];
-            uint64_t chain_id;
-            uint8_t chain_id_buf[sizeof(chain_id)];
-
-            buf_shrink_expand(tmpContent.txContent.destination,
-                              tmpContent.txContent.destinationLength,
-                              to,
-                              sizeof(to));
-            buf_shrink_expand(tmpContent.txContent.value.value,
-                              tmpContent.txContent.value.length,
-                              amount,
-                              sizeof(amount));
-            buf_shrink_expand(tmpContent.txContent.chainID.value,
-                              tmpContent.txContent.chainID.length,
-                              chain_id_buf,
-                              sizeof(chain_id_buf));
-            chain_id = read_u64_be(chain_id_buf, 0);
-
-            if (!tx_ctx_init(g_parked_calldata, NULL, to, amount, &chain_id)) {
-                calldata_delete(g_parked_calldata);
-                g_parked_calldata = NULL;
-                return false;
-            }
-            g_parked_calldata = NULL;
-        }
         PRINTF("incrementing field\n");
         context->currentField++;
         context->processingField = false;
@@ -643,6 +617,28 @@ static parserStatus_e processTxInternal(txContext_t *context) {
         customStatus_e customStatus = CUSTOM_NOT_HANDLED;
         // EIP 155 style transaction
         if (PARSING_IS_DONE(context)) {
+            if (context->store_calldata) {
+                uint8_t to[ADDRESS_LENGTH];
+                uint8_t amount[INT256_LENGTH];
+                uint64_t chain_id;
+
+                buf_shrink_expand(tmpContent.txContent.destination,
+                                  tmpContent.txContent.destinationLength,
+                                  to,
+                                  sizeof(to));
+                buf_shrink_expand(tmpContent.txContent.value.value,
+                                  tmpContent.txContent.value.length,
+                                  amount,
+                                  sizeof(amount));
+                chain_id = get_tx_chain_id();
+
+                if (!tx_ctx_init(g_parked_calldata, NULL, to, amount, &chain_id)) {
+                    calldata_delete(g_parked_calldata);
+                    g_parked_calldata = NULL;
+                    return false;
+                }
+                g_parked_calldata = NULL;
+            }
             PRINTF("parsing is done\n");
             return USTREAM_FINISHED;
         }

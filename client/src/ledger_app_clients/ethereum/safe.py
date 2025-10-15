@@ -54,7 +54,8 @@ class SafeAccount(TlvSerializable):
             assert self.signer_counts > 0, "Signer counts must be greater than 0"
             assert self.lesm_role is not None, "LESM role is required for SAFE accounts"
         # Construct the TLV payload
-        payload: bytes = self.serialize_field(FieldTag.STRUCT_TYPE, 0x27)
+        struct_type = 0x27 if self.account_type == AccountType.SAFE else 0x0A
+        payload: bytes = self.serialize_field(FieldTag.STRUCT_TYPE, struct_type)
         payload += self.serialize_field(FieldTag.STRUCT_VERSION, 1)
         payload += self.serialize_field(FieldTag.CHALLENGE, self.challenge)
         for addr in self.address:

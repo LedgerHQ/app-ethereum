@@ -67,7 +67,7 @@ uint16_t handleSetExternalPlugin(const uint8_t *workBuffer, uint8_t dataLength) 
                    0,
                    sizeof(dataContext.tokenContext.pluginName));
             CLOSE_TRY;
-            return SWO_REFERENCED_DATA_BLOCKED;
+            return SWO_FILE_NOT_FOUND;
         }
         FINALLY {
         }

@@ -27,7 +27,7 @@ uint16_t get_public_key(uint8_t *out, uint8_t outLength) {
     cx_err_t error = CX_INTERNAL_ERROR;
 
     if (outLength < ADDRESS_LENGTH) {
-        return SWO_AUTH_METHOD_BLOCKED;
+        return SWO_WRONG_DATA_LENGTH;
     }
     CX_CHECK(bip32_derive_get_pubkey_256(CX_CURVE_256K1,
                                          tmpCtx.transactionContext.bip32.path,

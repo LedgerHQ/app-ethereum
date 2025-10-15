@@ -310,7 +310,7 @@ uint16_t handle_network_info(uint8_t p1,
                              const uint8_t *data,
                              uint8_t length,
                              unsigned int *tx) {
-    uint16_t sw = SWO_UNKNOWN;
+    uint16_t sw = SWO_PARAMETER_ERROR_NO_INFO;
 
     switch (p2) {
         case P2_NETWORK_CONFIG:

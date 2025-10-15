@@ -49,7 +49,7 @@ uint16_t handlePerformPrivacyOperation(uint8_t p1,
     }
 
     if ((p2 == P2_SHARED_SECRET) && (dataLength < 32)) {
-        return SWO_AUTH_METHOD_BLOCKED;
+        return SWO_WRONG_DATA_LENGTH;
     }
 
     CX_CHECK(os_derive_bip32_no_throw(

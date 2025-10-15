@@ -60,6 +60,8 @@ static uint16_t handle_first_sign_chunk(const uint8_t *payload,
                 break;
             default:
                 PRINTF("Transaction type %d not supported\n", tx_type);
+                // TODO: change this error code along with
+                // https://github.com/LedgerHQ/device-sdk-ts/blob/5c5c92b469dca1b3ef478a8fb3a2d94951c88035/packages/signer/signer-eth/src/internal/app-binder/command/utils/ethAppErrors.ts#L29
                 return SWO_MEMORY_WRITE_ERROR;
         }
         if (cx_hash_no_throw((cx_hash_t *) g_tx_hash_ctx, 0, &tx_type, sizeof(tx_type), NULL, 0) !=

@@ -216,7 +216,7 @@ uint16_t handleSignPersonalMessage(uint8_t p1,
                                    uint8_t length,
                                    unsigned int *flags) {
     uint8_t *data = (uint8_t *) payload;
-    uint16_t sw = SWO_UNKNOWN;
+    uint16_t sw = SWO_PARAMETER_ERROR_NO_INFO;
 
     if (p1 == P1_FIRST) {
         // Check if the app is in idle state

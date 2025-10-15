@@ -234,7 +234,7 @@ uint16_t handleSetPlugin(const uint8_t *workBuffer, uint8_t dataLength) {
                 PRINTF("%s external plugin is not present\n", tokenContext->pluginName);
                 memset(tokenContext->pluginName, 0, sizeof(tokenContext->pluginName));
                 CLOSE_TRY;
-                return SWO_REFERENCED_DATA_BLOCKED;
+                return SWO_FILE_NOT_FOUND;
             }
             FINALLY {
             }

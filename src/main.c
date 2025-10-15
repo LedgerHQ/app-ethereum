@@ -300,7 +300,7 @@ void app_main(void) {
 
                 if (apdu_parser(&cmd, G_io_apdu_buffer, rx) == false) {
                     PRINTF("=> BAD LENGTH: %d\n", rx);
-                    sw = SWO_AUTH_METHOD_BLOCKED;
+                    sw = SWO_WRONG_DATA_LENGTH;
                 } else {
                     PRINTF("=> CLA=%02x, INS=%02x (%s), P1=%02x, P2=%02x, LC=%02x, CDATA=%.*h\n",
                            cmd.cla,

@@ -575,7 +575,7 @@ void start_signature_flow(void) {
 }
 
 uint16_t finalize_parsing(const txContext_t *context) {
-    uint16_t sw = SWO_UNKNOWN;
+    uint16_t sw = SWO_PARAMETER_ERROR_NO_INFO;
     g_use_standard_ui = true;
 
     sw = finalize_parsing_helper(context);

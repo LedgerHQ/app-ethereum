@@ -8,7 +8,7 @@ uint16_t handleSetEth2WithdrawalIndex(uint8_t p1,
                                       const uint8_t *dataBuffer,
                                       uint16_t dataLength) {
     if (dataLength != 4) {
-        return SWO_AUTH_METHOD_BLOCKED;
+        return SWO_WRONG_DATA_LENGTH;
     }
 
     if ((p1 != 0) || (p2 != 0)) {

@@ -34,7 +34,7 @@ uint16_t hashRLP(const uint8_t *data, uint8_t dataLength, uint8_t *rlpTmp, uint8
 
     hashSize = rlpEncodeNumber(data, dataLength, rlpTmp, rlpTmpLength);
     if (hashSize == 0) {
-        return SWO_UNKNOWN;
+        return SWO_PARAMETER_ERROR_NO_INFO;
     }
     CX_CHECK(cx_hash_no_throw((cx_hash_t *) g_7702_hash_ctx, 0, rlpTmp, hashSize, NULL, 0));
     return APDU_NO_RESPONSE;
@@ -71,7 +71,7 @@ static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size) {
     const char *delegateName;
 
     // Default internal error triggered by CX_CHECK
-    g_7702_sw = SWO_UNKNOWN;
+    g_7702_sw = SWO_PARAMETER_ERROR_NO_INFO;
 
     parsing_ret =
         tlv_parse(payload, size, (f_tlv_data_handler) handle_auth_7702_struct, &auth_7702_ctx);
@@ -99,7 +99,7 @@ static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size) {
     rlpTmp[0] = MAGIC_7702;
     hashSize = rlpEncodeListHeader8(rlpDataSize, rlpTmp + 1, sizeof(rlpTmp) - 1);
     if (hashSize == 0) {
-        g_7702_sw = SWO_UNKNOWN;
+        g_7702_sw = SWO_PARAMETER_ERROR_NO_INFO;
         goto end;
     }
     if (mem_buffer_allocate((void **) &g_7702_hash_ctx, sizeof(cx_sha3_t)) == false) {
@@ -161,7 +161,7 @@ static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size) {
             if (!u64_to_string(auth7702->chainId,
                                strings.common.network_name,
                                sizeof(strings.common.network_name))) {
-                // return SWO_UNKNOWN;
+                // return SWO_PARAMETER_ERROR_NO_INFO;
                 // Do not crash if the chain id is too long
                 strings.common.network_name[0] = '?';
                 strings.common.network_name[1] = '\0';
@@ -187,7 +187,7 @@ uint16_t handleSignEIP7702Authorization(uint8_t p1,
                                         const uint8_t *dataBuffer,
                                         uint8_t dataLength,
                                         unsigned int *flags) {
-    g_7702_sw = SWO_UNKNOWN;
+    g_7702_sw = SWO_PARAMETER_ERROR_NO_INFO;
     if (p1 == P1_FIRST_CHUNK) {
         if ((dataBuffer =
                  parseBip32(dataBuffer, &dataLength, &tmpCtx.authSigningContext7702.bip32)) ==

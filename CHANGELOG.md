@@ -5,7 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.20.0](../../compare/1.19.0...1.20.0) - 2025-xx-xx
+## [1.19.2](../../compare/1.19.1...1.19.2) - 2025-10-15
+
+### Fixed
+
+- Clear-signing of smart-contract interactions with no clear-signed fields
+- Clear-signing of legacy TX (type 0)
+- Bug where the app could end up in an infinite loop during clear-signing
+- Handling of the smart-account `GET_PUBLIC_KEY` equivalent
 
 ## [1.19.1](../../compare/1.19.0...1.19.1) - 2025-09-26
 

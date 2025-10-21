@@ -8,6 +8,8 @@ typedef struct {
     e_param_type type;
     char *key;
     char *value;
+    bool start_intent;  // This pair starts a new transaction in a batch
+    bool end_intent;    // This pair ends a transaction in a batch
 } s_field_table_entry;
 
 bool field_table_init(void);

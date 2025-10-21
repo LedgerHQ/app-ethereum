@@ -28,6 +28,7 @@ typedef enum {
     PARAM_TYPE_TRUSTED_NAME,
     PARAM_TYPE_CALLDATA,
     PARAM_TYPE_TOKEN,
+    PARAM_TYPE_INTENT,
 } e_param_type;
 
 typedef struct {

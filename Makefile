@@ -37,7 +37,7 @@ include ./makefile_conf/chain/$(CHAIN).mk
 
 APPVERSION_M = 1
 APPVERSION_N = 19
-APPVERSION_P = 2
+APPVERSION_P = 3
 APPVERSION = $(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 
 # Application source files

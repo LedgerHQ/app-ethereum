@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.19.3](../../compare/1.19.2...1.19.3) - 2025-10-23
+
+### Changed
+
+- Increased plugin interface to version 7
+- Set ticker after fee
+- Allocate 1k memory for plugins
+
+### Fixed
+
+- Do not check dynamic network in SWAP mode
+
 ## [1.19.2](../../compare/1.19.1...1.19.2) - 2025-10-15
 
 ### Fixed

@@ -63,7 +63,7 @@ void handle_init_contract_721(ethPluginInitContract_t *msg) {
 void handle_finalize_721(ethPluginFinalize_t *msg) {
     erc721_context_t *context = (erc721_context_t *) msg->pluginContext;
 
-    msg->tokenLookup1 = msg->pluginSharedRO->txContent->destination;
+    msg->tokenLookup1 = msg->txContent->destination;
     msg->tokenLookup2 = NULL;
     switch (context->selectorIndex) {
         case TRANSFER:
@@ -80,8 +80,7 @@ void handle_finalize_721(ethPluginFinalize_t *msg) {
             return;
     }
     // Check if some ETH is attached to this tx
-    if (!allzeroes((void *) &msg->pluginSharedRO->txContent->value,
-                   sizeof(msg->pluginSharedRO->txContent->value))) {
+    if (!allzeroes((void *) &msg->txContent->value, sizeof(msg->txContent->value))) {
         // Set Approval for All is not payable
         if (context->selectorIndex == SET_APPROVAL_FOR_ALL) {
             msg->result = ETH_PLUGIN_RESULT_ERROR;

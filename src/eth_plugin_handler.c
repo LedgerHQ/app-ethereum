@@ -69,7 +69,7 @@ void eth_plugin_prepare_query_contract_UI(ethQueryContractUI_t *queryContractUI,
     queryContractUI->screenIndex = screenIndex;
     chain_id = get_tx_chain_id();
     strlcpy(queryContractUI->network_ticker,
-            get_displayable_ticker(&chain_id, chainConfig),
+            get_displayable_ticker(&chain_id, chainConfig, true),
             sizeof(queryContractUI->network_ticker));
     queryContractUI->title = title;
     queryContractUI->titleLength = titleLength;
@@ -185,13 +185,8 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
 }
 
 eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
-    ethPluginSharedRW_t pluginRW;
-    ethPluginSharedRO_t pluginRO;
     char *alias;
     uint8_t i;
-
-    pluginRW.sha3 = &global_sha3;
-    pluginRO.txContent = &tmpContent.txContent;
 
     if (dataContext.tokenContext.pluginStatus <= ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
         PRINTF("Cached plugin call but no plugin available\n");
@@ -207,8 +202,7 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
             ((ethPluginInitContract_t *) parameter)->interfaceVersion =
                 ETH_PLUGIN_INTERFACE_VERSION_LATEST;
             ((ethPluginInitContract_t *) parameter)->result = ETH_PLUGIN_RESULT_UNAVAILABLE;
-            ((ethPluginInitContract_t *) parameter)->pluginSharedRW = &pluginRW;
-            ((ethPluginInitContract_t *) parameter)->pluginSharedRO = &pluginRO;
+            ((ethPluginInitContract_t *) parameter)->txContent = &tmpContent.txContent;
             ((ethPluginInitContract_t *) parameter)->pluginContext =
                 (uint8_t *) &dataContext.tokenContext.pluginContext;
             ((ethPluginInitContract_t *) parameter)->pluginContextLength =
@@ -218,39 +212,34 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
         case ETH_PLUGIN_PROVIDE_PARAMETER:
             PRINTF("-- PLUGIN PROVIDE PARAMETER --\n");
             ((ethPluginProvideParameter_t *) parameter)->result = ETH_PLUGIN_RESULT_UNAVAILABLE;
-            ((ethPluginProvideParameter_t *) parameter)->pluginSharedRW = &pluginRW;
-            ((ethPluginProvideParameter_t *) parameter)->pluginSharedRO = &pluginRO;
+            ((ethPluginProvideParameter_t *) parameter)->txContent = &tmpContent.txContent;
             ((ethPluginProvideParameter_t *) parameter)->pluginContext =
                 (uint8_t *) &dataContext.tokenContext.pluginContext;
             break;
         case ETH_PLUGIN_FINALIZE:
             PRINTF("-- PLUGIN FINALIZE --\n");
             ((ethPluginFinalize_t *) parameter)->result = ETH_PLUGIN_RESULT_UNAVAILABLE;
-            ((ethPluginFinalize_t *) parameter)->pluginSharedRW = &pluginRW;
-            ((ethPluginFinalize_t *) parameter)->pluginSharedRO = &pluginRO;
+            ((ethPluginFinalize_t *) parameter)->txContent = &tmpContent.txContent;
             ((ethPluginFinalize_t *) parameter)->pluginContext =
                 (uint8_t *) &dataContext.tokenContext.pluginContext;
             break;
         case ETH_PLUGIN_PROVIDE_INFO:
             PRINTF("-- PLUGIN PROVIDE INFO --\n");
             ((ethPluginProvideInfo_t *) parameter)->result = ETH_PLUGIN_RESULT_UNAVAILABLE;
-            ((ethPluginProvideInfo_t *) parameter)->pluginSharedRW = &pluginRW;
-            ((ethPluginProvideInfo_t *) parameter)->pluginSharedRO = &pluginRO;
+            ((ethPluginProvideInfo_t *) parameter)->txContent = &tmpContent.txContent;
             ((ethPluginProvideInfo_t *) parameter)->pluginContext =
                 (uint8_t *) &dataContext.tokenContext.pluginContext;
             break;
         case ETH_PLUGIN_QUERY_CONTRACT_ID:
             PRINTF("-- PLUGIN QUERY CONTRACT ID --\n");
             ((ethQueryContractID_t *) parameter)->result = ETH_PLUGIN_RESULT_UNAVAILABLE;
-            ((ethQueryContractID_t *) parameter)->pluginSharedRW = &pluginRW;
-            ((ethQueryContractID_t *) parameter)->pluginSharedRO = &pluginRO;
+            ((ethQueryContractID_t *) parameter)->txContent = &tmpContent.txContent;
             ((ethQueryContractID_t *) parameter)->pluginContext =
                 (uint8_t *) &dataContext.tokenContext.pluginContext;
             break;
         case ETH_PLUGIN_QUERY_CONTRACT_UI:
             PRINTF("-- PLUGIN QUERY CONTRACT UI --\n");
-            ((ethQueryContractUI_t *) parameter)->pluginSharedRW = &pluginRW;
-            ((ethQueryContractUI_t *) parameter)->pluginSharedRO = &pluginRO;
+            ((ethQueryContractUI_t *) parameter)->txContent = &tmpContent.txContent;
             ((ethQueryContractUI_t *) parameter)->pluginContext =
                 (uint8_t *) &dataContext.tokenContext.pluginContext;
             break;

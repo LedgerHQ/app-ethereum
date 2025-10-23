@@ -209,46 +209,39 @@ static uint16_t address_to_string(uint8_t *in,
     return APDU_RESPONSE_OK;
 }
 
-static void raw_fee_to_string(uint256_t *rawFee, char *displayBuffer, uint32_t displayBufferSize) {
+static void raw_fee_to_string(uint256_t *rawFee, char *out_buffer, uint32_t out_buffer_size) {
+    // Fees are always in the base currency, this is why we need to use the chain_id
     uint64_t chain_id = get_tx_chain_id();
-    const char *feeTicker = get_displayable_ticker(&chain_id, chainConfig);
-    uint8_t tickerOffset = 0;
-    uint32_t i;
+    const char *ticker = get_displayable_ticker(&chain_id, chainConfig, true);
+    uint8_t fee_len = 0;
+    uint8_t ticker_len = 0;
+    char raw_fee_buffer[100] = {0};
 
-    tostring256(rawFee, 10, (char *) (G_io_apdu_buffer + 100), 100);
-    i = 0;
-    while (G_io_apdu_buffer[100 + i]) {
-        i++;
+    memset(out_buffer, 0, out_buffer_size);
+
+    // Convert the fee to decimal string first
+    if (tostring256(rawFee, 10, (char *) raw_fee_buffer, sizeof(raw_fee_buffer)) == false) {
+        PRINTF("tostring256 failed\n");
+        return;
     }
-    adjustDecimals((char *) (G_io_apdu_buffer + 100),
-                   i,
-                   (char *) G_io_apdu_buffer,
-                   100,
-                   WEI_TO_ETHER);
-    i = 0;
-    tickerOffset = 0;
-    memset(displayBuffer, 0, displayBufferSize);
-
-    while (feeTicker[tickerOffset]) {
-        if ((uint32_t) tickerOffset >= displayBufferSize) {
-            break;
-        }
-
-        displayBuffer[tickerOffset] = feeTicker[tickerOffset];
-        tickerOffset++;
-    }
-    if ((uint32_t) tickerOffset < displayBufferSize) displayBuffer[tickerOffset++] = ' ';
-    while (G_io_apdu_buffer[i]) {
-        if ((uint32_t) (tickerOffset) + i >= displayBufferSize) {
-            break;
-        }
-        displayBuffer[tickerOffset + i] = G_io_apdu_buffer[i];
-        i++;
+    // Adjust the decimal position, store the result in out_buffer
+    fee_len = strnlen(raw_fee_buffer, sizeof(raw_fee_buffer));
+    ticker_len = strnlen(ticker, MAX_TICKER_LEN);
+    if (adjustDecimals(raw_fee_buffer, fee_len, out_buffer, out_buffer_size, WEI_TO_ETHER) ==
+        false) {
+        PRINTF("adjustDecimals failed\n");
+        return;
     }
 
-    if ((uint32_t) (tickerOffset) + i < displayBufferSize) {
-        displayBuffer[tickerOffset + i] = '\0';
+    // out_buffer will contain the fee, a space and the ticker, ended with \0
+    if ((strlen(out_buffer) + 1 + ticker_len + 1) > out_buffer_size) {
+        PRINTF("Not enough space for ticker\n");
+        return;
     }
+    // Append a space and the ticker to the out_buffer
+    // strlcat cannot fail here as we checked boundaries above
+    strlcat(out_buffer, " ", out_buffer_size);
+    strlcat(out_buffer, ticker, out_buffer_size);
 }
 
 // Compute the fees, transform it to a string, prepend a ticker to it and copy everything to
@@ -299,7 +292,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
     char displayBuffer[50];
     uint8_t decimals = WEI_TO_ETHER;
     uint64_t chain_id = get_tx_chain_id();
-    const char *ticker = get_displayable_ticker(&chain_id, chainConfig);
+    const char *ticker = get_displayable_ticker(&chain_id, chainConfig, true);
     ethPluginFinalize_t pluginFinalize;
     cx_err_t error = CX_INTERNAL_ERROR;
 

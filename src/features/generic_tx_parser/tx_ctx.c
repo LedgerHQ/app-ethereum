@@ -114,7 +114,7 @@ bool find_matching_tx_ctx(const uint8_t *contract_addr,
     return false;
 }
 
-void tx_ctx_cleanup(void) {
+static void tx_ctx_cleanup(void) {
     flist_clear((s_flist_node **) &g_tx_ctx_list, (f_list_node_del) &delete_tx_ctx);
     g_tx_ctx_current = NULL;
 }

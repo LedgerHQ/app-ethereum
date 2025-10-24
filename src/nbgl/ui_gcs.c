@@ -15,6 +15,8 @@
 #include "trusted_name.h"
 #include "tx_ctx.h"
 
+static bool *index_allocated = NULL;
+
 static void review_choice(bool confirm) {
     if (confirm) {
         io_seproxyhal_touch_tx_ok();
@@ -74,8 +76,7 @@ static void free_pair(const nbgl_contentTagValueList_t *pair_list, int idx) {
     // - the first one, that leads to the contract infos
     // - the second to last one, that shows the Network (optional)
     // - the last one, that shows the TX fees
-    if ((idx == 0) || (idx == (pair_list->nbPairs - 1)) ||
-        ((get_tx_chain_id() != chainConfig->chainId) && (idx == (pair_list->nbPairs - 2)))) {
+    if (index_allocated[idx]) {
         if (pair_list->pairs[idx].item != NULL) app_mem_free((void *) pair_list->pairs[idx].item);
         if (pair_list->pairs[idx].value != NULL) app_mem_free((void *) pair_list->pairs[idx].value);
     }
@@ -233,6 +234,8 @@ void ui_gcs_cleanup(void) {
         for (int i = 0; i < g_pairsList->nbPairs; ++i) {
             free_pair(g_pairsList, i);
         }
+        app_mem_free((void *) index_allocated);
+        index_allocated = NULL;
     }
     ui_all_cleanup();
     enum_value_cleanup();
@@ -291,6 +294,14 @@ bool ui_gcs(void) {
         return false;
     }
 
+    // Allocate a table to hold all pairs that will be allocated for UI, and need to be freed later
+    if (mem_buffer_allocate((void **) &index_allocated, nbPairs) == false) {
+        ui_gcs_cleanup();
+        return false;
+    }
+
+    // First pair: contract info
+    index_allocated[0] = true;
     g_pairs[0].item = app_mem_strdup("Interaction with");
     g_pairs[0].value = get_creator_name(get_current_tx_info());
     if (g_pairs[0].value == NULL) {
@@ -341,6 +352,7 @@ bool ui_gcs(void) {
             return false;
         }
         g_pairs[g_pairsList->nbPairs - 2].value = app_mem_strdup(tmp_buf);
+        index_allocated[g_pairsList->nbPairs - 2] = true;
     }
 
     g_pairs[g_pairsList->nbPairs - 1].item = app_mem_strdup("Max fees");
@@ -351,6 +363,7 @@ bool ui_gcs(void) {
         PRINTF("Error: Could not format the max fees!\n");
     }
     g_pairs[g_pairsList->nbPairs - 1].value = app_mem_strdup(tmp_buf);
+    index_allocated[g_pairsList->nbPairs - 1] = true;
 
     nbgl_useCaseAdvancedReview(TYPE_TRANSACTION,
                                g_pairsList,

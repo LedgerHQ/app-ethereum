@@ -15,6 +15,8 @@ typedef struct ui_712_pair {
     s_flist_node _list;
     char *key;
     char *value;
+    bool start_intent;  // This pair starts a new transaction in a batch
+    bool end_intent;    // This pair ends a transaction in a batch
 } s_ui_712_pair;
 
 typedef enum {
@@ -71,6 +73,7 @@ bool ui_712_feed_to_display(const s_struct_712_field *field_ptr,
 void ui_712_end_sign(void);
 void ui_712_approve(void);
 void ui_712_reject(void);
+void ui_712_set_intent(void);
 void ui_712_set_title(const char *str, size_t length);
 void ui_712_set_value(const char *str, size_t length);
 bool ui_712_message_hash(void);

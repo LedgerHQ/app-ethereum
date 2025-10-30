@@ -19,6 +19,8 @@
 #include "tx_ctx.h"  // g_parked_calldata
 #include "read.h"    // read_u64_be
 
+#define N_OF_M_LENGTH 10  // enough to hold "nn of mm"
+
 #define AMOUNT_JOIN_FLAG_TOKEN  (1 << 0)
 #define AMOUNT_JOIN_FLAG_VALUE  (1 << 1)
 #define AMOUNT_JOIN_NAME_LENGTH 25
@@ -155,6 +157,37 @@ void ui_712_finalize_field(void) {
 }
 
 /**
+ * Set a new intent for the EIP-712 batch transaction
+ *
+ */
+void ui_712_set_intent(void) {
+    s_ui_712_pair *new_pair = NULL;
+    const char *title = "Review transaction";
+    size_t title_length = strlen(title);
+
+    // Allocate memory for the new pair
+    if (mem_buffer_allocate((void **) &new_pair, sizeof(*new_pair)) == false) {
+        return;
+    }
+    // Add it to the chained list
+    flist_push_back((s_flist_node **) &ui_ctx->ui_pairs, (s_flist_node *) new_pair);
+
+    // Allocate and copy the title
+    if (mem_buffer_allocate((void **) &new_pair->key, title_length + 1) == false) {
+        return;
+    }
+    memcpy(new_pair->key, title, title_length);
+
+    // Allocate and clear the intent buffer
+    if (mem_buffer_allocate((void **) &new_pair->value, N_OF_M_LENGTH) == false) {
+        return;
+    }
+
+    // Mark it as an intent
+    new_pair->start_intent = true;
+}
+
+/**
  * Set a new title for the EIP-712 generic UX_STEP
  *
  * @param[in] str the new title
@@ -206,6 +239,10 @@ void ui_712_set_value(const char *str, size_t length) {
         if ((tmp->value = app_mem_strdup(strings.tmp.tmp)) == NULL) {
             return;
         }
+    }
+    tmp->end_intent = validate_instruction_hash();
+    if (tmp->end_intent) {
+        PRINTF(">>> [Intent] End\n");
     }
 }
 
@@ -564,6 +601,10 @@ static bool update_amount_join(const uint8_t *data, uint8_t length) {
 
         case AMOUNT_JOIN_STATE_VALUE:
             if ((amount_join = get_amount_join(ui_ctx->amount.idx)) == NULL) {
+                return false;
+            }
+            if (length > sizeof(amount_join->value)) {
+                apdu_response_code = SWO_INCORRECT_DATA;
                 return false;
             }
             memcpy(amount_join->value, data, length);
@@ -1239,22 +1280,44 @@ void ui_712_push_pairs(void) {
     uint8_t nbPairs = 0;
     uint8_t pair = 0;
     s_ui_712_pair *tmp = NULL;
+    uint8_t tx_idx = 0;
 
     // Initialize the pairs list
     nbPairs = flist_size((s_flist_node **) &ui_ctx->ui_pairs);
     if (N_storage.displayHash) {
         nbPairs += 2;
     }
+
     ui_pairs_init(nbPairs);
     // Initialize the tag/value pairs from the chain list
     tmp = ui_ctx->ui_pairs;
     while (tmp != NULL) {
+        if (tmp->start_intent) {
+            // Batch intermediate page
+            tx_idx++;
+            // Replace "nn of mm" placeholder, initialized in ui_712_set_intent()
+            snprintf(tmp->value, N_OF_M_LENGTH, "%d of %d", tx_idx, txContext.batch_nb_tx);
+            g_pairs[pair].centeredInfo = 1;
+        }
         g_pairs[pair].item = tmp->key;
         g_pairs[pair].value = tmp->value;
-        tmp = (s_ui_712_pair *) ((s_flist_node *) tmp)->next;
+        if (pair > g_pairsList->nbPairs - 1) {
+            PRINTF("Error: No more pairs available (%d / %d)!\n", pair, g_pairsList->nbPairs);
+            return;
+        }
         pair++;
+        if ((tmp->end_intent) && (txContext.batch_nb_tx > 1)) {
+            // End of batch transaction : start next info on full page
+            g_pairs[pair].forcePageStart = 1;
+        }
+        tmp = (s_ui_712_pair *) ((s_flist_node *) tmp)->next;
     }
+
     if (N_storage.displayHash) {
+        if (pair > g_pairsList->nbPairs - 1) {
+            PRINTF("Error: No more pairs available for Hash!\n");
+            return;
+        }
         // Prepare the pairs list with the hashes
         eip712_format_hash(pair);
         g_pairs[pair].forcePageStart = 1;

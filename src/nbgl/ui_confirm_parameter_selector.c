@@ -1,6 +1,7 @@
 #include "ui_nbgl.h"
 #include "ui_callbacks.h"
 #include "ui_utils.h"
+#include "i18n/i18n.h"
 
 #define TITLE_MSG_LEN  20
 #define FINISH_MSG_LEN 20
@@ -30,18 +31,18 @@ static void buildScreen(e_confirmation_type confirm_type) {
         return;
     }
 
-    g_pairs->item = (confirm_type == PARAMETER_CONFIRMATION) ? "Parameter" : "Selector";
+    g_pairs->item = (confirm_type == PARAMETER_CONFIRMATION) ? STR(PARAMETER) : STR(SELECTOR);
     g_pairs->value = strings.tmp.tmp;
 
     snprintf(g_titleMsg,
              TITLE_MSG_LEN,
-             "Verify %s",
-             (confirm_type == PARAMETER_CONFIRMATION) ? "parameter" : "selector");
+             STR(VERIFY_FMT),
+             (confirm_type == PARAMETER_CONFIRMATION) ? STR(PARAMETER) : STR(SELECTOR));
     // Finish text: replace "Verify" by "Confirm"
     snprintf(g_finishMsg,
              FINISH_MSG_LEN,
-             "Confirm %s",
-             (confirm_type == PARAMETER_CONFIRMATION) ? "parameter" : "selector");
+             STR(CONFIRM_FMT),
+             (confirm_type == PARAMETER_CONFIRMATION) ? STR(PARAMETER) : STR(SELECTOR));
 
     if (tmpContent.txContent.dataPresent) {
         op |= BLIND_OPERATION;

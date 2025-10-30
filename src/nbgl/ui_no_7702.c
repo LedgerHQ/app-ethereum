@@ -2,6 +2,7 @@
 #include "shared_context.h"
 #include "ui_callbacks.h"
 #include "ui_nbgl.h"
+#include "i18n/i18n.h"
 
 static void ui_error_no_7702_choice(bool confirm) {
     if (confirm) {
@@ -14,12 +15,12 @@ static void ui_error_no_7702_choice(bool confirm) {
 void ui_error_no_7702(void) {
     nbgl_useCaseChoice(&ICON_APP_WARNING,
 #ifdef SCREEN_SIZE_WALLET
-                       "This authorization cannot be signed",
+                       STR(AUTH_CANNOT_BE_SIGNED),
 #else
-                       "Unable to sign",
+                       STR(UNABLE_TO_SIGN),
 #endif
-                       "Enable smart account upgrade in the settings to sign this authorization.",
-                       "Go to settings",
-                       "Reject authorization",
+                       STR(ENABLE_SMART_ACCOUNT_SETTING),
+                       STR(GO_TO_SETTINGS),
+                       STR(REJECT_AUTHORIZATION),
                        ui_error_no_7702_choice);
 }

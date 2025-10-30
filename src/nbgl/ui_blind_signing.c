@@ -1,4 +1,5 @@
 #include "ui_nbgl.h"
+#include "i18n/i18n.h"
 
 #ifdef SCREEN_SIZE_WALLET
 static void ui_error_blind_signing_choice(bool confirm) {
@@ -13,14 +14,14 @@ static void ui_error_blind_signing_choice(bool confirm) {
 void ui_error_blind_signing(void) {
 #ifdef SCREEN_SIZE_WALLET
     nbgl_useCaseChoice(&ICON_APP_WARNING,
-                       "This transaction cannot be clear-signed",
-                       "Enable blind signing in the settings to sign this transaction.",
-                       "Go to settings",
-                       "Reject transaction",
+                       STR(BLIND_SIGNING_WARNING),
+                       STR(BLIND_SIGNING_ERROR),
+                       STR(GO_TO_SETTINGS),
+                       STR(REJECT_TRANSACTION),
                        ui_error_blind_signing_choice);
 #else
     nbgl_useCaseAction(&C_Alert_circle_14px,
-                       "Blind signing must\nbe enabled in\nsettings",
+                       STR(BLIND_SIGNING_MUST_ENABLE),
                        NULL,
                        ui_idle);
 #endif

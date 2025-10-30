@@ -7,6 +7,7 @@
 #include "ui_nbgl.h"
 #include "ui_utils.h"
 #include "mem_utils.h"
+#include "i18n/i18n.h"
 
 #define MAX_PAIRS          2
 #define TAG_MAX_LEN        10
@@ -124,7 +125,7 @@ static void _prepare_strings(void) {
     // Populate tag strings
     ptr = signersInfo->tags.buffer;
     for (i = 0; i < SAFE_DESC->signers_count; i++) {
-        snprintf(ptr, TAG_MAX_LEN, "Signer %d", i + 1);
+        snprintf(ptr, TAG_MAX_LEN, STR(SIGNER_N), i + 1);
         signersInfo->tags.pointers[i] = ptr;
         ptr += TAG_MAX_LEN + 1;
     }
@@ -146,11 +147,11 @@ static void setTagValuePairs(void) {
     uint8_t nbPairs = 0;
     uint16_t i = 0;
 
-    g_pairs[nbPairs].item = "Your role";
+    g_pairs[nbPairs].item = STR(YOUR_ROLE);
     g_pairs[nbPairs].value = ROLE_STR(SAFE_DESC->role);
 
     nbPairs++;
-    g_pairs[nbPairs].item = "Threshold";
+    g_pairs[nbPairs].item = STR(THRESHOLD);
     g_pairs[nbPairs].value = strings.tmp.tmp + ADDRESS_LENGTH_STR;
     g_pairs[nbPairs].aliasValue = 1;
     g_pairs[nbPairs].extension = &extensions[1];
@@ -174,12 +175,12 @@ static void review_cb(bool confirm) {
     if (confirm) {
         // User confirmed the Safe Account
         _cleanup(APDU_RESPONSE_OK);
-        nbgl_useCaseStatus("Safe Address validated", true, ui_idle);
+        nbgl_useCaseStatus(STR(SAFE_ADDRESS_VALIDATED), true, ui_idle);
         return;
     } else {
         // User rejected the Safe Account
         _cleanup(APDU_RESPONSE_CONDITION_NOT_SATISFIED);
-        nbgl_useCaseStatus("Safe Address rejected", false, ui_idle);
+        nbgl_useCaseStatus(STR(SAFE_ADDRESS_REJECTED), false, ui_idle);
     }
 }
 
@@ -203,7 +204,7 @@ void ui_display_safe_account(void) {
     nbgl_useCaseAddressReview(strings.tmp.tmp,
                               g_pairsList,
                               &C_multisig,
-                              "Verify Safe address",
+                              STR(VERIFY_SAFE_ADDRESS),
                               NULL,
                               review_cb);
 }

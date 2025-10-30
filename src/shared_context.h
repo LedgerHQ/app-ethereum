@@ -27,6 +27,7 @@ typedef struct internalStorage_t {
 #endif
     bool eip7702_enable;
     bool displayHash;
+    uint8_t language;  // language_e from i18n.h
     bool initialized;
 } internalStorage_t;
 

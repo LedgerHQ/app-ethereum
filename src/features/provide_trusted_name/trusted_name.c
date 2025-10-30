@@ -229,7 +229,7 @@ static bool handle_challenge(const s_tlv_data *data, s_trusted_name_ctx *context
     }
     buf_shrink_expand(data->value, data->length, buf, sizeof(buf));
     context->rcv_flags |= SET_BIT(CHALLENGE_RCV_BIT);
-    return (read_u32_be(buf, 0) == get_challenge());
+    return check_challenge(read_u32_be(buf, 0));
 }
 
 /**

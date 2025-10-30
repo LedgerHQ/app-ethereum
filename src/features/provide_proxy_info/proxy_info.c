@@ -163,7 +163,6 @@ bool handle_proxy_info_struct(const s_tlv_data *data, s_proxy_info_ctx *context)
 
 bool verify_proxy_info_struct(const s_proxy_info_ctx *context) {
     uint8_t hash[INT256_LENGTH];
-    uint32_t challenge;
 
     if (cx_hash_no_throw((cx_hash_t *) &context->struct_hash,
                          CX_LAST,
@@ -178,12 +177,10 @@ bool verify_proxy_info_struct(const s_proxy_info_ctx *context) {
         PRINTF("Error: unknown struct type (%u)!\n", context->struct_type);
         return false;
     }
-    challenge = get_challenge();
-    roll_challenge();
-    if (context->challenge != challenge) {
-        PRINTF("Error: challenge mismatch!\n");
+    if (check_challenge(context->challenge) == false) {
         return false;
     }
+    roll_challenge();
     if (context->delegation_type != DELEGATION_TYPE_PROXY) {
         PRINTF("Error: unsupported delegation type (%u)!\n", context->delegation_type);
         return false;

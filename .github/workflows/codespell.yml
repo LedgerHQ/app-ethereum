@@ -12,15 +12,6 @@ on:
 jobs:
   misspell:
     name: Check misspellings
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: true
-
-      - name: Check misspellings
-        uses: codespell-project/actions-codespell@v2
-        with:
-          builtin: clear,rare
-          check_filenames: true
-          path: src, doc, client
+    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_spell_check.yml@v1
+    with:
+      src_path: src, doc, client

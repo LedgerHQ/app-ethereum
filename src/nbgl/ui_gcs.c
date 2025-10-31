@@ -213,11 +213,11 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
                      tmp_buf_size,
                      "https://etherscan.io/address/%s",
                      extensions[contract_idx].title);
-            if ((extensions[contract_idx].fullValue = app_mem_strdup(tmp_buf)) == NULL) {
-                return false;
-            }
         } else {
-            extensions[contract_idx].fullValue = extensions[contract_idx].title;
+            snprintf(tmp_buf, tmp_buf_size, "%s", extensions[contract_idx].title);
+        }
+        if ((extensions[contract_idx].fullValue = app_mem_strdup(tmp_buf)) == NULL) {
+            return false;
         }
         extensions[contract_idx].aliasType = QR_CODE_ALIAS;
     }

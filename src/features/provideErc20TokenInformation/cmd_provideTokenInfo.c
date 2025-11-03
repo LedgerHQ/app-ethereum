@@ -17,15 +17,15 @@ uint16_t handleProvideErc20TokenInformation(const uint8_t *workBuffer,
     PRINTF("Provisioning currentAssetIndex %d\n", tmpCtx.transactionContext.currentAssetIndex);
 
     if (dataLength < 1) {
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
     tickerLength = workBuffer[offset++];
     dataLength--;
     if ((tickerLength + 1) > sizeof(token->ticker)) {
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
     if (dataLength < tickerLength + 20 + 4 + 4) {
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
     cx_hash_sha256(workBuffer + offset, tickerLength + 20 + 4 + 4, hash, 32);
     memmove(token->ticker, workBuffer + offset, tickerLength);
@@ -43,7 +43,7 @@ uint16_t handleProvideErc20TokenInformation(const uint8_t *workBuffer,
     chain_id = U4BE(workBuffer, offset);
     if (!app_compatible_with_chain_id(&chain_id)) {
         UNSUPPORTED_CHAIN_ID_MSG(chain_id);
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
     offset += 4;
     dataLength -= 4;
@@ -59,12 +59,12 @@ uint16_t handleProvideErc20TokenInformation(const uint8_t *workBuffer,
     if (error != CX_OK) {
         PRINTF("Invalid token signature\n");
 #ifndef HAVE_BYPASS_SIGNATURES
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
 #endif
     }
 
     G_io_apdu_buffer[0] = tmpCtx.transactionContext.currentAssetIndex;
     validate_current_asset_info();
     *tx += 1;
-    return APDU_RESPONSE_OK;
+    return SWO_SUCCESS;
 }

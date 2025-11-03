@@ -281,11 +281,11 @@ static bool array_depth_list_push(uint8_t path_idx, uint8_t size) {
     s_array_depth *arr;
 
     if (path_struct == NULL) {
-        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        apdu_response_code = SWO_INCORRECT_DATA;
         return false;
     }
     if (path_struct->array_depth_count == MAX_ARRAY_DEPTH) {
-        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        apdu_response_code = SWO_INCORRECT_DATA;
         return false;
     }
 
@@ -396,7 +396,7 @@ bool path_set_root(const char *struct_name, uint8_t name_length) {
     uint8_t hash[KECCAK256_HASH_BYTESIZE];
 
     if (path_struct == NULL) {
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        apdu_response_code = SWO_INCORRECT_DATA;
         return false;
     }
 
@@ -410,7 +410,7 @@ bool path_set_root(const char *struct_name, uint8_t name_length) {
             PRINTF("%c", struct_name[i]);
         }
         PRINTF(")!\n");
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        apdu_response_code = SWO_INCORRECT_DATA;
         return false;
     }
 
@@ -463,7 +463,7 @@ static bool check_and_add_array_depth(s_struct_712_field_array_level *array_lvl,
     arr_idx = (total_count - path_struct->array_depth_count) - 1;
     array_lvl += arr_idx;
     if ((array_lvl->type == ARRAY_FIXED_SIZE) && (array_lvl->size != size)) {
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        apdu_response_code = SWO_INCORRECT_DATA;
         PRINTF("Unexpected array depth size. (expected %d, got %d)\n", array_lvl->size, size);
         return false;
     }
@@ -512,10 +512,10 @@ bool path_new_array_depth(const uint8_t *data, uint8_t length) {
     cx_err_t error = CX_INTERNAL_ERROR;
 
     if (path_struct == NULL) {
-        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        apdu_response_code = SWO_INCORRECT_DATA;
         return false;
     } else if (length != 1) {
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        apdu_response_code = SWO_INCORRECT_DATA;
         return false;
     }
 
@@ -529,12 +529,12 @@ bool path_new_array_depth(const uint8_t *data, uint8_t length) {
     array_depth_count_bak = path_struct->array_depth_count;
     for (pidx = 0; pidx < path_struct->depth_count; ++pidx) {
         if ((field_ptr = get_nth_field(NULL, pidx + 1)) == NULL) {
-            apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+            apdu_response_code = SWO_INCORRECT_DATA;
             return false;
         }
         if (field_ptr->type_is_array) {
             if (field_ptr->array_levels == NULL) {
-                apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+                apdu_response_code = SWO_INCORRECT_DATA;
                 return false;
             }
             total_count += field_ptr->array_level_count;
@@ -551,7 +551,7 @@ bool path_new_array_depth(const uint8_t *data, uint8_t length) {
     }
 
     if (pidx == path_struct->depth_count) {
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        apdu_response_code = SWO_INCORRECT_DATA;
         PRINTF("Did not find a matching array type.\n");
         return false;
     }
@@ -784,7 +784,7 @@ bool path_init(void) {
 
     if (((path_struct = app_mem_alloc(sizeof(*path_struct))) == NULL) ||
         ((path_backup = app_mem_alloc(sizeof(*path_backup))) == NULL)) {
-        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+        apdu_response_code = SWO_INSUFFICIENT_MEMORY;
     } else {
         explicit_bzero(path_struct, sizeof(*path_struct));
         explicit_bzero(path_backup, sizeof(*path_backup));

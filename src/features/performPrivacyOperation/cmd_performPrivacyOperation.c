@@ -36,20 +36,20 @@ uint16_t handlePerformPrivacyOperation(uint8_t p1,
     cx_err_t error = CX_INTERNAL_ERROR;
 
     if ((p1 != P1_CONFIRM) && (p1 != P1_NON_CONFIRM)) {
-        return APDU_RESPONSE_INVALID_P1_P2;
+        return SWO_WRONG_P1_P2;
     }
 
     if ((p2 != P2_PUBLIC_ENCRYPTION_KEY) && (p2 != P2_SHARED_SECRET)) {
-        return APDU_RESPONSE_INVALID_P1_P2;
+        return SWO_WRONG_P1_P2;
     }
 
     dataBuffer = parseBip32(dataBuffer, &dataLength, &bip32);
     if (dataBuffer == NULL) {
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
 
     if ((p2 == P2_SHARED_SECRET) && (dataLength < 32)) {
-        return APDU_RESPONSE_WRONG_DATA_LENGTH;
+        return SWO_WRONG_DATA_LENGTH;
     }
 
     CX_CHECK(os_derive_bip32_no_throw(
@@ -83,7 +83,7 @@ uint16_t handlePerformPrivacyOperation(uint8_t p1,
 
     if (p1 == P1_NON_CONFIRM) {
         *tx = set_result_perform_privacy_operation();
-        return APDU_RESPONSE_OK;
+        return SWO_SUCCESS;
     }
     snprintf(strings.common.toAddress,
              sizeof(strings.common.toAddress),

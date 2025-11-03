@@ -50,7 +50,7 @@ uint32_t io_seproxyhal_touch_tx_ok(void) {
 
     // Write status code at parity_byte + r + s
     // Send back the response, do not restart the event loop
-    err = io_seproxyhal_send_status(APDU_RESPONSE_OK, 65, false, false);
+    err = io_seproxyhal_send_status(SWO_SUCCESS, 65, false, false);
     if (G_called_from_swap) {
         PRINTF("G_called_from_swap\n");
 
@@ -67,7 +67,7 @@ uint32_t io_seproxyhal_touch_tx_ok(void) {
 }
 
 unsigned int io_seproxyhal_touch_tx_cancel(void) {
-    return io_seproxyhal_send_status(APDU_RESPONSE_CONDITION_NOT_SATISFIED, 0, true, false);
+    return io_seproxyhal_send_status(SWO_CONDITIONS_NOT_SATISFIED, 0, true, false);
 }
 
 unsigned int io_seproxyhal_touch_data_ok(void) {
@@ -75,11 +75,11 @@ unsigned int io_seproxyhal_touch_data_ok(void) {
     parserStatus_e pstatus = continueTx(&txContext);
     uint16_t sw = handle_parsing_status(pstatus);
     if ((pstatus != USTREAM_SUSPENDED) && (pstatus != USTREAM_FINISHED)) {
-        err = io_seproxyhal_send_status(sw, 0, sw != APDU_RESPONSE_OK, true);
+        err = io_seproxyhal_send_status(sw, 0, sw != SWO_SUCCESS, true);
     }
     return err;
 }
 
 unsigned int io_seproxyhal_touch_data_cancel(void) {
-    return io_seproxyhal_send_status(APDU_RESPONSE_CONDITION_NOT_SATISFIED, 0, true, true);
+    return io_seproxyhal_send_status(SWO_CONDITIONS_NOT_SATISFIED, 0, true, true);
 }

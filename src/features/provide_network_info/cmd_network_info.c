@@ -139,18 +139,18 @@ static uint16_t handle_first_icon_chunk(const uint8_t *data, uint8_t length) {
 
     // Check the icon header
     if (!check_icon_header(data, length, &img_len)) {
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
 
     // Do not track the allocation in logs, because this buffer is expected to stay allocated
     if (mem_buffer_persistent((void **) &(g_icon_bitmap[g_current_network_slot]), img_len) ==
         false) {
         PRINTF("Error: Not enough memory for icon bitmap!\n");
-        return APDU_RESPONSE_INSUFFICIENT_MEMORY;
+        return SWO_INSUFFICIENT_MEMORY;
     }
     g_icon_payload.expected_size = img_len;
 
-    return APDU_RESPONSE_OK;
+    return SWO_SUCCESS;
 }
 
 /**
@@ -163,17 +163,17 @@ static uint16_t handle_first_icon_chunk(const uint8_t *data, uint8_t length) {
 static uint16_t handle_next_icon_chunk(const uint8_t *data, uint8_t length) {
     if ((g_icon_payload.received_size + length) > g_icon_payload.expected_size) {
         PRINTF("Payload size mismatch!\n");
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
     if (g_icon_bitmap[g_current_network_slot] == NULL) {
         PRINTF("Error: Icon bitmap not initialized!\n");
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
     // Feed into payload
     memcpy(g_icon_bitmap[g_current_network_slot] + g_icon_payload.received_size, data, length);
     g_icon_payload.received_size += length;
 
-    return APDU_RESPONSE_OK;
+    return SWO_SUCCESS;
 }
 
 /**
@@ -190,40 +190,40 @@ static uint16_t handle_icon_chunks(uint8_t p1, const uint8_t *data, uint8_t leng
 
     if (DYNAMIC_NETWORK_INFO[g_current_network_slot] == NULL) {
         PRINTF("Error: No network info received!\n");
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
 
     if ((g_network_icon_hash == NULL) || (memcmp(g_network_icon_hash, hash, CX_SHA256_SIZE) == 0)) {
         PRINTF("Error: Icon hash not set!\n");
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
 
     // Check the received chunk index
     if (p1 == P1_FIRST_CHUNK) {
         // Init the with the 1st chunk
         sw = handle_first_icon_chunk(data, length);
-        if (sw != APDU_RESPONSE_OK) {
+        if (sw != SWO_SUCCESS) {
             return sw;
         }
     } else if (p1 != P1_FOLLOWING_CHUNK) {
         PRINTF("Error: Unexpected P2 (%u)!\n", p1);
-        return APDU_RESPONSE_INVALID_P1_P2;
+        return SWO_WRONG_P1_P2;
     }
 
     // Handle the payload
     sw = handle_next_icon_chunk(data, length);
-    if (sw != APDU_RESPONSE_OK) {
+    if (sw != SWO_SUCCESS) {
         return sw;
     }
     if (g_icon_payload.received_size == g_icon_payload.expected_size) {
         // Everything has been received
         if (!parse_icon_buffer()) {
-            return APDU_RESPONSE_INVALID_DATA;
+            return SWO_INCORRECT_DATA;
         }
         // Prepare for next slot
         g_current_network_slot = (g_current_network_slot + 1) % MAX_DYNAMIC_NETWORKS;
     }
-    return APDU_RESPONSE_OK;
+    return SWO_SUCCESS;
 }
 
 /**
@@ -310,22 +310,22 @@ uint16_t handle_network_info(uint8_t p1,
                              const uint8_t *data,
                              uint8_t length,
                              unsigned int *tx) {
-    uint16_t sw = APDU_RESPONSE_UNKNOWN;
+    uint16_t sw = SWO_PARAMETER_ERROR_NO_INFO;
 
     switch (p2) {
         case P2_NETWORK_CONFIG:
             if (!tlv_from_apdu(p1 == P1_FIRST_CHUNK, length, data, &handle_tlv_payload)) {
                 // If there was an error, free the allocated memory
                 network_info_cleanup(g_current_network_slot);
-                sw = APDU_RESPONSE_INVALID_DATA;
+                sw = SWO_INCORRECT_DATA;
                 break;
             }
-            sw = APDU_RESPONSE_OK;
+            sw = SWO_SUCCESS;
             break;
 
         case P2_NETWORK_ICON:
             sw = handle_icon_chunks(p1, data, length);
-            if (sw != APDU_RESPONSE_OK) {
+            if (sw != SWO_SUCCESS) {
                 // If there was an error, free the allocated memory
                 network_info_cleanup(g_current_network_slot);
             }
@@ -336,20 +336,19 @@ uint16_t handle_network_info(uint8_t p1,
                 PRINTF("Error: Unexpected P1 (%u)!\n", p1);
                 // If there was an error, free the allocated memory
                 network_info_cleanup(g_current_network_slot);
-                sw = APDU_RESPONSE_INVALID_P1_P2;
+                sw = SWO_WRONG_P1_P2;
                 break;
             }
             *tx = handle_get_config();
-            sw = APDU_RESPONSE_OK;
+            sw = SWO_SUCCESS;
             break;
         default:
             network_info_cleanup(g_current_network_slot);
-            sw = APDU_RESPONSE_INVALID_P1_P2;
+            sw = SWO_WRONG_P1_P2;
             break;
     }
 
-    if ((sw != APDU_RESPONSE_OK) ||
-        (g_icon_payload.received_size == g_icon_payload.expected_size)) {
+    if ((sw != SWO_SUCCESS) || (g_icon_payload.received_size == g_icon_payload.expected_size)) {
         explicit_bzero(&g_icon_payload, sizeof(g_icon_payload));
     }
 

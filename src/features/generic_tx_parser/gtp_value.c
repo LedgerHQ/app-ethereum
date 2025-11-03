@@ -2,7 +2,7 @@
 #include "gtp_value.h"
 #include "gtp_data_path.h"
 #include "shared_context.h"  // txContext
-#include "apdu_constants.h"  // APDU_RESPONSE_OK
+#include "apdu_constants.h"  // SWO_SUCCESS
 #include "getPublicKey.h"
 #include "gtp_parsed_value.h"
 #include "mem.h"

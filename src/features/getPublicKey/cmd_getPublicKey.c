@@ -21,16 +21,16 @@ uint16_t handleGetPublicKey(uint8_t p1,
 
     if ((p1 != P1_CONFIRM) && (p1 != P1_NON_CONFIRM)) {
         PRINTF("Error: Unexpected P1 (%u)!\n", p1);
-        return APDU_RESPONSE_INVALID_P1_P2;
+        return SWO_WRONG_P1_P2;
     }
     if ((p2 != P2_CHAINCODE) && (p2 != P2_NO_CHAINCODE)) {
         PRINTF("Error: Unexpected P2 (%u)!\n", p2);
-        return APDU_RESPONSE_INVALID_P1_P2;
+        return SWO_WRONG_P1_P2;
     }
 
     dataBuffer = parseBip32(dataBuffer, &dataLength, &bip32);
     if (dataBuffer == NULL) {
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
 
     tmpCtx.publicKeyContext.getChaincode = (p2 == P2_CHAINCODE);
@@ -51,12 +51,12 @@ uint16_t handleGetPublicKey(uint8_t p1,
     (void) dataBuffer;  // to prevent dead increment warning
     if (dataLength > 0) {
         PRINTF("Error: Leftover unwanted data (%u bytes long)!\n", dataLength);
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
 
     if (p1 == P1_NON_CONFIRM) {
         *tx = set_result_get_publicKey();
-        return APDU_RESPONSE_OK;
+        return SWO_SUCCESS;
     }
     snprintf(strings.common.toAddress,
              sizeof(strings.common.toAddress),

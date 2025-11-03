@@ -66,23 +66,23 @@ uint16_t handleGetEth2PublicKey(uint8_t p1,
         reset_app_context();
     }
     if ((p1 != P1_CONFIRM) && (p1 != P1_NON_CONFIRM)) {
-        return APDU_RESPONSE_INVALID_P1_P2;
+        return SWO_WRONG_P1_P2;
     }
     if (p2 != 0) {
-        return APDU_RESPONSE_INVALID_P1_P2;
+        return SWO_WRONG_P1_P2;
     }
 
     dataBuffer = parseBip32(dataBuffer, &dataLength, &bip32);
 
     if (dataBuffer == NULL) {
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
 
     CX_CHECK(getEth2PublicKey(bip32.path, bip32.length, tmpCtx.publicKeyContext.publicKey.W));
 
     if (p1 == P1_NON_CONFIRM) {
         *tx = set_result_get_eth2_publicKey();
-        return APDU_RESPONSE_OK;
+        return SWO_SUCCESS;
     }
     ui_display_public_eth2();
     *flags |= IO_ASYNCH_REPLY;

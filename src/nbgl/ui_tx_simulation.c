@@ -108,7 +108,7 @@ static void opt_in_action_cb(int token, uint8_t index) {
             if (g_response_expected) {
                 // just respond the current state and return to idle screen
                 G_io_apdu_buffer[0] = N_storage.tx_check_enable;
-                io_seproxyhal_send_status(APDU_RESPONSE_OK, 1, false, false);
+                io_seproxyhal_send_status(SWO_SUCCESS, 1, false, false);
                 finalise_opt_in(confirm, ui_idle);
             } else {
                 finalise_opt_in(confirm, ui_settings);

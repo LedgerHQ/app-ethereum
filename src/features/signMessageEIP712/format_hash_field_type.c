@@ -27,12 +27,12 @@ static bool format_hash_field_type_size(const s_struct_712_field *field_ptr, cx_
             break;
         default:
             // should not be in here :^)
-            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+            apdu_response_code = SWO_INCORRECT_DATA;
             return false;
     }
     uint_str_ptr = mem_alloc_and_format_uint(field_size);
     if (uint_str_ptr == NULL) {
-        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+        apdu_response_code = SWO_INSUFFICIENT_MEMORY;
         return false;
     }
     hash_nbytes((uint8_t *) uint_str_ptr, strlen(uint_str_ptr), hash_ctx);
@@ -60,7 +60,7 @@ static bool format_hash_field_type_array_levels(const s_struct_712_field *field_
             case ARRAY_FIXED_SIZE:
                 if ((uint_str_ptr = mem_alloc_and_format_uint(field_ptr->array_levels[i].size)) ==
                     NULL) {
-                    apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+                    apdu_response_code = SWO_INSUFFICIENT_MEMORY;
                     return false;
                 }
                 hash_nbytes((uint8_t *) uint_str_ptr, strlen(uint_str_ptr), hash_ctx);
@@ -68,7 +68,7 @@ static bool format_hash_field_type_array_levels(const s_struct_712_field *field_
                 break;
             default:
                 // should not be in here :^)
-                apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+                apdu_response_code = SWO_INCORRECT_DATA;
                 return false;
         }
         hash_byte(']', hash_ctx);

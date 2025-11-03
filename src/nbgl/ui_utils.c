@@ -16,7 +16,7 @@ char *g_finishMsg = NULL;
  */
 static void _cleanup(void) {
     ui_all_cleanup();
-    io_seproxyhal_send_status(APDU_RESPONSE_INSUFFICIENT_MEMORY, 0, true, true);
+    io_seproxyhal_send_status(SWO_INSUFFICIENT_MEMORY, 0, true, true);
 }
 
 void ui_pairs_cleanup(void) {

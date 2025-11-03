@@ -93,6 +93,6 @@ def test_signer_descriptor_error(scenario_navigator: NavigateWithScenario) -> No
             # Safe descriptor doesn't start any navigation
             pass
     except ExceptionRAPDU as e:
-        assert e.status == StatusWord.CONDITION_NOT_SATISFIED
+        assert e.status == StatusWord.COMMAND_NOT_ALLOWED
     else:
-        assert False, "Expected CONDITION_NOT_SATISFIED not raised"
+        assert False, "Expected COMMAND_NOT_ALLOWED not raised"

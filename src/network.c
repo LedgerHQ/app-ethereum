@@ -174,13 +174,13 @@ uint16_t get_network_as_string(char *out, size_t out_size) {
     if (name == NULL) {
         // No network name found so simply copy the chain ID as the network name.
         if (!u64_to_string(chain_id, out, out_size)) {
-            return APDU_RESPONSE_CHAINID_OUT_BUF_SMALL;
+            return SWO_INSUFFICIENT_MEMORY;
         }
     } else {
         // Network name found, simply copy it.
         strlcpy(out, name, out_size);
     }
-    return APDU_RESPONSE_OK;
+    return SWO_SUCCESS;
 }
 
 bool chain_is_ethereum_compatible(const uint64_t *chain_id) {

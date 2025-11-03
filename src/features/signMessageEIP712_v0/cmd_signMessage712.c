@@ -8,7 +8,7 @@ uint16_t handleSignEIP712Message_v0(uint8_t p1,
                                     uint8_t dataLength,
                                     unsigned int *flags) {
     if (p1 != 0x00) {
-        return APDU_RESPONSE_INVALID_P1_P2;
+        return SWO_WRONG_P1_P2;
     }
     if (appState != APP_STATE_IDLE) {
         reset_app_context();
@@ -16,11 +16,11 @@ uint16_t handleSignEIP712Message_v0(uint8_t p1,
 
     if (!N_storage.dataAllowed) {
         ui_error_blind_signing();
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
     workBuffer = parseBip32(workBuffer, &dataLength, &tmpCtx.messageSigningContext.bip32);
     if ((workBuffer == NULL) || (dataLength < (KECCAK256_HASH_BYTESIZE * 2))) {
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
     memmove(tmpCtx.messageSigningContext712.domainHash, workBuffer, KECCAK256_HASH_BYTESIZE);
     memmove(tmpCtx.messageSigningContext712.messageHash,

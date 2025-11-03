@@ -97,18 +97,18 @@ uint16_t handleSetPlugin(const uint8_t *workBuffer, uint8_t dataLength) {
         PRINTF("Data too small for headers: expected at least %d, got %d\n",
                HEADER_SIZE,
                dataLength);
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
 
     if (workBuffer[offset] != ETH_PLUGIN) {
         PRINTF("Unsupported type %d\n", workBuffer[offset]);
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
     offset += TYPE_SIZE;
 
     if (workBuffer[offset] != VERSION_1) {
         PRINTF("Unsupported version %d\n", workBuffer[offset]);
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
     offset += VERSION_SIZE;
 
@@ -122,7 +122,7 @@ uint16_t handleSetPlugin(const uint8_t *workBuffer, uint8_t dataLength) {
         PRINTF("Data too small for payload: expected at least %d, got %d\n",
                payloadSize,
                dataLength);
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
 
     // `+ 1` because we want to add a null terminating character.
@@ -130,7 +130,7 @@ uint16_t handleSetPlugin(const uint8_t *workBuffer, uint8_t dataLength) {
         PRINTF("plugin name too big: expected max %d, got %d\n",
                sizeof(dataContext.tokenContext.pluginName),
                pluginNameLength + 1);
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
 
     // Safe because we've checked the size before.
@@ -155,20 +155,20 @@ uint16_t handleSetPlugin(const uint8_t *workBuffer, uint8_t dataLength) {
     PRINTF("ChainID: %.*H\n", sizeof(chain_id), (workBuffer + offset));
     if (!app_compatible_with_chain_id(&chain_id)) {
         UNSUPPORTED_CHAIN_ID_MSG(chain_id);
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
     offset += CHAIN_ID_SIZE;
 
     keyId = workBuffer[offset];
     if (keyId != valid_keyId) {
         PRINTF("Unsupported KeyID %d\n", keyId);
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
     offset += KEY_ID_SIZE;
 
     if (workBuffer[offset] != ECC_SECG_P256K1__ECDSA_SHA_256) {
         PRINTF("Incorrect algorithmId %d\n", workBuffer[offset]);
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
     offset += ALGORITHM_ID_SIZE;
 
@@ -177,7 +177,7 @@ uint16_t handleSetPlugin(const uint8_t *workBuffer, uint8_t dataLength) {
 
     if (dataLength < payloadSize + SIGNATURE_LENGTH_SIZE) {
         PRINTF("Data too short to hold signature length\n");
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
 
     signatureLen = workBuffer[offset];
@@ -187,13 +187,13 @@ uint16_t handleSetPlugin(const uint8_t *workBuffer, uint8_t dataLength) {
                MIN_DER_SIG_SIZE,
                MAX_DER_SIG_SIZE,
                signatureLen);
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
     offset += SIGNATURE_LENGTH_SIZE;
 
     if (dataLength < payloadSize + SIGNATURE_LENGTH_SIZE + signatureLen) {
         PRINTF("Signature could not fit in data\n");
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
 
     error = check_signature_with_pubkey("Set Plugin",
@@ -207,7 +207,7 @@ uint16_t handleSetPlugin(const uint8_t *workBuffer, uint8_t dataLength) {
     if (error != CX_OK) {
         PRINTF("Invalid signature\n");
 #ifndef HAVE_BYPASS_SIGNATURES
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
 #endif
     }
 
@@ -215,7 +215,7 @@ uint16_t handleSetPlugin(const uint8_t *workBuffer, uint8_t dataLength) {
     if (keyId == PROD_PLUGIN_KEY) {
         if (pluginType != ERC721 && pluginType != ERC1155) {
             PRINTF("AWS key must only be used to set NFT internal plugins\n");
-            return APDU_RESPONSE_INVALID_DATA;
+            return SWO_INCORRECT_DATA;
         }
     }
 
@@ -234,7 +234,7 @@ uint16_t handleSetPlugin(const uint8_t *workBuffer, uint8_t dataLength) {
                 PRINTF("%s external plugin is not present\n", tokenContext->pluginName);
                 memset(tokenContext->pluginName, 0, sizeof(tokenContext->pluginName));
                 CLOSE_TRY;
-                return APDU_RESPONSE_PLUGIN_NOT_INSTALLED;
+                return SWO_FILE_NOT_FOUND;
             }
             FINALLY {
             }
@@ -242,5 +242,5 @@ uint16_t handleSetPlugin(const uint8_t *workBuffer, uint8_t dataLength) {
         END_TRY;
     }
 
-    return APDU_RESPONSE_OK;
+    return SWO_SUCCESS;
 }

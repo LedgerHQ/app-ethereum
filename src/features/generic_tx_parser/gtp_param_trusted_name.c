@@ -108,7 +108,7 @@ bool format_param_trusted_name(const s_param_trusted_name *param, const char *na
             // replace by wallet addr if a match is found
             for (uint8_t idx = 0; idx < param->sender_addr_count; ++idx) {
                 if (memcmp(addr, param->sender_addr[idx], ADDRESS_LENGTH) == 0) {
-                    ret = get_public_key(addr, sizeof(addr)) == APDU_RESPONSE_OK;
+                    ret = get_public_key(addr, sizeof(addr)) == SWO_SUCCESS;
                     break;
                 }
             }

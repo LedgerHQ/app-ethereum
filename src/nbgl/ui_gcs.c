@@ -336,7 +336,7 @@ bool ui_gcs(void) {
 
     if (show_network) {
         g_pairs[g_pairsList->nbPairs - 2].item = app_mem_strdup("Network");
-        if (get_network_as_string(tmp_buf, tmp_buf_size) != APDU_RESPONSE_OK) {
+        if (get_network_as_string(tmp_buf, tmp_buf_size) != SWO_SUCCESS) {
             ui_gcs_cleanup();
             return false;
         }

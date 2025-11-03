@@ -105,7 +105,7 @@ static bool ui_712_next_field(void) {
     bool ret = false;
 
     if (ui_ctx == NULL) {
-        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        apdu_response_code = SWO_INCORRECT_DATA;
     } else {
         if (ui_ctx->structs_to_review > 0) {
             ret = ui_712_review_struct(path_get_nth_field_to_last(ui_ctx->structs_to_review));
@@ -220,7 +220,7 @@ bool ui_712_redraw_generic_step(void) {
             !N_storage.verbose_eip712) {
             // Both settings not enabled => Error
             ui_error_blind_signing();
-            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+            apdu_response_code = SWO_INCORRECT_DATA;
             eip712_context->go_home_on_failure = false;
             return false;
         }
@@ -303,14 +303,14 @@ static bool ui_712_format_addr(const uint8_t *data, uint8_t length, bool first) 
         return false;
     }
     if (length != ADDRESS_LENGTH) {
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        apdu_response_code = SWO_INCORRECT_DATA;
         return false;
     }
     if (!getEthDisplayableAddress((uint8_t *) data,
                                   strings.tmp.tmp,
                                   sizeof(strings.tmp.tmp),
                                   chainConfig->chainId)) {
-        apdu_response_code = APDU_RESPONSE_ERROR_NO_INFO;
+        apdu_response_code = SWO_PARAMETER_ERROR_NO_INFO;
         return false;
     }
     return true;
@@ -335,7 +335,7 @@ static bool ui_712_format_bool(const uint8_t *data, uint8_t length, bool first) 
         return false;
     }
     if (length != 1) {
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        apdu_response_code = SWO_INCORRECT_DATA;
         return false;
     }
     str = *data ? true_str : false_str;
@@ -433,7 +433,7 @@ static bool ui_712_format_int(const uint8_t *data,
             break;
         default:
             PRINTF("Unhandled field typesize\n");
-            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+            apdu_response_code = SWO_INCORRECT_DATA;
             return false;
     }
     return true;
@@ -838,7 +838,7 @@ bool ui_712_feed_to_display(const s_struct_712_field *field_ptr,
     bool first = complete_length != NULL;
 
     if (ui_ctx == NULL) {
-        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        apdu_response_code = SWO_INCORRECT_DATA;
         return false;
     }
 
@@ -933,7 +933,7 @@ bool ui_712_feed_to_display(const s_struct_712_field *field_ptr,
  */
 void ui_712_end_sign(void) {
     if (ui_ctx == NULL) {
-        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        apdu_response_code = SWO_COMMAND_NOT_ALLOWED;
         return;
     }
 
@@ -961,7 +961,7 @@ bool ui_712_init(void) {
         ui_712_set_filtering_mode(EIP712_FILTERING_BASIC);
         explicit_bzero(&strings, sizeof(strings));
     } else {
-        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+        apdu_response_code = SWO_INSUFFICIENT_MEMORY;
     }
     return ui_ctx != NULL;
 }
@@ -1170,12 +1170,12 @@ bool ui_712_push_new_filter_path(uint32_t path_crc) {
     }
 
     if (filter_count >= ui_ctx->filters_to_process) {
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        apdu_response_code = SWO_INCORRECT_DATA;
         return false;
     }
     // allocate it
     if ((new_crc = app_mem_alloc(sizeof(*new_crc))) == NULL) {
-        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+        apdu_response_code = SWO_INSUFFICIENT_MEMORY;
         return false;
     }
     explicit_bzero(new_crc, sizeof(*new_crc));

@@ -11,7 +11,6 @@ any kind of access violation, the fuzzing process is stopped, a report regarding
 and the input that triggered the bug is written to disk under the name `crash-*`.
 The vulnerable input file created can be passed as an argument to the fuzzer to triage the issue.
 
-
 ## Manual usage based on Ledger container
 
 ### Preparation
@@ -48,7 +47,8 @@ cmake --build build
 ./build/fuzzer -max_len=8192
 ```
 
-If you want to do a fuzzing campain on more than one core and compute the coverage results, you can use the `local_run.sh` script within the container (it'll only run the address and UB sanitizers).
+If you want to do a fuzzing campaign on more than one core and compute the coverage results,
+you can use the `local_run.sh` script within the container (it'll only run the address and UB sanitizers).
 
 ## Full usage based on `clusterfuzzlite` container
 

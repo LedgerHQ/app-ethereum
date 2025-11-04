@@ -22,7 +22,8 @@
 > - `$.metadata.owner` is optional, made `CREATOR_NAME` optional
 > - `$.metadata.info.legalName` is optional, made `CREATOR_LEGAL_NAME` optional
 > - `$.display.formats.<selector>.intent` is optional, possible fallbacks: `$.display.formats.<selector>.$id`, `$.display.formats.<selector>`
-> - `CONTRACT_NAME` is not really materialized in the spec, closest is `$.metadata.info.$id`, but `$id` is supposed to be internal
+> - `CONTRACT_NAME` is not really materialized in the spec, closest is `$.metadata.info.$id`,
+     but `$id` is supposed to be internal
 > - `$.metadata.info.lastUpdate` is optional, made `DEPLOY_DATE` optional
 
 ## ENUM_VALUE

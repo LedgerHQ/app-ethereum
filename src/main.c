@@ -42,6 +42,7 @@
 #include "cmd_tx_info.h"
 #include "cmd_field.h"
 #include "cmd_get_tx_simulation.h"
+#include "cmd_get_gating.h"
 #include "cmd_proxy_info.h"
 #include "commands_7702.h"
 #include "sign_message.h"
@@ -96,6 +97,7 @@ void reset_app_context(void) {
     clear_safe_account();
 #endif
     ui_all_cleanup();
+    clear_gating();
 }
 
 void app_quit(void) {
@@ -270,6 +272,12 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
 #ifdef HAVE_SAFE_ACCOUNT
         case INS_PROVIDE_SAFE_ACCOUNT:
             sw = handle_safe_account(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags);
+            break;
+#endif
+
+#ifdef HAVE_GATING_SUPPORT
+        case INS_PROVIDE_GATING:
+            sw = handle_gating(cmd->p1, cmd->p2, cmd->data, cmd->lc);
             break;
 #endif
 

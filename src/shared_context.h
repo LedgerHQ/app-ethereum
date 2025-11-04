@@ -7,8 +7,6 @@
 #include "main_std_app.h"
 #include "eth_plugin_interface.h"
 
-#define SELECTOR_LENGTH 4
-
 #define PLUGIN_ID_LENGTH 30
 
 #define N_storage (*(volatile internalStorage_t *) PIC(&N_storage_real))
@@ -24,6 +22,9 @@ typedef struct internalStorage_t {
     bool tx_check_enable;
     // hidden setting (not shown in the UI)
     bool tx_check_opt_in;
+#endif
+#ifdef HAVE_GATING_SUPPORT
+    uint8_t gating_counter;
 #endif
     bool eip7702_enable;
     bool displayHash;
@@ -44,7 +45,7 @@ typedef struct tokenContext_t {
     union {
         struct {
             uint8_t contractAddress[ADDRESS_LENGTH];
-            uint8_t methodSelector[SELECTOR_LENGTH];
+            uint8_t methodSelector[CALLDATA_SELECTOR_SIZE];
         };
         // This needs to be strictly 4 bytes aligned since pointers to it will be casted as
         // plugin context struct pointers (structs that contain up to 4 bytes wide elements)

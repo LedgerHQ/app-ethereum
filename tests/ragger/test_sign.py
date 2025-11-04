@@ -51,10 +51,6 @@ def common(scenario_navigator: NavigateWithScenario,
     if name and ticker:
         app_client.provide_network_information(DynamicNetwork(name, ticker, tx_params["chainId"], icon))
 
-    with app_client.get_public_addr(bip32_path=path, display=False):
-        pass
-    _, DEVICE_ADDR, _ = ResponseParser.pk_addr(app_client.response().data)
-
     with app_client.sign(path, tx_params):
         if with_simu:
             scenario_navigator.review_approve_with_warning(test_name=test_name, do_comparison=test_name != "")
@@ -63,8 +59,13 @@ def common(scenario_navigator: NavigateWithScenario,
 
     # verify signature
     vrs = ResponseParser.signature(app_client.response().data)
+
+    with app_client.get_public_addr(bip32_path=path, display=False):
+        pass
+    _, device_addr, _ = ResponseParser.pk_addr(app_client.response().data)
+
     addr = recover_transaction(tx_params, vrs)
-    assert addr == DEVICE_ADDR
+    assert addr == device_addr
 
 
 def common_reject(scenario_navigator: NavigateWithScenario,

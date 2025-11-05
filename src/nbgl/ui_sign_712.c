@@ -6,6 +6,7 @@
 #include "cmd_get_tx_simulation.h"
 #include "ui_utils.h"
 #include "mem_utils.h"
+#include "cmd_get_gating.h"
 
 /**
  * @brief Trigger the EIP712 review flow
@@ -72,6 +73,14 @@ static void ui_712_start_review(e_eip712_filtering_mode filtering_mode,
 uint16_t ui_sign_712(e_eip712_filtering_mode filtering_mode) {
     // Initialize the pairs list
     ui_712_push_pairs();
+
+    if (filtering_mode == EIP712_FILTERING_BASIC) {
+#ifdef HAVE_GATING_SUPPORT
+        if (set_gating_warning() == false) {
+            return SWO_INCORRECT_DATA;
+        }
+#endif
+    }
 
     ui_712_start_review(filtering_mode, TYPE_MESSAGE, ui_typed_message_review_choice);
     return SWO_SUCCESS;

@@ -14,7 +14,6 @@ bool plugin_ui_get_id(void) {
     if (!eth_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_ID, (void *) &pluginQueryContractID)) {
         PRINTF("Plugin query contract ID call failed\n");
         reset_app_context();
-        io_send_sw(SWO_INCORRECT_DATA);
         return false;
     }
     return true;

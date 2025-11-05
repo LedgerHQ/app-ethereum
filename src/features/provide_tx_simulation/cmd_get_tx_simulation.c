@@ -270,7 +270,7 @@ static uint16_t parse_type(const s_tlv_data *data, s_tx_simu_ctx *context) {
 static uint16_t parse_provider_msg(const s_tlv_data *data, s_tx_simu_ctx *context) {
     CHECK_FIELD_OVERFLOW("TX_CHECKS_PROVIDER_MSG", context->simu->provider_msg, data->length);
     // Check if the name is printable
-    if (!check_name(data->value, data->length)) {
+    if (!is_printable((const char *) data->value, data->length)) {
         PRINTF("TX_CHECKS_PROVIDER_MSG is not printable!\n");
         return SWO_INCORRECT_DATA;
     }
@@ -289,7 +289,7 @@ static uint16_t parse_provider_msg(const s_tlv_data *data, s_tx_simu_ctx *contex
 static uint16_t parse_tiny_url(const s_tlv_data *data, s_tx_simu_ctx *context) {
     CHECK_FIELD_OVERFLOW("TX_CHECKS_TINY_URL", context->simu->tiny_url, data->length);
     // Check if the name is printable
-    if (!check_name(data->value, data->length)) {
+    if (!is_printable((const char *) data->value, data->length)) {
         PRINTF("TX_CHECKS_TINY_URL is not printable!\n");
         return SWO_INCORRECT_DATA;
     }

@@ -210,7 +210,7 @@ void erc20_plugin_call(int message, void *parameters) {
 
                     strlcpy(msg->title, "Extra Data", msg->titleLength);
 
-                    if (is_displayable_ascii(context->extra_data, extra_data_len)) {
+                    if (is_printable(context->extra_data, extra_data_len)) {
                         // display as string
                         PRINTF("Display as ASCII string\n");
 

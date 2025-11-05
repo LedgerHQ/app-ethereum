@@ -120,7 +120,7 @@ static bool handle_name(const s_tlv_data *data, s_network_info_ctx *context) {
         return false;
     }
     // Check if the name is printable
-    if (!check_name(data->value, data->length)) {
+    if (!is_printable((const char *) data->value, data->length)) {
         PRINTF("NETWORK_NAME is not printable!\n");
         return false;
     }
@@ -142,7 +142,7 @@ static bool handle_ticker(const s_tlv_data *data, s_network_info_ctx *context) {
         return false;
     }
     // Check if the ticker is printable
-    if (!check_name(data->value, data->length)) {
+    if (!is_printable((const char *) data->value, data->length)) {
         PRINTF("NETWORK_TICKER is not printable!\n");
         return false;
     }

@@ -112,18 +112,13 @@ void erc20_plugin_call(int message, void *parameters) {
             ethPluginFinalize_t *msg = (ethPluginFinalize_t *) parameters;
             erc20_parameters_t *context = (erc20_parameters_t *) msg->pluginContext;
             PRINTF("erc20 plugin finalize\n");
-            if (context->selectorIndex == ERC20_TRANSFER & context->extra_data_len == 0) {
-                msg->tokenLookup1 = msg->txContent->destination;
-                msg->amount = context->amount;
-                msg->address = context->destinationAddress;
-                msg->uiType = ETH_UI_TYPE_AMOUNT_ADDRESS;
-                msg->result = ETH_PLUGIN_RESULT_OK;
-            } else {
-                msg->tokenLookup1 = msg->txContent->destination;
-                msg->numScreens = (context->extra_data_len == 0 ? 2 : 3);
-                msg->uiType = ETH_UI_TYPE_GENERIC;
-                msg->result = ETH_PLUGIN_RESULT_OK;
+            msg->tokenLookup1 = msg->txContent->destination;
+            msg->numScreens = 2;
+            if (context->extra_data_len > 0) {
+                msg->numScreens += 1;
             }
+            msg->uiType = ETH_UI_TYPE_GENERIC;
+            msg->result = ETH_PLUGIN_RESULT_OK;
         } break;
 
         case ETH_PLUGIN_PROVIDE_INFO: {

@@ -386,25 +386,9 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
                     dataContext.tokenContext.pluginUiMaxItems =
                         pluginFinalize.numScreens + pluginProvideInfo.additionalScreens;
                     break;
+
+                // TODO: needs to be removed from the plugin SDK altogether
                 case ETH_UI_TYPE_AMOUNT_ADDRESS:
-                    // Use the standard ETH UI as this plugin uses the amount/address UI
-                    g_use_standard_ui = true;
-                    tmpContent.txContent.dataPresent = false;
-                    if ((pluginFinalize.amount == NULL) || (pluginFinalize.address == NULL)) {
-                        PRINTF("Incorrect amount/address set by plugin\n");
-                        report_finalize_error();
-                        error = APDU_NO_RESPONSE;
-                        goto end;
-                    }
-                    memmove(tmpContent.txContent.value.value, pluginFinalize.amount, 32);
-                    tmpContent.txContent.value.length = 32;
-                    memmove(tmpContent.txContent.destination, pluginFinalize.address, 20);
-                    tmpContent.txContent.destinationLength = 20;
-                    if (pluginProvideInfo.item1 != NULL) {
-                        decimals = pluginProvideInfo.item1->token.decimals;
-                        ticker = pluginProvideInfo.item1->token.ticker;
-                    }
-                    break;
                 default:
                     PRINTF("ui type %d not supported\n", pluginFinalize.uiType);
                     report_finalize_error();

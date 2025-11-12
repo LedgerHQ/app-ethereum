@@ -19,8 +19,6 @@
 #include "mem_utils.h"
 #include "tx_ctx.h"
 
-static bool g_use_standard_ui;
-
 static uint32_t splitBinaryParameterPart(char *result, size_t result_size, uint8_t *parameter) {
     uint32_t i;
     for (i = 0; i < 8; i++) {
@@ -379,7 +377,6 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
             switch (pluginFinalize.uiType) {
                 case ETH_UI_TYPE_GENERIC:
                     // Use the dedicated ETH plugin UI
-                    g_use_standard_ui = false;
                     tmpContent.txContent.dataPresent = false;
                     // Add the number of screens + the number of additional screens to get the total
                     // number of screens needed.
@@ -414,7 +411,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
     if (G_called_from_swap) {
         // User has just validated a swap but ETH received apdus about a non standard plugin /
         // contract
-        if (!g_use_standard_ui) {
+        if ((pluginType != PLUGIN_TYPE_NONE) && (pluginType != PLUGIN_TYPE_OLD_INTERNAL)) {
             send_swap_error_simple(APDU_RESPONSE_MODE_CHECK_FAILED,
                                    SWAP_EC_ERROR_WRONG_METHOD,
                                    APP_CODE_NO_STANDARD_UI);
@@ -443,7 +440,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
     }
 
     // Prepare destination address and amount to display
-    if (g_use_standard_ui) {
+    if (pluginType == PLUGIN_TYPE_NONE) {
         // Format the address in a temporary buffer, if in swap case compare it with validated
         // address, else commit it
         error = address_to_string(tmpContent.txContent.destination,
@@ -549,7 +546,7 @@ end:
 }
 
 void start_signature_flow(void) {
-    if (g_use_standard_ui) {
+    if (pluginType == PLUGIN_TYPE_NONE) {
         ux_approve_tx(false);
     } else {
         dataContext.tokenContext.pluginUiState = PLUGIN_UI_OUTSIDE;
@@ -560,7 +557,6 @@ void start_signature_flow(void) {
 
 uint16_t finalize_parsing(const txContext_t *context) {
     uint16_t sw = SWO_PARAMETER_ERROR_NO_INFO;
-    g_use_standard_ui = true;
 
     sw = finalize_parsing_helper(context);
     if (sw != SWO_SUCCESS) {
@@ -575,7 +571,7 @@ uint16_t finalize_parsing(const txContext_t *context) {
     } else {
         // If called from swap, the user has already validated a standard transaction
         // And we have already checked the fields of this transaction above
-        if (G_called_from_swap && g_use_standard_ui) {
+        if (G_called_from_swap && (pluginType == PLUGIN_TYPE_NONE)) {
             io_seproxyhal_touch_tx_ok();
         } else {
             start_signature_flow();

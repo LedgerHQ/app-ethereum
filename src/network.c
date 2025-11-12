@@ -27,6 +27,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 51, .name = "Apothemnetwork", .ticker = "TXDC"},
     {.chain_id = 56, .name = "BSC", .ticker = "BNB"},
     {.chain_id = 57, .name = "Syscoin", .ticker = "SYS"},
+    {.chain_id = 58, .name = "Ontology EVM", .ticker = "ONG"},
     {.chain_id = 61, .name = "Ethereum Classic", .ticker = "ETC"},
     {.chain_id = 66, .name = "OKXChain", .ticker = "OKT"},
     {.chain_id = 82, .name = "Meter", .ticker = "MTR"},

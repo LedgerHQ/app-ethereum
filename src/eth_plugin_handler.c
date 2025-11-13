@@ -135,18 +135,19 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
 
     PRINTF("Selector %.*H\n", 4, init->selector);
     switch (pluginType) {
+        case PLUGIN_TYPE_NONE:
+            PRINTF("eth_plugin_perform_init_old_internal\n");
+            if (eth_plugin_perform_init_old_internal(contractAddress, init)) {
+                pluginType = PLUGIN_TYPE_OLD_INTERNAL;
+                contractAddress = NULL;
+            }
+            break;
         case PLUGIN_TYPE_ERC1155:
         case PLUGIN_TYPE_ERC721:
         case PLUGIN_TYPE_EXTERNAL:
             PRINTF("eth_plugin_perform_init_default\n");
             eth_plugin_perform_init_default(contractAddress, init);
             contractAddress = NULL;
-            break;
-        case PLUGIN_TYPE_OLD_INTERNAL:
-            PRINTF("eth_plugin_perform_init_old_internal\n");
-            if (eth_plugin_perform_init_old_internal(contractAddress, init)) {
-                contractAddress = NULL;
-            }
             break;
         case PLUGIN_TYPE_SWAP_WITH_CALLDATA:
             PRINTF("contractAddress == %.*H\n", 20, contractAddress);

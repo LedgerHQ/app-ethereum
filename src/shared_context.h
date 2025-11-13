@@ -162,6 +162,7 @@ extern swap_mode_t G_swap_mode;
 extern uint8_t *G_swap_crosschain_hash;
 
 typedef enum {
+    PLUGIN_TYPE_NONE = 0,
     // External plugin, set by setExternalPlugin
     PLUGIN_TYPE_EXTERNAL,
     // Specific SWAP_WITH_CALLDATA internal plugin

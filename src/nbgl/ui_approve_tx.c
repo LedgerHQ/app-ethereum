@@ -67,7 +67,7 @@ static void reviewChoice(bool confirm) {
 const nbgl_icon_details_t *get_tx_icon(bool fromPlugin) {
     const nbgl_icon_details_t *icon = NULL;
 
-    if (fromPlugin && (pluginType == EXTERNAL)) {
+    if (fromPlugin && (pluginType == PLUGIN_TYPE_EXTERNAL)) {
         if ((caller_app != NULL) && (caller_app->name != NULL)) {
             if (strcmp(strings.common.toAddress, caller_app->name) == 0) {
                 icon = get_app_icon(true);
@@ -114,7 +114,7 @@ static void setTagValuePairs(bool displayNetwork, bool fromPlugin) {
 
     // Setup data to display
     if (fromPlugin) {
-        if (pluginType != EXTERNAL) {
+        if (pluginType != PLUGIN_TYPE_EXTERNAL) {
             if (strings.common.fromAddress[0] != 0) {
                 g_pairs[nbPairs].item = "From";
                 g_pairs[nbPairs].value = strings.common.fromAddress;
@@ -234,7 +234,7 @@ static uint8_t getNbPairs(bool displayNetwork, bool fromPlugin) {
     // Setup data to display
     if (fromPlugin) {
         // Count the From address
-        if ((pluginType != EXTERNAL) && (strings.common.fromAddress[0] != 0)) {
+        if ((pluginType != PLUGIN_TYPE_EXTERNAL) && (strings.common.fromAddress[0] != 0)) {
             nbPairs++;
         }
         // Count the plugin items
@@ -374,13 +374,13 @@ void ux_approve_tx(bool fromPlugin) {
 
         title_len += 4;  // strlen(" to ");
         title_len += strlen(op_name);
-        title_len += strlen((pluginType == EXTERNAL ? " on " : " "));
+        title_len += strlen((pluginType == PLUGIN_TYPE_EXTERNAL ? " on " : " "));
         title_len += strlen(strings.common.toAddress);
 
 #ifdef SCREEN_SIZE_WALLET
         finish_len += 4;  // strlen(" to ");
         finish_len += strlen(op_name);
-        finish_len += strlen((pluginType == EXTERNAL ? " on " : " "));
+        finish_len += strlen((pluginType == PLUGIN_TYPE_EXTERNAL ? " on " : " "));
         finish_len += strlen(strings.common.toAddress);
 #endif
     }
@@ -407,7 +407,7 @@ void ux_approve_tx(bool fromPlugin) {
                  title_len,
                  " to %s %s%s",
                  op_name,
-                 (pluginType == EXTERNAL ? "on " : ""),
+                 (pluginType == PLUGIN_TYPE_EXTERNAL ? "on " : ""),
                  strings.common.toAddress);
 
         strlcat(g_titleMsg, suffix_str, title_len);

@@ -111,7 +111,7 @@ void erc20_plugin_call(int message, void *parameters) {
         case ETH_PLUGIN_FINALIZE: {
             ethPluginFinalize_t *msg = (ethPluginFinalize_t *) parameters;
             erc20_parameters_t *context = (erc20_parameters_t *) msg->pluginContext;
-            PRINTF("erc20 plugin finalize\n");
+            PRINTF("erc20 plugin finalize %u\n", pluginType);
             msg->tokenLookup1 = msg->txContent->destination;
             msg->numScreens = 2;
             if (context->extra_data_len > 0) {

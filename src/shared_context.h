@@ -163,16 +163,16 @@ extern uint8_t *G_swap_crosschain_hash;
 
 typedef enum {
     // External plugin, set by setExternalPlugin
-    EXTERNAL,
+    PLUGIN_TYPE_EXTERNAL,
     // Specific SWAP_WITH_CALLDATA internal plugin
     // set as fallback when started if calldata is provided in swap mode
-    SWAP_WITH_CALLDATA,
+    PLUGIN_TYPE_SWAP_WITH_CALLDATA,
     // Specific ERC721 internal plugin, set by setPlugin
-    ERC721,
+    PLUGIN_TYPE_ERC721,
     // Specific ERC1155 internal plugin, set by setPlugin
-    ERC1155,
+    PLUGIN_TYPE_ERC1155,
     // Old internal plugin, not set by any command
-    OLD_INTERNAL
+    PLUGIN_TYPE_OLD_INTERNAL,
 } pluginType_t;
 
 extern pluginType_t pluginType;

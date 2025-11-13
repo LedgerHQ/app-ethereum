@@ -54,25 +54,25 @@ typedef bool verificationAlgo(const cx_ecfp_public_key_t *,
 
 // Returns the plugin type of a given plugin name.
 // If the plugin name is not a specific known internal plugin, this function default return value is
-// `EXTERNAL`.
+// `PLUGIN_TYPE_EXTERNAL`.
 static pluginType_t getPluginType(char *pluginName, uint8_t pluginNameLength) {
     if (pluginNameLength == sizeof(ERC721_STR) - 1 &&
         strncmp(pluginName, ERC721_STR, pluginNameLength) == 0) {
         PRINTF("Using internal plugin ERC721\n");
-        return ERC721;
+        return PLUGIN_TYPE_ERC721;
     } else if (pluginNameLength == sizeof(ERC1155_STR) - 1 &&
                strncmp(pluginName, ERC1155_STR, pluginNameLength) == 0) {
         PRINTF("Using internal plugin ERC1155\n");
-        return ERC1155;
+        return PLUGIN_TYPE_ERC1155;
     } else {
         PRINTF("Using external plugin\n");
-        return EXTERNAL;
+        return PLUGIN_TYPE_EXTERNAL;
     }
 }
 
 void set_swap_with_calldata_plugin_type(void) {
-    PRINTF("Using internal plugin SWAP_WITH_CALLDATA\n");
-    pluginType = SWAP_WITH_CALLDATA;
+    PRINTF("Using internal plugin PLUGIN_TYPE_SWAP_WITH_CALLDATA\n");
+    pluginType = PLUGIN_TYPE_SWAP_WITH_CALLDATA;
 }
 
 uint16_t handleSetPlugin(const uint8_t *workBuffer, uint8_t dataLength) {
@@ -213,13 +213,13 @@ uint16_t handleSetPlugin(const uint8_t *workBuffer, uint8_t dataLength) {
 
     pluginType = getPluginType(tokenContext->pluginName, pluginNameLength);
     if (keyId == PROD_PLUGIN_KEY) {
-        if (pluginType != ERC721 && pluginType != ERC1155) {
+        if (pluginType != PLUGIN_TYPE_ERC721 && pluginType != PLUGIN_TYPE_ERC1155) {
             PRINTF("AWS key must only be used to set NFT internal plugins\n");
             return SWO_INCORRECT_DATA;
         }
     }
 
-    if (pluginType == EXTERNAL) {
+    if (pluginType == PLUGIN_TYPE_EXTERNAL) {
         PRINTF("Check external plugin %s\n", tokenContext->pluginName);
 
         // Check if the plugin is present on the device

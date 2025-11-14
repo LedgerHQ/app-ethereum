@@ -795,20 +795,13 @@ def test_eip712_calldata_no_param(scenario_navigator: NavigateWithScenario, test
 
 def test_eip712_payload(scenario_navigator: NavigateWithScenario):
     """Test a basic EIP712 payload signature"""
-    app_client = EthAppClient(scenario_navigator.backend)
-    
+
     # Enable blind signing for EIP712
     settings_toggle(scenario_navigator.backend.device, scenario_navigator.navigator, [SettingID.BLIND_SIGNING])
     
     # Define a simple EIP712 payload
     data = {
         "types": {
-            "ExecutionData": [
-                {
-                    "name": "offerExecution",
-                    "type": "OfferExecution[]"
-                },
-            ],
             "EIP712Domain": [
                 {
                     "name": "name",
@@ -827,31 +820,37 @@ def test_eip712_payload(scenario_navigator: NavigateWithScenario):
                     "type": "address"
                 }
             ],
-            "LoanOffer": [
+            "Root": [
                 {
-                    "name": "offerId",
+                    "name": "child",
+                    "type": "Inner[]"
+                },
+            ],
+            "Inner": [
+                {
+                    "name": "child",
+                    "type": "Leaf"
+                },
+            ],
+            "Leaf": [
+                {
+                    "name": "value",
                     "type": "uint256"
                 },
             ],
-            "OfferExecution": [
-                {
-                    "name": "offer",
-                    "type": "LoanOffer"
-                },
-            ],
         },
-        "primaryType": "ExecutionData",
+        "primaryType": "Root",
         "domain": {
-            "name": "MY_BEAUTIFUL_DOMAIN",
+            "name": "DOMAIN",
             "version": "3.1",
             "chainId": 31337,
             "verifyingContract": "0x95401dc811bb5740090279ba06cfa8fcf6113778"
         },
         "message": {
-            "offerExecution": [
+            "child": [
                 {
-                    "offer": {
-                        "offerId": 2,
+                    "child": {
+                        "value": 2,
                     },
                 }
             ],

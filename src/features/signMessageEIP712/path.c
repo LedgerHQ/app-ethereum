@@ -604,8 +604,6 @@ end:
     return false;
 }
 
-
-
 /**
  * Advance within the struct that contains the field the path points to.
  *

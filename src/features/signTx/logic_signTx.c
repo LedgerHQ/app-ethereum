@@ -411,7 +411,8 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
     if (G_called_from_swap) {
         // User has just validated a swap but ETH received apdus about a non standard plugin /
         // contract
-        if ((pluginType != PLUGIN_TYPE_NONE) && (pluginType != PLUGIN_TYPE_OLD_INTERNAL)) {
+        if ((pluginType != PLUGIN_TYPE_NONE) && (pluginType != PLUGIN_TYPE_OLD_INTERNAL) &&
+            (pluginType != PLUGIN_TYPE_SWAP_WITH_CALLDATA)) {
             send_swap_error_simple(APDU_RESPONSE_MODE_CHECK_FAILED,
                                    SWAP_EC_ERROR_WRONG_METHOD,
                                    APP_CODE_NO_STANDARD_UI);
@@ -440,7 +441,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
     }
 
     // Prepare destination address and amount to display
-    if (pluginType == PLUGIN_TYPE_NONE) {
+    if ((pluginType == PLUGIN_TYPE_NONE) || (pluginType == PLUGIN_TYPE_SWAP_WITH_CALLDATA)) {
         // Format the address in a temporary buffer, if in swap case compare it with validated
         // address, else commit it
         error = address_to_string(tmpContent.txContent.destination,
@@ -571,7 +572,9 @@ uint16_t finalize_parsing(const txContext_t *context) {
     } else {
         // If called from swap, the user has already validated a standard transaction
         // And we have already checked the fields of this transaction above
-        if (G_called_from_swap && (pluginType == PLUGIN_TYPE_NONE)) {
+        if (G_called_from_swap &&
+            ((pluginType == PLUGIN_TYPE_NONE) || (pluginType == PLUGIN_TYPE_OLD_INTERNAL) ||
+             (pluginType == PLUGIN_TYPE_SWAP_WITH_CALLDATA))) {
             io_seproxyhal_touch_tx_ok();
         } else {
             start_signature_flow();

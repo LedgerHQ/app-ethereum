@@ -161,11 +161,11 @@ cx_sha3_t *get_last_hash_ctx(void) {
  *
  * @return pointer to the hashing context
  */
-cx_sha3_t *get_previous_hash_ctx(cx_sha3_t* hash_ctx) {
+cx_sha3_t *get_previous_hash_ctx(cx_sha3_t *hash_ctx) {
     cx_sha3_t *prev_ctx = NULL;
     // TODO: using a doubly-linked list would improve this
     for (s_hash_ctx *tmp = g_hash_ctxs; &tmp->hash != hash_ctx;
-        tmp = (s_hash_ctx *) ((s_flist_node *) tmp)->next) {
+         tmp = (s_hash_ctx *) ((s_flist_node *) tmp)->next) {
         prev_ctx = &tmp->hash;
     }
     return prev_ctx;

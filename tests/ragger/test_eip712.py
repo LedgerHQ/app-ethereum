@@ -742,10 +742,9 @@ def gcs_handler_no_param(app_client: EthAppClient, json_data: dict) -> None:
 
 
 def eip712_calldata_common(scenario_navigator: NavigateWithScenario,
-                           test_name: str,
                            filename: str,
                            handler: Optional[Callable] = None):
-    with open("%s/%s.json" % (eip712_json_path(), filename)) as file:
+    with open(f"{eip712_json_path()}/{filename}.json", encoding="utf-8") as file:
         data = json.load(file)
 
     filters = {
@@ -778,15 +777,15 @@ def eip712_calldata_common(scenario_navigator: NavigateWithScenario,
         }
     }
 
-    eip712_new_common(scenario_navigator, data, filters, test_name)
+    eip712_new_common(scenario_navigator, data, filters, scenario_navigator.test_name)
 
 
-def test_eip712_calldata(scenario_navigator: NavigateWithScenario, test_name: str):
-    eip712_calldata_common(scenario_navigator, test_name, "safe", gcs_handler)
+def test_eip712_calldata(scenario_navigator: NavigateWithScenario):
+    eip712_calldata_common(scenario_navigator, "safe", gcs_handler)
 
 
-def test_eip712_calldata_empty_send(scenario_navigator: NavigateWithScenario, test_name: str):
-    eip712_calldata_common(scenario_navigator, test_name, "safe_empty")
+def test_eip712_calldata_empty_send(scenario_navigator: NavigateWithScenario):
+    eip712_calldata_common(scenario_navigator, "safe_empty")
 
 
 def test_eip712_calldata_no_param(scenario_navigator: NavigateWithScenario, test_name: str):

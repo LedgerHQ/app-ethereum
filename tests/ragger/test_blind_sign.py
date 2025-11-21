@@ -18,6 +18,8 @@ from client.settings import SettingID, settings_toggle
 import client.response_parser as ResponseParser
 from client.utils import recover_transaction
 from client.tx_simu import TxSimu
+from client.gating import Gating
+from client.proxy_info import ProxyInfo
 
 
 BIP32_PATH = "m/44'/60'/0'/0/0"
@@ -70,7 +72,8 @@ def common_blind_sign(scenario_navigator: NavigateWithScenario,
                       test_name: str,
                       app_client: EthAppClient,
                       tx_params: dict,
-                      reject: bool = False):
+                      reject: bool = False,
+                      nb_warnings: int = 1) -> None:
     try:
         with app_client.sign(BIP32_PATH, tx_params):
             if reject:
@@ -80,9 +83,9 @@ def common_blind_sign(scenario_navigator: NavigateWithScenario,
                 test_name += "_nonzero"
 
             if reject:
-                scenario_navigator.review_reject_with_warning(test_name=test_name)
+                scenario_navigator.review_reject_with_warning(test_name=test_name, nb_warnings=nb_warnings)
             else:
-                scenario_navigator.review_approve_with_warning(test_name=test_name)
+                scenario_navigator.review_approve_with_warning(test_name=test_name, nb_warnings=nb_warnings)
 
     except ExceptionRAPDU as e:
         assert reject
@@ -101,7 +104,9 @@ def test_blind_sign(navigator: Navigator,
                     test_name: str,
                     reject: bool,
                     amount: float,
-                    simu_params: Optional[TxSimu] = None):
+                    simu_params: Optional[TxSimu] = None,
+                    gating_params: Optional[Gating] = None,
+                    with_proxy: bool = False):
     if reject and amount > 0.0:
         pytest.skip()
 
@@ -115,6 +120,30 @@ def test_blind_sign(navigator: Navigator,
 
     tx_params = common_tx_params(amount)
 
+    if with_proxy:
+        # Change address to a proxy contract
+        tx_params["to"] = bytes.fromhex("CcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC")
+        # Set proxy implementation address
+        address = bytes.fromhex("6b175474e89094c44da98b954eedeac495271d0f")
+        if gating_params is not None:
+            # Override gating address to match proxy implementation
+            gating_params.address = address
+        proxy_info = ProxyInfo(
+            ResponseParser.challenge(app_client.get_challenge().data),
+            address,
+            tx_params["chainId"],
+            tx_params["to"],
+            selector=None,
+        )
+        response = app_client.provide_proxy_info(proxy_info.serialize())
+        assert response.status == StatusWord.OK
+
+    nb_warnings = 1
+    if gating_params is not None:
+        response = app_client.provide_gating(gating_params)
+        assert response.status == StatusWord.OK
+        nb_warnings += 1
+
     if not reject and simu_params is not None:
         _, tx_hash = app_client.serialize_tx(tx_params)
         simu_params.tx_hash = tx_hash
@@ -127,7 +156,8 @@ def test_blind_sign(navigator: Navigator,
                       test_name,
                       app_client,
                       tx_params,
-                      reject)
+                      reject,
+                      nb_warnings)
 
 
 # Token approval, would require providing the token metadata from the CAL

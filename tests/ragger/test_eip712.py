@@ -28,6 +28,7 @@ from client.eip712 import InputData
 from client.settings import SettingID, settings_toggle
 from client.tx_simu import TxSimu
 from client.proxy_info import ProxyInfo
+from client.gating import Gating
 
 from client.gcs import (
     Field, ParamRaw, Value, TypeFamily, DataPath, PathTuple, ParamTokenAmount, ParamCalldata,
@@ -110,15 +111,17 @@ def eip712_new_common(scenario_navigator: NavigateWithScenario,
                       data: dict,
                       filters: Optional[dict] = None,
                       snapshots_dirname: Optional[str] = None,
-                      with_warning: bool = False) -> bytes:
+                      nb_warnings: int = 0) -> bytes:
     app_client = EthAppClient(scenario_navigator.backend)
 
     InputData.process_data(app_client, data, filters)
     do_compare = snapshots_dirname is not None
     with app_client.eip712_sign_new(BIP32_PATH):
-        if with_warning:
+        if nb_warnings > 0:
             # Warning screen
-            scenario_navigator.review_approve_with_warning(test_name=snapshots_dirname, do_comparison=do_compare)
+            scenario_navigator.review_approve_with_warning(test_name=snapshots_dirname,
+                                                           do_comparison=do_compare,
+                                                           nb_warnings=nb_warnings)
         else:
             scenario_navigator.review_approve(test_name=snapshots_dirname, do_comparison=do_compare)
 
@@ -135,7 +138,8 @@ def get_filter_file_from_data_file(data_file: Path) -> Path:
 def test_eip712_new(scenario_navigator: NavigateWithScenario,
                     input_file: Path,
                     verbose_raw: bool,
-                    filtering: bool):
+                    filtering: bool,
+                    gating_params: Optional[Gating] = None):
     settings_to_toggle: list[SettingID] = []
 
     filters = None
@@ -157,7 +161,22 @@ def test_eip712_new(scenario_navigator: NavigateWithScenario,
 
     with open(input_file, encoding="utf-8") as file:
         data = json.load(file)
-        eip712_new_common(scenario_navigator, data, filters, with_warning=bool(not filters or verbose_raw))
+
+    snapshots_dirname: Optional[str] = None
+    nb_warnings = 1 if not filters or verbose_raw else 0
+    if gating_params is not None:
+        app_client = EthAppClient(scenario_navigator.backend)
+        gating_params.address = bytes.fromhex(data["domain"]["verifyingContract"][2:])
+        sig_ctx = {}
+        InputData.init_signature_context(sig_ctx, data["types"], data["domain"], filters or {})
+        gating_params.selector = sig_ctx["schema_hash"]
+        gating_params.chain_id = data["domain"].get("chainId", 0)
+        response = app_client.provide_gating(gating_params)
+        assert response.status == StatusWord.OK
+        nb_warnings += 1
+        snapshots_dirname = "test_gating_eip712"
+
+    eip712_new_common(scenario_navigator, data, filters, snapshots_dirname, nb_warnings)
 
 
 class DataSet():
@@ -460,6 +479,7 @@ def test_eip712_filtering_empty_array(scenario_navigator: NavigateWithScenario,
         }
     }
 
+    nb_warnings = 0
     if simu_params is not None:
         set_wallet_addr(scenario_navigator.backend)
         smsg = encode_typed_data(full_message=data)
@@ -467,8 +487,9 @@ def test_eip712_filtering_empty_array(scenario_navigator: NavigateWithScenario,
         simu_params.domain_hash = smsg.header
         response = app_client.provide_tx_simulation(simu_params)
         assert response.status == StatusWord.OK
+        nb_warnings = 1
 
-    eip712_new_common(scenario_navigator, data, filters, scenario_navigator.test_name, with_warning=bool(simu_params is not None))
+    eip712_new_common(scenario_navigator, data, filters, scenario_navigator.test_name, nb_warnings=nb_warnings)
 
 
 TOKENS = [
@@ -1052,7 +1073,7 @@ def test_eip712_gondi(scenario_navigator: NavigateWithScenario):
             ],
         }
     }
-    eip712_new_common(scenario_navigator, data, None, None, with_warning=True)
+    eip712_new_common(scenario_navigator, data, nb_warnings=1)
 
 
 def test_eip712_batch(scenario_navigator: NavigateWithScenario):

@@ -21,7 +21,8 @@ from test_gcs import test_gcs_poap as sign_gcs_poap
 from client.client import EthAppClient
 from client.status_word import StatusWord
 from client.settings import SettingID, settings_toggle
-from client.tx_simu import SimuType, TxSimu
+from client.utils import TxType
+from client.tx_simu import TxSimu
 
 
 class TxCheckFlags(IntEnum):
@@ -48,7 +49,7 @@ def __common_setting_handling(device: Device,
         settings_toggle(device, navigator, [SettingID.TRANSACTION_CHECKS])
 
 
-def __get_simu_params(risk: str, simu_type: SimuType) -> TxSimu:
+def __get_simu_params(risk: str, simu_type: TxType) -> TxSimu:
     """Common simu parameters for the tests"""
 
     simu_params = {
@@ -116,7 +117,7 @@ def test_tx_simulation_disabled(backend: BackendInterface, navigator: Navigator)
 
     __common_setting_handling(device, navigator, app_client, False)
 
-    simu_params = __get_simu_params("benign", SimuType.TRANSACTION)
+    simu_params = __get_simu_params("benign", TxType.TRANSACTION)
     simu_params.chain_id = 5
     try:
         __handle_simulation(app_client, simu_params)
@@ -137,7 +138,7 @@ def test_tx_simulation_enabled(backend: BackendInterface, navigator: Navigator) 
 
     __common_setting_handling(device, navigator, app_client, True)
 
-    simu_params = __get_simu_params("benign", SimuType.TRANSACTION)
+    simu_params = __get_simu_params("benign", TxType.TRANSACTION)
     simu_params.chain_id = 5
     __handle_simulation(app_client, simu_params)
 
@@ -163,7 +164,7 @@ def test_tx_simulation_sign(scenario_navigator: NavigateWithScenario, config: st
         "chainId": 5
     }
     if config != "issue":
-        simu_params = __get_simu_params(config, SimuType.TRANSACTION)
+        simu_params = __get_simu_params(config, TxType.TRANSACTION)
         _, tx_hash = app_client.serialize_tx(tx_params)
         simu_params.chain_id = tx_params["chainId"]
         simu_params.tx_hash = tx_hash
@@ -215,7 +216,7 @@ def test_tx_simulation_nft(scenario_navigator: NavigateWithScenario) -> None:
 
     __common_setting_handling(device, scenario_navigator.navigator, app_client, True)
 
-    simu_params = __get_simu_params("warning", SimuType.TRANSACTION)
+    simu_params = __get_simu_params("warning", TxType.TRANSACTION)
 
     common_test_nft(scenario_navigator,
                     scenario_navigator.test_name,
@@ -240,7 +241,7 @@ def test_tx_simulation_blind_sign(scenario_navigator: NavigateWithScenario, conf
     __common_setting_handling(device, navigator, app_client, True)
 
     if config != "issue":
-        simu_params = __get_simu_params(config, SimuType.TRANSACTION)
+        simu_params = __get_simu_params(config, TxType.TRANSACTION)
     else:
         simu_params = None
 
@@ -270,7 +271,7 @@ def test_tx_simulation_eip191(scenario_navigator: NavigateWithScenario, config: 
     __common_setting_handling(device, scenario_navigator.navigator, app_client, True)
 
     test_name = scenario_navigator.test_name
-    simu_params = __get_simu_params(config, SimuType.PERSONAL_MESSAGE)
+    simu_params = __get_simu_params(config, TxType.PERSONAL_MESSAGE)
     msg = "Example `personal_sign` message with TX Simulation"
     if config == "issue":
         msg += " and wrong hash"
@@ -293,7 +294,7 @@ def test_tx_simulation_eip712(scenario_navigator: NavigateWithScenario) -> None:
 
     __common_setting_handling(scenario_navigator.backend.device, scenario_navigator.navigator, app_client, True)
 
-    simu_params = __get_simu_params("threat", SimuType.TYPED_DATA)
+    simu_params = __get_simu_params("threat", TxType.TYPED_DATA)
 
     sign_eip712(scenario_navigator, simu_params)
 
@@ -308,7 +309,7 @@ def test_tx_simulation_eip712_v0(scenario_navigator: NavigateWithScenario) -> No
 
     __common_setting_handling(scenario_navigator.backend.device, scenario_navigator.navigator, app_client, True)
 
-    simu_params = __get_simu_params("threat", SimuType.TYPED_DATA)
+    simu_params = __get_simu_params("threat", TxType.TYPED_DATA)
 
     sign_eip712_v0(scenario_navigator, simu_params)
 
@@ -326,6 +327,6 @@ def test_tx_simulation_gcs(navigator: Navigator,
 
     __common_setting_handling(device, navigator, app_client, True)
 
-    simu_params = __get_simu_params("warning", SimuType.TRANSACTION)
+    simu_params = __get_simu_params("warning", TxType.TRANSACTION)
 
     sign_gcs_poap(scenario_navigator, simu_params)

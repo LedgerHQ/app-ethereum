@@ -1,4 +1,3 @@
-#include <ctype.h>
 #include "shared_context.h"
 #include "common_utils.h"
 #include "feature_signTx.h"
@@ -18,6 +17,7 @@
 #include "mem.h"
 #include "mem_utils.h"
 #include "tx_ctx.h"
+#include "eth_swap_utils.h"
 
 static uint32_t splitBinaryParameterPart(char *result, size_t result_size, uint8_t *parameter) {
     uint32_t i;
@@ -271,21 +271,6 @@ static void nonce_to_string(const txInt256_t *nonce, char *out, size_t out_size)
     tostring256(&nonce_uint256, 10, out, out_size);
 }
 
-/* Local implementation of strncasecmp, workaround of the segfaulting base implem on return value
- * Remove once strncasecmp is fixed
- */
-static int strcasecmp_workaround(const char *str1, const char *str2) {
-    unsigned char c1, c2;
-    do {
-        c1 = *str1++;
-        c2 = *str2++;
-        if (toupper(c1) != toupper(c2)) {
-            return toupper(c1) - toupper(c2);
-        }
-    } while (c1 != '\0');
-    return 0;
-}
-
 __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContext_t *context) {
     char displayBuffer[50];
     uint8_t decimals = WEI_TO_ETHER;
@@ -453,18 +438,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
             goto end;
         }
         if (G_called_from_swap) {
-            // Ensure the values are the same that the ones that have been previously validated
-            if (strcasecmp_workaround(strings.common.toAddress, displayBuffer) != 0) {
-                PRINTF("Error comparing destination addresses\n");
-                send_swap_error_with_string(APDU_RESPONSE_MODE_CHECK_FAILED,
-                                            SWAP_EC_ERROR_WRONG_DESTINATION,
-                                            APP_CODE_DEFAULT,
-                                            "%s != %s",
-                                            strings.common.toAddress,
-                                            displayBuffer);
-                // unreachable
-                os_sched_exit(0);
-            }
+            swap_check_destination(displayBuffer);
         } else {
             strlcpy(strings.common.toAddress, displayBuffer, sizeof(strings.common.toAddress));
         }
@@ -484,18 +458,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
         }
 
         if (G_called_from_swap) {
-            // Ensure the values are the same that the ones that have been previously validated
-            if (strcmp(strings.common.fullAmount, displayBuffer) != 0) {
-                PRINTF("Error comparing amounts\n");
-                send_swap_error_with_string(APDU_RESPONSE_MODE_CHECK_FAILED,
-                                            SWAP_EC_ERROR_WRONG_AMOUNT,
-                                            APP_CODE_DEFAULT,
-                                            "%s != %s",
-                                            strings.common.fullAmount,
-                                            displayBuffer);
-                // unreachable
-                os_sched_exit(0);
-            }
+            swap_check_amount(displayBuffer);
         } else {
             strlcpy(strings.common.fullAmount, displayBuffer, sizeof(strings.common.fullAmount));
         }
@@ -512,18 +475,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
         goto end;
     }
     if (G_called_from_swap) {
-        // Ensure the values are the same that the ones that have been previously validated
-        if (strcmp(strings.common.maxFee, displayBuffer) != 0) {
-            PRINTF("Error comparing fees\n");
-            send_swap_error_with_string(APDU_RESPONSE_MODE_CHECK_FAILED,
-                                        SWAP_EC_ERROR_WRONG_FEES,
-                                        APP_CODE_DEFAULT,
-                                        "%s != %s",
-                                        strings.common.maxFee,
-                                        displayBuffer);
-            // unreachable
-            os_sched_exit(0);
-        }
+        swap_check_fee(displayBuffer);
     } else {
         strlcpy(strings.common.maxFee, displayBuffer, sizeof(strings.common.maxFee));
     }

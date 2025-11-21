@@ -7,6 +7,8 @@
 #include "format.h"
 #include "utils.h"
 #include "calldata.h"
+#include "manage_asset_info.h"
+#include "eth_swap_utils.h"
 
 typedef enum { ERC20_TRANSFER = 0, ERC20_APPROVE } erc20Selector_t;
 
@@ -116,6 +118,35 @@ void erc20_plugin_call(int message, void *parameters) {
             msg->numScreens = 2;
             if (context->extra_data_len > 0) {
                 msg->numScreens += 1;
+            }
+            if (G_called_from_swap) {
+                char buf[sizeof(strings.common.fullAmount)];
+                const tokenDefinition_t *token_def;
+
+                if (!getEthDisplayableAddress(context->destinationAddress,
+                                              buf,
+                                              sizeof(buf),
+                                              chainConfig->chainId)) {
+                    msg->result = ETH_PLUGIN_RESULT_ERROR;
+                    break;
+                }
+                swap_check_destination(buf);
+
+                if ((token_def = (const tokenDefinition_t *) get_asset_info_by_addr(
+                         msg->tokenLookup1)) == NULL) {
+                    msg->result = ETH_PLUGIN_RESULT_ERROR;
+                    break;
+                }
+                if (!amountToString(context->amount,
+                                    sizeof(context->amount),
+                                    token_def->decimals,
+                                    token_def->ticker,
+                                    buf,
+                                    sizeof(buf))) {
+                    msg->result = ETH_PLUGIN_RESULT_ERROR;
+                    break;
+                }
+                swap_check_amount(buf);
             }
             msg->uiType = ETH_UI_TYPE_GENERIC;
             msg->result = ETH_PLUGIN_RESULT_OK;

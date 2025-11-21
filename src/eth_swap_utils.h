@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
 #include "swap_lib_calls.h"
 #include "chainConfig.h"
@@ -39,3 +40,6 @@ bool parse_swap_config(const uint8_t *config,
                        char *ticker,
                        uint8_t *decimals,
                        uint64_t *chain_id);
+bool swap_check_destination(const char *destination);
+bool swap_check_amount(const char *amount);
+bool swap_check_fee(const char *fee);

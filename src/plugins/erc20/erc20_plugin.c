@@ -6,20 +6,22 @@
 #include "common_utils.h"
 #include "format.h"
 #include "utils.h"
+#include "calldata.h"
 
 typedef enum { ERC20_TRANSFER = 0, ERC20_APPROVE } erc20Selector_t;
 
 #define MAX_CONTRACT_NAME_LEN 15
-#define MAX_EXTRA_DATA_SLOTS  2
+#define MAX_EXTRA_DATA_CHUNKS 2
 
 typedef struct erc20_parameters_t {
     uint8_t selectorIndex;
-    uint8_t destinationAddress[21];
+    uint8_t destinationAddress[ADDRESS_LENGTH];
     uint8_t amount[INT256_LENGTH];
     char ticker[MAX_TICKER_LEN];
     uint8_t decimals;
     char contract_name[MAX_CONTRACT_NAME_LEN];
-    char extra_data[MAX_EXTRA_DATA_SLOTS * 32 + 1];
+    // data not part of the ABI (usually for tracking purposes)
+    char extra_data[(MAX_EXTRA_DATA_CHUNKS * CALLDATA_CHUNK_SIZE) + 1];
     uint8_t extra_data_len;
 } erc20_parameters_t;
 
@@ -33,20 +35,21 @@ void erc20_plugin_call(int message, void *parameters) {
             context->extra_data_len = 0;
 
             // enforce that ETH amount should be 0
-            if (!allzeroes(msg->txContent->value.value, 32)) {
+            if (!allzeroes(msg->txContent->value.value, CALLDATA_CHUNK_SIZE)) {
                 PRINTF("Err: Transaction amount is not 0\n");
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             } else {
                 size_t i;
                 for (i = 0; i < NUM_ERC20_SELECTORS; i++) {
-                    if (memcmp((uint8_t *) PIC(ERC20_SELECTORS[i]), msg->selector, SELECTOR_SIZE) ==
-                        0) {
+                    if (memcmp((uint8_t *) PIC(ERC20_SELECTORS[i]),
+                               msg->selector,
+                               CALLDATA_SELECTOR_SIZE) == 0) {
                         context->selectorIndex = i;
                         break;
                     }
                 }
                 if (i == NUM_ERC20_SELECTORS) {
-                    PRINTF("Unknown selector %.*H\n", SELECTOR_SIZE, msg->selector);
+                    PRINTF("Unknown selector %.*H\n", CALLDATA_SELECTOR_SIZE, msg->selector);
                     msg->result = ETH_PLUGIN_RESULT_ERROR;
                     break;
                 }
@@ -63,21 +66,38 @@ void erc20_plugin_call(int message, void *parameters) {
                    32,
                    msg->parameter);
             switch (msg->parameterOffset) {
-                case 4:
-                    memmove(context->destinationAddress, msg->parameter + 12, 20);
+                // function transfer(address _to, uint256 _value)
+                //                   ^^^^^^^^^^^
+                // function approve(address _spender, uint256 _value)
+                //                  ^^^^^^^^^^^^^^^^
+                case CALLDATA_SELECTOR_SIZE:
+                    memmove(context->destinationAddress,
+                            msg->parameter + (CALLDATA_CHUNK_SIZE - ADDRESS_LENGTH),
+                            ADDRESS_LENGTH);
                     msg->result = ETH_PLUGIN_RESULT_OK;
                     break;
-                case 4 + 32:
-                    memmove(context->amount, msg->parameter, 32);
+
+                // function transfer(address _to, uint256 _value)
+                //                                ^^^^^^^^^^^^^^
+                // function approve(address _spender, uint256 _value)
+                //                                    ^^^^^^^^^^^^^^
+                case CALLDATA_SELECTOR_SIZE + CALLDATA_CHUNK_SIZE:
+                    memmove(context->amount, msg->parameter, CALLDATA_CHUNK_SIZE);
                     msg->result = ETH_PLUGIN_RESULT_OK;
                     break;
+
                 default:
-                    if (msg->parameterOffset <= 4 + 32 + MAX_EXTRA_DATA_SLOTS * 32) {
+                    if (msg->parameterOffset <= CALLDATA_SELECTOR_SIZE + CALLDATA_CHUNK_SIZE +
+                                                    (MAX_EXTRA_DATA_CHUNKS * CALLDATA_CHUNK_SIZE)) {
                         // store extra data for possible later use
-                        size_t extra_data_offset = msg->parameterOffset - (4 + 32 + 32);
-                        memmove(context->extra_data + extra_data_offset, msg->parameter, 32);
-                        context->extra_data[extra_data_offset + 32] = '\0';
-                        context->extra_data_len += 32;
+                        size_t extra_data_offset =
+                            msg->parameterOffset -
+                            (CALLDATA_SELECTOR_SIZE + (CALLDATA_CHUNK_SIZE * 2));
+                        memmove(context->extra_data + extra_data_offset,
+                                msg->parameter,
+                                CALLDATA_CHUNK_SIZE);
+                        context->extra_data[extra_data_offset + CALLDATA_CHUNK_SIZE] = '\0';
+                        context->extra_data_len += CALLDATA_CHUNK_SIZE;
                         msg->result = ETH_PLUGIN_RESULT_OK;
                     } else {
                         PRINTF("Extra data too long to buffer\n");

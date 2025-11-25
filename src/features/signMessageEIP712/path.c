@@ -156,6 +156,21 @@ cx_sha3_t *get_last_hash_ctx(void) {
     return &((s_hash_ctx *) hash_ctx)->hash;
 }
 
+/**
+ * Get the previous hashing context before the given one
+ *
+ * @return pointer to the hashing context
+ */
+cx_sha3_t *get_previous_hash_ctx(cx_sha3_t *hash_ctx) {
+    cx_sha3_t *prev_ctx = NULL;
+    // TODO: using a doubly-linked list would improve this
+    for (s_hash_ctx *tmp = g_hash_ctxs; &tmp->hash != hash_ctx;
+         tmp = (s_hash_ctx *) ((s_flist_node *) tmp)->next) {
+        prev_ctx = &tmp->hash;
+    }
+    return prev_ctx;
+}
+
 // to be used as a \ref f_list_node_del
 static void delete_hash_ctx(s_hash_ctx *ctx) {
     app_mem_free(ctx);
@@ -510,6 +525,7 @@ bool path_new_array_depth(const uint8_t *data, uint8_t length) {
     uint8_t array_size;
     uint8_t array_depth_count_bak;
     cx_err_t error = CX_INTERNAL_ERROR;
+    cx_sha3_t *start_hash_ctx = get_last_hash_ctx();
 
     if (path_struct == NULL) {
         apdu_response_code = SWO_INCORRECT_DATA;
@@ -561,22 +577,21 @@ bool path_new_array_depth(const uint8_t *data, uint8_t length) {
     }
     if (is_custom) {
         cx_sha3_t *hash_ctx = get_last_hash_ctx();
-        cx_sha3_t *old_ctx = NULL;
+        cx_sha3_t *prev_ctx = get_previous_hash_ctx(hash_ctx);
+        while (prev_ctx != start_hash_ctx) {
+            if (prev_ctx == NULL) return false;
 
-        // TODO: using a doubly-linked list would improve this
-        for (s_hash_ctx *tmp = g_hash_ctxs; &tmp->hash != hash_ctx;
-             tmp = (s_hash_ctx *) ((s_flist_node *) tmp)->next) {
-            old_ctx = &tmp->hash;
+            if (array_size > 0) {
+                memcpy(hash_ctx, prev_ctx, sizeof(*prev_ctx));
+            } else {
+                CX_CHECK(cx_keccak_init_no_throw(hash_ctx, 256));
+            }
+            CX_CHECK(cx_keccak_init_no_throw(prev_ctx, 256));
+
+            hash_ctx = prev_ctx;
+            prev_ctx = get_previous_hash_ctx(hash_ctx);
         }
-
-        if (old_ctx == NULL) return false;
-
-        if (array_size > 0) {
-            memcpy(hash_ctx, old_ctx, sizeof(*old_ctx));
-        } else {
-            CX_CHECK(cx_keccak_init_no_throw(hash_ctx, 256));
-        }
-        CX_CHECK(cx_keccak_init_no_throw(old_ctx, 256));
+        CX_CHECK(cx_keccak_init_no_throw(hash_ctx, 256));
     }
     if (array_size == 0) {
         do {

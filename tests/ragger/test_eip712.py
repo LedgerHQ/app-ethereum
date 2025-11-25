@@ -791,3 +791,70 @@ def test_eip712_calldata_empty_send(scenario_navigator: NavigateWithScenario, te
 
 def test_eip712_calldata_no_param(scenario_navigator: NavigateWithScenario, test_name: str):
     eip712_calldata_common(scenario_navigator, test_name, "safe_calldata_no_param", gcs_handler_no_param)
+
+
+def test_eip712_payload(scenario_navigator: NavigateWithScenario):
+    """Test a basic EIP712 payload signature"""
+
+    # Enable blind signing for EIP712
+    settings_toggle(scenario_navigator.backend.device, scenario_navigator.navigator, [SettingID.BLIND_SIGNING])
+    
+    # Define a simple EIP712 payload
+    data = {
+        "types": {
+            "EIP712Domain": [
+                {
+                    "name": "name",
+                    "type": "string"
+                },
+                {
+                    "name": "version",
+                    "type": "string"
+                },
+                {
+                    "name": "chainId",
+                    "type": "uint256"
+                },
+                {
+                    "name": "verifyingContract",
+                    "type": "address"
+                }
+            ],
+            "Root": [
+                {
+                    "name": "child",
+                    "type": "Inner[]"
+                },
+            ],
+            "Inner": [
+                {
+                    "name": "child",
+                    "type": "Leaf"
+                },
+            ],
+            "Leaf": [
+                {
+                    "name": "value",
+                    "type": "uint256"
+                },
+            ],
+        },
+        "primaryType": "Root",
+        "domain": {
+            "name": "DOMAIN",
+            "version": "3.1",
+            "chainId": 31337,
+            "verifyingContract": "0x95401dc811bb5740090279ba06cfa8fcf6113778"
+        },
+        "message": {
+            "child": [
+                {
+                    "child": {
+                        "value": 2,
+                    },
+                }
+            ],
+        }
+    }
+    eip712_new_common(scenario_navigator, data, None, None, with_warning=True)
+    

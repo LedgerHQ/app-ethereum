@@ -1,239 +1,108 @@
 cmake_minimum_required(VERSION 3.14)
 
+if(${CMAKE_VERSION} VERSION_LESS 3.14)
+  cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
+endif()
+
 # project information
 project(EthereumAppFuzzer
         VERSION 1.0
-	      DESCRIPTION "Eth Fuzzer"
+	      DESCRIPTION "App Ethereum Fuzzer"
         LANGUAGES C)
 
-if (NOT CMAKE_C_COMPILER_ID MATCHES "Clang")
-  message(FATAL_ERROR "Fuzzer needs to be built with Clang")
+if(NOT DEFINED BOLOS_SDK)
+  message(FATAL_ERROR "BOLOS_SDK must be defined, CMake will exit.")
+  return()
 endif()
 
-# guard against bad build-type strings
-if (NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE "Debug")
-endif()
+add_subdirectory(${BOLOS_SDK}/fuzzing ${CMAKE_CURRENT_BINARY_DIR}/ledger-secure-sdk EXCLUDE_FROM_ALL)
 
-# default fuzz device target
-if (NOT TARGET_DEVICE)
-  set(TARGET_DEVICE "flex")
-endif()
+set(DEFINES FUZZ)
 
-if (NOT DEFINED BOLOS_SDK)
-  set(BOLOS_SDK /opt/${TARGET_DEVICE}-secure-sdk)
-endif()
+set(APP_SRC ${CMAKE_SOURCE_DIR}/../../src)
+set(PLUGIN_SDK_SRC ${CMAKE_SOURCE_DIR}/../../ethereum-plugin-sdk/src)
 
-# some flags to mimic the embedded build (such as packed enums)
-set(CUSTOM_C_FLAGS -fdata-sections -ffunction-sections -funsigned-char -fshort-enums)
+file(GLOB_RECURSE C_SOURCES
+  ${APP_SRC}/*.c
+  ${PLUGIN_SDK_SRC}/*.c
+  ${CMAKE_SOURCE_DIR}/mock/*.c
+  ${CMAKE_SOURCE_DIR}/src/fuzz_utils.c
+)
+list(REMOVE_ITEM C_SOURCES
+  ${APP_SRC}/main.c
+  ${PLUGIN_SDK_SRC}/main.c
+)
 
-# compatible with ClusterFuzzLite
-if (NOT DEFINED ENV{LIB_FUZZING_ENGINE})
-	set(COMPILATION_FLAGS ${CUSTOM_C_FLAGS} -g -O0 -Wall -Wextra -fprofile-instr-generate -fcoverage-mapping)
-  if (SANITIZER MATCHES "address")
-    set(COMPILATION_FLAGS ${COMPILATION_FLAGS} -fsanitize=fuzzer,address,undefined)
-  elseif (SANITIZER MATCHES "memory")
-    set(COMPILATION_FLAGS ${COMPILATION_FLAGS} -fsanitize=fuzzer,memory,undefined -fsanitize-memory-track-origins -fsanitize=fuzzer-no-link)
-  else()
-    message(FATAL_ERROR "Unknown sanitizer type. It must be set to `address` or `memory`.")
-  endif()
+add_library(code_lib ${C_SOURCES})
+
+target_include_directories(
+  code_lib
+  PUBLIC ${CMAKE_SOURCE_DIR}/src
+         ${CMAKE_SOURCE_DIR}/mock
+         ${APP_SRC}
+         ${APP_SRC}/features/generic_tx_parser
+         ${APP_SRC}/features/getPublicKey
+         ${APP_SRC}/features/provide_enum_value
+         ${APP_SRC}/features/provide_network_info
+         ${APP_SRC}/features/signTx
+         ${APP_SRC}/features/provide_trusted_name
+         ${APP_SRC}/features/getChallenge
+         ${APP_SRC}/features/signMessageEIP712
+         ${APP_SRC}/features/provide_proxy_info
+         ${APP_SRC}/features/provide_tx_simulation
+         ${APP_SRC}/features/signAuthorizationEIP7702
+         ${APP_SRC}/features/provide_safe_account
+         ${APP_SRC}/features/provide_gating
+         ${APP_SRC}/features/signMessageEIP712_common
+         ${APP_SRC}/features/signMessageEIP712
+         ${APP_SRC}/features/setPlugin
+         ${APP_SRC}/plugins/eth2
+         ${APP_SRC}/plugins/eip7002
+         ${APP_SRC}/plugins/erc20
+         ${APP_SRC}/plugins/erc721
+         ${APP_SRC}/plugins/erc1155
+         ${APP_SRC}/plugins/swap_with_calldata
+         ${APP_SRC}/nbgl
+         ${PLUGIN_SDK_SRC}
+)
+
+target_link_libraries(code_lib PUBLIC secure_sdk)
+target_compile_definitions(code_lib PUBLIC ${DEFINES} FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1)
+
+# Find and add libbsd
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LIBBSD REQUIRED libbsd)
+
+# Try to find the static libbsd library, because the final run image doesn't have dynamic library
+# Keep both options to fallback to dynamic if static is not found
+find_library(LIBBSD_STATIC_LIB lib${LIBBSD_STATIC_LIBRARIES}.a HINTS ${LIBBSD_LIBRARY_DIRS})
+
+if(LIBBSD_STATIC_LIB)
+    message(STATUS "Using static libbsd")
+    target_link_libraries(code_lib PUBLIC ${LIBBSD_STATIC_LIB})
 else()
-	set(COMPILATION_FLAGS "$ENV{LIB_FUZZING_ENGINE} $ENV{CFLAGS} ${CUSTOM_C_FLAGS}")
-  separate_arguments(COMPILATION_FLAGS)
+    message(STATUS "Using dynamic libbsd")
+    target_link_libraries(code_lib PUBLIC ${LIBBSD_LIBRARIES})
 endif()
 
-# guard against in-source builds
-if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
-  message(FATAL_ERROR "In-source builds not allowed. Please make a new directory (called a build directory) and run CMake from there. You may need to remove CMakeCache.txt. ")
-endif()
+target_include_directories(code_lib PUBLIC ${LIBBSD_INCLUDE_DIRS})
+target_compile_options(code_lib PUBLIC ${LIBBSD_CFLAGS_OTHER})
 
-set(DEFINES
-    gcc
-    APPNAME=\"Fuzzing\"
-    API_LEVEL=21
-    TARGET=\"flex\"
-    TARGET_NAME=\"TARGET_FUZZ\"
-    APPVERSION=\"1.1.0\"
-    SDK_NAME=\"ledger-secure-sdk\"
-    SDK_VERSION=\"v21.3.3\"
-    SDK_HASH=\"d88d4db3c93665f52b5b1f45099d9d36dfaa06ba\"
-    gcc
-    __IO=volatile
-    NDEBUG
-    HAVE_BAGL_FONT_INTER_REGULAR_28PX
-    HAVE_BAGL_FONT_INTER_SEMIBOLD_28PX
-    HAVE_BAGL_FONT_INTER_MEDIUM_36PX
-    HAVE_INAPP_BLE_PAIRING
-    HAVE_NBGL
-    HAVE_PIEZO_SOUND
-    HAVE_SE_TOUCH
-    HAVE_SE_EINK_DISPLAY
-    NBGL_PAGE
-    NBGL_USE_CASE
-    SCREEN_SIZE_WALLET
-    HAVE_FAST_HOLD_TO_APPROVE
-    HAVE_LEDGER_PKI
-    HAVE_NES_CRYPT
-    HAVE_ST_AES
-    NATIVE_LITTLE_ENDIAN
-    HAVE_CRC
-    HAVE_HASH
-    HAVE_RIPEMD160
-    HAVE_SHA224
-    HAVE_SHA256
-    HAVE_SHA3
-    HAVE_SHA384
-    HAVE_SHA512
-    HAVE_SHA512_WITH_BLOCK_ALT_METHOD
-    HAVE_SHA512_WITH_BLOCK_ALT_METHOD_M0
-    HAVE_BLAKE2
-    HAVE_HMAC
-    HAVE_PBKDF2
-    HAVE_AES
-    HAVE_MATH
-    HAVE_RNG
-    HAVE_RNG_RFC6979
-    HAVE_RNG_SP800_90A
-    HAVE_ECC
-    HAVE_ECC_WEIERSTRASS
-    HAVE_ECC_TWISTED_EDWARDS
-    HAVE_ECC_MONTGOMERY
-    HAVE_SECP256K1_CURVE
-    HAVE_SECP256R1_CURVE
-    HAVE_SECP384R1_CURVE
-    HAVE_SECP521R1_CURVE
-    HAVE_FR256V1_CURVE
-    HAVE_STARK256_CURVE
-    HAVE_BRAINPOOL_P256R1_CURVE
-    HAVE_BRAINPOOL_P256T1_CURVE
-    HAVE_BRAINPOOL_P320R1_CURVE
-    HAVE_BRAINPOOL_P320T1_CURVE
-    HAVE_BRAINPOOL_P384R1_CURVE
-    HAVE_BRAINPOOL_P384T1_CURVE
-    HAVE_BRAINPOOL_P512R1_CURVE
-    HAVE_BRAINPOOL_P512T1_CURVE
-    HAVE_BLS12_381_G1_CURVE
-    HAVE_CV25519_CURVE
-    HAVE_CV448_CURVE
-    HAVE_ED25519_CURVE
-    HAVE_ED448_CURVE
-    HAVE_ECDH
-    HAVE_ECDSA
-    HAVE_EDDSA
-    HAVE_ECSCHNORR
-    HAVE_X25519
-    HAVE_X448
-    HAVE_AES_GCM
-    HAVE_CMAC
-    HAVE_AES_SIV
-    COIN_VARIANT=1
-    HAVE_BOLOS_APP_STACK_CANARY
-    IO_SEPROXYHAL_BUFFER_SIZE_B=300
-    HAVE_BLE
-    BLE_COMMAND_TIMEOUT_MS=2000
-    HAVE_BLE_APDU
-    BLE_SEGMENT_SIZE=32
-    HAVE_DEBUG_THROWS
-    NBGL_QRCODE
-    MAJOR_VERSION=1
-    MINOR_VERSION=1
-    PATCH_VERSION=0
-    IO_HID_EP_LENGTH=64
-    HAVE_SPRINTF
-    HAVE_SNPRINTF_FORMAT_U
-    HAVE_IO_USB
-    HAVE_L4_USBLIB
-    IO_USB_MAX_ENDPOINTS=4
-    HAVE_USB_APDU
-    USB_SEGMENT_SIZE=64
-    HAVE_WEBUSB
-    WEBUSB_URL_SIZE_B=0
-    WEBUSB_URL=
-    OS_IO_SEPROXYHAL
-    OS_IO_SEPH_BUFFER_SIZE=259
-    STANDARD_APP_SYNC_RAPDU
-    HAVE_SWAP
-    HAVE_TRANSACTION_CHECKS
-    HAVE_SAFE_ACCOUNT
-    explicit_bzero=bzero # Fix for https://github.com/google/sanitizers/issues/1507
-)
+# Create the different fuzzing targets automatically
+file(GLOB FUZZ_HARNESSES "${CMAKE_SOURCE_DIR}/harness/fuzz_*.c")
 
-add_compile_definitions(${DEFINES})
+foreach(HARNESS_FILE ${FUZZ_HARNESSES})
+    # Extract the base name of the file without extension
+    get_filename_component(HARNESS_NAME ${HARNESS_FILE} NAME_WE)
 
-FILE(
-  GLOB_RECURSE SDK_STD_SOURCES
-  ${BOLOS_SDK}/lib_standard_app/*.c
-  ${CMAKE_SOURCE_DIR}/../../ethereum-plugin-sdk/src/*.c
-  ./src/mock.c
-)
-list(
-  REMOVE_ITEM SDK_STD_SOURCES
-  ${BOLOS_SDK}/lib_standard_app/io.c
-  ${CMAKE_SOURCE_DIR}/../../ethereum-plugin-sdk/src/main.c
-  ${BOLOS_SDK}/lib_standard_app/main.c
-  ${BOLOS_SDK}/lib_standard_app/crypto_helpers.c
-)
+    # Create the executable target
+    add_executable(${HARNESS_NAME} ${HARNESS_FILE})
 
-include_directories(
-  ${CMAKE_SOURCE_DIR}/../../ethereum-plugin-sdk/src/
-  ${CMAKE_SOURCE_DIR}/../../src
-  ${CMAKE_SOURCE_DIR}/../../src/features/generic_tx_parser/
-  ${CMAKE_SOURCE_DIR}/../../src/features/getPublicKey/
-  ${CMAKE_SOURCE_DIR}/../../src/features/provide_enum_value/
-  ${CMAKE_SOURCE_DIR}/../../src/features/provide_network_info/
-  ${CMAKE_SOURCE_DIR}/../../src/features/signTx/
-  ${CMAKE_SOURCE_DIR}/../../src/features/provide_trusted_name/
-  ${CMAKE_SOURCE_DIR}/../../src/features/getChallenge/
-  ${CMAKE_SOURCE_DIR}/../../src/features/signMessageEIP712/
-  ${CMAKE_SOURCE_DIR}/../../src/features/provide_proxy_info/
-  ${CMAKE_SOURCE_DIR}/../../src/features/provide_tx_simulation/
-  ${CMAKE_SOURCE_DIR}/../../src/features/signAuthorizationEIP7702/
-  ${CMAKE_SOURCE_DIR}/../../src/features/provide_safe_account/
-  ${CMAKE_SOURCE_DIR}/../../src/features/signMessageEIP712_common/
-  ${CMAKE_SOURCE_DIR}/../../src/features/signMessageEIP712/
-  ${CMAKE_SOURCE_DIR}/../../src/nbgl/
-  ${BOLOS_SDK}/include
-  ${BOLOS_SDK}/target/${TARGET_DEVICE}/include
-  ${BOLOS_SDK}/io/include
-  ${BOLOS_SDK}/io_legacy/include
-  ${BOLOS_SDK}/lib_cxng/include
-  ${BOLOS_SDK}/lib_cxng/src
-  ${BOLOS_SDK}/lib_ux_nbgl
-  ${BOLOS_SDK}/lib_nbgl/include
-  ${BOLOS_SDK}/lib_standard_app/
-  ${BOLOS_SDK}/lib_alloc/
-  ${CMAKE_SOURCE_DIR}/src/
-)
+    # Define the compilation options
+    target_compile_definitions(${HARNESS_NAME} PUBLIC macros FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1)
 
-FILE(GLOB_RECURSE SOURCES
-  ${CMAKE_SOURCE_DIR}/../../src/features/generic_tx_parser/*.c
-  ${CMAKE_SOURCE_DIR}/../../src/features/provide_trusted_name/*.c
-  ${CMAKE_SOURCE_DIR}/../../src/features/getChallenge/*.c
-  ${CMAKE_SOURCE_DIR}/../../src/features/provide_enum_value/*.c
-  ${CMAKE_SOURCE_DIR}/../../src/features/provide_network_info/*.c
-  ${CMAKE_SOURCE_DIR}/../../src/features/provideNFTInformation/*.c
-  ${CMAKE_SOURCE_DIR}/../../src/features/provide_proxy_info/*.c
-  ${CMAKE_SOURCE_DIR}/../../src/features/provide_tx_simulation/*.c
-  ${CMAKE_SOURCE_DIR}/../../src/features/signAuthorizationEIP7702/*.c
-  ${CMAKE_SOURCE_DIR}/../../src/features/provide_safe_account/*.c
-  ${CMAKE_SOURCE_DIR}/../../src/features/signMessageEIP712/*.c
-  ${CMAKE_SOURCE_DIR}/../../src/features/signMessageEIP712_common/*.c
-  ${CMAKE_SOURCE_DIR}/../../src/list.c
-  ${CMAKE_SOURCE_DIR}/../../src/nbgl/ui_utils.c
-  ${CMAKE_SOURCE_DIR}/../../src/mem.c
-  ${CMAKE_SOURCE_DIR}/../../src/mem_utils.c
-  ${CMAKE_SOURCE_DIR}/../../src/network.c
-  ${CMAKE_SOURCE_DIR}/../../src/tlv.c
-  ${CMAKE_SOURCE_DIR}/../../src/tlv_apdu.c
-  ${CMAKE_SOURCE_DIR}/../../src/uint128.c
-  ${CMAKE_SOURCE_DIR}/../../src/uint256.c
-  ${CMAKE_SOURCE_DIR}/../../src/time_format.c
-  ${CMAKE_SOURCE_DIR}/../../src/uint_common.c
-  ${CMAKE_SOURCE_DIR}/../../src/utils.c
-  ${CMAKE_SOURCE_DIR}/../../src/manage_asset_info.c
-  ${CMAKE_SOURCE_DIR}/../../src/hash_bytes.c
-)
+    # Link against the secure_sdk and code_lib libraries
+    target_link_libraries(${HARNESS_NAME} PUBLIC secure_sdk code_lib)
 
-add_executable(fuzzer src/fuzzer.c ${SDK_STD_SOURCES} ${SOURCES})
-target_compile_options(fuzzer PRIVATE ${COMPILATION_FLAGS})
-target_link_options(fuzzer PRIVATE ${COMPILATION_FLAGS})
+    message(STATUS "Creating fuzzer target: ${HARNESS_NAME}")
+endforeach()

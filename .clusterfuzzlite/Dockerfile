@@ -1,17 +1,29 @@
-FROM ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder-lite:latest AS LITE_BUILDER
+FROM ghcr.io/ledgerhq/ledger-app-builder/ledger-app-dev-tools:latest AS app-builder
 
 # Base image with clang toolchain
 FROM gcr.io/oss-fuzz-base/base-builder:v1
 
-# Copy the project's source code.
-COPY . $SRC/app-ethereum
-COPY --from=LITE_BUILDER /opt/ledger-secure-sdk $SRC/app-ethereum/BOLOS_SDK
+# Install additional package dependencies.
+RUN pip3 install --break-system-packages --no-cache-dir pillow>=3.4.0
+RUN apt update && apt install -y ninja-build zip libbsd-dev pkg-config
 
-# Add the ethereum-plugin-sdk submodule
-RUN git clone https://github.com/LedgerHQ/ethereum-plugin-sdk.git $SRC/app-ethereum/ethereum-plugin-sdk
+# Copy the project's source code.
+COPY . /app
+COPY --from=app-builder /opt/flex-secure-sdk /ledger-secure-sdk
 
 # Working directory for build.sh
-WORKDIR $SRC/app-ethereum
+WORKDIR /app
+
+# Add the ethereum-plugin-sdk submodule (clone only if not exists)
+RUN if [ ! -d "/app/ethereum-plugin-sdk/.git" ]; then \
+        git config --global url."https://github.com/".insteadOf git@github.com: && \
+        git config --global url."https://".insteadOf git:// && \
+        (git submodule update --init --recursive || \
+        git clone https://github.com/LedgerHQ/ethereum-plugin-sdk.git /app/ethereum-plugin-sdk); \
+    else \
+        echo "ethereum-plugin-sdk already exists, skipping clone"; \
+    fi
+
 
 # Copy build.sh into $SRC dir.
 COPY ./.clusterfuzzlite/build.sh $SRC/

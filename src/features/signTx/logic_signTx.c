@@ -463,6 +463,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
             strlcpy(strings.common.fullAmount, displayBuffer, sizeof(strings.common.fullAmount));
         }
         PRINTF("Amount displayed: %s\n", strings.common.fullAmount);
+        G_swap_checked = true;
     }
 
     // Compute the max fee in a temporary buffer, if in swap case compare it with validated max fee,
@@ -527,6 +528,14 @@ uint16_t finalize_parsing(const txContext_t *context) {
         if (G_called_from_swap &&
             ((pluginType == PLUGIN_TYPE_NONE) || (pluginType == PLUGIN_TYPE_OLD_INTERNAL) ||
              (pluginType == PLUGIN_TYPE_SWAP_WITH_CALLDATA))) {
+            if (!G_swap_checked) {
+                PRINTF("Error: swap checks haven't been done!\n");
+                send_swap_error_simple(APDU_RESPONSE_MODE_CHECK_FAILED,
+                                       SWAP_EC_ERROR_GENERIC,
+                                       APP_CODE_DEFAULT);
+                // unreachable
+                os_sched_exit(0);
+            }
             io_seproxyhal_touch_tx_ok();
         } else {
             start_signature_flow();

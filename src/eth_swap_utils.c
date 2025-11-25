@@ -24,6 +24,8 @@
 #include "swap_error_code_helpers.h"
 #include "feature_signTx.h"
 
+bool G_swap_checked;
+
 bool parse_swap_config(const uint8_t *config,
                        uint8_t config_len,
                        char *ticker,

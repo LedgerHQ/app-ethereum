@@ -80,6 +80,7 @@ void reset_app_context(void) {
     appState = APP_STATE_IDLE;
     G_called_from_swap = false;
     G_swap_response_ready = false;
+    G_swap_checked = false;
     pluginType = PLUGIN_TYPE_NONE;
 #ifdef HAVE_ETH2
     eth2WithdrawalIndex = 0;

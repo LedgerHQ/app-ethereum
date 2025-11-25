@@ -147,6 +147,7 @@ void erc20_plugin_call(int message, void *parameters) {
                     break;
                 }
                 swap_check_amount(buf);
+                G_swap_checked = true;
             }
             msg->uiType = ETH_UI_TYPE_GENERIC;
             msg->result = ETH_PLUGIN_RESULT_OK;

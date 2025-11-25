@@ -23,6 +23,8 @@
 #include "chainConfig.h"
 #include "caller_api.h"
 
+extern bool G_swap_checked;
+
 typedef struct eth_libargs_s {
     unsigned int id;
     unsigned int command;

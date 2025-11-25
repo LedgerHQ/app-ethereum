@@ -99,6 +99,9 @@ uint16_t ui_712_start(e_eip712_filtering_mode filtering) {
     if (filtering == EIP712_FILTERING_BASIC) {
         // If the user has requested a filtered view, we will not show the warning
         warning.predefinedSet |= SET_BIT(BLIND_SIGNING_WARN);
+#ifdef HAVE_GATING_SUPPORT
+        warning.predefinedSet |= SET_BIT(GATED_SIGNING_WARN);
+#endif
     }
     return SWO_SUCCESS;
 }

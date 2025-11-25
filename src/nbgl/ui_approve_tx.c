@@ -438,6 +438,7 @@ uint16_t ux_approve_tx(bool fromPlugin) {
     if (tmpContent.txContent.dataPresent) {
         warning.predefinedSet |= SET_BIT(BLIND_SIGNING_WARN);
 #ifdef HAVE_GATING_SUPPORT
+        warning.predefinedSet |= SET_BIT(GATED_SIGNING_WARN);
         if (set_gating_warning() == false) {
             return SWO_INCORRECT_DATA;
         }

@@ -152,7 +152,7 @@ static void setTagValuePairs(void) {
     nbPairs++;
     g_pairs[nbPairs].item = "Threshold";
     g_pairs[nbPairs].value = strings.tmp.tmp + ADDRESS_LENGTH_STR;
-    g_pairs[nbPairs].aliasValue = 1;
+    g_pairs[nbPairs].aliasValue = true;
     g_pairs[nbPairs].extension = &extensions[1];
     extensions[1].aliasType = TAG_VALUE_LIST_ALIAS;
     extensions[1].title = "";

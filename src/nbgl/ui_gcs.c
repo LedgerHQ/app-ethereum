@@ -338,7 +338,7 @@ bool ui_gcs(void) {
     } else {
         ext->backText = app_mem_strdup(ext->backText);
     }
-    g_pairs[pair].aliasValue = 1;
+    g_pairs[pair].aliasValue = true;
     pair++;
 
     // TX fields
@@ -354,7 +354,7 @@ bool ui_gcs(void) {
             g_pairs[pair].item = app_mem_strdup("Review transaction");
             g_pairs[pair].value = app_mem_strdup(tmp_buf);
             index_allocated[pair] = true;
-            g_pairs[pair].centeredInfo = 1;
+            g_pairs[pair].centeredInfo = true;
             pair++;
         }
         g_pairs[pair].item = field->key;
@@ -362,7 +362,7 @@ bool ui_gcs(void) {
         pair++;
         if ((field->end_intent) && (txContext.batch_nb_tx > 1)) {
             // End of batch transaction : start next info on full page
-            g_pairs[pair].forcePageStart = 1;
+            g_pairs[pair].forcePageStart = true;
         }
     }
 

@@ -23,7 +23,6 @@
 #include "io.h"
 
 #include "parser.h"
-#include "glyphs.h"
 #include "common_utils.h"
 
 #include "eth_swap_utils.h"

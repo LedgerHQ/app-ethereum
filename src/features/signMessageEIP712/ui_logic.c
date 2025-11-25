@@ -1308,7 +1308,7 @@ void ui_712_push_pairs(void) {
             tx_idx++;
             // Replace "nn of mm" placeholder, initialized in ui_712_set_intent()
             snprintf(tmp->value, N_OF_M_LENGTH, "%d of %d", tx_idx, txContext.batch_nb_tx);
-            g_pairs[pair].centeredInfo = 1;
+            g_pairs[pair].centeredInfo = true;
         }
         g_pairs[pair].item = tmp->key;
         g_pairs[pair].value = tmp->value;
@@ -1319,7 +1319,7 @@ void ui_712_push_pairs(void) {
         pair++;
         if ((tmp->end_intent) && (txContext.batch_nb_tx > 1)) {
             // End of batch transaction : start next info on full page
-            g_pairs[pair].forcePageStart = 1;
+            g_pairs[pair].forcePageStart = true;
         }
         tmp = (s_ui_712_pair *) ((s_flist_node *) tmp)->next;
     }
@@ -1331,7 +1331,7 @@ void ui_712_push_pairs(void) {
                       g_pairsList->nbPairs);
         // Prepare the pairs list with the hashes
         eip712_format_hash(pair);
-        g_pairs[pair].forcePageStart = 1;
+        g_pairs[pair].forcePageStart = true;
     }
 }
 

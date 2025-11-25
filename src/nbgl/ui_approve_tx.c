@@ -177,7 +177,7 @@ static bool setTagValuePairs(bool displayNetwork, bool fromPlugin) {
             extension->fullValue = strings.common.toAddress;
             extension->explanation = strings.common.toAddress;
             g_pairs[nbPairs].extension = extension;
-            g_pairs[nbPairs].aliasValue = 1;
+            g_pairs[nbPairs].aliasValue = true;
         } else {
             g_pairs[nbPairs].value = strings.common.toAddress;
         }

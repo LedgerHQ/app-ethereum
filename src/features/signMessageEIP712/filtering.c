@@ -950,8 +950,8 @@ bool filtering_trusted_name(const uint8_t *payload,
     }
     hash_filtering_path((cx_hash_t *) &hash_ctx, discarded, path_crc);
     hash_nbytes((uint8_t *) name, sizeof(char) * name_len, (cx_hash_t *) &hash_ctx);
-    hash_nbytes(types, type_count, (cx_hash_t *) &hash_ctx);
-    hash_nbytes(sources, source_count, (cx_hash_t *) &hash_ctx);
+    hash_nbytes((uint8_t *) types, type_count, (cx_hash_t *) &hash_ctx);
+    hash_nbytes((uint8_t *) sources, source_count, (cx_hash_t *) &hash_ctx);
     if (!sig_verif_end(&hash_ctx, sig, sig_len)) {
         return false;
     }

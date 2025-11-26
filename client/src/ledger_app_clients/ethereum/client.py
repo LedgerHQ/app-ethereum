@@ -26,6 +26,8 @@ class TrustedNameType(IntEnum):
     CONTRACT = 0x02
     NFT = 0x03
     TOKEN = 0x04
+    WALLET = 0x05
+    CONTEXT_ADDRESS = 0x06
 
 
 class TrustedNameSource(IntEnum):
@@ -35,6 +37,7 @@ class TrustedNameSource(IntEnum):
     UD = 0x03
     FN = 0x04
     DNS = 0x05
+    DYN_RESOLVER = 0x06
 
 
 class EIP712CalldataParamPresence(IntEnum):

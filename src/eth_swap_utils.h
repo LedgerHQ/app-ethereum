@@ -17,10 +17,13 @@
 
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
 #include "swap_lib_calls.h"
 #include "chainConfig.h"
 #include "caller_api.h"
+
+extern bool G_swap_checked;
 
 typedef struct eth_libargs_s {
     unsigned int id;
@@ -39,3 +42,6 @@ bool parse_swap_config(const uint8_t *config,
                        char *ticker,
                        uint8_t *decimals,
                        uint64_t *chain_id);
+bool swap_check_destination(const char *destination);
+bool swap_check_amount(const char *amount);
+bool swap_check_fee(const char *fee);

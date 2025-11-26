@@ -78,7 +78,7 @@ uint16_t handleSetExternalPlugin(const uint8_t *workBuffer, uint8_t dataLength) 
     memmove(dataContext.tokenContext.contractAddress, workBuffer, ADDRESS_LENGTH);
     workBuffer += ADDRESS_LENGTH;
     memmove(dataContext.tokenContext.methodSelector, workBuffer, SELECTOR_SIZE);
-    pluginType = EXTERNAL;
+    pluginType = PLUGIN_TYPE_EXTERNAL;
 
     return SWO_SUCCESS;
 }

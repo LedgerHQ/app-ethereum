@@ -1,4 +1,3 @@
-#include <ctype.h>
 #include "shared_context.h"
 #include "common_utils.h"
 #include "feature_signTx.h"
@@ -18,8 +17,7 @@
 #include "mem.h"
 #include "mem_utils.h"
 #include "tx_ctx.h"
-
-static bool g_use_standard_ui;
+#include "eth_swap_utils.h"
 
 static uint32_t splitBinaryParameterPart(char *result, size_t result_size, uint8_t *parameter) {
     uint32_t i;
@@ -273,21 +271,6 @@ static void nonce_to_string(const txInt256_t *nonce, char *out, size_t out_size)
     tostring256(&nonce_uint256, 10, out, out_size);
 }
 
-/* Local implementation of strncasecmp, workaround of the segfaulting base implem on return value
- * Remove once strncasecmp is fixed
- */
-static int strcasecmp_workaround(const char *str1, const char *str2) {
-    unsigned char c1, c2;
-    do {
-        c1 = *str1++;
-        c2 = *str2++;
-        if (toupper(c1) != toupper(c2)) {
-            return toupper(c1) - toupper(c2);
-        }
-    } while (c1 != '\0');
-    return 0;
-}
-
 __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContext_t *context) {
     char displayBuffer[50];
     uint8_t decimals = WEI_TO_ETHER;
@@ -379,32 +362,15 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
             switch (pluginFinalize.uiType) {
                 case ETH_UI_TYPE_GENERIC:
                     // Use the dedicated ETH plugin UI
-                    g_use_standard_ui = false;
                     tmpContent.txContent.dataPresent = false;
                     // Add the number of screens + the number of additional screens to get the total
                     // number of screens needed.
                     dataContext.tokenContext.pluginUiMaxItems =
                         pluginFinalize.numScreens + pluginProvideInfo.additionalScreens;
                     break;
+
+                // TODO: needs to be removed from the plugin SDK altogether
                 case ETH_UI_TYPE_AMOUNT_ADDRESS:
-                    // Use the standard ETH UI as this plugin uses the amount/address UI
-                    g_use_standard_ui = true;
-                    tmpContent.txContent.dataPresent = false;
-                    if ((pluginFinalize.amount == NULL) || (pluginFinalize.address == NULL)) {
-                        PRINTF("Incorrect amount/address set by plugin\n");
-                        report_finalize_error();
-                        error = APDU_NO_RESPONSE;
-                        goto end;
-                    }
-                    memmove(tmpContent.txContent.value.value, pluginFinalize.amount, 32);
-                    tmpContent.txContent.value.length = 32;
-                    memmove(tmpContent.txContent.destination, pluginFinalize.address, 20);
-                    tmpContent.txContent.destinationLength = 20;
-                    if (pluginProvideInfo.item1 != NULL) {
-                        decimals = pluginProvideInfo.item1->token.decimals;
-                        ticker = pluginProvideInfo.item1->token.ticker;
-                    }
-                    break;
                 default:
                     PRINTF("ui type %d not supported\n", pluginFinalize.uiType);
                     report_finalize_error();
@@ -430,7 +396,8 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
     if (G_called_from_swap) {
         // User has just validated a swap but ETH received apdus about a non standard plugin /
         // contract
-        if (!g_use_standard_ui) {
+        if ((pluginType != PLUGIN_TYPE_NONE) && (pluginType != PLUGIN_TYPE_OLD_INTERNAL) &&
+            (pluginType != PLUGIN_TYPE_SWAP_WITH_CALLDATA)) {
             send_swap_error_simple(APDU_RESPONSE_MODE_CHECK_FAILED,
                                    SWAP_EC_ERROR_WRONG_METHOD,
                                    APP_CODE_NO_STANDARD_UI);
@@ -459,7 +426,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
     }
 
     // Prepare destination address and amount to display
-    if (g_use_standard_ui) {
+    if ((pluginType == PLUGIN_TYPE_NONE) || (pluginType == PLUGIN_TYPE_SWAP_WITH_CALLDATA)) {
         // Format the address in a temporary buffer, if in swap case compare it with validated
         // address, else commit it
         error = address_to_string(tmpContent.txContent.destination,
@@ -471,18 +438,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
             goto end;
         }
         if (G_called_from_swap) {
-            // Ensure the values are the same that the ones that have been previously validated
-            if (strcasecmp_workaround(strings.common.toAddress, displayBuffer) != 0) {
-                PRINTF("Error comparing destination addresses\n");
-                send_swap_error_with_string(APDU_RESPONSE_MODE_CHECK_FAILED,
-                                            SWAP_EC_ERROR_WRONG_DESTINATION,
-                                            APP_CODE_DEFAULT,
-                                            "%s != %s",
-                                            strings.common.toAddress,
-                                            displayBuffer);
-                // unreachable
-                os_sched_exit(0);
-            }
+            swap_check_destination(displayBuffer);
         } else {
             strlcpy(strings.common.toAddress, displayBuffer, sizeof(strings.common.toAddress));
         }
@@ -502,22 +458,12 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
         }
 
         if (G_called_from_swap) {
-            // Ensure the values are the same that the ones that have been previously validated
-            if (strcmp(strings.common.fullAmount, displayBuffer) != 0) {
-                PRINTF("Error comparing amounts\n");
-                send_swap_error_with_string(APDU_RESPONSE_MODE_CHECK_FAILED,
-                                            SWAP_EC_ERROR_WRONG_AMOUNT,
-                                            APP_CODE_DEFAULT,
-                                            "%s != %s",
-                                            strings.common.fullAmount,
-                                            displayBuffer);
-                // unreachable
-                os_sched_exit(0);
-            }
+            swap_check_amount(displayBuffer);
         } else {
             strlcpy(strings.common.fullAmount, displayBuffer, sizeof(strings.common.fullAmount));
         }
         PRINTF("Amount displayed: %s\n", strings.common.fullAmount);
+        G_swap_checked = true;
     }
 
     // Compute the max fee in a temporary buffer, if in swap case compare it with validated max fee,
@@ -530,18 +476,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
         goto end;
     }
     if (G_called_from_swap) {
-        // Ensure the values are the same that the ones that have been previously validated
-        if (strcmp(strings.common.maxFee, displayBuffer) != 0) {
-            PRINTF("Error comparing fees\n");
-            send_swap_error_with_string(APDU_RESPONSE_MODE_CHECK_FAILED,
-                                        SWAP_EC_ERROR_WRONG_FEES,
-                                        APP_CODE_DEFAULT,
-                                        "%s != %s",
-                                        strings.common.maxFee,
-                                        displayBuffer);
-            // unreachable
-            os_sched_exit(0);
-        }
+        swap_check_fee(displayBuffer);
     } else {
         strlcpy(strings.common.maxFee, displayBuffer, sizeof(strings.common.maxFee));
     }
@@ -565,7 +500,7 @@ end:
 }
 
 void start_signature_flow(void) {
-    if (g_use_standard_ui) {
+    if (pluginType == PLUGIN_TYPE_NONE) {
         ux_approve_tx(false);
     } else {
         dataContext.tokenContext.pluginUiState = PLUGIN_UI_OUTSIDE;
@@ -576,7 +511,6 @@ void start_signature_flow(void) {
 
 uint16_t finalize_parsing(const txContext_t *context) {
     uint16_t sw = SWO_PARAMETER_ERROR_NO_INFO;
-    g_use_standard_ui = true;
 
     sw = finalize_parsing_helper(context);
     if (sw != SWO_SUCCESS) {
@@ -591,7 +525,17 @@ uint16_t finalize_parsing(const txContext_t *context) {
     } else {
         // If called from swap, the user has already validated a standard transaction
         // And we have already checked the fields of this transaction above
-        if (G_called_from_swap && g_use_standard_ui) {
+        if (G_called_from_swap &&
+            ((pluginType == PLUGIN_TYPE_NONE) || (pluginType == PLUGIN_TYPE_OLD_INTERNAL) ||
+             (pluginType == PLUGIN_TYPE_SWAP_WITH_CALLDATA))) {
+            if (!G_swap_checked) {
+                PRINTF("Error: swap checks haven't been done!\n");
+                send_swap_error_simple(APDU_RESPONSE_MODE_CHECK_FAILED,
+                                       SWAP_EC_ERROR_GENERIC,
+                                       APP_CODE_DEFAULT);
+                // unreachable
+                os_sched_exit(0);
+            }
             io_seproxyhal_touch_tx_ok();
         } else {
             start_signature_flow();

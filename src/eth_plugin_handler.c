@@ -135,20 +135,21 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
 
     PRINTF("Selector %.*H\n", 4, init->selector);
     switch (pluginType) {
-        case ERC1155:
-        case ERC721:
-        case EXTERNAL:
+        case PLUGIN_TYPE_NONE:
+            PRINTF("eth_plugin_perform_init_old_internal\n");
+            if (eth_plugin_perform_init_old_internal(contractAddress, init)) {
+                pluginType = PLUGIN_TYPE_OLD_INTERNAL;
+                contractAddress = NULL;
+            }
+            break;
+        case PLUGIN_TYPE_ERC1155:
+        case PLUGIN_TYPE_ERC721:
+        case PLUGIN_TYPE_EXTERNAL:
             PRINTF("eth_plugin_perform_init_default\n");
             eth_plugin_perform_init_default(contractAddress, init);
             contractAddress = NULL;
             break;
-        case OLD_INTERNAL:
-            PRINTF("eth_plugin_perform_init_old_internal\n");
-            if (eth_plugin_perform_init_old_internal(contractAddress, init)) {
-                contractAddress = NULL;
-            }
-            break;
-        case SWAP_WITH_CALLDATA:
+        case PLUGIN_TYPE_SWAP_WITH_CALLDATA:
             PRINTF("contractAddress == %.*H\n", 20, contractAddress);
             PRINTF("Fallback on swap_with_calldata plugin\n");
             contractAddress = NULL;
@@ -249,7 +250,7 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
     }
 
     switch (pluginType) {
-        case EXTERNAL: {
+        case PLUGIN_TYPE_EXTERNAL: {
             uint32_t params[3];
             params[0] = (uint32_t) alias;
             params[1] = method;
@@ -268,19 +269,19 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
             END_TRY;
             break;
         }
-        case SWAP_WITH_CALLDATA: {
+        case PLUGIN_TYPE_SWAP_WITH_CALLDATA: {
             swap_with_calldata_plugin_call(method, parameter);
             break;
         }
-        case ERC721: {
+        case PLUGIN_TYPE_ERC721: {
             erc721_plugin_call(method, parameter);
             break;
         }
-        case ERC1155: {
+        case PLUGIN_TYPE_ERC1155: {
             erc1155_plugin_call(method, parameter);
             break;
         }
-        case OLD_INTERNAL: {
+        case PLUGIN_TYPE_OLD_INTERNAL: {
             // Perform the call
             for (i = 0;; i++) {
                 if (INTERNAL_ETH_PLUGINS[i].alias[0] == 0) {

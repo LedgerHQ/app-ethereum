@@ -15,12 +15,16 @@
  *  limitations under the License.
  ********************************************************************************/
 
-#include <stdint.h>
 #include <string.h>
-#include <stdbool.h>
-
-#include "asset_info.h"
+#include <ctype.h>
 #include "eth_swap_utils.h"
+#include "asset_info.h"
+#include "apdu_constants.h"
+#include "utils.h"
+#include "swap_error_code_helpers.h"
+#include "feature_signTx.h"
+
+bool G_swap_checked;
 
 bool parse_swap_config(const uint8_t *config,
                        uint8_t config_len,
@@ -53,6 +57,69 @@ bool parse_swap_config(const uint8_t *config,
     if ((config_len - offset) >= sizeof(*chain_id)) {
         PRINTF("Chain ID from the swap subconfig = 0x%.*h\n", sizeof(*chain_id), &config[offset]);
         *chain_id = u64_from_BE(config + offset, sizeof(*chain_id));
+    }
+    return true;
+}
+
+/* Local implementation of strncasecmp, workaround of the segfaulting base implem on return value
+ * Remove once strncasecmp is fixed
+ */
+static int strcasecmp_workaround(const char *str1, const char *str2) {
+    unsigned char c1, c2;
+    do {
+        c1 = *str1++;
+        c2 = *str2++;
+        if (toupper(c1) != toupper(c2)) {
+            return toupper(c1) - toupper(c2);
+        }
+    } while (c1 != '\0');
+    return 0;
+}
+
+bool swap_check_destination(const char *destination) {
+    // Ensure the values are the same that the ones that have been previously validated
+    if (strcasecmp_workaround(strings.common.toAddress, destination) != 0) {
+        PRINTF("Error comparing destination addresses\n");
+        send_swap_error_with_string(APDU_RESPONSE_MODE_CHECK_FAILED,
+                                    SWAP_EC_ERROR_WRONG_DESTINATION,
+                                    APP_CODE_DEFAULT,
+                                    "%s != %s",
+                                    strings.common.toAddress,
+                                    destination);
+        // unreachable
+        os_sched_exit(0);
+    }
+    return true;
+}
+
+bool swap_check_amount(const char *amount) {
+    // Ensure the values are the same that the ones that have been previously validated
+    if (strcmp(strings.common.fullAmount, amount) != 0) {
+        PRINTF("Error comparing amounts\n");
+        send_swap_error_with_string(APDU_RESPONSE_MODE_CHECK_FAILED,
+                                    SWAP_EC_ERROR_WRONG_AMOUNT,
+                                    APP_CODE_DEFAULT,
+                                    "%s != %s",
+                                    strings.common.fullAmount,
+                                    amount);
+        // unreachable
+        os_sched_exit(0);
+    }
+    return true;
+}
+
+bool swap_check_fee(const char *fee) {
+    // Ensure the values are the same that the ones that have been previously validated
+    if (strcmp(strings.common.maxFee, fee) != 0) {
+        PRINTF("Error comparing fees\n");
+        send_swap_error_with_string(APDU_RESPONSE_MODE_CHECK_FAILED,
+                                    SWAP_EC_ERROR_WRONG_FEES,
+                                    APP_CODE_DEFAULT,
+                                    "%s != %s",
+                                    strings.common.maxFee,
+                                    fee);
+        // unreachable
+        os_sched_exit(0);
     }
     return true;
 }

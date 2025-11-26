@@ -229,11 +229,11 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             sw = handle_eip712_filtering(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags);
             break;
 
-        case INS_ENS_GET_CHALLENGE:
+        case INS_GET_CHALLENGE:
             sw = handle_get_challenge(tx);
             break;
 
-        case INS_ENS_PROVIDE_INFO:
+        case INS_PROVIDE_TRUSTED_NAME:
             sw = handle_trusted_name(cmd->p1, cmd->data, cmd->lc);
             break;
 

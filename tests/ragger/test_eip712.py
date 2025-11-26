@@ -956,7 +956,6 @@ def gcs_handler_batch(app_client: EthAppClient, json_data: dict) -> None:
             app_client.provide_transaction_field_desc(f1.serialize())
 
 
-
 def gcs_handler_no_param(app_client: EthAppClient, json_data: dict) -> None:
     tx_info = TxInfo(
         1,
@@ -1024,12 +1023,12 @@ def test_eip712_calldata_no_param(scenario_navigator: NavigateWithScenario):
     eip712_calldata_common(scenario_navigator, "safe_calldata_no_param", gcs_handler_no_param)
 
 
-def test_eip712_payload(scenario_navigator: NavigateWithScenario):
+def test_eip712_gondi(scenario_navigator: NavigateWithScenario):
     """Test a basic EIP712 payload signature"""
 
     # Enable blind signing for EIP712
     settings_toggle(scenario_navigator.backend.device, scenario_navigator.navigator, [SettingID.BLIND_SIGNING])
-    
+
     # Define a simple EIP712 payload
     data = {
         "types": {

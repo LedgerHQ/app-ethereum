@@ -439,6 +439,7 @@ static bool handle_trusted_name_source(const s_tlv_data *data, s_trusted_name_ct
     switch (context->trusted_name.name_source) {
         case TN_SOURCE_CAL:
         case TN_SOURCE_ENS:
+        case TN_SOURCE_MAB:
             break;
         case TN_SOURCE_LAB:
         case TN_SOURCE_UD:

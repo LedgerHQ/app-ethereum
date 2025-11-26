@@ -25,8 +25,8 @@
 #define INS_EIP712_STRUCT_DEF               0x1A
 #define INS_EIP712_STRUCT_IMPL              0x1C
 #define INS_EIP712_FILTERING                0x1E
-#define INS_ENS_GET_CHALLENGE               0x20
-#define INS_ENS_PROVIDE_INFO                0x22
+#define INS_GET_CHALLENGE                   0x20
+#define INS_PROVIDE_TRUSTED_NAME            0x22
 #define INS_PROVIDE_ENUM_VALUE              0x24
 #define INS_GTP_TRANSACTION_INFO            0x26
 #define INS_GTP_FIELD                       0x28
@@ -52,8 +52,8 @@
      : x == INS_EIP712_STRUCT_DEF               ? "EIP712_STRUCT_DEF"          \
      : x == INS_EIP712_STRUCT_IMPL              ? "EIP712_STRUCT_IMPL"         \
      : x == INS_EIP712_FILTERING                ? "EIP712_FILTERING"           \
-     : x == INS_ENS_GET_CHALLENGE               ? "ENS_GET_CHALLENGE"          \
-     : x == INS_ENS_PROVIDE_INFO                ? "ENS_PROVIDE_INFO"           \
+     : x == INS_GET_CHALLENGE                   ? "GET_CHALLENGE"              \
+     : x == INS_PROVIDE_TRUSTED_NAME            ? "PROVIDE_TRUSTED_NAME"       \
      : x == INS_PROVIDE_ENUM_VALUE              ? "PROVIDE_ENUM_VALUE"         \
      : x == INS_GTP_TRANSACTION_INFO            ? "GTP_TRANSACTION_INFO"       \
      : x == INS_GTP_FIELD                       ? "GTP_FIELD"                  \

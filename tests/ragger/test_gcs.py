@@ -1614,7 +1614,7 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
             Field(
                 1,
                 "to",
-                ParamRaw(
+                ParamTrustedName(
                     1,
                     Value(
                         1,
@@ -1627,6 +1627,8 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
                             ]
                         ),
                     ),
+                    [TrustedNameType.ACCOUNT],
+                    [TrustedNameSource.MULTISIG_ADDRESS_BOOK],
                 )
             ),
             Field(
@@ -1864,6 +1866,13 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
         sub_inst_hash.digest(),
         "change threshold",
     )
+
+    app_client.provide_trusted_name_v2(contract.address,
+                                       "My Safe",
+                                       TrustedNameType.ACCOUNT,
+                                       TrustedNameSource.MULTISIG_ADDRESS_BOOK,
+                                       tx_info.chain_id,
+                                       challenge=ResponseParser.challenge(app_client.get_challenge().data))
 
     for field in fields:
         app_client.provide_transaction_field_desc(field.serialize())
@@ -2564,7 +2573,7 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
                         ]
                     ),
                 ),
-           )
+            )
         ),
         Field(
             1,
@@ -2595,7 +2604,7 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
                     ),
                 ),
                 [bytes.fromhex("0000000000000000000000000000000000000000")]
-           )
+            )
         ),
         Field(
             1,
@@ -2605,7 +2614,7 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
                 Value(
                     1,
                     TypeFamily.ADDRESS,
-                     data_path=DataPath(
+                    data_path=DataPath(
                         1,
                         [
                             PathTuple(8),
@@ -2822,9 +2831,9 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
                     # Send lower batchExecute info description
                     app_client.provide_transaction_info(i2.serialize())
                     app_client.provide_token_metadata(tokens[idx]["ticker"],
-                                                    tokens[idx]["address"],
-                                                    tokens[idx]["decimals"],
-                                                    tx_params["chainId"])
+                                                      tokens[idx]["address"],
+                                                      tokens[idx]["decimals"],
+                                                      tx_params["chainId"])
                     for f2 in L2_fields:
                         # Send lower batchExecute fields description
                         app_client.provide_transaction_field_desc(f2.serialize())

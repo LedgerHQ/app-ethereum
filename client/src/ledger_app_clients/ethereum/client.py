@@ -38,6 +38,7 @@ class TrustedNameSource(IntEnum):
     FN = 0x04
     DNS = 0x05
     DYN_RESOLVER = 0x06
+    MULTISIG_ADDRESS_BOOK = 0x07
 
 
 class EIP712CalldataParamPresence(IntEnum):

@@ -6,6 +6,12 @@ ifneq ($(BYPASS_SIGNATURES),0)
     DEFINES += HAVE_BYPASS_SIGNATURES
 endif
 
+# Bypass the challenge verification
+CHALLENGE_NO_CHECK ?= 0
+ifneq ($(CHALLENGE_NO_CHECK),0)
+    DEFINES += HAVE_CHALLENGE_NO_CHECK
+endif
+
 # Enable the SET_PLUGIN test key
 SET_PLUGIN_TEST_KEY ?= 0
 ifneq ($(SET_PLUGIN_TEST_KEY),0)

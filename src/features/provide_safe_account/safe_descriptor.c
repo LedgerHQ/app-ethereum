@@ -136,7 +136,7 @@ static bool handle_challenge(const s_tlv_data *data, s_safe_ctx *context) {
     CHECK_FIELD_LENGTH("CHALLENGE", data->length, sizeof(uint32_t));
     buf_shrink_expand(data->value, data->length, buf, sizeof(buf));
     context->rcv_flags |= SET_BIT(BIT_CHALLENGE);
-    return (read_u32_be(buf, 0) == get_challenge());
+    return check_challenge(read_u32_be(buf, 0));
 }
 
 /**

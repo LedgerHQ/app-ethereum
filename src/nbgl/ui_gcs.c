@@ -15,6 +15,8 @@
 #include "trusted_name.h"
 #include "tx_ctx.h"
 
+static bool *index_allocated = NULL;
+
 static void review_choice(bool confirm) {
     if (confirm) {
         io_seproxyhal_touch_tx_ok();
@@ -74,8 +76,7 @@ static void free_pair(const nbgl_contentTagValueList_t *pair_list, int idx) {
     // - the first one, that leads to the contract infos
     // - the second to last one, that shows the Network (optional)
     // - the last one, that shows the TX fees
-    if ((idx == 0) || (idx == (pair_list->nbPairs - 1)) ||
-        ((get_tx_chain_id() != chainConfig->chainId) && (idx == (pair_list->nbPairs - 2)))) {
+    if (index_allocated[idx]) {
         if (pair_list->pairs[idx].item != NULL) app_mem_free((void *) pair_list->pairs[idx].item);
         if (pair_list->pairs[idx].value != NULL) app_mem_free((void *) pair_list->pairs[idx].value);
     }
@@ -213,11 +214,11 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
                      tmp_buf_size,
                      "https://etherscan.io/address/%s",
                      extensions[contract_idx].title);
-            if ((extensions[contract_idx].fullValue = app_mem_strdup(tmp_buf)) == NULL) {
-                return false;
-            }
         } else {
-            extensions[contract_idx].fullValue = extensions[contract_idx].title;
+            snprintf(tmp_buf, tmp_buf_size, "%s", extensions[contract_idx].title);
+        }
+        if ((extensions[contract_idx].fullValue = app_mem_strdup(tmp_buf)) == NULL) {
+            return false;
         }
         extensions[contract_idx].aliasType = QR_CODE_ALIAS;
     }
@@ -233,6 +234,8 @@ void ui_gcs_cleanup(void) {
         for (int i = 0; i < g_pairsList->nbPairs; ++i) {
             free_pair(g_pairsList, i);
         }
+        app_mem_free((void *) index_allocated);
+        index_allocated = NULL;
     }
     ui_all_cleanup();
     enum_value_cleanup();
@@ -247,16 +250,16 @@ bool ui_gcs(void) {
     nbgl_contentValueExt_t *ext = NULL;
     nbgl_contentInfoList_t *infolist = NULL;
     uint8_t nbPairs = 0;
+    uint8_t pair = 0;
+    uint8_t tx_idx = 0;
+    const s_tx_info *info_tx = get_current_tx_info();
 
     explicit_bzero(&warning, sizeof(nbgl_warning_t));
 #ifdef HAVE_TRANSACTION_CHECKS
     set_tx_simulation_warning();
 #endif
 
-    snprintf(tmp_buf,
-             tmp_buf_size,
-             "Review transaction to %s",
-             get_operation_type(get_current_tx_info()));
+    snprintf(tmp_buf, tmp_buf_size, "Review transaction to %s", get_operation_type(info_tx));
     if ((g_titleMsg = app_mem_strdup(tmp_buf)) == NULL) {
         ui_gcs_cleanup();
         return false;
@@ -266,7 +269,7 @@ bool ui_gcs(void) {
              tmp_buf_size,
              "%s transaction to %s?",
              ui_tx_simulation_finish_str(),
-             get_operation_type(get_current_tx_info()));
+             get_operation_type(info_tx));
 #else
     snprintf(tmp_buf, tmp_buf_size, "%s transaction", ui_tx_simulation_finish_str());
 #endif
@@ -277,6 +280,10 @@ bool ui_gcs(void) {
 
     // Contract info
     nbPairs += 1;
+    // Batch transactions
+    if (txContext.batch_nb_tx > 1) {
+        nbPairs += txContext.batch_nb_tx;  // one page per sub-tx
+    }
     // TX fields
     nbPairs += field_table_size();
     show_network = get_tx_chain_id() != chainConfig->chainId;
@@ -291,20 +298,28 @@ bool ui_gcs(void) {
         return false;
     }
 
-    g_pairs[0].item = app_mem_strdup("Interaction with");
-    g_pairs[0].value = get_creator_name(get_current_tx_info());
-    if (g_pairs[0].value == NULL) {
+    // Allocate a table to hold all pairs that will be allocated for UI, and need to be freed later
+    if (mem_buffer_allocate((void **) &index_allocated, nbPairs) == false) {
+        ui_gcs_cleanup();
+        return false;
+    }
+
+    // First pair: contract info
+    index_allocated[pair] = true;
+    g_pairs[pair].item = app_mem_strdup("Interaction with");
+    g_pairs[pair].value = get_creator_name(info_tx);
+    if (g_pairs[pair].value == NULL) {
         // not great, but this cannot be NULL
-        g_pairs[0].value = app_mem_strdup("a smart contract");
+        g_pairs[pair].value = app_mem_strdup("a smart contract");
     } else {
-        g_pairs[0].value = app_mem_strdup(g_pairs[0].value);
+        g_pairs[pair].value = app_mem_strdup(g_pairs[pair].value);
     }
     if ((ext = app_mem_alloc(sizeof(*ext))) == NULL) {
         ui_gcs_cleanup();
         return false;
     }
     explicit_bzero(ext, sizeof(*ext));
-    g_pairs[0].extension = ext;
+    g_pairs[pair].extension = ext;
 
     if ((infolist = app_mem_alloc(sizeof(*infolist))) == NULL) {
         ui_gcs_cleanup();
@@ -318,39 +333,70 @@ bool ui_gcs(void) {
         return false;
     }
     ext->aliasType = INFO_LIST_ALIAS;
-    if ((ext->backText = get_creator_name(get_current_tx_info())) == NULL) {
+    if ((ext->backText = get_creator_name(info_tx)) == NULL) {
         ext->backText = app_mem_strdup("Smart contract information");
     } else {
         ext->backText = app_mem_strdup(ext->backText);
     }
-    g_pairs[0].aliasValue = 1;
+    g_pairs[pair].aliasValue = 1;
+    pair++;
 
+    // TX fields
     for (int i = 0; i < (int) field_table_size(); ++i) {
         if ((field = get_from_field_table(i)) == NULL) {
             ui_gcs_cleanup();
             return false;
         }
-        g_pairs[1 + i].item = field->key;
-        g_pairs[1 + i].value = field->value;
+        if ((field->start_intent) && (txContext.batch_nb_tx > 1)) {
+            // Batch intermediate page
+            tx_idx++;
+            snprintf(tmp_buf, tmp_buf_size, "%d of %d", tx_idx, txContext.batch_nb_tx);
+            g_pairs[pair].item = app_mem_strdup("Review transaction");
+            g_pairs[pair].value = app_mem_strdup(tmp_buf);
+            index_allocated[pair] = true;
+            g_pairs[pair].centeredInfo = 1;
+            pair++;
+        }
+        g_pairs[pair].item = field->key;
+        g_pairs[pair].value = field->value;
+        pair++;
+        if ((field->end_intent) && (txContext.batch_nb_tx > 1)) {
+            // End of batch transaction : start next info on full page
+            g_pairs[pair].forcePageStart = 1;
+        }
     }
 
     if (show_network) {
-        g_pairs[g_pairsList->nbPairs - 2].item = app_mem_strdup("Network");
+        if (pair >= g_pairsList->nbPairs - 1) {
+            PRINTF("Error: No more pairs available for network!\n");
+            ui_gcs_cleanup();
+            return false;
+        }
+        g_pairs[pair].item = app_mem_strdup("Network");
         if (get_network_as_string(tmp_buf, tmp_buf_size) != SWO_SUCCESS) {
             ui_gcs_cleanup();
             return false;
         }
-        g_pairs[g_pairsList->nbPairs - 2].value = app_mem_strdup(tmp_buf);
+        g_pairs[pair].value = app_mem_strdup(tmp_buf);
+        index_allocated[pair] = true;
+        pair++;
     }
 
-    g_pairs[g_pairsList->nbPairs - 1].item = app_mem_strdup("Max fees");
+    // Last pair : fees
+    if (pair >= g_pairsList->nbPairs) {
+        PRINTF("Error: No more pairs available for fees!\n");
+        ui_gcs_cleanup();
+        return false;
+    }
+    g_pairs[pair].item = app_mem_strdup("Max fees");
     if (max_transaction_fee_to_string(&tmpContent.txContent.gasprice,
                                       &tmpContent.txContent.startgas,
                                       tmp_buf,
                                       tmp_buf_size) == false) {
         PRINTF("Error: Could not format the max fees!\n");
     }
-    g_pairs[g_pairsList->nbPairs - 1].value = app_mem_strdup(tmp_buf);
+    g_pairs[pair].value = app_mem_strdup(tmp_buf);
+    index_allocated[pair] = true;
 
     nbgl_useCaseAdvancedReview(TYPE_TRANSACTION,
                                g_pairsList,

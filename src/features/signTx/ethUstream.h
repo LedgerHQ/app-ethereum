@@ -139,6 +139,8 @@ typedef struct txContext_t {
     bool rlp_size_known;
     uint32_t remaining_rlp_size;
     bool store_calldata;
+    uint8_t batch_nb_tx;
+    uint8_t current_batch_size;
 } txContext_t;
 
 bool init_tx(txContext_t *context, cx_sha3_t *sha3, txContent_t *content, bool store_calldata);

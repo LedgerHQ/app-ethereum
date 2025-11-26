@@ -252,6 +252,11 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
                            &selectors,
                            &amounts,
                            &spenders))) {
+        // Set batch size and number of transactions
+        if (calldatas.size > 1) {
+            txContext.batch_nb_tx += calldatas.size;
+        }
+        txContext.current_batch_size = calldatas.size;
         for (int i = 0; i < calldatas.size; ++i) {
             if (calldatas.value[i].length > 0) {
                 if (!process_nested_calldata(param,

@@ -5,6 +5,7 @@
 #include "list.h"
 #include "shared_context.h"  // appState
 #include "ui_logic.h"
+#include "tx_ctx.h"
 
 typedef struct {
     s_flist_node _list;
@@ -41,7 +42,13 @@ bool add_to_field_table(e_param_type type, const char *key, const char *value) {
         PRINTF("Error: NULL key/value!\n");
         return false;
     }
+    PRINTF(">>> \"%s\": \"%s\"\n", key, value);
     if (appState == APP_STATE_SIGNING_EIP712) {
+        if ((type == PARAM_TYPE_INTENT) && (txContext.current_batch_size > 1)) {
+            // Special handling for intent in EIP712 mode
+            ui_712_set_intent();
+            PRINTF(">>> [Intent] Start\n");
+        }
         ui_712_set_title(key, strlen(key));
         ui_712_set_value(value, strlen(value));
         return true;
@@ -61,7 +68,17 @@ bool add_to_field_table(e_param_type type, const char *key, const char *value) {
         app_mem_free(node);
         return false;
     }
-    PRINTF(">>> \"%s\": \"%s\"\n", key, value);
+    if (type == PARAM_TYPE_INTENT) {
+        // Special handling for intent
+        node->field.start_intent = true;
+        type = PARAM_TYPE_RAW;  // store as raw
+        PRINTF(">>> [Intent] Start\n");
+    } else {
+        node->field.end_intent = validate_instruction_hash();
+        if (node->field.end_intent) {
+            PRINTF(">>> [Intent] End\n");
+        }
+    }
 
     node->field.type = type;
     memcpy(node->field.key, key, key_len);
@@ -72,7 +89,13 @@ bool add_to_field_table(e_param_type type, const char *key, const char *value) {
 }
 
 bool set_intent_field(const char *value) {
-    return add_to_field_table(0, "Transaction type", value);
+    e_param_type type = PARAM_TYPE_INTENT;
+
+    if (txContext.current_batch_size == 1) {
+        // Only one transaction in the batch, no need to mark as intent
+        type = PARAM_TYPE_RAW;
+    }
+    return add_to_field_table(type, "Transaction type", value);
 }
 
 size_t field_table_size(void) {

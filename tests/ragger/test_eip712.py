@@ -8,6 +8,7 @@ import hashlib
 
 import pytest
 from eth_account.messages import encode_typed_data
+from constants import ABIS_FOLDER
 import web3
 
 from ragger.backend import BackendInterface
@@ -725,6 +726,237 @@ def gcs_handler(app_client: EthAppClient, json_data: dict) -> None:
         app_client.provide_transaction_field_desc(field.serialize())
 
 
+def gcs_handler_batch(app_client: EthAppClient, json_data: dict) -> None:
+    # Load EIP-712 JSON data
+    filename = "safe_batch"
+    with open(f"{eip712_json_path()}/{filename}.json", encoding="utf-8") as file:
+        data = json.load(file)
+
+    # Define tokens
+    tokens = [
+        {
+            "ticker": "USDC",
+            "address": bytes.fromhex("3c499c542cef5e3811e1192ce70d8cc03d5c3359"),
+            "decimals": 6,
+        },
+        {
+            "ticker": "USDC",
+            "address": bytes.fromhex("3c499c542cef5e3811e1192ce70d8cc03d5c3359"),
+            "decimals": 6,
+        },
+    ]
+    # Encode token transfer data
+    with open(f"{ABIS_FOLDER}/erc20.json", encoding="utf-8") as f:
+        contract = web3.Web3().eth.contract(
+            abi=json.load(f),
+            address=None
+        )
+    tokenData0 = contract.encode_abi("transfer", [
+        bytes.fromhex("B8C8EB8EFC68796E766F6AB320DB8C165C064949"),
+        int(0.004 * pow(10, tokens[0]["decimals"])),
+    ])
+    tokenData1 = contract.encode_abi("transfer", [
+        bytes.fromhex("4DDA64E1EC1A2C00D0766F25877F6A3BC77F717E"),
+        int(0.008 * pow(10, tokens[1]["decimals"])),
+    ])
+
+    # Encode batchExecute data using token transfer data
+    with open(f"{ABIS_FOLDER}/batch.json", encoding="utf-8") as f:
+        contract = web3.Web3().eth.contract(
+            abi=json.load(f),
+            address=tokens[1]["address"]
+        )
+    batchData = contract.encode_abi("batchExecute", [[
+        (
+            tokens[0]["address"],
+            web3.Web3.to_wei(0, "ether"),
+            tokenData0
+        ),
+        (
+            tokens[1]["address"],
+            web3.Web3.to_wei(0, "ether"),
+            tokenData1
+        ),
+    ]])
+
+    # Top level transaction fields definition
+    # Intermediate execTransaction transaction fields definition
+    L0_fields = [
+            Field(
+                1,
+                "Transaction",
+                ParamCalldata(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.BYTES,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(0),
+                                PathRef(),
+                                PathArray(),
+                                PathRef(),
+                                PathTuple(2),
+                                PathRef(),
+                                PathLeaf(PathLeafType.DYNAMIC),
+                            ]
+                        ),
+                    ),
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(0),
+                                PathRef(),
+                                PathArray(),
+                                PathRef(),
+                                PathTuple(0),
+                                PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                    ),
+                    amount=Value(
+                        1,
+                        TypeFamily.UINT,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(0),
+                                PathRef(),
+                                PathArray(),
+                                PathRef(),
+                                PathTuple(1),
+                                PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                    ),
+                )
+            ),
+    ]
+    # compute instructions hash
+    L0_hash = hashlib.sha3_256()
+    for field in L0_fields:
+        L0_hash.update(field.serialize())
+
+    # Define intermediate execTransaction transaction info
+    L0_tx_info = TxInfo(
+        1,
+        data["domain"]["chainId"],
+        bytes.fromhex(json_data["domain"]["verifyingContract"][2:]),
+        get_selector_from_data(batchData),
+        L0_hash.digest(),
+        "Batch transactions",
+        creator_name="Ledger",
+        creator_legal_name="Ledger Multisig",
+        creator_url="https://www.ledger.com",
+        contract_name="BatchExecutor",
+    )
+
+    # Lower batchExecute transaction fields definition
+    L1_fields = [
+            Field(
+                1,
+                "Amount",
+                ParamTokenAmount(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.UINT,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(1),
+                                PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                        type_size=32,
+                    ),
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        container_path=ContainerPath.TO,
+                    ),
+                )
+            ),
+            Field(
+                1,
+                "To",
+                ParamRaw(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(0),
+                                PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                    )
+                )
+            ),
+    ]
+    # compute instructions hash
+    L1_hash = hashlib.sha3_256()
+    for sub_field in L1_fields:
+        L1_hash.update(sub_field.serialize())
+
+    # Define lower batchExecute transaction info
+    L1_tx_info = [
+        TxInfo(
+            1,
+            data["domain"]["chainId"],
+            tokens[0]["address"],
+            get_selector_from_data(tokenData0),
+            L1_hash.digest(),
+            "Send",
+            contract_name="USD_Coin",
+        ),
+        TxInfo(
+            1,
+            data["domain"]["chainId"],
+            tokens[1]["address"],
+            get_selector_from_data(tokenData1),
+            L1_hash.digest(),
+            "Send",
+            contract_name="USD_Coin",
+        )
+    ]
+
+    proxy_info = ProxyInfo(
+        ResponseParser.challenge(app_client.get_challenge().data),
+        bytes.fromhex(json_data["message"]["to"][2:]),
+        L0_tx_info.chain_id,
+        L0_tx_info.contract_addr,
+    )
+
+    # Send Proxy information
+    app_client.provide_proxy_info(proxy_info.serialize())
+
+    # Send intermediate execTransaction info description
+    app_client.provide_transaction_info(L0_tx_info.serialize())
+    for f0 in L0_fields:
+        # Send intermediate execTransaction fields description
+        app_client.provide_transaction_field_desc(f0.serialize())
+
+    # Lower batchExecute description
+    for idx, i1 in enumerate(L1_tx_info):
+        # Send lower batchExecute info description
+        app_client.provide_transaction_info(i1.serialize())
+        app_client.provide_token_metadata(tokens[idx]["ticker"],
+                                          tokens[idx]["address"],
+                                          tokens[idx]["decimals"],
+                                          data["domain"]["chainId"])
+        for f1 in L1_fields:
+            # Send lower batchExecute fields description
+            app_client.provide_transaction_field_desc(f1.serialize())
+
+
+
 def gcs_handler_no_param(app_client: EthAppClient, json_data: dict) -> None:
     tx_info = TxInfo(
         1,
@@ -742,10 +974,9 @@ def gcs_handler_no_param(app_client: EthAppClient, json_data: dict) -> None:
 
 
 def eip712_calldata_common(scenario_navigator: NavigateWithScenario,
-                           test_name: str,
                            filename: str,
                            handler: Optional[Callable] = None):
-    with open("%s/%s.json" % (eip712_json_path(), filename)) as file:
+    with open(f"{eip712_json_path()}/{filename}.json", encoding="utf-8") as file:
         data = json.load(file)
 
     filters = {
@@ -778,19 +1009,19 @@ def eip712_calldata_common(scenario_navigator: NavigateWithScenario,
         }
     }
 
-    eip712_new_common(scenario_navigator, data, filters, test_name)
+    eip712_new_common(scenario_navigator, data, filters, scenario_navigator.test_name)
 
 
-def test_eip712_calldata(scenario_navigator: NavigateWithScenario, test_name: str):
-    eip712_calldata_common(scenario_navigator, test_name, "safe", gcs_handler)
+def test_eip712_calldata(scenario_navigator: NavigateWithScenario):
+    eip712_calldata_common(scenario_navigator, "safe", gcs_handler)
 
 
-def test_eip712_calldata_empty_send(scenario_navigator: NavigateWithScenario, test_name: str):
-    eip712_calldata_common(scenario_navigator, test_name, "safe_empty")
+def test_eip712_calldata_empty_send(scenario_navigator: NavigateWithScenario):
+    eip712_calldata_common(scenario_navigator, "safe_empty")
 
 
-def test_eip712_calldata_no_param(scenario_navigator: NavigateWithScenario, test_name: str):
-    eip712_calldata_common(scenario_navigator, test_name, "safe_calldata_no_param", gcs_handler_no_param)
+def test_eip712_calldata_no_param(scenario_navigator: NavigateWithScenario):
+    eip712_calldata_common(scenario_navigator, "safe_calldata_no_param", gcs_handler_no_param)
 
 
 def test_eip712_payload(scenario_navigator: NavigateWithScenario):
@@ -857,4 +1088,63 @@ def test_eip712_payload(scenario_navigator: NavigateWithScenario):
         }
     }
     eip712_new_common(scenario_navigator, data, None, None, with_warning=True)
-    
+
+
+def test_eip712_batch(scenario_navigator: NavigateWithScenario):
+    filename = "safe_batch"
+    with open(f"{eip712_json_path()}/{filename}.json", encoding="utf-8") as file:
+        data = json.load(file)
+
+    filters = {
+        "name": "Calldata test",
+        "calldatas": [
+            {
+                "index": 0,
+                "handler": gcs_handler_batch,
+                "value_flag": True,
+                "callee_flag": EIP712CalldataParamPresence.PRESENT_FILTERED,
+                "chain_id_flag": False,
+                "selector_flag": False,
+                "amount_flag": True,
+                "spender_flag": EIP712CalldataParamPresence.NONE,
+            },
+        ],
+        "fields": {
+            "to": {
+                "type": "calldata_callee",
+                "index": 0,
+            },
+            "value": {
+                "type": "calldata_amount",
+                "index": 0,
+            },
+            "data": {
+                "type": "calldata_value",
+                "index": 0,
+            },
+            "operation": {
+                "type": "raw",
+                "name": "Operation type",
+            },
+            "baseGas": {
+                "type": "raw",
+                "name": "Gas amount",
+            },
+            "gasPrice": {
+                "type": "raw",
+                "name": "Gas price",
+            },
+            "gasToken": {
+                "type": "raw",
+                "name": "Gas token",
+            },
+            "refundReceiver": {
+                "type": "trusted_name",
+                "name": "Gas receiver",
+                "tn_type": [TrustedNameType.ACCOUNT, TrustedNameType.CONTRACT, TrustedNameType.TOKEN],
+                "tn_source": [TrustedNameSource.CAL, TrustedNameSource.ENS, TrustedNameSource.UD, TrustedNameSource.FN],
+            },
+        }
+    }
+
+    eip712_new_common(scenario_navigator, data, filters, scenario_navigator.test_name)

@@ -956,7 +956,6 @@ def gcs_handler_batch(app_client: EthAppClient, json_data: dict) -> None:
             app_client.provide_transaction_field_desc(f1.serialize())
 
 
-
 def gcs_handler_no_param(app_client: EthAppClient, json_data: dict) -> None:
     tx_info = TxInfo(
         1,

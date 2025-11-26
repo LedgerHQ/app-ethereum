@@ -2573,7 +2573,7 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
                         ]
                     ),
                 ),
-           )
+            )
         ),
         Field(
             1,
@@ -2604,7 +2604,7 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
                     ),
                 ),
                 [bytes.fromhex("0000000000000000000000000000000000000000")]
-           )
+            )
         ),
         Field(
             1,
@@ -2614,7 +2614,7 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
                 Value(
                     1,
                     TypeFamily.ADDRESS,
-                     data_path=DataPath(
+                    data_path=DataPath(
                         1,
                         [
                             PathTuple(8),
@@ -2831,9 +2831,9 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
                     # Send lower batchExecute info description
                     app_client.provide_transaction_info(i2.serialize())
                     app_client.provide_token_metadata(tokens[idx]["ticker"],
-                                                    tokens[idx]["address"],
-                                                    tokens[idx]["decimals"],
-                                                    tx_params["chainId"])
+                                                      tokens[idx]["address"],
+                                                      tokens[idx]["decimals"],
+                                                      tx_params["chainId"])
                     for f2 in L2_fields:
                         # Send lower batchExecute fields description
                         app_client.provide_transaction_field_desc(f2.serialize())

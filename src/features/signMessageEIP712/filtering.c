@@ -926,6 +926,7 @@ bool filtering_trusted_name(const uint8_t *payload,
             case TN_SOURCE_FN:
             case TN_SOURCE_DNS:
             case TN_SOURCE_DYNAMIC_RESOLVER:
+            case TN_SOURCE_MAB:
                 break;
             default:
                 return false;

@@ -1614,7 +1614,7 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
             Field(
                 1,
                 "to",
-                ParamRaw(
+                ParamTrustedName(
                     1,
                     Value(
                         1,
@@ -1627,6 +1627,8 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
                             ]
                         ),
                     ),
+                    [TrustedNameType.ACCOUNT],
+                    [TrustedNameSource.MULTISIG_ADDRESS_BOOK],
                 )
             ),
             Field(
@@ -1864,6 +1866,13 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
         sub_inst_hash.digest(),
         "change threshold",
     )
+
+    app_client.provide_trusted_name_v2(contract.address,
+                                       "My Safe",
+                                       TrustedNameType.ACCOUNT,
+                                       TrustedNameSource.MULTISIG_ADDRESS_BOOK,
+                                       tx_info.chain_id,
+                                       challenge=ResponseParser.challenge(app_client.get_challenge().data))
 
     for field in fields:
         app_client.provide_transaction_field_desc(field.serialize())

@@ -298,12 +298,17 @@ bool ui_712_review_struct(const s_struct_712 *struct_ptr) {
 bool ui_712_message_hash(void) {
     const char *title = "Message hash";
 
-    ui_712_set_title(title, strlen(title));
-    array_bytes_string(strings.tmp.tmp,
-                       sizeof(strings.tmp.tmp),
-                       tmpCtx.messageSigningContext712.messageHash,
-                       KECCAK256_HASH_BYTESIZE);
-    ui_712_set_value(NULL, 0);
+    // to prevent showing
+    // Message hash > Domain hash > Message hash
+    // as the last three fields
+    if (!N_storage.displayHash) {
+        ui_712_set_title(title, strlen(title));
+        array_bytes_string(strings.tmp.tmp,
+                           sizeof(strings.tmp.tmp),
+                           tmpCtx.messageSigningContext712.messageHash,
+                           KECCAK256_HASH_BYTESIZE);
+        ui_712_set_value(NULL, 0);
+    }
     ui_ctx->end_reached = true;
     return ui_712_redraw_generic_step();
 }

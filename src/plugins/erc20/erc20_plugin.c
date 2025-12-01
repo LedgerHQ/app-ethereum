@@ -240,30 +240,28 @@ void erc20_plugin_call(int message, void *parameters) {
                     if (is_printable(context->extra_data, extra_data_len)) {
                         // display as string
                         PRINTF("Display as ASCII string\n");
-
+                        // should never trigger unless the msg->msg buffer has been downsized
                         if (extra_data_len >= msg->msgLength) {
-                            // truncate
-                            extra_data_len = msg->msgLength - 1;
-                            context->extra_data[extra_data_len] = '\0';
-                        }
-                        strlcpy(msg->msg, context->extra_data, msg->msgLength);
-                    } else {
-                        // display as hex
-                        PRINTF("Display as Hex string\n");
-
-                        if ((2 + (extra_data_len * 2) + 1) > msg->msgLength) {
-                            // truncate
-                            extra_data_len = (msg->msgLength - 2 - 1) / 2;
-                        }
-                        msg->msg[0] = '0';
-                        msg->msg[1] = 'x';
-                        if (format_hex((const uint8_t *) context->extra_data,
-                                       extra_data_len,
-                                       msg->msg + 2,
-                                       msg->msgLength - 2) < 0) {
                             msg->result = ETH_PLUGIN_RESULT_ERROR;
                             break;
                         }
+                        memmove(msg->msg, context->extra_data, extra_data_len);
+                        msg->msg[extra_data_len] = '\0';
+                    } else {
+                        char hex_buf[2 + (sizeof(context->extra_data) * 2) + 1];
+
+                        // display as hex
+                        PRINTF("Display as Hex string\n");
+
+                        memmove(hex_buf, "0x", 2);
+                        if (format_hex((const uint8_t *) context->extra_data,
+                                       extra_data_len,
+                                       &hex_buf[2],
+                                       sizeof(hex_buf) - 2) < 0) {
+                            msg->result = ETH_PLUGIN_RESULT_ERROR;
+                            break;
+                        }
+                        str_cpy_explicit_trunc(hex_buf, strlen(hex_buf), msg->msg, msg->msgLength);
                     }
                     msg->result = ETH_PLUGIN_RESULT_OK;
                     break;

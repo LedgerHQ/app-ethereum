@@ -107,7 +107,7 @@ static void get_lowercase_operation(char *dst, size_t dst_len) {
  * @param[in] fromPlugin If true, the data is coming from a plugin, otherwise it is a standard
  * transaction
  */
-static void setTagValuePairs(bool displayNetwork, bool fromPlugin) {
+static bool setTagValuePairs(bool displayNetwork, bool fromPlugin) {
     uint8_t nbPairs = 0;
     uint8_t pairIndex = 0;
     uint8_t counter = 0;
@@ -125,10 +125,12 @@ static void setTagValuePairs(bool displayNetwork, bool fromPlugin) {
             // for the next dataContext.tokenContext.pluginUiMaxItems items, get tag/value from
             // plugin_ui_get_item_internal()
             dataContext.tokenContext.pluginUiCurrentItem = pairIndex;
-            plugin_ui_get_item_internal((uint8_t *) plugin_buffers[counter].title,
-                                        TAG_MAX_LEN,
-                                        (uint8_t *) plugin_buffers[counter].msg,
-                                        VALUE_MAX_LEN);
+            if (!plugin_ui_get_item_internal((uint8_t *) plugin_buffers[counter].title,
+                                             TAG_MAX_LEN,
+                                             (uint8_t *) plugin_buffers[counter].msg,
+                                             VALUE_MAX_LEN)) {
+                return false;
+            }
             g_pairs[nbPairs].item = plugin_buffers[counter].title;
             g_pairs[nbPairs].value = plugin_buffers[counter].msg;
             nbPairs++;
@@ -218,6 +220,7 @@ static void setTagValuePairs(bool displayNetwork, bool fromPlugin) {
             }
         }
     }
+    return true;
 }
 
 /**
@@ -331,9 +334,7 @@ static bool ux_init(bool fromPlugin, uint8_t title_len, uint8_t finish_len) {
     }
 
     // Retrieve the Tag/Value g_pairs to display
-    setTagValuePairs(displayNetwork, fromPlugin);
-
-    return true;
+    return setTagValuePairs(displayNetwork, fromPlugin);
 error:
     io_seproxyhal_send_status(SWO_INSUFFICIENT_MEMORY, 0, true, true);
     _cleanup();
@@ -369,7 +370,9 @@ void ux_approve_tx(bool fromPlugin) {
     finish_len += strlen(tx_check_str);
     finish_len += 12;  // strlen(" transaction");
     if (fromPlugin) {
-        plugin_ui_get_id();
+        if (!plugin_ui_get_id()) {
+            return;
+        }
         get_lowercase_operation(op_name, sizeof(op_name));
 
         title_len += 4;  // strlen(" to ");

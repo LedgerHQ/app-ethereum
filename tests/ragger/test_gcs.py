@@ -9,22 +9,30 @@ from ragger.navigator.navigation_scenario import NavigateWithScenario
 
 from dynamic_networks_cfg import get_network_config
 from constants import ABIS_FOLDER
+from fields_utils import get_all_tuple_array_paths, get_all_paths, get_all_tuple_paths
 
 import client.response_parser as ResponseParser
 from client.client import EthAppClient, SignMode, TrustedNameType, TrustedNameSource
 from client.status_word import StatusWord
 from client.utils import get_selector_from_data
 from client.gcs import (
-    Field, ParamType, ParamRaw, Value, TypeFamily, DataPath, PathTuple, ParamTrustedName,
+    Field, ParamType, ParamRaw, Value, TypeFamily, DataPath, ParamTrustedName,
     ParamNFT, ParamDatetime, DatetimeType, ParamTokenAmount, ParamToken, ParamCalldata,
-    ParamAmount, ContainerPath, PathLeaf, PathLeafType, PathRef, PathArray, TxInfo
+    ParamAmount, ContainerPath, TxInfo
 )
 from client.tx_simu import TxSimu
 from client.proxy_info import ProxyInfo
 from client.dynamic_networks import DynamicNetwork
 
 
-def test_gcs_nft(scenario_navigator: NavigateWithScenario, test_name: str):
+def compute_inst_hash(fields: list[Field]) -> bytes:
+    inst_hash = hashlib.sha3_256()
+    for field in fields:
+        inst_hash.update(field.serialize())
+    return inst_hash.digest()
+
+
+def test_gcs_nft(scenario_navigator: NavigateWithScenario):
     backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
 
@@ -66,6 +74,7 @@ def test_gcs_nft(scenario_navigator: NavigateWithScenario, test_name: str):
     with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
         pass
 
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/erc1155.json", "safeBatchTransferFrom")
     fields = [
             Field(
                 1,
@@ -77,10 +86,7 @@ def test_gcs_nft(scenario_navigator: NavigateWithScenario, test_name: str):
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(0),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["_from"]
                         ),
                     ),
                     [
@@ -108,10 +114,7 @@ def test_gcs_nft(scenario_navigator: NavigateWithScenario, test_name: str):
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(1),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["_to"]
                         ),
                     )
                 )
@@ -127,12 +130,7 @@ def test_gcs_nft(scenario_navigator: NavigateWithScenario, test_name: str):
                         type_size=32,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(2),
-                                PathRef(),
-                                PathArray(1),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                           param_paths["_ids"]
                         ),
                     ),
                     Value(
@@ -153,12 +151,7 @@ def test_gcs_nft(scenario_navigator: NavigateWithScenario, test_name: str):
                         type_size=32,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(3),
-                                PathRef(),
-                                PathArray(1),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["_values"]
                         ),
                     )
                 )
@@ -173,11 +166,7 @@ def test_gcs_nft(scenario_navigator: NavigateWithScenario, test_name: str):
                         TypeFamily.BYTES,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(4),
-                                PathRef(),
-                                PathLeaf(PathLeafType.DYNAMIC),
-                            ]
+                            param_paths["_data"]
                         ),
                     )
                 )
@@ -185,16 +174,14 @@ def test_gcs_nft(scenario_navigator: NavigateWithScenario, test_name: str):
     ]
 
     # compute instructions hash
-    inst_hash = hashlib.sha3_256()
-    for field in fields:
-        inst_hash.update(field.serialize())
+    inst_hash = compute_inst_hash(fields)
 
     tx_info = TxInfo(
         1,
         tx_params["chainId"],
         tx_params["to"],
         get_selector_from_data(tx_params["data"]),
-        inst_hash.digest(),
+        inst_hash,
         "batch transfer NFTs",
     )
 
@@ -212,11 +199,10 @@ def test_gcs_nft(scenario_navigator: NavigateWithScenario, test_name: str):
         app_client.provide_transaction_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
-        scenario_navigator.review_approve(test_name=test_name)
+        scenario_navigator.review_approve()
 
 
 def test_gcs_poap(scenario_navigator: NavigateWithScenario,
-                  test_name: str,
                   simu_params: Optional[TxSimu] = None):
     backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
@@ -256,6 +242,7 @@ def test_gcs_poap(scenario_navigator: NavigateWithScenario,
     with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
         pass
 
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/poap.abi.json", "mintToken")
     fields = [
             Field(
                 1,
@@ -268,10 +255,7 @@ def test_gcs_poap(scenario_navigator: NavigateWithScenario,
                         type_size=32,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(0),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["eventId"]
                         ),
                     )
                 )
@@ -287,10 +271,7 @@ def test_gcs_poap(scenario_navigator: NavigateWithScenario,
                         type_size=32,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(1),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["tokenId"]
                         ),
                     )
                 )
@@ -305,10 +286,7 @@ def test_gcs_poap(scenario_navigator: NavigateWithScenario,
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(2),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["receiver"]
                         ),
                     )
                 )
@@ -324,10 +302,7 @@ def test_gcs_poap(scenario_navigator: NavigateWithScenario,
                         type_size=32,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(3),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["expirationTime"]
                         ),
                     ),
                     DatetimeType.DT_UNIX
@@ -343,11 +318,7 @@ def test_gcs_poap(scenario_navigator: NavigateWithScenario,
                         TypeFamily.BYTES,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(4),
-                                PathRef(),
-                                PathLeaf(PathLeafType.DYNAMIC),
-                            ]
+                            param_paths["signature"]
                         ),
                     )
                 )
@@ -355,16 +326,14 @@ def test_gcs_poap(scenario_navigator: NavigateWithScenario,
     ]
 
     # compute instructions hash
-    inst_hash = hashlib.sha3_256()
-    for field in fields:
-        inst_hash.update(field.serialize())
+    inst_hash = compute_inst_hash(fields)
 
     tx_info = TxInfo(
         1,
         tx_params["chainId"],
         tx_params["to"],
         get_selector_from_data(tx_params["data"]),
-        inst_hash.digest(),
+        inst_hash,
         "mint POAP",
         creator_name="POAP",
         creator_legal_name="Proof of Attendance Protocol",
@@ -380,12 +349,12 @@ def test_gcs_poap(scenario_navigator: NavigateWithScenario,
 
     with app_client.sign(mode=SignMode.START_FLOW):
         if simu_params is not None:
-            scenario_navigator.review_approve_with_warning(test_name=test_name)
+            scenario_navigator.review_approve_with_warning()
         else:
-            scenario_navigator.review_approve(test_name=test_name)
+            scenario_navigator.review_approve()
 
 
-def test_gcs_1inch(scenario_navigator: NavigateWithScenario, test_name: str):
+def test_gcs_1inch(scenario_navigator: NavigateWithScenario):
     backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
 
@@ -420,6 +389,8 @@ def test_gcs_1inch(scenario_navigator: NavigateWithScenario, test_name: str):
     with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
         pass
 
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/1inch.abi.json", "swap")
+    param_tuple_paths = get_all_tuple_paths(f"{ABIS_FOLDER}/1inch.abi.json", "swap", "desc")
     fields = [
             Field(
                 1,
@@ -431,10 +402,7 @@ def test_gcs_1inch(scenario_navigator: NavigateWithScenario, test_name: str):
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(0),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["executor"]
                         ),
                     )
                 )
@@ -450,11 +418,7 @@ def test_gcs_1inch(scenario_navigator: NavigateWithScenario, test_name: str):
                         type_size=32,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(1),
-                                PathTuple(4),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_tuple_paths["amount"]
                         ),
                     ),
                     token=Value(
@@ -462,11 +426,7 @@ def test_gcs_1inch(scenario_navigator: NavigateWithScenario, test_name: str):
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(1),
-                                PathTuple(0),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_tuple_paths["srcToken"]
                         ),
                     ),
                     native_currency=[
@@ -485,11 +445,7 @@ def test_gcs_1inch(scenario_navigator: NavigateWithScenario, test_name: str):
                         type_size=32,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(1),
-                                PathTuple(5),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_tuple_paths["minReturnAmount"]
                         ),
                     ),
                     token=Value(
@@ -497,11 +453,7 @@ def test_gcs_1inch(scenario_navigator: NavigateWithScenario, test_name: str):
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(1),
-                                PathTuple(1),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_tuple_paths["dstToken"]
                         ),
                     ),
                     native_currency=[
@@ -512,16 +464,14 @@ def test_gcs_1inch(scenario_navigator: NavigateWithScenario, test_name: str):
     ]
 
     # compute instructions hash
-    inst_hash = hashlib.sha3_256()
-    for field in fields:
-        inst_hash.update(field.serialize())
+    inst_hash = compute_inst_hash(fields)
 
     tx_info = TxInfo(
         1,
         tx_params["chainId"],
         tx_params["to"],
         get_selector_from_data(tx_params["data"]),
-        inst_hash.digest(),
+        inst_hash,
         "swap",
         creator_name="1inch",
         creator_legal_name="1inch Network",
@@ -538,10 +488,10 @@ def test_gcs_1inch(scenario_navigator: NavigateWithScenario, test_name: str):
         app_client.provide_transaction_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
-        scenario_navigator.review_approve(test_name=test_name)
+        scenario_navigator.review_approve()
 
 
-def test_gcs_proxy(scenario_navigator: NavigateWithScenario, test_name: str):
+def test_gcs_proxy(scenario_navigator: NavigateWithScenario):
     backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
 
@@ -568,6 +518,7 @@ def test_gcs_proxy(scenario_navigator: NavigateWithScenario, test_name: str):
     with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
         pass
 
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/proxy_implem.abi.json", "transferOwnership")
     fields = [
         Field(
             1,
@@ -579,10 +530,7 @@ def test_gcs_proxy(scenario_navigator: NavigateWithScenario, test_name: str):
                     TypeFamily.ADDRESS,
                     data_path=DataPath(
                         1,
-                        [
-                            PathTuple(0),
-                            PathLeaf(PathLeafType.STATIC),
-                        ]
+                        param_paths["newOwner"]
                     ),
                 ),
                 [TrustedNameType.CONTRACT],
@@ -592,9 +540,7 @@ def test_gcs_proxy(scenario_navigator: NavigateWithScenario, test_name: str):
     ]
 
     # compute instructions hash
-    inst_hash = hashlib.sha3_256()
-    for field in fields:
-        inst_hash.update(field.serialize())
+    inst_hash = compute_inst_hash(fields)
 
     tx_info = TxInfo(
         1,
@@ -602,7 +548,7 @@ def test_gcs_proxy(scenario_navigator: NavigateWithScenario, test_name: str):
         # address of the implementation contract
         bytes.fromhex("1784be6401339fc0fedf7e9379409f5c1bfe9dda"),
         get_selector_from_data(tx_params["data"]),
-        inst_hash.digest(),
+        inst_hash,
         "transfer ownership",
         creator_name="EigenLayer",
         creator_legal_name="Eigen Labs",
@@ -645,10 +591,10 @@ def test_gcs_proxy(scenario_navigator: NavigateWithScenario, test_name: str):
         app_client.provide_transaction_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
-        scenario_navigator.review_approve(test_name=test_name)
+        scenario_navigator.review_approve()
 
 
-def test_gcs_4226(scenario_navigator: NavigateWithScenario, test_name: str):
+def test_gcs_4226(scenario_navigator: NavigateWithScenario):
     backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
 
@@ -674,6 +620,7 @@ def test_gcs_4226(scenario_navigator: NavigateWithScenario, test_name: str):
         pass
 
     swell_token_addr = bytes.fromhex("0a6e7ba5042b38349e437ec6db6214aec7b35676")
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/rSWELL.abi.json", "deposit")
     fields = [
             Field(
                 1,
@@ -686,10 +633,7 @@ def test_gcs_4226(scenario_navigator: NavigateWithScenario, test_name: str):
                         type_size=32,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(0),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["assets"]
                         ),
                     ),
                     token=Value(
@@ -721,10 +665,7 @@ def test_gcs_4226(scenario_navigator: NavigateWithScenario, test_name: str):
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(1),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["receiver"]
                         ),
                     ),
                 )
@@ -732,16 +673,14 @@ def test_gcs_4226(scenario_navigator: NavigateWithScenario, test_name: str):
     ]
 
     # compute instructions hash
-    inst_hash = hashlib.sha3_256()
-    for field in fields:
-        inst_hash.update(field.serialize())
+    inst_hash = compute_inst_hash(fields)
 
     tx_info = TxInfo(
         1,
         tx_params["chainId"],
         tx_params["to"],
         get_selector_from_data(tx_params["data"]),
-        inst_hash.digest(),
+        inst_hash,
         "deposit",
         creator_name="Swell",
         creator_legal_name="Swell Network",
@@ -759,11 +698,11 @@ def test_gcs_4226(scenario_navigator: NavigateWithScenario, test_name: str):
         app_client.provide_transaction_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
-        scenario_navigator.review_approve(test_name=test_name)
+        scenario_navigator.review_approve()
 
 
 # https://etherscan.io/tx/0x07a80f1b359146129f3369af39e7eb2457581109c8300fc2ef81e997a07cf3f0
-def test_gcs_nested_createProxyWithNonce(scenario_navigator: NavigateWithScenario, test_name: str):
+def test_gcs_nested_createProxyWithNonce(scenario_navigator: NavigateWithScenario):
     backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
 
@@ -816,6 +755,7 @@ def test_gcs_nested_createProxyWithNonce(scenario_navigator: NavigateWithScenari
     with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
         pass
 
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/safe_proxy_factory_1.4.1.abi.json", "createProxyWithNonce")
     fields = [
             Field(
                 1,
@@ -827,10 +767,7 @@ def test_gcs_nested_createProxyWithNonce(scenario_navigator: NavigateWithScenari
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(0),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["_singleton"]
                         ),
                     ),
                 )
@@ -845,11 +782,7 @@ def test_gcs_nested_createProxyWithNonce(scenario_navigator: NavigateWithScenari
                         TypeFamily.BYTES,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(1),
-                                PathRef(),
-                                PathLeaf(PathLeafType.DYNAMIC),
-                            ]
+                            param_paths["initializer"]
                         ),
                     ),
                     Value(
@@ -857,10 +790,7 @@ def test_gcs_nested_createProxyWithNonce(scenario_navigator: NavigateWithScenari
                         TypeFamily.BYTES,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(0),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["_singleton"]
                         ),
                     ),
                 )
@@ -876,10 +806,7 @@ def test_gcs_nested_createProxyWithNonce(scenario_navigator: NavigateWithScenari
                         type_size=32,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(2),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["saltNonce"]
                         ),
                     ),
                 )
@@ -887,16 +814,14 @@ def test_gcs_nested_createProxyWithNonce(scenario_navigator: NavigateWithScenari
     ]
 
     # compute instructions hash
-    inst_hash = hashlib.sha3_256()
-    for field in fields:
-        inst_hash.update(field.serialize())
+    inst_hash = compute_inst_hash(fields)
 
     tx_info = TxInfo(
         1,
         tx_params["chainId"],
         tx_params["to"],
         get_selector_from_data(tx_params["data"]),
-        inst_hash.digest(),
+        inst_hash,
         "create a Safe account",
         creator_name="Safe",
         creator_legal_name="Safe Ecosystem Foundation",
@@ -905,6 +830,7 @@ def test_gcs_nested_createProxyWithNonce(scenario_navigator: NavigateWithScenari
 
     app_client.provide_transaction_info(tx_info.serialize())
 
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/safe_1.4.1.abi.json", "setup")
     sub_fields = [
             Field(
                 1,
@@ -916,12 +842,7 @@ def test_gcs_nested_createProxyWithNonce(scenario_navigator: NavigateWithScenari
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(0),
-                                PathRef(),
-                                PathArray(1),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["_owners"]
                         ),
                     ),
                 )
@@ -937,10 +858,7 @@ def test_gcs_nested_createProxyWithNonce(scenario_navigator: NavigateWithScenari
                         type_size=32,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(1),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["_threshold"]
                         ),
                     ),
                 )
@@ -955,10 +873,7 @@ def test_gcs_nested_createProxyWithNonce(scenario_navigator: NavigateWithScenari
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(2),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["to"]
                         ),
                     ),
                 )
@@ -973,11 +888,7 @@ def test_gcs_nested_createProxyWithNonce(scenario_navigator: NavigateWithScenari
                         TypeFamily.BYTES,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(3),
-                                PathRef(),
-                                PathLeaf(PathLeafType.DYNAMIC),
-                            ]
+                            param_paths["data"]
                         ),
                     ),
                     Value(
@@ -985,10 +896,7 @@ def test_gcs_nested_createProxyWithNonce(scenario_navigator: NavigateWithScenari
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(2),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["to"]
                         ),
                     ),
                 )
@@ -1003,10 +911,7 @@ def test_gcs_nested_createProxyWithNonce(scenario_navigator: NavigateWithScenari
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(4),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["fallbackHandler"]
                         ),
                     ),
                 )
@@ -1021,10 +926,7 @@ def test_gcs_nested_createProxyWithNonce(scenario_navigator: NavigateWithScenari
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(5),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["paymentToken"]
                         ),
                     ),
                 )
@@ -1040,10 +942,7 @@ def test_gcs_nested_createProxyWithNonce(scenario_navigator: NavigateWithScenari
                         type_size=32,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(6),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["payment"]
                         ),
                     ),
                 )
@@ -1058,29 +957,24 @@ def test_gcs_nested_createProxyWithNonce(scenario_navigator: NavigateWithScenari
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(7),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["paymentReceiver"]
                         ),
                     ),
                 )
             ),
     ]
     # compute instructions hash
-    sub_inst_hash = hashlib.sha3_256()
-    for sub_field in sub_fields:
-        sub_inst_hash.update(sub_field.serialize())
-
+    sub_inst_hash = compute_inst_hash(sub_fields)
     sub_tx_info = TxInfo(
         1,
         tx_params["chainId"],
         safe.address,
         get_selector_from_data(safe_data),
-        sub_inst_hash.digest(),
+        sub_inst_hash,
         "setup",
     )
 
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/safe_l2_setup_1.4.1.abi.json", "setupToL2")
     sub_sub_fields = [
             Field(
                 1,
@@ -1092,25 +986,20 @@ def test_gcs_nested_createProxyWithNonce(scenario_navigator: NavigateWithScenari
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(0),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["l2Singleton"]
                         ),
                     ),
                 )
             ),
     ]
     # compute instructions hash
-    sub_sub_inst_hash = hashlib.sha3_256()
-    for sub_sub_field in sub_sub_fields:
-        sub_sub_inst_hash.update(sub_sub_field.serialize())
+    sub_sub_inst_hash = compute_inst_hash(sub_sub_fields)
     sub_sub_tx_info = TxInfo(
         1,
         tx_params["chainId"],
         safe_l2_setup.address,
         get_selector_from_data(safe_l2_setup_data),
-        sub_sub_inst_hash.digest(),
+        sub_sub_inst_hash,
         "L2 setup",
     )
 
@@ -1126,11 +1015,11 @@ def test_gcs_nested_createProxyWithNonce(scenario_navigator: NavigateWithScenari
                         app_client.provide_transaction_field_desc(sub_sub_field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
-        scenario_navigator.review_approve(test_name=test_name)
+        scenario_navigator.review_approve()
 
 
 # https://etherscan.io/tx/0xc5545f13bfaf6f69ae937bc64337405060dc56ce7649ea7051d2bbc3b4316b79
-def test_gcs_nested_execTransaction_send(scenario_navigator: NavigateWithScenario, test_name: str):
+def test_gcs_nested_execTransaction_send(scenario_navigator: NavigateWithScenario):
     backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
 
@@ -1167,6 +1056,7 @@ def test_gcs_nested_execTransaction_send(scenario_navigator: NavigateWithScenari
     with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
         pass
 
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/safe_1.4.1.abi.json", "execTransaction")
     fields = [
         Field(
             1,
@@ -1178,11 +1068,7 @@ def test_gcs_nested_execTransaction_send(scenario_navigator: NavigateWithScenari
                     TypeFamily.BYTES,
                     data_path=DataPath(
                         1,
-                        [
-                            PathTuple(2),
-                            PathRef(),
-                            PathLeaf(PathLeafType.DYNAMIC),
-                        ]
+                        param_paths["data"]
                     ),
                 ),
                 Value(
@@ -1190,10 +1076,7 @@ def test_gcs_nested_execTransaction_send(scenario_navigator: NavigateWithScenari
                     TypeFamily.ADDRESS,
                     data_path=DataPath(
                         1,
-                        [
-                            PathTuple(0),
-                            PathLeaf(PathLeafType.STATIC),
-                        ]
+                        param_paths["to"]
                     ),
                 ),
                 amount=Value(
@@ -1202,10 +1085,7 @@ def test_gcs_nested_execTransaction_send(scenario_navigator: NavigateWithScenari
                     type_size=32,
                     data_path=DataPath(
                         1,
-                        [
-                            PathTuple(1),
-                            PathLeaf(PathLeafType.STATIC),
-                        ]
+                        param_paths["value"]
                     ),
                 ),
                 spender=Value(
@@ -1218,16 +1098,14 @@ def test_gcs_nested_execTransaction_send(scenario_navigator: NavigateWithScenari
     ]
 
     # compute instructions hash
-    inst_hash = hashlib.sha3_256()
-    for field in fields:
-        inst_hash.update(field.serialize())
+    inst_hash = compute_inst_hash(fields)
 
     tx_info = TxInfo(
         1,
         tx_params["chainId"],
         tx_params["to"],
         get_selector_from_data(tx_params["data"]),
-        inst_hash.digest(),
+        inst_hash,
         "execute a Safe action",
         creator_name="Safe",
         creator_legal_name="Safe Ecosystem Foundation",
@@ -1240,11 +1118,11 @@ def test_gcs_nested_execTransaction_send(scenario_navigator: NavigateWithScenari
         app_client.provide_transaction_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
-        scenario_navigator.review_approve(test_name=test_name)
+        scenario_navigator.review_approve()
 
 
 # https://etherscan.io/tx/0xbeafe22c9e3ddcf85b06f65a56cc3ea8f5b02c323cc433c93c103ad3526db88d
-def test_gcs_nested_execTransaction_addOwnerWithThreshold(scenario_navigator: NavigateWithScenario, test_name: str):
+def test_gcs_nested_execTransaction_addOwnerWithThreshold(scenario_navigator: NavigateWithScenario):
     backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
 
@@ -1285,6 +1163,7 @@ def test_gcs_nested_execTransaction_addOwnerWithThreshold(scenario_navigator: Na
     with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
         pass
 
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/safe_1.4.1.abi.json", "execTransaction")
     fields = [
             Field(
                 1,
@@ -1296,10 +1175,7 @@ def test_gcs_nested_execTransaction_addOwnerWithThreshold(scenario_navigator: Na
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(0),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["to"]
                         ),
                     ),
                 )
@@ -1315,10 +1191,7 @@ def test_gcs_nested_execTransaction_addOwnerWithThreshold(scenario_navigator: Na
                         type_size=32,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(1),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["value"]
                         ),
                     ),
                 )
@@ -1333,11 +1206,7 @@ def test_gcs_nested_execTransaction_addOwnerWithThreshold(scenario_navigator: Na
                         TypeFamily.BYTES,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(2),
-                                PathRef(),
-                                PathLeaf(PathLeafType.DYNAMIC),
-                            ]
+                            param_paths["data"]
                         ),
                     ),
                     Value(
@@ -1345,10 +1214,7 @@ def test_gcs_nested_execTransaction_addOwnerWithThreshold(scenario_navigator: Na
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(0),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["to"]
                         ),
                     ),
                 )
@@ -1364,10 +1230,7 @@ def test_gcs_nested_execTransaction_addOwnerWithThreshold(scenario_navigator: Na
                         type_size=1,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(3),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["operation"]
                         ),
                     ),
                 )
@@ -1383,10 +1246,7 @@ def test_gcs_nested_execTransaction_addOwnerWithThreshold(scenario_navigator: Na
                         type_size=32,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(4),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["safeTxGas"]
                         ),
                     ),
                 )
@@ -1402,10 +1262,7 @@ def test_gcs_nested_execTransaction_addOwnerWithThreshold(scenario_navigator: Na
                         type_size=32,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(5),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["baseGas"]
                         ),
                     ),
                 )
@@ -1421,10 +1278,7 @@ def test_gcs_nested_execTransaction_addOwnerWithThreshold(scenario_navigator: Na
                         type_size=32,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(6),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["gasPrice"]
                         ),
                     ),
                 )
@@ -1439,10 +1293,7 @@ def test_gcs_nested_execTransaction_addOwnerWithThreshold(scenario_navigator: Na
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(7),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["gasToken"]
                         ),
                     ),
                 )
@@ -1457,10 +1308,7 @@ def test_gcs_nested_execTransaction_addOwnerWithThreshold(scenario_navigator: Na
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(8),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["refundReceiver"]
                         ),
                     ),
                 )
@@ -1475,11 +1323,7 @@ def test_gcs_nested_execTransaction_addOwnerWithThreshold(scenario_navigator: Na
                         TypeFamily.BYTES,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(9),
-                                PathRef(),
-                                PathLeaf(PathLeafType.DYNAMIC),
-                            ]
+                            param_paths["signatures"]
                         ),
                     ),
                 )
@@ -1487,16 +1331,14 @@ def test_gcs_nested_execTransaction_addOwnerWithThreshold(scenario_navigator: Na
     ]
 
     # compute instructions hash
-    inst_hash = hashlib.sha3_256()
-    for field in fields:
-        inst_hash.update(field.serialize())
+    inst_hash = compute_inst_hash(fields)
 
     tx_info = TxInfo(
         1,
         tx_params["chainId"],
         tx_params["to"],
         get_selector_from_data(tx_params["data"]),
-        inst_hash.digest(),
+        inst_hash,
         "execute a Safe action",
         creator_name="Safe",
         creator_legal_name="Safe Ecosystem Foundation",
@@ -1505,6 +1347,7 @@ def test_gcs_nested_execTransaction_addOwnerWithThreshold(scenario_navigator: Na
 
     app_client.provide_transaction_info(tx_info.serialize())
 
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/safe_1.4.1.abi.json", "addOwnerWithThreshold")
     sub_fields = [
             Field(
                 1,
@@ -1516,10 +1359,7 @@ def test_gcs_nested_execTransaction_addOwnerWithThreshold(scenario_navigator: Na
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(0),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["owner"]
                         ),
                     ),
                 )
@@ -1535,26 +1375,21 @@ def test_gcs_nested_execTransaction_addOwnerWithThreshold(scenario_navigator: Na
                         type_size=32,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(1),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["_threshold"]
                         ),
                     ),
                 )
             ),
     ]
     # compute instructions hash
-    sub_inst_hash = hashlib.sha3_256()
-    for sub_field in sub_fields:
-        sub_inst_hash.update(sub_field.serialize())
+    sub_inst_hash = compute_inst_hash(sub_fields)
 
     sub_tx_info = TxInfo(
         1,
         tx_params["chainId"],
         contract.address,
         get_selector_from_data(sub_data),
-        sub_inst_hash.digest(),
+        sub_inst_hash,
         "add owner with threshold",
     )
 
@@ -1566,11 +1401,11 @@ def test_gcs_nested_execTransaction_addOwnerWithThreshold(scenario_navigator: Na
                 app_client.provide_transaction_field_desc(sub_field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
-        scenario_navigator.review_approve(test_name=test_name)
+        scenario_navigator.review_approve()
 
 
 # https://etherscan.io/tx/0x5047fedc98f46d2afd94d0a2813ddf0c8fe777ec0739ffd327586a91e1e5a89a
-def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: NavigateWithScenario, test_name: str):
+def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: NavigateWithScenario):
     backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
 
@@ -1610,6 +1445,7 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
     with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
         pass
 
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/safe_1.4.1.abi.json", "execTransaction")
     fields = [
             Field(
                 1,
@@ -1621,10 +1457,7 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(0),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["to"]
                         ),
                     ),
                     [TrustedNameType.ACCOUNT],
@@ -1642,10 +1475,7 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
                         type_size=32,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(1),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["value"]
                         ),
                     ),
                 )
@@ -1660,11 +1490,7 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
                         TypeFamily.BYTES,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(2),
-                                PathRef(),
-                                PathLeaf(PathLeafType.DYNAMIC),
-                            ]
+                            param_paths["data"]
                         ),
                     ),
                     Value(
@@ -1672,10 +1498,7 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(0),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["to"]
                         ),
                     ),
                 )
@@ -1691,10 +1514,7 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
                         type_size=1,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(3),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["operation"]
                         ),
                     ),
                 )
@@ -1710,10 +1530,7 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
                         type_size=32,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(4),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["safeTxGas"]
                         ),
                     ),
                 )
@@ -1729,10 +1546,7 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
                         type_size=32,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(5),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["baseGas"]
                         ),
                     ),
                 )
@@ -1748,10 +1562,7 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
                         type_size=32,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(6),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["gasPrice"]
                         ),
                     ),
                 )
@@ -1766,10 +1577,7 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(7),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["gasToken"]
                         ),
                     ),
                 )
@@ -1784,10 +1592,7 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(8),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["refundReceiver"]
                         ),
                     ),
                 )
@@ -1802,11 +1607,7 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
                         TypeFamily.BYTES,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(9),
-                                PathRef(),
-                                PathLeaf(PathLeafType.DYNAMIC),
-                            ]
+                            param_paths["signatures"]
                         ),
                     ),
                 )
@@ -1814,16 +1615,14 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
     ]
 
     # compute instructions hash
-    inst_hash = hashlib.sha3_256()
-    for field in fields:
-        inst_hash.update(field.serialize())
+    inst_hash = compute_inst_hash(fields)
 
     tx_info = TxInfo(
         1,
         tx_params["chainId"],
         tx_params["to"],
         get_selector_from_data(tx_params["data"]),
-        inst_hash.digest(),
+        inst_hash,
         "execute a Safe action",
         creator_name="Safe",
         creator_legal_name="Safe Ecosystem Foundation",
@@ -1832,6 +1631,7 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
 
     app_client.provide_transaction_info(tx_info.serialize())
 
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/safe_1.4.1.abi.json", "changeThreshold")
     sub_fields = [
             Field(
                 1,
@@ -1844,26 +1644,21 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
                         type_size=32,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(0),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["_threshold"]
                         ),
                     ),
                 )
             ),
     ]
     # compute instructions hash
-    sub_inst_hash = hashlib.sha3_256()
-    for sub_field in sub_fields:
-        sub_inst_hash.update(sub_field.serialize())
+    sub_inst_hash = compute_inst_hash(sub_fields)
 
     sub_tx_info = TxInfo(
         1,
         tx_params["chainId"],
         contract.address,
         get_selector_from_data(sub_data),
-        sub_inst_hash.digest(),
+        sub_inst_hash,
         "change threshold",
     )
 
@@ -1882,10 +1677,10 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
                 app_client.provide_transaction_field_desc(sub_field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
-        scenario_navigator.review_approve(test_name=test_name)
+        scenario_navigator.review_approve()
 
 
-def test_gcs_nested_no_param(scenario_navigator: NavigateWithScenario, test_name: str):
+def test_gcs_nested_no_param(scenario_navigator: NavigateWithScenario):
     backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
 
@@ -1927,6 +1722,7 @@ def test_gcs_nested_no_param(scenario_navigator: NavigateWithScenario, test_name
     with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
         pass
 
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/safe_1.4.1.abi.json", "execTransaction")
     fields = [
         Field(
             1,
@@ -1938,11 +1734,7 @@ def test_gcs_nested_no_param(scenario_navigator: NavigateWithScenario, test_name
                     TypeFamily.BYTES,
                     data_path=DataPath(
                         1,
-                        [
-                            PathTuple(2),
-                            PathRef(),
-                            PathLeaf(PathLeafType.DYNAMIC),
-                        ]
+                        param_paths["data"]
                     ),
                 ),
                 Value(
@@ -1950,10 +1742,7 @@ def test_gcs_nested_no_param(scenario_navigator: NavigateWithScenario, test_name
                     TypeFamily.ADDRESS,
                     data_path=DataPath(
                         1,
-                        [
-                            PathTuple(0),
-                            PathLeaf(PathLeafType.STATIC),
-                        ]
+                        param_paths["to"]
                     ),
                 ),
             )
@@ -1961,16 +1750,14 @@ def test_gcs_nested_no_param(scenario_navigator: NavigateWithScenario, test_name
     ]
 
     # compute instructions hash
-    inst_hash = hashlib.sha3_256()
-    for field in fields:
-        inst_hash.update(field.serialize())
+    inst_hash = compute_inst_hash(fields)
 
     tx_info = TxInfo(
         1,
         tx_params["chainId"],
         tx_params["to"],
         get_selector_from_data(tx_params["data"]),
-        inst_hash.digest(),
+        inst_hash,
         "execute a Safe action",
         creator_name="Safe",
         creator_legal_name="Safe Ecosystem Foundation",
@@ -1997,10 +1784,10 @@ def test_gcs_nested_no_param(scenario_navigator: NavigateWithScenario, test_name
             app_client.provide_transaction_info(sub_tx_info.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
-        scenario_navigator.review_approve(test_name=test_name)
+        scenario_navigator.review_approve()
 
 
-def test_gcs_no_param(scenario_navigator: NavigateWithScenario, test_name: str):
+def test_gcs_no_param(scenario_navigator: NavigateWithScenario):
     backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
 
@@ -2039,10 +1826,10 @@ def test_gcs_no_param(scenario_navigator: NavigateWithScenario, test_name: str):
     app_client.provide_transaction_info(tx_info.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
-        scenario_navigator.review_approve(test_name=test_name)
+        scenario_navigator.review_approve()
 
 
-def test_gcs_trusted_name_token(scenario_navigator: NavigateWithScenario, test_name: str):
+def test_gcs_trusted_name_token(scenario_navigator: NavigateWithScenario):
     backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
 
@@ -2088,6 +1875,7 @@ def test_gcs_trusted_name_token(scenario_navigator: NavigateWithScenario, test_n
     with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
         pass
 
+    param_paths = get_all_tuple_paths(f"{ABIS_FOLDER}/1inch.abi.json", "swap", "desc")
     fields = [
             Field(
                 1,
@@ -2099,11 +1887,7 @@ def test_gcs_trusted_name_token(scenario_navigator: NavigateWithScenario, test_n
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(1),
-                                PathTuple(0),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["srcToken"]
                         ),
                     ),
                     [TrustedNameType.TOKEN],
@@ -2120,11 +1904,7 @@ def test_gcs_trusted_name_token(scenario_navigator: NavigateWithScenario, test_n
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(1),
-                                PathTuple(1),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["dstToken"]
                         ),
                     ),
                     [TrustedNameType.TOKEN],
@@ -2134,16 +1914,13 @@ def test_gcs_trusted_name_token(scenario_navigator: NavigateWithScenario, test_n
     ]
 
     # compute instructions hash
-    inst_hash = hashlib.sha3_256()
-    for field in fields:
-        inst_hash.update(field.serialize())
-
+    inst_hash = compute_inst_hash(fields)
     tx_info = TxInfo(
         1,
         tx_params["chainId"],
         tx_params["to"],
         get_selector_from_data(tx_params["data"]),
-        inst_hash.digest(),
+        inst_hash,
         "swap",
         creator_name="1inch",
         creator_legal_name="1inch Network",
@@ -2154,8 +1931,7 @@ def test_gcs_trusted_name_token(scenario_navigator: NavigateWithScenario, test_n
 
     app_client.provide_transaction_info(tx_info.serialize())
 
-    i = 0
-    for field in fields:
+    for i, field in enumerate(fields):
         challenge = ResponseParser.challenge(app_client.get_challenge().data)
         app_client.provide_trusted_name_v2(tokens[i]["address"],
                                            tokens[i]["name"],
@@ -2164,13 +1940,12 @@ def test_gcs_trusted_name_token(scenario_navigator: NavigateWithScenario, test_n
                                            tx_params["chainId"],
                                            challenge=challenge)
         app_client.provide_transaction_field_desc(field.serialize())
-        i += 1
 
     with app_client.sign(mode=SignMode.START_FLOW):
-        scenario_navigator.review_approve(test_name=test_name)
+        scenario_navigator.review_approve()
 
 
-def test_gcs_batch(scenario_navigator: NavigateWithScenario, test_name: str):
+def test_gcs_batch(scenario_navigator: NavigateWithScenario):
     backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
 
@@ -2232,6 +2007,7 @@ def test_gcs_batch(scenario_navigator: NavigateWithScenario, test_name: str):
     with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
         pass
 
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/erc20.json", "transfer")
     sub_fields = [
             Field(
                 1,
@@ -2243,10 +2019,7 @@ def test_gcs_batch(scenario_navigator: NavigateWithScenario, test_name: str):
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(0),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["_to"]
                         ),
                     )
                 )
@@ -2259,14 +2032,11 @@ def test_gcs_batch(scenario_navigator: NavigateWithScenario, test_name: str):
                     Value(
                         1,
                         TypeFamily.UINT,
-                        data_path=DataPath(
+                        32,
+                        DataPath(
                             1,
-                            [
-                                PathTuple(1),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["_value"]
                         ),
-                        type_size=32,
                     ),
                     Value(
                         1,
@@ -2277,6 +2047,7 @@ def test_gcs_batch(scenario_navigator: NavigateWithScenario, test_name: str):
             ),
     ]
 
+    param_paths = get_all_tuple_array_paths(f"{ABIS_FOLDER}/batch.json", "batchExecute", "calls")
     fields = [
             Field(
                 1,
@@ -2288,15 +2059,7 @@ def test_gcs_batch(scenario_navigator: NavigateWithScenario, test_name: str):
                         TypeFamily.BYTES,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(0),
-                                PathRef(),
-                                PathArray(),
-                                PathRef(),
-                                PathTuple(2),
-                                PathRef(),
-                                PathLeaf(PathLeafType.DYNAMIC),
-                            ]
+                            param_paths["data"]
                         ),
                     ),
                     Value(
@@ -2304,14 +2067,7 @@ def test_gcs_batch(scenario_navigator: NavigateWithScenario, test_name: str):
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(0),
-                                PathRef(),
-                                PathArray(),
-                                PathRef(),
-                                PathTuple(0),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["to"]
                         ),
                     ),
                     amount=Value(
@@ -2319,14 +2075,7 @@ def test_gcs_batch(scenario_navigator: NavigateWithScenario, test_name: str):
                         TypeFamily.UINT,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(0),
-                                PathRef(),
-                                PathArray(),
-                                PathRef(),
-                                PathTuple(1),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["value"]
                         ),
                     ),
                 )
@@ -2334,16 +2083,14 @@ def test_gcs_batch(scenario_navigator: NavigateWithScenario, test_name: str):
     ]
 
     # compute instructions hash
-    inst_hash = hashlib.sha3_256()
-    for field in fields:
-        inst_hash.update(field.serialize())
+    inst_hash = compute_inst_hash(fields)
 
     tx_info = TxInfo(
         1,
         tx_params["chainId"],
         contract.address,
         get_selector_from_data(data),
-        inst_hash.digest(),
+        inst_hash,
         "Batch transaction",
         creator_name="WETH",
         creator_legal_name="Wrapped Ether",
@@ -2353,9 +2100,7 @@ def test_gcs_batch(scenario_navigator: NavigateWithScenario, test_name: str):
     app_client.provide_transaction_info(tx_info.serialize())
 
     # compute instructions hash
-    sub_inst_hash = hashlib.sha3_256()
-    for sub_field in sub_fields:
-        sub_inst_hash.update(sub_field.serialize())
+    sub_inst_hash = compute_inst_hash(sub_fields)
 
     sub_tx_info = [
         TxInfo(
@@ -2363,7 +2108,7 @@ def test_gcs_batch(scenario_navigator: NavigateWithScenario, test_name: str):
             tx_params["chainId"],
             tokens[0]["address"],
             get_selector_from_data(data0),
-            sub_inst_hash.digest(),
+            sub_inst_hash,
             "Transfer token",
         ),
         TxInfo(
@@ -2371,7 +2116,7 @@ def test_gcs_batch(scenario_navigator: NavigateWithScenario, test_name: str):
             tx_params["chainId"],
             tokens[1]["address"],
             get_selector_from_data(data1),
-            sub_inst_hash.digest(),
+            sub_inst_hash,
             "Transfer token",
         )
     ]
@@ -2388,10 +2133,10 @@ def test_gcs_batch(scenario_navigator: NavigateWithScenario, test_name: str):
                 app_client.provide_transaction_field_desc(sub_field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
-        scenario_navigator.review_approve(test_name=test_name)
+        scenario_navigator.review_approve()
 
 
-def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
+def test_gcs_batch_2(scenario_navigator: NavigateWithScenario):
     backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
 
@@ -2479,6 +2224,8 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
     with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
         pass
 
+    print(f"{'~' * 20} DEBUG L0 {'~' * 20}")
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/safe_1.4.1.abi.json", "execTransaction")
     # Top level transaction fields definition
     L0_fields = [
         Field(
@@ -2519,11 +2266,7 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
                     TypeFamily.BYTES,
                     data_path=DataPath(
                         1,
-                        [
-                            PathTuple(2),
-                            PathRef(),
-                            PathLeaf(PathLeafType.DYNAMIC),
-                        ]
+                        param_paths["data"]
                     ),
                 ),
                 Value(
@@ -2531,10 +2274,7 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
                     TypeFamily.ADDRESS,
                     data_path=DataPath(
                         1,
-                        [
-                            PathTuple(0),
-                            PathLeaf(PathLeafType.STATIC),
-                        ]
+                        param_paths["to"]
                     ),
                 ),
                 amount=Value(
@@ -2543,10 +2283,7 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
                     type_size=32,
                     data_path=DataPath(
                         1,
-                        [
-                            PathTuple(1),
-                            PathLeaf(PathLeafType.STATIC),
-                        ]
+                        param_paths["value"]
                     ),
                 ),
                 spender=Value(
@@ -2567,10 +2304,7 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
                     type_size=32,
                     data_path=DataPath(
                         1,
-                        [
-                            PathTuple(4),
-                            PathLeaf(PathLeafType.STATIC),
-                        ]
+                        param_paths["safeTxGas"]
                     ),
                 ),
             )
@@ -2586,10 +2320,7 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
                     type_size=32,
                     data_path=DataPath(
                         1,
-                        [
-                            PathTuple(5),
-                            PathLeaf(PathLeafType.STATIC),
-                        ]
+                        param_paths["baseGas"]
                     ),
                 ),
                 Value(
@@ -2597,10 +2328,7 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
                     TypeFamily.ADDRESS,
                     data_path=DataPath(
                         1,
-                        [
-                            PathTuple(6),
-                            PathLeaf(PathLeafType.STATIC),
-                        ]
+                        param_paths["gasPrice"]
                     ),
                 ),
                 [bytes.fromhex("0000000000000000000000000000000000000000")]
@@ -2616,10 +2344,7 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
                     TypeFamily.ADDRESS,
                     data_path=DataPath(
                         1,
-                        [
-                            PathTuple(8),
-                            PathLeaf(PathLeafType.STATIC),
-                        ]
+                        param_paths["refundReceiver"]
                     ),
                 ),
                 [TrustedNameType.ACCOUNT, TrustedNameType.CONTRACT, TrustedNameType.TOKEN],
@@ -2628,9 +2353,7 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
         ),
     ]
     # compute instructions hash
-    L0_hash = hashlib.sha3_256()
-    for field in L0_fields:
-        L0_hash.update(field.serialize())
+    L0_hash = compute_inst_hash(L0_fields)
 
     # Define top level transaction info
     L0_tx_info = TxInfo(
@@ -2638,7 +2361,7 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
         tx_params["chainId"],
         bytes.fromhex("29fcb43b46531bca003ddc8fcb67ffe91900c762"),
         get_selector_from_data(tx_params["data"]),
-        L0_hash.digest(),
+        L0_hash,
         "sign multisig operation",
         creator_name="Safe",
         creator_legal_name="Safe{Wallet}",
@@ -2646,6 +2369,8 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
         contract_name="SafeL2",
     )
 
+    print(f"{'~' * 20} DEBUG L1 {'~' * 20}")
+    param_paths = get_all_tuple_array_paths(f"{ABIS_FOLDER}/batch.json", "batchExecute", "calls")
     # Intermediate execTransaction transaction fields definition
     L1_fields = [
             Field(
@@ -2658,15 +2383,7 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
                         TypeFamily.BYTES,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(0),
-                                PathRef(),
-                                PathArray(),
-                                PathRef(),
-                                PathTuple(2),
-                                PathRef(),
-                                PathLeaf(PathLeafType.DYNAMIC),
-                            ]
+                            param_paths["data"]
                         ),
                     ),
                     Value(
@@ -2674,14 +2391,7 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(0),
-                                PathRef(),
-                                PathArray(),
-                                PathRef(),
-                                PathTuple(0),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["to"]
                         ),
                     ),
                     amount=Value(
@@ -2689,23 +2399,14 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
                         TypeFamily.UINT,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(0),
-                                PathRef(),
-                                PathArray(),
-                                PathRef(),
-                                PathTuple(1),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["value"]
                         ),
                     ),
                 )
             ),
     ]
     # compute instructions hash
-    L1_hash = hashlib.sha3_256()
-    for field in L1_fields:
-        L1_hash.update(field.serialize())
+    L1_hash = compute_inst_hash(L1_fields)
 
     # Define intermediate execTransaction transaction info
     L1_tx_info = [
@@ -2714,7 +2415,7 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
             tx_params["chainId"],
             contract.address,
             get_selector_from_data(batchData),
-            L1_hash.digest(),
+            L1_hash,
             "Batch transactions",
             creator_name="Ledger",
             creator_legal_name="Ledger Multisig",
@@ -2723,6 +2424,8 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
         ),
     ]
 
+    print(f"{'~' * 20} DEBUG L2 {'~' * 20}")
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/erc20.json", "transfer")
     # Lower batchExecute transaction fields definition
     L2_fields = [
             Field(
@@ -2735,10 +2438,7 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
                         TypeFamily.UINT,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(1),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["_value"]
                         ),
                         type_size=32,
                     ),
@@ -2759,19 +2459,14 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(0),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["_to"]
                         ),
                     )
                 )
             ),
     ]
     # compute instructions hash
-    L2_hash = hashlib.sha3_256()
-    for sub_field in L2_fields:
-        L2_hash.update(sub_field.serialize())
+    L2_hash = compute_inst_hash(L2_fields)
 
     # Define lower batchExecute transaction info
     L2_tx_info = [
@@ -2780,7 +2475,7 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
             tx_params["chainId"],
             tokens[0]["address"],
             get_selector_from_data(tokenData0),
-            L2_hash.digest(),
+            L2_hash,
             "Send",
             contract_name="USD_Coin",
         ),
@@ -2789,7 +2484,7 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
             tx_params["chainId"],
             tokens[1]["address"],
             get_selector_from_data(tokenData1),
-            L2_hash.digest(),
+            L2_hash,
             "Send",
             contract_name="USD_Coin",
         )
@@ -2840,4 +2535,4 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
 
     # Send the full transaction
     with app_client.sign(mode=SignMode.START_FLOW):
-        scenario_navigator.review_approve(test_name=test_name)
+        scenario_navigator.review_approve()

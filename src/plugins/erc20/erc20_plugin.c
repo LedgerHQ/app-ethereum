@@ -23,7 +23,7 @@ typedef struct erc20_parameters_t {
     uint8_t decimals;
     char contract_name[MAX_CONTRACT_NAME_LEN];
     // data not part of the ABI (usually for tracking purposes)
-    char extra_data[(MAX_EXTRA_DATA_CHUNKS * CALLDATA_CHUNK_SIZE) + 1];
+    char extra_data[MAX_EXTRA_DATA_CHUNKS * CALLDATA_CHUNK_SIZE];
     uint8_t extra_data_len;
 } erc20_parameters_t;
 
@@ -98,7 +98,6 @@ void erc20_plugin_call(int message, void *parameters) {
                         memmove(context->extra_data + extra_data_offset,
                                 msg->parameter,
                                 CALLDATA_CHUNK_SIZE);
-                        context->extra_data[extra_data_offset + CALLDATA_CHUNK_SIZE] = '\0';
                         context->extra_data_len += CALLDATA_CHUNK_SIZE;
                         msg->result = ETH_PLUGIN_RESULT_OK;
                     } else {

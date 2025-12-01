@@ -10,8 +10,6 @@ from ragger.navigator.navigation_scenario import NavigateWithScenario
 
 from client.client import EthAppClient
 from client.status_word import StatusWord
-import client.response_parser as ResponseParser
-from client.utils import recover_transaction
 
 from constants import ABIS_FOLDER
 from test_sign import common as common_tx
@@ -47,7 +45,7 @@ def test_provide_erc20_token_error(backend: BackendInterface):
 
 def common_transfer(scenario_navigator: NavigateWithScenario,
                     amount: float,
-                    extra_data: Optional[str] = None):
+                    extra_data: Optional[bytes] = None):
     app_client = EthAppClient(scenario_navigator.backend)
 
     with open(f"{ABIS_FOLDER}/erc20.json") as file:
@@ -61,7 +59,7 @@ def common_transfer(scenario_navigator: NavigateWithScenario,
     ])
 
     if extra_data is not None:
-        data += extra_data
+        data += extra_data.hex()
 
     tx_params = {
         "chainId": TOKEN_CHAIN_ID,
@@ -79,7 +77,7 @@ def common_transfer(scenario_navigator: NavigateWithScenario,
 
 def common_approve(scenario_navigator: NavigateWithScenario,
                    amount: float,
-                   extra_data: Optional[str] = None):
+                   extra_data: Optional[bytes] = None):
     app_client = EthAppClient(scenario_navigator.backend)
 
     with open(f"{ABIS_FOLDER}/erc20.json") as file:
@@ -93,7 +91,7 @@ def common_approve(scenario_navigator: NavigateWithScenario,
     ])
 
     if extra_data is not None:
-        data += extra_data
+        data += extra_data.hex()
 
     tx_params = {
         "chainId": TOKEN_CHAIN_ID,
@@ -127,18 +125,18 @@ def test_approve_erc20(scenario_navigator: NavigateWithScenario):
 def test_transfer_erc20_extra_data(scenario_navigator: NavigateWithScenario):
     common_transfer(scenario_navigator,
                     5,
-                    "cpis_1RnzUSEXxObdZZOcn8gPzPPS".encode().hex())
+                    "cpis_1RnzUSEXxObdZZOcn8gPzPPS".encode())
 
 
 def test_transfer_erc20_extra_data_nonascii(scenario_navigator: NavigateWithScenario):
-    common_transfer(scenario_navigator, 10, "deadcafe")
+    common_transfer(scenario_navigator, 10, bytes.fromhex("deadcafe"))
 
 
 def test_approve_erc20_extra_data(scenario_navigator: NavigateWithScenario):
     common_approve(scenario_navigator,
                    5,
-                   "cpis_1RnzUSEXxObdZZOcn8gPzPPS".encode().hex())
+                   "cpis_1RnzUSEXxObdZZOcn8gPzPPS".encode())
 
 
 def test_approve_erc20_extra_data_nonascii(scenario_navigator: NavigateWithScenario):
-    common_approve(scenario_navigator, 10, "deadcafe")
+    common_approve(scenario_navigator, 10, bytes.fromhex("deadcafe"))

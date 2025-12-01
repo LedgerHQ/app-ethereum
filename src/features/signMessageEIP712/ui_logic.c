@@ -1301,10 +1301,10 @@ void ui_712_push_pairs(void) {
         }
         g_pairs[pair].item = tmp->key;
         g_pairs[pair].value = tmp->value;
-        if (pair > g_pairsList->nbPairs - 1) {
-            PRINTF("Error: No more pairs available (%d / %d)!\n", pair, g_pairsList->nbPairs);
-            return;
-        }
+        LEDGER_ASSERT(pair < g_pairsList->nbPairs,
+                      "EIP-712 pair overflow (%d / %d)",
+                      pair,
+                      g_pairsList->nbPairs);
         pair++;
         if ((tmp->end_intent) && (txContext.batch_nb_tx > 1)) {
             // End of batch transaction : start next info on full page
@@ -1314,10 +1314,10 @@ void ui_712_push_pairs(void) {
     }
 
     if (N_storage.displayHash) {
-        if (pair > g_pairsList->nbPairs - 1) {
-            PRINTF("Error: No more pairs available for Hash!\n");
-            return;
-        }
+        LEDGER_ASSERT(pair < g_pairsList->nbPairs,
+                      "EIP-712 pair overflow for Hash (%d / %d)",
+                      pair,
+                      g_pairsList->nbPairs);
         // Prepare the pairs list with the hashes
         eip712_format_hash(pair);
         g_pairs[pair].forcePageStart = 1;

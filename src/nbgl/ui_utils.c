@@ -52,6 +52,7 @@ bool ui_pairs_init(uint8_t nbPairs) {
     }
     g_pairsList->nbPairs = nbPairs;
     g_pairsList->pairs = g_pairs;
+    g_pairsList->wrapping = true;
     return true;
 error:
     _cleanup();

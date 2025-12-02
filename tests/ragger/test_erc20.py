@@ -1,5 +1,5 @@
 import json
-from typing import Optional
+from typing import Optional, Callable
 
 import pytest
 from web3 import Web3
@@ -10,11 +10,9 @@ from ragger.navigator.navigation_scenario import NavigateWithScenario
 
 from client.client import EthAppClient
 from client.status_word import StatusWord
-import client.response_parser as ResponseParser
-from client.utils import recover_transaction
 
 from constants import ABIS_FOLDER
-from test_sign import common as common_tx
+from test_sign import common as common_tx, BIP32_PATH
 
 TOKEN_ADDR = bytes.fromhex("A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")
 TOKEN_TICKER = "USDC"
@@ -47,7 +45,8 @@ def test_provide_erc20_token_error(backend: BackendInterface):
 
 def common_transfer(scenario_navigator: NavigateWithScenario,
                     amount: float,
-                    extra_data: Optional[str] = None):
+                    extra_data: Optional[bytes] = None,
+                    func: Callable = common_tx):
     app_client = EthAppClient(scenario_navigator.backend)
 
     with open(f"{ABIS_FOLDER}/erc20.json") as file:
@@ -61,7 +60,7 @@ def common_transfer(scenario_navigator: NavigateWithScenario,
     ])
 
     if extra_data is not None:
-        data += extra_data
+        data += extra_data.hex()
 
     tx_params = {
         "chainId": TOKEN_CHAIN_ID,
@@ -74,12 +73,13 @@ def common_transfer(scenario_navigator: NavigateWithScenario,
         "data": data,
     }
     app_client.provide_token_metadata(TOKEN_TICKER, TOKEN_ADDR, TOKEN_DECIMALS, TOKEN_CHAIN_ID)
-    common_tx(scenario_navigator, tx_params, scenario_navigator.test_name)
+    func(scenario_navigator, tx_params, scenario_navigator.test_name)
 
 
 def common_approve(scenario_navigator: NavigateWithScenario,
                    amount: float,
-                   extra_data: Optional[str] = None):
+                   extra_data: Optional[bytes] = None,
+                   func: Callable = common_tx):
     app_client = EthAppClient(scenario_navigator.backend)
 
     with open(f"{ABIS_FOLDER}/erc20.json") as file:
@@ -93,7 +93,7 @@ def common_approve(scenario_navigator: NavigateWithScenario,
     ])
 
     if extra_data is not None:
-        data += extra_data
+        data += extra_data.hex()
 
     tx_params = {
         "chainId": TOKEN_CHAIN_ID,
@@ -106,7 +106,7 @@ def common_approve(scenario_navigator: NavigateWithScenario,
         "data": data,
     }
     app_client.provide_token_metadata(TOKEN_TICKER, TOKEN_ADDR, TOKEN_DECIMALS, TOKEN_CHAIN_ID)
-    common_tx(scenario_navigator, tx_params, scenario_navigator.test_name)
+    func(scenario_navigator, tx_params, scenario_navigator.test_name)
 
 
 def test_transfer_erc20(scenario_navigator: NavigateWithScenario):
@@ -127,18 +127,35 @@ def test_approve_erc20(scenario_navigator: NavigateWithScenario):
 def test_transfer_erc20_extra_data(scenario_navigator: NavigateWithScenario):
     common_transfer(scenario_navigator,
                     5,
-                    "cpis_1RnzUSEXxObdZZOcn8gPzPPS".encode().hex())
+                    "cpis_1RnzUSEXxObdZZOcn8gPzPPS".encode())
 
 
 def test_transfer_erc20_extra_data_nonascii(scenario_navigator: NavigateWithScenario):
-    common_transfer(scenario_navigator, 10, "deadcafe")
+    common_transfer(scenario_navigator, 10, bytes.fromhex("deadcafe"))
+
+
+def test_transfer_erc20_extra_data_toolong(scenario_navigator: NavigateWithScenario):
+    def check_error(scenario_navigator: NavigateWithScenario, tx_params: dict, test_name: str):
+        app_client = EthAppClient(scenario_navigator.backend)
+
+        with pytest.raises(ExceptionRAPDU) as err:
+            with app_client.sign(BIP32_PATH, tx_params):
+                pass
+        assert err.value.status == StatusWord.INVALID_DATA
+
+    common_transfer(scenario_navigator, 10, "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.".encode(), func=check_error)
+
+
+def test_transfer_erc20_extra_data_nonascii_truncated(scenario_navigator: NavigateWithScenario):
+    common_transfer(scenario_navigator, 10,
+                    bytes.fromhex("0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f"))
 
 
 def test_approve_erc20_extra_data(scenario_navigator: NavigateWithScenario):
     common_approve(scenario_navigator,
                    5,
-                   "cpis_1RnzUSEXxObdZZOcn8gPzPPS".encode().hex())
+                   "cpis_1RnzUSEXxObdZZOcn8gPzPPS".encode())
 
 
 def test_approve_erc20_extra_data_nonascii(scenario_navigator: NavigateWithScenario):
-    common_approve(scenario_navigator, 10, "deadcafe")
+    common_approve(scenario_navigator, 10, bytes.fromhex("deadcafe"))

@@ -76,7 +76,7 @@ static void free_pair(const nbgl_contentTagValueList_t *pair_list, int idx) {
     // - the first one, that leads to the contract infos
     // - the second to last one, that shows the Network (optional)
     // - the last one, that shows the TX fees
-    if (index_allocated[idx]) {
+    if ((index_allocated != NULL) && (index_allocated[idx] == true)) {
         if (pair_list->pairs[idx].item != NULL) app_mem_free((void *) pair_list->pairs[idx].item);
         if (pair_list->pairs[idx].value != NULL) app_mem_free((void *) pair_list->pairs[idx].value);
     }

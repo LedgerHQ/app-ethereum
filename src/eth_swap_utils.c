@@ -33,7 +33,7 @@ bool parse_swap_config(const uint8_t *config,
                        uint64_t *chain_id) {
     uint8_t ticker_len, offset = 0;
 
-    if (config_len == 0) {
+    if ((config == NULL) || (config_len == 0) || (ticker == NULL) || (decimals == NULL)) {
         return false;
     }
     ticker_len = config[offset];
@@ -54,7 +54,7 @@ bool parse_swap_config(const uint8_t *config,
 
     // the chain ID was adder later to the CAL swap subconfig
     // so it is optional for retro-compatibility (as it might not be present)
-    if ((config_len - offset) >= sizeof(*chain_id)) {
+    if ((chain_id != NULL) && ((config_len - offset) >= sizeof(*chain_id))) {
         PRINTF("Chain ID from the swap subconfig = 0x%.*h\n", sizeof(*chain_id), &config[offset]);
         *chain_id = u64_from_BE(config + offset, sizeof(*chain_id));
     }
@@ -66,6 +66,9 @@ bool parse_swap_config(const uint8_t *config,
  */
 static int strcasecmp_workaround(const char *str1, const char *str2) {
     unsigned char c1, c2;
+
+    LEDGER_ASSERT(str1 != NULL, "strcasecmp_workaround: str1 is NULL");
+    LEDGER_ASSERT(str2 != NULL, "strcasecmp_workaround: str2 is NULL");
     do {
         c1 = *str1++;
         c2 = *str2++;
@@ -77,6 +80,9 @@ static int strcasecmp_workaround(const char *str1, const char *str2) {
 }
 
 bool swap_check_destination(const char *destination) {
+    if (destination == NULL) {
+        return false;
+    }
     // Ensure the values are the same that the ones that have been previously validated
     if (strcasecmp_workaround(strings.common.toAddress, destination) != 0) {
         PRINTF("Error comparing destination addresses\n");
@@ -88,11 +94,15 @@ bool swap_check_destination(const char *destination) {
                                     destination);
         // unreachable
         os_sched_exit(0);
+        return false;
     }
     return true;
 }
 
 bool swap_check_amount(const char *amount) {
+    if (amount == NULL) {
+        return false;
+    }
     // Ensure the values are the same that the ones that have been previously validated
     if (strcmp(strings.common.fullAmount, amount) != 0) {
         PRINTF("Error comparing amounts\n");
@@ -104,11 +114,15 @@ bool swap_check_amount(const char *amount) {
                                     amount);
         // unreachable
         os_sched_exit(0);
+        return false;
     }
     return true;
 }
 
 bool swap_check_fee(const char *fee) {
+    if (fee == NULL) {
+        return false;
+    }
     // Ensure the values are the same that the ones that have been previously validated
     if (strcmp(strings.common.maxFee, fee) != 0) {
         PRINTF("Error comparing fees\n");
@@ -120,6 +134,7 @@ bool swap_check_fee(const char *fee) {
                                     fee);
         // unreachable
         os_sched_exit(0);
+        return false;
     }
     return true;
 }

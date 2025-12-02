@@ -5,7 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.20.0](../../compare/1.19.3...1.20.0) - 2025-xx-xx
+## [1.20.0](../../compare/1.19.3...1.20.0) - 2025-12-02
+
+### Added
+
+- New separator screens when dealing with batch transactions
+- Can now sign ERC-20 transactions with extra data (and show them)
+- Reintroduced skip button for EIP-712 raw/verbose flow
+- New trusted name type : token
+
+### Changed
+
+- Increased the ticker size to 50 characters
+- Moved ticker from the beginning to the end of displayed amounts
+- Applied wrapping to all key/value UI pairs
+
+### Fixed
+
+- Wrong error codes being sent back, preventing the software wallet to fallback to blind-signing
+- EIP-712 message hashing issue
+- Crash at the end of a clear-signing flow
+- EIP-712 message hash being shown twice on Nano in some configurations
+
+### Removed
+
+- MetaMask Gator from the EIP-7702 whitelist
+- Skip button from EIP-191 flow
 
 ## [1.19.3](../../compare/1.19.2...1.19.3) - 2025-10-23
 

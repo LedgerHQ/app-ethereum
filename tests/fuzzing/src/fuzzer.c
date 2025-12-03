@@ -121,7 +121,7 @@ int fuzzDynamicNetworks(const uint8_t *data, size_t size) {
         p2 = data[offset++];
         len = data[offset++];
         if (size - offset < len) return 0;
-        if (handle_network_info(p1, p2, data + offset, len, &tx) != APDU_RESPONSE_OK) return 0;
+        if (handle_network_info(p1, p2, data + offset, len, &tx) != SWO_SUCCESS) return 0;
         offset += len;
     }
     return 0;
@@ -137,7 +137,7 @@ int fuzzTrustedNames(const uint8_t *data, size_t size) {
         p1 = data[offset++];
         len = data[offset++];
         if (size - offset < len) return 0;
-        if (handle_trusted_name(p1, data + offset, len) != APDU_RESPONSE_OK) return 0;
+        if (handle_trusted_name(p1, data + offset, len) != SWO_SUCCESS) return 0;
         offset += len;
     }
     return 0;
@@ -145,7 +145,7 @@ int fuzzTrustedNames(const uint8_t *data, size_t size) {
 
 int fuzzNFTInfo(const uint8_t *data, size_t size) {
     unsigned int tx;
-    return handleProvideNFTInformation(data, size, &tx) != APDU_RESPONSE_OK;
+    return handleProvideNFTInformation(data, size, &tx) != SWO_SUCCESS;
 }
 
 int fuzzProxyInfo(const uint8_t *data, size_t size) {
@@ -157,8 +157,7 @@ int fuzzTxSimulation(const uint8_t *data, size_t size) {
     unsigned int flags;
     if (size < 2) return 0;
 
-    if (handle_tx_simulation(data[0], data[1], data + 2, size - 2, &flags) != APDU_RESPONSE_OK)
-        return 0;
+    if (handle_tx_simulation(data[0], data[1], data + 2, size - 2, &flags) != SWO_SUCCESS) return 0;
 
     get_tx_simulation_risk_str();
     get_tx_simulation_category_str();
@@ -212,8 +211,7 @@ int fuzzEIP7702(const uint8_t *data, size_t size) {
         p1 = data[offset++];
         len = data[offset++];
         if (size - offset < len) return 0;
-        if (handleSignEIP7702Authorization(p1, data + offset, len, &flags) != APDU_RESPONSE_OK)
-            return 0;
+        if (handleSignEIP7702Authorization(p1, data + offset, len, &flags) != SWO_SUCCESS) return 0;
         offset += len;
     }
     return 0;

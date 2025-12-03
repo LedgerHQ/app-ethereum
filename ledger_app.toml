@@ -11,6 +11,8 @@ dbg_use_test_keys = "DEBUG=1 CAL_TEST_KEY=1 TRUSTED_NAME_TEST_KEY=1 SET_PLUGIN_T
 cal_bypass = "BYPASS_SIGNATURES=1"
 dbg_cal_bypass = "DEBUG=1 BYPASS_SIGNATURES=1"
 memory_profiling = "DEBUG=1 EIP7702_TEST_WHITELIST=1 MEMORY_PROFILING=1"
+dbg_no_checks = "DEBUG=1 BYPASS_SIGNATURES=1 CHALLENGE_NO_CHECK=1"
+dbg_no_checks_profiling = "DEBUG=1 BYPASS_SIGNATURES=1 CHALLENGE_NO_CHECK=1 MEMORY_PROFILING=1"
 
 [tests]
 unit_directory = "./tests/unit"

@@ -149,6 +149,15 @@ static const network_info_t *get_network_from_chain_id(const uint64_t *chain_id,
     return NULL;
 }
 
+static const char *get_network_ticker_from_chain_id(const uint64_t *chain_id, bool dynamic) {
+    const network_info_t *net = get_network_from_chain_id(chain_id, dynamic);
+
+    if (net == NULL) {
+        return NULL;
+    }
+    return PIC(net->ticker);
+}
+
 const char *get_network_name_from_chain_id(const uint64_t *chain_id) {
     const network_info_t *net = get_network_from_chain_id(chain_id, true);
 
@@ -165,22 +174,13 @@ uint16_t get_network_as_string(char *out, size_t out_size) {
     if (name == NULL) {
         // No network name found so simply copy the chain ID as the network name.
         if (!u64_to_string(chain_id, out, out_size)) {
-            return APDU_RESPONSE_CHAINID_OUT_BUF_SMALL;
+            return SWO_INSUFFICIENT_MEMORY;
         }
     } else {
         // Network name found, simply copy it.
         strlcpy(out, name, out_size);
     }
-    return APDU_RESPONSE_OK;
-}
-
-const char *get_network_ticker_from_chain_id(const uint64_t *chain_id, bool dynamic) {
-    const network_info_t *net = get_network_from_chain_id(chain_id, dynamic);
-
-    if (net == NULL) {
-        return NULL;
-    }
-    return PIC(net->ticker);
+    return SWO_SUCCESS;
 }
 
 bool chain_is_ethereum_compatible(const uint64_t *chain_id) {

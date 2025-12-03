@@ -36,7 +36,7 @@ The plugin common dispatcher is found in _src/eth_plugin_handler.c_
 
 The plugin generic UI dispatcher is found in _src/eth_plugin_ui.c_
 
-Sample internal plugins are provided in _src_plugins/_
+Sample internal plugins are provided in _src/plugins/_
 
 ## Creating a plugin
 

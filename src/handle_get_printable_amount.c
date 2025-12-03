@@ -12,7 +12,7 @@ uint16_t handle_get_printable_amount(get_printable_amount_parameters_t* params,
     memset(params->printable_amount, 0, sizeof(params->printable_amount));
     if (params->amount_length > 32) {
         PRINTF("Amount is too big, 32 bytes max but buffer has %u bytes", params->amount_length);
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
 
     if (!parse_swap_config(params->coin_configuration,
@@ -21,7 +21,7 @@ uint16_t handle_get_printable_amount(get_printable_amount_parameters_t* params,
                            &decimals,
                            &chain_id)) {
         PRINTF("Error while parsing config\n");
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
     // If the amount is a fee, the ticker should be the chain's native currency
     if (params->is_fee) {
@@ -41,5 +41,5 @@ uint16_t handle_get_printable_amount(get_printable_amount_parameters_t* params,
                         sizeof(params->printable_amount))) {
         memset(params->printable_amount, 0, sizeof(params->printable_amount));
     }
-    return APDU_RESPONSE_OK;
+    return SWO_SUCCESS;
 }

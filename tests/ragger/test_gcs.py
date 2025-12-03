@@ -1,3 +1,5 @@
+# pylint: disable=too-many-lines
+# Large test file containing multiple GCS (Generic Clear Signing) integration tests
 from typing import Optional
 import json
 import hashlib
@@ -5,7 +7,7 @@ from web3 import Web3
 
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 
-
+from dynamic_networks_cfg import get_network_config
 from constants import ABIS_FOLDER
 
 import client.response_parser as ResponseParser
@@ -19,6 +21,7 @@ from client.gcs import (
 )
 from client.tx_simu import TxSimu
 from client.proxy_info import ProxyInfo
+from client.dynamic_networks import DynamicNetwork
 
 
 def test_gcs_nft(scenario_navigator: NavigateWithScenario, test_name: str):
@@ -1136,6 +1139,7 @@ def test_gcs_nested_execTransaction_send(scenario_navigator: NavigateWithScenari
             abi=json.load(f),
             address=bytes.fromhex("23F8abfC2824C397cCB3DA89ae772984107dDB99")
         )
+    # pylint: disable=line-too-long
     data = contract.encode_abi("execTransaction", [
         contract.address,
         Web3.to_wei(0.0042, "ether"),
@@ -1148,6 +1152,7 @@ def test_gcs_nested_execTransaction_send(scenario_navigator: NavigateWithScenari
         bytes.fromhex("0000000000000000000000000000000000000000"),
         bytes.fromhex("a974345670d8e06c52eeb7bfe59b1ed0fc879223ff0938c859c3852110c8c58016ec4bf0c68e84d3a40e3ac519f0a0db6954e7c4107fc6985de7dc683603f62a1b"),
     ])
+    # pylint: enable=line-too-long
 
     tx_params = {
         "nonce": 77,
@@ -1252,6 +1257,7 @@ def test_gcs_nested_execTransaction_addOwnerWithThreshold(scenario_navigator: Na
         bytes.fromhex("FD6765Ad4eE64668701356a16aB28B123B3A4170"),
         2
     ])
+    # pylint: disable=line-too-long
     data = contract.encode_abi("execTransaction", [
         contract.address,
         Web3.to_wei(0, "ether"),
@@ -1264,6 +1270,7 @@ def test_gcs_nested_execTransaction_addOwnerWithThreshold(scenario_navigator: Na
         bytes.fromhex("0000000000000000000000000000000000000000"),
         bytes.fromhex("c14660c23f715fc85c01326c7fa7f05ddeb71147fc7bad912eace6ee55c24a314f814262b3c8ca64fc77377ce6e65b20bdc902c34931888c433e23ab0069843d1bf3d2dfb18fd6bd807002bffec3326755c928e325981f30e1518e999b348a5f011446931b8bd9fbb152cdc00d945b7cd030c14e48c7826d31f9c09a1376f694de1b"),
     ])
+    # pylint: enable=line-too-long
 
     tx_params = {
         "nonce": 78,
@@ -1575,6 +1582,7 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
     sub_data = contract.encode_abi("changeThreshold", [
         3
     ])
+    # pylint: disable=line-too-long
     data = contract.encode_abi("execTransaction", [
         contract.address,
         Web3.to_wei(0, "ether"),
@@ -1587,6 +1595,7 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
         bytes.fromhex("0000000000000000000000000000000000000000"),
         bytes.fromhex("d3a6ddfb9dffe883d609129d9e87dda928a4a9b9d5d2f4a93879d03ccb0d32b12df7dcf9acd9c5f73443c82b0e01183794436a381148cf2fb928f7df776a01701b2fc9ebbc15bfdae0f5ef1b6f4ad1389d31f1dc137e51e7a184e255fd0ed065911ad684bd97ee43892013b4eebdaec528020ed657b92b90562f4df5a18540e4b91b"),
     ])
+    # pylint: enable=line-too-long
 
     tx_params = {
         "nonce": 83,
@@ -1605,7 +1614,7 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
             Field(
                 1,
                 "to",
-                ParamRaw(
+                ParamTrustedName(
                     1,
                     Value(
                         1,
@@ -1618,6 +1627,8 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
                             ]
                         ),
                     ),
+                    [TrustedNameType.ACCOUNT],
+                    [TrustedNameSource.MULTISIG_ADDRESS_BOOK],
                 )
             ),
             Field(
@@ -1856,6 +1867,13 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
         "change threshold",
     )
 
+    app_client.provide_trusted_name_v2(contract.address,
+                                       "My Safe",
+                                       TrustedNameType.ACCOUNT,
+                                       TrustedNameSource.MULTISIG_ADDRESS_BOOK,
+                                       tx_info.chain_id,
+                                       challenge=ResponseParser.challenge(app_client.get_challenge().data))
+
     for field in fields:
         app_client.provide_transaction_field_desc(field.serialize())
         if field.param.type == ParamType.CALLDATA:
@@ -2020,5 +2038,806 @@ def test_gcs_no_param(scenario_navigator: NavigateWithScenario, test_name: str):
 
     app_client.provide_transaction_info(tx_info.serialize())
 
+    with app_client.sign(mode=SignMode.START_FLOW):
+        scenario_navigator.review_approve(test_name=test_name)
+
+
+def test_gcs_trusted_name_token(scenario_navigator: NavigateWithScenario, test_name: str):
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    tokens = [
+        {
+            "name": "WETH",
+            "address": bytes.fromhex("c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"),
+        },
+        {
+            "name": "USDC",
+            "address": bytes.fromhex("A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"),
+        },
+    ]
+
+    with open(f"{ABIS_FOLDER}/1inch.abi.json", encoding="utf-8") as file:
+        contract = Web3().eth.contract(
+            abi=json.load(file),
+            address=None
+        )
+    data = contract.encode_abi("swap", [
+        bytes.fromhex("F313B370D28760b98A2E935E56Be92Feb2c4EC04"),
+        [
+            tokens[0]["address"],
+            tokens[1]["address"],
+            bytes.fromhex("F313B370D28760b98A2E935E56Be92Feb2c4EC04"),
+            bytes.fromhex("Dad77910DbDFdE764fC21FCD4E74D71bBACA6D8D"),
+            Web3.to_wei(0.22, "ether"),
+            682119805,
+            0,
+        ],
+        bytes(),
+    ])
+    tx_params = {
+        "nonce": 235,
+        "maxFeePerGas": Web3.to_wei(100, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(10, "gwei"),
+        "gas": 44001,
+        # Aggregation Router V6
+        "to": bytes.fromhex("111111125421cA6dc452d289314280a0f8842A65"),
+        "data": data,
+        "chainId": 1
+    }
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    fields = [
+            Field(
+                1,
+                "Send token",
+                ParamTrustedName(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(1),
+                                PathTuple(0),
+                                PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                    ),
+                    [TrustedNameType.TOKEN],
+                    [TrustedNameSource.CAL],
+                )
+            ),
+            Field(
+                1,
+                "Receive token",
+                ParamTrustedName(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(1),
+                                PathTuple(1),
+                                PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                    ),
+                    [TrustedNameType.TOKEN],
+                    [TrustedNameSource.CAL],
+                )
+            ),
+    ]
+
+    # compute instructions hash
+    inst_hash = hashlib.sha3_256()
+    for field in fields:
+        inst_hash.update(field.serialize())
+
+    tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        tx_params["to"],
+        get_selector_from_data(tx_params["data"]),
+        inst_hash.digest(),
+        "swap",
+        creator_name="1inch",
+        creator_legal_name="1inch Network",
+        creator_url="1inch.io",
+        contract_name="Aggregation Router V6",
+        deploy_date=1707724800
+    )
+
+    app_client.provide_transaction_info(tx_info.serialize())
+
+    i = 0
+    for field in fields:
+        challenge = ResponseParser.challenge(app_client.get_challenge().data)
+        app_client.provide_trusted_name_v2(tokens[i]["address"],
+                                           tokens[i]["name"],
+                                           TrustedNameType.TOKEN,
+                                           TrustedNameSource.CAL,
+                                           tx_params["chainId"],
+                                           challenge=challenge)
+        app_client.provide_transaction_field_desc(field.serialize())
+        i += 1
+
+    with app_client.sign(mode=SignMode.START_FLOW):
+        scenario_navigator.review_approve(test_name=test_name)
+
+
+def test_gcs_batch(scenario_navigator: NavigateWithScenario, test_name: str):
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    tokens = [
+        {
+            "ticker": "USDT",
+            "address": bytes.fromhex("dac17f958d2ee523a2206206994597c13d831ec7"),
+            "decimals": 6,
+        },
+        {
+            "ticker": "WETH",
+            "address": bytes.fromhex("c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"),
+            "decimals": 18,
+        },
+    ]
+    with open(f"{ABIS_FOLDER}/erc20.json", encoding="utf-8") as f:
+        contract = Web3().eth.contract(
+            abi=json.load(f),
+            address=None
+        )
+    data0 = contract.encode_abi("transfer", [
+        bytes.fromhex("0000000000000000000000000000000000000000"),
+        int(500 * pow(10, tokens[0]["decimals"])),
+    ])
+    data1 = contract.encode_abi("transfer", [
+        bytes.fromhex("1111111111111111111111111111111111111111"),
+        int(0.25 * pow(10, tokens[1]["decimals"])),
+    ])
+
+    with open(f"{ABIS_FOLDER}/batch.json", encoding="utf-8") as f:
+        contract = Web3().eth.contract(
+            abi=json.load(f),
+            address=tokens[1]["address"]
+        )
+
+    data = contract.encode_abi("batchExecute", [[
+        (
+            tokens[0]["address"],
+            Web3.to_wei(0, "ether"),
+            data0
+        ),
+        (
+            tokens[1]["address"],
+            Web3.to_wei(0, "ether"),
+            data1
+        ),
+    ]])
+
+    tx_params = {
+        "nonce": 79,
+        "maxFeePerGas": Web3.to_wei(4.8, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(2, "gwei"),
+        "gas": 5118,
+        "to": contract.address,
+        "data": data,
+        "chainId": 1
+    }
+
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    sub_fields = [
+            Field(
+                1,
+                "To",
+                ParamRaw(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(0),
+                                PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                    )
+                )
+            ),
+            Field(
+                1,
+                "Amount",
+                ParamTokenAmount(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.UINT,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(1),
+                                PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                        type_size=32,
+                    ),
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        container_path=ContainerPath.TO,
+                    ),
+                )
+            ),
+    ]
+
+    fields = [
+            Field(
+                1,
+                "Destination",
+                ParamCalldata(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.BYTES,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(0),
+                                PathRef(),
+                                PathArray(),
+                                PathRef(),
+                                PathTuple(2),
+                                PathRef(),
+                                PathLeaf(PathLeafType.DYNAMIC),
+                            ]
+                        ),
+                    ),
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(0),
+                                PathRef(),
+                                PathArray(),
+                                PathRef(),
+                                PathTuple(0),
+                                PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                    ),
+                    amount=Value(
+                        1,
+                        TypeFamily.UINT,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(0),
+                                PathRef(),
+                                PathArray(),
+                                PathRef(),
+                                PathTuple(1),
+                                PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                    ),
+                )
+            ),
+    ]
+
+    # compute instructions hash
+    inst_hash = hashlib.sha3_256()
+    for field in fields:
+        inst_hash.update(field.serialize())
+
+    tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        contract.address,
+        get_selector_from_data(data),
+        inst_hash.digest(),
+        "Batch transaction",
+        creator_name="WETH",
+        creator_legal_name="Wrapped Ether",
+        creator_url="weth.io",
+    )
+
+    app_client.provide_transaction_info(tx_info.serialize())
+
+    # compute instructions hash
+    sub_inst_hash = hashlib.sha3_256()
+    for sub_field in sub_fields:
+        sub_inst_hash.update(sub_field.serialize())
+
+    sub_tx_info = [
+        TxInfo(
+            1,
+            tx_params["chainId"],
+            tokens[0]["address"],
+            get_selector_from_data(data0),
+            sub_inst_hash.digest(),
+            "Transfer token",
+        ),
+        TxInfo(
+            1,
+            tx_params["chainId"],
+            tokens[1]["address"],
+            get_selector_from_data(data1),
+            sub_inst_hash.digest(),
+            "Transfer token",
+        )
+    ]
+
+    for field in fields:
+        app_client.provide_transaction_field_desc(field.serialize())
+        for idx, sub_info in enumerate(sub_tx_info):
+            app_client.provide_token_metadata(tokens[idx]["ticker"],
+                                              tokens[idx]["address"],
+                                              tokens[idx]["decimals"],
+                                              tx_params["chainId"])
+            app_client.provide_transaction_info(sub_info.serialize())
+            for sub_field in sub_fields:
+                app_client.provide_transaction_field_desc(sub_field.serialize())
+
+    with app_client.sign(mode=SignMode.START_FLOW):
+        scenario_navigator.review_approve(test_name=test_name)
+
+
+def test_gcs_batch_2(scenario_navigator: NavigateWithScenario, test_name: str):
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    # Define tokens
+    tokens = [
+        {
+            "ticker": "USDC",
+            "address": bytes.fromhex("3c499c542cef5e3811e1192ce70d8cc03d5c3359"),
+            "decimals": 6,
+        },
+        {
+            "ticker": "USDC",
+            "address": bytes.fromhex("3c499c542cef5e3811e1192ce70d8cc03d5c3359"),
+            "decimals": 6,
+        },
+    ]
+    # Encode token transfer data
+    with open(f"{ABIS_FOLDER}/erc20.json", encoding="utf-8") as f:
+        contract = Web3().eth.contract(
+            abi=json.load(f),
+            address=None
+        )
+    tokenData0 = contract.encode_abi("transfer", [
+        bytes.fromhex("B8C8EB8EFC68796E766F6AB320DB8C165C064949"),
+        int(0.004 * pow(10, tokens[0]["decimals"])),
+    ])
+    tokenData1 = contract.encode_abi("transfer", [
+        bytes.fromhex("4DDA64E1EC1A2C00D0766F25877F6A3BC77F717E"),
+        int(0.008 * pow(10, tokens[1]["decimals"])),
+    ])
+
+    # Encode batchExecute data using token transfer data
+    with open(f"{ABIS_FOLDER}/batch.json", encoding="utf-8") as f:
+        contract = Web3().eth.contract(
+            abi=json.load(f),
+            address=tokens[1]["address"]
+        )
+    batchData = contract.encode_abi("batchExecute", [[
+        (
+            tokens[0]["address"],
+            Web3.to_wei(0, "ether"),
+            tokenData0
+        ),
+        (
+            tokens[1]["address"],
+            Web3.to_wei(0, "ether"),
+            tokenData1
+        ),
+    ]])
+
+    # pylint: disable=line-too-long
+    # Encode execTransaction data using batchExecute data
+    with open(f"{ABIS_FOLDER}/safe_1.4.1.abi.json", encoding="utf-8") as f:
+        contract = Web3().eth.contract(
+            abi=json.load(f),
+            address=bytes.fromhex("60aa01971a2adc1d6b2b59b972fb47b2fec095fc")
+        )
+    execDataSignature = "93a3e6ff4d0798d51ba53f5d8287326adbe3e22dd0dc28bdbfab825be357ce8c76a13b8128f5d91530af675925220ede099e0f0a51af3a65760060d4b37db9281c"
+    execTxData = contract.encode_abi("execTransaction", [
+        contract.address,
+        0,
+        batchData,
+        1,
+        0,
+        0,
+        0,
+        bytes.fromhex("0000000000000000000000000000000000000000"),
+        bytes.fromhex("0000000000000000000000000000000000000000"),
+        bytes.fromhex(execDataSignature),
+    ])
+    # pylint: enable=line-too-long
+
+    # Define top level transaction parameters
+    tx_params = {
+        "nonce": 0,
+        "maxFeePerGas": Web3.to_wei(4.41, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(2.03, "gwei"),
+        "gas": 109012,
+        "to": bytes.fromhex("19a4d6928cd3b32Fa4Eb3962bfF1Abca91EB7C52"),
+        "data": execTxData,
+        "chainId": 137
+    }
+
+    # Store transaction parameters on the device
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    # Top level transaction fields definition
+    L0_fields = [
+        Field(
+            1,
+            "From Safe",
+            ParamTrustedName(
+                1,
+                Value(
+                    1,
+                    TypeFamily.ADDRESS,
+                    container_path=ContainerPath.TO,
+                ),
+                [TrustedNameType.CONTRACT],
+                [TrustedNameSource.CAL],
+            )
+        ),
+        Field(
+            1,
+            "Execution signer",
+            ParamTrustedName(
+                1,
+                Value(
+                    1,
+                    TypeFamily.ADDRESS,
+                    container_path=ContainerPath.FROM,
+                ),
+                [TrustedNameType.ACCOUNT],
+                [TrustedNameSource.ENS, TrustedNameSource.UD, TrustedNameSource.FN],
+            )
+        ),
+        Field(
+            1,
+            "Transaction",
+            ParamCalldata(
+                1,
+                Value(
+                    1,
+                    TypeFamily.BYTES,
+                    data_path=DataPath(
+                        1,
+                        [
+                            PathTuple(2),
+                            PathRef(),
+                            PathLeaf(PathLeafType.DYNAMIC),
+                        ]
+                    ),
+                ),
+                Value(
+                    1,
+                    TypeFamily.ADDRESS,
+                    data_path=DataPath(
+                        1,
+                        [
+                            PathTuple(0),
+                            PathLeaf(PathLeafType.STATIC),
+                        ]
+                    ),
+                ),
+                amount=Value(
+                    1,
+                    TypeFamily.UINT,
+                    type_size=32,
+                    data_path=DataPath(
+                        1,
+                        [
+                            PathTuple(1),
+                            PathLeaf(PathLeafType.STATIC),
+                        ]
+                    ),
+                ),
+                spender=Value(
+                    1,
+                    TypeFamily.ADDRESS,
+                    container_path=ContainerPath.TO,
+                ),
+            )
+        ),
+        Field(
+            1,
+            "Gas amount",
+            ParamRaw(
+                1,
+                Value(
+                    1,
+                    TypeFamily.UINT,
+                    type_size=32,
+                    data_path=DataPath(
+                        1,
+                        [
+                            PathTuple(4),
+                            PathLeaf(PathLeafType.STATIC),
+                        ]
+                    ),
+                ),
+            )
+        ),
+        Field(
+            1,
+            "Gas price",
+            ParamTokenAmount(
+                1,
+                Value(
+                    1,
+                    TypeFamily.UINT,
+                    type_size=32,
+                    data_path=DataPath(
+                        1,
+                        [
+                            PathTuple(5),
+                            PathLeaf(PathLeafType.STATIC),
+                        ]
+                    ),
+                ),
+                Value(
+                    1,
+                    TypeFamily.ADDRESS,
+                    data_path=DataPath(
+                        1,
+                        [
+                            PathTuple(6),
+                            PathLeaf(PathLeafType.STATIC),
+                        ]
+                    ),
+                ),
+                [bytes.fromhex("0000000000000000000000000000000000000000")]
+            )
+        ),
+        Field(
+            1,
+            "Gas receiver",
+            ParamTrustedName(
+                1,
+                Value(
+                    1,
+                    TypeFamily.ADDRESS,
+                    data_path=DataPath(
+                        1,
+                        [
+                            PathTuple(8),
+                            PathLeaf(PathLeafType.STATIC),
+                        ]
+                    ),
+                ),
+                [TrustedNameType.ACCOUNT, TrustedNameType.CONTRACT, TrustedNameType.TOKEN],
+                [TrustedNameSource.CAL, TrustedNameSource.ENS, TrustedNameSource.UD, TrustedNameSource.FN],
+            )
+        ),
+    ]
+    # compute instructions hash
+    L0_hash = hashlib.sha3_256()
+    for field in L0_fields:
+        L0_hash.update(field.serialize())
+
+    # Define top level transaction info
+    L0_tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        bytes.fromhex("29fcb43b46531bca003ddc8fcb67ffe91900c762"),
+        get_selector_from_data(tx_params["data"]),
+        L0_hash.digest(),
+        "sign multisig operation",
+        creator_name="Safe",
+        creator_legal_name="Safe{Wallet}",
+        creator_url="https://app.safe.global/welcome",
+        contract_name="SafeL2",
+    )
+
+    # Intermediate execTransaction transaction fields definition
+    L1_fields = [
+            Field(
+                1,
+                "Transaction",
+                ParamCalldata(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.BYTES,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(0),
+                                PathRef(),
+                                PathArray(),
+                                PathRef(),
+                                PathTuple(2),
+                                PathRef(),
+                                PathLeaf(PathLeafType.DYNAMIC),
+                            ]
+                        ),
+                    ),
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(0),
+                                PathRef(),
+                                PathArray(),
+                                PathRef(),
+                                PathTuple(0),
+                                PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                    ),
+                    amount=Value(
+                        1,
+                        TypeFamily.UINT,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(0),
+                                PathRef(),
+                                PathArray(),
+                                PathRef(),
+                                PathTuple(1),
+                                PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                    ),
+                )
+            ),
+    ]
+    # compute instructions hash
+    L1_hash = hashlib.sha3_256()
+    for field in L1_fields:
+        L1_hash.update(field.serialize())
+
+    # Define intermediate execTransaction transaction info
+    L1_tx_info = [
+        TxInfo(
+            1,
+            tx_params["chainId"],
+            contract.address,
+            get_selector_from_data(batchData),
+            L1_hash.digest(),
+            "Batch transactions",
+            creator_name="Ledger",
+            creator_legal_name="Ledger Multisig",
+            creator_url="https://www.ledger.com",
+            contract_name="BatchExecutor",
+        ),
+    ]
+
+    # Lower batchExecute transaction fields definition
+    L2_fields = [
+            Field(
+                1,
+                "Amount",
+                ParamTokenAmount(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.UINT,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(1),
+                                PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                        type_size=32,
+                    ),
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        container_path=ContainerPath.TO,
+                    ),
+                )
+            ),
+            Field(
+                1,
+                "To",
+                ParamRaw(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        data_path=DataPath(
+                            1,
+                            [
+                                PathTuple(0),
+                                PathLeaf(PathLeafType.STATIC),
+                            ]
+                        ),
+                    )
+                )
+            ),
+    ]
+    # compute instructions hash
+    L2_hash = hashlib.sha3_256()
+    for sub_field in L2_fields:
+        L2_hash.update(sub_field.serialize())
+
+    # Define lower batchExecute transaction info
+    L2_tx_info = [
+        TxInfo(
+            1,
+            tx_params["chainId"],
+            tokens[0]["address"],
+            get_selector_from_data(tokenData0),
+            L2_hash.digest(),
+            "Send",
+            contract_name="USD_Coin",
+        ),
+        TxInfo(
+            1,
+            tx_params["chainId"],
+            tokens[1]["address"],
+            get_selector_from_data(tokenData1),
+            L2_hash.digest(),
+            "Send",
+            contract_name="USD_Coin",
+        )
+    ]
+
+    proxy_info = ProxyInfo(
+        ResponseParser.challenge(app_client.get_challenge().data),
+        tx_params["to"],
+        L0_tx_info.chain_id,
+        L0_tx_info.contract_addr,
+    )
+
+    # Send Proxy information
+    app_client.provide_proxy_info(proxy_info.serialize())
+
+    # Send Network information (name, ticker, icon)
+    name, ticker, icon = get_network_config(backend.device.type, tx_params["chainId"])
+    if name and ticker:
+        app_client.provide_network_information(DynamicNetwork(name, ticker, tx_params["chainId"], icon))
+
+    # Send top level transaction info
+    app_client.provide_transaction_info(L0_tx_info.serialize())
+
+    # Send all fields and subfields info
+    for f0 in L0_fields:
+        # Send top level fields description
+        app_client.provide_transaction_field_desc(f0.serialize())
+        if f0.param.type == ParamType.CALLDATA:
+            # Intermediate execTransaction description
+            for _, i1 in enumerate(L1_tx_info):
+                # Send intermediate execTransaction info description
+                app_client.provide_transaction_info(i1.serialize())
+                for f1 in L1_fields:
+                    # Send intermediate execTransaction fields description
+                    app_client.provide_transaction_field_desc(f1.serialize())
+
+                # Lower batchExecute description
+                for idx, i2 in enumerate(L2_tx_info):
+                    # Send lower batchExecute info description
+                    app_client.provide_transaction_info(i2.serialize())
+                    app_client.provide_token_metadata(tokens[idx]["ticker"],
+                                                      tokens[idx]["address"],
+                                                      tokens[idx]["decimals"],
+                                                      tx_params["chainId"])
+                    for f2 in L2_fields:
+                        # Send lower batchExecute fields description
+                        app_client.provide_transaction_field_desc(f2.serialize())
+
+    # Send the full transaction
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve(test_name=test_name)

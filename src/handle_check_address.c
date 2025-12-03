@@ -12,7 +12,7 @@ uint16_t handle_check_address(check_address_parameters_t* params, chain_config_t
     PRINTF("Inside handle_check_address\n");
     if (params->address_to_check == 0) {
         PRINTF("Address to check == 0\n");
-        return APDU_RESPONSE_OK;
+        return SWO_SUCCESS;
     }
 
     char address[51];
@@ -25,7 +25,7 @@ uint16_t handle_check_address(check_address_parameters_t* params, chain_config_t
                         bip32.path,
                         bip32.length) == false) {
         PRINTF("Invalid path\n");
-        return APDU_RESPONSE_INVALID_DATA;
+        return SWO_INCORRECT_DATA;
     }
     CX_CHECK(get_public_key_string(&bip32, raw_pubkey, address, NULL, chain_config->chainId));
 
@@ -40,7 +40,7 @@ uint16_t handle_check_address(check_address_parameters_t* params, chain_config_t
         PRINTF("Addresses match\n");
         params->result = 1;
     }
-    error = APDU_RESPONSE_OK;
+    error = SWO_SUCCESS;
 end:
     return error;
 }

@@ -32,16 +32,17 @@ void str_cpy_explicit_trunc(const char *src, size_t src_size, char *dst, size_t 
 }
 
 /**
- * @brief Check the name is printable.
+ * @brief Checks if a string contains only printable ASCII characters
  *
- * @param[in] data buffer received
- * @param[in] name Name to check
- * @param[in] len Length of the name
- * @return True/False
+ * This function determines if all characters in the provided string are within the
+ * range of displayable ASCII characters (from 0x20 to 0x7E).
+ *
+ * @param[in] str A pointer to the string to be checked
+ * @param[in] len The length of the string to be checked
  */
-bool check_name(const uint8_t *name, uint16_t len) {
-    for (uint16_t i = 0; i < len; i++) {
-        if (!isprint(name[i])) {
+bool is_printable(const char *str, size_t len) {
+    for (size_t i = 0; i < len; i++) {
+        if (isprint((int) str[i]) == 0) {
             return false;
         }
     }

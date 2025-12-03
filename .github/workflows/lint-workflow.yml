@@ -23,10 +23,3 @@ jobs:
     with:
       source: './'
       extensions: 'h,c'
-
-  yamllint:
-    name: Check yaml files
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: yamllint .

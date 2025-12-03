@@ -80,7 +80,8 @@ void reset_app_context(void) {
     appState = APP_STATE_IDLE;
     G_called_from_swap = false;
     G_swap_response_ready = false;
-    pluginType = OLD_INTERNAL;
+    G_swap_checked = false;
+    pluginType = PLUGIN_TYPE_NONE;
 #ifdef HAVE_ETH2
     eth2WithdrawalIndex = 0;
 #endif
@@ -149,7 +150,7 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
     uint16_t sw = APDU_NO_RESPONSE;
 
     if (cmd->cla != CLA) {
-        return APDU_RESPONSE_INVALID_CLA;
+        return SWO_INVALID_CLA;
     }
 
     switch (cmd->ins) {
@@ -201,7 +202,7 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
                     sw = handle_eip712_sign(cmd->data, cmd->lc, flags);
                     break;
                 default:
-                    sw = APDU_RESPONSE_INVALID_P1_P2;
+                    sw = SWO_WRONG_P1_P2;
             }
             break;
 
@@ -228,11 +229,11 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             sw = handle_eip712_filtering(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags);
             break;
 
-        case INS_ENS_GET_CHALLENGE:
+        case INS_GET_CHALLENGE:
             sw = handle_get_challenge(tx);
             break;
 
-        case INS_ENS_PROVIDE_INFO:
+        case INS_PROVIDE_TRUSTED_NAME:
             sw = handle_trusted_name(cmd->p1, cmd->data, cmd->lc);
             break;
 
@@ -273,7 +274,7 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
 #endif
 
         default:
-            sw = APDU_RESPONSE_INVALID_INS;
+            sw = SWO_INVALID_INS;
             break;
     }
     return sw;
@@ -300,7 +301,7 @@ void app_main(void) {
 
                 if (apdu_parser(&cmd, G_io_apdu_buffer, rx) == false) {
                     PRINTF("=> BAD LENGTH: %d\n", rx);
-                    sw = APDU_RESPONSE_WRONG_DATA_LENGTH;
+                    sw = SWO_WRONG_DATA_LENGTH;
                 } else {
                     PRINTF("=> CLA=%02x, INS=%02x (%s), P1=%02x, P2=%02x, LC=%02x, CDATA=%.*h\n",
                            cmd.cla,
@@ -336,10 +337,10 @@ void app_main(void) {
             continue;
         }
         quit_now = G_called_from_swap && G_swap_response_ready;
-        if ((sw != APDU_RESPONSE_OK) && (sw != APDU_RESPONSE_CMD_CODE_NOT_SUPPORTED)) {
+        if ((sw != SWO_SUCCESS) && (sw != SWO_COMMAND_CODE_NOT_SUPPORTED)) {
             if ((sw & 0xF000) != 0x6000) {
                 // Internal error
-                sw = APDU_RESPONSE_INTERNAL_ERROR | (sw & 0x7FF);
+                sw = SWO_NOT_SUPPORTED_ERROR_NO_INFO | (sw & 0x7FF);
             }
             reset_app_context();
             flags &= ~IO_ASYNCH_REPLY;
@@ -434,7 +435,7 @@ __attribute__((noreturn)) void library_main(eth_libargs_t *args) {
     PRINTF("Inside a library \n");
     switch (args->command) {
         case CHECK_ADDRESS:
-            if (handle_check_address(args->check_address, args->chain_config) != APDU_RESPONSE_OK) {
+            if (handle_check_address(args->check_address, args->chain_config) != SWO_SUCCESS) {
                 // Failed, non recoverable
                 app_quit();
             }
@@ -450,7 +451,7 @@ __attribute__((noreturn)) void library_main(eth_libargs_t *args) {
             break;
         case GET_PRINTABLE_AMOUNT:
             if (handle_get_printable_amount(args->get_printable_amount, args->chain_config) !=
-                APDU_RESPONSE_OK) {
+                SWO_SUCCESS) {
                 // Failed, non recoverable
                 app_quit();
             }

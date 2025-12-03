@@ -25,6 +25,9 @@ class TrustedNameType(IntEnum):
     ACCOUNT = 0x01
     CONTRACT = 0x02
     NFT = 0x03
+    TOKEN = 0x04
+    WALLET = 0x05
+    CONTEXT_ADDRESS = 0x06
 
 
 class TrustedNameSource(IntEnum):
@@ -34,6 +37,8 @@ class TrustedNameSource(IntEnum):
     UD = 0x03
     FN = 0x04
     DNS = 0x05
+    DYN_RESOLVER = 0x06
+    MULTISIG_ADDRESS_BOOK = 0x07
 
 
 class EIP712CalldataParamPresence(IntEnum):
@@ -338,10 +343,10 @@ class EthAppClient:
                    algo_id: int = 1,
                    sig: Optional[bytes] = None) -> RAPDU:
 
-        # Send ledgerPKI certificate
-        self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_PLUGIN_METADATA)
-
         if sig is None:
+            # Send ledgerPKI certificate
+            self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_PLUGIN_METADATA)
+
             # Temporarily get a command with an empty signature to extract the payload and
             # compute the signature on it
             tmp = self._cmd_builder.set_plugin(type_,
@@ -375,10 +380,10 @@ class EthAppClient:
                              algo_id: int = 1,
                              sig: Optional[bytes] = None) -> RAPDU:
 
-        # Send ledgerPKI certificate
-        self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_NFT_METADATA)
-
         if sig is None:
+            # Send ledgerPKI certificate
+            self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_NFT_METADATA)
+
             # Temporarily get a command with an empty signature to extract the payload and
             # compute the signature on it
             tmp = self._cmd_builder.provide_nft_information(type_,
@@ -406,10 +411,10 @@ class EthAppClient:
                             method_selelector: bytes,
                             sig: Optional[bytes] = None) -> RAPDU:
 
-        # Send ledgerPKI certificate
-        self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_COIN_META)
-
         if sig is None:
+            # Send ledgerPKI certificate
+            self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_COIN_META)
+
             # Temporarily get a command with an empty signature to extract the payload and
             # compute the signature on it
             tmp = self._cmd_builder.set_external_plugin(plugin_name, contract_address, method_selelector, bytes())
@@ -434,10 +439,10 @@ class EthAppClient:
                                chain_id: int,
                                sig: Optional[bytes] = None) -> RAPDU:
 
-        # Send ledgerPKI certificate
-        self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_COIN_META)
-
         if sig is None:
+            # Send ledgerPKI certificate
+            self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_COIN_META)
+
             # Temporarily get a command with an empty signature to extract the payload and
             # compute the signature on it
             tmp = self._cmd_builder.provide_erc20_token_information(ticker,

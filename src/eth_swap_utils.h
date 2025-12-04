@@ -25,6 +25,17 @@
 
 extern bool G_swap_checked;
 
+typedef struct {
+    char ticker[MAX_TICKER_LEN];
+    uint8_t decimals;
+} asset_info_t;
+
+typedef struct {
+    asset_info_t swapped_asset_info;
+    asset_info_t fees_asset_info;
+    uint64_t chain_id;
+} swap_context_t;
+
 typedef struct eth_libargs_s {
     unsigned int id;
     unsigned int command;
@@ -37,11 +48,13 @@ typedef struct eth_libargs_s {
     };
 } eth_libargs_t;
 
-bool parse_swap_config(const uint8_t *config,
-                       uint8_t config_len,
-                       char *ticker,
-                       uint8_t *decimals,
-                       uint64_t *chain_id);
+bool parse_swap_config(const uint8_t *config, uint8_t config_len, swap_context_t *context);
+void get_asset_info_on_network(bool is_fee,
+                               swap_context_t *context,
+                               chain_config_t *config,
+                               char **ticker,
+                               uint8_t *decimals);
+
 bool swap_check_destination(const char *destination);
 bool swap_check_amount(const char *amount);
 bool swap_check_fee(const char *fee);

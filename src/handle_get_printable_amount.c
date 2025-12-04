@@ -1,13 +1,12 @@
 #include "os.h"
 #include "eth_swap_utils.h"
-#include "network.h"
 #include "apdu_constants.h"
 
 uint16_t handle_get_printable_amount(get_printable_amount_parameters_t* params,
                                      chain_config_t* config) {
-    char ticker[MAX_TICKER_LEN];
-    uint8_t decimals;
-    uint64_t chain_id = 0;
+    swap_context_t context = {0};
+    char* ticker = NULL;
+    uint8_t decimals = 0;
 
     memset(params->printable_amount, 0, sizeof(params->printable_amount));
     if (params->amount_length > 32) {
@@ -17,21 +16,12 @@ uint16_t handle_get_printable_amount(get_printable_amount_parameters_t* params,
 
     if (!parse_swap_config(params->coin_configuration,
                            params->coin_configuration_length,
-                           ticker,
-                           &decimals,
-                           &chain_id)) {
+                           &context)) {
         PRINTF("Error while parsing config\n");
         return SWO_INCORRECT_DATA;
     }
     // If the amount is a fee, the ticker should be the chain's native currency
-    if (params->is_fee) {
-        // fallback mechanism in the absence of chain ID in swap config
-        if (chain_id == 0) {
-            chain_id = config->chainId;
-        }
-        strlcpy(ticker, get_displayable_ticker(&chain_id, config, false), sizeof(ticker));
-        decimals = WEI_TO_ETHER;
-    }
+    get_asset_info_on_network(params->is_fee, &context, config, &ticker, &decimals);
 
     if (!amountToString(params->amount,
                         params->amount_length,

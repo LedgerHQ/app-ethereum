@@ -7,7 +7,7 @@ from enum import IntEnum
 from typing import Optional
 from ragger.bip import pack_derivation_path
 
-from .eip712 import EIP712FieldType
+from .eip712.struct import EIP712FieldType, EIP712TypeDescOffset
 
 
 class InsType(IntEnum):
@@ -70,6 +70,9 @@ class P2Type(IntEnum):
     FILTERING_RAW = 0xff
     NETWORK_CONFIG = 0x00
     NETWORK_ICON = 0x01
+    SIGN_PROCESS_START = 0x00
+    SIGN_STORE = 0x01
+    SIGN_START = 0x02
 
 
 class CommandBuilder:
@@ -113,9 +116,9 @@ class CommandBuilder:
                                             key_name: str) -> bytes:
         data = bytearray()
         typedesc = 0
-        typedesc |= (len(array_levels) > 0) << 7
-        typedesc |= (type_size is not None) << 6
-        typedesc |= field_type
+        typedesc |= (len(array_levels) > 0) << EIP712TypeDescOffset.ARRAY
+        typedesc |= (type_size is not None) << EIP712TypeDescOffset.SIZE
+        typedesc |= field_type << EIP712TypeDescOffset.TYPE
         data.append(typedesc)
         if field_type == EIP712FieldType.CUSTOM:
             data.append(len(type_name))

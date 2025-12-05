@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Decode APDU replay file to extract transaction details."""
 
-from enum import IntEnum
 from pathlib import Path
 import argparse
 import json
@@ -13,148 +12,11 @@ import requests
 from eth_utils import to_int
 from eth_abi import decode
 
-
-# Copied from ethereum python client
-class InsType(IntEnum):
-    GET_PUBLIC_ADDR = 0x02
-    GET_ETH2_PUBLIC_ADDR = 0x0e
-    SIGN = 0x04
-    GET_APP_CONFIGURATION = 0x06
-    PERSONAL_SIGN = 0x08
-    PROVIDE_ERC20_TOKEN_INFORMATION = 0x0a
-    EXTERNAL_PLUGIN_SETUP = 0x12
-    PROVIDE_NFT_INFORMATION = 0x14
-    SET_PLUGIN = 0x16
-    PERFORM_PRIVACY_OPERATION = 0x18
-    EIP712_SEND_STRUCT_DEF = 0x1a
-    EIP712_SEND_STRUCT_IMPL = 0x1c
-    EIP712_SEND_FILTERING = 0x1e
-    EIP712_SIGN = 0x0c
-    GET_CHALLENGE = 0x20
-    PROVIDE_TRUSTED_NAME = 0x22
-    PROVIDE_ENUM_VALUE = 0x24
-    PROVIDE_TRANSACTION_INFO = 0x26
-    PROVIDE_TRANSACTION_FIELD_DESC = 0x28
-    PROVIDE_PROXY_INFO = 0x2a
-    PROVIDE_NETWORK_INFORMATION = 0x30
-    PROVIDE_TX_SIMULATION = 0x32
-    SIGN_EIP7702_AUTHORIZATION = 0x34
-    PROVIDE_SAFE_ACCOUNT = 0x36
-
-class P1Type(IntEnum):
-    COMPLETE_SEND = 0x00
-    PARTIAL_SEND = 0x01
-    SIGN_FIRST_CHUNK = 0x00
-    SIGN_SUBSQT_CHUNK = 0x80
-    FIRST_CHUNK = 0x01
-    FOLLOWING_CHUNK = 0x00
-
-class P2Type(IntEnum):
-    # Transaction
-    SIGN_PROCESS_START = 0x00
-    SIGN_STORE = 0x01
-    SIGN_START = 0x02
-    # EIP712
-    V0_IMPLEM = 0x00
-    STRUCT_NAME = 0x00
-    STRUCT_FIELD = 0xff
-    ARRAY = 0x0f
-    # EIP712 Filtering
-    FILTERING_ACTIVATE = 0x00
-    FILTERING_DISCARDED_PATH = 0x01
-    FILTERING_MESSAGE_INFO = 0x0f
-    FILTERING_CALLDATA_SPENDER = 0xf4
-    FILTERING_CALLDATA_AMOUNT = 0xf5
-    FILTERING_CALLDATA_SELECTOR = 0xf6
-    FILTERING_CALLDATA_CHAIN_ID = 0xf7
-    FILTERING_CALLDATA_CALLEE = 0xf8
-    FILTERING_CALLDATA_VALUE = 0xf9
-    FILTERING_CALLDATA_INFO = 0xfa
-    FILTERING_TRUSTED_NAME = 0xfb
-    FILTERING_DATETIME = 0xfc
-    FILTERING_AMOUNT_JOIN_TOKEN = 0xfd
-    FILTERING_AMOUNT_JOIN_VALUE = 0xfe
-    FILTERING_RAW = 0xff
-
-
-class StructFieldType(IntEnum):
-    CUSTOM = 0x00
-    INT = 0x01
-    UINT = 0x02
-    ADDRESS = 0x03
-    BOOL = 0x04
-    STRING = 0x05
-    FIXED_SIZE_BYTES = 0x06
-    DYNAMIC_SIZE_BYTES = 0x07
-
-class StructTypeDescMask(IntEnum):
-    ARRAY = 0x80
-    SIZE = 0x40
-    TYPE = 0x0F
-
-
-class TagTransactionInfo(IntEnum):
-    VERSION = 0x00
-    CHAIN_ID = 0x01
-    CONTRACT_ADDR = 0x02
-    SELECTOR = 0x03
-    FIELD_HASH = 0x04
-    OPERATION_TYPE = 0x05
-    CREATOR_NAME = 0x06
-    CREATOR_LEGAL_NAME = 0x07
-    CREATOR_URL = 0x08
-    CONTRACT_NAME = 0x09
-    DEPLOY_DATE = 0x0a
-    SIGNATURE = 0xff
-
-class TagTransactionField(IntEnum):
-    VERSION = 0x00
-    NAME = 0x01
-    PARAM_TYPE = 0x02
-    PARAM_XX = 0x03
-
-class TagEnumValue(IntEnum):
-    VERSION = 0x00
-    CHAIN_ID = 0x01
-    CONTRACT_ADDR = 0x02
-    SELECTOR = 0x03
-    ID = 0x04
-    VALUE = 0x05
-    NAME = 0x06
-    SIGNATURE = 0xff
-
-class TLVFieldTag(IntEnum):
-    STRUCT_TYPE = 0x01
-    STRUCT_VERSION = 0x02
-    NOT_VALID_AFTER = 0x10
-    CHALLENGE = 0x12
-    SIGNER_KEY_ID = 0x13
-    SIGNER_ALGO = 0x14
-    DER_SIGNATURE = 0x15
-    TRUSTED_NAME = 0x20
-    COIN_TYPE = 0x21
-    ADDRESS = 0x22
-    CHAIN_ID = 0x23
-    TICKER = 0x24
-    TX_HASH = 0x27
-    DOMAIN_HASH = 0x28
-    SELECTOR = 0x41
-    IMPL_ADDRESS = 0x42
-    DELEGATION_TYPE = 0x43
-    BLOCKCHAIN_FAMILY = 0x51
-    NETWORK_NAME = 0x52
-    NETWORK_ICON_HASH = 0x53
-    TRUSTED_NAME_TYPE = 0x70
-    TRUSTED_NAME_SOURCE = 0x71
-    TRUSTED_NAME_NFT_ID = 0x72
-    TX_CHECKS_NORMALIZED_RISK = 0x80
-    TX_CHECKS_NORMALIZED_CATEGORY = 0x81
-    TX_CHECKS_PROVIDER_MSG = 0x82
-    TX_CHECKS_TINY_URL = 0x83
-    TX_CHECKS_SIMULATION_TYPE = 0x84
-    THRESHOLD = 0xa0
-    SIGNERS_COUNT = 0xa1
-    LESM_ROLE = 0xa2
+from client.command_builder import InsType, P1Type, P2Type
+from client.tlv import FieldTag as TLVFieldTag
+from client.gcs import TxInfoTag as TagTransactionInfo, FieldTag as TagTransactionField
+from client.enum_value import Tag as TagEnumValue
+from client.eip712.struct import EIP712FieldType as StructFieldType, EIP712TypeDescMask as StructTypeDescMask
 
 
 APP_CLA: int = 0xE0
@@ -711,7 +573,7 @@ def decode_generic_tlv(tag_enum_class: type,
             elif tag in string_tags:
                 try:
                     decoded_value = value.decode('utf-8')
-                except:
+                except UnicodeDecodeError:
                     decoded_value = f"0x{value.hex()}"
             elif tag in selector_tags:
                 decoded_value = f"0x{value.hex()} - {decode_function_selector(value.hex())}"
@@ -984,7 +846,7 @@ def decode_struct_information_tlv() -> None:
     ]
     skip_tags = [
         TagTransactionInfo.SIGNATURE,
-        TagTransactionInfo.FIELD_HASH,
+        TagTransactionInfo.FIELDS_HASH,
     ]
     number_tags = [
         TagTransactionInfo.CHAIN_ID,

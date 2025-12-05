@@ -3,7 +3,6 @@
 
 from pathlib import Path
 import argparse
-import json
 import logging
 from typing import Callable, Optional
 import rlp
@@ -11,6 +10,8 @@ import re
 import requests
 from eth_utils import to_int
 from eth_abi import decode
+
+from generate_selector_cache import gen_selector_cache
 
 from client.command_builder import InsType, P1Type, P2Type
 from client.tlv import FieldTag as TLVFieldTag
@@ -94,17 +95,8 @@ def format_bip32_path(path_indices: list) -> str:
 def load_selector_cache() -> None:
     """Load function selector cache from JSON file."""
     global LOCAL_SELECTORS
-
-    try:
-        with open(CACHE_FILE, encoding='utf-8') as f:
-            LOCAL_SELECTORS = json.load(f)
-        logger.debug(f"Loaded {len(LOCAL_SELECTORS)} selectors from cache")
-        return
-    except FileNotFoundError:
-        logger.warning(f"Selector cache file not found: {CACHE_FILE}")
-        logger.warning("Run generate_selector_cache.py to create the cache")
-    except Exception as e:
-        logger.error(f"Failed to load selector cache: {e}")
+    LOCAL_SELECTORS = gen_selector_cache(logger=logger)
+    assert LOCAL_SELECTORS
 
 
 def decode_function_selector(selector: str) -> str:

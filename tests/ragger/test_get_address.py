@@ -28,24 +28,12 @@ def chain_fixture(request) -> Optional[int]:
     return request.param
 
 
-@pytest.mark.parametrize(
-    "path, suffix",
-    [
-        ("m/44'/60'/0'/0/0", "60"),
-        ("m/44'/700'/1'/0/0", "700")
-    ],
-)
-def test_get_pk_rejected(scenario_navigator: NavigateWithScenario,
-                         test_name: str,
-                         path: str,
-                         suffix: str):
-    backend = scenario_navigator.backend
-    app_client = EthAppClient(backend)
+def test_get_pk_rejected(scenario_navigator: NavigateWithScenario):
+    app_client = EthAppClient(scenario_navigator.backend)
 
-    test_name += f"_{suffix}"
     with pytest.raises(ExceptionRAPDU) as e:
-        with app_client.get_public_addr(bip32_path=path):
-            scenario_navigator.address_review_reject(test_name=test_name)
+        with app_client.get_public_addr():
+            scenario_navigator.address_review_reject()
 
     assert e.value.status == StatusWord.CONDITION_NOT_SATISFIED
 

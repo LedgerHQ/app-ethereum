@@ -142,10 +142,7 @@ def test_tx_simulation_enabled(backend: BackendInterface, navigator: Navigator) 
     __handle_simulation(app_client, simu_params)
 
 
-def test_tx_simulation_sign(navigator: Navigator,
-                            scenario_navigator: NavigateWithScenario,
-                            test_name: str,
-                            config: str) -> None:
+def test_tx_simulation_sign(scenario_navigator: NavigateWithScenario, config: str) -> None:
     """Test the TX Simulation APDU with a simple transaction"""
 
     backend = scenario_navigator.backend
@@ -155,7 +152,7 @@ def test_tx_simulation_sign(navigator: Navigator,
     if device.is_nano:
         pytest.skip("Not yet supported on Nano")
 
-    __common_setting_handling(device, navigator, app_client, True)
+    __common_setting_handling(device, scenario_navigator.navigator, app_client, True)
 
     tx_params: dict = {
         "nonce": 21,
@@ -174,13 +171,11 @@ def test_tx_simulation_sign(navigator: Navigator,
 
     sign_tx_common(scenario_navigator,
                    tx_params,
-                   test_name + f"_{config}",
+                   scenario_navigator.test_name + f"_{config}",
                    with_simu=config not in ("benign", "issue"))
 
 
-def test_tx_simulation_no_simu(navigator: Navigator,
-                               scenario_navigator: NavigateWithScenario,
-                               test_name: str) -> None:
+def test_tx_simulation_no_simu(scenario_navigator: NavigateWithScenario) -> None:
     """Test the TX Transaction APDU without TX Simulation APDU
         but with the TRANSACTION_CHECKS setting enabled"""
 
@@ -191,7 +186,7 @@ def test_tx_simulation_no_simu(navigator: Navigator,
     if device.is_nano:
         pytest.skip("Not yet supported on Nano")
 
-    __common_setting_handling(device, navigator, app_client, True)
+    __common_setting_handling(device, scenario_navigator.navigator, app_client, True)
 
     tx_params: dict = {
         "nonce": 21,
@@ -204,13 +199,11 @@ def test_tx_simulation_no_simu(navigator: Navigator,
 
     sign_tx_common(scenario_navigator,
                    tx_params,
-                   test_name,
+                   scenario_navigator.test_name,
                    with_simu=False)
 
 
-def test_tx_simulation_nft(navigator: Navigator,
-                           scenario_navigator: NavigateWithScenario,
-                           test_name: str) -> None:
+def test_tx_simulation_nft(scenario_navigator: NavigateWithScenario) -> None:
     """Test the TX Simulation APDU with a Plugin & NFT transaction"""
 
     backend = scenario_navigator.backend
@@ -220,12 +213,12 @@ def test_tx_simulation_nft(navigator: Navigator,
     if device.is_nano:
         pytest.skip("Not yet supported on Nano")
 
-    __common_setting_handling(device, navigator, app_client, True)
+    __common_setting_handling(device, scenario_navigator.navigator, app_client, True)
 
     simu_params = __get_simu_params("warning", SimuType.TRANSACTION)
 
     common_test_nft(scenario_navigator,
-                    test_name,
+                    scenario_navigator.test_name,
                     collecs_721[0],
                     actions_721[0],
                     False,
@@ -233,13 +226,11 @@ def test_tx_simulation_nft(navigator: Navigator,
                     simu_params)
 
 
-def test_tx_simulation_blind_sign(navigator: Navigator,
-                                  scenario_navigator: NavigateWithScenario,
-                                  test_name: str,
-                                  config: str) -> None:
+def test_tx_simulation_blind_sign(scenario_navigator: NavigateWithScenario, config: str) -> None:
     """Test the TX Simulation APDU with a Blind Sign transaction"""
 
     backend = scenario_navigator.backend
+    navigator = scenario_navigator.navigator
     app_client = EthAppClient(backend)
     device = backend.device
 
@@ -255,16 +246,13 @@ def test_tx_simulation_blind_sign(navigator: Navigator,
 
     blind_sign(navigator,
                scenario_navigator,
-               test_name + f"_{config}",
+               scenario_navigator.test_name + f"_{config}",
                False,
                0.0,
                simu_params)
 
 
-def test_tx_simulation_eip191(navigator: Navigator,
-                              scenario_navigator: NavigateWithScenario,
-                              test_name: str,
-                              config: str) -> None:
+def test_tx_simulation_eip191(scenario_navigator: NavigateWithScenario, config: str) -> None:
     """Test the TX Simulation APDU with a Message Streaming based on EIP191"""
 
     # TODO Re-activate when partners are ready for eip191
@@ -279,8 +267,9 @@ def test_tx_simulation_eip191(navigator: Navigator,
     if config in ("benign", "warning"):
         pytest.skip("Skipping useless tests")
 
-    __common_setting_handling(device, navigator, app_client, True)
+    __common_setting_handling(device, scenario_navigator.navigator, app_client, True)
 
+    test_name = scenario_navigator.test_name
     simu_params = __get_simu_params(config, SimuType.PERSONAL_MESSAGE)
     msg = "Example `personal_sign` message with TX Simulation"
     if config == "issue":
@@ -294,7 +283,7 @@ def test_tx_simulation_eip191(navigator: Navigator,
                 simu_params)
 
 
-def test_tx_simulation_eip712(scenario_navigator: NavigateWithScenario, test_name: str) -> None:
+def test_tx_simulation_eip712(scenario_navigator: NavigateWithScenario) -> None:
     """Test the TX Simulation APDU with a Message Streaming based on EIP712"""
 
     app_client = EthAppClient(scenario_navigator.backend)
@@ -306,9 +295,7 @@ def test_tx_simulation_eip712(scenario_navigator: NavigateWithScenario, test_nam
 
     simu_params = __get_simu_params("threat", SimuType.TYPED_DATA)
 
-    sign_eip712(scenario_navigator,
-                test_name,
-                simu_params)
+    sign_eip712(scenario_navigator, simu_params)
 
 
 def test_tx_simulation_eip712_v0(scenario_navigator: NavigateWithScenario) -> None:
@@ -327,8 +314,7 @@ def test_tx_simulation_eip712_v0(scenario_navigator: NavigateWithScenario) -> No
 
 
 def test_tx_simulation_gcs(navigator: Navigator,
-                           scenario_navigator: NavigateWithScenario,
-                           test_name: str) -> None:
+                           scenario_navigator: NavigateWithScenario) -> None:
     """Test the TX Simulation APDU with a Message Streaming based on EIP712"""
 
     backend = scenario_navigator.backend
@@ -342,4 +328,4 @@ def test_tx_simulation_gcs(navigator: Navigator,
 
     simu_params = __get_simu_params("warning", SimuType.TRANSACTION)
 
-    sign_gcs_poap(scenario_navigator, test_name, simu_params)
+    sign_gcs_poap(scenario_navigator, simu_params)

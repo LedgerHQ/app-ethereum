@@ -7,6 +7,21 @@ from .keychain import sign_data, Key
 from .client import TrustedNameType, TrustedNameSource
 
 
+class TxInfoTag(IntEnum):
+    VERSION = 0x00
+    CHAIN_ID = 0x01
+    CONTRACT_ADDR = 0x02
+    SELECTOR = 0x03
+    FIELDS_HASH = 0x04
+    OPERATION_TYPE = 0x05
+    CREATOR_NAME = 0x06
+    CREATOR_LEGAL_NAME = 0x07
+    CREATOR_URL = 0x08
+    CONTRACT_NAME = 0x09
+    DEPLOY_DATE = 0x0a
+    SIGNATURE = 0xff
+
+
 class TxInfo(TlvSerializable):
     version: int
     chain_id: int
@@ -49,26 +64,26 @@ class TxInfo(TlvSerializable):
 
     def serialize(self) -> bytes:
         payload = bytearray()
-        payload += self.serialize_field(0x00, self.version)
-        payload += self.serialize_field(0x01, self.chain_id)
-        payload += self.serialize_field(0x02, self.contract_addr)
-        payload += self.serialize_field(0x03, self.selector)
-        payload += self.serialize_field(0x04, self.fields_hash)
-        payload += self.serialize_field(0x05, self.operation_type)
+        payload += self.serialize_field(TxInfoTag.VERSION, self.version)
+        payload += self.serialize_field(TxInfoTag.CHAIN_ID, self.chain_id)
+        payload += self.serialize_field(TxInfoTag.CONTRACT_ADDR, self.contract_addr)
+        payload += self.serialize_field(TxInfoTag.SELECTOR, self.selector)
+        payload += self.serialize_field(TxInfoTag.FIELDS_HASH, self.fields_hash)
+        payload += self.serialize_field(TxInfoTag.OPERATION_TYPE, self.operation_type)
         if self.creator_name is not None:
-            payload += self.serialize_field(0x06, self.creator_name)
+            payload += self.serialize_field(TxInfoTag.CREATOR_NAME, self.creator_name)
         if self.creator_legal_name is not None:
-            payload += self.serialize_field(0x07, self.creator_legal_name)
+            payload += self.serialize_field(TxInfoTag.CREATOR_LEGAL_NAME, self.creator_legal_name)
         if self.creator_url is not None:
-            payload += self.serialize_field(0x08, self.creator_url)
+            payload += self.serialize_field(TxInfoTag.CREATOR_URL, self.creator_url)
         if self.contract_name is not None:
-            payload += self.serialize_field(0x09, self.contract_name)
+            payload += self.serialize_field(TxInfoTag.CONTRACT_NAME, self.contract_name)
         if self.deploy_date is not None:
-            payload += self.serialize_field(0x0a, self.deploy_date)
+            payload += self.serialize_field(TxInfoTag.DEPLOY_DATE, self.deploy_date)
         signature = self.signature
         if signature is None:
             signature = sign_data(Key.CALLDATA, payload)
-        payload += self.serialize_field(0xff, signature)
+        payload += self.serialize_field(TxInfoTag.SIGNATURE, signature)
         return payload
 
 
@@ -529,6 +544,13 @@ class ParamToken(FieldParam):
         return payload
 
 
+class FieldTag(IntEnum):
+    VERSION = 0x00
+    NAME = 0x01
+    PARAM_TYPE = 0x02
+    PARAM = 0x03
+
+
 class Field(TlvSerializable):
     version: int
     name: str
@@ -541,8 +563,8 @@ class Field(TlvSerializable):
 
     def serialize(self) -> bytes:
         payload = bytearray()
-        payload += self.serialize_field(0x00, self.version)
-        payload += self.serialize_field(0x01, self.name)
-        payload += self.serialize_field(0x02, self.param.type)
-        payload += self.serialize_field(0x03, self.param.serialize())
+        payload += self.serialize_field(FieldTag.VERSION, self.version)
+        payload += self.serialize_field(FieldTag.NAME, self.name)
+        payload += self.serialize_field(FieldTag.PARAM_TYPE, self.param.type)
+        payload += self.serialize_field(FieldTag.PARAM, self.param.serialize())
         return payload

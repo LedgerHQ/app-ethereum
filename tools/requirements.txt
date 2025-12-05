@@ -1,0 +1,5 @@
+eth_abi
+eth_utils
+eth-hash[pycryptodome]
+requests
+rlp

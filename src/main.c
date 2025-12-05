@@ -435,10 +435,7 @@ __attribute__((noreturn)) void library_main(eth_libargs_t *args) {
     PRINTF("Inside a library \n");
     switch (args->command) {
         case CHECK_ADDRESS:
-            if (handle_check_address(args->check_address, args->chain_config) != SWO_SUCCESS) {
-                // Failed, non recoverable
-                app_quit();
-            }
+            handle_check_address(args->check_address, args->chain_config);
             break;
         case SIGN_TRANSACTION:
             if (copy_transaction_parameters(args->create_transaction, args->chain_config)) {
@@ -446,15 +443,9 @@ __attribute__((noreturn)) void library_main(eth_libargs_t *args) {
                 // never returns
                 handle_swap_sign_transaction(args->chain_config);
             }
-            // Failed to copy, non recoverable
-            app_quit();
             break;
         case GET_PRINTABLE_AMOUNT:
-            if (handle_get_printable_amount(args->get_printable_amount, args->chain_config) !=
-                SWO_SUCCESS) {
-                // Failed, non recoverable
-                app_quit();
-            }
+            handle_get_printable_amount(args->get_printable_amount, args->chain_config);
             break;
         default:
             break;

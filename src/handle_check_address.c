@@ -5,19 +5,18 @@
 
 #define ZERO(x) explicit_bzero(&x, sizeof(x))
 
-uint16_t handle_check_address(check_address_parameters_t* params, chain_config_t* chain_config) {
+void handle_check_address(check_address_parameters_t* params, chain_config_t* chain_config) {
     params->result = 0;
     PRINTF("Params on the address %d\n", (unsigned int) params);
     PRINTF("Address to check %s\n", params->address_to_check);
     PRINTF("Inside handle_check_address\n");
     if (params->address_to_check == 0) {
         PRINTF("Address to check == 0\n");
-        return SWO_SUCCESS;
+        return;
     }
 
     char address[51];
     uint8_t raw_pubkey[65];
-    cx_err_t error = CX_INTERNAL_ERROR;
     bip32_path_t bip32;
     bip32.length = params->address_parameters[0];
     if (bip32_path_read(params->address_parameters + 1,
@@ -25,9 +24,12 @@ uint16_t handle_check_address(check_address_parameters_t* params, chain_config_t
                         bip32.path,
                         bip32.length) == false) {
         PRINTF("Invalid path\n");
-        return SWO_INCORRECT_DATA;
+        return;
     }
-    CX_CHECK(get_public_key_string(&bip32, raw_pubkey, address, NULL, chain_config->chainId));
+    if (get_public_key_string(&bip32, raw_pubkey, address, NULL, chain_config->chainId) != CX_OK) {
+        PRINTF("Error getting public key\n");
+        return;
+    }
 
     uint8_t offset_0x = 0;
     if (memcmp(params->address_to_check, "0x", 2) == 0) {
@@ -40,7 +42,4 @@ uint16_t handle_check_address(check_address_parameters_t* params, chain_config_t
         PRINTF("Addresses match\n");
         params->result = 1;
     }
-    error = SWO_SUCCESS;
-end:
-    return error;
 }

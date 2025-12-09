@@ -9,7 +9,7 @@
 void eth_plugin_prepare_init(ethPluginInitContract_t *init,
                              const uint8_t *selector,
                              uint32_t data_size) {
-    memset((uint8_t *) init, 0, sizeof(ethPluginInitContract_t));
+    explicit_bzero((uint8_t *) init, sizeof(ethPluginInitContract_t));
     init->selector = selector;
     init->dataSize = data_size;
 }
@@ -18,18 +18,18 @@ void eth_plugin_prepare_provide_parameter(ethPluginProvideParameter_t *provide_p
                                           uint8_t *parameter,
                                           uint32_t parameter_offset,
                                           uint8_t parameter_size) {
-    memset((uint8_t *) provide_parameter, 0, sizeof(ethPluginProvideParameter_t));
+    explicit_bzero((uint8_t *) provide_parameter, sizeof(ethPluginProvideParameter_t));
     provide_parameter->parameter = parameter;
     provide_parameter->parameterOffset = parameter_offset;
     provide_parameter->parameter_size = parameter_size;
 }
 
 void eth_plugin_prepare_finalize(ethPluginFinalize_t *finalize) {
-    memset((uint8_t *) finalize, 0, sizeof(ethPluginFinalize_t));
+    explicit_bzero((uint8_t *) finalize, sizeof(ethPluginFinalize_t));
 }
 
 void eth_plugin_prepare_provide_info(ethPluginProvideInfo_t *provide_token) {
-    memset((uint8_t *) provide_token, 0, sizeof(ethPluginProvideInfo_t));
+    explicit_bzero((uint8_t *) provide_token, sizeof(ethPluginProvideInfo_t));
 }
 
 void eth_plugin_prepare_query_contract_id(ethQueryContractID_t *query_contract_id,
@@ -37,7 +37,7 @@ void eth_plugin_prepare_query_contract_id(ethQueryContractID_t *query_contract_i
                                           uint32_t name_length,
                                           char *version,
                                           uint32_t version_length) {
-    memset((uint8_t *) query_contract_id, 0, sizeof(ethQueryContractID_t));
+    explicit_bzero((uint8_t *) query_contract_id, sizeof(ethQueryContractID_t));
     query_contract_id->name = name;
     query_contract_id->nameLength = name_length;
     query_contract_id->version = version;
@@ -52,7 +52,7 @@ void eth_plugin_prepare_query_contract_ui(ethQueryContractUI_t *query_contract_u
                                           uint32_t msg_length) {
     uint64_t chain_id;
 
-    memset((uint8_t *) query_contract_ui, 0, sizeof(ethQueryContractUI_t));
+    explicit_bzero((uint8_t *) query_contract_ui, sizeof(ethQueryContractUI_t));
 
     // If no extra information was found, set the pointer to NULL
     if (NO_EXTRA_INFO(tmpCtx, 0)) {

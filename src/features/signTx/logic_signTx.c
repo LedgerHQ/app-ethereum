@@ -153,7 +153,8 @@ customStatus_e customProcessor(txContext_t *context) {
                 }
                 dataContext.tokenContext.fieldIndex++;
                 dataContext.tokenContext.fieldOffset = 0;
-                memset(dataContext.tokenContext.data, 0, sizeof(dataContext.tokenContext.data));
+                explicit_bzero(dataContext.tokenContext.data,
+                               sizeof(dataContext.tokenContext.data));
                 return CUSTOM_HANDLED;
             }
 
@@ -216,7 +217,7 @@ static void raw_fee_to_string(uint256_t *rawFee, char *out_buffer, uint32_t out_
     uint8_t ticker_len = 0;
     char raw_fee_buffer[100] = {0};
 
-    memset(out_buffer, 0, out_buffer_size);
+    explicit_bzero(out_buffer, out_buffer_size);
 
     // Convert the fee to decimal string first
     if (tostring256(rawFee, 10, (char *) raw_fee_buffer, sizeof(raw_fee_buffer)) == false) {

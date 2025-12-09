@@ -33,7 +33,7 @@ void erc20_plugin_call(int message, void *parameters) {
             ethPluginInitContract_t *msg = (ethPluginInitContract_t *) parameters;
             erc20_parameters_t *context = (erc20_parameters_t *) msg->pluginContext;
 
-            memset(context->extra_data, 0, sizeof(context->extra_data));
+            explicit_bzero(context->extra_data, sizeof(context->extra_data));
             context->extra_data_len = 0;
 
             // enforce that ETH amount should be 0

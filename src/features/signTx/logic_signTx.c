@@ -49,7 +49,7 @@ customStatus_e customProcessor(txContext_t *context) {
             return CUSTOM_NOT_HANDLED;
         }
         // If data field is less than 4 bytes long, do not try to use a plugin.
-        if (context->currentFieldLength < 4) {
+        if (context->currentFieldLength < CALLDATA_SELECTOR_SIZE) {
             return CUSTOM_NOT_HANDLED;
         }
         if (context->currentFieldPos == 0) {
@@ -111,7 +111,8 @@ customStatus_e customProcessor(txContext_t *context) {
                 dataContext.tokenContext.pluginStatus <= ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
                 return CUSTOM_NOT_HANDLED;
             }
-            blockSize = 32 - (dataContext.tokenContext.fieldOffset % 32);
+            blockSize =
+                CALLDATA_CHUNK_SIZE - (dataContext.tokenContext.fieldOffset % CALLDATA_CHUNK_SIZE);
         }
 
         // If the last parameter is of type `bytes` then we might have an
@@ -142,10 +143,12 @@ customStatus_e customProcessor(txContext_t *context) {
             // Can process or display
             if (dataContext.tokenContext.pluginStatus >= ETH_PLUGIN_RESULT_SUCCESSFUL) {
                 ethPluginProvideParameter_t pluginProvideParameter;
-                eth_plugin_prepare_provide_parameter(&pluginProvideParameter,
-                                                     dataContext.tokenContext.data,
-                                                     dataContext.tokenContext.fieldIndex * 32 + 4,
-                                                     (uint8_t) copySize);
+                eth_plugin_prepare_provide_parameter(
+                    &pluginProvideParameter,
+                    dataContext.tokenContext.data,
+                    dataContext.tokenContext.fieldIndex * CALLDATA_CHUNK_SIZE +
+                        CALLDATA_SELECTOR_SIZE,
+                    (uint8_t) copySize);
                 if (!eth_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER,
                                      (void *) &pluginProvideParameter)) {
                     PRINTF("Plugin parameter call failed\n");

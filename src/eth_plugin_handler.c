@@ -16,10 +16,12 @@ void eth_plugin_prepare_init(ethPluginInitContract_t *init,
 
 void eth_plugin_prepare_provide_parameter(ethPluginProvideParameter_t *provide_parameter,
                                           uint8_t *parameter,
-                                          uint32_t parameter_offset) {
+                                          uint32_t parameter_offset,
+                                          uint8_t parameter_size) {
     memset((uint8_t *) provide_parameter, 0, sizeof(ethPluginProvideParameter_t));
     provide_parameter->parameter = parameter;
     provide_parameter->parameterOffset = parameter_offset;
+    provide_parameter->parameter_size = parameter_size;
 }
 
 void eth_plugin_prepare_finalize(ethPluginFinalize_t *finalize) {

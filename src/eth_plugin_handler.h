@@ -12,7 +12,8 @@ void eth_plugin_prepare_init(ethPluginInitContract_t *init,
                              uint32_t data_size);
 void eth_plugin_prepare_provide_parameter(ethPluginProvideParameter_t *provide_parameter,
                                           uint8_t *parameter,
-                                          uint32_t parameter_offset);
+                                          uint32_t parameter_offset,
+                                          uint8_t parameter_size);
 void eth_plugin_prepare_finalize(ethPluginFinalize_t *finalize);
 void eth_plugin_prepare_provide_info(ethPluginProvideInfo_t *provide_token);
 void eth_plugin_prepare_query_contract_id(ethQueryContractID_t *query_contract_id,

@@ -144,7 +144,8 @@ customStatus_e customProcessor(txContext_t *context) {
                 ethPluginProvideParameter_t pluginProvideParameter;
                 eth_plugin_prepare_provide_parameter(&pluginProvideParameter,
                                                      dataContext.tokenContext.data,
-                                                     dataContext.tokenContext.fieldIndex * 32 + 4);
+                                                     dataContext.tokenContext.fieldIndex * 32 + 4,
+                                                     (uint8_t) copySize);
                 if (!eth_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER,
                                      (void *) &pluginProvideParameter)) {
                     PRINTF("Plugin parameter call failed\n");

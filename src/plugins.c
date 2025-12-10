@@ -5,7 +5,7 @@
 
 bool plugin_ui_get_id(void) {
     ethQueryContractID_t pluginQueryContractID;
-    eth_plugin_prepare_query_contract_ID(&pluginQueryContractID,
+    eth_plugin_prepare_query_contract_id(&pluginQueryContractID,
                                          strings.common.toAddress,
                                          sizeof(strings.common.toAddress),
                                          strings.common.fullAmount,
@@ -25,7 +25,7 @@ bool plugin_ui_get_item_internal(char *title_buffer,
                                  char *msg_buffer,
                                  size_t msg_buffer_size) {
     ethQueryContractUI_t pluginQueryContractUI;
-    eth_plugin_prepare_query_contract_UI(&pluginQueryContractUI,
+    eth_plugin_prepare_query_contract_ui(&pluginQueryContractUI,
                                          dataContext.tokenContext.pluginUiCurrentItem,
                                          title_buffer,
                                          title_buffer_size,

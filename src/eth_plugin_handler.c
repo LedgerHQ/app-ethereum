@@ -8,82 +8,84 @@
 
 void eth_plugin_prepare_init(ethPluginInitContract_t *init,
                              const uint8_t *selector,
-                             uint32_t dataSize) {
-    memset((uint8_t *) init, 0, sizeof(ethPluginInitContract_t));
+                             uint32_t data_size) {
+    explicit_bzero((uint8_t *) init, sizeof(ethPluginInitContract_t));
     init->selector = selector;
-    init->dataSize = dataSize;
+    init->dataSize = data_size;
 }
 
-void eth_plugin_prepare_provide_parameter(ethPluginProvideParameter_t *provideParameter,
+void eth_plugin_prepare_provide_parameter(ethPluginProvideParameter_t *provide_parameter,
                                           uint8_t *parameter,
-                                          uint32_t parameterOffset) {
-    memset((uint8_t *) provideParameter, 0, sizeof(ethPluginProvideParameter_t));
-    provideParameter->parameter = parameter;
-    provideParameter->parameterOffset = parameterOffset;
+                                          uint32_t parameter_offset,
+                                          uint8_t parameter_size) {
+    explicit_bzero((uint8_t *) provide_parameter, sizeof(ethPluginProvideParameter_t));
+    provide_parameter->parameter = parameter;
+    provide_parameter->parameterOffset = parameter_offset;
+    provide_parameter->parameter_size = parameter_size;
 }
 
 void eth_plugin_prepare_finalize(ethPluginFinalize_t *finalize) {
-    memset((uint8_t *) finalize, 0, sizeof(ethPluginFinalize_t));
+    explicit_bzero((uint8_t *) finalize, sizeof(ethPluginFinalize_t));
 }
 
-void eth_plugin_prepare_provide_info(ethPluginProvideInfo_t *provideToken) {
-    memset((uint8_t *) provideToken, 0, sizeof(ethPluginProvideInfo_t));
+void eth_plugin_prepare_provide_info(ethPluginProvideInfo_t *provide_token) {
+    explicit_bzero((uint8_t *) provide_token, sizeof(ethPluginProvideInfo_t));
 }
 
-void eth_plugin_prepare_query_contract_ID(ethQueryContractID_t *queryContractID,
+void eth_plugin_prepare_query_contract_id(ethQueryContractID_t *query_contract_id,
                                           char *name,
-                                          uint32_t nameLength,
+                                          uint32_t name_length,
                                           char *version,
-                                          uint32_t versionLength) {
-    memset((uint8_t *) queryContractID, 0, sizeof(ethQueryContractID_t));
-    queryContractID->name = name;
-    queryContractID->nameLength = nameLength;
-    queryContractID->version = version;
-    queryContractID->versionLength = versionLength;
+                                          uint32_t version_length) {
+    explicit_bzero((uint8_t *) query_contract_id, sizeof(ethQueryContractID_t));
+    query_contract_id->name = name;
+    query_contract_id->nameLength = name_length;
+    query_contract_id->version = version;
+    query_contract_id->versionLength = version_length;
 }
 
-void eth_plugin_prepare_query_contract_UI(ethQueryContractUI_t *queryContractUI,
-                                          uint8_t screenIndex,
+void eth_plugin_prepare_query_contract_ui(ethQueryContractUI_t *query_contract_ui,
+                                          uint8_t screen_index,
                                           char *title,
-                                          uint32_t titleLength,
+                                          uint32_t title_length,
                                           char *msg,
-                                          uint32_t msgLength) {
+                                          uint32_t msg_length) {
     uint64_t chain_id;
 
-    memset((uint8_t *) queryContractUI, 0, sizeof(ethQueryContractUI_t));
+    explicit_bzero((uint8_t *) query_contract_ui, sizeof(ethQueryContractUI_t));
 
     // If no extra information was found, set the pointer to NULL
     if (NO_EXTRA_INFO(tmpCtx, 0)) {
-        queryContractUI->item1 = NULL;
+        query_contract_ui->item1 = NULL;
     } else {
-        queryContractUI->item1 = &tmpCtx.transactionContext.extraInfo[0];
+        query_contract_ui->item1 = &tmpCtx.transactionContext.extraInfo[0];
     }
 
     // If no extra information was found, set the pointer to NULL
     if (NO_EXTRA_INFO(tmpCtx, 1)) {
-        queryContractUI->item2 = NULL;
+        query_contract_ui->item2 = NULL;
     } else {
-        queryContractUI->item2 = &tmpCtx.transactionContext.extraInfo[1];
+        query_contract_ui->item2 = &tmpCtx.transactionContext.extraInfo[1];
     }
 
-    queryContractUI->screenIndex = screenIndex;
+    query_contract_ui->screenIndex = screen_index;
     chain_id = get_tx_chain_id();
-    strlcpy(queryContractUI->network_ticker,
+    strlcpy(query_contract_ui->network_ticker,
             get_displayable_ticker(&chain_id, chainConfig, true),
-            sizeof(queryContractUI->network_ticker));
-    queryContractUI->title = title;
-    queryContractUI->titleLength = titleLength;
-    queryContractUI->msg = msg;
-    queryContractUI->msgLength = msgLength;
+            sizeof(query_contract_ui->network_ticker));
+    query_contract_ui->title = title;
+    query_contract_ui->titleLength = title_length;
+    query_contract_ui->msg = msg;
+    query_contract_ui->msgLength = msg_length;
 }
 
-static void eth_plugin_perform_init_default(uint8_t *contractAddress,
+static void eth_plugin_perform_init_default(uint8_t *contract_address,
                                             ethPluginInitContract_t *init) {
     // check if the registered external plugin matches the TX contract address / selector
-    if (memcmp(contractAddress,
+    if (memcmp(contract_address,
                dataContext.tokenContext.contractAddress,
                sizeof(dataContext.tokenContext.contractAddress)) != 0) {
-        PRINTF("Got contract: %.*H\n", ADDRESS_LENGTH, contractAddress);
+        PRINTF("Got contract: %.*H\n", ADDRESS_LENGTH, contract_address);
         PRINTF("Expected contract: %.*H\n",
                ADDRESS_LENGTH,
                dataContext.tokenContext.contractAddress);
@@ -100,7 +102,7 @@ static void eth_plugin_perform_init_default(uint8_t *contractAddress,
     dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
 }
 
-static bool eth_plugin_perform_init_old_internal(uint8_t *contractAddress,
+static bool eth_plugin_perform_init_old_internal(uint8_t *contract_address,
                                                  ethPluginInitContract_t *init) {
     uint8_t i, j;
     const uint8_t *const *selectors;
@@ -111,7 +113,7 @@ static bool eth_plugin_perform_init_old_internal(uint8_t *contractAddress,
         if (selectors == NULL) {
             break;
         }
-        for (j = 0; ((j < INTERNAL_ETH_PLUGINS[i].num_selectors) && (contractAddress != NULL));
+        for (j = 0; ((j < INTERNAL_ETH_PLUGINS[i].num_selectors) && (contract_address != NULL));
              j++) {
             if (memcmp(init->selector, (const void *) PIC(selectors[j]), SELECTOR_SIZE) == 0) {
                 if ((INTERNAL_ETH_PLUGINS[i].availableCheck == NULL) ||
@@ -129,7 +131,7 @@ static bool eth_plugin_perform_init_old_internal(uint8_t *contractAddress,
     return false;
 }
 
-eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
+eth_plugin_result_t eth_plugin_perform_init(uint8_t *contract_address,
                                             ethPluginInitContract_t *init) {
     dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_UNAVAILABLE;
 
@@ -137,22 +139,22 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
     switch (pluginType) {
         case PLUGIN_TYPE_NONE:
             PRINTF("eth_plugin_perform_init_old_internal\n");
-            if (eth_plugin_perform_init_old_internal(contractAddress, init)) {
+            if (eth_plugin_perform_init_old_internal(contract_address, init)) {
                 pluginType = PLUGIN_TYPE_OLD_INTERNAL;
-                contractAddress = NULL;
+                contract_address = NULL;
             }
             break;
         case PLUGIN_TYPE_ERC1155:
         case PLUGIN_TYPE_ERC721:
         case PLUGIN_TYPE_EXTERNAL:
             PRINTF("eth_plugin_perform_init_default\n");
-            eth_plugin_perform_init_default(contractAddress, init);
-            contractAddress = NULL;
+            eth_plugin_perform_init_default(contract_address, init);
+            contract_address = NULL;
             break;
         case PLUGIN_TYPE_SWAP_WITH_CALLDATA:
-            PRINTF("contractAddress == %.*H\n", 20, contractAddress);
+            PRINTF("contractAddress == %.*H\n", 20, contract_address);
             PRINTF("Fallback on swap_with_calldata plugin\n");
-            contractAddress = NULL;
+            contract_address = NULL;
             dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
             break;
         default:
@@ -163,8 +165,8 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contractAddress,
 
     eth_plugin_result_t status = ETH_PLUGIN_RESULT_UNAVAILABLE;
 
-    if (contractAddress != NULL) {
-        PRINTF("No plugin available for %.*H\n", 20, contractAddress);
+    if (contract_address != NULL) {
+        PRINTF("No plugin available for %.*H\n", 20, contract_address);
         if (G_called_from_swap) {
             PRINTF("Not supported in swap mode\n");
             return ETH_PLUGIN_RESULT_ERROR;

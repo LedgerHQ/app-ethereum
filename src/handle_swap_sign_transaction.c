@@ -1,6 +1,5 @@
 #include "eth_swap_utils.h"
 #include "shared_context.h"
-#include "network.h"
 #include "cmd_setPlugin.h"
 #include "nbgl_use_case.h"
 #include "mem.h"
@@ -70,32 +69,23 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
             swap_mode = SWAP_MODE_ERROR;
     }
 
-    char asset_ticker[MAX_TICKER_LEN];
-    uint8_t asset_decimals;
-    uint64_t chain_id = 0;
+    swap_context_t context = {0};
+    char* ticker = NULL;
 
     if (!parse_swap_config(sign_transaction_params->coin_configuration,
                            sign_transaction_params->coin_configuration_length,
-                           asset_ticker,
-                           &asset_decimals,
-                           &chain_id)) {
+                           &context)) {
         PRINTF("Error while parsing config\n");
         return false;
     }
 
-    // fallback mechanism in the absence of chain ID in swap config
-    if (chain_id == 0) {
-        chain_id = config->chainId;
-    }
-    PRINTF("chain_id = %d\n", (uint32_t) chain_id);
-
     // If the amount is a fee, its value is nominated in NATIVE even if we're doing an ERC20 swap
-    const char* native_ticker = get_displayable_ticker(&chain_id, config, false);
-    uint8_t native_decimals = WEI_TO_ETHER;
+    get_asset_info_on_network(true, &context, (chain_config_t*) config, &ticker, NULL);
+
     if (!amountToString(sign_transaction_params->fee_amount,
                         sign_transaction_params->fee_amount_length,
-                        native_decimals,
-                        native_ticker,
+                        context.fees_asset_info.decimals,
+                        ticker,
                         stack_data.maxFee,
                         sizeof(stack_data.maxFee))) {
         return false;
@@ -103,13 +93,13 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
     PRINTF("Expecting fees %s\n", stack_data.maxFee);
 
     if (swap_mode == SWAP_MODE_CROSSCHAIN_PENDING_CHECK &&
-        strcmp(native_ticker, asset_ticker) != 0) {
+        strcmp(ticker, context.swapped_asset_info.ticker) != 0) {
         // Special case: crosschain swap of non native assets (tokens)
         uint8_t zero_amount = 0;
         if (!amountToString(&zero_amount,
                             1,
-                            native_decimals,
-                            native_ticker,
+                            context.fees_asset_info.decimals,
+                            ticker,
                             stack_data.fullAmount,
                             sizeof(stack_data.fullAmount))) {
             return false;
@@ -117,8 +107,8 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
     } else {
         if (!amountToString(sign_transaction_params->amount,
                             sign_transaction_params->amount_length,
-                            asset_decimals,
-                            asset_ticker,
+                            context.swapped_asset_info.decimals,
+                            context.swapped_asset_info.ticker,
                             stack_data.fullAmount,
                             sizeof(stack_data.fullAmount))) {
             return false;

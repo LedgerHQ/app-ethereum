@@ -100,15 +100,16 @@ customStatus_e customProcessor(txContext_t *context) {
                     return CUSTOM_FAULT;
                 }
             }
-            if (!N_storage.contractDetails) {
+            if (context->store_calldata || !N_storage.contractDetails) {
                 return CUSTOM_NOT_HANDLED;
             }
             dataContext.tokenContext.fieldIndex = 0;
             dataContext.tokenContext.fieldOffset = 0;
             blockSize = 4;
         } else {
-            if (!N_storage.contractDetails &&
-                dataContext.tokenContext.pluginStatus <= ETH_PLUGIN_RESULT_UNSUCCESSFUL) {
+            if (context->store_calldata ||
+                (!N_storage.contractDetails &&
+                 dataContext.tokenContext.pluginStatus <= ETH_PLUGIN_RESULT_UNSUCCESSFUL)) {
                 return CUSTOM_NOT_HANDLED;
             }
             blockSize =

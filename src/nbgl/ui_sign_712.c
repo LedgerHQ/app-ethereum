@@ -66,25 +66,33 @@ static void ui_712_start_review(e_eip712_filtering_mode filtering_mode,
 /**
  * @brief Start EIP712 signature review flow
  *
+ * @param filtering_mode the filtering mode to use
+ * @return status code indicating success or failure
  */
-void ui_sign_712(e_eip712_filtering_mode filtering_mode) {
+uint16_t ui_sign_712(e_eip712_filtering_mode filtering_mode) {
     // Initialize the pairs list
     ui_712_push_pairs();
 
     ui_712_start_review(filtering_mode, TYPE_MESSAGE, ui_typed_message_review_choice);
+    return SWO_SUCCESS;
 }
 
 /**
  * @brief Start EIP712 signature review flow in Legacy (v0) mode
- *
+ * @return status code indicating success or failure
  */
-void ui_sign_712_v0(void) {
-    ui_712_start(EIP712_FILTERING_BASIC);
+uint16_t ui_sign_712_v0(void) {
+    uint16_t sw = SWO_PARAMETER_ERROR_NO_INFO;
+
+    sw = ui_712_start(EIP712_FILTERING_BASIC);
+    if (sw != SWO_SUCCESS) {
+        return sw;
+    }
 
     // Initialize the buffers
     if (!ui_pairs_init(2)) {
         // Initialization failed, cleanup and return
-        return;
+        return SWO_INSUFFICIENT_MEMORY;
     }
 
     // Initialize the tag/value pairs
@@ -93,4 +101,5 @@ void ui_sign_712_v0(void) {
     ui_712_start_review(EIP712_FILTERING_BASIC,
                         TYPE_TRANSACTION,
                         ui_typed_message_review_choice_v0);
+    return SWO_SUCCESS;
 }

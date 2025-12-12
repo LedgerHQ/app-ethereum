@@ -261,11 +261,17 @@ bool ui_712_redraw_generic_step(void) {
             eip712_context->go_home_on_failure = false;
             return false;
         }
-        ui_712_start(ui_ctx->filtering_mode);
+        apdu_response_code = ui_712_start(ui_ctx->filtering_mode);
+        if (apdu_response_code != SWO_SUCCESS) {
+            return false;
+        }
         handle_eip712_return_code(true);
     } else {
         if (ui_712_next_field() == false) {
-            ui_sign_712(ui_ctx->filtering_mode);
+            apdu_response_code = ui_sign_712(ui_ctx->filtering_mode);
+            if (apdu_response_code != SWO_SUCCESS) {
+                return false;
+            }
         }
     }
     return true;
@@ -989,7 +995,7 @@ void ui_712_end_sign(void) {
     if (N_storage.verbose_eip712 || (ui_ctx->filtering_mode == EIP712_FILTERING_FULL)) {
 #endif
         ui_ctx->end_reached = true;
-        ui_sign_712(ui_ctx->filtering_mode);
+        apdu_response_code = ui_sign_712(ui_ctx->filtering_mode);
     }
 }
 

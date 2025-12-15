@@ -29,5 +29,3 @@ extern const uint8_t* const ERC20_SELECTORS[NUM_ERC20_SELECTORS];
 extern const uint8_t* const ETH2_SELECTORS[NUM_ETH2_SELECTORS];
 
 #endif
-
-extern internalEthPlugin_t const INTERNAL_ETH_PLUGINS[];

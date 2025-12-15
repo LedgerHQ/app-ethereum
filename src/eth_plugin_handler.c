@@ -5,26 +5,11 @@
 #include "shared_context.h"
 #include "network.h"
 #include "cmd_setPlugin.h"
-
-void erc20_plugin_call(int message, void *parameters);
-
-#ifdef HAVE_ETH2
-void eth2_plugin_call(int message, void *parameters);
-#endif
-
-static const uint8_t ERC20_TRANSFER_SELECTOR[SELECTOR_SIZE] = {0xa9, 0x05, 0x9c, 0xbb};
-static const uint8_t ERC20_APPROVE_SELECTOR[SELECTOR_SIZE] = {0x09, 0x5e, 0xa7, 0xb3};
-
-const uint8_t *const ERC20_SELECTORS[NUM_ERC20_SELECTORS] = {ERC20_TRANSFER_SELECTOR,
-                                                             ERC20_APPROVE_SELECTOR};
-
-#ifdef HAVE_ETH2
-
-static const uint8_t ETH2_DEPOSIT_SELECTOR[SELECTOR_SIZE] = {0x22, 0x89, 0x51, 0x18};
-
-const uint8_t *const ETH2_SELECTORS[NUM_ETH2_SELECTORS] = {ETH2_DEPOSIT_SELECTOR};
-
-#endif
+#include "erc20_plugin.h"
+#include "eth2_plugin.h"
+#include "erc721_plugin.h"
+#include "erc1155_plugin.h"
+#include "swap_with_calldata_plugin.h"
 
 // All internal alias names start with 'minus'
 

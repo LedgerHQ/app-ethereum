@@ -5,6 +5,10 @@
 #include "eth_plugin_handler.h"
 #include "shared_context.h"
 #include "common_utils.h"
+#include "eth2_plugin.h"
+
+static const uint8_t ETH2_DEPOSIT_SELECTOR[SELECTOR_SIZE] = {0x22, 0x89, 0x51, 0x18};
+const uint8_t *const ETH2_SELECTORS[NUM_ETH2_SELECTORS] = {ETH2_DEPOSIT_SELECTOR};
 
 void getEth2PublicKey(uint32_t *bip32Path, uint8_t bip32PathLength, uint8_t *out);
 

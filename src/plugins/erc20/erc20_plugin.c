@@ -9,8 +9,13 @@
 #include "calldata.h"
 #include "manage_asset_info.h"
 #include "eth_swap_utils.h"
+#include "erc20_plugin.h"
 
 typedef enum { ERC20_TRANSFER = 0, ERC20_APPROVE } erc20Selector_t;
+static const uint8_t ERC20_TRANSFER_SELECTOR[SELECTOR_SIZE] = {0xa9, 0x05, 0x9c, 0xbb};
+static const uint8_t ERC20_APPROVE_SELECTOR[SELECTOR_SIZE] = {0x09, 0x5e, 0xa7, 0xb3};
+const uint8_t *const ERC20_SELECTORS[NUM_ERC20_SELECTORS] = {ERC20_TRANSFER_SELECTOR,
+                                                             ERC20_APPROVE_SELECTOR};
 
 #define MAX_CONTRACT_NAME_LEN 15
 #define MAX_EXTRA_DATA_CHUNKS 2

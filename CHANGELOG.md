@@ -5,7 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.21.0](../../compare/1.20.0...1.21.0) - xxxx-xx-xx
+## [1.20.1](../../compare/1.20.0...1.20.1) - 2025-12-11
+
+### Fixed
+
+- Exchange swap with dynamic networks
+- Crash when clear-signing with the debug contracts setting activated
 
 ## [1.20.0](../../compare/1.19.3...1.20.0) - 2025-12-02
 

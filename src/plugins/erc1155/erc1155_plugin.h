@@ -26,4 +26,4 @@ typedef struct erc1155_context_t {
 
 void handle_provide_parameter_1155(ethPluginProvideParameter_t *parameters);
 void handle_query_contract_ui_1155(ethQueryContractUI_t *parameters);
-void erc1155_plugin_call(int message, void *parameters);
+void erc1155_plugin_call(eth_plugin_msg_t message, void *parameters);

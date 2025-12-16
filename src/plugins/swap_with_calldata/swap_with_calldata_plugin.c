@@ -116,7 +116,7 @@ void handle_finalize_swap_with_calldata(ethPluginFinalize_t *msg) {
     msg->tokenLookup2 = NULL;
 }
 
-void swap_with_calldata_plugin_call(int message, void *parameters) {
+void swap_with_calldata_plugin_call(eth_plugin_msg_t message, void *parameters) {
     switch (message) {
         case ETH_PLUGIN_INIT_CONTRACT:
             handle_init_contract_swap_with_calldata((ethPluginInitContract_t *) parameters);

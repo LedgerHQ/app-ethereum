@@ -117,7 +117,7 @@ void handle_query_contract_id_1155(ethQueryContractID_t *msg) {
     }
 }
 
-void erc1155_plugin_call(int message, void *parameters) {
+void erc1155_plugin_call(eth_plugin_msg_t message, void *parameters) {
     switch (message) {
         case ETH_PLUGIN_INIT_CONTRACT: {
             handle_init_contract_1155((ethPluginInitContract_t *) parameters);

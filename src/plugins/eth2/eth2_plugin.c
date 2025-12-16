@@ -38,7 +38,7 @@ typedef struct eth2_deposit_parameters_t {
     char deposit_address[ETH2_DEPOSIT_PUBKEY_LENGTH];
 } eth2_deposit_parameters_t;
 
-void eth2_plugin_call(int message, void *parameters) {
+void eth2_plugin_call(eth_plugin_msg_t message, void *parameters) {
     switch (message) {
         case ETH_PLUGIN_INIT_CONTRACT: {
             ethPluginInitContract_t *msg = (ethPluginInitContract_t *) parameters;

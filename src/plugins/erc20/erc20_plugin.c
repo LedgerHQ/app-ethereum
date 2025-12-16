@@ -32,7 +32,7 @@ typedef struct erc20_parameters_t {
     uint8_t extra_data_len;
 } erc20_parameters_t;
 
-void erc20_plugin_call(int message, void *parameters) {
+void erc20_plugin_call(eth_plugin_msg_t message, void *parameters) {
     switch (message) {
         case ETH_PLUGIN_INIT_CONTRACT: {
             ethPluginInitContract_t *msg = (ethPluginInitContract_t *) parameters;

@@ -5,7 +5,7 @@
 #include "shared_context.h"
 #include "eth_plugin_interface.h"
 
-typedef void (*PluginCall)(int, void*);
+typedef void (*PluginCall)(eth_plugin_msg_t, void*);
 
 typedef struct internalEthPlugin_t {
     const uint8_t* const* addresses;

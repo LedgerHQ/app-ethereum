@@ -1,3 +1,5 @@
+# pylint: disable=too-many-lines
+# Large test file containing multiple test cases for EIP-712 signing
 import fnmatch
 import os
 from pathlib import Path
@@ -9,6 +11,9 @@ import hashlib
 import pytest
 from eth_account.messages import encode_typed_data
 from constants import ABIS_FOLDER
+from test_gcs import compute_inst_hash
+from fields_utils import get_all_tuple_array_paths, get_all_paths
+
 import web3
 
 from ragger.backend import BackendInterface
@@ -25,9 +30,8 @@ from client.tx_simu import TxSimu
 from client.proxy_info import ProxyInfo
 
 from client.gcs import (
-    Field, ParamType, ParamRaw, Value, TypeFamily, DataPath, PathTuple, ParamTrustedName,
-    ParamNFT, ParamDatetime, DatetimeType, ParamTokenAmount, ParamToken, ParamCalldata,
-    ParamAmount, ContainerPath, PathLeaf, PathLeafType, PathRef, PathArray, TxInfo
+    Field, ParamRaw, Value, TypeFamily, DataPath, PathTuple, ParamTokenAmount, ParamCalldata,
+    ContainerPath, PathLeaf, PathLeafType, TxInfo
 )
 
 
@@ -375,13 +379,12 @@ def data_set_fixture(request) -> DataSet:
 
 
 def test_eip712_advanced_filtering(scenario_navigator: NavigateWithScenario,
-                                   test_name: str,
                                    data_set: DataSet,
                                    verbose_raw: bool):
     if verbose_raw and data_set.suffix:
         pytest.skip("Skipping Verbose mode for this data sets")
 
-    snapshots_dirname = test_name + data_set.suffix
+    snapshots_dirname = scenario_navigator.test_name + data_set.suffix
     if verbose_raw:
         settings_toggle(scenario_navigator.backend.device, scenario_navigator.navigator, [SettingID.DISPLAY_HASH])
         snapshots_dirname += "-verbose"
@@ -390,7 +393,6 @@ def test_eip712_advanced_filtering(scenario_navigator: NavigateWithScenario,
 
 
 def test_eip712_filtering_empty_array(scenario_navigator: NavigateWithScenario,
-                                      test_name: str,
                                       simu_params: Optional[TxSimu] = None):
     app_client = EthAppClient(scenario_navigator.backend)
 
@@ -466,7 +468,7 @@ def test_eip712_filtering_empty_array(scenario_navigator: NavigateWithScenario,
         response = app_client.provide_tx_simulation(simu_params)
         assert response.status == StatusWord.OK
 
-    eip712_new_common(scenario_navigator, data, filters, test_name, with_warning=bool(simu_params is not None))
+    eip712_new_common(scenario_navigator, data, filters, scenario_navigator.test_name, with_warning=bool(simu_params is not None))
 
 
 TOKENS = [
@@ -497,9 +499,8 @@ def tokens_fixture(request) -> list[dict]:
 
 
 def test_eip712_advanced_missing_token(scenario_navigator: NavigateWithScenario,
-                                       test_name: str,
                                        tokens: list[dict]):
-    test_name += f"-{len(tokens[0]) == 0}-{len(tokens[1]) == 0}"
+    test_name = f"{scenario_navigator.test_name}-{len(tokens[0]) == 0}-{len(tokens[1]) == 0}"
 
     data = {
         "types": {
@@ -583,10 +584,9 @@ def filt_tn_types_fixture(request) -> list[TrustedNameType]:
 
 
 def test_eip712_advanced_trusted_name(scenario_navigator: NavigateWithScenario,
-                                      test_name: str,
                                       trusted_name: tuple,
                                       filt_tn_types: list[TrustedNameType]):
-    test_name += f"_{trusted_name[0].name.lower()}_with"
+    test_name = f"{scenario_navigator.test_name}_{trusted_name[0].name.lower()}_with"
     for t in filt_tn_types:
         test_name += f"_{t.name.lower()}"
 
@@ -706,15 +706,13 @@ def gcs_handler(app_client: EthAppClient, json_data: dict) -> None:
         ),
     ]
     # compute instructions hash
-    inst_hash = hashlib.sha3_256()
-    for field in fields:
-        inst_hash.update(field.serialize())
+    inst_hash = compute_inst_hash(fields)
     tx_info = TxInfo(
         1,
         json_data["domain"]["chainId"],
         bytes.fromhex(json_data["message"]["to"][2:]),
         get_selector_from_data(json_data["message"]["data"]),
-        inst_hash.digest(),
+        inst_hash,
         "Token transfer",
         contract_name="USDC",
     )
@@ -728,8 +726,7 @@ def gcs_handler(app_client: EthAppClient, json_data: dict) -> None:
 
 def gcs_handler_batch(app_client: EthAppClient, json_data: dict) -> None:
     # Load EIP-712 JSON data
-    filename = "safe_batch"
-    with open(f"{eip712_json_path()}/{filename}.json", encoding="utf-8") as file:
+    with open(f"{eip712_json_path()}/safe_batch.json", encoding="utf-8") as file:
         data = json.load(file)
 
     # Define tokens
@@ -780,7 +777,7 @@ def gcs_handler_batch(app_client: EthAppClient, json_data: dict) -> None:
     ]])
 
     # Top level transaction fields definition
-    # Intermediate execTransaction transaction fields definition
+    param_paths = get_all_tuple_array_paths(f"{ABIS_FOLDER}/batch.json", "batchExecute", "calls")
     L0_fields = [
             Field(
                 1,
@@ -792,15 +789,7 @@ def gcs_handler_batch(app_client: EthAppClient, json_data: dict) -> None:
                         TypeFamily.BYTES,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(0),
-                                PathRef(),
-                                PathArray(),
-                                PathRef(),
-                                PathTuple(2),
-                                PathRef(),
-                                PathLeaf(PathLeafType.DYNAMIC),
-                            ]
+                            param_paths["data"]
                         ),
                     ),
                     Value(
@@ -808,14 +797,7 @@ def gcs_handler_batch(app_client: EthAppClient, json_data: dict) -> None:
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(0),
-                                PathRef(),
-                                PathArray(),
-                                PathRef(),
-                                PathTuple(0),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["to"]
                         ),
                     ),
                     amount=Value(
@@ -823,23 +805,14 @@ def gcs_handler_batch(app_client: EthAppClient, json_data: dict) -> None:
                         TypeFamily.UINT,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(0),
-                                PathRef(),
-                                PathArray(),
-                                PathRef(),
-                                PathTuple(1),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["value"]
                         ),
                     ),
                 )
             ),
     ]
     # compute instructions hash
-    L0_hash = hashlib.sha3_256()
-    for field in L0_fields:
-        L0_hash.update(field.serialize())
+    L0_hash = compute_inst_hash(L0_fields)
 
     # Define intermediate execTransaction transaction info
     L0_tx_info = TxInfo(
@@ -847,7 +820,7 @@ def gcs_handler_batch(app_client: EthAppClient, json_data: dict) -> None:
         data["domain"]["chainId"],
         bytes.fromhex(json_data["domain"]["verifyingContract"][2:]),
         get_selector_from_data(batchData),
-        L0_hash.digest(),
+        L0_hash,
         "Batch transactions",
         creator_name="Ledger",
         creator_legal_name="Ledger Multisig",
@@ -856,6 +829,7 @@ def gcs_handler_batch(app_client: EthAppClient, json_data: dict) -> None:
     )
 
     # Lower batchExecute transaction fields definition
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/erc20.json", "transfer")
     L1_fields = [
             Field(
                 1,
@@ -867,10 +841,7 @@ def gcs_handler_batch(app_client: EthAppClient, json_data: dict) -> None:
                         TypeFamily.UINT,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(1),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["_value"]
                         ),
                         type_size=32,
                     ),
@@ -891,19 +862,14 @@ def gcs_handler_batch(app_client: EthAppClient, json_data: dict) -> None:
                         TypeFamily.ADDRESS,
                         data_path=DataPath(
                             1,
-                            [
-                                PathTuple(0),
-                                PathLeaf(PathLeafType.STATIC),
-                            ]
+                            param_paths["_to"]
                         ),
                     )
                 )
             ),
     ]
     # compute instructions hash
-    L1_hash = hashlib.sha3_256()
-    for sub_field in L1_fields:
-        L1_hash.update(sub_field.serialize())
+    L1_hash = compute_inst_hash(L1_fields)
 
     # Define lower batchExecute transaction info
     L1_tx_info = [
@@ -912,7 +878,7 @@ def gcs_handler_batch(app_client: EthAppClient, json_data: dict) -> None:
             data["domain"]["chainId"],
             tokens[0]["address"],
             get_selector_from_data(tokenData0),
-            L1_hash.digest(),
+            L1_hash,
             "Send",
             contract_name="USD_Coin",
         ),
@@ -921,7 +887,7 @@ def gcs_handler_batch(app_client: EthAppClient, json_data: dict) -> None:
             data["domain"]["chainId"],
             tokens[1]["address"],
             get_selector_from_data(tokenData1),
-            L1_hash.digest(),
+            L1_hash,
             "Send",
             contract_name="USD_Coin",
         )
@@ -1090,8 +1056,7 @@ def test_eip712_gondi(scenario_navigator: NavigateWithScenario):
 
 
 def test_eip712_batch(scenario_navigator: NavigateWithScenario):
-    filename = "safe_batch"
-    with open(f"{eip712_json_path()}/{filename}.json", encoding="utf-8") as file:
+    with open(f"{eip712_json_path()}/safe_batch.json", encoding="utf-8") as file:
         data = json.load(file)
 
     filters = {

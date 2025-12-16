@@ -33,7 +33,6 @@ static const internalEthPlugin_t INTERNAL_ETH_PLUGINS[] = {
 #ifdef HAVE_ETH2
     {NULL, ETH2_SELECTORS, NUM_ETH2_SELECTORS, "-eth2", eth2_plugin_call},
 #endif
-    {NULL, NULL, 0, "", NULL},
 };
 
 void eth_plugin_prepare_init(ethPluginInitContract_t *init,
@@ -134,11 +133,11 @@ static void eth_plugin_perform_init_default(uint8_t *contract_address,
 
 static bool eth_plugin_perform_init_old_internal(uint8_t *contract_address,
                                                  ethPluginInitContract_t *init) {
-    uint8_t i, j;
+    int i, j;
     const uint8_t *const *selectors;
 
     // Search internal plugin list
-    for (i = 0;; i++) {
+    for (i = 0; i < (int) ARRAYLEN(INTERNAL_ETH_PLUGINS); i++) {
         selectors = (const uint8_t *const *) PIC(INTERNAL_ETH_PLUGINS[i].selectors);
         if (selectors == NULL) {
             break;

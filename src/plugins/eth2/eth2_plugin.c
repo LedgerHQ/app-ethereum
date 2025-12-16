@@ -23,9 +23,12 @@ void getEth2PublicKey(uint32_t *bip32Path, uint8_t bip32PathLength, uint8_t *out
 #define ETH2_WITHDRAWAL_CREDENTIALS_LENGTH 0x20
 #define ETH2_SIGNATURE_LENGTH              0x60
 
-static const uint8_t deposit_contract_address[] = {0x00, 0x00, 0x00, 0x00, 0x21, 0x9a, 0xb5,
-                                                   0x40, 0x35, 0x6c, 0xbb, 0x83, 0x9c, 0xbe,
-                                                   0x05, 0x30, 0x3d, 0x77, 0x05, 0xfa};
+static const uint8_t deposit_contract_address[ADDRESS_LENGTH] = {
+    0x00, 0x00, 0x00, 0x00, 0x21, 0x9a, 0xb5, 0x40, 0x35, 0x6c,
+    0xbb, 0x83, 0x9c, 0xbe, 0x05, 0x30, 0x3d, 0x77, 0x05, 0xfa,
+};
+
+const uint8_t *const ETH2_ADDRESSES[NUM_ETH2_ADDRESSES] = {deposit_contract_address};
 
 // Highest index for withdrawal derivation path.
 #define INDEX_MAX 65536  // 2 ^ 16 : arbitrary value to protect from path attacks.
@@ -40,16 +43,8 @@ void eth2_plugin_call(int message, void *parameters) {
         case ETH_PLUGIN_INIT_CONTRACT: {
             ethPluginInitContract_t *msg = (ethPluginInitContract_t *) parameters;
             eth2_deposit_parameters_t *context = (eth2_deposit_parameters_t *) msg->pluginContext;
-            if (memcmp(deposit_contract_address,
-                       msg->txContent->destination,
-                       sizeof(deposit_contract_address)) != 0) {
-                PRINTF("eth2plugin: failed to check deposit contract\n");
-                context->valid = 0;
-                msg->result = ETH_PLUGIN_RESULT_ERROR;
-            } else {
-                context->valid = 1;
-                msg->result = ETH_PLUGIN_RESULT_OK;
-            }
+            context->valid = 1;
+            msg->result = ETH_PLUGIN_RESULT_OK;
         } break;
 
         case ETH_PLUGIN_PROVIDE_PARAMETER: {

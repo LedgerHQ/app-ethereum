@@ -29,9 +29,9 @@ const uint8_t *const ETH2_SELECTORS[NUM_ETH2_SELECTORS] = {ETH2_DEPOSIT_SELECTOR
 // All internal alias names start with 'minus'
 
 static const internalEthPlugin_t INTERNAL_ETH_PLUGINS[] = {
-    {NULL, ERC20_SELECTORS, NUM_ERC20_SELECTORS, "-erc20", erc20_plugin_call},
+    {ERC20_SELECTORS, NUM_ERC20_SELECTORS, "-erc20", erc20_plugin_call},
 #ifdef HAVE_ETH2
-    {NULL, ETH2_SELECTORS, NUM_ETH2_SELECTORS, "-eth2", eth2_plugin_call},
+    {ETH2_SELECTORS, NUM_ETH2_SELECTORS, "-eth2", eth2_plugin_call},
 #endif
 };
 
@@ -145,14 +145,11 @@ static bool eth_plugin_perform_init_old_internal(uint8_t *contract_address,
         for (j = 0; ((j < INTERNAL_ETH_PLUGINS[i].num_selectors) && (contract_address != NULL));
              j++) {
             if (memcmp(init->selector, (const void *) PIC(selectors[j]), SELECTOR_SIZE) == 0) {
-                if ((INTERNAL_ETH_PLUGINS[i].availableCheck == NULL) ||
-                    ((PluginAvailableCheck) PIC(INTERNAL_ETH_PLUGINS[i].availableCheck))()) {
-                    strlcpy(dataContext.tokenContext.pluginName,
-                            INTERNAL_ETH_PLUGINS[i].alias,
-                            PLUGIN_ID_LENGTH);
-                    dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
-                    return true;
-                }
+                strlcpy(dataContext.tokenContext.pluginName,
+                        INTERNAL_ETH_PLUGINS[i].alias,
+                        PLUGIN_ID_LENGTH);
+                dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
+                return true;
             }
         }
     }

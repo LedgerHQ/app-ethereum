@@ -1,4 +1,5 @@
 #include "erc721_plugin.h"
+#include "erc721_internal.h"
 #include "plugin_utils.h"
 #include "eth_plugin_internal.h"
 

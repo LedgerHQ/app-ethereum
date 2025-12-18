@@ -5,6 +5,25 @@
 #include "shared_context.h"
 #include "network.h"
 #include "cmd_setPlugin.h"
+#include "erc20_plugin.h"
+#include "eth2_plugin.h"
+#include "erc721_plugin.h"
+#include "erc1155_plugin.h"
+#include "swap_with_calldata_plugin.h"
+
+// All internal alias names start with 'minus'
+
+static const internalEthPlugin_t INTERNAL_ETH_PLUGINS[] = {
+    {NULL, 0, ERC20_SELECTORS, NUM_ERC20_SELECTORS, "-erc20", erc20_plugin_call},
+#ifdef HAVE_ETH2
+    {ETH2_ADDRESSES,
+     NUM_ETH2_ADDRESSES,
+     ETH2_SELECTORS,
+     NUM_ETH2_SELECTORS,
+     "-eth2",
+     eth2_plugin_call},
+#endif
+};
 
 void eth_plugin_prepare_init(ethPluginInitContract_t *init,
                              const uint8_t *selector,
@@ -102,29 +121,45 @@ static void eth_plugin_perform_init_default(uint8_t *contract_address,
     dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
 }
 
+static bool matching_selector(const internalEthPlugin_t *plugin, const uint8_t *selector) {
+    const uint8_t *const *selectors = PIC(plugin->selectors);
+
+    if (selectors == NULL) {
+        return true;
+    }
+    for (int i = 0; i < plugin->num_selectors; ++i) {
+        if (memcmp(selector, PIC(selectors[i]), SELECTOR_SIZE) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool matching_address(const internalEthPlugin_t *plugin, const uint8_t *addr) {
+    const uint8_t *const *addresses = PIC(plugin->addresses);
+
+    if (addresses == NULL) {
+        return true;
+    }
+    for (int i = 0; i < plugin->num_addresses; ++i) {
+        if (memcmp(addr, PIC(addresses[i]), ADDRESS_LENGTH) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 static bool eth_plugin_perform_init_old_internal(uint8_t *contract_address,
                                                  ethPluginInitContract_t *init) {
-    uint8_t i, j;
-    const uint8_t *const *selectors;
-
     // Search internal plugin list
-    for (i = 0;; i++) {
-        selectors = (const uint8_t *const *) PIC(INTERNAL_ETH_PLUGINS[i].selectors);
-        if (selectors == NULL) {
-            break;
-        }
-        for (j = 0; ((j < INTERNAL_ETH_PLUGINS[i].num_selectors) && (contract_address != NULL));
-             j++) {
-            if (memcmp(init->selector, (const void *) PIC(selectors[j]), SELECTOR_SIZE) == 0) {
-                if ((INTERNAL_ETH_PLUGINS[i].availableCheck == NULL) ||
-                    ((PluginAvailableCheck) PIC(INTERNAL_ETH_PLUGINS[i].availableCheck))()) {
-                    strlcpy(dataContext.tokenContext.pluginName,
-                            INTERNAL_ETH_PLUGINS[i].alias,
-                            PLUGIN_ID_LENGTH);
-                    dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
-                    return true;
-                }
-            }
+    for (int i = 0; i < (int) ARRAYLEN(INTERNAL_ETH_PLUGINS); ++i) {
+        if (matching_address(&INTERNAL_ETH_PLUGINS[i], contract_address) &&
+            matching_selector(&INTERNAL_ETH_PLUGINS[i], init->selector)) {
+            strlcpy(dataContext.tokenContext.pluginName,
+                    INTERNAL_ETH_PLUGINS[i].alias,
+                    PLUGIN_ID_LENGTH);
+            dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
+            return true;
         }
     }
 

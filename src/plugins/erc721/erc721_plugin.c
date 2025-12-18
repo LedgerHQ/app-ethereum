@@ -1,6 +1,7 @@
 #include <string.h>
 #include "plugin_utils.h"
 #include "erc721_plugin.h"
+#include "erc721_internal.h"
 #include "eth_plugin_internal.h"
 #include "eth_plugin_interface.h"
 #include "eth_plugin_handler.h"
@@ -11,7 +12,7 @@ static const uint8_t ERC721_TRANSFER_SELECTOR[SELECTOR_SIZE] = {0x23, 0xb8, 0x72
 static const uint8_t ERC721_SAFE_TRANSFER_SELECTOR[SELECTOR_SIZE] = {0x42, 0x84, 0x2e, 0x0e};
 static const uint8_t ERC721_SAFE_TRANSFER_DATA_SELECTOR[SELECTOR_SIZE] = {0xb8, 0x8d, 0x4f, 0xde};
 
-const uint8_t *const ERC721_SELECTORS[SELECTORS_COUNT] = {
+static const uint8_t *const ERC721_SELECTORS[] = {
     ERC721_APPROVE_SELECTOR,
     ERC721_APPROVE_FOR_ALL_SELECTOR,
     ERC721_TRANSFER_SELECTOR,
@@ -28,7 +29,7 @@ void handle_init_contract_721(ethPluginInitContract_t *msg) {
         return;
     }
     uint8_t i;
-    for (i = 0; i < SELECTORS_COUNT; i++) {
+    for (i = 0; i < ARRAYLEN(ERC721_SELECTORS); i++) {
         if (memcmp(PIC(ERC721_SELECTORS[i]), msg->selector, SELECTOR_SIZE) == 0) {
             context->selectorIndex = i;
             break;
@@ -36,7 +37,7 @@ void handle_init_contract_721(ethPluginInitContract_t *msg) {
     }
 
     // No selector found.
-    if (i == SELECTORS_COUNT) {
+    if (i == ARRAYLEN(ERC721_SELECTORS)) {
         PRINTF("Unknown erc721 selector %.*H\n", SELECTOR_SIZE, msg->selector);
         msg->result = ETH_PLUGIN_RESULT_FALLBACK;
         return;
@@ -123,7 +124,7 @@ void handle_query_contract_id_721(ethQueryContractID_t *msg) {
     }
 }
 
-void erc721_plugin_call(int message, void *parameters) {
+void erc721_plugin_call(eth_plugin_msg_t message, void *parameters) {
     switch (message) {
         case ETH_PLUGIN_INIT_CONTRACT: {
             handle_init_contract_721((ethPluginInitContract_t *) parameters);

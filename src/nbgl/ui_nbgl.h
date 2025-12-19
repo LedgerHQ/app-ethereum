@@ -2,7 +2,6 @@
 
 #include "nbgl_use_case.h"
 #include "shared_context.h"
-#include "glyphs.h"
 
 #ifdef SCREEN_SIZE_WALLET
 #define ICON_APP_WARNING LARGE_WARNING_ICON

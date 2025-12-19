@@ -70,9 +70,9 @@ static void eip7002_plugin_query_contract_id(ethQueryContractID_t *param) {
 
     strlcpy(param->version, "do", param->versionLength);
     if (allzeroes(context->raw_amount, sizeof(context->raw_amount))) {
-        strlcat(param->name, "full exit", param->nameLength);
+        strlcpy(param->name, "full exit", param->nameLength);
     } else {
-        strlcat(param->name, "partial withdrawal", param->nameLength);
+        strlcpy(param->name, "partial withdrawal", param->nameLength);
     }
     param->result = ETH_PLUGIN_RESULT_OK;
 }

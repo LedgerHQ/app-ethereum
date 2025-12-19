@@ -19,7 +19,7 @@
 #include "proxy_info.h"
 
 #define TAG_MAX_LEN   43
-#define VALUE_MAX_LEN 79
+#define VALUE_MAX_LEN 100
 
 static nbgl_contentValueExt_t *extension = NULL;
 

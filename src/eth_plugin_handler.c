@@ -10,6 +10,7 @@
 #include "erc721_plugin.h"
 #include "erc1155_plugin.h"
 #include "swap_with_calldata_plugin.h"
+#include "eip7002_plugin.h"
 
 // All internal alias names start with 'minus'
 
@@ -23,6 +24,7 @@ static const internalEthPlugin_t INTERNAL_ETH_PLUGINS[] = {
      "-eth2",
      eth2_plugin_call},
 #endif
+    {EIP7002_ADDRESSES, NUM_EIP7002_ADDRESSES, NULL, 0, "-eip7002", eip7002_plugin_call},
 };
 
 void eth_plugin_prepare_init(ethPluginInitContract_t *init,

@@ -58,6 +58,7 @@ target_include_directories(
          ${APP_SRC}/features/setPlugin
          ${APP_SRC}/plugins/eth2
          ${APP_SRC}/plugins/eip7002
+         ${APP_SRC}/plugins/eip7251
          ${APP_SRC}/plugins/erc20
          ${APP_SRC}/plugins/erc721
          ${APP_SRC}/plugins/erc1155

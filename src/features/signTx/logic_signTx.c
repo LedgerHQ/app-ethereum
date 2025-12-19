@@ -505,14 +505,13 @@ end:
     return error;
 }
 
-void start_signature_flow(void) {
+static uint16_t start_signature_flow(void) {
     if (pluginType == PLUGIN_TYPE_NONE) {
-        ux_approve_tx(false);
-    } else {
-        dataContext.tokenContext.pluginUiState = PLUGIN_UI_OUTSIDE;
-        dataContext.tokenContext.pluginUiCurrentItem = 0;
-        ux_approve_tx(true);
+        return ux_approve_tx(false);
     }
+    dataContext.tokenContext.pluginUiState = PLUGIN_UI_OUTSIDE;
+    dataContext.tokenContext.pluginUiCurrentItem = 0;
+    return ux_approve_tx(true);
 }
 
 uint16_t finalize_parsing(const txContext_t *context) {
@@ -526,7 +525,9 @@ uint16_t finalize_parsing(const txContext_t *context) {
         if ((get_current_calldata() == NULL) ||
             (calldata_get_selector(get_current_calldata()) == NULL)) {
             PRINTF("Asked to store calldata but none was provided!\n");
-            return SWO_INCORRECT_DATA;
+            sw = SWO_INCORRECT_DATA;
+        } else {
+            sw = SWO_SUCCESS;
         }
     } else {
         // If called from swap, the user has already validated a standard transaction
@@ -543,9 +544,10 @@ uint16_t finalize_parsing(const txContext_t *context) {
                 os_sched_exit(0);
             }
             io_seproxyhal_touch_tx_ok();
+            sw = SWO_SUCCESS;
         } else {
-            start_signature_flow();
+            sw = start_signature_flow();
         }
     }
-    return SWO_SUCCESS;
+    return sw;
 }

@@ -565,7 +565,7 @@ def handle_optional_domain_values(domain):
         domain["verifyingContract"] = "0x0000000000000000000000000000000000000000"
 
 
-def init_signature_context(types, domain, filters):
+def init_signature_context(sig_ctx, types, domain, filters):
     handle_optional_domain_values(domain)
     if "address" in filters:
         caddr = filters["address"]
@@ -607,7 +607,7 @@ def process_data(aclient: EthAppClient,
     message = data_json["message"]
 
     if filters:
-        init_signature_context(types, domain, filters)
+        init_signature_context(sig_ctx, types, domain, filters)
 
     # send types definition
     for key in types.keys():

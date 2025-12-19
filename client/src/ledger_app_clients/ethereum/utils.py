@@ -1,9 +1,16 @@
+from enum import IntEnum
 from eth_account import Account
 from eth_account.messages import encode_defunct, encode_typed_data
 from eth_account.datastructures import SignedSetCodeAuthorization
 from eth_account.typed_transactions.set_code_transaction import Authorization
 from eth_keys.datatypes import Signature
 import rlp
+
+
+class TxType(IntEnum):
+    TRANSACTION = 0x00
+    TYPED_DATA = 0x01
+    PERSONAL_MESSAGE = 0x02
 
 
 def get_selector_from_data(data: str) -> bytes:

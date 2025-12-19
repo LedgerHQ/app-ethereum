@@ -7,6 +7,8 @@ uint16_t handleSignEIP712Message_v0(uint8_t p1,
                                     const uint8_t *workBuffer,
                                     uint8_t dataLength,
                                     unsigned int *flags) {
+    uint16_t sw = SWO_PARAMETER_ERROR_NO_INFO;
+
     if (p1 != 0x00) {
         return SWO_WRONG_P1_P2;
     }
@@ -27,7 +29,10 @@ uint16_t handleSignEIP712Message_v0(uint8_t p1,
             workBuffer + KECCAK256_HASH_BYTESIZE,
             KECCAK256_HASH_BYTESIZE);
 
-    ui_sign_712_v0();
+    sw = ui_sign_712_v0();
+    if (sw != SWO_SUCCESS) {
+        return sw;
+    }
 
     *flags |= IO_ASYNCH_REPLY;
     return APDU_NO_RESPONSE;

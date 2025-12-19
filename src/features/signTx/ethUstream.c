@@ -315,6 +315,13 @@ static bool processData(txContext_t *context) {
         if (copySize == 1 && *context->workBuffer == 0x00) {
             context->content->dataPresent = false;
         }
+
+        if ((context->currentFieldPos == 0) && (copySize >= 4)) {
+            // Consider the 4 1st bytes are the selector
+            // Store it to be able to check it later against Gating
+            memcpy(context->selector_bytes, context->workBuffer, CALLDATA_SELECTOR_SIZE);
+        }
+
         if (context->store_calldata) {
             if (context->currentFieldPos == 0) {
                 if (copySize < 4) {

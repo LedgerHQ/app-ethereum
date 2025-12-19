@@ -338,7 +338,8 @@ void ui_idle(void) {
 void ui_error_blind_signing(void) {
 }
 
-void ui_sign_712(void) {
+uint16_t ui_sign_712(void) {
+    return 0;
 }
 
 void io_seproxyhal_io_heartbeat(void) {

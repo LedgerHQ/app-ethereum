@@ -21,8 +21,6 @@ def get_request_data(validator_pk: bytes, amount: float) -> bytes:
 
 def common(scenario_navigator: NavigateWithScenario, data: bytes) -> None:
     app_client = EthAppClient(scenario_navigator.backend)
-    with app_client.get_eth2_public_addr(display=False):
-        pass
     tx_params = {
         "chainId": 1,
         "nonce": 27,
@@ -30,7 +28,7 @@ def common(scenario_navigator: NavigateWithScenario, data: bytes) -> None:
         "maxFeePerGas": Web3.to_wei(0.292821186, "gwei"),
         "gas": 74265,
         "to": WITHDRAWAL_REQUEST_PREDEPLOY_ADDR,
-        "value": Web3.to_wei(1.23035, "ether"),
+        "value": 1,
         "data": data,
     }
     with app_client.sign(BIP32_PATH, tx_params):

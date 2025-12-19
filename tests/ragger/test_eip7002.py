@@ -21,8 +21,6 @@ def get_request_data(validator_pk: bytes, amount: float) -> bytes:
 
 def common(scenario_navigator: NavigateWithScenario, data: bytes) -> None:
     app_client = EthAppClient(scenario_navigator.backend)
-    with app_client.get_eth2_public_addr(display=False):
-        pass
     tx_params = {
         "chainId": 1,
         "nonce": 27,

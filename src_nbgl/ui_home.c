@@ -168,7 +168,7 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
     (void) appname;
     (void) tagline;
     nbgl_useCaseHomeAndSettings("Ethereum Recovery",
-                                &C_Warning_64px,
+                                &LARGE_WARNING_ICON,
                                 "This is a recovery tool.\nNot for day-to-day operations!",
                                 page,
                                 &settingContents,

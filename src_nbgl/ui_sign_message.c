@@ -114,7 +114,7 @@ void ui_191_start(void) {
     g_skipped = false;
 
     nbgl_useCaseReviewStreamingStart(TYPE_MESSAGE | SKIPPABLE_OPERATION,
-                                     &C_Review_64px,
+                                     &LARGE_REVIEW_ICON,
                                      TEXT_REVIEW_EIP191,
                                      NULL,
                                      ui_191_data_cb);

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DEVICES=(nanos nanos2 nanox stax flex)
+DEVICES=(nanos nanos2 nanox stax flex apex_p)
 
 for dev in "${DEVICES[@]}"; do
     elf_file="build/${dev}/bin/app.elf"

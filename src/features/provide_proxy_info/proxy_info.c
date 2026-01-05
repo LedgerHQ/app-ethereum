@@ -181,9 +181,14 @@ bool verify_proxy_info_struct(const s_proxy_info_ctx *context) {
         return false;
     }
     roll_challenge();
-    if (context->delegation_type != DELEGATION_TYPE_PROXY) {
-        PRINTF("Error: unsupported delegation type (%u)!\n", context->delegation_type);
-        return false;
+    switch (context->delegation_type) {
+        case DELEGATION_TYPE_PROXY:
+        case DELEGATION_TYPE_ISSUED_FROM_FACTORY:
+        case DELEGATION_TYPE_DELEGATOR:
+            break;
+        default:
+            PRINTF("Error: unsupported delegation type (%u)!\n", context->delegation_type);
+            return false;
     }
     if (check_signature_with_pubkey("proxy info",
                                     hash,

@@ -59,5 +59,12 @@ void mem_free(mem_ctx_t ctx, void *ptr) {
 cx_err_t cx_ecdomain_parameters_length(cx_curve_t cv, size_t *length) {
     (void) cv;
     *length = (size_t) 32;
-    return 0x00000000;
+    return CX_OK;
+}
+
+// So cx_bn_t variables don't go uninitialised (in functions like cx_ecdsa_verify_no_throw)
+cx_err_t cx_bn_alloc(cx_bn_t *x, size_t nbytes) {
+    (void) nbytes;
+    if (x) *x = 0;
+    return CX_OK;
 }

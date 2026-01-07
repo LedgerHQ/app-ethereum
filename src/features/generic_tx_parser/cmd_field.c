@@ -27,6 +27,9 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
     }
     while (((appState == APP_STATE_SIGNING_EIP712) || !tx_ctx_is_root()) &&
            validate_instruction_hash()) {
+        if (!process_empty_txs_after()) {
+            return false;
+        }
         tx_ctx_pop();
     }
     return true;

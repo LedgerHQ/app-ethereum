@@ -47,7 +47,7 @@ bool add_to_field_table(e_param_type type, const char *key, const char *value) {
         if ((type == PARAM_TYPE_INTENT) && (txContext.current_batch_size > 1)) {
             // Special handling for intent in EIP712 mode
             ui_712_set_intent();
-            PRINTF(">>> [Intent] Start\n");
+            PRINTF("[Intent] Start\n");
         }
         ui_712_set_title(key, strlen(key));
         ui_712_set_value(value, strlen(value));
@@ -72,11 +72,11 @@ bool add_to_field_table(e_param_type type, const char *key, const char *value) {
         // Special handling for intent
         node->field.start_intent = true;
         type = PARAM_TYPE_RAW;  // store as raw
-        PRINTF(">>> [Intent] Start\n");
+        PRINTF("[Intent] Start\n");
     } else {
         node->field.end_intent = validate_instruction_hash();
         if (node->field.end_intent) {
-            PRINTF(">>> [Intent] End\n");
+            PRINTF("[Intent] End\n");
         }
     }
 

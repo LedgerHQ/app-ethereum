@@ -522,8 +522,7 @@ uint16_t finalize_parsing(const txContext_t *context) {
         return sw;
     }
     if (context->store_calldata) {
-        if ((get_current_calldata() == NULL) ||
-            (calldata_get_selector(get_current_calldata()) == NULL)) {
+        if ((get_root_calldata() == NULL) || (calldata_get_selector(get_root_calldata()) == NULL)) {
             PRINTF("Asked to store calldata but none was provided!\n");
             sw = SWO_INCORRECT_DATA;
         } else {

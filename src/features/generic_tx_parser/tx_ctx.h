@@ -28,6 +28,7 @@ size_t get_tx_ctx_count(void);
 cx_hash_t *get_fields_hash_ctx(void);
 const s_tx_info *get_current_tx_info(void);
 s_calldata *get_current_calldata(void);
+s_calldata *get_root_calldata(void);
 const uint8_t *get_current_tx_from(void);
 const uint8_t *get_current_tx_to(void);
 const uint8_t *get_current_tx_amount(void);

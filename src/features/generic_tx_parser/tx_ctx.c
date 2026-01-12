@@ -34,6 +34,11 @@ s_calldata *get_current_calldata(void) {
     return g_tx_ctx_current->calldata;
 }
 
+s_calldata *get_root_calldata(void) {
+    if (g_tx_ctx_list == NULL) return NULL;
+    return g_tx_ctx_list->calldata;
+}
+
 const uint8_t *get_current_tx_from(void) {
     if (g_tx_ctx_current == NULL) return NULL;
     return g_tx_ctx_current->from;
@@ -182,8 +187,7 @@ bool tx_ctx_init(s_calldata *calldata,
         return false;
     }
     list_push_back((s_list_node **) &g_tx_ctx_list, (s_list_node *) node);
-    g_tx_ctx_current = node;
-    if ((appState == APP_STATE_SIGNING_TX) && tx_ctx_is_root()) {
+    if ((appState == APP_STATE_SIGNING_TX) && (node == g_tx_ctx_list)) {
         return field_table_init();
     }
     return true;

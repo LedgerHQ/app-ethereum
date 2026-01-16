@@ -33,3 +33,6 @@ report.html
 
 # LSP
 .cache/
+
+# Doxygen
+doxygen/

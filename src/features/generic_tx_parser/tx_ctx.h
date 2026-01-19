@@ -10,7 +10,7 @@
 #include "gtp_field.h"
 
 typedef struct {
-    s_flist_node _list;
+    s_list_node _list;
     s_tx_info *tx_info;
     s_calldata *calldata;
     uint8_t from[ADDRESS_LENGTH];

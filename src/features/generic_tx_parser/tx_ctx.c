@@ -17,7 +17,7 @@ bool tx_ctx_is_root(void) {
 }
 
 size_t get_tx_ctx_count(void) {
-    return flist_size((s_flist_node **) &g_tx_ctx_list);
+    return list_size((s_list_node **) &g_tx_ctx_list);
 }
 
 cx_hash_t *get_fields_hash_ctx(void) {
@@ -77,21 +77,10 @@ static void delete_tx_ctx(s_tx_ctx *node) {
 }
 
 void tx_ctx_pop(void) {
-    s_flist_node *old_current = (s_flist_node *) g_tx_ctx_current;
+    s_list_node *old_current = (s_list_node *) g_tx_ctx_current;
 
-    // TODO: make doubly linked to simply get the prev one
-    for (s_flist_node *tmp = (s_flist_node *) g_tx_ctx_list; tmp != NULL; tmp = tmp->next) {
-        if (tmp->next == old_current) {
-            g_tx_ctx_current = (s_tx_ctx *) tmp;
-            break;
-        }
-    }
-    if (g_tx_ctx_current == (s_tx_ctx *) old_current) {
-        // there was no previous one
-        // there might still be some elements in the list but after the one that we're removing
-        g_tx_ctx_current = NULL;
-    }
-    flist_remove((s_flist_node **) &g_tx_ctx_list, old_current, (f_list_node_del) &delete_tx_ctx);
+    g_tx_ctx_current = (s_tx_ctx *) ((s_list_node *) g_tx_ctx_current)->prev;
+    list_remove((s_list_node **) &g_tx_ctx_list, old_current, (f_list_node_del) &delete_tx_ctx);
 }
 
 bool find_matching_tx_ctx(const uint8_t *contract_addr,
@@ -115,7 +104,7 @@ bool find_matching_tx_ctx(const uint8_t *contract_addr,
 }
 
 static void tx_ctx_cleanup(void) {
-    flist_clear((s_flist_node **) &g_tx_ctx_list, (f_list_node_del) &delete_tx_ctx);
+    list_clear((s_list_node **) &g_tx_ctx_list, (f_list_node_del) &delete_tx_ctx);
     g_tx_ctx_current = NULL;
 }
 
@@ -192,7 +181,7 @@ bool tx_ctx_init(s_calldata *calldata,
         app_mem_free(node);
         return false;
     }
-    flist_push_back((s_flist_node **) &g_tx_ctx_list, (s_flist_node *) node);
+    list_push_back((s_list_node **) &g_tx_ctx_list, (s_list_node *) node);
     g_tx_ctx_current = node;
     if ((appState == APP_STATE_SIGNING_TX) && tx_ctx_is_root()) {
         return field_table_init();

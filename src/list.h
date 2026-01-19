@@ -118,6 +118,15 @@ void list_push_back(s_list_node **list, s_list_node *node);
 /// @copydoc flist_pop_back(s_flist_node **, f_list_node_del)
 void list_pop_back(s_list_node **list, f_list_node_del del_func);
 
+/**
+ * Insert a new node before a given list node (reference)
+ *
+ * @param[in,out] list pointer to the list
+ * @param[in,out] ref reference node
+ * @param[in,out] node new node to add
+ */
+void list_insert_before(s_list_node **list, s_list_node *ref, s_list_node *node);
+
 /// @copydoc flist_insert_after(s_flist_node **, s_flist_node *, s_flist_node *)
 void list_insert_after(s_list_node **list, s_list_node *ref, s_list_node *node);
 

@@ -222,6 +222,18 @@ void list_pop_back(s_list_node **list, f_list_node_del del_func) {
     flist_pop_back((s_flist_node **) list, del_func);
 }
 
+void list_insert_before(s_list_node **list, s_list_node *ref, s_list_node *node) {
+    if ((ref != NULL) && (node != NULL)) {
+        if (ref->prev == NULL) {
+            if ((list != NULL) && (*list == ref)) {
+                list_push_front(list, node);
+            }
+        } else {
+            list_insert_after(list, ref->prev, node);
+        }
+    }
+}
+
 void list_insert_after(s_list_node **list, s_list_node *ref, s_list_node *node) {
     (void) list;
     insert_after_internal((s_flist_node *) ref, (s_flist_node *) node, true);

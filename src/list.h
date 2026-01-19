@@ -33,6 +33,11 @@ typedef void (*f_list_node_del)(s_flist_node *node);
 typedef bool (*f_list_node_cmp)(const s_flist_node *a, const s_flist_node *b);
 
 /**
+ * Node unary predicate function
+ */
+typedef bool (*f_list_node_pred)(const s_flist_node *node);
+
+/**
  * Add a node at the beginning of the list
  *
  * @param[in,out] list pointer to the list
@@ -81,6 +86,15 @@ void flist_insert_after(s_flist_node **list, s_flist_node *ref, s_flist_node *no
  * @param[in] del_func node deletion function
  */
 void flist_remove(s_flist_node **list, s_flist_node *node, f_list_node_del del_func);
+
+/**
+ * Remove nodes from the list for which the predicate returns true
+ *
+ * @param[in,out] list pointer to the list
+ * @param[in] pred_func predicate function
+ * @param[in] del_func node deletion function
+ */
+size_t flist_remove_if(s_flist_node **list, f_list_node_pred pred_func, f_list_node_del del_func);
 
 /**
  * Remove all nodes from the list
@@ -140,6 +154,9 @@ void list_insert_after(s_list_node **list, s_list_node *ref, s_list_node *node);
 
 /// @copydoc flist_remove(s_flist_node **, s_flist_node *, f_list_node_del)
 void list_remove(s_list_node **list, s_list_node *node, f_list_node_del del_func);
+
+/// @copydoc list_remove_if(s_flist_node **, f_list_node_pred, f_list_node_del)
+size_t list_remove_if(s_list_node **list, f_list_node_pred pred_func, f_list_node_del del_func);
 
 /// @copydoc flist_clear(s_flist_node **, f_list_node_del)
 void list_clear(s_list_node **list, f_list_node_del del_func);

@@ -145,6 +145,31 @@ void flist_remove(s_flist_node **list, s_flist_node *node, f_list_node_del del_f
     remove_internal(list, node, del_func, false);
 }
 
+static size_t remove_if_internal(s_flist_node **list,
+                                 f_list_node_pred pred_func,
+                                 f_list_node_del del_func,
+                                 bool doubly_linked) {
+    s_flist_node *node;
+    s_flist_node *tmp;
+    size_t count = 0;
+
+    if ((list != NULL) && (pred_func != NULL)) {
+        node = *list;
+        while (node != NULL) {
+            tmp = node->next;
+            if (pred_func(node)) {
+                remove_internal(list, node, del_func, doubly_linked);
+            }
+            node = tmp;
+        }
+    }
+    return count;
+}
+
+size_t flist_remove_if(s_flist_node **list, f_list_node_pred pred_func, f_list_node_del del_func) {
+    return remove_if_internal(list, pred_func, del_func, false);
+}
+
 void flist_clear(s_flist_node **list, f_list_node_del del_func) {
     s_flist_node *tmp;
     s_flist_node *next;
@@ -245,6 +270,10 @@ void list_insert_after(s_list_node **list, s_list_node *ref, s_list_node *node) 
 
 void list_remove(s_list_node **list, s_list_node *node, f_list_node_del del_func) {
     remove_internal((s_flist_node **) list, (s_flist_node *) node, del_func, true);
+}
+
+size_t list_remove_if(s_list_node **list, f_list_node_pred pred_func, f_list_node_del del_func) {
+    return remove_if_internal((s_flist_node **) list, pred_func, del_func, true);
 }
 
 void list_clear(s_list_node **list, f_list_node_del del_func) {

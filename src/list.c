@@ -235,6 +235,30 @@ void flist_sort(s_flist_node **list, f_list_node_cmp cmp_func) {
     sort_internal(list, cmp_func, false);
 }
 
+static size_t unique_internal(s_flist_node **list,
+                              f_list_node_bin_pred pred_func,
+                              f_list_node_del del_func,
+                              bool doubly_linked) {
+    size_t count = 0;
+
+    if ((list != NULL) && (pred_func != NULL)) {
+        for (s_flist_node *ref = *list; ref != NULL; ref = ref->next) {
+            s_flist_node *node = ref->next;
+            while ((node != NULL) && (pred_func(ref, node))) {
+                s_flist_node *tmp = node->next;
+                remove_internal(list, node, del_func, doubly_linked);
+                count += 1;
+                node = tmp;
+            }
+        }
+    }
+    return count;
+}
+
+size_t flist_unique(s_flist_node **list, f_list_node_bin_pred pred_func, f_list_node_del del_func) {
+    return unique_internal(list, pred_func, del_func, false);
+}
+
 void list_push_front(s_list_node **list, s_list_node *node) {
     push_front_internal((s_flist_node **) list, (s_flist_node *) node, true);
 }
@@ -290,4 +314,8 @@ bool list_empty(s_list_node *const *list) {
 
 void list_sort(s_list_node **list, f_list_node_cmp del_func) {
     sort_internal((s_flist_node **) list, del_func, true);
+}
+
+size_t list_unique(s_list_node **list, f_list_node_bin_pred pred_func, f_list_node_del del_func) {
+    return unique_internal((s_flist_node **) list, pred_func, del_func, true);
 }

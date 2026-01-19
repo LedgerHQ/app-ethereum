@@ -38,6 +38,11 @@ typedef bool (*f_list_node_cmp)(const s_flist_node *a, const s_flist_node *b);
 typedef bool (*f_list_node_pred)(const s_flist_node *node);
 
 /**
+ * Node binary predicate function
+ */
+typedef bool (*f_list_node_bin_pred)(const s_flist_node *a, const s_flist_node *b);
+
+/**
  * Add a node at the beginning of the list
  *
  * @param[in,out] list pointer to the list
@@ -128,6 +133,13 @@ bool flist_empty(s_flist_node *const *list);
  */
 void flist_sort(s_flist_node **list, f_list_node_cmp cmp_func);
 
+/**
+ * Reverse the nodes in the list
+ *
+ * @param[in,out] list pointer to the list
+ */
+void flist_reverse(s_flist_node **list);
+
 /// @copydoc flist_push_front(s_flist_node **, s_flist_node *)
 void list_push_front(s_list_node **list, s_list_node *node);
 
@@ -169,3 +181,6 @@ bool list_empty(s_list_node *const *list);
 
 /// @copydoc flist_sort(s_flist_node **, f_list_node_cmp)
 void list_sort(s_list_node **list, f_list_node_cmp cmp_func);
+
+/// @copydoc flist_unique(s_flist_node **, f_list_node_bin_pred, f_list_node_del)
+size_t list_unique(s_list_node **list, f_list_node_bin_pred pred_func, f_list_node_del del_func);

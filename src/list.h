@@ -99,6 +99,14 @@ void flist_clear(s_flist_node **list, f_list_node_del del_func);
 size_t flist_size(s_flist_node *const *list);
 
 /**
+ * Checks if the list is empty
+ *
+ * @param[in] list pointer to the list
+ * @return whether the list is empty or not
+ */
+bool flist_empty(s_flist_node *const *list);
+
+/**
  * Sort the list
  *
  * @param[in,out] list pointer to the list
@@ -138,6 +146,9 @@ void list_clear(s_list_node **list, f_list_node_del del_func);
 
 /// @copydoc flist_size(s_flist_node *const *)
 size_t list_size(s_list_node *const *list);
+
+/// @copydoc flist_empty(s_flist_node *const *)
+bool list_empty(s_list_node *const *list);
 
 /// @copydoc flist_sort(s_flist_node **, f_list_node_cmp)
 void list_sort(s_list_node **list, f_list_node_cmp cmp_func);

@@ -173,6 +173,10 @@ size_t flist_size(s_flist_node *const *list) {
     return size;
 }
 
+bool flist_empty(s_flist_node *const *list) {
+    return flist_size(list) == 0;
+}
+
 static void sort_internal(s_flist_node **list, f_list_node_cmp cmp_func, bool doubly_linked) {
     s_flist_node **tmp;
     s_flist_node *a, *b;
@@ -249,6 +253,10 @@ void list_clear(s_list_node **list, f_list_node_del del_func) {
 
 size_t list_size(s_list_node *const *list) {
     return flist_size((s_flist_node **) list);
+}
+
+bool list_empty(s_list_node *const *list) {
+    return list_size(list) == 0;
 }
 
 void list_sort(s_list_node **list, f_list_node_cmp del_func) {

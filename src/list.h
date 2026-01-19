@@ -134,6 +134,16 @@ bool flist_empty(s_flist_node *const *list);
 void flist_sort(s_flist_node **list, f_list_node_cmp cmp_func);
 
 /**
+ * Remove consecutive duplicate nodes
+ *
+ * @param[in,out] list pointer to the list
+ * @param[in] pred_func predicate function
+ * @param[in] del_func node deletion function
+ * @return the number of nodes removed from the list
+ */
+size_t flist_unique(s_flist_node **list, f_list_node_bin_pred pred_func, f_list_node_del del_func);
+
+/**
  * Reverse the nodes in the list
  *
  * @param[in,out] list pointer to the list
@@ -184,3 +194,6 @@ void list_sort(s_list_node **list, f_list_node_cmp cmp_func);
 
 /// @copydoc flist_unique(s_flist_node **, f_list_node_bin_pred, f_list_node_del)
 size_t list_unique(s_list_node **list, f_list_node_bin_pred pred_func, f_list_node_del del_func);
+
+/// @copydoc flist_reverse(s_flist_node **)
+void list_reverse(s_list_node **list);

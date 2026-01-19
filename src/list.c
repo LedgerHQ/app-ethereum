@@ -259,6 +259,30 @@ size_t flist_unique(s_flist_node **list, f_list_node_bin_pred pred_func, f_list_
     return unique_internal(list, pred_func, del_func, false);
 }
 
+static void reverse_internal(s_flist_node **list, bool doubly_linked) {
+    s_flist_node *node;
+    s_flist_node *prev = NULL;
+    s_flist_node *next;
+
+    if (list != NULL) {
+        node = *list;
+        while (node != NULL) {
+            next = node->next;
+            node->next = prev;
+            if (doubly_linked) {
+                ((s_list_node *) node)->prev = (s_list_node *) next;
+            }
+            *list = node;
+            prev = node;
+            node = next;
+        }
+    }
+}
+
+void flist_reverse(s_flist_node **list) {
+    reverse_internal(list, false);
+}
+
 void list_push_front(s_list_node **list, s_list_node *node) {
     push_front_internal((s_flist_node **) list, (s_flist_node *) node, true);
 }
@@ -318,4 +342,8 @@ void list_sort(s_list_node **list, f_list_node_cmp del_func) {
 
 size_t list_unique(s_list_node **list, f_list_node_bin_pred pred_func, f_list_node_del del_func) {
     return unique_internal((s_flist_node **) list, pred_func, del_func, true);
+}
+
+void list_reverse(s_list_node **list) {
+    reverse_internal((s_flist_node **) list, true);
 }

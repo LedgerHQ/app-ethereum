@@ -87,7 +87,7 @@ void flist_pop_back(s_flist_node **list, f_list_node_del del_func) {
     }
 }
 
-void insert_after_internal(s_flist_node *ref, s_flist_node *node, bool doubly_linked) {
+static void insert_after_internal(s_flist_node *ref, s_flist_node *node, bool doubly_linked) {
     if ((ref != NULL) && (node != NULL)) {
         if (doubly_linked) {
             if (ref->next != NULL) {
@@ -159,6 +159,7 @@ static size_t remove_if_internal(s_flist_node **list,
             tmp = node->next;
             if (pred_func(node)) {
                 remove_internal(list, node, del_func, doubly_linked);
+                count += 1;
             }
             node = tmp;
         }

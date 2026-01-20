@@ -98,6 +98,7 @@ void flist_remove(s_flist_node **list, s_flist_node *node, f_list_node_del del_f
  * @param[in,out] list pointer to the list
  * @param[in] pred_func predicate function
  * @param[in] del_func node deletion function
+ * @return the number of nodes removed
  */
 size_t flist_remove_if(s_flist_node **list, f_list_node_pred pred_func, f_list_node_del del_func);
 
@@ -139,7 +140,7 @@ void flist_sort(s_flist_node **list, f_list_node_cmp cmp_func);
  * @param[in,out] list pointer to the list
  * @param[in] pred_func predicate function
  * @param[in] del_func node deletion function
- * @return the number of nodes removed from the list
+ * @return the number of nodes removed
  */
 size_t flist_unique(s_flist_node **list, f_list_node_bin_pred pred_func, f_list_node_del del_func);
 

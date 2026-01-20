@@ -159,6 +159,7 @@ static size_t remove_if_internal(s_flist_node **list,
             tmp = node->next;
             if (pred_func(node)) {
                 remove_internal(list, node, del_func, doubly_linked);
+                count += 1;
             }
             node = tmp;
         }

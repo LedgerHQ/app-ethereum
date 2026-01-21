@@ -1,5 +1,3 @@
-#ifdef HAVE_SAFE_ACCOUNT
-
 #include "signer_descriptor.h"
 #include "safe_descriptor.h"
 #include "apdu_constants.h"
@@ -350,5 +348,3 @@ void clear_signer_descriptor(void) {
     }
     explicit_bzero(&SIGNER_DESC, sizeof(SIGNER_DESC));
 }
-
-#endif  // HAVE_SAFE_ACCOUNT

@@ -1,5 +1,3 @@
-#ifdef HAVE_SAFE_ACCOUNT
-
 #include "safe_descriptor.h"
 #include "apdu_constants.h"
 #include "hash_bytes.h"
@@ -422,5 +420,3 @@ void clear_safe_descriptor(void) {
         SAFE_DESC = NULL;
     }
 }
-
-#endif  // HAVE_SAFE_ACCOUNT

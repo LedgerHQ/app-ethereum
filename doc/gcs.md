@@ -1,5 +1,22 @@
 # Generic Clear-Signing
 
+## Concept
+
+Each transaction is represented like so :
+
+```mermaid
+block
+    block
+        columns 2
+
+        tx_ctx["TX context"]:2
+        style tx_ctx fill:none,stroke-width:0px
+
+        calldata:1
+        tx_info["TX info"]:1
+    end
+```
+
 ## Implementation
 
 ```mermaid

@@ -1,7 +1,5 @@
 #pragma once
 
-#ifdef HAVE_SAFE_ACCOUNT
-
 #include <stdint.h>
 #include "common_utils.h"
 
@@ -18,5 +16,3 @@ extern signers_descriptor_t SIGNER_DESC;
 
 bool handle_signer_tlv_payload(const uint8_t *payload, uint16_t size);
 void clear_signer_descriptor(void);
-
-#endif  // HAVE_SAFE_ACCOUNT

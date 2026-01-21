@@ -1,5 +1,3 @@
-#ifdef HAVE_SAFE_ACCOUNT
-
 #include "cmd_safe_account.h"
 #include "safe_descriptor.h"
 #include "signer_descriptor.h"
@@ -101,5 +99,3 @@ void clear_safe_account(void) {
     clear_safe_descriptor();
     clear_signer_descriptor();
 }
-
-#endif  // HAVE_SAFE_ACCOUNT

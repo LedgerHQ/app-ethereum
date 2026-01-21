@@ -1,7 +1,5 @@
 #pragma once
 
-#ifdef HAVE_SAFE_ACCOUNT
-
 #include <stdint.h>
 #include "common_utils.h"
 
@@ -29,5 +27,3 @@ extern safe_descriptor_t *SAFE_DESC;
 
 bool handle_safe_tlv_payload(const uint8_t *payload, uint16_t size);
 void clear_safe_descriptor(void);
-
-#endif  // HAVE_SAFE_ACCOUNT

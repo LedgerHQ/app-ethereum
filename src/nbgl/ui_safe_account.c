@@ -1,4 +1,3 @@
-#ifdef HAVE_SAFE_ACCOUNT
 #include "cmd_safe_account.h"
 #include "safe_descriptor.h"
 #include "signer_descriptor.h"
@@ -202,10 +201,8 @@ void ui_display_safe_account(void) {
 
     nbgl_useCaseAddressReview(strings.tmp.tmp,
                               g_pairsList,
-                              &C_multisig,
+                              &ICON_APP_MULTISIG,
                               "Verify Safe address",
                               NULL,
                               review_cb);
 }
-
-#endif  // HAVE_SAFE_ACCOUNT

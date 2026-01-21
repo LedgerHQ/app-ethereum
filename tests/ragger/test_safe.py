@@ -1,5 +1,3 @@
-import pytest
-
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 from ragger.error import ExceptionRAPDU
 
@@ -21,10 +19,6 @@ def test_safe_descriptor(scenario_navigator: NavigateWithScenario,
 
     backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
-    device = backend.device
-
-    if device.is_nano:
-        pytest.skip("Not yet supported on Nano")
 
     challenge = common(app_client)
 
@@ -75,10 +69,6 @@ def test_signer_descriptor_error(scenario_navigator: NavigateWithScenario) -> No
 
     backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
-    device = backend.device
-
-    if device.is_nano:
-        pytest.skip("Not yet supported on Nano")
 
     challenge = common(app_client)
 

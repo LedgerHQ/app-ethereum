@@ -149,6 +149,12 @@ uint16_t handleSign(uint8_t p1,
                 PRINTF("Error: instructions hash mismatch!\n");
                 return SWO_INCORRECT_DATA;
             }
+
+            // This should do nothing unless we only had TX context of empty transactions
+            if (!process_empty_txs_after()) {
+                return SWO_INCORRECT_DATA;
+            }
+
             if (get_tx_ctx_count() != 1) {
                 PRINTF("Error: remnant unprocessed TX context!\n");
                 return SWO_COMMAND_NOT_ALLOWED;

@@ -3,6 +3,8 @@
 from typing import Optional
 import json
 import hashlib
+from pathlib import Path
+
 from web3 import Web3
 
 from ragger.navigator.navigation_scenario import NavigateWithScenario
@@ -2534,5 +2536,286 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario):
                         app_client.provide_transaction_field_desc(f2.serialize())
 
     # Send the full transaction
+    with app_client.sign(mode=SignMode.START_FLOW):
+        scenario_navigator.review_approve()
+
+
+def test_gcs_batch_empty_tx(scenario_navigator: NavigateWithScenario) -> None:
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    with Path(f"{ABIS_FOLDER}/batch.json").open() as f:
+        contract = Web3().eth.contract(
+            abi=json.load(f),
+            address=bytes.fromhex("2cc8475177918e8C4d840150b68815A4b6f0f5f3"),
+        )
+
+    data = contract.encode_abi("batchExecute", [[
+        (
+            bytes.fromhex("d8dA6BF26964aF9D7eEd9e03E53415D37aA96045"),
+            Web3.to_wei(0.0, "ether"),
+            b"",
+        ),
+    ]])
+    tx_params = {
+        "nonce": 79,
+        "maxFeePerGas": Web3.to_wei(4.8, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(2, "gwei"),
+        "gas": 2000,
+        "to": contract.address,
+        "data": data,
+        "chainId": 1,
+    }
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+    param_paths = get_all_tuple_array_paths(f"{ABIS_FOLDER}/batch.json", "batchExecute", "calls")
+    fields = [
+            Field(
+                1,
+                "Destination",
+                ParamCalldata(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.BYTES,
+                        data_path=DataPath(
+                            1,
+                            param_paths["data"],
+                        ),
+                    ),
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        data_path=DataPath(
+                            1,
+                            param_paths["to"],
+                        ),
+                    ),
+                ),
+            ),
+    ]
+
+    # compute instructions hash
+    inst_hash = compute_inst_hash(fields)
+
+    tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        contract.address,
+        get_selector_from_data(data),
+        inst_hash,
+        "Batch transaction",
+        creator_name="Ledger Multisig",
+        creator_legal_name="Ledger",
+    )
+    app_client.provide_transaction_info(tx_info.serialize())
+    for field in fields:
+        app_client.provide_transaction_field_desc(field.serialize())
+
+    with app_client.sign(mode=SignMode.START_FLOW):
+        scenario_navigator.review_approve()
+
+
+def test_gcs_batch_complex(scenario_navigator: NavigateWithScenario) -> None:
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    tokens = [
+        {
+            "ticker": "USDT",
+            "address": bytes.fromhex("dac17f958d2ee523a2206206994597c13d831ec7"),
+            "decimals": 6,
+        },
+        {
+            "ticker": "WETH",
+            "address": bytes.fromhex("c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"),
+            "decimals": 18,
+        },
+    ]
+    with Path(f"{ABIS_FOLDER}/erc20.json").open() as f:
+        contract = Web3().eth.contract(
+            abi=json.load(f),
+            address=None,
+        )
+    data0 = contract.encode_abi("transfer", [
+        bytes.fromhex("1111111111111111111111111111111111111111"),
+        int(1.1 * pow(10, tokens[0]["decimals"])),
+    ])
+    data1 = contract.encode_abi("transfer", [
+        bytes.fromhex("3333333333333333333333333333333333333333"),
+        int(3.3 * pow(10, tokens[1]["decimals"])),
+    ])
+
+    with Path(f"{ABIS_FOLDER}/batch.json").open() as f:
+        contract = Web3().eth.contract(
+            abi=json.load(f),
+            address=bytes.fromhex("2cc8475177918e8C4d840150b68815A4b6f0f5f3"),
+        )
+
+    data = contract.encode_abi("batchExecute", [[
+        (
+            bytes.fromhex("0000000000000000000000000000000000000000"),
+            Web3.to_wei(0.0, "ether"),
+            b"",
+        ),
+        (
+            tokens[0]["address"],
+            Web3.to_wei(0, "ether"),
+            data0,
+        ),
+        (
+            bytes.fromhex("2222222222222222222222222222222222222222"),
+            Web3.to_wei(2.2, "ether"),
+            b"",
+        ),
+        (
+            tokens[1]["address"],
+            Web3.to_wei(0, "ether"),
+            data1,
+        ),
+        (
+            bytes.fromhex("4444444444444444444444444444444444444444"),
+            Web3.to_wei(4.4, "ether"),
+            b"",
+        ),
+    ]])
+
+    tx_params = {
+        "nonce": 79,
+        "maxFeePerGas": Web3.to_wei(4.8, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(2, "gwei"),
+        "gas": 10120,
+        "to": contract.address,
+        "data": data,
+        "chainId": 1,
+    }
+
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/erc20.json", "transfer")
+    sub_fields = [
+            Field(
+                1,
+                "To",
+                ParamRaw(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        data_path=DataPath(
+                            1,
+                            param_paths["_to"],
+                        ),
+                    ),
+                ),
+            ),
+            Field(
+                1,
+                "Amount",
+                ParamTokenAmount(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.UINT,
+                        32,
+                        DataPath(
+                            1,
+                            param_paths["_value"],
+                        ),
+                    ),
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        container_path=ContainerPath.TO,
+                    ),
+                ),
+            ),
+    ]
+
+    param_paths = get_all_tuple_array_paths(f"{ABIS_FOLDER}/batch.json", "batchExecute", "calls")
+    fields = [
+            Field(
+                1,
+                "Destination",
+                ParamCalldata(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.BYTES,
+                        data_path=DataPath(
+                            1,
+                            param_paths["data"],
+                        ),
+                    ),
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        data_path=DataPath(
+                            1,
+                            param_paths["to"],
+                        ),
+                    ),
+                    amount=Value(
+                        1,
+                        TypeFamily.UINT,
+                        data_path=DataPath(
+                            1,
+                            param_paths["value"],
+                        ),
+                    ),
+                ),
+            ),
+    ]
+
+    # compute instructions hash
+    inst_hash = compute_inst_hash(fields)
+
+    tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        contract.address,
+        get_selector_from_data(data),
+        inst_hash,
+        "Batch transaction",
+        creator_name="Ledger Multisig",
+        creator_legal_name="Ledger",
+    )
+
+    app_client.provide_transaction_info(tx_info.serialize())
+
+    # compute instructions hash
+    sub_inst_hash = compute_inst_hash(sub_fields)
+
+    sub_tx_info = [
+        TxInfo(
+            1,
+            tx_params["chainId"],
+            tokens[0]["address"],
+            get_selector_from_data(data0),
+            sub_inst_hash,
+            "Transfer token",
+        ),
+        TxInfo(
+            1,
+            tx_params["chainId"],
+            tokens[1]["address"],
+            get_selector_from_data(data1),
+            sub_inst_hash,
+            "Transfer token",
+        ),
+    ]
+
+    for field in fields:
+        app_client.provide_transaction_field_desc(field.serialize())
+        for idx, sub_info in enumerate(sub_tx_info):
+            app_client.provide_token_metadata(tokens[idx]["ticker"],
+                                              tokens[idx]["address"],
+                                              tokens[idx]["decimals"],
+                                              tx_params["chainId"])
+            app_client.provide_transaction_info(sub_info.serialize())
+            for sub_field in sub_fields:
+                app_client.provide_transaction_field_desc(sub_field.serialize())
+
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()

@@ -242,7 +242,7 @@ void ui_712_set_value(const char *str, size_t length) {
     }
     tmp->end_intent = validate_instruction_hash();
     if (tmp->end_intent) {
-        PRINTF(">>> [Intent] End\n");
+        PRINTF("[Intent] End\n");
     }
 }
 

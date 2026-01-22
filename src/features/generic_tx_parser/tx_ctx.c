@@ -7,6 +7,7 @@
 #include "utils.h"           // buf_shrink_expand
 #include "getPublicKey.h"
 #include "context_712.h"
+#include "network.h"
 
 static s_tx_ctx *g_tx_ctx_list = NULL;
 static s_tx_ctx *g_tx_ctx_current = NULL;
@@ -29,9 +30,19 @@ const s_tx_info *get_current_tx_info(void) {
     return g_tx_ctx_current->tx_info;
 }
 
+const s_tx_info *get_root_tx_info(void) {
+    if (g_tx_ctx_list == NULL) return NULL;
+    return g_tx_ctx_list->tx_info;
+}
+
 s_calldata *get_current_calldata(void) {
     if (g_tx_ctx_current == NULL) return NULL;
     return g_tx_ctx_current->calldata;
+}
+
+s_calldata *get_root_calldata(void) {
+    if (g_tx_ctx_list == NULL) return NULL;
+    return g_tx_ctx_list->calldata;
 }
 
 const uint8_t *get_current_tx_from(void) {
@@ -83,6 +94,74 @@ void tx_ctx_pop(void) {
     list_remove((s_list_node **) &g_tx_ctx_list, old_current, (f_list_node_del) &delete_tx_ctx);
 }
 
+static bool process_empty_tx(const s_tx_ctx *tx_ctx) {
+    const char *ticker;
+    uint8_t decimals;
+    char *buf = strings.tmp.tmp;
+    size_t buf_size = sizeof(strings.tmp.tmp);
+    const s_tx_info *tx_info = tx_ctx->tx_info;
+
+    if (tx_ctx->has_amount) {
+        if (!set_intent_field("Send")) {
+            return false;
+        }
+        if (tx_info == NULL) {
+            if ((tx_info = get_root_tx_info()) == NULL) {
+                return false;
+            }
+        }
+        ticker = get_displayable_ticker(&tx_info->chain_id, chainConfig, true);
+        decimals = WEI_TO_ETHER;
+        if (!amountToString(tx_ctx->amount,
+                            sizeof(tx_ctx->amount),
+                            decimals,
+                            ticker,
+                            buf,
+                            buf_size)) {
+            return false;
+        }
+        if (!add_to_field_table(PARAM_TYPE_AMOUNT, "Amount", buf)) {
+            return false;
+        }
+    } else {
+        if (!set_intent_field("Empty transaction")) {
+            return false;
+        }
+    }
+    if (!getEthDisplayableAddress(tx_ctx->to, buf, buf_size, chainConfig->chainId)) {
+        return false;
+    }
+    if (!add_to_field_table(PARAM_TYPE_RAW, "To", buf)) {
+        return false;
+    }
+    list_remove((s_list_node **) &g_tx_ctx_list,
+                (s_list_node *) tx_ctx,
+                (f_list_node_del) &delete_tx_ctx);
+    return true;
+}
+
+bool process_empty_txs_before(void) {
+    for (s_list_node *tmp = ((s_list_node *) g_tx_ctx_current)->prev;
+         (tmp != NULL) && (((s_tx_ctx *) tmp)->calldata == NULL);
+         tmp = tmp->prev) {
+        if (!process_empty_tx((s_tx_ctx *) tmp)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool process_empty_txs_after(void) {
+    for (s_flist_node *tmp = ((s_flist_node *) g_tx_ctx_current)->next;
+         (tmp != NULL) && (((s_tx_ctx *) tmp)->calldata == NULL);
+         tmp = tmp->next) {
+        if (!process_empty_tx((s_tx_ctx *) tmp)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 bool find_matching_tx_ctx(const uint8_t *contract_addr,
                           const uint8_t *selector,
                           const uint64_t *chain_id) {
@@ -94,7 +173,8 @@ bool find_matching_tx_ctx(const uint8_t *contract_addr,
         if ((memcmp((proxy_implem != NULL) ? proxy_implem : tmp->to,
                     contract_addr,
                     ADDRESS_LENGTH) == 0) &&
-            (memcmp(selector, tmp->calldata->selector, CALLDATA_SELECTOR_SIZE) == 0) &&
+            ((tmp->calldata != NULL) &&
+             (memcmp(selector, tmp->calldata->selector, CALLDATA_SELECTOR_SIZE) == 0)) &&
             (*chain_id == tmp->chain_id)) {
             g_tx_ctx_current = tmp;
             return true;
@@ -144,7 +224,6 @@ bool tx_ctx_init(s_calldata *calldata,
     s_tx_ctx *node;
     s_eip712_calldata_info *calldata_info;
 
-    if (calldata == NULL) return false;
     if ((node = app_mem_alloc(sizeof(*node))) == NULL) {
         return false;
     }
@@ -167,23 +246,29 @@ bool tx_ctx_init(s_calldata *calldata,
             tmp = (const s_tx_ctx *) ((const s_flist_node *) tmp)->next;
         }
         memcpy(node->from, tmp->from, sizeof(node->from));
-        memcpy(node->to, tmp->to, sizeof(node->to));
-        memcpy(node->amount, tmp->amount, sizeof(node->amount));
         node->chain_id = tmp->chain_id;
     }
 
-    if (from != NULL) memcpy(node->from, from, sizeof(node->from));
-    if (to != NULL) memcpy(node->to, to, sizeof(node->to));
-    if (amount != NULL) memcpy(node->amount, amount, sizeof(node->amount));
-    if (chain_id != NULL) node->chain_id = *chain_id;
+    if (from != NULL) {
+        memcpy(node->from, from, sizeof(node->from));
+    }
+    if (to != NULL) {
+        memcpy(node->to, to, sizeof(node->to));
+    }
+    if (amount != NULL) {
+        memcpy(node->amount, amount, sizeof(node->amount));
+        node->has_amount = true;
+    }
+    if (chain_id != NULL) {
+        node->chain_id = *chain_id;
+    }
 
     if (cx_sha3_init_no_throw(&node->fields_hash_ctx, 256) != CX_OK) {
         app_mem_free(node);
         return false;
     }
     list_push_back((s_list_node **) &g_tx_ctx_list, (s_list_node *) node);
-    g_tx_ctx_current = node;
-    if ((appState == APP_STATE_SIGNING_TX) && tx_ctx_is_root()) {
+    if ((appState == APP_STATE_SIGNING_TX) && (node == g_tx_ctx_list)) {
         return field_table_init();
     }
     return true;

@@ -294,12 +294,25 @@ static bool handle_signature(const s_tlv_data *data, s_trusted_name_ctx *context
 }
 
 /**
- * Tests if the given account name character is valid (in our subset of allowed characters)
+ * Check the characters of trusted name with a given check function
  *
- * @param[in] c given character
- * @return whether the character is valid
+ * @param[in] name trusted name
+ * @param[in] check_func function to check the character
  */
-static bool is_valid_account_character(char c) {
+static bool check_trusted_name(const char *name, bool (*check_func)(char)) {
+    if (name == NULL) {
+        return false;
+    }
+    for (int idx = 0; name[idx] != '\0'; ++idx) {
+        if (!check_func(name[idx])) {
+            PRINTF("Error: unallowed character in trusted name '%c' !\n", name[idx]);
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool ens_charset(char c) {
     if (isalpha((int) c)) {
         if (!islower((int) c)) {
             return false;
@@ -309,6 +322,21 @@ static bool is_valid_account_character(char c) {
             case '.':
             case '-':
             case '_':
+                break;
+            default:
+                return false;
+        }
+    }
+    return true;
+}
+
+static bool generic_trusted_name_charset(char c) {
+    if (!isalpha((int) c) && !isdigit((int) c)) {
+        switch (c) {
+            case '.':
+            case '-':
+            case '_':
+            case ' ':
                 break;
             default:
                 return false;
@@ -602,23 +630,21 @@ bool verify_trusted_name_struct(const s_trusted_name_ctx *context) {
             return false;
     }
 
+    size_t name_length = strlen(context->trusted_name.name);
     if ((context->trusted_name.struct_version == 1) ||
-        (context->trusted_name.name_type == TN_TYPE_ACCOUNT)) {
-        size_t name_length = strlen(context->trusted_name.name);
-        if ((context->trusted_name.struct_version == 1) ||
-            (context->trusted_name.name_source == TN_SOURCE_ENS)) {
-            if ((name_length < 5) ||
-                (strncmp(".eth", (char *) &context->trusted_name.name[name_length - 4], 4) != 0)) {
-                PRINTF("Unexpected TLD!\n");
-                return false;
-            }
+        ((context->trusted_name.name_type == TN_TYPE_ACCOUNT) &&
+         (context->trusted_name.name_source == TN_SOURCE_ENS))) {
+        if ((name_length < 5) ||
+            (strncmp(".eth", (char *) &context->trusted_name.name[name_length - 4], 4) != 0)) {
+            PRINTF("Unexpected TLD!\n");
+            return false;
         }
-        for (size_t idx = 0; idx < name_length; ++idx) {
-            if (!is_valid_account_character(context->trusted_name.name[idx])) {
-                PRINTF("Domain name contains non-allowed character! (0x%x)\n",
-                       context->trusted_name.name[idx]);
-                return false;
-            }
+        if (!check_trusted_name(context->trusted_name.name, &ens_charset)) {
+            return false;
+        }
+    } else {
+        if (!check_trusted_name(context->trusted_name.name, &generic_trusted_name_charset)) {
+            return false;
         }
     }
 

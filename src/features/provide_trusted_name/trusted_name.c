@@ -329,24 +329,7 @@ static bool handle_trusted_name(const s_tlv_data *data, s_trusted_name_ctx *cont
         PRINTF("Domain name too long! (%u)\n", data->length);
         return false;
     }
-    if ((context->trusted_name.struct_version == 1) ||
-        (context->trusted_name.name_type == TN_TYPE_ACCOUNT)) {
-        // TODO: Remove once other domain name providers are supported
-        if ((data->length < 5) ||
-            (strncmp(".eth", (char *) &data->value[data->length - 4], 4) != 0)) {
-            PRINTF("Unexpected TLD!\n");
-            return false;
-        }
-        for (int idx = 0; idx < data->length; ++idx) {
-            if (!is_valid_account_character(data->value[idx])) {
-                PRINTF("Domain name contains non-allowed character! (0x%x)\n", data->value[idx]);
-                return false;
-            }
-            context->trusted_name.name[idx] = data->value[idx];
-        }
-    } else {
-        memcpy(context->trusted_name.name, data->value, data->length);
-    }
+    memcpy(context->trusted_name.name, data->value, data->length);
     context->trusted_name.name[data->length] = '\0';
     context->rcv_flags |= SET_BIT(TRUSTED_NAME_RCV_BIT);
     return true;
@@ -633,6 +616,26 @@ bool verify_trusted_name_struct(const s_trusted_name_ctx *context) {
             PRINTF("Error: unsupported trusted name struct version (%u) !\n",
                    context->trusted_name.struct_version);
             return false;
+    }
+
+    if ((context->trusted_name.struct_version == 1) ||
+        (context->trusted_name.name_type == TN_TYPE_ACCOUNT)) {
+        size_t name_length = strlen(context->trusted_name.name);
+        if ((context->trusted_name.struct_version == 1) ||
+            (context->trusted_name.name_source == TN_SOURCE_ENS)) {
+            if ((name_length < 5) ||
+                (strncmp(".eth", (char *) &context->trusted_name.name[name_length - 4], 4) != 0)) {
+                PRINTF("Unexpected TLD!\n");
+                return false;
+            }
+        }
+        for (size_t idx = 0; idx < name_length; ++idx) {
+            if (!is_valid_account_character(context->trusted_name.name[idx])) {
+                PRINTF("Domain name contains non-allowed character! (0x%x)\n",
+                       context->trusted_name.name[idx]);
+                return false;
+            }
+        }
     }
 
     if (!verify_trusted_name_signature(context)) {

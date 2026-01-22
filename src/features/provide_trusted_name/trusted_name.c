@@ -524,22 +524,6 @@ bool handle_trusted_name_struct(const s_tlv_data *data, s_trusted_name_ctx *cont
  */
 static bool verify_trusted_name_signature(const s_trusted_name_ctx *context) {
     uint8_t hash[INT256_LENGTH];
-    const uint8_t *pk;
-    size_t pk_size;
-
-    switch (context->key_id) {
-        case TN_KEY_ID_DOMAIN_SVC:
-            pk = TRUSTED_NAME_PUB_KEY;
-            pk_size = sizeof(TRUSTED_NAME_PUB_KEY);
-            break;
-        case TN_KEY_ID_CAL:
-            pk = LEDGER_SIGNATURE_PUBLIC_KEY;
-            pk_size = sizeof(LEDGER_SIGNATURE_PUBLIC_KEY);
-            break;
-        default:
-            PRINTF("Error: Unknown metadata key ID %u\n", context->key_id);
-            return false;
-    }
 
     if (cx_hash_no_throw((cx_hash_t *) &context->hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH) !=
         CX_OK) {
@@ -549,8 +533,8 @@ static bool verify_trusted_name_signature(const s_trusted_name_ctx *context) {
     if (check_signature_with_pubkey("Trusted Name",
                                     hash,
                                     sizeof(hash),
-                                    pk,
-                                    pk_size,
+                                    NULL,
+                                    0,
                                     CERTIFICATE_PUBLIC_KEY_USAGE_TRUSTED_NAME,
                                     (uint8_t *) (context->input_sig),
                                     context->input_sig_size) != CX_OK) {

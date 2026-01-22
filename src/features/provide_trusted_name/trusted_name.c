@@ -8,7 +8,7 @@
 #include "public_keys.h"
 #include "proxy_info.h"
 #include "ui_utils.h"
-#include "mem_utils.h"
+#include "mem.h"
 
 typedef enum { STRUCT_TYPE_TRUSTED_NAME = 0x03 } e_struct_type;
 
@@ -53,12 +53,14 @@ typedef enum {
     NFT_ID = 0x72,
 } e_tlv_tag;
 
-s_trusted_name_info *g_trusted_name_info = NULL;
-char *g_trusted_name = NULL;
+static s_trusted_name *g_trusted_name_list = NULL;
+
+static void delete_trusted_name(s_trusted_name *node) {
+    app_mem_free(node);
+}
 
 void trusted_name_cleanup(void) {
-    mem_buffer_cleanup((void **) &g_trusted_name);
-    mem_buffer_cleanup((void **) &g_trusted_name_info);
+    flist_clear((s_flist_node **) &g_trusted_name_list, (f_list_node_del) &delete_trusted_name);
 }
 
 static bool matching_type(e_name_type type, uint8_t type_count, const e_name_type *types) {
@@ -77,7 +79,7 @@ static bool matching_source(e_name_source source,
     return false;
 }
 
-static bool matching_trusted_name(const s_trusted_name_info *trusted_name,
+static bool matching_trusted_name(const s_trusted_name *trusted_name,
                                   uint8_t type_count,
                                   const e_name_type *types,
                                   uint8_t source_count,
@@ -118,15 +120,13 @@ static bool matching_trusted_name(const s_trusted_name_info *trusted_name,
 }
 
 /**
- * Checks if a trusted name matches the given parameters
- *
- * Always wipes the content of \ref g_trusted_name_info
+ * Get a trusted name that matches the given parameters
  *
  * @param[in] types_count number of given trusted name types
  * @param[in] types given trusted name types
  * @param[in] chain_id given chain ID
  * @param[in] addr given address
- * @return whether there is or not
+ * @return the matching trusted name if found, \ref NULL otherwise
  */
 const char *get_trusted_name(uint8_t type_count,
                              const e_name_type *types,
@@ -136,19 +136,13 @@ const char *get_trusted_name(uint8_t type_count,
                              const uint8_t *addr) {
     const char *ret = NULL;
 
-    if (g_trusted_name_info == NULL) {
-        return NULL;
+    for (s_trusted_name *tmp = g_trusted_name_list; tmp != NULL;
+         tmp = (s_trusted_name *) ((s_flist_node *) tmp)->next) {
+        if (matching_trusted_name(tmp, type_count, types, source_count, sources, chain_id, addr)) {
+            ret = tmp->name;
+            break;
+        }
     }
-    if (matching_trusted_name(g_trusted_name_info,
-                              type_count,
-                              types,
-                              source_count,
-                              sources,
-                              chain_id,
-                              addr)) {
-        ret = g_trusted_name_info->name;
-    }
-    explicit_bzero(g_trusted_name_info, sizeof(s_trusted_name_info));
     return ret;
 }
 
@@ -652,17 +646,18 @@ bool verify_trusted_name_struct(const s_trusted_name_ctx *context) {
         return false;
     }
 
-    // Allocate the Trusted Name buffer
-    if (mem_buffer_allocate((void **) &g_trusted_name_info, sizeof(s_trusted_name_info)) == false) {
-        PRINTF("Memory allocation failed for Trusted Name\n");
+    s_trusted_name *node;
+
+    if ((node = app_mem_alloc(sizeof(*node))) == NULL) {
+        PRINTF("Error: could not allocate trusted name struct!\n");
         return false;
     }
-
-    memcpy(g_trusted_name_info, &context->trusted_name, sizeof(s_trusted_name_info));
+    memcpy(node, &context->trusted_name, sizeof(*node));
+    flist_push_back((s_flist_node **) &g_trusted_name_list, (s_flist_node *) node);
 
     PRINTF("Registered : %s => %.*h\n",
-           g_trusted_name_info->name,
+           context->trusted_name.name,
            ADDRESS_LENGTH,
-           g_trusted_name_info->addr);
+           context->trusted_name.addr);
     return true;
 }

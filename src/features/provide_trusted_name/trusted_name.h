@@ -36,7 +36,6 @@ typedef enum {
 typedef enum { TN_KEY_ID_DOMAIN_SVC = 0x07, TN_KEY_ID_CAL = 0x09 } e_tn_key_id;
 
 typedef struct {
-    bool valid;
     uint8_t struct_version;
     char *name;
     uint8_t addr[ADDRESS_LENGTH];

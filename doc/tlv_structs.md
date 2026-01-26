@@ -218,11 +218,12 @@ with `TypeFamily` enum defined as:
 
 and `ContainerPath` enum defined as:
 
-| Name  | Value |
-|-------|-------|
-| FROM  | 0x00  |
-| TO    | 0x01  |
-| VALUE | 0x02  |
+| Name     | Value |
+|----------|-------|
+| FROM     | 0x00  |
+| TO       | 0x01  |
+| VALUE    | 0x02  |
+| CHAIN_ID | 0x03  |
 
 The TLV payload must include exactly one of `DATA_PATH`, `CONTAINER_PATH` or `CONSTANT`.
 

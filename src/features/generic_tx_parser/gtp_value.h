@@ -21,6 +21,7 @@ typedef enum {
     CP_FROM = 0,
     CP_TO,
     CP_VALUE,
+    CP_CHAIN_ID,
 } e_container_path;
 
 typedef enum {

@@ -278,7 +278,7 @@ bool format_field(s_field *field) {
 
     switch (field->param_type) {
         case PARAM_TYPE_RAW:
-            ret = format_param_raw(&field->param_raw, field->name);
+            ret = format_param_raw(field);
             break;
         case PARAM_TYPE_AMOUNT:
             ret = format_param_amount(&field->param_amount, field->name);

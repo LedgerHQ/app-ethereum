@@ -44,12 +44,21 @@
 It contains no signature since the signed TRANSACTION_INFO struct already has a hash of all the FIELD
 structs, which attests of the authenticity, order and completeness of all FIELD structs.
 
-| Name       | Tag  | Payload type | Description                | Optional | Source / value                                             |
-|------------|------|--------------|----------------------------|----------|------------------------------------------------------------|
-| VERSION    | 0x00 | uint8        | struct version             |          | constant: `0x0`                                            |
-| NAME       | 0x01 | char[]       | field display name (ASCII) |          | `$.display.formats.<format id>.fields.[<field id>].label`  |
-| PARAM_TYPE | 0x02 | uint8        | `ParamType`                |          | `$.display.formats.<format id>.fields.[<field id>].params` |
-| PARAM      | 0x03 | PARAM_*      |                            |          | `$.display.formats.<format id>.fields.[<field id>].params` |
+| Name       | Tag  | Payload type | Description                         | Optional | Source / value                                              |
+|------------|------|--------------|-------------------------------------|----------|-------------------------------------------------------------|
+| VERSION    | 0x00 | uint8        | struct version                      |          | constant: `0x0`                                             |
+| NAME       | 0x01 | char[]       | field display name (ASCII)          |          | `$.display.formats.<format id>.fields.[<field id>].label`   |
+| PARAM_TYPE | 0x02 | uint8        | `ParamType`                         |          | `$.display.formats.<format id>.fields.[<field id>].params`  |
+| PARAM      | 0x03 | PARAM_*      |                                     |          | `$.display.formats.<format id>.fields.[<field id>].params`  |
+| VISIBLE    | 0x04 | uint8        | `VisibleType` visibility condition  | x        | `$.display.formats.<format id>.fields.[<field id>].visible` |
+| CONSTRAINT | 0x05 | uint8[]      | constraint value (raw bytes)        | x        | `$.display.formats.<format id>.fields.[<field id>].visible` |
+
+> __Notes__:
+>
+> - `VISIBLE` defaults to `ALWAYS` (0x00) if not present
+> - `VISIBLE` can be present only once and should be served before any `CONSTRAINT`
+> - `CONSTRAINT` is only present when `VISIBLE` is `MUST_BE` or `IF_NOT_IN`
+> - `CONSTRAINT` tag can appear multiple times for multiple allowed/excluded values (OR semantics). The limit is 5 constraints.
 
 with `ParamType` enum defined as:
 
@@ -67,6 +76,14 @@ with `ParamType` enum defined as:
 | CALLDATA     | 0x09  |
 | TOKEN        | 0x0a  |
 | NETWORK      | 0x0b  |
+
+with `VisibleType` enum defined as:
+
+| Name      | Value | Description                                                                                |
+|-----------|-------|--------------------------------------------------------------------------------------------|
+| ALWAYS    | 0x00  | Field is always displayed (default)                                                        |
+| MUST_BE   | 0x01  | Field not displayed but must match one of the constraint values, otherwise tx is rejected  |
+| IF_NOT_IN | 0x02  | Field is displayed only if value is NOT in the constraint list                             |
 
 ### PARAM_RAW
 

@@ -17,9 +17,13 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
     ctx.field = &field;
     parsing_ret = tlv_parse(payload, size, (f_tlv_data_handler) &handle_field_struct, &ctx);
     hashing_ret = cx_hash_no_throw(get_fields_hash_ctx(), 0, payload, size, NULL, 0) == CX_OK;
-    if (!parsing_ret || !hashing_ret) return false;
+    if (!parsing_ret || !hashing_ret) {
+        cleanup_field_constraints(&field);
+        return false;
+    }
     if (!verify_field_struct(&ctx)) {
         PRINTF("Error: could not verify the field struct!\n");
+        cleanup_field_constraints(&field);
         return false;
     }
     if (!format_field(&field)) {

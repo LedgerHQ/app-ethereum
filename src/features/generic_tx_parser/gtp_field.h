@@ -15,6 +15,7 @@
 #include "gtp_param_calldata.h"
 #include "gtp_param_token.h"
 #include "gtp_param_network.h"
+#include "calldata.h"
 #include "list.h"
 
 typedef enum {
@@ -33,7 +34,20 @@ typedef enum {
     PARAM_TYPE_INTENT,
 } e_param_type;
 
-typedef struct {
+typedef enum {
+    PARAM_VISIBILITY_ALWAYS = 0,
+    PARAM_VISIBILITY_MUST_BE,
+    PARAM_VISIBILITY_IF_NOT_IN,
+    PARAM_VISIBILITY_MAX,
+} e_param_visibility;
+
+typedef struct s_field_constraint {
+    s_flist_node node;
+    uint8_t size;
+    uint8_t *value;
+} s_field_constraint;
+
+typedef struct s_field {
     uint8_t version;
     char name[21];
     e_param_type param_type;
@@ -51,6 +65,8 @@ typedef struct {
         s_param_token param_token;
         s_param_network param_network;
     };
+    e_param_visibility visibility;
+    s_field_constraint *constraints;
 } s_field;
 
 typedef struct {
@@ -60,4 +76,5 @@ typedef struct {
 
 bool handle_field_struct(const s_tlv_data *data, s_field_ctx *context);
 bool verify_field_struct(const s_field_ctx *context);
-bool format_field(const s_field *field);
+bool format_field(s_field *field);
+void cleanup_field_constraints(s_field *field);

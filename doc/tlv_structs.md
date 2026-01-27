@@ -66,6 +66,7 @@ with `ParamType` enum defined as:
 | TRUSTED_NAME | 0x08  |
 | CALLDATA     | 0x09  |
 | TOKEN        | 0x0a  |
+| NETWORK      | 0x0b  |
 
 ### PARAM_RAW
 
@@ -192,6 +193,20 @@ and `TrustedNameSource` enum defined as:
 
 This struct can contain `NATIVE_CURRENCY` multiple times for multiple addresses.
 
+### PARAM_NETWORK
+
+| Name    | Tag  | Payload type | Description                 | Optional | Source / value                                           |
+|---------|------|--------------|-----------------------------|----------|----------------------------------------------------------|
+| VERSION | 0x00 | uint8        | struct version              |          | constant: `0x0`                                          |
+| VALUE   | 0x01 | VALUE        | reference to chain ID value |          | `$.display.formats.<format id>.fields.[<field id>].path` |
+
+The device looks up the network name from the chain ID using:
+
+1. Dynamic networks
+2. Built-in networks
+
+If the network is not found, the device falls back to displaying the raw chain ID.
+
 ### VALUE
 
 | Name           | Tag  | Payload type    | Description                             | Optional | Source / value                                            |
@@ -225,20 +240,7 @@ and `ContainerPath` enum defined as:
 | VALUE    | 0x02  |
 | CHAIN_ID | 0x03  |
 
-The TLV payload must include exactly one of `DATA_PATH`, `CONTAINER_PATH` or `CONSTANT`.
-
-with `TypeFamily` enum defined as:
-
-| Name    | Value |
-|---------|-------|
-| UINT    | 0x01  |
-| INT     | 0x02  |
-| UFIXED  | 0x03  |
-| FIXED   | 0x04  |
-| ADDRESS | 0x05  |
-| BOOL    | 0x06  |
-| BYTES   | 0x07  |
-| STRING  | 0x08  |
+> __Note__: The TLV payload must include exactly one of `DATA_PATH`, `CONTAINER_PATH` or `CONSTANT`.
 
 ### DATA_PATH
 

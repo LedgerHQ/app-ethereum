@@ -14,6 +14,7 @@
 #include "gtp_param_trusted_name.h"
 #include "gtp_param_calldata.h"
 #include "gtp_param_token.h"
+#include "gtp_param_network.h"
 #include "list.h"
 
 typedef enum {
@@ -28,6 +29,7 @@ typedef enum {
     PARAM_TYPE_TRUSTED_NAME,
     PARAM_TYPE_CALLDATA,
     PARAM_TYPE_TOKEN,
+    PARAM_TYPE_NETWORK,
     PARAM_TYPE_INTENT,
 } e_param_type;
 
@@ -47,6 +49,7 @@ typedef struct {
         s_param_trusted_name param_trusted_name;
         s_param_calldata param_calldata;
         s_param_token param_token;
+        s_param_network param_network;
     };
 } s_field;
 

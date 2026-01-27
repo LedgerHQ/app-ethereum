@@ -30,6 +30,7 @@ typedef union {
     s_param_trusted_name_context trusted_name_ctx;
     s_param_calldata_context calldata_ctx;
     s_param_token_context token_ctx;
+    s_param_network_context network_ctx;
 } u_param_context;
 
 static bool handle_version(const s_tlv_data *data, s_field_ctx *context) {
@@ -71,6 +72,7 @@ static bool handle_param_type(const s_tlv_data *data, s_field_ctx *context) {
         case PARAM_TYPE_TRUSTED_NAME:
         case PARAM_TYPE_CALLDATA:
         case PARAM_TYPE_TOKEN:
+        case PARAM_TYPE_NETWORK:
             break;
         default:
             PRINTF("Error: Unsupported param type (%u)\n", context->field->param_type);
@@ -136,6 +138,10 @@ static bool handle_param(const s_tlv_data *data, s_field_ctx *context) {
         case PARAM_TYPE_TOKEN:
             handler = (f_tlv_data_handler) &handle_param_token_struct;
             param_ctx.token_ctx.param = &context->field->param_token;
+            break;
+        case PARAM_TYPE_NETWORK:
+            handler = (f_tlv_data_handler) &handle_param_network_struct;
+            param_ctx.network_ctx.param = &context->field->param_network;
             break;
         default:
             return false;
@@ -230,6 +236,9 @@ bool format_field(const s_field *field) {
             break;
         case PARAM_TYPE_TOKEN:
             ret = format_param_token(&field->param_token, field->name);
+            break;
+        case PARAM_TYPE_NETWORK:
+            ret = format_param_network(&field->param_network, field->name);
             break;
         default:
             ret = false;

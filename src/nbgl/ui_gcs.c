@@ -229,7 +229,6 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
 }
 
 void ui_gcs_cleanup(void) {
-    trusted_name_cleanup();
     if ((g_pairsList != NULL) && (g_pairsList->pairs != NULL)) {
         for (int i = 0; i < g_pairsList->nbPairs; ++i) {
             free_pair(g_pairsList, i);

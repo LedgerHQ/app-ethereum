@@ -639,16 +639,18 @@ static bool update_amount_join(const uint8_t *data, uint8_t length) {
  * @return whether it was successful or not
  */
 static bool ui_712_format_trusted_name(const uint8_t *data, uint8_t length) {
+    const s_trusted_name *trusted_name;
+
     if (length != ADDRESS_LENGTH) {
         return false;
     }
-    if (get_trusted_name(ui_ctx->tn_type_count,
-                         ui_ctx->tn_types,
-                         ui_ctx->tn_source_count,
-                         ui_ctx->tn_sources,
-                         &eip712_context->chain_id,
-                         data) != NULL) {
-        strlcpy(strings.tmp.tmp, g_trusted_name, sizeof(strings.tmp.tmp));
+    if ((trusted_name = get_trusted_name(ui_ctx->tn_type_count,
+                                         ui_ctx->tn_types,
+                                         ui_ctx->tn_source_count,
+                                         ui_ctx->tn_sources,
+                                         &eip712_context->chain_id,
+                                         data)) != NULL) {
+        strlcpy(strings.tmp.tmp, trusted_name->name, sizeof(strings.tmp.tmp));
     }
     return true;
 }

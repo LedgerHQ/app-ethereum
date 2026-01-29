@@ -8,7 +8,7 @@
 #include "public_keys.h"
 #include "proxy_info.h"
 #include "ui_utils.h"
-#include "mem_utils.h"
+#include "mem.h"
 
 typedef enum { STRUCT_TYPE_TRUSTED_NAME = 0x03 } e_struct_type;
 
@@ -53,12 +53,14 @@ typedef enum {
     NFT_ID = 0x72,
 } e_tlv_tag;
 
-s_trusted_name_info *g_trusted_name_info = NULL;
-char *g_trusted_name = NULL;
+static s_trusted_name *g_trusted_name_list = NULL;
+
+static void delete_trusted_name(s_trusted_name *node) {
+    app_mem_free(node);
+}
 
 void trusted_name_cleanup(void) {
-    mem_buffer_cleanup((void **) &g_trusted_name);
-    mem_buffer_cleanup((void **) &g_trusted_name_info);
+    flist_clear((s_flist_node **) &g_trusted_name_list, (f_list_node_del) &delete_trusted_name);
 }
 
 static bool matching_type(e_name_type type, uint8_t type_count, const e_name_type *types) {
@@ -77,7 +79,7 @@ static bool matching_source(e_name_source source,
     return false;
 }
 
-static bool matching_trusted_name(const s_trusted_name_info *trusted_name,
+static bool matching_trusted_name(const s_trusted_name *trusted_name,
                                   uint8_t type_count,
                                   const e_name_type *types,
                                   uint8_t source_count,
@@ -118,38 +120,27 @@ static bool matching_trusted_name(const s_trusted_name_info *trusted_name,
 }
 
 /**
- * Checks if a trusted name matches the given parameters
- *
- * Always wipes the content of \ref g_trusted_name_info
+ * Get a trusted name that matches the given parameters
  *
  * @param[in] types_count number of given trusted name types
  * @param[in] types given trusted name types
  * @param[in] chain_id given chain ID
  * @param[in] addr given address
- * @return whether there is or not
+ * @return the matching trusted name if found, \ref NULL otherwise
  */
-const char *get_trusted_name(uint8_t type_count,
-                             const e_name_type *types,
-                             uint8_t source_count,
-                             const e_name_source *sources,
-                             const uint64_t *chain_id,
-                             const uint8_t *addr) {
-    const char *ret = NULL;
-
-    if (g_trusted_name_info == NULL) {
-        return NULL;
+const s_trusted_name *get_trusted_name(uint8_t type_count,
+                                       const e_name_type *types,
+                                       uint8_t source_count,
+                                       const e_name_source *sources,
+                                       const uint64_t *chain_id,
+                                       const uint8_t *addr) {
+    for (s_trusted_name *tmp = g_trusted_name_list; tmp != NULL;
+         tmp = (s_trusted_name *) ((s_flist_node *) tmp)->next) {
+        if (matching_trusted_name(tmp, type_count, types, source_count, sources, chain_id, addr)) {
+            return tmp;
+        }
     }
-    if (matching_trusted_name(g_trusted_name_info,
-                              type_count,
-                              types,
-                              source_count,
-                              sources,
-                              chain_id,
-                              addr)) {
-        ret = g_trusted_name_info->name;
-    }
-    explicit_bzero(g_trusted_name_info, sizeof(s_trusted_name_info));
-    return ret;
+    return NULL;
 }
 
 /**
@@ -294,12 +285,25 @@ static bool handle_signature(const s_tlv_data *data, s_trusted_name_ctx *context
 }
 
 /**
- * Tests if the given account name character is valid (in our subset of allowed characters)
+ * Check the characters of trusted name with a given check function
  *
- * @param[in] c given character
- * @return whether the character is valid
+ * @param[in] name trusted name
+ * @param[in] check_func function to check the character
  */
-static bool is_valid_account_character(char c) {
+static bool check_trusted_name(const char *name, bool (*check_func)(char)) {
+    if (name == NULL) {
+        return false;
+    }
+    for (int idx = 0; name[idx] != '\0'; ++idx) {
+        if (!check_func(name[idx])) {
+            PRINTF("Error: unallowed character in trusted name '%c' !\n", name[idx]);
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool ens_charset(char c) {
     if (isalpha((int) c)) {
         if (!islower((int) c)) {
             return false;
@@ -309,6 +313,21 @@ static bool is_valid_account_character(char c) {
             case '.':
             case '-':
             case '_':
+                break;
+            default:
+                return false;
+        }
+    }
+    return true;
+}
+
+static bool generic_trusted_name_charset(char c) {
+    if (!isalpha((int) c) && !isdigit((int) c)) {
+        switch (c) {
+            case '.':
+            case '-':
+            case '_':
+            case ' ':
                 break;
             default:
                 return false;
@@ -329,24 +348,7 @@ static bool handle_trusted_name(const s_tlv_data *data, s_trusted_name_ctx *cont
         PRINTF("Domain name too long! (%u)\n", data->length);
         return false;
     }
-    if ((context->trusted_name.struct_version == 1) ||
-        (context->trusted_name.name_type == TN_TYPE_ACCOUNT)) {
-        // TODO: Remove once other domain name providers are supported
-        if ((data->length < 5) ||
-            (strncmp(".eth", (char *) &data->value[data->length - 4], 4) != 0)) {
-            PRINTF("Unexpected TLD!\n");
-            return false;
-        }
-        for (int idx = 0; idx < data->length; ++idx) {
-            if (!is_valid_account_character(data->value[idx])) {
-                PRINTF("Domain name contains non-allowed character! (0x%x)\n", data->value[idx]);
-                return false;
-            }
-            context->trusted_name.name[idx] = data->value[idx];
-        }
-    } else {
-        memcpy(context->trusted_name.name, data->value, data->length);
-    }
+    memcpy(context->trusted_name.name, data->value, data->length);
     context->trusted_name.name[data->length] = '\0';
     context->rcv_flags |= SET_BIT(TRUSTED_NAME_RCV_BIT);
     return true;
@@ -541,22 +543,6 @@ bool handle_trusted_name_struct(const s_tlv_data *data, s_trusted_name_ctx *cont
  */
 static bool verify_trusted_name_signature(const s_trusted_name_ctx *context) {
     uint8_t hash[INT256_LENGTH];
-    const uint8_t *pk;
-    size_t pk_size;
-
-    switch (context->key_id) {
-        case TN_KEY_ID_DOMAIN_SVC:
-            pk = TRUSTED_NAME_PUB_KEY;
-            pk_size = sizeof(TRUSTED_NAME_PUB_KEY);
-            break;
-        case TN_KEY_ID_CAL:
-            pk = LEDGER_SIGNATURE_PUBLIC_KEY;
-            pk_size = sizeof(LEDGER_SIGNATURE_PUBLIC_KEY);
-            break;
-        default:
-            PRINTF("Error: Unknown metadata key ID %u\n", context->key_id);
-            return false;
-    }
 
     if (cx_hash_no_throw((cx_hash_t *) &context->hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH) !=
         CX_OK) {
@@ -566,8 +552,8 @@ static bool verify_trusted_name_signature(const s_trusted_name_ctx *context) {
     if (check_signature_with_pubkey("Trusted Name",
                                     hash,
                                     sizeof(hash),
-                                    pk,
-                                    pk_size,
+                                    NULL,
+                                    0,
                                     CERTIFICATE_PUBLIC_KEY_USAGE_TRUSTED_NAME,
                                     (uint8_t *) (context->input_sig),
                                     context->input_sig_size) != CX_OK) {
@@ -635,21 +621,40 @@ bool verify_trusted_name_struct(const s_trusted_name_ctx *context) {
             return false;
     }
 
+    size_t name_length = strlen(context->trusted_name.name);
+    if ((context->trusted_name.struct_version == 1) ||
+        ((context->trusted_name.name_type == TN_TYPE_ACCOUNT) &&
+         (context->trusted_name.name_source == TN_SOURCE_ENS))) {
+        if ((name_length < 5) ||
+            (strncmp(".eth", (char *) &context->trusted_name.name[name_length - 4], 4) != 0)) {
+            PRINTF("Unexpected TLD!\n");
+            return false;
+        }
+        if (!check_trusted_name(context->trusted_name.name, &ens_charset)) {
+            return false;
+        }
+    } else {
+        if (!check_trusted_name(context->trusted_name.name, &generic_trusted_name_charset)) {
+            return false;
+        }
+    }
+
     if (!verify_trusted_name_signature(context)) {
         return false;
     }
 
-    // Allocate the Trusted Name buffer
-    if (mem_buffer_allocate((void **) &g_trusted_name_info, sizeof(s_trusted_name_info)) == false) {
-        PRINTF("Memory allocation failed for Trusted Name\n");
+    s_trusted_name *node;
+
+    if ((node = app_mem_alloc(sizeof(*node))) == NULL) {
+        PRINTF("Error: could not allocate trusted name struct!\n");
         return false;
     }
-
-    memcpy(g_trusted_name_info, &context->trusted_name, sizeof(s_trusted_name_info));
+    memcpy(node, &context->trusted_name, sizeof(*node));
+    flist_push_back((s_flist_node **) &g_trusted_name_list, (s_flist_node *) node);
 
     PRINTF("Registered : %s => %.*h\n",
-           g_trusted_name_info->name,
+           context->trusted_name.name,
            ADDRESS_LENGTH,
-           g_trusted_name_info->addr);
+           context->trusted_name.addr);
     return true;
 }

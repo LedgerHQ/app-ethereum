@@ -41,12 +41,6 @@ ifneq ($(CAL_STAGING_KEY),0)
     DEFINES += HAVE_CAL_STAGING_KEY
 endif
 
-# ENS
-TRUSTED_NAME_TEST_KEY ?= 0
-ifneq ($(TRUSTED_NAME_TEST_KEY),0)
-    DEFINES += HAVE_TRUSTED_NAME_TEST_KEY
-endif
-
 # Transaction Checks
 # TODO: remove this check once the Transaction checks are implemented on all targets
 ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX TARGET_APEX_M TARGET_APEX_P))

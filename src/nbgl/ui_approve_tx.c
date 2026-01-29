@@ -13,7 +13,7 @@
 #include "cmd_get_tx_simulation.h"
 #include "cmd_get_gating.h"
 #include "utils.h"
-#include "mem_utils.h"
+#include "mem.h"
 #include "ui_utils.h"
 #include "enum_value.h"
 #include "proxy_info.h"
@@ -34,10 +34,14 @@ static plugin_buffers_t *plugin_buffers = NULL;
  * Cleanup allocated memory
  */
 static void _cleanup(void) {
-    mem_buffer_cleanup((void **) &g_trusted_name);
-    mem_buffer_cleanup((void **) &g_trusted_name_info);
-    mem_buffer_cleanup((void **) &plugin_buffers);
-    mem_buffer_cleanup((void **) &extension);
+    if (plugin_buffers != NULL) {
+        app_mem_free(plugin_buffers);
+        plugin_buffers = NULL;
+    }
+    if (extension != NULL) {
+        app_mem_free(extension);
+        extension = NULL;
+    }
     ui_all_cleanup();
     enum_value_cleanup();
     proxy_cleanup();
@@ -170,10 +174,25 @@ static bool setTagValuePairs(bool displayNetwork, bool fromPlugin) {
         // Display the To address
         // ----------------------
         g_pairs[nbPairs].item = "To";
-        if (extension != NULL) {
-            g_pairs[nbPairs].value = g_trusted_name;
+
+        uint64_t chain_id = get_tx_chain_id();
+        e_name_type type = TN_TYPE_ACCOUNT;
+        e_name_source source = TN_SOURCE_ENS;
+        const s_trusted_name *trusted_name;
+
+        if ((trusted_name = get_trusted_name(1,
+                                             &type,
+                                             1,
+                                             &source,
+                                             &chain_id,
+                                             tmpContent.txContent.destination)) != NULL) {
+            if ((extension = app_mem_alloc(sizeof(*extension))) == NULL) {
+                return false;
+            }
+            explicit_bzero(extension, sizeof(*extension));
+            g_pairs[nbPairs].value = trusted_name->name;
             extension->aliasType = ENS_ALIAS;
-            extension->title = g_trusted_name;
+            extension->title = trusted_name->name;
             extension->fullValue = strings.common.toAddress;
             extension->explanation = strings.common.toAddress;
             g_pairs[nbPairs].extension = extension;
@@ -297,8 +316,6 @@ static bool ux_init(bool fromPlugin, uint8_t title_len, uint8_t finish_len) {
     uint16_t buf_size = 0;
     uint8_t nbPairs = 0;
     bool displayNetwork = false;
-    e_name_type type = TN_TYPE_ACCOUNT;
-    e_name_source source = TN_SOURCE_ENS;
 
     chain_id = get_tx_chain_id();
     if (chainConfig->chainId == ETHEREUM_MAINNET_CHAINID && chain_id != chainConfig->chainId) {
@@ -322,19 +339,10 @@ static bool ux_init(bool fromPlugin, uint8_t title_len, uint8_t finish_len) {
     if (fromPlugin == true) {
         buf_size = dataContext.tokenContext.pluginUiMaxItems * sizeof(plugin_buffers_t);
         // Allocate the plugin buffers
-        if (mem_buffer_allocate((void **) &plugin_buffers, buf_size) == false) {
+        if ((plugin_buffers = app_mem_alloc(buf_size)) == NULL) {
             goto error;
         }
-    } else if (get_trusted_name(1,
-                                &type,
-                                1,
-                                &source,
-                                &chain_id,
-                                tmpContent.txContent.destination)) {
-        // Allocate the extension memory
-        if (mem_buffer_allocate((void **) &extension, sizeof(nbgl_contentValueExt_t)) == false) {
-            goto error;
-        }
+        explicit_bzero(plugin_buffers, buf_size);
     }
 
     // Retrieve the Tag/Value g_pairs to display
@@ -399,7 +407,7 @@ static uint16_t ux_init_strings(bool fromPlugin) {
     snprintf(g_finishMsg, finish_len, "%s transaction", tx_check_str);
     if (fromPlugin) {
         // Prepare the suffix
-        if (mem_buffer_allocate((void **) &suffix_str, title_len) == false) {
+        if ((suffix_str = app_mem_alloc(title_len)) == NULL) {
             // Memory allocation failed, cleanup and return
             return SWO_INSUFFICIENT_MEMORY;
         }
@@ -415,7 +423,7 @@ static uint16_t ux_init_strings(bool fromPlugin) {
 #ifdef SCREEN_SIZE_WALLET
         strlcat(g_finishMsg, suffix_str, finish_len);
 #endif
-        mem_buffer_cleanup((void **) &suffix_str);
+        app_mem_free(suffix_str);
     }
 #ifdef SCREEN_SIZE_WALLET
     strlcat(g_finishMsg, "?", finish_len);

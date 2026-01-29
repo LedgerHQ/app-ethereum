@@ -90,6 +90,7 @@ void reset_app_context(void) {
     if (txContext.store_calldata) {
         gcs_cleanup();
     }
+    trusted_name_cleanup();
     memset((uint8_t *) &txContext, 0, sizeof(txContext));
     memset((uint8_t *) &tmpContent, 0, sizeof(tmpContent));
     clear_safe_account();

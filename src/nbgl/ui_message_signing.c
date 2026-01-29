@@ -17,7 +17,6 @@ static void ui_typed_message_review_choice_common(bool confirm,
         nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_REJECTED, ui_idle);
     }
     ui_all_cleanup();
-    trusted_name_cleanup();
     proxy_cleanup();
 }
 

@@ -3,7 +3,7 @@
 #include "public_keys.h"
 #include "utils.h"
 #include "ui_utils.h"
-#include "mem_utils.h"
+#include "mem.h"
 #include "proxy_info.h"
 
 enum {
@@ -17,7 +17,7 @@ enum {
     TAG_SIGNATURE = 0xff,
 };
 
-static s_enum_value_entry *g_enum_value = NULL;
+static s_enum_value_entry *g_enum_value_list = NULL;
 
 static bool handle_version(const s_tlv_data *data, s_enum_value_ctx *context) {
     if (data->length != sizeof(context->enum_value.version)) {
@@ -160,13 +160,36 @@ bool verify_enum_value_struct(const s_enum_value_ctx *context) {
                                     context->enum_value.signature_length) != CX_OK) {
         return false;
     }
-    if (mem_buffer_allocate((void **) &g_enum_value, sizeof(s_enum_value_entry)) == false) {
+    s_enum_value_entry *entry;
+
+    if ((entry = app_mem_alloc(sizeof(*entry))) == NULL) {
         PRINTF("Error: Not enough memory!\n");
         return false;
     }
 
-    memcpy(g_enum_value, &context->enum_value.entry, sizeof(s_enum_value_entry));
+    memcpy(entry, &context->enum_value.entry, sizeof(*entry));
+    flist_push_back((s_flist_node **) &g_enum_value_list, (s_flist_node *) entry);
     return true;
+}
+
+static bool is_matching_enum(const s_enum_value_entry *node,
+                             const uint64_t *chain_id,
+                             const uint8_t *contract_addr,
+                             const uint8_t *selector,
+                             uint8_t id,
+                             uint8_t value) {
+    const uint8_t *proxy_implem;
+
+    proxy_implem = get_implem_contract(chain_id, contract_addr, selector);
+    if ((node != NULL) && (*chain_id == node->chain_id) &&
+        (memcmp((proxy_implem != NULL) ? proxy_implem : contract_addr,
+                node->contract_addr,
+                ADDRESS_LENGTH) == 0) &&
+        (memcmp(selector, node->selector, SELECTOR_SIZE) == 0) && (id == node->id) &&
+        (value == node->value)) {
+        return true;
+    }
+    return false;
 }
 
 const char *get_matching_enum_name(const uint64_t *chain_id,
@@ -174,20 +197,25 @@ const char *get_matching_enum_name(const uint64_t *chain_id,
                                    const uint8_t *selector,
                                    uint8_t id,
                                    uint8_t value) {
-    const uint8_t *proxy_implem;
-
-    proxy_implem = get_implem_contract(chain_id, contract_addr, selector);
-    if ((g_enum_value != NULL) && (*chain_id == g_enum_value->chain_id) &&
-        (memcmp((proxy_implem != NULL) ? proxy_implem : contract_addr,
-                g_enum_value->contract_addr,
-                ADDRESS_LENGTH) == 0) &&
-        (memcmp(selector, g_enum_value->selector, SELECTOR_SIZE) == 0) &&
-        (id == g_enum_value->id) && (value == g_enum_value->value)) {
-        return g_enum_value->name;
+    for (const s_flist_node *tmp = (s_flist_node *) g_enum_value_list; tmp != NULL;
+         tmp = tmp->next) {
+        if (is_matching_enum((s_enum_value_entry *) tmp,
+                             chain_id,
+                             contract_addr,
+                             selector,
+                             id,
+                             value)) {
+            return ((s_enum_value_entry *) tmp)->name;
+        }
     }
     return NULL;
 }
 
+static void delete_enum_value(s_enum_value_entry *node) {
+    app_mem_free(node);
+}
+
 void enum_value_cleanup(void) {
-    mem_buffer_cleanup((void **) &g_enum_value);
+    flist_clear((s_flist_node **) &g_enum_value_list, (f_list_node_del) &delete_enum_value);
+    g_enum_value_list = NULL;
 }

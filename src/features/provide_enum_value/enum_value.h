@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include "list.h"
 #include "common_utils.h"  // ADDRESS_LENGTH
 #include "plugin_utils.h"  // SELECTOR_SIZE
 #include "tlv.h"
@@ -8,6 +9,7 @@
 #include "signature.h"
 
 typedef struct {
+    s_flist_node _list;
     uint64_t chain_id;
     uint8_t contract_addr[ADDRESS_LENGTH];
     uint8_t selector[SELECTOR_SIZE];

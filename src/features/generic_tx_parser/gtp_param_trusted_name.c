@@ -97,7 +97,7 @@ bool format_param_trusted_name(const s_param_trusted_name *param, const char *na
     size_t buf_size = sizeof(strings.tmp.tmp);
     uint64_t chain_id;
     uint8_t addr[ADDRESS_LENGTH] = {0};
-    const char *tname;
+    const s_trusted_name *tname;
     e_param_type param_type;
 
     if ((ret = value_get(&param->value, &values))) {
@@ -119,7 +119,7 @@ bool format_param_trusted_name(const s_param_trusted_name *param, const char *na
                                           param->sources,
                                           &chain_id,
                                           addr)) != NULL) {
-                strlcpy(buf, tname, buf_size);
+                strlcpy(buf, tname->name, buf_size);
                 param_type = PARAM_TYPE_TRUSTED_NAME;
             } else {
                 getEthDisplayableAddress(addr, buf, buf_size, chainConfig->chainId);

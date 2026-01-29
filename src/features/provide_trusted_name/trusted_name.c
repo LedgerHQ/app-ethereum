@@ -128,22 +128,19 @@ static bool matching_trusted_name(const s_trusted_name *trusted_name,
  * @param[in] addr given address
  * @return the matching trusted name if found, \ref NULL otherwise
  */
-const char *get_trusted_name(uint8_t type_count,
-                             const e_name_type *types,
-                             uint8_t source_count,
-                             const e_name_source *sources,
-                             const uint64_t *chain_id,
-                             const uint8_t *addr) {
-    const char *ret = NULL;
-
+const s_trusted_name *get_trusted_name(uint8_t type_count,
+                                       const e_name_type *types,
+                                       uint8_t source_count,
+                                       const e_name_source *sources,
+                                       const uint64_t *chain_id,
+                                       const uint8_t *addr) {
     for (s_trusted_name *tmp = g_trusted_name_list; tmp != NULL;
          tmp = (s_trusted_name *) ((s_flist_node *) tmp)->next) {
         if (matching_trusted_name(tmp, type_count, types, source_count, sources, chain_id, addr)) {
-            ret = tmp->name;
-            break;
+            return tmp;
         }
     }
-    return ret;
+    return NULL;
 }
 
 /**

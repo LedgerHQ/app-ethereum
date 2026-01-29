@@ -178,7 +178,7 @@ static bool setTagValuePairs(bool displayNetwork, bool fromPlugin) {
         uint64_t chain_id = get_tx_chain_id();
         e_name_type type = TN_TYPE_ACCOUNT;
         e_name_source source = TN_SOURCE_ENS;
-        const char *trusted_name;
+        const s_trusted_name *trusted_name;
 
         if ((trusted_name = get_trusted_name(1,
                                              &type,
@@ -190,9 +190,9 @@ static bool setTagValuePairs(bool displayNetwork, bool fromPlugin) {
                 return false;
             }
             explicit_bzero(extension, sizeof(*extension));
-            g_pairs[nbPairs].value = trusted_name;
+            g_pairs[nbPairs].value = trusted_name->name;
             extension->aliasType = ENS_ALIAS;
-            extension->title = trusted_name;
+            extension->title = trusted_name->name;
             extension->fullValue = strings.common.toAddress;
             extension->explanation = strings.common.toAddress;
             g_pairs[nbPairs].extension = extension;

@@ -56,12 +56,12 @@ typedef struct {
     uint32_t rcv_flags;
 } s_trusted_name_ctx;
 
-const char *get_trusted_name(uint8_t type_count,
-                             const e_name_type *types,
-                             uint8_t source_count,
-                             const e_name_source *sources,
-                             const uint64_t *chain_id,
-                             const uint8_t *addr);
+const s_trusted_name *get_trusted_name(uint8_t type_count,
+                                       const e_name_type *types,
+                                       uint8_t source_count,
+                                       const e_name_source *sources,
+                                       const uint64_t *chain_id,
+                                       const uint8_t *addr);
 
 bool handle_trusted_name_struct(const s_tlv_data *data, s_trusted_name_ctx *context);
 bool verify_trusted_name_struct(const s_trusted_name_ctx *ctx);

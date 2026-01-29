@@ -248,7 +248,6 @@ bool ui_gcs(void) {
 
     snprintf(tmp_buf, tmp_buf_size, "Review transaction to %s", get_operation_type(info_tx));
     if ((g_titleMsg = app_mem_strdup(tmp_buf)) == NULL) {
-        ui_gcs_cleanup();
         return false;
     }
 #ifdef SCREEN_SIZE_WALLET
@@ -261,7 +260,6 @@ bool ui_gcs(void) {
     snprintf(tmp_buf, tmp_buf_size, "%s transaction", ui_tx_simulation_finish_str());
 #endif
     if ((g_finishMsg = app_mem_strdup(tmp_buf)) == NULL) {
-        ui_gcs_cleanup();
         return false;
     }
 
@@ -281,13 +279,11 @@ bool ui_gcs(void) {
     nbPairs += 1;
 
     if (!ui_pairs_init(nbPairs)) {
-        ui_gcs_cleanup();
         return false;
     }
 
     // Allocate a table to hold all pairs that will be allocated for UI, and need to be freed later
     if (mem_buffer_allocate((void **) &index_allocated, nbPairs) == false) {
-        ui_gcs_cleanup();
         return false;
     }
 
@@ -302,21 +298,18 @@ bool ui_gcs(void) {
         g_pairs[pair].value = app_mem_strdup(g_pairs[pair].value);
     }
     if ((ext = app_mem_alloc(sizeof(*ext))) == NULL) {
-        ui_gcs_cleanup();
         return false;
     }
     explicit_bzero(ext, sizeof(*ext));
     g_pairs[pair].extension = ext;
 
     if ((infolist = app_mem_alloc(sizeof(*infolist))) == NULL) {
-        ui_gcs_cleanup();
         return false;
     }
     explicit_bzero(infolist, sizeof(*infolist));
     ext->infolist = infolist;
 
     if (!prepare_infos(infolist)) {
-        ui_gcs_cleanup();
         return false;
     }
     ext->aliasType = INFO_LIST_ALIAS;
@@ -331,7 +324,6 @@ bool ui_gcs(void) {
     // TX fields
     for (int i = 0; i < (int) field_table_size(); ++i) {
         if ((field = get_from_field_table(i)) == NULL) {
-            ui_gcs_cleanup();
             return false;
         }
         if ((field->start_intent) && (txContext.batch_nb_tx > 1)) {
@@ -363,12 +355,10 @@ bool ui_gcs(void) {
     if (show_network) {
         if (pair >= g_pairsList->nbPairs - 1) {
             PRINTF("Error: No more pairs available for network!\n");
-            ui_gcs_cleanup();
             return false;
         }
         g_pairs[pair].item = app_mem_strdup("Network");
         if (get_network_as_string(tmp_buf, tmp_buf_size) != SWO_SUCCESS) {
-            ui_gcs_cleanup();
             return false;
         }
         g_pairs[pair].value = app_mem_strdup(tmp_buf);
@@ -379,7 +369,6 @@ bool ui_gcs(void) {
     // Last pair : fees
     if (pair >= g_pairsList->nbPairs) {
         PRINTF("Error: No more pairs available for fees!\n");
-        ui_gcs_cleanup();
         return false;
     }
     g_pairs[pair].item = app_mem_strdup("Max fees");

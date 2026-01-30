@@ -60,6 +60,11 @@ const uint8_t *get_current_tx_amount(void) {
     return g_tx_ctx_current->amount;
 }
 
+uint64_t get_current_tx_chain_id(void) {
+    if (g_tx_ctx_current == NULL) return 0;
+    return g_tx_ctx_current->chain_id;
+}
+
 static bool validate_inst_hash_on(const s_tx_ctx *tx_ctx) {
     cx_sha3_t hash_ctx;
     uint8_t hash[sizeof(tx_ctx->tx_info->fields_hash)];

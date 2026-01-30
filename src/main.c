@@ -49,6 +49,7 @@
 #include "network_info.h"
 #include "cmd_safe_account.h"
 #include "tx_ctx.h"
+#include "enum_value.h"
 
 tmpCtx_t tmpCtx;
 txContext_t txContext;
@@ -91,6 +92,7 @@ void reset_app_context(void) {
         gcs_cleanup();
     }
     trusted_name_cleanup();
+    enum_value_cleanup();
     memset((uint8_t *) &txContext, 0, sizeof(txContext));
     memset((uint8_t *) &tmpContent, 0, sizeof(tmpContent));
     clear_safe_account();

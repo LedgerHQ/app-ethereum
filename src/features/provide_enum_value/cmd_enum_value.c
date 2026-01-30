@@ -20,7 +20,6 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
 uint16_t handle_enum_value(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *payload) {
     (void) p2;
     if (!tlv_from_apdu(p1 == P1_FIRST_CHUNK, lc, payload, &handle_tlv_payload)) {
-        enum_value_cleanup();
         return SWO_INCORRECT_DATA;
     }
     return SWO_SUCCESS;

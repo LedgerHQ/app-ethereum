@@ -4,9 +4,11 @@ from typing import Optional
 import json
 import hashlib
 from pathlib import Path
+import pytest
 
 from web3 import Web3
 
+from ragger.error import ExceptionRAPDU
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 
 from dynamic_networks_cfg import get_network_config
@@ -20,7 +22,7 @@ from client.utils import get_selector_from_data
 from client.gcs import (
     Field, ParamType, ParamRaw, Value, TypeFamily, DataPath, ParamTrustedName,
     ParamNFT, ParamDatetime, DatetimeType, ParamTokenAmount, ParamToken, ParamCalldata,
-    ParamAmount, ParamEnum, ContainerPath, TxInfo,
+    ParamAmount, ParamEnum, ContainerPath, TxInfo, ParamNetwork, VisibleType
 )
 from client.enum_value import EnumValue
 from client.tx_simu import TxSimu
@@ -355,6 +357,327 @@ def test_gcs_poap(scenario_navigator: NavigateWithScenario,
             scenario_navigator.review_approve_with_warning()
         else:
             scenario_navigator.review_approve()
+
+
+@pytest.mark.parametrize(
+    "test_config", ["chain_id", "network"],
+)
+def test_gcs_formatter(scenario_navigator: NavigateWithScenario, test_config: str):
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    with open(f"{ABIS_FOLDER}/poap.abi.json", encoding="utf-8") as file:
+        contract = Web3().eth.contract(
+            abi=json.load(file),
+            address=None
+        )
+    # pylint: disable=line-too-long
+    data = contract.encode_abi("mintToken", [
+        175676,
+        7163978,
+        bytes.fromhex("Dad77910DbDFdE764fC21FCD4E74D71bBACA6D8D"),
+        1730621615,
+        bytes.fromhex("8991da687cff5300959810a08c4ec183bb2a56dc82f5aac2b24f1106c2d983ac6f7a6b28700a236724d814000d0fd8c395fcf9f87c4424432ebf30c9479201d71c")
+    ])
+    tx_params = {
+        "nonce": 235,
+        "maxFeePerGas": Web3.to_wei(100, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(10, "gwei"),
+        "gas": 44001,
+        # PoapBridge
+        "to": bytes.fromhex("0bb4D3e88243F4A057Db77341e6916B0e449b158"),
+        "data": data,
+        "chainId": 5 if test_config == "network" else 1
+    }
+    # pylint: enable=line-too-long
+
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/poap.abi.json", "mintToken")
+    fields = [
+            Field(
+                1,
+                "Token ID",
+                ParamRaw(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.UINT,
+                        type_size=32,
+                        data_path=DataPath(
+                            1,
+                            param_paths["tokenId"]
+                        ),
+                    )
+                )
+            ),
+            Field(
+                1,
+                "Receiver",
+                ParamRaw(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        data_path=DataPath(
+                            1,
+                            param_paths["receiver"]
+                        ),
+                    )
+                )
+            ),
+            Field(
+                1,
+                "Expiration time",
+                ParamDatetime(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.UINT,
+                        type_size=32,
+                        data_path=DataPath(
+                            1,
+                            param_paths["expirationTime"]
+                        ),
+                    ),
+                    DatetimeType.DT_UNIX
+                )
+            ),
+    ]
+    if test_config == "chain_id":
+        fields += [
+            Field(
+                1,
+                "Chain ID",
+                ParamRaw(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.UINT,
+                        container_path=ContainerPath.CHAIN_ID,
+                    )
+                )
+            ),
+    ]
+    else:
+        fields += [
+            Field(
+                1,
+                "Custom Network",
+                ParamNetwork(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.UINT,
+                        container_path=ContainerPath.CHAIN_ID,
+                    )
+                )
+            ),
+    ]
+
+    # compute instructions hash
+    inst_hash = compute_inst_hash(fields)
+
+    tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        tx_params["to"],
+        get_selector_from_data(tx_params["data"]),
+        inst_hash,
+        "mint POAP",
+        creator_name="POAP",
+        creator_legal_name="Proof of Attendance Protocol",
+        creator_url="poap.xyz",
+        contract_name="PoapBridge",
+        deploy_date=1646305200
+    )
+
+    if test_config == "network":
+        # Send Network information (name, ticker, icon)
+        name, ticker, icon = get_network_config(scenario_navigator.backend.device.type, tx_params["chainId"])
+        if name and ticker:
+            app_client.provide_network_information(DynamicNetwork(name, ticker, tx_params["chainId"], icon))
+
+    app_client.provide_transaction_info(tx_info.serialize())
+
+    for field in fields:
+        app_client.provide_transaction_field_desc(field.serialize())
+
+    with app_client.sign(mode=SignMode.START_FLOW):
+        scenario_navigator.review_approve(test_name=scenario_navigator.test_name + f"_{test_config}")
+
+
+@pytest.mark.parametrize(
+    "test_config, visible, constraints", [
+        ("if_not_0", VisibleType.IF_NOT_IN, [bytes.fromhex("0000000000000000000000000000000000000000")]),
+        ("if_not_addr", VisibleType.IF_NOT_IN, [bytes.fromhex("Dad77910DbDFdE764fC21FCD4E74D71bBACA6D8D")]),
+        ("must_be_addr", VisibleType.MUST_BE, [bytes.fromhex("Dad77910DbDFdE764fC21FCD4E74D71bBACA6D8D")]),
+        ("must_be_0", VisibleType.MUST_BE, [bytes.fromhex("00"), bytes.fromhex("01"), bytes.fromhex("02")]),
+    ],
+)
+def test_gcs_constraints(scenario_navigator: NavigateWithScenario,
+                         test_config: str,
+                         visible: VisibleType,
+                         constraints: list[bytes]):
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    with open(f"{ABIS_FOLDER}/poap.abi.json", encoding="utf-8") as file:
+        contract = Web3().eth.contract(
+            abi=json.load(file),
+            address=None
+        )
+    # pylint: disable=line-too-long
+    data = contract.encode_abi("mintToken", [
+        175676,
+        7163978,
+        bytes.fromhex("Dad77910DbDFdE764fC21FCD4E74D71bBACA6D8D"),
+        1730621615,
+        bytes.fromhex("8991da687cff5300959810a08c4ec183bb2a56dc82f5aac2b24f1106c2d983ac6f7a6b28700a236724d814000d0fd8c395fcf9f87c4424432ebf30c9479201d71c")
+    ])
+    tx_params = {
+        "nonce": 235,
+        "maxFeePerGas": Web3.to_wei(100, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(10, "gwei"),
+        "gas": 44001,
+        # PoapBridge
+        "to": bytes.fromhex("0bb4D3e88243F4A057Db77341e6916B0e449b158"),
+        "data": data,
+        "chainId": 1
+    }
+    # pylint: enable=line-too-long
+
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/poap.abi.json", "mintToken")
+    fields = [
+            Field(
+                1,
+                "Token ID",
+                ParamRaw(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.UINT,
+                        type_size=32,
+                        data_path=DataPath(
+                            1,
+                            param_paths["tokenId"]
+                        ),
+                    )
+                )
+            ),
+            Field(
+                1,
+                "Receiver",
+                ParamTrustedName(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        data_path=DataPath(
+                            1,
+                            param_paths["receiver"]
+                        ),
+                    ),
+                    [
+                        TrustedNameType.ACCOUNT,
+                        TrustedNameType.WALLET,
+                    ],
+                    [
+                        TrustedNameSource.UD,
+                        TrustedNameSource.ENS,
+                        TrustedNameSource.FN,
+                    ],
+                ),
+                visible,
+                constraints
+            ),
+            Field(
+                1,
+                "Receiver uint",
+                ParamRaw(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.UINT,
+                        type_size=32,
+                        data_path=DataPath(
+                            1,
+                            param_paths["receiver"]
+                        ),
+                    ),
+                ),
+                visible,
+                constraints
+            ),
+            Field(
+                1,
+                "Receiver addr",
+                ParamRaw(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.ADDRESS,
+                        type_size=32,
+                        data_path=DataPath(
+                            1,
+                            param_paths["receiver"]
+                        ),
+                    ),
+                ),
+                visible,
+                constraints
+            ),
+            Field(
+                1,
+                "Expiration time",
+                ParamDatetime(
+                    1,
+                    Value(
+                        1,
+                        TypeFamily.UINT,
+                        type_size=32,
+                        data_path=DataPath(
+                            1,
+                            param_paths["expirationTime"]
+                        ),
+                    ),
+                    DatetimeType.DT_UNIX
+                )
+            ),
+    ]
+
+    # compute instructions hash
+    inst_hash = compute_inst_hash(fields)
+
+    tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        tx_params["to"],
+        get_selector_from_data(tx_params["data"]),
+        inst_hash,
+        "mint POAP",
+        creator_name="POAP",
+        creator_legal_name="Proof of Attendance Protocol",
+        creator_url="poap.xyz",
+        contract_name="PoapBridge",
+        deploy_date=1646305200
+    )
+
+    app_client.provide_transaction_info(tx_info.serialize())
+
+    if test_config == "must_be_0":
+        with pytest.raises(ExceptionRAPDU) as err:
+            for field in fields:
+                app_client.provide_transaction_field_desc(field.serialize())
+            assert err.value.status == StatusWord.CONDITION_NOT_SATISFIED
+    else:
+        for field in fields:
+            app_client.provide_transaction_field_desc(field.serialize())
+
+        with app_client.sign(mode=SignMode.START_FLOW):
+            scenario_navigator.review_approve(test_name=scenario_navigator.test_name + f"_{test_config}")
 
 
 def test_gcs_1inch(scenario_navigator: NavigateWithScenario):

@@ -302,7 +302,7 @@ bool format_field(s_field *field) {
             ret = format_param_enum(&field->param_enum, field->name);
             break;
         case PARAM_TYPE_TRUSTED_NAME:
-            ret = format_param_trusted_name(&field->param_trusted_name, field->name);
+            ret = format_param_trusted_name(field);
             break;
         case PARAM_TYPE_CALLDATA:
             ret = format_param_calldata(&field->param_calldata, field->name);

@@ -2560,7 +2560,7 @@ def test_gcs_batch_empty_tx(scenario_navigator: NavigateWithScenario) -> None:
     backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
 
-    with Path(f"{ABIS_FOLDER}/batch.json").open() as f:
+    with Path(f"{ABIS_FOLDER}/batch.json").open(encoding="utf-8") as f:
         contract = Web3().eth.contract(
             abi=json.load(f),
             address=bytes.fromhex("2cc8475177918e8C4d840150b68815A4b6f0f5f3"),
@@ -2648,7 +2648,7 @@ def test_gcs_batch_complex(scenario_navigator: NavigateWithScenario) -> None:
             "decimals": 18,
         },
     ]
-    with Path(f"{ABIS_FOLDER}/erc20.json").open() as f:
+    with Path(f"{ABIS_FOLDER}/erc20.json").open(encoding="utf-8") as f:
         contract = Web3().eth.contract(
             abi=json.load(f),
             address=None,
@@ -2662,7 +2662,7 @@ def test_gcs_batch_complex(scenario_navigator: NavigateWithScenario) -> None:
         int(3.3 * pow(10, tokens[1]["decimals"])),
     ])
 
-    with Path(f"{ABIS_FOLDER}/batch.json").open() as f:
+    with Path(f"{ABIS_FOLDER}/batch.json").open(encoding="utf-8") as f:
         contract = Web3().eth.contract(
             abi=json.load(f),
             address=bytes.fromhex("2cc8475177918e8C4d840150b68815A4b6f0f5f3"),

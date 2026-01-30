@@ -20,8 +20,9 @@ from client.utils import get_selector_from_data
 from client.gcs import (
     Field, ParamType, ParamRaw, Value, TypeFamily, DataPath, ParamTrustedName,
     ParamNFT, ParamDatetime, DatetimeType, ParamTokenAmount, ParamToken, ParamCalldata,
-    ParamAmount, ContainerPath, TxInfo
+    ParamAmount, ParamEnum, ContainerPath, TxInfo,
 )
+from client.enum_value import EnumValue
 from client.tx_simu import TxSimu
 from client.proxy_info import ProxyInfo
 from client.dynamic_networks import DynamicNetwork
@@ -1142,7 +1143,7 @@ def test_gcs_nested_execTransaction_addOwnerWithThreshold(scenario_navigator: Na
         contract.address,
         Web3.to_wei(0, "ether"),
         sub_data,
-        0,
+        1, # operation
         0,
         0,
         0,
@@ -1223,19 +1224,20 @@ def test_gcs_nested_execTransaction_addOwnerWithThreshold(scenario_navigator: Na
             ),
             Field(
                 1,
-                "operation",
-                ParamRaw(
+                "Operation type",
+                ParamEnum(
                     1,
+                    0,
                     Value(
                         1,
                         TypeFamily.UINT,
                         type_size=1,
                         data_path=DataPath(
                             1,
-                            param_paths["operation"]
+                            param_paths["operation"],
                         ),
                     ),
-                )
+                ),
             ),
             Field(
                 1,
@@ -1394,6 +1396,20 @@ def test_gcs_nested_execTransaction_addOwnerWithThreshold(scenario_navigator: Na
         sub_inst_hash,
         "add owner with threshold",
     )
+
+    enum_values = [
+        (0, "Call"),
+        (1, "Delegate Call"),
+        (2, "Unknown"),
+    ]
+    for enum_val in enum_values:
+        app_client.provide_enum_value(EnumValue(1,
+                                                tx_info.chain_id,
+                                                tx_info.contract_addr,
+                                                tx_info.selector,
+                                                0,
+                                                enum_val[0],
+                                                enum_val[1]).serialize())
 
     for field in fields:
         app_client.provide_transaction_field_desc(field.serialize())

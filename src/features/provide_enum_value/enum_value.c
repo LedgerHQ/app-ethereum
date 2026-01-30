@@ -192,11 +192,11 @@ static bool is_matching_enum(const s_enum_value_entry *node,
     return false;
 }
 
-const char *get_matching_enum_name(const uint64_t *chain_id,
-                                   const uint8_t *contract_addr,
-                                   const uint8_t *selector,
-                                   uint8_t id,
-                                   uint8_t value) {
+const s_enum_value_entry *get_matching_enum(const uint64_t *chain_id,
+                                            const uint8_t *contract_addr,
+                                            const uint8_t *selector,
+                                            uint8_t id,
+                                            uint8_t value) {
     for (const s_flist_node *tmp = (s_flist_node *) g_enum_value_list; tmp != NULL;
          tmp = tmp->next) {
         if (is_matching_enum((s_enum_value_entry *) tmp,
@@ -205,7 +205,7 @@ const char *get_matching_enum_name(const uint64_t *chain_id,
                              selector,
                              id,
                              value)) {
-            return ((s_enum_value_entry *) tmp)->name;
+            return (s_enum_value_entry *) tmp;
         }
     }
     return NULL;

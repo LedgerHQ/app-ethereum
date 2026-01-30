@@ -32,9 +32,9 @@ typedef struct {
 
 bool handle_enum_value_struct(const s_tlv_data *data, s_enum_value_ctx *context);
 bool verify_enum_value_struct(const s_enum_value_ctx *context);
-const char *get_matching_enum_name(const uint64_t *chain_id,
-                                   const uint8_t *contract_addr,
-                                   const uint8_t *selector,
-                                   uint8_t id,
-                                   uint8_t value);
+const s_enum_value_entry *get_matching_enum(const uint64_t *chain_id,
+                                            const uint8_t *contract_addr,
+                                            const uint8_t *selector,
+                                            uint8_t id,
+                                            uint8_t value);
 void enum_value_cleanup(void);

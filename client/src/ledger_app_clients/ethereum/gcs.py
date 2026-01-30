@@ -99,6 +99,7 @@ class ParamType(IntEnum):
     TRUSTED_NAME = 0x08
     CALLDATA = 0x09
     TOKEN = 0x0a
+    NETWORK = 0x0b
 
 
 class TypeFamily(IntEnum):
@@ -219,6 +220,7 @@ class ContainerPath(IntEnum):
     FROM = 0x00
     TO = 0x01
     VALUE = 0x02
+    CHAIN_ID = 0x03
 
 
 class Value(TlvSerializable):
@@ -544,6 +546,22 @@ class ParamToken(FieldParam):
         return payload
 
 
+class ParamNetwork(FieldParam):
+    version: int
+    value: Value
+
+    def __init__(self, version: int, value: Value):
+        self.type = ParamType.NETWORK
+        self.version = version
+        self.value = value
+
+    def serialize(self) -> bytes:
+        payload = bytearray()
+        payload += self.serialize_field(0x00, self.version)
+        payload += self.serialize_field(0x01, self.value.serialize())
+        return payload
+
+
 class FieldTag(IntEnum):
     VERSION = 0x00
     NAME = 0x01
@@ -551,15 +569,30 @@ class FieldTag(IntEnum):
     PARAM = 0x03
 
 
+class VisibleType(IntEnum):
+    ALWAYS = 0x00
+    MUST_BE = 0x01
+    IF_NOT_IN = 0x02
+
+
 class Field(TlvSerializable):
     version: int
     name: str
     param: FieldParam
+    visible: Optional[VisibleType]
+    constraints: Optional[list[bytes]]
 
-    def __init__(self, version: int, name: str, param: FieldParam):
+    def __init__(self,
+                 version: int,
+                 name: str,
+                 param: FieldParam,
+                 visible: Optional[VisibleType] = None,
+                 constraints: Optional[list[bytes]] = None):
         self.version = version
         self.name = name
         self.param = param
+        self.visible = visible
+        self.constraints = constraints
 
     def serialize(self) -> bytes:
         payload = bytearray()
@@ -567,4 +600,9 @@ class Field(TlvSerializable):
         payload += self.serialize_field(FieldTag.NAME, self.name)
         payload += self.serialize_field(FieldTag.PARAM_TYPE, self.param.type)
         payload += self.serialize_field(FieldTag.PARAM, self.param.serialize())
+        if self.visible is not None:
+            payload += self.serialize_field(0x04, self.visible)
+        if self.constraints is not None:
+            for constraint in self.constraints:
+                payload += self.serialize_field(0x05, constraint)
         return payload

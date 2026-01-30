@@ -891,8 +891,8 @@ def decode_tlv() -> None:
     string_tags = [
         TLVFieldTag.TICKER,
         TLVFieldTag.NETWORK_NAME,
-        TLVFieldTag.TX_CHECKS_PROVIDER_MSG,
-        TLVFieldTag.TX_CHECKS_TINY_URL,
+        TLVFieldTag.MESSAGE,
+        TLVFieldTag.TINY_URL,
     ]
     skip_tags = [
         TLVFieldTag.CHALLENGE,

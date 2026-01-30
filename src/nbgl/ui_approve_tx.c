@@ -43,7 +43,6 @@ static void _cleanup(void) {
         extension = NULL;
     }
     ui_all_cleanup();
-    enum_value_cleanup();
     proxy_cleanup();
 #ifdef HAVE_TRANSACTION_CHECKS
     clear_tx_simulation();

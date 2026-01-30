@@ -237,7 +237,6 @@ void ui_gcs_cleanup(void) {
         index_allocated = NULL;
     }
     ui_all_cleanup();
-    enum_value_cleanup();
     proxy_cleanup();
 }
 

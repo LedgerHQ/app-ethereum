@@ -357,6 +357,18 @@ static const nbgl_contentValueExt_t *handle_extra_data_nft(const s_field_table_e
     return get_infolist_extension(nft_def->collectionName, ARRAYLEN(keys), keys, values);
 }
 
+static const nbgl_contentValueExt_t *handle_extra_data_enum(const s_field_table_entry *field) {
+    const s_enum_value_entry *enum_value = (s_enum_value_entry *) field->extra_data;
+    char formatted_value[4];  // max value : 255 + '\0'
+    const char *keys[] = {"Raw value"};
+    const char *values[] = {formatted_value};
+
+    if (snprintf(formatted_value, sizeof(formatted_value), "%u", enum_value->value) <= 0) {
+        return false;
+    }
+    return get_infolist_extension(enum_value->name, ARRAYLEN(keys), keys, values);
+}
+
 static bool handle_extra_data(const s_field_table_entry *field, nbgl_contentTagValue_t *pair) {
     pair->aliasValue = true;
     switch (field->type) {
@@ -373,6 +385,11 @@ static bool handle_extra_data(const s_field_table_entry *field, nbgl_contentTagV
             break;
         case PARAM_TYPE_NFT:
             if ((pair->extension = handle_extra_data_nft(field)) == NULL) {
+                return false;
+            }
+            break;
+        case PARAM_TYPE_ENUM:
+            if ((pair->extension = handle_extra_data_enum(field)) == NULL) {
                 return false;
             }
             break;

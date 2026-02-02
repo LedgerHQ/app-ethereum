@@ -136,9 +136,7 @@ bool calldata_append(s_calldata *calldata, const uint8_t *buffer, size_t size) {
 
 // to be used as a \ref f_list_node_del
 static void delete_calldata_chunk(s_calldata_chunk *node) {
-    if (node->buf != NULL) {
-        app_mem_free(node->buf);
-    }
+    app_mem_free(node->buf);
     app_mem_free(node);
 }
 

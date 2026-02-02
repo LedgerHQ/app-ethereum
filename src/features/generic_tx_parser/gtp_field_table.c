@@ -24,8 +24,8 @@ bool field_table_init(void) {
 
 // to be used as a \ref f_list_node_del
 static void delete_table_node(s_field_table_node *node) {
-    if (node->field.key != NULL) app_mem_free(node->field.key);
-    if (node->field.value != NULL) app_mem_free(node->field.value);
+    app_mem_free(node->field.key);
+    app_mem_free(node->field.value);
     app_mem_free(node);
 }
 

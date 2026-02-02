@@ -34,14 +34,10 @@ static plugin_buffers_t *plugin_buffers = NULL;
  * Cleanup allocated memory
  */
 static void _cleanup(void) {
-    if (plugin_buffers != NULL) {
-        app_mem_free(plugin_buffers);
-        plugin_buffers = NULL;
-    }
-    if (extension != NULL) {
-        app_mem_free(extension);
-        extension = NULL;
-    }
+    app_mem_free(plugin_buffers);
+    plugin_buffers = NULL;
+    app_mem_free(extension);
+    extension = NULL;
     ui_all_cleanup();
     proxy_cleanup();
 #ifdef HAVE_TRANSACTION_CHECKS

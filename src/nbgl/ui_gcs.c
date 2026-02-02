@@ -327,8 +327,7 @@ static const nbgl_contentValueExt_t *handle_extra_data_trusted_name(
     return extension;
 }
 
-static const nbgl_contentValueExt_t *handle_extra_data_token_amount(
-    const s_field_table_entry *field) {
+static const nbgl_contentValueExt_t *handle_extra_data_token(const s_field_table_entry *field) {
     const tokenDefinition_t *token_def = (tokenDefinition_t *) field->extra_data;
     char formatted_addr[ADDRESS_STRING_LENGTH];
     const char *keys[] = {"Contract address"};
@@ -352,7 +351,8 @@ static bool handle_extra_data(const s_field_table_entry *field, nbgl_contentTagV
             }
             break;
         case PARAM_TYPE_TOKEN_AMOUNT:
-            if ((pair->extension = handle_extra_data_token_amount(field)) == NULL) {
+        case PARAM_TYPE_TOKEN:
+            if ((pair->extension = handle_extra_data_token(field)) == NULL) {
                 return false;
             }
             break;

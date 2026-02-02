@@ -86,8 +86,8 @@ static void delete_filter_crc(s_filter_crc *fcrc) {
 
 // to be used as a \ref f_list_node_del
 static void delete_ui_pair(s_ui_712_pair *pair) {
-    if (pair->key != NULL) app_mem_free(pair->key);
-    if (pair->value != NULL) app_mem_free(pair->value);
+    app_mem_free(pair->key);
+    app_mem_free(pair->value);
     app_mem_free(pair);
 }
 
@@ -1269,10 +1269,8 @@ const char *ui_712_get_discarded_path(void) {
 }
 
 void ui_712_clear_discarded_path(void) {
-    if (ui_ctx->discarded_path != NULL) {
-        app_mem_free(ui_ctx->discarded_path);
-        ui_ctx->discarded_path = NULL;
-    }
+    app_mem_free(ui_ctx->discarded_path);
+    ui_ctx->discarded_path = NULL;
 }
 
 void ui_712_set_trusted_name_requirements(uint8_t type_count,

@@ -817,13 +817,9 @@ bool path_init(void) {
  * De-initialize the path context
  */
 void path_deinit(void) {
-    if (path_struct != NULL) {
-        app_mem_free(path_struct);
-        path_struct = NULL;
-    }
-    if (path_backup != NULL) {
-        app_mem_free(path_backup);
-        path_backup = NULL;
-    }
+    app_mem_free(path_struct);
+    path_struct = NULL;
+    app_mem_free(path_backup);
+    path_backup = NULL;
     list_clear((s_list_node **) &g_hash_ctxs, (f_list_node_del) &delete_hash_ctx);
 }

@@ -29,43 +29,24 @@ static void review_choice(bool confirm) {
 
 static void free_pair_extension_infolist_elem(const struct nbgl_contentInfoList_s *infolist,
                                               int idx) {
-    if (infolist->infoTypes[idx] != NULL) {
-        app_mem_free((void *) infolist->infoTypes[idx]);
-    }
-    if (infolist->infoContents[idx] != NULL) {
-        app_mem_free((void *) infolist->infoContents[idx]);
-    }
+    app_mem_free((void *) infolist->infoTypes[idx]);
+    app_mem_free((void *) infolist->infoContents[idx]);
     if (infolist->infoExtensions != NULL) {
-        if (infolist->infoExtensions[idx].title != NULL) {
-            app_mem_free((void *) infolist->infoExtensions[idx].title);
-        }
-        if (infolist->infoExtensions[idx].explanation != NULL) {
-            app_mem_free((void *) infolist->infoExtensions[idx].explanation);
-        }
-        if (infolist->infoExtensions[idx].fullValue != NULL) {
-            app_mem_free((void *) infolist->infoExtensions[idx].fullValue);
-        }
+        app_mem_free((void *) infolist->infoExtensions[idx].title);
+        app_mem_free((void *) infolist->infoExtensions[idx].explanation);
+        app_mem_free((void *) infolist->infoExtensions[idx].fullValue);
     }
 }
 
 static void free_pair_extension(const nbgl_contentValueExt_t *ext) {
-    if (ext->backText != NULL) {
-        app_mem_free((void *) ext->backText);
-    }
+    app_mem_free((void *) ext->backText);
     if (ext->infolist != NULL) {
         for (int i = 0; i < ext->infolist->nbInfos; ++i) {
             free_pair_extension_infolist_elem(ext->infolist, i);
         }
-        if (ext->infolist->infoTypes != NULL) {
-            app_mem_free((void *) ext->infolist->infoTypes);
-        }
-        if (ext->infolist->infoContents != NULL) {
-            app_mem_free((void *) ext->infolist->infoContents);
-        }
-
-        if (ext->infolist->infoExtensions != NULL) {
-            app_mem_free((void *) ext->infolist->infoExtensions);
-        }
+        app_mem_free((void *) ext->infolist->infoTypes);
+        app_mem_free((void *) ext->infolist->infoContents);
+        app_mem_free((void *) ext->infolist->infoExtensions);
         app_mem_free((void *) ext->infolist);
     }
     app_mem_free((void *) ext);
@@ -77,8 +58,8 @@ static void free_pair(const nbgl_contentTagValueList_t *pair_list, int idx) {
     // - the second to last one, that shows the Network (optional)
     // - the last one, that shows the TX fees
     if ((index_allocated != NULL) && (index_allocated[idx] == true)) {
-        if (pair_list->pairs[idx].item != NULL) app_mem_free((void *) pair_list->pairs[idx].item);
-        if (pair_list->pairs[idx].value != NULL) app_mem_free((void *) pair_list->pairs[idx].value);
+        app_mem_free((void *) pair_list->pairs[idx].item);
+        app_mem_free((void *) pair_list->pairs[idx].value);
     }
     if (pair_list->pairs[idx].extension != NULL) {
         free_pair_extension(pair_list->pairs[idx].extension);

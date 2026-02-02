@@ -51,10 +51,10 @@ def test_gcs_nft(scenario_navigator: NavigateWithScenario):
         bytes.fromhex("1111111111111111111111111111111111111111"),
         bytes.fromhex("d8da6bf26964af9d7eed9e03e53415d37aa96045"),
         [
-            0xff,
-            0xffff,
-            0xffffff,
-            0xffffffff,
+            2,
+            4,
+            8,
+            16,
         ],
         [
             1,

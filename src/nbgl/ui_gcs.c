@@ -342,6 +342,21 @@ static const nbgl_contentValueExt_t *handle_extra_data_token(const s_field_table
     return get_infolist_extension(token_def->ticker, ARRAYLEN(keys), keys, values);
 }
 
+static const nbgl_contentValueExt_t *handle_extra_data_nft(const s_field_table_entry *field) {
+    const nftInfo_t *nft_def = (nftInfo_t *) field->extra_data;
+    char formatted_addr[ADDRESS_STRING_LENGTH];
+    const char *keys[] = {"Contract address"};
+    const char *values[] = {formatted_addr};
+
+    if (!getEthDisplayableAddress(nft_def->contractAddress,
+                                  formatted_addr,
+                                  sizeof(formatted_addr),
+                                  chainConfig->chainId)) {
+        return NULL;
+    }
+    return get_infolist_extension(nft_def->collectionName, ARRAYLEN(keys), keys, values);
+}
+
 static bool handle_extra_data(const s_field_table_entry *field, nbgl_contentTagValue_t *pair) {
     pair->aliasValue = true;
     switch (field->type) {
@@ -353,6 +368,11 @@ static bool handle_extra_data(const s_field_table_entry *field, nbgl_contentTagV
         case PARAM_TYPE_TOKEN_AMOUNT:
         case PARAM_TYPE_TOKEN:
             if ((pair->extension = handle_extra_data_token(field)) == NULL) {
+                return false;
+            }
+            break;
+        case PARAM_TYPE_NFT:
+            if ((pair->extension = handle_extra_data_nft(field)) == NULL) {
                 return false;
             }
             break;

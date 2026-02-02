@@ -327,11 +327,32 @@ static const nbgl_contentValueExt_t *handle_extra_data_trusted_name(
     return extension;
 }
 
+static const nbgl_contentValueExt_t *handle_extra_data_token_amount(
+    const s_field_table_entry *field) {
+    const tokenDefinition_t *token_def = (tokenDefinition_t *) field->extra_data;
+    char formatted_addr[ADDRESS_STRING_LENGTH];
+    const char *keys[] = {"Contract address"};
+    const char *values[] = {formatted_addr};
+
+    if (!getEthDisplayableAddress(token_def->address,
+                                  formatted_addr,
+                                  sizeof(formatted_addr),
+                                  chainConfig->chainId)) {
+        return NULL;
+    }
+    return get_infolist_extension(token_def->ticker, ARRAYLEN(keys), keys, values);
+}
+
 static bool handle_extra_data(const s_field_table_entry *field, nbgl_contentTagValue_t *pair) {
     pair->aliasValue = true;
     switch (field->type) {
         case PARAM_TYPE_TRUSTED_NAME:
             if ((pair->extension = handle_extra_data_trusted_name(field)) == NULL) {
+                return false;
+            }
+            break;
+        case PARAM_TYPE_TOKEN_AMOUNT:
+            if ((pair->extension = handle_extra_data_token_amount(field)) == NULL) {
                 return false;
             }
             break;

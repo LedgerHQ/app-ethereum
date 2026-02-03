@@ -2800,6 +2800,20 @@ def test_gcs_batch_complex(scenario_navigator: NavigateWithScenario) -> None:
 
     app_client.provide_transaction_info(tx_info.serialize())
 
+    app_client.provide_trusted_name_v2(b"\x00" * 20,
+                                       "null.eth",
+                                       TrustedNameType.ACCOUNT,
+                                       TrustedNameSource.ENS,
+                                       tx_params["chainId"],
+                                       challenge=ResponseParser.challenge(app_client.get_challenge().data))
+
+    app_client.provide_trusted_name_v2(b"\x44" * 20,
+                                        "FOUR",
+                                        TrustedNameType.ACCOUNT,
+                                        TrustedNameSource.MULTISIG_ADDRESS_BOOK,
+                                        tx_params["chainId"],
+                                        challenge=ResponseParser.challenge(app_client.get_challenge().data))
+
     # compute instructions hash
     sub_inst_hash = compute_inst_hash(sub_fields)
 

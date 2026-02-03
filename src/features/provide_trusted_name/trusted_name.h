@@ -55,6 +55,7 @@ typedef struct {
     uint8_t input_sig_size;
     uint8_t input_sig[ECDSA_SIGNATURE_MAX_LENGTH];
     cx_sha256_t hash_ctx;
+    uint8_t owner[ADDRESS_LENGTH];
     uint32_t rcv_flags;
 } s_trusted_name_ctx;
 

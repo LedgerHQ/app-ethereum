@@ -93,7 +93,7 @@ bool format_param_datetime(const s_param_datetime *param, const char *name) {
                     break;
                 }
             }
-            if (!(ret = add_to_field_table(PARAM_TYPE_DATETIME, name, buf))) {
+            if (!(ret = add_to_field_table(PARAM_TYPE_DATETIME, name, buf, NULL))) {
                 break;
             }
         }

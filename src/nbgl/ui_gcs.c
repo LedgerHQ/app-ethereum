@@ -15,6 +15,8 @@
 #include "trusted_name.h"
 #include "tx_ctx.h"
 
+#define ADDRESS_STRING_LENGTH (2 + (2 * ADDRESS_LENGTH) + 1)
+
 static bool *index_allocated = NULL;
 
 static void review_choice(bool confirm) {
@@ -40,6 +42,7 @@ static void free_pair_extension_infolist_elem(const struct nbgl_contentInfoList_
 
 static void free_pair_extension(const nbgl_contentValueExt_t *ext) {
     app_mem_free((void *) ext->backText);
+    app_mem_free((void *) ext->fullValue);
     if (ext->infolist != NULL) {
         for (int i = 0; i < ext->infolist->nbInfos; ++i) {
             free_pair_extension_infolist_elem(ext->infolist, i);
@@ -221,6 +224,183 @@ void ui_gcs_cleanup(void) {
     proxy_cleanup();
 }
 
+static nbgl_contentValueExt_t *get_infolist_extension(const char *title,
+                                                      size_t count,
+                                                      const char **keys,
+                                                      const char **values) {
+    nbgl_contentValueExt_t *ext;
+    nbgl_contentInfoList_t *list;
+    char **tmp;
+
+    if ((ext = app_mem_alloc(sizeof(*ext))) == NULL) {
+        return NULL;
+    }
+    explicit_bzero(ext, sizeof(*ext));
+
+    if ((ext->backText = app_mem_strdup(title)) == NULL) {
+        free_pair_extension(ext);
+        return NULL;
+    }
+    ext->aliasType = INFO_LIST_ALIAS;
+
+    if ((list = app_mem_alloc(sizeof(*list))) == NULL) {
+        free_pair_extension(ext);
+        return NULL;
+    }
+    explicit_bzero(list, sizeof(*list));
+    ext->infolist = list;
+    list->nbInfos = count;
+
+    if ((tmp = app_mem_alloc(sizeof(*tmp) * count)) == NULL) {
+        free_pair_extension(ext);
+        return NULL;
+    }
+    explicit_bzero(tmp, sizeof(*tmp) * count);
+    list->infoTypes = (const char **) tmp;
+
+    for (int idx = 0; (size_t) idx < count; ++idx) {
+        if ((tmp[idx] = app_mem_strdup(keys[idx])) == NULL) {
+            free_pair_extension(ext);
+            return NULL;
+        }
+    }
+
+    if ((tmp = app_mem_alloc(sizeof(*tmp) * count)) == NULL) {
+        free_pair_extension(ext);
+        return NULL;
+    }
+    explicit_bzero(tmp, sizeof(*tmp) * count);
+    list->infoContents = (const char **) tmp;
+
+    for (int idx = 0; (size_t) idx < count; ++idx) {
+        if ((tmp[idx] = app_mem_strdup(PIC(values[idx]))) == NULL) {
+            free_pair_extension(ext);
+            return NULL;
+        }
+    }
+    return ext;
+}
+
+static const nbgl_contentValueExt_t *handle_extra_data_trusted_name(
+    const s_field_table_entry *field) {
+    nbgl_contentValueAliasType_t alias_type;
+    nbgl_contentValueExt_t *extension;
+    const s_trusted_name *tname = (s_trusted_name *) field->extra_data;
+    char formatted_addr[ADDRESS_STRING_LENGTH];
+
+    switch (tname->name_source) {
+        case TN_SOURCE_ENS:
+            alias_type = ENS_ALIAS;
+            break;
+        case TN_SOURCE_LAB:
+            alias_type = ADDRESS_BOOK_ALIAS;
+            break;
+        default:
+            alias_type = INFO_LIST_ALIAS;
+            break;
+    }
+    if (!getEthDisplayableAddress(tname->addr,
+                                  formatted_addr,
+                                  sizeof(formatted_addr),
+                                  chainConfig->chainId)) {
+        return NULL;
+    }
+    if (alias_type == INFO_LIST_ALIAS) {
+        const char *keys[] = {"Contract address"};
+        const char *values[] = {formatted_addr};
+        if ((extension = get_infolist_extension(tname->name, ARRAYLEN(keys), keys, values)) ==
+            NULL) {
+            return NULL;
+        }
+    } else {
+        if ((extension = app_mem_alloc(sizeof(*extension))) == NULL) {
+            return NULL;
+        }
+        explicit_bzero(extension, sizeof(*extension));
+        if ((extension->fullValue = app_mem_strdup(formatted_addr)) == NULL) {
+            app_mem_free(extension);
+            return NULL;
+        }
+        extension->title = tname->name;
+        extension->aliasType = alias_type;
+    }
+    return extension;
+}
+
+static const nbgl_contentValueExt_t *handle_extra_data_token(const s_field_table_entry *field) {
+    const tokenDefinition_t *token_def = (tokenDefinition_t *) field->extra_data;
+    char formatted_addr[ADDRESS_STRING_LENGTH];
+    const char *keys[] = {"Contract address"};
+    const char *values[] = {formatted_addr};
+
+    if (!getEthDisplayableAddress(token_def->address,
+                                  formatted_addr,
+                                  sizeof(formatted_addr),
+                                  chainConfig->chainId)) {
+        return NULL;
+    }
+    return get_infolist_extension(token_def->ticker, ARRAYLEN(keys), keys, values);
+}
+
+static const nbgl_contentValueExt_t *handle_extra_data_nft(const s_field_table_entry *field) {
+    const nftInfo_t *nft_def = (nftInfo_t *) field->extra_data;
+    char formatted_addr[ADDRESS_STRING_LENGTH];
+    const char *keys[] = {"Contract address"};
+    const char *values[] = {formatted_addr};
+
+    if (!getEthDisplayableAddress(nft_def->contractAddress,
+                                  formatted_addr,
+                                  sizeof(formatted_addr),
+                                  chainConfig->chainId)) {
+        return NULL;
+    }
+    return get_infolist_extension(nft_def->collectionName, ARRAYLEN(keys), keys, values);
+}
+
+static const nbgl_contentValueExt_t *handle_extra_data_enum(const s_field_table_entry *field) {
+    const s_enum_value_entry *enum_value = (s_enum_value_entry *) field->extra_data;
+    char formatted_value[4];  // max value : 255 + '\0'
+    const char *keys[] = {"Raw value"};
+    const char *values[] = {formatted_value};
+
+    if (snprintf(formatted_value, sizeof(formatted_value), "%u", enum_value->value) <= 0) {
+        return false;
+    }
+    return get_infolist_extension(enum_value->name, ARRAYLEN(keys), keys, values);
+}
+
+static bool handle_extra_data(const s_field_table_entry *field, nbgl_contentTagValue_t *pair) {
+    pair->aliasValue = true;
+    switch (field->type) {
+        case PARAM_TYPE_TRUSTED_NAME:
+            if ((pair->extension = handle_extra_data_trusted_name(field)) == NULL) {
+                return false;
+            }
+            break;
+        case PARAM_TYPE_TOKEN_AMOUNT:
+        case PARAM_TYPE_TOKEN:
+            if ((pair->extension = handle_extra_data_token(field)) == NULL) {
+                return false;
+            }
+            break;
+        case PARAM_TYPE_NFT:
+            if ((pair->extension = handle_extra_data_nft(field)) == NULL) {
+                return false;
+            }
+            break;
+        case PARAM_TYPE_ENUM:
+            if ((pair->extension = handle_extra_data_enum(field)) == NULL) {
+                return false;
+            }
+            break;
+        default:
+            PRINTF("Warning: Unsupported extra data for field of type %u\n", field->type);
+            pair->aliasValue = false;
+            break;
+    }
+    return true;
+}
+
 bool ui_gcs(void) {
     char *tmp_buf = strings.tmp.tmp;
     size_t tmp_buf_size = sizeof(strings.tmp.tmp);
@@ -240,7 +420,6 @@ bool ui_gcs(void) {
 
     snprintf(tmp_buf, tmp_buf_size, "Review transaction to %s", get_operation_type(info_tx));
     if ((g_titleMsg = app_mem_strdup(tmp_buf)) == NULL) {
-        ui_gcs_cleanup();
         return false;
     }
 #ifdef SCREEN_SIZE_WALLET
@@ -253,7 +432,6 @@ bool ui_gcs(void) {
     snprintf(tmp_buf, tmp_buf_size, "%s transaction", ui_tx_simulation_finish_str());
 #endif
     if ((g_finishMsg = app_mem_strdup(tmp_buf)) == NULL) {
-        ui_gcs_cleanup();
         return false;
     }
 
@@ -273,13 +451,11 @@ bool ui_gcs(void) {
     nbPairs += 1;
 
     if (!ui_pairs_init(nbPairs)) {
-        ui_gcs_cleanup();
         return false;
     }
 
     // Allocate a table to hold all pairs that will be allocated for UI, and need to be freed later
     if (mem_buffer_allocate((void **) &index_allocated, nbPairs) == false) {
-        ui_gcs_cleanup();
         return false;
     }
 
@@ -294,21 +470,18 @@ bool ui_gcs(void) {
         g_pairs[pair].value = app_mem_strdup(g_pairs[pair].value);
     }
     if ((ext = app_mem_alloc(sizeof(*ext))) == NULL) {
-        ui_gcs_cleanup();
         return false;
     }
     explicit_bzero(ext, sizeof(*ext));
     g_pairs[pair].extension = ext;
 
     if ((infolist = app_mem_alloc(sizeof(*infolist))) == NULL) {
-        ui_gcs_cleanup();
         return false;
     }
     explicit_bzero(infolist, sizeof(*infolist));
     ext->infolist = infolist;
 
     if (!prepare_infos(infolist)) {
-        ui_gcs_cleanup();
         return false;
     }
     ext->aliasType = INFO_LIST_ALIAS;
@@ -323,7 +496,6 @@ bool ui_gcs(void) {
     // TX fields
     for (int i = 0; i < (int) field_table_size(); ++i) {
         if ((field = get_from_field_table(i)) == NULL) {
-            ui_gcs_cleanup();
             return false;
         }
         if ((field->start_intent) && (txContext.batch_nb_tx > 1)) {
@@ -338,6 +510,13 @@ bool ui_gcs(void) {
         }
         g_pairs[pair].item = field->key;
         g_pairs[pair].value = field->value;
+
+        if (field->extra_data != NULL) {
+            if (!handle_extra_data(field, &g_pairs[pair])) {
+                return false;
+            }
+        }
+
         pair++;
         if ((field->end_intent) && (txContext.batch_nb_tx > 1)) {
             // End of batch transaction : start next info on full page
@@ -348,12 +527,10 @@ bool ui_gcs(void) {
     if (show_network) {
         if (pair >= g_pairsList->nbPairs - 1) {
             PRINTF("Error: No more pairs available for network!\n");
-            ui_gcs_cleanup();
             return false;
         }
         g_pairs[pair].item = app_mem_strdup("Network");
         if (get_network_as_string(tmp_buf, tmp_buf_size) != SWO_SUCCESS) {
-            ui_gcs_cleanup();
             return false;
         }
         g_pairs[pair].value = app_mem_strdup(tmp_buf);
@@ -364,7 +541,6 @@ bool ui_gcs(void) {
     // Last pair : fees
     if (pair >= g_pairsList->nbPairs) {
         PRINTF("Error: No more pairs available for fees!\n");
-        ui_gcs_cleanup();
         return false;
     }
     g_pairs[pair].item = app_mem_strdup("Max fees");

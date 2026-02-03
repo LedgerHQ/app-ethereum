@@ -175,7 +175,7 @@ bool format_param_raw(const s_param_raw *param, const char *name) {
                 default:
                     ret = false;
             }
-            if (ret) ret = add_to_field_table(PARAM_TYPE_RAW, name, buf);
+            if (ret) ret = add_to_field_table(PARAM_TYPE_RAW, name, buf, NULL);
             if (!ret) break;
         }
     }

@@ -101,7 +101,7 @@ static bool process_empty_tx(const s_tx_ctx *tx_ctx) {
     size_t buf_size = sizeof(strings.tmp.tmp);
     const s_tx_info *tx_info = tx_ctx->tx_info;
     e_param_type param_type;
-    const s_trusted_name *trusted_name;
+    const s_trusted_name *trusted_name = NULL;
 
     if (tx_ctx->has_amount) {
         if (!set_intent_field("Send")) {
@@ -122,7 +122,7 @@ static bool process_empty_tx(const s_tx_ctx *tx_ctx) {
                             buf_size)) {
             return false;
         }
-        if (!add_to_field_table(PARAM_TYPE_AMOUNT, "Amount", buf)) {
+        if (!add_to_field_table(PARAM_TYPE_AMOUNT, "Amount", buf, NULL)) {
             return false;
         }
     } else {
@@ -149,8 +149,7 @@ static bool process_empty_tx(const s_tx_ctx *tx_ctx) {
             return false;
         }
     }
-
-    if (!add_to_field_table(param_type, "To", buf)) {
+    if (!add_to_field_table(param_type, "To", buf, trusted_name)) {
         return false;
     }
     list_remove((s_list_node **) &g_tx_ctx_list,

@@ -125,7 +125,7 @@ bool format_param_trusted_name(const s_param_trusted_name *param, const char *na
                 getEthDisplayableAddress(addr, buf, buf_size, chainConfig->chainId);
                 param_type = PARAM_TYPE_RAW;
             }
-            if (!(ret = add_to_field_table(param_type, name, buf))) {
+            if (!(ret = add_to_field_table(param_type, name, buf, tname))) {
                 break;
             }
         }

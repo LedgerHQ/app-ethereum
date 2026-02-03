@@ -160,6 +160,7 @@ uint16_t handleSign(uint8_t p1,
                 return SWO_COMMAND_NOT_ALLOWED;
             }
             if (!ui_gcs()) {
+                ui_gcs_cleanup();
                 return SWO_NOT_SUPPORTED_ERROR_NO_INFO;
             }
             *flags |= IO_ASYNCH_REPLY;

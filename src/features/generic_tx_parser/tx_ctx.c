@@ -100,6 +100,8 @@ static bool process_empty_tx(const s_tx_ctx *tx_ctx) {
     char *buf = strings.tmp.tmp;
     size_t buf_size = sizeof(strings.tmp.tmp);
     const s_tx_info *tx_info = tx_ctx->tx_info;
+    e_param_type param_type;
+    const s_trusted_name *trusted_name;
 
     if (tx_ctx->has_amount) {
         if (!set_intent_field("Send")) {
@@ -128,10 +130,27 @@ static bool process_empty_tx(const s_tx_ctx *tx_ctx) {
             return false;
         }
     }
-    if (!getEthDisplayableAddress(tx_ctx->to, buf, buf_size, chainConfig->chainId)) {
-        return false;
+
+    uint64_t chain_id = get_tx_chain_id();
+    e_name_type types[] = {TN_TYPE_ACCOUNT};
+    e_name_source sources[] = {TN_SOURCE_ENS, TN_SOURCE_LAB, TN_SOURCE_MAB};
+
+    if ((trusted_name = get_trusted_name(ARRAYLEN(types),
+                                         types,
+                                         ARRAYLEN(sources),
+                                         sources,
+                                         &chain_id,
+                                         tx_ctx->to)) != NULL) {
+        param_type = PARAM_TYPE_TRUSTED_NAME;
+        strlcpy(buf, trusted_name->name, buf_size);
+    } else {
+        param_type = PARAM_TYPE_RAW;
+        if (!getEthDisplayableAddress(tx_ctx->to, buf, buf_size, chainConfig->chainId)) {
+            return false;
+        }
     }
-    if (!add_to_field_table(PARAM_TYPE_RAW, "To", buf)) {
+
+    if (!add_to_field_table(param_type, "To", buf)) {
         return false;
     }
     list_remove((s_list_node **) &g_tx_ctx_list,

@@ -108,7 +108,7 @@ bool format_param_unit(const s_param_unit *param, const char *name) {
             off = strlen(buf);
             snprintf(&buf[off], buf_size - off, " %s", param->base);
 
-            if (!(ret = add_to_field_table(PARAM_TYPE_UNIT, name, buf))) {
+            if (!(ret = add_to_field_table(PARAM_TYPE_UNIT, name, buf, NULL))) {
                 break;
             }
         }

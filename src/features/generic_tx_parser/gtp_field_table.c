@@ -33,7 +33,10 @@ void field_table_cleanup(void) {
     flist_clear((s_flist_node **) &g_table, (f_list_node_del) &delete_table_node);
 }
 
-bool add_to_field_table(e_param_type type, const char *key, const char *value) {
+bool add_to_field_table(e_param_type type,
+                        const char *key,
+                        const char *value,
+                        const void *extra_data) {
     uint8_t key_len;
     uint16_t value_len;
     s_field_table_node *node;
@@ -83,6 +86,7 @@ bool add_to_field_table(e_param_type type, const char *key, const char *value) {
     node->field.type = type;
     memcpy(node->field.key, key, key_len);
     memcpy(node->field.value, value, value_len);
+    node->field.extra_data = extra_data;
 
     flist_push_back((s_flist_node **) &g_table, (s_flist_node *) node);
     return true;
@@ -95,7 +99,7 @@ bool set_intent_field(const char *value) {
         // Only one transaction in the batch, no need to mark as intent
         type = PARAM_TYPE_RAW;
     }
-    return add_to_field_table(type, "Transaction type", value);
+    return add_to_field_table(type, "Transaction type", value, NULL);
 }
 
 size_t field_table_size(void) {

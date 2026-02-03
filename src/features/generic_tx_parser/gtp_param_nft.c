@@ -86,7 +86,7 @@ bool format_param_nft(const s_param_nft *param, const char *name) {
                             break;
                         }
                         snprintf(buf, buf_size, "%s #%s", asset->nft.collectionName, tmp);
-                        if (!(ret = add_to_field_table(PARAM_TYPE_NFT, name, buf))) {
+                        if (!(ret = add_to_field_table(PARAM_TYPE_NFT, name, buf, NULL))) {
                             break;
                         }
                     }

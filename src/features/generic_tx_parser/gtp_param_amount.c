@@ -64,7 +64,7 @@ bool format_param_amount(const s_param_amount *param, const char *name) {
                                        buf_size))) {
                 break;
             }
-            if (!(ret = add_to_field_table(PARAM_TYPE_AMOUNT, name, buf))) {
+            if (!(ret = add_to_field_table(PARAM_TYPE_AMOUNT, name, buf, NULL))) {
                 break;
             }
         }

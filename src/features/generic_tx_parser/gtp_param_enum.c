@@ -85,7 +85,7 @@ bool format_param_enum(const s_param_enum *param, const char *name) {
                 ret = false;
                 break;
             }
-            if (!(ret = add_to_field_table(PARAM_TYPE_ENUM, name, enum_entry->name))) {
+            if (!(ret = add_to_field_table(PARAM_TYPE_ENUM, name, enum_entry->name, NULL))) {
                 break;
             }
         }

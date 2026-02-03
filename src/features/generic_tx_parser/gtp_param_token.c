@@ -95,7 +95,7 @@ bool format_param_token(const s_param_token *param, const char *name) {
                 ret = false;
                 break;
             }
-            if (!(ret = add_to_field_table(PARAM_TYPE_TOKEN, name, ticker))) {
+            if (!(ret = add_to_field_table(PARAM_TYPE_TOKEN, name, ticker, NULL))) {
                 break;
             }
         }

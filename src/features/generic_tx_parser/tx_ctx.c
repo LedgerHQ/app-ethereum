@@ -122,7 +122,7 @@ static bool process_empty_tx(const s_tx_ctx *tx_ctx) {
                             buf_size)) {
             return false;
         }
-        if (!add_to_field_table(PARAM_TYPE_AMOUNT, "Amount", buf)) {
+        if (!add_to_field_table(PARAM_TYPE_AMOUNT, "Amount", buf, NULL)) {
             return false;
         }
     } else {
@@ -149,8 +149,7 @@ static bool process_empty_tx(const s_tx_ctx *tx_ctx) {
             return false;
         }
     }
-
-    if (!add_to_field_table(param_type, "To", buf)) {
+    if (!add_to_field_table(param_type, "To", buf, NULL)) {
         return false;
     }
     list_remove((s_list_node **) &g_tx_ctx_list,

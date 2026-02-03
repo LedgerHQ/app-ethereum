@@ -154,7 +154,7 @@ static bool process_token_amount(const s_param_token_amount *param,
             return false;
         }
     }
-    if (!add_to_field_table(PARAM_TYPE_AMOUNT, name, buf)) {
+    if (!add_to_field_table(PARAM_TYPE_AMOUNT, name, buf, NULL)) {
         return false;
     }
     return true;

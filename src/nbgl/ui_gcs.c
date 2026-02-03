@@ -221,6 +221,14 @@ void ui_gcs_cleanup(void) {
     proxy_cleanup();
 }
 
+static bool handle_extra_data(const s_field_table_entry *field, nbgl_contentTagValue_t *pair) {
+    switch (field->type) {
+        default:
+            PRINTF("Warning: Unsupported extra data for field of type %u\n", field->type);
+    }
+    return true;
+}
+
 bool ui_gcs(void) {
     char *tmp_buf = strings.tmp.tmp;
     size_t tmp_buf_size = sizeof(strings.tmp.tmp);
@@ -338,6 +346,13 @@ bool ui_gcs(void) {
         }
         g_pairs[pair].item = field->key;
         g_pairs[pair].value = field->value;
+
+        if (field->extra_data != NULL) {
+            if (!handle_extra_data(field, &g_pairs[pair])) {
+                return false;
+            }
+        }
+
         pair++;
         if ((field->end_intent) && (txContext.batch_nb_tx > 1)) {
             // End of batch transaction : start next info on full page

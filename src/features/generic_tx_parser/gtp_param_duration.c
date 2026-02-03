@@ -97,7 +97,7 @@ bool format_param_duration(const s_param_duration *param, const char *name) {
                 snprintf(&buf[off], buf_size - off, "%02ds", seconds);
             }
 
-            if (!(ret = add_to_field_table(PARAM_TYPE_DURATION, name, buf))) {
+            if (!(ret = add_to_field_table(PARAM_TYPE_DURATION, name, buf, NULL))) {
                 break;
             }
         }

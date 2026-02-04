@@ -22,13 +22,14 @@ from ragger.error import ExceptionRAPDU
 
 import client.response_parser as ResponseParser
 from client.utils import recover_message, get_selector_from_data
-from client.client import EthAppClient, TrustedNameType, TrustedNameSource, EIP712CalldataParamPresence
+from client.client import EthAppClient, EIP712CalldataParamPresence
 from client.status_word import StatusWord
 from client.eip712 import InputData
 from client.settings import SettingID, settings_toggle
 from client.tx_simu import TxSimu
 from client.proxy_info import ProxyInfo
 from client.gating import Gating
+from client.trusted_name import TrustedName, TrustedNameType, TrustedNameSource
 
 from client.gcs import (
     Field, ParamRaw, Value, TypeFamily, DataPath, PathTuple, ParamTokenAmount, ParamCalldata,
@@ -660,12 +661,13 @@ def test_eip712_advanced_trusted_name(scenario_navigator: NavigateWithScenario,
     else:
         challenge = None
 
-    app_client.provide_trusted_name_v2(bytes.fromhex(data["message"]["validator"][2:]),
-                                       trusted_name[2],
-                                       trusted_name[0],
-                                       trusted_name[1],
-                                       data["domain"]["chainId"],
-                                       challenge=challenge)
+    app_client.provide_trusted_name(TrustedName(2,
+                                                bytes.fromhex(data["message"]["validator"][2:]),
+                                                trusted_name[2],
+                                                tn_type=trusted_name[0],
+                                                tn_source=trusted_name[1],
+                                                chain_id=data["domain"]["chainId"],
+                                                challenge=challenge))
     eip712_new_common(scenario_navigator, data, filters, test_name)
 
 

@@ -12,10 +12,17 @@ int fuzzGenericParserFieldCmd(const uint8_t *data, size_t size) {
     s_field_ctx ctx = {0};
     ctx.field = &field;
 
-    if (!tlv_parse(data, size, (f_tlv_data_handler) &handle_field_struct, &ctx)) return 0;
+    if (!tlv_parse(data, size, (f_tlv_data_handler) &handle_field_struct, &ctx)) {
+        cleanup_field_constraints(&field);
+        return 0;
+    }
 
-    if (!verify_field_struct(&ctx)) return 0;
+    if (!verify_field_struct(&ctx)) {
+        cleanup_field_constraints(&field);
+        return 0;
+    }
 
+    // format_field() always cleans up constraints internally (success or failure)
     return format_field(&field);
 }
 

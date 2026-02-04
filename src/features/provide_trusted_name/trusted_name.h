@@ -44,7 +44,9 @@ typedef struct {
     uint64_t chain_id;
     e_name_type name_type;
     e_name_source name_source;
-    uint8_t nft_id[INT256_LENGTH];
+    union {
+        uint8_t nft_id[INT256_LENGTH];
+    };
 } s_trusted_name;
 
 typedef struct {

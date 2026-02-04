@@ -20,26 +20,7 @@ from .ledger_pki import PKIClient, PKIPubKeyUsage
 from .dynamic_networks import DynamicNetwork
 from .safe import SafeAccount, AccountType
 from .gating import Gating
-
-
-class TrustedNameType(IntEnum):
-    ACCOUNT = 0x01
-    CONTRACT = 0x02
-    NFT = 0x03
-    TOKEN = 0x04
-    WALLET = 0x05
-    CONTEXT_ADDRESS = 0x06
-
-
-class TrustedNameSource(IntEnum):
-    LAB = 0x00
-    CAL = 0x01
-    ENS = 0x02
-    UD = 0x03
-    FN = 0x04
-    DNS = 0x05
-    DYN_RESOLVER = 0x06
-    MULTISIG_ADDRESS_BOOK = 0x07
+from .trusted_name import TrustedName, TrustedNameSource, TrustedNameType
 
 
 class EIP712CalldataParamPresence(IntEnum):
@@ -332,6 +313,15 @@ class EthAppClient:
             assert len(not_valid_after) == 3
             payload += format_tlv(FieldTag.NOT_VALID_AFTER, struct.pack("BBB", *not_valid_after))
         return self._provide_trusted_name_common(payload, name_source)
+
+    def provide_trusted_name(self, trusted_name: TrustedName) -> RAPDU:
+        self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_TRUSTED_NAME,
+                                         trusted_name.tn_source == TrustedNameSource.CAL)
+
+        chunks = self._cmd_builder.provide_trusted_name(trusted_name.serialize())
+        for chunk in chunks[:-1]:
+            self._exchange(chunk)
+        return self._exchange(chunks[-1])
 
     def set_plugin(self,
                    plugin_name: str,

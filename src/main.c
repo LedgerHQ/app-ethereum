@@ -97,7 +97,9 @@ void reset_app_context(void) {
     memset((uint8_t *) &tmpContent, 0, sizeof(tmpContent));
     clear_safe_account();
     ui_all_cleanup();
+#ifdef HAVE_GATING_SUPPORT
     clear_gating();
+#endif
 }
 
 void app_quit(void) {

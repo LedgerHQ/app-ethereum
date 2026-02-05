@@ -47,8 +47,8 @@ ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX TARGET_APEX
     DEFINES	+= HAVE_TRANSACTION_CHECKS
 endif
 
-# Gating signing
-DEFINES	+= HAVE_GATING_SUPPORT
+# Gating signing - TODO: Reactivate this once the feature is fully available E2E
+# DEFINES	+= HAVE_GATING_SUPPORT
 
 EIP7702_TEST_WHITELIST ?= 0
 ifneq ($(EIP7702_TEST_WHITELIST),0)

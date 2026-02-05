@@ -1,5 +1,25 @@
 # TLV structures
 
+## TRUSTED_NAME
+
+| Name            | Tag  | Payload type    | Description                     | Optional |
+|-----------------|------|-----------------|---------------------------------|----------|
+| STRUCT_TYPE     | 0x01 | uint8           | structure type (0x03)           |          |
+| STRUCT_VERSION  | 0x02 | uint8           | structure version (currently 2) |          |
+| NOT_VALID_AFTER | 0x10 | uint8[3]        | app version (major,minor,patch) | x        |
+| CHALLENGE       | 0x12 | uint32          |                                 | x        |
+| SIG_KEY_ID      | 0x13 | uint8           |                                 | x        |
+| SIG_ALGO        | 0x14 | uint8           |                                 | x        |
+| SIGNATURE       | 0x15 | uint8[]         |                                 | x        |
+| NAME            | 0x20 | char[]          | what to substitute with         |          |
+| COIN_TYPE       | 0x21 | uint8           | as defined in SLIP-44           | x        |
+| ADDRESS         | 0x22 | uint8[20]       | address to substitute           |          |
+| CHAIN_ID        | 0x23 | uint64          |                                 | x        |
+| TYPE            | 0x70 | uint8           |                                 | x        |
+| SOURCE          | 0x71 | uint8           |                                 | x        |
+| NFT_ID          | 0x72 | uint256         |                                 | x        |
+| OWNER           | 0x74 | uint8[20]       |                                 | x        |
+
 ## TRANSACTION_INFO
 
 | Name               | Tag  | Payload type | Description                                          | Optional | Source / value                                             |

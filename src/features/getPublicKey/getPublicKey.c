@@ -24,22 +24,22 @@ end:
 
 uint16_t get_public_key(uint8_t *out, uint8_t outLength) {
     uint8_t raw_pubkey[65];
-    cx_err_t error = CX_INTERNAL_ERROR;
+    cx_err_t error;
 
     if (outLength < ADDRESS_LENGTH) {
         return SWO_WRONG_DATA_LENGTH;
     }
-    CX_CHECK(bip32_derive_get_pubkey_256(CX_CURVE_256K1,
-                                         tmpCtx.transactionContext.bip32.path,
-                                         tmpCtx.transactionContext.bip32.length,
-                                         raw_pubkey,
-                                         NULL,
-                                         CX_SHA512));
-
+    if ((error = bip32_derive_get_pubkey_256(CX_CURVE_256K1,
+                                             tmpCtx.transactionContext.bip32.path,
+                                             tmpCtx.transactionContext.bip32.length,
+                                             raw_pubkey,
+                                             NULL,
+                                             CX_SHA512)) != CX_OK) {
+        PRINTF("Error: could not derive pubkey!\n");
+        return error;
+    }
     getEthAddressFromRawKey(raw_pubkey, out);
-    error = SWO_SUCCESS;
-end:
-    return error;
+    return SWO_SUCCESS;
 }
 
 uint32_t set_result_get_publicKey() {

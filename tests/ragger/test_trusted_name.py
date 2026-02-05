@@ -1,4 +1,6 @@
 from pathlib import Path
+import json
+
 import pytest
 from web3 import Web3
 
@@ -13,11 +15,12 @@ from dynamic_networks_cfg import get_network_config
 
 from client.utils import CoinType
 import client.response_parser as ResponseParser
-from client.client import EthAppClient
+from client.client import EthAppClient, SignMode
 from client.status_word import StatusWord
 from client.dynamic_networks import DynamicNetwork
 from client.trusted_name import TrustedName, TrustedNameType, TrustedNameSource
 
+from constants import ABIS_FOLDER
 
 # Values used across all tests
 CHAIN_ID = 1
@@ -304,4 +307,56 @@ def test_trusted_name_v2_expired(backend: BackendInterface, app_version: tuple[i
                                                     chain_id=CHAIN_ID,
                                                     challenge=challenge,
                                                     not_valid_after=app_version))
+    assert e.value.status == StatusWord.INVALID_DATA
+
+
+def test_trusted_name_mab_idle(backend: BackendInterface) -> None:
+    app_client = EthAppClient(backend)
+
+    with pytest.raises(ExceptionRAPDU) as e:
+        # This will fail since outside of signing a TX/message, the derivation path is unset/empty
+        app_client.provide_trusted_name(TrustedName(2,
+                                                    ADDR,
+                                                    NAME,
+                                                    tn_type=TrustedNameType.ACCOUNT,
+                                                    tn_source=TrustedNameSource.MULTISIG_ADDRESS_BOOK,
+                                                    chain_id=CHAIN_ID,
+                                                    challenge=ResponseParser.challenge(app_client.get_challenge().data),
+                                                    owner=b"\x11" * 20))
+    assert e.value.status == StatusWord.INVALID_DATA
+
+
+def test_trusted_name_mab_wrong_owner(backend: BackendInterface) -> None:
+    app_client = EthAppClient(backend)
+
+    with Path(f"{ABIS_FOLDER}/erc20.json").open(encoding="utf-8") as file:
+        contract = Web3().eth.contract(
+            abi=json.load(file),
+            address=None
+        )
+    data = contract.encode_abi("transfer", [
+        bytes.fromhex("d8dA6BF26964aF9D7eEd9e03E53415D37aA96045"),
+        int(100 * pow(10, 6)),
+    ])
+    tx_params = {
+        "chainId": 1,
+        "nonce": 1337,
+        "maxPriorityFeePerGas": Web3.to_wei(0, "gwei"),
+        "maxFeePerGas": Web3.to_wei(2.55, "gwei"),
+        "gas": 94548,
+        "to": bytes.fromhex("dAC17F958D2ee523a2206206994597C13D831ec7"),
+        "value": Web3.to_wei(0, "ether"),
+        "data": data,
+    }
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+    with pytest.raises(ExceptionRAPDU) as e:
+        app_client.provide_trusted_name(TrustedName(2,
+                                                    ADDR,
+                                                    NAME,
+                                                    tn_type=TrustedNameType.ACCOUNT,
+                                                    tn_source=TrustedNameSource.MULTISIG_ADDRESS_BOOK,
+                                                    chain_id=tx_params["chainId"],
+                                                    challenge=ResponseParser.challenge(app_client.get_challenge().data),
+                                                    owner=b"\x00" * 20))
     assert e.value.status == StatusWord.INVALID_DATA

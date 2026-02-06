@@ -44,7 +44,9 @@ typedef struct {
     uint64_t chain_id;
     e_name_type name_type;
     e_name_source name_source;
-    uint8_t nft_id[INT256_LENGTH];
+    union {
+        uint8_t nft_id[INT256_LENGTH];
+    };
 } s_trusted_name;
 
 typedef struct {
@@ -53,6 +55,7 @@ typedef struct {
     uint8_t input_sig_size;
     uint8_t input_sig[ECDSA_SIGNATURE_MAX_LENGTH];
     cx_sha256_t hash_ctx;
+    uint8_t owner[ADDRESS_LENGTH];
     uint32_t rcv_flags;
 } s_trusted_name_ctx;
 

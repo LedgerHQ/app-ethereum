@@ -14,7 +14,7 @@ from constants import ABIS_FOLDER
 from fields_utils import get_all_tuple_array_paths, get_all_paths, get_all_tuple_paths
 
 import client.response_parser as ResponseParser
-from client.client import EthAppClient, SignMode, TrustedNameType, TrustedNameSource
+from client.client import EthAppClient, SignMode
 from client.status_word import StatusWord
 from client.utils import get_selector_from_data
 from client.gcs import (
@@ -26,6 +26,7 @@ from client.enum_value import EnumValue
 from client.tx_simu import TxSimu
 from client.proxy_info import ProxyInfo
 from client.dynamic_networks import DynamicNetwork
+from client.trusted_name import TrustedName, TrustedNameType, TrustedNameSource
 
 
 def compute_inst_hash(fields: list[Field]) -> bytes:
@@ -190,12 +191,13 @@ def test_gcs_nft(scenario_navigator: NavigateWithScenario):
 
     app_client.provide_transaction_info(tx_info.serialize())
     challenge = ResponseParser.challenge(app_client.get_challenge().data)
-    app_client.provide_trusted_name_v2(device_addr,
-                                       "gerard.eth",
-                                       TrustedNameType.ACCOUNT,
-                                       TrustedNameSource.ENS,
-                                       tx_params["chainId"],
-                                       challenge=challenge)
+    app_client.provide_trusted_name(TrustedName(2,
+                                                device_addr,
+                                                "gerard.eth",
+                                                tn_type=TrustedNameType.ACCOUNT,
+                                                tn_source=TrustedNameSource.ENS,
+                                                chain_id=tx_params["chainId"],
+                                                challenge=challenge))
     app_client.provide_nft_metadata("OpenSea Shared Storefront", tx_params["to"], tx_params["chainId"])
 
     for field in fields:
@@ -583,12 +585,13 @@ def test_gcs_proxy(scenario_navigator: NavigateWithScenario):
 
     app_client.provide_proxy_info(proxy_info.serialize())
 
-    app_client.provide_trusted_name_v2(impl_contract,
-                                       "some contract",
-                                       TrustedNameType.CONTRACT,
-                                       TrustedNameSource.CAL,
-                                       tx_info.chain_id,
-                                       challenge=ResponseParser.challenge(app_client.get_challenge().data))
+    app_client.provide_trusted_name(TrustedName(2,
+                                                impl_contract,
+                                                "some contract",
+                                                tn_type=TrustedNameType.CONTRACT,
+                                                tn_source=TrustedNameSource.CAL,
+                                                chain_id=tx_info.chain_id,
+                                                challenge=ResponseParser.challenge(app_client.get_challenge().data)))
 
     for field in fields:
         app_client.provide_transaction_field_desc(field.serialize())
@@ -1427,7 +1430,10 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
     backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
 
-    with open(f"{ABIS_FOLDER}/safe_1.4.1.abi.json", encoding="utf-8") as f:
+    with app_client.get_public_addr(bip32_path="m/44'/60'/0'/0/0", display=False):
+        pass
+    _, wallet_addr, _ = ResponseParser.pk_addr(app_client.response().data)
+    with Path(f"{ABIS_FOLDER}/safe_1.4.1.abi.json").open(encoding="utf-8") as f:
         contract = Web3().eth.contract(
             abi=json.load(f),
             address=bytes.fromhex("23F8abfC2824C397cCB3DA89ae772984107dDB99")
@@ -1680,12 +1686,14 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
         "change threshold",
     )
 
-    app_client.provide_trusted_name_v2(contract.address,
-                                       "My Safe",
-                                       TrustedNameType.ACCOUNT,
-                                       TrustedNameSource.MULTISIG_ADDRESS_BOOK,
-                                       tx_info.chain_id,
-                                       challenge=ResponseParser.challenge(app_client.get_challenge().data))
+    app_client.provide_trusted_name(TrustedName(2,
+                                                contract.address,
+                                                "My Safe",
+                                                tn_type=TrustedNameType.ACCOUNT,
+                                                tn_source=TrustedNameSource.MULTISIG_ADDRESS_BOOK,
+                                                chain_id=tx_info.chain_id,
+                                                challenge=ResponseParser.challenge(app_client.get_challenge().data),
+                                                owner=wallet_addr))
 
     for field in fields:
         app_client.provide_transaction_field_desc(field.serialize())
@@ -1951,12 +1959,13 @@ def test_gcs_trusted_name_token(scenario_navigator: NavigateWithScenario):
 
     for i, field in enumerate(fields):
         challenge = ResponseParser.challenge(app_client.get_challenge().data)
-        app_client.provide_trusted_name_v2(tokens[i]["address"],
-                                           tokens[i]["name"],
-                                           TrustedNameType.TOKEN,
-                                           TrustedNameSource.CAL,
-                                           tx_params["chainId"],
-                                           challenge=challenge)
+        app_client.provide_trusted_name(TrustedName(2,
+                                                    tokens[i]["address"],
+                                                    tokens[i]["name"],
+                                                    tn_type=TrustedNameType.TOKEN,
+                                                    tn_source=TrustedNameSource.CAL,
+                                                    chain_id=tx_params["chainId"],
+                                                    challenge=challenge))
         app_client.provide_transaction_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
@@ -2636,6 +2645,9 @@ def test_gcs_batch_complex(scenario_navigator: NavigateWithScenario) -> None:
     backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
 
+    with app_client.get_public_addr(bip32_path="m/44'/60'/0'/0/0", display=False):
+        pass
+    _, wallet_addr, _ = ResponseParser.pk_addr(app_client.response().data)
     tokens = [
         {
             "ticker": "USDT",
@@ -2800,19 +2812,22 @@ def test_gcs_batch_complex(scenario_navigator: NavigateWithScenario) -> None:
 
     app_client.provide_transaction_info(tx_info.serialize())
 
-    app_client.provide_trusted_name_v2(b"\x00" * 20,
-                                       "null.eth",
-                                       TrustedNameType.ACCOUNT,
-                                       TrustedNameSource.ENS,
-                                       tx_params["chainId"],
-                                       challenge=ResponseParser.challenge(app_client.get_challenge().data))
+    app_client.provide_trusted_name(TrustedName(2,
+                                                b"\x00" * 20,
+                                                "null.eth",
+                                                tn_type=TrustedNameType.ACCOUNT,
+                                                tn_source=TrustedNameSource.ENS,
+                                                chain_id=tx_params["chainId"],
+                                                challenge=ResponseParser.challenge(app_client.get_challenge().data)))
 
-    app_client.provide_trusted_name_v2(b"\x44" * 20,
-                                        "FOUR",
-                                        TrustedNameType.ACCOUNT,
-                                        TrustedNameSource.MULTISIG_ADDRESS_BOOK,
-                                        tx_params["chainId"],
-                                        challenge=ResponseParser.challenge(app_client.get_challenge().data))
+    app_client.provide_trusted_name(TrustedName(2,
+                                                b"\x44" * 20,
+                                                "FOUR",
+                                                tn_type=TrustedNameType.ACCOUNT,
+                                                tn_source=TrustedNameSource.MULTISIG_ADDRESS_BOOK,
+                                                chain_id=tx_params["chainId"],
+                                                challenge=ResponseParser.challenge(app_client.get_challenge().data),
+                                                owner=wallet_addr))
 
     # compute instructions hash
     sub_inst_hash = compute_inst_hash(sub_fields)

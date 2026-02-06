@@ -1,4 +1,6 @@
 from pathlib import Path
+import json
+
 import pytest
 from web3 import Web3
 
@@ -11,11 +13,14 @@ from ragger.navigator import Navigator, NavInsID, NavIns
 
 from dynamic_networks_cfg import get_network_config
 
+from client.utils import CoinType
 import client.response_parser as ResponseParser
-from client.client import EthAppClient, TrustedNameType, TrustedNameSource
+from client.client import EthAppClient, SignMode
 from client.status_word import StatusWord
 from client.dynamic_networks import DynamicNetwork
+from client.trusted_name import TrustedName, TrustedNameType, TrustedNameSource
 
+from constants import ABIS_FOLDER
 
 # Values used across all tests
 CHAIN_ID = 1
@@ -42,7 +47,7 @@ def test_trusted_name_v1(scenario_navigator: NavigateWithScenario,
 
     challenge = common(app_client)
 
-    app_client.provide_trusted_name_v1(ADDR, NAME, challenge)
+    app_client.provide_trusted_name(TrustedName(1, ADDR, NAME, challenge=challenge, coin_type=CoinType.ETH))
 
     with app_client.sign(BIP32_PATH,
                          {
@@ -66,7 +71,7 @@ def test_trusted_name_v1_verbose(navigator: Navigator,
 
     challenge = common(app_client)
 
-    app_client.provide_trusted_name_v1(ADDR, NAME, challenge)
+    app_client.provide_trusted_name(TrustedName(1, ADDR, NAME, challenge=challenge, coin_type=CoinType.ETH))
 
     moves = []
     if device.is_nano:
@@ -103,7 +108,7 @@ def test_trusted_name_v1_wrong_challenge(backend: BackendInterface):
     challenge = common(app_client)
 
     with pytest.raises(ExceptionRAPDU) as e:
-        app_client.provide_trusted_name_v1(ADDR, NAME, ~challenge & 0xffffffff)
+        app_client.provide_trusted_name(TrustedName(1, ADDR, NAME, challenge=(~challenge & 0xffffffff), coin_type=CoinType.ETH))
     assert e.value.status == StatusWord.INVALID_DATA
 
 
@@ -112,7 +117,7 @@ def test_trusted_name_v1_wrong_addr(scenario_navigator: NavigateWithScenario, te
     app_client = EthAppClient(backend)
     challenge = common(app_client)
 
-    app_client.provide_trusted_name_v1(ADDR, NAME, challenge)
+    app_client.provide_trusted_name(TrustedName(1, ADDR, NAME, challenge=challenge, coin_type=CoinType.ETH))
 
     addr = bytearray(ADDR)
     addr.reverse()
@@ -150,7 +155,7 @@ def test_trusted_name_v1_non_mainnet(scenario_navigator: NavigateWithScenario, t
     if name and ticker:
         app_client.provide_network_information(DynamicNetwork(name, ticker, tx_params["chainId"], icon))
 
-    app_client.provide_trusted_name_v1(ADDR, NAME, challenge)
+    app_client.provide_trusted_name(TrustedName(1, ADDR, NAME, challenge=challenge, coin_type=CoinType.ETH))
 
     with app_client.sign(BIP32_PATH, tx_params):
         scenario_navigator.review_approve(test_name=test_name)
@@ -161,7 +166,7 @@ def test_trusted_name_v1_unknown_chain(scenario_navigator: NavigateWithScenario,
     app_client = EthAppClient(backend)
     challenge = common(app_client)
 
-    app_client.provide_trusted_name_v1(ADDR, NAME, challenge)
+    app_client.provide_trusted_name(TrustedName(1, ADDR, NAME, challenge=challenge, coin_type=CoinType.ETH))
 
     with app_client.sign(BIP32_PATH,
                          {
@@ -181,7 +186,7 @@ def test_trusted_name_v1_name_too_long(backend: BackendInterface):
     challenge = common(app_client)
 
     with pytest.raises(ExceptionRAPDU) as e:
-        app_client.provide_trusted_name_v1(ADDR, "ledger" + "0"*25 + ".eth", challenge)
+        app_client.provide_trusted_name(TrustedName(1, ADDR, "ledger" + "0"*25 + ".eth", challenge=challenge, coin_type=CoinType.ETH))
     assert e.value.status == StatusWord.INVALID_DATA
 
 
@@ -190,7 +195,7 @@ def test_trusted_name_v1_name_invalid_character(backend: BackendInterface):
     challenge = common(app_client)
 
     with pytest.raises(ExceptionRAPDU) as e:
-        app_client.provide_trusted_name_v1(ADDR, "l\xe8dger.eth", challenge)
+        app_client.provide_trusted_name(TrustedName(1, ADDR, "l\xe8dger.eth", challenge=challenge, coin_type=CoinType.ETH))
     assert e.value.status == StatusWord.INVALID_DATA
 
 
@@ -199,7 +204,7 @@ def test_trusted_name_v1_uppercase(backend: BackendInterface):
     challenge = common(app_client)
 
     with pytest.raises(ExceptionRAPDU) as e:
-        app_client.provide_trusted_name_v1(ADDR, NAME.upper(), challenge)
+        app_client.provide_trusted_name(TrustedName(1, ADDR, NAME.upper(), challenge=challenge, coin_type=CoinType.ETH))
     assert e.value.status == StatusWord.INVALID_DATA
 
 
@@ -208,7 +213,7 @@ def test_trusted_name_v1_name_non_ens(backend: BackendInterface):
     challenge = common(app_client)
 
     with pytest.raises(ExceptionRAPDU) as e:
-        app_client.provide_trusted_name_v1(ADDR, "ledger.hte", challenge)
+        app_client.provide_trusted_name(TrustedName(1, ADDR, "ledger.hte", challenge=challenge, coin_type=CoinType.ETH))
     assert e.value.status == StatusWord.INVALID_DATA
 
 
@@ -217,12 +222,13 @@ def test_trusted_name_v2(scenario_navigator: NavigateWithScenario, test_name: st
     app_client = EthAppClient(backend)
     challenge = common(app_client)
 
-    app_client.provide_trusted_name_v2(ADDR,
-                                       NAME,
-                                       TrustedNameType.ACCOUNT,
-                                       TrustedNameSource.ENS,
-                                       CHAIN_ID,
-                                       challenge=challenge)
+    app_client.provide_trusted_name(TrustedName(2,
+                                                ADDR,
+                                                NAME,
+                                                tn_type=TrustedNameType.ACCOUNT,
+                                                tn_source=TrustedNameSource.ENS,
+                                                chain_id=CHAIN_ID,
+                                                challenge=challenge))
 
     with app_client.sign(BIP32_PATH,
                          {
@@ -242,12 +248,13 @@ def test_trusted_name_v2_wrong_chainid(scenario_navigator: NavigateWithScenario,
     app_client = EthAppClient(backend)
     challenge = common(app_client)
 
-    app_client.provide_trusted_name_v2(ADDR,
-                                       NAME,
-                                       TrustedNameType.ACCOUNT,
-                                       TrustedNameSource.ENS,
-                                       CHAIN_ID,
-                                       challenge=challenge)
+    app_client.provide_trusted_name(TrustedName(2,
+                                                ADDR,
+                                                NAME,
+                                                tn_type=TrustedNameType.ACCOUNT,
+                                                tn_source=TrustedNameSource.ENS,
+                                                chain_id=CHAIN_ID,
+                                                challenge=challenge))
 
     with app_client.sign(BIP32_PATH,
                          {
@@ -266,11 +273,12 @@ def test_trusted_name_v2_missing_challenge(backend: BackendInterface):
     app_client = EthAppClient(backend)
 
     with pytest.raises(ExceptionRAPDU) as e:
-        app_client.provide_trusted_name_v2(ADDR,
-                                           NAME,
-                                           TrustedNameType.ACCOUNT,
-                                           TrustedNameSource.ENS,
-                                           CHAIN_ID)
+        app_client.provide_trusted_name(TrustedName(2,
+                                                    ADDR,
+                                                    NAME,
+                                                    tn_type=TrustedNameType.ACCOUNT,
+                                                    tn_source=TrustedNameSource.ENS,
+                                                    chain_id=CHAIN_ID))
     assert e.value.status == StatusWord.INVALID_DATA
 
 
@@ -291,11 +299,64 @@ def test_trusted_name_v2_expired(backend: BackendInterface, app_version: tuple[i
     app_version = (app_version_list[0], app_version_list[1], app_version_list[2])  # Ensure exactly 3 elements
 
     with pytest.raises(ExceptionRAPDU) as e:
-        app_client.provide_trusted_name_v2(ADDR,
-                                           NAME,
-                                           TrustedNameType.ACCOUNT,
-                                           TrustedNameSource.ENS,
-                                           CHAIN_ID,
-                                           challenge=challenge,
-                                           not_valid_after=app_version)
+        app_client.provide_trusted_name(TrustedName(2,
+                                                    ADDR,
+                                                    NAME,
+                                                    tn_type=TrustedNameType.ACCOUNT,
+                                                    tn_source=TrustedNameSource.ENS,
+                                                    chain_id=CHAIN_ID,
+                                                    challenge=challenge,
+                                                    not_valid_after=app_version))
+    assert e.value.status == StatusWord.INVALID_DATA
+
+
+def test_trusted_name_mab_idle(backend: BackendInterface) -> None:
+    app_client = EthAppClient(backend)
+
+    with pytest.raises(ExceptionRAPDU) as e:
+        # This will fail since outside of signing a TX/message, the derivation path is unset/empty
+        app_client.provide_trusted_name(TrustedName(2,
+                                                    ADDR,
+                                                    NAME,
+                                                    tn_type=TrustedNameType.ACCOUNT,
+                                                    tn_source=TrustedNameSource.MULTISIG_ADDRESS_BOOK,
+                                                    chain_id=CHAIN_ID,
+                                                    challenge=ResponseParser.challenge(app_client.get_challenge().data),
+                                                    owner=b"\x11" * 20))
+    assert e.value.status == StatusWord.INVALID_DATA
+
+
+def test_trusted_name_mab_wrong_owner(backend: BackendInterface) -> None:
+    app_client = EthAppClient(backend)
+
+    with Path(f"{ABIS_FOLDER}/erc20.json").open(encoding="utf-8") as file:
+        contract = Web3().eth.contract(
+            abi=json.load(file),
+            address=None
+        )
+    data = contract.encode_abi("transfer", [
+        bytes.fromhex("d8dA6BF26964aF9D7eEd9e03E53415D37aA96045"),
+        int(100 * pow(10, 6)),
+    ])
+    tx_params = {
+        "chainId": 1,
+        "nonce": 1337,
+        "maxPriorityFeePerGas": Web3.to_wei(0, "gwei"),
+        "maxFeePerGas": Web3.to_wei(2.55, "gwei"),
+        "gas": 94548,
+        "to": bytes.fromhex("dAC17F958D2ee523a2206206994597C13D831ec7"),
+        "value": Web3.to_wei(0, "ether"),
+        "data": data,
+    }
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+    with pytest.raises(ExceptionRAPDU) as e:
+        app_client.provide_trusted_name(TrustedName(2,
+                                                    ADDR,
+                                                    NAME,
+                                                    tn_type=TrustedNameType.ACCOUNT,
+                                                    tn_source=TrustedNameSource.MULTISIG_ADDRESS_BOOK,
+                                                    chain_id=tx_params["chainId"],
+                                                    challenge=ResponseParser.challenge(app_client.get_challenge().data),
+                                                    owner=b"\x00" * 20))
     assert e.value.status == StatusWord.INVALID_DATA

@@ -9,6 +9,7 @@
 #include "proxy_info.h"
 #include "ui_utils.h"
 #include "mem.h"
+#include "getPublicKey.h"
 
 typedef enum { STRUCT_TYPE_TRUSTED_NAME = 0x03 } e_struct_type;
 
@@ -34,6 +35,7 @@ typedef enum {
     TRUSTED_NAME_TYPE_RCV_BIT,
     TRUSTED_NAME_SOURCE_RCV_BIT,
     NFT_ID_RCV_BIT,
+    OWNER_RCV_BIT,
 } e_tlv_rcv_bit;
 
 typedef enum {
@@ -51,6 +53,7 @@ typedef enum {
     TRUSTED_NAME_TYPE = 0x70,
     TRUSTED_NAME_SOURCE = 0x71,
     NFT_ID = 0x72,
+    OWNER = 0x74,
 } e_tlv_tag;
 
 static s_trusted_name *g_trusted_name_list = NULL;
@@ -476,6 +479,22 @@ static bool handle_nft_id(const s_tlv_data *data, s_trusted_name_ctx *context) {
     return true;  // unhandled for now
 }
 
+/**
+ * Handler for tag \ref OWNER
+ *
+ * @param[in] data the tlv data
+ * @param[out] context the trusted name context
+ * @return whether it was successful
+ */
+static bool handle_owner(const s_tlv_data *data, s_trusted_name_ctx *context) {
+    if (data->length > sizeof(context->owner)) {
+        return false;
+    }
+    buf_shrink_expand(data->value, data->length, context->owner, sizeof(context->owner));
+    context->rcv_flags |= SET_BIT(OWNER_RCV_BIT);
+    return true;
+}
+
 bool handle_trusted_name_struct(const s_tlv_data *data, s_trusted_name_ctx *context) {
     bool ret;
 
@@ -522,6 +541,9 @@ bool handle_trusted_name_struct(const s_tlv_data *data, s_trusted_name_ctx *cont
             break;
         case NFT_ID:
             ret = handle_nft_id(data, context);
+            break;
+        case OWNER:
+            ret = handle_owner(data, context);
             break;
         default:
             PRINTF(TLV_TAG_ERROR_MSG, data->tag);
@@ -586,6 +608,7 @@ bool verify_trusted_name_struct(const s_trusted_name_ctx *context) {
                 return false;
             }
             break;
+
         case 2:
             required_flags |= SET_BIT(CHAIN_ID_RCV_BIT) | SET_BIT(TRUSTED_NAME_TYPE_RCV_BIT) |
                               SET_BIT(TRUSTED_NAME_SOURCE_RCV_BIT);
@@ -614,7 +637,22 @@ bool verify_trusted_name_struct(const s_trusted_name_ctx *context) {
                 default:
                     return false;
             }
+            if (context->trusted_name.name_source == TN_SOURCE_MAB) {
+                if (!(SET_BIT(OWNER_RCV_BIT) & context->rcv_flags)) {
+                    PRINTF("Error: did not receive an owner for MAB source!\n");
+                    return false;
+                }
+                uint8_t wallet_addr[ADDRESS_LENGTH];
+                if (get_public_key(wallet_addr, sizeof(wallet_addr)) != SWO_SUCCESS) {
+                    return false;
+                }
+                if (memcmp(context->owner, wallet_addr, sizeof(wallet_addr)) != 0) {
+                    PRINTF("Error: mismatching owner received!\n");
+                    return false;
+                }
+            }
             break;
+
         default:
             PRINTF("Error: unsupported trusted name struct version (%u) !\n",
                    context->trusted_name.struct_version);

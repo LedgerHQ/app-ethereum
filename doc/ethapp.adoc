@@ -1236,19 +1236,19 @@ _Input data_
 ##### If P1 == first chunk
 
 [width="80%"]
-|==========================================
-| *Description*         | *Length (byte)*
-| Payload length        | 2
-| TLV payload           | variable
-|==========================================
+|=========================================================================
+| *Description*                                         | *Length (byte)*
+| Payload length                                        | 2
+| link:tlv_structs.md#trusted_name[TRUSTED_NAME struct] | variable
+|=========================================================================
 
 ##### If P1 == following chunk
 
 [width="80%"]
-|==========================================
-| *Description*         | *Length (byte)*
-| TLV payload           | variable
-|==========================================
+|=========================================================================
+| *Description*                                         | *Length (byte)*
+| link:tlv_structs.md#trusted_name[TRUSTED_NAME struct] | variable
+|=========================================================================
 
 _Output data_
 

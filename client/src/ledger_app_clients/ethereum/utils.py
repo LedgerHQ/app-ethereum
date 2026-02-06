@@ -7,6 +7,10 @@ from eth_keys.datatypes import Signature
 import rlp
 
 
+class CoinType(IntEnum):
+    ETH = 0x3c
+
+
 class TxType(IntEnum):
     TRANSACTION = 0x00
     TYPED_DATA = 0x01

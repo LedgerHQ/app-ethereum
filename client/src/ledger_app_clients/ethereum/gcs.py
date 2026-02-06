@@ -4,7 +4,7 @@ import struct
 
 from .tlv import TlvSerializable
 from .keychain import sign_data, Key
-from .client import TrustedNameType, TrustedNameSource
+from .trusted_name import TrustedNameType, TrustedNameSource
 
 
 class TxInfoTag(IntEnum):

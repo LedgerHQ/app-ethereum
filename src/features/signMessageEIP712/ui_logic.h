@@ -65,6 +65,7 @@ typedef struct {
 bool ui_712_init(void);
 void ui_712_deinit(void);
 bool ui_712_review_struct(const s_struct_712 *struct_ptr);
+bool ui_712_review_network(const uint64_t *chain_id);
 bool ui_712_feed_to_display(const s_struct_712_field *field_ptr,
                             const uint8_t *data,
                             uint8_t length,

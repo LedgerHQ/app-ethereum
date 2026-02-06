@@ -147,6 +147,10 @@ uint16_t handle_eip712_struct_impl(uint8_t p1,
                             reply_apdu = false;
                         }
                     }
+                    if ((path_get_root_type() == ROOT_MESSAGE) &&
+                        (ui_712_get_filtering_mode() == EIP712_FILTERING_FULL)) {
+                        ret = ui_712_review_network(&eip712_context->chain_id);
+                    }
                     ui_712_field_flags_reset();
                 }
                 break;

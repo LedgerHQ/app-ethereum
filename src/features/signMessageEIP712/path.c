@@ -411,6 +411,7 @@ static bool path_update(bool skip_if_array, bool stop_at_array, bool do_typehash
  * @return boolean indicating if it was successful or not
  */
 bool path_set_root(const char *struct_name, uint8_t name_length) {
+    const s_struct_712 *new_root;
     uint8_t hash[KECCAK256_HASH_BYTESIZE];
 
     if (path_struct == NULL) {
@@ -418,12 +419,17 @@ bool path_set_root(const char *struct_name, uint8_t name_length) {
         return false;
     }
 
-    if ((path_struct->root_struct = get_structn(struct_name, name_length)) == NULL) {
+    if ((new_root = get_structn(struct_name, name_length)) == NULL) {
         return false;
     }
+    if (new_root == path_struct->root_struct) {
+        PRINTF("Error: already at that root struct!\n");
+        return false;
+    }
+    path_struct->root_struct = new_root;
 
     if (path_struct->root_struct == NULL) {
-        PRINTF("Struct name not found (");
+        PRINTF("Error: struct name not found (");
         for (int i = 0; i < name_length; ++i) {
             PRINTF("%c", struct_name[i]);
         }
@@ -451,8 +457,14 @@ bool path_set_root(const char *struct_name, uint8_t name_length) {
 
     if ((name_length == strlen(DOMAIN_STRUCT_NAME)) &&
         (strncmp(struct_name, DOMAIN_STRUCT_NAME, name_length) == 0)) {
+        if (path_struct->root_type != ROOT_NONE) {
+            return false;
+        }
         path_struct->root_type = ROOT_DOMAIN;
     } else {
+        if (path_struct->root_type != ROOT_DOMAIN) {
+            return false;
+        }
         path_struct->root_type = ROOT_MESSAGE;
     }
 
@@ -701,7 +713,7 @@ e_root_type path_get_root_type(void) {
  *
  * @return pointer to the root structure definition
  */
-const void *path_get_root(void) {
+const s_struct_712 *path_get_root(void) {
     if (path_struct == NULL) {
         return NULL;
     }

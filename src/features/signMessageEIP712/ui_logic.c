@@ -298,6 +298,24 @@ bool ui_712_review_struct(const s_struct_712 *struct_ptr) {
     return ui_712_redraw_generic_step();
 }
 
+bool ui_712_review_network(const uint64_t *chain_id) {
+    const char *title = "Network";
+    const char *buf;
+
+    if (*chain_id == chainConfig->chainId) {
+        return true;
+    }
+    ui_712_set_title(title, strlen(title));
+    if ((buf = get_network_name_from_chain_id(chain_id)) == NULL) {
+        if (!u64_to_string(*chain_id, strings.tmp.tmp, NETWORK_STRING_MAX_SIZE)) {
+            return false;
+        }
+        buf = strings.tmp.tmp;
+    }
+    ui_712_set_value(buf, strlen(buf));
+    return ui_712_redraw_generic_step();
+}
+
 /**
  * Show the hash of the message on the generic UI step
  */

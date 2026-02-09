@@ -127,24 +127,22 @@ static bool sig_verif_start(cx_sha256_t *hash_ctx, uint8_t magic) {
  */
 static bool sig_verif_end(cx_sha256_t *hash_ctx, const uint8_t *sig, uint8_t sig_length) {
     uint8_t hash[INT256_LENGTH];
-    cx_err_t error = CX_INTERNAL_ERROR;
-    bool ret_code = false;
 
-    // Finalize hash
-    CX_CHECK(cx_hash_no_throw((cx_hash_t *) hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH));
+    if (finalize_hash((cx_hash_t *) hash_ctx, hash, sizeof(hash)) != true) {
+        return false;
+    }
 
-    CX_CHECK(check_signature_with_pubkey("EIP712 Filtering",
-                                         hash,
-                                         sizeof(hash),
-                                         LEDGER_SIGNATURE_PUBLIC_KEY,
-                                         sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
-                                         CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META,
-                                         (uint8_t *) (sig),
-                                         sig_length));
+    if (check_signature_with_pubkey(hash,
+                                    sizeof(hash),
+                                    LEDGER_SIGNATURE_PUBLIC_KEY,
+                                    sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
+                                    CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META,
+                                    (uint8_t *) sig,
+                                    sig_length) != true) {
+        return false;
+    }
 
-    ret_code = true;
-end:
-    return ret_code;
+    return true;
 }
 
 /**

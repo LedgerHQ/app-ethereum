@@ -5,6 +5,7 @@
 #include "ui_callbacks.h"
 #include "ui_utils.h"
 #include "mem_utils.h"
+#include "hash_bytes.h"
 
 typedef struct {
     uint16_t msg_length;
@@ -138,12 +139,11 @@ static uint16_t final_process(void) {
 #endif  // SCREEN_SIZE_NANO
 
     // Finalize hash
-    CX_CHECK(cx_hash_no_throw((cx_hash_t *) g_msg_hash_ctx,
-                              CX_LAST,
-                              NULL,
-                              0,
-                              tmpCtx.messageSigningContext.hash,
-                              32));
+    if (finalize_hash((cx_hash_t *) g_msg_hash_ctx,
+                      tmpCtx.messageSigningContext.hash,
+                      sizeof(tmpCtx.messageSigningContext.hash)) != true) {
+        goto end;
+    }
 
     // Display buffer length
     buffer_length = signMsgCtx->msg_length;

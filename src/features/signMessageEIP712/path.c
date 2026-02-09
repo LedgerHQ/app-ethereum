@@ -7,6 +7,7 @@
 #include "mem_utils.h"
 #include "apdu_constants.h"  // APDU response codes
 #include "typed_data.h"
+#include "hash_bytes.h"
 
 static s_path *path_struct = NULL;
 static s_path *path_backup = NULL;
@@ -180,23 +181,17 @@ static void remove_last_hash_ctx(void) {
 static bool finalize_hash_depth(uint8_t *hash) {
     const s_hash_ctx *hash_ctx;
     size_t hashed_bytes;
-    cx_err_t error = CX_INTERNAL_ERROR;
 
     if ((hash_ctx = get_last_hash_ctx()) == NULL) {
         return false;
     }
     hashed_bytes = hash_ctx->hash.blen;
     // finalize hash
-    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &hash_ctx->hash,
-                              CX_LAST,
-                              NULL,
-                              0,
-                              hash,
-                              KECCAK256_HASH_BYTESIZE));
+    if (finalize_hash((cx_hash_t *) &hash_ctx->hash, hash, KECCAK256_HASH_BYTESIZE) != true) {
+        return false;
+    }
     remove_last_hash_ctx();
     return hashed_bytes > 0;
-end:
-    return false;
 }
 
 /**

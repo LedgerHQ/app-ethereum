@@ -115,22 +115,16 @@ static const uint8_t *field_hash_finalize_static(const s_struct_712_field *field
  */
 static uint8_t *field_hash_finalize_dynamic(void) {
     uint8_t *value;
-    cx_err_t error = CX_INTERNAL_ERROR;
 
     if ((value = app_mem_alloc(KECCAK256_HASH_BYTESIZE)) == NULL) {
         apdu_response_code = SWO_INSUFFICIENT_MEMORY;
         return NULL;
     }
     // copy hash into memory
-    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3,
-                              CX_LAST,
-                              NULL,
-                              0,
-                              value,
-                              KECCAK256_HASH_BYTESIZE));
+    if (finalize_hash((cx_hash_t *) &global_sha3, value, KECCAK256_HASH_BYTESIZE) != true) {
+        return NULL;
+    }
     return value;
-end:
-    return NULL;
 }
 
 /**

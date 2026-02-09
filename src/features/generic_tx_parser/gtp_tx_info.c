@@ -261,24 +261,17 @@ bool verify_tx_info_struct(const s_tx_info_ctx *context) {
     }
 
     // verify signature
-    if (cx_hash_no_throw((cx_hash_t *) &context->struct_hash,
-                         CX_LAST,
-                         NULL,
-                         0,
-                         hash,
-                         sizeof(hash)) != CX_OK) {
-        PRINTF("Could not finalize struct hash!\n");
+    if (finalize_hash((cx_hash_t *) &context->struct_hash, hash, sizeof(hash)) != true) {
         return false;
     }
 
-    if (check_signature_with_pubkey("TX info",
-                                    hash,
+    if (check_signature_with_pubkey(hash,
                                     sizeof(hash),
                                     NULL,
                                     0,
                                     CERTIFICATE_PUBLIC_KEY_USAGE_CALLDATA,
                                     (uint8_t *) context->tx_info->signature,
-                                    context->tx_info->signature_len) != CX_OK) {
+                                    context->tx_info->signature_len) != true) {
         return false;
     }
     return true;

@@ -21,7 +21,6 @@ bool compute_schema_hash(void) {
     const s_struct_712 *struct_ptr;
     const s_struct_712_field *field_ptr;
     cx_sha224_t hash_ctx;
-    cx_err_t error = CX_INTERNAL_ERROR;
 
     cx_sha224_init(&hash_ctx);
 
@@ -58,13 +57,10 @@ bool compute_schema_hash(void) {
     hash_byte('}', (cx_hash_t *) &hash_ctx);
 
     // copy hash into context struct
-    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &hash_ctx,
-                              CX_LAST,
-                              NULL,
-                              0,
-                              eip712_context->schema_hash,
-                              sizeof(eip712_context->schema_hash)));
+    if (finalize_hash((cx_hash_t *) &hash_ctx,
+                      eip712_context->schema_hash,
+                      sizeof(eip712_context->schema_hash)) != true) {
+        return false;
+    }
     return true;
-end:
-    return false;
 }

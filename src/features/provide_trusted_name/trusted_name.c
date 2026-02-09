@@ -566,19 +566,17 @@ bool handle_trusted_name_struct(const s_tlv_data *data, s_trusted_name_ctx *cont
 static bool verify_trusted_name_signature(const s_trusted_name_ctx *context) {
     uint8_t hash[INT256_LENGTH];
 
-    if (cx_hash_no_throw((cx_hash_t *) &context->hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH) !=
-        CX_OK) {
+    if (finalize_hash((cx_hash_t *) &context->hash_ctx, hash, sizeof(hash)) != true) {
         return false;
     }
 
-    if (check_signature_with_pubkey("Trusted Name",
-                                    hash,
+    if (check_signature_with_pubkey(hash,
                                     sizeof(hash),
                                     NULL,
                                     0,
                                     CERTIFICATE_PUBLIC_KEY_USAGE_TRUSTED_NAME,
                                     (uint8_t *) (context->input_sig),
-                                    context->input_sig_size) != CX_OK) {
+                                    context->input_sig_size) != true) {
         return false;
     }
     return true;

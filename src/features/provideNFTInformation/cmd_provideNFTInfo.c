@@ -26,14 +26,6 @@
 
 #define VERSION_1 1
 
-typedef bool verificationAlgo(const cx_ecfp_public_key_t *,
-                              int,
-                              cx_md_t,
-                              const unsigned char *,
-                              unsigned int,
-                              unsigned char *,
-                              unsigned int);
-
 uint16_t handleProvideNFTInformation(const uint8_t *workBuffer,
                                      uint8_t dataLength,
                                      unsigned int *tx) {
@@ -44,7 +36,6 @@ uint16_t handleProvideNFTInformation(const uint8_t *workBuffer,
     uint8_t collectionNameLength = 0;
     uint64_t chain_id = 0;
     uint8_t signatureLen = 0;
-    cx_err_t error = CX_INTERNAL_ERROR;
 #ifdef HAVE_NFT_STAGING_KEY
     uint8_t valid_keyId = STAGING_NFT_METADATA_KEY;
 #else
@@ -154,19 +145,15 @@ uint16_t handleProvideNFTInformation(const uint8_t *workBuffer,
         return SWO_INCORRECT_DATA;
     }
 
-    error = check_signature_with_pubkey("NFT Info",
-                                        hash,
-                                        sizeof(hash),
-                                        LEDGER_NFT_METADATA_PUBLIC_KEY,
-                                        sizeof(LEDGER_NFT_METADATA_PUBLIC_KEY),
-                                        CERTIFICATE_PUBLIC_KEY_USAGE_NFT_METADATA,
-                                        (uint8_t *) (workBuffer + offset),
-                                        signatureLen);
-#ifndef HAVE_BYPASS_SIGNATURES
-    if (error != CX_OK) {
+    if (check_signature_with_pubkey(hash,
+                                    sizeof(hash),
+                                    LEDGER_NFT_METADATA_PUBLIC_KEY,
+                                    sizeof(LEDGER_NFT_METADATA_PUBLIC_KEY),
+                                    CERTIFICATE_PUBLIC_KEY_USAGE_NFT_METADATA,
+                                    (uint8_t *) (workBuffer + offset),
+                                    signatureLen) != true) {
         return SWO_INCORRECT_DATA;
     }
-#endif
 
     G_io_apdu_buffer[0] = tmpCtx.transactionContext.currentAssetIndex;
     validate_current_asset_info();

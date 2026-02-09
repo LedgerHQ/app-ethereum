@@ -322,20 +322,22 @@ static uint16_t parse_signature(const s_tlv_data *data, s_tx_simu_ctx *context) 
  */
 static bool verify_signature(s_tx_simu_ctx *context) {
     uint8_t hash[INT256_LENGTH];
-    cx_err_t error = CX_INTERNAL_ERROR;
-    bool ret_code = false;
+    bool ret = false;
 
-    CX_CHECK(
-        cx_hash_no_throw((cx_hash_t *) &context->hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH));
+    if (finalize_hash((cx_hash_t *) &context->hash_ctx, hash, sizeof(hash)) != true) {
+        PRINTF("Could not finalize struct hash!\n");
+        return false;
+    }
 
-    CX_CHECK(check_signature_with_pubkey("Tx Simulation",
-                                         hash,
-                                         sizeof(hash),
-                                         NULL,
-                                         0,
-                                         CERTIFICATE_PUBLIC_KEY_USAGE_TX_SIMU_SIGNER,
-                                         (uint8_t *) (context->sig),
-                                         context->sig_size));
+    if (check_signature_with_pubkey(hash,
+                                    sizeof(hash),
+                                    NULL,
+                                    0,
+                                    CERTIFICATE_PUBLIC_KEY_USAGE_TX_SIMU_SIGNER,
+                                    (uint8_t *) (context->sig),
+                                    context->sig_size) != true) {
+        return false;
+    }
 
     // Partner name is retrieved from the certificate
     uint8_t key_usage = 0;
@@ -349,9 +351,9 @@ static bool verify_signature(s_tx_simu_ctx *context) {
     explicit_bzero((void *) context->simu->partner, PARTNER_SIZE);
     // Last byte is the NULL terminator
     memmove((void *) context->simu->partner, trusted_name, PARTNER_SIZE - 1);
-    ret_code = true;
+    ret = true;
 end:
-    return ret_code;
+    return ret;
 }
 
 /**

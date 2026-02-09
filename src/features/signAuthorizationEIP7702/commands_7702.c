@@ -12,6 +12,7 @@
 #include "auth_7702.h"
 #include "getPublicKey.h"
 #include "mem_utils.h"
+#include "hash_bytes.h"
 
 // Avoid saving the full structure when parsing
 // Alternative option : add a callback to f_tlv_payload_handler
@@ -122,12 +123,11 @@ static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size) {
         g_7702_sw = sw;
         goto end;
     }
-    CX_CHECK(cx_hash_no_throw((cx_hash_t *) g_7702_hash_ctx,
-                              CX_LAST,
-                              NULL,
-                              0,
-                              tmpCtx.authSigningContext7702.authHash,
-                              sizeof(tmpCtx.authSigningContext7702.authHash)));
+    if (finalize_hash((cx_hash_t *) g_7702_hash_ctx,
+                      tmpCtx.authSigningContext7702.authHash,
+                      sizeof(tmpCtx.authSigningContext7702.authHash)) != true) {
+        goto end;
+    }
     // Prepare information to be displayed
     // * Address to be delegated
     strings.common.fromAddress[0] = '0';

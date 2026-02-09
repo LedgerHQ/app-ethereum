@@ -238,23 +238,17 @@ bool handle_network_info_struct(const s_tlv_data *data, s_network_info_ctx *cont
 bool verify_network_info_struct(const s_network_info_ctx *context) {
     uint8_t hash[CX_SHA256_SIZE];
 
-    if (cx_hash_no_throw((cx_hash_t *) &context->hash_ctx,
-                         CX_LAST,
-                         NULL,
-                         0,
-                         hash,
-                         CX_SHA256_SIZE) != CX_OK) {
+    if (finalize_hash((cx_hash_t *) &context->hash_ctx, hash, sizeof(hash)) != true) {
         return false;
     }
 
-    if (check_signature_with_pubkey("Dynamic Network",
-                                    hash,
+    if (check_signature_with_pubkey(hash,
                                     sizeof(hash),
                                     NULL,
                                     0,
                                     CERTIFICATE_PUBLIC_KEY_USAGE_NETWORK,
                                     (uint8_t *) context->signature,
-                                    context->signature_length) != CX_OK) {
+                                    context->signature_length) != true) {
         return false;
     }
 

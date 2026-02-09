@@ -83,7 +83,8 @@ uint16_t handlePerformPrivacyOperation(uint8_t p1,
 
     if (p1 == P1_NON_CONFIRM) {
         *tx = set_result_perform_privacy_operation();
-        return SWO_SUCCESS;
+        error = SWO_SUCCESS;
+        goto end;
     }
     snprintf(strings.common.toAddress,
              sizeof(strings.common.toAddress),
@@ -105,7 +106,7 @@ uint16_t handlePerformPrivacyOperation(uint8_t p1,
     }
     *flags |= IO_ASYNCH_REPLY;
     // Return code will be sent after UI approve/cancel
-    error = 0;
+    error = APDU_NO_RESPONSE;
 end:
     explicit_bzero(privateKeyDataSwapped, sizeof(privateKeyDataSwapped));
     explicit_bzero(&privateKey, sizeof(privateKey));

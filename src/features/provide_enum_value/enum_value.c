@@ -5,6 +5,7 @@
 #include "ui_utils.h"
 #include "mem.h"
 #include "proxy_info.h"
+#include "hash_bytes.h"
 
 enum {
     TAG_VERSION = 0x00,
@@ -140,27 +141,20 @@ bool handle_enum_value_struct(const s_tlv_data *data, s_enum_value_ctx *context)
 
 bool verify_enum_value_struct(const s_enum_value_ctx *context) {
     uint8_t hash[INT256_LENGTH];
+    s_enum_value_entry *entry;
 
-    if (cx_hash_no_throw((cx_hash_t *) &context->struct_hash,
-                         CX_LAST,
-                         NULL,
-                         0,
-                         hash,
-                         sizeof(hash)) != CX_OK) {
-        PRINTF("Could not finalize struct hash!\n");
+    if (finalize_hash((cx_hash_t *) &context->struct_hash, hash, sizeof(hash)) != true) {
         return false;
     }
-    if (check_signature_with_pubkey("enum value",
-                                    hash,
+    if (check_signature_with_pubkey(hash,
                                     sizeof(hash),
                                     NULL,
                                     0,
                                     CERTIFICATE_PUBLIC_KEY_USAGE_CALLDATA,
                                     (uint8_t *) context->enum_value.signature,
-                                    context->enum_value.signature_length) != CX_OK) {
+                                    context->enum_value.signature_length) != true) {
         return false;
     }
-    s_enum_value_entry *entry;
 
     if ((entry = app_mem_alloc(sizeof(*entry))) == NULL) {
         PRINTF("Error: Not enough memory!\n");

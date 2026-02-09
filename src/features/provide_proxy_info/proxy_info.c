@@ -5,6 +5,7 @@
 #include "public_keys.h"
 #include "ui_utils.h"
 #include "mem_utils.h"
+#include "hash_bytes.h"
 
 enum {
     TAG_STRUCT_TYPE = 0x01,
@@ -164,13 +165,7 @@ bool handle_proxy_info_struct(const s_tlv_data *data, s_proxy_info_ctx *context)
 bool verify_proxy_info_struct(const s_proxy_info_ctx *context) {
     uint8_t hash[INT256_LENGTH];
 
-    if (cx_hash_no_throw((cx_hash_t *) &context->struct_hash,
-                         CX_LAST,
-                         NULL,
-                         0,
-                         hash,
-                         sizeof(hash)) != CX_OK) {
-        PRINTF("Error: could not finalize struct hash!\n");
+    if (finalize_hash((cx_hash_t *) &context->struct_hash, hash, sizeof(hash)) != true) {
         return false;
     }
     if (context->struct_type != TYPE_PROXY_INFO) {
@@ -190,15 +185,13 @@ bool verify_proxy_info_struct(const s_proxy_info_ctx *context) {
             PRINTF("Error: unsupported delegation type (%u)!\n", context->delegation_type);
             return false;
     }
-    if (check_signature_with_pubkey("proxy info",
-                                    hash,
+    if (check_signature_with_pubkey(hash,
                                     sizeof(hash),
                                     NULL,
                                     0,
                                     CERTIFICATE_PUBLIC_KEY_USAGE_TRUSTED_NAME,
                                     (uint8_t *) context->signature,
-                                    context->signature_length) != CX_OK) {
-        PRINTF("Error: signature verification failed!\n");
+                                    context->signature_length) != true) {
         return false;
     }
     if (mem_buffer_allocate((void **) &g_proxy_info, sizeof(s_proxy_info)) == false) {

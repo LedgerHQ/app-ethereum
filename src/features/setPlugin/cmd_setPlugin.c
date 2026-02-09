@@ -43,15 +43,6 @@ typedef enum AlgorithmID {
     ECC_SECG_P256K1__ECDSA_SHA_256 = 0x01,
 } AlgorithmID;
 
-// Verification function used to verify the signature
-typedef bool verificationAlgo(const cx_ecfp_public_key_t *,
-                              int,
-                              cx_md_t,
-                              const unsigned char *,
-                              unsigned int,
-                              unsigned char *,
-                              unsigned int);
-
 // Returns the plugin type of a given plugin name.
 // If the plugin name is not a specific known internal plugin, this function default return value is
 // `PLUGIN_TYPE_EXTERNAL`.
@@ -84,7 +75,6 @@ uint16_t handleSetPlugin(const uint8_t *workBuffer, uint8_t dataLength) {
     size_t payloadSize = 0;
     uint64_t chain_id = 0;
     uint8_t signatureLen = 0;
-    cx_err_t error = CX_INTERNAL_ERROR;
 #ifdef HAVE_NFT_STAGING_KEY
     enum KeyId valid_keyId = TEST_PLUGIN_KEY;
 #else
@@ -196,19 +186,14 @@ uint16_t handleSetPlugin(const uint8_t *workBuffer, uint8_t dataLength) {
         return SWO_INCORRECT_DATA;
     }
 
-    error = check_signature_with_pubkey("Set Plugin",
-                                        hash,
-                                        sizeof(hash),
-                                        LEDGER_NFT_SELECTOR_PUBLIC_KEY,
-                                        sizeof(LEDGER_NFT_SELECTOR_PUBLIC_KEY),
-                                        CERTIFICATE_PUBLIC_KEY_USAGE_PLUGIN_METADATA,
-                                        (uint8_t *) (workBuffer + offset),
-                                        signatureLen);
-    if (error != CX_OK) {
-        PRINTF("Invalid signature\n");
-#ifndef HAVE_BYPASS_SIGNATURES
+    if (check_signature_with_pubkey(hash,
+                                    sizeof(hash),
+                                    LEDGER_NFT_SELECTOR_PUBLIC_KEY,
+                                    sizeof(LEDGER_NFT_SELECTOR_PUBLIC_KEY),
+                                    CERTIFICATE_PUBLIC_KEY_USAGE_PLUGIN_METADATA,
+                                    (uint8_t *) (workBuffer + offset),
+                                    signatureLen) != true) {
         return SWO_INCORRECT_DATA;
-#endif
     }
 
     pluginType = getPluginType(tokenContext->pluginName, pluginNameLength);

@@ -10,7 +10,6 @@ uint16_t handleSetExternalPlugin(const uint8_t *workBuffer, uint8_t dataLength) 
     uint8_t hash[INT256_LENGTH];
     uint8_t pluginNameLength = *workBuffer;
     uint32_t params[2];
-    cx_err_t error = CX_INTERNAL_ERROR;
 
     PRINTF("plugin Name Length: %d\n", pluginNameLength);
     const size_t payload_size = 1 + pluginNameLength + ADDRESS_LENGTH + SELECTOR_SIZE;
@@ -30,19 +29,14 @@ uint16_t handleSetExternalPlugin(const uint8_t *workBuffer, uint8_t dataLength) 
     // check Ledger's signature over the payload
     cx_hash_sha256(workBuffer, payload_size, hash, sizeof(hash));
 
-    error = check_signature_with_pubkey("External Plugin",
-                                        hash,
-                                        sizeof(hash),
-                                        LEDGER_SIGNATURE_PUBLIC_KEY,
-                                        sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
-                                        CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META,
-                                        (uint8_t *) (workBuffer + payload_size),
-                                        dataLength - payload_size);
-    if (error != CX_OK) {
-        PRINTF("Invalid signature\n");
-#ifndef HAVE_BYPASS_SIGNATURES
+    if (check_signature_with_pubkey(hash,
+                                    sizeof(hash),
+                                    LEDGER_SIGNATURE_PUBLIC_KEY,
+                                    sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
+                                    CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META,
+                                    (uint8_t *) (workBuffer + payload_size),
+                                    dataLength - payload_size) != true) {
         return SWO_INCORRECT_DATA;
-#endif
     }
 
     // move on to the rest of the payload parsing

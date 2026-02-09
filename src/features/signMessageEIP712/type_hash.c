@@ -182,12 +182,9 @@ bool type_hash(const char *struct_name, const uint8_t struct_name_length, uint8_
 
     flist_clear((s_flist_node **) &deps, (f_list_node_del) &delete_struct_dep);
     // copy hash into memory
-    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &global_sha3,
-                              CX_LAST,
-                              NULL,
-                              0,
-                              hash_buf,
-                              KECCAK256_HASH_BYTESIZE));
+    if (finalize_hash((cx_hash_t *) &global_sha3, hash_buf, KECCAK256_HASH_BYTESIZE) != true) {
+        return false;
+    }
     return true;
 end:
     return false;

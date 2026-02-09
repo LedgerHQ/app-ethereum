@@ -8,6 +8,7 @@
 #include "getPublicKey.h"
 #include "context_712.h"
 #include "network.h"
+#include "hash_bytes.h"
 
 static s_tx_ctx *g_tx_ctx_list = NULL;
 static s_tx_ctx *g_tx_ctx_current = NULL;
@@ -72,7 +73,7 @@ static bool validate_inst_hash_on(const s_tx_ctx *tx_ctx) {
     if ((tx_ctx == NULL) || (tx_ctx->tx_info == NULL)) return false;
     // copy it locally, because the cx_hash call will modify it
     memcpy(&hash_ctx, &tx_ctx->fields_hash_ctx, sizeof(hash_ctx));
-    if (cx_hash_no_throw((cx_hash_t *) &hash_ctx, CX_LAST, NULL, 0, hash, sizeof(hash)) != CX_OK) {
+    if (finalize_hash((cx_hash_t *) &hash_ctx, hash, sizeof(hash)) != true) {
         return false;
     }
     return memcmp(tx_ctx->tx_info->fields_hash, hash, sizeof(hash)) == 0;
@@ -229,7 +230,7 @@ bool set_tx_info_into_tx_ctx(s_tx_info *tx_info) {
         if (cx_sha3_init_no_throw(&ctx, 256) != CX_OK) {
             return false;
         }
-        if (cx_hash_no_throw((cx_hash_t *) &ctx, CX_LAST, NULL, 0, hash, sizeof(hash)) != CX_OK) {
+        if (finalize_hash((cx_hash_t *) &ctx, hash, sizeof(hash)) != true) {
             return false;
         }
         if (memcmp(hash, tx_info->fields_hash, sizeof(hash)) == 0) {

@@ -251,24 +251,22 @@ static bool handle_signature(const s_tlv_data *data, s_safe_ctx *context) {
  */
 static bool verify_signature(const s_safe_ctx *context) {
     uint8_t hash[INT256_LENGTH];
-    cx_err_t error = CX_INTERNAL_ERROR;
-    bool ret_code = false;
 
-    CX_CHECK(
-        cx_hash_no_throw((cx_hash_t *) &context->hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH));
+    if (finalize_hash((cx_hash_t *) &context->hash_ctx, hash, sizeof(hash)) != true) {
+        return false;
+    }
 
-    CX_CHECK(check_signature_with_pubkey("Safe descriptor",
-                                         hash,
-                                         sizeof(hash),
-                                         NULL,
-                                         0,
-                                         CERTIFICATE_PUBLIC_KEY_USAGE_LES_MULTISIG,
-                                         (uint8_t *) (context->sig),
-                                         context->sig_size));
+    if (check_signature_with_pubkey(hash,
+                                    sizeof(hash),
+                                    NULL,
+                                    0,
+                                    CERTIFICATE_PUBLIC_KEY_USAGE_LES_MULTISIG,
+                                    (uint8_t *) (context->sig),
+                                    context->sig_size) != true) {
+        return false;
+    }
 
-    ret_code = true;
-end:
-    return ret_code;
+    return true;
 }
 
 /**

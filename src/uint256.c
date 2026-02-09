@@ -295,10 +295,13 @@ bool tostring256_signed(const uint256_t *const number,
 void convertUint256BE(const uint8_t *const data, uint32_t length, uint256_t *const target) {
     uint8_t tmp[INT256_LENGTH];
 
-    if (length > sizeof(tmp)) {
-        memset(tmp, 0, sizeof(tmp));
+    if (data == NULL || target == NULL || length == 0) {
         return;
     }
+    if (length > sizeof(tmp)) {
+        return;
+    }
+
     memset(tmp, 0, sizeof(tmp) - length);
     memmove(tmp + sizeof(tmp) - length, data, length);
     readu256BE(tmp, target);

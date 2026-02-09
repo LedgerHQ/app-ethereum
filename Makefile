@@ -159,6 +159,8 @@ ENABLE_NBGL_QRCODE = 1
 ########################################
 #        Main app configuration        #
 ########################################
+ENABLE_PKI_LIBRARY = 1
+ENABLE_DYNAMIC_ALLOC = 1
 
 DEFINES += APP_TICKER=\"$(TICKER)\" APP_CHAIN_ID=$(CHAIN_ID)
 

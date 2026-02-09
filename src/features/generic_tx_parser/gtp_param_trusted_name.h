@@ -8,6 +8,9 @@
 
 #define MAX_SENDER_ADDRS 3
 
+// Forward declaration to avoid circular dependency
+struct s_field;
+
 typedef struct {
     uint8_t version;
     s_value value;
@@ -25,4 +28,4 @@ typedef struct {
 
 bool handle_param_trusted_name_struct(const s_tlv_data *data,
                                       s_param_trusted_name_context *context);
-bool format_param_trusted_name(const s_param_trusted_name *param, const char *name);
+bool format_param_trusted_name(const struct s_field *field);

@@ -167,8 +167,7 @@ const char *get_network_name_from_chain_id(const uint64_t *chain_id) {
     return PIC(net->name);
 }
 
-uint16_t get_network_as_string(char *out, size_t out_size) {
-    uint64_t chain_id = get_tx_chain_id();
+uint16_t get_network_as_string_from_chain_id(char *out, size_t out_size, uint64_t chain_id) {
     const char *name = get_network_name_from_chain_id(&chain_id);
 
     if (name == NULL) {
@@ -181,6 +180,11 @@ uint16_t get_network_as_string(char *out, size_t out_size) {
         strlcpy(out, name, out_size);
     }
     return SWO_SUCCESS;
+}
+
+uint16_t get_network_as_string(char *out, size_t out_size) {
+    uint64_t chain_id = get_tx_chain_id();
+    return get_network_as_string_from_chain_id(out, out_size, chain_id);
 }
 
 bool chain_is_ethereum_compatible(const uint64_t *chain_id) {

@@ -107,6 +107,9 @@ bool handle_value_struct(const s_tlv_data *data, s_value_context *context) {
 }
 
 bool value_get(const s_value *value, s_parsed_value_collection *collection) {
+    static uint64_t chain_id = 0;
+    const s_tx_info *tx_info = NULL;
+
     switch (value->source) {
         case SOURCE_CALLDATA:
             collection->size = 0;
@@ -138,6 +141,20 @@ bool value_get(const s_value *value, s_parsed_value_collection *collection) {
                         return false;
                     }
                     collection->value[0].length = INT256_LENGTH;
+                    collection->size = 1;
+                    break;
+
+                case CP_CHAIN_ID:
+                    // Get chain ID as uint64_t
+                    tx_info = get_current_tx_info();
+                    if (tx_info == NULL) {
+                        return false;
+                    }
+                    chain_id = tx_info->chain_id;
+                    // Convert to big-endian byte array
+                    chain_id = u64_from_BE((const uint8_t *) &chain_id, sizeof(uint64_t));
+                    collection->value[0].ptr = (const uint8_t *) &chain_id;
+                    collection->value[0].length = sizeof(uint64_t);
                     collection->size = 1;
                     break;
 

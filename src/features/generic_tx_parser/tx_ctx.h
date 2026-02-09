@@ -34,6 +34,7 @@ s_calldata *get_root_calldata(void);
 const uint8_t *get_current_tx_from(void);
 const uint8_t *get_current_tx_to(void);
 const uint8_t *get_current_tx_amount(void);
+uint64_t get_current_tx_chain_id(void);
 bool validate_instruction_hash(void);
 void tx_ctx_pop(void);
 bool process_empty_txs_before(void);

@@ -69,7 +69,7 @@ Install the needed modules and set the BOLOS_SDK variable:
 ```bash
 cd tests/fuzzing
 export BOLOS_SDK=/opt/flex-secure-sdk/
-apt install -y libbsd-dev
+apt update && apt install -y libbsd-dev
 ```
 
 #### Compile the fuzzers

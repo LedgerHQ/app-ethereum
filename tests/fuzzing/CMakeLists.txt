@@ -105,5 +105,8 @@ foreach(HARNESS_FILE ${FUZZ_HARNESSES})
     # Link against the secure_sdk and code_lib libraries
     target_link_libraries(${HARNESS_NAME} PUBLIC secure_sdk code_lib)
 
+    # Override SDK's cx_ecdsa_verify_no_throw to avoid MemorySanitizer false positives
+    target_link_options(${HARNESS_NAME} PRIVATE -Wl,--wrap=cx_ecdsa_verify_no_throw)
+
     message(STATUS "Creating fuzzer target: ${HARNESS_NAME}")
 endforeach()

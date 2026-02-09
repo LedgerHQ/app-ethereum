@@ -68,3 +68,18 @@ cx_err_t cx_bn_alloc(cx_bn_t *x, size_t nbytes) {
     if (x) *x = 0;
     return CX_OK;
 }
+
+// Wrapper to override SDK's cx_ecdsa_verify_no_throw which triggers MemorySanitizer
+// Use linker flag: -Wl,--wrap=cx_ecdsa_verify_no_throw
+bool __wrap_cx_ecdsa_verify_no_throw(const cx_ecfp_public_key_t *pukey,
+                                     const uint8_t *hash,
+                                     size_t hash_len,
+                                     const uint8_t *sig,
+                                     size_t sig_len) {
+    (void) pukey;
+    (void) hash;
+    (void) hash_len;
+    (void) sig;
+    (void) sig_len;
+    return true;
+}

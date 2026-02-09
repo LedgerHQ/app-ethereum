@@ -111,6 +111,8 @@ foreach(HARNESS_FILE ${FUZZ_HARNESSES})
         -Wl,--wrap=mem_alloc
         -Wl,--wrap=mem_free
     )
+    # Override SDK's cx_ecdsa_verify_no_throw to avoid MemorySanitizer false positives
+    target_link_options(${HARNESS_NAME} PRIVATE -Wl,--wrap=cx_ecdsa_verify_no_throw)
 
     message(STATUS "Creating fuzzer target: ${HARNESS_NAME}")
 endforeach()

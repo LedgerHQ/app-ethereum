@@ -60,7 +60,8 @@ static bool parse_asset_info(const uint8_t *config,
     }
 
     // Check if we have enough data for ticker
-    if ((*offset + ticker_len) > config_len) {
+    // Cast to prevent any potential overflow issues
+    if (((size_t) *offset + ticker_len) > config_len) {
         PRINTF("Not enough data for ticker\n");
         return false;
     }

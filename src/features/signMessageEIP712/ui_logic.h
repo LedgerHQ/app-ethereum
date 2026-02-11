@@ -6,13 +6,13 @@
 #include "uint256.h"
 #include "typed_data.h"
 #include "trusted_name.h"
-#include "list.h"
+#include "lists.h"
 #include "calldata.h"
 
 typedef enum { EIP712_FILTERING_BASIC, EIP712_FILTERING_FULL } e_eip712_filtering_mode;
 
 typedef struct ui_712_pair {
-    s_flist_node _list;
+    flist_node_t _list;
     char *key;
     char *value;
     bool start_intent;  // This pair starts a new transaction in a batch
@@ -41,7 +41,7 @@ typedef enum {
 } e_calldata_info_param_state;
 
 typedef struct {
-    s_flist_node _list;
+    flist_node_t _list;
     uint8_t index;
     e_eip712_calldata_state state;
 

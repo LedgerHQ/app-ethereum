@@ -7,7 +7,7 @@
 #include "calldata.h"
 #include "tlv.h"
 #include "signature.h"
-#include "list.h"
+#include "lists.h"
 #include "gtp_field.h"
 
 typedef struct {

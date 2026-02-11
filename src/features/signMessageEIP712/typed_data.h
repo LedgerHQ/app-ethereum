@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "list.h"
+#include "lists.h"
 
 // TypeDesc masks
 #define TYPE_MASK     (0xF)
@@ -32,7 +32,7 @@ typedef struct {
 } s_struct_712_field_array_level;
 
 typedef struct struct_712_field {
-    s_flist_node _list;
+    flist_node_t _list;
     // TypeDesc
     bool type_is_array : 1;
     bool type_has_size : 1;
@@ -52,7 +52,7 @@ typedef struct struct_712_field {
 } s_struct_712_field;
 
 typedef struct struct_712 {
-    s_flist_node _list;
+    flist_node_t _list;
     char *name;
     s_struct_712_field *fields;
 } s_struct_712;

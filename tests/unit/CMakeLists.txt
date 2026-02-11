@@ -87,6 +87,7 @@ include_directories(
   ${BOLOS_SDK}/io/include
   ${BOLOS_SDK}/lib_cxng/include
   ${BOLOS_SDK}/lib_nbgl/include
+  ${BOLOS_SDK}/lib_lists
   ${BOLOS_SDK}/lib_standard_app
   ${BOLOS_SDK}/include
   ${LIBBSD_INCLUDE_DIRS}
@@ -201,7 +202,7 @@ add_executable(test_field_validation
   ${SRC_DIR}/test_field_validation.c
   ${APP_DIR}/features/generic_tx_parser/gtp_field.c
   ${APP_DIR}/mem_utils.c
-  ${APP_DIR}/list.c
+  ${BOLOS_SDK}/lib_lists/lists.c
   ${APP_DIR}/utils.c
   ${PLUGIN_DIR}/common_utils.c
   ${MOCK_DIR}/mock.c

@@ -5,7 +5,7 @@
 #include "hash_bytes.h"
 #include "apdu_constants.h"  // APDU response codes
 #include "typed_data.h"
-#include "list.h"
+#include "lists.h"
 
 /**
  * Encode & hash the given structure field
@@ -47,7 +47,7 @@ static bool encode_and_hash_type(const s_struct_712 *struct_ptr) {
     hash_byte('(', (cx_hash_t *) &global_sha3);
 
     for (field_ptr = struct_ptr->fields; field_ptr != NULL;
-         field_ptr = (s_struct_712_field *) ((s_flist_node *) field_ptr)->next) {
+         field_ptr = (s_struct_712_field *) ((flist_node_t *) field_ptr)->next) {
         // comma separating struct fields
         if (field_ptr != struct_ptr->fields) {
             hash_byte(',', (cx_hash_t *) &global_sha3);
@@ -64,7 +64,7 @@ static bool encode_and_hash_type(const s_struct_712 *struct_ptr) {
 }
 
 typedef struct struct_dep {
-    s_flist_node _list;
+    flist_node_t _list;
     const s_struct_712 *s;
 } s_struct_dep;
 
@@ -84,7 +84,7 @@ static bool get_struct_dependencies(s_struct_dep **first_dep, const s_struct_712
     s_struct_dep *new_dep;
 
     for (field_ptr = struct_ptr->fields; field_ptr != NULL;
-         field_ptr = (s_struct_712_field *) ((s_flist_node *) field_ptr)->next) {
+         field_ptr = (s_struct_712_field *) ((flist_node_t *) field_ptr)->next) {
         if (field_ptr->type == TYPE_CUSTOM) {
             // get struct name
             arg_structname = get_struct_field_typename(field_ptr);
@@ -99,7 +99,7 @@ static bool get_struct_dependencies(s_struct_dep **first_dep, const s_struct_712
 
             // check if it is not already present in the dependencies array
             for (tmp = *first_dep; tmp != NULL;
-                 tmp = (s_struct_dep *) ((s_flist_node *) tmp)->next) {
+                 tmp = (s_struct_dep *) ((flist_node_t *) tmp)->next) {
                 // it's a match!
                 if (tmp->s == arg_struct_ptr) {
                     break;
@@ -113,7 +113,7 @@ static bool get_struct_dependencies(s_struct_dep **first_dep, const s_struct_712
                 }
                 explicit_bzero(new_dep, sizeof(*new_dep));
                 new_dep->s = arg_struct_ptr;
-                flist_push_back((s_flist_node **) first_dep, (s_flist_node *) new_dep);
+                flist_push_back((flist_node_t **) first_dep, (flist_node_t *) new_dep);
                 // TODO: Move away from recursive calls
                 get_struct_dependencies(first_dep, arg_struct_ptr);
             }
@@ -168,19 +168,19 @@ bool type_hash(const char *struct_name, const uint8_t struct_name_length, uint8_
     if (!get_struct_dependencies(&deps, struct_ptr)) {
         return false;
     }
-    flist_sort((s_flist_node **) &deps, (f_list_node_cmp) &compare_struct_deps);
+    flist_sort((flist_node_t **) &deps, (f_list_node_cmp) &compare_struct_deps);
     if (encode_and_hash_type(struct_ptr) == false) {
         return false;
     }
     // loop over each struct and generate string
     for (const s_struct_dep *tmp = deps; tmp != NULL;
-         tmp = (s_struct_dep *) ((s_flist_node *) tmp)->next) {
+         tmp = (s_struct_dep *) ((flist_node_t *) tmp)->next) {
         if (encode_and_hash_type(tmp->s) == false) {
             return false;
         }
     }
 
-    flist_clear((s_flist_node **) &deps, (f_list_node_del) &delete_struct_dep);
+    flist_clear((flist_node_t **) &deps, (f_list_node_del) &delete_struct_dep);
     // copy hash into memory
     if (finalize_hash((cx_hash_t *) &global_sha3, hash_buf, KECCAK256_HASH_BYTESIZE) != true) {
         return false;

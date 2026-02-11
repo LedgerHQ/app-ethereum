@@ -2,13 +2,13 @@
 #include "os_print.h"
 #include "gtp_field_table.h"
 #include "mem.h"
-#include "list.h"
+#include "lists.h"
 #include "shared_context.h"  // appState
 #include "ui_logic.h"
 #include "tx_ctx.h"
 
 typedef struct {
-    s_flist_node _list;
+    flist_node_t _list;
     s_field_table_entry field;
 } s_field_table_node;
 
@@ -30,7 +30,7 @@ static void delete_table_node(s_field_table_node *node) {
 }
 
 void field_table_cleanup(void) {
-    flist_clear((s_flist_node **) &g_table, (f_list_node_del) &delete_table_node);
+    flist_clear((flist_node_t **) &g_table, (f_list_node_del) &delete_table_node);
 }
 
 bool add_to_field_table(e_param_type type,
@@ -88,7 +88,7 @@ bool add_to_field_table(e_param_type type,
     memcpy(node->field.value, value, value_len);
     node->field.extra_data = extra_data;
 
-    flist_push_back((s_flist_node **) &g_table, (s_flist_node *) node);
+    flist_push_back((flist_node_t **) &g_table, (flist_node_t *) node);
     return true;
 }
 
@@ -103,7 +103,7 @@ bool set_intent_field(const char *value) {
 }
 
 size_t field_table_size(void) {
-    return flist_size((s_flist_node **) &g_table);
+    return flist_size((flist_node_t **) &g_table);
 }
 
 const s_field_table_entry *get_from_field_table(int index) {
@@ -111,7 +111,7 @@ const s_field_table_entry *get_from_field_table(int index) {
 
     for (int i = 0; i < index; ++i) {
         if (node == NULL) return NULL;
-        node = (s_field_table_node *) ((s_flist_node *) node)->next;
+        node = (s_field_table_node *) ((flist_node_t *) node)->next;
     }
     return &node->field;
 }

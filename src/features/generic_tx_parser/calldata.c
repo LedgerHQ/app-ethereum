@@ -4,7 +4,7 @@
 #include "os_print.h"
 #include "mem.h"
 #include "mem_utils.h"
-#include "list.h"
+#include "lists.h"
 
 s_calldata *calldata_init(size_t size, const uint8_t selector[CALLDATA_SELECTOR_SIZE]) {
     s_calldata *calldata;
@@ -62,7 +62,7 @@ static bool compress_chunk(s_calldata *calldata) {
         }
         memcpy(chunk->buf, calldata->chunk + start_idx, chunk->size);
     }
-    flist_push_back((s_flist_node **) &calldata->chunks, (s_flist_node *) chunk);
+    flist_push_back((flist_node_t **) &calldata->chunks, (flist_node_t *) chunk);
     return true;
 }
 
@@ -120,7 +120,7 @@ bool calldata_append(s_calldata *calldata, const uint8_t *buffer, size_t size) {
         // get allocated size
         size_t compressed_size = sizeof(*calldata);
         for (s_calldata_chunk *chunk = calldata->chunks; chunk != NULL;
-             chunk = (s_calldata_chunk *) ((s_flist_node *) chunk)->next) {
+             chunk = (s_calldata_chunk *) ((flist_node_t *) chunk)->next) {
             compressed_size += sizeof(*chunk);
             compressed_size += chunk->size;
         }
@@ -141,7 +141,7 @@ static void delete_calldata_chunk(s_calldata_chunk *node) {
 }
 
 void calldata_delete(s_calldata *node) {
-    flist_clear((s_flist_node **) &node->chunks, (f_list_node_del) &delete_calldata_chunk);
+    flist_clear((flist_node_t **) &node->chunks, (f_list_node_del) &delete_calldata_chunk);
     app_mem_free(node);
 }
 
@@ -172,8 +172,8 @@ const uint8_t *calldata_get_chunk(s_calldata *calldata, int idx) {
     }
     chunk = calldata->chunks;
     for (int i = 0; i < idx; ++i) {
-        if (((s_flist_node *) chunk)->next == NULL) return NULL;
-        chunk = (s_calldata_chunk *) ((s_flist_node *) chunk)->next;
+        if (((flist_node_t *) chunk)->next == NULL) return NULL;
+        chunk = (s_calldata_chunk *) ((flist_node_t *) chunk)->next;
     }
     if (!decompress_chunk(chunk, calldata->chunk)) return NULL;
     return calldata->chunk;
@@ -187,7 +187,7 @@ void calldata_dump(const s_calldata *calldata) {
     PRINTF("=== calldata at 0x%p ===\n", calldata);
     PRINTF("selector = 0x%.*h\n", sizeof(calldata->selector), calldata->selector);
     for (s_calldata_chunk *chunk = calldata->chunks; chunk != NULL;
-         chunk = (s_calldata_chunk *) ((s_flist_node *) chunk)->next) {
+         chunk = (s_calldata_chunk *) ((flist_node_t *) chunk)->next) {
         if (!decompress_chunk(chunk, buf)) break;
         PRINTF("[%02u] %.*h\n", i++, CALLDATA_CHUNK_SIZE, buf);
     }

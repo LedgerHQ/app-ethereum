@@ -44,13 +44,13 @@ static const void *get_nth_field_from(const s_path *path, uint8_t *fields_count_
         if (fields_count_ptr != NULL) {
             *fields_count_ptr = 0;
             for (const s_struct_712_field *tmp = field_ptr; tmp != NULL;
-                 tmp = (s_struct_712_field *) ((s_flist_node *) tmp)->next) {
+                 tmp = (s_struct_712_field *) ((flist_node_t *) tmp)->next) {
                 *fields_count_ptr += 1;
             }
         }
 
         for (uint8_t index = 0; index < path->depths[depth]; ++index) {
-            if ((field_ptr = (s_struct_712_field *) ((s_flist_node *) field_ptr)->next) == NULL) {
+            if ((field_ptr = (s_struct_712_field *) ((flist_node_t *) field_ptr)->next) == NULL) {
                 return NULL;
             }
         }
@@ -143,7 +143,7 @@ static bool path_depth_list_push(void) {
  * @return pointer to the hashing context
  */
 s_hash_ctx *get_last_hash_ctx(void) {
-    s_flist_node *hash_ctx = (s_flist_node *) g_hash_ctxs;
+    flist_node_t *hash_ctx = (flist_node_t *) g_hash_ctxs;
 
     while ((hash_ctx != NULL) && (hash_ctx->next != NULL)) {
         hash_ctx = hash_ctx->next;
@@ -160,7 +160,7 @@ static s_hash_ctx *get_previous_hash_ctx(s_hash_ctx *hash_ctx) {
     if (hash_ctx == NULL) {
         return NULL;
     }
-    return (s_hash_ctx *) ((s_list_node *) hash_ctx)->prev;
+    return (s_hash_ctx *) ((list_node_t *) hash_ctx)->prev;
 }
 
 // to be used as a \ref f_list_node_del
@@ -169,7 +169,7 @@ static void delete_hash_ctx(s_hash_ctx *ctx) {
 }
 
 static void remove_last_hash_ctx(void) {
-    list_pop_back((s_list_node **) &g_hash_ctxs, (f_list_node_del) &delete_hash_ctx);
+    list_pop_back((list_node_t **) &g_hash_ctxs, (f_list_node_del) &delete_hash_ctx);
 }
 
 /**
@@ -236,7 +236,7 @@ static bool push_new_hash_depth(bool init) {
         CX_CHECK(cx_keccak_init_no_throw(&hash_ctx->hash, 256));
     }
 
-    list_push_back((s_list_node **) &g_hash_ctxs, (s_list_node *) hash_ctx);
+    list_push_back((list_node_t **) &g_hash_ctxs, (list_node_t *) hash_ctx);
     return true;
 end:
     app_mem_free(hash_ctx);
@@ -782,7 +782,7 @@ bool path_exists_in_backup(const char *path, size_t length) {
                 return false;
             }
             for (field_ptr = struct_ptr->fields; field_ptr != NULL;
-                 field_ptr = (s_struct_712_field *) ((s_flist_node *) field_ptr)->next) {
+                 field_ptr = (s_struct_712_field *) ((flist_node_t *) field_ptr)->next) {
                 key = field_ptr->key_name;
                 if ((strlen(key) == i) && (memcmp(key, path + offset, i) == 0)) {
                     break;
@@ -828,5 +828,5 @@ void path_deinit(void) {
     path_struct = NULL;
     app_mem_free(path_backup);
     path_backup = NULL;
-    list_clear((s_list_node **) &g_hash_ctxs, (f_list_node_del) &delete_hash_ctx);
+    list_clear((list_node_t **) &g_hash_ctxs, (f_list_node_del) &delete_hash_ctx);
 }

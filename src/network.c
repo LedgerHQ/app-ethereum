@@ -58,6 +58,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 1135, .name = "Lisk", .ticker = "ETH"},
     {.chain_id = 1284, .name = "Moonbeam", .ticker = "GLMR"},
     {.chain_id = 1285, .name = "Moonriver", .ticker = "MOVR"},
+    {.chain_id = 1329, .name = "Sei", .ticker = "SEI"},
     {.chain_id = 1818, .name = "Cube", .ticker = "CUBE"},
     {.chain_id = 1868, .name = "Soneium", .ticker = "ETH"},
     {.chain_id = 1907, .name = "Bitcichain", .ticker = "BITCI"},

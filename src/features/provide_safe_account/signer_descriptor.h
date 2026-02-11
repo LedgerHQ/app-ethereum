@@ -1,7 +1,9 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "common_utils.h"
+#include "buffer.h"
 
 typedef struct {
     char address[ADDRESS_LENGTH];
@@ -14,5 +16,5 @@ typedef struct {
 
 extern signers_descriptor_t SIGNER_DESC;
 
-bool handle_signer_tlv_payload(const uint8_t *payload, uint16_t size);
+bool handle_signer_tlv_payload(const buffer_t *payload);
 void clear_signer_descriptor(void);

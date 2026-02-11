@@ -1,17 +1,13 @@
 #include "safe_descriptor.h"
-#include "apdu_constants.h"
-#include "hash_bytes.h"
-#include "public_keys.h"
 #include "challenge.h"
-#include "tlv.h"
+#include "hash_bytes.h"
+#include "mem.h"
+#include "mem_utils.h"
+#include "public_keys.h"
+#include "signature.h"
+#include "tlv_library.h"
 #include "tlv_apdu.h"
 #include "utils.h"
-#include "nbgl_use_case.h"
-#include "os_pki.h"
-#include "ui_callbacks.h"
-#include "signature.h"
-#include "read.h"
-#include "mem.h"
 
 #define TYPE_LESM_ACCOUNT_INFO 0x27
 #define STRUCT_VERSION         0x01
@@ -19,79 +15,16 @@
 #define MAX_THRESHOLD 100
 #define MAX_SIGNERS   100
 
-enum {
-    TAG_STRUCTURE_TYPE = 0x01,
-    TAG_STRUCTURE_VERSION = 0x02,
-    TAG_CHALLENGE = 0x12,
-    TAG_ADDRESS = 0x22,
-    TAG_THRESHOLD = 0xa0,
-    TAG_SIGNERS_COUNT = 0xa1,
-    TAG_ROLE = 0xa2,
-    TAG_DER_SIGNATURE = 0x15,
-};
-
-enum {
-    BIT_STRUCTURE_TYPE,
-    BIT_STRUCTURE_VERSION,
-    BIT_CHALLENGE,
-    BIT_ADDRESS,
-    BIT_THRESHOLD,
-    BIT_SIGNERS_COUNT,
-    BIT_ROLE,
-    BIT_DER_SIGNATURE,
-};
-
 typedef struct {
     safe_descriptor_t *safe;
     uint8_t sig_size;
-    uint8_t *sig;
+    const uint8_t *sig;
     cx_sha256_t hash_ctx;
-    uint32_t rcv_flags;
+    TLV_reception_t received_tags;
 } s_safe_ctx;
 
 // Global structure to store the Safe Descriptor
 safe_descriptor_t *SAFE_DESC = NULL;
-
-// Macros to check the field length
-#define CHECK_FIELD_LENGTH(tag, len, expected)  \
-    do {                                        \
-        if (len != expected) {                  \
-            PRINTF("%s Size mismatch!\n", tag); \
-            return false;                       \
-        }                                       \
-    } while (0)
-#define CHECK_FIELD_OVERFLOW(tag, len, max)     \
-    do {                                        \
-        if (len > max) {                        \
-            PRINTF("%s Size overflow!\n", tag); \
-            return false;                       \
-        }                                       \
-    } while (0)
-
-// Macro to check the field value
-#define CHECK_FIELD_VALUE(tag, value, expected)  \
-    do {                                         \
-        if (value != expected) {                 \
-            PRINTF("%s Value mismatch!\n", tag); \
-            return false;                        \
-        }                                        \
-    } while (0)
-
-// Macro to check the field value
-#define CHECK_EMPTY_BUFFER(tag, field, len)   \
-    do {                                      \
-        uint8_t empty[ADDRESS_LENGTH] = {0};  \
-        if (memcmp(field, empty, len) == 0) { \
-            PRINTF("%s Zero buffer!\n", tag); \
-            return false;                     \
-        }                                     \
-    } while (0)
-
-// Macro to copy the field
-#define COPY_FIELD(field, data)                             \
-    do {                                                    \
-        memmove((void *) field, data->value, data->length); \
-    } while (0)
 
 /**
  * @brief Handler for tag \ref STRUCTURE_TYPE.
@@ -100,11 +33,9 @@ safe_descriptor_t *SAFE_DESC = NULL;
  * @param[in] context Safe context
  * @return whether the handling was successful
  */
-static bool handle_struct_type(const s_tlv_data *data, s_safe_ctx *context) {
-    CHECK_FIELD_LENGTH("STRUCTURE_TYPE", data->length, 1);
-    CHECK_FIELD_VALUE("STRUCTURE_TYPE", data->value[0], TYPE_LESM_ACCOUNT_INFO);
-    context->rcv_flags |= SET_BIT(BIT_STRUCTURE_TYPE);
-    return true;
+static bool handle_struct_type(const tlv_data_t *data, s_safe_ctx *context) {
+    UNUSED(context);
+    return tlv_check_struct_type(data, TYPE_LESM_ACCOUNT_INFO);
 }
 
 /**
@@ -114,11 +45,9 @@ static bool handle_struct_type(const s_tlv_data *data, s_safe_ctx *context) {
  * @param[in] context Safe context
  * @return whether the handling was successful
  */
-static bool handle_struct_version(const s_tlv_data *data, s_safe_ctx *context) {
-    CHECK_FIELD_LENGTH("STRUCTURE_VERSION", data->length, 1);
-    CHECK_FIELD_VALUE("STRUCTURE_VERSION", data->value[0], STRUCT_VERSION);
-    context->rcv_flags |= SET_BIT(BIT_STRUCTURE_VERSION);
-    return true;
+static bool handle_struct_version(const tlv_data_t *data, s_safe_ctx *context) {
+    UNUSED(context);
+    return tlv_check_struct_version(data, STRUCT_VERSION);
 }
 
 /**
@@ -128,13 +57,9 @@ static bool handle_struct_version(const s_tlv_data *data, s_safe_ctx *context) {
  * @param[in] context Safe context
  * @return whether the handling was successful
  */
-static bool handle_challenge(const s_tlv_data *data, s_safe_ctx *context) {
-    uint8_t buf[sizeof(uint32_t)];
-
-    CHECK_FIELD_LENGTH("CHALLENGE", data->length, sizeof(uint32_t));
-    buf_shrink_expand(data->value, data->length, buf, sizeof(buf));
-    context->rcv_flags |= SET_BIT(BIT_CHALLENGE);
-    return check_challenge(read_u32_be(buf, 0));
+static bool handle_challenge(const tlv_data_t *data, s_safe_ctx *context) {
+    UNUSED(context);
+    return tlv_check_challenge(data);
 }
 
 /**
@@ -144,12 +69,8 @@ static bool handle_challenge(const s_tlv_data *data, s_safe_ctx *context) {
  * @param[in] context Safe context
  * @return whether the handling was successful
  */
-static bool handle_address(const s_tlv_data *data, s_safe_ctx *context) {
-    CHECK_FIELD_LENGTH("ADDRESS", data->length, ADDRESS_LENGTH);
-    CHECK_EMPTY_BUFFER("ADDRESS", data->value, data->length);
-    COPY_FIELD(context->safe->address, data);
-    context->rcv_flags |= SET_BIT(BIT_ADDRESS);
-    return true;
+static bool handle_address(const tlv_data_t *data, s_safe_ctx *context) {
+    return tlv_get_address(data, (uint8_t *) context->safe->address, true);
 }
 
 /**
@@ -159,24 +80,11 @@ static bool handle_address(const s_tlv_data *data, s_safe_ctx *context) {
  * @param[in] context Safe context
  * @return whether the handling was successful
  */
-static bool handle_threshold(const s_tlv_data *data, s_safe_ctx *context) {
-    uint8_t buf[sizeof(context->safe->threshold)];
-    CHECK_FIELD_OVERFLOW("THRESHOLD", data->length, sizeof(context->safe->threshold));
-    if (data->length > sizeof(context->safe->threshold)) {
-        PRINTF("THRESHOLD length must be 1 or 2 bytes\n");
+static bool handle_threshold(const tlv_data_t *data, s_safe_ctx *context) {
+    if (!tlv_get_uint16(data, &context->safe->threshold, 1, MAX_THRESHOLD)) {
+        PRINTF("THRESHOLD: error\n");
         return false;
     }
-    buf_shrink_expand(data->value, data->length, buf, sizeof(buf));
-    context->safe->threshold = read_u16_be(buf, 0);
-    if (context->safe->threshold == 0) {
-        PRINTF("THRESHOLD cannot be 0\n");
-        return false;
-    }
-    if (context->safe->threshold > MAX_THRESHOLD) {
-        PRINTF("THRESHOLD cannot be greater than %d\n", MAX_THRESHOLD);
-        return false;
-    }
-    context->rcv_flags |= SET_BIT(BIT_THRESHOLD);
     return true;
 }
 
@@ -187,24 +95,11 @@ static bool handle_threshold(const s_tlv_data *data, s_safe_ctx *context) {
  * @param[in] context Safe context
  * @return whether the handling was successful
  */
-static bool handle_signers_count(const s_tlv_data *data, s_safe_ctx *context) {
-    uint8_t buf[sizeof(context->safe->signers_count)];
-    CHECK_FIELD_OVERFLOW("SIGNERS_COUNT", data->length, sizeof(context->safe->signers_count));
-    if (data->length > sizeof(context->safe->signers_count)) {
-        PRINTF("SIGNERS_COUNT length must be 1 or 2 bytes\n");
+static bool handle_signers_count(const tlv_data_t *data, s_safe_ctx *context) {
+    if (!tlv_get_uint16(data, &context->safe->signers_count, 1, MAX_SIGNERS)) {
+        PRINTF("SIGNERS_COUNT: error\n");
         return false;
     }
-    buf_shrink_expand(data->value, data->length, buf, sizeof(buf));
-    context->safe->signers_count = read_u16_be(buf, 0);
-    if (context->safe->signers_count == 0) {
-        PRINTF("SIGNERS_COUNT cannot be 0\n");
-        return false;
-    }
-    if (context->safe->signers_count > MAX_SIGNERS) {
-        PRINTF("SIGNERS_COUNT cannot be greater than %d\n", MAX_SIGNERS);
-        return false;
-    }
-    context->rcv_flags |= SET_BIT(BIT_SIGNERS_COUNT);
     return true;
 }
 
@@ -215,14 +110,11 @@ static bool handle_signers_count(const s_tlv_data *data, s_safe_ctx *context) {
  * @param[in] context Safe context
  * @return whether the handling was successful
  */
-static bool handle_role(const s_tlv_data *data, s_safe_ctx *context) {
-    CHECK_FIELD_LENGTH("ROLE", data->length, sizeof(context->safe->role));
-    context->safe->role = data->value[0];
-    if (context->safe->role > ROLE_MAX) {
-        PRINTF("ROLE cannot be greater than %d\n", ROLE_MAX);
+static bool handle_role(const tlv_data_t *data, s_safe_ctx *context) {
+    if (!tlv_get_uint8(data, &context->safe->role, 0, ROLE_MAX)) {
+        PRINTF("ROLE: error\n");
         return false;
     }
-    context->rcv_flags |= SET_BIT(BIT_ROLE);
     return true;
 }
 
@@ -233,11 +125,49 @@ static bool handle_role(const s_tlv_data *data, s_safe_ctx *context) {
  * @param[in] context Safe context
  * @return whether the handling was successful
  */
-static bool handle_signature(const s_tlv_data *data, s_safe_ctx *context) {
-    CHECK_FIELD_OVERFLOW("DER_SIGNATURE", data->length, ECDSA_SIGNATURE_MAX_LENGTH);
-    context->sig_size = data->length;
-    context->sig = (uint8_t *) data->value;
-    context->rcv_flags |= SET_BIT(BIT_DER_SIGNATURE);
+static bool handle_signature(const tlv_data_t *data, s_safe_ctx *context) {
+    buffer_t sig = {0};
+    if (!get_buffer_from_tlv_data(data,
+                                  &sig,
+                                  ECDSA_SIGNATURE_MIN_LENGTH,
+                                  ECDSA_SIGNATURE_MAX_LENGTH)) {
+        PRINTF("DER_SIGNATURE: failed to extract\n");
+        return false;
+    }
+    context->sig_size = sig.size;
+    context->sig = sig.ptr;
+    return true;
+}
+
+// Define TLV tags for Safe descriptor
+#define SAFE_TAGS(X)                                                          \
+    X(0x01, TAG_STRUCTURE_TYPE, handle_struct_type, ENFORCE_UNIQUE_TAG)       \
+    X(0x02, TAG_STRUCTURE_VERSION, handle_struct_version, ENFORCE_UNIQUE_TAG) \
+    X(0x12, TAG_CHALLENGE, handle_challenge, ENFORCE_UNIQUE_TAG)              \
+    X(0x22, TAG_ADDRESS, handle_address, ENFORCE_UNIQUE_TAG)                  \
+    X(0xa0, TAG_THRESHOLD, handle_threshold, ENFORCE_UNIQUE_TAG)              \
+    X(0xa1, TAG_SIGNERS_COUNT, handle_signers_count, ENFORCE_UNIQUE_TAG)      \
+    X(0xa2, TAG_ROLE, handle_role, ENFORCE_UNIQUE_TAG)                        \
+    X(0x15, TAG_DER_SIGNATURE, handle_signature, ENFORCE_UNIQUE_TAG)
+
+// Forward declaration of common handler
+static bool safe_common_handler(const tlv_data_t *data, s_safe_ctx *context);
+
+// Generate TLV parser for Safe descriptor
+DEFINE_TLV_PARSER(SAFE_TAGS, &safe_common_handler, safe_tlv_parser)
+
+/**
+ * @brief Common handler that hashes all tags except signature
+ *
+ * @param[in] data the tlv data
+ * @param[in] context Safe context
+ * @return true on success
+ */
+static bool safe_common_handler(const tlv_data_t *data, s_safe_ctx *context) {
+    // Hash all tags except the signature
+    if (data->tag != TAG_DER_SIGNATURE) {
+        hash_nbytes(data->raw.ptr, data->raw.size, (cx_hash_t *) &context->hash_ctx);
+    }
     return true;
 }
 
@@ -259,7 +189,7 @@ static bool verify_signature(const s_safe_ctx *context) {
     if (check_signature_with_pubkey(hash,
                                     sizeof(hash),
                                     CERTIFICATE_PUBLIC_KEY_USAGE_LES_MULTISIG,
-                                    (uint8_t *) (context->sig),
+                                    (uint8_t *) context->sig,
                                     context->sig_size) != true) {
         return false;
     }
@@ -276,13 +206,15 @@ static bool verify_signature(const s_safe_ctx *context) {
  * @return whether it was successful
  */
 static bool verify_fields(const s_safe_ctx *context) {
-    uint32_t expected_fields;
-
-    expected_fields = (1 << BIT_STRUCTURE_TYPE) | (1 << BIT_STRUCTURE_VERSION) |
-                      (1 << BIT_CHALLENGE) | (1 << BIT_ADDRESS) | (1 << BIT_THRESHOLD) |
-                      (1 << BIT_SIGNERS_COUNT) | (1 << BIT_ROLE) | (1 << BIT_DER_SIGNATURE);
-
-    return ((context->rcv_flags & expected_fields) == expected_fields);
+    return TLV_CHECK_RECEIVED_TAGS(context->received_tags,
+                                   TAG_STRUCTURE_TYPE,
+                                   TAG_STRUCTURE_VERSION,
+                                   TAG_CHALLENGE,
+                                   TAG_ADDRESS,
+                                   TAG_THRESHOLD,
+                                   TAG_SIGNERS_COUNT,
+                                   TAG_ROLE,
+                                   TAG_DER_SIGNATURE);
 }
 
 /**
@@ -330,73 +262,26 @@ static bool verify_safe_struct(const s_safe_ctx *context) {
 }
 
 /**
- * @brief Parse the received Safe Descriptor TLV.
- *
- * @param[in] data the tlv data
- * @param[in] context Safe context
- * @return whether the handling was successful
- */
-static bool handle_safe_tlv(const s_tlv_data *data, s_safe_ctx *context) {
-    bool ret = false;
-
-    switch (data->tag) {
-        case TAG_STRUCTURE_TYPE:
-            ret = handle_struct_type(data, context);
-            break;
-        case TAG_STRUCTURE_VERSION:
-            ret = handle_struct_version(data, context);
-            break;
-        case TAG_CHALLENGE:
-            ret = handle_challenge(data, context);
-            break;
-        case TAG_ADDRESS:
-            ret = handle_address(data, context);
-            break;
-        case TAG_THRESHOLD:
-            ret = handle_threshold(data, context);
-            break;
-        case TAG_SIGNERS_COUNT:
-            ret = handle_signers_count(data, context);
-            break;
-        case TAG_ROLE:
-            ret = handle_role(data, context);
-            break;
-        case TAG_DER_SIGNATURE:
-            ret = handle_signature(data, context);
-            break;
-        default:
-            PRINTF(TLV_TAG_ERROR_MSG, data->tag);
-            break;
-    }
-    if ((ret == true) && (data->tag != TAG_DER_SIGNATURE)) {
-        hash_nbytes(data->raw, data->raw_size, (cx_hash_t *) &context->hash_ctx);
-    }
-    return ret;
-}
-
-/**
  * @brief Parse the TLV payload containing the Safe descriptor.
  *
- * @param[in] payload buffer received
- * @param[in] size of the buffer
+ * @param[in] payload buffer_t with the complete TLV payload
  * @return whether the TLV payload was handled successfully or not
  */
-bool handle_safe_tlv_payload(const uint8_t *payload, uint16_t size) {
+bool handle_safe_tlv_payload(const buffer_t *payload) {
     bool ret = false;
     s_safe_ctx ctx = {0};
 
     // Init the structure
-    SAFE_DESC = app_mem_alloc(sizeof(safe_descriptor_t));
-    if (SAFE_DESC == NULL) {
+    if (!mem_buffer_allocate((void **) &SAFE_DESC, sizeof(safe_descriptor_t))) {
         PRINTF("Error: Memory allocation failed for Safe Descriptor!\n");
         return false;
     }
-    explicit_bzero(SAFE_DESC, sizeof(safe_descriptor_t));
     ctx.safe = SAFE_DESC;
     // Initialize the hash context
     cx_sha256_init(&ctx.hash_ctx);
 
-    ret = tlv_parse(payload, size, (f_tlv_data_handler) &handle_safe_tlv, &ctx);
+    // Parse using SDK TLV parser
+    ret = safe_tlv_parser(payload, &ctx, &ctx.received_tags);
     if (ret) {
         ret = verify_safe_struct(&ctx);
     }

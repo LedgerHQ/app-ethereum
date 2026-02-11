@@ -103,7 +103,7 @@ void reset_app_context(void) {
 }
 
 void app_quit(void) {
-    network_info_cleanup(MAX_DYNAMIC_NETWORKS);
+    network_info_cleanup(NULL);
     reset_app_context();
     app_exit();
 }

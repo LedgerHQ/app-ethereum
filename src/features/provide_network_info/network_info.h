@@ -6,8 +6,6 @@
 #include "tlv.h"
 #include "signature.h"
 
-#define MAX_DYNAMIC_NETWORKS 2  // Nb configurations max to store
-
 // Signature context structure
 typedef struct {
     network_info_t network;
@@ -18,8 +16,8 @@ typedef struct {
 } s_network_info_ctx;
 
 extern uint8_t *g_network_icon_hash;
-extern network_info_t *DYNAMIC_NETWORK_INFO[MAX_DYNAMIC_NETWORKS];
-extern uint8_t g_current_network_slot;
+extern flist_node_t *g_dynamic_network_list;
+extern network_info_t *g_last_added_network;
 
 bool handle_network_info_struct(const s_tlv_data *data, s_network_info_ctx *context);
 bool verify_network_info_struct(const s_network_info_ctx *context);

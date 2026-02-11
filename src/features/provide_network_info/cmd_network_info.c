@@ -18,8 +18,8 @@ typedef struct {
 
 // Global structure to temporary store the network icon APDU
 static network_payload_t g_icon_payload = {0};
-// Global structure to store the icons bitmap
-static uint8_t *g_icon_bitmap[MAX_DYNAMIC_NETWORKS] = {0};
+// Temporary buffer to store the icon bitmap during reception
+static uint8_t *g_icon_bitmap = NULL;
 
 /**
  * @brief Check the NETWORK_ICON header.
@@ -68,12 +68,15 @@ static bool check_icon_header(const uint8_t *data, uint16_t length, uint16_t *bu
  *
  */
 static void print_icon_info(void) {
+    if (g_last_added_network == NULL) {
+        return;
+    }
     PRINTF("****************************************************************************\n");
-    PRINTF("[NETWORK_ICON] - Registered in slot %d: icon %dx%d (BPP %d)\n",
-           g_current_network_slot,
-           DYNAMIC_NETWORK_INFO[g_current_network_slot]->icon.width,
-           DYNAMIC_NETWORK_INFO[g_current_network_slot]->icon.height,
-           DYNAMIC_NETWORK_INFO[g_current_network_slot]->icon.bpp);
+    PRINTF("[NETWORK_ICON] - Registered icon %dx%d (BPP %d) for network '%s'\n",
+           g_last_added_network->icon.width,
+           g_last_added_network->icon.height,
+           g_last_added_network->icon.bpp,
+           g_last_added_network->name);
 }
 
 /**
@@ -84,11 +87,15 @@ static void print_icon_info(void) {
 static bool parse_icon_buffer(void) {
     uint16_t img_len = 0;
     uint8_t digest[CX_SHA256_SIZE];
-    const uint8_t *data = g_icon_bitmap[g_current_network_slot];
     const uint16_t field_len = g_icon_payload.received_size;
 
+    if (g_last_added_network == NULL) {
+        PRINTF("Error: No network to associate icon with!\n");
+        return false;
+    }
+
     // Check the icon header
-    if (!check_icon_header(data, field_len, &img_len)) {
+    if (!check_icon_header(g_icon_bitmap, field_len, &img_len)) {
         return false;
     }
     if (field_len != img_len) {
@@ -100,7 +107,7 @@ static bool parse_icon_buffer(void) {
     }
 
     // Check icon hash
-    if (cx_sha256_hash(data, field_len, digest) != CX_OK) {
+    if (cx_sha256_hash(g_icon_bitmap, field_len, digest) != CX_OK) {
         return false;
     }
     if (memcmp(digest, g_network_icon_hash, CX_SHA256_SIZE) != 0) {
@@ -110,14 +117,18 @@ static bool parse_icon_buffer(void) {
     // Free the icon bitmap hash buffer
     mem_buffer_cleanup((void **) &g_network_icon_hash);
 
-    DYNAMIC_NETWORK_INFO[g_current_network_slot]->icon.bitmap =
-        (const uint8_t *) g_icon_bitmap[g_current_network_slot];
-    DYNAMIC_NETWORK_INFO[g_current_network_slot]->icon.width = U2LE(data, 0);
-    DYNAMIC_NETWORK_INFO[g_current_network_slot]->icon.height = U2LE(data, 2);
+    // Transfer the icon bitmap buffer to the network (ownership transfer)
+    // The network takes ownership of the persistent buffer
+    g_last_added_network->icon.bitmap = (const uint8_t *) g_icon_bitmap;
+    g_last_added_network->icon.width = U2LE(g_icon_bitmap, 0);
+    g_last_added_network->icon.height = U2LE(g_icon_bitmap, 2);
     // BPP is stored in the upper 4 bits of the 5th byte
-    DYNAMIC_NETWORK_INFO[g_current_network_slot]->icon.bpp = data[4] >> 4;
-    DYNAMIC_NETWORK_INFO[g_current_network_slot]->icon.isFile = true;
-    memcpy((uint8_t *) DYNAMIC_NETWORK_INFO[g_current_network_slot]->icon.bitmap, data, field_len);
+    g_last_added_network->icon.bpp = g_icon_bitmap[4] >> 4;
+    g_last_added_network->icon.isFile = true;
+
+    // Reset temporary pointer (ownership transferred, don't free it!)
+    g_icon_bitmap = NULL;
+
     print_icon_info();
     return true;
 }
@@ -143,8 +154,7 @@ static uint16_t handle_first_icon_chunk(const uint8_t *data, uint8_t length) {
     }
 
     // Do not track the allocation in logs, because this buffer is expected to stay allocated
-    if (mem_buffer_persistent((void **) &(g_icon_bitmap[g_current_network_slot]), img_len) ==
-        false) {
+    if (mem_buffer_persistent((void **) &g_icon_bitmap, img_len) == false) {
         PRINTF("Error: Not enough memory for icon bitmap!\n");
         return SWO_INSUFFICIENT_MEMORY;
     }
@@ -165,12 +175,12 @@ static uint16_t handle_next_icon_chunk(const uint8_t *data, uint8_t length) {
         PRINTF("Payload size mismatch!\n");
         return SWO_INCORRECT_DATA;
     }
-    if (g_icon_bitmap[g_current_network_slot] == NULL) {
+    if (g_icon_bitmap == NULL) {
         PRINTF("Error: Icon bitmap not initialized!\n");
         return SWO_INCORRECT_DATA;
     }
     // Feed into payload
-    memcpy(g_icon_bitmap[g_current_network_slot] + g_icon_payload.received_size, data, length);
+    memcpy(g_icon_bitmap + g_icon_payload.received_size, data, length);
     g_icon_payload.received_size += length;
 
     return SWO_SUCCESS;
@@ -188,7 +198,7 @@ static uint16_t handle_icon_chunks(uint8_t p1, const uint8_t *data, uint8_t leng
     uint16_t sw;
     uint8_t hash[CX_SHA256_SIZE] = {0};
 
-    if (DYNAMIC_NETWORK_INFO[g_current_network_slot] == NULL) {
+    if (g_last_added_network == NULL) {
         PRINTF("Error: No network info received!\n");
         return SWO_INCORRECT_DATA;
     }
@@ -220,8 +230,6 @@ static uint16_t handle_icon_chunks(uint8_t p1, const uint8_t *data, uint8_t leng
         if (!parse_icon_buffer()) {
             return SWO_INCORRECT_DATA;
         }
-        // Prepare for next slot
-        g_current_network_slot = (g_current_network_slot + 1) % MAX_DYNAMIC_NETWORKS;
     }
     return SWO_SUCCESS;
 }
@@ -232,15 +240,14 @@ static uint16_t handle_icon_chunks(uint8_t p1, const uint8_t *data, uint8_t leng
  * Only for debug purpose.
  */
 static void print_network_info(void) {
-    if (DYNAMIC_NETWORK_INFO[g_current_network_slot] == NULL) {
+    if (g_last_added_network == NULL) {
         return;  // Nothing to print if no network is registered
     }
     PRINTF("****************************************************************************\n");
-    PRINTF("[NETWORK] - Registered in slot %u: \"%s\" (%s), for chain_id %llu\n",
-           g_current_network_slot,
-           DYNAMIC_NETWORK_INFO[g_current_network_slot]->name,
-           DYNAMIC_NETWORK_INFO[g_current_network_slot]->ticker,
-           DYNAMIC_NETWORK_INFO[g_current_network_slot]->chain_id);
+    PRINTF("[NETWORK] - Registered: '%s' ('%s'), for chain_id %llu\n",
+           g_last_added_network->name,
+           g_last_added_network->ticker,
+           g_last_added_network->chain_id);
 }
 
 /**
@@ -253,16 +260,20 @@ static uint16_t handle_get_config(void) {
     uint32_t tx = 1;  // Init to '1' because there is at least the number of networks
     uint16_t nb_networks = 0;
 
-    for (size_t i = 0; i < MAX_DYNAMIC_NETWORKS; i++) {
-        if ((DYNAMIC_NETWORK_INFO[i]) && (DYNAMIC_NETWORK_INFO[i]->chain_id != 0)) {
-            PRINTF("[NETWORK] - Found dynamic %s\n", DYNAMIC_NETWORK_INFO[i]->name);
+    // Iterate over the linked list
+    flist_node_t *node = g_dynamic_network_list;
+    while (node != NULL) {
+        network_info_t *net_info = (network_info_t *) node;
+        if (net_info->chain_id != 0) {
+            PRINTF("[NETWORK] - Found dynamic '%s'\n", net_info->name);
             // Convert chain_id
             explicit_bzero(chain_str, sizeof(chain_str));
-            write_u64_be(chain_str, 0, DYNAMIC_NETWORK_INFO[i]->chain_id);
+            write_u64_be(chain_str, 0, net_info->chain_id);
             memmove(G_io_apdu_buffer + tx, chain_str, sizeof(uint64_t));
             tx += sizeof(uint64_t);
             nb_networks++;
         }
+        node = node->next;
     }
     G_io_apdu_buffer[0] = nb_networks;
 
@@ -311,7 +322,7 @@ uint16_t handle_network_info(uint8_t p1,
         case P2_NETWORK_CONFIG:
             if (!tlv_from_apdu(p1 == P1_FIRST_CHUNK, length, data, &handle_tlv_payload)) {
                 // If there was an error, free the allocated memory
-                network_info_cleanup(g_current_network_slot);
+                network_info_cleanup(g_last_added_network);
                 sw = SWO_INCORRECT_DATA;
                 break;
             }
@@ -322,7 +333,7 @@ uint16_t handle_network_info(uint8_t p1,
             sw = handle_icon_chunks(p1, data, length);
             if (sw != SWO_SUCCESS) {
                 // If there was an error, free the allocated memory
-                network_info_cleanup(g_current_network_slot);
+                network_info_cleanup(g_last_added_network);
             }
             break;
 
@@ -330,7 +341,7 @@ uint16_t handle_network_info(uint8_t p1,
             if (p1 != 0x00) {
                 PRINTF("Error: Unexpected P1 (%u)!\n", p1);
                 // If there was an error, free the allocated memory
-                network_info_cleanup(g_current_network_slot);
+                network_info_cleanup(g_last_added_network);
                 sw = SWO_WRONG_P1_P2;
                 break;
             }
@@ -338,7 +349,7 @@ uint16_t handle_network_info(uint8_t p1,
             sw = SWO_SUCCESS;
             break;
         default:
-            network_info_cleanup(g_current_network_slot);
+            network_info_cleanup(g_last_added_network);
             sw = SWO_WRONG_P1_P2;
             break;
     }
@@ -353,19 +364,53 @@ uint16_t handle_network_info(uint8_t p1,
 /**
  * @brief Cleanup Network Configuration context.
  *
+ * @param[in] network Network to cleanup (NULL = cleanup all networks)
  */
-void network_info_cleanup(uint8_t slot) {
-    if (slot == MAX_DYNAMIC_NETWORKS) {
-        // Cleanup all slots
-        for (slot = 0; slot < MAX_DYNAMIC_NETWORKS; slot++) {
-            mem_buffer_cleanup((void **) &(g_icon_bitmap[slot]));
-            mem_buffer_cleanup((void **) &(DYNAMIC_NETWORK_INFO[slot]));
+void network_info_cleanup(network_info_t *network) {
+    if (network == NULL) {
+        // Cleanup all networks in the list
+        flist_node_t *node = g_dynamic_network_list;
+        while (node != NULL) {
+            flist_node_t *next = node->next;
+            network_info_t *net_info = (network_info_t *) node;
+
+            // Free the icon bitmap if allocated
+            const uint8_t *bitmap = net_info->icon.bitmap;
+            if (bitmap != NULL) {
+                mem_buffer_cleanup((void **) &bitmap);
+            }
+            // Free the network info structure
+            mem_buffer_cleanup((void **) &net_info);
+            node = next;
         }
+        g_dynamic_network_list = NULL;
+        g_last_added_network = NULL;
+
+        // Cleanup temporary icon bitmap (in case one was being received)
+        mem_buffer_cleanup((void **) &g_icon_bitmap);
+
+        // Free the icon hash if it was allocated
+        mem_buffer_cleanup((void **) &g_network_icon_hash);
     } else {
-        // Cleanup only the specified slot
-        mem_buffer_cleanup((void **) &(g_icon_bitmap[slot]));
-        mem_buffer_cleanup((void **) &(DYNAMIC_NETWORK_INFO[slot]));
+        // Cleanup specific network
+        // Free the icon bitmap if allocated
+        const uint8_t *bitmap = network->icon.bitmap;
+        if (bitmap != NULL) {
+            mem_buffer_cleanup((void **) &bitmap);
+        }
+
+        // Remove from list
+        flist_remove(&g_dynamic_network_list, (flist_node_t *) network, NULL);
+
+        // Free the network info structure
+        mem_buffer_cleanup((void **) &network);
+
+        // Reset last added network pointer if it was this network
+        if (g_last_added_network == network) {
+            g_last_added_network = NULL;
+            // Also cleanup temporary buffers associated with this network
+            mem_buffer_cleanup((void **) &g_icon_bitmap);
+            mem_buffer_cleanup((void **) &g_network_icon_hash);
+        }
     }
-    // Free the icon hash if it was allocated
-    mem_buffer_cleanup((void **) &g_network_icon_hash);
 }

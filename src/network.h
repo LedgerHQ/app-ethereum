@@ -14,9 +14,9 @@ typedef struct network_info_s {
     nbgl_icon_details_t icon;
 } network_info_t;
 
-#define UNSUPPORTED_CHAIN_ID_MSG(id)                                              \
-    do {                                                                          \
-        PRINTF("Unsupported chain ID: %u (app: %u)\n", id, chainConfig->chainId); \
+#define UNSUPPORTED_CHAIN_ID_MSG(chain_id)                                                  \
+    do {                                                                                    \
+        PRINTF("Unsupported chain ID: %llu (app: %llu)\n", chain_id, chainConfig->chainId); \
     } while (0)
 
 extern const char g_unknown_ticker[];

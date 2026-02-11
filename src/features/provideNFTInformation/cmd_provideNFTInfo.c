@@ -96,9 +96,7 @@ uint16_t handleProvideNFTInformation(const uint8_t *workBuffer,
     offset += ADDRESS_LENGTH;
 
     chain_id = u64_from_BE(workBuffer + offset, CHAIN_ID_SIZE);
-    // this prints raw data, so to have a more meaningful print, display
-    // the buffer before the endianness swap
-    PRINTF("ChainID: %.*H\n", sizeof(chain_id), (workBuffer + offset));
+    PRINTF("ChainID: %llu\n", chain_id);
     if (!app_compatible_with_chain_id(&chain_id)) {
         UNSUPPORTED_CHAIN_ID_MSG(chain_id);
         return SWO_INCORRECT_DATA;

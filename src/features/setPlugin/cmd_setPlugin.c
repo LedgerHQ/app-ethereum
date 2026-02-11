@@ -31,11 +31,9 @@ typedef enum Version {
     VERSION_1 = 0x01,
 } Version;
 
-typedef enum KeyId {
-    TEST_PLUGIN_KEY = 0x00,
-    // Must ONLY be used with ERC721 and ERC1155 plugin
-    PROD_PLUGIN_KEY = 0x02,
-} KeyId;
+// #define TEST_PLUGIN_KEY 0x00
+// Must ONLY be used with ERC721 and ERC1155 plugin
+#define PROD_PLUGIN_KEY 0x02
 
 // Algorithm Id consists of a Key spec and an algorithm spec.
 // Format is: KEYSPEC__ALGOSPEC
@@ -75,12 +73,7 @@ uint16_t handleSetPlugin(const uint8_t *workBuffer, uint8_t dataLength) {
     size_t payloadSize = 0;
     uint64_t chain_id = 0;
     uint8_t signatureLen = 0;
-#ifdef HAVE_NFT_STAGING_KEY
-    enum KeyId valid_keyId = TEST_PLUGIN_KEY;
-#else
-    enum KeyId valid_keyId = PROD_PLUGIN_KEY;
-#endif
-    enum KeyId keyId;
+    uint8_t keyId;
     uint32_t params[2];
 
     if (dataLength <= HEADER_SIZE) {
@@ -150,7 +143,7 @@ uint16_t handleSetPlugin(const uint8_t *workBuffer, uint8_t dataLength) {
     offset += CHAIN_ID_SIZE;
 
     keyId = workBuffer[offset];
-    if (keyId != valid_keyId) {
+    if (keyId != PROD_PLUGIN_KEY) {
         PRINTF("Unsupported KeyID %d\n", keyId);
         return SWO_INCORRECT_DATA;
     }
@@ -188,8 +181,6 @@ uint16_t handleSetPlugin(const uint8_t *workBuffer, uint8_t dataLength) {
 
     if (check_signature_with_pubkey(hash,
                                     sizeof(hash),
-                                    LEDGER_NFT_SELECTOR_PUBLIC_KEY,
-                                    sizeof(LEDGER_NFT_SELECTOR_PUBLIC_KEY),
                                     CERTIFICATE_PUBLIC_KEY_USAGE_PLUGIN_METADATA,
                                     (uint8_t *) (workBuffer + offset),
                                     signatureLen) != true) {

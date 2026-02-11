@@ -49,8 +49,6 @@ uint16_t handleProvideErc20TokenInformation(const uint8_t *workBuffer,
 
     if (check_signature_with_pubkey(hash,
                                     sizeof(hash),
-                                    LEDGER_SIGNATURE_PUBLIC_KEY,
-                                    sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
                                     CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META,
                                     (uint8_t *) (workBuffer + offset),
                                     dataLength) != true) {

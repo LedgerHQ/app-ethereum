@@ -496,9 +496,12 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
     PRINTF("Nonce: %s\n", strings.common.nonce);
 
     // Prepare network field
-    error = get_network_as_string(strings.common.network_name, sizeof(strings.common.network_name));
-    if (error == SWO_SUCCESS) {
+    if (get_network_as_string(strings.common.network_name, sizeof(strings.common.network_name)) ==
+        true) {
         PRINTF("Network: %s\n", strings.common.network_name);
+        error = SWO_SUCCESS;
+    } else {
+        error = SWO_INCORRECT_DATA;
     }
 end:
     mem_buffer_cleanup((void **) &g_tx_hash_ctx);

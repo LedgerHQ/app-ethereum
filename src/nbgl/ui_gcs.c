@@ -530,7 +530,7 @@ bool ui_gcs(void) {
             return false;
         }
         g_pairs[pair].item = app_mem_strdup("Network");
-        if (get_network_as_string(tmp_buf, tmp_buf_size) != SWO_SUCCESS) {
+        if (get_network_as_string(tmp_buf, tmp_buf_size) != true) {
             return false;
         }
         g_pairs[pair].value = app_mem_strdup(tmp_buf);

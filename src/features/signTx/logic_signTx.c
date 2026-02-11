@@ -287,10 +287,10 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
 
     // Verify the chain
     if (chainConfig->chainId != ETHEREUM_MAINNET_CHAINID) {
-        uint64_t id = get_tx_chain_id();
+        chain_id = get_tx_chain_id();
 
-        if (chainConfig->chainId != id) {
-            PRINTF("Invalid chainID %u expected %u\n", id, chainConfig->chainId);
+        if (chainConfig->chainId != chain_id) {
+            PRINTF("Invalid chainID %llu expected %llu\n", chain_id, chainConfig->chainId);
             report_finalize_error();
             return APDU_NO_RESPONSE;
         }

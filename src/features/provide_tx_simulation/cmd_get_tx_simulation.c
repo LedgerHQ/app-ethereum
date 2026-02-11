@@ -199,7 +199,7 @@ static uint16_t parse_chain_id(const s_tlv_data *data, s_tx_simu_ctx *context) {
     chain_id = u64_from_BE(data->value, data->length);
     // Check if the chain_id is supported
     if ((chain_id > max_range) || (chain_id == 0)) {
-        PRINTF("Unsupported chain ID: %u\n", chain_id);
+        PRINTF("Unsupported chain ID: %llu\n", chain_id);
         return SWO_INCORRECT_DATA;
     }
 
@@ -388,16 +388,13 @@ static bool verify_fields(s_tx_simu_ctx *context) {
  * Only for debug purpose.
  */
 static void print_simulation_info(s_tx_simu_ctx *context) {
-    char chain_str[sizeof(uint64_t) * 2 + 1] = {0};
-
     PRINTF("****************************************************************************\n");
     PRINTF("[TX SIMU] - Retrieved TX simulation:\n");
     PRINTF("[TX SIMU] -    Partner: %s\n", context->simu->partner);
     PRINTF("[TX SIMU] -    Hash: %.*h\n", HASH_SIZE, context->simu->tx_hash);
     PRINTF("[TX SIMU] -    Address: %.*h\n", ADDRESS_LENGTH, context->simu->addr);
     if (context->simu->chain_id != 0) {
-        u64_to_string(context->simu->chain_id, chain_str, sizeof(chain_str));
-        PRINTF("[TX SIMU] -    ChainID: %s\n", chain_str);
+        PRINTF("[TX SIMU] -    ChainID: %llu\n", context->simu->chain_id);
     }
     PRINTF("[TX SIMU] -    Risk: %d -> %s\n", context->simu->risk, get_tx_simulation_risk_str());
     PRINTF("[TX SIMU] -    Category: %d -> %s\n",
@@ -654,7 +651,7 @@ static bool check_tx_simulation_chain_id(void) {
     uint64_t chain_id = get_tx_chain_id();
     // Check Chain_ID in case of a standard transaction (No EIP191, No EIP712)
     if ((appState == APP_STATE_SIGNING_TX) && (TX_SIMULATION.chain_id != chain_id)) {
-        PRINTF("[TX SIMU] Chain_ID mismatch: %u != %u\n", TX_SIMULATION.chain_id, chain_id);
+        PRINTF("[TX SIMU] Chain_ID mismatch: %llu != %llu\n", TX_SIMULATION.chain_id, chain_id);
         PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
         TX_SIMULATION.risk = RISK_UNKNOWN;
         return false;

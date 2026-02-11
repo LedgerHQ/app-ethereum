@@ -232,20 +232,15 @@ static uint16_t handle_icon_chunks(uint8_t p1, const uint8_t *data, uint8_t leng
  * Only for debug purpose.
  */
 static void print_network_info(void) {
-    char chain_str[sizeof(uint64_t) * 2 + 1] = {0};
-
     if (DYNAMIC_NETWORK_INFO[g_current_network_slot] == NULL) {
         return;  // Nothing to print if no network is registered
     }
     PRINTF("****************************************************************************\n");
-    u64_to_string(DYNAMIC_NETWORK_INFO[g_current_network_slot]->chain_id,
-                  chain_str,
-                  sizeof(chain_str));
-    PRINTF("[NETWORK] - Registered in slot %u: \"%s\" (%s), for chain_id %s\n",
+    PRINTF("[NETWORK] - Registered in slot %u: \"%s\" (%s), for chain_id %llu\n",
            g_current_network_slot,
            DYNAMIC_NETWORK_INFO[g_current_network_slot]->name,
            DYNAMIC_NETWORK_INFO[g_current_network_slot]->ticker,
-           chain_str);
+           DYNAMIC_NETWORK_INFO[g_current_network_slot]->chain_id);
 }
 
 /**

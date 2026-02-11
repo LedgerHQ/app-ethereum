@@ -25,12 +25,12 @@ enum {
     TAG_DER_SIGNATURE = 0x15,
 };
 
-// Global variable to store the current slot
-uint8_t g_current_network_slot = 0;
 // Temporary buffer for icon bitmap hash
 uint8_t *g_network_icon_hash = NULL;
-// Global structure to store the dynamic network information
-network_info_t *DYNAMIC_NETWORK_INFO[MAX_DYNAMIC_NETWORKS] = {0};
+// Global list to store the dynamic network information
+flist_node_t *g_dynamic_network_list = NULL;
+// Pointer to the last added network (for icon association)
+network_info_t *g_last_added_network = NULL;
 
 /**
  * @brief Parse the STRUCTURE_TYPE value.
@@ -250,32 +250,43 @@ bool verify_network_info_struct(const s_network_info_ctx *context) {
         return false;
     }
 
-    // Check if the chain ID is already registered, if so delete it silently to prevent duplicates
-    for (int i = 0; i < MAX_DYNAMIC_NETWORKS; ++i) {
-        if ((DYNAMIC_NETWORK_INFO[i]) &&
-            (DYNAMIC_NETWORK_INFO[i]->chain_id == context->network.chain_id)) {
-            PRINTF("Network information already exist... Deleting it first!\n");
-            network_info_cleanup(i);
-            break;
+    // Check if the chain ID is already registered, if so delete it to prevent duplicates
+    network_info_t *existing = find_dynamic_network_by_chain_id(context->network.chain_id);
+    if (existing != NULL) {
+        PRINTF("Network information already exist... Deleting it first!\n");
+        // Remove from list and cleanup
+        const uint8_t *bitmap = existing->icon.bitmap;
+        if (bitmap != NULL) {
+            mem_buffer_cleanup((void **) &bitmap);
         }
+        flist_remove(&g_dynamic_network_list, (flist_node_t *) existing, NULL);
+        mem_buffer_cleanup((void **) &existing);
     }
 
-    // Free if already allocated, and reallocate the new size
+    // Allocate new network info
     // Do not track the allocation in logs, because this buffer is expected to stay allocated
-    if (mem_buffer_persistent((void **) &(DYNAMIC_NETWORK_INFO[g_current_network_slot]),
-                              sizeof(network_info_t)) == false) {
-        PRINTF("Memory allocation failed for icon hash\n");
+    network_info_t *new_network = NULL;
+    if (mem_buffer_persistent((void **) &new_network, sizeof(network_info_t)) == false) {
+        PRINTF("Memory allocation failed for network info\n");
         return false;
     }
-    // Copy the network information to the global array
-    memcpy(DYNAMIC_NETWORK_INFO[g_current_network_slot], &context->network, sizeof(network_info_t));
+
+    // Copy the network information
+    memcpy(new_network, &context->network, sizeof(network_info_t));
+
+    // Initialize the list node
+    new_network->node.next = NULL;
+
+    // Add to the list
+    flist_push_back(&g_dynamic_network_list, (flist_node_t *) new_network);
+
+    // Keep track of last added network for icon association
+    g_last_added_network = new_network;
 
     // Check if the icon hash is provided
     explicit_bzero(hash, sizeof(hash));
     if (memcmp(hash, context->icon_hash, CX_SHA256_SIZE) == 0) {
         PRINTF("/!\\ Icon hash is not provided!\n");
-        // Prepare for next slot
-        g_current_network_slot = (g_current_network_slot + 1) % MAX_DYNAMIC_NETWORKS;
         return true;
     }
 

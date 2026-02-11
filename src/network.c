@@ -123,17 +123,32 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 11297108109, .name = "Palm Network", .ticker = "PALM"},
 };
 
+/**
+ * @brief Find a dynamically loaded network by its chain ID
+ *
+ * @param[in] chain_id The chain ID to search for
+ * @return Pointer to network_info_t if found, NULL otherwise
+ */
+network_info_t *find_dynamic_network_by_chain_id(uint64_t chain_id) {
+    flist_node_t *node = g_dynamic_network_list;
+    while (node != NULL) {
+        network_info_t *net_info = (network_info_t *) node;
+        if (net_info->chain_id == chain_id) {
+            return net_info;
+        }
+        node = node->next;
+    }
+    return NULL;
+}
+
 static const network_info_t *get_network_from_chain_id(const uint64_t *chain_id, bool dynamic) {
     if (*chain_id != 0) {
-        // Look if the network is available
+        // Look if the network is available in dynamically loaded networks
         if (dynamic == true) {
-            for (size_t i = 0; i < MAX_DYNAMIC_NETWORKS; i++) {
-                if ((DYNAMIC_NETWORK_INFO[i]) && (DYNAMIC_NETWORK_INFO[i]->chain_id == *chain_id)) {
-                    PRINTF("[NETWORK] - Found dynamic \"%s\" in slot %u\n",
-                           DYNAMIC_NETWORK_INFO[i]->name,
-                           i);
-                    return (const network_info_t *) DYNAMIC_NETWORK_INFO[i];
-                }
+            network_info_t *net_info = find_dynamic_network_by_chain_id(*chain_id);
+            if (net_info != NULL) {
+                PRINTF("[NETWORK] - Found dynamic '%s'\n", net_info->name);
+                return (const network_info_t *) net_info;
             }
         }
 

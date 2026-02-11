@@ -17,8 +17,8 @@
 #define MIN_DER_SIG_SIZE      67
 #define MAX_DER_SIG_SIZE      72
 
-#define STAGING_NFT_METADATA_KEY 0
-#define PROD_NFT_METADATA_KEY    1
+// #define STAGING_NFT_METADATA_KEY 0
+#define PROD_NFT_METADATA_KEY 1
 
 #define ALGORITHM_ID_1 1
 
@@ -36,11 +36,7 @@ uint16_t handleProvideNFTInformation(const uint8_t *workBuffer,
     uint8_t collectionNameLength = 0;
     uint64_t chain_id = 0;
     uint8_t signatureLen = 0;
-#ifdef HAVE_NFT_STAGING_KEY
-    uint8_t valid_keyId = STAGING_NFT_METADATA_KEY;
-#else
     uint8_t valid_keyId = PROD_NFT_METADATA_KEY;
-#endif
 
     PRINTF("In handle provide NFTInformation\n");
 
@@ -147,8 +143,6 @@ uint16_t handleProvideNFTInformation(const uint8_t *workBuffer,
 
     if (check_signature_with_pubkey(hash,
                                     sizeof(hash),
-                                    LEDGER_NFT_METADATA_PUBLIC_KEY,
-                                    sizeof(LEDGER_NFT_METADATA_PUBLIC_KEY),
                                     CERTIFICATE_PUBLIC_KEY_USAGE_NFT_METADATA,
                                     (uint8_t *) (workBuffer + offset),
                                     signatureLen) != true) {

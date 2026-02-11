@@ -5,7 +5,7 @@
 #include "utils.h"
 #include "time_format.h"
 #include "calldata.h"
-#include "public_keys.h"  // LEDGER_SIGNATURE_PUBLIC_KEY
+#include "public_keys.h"
 #include "proxy_info.h"
 #include "mem.h"
 #include "tx_ctx.h"
@@ -267,8 +267,6 @@ bool verify_tx_info_struct(const s_tx_info_ctx *context) {
 
     if (check_signature_with_pubkey(hash,
                                     sizeof(hash),
-                                    NULL,
-                                    0,
                                     CERTIFICATE_PUBLIC_KEY_USAGE_CALLDATA,
                                     (uint8_t *) context->tx_info->signature,
                                     context->tx_info->signature_len) != true) {

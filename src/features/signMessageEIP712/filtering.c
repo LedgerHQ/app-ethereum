@@ -134,8 +134,6 @@ static bool sig_verif_end(cx_sha256_t *hash_ctx, const uint8_t *sig, uint8_t sig
 
     if (check_signature_with_pubkey(hash,
                                     sizeof(hash),
-                                    LEDGER_SIGNATURE_PUBLIC_KEY,
-                                    sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
                                     CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META,
                                     (uint8_t *) sig,
                                     sig_length) != true) {

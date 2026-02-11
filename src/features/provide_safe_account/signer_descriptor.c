@@ -181,8 +181,6 @@ static bool verify_signature(const s_signer_ctx *context) {
 
     if (check_signature_with_pubkey(hash,
                                     sizeof(hash),
-                                    NULL,
-                                    0,
                                     CERTIFICATE_PUBLIC_KEY_USAGE_LES_MULTISIG,
                                     (uint8_t *) (context->sig),
                                     context->sig_size) != true) {

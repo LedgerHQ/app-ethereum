@@ -572,8 +572,6 @@ static bool verify_trusted_name_signature(const s_trusted_name_ctx *context) {
 
     if (check_signature_with_pubkey(hash,
                                     sizeof(hash),
-                                    NULL,
-                                    0,
                                     CERTIFICATE_PUBLIC_KEY_USAGE_TRUSTED_NAME,
                                     (uint8_t *) (context->input_sig),
                                     context->input_sig_size) != true) {

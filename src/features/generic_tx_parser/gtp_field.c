@@ -5,7 +5,7 @@
 #include "shared_context.h"  // strings
 #include "mem.h"             // app_mem_free
 #include "mem_utils.h"       // mem_buffer_cleanup
-#include "list.h"            // flist_push_back
+#include "lists.h"
 
 enum {
     BIT_VERSION = 0,
@@ -139,7 +139,7 @@ static bool handle_param_constraint(const s_tlv_data *data, s_field_ctx *context
     }
     memcpy(node->value, data->value, data->length);
     // Add to linked list
-    flist_push_back((s_flist_node **) &context->field->constraints, (s_flist_node *) node);
+    flist_push_back((flist_node_t **) &context->field->constraints, (flist_node_t *) node);
     return true;
 }
 
@@ -326,7 +326,7 @@ bool format_field(s_field *field) {
     return ret;
 }
 
-static void constraint_node_del(s_flist_node *node) {
+static void constraint_node_del(flist_node_t *node) {
     if (node != NULL) {
         s_field_constraint *constraint = (s_field_constraint *) node;
         app_mem_free((void *) constraint->value);
@@ -336,6 +336,6 @@ static void constraint_node_del(s_flist_node *node) {
 
 void cleanup_field_constraints(s_field *field) {
     if (field != NULL && field->constraints != NULL) {
-        flist_clear((s_flist_node **) &field->constraints, constraint_node_del);
+        flist_clear((flist_node_t **) &field->constraints, constraint_node_del);
     }
 }

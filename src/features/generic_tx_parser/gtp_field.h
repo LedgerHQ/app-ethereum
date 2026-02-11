@@ -16,7 +16,7 @@
 #include "gtp_param_token.h"
 #include "gtp_param_network.h"
 #include "calldata.h"
-#include "list.h"
+#include "lists.h"
 
 typedef enum {
     PARAM_TYPE_RAW = 0,
@@ -42,7 +42,7 @@ typedef enum {
 } e_param_visibility;
 
 typedef struct s_field_constraint {
-    s_flist_node node;
+    flist_node_t node;
     uint8_t size;
     uint8_t *value;
 } s_field_constraint;

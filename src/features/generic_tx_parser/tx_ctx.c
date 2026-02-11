@@ -19,7 +19,7 @@ bool tx_ctx_is_root(void) {
 }
 
 size_t get_tx_ctx_count(void) {
-    return list_size((s_list_node **) &g_tx_ctx_list);
+    return list_size((list_node_t **) &g_tx_ctx_list);
 }
 
 cx_hash_t *get_fields_hash_ctx(void) {
@@ -94,10 +94,10 @@ static void delete_tx_ctx(s_tx_ctx *node) {
 }
 
 void tx_ctx_pop(void) {
-    s_list_node *old_current = (s_list_node *) g_tx_ctx_current;
+    list_node_t *old_current = (list_node_t *) g_tx_ctx_current;
 
-    g_tx_ctx_current = (s_tx_ctx *) ((s_list_node *) g_tx_ctx_current)->prev;
-    list_remove((s_list_node **) &g_tx_ctx_list, old_current, (f_list_node_del) &delete_tx_ctx);
+    g_tx_ctx_current = (s_tx_ctx *) ((list_node_t *) g_tx_ctx_current)->prev;
+    list_remove((list_node_t **) &g_tx_ctx_list, old_current, (f_list_node_del) &delete_tx_ctx);
 }
 
 static bool process_empty_tx(const s_tx_ctx *tx_ctx) {
@@ -158,14 +158,14 @@ static bool process_empty_tx(const s_tx_ctx *tx_ctx) {
     if (!add_to_field_table(param_type, "To", buf, trusted_name)) {
         return false;
     }
-    list_remove((s_list_node **) &g_tx_ctx_list,
-                (s_list_node *) tx_ctx,
+    list_remove((list_node_t **) &g_tx_ctx_list,
+                (list_node_t *) tx_ctx,
                 (f_list_node_del) &delete_tx_ctx);
     return true;
 }
 
 bool process_empty_txs_before(void) {
-    for (s_list_node *tmp = ((s_list_node *) g_tx_ctx_current)->prev;
+    for (list_node_t *tmp = ((list_node_t *) g_tx_ctx_current)->prev;
          (tmp != NULL) && (((s_tx_ctx *) tmp)->calldata == NULL);
          tmp = tmp->prev) {
         if (!process_empty_tx((s_tx_ctx *) tmp)) {
@@ -176,7 +176,7 @@ bool process_empty_txs_before(void) {
 }
 
 bool process_empty_txs_after(void) {
-    for (s_flist_node *tmp = ((s_flist_node *) g_tx_ctx_current)->next;
+    for (flist_node_t *tmp = ((flist_node_t *) g_tx_ctx_current)->next;
          (tmp != NULL) && (((s_tx_ctx *) tmp)->calldata == NULL);
          tmp = tmp->next) {
         if (!process_empty_tx((s_tx_ctx *) tmp)) {
@@ -192,7 +192,7 @@ bool find_matching_tx_ctx(const uint8_t *contract_addr,
     const uint8_t *proxy_implem;
 
     for (s_tx_ctx *tmp = g_tx_ctx_list; tmp != NULL;
-         tmp = (s_tx_ctx *) ((s_flist_node *) tmp)->next) {
+         tmp = (s_tx_ctx *) ((flist_node_t *) tmp)->next) {
         proxy_implem = get_implem_contract(chain_id, tmp->to, selector);
         if ((memcmp((proxy_implem != NULL) ? proxy_implem : tmp->to,
                     contract_addr,
@@ -208,7 +208,7 @@ bool find_matching_tx_ctx(const uint8_t *contract_addr,
 }
 
 static void tx_ctx_cleanup(void) {
-    list_clear((s_list_node **) &g_tx_ctx_list, (f_list_node_del) &delete_tx_ctx);
+    list_clear((list_node_t **) &g_tx_ctx_list, (f_list_node_del) &delete_tx_ctx);
     g_tx_ctx_current = NULL;
 }
 
@@ -266,8 +266,8 @@ bool tx_ctx_init(s_calldata *calldata,
     } else {
         // as default, copy value from last tx context
         const s_tx_ctx *tmp = g_tx_ctx_list;
-        while (((const s_flist_node *) tmp)->next != NULL) {
-            tmp = (const s_tx_ctx *) ((const s_flist_node *) tmp)->next;
+        while (((const flist_node_t *) tmp)->next != NULL) {
+            tmp = (const s_tx_ctx *) ((const flist_node_t *) tmp)->next;
         }
         memcpy(node->from, tmp->from, sizeof(node->from));
         node->chain_id = tmp->chain_id;
@@ -291,7 +291,7 @@ bool tx_ctx_init(s_calldata *calldata,
         app_mem_free(node);
         return false;
     }
-    list_push_back((s_list_node **) &g_tx_ctx_list, (s_list_node *) node);
+    list_push_back((list_node_t **) &g_tx_ctx_list, (list_node_t *) node);
     if ((appState == APP_STATE_SIGNING_TX) && (node == g_tx_ctx_list)) {
         return field_table_init();
     }

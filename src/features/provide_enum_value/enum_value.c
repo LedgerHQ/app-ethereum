@@ -160,7 +160,7 @@ bool verify_enum_value_struct(const s_enum_value_ctx *context) {
     }
 
     memcpy(entry, &context->enum_value.entry, sizeof(*entry));
-    flist_push_back((s_flist_node **) &g_enum_value_list, (s_flist_node *) entry);
+    flist_push_back((flist_node_t **) &g_enum_value_list, (flist_node_t *) entry);
     return true;
 }
 
@@ -189,7 +189,7 @@ const s_enum_value_entry *get_matching_enum(const uint64_t *chain_id,
                                             const uint8_t *selector,
                                             uint8_t id,
                                             uint8_t value) {
-    for (const s_flist_node *tmp = (s_flist_node *) g_enum_value_list; tmp != NULL;
+    for (const flist_node_t *tmp = (flist_node_t *) g_enum_value_list; tmp != NULL;
          tmp = tmp->next) {
         if (is_matching_enum((s_enum_value_entry *) tmp,
                              chain_id,
@@ -208,6 +208,6 @@ static void delete_enum_value(s_enum_value_entry *node) {
 }
 
 void enum_value_cleanup(void) {
-    flist_clear((s_flist_node **) &g_enum_value_list, (f_list_node_del) &delete_enum_value);
+    flist_clear((flist_node_t **) &g_enum_value_list, (f_list_node_del) &delete_enum_value);
     g_enum_value_list = NULL;
 }

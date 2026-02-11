@@ -63,7 +63,7 @@ static void delete_trusted_name(s_trusted_name *node) {
 }
 
 void trusted_name_cleanup(void) {
-    flist_clear((s_flist_node **) &g_trusted_name_list, (f_list_node_del) &delete_trusted_name);
+    flist_clear((flist_node_t **) &g_trusted_name_list, (f_list_node_del) &delete_trusted_name);
 }
 
 static bool matching_type(e_name_type type, uint8_t type_count, const e_name_type *types) {
@@ -138,7 +138,7 @@ const s_trusted_name *get_trusted_name(uint8_t type_count,
                                        const uint64_t *chain_id,
                                        const uint8_t *addr) {
     for (s_trusted_name *tmp = g_trusted_name_list; tmp != NULL;
-         tmp = (s_trusted_name *) ((s_flist_node *) tmp)->next) {
+         tmp = (s_trusted_name *) ((flist_node_t *) tmp)->next) {
         if (matching_trusted_name(tmp, type_count, types, source_count, sources, chain_id, addr)) {
             return tmp;
         }
@@ -684,7 +684,7 @@ bool verify_trusted_name_struct(const s_trusted_name_ctx *context) {
         return false;
     }
     memcpy(node, &context->trusted_name, sizeof(*node));
-    flist_push_back((s_flist_node **) &g_trusted_name_list, (s_flist_node *) node);
+    flist_push_back((flist_node_t **) &g_trusted_name_list, (flist_node_t *) node);
 
     PRINTF("Registered : %s => %.*h\n",
            context->trusted_name.name,

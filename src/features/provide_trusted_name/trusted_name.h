@@ -5,7 +5,7 @@
 #include "common_utils.h"  // ADDRESS_LENGTH
 #include "tlv.h"
 #include "signature.h"
-#include "list.h"
+#include "lists.h"
 
 #define TRUSTED_NAME_MAX_LENGTH 30
 
@@ -37,7 +37,7 @@ typedef enum {
 typedef enum { TN_KEY_ID_DOMAIN_SVC = 0x07, TN_KEY_ID_CAL = 0x09 } e_tn_key_id;
 
 typedef struct {
-    s_flist_node _list;
+    flist_node_t _list;
     uint8_t struct_version;
     char name[TRUSTED_NAME_MAX_LENGTH + 1];
     uint8_t addr[ADDRESS_LENGTH];

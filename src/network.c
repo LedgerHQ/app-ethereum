@@ -182,22 +182,22 @@ const char *get_network_name_from_chain_id(const uint64_t *chain_id) {
     return PIC(net->name);
 }
 
-uint16_t get_network_as_string_from_chain_id(char *out, size_t out_size, uint64_t chain_id) {
+bool get_network_as_string_from_chain_id(char *out, size_t out_size, uint64_t chain_id) {
     const char *name = get_network_name_from_chain_id(&chain_id);
 
     if (name == NULL) {
         // No network name found so simply copy the chain ID as the network name.
         if (!u64_to_string(chain_id, out, out_size)) {
-            return SWO_INSUFFICIENT_MEMORY;
+            return false;
         }
     } else {
         // Network name found, simply copy it.
         strlcpy(out, name, out_size);
     }
-    return SWO_SUCCESS;
+    return true;
 }
 
-uint16_t get_network_as_string(char *out, size_t out_size) {
+bool get_network_as_string(char *out, size_t out_size) {
     uint64_t chain_id = get_tx_chain_id();
     return get_network_as_string_from_chain_id(out, out_size, chain_id);
 }

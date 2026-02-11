@@ -32,8 +32,8 @@ extern const char g_unknown_ticker[];
 network_info_t *find_dynamic_network_by_chain_id(uint64_t chain_id);
 
 const char *get_network_name_from_chain_id(const uint64_t *chain_id);
-uint16_t get_network_as_string_from_chain_id(char *out, size_t out_size, uint64_t chain_id);
-uint16_t get_network_as_string(char *out, size_t out_size);
+bool get_network_as_string_from_chain_id(char *out, size_t out_size, uint64_t chain_id);
+bool get_network_as_string(char *out, size_t out_size);
 
 bool chain_is_ethereum_compatible(const uint64_t *chain_id);
 bool app_compatible_with_chain_id(const uint64_t *chain_id);

@@ -102,7 +102,6 @@ bool handle_param_network_struct(const s_tlv_data *data, s_param_network_context
 static bool format_network_name(const s_parsed_value *value, char *buf, size_t buf_size) {
     uint64_t chain_id = 0;
     uint64_t max_range = 0x7FFFFFFFFFFFFFDB;  // per EIP-2294
-    uint16_t sw = SWO_PARAMETER_ERROR_NO_INFO;
 
     // Check length
     if (value->length != sizeof(uint64_t)) {
@@ -117,8 +116,7 @@ static bool format_network_name(const s_parsed_value *value, char *buf, size_t b
         PRINTF("Unsupported chain ID: %llu\n", chain_id);
         return false;
     }
-    sw = get_network_as_string_from_chain_id(buf, buf_size, chain_id);
-    return (sw == SWO_SUCCESS) ? true : false;
+    return get_network_as_string_from_chain_id(buf, buf_size, chain_id);
 }
 
 /**

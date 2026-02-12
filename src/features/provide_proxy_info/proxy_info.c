@@ -1,165 +1,185 @@
 #include "proxy_info.h"
-#include "read.h"
-#include "utils.h"  // buf_shrink_expand
+#include "utils.h"
 #include "challenge.h"
 #include "public_keys.h"
 #include "ui_utils.h"
 #include "mem_utils.h"
 #include "hash_bytes.h"
-
-enum {
-    TAG_STRUCT_TYPE = 0x01,
-    TAG_STRUCT_VERSION = 0x02,
-    TAG_CHALLENGE = 0x012,
-    TAG_ADDRESS = 0x22,
-    TAG_CHAIN_ID = 0x23,
-    TAG_SELECTOR = 0x41,
-    TAG_IMPLEM_ADDRESS = 0x42,
-    TAG_DELEGATION_TYPE = 0x43,
-    TAG_SIGNATURE = 0x15,
-};
+#include "tlv_apdu.h"
 
 #define TYPE_PROXY_INFO 0x26
+#define STRUCT_VERSION  0x01
+
+typedef enum {
+    DELEGATION_TYPE_PROXY = 0,
+    DELEGATION_TYPE_ISSUED_FROM_FACTORY = 1,
+    DELEGATION_TYPE_DELEGATOR = 2,
+    DELEGATION_TYPE_MAX,
+} e_delegation_type;
 
 static s_proxy_info *g_proxy_info = NULL;
 
-static bool handle_type(const s_tlv_data *data, s_proxy_info_ctx *context) {
-    (void) context;
+/**
+ * @brief Parse the STRUCT_TYPE value.
+ *
+ * @param[in] data the tlv data
+ * @param[in] context Proxy info context
+ * @return whether the handling was successful
+ */
+static bool handle_struct_type(const tlv_data_t *data, s_proxy_info_ctx *context) {
+    UNUSED(context);
+    return tlv_check_struct_type(data, TYPE_PROXY_INFO);
+}
 
-    if (data->length != sizeof(context->struct_type)) {
+/**
+ * @brief Parse the STRUCT_VERSION value.
+ *
+ * @param[in] data the tlv data
+ * @param[in] context Proxy info context
+ * @return whether the handling was successful
+ */
+static bool handle_struct_version(const tlv_data_t *data, s_proxy_info_ctx *context) {
+    UNUSED(context);
+    return tlv_check_struct_version(data, STRUCT_VERSION);
+}
+
+/**
+ * @brief Parse the CHALLENGE value.
+ *
+ * @param[in] data the tlv data
+ * @param[in] context Proxy info context
+ * @return whether the handling was successful
+ */
+static bool handle_challenge(const tlv_data_t *data, s_proxy_info_ctx *context) {
+    UNUSED(context);
+    return tlv_check_challenge(data);
+}
+
+/**
+ * @brief Parse the ADDRESS value.
+ *
+ * @param[in] data the tlv data
+ * @param[in] context Proxy info context
+ * @return whether the handling was successful
+ */
+static bool handle_address(const tlv_data_t *data, s_proxy_info_ctx *context) {
+    return tlv_get_address(data, context->proxy_info.address, false);
+}
+
+/**
+ * @brief Parse the CHAIN_ID value.
+ *
+ * @param[in] data the tlv data
+ * @param[in] context Proxy info context
+ * @return whether the handling was successful
+ */
+static bool handle_chain_id(const tlv_data_t *data, s_proxy_info_ctx *context) {
+    return tlv_get_chain_id(data, &context->proxy_info.chain_id);
+}
+
+/**
+ * @brief Parse the SELECTOR value.
+ *
+ * @param[in] data the tlv data
+ * @param[in] context Proxy info context
+ * @return whether the handling was successful
+ */
+static bool handle_selector(const tlv_data_t *data, s_proxy_info_ctx *context) {
+    return tlv_get_selector(data,
+                            context->proxy_info.selector,
+                            sizeof(context->proxy_info.selector));
+}
+
+/**
+ * @brief Parse the IMPLEM_ADDRESS value.
+ *
+ * @param[in] data the tlv data
+ * @param[in] context Proxy info context
+ * @return whether the handling was successful
+ */
+static bool handle_implem_address(const tlv_data_t *data, s_proxy_info_ctx *context) {
+    return tlv_get_address(data, context->proxy_info.implem_address, false);
+}
+
+/**
+ * @brief Parse the DELEGATION_TYPE value.
+ *
+ * @param[in] data the tlv data
+ * @param[in] context Proxy info context
+ * @return whether the handling was successful
+ */
+static bool handle_delegation_type(const tlv_data_t *data, s_proxy_info_ctx *context) {
+    UNUSED(context);
+    uint8_t value = 0;
+    if (!tlv_get_uint8(data, &value, 0, DELEGATION_TYPE_MAX - 1)) {
+        PRINTF("DELEGATION_TYPE: error\n");
         return false;
     }
-    context->struct_type = data->value[0];
     return true;
 }
 
-static bool handle_version(const s_tlv_data *data, s_proxy_info_ctx *context) {
-    if (data->length != sizeof(context->version)) {
+/**
+ * @brief Parse the SIGNATURE value.
+ *
+ * @param[in] data the tlv data
+ * @param[in] context Proxy info context
+ * @return whether the handling was successful
+ */
+static bool handle_signature(const tlv_data_t *data, s_proxy_info_ctx *context) {
+    buffer_t sig = {0};
+    if (!get_buffer_from_tlv_data(data,
+                                  &sig,
+                                  ECDSA_SIGNATURE_MIN_LENGTH,
+                                  ECDSA_SIGNATURE_MAX_LENGTH)) {
+        PRINTF("SIGNATURE: failed to extract\n");
         return false;
     }
-    context->version = data->value[0];
+    context->sig_size = sig.size;
+    context->sig = sig.ptr;
     return true;
 }
 
-static bool handle_challenge(const s_tlv_data *data, s_proxy_info_ctx *context) {
-    uint8_t buf[sizeof(context->challenge)];
+// Define TLV tags for Proxy Info
+#define PROXY_INFO_TAGS(X)                                                   \
+    X(0x01, TAG_STRUCT_TYPE, handle_struct_type, ENFORCE_UNIQUE_TAG)         \
+    X(0x02, TAG_STRUCT_VERSION, handle_struct_version, ENFORCE_UNIQUE_TAG)   \
+    X(0x12, TAG_CHALLENGE, handle_challenge, ENFORCE_UNIQUE_TAG)             \
+    X(0x22, TAG_ADDRESS, handle_address, ENFORCE_UNIQUE_TAG)                 \
+    X(0x23, TAG_CHAIN_ID, handle_chain_id, ENFORCE_UNIQUE_TAG)               \
+    X(0x41, TAG_SELECTOR, handle_selector, ENFORCE_UNIQUE_TAG)               \
+    X(0x42, TAG_IMPLEM_ADDRESS, handle_implem_address, ENFORCE_UNIQUE_TAG)   \
+    X(0x43, TAG_DELEGATION_TYPE, handle_delegation_type, ENFORCE_UNIQUE_TAG) \
+    X(0x15, TAG_SIGNATURE, handle_signature, ENFORCE_UNIQUE_TAG)
 
-    if (data->length > sizeof(buf)) {
-        return false;
+// Forward declaration of common handler
+static bool proxy_info_common_handler(const tlv_data_t *data, s_proxy_info_ctx *context);
+
+// Generate TLV parser for Proxy Info
+DEFINE_TLV_PARSER(PROXY_INFO_TAGS, &proxy_info_common_handler, proxy_info_tlv_parser)
+
+/**
+ * @brief Common handler called for all tags to hash them (except signature).
+ *
+ * @param[in] data data to handle
+ * @param[out] context struct context
+ * @return whether the handling was successful
+ */
+static bool proxy_info_common_handler(const tlv_data_t *data, s_proxy_info_ctx *context) {
+    if (data->tag != TAG_SIGNATURE) {
+        hash_nbytes(data->raw.ptr, data->raw.size, (cx_hash_t *) &context->struct_hash);
     }
-    buf_shrink_expand(data->value, data->length, buf, sizeof(buf));
-    context->challenge = read_u32_be(buf, 0);
     return true;
 }
 
-static bool handle_address(const s_tlv_data *data, s_proxy_info_ctx *context) {
-    if (data->length > sizeof(context->proxy_info.address)) {
-        return false;
-    }
-    buf_shrink_expand(data->value,
-                      data->length,
-                      context->proxy_info.address,
-                      sizeof(context->proxy_info.address));
-    return true;
-}
-
-static bool handle_chain_id(const s_tlv_data *data, s_proxy_info_ctx *context) {
-    uint8_t buf[sizeof(context->proxy_info.chain_id)];
-
-    if (data->length > sizeof(buf)) {
-        return false;
-    }
-    buf_shrink_expand(data->value, data->length, buf, sizeof(buf));
-    context->proxy_info.chain_id = read_u64_be(buf, 0);
-    return true;
-}
-
-static bool handle_selector(const s_tlv_data *data, s_proxy_info_ctx *context) {
-    if (data->length > sizeof(context->proxy_info.selector)) {
-        return false;
-    }
-    buf_shrink_expand(data->value,
-                      data->length,
-                      context->proxy_info.selector,
-                      sizeof(context->proxy_info.selector));
-    context->proxy_info.has_selector = true;
-    return true;
-}
-
-static bool handle_implem_address(const s_tlv_data *data, s_proxy_info_ctx *context) {
-    if (data->length > sizeof(context->proxy_info.implem_address)) {
-        return false;
-    }
-    buf_shrink_expand(data->value,
-                      data->length,
-                      context->proxy_info.implem_address,
-                      sizeof(context->proxy_info.implem_address));
-    return true;
-}
-
-static bool handle_delegation_type(const s_tlv_data *data, s_proxy_info_ctx *context) {
-    if (data->length != sizeof(context->delegation_type)) {
-        return false;
-    }
-    context->delegation_type = data->value[0];
-    return true;
-}
-
-static bool handle_signature(const s_tlv_data *data, s_proxy_info_ctx *context) {
-    if (data->length > sizeof(context->signature)) {
-        return false;
-    }
-    context->signature_length = data->length;
-    memcpy(context->signature, data->value, data->length);
-    return true;
-}
-
-bool handle_proxy_info_struct(const s_tlv_data *data, s_proxy_info_ctx *context) {
-    bool ret;
-
-    switch (data->tag) {
-        case TAG_STRUCT_TYPE:
-            ret = handle_type(data, context);
-            break;
-        case TAG_STRUCT_VERSION:
-            ret = handle_version(data, context);
-            break;
-        case TAG_CHALLENGE:
-            ret = handle_challenge(data, context);
-            break;
-        case TAG_ADDRESS:
-            ret = handle_address(data, context);
-            break;
-        case TAG_CHAIN_ID:
-            ret = handle_chain_id(data, context);
-            break;
-        case TAG_SELECTOR:
-            ret = handle_selector(data, context);
-            break;
-        case TAG_IMPLEM_ADDRESS:
-            ret = handle_implem_address(data, context);
-            break;
-        case TAG_DELEGATION_TYPE:
-            ret = handle_delegation_type(data, context);
-            break;
-        case TAG_SIGNATURE:
-            ret = handle_signature(data, context);
-            break;
-        default:
-            PRINTF(TLV_TAG_ERROR_MSG, data->tag);
-            ret = false;
-    }
-    if (ret && (data->tag != TAG_SIGNATURE)) {
-        if (cx_hash_no_throw((cx_hash_t *) &context->struct_hash,
-                             0,
-                             data->raw,
-                             data->raw_size,
-                             NULL,
-                             0) != CX_OK) {
-            return false;
-        }
-    }
-    return ret;
+/**
+ * @brief Wrapper to parse Proxy Info TLV payload.
+ *
+ * @param[in] buf TLV buffer
+ * @param[out] context Proxy info context
+ * @return whether parsing was successful
+ */
+bool handle_proxy_info_tlv_payload(const buffer_t *buf, s_proxy_info_ctx *context) {
+    return proxy_info_tlv_parser(buf, context, &context->received_tags);
 }
 
 bool verify_proxy_info_struct(const s_proxy_info_ctx *context) {
@@ -168,28 +188,12 @@ bool verify_proxy_info_struct(const s_proxy_info_ctx *context) {
     if (finalize_hash((cx_hash_t *) &context->struct_hash, hash, sizeof(hash)) != true) {
         return false;
     }
-    if (context->struct_type != TYPE_PROXY_INFO) {
-        PRINTF("Error: unknown struct type (%u)!\n", context->struct_type);
-        return false;
-    }
-    if (check_challenge(context->challenge) == false) {
-        return false;
-    }
     roll_challenge();
-    switch (context->delegation_type) {
-        case DELEGATION_TYPE_PROXY:
-        case DELEGATION_TYPE_ISSUED_FROM_FACTORY:
-        case DELEGATION_TYPE_DELEGATOR:
-            break;
-        default:
-            PRINTF("Error: unsupported delegation type (%u)!\n", context->delegation_type);
-            return false;
-    }
     if (check_signature_with_pubkey(hash,
                                     sizeof(hash),
                                     CERTIFICATE_PUBLIC_KEY_USAGE_TRUSTED_NAME,
-                                    (uint8_t *) context->signature,
-                                    context->signature_length) != true) {
+                                    (uint8_t *) context->sig,
+                                    context->sig_size) != true) {
         return false;
     }
     if (mem_buffer_allocate((void **) &g_proxy_info, sizeof(s_proxy_info)) == false) {

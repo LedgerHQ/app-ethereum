@@ -6,18 +6,18 @@
 #include "apdu_constants.h"
 #include "ui_utils.h"
 
-#define TRUSTED_NAME_LEN (TRUSTED_NAME_MAX_LENGTH + 1)
-
-static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
+static bool handle_tlv_payload(const buffer_t *buf) {
     s_trusted_name_ctx ctx = {0};
-    bool parsing_ret = false;
-    bool verify_ret = false;
+    uint16_t ret = false;
 
+    // Initialize the hash context
     cx_sha256_init(&ctx.hash_ctx);
-    parsing_ret = tlv_parse(payload, size, (f_tlv_data_handler) &handle_trusted_name_struct, &ctx);
-    verify_ret = verify_trusted_name_struct(&ctx);
+    if (!handle_trusted_name_tlv_payload(buf, &ctx)) {
+        return false;
+    }
+    ret = verify_trusted_name_struct(&ctx);
     roll_challenge();  // prevent brute-force guesses & replays
-    return parsing_ret && verify_ret;
+    return ret;
 }
 
 /**

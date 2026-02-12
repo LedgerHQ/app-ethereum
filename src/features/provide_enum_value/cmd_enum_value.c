@@ -2,15 +2,14 @@
 #include "apdu_constants.h"
 #include "enum_value.h"
 #include "tlv_apdu.h"
-#include "tlv.h"
 
-static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
-    bool parsing_ret;
+static bool handle_tlv_payload(const buffer_t *buf) {
+    bool ret = false;
     s_enum_value_ctx ctx = {0};
 
-    cx_sha256_init(&ctx.struct_hash);
-    parsing_ret = tlv_parse(payload, size, (f_tlv_data_handler) &handle_enum_value_struct, &ctx);
-    if (!parsing_ret) return false;
+    cx_sha256_init(&ctx.hash_ctx);
+    ret = handle_enum_value_tlv_payload(buf, &ctx);
+    if (!ret) return false;
     if (!verify_enum_value_struct(&ctx)) {
         return false;
     }

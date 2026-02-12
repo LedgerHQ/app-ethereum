@@ -57,7 +57,7 @@ uint16_t hashRLP64(uint64_t data, uint8_t *rlpTmp, uint8_t rlpTmpLength) {
     return hashRLP(tmp + sizeof(tmp) - encodingLength, encodingLength, rlpTmp, rlpTmpLength);
 }
 
-static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size) {
+static bool handleAuth7702TLV(const buffer_t *buf) {
     s_auth_7702_ctx auth_7702_ctx = {0};
     s_auth_7702 *auth7702 = &auth_7702_ctx.auth_7702;
     bool parsing_ret = false;
@@ -74,8 +74,7 @@ static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size) {
     // Default internal error triggered by CX_CHECK
     g_7702_sw = SWO_PARAMETER_ERROR_NO_INFO;
 
-    parsing_ret =
-        tlv_parse(payload, size, (f_tlv_data_handler) handle_auth_7702_struct, &auth_7702_ctx);
+    parsing_ret = handle_auth_7702_tlv_payload(buf, &auth_7702_ctx);
     if (!parsing_ret || !verify_auth_7702_struct(&auth_7702_ctx)) {
         g_7702_sw = SWO_INCORRECT_DATA;
         goto end;

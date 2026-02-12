@@ -23,7 +23,7 @@
 #include "hash_bytes.h"
 #include "public_keys.h"
 #include "getPublicKey.h"
-#include "tlv.h"
+#include "tlv_library.h"
 #include "tlv_apdu.h"
 #include "utils.h"
 #include "nbgl_use_case.h"
@@ -51,30 +51,6 @@
 #define GATING_URL_SIZE 30
 #define HASH_SIZE       32
 
-enum {
-    TAG_STRUCTURE_TYPE = 0x01,
-    TAG_STRUCTURE_VERSION = 0x02,
-    TAG_ADDRESS = 0x22,
-    TAG_CHAIN_ID = 0x23,
-    TAG_HASH_SELECTOR = 0x40,
-    TAG_INTRO_MSG = 0x82,
-    TAG_TINY_URL = 0x83,
-    TAG_TX_TYPE = 0x84,
-    TAG_DER_SIGNATURE = 0x15,
-};
-
-enum {
-    BIT_STRUCTURE_TYPE,
-    BIT_STRUCTURE_VERSION,
-    BIT_ADDRESS,
-    BIT_CHAIN_ID,
-    BIT_HASH_SELECTOR,
-    BIT_INTRO_MSG,
-    BIT_TINY_URL,
-    BIT_TX_TYPE,
-    BIT_DER_SIGNATURE,
-};
-
 typedef enum {
     TX_TYPE_UNKNOWN,
     TX_TYPE_TRANSACTION,
@@ -93,9 +69,9 @@ typedef struct gating_s {
 typedef struct {
     gating_t *gating;
     uint8_t sig_size;
-    uint8_t *sig;
+    const uint8_t *sig;
     cx_sha256_t hash_ctx;
-    uint32_t rcv_flags;
+    TLV_reception_t received_tags;
 } s_gating_ctx;
 
 // Global structure to store the tx gating parameters
@@ -103,58 +79,16 @@ static gating_t *GATING = NULL;
 static nbgl_preludeDetails_t prelude_details = {0};
 static nbgl_genericDetails_t generic_details = {0};
 
-// Macros to check the field length
-#define CHECK_FIELD_LENGTH(tag, len, expected)  \
-    do {                                        \
-        if (len != expected) {                  \
-            PRINTF("%s Size mismatch!\n", tag); \
-            return SWO_INCORRECT_DATA;          \
-        }                                       \
-    } while (0)
-#define CHECK_FIELD_OVERFLOW(tag, field, len)   \
-    do {                                        \
-        if (len >= sizeof(field)) {             \
-            PRINTF("%s Size overflow!\n", tag); \
-            return SWO_INSUFFICIENT_MEMORY;     \
-        }                                       \
-    } while (0)
-
-// Macro to check the field value
-#define CHECK_FIELD_VALUE(tag, value, expected)  \
-    do {                                         \
-        if (value != expected) {                 \
-            PRINTF("%s Value mismatch!\n", tag); \
-            return SWO_INCORRECT_DATA;           \
-        }                                        \
-    } while (0)
-
-// Macro to check the field value
-#define CHECK_EMPTY_BUFFER(tag, field, len)   \
-    do {                                      \
-        if (memcmp(field, empty, len) == 0) { \
-            PRINTF("%s Zero buffer!\n", tag); \
-            return SWO_INCORRECT_DATA;        \
-        }                                     \
-    } while (0)
-
-// Macro to copy the field
-#define COPY_FIELD(field, data)                             \
-    do {                                                    \
-        memmove((void *) field, data->value, data->length); \
-    } while (0)
-
 /**
  * @brief Parse the STRUCTURE_TYPE value.
  *
  * @param[in] data the tlv data
  * @param[in] context Gating context
- * @return APDU Response code
+ * @return whether it was successful
  */
-static uint16_t parse_struct_type(const s_tlv_data *data, s_gating_ctx *context) {
-    CHECK_FIELD_LENGTH("STRUCTURE_TYPE", data->length, 1);
-    CHECK_FIELD_VALUE("STRUCTURE_TYPE", data->value[0], TYPE_GATED_SIGNING);
-    context->rcv_flags |= SET_BIT(BIT_STRUCTURE_TYPE);
-    return SWO_SUCCESS;
+static bool parse_struct_type(const tlv_data_t *data, s_gating_ctx *context) {
+    UNUSED(context);
+    return tlv_check_struct_type(data, TYPE_GATED_SIGNING);
 }
 
 /**
@@ -162,13 +96,11 @@ static uint16_t parse_struct_type(const s_tlv_data *data, s_gating_ctx *context)
  *
  * @param[in] data the tlv data
  * @param[in] context Gating context
- * @return APDU Response code
+ * @return whether it was successful
  */
-static uint16_t parse_struct_version(const s_tlv_data *data, s_gating_ctx *context) {
-    CHECK_FIELD_LENGTH("STRUCTURE_VERSION", data->length, 1);
-    CHECK_FIELD_VALUE("STRUCTURE_VERSION", data->value[0], STRUCT_VERSION);
-    context->rcv_flags |= SET_BIT(BIT_STRUCTURE_VERSION);
-    return SWO_SUCCESS;
+static bool parse_struct_version(const tlv_data_t *data, s_gating_ctx *context) {
+    UNUSED(context);
+    return tlv_check_struct_version(data, STRUCT_VERSION);
 }
 
 /**
@@ -176,22 +108,16 @@ static uint16_t parse_struct_version(const s_tlv_data *data, s_gating_ctx *conte
  *
  * @param[in] data the tlv data
  * @param[in] context Gating context
- * @return APDU Response code
+ * @return whether it was successful
  *
  * @note This field can be either
  *  - function selector (4 bytes for SignTX)
- *  - schema hash (for eip712)
+ *  - schema hash (32 bytes for eip712)
  */
-static uint16_t parse_hash_selector(const s_tlv_data *data, s_gating_ctx *context) {
-    uint8_t empty[HASH_SIZE] = {0};
-    if ((data->length != SELECTOR_SIZE) && (data->length != sizeof(eip712_context->schema_hash))) {
-        PRINTF("HASH_SELECTOR Size mismatch!\n");
-        return SWO_INCORRECT_DATA;
-    }
-    CHECK_EMPTY_BUFFER("HASH_SELECTOR", data->value, data->length);
-    COPY_FIELD(context->gating->hash_selector, data);
-    context->rcv_flags |= SET_BIT(BIT_HASH_SELECTOR);
-    return SWO_SUCCESS;
+static bool parse_hash_selector(const tlv_data_t *data, s_gating_ctx *context) {
+    return tlv_get_selector(data,
+                            (uint8_t *) context->gating->hash_selector,
+                            sizeof(context->gating->hash_selector));
 }
 
 /**
@@ -199,15 +125,10 @@ static uint16_t parse_hash_selector(const s_tlv_data *data, s_gating_ctx *contex
  *
  * @param[in] data the tlv data
  * @param[in] context Gating context
- * @return APDU Response code
+ * @return whether it was successful
  */
-static uint16_t parse_address(const s_tlv_data *data, s_gating_ctx *context) {
-    uint8_t empty[ADDRESS_LENGTH] = {0};
-    CHECK_FIELD_LENGTH("ADDRESS", data->length, ADDRESS_LENGTH);
-    CHECK_EMPTY_BUFFER("ADDRESS", data->value, data->length);
-    COPY_FIELD(context->gating->addr, data);
-    context->rcv_flags |= SET_BIT(BIT_ADDRESS);
-    return SWO_SUCCESS;
+static bool parse_address(const tlv_data_t *data, s_gating_ctx *context) {
+    return tlv_get_address(data, (uint8_t *) context->gating->addr, true);
 }
 
 /**
@@ -215,26 +136,10 @@ static uint16_t parse_address(const s_tlv_data *data, s_gating_ctx *context) {
  *
  * @param[in] data the tlv data
  * @param[in] context Gating context
- * @return APDU Response code
+ * @return whether it was successful
  */
-static uint16_t parse_chain_id(const s_tlv_data *data, s_gating_ctx *context) {
-    uint64_t chain_id;
-    uint64_t max_range;
-
-    CHECK_FIELD_LENGTH("CHAIN_ID", data->length, sizeof(uint64_t));
-    // Check if the chain ID is supported
-    // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2294.md
-    max_range = 0x7FFFFFFFFFFFFFDB;
-    chain_id = u64_from_BE(data->value, data->length);
-    // Check if the chain_id is supported
-    if ((chain_id > max_range) || (chain_id == 0)) {
-        PRINTF("Unsupported chain ID: %llu\n", chain_id);
-        return SWO_INCORRECT_DATA;
-    }
-
-    context->gating->chain_id = chain_id;
-    context->rcv_flags |= SET_BIT(BIT_CHAIN_ID);
-    return SWO_SUCCESS;
+static bool parse_chain_id(const tlv_data_t *data, s_gating_ctx *context) {
+    return tlv_get_chain_id(data, &context->gating->chain_id);
 }
 
 /**
@@ -242,18 +147,17 @@ static uint16_t parse_chain_id(const s_tlv_data *data, s_gating_ctx *context) {
  *
  * @param[in] data the tlv data
  * @param[in] context Gating context
- * @return APDU Response code
+ * @return whether it was successful
  */
-static uint16_t parse_intro_msg(const s_tlv_data *data, s_gating_ctx *context) {
-    CHECK_FIELD_OVERFLOW("INTRO_MSG", context->gating->intro_msg, data->length);
-    // Check if the name is printable
-    if (!is_printable((const char *) data->value, data->length)) {
-        PRINTF("INTRO_MSG is not printable!\n");
-        return SWO_INCORRECT_DATA;
+static bool parse_intro_msg(const tlv_data_t *data, s_gating_ctx *context) {
+    if (!tlv_get_printable_string(data,
+                                  (char *) context->gating->intro_msg,
+                                  0,
+                                  sizeof(context->gating->intro_msg))) {
+        PRINTF("INTRO_MSG: error\n");
+        return false;
     }
-    COPY_FIELD(context->gating->intro_msg, data);
-    context->rcv_flags |= SET_BIT(BIT_INTRO_MSG);
-    return SWO_SUCCESS;
+    return true;
 }
 
 /**
@@ -261,18 +165,17 @@ static uint16_t parse_intro_msg(const s_tlv_data *data, s_gating_ctx *context) {
  *
  * @param[in] data the tlv data
  * @param[in] context Gating context
- * @return APDU Response code
+ * @return whether it was successful
  */
-static uint16_t parse_tiny_url(const s_tlv_data *data, s_gating_ctx *context) {
-    CHECK_FIELD_OVERFLOW("TINY_URL", context->gating->tiny_url, data->length);
-    // Check if the name is printable
-    if (!is_printable((const char *) data->value, data->length)) {
-        PRINTF("TINY_URL is not printable!\n");
-        return SWO_INCORRECT_DATA;
+static bool parse_tiny_url(const tlv_data_t *data, s_gating_ctx *context) {
+    if (!tlv_get_printable_string(data,
+                                  (char *) context->gating->tiny_url,
+                                  0,
+                                  sizeof(context->gating->tiny_url))) {
+        PRINTF("TINY_URL: error\n");
+        return false;
     }
-    COPY_FIELD(context->gating->tiny_url, data);
-    context->rcv_flags |= SET_BIT(BIT_TINY_URL);
-    return SWO_SUCCESS;
+    return true;
 }
 
 /**
@@ -280,17 +183,16 @@ static uint16_t parse_tiny_url(const s_tlv_data *data, s_gating_ctx *context) {
  *
  * @param[in] data the tlv data
  * @param[in] context Gating context
- * @return APDU Response code
+ * @return whether it was successful
  */
-static uint16_t parse_type(const s_tlv_data *data, s_gating_ctx *context) {
-    CHECK_FIELD_LENGTH("TX_TYPE", data->length, sizeof(context->gating->type));
-    if (data->value[0] >= TX_TYPE_TYPED_DATA) {
-        PRINTF("TX_TYPE out of range: %d\n", data->value[0]);
-        return SWO_INCORRECT_DATA;
+static bool parse_type(const tlv_data_t *data, s_gating_ctx *context) {
+    uint8_t value = 0;
+    if (!tlv_get_uint8(data, &value, 0, TX_TYPE_TYPED_DATA - 1)) {
+        PRINTF("TX_TYPE: error\n");
+        return false;
     }
-    context->gating->type = data->value[0] + 1;  // Because 0 is "unknown"
-    context->rcv_flags |= SET_BIT(BIT_TX_TYPE);
-    return SWO_SUCCESS;
+    context->gating->type = value + 1;  // Because 0 is "unknown"
+    return true;
 }
 
 /**
@@ -298,13 +200,52 @@ static uint16_t parse_type(const s_tlv_data *data, s_gating_ctx *context) {
  *
  * @param[in] data the tlv data
  * @param[in] context Gating context
- * @return APDU Response code
+ * @return whether it was successful
  */
-static uint16_t parse_signature(const s_tlv_data *data, s_gating_ctx *context) {
-    context->sig_size = data->length;
-    context->sig = (uint8_t *) data->value;
-    context->rcv_flags |= SET_BIT(BIT_DER_SIGNATURE);
-    return SWO_SUCCESS;
+static bool parse_signature(const tlv_data_t *data, s_gating_ctx *context) {
+    buffer_t sig = {0};
+    if (!get_buffer_from_tlv_data(data,
+                                  &sig,
+                                  ECDSA_SIGNATURE_MIN_LENGTH,
+                                  ECDSA_SIGNATURE_MAX_LENGTH)) {
+        PRINTF("SIGNATURE: failed to extract\n");
+        return false;
+    }
+    context->sig_size = sig.size;
+    context->sig = sig.ptr;
+    return true;
+}
+
+// Define TLV tags for Gating
+#define GATING_TAGS(X)                                                       \
+    X(0x01, TAG_STRUCTURE_TYPE, parse_struct_type, ENFORCE_UNIQUE_TAG)       \
+    X(0x02, TAG_STRUCTURE_VERSION, parse_struct_version, ENFORCE_UNIQUE_TAG) \
+    X(0x22, TAG_ADDRESS, parse_address, ENFORCE_UNIQUE_TAG)                  \
+    X(0x23, TAG_CHAIN_ID, parse_chain_id, ENFORCE_UNIQUE_TAG)                \
+    X(0x40, TAG_HASH_SELECTOR, parse_hash_selector, ENFORCE_UNIQUE_TAG)      \
+    X(0x82, TAG_INTRO_MSG, parse_intro_msg, ENFORCE_UNIQUE_TAG)              \
+    X(0x83, TAG_TINY_URL, parse_tiny_url, ENFORCE_UNIQUE_TAG)                \
+    X(0x84, TAG_TX_TYPE, parse_type, ENFORCE_UNIQUE_TAG)                     \
+    X(0x15, TAG_DER_SIGNATURE, parse_signature, ENFORCE_UNIQUE_TAG)
+
+// Forward declaration
+static bool gating_common_handler(const tlv_data_t *data, s_gating_ctx *context);
+
+// Generate TLV parser for Gating
+DEFINE_TLV_PARSER(GATING_TAGS, &gating_common_handler, gating_tlv_parser)
+
+/**
+ * @brief Common handler called for all tags to hash them (except signature).
+ *
+ * @param[in] data the TLV data
+ * @param[out] context Gating context
+ * @return whether it was successful
+ */
+static bool gating_common_handler(const tlv_data_t *data, s_gating_ctx *context) {
+    if (data->tag != TAG_DER_SIGNATURE) {
+        hash_nbytes(data->raw.ptr, data->raw.size, (cx_hash_t *) &context->hash_ctx);
+    }
+    return true;
 }
 
 /**
@@ -326,7 +267,7 @@ static bool verify_signature(s_gating_ctx *context) {
     if (check_signature_with_pubkey(hash,
                                     sizeof(hash),
                                     CERTIFICATE_PUBLIC_KEY_USAGE_GATED_SIGNING,
-                                    (uint8_t *) (context->sig),
+                                    (uint8_t *) context->sig,
                                     context->sig_size) != true) {
         return false;
     }
@@ -342,26 +283,36 @@ static bool verify_signature(s_gating_ctx *context) {
  * @return whether it was successful
  */
 static bool verify_fields(s_gating_ctx *context) {
-    uint32_t expected_fields;
-
-    expected_fields = (1 << BIT_STRUCTURE_TYPE) | (1 << BIT_STRUCTURE_VERSION) |
-                      (1 << BIT_TX_TYPE) | (1 << BIT_ADDRESS) | (1 << BIT_INTRO_MSG) |
-                      (1 << BIT_TINY_URL) | (1 << BIT_DER_SIGNATURE);
+    // Common required tags for all types
+    if (!TLV_CHECK_RECEIVED_TAGS(context->received_tags,
+                                 TAG_STRUCTURE_TYPE,
+                                 TAG_STRUCTURE_VERSION,
+                                 TAG_TX_TYPE,
+                                 TAG_ADDRESS,
+                                 TAG_INTRO_MSG,
+                                 TAG_TINY_URL,
+                                 TAG_DER_SIGNATURE)) {
+        return false;
+    }
 
     switch (context->gating->type) {
         case TX_TYPE_TRANSACTION:
             // For SignTx, we expect the chain ID
-            expected_fields |= (1 << BIT_CHAIN_ID);
+            if (!TLV_CHECK_RECEIVED_TAGS(context->received_tags, TAG_CHAIN_ID)) {
+                return false;
+            }
             break;
         case TX_TYPE_TYPED_DATA:
             // For EIP-712, we expect the schema hash
-            expected_fields |= (1 << BIT_HASH_SELECTOR);
+            if (!TLV_CHECK_RECEIVED_TAGS(context->received_tags, TAG_HASH_SELECTOR)) {
+                return false;
+            }
             break;
         default:
             break;
     }
 
-    return ((context->rcv_flags & expected_fields) == expected_fields);
+    return true;
 }
 
 /**
@@ -387,63 +338,12 @@ static void print_gating_info(s_gating_ctx *context) {
 }
 
 /**
- * @brief Parse the received TLV.
- *
- * @param[in] data the tlv data
- * @param[in] context Gating context
- * @return APDU Response code
- */
-static bool handle_gating_tlv(const s_tlv_data *data, s_gating_ctx *context) {
-    uint16_t sw = SWO_PARAMETER_ERROR_NO_INFO;
-
-    switch (data->tag) {
-        case TAG_STRUCTURE_TYPE:
-            sw = parse_struct_type(data, context);
-            break;
-        case TAG_STRUCTURE_VERSION:
-            sw = parse_struct_version(data, context);
-            break;
-        case TAG_CHAIN_ID:
-            sw = parse_chain_id(data, context);
-            break;
-        case TAG_ADDRESS:
-            sw = parse_address(data, context);
-            break;
-        case TAG_HASH_SELECTOR:
-            sw = parse_hash_selector(data, context);
-            break;
-        case TAG_TX_TYPE:
-            sw = parse_type(data, context);
-            break;
-        case TAG_INTRO_MSG:
-            sw = parse_intro_msg(data, context);
-            break;
-        case TAG_TINY_URL:
-            sw = parse_tiny_url(data, context);
-            break;
-        case TAG_DER_SIGNATURE:
-            sw = parse_signature(data, context);
-            break;
-        default:
-            PRINTF(TLV_TAG_ERROR_MSG, data->tag);
-            sw = SWO_SUCCESS;
-            break;
-    }
-    if ((sw == SWO_SUCCESS) && (data->tag != TAG_DER_SIGNATURE)) {
-        hash_nbytes(data->raw, data->raw_size, (cx_hash_t *) &context->hash_ctx);
-    }
-    return (sw == SWO_SUCCESS);
-}
-
-/**
  * @brief Parse the TLV payload containing the TX Gating parameters.
  *
- * @param[in] payload buffer received
- * @param[in] size of the buffer
+ * @param[in] buf buffer received
  * @return whether the TLV payload was handled successfully or not
  */
-static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
-    bool parsing_ret;
+static bool handle_tlv_payload(const buffer_t *buf) {
     s_gating_ctx ctx = {0};
 
     if (mem_buffer_allocate((void **) &GATING, sizeof(gating_t)) == false) {
@@ -452,17 +352,19 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
     }
     ctx.gating = GATING;
 
-    // Reset the structures
-    explicit_bzero(GATING, sizeof(gating_t));
     // Initialize the hash context
     cx_sha256_init(&ctx.hash_ctx);
 
-    parsing_ret = tlv_parse(payload, size, (f_tlv_data_handler) &handle_gating_tlv, &ctx);
-    if (!parsing_ret || !verify_fields(&ctx) || !verify_signature(&ctx)) {
+    if (!gating_tlv_parser(buf, &ctx, &ctx.received_tags)) {
         explicit_bzero(GATING, sizeof(gating_t));
-        explicit_bzero(&ctx, sizeof(s_gating_ctx));
         return false;
     }
+
+    if (!verify_fields(&ctx) || !verify_signature(&ctx)) {
+        explicit_bzero(GATING, sizeof(gating_t));
+        return false;
+    }
+
     print_gating_info(&ctx);
     return true;
 }
@@ -488,7 +390,7 @@ uint16_t handle_gating(uint8_t p1, uint8_t p2, const uint8_t *data, uint8_t leng
             }
             break;
         default:
-            PRINTF("Error: Unexpected P1 (%u)!\n", p1);
+            PRINTF("Error: Unexpected P2 (%u)!\n", p2);
             sw = SWO_WRONG_P1_P2;
             break;
     }

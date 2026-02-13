@@ -35,7 +35,11 @@ static bool handle_delegate_addr(const tlv_data_t *data, s_auth_7702_ctx *contex
  * @return whether the handling was successful
  */
 static bool handle_chain_id(const tlv_data_t *data, s_auth_7702_ctx *context) {
-    return tlv_get_chain_id(data, &context->auth_7702.chainId);
+    if (!get_uint64_t_from_tlv_data(data, &context->auth_7702.chainId)) {
+        PRINTF("CHAIN_ID: failed to extract\n");
+        return false;
+    }
+    return true;
 }
 
 /**

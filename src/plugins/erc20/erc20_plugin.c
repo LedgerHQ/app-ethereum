@@ -103,8 +103,13 @@ void erc20_plugin_call(eth_plugin_msg_t message, void *parameters) {
                         memmove(context->extra_data + extra_data_offset,
                                 msg->parameter,
                                 CALLDATA_CHUNK_SIZE);
-                        context->extra_data_len += msg->parameter_size;
-                        msg->result = ETH_PLUGIN_RESULT_OK;
+                        if (msg->parameter_size <= CALLDATA_CHUNK_SIZE) {
+                            context->extra_data_len += msg->parameter_size;
+                            msg->result = ETH_PLUGIN_RESULT_OK;
+                        } else {
+                            PRINTF("Error: wrong parameter size!\n");
+                            msg->result = ETH_PLUGIN_RESULT_ERROR;
+                        }
                     } else {
                         PRINTF("Extra data too long to buffer\n");
                         context->extra_data_len = 0;

@@ -659,7 +659,7 @@ bool verify_trusted_name_struct(const s_trusted_name_ctx *context) {
             return false;
     }
 
-    size_t name_length = strlen(context->trusted_name.name);
+    size_t name_length = strnlen(context->trusted_name.name, sizeof(context->trusted_name.name));
     if ((context->trusted_name.struct_version == 1) ||
         ((context->trusted_name.name_type == TN_TYPE_ACCOUNT) &&
          (context->trusted_name.name_source == TN_SOURCE_ENS))) {

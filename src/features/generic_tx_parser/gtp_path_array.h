@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "tlv.h"
+#include "buffer.h"
 
 typedef struct {
     uint8_t weight;
@@ -16,4 +16,4 @@ typedef struct {
     s_array_args *args;
 } s_path_array_context;
 
-bool handle_array_struct(const s_tlv_data *data, s_path_array_context *context);
+bool handle_array_struct(const buffer_t *buf, s_path_array_context *context);

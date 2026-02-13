@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include "common_utils.h"
 #include "gtp_value.h"
-#include "tlv.h"
+#include "buffer.h"
 
 #define MAX_NATIVE_ADDRS 4
 
@@ -19,5 +19,5 @@ typedef struct {
     s_param_token *param;
 } s_param_token_context;
 
-bool handle_param_token_struct(const s_tlv_data *data, s_param_token_context *context);
+bool handle_param_token_struct(const buffer_t *buf, s_param_token_context *context);
 bool format_param_token(const s_param_token *param, const char *name);

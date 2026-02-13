@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "tlv.h"
+#include "buffer.h"
 
 typedef struct {
     bool has_start;
@@ -15,4 +15,4 @@ typedef struct {
     s_slice_args *args;
 } s_path_slice_context;
 
-bool handle_slice_struct(const s_tlv_data *data, s_path_slice_context *context);
+bool handle_slice_struct(const buffer_t *buf, s_path_slice_context *context);

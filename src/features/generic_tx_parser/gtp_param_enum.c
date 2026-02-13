@@ -5,55 +5,35 @@
 #include "calldata.h"
 #include "shared_context.h"
 #include "tx_ctx.h"
+#include "tlv_library.h"
+#include "tlv_apdu.h"
 
-enum {
-    TAG_VERSION = 0x00,
-    TAG_ID = 0x01,
-    TAG_VALUE = 0x02,
-};
+#define PARAM_ENUM_TAGS(X)                                   \
+    X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG) \
+    X(0x01, TAG_ID, handle_id, ENFORCE_UNIQUE_TAG)           \
+    X(0x02, TAG_VALUE, handle_value, ENFORCE_UNIQUE_TAG)
 
-static bool handle_version(const s_tlv_data *data, s_param_enum_context *context) {
-    if (data->length != sizeof(context->param->version)) {
-        return false;
-    }
-    context->param->version = data->value[0];
-    return true;
+static bool handle_version(const tlv_data_t *data, s_param_enum_context *context) {
+    return tlv_get_uint8(data, &context->param->version, 0, UINT8_MAX);
 }
 
-static bool handle_id(const s_tlv_data *data, s_param_enum_context *context) {
-    if (data->length != sizeof(context->param->id)) {
-        return false;
-    }
-    context->param->id = data->value[0];
-    return true;
+static bool handle_id(const tlv_data_t *data, s_param_enum_context *context) {
+    return tlv_get_uint8(data, &context->param->id, 0, UINT8_MAX);
 }
 
-static bool handle_value(const s_tlv_data *data, s_param_enum_context *context) {
+static bool handle_value(const tlv_data_t *data, s_param_enum_context *context) {
     s_value_context ctx = {0};
 
     ctx.value = &context->param->value;
     explicit_bzero(ctx.value, sizeof(*ctx.value));
-    return tlv_parse(data->value, data->length, (f_tlv_data_handler) &handle_value_struct, &ctx);
+    return handle_value_struct(&data->value, &ctx);
 }
 
-bool handle_param_enum_struct(const s_tlv_data *data, s_param_enum_context *context) {
-    bool ret;
+DEFINE_TLV_PARSER(PARAM_ENUM_TAGS, NULL, param_enum_tlv_parser)
 
-    switch (data->tag) {
-        case TAG_VERSION:
-            ret = handle_version(data, context);
-            break;
-        case TAG_ID:
-            ret = handle_id(data, context);
-            break;
-        case TAG_VALUE:
-            ret = handle_value(data, context);
-            break;
-        default:
-            PRINTF(TLV_TAG_ERROR_MSG, data->tag);
-            ret = false;
-    }
-    return ret;
+bool handle_param_enum_struct(const buffer_t *buf, s_param_enum_context *context) {
+    TLV_reception_t received_tags;
+    return param_enum_tlv_parser(buf, context, &received_tags);
 }
 
 bool format_param_enum(const s_param_enum *param, const char *name) {

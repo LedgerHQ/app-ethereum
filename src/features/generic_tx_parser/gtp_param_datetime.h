@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "tlv.h"
+#include "buffer.h"
 #include "gtp_value.h"
 
 typedef enum {
@@ -20,5 +20,5 @@ typedef struct {
     s_param_datetime *param;
 } s_param_datetime_context;
 
-bool handle_param_datetime_struct(const s_tlv_data *data, s_param_datetime_context *context);
+bool handle_param_datetime_struct(const buffer_t *buf, s_param_datetime_context *context);
 bool format_param_datetime(const s_param_datetime *param, const char *name);

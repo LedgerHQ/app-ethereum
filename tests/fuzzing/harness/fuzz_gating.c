@@ -26,5 +26,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 
     fuzzGating(data, size);
 
+    // Clean up global state to avoid memory leaks
+    clear_gating();
+
     return 0;
 }

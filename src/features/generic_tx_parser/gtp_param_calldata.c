@@ -7,6 +7,7 @@
 #include "utils.h"
 #include "read.h"
 #include "tx_ctx.h"
+#include "mem.h"
 
 enum {
     TAG_VERSION = 0x00,
@@ -146,8 +147,11 @@ static bool process_nested_calldata(const s_param_calldata *param,
             calldata_length = calldata->length - CALLDATA_SELECTOR_SIZE;
         }
 
-        if (((new_calldata = calldata_init(calldata_length, selector_buf)) == NULL) ||
-            !calldata_append(new_calldata, calldata_buf, calldata_length)) {
+        if ((new_calldata = calldata_init(calldata_length, selector_buf)) == NULL) {
+            return false;
+        }
+        if (!calldata_append(new_calldata, calldata_buf, calldata_length)) {
+            app_mem_free(new_calldata);
             return false;
         }
     }

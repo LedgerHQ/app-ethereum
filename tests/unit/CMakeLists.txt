@@ -82,6 +82,7 @@ include_directories(
   ${APP_DIR}/features/provide_trusted_name
   ${APP_DIR}/features/getPublicKey
   ${APP_DIR}/features/signTx
+  ${APP_DIR}/features/getChallenge
   ${APP_DIR}/nbgl
   ${MOCK_DIR}
   ${BOLOS_SDK}/io/include
@@ -89,6 +90,8 @@ include_directories(
   ${BOLOS_SDK}/lib_nbgl/include
   ${BOLOS_SDK}/lib_lists
   ${BOLOS_SDK}/lib_standard_app
+  ${BOLOS_SDK}/lib_tlv
+  ${BOLOS_SDK}/lib_alloc
   ${BOLOS_SDK}/include
   ${LIBBSD_INCLUDE_DIRS}
 )
@@ -98,10 +101,18 @@ add_executable(test_param_network
   ${SRC_DIR}/test_param_network.c
   ${APP_DIR}/features/generic_tx_parser/gtp_value.c
   ${APP_DIR}/features/generic_tx_parser/gtp_param_network.c
+  ${APP_DIR}/tlv_apdu.c
+  ${APP_DIR}/mem_utils.c
+  ${APP_DIR}/utils.c
   ${PLUGIN_DIR}/common_utils.c
   ${MOCK_DIR}/mock.c
   ${BOLOS_SDK}/lib_standard_app/format.c
+  ${BOLOS_SDK}/lib_standard_app/read.c
+  ${BOLOS_SDK}/lib_tlv/tlv_library.c
 )
+
+# Disable pedantic warnings for SDK's tlv_library.c (function pointer to void* conversions)
+set_source_files_properties(${BOLOS_SDK}/lib_tlv/tlv_library.c PROPERTIES COMPILE_FLAGS "-Wno-pedantic")
 
 target_compile_definitions(test_param_network PRIVATE
   HAVE_HASH
@@ -126,11 +137,18 @@ add_executable(test_param_trusted_name
   ${SRC_DIR}/test_param_trusted_name.c
   ${APP_DIR}/features/generic_tx_parser/gtp_value.c
   ${APP_DIR}/features/generic_tx_parser/gtp_param_trusted_name.c
+  ${APP_DIR}/tlv_apdu.c
+  ${APP_DIR}/mem_utils.c
   ${APP_DIR}/utils.c
   ${PLUGIN_DIR}/common_utils.c
   ${MOCK_DIR}/mock.c
   ${BOLOS_SDK}/lib_standard_app/format.c
+  ${BOLOS_SDK}/lib_standard_app/read.c
+  ${BOLOS_SDK}/lib_tlv/tlv_library.c
 )
+
+# Disable pedantic warnings for SDK's tlv_library.c
+set_source_files_properties(${BOLOS_SDK}/lib_tlv/tlv_library.c PROPERTIES COMPILE_FLAGS "-Wno-pedantic")
 
 # Add arraylen.h to the include path before other includes
 target_include_directories(test_param_trusted_name BEFORE PRIVATE ${MOCK_DIR})
@@ -159,6 +177,8 @@ add_executable(test_param_raw
   ${SRC_DIR}/test_param_raw.c
   ${APP_DIR}/features/generic_tx_parser/gtp_value.c
   ${APP_DIR}/features/generic_tx_parser/gtp_param_raw.c
+  ${APP_DIR}/tlv_apdu.c
+  ${APP_DIR}/mem_utils.c
   ${APP_DIR}/uint256.c
   ${APP_DIR}/uint128.c
   ${APP_DIR}/uint_common.c
@@ -169,6 +189,7 @@ add_executable(test_param_raw
   ${BOLOS_SDK}/lib_standard_app/read.c
   ${BOLOS_SDK}/lib_standard_app/write.c
   ${BOLOS_SDK}/src/os_printf.c
+  ${BOLOS_SDK}/lib_tlv/tlv_library.c
 )
 
 # Disable -Wformat warnings for gtp_param_raw.c (uses BOLOS_SDK specific %.*h format)
@@ -201,6 +222,7 @@ add_test(test_param_raw test_param_raw)
 add_executable(test_field_validation
   ${SRC_DIR}/test_field_validation.c
   ${APP_DIR}/features/generic_tx_parser/gtp_field.c
+  ${APP_DIR}/tlv_apdu.c
   ${APP_DIR}/mem_utils.c
   ${BOLOS_SDK}/lib_lists/lists.c
   ${APP_DIR}/utils.c
@@ -208,8 +230,17 @@ add_executable(test_field_validation
   ${MOCK_DIR}/mock.c
   ${MOCK_DIR}/field_validation_mocks.c
   ${BOLOS_SDK}/lib_standard_app/format.c
+  ${BOLOS_SDK}/lib_standard_app/read.c
+  ${BOLOS_SDK}/lib_tlv/tlv_library.c
 )
 
+# Disable pedantic warnings for SDK's tlv_library.c
+set_source_files_properties(${BOLOS_SDK}/lib_tlv/tlv_library.c PROPERTIES COMPILE_FLAGS "-Wno-pedantic")
+# Disable -Wformat warnings for gtp_param_raw.c (uses BOLOS_SDK specific %.*h format)
+set_source_files_properties(
+  ${APP_DIR}/features/generic_tx_parser/gtp_param_raw.c
+  PROPERTIES COMPILE_FLAGS "-Wno-format -Wno-format-extra-args"
+)
 target_compile_definitions(test_field_validation PRIVATE
   HAVE_HASH
   HAVE_SHA256

@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "tlv.h"
+#include "buffer.h"
 #include "gtp_data_path.h"
 #include "calldata.h"
 
@@ -51,6 +51,6 @@ typedef struct {
     s_value *value;
 } s_value_context;
 
-bool handle_value_struct(const s_tlv_data *data, s_value_context *context);
+bool handle_value_struct(const buffer_t *buf, s_value_context *context);
 bool value_get(const s_value *value, s_parsed_value_collection *collection);
 void value_cleanup(const s_value *value, const s_parsed_value_collection *collection);

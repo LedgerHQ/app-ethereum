@@ -5,7 +5,7 @@
 #include "cx.h"
 #include "common_utils.h"  // ADDRESS_LENGTH, INT256_LENGTH
 #include "calldata.h"
-#include "tlv.h"
+#include "buffer.h"
 #include "signature.h"
 #include "lists.h"
 #include "gtp_field.h"
@@ -29,11 +29,11 @@ typedef struct {
 
 typedef struct {
     cx_sha256_t struct_hash;
-    uint16_t set_flags;
     s_tx_info *tx_info;
+    TLV_reception_t received_tags;
 } s_tx_info_ctx;
 
-bool handle_tx_info_struct(const s_tlv_data *data, s_tx_info_ctx *context);
+bool handle_tx_info_struct(const buffer_t *buf, s_tx_info_ctx *context);
 bool verify_tx_info_struct(const s_tx_info_ctx *context);
 
 const char *get_operation_type(const s_tx_info *tx_info);

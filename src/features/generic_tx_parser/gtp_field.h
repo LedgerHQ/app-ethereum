@@ -2,7 +2,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "tlv.h"
+#include "buffer.h"
 #include "gtp_param_raw.h"
 #include "gtp_param_amount.h"
 #include "gtp_param_token_amount.h"
@@ -71,10 +71,10 @@ typedef struct s_field {
 
 typedef struct {
     s_field *field;
-    uint8_t set_flags;
+    TLV_reception_t received_tags;
 } s_field_ctx;
 
-bool handle_field_struct(const s_tlv_data *data, s_field_ctx *context);
+bool handle_field_struct(const buffer_t *buf, s_field_ctx *context);
 bool verify_field_struct(const s_field_ctx *context);
 bool format_field(s_field *field);
 void cleanup_field_constraints(s_field *field);

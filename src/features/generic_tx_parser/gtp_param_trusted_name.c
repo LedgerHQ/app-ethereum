@@ -1,4 +1,5 @@
 #include "gtp_param_trusted_name.h"
+#include "tlv_library.h"
 #include "gtp_field.h"
 #include "network.h"
 #include "trusted_name.h"
@@ -8,87 +9,63 @@
 #include "getPublicKey.h"
 #include "apdu_constants.h"
 #include "tx_ctx.h"
+#include "tlv_apdu.h"
 
-enum {
-    TAG_VERSION = 0x00,
-    TAG_VALUE = 0x01,
-    TAG_TYPES = 0x02,
-    TAG_SOURCES = 0x03,
-    TAG_SENDER_ADDR = 0x04,
-};
+#define PARAM_TRUSTED_NAME_TAGS(X)                           \
+    X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG) \
+    X(0x01, TAG_VALUE, handle_value, ENFORCE_UNIQUE_TAG)     \
+    X(0x02, TAG_TYPES, handle_types, ENFORCE_UNIQUE_TAG)     \
+    X(0x03, TAG_SOURCES, handle_sources, ENFORCE_UNIQUE_TAG) \
+    X(0x04, TAG_SENDER_ADDR, handle_sender_addr, ALLOW_MULTIPLE_TAG)
 
-static bool handle_version(const s_tlv_data *data, s_param_trusted_name_context *context) {
-    if (data->length != sizeof(context->param->version)) {
-        return false;
-    }
-    context->param->version = data->value[0];
-    return true;
+static bool handle_version(const tlv_data_t *data, s_param_trusted_name_context *context) {
+    return tlv_get_uint8(data, &context->param->version, 0, UINT8_MAX);
 }
 
-static bool handle_value(const s_tlv_data *data, s_param_trusted_name_context *context) {
+static bool handle_value(const tlv_data_t *data, s_param_trusted_name_context *context) {
     s_value_context ctx = {0};
 
     ctx.value = &context->param->value;
     explicit_bzero(ctx.value, sizeof(*ctx.value));
-    return tlv_parse(data->value, data->length, (f_tlv_data_handler) &handle_value_struct, &ctx);
+    return handle_value_struct(&data->value, &ctx);
 }
 
-static bool handle_types(const s_tlv_data *data, s_param_trusted_name_context *context) {
-    if (data->length > sizeof(context->param->types)) {
+static bool handle_types(const tlv_data_t *data, s_param_trusted_name_context *context) {
+    if (data->value.size > sizeof(context->param->types)) {
         return false;
     }
-    memcpy(context->param->types, data->value, data->length);
-    context->param->type_count = data->length;
+    memcpy(context->param->types, data->value.ptr, data->value.size);
+    context->param->type_count = data->value.size;
     return true;
 }
 
-static bool handle_sources(const s_tlv_data *data, s_param_trusted_name_context *context) {
-    if (data->length > sizeof(context->param->sources)) {
+static bool handle_sources(const tlv_data_t *data, s_param_trusted_name_context *context) {
+    if (data->value.size > sizeof(context->param->sources)) {
         return false;
     }
-    memcpy(context->param->sources, data->value, data->length);
-    context->param->source_count = data->length;
+    memcpy(context->param->sources, data->value.ptr, data->value.size);
+    context->param->source_count = data->value.size;
     return true;
 }
 
-static bool handle_sender_addr(const s_tlv_data *data, s_param_trusted_name_context *context) {
-    if ((data->length > sizeof(context->param->sender_addr)) ||
+static bool handle_sender_addr(const tlv_data_t *data, s_param_trusted_name_context *context) {
+    if ((data->value.size > sizeof(context->param->sender_addr)) ||
         (context->param->sender_addr_count == ARRAYLEN(context->param->sender_addr))) {
         return false;
     }
-    buf_shrink_expand(data->value,
-                      data->length,
+    buf_shrink_expand(data->value.ptr,
+                      data->value.size,
                       context->param->sender_addr[context->param->sender_addr_count],
                       sizeof(context->param->sender_addr[context->param->sender_addr_count]));
     context->param->sender_addr_count += 1;
     return true;
 }
 
-bool handle_param_trusted_name_struct(const s_tlv_data *data,
-                                      s_param_trusted_name_context *context) {
-    bool ret;
+DEFINE_TLV_PARSER(PARAM_TRUSTED_NAME_TAGS, NULL, param_trusted_name_tlv_parser)
 
-    switch (data->tag) {
-        case TAG_VERSION:
-            ret = handle_version(data, context);
-            break;
-        case TAG_VALUE:
-            ret = handle_value(data, context);
-            break;
-        case TAG_TYPES:
-            ret = handle_types(data, context);
-            break;
-        case TAG_SOURCES:
-            ret = handle_sources(data, context);
-            break;
-        case TAG_SENDER_ADDR:
-            ret = handle_sender_addr(data, context);
-            break;
-        default:
-            PRINTF(TLV_TAG_ERROR_MSG, data->tag);
-            ret = false;
-    }
-    return ret;
+bool handle_param_trusted_name_struct(const buffer_t *buf, s_param_trusted_name_context *context) {
+    TLV_reception_t received_tags;
+    return param_trusted_name_tlv_parser(buf, context, &received_tags);
 }
 
 /**

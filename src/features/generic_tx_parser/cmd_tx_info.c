@@ -3,27 +3,30 @@
 #include "cx.h"
 #include "apdu_constants.h"
 #include "mem.h"
+#include "mem_utils.h"
 #include "gtp_tx_info.h"
-#include "tlv.h"
 #include "tlv_apdu.h"
 #include "tx_ctx.h"
 
-static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
+static bool handle_tlv_payload(const buffer_t *buf) {
     s_tx_info_ctx ctx = {0};
-    bool parsing_ret;
 
-    if ((ctx.tx_info = app_mem_alloc(sizeof(*ctx.tx_info))) == NULL) {
+    if (mem_buffer_allocate((void **) &ctx.tx_info, sizeof(*ctx.tx_info)) == false) {
         return false;
     }
-    explicit_bzero(ctx.tx_info, sizeof(*ctx.tx_info));
     cx_sha256_init(&ctx.struct_hash);
-    parsing_ret = tlv_parse(payload, size, (f_tlv_data_handler) &handle_tx_info_struct, &ctx);
-    if (!parsing_ret || !verify_tx_info_struct(&ctx)) {
+    if (!handle_tx_info_struct(buf, &ctx)) {
+        app_mem_free(ctx.tx_info);
+        return false;
+    }
+    if (!verify_tx_info_struct(&ctx)) {
+        app_mem_free(ctx.tx_info);
         return false;
     }
     if (!find_matching_tx_ctx(ctx.tx_info->contract_addr,
                               ctx.tx_info->selector,
                               &ctx.tx_info->chain_id)) {
+        app_mem_free(ctx.tx_info);
         return false;
     }
     return process_empty_txs_before() && set_tx_info_into_tx_ctx(ctx.tx_info);

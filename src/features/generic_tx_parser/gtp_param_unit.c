@@ -1,50 +1,43 @@
 #include "gtp_param_unit.h"
 #include "gtp_field_table.h"
 #include "shared_context.h"
+#include "tlv_library.h"
+#include "tlv_apdu.h"
 
-enum {
-    TAG_VERSION = 0x00,
-    TAG_VALUE = 0x01,
-    TAG_BASE = 0x02,
-    TAG_DECIMALS = 0x03,
-    TAG_PREFIX = 0x04,
-};
+#define PARAM_UNIT_TAGS(X)                                     \
+    X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG)   \
+    X(0x01, TAG_VALUE, handle_value, ENFORCE_UNIQUE_TAG)       \
+    X(0x02, TAG_BASE, handle_base, ENFORCE_UNIQUE_TAG)         \
+    X(0x03, TAG_DECIMALS, handle_decimals, ENFORCE_UNIQUE_TAG) \
+    X(0x04, TAG_PREFIX, handle_prefix, ENFORCE_UNIQUE_TAG)
 
-static bool handle_version(const s_tlv_data *data, s_param_unit_context *context) {
-    if (data->length != sizeof(context->param->version)) {
-        return false;
-    }
-    context->param->version = data->value[0];
-    return true;
+static bool handle_version(const tlv_data_t *data, s_param_unit_context *context) {
+    return tlv_get_uint8(data, &context->param->version, 0, UINT8_MAX);
 }
 
-static bool handle_value(const s_tlv_data *data, s_param_unit_context *context) {
+static bool handle_value(const tlv_data_t *data, s_param_unit_context *context) {
     s_value_context ctx = {0};
 
     ctx.value = &context->param->value;
     explicit_bzero(ctx.value, sizeof(*ctx.value));
-    return tlv_parse(data->value, data->length, (f_tlv_data_handler) &handle_value_struct, &ctx);
+    return handle_value_struct(&data->value, &ctx);
 }
 
-static bool handle_base(const s_tlv_data *data, s_param_unit_context *context) {
-    if (data->length >= sizeof(context->param->base)) {
+static bool handle_base(const tlv_data_t *data, s_param_unit_context *context) {
+    if (data->value.size >= sizeof(context->param->base)) {
         return false;
     }
-    memcpy(context->param->base, data->value, data->length);
-    context->param->base[data->length] = '\0';
+    memcpy(context->param->base, data->value.ptr, data->value.size);
+    context->param->base[data->value.size] = '\0';
     return true;
 }
 
-static bool handle_decimals(const s_tlv_data *data, s_param_unit_context *context) {
-    if (data->length != sizeof(context->param->decimals)) {
-        return false;
-    }
-    context->param->decimals = data->value[0];
-    return true;
+static bool handle_decimals(const tlv_data_t *data, s_param_unit_context *context) {
+    return tlv_get_uint8(data, &context->param->decimals, 0, UINT8_MAX);
 }
 
-static bool handle_prefix(const s_tlv_data *data, s_param_unit_context *context) {
-    if (data->length != sizeof(bool)) {
+static bool handle_prefix(const tlv_data_t *data, s_param_unit_context *context) {
+    if (data->value.size != sizeof(bool)) {
         return false;
     }
     (void) context;
@@ -52,30 +45,11 @@ static bool handle_prefix(const s_tlv_data *data, s_param_unit_context *context)
     return true;
 }
 
-bool handle_param_unit_struct(const s_tlv_data *data, s_param_unit_context *context) {
-    bool ret;
+DEFINE_TLV_PARSER(PARAM_UNIT_TAGS, NULL, param_unit_tlv_parser)
 
-    switch (data->tag) {
-        case TAG_VERSION:
-            ret = handle_version(data, context);
-            break;
-        case TAG_VALUE:
-            ret = handle_value(data, context);
-            break;
-        case TAG_BASE:
-            ret = handle_base(data, context);
-            break;
-        case TAG_DECIMALS:
-            ret = handle_decimals(data, context);
-            break;
-        case TAG_PREFIX:
-            ret = handle_prefix(data, context);
-            break;
-        default:
-            PRINTF(TLV_TAG_ERROR_MSG, data->tag);
-            ret = false;
-    }
-    return ret;
+bool handle_param_unit_struct(const buffer_t *buf, s_param_unit_context *context) {
+    TLV_reception_t received_tags;
+    return param_unit_tlv_parser(buf, context, &received_tags);
 }
 
 bool format_param_unit(const s_param_unit *param, const char *name) {

@@ -13,7 +13,7 @@
 #include <stdbool.h>
 #include "common_utils.h"
 #include "gtp_value.h"
-#include "tlv.h"
+#include "buffer.h"
 
 /**
  * @brief Network parameter structure
@@ -34,5 +34,5 @@ typedef struct {
     s_param_network *param; /**< Pointer to the network parameter being parsed */
 } s_param_network_context;
 
-bool handle_param_network_struct(const s_tlv_data *data, s_param_network_context *context);
+bool handle_param_network_struct(const buffer_t *buf, s_param_network_context *context);
 bool format_param_network(const s_param_network *param, const char *name);

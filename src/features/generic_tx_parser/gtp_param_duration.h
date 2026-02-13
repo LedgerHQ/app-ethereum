@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "tlv.h"
+#include "buffer.h"
 #include "gtp_value.h"
 
 typedef struct {
@@ -14,5 +14,5 @@ typedef struct {
     s_param_duration *param;
 } s_param_duration_context;
 
-bool handle_param_duration_struct(const s_tlv_data *data, s_param_duration_context *context);
+bool handle_param_duration_struct(const buffer_t *buf, s_param_duration_context *context);
 bool format_param_duration(const s_param_duration *param, const char *name);

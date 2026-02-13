@@ -7,43 +7,30 @@
 #include "gtp_field_table.h"
 #include "utils.h"
 #include "shared_context.h"
+#include "tlv_library.h"
+#include "tlv_apdu.h"
 
-enum {
-    TAG_VERSION = 0x00,
-    TAG_VALUE = 0x01,
-};
+#define PARAM_RAW_TAGS(X)                                    \
+    X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG) \
+    X(0x01, TAG_VALUE, handle_value, ENFORCE_UNIQUE_TAG)
 
-static bool handle_version(const s_tlv_data *data, s_param_raw_context *context) {
-    if (data->length != sizeof(context->param->version)) {
-        return false;
-    }
-    context->param->version = data->value[0];
-    return true;
+static bool handle_version(const tlv_data_t *data, s_param_raw_context *context) {
+    return tlv_get_uint8(data, &context->param->version, 0, UINT8_MAX);
 }
 
-static bool handle_value(const s_tlv_data *data, s_param_raw_context *context) {
+static bool handle_value(const tlv_data_t *data, s_param_raw_context *context) {
     s_value_context ctx = {0};
 
     ctx.value = &context->param->value;
     explicit_bzero(ctx.value, sizeof(*ctx.value));
-    return tlv_parse(data->value, data->length, (f_tlv_data_handler) &handle_value_struct, &ctx);
+    return handle_value_struct(&data->value, &ctx);
 }
 
-bool handle_param_raw_struct(const s_tlv_data *data, s_param_raw_context *context) {
-    bool ret;
+DEFINE_TLV_PARSER(PARAM_RAW_TAGS, NULL, param_raw_tlv_parser)
 
-    switch (data->tag) {
-        case TAG_VERSION:
-            ret = handle_version(data, context);
-            break;
-        case TAG_VALUE:
-            ret = handle_value(data, context);
-            break;
-        default:
-            PRINTF(TLV_TAG_ERROR_MSG, data->tag);
-            ret = false;
-    }
-    return ret;
+bool handle_param_raw_struct(const buffer_t *buf, s_param_raw_context *context) {
+    TLV_reception_t received_tags;
+    return param_raw_tlv_parser(buf, context, &received_tags);
 }
 
 /**
@@ -294,11 +281,6 @@ bool format_param_raw(const s_field *field) {
     char *buf = strings.tmp.tmp;
     size_t buf_size = sizeof(strings.tmp.tmp);
     bool to_be_displayed = true;
-
-    if (field->visibility >= PARAM_VISIBILITY_MAX) {
-        PRINTF("Error: Unsupported visibility (%u)\n", field->visibility);
-        return false;
-    }
 
     ret = value_get(&field->param_raw.value, &collec);
     if (ret) {

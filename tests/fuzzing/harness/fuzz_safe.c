@@ -3,7 +3,8 @@
 #include "safe_descriptor.h"
 
 int fuzzSafeCmd(const uint8_t *data, size_t size) {
-    handle_safe_tlv_payload(data, size);
+    buffer_t buf = {.ptr = (uint8_t *) data, .size = size, .offset = 0};
+    handle_safe_tlv_payload(&buf);
     return 0;
 }
 
@@ -16,7 +17,8 @@ int fuzzSignerCmd(const uint8_t *data, size_t size) {
         .role = data[2] % 2,
     };
     SAFE_DESC = &desc;
-    handle_signer_tlv_payload(data + 3, size - 3);
+    buffer_t buf = {.ptr = (uint8_t *) data + 3, .size = size - 3, .offset = 0};
+    handle_signer_tlv_payload(&buf);
     SAFE_DESC = NULL;
     return 0;
 }

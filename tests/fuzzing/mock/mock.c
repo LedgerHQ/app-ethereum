@@ -40,21 +40,6 @@ const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_
     return NULL;
 }
 
-mem_ctx_t mem_init(void *heap_start, size_t heap_size) {
-    (void) heap_size;
-    return heap_start;
-}
-
-void *mem_alloc(mem_ctx_t ctx, size_t nb_bytes) {
-    (void) ctx;
-    return malloc(nb_bytes);
-}
-
-void mem_free(mem_ctx_t ctx, void *ptr) {
-    (void) ctx;
-    free(ptr);
-}
-
 // APPs expect a specific length
 cx_err_t cx_ecdomain_parameters_length(cx_curve_t cv, size_t *length) {
     (void) cv;

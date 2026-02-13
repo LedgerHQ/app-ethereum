@@ -2,6 +2,15 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
+#include "tlv_library.h"
+#include "buffer.h"
+#include "read.h"
+
+// PIC function for SDK's tlv_library.c (identity function in test environment)
+void *pic(void *addr) {
+    return addr;
+}
 
 void assert_exit(bool confirm) {
     (void) confirm;
@@ -68,6 +77,73 @@ const uint8_t *get_current_tx_from(void) {
 
 const uint8_t *get_current_tx_info(void) {
     return NULL;
+}
+
+bool check_challenge(uint32_t received_challenge) {
+    (void) received_challenge;
+    return true;  // Always accept challenge in tests
+}
+
+// Memory management mocks - SDK lib_alloc compatible
+static void *test_heap = NULL;
+static size_t test_heap_size = 0;
+
+bool mem_utils_init(void *heap_start, size_t heap_size) {
+    test_heap = heap_start;
+    test_heap_size = heap_size;
+    return true;
+}
+
+void *mem_utils_alloc(size_t size, bool permanent, const char *file, int line) {
+    (void) permanent;
+    (void) file;
+    (void) line;
+    return malloc(size);
+}
+
+void *mem_utils_realloc(void *ptr, size_t size, const char *file, int line) {
+    (void) file;
+    (void) line;
+    return realloc(ptr, size);
+}
+
+void mem_utils_free(void *ptr, const char *file, int line) {
+    (void) file;
+    (void) line;
+    free(ptr);
+}
+
+void mem_utils_free_and_null(void **buffer, const char *file, int line) {
+    (void) file;
+    (void) line;
+    if (*buffer != NULL) {
+        free(*buffer);
+        *buffer = NULL;
+    }
+}
+
+char *mem_utils_strdup(const char *s, const char *file, int line) {
+    (void) file;
+    (void) line;
+    return strdup(s);
+}
+
+bool mem_utils_calloc(void **buffer, uint16_t size, bool permanent, const char *file, int line) {
+    (void) permanent;
+    (void) file;
+    (void) line;
+    if (*buffer != NULL) {
+        free(*buffer);
+    }
+    if (size == 0) {
+        *buffer = NULL;
+        return true;
+    }
+    if ((*buffer = malloc(size)) == NULL) {
+        return false;
+    }
+    memset(*buffer, 0, size);
+    return true;
 }
 
 const uint8_t *get_current_tx_amount(void) {

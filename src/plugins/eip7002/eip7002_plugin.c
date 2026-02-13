@@ -37,9 +37,15 @@ static void eip7002_plugin_init_contract(ethPluginInitContract_t *param) {
     eip7002_context_t *context = (eip7002_context_t *) param->pluginContext;
 
     explicit_bzero(context, sizeof(*context));
-    memcpy(&context->withdrawal_request[context->received], param->selector, SELECTOR_SIZE);
-    context->received += SELECTOR_SIZE;
-    param->result = ETH_PLUGIN_RESULT_OK;
+    if ((context->received + CALLDATA_SELECTOR_SIZE) > sizeof(context->withdrawal_request)) {
+        param->result = ETH_PLUGIN_RESULT_ERROR;
+    } else {
+        memcpy(&context->withdrawal_request[context->received],
+               param->selector,
+               CALLDATA_SELECTOR_SIZE);
+        context->received += CALLDATA_SELECTOR_SIZE;
+        param->result = ETH_PLUGIN_RESULT_OK;
+    }
 }
 
 static void eip7002_plugin_provider_parameter(ethPluginProvideParameter_t *param) {
@@ -47,12 +53,13 @@ static void eip7002_plugin_provider_parameter(ethPluginProvideParameter_t *param
 
     if ((context->received + param->parameter_size) > sizeof(context->withdrawal_request)) {
         param->result = ETH_PLUGIN_RESULT_ERROR;
+    } else {
+        memcpy(&context->withdrawal_request[context->received],
+               param->parameter,
+               param->parameter_size);
+        context->received += param->parameter_size;
+        param->result = ETH_PLUGIN_RESULT_OK;
     }
-    memcpy(&context->withdrawal_request[context->received],
-           param->parameter,
-           param->parameter_size);
-    context->received += param->parameter_size;
-    param->result = ETH_PLUGIN_RESULT_OK;
 }
 
 static void eip7002_plugin_finalize(ethPluginFinalize_t *param) {
@@ -84,6 +91,9 @@ static void eip7002_plugin_query_contract_ui(ethQueryContractUI_t *param) {
 
     switch (param->screenIndex) {
         case 0:
+            if (param->msgLength < 2) {
+                return;
+            }
             strlcpy(param->title, "Validator", param->titleLength);
             memcpy(param->msg, "0x", 2);
             format_hex(context->validator_pubkey,
@@ -110,23 +120,25 @@ static void eip7002_plugin_query_contract_ui(ethQueryContractUI_t *param) {
 }
 
 void eip7002_plugin_call(eth_plugin_msg_t msg, void *param) {
-    switch (msg) {
-        case ETH_PLUGIN_INIT_CONTRACT:
-            eip7002_plugin_init_contract(param);
-            break;
-        case ETH_PLUGIN_PROVIDE_PARAMETER:
-            eip7002_plugin_provider_parameter(param);
-            break;
-        case ETH_PLUGIN_FINALIZE:
-            eip7002_plugin_finalize(param);
-            break;
-        case ETH_PLUGIN_QUERY_CONTRACT_ID:
-            eip7002_plugin_query_contract_id(param);
-            break;
-        case ETH_PLUGIN_QUERY_CONTRACT_UI:
-            eip7002_plugin_query_contract_ui(param);
-            break;
-        default:
-            PRINTF("Unhandled message 0x%x\n", msg);
+    if (param != NULL) {
+        switch (msg) {
+            case ETH_PLUGIN_INIT_CONTRACT:
+                eip7002_plugin_init_contract(param);
+                break;
+            case ETH_PLUGIN_PROVIDE_PARAMETER:
+                eip7002_plugin_provider_parameter(param);
+                break;
+            case ETH_PLUGIN_FINALIZE:
+                eip7002_plugin_finalize(param);
+                break;
+            case ETH_PLUGIN_QUERY_CONTRACT_ID:
+                eip7002_plugin_query_contract_id(param);
+                break;
+            case ETH_PLUGIN_QUERY_CONTRACT_UI:
+                eip7002_plugin_query_contract_ui(param);
+                break;
+            default:
+                PRINTF("Unhandled message 0x%x\n", msg);
+        }
     }
 }

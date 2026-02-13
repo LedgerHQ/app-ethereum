@@ -39,6 +39,9 @@ typedef struct eth2_deposit_parameters_t {
 } eth2_deposit_parameters_t;
 
 void eth2_plugin_call(eth_plugin_msg_t message, void *parameters) {
+    if (parameters == NULL) {
+        return;
+    }
     switch (message) {
         case ETH_PLUGIN_INIT_CONTRACT: {
             ethPluginInitContract_t *msg = (ethPluginInitContract_t *) parameters;
@@ -51,6 +54,7 @@ void eth2_plugin_call(eth_plugin_msg_t message, void *parameters) {
             ethPluginProvideParameter_t *msg = (ethPluginProvideParameter_t *) parameters;
             eth2_deposit_parameters_t *context = (eth2_deposit_parameters_t *) msg->pluginContext;
             uint32_t index;
+
             PRINTF("eth2 plugin provide parameter %d %.*H\n",
                    msg->parameterOffset,
                    32,

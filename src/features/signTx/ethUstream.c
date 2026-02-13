@@ -175,7 +175,9 @@ static bool processChainID(txContext_t *context) {
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
             MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
-        if (copyTxData(context, context->content->chainID.value, copySize) == false) {
+        if (copyTxData(context,
+                       context->content->chainID.value + context->currentFieldPos,
+                       copySize) == false) {
             return false;
         }
     }
@@ -195,7 +197,9 @@ static bool processNonce(txContext_t *context) {
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
             MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
-        if (copyTxData(context, context->content->nonce.value, copySize) == false) {
+        if (copyTxData(context,
+                       context->content->nonce.value + context->currentFieldPos,
+                       copySize) == false) {
             return false;
         }
     }

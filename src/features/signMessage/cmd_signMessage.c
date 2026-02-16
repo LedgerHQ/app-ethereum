@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include "app_mem_utils.h"
 #include "apdu_constants.h"
 #include "sign_message.h"
 #include "common_ui.h"
@@ -26,7 +27,7 @@ static const char SIGN_MAGIC[] =
  */
 static void set_idle(void) {
     message_cleanup();
-    mem_buffer_cleanup((void **) &g_msg_hash_ctx);
+    APP_MEM_FREE_AND_NULL((void **) &g_msg_hash_ctx);
     ui_idle();
 }
 
@@ -55,7 +56,7 @@ static uint16_t first_apdu_data(uint8_t **data, uint8_t *length) {
         return SWO_INCORRECT_DATA;
     }
 
-    if (mem_buffer_allocate((void **) &signMsgCtx, sizeof(signMsgCtx_t)) == false) {
+    if (APP_MEM_CALLOC((void **) &signMsgCtx, sizeof(signMsgCtx_t)) == false) {
         PRINTF("Memory allocation failed for Sign Context\n");
         return SWO_INSUFFICIENT_MEMORY;
     }
@@ -64,8 +65,7 @@ static uint16_t first_apdu_data(uint8_t **data, uint8_t *length) {
     signMsgCtx->msg_length = U4BE(*data, 0);
 
     // Allocate the buffer for the message
-    if (mem_buffer_allocate((void **) &(signMsgCtx->received_buffer), signMsgCtx->msg_length) ==
-        false) {
+    if (APP_MEM_CALLOC((void **) &(signMsgCtx->received_buffer), signMsgCtx->msg_length) == false) {
         PRINTF("Error: Not enough memory!\n");
         return SWO_INSUFFICIENT_MEMORY;
     }
@@ -74,7 +74,7 @@ static uint16_t first_apdu_data(uint8_t **data, uint8_t *length) {
     *data += sizeof(uint32_t);
     *length -= sizeof(uint32_t);
 
-    if (mem_buffer_allocate((void **) &g_msg_hash_ctx, sizeof(cx_sha3_t)) == false) {
+    if (APP_MEM_CALLOC((void **) &g_msg_hash_ctx, sizeof(cx_sha3_t)) == false) {
         PRINTF("Memory allocation failed for Sign Hash\n");
         return SWO_INSUFFICIENT_MEMORY;
     }
@@ -161,7 +161,7 @@ static uint16_t final_process(void) {
     }
     // Allocate the buffer for the display
     buffer_length++;  // for the NULL byte
-    if (mem_buffer_allocate((void **) &(signMsgCtx->display_buffer), buffer_length) == false) {
+    if (APP_MEM_CALLOC((void **) &(signMsgCtx->display_buffer), buffer_length) == false) {
         PRINTF("Error: Not enough memory!\n");
         error = SWO_INSUFFICIENT_MEMORY;
         goto end;
@@ -198,7 +198,7 @@ static uint16_t final_process(void) {
 
     error = SWO_SUCCESS;
 end:
-    mem_buffer_cleanup((void **) &g_msg_hash_ctx);
+    APP_MEM_FREE_AND_NULL((void **) &g_msg_hash_ctx);
     return error;
 }
 
@@ -280,8 +280,8 @@ uint16_t handleSignPersonalMessage(uint8_t p1,
  */
 void message_cleanup(void) {
     if (signMsgCtx != NULL) {
-        mem_buffer_cleanup((void **) &signMsgCtx->received_buffer);
-        mem_buffer_cleanup((void **) &signMsgCtx->display_buffer);
+        APP_MEM_FREE_AND_NULL((void **) &signMsgCtx->received_buffer);
+        APP_MEM_FREE_AND_NULL((void **) &signMsgCtx->display_buffer);
     }
-    mem_buffer_cleanup((void **) &signMsgCtx);
+    APP_MEM_FREE_AND_NULL((void **) &signMsgCtx);
 }

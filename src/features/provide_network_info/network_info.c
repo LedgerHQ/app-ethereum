@@ -1,4 +1,5 @@
 #include "network_info.h"
+#include "app_mem_utils.h"
 #include "network_icon.h"
 #include "utils.h"
 #include "read.h"
@@ -277,14 +278,14 @@ static bool append_network_info(const s_network_info_ctx *context) {
         // Remove from list and cleanup
         const uint8_t *bitmap = existing->icon.bitmap;
         if (bitmap != NULL) {
-            mem_buffer_cleanup((void **) &bitmap);
+            APP_MEM_FREE_AND_NULL((void **) &bitmap);
         }
         flist_remove(&g_dynamic_network_list, (flist_node_t *) existing, NULL);
-        mem_buffer_cleanup((void **) &existing);
+        APP_MEM_FREE_AND_NULL((void **) &existing);
     }
     // Do not track the allocation in logs, because this buffer is expected to stay allocated
     network_info_t *new_network = NULL;
-    if (mem_buffer_persistent((void **) &new_network, sizeof(network_info_t)) == false) {
+    if (APP_MEM_PERMANENT((void **) &new_network, sizeof(network_info_t)) == false) {
         PRINTF("Memory allocation failed for network info\n");
         return false;
     }
@@ -314,7 +315,7 @@ static bool prepare_network_icon(const s_network_info_ctx *context) {
         return true;
     }
     // Store the expected icon hash for later verification when the icon bitmap is received
-    if (mem_buffer_allocate((void **) &g_network_icon_hash, CX_SHA256_SIZE) == false) {
+    if (APP_MEM_CALLOC((void **) &g_network_icon_hash, CX_SHA256_SIZE) == false) {
         PRINTF("Memory allocation failed for icon hash\n");
         return false;
     }
@@ -384,10 +385,10 @@ void network_info_cleanup(network_info_t *network) {
             // Free the icon bitmap if allocated
             const uint8_t *bitmap = net_info->icon.bitmap;
             if (bitmap != NULL) {
-                mem_buffer_cleanup((void **) &bitmap);
+                APP_MEM_FREE_AND_NULL((void **) &bitmap);
             }
             // Free the network info structure
-            mem_buffer_cleanup((void **) &net_info);
+            APP_MEM_FREE_AND_NULL((void **) &net_info);
             node = next;
         }
         g_dynamic_network_list = NULL;
@@ -400,14 +401,14 @@ void network_info_cleanup(network_info_t *network) {
         // Free the icon bitmap if allocated
         const uint8_t *bitmap = network->icon.bitmap;
         if (bitmap != NULL) {
-            mem_buffer_cleanup((void **) &bitmap);
+            APP_MEM_FREE_AND_NULL((void **) &bitmap);
         }
 
         // Remove from list
         flist_remove(&g_dynamic_network_list, (flist_node_t *) network, NULL);
 
         // Free the network info structure
-        mem_buffer_cleanup((void **) &network);
+        APP_MEM_FREE_AND_NULL((void **) &network);
 
         // Reset last added network pointer if it was this network
         if (g_last_added_network == network) {

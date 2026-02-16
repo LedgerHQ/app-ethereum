@@ -2,7 +2,8 @@
 #include "shared_context.h"
 #include "cmd_setPlugin.h"
 #include "nbgl_use_case.h"
-#include "mem.h"
+#include "app_mem_utils.h"
+#include "mem_utils.h"
 
 // Standard or crosschain swap type
 swap_mode_t G_swap_mode;
@@ -124,7 +125,7 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
     G_swap_mode = swap_mode;
 
     app_mem_init();
-    if ((G_swap_crosschain_hash = app_mem_alloc(CX_SHA256_SIZE)) == NULL) {
+    if ((G_swap_crosschain_hash = APP_MEM_ALLOC(CX_SHA256_SIZE)) == NULL) {
         PRINTF("Memory allocation failed for G_swap_crosschain_hash\n");
         return false;
     }
@@ -134,7 +135,7 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
 }
 
 void __attribute__((noreturn)) swap_finalize_exchange_sign_transaction(bool is_success) {
-    app_mem_free(G_swap_crosschain_hash);
+    APP_MEM_FREE(G_swap_crosschain_hash);
     G_swap_crosschain_hash = NULL;
     // *G_swap_signing_return_value_address position is arbitrary in eth memory
     *G_swap_signing_return_value_address = is_success;

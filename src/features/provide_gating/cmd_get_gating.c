@@ -19,6 +19,7 @@
 #ifdef HAVE_GATING_SUPPORT
 
 #include "cmd_get_gating.h"
+#include "app_mem_utils.h"
 #include "apdu_constants.h"
 #include "hash_bytes.h"
 #include "public_keys.h"
@@ -346,7 +347,10 @@ static void print_gating_info(s_gating_ctx *context) {
 static bool handle_tlv_payload(const buffer_t *buf) {
     s_gating_ctx ctx = {0};
 
-    if (mem_buffer_allocate((void **) &GATING, sizeof(gating_t)) == false) {
+    // Free any previously allocated GATING to avoid memory leak
+    APP_MEM_FREE(GATING);
+
+    if (APP_MEM_CALLOC((void **) &GATING, sizeof(gating_t)) == false) {
         PRINTF("Error: Not enough memory!\n");
         return false;
     }
@@ -356,12 +360,12 @@ static bool handle_tlv_payload(const buffer_t *buf) {
     cx_sha256_init(&ctx.hash_ctx);
 
     if (!gating_tlv_parser(buf, &ctx, &ctx.received_tags)) {
-        explicit_bzero(GATING, sizeof(gating_t));
+        APP_MEM_FREE_AND_NULL((void **) &GATING);
         return false;
     }
 
     if (!verify_fields(&ctx) || !verify_signature(&ctx)) {
-        explicit_bzero(GATING, sizeof(gating_t));
+        APP_MEM_FREE_AND_NULL((void **) &GATING);
         return false;
     }
 
@@ -402,7 +406,7 @@ uint16_t handle_gating(uint8_t p1, uint8_t p2, const uint8_t *data, uint8_t leng
  *
  */
 void clear_gating(void) {
-    mem_buffer_cleanup((void **) &GATING);
+    APP_MEM_FREE_AND_NULL((void **) &GATING);
 }
 
 /**

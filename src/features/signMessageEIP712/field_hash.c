@@ -2,7 +2,7 @@
 #include "field_hash.h"
 #include "encode_field.h"
 #include "path.h"
-#include "mem.h"
+#include "app_mem_utils.h"
 #include "mem_utils.h"
 #include "ui_logic.h"
 #include "context_712.h"     // contract_addr
@@ -25,11 +25,10 @@ bool field_hash_init(void) {
         return false;
     }
 
-    if ((fh = app_mem_alloc(sizeof(*fh))) == NULL) {
+    if (APP_MEM_CALLOC((void **) &fh, sizeof(*fh)) == false) {
         apdu_response_code = SWO_INSUFFICIENT_MEMORY;
         return false;
     }
-    explicit_bzero(fh, sizeof(*fh));
     fh->state = FHS_IDLE;
     return true;
 }
@@ -38,8 +37,7 @@ bool field_hash_init(void) {
  * Deinitialize the field hash context
  */
 void field_hash_deinit(void) {
-    app_mem_free(fh);
-    fh = NULL;
+    APP_MEM_FREE_AND_NULL((void **) &fh);
 }
 
 /**
@@ -116,7 +114,7 @@ static const uint8_t *field_hash_finalize_static(const s_struct_712_field *field
 static uint8_t *field_hash_finalize_dynamic(void) {
     uint8_t *value;
 
-    if ((value = app_mem_alloc(KECCAK256_HASH_BYTESIZE)) == NULL) {
+    if ((value = APP_MEM_ALLOC(KECCAK256_HASH_BYTESIZE)) == NULL) {
         apdu_response_code = SWO_INSUFFICIENT_MEMORY;
         return NULL;
     }
@@ -150,7 +148,7 @@ static void field_hash_feed_parent(e_type field_type, const uint8_t *hash) {
         hash_nbytes(hash, len, (cx_hash_t *) &hash_ctx->hash);
     }
     // deallocate it
-    app_mem_free((void *) hash);
+    APP_MEM_FREE((void *) hash);
 }
 
 /**

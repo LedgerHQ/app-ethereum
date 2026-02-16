@@ -2,8 +2,7 @@
 #include "sol_typenames.h"
 #include "apdu_constants.h"  // APDU response codes
 #include "context_712.h"
-#include "mem.h"
-#include "mem_utils.h"
+#include "app_mem_utils.h"
 
 static s_struct_712 *g_structs = NULL;
 
@@ -22,17 +21,17 @@ bool typed_data_init(void) {
 
 // to be used as a \ref f_list_node_del
 static void delete_field(s_struct_712_field *f) {
-    app_mem_free(f->type_name);
-    app_mem_free(f->array_levels);
-    app_mem_free(f->key_name);
-    app_mem_free(f);
+    APP_MEM_FREE(f->type_name);
+    APP_MEM_FREE(f->array_levels);
+    APP_MEM_FREE(f->key_name);
+    APP_MEM_FREE(f);
 }
 
 // to be used as a \ref f_list_node_del
 static void delete_struct(s_struct_712 *s) {
-    app_mem_free(s->name);
+    APP_MEM_FREE(s->name);
     flist_clear((flist_node_t **) &s->fields, (f_list_node_del) &delete_field);
-    app_mem_free(s);
+    APP_MEM_FREE(s);
 }
 
 void typed_data_deinit(void) {
@@ -101,13 +100,12 @@ bool set_struct_name(uint8_t length, const uint8_t *name) {
         return false;
     }
 
-    if ((new_struct = app_mem_alloc(sizeof(*new_struct))) == NULL) {
+    if (APP_MEM_CALLOC((void **) &new_struct, sizeof(*new_struct)) == false) {
         apdu_response_code = SWO_INSUFFICIENT_MEMORY;
         return false;
     }
-    explicit_bzero(new_struct, sizeof(*new_struct));
 
-    if ((new_struct->name = app_mem_alloc(length + 1)) == NULL) {
+    if ((new_struct->name = APP_MEM_ALLOC(length + 1)) == NULL) {
         apdu_response_code = SWO_INSUFFICIENT_MEMORY;
         return false;
     }
@@ -172,7 +170,7 @@ static bool set_struct_field_custom_typename(s_struct_712_field *field,
         apdu_response_code = SWO_INCORRECT_DATA;
         return false;
     }
-    if ((field->type_name = app_mem_alloc(typename_len + 1)) == NULL) {
+    if ((field->type_name = APP_MEM_ALLOC(typename_len + 1)) == NULL) {
         apdu_response_code = SWO_INSUFFICIENT_MEMORY;
         return false;
     }
@@ -201,7 +199,7 @@ static bool set_struct_field_array(s_struct_712_field *field,
     }
     field->array_level_count = data[(*data_idx)++];
     if ((field->array_levels =
-             app_mem_alloc(sizeof(*field->array_levels) * field->array_level_count)) == NULL) {
+             APP_MEM_ALLOC(sizeof(*field->array_levels) * field->array_level_count)) == NULL) {
         return false;
     }
     for (int idx = 0; idx < field->array_level_count; ++idx) {
@@ -281,7 +279,7 @@ static bool set_struct_field_keyname(s_struct_712_field *field,
         return false;
     }
 
-    if ((field->key_name = app_mem_alloc(keyname_len + 1)) == NULL) {
+    if ((field->key_name = APP_MEM_ALLOC(keyname_len + 1)) == NULL) {
         apdu_response_code = SWO_INSUFFICIENT_MEMORY;
         return false;
     }
@@ -314,8 +312,11 @@ bool set_struct_field(uint8_t length, const uint8_t *data) {
         return false;
     }
 
-    s_struct_712_field *new_field = app_mem_alloc(sizeof(*new_field));
-    explicit_bzero(new_field, sizeof(*new_field));
+    s_struct_712_field *new_field = NULL;
+    if (APP_MEM_CALLOC((void **) &new_field, sizeof(*new_field)) == false) {
+        apdu_response_code = SWO_INSUFFICIENT_MEMORY;
+        return false;
+    }
 
     if (!set_struct_field_typedesc(new_field, data, &data_idx, length)) {
         return false;

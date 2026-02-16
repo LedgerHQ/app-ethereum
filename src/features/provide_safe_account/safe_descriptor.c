@@ -1,7 +1,7 @@
 #include "safe_descriptor.h"
 #include "challenge.h"
 #include "hash_bytes.h"
-#include "mem.h"
+#include "app_mem_utils.h"
 #include "mem_utils.h"
 #include "public_keys.h"
 #include "signature.h"
@@ -272,7 +272,7 @@ bool handle_safe_tlv_payload(const buffer_t *payload) {
     s_safe_ctx ctx = {0};
 
     // Init the structure
-    if (!mem_buffer_allocate((void **) &SAFE_DESC, sizeof(safe_descriptor_t))) {
+    if (!APP_MEM_CALLOC((void **) &SAFE_DESC, sizeof(safe_descriptor_t))) {
         PRINTF("Error: Memory allocation failed for Safe Descriptor!\n");
         return false;
     }
@@ -296,6 +296,5 @@ bool handle_safe_tlv_payload(const buffer_t *payload) {
  *
  */
 void clear_safe_descriptor(void) {
-    app_mem_free(SAFE_DESC);
-    SAFE_DESC = NULL;
+    APP_MEM_FREE_AND_NULL((void **) &SAFE_DESC);
 }

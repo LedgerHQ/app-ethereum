@@ -3,7 +3,7 @@
 #include "network_info.h"
 #include "write.h"
 #include "tlv_apdu.h"
-#include "mem_utils.h"
+#include "app_mem_utils.h"
 #include "ui_utils.h"
 
 #define P2_NETWORK_CONFIG 0x00
@@ -114,7 +114,7 @@ static bool parse_icon_buffer(void) {
         return false;
     }
     // Free the icon bitmap hash buffer
-    mem_buffer_cleanup((void **) &g_network_icon_hash);
+    APP_MEM_FREE_AND_NULL((void **) &g_network_icon_hash);
 
     // Transfer the icon bitmap buffer to the network (ownership transfer)
     // The network takes ownership of the persistent buffer
@@ -151,7 +151,7 @@ static uint16_t handle_first_icon_chunk(const buffer_t *buf) {
     }
 
     // Do not track the allocation in logs, because this buffer is expected to stay allocated
-    if (mem_buffer_persistent((void **) &g_icon_bitmap, img_len) == false) {
+    if (APP_MEM_PERMANENT((void **) &g_icon_bitmap, img_len) == false) {
         PRINTF("Error: Not enough memory for icon bitmap!\n");
         return SWO_INSUFFICIENT_MEMORY;
     }
@@ -236,6 +236,6 @@ uint16_t handle_network_icon_chunks(uint8_t p1, const buffer_t *buf) {
  *
  */
 void clear_icon(void) {
-    mem_buffer_cleanup((void **) &g_icon_bitmap);
-    mem_buffer_cleanup((void **) &g_network_icon_hash);
+    APP_MEM_FREE_AND_NULL((void **) &g_icon_bitmap);
+    APP_MEM_FREE_AND_NULL((void **) &g_network_icon_hash);
 }

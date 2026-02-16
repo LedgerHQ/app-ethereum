@@ -2,7 +2,7 @@
 #include "public_keys.h"
 #include "utils.h"
 #include "ui_utils.h"
-#include "mem.h"
+#include "app_mem_utils.h"
 #include "proxy_info.h"
 #include "hash_bytes.h"
 #include "tlv_apdu.h"
@@ -226,7 +226,7 @@ bool verify_enum_value_struct(const s_enum_value_ctx *context) {
         return false;
     }
 
-    if ((entry = app_mem_alloc(sizeof(*entry))) == NULL) {
+    if ((entry = APP_MEM_ALLOC(sizeof(*entry))) == NULL) {
         PRINTF("Error: Not enough memory!\n");
         return false;
     }
@@ -276,7 +276,7 @@ const s_enum_value_entry *get_matching_enum(const uint64_t *chain_id,
 }
 
 static void delete_enum_value(s_enum_value_entry *node) {
-    app_mem_free(node);
+    APP_MEM_FREE(node);
 }
 
 void enum_value_cleanup(void) {

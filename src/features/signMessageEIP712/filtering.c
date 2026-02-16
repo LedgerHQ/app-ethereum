@@ -12,7 +12,7 @@
 #include "os_pki.h"
 #include "trusted_name.h"
 #include "proxy_info.h"
-#include "mem.h"
+#include "app_mem_utils.h"
 #include "getPublicKey.h"
 
 #define FILT_MAGIC_MESSAGE_INFO      183
@@ -791,11 +791,10 @@ bool filtering_calldata_info(const uint8_t *payload, uint8_t length) {
     if (!sig_verif_end(&hash_ctx, sig, sig_len)) {
         return false;
     }
-    if ((calldata_info = app_mem_alloc(sizeof(*calldata_info))) == NULL) {
+    if (APP_MEM_CALLOC((void **) &calldata_info, sizeof(*calldata_info)) == false) {
         return false;
     }
 
-    explicit_bzero(calldata_info, sizeof(*calldata_info));
     calldata_info->index = index;
 
     calldata_info->value_state = CALLDATA_INFO_PARAM_UNSET;

@@ -5,8 +5,6 @@
 #include "apdu_constants.h"  // SWO_SUCCESS
 #include "getPublicKey.h"
 #include "gtp_parsed_value.h"
-#include "mem.h"
-#include "mem_utils.h"
 #include "ui_utils.h"
 #include "tx_ctx.h"
 #include "tlv_library.h"

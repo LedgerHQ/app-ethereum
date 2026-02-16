@@ -1,4 +1,4 @@
-#include "mem.h"
+#include "app_mem_utils.h"
 #include "mem_utils.h"
 #include "type_hash.h"
 #include "format_hash_field_type.h"
@@ -107,11 +107,10 @@ static bool get_struct_dependencies(s_struct_dep **first_dep, const s_struct_712
             }
             // if it's not present in the array, add it and recurse into it
             if (tmp == NULL) {
-                if ((new_dep = app_mem_alloc(sizeof(s_struct_dep))) == NULL) {
+                if (APP_MEM_CALLOC((void **) &new_dep, sizeof(s_struct_dep)) == false) {
                     apdu_response_code = SWO_INSUFFICIENT_MEMORY;
                     return false;
                 }
-                explicit_bzero(new_dep, sizeof(*new_dep));
                 new_dep->s = arg_struct_ptr;
                 flist_push_back((flist_node_t **) first_dep, (flist_node_t *) new_dep);
                 // TODO: Move away from recursive calls
@@ -141,7 +140,7 @@ static bool compare_struct_deps(const s_struct_dep *a, const s_struct_dep *b) {
 
 // to be used as a \ref f_list_node_del
 static void delete_struct_dep(s_struct_dep *sdep) {
-    app_mem_free(sdep);
+    APP_MEM_FREE(sdep);
 }
 
 /**

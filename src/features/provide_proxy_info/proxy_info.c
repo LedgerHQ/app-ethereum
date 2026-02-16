@@ -3,7 +3,7 @@
 #include "challenge.h"
 #include "public_keys.h"
 #include "ui_utils.h"
-#include "mem_utils.h"
+#include "app_mem_utils.h"
 #include "hash_bytes.h"
 #include "tlv_apdu.h"
 
@@ -196,7 +196,7 @@ bool verify_proxy_info_struct(const s_proxy_info_ctx *context) {
                                     context->sig_size) != true) {
         return false;
     }
-    if (mem_buffer_allocate((void **) &g_proxy_info, sizeof(s_proxy_info)) == false) {
+    if (APP_MEM_CALLOC((void **) &g_proxy_info, sizeof(s_proxy_info)) == false) {
         PRINTF("Error: Not enough memory!\n");
         return false;
     }
@@ -273,5 +273,5 @@ const uint8_t *get_implem_contract(const uint64_t *chain_id,
 }
 
 void proxy_cleanup(void) {
-    mem_buffer_cleanup((void **) &g_proxy_info);
+    APP_MEM_FREE_AND_NULL((void **) &g_proxy_info);
 }

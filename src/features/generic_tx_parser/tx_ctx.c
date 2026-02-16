@@ -1,5 +1,5 @@
 #include "tx_ctx.h"
-#include "mem.h"
+#include "app_mem_utils.h"
 #include "gtp_field_table.h"
 #include "proxy_info.h"
 #include "common_ui.h"       // ui_gcs_cleanup
@@ -90,7 +90,7 @@ static void delete_tx_ctx(s_tx_ctx *node) {
     if (node->calldata != NULL) {
         calldata_delete(node->calldata);
     }
-    app_mem_free(node);
+    APP_MEM_FREE(node);
 }
 
 void tx_ctx_pop(void) {
@@ -248,17 +248,16 @@ bool tx_ctx_init(s_calldata *calldata,
     s_tx_ctx *node;
     s_eip712_calldata_info *calldata_info;
 
-    if ((node = app_mem_alloc(sizeof(*node))) == NULL) {
+    if (APP_MEM_CALLOC((void **) &node, sizeof(*node)) == false) {
         return false;
     }
-    explicit_bzero(node, sizeof(*node));
     node->calldata = calldata;
     if (get_tx_ctx_count() == 0) {
         get_public_key(node->from, ADDRESS_LENGTH);
         if (appState == APP_STATE_SIGNING_EIP712) {
             calldata_info = get_current_calldata_info();
             if (!calldata_info_all_received(calldata_info) || calldata_info->processed) {
-                app_mem_free(node);
+                APP_MEM_FREE(node);
                 return false;
             }
             calldata_info->processed = true;
@@ -288,7 +287,7 @@ bool tx_ctx_init(s_calldata *calldata,
     }
 
     if (cx_sha3_init_no_throw(&node->fields_hash_ctx, 256) != CX_OK) {
-        app_mem_free(node);
+        APP_MEM_FREE(node);
         return false;
     }
     list_push_back((list_node_t **) &g_tx_ctx_list, (list_node_t *) node);

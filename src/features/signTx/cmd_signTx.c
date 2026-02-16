@@ -6,7 +6,7 @@
 #include "swap_error_code_helpers.h"
 #include "common_ui.h"
 #include "ui_callbacks.h"
-#include "mem.h"
+#include "app_mem_utils.h"
 #include "mem_utils.h"
 #include "tx_ctx.h"
 
@@ -38,7 +38,7 @@ static uint16_t handle_first_sign_chunk(const uint8_t *payload,
     tmpContent.txContent.dataPresent = false;
     dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_UNAVAILABLE;
 
-    if (mem_buffer_allocate((void **) &g_tx_hash_ctx, sizeof(cx_sha3_t)) == false) {
+    if (APP_MEM_CALLOC((void **) &g_tx_hash_ctx, sizeof(cx_sha3_t)) == false) {
         return SWO_INSUFFICIENT_MEMORY;
     }
     if (init_tx(&txContext, g_tx_hash_ctx, &tmpContent.txContent, mode == SIGN_MODE_STORE) ==
@@ -183,7 +183,7 @@ uint16_t handleSign(uint8_t p1,
     }
     if (sw != APDU_NO_RESPONSE) {
         if ((sw != SWO_SUCCESS) && (g_tx_hash_ctx != NULL)) {
-            mem_buffer_cleanup((void **) &g_tx_hash_ctx);
+            APP_MEM_FREE_AND_NULL((void **) &g_tx_hash_ctx);
         }
         return sw;
     }

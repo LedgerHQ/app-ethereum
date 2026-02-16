@@ -4,7 +4,7 @@
 #include "os_print.h"
 #include "common_utils.h"
 #include "tlv_apdu.h"
-#include "mem.h"
+#include "app_mem_utils.h"
 #include "mem_utils.h"
 #include "ui_utils.h"
 #include "buffer.h"
@@ -16,7 +16,7 @@ static uint16_t g_tlv_size = 0;
 static uint16_t g_tlv_pos = 0;
 
 static void reset_state(void) {
-    mem_buffer_cleanup((void **) &g_tlv_payload);
+    APP_MEM_FREE_AND_NULL((void **) &g_tlv_payload);
     g_tlv_size = 0;
     g_tlv_pos = 0;
 }
@@ -43,7 +43,7 @@ bool tlv_from_apdu(bool first_chunk,
         }
 
         if (g_tlv_size > (lc - offset)) {
-            if ((g_tlv_payload = app_mem_alloc(g_tlv_size)) == NULL) {
+            if ((g_tlv_payload = APP_MEM_ALLOC(g_tlv_size)) == NULL) {
                 reset_state();
                 return false;
             }

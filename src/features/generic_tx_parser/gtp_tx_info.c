@@ -7,7 +7,7 @@
 #include "calldata.h"
 #include "public_keys.h"
 #include "proxy_info.h"
-#include "mem.h"
+#include "app_mem_utils.h"
 #include "tx_ctx.h"
 #include "tlv_library.h"
 #include "tlv_apdu.h"
@@ -245,5 +245,5 @@ const char *get_deploy_date(const s_tx_info *tx_info) {
 }
 
 void delete_tx_info(s_tx_info *node) {
-    app_mem_free(node);
+    APP_MEM_FREE(node);
 }

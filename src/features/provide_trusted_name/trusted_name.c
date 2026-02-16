@@ -8,7 +8,7 @@
 #include "public_keys.h"
 #include "proxy_info.h"
 #include "ui_utils.h"
-#include "mem.h"
+#include "app_mem_utils.h"
 #include "crypto_helpers.h"
 #include "tlv_apdu.h"
 
@@ -22,7 +22,7 @@
 static s_trusted_name *g_trusted_name_list = NULL;
 
 static void delete_trusted_name(s_trusted_name *node) {
-    app_mem_free(node);
+    APP_MEM_FREE(node);
 }
 
 void trusted_name_cleanup(void) {
@@ -690,67 +690,7 @@ bool verify_trusted_name_struct(const s_trusted_name_ctx *context) {
                        wallet_addr);
                 return false;
             }
-<<<<<<< HEAD
-            switch (context->trusted_name.name_type) {
-                case TN_TYPE_ACCOUNT:
-                    if (context->trusted_name.name_source == TN_SOURCE_CAL) {
-                        PRINTF("Error: cannot accept an account name from the CAL!\n");
-                        return false;
-                    }
-                    if (!(context->rcv_flags & SET_BIT(CHALLENGE_RCV_BIT))) {
-                        PRINTF("Error: trusted account name requires a challenge!\n");
-                        return false;
-                    }
-                    break;
-                case TN_TYPE_CONTRACT:
-                case TN_TYPE_TOKEN:
-                    if (context->trusted_name.name_source != TN_SOURCE_CAL) {
-                        PRINTF("Error: cannot accept a contract name from given source (%u)!\n",
-                               context->trusted_name.name_source);
-                        return false;
-                    }
-                    break;
-                default:
-                    return false;
-            }
-            if (context->trusted_name.name_source == TN_SOURCE_MAB) {
-                required_flags = SET_BIT(OWNER_RCV_BIT) | SET_BIT(OWNER_DERIV_PATH_RCV_BIT);
-                if ((context->rcv_flags & required_flags) != required_flags) {
-                    PRINTF("Error: did not receive owner and/or deriv path for MAB source!\n");
-                    return false;
-                }
-                uint8_t raw_pubkey[65];
-                uint8_t wallet_addr[ADDRESS_LENGTH];
-
-                if (bip32_derive_get_pubkey_256(CX_CURVE_256K1,
-                                                context->owner_deriv_path.path,
-                                                context->owner_deriv_path.length,
-                                                raw_pubkey,
-                                                NULL,
-                                                CX_SHA512) != CX_OK) {
-                    PRINTF("Error: could not derive pubkey!\n");
-                    return false;
-                }
-                getEthAddressFromRawKey(raw_pubkey, wallet_addr);
-
-                if (memcmp(context->owner, wallet_addr, sizeof(wallet_addr)) != 0) {
-                    PRINTF("Error: mismatching owner received (0x%.*h vs 0x%.*h) !\n",
-                           sizeof(context->owner),
-                           context->owner,
-                           sizeof(wallet_addr),
-                           wallet_addr);
-                    return false;
-                }
-            }
-            break;
-
-        default:
-            PRINTF("Error: unsupported trusted name struct version (%u) !\n",
-                   context->trusted_name.struct_version);
-            return false;
-=======
         }
->>>>>>> 774ae0ec (Migrate to lib_tlv - Trusted Name)
     }
 
     size_t name_length = strnlen(context->trusted_name.name, sizeof(context->trusted_name.name));
@@ -775,7 +715,7 @@ bool verify_trusted_name_struct(const s_trusted_name_ctx *context) {
         return false;
     }
 
-    if ((node = app_mem_alloc(sizeof(*node))) == NULL) {
+    if ((node = APP_MEM_ALLOC(sizeof(*node))) == NULL) {
         PRINTF("Error: could not allocate trusted name struct!\n");
         return false;
     }

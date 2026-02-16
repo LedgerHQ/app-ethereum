@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.22.0](../../compare/1.21.x...1.22.0) - 2026-xx-xx
+
+## [1.21.0](../../compare/1.20.1...1.21.0) - 2026-02-16
+
+### Added
+
+- EIP-7002 support
+- EIP-7251 support
+- 45'/* derivation path
+
+### Changed
+
+- Improved handling of native send transactions within a batch transaction
+- Improved handling of ERC-20 extra data
+- Enabled the get safe account feature on Nano S+/X
+- More fields are clickable while clear-signing transactions
+- Shows a network field during EIP-712 clear-signing flow
+
 ## [1.20.1](../../compare/1.20.0...1.20.1) - 2025-12-11
 
 ### Fixed

@@ -77,7 +77,7 @@ bool format_param_token(const s_param_token *param, const char *name) {
     bool ret;
     s_parsed_value_collection collec = {0};
     uint8_t addr[ADDRESS_LENGTH];
-    const tokenDefinition_t *token_def;
+    const tokenDefinition_t *token_def = NULL;
     uint64_t chain_id;
     const char *ticker = NULL;
 
@@ -95,7 +95,7 @@ bool format_param_token(const s_param_token *param, const char *name) {
                 ret = false;
                 break;
             }
-            if (!(ret = add_to_field_table(PARAM_TYPE_TOKEN, name, ticker))) {
+            if (!(ret = add_to_field_table(PARAM_TYPE_TOKEN, name, ticker, token_def))) {
                 break;
             }
         }

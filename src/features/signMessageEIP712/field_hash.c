@@ -38,10 +38,8 @@ bool field_hash_init(void) {
  * Deinitialize the field hash context
  */
 void field_hash_deinit(void) {
-    if (fh != NULL) {
-        app_mem_free(fh);
-        fh = NULL;
-    }
+    app_mem_free(fh);
+    fh = NULL;
 }
 
 /**
@@ -152,9 +150,11 @@ static void field_hash_feed_parent(e_type field_type, const uint8_t *hash) {
 
     // last thing in mem is the hash of the previous field
     // and just before it is the current hash context
-    cx_sha3_t *hash_ctx = get_last_hash_ctx();
-    // continue the progressive hash on it
-    hash_nbytes(hash, len, (cx_hash_t *) hash_ctx);
+    s_hash_ctx *hash_ctx = get_last_hash_ctx();
+    if (hash_ctx != NULL) {
+        // continue the progressive hash on it
+        hash_nbytes(hash, len, (cx_hash_t *) &hash_ctx->hash);
+    }
     // deallocate it
     app_mem_free((void *) hash);
 }

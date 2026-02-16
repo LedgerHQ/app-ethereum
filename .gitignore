@@ -23,6 +23,8 @@ __version__.py
 tests/fuzzing/corpus/
 tests/fuzzing/out/
 tests/fuzzing/CMakeFiles/
+tests/fuzzing/macros/generated/
+
 default.profraw
 default.profdata
 fuzz-*.log
@@ -31,3 +33,6 @@ report.html
 
 # LSP
 .cache/
+
+# Doxygen
+doxygen/

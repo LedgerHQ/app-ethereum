@@ -1,5 +1,3 @@
-#ifdef HAVE_SAFE_ACCOUNT
-
 #include "signer_descriptor.h"
 #include "safe_descriptor.h"
 #include "apdu_constants.h"
@@ -345,10 +343,6 @@ bool handle_signer_tlv_payload(const uint8_t *payload, uint16_t size) {
  *
  */
 void clear_signer_descriptor(void) {
-    if (SIGNER_DESC.data != NULL) {
-        app_mem_free(SIGNER_DESC.data);
-    }
+    app_mem_free(SIGNER_DESC.data);
     explicit_bzero(&SIGNER_DESC, sizeof(SIGNER_DESC));
 }
-
-#endif  // HAVE_SAFE_ACCOUNT

@@ -1,5 +1,6 @@
 #include <string.h>
 #include "erc1155_plugin.h"
+#include "erc1155_internal.h"
 #include "plugin_utils.h"
 #include "eth_plugin_internal.h"
 #include "eth_plugin_handler.h"
@@ -8,7 +9,7 @@ static const uint8_t ERC1155_APPROVE_FOR_ALL_SELECTOR[SELECTOR_SIZE] = {0xa2, 0x
 static const uint8_t ERC1155_SAFE_TRANSFER_SELECTOR[SELECTOR_SIZE] = {0xf2, 0x42, 0x43, 0x2a};
 static const uint8_t ERC1155_SAFE_BATCH_TRANSFER[SELECTOR_SIZE] = {0x2e, 0xb2, 0xc2, 0xd6};
 
-const uint8_t *const ERC1155_SELECTORS[SELECTORS_COUNT] = {
+static const uint8_t *const ERC1155_SELECTORS[] = {
     ERC1155_APPROVE_FOR_ALL_SELECTOR,
     ERC1155_SAFE_TRANSFER_SELECTOR,
     ERC1155_SAFE_BATCH_TRANSFER,
@@ -23,7 +24,7 @@ void handle_init_contract_1155(ethPluginInitContract_t *msg) {
         return;
     }
     uint8_t i;
-    for (i = 0; i < SELECTORS_COUNT; i++) {
+    for (i = 0; i < ARRAYLEN(ERC1155_SELECTORS); i++) {
         if (memcmp(PIC(ERC1155_SELECTORS[i]), msg->selector, SELECTOR_SIZE) == 0) {
             context->selectorIndex = i;
             break;
@@ -31,7 +32,7 @@ void handle_init_contract_1155(ethPluginInitContract_t *msg) {
     }
 
     // No selector found.
-    if (i == SELECTORS_COUNT) {
+    if (i == ARRAYLEN(ERC1155_SELECTORS)) {
         PRINTF("Unknown erc1155 selector %.*H\n", SELECTOR_SIZE, msg->selector);
         msg->result = ETH_PLUGIN_RESULT_FALLBACK;
         return;
@@ -116,7 +117,7 @@ void handle_query_contract_id_1155(ethQueryContractID_t *msg) {
     }
 }
 
-void erc1155_plugin_call(int message, void *parameters) {
+void erc1155_plugin_call(eth_plugin_msg_t message, void *parameters) {
     switch (message) {
         case ETH_PLUGIN_INIT_CONTRACT: {
             handle_init_contract_1155((ethPluginInitContract_t *) parameters);

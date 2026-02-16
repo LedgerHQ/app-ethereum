@@ -175,7 +175,9 @@ static bool processChainID(txContext_t *context) {
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
             MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
-        if (copyTxData(context, context->content->chainID.value, copySize) == false) {
+        if (copyTxData(context,
+                       context->content->chainID.value + context->currentFieldPos,
+                       copySize) == false) {
             return false;
         }
     }
@@ -195,7 +197,9 @@ static bool processNonce(txContext_t *context) {
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
             MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
-        if (copyTxData(context, context->content->nonce.value, copySize) == false) {
+        if (copyTxData(context,
+                       context->content->nonce.value + context->currentFieldPos,
+                       copySize) == false) {
             return false;
         }
     }
@@ -315,6 +319,13 @@ static bool processData(txContext_t *context) {
         if (copySize == 1 && *context->workBuffer == 0x00) {
             context->content->dataPresent = false;
         }
+
+        if ((context->currentFieldPos == 0) && (copySize >= 4)) {
+            // Consider the 4 1st bytes are the selector
+            // Store it to be able to check it later against Gating
+            memcpy(context->selector_bytes, context->workBuffer, CALLDATA_SELECTOR_SIZE);
+        }
+
         if (context->store_calldata) {
             if (context->currentFieldPos == 0) {
                 if (copySize < 4) {

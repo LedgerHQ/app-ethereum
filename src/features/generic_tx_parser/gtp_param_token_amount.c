@@ -121,7 +121,7 @@ static bool process_token_amount(const s_param_token_amount *param,
     uint8_t addr_buf[ADDRESS_LENGTH];
     uint256_t zero256 = {0};
     uint256_t val256;
-    const tokenDefinition_t *token_def;
+    const tokenDefinition_t *token_def = NULL;
     uint64_t chain_id;
     const char *ticker = g_unknown_ticker;
     uint8_t decimals = 0;
@@ -154,7 +154,10 @@ static bool process_token_amount(const s_param_token_amount *param,
             return false;
         }
     }
-    if (!add_to_field_table(PARAM_TYPE_AMOUNT, name, buf)) {
+    if (!add_to_field_table(token_def ? PARAM_TYPE_TOKEN_AMOUNT : PARAM_TYPE_AMOUNT,
+                            name,
+                            buf,
+                            token_def)) {
         return false;
     }
     return true;

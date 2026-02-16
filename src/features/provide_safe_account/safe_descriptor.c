@@ -1,5 +1,3 @@
-#ifdef HAVE_SAFE_ACCOUNT
-
 #include "safe_descriptor.h"
 #include "apdu_constants.h"
 #include "hash_bytes.h"
@@ -417,10 +415,6 @@ bool handle_safe_tlv_payload(const uint8_t *payload, uint16_t size) {
  *
  */
 void clear_safe_descriptor(void) {
-    if (SAFE_DESC != NULL) {
-        app_mem_free(SAFE_DESC);
-        SAFE_DESC = NULL;
-    }
+    app_mem_free(SAFE_DESC);
+    SAFE_DESC = NULL;
 }
-
-#endif  // HAVE_SAFE_ACCOUNT

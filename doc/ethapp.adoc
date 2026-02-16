@@ -1236,19 +1236,19 @@ _Input data_
 ##### If P1 == first chunk
 
 [width="80%"]
-|==========================================
-| *Description*         | *Length (byte)*
-| Payload length        | 2
-| TLV payload           | variable
-|==========================================
+|=========================================================================
+| *Description*                                         | *Length (byte)*
+| Payload length                                        | 2
+| link:tlv_structs.md#trusted_name[TRUSTED_NAME struct] | variable
+|=========================================================================
 
 ##### If P1 == following chunk
 
 [width="80%"]
-|==========================================
-| *Description*         | *Length (byte)*
-| TLV payload           | variable
-|==========================================
+|=========================================================================
+| *Description*                                         | *Length (byte)*
+| link:tlv_structs.md#trusted_name[TRUSTED_NAME struct] | variable
+|=========================================================================
 
 _Output data_
 
@@ -1698,6 +1698,52 @@ _Input data_
 |====================================================================
 | *Description*                                                   | *Length (byte)*
 | link:tlv_structs.md#signer_descriptor[SIGNER_DESCRIPTOR struct] | variable
+|====================================================================
+
+_Output data_
+
+None
+
+### PROVIDE GATED SIGNING
+
+#### Description
+
+This command provides the Gating descriptor.
+
+The descriptor is then presented to the user before the Transaction.
+
+The information is sent in TLV (Tag-Length-Value) mode.
+
+#### Coding
+
+_Command_
+
+[width="80%"]
+|==============================================================================================================================
+| *CLA* | *INS*  | *P1*               | *P2*       | *Lc*     | *Le*
+|   E0  |   38   |  00 : first chunk
+
+                    01 : following chunk
+                                      |   00
+|==============================================================================================================================
+
+_Input data_
+
+###### If P1 == first chunk
+
+[width="80%"]
+|====================================================================
+| *Description*                                                   | *Length (byte)*
+| Payload length                                                  | 2
+| link:tlv_structs.md#gating_descriptor[GATING_DESCRIPTOR struct] | variable
+|====================================================================
+
+###### If P1 == following chunk
+
+[width="80%"]
+|====================================================================
+| *Description*                                                   | *Length (byte)*
+| link:tlv_structs.md#gating_descriptor[GATING_DESCRIPTOR struct] | variable
 |====================================================================
 
 _Output data_

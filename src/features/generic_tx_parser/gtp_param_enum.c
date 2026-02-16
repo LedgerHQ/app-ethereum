@@ -60,7 +60,7 @@ bool format_param_enum(const s_param_enum *param, const char *name) {
     bool ret;
     uint64_t chain_id;
     s_parsed_value_collection collec = {0};
-    const char *enum_name;
+    const s_enum_value_entry *enum_entry;
     uint8_t value;
     const uint8_t *selector;
 
@@ -77,12 +77,15 @@ bool format_param_enum(const s_param_enum *param, const char *name) {
                 ret = false;
                 break;
             }
-            enum_name = get_matching_enum_name(&chain_id,
-                                               txContext.content->destination,
-                                               selector,
-                                               param->id,
-                                               value);
-            if (!(ret = add_to_field_table(PARAM_TYPE_ENUM, name, enum_name))) {
+            if ((enum_entry = get_matching_enum(&chain_id,
+                                                txContext.content->destination,
+                                                selector,
+                                                param->id,
+                                                value)) == NULL) {
+                ret = false;
+                break;
+            }
+            if (!(ret = add_to_field_table(PARAM_TYPE_ENUM, name, enum_entry->name, enum_entry))) {
                 break;
             }
         }

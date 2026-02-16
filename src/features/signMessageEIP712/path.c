@@ -7,15 +7,9 @@
 #include "mem_utils.h"
 #include "apdu_constants.h"  // APDU response codes
 #include "typed_data.h"
-#include "list.h"
 
 static s_path *path_struct = NULL;
 static s_path *path_backup = NULL;
-
-typedef struct {
-    s_flist_node _list;
-    cx_sha3_t hash;
-} s_hash_ctx;
 
 static s_hash_ctx *g_hash_ctxs = NULL;
 
@@ -147,13 +141,13 @@ static bool path_depth_list_push(void) {
  *
  * @return pointer to the hashing context
  */
-cx_sha3_t *get_last_hash_ctx(void) {
+s_hash_ctx *get_last_hash_ctx(void) {
     s_flist_node *hash_ctx = (s_flist_node *) g_hash_ctxs;
 
-    if (hash_ctx == NULL) return NULL;
-    for (; hash_ctx->next != NULL; hash_ctx = hash_ctx->next)
-        ;
-    return &((s_hash_ctx *) hash_ctx)->hash;
+    while ((hash_ctx != NULL) && (hash_ctx->next != NULL)) {
+        hash_ctx = hash_ctx->next;
+    }
+    return (s_hash_ctx *) hash_ctx;
 }
 
 /**
@@ -161,14 +155,11 @@ cx_sha3_t *get_last_hash_ctx(void) {
  *
  * @return pointer to the hashing context
  */
-cx_sha3_t *get_previous_hash_ctx(cx_sha3_t *hash_ctx) {
-    cx_sha3_t *prev_ctx = NULL;
-    // TODO: using a doubly-linked list would improve this
-    for (s_hash_ctx *tmp = g_hash_ctxs; &tmp->hash != hash_ctx;
-         tmp = (s_hash_ctx *) ((s_flist_node *) tmp)->next) {
-        prev_ctx = &tmp->hash;
+static s_hash_ctx *get_previous_hash_ctx(s_hash_ctx *hash_ctx) {
+    if (hash_ctx == NULL) {
+        return NULL;
     }
-    return prev_ctx;
+    return (s_hash_ctx *) ((s_list_node *) hash_ctx)->prev;
 }
 
 // to be used as a \ref f_list_node_del
@@ -177,7 +168,7 @@ static void delete_hash_ctx(s_hash_ctx *ctx) {
 }
 
 static void remove_last_hash_ctx(void) {
-    flist_pop_back((s_flist_node **) &g_hash_ctxs, (f_list_node_del) &delete_hash_ctx);
+    list_pop_back((s_list_node **) &g_hash_ctxs, (f_list_node_del) &delete_hash_ctx);
 }
 
 /**
@@ -187,15 +178,21 @@ static void remove_last_hash_ctx(void) {
  * @return whether there was anything hashed at this depth
  */
 static bool finalize_hash_depth(uint8_t *hash) {
-    const cx_sha3_t *hash_ctx;
+    const s_hash_ctx *hash_ctx;
     size_t hashed_bytes;
     cx_err_t error = CX_INTERNAL_ERROR;
 
-    hash_ctx = get_last_hash_ctx();
-    hashed_bytes = hash_ctx->blen;
+    if ((hash_ctx = get_last_hash_ctx()) == NULL) {
+        return false;
+    }
+    hashed_bytes = hash_ctx->hash.blen;
     // finalize hash
-    CX_CHECK(
-        cx_hash_no_throw((cx_hash_t *) hash_ctx, CX_LAST, NULL, 0, hash, KECCAK256_HASH_BYTESIZE));
+    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &hash_ctx->hash,
+                              CX_LAST,
+                              NULL,
+                              0,
+                              hash,
+                              KECCAK256_HASH_BYTESIZE));
     remove_last_hash_ctx();
     return hashed_bytes > 0;
 end:
@@ -208,12 +205,18 @@ end:
  * @param[in] hash pointer to given hash
  */
 static bool feed_last_hash_depth(const uint8_t *hash) {
-    const cx_sha3_t *hash_ctx;
+    const s_hash_ctx *hash_ctx;
 
-    hash_ctx = get_last_hash_ctx();
+    if ((hash_ctx = get_last_hash_ctx()) == NULL) {
+        return false;
+    }
     // continue progressive hash with the array hash
-    if (cx_hash_no_throw((cx_hash_t *) hash_ctx, 0, hash, KECCAK256_HASH_BYTESIZE, NULL, 0) !=
-        CX_OK) {
+    if (cx_hash_no_throw((cx_hash_t *) &hash_ctx->hash,
+                         0,
+                         hash,
+                         KECCAK256_HASH_BYTESIZE,
+                         NULL,
+                         0) != CX_OK) {
         return false;
     }
     return true;
@@ -238,7 +241,7 @@ static bool push_new_hash_depth(bool init) {
         CX_CHECK(cx_keccak_init_no_throw(&hash_ctx->hash, 256));
     }
 
-    flist_push_back((s_flist_node **) &g_hash_ctxs, (s_flist_node *) hash_ctx);
+    list_push_back((s_list_node **) &g_hash_ctxs, (s_list_node *) hash_ctx);
     return true;
 end:
     app_mem_free(hash_ctx);
@@ -408,6 +411,7 @@ static bool path_update(bool skip_if_array, bool stop_at_array, bool do_typehash
  * @return boolean indicating if it was successful or not
  */
 bool path_set_root(const char *struct_name, uint8_t name_length) {
+    const s_struct_712 *new_root;
     uint8_t hash[KECCAK256_HASH_BYTESIZE];
 
     if (path_struct == NULL) {
@@ -415,12 +419,17 @@ bool path_set_root(const char *struct_name, uint8_t name_length) {
         return false;
     }
 
-    if ((path_struct->root_struct = get_structn(struct_name, name_length)) == NULL) {
+    if ((new_root = get_structn(struct_name, name_length)) == NULL) {
         return false;
     }
+    if (new_root == path_struct->root_struct) {
+        PRINTF("Error: already at that root struct!\n");
+        return false;
+    }
+    path_struct->root_struct = new_root;
 
     if (path_struct->root_struct == NULL) {
-        PRINTF("Struct name not found (");
+        PRINTF("Error: struct name not found (");
         for (int i = 0; i < name_length; ++i) {
             PRINTF("%c", struct_name[i]);
         }
@@ -448,8 +457,14 @@ bool path_set_root(const char *struct_name, uint8_t name_length) {
 
     if ((name_length == strlen(DOMAIN_STRUCT_NAME)) &&
         (strncmp(struct_name, DOMAIN_STRUCT_NAME, name_length) == 0)) {
+        if (path_struct->root_type != ROOT_NONE) {
+            return false;
+        }
         path_struct->root_type = ROOT_DOMAIN;
     } else {
+        if (path_struct->root_type != ROOT_DOMAIN) {
+            return false;
+        }
         path_struct->root_type = ROOT_MESSAGE;
     }
 
@@ -525,7 +540,7 @@ bool path_new_array_depth(const uint8_t *data, uint8_t length) {
     uint8_t array_size;
     uint8_t array_depth_count_bak;
     cx_err_t error = CX_INTERNAL_ERROR;
-    cx_sha3_t *start_hash_ctx = get_last_hash_ctx();
+    s_hash_ctx *start_hash_ctx = get_last_hash_ctx();
 
     if (path_struct == NULL) {
         apdu_response_code = SWO_INCORRECT_DATA;
@@ -576,22 +591,25 @@ bool path_new_array_depth(const uint8_t *data, uint8_t length) {
         return false;
     }
     if (is_custom) {
-        cx_sha3_t *hash_ctx = get_last_hash_ctx();
-        cx_sha3_t *prev_ctx = get_previous_hash_ctx(hash_ctx);
+        if (start_hash_ctx == NULL) {
+            return false;
+        }
+        s_hash_ctx *hash_ctx = get_last_hash_ctx();
+        s_hash_ctx *prev_ctx = get_previous_hash_ctx(hash_ctx);
         while (prev_ctx != start_hash_ctx) {
-            if (prev_ctx == NULL) return false;
+            if ((hash_ctx == NULL) || (prev_ctx == NULL)) return false;
 
             if (array_size > 0) {
-                memcpy(hash_ctx, prev_ctx, sizeof(*prev_ctx));
+                memcpy(&hash_ctx->hash, &prev_ctx->hash, sizeof(prev_ctx->hash));
             } else {
-                CX_CHECK(cx_keccak_init_no_throw(hash_ctx, 256));
+                CX_CHECK(cx_keccak_init_no_throw((cx_sha3_t *) &hash_ctx->hash, 256));
             }
-            CX_CHECK(cx_keccak_init_no_throw(prev_ctx, 256));
+            CX_CHECK(cx_keccak_init_no_throw((cx_sha3_t *) &prev_ctx->hash, 256));
 
             hash_ctx = prev_ctx;
             prev_ctx = get_previous_hash_ctx(hash_ctx);
         }
-        CX_CHECK(cx_keccak_init_no_throw(hash_ctx, 256));
+        CX_CHECK(cx_keccak_init_no_throw((cx_sha3_t *) &hash_ctx->hash, 256));
     }
     if (array_size == 0) {
         do {
@@ -695,7 +713,7 @@ e_root_type path_get_root_type(void) {
  *
  * @return pointer to the root structure definition
  */
-const void *path_get_root(void) {
+const s_struct_712 *path_get_root(void) {
     if (path_struct == NULL) {
         return NULL;
     }
@@ -811,13 +829,9 @@ bool path_init(void) {
  * De-initialize the path context
  */
 void path_deinit(void) {
-    if (path_struct != NULL) {
-        app_mem_free(path_struct);
-        path_struct = NULL;
-    }
-    if (path_backup != NULL) {
-        app_mem_free(path_backup);
-        path_backup = NULL;
-    }
-    flist_clear((s_flist_node **) &g_hash_ctxs, (f_list_node_del) &delete_hash_ctx);
+    app_mem_free(path_struct);
+    path_struct = NULL;
+    app_mem_free(path_backup);
+    path_backup = NULL;
+    list_clear((s_list_node **) &g_hash_ctxs, (f_list_node_del) &delete_hash_ctx);
 }

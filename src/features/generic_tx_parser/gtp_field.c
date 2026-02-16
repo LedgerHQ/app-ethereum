@@ -3,12 +3,16 @@
 #include "utils.h"
 #include "os_print.h"
 #include "shared_context.h"  // strings
+#include "mem.h"             // app_mem_free
+#include "mem_utils.h"       // mem_buffer_cleanup
+#include "list.h"            // flist_push_back
 
 enum {
     BIT_VERSION = 0,
     BIT_NAME,
     BIT_PARAM_TYPE,
     BIT_PARAM,
+    BIT_VISIBLE,
 };
 
 enum {
@@ -16,6 +20,8 @@ enum {
     TAG_NAME = 0x01,
     PARAM_TYPE = 0x02,
     PARAM = 0x03,
+    VISIBLE = 0x04,
+    CONSTRAINT = 0x05,
 };
 
 typedef union {
@@ -30,6 +36,7 @@ typedef union {
     s_param_trusted_name_context trusted_name_ctx;
     s_param_calldata_context calldata_ctx;
     s_param_token_context token_ctx;
+    s_param_network_context network_ctx;
 } u_param_context;
 
 static bool handle_version(const s_tlv_data *data, s_field_ctx *context) {
@@ -71,12 +78,68 @@ static bool handle_param_type(const s_tlv_data *data, s_field_ctx *context) {
         case PARAM_TYPE_TRUSTED_NAME:
         case PARAM_TYPE_CALLDATA:
         case PARAM_TYPE_TOKEN:
+        case PARAM_TYPE_NETWORK:
             break;
         default:
             PRINTF("Error: Unsupported param type (%u)\n", context->field->param_type);
             return false;
     }
     context->set_flags |= SET_BIT(BIT_PARAM_TYPE);
+    return true;
+}
+
+static bool handle_param_visible(const s_tlv_data *data, s_field_ctx *context) {
+    e_param_visibility visibility = PARAM_VISIBILITY_ALWAYS;
+
+    // Check length
+    if (data->length != sizeof(context->field->visibility)) {
+        return false;
+    }
+    // Check duplicates
+    if (context->set_flags & SET_BIT(BIT_VISIBLE)) {
+        PRINTF("Error: More than one VISIBLE in a FIELD struct!\n");
+        return false;
+    }
+    // Set visibility
+    visibility = data->value[0];
+    // Check visibility field validity
+    if (visibility >= PARAM_VISIBILITY_MAX) {
+        PRINTF("Error: Unsupported visibility (%u)\n", context->field->visibility);
+        return false;
+    }
+    // Set visibility
+    context->field->visibility = visibility;
+    context->set_flags |= SET_BIT(BIT_VISIBLE);
+    return true;
+}
+
+static bool handle_param_constraint(const s_tlv_data *data, s_field_ctx *context) {
+    // Check visibility presence
+    if (!(context->set_flags & SET_BIT(BIT_VISIBLE))) {
+        PRINTF("Error: No VISIBLE detected for the current FIELD struct!\n");
+        return false;
+    }
+    // Check visibility type
+    if (context->field->visibility == PARAM_VISIBILITY_ALWAYS) {
+        PRINTF("Error: CONSTRAINT present but VISIBLE is not MUST_BE or IF_NOT_IN!\n");
+        return false;
+    }
+    // Allocate new constraint node
+    s_field_constraint *node = NULL;
+    if (mem_buffer_allocate((void **) &node, sizeof(s_field_constraint)) == false) {
+        PRINTF("Error: Failed to allocate memory for constraint node!\n");
+        return false;
+    }
+    node->size = data->length;
+    // Allocate value buffer
+    if (mem_buffer_allocate((void **) &node->value, data->length) == false) {
+        PRINTF("Error: Failed to allocate memory for constraint value!\n");
+        app_mem_free((void **) &node);
+        return false;
+    }
+    memcpy(node->value, data->value, data->length);
+    // Add to linked list
+    flist_push_back((s_flist_node **) &context->field->constraints, (s_flist_node *) node);
     return true;
 }
 
@@ -137,6 +200,10 @@ static bool handle_param(const s_tlv_data *data, s_field_ctx *context) {
             handler = (f_tlv_data_handler) &handle_param_token_struct;
             param_ctx.token_ctx.param = &context->field->param_token;
             break;
+        case PARAM_TYPE_NETWORK:
+            handler = (f_tlv_data_handler) &handle_param_network_struct;
+            param_ctx.network_ctx.param = &context->field->param_network;
+            break;
         default:
             return false;
     }
@@ -159,6 +226,12 @@ bool handle_field_struct(const s_tlv_data *data, s_field_ctx *context) {
             break;
         case PARAM:
             ret = handle_param(data, context);
+            break;
+        case VISIBLE:
+            ret = handle_param_visible(data, context);
+            break;
+        case CONSTRAINT:
+            ret = handle_param_constraint(data, context);
             break;
         default:
             PRINTF(TLV_TAG_ERROR_MSG, data->tag);
@@ -191,15 +264,21 @@ bool verify_field_struct(const s_field_ctx *context) {
         PRINTF("Error: missing required field(s)\n");
         return false;
     }
+
+    // check optional visibility field
+    if (!(context->set_flags & SET_BIT(BIT_VISIBLE))) {
+        // set default visibility if not provided
+        context->field->visibility = PARAM_VISIBILITY_ALWAYS;
+    }
     return true;
 }
 
-bool format_field(const s_field *field) {
+bool format_field(s_field *field) {
     bool ret;
 
     switch (field->param_type) {
         case PARAM_TYPE_RAW:
-            ret = format_param_raw(&field->param_raw, field->name);
+            ret = format_param_raw(field);
             break;
         case PARAM_TYPE_AMOUNT:
             ret = format_param_amount(&field->param_amount, field->name);
@@ -223,7 +302,7 @@ bool format_field(const s_field *field) {
             ret = format_param_enum(&field->param_enum, field->name);
             break;
         case PARAM_TYPE_TRUSTED_NAME:
-            ret = format_param_trusted_name(&field->param_trusted_name, field->name);
+            ret = format_param_trusted_name(field);
             break;
         case PARAM_TYPE_CALLDATA:
             ret = format_param_calldata(&field->param_calldata, field->name);
@@ -231,10 +310,32 @@ bool format_field(const s_field *field) {
         case PARAM_TYPE_TOKEN:
             ret = format_param_token(&field->param_token, field->name);
             break;
+        case PARAM_TYPE_NETWORK:
+            ret = format_param_network(&field->param_network, field->name);
+            break;
         default:
             ret = false;
     }
+
+    // Cleanup constraints after formatting (they are no longer needed)
+    // This is safe to call even if constraints are NULL
+    cleanup_field_constraints(field);
+
     // so that EIP-712 error-handling does trigger
     strings.tmp.tmp[0] = '\0';
     return ret;
+}
+
+static void constraint_node_del(s_flist_node *node) {
+    if (node != NULL) {
+        s_field_constraint *constraint = (s_field_constraint *) node;
+        app_mem_free((void *) constraint->value);
+        app_mem_free((void *) constraint);
+    }
+}
+
+void cleanup_field_constraints(s_field *field) {
+    if (field != NULL && field->constraints != NULL) {
+        flist_clear((s_flist_node **) &field->constraints, constraint_node_del);
+    }
 }

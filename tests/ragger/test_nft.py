@@ -16,6 +16,7 @@ import client.response_parser as ResponseParser
 from client.utils import get_selector_from_data, recover_transaction
 from client.tx_simu import TxSimu
 from client.dynamic_networks import DynamicNetwork
+from client.gating import Gating
 
 
 BIP32_PATH = "m/44'/60'/0'/0/0"
@@ -56,7 +57,8 @@ def common_test_nft(scenario_navigator: NavigateWithScenario,
                     action: Action,
                     reject: bool,
                     plugin_name: str,
-                    simu_params: Optional[TxSimu] = None):
+                    simu_params: Optional[TxSimu] = None,
+                    gating_params: Optional[Gating] = None):
     global DEVICE_ADDR
     backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
@@ -77,6 +79,11 @@ def common_test_nft(scenario_navigator: NavigateWithScenario,
         simu_params.tx_hash = tx_hash
         simu_params.chain_id = tx_params["chainId"]
         response = app_client.provide_tx_simulation(simu_params)
+        assert response.status == StatusWord.OK
+
+    if gating_params is not None:
+        gating_params.selector = get_selector_from_data(tx_params["data"])
+        response = app_client.provide_gating(gating_params)
         assert response.status == StatusWord.OK
 
     # Send Network information (name, ticker, icon)
@@ -100,7 +107,7 @@ def common_test_nft(scenario_navigator: NavigateWithScenario,
         test_name += f"_{action.fn_name}_{str(collec.chain_id)}"
         if reject:
             scenario_navigator.review_reject(test_name=test_name)
-        elif simu_params is not None:
+        elif simu_params is not None or gating_params is not None:
             scenario_navigator.review_approve_with_warning(test_name=test_name)
         else:
             scenario_navigator.review_approve(test_name=test_name)

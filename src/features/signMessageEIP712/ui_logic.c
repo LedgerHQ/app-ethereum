@@ -86,8 +86,8 @@ static void delete_filter_crc(s_filter_crc *fcrc) {
 
 // to be used as a \ref f_list_node_del
 static void delete_ui_pair(s_ui_712_pair *pair) {
-    if (pair->key != NULL) app_mem_free(pair->key);
-    if (pair->value != NULL) app_mem_free(pair->value);
+    app_mem_free(pair->key);
+    app_mem_free(pair->value);
     app_mem_free(pair);
 }
 
@@ -242,7 +242,7 @@ void ui_712_set_value(const char *str, size_t length) {
     }
     tmp->end_intent = validate_instruction_hash();
     if (tmp->end_intent) {
-        PRINTF(">>> [Intent] End\n");
+        PRINTF("[Intent] End\n");
     }
 }
 
@@ -261,11 +261,17 @@ bool ui_712_redraw_generic_step(void) {
             eip712_context->go_home_on_failure = false;
             return false;
         }
-        ui_712_start(ui_ctx->filtering_mode);
+        apdu_response_code = ui_712_start(ui_ctx->filtering_mode);
+        if (apdu_response_code != SWO_SUCCESS) {
+            return false;
+        }
         handle_eip712_return_code(true);
     } else {
         if (ui_712_next_field() == false) {
-            ui_sign_712(ui_ctx->filtering_mode);
+            apdu_response_code = ui_sign_712(ui_ctx->filtering_mode);
+            if (apdu_response_code != SWO_SUCCESS) {
+                return false;
+            }
         }
     }
     return true;
@@ -289,6 +295,24 @@ bool ui_712_review_struct(const s_struct_712 *struct_ptr) {
     if ((struct_name = struct_ptr->name) != NULL) {
         ui_712_set_value(struct_name, strlen(struct_name));
     }
+    return ui_712_redraw_generic_step();
+}
+
+bool ui_712_review_network(const uint64_t *chain_id) {
+    const char *title = "Network";
+    const char *buf;
+
+    if (*chain_id == chainConfig->chainId) {
+        return true;
+    }
+    ui_712_set_title(title, strlen(title));
+    if ((buf = get_network_name_from_chain_id(chain_id)) == NULL) {
+        if (!u64_to_string(*chain_id, strings.tmp.tmp, NETWORK_STRING_MAX_SIZE)) {
+            return false;
+        }
+        buf = strings.tmp.tmp;
+    }
+    ui_712_set_value(buf, strlen(buf));
     return ui_712_redraw_generic_step();
 }
 
@@ -633,16 +657,18 @@ static bool update_amount_join(const uint8_t *data, uint8_t length) {
  * @return whether it was successful or not
  */
 static bool ui_712_format_trusted_name(const uint8_t *data, uint8_t length) {
+    const s_trusted_name *trusted_name;
+
     if (length != ADDRESS_LENGTH) {
         return false;
     }
-    if (get_trusted_name(ui_ctx->tn_type_count,
-                         ui_ctx->tn_types,
-                         ui_ctx->tn_source_count,
-                         ui_ctx->tn_sources,
-                         &eip712_context->chain_id,
-                         data) != NULL) {
-        strlcpy(strings.tmp.tmp, g_trusted_name, sizeof(strings.tmp.tmp));
+    if ((trusted_name = get_trusted_name(ui_ctx->tn_type_count,
+                                         ui_ctx->tn_types,
+                                         ui_ctx->tn_source_count,
+                                         ui_ctx->tn_sources,
+                                         &eip712_context->chain_id,
+                                         data)) != NULL) {
+        strlcpy(strings.tmp.tmp, trusted_name->name, sizeof(strings.tmp.tmp));
     }
     return true;
 }
@@ -989,7 +1015,7 @@ void ui_712_end_sign(void) {
     if (N_storage.verbose_eip712 || (ui_ctx->filtering_mode == EIP712_FILTERING_FULL)) {
 #endif
         ui_ctx->end_reached = true;
-        ui_sign_712(ui_ctx->filtering_mode);
+        apdu_response_code = ui_sign_712(ui_ctx->filtering_mode);
     }
 }
 
@@ -1261,10 +1287,8 @@ const char *ui_712_get_discarded_path(void) {
 }
 
 void ui_712_clear_discarded_path(void) {
-    if (ui_ctx->discarded_path != NULL) {
-        app_mem_free(ui_ctx->discarded_path);
-        ui_ctx->discarded_path = NULL;
-    }
+    app_mem_free(ui_ctx->discarded_path);
+    ui_ctx->discarded_path = NULL;
 }
 
 void ui_712_set_trusted_name_requirements(uint8_t type_count,
@@ -1302,7 +1326,7 @@ void ui_712_push_pairs(void) {
             tx_idx++;
             // Replace "nn of mm" placeholder, initialized in ui_712_set_intent()
             snprintf(tmp->value, N_OF_M_LENGTH, "%d of %d", tx_idx, txContext.batch_nb_tx);
-            g_pairs[pair].centeredInfo = 1;
+            g_pairs[pair].centeredInfo = true;
         }
         g_pairs[pair].item = tmp->key;
         g_pairs[pair].value = tmp->value;
@@ -1313,7 +1337,7 @@ void ui_712_push_pairs(void) {
         pair++;
         if ((tmp->end_intent) && (txContext.batch_nb_tx > 1)) {
             // End of batch transaction : start next info on full page
-            g_pairs[pair].forcePageStart = 1;
+            g_pairs[pair].forcePageStart = true;
         }
         tmp = (s_ui_712_pair *) ((s_flist_node *) tmp)->next;
     }
@@ -1325,7 +1349,7 @@ void ui_712_push_pairs(void) {
                       g_pairsList->nbPairs);
         // Prepare the pairs list with the hashes
         eip712_format_hash(pair);
-        g_pairs[pair].forcePageStart = 1;
+        g_pairs[pair].forcePageStart = true;
     }
 }
 

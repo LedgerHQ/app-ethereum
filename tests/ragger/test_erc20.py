@@ -131,7 +131,7 @@ def test_transfer_erc20_extra_data(scenario_navigator: NavigateWithScenario):
 
 
 def test_transfer_erc20_extra_data_nonascii(scenario_navigator: NavigateWithScenario):
-    common_transfer(scenario_navigator, 10, bytes.fromhex("deadcafe"))
+    common_transfer(scenario_navigator, 10, bytes.fromhex("deadcafe0042"))
 
 
 def test_transfer_erc20_extra_data_toolong(scenario_navigator: NavigateWithScenario):
@@ -148,7 +148,7 @@ def test_transfer_erc20_extra_data_toolong(scenario_navigator: NavigateWithScena
 
 def test_transfer_erc20_extra_data_nonascii_truncated(scenario_navigator: NavigateWithScenario):
     common_transfer(scenario_navigator, 10,
-                    bytes.fromhex("0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f"))
+                    bytes.fromhex("0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"))
 
 
 def test_approve_erc20_extra_data(scenario_navigator: NavigateWithScenario):
@@ -158,4 +158,4 @@ def test_approve_erc20_extra_data(scenario_navigator: NavigateWithScenario):
 
 
 def test_approve_erc20_extra_data_nonascii(scenario_navigator: NavigateWithScenario):
-    common_approve(scenario_navigator, 10, bytes.fromhex("deadcafe"))
+    common_approve(scenario_navigator, 10, bytes.fromhex("deadcafe0042"))

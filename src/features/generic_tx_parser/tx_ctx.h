@@ -10,7 +10,7 @@
 #include "gtp_field.h"
 
 typedef struct {
-    s_flist_node _list;
+    s_list_node _list;
     s_tx_info *tx_info;
     s_calldata *calldata;
     uint8_t from[ADDRESS_LENGTH];
@@ -19,6 +19,7 @@ typedef struct {
     uint64_t chain_id;
 
     cx_sha3_t fields_hash_ctx;
+    bool has_amount : 1;
 } s_tx_ctx;
 
 extern s_calldata *g_parked_calldata;
@@ -26,13 +27,18 @@ extern s_calldata *g_parked_calldata;
 bool tx_ctx_is_root(void);
 size_t get_tx_ctx_count(void);
 cx_hash_t *get_fields_hash_ctx(void);
+const s_tx_info *get_root_tx_info(void);
 const s_tx_info *get_current_tx_info(void);
 s_calldata *get_current_calldata(void);
+s_calldata *get_root_calldata(void);
 const uint8_t *get_current_tx_from(void);
 const uint8_t *get_current_tx_to(void);
 const uint8_t *get_current_tx_amount(void);
+uint64_t get_current_tx_chain_id(void);
 bool validate_instruction_hash(void);
 void tx_ctx_pop(void);
+bool process_empty_txs_before(void);
+bool process_empty_txs_after(void);
 bool find_matching_tx_ctx(const uint8_t *contract_addr,
                           const uint8_t *selector,
                           const uint64_t *chain_id);

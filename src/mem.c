@@ -49,11 +49,13 @@ void *app_mem_alloc_impl(size_t size, bool persistent, const char *file, int lin
 }
 
 void app_mem_free_impl(void *ptr, const char *file, int line) {
+    if (ptr != NULL) {
 #ifdef HAVE_MEMORY_PROFILING
-    PRINTF(MP_LOG_PREFIX "free;0x%p;%s:%u\n", ptr, file, line);
+        PRINTF(MP_LOG_PREFIX "free;0x%p;%s:%u\n", ptr, file, line);
 #else
-    (void) file;
-    (void) line;
+        (void) file;
+        (void) line;
 #endif
-    mem_free(mem_ctx, ptr);
+        mem_free(mem_ctx, ptr);
+    }
 }

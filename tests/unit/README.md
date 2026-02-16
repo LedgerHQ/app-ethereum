@@ -1,42 +1,48 @@
 # Unit tests
 
-It is important to unit test your functions.
-This also allows you to document how your functions work.
-We use the library [**cmocka**](https://cmocka.org/#features)
+## Prerequisite
 
-## Requirement
+Be sure to have installed:
 
 - [CMake >= 3.10](https://cmake.org/download/)
 - [lcov >= 1.14](http://ltp.sourceforge.net/coverage/lcov.php)
 
-Don't worry, you don't necessarily need to install the `cmocka library`
-because the **cmakelist automatically fetches** the library
+and for code coverage generation:
 
-## Add new test
+- lcov >= 1.14
 
-Create new file into `tests` folder and follow [this initiation](https://cmocka.org/talks/cmocka_unit_testing_and_mocking.pdf)
+## Overview
 
-Now go to the `CMakeLists.txt` file and add your test with the specific file you want to test.
+In `tests/unit` folder, compile with:
 
-## Usage
-
-### Build
-
-The `default rules` of makefile will compile the tests and run them.
-
-```sh
-make
+```shell
+cmake -Bbuild -H. && make -C build
 ```
 
-The `coverage rule` will launch the default rules and generate the coverage
-and you will be **automatically redirected** to the generated .html
+and run tests with:
 
-```sh
-make coverage
+```shell
+CTEST_OUTPUT_ON_FAILURE=1 make -C build test
 ```
 
-The `clean rule` will delete the folders and files generated
+To get more verbose output, use:
 
-```sh
-make clean
+```shell
+CTEST_OUTPUT_ON_FAILURE=1 make -C build test ARGS="-V"
 ```
+
+Or also directly with:
+
+```shell
+CTEST_OUTPUT_ON_FAILURE=1 build/test_param_network
+```
+
+## Generate code coverage
+
+Just execute in `tests/unit` folder:
+
+```shell
+./gen_coverage.sh
+```
+
+it will output `coverage.total` and `coverage/` folder with HTML details (in `coverage/index.html`).

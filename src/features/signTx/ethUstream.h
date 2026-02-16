@@ -24,6 +24,7 @@
 #include "cx.h"
 #include "common_utils.h"
 #include "tx_content.h"
+#include "calldata.h"
 
 typedef enum customStatus_e {
     CUSTOM_NOT_HANDLED,
@@ -141,6 +142,7 @@ typedef struct txContext_t {
     bool store_calldata;
     uint8_t batch_nb_tx;
     uint8_t current_batch_size;
+    uint8_t selector_bytes[CALLDATA_SELECTOR_SIZE];
 } txContext_t;
 
 bool init_tx(txContext_t *context, cx_sha3_t *sha3, txContent_t *content, bool store_calldata);

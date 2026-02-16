@@ -1,4 +1,3 @@
-import struct
 from enum import IntEnum
 from typing import Optional
 import rlp
@@ -11,7 +10,6 @@ from ragger.utils import RAPDU
 from .command_builder import CommandBuilder
 from .eip712 import EIP712FieldType
 from .keychain import sign_data, Key
-from .tlv import format_tlv, FieldTag
 from .response_parser import pk_addr
 from .tx_simu import TxSimu
 from .tx_auth_7702 import TxAuth7702
@@ -19,26 +17,8 @@ from .status_word import StatusWord
 from .ledger_pki import PKIClient, PKIPubKeyUsage
 from .dynamic_networks import DynamicNetwork
 from .safe import SafeAccount, AccountType
-
-
-class TrustedNameType(IntEnum):
-    ACCOUNT = 0x01
-    CONTRACT = 0x02
-    NFT = 0x03
-    TOKEN = 0x04
-    WALLET = 0x05
-    CONTEXT_ADDRESS = 0x06
-
-
-class TrustedNameSource(IntEnum):
-    LAB = 0x00
-    CAL = 0x01
-    ENS = 0x02
-    UD = 0x03
-    FN = 0x04
-    DNS = 0x05
-    DYN_RESOLVER = 0x06
-    MULTISIG_ADDRESS_BOOK = 0x07
+from .gating import Gating
+from .trusted_name import TrustedName, TrustedNameSource
 
 
 class EIP712CalldataParamPresence(IntEnum):
@@ -280,57 +260,14 @@ class EthAppClient:
                                                                           bip32_path,
                                                                           pubkey))
 
-    def _provide_trusted_name_common(self, payload: bytes, name_source: TrustedNameSource) -> RAPDU:
-        payload += format_tlv(FieldTag.STRUCT_TYPE, 3)  # TrustedName
-        if name_source == TrustedNameSource.CAL:
-            key_id = 9
-            key = Key.CAL
-        else:
-            key_id = 7
-            key = Key.TRUSTED_NAME
+    def provide_trusted_name(self, trusted_name: TrustedName) -> RAPDU:
+        self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_TRUSTED_NAME,
+                                         trusted_name.tn_source == TrustedNameSource.CAL)
 
-        self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_TRUSTED_NAME, name_source == TrustedNameSource.CAL)
-
-        payload += format_tlv(FieldTag.SIGNER_KEY_ID, key_id)  # test key
-        payload += format_tlv(FieldTag.SIGNER_ALGO, 1)  # secp256k1
-        payload += format_tlv(FieldTag.DER_SIGNATURE,
-                              sign_data(key, payload))
-        chunks = self._cmd_builder.provide_trusted_name(payload)
+        chunks = self._cmd_builder.provide_trusted_name(trusted_name.serialize())
         for chunk in chunks[:-1]:
             self._exchange(chunk)
         return self._exchange(chunks[-1])
-
-    def provide_trusted_name_v1(self, addr: bytes, name: str, challenge: int) -> RAPDU:
-        payload = format_tlv(FieldTag.STRUCT_VERSION, 1)
-        payload += format_tlv(FieldTag.CHALLENGE, challenge)
-        payload += format_tlv(FieldTag.COIN_TYPE, 0x3c)  # ETH in slip-44
-        payload += format_tlv(FieldTag.TRUSTED_NAME, name)
-        payload += format_tlv(FieldTag.ADDRESS, addr)
-        return self._provide_trusted_name_common(payload, TrustedNameSource.ENS)
-
-    def provide_trusted_name_v2(self,
-                                addr: bytes,
-                                name: str,
-                                name_type: TrustedNameType,
-                                name_source: TrustedNameSource,
-                                chain_id: int,
-                                nft_id: Optional[int] = None,
-                                challenge: Optional[int] = None,
-                                not_valid_after: Optional[tuple[int, int, int]] = None) -> RAPDU:
-        payload = format_tlv(FieldTag.STRUCT_VERSION, 2)
-        payload += format_tlv(FieldTag.TRUSTED_NAME, name)
-        payload += format_tlv(FieldTag.ADDRESS, addr)
-        payload += format_tlv(FieldTag.TRUSTED_NAME_TYPE, name_type)
-        payload += format_tlv(FieldTag.TRUSTED_NAME_SOURCE, name_source)
-        payload += format_tlv(FieldTag.CHAIN_ID, chain_id)
-        if nft_id is not None:
-            payload += format_tlv(FieldTag.TRUSTED_NAME_NFT_ID, nft_id)
-        if challenge is not None:
-            payload += format_tlv(FieldTag.CHALLENGE, challenge)
-        if not_valid_after is not None:
-            assert len(not_valid_after) == 3
-            payload += format_tlv(FieldTag.NOT_VALID_AFTER, struct.pack("BBB", *not_valid_after))
-        return self._provide_trusted_name_common(payload, name_source)
 
     def set_plugin(self,
                    plugin_name: str,
@@ -539,3 +476,12 @@ class EthAppClient:
         for chunk in chunks[:-1]:
             self._exchange(chunk)
         return self._exchange_async(chunks[-1])
+
+    def provide_gating(self, gating_descriptor: Gating):
+        # Send ledgerPKI certificate
+        self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_GATING)
+
+        chunks = self._cmd_builder.provide_gating(gating_descriptor.serialize())
+        for chunk in chunks[:-1]:
+            self._exchange(chunk)
+        return self._exchange(chunks[-1])

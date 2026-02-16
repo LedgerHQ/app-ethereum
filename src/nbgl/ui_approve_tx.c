@@ -11,14 +11,15 @@
 #include "network_icons.h"
 #include "network.h"
 #include "cmd_get_tx_simulation.h"
+#include "cmd_get_gating.h"
 #include "utils.h"
-#include "mem_utils.h"
+#include "mem.h"
 #include "ui_utils.h"
 #include "enum_value.h"
 #include "proxy_info.h"
 
 #define TAG_MAX_LEN   43
-#define VALUE_MAX_LEN 79
+#define VALUE_MAX_LEN 100
 
 static nbgl_contentValueExt_t *extension = NULL;
 
@@ -33,13 +34,18 @@ static plugin_buffers_t *plugin_buffers = NULL;
  * Cleanup allocated memory
  */
 static void _cleanup(void) {
-    mem_buffer_cleanup((void **) &g_trusted_name);
-    mem_buffer_cleanup((void **) &g_trusted_name_info);
-    mem_buffer_cleanup((void **) &plugin_buffers);
-    mem_buffer_cleanup((void **) &extension);
+    app_mem_free(plugin_buffers);
+    plugin_buffers = NULL;
+    app_mem_free(extension);
+    extension = NULL;
     ui_all_cleanup();
-    enum_value_cleanup();
     proxy_cleanup();
+#ifdef HAVE_TRANSACTION_CHECKS
+    clear_tx_simulation();
+#endif
+#ifdef HAVE_GATING_SUPPORT
+    clear_gating();
+#endif
 }
 
 // Review callback function to handle user confirmation or cancellation
@@ -52,9 +58,6 @@ static void reviewChoice(bool confirm) {
         nbgl_useCaseReviewStatus(STATUS_TYPE_TRANSACTION_REJECTED, ui_idle);
     }
     _cleanup();
-#ifdef HAVE_TRANSACTION_CHECKS
-    clear_tx_simulation();
-#endif
 }
 
 /**
@@ -166,14 +169,29 @@ static bool setTagValuePairs(bool displayNetwork, bool fromPlugin) {
         // Display the To address
         // ----------------------
         g_pairs[nbPairs].item = "To";
-        if (extension != NULL) {
-            g_pairs[nbPairs].value = g_trusted_name;
+
+        uint64_t chain_id = get_tx_chain_id();
+        e_name_type type = TN_TYPE_ACCOUNT;
+        e_name_source source = TN_SOURCE_ENS;
+        const s_trusted_name *trusted_name;
+
+        if ((trusted_name = get_trusted_name(1,
+                                             &type,
+                                             1,
+                                             &source,
+                                             &chain_id,
+                                             tmpContent.txContent.destination)) != NULL) {
+            if ((extension = app_mem_alloc(sizeof(*extension))) == NULL) {
+                return false;
+            }
+            explicit_bzero(extension, sizeof(*extension));
+            g_pairs[nbPairs].value = trusted_name->name;
             extension->aliasType = ENS_ALIAS;
-            extension->title = g_trusted_name;
+            extension->title = trusted_name->name;
             extension->fullValue = strings.common.toAddress;
             extension->explanation = strings.common.toAddress;
             g_pairs[nbPairs].extension = extension;
-            g_pairs[nbPairs].aliasValue = 1;
+            g_pairs[nbPairs].aliasValue = true;
         } else {
             g_pairs[nbPairs].value = strings.common.toAddress;
         }
@@ -293,8 +311,6 @@ static bool ux_init(bool fromPlugin, uint8_t title_len, uint8_t finish_len) {
     uint16_t buf_size = 0;
     uint8_t nbPairs = 0;
     bool displayNetwork = false;
-    e_name_type type = TN_TYPE_ACCOUNT;
-    e_name_source source = TN_SOURCE_ENS;
 
     chain_id = get_tx_chain_id();
     if (chainConfig->chainId == ETHEREUM_MAINNET_CHAINID && chain_id != chainConfig->chainId) {
@@ -318,19 +334,10 @@ static bool ux_init(bool fromPlugin, uint8_t title_len, uint8_t finish_len) {
     if (fromPlugin == true) {
         buf_size = dataContext.tokenContext.pluginUiMaxItems * sizeof(plugin_buffers_t);
         // Allocate the plugin buffers
-        if (mem_buffer_allocate((void **) &plugin_buffers, buf_size) == false) {
+        if ((plugin_buffers = app_mem_alloc(buf_size)) == NULL) {
             goto error;
         }
-    } else if (get_trusted_name(1,
-                                &type,
-                                1,
-                                &source,
-                                &chain_id,
-                                tmpContent.txContent.destination)) {
-        // Allocate the extension memory
-        if (mem_buffer_allocate((void **) &extension, sizeof(nbgl_contentValueExt_t)) == false) {
-            goto error;
-        }
+        explicit_bzero(plugin_buffers, buf_size);
     }
 
     // Retrieve the Tag/Value g_pairs to display
@@ -342,12 +349,13 @@ error:
 }
 
 /**
- * Display the transaction review screen.
+ * Init the strings for the transaction review screen.
  *
  * @param[in] fromPlugin If true, the data is coming from a plugin, otherwise it is a standard
  * transaction
+ * @return status code indicating success or failure
  */
-void ux_approve_tx(bool fromPlugin) {
+static uint16_t ux_init_strings(bool fromPlugin) {
     char op_name[sizeof(strings.common.fullAmount)];
     const char *title_prefix = "Review transaction";
     const char *tx_check_str = NULL;
@@ -355,14 +363,6 @@ void ux_approve_tx(bool fromPlugin) {
     uint8_t title_len = 1;    // Initialize lengths to 1 for '\0' character
     uint8_t finish_len = 1;   // Initialize lengths to 1 for '\0' character
 
-    // Initialize the warning structure
-    explicit_bzero(&warning, sizeof(nbgl_warning_t));
-    if (tmpContent.txContent.dataPresent) {
-        warning.predefinedSet |= SET_BIT(BLIND_SIGNING_WARN);
-    }
-#ifdef HAVE_TRANSACTION_CHECKS
-    set_tx_simulation_warning();
-#endif
     tx_check_str = ui_tx_simulation_finish_str();
 
     // Compute the title and finish message lengths
@@ -371,7 +371,7 @@ void ux_approve_tx(bool fromPlugin) {
     finish_len += 12;  // strlen(" transaction");
     if (fromPlugin) {
         if (!plugin_ui_get_id()) {
-            return;
+            return SWO_INCORRECT_DATA;
         }
         get_lowercase_operation(op_name, sizeof(op_name));
 
@@ -394,7 +394,7 @@ void ux_approve_tx(bool fromPlugin) {
     // Initialize the buffers
     if (!ux_init(fromPlugin, title_len, finish_len)) {
         // Initialization failed, cleanup and return
-        return;
+        return SWO_INSUFFICIENT_MEMORY;
     }
 
     // Prepare the title and finish messages
@@ -402,9 +402,9 @@ void ux_approve_tx(bool fromPlugin) {
     snprintf(g_finishMsg, finish_len, "%s transaction", tx_check_str);
     if (fromPlugin) {
         // Prepare the suffix
-        if (mem_buffer_allocate((void **) &suffix_str, title_len) == false) {
+        if ((suffix_str = app_mem_alloc(title_len)) == NULL) {
             // Memory allocation failed, cleanup and return
-            return;
+            return SWO_INSUFFICIENT_MEMORY;
         }
         snprintf(suffix_str,
                  title_len,
@@ -418,30 +418,53 @@ void ux_approve_tx(bool fromPlugin) {
 #ifdef SCREEN_SIZE_WALLET
         strlcat(g_finishMsg, suffix_str, finish_len);
 #endif
-        mem_buffer_cleanup((void **) &suffix_str);
+        app_mem_free(suffix_str);
     }
 #ifdef SCREEN_SIZE_WALLET
     strlcat(g_finishMsg, "?", finish_len);
 #endif
 
-    // Start the review process
-    if (warning.predefinedSet == 0) {
-        nbgl_useCaseReview(TYPE_TRANSACTION,
-                           g_pairsList,
-                           get_tx_icon(fromPlugin),
-                           g_titleMsg,
-                           NULL,
-                           g_finishMsg,
-                           reviewChoice);
-    } else {
-        nbgl_useCaseAdvancedReview(TYPE_TRANSACTION,
-                                   g_pairsList,
-                                   get_tx_icon(fromPlugin),
-                                   g_titleMsg,
-                                   NULL,
-                                   g_finishMsg,
-                                   NULL,
-                                   &warning,
-                                   reviewChoice);
+    return SWO_SUCCESS;
+}
+
+/**
+ * Display the transaction review screen.
+ *
+ * @param[in] fromPlugin If true, the data is coming from a plugin, otherwise it is a standard
+ * transaction
+ * @return status code indicating success or failure
+ */
+uint16_t ux_approve_tx(bool fromPlugin) {
+    uint16_t sw = SWO_PARAMETER_ERROR_NO_INFO;
+    // Initialize the warning structure
+    explicit_bzero(&warning, sizeof(nbgl_warning_t));
+    if (tmpContent.txContent.dataPresent) {
+        warning.predefinedSet |= SET_BIT(BLIND_SIGNING_WARN);
+#ifdef HAVE_GATING_SUPPORT
+        warning.predefinedSet |= SET_BIT(GATED_SIGNING_WARN);
+        if (set_gating_warning() == false) {
+            return SWO_INCORRECT_DATA;
+        }
+#endif
     }
+#ifdef HAVE_TRANSACTION_CHECKS
+    set_tx_simulation_warning();
+#endif
+
+    // Initialize the strings
+    sw = ux_init_strings(fromPlugin);
+    if (sw != SWO_SUCCESS) {
+        return sw;
+    }
+
+    nbgl_useCaseAdvancedReview(TYPE_TRANSACTION,
+                               g_pairsList,
+                               get_tx_icon(fromPlugin),
+                               g_titleMsg,
+                               NULL,
+                               g_finishMsg,
+                               NULL,
+                               &warning,
+                               reviewChoice);
+    return SWO_SUCCESS;
 }

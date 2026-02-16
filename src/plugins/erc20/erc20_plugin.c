@@ -9,8 +9,13 @@
 #include "calldata.h"
 #include "manage_asset_info.h"
 #include "eth_swap_utils.h"
+#include "erc20_plugin.h"
 
 typedef enum { ERC20_TRANSFER = 0, ERC20_APPROVE } erc20Selector_t;
+static const uint8_t ERC20_TRANSFER_SELECTOR[SELECTOR_SIZE] = {0xa9, 0x05, 0x9c, 0xbb};
+static const uint8_t ERC20_APPROVE_SELECTOR[SELECTOR_SIZE] = {0x09, 0x5e, 0xa7, 0xb3};
+const uint8_t *const ERC20_SELECTORS[NUM_ERC20_SELECTORS] = {ERC20_TRANSFER_SELECTOR,
+                                                             ERC20_APPROVE_SELECTOR};
 
 #define MAX_CONTRACT_NAME_LEN 15
 #define MAX_EXTRA_DATA_CHUNKS 2
@@ -27,13 +32,13 @@ typedef struct erc20_parameters_t {
     uint8_t extra_data_len;
 } erc20_parameters_t;
 
-void erc20_plugin_call(int message, void *parameters) {
+void erc20_plugin_call(eth_plugin_msg_t message, void *parameters) {
     switch (message) {
         case ETH_PLUGIN_INIT_CONTRACT: {
             ethPluginInitContract_t *msg = (ethPluginInitContract_t *) parameters;
             erc20_parameters_t *context = (erc20_parameters_t *) msg->pluginContext;
 
-            memset(context->extra_data, 0, sizeof(context->extra_data));
+            explicit_bzero(context->extra_data, sizeof(context->extra_data));
             context->extra_data_len = 0;
 
             // enforce that ETH amount should be 0
@@ -98,8 +103,13 @@ void erc20_plugin_call(int message, void *parameters) {
                         memmove(context->extra_data + extra_data_offset,
                                 msg->parameter,
                                 CALLDATA_CHUNK_SIZE);
-                        context->extra_data_len += CALLDATA_CHUNK_SIZE;
-                        msg->result = ETH_PLUGIN_RESULT_OK;
+                        if (msg->parameter_size <= CALLDATA_CHUNK_SIZE) {
+                            context->extra_data_len += msg->parameter_size;
+                            msg->result = ETH_PLUGIN_RESULT_OK;
+                        } else {
+                            PRINTF("Error: wrong parameter size!\n");
+                            msg->result = ETH_PLUGIN_RESULT_ERROR;
+                        }
                     } else {
                         PRINTF("Extra data too long to buffer\n");
                         context->extra_data_len = 0;
@@ -223,12 +233,10 @@ void erc20_plugin_call(int message, void *parameters) {
                     msg->result = ETH_PLUGIN_RESULT_OK;
                     break;
                 case 2: {
-                    uint8_t extra_data_len = strnlen(context->extra_data, context->extra_data_len);
-
-                    PRINTF("Extra Data Length %d\n", extra_data_len);
+                    PRINTF("Extra Data Length %d\n", context->extra_data_len);
                     PRINTF("Message Length %d\n", msg->msgLength);
 
-                    if (extra_data_len == 0) {
+                    if (context->extra_data_len == 0) {
                         // should not happen
                         msg->result = ETH_PLUGIN_RESULT_ERROR;
                         break;
@@ -236,16 +244,16 @@ void erc20_plugin_call(int message, void *parameters) {
 
                     strlcpy(msg->title, "Extra Data", msg->titleLength);
 
-                    if (is_printable(context->extra_data, extra_data_len)) {
+                    if (is_printable(context->extra_data, context->extra_data_len)) {
                         // display as string
                         PRINTF("Display as ASCII string\n");
                         // should never trigger unless the msg->msg buffer has been downsized
-                        if (extra_data_len >= msg->msgLength) {
+                        if (context->extra_data_len >= msg->msgLength) {
                             msg->result = ETH_PLUGIN_RESULT_ERROR;
                             break;
                         }
-                        memmove(msg->msg, context->extra_data, extra_data_len);
-                        msg->msg[extra_data_len] = '\0';
+                        memmove(msg->msg, context->extra_data, context->extra_data_len);
+                        msg->msg[context->extra_data_len] = '\0';
                     } else {
                         char hex_buf[2 + (sizeof(context->extra_data) * 2) + 1];
 
@@ -254,7 +262,7 @@ void erc20_plugin_call(int message, void *parameters) {
 
                         memmove(hex_buf, "0x", 2);
                         if (format_hex((const uint8_t *) context->extra_data,
-                                       extra_data_len,
+                                       context->extra_data_len,
                                        &hex_buf[2],
                                        sizeof(hex_buf) - 2) < 0) {
                             msg->result = ETH_PLUGIN_RESULT_ERROR;

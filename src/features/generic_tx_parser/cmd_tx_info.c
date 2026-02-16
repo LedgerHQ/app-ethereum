@@ -26,7 +26,7 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
                               &ctx.tx_info->chain_id)) {
         return false;
     }
-    return set_tx_info_into_tx_ctx(ctx.tx_info);
+    return process_empty_txs_before() && set_tx_info_into_tx_ctx(ctx.tx_info);
 }
 
 uint16_t handle_tx_info(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *payload) {

@@ -24,8 +24,8 @@ bool field_table_init(void) {
 
 // to be used as a \ref f_list_node_del
 static void delete_table_node(s_field_table_node *node) {
-    if (node->field.key != NULL) app_mem_free(node->field.key);
-    if (node->field.value != NULL) app_mem_free(node->field.value);
+    app_mem_free(node->field.key);
+    app_mem_free(node->field.value);
     app_mem_free(node);
 }
 
@@ -33,7 +33,10 @@ void field_table_cleanup(void) {
     flist_clear((s_flist_node **) &g_table, (f_list_node_del) &delete_table_node);
 }
 
-bool add_to_field_table(e_param_type type, const char *key, const char *value) {
+bool add_to_field_table(e_param_type type,
+                        const char *key,
+                        const char *value,
+                        const void *extra_data) {
     uint8_t key_len;
     uint16_t value_len;
     s_field_table_node *node;
@@ -47,7 +50,7 @@ bool add_to_field_table(e_param_type type, const char *key, const char *value) {
         if ((type == PARAM_TYPE_INTENT) && (txContext.current_batch_size > 1)) {
             // Special handling for intent in EIP712 mode
             ui_712_set_intent();
-            PRINTF(">>> [Intent] Start\n");
+            PRINTF("[Intent] Start\n");
         }
         ui_712_set_title(key, strlen(key));
         ui_712_set_value(value, strlen(value));
@@ -72,17 +75,18 @@ bool add_to_field_table(e_param_type type, const char *key, const char *value) {
         // Special handling for intent
         node->field.start_intent = true;
         type = PARAM_TYPE_RAW;  // store as raw
-        PRINTF(">>> [Intent] Start\n");
+        PRINTF("[Intent] Start\n");
     } else {
         node->field.end_intent = validate_instruction_hash();
         if (node->field.end_intent) {
-            PRINTF(">>> [Intent] End\n");
+            PRINTF("[Intent] End\n");
         }
     }
 
     node->field.type = type;
     memcpy(node->field.key, key, key_len);
     memcpy(node->field.value, value, value_len);
+    node->field.extra_data = extra_data;
 
     flist_push_back((s_flist_node **) &g_table, (s_flist_node *) node);
     return true;
@@ -95,7 +99,7 @@ bool set_intent_field(const char *value) {
         // Only one transaction in the batch, no need to mark as intent
         type = PARAM_TYPE_RAW;
     }
-    return add_to_field_table(type, "Transaction type", value);
+    return add_to_field_table(type, "Transaction type", value, NULL);
 }
 
 size_t field_table_size(void) {

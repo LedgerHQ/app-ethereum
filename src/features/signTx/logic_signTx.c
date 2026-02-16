@@ -49,7 +49,7 @@ customStatus_e customProcessor(txContext_t *context) {
             return CUSTOM_NOT_HANDLED;
         }
         // If data field is less than 4 bytes long, do not try to use a plugin.
-        if (context->currentFieldLength < 4) {
+        if (context->currentFieldLength < CALLDATA_SELECTOR_SIZE) {
             return CUSTOM_NOT_HANDLED;
         }
         if (context->currentFieldPos == 0) {
@@ -112,7 +112,8 @@ customStatus_e customProcessor(txContext_t *context) {
                  dataContext.tokenContext.pluginStatus <= ETH_PLUGIN_RESULT_UNSUCCESSFUL)) {
                 return CUSTOM_NOT_HANDLED;
             }
-            blockSize = 32 - (dataContext.tokenContext.fieldOffset % 32);
+            blockSize =
+                CALLDATA_CHUNK_SIZE - (dataContext.tokenContext.fieldOffset % CALLDATA_CHUNK_SIZE);
         }
 
         // If the last parameter is of type `bytes` then we might have an
@@ -143,9 +144,12 @@ customStatus_e customProcessor(txContext_t *context) {
             // Can process or display
             if (dataContext.tokenContext.pluginStatus >= ETH_PLUGIN_RESULT_SUCCESSFUL) {
                 ethPluginProvideParameter_t pluginProvideParameter;
-                eth_plugin_prepare_provide_parameter(&pluginProvideParameter,
-                                                     dataContext.tokenContext.data,
-                                                     dataContext.tokenContext.fieldIndex * 32 + 4);
+                eth_plugin_prepare_provide_parameter(
+                    &pluginProvideParameter,
+                    dataContext.tokenContext.data,
+                    dataContext.tokenContext.fieldIndex * CALLDATA_CHUNK_SIZE +
+                        CALLDATA_SELECTOR_SIZE,
+                    (uint8_t) copySize);
                 if (!eth_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER,
                                      (void *) &pluginProvideParameter)) {
                     PRINTF("Plugin parameter call failed\n");
@@ -153,7 +157,8 @@ customStatus_e customProcessor(txContext_t *context) {
                 }
                 dataContext.tokenContext.fieldIndex++;
                 dataContext.tokenContext.fieldOffset = 0;
-                memset(dataContext.tokenContext.data, 0, sizeof(dataContext.tokenContext.data));
+                explicit_bzero(dataContext.tokenContext.data,
+                               sizeof(dataContext.tokenContext.data));
                 return CUSTOM_HANDLED;
             }
 
@@ -216,7 +221,7 @@ static void raw_fee_to_string(uint256_t *rawFee, char *out_buffer, uint32_t out_
     uint8_t ticker_len = 0;
     char raw_fee_buffer[100] = {0};
 
-    memset(out_buffer, 0, out_buffer_size);
+    explicit_bzero(out_buffer, out_buffer_size);
 
     // Convert the fee to decimal string first
     if (tostring256(rawFee, 10, (char *) raw_fee_buffer, sizeof(raw_fee_buffer)) == false) {
@@ -500,14 +505,13 @@ end:
     return error;
 }
 
-void start_signature_flow(void) {
+static uint16_t start_signature_flow(void) {
     if (pluginType == PLUGIN_TYPE_NONE) {
-        ux_approve_tx(false);
-    } else {
-        dataContext.tokenContext.pluginUiState = PLUGIN_UI_OUTSIDE;
-        dataContext.tokenContext.pluginUiCurrentItem = 0;
-        ux_approve_tx(true);
+        return ux_approve_tx(false);
     }
+    dataContext.tokenContext.pluginUiState = PLUGIN_UI_OUTSIDE;
+    dataContext.tokenContext.pluginUiCurrentItem = 0;
+    return ux_approve_tx(true);
 }
 
 uint16_t finalize_parsing(const txContext_t *context) {
@@ -518,10 +522,11 @@ uint16_t finalize_parsing(const txContext_t *context) {
         return sw;
     }
     if (context->store_calldata) {
-        if ((get_current_calldata() == NULL) ||
-            (calldata_get_selector(get_current_calldata()) == NULL)) {
+        if ((get_root_calldata() == NULL) || (calldata_get_selector(get_root_calldata()) == NULL)) {
             PRINTF("Asked to store calldata but none was provided!\n");
-            return SWO_INCORRECT_DATA;
+            sw = SWO_INCORRECT_DATA;
+        } else {
+            sw = SWO_SUCCESS;
         }
     } else {
         // If called from swap, the user has already validated a standard transaction
@@ -538,9 +543,10 @@ uint16_t finalize_parsing(const txContext_t *context) {
                 os_sched_exit(0);
             }
             io_seproxyhal_touch_tx_ok();
+            sw = SWO_SUCCESS;
         } else {
-            start_signature_flow();
+            sw = start_signature_flow();
         }
     }
-    return SWO_SUCCESS;
+    return sw;
 }

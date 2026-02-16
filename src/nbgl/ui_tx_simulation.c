@@ -1,7 +1,6 @@
 #include "apdu_constants.h"
 #include "utils.h"
 #include "nbgl_use_case.h"
-#include "glyphs.h"
 #include "ui_nbgl.h"
 #include "ui_callbacks.h"
 #include "ui_callbacks.h"

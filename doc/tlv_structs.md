@@ -1,5 +1,25 @@
 # TLV structures
 
+## TRUSTED_NAME
+
+| Name            | Tag  | Payload type    | Description                     | Optional |
+|-----------------|------|-----------------|---------------------------------|----------|
+| STRUCT_TYPE     | 0x01 | uint8           | structure type (0x03)           |          |
+| STRUCT_VERSION  | 0x02 | uint8           | structure version (currently 2) |          |
+| NOT_VALID_AFTER | 0x10 | uint8[3]        | app version (major,minor,patch) | x        |
+| CHALLENGE       | 0x12 | uint32          |                                 | x        |
+| SIG_KEY_ID      | 0x13 | uint8           |                                 | x        |
+| SIG_ALGO        | 0x14 | uint8           |                                 | x        |
+| SIGNATURE       | 0x15 | uint8[]         |                                 | x        |
+| NAME            | 0x20 | char[]          | what to substitute with         |          |
+| COIN_TYPE       | 0x21 | uint8           | as defined in SLIP-44           | x        |
+| ADDRESS         | 0x22 | uint8[20]       | address to substitute           |          |
+| CHAIN_ID        | 0x23 | uint64          |                                 | x        |
+| TYPE            | 0x70 | uint8           |                                 | x        |
+| SOURCE          | 0x71 | uint8           |                                 | x        |
+| NFT_ID          | 0x72 | uint256         |                                 | x        |
+| OWNER           | 0x74 | uint8[20]       |                                 | x        |
+
 ## TRANSACTION_INFO
 
 | Name               | Tag  | Payload type | Description                                          | Optional | Source / value                                             |
@@ -22,7 +42,8 @@
 > - `$.metadata.owner` is optional, made `CREATOR_NAME` optional
 > - `$.metadata.info.legalName` is optional, made `CREATOR_LEGAL_NAME` optional
 > - `$.display.formats.<selector>.intent` is optional, possible fallbacks: `$.display.formats.<selector>.$id`, `$.display.formats.<selector>`
-> - `CONTRACT_NAME` is not really materialized in the spec, closest is `$.metadata.info.$id`, but `$id` is supposed to be internal
+> - `CONTRACT_NAME` is not really materialized in the spec, closest is `$.metadata.info.$id`,
+     but `$id` is supposed to be internal
 > - `$.metadata.info.lastUpdate` is optional, made `DEPLOY_DATE` optional
 
 ## ENUM_VALUE
@@ -43,12 +64,21 @@
 It contains no signature since the signed TRANSACTION_INFO struct already has a hash of all the FIELD
 structs, which attests of the authenticity, order and completeness of all FIELD structs.
 
-| Name       | Tag  | Payload type | Description                | Optional | Source / value                                             |
-|------------|------|--------------|----------------------------|----------|------------------------------------------------------------|
-| VERSION    | 0x00 | uint8        | struct version             |          | constant: `0x0`                                            |
-| NAME       | 0x01 | char[]       | field display name (ASCII) |          | `$.display.formats.<format id>.fields.[<field id>].label`  |
-| PARAM_TYPE | 0x02 | uint8        | `ParamType`                |          | `$.display.formats.<format id>.fields.[<field id>].params` |
-| PARAM      | 0x03 | PARAM_*      |                            |          | `$.display.formats.<format id>.fields.[<field id>].params` |
+| Name       | Tag  | Payload type | Description                         | Optional | Source / value                                              |
+|------------|------|--------------|-------------------------------------|----------|-------------------------------------------------------------|
+| VERSION    | 0x00 | uint8        | struct version                      |          | constant: `0x0`                                             |
+| NAME       | 0x01 | char[]       | field display name (ASCII)          |          | `$.display.formats.<format id>.fields.[<field id>].label`   |
+| PARAM_TYPE | 0x02 | uint8        | `ParamType`                         |          | `$.display.formats.<format id>.fields.[<field id>].params`  |
+| PARAM      | 0x03 | PARAM_*      |                                     |          | `$.display.formats.<format id>.fields.[<field id>].params`  |
+| VISIBLE    | 0x04 | uint8        | `VisibleType` visibility condition  | x        | `$.display.formats.<format id>.fields.[<field id>].visible` |
+| CONSTRAINT | 0x05 | uint8[]      | constraint value (raw bytes)        | x        | `$.display.formats.<format id>.fields.[<field id>].visible` |
+
+> __Notes__:
+>
+> - `VISIBLE` defaults to `ALWAYS` (0x00) if not present
+> - `VISIBLE` can be present only once and should be served before any `CONSTRAINT`
+> - `CONSTRAINT` is only present when `VISIBLE` is `MUST_BE` or `IF_NOT_IN`
+> - `CONSTRAINT` tag can appear multiple times for multiple allowed/excluded values (OR semantics). The limit is 5 constraints.
 
 with `ParamType` enum defined as:
 
@@ -65,6 +95,15 @@ with `ParamType` enum defined as:
 | TRUSTED_NAME | 0x08  |
 | CALLDATA     | 0x09  |
 | TOKEN        | 0x0a  |
+| NETWORK      | 0x0b  |
+
+with `VisibleType` enum defined as:
+
+| Name      | Value | Description                                                                                |
+|-----------|-------|--------------------------------------------------------------------------------------------|
+| ALWAYS    | 0x00  | Field is always displayed (default)                                                        |
+| MUST_BE   | 0x01  | Field not displayed but must match one of the constraint values, otherwise tx is rejected  |
+| IF_NOT_IN | 0x02  | Field is displayed only if value is NOT in the constraint list                             |
 
 ### PARAM_RAW
 
@@ -191,6 +230,20 @@ and `TrustedNameSource` enum defined as:
 
 This struct can contain `NATIVE_CURRENCY` multiple times for multiple addresses.
 
+### PARAM_NETWORK
+
+| Name    | Tag  | Payload type | Description                 | Optional | Source / value                                           |
+|---------|------|--------------|-----------------------------|----------|----------------------------------------------------------|
+| VERSION | 0x00 | uint8        | struct version              |          | constant: `0x0`                                          |
+| VALUE   | 0x01 | VALUE        | reference to chain ID value |          | `$.display.formats.<format id>.fields.[<field id>].path` |
+
+The device looks up the network name from the chain ID using:
+
+1. Dynamic networks
+2. Built-in networks
+
+If the network is not found, the device falls back to displaying the raw chain ID.
+
 ### VALUE
 
 | Name           | Tag  | Payload type    | Description                             | Optional | Source / value                                            |
@@ -217,26 +270,14 @@ with `TypeFamily` enum defined as:
 
 and `ContainerPath` enum defined as:
 
-| Name  | Value |
-|-------|-------|
-| FROM  | 0x00  |
-| TO    | 0x01  |
-| VALUE | 0x02  |
+| Name     | Value |
+|----------|-------|
+| FROM     | 0x00  |
+| TO       | 0x01  |
+| VALUE    | 0x02  |
+| CHAIN_ID | 0x03  |
 
-The TLV payload must include exactly one of `DATA_PATH`, `CONTAINER_PATH` or `CONSTANT`.
-
-with `TypeFamily` enum defined as:
-
-| Name    | Value |
-|---------|-------|
-| UINT    | 0x01  |
-| INT     | 0x02  |
-| UFIXED  | 0x03  |
-| FIXED   | 0x04  |
-| ADDRESS | 0x05  |
-| BOOL    | 0x06  |
-| BYTES   | 0x07  |
-| STRING  | 0x08  |
+> __Note__: The TLV payload must include exactly one of `DATA_PATH`, `CONTAINER_PATH` or `CONSTANT`.
 
 ### DATA_PATH
 
@@ -345,7 +386,7 @@ The signature is computed on the full payload data, using `CX_CURVE_SECP256K1`.
 | TX_CHECKS_NORMALIZED_CATEGORY | 0x81 | uint8        | Main category explaining the risk score  |                                 |
 | TX_CHECKS_PROVIDER_MSG        | 0x82 | char[30]     | Provider specific message                |                                 |
 | TX_CHECKS_TINY_URL            | 0x83 | char[30]     | URL to access the full report            |                                 |
-| TX_CHECKS_SIMULATION_TYPE     | 0x84 | uint8        | Type of simulation                       |                                 |
+| TX_TYPE                       | 0x84 | uint8        | Type of simulation                       |                                 |
 | SIGNATURE                     | 0x15 | uint8[]      | Signature of the structure               |                                 |
 
 The signature is computed on the full payload data, using `CX_CURVE_SECP256K1`.
@@ -400,5 +441,23 @@ The _Role_ is normalized and interpreted like this:
 | CHALLENGE         | 0x14 | uint32       | Challenge generated by the App |                                    |
 | ADDRESS           | 0x22 | uint8[20]    | Signer Address                 |                                    |
 | SIGNATURE         | 0x15 | uint8[]      | Signature of the structure     |                                    |
+
+The signature is computed on the full payload data, using `CX_CURVE_SECP256K1`.
+
+## GATING_SIGNING
+
+### GATING_DESCRIPTOR
+
+| Name              | Tag  | Payload type | Description                                             | Value                             |
+|-------------------|------|--------------|---------------------------------------------------------|-----------------------------------|
+| STRUCTURE_TYPE    | 0x01 | uint8        | Structure type                                          | `0x0D` (`TYPE_GATED_SIGNING`)     |
+| STRUCTURE_VERSION | 0x02 | uint8        | Structure version                                       | `0x01`                            |
+| ADDRESS           | 0x22 | uint8[20]    | `To` (SignTx) or `verifyingContract` (EIP712)           |                                   |
+| CHAIN_ID          | 0x23 | uint64       | Network chain ID                                        |                                   |
+| SELECTOR          | 0x40 | uint8[4-32]  | SC function selector (SignTx) or `schema_hash` (EIP712) |                                   |
+| INTRO_MSG         | 0x82 | char[100]    | Provider specific message                               |                                   |
+| TINY_URL          | 0x83 | char[30]     | URL to access the full report                           |                                   |
+| TX_TYPE           | 0x84 | uint8        | Type of transaction                                     |                                   |
+| SIGNATURE         | 0x15 | uint8[]      | Signature of the structure                              |                                   |
 
 The signature is computed on the full payload data, using `CX_CURVE_SECP256K1`.

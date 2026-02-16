@@ -23,7 +23,6 @@
 #include "io.h"
 
 #include "parser.h"
-#include "glyphs.h"
 #include "common_utils.h"
 
 #include "eth_swap_utils.h"
@@ -42,6 +41,7 @@
 #include "cmd_tx_info.h"
 #include "cmd_field.h"
 #include "cmd_get_tx_simulation.h"
+#include "cmd_get_gating.h"
 #include "cmd_proxy_info.h"
 #include "commands_7702.h"
 #include "sign_message.h"
@@ -49,6 +49,7 @@
 #include "network_info.h"
 #include "cmd_safe_account.h"
 #include "tx_ctx.h"
+#include "enum_value.h"
 
 tmpCtx_t tmpCtx;
 txContext_t txContext;
@@ -90,12 +91,15 @@ void reset_app_context(void) {
     if (txContext.store_calldata) {
         gcs_cleanup();
     }
+    trusted_name_cleanup();
+    enum_value_cleanup();
     memset((uint8_t *) &txContext, 0, sizeof(txContext));
     memset((uint8_t *) &tmpContent, 0, sizeof(tmpContent));
-#ifdef HAVE_SAFE_ACCOUNT
     clear_safe_account();
-#endif
     ui_all_cleanup();
+#ifdef HAVE_GATING_SUPPORT
+    clear_gating();
+#endif
 }
 
 void app_quit(void) {
@@ -267,9 +271,13 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             sw = handleSignEIP7702Authorization(cmd->p1, cmd->data, cmd->lc, flags);
             break;
 
-#ifdef HAVE_SAFE_ACCOUNT
         case INS_PROVIDE_SAFE_ACCOUNT:
             sw = handle_safe_account(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags);
+            break;
+
+#ifdef HAVE_GATING_SUPPORT
+        case INS_PROVIDE_GATING:
+            sw = handle_gating(cmd->p1, cmd->p2, cmd->data, cmd->lc);
             break;
 #endif
 

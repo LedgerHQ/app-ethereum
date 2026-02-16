@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include "ui_logic.h"
 
-void ui_712_start(e_eip712_filtering_mode filtering);
+uint16_t ui_712_start(e_eip712_filtering_mode filtering);
 
 void eip712_format_hash(uint8_t index);
 

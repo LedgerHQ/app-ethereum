@@ -5,7 +5,7 @@
 #include "read.h"
 #include "utils.h"
 #include "calldata.h"
-#include "mem.h"
+#include "app_mem_utils.h"
 #include "tx_ctx.h"
 #include "tlv_library.h"
 #include "tlv_apdu.h"
@@ -153,14 +153,14 @@ static bool path_leaf(const s_leaf_args *leaf,
     collection->value[collection->size].length = collection->value[collection->size].size;
     collection->value[collection->size].offset = 0;
     if (collection->value[collection->size].length > 0) {
-        if ((leaf_buf = app_mem_alloc(collection->value[collection->size].length)) == NULL) {
+        if ((leaf_buf = APP_MEM_ALLOC(collection->value[collection->size].length)) == NULL) {
             return false;
         }
         for (int chunk_idx = 0;
              (chunk_idx * CALLDATA_CHUNK_SIZE) < collection->value[collection->size].length;
              ++chunk_idx) {
             if ((chunk = calldata_get_chunk(get_current_calldata(), *offset + chunk_idx)) == NULL) {
-                app_mem_free(leaf_buf);
+                APP_MEM_FREE(leaf_buf);
                 return false;
             }
             cpy_length =
@@ -313,7 +313,7 @@ bool data_path_get(const s_data_path *data_path, s_parsed_value_collection *coll
 void data_path_cleanup(const s_parsed_value_collection *collection) {
     for (int i = 0; i < collection->size; ++i) {
         if (collection->value[i].ptr != NULL) {
-            app_mem_free((void *) collection->value[i].ptr - collection->value[i].offset);
+            APP_MEM_FREE((void *) collection->value[i].ptr - collection->value[i].offset);
         }
     }
 }

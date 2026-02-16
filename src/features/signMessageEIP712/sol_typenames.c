@@ -1,5 +1,5 @@
 #include "sol_typenames.h"
-#include "mem.h"
+#include "app_mem_utils.h"
 #include "mem_utils.h"
 #include "os_pic.h"
 #include "apdu_constants.h"  // APDU response codes
@@ -25,7 +25,7 @@ bool sol_typenames_init(void) {
         sol_typenames_deinit();
         return false;
     }
-    if ((g_sol_types = app_mem_alloc(sizeof(*g_sol_types) * count)) == NULL) {
+    if ((g_sol_types = APP_MEM_ALLOC(sizeof(*g_sol_types) * count)) == NULL) {
         apdu_response_code = SWO_INSUFFICIENT_MEMORY;
         return false;
     }
@@ -33,23 +33,23 @@ bool sol_typenames_init(void) {
         g_sol_types[i].value = i + 1;
         switch (g_sol_types[i].value) {
             case TYPE_SOL_INT:
-                g_sol_types[i].name = app_mem_strdup("int");
+                g_sol_types[i].name = APP_MEM_STRDUP("int");
                 break;
             case TYPE_SOL_UINT:
-                g_sol_types[i].name = app_mem_strdup("uint");
+                g_sol_types[i].name = APP_MEM_STRDUP("uint");
                 break;
             case TYPE_SOL_ADDRESS:
-                g_sol_types[i].name = app_mem_strdup("address");
+                g_sol_types[i].name = APP_MEM_STRDUP("address");
                 break;
             case TYPE_SOL_BOOL:
-                g_sol_types[i].name = app_mem_strdup("bool");
+                g_sol_types[i].name = APP_MEM_STRDUP("bool");
                 break;
             case TYPE_SOL_STRING:
-                g_sol_types[i].name = app_mem_strdup("string");
+                g_sol_types[i].name = APP_MEM_STRDUP("string");
                 break;
             case TYPE_SOL_BYTES_FIX:
             case TYPE_SOL_BYTES_DYN:
-                g_sol_types[i].name = app_mem_strdup("bytes");
+                g_sol_types[i].name = APP_MEM_STRDUP("bytes");
                 break;
             default:
                 apdu_response_code = SWO_INCORRECT_DATA;
@@ -66,10 +66,9 @@ bool sol_typenames_init(void) {
 void sol_typenames_deinit(void) {
     if (g_sol_types != NULL) {
         for (int i = 0; i < (TYPES_COUNT - 1); ++i) {
-            app_mem_free(g_sol_types[i].name);
+            APP_MEM_FREE(g_sol_types[i].name);
         }
-        app_mem_free(g_sol_types);
-        g_sol_types = NULL;
+        APP_MEM_FREE_AND_NULL((void **) &g_sol_types);
     }
 }
 

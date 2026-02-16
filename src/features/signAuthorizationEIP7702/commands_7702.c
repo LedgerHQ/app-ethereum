@@ -1,4 +1,5 @@
 #include "shared_context.h"
+#include "app_mem_utils.h"
 #include "apdu_constants.h"
 #include "tlv_apdu.h"
 #include "common_ui.h"
@@ -102,7 +103,7 @@ static bool handleAuth7702TLV(const buffer_t *buf) {
         g_7702_sw = SWO_PARAMETER_ERROR_NO_INFO;
         goto end;
     }
-    if (mem_buffer_allocate((void **) &g_7702_hash_ctx, sizeof(cx_sha3_t)) == false) {
+    if (APP_MEM_CALLOC((void **) &g_7702_hash_ctx, sizeof(cx_sha3_t)) == false) {
         goto end;
     }
     CX_CHECK(cx_keccak_init_no_throw(g_7702_hash_ctx, 256));
@@ -178,7 +179,7 @@ static bool handleAuth7702TLV(const buffer_t *buf) {
     ret = true;
 
 end:
-    mem_buffer_cleanup((void **) &g_7702_hash_ctx);
+    APP_MEM_FREE_AND_NULL((void **) &g_7702_hash_ctx);
     return ret;
 }
 

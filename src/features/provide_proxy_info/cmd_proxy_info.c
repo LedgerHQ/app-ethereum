@@ -7,6 +7,7 @@ static bool handle_tlv_payload(const buffer_t *buf) {
     s_proxy_info_ctx ctx = {0};
     bool parsing_ret = false;
 
+    proxy_cleanup();
     cx_sha256_init(&ctx.struct_hash);
     parsing_ret = handle_proxy_info_tlv_payload(buf, &ctx);
     if (!parsing_ret || !verify_proxy_info_struct(&ctx)) {

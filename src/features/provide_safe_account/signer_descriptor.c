@@ -2,7 +2,7 @@
 #include "safe_descriptor.h"
 #include "challenge.h"
 #include "hash_bytes.h"
-#include "mem.h"
+#include "app_mem_utils.h"
 #include "mem_utils.h"
 #include "public_keys.h"
 #include "signature.h"
@@ -245,12 +245,11 @@ bool handle_signer_tlv_payload(const buffer_t *payload) {
         return false;
     }
     // Init the structure
-    SIGNER_DESC.data = app_mem_alloc(SAFE_DESC->signers_count * sizeof(signer_data_t));
-    if (SIGNER_DESC.data == NULL) {
+    if (APP_MEM_CALLOC((void **) &SIGNER_DESC.data,
+                       SAFE_DESC->signers_count * sizeof(signer_data_t)) == false) {
         PRINTF("Error: Memory allocation failed for Signer Descriptor!\n");
         return false;
     }
-    explicit_bzero(SIGNER_DESC.data, SAFE_DESC->signers_count * sizeof(signer_data_t));
     SIGNER_DESC.is_valid = false;
     ctx.signers = &SIGNER_DESC;
     // Initialize the hash context
@@ -272,6 +271,6 @@ bool handle_signer_tlv_payload(const buffer_t *payload) {
  *
  */
 void clear_signer_descriptor(void) {
-    app_mem_free(SIGNER_DESC.data);
+    APP_MEM_FREE(SIGNER_DESC.data);
     explicit_bzero(&SIGNER_DESC, sizeof(SIGNER_DESC));
 }

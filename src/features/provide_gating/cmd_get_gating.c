@@ -19,6 +19,7 @@
 #ifdef HAVE_GATING_SUPPORT
 
 #include "cmd_get_gating.h"
+#include "app_mem_utils.h"
 #include "apdu_constants.h"
 #include "hash_bytes.h"
 #include "public_keys.h"
@@ -346,7 +347,7 @@ static void print_gating_info(s_gating_ctx *context) {
 static bool handle_tlv_payload(const buffer_t *buf) {
     s_gating_ctx ctx = {0};
 
-    if (mem_buffer_allocate((void **) &GATING, sizeof(gating_t)) == false) {
+    if (APP_MEM_CALLOC((void **) &GATING, sizeof(gating_t)) == false) {
         PRINTF("Error: Not enough memory!\n");
         return false;
     }
@@ -402,7 +403,7 @@ uint16_t handle_gating(uint8_t p1, uint8_t p2, const uint8_t *data, uint8_t leng
  *
  */
 void clear_gating(void) {
-    mem_buffer_cleanup((void **) &GATING);
+    APP_MEM_FREE_AND_NULL((void **) &GATING);
 }
 
 /**

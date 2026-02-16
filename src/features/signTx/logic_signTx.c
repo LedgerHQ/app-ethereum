@@ -14,7 +14,7 @@
 #include "calldata.h"
 #include "swap_error_code_helpers.h"
 #include "getPublicKey.h"
-#include "mem.h"
+#include "app_mem_utils.h"
 #include "mem_utils.h"
 #include "tx_ctx.h"
 #include "eth_swap_utils.h"
@@ -504,7 +504,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
         error = SWO_INCORRECT_DATA;
     }
 end:
-    mem_buffer_cleanup((void **) &g_tx_hash_ctx);
+    APP_MEM_FREE_AND_NULL((void **) &g_tx_hash_ctx);
     return error;
 }
 

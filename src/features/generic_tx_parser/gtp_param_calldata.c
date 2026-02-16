@@ -8,7 +8,7 @@
 #include "utils.h"
 #include "read.h"
 #include "tx_ctx.h"
-#include "mem.h"
+#include "app_mem_utils.h"
 #include "tlv_apdu.h"
 
 #define PARAM_CALLDATA_TAGS(X)                                 \
@@ -123,7 +123,7 @@ static bool process_nested_calldata(const s_param_calldata *param,
             return false;
         }
         if (!calldata_append(new_calldata, calldata_buf, calldata_length)) {
-            app_mem_free(new_calldata);
+            APP_MEM_FREE(new_calldata);
             return false;
         }
     }

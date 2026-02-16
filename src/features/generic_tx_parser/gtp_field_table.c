@@ -1,7 +1,7 @@
 #include <string.h>
 #include "os_print.h"
 #include "gtp_field_table.h"
-#include "mem.h"
+#include "app_mem_utils.h"
 #include "lists.h"
 #include "shared_context.h"  // appState
 #include "ui_logic.h"
@@ -24,9 +24,9 @@ bool field_table_init(void) {
 
 // to be used as a \ref f_list_node_del
 static void delete_table_node(s_field_table_node *node) {
-    app_mem_free(node->field.key);
-    app_mem_free(node->field.value);
-    app_mem_free(node);
+    APP_MEM_FREE(node->field.key);
+    APP_MEM_FREE(node->field.value);
+    APP_MEM_FREE(node);
 }
 
 void field_table_cleanup(void) {
@@ -56,19 +56,18 @@ bool add_to_field_table(e_param_type type,
         ui_712_set_value(value, strlen(value));
         return true;
     }
-    if ((node = app_mem_alloc(sizeof(*node))) == NULL) {
+    if (APP_MEM_CALLOC((void **) &node, sizeof(*node)) == false) {
         return false;
     }
-    explicit_bzero(node, sizeof(*node));
     key_len = strlen(key) + 1;
     value_len = strlen(value) + 1;
-    if ((node->field.key = app_mem_alloc(key_len)) == NULL) {
-        app_mem_free(node);
+    if ((node->field.key = APP_MEM_ALLOC(key_len)) == NULL) {
+        APP_MEM_FREE(node);
         return false;
     }
-    if ((node->field.value = app_mem_alloc(value_len)) == NULL) {
-        app_mem_free(node->field.key);
-        app_mem_free(node);
+    if ((node->field.value = APP_MEM_ALLOC(value_len)) == NULL) {
+        APP_MEM_FREE(node->field.key);
+        APP_MEM_FREE(node);
         return false;
     }
     if (type == PARAM_TYPE_INTENT) {

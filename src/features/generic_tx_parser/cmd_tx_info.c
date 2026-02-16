@@ -2,7 +2,7 @@
 #include "cmd_tx_info.h"
 #include "cx.h"
 #include "apdu_constants.h"
-#include "mem.h"
+#include "app_mem_utils.h"
 #include "mem_utils.h"
 #include "gtp_tx_info.h"
 #include "tlv_apdu.h"
@@ -11,22 +11,22 @@
 static bool handle_tlv_payload(const buffer_t *buf) {
     s_tx_info_ctx ctx = {0};
 
-    if (mem_buffer_allocate((void **) &ctx.tx_info, sizeof(*ctx.tx_info)) == false) {
+    if (APP_MEM_CALLOC((void **) &ctx.tx_info, sizeof(*ctx.tx_info)) == false) {
         return false;
     }
     cx_sha256_init(&ctx.struct_hash);
     if (!handle_tx_info_struct(buf, &ctx)) {
-        app_mem_free(ctx.tx_info);
+        APP_MEM_FREE(ctx.tx_info);
         return false;
     }
     if (!verify_tx_info_struct(&ctx)) {
-        app_mem_free(ctx.tx_info);
+        APP_MEM_FREE(ctx.tx_info);
         return false;
     }
     if (!find_matching_tx_ctx(ctx.tx_info->contract_addr,
                               ctx.tx_info->selector,
                               &ctx.tx_info->chain_id)) {
-        app_mem_free(ctx.tx_info);
+        APP_MEM_FREE(ctx.tx_info);
         return false;
     }
     return process_empty_txs_before() && set_tx_info_into_tx_ctx(ctx.tx_info);

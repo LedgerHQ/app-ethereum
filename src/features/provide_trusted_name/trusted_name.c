@@ -8,7 +8,7 @@
 #include "public_keys.h"
 #include "proxy_info.h"
 #include "ui_utils.h"
-#include "mem.h"
+#include "app_mem_utils.h"
 #include "getPublicKey.h"
 #include "tlv_apdu.h"
 
@@ -22,7 +22,7 @@
 static s_trusted_name *g_trusted_name_list = NULL;
 
 static void delete_trusted_name(s_trusted_name *node) {
-    app_mem_free(node);
+    APP_MEM_FREE(node);
 }
 
 void trusted_name_cleanup(void) {
@@ -669,7 +669,7 @@ bool verify_trusted_name_struct(const s_trusted_name_ctx *context) {
         return false;
     }
 
-    if ((node = app_mem_alloc(sizeof(*node))) == NULL) {
+    if ((node = APP_MEM_ALLOC(sizeof(*node))) == NULL) {
         PRINTF("Error: could not allocate trusted name struct!\n");
         return false;
     }

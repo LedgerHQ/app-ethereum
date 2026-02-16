@@ -3,8 +3,8 @@
 #include "utils.h"
 #include "os_print.h"
 #include "shared_context.h"  // strings
-#include "mem.h"             // app_mem_free
-#include "mem_utils.h"       // mem_buffer_cleanup
+#include "app_mem_utils.h"
+#include "mem_utils.h"  // mem_buffer_cleanup
 #include "lists.h"
 #include "tlv_library.h"
 #include "tlv_apdu.h"
@@ -106,15 +106,15 @@ static bool handle_param_constraint(const tlv_data_t *data, s_field_ctx *context
     }
     // Allocate new constraint node
     s_field_constraint *node = NULL;
-    if (mem_buffer_allocate((void **) &node, sizeof(s_field_constraint)) == false) {
+    if (APP_MEM_CALLOC((void **) &node, sizeof(s_field_constraint)) == false) {
         PRINTF("Error: Failed to allocate memory for constraint node!\n");
         return false;
     }
     node->size = data->value.size;
     // Allocate value buffer
-    if (mem_buffer_allocate((void **) &node->value, data->value.size) == false) {
+    if (APP_MEM_CALLOC((void **) &node->value, data->value.size) == false) {
         PRINTF("Error: Failed to allocate memory for constraint value!\n");
-        app_mem_free((void **) &node);
+        APP_MEM_FREE(node);
         return false;
     }
     memcpy(node->value, data->value.ptr, data->value.size);
@@ -279,8 +279,8 @@ bool format_field(s_field *field) {
 static void constraint_node_del(flist_node_t *node) {
     if (node != NULL) {
         s_field_constraint *constraint = (s_field_constraint *) node;
-        app_mem_free((void *) constraint->value);
-        app_mem_free((void *) constraint);
+        APP_MEM_FREE((void *) constraint->value);
+        APP_MEM_FREE((void *) constraint);
     }
 }
 

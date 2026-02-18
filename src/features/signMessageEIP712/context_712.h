@@ -2,7 +2,7 @@
 
 #include <stdbool.h>
 #include "common_utils.h"
-#include "list.h"
+#include "lists.h"
 
 typedef struct {
     uint8_t contract_addr[ADDRESS_LENGTH];

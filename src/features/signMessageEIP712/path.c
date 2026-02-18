@@ -1,12 +1,13 @@
 #include <string.h>
 #include "path.h"
-#include "mem.h"
+#include "app_mem_utils.h"
 #include "context_712.h"
 #include "commands_712.h"
 #include "type_hash.h"
 #include "mem_utils.h"
 #include "apdu_constants.h"  // APDU response codes
 #include "typed_data.h"
+#include "hash_bytes.h"
 
 static s_path *path_struct = NULL;
 static s_path *path_backup = NULL;
@@ -43,13 +44,13 @@ static const void *get_nth_field_from(const s_path *path, uint8_t *fields_count_
         if (fields_count_ptr != NULL) {
             *fields_count_ptr = 0;
             for (const s_struct_712_field *tmp = field_ptr; tmp != NULL;
-                 tmp = (s_struct_712_field *) ((s_flist_node *) tmp)->next) {
+                 tmp = (s_struct_712_field *) ((flist_node_t *) tmp)->next) {
                 *fields_count_ptr += 1;
             }
         }
 
         for (uint8_t index = 0; index < path->depths[depth]; ++index) {
-            if ((field_ptr = (s_struct_712_field *) ((s_flist_node *) field_ptr)->next) == NULL) {
+            if ((field_ptr = (s_struct_712_field *) ((flist_node_t *) field_ptr)->next) == NULL) {
                 return NULL;
             }
         }
@@ -142,7 +143,7 @@ static bool path_depth_list_push(void) {
  * @return pointer to the hashing context
  */
 s_hash_ctx *get_last_hash_ctx(void) {
-    s_flist_node *hash_ctx = (s_flist_node *) g_hash_ctxs;
+    flist_node_t *hash_ctx = (flist_node_t *) g_hash_ctxs;
 
     while ((hash_ctx != NULL) && (hash_ctx->next != NULL)) {
         hash_ctx = hash_ctx->next;
@@ -159,16 +160,16 @@ static s_hash_ctx *get_previous_hash_ctx(s_hash_ctx *hash_ctx) {
     if (hash_ctx == NULL) {
         return NULL;
     }
-    return (s_hash_ctx *) ((s_list_node *) hash_ctx)->prev;
+    return (s_hash_ctx *) ((list_node_t *) hash_ctx)->prev;
 }
 
 // to be used as a \ref f_list_node_del
 static void delete_hash_ctx(s_hash_ctx *ctx) {
-    app_mem_free(ctx);
+    APP_MEM_FREE(ctx);
 }
 
 static void remove_last_hash_ctx(void) {
-    list_pop_back((s_list_node **) &g_hash_ctxs, (f_list_node_del) &delete_hash_ctx);
+    list_pop_back((list_node_t **) &g_hash_ctxs, (f_list_node_del) &delete_hash_ctx);
 }
 
 /**
@@ -180,23 +181,17 @@ static void remove_last_hash_ctx(void) {
 static bool finalize_hash_depth(uint8_t *hash) {
     const s_hash_ctx *hash_ctx;
     size_t hashed_bytes;
-    cx_err_t error = CX_INTERNAL_ERROR;
 
     if ((hash_ctx = get_last_hash_ctx()) == NULL) {
         return false;
     }
     hashed_bytes = hash_ctx->hash.blen;
     // finalize hash
-    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &hash_ctx->hash,
-                              CX_LAST,
-                              NULL,
-                              0,
-                              hash,
-                              KECCAK256_HASH_BYTESIZE));
+    if (finalize_hash((cx_hash_t *) &hash_ctx->hash, hash, KECCAK256_HASH_BYTESIZE) != true) {
+        return false;
+    }
     remove_last_hash_ctx();
     return hashed_bytes > 0;
-end:
-    return false;
 }
 
 /**
@@ -233,18 +228,17 @@ static bool push_new_hash_depth(bool init) {
     cx_err_t error = CX_INTERNAL_ERROR;
 
     // allocate new hash context
-    if ((hash_ctx = app_mem_alloc(sizeof((*hash_ctx)))) == NULL) {
+    if (APP_MEM_CALLOC((void **) &hash_ctx, sizeof(*hash_ctx)) == false) {
         return false;
     }
-    explicit_bzero(hash_ctx, sizeof(*hash_ctx));
     if (init) {
         CX_CHECK(cx_keccak_init_no_throw(&hash_ctx->hash, 256));
     }
 
-    list_push_back((s_list_node **) &g_hash_ctxs, (s_list_node *) hash_ctx);
+    list_push_back((list_node_t **) &g_hash_ctxs, (list_node_t *) hash_ctx);
     return true;
 end:
-    app_mem_free(hash_ctx);
+    APP_MEM_FREE(hash_ctx);
     return false;
 }
 
@@ -787,7 +781,7 @@ bool path_exists_in_backup(const char *path, size_t length) {
                 return false;
             }
             for (field_ptr = struct_ptr->fields; field_ptr != NULL;
-                 field_ptr = (s_struct_712_field *) ((s_flist_node *) field_ptr)->next) {
+                 field_ptr = (s_struct_712_field *) ((flist_node_t *) field_ptr)->next) {
                 key = field_ptr->key_name;
                 if ((strlen(key) == i) && (memcmp(key, path + offset, i) == 0)) {
                     break;
@@ -815,12 +809,9 @@ bool path_init(void) {
         return false;
     }
 
-    if (((path_struct = app_mem_alloc(sizeof(*path_struct))) == NULL) ||
-        ((path_backup = app_mem_alloc(sizeof(*path_backup))) == NULL)) {
+    if ((APP_MEM_CALLOC((void **) &path_struct, sizeof(*path_struct)) == false) ||
+        (APP_MEM_CALLOC((void **) &path_backup, sizeof(*path_backup)) == false)) {
         apdu_response_code = SWO_INSUFFICIENT_MEMORY;
-    } else {
-        explicit_bzero(path_struct, sizeof(*path_struct));
-        explicit_bzero(path_backup, sizeof(*path_backup));
     }
     return (path_struct != NULL) && (path_backup != NULL);
 }
@@ -829,9 +820,7 @@ bool path_init(void) {
  * De-initialize the path context
  */
 void path_deinit(void) {
-    app_mem_free(path_struct);
-    path_struct = NULL;
-    app_mem_free(path_backup);
-    path_backup = NULL;
-    list_clear((s_list_node **) &g_hash_ctxs, (f_list_node_del) &delete_hash_ctx);
+    APP_MEM_FREE_AND_NULL((void **) &path_struct);
+    APP_MEM_FREE_AND_NULL((void **) &path_backup);
+    list_clear((list_node_t **) &g_hash_ctxs, (f_list_node_del) &delete_hash_ctx);
 }

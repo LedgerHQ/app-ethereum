@@ -1,43 +1,44 @@
 #include "gtp_path_slice.h"
 #include "os_print.h"
 #include "read.h"
+#include "tlv_library.h"
 
-enum {
-    TAG_START = 0x01,
-    TAG_END = 0x02,
-};
+// Define TLV tags for Path Slice
+#define SLICE_TAGS(X)                                    \
+    X(0x01, TAG_START, handle_start, ENFORCE_UNIQUE_TAG) \
+    X(0x02, TAG_END, handle_end, ENFORCE_UNIQUE_TAG)
 
-static bool handle_start(const s_tlv_data *data, s_path_slice_context *context) {
-    if (data->length != sizeof(context->args->start)) {
+static bool handle_start(const tlv_data_t *data, s_path_slice_context *context) {
+    if (data->value.size < 2) {
         return false;
     }
-    context->args->start = read_u16_be(data->value, 0);
+    uint16_t value = read_u16_be(data->value.ptr, 0);
+    context->args->start = value;
     context->args->has_start = true;
     return true;
 }
 
-static bool handle_end(const s_tlv_data *data, s_path_slice_context *context) {
-    if (data->length != sizeof(context->args->end)) {
+static bool handle_end(const tlv_data_t *data, s_path_slice_context *context) {
+    if (data->value.size < 2) {
         return false;
     }
-    context->args->end = read_u16_be(data->value, 0);
+    uint16_t value = read_u16_be(data->value.ptr, 0);
+    context->args->end = value;
     context->args->has_end = true;
     return true;
 }
 
-bool handle_slice_struct(const s_tlv_data *data, s_path_slice_context *context) {
-    bool ret;
+// Generate TLV parser for Path Slice
+DEFINE_TLV_PARSER(SLICE_TAGS, NULL, slice_tlv_parser)
 
-    switch (data->tag) {
-        case TAG_START:
-            ret = handle_start(data, context);
-            break;
-        case TAG_END:
-            ret = handle_end(data, context);
-            break;
-        default:
-            PRINTF(TLV_TAG_ERROR_MSG, data->tag);
-            ret = false;
-    }
-    return ret;
+/**
+ * Wrapper to parse Path Slice TLV payload.
+ *
+ * @param[in] buf TLV buffer
+ * @param[out] context Path Slice context
+ * @return whether parsing was successful
+ */
+bool handle_slice_struct(const buffer_t *buf, s_path_slice_context *context) {
+    TLV_reception_t received_tags;
+    return slice_tlv_parser(buf, context, &received_tags);
 }

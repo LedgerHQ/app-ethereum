@@ -13,7 +13,7 @@
 #include "cmd_get_tx_simulation.h"
 #include "cmd_get_gating.h"
 #include "utils.h"
-#include "mem.h"
+#include "app_mem_utils.h"
 #include "ui_utils.h"
 #include "enum_value.h"
 #include "proxy_info.h"
@@ -34,10 +34,8 @@ static plugin_buffers_t *plugin_buffers = NULL;
  * Cleanup allocated memory
  */
 static void _cleanup(void) {
-    app_mem_free(plugin_buffers);
-    plugin_buffers = NULL;
-    app_mem_free(extension);
-    extension = NULL;
+    APP_MEM_FREE_AND_NULL((void **) &plugin_buffers);
+    APP_MEM_FREE_AND_NULL((void **) &extension);
     ui_all_cleanup();
     proxy_cleanup();
 #ifdef HAVE_TRANSACTION_CHECKS
@@ -181,10 +179,9 @@ static bool setTagValuePairs(bool displayNetwork, bool fromPlugin) {
                                              &source,
                                              &chain_id,
                                              tmpContent.txContent.destination)) != NULL) {
-            if ((extension = app_mem_alloc(sizeof(*extension))) == NULL) {
+            if (APP_MEM_CALLOC((void **) &extension, sizeof(*extension)) == false) {
                 return false;
             }
-            explicit_bzero(extension, sizeof(*extension));
             g_pairs[nbPairs].value = trusted_name->name;
             extension->aliasType = ENS_ALIAS;
             extension->title = trusted_name->name;
@@ -334,10 +331,9 @@ static bool ux_init(bool fromPlugin, uint8_t title_len, uint8_t finish_len) {
     if (fromPlugin == true) {
         buf_size = dataContext.tokenContext.pluginUiMaxItems * sizeof(plugin_buffers_t);
         // Allocate the plugin buffers
-        if ((plugin_buffers = app_mem_alloc(buf_size)) == NULL) {
+        if (APP_MEM_CALLOC((void **) &plugin_buffers, buf_size) == false) {
             goto error;
         }
-        explicit_bzero(plugin_buffers, buf_size);
     }
 
     // Retrieve the Tag/Value g_pairs to display
@@ -402,7 +398,7 @@ static uint16_t ux_init_strings(bool fromPlugin) {
     snprintf(g_finishMsg, finish_len, "%s transaction", tx_check_str);
     if (fromPlugin) {
         // Prepare the suffix
-        if ((suffix_str = app_mem_alloc(title_len)) == NULL) {
+        if ((suffix_str = APP_MEM_ALLOC(title_len)) == NULL) {
             // Memory allocation failed, cleanup and return
             return SWO_INSUFFICIENT_MEMORY;
         }
@@ -418,7 +414,7 @@ static uint16_t ux_init_strings(bool fromPlugin) {
 #ifdef SCREEN_SIZE_WALLET
         strlcat(g_finishMsg, suffix_str, finish_len);
 #endif
-        app_mem_free(suffix_str);
+        APP_MEM_FREE(suffix_str);
     }
 #ifdef SCREEN_SIZE_WALLET
     strlcat(g_finishMsg, "?", finish_len);

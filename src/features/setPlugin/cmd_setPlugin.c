@@ -31,26 +31,15 @@ typedef enum Version {
     VERSION_1 = 0x01,
 } Version;
 
-typedef enum KeyId {
-    TEST_PLUGIN_KEY = 0x00,
-    // Must ONLY be used with ERC721 and ERC1155 plugin
-    PROD_PLUGIN_KEY = 0x02,
-} KeyId;
+// #define TEST_PLUGIN_KEY 0x00
+// Must ONLY be used with ERC721 and ERC1155 plugin
+#define PROD_PLUGIN_KEY 0x02
 
 // Algorithm Id consists of a Key spec and an algorithm spec.
 // Format is: KEYSPEC__ALGOSPEC
 typedef enum AlgorithmID {
     ECC_SECG_P256K1__ECDSA_SHA_256 = 0x01,
 } AlgorithmID;
-
-// Verification function used to verify the signature
-typedef bool verificationAlgo(const cx_ecfp_public_key_t *,
-                              int,
-                              cx_md_t,
-                              const unsigned char *,
-                              unsigned int,
-                              unsigned char *,
-                              unsigned int);
 
 // Returns the plugin type of a given plugin name.
 // If the plugin name is not a specific known internal plugin, this function default return value is
@@ -84,13 +73,7 @@ uint16_t handleSetPlugin(const uint8_t *workBuffer, uint8_t dataLength) {
     size_t payloadSize = 0;
     uint64_t chain_id = 0;
     uint8_t signatureLen = 0;
-    cx_err_t error = CX_INTERNAL_ERROR;
-#ifdef HAVE_NFT_STAGING_KEY
-    enum KeyId valid_keyId = TEST_PLUGIN_KEY;
-#else
-    enum KeyId valid_keyId = PROD_PLUGIN_KEY;
-#endif
-    enum KeyId keyId;
+    uint8_t keyId;
     uint32_t params[2];
 
     if (dataLength <= HEADER_SIZE) {
@@ -150,9 +133,7 @@ uint16_t handleSetPlugin(const uint8_t *workBuffer, uint8_t dataLength) {
     offset += SELECTOR_SIZE;
 
     chain_id = u64_from_BE(workBuffer + offset, CHAIN_ID_SIZE);
-    // this prints raw data, so to have a more meaningful print, display
-    // the buffer before the endianness swap
-    PRINTF("ChainID: %.*H\n", sizeof(chain_id), (workBuffer + offset));
+    PRINTF("ChainID: %llu\n", chain_id);
     if (!app_compatible_with_chain_id(&chain_id)) {
         UNSUPPORTED_CHAIN_ID_MSG(chain_id);
         return SWO_INCORRECT_DATA;
@@ -160,7 +141,7 @@ uint16_t handleSetPlugin(const uint8_t *workBuffer, uint8_t dataLength) {
     offset += CHAIN_ID_SIZE;
 
     keyId = workBuffer[offset];
-    if (keyId != valid_keyId) {
+    if (keyId != PROD_PLUGIN_KEY) {
         PRINTF("Unsupported KeyID %d\n", keyId);
         return SWO_INCORRECT_DATA;
     }
@@ -196,19 +177,12 @@ uint16_t handleSetPlugin(const uint8_t *workBuffer, uint8_t dataLength) {
         return SWO_INCORRECT_DATA;
     }
 
-    error = check_signature_with_pubkey("Set Plugin",
-                                        hash,
-                                        sizeof(hash),
-                                        LEDGER_NFT_SELECTOR_PUBLIC_KEY,
-                                        sizeof(LEDGER_NFT_SELECTOR_PUBLIC_KEY),
-                                        CERTIFICATE_PUBLIC_KEY_USAGE_PLUGIN_METADATA,
-                                        (uint8_t *) (workBuffer + offset),
-                                        signatureLen);
-    if (error != CX_OK) {
-        PRINTF("Invalid signature\n");
-#ifndef HAVE_BYPASS_SIGNATURES
+    if (check_signature_with_pubkey(hash,
+                                    sizeof(hash),
+                                    CERTIFICATE_PUBLIC_KEY_USAGE_PLUGIN_METADATA,
+                                    (uint8_t *) (workBuffer + offset),
+                                    signatureLen) != true) {
         return SWO_INCORRECT_DATA;
-#endif
     }
 
     pluginType = getPluginType(tokenContext->pluginName, pluginNameLength);

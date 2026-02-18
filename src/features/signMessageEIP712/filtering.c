@@ -12,7 +12,7 @@
 #include "os_pki.h"
 #include "trusted_name.h"
 #include "proxy_info.h"
-#include "mem.h"
+#include "app_mem_utils.h"
 #include "getPublicKey.h"
 
 #define FILT_MAGIC_MESSAGE_INFO      183
@@ -127,24 +127,20 @@ static bool sig_verif_start(cx_sha256_t *hash_ctx, uint8_t magic) {
  */
 static bool sig_verif_end(cx_sha256_t *hash_ctx, const uint8_t *sig, uint8_t sig_length) {
     uint8_t hash[INT256_LENGTH];
-    cx_err_t error = CX_INTERNAL_ERROR;
-    bool ret_code = false;
 
-    // Finalize hash
-    CX_CHECK(cx_hash_no_throw((cx_hash_t *) hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH));
+    if (finalize_hash((cx_hash_t *) hash_ctx, hash, sizeof(hash)) != true) {
+        return false;
+    }
 
-    CX_CHECK(check_signature_with_pubkey("EIP712 Filtering",
-                                         hash,
-                                         sizeof(hash),
-                                         LEDGER_SIGNATURE_PUBLIC_KEY,
-                                         sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
-                                         CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META,
-                                         (uint8_t *) (sig),
-                                         sig_length));
+    if (check_signature_with_pubkey(hash,
+                                    sizeof(hash),
+                                    CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META,
+                                    (uint8_t *) sig,
+                                    sig_length) != true) {
+        return false;
+    }
 
-    ret_code = true;
-end:
-    return ret_code;
+    return true;
 }
 
 /**
@@ -795,11 +791,10 @@ bool filtering_calldata_info(const uint8_t *payload, uint8_t length) {
     if (!sig_verif_end(&hash_ctx, sig, sig_len)) {
         return false;
     }
-    if ((calldata_info = app_mem_alloc(sizeof(*calldata_info))) == NULL) {
+    if (APP_MEM_CALLOC((void **) &calldata_info, sizeof(*calldata_info)) == false) {
         return false;
     }
 
-    explicit_bzero(calldata_info, sizeof(*calldata_info));
     calldata_info->index = index;
 
     calldata_info->value_state = CALLDATA_INFO_PARAM_UNSET;

@@ -1,93 +1,89 @@
 #include "auth_7702.h"
 #include "utils.h"
-#include "read.h"
-
-enum {
-    TAG_STRUCT_VERSION = 0x00,
-    TAG_DELEGATE_ADDR = 0x01,
-    TAG_CHAIN_ID = 0x02,
-    TAG_NONCE = 0x03,
-};
-
-enum {
-    BIT_VERSION,
-    BIT_DELEGATE_ADDR,
-    BIT_CHAIN_ID,
-    BIT_NONCE,
-};
+#include "tlv_apdu.h"
 
 #define STRUCT_VERSION 0x01
-#define MASK_ALL \
-    (SET_BIT(BIT_VERSION) | SET_BIT(BIT_DELEGATE_ADDR) | SET_BIT(BIT_CHAIN_ID) | SET_BIT(BIT_NONCE))
 
-static bool handle_version(const s_tlv_data *data, s_auth_7702_ctx *context) {
-    if (data->length != sizeof(uint8_t)) {
+/**
+ * @brief Parse the STRUCT_VERSION value.
+ *
+ * @param[in] data the tlv data
+ * @param[in] context Auth 7702 context
+ * @return whether the handling was successful
+ */
+static bool handle_version(const tlv_data_t *data, s_auth_7702_ctx *context) {
+    UNUSED(context);
+    return tlv_check_struct_version(data, STRUCT_VERSION);
+}
+
+/**
+ * @brief Parse the DELEGATE_ADDR value.
+ *
+ * @param[in] data the tlv data
+ * @param[in] context Auth 7702 context
+ * @return whether the handling was successful
+ */
+static bool handle_delegate_addr(const tlv_data_t *data, s_auth_7702_ctx *context) {
+    return tlv_get_address(data, context->auth_7702.delegate, false);
+}
+
+/**
+ * @brief Parse the CHAIN_ID value.
+ *
+ * @param[in] data the tlv data
+ * @param[in] context Auth 7702 context
+ * @return whether the handling was successful
+ */
+static bool handle_chain_id(const tlv_data_t *data, s_auth_7702_ctx *context) {
+    if (!get_uint64_t_from_tlv_data(data, &context->auth_7702.chainId)) {
+        PRINTF("CHAIN_ID: failed to extract\n");
         return false;
     }
-    context->mask_parsed |= SET_BIT(BIT_VERSION);
-    context->version = data->value[0];
     return true;
 }
 
-static bool handle_delegate_addr(const s_tlv_data *data, s_auth_7702_ctx *context) {
-    uint8_t buf[sizeof(context->auth_7702.delegate)];
-
-    if (data->length > sizeof(buf)) {
+/**
+ * @brief Parse the NONCE value.
+ *
+ * @param[in] data the tlv data
+ * @param[in] context Auth 7702 context
+ * @return whether the handling was successful
+ */
+static bool handle_nonce(const tlv_data_t *data, s_auth_7702_ctx *context) {
+    uint64_t value = 0;
+    if (!get_uint64_t_from_tlv_data(data, &value)) {
+        PRINTF("NONCE: failed to extract\n");
         return false;
     }
-    buf_shrink_expand(data->value, data->length, buf, sizeof(buf));
-    memmove(context->auth_7702.delegate, buf, sizeof(buf));
-    context->mask_parsed |= SET_BIT(BIT_DELEGATE_ADDR);
+    context->auth_7702.nonce = value;
     return true;
 }
 
-static bool handle_chain_id(const s_tlv_data *data, s_auth_7702_ctx *context) {
-    uint8_t buf[sizeof(context->auth_7702.chainId)];
+// Define TLV tags for Auth 7702
+#define AUTH_7702_TAGS(X)                                                \
+    X(0x00, TAG_STRUCT_VERSION, handle_version, ENFORCE_UNIQUE_TAG)      \
+    X(0x01, TAG_DELEGATE_ADDR, handle_delegate_addr, ENFORCE_UNIQUE_TAG) \
+    X(0x02, TAG_CHAIN_ID, handle_chain_id, ENFORCE_UNIQUE_TAG)           \
+    X(0x03, TAG_NONCE, handle_nonce, ENFORCE_UNIQUE_TAG)
 
-    if (data->length > sizeof(buf)) {
-        return false;
-    }
-    buf_shrink_expand(data->value, data->length, buf, sizeof(buf));
-    context->auth_7702.chainId = read_u64_be(buf, 0);
-    context->mask_parsed |= SET_BIT(BIT_CHAIN_ID);
-    return true;
-}
+// Generate TLV parser for Auth 7702
+DEFINE_TLV_PARSER(AUTH_7702_TAGS, NULL, auth_7702_tlv_parser)
 
-static bool handle_nonce(const s_tlv_data *data, s_auth_7702_ctx *context) {
-    uint8_t buf[sizeof(context->auth_7702.nonce)];
-
-    if (data->length > sizeof(buf)) {
-        return false;
-    }
-    buf_shrink_expand(data->value, data->length, buf, sizeof(buf));
-    context->auth_7702.nonce = read_u64_be(buf, 0);
-    context->mask_parsed |= SET_BIT(BIT_NONCE);
-    return true;
-}
-
-bool handle_auth_7702_struct(const s_tlv_data *data, s_auth_7702_ctx *context) {
-    bool ret;
-
-    switch (data->tag) {
-        case TAG_STRUCT_VERSION:
-            ret = handle_version(data, context);
-            break;
-        case TAG_DELEGATE_ADDR:
-            ret = handle_delegate_addr(data, context);
-            break;
-        case TAG_CHAIN_ID:
-            ret = handle_chain_id(data, context);
-            break;
-        case TAG_NONCE:
-            ret = handle_nonce(data, context);
-            break;
-        default:
-            PRINTF(TLV_TAG_ERROR_MSG, data->tag);
-            ret = false;
-    }
-    return ret;
+/**
+ * @brief Wrapper to parse Auth 7702 TLV payload.
+ *
+ * @param[in] buf TLV buffer
+ * @param[out] context Auth 7702 context
+ * @return whether parsing was successful
+ */
+bool handle_auth_7702_tlv_payload(const buffer_t *buf, s_auth_7702_ctx *context) {
+    return auth_7702_tlv_parser(buf, context, &context->received_tags);
 }
 
 bool verify_auth_7702_struct(const s_auth_7702_ctx *context) {
-    return ((context->mask_parsed & MASK_ALL) == MASK_ALL) && (context->version == STRUCT_VERSION);
+    return TLV_CHECK_RECEIVED_TAGS(context->received_tags,
+                                   TAG_STRUCT_VERSION,
+                                   TAG_DELEGATE_ADDR,
+                                   TAG_CHAIN_ID,
+                                   TAG_NONCE);
 }

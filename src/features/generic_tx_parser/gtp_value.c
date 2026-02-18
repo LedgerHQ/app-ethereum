@@ -5,105 +5,66 @@
 #include "apdu_constants.h"  // SWO_SUCCESS
 #include "getPublicKey.h"
 #include "gtp_parsed_value.h"
-#include "mem.h"
-#include "mem_utils.h"
 #include "ui_utils.h"
 #include "tx_ctx.h"
+#include "tlv_library.h"
+#include "tlv_apdu.h"
 
-enum {
-    TAG_VERSION = 0x00,
-    TAG_TYPE_FAMILY = 0x01,
-    TAG_TYPE_SIZE = 0x02,
-    TAG_DATA_PATH = 0x03,
-    TAG_CONTAINER_PATH = 0x04,
-    TAG_CONSTANT = 0x05,
-};
+#define VALUE_TAGS(X)                                                      \
+    X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG)               \
+    X(0x01, TAG_TYPE_FAMILY, handle_type_family, ENFORCE_UNIQUE_TAG)       \
+    X(0x02, TAG_TYPE_SIZE, handle_type_size, ENFORCE_UNIQUE_TAG)           \
+    X(0x03, TAG_DATA_PATH, handle_data_path, ENFORCE_UNIQUE_TAG)           \
+    X(0x04, TAG_CONTAINER_PATH, handle_container_path, ENFORCE_UNIQUE_TAG) \
+    X(0x05, TAG_CONSTANT, handle_constant, ENFORCE_UNIQUE_TAG)
 
-static bool handle_version(const s_tlv_data *data, s_value_context *context) {
-    if (data->length != sizeof(uint8_t)) {
-        return false;
-    }
-    context->value->version = data->value[0];
-    return true;
+static bool handle_version(const tlv_data_t *data, s_value_context *context) {
+    return tlv_get_uint8(data, &context->value->version, 0, UINT8_MAX);
 }
 
-static bool handle_type_family(const s_tlv_data *data, s_value_context *context) {
-    if (data->length != sizeof(e_type_family)) {
-        return false;
-    }
-    context->value->type_family = data->value[0];
-    return true;
+static bool handle_type_family(const tlv_data_t *data, s_value_context *context) {
+    return tlv_get_uint8(data, (uint8_t *) &context->value->type_family, 0, UINT8_MAX);
 }
 
-static bool handle_type_size(const s_tlv_data *data, s_value_context *context) {
-    if (data->length != sizeof(uint8_t)) {
-        return false;
-    }
-    context->value->type_size = data->value[0];
-    return (context->value->type_size > 0) && (context->value->type_size <= 32);
+static bool handle_type_size(const tlv_data_t *data, s_value_context *context) {
+    return tlv_get_uint8(data, &context->value->type_size, 1, 32);
 }
 
-static bool handle_data_path(const s_tlv_data *data, s_value_context *context) {
+static bool handle_data_path(const tlv_data_t *data, s_value_context *context) {
     s_data_path_context ctx = {0};
 
     ctx.data_path = &context->value->data_path;
     explicit_bzero(ctx.data_path, sizeof(*ctx.data_path));
-    if (!tlv_parse(data->value,
-                   data->length,
-                   (f_tlv_data_handler) &handle_data_path_struct,
-                   &ctx)) {
+    if (!handle_data_path_struct(&data->value, &ctx)) {
         return false;
     }
     context->value->source = SOURCE_CALLDATA;
     return true;
 }
 
-static bool handle_container_path(const s_tlv_data *data, s_value_context *context) {
-    if (data->length != sizeof(e_container_path)) {
+static bool handle_container_path(const tlv_data_t *data, s_value_context *context) {
+    if (!tlv_get_uint8(data, (uint8_t *) &context->value->container_path, 0, UINT8_MAX)) {
         return false;
     }
-    context->value->container_path = data->value[0];
     context->value->source = SOURCE_RLP;
     return true;
 }
 
-static bool handle_constant(const s_tlv_data *data, s_value_context *context) {
-    if (data->length > sizeof(context->value->constant.buf)) {
+static bool handle_constant(const tlv_data_t *data, s_value_context *context) {
+    if (data->value.size > sizeof(context->value->constant.buf)) {
         return false;
     }
-    context->value->constant.size = data->length;
-    memcpy(context->value->constant.buf, data->value, data->length);
+    context->value->constant.size = data->value.size;
+    memcpy(context->value->constant.buf, data->value.ptr, data->value.size);
     context->value->source = SOURCE_CONSTANT;
     return true;
 }
 
-bool handle_value_struct(const s_tlv_data *data, s_value_context *context) {
-    bool ret;
+DEFINE_TLV_PARSER(VALUE_TAGS, NULL, value_tlv_parser)
 
-    switch (data->tag) {
-        case TAG_VERSION:
-            ret = handle_version(data, context);
-            break;
-        case TAG_TYPE_FAMILY:
-            ret = handle_type_family(data, context);
-            break;
-        case TAG_TYPE_SIZE:
-            ret = handle_type_size(data, context);
-            break;
-        case TAG_DATA_PATH:
-            ret = handle_data_path(data, context);
-            break;
-        case TAG_CONTAINER_PATH:
-            ret = handle_container_path(data, context);
-            break;
-        case TAG_CONSTANT:
-            ret = handle_constant(data, context);
-            break;
-        default:
-            PRINTF(TLV_TAG_ERROR_MSG, data->tag);
-            ret = false;
-    }
-    return ret;
+bool handle_value_struct(const buffer_t *buf, s_value_context *context) {
+    TLV_reception_t received_tags;
+    return value_tlv_parser(buf, context, &received_tags);
 }
 
 bool value_get(const s_value *value, s_parsed_value_collection *collection) {

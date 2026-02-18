@@ -3,12 +3,13 @@
 #include "tlv_apdu.h"
 #include "apdu_constants.h"
 
-static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
+static bool handle_tlv_payload(const buffer_t *buf) {
     s_proxy_info_ctx ctx = {0};
-    bool parsing_ret;
+    bool parsing_ret = false;
 
+    proxy_cleanup();
     cx_sha256_init(&ctx.struct_hash);
-    parsing_ret = tlv_parse(payload, size, (f_tlv_data_handler) &handle_proxy_info_struct, &ctx);
+    parsing_ret = handle_proxy_info_tlv_payload(buf, &ctx);
     if (!parsing_ret || !verify_proxy_info_struct(&ctx)) {
         return false;
     }

@@ -1,4 +1,5 @@
 #include "shared_context.h"
+#include "app_mem_utils.h"
 #include "apdu_constants.h"
 #include "tlv_apdu.h"
 #include "common_ui.h"
@@ -12,6 +13,7 @@
 #include "auth_7702.h"
 #include "getPublicKey.h"
 #include "mem_utils.h"
+#include "hash_bytes.h"
 
 // Avoid saving the full structure when parsing
 // Alternative option : add a callback to f_tlv_payload_handler
@@ -56,7 +58,7 @@ uint16_t hashRLP64(uint64_t data, uint8_t *rlpTmp, uint8_t rlpTmpLength) {
     return hashRLP(tmp + sizeof(tmp) - encodingLength, encodingLength, rlpTmp, rlpTmpLength);
 }
 
-static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size) {
+static bool handleAuth7702TLV(const buffer_t *buf) {
     s_auth_7702_ctx auth_7702_ctx = {0};
     s_auth_7702 *auth7702 = &auth_7702_ctx.auth_7702;
     bool parsing_ret = false;
@@ -73,8 +75,7 @@ static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size) {
     // Default internal error triggered by CX_CHECK
     g_7702_sw = SWO_PARAMETER_ERROR_NO_INFO;
 
-    parsing_ret =
-        tlv_parse(payload, size, (f_tlv_data_handler) handle_auth_7702_struct, &auth_7702_ctx);
+    parsing_ret = handle_auth_7702_tlv_payload(buf, &auth_7702_ctx);
     if (!parsing_ret || !verify_auth_7702_struct(&auth_7702_ctx)) {
         g_7702_sw = SWO_INCORRECT_DATA;
         goto end;
@@ -102,7 +103,7 @@ static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size) {
         g_7702_sw = SWO_PARAMETER_ERROR_NO_INFO;
         goto end;
     }
-    if (mem_buffer_allocate((void **) &g_7702_hash_ctx, sizeof(cx_sha3_t)) == false) {
+    if (APP_MEM_CALLOC((void **) &g_7702_hash_ctx, sizeof(cx_sha3_t)) == false) {
         goto end;
     }
     CX_CHECK(cx_keccak_init_no_throw(g_7702_hash_ctx, 256));
@@ -122,12 +123,11 @@ static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size) {
         g_7702_sw = sw;
         goto end;
     }
-    CX_CHECK(cx_hash_no_throw((cx_hash_t *) g_7702_hash_ctx,
-                              CX_LAST,
-                              NULL,
-                              0,
-                              tmpCtx.authSigningContext7702.authHash,
-                              sizeof(tmpCtx.authSigningContext7702.authHash)));
+    if (finalize_hash((cx_hash_t *) g_7702_hash_ctx,
+                      tmpCtx.authSigningContext7702.authHash,
+                      sizeof(tmpCtx.authSigningContext7702.authHash)) != true) {
+        goto end;
+    }
     // Prepare information to be displayed
     // * Address to be delegated
     strings.common.fromAddress[0] = '0';
@@ -179,7 +179,7 @@ static bool handleAuth7702TLV(const uint8_t *payload, uint16_t size) {
     ret = true;
 
 end:
-    mem_buffer_cleanup((void **) &g_7702_hash_ctx);
+    APP_MEM_FREE_AND_NULL((void **) &g_7702_hash_ctx);
     return ret;
 }
 

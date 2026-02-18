@@ -2,17 +2,16 @@
 #include "os_math.h"  // MIN
 #include "calldata.h"
 #include "os_print.h"
-#include "mem.h"
+#include "app_mem_utils.h"
 #include "mem_utils.h"
-#include "list.h"
+#include "lists.h"
 
 s_calldata *calldata_init(size_t size, const uint8_t selector[CALLDATA_SELECTOR_SIZE]) {
     s_calldata *calldata;
 
-    if ((calldata = app_mem_alloc(sizeof(*calldata))) == NULL) {
+    if (APP_MEM_CALLOC((void **) &calldata, sizeof(*calldata)) == false) {
         return NULL;
     }
-    explicit_bzero(calldata, sizeof(*calldata));
     calldata->expected_size = size;
     calldata_set_selector(calldata, selector);
     return calldata;
@@ -36,10 +35,9 @@ static bool compress_chunk(s_calldata *calldata) {
         return false;
     }
 
-    if ((chunk = app_mem_alloc(sizeof(*chunk))) == NULL) {
+    if (APP_MEM_CALLOC((void **) &chunk, sizeof(*chunk)) == false) {
         return false;
     }
-    explicit_bzero(chunk, sizeof(*chunk));
     for (int i = 0; (i < CALLDATA_CHUNK_SIZE) && (calldata->chunk[i] == 0x00); ++i) {
         strip_left += 1;
     }
@@ -56,13 +54,13 @@ static bool compress_chunk(s_calldata *calldata) {
         start_idx = 0;
     }
     if (chunk->size > 0) {
-        if ((chunk->buf = app_mem_alloc(chunk->size)) == NULL) {
-            app_mem_free(chunk);
+        if ((chunk->buf = APP_MEM_ALLOC(chunk->size)) == NULL) {
+            APP_MEM_FREE(chunk);
             return false;
         }
         memcpy(chunk->buf, calldata->chunk + start_idx, chunk->size);
     }
-    flist_push_back((s_flist_node **) &calldata->chunks, (s_flist_node *) chunk);
+    flist_push_back((flist_node_t **) &calldata->chunks, (flist_node_t *) chunk);
     return true;
 }
 
@@ -120,7 +118,7 @@ bool calldata_append(s_calldata *calldata, const uint8_t *buffer, size_t size) {
         // get allocated size
         size_t compressed_size = sizeof(*calldata);
         for (s_calldata_chunk *chunk = calldata->chunks; chunk != NULL;
-             chunk = (s_calldata_chunk *) ((s_flist_node *) chunk)->next) {
+             chunk = (s_calldata_chunk *) ((flist_node_t *) chunk)->next) {
             compressed_size += sizeof(*chunk);
             compressed_size += chunk->size;
         }
@@ -136,13 +134,13 @@ bool calldata_append(s_calldata *calldata, const uint8_t *buffer, size_t size) {
 
 // to be used as a \ref f_list_node_del
 static void delete_calldata_chunk(s_calldata_chunk *node) {
-    app_mem_free(node->buf);
-    app_mem_free(node);
+    APP_MEM_FREE(node->buf);
+    APP_MEM_FREE(node);
 }
 
 void calldata_delete(s_calldata *node) {
-    flist_clear((s_flist_node **) &node->chunks, (f_list_node_del) &delete_calldata_chunk);
-    app_mem_free(node);
+    flist_clear((flist_node_t **) &node->chunks, (f_list_node_del) &delete_calldata_chunk);
+    APP_MEM_FREE(node);
 }
 
 static bool has_valid_calldata(const s_calldata *calldata) {
@@ -172,8 +170,8 @@ const uint8_t *calldata_get_chunk(s_calldata *calldata, int idx) {
     }
     chunk = calldata->chunks;
     for (int i = 0; i < idx; ++i) {
-        if (((s_flist_node *) chunk)->next == NULL) return NULL;
-        chunk = (s_calldata_chunk *) ((s_flist_node *) chunk)->next;
+        if (((flist_node_t *) chunk)->next == NULL) return NULL;
+        chunk = (s_calldata_chunk *) ((flist_node_t *) chunk)->next;
     }
     if (!decompress_chunk(chunk, calldata->chunk)) return NULL;
     return calldata->chunk;
@@ -187,7 +185,7 @@ void calldata_dump(const s_calldata *calldata) {
     PRINTF("=== calldata at 0x%p ===\n", calldata);
     PRINTF("selector = 0x%.*h\n", sizeof(calldata->selector), calldata->selector);
     for (s_calldata_chunk *chunk = calldata->chunks; chunk != NULL;
-         chunk = (s_calldata_chunk *) ((s_flist_node *) chunk)->next) {
+         chunk = (s_calldata_chunk *) ((flist_node_t *) chunk)->next) {
         if (!decompress_chunk(chunk, buf)) break;
         PRINTF("[%02u] %.*h\n", i++, CALLDATA_CHUNK_SIZE, buf);
     }

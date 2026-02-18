@@ -17,22 +17,14 @@
 #define MIN_DER_SIG_SIZE      67
 #define MAX_DER_SIG_SIZE      72
 
-#define STAGING_NFT_METADATA_KEY 0
-#define PROD_NFT_METADATA_KEY    1
+// #define STAGING_NFT_METADATA_KEY 0
+#define PROD_NFT_METADATA_KEY 1
 
 #define ALGORITHM_ID_1 1
 
 #define TYPE_1 1
 
 #define VERSION_1 1
-
-typedef bool verificationAlgo(const cx_ecfp_public_key_t *,
-                              int,
-                              cx_md_t,
-                              const unsigned char *,
-                              unsigned int,
-                              unsigned char *,
-                              unsigned int);
 
 uint16_t handleProvideNFTInformation(const uint8_t *workBuffer,
                                      uint8_t dataLength,
@@ -44,12 +36,7 @@ uint16_t handleProvideNFTInformation(const uint8_t *workBuffer,
     uint8_t collectionNameLength = 0;
     uint64_t chain_id = 0;
     uint8_t signatureLen = 0;
-    cx_err_t error = CX_INTERNAL_ERROR;
-#ifdef HAVE_NFT_STAGING_KEY
-    uint8_t valid_keyId = STAGING_NFT_METADATA_KEY;
-#else
     uint8_t valid_keyId = PROD_NFT_METADATA_KEY;
-#endif
 
     PRINTF("In handle provide NFTInformation\n");
 
@@ -109,9 +96,7 @@ uint16_t handleProvideNFTInformation(const uint8_t *workBuffer,
     offset += ADDRESS_LENGTH;
 
     chain_id = u64_from_BE(workBuffer + offset, CHAIN_ID_SIZE);
-    // this prints raw data, so to have a more meaningful print, display
-    // the buffer before the endianness swap
-    PRINTF("ChainID: %.*H\n", sizeof(chain_id), (workBuffer + offset));
+    PRINTF("ChainID: %llu\n", chain_id);
     if (!app_compatible_with_chain_id(&chain_id)) {
         UNSUPPORTED_CHAIN_ID_MSG(chain_id);
         return SWO_INCORRECT_DATA;
@@ -154,19 +139,13 @@ uint16_t handleProvideNFTInformation(const uint8_t *workBuffer,
         return SWO_INCORRECT_DATA;
     }
 
-    error = check_signature_with_pubkey("NFT Info",
-                                        hash,
-                                        sizeof(hash),
-                                        LEDGER_NFT_METADATA_PUBLIC_KEY,
-                                        sizeof(LEDGER_NFT_METADATA_PUBLIC_KEY),
-                                        CERTIFICATE_PUBLIC_KEY_USAGE_NFT_METADATA,
-                                        (uint8_t *) (workBuffer + offset),
-                                        signatureLen);
-#ifndef HAVE_BYPASS_SIGNATURES
-    if (error != CX_OK) {
+    if (check_signature_with_pubkey(hash,
+                                    sizeof(hash),
+                                    CERTIFICATE_PUBLIC_KEY_USAGE_NFT_METADATA,
+                                    (uint8_t *) (workBuffer + offset),
+                                    signatureLen) != true) {
         return SWO_INCORRECT_DATA;
     }
-#endif
 
     G_io_apdu_buffer[0] = tmpCtx.transactionContext.currentAssetIndex;
     validate_current_asset_info();

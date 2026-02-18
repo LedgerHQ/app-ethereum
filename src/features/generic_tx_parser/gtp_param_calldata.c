@@ -1,4 +1,5 @@
 #include "gtp_param_calldata.h"
+#include "tlv_library.h"
 #include "network.h"
 #include "common_utils.h"
 #include "gtp_field_table.h"
@@ -7,108 +8,79 @@
 #include "utils.h"
 #include "read.h"
 #include "tx_ctx.h"
-#include "mem.h"
+#include "app_mem_utils.h"
+#include "tlv_apdu.h"
 
-enum {
-    TAG_VERSION = 0x00,
-    TAG_VALUE = 0x01,
-    TAG_CALLEE = 0x02,
-    TAG_CHAIN_ID = 0x03,
-    TAG_SELECTOR = 0x04,
-    TAG_AMOUNT = 0x05,
-    TAG_SPENDER = 0x06,
-};
+#define PARAM_CALLDATA_TAGS(X)                                 \
+    X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG)   \
+    X(0x01, TAG_VALUE, handle_value, ENFORCE_UNIQUE_TAG)       \
+    X(0x02, TAG_CALLEE, handle_callee, ENFORCE_UNIQUE_TAG)     \
+    X(0x03, TAG_CHAIN_ID, handle_chain_id, ALLOW_MULTIPLE_TAG) \
+    X(0x04, TAG_SELECTOR, handle_selector, ALLOW_MULTIPLE_TAG) \
+    X(0x05, TAG_AMOUNT, handle_amount, ALLOW_MULTIPLE_TAG)     \
+    X(0x06, TAG_SPENDER, handle_spender, ALLOW_MULTIPLE_TAG)
 
-static bool handle_version(const s_tlv_data *data, s_param_calldata_context *context) {
-    if (data->length != sizeof(context->param->version)) {
-        return false;
-    }
-    context->param->version = data->value[0];
-    return true;
+static bool handle_version(const tlv_data_t *data, s_param_calldata_context *context) {
+    return tlv_get_uint8(data, &context->param->version, 0, UINT8_MAX);
 }
 
-static bool handle_value(const s_tlv_data *data, s_param_calldata_context *context) {
+static bool handle_value(const tlv_data_t *data, s_param_calldata_context *context) {
     s_value_context ctx = {0};
 
     ctx.value = &context->param->calldata;
     explicit_bzero(ctx.value, sizeof(*ctx.value));
-    return tlv_parse(data->value, data->length, (f_tlv_data_handler) &handle_value_struct, &ctx);
+    return handle_value_struct(&data->value, &ctx);
 }
 
-static bool handle_callee(const s_tlv_data *data, s_param_calldata_context *context) {
+static bool handle_callee(const tlv_data_t *data, s_param_calldata_context *context) {
     s_value_context ctx = {0};
 
     ctx.value = &context->param->contract_addr;
     explicit_bzero(ctx.value, sizeof(*ctx.value));
-    return tlv_parse(data->value, data->length, (f_tlv_data_handler) &handle_value_struct, &ctx);
+    return handle_value_struct(&data->value, &ctx);
 }
 
-static bool handle_chain_id(const s_tlv_data *data, s_param_calldata_context *context) {
+static bool handle_chain_id(const tlv_data_t *data, s_param_calldata_context *context) {
     s_value_context ctx = {0};
 
     ctx.value = &context->param->chain_id;
     explicit_bzero(ctx.value, sizeof(*ctx.value));
     context->param->has_chain_id = true;
-    return tlv_parse(data->value, data->length, (f_tlv_data_handler) &handle_value_struct, &ctx);
+    return handle_value_struct(&data->value, &ctx);
 }
 
-static bool handle_selector(const s_tlv_data *data, s_param_calldata_context *context) {
+static bool handle_selector(const tlv_data_t *data, s_param_calldata_context *context) {
     s_value_context ctx = {0};
 
     ctx.value = &context->param->selector;
     explicit_bzero(ctx.value, sizeof(*ctx.value));
     context->param->has_selector = true;
-    return tlv_parse(data->value, data->length, (f_tlv_data_handler) &handle_value_struct, &ctx);
+    return handle_value_struct(&data->value, &ctx);
 }
 
-static bool handle_amount(const s_tlv_data *data, s_param_calldata_context *context) {
+static bool handle_amount(const tlv_data_t *data, s_param_calldata_context *context) {
     s_value_context ctx = {0};
 
     ctx.value = &context->param->amount;
     explicit_bzero(ctx.value, sizeof(*ctx.value));
     context->param->has_amount = true;
-    return tlv_parse(data->value, data->length, (f_tlv_data_handler) &handle_value_struct, &ctx);
+    return handle_value_struct(&data->value, &ctx);
 }
 
-static bool handle_spender(const s_tlv_data *data, s_param_calldata_context *context) {
+static bool handle_spender(const tlv_data_t *data, s_param_calldata_context *context) {
     s_value_context ctx = {0};
 
     ctx.value = &context->param->spender;
     explicit_bzero(ctx.value, sizeof(*ctx.value));
     context->param->has_spender = true;
-    return tlv_parse(data->value, data->length, (f_tlv_data_handler) &handle_value_struct, &ctx);
+    return handle_value_struct(&data->value, &ctx);
 }
 
-bool handle_param_calldata_struct(const s_tlv_data *data, s_param_calldata_context *context) {
-    bool ret;
+DEFINE_TLV_PARSER(PARAM_CALLDATA_TAGS, NULL, param_calldata_tlv_parser)
 
-    switch (data->tag) {
-        case TAG_VERSION:
-            ret = handle_version(data, context);
-            break;
-        case TAG_VALUE:
-            ret = handle_value(data, context);
-            break;
-        case TAG_CALLEE:
-            ret = handle_callee(data, context);
-            break;
-        case TAG_CHAIN_ID:
-            ret = handle_chain_id(data, context);
-            break;
-        case TAG_SELECTOR:
-            ret = handle_selector(data, context);
-            break;
-        case TAG_AMOUNT:
-            ret = handle_amount(data, context);
-            break;
-        case TAG_SPENDER:
-            ret = handle_spender(data, context);
-            break;
-        default:
-            PRINTF(TLV_TAG_ERROR_MSG, data->tag);
-            ret = false;
-    }
-    return ret;
+bool handle_param_calldata_struct(const buffer_t *buf, s_param_calldata_context *context) {
+    TLV_reception_t received_tags;
+    return param_calldata_tlv_parser(buf, context, &received_tags);
 }
 
 static bool process_nested_calldata(const s_param_calldata *param,
@@ -151,7 +123,7 @@ static bool process_nested_calldata(const s_param_calldata *param,
             return false;
         }
         if (!calldata_append(new_calldata, calldata_buf, calldata_length)) {
-            app_mem_free(new_calldata);
+            APP_MEM_FREE(new_calldata);
             return false;
         }
     }

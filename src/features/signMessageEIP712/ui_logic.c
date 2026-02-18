@@ -1,5 +1,5 @@
 #include "ui_logic.h"
-#include "mem.h"
+#include "app_mem_utils.h"
 #include "mem_utils.h"
 #include "os_io.h"
 #include "common_utils.h"  // uint256_to_decimal
@@ -13,7 +13,7 @@
 #include "filtering.h"
 #include "network.h"
 #include "time_format.h"
-#include "list.h"
+#include "lists.h"
 #include "ui_utils.h"
 #include "utils.h"
 #include "tx_ctx.h"  // g_parked_calldata
@@ -26,7 +26,7 @@
 #define AMOUNT_JOIN_NAME_LENGTH 25
 
 typedef struct amount_join {
-    s_flist_node _list;
+    flist_node_t _list;
     // display name, NULL-terminated
     char name[AMOUNT_JOIN_NAME_LENGTH + 1];
     // indicates the steps the token join has gone through
@@ -55,7 +55,7 @@ typedef struct {
 } s_amount_context;
 
 typedef struct filter_crc {
-    s_flist_node _list;
+    flist_node_t _list;
     uint32_t value;
 } s_filter_crc;
 
@@ -81,19 +81,19 @@ static t_ui_context *ui_ctx = NULL;
 
 // to be used as a \ref f_list_node_del
 static void delete_filter_crc(s_filter_crc *fcrc) {
-    app_mem_free(fcrc);
+    APP_MEM_FREE(fcrc);
 }
 
 // to be used as a \ref f_list_node_del
 static void delete_ui_pair(s_ui_712_pair *pair) {
-    app_mem_free(pair->key);
-    app_mem_free(pair->value);
-    app_mem_free(pair);
+    APP_MEM_FREE(pair->key);
+    APP_MEM_FREE(pair->value);
+    APP_MEM_FREE(pair);
 }
 
 // to be used as a \ref f_list_node_del
 static void delete_amount_join(s_amount_join *join) {
-    app_mem_free(join);
+    APP_MEM_FREE(join);
 }
 
 /**
@@ -166,20 +166,20 @@ void ui_712_set_intent(void) {
     size_t title_length = strlen(title);
 
     // Allocate memory for the new pair
-    if (mem_buffer_allocate((void **) &new_pair, sizeof(*new_pair)) == false) {
+    if (APP_MEM_CALLOC((void **) &new_pair, sizeof(*new_pair)) == false) {
         return;
     }
     // Add it to the chained list
-    flist_push_back((s_flist_node **) &ui_ctx->ui_pairs, (s_flist_node *) new_pair);
+    flist_push_back((flist_node_t **) &ui_ctx->ui_pairs, (flist_node_t *) new_pair);
 
     // Allocate and copy the title
-    if (mem_buffer_allocate((void **) &new_pair->key, title_length + 1) == false) {
+    if (APP_MEM_CALLOC((void **) &new_pair->key, title_length + 1) == false) {
         return;
     }
     memcpy(new_pair->key, title, title_length);
 
     // Allocate and clear the intent buffer
-    if (mem_buffer_allocate((void **) &new_pair->value, N_OF_M_LENGTH) == false) {
+    if (APP_MEM_CALLOC((void **) &new_pair->value, N_OF_M_LENGTH) == false) {
         return;
     }
 
@@ -196,11 +196,11 @@ void ui_712_set_intent(void) {
 void ui_712_set_title(const char *str, size_t length) {
     s_ui_712_pair *new_pair = NULL;
 
-    if (mem_buffer_allocate((void **) &new_pair, sizeof(*new_pair)) == false) {
+    if (APP_MEM_CALLOC((void **) &new_pair, sizeof(*new_pair)) == false) {
         return;
     }
-    flist_push_back((s_flist_node **) &ui_ctx->ui_pairs, (s_flist_node *) new_pair);
-    if (mem_buffer_allocate((void **) &new_pair->key, length + 1) == false) {
+    flist_push_back((flist_node_t **) &ui_ctx->ui_pairs, (flist_node_t *) new_pair);
+    if (APP_MEM_CALLOC((void **) &new_pair->key, length + 1) == false) {
         return;
     }
     memcpy(new_pair->key, str, length);
@@ -221,8 +221,8 @@ void ui_712_set_value(const char *str, size_t length) {
         // No pairs created yet
         return;
     }
-    while (((s_flist_node *) tmp)->next != NULL) {
-        tmp = (s_ui_712_pair *) ((s_flist_node *) tmp)->next;
+    while (((flist_node_t *) tmp)->next != NULL) {
+        tmp = (s_ui_712_pair *) ((flist_node_t *) tmp)->next;
     }
     if (tmp->value != NULL) {
         PRINTF("Value already exist for tag %s: %s\n", tmp->key, tmp->value);
@@ -230,13 +230,13 @@ void ui_712_set_value(const char *str, size_t length) {
     }
     if ((str != NULL) && (length > 0)) {
         // buffer is directly provided with parameters
-        if (mem_buffer_allocate((void **) &tmp->value, length + 1) == false) {
+        if (APP_MEM_CALLOC((void **) &tmp->value, length + 1) == false) {
             return;
         }
         memcpy(tmp->value, str, length);
     } else {
         // Add the value from the global variable strings.tmp.tmp
-        if ((tmp->value = app_mem_strdup(strings.tmp.tmp)) == NULL) {
+        if ((tmp->value = APP_MEM_STRDUP(strings.tmp.tmp)) == NULL) {
             return;
         }
     }
@@ -530,19 +530,18 @@ static s_amount_join *get_amount_join(uint8_t token_idx) {
     s_amount_join *new;
 
     for (tmp = ui_ctx->amount.joins; tmp != NULL;
-         tmp = (s_amount_join *) ((s_flist_node *) tmp)->next) {
+         tmp = (s_amount_join *) ((flist_node_t *) tmp)->next) {
         if (tmp->token_idx == token_idx) break;
     }
     if (tmp != NULL) return tmp;
 
     // does not exist, create it
-    if ((new = app_mem_alloc(sizeof(*new))) == NULL) {
+    if (APP_MEM_CALLOC((void **) &new, sizeof(*new)) == false) {
         return NULL;
     }
-    explicit_bzero(new, sizeof(*new));
     new->token_idx = token_idx;
 
-    flist_push_back((s_flist_node **) &ui_ctx->amount.joins, (s_flist_node *) new);
+    flist_push_back((flist_node_t **) &ui_ctx->amount.joins, (flist_node_t *) new);
     return new;
 }
 
@@ -579,8 +578,8 @@ static bool ui_712_format_amount_join(void) {
     }
     ui_ctx->field_flags |= UI_712_FIELD_SHOWN;
     ui_712_set_title(amount_join->name, strlen(amount_join->name));
-    flist_remove((s_flist_node **) &ui_ctx->amount.joins,
-                 (s_flist_node *) amount_join,
+    flist_remove((flist_node_t **) &ui_ctx->amount.joins,
+                 (flist_node_t *) amount_join,
                  (f_list_node_del) delete_amount_join);
     return true;
 }
@@ -1028,18 +1027,17 @@ bool ui_712_init(void) {
         return false;
     }
 
-    if ((ui_ctx = app_mem_alloc(sizeof(*ui_ctx)))) {
-        explicit_bzero(ui_ctx, sizeof(*ui_ctx));
+    if (APP_MEM_CALLOC((void **) &ui_ctx, sizeof(*ui_ctx)) == false) {
+        apdu_response_code = SWO_INSUFFICIENT_MEMORY;
+    } else {
         ui_712_set_filtering_mode(EIP712_FILTERING_BASIC);
         explicit_bzero(&strings, sizeof(strings));
-    } else {
-        apdu_response_code = SWO_INSUFFICIENT_MEMORY;
     }
     return ui_ctx != NULL;
 }
 
 static void delete_calldata_info(s_eip712_calldata_info *node) {
-    app_mem_free(node);
+    APP_MEM_FREE(node);
 }
 
 /**
@@ -1048,24 +1046,23 @@ static void delete_calldata_info(s_eip712_calldata_info *node) {
 void ui_712_deinit(void) {
     if (ui_ctx != NULL) {
         if (ui_ctx->filters_crc != NULL) {
-            flist_clear((s_flist_node **) &ui_ctx->filters_crc,
+            flist_clear((flist_node_t **) &ui_ctx->filters_crc,
                         (f_list_node_del) &delete_filter_crc);
         }
         if (ui_ctx->ui_pairs != NULL) {
-            flist_clear((s_flist_node **) &ui_ctx->ui_pairs, (f_list_node_del) &delete_ui_pair);
+            flist_clear((flist_node_t **) &ui_ctx->ui_pairs, (f_list_node_del) &delete_ui_pair);
         }
         if (ui_ctx->amount.joins != NULL) {
-            flist_clear((s_flist_node **) &ui_ctx->amount.joins,
+            flist_clear((flist_node_t **) &ui_ctx->amount.joins,
                         (f_list_node_del) &delete_amount_join);
         }
         if (ui_ctx->calldata_info != NULL) {
-            flist_clear((s_flist_node **) &ui_ctx->calldata_info,
+            flist_clear((flist_node_t **) &ui_ctx->calldata_info,
                         (f_list_node_del) &delete_calldata_info);
             gcs_cleanup();
         }
         ui_712_clear_discarded_path();
-        app_mem_free(ui_ctx);
-        ui_ctx = NULL;
+        APP_MEM_FREE_AND_NULL((void **) &ui_ctx);
     }
 }
 
@@ -1156,7 +1153,7 @@ void ui_712_set_filters_count(uint8_t count) {
  * @return number of filters
  */
 uint8_t ui_712_remaining_filters(void) {
-    return ui_ctx->filters_to_process - flist_size((s_flist_node **) &ui_ctx->filters_crc);
+    return ui_ctx->filters_to_process - flist_size((flist_node_t **) &ui_ctx->filters_crc);
 }
 
 /**
@@ -1233,7 +1230,7 @@ bool ui_712_push_new_filter_path(uint32_t path_crc) {
 
     // check if already present
     for (tmp = ui_ctx->filters_crc; tmp != NULL;
-         tmp = (s_filter_crc *) ((s_flist_node *) tmp)->next) {
+         tmp = (s_filter_crc *) ((flist_node_t *) tmp)->next) {
         if (tmp->value == path_crc) {
             PRINTF("EIP-712 path CRC (%x) already found!\n", path_crc);
             return true;
@@ -1246,15 +1243,14 @@ bool ui_712_push_new_filter_path(uint32_t path_crc) {
         return false;
     }
     // allocate it
-    if ((new_crc = app_mem_alloc(sizeof(*new_crc))) == NULL) {
+    if (APP_MEM_CALLOC((void **) &new_crc, sizeof(*new_crc)) == false) {
         apdu_response_code = SWO_INSUFFICIENT_MEMORY;
         return false;
     }
-    explicit_bzero(new_crc, sizeof(*new_crc));
     new_crc->value = path_crc;
 
     PRINTF("Pushing new EIP-712 path CRC (%x)\n", path_crc);
-    flist_push_back((s_flist_node **) &ui_ctx->filters_crc, (s_flist_node *) new_crc);
+    flist_push_back((flist_node_t **) &ui_ctx->filters_crc, (flist_node_t *) new_crc);
     return true;
 }
 
@@ -1269,7 +1265,7 @@ bool ui_712_set_discarded_path(const char *path, uint8_t length) {
     if (ui_ctx->discarded_path != NULL) {
         return false;
     }
-    if ((ui_ctx->discarded_path = app_mem_alloc(length + 1)) == NULL) {
+    if ((ui_ctx->discarded_path = APP_MEM_ALLOC(length + 1)) == NULL) {
         return false;
     }
     memcpy(ui_ctx->discarded_path, path, length);
@@ -1287,8 +1283,7 @@ const char *ui_712_get_discarded_path(void) {
 }
 
 void ui_712_clear_discarded_path(void) {
-    app_mem_free(ui_ctx->discarded_path);
-    ui_ctx->discarded_path = NULL;
+    APP_MEM_FREE_AND_NULL((void **) &ui_ctx->discarded_path);
 }
 
 void ui_712_set_trusted_name_requirements(uint8_t type_count,
@@ -1312,7 +1307,7 @@ void ui_712_push_pairs(void) {
     uint8_t tx_idx = 0;
 
     // Initialize the pairs list
-    nbPairs = flist_size((s_flist_node **) &ui_ctx->ui_pairs);
+    nbPairs = flist_size((flist_node_t **) &ui_ctx->ui_pairs);
     if (N_storage.displayHash) {
         nbPairs += 2;
     }
@@ -1339,7 +1334,7 @@ void ui_712_push_pairs(void) {
             // End of batch transaction : start next info on full page
             g_pairs[pair].forcePageStart = true;
         }
-        tmp = (s_ui_712_pair *) ((s_flist_node *) tmp)->next;
+        tmp = (s_ui_712_pair *) ((flist_node_t *) tmp)->next;
     }
 
     if (N_storage.displayHash) {
@@ -1354,12 +1349,12 @@ void ui_712_push_pairs(void) {
 }
 
 void add_calldata_info(s_eip712_calldata_info *node) {
-    flist_push_back((s_flist_node **) &ui_ctx->calldata_info, (s_flist_node *) node);
+    flist_push_back((flist_node_t **) &ui_ctx->calldata_info, (flist_node_t *) node);
 }
 
 s_eip712_calldata_info *get_calldata_info(uint8_t index) {
     for (s_eip712_calldata_info *tmp = ui_ctx->calldata_info; tmp != NULL;
-         tmp = (s_eip712_calldata_info *) ((s_flist_node *) tmp)->next) {
+         tmp = (s_eip712_calldata_info *) ((flist_node_t *) tmp)->next) {
         if (index == tmp->index) {
             return tmp;
         }
@@ -1373,7 +1368,7 @@ s_eip712_calldata_info *get_current_calldata_info(void) {
 
 bool all_calldata_info_processed(void) {
     for (const s_eip712_calldata_info *tmp = ui_ctx->calldata_info; tmp != NULL;
-         tmp = (const s_eip712_calldata_info *) ((const s_flist_node *) tmp)->next) {
+         tmp = (const s_eip712_calldata_info *) ((const flist_node_t *) tmp)->next) {
         if (!tmp->processed) return false;
     }
     return true;

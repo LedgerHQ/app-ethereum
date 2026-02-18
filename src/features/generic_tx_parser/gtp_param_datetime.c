@@ -4,62 +4,45 @@
 #include "time_format.h"
 #include "utils.h"
 #include "shared_context.h"
+#include "tlv_library.h"
+#include "tlv_apdu.h"
 
-enum {
-    TAG_VERSION = 0x00,
-    TAG_VALUE = 0x01,
-    TAG_TYPE = 0x02,
-};
+#define PARAM_DATETIME_TAGS(X)                               \
+    X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG) \
+    X(0x01, TAG_VALUE, handle_value, ENFORCE_UNIQUE_TAG)     \
+    X(0x02, TAG_TYPE, handle_type, ENFORCE_UNIQUE_TAG)
 
-static bool handle_version(const s_tlv_data *data, s_param_datetime_context *context) {
-    if (data->length != sizeof(context->param->version)) {
-        return false;
-    }
-    context->param->version = data->value[0];
-    return true;
+static bool handle_version(const tlv_data_t *data, s_param_datetime_context *context) {
+    return tlv_get_uint8(data, &context->param->version, 0, UINT8_MAX);
 }
 
-static bool handle_value(const s_tlv_data *data, s_param_datetime_context *context) {
+static bool handle_value(const tlv_data_t *data, s_param_datetime_context *context) {
     s_value_context ctx = {0};
 
     ctx.value = &context->param->value;
     explicit_bzero(ctx.value, sizeof(*ctx.value));
-    return tlv_parse(data->value, data->length, (f_tlv_data_handler) &handle_value_struct, &ctx);
+    return handle_value_struct(&data->value, &ctx);
 }
 
-static bool handle_type(const s_tlv_data *data, s_param_datetime_context *context) {
-    if (data->length != sizeof(context->param->type)) {
+static bool handle_type(const tlv_data_t *data, s_param_datetime_context *context) {
+    if (!tlv_get_uint8(data, &context->param->type, 0, UINT8_MAX)) {
         return false;
     }
-    switch (data->value[0]) {
+    switch (context->param->type) {
         case DT_UNIX:
         case DT_BLOCKHEIGHT:
             break;
         default:
             return false;
     }
-    context->param->type = data->value[0];
     return true;
 }
 
-bool handle_param_datetime_struct(const s_tlv_data *data, s_param_datetime_context *context) {
-    bool ret;
+DEFINE_TLV_PARSER(PARAM_DATETIME_TAGS, NULL, param_datetime_tlv_parser)
 
-    switch (data->tag) {
-        case TAG_VERSION:
-            ret = handle_version(data, context);
-            break;
-        case TAG_VALUE:
-            ret = handle_value(data, context);
-            break;
-        case TAG_TYPE:
-            ret = handle_type(data, context);
-            break;
-        default:
-            PRINTF(TLV_TAG_ERROR_MSG, data->tag);
-            ret = false;
-    }
-    return ret;
+bool handle_param_datetime_struct(const buffer_t *buf, s_param_datetime_context *context) {
+    TLV_reception_t received_tags;
+    return param_datetime_tlv_parser(buf, context, &received_tags);
 }
 
 bool format_param_datetime(const s_param_datetime *param, const char *name) {

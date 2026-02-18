@@ -1,14 +1,14 @@
 #include <string.h>
 #include "os_print.h"
 #include "gtp_field_table.h"
-#include "mem.h"
-#include "list.h"
+#include "app_mem_utils.h"
+#include "lists.h"
 #include "shared_context.h"  // appState
 #include "ui_logic.h"
 #include "tx_ctx.h"
 
 typedef struct {
-    s_flist_node _list;
+    flist_node_t _list;
     s_field_table_entry field;
 } s_field_table_node;
 
@@ -24,13 +24,13 @@ bool field_table_init(void) {
 
 // to be used as a \ref f_list_node_del
 static void delete_table_node(s_field_table_node *node) {
-    app_mem_free(node->field.key);
-    app_mem_free(node->field.value);
-    app_mem_free(node);
+    APP_MEM_FREE(node->field.key);
+    APP_MEM_FREE(node->field.value);
+    APP_MEM_FREE(node);
 }
 
 void field_table_cleanup(void) {
-    flist_clear((s_flist_node **) &g_table, (f_list_node_del) &delete_table_node);
+    flist_clear((flist_node_t **) &g_table, (f_list_node_del) &delete_table_node);
 }
 
 bool add_to_field_table(e_param_type type,
@@ -56,19 +56,18 @@ bool add_to_field_table(e_param_type type,
         ui_712_set_value(value, strlen(value));
         return true;
     }
-    if ((node = app_mem_alloc(sizeof(*node))) == NULL) {
+    if (APP_MEM_CALLOC((void **) &node, sizeof(*node)) == false) {
         return false;
     }
-    explicit_bzero(node, sizeof(*node));
     key_len = strlen(key) + 1;
     value_len = strlen(value) + 1;
-    if ((node->field.key = app_mem_alloc(key_len)) == NULL) {
-        app_mem_free(node);
+    if ((node->field.key = APP_MEM_ALLOC(key_len)) == NULL) {
+        APP_MEM_FREE(node);
         return false;
     }
-    if ((node->field.value = app_mem_alloc(value_len)) == NULL) {
-        app_mem_free(node->field.key);
-        app_mem_free(node);
+    if ((node->field.value = APP_MEM_ALLOC(value_len)) == NULL) {
+        APP_MEM_FREE(node->field.key);
+        APP_MEM_FREE(node);
         return false;
     }
     if (type == PARAM_TYPE_INTENT) {
@@ -88,7 +87,7 @@ bool add_to_field_table(e_param_type type,
     memcpy(node->field.value, value, value_len);
     node->field.extra_data = extra_data;
 
-    flist_push_back((s_flist_node **) &g_table, (s_flist_node *) node);
+    flist_push_back((flist_node_t **) &g_table, (flist_node_t *) node);
     return true;
 }
 
@@ -103,7 +102,7 @@ bool set_intent_field(const char *value) {
 }
 
 size_t field_table_size(void) {
-    return flist_size((s_flist_node **) &g_table);
+    return flist_size((flist_node_t **) &g_table);
 }
 
 const s_field_table_entry *get_from_field_table(int index) {
@@ -111,7 +110,7 @@ const s_field_table_entry *get_from_field_table(int index) {
 
     for (int i = 0; i < index; ++i) {
         if (node == NULL) return NULL;
-        node = (s_field_table_node *) ((s_flist_node *) node)->next;
+        node = (s_field_table_node *) ((flist_node_t *) node)->next;
     }
     return &node->field;
 }

@@ -9,20 +9,21 @@
 
 #include <string.h>
 #include "gtp_param_network.h"
+#include "tlv_library.h"
 #include "shared_context.h"
 #include "utils.h"
 #include "network.h"
 #include "gtp_field_table.h"
 #include "tx_ctx.h"
 #include "apdu_constants.h"
+#include "tlv_apdu.h"
 
 /**
  * @brief TLV tags for network parameter structure
  */
-enum {
-    TAG_VERSION = 0x00, /**< Version tag */
-    TAG_VALUE = 0x01,   /**< Value tag */
-};
+#define PARAM_NETWORK_TAGS(X)                                \
+    X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG) \
+    X(0x01, TAG_VALUE, handle_value, ENFORCE_UNIQUE_TAG)
 
 /**
  * @brief Handle the version tag in network parameter structure
@@ -33,12 +34,11 @@ enum {
  * @param[in,out] context Network parameter context to store the version
  * @return true if version was successfully parsed, false otherwise
  */
-static bool handle_version(const s_tlv_data *data, s_param_network_context *context) {
-    if (data->length != sizeof(context->param->version)) {
-        return false;
-    }
-    context->param->version = data->value[0];  // TODO: what is it used for? Any check somewhere?
-    return true;
+static bool handle_version(const tlv_data_t *data, s_param_network_context *context) {
+    return tlv_get_uint8(data,
+                         &context->param->version,
+                         0,
+                         UINT8_MAX);  // TODO: what is it used for? Any check somewhere?
 }
 
 /**
@@ -50,12 +50,12 @@ static bool handle_version(const s_tlv_data *data, s_param_network_context *cont
  * @param[in,out] context Network parameter context to store the value
  * @return true if value was successfully parsed, false otherwise
  */
-static bool handle_value(const s_tlv_data *data, s_param_network_context *context) {
+static bool handle_value(const tlv_data_t *data, s_param_network_context *context) {
     s_value_context ctx = {0};
 
     ctx.value = &context->param->value;
     explicit_bzero(ctx.value, sizeof(*ctx.value));
-    return tlv_parse(data->value, data->length, (f_tlv_data_handler) &handle_value_struct, &ctx);
+    return handle_value_struct(&data->value, &ctx);
 }
 
 /**
@@ -68,21 +68,11 @@ static bool handle_value(const s_tlv_data *data, s_param_network_context *contex
  * @param[in,out] context Network parameter context
  * @return true if parsing was successful, false otherwise
  */
-bool handle_param_network_struct(const s_tlv_data *data, s_param_network_context *context) {
-    bool ret;
+DEFINE_TLV_PARSER(PARAM_NETWORK_TAGS, NULL, param_network_tlv_parser)
 
-    switch (data->tag) {
-        case TAG_VERSION:
-            ret = handle_version(data, context);
-            break;
-        case TAG_VALUE:
-            ret = handle_value(data, context);
-            break;
-        default:
-            PRINTF(TLV_TAG_ERROR_MSG, data->tag);
-            ret = false;
-    }
-    return ret;
+bool handle_param_network_struct(const buffer_t *buf, s_param_network_context *context) {
+    TLV_reception_t received_tags;
+    return param_network_tlv_parser(buf, context, &received_tags);
 }
 
 /**
@@ -102,7 +92,6 @@ bool handle_param_network_struct(const s_tlv_data *data, s_param_network_context
 static bool format_network_name(const s_parsed_value *value, char *buf, size_t buf_size) {
     uint64_t chain_id = 0;
     uint64_t max_range = 0x7FFFFFFFFFFFFFDB;  // per EIP-2294
-    uint16_t sw = SWO_PARAMETER_ERROR_NO_INFO;
 
     // Check length
     if (value->length != sizeof(uint64_t)) {
@@ -117,8 +106,7 @@ static bool format_network_name(const s_parsed_value *value, char *buf, size_t b
         PRINTF("Unsupported chain ID: %llu\n", chain_id);
         return false;
     }
-    sw = get_network_as_string_from_chain_id(buf, buf_size, chain_id);
-    return (sw == SWO_SUCCESS) ? true : false;
+    return get_network_as_string_from_chain_id(buf, buf_size, chain_id);
 }
 
 /**

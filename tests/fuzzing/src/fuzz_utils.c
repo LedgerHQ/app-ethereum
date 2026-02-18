@@ -2,6 +2,7 @@
 
 #include "caller_api.h"
 #include "net_icons.gen.h"
+#include "app_mem_utils.h"
 
 // Global state required by the app features
 cx_sha3_t global_sha3 = {0};
@@ -41,6 +42,14 @@ void reset_app_context(void) {
 }
 
 void init_fuzzing_environment(void) {
+    // Initialize memory allocator with 16KB heap (only once)
+    static bool mem_initialized = false;
+    if (!mem_initialized) {
+        static uint8_t heap_buffer[16 * 1024];
+        mem_utils_init(heap_buffer, sizeof(heap_buffer));
+        mem_initialized = true;
+    }
+
     // Clear global structures to ensure a clean state for each fuzzing iteration
     explicit_bzero(&global_sha3, sizeof(global_sha3));
     explicit_bzero(&sha3, sizeof(sha3));

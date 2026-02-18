@@ -52,20 +52,20 @@ bool __wrap_add_to_field_table(e_param_type param_type, const char *name, const 
 /**
  * @brief Mock implementation of get_network_as_string_from_chain_id
  */
-uint16_t __wrap_get_network_as_string_from_chain_id(char *buffer,
-                                                    size_t buffer_size,
-                                                    uint64_t chain_id) {
+bool __wrap_get_network_as_string_from_chain_id(char *buffer,
+                                                size_t buffer_size,
+                                                uint64_t chain_id) {
     check_expected(chain_id);
 
     const char *network_name = (const char *) mock();
     if (network_name == NULL) {
-        return SWO_PARAMETER_ERROR_NO_INFO;
+        return false;
     }
 
     strncpy(buffer, network_name, buffer_size - 1);
     buffer[buffer_size - 1] = '\0';
 
-    return SWO_SUCCESS;
+    return true;
 }
 
 // =============================================================================

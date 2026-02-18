@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include "list.h"
+#include "lists.h"
 
 #define CALLDATA_SELECTOR_SIZE 4
 #define CALLDATA_CHUNK_SIZE    32
@@ -14,7 +14,7 @@ typedef enum {
 } e_chunk_strip_dir;
 
 typedef struct {
-    s_flist_node _list;
+    flist_node_t _list;
     e_chunk_strip_dir dir : 1;
     uint8_t size : 7;
     uint8_t *buf;

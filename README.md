@@ -211,6 +211,8 @@ The Ethereum app comes with different tests:
 
 ### Functional Tests (Ragger based)
 
+> 📚 **For a comprehensive overview of all tested functionalities, see the [Test Documentation](tests/ragger/doc/).**
+
 #### Linux (Ubuntu)
 
 On Linux, you can use [Ledger's VS Code extension](#with-vscode) to run the tests.

@@ -27,7 +27,7 @@
     X(0xff, TAG_SIGNATURE, handle_signature, ENFORCE_UNIQUE_TAG)
 
 static bool handle_version(const tlv_data_t *data, s_tx_info_ctx *context) {
-    return tlv_get_uint8(data, &context->tx_info->version, 0, UINT8_MAX);
+    return tlv_get_uint8_range(data, &context->tx_info->version, 0, UINT8_MAX);
 }
 
 static bool handle_chain_id(const tlv_data_t *data, s_tx_info_ctx *context) {
@@ -35,7 +35,7 @@ static bool handle_chain_id(const tlv_data_t *data, s_tx_info_ctx *context) {
 }
 
 static bool handle_contract_addr(const tlv_data_t *data, s_tx_info_ctx *context) {
-    return tlv_get_address(data, context->tx_info->contract_addr, false);
+    return tlv_get_address(data, context->tx_info->contract_addr);
 }
 
 static bool handle_selector(const tlv_data_t *data, s_tx_info_ctx *context) {

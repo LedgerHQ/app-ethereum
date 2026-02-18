@@ -202,7 +202,7 @@ static bool handle_challenge(const tlv_data_t *data, s_trusted_name_ctx *context
 static bool handle_signer_key_id(const tlv_data_t *data, s_trusted_name_ctx *context) {
     uint16_t value = 0;
     // For some reason, the key ID is encoded on 2 bytes
-    if (!tlv_get_uint16(data, &value, 0, UINT8_MAX)) {
+    if (!tlv_get_uint16_range(data, &value, 0, UINT8_MAX)) {
         PRINTF("SIGNER_KEY_ID: error\n");
         return false;
     }
@@ -271,7 +271,7 @@ static bool handle_coin_type(const tlv_data_t *data, s_trusted_name_ctx *context
  * @return whether it was successful
  */
 static bool handle_address(const tlv_data_t *data, s_trusted_name_ctx *context) {
-    return tlv_get_address(data, (uint8_t *) context->trusted_name.addr, false);
+    return tlv_get_address(data, (uint8_t *) context->trusted_name.addr);
 }
 
 /**

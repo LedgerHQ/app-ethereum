@@ -15,7 +15,7 @@
     X(0x02, TAG_NATIVE_CURRENCY, handle_native_currency, ALLOW_MULTIPLE_TAG)
 
 static bool handle_version(const tlv_data_t *data, s_param_token_context *context) {
-    return tlv_get_uint8(data, &context->param->version, 0, UINT8_MAX);
+    return tlv_get_uint8_range(data, &context->param->version, 0, UINT8_MAX);
 }
 
 static bool handle_address(const tlv_data_t *data, s_param_token_context *context) {

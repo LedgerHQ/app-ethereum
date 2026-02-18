@@ -19,15 +19,15 @@
     X(0x05, TAG_CONSTANT, handle_constant, ENFORCE_UNIQUE_TAG)
 
 static bool handle_version(const tlv_data_t *data, s_value_context *context) {
-    return tlv_get_uint8(data, &context->value->version, 0, UINT8_MAX);
+    return tlv_get_uint8_range(data, &context->value->version, 0, UINT8_MAX);
 }
 
 static bool handle_type_family(const tlv_data_t *data, s_value_context *context) {
-    return tlv_get_uint8(data, (uint8_t *) &context->value->type_family, 0, UINT8_MAX);
+    return tlv_get_uint8_range(data, (uint8_t *) &context->value->type_family, 0, UINT8_MAX);
 }
 
 static bool handle_type_size(const tlv_data_t *data, s_value_context *context) {
-    return tlv_get_uint8(data, &context->value->type_size, 1, 32);
+    return tlv_get_uint8_range(data, &context->value->type_size, 1, 32);
 }
 
 static bool handle_data_path(const tlv_data_t *data, s_value_context *context) {
@@ -43,7 +43,7 @@ static bool handle_data_path(const tlv_data_t *data, s_value_context *context) {
 }
 
 static bool handle_container_path(const tlv_data_t *data, s_value_context *context) {
-    if (!tlv_get_uint8(data, (uint8_t *) &context->value->container_path, 0, UINT8_MAX)) {
+    if (!tlv_get_uint8_range(data, (uint8_t *) &context->value->container_path, 0, UINT8_MAX)) {
         return false;
     }
     context->value->source = SOURCE_RLP;

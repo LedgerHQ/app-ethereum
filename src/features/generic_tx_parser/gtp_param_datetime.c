@@ -13,7 +13,7 @@
     X(0x02, TAG_TYPE, handle_type, ENFORCE_UNIQUE_TAG)
 
 static bool handle_version(const tlv_data_t *data, s_param_datetime_context *context) {
-    return tlv_get_uint8(data, &context->param->version, 0, UINT8_MAX);
+    return tlv_get_uint8_range(data, &context->param->version, 0, UINT8_MAX);
 }
 
 static bool handle_value(const tlv_data_t *data, s_param_datetime_context *context) {
@@ -25,7 +25,7 @@ static bool handle_value(const tlv_data_t *data, s_param_datetime_context *conte
 }
 
 static bool handle_type(const tlv_data_t *data, s_param_datetime_context *context) {
-    if (!tlv_get_uint8(data, &context->param->type, 0, UINT8_MAX)) {
+    if (!tlv_get_uint8_range(data, &context->param->type, 0, UINT8_MAX)) {
         return false;
     }
     switch (context->param->type) {

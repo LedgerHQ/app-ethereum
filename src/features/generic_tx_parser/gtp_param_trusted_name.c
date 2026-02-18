@@ -19,7 +19,7 @@
     X(0x04, TAG_SENDER_ADDR, handle_sender_addr, ALLOW_MULTIPLE_TAG)
 
 static bool handle_version(const tlv_data_t *data, s_param_trusted_name_context *context) {
-    return tlv_get_uint8(data, &context->param->version, 0, UINT8_MAX);
+    return tlv_get_uint8_range(data, &context->param->version, 0, UINT8_MAX);
 }
 
 static bool handle_value(const tlv_data_t *data, s_param_trusted_name_context *context) {

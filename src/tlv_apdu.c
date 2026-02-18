@@ -163,7 +163,7 @@ bool tlv_get_chain_id(const tlv_data_t *data, uint64_t *chain_id) {
  * @param[out] out buffer to store the hash
  * @return whether the handling was successful
  */
-bool tlv_get_hash(const tlv_data_t *data, char *out) {
+bool tlv_get_hash(const tlv_data_t *data, uint8_t *out) {
     buffer_t hash = {0};
     if (!out) {
         PRINTF("HASH: null pointer provided\n");
@@ -173,7 +173,6 @@ bool tlv_get_hash(const tlv_data_t *data, char *out) {
         PRINTF("HASH: failed to extract\n");
         return false;
     }
-    CHECK_NOT_EMPTY_BUFFER("HASH", hash);
     memmove((void *) out, hash.ptr, hash.size);
     return true;
 }
@@ -183,10 +182,9 @@ bool tlv_get_hash(const tlv_data_t *data, char *out) {
  *
  * @param[in] data to handle
  * @param[out] out buffer to store the hash
- * @param[in] not_empty whether the buffer must not be empty (0 values)
  * @return whether the handling was successful
  */
-bool tlv_get_address(const tlv_data_t *data, uint8_t *out, bool not_empty) {
+bool tlv_get_address(const tlv_data_t *data, uint8_t *out) {
     buffer_t address = {0};
     if (!out) {
         PRINTF("ADDRESS: null pointer provided\n");
@@ -195,9 +193,6 @@ bool tlv_get_address(const tlv_data_t *data, uint8_t *out, bool not_empty) {
     if (!get_buffer_from_tlv_data(data, &address, ADDRESS_LENGTH, ADDRESS_LENGTH)) {
         PRINTF("ADDRESS: failed to extract\n");
         return false;
-    }
-    if (not_empty) {
-        CHECK_NOT_EMPTY_BUFFER("ADDRESS", address);
     }
     buf_shrink_expand(address.ptr, address.size, out, ADDRESS_LENGTH);
     return true;
@@ -222,7 +217,6 @@ bool tlv_get_selector(const tlv_data_t *data, uint8_t *out, uint16_t max_size) {
         PRINTF("SELECTOR: failed to extract\n");
         return false;
     }
-    CHECK_NOT_EMPTY_BUFFER("SELECTOR", selector);
     buf_shrink_expand(selector.ptr, selector.size, out, max_size);
     return true;
 }
@@ -271,7 +265,10 @@ bool tlv_get_printable_string(const tlv_data_t *data,
  * @param[in] max_val maximum valid value (inclusive)
  * @return whether the handling was successful
  */
-bool tlv_get_uint16(const tlv_data_t *data, uint16_t *out, uint16_t min_val, uint16_t max_val) {
+bool tlv_get_uint16_range(const tlv_data_t *data,
+                          uint16_t *out,
+                          uint16_t min_val,
+                          uint16_t max_val) {
     uint16_t value = 0;
     if (!out) {
         PRINTF("UINT16: null pointer provided\n");
@@ -302,7 +299,7 @@ bool tlv_get_uint16(const tlv_data_t *data, uint16_t *out, uint16_t min_val, uin
  * @param[in] max_val maximum valid value (inclusive)
  * @return whether the handling was successful
  */
-bool tlv_get_uint8(const tlv_data_t *data, uint8_t *out, uint8_t min_val, uint8_t max_val) {
+bool tlv_get_uint8_range(const tlv_data_t *data, uint8_t *out, uint8_t min_val, uint8_t max_val) {
     uint8_t value = 0;
     if (!out) {
         PRINTF("UINT8: null pointer provided\n");

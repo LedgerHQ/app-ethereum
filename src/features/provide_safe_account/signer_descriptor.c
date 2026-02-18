@@ -75,9 +75,12 @@ static bool handle_address(const tlv_data_t *data, s_signer_ctx *context) {
         return false;
     }
 
-    if (tlv_get_address(data,
-                        (uint8_t *) context->signers->data[context->address_count].address,
-                        true) == false) {
+    if (!tlv_get_address(data,
+                         (uint8_t *) context->signers->data[context->address_count].address)) {
+        return false;
+    }
+    if (allzeroes(context->signers->data[context->address_count].address, ADDRESS_LENGTH) == 1) {
+        PRINTF("ADDRESS: all zeroes\n");
         return false;
     }
     context->address_count++;

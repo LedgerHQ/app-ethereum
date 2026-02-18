@@ -19,14 +19,14 @@
     X(0x05, TAG_SLICE, handle_slice, ALLOW_MULTIPLE_TAG)
 
 static bool handle_version(const tlv_data_t *data, s_data_path_context *context) {
-    return tlv_get_uint8(data, &context->data_path->version, 0, UINT8_MAX);
+    return tlv_get_uint8_range(data, &context->data_path->version, 0, UINT8_MAX);
 }
 
 static bool handle_tuple(const tlv_data_t *data, s_data_path_context *context) {
-    if (!tlv_get_uint16(data,
-                        &context->data_path->elements[context->data_path->size].tuple.value,
-                        0,
-                        UINT16_MAX)) {
+    if (!tlv_get_uint16_range(data,
+                              &context->data_path->elements[context->data_path->size].tuple.value,
+                              0,
+                              UINT16_MAX)) {
         return false;
     }
     context->data_path->elements[context->data_path->size].type = ELEMENT_TYPE_TUPLE;
@@ -57,10 +57,10 @@ static bool handle_ref(const tlv_data_t *data, s_data_path_context *context) {
 }
 
 static bool handle_leaf(const tlv_data_t *data, s_data_path_context *context) {
-    if (!tlv_get_uint8(data,
-                       &context->data_path->elements[context->data_path->size].leaf.type,
-                       0,
-                       UINT8_MAX)) {
+    if (!tlv_get_uint8_range(data,
+                             &context->data_path->elements[context->data_path->size].leaf.type,
+                             0,
+                             UINT8_MAX)) {
         return false;
     }
     context->data_path->elements[context->data_path->size].type = ELEMENT_TYPE_LEAF;

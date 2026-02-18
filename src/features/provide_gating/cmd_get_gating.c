@@ -116,9 +116,11 @@ static bool parse_struct_version(const tlv_data_t *data, s_gating_ctx *context) 
  *  - schema hash (32 bytes for eip712)
  */
 static bool parse_hash_selector(const tlv_data_t *data, s_gating_ctx *context) {
-    return tlv_get_selector(data,
-                            (uint8_t *) context->gating->hash_selector,
-                            sizeof(context->gating->hash_selector));
+    if (data->value.size > sizeof(context->gating->hash_selector)) {
+        PRINTF("HASH/SELECTOR: invalid size\n");
+        return false;
+    }
+    return tlv_get_selector(data, (uint8_t *) context->gating->hash_selector, data->value.size);
 }
 
 /**
@@ -129,7 +131,14 @@ static bool parse_hash_selector(const tlv_data_t *data, s_gating_ctx *context) {
  * @return whether it was successful
  */
 static bool parse_address(const tlv_data_t *data, s_gating_ctx *context) {
-    return tlv_get_address(data, (uint8_t *) context->gating->addr, true);
+    if (!tlv_get_address(data, (uint8_t *) context->gating->addr)) {
+        return false;
+    }
+    if (allzeroes(context->gating->addr, ADDRESS_LENGTH) == 1) {
+        PRINTF("ADDRESS: all zeroes\n");
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -188,7 +197,7 @@ static bool parse_tiny_url(const tlv_data_t *data, s_gating_ctx *context) {
  */
 static bool parse_type(const tlv_data_t *data, s_gating_ctx *context) {
     uint8_t value = 0;
-    if (!tlv_get_uint8(data, &value, 0, TX_TYPE_TYPED_DATA - 1)) {
+    if (!tlv_get_uint8_range(data, &value, 0, TX_TYPE_TYPED_DATA - 1)) {
         PRINTF("TX_TYPE: error\n");
         return false;
     }

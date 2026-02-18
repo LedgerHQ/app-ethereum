@@ -15,7 +15,7 @@
     X(0x01, TAG_VALUE, handle_value, ENFORCE_UNIQUE_TAG)
 
 static bool handle_version(const tlv_data_t *data, s_param_raw_context *context) {
-    return tlv_get_uint8(data, &context->param->version, 0, UINT8_MAX);
+    return tlv_get_uint8_range(data, &context->param->version, 0, UINT8_MAX);
 }
 
 static bool handle_value(const tlv_data_t *data, s_param_raw_context *context) {

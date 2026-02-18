@@ -35,10 +35,7 @@
  * @return true if version was successfully parsed, false otherwise
  */
 static bool handle_version(const tlv_data_t *data, s_param_network_context *context) {
-    return tlv_get_uint8(data,
-                         &context->param->version,
-                         0,
-                         UINT8_MAX);  // TODO: what is it used for? Any check somewhere?
+    return tlv_get_uint8_range(data, &context->param->version, 0, UINT8_MAX);
 }
 
 /**

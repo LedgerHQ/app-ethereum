@@ -63,7 +63,7 @@ static bool handle_challenge(const tlv_data_t *data, s_proxy_info_ctx *context) 
  * @return whether the handling was successful
  */
 static bool handle_address(const tlv_data_t *data, s_proxy_info_ctx *context) {
-    return tlv_get_address(data, context->proxy_info.address, false);
+    return tlv_get_address(data, context->proxy_info.address);
 }
 
 /**
@@ -98,7 +98,7 @@ static bool handle_selector(const tlv_data_t *data, s_proxy_info_ctx *context) {
  * @return whether the handling was successful
  */
 static bool handle_implem_address(const tlv_data_t *data, s_proxy_info_ctx *context) {
-    return tlv_get_address(data, context->proxy_info.implem_address, false);
+    return tlv_get_address(data, context->proxy_info.implem_address);
 }
 
 /**
@@ -111,7 +111,7 @@ static bool handle_implem_address(const tlv_data_t *data, s_proxy_info_ctx *cont
 static bool handle_delegation_type(const tlv_data_t *data, s_proxy_info_ctx *context) {
     UNUSED(context);
     uint8_t value = 0;
-    if (!tlv_get_uint8(data, &value, 0, DELEGATION_TYPE_MAX - 1)) {
+    if (!tlv_get_uint8_range(data, &value, 0, DELEGATION_TYPE_MAX - 1)) {
         PRINTF("DELEGATION_TYPE: error\n");
         return false;
     }

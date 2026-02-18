@@ -13,17 +13,26 @@
     X(0x03, TAG_END, handle_end, ENFORCE_UNIQUE_TAG)
 
 static bool handle_weight(const tlv_data_t *data, s_path_array_context *context) {
+    if (data->value.size < sizeof(context->args->weight)) {
+        return false;
+    }
     context->args->weight = data->value.ptr[0];
     return true;
 }
 
 static bool handle_start(const tlv_data_t *data, s_path_array_context *context) {
+    if (data->value.size < sizeof(context->args->start)) {
+        return false;
+    }
     context->args->start = read_u16_be(data->value.ptr, 0);
     context->args->has_start = true;
     return true;
 }
 
 static bool handle_end(const tlv_data_t *data, s_path_array_context *context) {
+    if (data->value.size < sizeof(context->args->end)) {
+        return false;
+    }
     context->args->end = read_u16_be(data->value.ptr, 0);
     context->args->has_end = true;
     return true;

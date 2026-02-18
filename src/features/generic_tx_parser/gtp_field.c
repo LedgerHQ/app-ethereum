@@ -45,7 +45,7 @@ static bool handle_param_constraint(const tlv_data_t *data, s_field_ctx *context
 DEFINE_TLV_PARSER(FIELD_TAGS, NULL, field_tlv_parser)
 
 static bool handle_version(const tlv_data_t *data, s_field_ctx *context) {
-    return tlv_get_uint8(data, &context->field->version, 0, UINT8_MAX);
+    return tlv_get_uint8_range(data, &context->field->version, 0, UINT8_MAX);
 }
 
 static bool handle_name(const tlv_data_t *data, s_field_ctx *context) {
@@ -57,7 +57,7 @@ static bool handle_name(const tlv_data_t *data, s_field_ctx *context) {
 }
 
 static bool handle_param_type(const tlv_data_t *data, s_field_ctx *context) {
-    if (!tlv_get_uint8(data, &context->field->param_type, 0, UINT8_MAX)) {
+    if (!tlv_get_uint8_range(data, &context->field->param_type, 0, UINT8_MAX)) {
         return false;
     }
     switch (context->field->param_type) {
@@ -85,7 +85,7 @@ static bool handle_param_visible(const tlv_data_t *data, s_field_ctx *context) {
     e_param_visibility visibility = PARAM_VISIBILITY_ALWAYS;
 
     // Set visibility
-    if (!tlv_get_uint8(data, (uint8_t *) &visibility, 0, PARAM_VISIBILITY_MAX - 1)) {
+    if (!tlv_get_uint8_range(data, (uint8_t *) &visibility, 0, PARAM_VISIBILITY_MAX - 1)) {
         return false;
     }
     // Set visibility
@@ -104,7 +104,7 @@ static bool handle_param_constraint(const tlv_data_t *data, s_field_ctx *context
         PRINTF("Error: CONSTRAINT present but VISIBLE is not MUST_BE or IF_NOT_IN!\n");
         return false;
     }
-    if (data->length == 0 || data->value == NULL) {
+    if (data->value.size == 0 || data->value.ptr == NULL) {
         PRINTF("Error: Empty constraint value!\n");
         return false;
     }

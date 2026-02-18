@@ -42,7 +42,7 @@ static bool handle_chain_id(const tlv_data_t *data, s_enum_value_ctx *context) {
  * @return whether the handling was successful
  */
 static bool handle_contract_addr(const tlv_data_t *data, s_enum_value_ctx *context) {
-    return tlv_get_address(data, (uint8_t *) context->entry.contract_addr, false);
+    return tlv_get_address(data, (uint8_t *) context->entry.contract_addr);
 }
 
 /**
@@ -64,7 +64,7 @@ static bool handle_selector(const tlv_data_t *data, s_enum_value_ctx *context) {
  * @return whether the handling was successful
  */
 static bool handle_id(const tlv_data_t *data, s_enum_value_ctx *context) {
-    if (!tlv_get_uint8(data, &context->entry.id, 0, UINT8_MAX)) {
+    if (!tlv_get_uint8_range(data, &context->entry.id, 0, UINT8_MAX)) {
         PRINTF("ID: error\n");
         return false;
     }
@@ -79,7 +79,7 @@ static bool handle_id(const tlv_data_t *data, s_enum_value_ctx *context) {
  * @return whether the handling was successful
  */
 static bool handle_value(const tlv_data_t *data, s_enum_value_ctx *context) {
-    if (!tlv_get_uint8(data, &context->entry.value, 0, UINT8_MAX)) {
+    if (!tlv_get_uint8_range(data, &context->entry.value, 0, UINT8_MAX)) {
         PRINTF("VALUE: error\n");
         return false;
     }

@@ -17,7 +17,7 @@
     X(0x05, TAG_ABOVE_THRESHOLD_MSG, handle_above_threshold_msg, ENFORCE_UNIQUE_TAG)
 
 static bool handle_version(const tlv_data_t *data, s_param_token_amount_context *context) {
-    return tlv_get_uint8(data, &context->param->version, 0, UINT8_MAX);
+    return tlv_get_uint8_range(data, &context->param->version, 0, UINT8_MAX);
 }
 
 static bool handle_value(const tlv_data_t *data, s_param_token_amount_context *context) {

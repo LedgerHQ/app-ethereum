@@ -68,7 +68,14 @@ static bool parse_struct_version(const tlv_data_t *data, s_tx_simu_ctx *context)
  * @return whether the handling was successful
  */
 static bool parse_tx_hash(const tlv_data_t *data, s_tx_simu_ctx *context) {
-    return tlv_get_hash(data, (char *) context->simu->tx_hash);
+    if (!tlv_get_hash(data, (uint8_t *) context->simu->tx_hash)) {
+        return false;
+    }
+    if (allzeroes(context->simu->tx_hash, HASH_SIZE) == 1) {
+        PRINTF("TX_HASH: all zeroes\n");
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -79,7 +86,14 @@ static bool parse_tx_hash(const tlv_data_t *data, s_tx_simu_ctx *context) {
  * @return whether the handling was successful
  */
 static bool parse_domain_hash(const tlv_data_t *data, s_tx_simu_ctx *context) {
-    return tlv_get_hash(data, (char *) context->simu->domain_hash);
+    if (!tlv_get_hash(data, (uint8_t *) context->simu->domain_hash)) {
+        return false;
+    }
+    if (allzeroes(context->simu->domain_hash, HASH_SIZE) == 1) {
+        PRINTF("DOMAIN_HASH: all zeroes\n");
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -90,7 +104,14 @@ static bool parse_domain_hash(const tlv_data_t *data, s_tx_simu_ctx *context) {
  * @return whether the handling was successful
  */
 static bool parse_address(const tlv_data_t *data, s_tx_simu_ctx *context) {
-    return tlv_get_address(data, (uint8_t *) context->simu->address, true);
+    if (!tlv_get_address(data, (uint8_t *) context->simu->address)) {
+        return false;
+    }
+    if (allzeroes(context->simu->address, ADDRESS_LENGTH) == 1) {
+        PRINTF("ADDRESS: all zeroes\n");
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -113,7 +134,7 @@ static bool parse_chain_id(const tlv_data_t *data, s_tx_simu_ctx *context) {
  */
 static bool parse_risk(const tlv_data_t *data, s_tx_simu_ctx *context) {
     uint8_t value = 0;
-    if (!tlv_get_uint8(data, &value, 0, RISK_MALICIOUS - 1)) {
+    if (!tlv_get_uint8_range(data, &value, 0, RISK_MALICIOUS - 1)) {
         PRINTF("TX_CHECKS_NORMALIZED_RISK: error\n");
         return false;
     }
@@ -129,7 +150,7 @@ static bool parse_risk(const tlv_data_t *data, s_tx_simu_ctx *context) {
  * @return whether the handling was successful
  */
 static bool parse_category(const tlv_data_t *data, s_tx_simu_ctx *context) {
-    if (!tlv_get_uint8(data, &context->simu->category, 0, UINT8_MAX)) {
+    if (!tlv_get_uint8_range(data, &context->simu->category, 0, UINT8_MAX)) {
         PRINTF("TX_CHECKS_NORMALIZED_CATEGORY: error\n");
         return false;
     }
@@ -145,7 +166,7 @@ static bool parse_category(const tlv_data_t *data, s_tx_simu_ctx *context) {
  */
 static bool parse_type(const tlv_data_t *data, s_tx_simu_ctx *context) {
     uint8_t value = 0;
-    if (!tlv_get_uint8(data, &value, 0, SIMU_TYPE_PERSONAL_MESSAGE - 1)) {
+    if (!tlv_get_uint8_range(data, &value, 0, SIMU_TYPE_PERSONAL_MESSAGE - 1)) {
         PRINTF("TX_CHECKS_SIMU_TYPE: error\n");
         return false;
     }

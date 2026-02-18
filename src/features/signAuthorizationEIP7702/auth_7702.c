@@ -24,7 +24,7 @@ static bool handle_version(const tlv_data_t *data, s_auth_7702_ctx *context) {
  * @return whether the handling was successful
  */
 static bool handle_delegate_addr(const tlv_data_t *data, s_auth_7702_ctx *context) {
-    return tlv_get_address(data, context->auth_7702.delegate, false);
+    return tlv_get_address(data, context->auth_7702.delegate);
 }
 
 /**

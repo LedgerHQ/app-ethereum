@@ -70,7 +70,14 @@ static bool handle_challenge(const tlv_data_t *data, s_safe_ctx *context) {
  * @return whether the handling was successful
  */
 static bool handle_address(const tlv_data_t *data, s_safe_ctx *context) {
-    return tlv_get_address(data, (uint8_t *) context->safe->address, true);
+    if (!tlv_get_address(data, (uint8_t *) context->safe->address)) {
+        return false;
+    }
+    if (allzeroes(context->safe->address, ADDRESS_LENGTH) == 1) {
+        PRINTF("ADDRESS: all zeroes\n");
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -81,7 +88,7 @@ static bool handle_address(const tlv_data_t *data, s_safe_ctx *context) {
  * @return whether the handling was successful
  */
 static bool handle_threshold(const tlv_data_t *data, s_safe_ctx *context) {
-    if (!tlv_get_uint16(data, &context->safe->threshold, 1, MAX_THRESHOLD)) {
+    if (!tlv_get_uint16_range(data, &context->safe->threshold, 1, MAX_THRESHOLD)) {
         PRINTF("THRESHOLD: error\n");
         return false;
     }
@@ -96,7 +103,7 @@ static bool handle_threshold(const tlv_data_t *data, s_safe_ctx *context) {
  * @return whether the handling was successful
  */
 static bool handle_signers_count(const tlv_data_t *data, s_safe_ctx *context) {
-    if (!tlv_get_uint16(data, &context->safe->signers_count, 1, MAX_SIGNERS)) {
+    if (!tlv_get_uint16_range(data, &context->safe->signers_count, 1, MAX_SIGNERS)) {
         PRINTF("SIGNERS_COUNT: error\n");
         return false;
     }
@@ -111,7 +118,7 @@ static bool handle_signers_count(const tlv_data_t *data, s_safe_ctx *context) {
  * @return whether the handling was successful
  */
 static bool handle_role(const tlv_data_t *data, s_safe_ctx *context) {
-    if (!tlv_get_uint8(data, &context->safe->role, 0, ROLE_MAX)) {
+    if (!tlv_get_uint8_range(data, &context->safe->role, 0, ROLE_MAX)) {
         PRINTF("ROLE: error\n");
         return false;
     }

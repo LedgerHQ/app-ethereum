@@ -23,6 +23,10 @@ static bool handle_version(const tlv_data_t *data, s_data_path_context *context)
 }
 
 static bool handle_tuple(const tlv_data_t *data, s_data_path_context *context) {
+    if (context->data_path->size >= PATH_MAX_SIZE) {
+        PRINTF("Error: PATH_MAX_SIZE exceeded\n");
+        return false;
+    }
     if (!tlv_get_uint16(data,
                         &context->data_path->elements[context->data_path->size].tuple.value,
                         0,
@@ -35,6 +39,10 @@ static bool handle_tuple(const tlv_data_t *data, s_data_path_context *context) {
 }
 
 static bool handle_array(const tlv_data_t *data, s_data_path_context *context) {
+    if (context->data_path->size >= PATH_MAX_SIZE) {
+        PRINTF("Error: PATH_MAX_SIZE exceeded\n");
+        return false;
+    }
     s_path_array_context ctx = {0};
 
     ctx.args = &context->data_path->elements[context->data_path->size].array;
@@ -48,6 +56,10 @@ static bool handle_array(const tlv_data_t *data, s_data_path_context *context) {
 }
 
 static bool handle_ref(const tlv_data_t *data, s_data_path_context *context) {
+    if (context->data_path->size >= PATH_MAX_SIZE) {
+        PRINTF("Error: PATH_MAX_SIZE exceeded\n");
+        return false;
+    }
     if (data->value.size != 0) {
         return false;
     }
@@ -57,6 +69,10 @@ static bool handle_ref(const tlv_data_t *data, s_data_path_context *context) {
 }
 
 static bool handle_leaf(const tlv_data_t *data, s_data_path_context *context) {
+    if (context->data_path->size >= PATH_MAX_SIZE) {
+        PRINTF("Error: PATH_MAX_SIZE exceeded\n");
+        return false;
+    }
     if (!tlv_get_uint8(data,
                        &context->data_path->elements[context->data_path->size].leaf.type,
                        0,
@@ -69,6 +85,10 @@ static bool handle_leaf(const tlv_data_t *data, s_data_path_context *context) {
 }
 
 static bool handle_slice(const tlv_data_t *data, s_data_path_context *context) {
+    if (context->data_path->size >= PATH_MAX_SIZE) {
+        PRINTF("Error: PATH_MAX_SIZE exceeded\n");
+        return false;
+    }
     s_path_slice_context ctx = {0};
 
     ctx.args = &context->data_path->elements[context->data_path->size].slice;

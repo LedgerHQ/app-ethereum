@@ -331,7 +331,7 @@ static bool ux_init(bool fromPlugin, uint8_t title_len, uint8_t finish_len) {
         goto error;
     }
 
-    if (fromPlugin == true) {
+    if (fromPlugin && (dataContext.tokenContext.pluginUiMaxItems > 0)) {
         buf_size = dataContext.tokenContext.pluginUiMaxItems * sizeof(plugin_buffers_t);
         // Allocate the plugin buffers
         if ((plugin_buffers = app_mem_alloc(buf_size)) == NULL) {

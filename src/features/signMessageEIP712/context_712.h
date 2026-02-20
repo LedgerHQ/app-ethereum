@@ -3,11 +3,12 @@
 #include <stdbool.h>
 #include "common_utils.h"
 #include "lists.h"
+#include "lcx_sha256.h"
 
 typedef struct {
     uint8_t contract_addr[ADDRESS_LENGTH];
     uint64_t chain_id;
-    uint8_t schema_hash[224 / 8];
+    uint8_t schema_hash[CX_SHA224_SIZE];
     bool go_home_on_failure;
 } s_eip712_context;
 

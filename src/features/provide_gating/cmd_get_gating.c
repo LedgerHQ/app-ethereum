@@ -41,6 +41,7 @@
 #include "proxy_info.h"
 #include "context_712.h"
 #include "schema_hash.h"
+#include "lcx_sha256.h"
 
 // Display the Dated Signing screen 1/X times
 #define GATED_SIGNING_MAX_COUNT 10
@@ -52,6 +53,7 @@
 #define GATING_URL_SIZE 30
 #define HASH_SIZE       32
 
+// clang-format off
 typedef enum {
     TX_TYPE_UNKNOWN,
     TX_TYPE_TRANSACTION,
@@ -60,10 +62,10 @@ typedef enum {
 
 typedef struct gating_s {
     uint64_t chain_id;
-    const char hash_selector[HASH_SIZE];  // function selector for SignTx or schemaHash for EIP712
-    const char intro_msg[GATING_MSG_SIZE + 1];  // +1 for the null terminator
-    const char tiny_url[GATING_URL_SIZE + 1];   // +1 for the null terminator
-    const char addr[ADDRESS_LENGTH];
+    const uint8_t hash_selector[CX_SHA224_SIZE];  // function selector for SignTx or schemaHash for EIP712
+    const char intro_msg[GATING_MSG_SIZE + 1];    // +1 for the null terminator
+    const char tiny_url[GATING_URL_SIZE + 1];     // +1 for the null terminator
+    const uint8_t address[ADDRESS_LENGTH];        // Contract address to check in the gating
     tx_type_t type;
 } gating_t;
 
@@ -74,6 +76,7 @@ typedef struct {
     cx_sha256_t hash_ctx;
     TLV_reception_t received_tags;
 } s_gating_ctx;
+// clang-format on
 
 // Global structure to store the tx gating parameters
 static gating_t *GATING = NULL;
@@ -113,7 +116,7 @@ static bool parse_struct_version(const tlv_data_t *data, s_gating_ctx *context) 
  *
  * @note This field can be either
  *  - function selector (4 bytes for SignTX)
- *  - schema hash (32 bytes for eip712)
+ *  - schema hash (28 bytes for eip712)
  */
 static bool parse_hash_selector(const tlv_data_t *data, s_gating_ctx *context) {
     if (data->value.size > sizeof(context->gating->hash_selector)) {
@@ -131,10 +134,10 @@ static bool parse_hash_selector(const tlv_data_t *data, s_gating_ctx *context) {
  * @return whether it was successful
  */
 static bool parse_address(const tlv_data_t *data, s_gating_ctx *context) {
-    if (!tlv_get_address(data, (uint8_t *) context->gating->addr)) {
+    if (!tlv_get_address(data, (uint8_t *) context->gating->address)) {
         return false;
     }
-    if (allzeroes(context->gating->addr, ADDRESS_LENGTH) == 1) {
+    if (allzeroes(context->gating->address, ADDRESS_LENGTH) == 1) {
         PRINTF("ADDRESS: all zeroes\n");
         return false;
     }
@@ -337,11 +340,12 @@ static void print_gating_info(s_gating_ctx *context) {
     uint8_t len = 0;
     PRINTF("****************************************************************************\n");
     PRINTF("[GATING] - Retrieved Gating descriptor:\n");
-    PRINTF("[GATING] -    Address: %.*h\n", ADDRESS_LENGTH, context->gating->addr);
+    PRINTF("[GATING] -    Address: %.*h\n", ADDRESS_LENGTH, context->gating->address);
     if (context->gating->chain_id != 0) {
         PRINTF("[GATING] -    ChainID: %llu\n", context->gating->chain_id);
     }
-    len = (context->gating->type == TX_TYPE_TRANSACTION) ? SELECTOR_SIZE : HASH_SIZE;
+    len = (context->gating->type == TX_TYPE_TRANSACTION) ? SELECTOR_SIZE
+                                                         : sizeof(context->gating->hash_selector);
     if (allzeroes((const void *) context->gating->hash_selector, len) == 0) {
         PRINTF("[GATING] -    Hash Selector: %.*h\n", len, context->gating->hash_selector);
     }
@@ -452,31 +456,53 @@ static bool check_gating_type(void) {
  * @return whether it was successful
  */
 static bool check_gating_address(void) {
-    uint8_t *address = NULL;
-    uint8_t *contract = NULL;
+    const uint8_t *address = NULL;
+    const uint8_t *selector = NULL;
+    const uint8_t *contract = NULL;
 
-    if (allzeroes((const void *) GATING->addr, ADDRESS_LENGTH)) {
-        PRINTF("[GATING] TO addr missing\n");
+    if (allzeroes((const void *) GATING->address, ADDRESS_LENGTH)) {
+        PRINTF("[GATING] TO address missing\n");
         return false;
     }
     switch (GATING->type) {
         case TX_TYPE_TRANSACTION:
-            // Get the implementation address for the received descriptor address
-            address = (uint8_t *) get_implem_contract(&GATING->chain_id,
-                                                      (const uint8_t *) GATING->addr,
-                                                      (const uint8_t *) GATING->hash_selector);
-            if (address == NULL) {
-                // Implem addr is NULL, checking with Descriptor address
-                address = (uint8_t *) GATING->addr;
-            }
+            // Get the transaction TO address
             contract = tmpContent.txContent.destination;
+            selector = GATING->hash_selector;
             break;
         case TX_TYPE_TYPED_DATA:
-            address = (uint8_t *) GATING->addr;
             contract = eip712_context->contract_addr;
             break;
         default:
-            return true;
+            return false;
+    }
+
+    PRINTF("[GATING] Tx TO address: %.*h\n", ADDRESS_LENGTH, contract);
+    PRINTF("[GATING] Gating address: %.*h\n", ADDRESS_LENGTH, GATING->address);
+
+    // Get the implementation address for the received descriptor address
+    address = get_implem_contract(&GATING->chain_id, contract, selector);
+    if (address != NULL) {
+        // Implementation address found, a proxy exists for this descriptor
+        // We will check the implementation address against the Gating descriptor address
+        if (memcmp(address, GATING->address, ADDRESS_LENGTH) != 0) {
+            PRINTF("[GATING] Proxy Implem ADDRESS mismatch: %.*h != %.*h\n",
+                   ADDRESS_LENGTH,
+                   address,
+                   ADDRESS_LENGTH,
+                   GATING->address);
+            return false;
+        }
+        // Then we will check the transaction TO address against the proxy contract address
+        address = get_proxy_contract(&GATING->chain_id, GATING->address, selector);
+        if (address == NULL) {
+            PRINTF("[GATING] No proxy found for this implementation address\n");
+            return false;
+        }
+    } else {
+        PRINTF("[GATING] No proxy found for this descriptor address\n");
+        // Implementation address is NULL, checking with Descriptor address
+        address = GATING->address;
     }
 
     if (memcmp(address, contract, ADDRESS_LENGTH) != 0) {
@@ -514,7 +540,7 @@ static bool check_gating_chain_id(void) {
             }
             break;
         default:
-            break;
+            return false;
     }
     return true;
 }
@@ -547,9 +573,9 @@ static bool check_gating_selector(void) {
             }
             if (memcmp(GATING->hash_selector,
                        eip712_context->schema_hash,
-                       sizeof(eip712_context->schema_hash)) != 0) {
+                       sizeof(GATING->hash_selector)) != 0) {
                 PRINTF("[GATING] schemaHash mismatch: %.*h != %.*h\n",
-                       sizeof(eip712_context->schema_hash),
+                       sizeof(GATING->hash_selector),
                        GATING->hash_selector,
                        sizeof(eip712_context->schema_hash),
                        eip712_context->schema_hash);
@@ -557,7 +583,7 @@ static bool check_gating_selector(void) {
             }
             break;
         default:
-            break;
+            return false;
     }
     return true;
 }

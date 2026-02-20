@@ -79,6 +79,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 7341, .name = "Shyft", .ticker = "SHFT"},
     {.chain_id = 8217, .name = "Kaia Mainnet", .ticker = "KAIA"},
     {.chain_id = 8453, .name = "Base", .ticker = "ETH"},
+    {.chain_id = 8822, .name = "IOTA EVM", .ticker = "IOTA"},
     {.chain_id = 9001, .name = "Evmos", .ticker = "EVMOS"},
     {.chain_id = 10200, .name = "Chiado", .ticker = "xDAI"},
     {.chain_id = 10507, .name = "Numbers Protocol", .ticker = "NUM"},

@@ -51,6 +51,16 @@
 #include "tx_ctx.h"
 #include "enum_value.h"
 
+#ifdef HAVE_LANG_FRENCH
+#include "lang_fr.h"
+#endif
+#ifdef HAVE_LANG_SPANISH
+#include "lang_es.h"
+#endif
+#ifdef HAVE_LANG_GERMAN
+#include "lang_de.h"
+#endif
+
 tmpCtx_t tmpCtx;
 txContext_t txContext;
 tmpContent_t tmpContent;
@@ -99,6 +109,16 @@ void reset_app_context(void) {
     ui_all_cleanup();
 #ifdef HAVE_GATING_SUPPORT
     clear_gating();
+#endif
+    /* Keep language tables linked even when --gc-sections is active */
+#ifdef HAVE_LANG_FRENCH
+    __asm__ volatile("" : : "r"(LANG_FR_STRINGS) : "memory");
+#endif
+#ifdef HAVE_LANG_SPANISH
+    __asm__ volatile("" : : "r"(LANG_ES_STRINGS) : "memory");
+#endif
+#ifdef HAVE_LANG_GERMAN
+    __asm__ volatile("" : : "r"(LANG_DE_STRINGS) : "memory");
 #endif
 }
 

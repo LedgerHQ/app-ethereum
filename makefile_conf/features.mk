@@ -55,6 +55,28 @@ ifneq ($(EIP7702_TEST_WHITELIST),0)
     DEFINES += HAVE_EIP7702_WHITELIST_TEST
 endif
 
+# Multi-language support (off by default — pass ADD_*_LANG=1 on the make command line)
+ADD_FRENCH_LANG ?= 0
+ifneq ($(ADD_FRENCH_LANG),0)
+    DEFINES += HAVE_LANG_FRENCH
+    APP_SOURCE_FILES += src/lang_fr.c
+    LDFLAGS += -Wl,--undefined=LANG_FR_STRINGS
+endif
+
+ADD_SPANISH_LANG ?= 0
+ifneq ($(ADD_SPANISH_LANG),0)
+    DEFINES += HAVE_LANG_SPANISH
+    APP_SOURCE_FILES += src/lang_es.c
+    LDFLAGS += -Wl,--undefined=LANG_ES_STRINGS
+endif
+
+ADD_GERMAN_LANG ?= 0
+ifneq ($(ADD_GERMAN_LANG),0)
+    DEFINES += HAVE_LANG_GERMAN
+    APP_SOURCE_FILES += src/lang_de.c
+    LDFLAGS += -Wl,--undefined=LANG_DE_STRINGS
+endif
+
 ENABLE_DYNAMIC_ALLOC = 1
 ifneq ($(DEBUG), 0)
     MEMORY_PROFILING ?= 0

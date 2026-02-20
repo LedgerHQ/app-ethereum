@@ -548,15 +548,37 @@ static bool check_gating_address(void) {
     }
     switch (GATING->type) {
         case TX_TYPE_TRANSACTION:
+            // Get the transaction TO address
+            contract = tmpContent.txContent.destination;
+            PRINTF("[GATING] Tx TO address: %.*h\n", ADDRESS_LENGTH, contract);
+            PRINTF("[GATING] Gating address: %.*h\n", ADDRESS_LENGTH, GATING->addr);
+
             // Get the implementation address for the received descriptor address
             address = (uint8_t *) get_implem_contract(&GATING->chain_id,
-                                                      (const uint8_t *) GATING->addr,
+                                                      (const uint8_t *) contract,
                                                       (const uint8_t *) GATING->hash_selector);
-            if (address == NULL) {
+            if (address != NULL) {
+                PRINTF("[GATING] Checking implementation address: %.*h\n", ADDRESS_LENGTH, address);
+                // Implementation address found, a proxy exists for this descriptor
+                // We will check the implementation address against the Gating descriptor address
+                if (memcmp(address, GATING->addr, ADDRESS_LENGTH) != 0) {
+                    PRINTF("[GATING] Proxy Implem ADDRESS mismatch: %.*h != %.*h\n",
+                           ADDRESS_LENGTH,
+                           address,
+                           ADDRESS_LENGTH,
+                           GATING->addr);
+                    return false;
+                }
+                // Then we will check the transaction TO address against the proxy contract address
+                address = (uint8_t *) get_proxy_contract(&GATING->chain_id,
+                                                         (const uint8_t *) GATING->addr,
+                                                         (const uint8_t *) GATING->hash_selector);
+                PRINTF("[GATING] Checking contract address: %.*h\n", ADDRESS_LENGTH, address);
+            } else {
+                PRINTF("[GATING] No proxy found for this descriptor address\n");
                 // Implem addr is NULL, checking with Descriptor address
                 address = (uint8_t *) GATING->addr;
             }
-            contract = tmpContent.txContent.destination;
             break;
         case TX_TYPE_TYPED_DATA:
             address = (uint8_t *) GATING->addr;

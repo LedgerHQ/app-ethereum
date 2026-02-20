@@ -121,18 +121,11 @@ def test_blind_sign(navigator: Navigator,
     tx_params = common_tx_params(amount)
 
     if with_proxy:
-        # Change address to a proxy contract
-        tx_params["to"] = bytes.fromhex("CcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC")
-        # Set proxy implementation address
-        address = bytes.fromhex("6b175474e89094c44da98b954eedeac495271d0f")
-        if gating_params is not None:
-            # Override gating address to match proxy implementation
-            gating_params.address = address
         proxy_info = ProxyInfo(
             ResponseParser.challenge(app_client.get_challenge().data),
-            address,
-            tx_params["chainId"],
             tx_params["to"],
+            tx_params["chainId"],
+            gating_params.address,
             selector=None,
         )
         response = app_client.provide_proxy_info(proxy_info.serialize())

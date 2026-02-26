@@ -103,10 +103,7 @@ void eth2_plugin_call(eth_plugin_msg_t message, void *parameters) {
 
                 case 4 + (32 * 5):  // deposit pubkey 1
                 {
-                    // Copy the first 32 bytes.
-                    memcpy(context->deposit_address,
-                           msg->parameter,
-                           sizeof(context->deposit_address));
+                    memcpy(context->deposit_address, msg->parameter, PARAMETER_LENGTH);
                     msg->result = ETH_PLUGIN_RESULT_OK;
                     break;
                 }
@@ -141,7 +138,7 @@ void eth2_plugin_call(eth_plugin_msg_t message, void *parameters) {
 
                 case 4 + (32 * 8):  // withdrawal credentials
                 {
-                    uint8_t tmp[48];
+                    uint8_t tmp[48] = {0};
                     uint32_t withdrawalKeyPath[4];
                     withdrawalKeyPath[0] = WITHDRAWAL_KEY_PATH_1;
                     withdrawalKeyPath[1] = WITHDRAWAL_KEY_PATH_2;

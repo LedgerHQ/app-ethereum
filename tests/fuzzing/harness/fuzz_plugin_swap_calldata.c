@@ -7,11 +7,12 @@
  * - G_swap_crosschain_hash must point to a valid hash for comparison
  */
 
+#include <setjmp.h>
 #include "fuzz_utils.h"
+#include "mocks.h"
 #include "shared_context.h"
 #include "swap_lib_calls.h"
 
-// Forward declaration of the plugin call function
 void swap_with_calldata_plugin_call(eth_plugin_msg_t message, void *parameters);
 
 // Buffer sizes
@@ -110,6 +111,7 @@ cleanup:
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     init_fuzzing_environment();
+    if (sigsetjmp(fuzz_exit_jump_ctx.jmp_buf, 1)) return 0;
     fuzz_swap_calldata_plugin(data, size);
     return 0;
 }

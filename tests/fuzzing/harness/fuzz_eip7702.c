@@ -1,4 +1,6 @@
+#include <setjmp.h>
 #include "fuzz_utils.h"
+#include "mocks.h"
 
 int fuzzEIP7702(const uint8_t *data, size_t size) {
     size_t offset = 0;
@@ -17,11 +19,10 @@ int fuzzEIP7702(const uint8_t *data, size_t size) {
     return 0;
 }
 
-/* Main fuzzing handler called by libfuzzer */
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     init_fuzzing_environment();
+    if (sigsetjmp(fuzz_exit_jump_ctx.jmp_buf, 1)) return 0;
 
-    // Run the harness
     fuzzEIP7702(data, size);
 
     return 0;

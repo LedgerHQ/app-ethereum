@@ -1,4 +1,6 @@
+#include <setjmp.h>
 #include "fuzz_utils.h"
+#include "mocks.h"
 
 #include "safe_descriptor.h"
 
@@ -21,13 +23,12 @@ int fuzzSignerCmd(const uint8_t *data, size_t size) {
     return 0;
 }
 
-/* Main fuzzing handler called by libfuzzer */
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     uint8_t target;
     init_fuzzing_environment();
     SAFE_DESC = NULL;
+    if (sigsetjmp(fuzz_exit_jump_ctx.jmp_buf, 1)) return 0;
 
-    // Determine which harness function to call based on the first byte of data
     if (size < 1) return 0;
     target = data[0];
     data++;

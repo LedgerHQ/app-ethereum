@@ -124,6 +124,10 @@ static bool handle_param_constraint(const s_tlv_data *data, s_field_ctx *context
         PRINTF("Error: CONSTRAINT present but VISIBLE is not MUST_BE or IF_NOT_IN!\n");
         return false;
     }
+    if (data->length == 0 || data->value == NULL) {
+        PRINTF("Error: Empty constraint value!\n");
+        return false;
+    }
     // Allocate new constraint node
     s_field_constraint *node = NULL;
     if (mem_buffer_allocate((void **) &node, sizeof(s_field_constraint)) == false) {

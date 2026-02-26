@@ -1789,7 +1789,8 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
         "chainId": 1
     }
 
-    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+    derivation_path = "m/44'/60'/0'/0/0"
+    with app_client.sign(derivation_path, tx_params, mode=SignMode.STORE):
         pass
 
     param_paths = get_all_paths(f"{ABIS_FOLDER}/safe_1.4.1.abi.json", "execTransaction")
@@ -2016,7 +2017,8 @@ def test_gcs_nested_execTransaction_changeThreshold(scenario_navigator: Navigate
                                                 tn_source=TrustedNameSource.MULTISIG_ADDRESS_BOOK,
                                                 chain_id=tx_info.chain_id,
                                                 challenge=ResponseParser.challenge(app_client.get_challenge().data),
-                                                owner=wallet_addr))
+                                                owner=wallet_addr,
+                                                owner_deriv_path=derivation_path))
 
     for field in fields:
         app_client.provide_transaction_field_desc(field.serialize())
@@ -3041,7 +3043,8 @@ def test_gcs_batch_complex(scenario_navigator: NavigateWithScenario) -> None:
         "chainId": 1,
     }
 
-    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+    derivation_path = "m/44'/60'/0'/0/0"
+    with app_client.sign(derivation_path, tx_params, mode=SignMode.STORE):
         pass
 
     param_paths = get_all_paths(f"{ABIS_FOLDER}/erc20.json", "transfer")
@@ -3150,7 +3153,8 @@ def test_gcs_batch_complex(scenario_navigator: NavigateWithScenario) -> None:
                                                 tn_source=TrustedNameSource.MULTISIG_ADDRESS_BOOK,
                                                 chain_id=tx_params["chainId"],
                                                 challenge=ResponseParser.challenge(app_client.get_challenge().data),
-                                                owner=wallet_addr))
+                                                owner=wallet_addr,
+                                                owner_deriv_path=derivation_path))
 
     # compute instructions hash
     sub_inst_hash = compute_inst_hash(sub_fields)

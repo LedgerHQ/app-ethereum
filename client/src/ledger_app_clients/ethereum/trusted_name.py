@@ -55,6 +55,7 @@ class TrustedName(TlvSerializable):
     challenge: bytes | None
     nft_id: int | None
     owner: bytes | None
+    signature: bytes | None
 
     def __init__(
         self,
@@ -72,16 +73,16 @@ class TrustedName(TlvSerializable):
         signature: bytes | None = None,
     ) -> None:
         self.version = version
+        self.address = address
+        self.name = name
         self.coin_type = coin_type
         self.not_valid_after = not_valid_after
+        self.challenge = challenge
         self.tn_type = tn_type
         self.tn_source = tn_source
-        self.name = name
         self.chain_id = chain_id
-        self.address = address
-        self.challenge = challenge
-        self.owner = owner
         self.nft_id = nft_id
+        self.owner = owner
         self.signature = signature
 
     def serialize(self) -> bytes:

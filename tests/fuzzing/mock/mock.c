@@ -62,9 +62,30 @@ cx_err_t cx_ecdomain_parameters_length(cx_curve_t cv, size_t *length) {
     return CX_OK;
 }
 
+cx_err_t cx_ecdomain_size(cx_curve_t curve, size_t *length) {
+    (void) curve;
+    if (length) *length = 32;
+    return CX_OK;
+}
+
 // So cx_bn_t variables don't go uninitialised (in functions like cx_ecdsa_verify_no_throw)
 cx_err_t cx_bn_alloc(cx_bn_t *x, size_t nbytes) {
     (void) nbytes;
     if (x) *x = 0;
+    return CX_OK;
+}
+
+cx_err_t cx_bn_alloc_init(cx_bn_t *x, size_t nbytes, const uint8_t *value, size_t value_nbytes) {
+    (void) nbytes;
+    (void) value;
+    (void) value_nbytes;
+    if (x) *x = 0;
+    return CX_OK;
+}
+
+cx_err_t cx_bn_cmp(const cx_bn_t a, const cx_bn_t b, int *diff) {
+    (void) a;
+    (void) b;
+    if (diff) *diff = 0;
     return CX_OK;
 }

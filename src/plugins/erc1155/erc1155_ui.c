@@ -134,6 +134,11 @@ static void set_batch_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *
 void handle_query_contract_ui_1155(ethQueryContractUI_t *msg) {
     erc1155_context_t *context = (erc1155_context_t *) msg->pluginContext;
 
+    if (msg->item1 == NULL) {
+        msg->result = ETH_PLUGIN_RESULT_ERROR;
+        return;
+    }
+
     msg->result = ETH_PLUGIN_RESULT_OK;
     switch (context->selectorIndex) {
         case SET_APPROVAL_FOR_ALL:

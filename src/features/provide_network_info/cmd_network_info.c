@@ -23,7 +23,7 @@ static uint16_t handle_get_config(void) {
     uint16_t nb_networks = 0;
 
     // Iterate over the linked list
-    flist_node_t *node = g_dynamic_network_list;
+    flist_node_t *node = (flist_node_t *) g_dynamic_network_list;
     while (node != NULL) {
         network_info_t *net_info = (network_info_t *) node;
         if (net_info->chain_id != 0) {

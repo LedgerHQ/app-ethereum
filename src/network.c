@@ -131,7 +131,7 @@ static const network_info_t NETWORK_MAPPING[] = {
  * @return Pointer to network_info_t if found, NULL otherwise
  */
 network_info_t *find_dynamic_network_by_chain_id(uint64_t chain_id) {
-    flist_node_t *node = g_dynamic_network_list;
+    flist_node_t *node = (flist_node_t *) g_dynamic_network_list;
     while (node != NULL) {
         network_info_t *net_info = (network_info_t *) node;
         if (net_info->chain_id == chain_id) {

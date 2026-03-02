@@ -27,7 +27,7 @@ typedef struct {
 // Temporary buffer for icon bitmap hash
 uint8_t *g_network_icon_hash = NULL;
 // Global list to store the dynamic network information
-flist_node_t *g_dynamic_network_list = NULL;
+network_info_t *g_dynamic_network_list = NULL;
 // Pointer to the last added network (for icon association)
 network_info_t *g_last_added_network = NULL;
 
@@ -287,7 +287,7 @@ static bool append_network_info(const s_network_info_ctx *context) {
         if (bitmap != NULL) {
             APP_MEM_FREE_AND_NULL((void **) &bitmap);
         }
-        flist_remove(&g_dynamic_network_list, (flist_node_t *) existing, NULL);
+        flist_remove((flist_node_t **) &g_dynamic_network_list, (flist_node_t *) existing, NULL);
         APP_MEM_FREE_AND_NULL((void **) &existing);
     }
     // Do not track the allocation in logs, because this buffer is expected to stay allocated
@@ -301,7 +301,7 @@ static bool append_network_info(const s_network_info_ctx *context) {
     memcpy(new_network, &context->network, sizeof(network_info_t));
 
     // Add to the list
-    flist_push_back(&g_dynamic_network_list, (flist_node_t *) new_network);
+    flist_push_back((flist_node_t **) &g_dynamic_network_list, (flist_node_t *) new_network);
 
     // Keep track of last added network for icon association
     g_last_added_network = new_network;
@@ -384,7 +384,7 @@ bool handle_network_tlv_payload(const buffer_t *buf) {
 void network_info_cleanup(network_info_t *network) {
     if (network == NULL) {
         // Cleanup all networks in the list
-        flist_node_t *node = g_dynamic_network_list;
+        flist_node_t *node = (flist_node_t *) g_dynamic_network_list;
         while (node != NULL) {
             flist_node_t *next = node->next;
             network_info_t *net_info = (network_info_t *) node;
@@ -412,7 +412,7 @@ void network_info_cleanup(network_info_t *network) {
         }
 
         // Remove from list
-        flist_remove(&g_dynamic_network_list, (flist_node_t *) network, NULL);
+        flist_remove((flist_node_t **) &g_dynamic_network_list, (flist_node_t *) network, NULL);
 
         // Free the network info structure
         APP_MEM_FREE_AND_NULL((void **) &network);

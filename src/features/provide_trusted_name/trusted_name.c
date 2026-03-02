@@ -9,7 +9,7 @@
 #include "proxy_info.h"
 #include "ui_utils.h"
 #include "mem.h"
-#include "getPublicKey.h"
+#include "crypto_helpers.h"
 
 typedef enum { STRUCT_TYPE_TRUSTED_NAME = 0x03 } e_struct_type;
 
@@ -36,6 +36,7 @@ typedef enum {
     TRUSTED_NAME_SOURCE_RCV_BIT,
     NFT_ID_RCV_BIT,
     OWNER_RCV_BIT,
+    OWNER_DERIV_PATH_RCV_BIT,
 } e_tlv_rcv_bit;
 
 typedef enum {
@@ -54,6 +55,7 @@ typedef enum {
     TRUSTED_NAME_SOURCE = 0x71,
     NFT_ID = 0x72,
     OWNER = 0x74,
+    OWNER_DERIV_PATH = 0x75,
 } e_tlv_tag;
 
 static s_trusted_name *g_trusted_name_list = NULL;
@@ -495,6 +497,28 @@ static bool handle_owner(const s_tlv_data *data, s_trusted_name_ctx *context) {
     return true;
 }
 
+/**
+ * Handler for tag \ref OWNER_DERIV_PATH
+ *
+ * @param[in] data the tlv data
+ * @param[out] context the trusted name context
+ * @return whether it was successful
+ */
+static bool handle_owner_deriv_path(const s_tlv_data *data, s_trusted_name_ctx *context) {
+    if (data->length < sizeof(context->owner_deriv_path.length)) {
+        return false;
+    }
+    context->owner_deriv_path.length = data->value[0];
+    if (!bip32_path_read(&data->value[sizeof(context->owner_deriv_path.length)],
+                         data->length - sizeof(context->owner_deriv_path.length),
+                         context->owner_deriv_path.path,
+                         context->owner_deriv_path.length)) {
+        return false;
+    }
+    context->rcv_flags |= SET_BIT(OWNER_DERIV_PATH_RCV_BIT);
+    return true;
+}
+
 bool handle_trusted_name_struct(const s_tlv_data *data, s_trusted_name_ctx *context) {
     bool ret;
 
@@ -544,6 +568,9 @@ bool handle_trusted_name_struct(const s_tlv_data *data, s_trusted_name_ctx *cont
             break;
         case OWNER:
             ret = handle_owner(data, context);
+            break;
+        case OWNER_DERIV_PATH:
+            ret = handle_owner_deriv_path(data, context);
             break;
         default:
             PRINTF(TLV_TAG_ERROR_MSG, data->tag);
@@ -638,16 +665,31 @@ bool verify_trusted_name_struct(const s_trusted_name_ctx *context) {
                     return false;
             }
             if (context->trusted_name.name_source == TN_SOURCE_MAB) {
-                if (!(SET_BIT(OWNER_RCV_BIT) & context->rcv_flags)) {
-                    PRINTF("Error: did not receive an owner for MAB source!\n");
+                required_flags = SET_BIT(OWNER_RCV_BIT) | SET_BIT(OWNER_DERIV_PATH_RCV_BIT);
+                if ((context->rcv_flags & required_flags) != required_flags) {
+                    PRINTF("Error: did not receive owner and/or deriv path for MAB source!\n");
                     return false;
                 }
+                uint8_t raw_pubkey[65];
                 uint8_t wallet_addr[ADDRESS_LENGTH];
-                if (get_public_key(wallet_addr, sizeof(wallet_addr)) != SWO_SUCCESS) {
+
+                if (bip32_derive_get_pubkey_256(CX_CURVE_256K1,
+                                                context->owner_deriv_path.path,
+                                                context->owner_deriv_path.length,
+                                                raw_pubkey,
+                                                NULL,
+                                                CX_SHA512) != CX_OK) {
+                    PRINTF("Error: could not derive pubkey!\n");
                     return false;
                 }
+                getEthAddressFromRawKey(raw_pubkey, wallet_addr);
+
                 if (memcmp(context->owner, wallet_addr, sizeof(wallet_addr)) != 0) {
-                    PRINTF("Error: mismatching owner received!\n");
+                    PRINTF("Error: mismatching owner received (0x%.*h vs 0x%.*h) !\n",
+                           sizeof(context->owner),
+                           context->owner,
+                           sizeof(wallet_addr),
+                           wallet_addr);
                     return false;
                 }
             }

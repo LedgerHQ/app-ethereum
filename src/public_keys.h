@@ -94,5 +94,5 @@ bool check_signature_with_pubkey(uint8_t *buffer,
                                  const uint8_t *PubKey,
                                  const uint8_t keyLen,
                                  const uint8_t keyUsageExp,
-                                 uint8_t *signature,
+                                 const uint8_t *signature,
                                  const uint8_t sigLen);

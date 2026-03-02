@@ -7,16 +7,25 @@ bool check_signature_with_pubkey(uint8_t *hash,
                                  const uint8_t *PubKey,
                                  const uint8_t keyLen,
                                  const uint8_t keyUsageExp,
-                                 uint8_t *sig,
+                                 const uint8_t *sig,
                                  const uint8_t sig_len) {
     bool ret = false;
+#ifndef HAVE_BYPASS_SIGNATURES
     cx_ecfp_public_key_t verif_key = {0};
     const cx_curve_t expected_curve = CX_CURVE_256K1;
     const buffer_t buffer = {.ptr = hash, .size = hash_len};
-    const buffer_t signature = {.ptr = sig, .size = sig_len};
+    const buffer_t signature = {.ptr = (uint8_t *) sig, .size = sig_len};
+#endif
 
     PRINTF("==================================================================\n");
 #ifdef HAVE_BYPASS_SIGNATURES
+    UNUSED(hash);
+    UNUSED(hash_len);
+    UNUSED(PubKey);
+    UNUSED(keyLen);
+    UNUSED(keyUsageExp);
+    UNUSED(sig);
+    UNUSED(sig_len);
     // Bypass signature verification for testing purposes
     PRINTF("********** Bypass signature check **********\n");
     ret = true;

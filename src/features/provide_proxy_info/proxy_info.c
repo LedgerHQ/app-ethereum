@@ -191,6 +191,8 @@ bool verify_proxy_info_struct(const s_proxy_info_ctx *context) {
     roll_challenge();
     if (check_signature_with_pubkey(hash,
                                     sizeof(hash),
+                                    NULL,
+                                    0,
                                     CERTIFICATE_PUBLIC_KEY_USAGE_TRUSTED_NAME,
                                     (uint8_t *) context->sig,
                                     context->sig_size) != true) {

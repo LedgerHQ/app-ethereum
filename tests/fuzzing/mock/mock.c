@@ -1,5 +1,6 @@
 #include <string.h>
 #include <stdlib.h>
+#include <setjmp.h>
 
 #include "cx_errors.h"
 #include "cx_sha256.h"
@@ -7,8 +8,32 @@
 #include "buffer.h"
 #include "lcx_ecfp.h"
 #include "mem_alloc.h"
+#include "exceptions.h"
+#include "os_task.h"
 
 #include "bip32_utils.h"
+
+try_context_t fuzz_exit_jump_ctx = {0};
+try_context_t *G_exception_context = &fuzz_exit_jump_ctx;
+
+try_context_t *try_context_get(void) {
+    return G_exception_context;
+}
+
+try_context_t *try_context_set(try_context_t *context) {
+    try_context_t *previous = G_exception_context;
+    G_exception_context = context;
+    return previous;
+}
+
+void __attribute__((noreturn))
+os_sched_exit(bolos_task_status_t exit_code __attribute__((unused))) {
+    longjmp(fuzz_exit_jump_ctx.jmp_buf, 1);
+}
+
+void __attribute__((noreturn)) os_lib_end(void) {
+    longjmp(fuzz_exit_jump_ctx.jmp_buf, 1);
+}
 
 /** MemorySanitizer does not wrap explicit_bzero https://github.com/google/sanitizers/issues/1507
  * which results in false positives when running MemorySanitizer.
@@ -55,10 +80,15 @@ void mem_free(mem_ctx_t ctx, void *ptr) {
     free(ptr);
 }
 
-// APPs expect a specific length
 cx_err_t cx_ecdomain_parameters_length(cx_curve_t cv, size_t *length) {
     (void) cv;
     *length = (size_t) 32;
+    return CX_OK;
+}
+
+cx_err_t cx_ecdomain_size(cx_curve_t curve, size_t *length) {
+    (void) curve;
+    if (length) *length = 32;
     return CX_OK;
 }
 
@@ -66,5 +96,20 @@ cx_err_t cx_ecdomain_parameters_length(cx_curve_t cv, size_t *length) {
 cx_err_t cx_bn_alloc(cx_bn_t *x, size_t nbytes) {
     (void) nbytes;
     if (x) *x = 0;
+    return CX_OK;
+}
+
+cx_err_t cx_bn_alloc_init(cx_bn_t *x, size_t nbytes, const uint8_t *value, size_t value_nbytes) {
+    (void) nbytes;
+    (void) value;
+    (void) value_nbytes;
+    if (x) *x = 0;
+    return CX_OK;
+}
+
+cx_err_t cx_bn_cmp(const cx_bn_t a, const cx_bn_t b, int *diff) {
+    (void) a;
+    (void) b;
+    if (diff) *diff = 0;
     return CX_OK;
 }

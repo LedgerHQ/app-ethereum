@@ -1,6 +1,8 @@
 import struct
 from enum import IntEnum
 
+from ragger.bip import pack_derivation_path
+
 from .keychain import Key, sign_data
 from .tlv import TlvSerializable
 
@@ -41,6 +43,7 @@ class Tag(IntEnum):
     SOURCE = 0x71
     NFT_ID = 0x72
     OWNER = 0x74
+    OWNER_DERIV_PATH = 0x75
 
 
 class TrustedName(TlvSerializable):
@@ -55,6 +58,8 @@ class TrustedName(TlvSerializable):
     challenge: bytes | None
     nft_id: int | None
     owner: bytes | None
+    owner_deriv_path: str | None
+    signature: bytes | None
 
     def __init__(
         self,
@@ -69,19 +74,21 @@ class TrustedName(TlvSerializable):
         chain_id: int | None = None,
         nft_id: int | None = None,
         owner: bytes | None = None,
+        owner_deriv_path: str | None = None,
         signature: bytes | None = None,
     ) -> None:
         self.version = version
+        self.address = address
+        self.name = name
         self.coin_type = coin_type
         self.not_valid_after = not_valid_after
+        self.challenge = challenge
         self.tn_type = tn_type
         self.tn_source = tn_source
-        self.name = name
         self.chain_id = chain_id
-        self.address = address
-        self.challenge = challenge
-        self.owner = owner
         self.nft_id = nft_id
+        self.owner = owner
+        self.owner_deriv_path = owner_deriv_path
         self.signature = signature
 
     def serialize(self) -> bytes:
@@ -106,6 +113,8 @@ class TrustedName(TlvSerializable):
             payload += self.serialize_field(Tag.NFT_ID, self.nft_id)
         if self.owner is not None:
             payload += self.serialize_field(Tag.OWNER, self.owner)
+        if self.owner_deriv_path is not None:
+            payload += self.serialize_field(Tag.OWNER_DERIV_PATH, pack_derivation_path(self.owner_deriv_path))
         sig = self.signature
         if self.tn_source == TrustedNameSource.CAL:
             key_id = 9

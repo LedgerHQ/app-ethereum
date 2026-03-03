@@ -6,6 +6,7 @@
 #include "tlv.h"
 #include "signature.h"
 #include "list.h"
+#include "bip32_utils.h"
 
 #define TRUSTED_NAME_MAX_LENGTH 30
 
@@ -56,6 +57,7 @@ typedef struct {
     uint8_t input_sig[ECDSA_SIGNATURE_MAX_LENGTH];
     cx_sha256_t hash_ctx;
     uint8_t owner[ADDRESS_LENGTH];
+    bip32_path_t owner_deriv_path;
     uint32_t rcv_flags;
 } s_trusted_name_ctx;
 

@@ -5,9 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.22.0](../../compare/1.21.x...1.22.0) - 2026-xx-xx
+## [1.21.2](../../compare/1.21.1...1.21.2) - 2026-03-03
 
-## [1.21.1](../../compare/1.20.1...1.21.1) - 2026-02-19
+### Added
+
+- (clone) Sei
+
+### Fixed
+
+- MAB-sourced trusted names handling
+
+## [1.21.1](../../compare/1.21.0...1.21.1) - 2026-02-19
 
 ### Fixed
 

@@ -319,7 +319,7 @@ bool set_struct_field(uint8_t length, const uint8_t *data) {
     }
 
     if (!set_struct_field_typedesc(new_field, data, &data_idx, length)) {
-        return false;
+        goto cleanup;
     }
 
     // check TypeSize flag in TypeDesc
@@ -327,26 +327,26 @@ bool set_struct_field(uint8_t length, const uint8_t *data) {
         // TYPESIZE and TYPE_CUSTOM are mutually exclusive
         if (new_field->type == TYPE_CUSTOM) {
             apdu_response_code = SWO_INCORRECT_DATA;
-            return false;
+            goto cleanup;
         }
 
         if (set_struct_field_typesize(new_field, data, &data_idx, length) == false) {
-            return false;
+            goto cleanup;
         }
 
     } else if (new_field->type == TYPE_CUSTOM) {
         if (set_struct_field_custom_typename(new_field, data, &data_idx, length) == false) {
-            return false;
+            goto cleanup;
         }
     }
     if (new_field->type_is_array) {
         if (set_struct_field_array(new_field, data, &data_idx, length) == false) {
-            return false;
+            goto cleanup;
         }
     }
 
     if (set_struct_field_keyname(new_field, data, &data_idx, length) == false) {
-        return false;
+        goto cleanup;
     }
 
     if (data_idx != length)  // check that there is no more
@@ -363,4 +363,12 @@ bool set_struct_field(uint8_t length, const uint8_t *data) {
 
     flist_push_back((flist_node_t **) &s->fields, (flist_node_t *) new_field);
     return true;
+cleanup:
+    if (new_field != NULL) {
+        APP_MEM_FREE(new_field->key_name);
+        APP_MEM_FREE(new_field->array_levels);
+        APP_MEM_FREE(new_field->type_name);
+        APP_MEM_FREE(new_field);
+    }
+    return false;
 }

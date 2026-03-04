@@ -129,7 +129,7 @@ static bool path_leaf(const s_leaf_args *leaf,
     uint8_t *leaf_buf = NULL;
     uint8_t cpy_length;
 
-    if (collection->size > MAX_VALUE_COLLECTION_SIZE) {
+    if (collection->size >= MAX_VALUE_COLLECTION_SIZE) {
         return false;
     }
 
@@ -222,7 +222,9 @@ static bool path_array(const s_array_args *array,
     uint16_t idx;
     uint16_t start;
     uint16_t end;
+    uint16_t passes;
     const uint8_t *chunk;
+    uint32_t product;
 
     if (arrays_info->index >= MAX_ARRAYS) {
         return false;
@@ -245,15 +247,23 @@ static bool path_array(const s_array_args *array,
         end = array_size;
     }
 
+    if (end <= start) {
+        return false;
+    }
+    passes = end - start;
+
     *offset += 1;
     if (arrays_info->index == arrays_info->depth) {
         // new depth
-        arrays_info->passes_remaining[arrays_info->index] = (end - start);
+        arrays_info->passes_remaining[arrays_info->index] = passes;
         arrays_info->depth += 1;
     }
-    idx = start + ((end - start) - arrays_info->passes_remaining[arrays_info->index]);
+    idx = start + (passes - arrays_info->passes_remaining[arrays_info->index]);
     *ref_offset = *offset;
-    *offset += (idx * array->weight);
+    if (__builtin_mul_overflow(idx, array->weight, &product) ||
+        __builtin_add_overflow(*offset, product, offset)) {
+        return false;  // overflow detected
+    }
     arrays_info->index += 1;
     return true;
 }

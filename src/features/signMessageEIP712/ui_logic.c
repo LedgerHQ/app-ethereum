@@ -456,11 +456,18 @@ static bool ui_712_format_int(const uint8_t *data,
     uint128_t value128;
     int32_t value32;
     int16_t value16;
+    int8_t value8;
+    uint8_t tmp[sizeof(int32_t)] = {0};
 
     // no reason for an integer to be received over multiple chunks
     if (!first) {
         return false;
     }
+    if (length > field_ptr->type_size) {
+        apdu_response_code = SWO_INCORRECT_DATA;
+        return false;
+    }
+
     switch (field_ptr->type_size * 8) {
         case 256:
             convertUint256BE(data, length, &value256);
@@ -475,27 +482,18 @@ static bool ui_712_format_int(const uint8_t *data,
             tostring128_signed(&value128, 10, strings.tmp.tmp, sizeof(strings.tmp.tmp));
             break;
         case 32:
-            value32 = 0;
-            for (int i = 0; i < length; ++i) {
-                ((uint8_t *) &value32)[length - 1 - i] = data[i];
-            }
+            buf_shrink_expand(data, length, tmp, sizeof(int32_t));
+            value32 = (int32_t) read_u32_be(tmp, 0);
             snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "%d", value32);
             break;
         case 16:
-            value16 = 0;
-            for (int i = 0; i < length; ++i) {
-                ((uint8_t *) &value16)[length - 1 - i] = data[i];
-            }
-            snprintf(strings.tmp.tmp,
-                     sizeof(strings.tmp.tmp),
-                     "%d",
-                     value16);  // expanded to 32 bits
+            buf_shrink_expand(data, length, tmp, sizeof(int16_t));
+            value16 = (int16_t) read_u16_be(tmp, 0);
+            snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "%d", value16);
             break;
         case 8:
-            snprintf(strings.tmp.tmp,
-                     sizeof(strings.tmp.tmp),
-                     "%d",
-                     ((int8_t *) data)[0]);  // expanded to 32 bits
+            value8 = (int8_t) data[0];
+            snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "%d", value8);
             break;
         default:
             PRINTF("Unhandled field typesize\n");

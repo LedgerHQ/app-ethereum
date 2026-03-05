@@ -126,7 +126,7 @@ static bool handle_ticker(const tlv_data_t *data, s_network_info_ctx *context) {
  * @return whether the handling was successful
  */
 static bool handle_icon_hash(const tlv_data_t *data, s_network_info_ctx *context) {
-    if (!tlv_get_hash(data, context->icon_hash)) {
+    if (!tlv_get_hash(data, context->icon_hash, sizeof(context->icon_hash))) {
         return false;
     }
     if (allzeroes(context->icon_hash, CX_SHA256_SIZE) == 1) {

@@ -68,7 +68,7 @@ static bool parse_struct_version(const tlv_data_t *data, s_tx_simu_ctx *context)
  * @return whether the handling was successful
  */
 static bool parse_tx_hash(const tlv_data_t *data, s_tx_simu_ctx *context) {
-    if (!tlv_get_hash(data, (uint8_t *) context->simu->tx_hash)) {
+    if (!tlv_get_hash(data, (uint8_t *) context->simu->tx_hash, sizeof(context->simu->tx_hash))) {
         return false;
     }
     if (allzeroes(context->simu->tx_hash, HASH_SIZE) == 1) {
@@ -86,7 +86,9 @@ static bool parse_tx_hash(const tlv_data_t *data, s_tx_simu_ctx *context) {
  * @return whether the handling was successful
  */
 static bool parse_domain_hash(const tlv_data_t *data, s_tx_simu_ctx *context) {
-    if (!tlv_get_hash(data, (uint8_t *) context->simu->domain_hash)) {
+    if (!tlv_get_hash(data,
+                      (uint8_t *) context->simu->domain_hash,
+                      sizeof(context->simu->domain_hash))) {
         return false;
     }
     if (allzeroes(context->simu->domain_hash, HASH_SIZE) == 1) {

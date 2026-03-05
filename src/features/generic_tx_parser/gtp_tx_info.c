@@ -42,7 +42,7 @@ static bool handle_selector(const tlv_data_t *data, s_tx_info_ctx *context) {
     uint8_t buf[CALLDATA_SELECTOR_SIZE];
     const uint8_t *selector;
 
-    if (tlv_get_selector(data, buf, sizeof(buf)) != true) {
+    if (tlv_get_hash(data, buf, sizeof(buf)) != true) {
         return false;
     }
     if (get_tx_ctx_count() == 0) {

@@ -120,7 +120,7 @@ static bool parse_hash_selector(const tlv_data_t *data, s_gating_ctx *context) {
         PRINTF("HASH/SELECTOR: invalid size\n");
         return false;
     }
-    return tlv_get_selector(data, (uint8_t *) context->gating->hash_selector, data->value.size);
+    return tlv_get_hash(data, (uint8_t *) context->gating->hash_selector, data->value.size);
 }
 
 /**

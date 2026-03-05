@@ -26,9 +26,8 @@ bool tlv_check_struct_type(const tlv_data_t *data, uint8_t expected);
 bool tlv_check_struct_version(const tlv_data_t *data, uint8_t expected);
 bool tlv_check_challenge(const tlv_data_t *data);
 bool tlv_get_chain_id(const tlv_data_t *data, uint64_t *chain_id);
-bool tlv_get_hash(const tlv_data_t *data, uint8_t *out);
+bool tlv_get_hash(const tlv_data_t *data, uint8_t *out, uint16_t max_size);
 bool tlv_get_address(const tlv_data_t *data, uint8_t *out);
-bool tlv_get_selector(const tlv_data_t *data, uint8_t *out, uint16_t max_size);
 bool tlv_get_printable_string(const tlv_data_t *data,
                               char *out,
                               uint32_t min_len,

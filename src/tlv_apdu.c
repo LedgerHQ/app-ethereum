@@ -161,15 +161,20 @@ bool tlv_get_chain_id(const tlv_data_t *data, uint64_t *chain_id) {
  *
  * @param[in] data to handle
  * @param[out] out buffer to store the hash
+ * @param[in] max_size of the hash
  * @return whether the handling was successful
  */
-bool tlv_get_hash(const tlv_data_t *data, uint8_t *out) {
+bool tlv_get_hash(const tlv_data_t *data, uint8_t *out, uint16_t max_size) {
     buffer_t hash = {0};
     if (!out) {
         PRINTF("HASH: null pointer provided\n");
         return false;
     }
-    if (!get_buffer_from_tlv_data(data, &hash, CX_SHA256_SIZE, CX_SHA256_SIZE)) {
+    if (!max_size) {
+        PRINTF("HASH: invalid size\n");
+        return false;
+    }
+    if (!get_buffer_from_tlv_data(data, &hash, 0, max_size)) {
         PRINTF("HASH: failed to extract\n");
         return false;
     }
@@ -195,29 +200,6 @@ bool tlv_get_address(const tlv_data_t *data, uint8_t *out) {
         return false;
     }
     buf_shrink_expand(address.ptr, address.size, out, ADDRESS_LENGTH);
-    return true;
-}
-
-/**
- * @brief Parse and get a SELECTOR value.
- *
- * @param[in] data to handle
- * @param[out] out buffer to store the selector
- * @param[in] max_size of the selector
-
- * @return whether the handling was successful
- */
-bool tlv_get_selector(const tlv_data_t *data, uint8_t *out, uint16_t max_size) {
-    buffer_t selector = {0};
-    if (!out) {
-        PRINTF("SELECTOR: null pointer provided\n");
-        return false;
-    }
-    if (!get_buffer_from_tlv_data(data, &selector, 0, max_size)) {
-        PRINTF("SELECTOR: failed to extract\n");
-        return false;
-    }
-    buf_shrink_expand(selector.ptr, selector.size, out, max_size);
     return true;
 }
 

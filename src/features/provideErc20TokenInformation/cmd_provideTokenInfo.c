@@ -12,7 +12,6 @@ uint16_t handleProvideErc20TokenInformation(const uint8_t *workBuffer,
     uint64_t chain_id;
     uint8_t hash[INT256_LENGTH];
     tokenDefinition_t *token = &get_current_asset_info()->token;
-    cx_err_t error = CX_INTERNAL_ERROR;
 
     PRINTF("Provisioning currentAssetIndex %d\n", tmpCtx.transactionContext.currentAssetIndex);
 
@@ -48,19 +47,14 @@ uint16_t handleProvideErc20TokenInformation(const uint8_t *workBuffer,
     offset += 4;
     dataLength -= 4;
 
-    error = check_signature_with_pubkey("ERC20 Token Info",
-                                        hash,
-                                        sizeof(hash),
-                                        LEDGER_SIGNATURE_PUBLIC_KEY,
-                                        sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
-                                        CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META,
-                                        (uint8_t *) (workBuffer + offset),
-                                        dataLength);
-    if (error != CX_OK) {
-        PRINTF("Invalid token signature\n");
-#ifndef HAVE_BYPASS_SIGNATURES
+    if (check_signature_with_pubkey(hash,
+                                    sizeof(hash),
+                                    LEDGER_SIGNATURE_PUBLIC_KEY,
+                                    sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
+                                    CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META,
+                                    (uint8_t *) (workBuffer + offset),
+                                    dataLength) != true) {
         return SWO_INCORRECT_DATA;
-#endif
     }
 
     G_io_apdu_buffer[0] = tmpCtx.transactionContext.currentAssetIndex;

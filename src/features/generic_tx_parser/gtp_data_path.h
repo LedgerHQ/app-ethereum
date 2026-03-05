@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
-#include "tlv.h"
+#include "buffer.h"
 #include "gtp_parsed_value.h"
 #include "gtp_path_array.h"
 #include "gtp_path_slice.h"
@@ -53,6 +53,6 @@ typedef struct {
     s_data_path *data_path;
 } s_data_path_context;
 
-bool handle_data_path_struct(const s_tlv_data *data, s_data_path_context *context);
+bool handle_data_path_struct(const buffer_t *buf, s_data_path_context *context);
 void data_path_cleanup(const s_parsed_value_collection *collection);
 bool data_path_get(const s_data_path *data_path, s_parsed_value_collection *collection);

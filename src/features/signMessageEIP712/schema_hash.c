@@ -21,7 +21,6 @@ bool compute_schema_hash(void) {
     const s_struct_712 *struct_ptr;
     const s_struct_712_field *field_ptr;
     cx_sha224_t hash_ctx;
-    cx_err_t error = CX_INTERNAL_ERROR;
 
     cx_sha224_init(&hash_ctx);
 
@@ -44,27 +43,24 @@ bool compute_schema_hash(void) {
                 return false;
             }
             hash_nbytes((uint8_t *) "\"}", 2, (cx_hash_t *) &hash_ctx);
-            if (((s_flist_node *) field_ptr)->next != NULL) {
+            if (((flist_node_t *) field_ptr)->next != NULL) {
                 hash_byte(',', (cx_hash_t *) &hash_ctx);
             }
-            field_ptr = (s_struct_712_field *) ((s_flist_node *) field_ptr)->next;
+            field_ptr = (s_struct_712_field *) ((flist_node_t *) field_ptr)->next;
         }
         hash_byte(']', (cx_hash_t *) &hash_ctx);
-        if (((s_flist_node *) struct_ptr)->next != NULL) {
+        if (((flist_node_t *) struct_ptr)->next != NULL) {
             hash_byte(',', (cx_hash_t *) &hash_ctx);
         }
-        struct_ptr = (s_struct_712 *) ((s_flist_node *) struct_ptr)->next;
+        struct_ptr = (s_struct_712 *) ((flist_node_t *) struct_ptr)->next;
     }
     hash_byte('}', (cx_hash_t *) &hash_ctx);
 
     // copy hash into context struct
-    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &hash_ctx,
-                              CX_LAST,
-                              NULL,
-                              0,
-                              eip712_context->schema_hash,
-                              sizeof(eip712_context->schema_hash)));
+    if (finalize_hash((cx_hash_t *) &hash_ctx,
+                      eip712_context->schema_hash,
+                      sizeof(eip712_context->schema_hash)) != true) {
+        return false;
+    }
     return true;
-end:
-    return false;
 }

@@ -36,7 +36,8 @@
 #include "crypto_helpers.h"
 #include "manage_asset_info.h"
 #include "cmd_network_info.h"
-#include "mem.h"
+#include "app_mem_utils.h"
+#include "mem_utils.h"
 #include "cmd_enum_value.h"
 #include "cmd_tx_info.h"
 #include "cmd_field.h"
@@ -50,6 +51,7 @@
 #include "cmd_safe_account.h"
 #include "tx_ctx.h"
 #include "enum_value.h"
+#include "proxy_info.h"
 
 tmpCtx_t tmpCtx;
 txContext_t txContext;
@@ -97,13 +99,14 @@ void reset_app_context(void) {
     memset((uint8_t *) &tmpContent, 0, sizeof(tmpContent));
     clear_safe_account();
     ui_all_cleanup();
+    proxy_cleanup();
 #ifdef HAVE_GATING_SUPPORT
     clear_gating();
 #endif
 }
 
 void app_quit(void) {
-    network_info_cleanup(MAX_DYNAMIC_NETWORKS);
+    network_info_cleanup(NULL);
     reset_app_context();
     app_exit();
 }

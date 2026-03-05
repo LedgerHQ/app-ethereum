@@ -1,5 +1,5 @@
 #include "encode_field.h"
-#include "mem.h"
+#include "app_mem_utils.h"
 #include "apdu_constants.h"  // APDU response codes
 
 typedef enum { MSB, LSB } e_padding_type;
@@ -25,7 +25,7 @@ static void *field_encode(const uint8_t *value,
         apdu_response_code = SWO_INCORRECT_DATA;
         return NULL;
     }
-    if ((padded_value = app_mem_alloc(EIP_712_ENCODED_FIELD_LENGTH)) != NULL) {
+    if ((padded_value = APP_MEM_ALLOC(EIP_712_ENCODED_FIELD_LENGTH)) != NULL) {
         switch (ptype) {
             case MSB:
                 memset(padded_value, pval, EIP_712_ENCODED_FIELD_LENGTH - length);

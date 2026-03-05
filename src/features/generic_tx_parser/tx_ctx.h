@@ -3,14 +3,14 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "cx.h"
-#include "list.h"
+#include "lists.h"
 #include "common_utils.h"  // ADDRESS_LENGTH, INT256_LENGTH
 #include "gtp_tx_info.h"
 #include "calldata.h"
 #include "gtp_field.h"
 
 typedef struct {
-    s_list_node _list;
+    list_node_t _list;
     s_tx_info *tx_info;
     s_calldata *calldata;
     uint8_t from[ADDRESS_LENGTH];

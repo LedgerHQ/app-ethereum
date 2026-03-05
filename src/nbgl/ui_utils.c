@@ -1,4 +1,5 @@
 #include "nbgl_use_case.h"
+#include "app_mem_utils.h"
 #include "apdu_constants.h"
 #include "ui_callbacks.h"
 #include "ui_utils.h"
@@ -20,14 +21,14 @@ static void _cleanup(void) {
 }
 
 void ui_pairs_cleanup(void) {
-    mem_buffer_cleanup((void **) &g_pairs);
-    mem_buffer_cleanup((void **) &g_pairsList);
+    APP_MEM_FREE_AND_NULL((void **) &g_pairs);
+    APP_MEM_FREE_AND_NULL((void **) &g_pairsList);
 }
 
 void ui_buffers_cleanup(void) {
-    mem_buffer_cleanup((void **) &g_titleMsg);
-    mem_buffer_cleanup((void **) &g_subTitleMsg);
-    mem_buffer_cleanup((void **) &g_finishMsg);
+    APP_MEM_FREE_AND_NULL((void **) &g_titleMsg);
+    APP_MEM_FREE_AND_NULL((void **) &g_subTitleMsg);
+    APP_MEM_FREE_AND_NULL((void **) &g_finishMsg);
 }
 
 void ui_all_cleanup(void) {
@@ -41,13 +42,14 @@ void ui_all_cleanup(void) {
  * @return whether the initialization was successful
  */
 bool ui_pairs_init(uint8_t nbPairs) {
+    ui_pairs_cleanup();
     // Allocate the pairsList memory
-    if (!mem_buffer_allocate((void **) &g_pairsList, sizeof(nbgl_contentTagValueList_t))) {
+    if (!APP_MEM_CALLOC((void **) &g_pairsList, sizeof(nbgl_contentTagValueList_t))) {
         goto error;
     }
 
     // Allocate the pairs memory
-    if (!mem_buffer_allocate((void **) &g_pairs, nbPairs * sizeof(nbgl_contentTagValueList_t))) {
+    if (!APP_MEM_CALLOC((void **) &g_pairs, nbPairs * sizeof(nbgl_contentTagValueList_t))) {
         goto error;
     }
     g_pairsList->nbPairs = nbPairs;
@@ -68,16 +70,17 @@ error:
  * @return whether the initialization was successful
  */
 bool ui_buffers_init(uint8_t title_len, uint8_t subtitle_len, uint8_t finish_len) {
+    ui_buffers_cleanup();
     // Allocate the Title message buffer
-    if (!mem_buffer_allocate((void **) &g_titleMsg, title_len)) {
+    if (!APP_MEM_CALLOC((void **) &g_titleMsg, title_len)) {
         goto error;
     }
     // Allocate the SubTitle message buffer
-    if (!mem_buffer_allocate((void **) &g_subTitleMsg, subtitle_len)) {
+    if (!APP_MEM_CALLOC((void **) &g_subTitleMsg, subtitle_len)) {
         goto error;
     }
     // Allocate the Finish message buffer
-    if (!mem_buffer_allocate((void **) &g_finishMsg, finish_len)) {
+    if (!APP_MEM_CALLOC((void **) &g_finishMsg, finish_len)) {
         goto error;
     }
 

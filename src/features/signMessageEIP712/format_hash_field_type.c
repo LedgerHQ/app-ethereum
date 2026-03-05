@@ -1,5 +1,5 @@
 #include "format_hash_field_type.h"
-#include "mem.h"
+#include "app_mem_utils.h"
 #include "mem_utils.h"
 #include "commands_712.h"
 #include "hash_bytes.h"
@@ -36,7 +36,7 @@ static bool format_hash_field_type_size(const s_struct_712_field *field_ptr, cx_
         return false;
     }
     hash_nbytes((uint8_t *) uint_str_ptr, strlen(uint_str_ptr), hash_ctx);
-    app_mem_free((void *) uint_str_ptr);
+    APP_MEM_FREE((void *) uint_str_ptr);
     return true;
 }
 
@@ -64,7 +64,7 @@ static bool format_hash_field_type_array_levels(const s_struct_712_field *field_
                     return false;
                 }
                 hash_nbytes((uint8_t *) uint_str_ptr, strlen(uint_str_ptr), hash_ctx);
-                app_mem_free((void *) uint_str_ptr);
+                APP_MEM_FREE((void *) uint_str_ptr);
                 break;
             default:
                 // should not be in here :^)

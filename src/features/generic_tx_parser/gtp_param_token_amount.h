@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "uint256.h"
-#include "tlv.h"
+#include "buffer.h"
 #include "gtp_value.h"
 #include "common_utils.h"
 
@@ -24,6 +24,5 @@ typedef struct {
     s_param_token_amount *param;
 } s_param_token_amount_context;
 
-bool handle_param_token_amount_struct(const s_tlv_data *data,
-                                      s_param_token_amount_context *context);
+bool handle_param_token_amount_struct(const buffer_t *buf, s_param_token_amount_context *context);
 bool format_param_token_amount(const s_param_token_amount *param, const char *name);

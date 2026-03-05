@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "typed_data.h"
-#include "list.h"
+#include "lists.h"
 #include "cx.h"
 
 #define MAX_PATH_DEPTH  16
@@ -27,7 +27,7 @@ typedef struct {
 } s_path;
 
 typedef struct {
-    s_list_node _list;
+    list_node_t _list;
     cx_sha3_t hash;
 } s_hash_ctx;
 

@@ -3,6 +3,7 @@
 #include "gtp_field.h"
 #include "gtp_tx_info.h"
 #include "enum_value.h"
+#include "buffer.h"
 
 // Fuzzing harness interface
 typedef int (*harness)(const uint8_t *data, size_t size);
@@ -12,7 +13,9 @@ int fuzzGenericParserFieldCmd(const uint8_t *data, size_t size) {
     s_field_ctx ctx = {0};
     ctx.field = &field;
 
-    if (!tlv_parse(data, size, (f_tlv_data_handler) &handle_field_struct, &ctx)) {
+    // Use buffer_t with lib_tlv API
+    buffer_t buf = {.ptr = (uint8_t *) data, .size = size, .offset = 0};
+    if (!handle_field_struct(&buf, &ctx)) {
         cleanup_field_constraints(&field);
         return 0;
     }
@@ -32,7 +35,10 @@ int fuzzGenericParserTxInfoCmd(const uint8_t *data, size_t size) {
     ctx.tx_info = &tx_info;
 
     cx_sha256_init(&ctx.struct_hash);
-    if (!tlv_parse(data, size, (f_tlv_data_handler) &handle_tx_info_struct, &ctx)) return 0;
+
+    // Use buffer_t with lib_tlv API
+    buffer_t buf = {.ptr = (uint8_t *) data, .size = size, .offset = 0};
+    if (!handle_tx_info_struct(&buf, &ctx)) return 0;
 
     return verify_tx_info_struct(&ctx);
 }
@@ -40,8 +46,11 @@ int fuzzGenericParserTxInfoCmd(const uint8_t *data, size_t size) {
 int fuzzGenericParserEnumCmd(const uint8_t *data, size_t size) {
     s_enum_value_ctx ctx = {0};
 
-    cx_sha256_init(&ctx.struct_hash);
-    if (!tlv_parse(data, size, (f_tlv_data_handler) &handle_enum_value_struct, &ctx)) return 0;
+    cx_sha256_init(&ctx.hash_ctx);
+
+    // Use buffer_t with lib_tlv API
+    buffer_t buf = {.ptr = (uint8_t *) data, .size = size, .offset = 0};
+    if (!handle_enum_value_tlv_payload(&buf, &ctx)) return 0;
 
     return verify_enum_value_struct(&ctx);
 }

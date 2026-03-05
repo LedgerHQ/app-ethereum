@@ -30,11 +30,11 @@ typedef enum {
 
 typedef struct tx_simu_s {
     uint64_t chain_id;
-    const char tx_hash[HASH_SIZE];
-    const char domain_hash[HASH_SIZE];
+    const uint8_t tx_hash[HASH_SIZE];
+    const uint8_t domain_hash[HASH_SIZE];
     const char provider_msg[MSG_SIZE + 1];  // +1 for the null terminator
     const char tiny_url[URL_SIZE + 1];      // +1 for the null terminator
-    const char addr[ADDRESS_LENGTH];
+    const char address[ADDRESS_LENGTH];
     const char partner[PARTNER_SIZE];
     tx_simulation_score_t risk;
     tx_simulation_type_t type;

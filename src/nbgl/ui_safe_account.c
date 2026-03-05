@@ -5,7 +5,7 @@
 #include "ui_callbacks.h"
 #include "ui_nbgl.h"
 #include "ui_utils.h"
-#include "mem_utils.h"
+#include "app_mem_utils.h"
 
 #define MAX_PAIRS          2
 #define TAG_MAX_LEN        10
@@ -35,15 +35,15 @@ static nbgl_contentTagValueList_t *tagValueList = NULL;
  */
 static void _cleanup(uint16_t sw) {
     ui_pairs_cleanup();
-    mem_buffer_cleanup((void **) &extensions);
-    mem_buffer_cleanup((void **) &tagValuePairs);
-    mem_buffer_cleanup((void **) &tagValueList);
+    APP_MEM_FREE_AND_NULL((void **) &extensions);
+    APP_MEM_FREE_AND_NULL((void **) &tagValuePairs);
+    APP_MEM_FREE_AND_NULL((void **) &tagValueList);
     if (signersInfo != NULL) {
-        mem_buffer_cleanup((void **) &signersInfo->tags.buffer);
-        mem_buffer_cleanup((void **) &signersInfo->tags.pointers);
-        mem_buffer_cleanup((void **) &signersInfo->values.buffer);
-        mem_buffer_cleanup((void **) &signersInfo->values.pointers);
-        mem_buffer_cleanup((void **) &signersInfo);
+        APP_MEM_FREE_AND_NULL((void **) &signersInfo->tags.buffer);
+        APP_MEM_FREE_AND_NULL((void **) &signersInfo->tags.pointers);
+        APP_MEM_FREE_AND_NULL((void **) &signersInfo->values.buffer);
+        APP_MEM_FREE_AND_NULL((void **) &signersInfo->values.pointers);
+        APP_MEM_FREE_AND_NULL((void **) &signersInfo);
     }
     clear_safe_account();
     io_seproxyhal_send_status(sw, 0, true, false);
@@ -62,43 +62,43 @@ static bool _prepare_memory(void) {
     }
 
     // Allocate memory for extensions to display Safe Address QRCode and Signers Addressss
-    if (mem_buffer_allocate((void **) &extensions, sizeof(nbgl_contentValueExt_t) * 2) == false) {
+    if (APP_MEM_CALLOC((void **) &extensions, sizeof(nbgl_contentValueExt_t) * 2) == false) {
         return false;
     }
-    if (mem_buffer_allocate((void **) &tagValueList, sizeof(nbgl_contentTagValueList_t)) == false) {
+    if (APP_MEM_CALLOC((void **) &tagValueList, sizeof(nbgl_contentTagValueList_t)) == false) {
         return false;
     }
-    if (mem_buffer_allocate((void **) &tagValuePairs,
-                            sizeof(nbgl_contentTagValue_t) * SAFE_DESC->signers_count) == false) {
+    if (APP_MEM_CALLOC((void **) &tagValuePairs,
+                       sizeof(nbgl_contentTagValue_t) * SAFE_DESC->signers_count) == false) {
         return false;
     }
 
     // Allocate pointers array for Signers tags/values
-    if (mem_buffer_allocate((void **) &signersInfo, sizeof(tag_value_collection_t)) == false) {
+    if (APP_MEM_CALLOC((void **) &signersInfo, sizeof(tag_value_collection_t)) == false) {
         return false;
     }
 
     // Allocate pointers array for tags
-    if (mem_buffer_allocate((void **) &signersInfo->tags.pointers,
-                            sizeof(char *) * SAFE_DESC->signers_count) == false) {
+    if (APP_MEM_CALLOC((void **) &signersInfo->tags.pointers,
+                       sizeof(char *) * SAFE_DESC->signers_count) == false) {
         return false;
     }
 
     // Allocate buffer for actual tag strings
     totalSize = SAFE_DESC->signers_count * (TAG_MAX_LEN + 1);
-    if (mem_buffer_allocate((void **) &signersInfo->tags.buffer, totalSize) == false) {
+    if (APP_MEM_CALLOC((void **) &signersInfo->tags.buffer, totalSize) == false) {
         return false;
     }
 
     // Allocate pointers array for values
-    if (mem_buffer_allocate((void **) &signersInfo->values.pointers,
-                            sizeof(char *) * SAFE_DESC->signers_count) == false) {
+    if (APP_MEM_CALLOC((void **) &signersInfo->values.pointers,
+                       sizeof(char *) * SAFE_DESC->signers_count) == false) {
         return false;
     }
 
     // Allocate buffer for actual value strings
     totalSize = SAFE_DESC->signers_count * (ADDRESS_LENGTH_STR + 1);
-    if (mem_buffer_allocate((void **) &signersInfo->values.buffer, totalSize) == false) {
+    if (APP_MEM_CALLOC((void **) &signersInfo->values.buffer, totalSize) == false) {
         return false;
     }
     explicit_bzero((void *) &strings, sizeof(strings_t));

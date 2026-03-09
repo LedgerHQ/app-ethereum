@@ -55,7 +55,7 @@ bool check_signature_with_pubkey(uint8_t *hash,
         case CHECK_SIGNATURE_WITH_PKI_WRONG_CERTIFICATE_CURVE:
         case CHECK_SIGNATURE_WITH_PKI_WRONG_SIGNATURE:
         default:
-            ret = true;
+            ret = false;
             break;
     }
 #endif

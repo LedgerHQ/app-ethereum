@@ -6,7 +6,6 @@
 #include "plugin_utils.h"  // SELECTOR_SIZE
 #include "tlv_library.h"
 #include "cx.h"
-#include "signature.h"
 
 typedef struct {
     flist_node_t _list;

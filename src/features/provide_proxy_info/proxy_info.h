@@ -6,7 +6,6 @@
 #include "tlv_library.h"
 #include "common_utils.h"  // ADDRESS_LENGTH
 #include "calldata.h"      // CALLDATA_SELECTOR_SIZE
-#include "signature.h"
 
 typedef struct {
     uint64_t chain_id;

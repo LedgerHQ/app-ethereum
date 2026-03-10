@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include "network.h"
 #include "tlv_library.h"
-#include "signature.h"
 
 extern uint8_t *g_network_icon_hash;
 extern network_info_t *g_dynamic_network_list;

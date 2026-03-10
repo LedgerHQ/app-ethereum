@@ -115,6 +115,7 @@ add_executable(test_param_network
 set_source_files_properties(${BOLOS_SDK}/lib_tlv/tlv_library.c PROPERTIES COMPILE_FLAGS "-Wno-pedantic")
 
 target_compile_definitions(test_param_network PRIVATE
+  HAVE_ECDSA
   HAVE_HASH
   HAVE_SHA256
   HAVE_SHA3
@@ -154,6 +155,7 @@ set_source_files_properties(${BOLOS_SDK}/lib_tlv/tlv_library.c PROPERTIES COMPIL
 target_include_directories(test_param_trusted_name BEFORE PRIVATE ${MOCK_DIR})
 
 target_compile_definitions(test_param_trusted_name PRIVATE
+  HAVE_ECDSA
   HAVE_HASH
   HAVE_SHA256
   HAVE_SHA3
@@ -199,6 +201,7 @@ set_source_files_properties(
 )
 
 target_compile_definitions(test_param_raw PRIVATE
+  HAVE_ECDSA
   HAVE_HASH
   HAVE_SHA256
   HAVE_SHA3
@@ -242,6 +245,7 @@ set_source_files_properties(
   PROPERTIES COMPILE_FLAGS "-Wno-format -Wno-format-extra-args"
 )
 target_compile_definitions(test_field_validation PRIVATE
+  HAVE_ECDSA
   HAVE_HASH
   HAVE_SHA256
   HAVE_SHA3

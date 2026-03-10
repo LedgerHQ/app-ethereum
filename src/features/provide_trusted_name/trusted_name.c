@@ -11,6 +11,7 @@
 #include "app_mem_utils.h"
 #include "crypto_helpers.h"
 #include "tlv_apdu.h"
+#include "lcx_ecdsa.h"
 
 #define STRUCT_VERSION_1 0x01
 #define STRUCT_VERSION_2 0x02
@@ -422,8 +423,8 @@ static bool handle_signature(const tlv_data_t *data, s_trusted_name_ctx *context
     buffer_t sig = {0};
     if (!get_buffer_from_tlv_data(data,
                                   &sig,
-                                  ECDSA_SIGNATURE_MIN_LENGTH,
-                                  ECDSA_SIGNATURE_MAX_LENGTH)) {
+                                  CX_ECDSA_SHA256_SIG_MIN_ASN1_LENGTH,
+                                  CX_ECDSA_SHA256_SIG_MAX_ASN1_LENGTH)) {
         PRINTF("SIGNATURE: failed to extract\n");
         return false;
     }

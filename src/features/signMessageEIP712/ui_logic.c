@@ -347,11 +347,25 @@ bool ui_712_message_hash(void) {
 static void ui_712_format_str(const uint8_t *data, uint8_t length, bool last) {
     size_t max_len = sizeof(strings.tmp.tmp) - 1;
     size_t cur_len = strlen(strings.tmp.tmp);
+    size_t available;
+    size_t to_copy;
 
-    memcpy(strings.tmp.tmp + cur_len, data, MIN(max_len - cur_len, length));
-    // truncated
-    if (last && ((max_len - cur_len) < length)) {
+    if (cur_len >= max_len) {
+        // Ensure null-termination even if we're at capacity
+        strings.tmp.tmp[max_len] = '\0';
+        return;
+    }
+
+    available = max_len - cur_len;
+    to_copy = MIN(available, length);
+
+    memcpy(strings.tmp.tmp + cur_len, data, to_copy);
+    strings.tmp.tmp[cur_len + to_copy] = '\0';
+
+    // truncated - add ellipsis if this is the last chunk and we couldn't fit everything
+    if (last && (to_copy < length)) {
         memcpy(strings.tmp.tmp + max_len - 3, "...", 3);
+        strings.tmp.tmp[max_len] = '\0';
     }
 }
 

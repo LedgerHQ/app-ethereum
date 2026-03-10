@@ -305,10 +305,13 @@ void convertUint64BEto128(const uint8_t *const data, uint32_t length, uint128_t 
 void convertUint128BE(const uint8_t *const data, uint32_t length, uint128_t *const target) {
     uint8_t tmp[INT128_LENGTH];
 
-    if (length > sizeof(tmp)) {
-        memset(tmp, 0, sizeof(tmp));
+    if (data == NULL || target == NULL || length == 0) {
         return;
     }
+    if (length > sizeof(tmp)) {
+        return;
+    }
+
     memset(tmp, 0, sizeof(tmp) - length);
     memmove(tmp + sizeof(tmp) - length, data, length);
     readu128BE(tmp, target);

@@ -167,13 +167,11 @@ def test_eip712_new(scenario_navigator: NavigateWithScenario,
     nb_warnings = 1 if not filters or verbose_raw else 0
     if gating_params is not None:
         app_client = EthAppClient(scenario_navigator.backend)
-        gating_params.address = bytes.fromhex(data["domain"]["verifyingContract"][2:])
         sig_ctx = {}
         InputData.init_signature_context(sig_ctx, data["types"], data["domain"], filters or {})
         gating_params.selector = sig_ctx["schema_hash"]
-        gating_params.chain_id = data["domain"].get("chainId", 0)
         response = app_client.provide_gating(gating_params)
-        assert response.status == StatusWord.OK
+        assert response and response.status == StatusWord.OK
         nb_warnings += 1
         snapshots_dirname = "test_gating_eip712"
 

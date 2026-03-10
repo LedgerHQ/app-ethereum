@@ -1,8 +1,8 @@
 #pragma once
 
 #include "bip32_utils.h"
-#include "ethUstream.h"
-#include "chainConfig.h"
+#include "eth_ustream.h"
+#include "chain_config.h"
 #include "swap_utils.h"
 #include "main_std_app.h"
 #include "eth_plugin_interface.h"
@@ -164,14 +164,14 @@ extern uint8_t *G_swap_crosschain_hash;
 
 typedef enum {
     PLUGIN_TYPE_NONE = 0,
-    // External plugin, set by setExternalPlugin
+    // External plugin, set by set_external_plugin
     PLUGIN_TYPE_EXTERNAL,
     // Specific SWAP_WITH_CALLDATA internal plugin
     // set as fallback when started if calldata is provided in swap mode
     PLUGIN_TYPE_SWAP_WITH_CALLDATA,
-    // Specific ERC721 internal plugin, set by setPlugin
+    // Specific ERC721 internal plugin, set by set_plugin
     PLUGIN_TYPE_ERC721,
-    // Specific ERC1155 internal plugin, set by setPlugin
+    // Specific ERC1155 internal plugin, set by set_plugin
     PLUGIN_TYPE_ERC1155,
     // Old internal plugin, not set by any command
     PLUGIN_TYPE_OLD_INTERNAL,

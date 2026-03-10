@@ -6,11 +6,10 @@
 #include "shared_context.h"
 #include "common_utils.h"
 #include "eth2_plugin.h"
+#include "feature_get_eth2_public_key.h"
 
 static const uint8_t ETH2_DEPOSIT_SELECTOR[SELECTOR_SIZE] = {0x22, 0x89, 0x51, 0x18};
 const uint8_t *const ETH2_SELECTORS[NUM_ETH2_SELECTORS] = {ETH2_DEPOSIT_SELECTOR};
-
-void getEth2PublicKey(uint32_t *bip32Path, uint8_t bip32PathLength, uint8_t *out);
 
 #define WITHDRAWAL_KEY_PATH_1 12381
 #define WITHDRAWAL_KEY_PATH_2 3600
@@ -152,7 +151,7 @@ void eth2_plugin_call(eth_plugin_msg_t message, void *parameters) {
                     }
                     withdrawalKeyPath[2] = eth2WithdrawalIndex;
                     withdrawalKeyPath[3] = WITHDRAWAL_KEY_PATH_4;
-                    getEth2PublicKey(withdrawalKeyPath, 4, tmp);
+                    get_eth2_public_key(withdrawalKeyPath, 4, tmp);
                     PRINTF("eth2 plugin computed withdrawal public key %.*H\n", 48, tmp);
                     cx_hash_sha256(tmp, 48, tmp, 32);
                     tmp[0] = 0;

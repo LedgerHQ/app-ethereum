@@ -3,7 +3,7 @@
 #include "gtp_data_path.h"
 #include "shared_context.h"  // txContext
 #include "apdu_constants.h"  // SWO_SUCCESS
-#include "getPublicKey.h"
+#include "get_public_key.h"
 #include "gtp_parsed_value.h"
 #include "ui_utils.h"
 #include "tx_ctx.h"

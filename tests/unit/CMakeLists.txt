@@ -80,9 +80,9 @@ include_directories(
   ${PLUGIN_DIR}
   ${APP_DIR}/features/generic_tx_parser
   ${APP_DIR}/features/provide_trusted_name
-  ${APP_DIR}/features/getPublicKey
-  ${APP_DIR}/features/signTx
-  ${APP_DIR}/features/getChallenge
+  ${APP_DIR}/features/get_public_key
+  ${APP_DIR}/features/sign_tx
+  ${APP_DIR}/features/get_challenge
   ${APP_DIR}/nbgl
   ${MOCK_DIR}
   ${BOLOS_SDK}/io/include

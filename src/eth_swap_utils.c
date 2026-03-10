@@ -22,7 +22,7 @@
 #include "apdu_constants.h"
 #include "utils.h"
 #include "swap_error_code_helpers.h"
-#include "feature_signTx.h"
+#include "feature_sign_tx.h"
 #include "network.h"
 
 // Global flag indicating whether swap parameters have been verified

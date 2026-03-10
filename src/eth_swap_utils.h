@@ -20,7 +20,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "swap_lib_calls.h"
-#include "chainConfig.h"
+#include "chain_config.h"
 #include "caller_api.h"
 
 extern bool G_swap_checked;

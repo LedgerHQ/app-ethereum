@@ -1,7 +1,7 @@
 #include "handle_check_address.h"
 #include "apdu_constants.h"
 #include "crypto_helpers.h"
-#include "getPublicKey.h"
+#include "get_public_key.h"
 
 #define ZERO(x) explicit_bzero(&x, sizeof(x))
 

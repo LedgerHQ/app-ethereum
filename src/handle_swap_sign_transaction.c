@@ -1,6 +1,6 @@
 #include "eth_swap_utils.h"
 #include "shared_context.h"
-#include "cmd_setPlugin.h"
+#include "cmd_set_plugin.h"
 #include "nbgl_use_case.h"
 #include "app_mem_utils.h"
 #include "mem_utils.h"

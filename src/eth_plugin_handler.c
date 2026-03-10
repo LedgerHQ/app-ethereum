@@ -4,7 +4,7 @@
 #include "plugin_utils.h"
 #include "shared_context.h"
 #include "network.h"
-#include "cmd_setPlugin.h"
+#include "cmd_set_plugin.h"
 #include "erc20_plugin.h"
 #include "eth2_plugin.h"
 #include "erc721_plugin.h"

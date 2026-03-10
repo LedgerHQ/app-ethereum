@@ -18,6 +18,8 @@
 #include "calldata.h"
 #include "lists.h"
 
+#define MAX_FIELD_NAME_SIZE 21
+
 typedef enum {
     PARAM_TYPE_RAW = 0,
     PARAM_TYPE_AMOUNT,
@@ -49,7 +51,7 @@ typedef struct s_field_constraint {
 
 typedef struct s_field {
     uint8_t version;
-    char name[21];
+    char name[MAX_FIELD_NAME_SIZE];
     e_param_type param_type;
     union {
         s_param_raw param_raw;

@@ -17,6 +17,7 @@
 #include "tx_ctx.h"
 #include "apdu_constants.h"
 #include "tlv_apdu.h"
+#include "chain_config.h"
 
 /**
  * @brief TLV tags for network parameter structure
@@ -88,7 +89,6 @@ bool handle_param_network_struct(const buffer_t *buf, s_param_network_context *c
  */
 static bool format_network_name(const s_parsed_value *value, char *buf, size_t buf_size) {
     uint64_t chain_id = 0;
-    uint64_t max_range = 0x7FFFFFFFFFFFFFDB;  // per EIP-2294
 
     // Check length
     if (value->length != sizeof(uint64_t)) {
@@ -99,7 +99,7 @@ static bool format_network_name(const s_parsed_value *value, char *buf, size_t b
     // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2294.md
     chain_id = u64_from_BE(value->ptr, value->length);
     // Check if the chain_id is supported
-    if ((chain_id > max_range) || (chain_id == 0)) {
+    if ((chain_id > MAX_VALID_CHAIN_ID) || (chain_id == 0)) {
         PRINTF("Unsupported chain ID: %llu\n", chain_id);
         return false;
     }

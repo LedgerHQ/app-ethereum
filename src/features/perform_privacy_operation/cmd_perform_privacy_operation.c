@@ -9,7 +9,7 @@
 #define P2_SHARED_SECRET         0x01
 
 static void decode_scalar(const uint8_t *scalarIn, uint8_t *scalarOut) {
-    for (uint8_t i = 0; i < 32; i++) {
+    for (uint8_t i = 0; i < INT256_LENGTH; i++) {
         switch (i) {
             case 0:
                 scalarOut[0] = (scalarIn[31] & 0x7f) | 0x40;
@@ -30,7 +30,7 @@ uint16_t handle_perform_privacy_operation(uint8_t p1,
                                           unsigned int *flags,
                                           unsigned int *tx) {
     cx_ecfp_private_key_t privateKey;
-    uint8_t privateKeyData[64];
+    uint8_t privateKeyData[PRIVATE_KEY_LENGTH];
     uint8_t privateKeyDataSwapped[INT256_LENGTH];
     bip32_path_t bip32;
     cx_err_t error = CX_INTERNAL_ERROR;
@@ -48,7 +48,7 @@ uint16_t handle_perform_privacy_operation(uint8_t p1,
         return SWO_INCORRECT_DATA;
     }
 
-    if ((p2 == P2_SHARED_SECRET) && (dataLength < 32)) {
+    if ((p2 == P2_SHARED_SECRET) && (dataLength < INT256_LENGTH)) {
         return SWO_WRONG_DATA_LENGTH;
     }
 
@@ -58,7 +58,10 @@ uint16_t handle_perform_privacy_operation(uint8_t p1,
         bip32.length,
         privateKeyData,
         (tmpCtx.publicKeyContext.getChaincode ? tmpCtx.publicKeyContext.chainCode : NULL)));
-    CX_CHECK(cx_ecfp_init_private_key_no_throw(CX_CURVE_256K1, privateKeyData, 32, &privateKey));
+    CX_CHECK(cx_ecfp_init_private_key_no_throw(CX_CURVE_256K1,
+                                               privateKeyData,
+                                               INT256_LENGTH,
+                                               &privateKey));
     CX_CHECK(cx_ecfp_generate_pair_no_throw(CX_CURVE_256K1,
                                             &tmpCtx.publicKeyContext.publicKey,
                                             &privateKey,
@@ -70,15 +73,15 @@ uint16_t handle_perform_privacy_operation(uint8_t p1,
         decode_scalar(privateKeyData, privateKeyDataSwapped);
         CX_CHECK(cx_ecfp_init_private_key_no_throw(CX_CURVE_Curve25519,
                                                    privateKeyDataSwapped,
-                                                   32,
+                                                   INT256_LENGTH,
                                                    &privateKey));
         CX_CHECK(cx_ecfp_generate_pair_no_throw(CX_CURVE_Curve25519,
                                                 &tmpCtx.publicKeyContext.publicKey,
                                                 &privateKey,
                                                 1));
     } else {
-        memmove(tmpCtx.publicKeyContext.publicKey.W + 1, dataBuffer, 32);
-        CX_CHECK(cx_x25519(tmpCtx.publicKeyContext.publicKey.W + 1, privateKeyData, 32));
+        memmove(tmpCtx.publicKeyContext.publicKey.W + 1, dataBuffer, INT256_LENGTH);
+        CX_CHECK(cx_x25519(tmpCtx.publicKeyContext.publicKey.W + 1, privateKeyData, INT256_LENGTH));
     }
 
     if (p1 == P1_NON_CONFIRM) {
@@ -91,11 +94,11 @@ uint16_t handle_perform_privacy_operation(uint8_t p1,
              "0x%.*s",
              40,
              tmpCtx.publicKeyContext.address);
-    for (uint8_t i = 0; i < 32; i++) {
-        privateKeyData[i] = tmpCtx.publicKeyContext.publicKey.W[32 - i];
+    for (uint8_t i = 0; i < INT256_LENGTH; i++) {
+        privateKeyData[i] = tmpCtx.publicKeyContext.publicKey.W[INT256_LENGTH - i];
     }
     format_hex(privateKeyData,
-               32,
+               INT256_LENGTH,
                strings.common.fullAmount,
                sizeof(strings.common.fullAmount) - 1);
 

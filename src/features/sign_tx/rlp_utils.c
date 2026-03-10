@@ -30,22 +30,22 @@
 #include "rlp_utils.h"
 
 bool rlp_can_decode(uint8_t *buffer, uint32_t bufferLength, bool *valid) {
-    if (*buffer <= 0x7f) {
-    } else if (*buffer <= 0xb7) {
-    } else if (*buffer <= 0xbf) {
-        if (bufferLength < (1 + (*buffer - 0xb7))) {
+    if (*buffer <= RLP_SINGLE_BYTE_MAX) {
+    } else if (*buffer <= RLP_SHORT_STRING_MAX) {
+    } else if (*buffer <= RLP_LONG_STRING_MAX) {
+        if (bufferLength < (1 + (*buffer - RLP_LONG_STRING_BASE))) {
             return false;
         }
-        if (*buffer > 0xbb) {
+        if (*buffer > RLP_STR_LEN_OF_BYTES_4) {
             *valid = false;  // arbitrary 32 bits length limitation
             return true;
         }
-    } else if (*buffer <= 0xf7) {
+    } else if (*buffer <= RLP_SHORT_LIST_MAX) {
     } else {
-        if (bufferLength < (1 + (*buffer - 0xf7))) {
+        if (bufferLength < (1 + (*buffer - RLP_LONG_LIST_BASE))) {
             return false;
         }
-        if (*buffer > 0xfb) {
+        if (*buffer > RLP_LIST_LEN_OF_BYTES_4) {
             *valid = false;  // arbitrary 32 bits length limitation
             return true;
         }
@@ -55,52 +55,52 @@ bool rlp_can_decode(uint8_t *buffer, uint32_t bufferLength, bool *valid) {
 }
 
 bool rlp_decode_length(uint8_t *buffer, uint32_t *fieldLength, uint32_t *offset, bool *list) {
-    if (*buffer <= 0x7f) {
+    if (*buffer <= RLP_SINGLE_BYTE_MAX) {
         *offset = 0;
         *fieldLength = 1;
         *list = false;
-    } else if (*buffer <= 0xb7) {
+    } else if (*buffer <= RLP_SHORT_STRING_MAX) {
         *offset = 1;
-        *fieldLength = *buffer - 0x80;
+        *fieldLength = *buffer - RLP_SHORT_STRING_BASE;
         *list = false;
-    } else if (*buffer <= 0xbf) {
-        *offset = 1 + (*buffer - 0xb7);
+    } else if (*buffer <= RLP_LONG_STRING_MAX) {
+        *offset = 1 + (*buffer - RLP_LONG_STRING_BASE);
         *list = false;
         switch (*buffer) {
-            case 0xb8:
+            case RLP_STR_LEN_OF_BYTES_1:
                 *fieldLength = *(buffer + 1);
                 break;
-            case 0xb9:
+            case RLP_STR_LEN_OF_BYTES_2:
                 *fieldLength = (*(buffer + 1) << 8) + *(buffer + 2);
                 break;
-            case 0xba:
+            case RLP_STR_LEN_OF_BYTES_3:
                 *fieldLength = (*(buffer + 1) << 16) + (*(buffer + 2) << 8) + *(buffer + 3);
                 break;
-            case 0xbb:
+            case RLP_STR_LEN_OF_BYTES_4:
                 *fieldLength = (*(buffer + 1) << 24) + (*(buffer + 2) << 16) +
                                (*(buffer + 3) << 8) + *(buffer + 4);
                 break;
             default:
                 return false;  // arbitrary 32 bits length limitation
         }
-    } else if (*buffer <= 0xf7) {
+    } else if (*buffer <= RLP_SHORT_LIST_MAX) {
         *offset = 1;
-        *fieldLength = *buffer - 0xc0;
+        *fieldLength = *buffer - RLP_SHORT_LIST_BASE;
         *list = true;
     } else {
-        *offset = 1 + (*buffer - 0xf7);
+        *offset = 1 + (*buffer - RLP_LONG_LIST_BASE);
         *list = true;
         switch (*buffer) {
-            case 0xf8:
+            case RLP_LIST_LEN_OF_BYTES_1:
                 *fieldLength = *(buffer + 1);
                 break;
-            case 0xf9:
+            case RLP_LIST_LEN_OF_BYTES_2:
                 *fieldLength = (*(buffer + 1) << 8) + *(buffer + 2);
                 break;
-            case 0xfa:
+            case RLP_LIST_LEN_OF_BYTES_3:
                 *fieldLength = (*(buffer + 1) << 16) + (*(buffer + 2) << 8) + *(buffer + 3);
                 break;
-            case 0xfb:
+            case RLP_LIST_LEN_OF_BYTES_4:
                 *fieldLength = (*(buffer + 1) << 24) + (*(buffer + 2) << 16) +
                                (*(buffer + 3) << 8) + *(buffer + 4);
                 break;

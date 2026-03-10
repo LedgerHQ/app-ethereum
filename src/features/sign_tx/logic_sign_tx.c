@@ -305,7 +305,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
                               tmpCtx.transactionContext.hash,
                               0,
                               tmpCtx.transactionContext.hash,
-                              32));
+                              sizeof(tmpCtx.transactionContext.hash)));
 
     uint8_t msg_sender[ADDRESS_LENGTH] = {0};
     error = get_public_key(msg_sender, sizeof(msg_sender));

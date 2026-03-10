@@ -12,6 +12,7 @@
 #include "crypto_helpers.h"
 #include "tlv_apdu.h"
 #include "lcx_ecdsa.h"
+#include "shared_context.h"  // UNCOMPRESSED_PUBKEY_LENGTH
 
 #define STRUCT_VERSION_1 0x01
 #define STRUCT_VERSION_2 0x02
@@ -671,7 +672,7 @@ bool verify_trusted_name_struct(const s_trusted_name_ctx *context) {
         }
         // MAB source requires OWNER
         if (context->trusted_name.name_source == TN_SOURCE_MAB) {
-            uint8_t raw_pubkey[65];
+            uint8_t raw_pubkey[UNCOMPRESSED_PUBKEY_LENGTH];
             uint8_t wallet_addr[ADDRESS_LENGTH];
 
             if (bip32_derive_get_pubkey_256(CX_CURVE_256K1,

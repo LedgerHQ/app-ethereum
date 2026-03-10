@@ -15,8 +15,8 @@ void handle_check_address(check_address_parameters_t* params, chain_config_t* ch
         return;
     }
 
-    char address[51];
-    uint8_t raw_pubkey[65];
+    char address[ADDRESS_LENGTH_STR];
+    uint8_t raw_pubkey[UNCOMPRESSED_PUBKEY_LENGTH];
     bip32_path_t bip32;
     bip32.length = params->address_parameters[0];
     if (bip32_path_read(params->address_parameters + 1,

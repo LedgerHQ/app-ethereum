@@ -5,10 +5,12 @@
 #include "buffer.h"
 #include "gtp_value.h"
 
+#define BASE_STR_SIZE 11
+
 typedef struct {
     uint8_t version;
     s_value value;
-    char base[11];
+    char base[BASE_STR_SIZE];
     uint8_t decimals;
 } s_param_unit;
 

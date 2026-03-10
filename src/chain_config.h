@@ -25,3 +25,7 @@ typedef struct chain_config_s {
 } chain_config_t;
 
 #define ETHEREUM_MAINNET_CHAINID 1
+
+// Chain ID Validation (per EIP-2294)
+// See https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2294.md
+#define MAX_VALID_CHAIN_ID 0x7FFFFFFFFFFFFFDB

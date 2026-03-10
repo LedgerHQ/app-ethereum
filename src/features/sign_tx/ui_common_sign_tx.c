@@ -16,7 +16,7 @@ uint32_t io_seproxyhal_touch_tx_ok(void) {
                                                   tmpCtx.transactionContext.hash,
                                                   sizeof(tmpCtx.transactionContext.hash),
                                                   G_io_apdu_buffer + 1,
-                                                  G_io_apdu_buffer + 1 + 32,
+                                                  G_io_apdu_buffer + 1 + INT256_LENGTH,
                                                   &info));
 
     if (txContext.txType == EIP1559 || txContext.txType == EIP2930 || txContext.txType == EIP7702) {
@@ -29,7 +29,7 @@ uint32_t io_seproxyhal_touch_tx_ok(void) {
         // Parity is present in the sequence tag in the legacy API
         if (tmpContent.txContent.vLength == 0) {
             // Legacy API
-            G_io_apdu_buffer[0] = 27;
+            G_io_apdu_buffer[0] = ETHEREUM_SIGNATURE_V_BASE;
         } else {
             // New API
             // Note that this is wrong for a large v, but ledgerjs will recover.
@@ -50,7 +50,7 @@ uint32_t io_seproxyhal_touch_tx_ok(void) {
 
     // Write status code at parity_byte + r + s
     // Send back the response, do not restart the event loop
-    err = io_seproxyhal_send_status(SWO_SUCCESS, 65, false, false);
+    err = io_seproxyhal_send_status(SWO_SUCCESS, ECDSA_SIGNATURE_LENGTH, false, false);
     if (G_called_from_swap) {
         PRINTF("G_called_from_swap\n");
 

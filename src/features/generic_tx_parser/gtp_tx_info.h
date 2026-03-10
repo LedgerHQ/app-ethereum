@@ -11,19 +11,25 @@
 #include "gtp_field.h"
 #include "lcx_ecdsa.h"
 
+#define OPERATION_TYPE_SIZE     31
+#define CREATOR_NAME_SIZE       23
+#define CREATOR_LEGAL_NAME_SIZE 31
+#define CREATOR_URL_SIZE        27
+#define CONTRACT_NAME_SIZE      31
+#define DEPLOY_DATE_SIZE        11  // "YYYY-MM-DD\0" -> 4 + 1 + 2 + 1 + 2 + 1
+
 typedef struct {
     uint8_t version;
     uint64_t chain_id;
     uint8_t contract_addr[ADDRESS_LENGTH];
     uint8_t selector[CALLDATA_SELECTOR_SIZE];
     uint8_t fields_hash[INT256_LENGTH];
-    char operation_type[31];
-    char creator_name[23];
-    char creator_legal_name[31];
-    char creator_url[27];
-    char contract_name[31];
-    // YYYY-MM-DD\0
-    char deploy_date[4 + 1 + 2 + 1 + 2 + 1];
+    char operation_type[OPERATION_TYPE_SIZE];
+    char creator_name[CREATOR_NAME_SIZE];
+    char creator_legal_name[CREATOR_LEGAL_NAME_SIZE];
+    char creator_url[CREATOR_URL_SIZE];
+    char contract_name[CONTRACT_NAME_SIZE];
+    char deploy_date[DEPLOY_DATE_SIZE];
     uint8_t signature_len;
     uint8_t signature[CX_ECDSA_SHA256_SIG_MAX_ASN1_LENGTH];
 } s_tx_info;

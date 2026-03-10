@@ -13,16 +13,16 @@ unsigned int io_seproxyhal_touch_signMessage_ok(void) {
                                                   tmpCtx.messageSigningContext.hash,
                                                   sizeof(tmpCtx.messageSigningContext.hash),
                                                   G_io_apdu_buffer + 1,
-                                                  G_io_apdu_buffer + 1 + 32,
+                                                  G_io_apdu_buffer + 1 + INT256_LENGTH,
                                                   &info));
-    G_io_apdu_buffer[0] = 27;
+    G_io_apdu_buffer[0] = ETHEREUM_SIGNATURE_V_BASE;
     if (info & CX_ECCINFO_PARITY_ODD) {
         G_io_apdu_buffer[0]++;
     }
     if (info & CX_ECCINFO_xGTn) {
         G_io_apdu_buffer[0] += 2;
     }
-    return io_seproxyhal_send_status(SWO_SUCCESS, 65, true, false);
+    return io_seproxyhal_send_status(SWO_SUCCESS, ECDSA_SIGNATURE_LENGTH, true, false);
 }
 
 unsigned int io_seproxyhal_touch_signMessage_cancel(void) {

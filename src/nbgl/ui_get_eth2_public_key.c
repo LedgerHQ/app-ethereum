@@ -2,9 +2,10 @@
 #include "ui_callbacks.h"
 #include "ui_nbgl.h"
 #include "ui_utils.h"
+#include "shared_context.h"
 
-#define ETH2_ADDRESS_LENGTH 48
-#define ETH2_ADDRESS_STR    (ETH2_ADDRESS_LENGTH * 2 + 3)  // '0x' + 48 bytes * 2 hex chars + '\0'
+#define ETH2_ADDRESS_STR \
+    (BLS12381_G1_COMPRESSED_PUBKEY_LENGTH * 2 + 3)  // '0x' + 48 bytes * 2 hex chars + '\0'
 
 static void reviewChoice(bool confirm) {
     if (confirm) {
@@ -31,7 +32,10 @@ void ui_display_public_eth2(void) {
     }
     // Prepare the title message
     strlcpy(g_titleMsg, title, title_len);
-    array_bytes_string(g_subTitleMsg, ETH2_ADDRESS_STR, tmpCtx.publicKeyContext.publicKey.W, 48);
+    array_bytes_string(g_subTitleMsg,
+                       ETH2_ADDRESS_STR,
+                       tmpCtx.publicKeyContext.publicKey.W,
+                       BLS12381_G1_COMPRESSED_PUBKEY_LENGTH);
 
     nbgl_useCaseAddressReview(g_subTitleMsg,
                               NULL,

@@ -111,7 +111,7 @@ bool format_uint(const s_field *field,
 }
 
 bool format_int(const s_value *def, const s_parsed_value *value, char *buf, size_t buf_size) {
-    uint8_t tmp[32];
+    uint8_t tmp[INT256_LENGTH];
     bool ret;
     union {
         uint256_t value256;

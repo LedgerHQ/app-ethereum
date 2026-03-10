@@ -167,7 +167,7 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             break;
 
         case INS_PROVIDE_ERC20_TOKEN_INFORMATION:
-            sw = handleProvideErc20TokenInformation(cmd->data, cmd->lc, tx);
+            sw = handle_provide_erc20_token_information(cmd->data, cmd->lc, tx);
             break;
 
         case INS_PROVIDE_NFT_INFORMATION:

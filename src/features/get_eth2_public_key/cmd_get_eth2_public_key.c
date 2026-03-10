@@ -13,11 +13,11 @@ static const uint8_t BLS12_381_FIELD_MODULUS[] = {
     0x1e, 0xab, 0xff, 0xfe, 0xb1, 0x53, 0xff, 0xff, 0xb9, 0xfe, 0xff, 0xff, 0xff, 0xff, 0xaa, 0xab};
 
 uint32_t get_eth2_public_key(uint32_t *bip32Path, uint8_t bip32PathLength, uint8_t *out) {
-    uint8_t privateKeyData[64];
+    uint8_t privateKeyData[PRIVATE_KEY_LENGTH];
     cx_ecfp_256_extended_private_key_t privateKey;
     cx_ecfp_384_public_key_t publicKey;
     uint8_t yFlag = 0;
-    uint8_t tmp[96];
+    uint8_t tmp[BLS12381_G1_UNCOMPRESSED_PUBKEY_LENGTH];
     int diff;
     cx_err_t error = CX_INTERNAL_ERROR;
 
@@ -27,28 +27,34 @@ uint32_t get_eth2_public_key(uint32_t *bip32Path, uint8_t bip32PathLength, uint8
                                         bip32PathLength,
                                         privateKeyData));
     io_seproxyhal_io_heartbeat();
-    memset(tmp, 0, 48);
+    memset(tmp, 0, BLS12381_G1_COMPRESSED_PUBKEY_LENGTH);
     memmove(tmp + 16, privateKeyData, 32);
     CX_CHECK(cx_ecfp_init_private_key_no_throw(CX_CURVE_BLS12_381_G1,
                                                tmp,
-                                               48,
+                                               BLS12381_G1_COMPRESSED_PUBKEY_LENGTH,
                                                (cx_ecfp_private_key_t *) &privateKey));
     CX_CHECK(cx_ecfp_generate_pair_no_throw(CX_CURVE_BLS12_381_G1,
                                             (cx_ecfp_public_key_t *) &publicKey,
                                             (cx_ecfp_private_key_t *) &privateKey,
                                             1));
-    explicit_bzero(tmp, 96);
+    explicit_bzero(tmp, BLS12381_G1_UNCOMPRESSED_PUBKEY_LENGTH);
     tmp[47] = 2;
-    CX_CHECK(cx_math_mult_no_throw(tmp, publicKey.W + 1 + 48, tmp, 48));
-    CX_CHECK(cx_math_cmp_no_throw(tmp + 48, BLS12_381_FIELD_MODULUS, 48, &diff));
+    CX_CHECK(cx_math_mult_no_throw(tmp,
+                                   publicKey.W + 1 + BLS12381_G1_COMPRESSED_PUBKEY_LENGTH,
+                                   tmp,
+                                   BLS12381_G1_COMPRESSED_PUBKEY_LENGTH));
+    CX_CHECK(cx_math_cmp_no_throw(tmp + BLS12381_G1_COMPRESSED_PUBKEY_LENGTH,
+                                  BLS12_381_FIELD_MODULUS,
+                                  BLS12381_G1_COMPRESSED_PUBKEY_LENGTH,
+                                  &diff));
     if (diff > 0) {
         yFlag = 0x20;
     }
     publicKey.W[1] &= 0x1f;
     publicKey.W[1] |= 0x80 | yFlag;
-    memmove(out, publicKey.W + 1, 48);
+    memmove(out, publicKey.W + 1, BLS12381_G1_COMPRESSED_PUBKEY_LENGTH);
 end:
-    explicit_bzero(tmp, 96);
+    explicit_bzero(tmp, BLS12381_G1_UNCOMPRESSED_PUBKEY_LENGTH);
     explicit_bzero((void *) &privateKey, sizeof(cx_ecfp_256_extended_private_key_t));
     return error;
 }

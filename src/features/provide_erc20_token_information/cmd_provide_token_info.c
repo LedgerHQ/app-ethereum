@@ -4,9 +4,9 @@
 #include "manage_asset_info.h"
 #include "os_pki.h"
 
-uint16_t handleProvideErc20TokenInformation(const uint8_t *workBuffer,
-                                            uint8_t dataLength,
-                                            unsigned int *tx) {
+uint16_t handle_provide_erc20_token_information(const uint8_t *workBuffer,
+                                                uint8_t dataLength,
+                                                unsigned int *tx) {
     uint32_t offset = 0;
     uint8_t tickerLength;
     uint64_t chain_id;

@@ -17,7 +17,7 @@ const uint8_t *const EIP7251_ADDRESSES[NUM_EIP7251_ADDRESSES] = {
     consolidation_request_predeploy_address,
 };
 
-#define VALIDATOR_PUBKEY_SIZE      48
+#define VALIDATOR_PUBKEY_SIZE      BLS12381_G1_COMPRESSED_PUBKEY_LENGTH
 #define CONSOLIDATION_REQUEST_SIZE (VALIDATOR_PUBKEY_SIZE * 2)
 
 typedef struct {

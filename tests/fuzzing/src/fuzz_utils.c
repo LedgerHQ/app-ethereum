@@ -60,7 +60,7 @@ void init_fuzzing_environment(void) {
     explicit_bzero(&tmpCtx, sizeof(tmpCtx_t));
     explicit_bzero(&strings, sizeof(strings_t));
 
-    explicit_bzero(&G_io_apdu_buffer, OS_IO_SEPH_BUFFER_SIZE + 1);
+    explicit_bzero(&G_io_tx_buffer, OS_IO_SEPH_BUFFER_SIZE + 1);
 
     chainConfig = &config;
     txContext.content = &txContent;

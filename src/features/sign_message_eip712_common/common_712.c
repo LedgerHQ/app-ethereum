@@ -44,15 +44,15 @@ void ui_712_approve_cb(void) {
                                                   CX_SHA256,
                                                   hash,
                                                   sizeof(hash),
-                                                  G_io_apdu_buffer + 1,
-                                                  G_io_apdu_buffer + 1 + INT256_LENGTH,
+                                                  G_io_tx_buffer + 1,
+                                                  G_io_tx_buffer + 1 + INT256_LENGTH,
                                                   &info));
-    G_io_apdu_buffer[0] = ETHEREUM_SIGNATURE_V_BASE;
+    G_io_tx_buffer[0] = ETHEREUM_SIGNATURE_V_BASE;
     if (info & CX_ECCINFO_PARITY_ODD) {
-        G_io_apdu_buffer[0]++;
+        G_io_tx_buffer[0]++;
     }
     if (info & CX_ECCINFO_xGTn) {
-        G_io_apdu_buffer[0] += 2;
+        G_io_tx_buffer[0] += 2;
     }
     io_seproxyhal_send_status(SWO_SUCCESS, ECDSA_SIGNATURE_LENGTH, true, false);
 }

@@ -12,15 +12,15 @@ unsigned int io_seproxyhal_touch_signMessage_ok(void) {
                                                   CX_SHA256,
                                                   tmpCtx.messageSigningContext.hash,
                                                   sizeof(tmpCtx.messageSigningContext.hash),
-                                                  G_io_apdu_buffer + 1,
-                                                  G_io_apdu_buffer + 1 + INT256_LENGTH,
+                                                  G_io_tx_buffer + 1,
+                                                  G_io_tx_buffer + 1 + INT256_LENGTH,
                                                   &info));
-    G_io_apdu_buffer[0] = ETHEREUM_SIGNATURE_V_BASE;
+    G_io_tx_buffer[0] = ETHEREUM_SIGNATURE_V_BASE;
     if (info & CX_ECCINFO_PARITY_ODD) {
-        G_io_apdu_buffer[0]++;
+        G_io_tx_buffer[0]++;
     }
     if (info & CX_ECCINFO_xGTn) {
-        G_io_apdu_buffer[0] += 2;
+        G_io_tx_buffer[0] += 2;
     }
     return io_seproxyhal_send_status(SWO_SUCCESS, ECDSA_SIGNATURE_LENGTH, true, false);
 }

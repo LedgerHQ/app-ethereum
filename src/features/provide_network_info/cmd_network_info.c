@@ -31,13 +31,13 @@ static uint16_t handle_get_config(void) {
             // Convert chain_id
             explicit_bzero(chain_str, sizeof(chain_str));
             write_u64_be(chain_str, 0, net_info->chain_id);
-            memmove(G_io_apdu_buffer + tx, chain_str, sizeof(uint64_t));
+            memmove(G_io_tx_buffer + tx, chain_str, sizeof(uint64_t));
             tx += sizeof(uint64_t);
             nb_networks++;
         }
         node = node->next;
     }
-    G_io_apdu_buffer[0] = nb_networks;
+    G_io_tx_buffer[0] = nb_networks;
 
     return tx;
 }

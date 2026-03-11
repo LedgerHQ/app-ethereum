@@ -116,7 +116,7 @@ uint16_t io_seproxyhal_send_status(uint16_t sw, uint32_t tx, bool reset, bool id
     if (reset) {
         reset_app_context();
     }
-    U2BE_ENCODE(G_io_apdu_buffer, tx, sw);
+    U2BE_ENCODE(G_io_tx_buffer, tx, sw);
     tx += 2;
     err = io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
     if (idle) {
@@ -310,7 +310,7 @@ void app_main(void) {
             TRY {
                 rx = io_exchange(CHANNEL_APDU | flags, tx);
 
-                if (apdu_parser(&cmd, G_io_apdu_buffer, rx) == false) {
+                if (apdu_parser(&cmd, G_io_tx_buffer, rx) == false) {
                     PRINTF("=> BAD LENGTH: %d\n", rx);
                     sw = SWO_WRONG_DATA_LENGTH;
                 } else {
@@ -358,7 +358,7 @@ void app_main(void) {
         }
 
         // Report Status Word
-        U2BE_ENCODE(G_io_apdu_buffer, tx, sw);
+        U2BE_ENCODE(G_io_tx_buffer, tx, sw);
         tx += 2;
 
         // If we are in swap mode and have validated a TX, we send it and immediately quit

@@ -433,7 +433,7 @@ void handle_tx_simulation_opt_in(bool response_expected) {
         PRINTF("TX_CHECKS_ Checks already Opt-in!\n");
         if (response_expected) {
             // just respond the current state and return to idle screen
-            G_io_apdu_buffer[0] = N_storage.tx_check_enable;
+            G_io_tx_buffer[0] = N_storage.tx_check_enable;
             io_seproxyhal_send_status(SWO_SUCCESS, 1, false, true);
         }
         return;

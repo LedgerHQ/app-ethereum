@@ -57,7 +57,7 @@ uint16_t handle_provide_erc20_token_information(const uint8_t *workBuffer,
         return SWO_INCORRECT_DATA;
     }
 
-    G_io_apdu_buffer[0] = tmpCtx.transactionContext.currentAssetIndex;
+    G_io_tx_buffer[0] = tmpCtx.transactionContext.currentAssetIndex;
     validate_current_asset_info();
     *tx += 1;
     return SWO_SUCCESS;

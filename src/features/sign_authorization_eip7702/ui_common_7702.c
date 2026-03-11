@@ -13,13 +13,13 @@ unsigned int auth_7702_ok_cb(void) {
                                                   CX_SHA256,
                                                   tmpCtx.authSigningContext7702.authHash,
                                                   sizeof(tmpCtx.authSigningContext7702.authHash),
-                                                  G_io_apdu_buffer + 1,
-                                                  G_io_apdu_buffer + 1 + INT256_LENGTH,
+                                                  G_io_tx_buffer + 1,
+                                                  G_io_tx_buffer + 1 + INT256_LENGTH,
                                                   &info));
     if (info & CX_ECCINFO_PARITY_ODD) {
-        G_io_apdu_buffer[0] = 1;
+        G_io_tx_buffer[0] = 1;
     } else {
-        G_io_apdu_buffer[0] = 0;
+        G_io_tx_buffer[0] = 0;
     }
     return io_seproxyhal_send_status(SWO_SUCCESS, ECDSA_SIGNATURE_LENGTH, false, true);
 }

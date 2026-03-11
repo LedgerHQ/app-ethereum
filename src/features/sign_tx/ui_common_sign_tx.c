@@ -15,21 +15,21 @@ uint32_t io_seproxyhal_touch_tx_ok(void) {
                                                   CX_SHA256,
                                                   tmpCtx.transactionContext.hash,
                                                   sizeof(tmpCtx.transactionContext.hash),
-                                                  G_io_apdu_buffer + 1,
-                                                  G_io_apdu_buffer + 1 + INT256_LENGTH,
+                                                  G_io_tx_buffer + 1,
+                                                  G_io_tx_buffer + 1 + INT256_LENGTH,
                                                   &info));
 
     if (txContext.txType == EIP1559 || txContext.txType == EIP2930 || txContext.txType == EIP7702) {
         if (info & CX_ECCINFO_PARITY_ODD) {
-            G_io_apdu_buffer[0] = 1;
+            G_io_tx_buffer[0] = 1;
         } else {
-            G_io_apdu_buffer[0] = 0;
+            G_io_tx_buffer[0] = 0;
         }
     } else {
         // Parity is present in the sequence tag in the legacy API
         if (tmpContent.txContent.vLength == 0) {
             // Legacy API
-            G_io_apdu_buffer[0] = ETHEREUM_SIGNATURE_V_BASE;
+            G_io_tx_buffer[0] = ETHEREUM_SIGNATURE_V_BASE;
         } else {
             // New API
             // Note that this is wrong for a large v, but ledgerjs will recover.
@@ -38,13 +38,13 @@ uint32_t io_seproxyhal_touch_tx_ok(void) {
             // this should be updated.
             uint32_t v = (uint32_t) u64_from_BE(tmpContent.txContent.v,
                                                 MIN(4, tmpContent.txContent.vLength));
-            G_io_apdu_buffer[0] = (v * 2) + 35;
+            G_io_tx_buffer[0] = (v * 2) + 35;
         }
         if (info & CX_ECCINFO_PARITY_ODD) {
-            G_io_apdu_buffer[0]++;
+            G_io_tx_buffer[0]++;
         }
         if (info & CX_ECCINFO_xGTn) {
-            G_io_apdu_buffer[0] += 2;
+            G_io_tx_buffer[0] += 2;
         }
     }
 

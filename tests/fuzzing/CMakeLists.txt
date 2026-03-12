@@ -56,6 +56,7 @@ target_include_directories(
          ${APP_SRC}/features/sign_message_eip712_common
          ${APP_SRC}/features/sign_message_eip712
          ${APP_SRC}/features/set_plugin
+         ${APP_SRC}/plugins
          ${APP_SRC}/plugins/eth2
          ${APP_SRC}/plugins/eip7002
          ${APP_SRC}/plugins/eip7251
@@ -64,6 +65,7 @@ target_include_directories(
          ${APP_SRC}/plugins/erc1155
          ${APP_SRC}/plugins/swap_with_calldata
          ${APP_SRC}/nbgl
+         ${APP_SRC}/swap
          ${PLUGIN_SDK_SRC}
 )
 

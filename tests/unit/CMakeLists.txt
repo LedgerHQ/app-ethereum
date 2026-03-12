@@ -183,7 +183,6 @@ add_executable(test_param_raw
   ${APP_DIR}/mem_utils.c
   ${APP_DIR}/uint256.c
   ${APP_DIR}/uint128.c
-  ${APP_DIR}/uint_common.c
   ${APP_DIR}/utils.c
   ${PLUGIN_DIR}/common_utils.c
   ${MOCK_DIR}/mock.c

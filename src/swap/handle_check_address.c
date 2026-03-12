@@ -2,6 +2,7 @@
 #include "apdu_constants.h"
 #include "crypto_helpers.h"
 #include "get_public_key.h"
+#include "ox_ec.h"
 
 #define ZERO(x) explicit_bzero(&x, sizeof(x))
 
@@ -16,7 +17,7 @@ void handle_check_address(check_address_parameters_t* params, chain_config_t* ch
     }
 
     char address[ADDRESS_LENGTH_STR];
-    uint8_t raw_pubkey[UNCOMPRESSED_PUBKEY_LENGTH];
+    uint8_t raw_pubkey[CX_SECP256_PUB_KEY_SIZE];
     bip32_path_t bip32;
     bip32.length = params->address_parameters[0];
     if (bip32_path_read(params->address_parameters + 1,

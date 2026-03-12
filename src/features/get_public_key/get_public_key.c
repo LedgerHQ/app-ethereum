@@ -2,6 +2,7 @@
 #include "crypto_helpers.h"
 #include "shared_context.h"
 #include "apdu_constants.h"
+#include "ox_ec.h"
 
 uint16_t get_public_key_string(bip32_path_t *bip32,
                                uint8_t *pubKey,
@@ -23,7 +24,7 @@ end:
 }
 
 uint16_t get_public_key(uint8_t *out, uint8_t outLength) {
-    uint8_t raw_pubkey[UNCOMPRESSED_PUBKEY_LENGTH];
+    uint8_t raw_pubkey[CX_SECP256_PUB_KEY_SIZE];
     cx_err_t error;
 
     if (outLength < ADDRESS_LENGTH) {
@@ -44,9 +45,9 @@ uint16_t get_public_key(uint8_t *out, uint8_t outLength) {
 
 uint32_t set_result_get_publicKey() {
     uint32_t tx = 0;
-    G_io_tx_buffer[tx++] = UNCOMPRESSED_PUBKEY_LENGTH;
-    memmove(G_io_tx_buffer + tx, tmpCtx.publicKeyContext.publicKey.W, UNCOMPRESSED_PUBKEY_LENGTH);
-    tx += UNCOMPRESSED_PUBKEY_LENGTH;
+    G_io_tx_buffer[tx++] = CX_SECP256_PUB_KEY_SIZE;
+    memmove(G_io_tx_buffer + tx, tmpCtx.publicKeyContext.publicKey.W, CX_SECP256_PUB_KEY_SIZE);
+    tx += CX_SECP256_PUB_KEY_SIZE;
     G_io_tx_buffer[tx++] = 40;
     memmove(G_io_tx_buffer + tx, tmpCtx.publicKeyContext.address, 40);
     tx += 40;

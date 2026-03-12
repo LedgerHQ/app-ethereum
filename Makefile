@@ -50,7 +50,7 @@ ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX TARGET_APEX
     NETWORK_ICONS_DIR = $(shell dirname "$(NETWORK_ICONS_FILE)")
 
     $(NETWORK_ICONS_FILE):
-    	$(shell python3 tools/gen_networks.py "$(NETWORK_ICONS_DIR)")
+		python3 tools/gen_networks.py "$(NETWORK_ICONS_DIR)"
 
     APP_SOURCE_FILES += $(NETWORK_ICONS_FILE)
 endif

@@ -26,5 +26,3 @@
 #define LOWER_P(x) x->elements[1]
 #define UPPER(x)   x.elements[0]
 #define LOWER(x)   x.elements[1]
-
-void reverseString(char *const str, uint32_t length);

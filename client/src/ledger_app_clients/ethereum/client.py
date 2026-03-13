@@ -19,6 +19,7 @@ from .dynamic_networks import DynamicNetwork
 from .safe import SafeAccount, AccountType
 from .gating import Gating
 from .trusted_name import TrustedName, TrustedNameSource
+from .address_book import AddressBookClient, AddressBookSubCommand
 
 
 class EIP712CalldataParamPresence(IntEnum):
@@ -477,7 +478,7 @@ class EthAppClient:
             self._exchange(chunk)
         return self._exchange_async(chunks[-1])
 
-    def provide_gating(self, gating_descriptor: Gating):
+    def provide_gating(self, gating_descriptor: Gating) -> RAPDU:
         # Send ledgerPKI certificate
         self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_GATING)
 
@@ -485,3 +486,13 @@ class EthAppClient:
         for chunk in chunks[:-1]:
             self._exchange(chunk)
         return self._exchange(chunks[-1])
+
+    def provide_address_book(self,
+                             addr_book: AddressBookClient,
+                             payload: bytes,
+                             subcommand: AddressBookSubCommand,
+                             async_mode: bool = True) -> RAPDU:
+
+        if async_mode:
+            return addr_book.send_async_raw(subcommand, payload)
+        return addr_book.send_sync_raw(subcommand, payload)

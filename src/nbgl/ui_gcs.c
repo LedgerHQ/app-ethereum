@@ -1,4 +1,5 @@
 #include <string.h>
+#include "shared_context.h"
 #include "ui_nbgl.h"
 #include "gtp_tx_info.h"
 #include "gtp_field_table.h"
@@ -6,7 +7,7 @@
 #include "mem_utils.h"
 #include "network.h"
 #include "ui_callbacks.h"
-#include "feature_signTx.h"
+#include "feature_sign_tx.h"
 #include "apdu_constants.h"
 #include "cmd_get_tx_simulation.h"
 #include "ui_utils.h"
@@ -14,8 +15,6 @@
 #include "proxy_info.h"
 #include "trusted_name.h"
 #include "tx_ctx.h"
-
-#define ADDRESS_STRING_LENGTH (2 + (2 * ADDRESS_LENGTH) + 1)
 
 static bool *index_allocated = NULL;
 
@@ -278,7 +277,7 @@ static const nbgl_contentValueExt_t *handle_extra_data_trusted_name(
     nbgl_contentValueAliasType_t alias_type;
     nbgl_contentValueExt_t *extension;
     const s_trusted_name *tname = (s_trusted_name *) field->extra_data;
-    char formatted_addr[ADDRESS_STRING_LENGTH];
+    char formatted_addr[ADDRESS_LENGTH_HEX_STR];
 
     switch (tname->name_source) {
         case TN_SOURCE_ENS:
@@ -320,7 +319,7 @@ static const nbgl_contentValueExt_t *handle_extra_data_trusted_name(
 
 static const nbgl_contentValueExt_t *handle_extra_data_token(const s_field_table_entry *field) {
     const tokenDefinition_t *token_def = (tokenDefinition_t *) field->extra_data;
-    char formatted_addr[ADDRESS_STRING_LENGTH];
+    char formatted_addr[ADDRESS_LENGTH_HEX_STR];
     const char *keys[] = {"Contract address"};
     const char *values[] = {formatted_addr};
 
@@ -335,7 +334,7 @@ static const nbgl_contentValueExt_t *handle_extra_data_token(const s_field_table
 
 static const nbgl_contentValueExt_t *handle_extra_data_nft(const s_field_table_entry *field) {
     const nftInfo_t *nft_def = (nftInfo_t *) field->extra_data;
-    char formatted_addr[ADDRESS_STRING_LENGTH];
+    char formatted_addr[ADDRESS_LENGTH_HEX_STR];
     const char *keys[] = {"Contract address"};
     const char *values[] = {formatted_addr};
 

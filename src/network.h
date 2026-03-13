@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "chainConfig.h"
+#include "chain_config.h"
 #include "nbgl_types.h"
 #include "lists.h"
 

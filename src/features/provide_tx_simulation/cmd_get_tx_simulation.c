@@ -4,7 +4,7 @@
 #include "apdu_constants.h"
 #include "hash_bytes.h"
 #include "public_keys.h"
-#include "getPublicKey.h"
+#include "get_public_key.h"
 #include "tlv_library.h"
 #include "tlv_apdu.h"
 #include "utils.h"
@@ -13,7 +13,7 @@
 #include "network.h"
 #include "ui_callbacks.h"
 #include "ui_nbgl.h"
-#include "signature.h"
+#include "lcx_ecdsa.h"
 
 #define TYPE_TX_SIMULATION 0x09
 #define STRUCT_VERSION     0x01
@@ -223,8 +223,8 @@ static bool parse_signature(const tlv_data_t *data, s_tx_simu_ctx *context) {
     buffer_t sig = {0};
     if (!get_buffer_from_tlv_data(data,
                                   &sig,
-                                  ECDSA_SIGNATURE_MIN_LENGTH,
-                                  ECDSA_SIGNATURE_MAX_LENGTH)) {
+                                  CX_ECDSA_SHA256_SIG_MIN_ASN1_LENGTH,
+                                  CX_ECDSA_SHA256_SIG_MAX_ASN1_LENGTH)) {
         PRINTF("DER_SIGNATURE: failed to extract\n");
         return false;
     }
@@ -433,7 +433,7 @@ void handle_tx_simulation_opt_in(bool response_expected) {
         PRINTF("TX_CHECKS_ Checks already Opt-in!\n");
         if (response_expected) {
             // just respond the current state and return to idle screen
-            G_io_apdu_buffer[0] = N_storage.tx_check_enable;
+            G_io_tx_buffer[0] = N_storage.tx_check_enable;
             io_seproxyhal_send_status(SWO_SUCCESS, 1, false, true);
         }
         return;

@@ -6,7 +6,8 @@
 #include "plugin_utils.h"  // SELECTOR_SIZE
 #include "tlv_library.h"
 #include "cx.h"
-#include "signature.h"
+
+#define MAX_ENUM_NAME_SIZE 21
 
 typedef struct {
     flist_node_t _list;
@@ -15,7 +16,7 @@ typedef struct {
     uint8_t selector[SELECTOR_SIZE];
     uint8_t id;
     uint8_t value;
-    char name[21];
+    char name[MAX_ENUM_NAME_SIZE];
 } s_enum_value_entry;
 
 typedef struct {

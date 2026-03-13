@@ -77,3 +77,21 @@ bool is_printable(const char *str, size_t len) {
     }
     return true;
 }
+
+/**
+ * @brief Reverses a string in place
+ *
+ * This function reverses the characters in the provided string.
+ *
+ * @param[in,out] str A pointer to the string to be reversed
+ * @param[in] length The length of the string to be reversed
+ */
+void reverseString(char *const str, uint32_t length) {
+    uint32_t i, j;
+    for (i = 0, j = length - 1; i < j; i++, j--) {
+        char c;
+        c = str[i];
+        str[i] = str[j];
+        str[j] = c;
+    }
+}

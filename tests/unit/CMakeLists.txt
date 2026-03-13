@@ -80,9 +80,9 @@ include_directories(
   ${PLUGIN_DIR}
   ${APP_DIR}/features/generic_tx_parser
   ${APP_DIR}/features/provide_trusted_name
-  ${APP_DIR}/features/getPublicKey
-  ${APP_DIR}/features/signTx
-  ${APP_DIR}/features/getChallenge
+  ${APP_DIR}/features/get_public_key
+  ${APP_DIR}/features/sign_tx
+  ${APP_DIR}/features/get_challenge
   ${APP_DIR}/nbgl
   ${MOCK_DIR}
   ${BOLOS_SDK}/io/include
@@ -115,6 +115,7 @@ add_executable(test_param_network
 set_source_files_properties(${BOLOS_SDK}/lib_tlv/tlv_library.c PROPERTIES COMPILE_FLAGS "-Wno-pedantic")
 
 target_compile_definitions(test_param_network PRIVATE
+  HAVE_ECDSA
   HAVE_HASH
   HAVE_SHA256
   HAVE_SHA3
@@ -154,6 +155,7 @@ set_source_files_properties(${BOLOS_SDK}/lib_tlv/tlv_library.c PROPERTIES COMPIL
 target_include_directories(test_param_trusted_name BEFORE PRIVATE ${MOCK_DIR})
 
 target_compile_definitions(test_param_trusted_name PRIVATE
+  HAVE_ECDSA
   HAVE_HASH
   HAVE_SHA256
   HAVE_SHA3
@@ -181,7 +183,6 @@ add_executable(test_param_raw
   ${APP_DIR}/mem_utils.c
   ${APP_DIR}/uint256.c
   ${APP_DIR}/uint128.c
-  ${APP_DIR}/uint_common.c
   ${APP_DIR}/utils.c
   ${PLUGIN_DIR}/common_utils.c
   ${MOCK_DIR}/mock.c
@@ -199,6 +200,7 @@ set_source_files_properties(
 )
 
 target_compile_definitions(test_param_raw PRIVATE
+  HAVE_ECDSA
   HAVE_HASH
   HAVE_SHA256
   HAVE_SHA3
@@ -242,6 +244,7 @@ set_source_files_properties(
   PROPERTIES COMPILE_FLAGS "-Wno-format -Wno-format-extra-args"
 )
 target_compile_definitions(test_field_validation PRIVATE
+  HAVE_ECDSA
   HAVE_HASH
   HAVE_SHA256
   HAVE_SHA3

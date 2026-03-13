@@ -4,7 +4,7 @@
 #include "app_mem_utils.h"
 #include "mem_utils.h"
 #include "public_keys.h"
-#include "signature.h"
+#include "lcx_ecdsa.h"
 #include "tlv_library.h"
 #include "tlv_apdu.h"
 #include "utils.h"
@@ -136,8 +136,8 @@ static bool handle_signature(const tlv_data_t *data, s_safe_ctx *context) {
     buffer_t sig = {0};
     if (!get_buffer_from_tlv_data(data,
                                   &sig,
-                                  ECDSA_SIGNATURE_MIN_LENGTH,
-                                  ECDSA_SIGNATURE_MAX_LENGTH)) {
+                                  CX_ECDSA_SHA256_SIG_MIN_ASN1_LENGTH,
+                                  CX_ECDSA_SHA256_SIG_MAX_ASN1_LENGTH)) {
         PRINTF("DER_SIGNATURE: failed to extract\n");
         return false;
     }

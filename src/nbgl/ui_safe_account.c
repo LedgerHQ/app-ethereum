@@ -1,15 +1,15 @@
 #include "cmd_safe_account.h"
 #include "safe_descriptor.h"
 #include "signer_descriptor.h"
+#include "shared_context.h"
 #include "apdu_constants.h"
 #include "ui_callbacks.h"
 #include "ui_nbgl.h"
 #include "ui_utils.h"
 #include "app_mem_utils.h"
 
-#define MAX_PAIRS          2
-#define TAG_MAX_LEN        10
-#define ADDRESS_LENGTH_STR ((ADDRESS_LENGTH * 2) + 3)  // "0x" + 2 * ADDRESS_LENGTH + '\0'
+#define MAX_PAIRS   2
+#define TAG_MAX_LEN 10
 
 // Structure to manage dynamic string arrays
 typedef struct {
@@ -97,7 +97,7 @@ static bool _prepare_memory(void) {
     }
 
     // Allocate buffer for actual value strings
-    totalSize = SAFE_DESC->signers_count * (ADDRESS_LENGTH_STR + 1);
+    totalSize = SAFE_DESC->signers_count * (ADDRESS_LENGTH_HEX_STR + 1);
     if (APP_MEM_CALLOC((void **) &signersInfo->values.buffer, totalSize) == false) {
         return false;
     }
@@ -113,9 +113,9 @@ static void _prepare_strings(void) {
     uint16_t i = 0;
     char *ptr = NULL;
     // Prepare the strings for display
-    array_bytes_string(strings.tmp.tmp, ADDRESS_LENGTH_STR, SAFE_DESC->address, ADDRESS_LENGTH);
-    snprintf(strings.tmp.tmp + ADDRESS_LENGTH_STR,
-             sizeof(strings.tmp.tmp) - ADDRESS_LENGTH_STR,
+    array_bytes_string(strings.tmp.tmp, ADDRESS_LENGTH_HEX_STR, SAFE_DESC->address, ADDRESS_LENGTH);
+    snprintf(strings.tmp.tmp + ADDRESS_LENGTH_HEX_STR,
+             sizeof(strings.tmp.tmp) - ADDRESS_LENGTH_HEX_STR,
              "%d out of %d",
              SAFE_DESC->threshold,
              SAFE_DESC->signers_count);
@@ -131,9 +131,12 @@ static void _prepare_strings(void) {
     // Populate value strings
     ptr = signersInfo->values.buffer;
     for (i = 0; i < SAFE_DESC->signers_count; i++) {
-        array_bytes_string(ptr, ADDRESS_LENGTH_STR, SIGNER_DESC.data[i].address, ADDRESS_LENGTH);
+        array_bytes_string(ptr,
+                           ADDRESS_LENGTH_HEX_STR,
+                           SIGNER_DESC.data[i].address,
+                           ADDRESS_LENGTH);
         signersInfo->values.pointers[i] = ptr;
-        ptr += ADDRESS_LENGTH_STR + 1;
+        ptr += ADDRESS_LENGTH_HEX_STR + 1;
     }
 }
 
@@ -150,7 +153,7 @@ static void setTagValuePairs(void) {
 
     nbPairs++;
     g_pairs[nbPairs].item = "Threshold";
-    g_pairs[nbPairs].value = strings.tmp.tmp + ADDRESS_LENGTH_STR;
+    g_pairs[nbPairs].value = strings.tmp.tmp + ADDRESS_LENGTH_HEX_STR;
     g_pairs[nbPairs].aliasValue = true;
     g_pairs[nbPairs].extension = &extensions[1];
     extensions[1].aliasType = TAG_VALUE_LIST_ALIAS;

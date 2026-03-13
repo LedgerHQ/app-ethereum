@@ -6,7 +6,7 @@
 #include "gtp_field_table.h"
 #include "utils.h"
 #include "shared_context.h"
-#include "getPublicKey.h"
+#include "get_public_key.h"
 #include "apdu_constants.h"
 #include "tx_ctx.h"
 #include "tlv_apdu.h"

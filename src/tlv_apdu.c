@@ -10,6 +10,7 @@
 #include "buffer.h"
 #include "utils.h"
 #include "challenge.h"
+#include "chain_config.h"
 
 static uint8_t *g_tlv_payload = NULL;
 static uint16_t g_tlv_size = 0;
@@ -139,7 +140,6 @@ bool tlv_check_challenge(const tlv_data_t *data) {
  * See https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2294.md
  */
 bool tlv_get_chain_id(const tlv_data_t *data, uint64_t *chain_id) {
-    uint64_t max_range = 0x7FFFFFFFFFFFFFDB;
     if (!chain_id) {
         PRINTF("CHAIN_ID: null pointer provided\n");
         return false;
@@ -149,7 +149,7 @@ bool tlv_get_chain_id(const tlv_data_t *data, uint64_t *chain_id) {
         return false;
     }
     // Check if the chain ID is supported
-    if ((*chain_id > max_range) || (*chain_id == 0)) {
+    if ((*chain_id > MAX_VALID_CHAIN_ID) || (*chain_id == 0)) {
         PRINTF("Unsupported chain ID: %llu\n", *chain_id);
         return false;
     }

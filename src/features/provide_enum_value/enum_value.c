@@ -6,6 +6,7 @@
 #include "proxy_info.h"
 #include "hash_bytes.h"
 #include "tlv_apdu.h"
+#include "lcx_ecdsa.h"
 
 #define STRUCT_VERSION 0x01
 
@@ -115,8 +116,8 @@ static bool handle_signature(const tlv_data_t *data, s_enum_value_ctx *context) 
     buffer_t sig = {0};
     if (!get_buffer_from_tlv_data(data,
                                   &sig,
-                                  ECDSA_SIGNATURE_MIN_LENGTH,
-                                  ECDSA_SIGNATURE_MAX_LENGTH)) {
+                                  CX_ECDSA_SHA256_SIG_MIN_ASN1_LENGTH,
+                                  CX_ECDSA_SHA256_SIG_MAX_ASN1_LENGTH)) {
         PRINTF("SIGNATURE: failed to extract\n");
         return false;
     }

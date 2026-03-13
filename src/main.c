@@ -116,7 +116,7 @@ uint16_t io_seproxyhal_send_status(uint16_t sw, uint32_t tx, bool reset, bool id
     if (reset) {
         reset_app_context();
     }
-    U2BE_ENCODE(G_io_apdu_buffer, tx, sw);
+    U2BE_ENCODE(G_io_tx_buffer, tx, sw);
     tx += 2;
     err = io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
     if (idle) {
@@ -163,47 +163,47 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
     switch (cmd->ins) {
         case INS_GET_PUBLIC_KEY:
             forget_known_assets();
-            sw = handleGetPublicKey(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags, tx);
+            sw = handle_get_public_key(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags, tx);
             break;
 
         case INS_PROVIDE_ERC20_TOKEN_INFORMATION:
-            sw = handleProvideErc20TokenInformation(cmd->data, cmd->lc, tx);
+            sw = handle_provide_erc20_token_information(cmd->data, cmd->lc, tx);
             break;
 
         case INS_PROVIDE_NFT_INFORMATION:
-            sw = handleProvideNFTInformation(cmd->data, cmd->lc, tx);
+            sw = handle_provide_nft_information(cmd->data, cmd->lc, tx);
             break;
 
         case INS_SET_EXTERNAL_PLUGIN:
-            sw = handleSetExternalPlugin(cmd->data, cmd->lc);
+            sw = handle_set_external_plugin(cmd->data, cmd->lc);
             break;
 
         case INS_SET_PLUGIN:
-            sw = handleSetPlugin(cmd->data, cmd->lc);
+            sw = handle_set_plugin(cmd->data, cmd->lc);
             break;
 
         case INS_PERFORM_PRIVACY_OPERATION:
-            sw = handlePerformPrivacyOperation(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags, tx);
+            sw = handle_perform_privacy_operation(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags, tx);
             break;
 
         case INS_SIGN:
-            sw = handleSign(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags);
+            sw = handle_sign(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags);
             break;
 
         case INS_GET_APP_CONFIGURATION:
-            sw = handleGetAppConfiguration(tx);
+            sw = handle_get_app_configuration(tx);
             break;
 
         case INS_SIGN_PERSONAL_MESSAGE:
             forget_known_assets();
-            sw = handleSignPersonalMessage(cmd->p1, cmd->data, cmd->lc, flags);
+            sw = handle_sign_personal_message(cmd->p1, cmd->data, cmd->lc, flags);
             break;
 
         case INS_SIGN_EIP_712_MESSAGE:
             switch (cmd->p2) {
                 case P2_EIP712_LEGACY_IMPLEM:
                     forget_known_assets();
-                    sw = handleSignEIP712Message_v0(cmd->p1, cmd->data, cmd->lc, flags);
+                    sw = handle_sign_eip712_message_v0(cmd->p1, cmd->data, cmd->lc, flags);
                     break;
                 case P2_EIP712_FULL_IMPLEM:
                     sw = handle_eip712_sign(cmd->data, cmd->lc, flags);
@@ -216,11 +216,11 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
 #ifdef HAVE_ETH2
         case INS_GET_ETH2_PUBLIC_KEY:
             forget_known_assets();
-            sw = handleGetEth2PublicKey(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags, tx);
+            sw = handle_get_eth2_public_key(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags, tx);
             break;
 
         case INS_SET_ETH2_WITHDRAWAL_INDEX:
-            sw = handleSetEth2WithdrawalIndex(cmd->p1, cmd->p2, cmd->data, cmd->lc);
+            sw = handle_set_eth2_withdrawal_index(cmd->p1, cmd->p2, cmd->data, cmd->lc);
             break;
 #endif  // HAVE_ETH2
 
@@ -271,7 +271,7 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
 #endif
 
         case INS_SIGN_EIP7702_AUTHORIZATION:
-            sw = handleSignEIP7702Authorization(cmd->p1, cmd->data, cmd->lc, flags);
+            sw = handle_sign_eip7702_authorization(cmd->p1, cmd->data, cmd->lc, flags);
             break;
 
         case INS_PROVIDE_SAFE_ACCOUNT:
@@ -310,7 +310,7 @@ void app_main(void) {
             TRY {
                 rx = io_exchange(CHANNEL_APDU | flags, tx);
 
-                if (apdu_parser(&cmd, G_io_apdu_buffer, rx) == false) {
+                if (apdu_parser(&cmd, G_io_tx_buffer, rx) == false) {
                     PRINTF("=> BAD LENGTH: %d\n", rx);
                     sw = SWO_WRONG_DATA_LENGTH;
                 } else {
@@ -358,7 +358,7 @@ void app_main(void) {
         }
 
         // Report Status Word
-        U2BE_ENCODE(G_io_apdu_buffer, tx, sw);
+        U2BE_ENCODE(G_io_tx_buffer, tx, sw);
         tx += 2;
 
         // If we are in swap mode and have validated a TX, we send it and immediately quit

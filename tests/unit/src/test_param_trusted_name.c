@@ -23,7 +23,7 @@
 // Headers for mocked functions
 #include "trusted_name.h"
 #include "utils.h"
-#include "getPublicKey.h"
+#include "get_public_key.h"
 #include "tx_ctx.h"
 #include "common_utils.h"
 

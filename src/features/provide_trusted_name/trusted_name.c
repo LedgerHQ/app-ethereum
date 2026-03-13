@@ -11,6 +11,9 @@
 #include "app_mem_utils.h"
 #include "crypto_helpers.h"
 #include "tlv_apdu.h"
+#include "lcx_ecdsa.h"
+#include "shared_context.h"  // CX_SECP256_PUB_KEY_SIZE
+#include "ox_ec.h"
 
 #define STRUCT_VERSION_1 0x01
 #define STRUCT_VERSION_2 0x02
@@ -422,8 +425,8 @@ static bool handle_signature(const tlv_data_t *data, s_trusted_name_ctx *context
     buffer_t sig = {0};
     if (!get_buffer_from_tlv_data(data,
                                   &sig,
-                                  ECDSA_SIGNATURE_MIN_LENGTH,
-                                  ECDSA_SIGNATURE_MAX_LENGTH)) {
+                                  CX_ECDSA_SHA256_SIG_MIN_ASN1_LENGTH,
+                                  CX_ECDSA_SHA256_SIG_MAX_ASN1_LENGTH)) {
         PRINTF("SIGNATURE: failed to extract\n");
         return false;
     }
@@ -670,7 +673,7 @@ bool verify_trusted_name_struct(const s_trusted_name_ctx *context) {
         }
         // MAB source requires OWNER
         if (context->trusted_name.name_source == TN_SOURCE_MAB) {
-            uint8_t raw_pubkey[65];
+            uint8_t raw_pubkey[CX_SECP256_PUB_KEY_SIZE];
             uint8_t wallet_addr[ADDRESS_LENGTH];
 
             if (bip32_derive_get_pubkey_256(CX_CURVE_256K1,

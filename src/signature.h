@@ -1,4 +1,0 @@
-#pragma once
-
-#define ECDSA_SIGNATURE_MIN_LENGTH 70
-#define ECDSA_SIGNATURE_MAX_LENGTH 73

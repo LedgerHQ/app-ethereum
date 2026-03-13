@@ -17,7 +17,7 @@ const uint8_t *const EIP7002_ADDRESSES[NUM_EIP7002_ADDRESSES] = {
     withdrawal_request_predeploy_address,
 };
 
-#define VALIDATOR_PUBKEY_SIZE   48
+#define VALIDATOR_PUBKEY_SIZE   BLS12381_G1_COMPRESSED_PUBKEY_LENGTH
 #define AMOUNT_SIZE             8
 #define WITHDRAWAL_REQUEST_SIZE (VALIDATOR_PUBKEY_SIZE + AMOUNT_SIZE)
 #define GWEI_TO_ETHER           9

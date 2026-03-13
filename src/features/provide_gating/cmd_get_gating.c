@@ -23,7 +23,7 @@
 #include "apdu_constants.h"
 #include "hash_bytes.h"
 #include "public_keys.h"
-#include "getPublicKey.h"
+#include "get_public_key.h"
 #include "tlv_library.h"
 #include "tlv_apdu.h"
 #include "utils.h"
@@ -37,7 +37,7 @@
 #include "mem_utils.h"
 #include "utils.h"
 #include "ui_logic.h"
-#include "feature_signTx.h"
+#include "feature_sign_tx.h"
 #include "proxy_info.h"
 #include "context_712.h"
 #include "schema_hash.h"
@@ -219,8 +219,8 @@ static bool parse_signature(const tlv_data_t *data, s_gating_ctx *context) {
     buffer_t sig = {0};
     if (!get_buffer_from_tlv_data(data,
                                   &sig,
-                                  ECDSA_SIGNATURE_MIN_LENGTH,
-                                  ECDSA_SIGNATURE_MAX_LENGTH)) {
+                                  CX_ECDSA_SHA256_SIG_MIN_ASN1_LENGTH,
+                                  CX_ECDSA_SHA256_SIG_MAX_ASN1_LENGTH)) {
         PRINTF("SIGNATURE: failed to extract\n");
         return false;
     }

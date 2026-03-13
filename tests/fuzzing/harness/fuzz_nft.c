@@ -2,7 +2,7 @@
 
 int fuzzNFTInfo(const uint8_t *data, size_t size) {
     unsigned int tx;
-    return handleProvideNFTInformation(data, size, &tx) != SWO_SUCCESS;
+    return handle_provide_nft_information(data, size, &tx) != SWO_SUCCESS;
 }
 
 /* Main fuzzing handler called by libfuzzer */

@@ -5,7 +5,7 @@
 #include "common_ui.h"       // ui_gcs_cleanup
 #include "shared_context.h"  // appState
 #include "utils.h"           // buf_shrink_expand
-#include "getPublicKey.h"
+#include "get_public_key.h"
 #include "context_712.h"
 #include "network.h"
 #include "hash_bytes.h"

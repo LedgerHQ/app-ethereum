@@ -24,6 +24,7 @@
 #include "write.h"
 #include "uint_common.h"
 #include "common_utils.h"  // INT256_LENGTH
+#include "utils.h"
 
 void readu256BE(const uint8_t *const buffer, uint256_t *const target) {
     readu128BE(buffer, &UPPER_P(target));

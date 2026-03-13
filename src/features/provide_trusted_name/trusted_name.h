@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include "common_utils.h"  // ADDRESS_LENGTH
 #include "tlv_library.h"
-#include "signature.h"
 #include "lists.h"
 #include "bip32_utils.h"
 

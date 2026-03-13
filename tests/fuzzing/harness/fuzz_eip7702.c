@@ -13,7 +13,8 @@ int fuzzEIP7702(const uint8_t *data, size_t size) {
         p1 = data[offset++];
         len = data[offset++];
         if (size - offset < len) return 0;
-        if (handleSignEIP7702Authorization(p1, data + offset, len, &flags) != SWO_SUCCESS) return 0;
+        if (handle_sign_eip7702_authorization(p1, data + offset, len, &flags) != SWO_SUCCESS)
+            return 0;
         offset += len;
     }
     return 0;

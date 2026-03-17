@@ -732,14 +732,28 @@ static bool handle_fallback_empty_calldata(const s_eip712_calldata_info *calldat
     } else {
         ui_712_set_intent_field("Empty transaction");
     }
-    if (!getEthDisplayableAddress((uint8_t *) calldata_info->callee,
-                                  buf,
-                                  buf_size,
-                                  chainConfig->chainId)) {
-        return false;
-    }
+
+    e_name_type types[] = {TN_TYPE_ACCOUNT};
+    e_name_source sources[] = {TN_SOURCE_ENS, TN_SOURCE_LAB, TN_SOURCE_MAB};
+    const s_trusted_name *trusted_name;
+
     ui_712_set_title("To", 2);
-    ui_712_set_value(buf, strlen(buf));
+    if ((trusted_name = get_trusted_name(ARRAYLEN(types),
+                                         types,
+                                         ARRAYLEN(sources),
+                                         sources,
+                                         &calldata_info->chain_id,
+                                         calldata_info->callee)) != NULL) {
+        ui_712_set_value(trusted_name->name, strlen(trusted_name->name));
+    } else {
+        if (!getEthDisplayableAddress(calldata_info->callee,
+                                      buf,
+                                      buf_size,
+                                      calldata_info->chain_id)) {
+            return false;
+        }
+        ui_712_set_value(buf, strlen(buf));
+    }
     return true;
 }
 

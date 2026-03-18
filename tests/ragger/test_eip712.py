@@ -1003,7 +1003,22 @@ def test_eip712_calldata(scenario_navigator: NavigateWithScenario):
 
 
 def test_eip712_calldata_empty_send(scenario_navigator: NavigateWithScenario):
-    eip712_calldata_common(scenario_navigator, "safe_empty")
+    app_client = EthAppClient(scenario_navigator.backend)
+    filename = "safe_empty"
+
+    with Path(f"{eip712_json_path()}/{filename}.json").open(encoding="utf-8") as file:
+        json_data = json.load(file)
+
+    app_client.provide_trusted_name(TrustedName(2,
+                                                bytes.fromhex(json_data["message"]["to"][2:]),
+                                                "MAB_addr",
+                                                tn_type=TrustedNameType.ACCOUNT,
+                                                tn_source=TrustedNameSource.MULTISIG_ADDRESS_BOOK,
+                                                chain_id=json_data["domain"]["chainId"],
+                                                challenge=ResponseParser.challenge(app_client.get_challenge().data),
+                                                owner=DEVICE_ADDR,
+                                                owner_deriv_path=BIP32_PATH))
+    eip712_calldata_common(scenario_navigator, filename)
 
 
 def test_eip712_calldata_no_param(scenario_navigator: NavigateWithScenario):

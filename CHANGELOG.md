@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.21.3](../../compare/1.21.2...1.21.3) - 2026-03-17
+
+### Fixed
+
+- Missing trusted name matching with EIP-712 empty calldata
+
 ## [1.21.2](../../compare/1.21.1...1.21.2) - 2026-03-03
 
 ### Added

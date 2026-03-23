@@ -71,17 +71,23 @@ error:
  */
 bool ui_buffers_init(uint8_t title_len, uint8_t subtitle_len, uint8_t finish_len) {
     ui_buffers_cleanup();
-    // Allocate the Title message buffer
-    if (!APP_MEM_CALLOC((void **) &g_titleMsg, title_len)) {
-        goto error;
+    if (title_len > 0) {
+        // Allocate the Title message buffer
+        if (!APP_MEM_CALLOC((void **) &g_titleMsg, title_len)) {
+            goto error;
+        }
     }
-    // Allocate the SubTitle message buffer
-    if (!APP_MEM_CALLOC((void **) &g_subTitleMsg, subtitle_len)) {
-        goto error;
+    if (subtitle_len > 0) {
+        // Allocate the SubTitle message buffer
+        if (!APP_MEM_CALLOC((void **) &g_subTitleMsg, subtitle_len)) {
+            goto error;
+        }
     }
-    // Allocate the Finish message buffer
-    if (!APP_MEM_CALLOC((void **) &g_finishMsg, finish_len)) {
-        goto error;
+    if (finish_len > 0) {
+        // Allocate the Finish message buffer
+        if (!APP_MEM_CALLOC((void **) &g_finishMsg, finish_len)) {
+            goto error;
+        }
     }
 
     return true;

@@ -51,18 +51,16 @@ void field_hash_deinit(void) {
 static const uint8_t *field_hash_prepare(const s_struct_712_field *field_ptr,
                                          const uint8_t *data,
                                          uint8_t *data_length) {
-    cx_err_t error = CX_INTERNAL_ERROR;
-
     fh->remaining_size = __builtin_bswap16(*(uint16_t *) &data[0]);  // network byte order
     data += sizeof(uint16_t);
     *data_length -= sizeof(uint16_t);
     fh->state = FHS_WAITING_FOR_MORE;
     if (IS_DYN(field_ptr->type)) {
-        CX_CHECK(cx_keccak_init_no_throw(&global_sha3, 256));
+        if (cx_keccak_init_no_throw(&global_sha3, 256) != CX_OK) {
+            return NULL;
+        }
     }
     return data;
-end:
-    return NULL;
 }
 
 /**

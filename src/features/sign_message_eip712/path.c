@@ -225,21 +225,20 @@ static bool feed_last_hash_depth(const uint8_t *hash) {
  */
 static bool push_new_hash_depth(bool init) {
     s_hash_ctx *hash_ctx;
-    cx_err_t error = CX_INTERNAL_ERROR;
 
     // allocate new hash context
     if (APP_MEM_CALLOC((void **) &hash_ctx, sizeof(*hash_ctx)) == false) {
         return false;
     }
     if (init) {
-        CX_CHECK(cx_keccak_init_no_throw(&hash_ctx->hash, 256));
+        if (cx_keccak_init_no_throw(&hash_ctx->hash, 256) != CX_OK) {
+            APP_MEM_FREE(hash_ctx);
+            return false;
+        }
     }
 
     list_push_back((list_node_t **) &g_hash_ctxs, (list_node_t *) hash_ctx);
     return true;
-end:
-    APP_MEM_FREE(hash_ctx);
-    return false;
 }
 
 /**
@@ -533,7 +532,6 @@ bool path_new_array_depth(const uint8_t *data, uint8_t length) {
     bool is_custom;
     uint8_t array_size;
     uint8_t array_depth_count_bak;
-    cx_err_t error = CX_INTERNAL_ERROR;
     s_hash_ctx *start_hash_ctx = get_last_hash_ctx();
 
     if (path_struct == NULL) {
@@ -596,14 +594,20 @@ bool path_new_array_depth(const uint8_t *data, uint8_t length) {
             if (array_size > 0) {
                 memcpy(&hash_ctx->hash, &prev_ctx->hash, sizeof(prev_ctx->hash));
             } else {
-                CX_CHECK(cx_keccak_init_no_throw((cx_sha3_t *) &hash_ctx->hash, 256));
+                if (cx_keccak_init_no_throw((cx_sha3_t *) &hash_ctx->hash, 256) != CX_OK) {
+                    return false;
+                }
             }
-            CX_CHECK(cx_keccak_init_no_throw((cx_sha3_t *) &prev_ctx->hash, 256));
+            if (cx_keccak_init_no_throw((cx_sha3_t *) &prev_ctx->hash, 256) != CX_OK) {
+                return false;
+            }
 
             hash_ctx = prev_ctx;
             prev_ctx = get_previous_hash_ctx(hash_ctx);
         }
-        CX_CHECK(cx_keccak_init_no_throw((cx_sha3_t *) &hash_ctx->hash, 256));
+        if (cx_keccak_init_no_throw((cx_sha3_t *) &hash_ctx->hash, 256) != CX_OK) {
+            return false;
+        }
     }
     if (array_size == 0) {
         do {
@@ -612,8 +616,6 @@ bool path_new_array_depth(const uint8_t *data, uint8_t length) {
     }
 
     return true;
-end:
-    return false;
 }
 
 /**

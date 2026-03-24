@@ -114,7 +114,9 @@ static bool get_struct_dependencies(s_struct_dep **first_dep, const s_struct_712
                 new_dep->s = arg_struct_ptr;
                 flist_push_back((flist_node_t **) first_dep, (flist_node_t *) new_dep);
                 // TODO: Move away from recursive calls
-                get_struct_dependencies(first_dep, arg_struct_ptr);
+                if (!get_struct_dependencies(first_dep, arg_struct_ptr)) {
+                    return false;
+                }
             }
         }
     }

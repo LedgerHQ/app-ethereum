@@ -167,7 +167,7 @@ static bool field_hash_domain_special_fields(const s_struct_712_field *field_ptr
 
     key = field_ptr->key_name;
     // copy contract address into context
-    if (strncmp(key, "verifyingContract", strlen(key)) == 0) {
+    if (strcmp(key, "verifyingContract") == 0) {
         switch (field_ptr->type) {
             case TYPE_SOL_ADDRESS:
                 if (data_length > sizeof(eip712_context->contract_addr)) {
@@ -193,7 +193,7 @@ static bool field_hash_domain_special_fields(const s_struct_712_field *field_ptr
         memcpy(eip712_context->contract_addr, data, data_length);
         explicit_bzero(&eip712_context->contract_addr[data_length],
                        sizeof(eip712_context->contract_addr) - data_length);
-    } else if (strncmp(key, "chainId", strlen(key)) == 0) {
+    } else if (strcmp(key, "chainId") == 0) {
         eip712_context->chain_id = u64_from_BE(data, data_length);
     }
     return true;

@@ -1,3 +1,6 @@
 [submodule "ethereum-plugin-sdk"]
 	path = ethereum-plugin-sdk
-	url = git@github.com:LedgerHQ/ethereum-plugin-sdk.git
+	url = https://github.com/LedgerHQ/ethereum-plugin-sdk.git
+[submodule ".github/instructions"]
+	path = .github/instructions
+	url = https://github.com/LedgerHQ/ledger-app-ai-instructions.git

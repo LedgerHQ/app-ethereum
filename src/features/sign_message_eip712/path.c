@@ -345,6 +345,7 @@ static bool path_update(bool skip_if_array, bool stop_at_array, bool do_typehash
     const s_struct_712 *struct_ptr;
     const s_struct_712_field *starting_field_ptr;
     const s_struct_712_field *field_ptr;
+    const s_struct_712_field *outer_field;
     const char *typename;
     uint8_t hash[KECCAK256_HASH_BYTESIZE];
 
@@ -359,10 +360,22 @@ static bool path_update(bool skip_if_array, bool stop_at_array, bool do_typehash
         // check if we meet one of the given conditions
         if (((field_ptr == starting_field_ptr) && skip_if_array) ||
             ((field_ptr != starting_field_ptr) && stop_at_array)) {
-            // only if it is the first iteration of that array depth
-            if ((path_struct->array_depths[path_struct->array_depth_count - 1].index == 0) &&
-                field_ptr->type_is_array) {
-                break;
+            if (field_ptr->type_is_array) {
+                // Stop descent unless this field is the currently-iterated outer array.
+                // In that case we must descend to set up the new struct hash context.
+                // For any nested inner array we stop here and let path_new_array_depth
+                // handle its own setup, so that it is captured at the right stack level.
+                bool is_outer_array = false;
+                if (path_struct->array_depth_count > 0) {
+                    outer_field = get_nth_field(
+                        NULL,
+                        path_struct->array_depths[path_struct->array_depth_count - 1].path_index +
+                            1);
+                    is_outer_array = (outer_field != NULL) && (outer_field == field_ptr);
+                }
+                if (!is_outer_array) {
+                    break;
+                }
             }
         }
         typename = get_struct_field_typename(field_ptr);

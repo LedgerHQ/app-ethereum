@@ -788,7 +788,7 @@ static bool update_calldata_value(const uint8_t *data,
                 data += CALLDATA_SELECTOR_SIZE;
                 length -= CALLDATA_SELECTOR_SIZE;
                 calldata_size -= CALLDATA_SELECTOR_SIZE;
-            } else if (calldata_info->selector_state == CALLDATA_INFO_PARAM_NONE) {
+            } else if (calldata_info->selector_state == CALLDATA_INFO_PARAM_SET) {
                 selector = calldata_info->selector;
             }
             if ((g_parked_calldata = calldata_init(calldata_size, selector)) == NULL) {

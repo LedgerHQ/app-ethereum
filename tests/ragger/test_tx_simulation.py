@@ -330,3 +330,26 @@ def test_tx_simulation_gcs(navigator: Navigator,
     simu_params = __get_simu_params("warning", TxType.TRANSACTION)
 
     sign_gcs_poap(scenario_navigator, simu_params)
+
+
+def test_tx_simulation_provider_max_bounds(backend: BackendInterface,
+                                           navigator: Navigator) -> None:
+    """
+    Test that a 25-character provider_message (spec maximum) is accepted.
+    Test that a 30-character tiny_url (spec maximum) is accepted.
+    """
+
+    app_client = EthAppClient(backend)
+    device = backend.device
+
+    if device.is_nano:
+        pytest.skip("Not yet supported on Nano")
+
+    __common_setting_handling(device, navigator, app_client, True)
+
+    simu_params = __get_simu_params("warning", TxType.TRANSACTION)
+    simu_params.chain_id = 5
+    simu_params.provider_message = "A" * 25
+    # Exactly 30 characters — the spec-defined maximum for W3C_TINY_URL
+    simu_params.tiny_url = "https://ledger.com/r/123456789"
+    __handle_simulation(app_client, simu_params)

@@ -225,21 +225,20 @@ static bool feed_last_hash_depth(const uint8_t *hash) {
  */
 static bool push_new_hash_depth(bool init) {
     s_hash_ctx *hash_ctx;
-    cx_err_t error = CX_INTERNAL_ERROR;
 
     // allocate new hash context
     if (APP_MEM_CALLOC((void **) &hash_ctx, sizeof(*hash_ctx)) == false) {
         return false;
     }
     if (init) {
-        CX_CHECK(cx_keccak_init_no_throw(&hash_ctx->hash, 256));
+        if (cx_keccak_init_no_throw(&hash_ctx->hash, 256) != CX_OK) {
+            APP_MEM_FREE(hash_ctx);
+            return false;
+        }
     }
 
     list_push_back((list_node_t **) &g_hash_ctxs, (list_node_t *) hash_ctx);
     return true;
-end:
-    APP_MEM_FREE(hash_ctx);
-    return false;
 }
 
 /**
@@ -346,6 +345,7 @@ static bool path_update(bool skip_if_array, bool stop_at_array, bool do_typehash
     const s_struct_712 *struct_ptr;
     const s_struct_712_field *starting_field_ptr;
     const s_struct_712_field *field_ptr;
+    const s_struct_712_field *outer_field;
     const char *typename;
     uint8_t hash[KECCAK256_HASH_BYTESIZE];
 
@@ -360,10 +360,22 @@ static bool path_update(bool skip_if_array, bool stop_at_array, bool do_typehash
         // check if we meet one of the given conditions
         if (((field_ptr == starting_field_ptr) && skip_if_array) ||
             ((field_ptr != starting_field_ptr) && stop_at_array)) {
-            // only if it is the first iteration of that array depth
-            if ((path_struct->array_depths[path_struct->array_depth_count - 1].index == 0) &&
-                field_ptr->type_is_array) {
-                break;
+            if (field_ptr->type_is_array) {
+                // Stop descent unless this field is the currently-iterated outer array.
+                // In that case we must descend to set up the new struct hash context.
+                // For any nested inner array we stop here and let path_new_array_depth
+                // handle its own setup, so that it is captured at the right stack level.
+                bool is_outer_array = false;
+                if (path_struct->array_depth_count > 0) {
+                    outer_field = get_nth_field(
+                        NULL,
+                        path_struct->array_depths[path_struct->array_depth_count - 1].path_index +
+                            1);
+                    is_outer_array = (outer_field != NULL) && (outer_field == field_ptr);
+                }
+                if (!is_outer_array) {
+                    break;
+                }
             }
         }
         typename = get_struct_field_typename(field_ptr);
@@ -533,7 +545,6 @@ bool path_new_array_depth(const uint8_t *data, uint8_t length) {
     bool is_custom;
     uint8_t array_size;
     uint8_t array_depth_count_bak;
-    cx_err_t error = CX_INTERNAL_ERROR;
     s_hash_ctx *start_hash_ctx = get_last_hash_ctx();
 
     if (path_struct == NULL) {
@@ -596,14 +607,20 @@ bool path_new_array_depth(const uint8_t *data, uint8_t length) {
             if (array_size > 0) {
                 memcpy(&hash_ctx->hash, &prev_ctx->hash, sizeof(prev_ctx->hash));
             } else {
-                CX_CHECK(cx_keccak_init_no_throw((cx_sha3_t *) &hash_ctx->hash, 256));
+                if (cx_keccak_init_no_throw((cx_sha3_t *) &hash_ctx->hash, 256) != CX_OK) {
+                    return false;
+                }
             }
-            CX_CHECK(cx_keccak_init_no_throw((cx_sha3_t *) &prev_ctx->hash, 256));
+            if (cx_keccak_init_no_throw((cx_sha3_t *) &prev_ctx->hash, 256) != CX_OK) {
+                return false;
+            }
 
             hash_ctx = prev_ctx;
             prev_ctx = get_previous_hash_ctx(hash_ctx);
         }
-        CX_CHECK(cx_keccak_init_no_throw((cx_sha3_t *) &hash_ctx->hash, 256));
+        if (cx_keccak_init_no_throw((cx_sha3_t *) &hash_ctx->hash, 256) != CX_OK) {
+            return false;
+        }
     }
     if (array_size == 0) {
         do {
@@ -612,8 +629,6 @@ bool path_new_array_depth(const uint8_t *data, uint8_t length) {
     }
 
     return true;
-end:
-    return false;
 }
 
 /**

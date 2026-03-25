@@ -323,10 +323,6 @@ bool filtering_discarded_path(const uint8_t *payload, uint8_t length) {
         return false;
     }
     path = (char *) &payload[offset];
-    offset += path_len;
-    if (offset < path_len) {
-        return false;
-    }
     if (!matches_backup_path(path, path_len, &path_offset)) {
         return false;
     }

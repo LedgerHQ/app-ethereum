@@ -114,7 +114,9 @@ static bool get_struct_dependencies(s_struct_dep **first_dep, const s_struct_712
                 new_dep->s = arg_struct_ptr;
                 flist_push_back((flist_node_t **) first_dep, (flist_node_t *) new_dep);
                 // TODO: Move away from recursive calls
-                get_struct_dependencies(first_dep, arg_struct_ptr);
+                if (!get_struct_dependencies(first_dep, arg_struct_ptr)) {
+                    return false;
+                }
             }
         }
     }
@@ -154,7 +156,6 @@ static void delete_struct_dep(s_struct_dep *sdep) {
 bool type_hash(const char *struct_name, const uint8_t struct_name_length, uint8_t *hash_buf) {
     const void *struct_ptr;
     s_struct_dep *deps;
-    cx_err_t error = CX_INTERNAL_ERROR;
 
     if ((struct_ptr = get_structn(struct_name, struct_name_length)) == NULL) {
         PRINTF("Error: could not find EIP-712 struct \"");
@@ -162,7 +163,9 @@ bool type_hash(const char *struct_name, const uint8_t struct_name_length, uint8_
         PRINTF("\" for type_hash\n");
         return false;
     }
-    CX_CHECK(cx_keccak_init_no_throw(&global_sha3, 256));
+    if (cx_keccak_init_no_throw(&global_sha3, 256) != CX_OK) {
+        return false;
+    }
     deps = NULL;
     if (!get_struct_dependencies(&deps, struct_ptr)) {
         return false;
@@ -185,6 +188,4 @@ bool type_hash(const char *struct_name, const uint8_t struct_name_length, uint8_
         return false;
     }
     return true;
-end:
-    return false;
 }

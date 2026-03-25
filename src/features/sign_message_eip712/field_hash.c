@@ -51,18 +51,16 @@ void field_hash_deinit(void) {
 static const uint8_t *field_hash_prepare(const s_struct_712_field *field_ptr,
                                          const uint8_t *data,
                                          uint8_t *data_length) {
-    cx_err_t error = CX_INTERNAL_ERROR;
-
     fh->remaining_size = __builtin_bswap16(*(uint16_t *) &data[0]);  // network byte order
     data += sizeof(uint16_t);
     *data_length -= sizeof(uint16_t);
     fh->state = FHS_WAITING_FOR_MORE;
     if (IS_DYN(field_ptr->type)) {
-        CX_CHECK(cx_keccak_init_no_throw(&global_sha3, 256));
+        if (cx_keccak_init_no_throw(&global_sha3, 256) != CX_OK) {
+            return NULL;
+        }
     }
     return data;
-end:
-    return NULL;
 }
 
 /**
@@ -169,7 +167,7 @@ static bool field_hash_domain_special_fields(const s_struct_712_field *field_ptr
 
     key = field_ptr->key_name;
     // copy contract address into context
-    if (strncmp(key, "verifyingContract", strlen(key)) == 0) {
+    if (strcmp(key, "verifyingContract") == 0) {
         switch (field_ptr->type) {
             case TYPE_SOL_ADDRESS:
                 if (data_length > sizeof(eip712_context->contract_addr)) {
@@ -195,7 +193,7 @@ static bool field_hash_domain_special_fields(const s_struct_712_field *field_ptr
         memcpy(eip712_context->contract_addr, data, data_length);
         explicit_bzero(&eip712_context->contract_addr[data_length],
                        sizeof(eip712_context->contract_addr) - data_length);
-    } else if (strncmp(key, "chainId", strlen(key)) == 0) {
+    } else if (strcmp(key, "chainId") == 0) {
         eip712_context->chain_id = u64_from_BE(data, data_length);
     }
     return true;

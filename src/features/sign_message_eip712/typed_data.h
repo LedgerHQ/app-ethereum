@@ -59,7 +59,6 @@ typedef struct struct_712 {
 
 const void *get_array_in_mem(const void *ptr, uint8_t *array_size);
 const char *get_string_in_mem(const uint8_t *ptr, uint8_t *string_length);
-const char *get_struct_field_custom_typename(const s_struct_712_field *field_ptr);
 const char *get_struct_field_typename(const s_struct_712_field *ptr);
 e_array_type struct_field_array_depth(const uint8_t *ptr, uint8_t *array_size);
 const s_struct_712 *get_struct_list(void);

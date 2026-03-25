@@ -650,7 +650,6 @@ bool set_gating_warning(void) {
     uint8_t counter = 0;
 
     if (GATING == NULL) {
-        PRINTF("[GATING] Descriptor not received\n");
         return true;
     }
 

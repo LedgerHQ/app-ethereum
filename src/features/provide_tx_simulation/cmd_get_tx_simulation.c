@@ -18,13 +18,6 @@
 #define TYPE_TX_SIMULATION 0x09
 #define STRUCT_VERSION     0x01
 
-enum {
-    CATEGORY_OTHERS = 0x01,
-    CATEGORY_ADDRESS = 0x02,
-    CATEGORY_DAPP = 0x03,
-    CATEGORY_LOSING_OPERATION = 0x04,
-};
-
 typedef struct {
     tx_simulation_t *simu;
     uint8_t sig_size;
@@ -136,11 +129,12 @@ static bool parse_chain_id(const tlv_data_t *data, s_tx_simu_ctx *context) {
  */
 static bool parse_risk(const tlv_data_t *data, s_tx_simu_ctx *context) {
     uint8_t value = 0;
-    if (!tlv_get_uint8_range(data, &value, 0, RISK_MALICIOUS - 1)) {
+    // UNKNOWN level is an internal fallback, not an API level, we don't expect it as input
+    if (!tlv_get_uint8_range(data, &value, 0, TX_SIMULATION_RISK_UNKNOWN - 1)) {
         PRINTF("TX_CHECKS_NORMALIZED_RISK: error\n");
         return false;
     }
-    context->simu->risk = value + 1;  // Because 0 is "unknown"
+    context->simu->risk = (tx_simulation_score_t) value;
     return true;
 }
 
@@ -152,10 +146,12 @@ static bool parse_risk(const tlv_data_t *data, s_tx_simu_ctx *context) {
  * @return whether the handling was successful
  */
 static bool parse_category(const tlv_data_t *data, s_tx_simu_ctx *context) {
-    if (!tlv_get_uint8_range(data, &context->simu->category, 0, UINT8_MAX)) {
+    uint8_t value = 0;
+    if (!tlv_get_uint8_range(data, &value, 0, TX_SIMULATION_CATEGORY_COUNT - 1)) {
         PRINTF("TX_CHECKS_NORMALIZED_CATEGORY: error\n");
         return false;
     }
+    context->simu->category = (tx_simulation_category_t) value;
     return true;
 }
 
@@ -168,11 +164,11 @@ static bool parse_category(const tlv_data_t *data, s_tx_simu_ctx *context) {
  */
 static bool parse_type(const tlv_data_t *data, s_tx_simu_ctx *context) {
     uint8_t value = 0;
-    if (!tlv_get_uint8_range(data, &value, 0, SIMU_TYPE_PERSONAL_MESSAGE - 1)) {
+    if (!tlv_get_uint8_range(data, &value, 0, TX_SIMULATION_TYPE_COUNT - 1)) {
         PRINTF("TX_CHECKS_SIMU_TYPE: error\n");
         return false;
     }
-    context->simu->type = value + 1;  // Because 0 is "unknown"
+    context->simu->type = (tx_simulation_type_t) value;
     return true;
 }
 
@@ -246,6 +242,7 @@ static bool parse_signature(const tlv_data_t *data, s_tx_simu_ctx *context) {
     X(0x82, TAG_TX_CHECKS_PROVIDER_MSG, parse_provider_msg, ENFORCE_UNIQUE_TAG)    \
     X(0x83, TAG_TX_CHECKS_TINY_URL, parse_tiny_url, ENFORCE_UNIQUE_TAG)            \
     X(0x84, TAG_TX_CHECKS_SIMU_TYPE, parse_type, ENFORCE_UNIQUE_TAG)               \
+    X(0x85, TAG_TX_CHECKS_ADDITIONAL_DATA, NULL, ENFORCE_UNIQUE_TAG)               \
     X(0x15, TAG_DER_SIGNATURE, parse_signature, ENFORCE_UNIQUE_TAG)
 
 // Forward declaration of common handler
@@ -328,17 +325,25 @@ static bool verify_fields(const s_tx_simu_ctx *context) {
                                  TAG_TX_CHECKS_TINY_URL,
                                  TAG_TX_CHECKS_SIMU_TYPE,
                                  TAG_DER_SIGNATURE)) {
+        PRINTF("Missing mandatory tags in received TLV\n");
+        return false;
+    }
+
+    if (TLV_CHECK_RECEIVED_TAGS(context->received_tags, TAG_TX_CHECKS_ADDITIONAL_DATA)) {
+        PRINTF("Unexpected tag received in TLV\n");
         return false;
     }
 
     // Type-specific fields
-    if (context->simu->type == SIMU_TYPE_TRANSACTION) {
+    if (context->simu->type == TX_SIMULATION_TYPE_TRANSACTION) {
         if (!TLV_CHECK_RECEIVED_TAGS(context->received_tags, TAG_CHAIN_ID)) {
+            PRINTF("Missing TAG_CHAIN_ID tag for TX_SIMULATION_TYPE_TRANSACTION TLV\n");
             return false;
         }
     }
-    if (context->simu->type == SIMU_TYPE_TYPED_DATA) {
+    if (context->simu->type == TX_SIMULATION_TYPE_TYPED_DATA) {
         if (!TLV_CHECK_RECEIVED_TAGS(context->received_tags, TAG_DOMAIN_HASH)) {
+            PRINTF("Missing TAG_DOMAIN_HASH tag for TX_SIMULATION_TYPE_TYPED_DATA TLV\n");
             return false;
         }
     }
@@ -502,10 +507,6 @@ static bool check_tx_simulation_hash(void) {
     uint8_t *hash = NULL;
     uint8_t *hash2 = NULL;
 
-    if (!N_storage.tx_check_enable) {
-        // Transaction Checks disabled
-        return true;
-    }
     switch (appState) {
         case APP_STATE_SIGNING_TX:
             hash = tmpCtx.transactionContext.hash;
@@ -519,7 +520,6 @@ static bool check_tx_simulation_hash(void) {
             break;
         default:
             PRINTF("[TX SIMU] Invalid app State %d!\n", appState);
-            TX_SIMULATION.risk = RISK_UNKNOWN;
             return false;
     }
     if (memcmp(TX_SIMULATION.tx_hash, hash, HASH_SIZE) != 0) {
@@ -528,8 +528,6 @@ static bool check_tx_simulation_hash(void) {
                TX_SIMULATION.tx_hash,
                HASH_SIZE,
                hash);
-        PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
-        TX_SIMULATION.risk = RISK_UNKNOWN;
         return false;
     }
     if ((hash2 != NULL) && (memcmp(TX_SIMULATION.domain_hash, hash2, HASH_SIZE)) != 0) {
@@ -538,8 +536,6 @@ static bool check_tx_simulation_hash(void) {
                TX_SIMULATION.domain_hash,
                HASH_SIZE,
                hash);
-        PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
-        TX_SIMULATION.risk = RISK_UNKNOWN;
         return false;
     }
     return true;
@@ -554,8 +550,6 @@ static bool check_tx_simulation_from_address(void) {
     uint8_t msg_sender[ADDRESS_LENGTH] = {0};
     if (get_public_key(msg_sender, sizeof(msg_sender)) != SWO_SUCCESS) {
         PRINTF("[TX SIMU] Unable to get the public key!\n");
-        PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
-        TX_SIMULATION.risk = RISK_UNKNOWN;
         return false;
     }
     if (memcmp(TX_SIMULATION.address, msg_sender, ADDRESS_LENGTH) != 0) {
@@ -564,8 +558,6 @@ static bool check_tx_simulation_from_address(void) {
                TX_SIMULATION.address,
                ADDRESS_LENGTH,
                msg_sender);
-        PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
-        TX_SIMULATION.risk = RISK_UNKNOWN;
         return false;
     }
     return true;
@@ -581,8 +573,6 @@ static bool check_tx_simulation_chain_id(void) {
     // Check Chain_ID in case of a standard transaction (No EIP191, No EIP712)
     if ((appState == APP_STATE_SIGNING_TX) && (TX_SIMULATION.chain_id != chain_id)) {
         PRINTF("[TX SIMU] Chain_ID mismatch: %llu != %llu\n", TX_SIMULATION.chain_id, chain_id);
-        PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
-        TX_SIMULATION.risk = RISK_UNKNOWN;
         return false;
     }
     return true;
@@ -595,38 +585,26 @@ static bool check_tx_simulation_chain_id(void) {
  */
 static bool check_tx_simulation_validity(void) {
     switch (TX_SIMULATION.type) {
-        case SIMU_TYPE_TRANSACTION:
+        case TX_SIMULATION_TYPE_TRANSACTION:
             if (appState != APP_STATE_SIGNING_TX) {
                 PRINTF("[TX SIMU] Simulation type inconsistent!\n");
-                TX_SIMULATION.risk = RISK_UNKNOWN;
                 return false;
             }
             break;
-        case SIMU_TYPE_PERSONAL_MESSAGE:
-            if (appState != APP_STATE_SIGNING_MESSAGE) {
-                PRINTF("[TX SIMU] Simulation type inconsistent!\n");
-                TX_SIMULATION.risk = RISK_UNKNOWN;
-                return false;
-            }
-            break;
-        case SIMU_TYPE_TYPED_DATA:
+        case TX_SIMULATION_TYPE_TYPED_DATA:
             if (appState != APP_STATE_SIGNING_EIP712) {
                 PRINTF("[TX SIMU] Simulation type inconsistent!\n");
-                TX_SIMULATION.risk = RISK_UNKNOWN;
                 return false;
             }
             break;
         default:
             // No simulation data
             PRINTF("[TX SIMU] Simulation type is not set\n");
-            PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
-            TX_SIMULATION.risk = RISK_UNKNOWN;
             return false;
     }
-    if (TX_SIMULATION.risk == RISK_UNKNOWN) {
+    if (TX_SIMULATION.risk == TX_SIMULATION_RISK_UNKNOWN) {
         // No simulation data
         PRINTF("[TX SIMU] Simulation risk is not set\n");
-        PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
         return false;
     }
     return true;
@@ -638,20 +616,16 @@ static bool check_tx_simulation_validity(void) {
  * @return whether it was successful
  */
 static bool check_tx_simulation_params(void) {
-    if (!N_storage.tx_check_enable) {
-        // Transaction Checks disabled
-        return true;
-    }
-    if (check_tx_simulation_validity() == false) {
+    if (!check_tx_simulation_validity()) {
         return false;
     }
-    if (check_tx_simulation_chain_id() == false) {
+    if (!check_tx_simulation_chain_id()) {
         return false;
     }
-    if (check_tx_simulation_from_address() == false) {
+    if (!check_tx_simulation_from_address()) {
         return false;
     }
-    if (check_tx_simulation_hash() == false) {
+    if (!check_tx_simulation_hash()) {
         return false;
     }
     return true;
@@ -664,21 +638,27 @@ static bool check_tx_simulation_params(void) {
 void set_tx_simulation_warning(void) {
     if (!N_storage.tx_check_enable) {
         // Transaction Checks disabled
+        PRINTF("Transaction Checks are disabled, skipping\n");
         return;
     }
     // Transaction Checks enabled => Verify parameters of the Transaction
-    check_tx_simulation_params();
+    if (!check_tx_simulation_params()) {
+        // Fallback
+        PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
+        TX_SIMULATION.risk = TX_SIMULATION_RISK_UNKNOWN;
+    }
+
     switch (TX_SIMULATION.risk) {
-        case RISK_UNKNOWN:
+        case TX_SIMULATION_RISK_UNKNOWN:
             warning.predefinedSet |= SET_BIT(W3C_ISSUE_WARN);
             break;
-        case RISK_BENIGN:
+        case TX_SIMULATION_RISK_BENIGN:
             warning.predefinedSet |= SET_BIT(W3C_NO_THREAT_WARN);
             break;
-        case RISK_WARNING:
+        case TX_SIMULATION_RISK_WARNING:
             warning.predefinedSet |= SET_BIT(W3C_RISK_DETECTED_WARN);
             break;
-        case RISK_MALICIOUS:
+        case TX_SIMULATION_RISK_MALICIOUS:
             warning.predefinedSet |= SET_BIT(W3C_THREAT_DETECTED_WARN);
             break;
         default:
@@ -696,13 +676,13 @@ void set_tx_simulation_warning(void) {
  */
 const char *get_tx_simulation_risk_str(void) {
     switch (TX_SIMULATION.risk) {
-        case RISK_UNKNOWN:
+        case TX_SIMULATION_RISK_UNKNOWN:
             return "UNKNOWN (Transaction Check Issue)";
-        case RISK_BENIGN:
+        case TX_SIMULATION_RISK_BENIGN:
             return "BENIGN";
-        case RISK_WARNING:
+        case TX_SIMULATION_RISK_WARNING:
             return "RISK (WARNING)";
-        case RISK_MALICIOUS:
+        case TX_SIMULATION_RISK_MALICIOUS:
             return "THREAT (MALICIOUS)";
         default:
             break;
@@ -718,18 +698,18 @@ const char *get_tx_simulation_risk_str(void) {
 const char *get_tx_simulation_category_str(void) {
     // Unknown category string
     switch (TX_SIMULATION.risk) {
-        case RISK_UNKNOWN:
-        case RISK_BENIGN:
+        case TX_SIMULATION_RISK_UNKNOWN:
+        case TX_SIMULATION_RISK_BENIGN:
             break;
-        case RISK_WARNING:
+        case TX_SIMULATION_RISK_WARNING:
             switch (TX_SIMULATION.category) {
-                case CATEGORY_ADDRESS:
+                case TX_SIMULATION_CATEGORY_ADDRESS:
                     return "This transaction involves a suspicious address. "
                            "It might not be safe to continue.";
-                case CATEGORY_DAPP:
+                case TX_SIMULATION_CATEGORY_DAPP:
                     return "This transaction involves a suspicious dApp. "
                            "It might not be safe to continue.";
-                case CATEGORY_LOSING_OPERATION:
+                case TX_SIMULATION_CATEGORY_LOSING_OPERATION:
                     return "This transaction could end in a loss. "
                            "Check transaction details carefully before signing.";
                 default:
@@ -738,12 +718,12 @@ const char *get_tx_simulation_category_str(void) {
                     break;
             }
             break;
-        case RISK_MALICIOUS:
+        case TX_SIMULATION_RISK_MALICIOUS:
             switch (TX_SIMULATION.category) {
-                case CATEGORY_ADDRESS:
+                case TX_SIMULATION_CATEGORY_ADDRESS:
                     return "This transaction involves a malicious address. "
                            "Your assets will most likely be stolen.";
-                case CATEGORY_DAPP:
+                case TX_SIMULATION_CATEGORY_DAPP:
                     return "This dApp is linked to a scammer. "
                            "Your assets will most likely be stolen.";
                 default:

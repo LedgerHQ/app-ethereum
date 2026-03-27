@@ -225,7 +225,8 @@ bool tlv_get_printable_string(const tlv_data_t *data,
         return false;
     }
     // Extract the string (with null terminator added by get_string_from_tlv_data)
-    if (!get_string_from_tlv_data(data, out, min_len, max_len - 1)) {
+    // max_len is the buffer capacity including the null terminator
+    if (!get_string_from_tlv_data(data, out, min_len, max_len)) {
         PRINTF("STRING: failed to extract\n");
         return false;
     }

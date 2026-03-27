@@ -1,0 +1,72 @@
+name: Build and publish release binaries
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  build_application:
+    name: Build application using the reusable workflow
+    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_build.yml@v1
+    with:
+      upload_app_binaries_artifact: "release_elfs"
+
+  release:
+    name: Create GitHub Release with ELF binaries
+    needs: build_application
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download built binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: release_elfs
+          path: binaries
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Rename ELF files per device
+        run: |
+          mkdir release_assets
+          for device_dir in binaries/*/; do
+            device=$(basename "$device_dir")
+            if [ -f "${device_dir}bin/app.elf" ]; then
+              cp "${device_dir}bin/app.elf" "release_assets/app-${device}-${GITHUB_REF_NAME}.elf"
+            fi
+          done
+          ls -la release_assets/
+
+      - name: Extract release notes from CHANGELOG.md
+        id: changelog
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          # Extract the section for this version from CHANGELOG.md
+          # Matches from "## [x.y.z]" until the next "## [" or end of file
+          NOTES=$(awk -v ver="$VERSION" '
+            BEGIN { found=0 }
+            /^## \[/ {
+              if (found) exit
+              if (index($0, "[" ver "]")) { found=1; next }
+            }
+            found { print }
+          ' CHANGELOG.md)
+
+          if [ -z "$NOTES" ]; then
+            echo "Warning: No changelog entry found for version $VERSION"
+            NOTES="Release $VERSION"
+          fi
+
+          # Write to file to avoid delimiter issues
+          echo "$NOTES" > release_notes.md
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --title "${{ github.ref_name }}" \
+            --notes-file release_notes.md \
+            release_assets/*.elf

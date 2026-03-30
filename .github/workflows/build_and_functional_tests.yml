@@ -21,9 +21,7 @@ on:
           - 'Open a PR'
   push:
     branches:
-      - master
-      - main
-      - develop
+      - nanos
   pull_request:
 
 jobs:

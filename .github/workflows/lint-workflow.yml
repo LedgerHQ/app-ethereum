@@ -11,9 +11,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - master
-      - main
-      - develop
+      - nanos
   pull_request:
 
 jobs:

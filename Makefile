@@ -37,7 +37,7 @@ include ./makefile_conf/chain/$(CHAIN).mk
 
 APPVERSION_M = 1
 APPVERSION_N = 16
-APPVERSION_P = 0
+APPVERSION_P = 1
 APPVERSION = $(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 
 # Application source files
@@ -92,7 +92,6 @@ CURVE_APP_LOAD_PARAMS += secp256k1
 # and SLIP-0044 standards.
 # If your app needs it, you can specify multiple path by using:
 # `PATH_APP_LOAD_PARAMS = "44'/1'" "45'/1'"`
-PATH_APP_LOAD_PARAMS += "45'" "44'/1'"
 
 # Setting to allow building variant applications
 # - <VARIANT_PARAM> is the name of the parameter which should be set

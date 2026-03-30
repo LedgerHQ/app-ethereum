@@ -28,6 +28,7 @@
 #include "shared_context.h"  // tmpContent
 #include "read.h"            // read_u64_be
 #include "network.h"         // get_tx_chain_id
+#include "app_mem_utils.h"   // APP_MEM_FREE_AND_NULL
 
 static bool check_fields(txContext_t *context, const char *name, uint32_t length) {
     UNUSED(name);  // Just for the case where DEBUG is not enabled
@@ -101,6 +102,17 @@ bool copy_tx_data(txContext_t *context, uint8_t *out, uint32_t length) {
     }
     if (!(context->processingField && context->fieldSingleByte)) {
         if (cx_hash_no_throw((cx_hash_t *) context->sha3,
+                             0,
+                             context->workBuffer,
+                             length,
+                             NULL,
+                             0) != CX_OK) {
+            return false;
+        }
+    }
+    // Feed calldata bytes into the calldata digest hash (includes single-byte fields)
+    if (context->calldata_sha3 != NULL) {
+        if (cx_hash_no_throw((cx_hash_t *) context->calldata_sha3,
                              0,
                              context->workBuffer,
                              length,
@@ -350,6 +362,19 @@ static bool process_data(txContext_t *context) {
     }
     if (context->currentFieldPos == context->currentFieldLength) {
         PRINTF("incrementing field\n");
+        // Finalize calldata digest if we were hashing
+        if (context->calldata_sha3 != NULL) {
+            if (cx_hash_no_throw((cx_hash_t *) context->calldata_sha3,
+                                 CX_LAST,
+                                 NULL,
+                                 0,
+                                 context->calldataDigest,
+                                 sizeof(context->calldataDigest)) != CX_OK) {
+                return false;
+            }
+            context->calldataDigestValid = context->content->dataPresent;
+            APP_MEM_FREE_AND_NULL((void **) &context->calldata_sha3);
+        }
         context->currentField++;
         context->processingField = false;
     }

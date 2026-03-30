@@ -98,8 +98,8 @@ uint16_t ui_sign_712_v0(void) {
         return sw;
     }
 
-    // Initialize the buffers
-    if (!ui_pairs_init(2)) {
+    // Initialize the buffers (3 pairs: EIP-712 Digest, Domain Hash, Message Hash)
+    if (!ui_pairs_init(3)) {
         // Initialization failed, cleanup and return
         return SWO_INSUFFICIENT_MEMORY;
     }

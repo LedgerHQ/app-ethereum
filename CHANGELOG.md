@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.16.1](../../compare/1.16.0...1.16.1-lns) - 2026-03-30
+
+### Fixed
+
+- RLP elements parsing
+
+### Removed
+
+- 44'/1' derivation path
+- 45' derivation path from clones
+
 ## [1.16.0](../../compare/1.15.0...1.16.0) - 2025-04-28
 
 ### Added

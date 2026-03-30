@@ -85,8 +85,10 @@ uint16_t handle_get_public_key(uint8_t p1,
                                uint8_t dataLength,
                                unsigned int *flags,
                                unsigned int *tx);
-uint16_t handle_provide_erc20_token_information(const uint8_t *workBuffer,
-                                                uint8_t dataLength,
+uint16_t handle_provide_erc20_token_information(uint8_t p1,
+                                                uint8_t p2,
+                                                uint8_t lc,
+                                                const uint8_t *data,
                                                 unsigned int *tx);
 uint16_t handle_provide_nft_information(const uint8_t *dataBuffer,
                                         uint8_t dataLength,

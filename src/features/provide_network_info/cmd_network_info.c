@@ -28,6 +28,10 @@ static uint16_t handle_get_config(void) {
         network_info_t *net_info = (network_info_t *) node;
         if (net_info->chain_id != 0) {
             PRINTF("[NETWORK] - Found dynamic '%s'\n", net_info->name);
+            if (tx + sizeof(uint64_t) > sizeof(G_io_tx_buffer)) {
+                PRINTF("Error: Not enough space to return all networks!\n");
+                break;
+            }
             // Convert chain_id
             explicit_bzero(chain_str, sizeof(chain_str));
             write_u64_be(chain_str, 0, net_info->chain_id);

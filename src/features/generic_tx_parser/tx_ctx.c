@@ -165,23 +165,29 @@ static bool process_empty_tx(const s_tx_ctx *tx_ctx) {
 }
 
 bool process_empty_txs_before(void) {
-    for (list_node_t *tmp = ((list_node_t *) g_tx_ctx_current)->prev;
-         (tmp != NULL) && (((s_tx_ctx *) tmp)->calldata == NULL);
-         tmp = tmp->prev) {
+    list_node_t *tmp = ((list_node_t *) g_tx_ctx_current)->prev;
+    while ((tmp != NULL) && (((s_tx_ctx *) tmp)->calldata == NULL)) {
+        // process_empty_tx calls list_remove + delete_tx_ctx, which frees tmp.
+        // Ensure reading tmp->prev before the call to avoid use-after-free.
+        list_node_t *prev = tmp->prev;
         if (!process_empty_tx((s_tx_ctx *) tmp)) {
             return false;
         }
+        tmp = prev;
     }
     return true;
 }
 
 bool process_empty_txs_after(void) {
-    for (flist_node_t *tmp = ((flist_node_t *) g_tx_ctx_current)->next;
-         (tmp != NULL) && (((s_tx_ctx *) tmp)->calldata == NULL);
-         tmp = tmp->next) {
+    flist_node_t *tmp = ((flist_node_t *) g_tx_ctx_current)->next;
+    while ((tmp != NULL) && (((s_tx_ctx *) tmp)->calldata == NULL)) {
+        // process_empty_tx calls list_remove + delete_tx_ctx, which frees tmp.
+        // Ensure reading tmp->next before the call to avoid use-after-free.
+        flist_node_t *next = tmp->next;
         if (!process_empty_tx((s_tx_ctx *) tmp)) {
             return false;
         }
+        tmp = next;
     }
     return true;
 }
@@ -291,6 +297,15 @@ bool tx_ctx_init(s_calldata *calldata,
         return false;
     }
     list_push_back((list_node_t **) &g_tx_ctx_list, (list_node_t *) node);
+
+    // Ownership of the calldata has been transferred to the node.
+    // Clear g_parked_calldata now so callers cannot double-free it if we return
+    // false below (e.g. when field_table_init fails after the node is in the list
+    // and will be freed by tx_ctx_cleanup via delete_tx_ctx).
+    if (g_parked_calldata == calldata) {
+        g_parked_calldata = NULL;
+    }
+
     if ((appState == APP_STATE_SIGNING_TX) && (node == g_tx_ctx_list)) {
         return field_table_init();
     }

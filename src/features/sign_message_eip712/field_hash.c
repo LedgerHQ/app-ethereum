@@ -264,6 +264,10 @@ bool field_hash(const uint8_t *data, uint8_t data_length, bool partial) {
         }
 
         data = field_hash_prepare(field_ptr, data, &data_length);
+        if (data == NULL) {
+            apdu_response_code = SWO_INCORRECT_DATA;
+            return false;
+        }
         total_length = fh->remaining_size;
     }
     if (data_length > fh->remaining_size) {

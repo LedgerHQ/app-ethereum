@@ -86,7 +86,12 @@ static bool handle_chain_id(const tlv_data_t *data, s_proxy_info_ctx *context) {
  * @return whether the handling was successful
  */
 static bool handle_selector(const tlv_data_t *data, s_proxy_info_ctx *context) {
-    return tlv_get_hash(data, context->proxy_info.selector, sizeof(context->proxy_info.selector));
+    if (!tlv_get_hash(data, context->proxy_info.selector, sizeof(context->proxy_info.selector))) {
+        PRINTF("SELECTOR: error\n");
+        return false;
+    }
+    context->proxy_info.has_selector = true;
+    return true;
 }
 
 /**

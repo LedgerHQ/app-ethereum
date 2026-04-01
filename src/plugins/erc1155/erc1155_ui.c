@@ -138,7 +138,6 @@ void handle_query_contract_ui_1155(ethQueryContractUI_t *msg) {
         msg->result = ETH_PLUGIN_RESULT_ERROR;
         return;
     }
-
     msg->result = ETH_PLUGIN_RESULT_OK;
     switch (context->selectorIndex) {
         case SET_APPROVAL_FOR_ALL:

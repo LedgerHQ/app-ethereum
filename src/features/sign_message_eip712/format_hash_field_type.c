@@ -88,6 +88,9 @@ bool format_hash_field_type(const s_struct_712_field *field_ptr, cx_hash_t *hash
 
     // field type name
     name = get_struct_field_typename(field_ptr);
+    if (name == NULL) {
+        return false;
+    }
     hash_nbytes((uint8_t *) name, strlen(name), hash_ctx);
 
     // field type size

@@ -8,8 +8,7 @@
 #include "ui_callbacks.h"
 #include "apdu_constants.h"
 #include "format.h"
-#include "token_info.h"
-#include "nft_info.h"
+#include "manage_asset_info.h"
 #include "handle_swap_sign_transaction.h"
 #include "os_math.h"
 #include "calldata.h"
@@ -276,17 +275,6 @@ static void nonce_to_string(const txInt256_t *nonce, char *out, size_t out_size)
     uint256_t nonce_uint256;
     convertUint256BE(nonce->value, nonce->length, &nonce_uint256);
     tostring256(&nonce_uint256, 10, out, out_size);
-}
-
-// try go get an asset like how it used to work
-// but since they are not in the same array anymore, we prioritize tokens over NFTs
-static extraInfo_t *get_matching_asset_info(const uint64_t *chain_id, const uint8_t *address) {
-    extraInfo_t *asset;
-
-    if ((asset = (extraInfo_t *) get_matching_token_info(chain_id, address)) == NULL) {
-        asset = (extraInfo_t *) get_matching_nft_info(chain_id, address);
-    }
-    return asset;
 }
 
 __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContext_t *context) {

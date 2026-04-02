@@ -2,11 +2,6 @@
 
 #include "eth_plugin_interface.h"
 
-#define NO_EXTRA_INFO(ctx, idx) \
-    (allzeroes(&(ctx.transactionContext.extraInfo[idx]), sizeof(extraInfo_t)))
-
-#define NO_NFT_METADATA (NO_EXTRA_INFO(tmpCtx, 0))
-
 void eth_plugin_prepare_init(ethPluginInitContract_t *init,
                              const uint8_t *selector,
                              uint32_t data_size);

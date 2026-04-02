@@ -27,8 +27,6 @@
 
 #define N_storage (*(volatile internalStorage_t *) PIC(&N_storage_real))
 
-#define MAX_ASSETS 5
-
 typedef struct internalStorage_t {
     bool dataAllowed;
     bool contractDetails;
@@ -84,9 +82,6 @@ typedef struct publicKeyContext_t {
 typedef struct transactionContext_t {
     bip32_path_t bip32;
     uint8_t hash[INT256_LENGTH];
-    union extraInfo_t extraInfo[MAX_ASSETS];
-    bool assetSet[MAX_ASSETS];
-    uint8_t currentAssetIndex;
 } transactionContext_t;
 
 typedef struct messageSigningContext_t {

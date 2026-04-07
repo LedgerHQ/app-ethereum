@@ -110,13 +110,19 @@ static bool path_tuple(const s_tuple_args *tuple, uint32_t *offset, uint32_t *re
 
 static bool path_ref(uint32_t *offset, uint32_t *ref_offset) {
     uint8_t buf[sizeof(uint16_t)];
+    uint16_t raw_offset;
     const uint8_t *chunk;
 
     if ((chunk = calldata_get_chunk(get_current_calldata(), *offset)) == NULL) {
         return false;
     }
     buf_shrink_expand(chunk, CALLDATA_CHUNK_SIZE, buf, sizeof(buf));
-    *offset = read_u16_be(buf, 0) / CALLDATA_CHUNK_SIZE;
+    raw_offset = read_u16_be(buf, 0);
+    if ((raw_offset % CALLDATA_CHUNK_SIZE) != 0) {
+        // reject unaligned offsets
+        return false;
+    }
+    *offset = raw_offset / CALLDATA_CHUNK_SIZE;
     *offset += *ref_offset;
     return true;
 }

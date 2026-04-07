@@ -145,6 +145,17 @@ static uint16_t final_process(void) {
         goto end;
     }
 
+    // Guard against uint16_t overflow in the display buffer length calculation.
+    // In the worst case (hex path) the length becomes msg_length * 2 + 3, so
+    // reject messages that would cause that expression to exceed UINT16_MAX.
+    if (signMsgCtx->msg_length > ((UINT16_MAX - 3) / 2)) {
+        PRINTF("Error: message too long (%u > %u)\n",
+               signMsgCtx->msg_length,
+               ((UINT16_MAX - 3) / 2));
+        error = SWO_INCORRECT_DATA;
+        goto end;
+    }
+
     // Display buffer length
     buffer_length = signMsgCtx->msg_length;
 

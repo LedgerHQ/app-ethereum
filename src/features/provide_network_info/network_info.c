@@ -417,11 +417,14 @@ void network_info_cleanup(network_info_t *network) {
         // Remove from list
         flist_remove((flist_node_t **) &g_dynamic_network_list, (flist_node_t *) network, NULL);
 
-        // Free the network info structure
-        APP_MEM_FREE_AND_NULL((void **) &network);
+        // Save address before freeing to check if it's the last added network
+        bool was_last = (g_last_added_network == network);
+
+        // Free the network info structure (local parameter — no need to null it)
+        APP_MEM_FREE((void *) network);
 
         // Reset last added network pointer if it was this network
-        if (g_last_added_network == network) {
+        if (was_last) {
             g_last_added_network = NULL;
             // Also cleanup temporary buffers associated with this network
             clear_icon();

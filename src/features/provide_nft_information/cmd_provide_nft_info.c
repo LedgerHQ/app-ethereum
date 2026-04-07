@@ -74,10 +74,14 @@ uint16_t handle_provide_nft_information(const uint8_t *workBuffer,
 
     PRINTF("In handle provide NFTInformation\n");
 
+    // Retrieve the NFT sub-structure from the current asset info slot.
     nft = &get_current_asset_info()->nft;
 
     PRINTF("Provisioning currentAssetIndex %d\n", tmpCtx.transactionContext.currentAssetIndex);
 
+    // --- Header validation ---
+    // The buffer must be large enough to hold at least the fixed-size header
+    // (type + version + collection name length).
     if (dataLength <= HEADER_SIZE) {
         PRINTF("Data too small for headers: expected at least %d, got %d\n",
                HEADER_SIZE,
@@ -85,22 +89,28 @@ uint16_t handle_provide_nft_information(const uint8_t *workBuffer,
         return SWO_INCORRECT_DATA;
     }
 
+    // Reject unknown structure types so that future formats are not silently
+    // mis-parsed by this implementation.
     if (workBuffer[offset] != TYPE_1) {
         PRINTF("Unsupported type %d\n", workBuffer[offset]);
         return SWO_INCORRECT_DATA;
     }
     offset += TYPE_SIZE;
 
+    // Reject unknown versions for the same reason.
     if (workBuffer[offset] != VERSION_1) {
         PRINTF("Unsupported version %d\n", workBuffer[offset]);
         return SWO_INCORRECT_DATA;
     }
     offset += VERSION_SIZE;
 
+    // Read the collection name length declared in the header.
     collectionNameLength = workBuffer[offset];
     offset += NAME_LENGTH_SIZE;
 
-    // Size of the payload (everything except the signature)
+    // --- Payload size validation ---
+    // Size of the payload (everything except the signature).
+    // This is computed now that the variable-length collection name size is known.
     payloadSize = HEADER_SIZE + collectionNameLength + ADDRESS_LENGTH + CHAIN_ID_SIZE +
                   KEY_ID_SIZE + ALGORITHM_ID_SIZE;
     if (dataLength < payloadSize) {
@@ -110,6 +120,7 @@ uint16_t handle_provide_nft_information(const uint8_t *workBuffer,
         return SWO_INCORRECT_DATA;
     }
 
+    // Guard against a collection name that would overflow the destination buffer.
     if (collectionNameLength > COLLECTION_NAME_MAX_LEN) {
         PRINTF("CollectionName too big: expected max %d, got %d\n",
                COLLECTION_NAME_MAX_LEN,
@@ -117,6 +128,7 @@ uint16_t handle_provide_nft_information(const uint8_t *workBuffer,
         return SWO_INCORRECT_DATA;
     }
 
+    // --- Collection name parsing ---
     // Safe because we've checked the size before.
     memcpy(nft->collectionName, workBuffer + offset, collectionNameLength);
     nft->collectionName[collectionNameLength] = '\0';
@@ -125,10 +137,14 @@ uint16_t handle_provide_nft_information(const uint8_t *workBuffer,
     PRINTF("CollectionName: %s\n", nft->collectionName);
     offset += collectionNameLength;
 
+    // --- Contract address parsing ---
     memcpy(nft->contractAddress, workBuffer + offset, ADDRESS_LENGTH);
     PRINTF("Address: %.*H\n", ADDRESS_LENGTH, workBuffer + offset);
     offset += ADDRESS_LENGTH;
 
+    // --- Chain ID parsing and compatibility check ---
+    // The chain ID is encoded as a big-endian 64-bit integer.
+    // Reject it if the running app was built for a different chain.
     chain_id = u64_from_BE(workBuffer + offset, CHAIN_ID_SIZE);
     PRINTF("ChainID: %llu\n", chain_id);
     if (!app_compatible_with_chain_id(&chain_id)) {
@@ -137,21 +153,30 @@ uint16_t handle_provide_nft_information(const uint8_t *workBuffer,
     }
     offset += CHAIN_ID_SIZE;
 
+    // --- Key ID validation ---
+    // Depending on the build configuration (staging vs. production), only one
+    // specific key identifier is accepted, ensuring the correct trust anchor is used.
     if (workBuffer[offset] != valid_keyId) {
         PRINTF("Unsupported KeyID %d\n", workBuffer[offset]);
         return SWO_INCORRECT_DATA;
     }
     offset += KEY_ID_SIZE;
 
+    // --- Algorithm ID validation ---
+    // Only algorithm ID 1 (ECDSA over secp256k1 with SHA-256) is supported.
     if (workBuffer[offset] != ALGORITHM_ID_1) {
         PRINTF("Incorrect algorithmId %d\n", workBuffer[offset]);
         return SWO_INCORRECT_DATA;
     }
     offset += ALGORITHM_ID_SIZE;
 
+    // --- Payload hashing ---
+    // Hash the structured payload (header through algorithm ID) so that the
+    // signature can be verified against a fixed-size digest.
     PRINTF("hashing: %.*H\n", payloadSize, workBuffer);
     cx_hash_sha256(workBuffer, payloadSize, hash, sizeof(hash));
 
+    // --- Signature length parsing and validation ---
     if (dataLength < payloadSize + SIGNATURE_LENGTH_SIZE) {
         PRINTF("Data too short to hold signature length\n");
         return SWO_INCORRECT_DATA;
@@ -159,6 +184,7 @@ uint16_t handle_provide_nft_information(const uint8_t *workBuffer,
 
     signatureLen = workBuffer[offset];
     PRINTF("Signature len: %d\n", signatureLen);
+    // DER-encoded ECDSA signatures over a 256-bit curve fall within a known size range.
     if (signatureLen < MIN_DER_SIG_SIZE || signatureLen > MAX_DER_SIG_SIZE) {
         PRINTF("SignatureLen too big or too small. Must be between %d and %d, got %d\n",
                MIN_DER_SIG_SIZE,
@@ -168,11 +194,15 @@ uint16_t handle_provide_nft_information(const uint8_t *workBuffer,
     }
     offset += SIGNATURE_LENGTH_SIZE;
 
+    // Verify that the declared signature bytes are actually present in the buffer.
     if (dataLength < payloadSize + SIGNATURE_LENGTH_SIZE + signatureLen) {
         PRINTF("Signature could not fit in data\n");
         return SWO_INCORRECT_DATA;
     }
 
+    // --- Signature verification ---
+    // Verify the DER signature against the Ledger NFT metadata public key.
+    // Reject the payload if the signature is invalid.
     if (check_signature_with_pubkey(hash,
                                     sizeof(hash),
                                     LEDGER_NFT_METADATA_PUBLIC_KEY,
@@ -183,6 +213,9 @@ uint16_t handle_provide_nft_information(const uint8_t *workBuffer,
         return SWO_INCORRECT_DATA;
     }
 
+    // --- Commit the validated metadata ---
+    // Write the asset index into the response buffer, mark the asset info as
+    // validated, and advance the response length by one byte.
     G_io_tx_buffer[0] = tmpCtx.transactionContext.currentAssetIndex;
     validate_current_asset_info();
     *tx += 1;

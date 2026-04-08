@@ -19,6 +19,7 @@ from .dynamic_networks import DynamicNetwork
 from .safe import SafeAccount, AccountType
 from .gating import Gating
 from .trusted_name import TrustedName, TrustedNameSource
+from .token_info import TokenInfo
 
 
 class EIP712CalldataParamPresence(IntEnum):
@@ -482,6 +483,15 @@ class EthAppClient:
         self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_GATING)
 
         chunks = self._cmd_builder.provide_gating(gating_descriptor.serialize())
+        for chunk in chunks[:-1]:
+            self._exchange(chunk)
+        return self._exchange(chunks[-1])
+
+    def provide_token_info(self, token_info: TokenInfo) -> RAPDU:
+        # Send ledgerPKI certificate
+        self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_COIN_META)
+
+        chunks = self._cmd_builder.provide_token_info(token_info.serialize())
         for chunk in chunks[:-1]:
             self._exchange(chunk)
         return self._exchange(chunks[-1])

@@ -613,3 +613,6 @@ class CommandBuilder:
 
     def provide_gating(self, tlv_payload: bytes) -> list[bytes]:
         return self.common_tlv_serialize(InsType.PROVIDE_GATING, tlv_payload)
+
+    def provide_token_info(self, tlv_payload: bytes) -> list[bytes]:
+        return self.common_tlv_serialize(InsType.PROVIDE_ERC20_TOKEN_INFORMATION, tlv_payload, p1l=[0x01], p2l=[0x01, 0x00])

@@ -315,10 +315,6 @@ static bool process_data(txContext_t *context) {
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =
             MIN(context->commandLength, context->currentFieldLength - context->currentFieldPos);
-        // If there is no data, set dataPresent to false.
-        if (copySize == 1 && *context->workBuffer == 0x00) {
-            context->content->dataPresent = false;
-        }
 
         if ((context->currentFieldPos == 0) && (copySize >= 4)) {
             // Consider the 4 1st bytes are the selector

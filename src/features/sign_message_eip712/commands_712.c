@@ -291,7 +291,7 @@ uint16_t handle_eip712_sign(const uint8_t *cdata, uint8_t length, uint32_t *flag
              (path_get_field() != NULL)) {
         apdu_response_code = SWO_INCORRECT_DATA;
     } else if ((ui_712_get_filtering_mode() == EIP712_FILTERING_FULL) &&
-               (ui_712_remaining_filters() != 0)) {
+               (!ui_712_message_info_received() || (ui_712_remaining_filters() != 0))) {
         PRINTF("%d EIP712 filters are missing\n", ui_712_remaining_filters());
         apdu_response_code = SWO_REFERENCED_DATA_NOT_FOUND;
     } else if (!all_calldata_info_processed() || (get_tx_ctx_count() != 0)) {

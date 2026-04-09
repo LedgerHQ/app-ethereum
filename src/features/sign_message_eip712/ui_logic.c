@@ -63,6 +63,7 @@ typedef struct {
     bool end_reached;
     e_eip712_filtering_mode filtering_mode;
     uint8_t filters_to_process;
+    bool message_info_received;
     uint8_t field_flags;
     uint8_t structs_to_review;
     s_amount_context amount;
@@ -1171,6 +1172,7 @@ e_eip712_filtering_mode ui_712_get_filtering_mode(void) {
  */
 void ui_712_set_filters_count(uint8_t count) {
     ui_ctx->filters_to_process = count;
+    ui_ctx->message_info_received = true;
 }
 
 /**
@@ -1180,6 +1182,10 @@ void ui_712_set_filters_count(uint8_t count) {
  */
 uint8_t ui_712_remaining_filters(void) {
     return ui_ctx->filters_to_process - flist_size((flist_node_t **) &ui_ctx->filters_crc);
+}
+
+bool ui_712_message_info_received(void) {
+    return ui_ctx->message_info_received;
 }
 
 /**

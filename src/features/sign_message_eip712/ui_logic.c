@@ -638,6 +638,10 @@ static bool update_amount_join(const uint8_t *data, uint8_t length) {
     }
     switch (ui_ctx->amount.state) {
         case AMOUNT_JOIN_STATE_TOKEN:
+            if (length != ADDRESS_LENGTH) {
+                apdu_response_code = SWO_INCORRECT_DATA;
+                return false;
+            }
             if (token != NULL) {
                 if (memcmp(data, token->address, ADDRESS_LENGTH) != 0) {
                     return false;

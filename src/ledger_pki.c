@@ -36,6 +36,7 @@ bool check_signature_with_pubkey(uint8_t *hash,
             break;
 
         case CHECK_SIGNATURE_WITH_PKI_MISSING_CERTIFICATE:
+        case CHECK_SIGNATURE_WITH_PKI_WRONG_CERTIFICATE_USAGE:
             PRINTF("********** No certificate loaded. Using legacy path **********\n");
             if (cx_ecfp_init_public_key_no_throw(expected_curve, PubKey, keyLen, &verif_key) !=
                 CX_OK) {
@@ -51,7 +52,6 @@ bool check_signature_with_pubkey(uint8_t *hash,
             ret = true;
             break;
 
-        case CHECK_SIGNATURE_WITH_PKI_WRONG_CERTIFICATE_USAGE:
         case CHECK_SIGNATURE_WITH_PKI_WRONG_CERTIFICATE_CURVE:
         case CHECK_SIGNATURE_WITH_PKI_WRONG_SIGNATURE:
         default:

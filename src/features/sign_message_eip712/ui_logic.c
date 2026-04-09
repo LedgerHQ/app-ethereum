@@ -477,6 +477,10 @@ static bool ui_712_format_int(const uint8_t *data,
     if (!first) {
         return false;
     }
+    if (length < 1) {
+        apdu_response_code = SWO_INCORRECT_DATA;
+        return false;
+    }
     if (length > field_ptr->type_size) {
         apdu_response_code = SWO_INCORRECT_DATA;
         return false;
@@ -506,6 +510,10 @@ static bool ui_712_format_int(const uint8_t *data,
             snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "%d", value16);
             break;
         case 8:
+            if (length != sizeof(int8_t)) {
+                apdu_response_code = SWO_INCORRECT_DATA;
+                return false;
+            }
             value8 = (int8_t) data[0];
             snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "%d", value8);
             break;

@@ -398,8 +398,8 @@ bool ui_gcs(void) {
     bool show_network;
     nbgl_contentValueExt_t *ext = NULL;
     nbgl_contentInfoList_t *infolist = NULL;
-    uint8_t nbPairs = 0;
-    uint8_t pair = 0;
+    size_t nbPairs = 0;
+    size_t pair = 0;
     uint8_t tx_idx = 0;
     const s_tx_info *info_tx = get_current_tx_info();
 
@@ -440,7 +440,12 @@ bool ui_gcs(void) {
     // Fees
     nbPairs += 1;
 
-    if (!ui_pairs_init(nbPairs)) {
+    if (nbPairs > UINT8_MAX) {
+        PRINTF("Error: Too many review fields: %u\n", (unsigned) nbPairs);
+        return false;
+    }
+
+    if (!ui_pairs_init((uint8_t) nbPairs)) {
         return false;
     }
 

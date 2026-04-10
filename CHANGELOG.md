@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.22.0](../../compare/1.21.3...1.22.0) - 2026-04-10
+
+### Added
+
+- Clear-signing gating support
+
+### Fixed
+
+- EIP-712 message hashing issue
+- Blind-signing bypass for single-byte calldata `0x00` transactions
+- Blind-signing bypass with EIP-712 filtering activation
+
 ## [1.21.3](../../compare/1.21.2...1.21.3) - 2026-03-17
 
 ### Fixed

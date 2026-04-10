@@ -2,7 +2,7 @@
 #include "hash_bytes.h"
 #include "apdu_constants.h"  // APDU return codes
 #include "public_keys.h"
-#include "manage_asset_info.h"
+#include "token_info.h"
 #include "context_712.h"
 #include "commands_712.h"
 #include "typed_data.h"
@@ -142,20 +142,6 @@ static bool sig_verif_end(cx_sha256_t *hash_ctx, const uint8_t *sig, uint8_t sig
         return false;
     }
 
-    return true;
-}
-
-/**
- * Check if the given token index is valid
- *
- * @param[in] idx token index
- * @return whether the index is valid or not
- */
-static bool check_token_index(uint8_t idx) {
-    if (idx >= MAX_ASSETS) {
-        PRINTF("Error: token index out of range (%u)\n", idx);
-        return false;
-    }
     return true;
 }
 
@@ -1074,7 +1060,7 @@ bool filtering_amount_join_token(const uint8_t *payload,
     }
 
     // Handling
-    if (!check_typename("address") || !check_token_index(token_idx)) {
+    if (!check_typename("address")) {
         return false;
     }
     ui_712_flag_field(false, false, true, false, false, false);
@@ -1148,20 +1134,13 @@ bool filtering_amount_join_value(const uint8_t *payload,
     // Handling
     if (token_idx == TOKEN_IDX_ADDR_IN_DOMAIN) {
         // Permit (ERC-2612)
-        int resolved_idx = get_asset_index_by_addr(eip712_context->contract_addr);
-
-        if (resolved_idx == -1) {
-            PRINTF("ERROR: Could not find asset info for verifyingContract address!\n");
-            return false;
-        }
-        token_idx = (uint8_t) resolved_idx;
-        // simulate as if we had received a token-join addr
         ui_712_token_join_prepare_addr_check(token_idx);
-        if (!amount_join_set_token_received()) {
+        // simulate as if we had received a token-join addr
+        if (!ui_712_set_amount_join_set_token_addr(eip712_context->contract_addr)) {
             return false;
         }
     }
-    if (!check_typename("uint") || !check_token_index(token_idx)) {
+    if (!check_typename("uint")) {
         return false;
     }
     ui_712_flag_field(false, false, true, false, false, false);

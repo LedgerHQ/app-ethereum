@@ -18,6 +18,7 @@
 #include "utils.h"
 #include "tx_ctx.h"  // g_parked_calldata
 #include "read.h"    // read_u64_be
+#include "token_info.h"
 
 #define N_OF_M_LENGTH 10  // enough to hold "nn of mm"
 
@@ -31,8 +32,8 @@ typedef struct amount_join {
     char name[AMOUNT_JOIN_NAME_LENGTH + 1];
     // indicates the steps the token join has gone through
     uint8_t flags;
-    uint8_t token_idx;
-    uint8_t value_length;
+    uint8_t index;
+    uint8_t address[ADDRESS_LENGTH];
     uint8_t value[INT256_LENGTH];
 } s_amount_join;
 
@@ -546,23 +547,22 @@ static bool ui_712_format_uint(const uint8_t *data, uint8_t length, bool first) 
     return true;
 }
 
-static s_amount_join *get_amount_join(uint8_t token_idx) {
+static s_amount_join *get_amount_join(uint8_t index) {
     s_amount_join *tmp;
     s_amount_join *new;
 
     for (tmp = ui_ctx->amount.joins; tmp != NULL;
          tmp = (s_amount_join *) ((flist_node_t *) tmp)->next) {
-        if (tmp->token_idx == token_idx) break;
+        if (index == tmp->index) break;
     }
     if (tmp != NULL) return tmp;
 
     // does not exist, create it
-    if (APP_MEM_CALLOC((void **) &new, sizeof(*new)) == false) {
-        return NULL;
+    if ((new = APP_MEM_ALLOC(sizeof(*new))) != NULL) {
+        explicit_bzero(new, sizeof(*new));
+        new->index = index;
+        flist_push_back((flist_node_t **) &ui_ctx->amount.joins, (flist_node_t *) new);
     }
-    new->token_idx = token_idx;
-
-    flist_push_back((flist_node_t **) &ui_ctx->amount.joins, (flist_node_t *) new);
     return new;
 }
 
@@ -571,27 +571,20 @@ static s_amount_join *get_amount_join(uint8_t token_idx) {
  *
  * @return whether it was successful or not
  */
-static bool ui_712_format_amount_join(void) {
-    const tokenDefinition_t *token = NULL;
-    s_amount_join *amount_join;
+static bool ui_712_format_amount_join(const s_amount_join *amount_join) {
+    const s_token_info *token_info;
 
-    if (tmpCtx.transactionContext.assetSet[ui_ctx->amount.idx]) {
-        token = &tmpCtx.transactionContext.extraInfo[ui_ctx->amount.idx].token;
-    }
-    if ((amount_join = get_amount_join(ui_ctx->amount.idx)) == NULL) {
-        return false;
-    }
-    if ((amount_join->value_length == INT256_LENGTH) &&
-        ismaxint(amount_join->value, amount_join->value_length)) {
+    token_info = get_matching_token_info(&eip712_context->chain_id, amount_join->address);
+    if (ismaxint(amount_join->value, sizeof(amount_join->value))) {
         strlcpy(strings.tmp.tmp, "Unlimited ", sizeof(strings.tmp.tmp));
         strlcat(strings.tmp.tmp,
-                (token != NULL) ? token->ticker : g_unknown_ticker,
+                (token_info != NULL) ? token_info->ticker : g_unknown_ticker,
                 sizeof(strings.tmp.tmp));
     } else {
         if (!amountToString(amount_join->value,
-                            amount_join->value_length,
-                            (token != NULL) ? token->decimals : 0,
-                            (token != NULL) ? token->ticker : g_unknown_ticker,
+                            sizeof(amount_join->value),
+                            (token_info != NULL) ? token_info->decimals : 0,
+                            (token_info != NULL) ? token_info->ticker : g_unknown_ticker,
                             strings.tmp.tmp,
                             sizeof(strings.tmp.tmp))) {
             return false;
@@ -606,12 +599,13 @@ static bool ui_712_format_amount_join(void) {
 }
 
 /**
- * Simply mark the current amount-join's token address as received
+ * Set the current amount-join's token address and mark it as received
  */
-bool amount_join_set_token_received(void) {
+bool ui_712_set_amount_join_set_token_addr(const uint8_t *addr) {
     s_amount_join *amount_join = get_amount_join(ui_ctx->amount.idx);
 
     if (amount_join == NULL) return false;
+    memcpy(amount_join->address, addr, sizeof(amount_join->address));
     amount_join->flags |= AMOUNT_JOIN_FLAG_TOKEN;
     return true;
 }
@@ -623,45 +617,23 @@ bool amount_join_set_token_received(void) {
  * @param[in] length its length
  * @return whether it was successful or not
  */
-static bool update_amount_join(const uint8_t *data, uint8_t length) {
-    const tokenDefinition_t *token = NULL;
-    s_amount_join *amount_join;
-
-    if (tmpCtx.transactionContext.assetSet[ui_ctx->amount.idx]) {
-        token = &tmpCtx.transactionContext.extraInfo[ui_ctx->amount.idx].token;
-    } else {
-        if (tmpCtx.transactionContext.currentAssetIndex == ui_ctx->amount.idx) {
-            // So that the following amount-join find their tokens in the expected indices
-            tmpCtx.transactionContext.currentAssetIndex =
-                (tmpCtx.transactionContext.currentAssetIndex + 1) % MAX_ASSETS;
-        }
-    }
+static bool update_amount_join(s_amount_join *amount_join, const uint8_t *data, uint8_t length) {
     switch (ui_ctx->amount.state) {
         case AMOUNT_JOIN_STATE_TOKEN:
-            if (length != ADDRESS_LENGTH) {
+            if (length > sizeof(amount_join->address)) {
                 apdu_response_code = SWO_INCORRECT_DATA;
                 return false;
             }
-            if (token != NULL) {
-                if (memcmp(data, token->address, ADDRESS_LENGTH) != 0) {
-                    return false;
-                }
-            }
-            if (!amount_join_set_token_received()) {
-                return false;
-            }
+            buf_shrink_expand(data, length, amount_join->address, sizeof(amount_join->address));
+            amount_join->flags |= AMOUNT_JOIN_FLAG_TOKEN;
             break;
 
         case AMOUNT_JOIN_STATE_VALUE:
-            if ((amount_join = get_amount_join(ui_ctx->amount.idx)) == NULL) {
-                return false;
-            }
             if (length > sizeof(amount_join->value)) {
                 apdu_response_code = SWO_INCORRECT_DATA;
                 return false;
             }
-            memcpy(amount_join->value, data, length);
-            amount_join->value_length = length;
+            buf_shrink_expand(data, length, amount_join->value, sizeof(amount_join->value));
             amount_join->flags |= AMOUNT_JOIN_FLAG_VALUE;
             break;
 
@@ -994,16 +966,17 @@ bool ui_712_feed_to_display(const s_struct_712_field *field_ptr,
     }
 
     if (ui_ctx->field_flags & UI_712_AMOUNT_JOIN) {
-        if (!update_amount_join(data, length)) {
-            return false;
-        }
-
         s_amount_join *amount_join = get_amount_join(ui_ctx->amount.idx);
         if (amount_join == NULL) {
             return false;
         }
+
+        if (!update_amount_join(amount_join, data, length)) {
+            return false;
+        }
+
         if (amount_join->flags == (AMOUNT_JOIN_FLAG_TOKEN | AMOUNT_JOIN_FLAG_VALUE)) {
-            if (!ui_712_format_amount_join()) {
+            if (!ui_712_format_amount_join(amount_join)) {
                 return false;
             }
         }

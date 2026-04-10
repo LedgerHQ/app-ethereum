@@ -1,0 +1,59 @@
+---
+name: Check SDK submodule version
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+      - develop
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  job_check_SDK:
+    name: Check Ethereum plugin SDK submodule is up-to-date
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Clone plugin
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Determine SDK reference
+        id: determine_sdk_ref
+        run: |
+          if [ "${{ github.event_name }}" = 'pull_request' ]; then
+            ref_to_use="${{ github.base_ref }}"
+          else
+            ref_to_use="${{ github.ref_name }}"
+          fi
+          if [ "$ref_to_use" = "main" ] || [ "$ref_to_use" = "master" ]; then
+            echo "sdk_ref=master" >> "${GITHUB_OUTPUT}"
+          else
+            echo "sdk_ref=develop" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Clone SDK
+        uses: actions/checkout@v6
+        with:
+          repository: LedgerHQ/ethereum-plugin-sdk
+          path: plugin-sdk
+          ref: ${{ steps.determine_sdk_ref.outputs.sdk_ref }}
+
+      - name: Comparing the SDK hash values
+        run: |
+          repo_sdk_hash="$(git submodule status | grep sdk | cut -d ' ' -f2)"
+          current_sdk_hash="$(git -C ./plugin-sdk/ rev-parse HEAD)"
+          if [ "$repo_sdk_hash" = "$current_sdk_hash" ]; then
+            echo "SDK versions match!"
+            exit 0
+          else
+            echo "SDK versions mismatch!"
+            echo "Local SDK submodule hash: $repo_sdk_hash (checked out from '${{ github.ref }}')"
+            echo "Reference SDK submodule hash: $current_sdk_hash (checked out from '${{ steps.determine_sdk_ref.outputs.sdk_ref }}'"
+            exit 1
+          fi

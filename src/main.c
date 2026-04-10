@@ -379,6 +379,7 @@ static void init_coin_config(chain_config_t *coin_config) {
     memset(coin_config, 0, sizeof(chain_config_t));
     strcpy(coin_config->ticker, APP_TICKER);
     coin_config->chain_id = APP_CHAIN_ID;
+    coin_config->coin_type = APP_COIN_TYPE;
 }
 
 static void storage_init(void) {

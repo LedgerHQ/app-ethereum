@@ -22,6 +22,7 @@
 typedef struct chain_config_s {
     char ticker[MAX_TICKER_LEN];
     uint64_t chain_id;
+    uint32_t coin_type;
 } chain_config_t;
 
 #define ETHEREUM_MAINNET_CHAINID 1

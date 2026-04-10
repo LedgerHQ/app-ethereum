@@ -206,6 +206,7 @@ uint16_t handle_eip712_filtering(uint8_t p1,
                 ui_712_set_filtering_mode(EIP712_FILTERING_FULL);
                 ret = compute_schema_hash();
             }
+            struct_state = DEFINED;
             forget_known_assets();
             break;
         case P2_FILT_DISCARDED_PATH:

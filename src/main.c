@@ -171,7 +171,7 @@ static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
             break;
 
         case INS_PROVIDE_NFT_INFORMATION:
-            sw = handle_provide_nft_information(cmd->data, cmd->lc, tx);
+            sw = handle_provide_nft_information(cmd->p1, cmd->p2, cmd->lc, cmd->data, tx);
             break;
 
         case INS_SET_EXTERNAL_PLUGIN:

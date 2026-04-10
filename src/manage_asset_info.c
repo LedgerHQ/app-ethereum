@@ -1,10 +1,12 @@
 #include "manage_asset_info.h"
 #include "token_info.h"
+#include "nft_info.h"
 
 void forget_known_assets(void) {
     memset(tmpCtx.transactionContext.assetSet, false, MAX_ASSETS);
     tmpCtx.transactionContext.currentAssetIndex = 0;
     clear_token_infos();
+    clear_nft_infos();
 }
 
 static extraInfo_t *get_asset_info(int index) {

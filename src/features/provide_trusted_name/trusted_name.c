@@ -20,7 +20,6 @@
 
 #define STRUCT_TYPE_TRUSTED_NAME 0x03
 #define SIG_ALGO_SECP256K1       0x01
-#define SLIP_44_ETHEREUM         60
 
 static s_trusted_name *g_trusted_name_list = NULL;
 
@@ -258,8 +257,10 @@ static bool handle_trusted_name(const tlv_data_t *data, s_trusted_name_ctx *cont
  * @return whether it was successful
  */
 static bool handle_coin_type(const tlv_data_t *data, s_trusted_name_ctx *context) {
+    uint32_t coin_type;
+
     UNUSED(context);
-    if (!tlv_check_uint8(data, SLIP_44_ETHEREUM)) {
+    if (!get_uint32_t_from_tlv_data(data, &coin_type) || (coin_type != g_chain_config->coin_type)) {
         PRINTF("COIN_TYPE: error\n");
         return false;
     }

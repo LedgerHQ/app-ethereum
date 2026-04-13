@@ -216,7 +216,7 @@ static uint16_t address_to_string(uint8_t *in,
 static void raw_fee_to_string(uint256_t *rawFee, char *out_buffer, uint32_t out_buffer_size) {
     // Fees are always in the base currency, this is why we need to use the chain_id
     uint64_t chain_id = get_tx_chain_id();
-    const char *ticker = get_displayable_ticker(&chain_id, chainConfig, true);
+    const char *ticker = get_displayable_ticker(&chain_id, g_chain_config, true);
     uint8_t fee_len = 0;
     uint8_t ticker_len = 0;
     char raw_fee_buffer[100] = {0};
@@ -281,16 +281,16 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
     char displayBuffer[50];
     uint8_t decimals = WEI_TO_ETHER;
     uint64_t chain_id = get_tx_chain_id();
-    const char *ticker = get_displayable_ticker(&chain_id, chainConfig, true);
+    const char *ticker = get_displayable_ticker(&chain_id, g_chain_config, true);
     ethPluginFinalize_t pluginFinalize;
     cx_err_t error = CX_INTERNAL_ERROR;
 
     // Verify the chain
-    if (chainConfig->chainId != ETHEREUM_MAINNET_CHAINID) {
+    if (g_chain_config->chain_id != ETHEREUM_MAINNET_CHAINID) {
         chain_id = get_tx_chain_id();
 
-        if (chainConfig->chainId != chain_id) {
-            PRINTF("Invalid chainID %llu expected %llu\n", chain_id, chainConfig->chainId);
+        if (g_chain_config->chain_id != chain_id) {
+            PRINTF("Invalid chainID %llu expected %llu\n", chain_id, g_chain_config->chain_id);
             report_finalize_error();
             return APDU_NO_RESPONSE;
         }
@@ -317,7 +317,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
                               ADDRESS_LENGTH,
                               strings.common.fromAddress,
                               sizeof(strings.common.fromAddress),
-                              chainConfig->chainId);
+                              g_chain_config->chain_id);
     if (error != SWO_SUCCESS) {
         goto end;
     }
@@ -439,7 +439,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
                                   tmpContent.txContent.destinationLength,
                                   displayBuffer,
                                   sizeof(displayBuffer),
-                                  chainConfig->chainId);
+                                  g_chain_config->chain_id);
         if (error != SWO_SUCCESS) {
             goto end;
         }

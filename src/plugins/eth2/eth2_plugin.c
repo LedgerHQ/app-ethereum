@@ -115,7 +115,7 @@ void eth2_plugin_call(eth_plugin_msg_t message, void *parameters) {
                     if (!getEthDisplayableAddress((uint8_t *) context->deposit_address,
                                                   tmp,
                                                   sizeof(tmp),
-                                                  chainConfig->chainId)) {
+                                                  g_chain_config->chain_id)) {
                         msg->result = ETH_PLUGIN_RESULT_ERROR;
                         return;
                     }
@@ -197,7 +197,7 @@ void eth2_plugin_call(eth_plugin_msg_t message, void *parameters) {
             switch (msg->screenIndex) {
                 case 0: {  // Amount screen
                     uint8_t decimals = WEI_TO_ETHER;
-                    const char *ticker = chainConfig->coinName;
+                    const char *ticker = g_chain_config->ticker;
                     strlcpy(msg->title, "Amount", msg->titleLength);
                     if (!amountToString(tmpContent.txContent.value.value,
                                         tmpContent.txContent.value.length,

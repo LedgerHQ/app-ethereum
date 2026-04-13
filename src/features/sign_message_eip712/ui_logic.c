@@ -303,7 +303,7 @@ bool ui_712_review_network(const uint64_t *chain_id) {
     const char *title = "Network";
     const char *buf;
 
-    if (*chain_id == chainConfig->chainId) {
+    if (*chain_id == g_chain_config->chain_id) {
         return true;
     }
     ui_712_set_title(title, strlen(title));
@@ -390,7 +390,7 @@ static bool ui_712_format_addr(const uint8_t *data, uint8_t length, bool first) 
     if (!getEthDisplayableAddress((uint8_t *) data,
                                   strings.tmp.tmp,
                                   sizeof(strings.tmp.tmp),
-                                  chainConfig->chainId)) {
+                                  g_chain_config->chain_id)) {
         apdu_response_code = SWO_PARAMETER_ERROR_NO_INFO;
         return false;
     }
@@ -741,7 +741,7 @@ static bool handle_fallback_empty_calldata(const s_eip712_calldata_info *calldat
             chain_id = eip712_context->chain_id;
         }
 
-        ticker = get_displayable_ticker(&chain_id, chainConfig, true);
+        ticker = get_displayable_ticker(&chain_id, g_chain_config, true);
         decimals = WEI_TO_ETHER;
         if (!amountToString(calldata_info->amount,
                             sizeof(calldata_info->amount),

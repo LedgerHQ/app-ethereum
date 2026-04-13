@@ -20,8 +20,8 @@
 #include "asset_info.h"
 
 typedef struct chain_config_s {
-    char coinName[MAX_TICKER_LEN];  // ticker
-    uint64_t chainId;
+    char ticker[MAX_TICKER_LEN];
+    uint64_t chain_id;
 } chain_config_t;
 
 #define ETHEREUM_MAINNET_CHAINID 1

@@ -44,7 +44,7 @@ bool format_param_amount(const s_param_amount *param, const char *name) {
     if ((ret = value_get(&param->value, &collec))) {
         if (get_current_tx_info() == NULL) return false;
         chain_id = get_current_tx_info()->chain_id;
-        ticker = get_displayable_ticker(&chain_id, chainConfig, true);
+        ticker = get_displayable_ticker(&chain_id, g_chain_config, true);
         for (int i = 0; i < collec.size; ++i) {
             if (!(ret = amountToString(collec.value[i].ptr,
                                        collec.value[i].length,

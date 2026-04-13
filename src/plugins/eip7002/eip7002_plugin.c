@@ -87,7 +87,7 @@ static void eip7002_plugin_query_contract_id(ethQueryContractID_t *param) {
 static void eip7002_plugin_query_contract_ui(ethQueryContractUI_t *param) {
     eip7002_context_t *context = (eip7002_context_t *) param->pluginContext;
     uint64_t chain_id = get_tx_chain_id();
-    const char *ticker = get_displayable_ticker(&chain_id, chainConfig, true);
+    const char *ticker = get_displayable_ticker(&chain_id, g_chain_config, true);
 
     switch (param->screenIndex) {
         case 0:

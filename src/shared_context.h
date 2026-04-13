@@ -158,7 +158,7 @@ typedef union {
     strDataTmp_t tmp;
 } strings_t;
 
-extern const chain_config_t *chainConfig;
+extern const chain_config_t *g_chain_config;
 
 extern tmpCtx_t tmpCtx;
 extern txContext_t txContext;

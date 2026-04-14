@@ -1353,7 +1353,7 @@ void ui_712_push_pairs(void) {
     // Initialize the pairs list
     nbPairs = flist_size((flist_node_t **) &ui_ctx->ui_pairs);
     if (N_storage.displayHash) {
-        nbPairs += 2;
+        nbPairs += 3;
     }
 
     ui_pairs_init(nbPairs);

@@ -98,6 +98,7 @@ typedef struct messageSigningContext712_t {
     bip32_path_t bip32;
     uint8_t domainHash[INT256_LENGTH];
     uint8_t messageHash[INT256_LENGTH];
+    uint8_t eip712Digest[INT256_LENGTH];
 } messageSigningContext712_t;
 
 typedef struct authSigningContext7702_t {
@@ -145,6 +146,7 @@ typedef struct txStringProperties_s {
     char nonce[8];  // 10M tx per account ought to be enough for everybody
     char network_name[NETWORK_STRING_MAX_SIZE + 1];
     char tx_hash[2 + (INT256_LENGTH * 2) + 1];
+    char calldata_digest[2 + (INT256_LENGTH * 2) + 1];
 } txStringProperties_t;
 
 #define SHARED_CTX_FIELD_1_SIZE 380

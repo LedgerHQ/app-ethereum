@@ -234,6 +234,20 @@ static bool setTagValuePairs(bool displayNetwork, bool fromPlugin) {
                 nbPairs++;
             }
         }
+
+        // Display the Calldata Digest
+        // ----------------------------
+        if (txContext.calldataDigestValid) {
+            strlcpy(strings.common.calldata_digest, "0x", 3);
+            if (bytes_to_lowercase_hex(strings.common.calldata_digest + 2,
+                                       sizeof(strings.common.calldata_digest) - 2,
+                                       txContext.calldataDigest,
+                                       INT256_LENGTH) >= 0) {
+                g_pairs[nbPairs].item = "Calldata Digest";
+                g_pairs[nbPairs].value = strings.common.calldata_digest;
+                nbPairs++;
+            }
+        }
     }
     return true;
 }
@@ -288,6 +302,10 @@ static uint8_t getNbPairs(bool displayNetwork, bool fromPlugin) {
         }
         // Count the Transaction hash
         if ((N_storage.displayHash) || (tmpContent.txContent.dataPresent)) {
+            nbPairs++;
+        }
+        // Count the Calldata Digest
+        if (txContext.calldataDigestValid) {
             nbPairs++;
         }
     }

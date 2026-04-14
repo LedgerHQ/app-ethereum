@@ -37,6 +37,34 @@ static uint32_t split_binary_parameter_part(char *result, size_t result_size, ui
     }
 }
 
+static bool init_calldata_digest(txContext_t *context) {
+    uint8_t len_buf[INT256_LENGTH];
+
+    if (APP_MEM_CALLOC((void **) &context->calldata_sha3, sizeof(cx_sha3_t)) == false) {
+        return false;
+    }
+    if (cx_keccak_init_no_throw(context->calldata_sha3, 256) != CX_OK) {
+        APP_MEM_FREE_AND_NULL((void **) &context->calldata_sha3);
+        return false;
+    }
+    // Hash uint256(len(calldata)) as big-endian length prefix
+    explicit_bzero(len_buf, sizeof(len_buf));
+    len_buf[28] = (context->currentFieldLength >> 24) & 0xFF;
+    len_buf[29] = (context->currentFieldLength >> 16) & 0xFF;
+    len_buf[30] = (context->currentFieldLength >> 8) & 0xFF;
+    len_buf[31] = context->currentFieldLength & 0xFF;
+    if (cx_hash_no_throw((cx_hash_t *) context->calldata_sha3,
+                         0,
+                         len_buf,
+                         sizeof(len_buf),
+                         NULL,
+                         0) != CX_OK) {
+        APP_MEM_FREE_AND_NULL((void **) &context->calldata_sha3);
+        return false;
+    }
+    return true;
+}
+
 customStatus_e custom_processor(txContext_t *context) {
     if (((context->txType == LEGACY && context->currentField == LEGACY_RLP_DATA) ||
          (context->txType == EIP2930 && context->currentField == EIP2930_RLP_DATA) ||
@@ -44,6 +72,12 @@ customStatus_e custom_processor(txContext_t *context) {
          (context->txType == EIP7702 && context->currentField == EIP7702_RLP_DATA)) &&
         (context->currentFieldLength != 0)) {
         context->content->dataPresent = true;
+        // Initialize calldata digest hashing at the start of the DATA field
+        if (context->currentFieldPos == 0 && context->calldata_sha3 == NULL) {
+            if (!init_calldata_digest(context)) {
+                return CUSTOM_FAULT;
+            }
+        }
         // If handling a new contract rather than a function call, abort immediately
         if (tmpContent.txContent.destinationLength == 0) {
             return CUSTOM_NOT_HANDLED;
@@ -134,6 +168,19 @@ customStatus_e custom_processor(txContext_t *context) {
 
         if (context->currentFieldPos == context->currentFieldLength) {
             PRINTF("\n\nIncrementing one\n");
+            // Finalize calldata digest if we were hashing
+            if (context->calldata_sha3 != NULL) {
+                if (cx_hash_no_throw((cx_hash_t *) context->calldata_sha3,
+                                     CX_LAST,
+                                     NULL,
+                                     0,
+                                     context->calldataDigest,
+                                     sizeof(context->calldataDigest)) != CX_OK) {
+                    return CUSTOM_FAULT;
+                }
+                context->calldataDigestValid = context->content->dataPresent;
+                APP_MEM_FREE_AND_NULL((void **) &context->calldata_sha3);
+            }
             context->currentField++;
             context->processingField = false;
         }
@@ -505,6 +552,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
     }
 end:
     APP_MEM_FREE_AND_NULL((void **) &g_tx_hash_ctx);
+    APP_MEM_FREE_AND_NULL((void **) &txContext.calldata_sha3);
     return error;
 }
 

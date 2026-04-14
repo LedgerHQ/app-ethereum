@@ -77,6 +77,7 @@ to quickly **build** your apps, **test** them on **Speculos** and **load** them 
   - On Windows, install and launch [VcXsrv](https://sourceforge.net/projects/vcxsrv/)
     (make sure to configure it to disable access control).
 - Install [VScode](https://code.visualstudio.com/download) and add [Ledger's extension](https://marketplace.visualstudio.com/items?itemName=LedgerHQ.ledger-dev-tools).
+- Restart VSCode after installing the extension.
 - Open a terminal and clone `app-ethereum` with `git clone git@github.com:LedgerHQ/app-ethereum.git`.
 - Open the `app-ethereum` folder with VSCode.
 - Use Ledger extension's sidebar menu or open the tasks menu with `ctrl + shift + b`

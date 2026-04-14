@@ -14,7 +14,7 @@ dataContext_t dataContext = {0};
 tmpCtx_t tmpCtx = {0};
 strings_t strings = {0};
 caller_app_t *caller_app = NULL;
-const chain_config_t *chainConfig = NULL;
+const chain_config_t *g_chain_config = NULL;
 
 const network_icon_t g_network_icons[10] = {0};
 
@@ -31,8 +31,9 @@ const internalStorage_t N_storage_real = {
 };
 
 chain_config_t config = {
-    .coinName = "FUZZ",
-    .chainId = 0x42,
+    .ticker = "FUZZ",
+    .chain_id = 0x42,
+    .coin_type = 60,
 };
 
 void reset_app_context(void) {
@@ -62,7 +63,7 @@ void init_fuzzing_environment(void) {
 
     explicit_bzero(&G_io_tx_buffer, OS_IO_SEPH_BUFFER_SIZE + 1);
 
-    chainConfig = &config;
+    g_chain_config = &config;
     txContext.content = &txContent;
     txContext.sha3 = &sha3;
     pluginType = PLUGIN_TYPE_EXTERNAL;

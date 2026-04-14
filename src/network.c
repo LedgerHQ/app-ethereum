@@ -234,8 +234,8 @@ const char *get_displayable_ticker(const uint64_t *chain_id,
     const char *ticker = get_network_ticker_from_chain_id(chain_id, dynamic);
 
     if (ticker == NULL) {
-        if (*chain_id == chain_cfg->chainId) {
-            ticker = chain_cfg->coinName;
+        if (*chain_id == chain_cfg->chain_id) {
+            ticker = chain_cfg->ticker;
         } else {
             ticker = g_unknown_ticker;
         }
@@ -250,7 +250,7 @@ const char *get_displayable_ticker(const uint64_t *chain_id,
  * - If both chain IDs are present in the array of Ethereum-compatible networks
  */
 bool app_compatible_with_chain_id(const uint64_t *chain_id) {
-    return ((chainConfig->chainId == *chain_id) ||
-            (chain_is_ethereum_compatible(&chainConfig->chainId) &&
+    return ((g_chain_config->chain_id == *chain_id) ||
+            (chain_is_ethereum_compatible(&g_chain_config->chain_id) &&
              chain_is_ethereum_compatible(chain_id)));
 }

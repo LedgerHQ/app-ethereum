@@ -1,5 +1,6 @@
 # Also allows ETC to access the ETH derivation path to recover forked assets
-PATH_APP_LOAD_PARAMS += "44'/61'" "44'/60'"
+COIN_TYPE = 61
+PATH_APP_LOAD_PARAMS += "44'/$(COIN_TYPE)'" "44'/60'"
 TICKER = "ETC"
-CHAIN_ID = 61
+CHAIN_ID = $(COIN_TYPE)
 APPNAME = "Ethereum Classic"

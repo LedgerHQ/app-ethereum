@@ -12,7 +12,7 @@ static void set_approval_ui(ethQueryContractUI_t *msg, erc721_context_t *context
             if (!getEthDisplayableAddress(context->address,
                                           msg->msg,
                                           msg->msgLength,
-                                          chainConfig->chainId)) {
+                                          g_chain_config->chain_id)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
             break;
@@ -25,7 +25,7 @@ static void set_approval_ui(ethQueryContractUI_t *msg, erc721_context_t *context
             if (!getEthDisplayableAddress(msg->item1->nft.contractAddress,
                                           msg->msg,
                                           msg->msgLength,
-                                          chainConfig->chainId)) {
+                                          g_chain_config->chain_id)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
             break;
@@ -56,7 +56,7 @@ static void set_approval_for_all_ui(ethQueryContractUI_t *msg, erc721_context_t 
             if (!getEthDisplayableAddress(context->address,
                                           msg->msg,
                                           msg->msgLength,
-                                          chainConfig->chainId)) {
+                                          g_chain_config->chain_id)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
             break;
@@ -69,7 +69,7 @@ static void set_approval_for_all_ui(ethQueryContractUI_t *msg, erc721_context_t 
             if (!getEthDisplayableAddress(msg->item1->nft.contractAddress,
                                           msg->msg,
                                           msg->msgLength,
-                                          chainConfig->chainId)) {
+                                          g_chain_config->chain_id)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
             break;
@@ -87,7 +87,7 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc721_context_t *context
             if (!getEthDisplayableAddress(context->address,
                                           msg->msg,
                                           msg->msgLength,
-                                          chainConfig->chainId)) {
+                                          g_chain_config->chain_id)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
             break;
@@ -100,7 +100,7 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc721_context_t *context
             if (!getEthDisplayableAddress(msg->item1->nft.contractAddress,
                                           msg->msg,
                                           msg->msgLength,
-                                          chainConfig->chainId)) {
+                                          g_chain_config->chain_id)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
             break;

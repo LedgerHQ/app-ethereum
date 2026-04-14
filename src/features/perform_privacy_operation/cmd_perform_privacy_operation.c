@@ -68,7 +68,7 @@ uint16_t handle_perform_privacy_operation(uint8_t p1,
                                             1));
     getEthAddressStringFromRawKey((const uint8_t *) &tmpCtx.publicKeyContext.publicKey.W,
                                   tmpCtx.publicKeyContext.address,
-                                  chainConfig->chainId);
+                                  g_chain_config->chain_id);
     if (p2 == P2_PUBLIC_ENCRYPTION_KEY) {
         decode_scalar(privateKeyData, privateKeyDataSwapped);
         CX_CHECK(cx_ecfp_init_private_key_no_throw(CX_CURVE_Curve25519,

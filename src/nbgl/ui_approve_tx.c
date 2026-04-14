@@ -81,7 +81,7 @@ const nbgl_icon_details_t *get_tx_icon(bool fromPlugin) {
         icon = get_app_icon(true);
     } else {
         uint64_t chain_id = get_tx_chain_id();
-        if (chain_id == chainConfig->chainId) {
+        if (chain_id == g_chain_config->chain_id) {
             icon = get_app_icon(false);
         } else {
             icon = get_network_icon_from_chain_id(&chain_id);
@@ -310,7 +310,8 @@ static bool ux_init(bool fromPlugin, uint8_t title_len, uint8_t finish_len) {
     bool displayNetwork = false;
 
     chain_id = get_tx_chain_id();
-    if (chainConfig->chainId == ETHEREUM_MAINNET_CHAINID && chain_id != chainConfig->chainId) {
+    if (g_chain_config->chain_id == ETHEREUM_MAINNET_CHAINID &&
+        chain_id != g_chain_config->chain_id) {
         displayNetwork = true;
     }
     // Compute the number of g_pairs to display

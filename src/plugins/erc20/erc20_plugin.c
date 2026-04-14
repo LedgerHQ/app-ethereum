@@ -135,7 +135,7 @@ void erc20_plugin_call(eth_plugin_msg_t message, void *parameters) {
                 if (!getEthDisplayableAddress(context->destinationAddress,
                                               buf,
                                               sizeof(buf),
-                                              chainConfig->chainId)) {
+                                              g_chain_config->chain_id)) {
                     msg->result = ETH_PLUGIN_RESULT_ERROR;
                     break;
                 }
@@ -227,7 +227,7 @@ void erc20_plugin_call(eth_plugin_msg_t message, void *parameters) {
                     if (!getEthDisplayableAddress(context->destinationAddress,
                                                   msg->msg,
                                                   msg->msgLength,
-                                                  chainConfig->chainId)) {
+                                                  g_chain_config->chain_id)) {
                         msg->result = ETH_PLUGIN_RESULT_ERROR;
                     }
                     msg->result = ETH_PLUGIN_RESULT_OK;

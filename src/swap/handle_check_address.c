@@ -27,7 +27,7 @@ void handle_check_address(check_address_parameters_t* params, chain_config_t* ch
         PRINTF("Invalid path\n");
         return;
     }
-    if (get_public_key_string(&bip32, raw_pubkey, address, NULL, chain_config->chainId) != CX_OK) {
+    if (get_public_key_string(&bip32, raw_pubkey, address, NULL, chain_config->chain_id) != CX_OK) {
         PRINTF("Error getting public key\n");
         return;
     }

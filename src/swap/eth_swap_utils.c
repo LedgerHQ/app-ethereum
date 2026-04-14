@@ -175,7 +175,7 @@ void get_asset_info_on_network(bool is_fee,
             // fallback mechanism in the absence of network ticker in swap config
             if (context->chain_id == 0) {
                 // fallback mechanism in the absence of chain ID in swap config
-                context->chain_id = config->chainId;
+                context->chain_id = config->chain_id;
             }
             PRINTF("chain_id = %d\n", (uint32_t) context->chain_id);
             *ticker = (char *) get_displayable_ticker(&context->chain_id, config, false);

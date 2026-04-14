@@ -143,7 +143,7 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
     if (!getEthDisplayableAddress((uint8_t *) get_contract_addr(get_current_tx_info()),
                                   tmp_buf,
                                   tmp_buf_size,
-                                  chainConfig->chainId)) {
+                                  g_chain_config->chain_id)) {
         return false;
     }
     if ((keys[count] = APP_MEM_STRDUP("Contract address")) == NULL) {
@@ -178,7 +178,7 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
         if (!getEthDisplayableAddress((uint8_t *) get_contract_addr(get_current_tx_info()),
                                       tmp_buf,
                                       tmp_buf_size,
-                                      chainConfig->chainId)) {
+                                      g_chain_config->chain_id)) {
             return false;
         }
         if ((extensions[contract_idx].title = APP_MEM_STRDUP(tmp_buf)) == NULL) {
@@ -293,7 +293,7 @@ static const nbgl_contentValueExt_t *handle_extra_data_trusted_name(
     if (!getEthDisplayableAddress(tname->addr,
                                   formatted_addr,
                                   sizeof(formatted_addr),
-                                  chainConfig->chainId)) {
+                                  g_chain_config->chain_id)) {
         return NULL;
     }
     if (alias_type == INFO_LIST_ALIAS) {
@@ -326,7 +326,7 @@ static const nbgl_contentValueExt_t *handle_extra_data_token(const s_field_table
     if (!getEthDisplayableAddress(token_def->address,
                                   formatted_addr,
                                   sizeof(formatted_addr),
-                                  chainConfig->chainId)) {
+                                  g_chain_config->chain_id)) {
         return NULL;
     }
     return get_infolist_extension(token_def->ticker, ARRAYLEN(keys), keys, values);
@@ -341,7 +341,7 @@ static const nbgl_contentValueExt_t *handle_extra_data_nft(const s_field_table_e
     if (!getEthDisplayableAddress(nft_def->contractAddress,
                                   formatted_addr,
                                   sizeof(formatted_addr),
-                                  chainConfig->chainId)) {
+                                  g_chain_config->chain_id)) {
         return NULL;
     }
     return get_infolist_extension(nft_def->collectionName, ARRAYLEN(keys), keys, values);
@@ -433,7 +433,7 @@ bool ui_gcs(void) {
     }
     // TX fields
     nbPairs += field_table_size();
-    show_network = get_tx_chain_id() != chainConfig->chainId;
+    show_network = get_tx_chain_id() != g_chain_config->chain_id;
     if (show_network) {
         nbPairs += 1;
     }

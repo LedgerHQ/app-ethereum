@@ -137,7 +137,7 @@ bool format_param_trusted_name(const struct s_field *field) {
                 strlcpy(buf, tname->name, buf_size);
                 param_type = PARAM_TYPE_TRUSTED_NAME;
             } else {
-                getEthDisplayableAddress(addr, buf, buf_size, chainConfig->chainId);
+                getEthDisplayableAddress(addr, buf, buf_size, g_chain_config->chain_id);
                 param_type = PARAM_TYPE_RAW;
             }
 

@@ -28,8 +28,8 @@
 strings_t strings;
 
 // Stub for chainConfig
-static chain_config_t chainConfig_storage = {.coinName = "ETH", .chainId = 1};
-const chain_config_t *chainConfig = &chainConfig_storage;
+static chain_config_t chainConfig_storage = {.ticker = "ETH", .chain_id = 1, .coin_type = 60};
+const chain_config_t *g_chain_config = &chainConfig_storage;
 
 // Helper macro to create a UINT parameter
 #define CREATE_UINT_PARAM(param_name, value_bytes, value_size)              \

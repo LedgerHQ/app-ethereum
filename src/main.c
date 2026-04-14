@@ -74,7 +74,7 @@ uint32_t eth2WithdrawalIndex;
 const internalStorage_t N_storage_real;
 
 caller_app_t *caller_app = NULL;
-const chain_config_t *chainConfig;
+const chain_config_t *g_chain_config;
 
 void reset_app_context(void) {
     if (appState == APP_STATE_SIGNING_MESSAGE) {
@@ -375,12 +375,6 @@ void app_main(void) {
     }
 }
 
-static void init_coin_config(chain_config_t *coin_config) {
-    memset(coin_config, 0, sizeof(chain_config_t));
-    strcpy(coin_config->coinName, APP_TICKER);
-    coin_config->chainId = APP_CHAIN_ID;
-}
-
 static void storage_init(void) {
     internalStorage_t storage;
     if (N_storage.initialized) {
@@ -415,19 +409,19 @@ void coin_main(eth_libargs_t *args) {
     chain_config_t config;
     if (args) {
         if (args->chain_config != NULL) {
-            chainConfig = args->chain_config;
+            g_chain_config = args->chain_config;
         }
         if ((caller_app = args->caller_app) != NULL) {
-            if (chainConfig != NULL) {
+            if (g_chain_config != NULL) {
                 caller_app->type = CALLER_TYPE_CLONE;
             } else {
                 caller_app->type = CALLER_TYPE_PLUGIN;
             }
         }
     }
-    if (chainConfig == NULL) {
-        init_coin_config(&config);
-        chainConfig = &config;
+    if (g_chain_config == NULL) {
+        init_chain_config(&config);
+        g_chain_config = &config;
     }
 
     app_init(false);
@@ -436,11 +430,11 @@ void coin_main(eth_libargs_t *args) {
 }
 
 __attribute__((noreturn)) void library_main(eth_libargs_t *args) {
-    chain_config_t coin_config;
+    chain_config_t chain_config;
     if (args->chain_config == NULL) {
         // We have been started directly by Exchange, not by a Clone. Init default chain
-        init_coin_config(&coin_config);
-        args->chain_config = &coin_config;
+        init_chain_config(&chain_config);
+        args->chain_config = &chain_config;
     }
 
     PRINTF("Inside a library \n");
@@ -470,12 +464,12 @@ __attribute__((noreturn)) void library_main(eth_libargs_t *args) {
 __attribute__((noreturn)) void clone_main(eth_libargs_t *args) {
     PRINTF("Starting in clone_main\n");
     uint32_t libcall_params[5];
-    chain_config_t local_chainConfig;
-    init_coin_config(&local_chainConfig);
+    chain_config_t local_chain_config;
+    init_chain_config(&local_chain_config);
 
     libcall_params[0] = (uint32_t) "Ethereum";
     libcall_params[1] = 0x100;
-    libcall_params[3] = (uint32_t) &local_chainConfig;
+    libcall_params[3] = (uint32_t) &local_chain_config;
 
     // Clone called by Exchange, forward the request to Ethereum
     if (args != NULL) {

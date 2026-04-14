@@ -17,8 +17,8 @@
 
 // External dependencies
 strings_t strings;
-static chain_config_t chainConfig_storage = {.coinName = "ETH", .chainId = 1};
-const chain_config_t *chainConfig = &chainConfig_storage;
+static chain_config_t chainConfig_storage = {.ticker = "ETH", .chain_id = 1, .coin_type = 60};
+const chain_config_t *g_chain_config = &chainConfig_storage;
 
 // =============================================================================
 // Test Cases

@@ -143,7 +143,7 @@ void __attribute__((noreturn)) swap_finalize_exchange_sign_transaction(bool is_s
 }
 
 void __attribute__((noreturn)) handle_swap_sign_transaction(const chain_config_t* config) {
-    chainConfig = config;
+    g_chain_config = config;
     G_called_from_swap = true;
     G_swap_response_ready = false;
     // If we are in crosschain context, automatically register the CROSSCHAIN plugin

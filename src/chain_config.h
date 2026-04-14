@@ -20,8 +20,9 @@
 #include "asset_info.h"
 
 typedef struct chain_config_s {
-    char coinName[MAX_TICKER_LEN];  // ticker
-    uint64_t chainId;
+    char ticker[MAX_TICKER_LEN];
+    uint64_t chain_id;
+    uint32_t coin_type;
 } chain_config_t;
 
 #define ETHEREUM_MAINNET_CHAINID 1
@@ -29,3 +30,5 @@ typedef struct chain_config_s {
 // Chain ID Validation (per EIP-2294)
 // See https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2294.md
 #define MAX_VALID_CHAIN_ID 0x7FFFFFFFFFFFFFDB
+
+void init_chain_config(chain_config_t *chain_config);

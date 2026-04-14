@@ -39,9 +39,9 @@ uint16_t handle_get_public_key(uint8_t p1,
         tmpCtx.publicKeyContext.publicKey.W,
         tmpCtx.publicKeyContext.address,
         (tmpCtx.publicKeyContext.getChaincode ? tmpCtx.publicKeyContext.chainCode : NULL),
-        chainConfig->chainId));
+        g_chain_config->chain_id));
 
-    uint64_t chain_id = chainConfig->chainId;
+    uint64_t chain_id = g_chain_config->chain_id;
     if (dataLength >= sizeof(chain_id)) {
         chain_id = u64_from_BE(dataBuffer, sizeof(chain_id));
         dataLength -= sizeof(chain_id);
@@ -64,7 +64,7 @@ uint16_t handle_get_public_key(uint8_t p1,
              40,
              tmpCtx.publicKeyContext.address);
     // don't unnecessarily pass the current app's chain ID
-    ui_display_public_key(chainConfig->chainId == chain_id ? NULL : &chain_id);
+    ui_display_public_key(g_chain_config->chain_id == chain_id ? NULL : &chain_id);
     *flags |= IO_ASYNCH_REPLY;
     // Return code will be sent after UI approve/cancel
     error = 0;

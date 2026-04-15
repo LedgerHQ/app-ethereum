@@ -7,6 +7,9 @@
 #include "ui_nbgl.h"
 #include "plugins.h"
 #include "trusted_name.h"
+#ifdef HAVE_ADDRESS_BOOK
+#include "handle_provide_contact.h"
+#endif  // HAVE_ADDRESS_BOOK
 #include "caller_api.h"
 #include "network_icons.h"
 #include "network.h"
@@ -102,6 +105,30 @@ static void get_lowercase_operation(char *dst, size_t dst_len) {
 }
 
 /**
+ * Setup extension structure for address alias display
+ *
+ * @param[in] name The contact/ENS name to display
+ * @param[in] alias_type Type of alias (ADDRESS_BOOK_ALIAS or ENS_ALIAS)
+ * @param[in] pair_index Index in g_pairs array to configure
+ * @return true if successful, false if memory allocation failed
+ */
+static bool setup_address_alias(const char *name,
+                                nbgl_contentValueAliasType_t alias_type,
+                                uint8_t pair_index) {
+    if (APP_MEM_CALLOC((void **) &extension, sizeof(*extension)) == false) {
+        return false;
+    }
+    g_pairs[pair_index].value = name;
+    extension->aliasType = alias_type;
+    extension->title = name;
+    extension->fullValue = strings.common.toAddress;
+    extension->explanation = strings.common.toAddress;
+    g_pairs[pair_index].extension = extension;
+    g_pairs[pair_index].aliasValue = true;
+    return true;
+}
+
+/**
  * Retrieve the Tag/Value g_pairs to display
  *
  * @param[in] displayNetwork If true, the network name will be displayed
@@ -112,6 +139,11 @@ static bool setTagValuePairs(bool displayNetwork, bool fromPlugin) {
     uint8_t nbPairs = 0;
     uint8_t pairIndex = 0;
     uint8_t counter = 0;
+    uint64_t chain_id = 0;
+    bool name_found = false;
+#ifdef HAVE_ADDRESS_BOOK
+    const s_ab_contact *ab_contact = NULL;
+#endif  // HAVE_ADDRESS_BOOK
 
     // Setup data to display
     if (fromPlugin) {
@@ -168,29 +200,35 @@ static bool setTagValuePairs(bool displayNetwork, bool fromPlugin) {
         // ----------------------
         g_pairs[nbPairs].item = "To";
 
-        uint64_t chain_id = get_tx_chain_id();
-        e_name_type type = TN_TYPE_ACCOUNT;
-        e_name_source source = TN_SOURCE_ENS;
-        const s_trusted_name *trusted_name;
-
-        if ((trusted_name = get_trusted_name(1,
-                                             &type,
-                                             1,
-                                             &source,
-                                             &chain_id,
-                                             tmpContent.txContent.destination)) != NULL) {
-            if (APP_MEM_CALLOC((void **) &extension, sizeof(*extension)) == false) {
+        chain_id = get_tx_chain_id();
+#ifdef HAVE_ADDRESS_BOOK
+        // Address Book takes priority over Trusted Name
+        ab_contact = get_address_book_contact(chain_id, tmpContent.txContent.destination);
+        if (ab_contact != NULL) {
+            if (!setup_address_alias(ab_contact->contact_name, ADDRESS_BOOK_ALIAS, nbPairs)) {
                 return false;
             }
-            g_pairs[nbPairs].value = trusted_name->name;
-            extension->aliasType = ENS_ALIAS;
-            extension->title = trusted_name->name;
-            extension->fullValue = strings.common.toAddress;
-            extension->explanation = strings.common.toAddress;
-            g_pairs[nbPairs].extension = extension;
-            g_pairs[nbPairs].aliasValue = true;
-        } else {
-            g_pairs[nbPairs].value = strings.common.toAddress;
+            name_found = true;
+        }
+#endif  // HAVE_ADDRESS_BOOK
+
+        if (!name_found) {
+            e_name_type type = TN_TYPE_ACCOUNT;
+            e_name_source source = TN_SOURCE_ENS;
+            const s_trusted_name *trusted_name = NULL;
+
+            if ((trusted_name = get_trusted_name(1,
+                                                 &type,
+                                                 1,
+                                                 &source,
+                                                 &chain_id,
+                                                 tmpContent.txContent.destination)) != NULL) {
+                if (!setup_address_alias(trusted_name->name, ENS_ALIAS, nbPairs)) {
+                    return false;
+                }
+            } else {
+                g_pairs[nbPairs].value = strings.common.toAddress;
+            }
         }
         nbPairs++;
 

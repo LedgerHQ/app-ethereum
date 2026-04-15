@@ -8,7 +8,7 @@
 #include "ui_utils.h"
 #include "mem_utils.h"
 #include "tlv_library.h"
-#include "tlv_apdu.h"
+#include "tlv_utils.h"
 #include "lcx_ecdsa.h"
 
 #define TYPE_DYNAMIC_NETWORK   0x08

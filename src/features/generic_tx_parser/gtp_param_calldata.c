@@ -9,7 +9,7 @@
 #include "read.h"
 #include "tx_ctx.h"
 #include "app_mem_utils.h"
-#include "tlv_apdu.h"
+#include "tlv_utils.h"
 
 #define PARAM_CALLDATA_TAGS(X)                                 \
     X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG)   \

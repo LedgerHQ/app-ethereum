@@ -102,6 +102,7 @@ add_executable(test_param_network
   ${APP_DIR}/features/generic_tx_parser/gtp_value.c
   ${APP_DIR}/features/generic_tx_parser/gtp_param_network.c
   ${APP_DIR}/tlv_apdu.c
+  ${APP_DIR}/tlv_utils.c
   ${APP_DIR}/mem_utils.c
   ${APP_DIR}/utils.c
   ${PLUGIN_DIR}/common_utils.c
@@ -139,6 +140,7 @@ add_executable(test_param_trusted_name
   ${APP_DIR}/features/generic_tx_parser/gtp_value.c
   ${APP_DIR}/features/generic_tx_parser/gtp_param_trusted_name.c
   ${APP_DIR}/tlv_apdu.c
+  ${APP_DIR}/tlv_utils.c
   ${APP_DIR}/mem_utils.c
   ${APP_DIR}/utils.c
   ${PLUGIN_DIR}/common_utils.c
@@ -180,6 +182,7 @@ add_executable(test_param_raw
   ${APP_DIR}/features/generic_tx_parser/gtp_value.c
   ${APP_DIR}/features/generic_tx_parser/gtp_param_raw.c
   ${APP_DIR}/tlv_apdu.c
+  ${APP_DIR}/tlv_utils.c
   ${APP_DIR}/mem_utils.c
   ${APP_DIR}/uint256.c
   ${APP_DIR}/uint128.c
@@ -225,6 +228,7 @@ add_executable(test_field_validation
   ${SRC_DIR}/test_field_validation.c
   ${APP_DIR}/features/generic_tx_parser/gtp_field.c
   ${APP_DIR}/tlv_apdu.c
+  ${APP_DIR}/tlv_utils.c
   ${APP_DIR}/mem_utils.c
   ${BOLOS_SDK}/lib_lists/lists.c
   ${APP_DIR}/utils.c

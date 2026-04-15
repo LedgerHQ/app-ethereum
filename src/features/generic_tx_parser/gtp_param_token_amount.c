@@ -6,7 +6,7 @@
 #include "gtp_field_table.h"
 #include "manage_asset_info.h"
 #include "tx_ctx.h"
-#include "tlv_apdu.h"
+#include "tlv_utils.h"
 
 #define PARAM_TOKEN_AMOUNT_TAGS(X)                                           \
     X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG)                 \

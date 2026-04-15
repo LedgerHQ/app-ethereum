@@ -5,7 +5,7 @@
 #include "ui_utils.h"
 #include "app_mem_utils.h"
 #include "hash_bytes.h"
-#include "tlv_apdu.h"
+#include "tlv_utils.h"
 #include "lcx_ecdsa.h"
 
 #define TYPE_PROXY_INFO 0x26

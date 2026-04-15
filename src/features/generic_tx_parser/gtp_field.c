@@ -7,7 +7,7 @@
 #include "mem_utils.h"  // mem_buffer_cleanup
 #include "lists.h"
 #include "tlv_library.h"
-#include "tlv_apdu.h"
+#include "tlv_utils.h"
 
 typedef union {
     s_param_raw_context raw_ctx;

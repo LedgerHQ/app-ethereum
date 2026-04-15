@@ -8,7 +8,7 @@
 #include "app_mem_utils.h"
 #include "tx_ctx.h"
 #include "tlv_library.h"
-#include "tlv_apdu.h"
+#include "tlv_utils.h"
 
 #define DATA_PATH_TAGS(X)                                    \
     X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG) \

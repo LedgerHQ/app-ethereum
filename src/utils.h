@@ -8,3 +8,4 @@
 void buf_shrink_expand(const uint8_t *src, size_t src_size, uint8_t *dst, size_t dst_size);
 void str_cpy_explicit_trunc(const char *src, size_t src_size, char *dst, size_t dst_size);
 bool is_printable(const char *str, size_t len);
+void reverseString(char *const str, uint32_t length);

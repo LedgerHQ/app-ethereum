@@ -23,6 +23,7 @@
 #include "uint128.h"
 #include "uint_common.h"
 #include "common_utils.h"  // HEXDIGITS
+#include "utils.h"
 
 void readu128BE(const uint8_t *const buffer, uint128_t *const target) {
     UPPER_P(target) = read_u64_be(buffer, 0);
@@ -305,10 +306,13 @@ void convertUint64BEto128(const uint8_t *const data, uint32_t length, uint128_t 
 void convertUint128BE(const uint8_t *const data, uint32_t length, uint128_t *const target) {
     uint8_t tmp[INT128_LENGTH];
 
-    if (length > sizeof(tmp)) {
-        memset(tmp, 0, sizeof(tmp));
+    if (data == NULL || target == NULL || length == 0) {
         return;
     }
+    if (length > sizeof(tmp)) {
+        return;
+    }
+
     memset(tmp, 0, sizeof(tmp) - length);
     memmove(tmp + sizeof(tmp) - length, data, length);
     readu128BE(tmp, target);

@@ -1,13 +1,14 @@
 #include "tx_ctx.h"
-#include "mem.h"
+#include "app_mem_utils.h"
 #include "gtp_field_table.h"
 #include "proxy_info.h"
 #include "common_ui.h"       // ui_gcs_cleanup
 #include "shared_context.h"  // appState
 #include "utils.h"           // buf_shrink_expand
-#include "getPublicKey.h"
+#include "get_public_key.h"
 #include "context_712.h"
 #include "network.h"
+#include "hash_bytes.h"
 
 static s_tx_ctx *g_tx_ctx_list = NULL;
 static s_tx_ctx *g_tx_ctx_current = NULL;
@@ -18,7 +19,7 @@ bool tx_ctx_is_root(void) {
 }
 
 size_t get_tx_ctx_count(void) {
-    return list_size((s_list_node **) &g_tx_ctx_list);
+    return list_size((list_node_t **) &g_tx_ctx_list);
 }
 
 cx_hash_t *get_fields_hash_ctx(void) {
@@ -72,7 +73,7 @@ static bool validate_inst_hash_on(const s_tx_ctx *tx_ctx) {
     if ((tx_ctx == NULL) || (tx_ctx->tx_info == NULL)) return false;
     // copy it locally, because the cx_hash call will modify it
     memcpy(&hash_ctx, &tx_ctx->fields_hash_ctx, sizeof(hash_ctx));
-    if (cx_hash_no_throw((cx_hash_t *) &hash_ctx, CX_LAST, NULL, 0, hash, sizeof(hash)) != CX_OK) {
+    if (finalize_hash((cx_hash_t *) &hash_ctx, hash, sizeof(hash)) != true) {
         return false;
     }
     return memcmp(tx_ctx->tx_info->fields_hash, hash, sizeof(hash)) == 0;
@@ -87,16 +88,19 @@ static void delete_tx_ctx(s_tx_ctx *node) {
         delete_tx_info(node->tx_info);
     }
     if (node->calldata != NULL) {
+        if (g_parked_calldata == node->calldata) {
+            g_parked_calldata = NULL;
+        }
         calldata_delete(node->calldata);
     }
-    app_mem_free(node);
+    APP_MEM_FREE(node);
 }
 
 void tx_ctx_pop(void) {
-    s_list_node *old_current = (s_list_node *) g_tx_ctx_current;
+    list_node_t *old_current = (list_node_t *) g_tx_ctx_current;
 
-    g_tx_ctx_current = (s_tx_ctx *) ((s_list_node *) g_tx_ctx_current)->prev;
-    list_remove((s_list_node **) &g_tx_ctx_list, old_current, (f_list_node_del) &delete_tx_ctx);
+    g_tx_ctx_current = (s_tx_ctx *) ((list_node_t *) g_tx_ctx_current)->prev;
+    list_remove((list_node_t **) &g_tx_ctx_list, old_current, (f_list_node_del) &delete_tx_ctx);
 }
 
 static bool process_empty_tx(const s_tx_ctx *tx_ctx) {
@@ -157,30 +161,36 @@ static bool process_empty_tx(const s_tx_ctx *tx_ctx) {
     if (!add_to_field_table(param_type, "To", buf, trusted_name)) {
         return false;
     }
-    list_remove((s_list_node **) &g_tx_ctx_list,
-                (s_list_node *) tx_ctx,
+    list_remove((list_node_t **) &g_tx_ctx_list,
+                (list_node_t *) tx_ctx,
                 (f_list_node_del) &delete_tx_ctx);
     return true;
 }
 
 bool process_empty_txs_before(void) {
-    for (s_list_node *tmp = ((s_list_node *) g_tx_ctx_current)->prev;
-         (tmp != NULL) && (((s_tx_ctx *) tmp)->calldata == NULL);
-         tmp = tmp->prev) {
+    list_node_t *tmp = ((list_node_t *) g_tx_ctx_current)->prev;
+    while ((tmp != NULL) && (((s_tx_ctx *) tmp)->calldata == NULL)) {
+        // process_empty_tx calls list_remove + delete_tx_ctx, which frees tmp.
+        // Ensure reading tmp->prev before the call to avoid use-after-free.
+        list_node_t *prev = tmp->prev;
         if (!process_empty_tx((s_tx_ctx *) tmp)) {
             return false;
         }
+        tmp = prev;
     }
     return true;
 }
 
 bool process_empty_txs_after(void) {
-    for (s_flist_node *tmp = ((s_flist_node *) g_tx_ctx_current)->next;
-         (tmp != NULL) && (((s_tx_ctx *) tmp)->calldata == NULL);
-         tmp = tmp->next) {
+    flist_node_t *tmp = ((flist_node_t *) g_tx_ctx_current)->next;
+    while ((tmp != NULL) && (((s_tx_ctx *) tmp)->calldata == NULL)) {
+        // process_empty_tx calls list_remove + delete_tx_ctx, which frees tmp.
+        // Ensure reading tmp->next before the call to avoid use-after-free.
+        flist_node_t *next = tmp->next;
         if (!process_empty_tx((s_tx_ctx *) tmp)) {
             return false;
         }
+        tmp = next;
     }
     return true;
 }
@@ -191,7 +201,7 @@ bool find_matching_tx_ctx(const uint8_t *contract_addr,
     const uint8_t *proxy_implem;
 
     for (s_tx_ctx *tmp = g_tx_ctx_list; tmp != NULL;
-         tmp = (s_tx_ctx *) ((s_flist_node *) tmp)->next) {
+         tmp = (s_tx_ctx *) ((flist_node_t *) tmp)->next) {
         proxy_implem = get_implem_contract(chain_id, tmp->to, selector);
         if ((memcmp((proxy_implem != NULL) ? proxy_implem : tmp->to,
                     contract_addr,
@@ -207,7 +217,7 @@ bool find_matching_tx_ctx(const uint8_t *contract_addr,
 }
 
 static void tx_ctx_cleanup(void) {
-    list_clear((s_list_node **) &g_tx_ctx_list, (f_list_node_del) &delete_tx_ctx);
+    list_clear((list_node_t **) &g_tx_ctx_list, (f_list_node_del) &delete_tx_ctx);
     g_tx_ctx_current = NULL;
 }
 
@@ -229,7 +239,7 @@ bool set_tx_info_into_tx_ctx(s_tx_info *tx_info) {
         if (cx_sha3_init_no_throw(&ctx, 256) != CX_OK) {
             return false;
         }
-        if (cx_hash_no_throw((cx_hash_t *) &ctx, CX_LAST, NULL, 0, hash, sizeof(hash)) != CX_OK) {
+        if (finalize_hash((cx_hash_t *) &ctx, hash, sizeof(hash)) != true) {
             return false;
         }
         if (memcmp(hash, tx_info->fields_hash, sizeof(hash)) == 0) {
@@ -247,17 +257,16 @@ bool tx_ctx_init(s_calldata *calldata,
     s_tx_ctx *node;
     s_eip712_calldata_info *calldata_info;
 
-    if ((node = app_mem_alloc(sizeof(*node))) == NULL) {
+    if (APP_MEM_CALLOC((void **) &node, sizeof(*node)) == false) {
         return false;
     }
-    explicit_bzero(node, sizeof(*node));
     node->calldata = calldata;
     if (get_tx_ctx_count() == 0) {
         get_public_key(node->from, ADDRESS_LENGTH);
         if (appState == APP_STATE_SIGNING_EIP712) {
             calldata_info = get_current_calldata_info();
             if (!calldata_info_all_received(calldata_info) || calldata_info->processed) {
-                app_mem_free(node);
+                APP_MEM_FREE(node);
                 return false;
             }
             calldata_info->processed = true;
@@ -265,8 +274,8 @@ bool tx_ctx_init(s_calldata *calldata,
     } else {
         // as default, copy value from last tx context
         const s_tx_ctx *tmp = g_tx_ctx_list;
-        while (((const s_flist_node *) tmp)->next != NULL) {
-            tmp = (const s_tx_ctx *) ((const s_flist_node *) tmp)->next;
+        while (((const flist_node_t *) tmp)->next != NULL) {
+            tmp = (const s_tx_ctx *) ((const flist_node_t *) tmp)->next;
         }
         memcpy(node->from, tmp->from, sizeof(node->from));
         node->chain_id = tmp->chain_id;
@@ -287,10 +296,19 @@ bool tx_ctx_init(s_calldata *calldata,
     }
 
     if (cx_sha3_init_no_throw(&node->fields_hash_ctx, 256) != CX_OK) {
-        app_mem_free(node);
+        APP_MEM_FREE(node);
         return false;
     }
-    list_push_back((s_list_node **) &g_tx_ctx_list, (s_list_node *) node);
+    list_push_back((list_node_t **) &g_tx_ctx_list, (list_node_t *) node);
+
+    // Ownership of the calldata has been transferred to the node.
+    // Clear g_parked_calldata now so callers cannot double-free it if we return
+    // false below (e.g. when field_table_init fails after the node is in the list
+    // and will be freed by tx_ctx_cleanup via delete_tx_ctx).
+    if (g_parked_calldata == calldata) {
+        g_parked_calldata = NULL;
+    }
+
     if ((appState == APP_STATE_SIGNING_TX) && (node == g_tx_ctx_list)) {
         return field_table_init();
     }
@@ -302,5 +320,8 @@ void gcs_cleanup(void) {
     field_table_cleanup();
     tx_ctx_cleanup();
     // just in case
-    if (g_parked_calldata != NULL) calldata_delete(g_parked_calldata);
+    if (g_parked_calldata != NULL) {
+        calldata_delete(g_parked_calldata);
+        g_parked_calldata = NULL;
+    }
 }

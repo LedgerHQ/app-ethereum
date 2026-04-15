@@ -4,8 +4,6 @@
 #include "ui_utils.h"
 
 #define FINISH_MSG_LEN 32
-// TODO Re-activate when partners are ready for eip191
-#undef HAVE_TRANSACTION_CHECKS
 
 static void ui_191_finish_cb(bool confirm) {
     if (confirm) {
@@ -31,9 +29,6 @@ void ui_191_start(const char *message) {
     }
 
     explicit_bzero(&warning, sizeof(nbgl_warning_t));
-#ifdef HAVE_TRANSACTION_CHECKS
-    set_tx_simulation_warning();
-#endif
 
     snprintf(g_finishMsg,
              FINISH_MSG_LEN,

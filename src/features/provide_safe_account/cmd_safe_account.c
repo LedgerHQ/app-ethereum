@@ -23,72 +23,54 @@ uint16_t handle_safe_account(uint8_t p1,
                              const uint8_t *data,
                              uint8_t length,
                              uint32_t *flags) {
-    uint16_t sw = SWO_NOT_SUPPORTED_ERROR_NO_INFO;
-
-    // Check error cases
+    // Check P1 parameter
     if (p1 != P1_FIRST_CHUNK && p1 != P1_FOLLOWING_CHUNK) {
         PRINTF("Error: Invalid P1 (%u)\n", p1);
         return SWO_WRONG_P1_P2;
     }
+
+    // Check P2 parameter and validate state
     switch (p2) {
         case SAFE_DESCRIPTOR:
             if (SAFE_DESC != NULL) {
                 PRINTF("Error: Safe descriptor already exists!\n");
-                sw = SWO_FILE_ALREADY_EXISTS;
-            } else {
-                sw = SWO_SUCCESS;  // No error for P1_SAFE_DESCRIPTOR if SAFE_DESC is NULL
+                return SWO_FILE_ALREADY_EXISTS;
             }
             break;
         case SIGNER_DESCRIPTOR:
             if (SAFE_DESC == NULL) {
                 PRINTF("Error: Safe descriptor does not exist!\n");
-                sw = SWO_COMMAND_NOT_ALLOWED;
-            } else if (SIGNER_DESC.data != NULL) {
+                return SWO_COMMAND_NOT_ALLOWED;
+            }
+            if (SIGNER_DESC.data != NULL) {
                 PRINTF("Error: Signer descriptor already exists!\n");
-                sw = SWO_FILE_ALREADY_EXISTS;
-            } else {
-                sw = SWO_SUCCESS;  // No error for P1_SAFE_DESCRIPTOR if SAFE_DESC is NULL
+                return SWO_FILE_ALREADY_EXISTS;
             }
             break;
         default:
             PRINTF("Error: Invalid P2 (%u)\n", p2);
-            sw = SWO_WRONG_P1_P2;
-            break;
+            return SWO_WRONG_P1_P2;
     }
 
-    if (sw != SWO_SUCCESS) {
-        return sw;  // Return early if there is an error
+    // Parse TLV payload
+    bool result = false;
+    if (p2 == SAFE_DESCRIPTOR) {
+        result = tlv_from_apdu(p1 == P1_FIRST_CHUNK, length, data, &handle_safe_tlv_payload);
+    } else {  // SIGNER_DESCRIPTOR
+        result = tlv_from_apdu(p1 == P1_FIRST_CHUNK, length, data, &handle_signer_tlv_payload);
     }
 
-    // Handle the Safe or Signer descriptor based on P1
-    switch (p2) {
-        case SAFE_DESCRIPTOR:
-            if (!tlv_from_apdu(p1 == P1_FIRST_CHUNK, length, data, &handle_safe_tlv_payload)) {
-                sw = SWO_INCORRECT_DATA;
-            } else {
-                sw = SWO_SUCCESS;
-            }
-            break;
-        case SIGNER_DESCRIPTOR:
-            if (!tlv_from_apdu(p1 == P1_FIRST_CHUNK, length, data, &handle_signer_tlv_payload)) {
-                sw = SWO_INCORRECT_DATA;
-            } else {
-                sw = SWO_SUCCESS;
-            }
-            break;
-        default:
-            PRINTF("Error: Unexpected P1 (%u)!\n", p1);
-            sw = SWO_WRONG_P1_P2;
-            break;
+    if (!result) {
+        return SWO_INCORRECT_DATA;
     }
 
-    // Handle display when all data is received
+    // Display UI when all data is received
     if (SIGNER_DESC.is_valid) {
         ui_display_safe_account();
         *flags |= IO_ASYNCH_REPLY;
-        sw = APDU_NO_RESPONSE;
+        return APDU_NO_RESPONSE;
     }
-    return sw;
+    return SWO_SUCCESS;
 }
 
 /**

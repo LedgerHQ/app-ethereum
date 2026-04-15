@@ -12,6 +12,7 @@ from ragger.navigator.navigation_scenario import NavigateWithScenario
 from ragger.navigator import Navigator, NavInsID, NavIns
 
 from dynamic_networks_cfg import get_network_config
+from constants import ABIS_FOLDER
 
 from client.utils import CoinType
 import client.response_parser as ResponseParser
@@ -20,7 +21,6 @@ from client.status_word import StatusWord
 from client.dynamic_networks import DynamicNetwork
 from client.trusted_name import TrustedName, TrustedNameType, TrustedNameSource
 
-from constants import ABIS_FOLDER
 
 # Values used across all tests
 CHAIN_ID = 1
@@ -141,19 +141,24 @@ def test_trusted_name_v1_non_mainnet(scenario_navigator: NavigateWithScenario, t
 
     challenge = common(app_client)
 
+    # Define networks to load (one will be used for the transaction)
+    chain_ids = [3, 5, 56, 137]
+
     tx_params: dict = {
         "nonce": NONCE,
         "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
         "gas": GAS_LIMIT,
         "to": ADDR,
         "value": Web3.to_wei(AMOUNT, "ether"),
-        "chainId": 5
+        "chainId": chain_ids[1]  # Use Goerli (5) for this test
     }
 
-    # Send Network information (name, ticker, icon)
-    name, ticker, icon = get_network_config(backend.device.type, tx_params["chainId"])
-    if name and ticker:
-        app_client.provide_network_information(DynamicNetwork(name, ticker, tx_params["chainId"], icon))
+    # Send Network information (name, ticker, icon) for multiple networks
+    # to ensure the correct one is picked based on chainId
+    for chain_id in chain_ids:
+        name, ticker, icon = get_network_config(backend.device.type, chain_id)
+        if name and ticker:
+            app_client.provide_network_information(DynamicNetwork(name, ticker, chain_id, icon))
 
     app_client.provide_trusted_name(TrustedName(1, ADDR, NAME, challenge=challenge, coin_type=CoinType.ETH))
 
@@ -186,7 +191,11 @@ def test_trusted_name_v1_name_too_long(backend: BackendInterface):
     challenge = common(app_client)
 
     with pytest.raises(ExceptionRAPDU) as e:
-        app_client.provide_trusted_name(TrustedName(1, ADDR, "ledger" + "0"*25 + ".eth", challenge=challenge, coin_type=CoinType.ETH))
+        app_client.provide_trusted_name(TrustedName(1,
+                                                    ADDR,
+                                                    "ledger" + "0"*25 + ".eth",
+                                                    challenge=challenge,
+                                                    coin_type=CoinType.ETH))
     assert e.value.status == StatusWord.INVALID_DATA
 
 

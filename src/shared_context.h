@@ -1,13 +1,29 @@
 #pragma once
 
 #include "bip32_utils.h"
-#include "ethUstream.h"
-#include "chainConfig.h"
+#include "eth_ustream.h"
+#include "chain_config.h"
 #include "swap_utils.h"
 #include "main_std_app.h"
 #include "eth_plugin_interface.h"
 
 #define PLUGIN_ID_LENGTH 30
+
+// Address length
+#define ADDRESS_LENGTH_STR     ((ADDRESS_LENGTH * 2) + 1)  // 2 hex chars per byte + '\0'
+#define ADDRESS_LENGTH_HEX_STR (ADDRESS_LENGTH_STR + 2)    // with '0x' prefix
+
+// Cryptographic key and signature sizes
+#define PRIVATE_KEY_LENGTH 64  // Private key material buffer size
+
+// ECDSA signature sizes
+#define ETHEREUM_SIGNATURE_V_BASE 27  // Base recovery ID for Ethereum signatures (pre-EIP-155)
+#define ECDSA_SIGNATURE_LENGTH    65  // Total ECDSA signature size: v (1) + r (32) + s (32)
+
+// BLS12-381 key sizes (ETH2 Beacon Chain specification)
+#define BLS12381_G1_COMPRESSED_PUBKEY_LENGTH    48  // ETH2 validator public key (standard)
+#define BLS12381_G1_UNCOMPRESSED_PUBKEY_LENGTH  96  // Uncompressed G1 point (rarely used)
+#define BLS12381_G2_COMPRESSED_SIGNATURE_LENGTH 96  // ETH2 signature size
 
 #define N_storage (*(volatile internalStorage_t *) PIC(&N_storage_real))
 
@@ -60,7 +76,7 @@ _Static_assert((offsetof(tokenContext_t, pluginContext) % 4) == 0, "Plugin conte
 
 typedef struct publicKeyContext_t {
     cx_ecfp_public_key_t publicKey;
-    char address[41];
+    char address[ADDRESS_LENGTH_STR];
     uint8_t chainCode[INT256_LENGTH];
     bool getChaincode;
 } publicKeyContext_t;
@@ -80,8 +96,8 @@ typedef struct messageSigningContext_t {
 
 typedef struct messageSigningContext712_t {
     bip32_path_t bip32;
-    uint8_t domainHash[32];
-    uint8_t messageHash[32];
+    uint8_t domainHash[INT256_LENGTH];
+    uint8_t messageHash[INT256_LENGTH];
 } messageSigningContext712_t;
 
 typedef struct authSigningContext7702_t {
@@ -122,8 +138,8 @@ typedef enum {
 #define NETWORK_STRING_MAX_SIZE 19
 
 typedef struct txStringProperties_s {
-    char fromAddress[43];
-    char toAddress[43];
+    char fromAddress[ADDRESS_LENGTH_HEX_STR];
+    char toAddress[ADDRESS_LENGTH_HEX_STR];
     char fullAmount[MAX_TICKER_LEN + 1 + 78 + 1];  // 2^256 is 78 digits long
     char maxFee[50];
     char nonce[8];  // 10M tx per account ought to be enough for everybody
@@ -164,14 +180,14 @@ extern uint8_t *G_swap_crosschain_hash;
 
 typedef enum {
     PLUGIN_TYPE_NONE = 0,
-    // External plugin, set by setExternalPlugin
+    // External plugin, set by set_external_plugin
     PLUGIN_TYPE_EXTERNAL,
     // Specific SWAP_WITH_CALLDATA internal plugin
     // set as fallback when started if calldata is provided in swap mode
     PLUGIN_TYPE_SWAP_WITH_CALLDATA,
-    // Specific ERC721 internal plugin, set by setPlugin
+    // Specific ERC721 internal plugin, set by set_plugin
     PLUGIN_TYPE_ERC721,
-    // Specific ERC1155 internal plugin, set by setPlugin
+    // Specific ERC1155 internal plugin, set by set_plugin
     PLUGIN_TYPE_ERC1155,
     // Old internal plugin, not set by any command
     PLUGIN_TYPE_OLD_INTERNAL,

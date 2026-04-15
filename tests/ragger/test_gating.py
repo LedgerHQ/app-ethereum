@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 
@@ -9,7 +10,7 @@ from client.gating import Gating
 from client.utils import TxType
 
 
-def disabled_test_gating_blind_signing(scenario_navigator: NavigateWithScenario) -> None:
+def test_gating_blind_signing(scenario_navigator: NavigateWithScenario) -> None:
     """Test the Gating descriptor APDU with a blind signing transaction"""
 
     descriptor = Gating(
@@ -26,8 +27,8 @@ def disabled_test_gating_blind_signing(scenario_navigator: NavigateWithScenario)
                0.0,
                gating_params=descriptor)
 
-def disabled_test_gating_blind_signing_with_proxy(scenario_navigator: NavigateWithScenario) -> None:
-    """Test the Gating descriptor APDU with a blind signing transaction"""
+def test_gating_blind_signing_with_proxy(scenario_navigator: NavigateWithScenario) -> None:
+    """Test the Gating descriptor APDU with a blind signing transaction behind a proxy"""
 
     descriptor = Gating(
         TxType.TRANSACTION,
@@ -45,15 +46,19 @@ def disabled_test_gating_blind_signing_with_proxy(scenario_navigator: NavigateWi
                gating_params=descriptor,
                with_proxy=True)
 
-def disabled_test_gating_eip712(scenario_navigator: NavigateWithScenario) -> None:
+def test_gating_eip712(scenario_navigator: NavigateWithScenario) -> None:
     """Test the Gating descriptor APDU with a EIP712 transaction"""
 
     json_file = Path(eip712_json_path()) / "00-simple_mail-data.json"
+    with open(json_file, encoding="utf-8") as file:
+        data = json.load(file)
+
     descriptor = Gating(
         TxType.TYPED_DATA,
-        bytes(),  # Address will be initialized from the json_file
+        bytes.fromhex(data["domain"]["verifyingContract"][2:]),
         "To scan for threats and verify this transaction before signing, use Ledger Multisig.",
         "ledger.com/ledger-multisig",
+        data["domain"].get("chainId", 0),
     )
     # Ensure the wallet address is initialized
     set_wallet_addr(scenario_navigator.backend)

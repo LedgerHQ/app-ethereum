@@ -4,8 +4,8 @@
 #include "apdu_constants.h"
 #include "hash_bytes.h"
 #include "public_keys.h"
-#include "getPublicKey.h"
-#include "tlv.h"
+#include "get_public_key.h"
+#include "tlv_library.h"
 #include "tlv_apdu.h"
 #include "utils.h"
 #include "nbgl_use_case.h"
@@ -13,110 +13,32 @@
 #include "network.h"
 #include "ui_callbacks.h"
 #include "ui_nbgl.h"
+#include "lcx_ecdsa.h"
 
 #define TYPE_TX_SIMULATION 0x09
 #define STRUCT_VERSION     0x01
 
-enum {
-    CATEGORY_OTHERS = 0x01,
-    CATEGORY_ADDRESS = 0x02,
-    CATEGORY_DAPP = 0x03,
-    CATEGORY_LOSING_OPERATION = 0x04,
-};
-
-enum {
-    TAG_STRUCTURE_TYPE = 0x01,
-    TAG_STRUCTURE_VERSION = 0x02,
-    TAG_ADDRESS = 0x22,
-    TAG_CHAIN_ID = 0x23,
-    TAG_TX_HASH = 0x27,
-    TAG_DOMAIN_HASH = 0x28,
-    TAG_TX_CHECKS_NORMALIZED_RISK = 0x80,
-    TAG_TX_CHECKS_NORMALIZED_CATEGORY = 0x81,
-    TAG_TX_CHECKS_PROVIDER_MSG = 0x82,
-    TAG_TX_CHECKS_TINY_URL = 0x83,
-    TAG_TX_CHECKS_SIMU_TYPE = 0x84,
-    TAG_DER_SIGNATURE = 0x15,
-};
-
-enum {
-    BIT_STRUCTURE_TYPE,
-    BIT_STRUCTURE_VERSION,
-    BIT_ADDRESS,
-    BIT_CHAIN_ID,
-    BIT_TX_HASH,
-    BIT_DOMAIN_HASH,
-    BIT_TX_CHECKS_NORMALIZED_RISK,
-    BIT_TX_CHECKS_NORMALIZED_CATEGORY,
-    BIT_TX_CHECKS_PROVIDER_MSG,
-    BIT_TX_CHECKS_TINY_URL,
-    BIT_TX_CHECKS_SIMU_TYPE,
-    BIT_DER_SIGNATURE,
-};
-
 typedef struct {
     tx_simulation_t *simu;
     uint8_t sig_size;
-    uint8_t *sig;
+    const uint8_t *sig;
     cx_sha256_t hash_ctx;
-    uint32_t rcv_flags;
+    TLV_reception_t received_tags;
 } s_tx_simu_ctx;
 
 // Global structure to store the tx simultion parameters
 tx_simulation_t TX_SIMULATION = {0};
-
-// Macros to check the field length
-#define CHECK_FIELD_LENGTH(tag, len, expected)  \
-    do {                                        \
-        if (len != expected) {                  \
-            PRINTF("%s Size mismatch!\n", tag); \
-            return SWO_INCORRECT_DATA;          \
-        }                                       \
-    } while (0)
-#define CHECK_FIELD_OVERFLOW(tag, field, len)   \
-    do {                                        \
-        if (len >= sizeof(field)) {             \
-            PRINTF("%s Size overflow!\n", tag); \
-            return SWO_INSUFFICIENT_MEMORY;     \
-        }                                       \
-    } while (0)
-
-// Macro to check the field value
-#define CHECK_FIELD_VALUE(tag, value, expected)  \
-    do {                                         \
-        if (value != expected) {                 \
-            PRINTF("%s Value mismatch!\n", tag); \
-            return SWO_INCORRECT_DATA;           \
-        }                                        \
-    } while (0)
-
-// Macro to check the field value
-#define CHECK_EMPTY_BUFFER(tag, field, len)   \
-    do {                                      \
-        if (memcmp(field, empty, len) == 0) { \
-            PRINTF("%s Zero buffer!\n", tag); \
-            return SWO_INCORRECT_DATA;        \
-        }                                     \
-    } while (0)
-
-// Macro to copy the field
-#define COPY_FIELD(field, data)                             \
-    do {                                                    \
-        memmove((void *) field, data->value, data->length); \
-    } while (0)
 
 /**
  * @brief Parse the STRUCTURE_TYPE value.
  *
  * @param[in] data the tlv data
  * @param[in] context TX Simu context
- * @return APDU Response code
+ * @return whether the handling was successful
  */
-static uint16_t parse_struct_type(const s_tlv_data *data, s_tx_simu_ctx *context) {
-    CHECK_FIELD_LENGTH("STRUCTURE_TYPE", data->length, 1);
-    CHECK_FIELD_VALUE("STRUCTURE_TYPE", data->value[0], TYPE_TX_SIMULATION);
-    context->rcv_flags |= SET_BIT(BIT_STRUCTURE_TYPE);
-    return SWO_SUCCESS;
+static bool parse_struct_type(const tlv_data_t *data, s_tx_simu_ctx *context) {
+    UNUSED(context);
+    return tlv_check_struct_type(data, TYPE_TX_SIMULATION);
 }
 
 /**
@@ -124,13 +46,11 @@ static uint16_t parse_struct_type(const s_tlv_data *data, s_tx_simu_ctx *context
  *
  * @param[in] data the tlv data
  * @param[in] context TX Simu context
- * @return APDU Response code
+ * @return whether the handling was successful
  */
-static uint16_t parse_struct_version(const s_tlv_data *data, s_tx_simu_ctx *context) {
-    CHECK_FIELD_LENGTH("STRUCTURE_VERSION", data->length, 1);
-    CHECK_FIELD_VALUE("STRUCTURE_VERSION", data->value[0], STRUCT_VERSION);
-    context->rcv_flags |= SET_BIT(BIT_STRUCTURE_VERSION);
-    return SWO_SUCCESS;
+static bool parse_struct_version(const tlv_data_t *data, s_tx_simu_ctx *context) {
+    UNUSED(context);
+    return tlv_check_struct_version(data, STRUCT_VERSION);
 }
 
 /**
@@ -138,15 +58,17 @@ static uint16_t parse_struct_version(const s_tlv_data *data, s_tx_simu_ctx *cont
  *
  * @param[in] data the tlv data
  * @param[in] context TX Simu context
- * @return APDU Response code
+ * @return whether the handling was successful
  */
-static uint16_t parse_tx_hash(const s_tlv_data *data, s_tx_simu_ctx *context) {
-    uint8_t empty[HASH_SIZE] = {0};
-    CHECK_FIELD_LENGTH("TX_HASH", data->length, HASH_SIZE);
-    CHECK_EMPTY_BUFFER("TX_HASH", data->value, data->length);
-    COPY_FIELD(context->simu->tx_hash, data);
-    context->rcv_flags |= SET_BIT(BIT_TX_HASH);
-    return SWO_SUCCESS;
+static bool parse_tx_hash(const tlv_data_t *data, s_tx_simu_ctx *context) {
+    if (!tlv_get_hash(data, (uint8_t *) context->simu->tx_hash, sizeof(context->simu->tx_hash))) {
+        return false;
+    }
+    if (allzeroes(context->simu->tx_hash, HASH_SIZE) == 1) {
+        PRINTF("TX_HASH: all zeroes\n");
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -154,15 +76,19 @@ static uint16_t parse_tx_hash(const s_tlv_data *data, s_tx_simu_ctx *context) {
  *
  * @param[in] data the tlv data
  * @param[in] context TX Simu context
- * @return APDU Response code
+ * @return whether the handling was successful
  */
-static uint16_t parse_domain_hash(const s_tlv_data *data, s_tx_simu_ctx *context) {
-    uint8_t empty[HASH_SIZE] = {0};
-    CHECK_FIELD_LENGTH("DOMAIN_HASH", data->length, HASH_SIZE);
-    CHECK_EMPTY_BUFFER("DOMAIN_HASH", data->value, data->length);
-    COPY_FIELD(context->simu->domain_hash, data);
-    context->rcv_flags |= SET_BIT(BIT_DOMAIN_HASH);
-    return SWO_SUCCESS;
+static bool parse_domain_hash(const tlv_data_t *data, s_tx_simu_ctx *context) {
+    if (!tlv_get_hash(data,
+                      (uint8_t *) context->simu->domain_hash,
+                      sizeof(context->simu->domain_hash))) {
+        return false;
+    }
+    if (allzeroes(context->simu->domain_hash, HASH_SIZE) == 1) {
+        PRINTF("DOMAIN_HASH: all zeroes\n");
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -170,15 +96,17 @@ static uint16_t parse_domain_hash(const s_tlv_data *data, s_tx_simu_ctx *context
  *
  * @param[in] data the tlv data
  * @param[in] context TX Simu context
- * @return APDU Response code
+ * @return whether the handling was successful
  */
-static uint16_t parse_address(const s_tlv_data *data, s_tx_simu_ctx *context) {
-    uint8_t empty[ADDRESS_LENGTH] = {0};
-    CHECK_FIELD_LENGTH("ADDRESS", data->length, ADDRESS_LENGTH);
-    CHECK_EMPTY_BUFFER("ADDRESS", data->value, data->length);
-    COPY_FIELD(context->simu->addr, data);
-    context->rcv_flags |= SET_BIT(BIT_ADDRESS);
-    return SWO_SUCCESS;
+static bool parse_address(const tlv_data_t *data, s_tx_simu_ctx *context) {
+    if (!tlv_get_address(data, (uint8_t *) context->simu->address)) {
+        return false;
+    }
+    if (allzeroes(context->simu->address, ADDRESS_LENGTH) == 1) {
+        PRINTF("ADDRESS: all zeroes\n");
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -186,26 +114,10 @@ static uint16_t parse_address(const s_tlv_data *data, s_tx_simu_ctx *context) {
  *
  * @param[in] data the tlv data
  * @param[in] context TX Simu context
- * @return APDU Response code
+ * @return whether the handling was successful
  */
-static uint16_t parse_chain_id(const s_tlv_data *data, s_tx_simu_ctx *context) {
-    uint64_t chain_id;
-    uint64_t max_range;
-
-    CHECK_FIELD_LENGTH("CHAIN_ID", data->length, sizeof(uint64_t));
-    // Check if the chain ID is supported
-    // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2294.md
-    max_range = 0x7FFFFFFFFFFFFFDB;
-    chain_id = u64_from_BE(data->value, data->length);
-    // Check if the chain_id is supported
-    if ((chain_id > max_range) || (chain_id == 0)) {
-        PRINTF("Unsupported chain ID: %u\n", chain_id);
-        return SWO_INCORRECT_DATA;
-    }
-
-    context->simu->chain_id = chain_id;
-    context->rcv_flags |= SET_BIT(BIT_CHAIN_ID);
-    return SWO_SUCCESS;
+static bool parse_chain_id(const tlv_data_t *data, s_tx_simu_ctx *context) {
+    return tlv_get_chain_id(data, &context->simu->chain_id);
 }
 
 /**
@@ -213,17 +125,17 @@ static uint16_t parse_chain_id(const s_tlv_data *data, s_tx_simu_ctx *context) {
  *
  * @param[in] data the tlv data
  * @param[in] context TX Simu context
- * @return APDU Response code
+ * @return whether the handling was successful
  */
-static uint16_t parse_risk(const s_tlv_data *data, s_tx_simu_ctx *context) {
-    CHECK_FIELD_LENGTH("TX_CHECKS_NORMALIZED_RISK", data->length, sizeof(context->simu->risk));
-    if (data->value[0] >= RISK_MALICIOUS) {
-        PRINTF("TX_CHECKS_NORMALIZED_RISK out of range: %d\n", data->value[0]);
-        return SWO_INCORRECT_DATA;
+static bool parse_risk(const tlv_data_t *data, s_tx_simu_ctx *context) {
+    uint8_t value = 0;
+    // UNKNOWN level is an internal fallback, not an API level, we don't expect it as input
+    if (!tlv_get_uint8_range(data, &value, 0, TX_SIMULATION_RISK_UNKNOWN - 1)) {
+        PRINTF("TX_CHECKS_NORMALIZED_RISK: error\n");
+        return false;
     }
-    context->simu->risk = data->value[0] + 1;  // Because 0 is "unknown"
-    context->rcv_flags |= SET_BIT(BIT_TX_CHECKS_NORMALIZED_RISK);
-    return SWO_SUCCESS;
+    context->simu->risk = (tx_simulation_score_t) value;
+    return true;
 }
 
 /**
@@ -231,15 +143,16 @@ static uint16_t parse_risk(const s_tlv_data *data, s_tx_simu_ctx *context) {
  *
  * @param[in] data the tlv data
  * @param[in] context TX Simu context
- * @return APDU Response code
+ * @return whether the handling was successful
  */
-static uint16_t parse_category(const s_tlv_data *data, s_tx_simu_ctx *context) {
-    CHECK_FIELD_LENGTH("TX_CHECKS_NORMALIZED_CATEGORY",
-                       data->length,
-                       sizeof(context->simu->category));
-    context->simu->category = data->value[0];
-    context->rcv_flags |= SET_BIT(BIT_TX_CHECKS_NORMALIZED_CATEGORY);
-    return SWO_SUCCESS;
+static bool parse_category(const tlv_data_t *data, s_tx_simu_ctx *context) {
+    uint8_t value = 0;
+    if (!tlv_get_uint8_range(data, &value, 0, TX_SIMULATION_CATEGORY_COUNT - 1)) {
+        PRINTF("TX_CHECKS_NORMALIZED_CATEGORY: error\n");
+        return false;
+    }
+    context->simu->category = (tx_simulation_category_t) value;
+    return true;
 }
 
 /**
@@ -247,17 +160,16 @@ static uint16_t parse_category(const s_tlv_data *data, s_tx_simu_ctx *context) {
  *
  * @param[in] data the tlv data
  * @param[in] context TX Simu context
- * @return APDU Response code
+ * @return whether the handling was successful
  */
-static uint16_t parse_type(const s_tlv_data *data, s_tx_simu_ctx *context) {
-    CHECK_FIELD_LENGTH("TX_CHECKS_SIMU_TYPE", data->length, sizeof(context->simu->type));
-    if (data->value[0] >= SIMU_TYPE_PERSONAL_MESSAGE) {
-        PRINTF("TX_CHECKS_SIMU_TYPE out of range: %d\n", data->value[0]);
-        return SWO_INCORRECT_DATA;
+static bool parse_type(const tlv_data_t *data, s_tx_simu_ctx *context) {
+    uint8_t value = 0;
+    if (!tlv_get_uint8_range(data, &value, 0, TX_SIMULATION_TYPE_COUNT - 1)) {
+        PRINTF("TX_CHECKS_SIMU_TYPE: error\n");
+        return false;
     }
-    context->simu->type = data->value[0] + 1;  // Because 0 is "unknown"
-    context->rcv_flags |= SET_BIT(BIT_TX_CHECKS_SIMU_TYPE);
-    return SWO_SUCCESS;
+    context->simu->type = (tx_simulation_type_t) value;
+    return true;
 }
 
 /**
@@ -265,18 +177,17 @@ static uint16_t parse_type(const s_tlv_data *data, s_tx_simu_ctx *context) {
  *
  * @param[in] data the tlv data
  * @param[in] context TX Simu context
- * @return APDU Response code
+ * @return whether the handling was successful
  */
-static uint16_t parse_provider_msg(const s_tlv_data *data, s_tx_simu_ctx *context) {
-    CHECK_FIELD_OVERFLOW("TX_CHECKS_PROVIDER_MSG", context->simu->provider_msg, data->length);
-    // Check if the name is printable
-    if (!is_printable((const char *) data->value, data->length)) {
-        PRINTF("TX_CHECKS_PROVIDER_MSG is not printable!\n");
-        return SWO_INCORRECT_DATA;
+static bool parse_provider_msg(const tlv_data_t *data, s_tx_simu_ctx *context) {
+    if (!tlv_get_printable_string(data,
+                                  (char *) context->simu->provider_msg,
+                                  0,
+                                  sizeof(context->simu->provider_msg))) {
+        PRINTF("TX_CHECKS_PROVIDER_MSG: error\n");
+        return false;
     }
-    COPY_FIELD(context->simu->provider_msg, data);
-    context->rcv_flags |= SET_BIT(BIT_TX_CHECKS_PROVIDER_MSG);
-    return SWO_SUCCESS;
+    return true;
 }
 
 /**
@@ -284,18 +195,17 @@ static uint16_t parse_provider_msg(const s_tlv_data *data, s_tx_simu_ctx *contex
  *
  * @param[in] data the tlv data
  * @param[in] context TX Simu context
- * @return APDU Response code
+ * @return whether the handling was successful
  */
-static uint16_t parse_tiny_url(const s_tlv_data *data, s_tx_simu_ctx *context) {
-    CHECK_FIELD_OVERFLOW("TX_CHECKS_TINY_URL", context->simu->tiny_url, data->length);
-    // Check if the name is printable
-    if (!is_printable((const char *) data->value, data->length)) {
-        PRINTF("TX_CHECKS_TINY_URL is not printable!\n");
-        return SWO_INCORRECT_DATA;
+static bool parse_tiny_url(const tlv_data_t *data, s_tx_simu_ctx *context) {
+    if (!tlv_get_printable_string(data,
+                                  (char *) context->simu->tiny_url,
+                                  0,
+                                  sizeof(context->simu->tiny_url))) {
+        PRINTF("TX_CHECKS_TINY_URL: error\n");
+        return false;
     }
-    COPY_FIELD(context->simu->tiny_url, data);
-    context->rcv_flags |= SET_BIT(BIT_TX_CHECKS_TINY_URL);
-    return SWO_SUCCESS;
+    return true;
 }
 
 /**
@@ -303,13 +213,56 @@ static uint16_t parse_tiny_url(const s_tlv_data *data, s_tx_simu_ctx *context) {
  *
  * @param[in] data the tlv data
  * @param[in] context TX Simu context
- * @return APDU Response code
+ * @return whether the handling was successful
  */
-static uint16_t parse_signature(const s_tlv_data *data, s_tx_simu_ctx *context) {
-    context->sig_size = data->length;
-    context->sig = (uint8_t *) data->value;
-    context->rcv_flags |= SET_BIT(BIT_DER_SIGNATURE);
-    return SWO_SUCCESS;
+static bool parse_signature(const tlv_data_t *data, s_tx_simu_ctx *context) {
+    buffer_t sig = {0};
+    if (!get_buffer_from_tlv_data(data,
+                                  &sig,
+                                  CX_ECDSA_SHA256_SIG_MIN_ASN1_LENGTH,
+                                  CX_ECDSA_SHA256_SIG_MAX_ASN1_LENGTH)) {
+        PRINTF("DER_SIGNATURE: failed to extract\n");
+        return false;
+    }
+    context->sig_size = sig.size;
+    context->sig = sig.ptr;
+    return true;
+}
+
+// Define TLV tags for TX Simulation
+#define TX_SIMULATION_TAGS(X)                                                      \
+    X(0x01, TAG_STRUCTURE_TYPE, parse_struct_type, ENFORCE_UNIQUE_TAG)             \
+    X(0x02, TAG_STRUCTURE_VERSION, parse_struct_version, ENFORCE_UNIQUE_TAG)       \
+    X(0x22, TAG_ADDRESS, parse_address, ENFORCE_UNIQUE_TAG)                        \
+    X(0x23, TAG_CHAIN_ID, parse_chain_id, ENFORCE_UNIQUE_TAG)                      \
+    X(0x27, TAG_TX_HASH, parse_tx_hash, ENFORCE_UNIQUE_TAG)                        \
+    X(0x28, TAG_DOMAIN_HASH, parse_domain_hash, ENFORCE_UNIQUE_TAG)                \
+    X(0x80, TAG_TX_CHECKS_NORMALIZED_RISK, parse_risk, ENFORCE_UNIQUE_TAG)         \
+    X(0x81, TAG_TX_CHECKS_NORMALIZED_CATEGORY, parse_category, ENFORCE_UNIQUE_TAG) \
+    X(0x82, TAG_TX_CHECKS_PROVIDER_MSG, parse_provider_msg, ENFORCE_UNIQUE_TAG)    \
+    X(0x83, TAG_TX_CHECKS_TINY_URL, parse_tiny_url, ENFORCE_UNIQUE_TAG)            \
+    X(0x84, TAG_TX_CHECKS_SIMU_TYPE, parse_type, ENFORCE_UNIQUE_TAG)               \
+    X(0x85, TAG_TX_CHECKS_ADDITIONAL_DATA, NULL, ENFORCE_UNIQUE_TAG)               \
+    X(0x15, TAG_DER_SIGNATURE, parse_signature, ENFORCE_UNIQUE_TAG)
+
+// Forward declaration of common handler
+static bool tx_simu_common_handler(const tlv_data_t *data, s_tx_simu_ctx *context);
+
+// Generate TLV parser for TX Simulation
+DEFINE_TLV_PARSER(TX_SIMULATION_TAGS, &tx_simu_common_handler, tx_simulation_tlv_parser)
+
+/**
+ * @brief Common handler called for all tags to hash them (except signature).
+ *
+ * @param[in] data data to handle
+ * @param[out] context struct context
+ * @return whether the handling was successful
+ */
+static bool tx_simu_common_handler(const tlv_data_t *data, s_tx_simu_ctx *context) {
+    if (data->tag != TAG_DER_SIGNATURE) {
+        hash_nbytes(data->raw.ptr, data->raw.size, (cx_hash_t *) &context->hash_ctx);
+    }
+    return true;
 }
 
 /**
@@ -320,38 +273,36 @@ static uint16_t parse_signature(const s_tlv_data *data, s_tx_simu_ctx *context) 
  * @param[in] context TX Simu context
  * @return whether it was successful
  */
-static bool verify_signature(s_tx_simu_ctx *context) {
-    uint8_t hash[INT256_LENGTH];
-    cx_err_t error = CX_INTERNAL_ERROR;
-    bool ret_code = false;
-
-    CX_CHECK(
-        cx_hash_no_throw((cx_hash_t *) &context->hash_ctx, CX_LAST, NULL, 0, hash, INT256_LENGTH));
-
-    CX_CHECK(check_signature_with_pubkey("Tx Simulation",
-                                         hash,
-                                         sizeof(hash),
-                                         NULL,
-                                         0,
-                                         CERTIFICATE_PUBLIC_KEY_USAGE_TX_SIMU_SIGNER,
-                                         (uint8_t *) (context->sig),
-                                         context->sig_size));
-
-    // Partner name is retrieved from the certificate
+static bool verify_signature(const s_tx_simu_ctx *context) {
+    uint8_t hash[INT256_LENGTH] = {0};
     uint8_t key_usage = 0;
     size_t trusted_name_len = 0;
     uint8_t trusted_name[CERTIFICATE_TRUSTED_NAME_MAXLEN] = {0};
     cx_ecfp_384_public_key_t public_key = {0};
+
+    if (finalize_hash((cx_hash_t *) &context->hash_ctx, hash, sizeof(hash)) != true) {
+        PRINTF("Could not finalize struct hash!\n");
+        return false;
+    }
+
+    if (check_signature_with_pubkey(hash,
+                                    sizeof(hash),
+                                    NULL,
+                                    0,
+                                    CERTIFICATE_PUBLIC_KEY_USAGE_TX_SIMU_SIGNER,
+                                    (uint8_t *) context->sig,
+                                    context->sig_size) != true) {
+        return false;
+    }
+
+    // Partner name is retrieved from the certificate
     if (os_pki_get_info(&key_usage, trusted_name, &trusted_name_len, &public_key) != 0) {
         PRINTF("Failed to get the certificate info\n");
-        goto end;
+        return false;
     }
-    explicit_bzero((void *) context->simu->partner, PARTNER_SIZE);
     // Last byte is the NULL terminator
     memmove((void *) context->simu->partner, trusted_name, PARTNER_SIZE - 1);
-    ret_code = true;
-end:
-    return ret_code;
+    return true;
 }
 
 /**
@@ -362,23 +313,42 @@ end:
  * @param[in] context TX Simu context
  * @return whether it was successful
  */
-static bool verify_fields(s_tx_simu_ctx *context) {
-    uint32_t expected_fields;
-
-    expected_fields = (1 << BIT_STRUCTURE_TYPE) | (1 << BIT_STRUCTURE_VERSION) |
-                      (1 << BIT_TX_HASH) | (1 << BIT_ADDRESS) |
-                      (1 << BIT_TX_CHECKS_NORMALIZED_RISK) |
-                      (1 << BIT_TX_CHECKS_NORMALIZED_CATEGORY) | (1 << BIT_TX_CHECKS_TINY_URL) |
-                      (1 << BIT_TX_CHECKS_SIMU_TYPE) | (1 << BIT_DER_SIGNATURE);
-
-    if (context->simu->type == SIMU_TYPE_TRANSACTION) {
-        expected_fields |= (1 << BIT_CHAIN_ID);
+static bool verify_fields(const s_tx_simu_ctx *context) {
+    // Common mandatory fields for all types
+    if (!TLV_CHECK_RECEIVED_TAGS(context->received_tags,
+                                 TAG_STRUCTURE_TYPE,
+                                 TAG_STRUCTURE_VERSION,
+                                 TAG_TX_HASH,
+                                 TAG_ADDRESS,
+                                 TAG_TX_CHECKS_NORMALIZED_RISK,
+                                 TAG_TX_CHECKS_NORMALIZED_CATEGORY,
+                                 TAG_TX_CHECKS_TINY_URL,
+                                 TAG_TX_CHECKS_SIMU_TYPE,
+                                 TAG_DER_SIGNATURE)) {
+        PRINTF("Missing mandatory tags in received TLV\n");
+        return false;
     }
-    if (context->simu->type == SIMU_TYPE_TYPED_DATA) {
-        expected_fields |= (1 << BIT_DOMAIN_HASH);
+
+    if (TLV_CHECK_RECEIVED_TAGS(context->received_tags, TAG_TX_CHECKS_ADDITIONAL_DATA)) {
+        PRINTF("Unexpected tag received in TLV\n");
+        return false;
     }
 
-    return ((context->rcv_flags & expected_fields) == expected_fields);
+    // Type-specific fields
+    if (context->simu->type == TX_SIMULATION_TYPE_TRANSACTION) {
+        if (!TLV_CHECK_RECEIVED_TAGS(context->received_tags, TAG_CHAIN_ID)) {
+            PRINTF("Missing TAG_CHAIN_ID tag for TX_SIMULATION_TYPE_TRANSACTION TLV\n");
+            return false;
+        }
+    }
+    if (context->simu->type == TX_SIMULATION_TYPE_TYPED_DATA) {
+        if (!TLV_CHECK_RECEIVED_TAGS(context->received_tags, TAG_DOMAIN_HASH)) {
+            PRINTF("Missing TAG_DOMAIN_HASH tag for TX_SIMULATION_TYPE_TYPED_DATA TLV\n");
+            return false;
+        }
+    }
+
+    return true;
 }
 
 /**
@@ -388,16 +358,13 @@ static bool verify_fields(s_tx_simu_ctx *context) {
  * Only for debug purpose.
  */
 static void print_simulation_info(s_tx_simu_ctx *context) {
-    char chain_str[sizeof(uint64_t) * 2 + 1] = {0};
-
     PRINTF("****************************************************************************\n");
     PRINTF("[TX SIMU] - Retrieved TX simulation:\n");
     PRINTF("[TX SIMU] -    Partner: %s\n", context->simu->partner);
     PRINTF("[TX SIMU] -    Hash: %.*h\n", HASH_SIZE, context->simu->tx_hash);
-    PRINTF("[TX SIMU] -    Address: %.*h\n", ADDRESS_LENGTH, context->simu->addr);
+    PRINTF("[TX SIMU] -    Address: %.*h\n", ADDRESS_LENGTH, context->simu->address);
     if (context->simu->chain_id != 0) {
-        u64_to_string(context->simu->chain_id, chain_str, sizeof(chain_str));
-        PRINTF("[TX SIMU] -    ChainID: %s\n", chain_str);
+        PRINTF("[TX SIMU] -    ChainID: %llu\n", context->simu->chain_id);
     }
     PRINTF("[TX SIMU] -    Risk: %d -> %s\n", context->simu->risk, get_tx_simulation_risk_str());
     PRINTF("[TX SIMU] -    Category: %d -> %s\n",
@@ -408,72 +375,34 @@ static void print_simulation_info(s_tx_simu_ctx *context) {
 }
 
 /**
- * @brief Parse the received TLV.
+ * @brief Verify the struct
  *
- * @param[in] data the tlv data
+ * Verify the SHA-256 hash of the payload against the public key
+ *
  * @param[in] context TX Simu context
- * @return APDU Response code
+ * @return whether it was successful
  */
-static bool handle_tx_simu_tlv(const s_tlv_data *data, s_tx_simu_ctx *context) {
-    uint16_t sw = SWO_NOT_SUPPORTED_ERROR_NO_INFO;
+static bool verify_simulation_struct(const s_tx_simu_ctx *context) {
+    if (!verify_fields(context)) {
+        PRINTF("Error: Missing mandatory fields in TX Simulation descriptor!\n");
+        return false;
+    }
 
-    switch (data->tag) {
-        case TAG_STRUCTURE_TYPE:
-            sw = parse_struct_type(data, context);
-            break;
-        case TAG_STRUCTURE_VERSION:
-            sw = parse_struct_version(data, context);
-            break;
-        case TAG_CHAIN_ID:
-            sw = parse_chain_id(data, context);
-            break;
-        case TAG_ADDRESS:
-            sw = parse_address(data, context);
-            break;
-        case TAG_TX_HASH:
-            sw = parse_tx_hash(data, context);
-            break;
-        case TAG_DOMAIN_HASH:
-            sw = parse_domain_hash(data, context);
-            break;
-        case TAG_TX_CHECKS_NORMALIZED_RISK:
-            sw = parse_risk(data, context);
-            break;
-        case TAG_TX_CHECKS_NORMALIZED_CATEGORY:
-            sw = parse_category(data, context);
-            break;
-        case TAG_TX_CHECKS_PROVIDER_MSG:
-            sw = parse_provider_msg(data, context);
-            break;
-        case TAG_TX_CHECKS_TINY_URL:
-            sw = parse_tiny_url(data, context);
-            break;
-        case TAG_TX_CHECKS_SIMU_TYPE:
-            sw = parse_type(data, context);
-            break;
-        case TAG_DER_SIGNATURE:
-            sw = parse_signature(data, context);
-            break;
-        default:
-            PRINTF(TLV_TAG_ERROR_MSG, data->tag);
-            sw = SWO_SUCCESS;
-            break;
+    if (!verify_signature(context)) {
+        PRINTF("Error: Signature verification failed for TX Simulation descriptor!\n");
+        return false;
     }
-    if ((sw == SWO_SUCCESS) && (data->tag != TAG_DER_SIGNATURE)) {
-        hash_nbytes(data->raw, data->raw_size, (cx_hash_t *) &context->hash_ctx);
-    }
-    return (sw == SWO_SUCCESS);
+    return true;
 }
 
 /**
  * @brief Parse the TLV payload containing the TX Simulation parameters.
  *
- * @param[in] payload buffer received
- * @param[in] size of the buffer
+ * @param[in] buf TLV buffer received
  * @return whether the TLV payload was handled successfully or not
  */
-static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
-    bool parsing_ret;
+static bool handle_tlv_payload(const buffer_t *buf) {
+    bool ret = false;
     s_tx_simu_ctx ctx = {0};
 
     ctx.simu = &TX_SIMULATION;
@@ -482,18 +411,20 @@ static bool handle_tlv_payload(const uint8_t *payload, uint16_t size) {
     // Initialize the hash context
     cx_sha256_init(&ctx.hash_ctx);
 
-    parsing_ret = tlv_parse(payload, size, (f_tlv_data_handler) &handle_tx_simu_tlv, &ctx);
-    if (!parsing_ret || !verify_fields(&ctx) || !verify_signature(&ctx)) {
-        explicit_bzero(&TX_SIMULATION, sizeof(TX_SIMULATION));
-        explicit_bzero(&ctx, sizeof(s_tx_simu_ctx));
-        return false;
+    ret = tx_simulation_tlv_parser(buf, &ctx, &ctx.received_tags);
+    if (ret) {
+        ret = verify_simulation_struct(&ctx);
     }
-    if (strlen(ctx.simu->partner) == 0) {
-        // Set a default value for partner
-        snprintf((char *) ctx.simu->partner, sizeof(ctx.simu->partner), "Transaction Checks");
+    if (ret) {
+        if (strlen(ctx.simu->partner) == 0) {
+            // Set a default value for partner
+            snprintf((char *) ctx.simu->partner, sizeof(ctx.simu->partner), "Transaction Checks");
+        }
+        print_simulation_info(&ctx);
+    } else {
+        clear_tx_simulation();
     }
-    print_simulation_info(&ctx);
-    return true;
+    return ret;
 }
 
 /**
@@ -507,7 +438,7 @@ void handle_tx_simulation_opt_in(bool response_expected) {
         PRINTF("TX_CHECKS_ Checks already Opt-in!\n");
         if (response_expected) {
             // just respond the current state and return to idle screen
-            G_io_apdu_buffer[0] = N_storage.tx_check_enable;
+            G_io_tx_buffer[0] = N_storage.tx_check_enable;
             io_seproxyhal_send_status(SWO_SUCCESS, 1, false, true);
         }
         return;
@@ -576,10 +507,6 @@ static bool check_tx_simulation_hash(void) {
     uint8_t *hash = NULL;
     uint8_t *hash2 = NULL;
 
-    if (!N_storage.tx_check_enable) {
-        // Transaction Checks disabled
-        return true;
-    }
     switch (appState) {
         case APP_STATE_SIGNING_TX:
             hash = tmpCtx.transactionContext.hash;
@@ -593,7 +520,6 @@ static bool check_tx_simulation_hash(void) {
             break;
         default:
             PRINTF("[TX SIMU] Invalid app State %d!\n", appState);
-            TX_SIMULATION.risk = RISK_UNKNOWN;
             return false;
     }
     if (memcmp(TX_SIMULATION.tx_hash, hash, HASH_SIZE) != 0) {
@@ -602,8 +528,6 @@ static bool check_tx_simulation_hash(void) {
                TX_SIMULATION.tx_hash,
                HASH_SIZE,
                hash);
-        PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
-        TX_SIMULATION.risk = RISK_UNKNOWN;
         return false;
     }
     if ((hash2 != NULL) && (memcmp(TX_SIMULATION.domain_hash, hash2, HASH_SIZE)) != 0) {
@@ -612,8 +536,6 @@ static bool check_tx_simulation_hash(void) {
                TX_SIMULATION.domain_hash,
                HASH_SIZE,
                hash);
-        PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
-        TX_SIMULATION.risk = RISK_UNKNOWN;
         return false;
     }
     return true;
@@ -628,18 +550,14 @@ static bool check_tx_simulation_from_address(void) {
     uint8_t msg_sender[ADDRESS_LENGTH] = {0};
     if (get_public_key(msg_sender, sizeof(msg_sender)) != SWO_SUCCESS) {
         PRINTF("[TX SIMU] Unable to get the public key!\n");
-        PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
-        TX_SIMULATION.risk = RISK_UNKNOWN;
         return false;
     }
-    if (memcmp(TX_SIMULATION.addr, msg_sender, ADDRESS_LENGTH) != 0) {
-        PRINTF("[TX SIMU] FROM addr mismatch: %.*h != %.*h\n",
+    if (memcmp(TX_SIMULATION.address, msg_sender, ADDRESS_LENGTH) != 0) {
+        PRINTF("[TX SIMU] FROM address mismatch: %.*h != %.*h\n",
                ADDRESS_LENGTH,
-               TX_SIMULATION.addr,
+               TX_SIMULATION.address,
                ADDRESS_LENGTH,
                msg_sender);
-        PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
-        TX_SIMULATION.risk = RISK_UNKNOWN;
         return false;
     }
     return true;
@@ -654,9 +572,7 @@ static bool check_tx_simulation_chain_id(void) {
     uint64_t chain_id = get_tx_chain_id();
     // Check Chain_ID in case of a standard transaction (No EIP191, No EIP712)
     if ((appState == APP_STATE_SIGNING_TX) && (TX_SIMULATION.chain_id != chain_id)) {
-        PRINTF("[TX SIMU] Chain_ID mismatch: %u != %u\n", TX_SIMULATION.chain_id, chain_id);
-        PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
-        TX_SIMULATION.risk = RISK_UNKNOWN;
+        PRINTF("[TX SIMU] Chain_ID mismatch: %llu != %llu\n", TX_SIMULATION.chain_id, chain_id);
         return false;
     }
     return true;
@@ -669,38 +585,26 @@ static bool check_tx_simulation_chain_id(void) {
  */
 static bool check_tx_simulation_validity(void) {
     switch (TX_SIMULATION.type) {
-        case SIMU_TYPE_TRANSACTION:
+        case TX_SIMULATION_TYPE_TRANSACTION:
             if (appState != APP_STATE_SIGNING_TX) {
                 PRINTF("[TX SIMU] Simulation type inconsistent!\n");
-                TX_SIMULATION.risk = RISK_UNKNOWN;
                 return false;
             }
             break;
-        case SIMU_TYPE_PERSONAL_MESSAGE:
-            if (appState != APP_STATE_SIGNING_MESSAGE) {
-                PRINTF("[TX SIMU] Simulation type inconsistent!\n");
-                TX_SIMULATION.risk = RISK_UNKNOWN;
-                return false;
-            }
-            break;
-        case SIMU_TYPE_TYPED_DATA:
+        case TX_SIMULATION_TYPE_TYPED_DATA:
             if (appState != APP_STATE_SIGNING_EIP712) {
                 PRINTF("[TX SIMU] Simulation type inconsistent!\n");
-                TX_SIMULATION.risk = RISK_UNKNOWN;
                 return false;
             }
             break;
         default:
             // No simulation data
             PRINTF("[TX SIMU] Simulation type is not set\n");
-            PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
-            TX_SIMULATION.risk = RISK_UNKNOWN;
             return false;
     }
-    if (TX_SIMULATION.risk == RISK_UNKNOWN) {
+    if (TX_SIMULATION.risk == TX_SIMULATION_RISK_UNKNOWN) {
         // No simulation data
         PRINTF("[TX SIMU] Simulation risk is not set\n");
-        PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
         return false;
     }
     return true;
@@ -712,20 +616,16 @@ static bool check_tx_simulation_validity(void) {
  * @return whether it was successful
  */
 static bool check_tx_simulation_params(void) {
-    if (!N_storage.tx_check_enable) {
-        // Transaction Checks disabled
-        return true;
-    }
-    if (check_tx_simulation_validity() == false) {
+    if (!check_tx_simulation_validity()) {
         return false;
     }
-    if (check_tx_simulation_chain_id() == false) {
+    if (!check_tx_simulation_chain_id()) {
         return false;
     }
-    if (check_tx_simulation_from_address() == false) {
+    if (!check_tx_simulation_from_address()) {
         return false;
     }
-    if (check_tx_simulation_hash() == false) {
+    if (!check_tx_simulation_hash()) {
         return false;
     }
     return true;
@@ -738,21 +638,27 @@ static bool check_tx_simulation_params(void) {
 void set_tx_simulation_warning(void) {
     if (!N_storage.tx_check_enable) {
         // Transaction Checks disabled
+        PRINTF("Transaction Checks are disabled, skipping\n");
         return;
     }
     // Transaction Checks enabled => Verify parameters of the Transaction
-    check_tx_simulation_params();
+    if (!check_tx_simulation_params()) {
+        // Fallback
+        PRINTF("[TX SIMU] Force Score to UNKNOWN\n");
+        TX_SIMULATION.risk = TX_SIMULATION_RISK_UNKNOWN;
+    }
+
     switch (TX_SIMULATION.risk) {
-        case RISK_UNKNOWN:
+        case TX_SIMULATION_RISK_UNKNOWN:
             warning.predefinedSet |= SET_BIT(W3C_ISSUE_WARN);
             break;
-        case RISK_BENIGN:
+        case TX_SIMULATION_RISK_BENIGN:
             warning.predefinedSet |= SET_BIT(W3C_NO_THREAT_WARN);
             break;
-        case RISK_WARNING:
+        case TX_SIMULATION_RISK_WARNING:
             warning.predefinedSet |= SET_BIT(W3C_RISK_DETECTED_WARN);
             break;
-        case RISK_MALICIOUS:
+        case TX_SIMULATION_RISK_MALICIOUS:
             warning.predefinedSet |= SET_BIT(W3C_THREAT_DETECTED_WARN);
             break;
         default:
@@ -770,13 +676,13 @@ void set_tx_simulation_warning(void) {
  */
 const char *get_tx_simulation_risk_str(void) {
     switch (TX_SIMULATION.risk) {
-        case RISK_UNKNOWN:
+        case TX_SIMULATION_RISK_UNKNOWN:
             return "UNKNOWN (Transaction Check Issue)";
-        case RISK_BENIGN:
+        case TX_SIMULATION_RISK_BENIGN:
             return "BENIGN";
-        case RISK_WARNING:
+        case TX_SIMULATION_RISK_WARNING:
             return "RISK (WARNING)";
-        case RISK_MALICIOUS:
+        case TX_SIMULATION_RISK_MALICIOUS:
             return "THREAT (MALICIOUS)";
         default:
             break;
@@ -792,18 +698,18 @@ const char *get_tx_simulation_risk_str(void) {
 const char *get_tx_simulation_category_str(void) {
     // Unknown category string
     switch (TX_SIMULATION.risk) {
-        case RISK_UNKNOWN:
-        case RISK_BENIGN:
+        case TX_SIMULATION_RISK_UNKNOWN:
+        case TX_SIMULATION_RISK_BENIGN:
             break;
-        case RISK_WARNING:
+        case TX_SIMULATION_RISK_WARNING:
             switch (TX_SIMULATION.category) {
-                case CATEGORY_ADDRESS:
+                case TX_SIMULATION_CATEGORY_ADDRESS:
                     return "This transaction involves a suspicious address. "
                            "It might not be safe to continue.";
-                case CATEGORY_DAPP:
+                case TX_SIMULATION_CATEGORY_DAPP:
                     return "This transaction involves a suspicious dApp. "
                            "It might not be safe to continue.";
-                case CATEGORY_LOSING_OPERATION:
+                case TX_SIMULATION_CATEGORY_LOSING_OPERATION:
                     return "This transaction could end in a loss. "
                            "Check transaction details carefully before signing.";
                 default:
@@ -812,12 +718,12 @@ const char *get_tx_simulation_category_str(void) {
                     break;
             }
             break;
-        case RISK_MALICIOUS:
+        case TX_SIMULATION_RISK_MALICIOUS:
             switch (TX_SIMULATION.category) {
-                case CATEGORY_ADDRESS:
+                case TX_SIMULATION_CATEGORY_ADDRESS:
                     return "This transaction involves a malicious address. "
                            "Your assets will most likely be stolen.";
-                case CATEGORY_DAPP:
+                case TX_SIMULATION_CATEGORY_DAPP:
                     return "This dApp is linked to a scammer. "
                            "Your assets will most likely be stolen.";
                 default:

@@ -65,17 +65,17 @@ const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_
     return NULL;
 }
 
-mem_ctx_t mem_init(void *heap_start, size_t heap_size) {
+mem_ctx_t __wrap_mem_init(void *heap_start, size_t heap_size) {
     (void) heap_size;
     return heap_start;
 }
 
-void *mem_alloc(mem_ctx_t ctx, size_t nb_bytes) {
+void *__wrap_mem_alloc(mem_ctx_t ctx, size_t nb_bytes) {
     (void) ctx;
     return malloc(nb_bytes);
 }
 
-void mem_free(mem_ctx_t ctx, void *ptr) {
+void __wrap_mem_free(mem_ctx_t ctx, void *ptr) {
     (void) ctx;
     free(ptr);
 }
@@ -112,4 +112,19 @@ cx_err_t cx_bn_cmp(const cx_bn_t a, const cx_bn_t b, int *diff) {
     (void) b;
     if (diff) *diff = 0;
     return CX_OK;
+}
+
+// Wrapper to override SDK's cx_ecdsa_verify_no_throw which triggers MemorySanitizer
+// Use linker flag: -Wl,--wrap=cx_ecdsa_verify_no_throw
+bool __wrap_cx_ecdsa_verify_no_throw(const cx_ecfp_public_key_t *pukey,
+                                     const uint8_t *hash,
+                                     size_t hash_len,
+                                     const uint8_t *sig,
+                                     size_t sig_len) {
+    (void) pukey;
+    (void) hash;
+    (void) hash_len;
+    (void) sig;
+    (void) sig_len;
+    return true;
 }

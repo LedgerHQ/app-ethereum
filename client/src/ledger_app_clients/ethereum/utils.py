@@ -14,7 +14,6 @@ class CoinType(IntEnum):
 class TxType(IntEnum):
     TRANSACTION = 0x00
     TYPED_DATA = 0x01
-    PERSONAL_MESSAGE = 0x02
 
 
 def get_selector_from_data(data: str) -> bytes:

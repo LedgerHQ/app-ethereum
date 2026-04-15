@@ -2,7 +2,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "tlv.h"
+#include "buffer.h"
 #include "gtp_param_raw.h"
 #include "gtp_param_amount.h"
 #include "gtp_param_token_amount.h"
@@ -16,7 +16,9 @@
 #include "gtp_param_token.h"
 #include "gtp_param_network.h"
 #include "calldata.h"
-#include "list.h"
+#include "lists.h"
+
+#define MAX_FIELD_NAME_SIZE 21
 
 typedef enum {
     PARAM_TYPE_RAW = 0,
@@ -42,14 +44,14 @@ typedef enum {
 } e_param_visibility;
 
 typedef struct s_field_constraint {
-    s_flist_node node;
+    flist_node_t node;
     uint8_t size;
     uint8_t *value;
 } s_field_constraint;
 
 typedef struct s_field {
     uint8_t version;
-    char name[21];
+    char name[MAX_FIELD_NAME_SIZE];
     e_param_type param_type;
     union {
         s_param_raw param_raw;
@@ -71,10 +73,10 @@ typedef struct s_field {
 
 typedef struct {
     s_field *field;
-    uint8_t set_flags;
+    TLV_reception_t received_tags;
 } s_field_ctx;
 
-bool handle_field_struct(const s_tlv_data *data, s_field_ctx *context);
+bool handle_field_struct(const buffer_t *buf, s_field_ctx *context);
 bool verify_field_struct(const s_field_ctx *context);
 bool format_field(s_field *field);
 void cleanup_field_constraints(s_field *field);

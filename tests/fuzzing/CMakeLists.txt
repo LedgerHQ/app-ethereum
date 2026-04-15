@@ -41,21 +41,22 @@ target_include_directories(
          ${CMAKE_SOURCE_DIR}/mock
          ${APP_SRC}
          ${APP_SRC}/features/generic_tx_parser
-         ${APP_SRC}/features/getPublicKey
+         ${APP_SRC}/features/get_public_key
+         ${APP_SRC}/features/get_eth2_public_key
          ${APP_SRC}/features/provide_enum_value
          ${APP_SRC}/features/provide_network_info
-         ${APP_SRC}/features/signTx
+         ${APP_SRC}/features/sign_tx
          ${APP_SRC}/features/provide_trusted_name
-         ${APP_SRC}/features/getChallenge
-         ${APP_SRC}/features/signMessageEIP712
+         ${APP_SRC}/features/get_challenge
          ${APP_SRC}/features/provide_proxy_info
          ${APP_SRC}/features/provide_tx_simulation
-         ${APP_SRC}/features/signAuthorizationEIP7702
+         ${APP_SRC}/features/sign_authorization_eip7702
          ${APP_SRC}/features/provide_safe_account
          ${APP_SRC}/features/provide_gating
-         ${APP_SRC}/features/signMessageEIP712_common
-         ${APP_SRC}/features/signMessageEIP712
-         ${APP_SRC}/features/setPlugin
+         ${APP_SRC}/features/sign_message_eip712_common
+         ${APP_SRC}/features/sign_message_eip712
+         ${APP_SRC}/features/set_plugin
+         ${APP_SRC}/plugins
          ${APP_SRC}/plugins/eth2
          ${APP_SRC}/plugins/eip7002
          ${APP_SRC}/plugins/eip7251
@@ -64,6 +65,7 @@ target_include_directories(
          ${APP_SRC}/plugins/erc1155
          ${APP_SRC}/plugins/swap_with_calldata
          ${APP_SRC}/nbgl
+         ${APP_SRC}/swap
          ${PLUGIN_SDK_SRC}
 )
 
@@ -104,6 +106,15 @@ foreach(HARNESS_FILE ${FUZZ_HARNESSES})
 
     # Link against the secure_sdk and code_lib libraries
     target_link_libraries(${HARNESS_NAME} PUBLIC secure_sdk code_lib)
+
+    # Wrap mem_alloc functions to use mock versions
+    target_link_options(${HARNESS_NAME} PRIVATE
+        -Wl,--wrap=mem_init
+        -Wl,--wrap=mem_alloc
+        -Wl,--wrap=mem_free
+    )
+    # Override SDK's cx_ecdsa_verify_no_throw to avoid MemorySanitizer false positives
+    target_link_options(${HARNESS_NAME} PRIVATE -Wl,--wrap=cx_ecdsa_verify_no_throw)
 
     message(STATUS "Creating fuzzer target: ${HARNESS_NAME}")
 endforeach()

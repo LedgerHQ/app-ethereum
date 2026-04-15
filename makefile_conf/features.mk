@@ -1,6 +1,6 @@
 # Activate requested features
 # ---------------------------
-# Bypass the signature verification for setExternalPlugin, setPlugin, provideERC20TokenInfo and provideNFTInfo calls
+# Bypass the signature verification for set_external_plugin, set_plugin, provide_erc20_token_information and provide_nft_information calls
 BYPASS_SIGNATURES ?= 0
 ifneq ($(BYPASS_SIGNATURES),0)
     DEFINES += HAVE_BYPASS_SIGNATURES
@@ -48,14 +48,13 @@ ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX TARGET_APEX
 endif
 
 # Gating signing - TODO: Reactivate this once the feature is fully available E2E
-# DEFINES	+= HAVE_GATING_SUPPORT
+DEFINES	+= HAVE_GATING_SUPPORT
 
 EIP7702_TEST_WHITELIST ?= 0
 ifneq ($(EIP7702_TEST_WHITELIST),0)
     DEFINES += HAVE_EIP7702_WHITELIST_TEST
 endif
 
-ENABLE_DYNAMIC_ALLOC = 1
 ifneq ($(DEBUG), 0)
     MEMORY_PROFILING ?= 0
     ifneq ($(MEMORY_PROFILING),0)

@@ -1,4 +1,5 @@
 #include "nbgl_use_case.h"
+#include "app_mem_utils.h"
 #include "ui_nbgl.h"
 #include "caller_api.h"
 #include "network.h"
@@ -249,7 +250,7 @@ static void get_appname_and_tagline(const char **appname, const char **tagline) 
             line_len += strlen(FORMAT_PLUGIN);
             line_len += strlen(caller_app->name);
             // Allocate the buffer - will never be deallocated...
-            if (mem_buffer_allocate((void **) &g_tag_line, line_len) == true) {
+            if (APP_MEM_CALLOC((void **) &g_tag_line, line_len) == true) {
                 snprintf(g_tag_line, line_len, FORMAT_PLUGIN, *appname);
                 *tagline = g_tag_line;
             }

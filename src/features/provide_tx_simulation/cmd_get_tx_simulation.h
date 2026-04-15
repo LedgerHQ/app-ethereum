@@ -14,31 +14,40 @@
 
 // clang-format off
 typedef enum {
-    RISK_UNKNOWN,
-    RISK_BENIGN,
-    RISK_WARNING,
-    RISK_MALICIOUS
+    TX_SIMULATION_RISK_BENIGN = 0x00,
+    TX_SIMULATION_RISK_WARNING = 0x01,
+    TX_SIMULATION_RISK_MALICIOUS = 0x02,
+    // Internal level for error handling, not API entry point
+    TX_SIMULATION_RISK_UNKNOWN,
 } tx_simulation_score_t;
 // clang-format on
 
 typedef enum {
-    SIMU_TYPE_UNKNOWN,
-    SIMU_TYPE_TRANSACTION,
-    SIMU_TYPE_TYPED_DATA,
-    SIMU_TYPE_PERSONAL_MESSAGE
+    TX_SIMULATION_TYPE_TRANSACTION = 0x00,
+    TX_SIMULATION_TYPE_TYPED_DATA = 0x01,
+    TX_SIMULATION_TYPE_COUNT,
 } tx_simulation_type_t;
+
+typedef enum {
+    TX_SIMULATION_CATEGORY_NA = 0x00,
+    TX_SIMULATION_CATEGORY_OTHERS = 0x01,
+    TX_SIMULATION_CATEGORY_ADDRESS = 0x02,
+    TX_SIMULATION_CATEGORY_DAPP = 0x03,
+    TX_SIMULATION_CATEGORY_LOSING_OPERATION = 0x04,
+    TX_SIMULATION_CATEGORY_COUNT,
+} tx_simulation_category_t;
 
 typedef struct tx_simu_s {
     uint64_t chain_id;
-    const char tx_hash[HASH_SIZE];
-    const char domain_hash[HASH_SIZE];
+    const uint8_t tx_hash[HASH_SIZE];
+    const uint8_t domain_hash[HASH_SIZE];
     const char provider_msg[MSG_SIZE + 1];  // +1 for the null terminator
     const char tiny_url[URL_SIZE + 1];      // +1 for the null terminator
-    const char addr[ADDRESS_LENGTH];
+    const char address[ADDRESS_LENGTH];
     const char partner[PARTNER_SIZE];
     tx_simulation_score_t risk;
     tx_simulation_type_t type;
-    uint8_t category;
+    tx_simulation_category_t category;
 } tx_simulation_t;
 
 _Static_assert(CERTIFICATE_TRUSTED_NAME_MAXLEN > PARTNER_SIZE - 1,

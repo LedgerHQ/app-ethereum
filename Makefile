@@ -36,8 +36,8 @@ endif
 include ./makefile_conf/chain/$(CHAIN).mk
 
 APPVERSION_M = 1
-APPVERSION_N = 21
-APPVERSION_P = 3
+APPVERSION_N = 22
+APPVERSION_P = 0
 APPVERSION = $(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 
 # Application source files
@@ -50,7 +50,7 @@ ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX TARGET_APEX
     NETWORK_ICONS_DIR = $(shell dirname "$(NETWORK_ICONS_FILE)")
 
     $(NETWORK_ICONS_FILE):
-    	$(shell python3 tools/gen_networks.py "$(NETWORK_ICONS_DIR)")
+		python3 tools/gen_networks.py "$(NETWORK_ICONS_DIR)"
 
     APP_SOURCE_FILES += $(NETWORK_ICONS_FILE)
 endif
@@ -159,6 +159,11 @@ ENABLE_NBGL_QRCODE = 1
 ########################################
 #        Main app configuration        #
 ########################################
+ENABLE_PKI_LIBRARY = 1
+ENABLE_DYNAMIC_ALLOC = 1
+ENABLE_TLV_LIBRARY = 1
+ENABLE_LISTS_LIBRARY = 1
+DEFINES += HAVE_SDK_LL_LIB
 
 DEFINES += APP_TICKER=\"$(TICKER)\" APP_CHAIN_ID=$(CHAIN_ID)
 

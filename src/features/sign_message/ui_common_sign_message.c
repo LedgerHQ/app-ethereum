@@ -1,0 +1,30 @@
+#include "os_io_seproxyhal.h"
+#include "apdu_constants.h"
+#include "crypto_helpers.h"
+#include "ui_callbacks.h"
+
+unsigned int io_seproxyhal_touch_signMessage_ok(void) {
+    unsigned int info = 0;
+    CX_ASSERT(bip32_derive_ecdsa_sign_rs_hash_256(CX_CURVE_256K1,
+                                                  tmpCtx.messageSigningContext.bip32.path,
+                                                  tmpCtx.messageSigningContext.bip32.length,
+                                                  CX_RND_RFC6979 | CX_LAST,
+                                                  CX_SHA256,
+                                                  tmpCtx.messageSigningContext.hash,
+                                                  sizeof(tmpCtx.messageSigningContext.hash),
+                                                  G_io_tx_buffer + 1,
+                                                  G_io_tx_buffer + 1 + INT256_LENGTH,
+                                                  &info));
+    G_io_tx_buffer[0] = ETHEREUM_SIGNATURE_V_BASE;
+    if (info & CX_ECCINFO_PARITY_ODD) {
+        G_io_tx_buffer[0]++;
+    }
+    if (info & CX_ECCINFO_xGTn) {
+        G_io_tx_buffer[0] += 2;
+    }
+    return io_seproxyhal_send_status(SWO_SUCCESS, ECDSA_SIGNATURE_LENGTH, true, false);
+}
+
+unsigned int io_seproxyhal_touch_signMessage_cancel(void) {
+    return io_seproxyhal_send_status(SWO_CONDITIONS_NOT_SATISFIED, 0, true, false);
+}

@@ -19,22 +19,23 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Download built binaries
         uses: actions/download-artifact@v4
         with:
           name: release_elfs
           path: binaries
 
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       - name: Rename ELF files per device
         run: |
+          ls -la binaries/
           mkdir release_assets
           for device_dir in binaries/*/; do
             device=$(basename "$device_dir")
             if [ -f "${device_dir}bin/app.elf" ]; then
-              cp "${device_dir}bin/app.elf" "release_assets/app-${device}-${GITHUB_REF_NAME}.elf"
+              cp "${device_dir}bin/app.elf" "release_assets/app-${GITHUB_REF_NAME}-${device}.elf"
             fi
           done
           ls -la release_assets/
@@ -67,6 +68,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "${{ github.ref_name }}" \
-            --title "${{ github.ref_name }}" \
-            --notes-file release_notes.md \
+            -F release_notes.md \
             release_assets/*.elf

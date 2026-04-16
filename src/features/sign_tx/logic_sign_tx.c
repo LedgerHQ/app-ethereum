@@ -9,6 +9,7 @@
 #include "apdu_constants.h"
 #include "format.h"
 #include "token_info.h"
+#include "nft_info.h"
 #include "handle_swap_sign_transaction.h"
 #include "os_math.h"
 #include "calldata.h"
@@ -277,6 +278,17 @@ static void nonce_to_string(const txInt256_t *nonce, char *out, size_t out_size)
     tostring256(&nonce_uint256, 10, out, out_size);
 }
 
+// try go get an asset like how it used to work
+// but since they are not in the same array anymore, we prioritize tokens over NFTs
+static extraInfo_t *get_matching_asset_info(const uint64_t *chain_id, const uint8_t *address) {
+    extraInfo_t *asset;
+
+    if ((asset = (extraInfo_t *) get_matching_token_info(chain_id, address)) == NULL) {
+        asset = (extraInfo_t *) get_matching_nft_info(chain_id, address);
+    }
+    return asset;
+}
+
 __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContext_t *context) {
     char displayBuffer[50];
     uint8_t decimals = WEI_TO_ETHER;
@@ -340,17 +352,17 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
             if (pluginFinalize.tokenLookup1 != NULL) {
                 PRINTF("Lookup1: %.*H\n", ADDRESS_LENGTH, pluginFinalize.tokenLookup1);
                 pluginProvideInfo.item1 =
-                    (extraInfo_t *) get_matching_token_info(&chain_id, pluginFinalize.tokenLookup1);
+                    get_matching_asset_info(&chain_id, pluginFinalize.tokenLookup1);
                 if (pluginProvideInfo.item1 != NULL) {
-                    PRINTF("Token1 ticker: %s\n", pluginProvideInfo.item1->token.ticker);
+                    PRINTF("Asset1 ticker: %s\n", pluginProvideInfo.item1->token.ticker);
                 }
             }
             if (pluginFinalize.tokenLookup2 != NULL) {
                 PRINTF("Lookup2: %.*H\n", ADDRESS_LENGTH, pluginFinalize.tokenLookup2);
                 pluginProvideInfo.item2 =
-                    (extraInfo_t *) get_matching_token_info(&chain_id, pluginFinalize.tokenLookup2);
+                    get_matching_asset_info(&chain_id, pluginFinalize.tokenLookup2);
                 if (pluginProvideInfo.item2 != NULL) {
-                    PRINTF("Token2 ticker: %s\n", pluginProvideInfo.item2->token.ticker);
+                    PRINTF("Asset2 ticker: %s\n", pluginProvideInfo.item2->token.ticker);
                 }
             }
             if (eth_plugin_call(ETH_PLUGIN_PROVIDE_INFO, (void *) &pluginProvideInfo) <=

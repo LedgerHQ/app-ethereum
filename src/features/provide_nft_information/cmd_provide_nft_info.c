@@ -217,3 +217,15 @@ static void delete_nft_info(s_nft_info_node *node) {
 void clear_nft_infos(void) {
     flist_clear((flist_node_t **) &g_nft_info_list, (f_list_node_del) &delete_nft_info);
 }
+
+const s_nft_info *get_matching_nft_info(const uint64_t *chain_id, const uint8_t *address) {
+    for (const s_nft_info_node *node = g_nft_info_list; node != NULL;
+         node = (s_nft_info_node *) ((flist_node_t *) node)->next) {
+        if (*chain_id == node->info.chain_id) {
+            if (memcmp(address, node->info.address, sizeof(node->info.address)) == 0) {
+                return &node->info;
+            }
+        }
+    }
+    return NULL;
+}

@@ -16,6 +16,7 @@
 #include "trusted_name.h"
 #include "tx_ctx.h"
 #include "token_info.h"
+#include "nft_info.h"
 
 static bool *index_allocated = NULL;
 
@@ -334,18 +335,18 @@ static const nbgl_contentValueExt_t *handle_extra_data_token(const s_field_table
 }
 
 static const nbgl_contentValueExt_t *handle_extra_data_nft(const s_field_table_entry *field) {
-    const nftInfo_t *nft_def = (nftInfo_t *) field->extra_data;
+    const s_nft_info *nft_info = (s_nft_info *) field->extra_data;
     char formatted_addr[ADDRESS_LENGTH_HEX_STR];
     const char *keys[] = {"Contract address"};
     const char *values[] = {formatted_addr};
 
-    if (!getEthDisplayableAddress(nft_def->contractAddress,
+    if (!getEthDisplayableAddress(nft_info->address,
                                   formatted_addr,
                                   sizeof(formatted_addr),
-                                  g_chain_config->chain_id)) {
+                                  nft_info->chain_id)) {
         return NULL;
     }
-    return get_infolist_extension(nft_def->collectionName, ARRAYLEN(keys), keys, values);
+    return get_infolist_extension(nft_info->collection_name, ARRAYLEN(keys), keys, values);
 }
 
 static const nbgl_contentValueExt_t *handle_extra_data_enum(const s_field_table_entry *field) {

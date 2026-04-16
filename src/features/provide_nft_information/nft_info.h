@@ -12,3 +12,4 @@ typedef struct {
 } s_nft_info;
 
 void clear_nft_infos(void);
+const s_nft_info *get_matching_nft_info(const uint64_t *chain_id, const uint8_t *address);

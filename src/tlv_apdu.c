@@ -16,27 +16,27 @@ static void reset_state(void) {
     explicit_bzero(&g_tlv, sizeof(g_tlv));
 }
 
-bool tlv_from_apdu(bool first_chunk,
-                   uint8_t lc,
-                   const uint8_t *payload,
-                   f_tlv_payload_handler handler) {
-    bool ret = true;
+e_tlv_apdu_ret tlv_from_apdu(bool first_chunk,
+                             uint8_t lc,
+                             const uint8_t *payload,
+                             f_tlv_payload_handler handler) {
+    bool ret;
     uint8_t offset = 0;
     uint8_t chunk_length;
 
     if ((payload == NULL) || (handler == NULL)) {
         reset_state();
-        return false;
+        return TLV_APDU_ERROR;
     }
 
     if (first_chunk) {
         if (g_tlv.payload != NULL) {
             PRINTF("Error: remnants from an incomplete TLV payload!\n");
             reset_state();
-            return false;
+            return TLV_APDU_ERROR;
         }
         if ((offset + sizeof(g_tlv.size)) > lc) {
-            return false;
+            return TLV_APDU_ERROR;
         }
         g_tlv.size = read_u16_be(payload, offset);
         offset += sizeof(g_tlv.size);
@@ -45,7 +45,7 @@ bool tlv_from_apdu(bool first_chunk,
         if (g_tlv.size > (lc - offset)) {
             if ((g_tlv.payload = APP_MEM_ALLOC(g_tlv.size)) == NULL) {
                 reset_state();
-                return false;
+                return TLV_APDU_ERROR;
             }
         }
         g_tlv.handler_ptr = handler;
@@ -60,14 +60,14 @@ bool tlv_from_apdu(bool first_chunk,
     if (g_tlv.size == 0) {
         PRINTF("Error: zero-length TLV payload is invalid!\n");
         reset_state();
-        return false;
+        return TLV_APDU_ERROR;
     }
 
     chunk_length = lc - offset;
     if ((g_tlv.pos + chunk_length) > g_tlv.size) {
         PRINTF("Error: TLV payload bigger than expected!\n");
         reset_state();
-        return false;
+        return TLV_APDU_ERROR;
     }
 
     if (g_tlv.payload != NULL) {
@@ -88,6 +88,7 @@ bool tlv_from_apdu(bool first_chunk,
         }
         ret = (*handler)(&buf);
         reset_state();
+        return ret ? TLV_APDU_SUCCESS : TLV_APDU_ERROR;
     }
-    return ret;
+    return TLV_APDU_PENDING;
 }

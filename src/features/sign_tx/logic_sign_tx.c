@@ -8,7 +8,7 @@
 #include "ui_callbacks.h"
 #include "apdu_constants.h"
 #include "format.h"
-#include "manage_asset_info.h"
+#include "token_info.h"
 #include "handle_swap_sign_transaction.h"
 #include "os_math.h"
 #include "calldata.h"
@@ -287,8 +287,6 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
 
     // Verify the chain
     if (g_chain_config->chain_id != ETHEREUM_MAINNET_CHAINID) {
-        chain_id = get_tx_chain_id();
-
         if (g_chain_config->chain_id != chain_id) {
             PRINTF("Invalid chainID %llu expected %llu\n", chain_id, g_chain_config->chain_id);
             report_finalize_error();
@@ -341,14 +339,16 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
         if ((pluginFinalize.tokenLookup1 != NULL) || (pluginFinalize.tokenLookup2 != NULL)) {
             if (pluginFinalize.tokenLookup1 != NULL) {
                 PRINTF("Lookup1: %.*H\n", ADDRESS_LENGTH, pluginFinalize.tokenLookup1);
-                pluginProvideInfo.item1 = get_asset_info_by_addr(pluginFinalize.tokenLookup1);
+                pluginProvideInfo.item1 =
+                    (extraInfo_t *) get_matching_token_info(&chain_id, pluginFinalize.tokenLookup1);
                 if (pluginProvideInfo.item1 != NULL) {
                     PRINTF("Token1 ticker: %s\n", pluginProvideInfo.item1->token.ticker);
                 }
             }
             if (pluginFinalize.tokenLookup2 != NULL) {
                 PRINTF("Lookup2: %.*H\n", ADDRESS_LENGTH, pluginFinalize.tokenLookup2);
-                pluginProvideInfo.item2 = get_asset_info_by_addr(pluginFinalize.tokenLookup2);
+                pluginProvideInfo.item2 =
+                    (extraInfo_t *) get_matching_token_info(&chain_id, pluginFinalize.tokenLookup2);
                 if (pluginProvideInfo.item2 != NULL) {
                     PRINTF("Token2 ticker: %s\n", pluginProvideInfo.item2->token.ticker);
                 }

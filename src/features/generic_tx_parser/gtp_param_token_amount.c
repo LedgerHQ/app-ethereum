@@ -4,9 +4,10 @@
 #include "network.h"
 #include "utils.h"
 #include "gtp_field_table.h"
-#include "manage_asset_info.h"
+#include "token_info.h"
 #include "tx_ctx.h"
 #include "tlv_utils.h"
+#include "shared_context.h"
 
 #define PARAM_TOKEN_AMOUNT_TAGS(X)                                           \
     X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG)                 \
@@ -95,7 +96,7 @@ static bool process_token_amount(const s_param_token_amount *param,
     uint8_t addr_buf[ADDRESS_LENGTH];
     uint256_t zero256 = {0};
     uint256_t val256;
-    const tokenDefinition_t *token_def = NULL;
+    const s_token_info *token_info = NULL;
     uint64_t chain_id;
     const char *ticker = g_unknown_ticker;
     uint8_t decimals = 0;
@@ -108,10 +109,9 @@ static bool process_token_amount(const s_param_token_amount *param,
             ticker = get_displayable_ticker(&chain_id, g_chain_config, true);
             decimals = WEI_TO_ETHER;
         } else {
-            if ((token_def = (const tokenDefinition_t *) get_asset_info_by_addr(addr_buf)) !=
-                NULL) {
-                ticker = token_def->ticker;
-                decimals = token_def->decimals;
+            if ((token_info = get_matching_token_info(&chain_id, addr_buf)) != NULL) {
+                ticker = token_info->ticker;
+                decimals = token_info->decimals;
             }
         }
     }
@@ -128,10 +128,10 @@ static bool process_token_amount(const s_param_token_amount *param,
             return false;
         }
     }
-    if (!add_to_field_table(token_def ? PARAM_TYPE_TOKEN_AMOUNT : PARAM_TYPE_AMOUNT,
+    if (!add_to_field_table(token_info ? PARAM_TYPE_TOKEN_AMOUNT : PARAM_TYPE_AMOUNT,
                             name,
                             buf,
-                            token_def)) {
+                            token_info)) {
         return false;
     }
     return true;

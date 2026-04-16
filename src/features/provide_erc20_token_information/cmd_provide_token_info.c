@@ -133,3 +133,15 @@ static void delete_token_info(s_token_info_node *node) {
 void clear_token_infos(void) {
     flist_clear((flist_node_t **) &g_token_info_list, (f_list_node_del) &delete_token_info);
 }
+
+const s_token_info *get_matching_token_info(const uint64_t *chain_id, const uint8_t *address) {
+    for (const s_token_info_node *node = g_token_info_list; node != NULL;
+         node = (s_token_info_node *) ((flist_node_t *) node)->next) {
+        if (*chain_id == node->info.chain_id) {
+            if (memcmp(address, node->info.address, sizeof(node->info.address)) == 0) {
+                return &node->info;
+            }
+        }
+    }
+    return NULL;
+}

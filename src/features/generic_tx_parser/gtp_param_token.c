@@ -2,7 +2,7 @@
 #include "gtp_param_token.h"
 #include "shared_context.h"
 #include "utils.h"
-#include "manage_asset_info.h"
+#include "token_info.h"
 #include "network.h"
 #include "gtp_field_table.h"
 #include "tx_ctx.h"
@@ -61,7 +61,7 @@ bool format_param_token(const s_param_token *param, const char *name) {
     bool ret;
     s_parsed_value_collection collec = {0};
     uint8_t addr[ADDRESS_LENGTH];
-    const tokenDefinition_t *token_def = NULL;
+    const s_token_info *token_info = NULL;
     uint64_t chain_id;
     const char *ticker = NULL;
 
@@ -72,14 +72,14 @@ bool format_param_token(const s_param_token *param, const char *name) {
             buf_shrink_expand(collec.value[i].ptr, collec.value[i].length, addr, sizeof(addr));
             if (match_native(addr, param)) {
                 ticker = get_displayable_ticker(&chain_id, g_chain_config, true);
-            } else if ((token_def = (const tokenDefinition_t *) get_asset_info_by_addr(addr))) {
-                ticker = token_def->ticker;
+            } else if ((token_info = get_matching_token_info(&chain_id, addr))) {
+                ticker = token_info->ticker;
             }
             if (ticker == NULL) {
                 ret = false;
                 break;
             }
-            if (!(ret = add_to_field_table(PARAM_TYPE_TOKEN, name, ticker, token_def))) {
+            if (!(ret = add_to_field_table(PARAM_TYPE_TOKEN, name, ticker, token_info))) {
                 break;
             }
         }

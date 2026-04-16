@@ -7,9 +7,10 @@
 #include "format.h"
 #include "utils.h"
 #include "calldata.h"
-#include "manage_asset_info.h"
+#include "token_info.h"
 #include "eth_swap_utils.h"
 #include "erc20_plugin.h"
+#include "network.h"
 
 typedef enum { ERC20_TRANSFER = 0, ERC20_APPROVE } erc20Selector_t;
 static const uint8_t ERC20_TRANSFER_SELECTOR[SELECTOR_SIZE] = {0xa9, 0x05, 0x9c, 0xbb};
@@ -130,7 +131,7 @@ void erc20_plugin_call(eth_plugin_msg_t message, void *parameters) {
             }
             if (G_called_from_swap) {
                 char buf[sizeof(strings.common.fullAmount)];
-                const tokenDefinition_t *token_def;
+                const s_token_info *token_info;
 
                 if (!getEthDisplayableAddress(context->destinationAddress,
                                               buf,
@@ -141,15 +142,15 @@ void erc20_plugin_call(eth_plugin_msg_t message, void *parameters) {
                 }
                 swap_check_destination(buf);
 
-                if ((token_def = (const tokenDefinition_t *) get_asset_info_by_addr(
-                         msg->tokenLookup1)) == NULL) {
+                uint64_t chain_id = get_tx_chain_id();
+                if ((token_info = get_matching_token_info(&chain_id, msg->tokenLookup1)) == NULL) {
                     msg->result = ETH_PLUGIN_RESULT_ERROR;
                     break;
                 }
                 if (!amountToString(context->amount,
                                     sizeof(context->amount),
-                                    token_def->decimals,
-                                    token_def->ticker,
+                                    token_info->decimals,
+                                    token_info->ticker,
                                     buf,
                                     sizeof(buf))) {
                     msg->result = ETH_PLUGIN_RESULT_ERROR;

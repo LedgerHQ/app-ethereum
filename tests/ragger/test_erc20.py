@@ -14,6 +14,9 @@ from client.status_word import StatusWord
 from constants import ABIS_FOLDER
 from test_sign import common as common_tx, BIP32_PATH
 
+from client.token_info import TokenInfo, EthTUID
+
+APPNAME = "Ethereum"
 TOKEN_ADDR = bytes.fromhex("A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")
 TOKEN_TICKER = "USDC"
 TOKEN_DECIMALS = 6
@@ -159,3 +162,64 @@ def test_approve_erc20_extra_data(scenario_navigator: NavigateWithScenario):
 
 def test_approve_erc20_extra_data_nonascii(scenario_navigator: NavigateWithScenario):
     common_approve(scenario_navigator, 10, bytes.fromhex("deadcafe0042"))
+
+def test_token_info_v2(scenario_navigator: NavigateWithScenario):
+    app_client = EthAppClient(scenario_navigator.backend)
+    amount = 5
+
+    with open(f"{ABIS_FOLDER}/erc20.json") as file:
+        contract = Web3().eth.contract(
+            abi=json.load(file),
+            address=None
+        )
+    data = contract.encode_abi("approve", [
+        bytes.fromhex("d8dA6BF26964aF9D7eEd9e03E53415D37aA96045"),
+        int(amount * pow(10, TOKEN_DECIMALS)),
+    ])
+
+    tx_params = {
+        "chainId": TOKEN_CHAIN_ID,
+        "nonce": 1337,
+        "maxPriorityFeePerGas": Web3.to_wei(1.3, "gwei"),
+        "maxFeePerGas": Web3.to_wei(2.62, "gwei"),
+        "gas": 36007,
+        "to": TOKEN_ADDR,
+        "value": Web3.to_wei(0, "ether"),
+        "data": data,
+    }
+    app_client.provide_token_info(TokenInfo(
+        1,
+        "Ethereum",
+        TOKEN_TICKER,
+        TOKEN_DECIMALS,
+        tuid=EthTUID(TOKEN_CHAIN_ID, TOKEN_ADDR),
+    ))
+    # use the same snapshots as the legacy test to make sure there are no visible differences
+    common_tx(scenario_navigator, tx_params, "test_approve_erc20")
+
+def test_token_info_v2_wrong_coin_type(scenario_navigator: NavigateWithScenario):
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    with pytest.raises(ExceptionRAPDU) as e:
+        app_client.provide_token_info(TokenInfo(
+            1,
+            APPNAME,
+            TOKEN_TICKER,
+            TOKEN_DECIMALS,
+            tuid=EthTUID(TOKEN_CHAIN_ID, TOKEN_ADDR),
+            coin_type=501,
+        ))
+    assert e.value.status == StatusWord.INVALID_DATA
+
+def test_token_info_v2_unknown_chain_id(scenario_navigator: NavigateWithScenario):
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    with pytest.raises(ExceptionRAPDU) as e:
+        app_client.provide_token_info(TokenInfo(
+            1,
+            APPNAME,
+            TOKEN_TICKER,
+            TOKEN_DECIMALS,
+            tuid=EthTUID(2, TOKEN_ADDR),
+        ))
+    assert e.value.status == StatusWord.INVALID_DATA

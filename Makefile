@@ -90,6 +90,7 @@ DEFINES += IS_NOT_A_PLUGIN
 # If your app needs it, you can specify multiple curves by using:
 # `CURVE_APP_LOAD_PARAMS = <curve1> <curve2>`
 CURVE_APP_LOAD_PARAMS += secp256k1
+CURVE_APP_LOAD_PARAMS += secp256r1
 
 # Application allowed derivation paths.
 # You should request a specific path for your app.
@@ -126,14 +127,12 @@ else
     DEFINES_LIB = USE_LIB_ETHEREUM
 endif
 
-
 ########################################
 # Application communication interfaces #
 ########################################
 ENABLE_BLUETOOTH = 1
 ENABLE_SWAP = 1
 #ENABLE_NFC = 1
-ENABLE_NBGL_FOR_NANO_DEVICES = 1
 
 ########################################
 #         NBGL custom features         #
@@ -159,10 +158,15 @@ ENABLE_NBGL_QRCODE = 1
 ########################################
 #        Main app configuration        #
 ########################################
+ENABLE_NBGL_FOR_NANO_DEVICES = 1
 ENABLE_PKI_LIBRARY = 1
 ENABLE_DYNAMIC_ALLOC = 1
 ENABLE_TLV_LIBRARY = 1
 ENABLE_LISTS_LIBRARY = 1
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX TARGET_APEX_M TARGET_APEX_P))
+    ENABLE_ADDRESS_BOOK = 1
+    ENABLE_ADDRESS_BOOK_LEDGER_ACCOUNT = 1
+endif
 DEFINES += HAVE_SDK_LL_LIB
 
 DEFINES += APP_TICKER=\"$(TICKER)\" APP_CHAIN_ID=$(CHAIN_ID) APP_COIN_TYPE=$(COIN_TYPE)

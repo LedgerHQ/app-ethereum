@@ -7,7 +7,7 @@
 #include "public_keys.h"
 #include "lcx_ecdsa.h"
 #include "tlv_library.h"
-#include "tlv_apdu.h"
+#include "tlv_utils.h"
 #include "utils.h"
 
 #define TYPE_VERIFIABLE_ADDRESS 0x0A

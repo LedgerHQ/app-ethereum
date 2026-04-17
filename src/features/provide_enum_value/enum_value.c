@@ -5,7 +5,7 @@
 #include "app_mem_utils.h"
 #include "proxy_info.h"
 #include "hash_bytes.h"
-#include "tlv_apdu.h"
+#include "tlv_utils.h"
 #include "lcx_ecdsa.h"
 
 #define STRUCT_VERSION 0x01

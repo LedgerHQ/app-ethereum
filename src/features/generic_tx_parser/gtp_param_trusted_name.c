@@ -9,7 +9,7 @@
 #include "get_public_key.h"
 #include "apdu_constants.h"
 #include "tx_ctx.h"
-#include "tlv_apdu.h"
+#include "tlv_utils.h"
 
 #define PARAM_TRUSTED_NAME_TAGS(X)                           \
     X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG) \

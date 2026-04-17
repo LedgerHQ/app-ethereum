@@ -26,6 +26,7 @@
 #include "get_public_key.h"
 #include "tlv_library.h"
 #include "tlv_apdu.h"
+#include "tlv_utils.h"
 #include "utils.h"
 #include "nbgl_use_case.h"
 #include "os_pki.h"

@@ -10,7 +10,7 @@
 #include "ui_utils.h"
 #include "app_mem_utils.h"
 #include "crypto_helpers.h"
-#include "tlv_apdu.h"
+#include "tlv_utils.h"
 #include "lcx_ecdsa.h"
 #include "shared_context.h"  // CX_SECP256_PUB_KEY_SIZE
 #include "ox_ec.h"

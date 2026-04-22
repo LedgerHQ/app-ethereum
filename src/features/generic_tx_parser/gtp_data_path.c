@@ -215,7 +215,7 @@ static bool path_slice(const s_slice_args *slice, s_parsed_value_collection *col
 
 typedef struct {
     uint8_t depth;
-    uint8_t passes_remaining[MAX_ARRAYS];
+    uint16_t passes_remaining[MAX_ARRAYS];
     uint8_t index;
 } s_arrays_info;
 
@@ -257,6 +257,10 @@ static bool path_array(const s_array_args *array,
         return false;
     }
     passes = end - start;
+    if (passes > MAX_VALUE_COLLECTION_SIZE) {
+        PRINTF("Error: array too large for display\n");
+        return false;
+    }
 
     *offset += 1;
     if (arrays_info->index == arrays_info->depth) {

@@ -156,11 +156,10 @@ bool format_param_trusted_name(const struct s_field *field) {
                     break;
                 case PARAM_VISIBILITY_IF_NOT_IN:
                     // Field is displayed only if value is NOT in the constraint list
-                    ret = check_address_constraint(field, &values, i, addr);
-                    if (ret) {
+                    if (check_address_constraint(field, &values, i, addr)) {
                         PRINTF("Warning: TRUSTED_NAME does match a IF_NOT_IN constraint!\n");
-                        // Skip displaying the field
-                        goto cleanup;
+                        // Skip displaying only this value, continue with remaining values
+                        continue;
                     }
                     to_be_displayed = true;
                     break;

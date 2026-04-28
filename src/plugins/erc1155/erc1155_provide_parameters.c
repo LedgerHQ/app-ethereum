@@ -53,13 +53,19 @@ static void handle_batch_transfer(ethPluginProvideParameter_t *msg, erc1155_cont
             context->next_param = TOKEN_IDS_LENGTH;
             break;
         case TOKEN_IDS_LENGTH:
-            if ((msg->parameterOffset + PARAMETER_LENGTH) > context->ids_offset) {
-                context->ids_array_len =
-                    U2BE(msg->parameter, PARAMETER_LENGTH - sizeof(context->ids_array_len));
-                context->next_param = TOKEN_ID;
-                // set to zero for next step
-                context->array_index = 0;
+            if (msg->parameterOffset < context->ids_offset) {
+                // not there yet
+                break;
             }
+            if (msg->parameterOffset != context->ids_offset) {
+                msg->result = ETH_PLUGIN_RESULT_ERROR;
+                break;
+            }
+            context->ids_array_len =
+                U2BE(msg->parameter, PARAMETER_LENGTH - sizeof(context->ids_array_len));
+            context->next_param = TOKEN_ID;
+            // set to zero for next step
+            context->array_index = 0;
             break;
         case TOKEN_ID:
             // don't copy anything since we won't display it
@@ -69,17 +75,25 @@ static void handle_batch_transfer(ethPluginProvideParameter_t *msg, erc1155_cont
             context->array_index++;
             break;
         case VALUE_LENGTH:
-            if ((msg->parameterOffset + PARAMETER_LENGTH) > context->values_offset) {
-                context->values_array_len =
-                    U2BE(msg->parameter, PARAMETER_LENGTH - sizeof(context->values_array_len));
-                if (context->values_array_len != context->array_index) {
-                    PRINTF("Token ids and values array sizes mismatch!");
-                }
-                context->next_param = VALUE;
-                // set to zero for next step
-                context->array_index = 0;
-                explicit_bzero(&context->value, sizeof(context->value));
+            if (msg->parameterOffset < context->values_offset) {
+                // not there yet
+                break;
             }
+            if (msg->parameterOffset != context->values_offset) {
+                msg->result = ETH_PLUGIN_RESULT_ERROR;
+                break;
+            }
+            context->values_array_len =
+                U2BE(msg->parameter, PARAMETER_LENGTH - sizeof(context->values_array_len));
+            if (context->values_array_len != context->array_index) {
+                PRINTF("Token ids and values array sizes mismatch!");
+                msg->result = ETH_PLUGIN_RESULT_ERROR;
+                break;
+            }
+            context->next_param = VALUE;
+            // set to zero for next step
+            context->array_index = 0;
+            explicit_bzero(&context->value, sizeof(context->value));
             break;
         case VALUE:
             // put it temporarily in token id since we don't use it in batch transfer

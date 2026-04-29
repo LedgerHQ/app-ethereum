@@ -72,11 +72,7 @@ bool format_param_token(const s_param_token *param, const char *name) {
             buf_shrink_expand(collec.value[i].ptr, collec.value[i].length, addr, sizeof(addr));
             if (match_native(addr, param)) {
                 ticker = get_displayable_ticker(&chain_id, g_chain_config, true);
-            } else {
-                if ((token_info = get_matching_token_info_or_dummy(&chain_id, addr)) == NULL) {
-                    ret = false;
-                    break;
-                }
+            } else if ((token_info = get_matching_token_info(&chain_id, addr))) {
                 ticker = token_info->ticker;
             }
             if (ticker == NULL) {

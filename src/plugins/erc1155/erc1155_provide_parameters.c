@@ -63,12 +63,20 @@ static void handle_batch_transfer(ethPluginProvideParameter_t *msg, erc1155_cont
             }
             context->ids_array_len =
                 U2BE(msg->parameter, PARAMETER_LENGTH - sizeof(context->ids_array_len));
+            context->batch_displayed = (context->ids_array_len > ERC1155_BATCH_DISPLAY_MAX)
+                                           ? ERC1155_BATCH_DISPLAY_MAX
+                                           : (uint8_t) context->ids_array_len;
+            context->batch_truncated = context->ids_array_len > ERC1155_BATCH_DISPLAY_MAX;
             context->next_param = TOKEN_ID;
             // set to zero for next step
             context->array_index = 0;
             break;
         case TOKEN_ID:
-            // don't copy anything since we won't display it
+            // Surface the first batch entries to the user so a malicious
+            // batch cannot hide a high-value token ID behind innocuous ones.
+            if (context->array_index < ERC1155_BATCH_DISPLAY_MAX) {
+                memcpy(context->batch_ids[context->array_index], msg->parameter, INT256_LENGTH);
+            }
             if (--context->ids_array_len == 0) {
                 context->next_param = VALUE_LENGTH;
             }
@@ -98,6 +106,12 @@ static void handle_batch_transfer(ethPluginProvideParameter_t *msg, erc1155_cont
         case VALUE:
             // put it temporarily in token id since we don't use it in batch transfer
             copy_parameter(context->tokenId, msg->parameter, sizeof(context->value));
+            // Keep the first per-id values so they pair up with batch_ids
+            // entries on screen. Anything past ERC1155_BATCH_DISPLAY_MAX is
+            // still aggregated into the total below.
+            if (context->array_index < ERC1155_BATCH_DISPLAY_MAX) {
+                memcpy(context->batch_values[context->array_index], msg->parameter, INT256_LENGTH);
+            }
             convertUint256BE(context->tokenId, sizeof(context->tokenId), &new_value);
             add256(&context->value, &new_value, &context->value);
             if (--context->values_array_len == 0) {

@@ -8,6 +8,12 @@
 
 // Internal plugin for EIP 1155: https://eips.ethereum.org/EIPS/eip-1155
 
+// Maximum number of (id, value) pairs surfaced individually during a
+// safeBatchTransferFrom review. Anything beyond this is reported via the
+// aggregate quantity screen plus a truncation warning so the user is told
+// the on-device view is incomplete.
+#define ERC1155_BATCH_DISPLAY_MAX 3
+
 typedef struct erc1155_context_t {
     uint8_t address[ADDRESS_LENGTH];
     uint8_t tokenId[INT256_LENGTH];
@@ -22,6 +28,14 @@ typedef struct erc1155_context_t {
     bool approved;
     uint8_t next_param;
     uint8_t selectorIndex;
+
+    // SAFE_BATCH_TRANSFER review data. Without these, the UI only displayed
+    // an aggregate "<total> from <count> NFT IDs" line and gave the user no
+    // way to detect a high-value token ID hidden among innocuous ones.
+    uint8_t batch_ids[ERC1155_BATCH_DISPLAY_MAX][INT256_LENGTH];
+    uint8_t batch_values[ERC1155_BATCH_DISPLAY_MAX][INT256_LENGTH];
+    uint8_t batch_displayed;
+    bool batch_truncated;
 } erc1155_context_t;
 
 void handle_provide_parameter_1155(ethPluginProvideParameter_t *parameters);

@@ -86,11 +86,25 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *contex
     }
 }
 
+// Screen indices for the SAFE_BATCH_TRANSFER review. Fixed-index screens
+// are mapped 1:1 to the enum; per-pair detail screens (PAIR_BASE..) and the
+// truncation warning use dynamic indices computed from batch_displayed.
+enum {
+    BATCH_SCREEN_TO = 0,
+    BATCH_SCREEN_COLLECTION,
+    BATCH_SCREEN_NFT_ADDRESS,
+    BATCH_SCREEN_TOTAL_QUANTITY,
+    BATCH_SCREEN_PAIR_BASE,
+};
+
 static void set_batch_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *context) {
     char quantity_str[48];
+    uint8_t idx = msg->screenIndex;
+    uint8_t pair_screens = (uint8_t) (2 * context->batch_displayed);
+    uint8_t warn_idx = (uint8_t) (BATCH_SCREEN_PAIR_BASE + pair_screens);
 
-    switch (msg->screenIndex) {
-        case 0:
+    switch (idx) {
+        case BATCH_SCREEN_TO:
             strlcpy(msg->title, "To", msg->titleLength);
             if (!getEthDisplayableAddress(context->address,
                                           msg->msg,
@@ -99,11 +113,11 @@ static void set_batch_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
             break;
-        case 1:
+        case BATCH_SCREEN_COLLECTION:
             strlcpy(msg->title, "Collection Name", msg->titleLength);
             strlcpy(msg->msg, msg->item1->nft.collectionName, msg->msgLength);
             break;
-        case 2:
+        case BATCH_SCREEN_NFT_ADDRESS:
             strlcpy(msg->title, "NFT Address", msg->titleLength);
             if (!getEthDisplayableAddress(msg->item1->nft.contractAddress,
                                           msg->msg,
@@ -112,11 +126,11 @@ static void set_batch_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
             break;
-        case 3:
+        case BATCH_SCREEN_TOTAL_QUANTITY:
             strlcpy(msg->title, "Total Quantity", msg->titleLength);
             if (!tostring256(&context->value, 10, &quantity_str[0], sizeof(quantity_str))) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
-                break;
+                return;
             }
             snprintf(msg->msg,
                      msg->msgLength,
@@ -125,8 +139,38 @@ static void set_batch_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *
                      context->array_index);
             break;
         default:
-            PRINTF("Unsupported screen index %d\n", msg->screenIndex);
-            msg->result = ETH_PLUGIN_RESULT_ERROR;
+            // Per-pair detail screens, then optional truncation warning.
+            if (idx >= BATCH_SCREEN_PAIR_BASE && idx < BATCH_SCREEN_PAIR_BASE + pair_screens) {
+                uint8_t pair_offset = (uint8_t) (idx - BATCH_SCREEN_PAIR_BASE);
+                uint8_t pair_idx = (uint8_t) (pair_offset / 2);
+                bool show_value = (pair_offset % 2) == 1;
+                if (show_value) {
+                    uint256_t v;
+                    convertUint256BE(context->batch_values[pair_idx], INT256_LENGTH, &v);
+                    snprintf(msg->title, msg->titleLength, "Quantity #%d", pair_idx + 1);
+                    if (!tostring256(&v, 10, msg->msg, msg->msgLength)) {
+                        msg->result = ETH_PLUGIN_RESULT_ERROR;
+                    }
+                } else {
+                    snprintf(msg->title, msg->titleLength, "NFT ID #%d", pair_idx + 1);
+                    if (!uint256_to_decimal(context->batch_ids[pair_idx],
+                                            INT256_LENGTH,
+                                            msg->msg,
+                                            msg->msgLength)) {
+                        msg->result = ETH_PLUGIN_RESULT_ERROR;
+                    }
+                }
+            } else if (context->batch_truncated && idx == warn_idx) {
+                strlcpy(msg->title, "WARNING", msg->titleLength);
+                snprintf(msg->msg,
+                         msg->msgLength,
+                         "Only first %d of %d IDs shown",
+                         ERC1155_BATCH_DISPLAY_MAX,
+                         context->array_index);
+            } else {
+                PRINTF("Unsupported screen index %d\n", idx);
+                msg->result = ETH_PLUGIN_RESULT_ERROR;
+            }
             break;
     }
 }

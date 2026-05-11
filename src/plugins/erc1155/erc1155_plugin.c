@@ -59,7 +59,13 @@ void handle_finalize_1155(ethPluginFinalize_t *msg) {
             msg->numScreens = 5;
             break;
         case SAFE_BATCH_TRANSFER:
-            msg->numScreens = 4;
+            // To, Collection Name, NFT Address, Total Quantity
+            // + 2 screens per displayed pair (ID + Quantity)
+            // + 1 warning screen if truncated.
+            msg->numScreens = 4 + 2 * context->batch_displayed;
+            if (context->batch_truncated) {
+                msg->numScreens += 1;
+            }
             break;
         case SET_APPROVAL_FOR_ALL:
             msg->numScreens = 3;

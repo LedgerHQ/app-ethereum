@@ -211,14 +211,21 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
  */
 static void get_appname_and_tagline(const char **appname, const char **tagline) {
     uint64_t mainnet_chain_id;
-    uint8_t line_len = 1;  // Initialize lengths to 1 for '\0' character
+    // Cap caller-provided plugin name length. 64 is generous compared to real
+    // Ledger plugin app names (typically < 20 chars) and the fuzz harnesses'
+    // NAME_LENGTH=32, while staying well below the byte that would let the
+    // total line length wrap. Any value below ~196 closes the bug.
+    const size_t max_name_len = 64;
 
     if (caller_app) {
         *appname = caller_app->name;
 
         if (caller_app->type == CALLER_TYPE_PLUGIN) {
-            line_len += strlen(FORMAT_PLUGIN);
-            line_len += strlen(caller_app->name);
+            size_t name_len = strnlen(caller_app->name, max_name_len + 1);
+            if (name_len > max_name_len) {
+                return;
+            }
+            size_t line_len = 1 + strlen(FORMAT_PLUGIN) + name_len;
             // Allocate the buffer - will never be deallocated...
             if (APP_MEM_CALLOC((void **) &g_tag_line, line_len) == true) {
                 snprintf(g_tag_line, line_len, FORMAT_PLUGIN, *appname);

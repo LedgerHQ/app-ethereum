@@ -21,7 +21,9 @@ unsigned int auth_7702_ok_cb(void) {
     } else {
         G_io_tx_buffer[0] = 0;
     }
-    return io_seproxyhal_send_status(SWO_SUCCESS, ECDSA_SIGNATURE_LENGTH, false, true);
+    // Reset to release the APP_STATE_SIGNING_EIP7702 lock and clear the
+    // signing context so a new authorization can start from a clean slate.
+    return io_seproxyhal_send_status(SWO_SUCCESS, ECDSA_SIGNATURE_LENGTH, true, true);
 }
 
 unsigned int auth_7702_cancel_cb(void) {

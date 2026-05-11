@@ -318,6 +318,19 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
         goto end;
     }
     PRINTF("FROM address displayed: %s\n", strings.common.fromAddress);
+    // Enforce chain binding for plugin registrations now that the full tx has
+    // been parsed and get_tx_chain_id() is reliable (LEGACY transactions only
+    // expose chain_id through the V field, which is parsed after the plugin
+    // init triggered on the data field).
+    if ((dataContext.tokenContext.pluginStatus >= ETH_PLUGIN_RESULT_SUCCESSFUL) &&
+        (dataContext.tokenContext.pluginChainId != PLUGIN_CHAIN_ID_ANY) &&
+        (dataContext.tokenContext.pluginChainId != chain_id)) {
+        PRINTF("Plugin registered for chain %llu but tx is on chain %llu\n",
+               dataContext.tokenContext.pluginChainId,
+               chain_id);
+        report_finalize_error();
+        return SWO_NO_RESPONSE;
+    }
     // Finalize the plugin handling
     if (dataContext.tokenContext.pluginStatus >= ETH_PLUGIN_RESULT_SUCCESSFUL) {
         eth_plugin_prepare_finalize(&pluginFinalize);

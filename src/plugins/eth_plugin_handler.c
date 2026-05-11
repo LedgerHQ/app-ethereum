@@ -98,6 +98,24 @@ void eth_plugin_prepare_query_contract_ui(ethQueryContractUI_t *query_contract_u
 
 static void eth_plugin_perform_init_default(uint8_t *contract_address,
                                             ethPluginInitContract_t *init) {
+    // Refuse to activate a plugin registration that was signed for a different
+    // chain than the one we are about to sign on. Skipped when:
+    //   * the registration is chain-unbound (e.g., set_external_plugin payload
+    //     carries no chain_id field, marked as PLUGIN_CHAIN_ID_ANY);
+    //   * we cannot yet resolve the transaction chain_id (LEGACY transactions
+    //     only expose it through the V field, which is parsed after the data
+    //     field that triggers this init). In that case the check is deferred
+    //     to finalize_parsing_helper(), which runs once V has been parsed.
+    if (dataContext.tokenContext.pluginChainId != PLUGIN_CHAIN_ID_ANY) {
+        uint64_t tx_chain_id = get_tx_chain_id();
+        if ((tx_chain_id != 0) && (tx_chain_id != dataContext.tokenContext.pluginChainId)) {
+            PRINTF("Plugin registered for chain %llu but tx is on chain %llu\n",
+                   dataContext.tokenContext.pluginChainId,
+                   tx_chain_id);
+            dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_UNAVAILABLE;
+            return;
+        }
+    }
     // check if the registered external plugin matches the TX contract address / selector
     if (memcmp(contract_address,
                dataContext.tokenContext.contractAddress,

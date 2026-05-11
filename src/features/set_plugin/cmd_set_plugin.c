@@ -145,6 +145,11 @@ uint16_t handle_set_plugin(const uint8_t *workBuffer, uint8_t dataLength) {
         UNSUPPORTED_CHAIN_ID_MSG(chain_id);
         return SWO_INCORRECT_DATA;
     }
+    // Bind the registration to the signed chain. Without this, a host could
+    // load a valid signed plugin registration for one EVM chain and then have
+    // the device activate the plugin UI for a transaction on a different
+    // chain where the same address/selector means something else.
+    tokenContext->pluginChainId = chain_id;
     offset += CHAIN_ID_SIZE;
 
     keyId = workBuffer[offset];

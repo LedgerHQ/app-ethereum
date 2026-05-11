@@ -50,6 +50,11 @@ typedef struct internalStorage_t {
     bool initialized;
 } internalStorage_t;
 
+// Sentinel for tokenContext_t.pluginChainId meaning "registration is not bound
+// to a specific chain" (used by paths whose signed metadata does not carry a
+// chain_id). All real EVM chain IDs are > 0.
+#define PLUGIN_CHAIN_ID_ANY 0
+
 typedef struct tokenContext_t {
     char pluginName[PLUGIN_ID_LENGTH];
 
@@ -75,6 +80,11 @@ typedef struct tokenContext_t {
     };
 
     uint8_t pluginStatus;
+
+    // Chain ID the plugin registration was issued for. Populated from the
+    // signed SET_PLUGIN payload so we can refuse to activate the plugin on a
+    // transaction whose chain_id differs.
+    uint64_t pluginChainId;
 
 } tokenContext_t;
 

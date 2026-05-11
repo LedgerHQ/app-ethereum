@@ -73,6 +73,11 @@ uint16_t handle_set_external_plugin(const uint8_t *workBuffer, uint8_t dataLengt
     workBuffer += ADDRESS_LENGTH;
     memmove(dataContext.tokenContext.methodSelector, workBuffer, SELECTOR_SIZE);
     pluginType = PLUGIN_TYPE_EXTERNAL;
+    // External-plugin registration is not bound to a chain (no chain_id in the
+    // signed payload), so we mark it ANY here. Cross-chain replay protection
+    // for external plugins requires extending the signed payload to include
+    // chain_id, which is a protocol change outside the scope of this fix.
+    dataContext.tokenContext.pluginChainId = PLUGIN_CHAIN_ID_ANY;
 
     return SWO_SUCCESS;
 }

@@ -62,11 +62,31 @@ static void eip7002_plugin_provider_parameter(ethPluginProvideParameter_t *param
     }
 }
 
+// Whether the transaction carries a non-zero native value that the user must see.
+static bool has_tx_value(const ethPluginFinalize_t *param) {
+    return (param->txContent != NULL) && (param->txContent->value.length != 0);
+}
+
+// Same check using the QUERY_CONTRACT_UI message, which exposes txContent on
+// a different struct.
+static bool has_tx_value_ui(const ethQueryContractUI_t *param) {
+    return (param->txContent != NULL) && (param->txContent->value.length != 0);
+}
+
 static void eip7002_plugin_finalize(ethPluginFinalize_t *param) {
     eip7002_context_t *context = (eip7002_context_t *) param->pluginContext;
 
     param->uiType = ETH_UI_TYPE_GENERIC;
-    param->numScreens = is_zeroes_buffer(context->raw_amount, sizeof(context->raw_amount)) ? 1 : 2;
+    // Validator screen is always shown. The native tx.value is shown whenever
+    // non-zero so a hostile dApp cannot smuggle ETH/native value into a
+    // staking-style request that otherwise only renders calldata.
+    param->numScreens = 1;
+    if (has_tx_value(param)) {
+        param->numScreens++;
+    }
+    if (!is_zeroes_buffer(context->raw_amount, sizeof(context->raw_amount))) {
+        param->numScreens++;
+    }
     param->result = (context->received == sizeof(context->withdrawal_request))
                         ? ETH_PLUGIN_RESULT_OK
                         : ETH_PLUGIN_RESULT_ERROR;
@@ -88,9 +108,23 @@ static void eip7002_plugin_query_contract_ui(ethQueryContractUI_t *param) {
     eip7002_context_t *context = (eip7002_context_t *) param->pluginContext;
     uint64_t chain_id = get_tx_chain_id();
     const char *ticker = get_displayable_ticker(&chain_id, g_chain_config, true);
+    // Map a screen index to a logical screen kind based on which optional
+    // screens are present for this transaction.
+    bool show_tx_value = has_tx_value_ui(param);
+    bool show_request_amount = !is_zeroes_buffer(context->raw_amount, sizeof(context->raw_amount));
+    uint8_t idx = param->screenIndex;
+    enum { S_VALIDATOR, S_TX_VALUE, S_REQUEST_AMOUNT, S_UNKNOWN } screen = S_UNKNOWN;
 
-    switch (param->screenIndex) {
-        case 0:
+    if (idx == 0) {
+        screen = S_VALIDATOR;
+    } else if (show_tx_value && idx == 1) {
+        screen = S_TX_VALUE;
+    } else if (show_request_amount && idx == (show_tx_value ? 2 : 1)) {
+        screen = S_REQUEST_AMOUNT;
+    }
+
+    switch (screen) {
+        case S_VALIDATOR:
             if (param->msgLength < 2) {
                 return;
             }
@@ -101,7 +135,19 @@ static void eip7002_plugin_query_contract_ui(ethQueryContractUI_t *param) {
                        &param->msg[2],
                        param->msgLength - 2);
             break;
-        case 1:
+        case S_TX_VALUE:
+            strlcpy(param->title, "Tx value", param->titleLength);
+            if (!amountToString(param->txContent->value.value,
+                                param->txContent->value.length,
+                                WEI_TO_ETHER,
+                                ticker,
+                                param->msg,
+                                param->msgLength)) {
+                param->result = ETH_PLUGIN_RESULT_ERROR;
+                return;
+            }
+            break;
+        case S_REQUEST_AMOUNT:
             strlcpy(param->title, "Amount", param->titleLength);
             if (!amountToString(context->raw_amount,
                                 sizeof(context->raw_amount),
@@ -110,10 +156,10 @@ static void eip7002_plugin_query_contract_ui(ethQueryContractUI_t *param) {
                                 param->msg,
                                 param->msgLength)) {
                 param->result = ETH_PLUGIN_RESULT_ERROR;
-                break;
+                return;
             }
             break;
-        default:
+        case S_UNKNOWN:
             break;
     }
     param->result = ETH_PLUGIN_RESULT_OK;

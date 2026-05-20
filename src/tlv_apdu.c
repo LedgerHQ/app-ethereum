@@ -16,6 +16,10 @@ static void reset_state(void) {
     explicit_bzero(&g_tlv, sizeof(g_tlv));
 }
 
+void tlv_cleanup(void) {
+    reset_state();
+}
+
 e_tlv_apdu_ret tlv_from_apdu(bool first_chunk,
                              uint8_t lc,
                              const uint8_t *payload,

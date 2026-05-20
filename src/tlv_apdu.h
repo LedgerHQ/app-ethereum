@@ -12,6 +12,8 @@ typedef enum {
     TLV_APDU_SUCCESS,
 } e_tlv_apdu_ret;
 
+void tlv_cleanup(void);
+
 e_tlv_apdu_ret tlv_from_apdu(bool first_chunk,
                              uint8_t lc,
                              const uint8_t *payload,

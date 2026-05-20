@@ -27,7 +27,12 @@ static bool handle_base(const tlv_data_t *data, s_param_unit_context *context) {
     if (data->value.size >= sizeof(context->param->base)) {
         return false;
     }
-    memcpy(context->param->base, data->value.ptr, data->value.size);
+    if (data->value.size > 0) {
+        if (data->value.ptr == NULL) {
+            return false;
+        }
+        memcpy(context->param->base, data->value.ptr, data->value.size);
+    }
     context->param->base[data->value.size] = '\0';
     return true;
 }

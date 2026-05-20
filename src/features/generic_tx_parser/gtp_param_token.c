@@ -33,10 +33,15 @@ static bool handle_native_currency(const tlv_data_t *data, s_param_token_context
     if (context->param->native_addr_count == MAX_NATIVE_ADDRS) {
         return false;
     }
-    memcpy(&context->param->native_addrs[context->param->native_addr_count]
-                                        [ADDRESS_LENGTH - data->value.size],
-           data->value.ptr,
-           data->value.size);
+    if (data->value.size > 0) {
+        if (data->value.ptr == NULL) {
+            return false;
+        }
+        memcpy(&context->param->native_addrs[context->param->native_addr_count]
+                                            [ADDRESS_LENGTH - data->value.size],
+               data->value.ptr,
+               data->value.size);
+    }
     context->param->native_addr_count += 1;
     return true;
 }

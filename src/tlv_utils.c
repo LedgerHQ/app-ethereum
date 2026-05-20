@@ -71,7 +71,13 @@ bool tlv_get_hash(const tlv_data_t *data, uint8_t *out, uint16_t max_size) {
         PRINTF("HASH: failed to extract\n");
         return false;
     }
-    memmove((void *) out, hash.ptr, hash.size);
+    if (hash.size > 0) {
+        if (hash.ptr == NULL) {
+            PRINTF("HASH: null value\n");
+            return false;
+        }
+        memmove((void *) out, hash.ptr, hash.size);
+    }
     return true;
 }
 

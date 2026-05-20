@@ -34,6 +34,9 @@ static bool handle_mr_key(const tlv_data_t *data, s_map_ref_parse_ctx *ctx) {
         PRINTF("MAP_REF KEY TLV too large: %d\n", (int) data->value.size);
         return false;
     }
+    if (data->value.ptr == NULL) {
+        return false;
+    }
     ctx->map_ref->key_tlv_size = data->value.size;
     memcpy(ctx->map_ref->key_tlv, data->value.ptr, data->value.size);
     return true;
@@ -110,7 +113,12 @@ static bool handle_constant(const tlv_data_t *data, s_value_context *context) {
         return false;
     }
     context->value->constant.size = data->value.size;
-    memcpy(context->value->constant.buf, data->value.ptr, data->value.size);
+    if (data->value.size > 0) {
+        if (data->value.ptr == NULL) {
+            return false;
+        }
+        memcpy(context->value->constant.buf, data->value.ptr, data->value.size);
+    }
     context->value->source = SOURCE_CONSTANT;
     return true;
 }

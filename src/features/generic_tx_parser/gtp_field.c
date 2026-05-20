@@ -140,7 +140,14 @@ static bool handle_param_constraint(const tlv_data_t *data, s_field_ctx *context
         APP_MEM_FREE(node);
         return false;
     }
-    memcpy(node->value, data->value.ptr, data->value.size);
+    if (data->value.size > 0) {
+        if (data->value.ptr == NULL) {
+            APP_MEM_FREE(node->value);
+            APP_MEM_FREE(node);
+            return false;
+        }
+        memcpy(node->value, data->value.ptr, data->value.size);
+    }
     // Add to linked list
     flist_push_back((flist_node_t **) &context->field->constraints, (flist_node_t *) node);
     return true;

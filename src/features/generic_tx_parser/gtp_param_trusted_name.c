@@ -35,7 +35,12 @@ static bool handle_types(const tlv_data_t *data, s_param_trusted_name_context *c
     if (data->value.size > sizeof(context->param->types)) {
         return false;
     }
-    memcpy(context->param->types, data->value.ptr, data->value.size);
+    if (data->value.size > 0) {
+        if (data->value.ptr == NULL) {
+            return false;
+        }
+        memcpy(context->param->types, data->value.ptr, data->value.size);
+    }
     context->param->type_count = data->value.size;
     return true;
 }
@@ -44,7 +49,12 @@ static bool handle_sources(const tlv_data_t *data, s_param_trusted_name_context 
     if (data->value.size > sizeof(context->param->sources)) {
         return false;
     }
-    memcpy(context->param->sources, data->value.ptr, data->value.size);
+    if (data->value.size > 0) {
+        if (data->value.ptr == NULL) {
+            return false;
+        }
+        memcpy(context->param->sources, data->value.ptr, data->value.size);
+    }
     context->param->source_count = data->value.size;
     return true;
 }

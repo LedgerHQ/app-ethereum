@@ -98,8 +98,16 @@ bool format_uint(const s_field *field,
                  char *buf,
                  size_t buf_size) {
     uint256_t value256 = {0};
+    const uint8_t zero = 0;
+    const uint8_t *value_ptr = value->ptr;
 
-    convertUint256BE(value->ptr, value->length, &value256);
+    if (value->length == 0) {
+        value_ptr = &zero;
+    } else if (value_ptr == NULL) {
+        return false;
+    }
+
+    convertUint256BE(value_ptr, value->length, &value256);
 
     if (!apply_visibility_constraint(field,
                                      to_be_displayed,
@@ -107,7 +115,7 @@ bool format_uint(const s_field *field,
         return false;
     }
 
-    return *to_be_displayed ? uint256_to_decimal(value->ptr, value->length, buf, buf_size) : true;
+    return *to_be_displayed ? uint256_to_decimal(value_ptr, value->length, buf, buf_size) : true;
 }
 
 /**

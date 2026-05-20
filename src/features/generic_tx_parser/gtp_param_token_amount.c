@@ -45,10 +45,15 @@ static bool handle_native_currency(const tlv_data_t *data, s_param_token_amount_
     if (context->param->native_addr_count == MAX_NATIVE_ADDRS) {
         return false;
     }
-    memcpy(&context->param->native_addrs[context->param->native_addr_count]
-                                        [ADDRESS_LENGTH - data->value.size],
-           data->value.ptr,
-           data->value.size);
+    if (data->value.size > 0) {
+        if (data->value.ptr == NULL) {
+            return false;
+        }
+        memcpy(&context->param->native_addrs[context->param->native_addr_count]
+                                            [ADDRESS_LENGTH - data->value.size],
+               data->value.ptr,
+               data->value.size);
+    }
     context->param->native_addr_count += 1;
     return true;
 }
@@ -66,7 +71,12 @@ static bool handle_above_threshold_msg(const tlv_data_t *data,
     if (data->value.size >= sizeof(context->param->above_threshold_msg)) {
         return false;
     }
-    memcpy(context->param->above_threshold_msg, data->value.ptr, data->value.size);
+    if (data->value.size > 0) {
+        if (data->value.ptr == NULL) {
+            return false;
+        }
+        memcpy(context->param->above_threshold_msg, data->value.ptr, data->value.size);
+    }
     context->param->above_threshold_msg[data->value.size] = '\0';
     return true;
 }

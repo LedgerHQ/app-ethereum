@@ -70,7 +70,6 @@ uint16_t handle_get_eth2_public_key(uint8_t p1,
                                     uint8_t dataLength,
                                     unsigned int *tx) {
     bip32_path_t bip32;
-    cx_err_t error = CX_INTERNAL_ERROR;
 
     if (!G_called_from_swap) {
         reset_app_context();
@@ -88,7 +87,10 @@ uint16_t handle_get_eth2_public_key(uint8_t p1,
         return SWO_INCORRECT_DATA;
     }
 
-    CX_CHECK(get_eth2_public_key(bip32.path, bip32.length, tmpCtx.publicKeyContext.publicKey.W));
+    if (get_eth2_public_key(bip32.path, bip32.length, tmpCtx.publicKeyContext.publicKey.W) !=
+        CX_OK) {
+        return SWO_SECURITY_ISSUE;
+    }
 
     if (p1 == P1_NON_CONFIRM) {
         *tx = set_result_get_eth2_publicKey();
@@ -96,9 +98,7 @@ uint16_t handle_get_eth2_public_key(uint8_t p1,
     }
     ui_display_public_eth2();
     // Return code will be sent after UI approve/cancel
-    error = 0;
-end:
-    return error;
+    return 0;
 }
 
 #endif

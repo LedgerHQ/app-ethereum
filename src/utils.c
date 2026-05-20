@@ -79,6 +79,13 @@ void buf_shrink_expand(const uint8_t *src, size_t src_size, uint8_t *dst, size_t
     size_t src_off;
     size_t dst_off;
 
+    if (dst == NULL || dst_size == 0) {
+        return;
+    }
+    if (src == NULL || src_size == 0) {
+        explicit_bzero(dst, dst_size);
+        return;
+    }
     if (src_size > dst_size) {
         src_off = src_size - dst_size;
         dst_off = 0;
@@ -106,6 +113,13 @@ void str_cpy_explicit_trunc(const char *src, size_t src_size, char *dst, size_t 
     size_t off;
     const char trunc_marker[] = "...";
 
+    if (dst == NULL || dst_size == 0) {
+        return;
+    }
+    if (src == NULL) {
+        dst[0] = '\0';
+        return;
+    }
     if (src_size < dst_size) {
         memcpy(dst, src, src_size);
         dst[src_size] = '\0';

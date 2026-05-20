@@ -678,6 +678,9 @@ static bool path_advance_in_array(void) {
     }
     do {
         end_reached = false;
+        if (path_struct->array_depth_count == 0) {
+            return true;
+        }
         arr_depth = &path_struct->array_depths[path_struct->array_depth_count - 1];
 
         if ((path_struct->array_depth_count > 0) &&

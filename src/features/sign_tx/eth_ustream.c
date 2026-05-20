@@ -583,6 +583,12 @@ static parserStatus_e parse_rlp(txContext_t *context) {
     uint32_t offset;
     while (context->commandLength != 0) {
         bool valid;
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+        // Absolution can inject txContext states that bypass init_tx() invariants.
+        if (context->rlpBufferPos >= sizeof(context->rlpBuffer)) {
+            return USTREAM_FAULT;
+        }
+#endif
         // Feed the RLP buffer until the length can be decoded
         if (read_tx_byte(context, &context->rlpBuffer[context->rlpBufferPos++]) == false) {
             return USTREAM_FAULT;
@@ -632,8 +638,24 @@ static parserStatus_e parse_rlp(txContext_t *context) {
 }
 
 static parserStatus_e process_tx_internal(txContext_t *context) {
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    // Bail when a fuzz-injected state leaves the parser loop with no progress.
+    uint32_t prev_commandLength = UINT32_MAX;
+    uint8_t prev_currentField = UINT8_MAX;
+    uint32_t prev_currentFieldPos = UINT32_MAX;
+#endif
     for (;;) {
         customStatus_e customStatus = CUSTOM_NOT_HANDLED;
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+        if (prev_commandLength == context->commandLength &&
+            prev_currentField == context->currentField &&
+            prev_currentFieldPos == context->currentFieldPos) {
+            return USTREAM_FAULT;
+        }
+        prev_commandLength = context->commandLength;
+        prev_currentField = context->currentField;
+        prev_currentFieldPos = context->currentFieldPos;
+#endif
         // EIP 155 style transaction
         if (PARSING_IS_DONE(context)) {
             if (context->store_calldata) {

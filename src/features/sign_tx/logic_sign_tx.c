@@ -576,6 +576,14 @@ uint16_t finalize_parsing(const txContext_t *context) {
                 // unreachable
                 os_sched_exit(0);
             }
+            if (tmpContent.txContent.dataPresent && (G_swap_mode == SWAP_MODE_STANDARD)) {
+                PRINTF("Unvalidated calldata is not allowed in standard swap\n");
+                send_swap_error_simple(APDU_RESPONSE_MODE_CHECK_FAILED,
+                                       SWAP_EC_ERROR_WRONG_METHOD,
+                                       APP_CODE_DEFAULT);
+                // unreachable
+                os_sched_exit(0);
+            }
             io_seproxyhal_touch_tx_ok();
             sw = SWO_SUCCESS;
         } else {

@@ -151,6 +151,18 @@ void erc20_plugin_call(eth_plugin_msg_t message, void *parameters) {
                 char buf[sizeof(strings.common.fullAmount)];
                 const s_token_info *token_info;
 
+                if (context->selectorIndex != ERC20_TRANSFER) {
+                    PRINTF("erc20 swap: unsupported selector %u\n",
+                           (unsigned int) context->selectorIndex);
+                    msg->result = ETH_PLUGIN_RESULT_ERROR;
+                    break;
+                }
+                if (context->extra_data_len != 0) {
+                    PRINTF("erc20 swap: unexpected extra data\n");
+                    msg->result = ETH_PLUGIN_RESULT_ERROR;
+                    break;
+                }
+
                 if (!getEthDisplayableAddress(context->destinationAddress,
                                               buf,
                                               sizeof(buf),

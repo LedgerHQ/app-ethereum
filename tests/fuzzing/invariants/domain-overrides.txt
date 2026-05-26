@@ -1,0 +1,69 @@
+# ── App state enum (IDLE=0, SIGNING_TX=1, SIGNING_MSG=2, SIGNING_EIP712=3) ──
+appState. = values \x00 \x01 \x02 \x03
+
+# ── Swap mode enum (STANDARD=0, CROSSCHAIN_PENDING=1, CROSSCHAIN_SUCCESS=2, ERROR=3) ──
+G_swap_mode. = values \x00 \x01 \x02 \x03
+
+# ── Plugin type enum (NONE=0..OLD_INTERNAL=5) ──
+pluginType. = values \x00 \x01 \x02 \x03 \x04 \x05
+
+# ── Transaction type (EIP2930=0x01, EIP1559=0x02, EIP7702=0x04, LEGACY=0xc0) ──
+txContext.txType = values \x00 \x01 \x02 \x04 \xc0
+
+# ── TX parser current field (covers all RLP field enum ranges 0-11) ──
+txContext.currentField = values \x00 \x01 \x02 \x03 \x04 \x05 \x06 \x07 \x08 \x09 \x0a \x0b
+
+# ── TX parser boolean flags ──
+txContext.currentFieldIsList = values \x00 \x01
+txContext.processingField = values \x00 \x01
+txContext.fieldSingleByte = values \x00 \x01
+txContext.rlp_size_known = values \x00 \x01
+txContext.store_calldata = values \x00 \x01
+
+# ── Swap boolean flags ──
+G_called_from_swap. = values \x00 \x01
+G_swap_response_ready. = values \x00 \x01
+
+# ── Plugin result status (ERROR=0, UNAVAILABLE=1, UNSUCCESSFUL=2, SUCCESSFUL=3, OK=4, FALLBACK=6) ──
+dataContext.tokenContext.pluginStatus = values \x00 \x01 \x02 \x03 \x04 \x06
+
+# ── EIP-712 struct state ──
+struct_state. = values \x00 \x01 \x02
+
+# ── Signer descriptor validity ──
+SIGNER_DESC.is_valid = values \x00 \x01
+
+# ── Signer descriptor data pointer (NULL to prevent SEGV on random pointer) ──
+SIGNER_DESC.data = values \x00\x00\x00\x00\x00\x00\x00\x00
+
+# ── TX simulation enums (gate risk UI paths and type dispatch in cmd_get_tx_simulation.c) ──
+TX_SIMULATION.risk = values \x00 \x01 \x02
+TX_SIMULATION.type = values \x00 \x01
+TX_SIMULATION.category = values \x00 \x01 \x02 \x03 \x04
+
+# ── Tx batch state (gates gtp_field_table.c PARAM_TYPE_INTENT branch) ──
+txContext.batch_nb_tx = values \x00 \x01 \x02 \x03
+txContext.current_batch_size = values \x00 \x01 \x02 \x03
+
+# ── txContext pointer fields (harness overwrites these to valid targets; ──
+# ── constrain prefix to NULL for explicit intent + minor prefix savings) ──
+txContext.sha3 = values \x00\x00\x00\x00\x00\x00\x00\x00
+txContext.content = values \x00\x00\x00\x00\x00\x00\x00\x00
+txContext.workBuffer = values \x00\x00\x00\x00\x00\x00\x00\x00
+
+# ── Network icon payload sizes (keep fuzzable for range) ──
+g_icon_payload.received_size = top
+g_icon_payload.expected_size = top
+
+# ── Challenge value (keep fuzzable) ──
+challenge. = top
+
+# ── APDU response code ──
+apdu_response_code. = top
+
+# ── ETH2 withdrawal index ──
+eth2WithdrawalIndex. = top
+
+# ── SDK mock toggles (always include) ──
+fuzz_mock_nbgl_reject. = values \x00 \x01
+fuzz_mock_crypto_fail. = values \x00 \x01

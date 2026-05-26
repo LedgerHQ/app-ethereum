@@ -19,11 +19,23 @@ __version__.py
 .vscode
 .idea
 
-# Fuzzing
+# Fuzzing (v1 — tests/fuzzing)
 tests/fuzzing/corpus/
 tests/fuzzing/out/
 tests/fuzzing/CMakeFiles/
 tests/fuzzing/macros/generated/
+
+# Fuzzing (v2 — fuzzing)
+fuzzing/build/
+fuzzing/corpus/
+fuzzing/out/
+.fuzz-artifacts/
+
+# Generated Absolution invariant — machine-local snapshot whose whole_values
+# blob sizes depend on sanitizer / SDK rev / toolchain. The framework
+# regenerates it via app-campaign.sh (or .clusterfuzzlite/build.sh) by
+# bootstrapping to `.{}` and running sync_invariant. Never commit a local copy.
+tests/fuzzing/invariants/fuzz_globals.zon
 
 default.profraw
 default.profdata
@@ -33,6 +45,7 @@ report.html
 
 # LSP
 .cache/
+compile_commands.json
 
 # Doxygen
 doxygen/

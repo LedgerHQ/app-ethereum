@@ -1,0 +1,86 @@
+# ── Pointer globals (8 bytes each, random = ASAN crash) ──
+G_swap_signing_return_value_address
+g_caller_app
+g_chain_config
+G_swap_crosschain_hash
+g_parked_calldata
+fuzz_nbgl_choices_cb
+fuzz_nbgl_nav_cb
+fuzz_nbgl_confirm_cb
+fuzz_nbgl_quit_cb
+
+# ── App-level pointer globals (from .zon — 8-byte .top fields) ──
+eip712_context
+g_tx_ctx_list
+g_tx_ctx_current
+g_enum_value_list
+g_table
+g_pairs
+g_pairsList
+g_titleMsg
+g_subTitleMsg
+g_finishMsg
+g_tx_hash_ctx
+GATING
+g_network_icon_hash
+g_dynamic_network_list
+g_last_added_network
+g_icon_bitmap
+g_proxy_info
+SAFE_DESC
+g_trusted_name_list
+g_token_info_list
+g_nft_info_list
+g_map_entry_list
+path_struct
+path_backup
+g_hash_ctxs
+g_sol_types
+g_structs
+
+# ── Crypto internals (large, no app branches) ──
+G_cx
+global_sha3
+
+# ── UI display buffers (large, only affect display) ──
+strings
+warning
+prelude_details
+generic_details
+# TX_SIMULATION removed from zero-symbols: risk/type/category enums gate
+# code paths in cmd_get_tx_simulation.c. Fields are embedded arrays (no
+# pointers), so random bytes are memory-safe. Enum fields constrained
+# via domain-overrides.
+
+# ── SDK IO/UX state (large structures, no handler branches) ──
+G_io_app
+G_ux
+G_ux_params
+G_ux_os
+G_io_asynch_ux_callback
+G_io_seproxyhal_spi_buffer
+G_io_rx_buffer
+G_io_tx_buffer
+
+# ── USB/BLE/IO infrastructure ──
+USBD_LEDGER_io_buffer
+USBD_LEDGER_protocol_chunk_buffer
+G_io_u2f
+io_os_legacy_apdu_type
+need_to_start_io
+ble_ledger_data
+ble_ledger_init_data
+BLE_LEDGER_apdu_buffer
+usbd_ledger_data
+usbd_ledger_init_data
+
+# ── NBGL layout pools ──
+gLayout
+topLayout
+
+# ── SDK output tracker ──
+G_output_len
+
+# ── BSS markers ──
+_bss
+_ebss

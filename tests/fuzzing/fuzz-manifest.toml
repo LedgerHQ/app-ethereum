@@ -1,0 +1,475 @@
+[target]
+fuzzer = "fuzz_app"
+# App-local input ABI version for the Ethereum harness and seeds. Bump this
+# only when the fuzz input contract changes in a way that invalidates older
+# corpora.
+harness_version = "1"
+
+# Track the Absolution prefix offset of `appState` in scenario_layout.h so the
+# custom seed generator can set the app-state byte regardless of prefix
+# compaction (domain-overrides shrink the prefix and would break fixed offsets).
+# `--allow-missing-ctrl` silences the cosmetic warning for `fuzz_ctrl`, which
+# this harness does not expose.
+[layout]
+extra_args = [
+    "--global", "appState:SCEN_APPSTATE_OFF",
+    "--allow-missing-ctrl",
+]
+
+[coverage]
+key_files = [
+    "src/features/sign_tx/cmd_sign_tx.c",
+    "src/features/sign_tx/logic_sign_tx.c",
+    "src/features/sign_tx/eth_ustream.c",
+    "src/features/sign_message/cmd_sign_message.c",
+    "src/features/sign_message_eip712/commands_712.c",
+    "src/features/sign_authorization_eip7702/commands_7702.c",
+    "src/features/get_public_key/get_public_key.c",
+    "src/features/get_public_key/cmd_get_public_key.c",
+    "src/features/provide_trusted_name/cmd_trusted_name.c",
+    "src/features/provide_enum_value/cmd_enum_value.c",
+    "src/features/generic_tx_parser/cmd_tx_info.c",
+    "src/features/generic_tx_parser/cmd_field.c",
+    "src/features/generic_tx_parser/gtp_tx_info.c",
+    "src/features/generic_tx_parser/gtp_field.c",
+    "src/features/provide_trusted_name/trusted_name.c",
+    "src/features/provide_proxy_info/proxy_info.c",
+    "src/features/provide_network_info/network_info.c",
+    "src/features/provide_safe_account/safe_descriptor.c",
+    "src/features/provide_safe_account/signer_descriptor.c",
+    "src/features/provide_enum_value/enum_value.c",
+    "src/tlv_apdu.c",
+    "src/mem_utils.c",
+    "src/features/provide_proxy_info/cmd_proxy_info.c",
+    "src/features/provide_network_info/cmd_network_info.c",
+    "src/features/provide_gating/cmd_get_gating.c",
+    "src/features/provide_map_entry/cmd_map_entry.c",
+    "src/features/provide_map_entry/map_entry.c",
+    "src/features/provide_tx_simulation/cmd_get_tx_simulation.c",
+    "src/features/provide_safe_account/cmd_safe_account.c",
+    "src/features/set_eth2_withdrawal_index/cmd_set_eth2_withdrawal_index.c",
+    "src/features/get_challenge/cmd_get_challenge.c",
+    "src/features/perform_privacy_operation/cmd_perform_privacy_operation.c",
+    "src/features/get_eth2_public_key/cmd_get_eth2_public_key.c",
+    "src/plugins/erc721/erc721_plugin.c",
+    "src/plugins/erc1155/erc1155_plugin.c",
+    "src/swap/handle_check_address.c",
+    "src/swap/handle_get_printable_amount.c",
+    "src/swap/handle_swap_sign_transaction.c",
+    "ethereum-plugin-sdk/src/plugin_utils.c",
+    "src/features/generic_tx_parser/gtp_data_path.c",
+    "src/features/generic_tx_parser/gtp_value.c",
+    "src/features/generic_tx_parser/gtp_field_table.c",
+    "src/features/generic_tx_parser/gtp_param_raw.c",
+    "src/features/generic_tx_parser/gtp_param_amount.c",
+    "src/features/generic_tx_parser/gtp_param_calldata.c",
+    "src/features/generic_tx_parser/gtp_param_datetime.c",
+    "src/features/generic_tx_parser/gtp_param_duration.c",
+    "src/features/generic_tx_parser/gtp_param_enum.c",
+    "src/features/generic_tx_parser/gtp_param_network.c",
+    "src/features/generic_tx_parser/gtp_param_nft.c",
+    "src/features/generic_tx_parser/gtp_param_token.c",
+    "src/features/generic_tx_parser/gtp_param_token_amount.c",
+    "src/features/generic_tx_parser/gtp_param_trusted_name.c",
+    "src/features/generic_tx_parser/gtp_param_unit.c",
+    "src/features/generic_tx_parser/tx_ctx.c",
+    "src/features/generic_tx_parser/calldata.c",
+    "src/features/sign_message_eip712/commands_712.c",
+    "src/features/sign_message_eip712/filtering.c",
+    "src/features/sign_message_eip712/typed_data.c",
+    "src/features/sign_message_eip712/path.c",
+    "src/features/sign_message_eip712/field_hash.c",
+    "src/features/sign_message_eip712/type_hash.c",
+    "src/features/sign_message_eip712/encode_field.c",
+    "src/features/sign_message_eip712/schema_hash.c",
+    "src/features/sign_message_eip712/format_hash_field_type.c",
+    "src/features/sign_authorization_eip7702/commands_7702.c",
+    "src/features/sign_authorization_eip7702/rlp_encode.c",
+    "src/features/sign_authorization_eip7702/whitelist_7702.c",
+    "src/features/generic_tx_parser/gtp_path_array.c",
+    "src/features/generic_tx_parser/gtp_path_slice.c",
+]
+exclude_regexes = [
+    '.*ledger-secure-sdk.*',
+    '.*fuzzing/harness/fuzz_.*\.c',
+    '.*fuzzing/mock/.*',
+    '.*src/main\.c',
+    '.*src/nbgl/.*',
+]
+
+[dictionary]
+tokens = [
+    { name = "cla", value = "\\xE0" },
+    { name = "ins_get_public_key", value = "\\xE0\\x02\\x00\\x00" },
+    { name = "ins_sign", value = "\\xE0\\x04\\x00\\x00" },
+    { name = "ins_get_app_config", value = "\\xE0\\x06\\x00\\x00" },
+    { name = "ins_sign_personal_msg", value = "\\xE0\\x08\\x00\\x00" },
+    { name = "ins_provide_erc20", value = "\\xE0\\x0A\\x00\\x00" },
+    { name = "ins_sign_eip712", value = "\\xE0\\x0C\\x00\\x00" },
+    { name = "ins_get_eth2_pk", value = "\\xE0\\x0E\\x00\\x00" },
+    { name = "ins_set_eth2_withdrawal", value = "\\xE0\\x10\\x00\\x00" },
+    { name = "ins_set_external_plugin", value = "\\xE0\\x12\\x00\\x00" },
+    { name = "ins_provide_nft_info", value = "\\xE0\\x14\\x00\\x00" },
+    { name = "ins_set_plugin", value = "\\xE0\\x16\\x00\\x00" },
+    { name = "ins_privacy_op", value = "\\xE0\\x18\\x00\\x00" },
+    { name = "ins_eip712_struct_def", value = "\\xE0\\x1A\\x00\\x00" },
+    { name = "ins_eip712_struct_impl", value = "\\xE0\\x1C\\x00\\x00" },
+    { name = "ins_eip712_filtering", value = "\\xE0\\x1E\\x00\\x00" },
+    { name = "ins_get_challenge", value = "\\xE0\\x20\\x00\\x00" },
+    { name = "ins_trusted_name", value = "\\xE0\\x22\\x00\\x00" },
+    { name = "ins_enum_value", value = "\\xE0\\x24\\x00\\x00" },
+    { name = "ins_gtp_tx_info", value = "\\xE0\\x26\\x00\\x00" },
+    { name = "ins_gtp_field", value = "\\xE0\\x28\\x00\\x00" },
+    { name = "ins_proxy_info", value = "\\xE0\\x2A\\x00\\x00" },
+    { name = "ins_network_config", value = "\\xE0\\x30\\x00\\x00" },
+    { name = "ins_tx_simulation", value = "\\xE0\\x32\\x00\\x00" },
+    { name = "ins_sign_eip7702", value = "\\xE0\\x34\\x00\\x00" },
+    { name = "ins_safe_account", value = "\\xE0\\x36\\x00\\x00" },
+    { name = "ins_gating", value = "\\xE0\\x38\\x00\\x00" },
+    { name = "ins_map_entry", value = "\\xE0\\x3A\\x00\\x00" },
+    { name = "p1_first_chunk", value = "\\x00" },
+    { name = "p1_more_chunk", value = "\\x80" },
+    # TLV struct types (tag 0x01 = STRUCTURE_TYPE, 1-byte value)
+    # Values match the #define constants in the respective *_info.c / cmd_*.c files:
+    #   TYPE_GATED_SIGNING=0x0D, STRUCT_TYPE_TRUSTED_NAME=0x03, TYPE_TX_SIMULATION=0x09,
+    #   TYPE_PROXY_INFO=0x26, TYPE_LESM_ACCOUNT_INFO=0x27, TYPE_DYNAMIC_NETWORK=0x08
+    { name = "gating_struct_type", value = "\\x01\\x01\\x0D" },
+    { name = "trusted_name_struct_type", value = "\\x01\\x01\\x03" },
+    { name = "tx_simu_struct_type", value = "\\x01\\x01\\x09" },
+    { name = "proxy_struct_type", value = "\\x01\\x01\\x26" },
+    { name = "safe_struct_type", value = "\\x01\\x01\\x27" },
+    { name = "network_struct_type", value = "\\x01\\x01\\x08" },
+    # TLV version=1
+    { name = "tlv_version_1", value = "\\x02\\x01\\x01" },
+    { name = "gtp_version_1", value = "\\x00\\x01\\x01" },
+    # TLV tx_type values
+    { name = "tx_type_0", value = "\\x84\\x01\\x00" },
+    { name = "tx_type_1", value = "\\x84\\x01\\x01" },
+    # Single-byte content values
+    { name = "byte_00", value = "\\x00" },
+    { name = "byte_01", value = "\\x01" },
+    { name = "byte_0d", value = "\\x0D" },
+    { name = "byte_ff", value = "\\xFF" },
+    # GTP field param_type values (tag 0x02, len 1, value)
+    { name = "param_raw", value = "\\x02\\x01\\x00" },
+    { name = "param_amount", value = "\\x02\\x01\\x01" },
+    { name = "param_token_amount", value = "\\x02\\x01\\x02" },
+    { name = "param_nft", value = "\\x02\\x01\\x03" },
+    { name = "param_datetime", value = "\\x02\\x01\\x04" },
+    { name = "param_duration", value = "\\x02\\x01\\x05" },
+    { name = "param_unit", value = "\\x02\\x01\\x06" },
+    { name = "param_enum", value = "\\x02\\x01\\x07" },
+    { name = "param_trusted_name", value = "\\x02\\x01\\x08" },
+    { name = "param_calldata", value = "\\x02\\x01\\x09" },
+    { name = "param_token", value = "\\x02\\x01\\x0A" },
+    { name = "param_network", value = "\\x02\\x01\\x0B" },
+    { name = "param_group", value = "\\x02\\x01\\x0C" },
+    # GTP value type_family values (tag 0x01, len 1, value)
+    { name = "tf_uint", value = "\\x01\\x01\\x01" },
+    { name = "tf_int", value = "\\x01\\x01\\x02" },
+    { name = "tf_ufixed", value = "\\x01\\x01\\x03" },
+    { name = "tf_fixed", value = "\\x01\\x01\\x04" },
+    { name = "tf_address", value = "\\x01\\x01\\x05" },
+    { name = "tf_bool", value = "\\x01\\x01\\x06" },
+    { name = "tf_bytes", value = "\\x01\\x01\\x07" },
+    { name = "tf_string", value = "\\x01\\x01\\x08" },
+    # GTP value container_path values (tag 0x04, len 1, value)
+    { name = "cp_from", value = "\\x04\\x01\\x00" },
+    { name = "cp_to", value = "\\x04\\x01\\x01" },
+    { name = "cp_value", value = "\\x04\\x01\\x02" },
+    { name = "cp_chain_id", value = "\\x04\\x01\\x03" },
+    # GTP data_path element types (tag + len + value)
+    { name = "dp_tuple", value = "\\x01\\x02\\x00\\x00" },
+    { name = "dp_array", value = "\\x02\\x01\\x00" },
+    { name = "dp_ref", value = "\\x03\\x00" },
+    { name = "dp_leaf", value = "\\x04\\x01\\x00" },
+    { name = "dp_slice", value = "\\x05\\x02\\x00\\x00" },
+    # Visibility values (tag 0x04, len 1)
+    { name = "vis_always", value = "\\x04\\x01\\x00" },
+    { name = "vis_must_be", value = "\\x04\\x01\\x01" },
+    { name = "vis_if_not_in", value = "\\x04\\x01\\x02" },
+    # Trusted name type/source values (aligned with trusted_name.h enums)
+    # e_name_type: ACCOUNT=1, CONTRACT=2, NFT_COLLECTION=3, TOKEN=4, WALLET=5, CONTEXT_ADDRESS=6
+    # e_name_source: LAB=0, CAL=1, ENS=2, UD=3, FN=4, DNS=5, DYNAMIC_RESOLVER=6, MAB=7
+    { name = "tn_type_account", value = "\\x70\\x01\\x01" },
+    { name = "tn_type_contract", value = "\\x70\\x01\\x02" },
+    { name = "tn_type_nft", value = "\\x70\\x01\\x03" },
+    { name = "tn_type_token", value = "\\x70\\x01\\x04" },
+    { name = "tn_source_lab", value = "\\x71\\x01\\x00" },
+    { name = "tn_source_cal", value = "\\x71\\x01\\x01" },
+    { name = "tn_source_ens", value = "\\x71\\x01\\x02" },
+    { name = "tn_source_mab", value = "\\x71\\x01\\x07" },
+    # Trusted name MAB additional tags (OWNER + OWNER_DERIV_PATH, required for MAB path)
+    { name = "tn_owner_addr", value = "\\x74\\x14" },  # TAG_OWNER header (value = 20-byte address)
+    { name = "tn_owner_path_5", value = "\\x75\\x15\\x05" },  # TAG_OWNER_DERIV_PATH, 5-level BIP32
+    # Signer descriptor struct type
+    { name = "signer_struct_type", value = "\\x01\\x01\\x0A" },
+    { name = "signer_version_1", value = "\\x02\\x01\\x01" },
+    # EIP-712 struct_impl P2 values
+    { name = "eip712_p2_impl_name", value = "\\x00" },
+    { name = "eip712_p2_impl_array", value = "\\x0F" },
+    { name = "eip712_p2_impl_field", value = "\\xFF" },
+    # EIP-712 filtering P2 values
+    { name = "eip712_p2_filt_activate", value = "\\x00" },
+    { name = "eip712_p2_filt_discard", value = "\\x01" },
+    { name = "eip712_p2_filt_msg_info", value = "\\x0F" },
+    { name = "eip712_p2_filt_raw", value = "\\xFF" },
+    { name = "eip712_p2_filt_amount_val", value = "\\xFE" },
+    { name = "eip712_p2_filt_amount_tok", value = "\\xFD" },
+    { name = "eip712_p2_filt_datetime", value = "\\xFC" },
+    { name = "eip712_p2_filt_contract", value = "\\xFB" },
+    { name = "eip712_p2_filt_cd_info", value = "\\xFA" },
+    { name = "eip712_p2_filt_cd_value", value = "\\xF9" },
+    { name = "eip712_p2_filt_cd_callee", value = "\\xF8" },
+    { name = "eip712_p2_filt_cd_chain", value = "\\xF7" },
+    { name = "eip712_p2_filt_cd_sel", value = "\\xF6" },
+    { name = "eip712_p2_filt_cd_amount", value = "\\xF5" },
+    { name = "eip712_p2_filt_cd_spender", value = "\\xF4" },
+    # EIP-712 common strings
+    { name = "eip712_domain", value = "EIP712Domain" },
+    # EIP-7702 auth TLV tags (version=1, delegate 20B, chain_id 8B, nonce 8B)
+    { name = "eip7702_ver", value = "\\x00\\x01\\x01" },
+    { name = "eip7702_delegate_tag", value = "\\x01\\x14" },
+    { name = "eip7702_chain_tag", value = "\\x02\\x01\\x01" },
+    { name = "eip7702_nonce_tag", value = "\\x03\\x01\\x00" },
+    # Simple7702Account address (chain_id=0, matches all chains)
+    { name = "eip7702_simple_acct", value = "\\x4C\\xd2\\x41\\xE8\\xd1\\x51\\x0e\\x30\\xb2\\x07\\x63\\x97\\xaf\\xc7\\x50\\x8A\\xe5\\x9C\\x66\\xc9" },
+    # EIP-7702 whitelist test addresses (HAVE_EIP7702_WHITELIST_TEST)
+    { name = "eip7702_test_one", value = "\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01" },
+    { name = "eip7702_chain_1", value = "\\x02\\x01\\x01" },
+    { name = "eip7702_chain_all", value = "\\x02\\x08\\xFF\\xFF\\xFF\\xFF\\xFF\\xFF\\xFF\\xFF" },
+    # EIP-712 struct_def P2 values
+    { name = "eip712_p2_def_name", value = "\\x00" },
+    { name = "eip712_p2_def_field", value = "\\xFF" },
+    # EIP-712 field type descriptors (TypeDesc byte for set_struct_field).
+    # Layout: TypeDesc (1B, low-nibble=e_type, 0x40=TYPESIZE, 0x80=ARRAY) + optional TypeSize
+    # + optional ArrayLevelCount + ArrayLevels + KeyName (appended by fuzzer from other bytes).
+    # e_type: CUSTOM=0, INT=1, UINT=2, ADDRESS=3, BOOL=4, STRING=5, BYTES_FIX=6, BYTES_DYN=7.
+    #
+    # Base scalar types (no array, no custom name):
+    { name = "sol_uint8",    value = "\\x42\\x01" },
+    { name = "sol_uint16",   value = "\\x42\\x02" },
+    { name = "sol_uint32",   value = "\\x42\\x04" },
+    { name = "sol_uint64",   value = "\\x42\\x08" },
+    { name = "sol_uint128",  value = "\\x42\\x10" },
+    { name = "sol_uint256",  value = "\\x42\\x20" },
+    { name = "sol_int8",     value = "\\x41\\x01" },
+    { name = "sol_int16",    value = "\\x41\\x02" },
+    { name = "sol_int32",    value = "\\x41\\x04" },
+    { name = "sol_int64",    value = "\\x41\\x08" },
+    { name = "sol_int128",   value = "\\x41\\x10" },
+    { name = "sol_int256",   value = "\\x41\\x20" },
+    { name = "sol_address",  value = "\\x03" },
+    { name = "sol_string",   value = "\\x05" },
+    { name = "sol_bool",     value = "\\x04" },
+    { name = "sol_bytes1",   value = "\\x46\\x01" },
+    { name = "sol_bytes4",   value = "\\x46\\x04" },
+    { name = "sol_bytes8",   value = "\\x46\\x08" },
+    { name = "sol_bytes16",  value = "\\x46\\x10" },
+    { name = "sol_bytes31",  value = "\\x46\\x1F" },
+    { name = "sol_bytes32",  value = "\\x46\\x20" },
+    { name = "sol_bytes_dyn",value = "\\x07" },
+    # Array type descriptors (ARRAY_MASK=0x80 OR'd with base type):
+    # Layout: TypeDesc(1B) + [TypeSize(1B) if TYPESIZE_MASK] + ArrayLevelCount(1B) + ArrayLevels
+    # ArrayLevels: ARRAY_DYNAMIC=0x00 (no size) or ARRAY_FIXED_SIZE=0x01 + size byte
+    #
+    # uint256[] — dynamic array: encode, hash, format_hash_field_type_array_levels dynamic branch.
+    { name = "sol_uint256_dyn",   value = "\\xC2\\x20\\x01\\x00" },
+    # uint256[5] — fixed array: exercises ARRAY_FIXED_SIZE branch + mem_alloc_and_format_uint.
+    { name = "sol_uint256_fix5",  value = "\\xC2\\x20\\x01\\x01\\x05" },
+    # uint256[][] — 2D dynamic array (nested level).
+    { name = "sol_uint256_2d",    value = "\\xC2\\x20\\x02\\x00\\x00" },
+    # address[] — ARRAY without TYPESIZE (no size byte after TypeDesc).
+    { name = "sol_addr_dyn",      value = "\\x83\\x01\\x00" },
+    # bool[] — ARRAY without TYPESIZE.
+    { name = "sol_bool_dyn",      value = "\\x84\\x01\\x00" },
+    # string[] — ARRAY without TYPESIZE.
+    { name = "sol_string_dyn",    value = "\\x85\\x01\\x00" },
+    # bytes[] (dynamic) — ARRAY without TYPESIZE.
+    { name = "sol_bytes_arr_dyn", value = "\\x87\\x01\\x00" },
+    # bytes32[] — ARRAY with TYPESIZE + level count + dynamic.
+    { name = "sol_bytes32_dyn",   value = "\\xC6\\x20\\x01\\x00" },
+    # int256[3] — fixed-size int array.
+    { name = "sol_int256_fix3",   value = "\\xC1\\x20\\x01\\x01\\x03" },
+    # EIP-712 field_hash 2-byte BE length prefix (common small sizes)
+    { name = "fh_len_20", value = "\\x00\\x14" },
+    { name = "fh_len_32", value = "\\x00\\x20" },
+    { name = "fh_len_1", value = "\\x00\\x01" },
+    # Trusted name: valid .eth suffix
+    { name = "tn_eth_suffix", value = ".eth" },
+    { name = "tn_name_short", value = "test.eth" },
+    # GTP source types (for gtp_value.c)
+    { name = "gtp_src_calldata", value = "\\x00" },
+    { name = "gtp_src_constant", value = "\\x03\\x01\\x01" },
+    { name = "gtp_src_rlp", value = "\\x03\\x01\\x02" },
+    # Composite TLV fragments — complete valid sub-structures that can be
+    # spliced into APDU payloads by libFuzzer token mutator. Each is a
+    # full valid TLV sequence for a nested field.
+    #
+    # Complete data_path TLV (DATA_PATH tag 0x03 + payload containing TAG_VERSION + TAG_TUPLE)
+    # Outer DATA_PATH(tag=0x03) len=7 (VERSION:3 + TUPLE:4):
+    #   VERSION  0x00 0x01 0x01
+    #   TUPLE    0x01 0x02 <uint16 BE offset = 0x0000>
+    { name = "dp_full_tuple", value = "\\x03\\x07\\x00\\x01\\x01\\x01\\x02\\x00\\x00" },
+    # TUPLE with non-zero offset (increases data_path->size + distinct path bytes).
+    { name = "dp_full_tuple_10", value = "\\x03\\x07\\x00\\x01\\x01\\x01\\x02\\x00\\x10" },
+    # LEAF_TYPE_STATIC (0x03) — path_leaf success path (static chunk consumer).
+    # Outer DATA_PATH(tag=0x03) len=6 (VERSION:3 + LEAF:3):
+    #   VERSION  0x00 0x01 0x01
+    #   LEAF     0x04 0x01 0x03
+    { name = "dp_full_leaf",     value = "\\x03\\x06\\x00\\x01\\x01\\x04\\x01\\x03" },
+    # LEAF_TYPE_DYNAMIC (0x04) — path_leaf success path (dynamic size via calldata chunk).
+    { name = "dp_full_leaf_dyn", value = "\\x03\\x06\\x00\\x01\\x01\\x04\\x01\\x04" },
+    # LEAF_TYPE_ARRAY (0x01) / LEAF_TYPE_TUPLE (0x02) — default branch of path_leaf switch.
+    { name = "dp_full_leaf_arr", value = "\\x03\\x06\\x00\\x01\\x01\\x04\\x01\\x01" },
+    { name = "dp_full_leaf_tup", value = "\\x03\\x06\\x00\\x01\\x01\\x04\\x01\\x02" },
+    # Complete data_path TLV with ARRAY element (ARRAY body has WEIGHT+START+END sub-TLVs).
+    # Outer DATA_PATH(tag=0x03) len=0x10 (16):
+    #   VERSION   0x00 0x01 0x01
+    #   ARRAY     0x02 0x0B + WEIGHT(0x01 0x01 0x02) START(0x02 0x02 0x00 0x00) END(0x03 0x02 0x00 0x02)
+    { name = "dp_full_array", value = "\\x03\\x10\\x00\\x01\\x01\\x02\\x0B\\x01\\x01\\x02\\x02\\x02\\x00\\x00\\x03\\x02\\x00\\x02" },
+    # ARRAY variant exercising only WEIGHT (no start/end → array_size drives passes).
+    { name = "dp_full_array_w", value = "\\x03\\x08\\x00\\x01\\x01\\x02\\x03\\x01\\x01\\x01" },
+    # Complete data_path TLV with SLICE element (SLICE body has START+END sub-TLVs).
+    # Outer DATA_PATH(tag=0x03) len=0x0D (13):
+    #   VERSION   0x00 0x01 0x01
+    #   SLICE     0x05 0x08 + START(0x01 0x02 0x00 0x00) END(0x02 0x02 0x00 0x02)
+    { name = "dp_full_slice", value = "\\x03\\x0D\\x00\\x01\\x01\\x05\\x08\\x01\\x02\\x00\\x00\\x02\\x02\\x00\\x02" },
+    # Multi-element DATA_PATH: VERSION + TUPLE + LEAF_STATIC — exercises path_tuple then path_leaf
+    # in data_path_get's switch loop (both increment size, hitting 2 iterations).
+    { name = "dp_tuple_leaf", value = "\\x03\\x0A\\x00\\x01\\x01\\x01\\x02\\x00\\x00\\x04\\x01\\x03" },
+    # Multi-element DATA_PATH: VERSION + ARRAY_W + LEAF_DYNAMIC — hits path_array then path_leaf.
+    { name = "dp_array_leaf", value = "\\x03\\x0B\\x00\\x01\\x01\\x02\\x03\\x01\\x01\\x01\\x04\\x01\\x04" },
+    # Complete data_path TLV with REF element
+    { name = "dp_full_ref", value = "\\x03\\x05\\x00\\x01\\x01\\x03\\x00" },
+    # Complete value TLV with VERSION + TYPE_FAMILY + TYPE_SIZE (minimal fuzzable value)
+    { name = "value_uint_min", value = "\\x00\\x01\\x01\\x01\\x01\\x01\\x02\\x01\\x20" },
+    # TAG_TYPE_SIZE variants: format_int/format_uint switch on type_size*8 (8/16/32/64/128/256).
+    # Intermediate sizes fall to default (return false) but cover the switch arm code.
+    { name = "type_size_1",  value = "\\x02\\x01\\x01" },
+    { name = "type_size_2",  value = "\\x02\\x01\\x02" },
+    { name = "type_size_4",  value = "\\x02\\x01\\x04" },
+    { name = "type_size_8",  value = "\\x02\\x01\\x08" },
+    { name = "type_size_16", value = "\\x02\\x01\\x10" },
+    { name = "type_size_3",  value = "\\x02\\x01\\x03" },
+    { name = "type_size_15", value = "\\x02\\x01\\x0F" },
+    # Complete value TLV with VERSION + TYPE_FAMILY + DATA_PATH
+    { name = "value_addr_dp", value = "\\x00\\x01\\x01\\x01\\x01\\x05\\x03\\x08\\x00\\x01\\x01\\x04\\x01\\x00" },
+    # Complete PARAM_AMOUNT payload: version + value_wrapper + name
+    { name = "param_amount_full", value = "\\x00\\x01\\x01\\x01\\x0D\\x00\\x01\\x01\\x01\\x01\\x01\\x02\\x01\\x20\\x02\\x04test" },
+    # TAG_NAME with short value (common in many param types)
+    { name = "tag_name_short", value = "\\x02\\x04test" },
+    # TAG_VALUE wrapper containing valid VALUE TLV
+    { name = "tag_value_wrapper", value = "\\x03\\x09\\x00\\x01\\x01\\x01\\x01\\x01\\x02\\x01\\x20" },
+    # Minimal VALUE with CONSTANT source (tag 0x05 + 8 bytes of 0).
+    { name = "value_const_u64", value = "\\x00\\x01\\x01\\x01\\x01\\x01\\x02\\x01\\x08\\x05\\x08\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x01" },
+    # Minimal VALUE with CONSTANT source of 20 bytes (address).
+    { name = "value_const_addr", value = "\\x00\\x01\\x01\\x01\\x01\\x05\\x02\\x01\\x14\\x05\\x14\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01" },
+    # Minimal VALUE pointing to RLP container (CP_TO) — exercises value_get RLP arm.
+    { name = "value_rlp_to",    value = "\\x00\\x01\\x01\\x01\\x01\\x05\\x02\\x01\\x14\\x04\\x01\\x01" },
+    # Minimal VALUE pointing to RLP container (CP_VALUE) — amount path.
+    { name = "value_rlp_value", value = "\\x00\\x01\\x01\\x01\\x01\\x01\\x02\\x01\\x20\\x04\\x01\\x02" },
+    # Minimal VALUE pointing to RLP container (CP_CHAIN_ID) — hits get_current_tx_info().
+    { name = "value_rlp_chain", value = "\\x00\\x01\\x01\\x01\\x01\\x01\\x02\\x01\\x08\\x04\\x01\\x03" },
+    # PARAM_CALLDATA composite: VERSION + VALUE + CALLEE + SELECTOR + AMOUNT, nested VALUEs.
+    # Outer byte layout (each inner VALUE has 3+3+3+body = hdr+body bytes):
+    #   VERSION    0x00 0x01 0x01                                      (3 bytes)
+    #   VALUE      0x01 0x0B  VERSION(3) FAMILY(3) SIZE(3) CONST0(2)   (13 bytes)
+    #   CALLEE     0x02 0x1F  VERSION(3) FAMILY(3) SIZE(3) CONST20(22) (33 bytes)
+    #   SELECTOR   0x04 0x0F  VERSION(3) FAMILY(3) SIZE(3) CONST4(6)   (17 bytes)
+    #   AMOUNT     0x05 0x0C  VERSION(3) FAMILY(3) SIZE(3) CP_VAL(3)   (14 bytes)
+    { name = "param_calldata_multi", value = "\\x00\\x01\\x01\\x01\\x0B\\x00\\x01\\x01\\x01\\x01\\x07\\x02\\x01\\x00\\x05\\x00\\x02\\x1F\\x00\\x01\\x01\\x01\\x01\\x05\\x02\\x01\\x14\\x05\\x14\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x04\\x0F\\x00\\x01\\x01\\x01\\x01\\x07\\x02\\x01\\x04\\x05\\x04\\xa9\\x05\\x9c\\xbb\\x05\\x0C\\x00\\x01\\x01\\x01\\x01\\x01\\x02\\x01\\x20\\x04\\x01\\x02" },
+    # GTP field message root template (TAG_VERSION 0x00 + TAG_NAME 0x01 + TAG_PARAM_TYPE 0x02)
+    { name = "field_root_raw", value = "\\x00\\x01\\x01\\x01\\x04test\\x02\\x01\\x00" },
+    # FIELD TLV layout (tags): 0x00 VERSION, 0x01 NAME, 0x02 PARAM_TYPE,
+    # 0x03 PARAM(body), 0x04 VISIBLE, 0x05 CONSTRAINT.
+    # PARAM body for PARAM_TYPE_RAW is PARAM_RAW (tags 0x00 VERSION, 0x01 VALUE).
+    # VALUE (tags 0x00 VERSION, 0x01 TYPE_FAMILY, 0x02 TYPE_SIZE, plus one source:
+    # 0x03 DATA_PATH, 0x04 CONTAINER_PATH, 0x05 CONSTANT).
+    #
+    # field_full_raw: FIELD with PARAM_TYPE=RAW and VALUE using CP_VALUE RLP source.
+    # VERSION(3) + NAME(6) + PARAM_TYPE(3) + PARAM(2+len=18):
+    #   PARAM body = PARAM_RAW: VERSION(3) + TAG_VALUE(2+len=13):
+    #     VALUE: VERSION(3) + TYPE_FAMILY(3) + TYPE_SIZE(3) + CP(3) = 12 -> wait +2 hdr
+    #   VALUE body 12: 0x00 0x01 0x01  0x01 0x01 0x01  0x02 0x01 0x20  0x04 0x01 0x02
+    #   TAG_VALUE: 0x01 0x0C <value body 12>
+    #   PARAM_RAW body: 0x00 0x01 0x01 + 0x01 0x0C <value 12> = 3 + 14 = 17
+    #   TAG_PARAM: 0x03 0x11 <17 bytes>
+    { name = "field_full_raw",    value = "\\x00\\x01\\x01\\x01\\x04test\\x02\\x01\\x00\\x03\\x11\\x00\\x01\\x01\\x01\\x0C\\x00\\x01\\x01\\x01\\x01\\x01\\x02\\x01\\x20\\x04\\x01\\x02" },
+    # field_raw_const: same as field_full_raw but with CONSTANT source (32 bytes = 0).
+    #   VALUE body 42: VER(3) + FAMILY(3) + SIZE(3) + CONST32(2+32=34) = 43 -> recount
+    #   Actually VER(3) FAMILY(3) SIZE(3) = 9; CONSTANT header 0x05 0x20 + 32 bytes = 34; total 43.
+    #   TAG_VALUE: 0x01 0x2B <value body 43> = 45 bytes total
+    #   PARAM_RAW body: 0x00 0x01 0x01 + 0x01 0x2B <43> = 48
+    #   TAG_PARAM: 0x03 0x30 <48 bytes>
+    { name = "field_raw_const",   value = "\\x00\\x01\\x01\\x01\\x04test\\x02\\x01\\x00\\x03\\x30\\x00\\x01\\x01\\x01\\x2B\\x00\\x01\\x01\\x01\\x01\\x01\\x02\\x01\\x20\\x05\\x20\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00" },
+    # field_raw_must_be: FIELD + VISIBLE=MUST_BE(1) + CONSTRAINT(1 byte = 0) using CP_VALUE.
+    #   FIELD tail: 0x04 0x01 0x01 (VISIBLE=1) + 0x05 0x01 0x00 (CONSTRAINT 1B).
+    { name = "field_raw_must_be", value = "\\x00\\x01\\x01\\x01\\x04test\\x02\\x01\\x00\\x03\\x11\\x00\\x01\\x01\\x01\\x0C\\x00\\x01\\x01\\x01\\x01\\x01\\x02\\x01\\x20\\x04\\x01\\x02\\x04\\x01\\x01\\x05\\x01\\x00" },
+    # field_raw_not_in: FIELD + VISIBLE=IF_NOT_IN(2) + CONSTRAINT 32 bytes of 0 (uint256 cmp).
+    { name = "field_raw_not_in",  value = "\\x00\\x01\\x01\\x01\\x04test\\x02\\x01\\x00\\x03\\x11\\x00\\x01\\x01\\x01\\x0C\\x00\\x01\\x01\\x01\\x01\\x01\\x02\\x01\\x20\\x04\\x01\\x02\\x04\\x01\\x02\\x05\\x20\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00" },
+    # field_addr_must_be: FIELD with TYPE_FAMILY=ADDRESS (5) + CONSTRAINT 20 bytes (format_addr path).
+    #   VALUE body: VER(3) FAMILY=5(3) SIZE=20(3) CP_TO(3) = 12
+    { name = "field_addr_must_be",value = "\\x00\\x01\\x01\\x01\\x04test\\x02\\x01\\x00\\x03\\x11\\x00\\x01\\x01\\x01\\x0C\\x00\\x01\\x01\\x01\\x01\\x05\\x02\\x01\\x14\\x04\\x01\\x01\\x04\\x01\\x01\\x05\\x14\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00" },
+    # field_bytes_must_be: FIELD with TYPE_FAMILY=BYTES (4) + CONSTRAINT 4 bytes (format_bytes path).
+    { name = "field_bytes_must_be",value = "\\x00\\x01\\x01\\x01\\x04test\\x02\\x01\\x00\\x03\\x11\\x00\\x01\\x01\\x01\\x0C\\x00\\x01\\x01\\x01\\x01\\x04\\x02\\x01\\x04\\x04\\x01\\x02\\x04\\x01\\x01\\x05\\x04\\xaa\\xbb\\xcc\\xdd" },
+    # field_bool: FIELD with TYPE_FAMILY=BOOL (3) (format_bool path).
+    { name = "field_bool",        value = "\\x00\\x01\\x01\\x01\\x04test\\x02\\x01\\x00\\x03\\x11\\x00\\x01\\x01\\x01\\x0C\\x00\\x01\\x01\\x01\\x01\\x03\\x02\\x01\\x01\\x04\\x01\\x02" },
+    # field_string: FIELD with TYPE_FAMILY=STRING (6) (format_string path).
+    { name = "field_string",      value = "\\x00\\x01\\x01\\x01\\x04test\\x02\\x01\\x00\\x03\\x11\\x00\\x01\\x01\\x01\\x0C\\x00\\x01\\x01\\x01\\x01\\x06\\x02\\x01\\x20\\x04\\x01\\x02" },
+    # TRUSTED_NAME: struct_type, version, challenge, type=account, source=ens, address
+    { name = "tn_struct_v1_c0", value = "\\x01\\x01\\x03\\x02\\x01\\x01" },
+    # TX simulation: struct_type=0x09, version=1
+    { name = "txsim_v1", value = "\\x01\\x01\\x09\\x02\\x01\\x01" },
+    # GTP TX_INFO: full blob with ALL required tags for version=1 (to unlock verify_tx_info_struct tail).
+    # Required tags: VERSION(0x00), CHAIN_ID(0x01), CONTRACT_ADDR(0x02), SELECTOR(0x03), FIELDS_HASH(0x04),
+    # OPERATION_TYPE(0x05), SIGNATURE(0xff). Signature content is irrelevant (link-time mock).
+    # Layout:
+    #   VERSION       00 01 01                                                    (3 B)
+    #   CHAIN_ID=1    01 08 00 00 00 00 00 00 00 01                               (10 B)
+    #   CONTRACT_ADDR 02 14 <20×00>                                               (22 B)
+    #   SELECTOR      03 04 AA BB CC DD   (matches gcs_init_fuzz_ctx parked sel)  (6 B)
+    #   FIELDS_HASH   04 20 <32×00>                                               (34 B)
+    #   OPERATION     05 04 "Swap"                                                (6 B)
+    #   SIGNATURE     FF 40 <64×00>                                               (66 B)
+    # Total: 147 bytes.
+    { name = "tx_info_full_v1", value = "\\x00\\x01\\x01\\x01\\x08\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x01\\x02\\x14\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x03\\x04\\xAA\\xBB\\xCC\\xDD\\x04\\x20\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x05\\x04Swap\\xFF\\x40\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00" },
+    # Compact tag pairs for fuzzer splicing (helper tokens for TX_INFO composition):
+    { name = "tx_info_contract_zero",  value = "\\x02\\x14\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00" },
+    { name = "tx_info_selector_aabb",  value = "\\x03\\x04\\xAA\\xBB\\xCC\\xDD" },
+    { name = "tx_info_fields_hash",    value = "\\x04\\x20\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00" },
+    { name = "tx_info_op_swap",        value = "\\x05\\x04Swap" },
+    { name = "tx_info_op_send",        value = "\\x05\\x04Send" },
+    { name = "tx_info_chain_1",        value = "\\x01\\x08\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x01" },
+    { name = "tx_info_sig_64",         value = "\\xFF\\x40\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00" },
+    # Zero-length value tokens (length boundary edge cases)
+    { name = "tlv_len_0", value = "\\x00" },
+    { name = "tlv_len_1", value = "\\x01" },
+    { name = "tlv_len_32", value = "\\x20" },
+    { name = "tlv_len_64", value = "\\x40" },
+    { name = "tlv_len_max", value = "\\xFF" },
+    # Small integer values commonly used in filtering/enums
+    { name = "enum_0", value = "\\x00" },
+    { name = "enum_1", value = "\\x01" },
+    { name = "enum_2", value = "\\x02" },
+    { name = "enum_3", value = "\\x03" },
+    { name = "enum_ff", value = "\\xFF" },
+]
+
+[seeds]
+cla = 0xE0
+ins = [0x02, 0x04, 0x06, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14,
+       0x16, 0x18, 0x1A, 0x1C, 0x1E, 0x20, 0x22, 0x24, 0x26, 0x28,
+       0x2A, 0x30, 0x32, 0x34, 0x36, 0x38, 0x3A]
+
+[seeds.generic]
+enabled = true
+
+[seeds.custom]
+enabled = true
+# Custom seed generator for GTP/EIP-712/EIP-7702/provide_* TLV flows.
+# Resolved relative to this manifest's directory (fuzzing/).
+script = "scripts/generate_seed_corpus.py"
+
+[mocks]
+override_sources = []

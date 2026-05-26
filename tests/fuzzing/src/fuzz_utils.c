@@ -4,46 +4,29 @@
 #include "net_icons.gen.h"
 #include "app_mem_utils.h"
 
-// Global state required by the app features
-cx_sha3_t global_sha3 = {0};
-cx_sha3_t sha3 = {0};
-tmpContent_t tmpContent = {0};
-txContext_t txContext = {0};
-txContent_t txContent = {0};
-dataContext_t dataContext = {0};
-tmpCtx_t tmpCtx = {0};
-strings_t strings = {0};
-const caller_app_t *g_caller_app = NULL;
-const chain_config_t *g_chain_config = NULL;
+/* Per-feature harness scratch state. Shared app globals (tmpCtx, txContext,
+ * tmpContent, dataContext, strings, global_sha3, appState, pluginType,
+ * eth2WithdrawalIndex, N_storage_real, g_caller_app, g_chain_config) are
+ * owned by mock/app_globals.c so both fuzz entry points (per-feature
+ * harnesses and the global-coverage dispatcher) share one definition.
+ *
+ * The two structs below are private to the classic per-feature harnesses
+ * and are only referenced from init_fuzzing_environment() to back
+ * `txContext.content` and `txContext.sha3`. They are `static` and prefixed
+ * `g_fuzz_local_*` to avoid any visual collision with the shared globals
+ * `global_sha3` and `tmpContent.txContent` defined in mock/app_globals.c. */
+static cx_sha3_t g_fuzz_local_sha3 = {0};
+static txContent_t g_fuzz_local_tx_content = {0};
 
 const network_icon_t g_network_icons[10] = {0};
 
-uint16_t apdu_response_code = 0;
-pluginType_t pluginType = 0;
-uint32_t eth2WithdrawalIndex = 0;
-uint8_t appState = 0;
-
-// Mock the storage to enable wanted features
-const internalStorage_t N_storage_real = {
-    .tx_check_enable = true,
-    .tx_check_opt_in = true,
-    .eip7702_enable = true,
-};
-
-chain_config_t config = {
+static const chain_config_t fuzz_chain_config = {
     .ticker = "FUZZ",
     .chain_id = 0x42,
     .coin_type = 60,
 };
 
-void reset_app_context(void) {
-    gcs_cleanup();
-    clear_safe_account();
-    ui_all_cleanup();
-}
-
 void init_fuzzing_environment(void) {
-    // Initialize memory allocator with 16KB heap (only once)
     static bool mem_initialized = false;
     if (!mem_initialized) {
         static uint8_t heap_buffer[16 * 1024];
@@ -51,21 +34,20 @@ void init_fuzzing_environment(void) {
         mem_initialized = true;
     }
 
-    // Clear global structures to ensure a clean state for each fuzzing iteration
     explicit_bzero(&global_sha3, sizeof(global_sha3));
-    explicit_bzero(&sha3, sizeof(sha3));
+    explicit_bzero(&g_fuzz_local_sha3, sizeof(g_fuzz_local_sha3));
     explicit_bzero(&tmpContent, sizeof(tmpContent_t));
     explicit_bzero(&txContext, sizeof(txContext_t));
-    explicit_bzero(&txContent, sizeof(txContent_t));
+    explicit_bzero(&g_fuzz_local_tx_content, sizeof(g_fuzz_local_tx_content));
     explicit_bzero(&dataContext, sizeof(dataContext_t));
     explicit_bzero(&tmpCtx, sizeof(tmpCtx_t));
     explicit_bzero(&strings, sizeof(strings_t));
 
     explicit_bzero(&G_io_tx_buffer, OS_IO_SEPH_BUFFER_SIZE + 1);
 
-    g_chain_config = &config;
-    txContext.content = &txContent;
-    txContext.sha3 = &sha3;
+    g_chain_config = &fuzz_chain_config;
+    txContext.content = &g_fuzz_local_tx_content;
+    txContext.sha3 = &g_fuzz_local_sha3;
     pluginType = PLUGIN_TYPE_EXTERNAL;
     eth2WithdrawalIndex = 0;
     appState = APP_STATE_IDLE;

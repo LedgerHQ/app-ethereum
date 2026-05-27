@@ -84,7 +84,9 @@ static bool handle_param_type(const tlv_data_t *data, s_field_ctx *context) {
         case PARAM_TYPE_CALLDATA:
         case PARAM_TYPE_TOKEN:
         case PARAM_TYPE_NETWORK:
+            break;
         case PARAM_TYPE_GROUP:
+            context->field->param_group.fields = NULL;
             break;
         default:
             PRINTF("Error: Unsupported param type (%u)\n", context->field->param_type);

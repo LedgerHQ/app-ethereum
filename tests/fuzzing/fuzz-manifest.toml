@@ -8,12 +8,9 @@ harness_version = "1"
 # Track the Absolution prefix offset of `appState` in scenario_layout.h so the
 # custom seed generator can set the app-state byte regardless of prefix
 # compaction (domain-overrides shrink the prefix and would break fixed offsets).
-# `--allow-missing-ctrl` silences the cosmetic warning for `fuzz_ctrl`, which
-# this harness does not expose.
 [layout]
 extra_args = [
     "--global", "appState:SCEN_APPSTATE_OFF",
-    "--allow-missing-ctrl",
 ]
 
 [coverage]

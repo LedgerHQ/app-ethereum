@@ -166,6 +166,20 @@ static const tlv_fuzz_config_t k_tlv_configs_by_kind[] = {
     [FUZZ_TLV_MAP_ENTRY] = TLV_CFG(TAGS_MAP_ENTRY),
 };
 
+#define _TLV_INLINE_NONE \
+    { .tags_info = NULL, .num_tags = 0 }
+#define _TLV_INLINE_TRUSTED_NAME    TLV_CFG(TAGS_TRUSTED_NAME)
+#define _TLV_INLINE_ENUM_VALUE      TLV_CFG(TAGS_ENUM_VALUE)
+#define _TLV_INLINE_GATING          TLV_CFG(TAGS_GATING)
+#define _TLV_INLINE_TX_SIMULATION   TLV_CFG(TAGS_TX_SIMULATION)
+#define _TLV_INLINE_PROXY_INFO      TLV_CFG(TAGS_PROXY_INFO)
+#define _TLV_INLINE_NETWORK_INFO    TLV_CFG(TAGS_NETWORK_INFO)
+#define _TLV_INLINE_SAFE_DESCRIPTOR TLV_CFG(TAGS_SAFE_DESCRIPTOR)
+#define _TLV_INLINE_GTP_TX_INFO     TLV_CFG(TAGS_GTP_TX_INFO)
+#define _TLV_INLINE_GTP_FIELD       TLV_CFG(TAGS_GTP_FIELD)
+#define _TLV_INLINE_AUTH_7702       TLV_CFG(TAGS_AUTH_7702)
+#define _TLV_INLINE_MAP_ENTRY       TLV_CFG(TAGS_MAP_ENTRY)
+
 #define FUZZ_COMMAND(group,              \
                      ins_symbol,         \
                      p1_max_value,       \
@@ -174,7 +188,7 @@ static const tlv_fuzz_config_t k_tlv_configs_by_kind[] = {
                      payload_kind_value, \
                      tlv_kind_value,     \
                      allow_empty_value)  \
-    k_tlv_configs_by_kind[FUZZ_TLV_##tlv_kind_value],
+    _TLV_INLINE_##tlv_kind_value,
 static const tlv_fuzz_config_t k_command_tlv_configs[] = {
 #include "fuzz_command_registry.inc"
 };

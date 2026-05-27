@@ -26,7 +26,7 @@ int fuzzGenericParserFieldCmd(const uint8_t *data, size_t size) {
     }
 
     // format_field() always cleans up constraints internally (success or failure)
-    return format_field(&field);
+    return format_field(&field, 0);
 }
 
 int fuzzGenericParserTxInfoCmd(const uint8_t *data, size_t size) {

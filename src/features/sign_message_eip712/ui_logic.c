@@ -347,7 +347,7 @@ bool ui_712_message_hash(void) {
  * @param[in] length its length
  * @param[in] last if this is the last chunk
  */
-static void ui_712_format_str(const uint8_t *data, uint8_t length, bool last) {
+static void ui_712_format_str(const uint8_t *data, size_t length, bool last) {
     size_t max_len = sizeof(strings.tmp.tmp) - 1;
     size_t cur_len = strlen(strings.tmp.tmp);
     size_t available;

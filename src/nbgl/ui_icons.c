@@ -6,9 +6,6 @@
 #include "plugins.h"
 #include "network.h"
 #include "network_info.h"
-#ifdef SCREEN_SIZE_WALLET
-#include "net_icons.gen.h"
-#endif
 
 /**
  * Retrieve the app icon, using the caller app icon if requested
@@ -78,7 +75,8 @@ const nbgl_icon_details_t *get_tx_icon(bool fromPlugin) {
 /**
  * Get the network icon from a given chain ID
  *
- * Loops onto the generated \ref g_network_icons array until a chain ID matches.
+ * Searches the dynamically loaded networks, then falls back to the app's own
+ * icon when the requested chain is the application's native chain.
  *
  * @param[in] chain_id network's chain ID
  * @return the network icon if found, \ref NULL otherwise
@@ -90,19 +88,10 @@ const nbgl_icon_details_t *get_network_icon_from_chain_id(const uint64_t *chain_
         PRINTF("[NETWORK_ICONS] - Found dynamic '%s'\n", net_info->name);
         return PIC(&net_info->icon);
     }
-#ifdef SCREEN_SIZE_WALLET
-    for (size_t i = 0; i < ARRAYLEN(g_network_icons); ++i) {
-        if ((uint64_t) PIC(g_network_icons[i].chain_id) == *chain_id) {
-            PRINTF("[NETWORK_ICONS] - Fallback on hardcoded list.\n");
-            return PIC(g_network_icons[i].icon);
-        }
-    }
-#else
-    // Nano devices don't have the array of icons, fallback on the app's icon
-    if (*chain_id == ETHEREUM_MAINNET_CHAINID) {
+    // Fallback on the app's own icon for its native chain
+    if (*chain_id == g_chain_config->chain_id) {
         return &ICONGLYPH;
     }
-#endif
     return NULL;
 }
 

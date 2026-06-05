@@ -74,6 +74,10 @@ set(MOCK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mocks")
 set(PLUGIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../ethereum-plugin-sdk/src")
 
 add_compile_definitions(TEST)
+# APPNAME is provided as a CFLAG by the SDK build (makefile_conf/chain/*.mk); the
+# unit-test build must define it too, since network.c uses it as the native-chain
+# name fallback. "Ethereum" matches the default chain expected by the tests.
+add_compile_definitions(APPNAME="Ethereum")
 
 include_directories(
   ${APP_DIR}

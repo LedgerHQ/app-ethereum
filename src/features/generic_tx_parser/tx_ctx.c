@@ -121,7 +121,7 @@ static bool process_empty_tx(const s_tx_ctx *tx_ctx) {
                 return false;
             }
         }
-        ticker = get_displayable_ticker(&tx_info->chain_id, g_chain_config, true);
+        ticker = get_displayable_ticker(&tx_info->chain_id, g_chain_config);
         decimals = WEI_TO_ETHER;
         if (!amountToString(tx_ctx->amount,
                             sizeof(tx_ctx->amount),

@@ -51,7 +51,7 @@ typedef struct eth_libargs_s {
 bool parse_swap_config(const uint8_t *config, uint8_t config_len, swap_context_t *context);
 void get_asset_info_on_network(bool is_fee,
                                swap_context_t *context,
-                               chain_config_t *config,
+                               const chain_config_t *config,
                                char **ticker,
                                uint8_t *decimals);
 

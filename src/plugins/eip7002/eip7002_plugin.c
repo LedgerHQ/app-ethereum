@@ -124,7 +124,7 @@ static void eip7002_plugin_query_contract_id(ethQueryContractID_t *param) {
 static void eip7002_plugin_query_contract_ui(ethQueryContractUI_t *param) {
     eip7002_context_t *context = (eip7002_context_t *) param->pluginContext;
     uint64_t chain_id = get_tx_chain_id();
-    const char *ticker = get_displayable_ticker(&chain_id, g_chain_config, true);
+    const char *ticker = get_displayable_ticker(&chain_id, g_chain_config);
     // Map a screen index to a logical screen kind based on which optional
     // screens are present for this transaction.
     bool show_tx_value = has_tx_value(param->txContent);

@@ -8,122 +8,6 @@
 
 const char g_unknown_ticker[] = "???";
 
-// Mapping of chain ids to networks.
-static const network_info_t NETWORK_MAPPING[] = {
-    {.chain_id = 1, .name = "Ethereum", .ticker = "ETH"},
-    {.chain_id = 3, .name = "Ropsten", .ticker = "ETH"},
-    {.chain_id = 4, .name = "Rinkeby", .ticker = "ETH"},
-    {.chain_id = 5, .name = "Goerli", .ticker = "ETH"},
-    {.chain_id = 10, .name = "OP Mainnet", .ticker = "ETH"},
-    {.chain_id = 14, .name = "Flare", .ticker = "FLR"},
-    {.chain_id = 16, .name = "Flare Coston", .ticker = "FLR"},
-    {.chain_id = 19, .name = "Songbird", .ticker = "SGB"},
-    {.chain_id = 24, .name = "KardiaChain", .ticker = "KAI"},
-    {.chain_id = 25, .name = "Cronos", .ticker = "CRO"},
-    {.chain_id = 30, .name = "Rootstock", .ticker = "RBTC"},
-    {.chain_id = 40, .name = "Telos EVM Mainnet", .ticker = "TLOS"},
-    {.chain_id = 42, .name = "LUKSO", .ticker = "LYX"},
-    {.chain_id = 50, .name = "XDC", .ticker = "XDC"},
-    {.chain_id = 51, .name = "Apothemnetwork", .ticker = "TXDC"},
-    {.chain_id = 56, .name = "BSC", .ticker = "BNB"},
-    {.chain_id = 57, .name = "Syscoin", .ticker = "SYS"},
-    {.chain_id = 61, .name = "Ethereum Classic", .ticker = "ETC"},
-    {.chain_id = 66, .name = "OKXChain", .ticker = "OKT"},
-    {.chain_id = 82, .name = "Meter", .ticker = "MTR"},
-    {.chain_id = 99, .name = "POA", .ticker = "POA"},
-    {.chain_id = 100, .name = "Gnosis", .ticker = "xDAI"},
-    {.chain_id = 106, .name = "Velas EVM", .ticker = "VLX"},
-    {.chain_id = 137, .name = "Polygon", .ticker = "POL"},
-    {.chain_id = 138, .name = "Defi Oracle Meta", .ticker = "ETH"},
-    {.chain_id = 146, .name = "Sonic", .ticker = "S"},
-    {.chain_id = 196, .name = "OKBChain Mainnet", .ticker = "OKB"},
-    {.chain_id = 199, .name = "BTTC", .ticker = "BTT"},
-    {.chain_id = 246, .name = "EnergyWebChain", .ticker = "EWT"},
-    {.chain_id = 248, .name = "Oasys", .ticker = "OAS"},
-    {.chain_id = 250, .name = "Fantom", .ticker = "FTM"},
-    {.chain_id = 288, .name = "Boba Network", .ticker = "ETH"},
-    {.chain_id = 300, .name = "ZKsync Sepolia Testnet", .ticker = "ETH"},
-    {.chain_id = 321, .name = "KCC", .ticker = "KCS"},
-    {.chain_id = 324, .name = "ZKsync Era", .ticker = "ETH"},
-    {.chain_id = 336, .name = "Shiden", .ticker = "SDN"},
-    {.chain_id = 369, .name = "PulseChain", .ticker = "PLS"},
-    {.chain_id = 592, .name = "Astar", .ticker = "ASTR"},
-    {.chain_id = 888, .name = "Wanchain", .ticker = "WAN"},
-    {.chain_id = 943, .name = "PulseChain Testnet", .ticker = "tPLS"},
-    {.chain_id = 999, .name = "HyperEVM", .ticker = "HYPE"},
-    {.chain_id = 1030, .name = "Conflux", .ticker = "CFX"},
-    {.chain_id = 1088, .name = "Metis Andromeda", .ticker = "METIS"},
-    {.chain_id = 1101, .name = "Polygon zkEVM", .ticker = "ETH"},
-    {.chain_id = 1116, .name = "Core", .ticker = "CORE"},
-    {.chain_id = 1135, .name = "Lisk", .ticker = "ETH"},
-    {.chain_id = 1284, .name = "Moonbeam", .ticker = "GLMR"},
-    {.chain_id = 1285, .name = "Moonriver", .ticker = "MOVR"},
-    {.chain_id = 1329, .name = "Sei", .ticker = "SEI"},
-    {.chain_id = 1818, .name = "Cube", .ticker = "CUBE"},
-    {.chain_id = 1868, .name = "Soneium", .ticker = "ETH"},
-    {.chain_id = 1907, .name = "Bitcichain", .ticker = "BITCI"},
-    {.chain_id = 1923, .name = "Swellchain", .ticker = "ETH"},
-    {.chain_id = 1924, .name = "Swellchain Testnet", .ticker = "ETH"},
-    {.chain_id = 1946, .name = "Soneium Testnet Minato", .ticker = "ETH"},
-    {.chain_id = 2222, .name = "Kava EVM", .ticker = "KAVA"},
-    {.chain_id = 3776, .name = "Astar zkEVM", .ticker = "ETH"},
-    {.chain_id = 4201, .name = "LUKSO Testnet", .ticker = "LYXt"},
-    {.chain_id = 4202, .name = "Lisk Sepolia Testnet", .ticker = "ETH"},
-    {.chain_id = 4689, .name = "IoTeX", .ticker = "IOTX"},
-    {.chain_id = 4690, .name = "IoTeX Testnet", .ticker = "IOTX"},
-    {.chain_id = 4919, .name = "Venidium", .ticker = "XVM"},
-    {.chain_id = 5000, .name = "Mantle", .ticker = "MNT"},
-    {.chain_id = 5003, .name = "Mantle Sepolia", .ticker = "MNT"},
-    {.chain_id = 5165, .name = "Bahamut", .ticker = "FTN"},
-    {.chain_id = 7000, .name = "ZetaChain", .ticker = "ZETA"},
-    {.chain_id = 7171, .name = "Bitrock Mainnet", .ticker = "BROCK"},
-    {.chain_id = 7341, .name = "Shyft", .ticker = "SHFT"},
-    {.chain_id = 8217, .name = "Kaia Mainnet", .ticker = "KAIA"},
-    {.chain_id = 8453, .name = "Base", .ticker = "ETH"},
-    {.chain_id = 9001, .name = "Evmos", .ticker = "EVMOS"},
-    {.chain_id = 10200, .name = "Chiado", .ticker = "xDAI"},
-    {.chain_id = 10507, .name = "Numbers Protocol", .ticker = "NUM"},
-    {.chain_id = 17000, .name = "Holesky", .ticker = "ETH"},
-    {.chain_id = 39797, .name = "Energi", .ticker = "NRG"},
-    {.chain_id = 42161, .name = "Arbitrum", .ticker = "ETH"},
-    {.chain_id = 42220, .name = "Celo", .ticker = "CELO"},
-    {.chain_id = 42793, .name = "Etherlink Mainnet", .ticker = "XTZ"},
-    {.chain_id = 43114, .name = "Avalanche", .ticker = "AVAX"},
-    {.chain_id = 44787, .name = "Celo Alfajores", .ticker = "aCELO"},
-    {.chain_id = 47763, .name = "Neo X Mainnet", .ticker = "GAS"},
-    {.chain_id = 52014, .name = "Electroneum", .ticker = "ETN"},
-    {.chain_id = 59141, .name = "Linea Sepolia", .ticker = "ETH"},
-    {.chain_id = 59144, .name = "Linea", .ticker = "ETH"},
-    {.chain_id = 60808, .name = "BOB", .ticker = "ETH"},
-    {.chain_id = 62320, .name = "Celo Baklava", .ticker = "bCELO"},
-    {.chain_id = 62621, .name = "Multivac", .ticker = "MTV"},
-    {.chain_id = 73799, .name = "Volta", .ticker = "VOLTA"},
-    {.chain_id = 80094, .name = "Berachain", .ticker = "BERA"},
-    {.chain_id = 81457, .name = "Blast", .ticker = "ETH"},
-    {.chain_id = 84532, .name = "Base Sepolia", .ticker = "ETH"},
-    {.chain_id = 153153, .name = "Odyssey Chain", .ticker = "DIONE"},
-    {.chain_id = 200810, .name = "Bitlayer Testnet", .ticker = "BTC"},
-    {.chain_id = 200901, .name = "Bitlayer", .ticker = "BTC"},
-    {.chain_id = 421614, .name = "Arbitrum Sepolia", .ticker = "ETH"},
-    {.chain_id = 534351, .name = "Scroll Sepolia", .ticker = "ETH"},
-    {.chain_id = 534352, .name = "Scroll", .ticker = "ETH"},
-    {.chain_id = 534353, .name = "Scroll Alpha", .ticker = "ETH"},
-    {.chain_id = 543210, .name = "Zero", .ticker = "ETH"},
-    {.chain_id = 5201420, .name = "Electroneum Testnet", .ticker = "ETN"},
-    {.chain_id = 11155111, .name = "Sepolia", .ticker = "ETH"},
-    {.chain_id = 11155420, .name = "OP Sepolia", .ticker = "ETH"},
-    {.chain_id = 12227332, .name = "Neo X Testnet", .ticker = "GAS"},
-    {.chain_id = 20531811, .name = "TecraTestnet", .ticker = "TCR"},
-    {.chain_id = 20531812, .name = "Tecra", .ticker = "TCR"},
-    {.chain_id = 168587773, .name = "Blast Sepolia", .ticker = "ETH"},
-    {.chain_id = 245022926, .name = "Neon EVM Devnet", .ticker = "NEON"},
-    {.chain_id = 245022934, .name = "Neon EVM Mainnet", .ticker = "NEON"},
-    {.chain_id = 994873017, .name = "Lumia", .ticker = "LUMIA"},
-    {.chain_id = 1666600000, .name = "Harmony ONE S0", .ticker = "ONE"},
-    {.chain_id = 1666600001, .name = "Harmony ONE S1", .ticker = "ONE"},
-    {.chain_id = 11297108109, .name = "Palm Network", .ticker = "PALM"},
-};
-
 /**
  * @brief Find a dynamically loaded network by its chain ID
  *
@@ -142,31 +26,20 @@ network_info_t *find_dynamic_network_by_chain_id(uint64_t chain_id) {
     return NULL;
 }
 
-static const network_info_t *get_network_from_chain_id(const uint64_t *chain_id, bool dynamic) {
+static const network_info_t *get_network_from_chain_id(const uint64_t *chain_id) {
     if (*chain_id != 0) {
         // Look if the network is available in dynamically loaded networks
-        if (dynamic == true) {
-            network_info_t *net_info = find_dynamic_network_by_chain_id(*chain_id);
-            if (net_info != NULL) {
-                PRINTF("[NETWORK] - Found dynamic '%s'\n", net_info->name);
-                return (const network_info_t *) net_info;
-            }
-        }
-
-        // Fallback to hardcoded table
-        for (size_t i = 0; i < ARRAYLEN(NETWORK_MAPPING); i++) {
-            if (NETWORK_MAPPING[i].chain_id == *chain_id) {
-                PRINTF("[NETWORK] - Fallback on hardcoded list. Found %s\n",
-                       NETWORK_MAPPING[i].name);
-                return (const network_info_t *) &NETWORK_MAPPING[i];
-            }
+        network_info_t *net_info = find_dynamic_network_by_chain_id(*chain_id);
+        if (net_info != NULL) {
+            PRINTF("[NETWORK] - Found dynamic '%s'\n", net_info->name);
+            return (const network_info_t *) net_info;
         }
     }
     return NULL;
 }
 
-static const char *get_network_ticker_from_chain_id(const uint64_t *chain_id, bool dynamic) {
-    const network_info_t *net = get_network_from_chain_id(chain_id, dynamic);
+static const char *get_network_ticker_from_chain_id(const uint64_t *chain_id) {
+    const network_info_t *net = get_network_from_chain_id(chain_id);
 
     if (net == NULL) {
         return NULL;
@@ -175,9 +48,15 @@ static const char *get_network_ticker_from_chain_id(const uint64_t *chain_id, bo
 }
 
 const char *get_network_name_from_chain_id(const uint64_t *chain_id) {
-    const network_info_t *net = get_network_from_chain_id(chain_id, true);
+    const network_info_t *net = get_network_from_chain_id(chain_id);
 
     if (net == NULL) {
+        // No dynamic network found: fall back to the app's own name (APPNAME,
+        // from the build config) for its native chain, since static networks are
+        // no longer embedded and the app does not load itself as a dynamic network.
+        if (*chain_id == g_chain_config->chain_id) {
+            return APPNAME;
+        }
         return NULL;
     }
     return PIC(net->name);
@@ -204,7 +83,12 @@ bool get_network_as_string(char *out, size_t out_size) {
 }
 
 bool chain_is_ethereum_compatible(const uint64_t *chain_id) {
-    return get_network_from_chain_id(chain_id, true) != NULL;
+    // The application always supports its own (build-time) chain, in addition to
+    // any dynamically loaded network.
+    if (*chain_id == g_chain_config->chain_id) {
+        return true;
+    }
+    return get_network_from_chain_id(chain_id) != NULL;
 }
 
 // Returns the chain ID. Defaults to 0 if txType was not found (For TX).
@@ -228,10 +112,8 @@ uint64_t get_tx_chain_id(void) {
     return chain_id;
 }
 
-const char *get_displayable_ticker(const uint64_t *chain_id,
-                                   const chain_config_t *chain_cfg,
-                                   bool dynamic) {
-    const char *ticker = get_network_ticker_from_chain_id(chain_id, dynamic);
+const char *get_displayable_ticker(const uint64_t *chain_id, const chain_config_t *chain_cfg) {
+    const char *ticker = get_network_ticker_from_chain_id(chain_id);
 
     if (ticker == NULL) {
         if (*chain_id == chain_cfg->chain_id) {

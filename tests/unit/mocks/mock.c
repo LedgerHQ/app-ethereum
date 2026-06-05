@@ -543,22 +543,18 @@ __attribute__((weak)) uint64_t __wrap_get_tx_chain_id(void) {
 // shared_context.h. Production callers see the real signature through
 // network.h.
 __attribute__((weak)) const char *__wrap_get_displayable_ticker(const uint64_t *chain_id,
-                                                                const void *config,
-                                                                bool fallback) {
+                                                                const void *config) {
     (void) chain_id;
     (void) config;
-    (void) fallback;
     return g_displayable_ticker;
 }
 
 // Non-wrapped sibling for targets that don't pass
 // --wrap=get_displayable_ticker (e.g. test_tx_ctx).
 __attribute__((weak)) const char *get_displayable_ticker(const uint64_t *chain_id,
-                                                         const void *config,
-                                                         bool fallback) {
+                                                         const void *config) {
     (void) chain_id;
     (void) config;
-    (void) fallback;
     return g_displayable_ticker;
 }
 

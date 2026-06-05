@@ -20,6 +20,8 @@ from ragger.backend import BackendInterface
 from ragger.navigator import NavigateWithScenario
 from ragger.error import ExceptionRAPDU
 
+from dynamic_networks_cfg import get_network_config
+
 import client.response_parser as ResponseParser
 from client.utils import recover_message, get_selector_from_data
 from client.client import EthAppClient, EIP712CalldataParamPresence
@@ -30,6 +32,7 @@ from client.tx_simu import TxSimu
 from client.proxy_info import ProxyInfo
 from client.gating import Gating
 from client.trusted_name import TrustedName, TrustedNameType, TrustedNameSource
+from client.dynamic_networks import DynamicNetwork
 
 from client.gcs import (
     Field, ParamRaw, Value, TypeFamily, DataPath, PathTuple, ParamTokenAmount, ParamCalldata,
@@ -99,6 +102,14 @@ def eip712_new_common(scenario_navigator: NavigateWithScenario,
                       snapshots_dirname: Optional[str] = None,
                       nb_warnings: int = 0) -> bytes:
     app_client = EthAppClient(scenario_navigator.backend)
+
+    # Provide the network info. Must happen before process_data, which streams the
+    # message root and freezes the "Network" review value.
+    chain_id = data.get("domain", {}).get("chainId")
+    if chain_id is not None:
+        name, ticker, icon = get_network_config(scenario_navigator.backend.device.type, chain_id)
+        if name and ticker:
+            app_client.provide_network_information(DynamicNetwork(name, ticker, chain_id, icon))
 
     InputData.process_data(app_client, data, filters)
     do_compare = snapshots_dirname is not None

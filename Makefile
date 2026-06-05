@@ -45,16 +45,6 @@ APP_SOURCE_PATH += src
 APP_SOURCE_FILES += $(filter-out ./ethereum-plugin-sdk/src/main.c, $(wildcard ./ethereum-plugin-sdk/src/*.c))
 INCLUDES_PATH += ./ethereum-plugin-sdk/src
 
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX TARGET_APEX_M TARGET_APEX_P))
-    NETWORK_ICONS_FILE = $(GEN_SRC_DIR)/net_icons.gen.c
-    NETWORK_ICONS_DIR = $(shell dirname "$(NETWORK_ICONS_FILE)")
-
-    $(NETWORK_ICONS_FILE):
-		python3 tools/gen_networks.py "$(NETWORK_ICONS_DIR)"
-
-    APP_SOURCE_FILES += $(NETWORK_ICONS_FILE)
-endif
-
 # Application icons following guidelines:
 # https://developers.ledger.com/docs/embedded-app/design-requirements/#device-icon
 ICON_NANOX = icons/nanox_app_chain_$(CHAIN_ID).gif

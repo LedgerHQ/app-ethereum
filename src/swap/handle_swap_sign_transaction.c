@@ -84,7 +84,7 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
     }
 
     // If the amount is a fee, its value is nominated in NATIVE even if we're doing an ERC20 swap
-    get_asset_info_on_network(true, &context, (chain_config_t*) config, &ticker, NULL);
+    get_asset_info_on_network(true, &context, config, &ticker, NULL);
 
     if (!amountToString(sign_transaction_params->fee_amount,
                         sign_transaction_params->fee_amount_length,

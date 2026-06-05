@@ -225,8 +225,6 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
  * This function prepares the app name & tagline depending on how the application was called
  */
 static void get_appname_and_tagline(const char **appname, const char **tagline) {
-    uint64_t mainnet_chain_id;
-
     if (g_caller_app) {
         *appname = g_caller_app->name;
 
@@ -251,8 +249,7 @@ static void get_appname_and_tagline(const char **appname, const char **tagline) 
             }
         }
     } else {  // Ethereum app
-        mainnet_chain_id = ETHEREUM_MAINNET_CHAINID;
-        *appname = get_network_name_from_chain_id(&mainnet_chain_id);
+        *appname = APPNAME;
     }
 }
 

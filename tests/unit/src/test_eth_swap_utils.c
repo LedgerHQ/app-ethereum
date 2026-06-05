@@ -11,9 +11,8 @@
  *     WEI_TO_ETHER). The parser is a security boundary — it must reject
  *     malformed lengths and mismatched fees decimals.
  *   - get_asset_info_on_network: chooses between
- *     context->fees_asset_info, context->swapped_asset_info, or the
- *     displayable ticker for the chain depending on (is_fee,
- *     fees_ticker_present, chain_id) shape.
+ *     context->fees_asset_info, context->swapped_asset_info, or the chain
+ *     config ticker (native-currency fallback when the fees asset is absent).
  *   - swap_check_{destination, amount, fee}: NULL-guard + match path.
  *     The mismatch path calls app_exit() on the device (noreturn) and
  *     is therefore not exercised here.
@@ -36,18 +35,8 @@
 // =============================================================================
 
 // =============================================================================
-// Wraps
+// Stubs
 // =============================================================================
-
-static const char *g_displayable_ticker_ret = "ETH";
-const char *__wrap_get_displayable_ticker(const uint64_t *chain_id,
-                                          const chain_config_t *config,
-                                          bool mainnet_only) {
-    (void) chain_id;
-    (void) config;
-    (void) mainnet_only;
-    return g_displayable_ticker_ret;
-}
 
 // G_io_apdu_buffer is referenced by the send_swap_error_with_string macro
 // expansion via sizeof(). Provide a global with the standard 260-byte size.
@@ -83,7 +72,6 @@ __attribute__((noreturn)) void app_exit(void) {
 static int reset(void **state) {
     (void) state;
     memset(&strings, 0, sizeof(strings));
-    g_displayable_ticker_ret = "ETH";
     return 0;
 }
 
@@ -127,7 +115,7 @@ static void test_parse_with_asset_chain_and_fees(void **state) {
 static void test_parse_without_fees_section_defaults_fees(void **state) {
     (void) state;
     // No fees block — the parser leaves the default fees ticker empty
-    // (so get_asset_info_on_network falls back to get_displayable_ticker)
+    // (so get_asset_info_on_network falls back to the chain config ticker)
     // and default fees decimals = WEI_TO_ETHER (set up by explicit_bzero
     // followed by an explicit assignment in the parser).
     const uint8_t config[] = {
@@ -268,33 +256,19 @@ static void test_asset_info_fee_with_fees_ticker_uses_it(void **state) {
     assert_int_equal(decimals, 18);
 }
 
-static void test_asset_info_fee_empty_ticker_uses_displayable(void **state) {
+static void test_asset_info_fee_empty_ticker_falls_back_to_config(void **state) {
     (void) state;
+    // When the swap config omits the fees asset (e.g. ERC20 swap on the native
+    // chain), the fee is the chain's native currency: fall back to the chain
+    // config ticker. Static networks no longer exist as an intermediate source.
     swap_context_t ctx;
     memset(&ctx, 0, sizeof(ctx));
-    ctx.chain_id = 137;
     ctx.fees_asset_info.decimals = 18;
-    g_displayable_ticker_ret = "POL";
+    strlcpy(g_chainConfig.ticker, "POL", sizeof(g_chainConfig.ticker));
 
     char *ticker = NULL;
     get_asset_info_on_network(true, &ctx, &g_chainConfig, &ticker, NULL);
     assert_string_equal(ticker, "POL");
-}
-
-static void test_asset_info_fee_empty_ticker_zero_chain_id_falls_back_to_config(void **state) {
-    (void) state;
-    swap_context_t ctx;
-    memset(&ctx, 0, sizeof(ctx));
-    ctx.chain_id = 0;  // missing
-    g_chainConfig.chain_id = 1;
-    g_displayable_ticker_ret = "ETH";
-
-    char *ticker = NULL;
-    get_asset_info_on_network(true, &ctx, &g_chainConfig, &ticker, NULL);
-    // The parser must have copied g_chainConfig.chain_id into ctx.chain_id
-    // as a fallback (so subsequent calls can reuse it).
-    assert_int_equal(ctx.chain_id, 1);
-    assert_string_equal(ticker, "ETH");
 }
 
 // =============================================================================
@@ -353,9 +327,7 @@ int main(void) {
         cmocka_unit_test_setup(test_parse_invalid_fees_decimals_rejected, reset),
         cmocka_unit_test_setup(test_asset_info_non_fee_uses_swapped, reset),
         cmocka_unit_test_setup(test_asset_info_fee_with_fees_ticker_uses_it, reset),
-        cmocka_unit_test_setup(test_asset_info_fee_empty_ticker_uses_displayable, reset),
-        cmocka_unit_test_setup(test_asset_info_fee_empty_ticker_zero_chain_id_falls_back_to_config,
-                               reset),
+        cmocka_unit_test_setup(test_asset_info_fee_empty_ticker_falls_back_to_config, reset),
         cmocka_unit_test_setup(test_swap_check_destination_null_rejected, reset),
         cmocka_unit_test_setup(test_swap_check_destination_match, reset),
         cmocka_unit_test_setup(test_swap_check_amount_null_rejected, reset),

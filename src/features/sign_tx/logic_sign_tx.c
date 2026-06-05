@@ -228,7 +228,7 @@ static uint16_t address_to_string(uint8_t *in,
 static void raw_fee_to_string(uint256_t *rawFee, char *out_buffer, uint32_t out_buffer_size) {
     // Fees are always in the base currency, this is why we need to use the chain_id
     uint64_t chain_id = get_tx_chain_id();
-    const char *ticker = get_displayable_ticker(&chain_id, g_chain_config, true);
+    const char *ticker = get_displayable_ticker(&chain_id, g_chain_config);
     uint8_t fee_len = 0;
     uint8_t ticker_len = 0;
     char raw_fee_buffer[100] = {0};
@@ -291,7 +291,7 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
     char displayBuffer[50];
     uint8_t decimals = WEI_TO_ETHER;
     uint64_t chain_id = get_tx_chain_id();
-    const char *ticker = get_displayable_ticker(&chain_id, g_chain_config, true);
+    const char *ticker = get_displayable_ticker(&chain_id, g_chain_config);
     ethPluginFinalize_t pluginFinalize;
     cx_err_t error = CX_INTERNAL_ERROR;
 

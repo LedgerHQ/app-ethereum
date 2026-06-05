@@ -162,7 +162,7 @@ static void eip7251_plugin_query_contract_ui(ethQueryContractUI_t *param) {
             break;
         case S_TX_VALUE: {
             uint64_t chain_id = get_tx_chain_id();
-            const char *ticker = get_displayable_ticker(&chain_id, g_chain_config, true);
+            const char *ticker = get_displayable_ticker(&chain_id, g_chain_config);
             strlcpy(param->title, "Tx value", param->titleLength);
             if (!amountToString(param->txContent->value.value,
                                 param->txContent->value.length,

@@ -41,7 +41,5 @@ bool app_compatible_with_chain_id(const uint64_t *chain_id);
 
 uint64_t get_tx_chain_id(void);
 
-const char *get_displayable_ticker(const uint64_t *chain_id,
-                                   const chain_config_t *chain_cfg,
-                                   bool dynamic);
+const char *get_displayable_ticker(const uint64_t *chain_id, const chain_config_t *chain_cfg);
 const char *get_clone_network_name(const caller_app_t *caller_app);

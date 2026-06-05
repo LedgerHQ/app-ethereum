@@ -89,7 +89,7 @@ void eth_plugin_prepare_query_contract_ui(ethQueryContractUI_t *query_contract_u
 
     query_contract_ui->screenIndex = screen_index;
     strlcpy(query_contract_ui->network_ticker,
-            get_displayable_ticker(&chain_id, g_chain_config, true),
+            get_displayable_ticker(&chain_id, g_chain_config),
             sizeof(query_contract_ui->network_ticker));
     query_contract_ui->title = title;
     query_contract_ui->titleLength = title_length;

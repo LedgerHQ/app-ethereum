@@ -42,8 +42,6 @@ add_eth_unit_test(test_eth_swap_utils
   DEFS
     HAVE_SWAP
     OS_IO_SEPH_BUFFER_SIZE=272
-  WRAPS
-    get_displayable_ticker
 )
 
 add_eth_unit_test(test_logic_sign_tx_fee

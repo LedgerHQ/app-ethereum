@@ -143,6 +143,9 @@ typedef struct txContext_t {
     uint8_t batch_nb_tx;
     uint8_t current_batch_size;
     uint8_t selector_bytes[CALLDATA_SELECTOR_SIZE];
+    cx_sha3_t *calldata_sha3;
+    uint8_t calldataDigest[INT256_LENGTH];
+    bool calldataDigestValid;
 } txContext_t;
 
 bool init_tx(txContext_t *context, cx_sha3_t *sha3, txContent_t *content, bool store_calldata);

@@ -66,21 +66,52 @@ static char *format_hash(const uint8_t *hash, char *buffer, size_t buffer_size, 
     return buffer + offset;
 }
 
+static void compute_eip712_digest(void) {
+    CX_ASSERT(cx_keccak_init_no_throw(&global_sha3, 256));
+    CX_ASSERT(cx_hash_no_throw((cx_hash_t *) &global_sha3,
+                               0,
+                               (uint8_t *) EIP_712_MAGIC,
+                               sizeof(EIP_712_MAGIC),
+                               NULL,
+                               0));
+    CX_ASSERT(cx_hash_no_throw((cx_hash_t *) &global_sha3,
+                               0,
+                               tmpCtx.messageSigningContext712.domainHash,
+                               sizeof(tmpCtx.messageSigningContext712.domainHash),
+                               NULL,
+                               0));
+    CX_ASSERT(cx_hash_no_throw((cx_hash_t *) &global_sha3,
+                               CX_LAST,
+                               tmpCtx.messageSigningContext712.messageHash,
+                               sizeof(tmpCtx.messageSigningContext712.messageHash),
+                               tmpCtx.messageSigningContext712.eip712Digest,
+                               sizeof(tmpCtx.messageSigningContext712.eip712Digest)));
+}
+
 void eip712_format_hash(uint8_t index) {
     if ((g_pairs == NULL) || (g_pairsList == NULL) || (index >= g_pairsList->nbPairs)) {
         return;
     }
+
+    compute_eip712_digest();
+
+    g_pairs[index].item = "EIP-712 Digest";
+    g_pairs[index].value = format_hash(tmpCtx.messageSigningContext712.eip712Digest,
+                                       strings.tmp.tmp,
+                                       sizeof(strings.tmp.tmp),
+                                       0);
+    index++;
     g_pairs[index].item = "Domain hash";
     g_pairs[index].value = format_hash(tmpCtx.messageSigningContext712.domainHash,
                                        strings.tmp.tmp,
                                        sizeof(strings.tmp.tmp),
-                                       0);
+                                       70);
     index++;
     g_pairs[index].item = "Message hash";
     g_pairs[index].value = format_hash(tmpCtx.messageSigningContext712.messageHash,
                                        strings.tmp.tmp,
                                        sizeof(strings.tmp.tmp),
-                                       70);
+                                       140);
 }
 
 /**

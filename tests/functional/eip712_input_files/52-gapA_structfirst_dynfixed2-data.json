@@ -28,46 +28,54 @@
       {
         "name": "c",
         "type": "Child"
+      },
+      {
+        "name": "n",
+        "type": "uint256"
       }
     ],
     "Root": [
       {
         "name": "a",
-        "type": "Elem[2][2]"
+        "type": "Elem[][2]"
       }
     ]
   },
   "primaryType": "Root",
   "domain": {
-    "name": "D",
+    "name": "Ledger EIP712 parity",
     "version": "1",
     "chainId": 1,
-    "verifyingContract": "0x0000000000000000000000000000000000000000"
+    "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"
   },
   "message": {
     "a": [
       [
         {
           "c": {
-            "x": 1
-          }
+            "x": "1"
+          },
+          "n": "10"
         },
         {
           "c": {
-            "x": 2
-          }
+            "x": "2"
+          },
+          "n": "20"
         }
       ],
       [
         {
           "c": {
-            "x": 3
-          }
+            "x": "3"
+          },
+          "n": "30"
         },
         {
           "c": {
-            "x": 4
-          }
+            "x": "4"
+          },
+          "n": "40"
         }
       ]
     ]

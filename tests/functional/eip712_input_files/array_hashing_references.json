@@ -1,5 +1,5 @@
 {
-  "_comment": "EIP-712 array-of-struct hashing regression + parity references. messageHash is the EIP-712 hashStruct(message) digest, computed independently by @metamask/eth-sig-util V4 and ethers v6 (they agree). The Ledger device must hash to the same value or eth_account.recover_message in test_eip712.py recovers a different signer and the device test fails. triggers: bugA = element struct encoding hits the 136-byte keccak rate boundary (single-level OR directly-nested, depth>0); bugB = nested fixed custom-struct array depth>=2; classC = empty dynamic array immediately before a custom-struct field (scalar- or struct-element array); classR-regguard = array element whose first field is a nested struct (must hash correctly on BOTH develop and fixed: guards that the Bug-B fix did not regress struct-first elements); none-parity = bundled eth-sig-util/ethers per-type parity matrix; none-control = unaffected reference. See src/features/sign_message_eip712/path.c.",
+  "_comment": "EIP-712 array-of-struct hashing regression + parity references. messageHash is the EIP-712 hashStruct(message) digest, computed independently by @metamask/eth-sig-util V4 and ethers v6 (they agree). The Ledger device must hash to the same value or eth_account.recover_message in test_eip712.py recovers a different signer and the device test fails. triggers: bugA = element struct encoding hits the 136-byte keccak rate boundary (single-level OR directly-nested, depth>0); bugB = nested fixed custom-struct array depth>=2; classC = empty dynamic array immediately before a custom-struct field (scalar- or struct-element array); classR-regguard = array element whose first field is a nested struct (must hash correctly on BOTH develop and fixed: guards that the Bug-B fix did not regress struct-first elements); gapA = nested array (depth>=2, fixed or dynamic) whose element struct's FIRST field is itself a custom struct (intersection of the Bug-B nested-array splice and the Class-R struct-first element handling at inner array levels); gapB = empty custom-struct array occupying an inner dimension of a multi-dimensional struct array (e.g. Leaf[][] with x=[[]]); none-parity = bundled eth-sig-util/ethers per-type parity matrix; none-control = unaffected reference. The gapA/gapB shapes were previously carved out under KNOWN LIMITATIONS and are now fixed (they DIVERGE on pristine develop and MATCH on the fixed source). See src/features/sign_message_eip712/path.c.",
   "16-pp_saleapproval_single": {
     "messageHash": "0x4ae7ec8bb1843781cc742d91ae5d0363e4da9f9cab553644d80084bd255e6d64",
     "triggers": "none-control",
@@ -169,5 +169,50 @@
     "messageHash": "0x1acbffd71a120cceb68a3664f201a54dd1aa73800132622d6ddc10c07b36dc3c",
     "triggers": "none-control",
     "shape": "PermitSingle"
+  },
+  "50-gapA_structfirst_fixed_2x2": {
+    "messageHash": "0x2dfaffddc27bd337e5714b29e6cc06a2cc1c606007d074c607eb06d0a9e46660",
+    "triggers": "gapA",
+    "shape": "Elem[2][2]{Child c,uint256 n}"
+  },
+  "51-gapA_structfirst_dyn": {
+    "messageHash": "0x74a7515e22c23f24bda8b9fd87405bbd39a79a9f2e923bf201fcd04abb44b84c",
+    "triggers": "gapA",
+    "shape": "Elem[][]{Child c,uint256 n}"
+  },
+  "52-gapA_structfirst_dynfixed2": {
+    "messageHash": "0x85343e041def7724dd85174643f7f210f4163a1197d0d47bcf6a9e110da678c9",
+    "triggers": "gapA",
+    "shape": "Elem[][2]{Child c,uint256 n}"
+  },
+  "53-gapA_structfirst_triple": {
+    "messageHash": "0x84abac131a23d9b397e17da81c436af69d9b14d806aaf37ee3d4b01f225bc5d0",
+    "triggers": "gapA",
+    "shape": "Elem[][][]{Child c,uint256 n}"
+  },
+  "54-gapA_structfirst_fixed_triple": {
+    "messageHash": "0xcc4819a72a2adfade2cebb5e2ab78d4ce83ef63bc75f17734e1ad51a0b62a094",
+    "triggers": "gapA",
+    "shape": "Elem[2][2][2]{Child c,uint256 n}"
+  },
+  "55-gapB_empty_inner_dyn": {
+    "messageHash": "0xc6d94743bd339122671a704b692a496010ddf51bbac8f851433d8a0fa036c68a",
+    "triggers": "gapB",
+    "shape": "Leaf[][] x=[[]]"
+  },
+  "56-gapB_empty_inner_fixed_outer": {
+    "messageHash": "0xb18d54bb103f47942f87f77aca854e938653aefafb04df4dc35cfec1174e69ae",
+    "triggers": "gapB",
+    "shape": "Leaf[][2] x=[[],[]]"
+  },
+  "57-gapB_empty_inner_triple": {
+    "messageHash": "0x3c49f39ee71fd9bdbf171a2a424160812a0946f42a3a96a713b972d85b1d4f74",
+    "triggers": "gapB",
+    "shape": "Leaf[][][] x=[[[]]]"
+  },
+  "58-gapB_mixed_empty_nonempty": {
+    "messageHash": "0xf411137545fe1f73333496729213807b4c27304d77c0a6307c691dd53c131a17",
+    "triggers": "gapB",
+    "shape": "Leaf[][] x=[[],[leaf],[]]"
   }
 }

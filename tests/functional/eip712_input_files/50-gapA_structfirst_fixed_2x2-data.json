@@ -1,0 +1,83 @@
+{
+  "types": {
+    "EIP712Domain": [
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "version",
+        "type": "string"
+      },
+      {
+        "name": "chainId",
+        "type": "uint256"
+      },
+      {
+        "name": "verifyingContract",
+        "type": "address"
+      }
+    ],
+    "Child": [
+      {
+        "name": "x",
+        "type": "uint256"
+      }
+    ],
+    "Elem": [
+      {
+        "name": "c",
+        "type": "Child"
+      },
+      {
+        "name": "n",
+        "type": "uint256"
+      }
+    ],
+    "Root": [
+      {
+        "name": "a",
+        "type": "Elem[2][2]"
+      }
+    ]
+  },
+  "primaryType": "Root",
+  "domain": {
+    "name": "Ledger EIP712 parity",
+    "version": "1",
+    "chainId": 1,
+    "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"
+  },
+  "message": {
+    "a": [
+      [
+        {
+          "c": {
+            "x": "1"
+          },
+          "n": "10"
+        },
+        {
+          "c": {
+            "x": "2"
+          },
+          "n": "20"
+        }
+      ],
+      [
+        {
+          "c": {
+            "x": "3"
+          },
+          "n": "30"
+        },
+        {
+          "c": {
+            "x": "4"
+          },
+          "n": "40"
+        }
+      ]
+    ]
+  }
+}

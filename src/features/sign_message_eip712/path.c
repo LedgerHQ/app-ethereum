@@ -164,15 +164,58 @@ static s_hash_ctx *get_previous_hash_ctx(s_hash_ctx *hash_ctx) {
 }
 
 /**
- * Get the hashing context immediately *after* (on top of) the given one.
+ * Get the hashing context that carries the typeHash of the struct open at a
+ * given path DEPTH, by stepping down from the top of the stack.
  *
- * @return pointer to the next hashing context, or NULL if there is none
+ * The top context is always the deepest open struct (path depth
+ * depth_count - 1). Every context ABOVE a given struct depth is one of that
+ * struct's descendant structs that path_update descended into; no array
+ * accumulators are ever interleaved among them, because an array accumulator is
+ * always spliced *below* the element struct of its own field (so accumulators
+ * sit below, never above, the struct depths they belong to). Hence the context
+ * for path depth `target_depth` is exactly (depth_count - 1 - target_depth)
+ * contexts below the current top.
+ *
+ * @param[in] target_depth path depth whose struct context is wanted (0-based)
+ * @return the matching hashing context, or NULL on inconsistency
  */
-static s_hash_ctx *get_next_hash_ctx(s_hash_ctx *hash_ctx) {
-    if (hash_ctx == NULL) {
+static s_hash_ctx *get_struct_ctx_at_depth(uint8_t target_depth) {
+    s_hash_ctx *ctx = get_last_hash_ctx();
+    uint8_t up;
+
+    if (path_struct == NULL) {
         return NULL;
     }
-    return (s_hash_ctx *) ((flist_node_t *) hash_ctx)->next;
+    if ((target_depth + 1) > path_struct->depth_count) {
+        return NULL;
+    }
+    up = (path_struct->depth_count - 1) - target_depth;
+    for (uint8_t i = 0; (i < up) && (ctx != NULL); ++i) {
+        ctx = get_previous_hash_ctx(ctx);
+    }
+    return ctx;
+}
+
+/**
+ * Get the hashing context of the ELEMENT struct of an array field.
+ *
+ * The element struct of an array field at path index `pidx` is open at path
+ * depth pidx + 1 (path_update descended array field -> element struct).
+ * Anchoring the array-fold splice on this depth -- rather than on
+ * successor(start) or get_last_hash_ctx() -- is what makes nested custom arrays
+ * whose element's first field is itself a struct (GAP-A: S{E[2][2]},
+ * E{Child c; uint n}) and inner dimensions of T[k][k] fold at the correct
+ * context (the single shared element context, with all array accumulators of
+ * the field spliced below it).
+ *
+ * @param[in] pidx path index of the array field whose element struct is wanted
+ * @return the element struct hashing context, or NULL on inconsistency
+ */
+static s_hash_ctx *get_element_struct_ctx(uint8_t pidx) {
+    if ((pidx + 1) > path_struct->depth_count) {
+        return NULL;
+    }
+    return get_struct_ctx_at_depth(pidx + 1);
 }
 
 // to be used as a \ref f_list_node_del
@@ -621,6 +664,17 @@ bool path_new_array_depth(const uint8_t *data, uint8_t length) {
     }
 
     array_size = *data;
+    // Record the path index of the immediately-enclosing OPEN array depth (if
+    // any) BEFORE we add this one. If, after we resolve which field this new
+    // array level belongs to, that field's path index matches, then this is an
+    // INNER dimension of a multi-dimensional array of the SAME field (e.g. the
+    // second [..] of T[..][..]) -- which needs the nested-array fold handling
+    // below, distinct from a fresh single-level array.
+    bool had_enclosing_array = (path_struct->array_depth_count > 0);
+    uint8_t enclosing_pidx =
+        had_enclosing_array
+            ? path_struct->array_depths[path_struct->array_depth_count - 1].path_index
+            : 0xff;
     if (array_size == 0) {
         backup_path();
     }
@@ -675,38 +729,96 @@ bool path_new_array_depth(const uint8_t *data, uint8_t length) {
         }
         // The array fold needs a dedicated accumulator spliced immediately BELOW
         // the ELEMENT struct's context (the context carrying the element struct's
-        // typeHash). path_update descended from start_hash_ctx into the element
-        // struct, so the element struct's context is the FIRST one it pushed,
-        // i.e. start_hash_ctx's immediate successor. We must NOT use
-        // get_last_hash_ctx(): when the element struct's first field is itself a
-        // directly-nested custom struct, path_update keeps descending and pushes
-        // a further (grand-child) context, so get_last_hash_ctx() would point at
-        // the grand-child -- splicing there folds keccak(hashStruct(child)) and
-        // drops the element struct's own child (Class-R regression). Conversely,
-        // for inner levels of a nested array (T[k][k]) path_update pushes nothing
-        // (start == last); there the element accumulator is start itself, so we
-        // splice before start. Rule: element_ctx = successor(start) if anything
-        // was pushed, else start (== last).
-        s_hash_ctx *element_ctx = get_last_hash_ctx();
-        if (element_ctx != start_hash_ctx) {
-            element_ctx = get_next_hash_ctx(start_hash_ctx);
+        // typeHash), so each finalized element struct-hash (or, for an outer
+        // dimension, each finalized inner-array hash) is fed into it. We resolve
+        // that element context by its PATH DEPTH (pidx + 1) via
+        // get_element_struct_ctx() rather than by successor(start)/last:
+        //   * successor(start) is only the element struct at the OUTER level; at
+        //     an INNER level of a nested array start already points INTO the
+        //     element struct (or its child), so successor(start) would land on a
+        //     grand-child and splice the inner accumulator ABOVE the element
+        //     struct -- the GAP-A mis-fold (S{E[2][2]}; E{Child c; uint n}).
+        //   * get_last_hash_ctx() points at the deepest descended struct when the
+        //     element's first field is itself a custom struct (Class-R), which
+        //     would drop the element struct's own child.
+        // The depth-anchored context is correct for both levels and both layouts,
+        // so all array dimensions of one field splice their accumulators below the
+        // single shared element context, yielding [.., arr_outer, arr_inner, E, ..].
+        s_hash_ctx *element_ctx = get_element_struct_ctx(pidx);
+        if (element_ctx == NULL) {
+            return false;
         }
         if (insert_array_hash_depth_before(element_ctx) == false) {
             return false;
         }
-    } else if (push_new_hash_depth(!is_custom) == false) {
-        return false;
+    } else if (!is_custom) {
+        // Scalar (non-custom) array, empty or not: push a fresh INITIALIZED
+        // accumulator. For a non-empty scalar array each element value is
+        // absorbed into it; for an empty one it finalizes to keccak256("").
+        if (push_new_hash_depth(true) == false) {
+            return false;
+        }
     } else if (is_custom) {
-        // Empty array of custom structs: it contributes keccak256(""). A fresh
-        // (uninitialized) context was just pushed on top; re-initialize it and
-        // the spurious element-struct accumulators path_update descended into
-        // (down to start_hash_ctx) to empty, leaving a single empty array
-        // accumulator that the path unwinding finalizes to keccak256("").
+        // Empty array of custom structs: it contributes keccak256(""). We
+        // re-initialize the fresh context pushed on top AND every spurious struct
+        // context path_update descended into for THIS array's element, leaving an
+        // empty accumulator that the path unwinding finalizes to keccak256("").
+        //
+        // The re-init must clear the element struct's own context (the typeHash
+        // that path_update fed when it descended into it) -- otherwise that
+        // leading typeHash leaks into the fold. At the SINGLE level path_update
+        // descended with do_typehash=false (no typeHash) and the element struct
+        // sits directly above start_hash_ctx, so clearing "down to start
+        // exclusive" already covers it. But when this empty array is an INNER
+        // dimension of a nested custom array (GAP-B: S{Leaf[][]}, x=[[]]), the
+        // element struct (Leaf) was descended into -- WITH its typeHash -- during
+        // the OUTER dimension's setup, so a "down to start exclusive" clear would
+        // leave Leaf's typeHash in place and fold keccak256(typeHash) instead of
+        // keccak256("").
+        //
+        // We therefore compute the clear boundary HERE, while the stack still maps
+        // 1:1 to path depths (BEFORE pushing the extra accumulator below, which
+        // would offset get_element_struct_ctx()). For a nested inner dimension the
+        // boundary is the predecessor of the element struct context (clear E
+        // inclusive); the empty inner array then folds keccak256("") into the
+        // enclosing OUTER array accumulator, which folds keccak256(keccak256(""))
+        // -- exactly what ethers/eth-sig-util produce for [[]].
         if (start_hash_ctx == NULL) {
             return false;
         }
+        bool nested_inner_dim = had_enclosing_array && (enclosing_pidx == pidx);
+        s_hash_ctx *stop_ctx;
+        if (nested_inner_dim) {
+            // INNER dimension of a multi-dimensional array of the SAME field
+            // (GAP-B: S{Leaf[][]}, x=[[]]). The empty inner array's keccak256("")
+            // must fold into the enclosing OUTER array accumulator (which then
+            // folds keccak256(keccak256(""))). Clear down to AND INCLUDING the
+            // element struct context so the outer accumulator is the fold target.
+            s_hash_ctx *element_ctx = get_element_struct_ctx(pidx);
+            stop_ctx = (element_ctx != NULL) ? get_previous_hash_ctx(element_ctx) : start_hash_ctx;
+        } else {
+            // Empty custom array that is a FIELD of some struct. Its keccak256("")
+            // folds into the struct CONTAINING the array field, which is open at
+            // path depth `pidx`. Clearing down to that containing-struct context
+            // (exclusive) removes every spurious struct context path_update
+            // descended into for the array's element -- including ones created
+            // earlier when the containing struct was itself reached as the element
+            // of an ENCLOSING nested array (e.g. S0{S1[1][1]}, S1{S3[1][] = []}):
+            // there the S1[1][1] inner-dimension setup over-descended into S3,
+            // leaving a spurious S3 typeHash above S1 that a "down to start"
+            // clear would keep, folding keccak256(typeHash(S3)) instead of
+            // keccak256("") into S1. For a single-level array the containing
+            // struct IS start_hash_ctx, so this is a strict generalization.
+            stop_ctx = get_struct_ctx_at_depth(pidx);
+            if (stop_ctx == NULL) {
+                stop_ctx = start_hash_ctx;
+            }
+        }
+        if (push_new_hash_depth(false) == false) {
+            return false;
+        }
         s_hash_ctx *hash_ctx = get_last_hash_ctx();
-        while ((hash_ctx != NULL) && (hash_ctx != start_hash_ctx)) {
+        while ((hash_ctx != NULL) && (hash_ctx != stop_ctx)) {
             if (cx_keccak_init_no_throw((cx_sha3_t *) &hash_ctx->hash, 256) != CX_OK) {
                 return false;
             }

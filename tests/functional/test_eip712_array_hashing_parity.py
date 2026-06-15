@@ -105,9 +105,23 @@ def test_eip712_array_hashing_coverage():
         "Batch{Call[]=[],Meta{Inner,..}}",  # Class C: empty custom array then nested struct
         "Outer[]{Inner head,..}", # Class R reg-guard: struct-first element, dynamic
         "Outer[2]{Inner head,..}",# Class R reg-guard: struct-first element, fixed
+        # --- GAP-A / GAP-B (previously carved out; now fixed pass-on-fixed) ---
+        "Elem[2][2]{Child c,uint256 n}",   # GAP-A: struct-first element, fixed nested
+        "Elem[][]{Child c,uint256 n}",     # GAP-A: struct-first element, dynamic nested
+        "Elem[2][2][2]{Child c,uint256 n}",# GAP-A: struct-first element, triple fixed
+        "Leaf[][] x=[[]]",                 # GAP-B: empty inner custom-struct array
+        "Leaf[][][] x=[[[]]]",             # GAP-B: empty inner at depth 3
+        "Leaf[][] x=[[],[leaf],[]]",       # GAP-B: mixed empty/non-empty inner
     }
     missing = required - shapes
     assert not missing, f"missing bug-trigger shapes: {sorted(missing)}"
+
+    # GAP-A and GAP-B were previously carved out under known_uncovered; they are
+    # now real pass-on-fixed fixtures and must be present as bug triggers.
+    gap_triggers = {v["triggers"] for v in REFERENCES.values()}
+    assert {"gapA", "gapB"} <= gap_triggers, (
+        f"GAP-A/GAP-B fixtures missing from references: have {sorted(gap_triggers)}"
+    )
 
     # The eth-sig-util/ethers per-type parity matrix is bundled here too.
     parity = {v["shape"] for v in REFERENCES.values() if v["triggers"] == "none-parity"}

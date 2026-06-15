@@ -31,19 +31,20 @@
     "Root": [
       {
         "name": "x",
-        "type": "Leaf[][]"
+        "type": "Leaf[][2]"
       }
     ]
   },
   "primaryType": "Root",
   "domain": {
-    "name": "D",
+    "name": "Ledger EIP712 parity",
     "version": "1",
     "chainId": 1,
-    "verifyingContract": "0x0000000000000000000000000000000000000000"
+    "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"
   },
   "message": {
     "x": [
+      [],
       []
     ]
   }

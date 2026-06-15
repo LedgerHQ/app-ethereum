@@ -1,0 +1,70 @@
+{
+  "types": {
+    "EIP712Domain": [
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "version",
+        "type": "string"
+      },
+      {
+        "name": "chainId",
+        "type": "uint256"
+      },
+      {
+        "name": "verifyingContract",
+        "type": "address"
+      }
+    ],
+    "Batch": [
+      {
+        "name": "calls",
+        "type": "Call[]"
+      },
+      {
+        "name": "meta",
+        "type": "Meta"
+      }
+    ],
+    "Call": [
+      {
+        "name": "to",
+        "type": "address"
+      }
+    ],
+    "Meta": [
+      {
+        "name": "inner",
+        "type": "Inner"
+      },
+      {
+        "name": "n",
+        "type": "uint256"
+      }
+    ],
+    "Inner": [
+      {
+        "name": "x",
+        "type": "uint256"
+      }
+    ]
+  },
+  "primaryType": "Batch",
+  "domain": {
+    "name": "Ledger EIP712 parity",
+    "version": "1",
+    "chainId": 1,
+    "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"
+  },
+  "message": {
+    "calls": [],
+    "meta": {
+      "inner": {
+        "x": "3"
+      },
+      "n": "9"
+    }
+  }
+}

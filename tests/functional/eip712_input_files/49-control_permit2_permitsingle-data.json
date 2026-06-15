@@ -1,0 +1,71 @@
+{
+  "types": {
+    "EIP712Domain": [
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "version",
+        "type": "string"
+      },
+      {
+        "name": "chainId",
+        "type": "uint256"
+      },
+      {
+        "name": "verifyingContract",
+        "type": "address"
+      }
+    ],
+    "PermitSingle": [
+      {
+        "name": "details",
+        "type": "PermitDetails"
+      },
+      {
+        "name": "spender",
+        "type": "address"
+      },
+      {
+        "name": "sigDeadline",
+        "type": "uint256"
+      }
+    ],
+    "PermitDetails": [
+      {
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint160"
+      },
+      {
+        "name": "expiration",
+        "type": "uint48"
+      },
+      {
+        "name": "nonce",
+        "type": "uint48"
+      }
+    ]
+  },
+  "primaryType": "PermitSingle",
+  "domain": {
+    "name": "Permit2",
+    "version": "1",
+    "chainId": 1,
+    "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"
+  },
+  "message": {
+    "details": {
+      "token": "0x2222222222222222222222222222222222222222",
+      "amount": "1461501637330902918203684832716283019655932542975",
+      "expiration": "1796941844",
+      "nonce": "0"
+    },
+    "spender": "0x3333333333333333333333333333333333333333",
+    "sigDeadline": "1796941844"
+  }
+}

@@ -1,0 +1,173 @@
+{
+  "_comment": "EIP-712 array-of-struct hashing regression + parity references. messageHash is the EIP-712 hashStruct(message) digest, computed independently by @metamask/eth-sig-util V4 and ethers v6 (they agree). The Ledger device must hash to the same value or eth_account.recover_message in test_eip712.py recovers a different signer and the device test fails. triggers: bugA = element struct encoding hits the 136-byte keccak rate boundary (single-level OR directly-nested, depth>0); bugB = nested fixed custom-struct array depth>=2; classC = empty dynamic array immediately before a custom-struct field (scalar- or struct-element array); classR-regguard = array element whose first field is a nested struct (must hash correctly on BOTH develop and fixed: guards that the Bug-B fix did not regress struct-first elements); none-parity = bundled eth-sig-util/ethers per-type parity matrix; none-control = unaffected reference. See src/features/sign_message_eip712/path.c.",
+  "16-pp_saleapproval_single": {
+    "messageHash": "0x4ae7ec8bb1843781cc742d91ae5d0363e4da9f9cab553644d80084bd255e6d64",
+    "triggers": "none-control",
+    "shape": "SaleApproval"
+  },
+  "17-pp_saleapproval15_array": {
+    "messageHash": "0x56c74f0cb43ff24c16334027ce862017d2d3b17cfd45e790958e12e761d041ce",
+    "triggers": "none-control",
+    "shape": "SaleApprovalY[2]"
+  },
+  "18-pp_saleapproval16_array_136boundary": {
+    "messageHash": "0x69c814cd011baab6a355d4ec48bb86ffdf5a6e811245aaed1d82d906eb170ce0",
+    "triggers": "bugA",
+    "shape": "SaleApproval[2]"
+  },
+  "19-pp_saleapproval16_nested_2x2": {
+    "messageHash": "0x26915ac61bb34aa300101f228d5b8db9de01c0add7f26ad7b0dbeec126e92b58",
+    "triggers": "bugA+bugB",
+    "shape": "SaleApproval[2][2]"
+  },
+  "20-pp_saleapproval16_nested_2x2x2": {
+    "messageHash": "0x8f6b7a6f63820ac6bb7b4e3e920a85a3e92bfafb3237ecb51afd83eed0857ac7",
+    "triggers": "bugA+bugB",
+    "shape": "SaleApproval[2][2][2]"
+  },
+  "21-pp_saleapproval15_nested_2x2": {
+    "messageHash": "0x7abcb32e68e1560d71b709fc9a13bc96c8aa0f356fd8f3447d541fb5e3074d53",
+    "triggers": "bugB",
+    "shape": "SaleApprovalY[2][2]"
+  },
+  "22-mail_person_dynarray": {
+    "messageHash": "0x302c27177355d240c01345a8f5368bb853ceb4466d1758c8a0c2bcda3df0bddb",
+    "triggers": "none-control",
+    "shape": "Person[]"
+  },
+  "23-seaport_ordercomponents_array": {
+    "messageHash": "0xbd90b892f19e1132f84a258f2bc5527c2b4fb18841a863b96aeee19453a56dd7",
+    "triggers": "none-control",
+    "shape": "OrderComponents[2]"
+  },
+  "24-seaport_bulkorder_nested_2x2": {
+    "messageHash": "0xd76cba560c44183faf0c6033dc2622d4276c04b8ef3f10b2a0ed78dc61b32b0c",
+    "triggers": "bugB",
+    "shape": "OrderComponents[2][2]"
+  },
+  "25-parity_matrix_scalar": {
+    "messageHash": "0x9fc41c59d66ca2dcc4de553c1db86e416848686b17d2c115c9a34d1c8fe47008",
+    "triggers": "none-parity",
+    "shape": "ParityMatrix(scalar*all)"
+  },
+  "26-parity_matrix_dynarray": {
+    "messageHash": "0x5ffceebb7de53f7b6472f6f07a1d08dd6421ffc95d55ae8a193dacd34d09a05f",
+    "triggers": "none-parity",
+    "shape": "ParityMatrix(T[]*all)"
+  },
+  "27-parity_matrix_fixedarray": {
+    "messageHash": "0x41e7e3ef35b7e76af7cc9db7390dcf654052c9aaceaecaa204d974f24c8299c7",
+    "triggers": "none-parity",
+    "shape": "ParityMatrix(T[2]*all)"
+  },
+  "28-bugA_elem16_fixed2": {
+    "messageHash": "0xce7a6ee3ba94930baf20e46f480fbaa089c95b15d73b202e79934367a2d35a27",
+    "triggers": "bugA",
+    "shape": "Elem16[2]"
+  },
+  "29-bugA_elem33_fixed2": {
+    "messageHash": "0x460faa9d999002aaeaef37c8385f6eaa18a27ffacba0b4c37c6c63cc504d3740",
+    "triggers": "bugA",
+    "shape": "Elem33[2]"
+  },
+  "30-bugA_elem50_fixed2": {
+    "messageHash": "0x2e938fa1ab00154c5370a5e8be1f4532631e6bbd9a1fea1ad226952a14d8b041",
+    "triggers": "bugA",
+    "shape": "Elem50[2]"
+  },
+  "31-bugA_control_elem15_fixed2": {
+    "messageHash": "0x0a96feedec713b92eab1723ffd6afae6a1b634de412e8c3818985d0e97d5fc0d",
+    "triggers": "none-control",
+    "shape": "Elem15[2]"
+  },
+  "32-bugA_nested_elem16": {
+    "messageHash": "0x429b77a875fba35232fcb7d569cd1973574c8ebe1601db69dbff61a29cf2b375",
+    "triggers": "bugA",
+    "shape": "Wrap{Elem16}"
+  },
+  "33-bugA_nested_elem33": {
+    "messageHash": "0xf8f23a97ce16bfd18fd4657e8c4b3581e426aca0255512a04f73af5d9bab3e17",
+    "triggers": "bugA",
+    "shape": "Wrap{Elem33}"
+  },
+  "34-bugA_nested_elem50": {
+    "messageHash": "0x1dc5322a05af590726b741ff59edee49f35fe608281371d2ff858036f9636cbc",
+    "triggers": "bugA",
+    "shape": "Wrap{Elem50}"
+  },
+  "35-bugA_elem16_dynarray": {
+    "messageHash": "0x293b4442c57f9873c851f2e4d3554c496143bc7b334d0962eb2ee834a0c1e61e",
+    "triggers": "bugA",
+    "shape": "Elem16[]"
+  },
+  "36-bugA_control_elem15_dynarray": {
+    "messageHash": "0x03af2d8281317e8d3a72d96cd7b89380d6fd4444c6afbcfe56a459bbedcdb8e0",
+    "triggers": "none-control",
+    "shape": "Elem15[]"
+  },
+  "37-bugB_small_2x2": {
+    "messageHash": "0xc6b7c371e5bcffdf048440e5fc372b32374d31622c329e54c06f7caf0daf463e",
+    "triggers": "bugB",
+    "shape": "Small[2][2]"
+  },
+  "38-bugB_small_2x2x2": {
+    "messageHash": "0x9cabd5f9f49ea5cdf81afb68a690cbce5fbd5156a5755afaeb925817fb271a70",
+    "triggers": "bugB",
+    "shape": "Small[2][2][2]"
+  },
+  "39-classR_structfirst_dyn": {
+    "messageHash": "0xeccc4a3a8bc4417ad77c27fe6db4e6d834a8353530086e1e22ede5bd23a86a1b",
+    "triggers": "classR-regguard",
+    "shape": "Outer[]{Inner head,..}"
+  },
+  "40-classR_structfirst_fixed2": {
+    "messageHash": "0x0e4c1ba8339a17eca3499a7a26be64d3c6c6d779c6a7bbaa465d7b2ee8b557ae",
+    "triggers": "classR-regguard",
+    "shape": "Outer[2]{Inner head,..}"
+  },
+  "41-classC_scalar_emptyarr_then_struct": {
+    "messageHash": "0x925686a5de00c173355879db7de42a1c2b309c9d26926f20ed358182858879ca",
+    "triggers": "classC",
+    "shape": "S0{bytes4[]=[],S2}"
+  },
+  "42-classC_custom_emptyarr_then_struct": {
+    "messageHash": "0x909ea4a6e11aba4330233bf5de7a2a75fbd4790bb8d2357aad4c08f85cee02ac",
+    "triggers": "classC",
+    "shape": "Batch{Call[]=[],Meta}"
+  },
+  "43-classC_custom_emptyarr_then_nestedstruct": {
+    "messageHash": "0x5790d357adf496cc70d54fb3bd93fb2528c06bb6e54e439bb60fd5e23856786c",
+    "triggers": "classC",
+    "shape": "Batch{Call[]=[],Meta{Inner,..}}"
+  },
+  "44-classC_control_nonempty_then_struct": {
+    "messageHash": "0xf4211e4277ef122e71ff8858aff2981ce57c873fe9005199bcc2afe0a997bf7d",
+    "triggers": "none-control",
+    "shape": "Batch{Call[1],Meta}"
+  },
+  "45-bugA_nested_single_elem16": {
+    "messageHash": "0x52ea0715600be61879084e12b7ffb1e4bd314bbe5717c20378d2a6e93e7782d3",
+    "triggers": "bugA",
+    "shape": "Root{Elem16}"
+  },
+  "46-control_mail_person_array": {
+    "messageHash": "0xbff99b38389729f41c212087ca3b746c2cc71da56e49bf5c28bba79473940968",
+    "triggers": "none-control",
+    "shape": "Person[]"
+  },
+  "47-control_seaport_single_order": {
+    "messageHash": "0x0a602c2f9aecd3c6e89afdbd0a165f9af0471125dda447b27c8c51f2d4488ece",
+    "triggers": "none-control",
+    "shape": "OrderComponents"
+  },
+  "48-control_safe_safetx": {
+    "messageHash": "0xa43ddfa978d83e6e1f5d23470e98fd249bd2ad037bcdf6c9f380ceb463927c88",
+    "triggers": "none-control",
+    "shape": "SafeTx"
+  },
+  "49-control_permit2_permitsingle": {
+    "messageHash": "0x1acbffd71a120cceb68a3664f201a54dd1aa73800132622d6ddc10c07b36dc3c",
+    "triggers": "none-control",
+    "shape": "PermitSingle"
+  }
+}

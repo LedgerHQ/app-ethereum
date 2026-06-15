@@ -1,0 +1,153 @@
+{
+  "types": {
+    "EIP712Domain": [
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "version",
+        "type": "string"
+      },
+      {
+        "name": "chainId",
+        "type": "uint256"
+      },
+      {
+        "name": "verifyingContract",
+        "type": "address"
+      }
+    ],
+    "OrderComponents": [
+      {
+        "name": "offerer",
+        "type": "address"
+      },
+      {
+        "name": "zone",
+        "type": "address"
+      },
+      {
+        "name": "offer",
+        "type": "OfferItem[]"
+      },
+      {
+        "name": "consideration",
+        "type": "ConsiderationItem[]"
+      },
+      {
+        "name": "orderType",
+        "type": "uint8"
+      },
+      {
+        "name": "startTime",
+        "type": "uint256"
+      },
+      {
+        "name": "endTime",
+        "type": "uint256"
+      },
+      {
+        "name": "zoneHash",
+        "type": "bytes32"
+      },
+      {
+        "name": "salt",
+        "type": "uint256"
+      },
+      {
+        "name": "conduitKey",
+        "type": "bytes32"
+      },
+      {
+        "name": "counter",
+        "type": "uint256"
+      }
+    ],
+    "OfferItem": [
+      {
+        "name": "itemType",
+        "type": "uint8"
+      },
+      {
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "name": "identifierOrCriteria",
+        "type": "uint256"
+      },
+      {
+        "name": "startAmount",
+        "type": "uint256"
+      },
+      {
+        "name": "endAmount",
+        "type": "uint256"
+      }
+    ],
+    "ConsiderationItem": [
+      {
+        "name": "itemType",
+        "type": "uint8"
+      },
+      {
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "name": "identifierOrCriteria",
+        "type": "uint256"
+      },
+      {
+        "name": "startAmount",
+        "type": "uint256"
+      },
+      {
+        "name": "endAmount",
+        "type": "uint256"
+      },
+      {
+        "name": "recipient",
+        "type": "address"
+      }
+    ]
+  },
+  "primaryType": "OrderComponents",
+  "domain": {
+    "name": "Seaport",
+    "version": "1.5",
+    "chainId": 1,
+    "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"
+  },
+  "message": {
+    "offerer": "0x1111111111111111111111111111111111111111",
+    "zone": "0x2222222222222222222222222222222222222222",
+    "offer": [
+      {
+        "itemType": "2",
+        "token": "0x3333333333333333333333333333333333333333",
+        "identifierOrCriteria": "1",
+        "startAmount": "1",
+        "endAmount": "1"
+      }
+    ],
+    "consideration": [
+      {
+        "itemType": "0",
+        "token": "0x1111111111111111111111111111111111111111",
+        "identifierOrCriteria": "0",
+        "startAmount": "1",
+        "endAmount": "1",
+        "recipient": "0x2222222222222222222222222222222222222222"
+      }
+    ],
+    "orderType": "0",
+    "startTime": "0",
+    "endTime": "1796941844",
+    "zoneHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "salt": "12345",
+    "conduitKey": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "counter": "0"
+  }
+}

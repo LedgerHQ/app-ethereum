@@ -1,0 +1,123 @@
+{
+  "domain": {
+    "name": "PaymentProcessor",
+    "version": "3.0.0",
+    "chainId": 1,
+    "verifyingContract": "0x9a1D00000000fC540e2000560054812452eB5366"
+  },
+  "message": {
+    "tree": [
+      {
+        "protocol": "0",
+        "cosigner": "0x435F5aDD311a2d0272906D8E954BeFa54B19B955",
+        "seller": "0x076c74c7b1f6775C33f3762263CC7B37BD982D88",
+        "marketplace": "0x70A5Af9ff16b9C436dBe6C1796930F4e1795abC6",
+        "fallbackRoyaltyRecipient": "0x0d69B1D26F56DEE4449f5ED3998B0380aAa2FE40",
+        "paymentMethod": "0x0000000000000000000000000000000000000000",
+        "tokenAddress": "0x81C9ce55E8214Fd0f5181FD3D38f52fD8c33Ec38",
+        "tokenId": "2254",
+        "amount": "1",
+        "itemPrice": "2300000000000000000000",
+        "expiration": "1796941844",
+        "marketplaceFeeNumerator": "100",
+        "maxRoyaltyFeeNumerator": "700",
+        "nonce": "68205386333977193155448919741119857711917601007708701105469874401718230431214",
+        "masterNonce": "0",
+        "protocolFeeVersion": "1"
+      },
+      {
+        "protocol": "0",
+        "cosigner": "0x435F5aDD311a2d0272906D8E954BeFa54B19B955",
+        "seller": "0x076c74c7b1f6775C33f3762263CC7B37BD982D88",
+        "marketplace": "0x70A5Af9ff16b9C436dBe6C1796930F4e1795abC6",
+        "fallbackRoyaltyRecipient": "0x0d69B1D26F56DEE4449f5ED3998B0380aAa2FE40",
+        "paymentMethod": "0x0000000000000000000000000000000000000000",
+        "tokenAddress": "0x81C9ce55E8214Fd0f5181FD3D38f52fD8c33Ec38",
+        "tokenId": "3232",
+        "amount": "1",
+        "itemPrice": "2300000000000000000000",
+        "expiration": "1796941844",
+        "marketplaceFeeNumerator": "100",
+        "maxRoyaltyFeeNumerator": "700",
+        "nonce": "68205386333977193155448919741119857711917601007708701105469874401718230431214",
+        "masterNonce": "0",
+        "protocolFeeVersion": "1"
+      }
+    ]
+  },
+  "primaryType": "BulkSaleApproval",
+  "types": {
+    "BulkSaleApproval": [
+      {
+        "name": "tree",
+        "type": "SaleApproval[2]"
+      }
+    ],
+    "SaleApproval": [
+      {
+        "name": "protocol",
+        "type": "uint8"
+      },
+      {
+        "name": "cosigner",
+        "type": "address"
+      },
+      {
+        "name": "seller",
+        "type": "address"
+      },
+      {
+        "name": "marketplace",
+        "type": "address"
+      },
+      {
+        "name": "fallbackRoyaltyRecipient",
+        "type": "address"
+      },
+      {
+        "name": "paymentMethod",
+        "type": "address"
+      },
+      {
+        "name": "tokenAddress",
+        "type": "address"
+      },
+      {
+        "name": "tokenId",
+        "type": "uint256"
+      },
+      {
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "name": "itemPrice",
+        "type": "uint256"
+      },
+      {
+        "name": "expiration",
+        "type": "uint256"
+      },
+      {
+        "name": "marketplaceFeeNumerator",
+        "type": "uint256"
+      },
+      {
+        "name": "maxRoyaltyFeeNumerator",
+        "type": "uint256"
+      },
+      {
+        "name": "nonce",
+        "type": "uint256"
+      },
+      {
+        "name": "masterNonce",
+        "type": "uint256"
+      },
+      {
+        "name": "protocolFeeVersion",
+        "type": "uint256"
+      }
+    ]
+  }
+}

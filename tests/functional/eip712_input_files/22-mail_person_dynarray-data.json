@@ -1,0 +1,61 @@
+{
+  "domain": {
+    "name": "Ether Mail",
+    "version": "1",
+    "chainId": 1,
+    "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"
+  },
+  "message": {
+    "from": {
+      "name": "Cow",
+      "wallets": [
+        "0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826",
+        "0xDeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF"
+      ]
+    },
+    "to": [
+      {
+        "name": "Bob",
+        "wallets": [
+          "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB",
+          "0xb0bDabeA44528960B5c7bF20DCb1B4e0083A8F72",
+          "0x06f8Eb7DBA6710FBB0E4EaA1747E6E3A9df4d3c2"
+        ]
+      },
+      {
+        "name": "Dave",
+        "wallets": [
+          "0xCCccccCDDdDDdEEeEEEfFFFFaaaAAA1111112222"
+        ]
+      }
+    ],
+    "contents": "Hello, Bob!"
+  },
+  "primaryType": "Mail",
+  "types": {
+    "Person": [
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "wallets",
+        "type": "address[]"
+      }
+    ],
+    "Mail": [
+      {
+        "name": "from",
+        "type": "Person"
+      },
+      {
+        "name": "to",
+        "type": "Person[]"
+      },
+      {
+        "name": "contents",
+        "type": "string"
+      }
+    ]
+  }
+}

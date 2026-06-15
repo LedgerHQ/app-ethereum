@@ -1,0 +1,50 @@
+{
+  "types": {
+    "EIP712Domain": [
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "version",
+        "type": "string"
+      },
+      {
+        "name": "chainId",
+        "type": "uint256"
+      },
+      {
+        "name": "verifyingContract",
+        "type": "address"
+      }
+    ],
+    "Leaf": [
+      {
+        "name": "a",
+        "type": "uint256"
+      },
+      {
+        "name": "b",
+        "type": "address"
+      }
+    ],
+    "Root": [
+      {
+        "name": "x",
+        "type": "Leaf[][]"
+      }
+    ]
+  },
+  "primaryType": "Root",
+  "domain": {
+    "name": "D",
+    "version": "1",
+    "chainId": 1,
+    "verifyingContract": "0x0000000000000000000000000000000000000000"
+  },
+  "message": {
+    "x": [
+      []
+    ]
+  }
+}

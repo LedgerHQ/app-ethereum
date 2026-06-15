@@ -1,0 +1,75 @@
+{
+  "types": {
+    "EIP712Domain": [
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "version",
+        "type": "string"
+      },
+      {
+        "name": "chainId",
+        "type": "uint256"
+      },
+      {
+        "name": "verifyingContract",
+        "type": "address"
+      }
+    ],
+    "Child": [
+      {
+        "name": "x",
+        "type": "uint256"
+      }
+    ],
+    "Elem": [
+      {
+        "name": "c",
+        "type": "Child"
+      }
+    ],
+    "Root": [
+      {
+        "name": "a",
+        "type": "Elem[2][2]"
+      }
+    ]
+  },
+  "primaryType": "Root",
+  "domain": {
+    "name": "D",
+    "version": "1",
+    "chainId": 1,
+    "verifyingContract": "0x0000000000000000000000000000000000000000"
+  },
+  "message": {
+    "a": [
+      [
+        {
+          "c": {
+            "x": 1
+          }
+        },
+        {
+          "c": {
+            "x": 2
+          }
+        }
+      ],
+      [
+        {
+          "c": {
+            "x": 3
+          }
+        },
+        {
+          "c": {
+            "x": 4
+          }
+        }
+      ]
+    ]
+  }
+}

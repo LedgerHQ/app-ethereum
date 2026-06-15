@@ -1,0 +1,214 @@
+{
+  "types": {
+    "EIP712Domain": [
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "version",
+        "type": "string"
+      },
+      {
+        "name": "chainId",
+        "type": "uint256"
+      },
+      {
+        "name": "verifyingContract",
+        "type": "address"
+      }
+    ],
+    "Root": [
+      {
+        "name": "w",
+        "type": "Wrap"
+      }
+    ],
+    "Wrap": [
+      {
+        "name": "e",
+        "type": "Elem33"
+      }
+    ],
+    "Elem33": [
+      {
+        "name": "a0",
+        "type": "uint256"
+      },
+      {
+        "name": "a1",
+        "type": "uint256"
+      },
+      {
+        "name": "a2",
+        "type": "uint256"
+      },
+      {
+        "name": "a3",
+        "type": "uint256"
+      },
+      {
+        "name": "a4",
+        "type": "uint256"
+      },
+      {
+        "name": "a5",
+        "type": "uint256"
+      },
+      {
+        "name": "a6",
+        "type": "uint256"
+      },
+      {
+        "name": "a7",
+        "type": "uint256"
+      },
+      {
+        "name": "a8",
+        "type": "uint256"
+      },
+      {
+        "name": "a9",
+        "type": "uint256"
+      },
+      {
+        "name": "a10",
+        "type": "uint256"
+      },
+      {
+        "name": "a11",
+        "type": "uint256"
+      },
+      {
+        "name": "a12",
+        "type": "uint256"
+      },
+      {
+        "name": "a13",
+        "type": "uint256"
+      },
+      {
+        "name": "a14",
+        "type": "uint256"
+      },
+      {
+        "name": "a15",
+        "type": "uint256"
+      },
+      {
+        "name": "a16",
+        "type": "uint256"
+      },
+      {
+        "name": "a17",
+        "type": "uint256"
+      },
+      {
+        "name": "a18",
+        "type": "uint256"
+      },
+      {
+        "name": "a19",
+        "type": "uint256"
+      },
+      {
+        "name": "a20",
+        "type": "uint256"
+      },
+      {
+        "name": "a21",
+        "type": "uint256"
+      },
+      {
+        "name": "a22",
+        "type": "uint256"
+      },
+      {
+        "name": "a23",
+        "type": "uint256"
+      },
+      {
+        "name": "a24",
+        "type": "uint256"
+      },
+      {
+        "name": "a25",
+        "type": "uint256"
+      },
+      {
+        "name": "a26",
+        "type": "uint256"
+      },
+      {
+        "name": "a27",
+        "type": "uint256"
+      },
+      {
+        "name": "a28",
+        "type": "uint256"
+      },
+      {
+        "name": "a29",
+        "type": "uint256"
+      },
+      {
+        "name": "a30",
+        "type": "uint256"
+      },
+      {
+        "name": "a31",
+        "type": "uint256"
+      },
+      {
+        "name": "a32",
+        "type": "uint256"
+      }
+    ]
+  },
+  "primaryType": "Root",
+  "domain": {
+    "name": "Ledger EIP712 parity",
+    "version": "1",
+    "chainId": 1,
+    "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"
+  },
+  "message": {
+    "w": {
+      "e": {
+        "a0": "1",
+        "a1": "2",
+        "a2": "3",
+        "a3": "4",
+        "a4": "5",
+        "a5": "6",
+        "a6": "7",
+        "a7": "8",
+        "a8": "9",
+        "a9": "10",
+        "a10": "11",
+        "a11": "12",
+        "a12": "13",
+        "a13": "14",
+        "a14": "15",
+        "a15": "16",
+        "a16": "17",
+        "a17": "18",
+        "a18": "19",
+        "a19": "20",
+        "a20": "21",
+        "a21": "22",
+        "a22": "23",
+        "a23": "24",
+        "a24": "25",
+        "a25": "26",
+        "a26": "27",
+        "a27": "28",
+        "a28": "29",
+        "a29": "30",
+        "a30": "31",
+        "a31": "32",
+        "a32": "33"
+      }
+    }
+  }
+}

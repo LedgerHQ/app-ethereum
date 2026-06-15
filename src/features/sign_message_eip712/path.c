@@ -163,6 +163,18 @@ static s_hash_ctx *get_previous_hash_ctx(s_hash_ctx *hash_ctx) {
     return (s_hash_ctx *) ((list_node_t *) hash_ctx)->prev;
 }
 
+/**
+ * Get the hashing context immediately *after* (on top of) the given one.
+ *
+ * @return pointer to the next hashing context, or NULL if there is none
+ */
+static s_hash_ctx *get_next_hash_ctx(s_hash_ctx *hash_ctx) {
+    if (hash_ctx == NULL) {
+        return NULL;
+    }
+    return (s_hash_ctx *) ((flist_node_t *) hash_ctx)->next;
+}
+
 // to be used as a \ref f_list_node_del
 static void delete_hash_ctx(s_hash_ctx *ctx) {
     APP_MEM_FREE(ctx);
@@ -180,18 +192,27 @@ static void remove_last_hash_ctx(void) {
  */
 static bool finalize_hash_depth(uint8_t *hash) {
     const s_hash_ctx *hash_ctx;
-    size_t hashed_bytes;
+    bool any_absorbed;
 
     if ((hash_ctx = get_last_hash_ctx()) == NULL) {
         return false;
     }
-    hashed_bytes = hash_ctx->hash.blen;
+    // Whether *any* data was absorbed at this depth. `blen` only counts the
+    // bytes pending in the current (partial) keccak block; once the absorbed
+    // length reaches a multiple of the 136-byte keccak256 rate, blen wraps back
+    // to 0 even though full blocks were processed. The header counter records
+    // those already-absorbed blocks, so a depth that hashed an exact multiple
+    // of the block size (e.g. a struct encoding to 544 = 4*136 bytes, like a
+    // 16-field SaleApproval element) is correctly reported as non-empty.
+    // Relying on `blen > 0` alone made such depths look empty, so their struct
+    // hash was silently dropped from the enclosing array fold (CWE-682).
+    any_absorbed = (hash_ctx->hash.blen > 0) || (hash_ctx->hash.header.counter > 0);
     // finalize hash
     if (finalize_hash((cx_hash_t *) &hash_ctx->hash, hash, KECCAK256_HASH_BYTESIZE) != true) {
         return false;
     }
     remove_last_hash_ctx();
-    return hashed_bytes > 0;
+    return any_absorbed;
 }
 
 /**
@@ -238,6 +259,43 @@ static bool push_new_hash_depth(bool init) {
     }
 
     list_push_back((list_node_t **) &g_hash_ctxs, (list_node_t *) hash_ctx);
+    return true;
+}
+
+/**
+ * Insert a freshly-initialized (empty) array-accumulator hashing context
+ * immediately *before* a given reference context in the stack.
+ *
+ * Used when entering an array of custom structs: \ref path_update has already
+ * pushed the element struct's accumulator (carrying its typeHash) on top of the
+ * stack, but the fold of EIP-712 array elements needs a dedicated accumulator
+ * sitting *below* that element context, into which each finalized element
+ * struct-hash is fed. Splicing it in (rather than juggling/copying keccak state
+ * between contexts) keeps every absorbed byte intact, which the previous
+ * memcpy/re-init approach corrupted for nested arrays (T[2][2]).
+ *
+ * @param[in] ref reference context to insert before (the element accumulator)
+ * @return whether the allocation and insertion succeeded
+ */
+static bool insert_array_hash_depth_before(s_hash_ctx *ref) {
+    s_hash_ctx *arr_ctx;
+
+    if (ref == NULL) {
+        return false;
+    }
+    if (APP_MEM_CALLOC((void **) &arr_ctx, sizeof(*arr_ctx)) == false) {
+        return false;
+    }
+    if (cx_keccak_init_no_throw(&arr_ctx->hash, 256) != CX_OK) {
+        APP_MEM_FREE(arr_ctx);
+        return false;
+    }
+    if (list_insert_before((list_node_t **) &g_hash_ctxs,
+                           (list_node_t *) ref,
+                           (list_node_t *) arr_ctx) == false) {
+        APP_MEM_FREE(arr_ctx);
+        return false;
+    }
     return true;
 }
 
@@ -599,40 +657,141 @@ bool path_new_array_depth(const uint8_t *data, uint8_t length) {
         return false;
     }
     is_custom = field_ptr->type == TYPE_CUSTOM;
-    if (push_new_hash_depth(!is_custom) == false) {
+    if (is_custom && (array_size > 0)) {
+        // Non-empty array of custom structs. `path_update(.., true, true)` has
+        // already pushed the element struct's accumulator (carrying its
+        // typeHash) on top of the stack. The EIP-712 array fold needs a
+        // dedicated array accumulator *below* that element context, into which
+        // each finalized element struct-hash is fed. Splice it in without
+        // touching any keccak state, so previously-absorbed bytes (including
+        // those of an outer array at depth >= 2) are preserved. The earlier
+        // memcpy/re-init juggle corrupted the outer-array and first-element
+        // state for nested arrays such as SaleApproval[2][2], and -- because it
+        // relied on a `blen > 0` "did we hash anything" test -- also dropped
+        // any element whose encoding was an exact multiple of the 136-byte
+        // keccak rate (a 16-field SaleApproval encodes to 544 = 4*136 bytes).
+        if (start_hash_ctx == NULL) {
+            return false;
+        }
+        // The array fold needs a dedicated accumulator spliced immediately BELOW
+        // the ELEMENT struct's context (the context carrying the element struct's
+        // typeHash). path_update descended from start_hash_ctx into the element
+        // struct, so the element struct's context is the FIRST one it pushed,
+        // i.e. start_hash_ctx's immediate successor. We must NOT use
+        // get_last_hash_ctx(): when the element struct's first field is itself a
+        // directly-nested custom struct, path_update keeps descending and pushes
+        // a further (grand-child) context, so get_last_hash_ctx() would point at
+        // the grand-child -- splicing there folds keccak(hashStruct(child)) and
+        // drops the element struct's own child (Class-R regression). Conversely,
+        // for inner levels of a nested array (T[k][k]) path_update pushes nothing
+        // (start == last); there the element accumulator is start itself, so we
+        // splice before start. Rule: element_ctx = successor(start) if anything
+        // was pushed, else start (== last).
+        s_hash_ctx *element_ctx = get_last_hash_ctx();
+        if (element_ctx != start_hash_ctx) {
+            element_ctx = get_next_hash_ctx(start_hash_ctx);
+        }
+        if (insert_array_hash_depth_before(element_ctx) == false) {
+            return false;
+        }
+    } else if (push_new_hash_depth(!is_custom) == false) {
         return false;
-    }
-    if (is_custom) {
+    } else if (is_custom) {
+        // Empty array of custom structs: it contributes keccak256(""). A fresh
+        // (uninitialized) context was just pushed on top; re-initialize it and
+        // the spurious element-struct accumulators path_update descended into
+        // (down to start_hash_ctx) to empty, leaving a single empty array
+        // accumulator that the path unwinding finalizes to keccak256("").
         if (start_hash_ctx == NULL) {
             return false;
         }
         s_hash_ctx *hash_ctx = get_last_hash_ctx();
-        s_hash_ctx *prev_ctx = get_previous_hash_ctx(hash_ctx);
-        while (prev_ctx != start_hash_ctx) {
-            if ((hash_ctx == NULL) || (prev_ctx == NULL)) return false;
-
-            if (array_size > 0) {
-                memcpy(&hash_ctx->hash, &prev_ctx->hash, sizeof(prev_ctx->hash));
-            } else {
-                if (cx_keccak_init_no_throw((cx_sha3_t *) &hash_ctx->hash, 256) != CX_OK) {
-                    return false;
-                }
-            }
-            if (cx_keccak_init_no_throw((cx_sha3_t *) &prev_ctx->hash, 256) != CX_OK) {
+        while ((hash_ctx != NULL) && (hash_ctx != start_hash_ctx)) {
+            if (cx_keccak_init_no_throw((cx_sha3_t *) &hash_ctx->hash, 256) != CX_OK) {
                 return false;
             }
-
-            hash_ctx = prev_ctx;
-            prev_ctx = get_previous_hash_ctx(hash_ctx);
-        }
-        if (cx_keccak_init_no_throw((cx_sha3_t *) &hash_ctx->hash, 256) != CX_OK) {
-            return false;
+            hash_ctx = get_previous_hash_ctx(hash_ctx);
         }
     }
     if (array_size == 0) {
+        // Unwind the (now-empty) array level(s).
+        //
+        // EMPTY SCALAR array: pass do_typehash=true so that if the field
+        // IMMEDIATELY FOLLOWING it is a custom struct, path_advance->path_update
+        // descends into that struct and feeds its leading typeHash. The original
+        // `path_advance(false)` opened the following struct's hash depth WITHOUT
+        // its typeHash, so its hashStruct was computed over its encoded fields
+        // alone (missing the typeHash), corrupting the message hash whenever an
+        // empty scalar dynamic array was followed by a custom-struct field (e.g.
+        // Class C: S0{uint256[] a = [], S1 b}). A scalar/bytes/string/nested-array
+        // following field does not open a struct depth, so the flag is a no-op
+        // for those.
+        //
+        // EMPTY CUSTOM-struct array: keep do_typehash=false here. path_update has
+        // already descended into the element struct during setup (above), so an
+        // unwind with do_typehash=true would re-enter that element and hash its
+        // (non-existent) fields, corrupting the fold. With do_typehash=false the
+        // empty array is correctly folded as keccak256(""). However, when the
+        // field FOLLOWING the array is itself a custom struct, this same unwind
+        // descends into that following struct reusing the now-empty element
+        // accumulator WITHOUT feeding the struct's typeHash (Class-C custom
+        // variant, e.g. Batch{Call[] calls = [], Meta meta}). We repair that
+        // below, after the unwind, by feeding the missing typeHash into the freshly
+        // descended struct's (empty) accumulator.
+        const bool unwind_typehash = !is_custom;
         do {
-            path_advance(false);
+            path_advance(unwind_typehash);
         } while (path_struct->array_depth_count > array_depth_count_bak);
+
+        if (is_custom) {
+            // The do_typehash=false unwind correctly folds the empty array as
+            // keccak256(""), but because it descends into the next struct the path
+            // reaches WITHOUT feeding a typeHash, any custom struct the unwind
+            // opened ends up with a typeHash-less accumulator. This happens for:
+            //   * a custom-struct field IMMEDIATELY FOLLOWING the array
+            //       (Class C custom: Batch{Call[] calls = [], Meta meta}),
+            //   * its directly-nested leading custom structs, AND
+            //   * a SIBLING custom struct reached after the array's *enclosing*
+            //       struct is closed by the unwind
+            //       (S0{S2 a, S2 b}; S2{S3[] x}; a.x = [], b.x = []), where the
+            //       enclosing struct's accumulator is re-used for the sibling.
+            // Repair every such depth: walk the path from the current
+            // (deepest) depth upward; while the depth's opening field is a custom
+            // struct and its accumulator still lacks its leading typeHash
+            // (blen == 0 && counter == 0), feed that struct's typeHash so its
+            // hashStruct is keccak256(typeHash || encodedFields) as EIP-712 requires.
+            // Stop at the first depth whose accumulator is already populated (its
+            // typeHash, or the folded keccak256("") of the empty array, is present)
+            // -- nothing above it was reopened by this unwind. The walk maps each
+            // depth to its accumulator from the top of the stack downward, which is
+            // correct because the empty array's own accumulator(s) have been
+            // finalized and removed, so the remaining contexts are exactly the
+            // open struct depths.
+            s_hash_ctx *ctx = get_last_hash_ctx();
+            for (uint8_t d = path_struct->depth_count; (d >= 2) && (ctx != NULL); --d) {
+                if ((ctx->hash.blen != 0) || (ctx->hash.header.counter != 0)) {
+                    break;
+                }
+                const s_struct_712_field *opener = get_nth_field(NULL, d - 1);
+                if ((opener == NULL) || (opener->type != TYPE_CUSTOM)) {
+                    break;
+                }
+                const char *typename = get_struct_field_typename(opener);
+                uint8_t hash[KECCAK256_HASH_BYTESIZE];
+                if (type_hash(typename, strlen(typename), hash) == false) {
+                    return false;
+                }
+                if (cx_hash_no_throw((cx_hash_t *) &ctx->hash,
+                                     0,
+                                     hash,
+                                     KECCAK256_HASH_BYTESIZE,
+                                     NULL,
+                                     0) != CX_OK) {
+                    return false;
+                }
+                ctx = get_previous_hash_ctx(ctx);
+            }
+        }
     }
 
     return true;

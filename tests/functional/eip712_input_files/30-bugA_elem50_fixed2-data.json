@@ -21,10 +21,10 @@
     "Root": [
       {
         "name": "items",
-        "type": "Elem50[2]"
+        "type": "Elem50T[2]"
       }
     ],
-    "Elem50": [
+    "Elem50T": [
       {
         "name": "a0",
         "type": "uint256"

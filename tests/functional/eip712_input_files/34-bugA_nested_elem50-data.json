@@ -27,10 +27,10 @@
     "Wrap": [
       {
         "name": "e",
-        "type": "Elem50"
+        "type": "Elem50T"
       }
     ],
-    "Elem50": [
+    "Elem50T": [
       {
         "name": "a0",
         "type": "uint256"

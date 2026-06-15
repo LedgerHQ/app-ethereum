@@ -18,24 +18,24 @@
         "type": "address"
       }
     ],
-    "S0": [
+    "S0T": [
       {
         "name": "a",
         "type": "bytes4[]"
       },
       {
         "name": "b",
-        "type": "S2"
+        "type": "S2T"
       }
     ],
-    "S2": [
+    "S2T": [
       {
         "name": "x",
         "type": "uint64"
       }
     ]
   },
-  "primaryType": "S0",
+  "primaryType": "S0T",
   "domain": {
     "name": "Ledger EIP712 parity",
     "version": "1",

@@ -101,6 +101,7 @@ typedef struct publicKeyContext_t {
 typedef struct transactionContext_t {
     bip32_path_t bip32;
     uint8_t hash[INT256_LENGTH];
+    uint8_t sign_mode;  // e_sign_mode captured at P1_FIRST, pinned for the lifetime of the flow
 } transactionContext_t;
 
 typedef struct messageSigningContext_t {

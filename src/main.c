@@ -88,7 +88,6 @@ void reset_app_context(void) {
         message_cleanup();
     }
     eip712_v1_context_deinit();
-    appState = APP_STATE_IDLE;
     G_called_from_swap = false;
     G_swap_response_ready = false;
     G_swap_checked = false;
@@ -114,6 +113,10 @@ void reset_app_context(void) {
     ui_all_cleanup();
     proxy_cleanup();
     clear_gating();
+    if (appState != APP_STATE_IDLE) {
+        ui_idle();
+        appState = APP_STATE_IDLE;
+    }
 }
 
 void app_quit(void) {

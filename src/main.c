@@ -110,13 +110,13 @@ void reset_app_context(void) {
     memset((uint8_t *) &txContext, 0, sizeof(txContext));
     memset((uint8_t *) &tmpContent, 0, sizeof(tmpContent));
     clear_safe_account();
-    ui_all_cleanup();
-    proxy_cleanup();
-    clear_gating();
     if (appState != APP_STATE_IDLE) {
         ui_idle();
         appState = APP_STATE_IDLE;
     }
+    ui_all_cleanup();
+    proxy_cleanup();
+    clear_gating();
 }
 
 void app_quit(void) {

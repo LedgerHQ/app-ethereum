@@ -138,6 +138,7 @@ typedef union {
 
 typedef enum {
     APP_STATE_IDLE,
+    APP_STATE_VERIFYING_ADDRESS,
     APP_STATE_SIGNING_TX,
     APP_STATE_SIGNING_MESSAGE,
     APP_STATE_PREPARING_EIP712,  // STRUCT_DEF received, UI not yet started

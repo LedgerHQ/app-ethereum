@@ -15,7 +15,9 @@ uint16_t handle_get_public_key(uint8_t p1,
     uint64_t chain_id;
 
     if (!G_called_from_swap) {
-        reset_app_context();
+        if (appState != APP_STATE_IDLE) {
+            return SWO_COMMAND_NOT_ALLOWED;
+        }
     }
 
     if ((p1 != P1_CONFIRM) && (p1 != P1_NON_CONFIRM)) {
@@ -70,6 +72,7 @@ uint16_t handle_get_public_key(uint8_t p1,
              "0x%.*s",
              40,
              tmpCtx.publicKeyContext.address);
+    appState = APP_STATE_VERIFYING_ADDRESS;
     ui_display_public_key(&chain_id);
     // Return code will be sent after UI approve/cancel
     return SWO_NO_RESPONSE;

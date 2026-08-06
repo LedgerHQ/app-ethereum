@@ -4,6 +4,9 @@
 #include "common_ui.h"
 
 unsigned int io_seproxyhal_touch_signMessage_ok(void) {
+    if (appState != APP_STATE_SIGNING_MESSAGE) {
+        return io_seproxyhal_send_status(SWO_CONDITIONS_NOT_SATISFIED, 0, true, false);
+    }
     unsigned int info = 0;
     CX_ASSERT(bip32_derive_ecdsa_sign_rs_hash_256(CX_CURVE_256K1,
                                                   tmpCtx.messageSigningContext.bip32.path,

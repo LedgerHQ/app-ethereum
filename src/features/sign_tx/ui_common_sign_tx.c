@@ -6,6 +6,9 @@
 #include "common_ui.h"
 
 uint32_t io_seproxyhal_touch_tx_ok(void) {
+    if (appState != APP_STATE_SIGNING_TX) {
+        return io_seproxyhal_send_status(SWO_CONDITIONS_NOT_SATISFIED, 0, true, false);
+    }
     uint32_t info = 0;
     int err = 0;
     CX_ASSERT(bip32_derive_ecdsa_sign_rs_hash_256(CX_CURVE_256K1,

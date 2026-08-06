@@ -73,7 +73,9 @@ uint16_t handle_get_eth2_public_key(uint8_t p1,
     cx_err_t error = CX_INTERNAL_ERROR;
 
     if (!G_called_from_swap) {
-        reset_app_context();
+        if (appState != APP_STATE_IDLE) {
+            return SWO_COMMAND_NOT_ALLOWED;
+        }
     }
     if ((p1 != P1_CONFIRM) && (p1 != P1_NON_CONFIRM)) {
         return SWO_WRONG_P1_P2;
@@ -94,6 +96,7 @@ uint16_t handle_get_eth2_public_key(uint8_t p1,
         *tx = set_result_get_eth2_publicKey();
         return SWO_SUCCESS;
     }
+    appState = APP_STATE_VERIFYING_ADDRESS;
     ui_display_public_eth2();
     // Return code will be sent after UI approve/cancel
     error = 0;

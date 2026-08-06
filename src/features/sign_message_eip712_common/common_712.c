@@ -94,7 +94,7 @@ void eip712_format_hash(uint8_t index) {
  * @return boolean indicating success or failure
  */
 bool ui_712_start(e_eip712_filtering_mode filtering) {
-    if (appState != APP_STATE_IDLE) {
+    if (appState != APP_STATE_IDLE && appState != APP_STATE_PREPARING_EIP712) {
         reset_app_context();
     }
     appState = APP_STATE_SIGNING_EIP712;

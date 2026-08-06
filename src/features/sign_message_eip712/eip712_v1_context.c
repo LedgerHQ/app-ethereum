@@ -33,6 +33,7 @@ bool eip712_v1_context_init(void) {
         return false;
     }
 
+    appState = APP_STATE_PREPARING_EIP712;
     return true;
 }
 

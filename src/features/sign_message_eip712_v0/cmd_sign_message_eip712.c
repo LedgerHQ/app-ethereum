@@ -8,7 +8,7 @@ uint16_t handle_sign_eip712_message_v0(uint8_t p1, const uint8_t *workBuffer, ui
         return SWO_WRONG_P1_P2;
     }
     if (appState != APP_STATE_IDLE) {
-        reset_app_context();
+        return SWO_COMMAND_NOT_ALLOWED;
     }
 
     if (!N_storage.dataAllowed) {

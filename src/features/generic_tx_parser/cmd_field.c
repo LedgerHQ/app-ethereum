@@ -50,8 +50,11 @@ uint16_t handle_field(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *payload
     }
 
     if (get_current_tx_info() == NULL) {
+        // Do NOT call gcs_cleanup() here: if a GCS review is currently shown,
+        // gcs_cleanup() frees g_pairs/g_pairsList while NBGL still holds
+        // pointers to them, causing a crash.
+        // Cleanup is handled in the approve/reject callbacks and in reset_app_context().
         PRINTF("Error: Field received without a TX info!\n");
-        gcs_cleanup();
         return SWO_COMMAND_NOT_ALLOWED;
     }
 

@@ -113,7 +113,7 @@ uint16_t handle_perform_privacy_operation(uint8_t p1,
                strings.common.fullAmount,
                sizeof(strings.common.fullAmount) - 1);
 
-    appState = APP_STATE_VERIFYING_ADDRESS;
+    appState = APP_STATE_PERFORMING_PRIVACY_OP;
     if (p2 == P2_PUBLIC_ENCRYPTION_KEY) {
         ui_display_privacy_public_key();
     } else {

@@ -128,6 +128,10 @@ uint16_t handle_sign(uint8_t p1, uint8_t p2, const uint8_t *payload, uint8_t len
                         PRINTF("Signature not initialized\n");
                         return SWO_COMMAND_NOT_ALLOWED;
                     }
+                    if (p2 != (e_sign_mode) tmpCtx.transactionContext.sign_mode) {
+                        PRINTF("P2 mismatch on continuation chunk\n");
+                        return SWO_WRONG_P1_P2;
+                    }
                     break;
                 default:
                     return SWO_WRONG_P1_P2;

@@ -156,13 +156,13 @@ static int reset(void **state) {
 // Tests — handle_get_public_key
 // =============================================================================
 
-static void test_resets_app_context_when_not_from_swap(void **state) {
+static void test_no_reset_when_idle_and_not_from_swap(void **state) {
     (void) state;
     uint8_t apdu[64];
     size_t len = build_apdu(apdu, sizeof(apdu), false, 0);
     unsigned int tx = 0;
     (void) handle_get_public_key(P1_NON_CONFIRM, P2_NO_CHAINCODE, apdu, (uint8_t) len, &tx);
-    assert_int_equal(g_reset_calls, 1);
+    assert_int_equal(g_reset_calls, 0);
 }
 
 static void test_skips_reset_when_called_from_swap(void **state) {
@@ -337,7 +337,7 @@ static void test_get_public_key_happy_path(void **state) {
 
 int main(void) {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test_setup(test_resets_app_context_when_not_from_swap, reset),
+        cmocka_unit_test_setup(test_no_reset_when_idle_and_not_from_swap, reset),
         cmocka_unit_test_setup(test_skips_reset_when_called_from_swap, reset),
         cmocka_unit_test_setup(test_invalid_p1_rejected, reset),
         cmocka_unit_test_setup(test_invalid_p2_rejected, reset),

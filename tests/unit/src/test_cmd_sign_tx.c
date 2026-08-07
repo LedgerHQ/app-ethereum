@@ -245,14 +245,15 @@ static void test_first_no_tx_byte_after_bip32_rejected(void **state) {
     assert_int_equal(sw, SWO_INCORRECT_DATA);
 }
 
-static void test_first_resets_when_app_not_idle(void **state) {
+static void test_first_rejected_when_app_not_idle(void **state) {
     (void) state;
     appState = APP_STATE_SIGNING_MESSAGE;  // stale
     uint8_t apdu[64];
     size_t len = build_first(apdu, sizeof(apdu), 0x02, true);
-    (void) handle_sign(P1_FIRST, 0, apdu, (uint8_t) len);
-    assert_int_equal(g_reset_app_calls, 1);
-    assert_int_equal(appState, APP_STATE_SIGNING_TX);
+    uint16_t sw = handle_sign(P1_FIRST, 0, apdu, (uint8_t) len);
+    assert_int_equal(sw, SWO_COMMAND_NOT_ALLOWED);
+    assert_int_equal(g_reset_app_calls, 0);
+    assert_int_equal(appState, APP_STATE_SIGNING_MESSAGE);
 }
 
 static void test_first_idle_does_not_reset(void **state) {
@@ -426,7 +427,7 @@ int main(void) {
         cmocka_unit_test_setup(test_start_flow_with_nonzero_length_rejected, reset),
         cmocka_unit_test_setup(test_first_bad_bip32_rejected, reset),
         cmocka_unit_test_setup(test_first_no_tx_byte_after_bip32_rejected, reset),
-        cmocka_unit_test_setup(test_first_resets_when_app_not_idle, reset),
+        cmocka_unit_test_setup(test_first_rejected_when_app_not_idle, reset),
         cmocka_unit_test_setup(test_first_idle_does_not_reset, reset),
         cmocka_unit_test_setup(test_typed_tx_eip2930, reset),
         cmocka_unit_test_setup(test_typed_tx_eip1559, reset),

@@ -163,8 +163,7 @@ static void test_p1_first_rejected_when_not_idle(void **state) {
     size_t len = build_first_apdu(data, sizeof(data), 4, (uint8_t *) "ping", 4);
     uint16_t sw = handle_sign_personal_message(P1_FIRST, data, (uint8_t) len);
     assert_int_equal(sw, SWO_COMMAND_NOT_ALLOWED);
-    // The handler must clean up rather than leaving residual state.
-    assert_int_equal(g_ui_idle_calls, 1);
+    assert_int_equal(g_ui_idle_calls, 0);
 }
 
 static void test_p1_unknown_rejected(void **state) {
@@ -301,9 +300,8 @@ static void test_cleanup_after_p1_first_when_busy(void **state) {
     size_t len = build_first_apdu(data, sizeof(data), 4, (uint8_t *) "ping", 4);
     uint16_t sw = handle_sign_personal_message(P1_FIRST, data, (uint8_t) len);
     assert_int_equal(sw, SWO_COMMAND_NOT_ALLOWED);
-    // After the rejection the appState was NOT bumped to SIGNING_MESSAGE,
-    // and ui_idle was invoked.
-    assert_int_equal(g_ui_idle_calls, 1);
+    // After the rejection appState was NOT bumped to SIGNING_MESSAGE.
+    assert_int_equal(g_ui_idle_calls, 0);
 }
 
 static void test_message_cleanup_safe_when_nothing_allocated(void **state) {

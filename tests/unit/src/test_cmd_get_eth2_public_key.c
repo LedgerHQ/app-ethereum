@@ -157,6 +157,7 @@ static int reset(void **state) {
     g_math_cmp_diff = 0;
     g_math_mult_ret = CX_OK;
     memset(&tmpCtx, 0, sizeof(tmpCtx));
+    appState = APP_STATE_IDLE;
     G_called_from_swap = false;
     return 0;
 }
@@ -169,7 +170,6 @@ static void test_wrong_p1_rejected(void **state) {
     (void) state;
     unsigned int tx = 0;
     assert_int_equal(handle_get_eth2_public_key(0xFF, 0, (uint8_t *) "", 0, &tx), SWO_WRONG_P1_P2);
-    assert_int_equal(g_reset_calls, 1);
 }
 
 static void test_wrong_p2_rejected(void **state) {

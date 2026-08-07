@@ -30,6 +30,7 @@ static bool handle_tlv_payload(const buffer_t *buf) {
     }
     if (cx_hash_no_throw(get_fields_hash_ctx(), 0, buf->ptr, buf->size, NULL, 0) != CX_OK) {
         PRINTF("Error: could not hash the field struct!\n");
+        cleanup_field(&field);
         return false;
     }
     while (((appState == APP_STATE_SIGNING_EIP712) || !tx_ctx_is_root()) &&

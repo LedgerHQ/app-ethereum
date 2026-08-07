@@ -227,9 +227,9 @@ static void test_field_no_tx_info_triggers_cleanup(void **state) {
     appState = APP_STATE_SIGNING_TX;
     g_tx_info_ret = NULL;
     assert_int_equal(handle_field(P1_FIRST_CHUNK, 0, 0, NULL), SWO_COMMAND_NOT_ALLOWED);
-    // The "no tx_info" branch invokes gcs_cleanup to drop any half-built
-    // state before refusing the APDU.
-    assert_int_equal(g_gcs_cleanup_calls, 1);
+    // gcs_cleanup must NOT be called here: if a GCS review is on-screen,
+    // calling it would free buffers that NBGL still holds, causing a crash.
+    assert_int_equal(g_gcs_cleanup_calls, 0);
 }
 
 // =============================================================================

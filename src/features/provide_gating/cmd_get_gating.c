@@ -407,9 +407,14 @@ static bool handle_tlv_payload(const buffer_t *buf) {
 uint16_t handle_gating(uint8_t p1, uint8_t p2, const uint8_t *data, uint8_t length) {
     uint16_t sw = SWO_PARAMETER_ERROR_NO_INFO;
 
-    if ((appState != APP_STATE_SIGNING_TX) && (appState != APP_STATE_SIGNING_EIP712) &&
-        (appState != APP_STATE_PREPARING_EIP712)) {
-        return SWO_COMMAND_NOT_ALLOWED;
+    switch (appState) {
+        case APP_STATE_IDLE:
+        case APP_STATE_SIGNING_TX:
+        case APP_STATE_SIGNING_EIP712:
+        case APP_STATE_PREPARING_EIP712:
+            break;
+        default:
+            return SWO_COMMAND_NOT_ALLOWED;
     }
 
     switch (p2) {

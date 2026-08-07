@@ -151,6 +151,7 @@ static size_t build_apdu(uint8_t *out, size_t out_size, bool include_peer_key) {
 
 static int reset(void **state) {
     (void) state;
+    appState = APP_STATE_IDLE;
     g_parsebip32_force_null = false;
     g_init_priv_ret = CX_OK;
     g_gen_pair_ret = CX_OK;

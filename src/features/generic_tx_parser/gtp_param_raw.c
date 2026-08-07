@@ -319,7 +319,18 @@ static bool format_string(const s_field *field,
                           const s_parsed_value *value,
                           char *buf,
                           size_t buf_size) {
-    str_cpy_explicit_trunc((char *) value->ptr, value->length, buf, buf_size);
+    if (value->length + 1 > buf_size) {
+        PRINTF("RAW STRING value too long for display (%u > %u bytes)\n",
+               (unsigned) value->length + 1,
+               (unsigned) buf_size);
+        return false;
+    }
+    if (memchr(value->ptr, '\0', value->length) != NULL) {
+        PRINTF("RAW STRING value contains embedded NUL\n");
+        return false;
+    }
+    memmove(buf, value->ptr, value->length);
+    buf[value->length] = '\0';
     return apply_visibility_constraint(field,
                                        to_be_displayed,
                                        check_string_constraint(field, value));

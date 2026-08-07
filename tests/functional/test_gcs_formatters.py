@@ -1216,3 +1216,151 @@ def test_gcs_raw_bytes_oversize_rejected(scenario_navigator: NavigateWithScenari
         for field in fields:
             app_client.provide_transaction_field_desc(field.serialize())
     assert err.value.status == StatusWord.SWO_INCORRECT_DATA
+
+
+def test_gcs_raw_string_oversize_rejected(scenario_navigator: NavigateWithScenario):
+    """A PARAM_TYPE_RAW + TypeFamily.STRING field whose value fills the on-device
+    display buffer (380 bytes) must be refused — no room for the NUL terminator —
+    instead of silently truncated. Without this rejection the user would sign a
+    hash computed over the full value while only a prefix is shown on screen."""
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    # 380 bytes → length + 1 = 381 > 380-byte display buffer, triggers rejection.
+    oversize_string = bytes(range(256)) + bytes(range(124))
+
+    with open(f"{ABIS_FOLDER}/poap.abi.json", encoding="utf-8") as file:
+        contract = Web3().eth.contract(abi=json.load(file), address=None)
+    data = contract.encode_abi(
+        "mintToken",
+        [
+            175676,
+            7163978,
+            bytes.fromhex("Dad77910DbDFdE764fC21FCD4E74D71bBACA6D8D"),
+            1730621615,
+            oversize_string,
+        ],
+    )
+    tx_params = {
+        "nonce": 235,
+        "maxFeePerGas": Web3.to_wei(100, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(10, "gwei"),
+        "gas": 44001,
+        "to": bytes.fromhex("0bb4D3e88243F4A057Db77341e6916B0e449b158"),
+        "data": data,
+        "chainId": 1,
+    }
+
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/poap.abi.json", "mintToken")
+    fields = [
+        Field(
+            1,
+            "Memo",
+            ParamRaw(
+                1,
+                Value(
+                    1,
+                    TypeFamily.STRING,
+                    data_path=DataPath(1, param_paths["signature"]),
+                ),
+            ),
+        ),
+    ]
+
+    inst_hash = compute_inst_hash(fields)
+    tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        tx_params["to"],
+        get_selector_from_data(tx_params["data"]),
+        inst_hash,
+        "mint POAP",
+        creator_name="POAP",
+        creator_legal_name="Proof of Attendance Protocol",
+        creator_url="poap.xyz",
+        contract_name="PoapBridge",
+        deploy_date=1646305200,
+    )
+
+    app_client.provide_transaction_info(tx_info.serialize())
+
+    with pytest.raises(ExceptionRAPDU) as err:
+        for field in fields:
+            app_client.provide_transaction_field_desc(field.serialize())
+    assert err.value.status == StatusWord.SWO_INCORRECT_DATA
+
+
+def test_gcs_raw_string_embedded_nul_rejected(scenario_navigator: NavigateWithScenario):
+    """A PARAM_TYPE_RAW + TypeFamily.STRING field containing an embedded NUL byte
+    must be refused. An embedded NUL would silently truncate the on-screen display
+    at the NUL while the full byte sequence remains in the instruction hash,
+    allowing a host to hide arbitrary trailing content from the review screen."""
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    # b"hello\x00world": the NUL at index 5 would hide " world" from the screen.
+    nul_string = b"hello\x00world"
+
+    with open(f"{ABIS_FOLDER}/poap.abi.json", encoding="utf-8") as file:
+        contract = Web3().eth.contract(abi=json.load(file), address=None)
+    data = contract.encode_abi(
+        "mintToken",
+        [
+            175676,
+            7163978,
+            bytes.fromhex("Dad77910DbDFdE764fC21FCD4E74D71bBACA6D8D"),
+            1730621615,
+            nul_string,
+        ],
+    )
+    tx_params = {
+        "nonce": 235,
+        "maxFeePerGas": Web3.to_wei(100, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(10, "gwei"),
+        "gas": 44001,
+        "to": bytes.fromhex("0bb4D3e88243F4A057Db77341e6916B0e449b158"),
+        "data": data,
+        "chainId": 1,
+    }
+
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/poap.abi.json", "mintToken")
+    fields = [
+        Field(
+            1,
+            "Memo",
+            ParamRaw(
+                1,
+                Value(
+                    1,
+                    TypeFamily.STRING,
+                    data_path=DataPath(1, param_paths["signature"]),
+                ),
+            ),
+        ),
+    ]
+
+    inst_hash = compute_inst_hash(fields)
+    tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        tx_params["to"],
+        get_selector_from_data(tx_params["data"]),
+        inst_hash,
+        "mint POAP",
+        creator_name="POAP",
+        creator_legal_name="Proof of Attendance Protocol",
+        creator_url="poap.xyz",
+        contract_name="PoapBridge",
+        deploy_date=1646305200,
+    )
+
+    app_client.provide_transaction_info(tx_info.serialize())
+
+    with pytest.raises(ExceptionRAPDU) as err:
+        for field in fields:
+            app_client.provide_transaction_field_desc(field.serialize())
+    assert err.value.status == StatusWord.SWO_INCORRECT_DATA

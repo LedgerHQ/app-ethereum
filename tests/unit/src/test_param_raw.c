@@ -1079,6 +1079,58 @@ static void test_raw_string_if_not_in_no_match(void **state) {
     free(constraint);
 }
 
+/**
+ * @brief A STRING whose byte count fills the display buffer (no room for NUL) is rejected.
+ *
+ * format_string must return false so the field is dropped from the review
+ * instead of being silently truncated on screen while the full value is hashed.
+ */
+static void test_raw_string_oversize_rejected(void **state) {
+    (void) state;
+
+    // Set constant.size = SHARED_CTX_FIELD_1_SIZE (380): value->length + 1 > buf_size.
+    // format_string rejects before reading any content, so the fact that only 32
+    // constant-buf bytes are backing the declared length cannot cause an overread.
+    s_param_raw param = {.version = 1,
+                         .value = {.type_family = TF_STRING,
+                                   .source = SOURCE_CONSTANT,
+                                   .constant = {.size = SHARED_CTX_FIELD_1_SIZE}}};
+    memset(param.value.constant.buf, 'A', sizeof(param.value.constant.buf));
+
+    s_field field = {.param_type = PARAM_TYPE_RAW,
+                     .visibility = PARAM_VISIBILITY_ALWAYS,
+                     .constraints = NULL,
+                     .param_raw = param,
+                     .name = "Message"};
+
+    assert_false(format_param_raw(&field));
+}
+
+/**
+ * @brief A STRING containing an embedded NUL byte is rejected.
+ *
+ * An embedded NUL would cause the screen to display only the prefix while
+ * the full byte sequence is included in the instruction hash.
+ */
+static void test_raw_string_embedded_nul_rejected(void **state) {
+    (void) state;
+
+    static const uint8_t nul_str[] = {'h', 'e', 'l', '\0', 'o'};
+    s_param_raw param = {.version = 1,
+                         .value = {.type_family = TF_STRING,
+                                   .source = SOURCE_CONSTANT,
+                                   .constant = {.size = sizeof(nul_str)}}};
+    memcpy(param.value.constant.buf, nul_str, sizeof(nul_str));
+
+    s_field field = {.param_type = PARAM_TYPE_RAW,
+                     .visibility = PARAM_VISIBILITY_ALWAYS,
+                     .constraints = NULL,
+                     .param_raw = param,
+                     .name = "Message"};
+
+    assert_false(format_param_raw(&field));
+}
+
 // =============================================================================
 // Test cases - SOURCE_MAP_REF
 // =============================================================================
@@ -1315,6 +1367,8 @@ int main(void) {
         cmocka_unit_test(test_raw_string_must_be_invalid),
         cmocka_unit_test(test_raw_string_if_not_in_match),
         cmocka_unit_test(test_raw_string_if_not_in_no_match),
+        cmocka_unit_test(test_raw_string_oversize_rejected),
+        cmocka_unit_test(test_raw_string_embedded_nul_rejected),
 
         // MAP_REF tests
         cmocka_unit_test(test_raw_map_ref_found),

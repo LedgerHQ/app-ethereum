@@ -17,17 +17,19 @@ static bool handle_tlv_payload(const buffer_t *buf) {
         cleanup_field(&field);
         return false;
     }
-    if (cx_hash_no_throw(get_fields_hash_ctx(), 0, buf->ptr, buf->size, NULL, 0) != CX_OK) {
-        PRINTF("Error: could not hash the field struct!\n");
-        cleanup_field(&field);
-        return false;
-    }
     if (!verify_field_struct(&ctx)) {
         PRINTF("Error: could not verify the field struct!\n");
         cleanup_field(&field);
         return false;
     }
+    // Hash only after formatting succeeds: a field that fails formatting must
+    // not contribute to the instruction hash, otherwise it would be absent from
+    // the displayed review but still included in the signed digest.
     if (!format_field(&field, 0)) {
+        return false;
+    }
+    if (cx_hash_no_throw(get_fields_hash_ctx(), 0, buf->ptr, buf->size, NULL, 0) != CX_OK) {
+        PRINTF("Error: could not hash the field struct!\n");
         return false;
     }
     while (((appState == APP_STATE_SIGNING_EIP712) || !tx_ctx_is_root()) &&

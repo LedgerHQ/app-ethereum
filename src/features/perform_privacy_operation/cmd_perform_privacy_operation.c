@@ -34,6 +34,10 @@ uint16_t handle_perform_privacy_operation(uint8_t p1,
     bip32_path_t bip32;
     cx_err_t error = CX_INTERNAL_ERROR;
 
+    if (appState != APP_STATE_IDLE) {
+        return SWO_COMMAND_NOT_ALLOWED;
+    }
+
     if ((p1 != P1_CONFIRM) && (p1 != P1_NON_CONFIRM)) {
         return SWO_WRONG_P1_P2;
     }
@@ -109,6 +113,7 @@ uint16_t handle_perform_privacy_operation(uint8_t p1,
                strings.common.fullAmount,
                sizeof(strings.common.fullAmount) - 1);
 
+    appState = APP_STATE_VERIFYING_ADDRESS;
     if (p2 == P2_PUBLIC_ENCRYPTION_KEY) {
         ui_display_privacy_public_key();
     } else {

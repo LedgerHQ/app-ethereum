@@ -8,6 +8,9 @@
 
 uint16_t handle_set_external_plugin(const uint8_t *workBuffer, uint8_t dataLength) {
     PRINTF("Handling set Plugin\n");
+    if (appState != APP_STATE_IDLE) {
+        return SWO_COMMAND_NOT_ALLOWED;
+    }
     uint8_t hash[INT256_LENGTH];
     uint8_t pluginNameLength = *workBuffer;
     uint32_t params[2];

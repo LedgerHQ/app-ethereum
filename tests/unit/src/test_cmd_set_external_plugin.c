@@ -122,6 +122,7 @@ static size_t build_apdu(uint8_t *out, size_t out_size, const s_opts *opts) {
 
 static int reset(void **state) {
     (void) state;
+    appState = APP_STATE_IDLE;
     memset(&dataContext, 0, sizeof(dataContext));
     pluginType = PLUGIN_TYPE_NONE;
     g_sig_check_ret = true;
@@ -219,12 +220,24 @@ static void test_happy_path_binds_chain_id_any(void **state) {
     assert_int_equal(dataContext.tokenContext.pluginChainId, PLUGIN_CHAIN_ID_ANY);
 }
 
+static void test_rejected_when_app_not_idle(void **state) {
+    (void) state;
+    uint8_t apdu[200];
+    s_opts opts = default_opts();
+    size_t len = build_apdu(apdu, sizeof(apdu), &opts);
+    appState = APP_STATE_SIGNING_TX;
+    uint16_t sw = handle_set_external_plugin(apdu, (uint8_t) len);
+    assert_int_equal(sw, SWO_COMMAND_NOT_ALLOWED);
+    assert_int_equal(pluginType, PLUGIN_TYPE_NONE);
+}
+
 // =============================================================================
 // Runner
 // =============================================================================
 
 int main(void) {
     const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup(test_rejected_when_app_not_idle, reset),
         cmocka_unit_test_setup(test_empty_plugin_name_rejected, reset),
         cmocka_unit_test_setup(test_payload_too_small_rejected, reset),
         cmocka_unit_test_setup(test_name_too_long_rejected, reset),

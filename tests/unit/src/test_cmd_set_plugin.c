@@ -59,6 +59,7 @@ bool __wrap_app_compatible_with_chain_id(const uint64_t *chain_id) {
 
 static int reset(void **state) {
     (void) state;
+    appState = APP_STATE_IDLE;
     memset(&dataContext, 0, sizeof(dataContext));
     pluginType = PLUGIN_TYPE_NONE;
     g_chain_compatible_ret = true;
@@ -409,12 +410,22 @@ static void test_data_too_short_for_sig_length_byte_rejected(void **state) {
 // test_cmd_set_plugin_staging (HAVE_NFT_STAGING_KEY defined so the
 // non-PROD key is accepted -- the PROD key forbids non-NFT plugins).
 
+static void test_rejected_when_app_not_idle(void **state) {
+    (void) state;
+    uint8_t payload[8] = {0x01, 0x01, 0x06};
+    appState = APP_STATE_SIGNING_TX;
+    uint16_t sw = handle_set_plugin(payload, 3);
+    assert_int_equal(sw, SWO_COMMAND_NOT_ALLOWED);
+    assert_int_equal(pluginType, PLUGIN_TYPE_NONE);
+}
+
 // =============================================================================
 // Runner
 // =============================================================================
 
 int main(void) {
     const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup(test_rejected_when_app_not_idle, reset),
         cmocka_unit_test_setup(test_happy_path_erc721_registers, reset),
         cmocka_unit_test_setup(test_happy_path_erc1155_registers, reset),
         cmocka_unit_test_setup(test_header_too_small_rejected, reset),

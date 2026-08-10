@@ -83,6 +83,7 @@ static size_t build_external_payload(uint8_t *out,
 
 static int reset(void **state) {
     (void) state;
+    appState = APP_STATE_IDLE;
     memset(&dataContext, 0, sizeof(dataContext));
     pluginType = PLUGIN_TYPE_NONE;
     g_sig_check_ret = true;

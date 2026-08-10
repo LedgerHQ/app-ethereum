@@ -174,6 +174,13 @@ uint16_t handle_tx_simulation(uint8_t p1, uint8_t p2, const uint8_t *data, uint8
                 sw = SWO_COMMAND_CODE_NOT_SUPPORTED;
                 break;
             }
+            // Reject a second provisioning to prevent the host from overwriting
+            // the displayed warning after the review is on screen (finding 195).
+            if (G_transaction_check_info.received) {
+                PRINTF("Error: TX simulation already received!\n");
+                sw = SWO_COMMAND_NOT_ALLOWED;
+                break;
+            }
             if (!tlv_from_apdu(p2 == P1_FIRST_CHUNK, length, data, &handle_tlv_payload)) {
                 sw = SWO_INCORRECT_DATA;
             } else {
@@ -181,7 +188,12 @@ uint16_t handle_tx_simulation(uint8_t p1, uint8_t p2, const uint8_t *data, uint8
             }
             break;
         case 0x01:
-            // TX Simulation Opt-In
+            // TX Simulation Opt-In: drawing a new screen while a review is on
+            // screen would overlay the live review (finding 199).
+            if (appState != APP_STATE_IDLE) {
+                sw = SWO_COMMAND_NOT_ALLOWED;
+                break;
+            }
             handle_tx_simulation_opt_in(true);
             sw = SWO_NO_RESPONSE;
             break;

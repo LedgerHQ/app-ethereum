@@ -211,6 +211,7 @@ static void test_p1_opt_in_already_optin_short_circuits(void **state) {
     (void) state;
     g_n_storage_writable.tx_check_opt_in = true;
     g_n_storage_writable.tx_check_enable = true;
+    appState = APP_STATE_IDLE;
     uint8_t data[1] = {0};
     uint16_t sw = handle_tx_simulation(/*p1=*/0x01, /*p2=*/0, data, 1);
     assert_int_equal(sw, SWO_NO_RESPONSE);
@@ -221,11 +222,29 @@ static void test_p1_opt_in_already_optin_short_circuits(void **state) {
 static void test_p1_opt_in_not_yet_optin_calls_ui(void **state) {
     (void) state;
     g_n_storage_writable.tx_check_opt_in = false;
+    appState = APP_STATE_IDLE;
     uint8_t data[1] = {0};
     uint16_t sw = handle_tx_simulation(/*p1=*/0x01, /*p2=*/0, data, 1);
     assert_int_equal(sw, SWO_NO_RESPONSE);
     assert_int_equal(g_ui_opt_in_calls, 1);
     assert_true(g_ui_opt_in_response_expected);
+}
+
+static void test_p1_data_rejected_when_already_received(void **state) {
+    (void) state;
+    assert_true(send_descriptor());
+    // A second provisioning while received==true must be rejected so the host
+    // cannot overwrite the displayed warning after the review is on screen.
+    assert_false(send_descriptor());
+}
+
+static void test_p1_opt_in_rejected_when_app_not_idle(void **state) {
+    (void) state;
+    appState = APP_STATE_SIGNING_TX;
+    uint8_t data[1] = {0};
+    uint16_t sw = handle_tx_simulation(/*p1=*/0x01, /*p2=*/0, data, 1);
+    assert_int_equal(sw, SWO_COMMAND_NOT_ALLOWED);
+    assert_int_equal(g_ui_opt_in_calls, 0);
 }
 
 // =============================================================================
@@ -268,10 +287,12 @@ static void test_get_risk_str_for_each_value(void **state) {
     assert_true(send_descriptor());
     assert_string_equal(get_tx_simulation_risk_str(), "BENIGN");
 
+    clear_tx_simulation();
     g_uc_risk = TRANSACTION_CHECK_RISK_WARNING;
     assert_true(send_descriptor());
     assert_string_equal(get_tx_simulation_risk_str(), "RISK (WARNING)");
 
+    clear_tx_simulation();
     g_uc_risk = TRANSACTION_CHECK_RISK_MALICIOUS;
     assert_true(send_descriptor());
     assert_string_equal(get_tx_simulation_risk_str(), "THREAT (MALICIOUS)");
@@ -291,12 +312,14 @@ static void test_get_category_str_warning_branches(void **state) {
                         "This transaction involves a suspicious address. "
                         "It might not be safe to continue.");
 
+    clear_tx_simulation();
     g_uc_category = TRANSACTION_CHECK_CATEGORY_DAPP;
     assert_true(send_descriptor());
     assert_string_equal(get_tx_simulation_category_str(),
                         "This transaction involves a suspicious dApp. "
                         "It might not be safe to continue.");
 
+    clear_tx_simulation();
     g_uc_category = TRANSACTION_CHECK_CATEGORY_LOSING_OPERATION;
     assert_true(send_descriptor());
     assert_string_equal(get_tx_simulation_category_str(),
@@ -315,6 +338,7 @@ static void test_get_category_str_malicious_branches(void **state) {
                         "This transaction involves a malicious address. "
                         "Your assets will most likely be stolen.");
 
+    clear_tx_simulation();
     g_uc_category = TRANSACTION_CHECK_CATEGORY_DAPP;
     assert_true(send_descriptor());
     assert_string_equal(get_tx_simulation_category_str(),
@@ -422,8 +446,10 @@ int main(void) {
         // APDU dispatcher
         cmocka_unit_test_setup(test_p1_unknown_rejected, reset),
         cmocka_unit_test_setup(test_p1_data_when_checks_disabled_returns_not_supported, reset),
+        cmocka_unit_test_setup(test_p1_data_rejected_when_already_received, reset),
         cmocka_unit_test_setup(test_p1_opt_in_already_optin_short_circuits, reset),
         cmocka_unit_test_setup(test_p1_opt_in_not_yet_optin_calls_ui, reset),
+        cmocka_unit_test_setup(test_p1_opt_in_rejected_when_app_not_idle, reset),
         // App-level validation of SDK output
         cmocka_unit_test_setup(test_sdk_failure_rejects, reset),
         cmocka_unit_test_setup(test_additional_data_rejected, reset),

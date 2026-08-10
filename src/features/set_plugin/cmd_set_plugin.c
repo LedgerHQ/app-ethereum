@@ -69,6 +69,9 @@ void set_swap_with_calldata_plugin_type(void) {
 
 uint16_t handle_set_plugin(const uint8_t *workBuffer, uint8_t dataLength) {
     PRINTF("Handling set Plugin\n");
+    if (appState != APP_STATE_IDLE) {
+        return SWO_COMMAND_NOT_ALLOWED;
+    }
     uint8_t hash[INT256_LENGTH] = {0};
     tokenContext_t *tokenContext = &dataContext.tokenContext;
     size_t offset = 0;

@@ -136,6 +136,13 @@ static int reset(void **state) {
 // Tests
 // =============================================================================
 
+static void test_zero_length_payload_rejected(void **state) {
+    (void) state;
+    uint8_t apdu[1] = {0};
+    uint16_t sw = handle_set_external_plugin(apdu, 0);
+    assert_int_equal(sw, SWO_INCORRECT_DATA);
+}
+
 static void test_empty_plugin_name_rejected(void **state) {
     (void) state;
     uint8_t apdu[100];
@@ -238,6 +245,7 @@ static void test_rejected_when_app_not_idle(void **state) {
 int main(void) {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup(test_rejected_when_app_not_idle, reset),
+        cmocka_unit_test_setup(test_zero_length_payload_rejected, reset),
         cmocka_unit_test_setup(test_empty_plugin_name_rejected, reset),
         cmocka_unit_test_setup(test_payload_too_small_rejected, reset),
         cmocka_unit_test_setup(test_name_too_long_rejected, reset),

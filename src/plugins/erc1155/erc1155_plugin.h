@@ -13,6 +13,10 @@
 // aggregate quantity screen plus a truncation warning so the user is told
 // the on-device view is incomplete.
 #define ERC1155_BATCH_DISPLAY_MAX 3
+// Ensure the FINALIZE screen count (4 base + 2 per pair + 1 truncation) fits
+// in numScreens (uint8_t). Increase ERC1155_BATCH_DISPLAY_MAX with care.
+_Static_assert(4 + 2 * ERC1155_BATCH_DISPLAY_MAX + 1 <= 255,
+               "ERC1155 batch screen count overflows numScreens (uint8_t)");
 
 typedef struct erc1155_context_t {
     uint8_t address[ADDRESS_LENGTH];

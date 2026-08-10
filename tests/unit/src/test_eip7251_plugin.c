@@ -49,6 +49,8 @@ typedef struct {
 // Globals
 // =============================================================================
 
+extern uint64_t g_tx_chain_id;
+
 bool __wrap_amountToString(const uint8_t *amount,
                            uint8_t amount_size,
                            uint8_t decimals,
@@ -198,6 +200,21 @@ static void test_parameter_success_copies_into_context(void **state) {
     assert_int_equal(ctx.received, 32);
     assert_int_equal(ctx.consolidation_request[0], 0x42);
     assert_int_equal(ctx.consolidation_request[31], 0x42);
+}
+
+static void test_finalize_non_mainnet_rejected(void **state) {
+    (void) state;
+    eip7251_context_t ctx = {.received = CONSOLIDATION_REQUEST_SIZE};
+    memset(ctx.source_pubkey, 0xAA, VALIDATOR_PUBKEY_SIZE);
+    memset(ctx.target_pubkey, 0xAA, VALIDATOR_PUBKEY_SIZE);
+    txContent_t tx = {0};
+    ethPluginFinalize_t msg = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.txContent = &tx;
+    g_tx_chain_id = 2;  // not mainnet
+    eip7251_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
+    g_tx_chain_id = 1;  // restore
+    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
 
 static void test_finalize_incomplete_rejected(void **state) {
@@ -383,6 +400,7 @@ int main(void) {
         cmocka_unit_test(test_ui_msg_too_small_returns),
         cmocka_unit_test(test_ui_unknown_screen_returns_no_result_set),
         cmocka_unit_test(test_has_tx_value_length_above_uint64_returns_true),
+        cmocka_unit_test(test_finalize_non_mainnet_rejected),
         cmocka_unit_test(test_finalize_incomplete_rejected),
         cmocka_unit_test(test_finalize_compound_single_screen),
         cmocka_unit_test(test_finalize_consolidate_two_screens),

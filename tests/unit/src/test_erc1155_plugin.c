@@ -142,6 +142,17 @@ static void test_init_unknown_selector_falls_back(void **state) {
 // Tests — PROVIDE_PARAMETER safeTransferFrom
 // =============================================================================
 
+static void test_init_zeroes_stale_context(void **state) {
+    (void) state;
+    erc1155_context_t ctx;
+    memset(&ctx, 0xCC, sizeof(ctx));
+    run_init(&ctx, SEL_SAFE_BATCH);
+    assert_int_equal(ctx.selectorIndex, SAFE_BATCH_TRANSFER);
+    assert_int_equal(ctx.next_param, FROM);
+    assert_int_equal(ctx.batch_displayed, 0);
+    assert_false(ctx.batch_truncated);
+}
+
 static void test_safe_transfer_walk(void **state) {
     (void) state;
     erc1155_context_t ctx = {0};
@@ -224,6 +235,22 @@ static void run_batch_head(erc1155_context_t *ctx,
     // VALUES_OFFSET
     make_abi_u32(param, values_offset_args);
     feed_param(ctx, param, 100);
+}
+
+static void test_batch_empty_ids_skips_to_value_length(void **state) {
+    (void) state;
+    erc1155_context_t ctx = {0};
+    run_init(&ctx, SEL_SAFE_BATCH);
+    run_batch_head(&ctx, 128, 224);
+    assert_int_equal(ctx.next_param, TOKEN_IDS_LENGTH);
+
+    uint8_t param[PARAMETER_LENGTH];
+    // ids array length = 0: must go to VALUE_LENGTH to avoid --ids_array_len
+    // underflow (uint16_t wraps to 65535).
+    make_abi_u32(param, 0);
+    feed_param(&ctx, param, 132);
+    assert_int_equal(ctx.next_param, VALUE_LENGTH);
+    assert_int_equal(ctx.ids_array_len, 0);
 }
 
 static void test_batch_two_pair_walk(void **state) {
@@ -834,6 +861,8 @@ int main(void) {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_init_recognises_three_selectors),
         cmocka_unit_test(test_init_unknown_selector_falls_back),
+        cmocka_unit_test(test_init_zeroes_stale_context),
+        cmocka_unit_test(test_batch_empty_ids_skips_to_value_length),
         cmocka_unit_test(test_safe_transfer_walk),
         cmocka_unit_test(test_safe_transfer_extra_params_tolerated),
         cmocka_unit_test(test_batch_two_pair_walk),

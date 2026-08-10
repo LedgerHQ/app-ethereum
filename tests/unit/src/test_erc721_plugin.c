@@ -165,6 +165,21 @@ static void test_init_unknown_selector_falls_back(void **state) {
     assert_int_equal(msg.result, ETH_PLUGIN_RESULT_FALLBACK);
 }
 
+static void test_init_zeroes_stale_context(void **state) {
+    (void) state;
+    erc721_context_t ctx;
+    memset(&ctx, 0xCC, sizeof(ctx));
+    ethPluginInitContract_t msg;
+    txContent_t tx;
+    init_msg_with_selector(&msg, (uint8_t *) &ctx, &tx, SEL_APPROVE);
+    erc721_plugin_call(ETH_PLUGIN_INIT_CONTRACT, &msg);
+    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_OK);
+    assert_int_equal(ctx.selectorIndex, APPROVE);
+    // explicit_bzero must have cleared everything before selectorIndex was written.
+    assert_int_equal(ctx.next_param, OPERATOR);
+    assert_int_equal(ctx.approved, 0);
+}
+
 // =============================================================================
 // Tests — PROVIDE_PARAMETER
 // =============================================================================
@@ -653,6 +668,7 @@ int main(void) {
         cmocka_unit_test(test_init_recognises_safe_transfer),
         cmocka_unit_test(test_init_recognises_safe_transfer_data),
         cmocka_unit_test(test_init_unknown_selector_falls_back),
+        cmocka_unit_test(test_init_zeroes_stale_context),
         cmocka_unit_test(test_approve_param_walk),
         cmocka_unit_test(test_transfer_param_walk_strict),
         cmocka_unit_test(test_safe_transfer_data_tolerates_extra_params),

@@ -60,6 +60,7 @@ typedef struct {
 // =============================================================================
 
 uint32_t eth2WithdrawalIndex = 0;
+extern uint64_t g_tx_chain_id;
 
 // =============================================================================
 // Wraps
@@ -147,6 +148,7 @@ static int reset(void **state) {
     g_wd_pubkey_fill = 0x11;
     g_amount_to_string_calls = 0;
     eth2WithdrawalIndex = 0;
+    g_tx_chain_id = 1;
     return 0;
 }
 
@@ -286,6 +288,18 @@ static void test_finalize_invalid_returns_error(void **state) {
     ethPluginFinalize_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
     msg.txContent = &tx;
+    eth2_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
+    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_ERROR);
+}
+
+static void test_finalize_non_mainnet_rejected(void **state) {
+    (void) state;
+    eth2_deposit_parameters_t ctx = {.valid = 1};
+    txContent_t tx = {0};
+    ethPluginFinalize_t msg = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.txContent = &tx;
+    g_tx_chain_id = 2;  // not mainnet
     eth2_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
     assert_int_equal(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
@@ -480,6 +494,7 @@ int main(void) {
         cmocka_unit_test_setup(test_withdrawal_index_above_max_rejected, reset),
         cmocka_unit_test_setup(test_finalize_valid_returns_two_screens, reset),
         cmocka_unit_test_setup(test_finalize_invalid_returns_error, reset),
+        cmocka_unit_test_setup(test_finalize_non_mainnet_rejected, reset),
         cmocka_unit_test_setup(test_query_contract_id_eth2_deposit, reset),
         cmocka_unit_test_setup(test_ui_amount_screen_uses_chain_ticker, reset),
         cmocka_unit_test_setup(test_ui_validator_screen_renders_pubkey_hex, reset),

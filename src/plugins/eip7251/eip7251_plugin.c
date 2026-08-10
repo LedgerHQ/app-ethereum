@@ -95,6 +95,11 @@ static bool has_tx_value(const txContent_t *txContent) {
 static void eip7251_plugin_finalize(ethPluginFinalize_t *param) {
     eip7251_context_t *context = (eip7251_context_t *) param->pluginContext;
 
+    if (get_tx_chain_id() != ETHEREUM_MAINNET_CHAINID) {
+        PRINTF("eip7251: consolidation predeploy only valid on Ethereum mainnet\n");
+        param->result = ETH_PLUGIN_RESULT_ERROR;
+        return;
+    }
     param->uiType = ETH_UI_TYPE_GENERIC;
     // Source validator is always shown. Target is shown when distinct. The
     // native tx.value is shown only when it exceeds the dust threshold

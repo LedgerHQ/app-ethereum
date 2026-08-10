@@ -144,6 +144,10 @@ static void set_batch_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *
                 uint8_t pair_offset = (uint8_t) (idx - BATCH_SCREEN_PAIR_BASE);
                 uint8_t pair_idx = (uint8_t) (pair_offset / 2);
                 bool show_value = (pair_offset % 2) == 1;
+                if (pair_idx >= ERC1155_BATCH_DISPLAY_MAX) {
+                    msg->result = ETH_PLUGIN_RESULT_ERROR;
+                    return;
+                }
                 if (show_value) {
                     uint256_t v;
                     convertUint256BE(context->batch_values[pair_idx], INT256_LENGTH, &v);

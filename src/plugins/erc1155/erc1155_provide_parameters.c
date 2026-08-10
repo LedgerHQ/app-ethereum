@@ -67,7 +67,7 @@ static void handle_batch_transfer(ethPluginProvideParameter_t *msg, erc1155_cont
                                            ? ERC1155_BATCH_DISPLAY_MAX
                                            : (uint8_t) context->ids_array_len;
             context->batch_truncated = context->ids_array_len > ERC1155_BATCH_DISPLAY_MAX;
-            context->next_param = TOKEN_ID;
+            context->next_param = (context->ids_array_len == 0) ? VALUE_LENGTH : TOKEN_ID;
             // set to zero for next step
             context->array_index = 0;
             break;

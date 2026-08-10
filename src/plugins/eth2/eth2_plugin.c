@@ -5,6 +5,7 @@
 #include "eth_plugin_handler.h"
 #include "shared_context.h"
 #include "common_utils.h"
+#include "network.h"
 #include "eth2_plugin.h"
 #include "feature_get_eth2_public_key.h"
 
@@ -117,6 +118,7 @@ void eth2_plugin_call(eth_plugin_msg_t message, void *parameters) {
         case ETH_PLUGIN_INIT_CONTRACT: {
             ethPluginInitContract_t *msg = (ethPluginInitContract_t *) parameters;
             eth2_deposit_parameters_t *context = (eth2_deposit_parameters_t *) msg->pluginContext;
+            explicit_bzero(context, sizeof(*context));
             context->valid = 1;
             msg->result = ETH_PLUGIN_RESULT_OK;
         } break;
@@ -177,6 +179,11 @@ void eth2_plugin_call(eth_plugin_msg_t message, void *parameters) {
             ethPluginFinalize_t *msg = (ethPluginFinalize_t *) parameters;
             eth2_deposit_parameters_t *context = (eth2_deposit_parameters_t *) msg->pluginContext;
             PRINTF("eth2 plugin finalize\n");
+            if (get_tx_chain_id() != ETHEREUM_MAINNET_CHAINID) {
+                PRINTF("eth2: deposit contract only valid on Ethereum mainnet\n");
+                msg->result = ETH_PLUGIN_RESULT_ERROR;
+                break;
+            }
             if (context->valid) {
                 msg->numScreens = 2;
                 msg->uiType = ETH_UI_TYPE_GENERIC;

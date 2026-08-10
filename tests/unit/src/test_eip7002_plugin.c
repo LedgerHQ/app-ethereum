@@ -54,6 +54,8 @@ typedef struct {
 // Globals
 // =============================================================================
 
+extern uint64_t g_tx_chain_id;
+
 // =============================================================================
 // Wraps
 // =============================================================================
@@ -101,6 +103,7 @@ static void feed_param(eip7002_context_t *ctx, const uint8_t *data, uint8_t size
 static int reset(void **state) {
     (void) state;
     g_amount_calls = 0;
+    g_tx_chain_id = 1;
     return 0;
 }
 
@@ -184,6 +187,18 @@ static void test_finalize_incomplete_rejected(void **state) {
     ethPluginFinalize_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
     msg.txContent = &tx;
+    eip7002_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
+    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_ERROR);
+}
+
+static void test_finalize_non_mainnet_rejected(void **state) {
+    (void) state;
+    eip7002_context_t ctx = {.received = WITHDRAWAL_REQUEST_SIZE};
+    txContent_t tx = {0};
+    ethPluginFinalize_t msg = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.txContent = &tx;
+    g_tx_chain_id = 2;  // not mainnet
     eip7002_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
     assert_int_equal(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
@@ -446,6 +461,7 @@ int main(void) {
         cmocka_unit_test_setup(test_parameter_overflow_rejected, reset),
         cmocka_unit_test_setup(test_finalize_complete_request_one_screen, reset),
         cmocka_unit_test_setup(test_finalize_incomplete_rejected, reset),
+        cmocka_unit_test_setup(test_finalize_non_mainnet_rejected, reset),
         cmocka_unit_test_setup(test_finalize_partial_withdrawal_extra_screen, reset),
         cmocka_unit_test_setup(test_finalize_tx_value_above_threshold_extra_screen, reset),
         cmocka_unit_test_setup(test_finalize_tx_value_below_threshold_hidden, reset),

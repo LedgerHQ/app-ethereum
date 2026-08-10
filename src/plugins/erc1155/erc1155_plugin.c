@@ -17,7 +17,7 @@ static const uint8_t *const ERC1155_SELECTORS[] = {
 
 void handle_init_contract_1155(ethPluginInitContract_t *msg) {
     erc1155_context_t *context = (erc1155_context_t *) msg->pluginContext;
-
+    explicit_bzero(context, sizeof(*context));
     uint8_t i;
     for (i = 0; i < ARRAYLEN(ERC1155_SELECTORS); i++) {
         if (memcmp(PIC(ERC1155_SELECTORS[i]), msg->selector, SELECTOR_SIZE) == 0) {

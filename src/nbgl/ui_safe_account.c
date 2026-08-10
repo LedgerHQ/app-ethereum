@@ -28,6 +28,8 @@ static tag_value_collection_t *signersInfo = NULL;
 static nbgl_contentValueExt_t *extensions = NULL;
 static nbgl_contentTagValue_t *tagValuePairs = NULL;
 static nbgl_contentTagValueList_t *tagValueList = NULL;
+static char *s_safe_addr_str = NULL;
+static char *s_threshold_str = NULL;
 
 /**
  * @brief Cleanup the memory buffers and reset the Safe Account state.
@@ -39,6 +41,8 @@ static void _cleanup(uint16_t sw) {
     APP_MEM_FREE_AND_NULL((void **) &extensions);
     APP_MEM_FREE_AND_NULL((void **) &tagValuePairs);
     APP_MEM_FREE_AND_NULL((void **) &tagValueList);
+    APP_MEM_FREE_AND_NULL((void **) &s_safe_addr_str);
+    APP_MEM_FREE_AND_NULL((void **) &s_threshold_str);
     if (signersInfo != NULL) {
         APP_MEM_FREE_AND_NULL((void **) &signersInfo->tags.buffer);
         APP_MEM_FREE_AND_NULL((void **) &signersInfo->tags.pointers);
@@ -102,7 +106,12 @@ static bool _prepare_memory(void) {
     if (APP_MEM_CALLOC((void **) &signersInfo->values.buffer, totalSize) == false) {
         return false;
     }
-    explicit_bzero((void *) &strings, sizeof(strings_t));
+    if (APP_MEM_CALLOC((void **) &s_safe_addr_str, ADDRESS_LENGTH_HEX_STR) == false) {
+        return false;
+    }
+    if (APP_MEM_CALLOC((void **) &s_threshold_str, 32) == false) {
+        return false;
+    }
     return true;
 }
 
@@ -114,12 +123,8 @@ static void _prepare_strings(void) {
     uint16_t i = 0;
     char *ptr = NULL;
     // Prepare the strings for display
-    array_bytes_string(strings.tmp.tmp, ADDRESS_LENGTH_HEX_STR, SAFE_DESC->address, ADDRESS_LENGTH);
-    snprintf(strings.tmp.tmp + ADDRESS_LENGTH_HEX_STR,
-             sizeof(strings.tmp.tmp) - ADDRESS_LENGTH_HEX_STR,
-             "%d out of %d",
-             SAFE_DESC->threshold,
-             SAFE_DESC->signers_count);
+    array_bytes_string(s_safe_addr_str, ADDRESS_LENGTH_HEX_STR, SAFE_DESC->address, ADDRESS_LENGTH);
+    snprintf(s_threshold_str, 32, "%d out of %d", SAFE_DESC->threshold, SAFE_DESC->signers_count);
     // Prepare the signers information
     // Populate tag strings
     ptr = signersInfo->tags.buffer;
@@ -154,7 +159,7 @@ static void setTagValuePairs(void) {
 
     nbPairs++;
     g_pairs[nbPairs].item = "Threshold";
-    g_pairs[nbPairs].value = strings.tmp.tmp + ADDRESS_LENGTH_HEX_STR;
+    g_pairs[nbPairs].value = s_threshold_str;
     g_pairs[nbPairs].aliasValue = true;
     g_pairs[nbPairs].extension = &extensions[1];
     extensions[1].aliasType = TAG_VALUE_LIST_ALIAS;
@@ -208,7 +213,7 @@ void ui_display_safe_account(void) {
     setTagValuePairs();
 
 #ifndef FUZZ
-    nbgl_useCaseAddressReview(strings.tmp.tmp,
+    nbgl_useCaseAddressReview(s_safe_addr_str,
                               g_pairsList,
                               &ICON_APP_MULTISIG,
                               "Verify Safe address",

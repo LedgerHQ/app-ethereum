@@ -31,8 +31,6 @@ bool plugin_ui_get_item_internal(char *title_buffer,
                                          msg_buffer_size);
     if (!eth_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, (void *) &pluginQueryContractUI)) {
         PRINTF("Plugin query contract UI call failed\n");
-        reset_app_context();
-        io_send_sw(SWO_INCORRECT_DATA);
         return false;
     }
     return true;

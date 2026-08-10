@@ -6,6 +6,7 @@
 #include "cmd_tx_info.h"
 #include "gtp_tx_info.h"
 #include "tx_ctx.h"
+#include "app_mem_utils.h"
 
 static bool handle_tlv_payload(const buffer_t *buf) {
     s_field field = {0};
@@ -22,17 +23,30 @@ static bool handle_tlv_payload(const buffer_t *buf) {
         cleanup_field(&field);
         return false;
     }
-    // Hash only after formatting succeeds: a field that fails formatting must
-    // not contribute to the instruction hash, otherwise it would be absent from
-    // the displayed review but still included in the signed digest.
-    if (!format_field(&field, 0)) {
-        return false;
-    }
-    if (cx_hash_no_throw(get_fields_hash_ctx(), 0, buf->ptr, buf->size, NULL, 0) != CX_OK) {
-        PRINTF("Error: could not hash the field struct!\n");
+    // Hash before format_field so validate_instruction_hash() inside
+    // add_to_field_table() sees the updated digest and sets end_intent on the
+    // last field of a batch sub-transaction (drives the NBGL page-break).
+    //
+    // Finding 907: rollback the hash if format_field() rejects the field so the
+    // rejected data leaves no trace in the signed digest.
+    cx_sha3_t *hash_ctx_backup;
+    if (APP_MEM_CALLOC((void **) &hash_ctx_backup, sizeof(*hash_ctx_backup)) == false) {
         cleanup_field(&field);
         return false;
     }
+    memcpy(hash_ctx_backup, get_fields_hash_ctx(), sizeof(*hash_ctx_backup));
+    if (cx_hash_no_throw(get_fields_hash_ctx(), 0, buf->ptr, buf->size, NULL, 0) != CX_OK) {
+        PRINTF("Error: could not hash the field struct!\n");
+        APP_MEM_FREE(hash_ctx_backup);
+        cleanup_field(&field);
+        return false;
+    }
+    if (!format_field(&field, 0)) {
+        memcpy(get_fields_hash_ctx(), hash_ctx_backup, sizeof(*hash_ctx_backup));
+        APP_MEM_FREE(hash_ctx_backup);
+        return false;
+    }
+    APP_MEM_FREE(hash_ctx_backup);
     while (((appState == APP_STATE_SIGNING_EIP712) || !tx_ctx_is_root()) &&
            validate_instruction_hash()) {
         if (!process_empty_txs_after()) {

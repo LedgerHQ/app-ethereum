@@ -108,8 +108,8 @@ void cleanup_field(s_field *field) {
     g_cleanup_field_calls++;
 }
 cx_hash_t *get_fields_hash_ctx(void) {
-    static cx_hash_t dummy;
-    return &dummy;
+    static cx_sha3_t dummy;
+    return (cx_hash_t *) &dummy;
 }
 cx_err_t cx_hash_no_throw(cx_hash_t *hash,
                           uint32_t mode,

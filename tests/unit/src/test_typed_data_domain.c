@@ -22,7 +22,7 @@ bool value_hash_pass(const s_eip712_impl *impl) {
 
 // Sets the domain to the struct { <type> chainId; } holding the given bytes
 static void build_domain(e_type type, size_t type_size, const uint8_t *data, size_t length) {
-    s_struct_712 *def = td_create_struct_def("EIP712Domain");
+    s_struct_712 *def = td_create_struct_def((const uint8_t *) "EIP712Domain", 12);
     s_struct_712_field *field = td_create_field_def(type);
     s_struct_712_value *domain;
     s_struct_712_value *leaf;

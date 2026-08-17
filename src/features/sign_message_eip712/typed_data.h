@@ -79,21 +79,41 @@ typedef struct {
 // Maximum nesting depth supported when traversing/building a value tree
 #define TD_MAX_DEPTH 16
 
+// Maximum array dimensions of a field declaration; each consumes a TD_MAX_DEPTH level
+#define TD_MAX_ARRAY_LEVELS 8
+
+// Maximum byte length of a struct type name in a schema
+#define TD_MAX_STRUCT_NAME_LENGTH 64
+
 /**
  * Create a new, empty struct type definition
  *
- * @param[in] name struct type name
+ * @param[in] name struct type name (not required to be NUL-terminated)
  * @return pointer to the new struct definition, or NULL on failure
  */
-s_struct_712 *td_create_struct_def(const char *name);
+s_struct_712 *td_create_struct_def(const uint8_t *name, size_t length);
+
+/**
+ * Discard a struct definition created via td_create_struct_def() that was never
+ * registered via td_add_struct_def() (e.g. abandoned mid-assembly). Any fields
+ * already attached via td_add_struct_field_def() are destroyed too.
+ *
+ * @param[in] struct_def struct definition to discard; no-op if NULL
+ */
+void td_discard_struct_def(s_struct_712 *struct_def);
 
 /**
  * Register a struct definition as usable for future field/value declarations
  *
+ * Takes ownership of @p struct_def unconditionally: on success it becomes
+ * registered; on failure (already registered elsewhere, or a struct with the
+ * same name is already registered) it is destroyed. The caller must not use
+ * @p struct_def again after this call.
+ *
  * @param[in] struct_def struct definition to register
  * @return whether the registration succeeded
  */
-bool td_add_struct_def(const s_struct_712 *struct_def);
+bool td_add_struct_def(s_struct_712 *struct_def);
 
 /**
  * Append a field definition to a struct definition
@@ -198,7 +218,7 @@ s_struct_712_field *td_create_field_def(e_type type);
  * Set the byte size of a native (non-struct) field type
  *
  * @param[in,out] field field definition to update
- * @param[in] type_size size in bytes
+ * @param[in] type_size size in bytes, 1..32
  * @return whether the size was set (fails for TYPE_STRUCT fields)
  */
 bool td_field_set_type_size(s_struct_712_field *field, size_t type_size);
@@ -217,7 +237,7 @@ bool td_field_set_struct_name(s_struct_712_field *field, const uint8_t *name, si
  * Set the number of array dimensions a field has, resetting any previously set levels
  *
  * @param[in,out] field field definition to update
- * @param[in] count number of array dimensions
+ * @param[in] count number of array dimensions, at most TD_MAX_ARRAY_LEVELS
  * @return whether the count was set
  */
 bool td_field_set_array_level_count(s_struct_712_field *field, uint8_t count);
@@ -253,6 +273,19 @@ bool td_field_set_key_name(s_struct_712_field *field, const uint8_t *name, size_
  * @return type name pointer
  */
 const char *td_get_struct_field_typename(const s_struct_712_field *ptr);
+
+/**
+ * Check a schema name (struct name, struct type reference or field key name)
+ *
+ * A name must be non-empty and free of control characters, spaces and of the characters that
+ * delimit the encoded type string ('(' ')' ','), the JSON schema representation ('"' '\\') and
+ * the filter path ('.'), so that distinct schemas can never encode to the same preimage.
+ *
+ * @param[in] name name to check (not required to be NUL-terminated)
+ * @param[in] length length of name in bytes
+ * @return whether the name is acceptable
+ */
+bool td_is_valid_name(const uint8_t *name, size_t length);
 
 /**
  * Find struct with a given name

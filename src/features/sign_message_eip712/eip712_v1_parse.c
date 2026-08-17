@@ -40,20 +40,15 @@ bool v1_set_struct_name(uint8_t length, const uint8_t *name) {
         return false;
     }
 
-    char *name_tmp = APP_MEM_ALLOC(length + 1);
-    if (name_tmp == NULL) {
+    if ((g_pending_struct = td_create_struct_def(name, length)) == NULL) {
         return false;
     }
-    memcpy(name_tmp, name, length);
-    name_tmp[length] = '\0';
-
-    g_pending_struct = td_create_struct_def(name_tmp);
-    APP_MEM_FREE_AND_NULL((void **) &name_tmp);
-
-    if (g_pending_struct == NULL) {
+    // td_add_struct_def() owns the struct whatever the outcome
+    if (!td_add_struct_def(g_pending_struct)) {
+        g_pending_struct = NULL;
         return false;
     }
-    return td_add_struct_def(g_pending_struct);
+    return true;
 }
 
 // TypeDesc masks

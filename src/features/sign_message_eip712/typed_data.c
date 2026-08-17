@@ -41,6 +41,12 @@ static void delete_struct(s_struct_712 *s) {
     APP_MEM_FREE(s);
 }
 
+void td_discard_struct_def(s_struct_712 *struct_def) {
+    if (struct_def != NULL) {
+        delete_struct(struct_def);
+    }
+}
+
 static void delete_value(s_struct_712_value *v) {
     if (v->kind == VAL_ATOMIC) {
         APP_MEM_FREE(v->data);
@@ -152,6 +158,9 @@ bool td_field_set_type_size(s_struct_712_field *field, size_t type_size) {
     if (field->type == TYPE_STRUCT) {
         return false;
     }
+    if ((type_size == 0) || (type_size > 32)) {
+        return false;
+    }
     field->type_size = type_size;
     return true;
 }
@@ -180,6 +189,9 @@ bool td_field_set_struct_name(s_struct_712_field *field, const uint8_t *name, si
 
 bool td_field_set_array_level_count(s_struct_712_field *field, uint8_t count) {
     if (field == NULL) {
+        return false;
+    }
+    if (count > TD_MAX_ARRAY_LEVELS) {
         return false;
     }
     if (field->array_levels != NULL) {
@@ -252,6 +264,21 @@ const char *td_get_struct_field_typename(const s_struct_712_field *field_ptr) {
     return get_struct_field_sol_typename(field_ptr);
 }
 
+bool td_is_valid_name(const uint8_t *name, size_t length) {
+    if ((name == NULL) || (length == 0)) {
+        return false;
+    }
+    for (size_t i = 0; i < length; ++i) {
+        const uint8_t c = name[i];
+
+        // control characters and space are rejected first, so c is never the NUL strchr() matches
+        if ((c <= ' ') || (c == 0x7F) || (strchr("(),\"\\.", c) != NULL)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 static bool match_struct_name(const s_struct_712 *node, const void *context_ptr) {
     return (node->name != NULL) && (strcmp(node->name, (const char *) context_ptr) == 0);
 }
@@ -263,14 +290,12 @@ const s_struct_712 *td_find_struct(const char *name) {
     return td_find_struct_if(match_struct_name, (const void *) name);
 }
 
-s_struct_712 *td_create_struct_def(const char *name) {
+s_struct_712 *td_create_struct_def(const uint8_t *name, size_t length) {
     s_struct_712 *def;
-    size_t length;
 
     if (name == NULL) {
         return NULL;
     }
-    length = strlen(name);
 
     if ((def = APP_MEM_ALLOC(sizeof(*def))) == NULL) {
         return NULL;
@@ -286,8 +311,12 @@ s_struct_712 *td_create_struct_def(const char *name) {
     return def;
 }
 
-bool td_add_struct_def(const s_struct_712 *struct_def) {
+bool td_add_struct_def(s_struct_712 *struct_def) {
     if (struct_def == NULL) {
+        return false;
+    }
+    if (td_find_struct(struct_def->name) != NULL) {
+        td_discard_struct_def(struct_def);
         return false;
     }
     flist_push_back((flist_node_t **) &g_structs, (flist_node_t *) struct_def);

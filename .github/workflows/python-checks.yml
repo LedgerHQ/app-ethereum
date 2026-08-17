@@ -22,7 +22,7 @@ on:
 jobs:
   lint_client:
     name: Lint Python client
-    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_python_checks.yml@v1
+    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_python_checks.yml@cev/remove_deprecated
     with:
       run_type_check: true
       src_directory: src
@@ -31,7 +31,7 @@ jobs:
 
   lint_tests:
     name: Lint Python tests
-    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_python_checks.yml@v1
+    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_python_checks.yml@cev/remove_deprecated
     with:
       run_type_check: true
       src_directory: .

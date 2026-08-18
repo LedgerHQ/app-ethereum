@@ -2,6 +2,14 @@
 
 #include "nbgl_use_case.h"
 
+// nbgl counts the pairs of a review on a byte, and the pages of a Nano review too: a page per pair,
+// plus the title page and the approve and reject pages.
+#ifdef SCREEN_SIZE_WALLET
+#define MAX_REVIEW_ROWS UINT8_MAX
+#else
+#define MAX_REVIEW_ROWS (UINT8_MAX - 3)
+#endif
+
 extern nbgl_contentTagValue_t *g_pairs;
 extern nbgl_contentTagValueList_t *g_pairsList;
 

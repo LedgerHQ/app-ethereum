@@ -20,6 +20,7 @@
 #endif
 #include "cmd_eip712_v2_schema.h"
 #include "cmd_eip712_v2_values.h"
+#include "cmd_eip712_v2_sign.h"
 
 #ifdef HAVE_ETH2
 #include "withdrawal_index.h"
@@ -85,7 +86,7 @@ uint16_t handleApdu(command_t *cmd, uint32_t *tx) {
                     sw = handle_eip712_v1_sign(cmd->data, cmd->lc);
                     break;
                 case P2_EIP712_V2_IMPLEM:
-                    // TODO
+                    sw = handle_eip712_v2_sign(cmd->p1, cmd->p2, cmd->lc);
                     break;
                 default:
                     sw = SWO_WRONG_P1_P2;

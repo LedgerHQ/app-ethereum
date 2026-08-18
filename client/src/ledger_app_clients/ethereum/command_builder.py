@@ -56,6 +56,7 @@ class P2Type(IntEnum):
     ARRAY = 0x0F
     EIP712_V0_IMPLEM = 0x00
     EIP712_V1_IMPLEM = 0x01
+    EIP712_V2_IMPLEM = 0x02
     EIP712_V1_FILTERING_ACTIVATE = 0x00
     EIP712_V1_FILTERING_DISCARDED_PATH = 0x01
     EIP712_V1_FILTERING_MESSAGE_INFO = 0x0F
@@ -188,6 +189,24 @@ class CommandBuilder:
     def eip712_sign_new(self, bip32_path: str) -> bytes:
         data = pack_derivation_path(bip32_path)
         return self._serialize(InsType.EIP712_SIGN, P1Type.COMPLETE_SEND, P2Type.EIP712_V1_IMPLEM, data)
+
+    def eip712_v2_schema(self, tlv_payload: bytes) -> list[bytes]:
+        return self.common_tlv_serialize(
+            InsType.EIP712_SEND_STRUCT_DEF,
+            tlv_payload,
+            p2l=[P2Type.EIP712_V2_IMPLEM],
+        )
+
+    def eip712_v2_values(self, tlv_payload: bytes) -> list[bytes]:
+        return self.common_tlv_serialize(
+            InsType.EIP712_SEND_STRUCT_IMPL,
+            tlv_payload,
+            p2l=[P2Type.EIP712_V2_IMPLEM],
+        )
+
+    def eip712_v2_sign(self) -> bytes:
+        # the derivation path came with the values, so this only triggers the signature
+        return self._serialize(InsType.EIP712_SIGN, P1Type.COMPLETE_SEND, P2Type.EIP712_V2_IMPLEM)
 
     def eip712_sign_legacy(self, bip32_path: str, domain_hash: bytes, message_hash: bytes) -> bytes:
         data = pack_derivation_path(bip32_path)

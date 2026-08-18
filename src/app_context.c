@@ -19,6 +19,7 @@
 #endif
 #include "operation_ctx.h"
 #include "ui_utils.h"
+#include "common_ui.h"  // ui_712_v2_cleanup
 #include "app_mem_utils.h"
 #include "cmd_safe_account.h"
 #include "cmd_get_gating.h"
@@ -87,6 +88,8 @@ void reset_app_context_ex(bool scrub_strings) {
 #ifdef HAVE_TRANSACTION_CHECKS
     clear_tx_simulation();
 #endif
+    // Release the review pairs before the array pointing at them is freed
+    ui_712_v2_cleanup();
     ui_all_cleanup();
 #ifdef HAVE_ADDRESS_BOOK
     // A review the SDK displayed on our behalf may have been cut short by an error,

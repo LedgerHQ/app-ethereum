@@ -43,6 +43,17 @@ bool ui_191_message_fits(const char *message);
 // EIP-712
 bool ui_sign_712_v1(e_eip712_filtering_mode filtering_mode);
 bool ui_sign_712_v0(void);
+bool ui_712_v2_review(void);
+void ui_712_v2_cleanup(void);
+
+/**
+ * Conclude the review of a typed message: sign or refuse it, and show the outcome
+ *
+ * to be used as a nbgl_choiceCallback_t. Either way the app is reset, which releases the review.
+ *
+ * @param[in] confirm whether the user approved
+ */
+void ui_712_review_choice(bool confirm);
 
 // Generic clear-signing
 bool ui_gcs(void);

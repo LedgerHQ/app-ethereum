@@ -118,6 +118,21 @@ class EthAppClient:
     def eip712_sign_new(self, bip32_path: str):
         return self._exchange_async(self._cmd_builder.eip712_sign_new(bip32_path))
 
+    def eip712_v2_send_schema(self, payload: bytes) -> RAPDU:
+        chunks = self._cmd_builder.eip712_v2_schema(payload)
+        for chunk in chunks[:-1]:
+            self._exchange(chunk)
+        return self._exchange(chunks[-1])
+
+    def eip712_v2_send_values(self, payload: bytes) -> RAPDU:
+        chunks = self._cmd_builder.eip712_v2_values(payload)
+        for chunk in chunks[:-1]:
+            self._exchange(chunk)
+        return self._exchange(chunks[-1])
+
+    def eip712_v2_sign(self):
+        return self._exchange_async(self._cmd_builder.eip712_v2_sign())
+
     def eip712_sign_legacy(self, bip32_path: str, domain_hash: bytes, message_hash: bytes):
         return self._exchange_async(self._cmd_builder.eip712_sign_legacy(bip32_path, domain_hash, message_hash))
 

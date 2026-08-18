@@ -82,6 +82,9 @@ typedef struct {
 // Maximum array dimensions of a field declaration; each consumes a TD_MAX_DEPTH level
 #define TD_MAX_ARRAY_LEVELS 8
 
+// Name identifying the domain struct, defined by the EIP-712 standard itself
+#define TD_DOMAIN_STRUCT_NAME "EIP712Domain"
+
 // Maximum byte length of a struct type name in a schema
 #define TD_MAX_STRUCT_NAME_LENGTH 64
 
@@ -185,6 +188,27 @@ void td_discard_container_value(s_struct_712_value *node);
  * @return whether the child was attached
  */
 bool td_append_child(s_struct_712_value *parent, const s_struct_712_value *child);
+
+/**
+ * Get the field definition the next value in a node's sequence must conform to
+ *
+ * For a VAL_STRUCT node this walks the struct's declared fields in order, one per value
+ * already attached. For a VAL_ARRAY node every element shares the array's own field, so
+ * that field is always returned.
+ *
+ * @param[in] node VAL_STRUCT/VAL_ARRAY node being filled
+ * @return the expected field definition, or NULL if a struct already holds a value for
+ *         each of its declared fields
+ */
+const s_struct_712_field *td_value_expected_field(const s_struct_712_value *node);
+
+/**
+ * Count the values already attached to a struct or array value node
+ *
+ * @param[in] node VAL_STRUCT/VAL_ARRAY node to count
+ * @return number of attached values; 0 for a VAL_ATOMIC node
+ */
+uint16_t td_value_child_count(const s_struct_712_value *node);
 
 /**
  * Write raw bytes into a leaf's value, one chunk at a time

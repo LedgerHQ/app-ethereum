@@ -120,6 +120,42 @@ bool td_append_child(s_struct_712_value *parent, const s_struct_712_value *child
     return true;
 }
 
+uint16_t td_value_child_count(const s_struct_712_value *node) {
+    uint16_t count = 0;
+
+    if ((node == NULL) || (node->kind == VAL_ATOMIC)) {
+        return 0;
+    }
+    for (const s_struct_712_value *child = node->children; child != NULL;
+         child = (const s_struct_712_value *) ((const flist_node_t *) child)->next) {
+        count += 1;
+    }
+    return count;
+}
+
+const s_struct_712_field *td_value_expected_field(const s_struct_712_value *node) {
+    const s_struct_712_field *field;
+    const s_struct_712_value *child;
+
+    if (node == NULL) {
+        return NULL;
+    }
+    // every element of an array conforms to the array's own field
+    if (node->kind == VAL_ARRAY) {
+        return node->field;
+    }
+    if ((node->kind != VAL_STRUCT) || (node->struct_type == NULL)) {
+        return NULL;
+    }
+    // walk both lists in lockstep: the nth value fills the nth declared field
+    field = node->struct_type->fields;
+    for (child = node->children; (child != NULL) && (field != NULL);
+         child = (const s_struct_712_value *) ((const flist_node_t *) child)->next) {
+        field = (const s_struct_712_field *) ((const flist_node_t *) field)->next;
+    }
+    return field;
+}
+
 bool td_leaf_write(s_struct_712_value *leaf, size_t offset, const uint8_t *data, size_t length) {
     if ((leaf == NULL) || (leaf->kind != VAL_ATOMIC)) {
         return false;
@@ -335,16 +371,9 @@ bool td_set_domain(s_struct_712_value *node) {
     if (node == NULL) {
         return false;
     }
-    if (g_impl.domain != NULL) {
-        APP_MEM_FREE(node);
-        return false;
-    }
-    if (node->kind != VAL_STRUCT) {
-        APP_MEM_FREE(node);
-        return false;
-    }
-    if (strcmp(node->struct_type->name, "EIP712Domain") != 0) {
-        APP_MEM_FREE(node);
+    if ((g_impl.domain != NULL) || (node->kind != VAL_STRUCT) ||
+        (strcmp(node->struct_type->name, TD_DOMAIN_STRUCT_NAME) != 0)) {
+        td_discard_container_value(node);
         return false;
     }
     g_impl.domain = node;
@@ -355,12 +384,8 @@ bool td_set_message(s_struct_712_value *node) {
     if (node == NULL) {
         return false;
     }
-    if (g_impl.message != NULL) {
-        APP_MEM_FREE(node);
-        return false;
-    }
-    if (node->kind != VAL_STRUCT) {
-        APP_MEM_FREE(node);
+    if ((g_impl.message != NULL) || (node->kind != VAL_STRUCT)) {
+        td_discard_container_value(node);
         return false;
     }
     g_impl.message = node;

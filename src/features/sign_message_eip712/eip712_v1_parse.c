@@ -6,7 +6,7 @@
 
 static s_struct_712 *g_pending_struct = NULL;
 
-// domain root node while its value tree is being built (NULL once popped or before v1_set_root)
+// domain root node once set by v1_set_root (NULL otherwise)
 static const s_struct_712_value *g_domain_root = NULL;
 
 /**
@@ -483,9 +483,11 @@ bool v1_set_root(const char *name) {
         return false;
     }
 
-    if (strcmp(name, "EIP712Domain") == 0) {
-        g_domain_root = node;
+    if (strcmp(name, TD_DOMAIN_STRUCT_NAME) == 0) {
         ret = td_set_domain(node);
+        if (ret) {
+            g_domain_root = node;
+        }
     } else {
         ret = td_set_message(node);
     }

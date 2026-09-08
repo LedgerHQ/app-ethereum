@@ -125,11 +125,47 @@ _Output data:_
 
 If P2 == 0x01, then no data is returned.
 
-| Description | Length |
-|-------------|--------|
-| v           | 1      |
-| r           | 32     |
-| s           | 32     |
+| Description                                                  | Length |
+|--------------------------------------------------------------|--------|
+| v — see [Interpreting the returned `v`](#interpreting-the-returned-v) | 1      |
+| r                                                            | 32     |
+| s                                                            | 32     |
+
+#### Interpreting the returned `v`
+
+The meaning of the `v` byte **depends on the type of the transaction that was signed**. It
+is not a single encoding, and only one of the three cases below can be used as is.
+
+| Transaction that was signed | Returned `v` | How to use it |
+|-----------------------------|--------------|---------------|
+| Type 1 ([EIP-2930](https://eips.ethereum.org/EIPS/eip-2930)), Type 2 ([EIP-1559](https://eips.ethereum.org/EIPS/eip-1559)) or Type 4 ([EIP-7702](https://eips.ethereum.org/EIPS/eip-7702)) | Signature parity: `0` (even) or `1` (odd) | Use as is. It is the `yParity` field of the signed transaction. |
+| Legacy, RLP payload carries a chain ID ([EIP-155](https://eips.ethereum.org/EIPS/eip-155)) | `(chainId * 2 + 35 + recovery_offset)` truncated to one byte | Recover the full value, see below. |
+| Legacy, RLP payload carries no chain ID (pre-EIP-155) | `27 + recovery_offset` | Use as is. |
+
+`recovery_offset` is `0` or `1` for the signature parity, plus `2` when the signature's `x`
+coordinate exceeded the curve order `n`. The latter is vanishingly rare but is part of the
+byte.
+
+##### Recovering the full `v` for a legacy EIP-155 transaction
+
+The byte is one octet wide, so `chainId * 2 + 35` overflows it for all but the smallest
+chain IDs. A client always knows which chain ID it asked the device to sign, so it can
+recover the intended value:
+
+```
+base            = chainId * 2 + 35
+recovery_offset = (v - base) mod 256        # yields 0, 1, 2 or 3
+full_v          = base + recovery_offset
+```
+
+This holds for any chain ID that fits in four bytes, which covers every chain in use. For
+a chain ID wider than four bytes the device reads only its four most significant bytes, and
+the returned byte cannot be mapped back to a full `v`.
+
+`@ledgerhq/hw-app-eth` performs an equivalent recovery. Note that for a **typed**
+transaction no recovery is applicable: applying the formula above to a typed transaction's
+`v` produces a wrong parity and the resulting transaction will recover a different sender
+address than the one that signed it.
 
 ### GET APP CONFIGURATION
 

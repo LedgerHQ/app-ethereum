@@ -180,7 +180,10 @@ static void app_init(bool library_mode) {
         // If we are not in library mode, 1st init is the dynamic memory
         app_mem_init();
     }
-    reset_app_context();
+    // Initialization path: do not scrub `strings`. In library (swap) mode
+    // copy_transaction_parameters() has already staged the values promised by Exchange
+    // there, and they must survive until finalize_parsing_helper() checks them.
+    reset_app_context_ex(false);
     common_app_init();
     storage_init();
     if (library_mode == false) {

@@ -233,4 +233,5 @@ extern uint32_t eth2WithdrawalIndex;
 
 void app_quit(void);
 void reset_app_context(void);
+void reset_app_context_ex(bool scrub_strings);
 const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_path_t *bip32);

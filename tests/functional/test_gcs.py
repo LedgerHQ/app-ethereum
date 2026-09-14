@@ -36,6 +36,7 @@ from client.utils import get_selector_from_data
 from constants import ABIS_FOLDER
 from dynamic_networks_cfg import get_network_config
 from fields_utils import get_all_paths, get_all_tuple_array_paths, get_all_tuple_paths
+from ragger.error import ExceptionRAPDU
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 from web3 import Web3
 
@@ -2843,3 +2844,90 @@ def test_gcs_root_value_in_metadata(scenario_navigator: NavigateWithScenario):
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
+
+
+def test_gcs_enum_noncanonical_value(scenario_navigator: NavigateWithScenario):
+    """An enum calldata word with non-zero high bytes must be rejected.
+
+    The descriptor declares an 8-bit enum; the host crafts calldata where the
+    enum word is 256 (0x100). Truncating to the low byte would display the
+    trusted label of value 0 for an actual value of 256.
+    """
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    with open(f"{ABIS_FOLDER}/safe_1.4.1.abi.json", encoding="utf-8") as f:
+        contract = Web3().eth.contract(abi=json.load(f), address=None)
+    # build calldata by hand: web3 refuses to encode 256 in a uint8
+    data = contract.encode_abi(
+        "execTransaction",
+        [
+            bytes.fromhex("23F8abfC2824C397cCB3DA89ae772984107dDB99"),
+            0,
+            b"",
+            0,
+            0,
+            0,
+            0,
+            bytes.fromhex("0000000000000000000000000000000000000000"),
+            bytes.fromhex("0000000000000000000000000000000000000000"),
+            b"",
+        ],
+    )
+    # overwrite the operation word (4th static param, offset 4 + 3*32) with 256
+    data_bytes = bytes.fromhex(data.removeprefix("0x")) if isinstance(data, str) else data
+    op_offset = 4 + 3 * 32
+    data_bytes = data_bytes[:op_offset] + (256).to_bytes(32, "big") + data_bytes[op_offset + 32 :]
+    data = "0x" + data_bytes.hex()
+
+    tx_params: dict[str, Any] = {
+        "nonce": 77,
+        "maxFeePerGas": Web3.to_wei(4.8, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(2, "gwei"),
+        "gas": 95118,
+        "to": bytes.fromhex("C1897a9Acbdd54028dA5f7b76B5833A91553AaF6"),
+        "data": data,
+        "chainId": 1,
+    }
+
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/safe_1.4.1.abi.json", "execTransaction")
+    fields = [
+        Field(
+            1,
+            "Operation type",
+            ParamEnum(
+                1,
+                0,
+                Value(
+                    1,
+                    TypeFamily.UINT,
+                    type_size=1,
+                    data_path=DataPath(1, param_paths["operation"]),
+                ),
+            ),
+        ),
+    ]
+    inst_hash = compute_inst_hash(fields)
+
+    tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        tx_params["to"],
+        get_selector_from_data(tx_params["data"]),
+        inst_hash,
+        "execute a Safe action",
+        creator_name="Safe",
+    )
+    app_client.provide_transaction_info(tx_info.serialize())
+
+    app_client.provide_enum_value(
+        EnumValue(1, tx_info.chain_id, tx_info.contract_addr, tx_info.selector, 0, 0, "Call").serialize()
+    )
+
+    with pytest.raises(ExceptionRAPDU) as err:
+        for field in fields:
+            app_client.provide_transaction_field_desc(field.serialize())
+    assert err.value.status == StatusWord.SWO_INCORRECT_DATA

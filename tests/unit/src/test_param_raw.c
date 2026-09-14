@@ -846,6 +846,32 @@ void test_raw_bytes_if_not_in_no_match(void) {
 }
 
 /**
+ * @brief A BYTES constraint that is only a prefix of the value does not match
+ */
+void test_raw_bytes_prefix_constraint_no_match(void) {
+    uint8_t data[4] = {0xAB, 0xCD, 0xEF, 0x01};
+    CREATE_BYTES_PARAM(param, data, sizeof(data));
+
+    // Constraint holds every byte but the last one
+    s_field_constraint *constraint = calloc(1, sizeof(s_field_constraint));
+    constraint->value = calloc(1, sizeof(data) - 1);
+    constraint->size = sizeof(data) - 1;
+    memcpy(constraint->value, data, sizeof(data) - 1);
+
+    s_field field = {.param_type = PARAM_TYPE_RAW,
+                     .visibility = PARAM_VISIBILITY_MUST_BE,
+                     .constraints = constraint,
+                     .param_raw = param,
+                     .name = "Data"};
+
+    // MUST_BE with no match: the transaction is rejected
+    TEST_ASSERT_FALSE(format_param_raw(&field));
+
+    free(constraint->value);
+    free(constraint);
+}
+
+/**
  * @brief A BYTES value at the constant-size limit is displayed in full (no truncation)
  */
 void test_raw_bytes_max_constant_displayed(void) {
@@ -1234,6 +1260,7 @@ int main(void) {
     RUN_TEST(test_raw_bytes_if_not_in_match);
     RUN_TEST(test_raw_bytes_if_not_in_no_match);
     RUN_TEST(test_raw_bytes_max_constant_displayed);
+    RUN_TEST(test_raw_bytes_prefix_constraint_no_match);
     RUN_TEST(test_raw_string);
     RUN_TEST(test_raw_string_must_be_valid);
     RUN_TEST(test_raw_string_must_be_invalid);

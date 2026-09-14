@@ -253,6 +253,11 @@ uint16_t handle_eip712_v1_sign(const uint8_t *cdata, uint8_t length) {
     } else if (!v1_is_complete()) {
         PRINTF("impl not complete\n");
         sw = SWO_INCORRECT_DATA;
+    } else if (!eip712_v1_sign_claim()) {
+        // The sign command is single-use: claimed before any mutation of the
+        // context or tmpCtx, a replay while the review is on screen lands here.
+        PRINTF("EIP-712 sign command already used\n");
+        sw = SWO_COMMAND_NOT_ALLOWED;
     } else if (!td_hash_pass()) {
         PRINTF("value_hash_pass failed\n");
     } else if ((filt_mode == EIP712_FILTERING_FULL) &&

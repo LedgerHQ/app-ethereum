@@ -49,3 +49,19 @@ void eip712_v1_context_deinit(void) {
     ui_712_deinit();
     APP_MEM_FREE_AND_NULL((void **) &eip712_v1_context);
 }
+
+/**
+ * Claim the final sign command for the current context
+ *
+ * The sign command is single-use: the first call claims it, every later call
+ * fails until the context is deinitialized.
+ *
+ * @return whether the claim was successful
+ */
+bool eip712_v1_sign_claim(void) {
+    if ((eip712_v1_context == NULL) || eip712_v1_context->sign_claimed) {
+        return false;
+    }
+    eip712_v1_context->sign_claimed = true;
+    return true;
+}

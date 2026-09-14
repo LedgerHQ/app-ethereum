@@ -112,10 +112,19 @@ static void check_withdrawal_credentials(ethPluginProvideParameter_t *msg,
         PRINTF("Got %u which is higher than INDEX_MAX (%u)\n", eth2WithdrawalIndex, INDEX_MAX);
         msg->result = ETH_PLUGIN_RESULT_ERROR;
         context->valid = 0;
+        return;
     }
     withdrawalKeyPath[2] = eth2WithdrawalIndex;
     withdrawalKeyPath[3] = WITHDRAWAL_KEY_PATH_4;
-    get_eth2_public_key(withdrawalKeyPath, 4, tmp);
+    // A failed derivation leaves tmp at its all-zeroes init, which would hash
+    // into the public constant 0x00 || SHA256(zeros[48])[1:] credential
+    if (get_eth2_public_key(withdrawalKeyPath, 4, tmp) != CX_OK) {
+        PRINTF("eth2 plugin: failed to derive withdrawal public key\n");
+        explicit_bzero(tmp, sizeof(tmp));
+        msg->result = ETH_PLUGIN_RESULT_ERROR;
+        context->valid = 0;
+        return;
+    }
     PRINTF("eth2 plugin computed withdrawal public key %.*H\n",
            BLS12381_G1_COMPRESSED_PUBKEY_LENGTH,
            tmp);

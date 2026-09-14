@@ -1493,7 +1493,7 @@ bool ui_712_push_pairs(void) {
                       pair,
                       g_pairsList->nbPairs);
         pair++;
-        if ((tmp->end_intent) && (txContext.batch_nb_tx > 1)) {
+        if ((tmp->end_intent) && (txContext.batch_nb_tx > 1) && (pair < g_pairsList->nbPairs)) {
             // End of batch transaction : start next info on full page
             g_pairs[pair].forcePageStart = true;
         }

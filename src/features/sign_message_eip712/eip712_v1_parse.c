@@ -275,6 +275,33 @@ static bool v1_set_struct_field_internal(s_struct_712_field **new_field_ptr,
             return false;
         }
     }
+
+    // Validate the type/size combination: a fixed-size-bytes without a size would
+    // serialize as plain "bytes" (identical to dynamic bytes) in the schema/type
+    // hashes while being hashed as a static value, so a host could make the review
+    // show keccak256(X) while the signature commits to X.
+    switch (new_field->type) {
+        case TYPE_SOL_INT:
+        case TYPE_SOL_UINT:
+        case TYPE_SOL_BYTES_FIX:
+            if (!has_size || (new_field->type_size == 0) || (new_field->type_size > 32)) {
+                return false;
+            }
+            break;
+        case TYPE_SOL_ADDRESS:
+        case TYPE_SOL_BOOL:
+        case TYPE_SOL_STRING:
+        case TYPE_SOL_BYTES_DYN:
+            if (has_size) {
+                return false;
+            }
+            break;
+        case TYPE_STRUCT:
+            // typename handled above, mutually exclusive with a type size
+            break;
+        default:
+            return false;
+    }
     if (is_array) {
         if (v1_set_struct_field_array(new_field, data, &data_idx, length) == false) {
             return false;

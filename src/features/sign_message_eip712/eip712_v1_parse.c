@@ -1,9 +1,13 @@
 #include "app_mem_utils.h"
 #include "read.h"
+#include "os_utils.h"  // is_zeroes_buffer
 #include "eip712_v1_parse.h"
 #include "typed_data.h"
 
 static s_struct_712 *g_pending_struct = NULL;
+
+// domain root node while its value tree is being built (NULL once popped or before v1_set_root)
+static const s_struct_712_value *g_domain_root = NULL;
 
 /**
  * Validate a schema name (struct, type or field name).
@@ -485,6 +489,7 @@ bool v1_set_root(const char *name) {
     }
 
     if (strcmp(name, "EIP712Domain") == 0) {
+        g_domain_root = node;
         ret = td_set_domain(node);
     } else {
         ret = td_set_message(node);
@@ -639,6 +644,16 @@ const s_struct_712_value *v1_add_field(const uint8_t *data, size_t length, bool 
             return NULL;
         }
         s_struct_712_value *completed = g_pending_field.leaf;
+        // A domain chainId wider than 64 bits with non-zero leading bytes would make the
+        // numeric chain ID used by filtering/display diverge from the full bytes the domain
+        // hash commits to; zero-padding is tolerated (trimmed by td_get_domain_chain_id)
+        if ((f->node == g_domain_root) && (strcmp(f->next->key_name, "chainId") == 0) &&
+            (completed->length > sizeof(uint64_t)) &&
+            !is_zeroes_buffer(completed->data, completed->length - sizeof(uint64_t))) {
+            td_discard_leaf(completed);
+            explicit_bzero(&g_pending_field, sizeof(g_pending_field));
+            return NULL;
+        }
         if (!td_append_child(f->node, completed)) {
             return NULL;
         }
@@ -767,4 +782,5 @@ void v1_parse_deinit(void) {
     td_discard_leaf(g_pending_field.leaf);
     explicit_bzero(&g_pending_field, sizeof(g_pending_field));
     g_pending_struct = NULL;
+    g_domain_root = NULL;
 }

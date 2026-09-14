@@ -152,6 +152,11 @@ static bool value_get_rlp(const s_value *value, s_parsed_value_collection *colle
             }
             collection->value[0].length = ADDRESS_LENGTH;
             collection->size = 1;
+            if (tx_ctx_is_root()) {
+                // The descriptor already shows the root sender; the GCS
+                // review must not add its own duplicate row for it.
+                gcs_set_root_from_shown();
+            }
             break;
 
         // Recipient address (20 bytes)
@@ -170,6 +175,11 @@ static bool value_get_rlp(const s_value *value, s_parsed_value_collection *colle
             }
             collection->value[0].length = INT256_LENGTH;
             collection->size = 1;
+            if (tx_ctx_is_root()) {
+                // The descriptor already shows the root native value; the GCS
+                // review must not add its own duplicate row for it.
+                gcs_set_root_value_shown();
+            }
             break;
 
         // Chain ID, normalized to a big-endian 64-bit value

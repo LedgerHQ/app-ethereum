@@ -1352,3 +1352,19 @@ bool filtering_raw_field(const uint8_t *payload,
     }
     return true;
 }
+
+/**
+ * Compute the CRC of the path the current field is at.
+ *
+ * @param[out] path_crc pointer to the CRC of the filter path
+ * @return whether it was successful or not
+ */
+bool filtering_compute_current_path_crc(uint32_t *path_crc) {
+    cx_sha256_t hash_ctx;
+
+    if (!sig_verif_start(&hash_ctx, 0)) {
+        return false;
+    }
+    // reuse the path hashing; the magic byte does not matter for a CRC
+    return hash_filtering_path((cx_hash_t *) &hash_ctx, false, path_crc);
+}

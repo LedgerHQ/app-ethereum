@@ -113,6 +113,10 @@ uint16_t handle_eip712_v1_struct_impl(uint8_t p1,
             case P2_IMPL_FIELD: {
                 const s_struct_712_field *cur_field = v1_get_current_field();
                 if ((ret = (cur_field != NULL))) {
+                    if (p1 == P1_COMPLETE) {
+                        // path still points at the field about to complete
+                        ui_712_check_field_filtering();
+                    }
                     const s_struct_712_value *leaf = v1_add_field(cdata, length, p1 != P1_COMPLETE);
                     if ((ret = (leaf != NULL))) {
                         if (p1 == P1_COMPLETE) {
@@ -270,7 +274,8 @@ uint16_t handle_eip712_v1_sign(const uint8_t *cdata, uint8_t length) {
     } else if (!td_hash_pass()) {
         PRINTF("value_hash_pass failed\n");
     } else if ((filt_mode == EIP712_FILTERING_FULL) &&
-               (!ui_712_message_info_received() || (ui_712_remaining_filters() != 0))) {
+               (!ui_712_message_info_received() || (ui_712_remaining_filters() != 0) ||
+                ui_712_filtering_broken())) {
         PRINTF("%d EIP712 filters are missing\n", ui_712_remaining_filters());
         sw = SWO_REFERENCED_DATA_NOT_FOUND;
     } else if (!all_calldata_info_processed() || (get_tx_ctx_count() != 0)) {

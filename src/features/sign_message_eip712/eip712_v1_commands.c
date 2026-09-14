@@ -160,6 +160,15 @@ uint16_t handle_eip712_v1_filtering(uint8_t p1, uint8_t p2, const uint8_t *cdata
     if ((p2 != P2_FILT_ACTIVATE) && (ui_712_get_filtering_mode() != EIP712_FILTERING_FULL)) {
         return SWO_SUCCESS;
     }
+    // A non-discarded filter targets the field the build stack currently points to. If that
+    // field is an array whose levels were not yet instantiated by P2_IMPL_ARRAY commands,
+    // the filter would install its label/flags onto whatever value comes next — including
+    // the field following an empty array.
+    if ((p2 > P2_FILT_MESSAGE_INFO) && (p1 != P1_DISCARDED) &&
+        v1_current_field_uninstantiated_array()) {
+        PRINTF("EIP-712 filter for an uninstantiated array field\n");
+        return SWO_INCORRECT_DATA;
+    }
     switch (p2) {
         case P2_FILT_ACTIVATE:
             if (!N_storage.verbose_eip712) {

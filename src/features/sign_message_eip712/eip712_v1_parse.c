@@ -603,6 +603,18 @@ bool v1_domain_complete(void) {
     return td_has_domain() && !td_has_message() && (g_build.depth == 0);
 }
 
+bool v1_current_field_uninstantiated_array(void) {
+    if (g_build.depth == 0) {
+        return false;
+    }
+    const s_build_frame *f = &g_build.stack[g_build.depth - 1];
+    if (f->array_remaining > 0) {
+        // inside an array: uninstantiated while inner dimensions still await P2_IMPL_ARRAY
+        return f->array_levels_remaining > 0;
+    }
+    return (f->next != NULL) && (f->next->array_level_count > 0);
+}
+
 const s_struct_712_value *v1_add_field(const uint8_t *data, size_t length, bool more) {
     if (g_build.depth == 0) {
         return NULL;

@@ -274,16 +274,24 @@ bool ui_712_message_hash(void) {
  * @param[in] data the data that needs formatting
  * @param[in] length its length
  */
-static void ui_712_format_str(const uint8_t *data, size_t length) {
+static bool ui_712_format_str(const uint8_t *data, size_t length) {
     size_t max_len = sizeof(strings.tmp.tmp) - 1;
     size_t cur_len = strlen(strings.tmp.tmp);
     size_t available;
     size_t to_copy;
 
+    // The value is hashed in full (length-delimited) but displayed as a C string:
+    // an embedded NUL would hide the trailing bytes from the review while still
+    // being signed.
+    if (memchr(data, '\0', length) != NULL) {
+        PRINTF("Error: EIP-712 string with embedded NUL\n");
+        return false;
+    }
+
     if (cur_len >= max_len) {
         // Ensure null-termination even if we're at capacity
         strings.tmp.tmp[max_len] = '\0';
-        return;
+        return true;
     }
 
     available = max_len - cur_len;
@@ -297,6 +305,7 @@ static void ui_712_format_str(const uint8_t *data, size_t length) {
         memcpy(strings.tmp.tmp + max_len - 3, "...", 3);
         strings.tmp.tmp[max_len] = '\0';
     }
+    return true;
 }
 
 /**
@@ -847,7 +856,9 @@ bool ui_712_accumulate_value(const s_struct_712_field *field_ptr,
     if (ui_712_field_shown()) {
         switch (field_ptr->type) {
             case TYPE_SOL_STRING:
-                ui_712_format_str(data, length);
+                if (!ui_712_format_str(data, length)) {
+                    return false;
+                }
                 break;
             case TYPE_SOL_ADDRESS:
                 if (!ui_712_format_addr(data, length)) {
@@ -1206,7 +1217,9 @@ static bool format_node_for_verbose_internal(const s_struct_712_value *node,
     // Format value based on type
     switch (field->type) {
         case TYPE_SOL_STRING:
-            ui_712_format_str(data, length);
+            if (!ui_712_format_str(data, length)) {
+                return false;
+            }
             break;
         case TYPE_SOL_ADDRESS:
             if (!ui_712_format_addr(data, length)) {

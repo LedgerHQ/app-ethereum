@@ -110,10 +110,10 @@ static void reset(void) {
 
 void test_init_outside_swap_rejected(void) {
     G_called_from_swap = false;
-    uint8_t ctx[sizeof(cx_sha256_t)] = {0};
+    swap_with_calldata_context_t ctx = {0};
     static const uint8_t selector[SELECTOR_SIZE] = {0xAA, 0xBB, 0xCC, 0xDD};
     ethPluginInitContract_t msg = {0};
-    msg.pluginContext = ctx;
+    msg.pluginContext = (uint8_t *) &ctx;
     msg.selector = selector;
     swap_with_calldata_plugin_call(ETH_PLUGIN_INIT_CONTRACT, &msg);
     TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
@@ -121,11 +121,12 @@ void test_init_outside_swap_rejected(void) {
 }
 
 void test_init_in_swap_hashes_selector(void) {
-    uint8_t ctx[sizeof(cx_sha256_t)] = {0};
+    swap_with_calldata_context_t ctx = {0};
     static const uint8_t selector[SELECTOR_SIZE] = {0xAA, 0xBB, 0xCC, 0xDD};
     ethPluginInitContract_t msg = {0};
-    msg.pluginContext = ctx;
+    msg.pluginContext = (uint8_t *) &ctx;
     msg.selector = selector;
+    msg.dataSize = SELECTOR_SIZE;
     swap_with_calldata_plugin_call(ETH_PLUGIN_INIT_CONTRACT, &msg);
     TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
     // One sha256_update call, for the selector.
@@ -139,10 +140,10 @@ void test_init_in_swap_hashes_selector(void) {
 
 void test_init_sha256_update_failure_propagates(void) {
     g_update_ret = CX_INVALID_PARAMETER;
-    uint8_t ctx[sizeof(cx_sha256_t)] = {0};
+    swap_with_calldata_context_t ctx = {0};
     static const uint8_t selector[SELECTOR_SIZE] = {0xAA, 0xBB, 0xCC, 0xDD};
     ethPluginInitContract_t msg = {0};
-    msg.pluginContext = ctx;
+    msg.pluginContext = (uint8_t *) &ctx;
     msg.selector = selector;
     swap_with_calldata_plugin_call(ETH_PLUGIN_INIT_CONTRACT, &msg);
     TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
@@ -154,25 +155,36 @@ void test_init_sha256_update_failure_propagates(void) {
 
 void test_provide_parameter_outside_swap_rejected(void) {
     G_called_from_swap = false;
-    uint8_t ctx[sizeof(cx_sha256_t)] = {0};
+    swap_with_calldata_context_t ctx = {0};
     uint8_t param[PARAMETER_LENGTH] = {0};
     ethPluginProvideParameter_t msg = {0};
-    msg.pluginContext = ctx;
+    msg.pluginContext = (uint8_t *) &ctx;
     msg.parameter = param;
     swap_with_calldata_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
     TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
 
 void test_provide_parameter_in_swap_folds_into_digest(void) {
-    uint8_t ctx[sizeof(cx_sha256_t)] = {0};
+    swap_with_calldata_context_t ctx = {0};
     uint8_t param[PARAMETER_LENGTH];
     memset(param, 0x42, sizeof(param));
+    // The context must come from a real INIT: it sets the expected calldata
+    // size and the running received count the contiguity gate checks
+    static const uint8_t selector[SELECTOR_SIZE] = {0xAA, 0xBB, 0xCC, 0xDD};
+    ethPluginInitContract_t init_msg = {0};
+    init_msg.pluginContext = (uint8_t *) &ctx;
+    init_msg.selector = selector;
+    init_msg.dataSize = SELECTOR_SIZE + PARAMETER_LENGTH;
+    swap_with_calldata_plugin_call(ETH_PLUGIN_INIT_CONTRACT, &init_msg);
+
     ethPluginProvideParameter_t msg = {0};
-    msg.pluginContext = ctx;
+    msg.pluginContext = (uint8_t *) &ctx;
     msg.parameter = param;
+    msg.parameterOffset = SELECTOR_SIZE;
     swap_with_calldata_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
     TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
-    TEST_ASSERT_EQUAL(g_update_calls, 1);
+    // One update from init (selector) + one for this parameter
+    TEST_ASSERT_EQUAL(g_update_calls, 2);
 }
 
 // =============================================================================
@@ -181,10 +193,10 @@ void test_provide_parameter_in_swap_folds_into_digest(void) {
 
 void test_finalize_outside_swap_rejected(void) {
     G_called_from_swap = false;
-    uint8_t ctx[sizeof(cx_sha256_t)] = {0};
+    swap_with_calldata_context_t ctx = {0};
     txContent_t tx = {0};
     ethPluginFinalize_t msg = {0};
-    msg.pluginContext = ctx;
+    msg.pluginContext = (uint8_t *) &ctx;
     msg.txContent = &tx;
     swap_with_calldata_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
     TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
@@ -197,10 +209,10 @@ void test_finalize_hash_mismatch_flips_swap_mode_to_error(void) {
     memset(forced, 0x88, sizeof(forced));
     g_force_final_digest = forced;
 
-    uint8_t ctx[sizeof(cx_sha256_t)] = {0};
+    swap_with_calldata_context_t ctx = {0};
     txContent_t tx = {0};
     ethPluginFinalize_t msg = {0};
-    msg.pluginContext = ctx;
+    msg.pluginContext = (uint8_t *) &ctx;
     msg.txContent = &tx;
     swap_with_calldata_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
 
@@ -220,10 +232,10 @@ void test_finalize_hash_match_flips_mode_to_success(void) {
     g_force_final_digest = forced;
     G_swap_mode = SWAP_MODE_CROSSCHAIN_PENDING_CHECK;
 
-    uint8_t ctx[sizeof(cx_sha256_t)] = {0};
+    swap_with_calldata_context_t ctx = {0};
     txContent_t tx = {0};
     ethPluginFinalize_t msg = {0};
-    msg.pluginContext = ctx;
+    msg.pluginContext = (uint8_t *) &ctx;
     msg.txContent = &tx;
     swap_with_calldata_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
 
@@ -242,10 +254,10 @@ void test_finalize_match_but_wrong_swap_mode_flips_error(void) {
     g_force_final_digest = forced;
     G_swap_mode = SWAP_MODE_STANDARD;
 
-    uint8_t ctx[sizeof(cx_sha256_t)] = {0};
+    swap_with_calldata_context_t ctx = {0};
     txContent_t tx = {0};
     ethPluginFinalize_t msg = {0};
-    msg.pluginContext = ctx;
+    msg.pluginContext = (uint8_t *) &ctx;
     msg.txContent = &tx;
     swap_with_calldata_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
 

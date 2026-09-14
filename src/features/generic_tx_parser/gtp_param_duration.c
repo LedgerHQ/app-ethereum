@@ -33,7 +33,16 @@ DEFINE_TLV_PARSER(PARAM_DURATION_TAGS, NULL, param_duration_tlv_parser)
 
 bool handle_param_duration_struct(const buffer_t *buf, s_param_duration_context *context) {
     TLV_reception_t received_tags;
-    return param_duration_tlv_parser(buf, context, &received_tags);
+    if (!param_duration_tlv_parser(buf, context, &received_tags)) {
+        return false;
+    }
+    // Enforce the sub-structure's mandatory tags: an empty or partial PARAM
+    // payload would otherwise parse fine and never appear in the review
+    if (!TLV_CHECK_RECEIVED_TAGS(received_tags, TAG_VERSION, TAG_VALUE)) {
+        PRINTF("Error: missing mandatory tag(s) in gtp_param_duration\n");
+        return false;
+    }
+    return true;
 }
 
 bool format_param_duration(const s_param_duration *param, const char *name) {
@@ -41,7 +50,7 @@ bool format_param_duration(const s_param_duration *param, const char *name) {
     s_parsed_value_collection collec = {0};
     char *buf = strings.tmp.tmp;
     size_t buf_size = sizeof(strings.tmp.tmp);
-    uint16_t days;
+    uint64_t days;
     uint8_t hours;
     uint8_t minutes;
     uint8_t seconds;
@@ -52,6 +61,13 @@ bool format_param_duration(const s_param_duration *param, const char *name) {
     if ((ret = value_get(&param->value, &collec))) {
         for (int i = 0; i < collec.size; ++i) {
             off = 0;
+            // A duration is a uint64: reject values with non-zero high bytes instead
+            // of silently truncating them to a shorter displayed duration.
+            if ((collec.value[i].length > sizeof(raw_buf)) &&
+                !allzeroes(collec.value[i].ptr, collec.value[i].length - sizeof(raw_buf))) {
+                ret = false;
+                break;
+            }
             buf_shrink_expand(collec.value[i].ptr,
                               collec.value[i].length,
                               raw_buf,
@@ -60,7 +76,7 @@ bool format_param_duration(const s_param_duration *param, const char *name) {
 
             days = remaining / SECONDS_IN_DAY;
             if (days > 0) {
-                snprintf(&buf[off], buf_size - off, "%dd", days);
+                snprintf(&buf[off], buf_size - off, "%llud", (unsigned long long) days);
                 off = strlen(buf);
             }
             remaining %= SECONDS_IN_DAY;

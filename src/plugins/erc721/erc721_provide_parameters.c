@@ -2,6 +2,28 @@
 #include "erc721_internal.h"
 #include "plugin_utils.h"
 #include "eth_plugin_internal.h"
+#include "common_utils.h"
+
+// ABI words are 32 bytes; reject values that don't fit a u32 instead of
+// silently truncating them
+static bool get_word_u32(const uint8_t *parameter, uint32_t *out) {
+    if (allzeroes(parameter, PARAMETER_LENGTH - sizeof(*out)) != 1) {
+        return false;
+    }
+    *out = U4BE(parameter, PARAMETER_LENGTH - sizeof(*out));
+    return true;
+}
+
+// Read a dynamic offset and rebase it past the selector; rejects overflow
+static bool get_dynamic_offset(const uint8_t *parameter, uint32_t *out) {
+    uint32_t offset;
+
+    if (!get_word_u32(parameter, &offset) || (offset > (UINT32_MAX - SELECTOR_SIZE))) {
+        return false;
+    }
+    *out = offset + SELECTOR_SIZE;
+    return true;
+}
 
 static void handle_approve(ethPluginProvideParameter_t *msg, erc721_context_t *context) {
     switch (context->next_param) {
@@ -26,6 +48,8 @@ static void handle_transfer(ethPluginProvideParameter_t *msg,
                             bool strict) {
     switch (context->next_param) {
         case FROM:
+            // Retain the owner, the account actually debited
+            copy_address(context->ownerAddress, msg->parameter, sizeof(context->ownerAddress));
             context->next_param = TO;
             break;
         case TO:
@@ -34,6 +58,31 @@ static void handle_transfer(ethPluginProvideParameter_t *msg,
             break;
         case TOKEN_ID:
             copy_parameter(context->tokenId, msg->parameter, sizeof(context->tokenId));
+            // the bytes-carrying overload has a payload after the token id
+            context->next_param =
+                (context->selectorIndex == SAFE_TRANSFER_DATA) ? DATA_OFFSET : NONE;
+            break;
+        case DATA_OFFSET:
+            if (!get_dynamic_offset(msg->parameter, &context->data_offset)) {
+                PRINTF("Receiver data offset out of range!\n");
+                msg->result = ETH_PLUGIN_RESULT_ERROR;
+                break;
+            }
+            context->next_param = DATA_LENGTH;
+            break;
+        case DATA_LENGTH:
+            if (msg->parameterOffset < context->data_offset) {
+                // not there yet
+                break;
+            }
+            if ((msg->parameterOffset != context->data_offset) ||
+                !get_word_u32(msg->parameter, &context->data_length)) {
+                PRINTF("Receiver data length not where it was declared!\n");
+                msg->result = ETH_PLUGIN_RESULT_ERROR;
+                break;
+            }
+            // The payload words themselves follow and are tolerated by the
+            // non-strict default below; the length is what the user is shown.
             context->next_param = NONE;
             break;
         default:

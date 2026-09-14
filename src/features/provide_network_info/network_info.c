@@ -293,13 +293,8 @@ static bool append_network_info(const s_network_info_ctx *context) {
     network_info_t *existing = find_dynamic_network_by_chain_id(context->network.chain_id);
     if (existing != NULL) {
         PRINTF("Network information already exist... Deleting it first!\n");
-        // Remove from list and cleanup
-        const uint8_t *bitmap = existing->icon.bitmap;
-        if (bitmap != NULL) {
-            APP_MEM_FREE_AND_NULL((void **) &bitmap);
-        }
-        flist_remove((flist_node_t **) &g_dynamic_network_list, (flist_node_t *) existing, NULL);
-        APP_MEM_FREE_AND_NULL((void **) &existing);
+        // network_info_cleanup() also resets g_last_added_network if it points here
+        network_info_cleanup(existing);
     }
     // Do not track the allocation in logs, because this buffer is expected to stay allocated
     network_info_t *new_network = NULL;
@@ -327,6 +322,10 @@ static bool append_network_info(const s_network_info_ctx *context) {
  * @return whether it was successful
  */
 static bool prepare_network_icon(const s_network_info_ctx *context) {
+    // Any pending icon state belongs to the previous descriptor; drop it so a
+    // descriptor without a signed icon hash cannot inherit it
+    clear_icon();
+
     // Check if the icon hash is provided
     if (is_zeroes_buffer(context->icon_hash, CX_SHA256_SIZE)) {
         PRINTF("/!\\ Icon hash is not provided!\n");

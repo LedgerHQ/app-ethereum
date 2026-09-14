@@ -28,7 +28,7 @@ void test_constraint_without_visible_rejected(void) {
 
     // Simulate a CONSTRAINT tag with some data (e.g., a 4-byte value)
     // TLV format: tag(1 byte) + length(1 byte) + value(4 bytes)
-    uint8_t tlv_data[] = {0x05, 0x04, 0x11, 0x22, 0x33, 0x44};  // TAG_CONSTRAINT
+    uint8_t tlv_data[] = {0x00, 0x01, 0x01, 0x05, 0x04, 0x11, 0x22, 0x33, 0x44};
     buffer_t buf = {.ptr = tlv_data, .size = sizeof(tlv_data), .offset = 0};
 
     // Call handle_field_struct with CONSTRAINT but no VISIBLE set
@@ -56,7 +56,7 @@ void test_constraint_with_always_visibility_rejected(void) {
 
     // First, set VISIBLE to ALWAYS
     // TLV format: tag(0x04) + length(1) + value(0x00 = PARAM_VISIBILITY_ALWAYS)
-    uint8_t visible_tlv[] = {0x04, 0x01, 0x00};
+    uint8_t visible_tlv[] = {0x00, 0x01, 0x01, 0x04, 0x01, 0x00};
     buffer_t visible_buf = {.ptr = visible_tlv, .size = sizeof(visible_tlv), .offset = 0};
 
     bool result = handle_field_struct(&visible_buf, &context);
@@ -91,6 +91,9 @@ void test_constraint_with_must_be_visibility_accepted(void) {
     // Send both VISIBLE and CONSTRAINT in one TLV buffer
     // TLV format: VISIBLE + CONSTRAINT concatenated
     uint8_t tlv_data[] = {
+        0x00,
+        0x01,
+        0x01,  // TAG_VERSION = 1
         0x04,
         0x01,
         0x01,  // TAG_VISIBLE = PARAM_VISIBILITY_MUST_BE
@@ -129,6 +132,9 @@ void test_constraint_with_if_not_in_visibility_accepted(void) {
 
     // Send both VISIBLE and CONSTRAINT in one TLV buffer
     uint8_t tlv_data[] = {
+        0x00,
+        0x01,
+        0x01,  // TAG_VERSION = 1
         0x04,
         0x01,
         0x02,  // TAG_VISIBLE = PARAM_VISIBILITY_IF_NOT_IN
@@ -165,6 +171,9 @@ void test_multiple_constraints_accepted(void) {
 
     // Send VISIBLE + 2 CONSTRAINTs in one TLV buffer
     uint8_t tlv_data[] = {
+        0x00,
+        0x01,
+        0x01,  // TAG_VERSION = 1
         0x04,
         0x01,
         0x02,  // TAG_VISIBLE = PARAM_VISIBILITY_IF_NOT_IN
@@ -506,6 +515,9 @@ void test_handle_separator_populates_field(void) {
     s_field field = {0};
     s_field_ctx ctx = {.field = &field};
     const uint8_t bytes[] = {
+        0x00,
+        0x01,
+        0x01,  // VERSION = 1
         0x06,
         0x03,
         ' ',

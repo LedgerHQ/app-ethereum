@@ -5,11 +5,44 @@
 #include "eth_plugin_internal.h"
 #include "common_utils.h"
 
+// ABI array lengths are 32-byte words; reject values that don't fit a u16
+// instead of silently truncating them
+static bool get_word_u16(const uint8_t *parameter, uint16_t *out) {
+    if (allzeroes(parameter, PARAMETER_LENGTH - sizeof(*out)) != 1) {
+        return false;
+    }
+    *out = U2BE(parameter, PARAMETER_LENGTH - sizeof(*out));
+    return true;
+}
+
+// ABI dynamic offsets are 32-byte words; reject values that don't fit a u32
+// instead of silently truncating them
+static bool get_word_u32(const uint8_t *parameter, uint32_t *out) {
+    if (allzeroes(parameter, PARAMETER_LENGTH - sizeof(*out)) != 1) {
+        return false;
+    }
+    *out = U4BE(parameter, PARAMETER_LENGTH - sizeof(*out));
+    return true;
+}
+
+// Read a dynamic-array offset and rebase it past the selector; rejects overflow
+static bool get_dynamic_offset(const uint8_t *parameter, uint32_t *out) {
+    uint32_t offset;
+
+    if (!get_word_u32(parameter, &offset) || (offset > (UINT32_MAX - SELECTOR_SIZE))) {
+        return false;
+    }
+    *out = offset + SELECTOR_SIZE;
+    return true;
+}
+
 static void handle_safe_transfer(ethPluginProvideParameter_t *msg, erc1155_context_t *context) {
     uint8_t new_value[INT256_LENGTH];
 
     switch (context->next_param) {
         case FROM:
+            // Retain the owner, the account actually debited
+            copy_address(context->ownerAddress, msg->parameter, sizeof(context->ownerAddress));
             context->next_param = TO;
             break;
         case TO:
@@ -22,7 +55,10 @@ static void handle_safe_transfer(ethPluginProvideParameter_t *msg, erc1155_conte
             break;
         case VALUE:
             copy_parameter(new_value, msg->parameter, sizeof(new_value));
-            convertUint256BE(new_value, INT256_LENGTH, &context->value);
+            if (!convertUint256BE(new_value, INT256_LENGTH, &context->value)) {
+                msg->result = ETH_PLUGIN_RESULT_ERROR;
+                return;
+            }
             context->next_param = NONE;
             break;
         default:
@@ -36,6 +72,8 @@ static void handle_batch_transfer(ethPluginProvideParameter_t *msg, erc1155_cont
 
     switch (context->next_param) {
         case FROM:
+            // Retain the owner, the account actually debited
+            copy_address(context->ownerAddress, msg->parameter, sizeof(context->ownerAddress));
             context->next_param = TO;
             break;
         case TO:
@@ -43,13 +81,19 @@ static void handle_batch_transfer(ethPluginProvideParameter_t *msg, erc1155_cont
             context->next_param = TOKEN_IDS_OFFSET;
             break;
         case TOKEN_IDS_OFFSET:
-            context->ids_offset =
-                U4BE(msg->parameter, PARAMETER_LENGTH - sizeof(context->ids_offset)) + 4;
+            if (!get_dynamic_offset(msg->parameter, &context->ids_offset)) {
+                PRINTF("Token ids offset out of range!\n");
+                msg->result = ETH_PLUGIN_RESULT_ERROR;
+                break;
+            }
             context->next_param = VALUE_OFFSET;
             break;
         case VALUE_OFFSET:
-            context->values_offset =
-                U4BE(msg->parameter, PARAMETER_LENGTH - sizeof(context->values_offset)) + 4;
+            if (!get_dynamic_offset(msg->parameter, &context->values_offset)) {
+                PRINTF("Values offset out of range!\n");
+                msg->result = ETH_PLUGIN_RESULT_ERROR;
+                break;
+            }
             context->next_param = TOKEN_IDS_LENGTH;
             break;
         case TOKEN_IDS_LENGTH:
@@ -61,8 +105,11 @@ static void handle_batch_transfer(ethPluginProvideParameter_t *msg, erc1155_cont
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
                 break;
             }
-            context->ids_array_len =
-                U2BE(msg->parameter, PARAMETER_LENGTH - sizeof(context->ids_array_len));
+            if (!get_word_u16(msg->parameter, &context->ids_array_len)) {
+                PRINTF("Token ids array too long!\n");
+                msg->result = ETH_PLUGIN_RESULT_ERROR;
+                break;
+            }
             context->batch_displayed = (context->ids_array_len > ERC1155_BATCH_DISPLAY_MAX)
                                            ? ERC1155_BATCH_DISPLAY_MAX
                                            : (uint8_t) context->ids_array_len;
@@ -91,14 +138,19 @@ static void handle_batch_transfer(ethPluginProvideParameter_t *msg, erc1155_cont
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
                 break;
             }
-            context->values_array_len =
-                U2BE(msg->parameter, PARAMETER_LENGTH - sizeof(context->values_array_len));
-            if (context->values_array_len != context->array_index) {
-                PRINTF("Token ids and values array sizes mismatch!");
+            if (!get_word_u16(msg->parameter, &context->values_array_len)) {
+                PRINTF("Values array too long!\n");
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
                 break;
             }
-            context->next_param = VALUE;
+            if (context->values_array_len != context->array_index) {
+                // ERC-1155 requires the two arrays to be the same length
+                PRINTF("Token ids and values array sizes mismatch!\n");
+                msg->result = ETH_PLUGIN_RESULT_ERROR;
+                break;
+            }
+            // An empty batch has nothing to consume in VALUE
+            context->next_param = (context->values_array_len == 0) ? NONE : VALUE;
             // set to zero for next step
             context->array_index = 0;
             explicit_bzero(&context->value, sizeof(context->value));
@@ -112,7 +164,10 @@ static void handle_batch_transfer(ethPluginProvideParameter_t *msg, erc1155_cont
             if (context->array_index < ERC1155_BATCH_DISPLAY_MAX) {
                 memcpy(context->batch_values[context->array_index], msg->parameter, INT256_LENGTH);
             }
-            convertUint256BE(context->tokenId, sizeof(context->tokenId), &new_value);
+            if (!convertUint256BE(context->tokenId, sizeof(context->tokenId), &new_value)) {
+                msg->result = ETH_PLUGIN_RESULT_ERROR;
+                return;
+            }
             add256(&context->value, &new_value, &context->value);
             // Reject crafted batches whose per-id totals wrap uint256. With
             // the partial sum already stored in context->value, an overflow

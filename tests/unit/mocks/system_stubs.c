@@ -442,6 +442,14 @@ __attribute__((weak)) __attribute__((noreturn)) void app_exit(void) {
     }
 }
 
+__attribute__((weak)) __attribute__((noreturn)) void os_sched_exit(unsigned int exit_code) {
+    (void) exit_code;
+    g_noreturn_calls++;
+    if (g_noreturn_armed) longjmp(g_noreturn_jmp, 1);
+    while (1) {
+    }
+}
+
 __attribute__((weak)) void app_quit(void) {
     g_noreturn_calls++;
 }

@@ -164,8 +164,8 @@ static uint16_t final_process(void) {
 
     // Determine if the buffer is Ascii or hex
     for (i = 0; i < signMsgCtx->msg_length; i++) {
-        if (!isprint((int) signMsgCtx->received_buffer[i]) &&
-            !isspace((int) signMsgCtx->received_buffer[i])) {
+        if (!isprint((unsigned char) signMsgCtx->received_buffer[i]) &&
+            !isspace((unsigned char) signMsgCtx->received_buffer[i])) {
             // Hexadecimal message
             is_hex = true;
             buffer_length *= 2;  // To convert hex byte to char
@@ -198,7 +198,7 @@ static uint16_t final_process(void) {
 #ifdef SCREEN_SIZE_NANO
         for (i = 0; i < signMsgCtx->msg_length; i++) {
             c = signMsgCtx->received_buffer[i];
-            if (isspace((int) c)) {
+            if (isspace((unsigned char) c)) {
                 // to replace all white-space characters as spaces
                 c = ' ';
             }

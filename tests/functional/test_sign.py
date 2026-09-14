@@ -202,6 +202,8 @@ def test_sign_simple(scenario_navigator: NavigateWithScenario, test_name: str, d
 
 
 def test_sign_limit_nonce(scenario_navigator: NavigateWithScenario, test_name: str):
+    """The maximum uint64 nonce fits the display buffer
+    (strings.common.nonce is NONCE_STRING_MAX_SIZE + 1) and signs normally."""
     tx_params: dict = {
         "nonce": 2**64 - 1,
         "gasPrice": 10,

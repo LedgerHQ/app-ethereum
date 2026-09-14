@@ -303,6 +303,12 @@ static void reset(void) {
     g_root_calldata_ret = NULL;
     g_calldata_selector_ret = NULL;
 
+    // Satisfy the swap chain-ID gate by default; swap tests were written
+    // before it existed
+    G_swap_expected_chain_id = s_tx_chain_id;
+    G_swap_tx_had_calldata = false;
+    G_swap_calldata_validated = false;
+
     g_chainConfig.chain_id = 1;
 
     memset(&tmpContent, 0, sizeof(tmpContent));
@@ -458,15 +464,16 @@ void test_happy_path_no_plugin_no_swap_starts_review(void) {
     TEST_ASSERT_EQUAL_STRING(strings.common.fullAmount, "1.5");
 }
 
-void test_happy_path_with_plugin_passes_from_plugin_true(void) {
+void test_unavailable_plugin_reroutes_to_standard_review(void) {
     // pluginStatus stays UNAVAILABLE so the plugin branch inside the
-    // helper is skipped (otherwise we hit the uninitialised pluginFinalize
-    // path). pluginType is what start_signature_flow looks at to decide
-    // ux_approve_tx(true vs false).
+    // helper is skipped, and the unavailable-plugin reroute then drops
+    // pluginType to NONE: start_signature_flow must use the standard
+    // review, not an empty plugin one.
     pluginType = PLUGIN_TYPE_EXTERNAL;
     G_called_from_swap = false;
     TEST_ASSERT_EQUAL(finalize_parsing(&s_ctx), 0);
-    TEST_ASSERT_TRUE(g_ux_approve_last_from_plugin);
+    TEST_ASSERT_EQUAL(pluginType, PLUGIN_TYPE_NONE);
+    TEST_ASSERT_FALSE(g_ux_approve_last_from_plugin);
 }
 
 // =============================================================================
@@ -586,15 +593,15 @@ void test_swap_old_internal_with_swap_unchecked_triggers_app_exit(void) {
     EXPECT_NORETURN(finalize_parsing(&s_ctx));
 }
 
-void test_swap_standard_with_data_present_triggers_app_exit(void) {
-    // Swap STANDARD mode + tmpContent.txContent.dataPresent=true means
-    // the host sent calldata but didn't ask us to store it -- unvalidated
-    // data on a swap. The post-helper guard refuses with
-    // SWAP_EC_ERROR_WRONG_METHOD + app_exit.
+void test_swap_standard_with_unvalidated_calldata_triggers_app_exit(void) {
+    // The swap calldata gate: G_swap_tx_had_calldata is recorded while
+    // parsing the RLP data field and nothing validated it against the
+    // swap promise -> refuse with swap error + app_exit.
     G_called_from_swap = true;
     G_swap_mode = SWAP_MODE_STANDARD;
     pluginType = PLUGIN_TYPE_NONE;  // so helper sets G_swap_checked = true
-    tmpContent.txContent.dataPresent = true;
+    G_swap_tx_had_calldata = true;
+    G_swap_calldata_validated = false;
     g_n_storage_writable.dataAllowed = true;  // bypass the earlier blind-signing gate
     EXPECT_NORETURN(finalize_parsing(&s_ctx));
 }
@@ -625,7 +632,7 @@ void test_contract_creation_writes_contract_placeholder(void) {
 // the user sees the number on screen but cannot tell which chain the
 // fee is denominated in.
 
-void test_raw_fee_to_string_long_ticker_aborts_without_ticker(void) {
+void test_raw_fee_to_string_long_ticker_fails_closed(void) {
     // adjustDecimals needs at least (srcLength + 2) bytes to write the
     // raw decimal form ("1.000000000000000000" then trim). For
     // 1e18 wei (srcLength=19) the minimum is 21 bytes -- so use a
@@ -637,10 +644,10 @@ void test_raw_fee_to_string_long_ticker_aborts_without_ticker(void) {
     s_displayable_ticker = "ABCDEFGHIJKLMNOPQRST";  // 20 chars
     char buf[22] = {0};
     bool ok = max_transaction_fee_to_string(&gp, &gl, buf, sizeof(buf));
-    TEST_ASSERT_TRUE(ok);
-    // adjustDecimals succeeded -> buf holds "1". Then the ticker-too-
-    // long guard at line 243 fired so the ticker is NOT appended.
-    TEST_ASSERT_EQUAL_STRING(buf, "1");
+    // Fee formatting failures propagate: a fee whose ticker does not fit
+    // is rejected rather than shown as a bare number the user cannot
+    // attribute to a chain.
+    TEST_ASSERT_FALSE(ok);
 }
 
 // =============================================================================
@@ -911,7 +918,7 @@ int main(void) {
     RUN_TEST(test_get_network_as_string_failure_returns_incorrect_data);
     RUN_TEST(test_data_present_without_data_allowed_rejected);
     RUN_TEST(test_happy_path_no_plugin_no_swap_starts_review);
-    RUN_TEST(test_happy_path_with_plugin_passes_from_plugin_true);
+    RUN_TEST(test_unavailable_plugin_reroutes_to_standard_review);
     RUN_TEST(test_store_calldata_without_calldata_returns_incorrect_data);
     RUN_TEST(test_swap_standard_success_calls_touch_tx_ok);
     RUN_TEST(test_swap_double_sign_safety_triggers_app_quit);
@@ -921,9 +928,9 @@ int main(void) {
     RUN_TEST(test_helper_max_fee_to_string_failure_returns_incorrect_data);
     RUN_TEST(test_store_calldata_with_selector_returns_success);
     RUN_TEST(test_swap_old_internal_with_swap_unchecked_triggers_app_exit);
-    RUN_TEST(test_swap_standard_with_data_present_triggers_app_exit);
+    RUN_TEST(test_swap_standard_with_unvalidated_calldata_triggers_app_exit);
     RUN_TEST(test_contract_creation_writes_contract_placeholder);
-    RUN_TEST(test_raw_fee_to_string_long_ticker_aborts_without_ticker);
+    RUN_TEST(test_raw_fee_to_string_long_ticker_fails_closed);
     RUN_TEST(test_cp_not_rlp_data_field_returns_not_handled);
     RUN_TEST(test_cp_empty_field_returns_not_handled);
     RUN_TEST(test_cp_new_contract_skips_plugin_dispatch);

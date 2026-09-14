@@ -62,8 +62,7 @@ static bool handle_threshold(const tlv_data_t *data, s_param_token_amount_contex
     if (data->value.size > sizeof(uint256_t)) {
         return false;
     }
-    convertUint256BE(data->value.ptr, data->value.size, &context->param->threshold);
-    return true;
+    return convertUint256BE(data->value.ptr, data->value.size, &context->param->threshold);
 }
 
 static bool handle_above_threshold_msg(const tlv_data_t *data,
@@ -85,7 +84,16 @@ DEFINE_TLV_PARSER(PARAM_TOKEN_AMOUNT_TAGS, NULL, param_token_amount_tlv_parser)
 
 bool handle_param_token_amount_struct(const buffer_t *buf, s_param_token_amount_context *context) {
     TLV_reception_t received_tags;
-    return param_token_amount_tlv_parser(buf, context, &received_tags);
+    if (!param_token_amount_tlv_parser(buf, context, &received_tags)) {
+        return false;
+    }
+    // Enforce the sub-structure's mandatory tags: an empty or partial PARAM
+    // payload would otherwise parse fine and never appear in the review
+    if (!TLV_CHECK_RECEIVED_TAGS(received_tags, TAG_VERSION, TAG_VALUE)) {
+        PRINTF("Error: missing mandatory tag(s) in gtp_param_token_amount\n");
+        return false;
+    }
+    return true;
 }
 
 static bool match_native(const uint8_t *addr, const s_param_token_amount *param) {
@@ -127,7 +135,9 @@ static bool process_token_amount(const s_param_token_amount *param,
         }
     }
 
-    convertUint256BE(value->ptr, value->length, &val256);
+    if (!convertUint256BE(value->ptr, value->length, &val256)) {
+        return false;
+    }
     if (!equal256(&param->threshold, &zero256) && gte256(&val256, &param->threshold)) {
         if (param->above_threshold_msg[0] != '\0') {
             snprintf(buf, buf_size, "%s %s", param->above_threshold_msg, ticker);

@@ -39,6 +39,14 @@ bool get_network_as_string(char *out, size_t out_size);
 bool chain_is_ethereum_compatible(const uint64_t *chain_id);
 bool app_compatible_with_chain_id(const uint64_t *chain_id);
 
+/**
+ * @brief Checks whether this app could ever sign for the given chain ID
+ *
+ * @param[in] chain_id The chain ID to check
+ * @return whether a transaction on that chain could be signed by this app
+ */
+bool chain_id_is_signable(uint64_t chain_id);
+
 uint64_t get_tx_chain_id(void);
 
 const char *get_displayable_ticker(const uint64_t *chain_id,

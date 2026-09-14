@@ -13,6 +13,9 @@
 #include "enum_value.h"
 #include "map_entry.h"
 #include "proxy_info.h"
+#ifdef HAVE_TRANSACTION_CHECKS
+#include "cmd_get_tx_simulation.h"  // clear_tx_simulation
+#endif
 #include "tx_ctx.h"
 #include "ui_utils.h"
 #include "app_mem_utils.h"
@@ -37,6 +40,8 @@ void reset_app_context(void) {
     G_called_from_swap = false;
     G_swap_response_ready = false;
     G_swap_checked = false;
+    G_swap_tx_had_calldata = false;
+    G_swap_calldata_validated = false;
     pluginType = PLUGIN_TYPE_NONE;
 #ifdef HAVE_ETH2
     eth2WithdrawalIndex = 0;

@@ -2,6 +2,7 @@
 #include "ui_icons.h"
 #include "common_ui.h"
 #include "ui_utils.h"
+#include "feature_perform_privacy_operation.h"
 
 static void reviewChoice(bool confirm) {
     if (confirm) {
@@ -15,7 +16,8 @@ static void reviewChoice(bool confirm) {
 static void buildFirstPage(const char *review_string) {
     // Initialize the buffers
     if (!ui_pairs_init(2)) {
-        // Initialization failed, cleanup and return
+        // No review will run; scrub the staged secret and release the state
+        privacy_operation_cleanup();
         return;
     }
 

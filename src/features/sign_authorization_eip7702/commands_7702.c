@@ -204,27 +204,34 @@ uint16_t handle_sign_eip7702_authorization(uint8_t p1,
                                            const uint8_t *dataBuffer,
                                            uint8_t dataLength) {
     g_7702_sw = SWO_PARAMETER_ERROR_NO_INFO;
-    if (p1 == P1_FIRST_CHUNK) {
-        // Lock the EIP-7702 authorization flow against being restarted while
-        // another signing/review is in progress. Without this guard, a hostile
-        // host could overwrite tmpCtx.authSigningContext7702.bip32 during a
-        // pending review and trick the user into signing with a path other
-        // than the one displayed on screen.
-        if (appState != APP_STATE_IDLE) {
-            PRINTF("Cannot start an EIP-7702 authorization while another flow is active\n");
-            return SWO_COMMAND_NOT_ALLOWED;
-        }
-        appState = APP_STATE_SIGNING_EIP7702;
-        if ((dataBuffer =
-                 parseBip32(dataBuffer, &dataLength, &tmpCtx.authSigningContext7702.bip32)) ==
-            NULL) {
-            reset_app_context();
-            return SWO_INCORRECT_DATA;
-        }
-    } else if (appState != APP_STATE_SIGNING_EIP7702) {
-        PRINTF("EIP-7702 continuation chunk without an active authorization session\n");
-        return SWO_COMMAND_NOT_ALLOWED;
+    switch (p1) {
+        case P1_FIRST_CHUNK:
+            // Refuse to start while another flow is active: the 7702 context
+            // aliases the transaction one through the tmpCtx union.
+            if (appState != APP_STATE_IDLE) {
+                PRINTF("Cannot start an EIP-7702 authorization while another flow is active\n");
+                return SWO_COMMAND_NOT_ALLOWED;
+            }
+            appState = APP_STATE_SIGNING_EIP7702;
+            if ((dataBuffer =
+                     parseBip32(dataBuffer, &dataLength, &tmpCtx.authSigningContext7702.bip32)) ==
+                NULL) {
+                reset_app_context();
+                return SWO_INCORRECT_DATA;
+            }
+            break;
+
+        case P1_FOLLOWING_CHUNK:
+            if (appState != APP_STATE_SIGNING_EIP7702) {
+                PRINTF("EIP-7702 continuation chunk without an active authorization session\n");
+                return SWO_COMMAND_NOT_ALLOWED;
+            }
+            break;
+
+        default:
+            return SWO_WRONG_P1_P2;
     }
+
     if (!tlv_from_apdu(p1 == P1_FIRST_CHUNK, dataLength, dataBuffer, &handle_auth7702_tlv)) {
         if (g_7702_sw == SWO_COMMAND_NOT_ALLOWED) {
             // An error screen is already displayed; only reset the state so
@@ -235,6 +242,5 @@ uint16_t handle_sign_eip7702_authorization(uint8_t p1,
         }
         return g_7702_sw;
     }
-    appState = APP_STATE_SIGNING_EIP7702;
     return SWO_NO_RESPONSE;
 }

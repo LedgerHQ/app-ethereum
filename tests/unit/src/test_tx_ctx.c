@@ -253,6 +253,12 @@ void test_init_second_call_inherits_from_and_chain(void) {
     s_calldata *cd2 = make_complete_calldata(selector2);
     TEST_ASSERT_TRUE(tx_ctx_init(cd2, NULL, g_addr_b, NULL, NULL));
     TEST_ASSERT_EQUAL(get_tx_ctx_count(), 2);
+    // Execution-order provisioning: describe the root before the second
+    // node is eligible for matching
+    TEST_ASSERT_TRUE(find_matching_tx_ctx(g_addr_a, g_match_selector, &chain1));
+    s_tx_info *info = calloc(1, sizeof(*info));
+    info->fields_hash[0] = 0xAA;  // mismatched hash: describe without popping
+    TEST_ASSERT_TRUE(set_tx_info_into_tx_ctx(info));
     // The second node's chain_id was inherited; use it for the match.
     uint64_t chain_lookup = 56;
     TEST_ASSERT_TRUE(find_matching_tx_ctx(g_addr_b, selector2, &chain_lookup));
@@ -287,6 +293,12 @@ void test_pop_unlinks_current_node(void) {
     TEST_ASSERT_TRUE(tx_ctx_init(cd2, NULL, g_addr_b, NULL, NULL));
     TEST_ASSERT_EQUAL(get_tx_ctx_count(), 2);
 
+    // Execution-order provisioning: describe the root first
+    TEST_ASSERT_TRUE(find_matching_tx_ctx(g_addr_a, g_match_selector, &chain1));
+    s_tx_info *info = calloc(1, sizeof(*info));
+    info->fields_hash[0] = 0xAA;  // mismatched hash: describe without popping
+    TEST_ASSERT_TRUE(set_tx_info_into_tx_ctx(info));
+
     // Match the second node to set current = tail.
     uint64_t chain_lookup = 1;
     TEST_ASSERT_TRUE(find_matching_tx_ctx(g_addr_b, selector2, &chain_lookup));
@@ -319,6 +331,12 @@ void test_find_matching_tx_ctx_happy(void) {
     TEST_ASSERT_TRUE(tx_ctx_init(cd_b, NULL, g_addr_b, NULL, &chain));
     TEST_ASSERT_EQUAL(get_tx_ctx_count(), 2);
 
+    // Only the next undescribed context in execution order is eligible:
+    // describe the first node before matching the second
+    TEST_ASSERT_TRUE(find_matching_tx_ctx(g_addr_a, selector, &chain));
+    s_tx_info *info = calloc(1, sizeof(*info));
+    info->fields_hash[0] = 0xAA;  // mismatched hash: describe without popping
+    TEST_ASSERT_TRUE(set_tx_info_into_tx_ctx(info));
     TEST_ASSERT_TRUE(find_matching_tx_ctx(g_addr_b, selector, &chain));
     // current must now point at the second node — to=g_addr_b.
     TEST_ASSERT_EQUAL_MEMORY(get_current_tx_to(), g_addr_b, ADDRESS_LENGTH);
@@ -460,6 +478,12 @@ void test_process_empty_txs_before_stops_at_non_empty(void) {
     static const uint8_t selector_c[CALLDATA_SELECTOR_SIZE] = {0xCA, 0xFE, 0xBA, 0xBE};
     s_calldata *cd_c = make_complete_calldata(selector_c);
     TEST_ASSERT_TRUE(tx_ctx_init(cd_c, g_addr_a, g_addr_b, NULL, &chain));  // C current
+    // A is empty (skipped by the matcher); B must be described before C is
+    // eligible, in execution order
+    TEST_ASSERT_TRUE(find_matching_tx_ctx(g_addr_a, g_match_selector, &chain));
+    s_tx_info *info_b = calloc(1, sizeof(*info_b));
+    info_b->fields_hash[0] = 0xAA;  // mismatched hash: describe without popping
+    TEST_ASSERT_TRUE(set_tx_info_into_tx_ctx(info_b));
     TEST_ASSERT_TRUE(find_matching_tx_ctx(g_addr_b, selector_c, &chain));
     TEST_ASSERT_EQUAL(get_tx_ctx_count(), 3);
 
@@ -468,22 +492,19 @@ void test_process_empty_txs_before_stops_at_non_empty(void) {
     TEST_ASSERT_EQUAL(get_tx_ctx_count(), 3);
 }
 
-void test_process_empty_txs_with_amount_no_tx_info_fails(void) {
+void test_process_empty_txs_with_amount_no_tx_info_uses_nested_chain(void) {
     uint64_t chain = 1;
-    // Empty predecessor with has_amount=true (amount provided) drives
-    // process_empty_tx down the "Send" branch. Since no tx_info has
-    // been attached to either the node or the root, the helper bails
-    // at get_root_tx_info()==NULL and returns false — exercising the
-    // error path inside the amount branch.
+    // Empty predecessor with has_amount=true drives process_empty_tx down
+    // the "Send" branch. The nested context carries its own chain ID, so no
+    // tx_info (node or root) is needed.
     TEST_ASSERT_TRUE(tx_ctx_init(NULL, g_addr_a, g_addr_a, g_amount_1eth, &chain));
     s_calldata *cd = make_complete_calldata(g_match_selector);
     TEST_ASSERT_TRUE(tx_ctx_init(cd, g_addr_a, g_addr_b, NULL, &chain));
     TEST_ASSERT_TRUE(find_matching_tx_ctx(g_addr_b, g_match_selector, &chain));
 
-    TEST_ASSERT_FALSE(process_empty_txs_before());
-    // The empty node was NOT removed — process_empty_tx returned false
-    // before reaching list_remove.
-    TEST_ASSERT_EQUAL(get_tx_ctx_count(), 2);
+    TEST_ASSERT_TRUE(process_empty_txs_before());
+    // The empty node was processed and removed
+    TEST_ASSERT_EQUAL(get_tx_ctx_count(), 1);
 }
 
 // =============================================================================
@@ -579,6 +600,11 @@ void test_set_tx_info_non_root_runs_intent_and_hash(void) {
     static const uint8_t selector_2[CALLDATA_SELECTOR_SIZE] = {0xCA, 0xFE, 0xBA, 0xBE};
     s_calldata *cd2 = make_complete_calldata(selector_2);
     TEST_ASSERT_TRUE(tx_ctx_init(cd2, g_addr_a, g_addr_b, NULL, &chain));
+    // Execution-order provisioning: describe the root first
+    TEST_ASSERT_TRUE(find_matching_tx_ctx(g_addr_a, g_match_selector, &chain));
+    s_tx_info *info_root = calloc(1, sizeof(*info_root));
+    info_root->fields_hash[0] = 0xAA;  // mismatched hash: describe without popping
+    TEST_ASSERT_TRUE(set_tx_info_into_tx_ctx(info_root));
     TEST_ASSERT_TRUE(find_matching_tx_ctx(g_addr_b, selector_2, &chain));
     TEST_ASSERT_EQUAL(get_tx_ctx_count(), 2);
 
@@ -633,7 +659,7 @@ int main(void) {
     RUN_TEST(test_process_empty_txs_before_removes_empty_predecessors);
     RUN_TEST(test_process_empty_txs_after_removes_empty_successors);
     RUN_TEST(test_process_empty_txs_before_stops_at_non_empty);
-    RUN_TEST(test_process_empty_txs_with_amount_no_tx_info_fails);
+    RUN_TEST(test_process_empty_txs_with_amount_no_tx_info_uses_nested_chain);
     RUN_TEST(test_get_fields_hash_ctx_returns_current_ctx);
     RUN_TEST(test_get_current_getters_return_attached_state);
     RUN_TEST(test_process_empty_txs_amount_branch_happy_path);

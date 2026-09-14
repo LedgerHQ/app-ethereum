@@ -43,6 +43,15 @@ static void set_approval_for_all_ui(ethQueryContractUI_t *msg, erc1155_context_t
 static void set_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *context) {
     switch (msg->screenIndex) {
         case 0:
+            strlcpy(msg->title, "NFT Owner", msg->titleLength);
+            if (!getEthDisplayableAddress(context->ownerAddress,
+                                          msg->msg,
+                                          msg->msgLength,
+                                          g_chain_config->chain_id)) {
+                msg->result = ETH_PLUGIN_RESULT_ERROR;
+            }
+            break;
+        case 1:
             strlcpy(msg->title, "To", msg->titleLength);
             if (!getEthDisplayableAddress(context->address,
                                           msg->msg,
@@ -51,11 +60,11 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *contex
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
             break;
-        case 1:
+        case 2:
             strlcpy(msg->title, "Collection Name", msg->titleLength);
             strlcpy(msg->msg, msg->item1->nft.collectionName, msg->msgLength);
             break;
-        case 2:
+        case 3:
             strlcpy(msg->title, "NFT Address", msg->titleLength);
             if (!getEthDisplayableAddress(msg->item1->nft.contractAddress,
                                           msg->msg,
@@ -64,7 +73,7 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *contex
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
             break;
-        case 3:
+        case 4:
             strlcpy(msg->title, "NFT ID", msg->titleLength);
             if (!uint256_to_decimal(context->tokenId,
                                     sizeof(context->tokenId),
@@ -73,7 +82,7 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *contex
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
             break;
-        case 4:
+        case 5:
             strlcpy(msg->title, "Quantity", msg->titleLength);
             if (!tostring256(&context->value, 10, msg->msg, msg->msgLength)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
@@ -90,7 +99,8 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *contex
 // are mapped 1:1 to the enum; per-pair detail screens (PAIR_BASE..) and the
 // truncation warning use dynamic indices computed from batch_displayed.
 enum {
-    BATCH_SCREEN_TO = 0,
+    BATCH_SCREEN_OWNER = 0,
+    BATCH_SCREEN_TO,
     BATCH_SCREEN_COLLECTION,
     BATCH_SCREEN_NFT_ADDRESS,
     BATCH_SCREEN_TOTAL_QUANTITY,
@@ -104,6 +114,15 @@ static void set_batch_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *
     uint8_t warn_idx = (uint8_t) (BATCH_SCREEN_PAIR_BASE + pair_screens);
 
     switch (idx) {
+        case BATCH_SCREEN_OWNER:
+            strlcpy(msg->title, "NFT Owner", msg->titleLength);
+            if (!getEthDisplayableAddress(context->ownerAddress,
+                                          msg->msg,
+                                          msg->msgLength,
+                                          g_chain_config->chain_id)) {
+                msg->result = ETH_PLUGIN_RESULT_ERROR;
+            }
+            break;
         case BATCH_SCREEN_TO:
             strlcpy(msg->title, "To", msg->titleLength);
             if (!getEthDisplayableAddress(context->address,
@@ -150,7 +169,10 @@ static void set_batch_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *
                 }
                 if (show_value) {
                     uint256_t v;
-                    convertUint256BE(context->batch_values[pair_idx], INT256_LENGTH, &v);
+                    if (!convertUint256BE(context->batch_values[pair_idx], INT256_LENGTH, &v)) {
+                        msg->result = ETH_PLUGIN_RESULT_ERROR;
+                        return;
+                    }
                     snprintf(msg->title, msg->titleLength, "Quantity #%d", pair_idx + 1);
                     if (!tostring256(&v, 10, msg->msg, msg->msgLength)) {
                         msg->result = ETH_PLUGIN_RESULT_ERROR;

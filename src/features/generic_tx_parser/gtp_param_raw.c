@@ -30,7 +30,16 @@ DEFINE_TLV_PARSER(PARAM_RAW_TAGS, NULL, param_raw_tlv_parser)
 
 bool handle_param_raw_struct(const buffer_t *buf, s_param_raw_context *context) {
     TLV_reception_t received_tags;
-    return param_raw_tlv_parser(buf, context, &received_tags);
+    if (!param_raw_tlv_parser(buf, context, &received_tags)) {
+        return false;
+    }
+    // Enforce the sub-structure's mandatory tags: an empty or partial PARAM
+    // payload would otherwise parse fine and never appear in the review
+    if (!TLV_CHECK_RECEIVED_TAGS(received_tags, TAG_VERSION, TAG_VALUE)) {
+        PRINTF("Error: missing mandatory tag(s) in gtp_param_raw\n");
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -84,7 +93,9 @@ static bool check_uint_constraint(const s_field *field, const uint256_t *value25
     for (s_field_constraint *c_node = field->constraints; c_node != NULL;
          c_node = (s_field_constraint *) c_node->node.next) {
         memset(&constraint, 0, sizeof(constraint));
-        convertUint256BE(c_node->value, c_node->size, &constraint);
+        if (!convertUint256BE(c_node->value, c_node->size, &constraint)) {
+            continue;
+        }
         if (equal256(value256, &constraint)) {
             return true;
         }
@@ -103,11 +114,14 @@ bool format_uint(const s_field *field,
 
     if (value->length == 0) {
         value_ptr = &zero;
+        value->length = 1;
     } else if (value_ptr == NULL) {
         return false;
     }
 
-    convertUint256BE(value_ptr, value->length, &value256);
+    if (!convertUint256BE(value_ptr, value->length, &value256)) {
+        return false;
+    }
 
     if (!apply_visibility_constraint(field,
                                      to_be_displayed,
@@ -237,34 +251,20 @@ static bool format_bool(const s_field *field,
 /**
  * @brief Check if a bytes value matches any of the field's constraints
  *
+ * Byte-level equality, like the string path: comparing formatted hex would
+ * depend on the display buffer fitting both operands.
+ *
  * @param field Field containing the constraints to check
  * @param value Value being formatted
- * @param formatted_buf Formatted buffer containing the hex string to check
  * @return true if value matches a constraint, false otherwise
  */
-static bool check_bytes_constraint(const s_field *field,
-                                   const s_parsed_value *value,
-                                   const char *formatted_buf) {
-    char constraint[sizeof(strings.tmp.tmp)] = {0};
-
+static bool check_bytes_constraint(const s_field *field, const s_parsed_value *value) {
     for (s_field_constraint *c_node = field->constraints; c_node != NULL;
          c_node = (s_field_constraint *) c_node->node.next) {
-        if (c_node->size > value->length) {
-            PRINTF("Warning: RAW BYTES constraint wrong size!\n");
+        if (c_node->size != value->length) {
             continue;
         }
-        if (sizeof(constraint) < 3) {
-            continue;
-        }
-        constraint[0] = '0';
-        constraint[1] = 'x';
-        if (bytes_to_lowercase_hex(constraint + 2,
-                                   sizeof(constraint) - 2,
-                                   c_node->value,
-                                   c_node->size) != 0) {
-            continue;
-        }
-        if (strcmp(formatted_buf, constraint) == 0) {
+        if (memcmp(c_node->value, value->ptr, c_node->size) == 0) {
             return true;
         }
     }
@@ -278,29 +278,30 @@ static bool format_bytes(const s_field *field,
                          size_t buf_size) {
     LEDGER_ASSERT(sizeof(strings.tmp.tmp) == buf_size, "Buffer too small for bytes formatting");
 
-    // "0x" prefix + two hex digits per byte + NULL terminator. Reject upfront
-    // so the rejection is self-documenting rather than implied by
-    // bytes_to_lowercase_hex's internal size check, and the caller gets a
-    // clean ERROR APDU instead of a silently truncated review screen.
-    const size_t needed = (size_t) 2 + (size_t) value->length * 2 + 1;
-    if (needed > buf_size) {
-        PRINTF("RAW BYTES value too long for display (%u > %u bytes)\n",
-               (unsigned) needed,
-               (unsigned) buf_size);
-        return false;
-    }
-    buf[0] = '0';
-    buf[1] = 'x';
-    if (bytes_to_lowercase_hex(buf + 2, buf_size - 2, value->ptr, value->length) != 0) {
-        return false;
-    }
-
     if (!apply_visibility_constraint(field,
                                      to_be_displayed,
-                                     check_bytes_constraint(field, value, buf))) {
+                                     check_bytes_constraint(field, value))) {
         return false;
     }
+    if (!*to_be_displayed) {
+        return true;
+    }
 
+    buf[0] = '0';
+    buf[1] = 'x';
+    // needs "0x" + 2 hex chars per byte + NUL
+    if ((2 + (value->length * 2) + 1) > buf_size) {
+        // Does not fit: show as many leading bytes as possible, end with "..."
+        // keep room for "0x" (2), "..." (3) and NUL (1); 2 hex chars per byte
+        size_t max_bytes = (buf_size - 2 - 1 - 3) / 2;
+
+        if (bytes_to_lowercase_hex(buf + 2, (max_bytes * 2) + 1, value->ptr, max_bytes) != 0) {
+            return false;
+        }
+        memmove(buf + 2 + (max_bytes * 2), "...", 4);  // "..." + NUL
+    } else if (bytes_to_lowercase_hex(buf + 2, buf_size - 2, value->ptr, value->length) != 0) {
+        return false;
+    }
     return true;
 }
 

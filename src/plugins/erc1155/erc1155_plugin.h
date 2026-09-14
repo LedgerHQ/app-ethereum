@@ -13,15 +13,17 @@
 // aggregate quantity screen plus a truncation warning so the user is told
 // the on-device view is incomplete.
 #define ERC1155_BATCH_DISPLAY_MAX 3
-// Ensure the FINALIZE screen count (4 base + 2 per pair + 1 truncation) fits
-// in numScreens (uint8_t). Increase ERC1155_BATCH_DISPLAY_MAX with care.
-_Static_assert(4 + 2 * ERC1155_BATCH_DISPLAY_MAX + 1 <= 255,
+// Screen count must fit numScreens (uint8_t)
+_Static_assert(5 + 2 * ERC1155_BATCH_DISPLAY_MAX + 1 <= 255,
                "ERC1155 batch screen count overflows numScreens (uint8_t)");
 
 typedef struct erc1155_context_t {
     uint8_t address[ADDRESS_LENGTH];
     uint8_t tokenId[INT256_LENGTH];
     uint256_t value;
+
+    // Calldata `from`: the account being debited, not necessarily the signer
+    uint8_t ownerAddress[ADDRESS_LENGTH];
 
     uint16_t ids_array_len;
     uint32_t ids_offset;

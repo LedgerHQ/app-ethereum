@@ -101,6 +101,10 @@ def common_test_nft(
 
     with app_client.sign(BIP32_PATH, tx_params):
         test_name += f"_{action.fn_name}_{collec.chain_id!s}"
+        # ERC-721 safeTransferFrom exists with and without a data payload, and
+        # the payload row is now displayed: keep their snapshot dirs distinct
+        if (plugin_name == ERC721_PLUGIN) and (action.fn_name == "safeTransferFrom") and (len(action.fn_args) == 4):
+            test_name += "_with_data"
         if reject:
             scenario_navigator.review_reject(test_name=test_name)
         elif simu_params is not None or gating_params is not None:

@@ -410,7 +410,7 @@ void test_approval_for_all_walk(void) {
 // Tests — FINALIZE
 // =============================================================================
 
-void test_finalize_safe_transfer_five_screens(void) {
+void test_finalize_safe_transfer_six_screens(void) {
     erc1155_context_t ctx = {.selectorIndex = SAFE_TRANSFER};
     txContent_t tx = {0};
     ethPluginFinalize_t msg = {0};
@@ -418,11 +418,11 @@ void test_finalize_safe_transfer_five_screens(void) {
     msg.txContent = &tx;
     erc1155_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
     TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
-    TEST_ASSERT_EQUAL(msg.numScreens, 5);
+    TEST_ASSERT_EQUAL(msg.numScreens, 6);
 }
 
 void test_finalize_batch_screens_formula(void) {
-    // 4 fixed + 2 * batch_displayed + 1 if truncated.
+    // 5 fixed + 2 * batch_displayed + 1 if truncated.
     erc1155_context_t ctx = {.selectorIndex = SAFE_BATCH_TRANSFER,
                              .batch_displayed = ERC1155_BATCH_DISPLAY_MAX,
                              .batch_truncated = true};
@@ -431,7 +431,7 @@ void test_finalize_batch_screens_formula(void) {
     msg.pluginContext = (uint8_t *) &ctx;
     msg.txContent = &tx;
     erc1155_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
-    TEST_ASSERT_EQUAL(msg.numScreens, 4 + 2 * ERC1155_BATCH_DISPLAY_MAX + 1);
+    TEST_ASSERT_EQUAL(msg.numScreens, 5 + 2 * ERC1155_BATCH_DISPLAY_MAX + 1);
 }
 
 void test_finalize_approval_three_screens(void) {
@@ -566,6 +566,23 @@ void test_ui_safe_transfer_screen0(void) {
     msg.msgLength = sizeof(body);
     msg.screenIndex = 0;
     erc1155_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
+    TEST_ASSERT_EQUAL_STRING(title, "NFT Owner");
+    TEST_ASSERT_EQUAL_STRING(body, "0xADDR");
+}
+
+void test_ui_safe_transfer_screen1_to(void) {
+    prep_nft_info();
+    erc1155_context_t ctx = {.selectorIndex = SAFE_TRANSFER};
+    char title[32], body[64];
+    ethQueryContractUI_t msg = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.item1 = &g_nft_info;
+    msg.title = title;
+    msg.titleLength = sizeof(title);
+    msg.msg = body;
+    msg.msgLength = sizeof(body);
+    msg.screenIndex = 1;
+    erc1155_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
     TEST_ASSERT_EQUAL_STRING(title, "To");
     TEST_ASSERT_EQUAL_STRING(body, "0xADDR");
 }
@@ -582,7 +599,7 @@ void test_ui_batch_total_quantity_screen(void) {
     msg.titleLength = sizeof(title);
     msg.msg = body;
     msg.msgLength = sizeof(body);
-    msg.screenIndex = 3;  // BATCH_SCREEN_TOTAL_QUANTITY
+    msg.screenIndex = 4;  // BATCH_SCREEN_TOTAL_QUANTITY
     erc1155_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
     TEST_ASSERT_EQUAL_STRING(title, "Total Quantity");
     TEST_ASSERT_EQUAL_STRING(body, "150 from 2 NFT IDs");
@@ -602,8 +619,8 @@ void test_ui_batch_truncation_warning_screen(void) {
     msg.titleLength = sizeof(title);
     msg.msg = body;
     msg.msgLength = sizeof(body);
-    // Warning sits after the 4 fixed screens + 2*display pair screens.
-    msg.screenIndex = (uint8_t) (4 + 2 * ERC1155_BATCH_DISPLAY_MAX);
+    // Warning sits after the 5 fixed screens + 2*display pair screens.
+    msg.screenIndex = (uint8_t) (5 + 2 * ERC1155_BATCH_DISPLAY_MAX);
     erc1155_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
     TEST_ASSERT_EQUAL_STRING(title, "WARNING");
     TEST_ASSERT_EQUAL_STRING(body, "Only first 3 of 7 IDs shown");
@@ -630,47 +647,47 @@ static void prep_ui_msg(ethQueryContractUI_t *msg,
 
 // SAFE_TRANSFER sub-screens
 
-void test_ui_safe_transfer_screen1_collection(void) {
-    prep_nft_info();
-    erc1155_context_t ctx = {.selectorIndex = SAFE_TRANSFER};
-    char title[32], body[64];
-    ethQueryContractUI_t msg;
-    prep_ui_msg(&msg, &ctx, title, body, 1);
-    erc1155_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    TEST_ASSERT_EQUAL_STRING(title, "Collection Name");
-    TEST_ASSERT_EQUAL_STRING(body, "Wares");
-}
-
-void test_ui_safe_transfer_screen2_nft_address(void) {
+void test_ui_safe_transfer_screen2_collection(void) {
     prep_nft_info();
     erc1155_context_t ctx = {.selectorIndex = SAFE_TRANSFER};
     char title[32], body[64];
     ethQueryContractUI_t msg;
     prep_ui_msg(&msg, &ctx, title, body, 2);
     erc1155_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
+    TEST_ASSERT_EQUAL_STRING(title, "Collection Name");
+    TEST_ASSERT_EQUAL_STRING(body, "Wares");
+}
+
+void test_ui_safe_transfer_screen3_nft_address(void) {
+    prep_nft_info();
+    erc1155_context_t ctx = {.selectorIndex = SAFE_TRANSFER};
+    char title[32], body[64];
+    ethQueryContractUI_t msg;
+    prep_ui_msg(&msg, &ctx, title, body, 3);
+    erc1155_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
     TEST_ASSERT_EQUAL_STRING(title, "NFT Address");
     TEST_ASSERT_EQUAL_STRING(body, "0xADDR");
 }
 
-void test_ui_safe_transfer_screen3_nft_id(void) {
+void test_ui_safe_transfer_screen4_nft_id(void) {
     prep_nft_info();
     erc1155_context_t ctx = {.selectorIndex = SAFE_TRANSFER};
     ctx.tokenId[31] = 99;
     char title[32], body[64];
     ethQueryContractUI_t msg;
-    prep_ui_msg(&msg, &ctx, title, body, 3);
+    prep_ui_msg(&msg, &ctx, title, body, 4);
     erc1155_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
     TEST_ASSERT_EQUAL_STRING(title, "NFT ID");
     TEST_ASSERT_EQUAL_STRING(body, "99");
 }
 
-void test_ui_safe_transfer_screen4_quantity(void) {
+void test_ui_safe_transfer_screen5_quantity(void) {
     prep_nft_info();
     erc1155_context_t ctx = {.selectorIndex = SAFE_TRANSFER};
     LOWER(LOWER(ctx.value)) = 1234;
     char title[32], body[64];
     ethQueryContractUI_t msg;
-    prep_ui_msg(&msg, &ctx, title, body, 4);
+    prep_ui_msg(&msg, &ctx, title, body, 5);
     erc1155_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
     TEST_ASSERT_EQUAL_STRING(title, "Quantity");
     TEST_ASSERT_EQUAL_STRING(body, "1234");
@@ -743,33 +760,43 @@ void test_ui_approval_for_all_unknown_screen_rejected(void) {
 
 // SAFE_BATCH_TRANSFER sub-screens
 
-void test_ui_batch_screen0_to(void) {
+void test_ui_batch_screen0_owner(void) {
     prep_nft_info();
     erc1155_context_t ctx = {.selectorIndex = SAFE_BATCH_TRANSFER};
     char title[32], body[64];
     ethQueryContractUI_t msg;
     prep_ui_msg(&msg, &ctx, title, body, 0);
     erc1155_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    TEST_ASSERT_EQUAL_STRING(title, "To");
+    TEST_ASSERT_EQUAL_STRING(title, "NFT Owner");
 }
 
-void test_ui_batch_screen1_collection(void) {
+void test_ui_batch_screen1_to(void) {
     prep_nft_info();
     erc1155_context_t ctx = {.selectorIndex = SAFE_BATCH_TRANSFER};
     char title[32], body[64];
     ethQueryContractUI_t msg;
     prep_ui_msg(&msg, &ctx, title, body, 1);
     erc1155_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    TEST_ASSERT_EQUAL_STRING(title, "Collection Name");
-    TEST_ASSERT_EQUAL_STRING(body, "Wares");
+    TEST_ASSERT_EQUAL_STRING(title, "To");
 }
 
-void test_ui_batch_screen2_nft_address(void) {
+void test_ui_batch_screen2_collection(void) {
     prep_nft_info();
     erc1155_context_t ctx = {.selectorIndex = SAFE_BATCH_TRANSFER};
     char title[32], body[64];
     ethQueryContractUI_t msg;
     prep_ui_msg(&msg, &ctx, title, body, 2);
+    erc1155_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
+    TEST_ASSERT_EQUAL_STRING(title, "Collection Name");
+    TEST_ASSERT_EQUAL_STRING(body, "Wares");
+}
+
+void test_ui_batch_screen3_nft_address(void) {
+    prep_nft_info();
+    erc1155_context_t ctx = {.selectorIndex = SAFE_BATCH_TRANSFER};
+    char title[32], body[64];
+    ethQueryContractUI_t msg;
+    prep_ui_msg(&msg, &ctx, title, body, 3);
     erc1155_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
     TEST_ASSERT_EQUAL_STRING(title, "NFT Address");
 }
@@ -780,8 +807,8 @@ void test_ui_batch_pair_nft_id_screen(void) {
     ctx.batch_ids[0][31] = 7;
     char title[32], body[64];
     ethQueryContractUI_t msg;
-    // Pair base is at index 4. Even offset = NFT ID, odd = Quantity.
-    prep_ui_msg(&msg, &ctx, title, body, 4);
+    // Pair base is at index 5. Even offset = NFT ID, odd = Quantity.
+    prep_ui_msg(&msg, &ctx, title, body, 5);
     erc1155_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
     TEST_ASSERT_EQUAL_STRING(title, "NFT ID #1");
     TEST_ASSERT_EQUAL_STRING(body, "7");
@@ -793,7 +820,7 @@ void test_ui_batch_pair_quantity_screen(void) {
     ctx.batch_values[0][31] = 42;
     char title[32], body[64];
     ethQueryContractUI_t msg;
-    prep_ui_msg(&msg, &ctx, title, body, 5);  // Pair 0, value half
+    prep_ui_msg(&msg, &ctx, title, body, 6);  // Pair 0, value half
     erc1155_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
     TEST_ASSERT_EQUAL_STRING(title, "Quantity #1");
     TEST_ASSERT_EQUAL_STRING(body, "42");
@@ -801,8 +828,8 @@ void test_ui_batch_pair_quantity_screen(void) {
 
 void test_ui_batch_unsupported_screen_rejected(void) {
     prep_nft_info();
-    // batch_displayed = 1 so the pair range is [4..5]; index 6 falls
-    // in the no-truncation gap and must error.
+    // batch_displayed = 1 so the pair range is [5..6]; index 99 falls
+    // past the gap and must error.
     erc1155_context_t ctx = {.selectorIndex = SAFE_BATCH_TRANSFER,
                              .batch_displayed = 1,
                              .batch_truncated = false};
@@ -836,7 +863,7 @@ int main(void) {
     RUN_TEST(test_batch_arrays_length_mismatch_rejected);
     RUN_TEST(test_batch_aggregate_quantity_overflow_rejected);
     RUN_TEST(test_approval_for_all_walk);
-    RUN_TEST(test_finalize_safe_transfer_five_screens);
+    RUN_TEST(test_finalize_safe_transfer_six_screens);
     RUN_TEST(test_finalize_batch_screens_formula);
     RUN_TEST(test_finalize_approval_three_screens);
     RUN_TEST(test_finalize_eth_attached_rejected);
@@ -846,21 +873,23 @@ int main(void) {
     RUN_TEST(test_query_contract_id_per_selector);
     RUN_TEST(test_ui_null_item1_rejected);
     RUN_TEST(test_ui_safe_transfer_screen0);
+    RUN_TEST(test_ui_safe_transfer_screen1_to);
     RUN_TEST(test_ui_batch_total_quantity_screen);
     RUN_TEST(test_ui_batch_truncation_warning_screen);
-    RUN_TEST(test_ui_safe_transfer_screen1_collection);
-    RUN_TEST(test_ui_safe_transfer_screen2_nft_address);
-    RUN_TEST(test_ui_safe_transfer_screen3_nft_id);
-    RUN_TEST(test_ui_safe_transfer_screen4_quantity);
+    RUN_TEST(test_ui_safe_transfer_screen2_collection);
+    RUN_TEST(test_ui_safe_transfer_screen3_nft_address);
+    RUN_TEST(test_ui_safe_transfer_screen4_nft_id);
+    RUN_TEST(test_ui_safe_transfer_screen5_quantity);
     RUN_TEST(test_ui_safe_transfer_unknown_screen_rejected);
     RUN_TEST(test_ui_approval_for_all_screen0_allow);
     RUN_TEST(test_ui_approval_for_all_screen0_revoke);
     RUN_TEST(test_ui_approval_for_all_screen1_to_manage_all);
     RUN_TEST(test_ui_approval_for_all_screen2_nft_address);
     RUN_TEST(test_ui_approval_for_all_unknown_screen_rejected);
-    RUN_TEST(test_ui_batch_screen0_to);
-    RUN_TEST(test_ui_batch_screen1_collection);
-    RUN_TEST(test_ui_batch_screen2_nft_address);
+    RUN_TEST(test_ui_batch_screen0_owner);
+    RUN_TEST(test_ui_batch_screen1_to);
+    RUN_TEST(test_ui_batch_screen2_collection);
+    RUN_TEST(test_ui_batch_screen3_nft_address);
     RUN_TEST(test_ui_batch_pair_nft_id_screen);
     RUN_TEST(test_ui_batch_pair_quantity_screen);
     RUN_TEST(test_ui_batch_unsupported_screen_rejected);

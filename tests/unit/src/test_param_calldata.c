@@ -214,8 +214,9 @@ void test_handle_calldata_struct_all_tags_ok(void) {
     TEST_ASSERT_TRUE(param.has_spender);
 }
 
-void test_handle_calldata_struct_version_only_ok(void) {
-    // Optional tags are all... optional. has_X flags must remain false.
+void test_handle_calldata_struct_version_only_rejected(void) {
+    // VERSION alone is not enough: VALUE and CALLEE are mandatory, an empty
+    // or partial PARAM payload must not parse
     uint8_t buf_bytes[] = {
         0x00,
         0x01,
@@ -226,8 +227,7 @@ void test_handle_calldata_struct_version_only_ok(void) {
     s_param_calldata param;
     memset(&param, 0, sizeof(param));
     s_param_calldata_context ctx = {.param = &param};
-    TEST_ASSERT_TRUE(handle_param_calldata_struct(&buf, &ctx));
-    TEST_ASSERT_EQUAL(param.version, 3);
+    TEST_ASSERT_FALSE(handle_param_calldata_struct(&buf, &ctx));
     TEST_ASSERT_FALSE(param.has_chain_id);
     TEST_ASSERT_FALSE(param.has_selector);
     TEST_ASSERT_FALSE(param.has_amount);
@@ -372,10 +372,9 @@ void test_nested_calldata_append_failure_rejected(void) {
     param.version = 1;
     param.has_selector = false;
     TEST_ASSERT_FALSE(format_param_calldata(&param, "Destination"));
-    // On append failure the production code calls APP_MEM_FREE (not
-    // calldata_delete); we observe through the absence of a leak in
-    // the calldata-delete mock counter.
-    TEST_ASSERT_EQUAL(g_calldata_delete_calls, 0);
+    // On append failure the production code releases the half-built
+    // calldata through calldata_delete
+    TEST_ASSERT_EQUAL(g_calldata_delete_calls, 1);
 }
 
 void test_nested_calldata_with_all_optional_fields(void) {
@@ -449,7 +448,7 @@ int main(void) {
     RUN_TEST(test_calldata_broadcast_ok);
     RUN_TEST(test_calldata_size_mismatch_rejected);
     RUN_TEST(test_handle_calldata_struct_all_tags_ok);
-    RUN_TEST(test_handle_calldata_struct_version_only_ok);
+    RUN_TEST(test_handle_calldata_struct_version_only_rejected);
     RUN_TEST(test_nested_calldata_with_selector_happy_path);
     RUN_TEST(test_nested_calldata_no_selector_short_payload_rejected);
     RUN_TEST(test_nested_calldata_init_failure_rejected);

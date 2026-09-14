@@ -13,6 +13,16 @@ static void scrub_privacy_strings(void) {
     explicit_bzero(strings.common.toAddress, sizeof(strings.common.toAddress));
 }
 
+void privacy_operation_cleanup(void) {
+    scrub_privacy_strings();
+    // The raw secret sits in tmpCtx until the result is copied out; wipe it on
+    // paths that never reach that point
+    explicit_bzero(&tmpCtx.publicKeyContext, sizeof(tmpCtx.publicKeyContext));
+    if (appState == APP_STATE_PERFORMING_PRIVACY_OP) {
+        appState = APP_STATE_IDLE;
+    }
+}
+
 unsigned int io_seproxyhal_touch_privacy_ok(void) {
     if (appState != APP_STATE_PERFORMING_PRIVACY_OP) {
         return io_seproxyhal_send_status(SWO_CONDITIONS_NOT_SATISFIED, 0, true, false);

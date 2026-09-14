@@ -14,6 +14,10 @@ swap_mode_t G_swap_mode;
 // On crosschain swap, save the hash promised by the partner
 uint8_t *G_swap_crosschain_hash = NULL;
 
+uint64_t G_swap_expected_chain_id;
+uint8_t G_swap_expected_token_address[ADDRESS_LENGTH];
+bool G_swap_has_expected_token_address;
+
 typedef enum extra_id_type_e {
     EXTRA_ID_TYPE_NATIVE,
     EXTRA_ID_TYPE_EVM_CALLDATA,
@@ -83,6 +87,11 @@ bool copy_transaction_parameters(create_transaction_parameters_t *sign_transacti
         return false;
     }
 
+    if (context.chain_id == 0) {
+        // fallback mechanism in the absence of chain ID in swap config
+        context.chain_id = config->chain_id;
+    }
+
     // If the amount is a fee, its value is nominated in NATIVE even if we're doing an ERC20 swap
     get_asset_info_on_network(true, &context, (chain_config_t *) config, &ticker, NULL);
 
@@ -126,6 +135,11 @@ bool copy_transaction_parameters(create_transaction_parameters_t *sign_transacti
     G_swap_signing_return_value_address = &sign_transaction_params->result;
     // Commit the values read from exchange to the clean global space
     G_swap_mode = swap_mode;
+    G_swap_expected_chain_id = context.chain_id;
+    G_swap_has_expected_token_address = context.has_token_address;
+    if (context.has_token_address) {
+        memcpy(G_swap_expected_token_address, context.token_address, ADDRESS_LENGTH);
+    }
 
     app_mem_init();
     if ((G_swap_crosschain_hash = APP_MEM_ALLOC(CX_SHA256_SIZE)) == NULL) {

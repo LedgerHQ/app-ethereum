@@ -52,3 +52,4 @@ bool filtering_raw_field(const uint8_t *payload,
                          bool discarded,
                          uint32_t *path_crc);
 bool filtering_discarded_path(const uint8_t *payload, uint8_t length);
+bool filtering_compute_current_path_crc(uint32_t *path_crc);

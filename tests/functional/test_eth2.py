@@ -11,6 +11,26 @@ from web3 import Web3
 
 BEACON_DEPOSIT_CONTRACT_ADDR = bytes.fromhex("00000000219ab540356cBB839Cbe05303d7705Fa")
 BLS_WITHDRAWAL_PREFIX = 0x00
+WEI_PER_GWEI = 10**9
+
+
+def _sha256(*parts: bytes) -> bytes:
+    digest = hashlib.sha256()
+    for part in parts:
+        digest.update(part)
+    return digest.digest()
+
+
+def deposit_data_root(pubkey: bytes, credentials: bytes, amount_gwei: int, signature: bytes) -> bytes:
+    """SSZ hash_tree_root of the DepositData container, recomputed by the app."""
+    pubkey_root = _sha256(pubkey, bytes(64 - len(pubkey)))
+    signature_root = _sha256(_sha256(signature[:64]), _sha256(signature[64:], bytes(32)))
+    return _sha256(
+        _sha256(pubkey_root, credentials),
+        _sha256(amount_gwei.to_bytes(8, "little") + bytes(24), signature_root),
+    )
+
+
 BIP32_PATH = "m/44'/60'/0'/0/0"
 
 
@@ -26,13 +46,18 @@ def test_eth2_deposit(scenario_navigator: NavigateWithScenario) -> None:
     # https://github.com/ethereum/consensus-specs/blob/master/specs/phase0/validator.md#withdrawal-credentials
     credentials = bytearray(hashlib.sha256(app_client.response().data).digest())
     credentials[0] = BLS_WITHDRAWAL_PREFIX
+    pubkey = bytes.fromhex("a377e13e3b146513c0c9dd5231ced86a21597e5b83fa83ac8c27c4620f180c151d3e709107d73257fa451c58149e4065")
+    signature = bytes.fromhex("00") * 96
+    # The root must commit to the fields the device is shown, otherwise the
+    # plugin refuses the deposit
+    root = deposit_data_root(pubkey, bytes(credentials), Web3.to_wei(1.23035, "ether") // WEI_PER_GWEI, signature)
     data = contract.encode_abi(
         "deposit",
         [
-            bytes.fromhex("a377e13e3b146513c0c9dd5231ced86a21597e5b83fa83ac8c27c4620f180c151d3e709107d73257fa451c58149e4065"),
+            pubkey,
             credentials,
-            bytes.fromhex("00") * 96,
-            bytes.fromhex("4f1f479ababcef72faa5f9acf66faec651d143bc76f3880d0a25b72557bfd70a"),
+            signature,
+            root,
         ],
     )
     tx_params = {

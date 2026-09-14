@@ -11,7 +11,11 @@ typedef enum {
 typedef enum {
     FROM,
     TO,
-    DATA,
+    // safeTransferFrom(address,address,uint256,bytes) only: the dynamic offset
+    // of the receiver payload, then its length. Replaces a DATA state that was
+    // declared but never reached, leaving the payload unparsed.
+    DATA_OFFSET,
+    DATA_LENGTH,
     TOKEN_ID,
     OPERATOR,
     APPROVED,

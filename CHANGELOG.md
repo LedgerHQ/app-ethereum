@@ -5,7 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.23.0](../../compare/1.22.3...1.23.0) - xxxx-xx-xx
+## [1.23.0](../../compare/1.22.4...1.23.0) - xxxx-xx-xx
+
+## [1.22.4](../../compare/1.22.3...1.22.4) - 2026-09-08
+
+### Changed
+
+- Reviews now always show the signing account and the transaction's native value
+- NFT reviews show the actual recipient from the calldata
+
+### Fixed
+
+- Swap flows could skip calldata validation once a plugin handled the transaction
+- Swap validation was not bound to the promised token contract and chain ID
+- Asset metadata signed for one chain could be reused on another EVM chain
+- ETH2 deposit review was not bound to the deposit data root
+- EIP-7702 authorizations could overwrite a pending transaction's signing data
+- Multi-packet EIP-7702 authorizations were rejected
+- EIP-7702 all-chains requests could match chain-specific whitelist entries
+- EIP-712 sign command could be replayed during the review
+- EIP-712 filters could be replayed, arrive mid-value, or target missing array entries
+- EIP-712 now rejects ambiguous schema names, bad type/size pairs, oversized chain IDs and embedded NULs
+- Nested calls could inherit wrong defaults, hide their chain, or lose zero-argument selectors
+- Enum labels from a different contract could be displayed
+- Reviews could silently drop values on memory errors
+- Fee formatting failure could show an empty fee
+- Transactions with a nonce too large to display are now rejected
+- Missing plugin data could lead to an empty review
+- Overlong caller-app names could corrupt the home screen title
+- Sensitive data is now wiped when a privacy export is aborted
+- Replacing a network descriptor could leave stale state
+- Large raw values were rejected instead of being shown truncated with an ellipsis
+- Various parsing and memory-safety issues found by security review and fuzzing
 
 ## [1.22.3](../../compare/1.22.2...1.22.3) - 2026-08-25
 

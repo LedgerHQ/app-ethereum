@@ -289,8 +289,13 @@ static bool ui_712_format_str(const uint8_t *data, size_t length) {
     }
 
     if (cur_len >= max_len) {
-        // Ensure null-termination even if we're at capacity
+        // Buffer is full; any further byte is dropped and the display must say so.
+        // Overwrite the last 3 bytes of content so the string length stays max_len
+        // and a re-entry keeps this path instead of erasing the marker.
         strings.tmp.tmp[max_len] = '\0';
+        if (length > 0) {
+            memcpy(strings.tmp.tmp + max_len - 3, "...", 3);
+        }
         return true;
     }
 

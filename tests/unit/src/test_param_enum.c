@@ -108,6 +108,11 @@ static const uint8_t g_contract[ADDRESS_LENGTH] = {
     0x55, 0x66, 0x77, 0x88, 0x99, 0x00, 0xAA, 0xBB, 0xCC, 0xDD,
 };
 
+// Enum metadata is resolved against the callee of the current context
+const uint8_t *get_current_tx_to(void) {
+    return g_contract;
+}
+
 static void reset(void) {
     memset(&g_vg, 0, sizeof(g_vg));
     g_vg_call = 0;
@@ -143,6 +148,8 @@ void test_format_known_enum_resolves(void) {
 
     s_param_enum param = {0};
     param.id = 7;
+    param.value.type_family = TF_UINT;
+    param.value.type_size = sizeof(uint8_t);
     TEST_ASSERT_TRUE(format_param_enum(&param, "Action"));
 }
 
@@ -163,6 +170,8 @@ void test_format_takes_last_byte_of_wide_value(void) {
 
     s_param_enum param = {0};
     param.id = 7;
+    param.value.type_family = TF_UINT;
+    param.value.type_size = sizeof(uint8_t);
     TEST_ASSERT_TRUE(format_param_enum(&param, "Action"));
 }
 

@@ -54,10 +54,6 @@ uint32_t get_eth2_public_key(uint32_t *bip32Path, uint8_t bip32PathLength, uint8
     publicKey.W[1] |= 0x80 | yFlag;
     memmove(out, publicKey.W + 1, BLS12381_G1_COMPRESSED_PUBKEY_LENGTH);
 end:
-    // privateKeyData holds the EIP-2333-derived BLS12-381 private scalar (32
-    // bytes of secret material). Residual stack content can be recovered
-    // through later memory-disclosure bugs, crash dumps, or forensic
-    // extraction, so wipe it before returning (CWE-226).
     explicit_bzero(privateKeyData, sizeof(privateKeyData));
     explicit_bzero(tmp, BLS12381_G1_UNCOMPRESSED_PUBKEY_LENGTH);
     explicit_bzero((void *) &privateKey, sizeof(cx_ecfp_256_extended_private_key_t));

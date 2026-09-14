@@ -13,5 +13,9 @@ jobs:
   job_functional_tests:
     uses: LedgerHQ/app-exchange/.github/workflows/reusable_swap_functional_tests.yml@develop
     with:
+      # Must be passed explicitly: the reusable workflow defaults
+      # repo_for_ethereum to 'LedgerHQ/app-ethereum', so without this it would
+      # look for this repository's refs in a different repository.
+      repo_for_ethereum: ${{ github.repository }}
       branch_for_ethereum: ${{ github.ref }}
       test_filter: '"ETH or eth or Ethereum or ethereum"'

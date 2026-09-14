@@ -8,6 +8,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include "calldata.h"  // CALLDATA_CHUNK_SIZE
 
 // Includes
 #include "gtp_field.h"
@@ -100,6 +102,7 @@
 
 static bool g_add_to_field_table_ret = true;
 static const void *g_get_matching_map_entry_ret = NULL;
+static char g_last_field_value[256] = {0};
 
 // =============================================================================
 // Mock functions
@@ -109,6 +112,7 @@ static const void *g_get_matching_map_entry_ret = NULL;
  * @brief Mock implementation of add_to_field_table
  */
 bool add_to_field_table(e_param_type param_type, const char *name, const char *value) {
+    snprintf(g_last_field_value, sizeof(g_last_field_value), "%s", value);
     return (bool) g_add_to_field_table_ret;
 }
 
@@ -841,6 +845,56 @@ void test_raw_bytes_if_not_in_no_match(void) {
     free(constraint);
 }
 
+/**
+ * @brief A BYTES constraint that is only a prefix of the value does not match
+ */
+void test_raw_bytes_prefix_constraint_no_match(void) {
+    uint8_t data[4] = {0xAB, 0xCD, 0xEF, 0x01};
+    CREATE_BYTES_PARAM(param, data, sizeof(data));
+
+    // Constraint holds every byte but the last one
+    s_field_constraint *constraint = calloc(1, sizeof(s_field_constraint));
+    constraint->value = calloc(1, sizeof(data) - 1);
+    constraint->size = sizeof(data) - 1;
+    memcpy(constraint->value, data, sizeof(data) - 1);
+
+    s_field field = {.param_type = PARAM_TYPE_RAW,
+                     .visibility = PARAM_VISIBILITY_MUST_BE,
+                     .constraints = constraint,
+                     .param_raw = param,
+                     .name = "Data"};
+
+    // MUST_BE with no match: the transaction is rejected
+    TEST_ASSERT_FALSE(format_param_raw(&field));
+
+    free(constraint->value);
+    free(constraint);
+}
+
+/**
+ * @brief A BYTES value at the constant-size limit is displayed in full (no truncation)
+ */
+void test_raw_bytes_max_constant_displayed(void) {
+    uint8_t data[CALLDATA_CHUNK_SIZE];
+    memset(data, 0xAB, sizeof(data));
+    CREATE_BYTES_PARAM(param, data, sizeof(data));
+
+    s_field field = {.param_type = PARAM_TYPE_RAW,
+                     .visibility = PARAM_VISIBILITY_ALWAYS,
+                     .constraints = NULL,
+                     .param_raw = param,
+                     .name = "Data"};
+    g_add_to_field_table_ret = true;
+
+    TEST_ASSERT_TRUE(format_param_raw(&field));
+
+    char expected[2 + (CALLDATA_CHUNK_SIZE * 2) + 1] = "0x";
+    for (int i = 0; i < CALLDATA_CHUNK_SIZE; i++) {
+        strcat(expected, "ab");
+    }
+    TEST_ASSERT_EQUAL_STRING(expected, g_last_field_value);
+}
+
 // =============================================================================
 // Test cases - TF_STRING
 // =============================================================================
@@ -1205,6 +1259,8 @@ int main(void) {
     RUN_TEST(test_raw_bytes_must_be_invalid);
     RUN_TEST(test_raw_bytes_if_not_in_match);
     RUN_TEST(test_raw_bytes_if_not_in_no_match);
+    RUN_TEST(test_raw_bytes_max_constant_displayed);
+    RUN_TEST(test_raw_bytes_prefix_constraint_no_match);
     RUN_TEST(test_raw_string);
     RUN_TEST(test_raw_string_must_be_valid);
     RUN_TEST(test_raw_string_must_be_invalid);

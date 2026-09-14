@@ -25,6 +25,21 @@
 
 extern bool G_swap_checked;
 
+// Chain ID the exchange application promised for the transaction being signed
+extern uint64_t G_swap_expected_chain_id;
+
+// Token contract the exchange application promised, when one was provided
+extern uint8_t G_swap_expected_token_address[ADDRESS_LENGTH];
+extern bool G_swap_has_expected_token_address;
+
+// Whether the transaction carried a data field. Never cleared afterwards,
+// unlike txContent.dataPresent which successful plugins clear for their UI.
+extern bool G_swap_tx_had_calldata;
+
+// Whether that calldata was checked against the exchange promise: the ERC-20
+// swap path, and the crosschain path once the calldata hash matches.
+extern bool G_swap_calldata_validated;
+
 typedef struct {
     char ticker[MAX_TICKER_LEN];
     uint8_t decimals;
@@ -34,6 +49,8 @@ typedef struct {
     asset_info_t swapped_asset_info;
     asset_info_t fees_asset_info;
     uint64_t chain_id;
+    uint8_t token_address[ADDRESS_LENGTH];
+    bool has_token_address;
 } swap_context_t;
 
 typedef struct eth_libargs_s {

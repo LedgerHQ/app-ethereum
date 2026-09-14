@@ -4,6 +4,7 @@
 #include "common_utils.h"
 #include "app_mem_utils.h"
 #include "read.h"
+#include "os_utils.h"  // is_zeroes_buffer
 #include "value_hash.h"
 
 static s_struct_712 *g_structs = NULL;
@@ -350,11 +351,21 @@ bool td_get_domain_chain_id(uint64_t *chain_id) {
         for (const s_struct_712_value *child = g_impl.domain->children; child != NULL;
              child = (const s_struct_712_value *) ((const flist_node_t *) child)->next) {
             if ((child->kind == VAL_ATOMIC) && (strcmp(child->field->key_name, "chainId") == 0)) {
-                // reject rather than silently wrap/truncate an oversized length into u64_from_BE
-                if (child->length > sizeof(*chain_id)) {
-                    return false;
+                const uint8_t *data = child->data;
+                uint16_t length = child->length;
+
+                // tolerate zero-left-padded values (the domain hash commits to the full bytes,
+                // the numeric value must stay identical); non-zero padding is rejected at
+                // ingestion by the value parser
+                if (length > sizeof(*chain_id)) {
+                    uint16_t leading = length - sizeof(*chain_id);
+                    if (!is_zeroes_buffer(data, leading)) {
+                        return false;
+                    }
+                    data += leading;
+                    length = sizeof(*chain_id);
                 }
-                *chain_id = u64_from_BE(child->data, (uint8_t) child->length);
+                *chain_id = u64_from_BE(data, (uint8_t) length);
                 return true;
             }
         }

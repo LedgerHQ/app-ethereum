@@ -28,6 +28,8 @@
 
 // Global flag indicating whether swap parameters have been verified
 bool G_swap_checked;
+bool G_swap_tx_had_calldata;
+bool G_swap_calldata_validated;
 
 /**
  * Helper function to parse a token asset info (ticker + decimals) from config buffer
@@ -150,6 +152,18 @@ bool parse_swap_config(const uint8_t *config, uint8_t config_len, swap_context_t
             PRINTF("Invalid fees decimals: %d\n", context->fees_asset_info.decimals);
             return false;
         }
+    }
+
+    // TODO: Remove this check once CAL is updated to always provide the token contract address
+    // Parse token contract address (ERC-20 swaps only)
+    if (offset < config_len) {
+        if ((config_len - offset) < ADDRESS_LENGTH) {
+            PRINTF("Failed to parse token contract address\n");
+            return false;
+        }
+        memcpy(context->token_address, config + offset, ADDRESS_LENGTH);
+        context->has_token_address = true;
+        offset += ADDRESS_LENGTH;
     }
 
     return true;

@@ -54,7 +54,16 @@ DEFINE_TLV_PARSER(PARAM_UNIT_TAGS, NULL, param_unit_tlv_parser)
 
 bool handle_param_unit_struct(const buffer_t *buf, s_param_unit_context *context) {
     TLV_reception_t received_tags;
-    return param_unit_tlv_parser(buf, context, &received_tags);
+    if (!param_unit_tlv_parser(buf, context, &received_tags)) {
+        return false;
+    }
+    // Enforce the sub-structure's mandatory tags: an empty or partial PARAM
+    // payload would otherwise parse fine and never appear in the review
+    if (!TLV_CHECK_RECEIVED_TAGS(received_tags, TAG_VERSION, TAG_VALUE, TAG_BASE, TAG_DECIMALS)) {
+        PRINTF("Error: missing mandatory tag(s) in gtp_param_unit\n");
+        return false;
+    }
+    return true;
 }
 
 bool format_param_unit(const s_param_unit *param, const char *name) {

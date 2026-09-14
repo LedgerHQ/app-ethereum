@@ -14,6 +14,10 @@
 static s_tx_ctx *g_tx_ctx_list = NULL;
 static s_tx_ctx *g_tx_ctx_current = NULL;
 s_calldata *g_parked_calldata = NULL;
+// Whether a descriptor field already displays the root transaction native value (CP_VALUE)
+static bool g_root_value_shown = false;
+// Whether a descriptor field already displays the root transaction sender (CP_FROM)
+static bool g_root_from_shown = false;
 
 bool tx_ctx_is_root(void) {
     return (g_tx_ctx_list != NULL) && (g_tx_ctx_current == g_tx_ctx_list);
@@ -109,19 +113,14 @@ static bool process_empty_tx(const s_tx_ctx *tx_ctx) {
     uint8_t decimals;
     char *buf = strings.tmp.tmp;
     size_t buf_size = sizeof(strings.tmp.tmp);
-    const s_tx_info *tx_info = tx_ctx->tx_info;
     e_param_type param_type;
 
     if (tx_ctx->has_amount) {
         if (!set_intent_field("Send")) {
             return false;
         }
-        if (tx_info == NULL) {
-            if ((tx_info = get_root_tx_info()) == NULL) {
-                return false;
-            }
-        }
-        ticker = get_displayable_ticker(&tx_info->chain_id, g_chain_config, true);
+        // The nested context carries its own (possibly cross-chain) chain ID
+        ticker = get_displayable_ticker(&tx_ctx->chain_id, g_chain_config, true);
         decimals = WEI_TO_ETHER;
         if (!amountToString(tx_ctx->amount,
                             sizeof(tx_ctx->amount),
@@ -140,7 +139,6 @@ static bool process_empty_tx(const s_tx_ctx *tx_ctx) {
         }
     }
 
-    uint64_t chain_id = get_tx_chain_id();
     e_name_type types[] = {TN_TYPE_ACCOUNT};
     e_name_source sources[] = {TN_SOURCE_ENS, TN_SOURCE_LAB, TN_SOURCE_MAB};
     e_addr_name_source name_source;
@@ -149,7 +147,7 @@ static bool process_empty_tx(const s_tx_ctx *tx_ctx) {
     // Address Book > Trusted Name > raw hex; extra_data carries the matched record for the alias
     // detail view
     if (!get_address_display_name(tx_ctx->to,
-                                  chain_id,
+                                  tx_ctx->chain_id,
                                   ARRAYLEN(types),
                                   types,
                                   ARRAYLEN(sources),
@@ -214,19 +212,30 @@ bool find_matching_tx_ctx(const uint8_t *contract_addr,
                           const uint8_t *selector,
                           const uint64_t *chain_id) {
     const uint8_t *proxy_implem;
+    s_tx_ctx *expected = NULL;
 
+    // Only the next undescribed context in execution order is eligible, so the
+    // host cannot reorder the review vs the actual call sequence. Empty
+    // transactions have no TX_INFO and are handled by process_empty_txs_*().
     for (s_tx_ctx *tmp = g_tx_ctx_list; tmp != NULL;
          tmp = (s_tx_ctx *) ((flist_node_t *) tmp)->next) {
-        proxy_implem = get_implem_contract(chain_id, tmp->to, selector);
-        if ((memcmp((proxy_implem != NULL) ? proxy_implem : tmp->to,
-                    contract_addr,
-                    ADDRESS_LENGTH) == 0) &&
-            ((tmp->calldata != NULL) &&
-             (memcmp(selector, tmp->calldata->selector, CALLDATA_SELECTOR_SIZE) == 0)) &&
-            (*chain_id == tmp->chain_id)) {
-            g_tx_ctx_current = tmp;
-            return true;
+        if ((tmp->tx_info == NULL) && (tmp->calldata != NULL)) {
+            expected = tmp;
+            break;
         }
+    }
+    if (expected == NULL) {
+        return false;
+    }
+
+    proxy_implem = get_implem_contract(chain_id, expected->to, selector);
+    if ((memcmp((proxy_implem != NULL) ? proxy_implem : expected->to,
+                contract_addr,
+                ADDRESS_LENGTH) == 0) &&
+        (memcmp(selector, expected->calldata->selector, CALLDATA_SELECTOR_SIZE) == 0) &&
+        (*chain_id == expected->chain_id)) {
+        g_tx_ctx_current = expected;
+        return true;
     }
     return false;
 }
@@ -287,13 +296,18 @@ bool tx_ctx_init(s_calldata *calldata,
             calldata_info->processed = true;
         }
     } else {
-        // as default, copy value from last tx context
-        const s_tx_ctx *tmp = g_tx_ctx_list;
-        while (((const flist_node_t *) tmp)->next != NULL) {
-            tmp = (const s_tx_ctx *) ((const flist_node_t *) tmp)->next;
+        // Inherit defaults from the logical parent: the context being
+        // formatted when known, the list tail at queue time (creation order
+        // matches nesting order before any matching has run).
+        const s_tx_ctx *parent = g_tx_ctx_current;
+        if (parent == NULL) {
+            parent = g_tx_ctx_list;
+            while (((const flist_node_t *) parent)->next != NULL) {
+                parent = (const s_tx_ctx *) ((const flist_node_t *) parent)->next;
+            }
         }
-        memcpy(node->from, tmp->from, sizeof(node->from));
-        node->chain_id = tmp->chain_id;
+        memcpy(node->from, parent->from, sizeof(node->from));
+        node->chain_id = parent->chain_id;
     }
 
     if (from != NULL) {
@@ -330,10 +344,28 @@ bool tx_ctx_init(s_calldata *calldata,
     return true;
 }
 
+void gcs_set_root_value_shown(void) {
+    g_root_value_shown = true;
+}
+
+bool gcs_is_root_value_shown(void) {
+    return g_root_value_shown;
+}
+
+void gcs_set_root_from_shown(void) {
+    g_root_from_shown = true;
+}
+
+bool gcs_is_root_from_shown(void) {
+    return g_root_from_shown;
+}
+
 void gcs_cleanup(void) {
     ui_gcs_cleanup();
     field_table_cleanup();
     tx_ctx_cleanup();
+    g_root_value_shown = false;
+    g_root_from_shown = false;
     // just in case
     if (g_parked_calldata != NULL) {
         calldata_delete(g_parked_calldata);

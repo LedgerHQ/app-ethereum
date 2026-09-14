@@ -242,6 +242,20 @@ void test_safe_transfer_data_tolerates_extra_params(void) {
     erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);  // FROM
     erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);  // TO
     erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);  // TOKEN_ID
+    // The bytes payload overhead is walked before NONE
+    TEST_ASSERT_EQUAL(ctx.next_param, DATA_OFFSET);
+
+    // Dynamic offset of the payload, counted from after the selector
+    memset(param, 0, sizeof(param));
+    param[PARAMETER_LENGTH - 1] = 4 * PARAMETER_LENGTH;
+    erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);  // DATA_OFFSET
+    TEST_ASSERT_EQUAL(ctx.next_param, DATA_LENGTH);
+
+    // The length word lands at the declared offset
+    msg.parameterOffset = SELECTOR_SIZE + 4 * PARAMETER_LENGTH;
+    memset(param, 0, sizeof(param));
+    param[PARAMETER_LENGTH - 1] = 9;
+    erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);  // DATA_LENGTH
     TEST_ASSERT_EQUAL(ctx.next_param, NONE);
 
     // Non-strict: extra param after NONE is ignored, not an error.
@@ -289,7 +303,7 @@ void test_unknown_selector_index_rejects(void) {
 // Tests — FINALIZE
 // =============================================================================
 
-void test_finalize_transfer_four_screens(void) {
+void test_finalize_transfer_five_screens(void) {
     erc721_context_t ctx = {.selectorIndex = TRANSFER};
     txContent_t tx = {0};
     ethPluginFinalize_t msg = {0};
@@ -297,7 +311,7 @@ void test_finalize_transfer_four_screens(void) {
     msg.txContent = &tx;
     erc721_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
     TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
-    TEST_ASSERT_EQUAL(msg.numScreens, 4);
+    TEST_ASSERT_EQUAL(msg.numScreens, 5);
     TEST_ASSERT_EQUAL(msg.uiType, ETH_UI_TYPE_GENERIC);
 }
 
@@ -322,7 +336,7 @@ void test_finalize_transfer_with_eth_value_adds_screen(void) {
     msg.txContent = &tx;
     erc721_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
     TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
-    TEST_ASSERT_EQUAL(msg.numScreens, 5);
+    TEST_ASSERT_EQUAL(msg.numScreens, 6);
 }
 
 void test_finalize_set_approval_with_eth_rejected(void) {
@@ -450,7 +464,7 @@ void test_ui_null_item1_rejected(void) {
     TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
 
-void test_ui_transfer_screen0_is_to_address(void) {
+void test_ui_transfer_screen0_is_owner_address(void) {
     prep_nft_info();
     erc721_context_t ctx = {.selectorIndex = TRANSFER};
     char title[32], body[64];
@@ -458,22 +472,34 @@ void test_ui_transfer_screen0_is_to_address(void) {
     prep_ui_msg(&msg, &ctx, title, body, 0);
     erc721_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
     TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
-    TEST_ASSERT_EQUAL_STRING(title, "To");
+    TEST_ASSERT_EQUAL_STRING(title, "NFT Owner");
     TEST_ASSERT_EQUAL_STRING(body, "0xADDR");
 }
 
-void test_ui_transfer_screen1_is_collection(void) {
+void test_ui_transfer_screen1_is_to_address(void) {
     prep_nft_info();
     erc721_context_t ctx = {.selectorIndex = TRANSFER};
     char title[32], body[64];
     ethQueryContractUI_t msg;
     prep_ui_msg(&msg, &ctx, title, body, 1);
     erc721_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL_STRING(title, "To");
+    TEST_ASSERT_EQUAL_STRING(body, "0xADDR");
+}
+
+void test_ui_transfer_screen2_is_collection(void) {
+    prep_nft_info();
+    erc721_context_t ctx = {.selectorIndex = TRANSFER};
+    char title[32], body[64];
+    ethQueryContractUI_t msg;
+    prep_ui_msg(&msg, &ctx, title, body, 2);
+    erc721_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
     TEST_ASSERT_EQUAL_STRING(title, "Collection Name");
     TEST_ASSERT_EQUAL_STRING(body, "CryptoPunks");
 }
 
-void test_ui_transfer_screen3_is_nft_id(void) {
+void test_ui_transfer_screen4_is_nft_id(void) {
     prep_nft_info();
     erc721_context_t ctx = {.selectorIndex = TRANSFER};
     // tokenId = 42 in big-endian (encoded by copy_parameter on a
@@ -481,7 +507,7 @@ void test_ui_transfer_screen3_is_nft_id(void) {
     ctx.tokenId[31] = 42;
     char title[32], body[64];
     ethQueryContractUI_t msg;
-    prep_ui_msg(&msg, &ctx, title, body, 3);
+    prep_ui_msg(&msg, &ctx, title, body, 4);
     erc721_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
     TEST_ASSERT_EQUAL_STRING(title, "NFT ID");
     TEST_ASSERT_EQUAL_STRING(body, "42");
@@ -527,12 +553,12 @@ void test_ui_approve_screen0_is_allow_to_address(void) {
 // screens 1/2/3, SET_APPROVAL_FOR_ALL screens 1/2, plus the default
 // arms in each switch.
 
-void test_ui_transfer_screen2_is_nft_address(void) {
+void test_ui_transfer_screen3_is_nft_address(void) {
     prep_nft_info();
     erc721_context_t ctx = {.selectorIndex = TRANSFER};
     char title[32], body[64];
     ethQueryContractUI_t msg;
-    prep_ui_msg(&msg, &ctx, title, body, 2);
+    prep_ui_msg(&msg, &ctx, title, body, 3);
     erc721_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
     TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
     TEST_ASSERT_EQUAL_STRING(title, "NFT Address");
@@ -643,7 +669,7 @@ int main(void) {
     RUN_TEST(test_safe_transfer_data_tolerates_extra_params);
     RUN_TEST(test_approval_for_all_walks_two_params);
     RUN_TEST(test_unknown_selector_index_rejects);
-    RUN_TEST(test_finalize_transfer_four_screens);
+    RUN_TEST(test_finalize_transfer_five_screens);
     RUN_TEST(test_finalize_set_approval_three_screens);
     RUN_TEST(test_finalize_transfer_with_eth_value_adds_screen);
     RUN_TEST(test_finalize_set_approval_with_eth_rejected);
@@ -653,13 +679,14 @@ int main(void) {
     RUN_TEST(test_query_id_unknown_selector_rejects);
     RUN_TEST(test_provide_info_returns_ok);
     RUN_TEST(test_ui_null_item1_rejected);
-    RUN_TEST(test_ui_transfer_screen0_is_to_address);
-    RUN_TEST(test_ui_transfer_screen1_is_collection);
-    RUN_TEST(test_ui_transfer_screen3_is_nft_id);
+    RUN_TEST(test_ui_transfer_screen0_is_owner_address);
+    RUN_TEST(test_ui_transfer_screen1_is_to_address);
+    RUN_TEST(test_ui_transfer_screen2_is_collection);
+    RUN_TEST(test_ui_transfer_screen4_is_nft_id);
     RUN_TEST(test_ui_transfer_unknown_screen_rejected);
     RUN_TEST(test_ui_approval_for_all_allow_vs_revoke);
     RUN_TEST(test_ui_approve_screen0_is_allow_to_address);
-    RUN_TEST(test_ui_transfer_screen2_is_nft_address);
+    RUN_TEST(test_ui_transfer_screen3_is_nft_address);
     RUN_TEST(test_ui_approve_screen1_is_to_manage_collection);
     RUN_TEST(test_ui_approve_screen2_is_nft_address);
     RUN_TEST(test_ui_approve_screen3_is_nft_id);

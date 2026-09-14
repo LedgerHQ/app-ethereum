@@ -30,6 +30,9 @@
 #include "rlp_utils.h"
 
 bool rlp_can_decode(uint8_t *buffer, uint32_t bufferLength, bool *valid) {
+    if ((buffer == NULL) || (valid == NULL) || (bufferLength == 0)) {
+        return false;
+    }
     if (*buffer <= RLP_SINGLE_BYTE_MAX) {
         // single byte: nothing to validate
     } else if (*buffer <= RLP_SHORT_STRING_MAX) {

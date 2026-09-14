@@ -61,6 +61,10 @@ static uint64_t get_tx_chain_id_stub(int cmock_num_calls) {
 typedef struct {
     uint8_t valid;
     char deposit_address[BLS12381_G1_COMPRESSED_PUBKEY_LENGTH];
+    uint8_t withdrawal_credentials[INT256_LENGTH];
+    uint8_t signature[BLS12381_G2_COMPRESSED_SIGNATURE_LENGTH];
+    uint8_t deposit_data_root[INT256_LENGTH];
+    uint16_t received_words;
 } eth2_deposit_parameters_t;
 
 // =============================================================================
@@ -265,7 +269,11 @@ void test_withdrawal_index_above_max_rejected(void) {
 }
 
 void test_finalize_valid_returns_two_screens(void) {
-    eth2_deposit_parameters_t ctx = {.valid = 1};
+    // A finalize-validated context needs the full calldata word bitmap and a
+    // deposit_data_root committing to the stored fields. Everything here is
+    // zeroed, and this target's cx_hash_sha256 mock fills the digest with the
+    // first input byte, so the computed root is 32 zero bytes.
+    eth2_deposit_parameters_t ctx = {.valid = 1, .received_words = 0x1FFF};
     txContent_t tx = {0};
     ethPluginFinalize_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;

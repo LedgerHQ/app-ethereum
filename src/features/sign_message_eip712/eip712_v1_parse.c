@@ -1,9 +1,32 @@
 #include "app_mem_utils.h"
 #include "read.h"
+#include "os_utils.h"  // is_zeroes_buffer
 #include "eip712_v1_parse.h"
 #include "typed_data.h"
 
 static s_struct_712 *g_pending_struct = NULL;
+
+// domain root node while its value tree is being built (NULL once popped or before v1_set_root)
+static const s_struct_712_value *g_domain_root = NULL;
+
+/**
+ * Validate a schema name (struct, type or field name).
+ *
+ * Names are embedded verbatim into the JSON-like schema hash preimage, so
+ * characters that can alter the JSON structure or its parsing would let a host
+ * craft distinct schemas whose reconstructed JSON collides. EIP-712 itself does
+ * not constrain the charset; this is a Ledger-side hardening choice.
+ */
+static bool is_valid_identifier(const uint8_t *name, size_t length) {
+    for (size_t i = 0; i < length; ++i) {
+        // '"' and '\' break the schema-hash JSON reconstruction; '.' and NUL
+        // break the dot-joined filter path identity
+        if ((name[i] == '"') || (name[i] == '\\') || (name[i] == '.') || (name[i] == '\0')) {
+            return false;
+        }
+    }
+    return true;
+}
 
 /**
  * Set struct name
@@ -13,7 +36,7 @@ static s_struct_712 *g_pending_struct = NULL;
  * @return whether it was successful
  */
 bool v1_set_struct_name(uint8_t length, const uint8_t *name) {
-    if (name == NULL) {
+    if ((name == NULL) || !is_valid_identifier(name, length)) {
         return false;
     }
 
@@ -105,7 +128,8 @@ static bool v1_set_struct_field_custom_typename(s_struct_712_field *field,
     if ((*data_idx + typename_len) > length) {
         return false;
     }
-    if (!td_field_set_struct_name(field, &data[*data_idx], typename_len)) {
+    if (!is_valid_identifier(&data[*data_idx], typename_len) ||
+        !td_field_set_struct_name(field, &data[*data_idx], typename_len)) {
         return false;
     }
     *data_idx += typename_len;
@@ -205,7 +229,8 @@ static bool v1_set_struct_field_keyname(s_struct_712_field *field,
         return false;
     }
 
-    if (!td_field_set_key_name(field, &data[*data_idx], keyname_len)) {
+    if (!is_valid_identifier(&data[*data_idx], keyname_len) ||
+        !td_field_set_key_name(field, &data[*data_idx], keyname_len)) {
         return false;
     }
     *data_idx += keyname_len;
@@ -253,6 +278,33 @@ static bool v1_set_struct_field_internal(s_struct_712_field **new_field_ptr,
         if (v1_set_struct_field_custom_typename(new_field, data, &data_idx, length) == false) {
             return false;
         }
+    }
+
+    // Validate the type/size combination: a fixed-size-bytes without a size would
+    // serialize as plain "bytes" (identical to dynamic bytes) in the schema/type
+    // hashes while being hashed as a static value, so a host could make the review
+    // show keccak256(X) while the signature commits to X.
+    switch (new_field->type) {
+        case TYPE_SOL_INT:
+        case TYPE_SOL_UINT:
+        case TYPE_SOL_BYTES_FIX:
+            if (!has_size || (new_field->type_size == 0) || (new_field->type_size > 32)) {
+                return false;
+            }
+            break;
+        case TYPE_SOL_ADDRESS:
+        case TYPE_SOL_BOOL:
+        case TYPE_SOL_STRING:
+        case TYPE_SOL_BYTES_DYN:
+            if (has_size) {
+                return false;
+            }
+            break;
+        case TYPE_STRUCT:
+            // typename handled above, mutually exclusive with a type size
+            break;
+        default:
+            return false;
     }
     if (is_array) {
         if (v1_set_struct_field_array(new_field, data, &data_idx, length) == false) {
@@ -437,6 +489,7 @@ bool v1_set_root(const char *name) {
     }
 
     if (strcmp(name, "EIP712Domain") == 0) {
+        g_domain_root = node;
         ret = td_set_domain(node);
     } else {
         ret = td_set_message(node);
@@ -545,6 +598,27 @@ bool v1_is_complete(void) {
     return (g_build.depth == 0) && td_has_domain() && td_has_message();
 }
 
+bool v1_domain_complete(void) {
+    // domain value tree fully built (build stack fully popped) and message not started yet
+    return td_has_domain() && !td_has_message() && (g_build.depth == 0);
+}
+
+bool v1_field_streaming(void) {
+    return g_pending_field.leaf != NULL;
+}
+
+bool v1_current_field_uninstantiated_array(void) {
+    if (g_build.depth == 0) {
+        return false;
+    }
+    const s_build_frame *f = &g_build.stack[g_build.depth - 1];
+    if (f->array_remaining > 0) {
+        // inside an array: uninstantiated while inner dimensions still await P2_IMPL_ARRAY
+        return f->array_levels_remaining > 0;
+    }
+    return (f->next != NULL) && (f->next->array_level_count > 0);
+}
+
 const s_struct_712_value *v1_add_field(const uint8_t *data, size_t length, bool more) {
     if (g_build.depth == 0) {
         return NULL;
@@ -591,6 +665,16 @@ const s_struct_712_value *v1_add_field(const uint8_t *data, size_t length, bool 
             return NULL;
         }
         s_struct_712_value *completed = g_pending_field.leaf;
+        // A domain chainId wider than 64 bits with non-zero leading bytes would make the
+        // numeric chain ID used by filtering/display diverge from the full bytes the domain
+        // hash commits to; zero-padding is tolerated (trimmed by td_get_domain_chain_id)
+        if ((f->node == g_domain_root) && (strcmp(f->next->key_name, "chainId") == 0) &&
+            (completed->length > sizeof(uint64_t)) &&
+            !is_zeroes_buffer(completed->data, completed->length - sizeof(uint64_t))) {
+            td_discard_leaf(completed);
+            explicit_bzero(&g_pending_field, sizeof(g_pending_field));
+            return NULL;
+        }
         if (!td_append_child(f->node, completed)) {
             return NULL;
         }
@@ -719,4 +803,5 @@ void v1_parse_deinit(void) {
     td_discard_leaf(g_pending_field.leaf);
     explicit_bzero(&g_pending_field, sizeof(g_pending_field));
     g_pending_struct = NULL;
+    g_domain_root = NULL;
 }

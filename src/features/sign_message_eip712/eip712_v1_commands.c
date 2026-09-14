@@ -113,6 +113,10 @@ uint16_t handle_eip712_v1_struct_impl(uint8_t p1,
             case P2_IMPL_FIELD: {
                 const s_struct_712_field *cur_field = v1_get_current_field();
                 if ((ret = (cur_field != NULL))) {
+                    if (p1 == P1_COMPLETE) {
+                        // path still points at the field about to complete
+                        ui_712_check_field_filtering();
+                    }
                     const s_struct_712_value *leaf = v1_add_field(cdata, length, p1 != P1_COMPLETE);
                     if ((ret = (leaf != NULL))) {
                         if (p1 == P1_COMPLETE) {
@@ -159,6 +163,22 @@ uint16_t handle_eip712_v1_filtering(uint8_t p1, uint8_t p2, const uint8_t *cdata
     }
     if ((p2 != P2_FILT_ACTIVATE) && (ui_712_get_filtering_mode() != EIP712_FILTERING_FULL)) {
         return SWO_SUCCESS;
+    }
+    // A path filter must arrive before the first byte of its field value: a filter
+    // installed mid-field would only apply to the remaining chunks while the earlier
+    // ones were already received unfiltered.
+    if ((p2 > P2_FILT_MESSAGE_INFO) && v1_field_streaming()) {
+        PRINTF("EIP-712 filter while a field value is being streamed\n");
+        return SWO_COMMAND_NOT_ALLOWED;
+    }
+    // A non-discarded filter targets the field the build stack currently points to. If that
+    // field is an array whose levels were not yet instantiated by P2_IMPL_ARRAY commands,
+    // the filter would install its label/flags onto whatever value comes next — including
+    // the field following an empty array.
+    if ((p2 > P2_FILT_MESSAGE_INFO) && (p1 != P1_DISCARDED) &&
+        v1_current_field_uninstantiated_array()) {
+        PRINTF("EIP-712 filter for an uninstantiated array field\n");
+        return SWO_INCORRECT_DATA;
     }
     switch (p2) {
         case P2_FILT_ACTIVATE:
@@ -253,10 +273,16 @@ uint16_t handle_eip712_v1_sign(const uint8_t *cdata, uint8_t length) {
     } else if (!v1_is_complete()) {
         PRINTF("impl not complete\n");
         sw = SWO_INCORRECT_DATA;
+    } else if (!eip712_v1_sign_claim()) {
+        // The sign command is single-use: claimed before any mutation of the
+        // context or tmpCtx, a replay while the review is on screen lands here.
+        PRINTF("EIP-712 sign command already used\n");
+        sw = SWO_COMMAND_NOT_ALLOWED;
     } else if (!td_hash_pass()) {
         PRINTF("value_hash_pass failed\n");
     } else if ((filt_mode == EIP712_FILTERING_FULL) &&
-               (!ui_712_message_info_received() || (ui_712_remaining_filters() != 0))) {
+               (!ui_712_message_info_received() || (ui_712_remaining_filters() != 0) ||
+                ui_712_filtering_broken())) {
         PRINTF("%d EIP712 filters are missing\n", ui_712_remaining_filters());
         sw = SWO_REFERENCED_DATA_NOT_FOUND;
     } else if (!all_calldata_info_processed() || (get_tx_ctx_count() != 0)) {

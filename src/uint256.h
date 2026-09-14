@@ -27,21 +27,33 @@ typedef struct uint256_t {
     uint128_t elements[2];
 } uint256_t;
 
-void readu256BE(const uint8_t *buffer, uint256_t *target);
-bool zero256(const uint256_t *number);
-void copy256(uint256_t *target, const uint256_t *number);
-void clear256(uint256_t *target);
-void shiftl256(const uint256_t *number, uint32_t value, uint256_t *target);
-void shiftr256(const uint256_t *number, uint32_t value, uint256_t *target);
-uint32_t bits256(const uint256_t *number);
-bool equal256(const uint256_t *number1, const uint256_t *number2);
-bool gt256(const uint256_t *number1, const uint256_t *number2);
-bool gte256(const uint256_t *number1, const uint256_t *number2);
-void add256(const uint256_t *number1, const uint256_t *number2, uint256_t *target);
-void sub256(const uint256_t *number1, const uint256_t *number2, uint256_t *target);
-void or256(const uint256_t *number1, const uint256_t *number2, uint256_t *target);
-bool mul256(const uint256_t *number1, const uint256_t *number2, uint256_t *target);
-void divmod256(const uint256_t *l, const uint256_t *r, uint256_t *div, uint256_t *mod);
-bool tostring256(const uint256_t *number, uint32_t base, char *out, uint32_t outLength);
-bool tostring256_signed(const uint256_t *number, uint32_t base, char *out, uint32_t out_length);
-void convertUint256BE(const uint8_t *data, uint32_t length, uint256_t *target);
+void readu256BE(const uint8_t *const buffer, uint256_t *const target);
+bool zero256(const uint256_t *const number);
+void copy256(uint256_t *const target, const uint256_t *const number);
+void clear256(uint256_t *const target);
+void shiftl256(const uint256_t *const number, uint32_t value, uint256_t *const target);
+void shiftr256(const uint256_t *const number, uint32_t value, uint256_t *const target);
+uint32_t bits256(const uint256_t *const number);
+bool equal256(const uint256_t *const number1, const uint256_t *const number2);
+bool gt256(const uint256_t *const number1, const uint256_t *const number2);
+bool gte256(const uint256_t *const number1, const uint256_t *const number2);
+void add256(const uint256_t *const number1,
+            const uint256_t *const number2,
+            uint256_t *const target);
+void sub256(const uint256_t *const number1,
+            const uint256_t *const number2,
+            uint256_t *const target);
+void or256(const uint256_t *const number1, const uint256_t *const number2, uint256_t *const target);
+bool mul256(const uint256_t *const number1,
+            const uint256_t *const number2,
+            uint256_t *const target);
+void divmod256(const uint256_t *const l,
+               const uint256_t *const r,
+               uint256_t *const div,
+               uint256_t *const mod);
+bool tostring256(const uint256_t *const number, uint32_t base, char *const out, uint32_t outLength);
+bool tostring256_signed(const uint256_t *const number,
+                        uint32_t base,
+                        char *const out,
+                        uint32_t out_length);
+bool convertUint256BE(const uint8_t *const data, uint32_t length, uint256_t *const target);

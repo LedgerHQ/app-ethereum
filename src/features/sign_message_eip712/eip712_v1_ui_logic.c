@@ -78,6 +78,7 @@ typedef struct {
     s_ui_712_pair *ui_pairs;
     s_eip712_calldata_info *calldata_info;
     uint8_t calldata_index;
+    bool filtering_broken;
 } t_ui_context;
 
 static t_ui_context *ui_ctx = NULL;
@@ -273,16 +274,29 @@ bool ui_712_message_hash(void) {
  * @param[in] data the data that needs formatting
  * @param[in] length its length
  */
-static void ui_712_format_str(const uint8_t *data, size_t length) {
+static bool ui_712_format_str(const uint8_t *data, size_t length) {
     size_t max_len = sizeof(strings.tmp.tmp) - 1;
     size_t cur_len = strlen(strings.tmp.tmp);
     size_t available;
     size_t to_copy;
 
+    // The value is hashed in full (length-delimited) but displayed as a C string:
+    // an embedded NUL would hide the trailing bytes from the review while still
+    // being signed.
+    if (memchr(data, '\0', length) != NULL) {
+        PRINTF("Error: EIP-712 string with embedded NUL\n");
+        return false;
+    }
+
     if (cur_len >= max_len) {
-        // Ensure null-termination even if we're at capacity
+        // Buffer is full; any further byte is dropped and the display must say so.
+        // Overwrite the last 3 bytes of content so the string length stays max_len
+        // and a re-entry keeps this path instead of erasing the marker.
         strings.tmp.tmp[max_len] = '\0';
-        return;
+        if (length > 0) {
+            memcpy(strings.tmp.tmp + max_len - 3, "...", 3);
+        }
+        return true;
     }
 
     available = max_len - cur_len;
@@ -296,6 +310,7 @@ static void ui_712_format_str(const uint8_t *data, size_t length) {
         memcpy(strings.tmp.tmp + max_len - 3, "...", 3);
         strings.tmp.tmp[max_len] = '\0';
     }
+    return true;
 }
 
 /**
@@ -679,7 +694,9 @@ static bool update_calldata_value(const uint8_t *data,
     if (calldata_info->value_state != CALLDATA_INFO_PARAM_UNSET) return false;
     if (complete_length != NULL) {
         calldata_size = *complete_length;
-        if (calldata_size > 0) {
+        // A zero-argument call with a separately-provided selector is still a call:
+        // the calldata object must exist so the selector is not dropped.
+        if ((calldata_size > 0) || (calldata_info->selector_state != CALLDATA_INFO_PARAM_NONE)) {
             if (calldata_info->selector_state == CALLDATA_INFO_PARAM_NONE) {
                 if ((length < CALLDATA_SELECTOR_SIZE) || (calldata_size < CALLDATA_SELECTOR_SIZE)) {
                     return false;
@@ -846,7 +863,9 @@ bool ui_712_accumulate_value(const s_struct_712_field *field_ptr,
     if (ui_712_field_shown()) {
         switch (field_ptr->type) {
             case TYPE_SOL_STRING:
-                ui_712_format_str(data, length);
+                if (!ui_712_format_str(data, length)) {
+                    return false;
+                }
                 break;
             case TYPE_SOL_ADDRESS:
                 if (!ui_712_format_addr(data, length)) {
@@ -932,6 +951,53 @@ bool ui_712_accumulate_value(const s_struct_712_field *field_ptr,
     }
     ui_712_field_flags_reset();
     return true;
+}
+
+/**
+ * Check filter enforcement for the field about to be finalized (path still points at it).
+ *
+ * In full filtering mode, paths are only identified by their schema form (".[]" for array
+ * elements), so every occurrence of an array element shares one registered filter path.
+ * Once a path is registered, every further occurrence must come with a freshly verified
+ * filter (any filter sets at least one field flag); otherwise later array elements would
+ * be signed with no filter applied to them at all.
+ */
+void ui_712_check_field_filtering(void) {
+    uint32_t path_crc = 0;
+    const s_filter_crc *crc_node;
+
+    if ((ui_ctx == NULL) || (ui_ctx->filtering_mode != EIP712_FILTERING_FULL)) {
+        return;
+    }
+    if (ui_ctx->filters_crc == NULL) {
+        // no path registered yet (just-in-time discovery for the first occurrence)
+        return;
+    }
+    if (!filtering_compute_current_path_crc(&path_crc)) {
+        return;
+    }
+    for (crc_node = ui_ctx->filters_crc; crc_node != NULL;
+         crc_node = (s_filter_crc *) ((flist_node_t *) crc_node)->next) {
+        if (crc_node->value == path_crc) {
+            // any filter sets at least one flag; no flag at all means this occurrence
+            // came without a fresh filter (calldata-filtered fields are registered but
+            // intentionally never SHOWN — only their decoded form is displayed)
+            if (ui_ctx->field_flags == 0) {
+                PRINTF("EIP-712: filtered path 0x%x occurrence without filter!\n", path_crc);
+                ui_ctx->filtering_broken = true;
+            }
+            return;
+        }
+    }
+}
+
+/**
+ * Whether a registered filtered path was consumed without a fresh filter
+ *
+ * @return whether the filtering accounting was violated
+ */
+bool ui_712_filtering_broken(void) {
+    return (ui_ctx != NULL) && ui_ctx->filtering_broken;
 }
 
 /**
@@ -1158,7 +1224,9 @@ static bool format_node_for_verbose_internal(const s_struct_712_value *node,
     // Format value based on type
     switch (field->type) {
         case TYPE_SOL_STRING:
-            ui_712_format_str(data, length);
+            if (!ui_712_format_str(data, length)) {
+                return false;
+            }
             break;
         case TYPE_SOL_ADDRESS:
             if (!ui_712_format_addr(data, length)) {
@@ -1427,7 +1495,7 @@ bool ui_712_push_pairs(void) {
                       pair,
                       g_pairsList->nbPairs);
         pair++;
-        if ((tmp->end_intent) && (txContext.batch_nb_tx > 1)) {
+        if ((tmp->end_intent) && (txContext.batch_nb_tx > 1) && (pair < g_pairsList->nbPairs)) {
             // End of batch transaction : start next info on full page
             g_pairs[pair].forcePageStart = true;
         }

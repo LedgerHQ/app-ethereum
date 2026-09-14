@@ -13,6 +13,9 @@
 #include "enum_value.h"
 #include "map_entry.h"
 #include "proxy_info.h"
+#ifdef HAVE_TRANSACTION_CHECKS
+#include "cmd_get_tx_simulation.h"  // clear_tx_simulation
+#endif
 #include "tx_ctx.h"
 #include "ui_utils.h"
 #include "app_mem_utils.h"
@@ -29,7 +32,21 @@
 #include "withdrawal_index.h"
 #endif
 
-void reset_app_context(void) {
+// Tear down every per-flow global.
+//
+// `scrub_strings` wipes the `strings` union, which holds the addresses and amounts of the
+// transaction under review. Only a caller that is ending a user-facing flow should ask for
+// it: on an initialization path there is nothing to protect yet, and in library (swap) mode
+// copy_transaction_parameters() has already staged the values promised by the Exchange app
+// in there before app_init() runs.
+void reset_app_context_ex(bool scrub_strings) {
+    // Same reasoning for a reset happening once the swap flow is under way:
+    // finalize_parsing_helper() still has to compare those staged values against the
+    // parsed transaction. Read the flag before it is cleared further down.
+    if (G_called_from_swap) {
+        scrub_strings = false;
+    }
+
     if (appState == APP_STATE_SIGNING_MESSAGE) {
         message_cleanup();
     }
@@ -37,6 +54,8 @@ void reset_app_context(void) {
     G_called_from_swap = false;
     G_swap_response_ready = false;
     G_swap_checked = false;
+    G_swap_tx_had_calldata = false;
+    G_swap_calldata_validated = false;
     pluginType = PLUGIN_TYPE_NONE;
 #ifdef HAVE_ETH2
     eth2WithdrawalIndex = 0;
@@ -63,7 +82,14 @@ void reset_app_context(void) {
     ui_all_cleanup();
     proxy_cleanup();
     clear_gating();
+    if (scrub_strings) {
+        explicit_bzero((uint8_t *) &strings, sizeof(strings));
+    }
     appState = APP_STATE_IDLE;
+}
+
+void reset_app_context(void) {
+    reset_app_context_ex(true);
 }
 
 void app_quit(void) {

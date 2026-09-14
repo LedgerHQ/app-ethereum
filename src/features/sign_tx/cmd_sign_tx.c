@@ -8,6 +8,7 @@
 #include "app_mem_utils.h"
 #include "mem_utils.h"
 #include "tx_ctx.h"
+#include "eth_swap_utils.h"
 
 typedef enum {
     SIGN_MODE_BASIC = 0,
@@ -36,6 +37,8 @@ static uint16_t handle_first_sign_chunk(const uint8_t *payload,
     *offset += (length - length_tmp);
 
     tmpContent.txContent.dataPresent = false;
+    G_swap_tx_had_calldata = false;
+    G_swap_calldata_validated = false;
     dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_UNAVAILABLE;
 
     if (APP_MEM_CALLOC((void **) &g_tx_hash_ctx, sizeof(cx_sha3_t)) == false) {

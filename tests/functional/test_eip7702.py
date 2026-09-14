@@ -98,7 +98,8 @@ def test_eip7702_in_whitelist_all_chain_whitelisted(scenario_navigator: Navigate
 def test_eip7702_in_whitelist_all_chain_param(scenario_navigator: NavigateWithScenario, test_name: str):
     device = scenario_navigator.backend.device
     settings_toggle(device, scenario_navigator.navigator, [SettingID.EIP7702])
-    common(scenario_navigator, test_name, TEST_ADDRESS_2, NONCE, CHAIN_ID_0)
+    # An all-chains request must not match a chain-specific whitelist entry
+    common_error(scenario_navigator, test_name, TEST_ADDRESS_2, NONCE, CHAIN_ID_0)
 
 
 def test_eip7702_in_whitelist_max(scenario_navigator: NavigateWithScenario, test_name: str):

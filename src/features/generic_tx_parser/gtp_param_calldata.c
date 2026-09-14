@@ -80,7 +80,16 @@ DEFINE_TLV_PARSER(PARAM_CALLDATA_TAGS, NULL, param_calldata_tlv_parser)
 
 bool handle_param_calldata_struct(const buffer_t *buf, s_param_calldata_context *context) {
     TLV_reception_t received_tags;
-    return param_calldata_tlv_parser(buf, context, &received_tags);
+    if (!param_calldata_tlv_parser(buf, context, &received_tags)) {
+        return false;
+    }
+    // Enforce the sub-structure's mandatory tags: an empty or partial PARAM
+    // payload would otherwise parse fine and never appear in the review
+    if (!TLV_CHECK_RECEIVED_TAGS(received_tags, TAG_VERSION, TAG_VALUE, TAG_CALLEE)) {
+        PRINTF("Error: missing mandatory tag(s) in gtp_param_calldata\n");
+        return false;
+    }
+    return true;
 }
 
 static bool process_nested_calldata(const s_param_calldata *param,
@@ -101,11 +110,22 @@ static bool process_nested_calldata(const s_param_calldata *param,
     uint8_t chain_id_buf[sizeof(chain_id_value)];
 
     if (param->has_chain_id) {
+        // The chain ID is a uint64: reject values with non-zero high bytes instead
+        // of silently truncating them (the full word is signed, the truncated one
+        // would drive the displayed network context).
+        if (chain_id->length > sizeof(chain_id_buf)) {
+            if (!allzeroes(chain_id->ptr, chain_id->length - sizeof(chain_id_buf))) {
+                PRINTF("Error: chain ID too big\n");
+                return false;
+            }
+        }
         buf_shrink_expand(chain_id->ptr, chain_id->length, chain_id_buf, sizeof(chain_id_buf));
         chain_id_value = read_u64_be(chain_id_buf, 0);
     }
 
-    if (calldata->length > 0) {
+    // A zero-argument nested call is a real call when the selector is provided
+    // separately: the calldata context must exist so its TX_INFO can match.
+    if ((calldata->length > 0) || param->has_selector) {
         if (param->has_selector) {
             buf_shrink_expand(selector->ptr, selector->length, selector_buf, sizeof(selector_buf));
             calldata_buf = calldata->ptr;
@@ -123,7 +143,7 @@ static bool process_nested_calldata(const s_param_calldata *param,
             return false;
         }
         if (!calldata_append(new_calldata, calldata_buf, calldata_length)) {
-            APP_MEM_FREE(new_calldata);
+            calldata_delete(new_calldata);
             return false;
         }
     }

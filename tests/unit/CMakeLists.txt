@@ -73,6 +73,7 @@ set(COMMON_INCLUDE_DIRS
   ${APP_DIR}/features/provide_network_info
   ${APP_DIR}/nbgl
   ${APP_DIR}/utils
+  ${APP_DIR}/swap
   ${MOCK_DIR}
   ${BOLOS_SDK}/io/include
   ${BOLOS_SDK}/lib_cxng/include

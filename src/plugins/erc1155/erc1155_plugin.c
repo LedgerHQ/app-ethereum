@@ -4,6 +4,7 @@
 #include "plugin_utils.h"
 #include "eth_plugin_internal.h"
 #include "eth_plugin_handler.h"
+#include "manage_asset_info.h"
 
 static const uint8_t ERC1155_APPROVE_FOR_ALL_SELECTOR[SELECTOR_SIZE] = {0xa2, 0x2c, 0xb4, 0x65};
 static const uint8_t ERC1155_SAFE_TRANSFER_SELECTOR[SELECTOR_SIZE] = {0xf2, 0x42, 0x43, 0x2a};
@@ -56,13 +57,13 @@ void handle_finalize_1155(ethPluginFinalize_t *msg) {
     msg->tokenLookup2 = NULL;
     switch (context->selectorIndex) {
         case SAFE_TRANSFER:
-            msg->numScreens = 5;
+            // NFT Owner, To, Collection Name, NFT Address, NFT ID, Quantity
+            msg->numScreens = 6;
             break;
         case SAFE_BATCH_TRANSFER:
-            // To, Collection Name, NFT Address, Total Quantity
-            // + 2 screens per displayed pair (ID + Quantity)
-            // + 1 warning screen if truncated.
-            msg->numScreens = 4 + 2 * context->batch_displayed;
+            // Owner, To, Collection, Address, Total + 2 per pair (ID+Qty),
+            // +1 truncation warning
+            msg->numScreens = 5 + 2 * context->batch_displayed;
             if (context->batch_truncated) {
                 msg->numScreens += 1;
             }

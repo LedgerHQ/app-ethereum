@@ -261,3 +261,25 @@ const char *get_clone_network_name(const caller_app_t *caller_app) {
     }
     return caller_app->name;
 }
+
+/**
+ * Checks whether this app could ever sign for the given chain ID
+ *
+ * Mirrors the rule finalize_parsing_helper() enforces on a transaction: a
+ * clone signs only the chain it was built for, while the Ethereum mainnet app
+ * also signs every network the device knows (registered dynamically or from
+ * the hardcoded mapping above).
+ *
+ * Unlike app_compatible_with_chain_id() this does not widen a clone's scope to
+ * the whole set of known networks, which is what signed-metadata loaders need:
+ * metadata for a chain the app would refuse to sign is of no use to them.
+ */
+bool chain_id_is_signable(uint64_t chain_id) {
+    if (g_chain_config->chain_id == chain_id) {
+        return true;
+    }
+    if (g_chain_config->chain_id != ETHEREUM_MAINNET_CHAINID) {
+        return false;
+    }
+    return chain_is_ethereum_compatible(&chain_id);
+}

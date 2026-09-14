@@ -442,6 +442,14 @@ __attribute__((weak)) __attribute__((noreturn)) void app_exit(void) {
     }
 }
 
+__attribute__((weak)) __attribute__((noreturn)) void os_sched_exit(unsigned int exit_code) {
+    (void) exit_code;
+    g_noreturn_calls++;
+    if (g_noreturn_armed) longjmp(g_noreturn_jmp, 1);
+    while (1) {
+    }
+}
+
 __attribute__((weak)) void app_quit(void) {
     g_noreturn_calls++;
 }
@@ -457,4 +465,24 @@ __attribute__((weak)) __attribute__((noreturn)) void send_swap_error_simple(
     if (g_noreturn_armed) longjmp(g_noreturn_jmp, 1);
     while (1) {
     }
+}
+
+// Default: not at the root context, so value_get_rlp() never marks the root
+// FROM/VALUE rows as shown. Tests that exercise the dedup hooks install their
+// own strong definitions.
+__attribute__((weak)) bool tx_ctx_is_root(void) {
+    return false;
+}
+
+__attribute__((weak)) void gcs_set_root_from_shown(void) {
+}
+
+__attribute__((weak)) void gcs_set_root_value_shown(void) {
+}
+
+// Default: every chain is signable. Tests covering the rejection install a
+// strong local definition.
+__attribute__((weak)) bool chain_id_is_signable(uint64_t chain_id) {
+    (void) chain_id;
+    return true;
 }

@@ -268,6 +268,10 @@ bool tostring256_signed(const uint256_t *number, uint32_t base, char *out, uint3
     uint256_t two_val;
     uint256_t tmp;
 
+    if ((out == NULL) || (out_length == 0)) {
+        return false;
+    }
+
     // showing negative numbers only really makes sense in base 10
     if (base == 10) {
         explicit_bzero(&one_val, sizeof(one_val));
@@ -279,6 +283,10 @@ bool tostring256_signed(const uint256_t *number, uint32_t base, char *out, uint3
         divmod256(&max_unsigned_val, &two_val, &max_signed_val, &tmp);
         if (gt256(number, &max_signed_val))  // negative value
         {
+            if (out_length < 2) {
+                out[0] = '\0';
+                return false;
+            }
             sub256(&max_unsigned_val, number, &tmp);
             add256(&tmp, &one_val, &tmp);
             out[0] = '-';
@@ -288,17 +296,18 @@ bool tostring256_signed(const uint256_t *number, uint32_t base, char *out, uint3
     return tostring256(number, base, out, out_length);  // positive value
 }
 
-void convertUint256BE(const uint8_t *data, uint32_t length, uint256_t *target) {
+bool convertUint256BE(const uint8_t *const data, uint32_t length, uint256_t *const target) {
     uint8_t tmp[INT256_LENGTH];
 
     if (data == NULL || target == NULL || length == 0) {
-        return;
+        return false;
     }
     if (length > sizeof(tmp)) {
-        return;
+        return false;
     }
 
     memset(tmp, 0, sizeof(tmp) - length);
     memmove(tmp + sizeof(tmp) - length, data, length);
     readu256BE(tmp, target);
+    return true;
 }

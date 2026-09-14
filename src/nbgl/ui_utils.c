@@ -48,7 +48,10 @@ void ui_all_cleanup(void) {
  *
  * @return whether the initialization was successful
  */
-bool ui_pairs_init(uint8_t nbPairs) {
+bool ui_pairs_init(size_t nbPairs) {
+    if (nbPairs > UINT8_MAX) {
+        return false;
+    }
     ui_pairs_cleanup();
     // Allocate the pairsList memory
     if (!APP_MEM_CALLOC((void **) &g_pairsList, sizeof(*g_pairsList))) {

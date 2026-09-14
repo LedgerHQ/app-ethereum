@@ -18,7 +18,8 @@ static bool erc20_token_info_common(const uint64_t *chain_id,
     if ((ticker_length + 1) > sizeof(info.ticker)) {
         return false;
     }
-    if (!app_compatible_with_chain_id(chain_id)) {
+    // Reject it if this app could never sign a transaction on that chain.
+    if (!chain_id_is_signable(*chain_id)) {
         UNSUPPORTED_CHAIN_ID_MSG(*chain_id);
         return false;
     }

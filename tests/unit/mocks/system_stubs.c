@@ -479,3 +479,10 @@ __attribute__((weak)) void gcs_set_root_from_shown(void) {
 
 __attribute__((weak)) void gcs_set_root_value_shown(void) {
 }
+
+// Default: every chain is signable. Tests covering the rejection install a
+// strong local definition.
+__attribute__((weak)) bool chain_id_is_signable(uint64_t chain_id) {
+    (void) chain_id;
+    return true;
+}

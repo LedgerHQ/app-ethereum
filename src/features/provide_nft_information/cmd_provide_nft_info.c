@@ -113,7 +113,8 @@ uint16_t handle_provide_nft_information(uint8_t p1,
         return SWO_INCORRECT_DATA;
     }
     info.chain_id = read_u64_be(data, offset);
-    if (!app_compatible_with_chain_id(&info.chain_id)) {
+    // Reject it if this app could never sign a transaction on that chain.
+    if (!chain_id_is_signable(info.chain_id)) {
         UNSUPPORTED_CHAIN_ID_MSG(info.chain_id);
         return SWO_INCORRECT_DATA;
     }

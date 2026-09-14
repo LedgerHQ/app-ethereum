@@ -694,7 +694,9 @@ static bool update_calldata_value(const uint8_t *data,
     if (calldata_info->value_state != CALLDATA_INFO_PARAM_UNSET) return false;
     if (complete_length != NULL) {
         calldata_size = *complete_length;
-        if (calldata_size > 0) {
+        // A zero-argument call with a separately-provided selector is still a call:
+        // the calldata object must exist so the selector is not dropped.
+        if ((calldata_size > 0) || (calldata_info->selector_state != CALLDATA_INFO_PARAM_NONE)) {
             if (calldata_info->selector_state == CALLDATA_INFO_PARAM_NONE) {
                 if ((length < CALLDATA_SELECTOR_SIZE) || (calldata_size < CALLDATA_SELECTOR_SIZE)) {
                     return false;

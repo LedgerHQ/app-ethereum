@@ -6,6 +6,25 @@
 static s_struct_712 *g_pending_struct = NULL;
 
 /**
+ * Validate a schema name (struct, type or field name).
+ *
+ * Names are embedded verbatim into the JSON-like schema hash preimage, so
+ * characters that can alter the JSON structure or its parsing would let a host
+ * craft distinct schemas whose reconstructed JSON collides. EIP-712 itself does
+ * not constrain the charset; this is a Ledger-side hardening choice.
+ */
+static bool is_valid_identifier(const uint8_t *name, size_t length) {
+    for (size_t i = 0; i < length; ++i) {
+        // '"' and '\' break the schema-hash JSON reconstruction; '.' and NUL
+        // break the dot-joined filter path identity
+        if ((name[i] == '"') || (name[i] == '\\') || (name[i] == '.') || (name[i] == '\0')) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
  * Set struct name
  *
  * @param[in] length name length
@@ -13,7 +32,7 @@ static s_struct_712 *g_pending_struct = NULL;
  * @return whether it was successful
  */
 bool v1_set_struct_name(uint8_t length, const uint8_t *name) {
-    if (name == NULL) {
+    if ((name == NULL) || !is_valid_identifier(name, length)) {
         return false;
     }
 
@@ -105,7 +124,8 @@ static bool v1_set_struct_field_custom_typename(s_struct_712_field *field,
     if ((*data_idx + typename_len) > length) {
         return false;
     }
-    if (!td_field_set_struct_name(field, &data[*data_idx], typename_len)) {
+    if (!is_valid_identifier(&data[*data_idx], typename_len) ||
+        !td_field_set_struct_name(field, &data[*data_idx], typename_len)) {
         return false;
     }
     *data_idx += typename_len;
@@ -205,7 +225,8 @@ static bool v1_set_struct_field_keyname(s_struct_712_field *field,
         return false;
     }
 
-    if (!td_field_set_key_name(field, &data[*data_idx], keyname_len)) {
+    if (!is_valid_identifier(&data[*data_idx], keyname_len) ||
+        !td_field_set_key_name(field, &data[*data_idx], keyname_len)) {
         return false;
     }
     *data_idx += keyname_len;

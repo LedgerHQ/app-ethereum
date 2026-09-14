@@ -205,7 +205,10 @@ bool filtering_message_info(const uint8_t *payload, uint8_t length) {
     const uint8_t *sig;
     uint8_t offset = 0;
 
-    if (v1_get_root_type() != ROOT_DOMAIN) {
+    // The trusted signature binds the displayed name to the domain chain ID and
+    // contract, so they must be final: require the domain value tree to be fully
+    // built and the message root not started yet.
+    if (!v1_domain_complete()) {
         return false;
     }
 

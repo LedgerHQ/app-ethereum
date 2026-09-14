@@ -13,6 +13,7 @@ bool v1_set_array(size_t count);
 // error.
 const s_struct_712_value *v1_add_field(const uint8_t *data, size_t length, bool more);
 bool v1_is_complete(void);
+bool v1_domain_complete(void);
 e_root_type v1_get_root_type(void);
 const s_struct_712_field *v1_get_current_field(void);
 uint8_t v1_depth_count(void);

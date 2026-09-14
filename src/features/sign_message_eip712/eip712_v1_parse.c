@@ -598,6 +598,11 @@ bool v1_is_complete(void) {
     return (g_build.depth == 0) && td_has_domain() && td_has_message();
 }
 
+bool v1_domain_complete(void) {
+    // domain value tree fully built (build stack fully popped) and message not started yet
+    return td_has_domain() && !td_has_message() && (g_build.depth == 0);
+}
+
 const s_struct_712_value *v1_add_field(const uint8_t *data, size_t length, bool more) {
     if (g_build.depth == 0) {
         return NULL;

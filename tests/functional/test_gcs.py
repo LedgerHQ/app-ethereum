@@ -2707,3 +2707,139 @@ def test_gcs_batch_complex(scenario_navigator: NavigateWithScenario) -> None:
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
+
+
+def _poap_tx_and_fields(value: int | None) -> tuple[dict, list[Field]]:
+    """Common POAP mintToken tx + field descriptors, optionally with a native value."""
+    with open(f"{ABIS_FOLDER}/poap.abi.json", encoding="utf-8") as file:
+        contract = Web3().eth.contract(abi=json.load(file), address=None)
+    data = contract.encode_abi(
+        "mintToken",
+        [
+            175676,
+            7163978,
+            bytes.fromhex("Dad77910DbDFdE764fC21FCD4E74D71bBACA6D8D"),
+            1730621615,
+            bytes.fromhex(
+                "8991da687cff5300959810a08c4ec183bb2a56dc82f5aac2b24f1106c2d983ac6f7a6b28700a236724d814000d0fd8c395fcf9f87c4424432ebf30c9479201d71c"
+            ),
+        ],
+    )
+    tx_params = {
+        "nonce": 235,
+        "maxFeePerGas": Web3.to_wei(100, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(10, "gwei"),
+        "gas": 44001,
+        # PoapBridge
+        "to": bytes.fromhex("0bb4D3e88243F4A057Db77341e6916B0e449b158"),
+        "data": data,
+        "chainId": 1,
+    }
+    if value is not None:
+        tx_params["value"] = value
+
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/poap.abi.json", "mintToken")
+    fields = [
+        Field(
+            1,
+            "Event ID",
+            ParamRaw(
+                1,
+                Value(
+                    1,
+                    TypeFamily.UINT,
+                    type_size=32,
+                    data_path=DataPath(1, param_paths["eventId"]),
+                ),
+            ),
+        ),
+        Field(
+            1,
+            "Token ID",
+            ParamRaw(
+                1,
+                Value(
+                    1,
+                    TypeFamily.UINT,
+                    type_size=32,
+                    data_path=DataPath(1, param_paths["tokenId"]),
+                ),
+            ),
+        ),
+        Field(
+            1,
+            "Receiver",
+            ParamRaw(
+                1,
+                Value(
+                    1,
+                    TypeFamily.ADDRESS,
+                    data_path=DataPath(1, param_paths["receiver"]),
+                ),
+            ),
+        ),
+    ]
+    return tx_params, fields
+
+
+def _provide_gcs_metadata(app_client: EthAppClient, tx_params: dict, fields: list[Field]):
+    inst_hash = compute_inst_hash(fields)
+    tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        tx_params["to"],
+        get_selector_from_data(tx_params["data"]),
+        inst_hash,
+        "mint POAP",
+        creator_name="POAP",
+        creator_legal_name="Proof of Attendance Protocol",
+        creator_url="poap.xyz",
+        contract_name="PoapBridge",
+        deploy_date=1646305200,
+    )
+    app_client.provide_transaction_info(tx_info.serialize())
+    for field in fields:
+        app_client.provide_transaction_field_desc(field.serialize())
+
+
+def test_gcs_root_value_no_metadata(scenario_navigator: NavigateWithScenario):
+    """A nonzero native value must be shown even when the metadata has no VALUE field."""
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    tx_params, fields = _poap_tx_and_fields(Web3.to_wei(0.42, "ether"))
+
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    _provide_gcs_metadata(app_client, tx_params, fields)
+
+    with app_client.sign(mode=SignMode.START_FLOW):
+        scenario_navigator.review_approve()
+
+
+def test_gcs_root_value_in_metadata(scenario_navigator: NavigateWithScenario):
+    """A metadata VALUE field must not be duplicated by the device-generated row."""
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    tx_params, fields = _poap_tx_and_fields(Web3.to_wei(0.42, "ether"))
+    fields.insert(
+        0,
+        Field(
+            1,
+            "Sent amount",
+            ParamAmount(
+                1,
+                Value(1, TypeFamily.UINT, type_size=32, container_path=ContainerPath.VALUE),
+            ),
+        ),
+    )
+
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    _provide_gcs_metadata(app_client, tx_params, fields)
+
+    with app_client.sign(mode=SignMode.START_FLOW):
+        scenario_navigator.review_approve()

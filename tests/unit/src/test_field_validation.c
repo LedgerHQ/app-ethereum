@@ -277,6 +277,14 @@ void test_verify_field_missing_name_rejected(void) {
     TEST_ASSERT_FALSE(verify_field_struct(&ctx));
 }
 
+void test_field_version_not_first_rejected(void) {
+    s_field field = {0};
+    s_field_ctx ctx = {.field = &field};
+    // NAME before VERSION: VERSION must be the first tag, else payloads could be reframed.
+    const uint8_t bytes[] = {0x01, 0x01, 'A', 0x00, 0x01, 0x01};
+    TEST_ASSERT_FALSE(run_field_tlv(bytes, sizeof(bytes), &ctx));
+}
+
 void test_handle_param_type_unsupported_rejected(void) {
     s_field field = {0};
     s_field_ctx ctx = {.field = &field};
@@ -548,6 +556,7 @@ int main(void) {
     RUN_TEST(test_verify_field_missing_version_rejected);
     RUN_TEST(test_verify_field_unsupported_version_rejected);
     RUN_TEST(test_verify_field_missing_name_rejected);
+    RUN_TEST(test_field_version_not_first_rejected);
     RUN_TEST(test_handle_param_type_unsupported_rejected);
     RUN_TEST(test_handle_param_visible_out_of_range_rejected);
     RUN_TEST(test_handle_param_without_param_type_rejected);

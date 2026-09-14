@@ -603,6 +603,10 @@ bool v1_domain_complete(void) {
     return td_has_domain() && !td_has_message() && (g_build.depth == 0);
 }
 
+bool v1_field_streaming(void) {
+    return g_pending_field.leaf != NULL;
+}
+
 bool v1_current_field_uninstantiated_array(void) {
     if (g_build.depth == 0) {
         return false;

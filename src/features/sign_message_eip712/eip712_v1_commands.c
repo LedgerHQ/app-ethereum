@@ -164,6 +164,13 @@ uint16_t handle_eip712_v1_filtering(uint8_t p1, uint8_t p2, const uint8_t *cdata
     if ((p2 != P2_FILT_ACTIVATE) && (ui_712_get_filtering_mode() != EIP712_FILTERING_FULL)) {
         return SWO_SUCCESS;
     }
+    // A path filter must arrive before the first byte of its field value: a filter
+    // installed mid-field would only apply to the remaining chunks while the earlier
+    // ones were already received unfiltered.
+    if ((p2 > P2_FILT_MESSAGE_INFO) && v1_field_streaming()) {
+        PRINTF("EIP-712 filter while a field value is being streamed\n");
+        return SWO_COMMAND_NOT_ALLOWED;
+    }
     // A non-discarded filter targets the field the build stack currently points to. If that
     // field is an array whose levels were not yet instantiated by P2_IMPL_ARRAY commands,
     // the filter would install its label/flags onto whatever value comes next — including

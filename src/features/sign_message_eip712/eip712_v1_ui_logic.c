@@ -571,6 +571,9 @@ static bool ui_712_format_datetime(const uint8_t *data,
                                    size_t length,
                                    const s_struct_712_field *field_ptr) {
     time_t timestamp;
+    uint64_t value;
+
+    _Static_assert(sizeof(time_t) == sizeof(int64_t), "time_t is not 64-bit");
 
     if ((length >= field_ptr->type_size) && ismaxint((uint8_t *) data, length)) {
         snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "Unlimited");
@@ -590,7 +593,15 @@ static bool ui_712_format_datetime(const uint8_t *data,
         data += leading;
         length = sizeof(uint64_t);
     }
-    timestamp = u64_from_BE(data, length);
+    value = u64_from_BE(data, length);
+    // The value is rendered through time_t, which is signed: one that it cannot
+    // represent would be shown as a different (possibly negative) date than the
+    // one committed to the EIP-712 hash.
+    if (value > (uint64_t) INT64_MAX) {
+        PRINTF("Datetime value outside the representable time_t range\n");
+        return false;
+    }
+    timestamp = (time_t) value;
     return time_format_to_utc(&timestamp, strings.tmp.tmp, sizeof(strings.tmp.tmp));
 }
 

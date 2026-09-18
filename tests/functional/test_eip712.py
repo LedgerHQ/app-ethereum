@@ -129,6 +129,45 @@ def eip712_new_common(
     assert DEVICE_ADDR == recover_message(data, vrs)
 
 
+def test_eip712_datetime_out_of_range(scenario_navigator: NavigateWithScenario):
+    """A filtered datetime the device cannot represent must be refused, not narrowed.
+
+    The value is rendered through a signed time_t. Before, a value past its maximum
+    was cast anyway and the screen showed a different date than the one the signature
+    commits to.
+    """
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    data = {
+        "domain": {
+            "chainId": 1,
+            "name": "Advanced test",
+            "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+            "version": "1",
+        },
+        # past INT64_MAX, so no signed time_t can hold it
+        "message": {"expires": 0xFFFFFFFFFFFFFFF0},
+        "primaryType": "Expiry",
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "Expiry": [{"name": "expires", "type": "uint64"}],
+        },
+    }
+    filters = {
+        "name": "Advanced Filtering",
+        "fields": {"expires": {"type": "datetime", "name": "Will Expire"}},
+    }
+
+    with pytest.raises(ExceptionRAPDU) as e:
+        InputData.process_data(app_client, data, filters)
+    assert e.value.status == StatusWord.SWO_PARAMETER_ERROR_NO_INFO
+
+
 def get_filter_file_from_data_file(data_file: Path) -> Path:
     test_path = f"{data_file.parent}/{'-'.join(data_file.stem.split('-')[:-1])}"
     return Path(f"{test_path}-filter.json")
@@ -591,7 +630,6 @@ def tokens_fixture(request) -> list[dict]:
 
 
 def test_eip712_advanced_missing_token(scenario_navigator: NavigateWithScenario, tokens: list[dict]):
-
     test_name = scenario_navigator.test_name
     for token in tokens:
         test_name += f"-{token['ticker']}"

@@ -1012,6 +1012,18 @@ bool ui_712_filtering_broken(void) {
 }
 
 /**
+ * Whether an amount join is still waiting for one of its two halves
+ *
+ * A join is removed as soon as its token/value pair has been rendered, so anything
+ * left in the list is a filtered amount that never made it to the review.
+ *
+ * @return whether at least one amount join is still pending
+ */
+bool ui_712_pending_amount_joins(void) {
+    return (ui_ctx != NULL) && (ui_ctx->amount.joins != NULL);
+}
+
+/**
  * Used to signal that we are done with reviewing the structs and we can now have
  * the option to approve or reject the signature
  */

@@ -168,6 +168,56 @@ def test_eip712_datetime_out_of_range(scenario_navigator: NavigateWithScenario):
     assert e.value.status == StatusWord.SWO_PARAMETER_ERROR_NO_INFO
 
 
+def test_eip712_amount_join_repeated_value(scenario_navigator: NavigateWithScenario):
+    """Repeated amounts of one join must not be signed while absent from the review.
+
+    An amount join is keyed by token index and dropped as soon as its token/value pair
+    has been rendered. A second value for the same join then had no token half left to
+    pair with, so it was hashed but never displayed.
+    """
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    data = {
+        "domain": {
+            "chainId": 1,
+            "name": "Advanced test",
+            "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+            "version": "1",
+        },
+        "message": {
+            "token": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+            # two amounts for a single token/value join
+            "values": [10000000000000000, 24500000000000000000],
+        },
+        "primaryType": "Transfer",
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "Transfer": [
+                {"name": "token", "type": "address"},
+                {"name": "values", "type": "uint256[]"},
+            ],
+        },
+    }
+    filters = {
+        "name": "Advanced Filtering",
+        "fields": {
+            "token": {"type": "amount_join_token", "id": 0},
+            "values.[]": {"type": "amount_join_value", "name": "Send", "id": 0},
+        },
+    }
+
+    InputData.process_data(app_client, data, filters)
+    with pytest.raises(ExceptionRAPDU) as e:
+        with app_client.eip712_sign_new(BIP32_PATH):
+            pass
+    assert e.value.status == StatusWord.SWO_REFERENCED_DATA_NOT_FOUND
+
+
 def get_filter_file_from_data_file(data_file: Path) -> Path:
     test_path = f"{data_file.parent}/{'-'.join(data_file.stem.split('-')[:-1])}"
     return Path(f"{test_path}-filter.json")

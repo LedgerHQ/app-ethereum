@@ -22,7 +22,7 @@ typedef struct tx_simu_s {
     char provider_msg[TRANSACTION_CHECK_MSG_SIZE + 1];
     char tiny_url[TRANSACTION_CHECK_URL_SIZE + 1];
     uint8_t address[ADDRESS_LENGTH];
-    char partner[TRANSACTION_CHECK_PARTNER_SIZE];
+    char partner[TRANSACTION_CHECK_PARTNER_SIZE + 1];
     transaction_check_risk_t risk;
     transaction_check_type_t type;
     transaction_check_category_t category;
@@ -123,7 +123,9 @@ static bool handle_tlv_payload(const buffer_t *buf) {
             out.tiny_url,
             sizeof(G_transaction_check_info.tiny_url));
     memmove(G_transaction_check_info.address, out.address.ptr, ADDRESS_LENGTH);
-    memmove(G_transaction_check_info.partner,
+    // The partner name is exposed as a C string to the review UI, so it has to keep
+    // the terminator the SDK reserves for a name that fills the whole field.
+    strlcpy(G_transaction_check_info.partner,
             out.partner,
             sizeof(G_transaction_check_info.partner));
     G_transaction_check_info.risk = out.risk;

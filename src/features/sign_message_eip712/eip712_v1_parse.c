@@ -626,9 +626,11 @@ const s_struct_712_value *v1_add_field(const uint8_t *data, size_t length, bool 
 
     s_build_frame *f = &g_build.stack[g_build.depth - 1];
 
-    // an array frame still awaiting inner dimensions must receive them via
-    // v1_set_array(), not a leaf value, or the declared array shape would be collapsed
-    if ((f->array_remaining > 0) && (f->array_levels_remaining > 0)) {
+    // Every array level on the current field must have been opened via v1_set_array()
+    // before a leaf value is accepted. Otherwise the declared array shape is collapsed
+    // and the value is encoded as the base type, letting the host supply directly the
+    // 32-byte aggregate that canonical EIP-712 computes for an array it never sent.
+    if (v1_current_field_uninstantiated_array()) {
         return NULL;
     }
 

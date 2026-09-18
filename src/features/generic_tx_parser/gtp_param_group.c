@@ -6,6 +6,16 @@
 #include "tlv_library.h"
 #include "tlv_utils.h"
 
+// Cap on nested PARAM_TYPE_GROUP levels. It bounds both the parse-time recursion
+// (handle_pg_field -> handle_field_struct) and the format-time recursion
+// (format_param_group -> format_field) on hostile descriptors.
+#define MAX_PARAM_GROUP_DEPTH 8
+
+// Depth of the parse-time recursion. handle_pg_field() recurses before the
+// accumulated fields hash can be compared against the signed TRANSACTION_INFO,
+// so an unauthenticated descriptor must not be able to drive it arbitrarily deep.
+static uint8_t s_parse_depth;
+
 // =============================================================================
 // TLV tag handlers
 // =============================================================================
@@ -24,7 +34,12 @@ static bool handle_pg_iteration_type(const tlv_data_t *data, s_param_group_conte
 static bool handle_pg_field(const tlv_data_t *data, s_param_group_context *context) {
     s_group_field_node *node = NULL;
     s_field *sub_field = NULL;
+    bool parsed;
 
+    if (s_parse_depth >= MAX_PARAM_GROUP_DEPTH) {
+        PRINTF("GROUP: parse nesting too deep (>= %u)\n", MAX_PARAM_GROUP_DEPTH);
+        return false;
+    }
     if (APP_MEM_CALLOC((void **) &node, sizeof(s_group_field_node)) == false) {
         PRINTF("GROUP: failed to alloc field node\n");
         return false;
@@ -38,16 +53,19 @@ static bool handle_pg_field(const tlv_data_t *data, s_param_group_context *conte
 
     s_field_ctx sub_ctx = {0};
     sub_ctx.field = sub_field;
-    if (!handle_field_struct(&data->value, &sub_ctx)) {
+    s_parse_depth++;
+    parsed = handle_field_struct(&data->value, &sub_ctx);
+    s_parse_depth--;
+    if (!parsed) {
         PRINTF("GROUP: failed to parse sub-field\n");
-        cleanup_field_constraints(sub_field);
+        cleanup_field(sub_field);
         APP_MEM_FREE(sub_field);
         APP_MEM_FREE(node);
         return false;
     }
     if (!verify_field_struct(&sub_ctx)) {
         PRINTF("GROUP: sub-field failed verification\n");
-        cleanup_field_constraints(sub_field);
+        cleanup_field(sub_field);
         APP_MEM_FREE(sub_field);
         APP_MEM_FREE(node);
         return false;
@@ -75,10 +93,6 @@ bool handle_param_group_struct(const buffer_t *buf, s_param_group_context *conte
 // =============================================================================
 // Formatting
 // =============================================================================
-
-// Cap on nested PARAM_TYPE_GROUP levels to bound the recursion between
-// format_field() and format_param_group() on hostile descriptors.
-#define MAX_PARAM_GROUP_DEPTH 8
 
 /**
  * @brief Render every sub-field of a PARAM_TYPE_GROUP field.

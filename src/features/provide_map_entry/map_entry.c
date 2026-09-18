@@ -176,15 +176,19 @@ static bool is_matching_map_entry(const s_map_entry *node,
 const s_map_entry *get_matching_map_entry(uint8_t id, const uint8_t *key, uint8_t key_size) {
     const s_tx_info *tx_info = get_current_tx_info();
     const uint8_t *selector;
+    const uint8_t *callee;
 
     if (tx_info == NULL) return NULL;
     if ((selector = calldata_get_selector(get_current_calldata())) == NULL) return NULL;
+    // Map entries are signed per contract: use the callee of the current
+    // (possibly nested) context, not the root transaction destination.
+    if ((callee = get_current_tx_to()) == NULL) return NULL;
 
     for (const flist_node_t *tmp = (flist_node_t *) g_map_entry_list; tmp != NULL;
          tmp = tmp->next) {
         if (is_matching_map_entry((const s_map_entry *) tmp,
                                   &tx_info->chain_id,
-                                  txContext.content->destination,
+                                  callee,
                                   selector,
                                   id,
                                   key,

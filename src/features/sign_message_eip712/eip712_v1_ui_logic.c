@@ -1464,12 +1464,14 @@ void ui_712_set_trusted_name_requirements(uint8_t type_count,
  *
  */
 bool ui_712_push_pairs(void) {
-    uint8_t nbPairs = 0;
+    size_t nbPairs;
     uint8_t pair = 0;
     s_ui_712_pair *tmp = NULL;
     uint8_t tx_idx = 0;
 
-    // Initialize the pairs list
+    // Keep the queued-pair count at its native width: narrowing it here would
+    // wrap past the 8-bit pair counter and allocate fewer entries than the loop
+    // below writes. ui_pairs_init() rejects anything the counter cannot hold.
     nbPairs = flist_size((flist_node_t **) &ui_ctx->ui_pairs);
     if (N_storage.displayHash) {
         nbPairs += 2;
@@ -1481,6 +1483,9 @@ bool ui_712_push_pairs(void) {
     // Initialize the tag/value pairs from the chain list
     tmp = ui_ctx->ui_pairs;
     while (tmp != NULL) {
+        if (pair >= g_pairsList->nbPairs) {
+            return false;
+        }
         if (tmp->start_intent) {
             // Batch intermediate page
             tx_idx++;
@@ -1490,10 +1495,6 @@ bool ui_712_push_pairs(void) {
         }
         g_pairs[pair].item = tmp->key;
         g_pairs[pair].value = tmp->value;
-        LEDGER_ASSERT(pair < g_pairsList->nbPairs,
-                      "EIP-712 pair overflow (%d / %d)",
-                      pair,
-                      g_pairsList->nbPairs);
         pair++;
         if ((tmp->end_intent) && (txContext.batch_nb_tx > 1) && (pair < g_pairsList->nbPairs)) {
             // End of batch transaction : start next info on full page
@@ -1503,10 +1504,9 @@ bool ui_712_push_pairs(void) {
     }
 
     if (N_storage.displayHash) {
-        LEDGER_ASSERT(pair < g_pairsList->nbPairs,
-                      "EIP-712 pair overflow for Hash (%d / %d)",
-                      pair,
-                      g_pairsList->nbPairs);
+        if ((pair + 1) >= g_pairsList->nbPairs) {
+            return false;
+        }
         // Prepare the pairs list with the hashes
         eip712_format_hash(pair);
         g_pairs[pair].forcePageStart = true;

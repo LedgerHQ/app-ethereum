@@ -951,6 +951,79 @@ def test_gcs_constraints(
             scenario_navigator.review_approve(test_name=scenario_navigator.test_name + f"_{test_config}")
 
 
+def test_gcs_interoperable_address_constraint_chain(scenario_navigator: NavigateWithScenario):
+    """A MUST_BE constraint on an interoperable address must not match another chain.
+
+    The value is a whole EIP-7930 buffer. Matching only its address part let the same
+    address on a different chain satisfy a constraint the CAL scoped to one chain.
+    The constraint here is the mainnet encoding; the transaction carries the same
+    address on chain 137, so the field must be rejected.
+    """
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    interop_addr = bytes.fromhex("Dad77910DbDFdE764fC21FCD4E74D71bBACA6D8D")
+    constraint_bytes = bytes([1]) + interop_addr  # chain 1
+    value_bytes = bytes([137]) + interop_addr  # same address, chain 137
+
+    with open(f"{ABIS_FOLDER}/poap.abi.json", encoding="utf-8") as file:
+        contract = Web3().eth.contract(abi=json.load(file), address=None)
+    data = contract.encode_abi(
+        "mintToken",
+        [
+            175676,
+            7163978,
+            bytes.fromhex("0000000000000000000000000000000000000000"),
+            1730621615,
+            value_bytes,
+        ],
+    )
+    tx_params = {
+        "nonce": 235,
+        "maxFeePerGas": Web3.to_wei(100, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(10, "gwei"),
+        "gas": 44001,
+        "to": bytes.fromhex("0bb4D3e88243F4A057Db77341e6916B0e449b158"),
+        "data": data,
+        "chainId": 1,
+    }
+
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/poap.abi.json", "mintToken")
+    fields = [
+        Field(
+            1,
+            "Destination",
+            ParamTrustedName(
+                1,
+                Value(1, TypeFamily.BYTES, data_path=DataPath(1, param_paths["signature"])),
+                [TrustedNameType.ACCOUNT],
+                [TrustedNameSource.ENS],
+                value_type=TrustedNameValueType.INTEROPERABLE,
+            ),
+            visible=VisibleType.MUST_BE,
+            constraints=[constraint_bytes],
+        ),
+    ]
+
+    tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        tx_params["to"],
+        get_selector_from_data(tx_params["data"]),
+        compute_inst_hash(fields),
+        "mint POAP",
+        creator_name="POAP",
+    )
+    app_client.provide_transaction_info(tx_info.serialize())
+
+    with pytest.raises(ExceptionRAPDU) as e:
+        for field in fields:
+            app_client.provide_transaction_field_desc(field.serialize())
+    assert e.value.status == StatusWord.SWO_INCORRECT_DATA
+
+
 @pytest.mark.parametrize("test_config", ["named", "raw"])
 def test_gcs_interoperable_address(scenario_navigator: NavigateWithScenario, test_config: str):
     app_client = EthAppClient(scenario_navigator.backend)

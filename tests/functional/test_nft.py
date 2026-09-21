@@ -57,6 +57,7 @@ def common_test_nft(
     plugin_name: str,
     simu_params: TxSimu | None = None,
     gating_params: Gating | None = None,
+    value: int = 0,
 ):
     global DEVICE_ADDR
     backend = scenario_navigator.backend
@@ -68,7 +69,7 @@ def common_test_nft(
         "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
         "gas": GAS_LIMIT,
         "to": collec.addr,
-        "value": 0,
+        "value": value,
         "chainId": collec.chain_id,
         "data": data,
     }
@@ -189,6 +190,56 @@ def test_nft_erc721(
 
 def test_nft_erc721_reject(scenario_navigator: NavigateWithScenario, test_name: str):
     common_test_nft_reject(test_nft_erc721, scenario_navigator, test_name, collecs_721[0], actions_721[0])
+
+
+# setApprovalForAll is excluded: it is handled by the rejection test below
+@pytest.mark.parametrize("action_721", actions_721[:-1], ids=lambda a: f"{a.fn_name}{len(a.fn_args)}")
+def test_nft_erc721_attached_value(
+    scenario_navigator: NavigateWithScenario,
+    test_name: str,
+    action_721: Action,
+):
+    """No standard ERC-721 method is payable, but a custom contract reusing these
+    selectors can be: the attached native value must appear in the review as its own
+    row rather than ride along unseen behind the NFT details."""
+    common_test_nft(
+        scenario_navigator,
+        test_name,
+        collecs_721[0],
+        action_721,
+        False,
+        ERC721_PLUGIN,
+        value=Web3.to_wei(1, "ether"),
+    )
+
+
+def test_nft_erc721_attached_value_not_payable(scenario_navigator: NavigateWithScenario):
+    """setApprovalForAll grants no transfer, so native value alongside it is malformed.
+
+    Unlike the transfer selectors, which a custom payable contract could legitimately
+    reuse, this one is refused outright rather than given an amount row.
+    """
+    app_client = EthAppClient(scenario_navigator.backend)
+    collec = collecs_721[0]
+    action = actions_721[-1]
+
+    data = collec.contract.encode_abi(action.fn_name, action.fn_args)
+    tx_params = {
+        "nonce": NONCE,
+        "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
+        "gas": GAS_LIMIT,
+        "to": collec.addr,
+        "value": Web3.to_wei(1, "ether"),
+        "chainId": collec.chain_id,
+        "data": data,
+    }
+    app_client.set_plugin(ERC721_PLUGIN, collec.addr, get_selector_from_data(data), collec.chain_id)
+    app_client.provide_nft_metadata(collec.name, collec.addr, collec.chain_id)
+
+    with pytest.raises(ExceptionRAPDU) as e:
+        with app_client.sign(BIP32_PATH, tx_params):
+            pass
+    assert e.value.status == StatusWord.SWO_INCORRECT_DATA
 
 
 # ERC-1155

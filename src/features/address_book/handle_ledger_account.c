@@ -169,6 +169,10 @@ void display_register_ledger_account_review(nbgl_choiceCallback_t choice_callbac
 #else
     if (ui_pairs_init(2) == false) {
         PRINTF("Failed to initialize pairs\n");
+        // The SDK already answered this command with SWO_NO_RESPONSE.
+        // Returning without displaying anything would leave the host with no reply at all,
+        // so take the rejection path: it sends the error and runs the finalizer.
+        choice_callback(false);
         return;
     }
     g_pairs[0].item = "Account name";

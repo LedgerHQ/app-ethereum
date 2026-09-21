@@ -216,6 +216,15 @@ static uint16_t final_process(void) {
 #endif  // SCREEN_SIZE_NANO
     }
 
+    // The review hides everything past a short excerpt behind "More", whose pages the
+    // UI counts on 8 bits. A message needing more pages than that counter can address
+    // would leave its tail unreachable while approval stays available.
+    if (!ui_191_message_fits(signMsgCtx->display_buffer)) {
+        PRINTF("Error: message needs more review pages than the UI can address\n");
+        error = SWO_INCORRECT_DATA;
+        goto end;
+    }
+
     error = SWO_SUCCESS;
 end:
     APP_MEM_FREE_AND_NULL((void **) &g_msg_hash_ctx);

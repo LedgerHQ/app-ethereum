@@ -6,6 +6,21 @@
 
 #define FINISH_MSG_LEN 32
 
+bool ui_191_message_fits(const char *message) {
+#ifdef SCREEN_SIZE_WALLET
+    // Everything past a short excerpt is reached through the "More" details view,
+    // which the SDK paginates with an 8-bit page counter. Past what that counter can
+    // address, the tail of the message becomes unreachable while approval stays
+    // available, so the message must be refused rather than signed unseen.
+    return nbgl_getTextNbLinesInWidth(SMALL_BOLD_FONT, message, AVAILABLE_WIDTH, true) <=
+           (UINT8_MAX * NB_MAX_LINES_IN_DETAILS);
+#else
+    // Nano walks the message as text steps, with no page counter to overflow
+    UNUSED(message);
+    return true;
+#endif
+}
+
 static void ui_191_finish_cb(bool confirm) {
     if (confirm) {
         io_seproxyhal_touch_signMessage_ok();

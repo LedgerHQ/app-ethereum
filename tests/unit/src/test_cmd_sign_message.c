@@ -97,6 +97,13 @@ void ui_191_start(const char *display_buffer) {
     }
 }
 
+// The real implementation measures the rendered message against the review's page
+// counter, which needs the NBGL layout headers; host tests accept every message.
+bool ui_191_message_fits(const char *message) {
+    (void) message;
+    return true;
+}
+
 // =============================================================================
 // APDU builder
 // =============================================================================

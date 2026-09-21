@@ -19,6 +19,14 @@ void ui_display_safe_account(void);
 // EIP-191
 void ui_191_start(const char *message);
 
+/**
+ * Whether an EIP-191 message can be fully reached in the review's details view.
+ *
+ * @param[in] message the NUL-terminated display string
+ * @return false if rendering it would need more pages than the UI can address
+ */
+bool ui_191_message_fits(const char *message);
+
 // EIP-712
 bool ui_sign_712_v1(e_eip712_filtering_mode filtering_mode);
 bool ui_sign_712_v0(void);

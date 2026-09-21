@@ -66,6 +66,9 @@ void finalize_ui_ledger_account(void) {
     APP_MEM_FREE_AND_NULL((void **) &g_ctx.register_account.address_display);
     APP_MEM_FREE_AND_NULL((void **) &g_ctx.register_account.network_display);
     APP_MEM_FREE_AND_NULL((void **) &g_ctx.ledger_account);
+    // Leaving the short-address buffer and the detail fields behind would let the next
+    // flow read them through the union as an Identity pair's icon/extension pointers.
+    explicit_bzero(&g_ab_ctx, sizeof(g_ab_ctx));
     ui_idle();
 }
 

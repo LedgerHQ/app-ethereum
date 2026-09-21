@@ -306,6 +306,38 @@ def test_address_book_identity_register(scenario_navigator: NavigateWithScenario
     _common_register_identity(scenario_navigator, app_client)
 
 
+def test_address_book_ledger_account_then_identity(scenario_navigator: NavigateWithScenario) -> None:
+    """Run a Ledger Account review, then an Identity review in the same session.
+
+    The two flows share one untagged UI context union. Exercising either one from a
+    freshly zeroed BSS cannot catch fields the previous flow left behind, which the
+    Identity tag-value pair would then expose to NBGL as an icon/extension pointer.
+    """
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    # Both helpers would compare against the same snapshot directory, so only the
+    # second review is compared: it is the one that must render correctly after the
+    # first flow has used, and released, the shared context.
+    #
+    # The derivation path, address and names are unique to this test: the contact
+    # cache lives for the whole session, so reusing the shared ones would change
+    # what the other tests in this file see.
+    _common_register_ledger_account(
+        scenario_navigator,
+        app_client,
+        do_compare=False,
+        derivation_path="m/44'/60'/0'/0/9",
+        contact_name="Crossflow account",
+    )
+    _common_register_identity(
+        scenario_navigator,
+        app_client,
+        contact_name="Crossflow contact",
+        scope="Crossflow scope",
+        address=bytes.fromhex("00112233445566778899aabbccddeeff00112233"),
+    )
+
+
 def test_address_book_identity_register_reject(scenario_navigator: NavigateWithScenario) -> None:
     """Test Register Identity: user rejects → ExceptionRAPDU(SWO_INCORRECT_DATA)."""
     backend = scenario_navigator.backend

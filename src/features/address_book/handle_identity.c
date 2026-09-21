@@ -25,6 +25,7 @@
 
 #if defined(HAVE_ADDRESS_BOOK)
 
+#include <string.h>
 #include "address_book_entrypoints.h"
 #include "common_utils.h"
 #include "network.h"
@@ -58,6 +59,7 @@ void finalize_ui_register_identity(void) {
     APP_MEM_FREE_AND_NULL((void **) &g_ctx.register_identity.identifier_display);
     APP_MEM_FREE_AND_NULL((void **) &g_ctx.register_identity.network_display);
     APP_MEM_FREE_AND_NULL((void **) &g_ctx.register_identity.identity);
+    explicit_bzero(&g_ab_ctx, sizeof(g_ab_ctx));
     ui_idle();
 }
 
@@ -124,6 +126,9 @@ bool handle_check_register_identity(identity_t *params) {
  * @return Pointer to the pair, or NULL if index is invalid
  */
 nbgl_contentTagValue_t *get_register_identity_tagValue(uint8_t pairIndex) {
+    // The pair lives in a union shared with the other flows: clear every field, not
+    // just the two set below, or NBGL reads leftover bytes as valueIcon/extension.
+    explicit_bzero(&g_ctx.current_pair, sizeof(g_ctx.current_pair));
     switch (pairIndex) {
         case 0:
             g_ctx.current_pair.item = "Contact name";
@@ -192,6 +197,7 @@ nbgl_contentTagValue_t *get_register_identity_tagValue(uint8_t pairIndex) {
  * @brief Finalize the UI flow for editing a contact name.
  */
 void finalize_ui_edit_contact_name(void) {
+    explicit_bzero(&g_ab_ctx, sizeof(g_ab_ctx));
     ui_idle();
 }
 
@@ -199,6 +205,7 @@ void finalize_ui_edit_contact_name(void) {
  * @brief Finalize the UI flow for editing a scope name.
  */
 void finalize_ui_edit_scope(void) {
+    explicit_bzero(&g_ab_ctx, sizeof(g_ab_ctx));
     ui_idle();
 }
 
@@ -215,6 +222,7 @@ void finalize_ui_edit_identifier(void) {
     APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.scope);
     APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.old_identifier);
     APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.new_identifier);
+    explicit_bzero(&g_ab_ctx, sizeof(g_ab_ctx));
     ui_idle();
 }
 
@@ -324,6 +332,9 @@ bool handle_check_edit_identifier(const edit_identifier_t *params) {
  * @return Pointer to the pair, or NULL if index is invalid
  */
 nbgl_contentTagValue_t *get_edit_identifier_tagValue(uint8_t pairIndex) {
+    // The pair lives in a union shared with the other flows: clear every field, not
+    // just the two set below, or NBGL reads leftover bytes as valueIcon/extension.
+    explicit_bzero(&g_ctx.current_pair, sizeof(g_ctx.current_pair));
     switch (pairIndex) {
         case 0:
             g_ctx.current_pair.item = "Contact name";

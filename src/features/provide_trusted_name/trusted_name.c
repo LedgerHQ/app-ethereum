@@ -61,6 +61,9 @@ static bool matching_trusted_name(const s_trusted_name *trusted_name,
             if (!matching_type(TN_TYPE_ACCOUNT, type_count, types)) {
                 return false;
             }
+            if (!matching_source(TN_SOURCE_ENS, source_count, sources)) {
+                return false;
+            }
             if (!chain_is_ethereum_compatible(chain_id)) {
                 return false;
             }
@@ -733,6 +736,16 @@ bool verify_trusted_name_struct(const s_trusted_name_ctx *context) {
         return false;
     }
     memcpy(node, &context->trusted_name, sizeof(*node));
+
+    // A v1 descriptor carries neither NAME_TYPE nor NAME_SOURCE, so both would be
+    // stored as 0 — not a member of e_name_type at all, and TN_SOURCE_LAB, which
+    // claims the locally verified address book as the origin of a remotely resolved
+    // name. The .eth TLD and ENS charset enforced above are what a v1 descriptor
+    // actually is; record that, after the parsing so a stray tag cannot override it.
+    if (node->struct_version == STRUCT_VERSION_1) {
+        node->name_type = TN_TYPE_ACCOUNT;
+        node->name_source = TN_SOURCE_ENS;
+    }
     flist_push_back((flist_node_t **) &g_trusted_name_list, (flist_node_t *) node);
 
     print_trusted_name_info(context);

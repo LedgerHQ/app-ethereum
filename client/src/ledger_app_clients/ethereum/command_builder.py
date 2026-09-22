@@ -304,11 +304,11 @@ class CommandBuilder:
         data = bytearray()
         data += struct.pack(">B", index)
         data += struct.pack(">B", value_filter_flag)
-        data += struct.pack(">?", callee_filter_flag)
+        data += struct.pack(">B", callee_filter_flag)
         data += struct.pack(">B", chain_id_filter_flag)
         data += struct.pack(">B", selector_filter_flag)
         data += struct.pack(">B", amount_filter_flag)
-        data += struct.pack(">?", spender_filter_flag)
+        data += struct.pack(">B", spender_filter_flag)
         data.append(len(sig))
         data += sig
         return self._serialize(

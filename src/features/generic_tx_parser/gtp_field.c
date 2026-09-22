@@ -277,6 +277,21 @@ bool verify_field_struct(const s_field_ctx *context) {
         // Set default visibility if not provided
         context->field->visibility = PARAM_VISIBILITY_ALWAYS;
     }
+
+    // MUST_BE and IF_NOT_IN are evaluated by the RAW and TRUSTED_NAME formatters only.
+    // Accepting them elsewhere would render the field as though the signed condition
+    // had been checked, so refuse the descriptor instead of ignoring the condition.
+    if (context->field->visibility != PARAM_VISIBILITY_ALWAYS) {
+        switch (context->field->param_type) {
+            case PARAM_TYPE_RAW:
+            case PARAM_TYPE_TRUSTED_NAME:
+                break;
+            default:
+                PRINTF("Error: VISIBLE constraint unsupported for param type %u!\n",
+                       context->field->param_type);
+                return false;
+        }
+    }
     return true;
 }
 

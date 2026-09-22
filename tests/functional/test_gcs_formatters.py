@@ -1209,3 +1209,69 @@ def test_gcs_iteration_broadcast(scenario_navigator: NavigateWithScenario):
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
+
+
+def test_gcs_constraint_on_unsupported_param_type(scenario_navigator: NavigateWithScenario):
+    """A MUST_BE constraint is only evaluated by the RAW and TRUSTED_NAME formatters.
+
+    Carrying one on any other param type would render the field as though the signed
+    condition had been checked, so the descriptor must be refused rather than have its
+    condition silently ignored.
+    """
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    with open(f"{ABIS_FOLDER}/poap.abi.json", encoding="utf-8") as file:
+        contract = Web3().eth.contract(abi=json.load(file), address=None)
+    data = contract.encode_abi(
+        "mintToken",
+        [
+            175676,
+            7163978,
+            bytes.fromhex("0000000000000000000000000000000000000000"),
+            1730621615,
+            b"",
+        ],
+    )
+    tx_params = {
+        "nonce": 235,
+        "maxFeePerGas": Web3.to_wei(100, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(10, "gwei"),
+        "gas": 44001,
+        "to": bytes.fromhex("0bb4D3e88243F4A057Db77341e6916B0e449b158"),
+        "data": data,
+        "chainId": 1,
+    }
+
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/poap.abi.json", "mintToken")
+    fields = [
+        Field(
+            1,
+            "Expiration",
+            ParamDatetime(
+                1,
+                Value(1, TypeFamily.UINT, type_size=32, data_path=DataPath(1, param_paths["expirationTime"])),
+                DatetimeType.DT_UNIX,
+            ),
+            visible=VisibleType.MUST_BE,
+            constraints=[(1730621615).to_bytes(32, "big")],
+        ),
+    ]
+
+    tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        tx_params["to"],
+        get_selector_from_data(tx_params["data"]),
+        compute_inst_hash(fields),
+        "mint POAP",
+        creator_name="POAP",
+    )
+    app_client.provide_transaction_info(tx_info.serialize())
+
+    with pytest.raises(ExceptionRAPDU) as err:
+        for field in fields:
+            app_client.provide_transaction_field_desc(field.serialize())
+    assert err.value.status == StatusWord.SWO_INCORRECT_DATA

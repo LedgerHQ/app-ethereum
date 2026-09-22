@@ -660,13 +660,12 @@ def test_address_book_ledger_account_edit_reject(scenario_navigator: NavigateWit
         chain_id=DEFAULT_CHAIN_ID,
     )
 
-    text = "Cancel" if scenario_navigator.backend.device.is_nano else "Confirm"
     try:
         with app_client.provide_address_book(apdu):
-            scenario_navigator.review_reject(custom_screen_text=text)
+            scenario_navigator.address_review_reject(do_comparison=False)
     except ExceptionRAPDU as e:
-        # Ensure we're back on the home screen so the review UI cleanup runs
-        # (finalize_ui_ledger_account) and frees its allocations.
+        # The SDK answers the command before showing "Canceled", so the review
+        # buffers are still allocated when the exception arrives.
         scenario_navigator.backend.wait_for_home_screen()
         assert_sw(e.status, StatusWord.SWO_INCORRECT_DATA)
     else:

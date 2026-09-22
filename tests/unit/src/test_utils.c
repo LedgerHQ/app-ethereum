@@ -149,6 +149,23 @@ void test_format_signed_int_be_length_exceeds_type_rejected(void) {
     TEST_ASSERT_FALSE(format_signed_int_be(data, 9, 8, out, sizeof(out)));
 }
 
+void test_format_signed_int_be_length_above_uint8_rejected(void) {
+    // A dynamic calldata leaf carries its length in a host-chosen word. 260 is
+    // 0x0104: narrowed to a uint8_t it reads as 4, which would format the first four
+    // bytes of a 260-byte value and report success.
+    uint8_t data[260] = {0xDE, 0xAD, 0xBE, 0xEF};
+    char out[96];
+    TEST_ASSERT_FALSE(format_signed_int_be(data, sizeof(data), 32, out, sizeof(out)));
+}
+
+void test_format_signed_int_be_length_multiple_of_256_rejected(void) {
+    // 256 narrows to 0, which the length==0 guard already caught; kept so both sides
+    // of the wrap are pinned.
+    uint8_t data[256] = {0x01};
+    char out[96];
+    TEST_ASSERT_FALSE(format_signed_int_be(data, sizeof(data), 32, out, sizeof(out)));
+}
+
 void test_format_signed_int_be_short_value_treated_unsigned(void) {
     // length < type_size → always unsigned, regardless of MSB
     uint8_t data[] = {0xFF};
@@ -241,6 +258,8 @@ int main(void) {
     RUN_TEST(test_str_cpy_trunc_exact_fit_terminates);
     RUN_TEST(test_format_signed_int_be_length_zero_rejected);
     RUN_TEST(test_format_signed_int_be_length_exceeds_type_rejected);
+    RUN_TEST(test_format_signed_int_be_length_above_uint8_rejected);
+    RUN_TEST(test_format_signed_int_be_length_multiple_of_256_rejected);
     RUN_TEST(test_format_signed_int_be_short_value_treated_unsigned);
     RUN_TEST(test_format_signed_int_be_full_width_msb_clear_unsigned);
     RUN_TEST(test_format_signed_int_be_int8_negative);

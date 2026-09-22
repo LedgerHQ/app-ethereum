@@ -22,7 +22,7 @@
  * @return true on success, false on invalid input or formatting failure
  */
 bool format_signed_int_be(const uint8_t *data,
-                          uint8_t length,
+                          size_t length,
                           uint8_t type_size,
                           char *buf,
                           size_t buf_size) {

@@ -102,13 +102,19 @@ cx_err_t cx_ecfp_generate_pair_no_throw(cx_curve_t curve,
 }
 
 static cx_err_t g_x25519_ret = CX_OK;
+// Scalar the handler passed in, so a test can assert which of the two encodings
+// (raw derived key vs decode_scalar'd) reaches the exchange.
+static uint8_t g_x25519_scalar[32];
+// Emit an all-zero result, as X25519 does for a peer point of small order.
+static bool g_x25519_zero_output = false;
 cx_err_t cx_x25519(uint8_t *p, const uint8_t *s, size_t s_len) {
-    (void) s;
-    (void) s_len;
+    if ((s != NULL) && (s_len == sizeof(g_x25519_scalar))) {
+        memcpy(g_x25519_scalar, s, sizeof(g_x25519_scalar));
+    }
     if (p != NULL) {
         // Overwrite the host-supplied peer key with deterministic
         // shared-secret bytes so the response buffer can be inspected.
-        memset(p, 0x99, 32);
+        memset(p, g_x25519_zero_output ? 0x00 : 0x99, 32);
     }
     return g_x25519_ret;
 }
@@ -160,6 +166,8 @@ static void reset(void) {
     g_init_priv_ret = CX_OK;
     g_gen_pair_ret = CX_OK;
     g_x25519_ret = CX_OK;
+    g_x25519_zero_output = false;
+    memset(g_x25519_scalar, 0, sizeof(g_x25519_scalar));
     g_ui_pubkey_calls = 0;
     g_ui_shared_calls = 0;
     memset(&tmpCtx, 0, sizeof(tmpCtx));
@@ -279,6 +287,37 @@ void test_shared_secret_confirm_calls_ui(void) {
     TEST_ASSERT_EQUAL(g_ui_pubkey_calls, 0);
 }
 
+void test_shared_secret_uses_the_published_key_scalar(void) {
+    // The exchange must run on decode_scalar() of the derived key -- the same scalar
+    // P2_PUBLIC_ENCRYPTION_KEY publishes -- not on the raw derived bytes. The derive
+    // stub yields 0x11 repeated, so decode_scalar() yields 0x51, 0x11 x30, 0x10.
+    uint8_t expected[32];
+    memset(expected, 0x11, sizeof(expected));
+    expected[0] = 0x51;
+    expected[31] = 0x10;
+
+    uint8_t apdu[64];
+    size_t len = build_apdu(apdu, sizeof(apdu), true);
+    unsigned int tx = 0;
+    uint16_t sw = handle_perform_privacy_operation(P1_CONFIRM, 0x01, apdu, (uint8_t) len, &tx);
+    TEST_ASSERT_EQUAL(SWO_NO_RESPONSE, sw);
+    TEST_ASSERT_EQUAL_HEX8_ARRAY(expected, g_x25519_scalar, sizeof(expected));
+}
+
+void test_shared_secret_all_zero_output_rejected(void) {
+    // RFC 7748 6.1: an all-zero X25519 result means the peer u-coordinate is a point
+    // of small order and MUST be refused rather than returned as a secret.
+    g_x25519_zero_output = true;
+
+    uint8_t apdu[64];
+    size_t len = build_apdu(apdu, sizeof(apdu), true);
+    unsigned int tx = 0;
+    uint16_t sw = handle_perform_privacy_operation(P1_CONFIRM, 0x01, apdu, (uint8_t) len, &tx);
+    TEST_ASSERT_EQUAL(SWO_INCORRECT_DATA, sw);
+    TEST_ASSERT_EQUAL(0, g_ui_shared_calls);
+    TEST_ASSERT_EQUAL(APP_STATE_IDLE, appState);
+}
+
 // =============================================================================
 // Runner
 // =============================================================================
@@ -300,5 +339,7 @@ int main(void) {
     RUN_TEST(test_public_encryption_key_non_confirm);
     RUN_TEST(test_public_encryption_key_confirm_calls_ui);
     RUN_TEST(test_shared_secret_confirm_calls_ui);
+    RUN_TEST(test_shared_secret_uses_the_published_key_scalar);
+    RUN_TEST(test_shared_secret_all_zero_output_rejected);
     return UNITY_END();
 }

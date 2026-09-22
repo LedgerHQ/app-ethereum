@@ -249,8 +249,14 @@ class EthAppClient:
         display: bool = True,
         bip32_path: str = "m/44'/60'/0'/0/0",
         pubkey: bytes = b"",
+        async_mode: bool = False,
     ):
-        return self._exchange(self._cmd_builder.perform_privacy_operation(display, bip32_path, pubkey))
+        # display=True defers the answer until the user acts, so a caller that has to
+        # drive the review needs the asynchronous exchange.
+        payload = self._cmd_builder.perform_privacy_operation(display, bip32_path, pubkey)
+        if async_mode:
+            return self._exchange_async(payload)
+        return self._exchange(payload)
 
     def provide_trusted_name(self, trusted_name: TrustedName) -> RAPDU:
         if trusted_name.tn_source == TrustedNameSource.CAL:

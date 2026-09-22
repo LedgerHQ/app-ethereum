@@ -209,6 +209,25 @@ typedef enum swap_mode_e {
 extern swap_mode_t G_swap_mode;
 extern uint8_t *G_swap_crosschain_hash;
 
+// What the transaction's value field must hold, as decided by copy_transaction_parameters() from
+// the identity of the asset being swapped. Both forms are strict: nothing else is signed.
+typedef enum swap_value_check_e {
+    // The native currency is spent: the value must be the amount validated in Exchange
+    SWAP_VALUE_CHECK_AMOUNT = 0,
+    // A token is spent: its amount lives in the calldata, which a crosschain swap checks against
+    // the partner's promise (G_swap_crosschain_hash), so the value itself must be zero
+    SWAP_VALUE_CHECK_ZERO,
+} swap_value_check_t;
+
+extern swap_value_check_t G_swap_expected_value_check;
+
+// The amount Exchange validated, as the raw big-endian bytes it provided, right-aligned in a
+// full word. SWAP_VALUE_CHECK_AMOUNT compares the transaction's value against these instead of
+// against its formatted form: two amounts on different scales can share the very same formatted
+// string (1 USDC at 6 decimals and 1 native unit at WEI_TO_ETHER both read "1 USDC"), so the
+// string alone does not bind the value.
+extern uint8_t G_swap_expected_value[INT256_LENGTH];
+
 typedef enum {
     PLUGIN_TYPE_NONE = 0,
     // External plugin, set by set_external_plugin

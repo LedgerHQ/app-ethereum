@@ -5,7 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.23.0](../../compare/1.22.4...1.23.0) - xxxx-xx-xx
+## [1.22.5](../../compare/1.22.4...1.22.5) - 2026-09-17
+
+### Fixed
+
+- Swaps could be signed as a native transfer of the same number of units instead of the token spend
+- Crosschain swaps could be signed spending the network's native currency on top of the swapped token
+- Crosschain swaps spending a token whose ticker matches the network's native currency were rejected at signature
 
 ## [1.22.4](../../compare/1.22.3...1.22.4) - 2026-09-08
 

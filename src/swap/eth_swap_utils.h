@@ -74,4 +74,5 @@ void get_asset_info_on_network(bool is_fee,
 
 bool swap_check_destination(const char *destination);
 bool swap_check_amount(const char *amount);
+bool swap_check_value(const char *formatted_value, const uint8_t *raw_value, uint8_t raw_value_len);
 bool swap_check_fee(const char *fee);

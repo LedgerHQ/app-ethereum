@@ -547,7 +547,11 @@ __attribute__((noinline)) static uint16_t finalize_parsing_helper(const txContex
         }
 
         if (G_called_from_swap) {
-            swap_check_amount(displayBuffer);
+            // What the value must hold depends on the asset being swapped, which Exchange only
+            // describes by ticker and decimals: see swap_value_check_t
+            swap_check_value(displayBuffer,
+                             tmpContent.txContent.value.value,
+                             tmpContent.txContent.value.length);
         } else {
             strlcpy(strings.common.fullAmount, displayBuffer, sizeof(strings.common.fullAmount));
         }

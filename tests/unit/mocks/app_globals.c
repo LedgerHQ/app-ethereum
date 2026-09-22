@@ -74,8 +74,9 @@ extern const internalStorage_t N_storage_real WEAK __attribute__((alias("g_n_sto
 // =============================================================================
 // Swap-mode signaling globals. Tests don't exercise the actual swap-app
 // handshake so the defaults (all false / SWAP_MODE_STANDARD) are fine.
-// G_swap_checked has a real def in src/swap/eth_swap_utils.c, so the
-// weak qualifier defers to it when linked.
+// G_swap_checked has a real def in src/swap/eth_swap_utils.c and the
+// G_swap_expected_value* pair in src/swap/handle_swap_sign_transaction.c,
+// so the weak qualifier defers to them when those sources are linked.
 
 WEAK volatile bool G_called_from_swap;
 WEAK volatile bool G_swap_response_ready;
@@ -86,6 +87,8 @@ WEAK bool G_swap_tx_had_calldata;
 WEAK bool G_swap_calldata_validated;
 WEAK uint8_t G_swap_expected_token_address[ADDRESS_LENGTH];
 WEAK bool G_swap_has_expected_token_address;
+WEAK swap_value_check_t G_swap_expected_value_check;
+WEAK uint8_t G_swap_expected_value[INT256_LENGTH];
 
 // =============================================================================
 // app/src/features/generic_tx_parser/tx_ctx.c

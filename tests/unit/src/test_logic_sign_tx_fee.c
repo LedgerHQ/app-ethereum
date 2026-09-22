@@ -138,6 +138,14 @@ bool swap_check_amount(uint8_t *value, uint8_t length) {
     (void) length;
     return true;
 }
+bool swap_check_value(const char *formatted_value,
+                      const uint8_t *raw_value,
+                      uint8_t raw_value_len) {
+    (void) formatted_value;
+    (void) raw_value;
+    (void) raw_value_len;
+    return true;
+}
 bool swap_check_destination(uint8_t *destination, uint8_t length) {
     (void) destination;
     (void) length;

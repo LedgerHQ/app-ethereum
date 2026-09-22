@@ -135,10 +135,14 @@ bool swap_check_destination(const char *destination) {
     return g_swap_check_destination_ret;
 }
 
-static bool g_swap_check_amount_ret = true;
-bool swap_check_amount(const char *amount) {
-    (void) amount;
-    return g_swap_check_amount_ret;
+static bool g_swap_check_value_ret = true;
+bool swap_check_value(const char *formatted_value,
+                      const uint8_t *raw_value,
+                      uint8_t raw_value_len) {
+    (void) formatted_value;
+    (void) raw_value;
+    (void) raw_value_len;
+    return g_swap_check_value_ret;
 }
 
 static bool g_swap_check_fee_ret = true;
@@ -291,7 +295,7 @@ static void reset(void) {
     g_ux_approve_calls = 0;
     g_ux_approve_last_from_plugin = false;
     g_swap_check_destination_ret = true;
-    g_swap_check_amount_ret = true;
+    g_swap_check_value_ret = true;
     g_swap_check_fee_ret = true;
     g_perform_init_ret = ETH_PLUGIN_RESULT_UNAVAILABLE;
     g_copy_tx_data_ret = true;

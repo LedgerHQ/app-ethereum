@@ -7,6 +7,7 @@
 #include "ui_icons.h"
 #include "plugins.h"
 #include "trusted_name.h"
+#include "address_name_lookup.h"
 #ifdef HAVE_ADDRESS_BOOK
 #include "handle_contacts.h"
 #ifdef HAVE_ADDRESS_BOOK_LEDGER_ACCOUNT
@@ -101,7 +102,7 @@ static bool resolve_address_pair(nbgl_contentTagValue_t *pair,
 
 #ifdef HAVE_ADDRESS_BOOK
     const s_ab_contact *ab_contact = get_address_book_contact(chain_id, raw_addr);
-    if (ab_contact != NULL) {
+    if ((ab_contact != NULL) && is_displayable_name(ab_contact->contact_name)) {
         display_name = ab_contact->contact_name;
         alias_type = ADDRESS_BOOK_ALIAS;
         alias_sub_name = (ab_contact->scope[0] != '\0') ? ab_contact->scope : NULL;
@@ -120,7 +121,9 @@ static bool resolve_address_pair(nbgl_contentTagValue_t *pair,
         }
     }
 
-    if (display_name != NULL) {
+    // An empty name would render a blank row in place of the destination; the
+    // checksummed address is the fallback that always says something true.
+    if (is_displayable_name(display_name)) {
         if (APP_MEM_CALLOC((void **) ext_out, sizeof(**ext_out)) == false) {
             return false;
         }

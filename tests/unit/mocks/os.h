@@ -32,6 +32,7 @@ int bytes_to_lowercase_hex(char *out, size_t outl, const void *value, size_t len
  * @brief All-zero buffer probe (from BOLOS_SDK os_utils.h).
  *        Tests that touch zero-buffer guards must provide an implementation.
  */
+bool is_printable_string(const char *str, size_t len);
 bool is_zeroes_buffer(const void *buf, size_t n);
 
 // Mirror os_io.h: CUSTOM_IO_APDU_BUFFER_SIZE takes precedence over the

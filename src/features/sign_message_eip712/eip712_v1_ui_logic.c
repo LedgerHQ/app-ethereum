@@ -538,7 +538,7 @@ static bool ui_712_format_trusted_name(const uint8_t *data, size_t length) {
     for (uint8_t i = 0; i < ui_ctx->tn_type_count; i++) {
         if (ui_ctx->tn_types[i] == TN_TYPE_ACCOUNT) {
             const s_ab_contact *ab_contact = get_address_book_contact(domain_chain_id, data);
-            if (ab_contact != NULL) {
+            if ((ab_contact != NULL) && is_displayable_name(ab_contact->contact_name)) {
                 strlcpy(strings.tmp.tmp, ab_contact->contact_name, sizeof(strings.tmp.tmp));
                 return true;
             }
@@ -662,7 +662,7 @@ static bool handle_fallback_empty_calldata(const s_eip712_calldata_info *calldat
     {
         const s_ab_contact *ab_contact =
             get_address_book_contact(calldata_info->chain_id, calldata_info->callee);
-        if (ab_contact != NULL) {
+        if ((ab_contact != NULL) && is_displayable_name(ab_contact->contact_name)) {
             if (!ui_712_set_value(ab_contact->contact_name, strlen(ab_contact->contact_name))) {
                 return false;
             }

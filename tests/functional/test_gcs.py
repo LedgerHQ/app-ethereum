@@ -31,6 +31,7 @@ from client.gcs import (
 )
 from client.map_entry import MapEntry
 from client.proxy_info import ProxyInfo
+from client.settings import SettingID, settings_toggle
 from client.status_word import StatusWord
 from client.trusted_name import TrustedName, TrustedNameSource, TrustedNameType
 from client.tx_simu import TxSimu
@@ -39,6 +40,7 @@ from constants import ABIS_FOLDER
 from dynamic_networks_cfg import get_network_config
 from fields_utils import get_all_paths, get_all_tuple_array_paths, get_all_tuple_paths
 from ragger.error import ExceptionRAPDU
+from ragger.navigator import Navigator
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 from web3 import Web3
 
@@ -3066,3 +3068,23 @@ def test_gcs_enum_noncanonical_value(scenario_navigator: NavigateWithScenario):
         for field in fields:
             app_client.provide_transaction_field_desc(field.serialize())
     assert err.value.status == StatusWord.SWO_INCORRECT_DATA
+
+
+def test_gcs_nonce_and_hash_displayed(navigator: Navigator, scenario_navigator: NavigateWithScenario, test_name: str):
+    """The nonce and the transaction hash are covered by the signature, so the GCS
+    review must show them when their settings are on, like the standard review does."""
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+    device = backend.device
+
+    settings_toggle(device, navigator, [SettingID.NONCE, SettingID.DISPLAY_HASH])
+
+    tx_params, fields = _poap_tx_and_fields(0)
+
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    _provide_gcs_metadata(app_client, tx_params, fields)
+
+    with app_client.sign(mode=SignMode.START_FLOW):
+        scenario_navigator.review_approve(test_name=test_name)

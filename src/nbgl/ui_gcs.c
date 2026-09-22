@@ -1,4 +1,5 @@
 #include <string.h>
+#include "os_utils.h"
 #include "shared_context.h"
 #include "ui_nbgl.h"
 #include "ui_icons.h"
@@ -472,6 +473,8 @@ bool ui_gcs(void) {
     bool show_network;
     bool show_root_value;
     bool show_root_from;
+    bool show_nonce;
+    bool show_hash;
     nbgl_contentValueExt_t *ext = NULL;
     nbgl_contentInfoList_t *infolist = NULL;
     size_t nbPairs = 0;
@@ -516,6 +519,17 @@ bool ui_gcs(void) {
     show_root_value = !gcs_is_root_value_shown() && !allzeroes(tmpContent.txContent.value.value,
                                                                tmpContent.txContent.value.length);
     if (show_root_value) {
+        nbPairs += 1;
+    }
+    // Nonce and transaction hash: both are covered by the signature, so they follow
+    // the same settings as the standard review rather than being unconditionally
+    // dropped from the clear-signing one.
+    show_nonce = N_storage.displayNonce;
+    if (show_nonce) {
+        nbPairs += 1;
+    }
+    show_hash = N_storage.displayHash;
+    if (show_hash) {
         nbPairs += 1;
     }
     // Batch transactions
@@ -668,6 +682,25 @@ bool ui_gcs(void) {
         pair++;
     }
 
+    // Format from the tx context: strings.common.nonce shares its memory with
+    // strings.tmp.tmp, already clobbered by the title above.
+    if (show_nonce) {
+        if (pair >= g_pairsList->nbPairs) {
+            PRINTF("Error: No more pairs available for nonce!\n");
+            return false;
+        }
+        if (!nonce_to_string(&tmpContent.txContent.nonce, tmp_buf, tmp_buf_size)) {
+            PRINTF("Error: Could not format the nonce!\n");
+            return false;
+        }
+        if (((g_pairs[pair].item = APP_MEM_STRDUP("Nonce")) == NULL) ||
+            ((g_pairs[pair].value = APP_MEM_STRDUP(tmp_buf)) == NULL)) {
+            return false;
+        }
+        index_allocated[pair] = true;
+        pair++;
+    }
+
     if (had_separator) {
         g_pairs[pair].forcePageStart = true;
     }
@@ -704,10 +737,37 @@ bool ui_gcs(void) {
         return false;
     }
     index_allocated[pair] = true;
+    pair++;
+
+    if (show_hash) {
+        if (pair >= g_pairsList->nbPairs) {
+            PRINTF("Error: No more pairs available for tx hash!\n");
+            return false;
+        }
+        strlcpy(tmp_buf, "0x", tmp_buf_size);
+        if (bytes_to_lowercase_hex(tmp_buf + 2,
+                                   tmp_buf_size - 2,
+                                   tmpCtx.transactionContext.hash,
+                                   INT256_LENGTH) < 0) {
+            PRINTF("Error: Could not format the tx hash!\n");
+            return false;
+        }
+#ifdef SCREEN_SIZE_WALLET
+        g_pairs[pair].item = APP_MEM_STRDUP("Transaction hash");
+#else
+        g_pairs[pair].item = APP_MEM_STRDUP("Tx hash");
+#endif
+        if ((g_pairs[pair].item == NULL) ||
+            ((g_pairs[pair].value = APP_MEM_STRDUP(tmp_buf)) == NULL)) {
+            return false;
+        }
+        index_allocated[pair] = true;
+        pair++;
+    }
 
     // Correct the pair count: empty separators are in the field table but
     // do not consume a pair slot, so nbPairs may over-estimate.
-    g_pairsList->nbPairs = pair + 1;
+    g_pairsList->nbPairs = pair;
 
     nbgl_useCaseAdvancedReview(TYPE_TRANSACTION,
                                g_pairsList,

@@ -293,7 +293,7 @@ bool max_transaction_fee_to_string(const txInt256_t *BEGasPrice,
     return raw_fee_to_string(&rawFee, displayBuffer, displayBufferSize);
 }
 
-static bool nonce_to_string(const txInt256_t *nonce, char *out, size_t out_size) {
+bool nonce_to_string(const txInt256_t *nonce, char *out, size_t out_size) {
     uint256_t nonce_uint256 = {0};
     // RLP encodes a zero value as an empty field; treat it as 0
     if ((nonce->length > 0) && !convertUint256BE(nonce->value, nonce->length, &nonce_uint256)) {

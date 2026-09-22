@@ -220,21 +220,29 @@ static bool setTagValuePairs(bool displayNetwork, bool fromPlugin) {
 
         // Display the To address
         // ----------------------
+        // A contract creation carries no destination: the zero bytes left in the buffer
+        // are not an address, so nothing is looked up against them and the row keeps the
+        // "Contract" value address_to_string() produced.
+        const bool has_destination = (tmpContent.txContent.destinationLength != 0);
+        g_pairs[nbPairs].item = "To";
 #if defined(HAVE_ADDRESS_BOOK) && defined(HAVE_ADDRESS_BOOK_LEDGER_ACCOUNT)
-        {
+        if (has_destination) {
             const s_ab_contact *to =
                 get_address_book_contact(get_tx_chain_id(), tmpContent.txContent.destination);
-            g_pairs[nbPairs].item =
-                (to && to->type == AB_CONTACT_LEDGER_ACCOUNT) ? "To (self transfer)" : "To";
+            if ((to != NULL) && (to->type == AB_CONTACT_LEDGER_ACCOUNT)) {
+                g_pairs[nbPairs].item = "To (self transfer)";
+            }
         }
-#else
-        g_pairs[nbPairs].item = "To";
 #endif  // HAVE_ADDRESS_BOOK && HAVE_ADDRESS_BOOK_LEDGER_ACCOUNT
-        if (!resolve_address_pair(&g_pairs[nbPairs],
-                                  tmpContent.txContent.destination,
-                                  strings.common.toAddress,
-                                  &extension)) {
-            return false;
+        if (has_destination) {
+            if (!resolve_address_pair(&g_pairs[nbPairs],
+                                      tmpContent.txContent.destination,
+                                      strings.common.toAddress,
+                                      &extension)) {
+                return false;
+            }
+        } else {
+            g_pairs[nbPairs].value = strings.common.toAddress;
         }
         nbPairs++;
 

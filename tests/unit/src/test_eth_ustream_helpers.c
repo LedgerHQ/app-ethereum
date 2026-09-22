@@ -862,6 +862,47 @@ void test_process_tx_oversize_to_rejected(void) {
     TEST_ASSERT_EQUAL(r, USTREAM_FAULT);
 }
 
+// A `to` shorter than an address is malformed RLP. Left accepted, the untouched tail
+// of the destination buffer would be rendered as part of a complete checksummed
+// address and matched against stored names as that padded value.
+//
+// Layout: outer list + nonce(1) + gasPrice(0x80) + startGas(0x80)
+//       + to(0x93 + 19 bytes) — list payload = 1+1+1+20 = 23 bytes.
+void test_process_tx_short_to_rejected(void) {
+    cx_sha3_t sha3;
+    txContent_t content = {0};
+    txContext_t ctx;
+    TEST_ASSERT_TRUE(init_tx(&ctx, &sha3, &content, false));
+    ctx.txType = LEGACY;
+
+    uint8_t bytes[1 + 1 + 1 + 1 + 1 + 19];  // 24 bytes total
+    bytes[0] = 0xD7;                        // list, 23-byte payload
+    bytes[1] = 0x07;                        // nonce = 7
+    bytes[2] = 0x80;                        // gasPrice = 0
+    bytes[3] = 0x80;                        // startGas = 0
+    bytes[4] = 0x93;                        // to: 19-byte string
+    memset(bytes + 5, 0xAA, 19);
+    parserStatus_e r = process_tx(&ctx, bytes, sizeof(bytes));
+    TEST_ASSERT_EQUAL(USTREAM_FAULT, r);
+}
+
+// Control: an empty `to` is a contract creation and stays valid.
+//
+// Layout: outer list + nonce(1) + gasPrice(0x80) + startGas(0x80) + to(0x80)
+//       — list payload = 4 bytes.
+void test_process_tx_empty_to_accepted(void) {
+    cx_sha3_t sha3;
+    txContent_t content = {0};
+    txContext_t ctx;
+    TEST_ASSERT_TRUE(init_tx(&ctx, &sha3, &content, false));
+    ctx.txType = LEGACY;
+
+    uint8_t bytes[] = {0xC4, 0x07, 0x80, 0x80, 0x80};
+    parserStatus_e r = process_tx(&ctx, bytes, sizeof(bytes));
+    TEST_ASSERT_NOT_EQUAL(USTREAM_FAULT, r);
+    TEST_ASSERT_EQUAL(0, content.destinationLength);
+}
+
 // Oversize value (>INT256_LENGTH=32 bytes). process_value rejects via
 // the same check_fields gate.
 //
@@ -989,6 +1030,8 @@ int main(void) {
     RUN_TEST(test_process_tx_malformed_rlp_long_prefix_rejected);
     RUN_TEST(test_process_tx_oversize_nonce_rejected);
     RUN_TEST(test_process_tx_oversize_to_rejected);
+    RUN_TEST(test_process_tx_short_to_rejected);
+    RUN_TEST(test_process_tx_empty_to_accepted);
     RUN_TEST(test_process_tx_oversize_value_rejected);
     RUN_TEST(test_process_data_store_calldata_append_failure_rejected);
     RUN_TEST(test_process_tx_partial_rlp_prefix_returns_processing);

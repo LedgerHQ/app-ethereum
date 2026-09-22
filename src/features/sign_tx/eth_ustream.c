@@ -297,6 +297,14 @@ static bool process_to(txContext_t *context) {
     if (check_fields(context, "RLP_TO", ADDRESS_LENGTH) == false) {
         return false;
     }
+    // RLP encodes `to` as either an empty field (contract creation) or a full address.
+    // A shorter one leaves the tail of the destination buffer untouched, and every
+    // consumer reads the whole buffer: it would be displayed as a complete
+    // EIP-55-checksummed address and matched against stored names as that padded value.
+    if ((context->currentFieldLength != 0) && (context->currentFieldLength != ADDRESS_LENGTH)) {
+        PRINTF("Invalid length for RLP_TO\n");
+        return false;
+    }
 
     if (context->currentFieldPos < context->currentFieldLength) {
         uint32_t copySize =

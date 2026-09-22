@@ -40,6 +40,11 @@
 // copy_transaction_parameters() has already staged the values promised by the Exchange app
 // in there before app_init() runs.
 void reset_app_context_ex(bool scrub_strings) {
+    // Every reset reachable during a swap session is an error path: main.c's error
+    // branch, report_finalize_error() and the plugin UI failure. None of them may leave
+    // the session alive with its guards cleared, so the session ends here instead.
+    swap_abort_session();
+
     // Same reasoning for a reset happening once the swap flow is under way:
     // finalize_parsing_helper() still has to compare those staged values against the
     // parsed transaction. Read the flag before it is cleared further down.

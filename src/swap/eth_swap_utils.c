@@ -347,6 +347,17 @@ bool swap_check_value(const char *formatted_value,
  * @param fee Fee to verify
  * @return true if fee matches, false otherwise (exits app on failure)
  */
+void swap_abort_session(void) {
+    if (!G_called_from_swap) {
+        return;
+    }
+    PRINTF("Error inside a swap session: ending it\n");
+    G_swap_response_ready = true;
+    send_swap_error_simple(APDU_RESPONSE_MODE_CHECK_FAILED,
+                           SWAP_EC_ERROR_GENERIC,
+                           APP_CODE_DEFAULT);
+}
+
 bool swap_check_fee(const char *fee) {
     if (fee == NULL) {
         return false;

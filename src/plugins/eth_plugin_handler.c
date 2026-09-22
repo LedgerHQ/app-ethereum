@@ -120,9 +120,14 @@ static void eth_plugin_perform_init_default(uint8_t *contract_address,
     // Validate that contractAddress/methodSelector are still the active half of the
     // union — if PLUGIN_CTX_PLUGIN is set, INIT_CONTRACT was already called and
     // the union now holds plugin data, not the original address/selector.
+    // A registration that does not match the transaction is refused, not signed around:
+    // ETH_PLUGIN_RESULT_ERROR makes eth_plugin_call() skip the plugin and
+    // custom_processor() abort the parsing, so the host gets a status word instead of
+    // losing the connection.
     if (dataContext.tokenContext.plugin_ctx_mode == PLUGIN_CTX_PLUGIN) {
         PRINTF("Error: plugin context already active, double INIT_CONTRACT detected\n");
-        app_exit();
+        dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_ERROR;
+        return;
     }
 
     // check if the registered external plugin matches the TX contract address / selector
@@ -133,14 +138,16 @@ static void eth_plugin_perform_init_default(uint8_t *contract_address,
         PRINTF("Expected contract: %.*H\n",
                ADDRESS_LENGTH,
                dataContext.tokenContext.contractAddress);
-        app_exit();
+        dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_ERROR;
+        return;
     }
     if (memcmp(init->selector,
                dataContext.tokenContext.methodSelector,
                sizeof(dataContext.tokenContext.methodSelector)) != 0) {
         PRINTF("Got selector: %.*H\n", SELECTOR_SIZE, init->selector);
         PRINTF("Expected selector: %.*H\n", SELECTOR_SIZE, dataContext.tokenContext.methodSelector);
-        app_exit();
+        dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_ERROR;
+        return;
     }
     PRINTF("Plugin will be used\n");
     dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;

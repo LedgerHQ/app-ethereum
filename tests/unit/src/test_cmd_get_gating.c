@@ -487,6 +487,31 @@ void test_set_warning_happy_path_bumps_counter(void) {
     TEST_ASSERT_NOT_NULL(warning.prelude);
 }
 
+void test_clear_gating_drops_the_prelude(void) {
+    // The prelude strings point into the GATING block and NBGL re-reads them at
+    // every page build, so freeing the block must take warning.prelude with it.
+    prime_tx_descriptor();
+    TEST_ASSERT_TRUE(set_gating_warning());
+    TEST_ASSERT_NOT_NULL(warning.prelude);
+    clear_gating();
+    TEST_ASSERT_NULL(warning.prelude);
+}
+
+void test_second_descriptor_drops_the_previous_prelude(void) {
+    // A new payload frees the block the live prelude points into before parsing
+    // into a fresh one; the old pointers must not survive that free.
+    uint8_t tlv[500];
+    s_opts opts = default_tx_opts();
+    size_t len = build_tlv(tlv, sizeof(tlv), opts);
+
+    prime_tx_descriptor();
+    TEST_ASSERT_TRUE(set_gating_warning());
+    TEST_ASSERT_NOT_NULL(warning.prelude);
+
+    TEST_ASSERT_TRUE(send_descriptor(tlv, len));
+    TEST_ASSERT_NULL(warning.prelude);
+}
+
 void test_set_warning_type_mismatch_returns_false(void) {
     prime_tx_descriptor();
     appState = APP_STATE_SIGNING_EIP712;  // descriptor.type = TX
@@ -647,6 +672,8 @@ int main(void) {
     RUN_TEST(test_clear_gating_wipes_descriptor);
     RUN_TEST(test_set_warning_no_descriptor_returns_true);
     RUN_TEST(test_set_warning_happy_path_bumps_counter);
+    RUN_TEST(test_clear_gating_drops_the_prelude);
+    RUN_TEST(test_second_descriptor_drops_the_previous_prelude);
     RUN_TEST(test_set_warning_type_mismatch_returns_false);
     RUN_TEST(test_set_warning_chain_id_mismatch_returns_false);
     RUN_TEST(test_set_warning_address_mismatch_returns_false);

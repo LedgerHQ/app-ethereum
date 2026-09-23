@@ -70,3 +70,28 @@ def test_gating_eip712(scenario_navigator: NavigateWithScenario) -> None:
     # Ensure the wallet address is initialized
     set_wallet_addr(scenario_navigator.backend)
     sign_eip712(scenario_navigator, json_file, False, False, descriptor)
+
+
+def test_gating_blind_signing_reject(scenario_navigator: NavigateWithScenario) -> None:
+    """Declining a gated review must return an error and credit no consent.
+
+    Not compared against snapshots: the rejecting tap answers the APDU, and ragger
+    surfaces that error from inside wait_for_screen_change(), racing the status screen
+    the same tap draws.
+    """
+    descriptor = Gating(
+        TxType.TRANSACTION,
+        bytes.fromhex("6b175474e89094c44da98b954eedeac495271d0f"),
+        "To scan for threats and verify this transaction before signing, use Ledger Multisig.",
+        "ledger.com/ledger-multisig",
+        1,
+    )
+    blind_sign(
+        scenario_navigator.navigator,
+        scenario_navigator,
+        scenario_navigator.test_name,
+        True,
+        0.0,
+        gating_params=descriptor,
+        do_comparison=False,
+    )

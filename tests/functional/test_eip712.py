@@ -1298,3 +1298,62 @@ def test_eip712_batch(scenario_navigator: NavigateWithScenario):
     }
 
     eip712_new_common(scenario_navigator, data, filters, scenario_navigator.test_name)
+
+
+def test_eip712_v0_reject(scenario_navigator: NavigateWithScenario):
+    """Declining the blind typed-message review must return an error, not a signature.
+
+    Not compared against snapshots: the rejecting tap answers the APDU, and ragger
+    surfaces that error from inside wait_for_screen_change(), racing the status screen
+    the same tap draws.
+    """
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    settings_toggle(
+        scenario_navigator.backend.device,
+        scenario_navigator.navigator,
+        [SettingID.BLIND_SIGNING],
+    )
+    with open(input_files()[0], encoding="utf-8") as file:
+        data = json.load(file)
+    smsg = encode_typed_data(full_message=data)
+
+    with pytest.raises(ExceptionRAPDU) as err:
+        with app_client.eip712_sign_legacy(BIP32_PATH, smsg.header, smsg.body):
+            scenario_navigator.review_reject_with_warning(do_comparison=False)
+    assert err.value.status == StatusWord.SWO_CONDITIONS_NOT_SATISFIED
+
+
+def test_eip712_new_reject(scenario_navigator: NavigateWithScenario):
+    """Declining a clear-signed typed message must return an error, not a signature."""
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    data = {
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "verifyingContract", "type": "address"},
+                {"name": "chainId", "type": "uint256"},
+            ],
+            "Message": [{"name": "text", "type": "string"}],
+        },
+        "primaryType": "Message",
+        "domain": {
+            "name": "test",
+            "version": "1",
+            "verifyingContract": "0x0000000000000000000000000000000000000000",
+            "chainId": 1,
+        },
+        "message": {"text": "This is a test"},
+    }
+    filters = {
+        "name": "Reject test",
+        "fields": {"text": {"type": "raw", "name": "Text"}},
+    }
+
+    InputData.process_data(app_client, data, filters)
+    with pytest.raises(ExceptionRAPDU) as err:
+        with app_client.eip712_sign_new(BIP32_PATH):
+            scenario_navigator.review_reject(do_comparison=False)
+    assert err.value.status == StatusWord.SWO_CONDITIONS_NOT_SATISFIED

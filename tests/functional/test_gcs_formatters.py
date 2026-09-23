@@ -20,6 +20,7 @@ from client.gcs import (
     ParamRaw,
     ParamTokenAmount,
     ParamTrustedName,
+    PathArray,
     TrustedNameValueType,
     TxInfo,
     TypeFamily,
@@ -32,7 +33,7 @@ from client.trusted_name import TrustedName, TrustedNameSource, TrustedNameType
 from client.utils import get_selector_from_data
 from constants import ABIS_FOLDER
 from dynamic_networks_cfg import get_network_config
-from fields_utils import get_all_paths
+from fields_utils import get_all_paths, get_path
 from ragger.error import ExceptionRAPDU
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 from web3 import Web3
@@ -393,6 +394,67 @@ def test_gcs_group_sequential(scenario_navigator: NavigateWithScenario):
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
+
+
+def test_gcs_array_bound_past_declared_size(scenario_navigator: NavigateWithScenario):
+    """An array bound past the length the calldata declares must be refused.
+
+    The descriptor authenticates the extraction, not the runtime array length. An
+    absolute bound beyond it would walk calldata chunks outside the array.
+    """
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    with open(f"{ABIS_FOLDER}/erc1155.json", encoding="utf-8") as file:
+        contract = Web3().eth.contract(abi=json.load(file), address=None)
+    data = contract.encode_abi(
+        "safeBatchTransferFrom",
+        [
+            bytes.fromhex("1111111111111111111111111111111111111111"),
+            bytes.fromhex("d8da6bf26964af9d7eed9e03e53415d37aa96045"),
+            [1, 2, 3],  # the calldata declares three elements
+            list(range(100, 120)),  # long enough that reading past _ids stays in calldata
+            b"",
+        ],
+    )
+    tx_params = {
+        "nonce": 10,
+        "maxFeePerGas": Web3.to_wei(50, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(5, "gwei"),
+        "gas": 80000,
+        "to": bytes.fromhex("495f947276749ce646f68ac8c248420045cb7b5e"),
+        "data": data,
+        "chainId": 1,
+    }
+
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    # Same path as the plain array field, but reaching past the declared elements
+    path = get_path(f"{ABIS_FOLDER}/erc1155.json", "safeBatchTransferFrom", "_ids")
+    path = [PathArray(weight=1, end=6) if isinstance(c, PathArray) else c for c in path]
+
+    fields = [
+        Field(
+            1,
+            "Token ID",
+            ParamRaw(1, Value(1, TypeFamily.UINT, type_size=32, data_path=DataPath(1, path))),
+        ),
+    ]
+    tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        tx_params["to"],
+        get_selector_from_data(tx_params["data"]),
+        compute_inst_hash(fields),
+        "batch transfer",
+        creator_name="OpenSea",
+    )
+    app_client.provide_transaction_info(tx_info.serialize())
+
+    with pytest.raises(ExceptionRAPDU) as e:
+        for field in fields:
+            app_client.provide_transaction_field_desc(field.serialize())
+    assert e.value.status == StatusWord.SWO_INCORRECT_DATA
 
 
 def test_gcs_group_sequential_arrays(scenario_navigator: NavigateWithScenario):

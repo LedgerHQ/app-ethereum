@@ -8,6 +8,19 @@
 
 void ui_idle(void);
 void ui_error_blind_signing(void);
+
+/**
+ * Keep the error screen the current command has just displayed.
+ *
+ * Without this the main loop returns to the home screen when it answers the host.
+ * The request applies to that one reply and is cleared once read.
+ */
+void ui_hold_error_screen(void);
+
+/**
+ * Whether the current command asked to keep its error screen, clearing the request.
+ */
+bool ui_error_screen_held(void);
 void ui_display_public_eth2(void);
 void ui_display_privacy_public_key(void);
 void ui_display_privacy_shared_secret(void);

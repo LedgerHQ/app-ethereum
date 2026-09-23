@@ -63,12 +63,7 @@
  */
 void finalize_ui_ledger_account(void) {
     ui_pairs_cleanup();
-    APP_MEM_FREE_AND_NULL((void **) &g_ctx.register_account.address_display);
-    APP_MEM_FREE_AND_NULL((void **) &g_ctx.register_account.network_display);
-    APP_MEM_FREE_AND_NULL((void **) &g_ctx.ledger_account);
-    // Leaving the short-address buffer and the detail fields behind would let the next
-    // flow read them through the union as an Identity pair's icon/extension pointers.
-    explicit_bzero(&g_ab_ctx, sizeof(g_ab_ctx));
+    address_book_review_cleanup();
     ui_idle();
 }
 
@@ -125,6 +120,7 @@ bool handle_check_register_ledger_account(ledger_account_t *params) {
         return false;
     }
     memmove(g_ctx.ledger_account, params, sizeof(ledger_account_t));
+    address_book_review_set_flow(AB_FLOW_LEDGER_ACCOUNT);
     return true;
 }
 
@@ -233,8 +229,9 @@ bool handle_check_edit_ledger_account(edit_ledger_account_t *params) {
                                     NULL,
                                     CX_SHA512) != CX_OK) {
         PRINTF("Key derivation failed\n");
-        APP_MEM_FREE_AND_NULL((void **) &g_ctx.register_account.address_display);
-        APP_MEM_FREE_AND_NULL((void **) &g_ctx.ledger_account);
+        // handle_check_register_ledger_account() took ownership; release it here since
+        // no review will run.
+        address_book_review_cleanup();
         return false;
     }
     getEthAddressFromRawKey(raw_pubkey, params->address);

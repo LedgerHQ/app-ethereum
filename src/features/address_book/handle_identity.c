@@ -56,10 +56,7 @@
  * @brief Handle called to finalize the UI flow for registering an Identity
  */
 void finalize_ui_register_identity(void) {
-    APP_MEM_FREE_AND_NULL((void **) &g_ctx.register_identity.identifier_display);
-    APP_MEM_FREE_AND_NULL((void **) &g_ctx.register_identity.network_display);
-    APP_MEM_FREE_AND_NULL((void **) &g_ctx.register_identity.identity);
-    explicit_bzero(&g_ab_ctx, sizeof(g_ab_ctx));
+    address_book_review_cleanup();
     ui_idle();
 }
 
@@ -111,6 +108,7 @@ bool handle_check_register_identity(identity_t *params) {
         return false;
     }
     memmove(g_ctx.register_identity.identity, params, sizeof(identity_t));
+    address_book_review_set_flow(AB_FLOW_REGISTER_IDENTITY);
     return true;
 }
 
@@ -197,7 +195,7 @@ nbgl_contentTagValue_t *get_register_identity_tagValue(uint8_t pairIndex) {
  * @brief Finalize the UI flow for editing a contact name.
  */
 void finalize_ui_edit_contact_name(void) {
-    explicit_bzero(&g_ab_ctx, sizeof(g_ab_ctx));
+    address_book_review_cleanup();
     ui_idle();
 }
 
@@ -205,7 +203,7 @@ void finalize_ui_edit_contact_name(void) {
  * @brief Finalize the UI flow for editing a scope name.
  */
 void finalize_ui_edit_scope(void) {
-    explicit_bzero(&g_ab_ctx, sizeof(g_ab_ctx));
+    address_book_review_cleanup();
     ui_idle();
 }
 
@@ -218,11 +216,7 @@ void finalize_ui_edit_scope(void) {
  * @brief Handle called to finalize the UI flow for editing an Identity.
  */
 void finalize_ui_edit_identifier(void) {
-    APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.contact_name);
-    APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.scope);
-    APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.old_identifier);
-    APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.new_identifier);
-    explicit_bzero(&g_ab_ctx, sizeof(g_ab_ctx));
+    address_book_review_cleanup();
     ui_idle();
 }
 
@@ -317,6 +311,7 @@ bool handle_check_edit_identifier(const edit_identifier_t *params) {
         APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.new_identifier);
         return false;
     }
+    address_book_review_set_flow(AB_FLOW_EDIT_IDENTIFIER);
     return true;
 }
 

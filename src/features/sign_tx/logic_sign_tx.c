@@ -111,8 +111,7 @@ customStatus_e custom_processor(txContext_t *context) {
                 if (!N_storage.dataAllowed) {
                     PRINTF("Data field forbidden\n");
                     ui_error_blind_signing();
-                    // An error screen is already displayed; only reset the state
-                    // so the main loop's error handling does not overwrite it
+                    ui_hold_error_screen();
                     appState = APP_STATE_IDLE;
                     return CUSTOM_FAULT;
                 }

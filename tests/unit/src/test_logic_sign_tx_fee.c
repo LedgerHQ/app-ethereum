@@ -162,6 +162,8 @@ void ui_confirm_selector(void) {
 }
 void ui_error_blind_signing(void) {
 }
+void ui_hold_error_screen(void) {
+}
 
 // =============================================================================
 // Helper — fill txInt256_t from a uint64

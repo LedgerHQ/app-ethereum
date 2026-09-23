@@ -26,6 +26,7 @@
 
 #ifdef HAVE_ADDRESS_BOOK
 #include "handle_contacts.h"
+#include "address_book_ctx.h"
 #endif
 
 #ifdef HAVE_ETH2
@@ -85,6 +86,11 @@ void reset_app_context_ex(bool scrub_strings) {
     clear_tx_simulation();
 #endif
     ui_all_cleanup();
+#ifdef HAVE_ADDRESS_BOOK
+    // A review the SDK displayed on our behalf may have been cut short by an error,
+    // leaving its buffers allocated and g_ab_ctx holding stale pointers.
+    address_book_review_cleanup();
+#endif
     proxy_cleanup();
     clear_gating();
     if (scrub_strings) {

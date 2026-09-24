@@ -575,10 +575,9 @@ def init_signature_context(sig_ctx, types, domain, filters):
         caddr = caddr[2:]
     sig_ctx["caddr"] = bytearray.fromhex(caddr)
     chainid = domain["chainId"]
-    sig_ctx["chainid"] = bytearray()
-    for i in range(8):
-        sig_ctx["chainid"].append(chainid & (0xFF << (i * 8)))
-    sig_ctx["chainid"].reverse()
+    # 8-byte big-endian, as expected by the app in the filtering signature payload.
+    # Masking without shifting broke every chain id above 255 (e.g. Base 8453, Arbitrum 42161).
+    sig_ctx["chainid"] = bytearray(chainid.to_bytes(8, "big"))
 
     # Order type fields
     for type_name in types.keys():

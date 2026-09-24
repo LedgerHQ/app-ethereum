@@ -162,7 +162,7 @@ _Output data:_
 
 #### Description
 
-This command signs an Ethereum message following the [personal_sign specification](https://github.com/ethereum/go-ethereum/pull/2940) after having the user validate the SHA-256 hash of the message being signed.
+This command signs an Ethereum message following the [personal_sign specification](https://github.com/ethereum/go-ethereum/pull/2940) after having the user validate the Keccak-256 hash of the message being signed.
 
 This command has been supported since firmware version 1.0.8.
 

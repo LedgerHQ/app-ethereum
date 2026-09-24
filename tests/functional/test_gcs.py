@@ -14,6 +14,7 @@ from client.gcs import (
     DataPath,
     DatetimeType,
     Field,
+    MapRef,
     ParamAmount,
     ParamCalldata,
     ParamDatetime,
@@ -28,7 +29,9 @@ from client.gcs import (
     TypeFamily,
     Value,
 )
+from client.map_entry import MapEntry
 from client.proxy_info import ProxyInfo
+from client.settings import SettingID, settings_toggle
 from client.status_word import StatusWord
 from client.trusted_name import TrustedName, TrustedNameSource, TrustedNameType
 from client.tx_simu import TxSimu
@@ -37,6 +40,7 @@ from constants import ABIS_FOLDER
 from dynamic_networks_cfg import get_network_config
 from fields_utils import get_all_paths, get_all_tuple_array_paths, get_all_tuple_paths
 from ragger.error import ExceptionRAPDU
+from ragger.navigator import Navigator
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 from web3 import Web3
 
@@ -1674,6 +1678,139 @@ def test_gcs_nested_no_param(scenario_navigator: NavigateWithScenario):
         scenario_navigator.review_approve()
 
 
+def test_gcs_nested_map_entry_wrong_contract(scenario_navigator: NavigateWithScenario):
+    """A MAP_ENTRY signed for the root contract must not resolve inside a nested call.
+
+    Map entries are signed per contract. Resolving them against the root transaction
+    destination would let metadata authenticated for the outer contract label values of
+    an inner call to a different one.
+    """
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    with open(f"{ABIS_FOLDER}/erc20.json", encoding="utf-8") as f:
+        sub_contract = Web3().eth.contract(  # type: ignore[call-overload]  # web3 stubs reject raw-bytes addresses reused as contract_addr
+            abi=json.load(f),
+            address=bytes.fromhex("c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"),
+        )
+    recipient = bytes.fromhex("d8dA6BF26964aF9D7eEd9e03E53415D37aA96045")
+    amount = 1000
+    sub_data = sub_contract.encode_abi("transfer", [recipient, amount])
+
+    with open(f"{ABIS_FOLDER}/safe_1.4.1.abi.json", encoding="utf-8") as f:
+        contract = Web3().eth.contract(  # type: ignore[call-overload]  # web3 stubs reject raw-bytes addresses reused as contract_addr
+            abi=json.load(f),
+            address=bytes.fromhex("23F8abfC2824C397cCB3DA89ae772984107dDB99"),
+        )
+    data = contract.encode_abi(
+        "execTransaction",
+        [
+            sub_contract.address,
+            Web3.to_wei(0, "ether"),
+            sub_data,
+            0,
+            0,
+            0,
+            0,
+            bytes.fromhex("0000000000000000000000000000000000000000"),
+            bytes.fromhex("0000000000000000000000000000000000000000"),
+            b"",
+        ],
+    )
+    tx_params = {
+        "nonce": 79,
+        "maxFeePerGas": Web3.to_wei(4.8, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(2, "gwei"),
+        "gas": 5118,
+        "to": contract.address,
+        "data": data,
+        "chainId": 1,
+    }
+
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/safe_1.4.1.abi.json", "execTransaction")
+    fields = [
+        Field(
+            1,
+            "data",
+            ParamCalldata(
+                1,
+                Value(1, TypeFamily.BYTES, data_path=DataPath(1, param_paths["data"])),
+                Value(1, TypeFamily.ADDRESS, data_path=DataPath(1, param_paths["to"])),
+            ),
+        ),
+    ]
+    tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        tx_params["to"],
+        get_selector_from_data(tx_params["data"]),
+        compute_inst_hash(fields),
+        "execute a Safe action",
+        creator_name="Safe",
+    )
+    app_client.provide_transaction_info(tx_info.serialize())
+
+    # The nested call labels its amount through a MAP_REF
+    sub_param_paths = get_all_paths(f"{ABIS_FOLDER}/erc20.json", "transfer")
+    sub_fields = [
+        Field(
+            1,
+            "Amount label",
+            ParamRaw(
+                1,
+                Value(
+                    1,
+                    TypeFamily.STRING,
+                    map_ref=MapRef(
+                        version=1,
+                        id=0,
+                        key=Value(
+                            1,
+                            TypeFamily.UINT,
+                            type_size=32,
+                            data_path=DataPath(1, sub_param_paths["_value"]),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    ]
+    sub_tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        sub_contract.address,
+        get_selector_from_data(sub_data),
+        compute_inst_hash(sub_fields),
+        "transfer",
+        creator_name="WETH",
+    )
+
+    # Signed for the ROOT contract, while the field that consumes it lives in the
+    # nested call to another contract: it must not be found.
+    app_client.provide_map_entry(
+        MapEntry(
+            version=1,
+            chain_id=tx_params["chainId"],
+            contract_addr=tx_params["to"],
+            selector=get_selector_from_data(sub_data),
+            id=0,
+            key=amount.to_bytes(32, "big"),
+            value=b"One thousand",
+        ).serialize()
+    )
+
+    for field in fields:
+        app_client.provide_transaction_field_desc(field.serialize())
+        if field.param.type == ParamType.CALLDATA:
+            app_client.provide_transaction_info(sub_tx_info.serialize())
+            with pytest.raises(ExceptionRAPDU) as e:
+                for sub_field in sub_fields:
+                    app_client.provide_transaction_field_desc(sub_field.serialize())
+            assert e.value.status == StatusWord.SWO_INCORRECT_DATA
+
+
 def test_gcs_no_param(scenario_navigator: NavigateWithScenario):
     backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
@@ -2931,3 +3068,23 @@ def test_gcs_enum_noncanonical_value(scenario_navigator: NavigateWithScenario):
         for field in fields:
             app_client.provide_transaction_field_desc(field.serialize())
     assert err.value.status == StatusWord.SWO_INCORRECT_DATA
+
+
+def test_gcs_nonce_and_hash_displayed(navigator: Navigator, scenario_navigator: NavigateWithScenario, test_name: str):
+    """The nonce and the transaction hash are covered by the signature, so the GCS
+    review must show them when their settings are on, like the standard review does."""
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+    device = backend.device
+
+    settings_toggle(device, navigator, [SettingID.NONCE, SettingID.DISPLAY_HASH])
+
+    tx_params, fields = _poap_tx_and_fields(0)
+
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    _provide_gcs_metadata(app_client, tx_params, fields)
+
+    with app_client.sign(mode=SignMode.START_FLOW):
+        scenario_navigator.review_approve(test_name=test_name)

@@ -39,6 +39,7 @@ static bool g_check_signature_with_pubkey_ret = true;
 static const void *g_get_current_calldata_ret = NULL;
 static const void *g_get_current_tx_info_ret = NULL;
 static const void *g_get_implem_contract_ret = NULL;
+static const void *g_get_current_tx_to_ret = NULL;
 
 // =============================================================================
 // Mock functions
@@ -70,6 +71,10 @@ bool check_signature_with_pubkey(uint8_t *buffer,
 
 const s_tx_info *get_current_tx_info(void) {
     return (const s_tx_info *) g_get_current_tx_info_ret;
+}
+
+const uint8_t *get_current_tx_to(void) {
+    return (const uint8_t *) g_get_current_tx_to_ret;
 }
 
 s_calldata *get_current_calldata(void) {
@@ -238,13 +243,14 @@ void test_map_entry_lookup_found(void) {
     static const s_tx_info tx_info = {.chain_id = 1};
     static const uint8_t selector[] = {SELECTOR_BYTES};
 
-    // Set txContext.content->destination to the registered contract address
+    // The lookup matches the callee of the current (possibly nested) context
     memcpy(g_tx_content.destination, s_contract_addr, ADDRESS_LENGTH);
     txContext.content = &g_tx_content;
 
     register_entry();
 
     g_get_current_tx_info_ret = &tx_info;
+    g_get_current_tx_to_ret = s_contract_addr;
     g_get_current_calldata_ret = NULL;
     g_calldata_get_selector_ret = selector;
     g_get_implem_contract_ret = NULL;  // no proxy

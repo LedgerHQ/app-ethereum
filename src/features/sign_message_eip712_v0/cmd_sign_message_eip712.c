@@ -13,6 +13,7 @@ uint16_t handle_sign_eip712_message_v0(uint8_t p1, const uint8_t *workBuffer, ui
 
     if (!N_storage.dataAllowed) {
         ui_error_blind_signing();
+        ui_hold_error_screen();
         return SWO_INCORRECT_DATA;
     }
     workBuffer = parseBip32(workBuffer, &dataLength, &tmpCtx.messageSigningContext.bip32);

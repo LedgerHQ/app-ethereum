@@ -370,7 +370,7 @@ static bool handle_tlv_payload(const buffer_t *buf) {
     s_gating_ctx ctx = {0};
 
     // Free any previously allocated GATING to avoid memory leak
-    APP_MEM_FREE(GATING);
+    clear_gating();
 
     if (APP_MEM_CALLOC((void **) &GATING, sizeof(gating_t)) == false) {
         PRINTF("Error: Not enough memory!\n");
@@ -382,12 +382,12 @@ static bool handle_tlv_payload(const buffer_t *buf) {
     cx_sha256_init(&ctx.hash_ctx);
 
     if (!gating_tlv_parser(buf, &ctx, &ctx.received_tags)) {
-        APP_MEM_FREE_AND_NULL((void **) &GATING);
+        clear_gating();
         return false;
     }
 
     if (!verify_fields(&ctx) || !verify_signature(&ctx)) {
-        APP_MEM_FREE_AND_NULL((void **) &GATING);
+        clear_gating();
         return false;
     }
 
@@ -436,8 +436,14 @@ uint16_t handle_gating(uint8_t p1, uint8_t p2, const uint8_t *data, uint8_t leng
 /**
  * @brief Clear the Gating parameters.
  *
+ * prelude_details and generic_details hold pointers into the GATING block, and
+ * warning.prelude hands them to NBGL, which re-reads them at every page build.
+ * They are dropped together with the block they point into.
  */
 void clear_gating(void) {
+    warning.prelude = NULL;
+    explicit_bzero(&prelude_details, sizeof(prelude_details));
+    explicit_bzero(&generic_details, sizeof(generic_details));
     APP_MEM_FREE_AND_NULL((void **) &GATING);
 }
 

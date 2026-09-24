@@ -63,9 +63,7 @@
  */
 void finalize_ui_ledger_account(void) {
     ui_pairs_cleanup();
-    APP_MEM_FREE_AND_NULL((void **) &g_ctx.register_account.address_display);
-    APP_MEM_FREE_AND_NULL((void **) &g_ctx.register_account.network_display);
-    APP_MEM_FREE_AND_NULL((void **) &g_ctx.ledger_account);
+    address_book_review_cleanup();
     ui_idle();
 }
 
@@ -122,6 +120,7 @@ bool handle_check_register_ledger_account(ledger_account_t *params) {
         return false;
     }
     memmove(g_ctx.ledger_account, params, sizeof(ledger_account_t));
+    address_book_review_set_flow(AB_FLOW_LEDGER_ACCOUNT);
     return true;
 }
 
@@ -166,6 +165,10 @@ void display_register_ledger_account_review(nbgl_choiceCallback_t choice_callbac
 #else
     if (ui_pairs_init(2) == false) {
         PRINTF("Failed to initialize pairs\n");
+        // The SDK already answered this command with SWO_NO_RESPONSE.
+        // Returning without displaying anything would leave the host with no reply at all,
+        // so take the rejection path: it sends the error and runs the finalizer.
+        choice_callback(false);
         return;
     }
     g_pairs[0].item = "Account name";
@@ -226,8 +229,9 @@ bool handle_check_edit_ledger_account(edit_ledger_account_t *params) {
                                     NULL,
                                     CX_SHA512) != CX_OK) {
         PRINTF("Key derivation failed\n");
-        APP_MEM_FREE_AND_NULL((void **) &g_ctx.register_account.address_display);
-        APP_MEM_FREE_AND_NULL((void **) &g_ctx.ledger_account);
+        // handle_check_register_ledger_account() took ownership; release it here since
+        // no review will run.
+        address_book_review_cleanup();
         return false;
     }
     getEthAddressFromRawKey(raw_pubkey, params->address);

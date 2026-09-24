@@ -80,8 +80,11 @@ uint16_t handle_perform_privacy_operation(uint8_t p1,
     getEthAddressStringFromRawKey((const uint8_t *) &tmpCtx.publicKeyContext.publicKey.W,
                                   tmpCtx.publicKeyContext.address,
                                   g_chain_config->chain_id);
+    // Both sub-commands operate on the same X25519 key: the exchange has to use the
+    // scalar behind the public key P2_PUBLIC_ENCRYPTION_KEY publishes, otherwise its
+    // result is not the shared secret for that key and no peer can reproduce it.
+    decode_scalar(privateKeyData, privateKeyDataSwapped);
     if (p2 == P2_PUBLIC_ENCRYPTION_KEY) {
-        decode_scalar(privateKeyData, privateKeyDataSwapped);
         CX_CHECK(cx_ecfp_init_private_key_no_throw(CX_CURVE_Curve25519,
                                                    privateKeyDataSwapped,
                                                    INT256_LENGTH,
@@ -92,7 +95,16 @@ uint16_t handle_perform_privacy_operation(uint8_t p1,
                                                 1));
     } else {
         memmove(tmpCtx.publicKeyContext.publicKey.W + 1, dataBuffer, INT256_LENGTH);
-        CX_CHECK(cx_x25519(tmpCtx.publicKeyContext.publicKey.W + 1, privateKeyData, INT256_LENGTH));
+        CX_CHECK(cx_x25519(tmpCtx.publicKeyContext.publicKey.W + 1,
+                           privateKeyDataSwapped,
+                           INT256_LENGTH));
+        // RFC 7748 6.1: X25519 returns all zeroes if and only if the peer u-coordinate
+        // is a point of small order, and that result MUST be rejected.
+        if (is_zeroes_buffer(tmpCtx.publicKeyContext.publicKey.W + 1, INT256_LENGTH)) {
+            PRINTF("Error: X25519 peer point is of small order!\n");
+            error = SWO_INCORRECT_DATA;
+            goto end;
+        }
     }
 
     if (p1 == P1_NON_CONFIRM) {
@@ -108,10 +120,14 @@ uint16_t handle_perform_privacy_operation(uint8_t p1,
     for (uint8_t i = 0; i < INT256_LENGTH; i++) {
         privateKeyData[i] = tmpCtx.publicKeyContext.publicKey.W[INT256_LENGTH - i];
     }
-    format_hex(privateKeyData,
-               INT256_LENGTH,
-               strings.common.fullAmount,
-               sizeof(strings.common.fullAmount) - 1);
+    if (format_hex(privateKeyData,
+                   INT256_LENGTH,
+                   strings.common.fullAmount,
+                   sizeof(strings.common.fullAmount) - 1) < 0) {
+        PRINTF("Error: could not format the privacy operation result!\n");
+        error = SWO_INCORRECT_DATA;
+        goto end;
+    }
 
     appState = APP_STATE_PERFORMING_PRIVACY_OP;
     if (p2 == P2_PUBLIC_ENCRYPTION_KEY) {

@@ -1,9 +1,31 @@
+#include <ctype.h>
+#include <string.h>
 #include "address_name_lookup.h"
 #ifdef HAVE_ADDRESS_BOOK
 #include "handle_contacts.h"
 #endif
 #include "common_utils.h"
 #include "os_print.h"
+#include "os_utils.h"  // is_printable_string
+
+bool is_displayable_name(const char *name) {
+    if (name == NULL) {
+        return false;
+    }
+    size_t len = strlen(name);
+    // A name the screen cannot render occupies the row without saying anything.
+    if (!is_printable_string(name, len)) {
+        return false;
+    }
+    // The printable range includes the space, so a name that is empty or made only of
+    // blanks still has to be refused: it renders as a gap where the address should be.
+    for (size_t i = 0; i < len; i++) {
+        if (!isspace((unsigned char) name[i])) {
+            return true;
+        }
+    }
+    return false;
+}
 
 /**
  * @brief Resolve a human-readable display name for an Ethereum address.
@@ -50,7 +72,9 @@ bool get_address_display_name(const uint8_t *addr,
     for (uint8_t i = 0; i < type_count; i++) {
         if (types[i] == TN_TYPE_ACCOUNT) {
             const s_ab_contact *ab_contact = get_address_book_contact(chain_id, addr);
-            if (ab_contact != NULL) {
+            // A nameless contact has nothing to put in place of the address, so it is
+            // not a match: leave `found` clear and let the fallbacks below run.
+            if ((ab_contact != NULL) && is_displayable_name(ab_contact->contact_name)) {
                 strlcpy(buf, ab_contact->contact_name, buf_size);
                 extra_data = ab_contact;
                 name_source = ADDR_NAME_FROM_ADDRESS_BOOK;
@@ -62,7 +86,7 @@ bool get_address_display_name(const uint8_t *addr,
 #endif  // HAVE_ADDRESS_BOOK
     // Fall back to a Trusted Name if no Address Book contact matched.
     if (!found) {
-        if (tname != NULL) {
+        if ((tname != NULL) && is_displayable_name(tname->name)) {
             strlcpy(buf, tname->name, buf_size);
             extra_data = tname;
             name_source = ADDR_NAME_FROM_TRUSTED_NAME;

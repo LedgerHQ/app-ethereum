@@ -152,6 +152,10 @@ static int g_ui_error_whitelist_calls = 0;
 void ui_error_no_7702(void) {
     g_ui_error_no_7702_calls++;
 }
+static int g_hold_error_screen_calls = 0;
+void ui_hold_error_screen(void) {
+    g_hold_error_screen_calls++;
+}
 void ui_error_no_7702_whitelist(void) {
     g_ui_error_whitelist_calls++;
 }
@@ -184,6 +188,7 @@ static void reset(void) {
     g_ui_revocation_calls = 0;
     g_ui_error_no_7702_calls = 0;
     g_ui_error_whitelist_calls = 0;
+    g_hold_error_screen_calls = 0;
     memset(&tmpCtx, 0, sizeof(tmpCtx));
     memset(&strings, 0, sizeof(strings));
     g_n_storage_writable.eip7702_enable = true;
@@ -296,6 +301,8 @@ void test_eip7702_disabled_rejected(void) {
     TEST_ASSERT_EQUAL(sw, SWO_COMMAND_NOT_ALLOWED);
     TEST_ASSERT_EQUAL(g_ui_error_no_7702_calls, 1);
     TEST_ASSERT_EQUAL(g_ui_auth_calls, 0);
+    // The refusal screen must outlive the error the main loop answers with.
+    TEST_ASSERT_EQUAL(g_hold_error_screen_calls, 1);
 }
 
 void test_delegate_not_in_whitelist_rejected(void) {

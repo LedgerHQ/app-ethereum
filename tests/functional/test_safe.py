@@ -1,4 +1,5 @@
 import client.response_parser as ResponseParser
+import pytest
 from client.client import EthAppClient
 from client.safe import AccountType, LesMultiSigRole, SafeAccount
 from client.status_word import StatusWord
@@ -83,3 +84,39 @@ def test_signer_descriptor_error(scenario_navigator: NavigateWithScenario) -> No
         assert e.status == StatusWord.SWO_COMMAND_NOT_ALLOWED
     else:
         raise AssertionError("Expected COMMAND_NOT_ALLOWED not raised")
+
+
+def test_safe_descriptor_reject(scenario_navigator: NavigateWithScenario) -> None:
+    """Declining the Safe Account review must return an error, not success.
+
+    Not compared against snapshots: the rejecting tap answers the APDU, and ragger
+    surfaces that error from inside wait_for_screen_change(), racing the status screen
+    the same tap draws.
+    """
+    app_client = EthAppClient(scenario_navigator.backend)
+    challenge = common(app_client)
+
+    signer = SafeAccount(
+        AccountType.SIGNER,
+        challenge,
+        [bytes.fromhex("1" * 40), bytes.fromhex("2" * 40)],
+    )
+    safe = SafeAccount(
+        AccountType.SAFE,
+        challenge,
+        [bytes.fromhex("5a321744667052affa8386ed49e00ef223cbffc3")],
+        LesMultiSigRole.PROPOSER,
+        2,
+        len(signer.address),
+    )
+
+    with app_client.provide_safe_account(safe):
+        # Safe descriptor doesn't start any navigation
+        pass
+    response = app_client.response()
+    assert response.status == StatusWord.SWO_SUCCESS, f"Unexpected status: {response.status}"
+
+    with pytest.raises(ExceptionRAPDU) as err:
+        with app_client.provide_safe_account(signer):
+            scenario_navigator.address_review_reject(do_comparison=False)
+    assert err.value.status == StatusWord.SWO_CONDITIONS_NOT_SATISFIED

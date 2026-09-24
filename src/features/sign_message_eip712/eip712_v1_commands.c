@@ -282,7 +282,7 @@ uint16_t handle_eip712_v1_sign(const uint8_t *cdata, uint8_t length) {
         PRINTF("value_hash_pass failed\n");
     } else if ((filt_mode == EIP712_FILTERING_FULL) &&
                (!ui_712_message_info_received() || (ui_712_remaining_filters() != 0) ||
-                ui_712_filtering_broken())) {
+                ui_712_filtering_broken() || ui_712_pending_amount_joins())) {
         PRINTF("%d EIP712 filters are missing\n", ui_712_remaining_filters());
         sw = SWO_REFERENCED_DATA_NOT_FOUND;
     } else if (!all_calldata_info_processed() || (get_tx_ctx_count() != 0)) {

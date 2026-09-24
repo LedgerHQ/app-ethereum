@@ -650,13 +650,38 @@ void test_v1_happy_path_registers(void) {
                        .sig_len = 16};
     size_t len = build_v2_account_tlv(tlv, sizeof(tlv), opts);
     TEST_ASSERT_TRUE(run_parse_and_verify(tlv, len));
-    // V1 lookup needs TN_TYPE_ACCOUNT in types[] and an Ethereum-compatible chain.
+    // V1 lookup needs TN_TYPE_ACCOUNT in types[], TN_SOURCE_ENS in sources[] and an
+    // Ethereum-compatible chain.
     e_name_type types[] = {TN_TYPE_ACCOUNT};
-    e_name_source sources[] = {TN_SOURCE_ENS};  // unused in V1 matching
+    e_name_source sources[] = {TN_SOURCE_ENS};
     uint64_t chain = 1;
     const s_trusted_name *tn = get_trusted_name(1, types, 1, sources, &chain, g_addr);
     TEST_ASSERT_NOT_NULL(tn);
     TEST_ASSERT_EQUAL(tn->struct_version, 0x01);
+    // A v1 descriptor carries no NAME_TYPE / NAME_SOURCE tag; the stored provenance
+    // must be the ENS account it actually is, not the zero-initialised TN_SOURCE_LAB
+    // that would claim the local address book.
+    TEST_ASSERT_EQUAL(TN_TYPE_ACCOUNT, tn->name_type);
+    TEST_ASSERT_EQUAL(TN_SOURCE_ENS, tn->name_source);
+}
+
+void test_v1_lookup_without_ens_source_returns_null(void) {
+    uint8_t tlv[400];
+    s_tlv_opts opts = {.struct_type = 0x03,
+                       .struct_version = 0x01,
+                       .signer_algo = 0x0001,
+                       .name = "erin.eth",
+                       .include_coin_type = true,
+                       .coin_type = 60,
+                       .sig_len = 16};
+    size_t len = build_v2_account_tlv(tlv, sizeof(tlv), opts);
+    TEST_ASSERT_TRUE(run_parse_and_verify(tlv, len));
+    // A caller that demands MAB — the one source whose owner is bound to the device —
+    // must not be satisfied by a domain-service ENS entry.
+    e_name_type types[] = {TN_TYPE_ACCOUNT};
+    e_name_source sources[] = {TN_SOURCE_MAB};
+    uint64_t chain = 1;
+    TEST_ASSERT_NULL(get_trusted_name(1, types, 1, sources, &chain, g_addr));
 }
 
 void test_v1_lookup_non_eth_compatible_chain_returns_null(void) {
@@ -689,9 +714,10 @@ void test_v1_lookup_without_account_type_returns_null(void) {
                        .sig_len = 16};
     size_t len = build_v2_account_tlv(tlv, sizeof(tlv), opts);
     TEST_ASSERT_TRUE(run_parse_and_verify(tlv, len));
-    // Caller asks for TOKEN — V1 only matches ACCOUNT.
+    // Caller asks for TOKEN — V1 only matches ACCOUNT. The source is the one V1
+    // accepts, so this isolates the type check.
     e_name_type types[] = {TN_TYPE_TOKEN};
-    e_name_source sources[] = {TN_SOURCE_CAL};
+    e_name_source sources[] = {TN_SOURCE_ENS};
     uint64_t chain = 1;
     TEST_ASSERT_NULL(get_trusted_name(1, types, 1, sources, &chain, g_addr));
 }
@@ -943,6 +969,7 @@ int main(void) {
     RUN_TEST(test_lookup_contract_consults_proxy_resolver);
     RUN_TEST(test_v1_happy_path_registers);
     RUN_TEST(test_v1_lookup_non_eth_compatible_chain_returns_null);
+    RUN_TEST(test_v1_lookup_without_ens_source_returns_null);
     RUN_TEST(test_v1_lookup_without_account_type_returns_null);
     RUN_TEST(test_v1_coin_type_mismatch_rejected);
     RUN_TEST(test_unsupported_name_type_nft_collection_rejected);

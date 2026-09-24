@@ -268,7 +268,7 @@ void test_withdrawal_index_above_max_rejected(void) {
     TEST_ASSERT_EQUAL(ctx.valid, 0);
 }
 
-void test_finalize_valid_returns_two_screens(void) {
+void test_finalize_valid_returns_three_screens(void) {
     // A finalize-validated context needs the full calldata word bitmap and a
     // deposit_data_root committing to the stored fields. Everything here is
     // zeroed, and this target's cx_hash_sha256 mock fills the digest with the
@@ -280,7 +280,8 @@ void test_finalize_valid_returns_two_screens(void) {
     msg.txContent = &tx;
     eth2_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
     TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
-    TEST_ASSERT_EQUAL(msg.numScreens, 2);
+    // Amount, Validator, and the withdrawal key index the credentials were checked against
+    TEST_ASSERT_EQUAL(msg.numScreens, 3);
     TEST_ASSERT_EQUAL(msg.uiType, ETH_UI_TYPE_GENERIC);
 }
 
@@ -492,7 +493,7 @@ int main(void) {
     RUN_TEST(test_withdrawal_credentials_match_keeps_valid);
     RUN_TEST(test_withdrawal_credentials_mismatch_flips_valid);
     RUN_TEST(test_withdrawal_index_above_max_rejected);
-    RUN_TEST(test_finalize_valid_returns_two_screens);
+    RUN_TEST(test_finalize_valid_returns_three_screens);
     RUN_TEST(test_finalize_invalid_returns_error);
     RUN_TEST(test_finalize_non_mainnet_rejected);
     RUN_TEST(test_query_contract_id_eth2_deposit);

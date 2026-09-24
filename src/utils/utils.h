@@ -10,7 +10,7 @@ void buf_shrink_expand(const uint8_t *src, size_t src_size, uint8_t *dst, size_t
 void str_cpy_explicit_trunc(const char *src, size_t src_size, char *dst, size_t dst_size);
 void reverseString(char *const str, uint32_t length);
 bool format_signed_int_be(const uint8_t *data,
-                          uint8_t length,
+                          size_t length,
                           uint8_t type_size,
                           char *buf,
                           size_t buf_size);

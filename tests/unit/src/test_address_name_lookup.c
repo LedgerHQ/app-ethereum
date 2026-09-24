@@ -127,6 +127,140 @@ void test_tn_only(void) {
 }
 
 /**
+ * Address Book contact whose name is empty → not a match, the checksummed address is used
+ */
+void test_ab_empty_name_falls_back_to_raw(void) {
+    static s_ab_contact ab = {.contact_name = ""};
+    char buf[64];
+    e_addr_name_source name_source;
+    const void *extra_data = &ab;
+
+    get_trusted_name_IgnoreAndReturn(NULL);
+    get_address_book_contact_IgnoreAndReturn(&ab);
+
+    TEST_ASSERT_TRUE(get_address_display_name(TEST_ADDR,
+                                              CHAIN_ID,
+                                              1,
+                                              TYPES_ACCOUNT,
+                                              1,
+                                              SOURCES_ENS,
+                                              buf,
+                                              sizeof(buf),
+                                              &name_source,
+                                              &extra_data));
+
+    TEST_ASSERT_EQUAL(ADDR_NAME_FROM_RAW, name_source);
+    TEST_ASSERT_EQUAL_STRING("0x11223344556677889900aabbccddeEfF11223344", buf);
+    TEST_ASSERT_NULL(extra_data);
+}
+
+/**
+ * Space-only contact name → not a match either: it renders as a blank row that
+ * occupies space, which reads as "an address was shown" rather than "the field is missing"
+ */
+void test_ab_blank_name_falls_back_to_raw(void) {
+    static s_ab_contact ab = {.contact_name = "   "};
+    char buf[64];
+    e_addr_name_source name_source;
+
+    get_trusted_name_IgnoreAndReturn(NULL);
+    get_address_book_contact_IgnoreAndReturn(&ab);
+
+    TEST_ASSERT_TRUE(get_address_display_name(TEST_ADDR,
+                                              CHAIN_ID,
+                                              1,
+                                              TYPES_ACCOUNT,
+                                              1,
+                                              SOURCES_ENS,
+                                              buf,
+                                              sizeof(buf),
+                                              &name_source,
+                                              NULL));
+
+    TEST_ASSERT_EQUAL(ADDR_NAME_FROM_RAW, name_source);
+    TEST_ASSERT_EQUAL_STRING("0x11223344556677889900aabbccddeEfF11223344", buf);
+}
+
+/**
+ * Empty contact name but a usable Trusted Name → the Trusted Name is used, not a blank
+ */
+void test_ab_empty_name_falls_back_to_trusted_name(void) {
+    static s_ab_contact ab = {.contact_name = ""};
+    static s_trusted_name tn = {.name = "alice.eth"};
+    char buf[64];
+    e_addr_name_source name_source;
+
+    get_trusted_name_IgnoreAndReturn(&tn);
+    get_address_book_contact_IgnoreAndReturn(&ab);
+
+    TEST_ASSERT_TRUE(get_address_display_name(TEST_ADDR,
+                                              CHAIN_ID,
+                                              1,
+                                              TYPES_ACCOUNT,
+                                              1,
+                                              SOURCES_ENS,
+                                              buf,
+                                              sizeof(buf),
+                                              &name_source,
+                                              NULL));
+
+    TEST_ASSERT_EQUAL(ADDR_NAME_FROM_TRUSTED_NAME, name_source);
+    TEST_ASSERT_EQUAL_STRING("alice.eth", buf);
+}
+
+/**
+ * Trusted Name whose name is empty → not a match, the checksummed address is used
+ */
+void test_tn_empty_name_falls_back_to_raw(void) {
+    static s_trusted_name tn = {.name = ""};
+    char buf[64];
+    e_addr_name_source name_source;
+
+    get_trusted_name_IgnoreAndReturn(&tn);
+    get_address_book_contact_IgnoreAndReturn(NULL);
+
+    TEST_ASSERT_TRUE(get_address_display_name(TEST_ADDR,
+                                              CHAIN_ID,
+                                              1,
+                                              TYPES_ACCOUNT,
+                                              1,
+                                              SOURCES_ENS,
+                                              buf,
+                                              sizeof(buf),
+                                              &name_source,
+                                              NULL));
+
+    TEST_ASSERT_EQUAL(ADDR_NAME_FROM_RAW, name_source);
+    TEST_ASSERT_EQUAL_STRING("0x11223344556677889900aabbccddeEfF11223344", buf);
+}
+
+/**
+ * Contact name carrying a character the screen cannot render → not a match
+ */
+void test_ab_unprintable_name_falls_back_to_raw(void) {
+    static s_ab_contact ab = {.contact_name = "Ali\tce"};
+    char buf[64];
+    e_addr_name_source name_source;
+
+    get_trusted_name_IgnoreAndReturn(NULL);
+    get_address_book_contact_IgnoreAndReturn(&ab);
+
+    TEST_ASSERT_TRUE(get_address_display_name(TEST_ADDR,
+                                              CHAIN_ID,
+                                              1,
+                                              TYPES_ACCOUNT,
+                                              1,
+                                              SOURCES_ENS,
+                                              buf,
+                                              sizeof(buf),
+                                              &name_source,
+                                              NULL));
+
+    TEST_ASSERT_EQUAL(ADDR_NAME_FROM_RAW, name_source);
+    TEST_ASSERT_EQUAL_STRING("0x11223344556677889900aabbccddeEfF11223344", buf);
+}
+
+/**
  * Neither Address Book nor Trusted Name found → ADDR_NAME_FROM_RAW, formatted address in buf
  */
 void test_raw_fallback(void) {
@@ -259,6 +393,11 @@ int main(void) {
     RUN_TEST(test_conflict_ab_and_tn);
     RUN_TEST(test_ab_only);
     RUN_TEST(test_tn_only);
+    RUN_TEST(test_ab_empty_name_falls_back_to_raw);
+    RUN_TEST(test_ab_blank_name_falls_back_to_raw);
+    RUN_TEST(test_ab_empty_name_falls_back_to_trusted_name);
+    RUN_TEST(test_tn_empty_name_falls_back_to_raw);
+    RUN_TEST(test_ab_unprintable_name_falls_back_to_raw);
     RUN_TEST(test_raw_fallback);
     RUN_TEST(test_non_account_type_skips_ab);
     RUN_TEST(test_wrong_chain_id);

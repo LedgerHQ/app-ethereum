@@ -30,3 +30,5 @@ bool max_transaction_fee_to_string(const txInt256_t *BEGasPrice,
                                    const txInt256_t *BEGasLimit,
                                    char *displayBuffer,
                                    uint32_t displayBufferSize);
+
+bool nonce_to_string(const txInt256_t *nonce, char *out, size_t out_size);

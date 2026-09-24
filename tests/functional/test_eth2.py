@@ -4,6 +4,7 @@ from pathlib import Path
 
 import client.response_parser as ResponseParser
 from client.client import EthAppClient
+from client.status_word import StatusWord
 from client.utils import recover_transaction
 from constants import ABIS_FOLDER
 from ragger.navigator.navigation_scenario import NavigateWithScenario
@@ -82,3 +83,44 @@ def test_eth2_deposit(scenario_navigator: NavigateWithScenario) -> None:
 
     addr = recover_transaction(tx_params, vrs)
     assert addr == device_addr
+
+
+def test_eth2_deposit_non_default_withdrawal_index(scenario_navigator: NavigateWithScenario) -> None:
+    """The withdrawal key index used to validate the credentials must be on screen.
+
+    That index comes from INS_SET_ETH2_WITHDRAWAL_INDEX, an unauthenticated command with
+    no user confirmation, and it decides which withdrawal key can later claim the stake.
+    A host pre-seeding it must not be able to do so invisibly.
+    """
+    app_client = EthAppClient(scenario_navigator.backend)
+    index = 5
+
+    response = app_client.set_eth2_withdrawal_index(index)
+    assert response.status == StatusWord.SWO_SUCCESS
+
+    # Credentials for the withdrawal key the device will derive at that index
+    with app_client.get_eth2_public_addr(display=False, bip32_path=f"m/12381/3600/{index}/0"):
+        pass
+    credentials = bytearray(hashlib.sha256(app_client.response().data).digest())
+    credentials[0] = BLS_WITHDRAWAL_PREFIX
+
+    with Path(f"{ABIS_FOLDER}/beacon_deposit.abi.json").open(encoding="utf-8") as f:
+        contract = Web3().eth.contract(  # type: ignore[call-overload]  # web3 stubs reject raw-bytes addresses reused as contract_addr
+            abi=json.load(f),
+            address=bytes.fromhex("23F8abfC2824C397cCB3DA89ae772984107dDB99"),
+        )
+    pubkey = bytes.fromhex("a377e13e3b146513c0c9dd5231ced86a21597e5b83fa83ac8c27c4620f180c151d3e709107d73257fa451c58149e4065")
+    signature = bytes.fromhex("00") * 96
+    root = deposit_data_root(pubkey, bytes(credentials), Web3.to_wei(1.23035, "ether") // WEI_PER_GWEI, signature)
+    tx_params = {
+        "chainId": 1,
+        "nonce": 27,
+        "maxPriorityFeePerGas": Web3.to_wei(0.292821186, "gwei"),
+        "maxFeePerGas": Web3.to_wei(0.292821186, "gwei"),
+        "gas": 74265,
+        "to": BEACON_DEPOSIT_CONTRACT_ADDR,
+        "value": Web3.to_wei(1.23035, "ether"),
+        "data": contract.encode_abi("deposit", [pubkey, credentials, signature, root]),
+    }
+    with app_client.sign(BIP32_PATH, tx_params):
+        scenario_navigator.review_approve()

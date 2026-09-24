@@ -384,7 +384,11 @@ void eth2_plugin_call(eth_plugin_msg_t message, void *parameters) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
                 break;
             }
-            msg->numScreens = 2;
+            // Amount, Validator, and the withdrawal key index the credentials were
+            // validated against: that index comes from a separate unauthenticated
+            // command, so it must not decide where the stake can be withdrawn
+            // without the user seeing it.
+            msg->numScreens = 3;
             msg->uiType = ETH_UI_TYPE_GENERIC;
             msg->result = ETH_PLUGIN_RESULT_OK;
         } break;
@@ -427,6 +431,17 @@ void eth2_plugin_call(eth_plugin_msg_t message, void *parameters) {
                                                msg->msgLength - 2,
                                                context->deposit_address,
                                                sizeof(context->deposit_address)) != 0) {
+                        msg->result = ETH_PLUGIN_RESULT_ERROR;
+                        break;
+                    }
+                    msg->result = ETH_PLUGIN_RESULT_OK;
+                } break;
+                case 2: {  // Withdrawal key index screen
+                    strlcpy(msg->title, "Withdrawal key", msg->titleLength);
+                    if (snprintf(msg->msg,
+                                 msg->msgLength,
+                                 "Index %u",
+                                 (unsigned int) eth2WithdrawalIndex) <= 0) {
                         msg->result = ETH_PLUGIN_RESULT_ERROR;
                         break;
                     }

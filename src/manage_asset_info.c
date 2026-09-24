@@ -1,6 +1,7 @@
 #include "manage_asset_info.h"
 #include "token_info.h"
 #include "nft_info.h"
+#include "shared_context.h"  // pluginType
 
 _Static_assert((offsetof(s_token_info, address) == offsetof(tokenDefinition_t, address)) &&
                    (sizeof(((s_token_info *) NULL)->address) ==
@@ -24,10 +25,34 @@ _Static_assert((offsetof(s_nft_info, collection_name) == offsetof(nftInfo_t, col
                     sizeof(((nftInfo_t *) NULL)->collectionName)),
                "Layout mismatch: s_nft_info.collection_name vs nftInfo_t.collectionName");
 
-// try to get an asset like how it used to work
-// but since they are not in the same array anymore, we prioritize tokens over NFTs
+// Resolve an address to the metadata the active plugin will actually read.
+//
+// extraInfo_t is an untagged union, so a plugin dereferences the arm its own
+// semantics expect with nothing to check it against: handing an NFT record to a
+// token plugin makes it read the collection name as a ticker and that name's
+// 52nd byte as a decimals count, and vice versa. Restrict the lookup to the type
+// the plugin expects wherever that type is known.
+//
+// An external plugin declares no asset type, so it keeps the historical
+// token-then-NFT order; binding that case too would require the union to carry
+// its own kind, which is a plugin SDK change.
 extraInfo_t *get_matching_asset_info(const uint64_t *chain_id, const uint8_t *address) {
     extraInfo_t *asset;
+
+    switch (pluginType) {
+        case PLUGIN_TYPE_ERC721:
+        case PLUGIN_TYPE_ERC1155:
+            return (extraInfo_t *) get_matching_nft_info(chain_id, address);
+        case PLUGIN_TYPE_OLD_INTERNAL:
+            return (extraInfo_t *) get_matching_token_info(chain_id, address);
+        case PLUGIN_TYPE_NONE:
+        case PLUGIN_TYPE_EXTERNAL:
+        case PLUGIN_TYPE_SWAP_WITH_CALLDATA:
+            break;
+        default:
+            PRINTF("Unexpected plugin type %d for an asset lookup\n", pluginType);
+            return NULL;
+    }
 
     if ((asset = (extraInfo_t *) get_matching_token_info(chain_id, address)) == NULL) {
         asset = (extraInfo_t *) get_matching_nft_info(chain_id, address);

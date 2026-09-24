@@ -26,6 +26,7 @@
 
 #ifdef HAVE_ADDRESS_BOOK
 #include "handle_contacts.h"
+#include "address_book_ctx.h"
 #endif
 
 #ifdef HAVE_ETH2
@@ -40,6 +41,11 @@
 // copy_transaction_parameters() has already staged the values promised by the Exchange app
 // in there before app_init() runs.
 void reset_app_context_ex(bool scrub_strings) {
+    // Every reset reachable during a swap session is an error path: main.c's error
+    // branch, report_finalize_error() and the plugin UI failure. None of them may leave
+    // the session alive with its guards cleared, so the session ends here instead.
+    swap_abort_session();
+
     // Same reasoning for a reset happening once the swap flow is under way:
     // finalize_parsing_helper() still has to compare those staged values against the
     // parsed transaction. Read the flag before it is cleared further down.
@@ -80,6 +86,11 @@ void reset_app_context_ex(bool scrub_strings) {
     clear_tx_simulation();
 #endif
     ui_all_cleanup();
+#ifdef HAVE_ADDRESS_BOOK
+    // A review the SDK displayed on our behalf may have been cut short by an error,
+    // leaving its buffers allocated and g_ab_ctx holding stale pointers.
+    address_book_review_cleanup();
+#endif
     proxy_cleanup();
     clear_gating();
     if (scrub_strings) {

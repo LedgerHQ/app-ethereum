@@ -70,6 +70,7 @@ def common_blind_sign(
     tx_params: dict,
     reject: bool = False,
     nb_warnings: int = 1,
+    do_comparison: bool = True,
 ) -> None:
     try:
         with app_client.sign(BIP32_PATH, tx_params):
@@ -80,7 +81,11 @@ def common_blind_sign(
                 test_name += "_nonzero"
 
             if reject:
-                scenario_navigator.review_reject_with_warning(test_name=test_name, nb_warnings=nb_warnings)
+                scenario_navigator.review_reject_with_warning(
+                    test_name=test_name,
+                    nb_warnings=nb_warnings,
+                    do_comparison=do_comparison,
+                )
             else:
                 scenario_navigator.review_approve_with_warning(test_name=test_name, nb_warnings=nb_warnings)
 
@@ -105,6 +110,7 @@ def test_blind_sign(
     simu_params: TxSimu | None = None,
     gating_params: Gating | None = None,
     with_proxy: bool = False,
+    do_comparison: bool = True,
 ):
     if reject and amount > 0.0:
         pytest.skip()
@@ -143,7 +149,15 @@ def test_blind_sign(
         response = app_client.provide_tx_simulation(simu_params)
         assert response.status == StatusWord.SWO_SUCCESS
 
-    common_blind_sign(scenario_navigator, test_name, app_client, tx_params, reject, nb_warnings)
+    common_blind_sign(
+        scenario_navigator,
+        test_name,
+        app_client,
+        tx_params,
+        reject,
+        nb_warnings,
+        do_comparison,
+    )
 
 
 # Token approval, would require providing the token metadata from the CAL

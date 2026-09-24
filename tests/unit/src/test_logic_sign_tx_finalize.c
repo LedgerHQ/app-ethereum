@@ -121,6 +121,11 @@ void ui_error_blind_signing(void) {
     g_blind_signing_calls++;
 }
 
+static int g_hold_error_screen_calls = 0;
+void ui_hold_error_screen(void) {
+    g_hold_error_screen_calls++;
+}
+
 static int g_ux_approve_calls = 0;
 static bool g_ux_approve_last_from_plugin = false;
 uint16_t ux_approve_tx(bool fromPlugin) {
@@ -756,10 +761,13 @@ void test_cp_plugin_success_selector_copy_failure_returns_fault(void) {
 void test_cp_first_chunk_data_forbidden_returns_fault(void) {
     cp_setup_first_chunk();
     g_n_storage_writable.dataAllowed = false;  // blind signing forbidden
+    g_hold_error_screen_calls = 0;
     // pluginStatus stays UNAVAILABLE -> we fall through to the no-plugin
     // path which checks dataAllowed.
     TEST_ASSERT_EQUAL(custom_processor(&s_ctx), CUSTOM_FAULT);
     TEST_ASSERT_EQUAL(g_blind_signing_calls, 1);
+    // The refusal screen must outlive the error the main loop answers with.
+    TEST_ASSERT_EQUAL(g_hold_error_screen_calls, 1);
 }
 
 void test_cp_first_chunk_store_calldata_returns_not_handled(void) {

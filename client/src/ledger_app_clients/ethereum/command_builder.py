@@ -13,6 +13,7 @@ from .eip712.struct import EIP712FieldType, EIP712TypeDescOffset
 class InsType(IntEnum):
     GET_PUBLIC_ADDR = 0x02
     GET_ETH2_PUBLIC_ADDR = 0x0E
+    SET_ETH2_WITHDRAWAL_INDEX = 0x10
     SIGN = 0x04
     GET_APP_CONFIGURATION = 0x06
     PERSONAL_SIGN = 0x08
@@ -93,7 +94,6 @@ class CommandBuilder:
         cdata: bytes | bytearray = b"",
         cla: int | None = None,
     ) -> bytes:
-
         header = bytearray()
         header.append(self._CLA if cla is None else cla)
         header.append(ins)
@@ -304,11 +304,11 @@ class CommandBuilder:
         data = bytearray()
         data += struct.pack(">B", index)
         data += struct.pack(">B", value_filter_flag)
-        data += struct.pack(">?", callee_filter_flag)
+        data += struct.pack(">B", callee_filter_flag)
         data += struct.pack(">B", chain_id_filter_flag)
         data += struct.pack(">B", selector_filter_flag)
         data += struct.pack(">B", amount_filter_flag)
-        data += struct.pack(">?", spender_filter_flag)
+        data += struct.pack(">B", spender_filter_flag)
         data.append(len(sig))
         data += sig
         return self._serialize(
@@ -450,6 +450,14 @@ class CommandBuilder:
     def get_eth2_public_addr(self, display: bool, bip32_path: str) -> bytes:
         payload = pack_derivation_path(bip32_path)
         return self._serialize(InsType.GET_ETH2_PUBLIC_ADDR, int(display), 0x00, payload)
+
+    def set_eth2_withdrawal_index(self, index: int) -> bytes:
+        return self._serialize(
+            InsType.SET_ETH2_WITHDRAWAL_INDEX,
+            0x00,
+            0x00,
+            struct.pack(">I", index),
+        )
 
     def perform_privacy_operation(self, display: bool, bip32_path: str, pubkey: bytes) -> bytes:
         payload = pack_derivation_path(bip32_path)

@@ -7,6 +7,7 @@
 #include "ui_icons.h"
 #include "plugins.h"
 #include "trusted_name.h"
+#include "address_name_lookup.h"
 #ifdef HAVE_ADDRESS_BOOK
 #include "handle_contacts.h"
 #ifdef HAVE_ADDRESS_BOOK_LEDGER_ACCOUNT
@@ -101,7 +102,7 @@ static bool resolve_address_pair(nbgl_contentTagValue_t *pair,
 
 #ifdef HAVE_ADDRESS_BOOK
     const s_ab_contact *ab_contact = get_address_book_contact(chain_id, raw_addr);
-    if (ab_contact != NULL) {
+    if ((ab_contact != NULL) && is_displayable_name(ab_contact->contact_name)) {
         display_name = ab_contact->contact_name;
         alias_type = ADDRESS_BOOK_ALIAS;
         alias_sub_name = (ab_contact->scope[0] != '\0') ? ab_contact->scope : NULL;
@@ -120,7 +121,9 @@ static bool resolve_address_pair(nbgl_contentTagValue_t *pair,
         }
     }
 
-    if (display_name != NULL) {
+    // An empty name would render a blank row in place of the destination; the
+    // checksummed address is the fallback that always says something true.
+    if (is_displayable_name(display_name)) {
         if (APP_MEM_CALLOC((void **) ext_out, sizeof(**ext_out)) == false) {
             return false;
         }
@@ -217,21 +220,29 @@ static bool setTagValuePairs(bool displayNetwork, bool fromPlugin) {
 
         // Display the To address
         // ----------------------
+        // A contract creation carries no destination: the zero bytes left in the buffer
+        // are not an address, so nothing is looked up against them and the row keeps the
+        // "Contract" value address_to_string() produced.
+        const bool has_destination = (tmpContent.txContent.destinationLength != 0);
+        g_pairs[nbPairs].item = "To";
 #if defined(HAVE_ADDRESS_BOOK) && defined(HAVE_ADDRESS_BOOK_LEDGER_ACCOUNT)
-        {
+        if (has_destination) {
             const s_ab_contact *to =
                 get_address_book_contact(get_tx_chain_id(), tmpContent.txContent.destination);
-            g_pairs[nbPairs].item =
-                (to && to->type == AB_CONTACT_LEDGER_ACCOUNT) ? "To (self transfer)" : "To";
+            if ((to != NULL) && (to->type == AB_CONTACT_LEDGER_ACCOUNT)) {
+                g_pairs[nbPairs].item = "To (self transfer)";
+            }
         }
-#else
-        g_pairs[nbPairs].item = "To";
 #endif  // HAVE_ADDRESS_BOOK && HAVE_ADDRESS_BOOK_LEDGER_ACCOUNT
-        if (!resolve_address_pair(&g_pairs[nbPairs],
-                                  tmpContent.txContent.destination,
-                                  strings.common.toAddress,
-                                  &extension)) {
-            return false;
+        if (has_destination) {
+            if (!resolve_address_pair(&g_pairs[nbPairs],
+                                      tmpContent.txContent.destination,
+                                      strings.common.toAddress,
+                                      &extension)) {
+                return false;
+            }
+        } else {
+            g_pairs[nbPairs].value = strings.common.toAddress;
         }
         nbPairs++;
 

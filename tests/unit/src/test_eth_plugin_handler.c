@@ -10,8 +10,8 @@
  *     eth_plugin_perform_init_default(): when the plugin was
  *     registered for a different chain than the tx is signing on,
  *     pluginStatus must be set to UNAVAILABLE without falling
- *     through to the contract / selector memcmp paths (which would
- *     app_exit() on mismatch).
+ *     through to the contract / selector memcmp paths (which refuse
+ *     the transaction on mismatch).
  *
  * The full dispatcher in eth_plugin_call is out of scope here — it
  * pulls every internal plugin and the SDK exception macros (BEGIN_TRY
@@ -358,17 +358,18 @@ void test_perform_init_default_unresolved_tx_chain_defers_check(void) {
 }
 
 // =============================================================================
-// Defensive panics — these guards (app_exit) are the *last line of
-// defense* against state-corruption between the plugin INIT phase
-// and the eth_plugin_perform_init() entry. A silent fall-through
+// Registration / transaction disagreement — these guards are the *last
+// line of defense* against state-corruption between the plugin INIT
+// phase and the eth_plugin_perform_init() entry. A silent fall-through
 // would let a registered plugin be invoked on the wrong contract /
-// selector, so we must confirm they actually trip.
+// selector, so we confirm they refuse the transaction: ERROR status,
+// no plugin dispatched, and the app still alive to answer the host.
 // =============================================================================
 
-void test_perform_init_default_contract_mismatch_panics(void) {
+void test_perform_init_default_contract_mismatch_refuses(void) {
     // Plugin was registered for contract A; the transaction now claims
-    // contract B. app_exit must fire — anything else lets the wrong
-    // plugin take over the rendering.
+    // contract B. The parsing must be refused — anything else lets the
+    // wrong plugin take over the rendering.
     dataContext.tokenContext.pluginChainId = PLUGIN_CHAIN_ID_ANY;
     pluginType = PLUGIN_TYPE_EXTERNAL;
     const uint8_t registered_contract[ADDRESS_LENGTH] = {[0] = 0xAA};
@@ -379,15 +380,14 @@ void test_perform_init_default_contract_mismatch_panics(void) {
     uint8_t observed_contract[ADDRESS_LENGTH] = {[0] = 0xBB};  // different
     ethPluginInitContract_t init = {.selector = selector};
 
-    g_expect_app_exit = true;
-    if (setjmp(g_app_exit_jmp) == 0) {
-        eth_plugin_perform_init(observed_contract, &init);
-        TEST_FAIL_MESSAGE("app_exit not reached on contract mismatch");
-    }
-    TEST_ASSERT_TRUE(g_app_exit_reached);
+    eth_plugin_result_t r = eth_plugin_perform_init(observed_contract, &init);
+
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, r);
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, dataContext.tokenContext.pluginStatus);
+    TEST_ASSERT_EQUAL(0, g_erc20_calls);
 }
 
-void test_perform_init_default_selector_mismatch_panics(void) {
+void test_perform_init_default_selector_mismatch_refuses(void) {
     // Plugin registered for selector X; tx now uses selector Y.
     dataContext.tokenContext.pluginChainId = PLUGIN_CHAIN_ID_ANY;
     pluginType = PLUGIN_TYPE_EXTERNAL;
@@ -399,12 +399,29 @@ void test_perform_init_default_selector_mismatch_panics(void) {
     const uint8_t observed_selector[CALLDATA_SELECTOR_SIZE] = {0xCA, 0xFE, 0xBA, 0xBE};
     ethPluginInitContract_t init = {.selector = observed_selector};
 
-    g_expect_app_exit = true;
-    if (setjmp(g_app_exit_jmp) == 0) {
-        eth_plugin_perform_init(contract, &init);
-        TEST_FAIL_MESSAGE("app_exit not reached on selector mismatch");
-    }
-    TEST_ASSERT_TRUE(g_app_exit_reached);
+    eth_plugin_result_t r = eth_plugin_perform_init(contract, &init);
+
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, r);
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, dataContext.tokenContext.pluginStatus);
+    TEST_ASSERT_EQUAL(0, g_erc20_calls);
+}
+
+void test_perform_init_default_double_init_refuses(void) {
+    // PLUGIN_CTX_PLUGIN means INIT_CONTRACT already ran and the union no
+    // longer holds the address/selector the memcmp below would read.
+    dataContext.tokenContext.pluginChainId = PLUGIN_CHAIN_ID_ANY;
+    dataContext.tokenContext.plugin_ctx_mode = PLUGIN_CTX_PLUGIN;
+    pluginType = PLUGIN_TYPE_EXTERNAL;
+
+    uint8_t contract[ADDRESS_LENGTH] = {[0] = 0xAA};
+    const uint8_t selector[CALLDATA_SELECTOR_SIZE] = {0xDE, 0xAD, 0xBE, 0xEF};
+    ethPluginInitContract_t init = {.selector = selector};
+
+    eth_plugin_result_t r = eth_plugin_perform_init(contract, &init);
+
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, r);
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, dataContext.tokenContext.pluginStatus);
+    TEST_ASSERT_EQUAL(0, g_erc20_calls);
 }
 
 void test_perform_init_unsupported_plugin_type_panics(void) {
@@ -717,8 +734,9 @@ int main(void) {
     RUN_TEST(test_perform_init_default_chain_mismatch_marks_unavailable);
     RUN_TEST(test_perform_init_default_chain_any_bypasses_check);
     RUN_TEST(test_perform_init_default_unresolved_tx_chain_defers_check);
-    RUN_TEST(test_perform_init_default_contract_mismatch_panics);
-    RUN_TEST(test_perform_init_default_selector_mismatch_panics);
+    RUN_TEST(test_perform_init_default_contract_mismatch_refuses);
+    RUN_TEST(test_perform_init_default_selector_mismatch_refuses);
+    RUN_TEST(test_perform_init_default_double_init_refuses);
     RUN_TEST(test_perform_init_unsupported_plugin_type_panics);
     RUN_TEST(test_call_cached_unavailable_short_circuits);
     RUN_TEST(test_call_unknown_method_returns_unavailable);

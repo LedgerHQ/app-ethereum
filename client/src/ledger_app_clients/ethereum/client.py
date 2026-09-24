@@ -241,13 +241,22 @@ class EthAppClient:
     def get_eth2_public_addr(self, display: bool = True, bip32_path: str = "m/12381/3600/0/0"):
         return self._exchange_async(self._cmd_builder.get_eth2_public_addr(display, bip32_path))
 
+    def set_eth2_withdrawal_index(self, index: int) -> RAPDU:
+        return self._exchange(self._cmd_builder.set_eth2_withdrawal_index(index))
+
     def perform_privacy_operation(
         self,
         display: bool = True,
         bip32_path: str = "m/44'/60'/0'/0/0",
         pubkey: bytes = b"",
+        async_mode: bool = False,
     ):
-        return self._exchange(self._cmd_builder.perform_privacy_operation(display, bip32_path, pubkey))
+        # display=True defers the answer until the user acts, so a caller that has to
+        # drive the review needs the asynchronous exchange.
+        payload = self._cmd_builder.perform_privacy_operation(display, bip32_path, pubkey)
+        if async_mode:
+            return self._exchange_async(payload)
+        return self._exchange(payload)
 
     def provide_trusted_name(self, trusted_name: TrustedName) -> RAPDU:
         if trusted_name.tn_source == TrustedNameSource.CAL:
@@ -273,7 +282,6 @@ class EthAppClient:
         algo_id: int = 1,
         sig: bytes | None = None,
     ) -> RAPDU:
-
         if sig is None:
             # Send ledgerPKI certificate
             self.send_pki_certificate(SET_PLUGIN_PARTNER)
@@ -318,7 +326,6 @@ class EthAppClient:
         algo_id: int = 1,
         sig: bytes | None = None,
     ) -> RAPDU:
-
         if sig is None:
             # Send ledgerPKI certificate
             self.send_pki_certificate(NFT_PARTNER)
@@ -339,7 +346,6 @@ class EthAppClient:
         method_selelector: bytes,
         sig: bytes | None = None,
     ) -> RAPDU:
-
         if sig is None:
             # Send ledgerPKI certificate
             self.send_pki_certificate(CAL_COIN_META_PARTNER)
@@ -366,7 +372,6 @@ class EthAppClient:
         chain_id: int,
         sig: bytes | None = None,
     ) -> RAPDU:
-
         if sig is None:
             # Send ledgerPKI certificate
             self.send_pki_certificate(CAL_COIN_META_PARTNER)

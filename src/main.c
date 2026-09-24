@@ -152,8 +152,11 @@ void app_main(void) {
             if ((sw & 0xF000) != 0x6000) {
                 sw = SWO_NOT_SUPPORTED_ERROR_NO_INFO | (sw & 0x7FF);
             }
-            if (appState != APP_STATE_IDLE) {
-                // Dismiss any ongoing review before its UI buffers are freed
+            // Dismiss any ongoing review before its UI buffers are freed, unless the
+            // command deliberately left an error screen up. appState cannot drive this:
+            // the Address Book reviews are displayed by the SDK on the app's behalf and
+            // never set it.
+            if (ui_error_screen_held() == false) {
                 ui_idle();
             }
             reset_app_context();

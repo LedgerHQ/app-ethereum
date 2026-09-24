@@ -43,6 +43,45 @@ def test_provide_erc20_token_error(backend: BackendInterface):
     assert err.value.status == StatusWord.SWO_INCORRECT_DATA
 
 
+def test_erc20_ignores_nft_metadata(backend: BackendInterface):
+    """An ERC-20 selector on a contract that only has NFT metadata must not reuse it.
+
+    `approve(address,uint256)` has the same selector in ERC-20 and ERC-721, and the
+    ERC-20 internal plugin matches any address, so it is selected without any plugin
+    registration. `extraInfo_t` being an untagged union, an NFT record handed to it
+    would be read as a token: collection name as ticker, its 52nd byte as decimals.
+    """
+    app_client = EthAppClient(backend)
+
+    # NFT metadata only, deliberately for the address the ERC-20 flow will look up
+    response = app_client.provide_nft_metadata("Bored Ape Yacht Club", TOKEN_ADDR, TOKEN_CHAIN_ID)
+    assert response.status == StatusWord.SWO_SUCCESS
+
+    with open(f"{ABIS_FOLDER}/erc20.json", encoding="utf-8") as file:
+        contract = Web3().eth.contract(abi=json.load(file), address=None)
+    data = contract.encode_abi(
+        "approve",
+        [bytes.fromhex("d8dA6BF26964aF9D7eEd9e03E53415D37aA96045"), 0x100],
+    )
+    tx_params = {
+        "nonce": 0,
+        "maxFeePerGas": Web3.to_wei(145, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(1.5, "gwei"),
+        "gas": 21000,
+        "to": TOKEN_ADDR,
+        "value": 0,
+        "chainId": TOKEN_CHAIN_ID,
+        "data": data,
+    }
+
+    # No token metadata is known, so the plugin falls back instead of rendering the
+    # NFT record, and blind signing is disabled by default: the flow is refused.
+    with pytest.raises(ExceptionRAPDU) as err:
+        with app_client.sign(BIP32_PATH, tx_params):
+            pass
+    assert err.value.status == StatusWord.SWO_INCORRECT_DATA
+
+
 def common_transfer(
     scenario_navigator: NavigateWithScenario,
     amount: float,

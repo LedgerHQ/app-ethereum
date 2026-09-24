@@ -76,3 +76,13 @@ bool swap_check_destination(const char *destination);
 bool swap_check_amount(const char *amount);
 bool swap_check_value(const char *formatted_value, const uint8_t *raw_value, uint8_t raw_value_len);
 bool swap_check_fee(const char *fee);
+
+/**
+ * @brief End the Exchange session when an error unwinds the signing context.
+ *
+ * Every swap guard is conditioned on G_called_from_swap, which the teardown clears.
+ * Carrying on would run the rest of the session as an ordinary signing flow, with the
+ * comparisons skipped and the double-sign safeguard disarmed. Does nothing outside a
+ * swap session; never returns inside one.
+ */
+void swap_abort_session(void);

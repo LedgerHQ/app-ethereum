@@ -105,12 +105,27 @@ bool handle_param_trusted_name_struct(const buffer_t *buf, s_param_trusted_name_
 static bool check_address_constraint(const struct s_field *field,
                                      const s_parsed_value_collection *values,
                                      int value_index,
-                                     const uint8_t *addr) {
+                                     const uint8_t *addr,
+                                     bool is_interoperable) {
     uint8_t constraint[ADDRESS_LENGTH] = {0};
+    const uint8_t *raw_value = values->value[value_index].ptr;
+    uint16_t raw_length = values->value[value_index].length;
 
     for (s_field_constraint *c_node = field->constraints; c_node != NULL;
          c_node = (s_field_constraint *) c_node->node.next) {
-        if (c_node->size > values->value[value_index].length) {
+        if (is_interoperable) {
+            // The value is a complete interoperable address, so the address alone does
+            // not identify it: the same address on another chain would satisfy a
+            // constraint matched on that part only. Compare the whole value instead,
+            // which keeps the constraint an opaque byte array like every other
+            // formatter's.
+            if ((c_node->size == raw_length) &&
+                (memcmp(c_node->value, raw_value, raw_length) == 0)) {
+                return true;
+            }
+            continue;
+        }
+        if (c_node->size > raw_length) {
             PRINTF("Warning: TRUSTED_NAME ADDR constraint wrong size!\n");
             continue;
         }
@@ -254,7 +269,7 @@ bool format_param_trusted_name(const struct s_field *field) {
             case PARAM_VISIBILITY_MUST_BE:
                 // Field is not displayed but must match one of the constraint values,
                 // otherwise tx is rejected
-                ret = check_address_constraint(field, &values, i, addr);
+                ret = check_address_constraint(field, &values, i, addr, is_interoperable);
                 if (!ret) {
                     PRINTF("Error: TRUSTED_NAME does not match any MUST_BE constraint!\n");
                     // Reject the TX
@@ -263,7 +278,7 @@ bool format_param_trusted_name(const struct s_field *field) {
                 break;
             case PARAM_VISIBILITY_IF_NOT_IN:
                 // Field is displayed only if value is NOT in the constraint list
-                if (check_address_constraint(field, &values, i, addr)) {
+                if (check_address_constraint(field, &values, i, addr, is_interoperable)) {
                     PRINTF("Warning: TRUSTED_NAME does match a IF_NOT_IN constraint!\n");
                     // Skip displaying only this value, continue with remaining values
                     continue;

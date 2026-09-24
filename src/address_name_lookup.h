@@ -13,6 +13,18 @@ typedef enum {
 } e_addr_name_source;
 // clang-format on
 
+/**
+ * @brief Whether a name can stand in for an address on screen.
+ *
+ * A name that is empty, made only of blanks, or carrying characters the screen cannot
+ * render occupies the row without saying anything. Callers must then fall back to the
+ * checksummed address, the one representation that always carries the truth.
+ *
+ * @param[in] name the name to inspect, may be NULL
+ * @return whether the name is printable and has at least one non-blank character
+ */
+bool is_displayable_name(const char *name);
+
 bool get_address_display_name(const uint8_t *addr,
                               uint64_t chain_id,
                               uint8_t type_count,

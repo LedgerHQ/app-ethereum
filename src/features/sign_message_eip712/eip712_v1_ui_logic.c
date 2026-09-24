@@ -538,7 +538,7 @@ static bool ui_712_format_trusted_name(const uint8_t *data, size_t length) {
     for (uint8_t i = 0; i < ui_ctx->tn_type_count; i++) {
         if (ui_ctx->tn_types[i] == TN_TYPE_ACCOUNT) {
             const s_ab_contact *ab_contact = get_address_book_contact(domain_chain_id, data);
-            if (ab_contact != NULL) {
+            if ((ab_contact != NULL) && is_displayable_name(ab_contact->contact_name)) {
                 strlcpy(strings.tmp.tmp, ab_contact->contact_name, sizeof(strings.tmp.tmp));
                 return true;
             }
@@ -571,6 +571,9 @@ static bool ui_712_format_datetime(const uint8_t *data,
                                    size_t length,
                                    const s_struct_712_field *field_ptr) {
     time_t timestamp;
+    uint64_t value;
+
+    _Static_assert(sizeof(time_t) == sizeof(int64_t), "time_t is not 64-bit");
 
     if ((length >= field_ptr->type_size) && ismaxint((uint8_t *) data, length)) {
         snprintf(strings.tmp.tmp, sizeof(strings.tmp.tmp), "Unlimited");
@@ -590,7 +593,15 @@ static bool ui_712_format_datetime(const uint8_t *data,
         data += leading;
         length = sizeof(uint64_t);
     }
-    timestamp = u64_from_BE(data, length);
+    value = u64_from_BE(data, length);
+    // The value is rendered through time_t, which is signed: one that it cannot
+    // represent would be shown as a different (possibly negative) date than the
+    // one committed to the EIP-712 hash.
+    if (value > (uint64_t) INT64_MAX) {
+        PRINTF("Datetime value outside the representable time_t range\n");
+        return false;
+    }
+    timestamp = (time_t) value;
     return time_format_to_utc(&timestamp, strings.tmp.tmp, sizeof(strings.tmp.tmp));
 }
 
@@ -651,7 +662,7 @@ static bool handle_fallback_empty_calldata(const s_eip712_calldata_info *calldat
     {
         const s_ab_contact *ab_contact =
             get_address_book_contact(calldata_info->chain_id, calldata_info->callee);
-        if (ab_contact != NULL) {
+        if ((ab_contact != NULL) && is_displayable_name(ab_contact->contact_name)) {
             if (!ui_712_set_value(ab_contact->contact_name, strlen(ab_contact->contact_name))) {
                 return false;
             }
@@ -998,6 +1009,18 @@ void ui_712_check_field_filtering(void) {
  */
 bool ui_712_filtering_broken(void) {
     return (ui_ctx != NULL) && ui_ctx->filtering_broken;
+}
+
+/**
+ * Whether an amount join is still waiting for one of its two halves
+ *
+ * A join is removed as soon as its token/value pair has been rendered, so anything
+ * left in the list is a filtered amount that never made it to the review.
+ *
+ * @return whether at least one amount join is still pending
+ */
+bool ui_712_pending_amount_joins(void) {
+    return (ui_ctx != NULL) && (ui_ctx->amount.joins != NULL);
 }
 
 /**
@@ -1464,12 +1487,14 @@ void ui_712_set_trusted_name_requirements(uint8_t type_count,
  *
  */
 bool ui_712_push_pairs(void) {
-    uint8_t nbPairs = 0;
+    size_t nbPairs;
     uint8_t pair = 0;
     s_ui_712_pair *tmp = NULL;
     uint8_t tx_idx = 0;
 
-    // Initialize the pairs list
+    // Keep the queued-pair count at its native width: narrowing it here would
+    // wrap past the 8-bit pair counter and allocate fewer entries than the loop
+    // below writes. ui_pairs_init() rejects anything the counter cannot hold.
     nbPairs = flist_size((flist_node_t **) &ui_ctx->ui_pairs);
     if (N_storage.displayHash) {
         nbPairs += 2;
@@ -1481,6 +1506,9 @@ bool ui_712_push_pairs(void) {
     // Initialize the tag/value pairs from the chain list
     tmp = ui_ctx->ui_pairs;
     while (tmp != NULL) {
+        if (pair >= g_pairsList->nbPairs) {
+            return false;
+        }
         if (tmp->start_intent) {
             // Batch intermediate page
             tx_idx++;
@@ -1490,10 +1518,6 @@ bool ui_712_push_pairs(void) {
         }
         g_pairs[pair].item = tmp->key;
         g_pairs[pair].value = tmp->value;
-        LEDGER_ASSERT(pair < g_pairsList->nbPairs,
-                      "EIP-712 pair overflow (%d / %d)",
-                      pair,
-                      g_pairsList->nbPairs);
         pair++;
         if ((tmp->end_intent) && (txContext.batch_nb_tx > 1) && (pair < g_pairsList->nbPairs)) {
             // End of batch transaction : start next info on full page
@@ -1503,10 +1527,9 @@ bool ui_712_push_pairs(void) {
     }
 
     if (N_storage.displayHash) {
-        LEDGER_ASSERT(pair < g_pairsList->nbPairs,
-                      "EIP-712 pair overflow for Hash (%d / %d)",
-                      pair,
-                      g_pairsList->nbPairs);
+        if ((pair + 1) >= g_pairsList->nbPairs) {
+            return false;
+        }
         // Prepare the pairs list with the hashes
         eip712_format_hash(pair);
         g_pairs[pair].forcePageStart = true;

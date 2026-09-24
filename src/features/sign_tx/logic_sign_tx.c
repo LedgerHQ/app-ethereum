@@ -111,8 +111,7 @@ customStatus_e custom_processor(txContext_t *context) {
                 if (!N_storage.dataAllowed) {
                     PRINTF("Data field forbidden\n");
                     ui_error_blind_signing();
-                    // An error screen is already displayed; only reset the state
-                    // so the main loop's error handling does not overwrite it
+                    ui_hold_error_screen();
                     appState = APP_STATE_IDLE;
                     return CUSTOM_FAULT;
                 }
@@ -293,7 +292,7 @@ bool max_transaction_fee_to_string(const txInt256_t *BEGasPrice,
     return raw_fee_to_string(&rawFee, displayBuffer, displayBufferSize);
 }
 
-static bool nonce_to_string(const txInt256_t *nonce, char *out, size_t out_size) {
+bool nonce_to_string(const txInt256_t *nonce, char *out, size_t out_size) {
     uint256_t nonce_uint256 = {0};
     // RLP encodes a zero value as an empty field; treat it as 0
     if ((nonce->length > 0) && !convertUint256BE(nonce->value, nonce->length, &nonce_uint256)) {

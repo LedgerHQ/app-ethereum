@@ -89,4 +89,32 @@ typedef union {
 
 extern ab_ui_ctx_t g_ab_ctx;
 
+/** Which flow owns the buffers currently referenced by g_ab_ctx */
+typedef enum {
+    AB_FLOW_NONE,
+    AB_FLOW_REGISTER_IDENTITY,
+    AB_FLOW_EDIT_IDENTIFIER,
+#if defined(HAVE_ADDRESS_BOOK_LEDGER_ACCOUNT)
+    AB_FLOW_LEDGER_ACCOUNT,
+#endif
+} ab_flow_e;
+
+/**
+ * Record which flow owns g_ab_ctx.
+ *
+ * Set once the flow's buffers are allocated, so a cleanup reached from anywhere
+ * releases the right union member.
+ *
+ * @param[in] flow the flow taking ownership, AB_FLOW_NONE to release it
+ */
+void address_book_review_set_flow(ab_flow_e flow);
+
+/**
+ * Release the review state: free the owning flow's buffers and scrub the context.
+ *
+ * Leaving them behind would let the next flow read them through the union, as
+ * another flow's pointers. The screen is left untouched.
+ */
+void address_book_review_cleanup(void);
+
 #endif  // HAVE_ADDRESS_BOOK

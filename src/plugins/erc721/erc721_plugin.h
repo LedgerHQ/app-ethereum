@@ -21,6 +21,11 @@ typedef struct erc721_context_t {
 
     bool approved;
 
+    // Screen index of the attached-value row, 0 when there is none. Every selector
+    // has several rows before it, so index 0 is never a valid position for it: a
+    // zero-initialised context therefore means "no value row" on its own.
+    uint8_t amount_screen;
+
     uint8_t next_param;
     uint8_t selectorIndex;
 } erc721_context_t;

@@ -61,12 +61,31 @@ int bytes_to_lowercase_hex(char *out, size_t outl, const void *value, size_t len
 }
 
 bool is_printable_string(const char *str, size_t len) {
+    if (len == 0) {
+        return true;
+    }
+    if (str == NULL) {
+        return false;
+    }
     for (size_t i = 0; i < len; ++i) {
         if (str[i] < 0x20 || str[i] > 0x7E) {
             return false;
         }
     }
     return true;
+}
+
+bool is_displayable_string(const char *str, size_t len) {
+    if (!is_printable_string(str, len)) {
+        return false;
+    }
+    // Everything left is in 0x20..0x7E, so a visible character is a non-space one.
+    for (size_t i = 0; i < len; ++i) {
+        if (str[i] != ' ') {
+            return true;
+        }
+    }
+    return false;
 }
 
 __attribute__((weak)) bool is_zeroes_buffer(const void *buf, size_t n) {

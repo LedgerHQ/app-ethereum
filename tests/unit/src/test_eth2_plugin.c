@@ -65,6 +65,7 @@ typedef struct {
     uint8_t signature[BLS12381_G2_COMPRESSED_SIGNATURE_LENGTH];
     uint8_t deposit_data_root[INT256_LENGTH];
     uint16_t received_words;
+    uint32_t withdrawal_index;
 } eth2_deposit_parameters_t;
 
 // =============================================================================
@@ -256,8 +257,7 @@ void test_withdrawal_credentials_mismatch_flips_valid(void) {
 }
 
 void test_withdrawal_index_above_max_rejected(void) {
-    eth2WithdrawalIndex = 0x10001;  // > INDEX_MAX (2^16)
-    eth2_deposit_parameters_t ctx = {.valid = 1};
+    eth2_deposit_parameters_t ctx = {.valid = 1, .withdrawal_index = 0x10001};  // > INDEX_MAX
     uint8_t param[PARAMETER_LENGTH] = {0};
     ethPluginProvideParameter_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
@@ -468,6 +468,41 @@ void test_ui_unknown_screen_index_silent(void) {
     TEST_ASSERT_EQUAL(msg.result, 0xAB);
 }
 
+void test_init_captures_withdrawal_index(void) {
+    eth2WithdrawalIndex = 5;
+    eth2_deposit_parameters_t ctx = {0};
+    run_init(&ctx);
+    TEST_ASSERT_EQUAL_UINT32(5, ctx.withdrawal_index);
+}
+
+void test_withdrawal_index_changed_after_init_ignored(void) {
+    eth2WithdrawalIndex = 0;
+    eth2_deposit_parameters_t ctx = {0};
+    run_init(&ctx);
+    eth2WithdrawalIndex = 0x10001;
+
+    // Credentials check still runs against the index captured at init
+    uint8_t param[PARAMETER_LENGTH];
+    memset(param, 0x11, sizeof(param));
+    param[0] = 0;
+    feed_param(&ctx, param, 4 + (PARAMETER_LENGTH * 8));
+    TEST_ASSERT_EQUAL(ctx.valid, 1);
+
+    // Review shows the same index
+    char title[32] = {0};
+    char body[32] = {0};
+    ethQueryContractUI_t msg = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.title = title;
+    msg.titleLength = sizeof(title);
+    msg.msg = body;
+    msg.msgLength = sizeof(body);
+    msg.screenIndex = 2;
+    eth2_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL_STRING("Index 0", body);
+}
+
 // =============================================================================
 // Runner
 // =============================================================================
@@ -493,6 +528,8 @@ int main(void) {
     RUN_TEST(test_withdrawal_credentials_match_keeps_valid);
     RUN_TEST(test_withdrawal_credentials_mismatch_flips_valid);
     RUN_TEST(test_withdrawal_index_above_max_rejected);
+    RUN_TEST(test_init_captures_withdrawal_index);
+    RUN_TEST(test_withdrawal_index_changed_after_init_ignored);
     RUN_TEST(test_finalize_valid_returns_three_screens);
     RUN_TEST(test_finalize_invalid_returns_error);
     RUN_TEST(test_finalize_non_mainnet_rejected);

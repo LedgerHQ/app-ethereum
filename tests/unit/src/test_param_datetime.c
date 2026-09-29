@@ -107,6 +107,50 @@ void test_format_unix_maxint_renders_unlimited(void) {
     TEST_ASSERT_TRUE(format_param_datetime(&param, "Until"));
 }
 
+void test_format_unix_abi_word_rendered_as_utc(void) {
+    // 32-byte ABI word holding 1704067200
+    static uint8_t word[32] = {0};
+    word[28] = 0x65;
+    word[29] = 0x92;
+    word[30] = 0x00;
+    word[31] = 0x80;
+    g_vg[0].size = 1;
+    g_vg[0].value[0] = (s_parsed_value) {.ptr = word, .size = 32, .offset = 0, .length = 32};
+    g_add_to_field_table_ret = true;
+
+    s_param_datetime param = {0};
+    param.type = DT_UNIX;
+    param.value.type_size = 32;
+    TEST_ASSERT_TRUE(format_param_datetime(&param, "Date"));
+}
+
+void test_format_unix_above_time_t_range_rejected(void) {
+    // 32-byte ABI word ending in 0xfffffffffffffffe: not "Unlimited", not a valid time_t
+    static uint8_t word[32] = {0};
+    memset(&word[24], 0xFF, 8);
+    word[31] = 0xFE;
+    g_vg[0].size = 1;
+    g_vg[0].value[0] = (s_parsed_value) {.ptr = word, .size = 32, .offset = 0, .length = 32};
+    g_add_to_field_table_ret = true;
+
+    s_param_datetime param = {0};
+    param.type = DT_UNIX;
+    param.value.type_size = 32;
+    TEST_ASSERT_FALSE(format_param_datetime(&param, "Deadline"));
+}
+
+void test_format_unix_int64_min_bit_pattern_rejected(void) {
+    static uint8_t ts[] = {0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    g_vg[0].size = 1;
+    g_vg[0].value[0] = (s_parsed_value) {.ptr = ts, .size = 8, .offset = 0, .length = 8};
+    g_add_to_field_table_ret = true;
+
+    s_param_datetime param = {0};
+    param.type = DT_UNIX;
+    param.value.type_size = 8;
+    TEST_ASSERT_FALSE(format_param_datetime(&param, "Deadline"));
+}
+
 // =============================================================================
 // format_param_datetime — DT_BLOCKHEIGHT branch
 // =============================================================================
@@ -255,6 +299,9 @@ int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_format_unix_timestamp_rendered_as_utc);
     RUN_TEST(test_format_unix_maxint_renders_unlimited);
+    RUN_TEST(test_format_unix_abi_word_rendered_as_utc);
+    RUN_TEST(test_format_unix_above_time_t_range_rejected);
+    RUN_TEST(test_format_unix_int64_min_bit_pattern_rejected);
     RUN_TEST(test_format_blockheight_rendered_decimal);
     RUN_TEST(test_format_multiple_blockheights_iterates);
     RUN_TEST(test_format_value_get_failure_returns_false);

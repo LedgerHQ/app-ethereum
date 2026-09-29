@@ -11,10 +11,10 @@
 #define PLUGIN_ID_LENGTH 30
 
 // Maximum number of plugin-driven items that can be added to the transaction review.
-// The review builder counts pluginUiMaxItems plus up to 3 fixed pairs (From, Network,
-// Max fees) into a uint8_t (g_pairsList->nbPairs and the cast at ui_pairs_init).
+// The review builder counts pluginUiMaxItems plus up to 4 fixed pairs (From, Nonce,
+// Network, Max fees) into a uint8_t (g_pairsList->nbPairs and the cast at ui_pairs_init).
 // Bound the source so the sum never overflows the 8-bit pair counter.
-#define MAX_PLUGIN_UI_ITEMS (UINT8_MAX - 3)
+#define MAX_PLUGIN_UI_ITEMS (UINT8_MAX - 4)
 
 // Address length
 #define ADDRESS_LENGTH_HEX     (ADDRESS_LENGTH * 2)      // 2 hex chars per byte

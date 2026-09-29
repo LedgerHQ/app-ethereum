@@ -145,12 +145,15 @@ uint16_t get_public_key(uint8_t *out, uint8_t outLength) {
     return status;
 }
 
+static size_t g_network_out_size = 0;
+
 static bool network_from_chain_id_stub(char *out,
                                        size_t out_size,
                                        uint64_t chain_id,
                                        int cmock_num_calls) {
     (void) chain_id;
     (void) cmock_num_calls;
+    g_network_out_size = out_size;
     const char *name = g_get_network_as_string_from_chain_id_ret;
     if (name == NULL) return false;
     strlcpy(out, name, out_size);
@@ -495,7 +498,7 @@ void test_trusted_name_interoperable_raw(void) {
 }
 
 /**
- * @brief Test INTEROPERABLE address with unknown network (no suffix appended)
+ * @brief Test INTEROPERABLE address on an unknown network with a 20-digit chain ID
  */
 void test_trusted_name_interoperable_unknown_network(void) {
     // clang-format off
@@ -511,10 +514,35 @@ void test_trusted_name_interoperable_unknown_network(void) {
                      .param_trusted_name = param,
                      .name = "To"};
     g_get_trusted_name_ret = NULL;
-    g_get_network_as_string_from_chain_id_ret = NULL;  // unknown network
+    // unknown network: the chain ID is used as the network string
+    g_get_network_as_string_from_chain_id_ret = "18446744073709551615";
     g_add_to_field_table_ret = true;
 
     TEST_ASSERT_TRUE(format_param_trusted_name(&field));
+    TEST_ASSERT_GREATER_THAN(strlen("18446744073709551615"), g_network_out_size);
+}
+
+/**
+ * @brief Test INTEROPERABLE address whose network string cannot be produced
+ */
+void test_trusted_name_interoperable_network_failure_rejected(void) {
+    // clang-format off
+    CREATE_INTEROP_PARAM(param, 0x01,
+        0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0x00,
+        0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x11, 0x22, 0x33, 0x44
+    );
+    // clang-format on
+
+    s_field field = {.param_type = PARAM_TYPE_TRUSTED_NAME,
+                     .visibility = PARAM_VISIBILITY_ALWAYS,
+                     .constraints = NULL,
+                     .param_trusted_name = param,
+                     .name = "To"};
+    g_get_trusted_name_ret = NULL;
+    g_get_network_as_string_from_chain_id_ret = NULL;
+    g_add_to_field_table_ret = true;
+
+    TEST_ASSERT_FALSE(format_param_trusted_name(&field));
 }
 
 // =============================================================================
@@ -681,6 +709,7 @@ int main(void) {
     RUN_TEST(test_trusted_name_interoperable_named);
     RUN_TEST(test_trusted_name_interoperable_raw);
     RUN_TEST(test_trusted_name_interoperable_unknown_network);
+    RUN_TEST(test_trusted_name_interoperable_network_failure_rejected);
     RUN_TEST(test_handle_tn_struct_all_tags_ok);
     RUN_TEST(test_handle_tn_struct_types_oversize_rejected);
     RUN_TEST(test_handle_tn_struct_sources_oversize_rejected);

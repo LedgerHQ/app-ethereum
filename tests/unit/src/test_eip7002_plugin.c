@@ -392,14 +392,29 @@ void test_ui_validator_msg_too_small_short_circuits(void) {
     txContent_t tx = {0};
     msg.txContent = &tx;
     eip7002_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    // The S_VALIDATOR path returns early on msgLength<2 without
-    // writing "Validator" into the title.
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
     TEST_ASSERT_EQUAL_STRING(title, "");
 }
 
-void test_ui_unknown_screen_index_no_op(void) {
+void test_ui_validator_msg_too_small_for_pubkey_rejected(void) {
+    eip7002_context_t ctx = {0};
+    char title[16] = {0};
+    char msg_buf[16] = {0};
+    ethQueryContractUI_t msg = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.title = title;
+    msg.titleLength = sizeof(title);
+    msg.msg = msg_buf;
+    msg.msgLength = sizeof(msg_buf);  // "0x" fits, the 48-byte pubkey does not
+    msg.screenIndex = 0;
+    txContent_t tx = {0};
+    msg.txContent = &tx;
+    eip7002_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
+}
+
+void test_ui_unknown_screen_index_rejected(void) {
     // screenIndex doesn't match S_VALIDATOR / S_TX_VALUE / S_REQUEST_AMOUNT
-    // -> falls into S_UNKNOWN -> bare `break` -> result set to OK at end.
     eip7002_context_t ctx = {0};
     char title[16] = {0};
     char msg_buf[64] = {0};
@@ -413,7 +428,7 @@ void test_ui_unknown_screen_index_no_op(void) {
     txContent_t tx = {0};
     msg.txContent = &tx;
     eip7002_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
     TEST_ASSERT_EQUAL_STRING(title, "");
 }
 
@@ -465,7 +480,8 @@ int main(void) {
     RUN_TEST(test_dispatcher_null_param_silent);
     RUN_TEST(test_dispatcher_unknown_message_silent);
     RUN_TEST(test_ui_validator_msg_too_small_short_circuits);
-    RUN_TEST(test_ui_unknown_screen_index_no_op);
+    RUN_TEST(test_ui_validator_msg_too_small_for_pubkey_rejected);
+    RUN_TEST(test_ui_unknown_screen_index_rejected);
     RUN_TEST(test_has_tx_value_null_txcontent_returns_false);
     return UNITY_END();
 }

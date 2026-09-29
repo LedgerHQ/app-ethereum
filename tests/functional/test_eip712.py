@@ -11,7 +11,7 @@ from typing import Any
 import client.response_parser as ResponseParser
 import pytest
 import web3
-from client.client import EIP712CalldataParamPresence, EthAppClient
+from client.client import EIP712CalldataParamPresence, EIP712FieldType, EthAppClient
 from client.eip712 import InputData
 from client.gating import Gating
 from client.gcs import (
@@ -216,6 +216,198 @@ def test_eip712_amount_join_repeated_value(scenario_navigator: NavigateWithScena
         with app_client.eip712_sign_new(BIP32_PATH):
             pass
     assert e.value.status == StatusWord.SWO_REFERENCED_DATA_NOT_FOUND
+
+
+@pytest.mark.parametrize(
+    "fields,message,filter_fields",
+    [
+        (
+            [{"name": "values", "type": "uint256[]"}, {"name": "token", "type": "address"}],
+            {
+                "values": [10000000000000000, 24500000000000000000],
+                "token": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+            },
+            {
+                "values.[]": {"type": "amount_join_value", "name": "Send", "id": 0},
+                "token": {"type": "amount_join_token", "id": 0},
+            },
+        ),
+        (
+            [{"name": "tokens", "type": "address[]"}, {"name": "value", "type": "uint256"}],
+            {
+                "tokens": [
+                    "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+                    "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                ],
+                "value": 24500000000000000000,
+            },
+            {
+                "tokens.[]": {"type": "amount_join_token", "id": 0},
+                "value": {"type": "amount_join_value", "name": "Send", "id": 0},
+            },
+        ),
+    ],
+    ids=["values_before_token", "tokens_before_value"],
+)
+def test_eip712_amount_join_half_overwritten(
+    scenario_navigator: NavigateWithScenario, fields: list, message: dict, filter_fields: dict
+):
+    """A token/value join half already received must not be replaced before it is shown."""
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    data = {
+        "domain": {
+            "chainId": 1,
+            "name": "Advanced test",
+            "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+            "version": "1",
+        },
+        "message": message,
+        "primaryType": "Transfer",
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "Transfer": fields,
+        },
+    }
+    filters = {"name": "Advanced Filtering", "fields": filter_fields}
+
+    with pytest.raises(ExceptionRAPDU) as e:
+        InputData.process_data(app_client, data, filters)
+    assert e.value.status == StatusWord.SWO_PARAMETER_ERROR_NO_INFO
+
+
+@pytest.mark.parametrize("other_filter_first", [False, True], ids=["alone", "after_other_filter"])
+def test_eip712_array_element_filtered_late(
+    scenario_navigator: NavigateWithScenario, monkeypatch: pytest.MonkeyPatch, other_filter_first: bool
+):
+    """An array element sent before its path's filter must not be signed unfiltered."""
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    fields = [{"name": "values", "type": "uint256[]"}]
+    message: dict = {"values": [1, 2]}
+    filter_fields: dict = {"values.[]": {"type": "raw", "name": "Value"}}
+    if other_filter_first:
+        fields.insert(0, {"name": "to", "type": "address"})
+        message["to"] = "0x6B175474E89094C44Da98b954EedeAC495271d0F"
+        filter_fields = {"to": {"type": "raw", "name": "To"}, **filter_fields}
+
+    data = {
+        "domain": {
+            "chainId": 1,
+            "name": "Advanced test",
+            "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+            "version": "1",
+        },
+        "message": message,
+        "primaryType": "Transfer",
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "Transfer": fields,
+        },
+    }
+    filters = {"name": "Advanced Filtering", "fields": filter_fields}
+
+    send_filter = InputData.send_filter
+    skipped: list[str] = []
+
+    def send_filter_skip_first_element(path: str, discarded: bool):
+        if path == "values.[]" and not skipped:
+            skipped.append(path)
+            return None
+        return send_filter(path, discarded)
+
+    monkeypatch.setattr(InputData, "send_filter", send_filter_skip_first_element)
+
+    InputData.process_data(app_client, data, filters)
+    with pytest.raises(ExceptionRAPDU) as e:
+        with app_client.eip712_sign_new(BIP32_PATH):
+            pass
+    assert e.value.status == StatusWord.SWO_REFERENCED_DATA_NOT_FOUND
+
+
+@pytest.mark.parametrize(
+    "filtering,status",
+    [(False, StatusWord.SWO_INCORRECT_DATA), (True, StatusWord.SWO_PARAMETER_ERROR_NO_INFO)],
+    ids=["no_filter", "filter"],
+)
+def test_eip712_string_embedded_nul(scenario_navigator: NavigateWithScenario, filtering: bool, status: StatusWord):
+    """A string holding a NUL byte must be refused, not displayed up to the NUL."""
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    data = {
+        "domain": {
+            "chainId": 1,
+            "name": "Advanced test",
+            "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+            "version": "1",
+        },
+        "message": {"note": "Approve\x00 and transfer everything"},
+        "primaryType": "Note",
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "Note": [{"name": "note", "type": "string"}],
+        },
+    }
+
+    with pytest.raises(ExceptionRAPDU) as e:
+        if filtering:
+            filters = {"name": "Advanced Filtering", "fields": {"note": {"type": "raw", "name": "Note"}}}
+            InputData.process_data(app_client, data, filters)
+        else:
+            InputData.process_data(app_client, data)
+            with app_client.eip712_sign_new(BIP32_PATH):
+                pass
+    assert e.value.status == status
+
+
+@pytest.mark.parametrize("delta", [-1, 1], ids=["short", "long"])
+def test_eip712_fixed_bytes_wrong_length(scenario_navigator: NavigateWithScenario, monkeypatch: pytest.MonkeyPatch, delta: int):
+    """A bytesN value must be exactly N bytes long."""
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    def encode_bytes_fix_resized(value: str, typesize: int) -> bytes:
+        return bytes(typesize + delta)
+
+    monkeypatch.setitem(InputData.encoding_functions, EIP712FieldType.FIX_BYTES, encode_bytes_fix_resized)
+
+    data = {
+        "domain": {
+            "chainId": 1,
+            "name": "Fixed bytes test",
+            "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+            "version": "1",
+        },
+        "message": {"salt": "0x" + "11" * 16},
+        "primaryType": "Salted",
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "Salted": [{"name": "salt", "type": "bytes16"}],
+        },
+    }
+
+    with pytest.raises(ExceptionRAPDU) as e:
+        InputData.process_data(app_client, data)
+    assert e.value.status == StatusWord.SWO_PARAMETER_ERROR_NO_INFO
 
 
 def get_filter_file_from_data_file(data_file: Path) -> Path:

@@ -16,6 +16,10 @@ static bool handle_weight(const tlv_data_t *data, s_path_array_context *context)
     if (data->value.size < sizeof(context->args->weight)) {
         return false;
     }
+    // a zero weight would resolve every element to the first one
+    if (data->value.ptr[0] == 0) {
+        return false;
+    }
     context->args->weight = data->value.ptr[0];
     return true;
 }

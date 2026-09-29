@@ -168,16 +168,20 @@ static bool parse_eip7930_address(const uint8_t *buf,
 }
 
 /**
- * @brief Append " (NetworkName)" suffix to buf when the network is known
+ * @brief Append " (NetworkName)" suffix to buf, the chain ID when the network is unknown
+ *
+ * @return false if the network string cannot be produced or the suffix does not fit
  */
-static void append_network_suffix(char *buf, size_t buf_size, uint64_t chain_id) {
-    char network_name[NETWORK_STRING_MAX_SIZE + 1] = {0};
+static bool append_network_suffix(char *buf, size_t buf_size, uint64_t chain_id) {
+    // large enough for a network name or any decimal uint64 chain ID
+    char network_name[MAX(NETWORK_STRING_MAX_SIZE + 1, sizeof("18446744073709551615"))] = {0};
 
-    if (get_network_as_string_from_chain_id(network_name, sizeof(network_name), chain_id)) {
-        strlcat(buf, " (", buf_size);
-        strlcat(buf, network_name, buf_size);
-        strlcat(buf, ")", buf_size);
+    if (!get_network_as_string_from_chain_id(network_name, sizeof(network_name), chain_id)) {
+        return false;
     }
+    strlcat(buf, " (", buf_size);
+    strlcat(buf, network_name, buf_size);
+    return strlcat(buf, ")", buf_size) < buf_size;
 }
 
 bool format_param_trusted_name(const struct s_field *field) {
@@ -259,8 +263,9 @@ bool format_param_trusted_name(const struct s_field *field) {
                 break;
         }
 
-        if (is_interoperable) {
-            append_network_suffix(buf, buf_size, chain_id);
+        if (is_interoperable && !append_network_suffix(buf, buf_size, chain_id)) {
+            ret = false;
+            break;
         }
 
         // Handle visibility constraints

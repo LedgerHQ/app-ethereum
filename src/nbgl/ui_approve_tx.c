@@ -191,7 +191,12 @@ static bool setTagValuePairs(bool displayNetwork, bool fromPlugin) {
             nbPairs++;
             counter++;
         }
-        // for the last 1 (or 2), tags are fixed
+        // the last ones are fixed
+        if (N_storage.displayNonce) {
+            g_pairs[nbPairs].item = "Nonce";
+            g_pairs[nbPairs].value = strings.common.nonce;
+            nbPairs++;
+        }
         if (displayNetwork) {
             g_pairs[nbPairs].item = "Network";
             g_pairs[nbPairs].value = strings.common.network_name;
@@ -315,6 +320,10 @@ static size_t getNbPairs(bool displayNetwork, bool fromPlugin) {
         }
         // Count the plugin items
         nbPairs += dataContext.tokenContext.pluginUiMaxItems;
+        if (N_storage.displayNonce) {
+            // Count the Nonce
+            nbPairs++;
+        }
         if (displayNetwork) {
             // Count the Network
             nbPairs++;

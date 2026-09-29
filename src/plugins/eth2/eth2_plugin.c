@@ -55,6 +55,8 @@ typedef struct eth2_deposit_parameters_t {
     uint8_t deposit_data_root[INT256_LENGTH];
     // Bitmap of the calldata words received so far
     uint16_t received_words;
+    // Withdrawal index captured at init, used for both the check and the review
+    uint32_t withdrawal_index;
 } eth2_deposit_parameters_t;
 
 // Validate one of the fixed ABI offset/length words against its expected value.
@@ -107,14 +109,16 @@ static void check_withdrawal_credentials(ethPluginProvideParameter_t *msg,
     uint32_t withdrawalKeyPath[4];
     withdrawalKeyPath[0] = WITHDRAWAL_KEY_PATH_1;
     withdrawalKeyPath[1] = WITHDRAWAL_KEY_PATH_2;
-    if (eth2WithdrawalIndex > INDEX_MAX) {
+    if (context->withdrawal_index > INDEX_MAX) {
         PRINTF("eth2 plugin: withdrawal index is too big\n");
-        PRINTF("Got %u which is higher than INDEX_MAX (%u)\n", eth2WithdrawalIndex, INDEX_MAX);
+        PRINTF("Got %u which is higher than INDEX_MAX (%u)\n",
+               context->withdrawal_index,
+               INDEX_MAX);
         msg->result = ETH_PLUGIN_RESULT_ERROR;
         context->valid = 0;
         return;
     }
-    withdrawalKeyPath[2] = eth2WithdrawalIndex;
+    withdrawalKeyPath[2] = context->withdrawal_index;
     withdrawalKeyPath[3] = WITHDRAWAL_KEY_PATH_4;
     // A failed derivation leaves tmp at its all-zeroes init, which would hash
     // into the public constant 0x00 || SHA256(zeros[48])[1:] credential
@@ -277,6 +281,7 @@ void eth2_plugin_call(eth_plugin_msg_t message, void *parameters) {
             eth2_deposit_parameters_t *context = (eth2_deposit_parameters_t *) msg->pluginContext;
             explicit_bzero(context, sizeof(*context));
             context->valid = 1;
+            context->withdrawal_index = eth2WithdrawalIndex;
             msg->result = ETH_PLUGIN_RESULT_OK;
         } break;
 
@@ -441,7 +446,7 @@ void eth2_plugin_call(eth_plugin_msg_t message, void *parameters) {
                     if (snprintf(msg->msg,
                                  msg->msgLength,
                                  "Index %u",
-                                 (unsigned int) eth2WithdrawalIndex) <= 0) {
+                                 (unsigned int) context->withdrawal_index) <= 0) {
                         msg->result = ETH_PLUGIN_RESULT_ERROR;
                         break;
                     }

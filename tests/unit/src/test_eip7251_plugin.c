@@ -140,12 +140,29 @@ void test_ui_msg_too_small_returns(void) {
     txContent_t tx = {0};
     msg.txContent = &tx;
     eip7251_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
     TEST_ASSERT_EQUAL_STRING(title, "");
 }
 
-void test_ui_unknown_screen_returns_no_result_set(void) {
-    // screenIndex not in {0, target?1, tx_value?...} -> S_UNKNOWN ->
-    // bare `return` -> param->result NOT bumped.
+void test_ui_msg_too_small_for_pubkey_rejected(void) {
+    eip7251_context_t ctx = {0};
+    char title[16] = {0};
+    char msg_buf[16] = {0};
+    ethQueryContractUI_t msg = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.title = title;
+    msg.titleLength = sizeof(title);
+    msg.msg = msg_buf;
+    msg.msgLength = sizeof(msg_buf);  // "0x" fits, the 48-byte pubkey does not
+    msg.screenIndex = 0;
+    txContent_t tx = {0};
+    msg.txContent = &tx;
+    eip7251_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
+}
+
+void test_ui_unknown_screen_rejected(void) {
+    // screenIndex not in {0, target?1, tx_value?...} -> S_UNKNOWN
     eip7251_context_t ctx = {0};
     char title[16] = {0};
     char msg_buf[64] = {0};
@@ -160,7 +177,7 @@ void test_ui_unknown_screen_returns_no_result_set(void) {
     txContent_t tx = {0};
     msg.txContent = &tx;
     eip7251_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    TEST_ASSERT_EQUAL(msg.result, 0xAB);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
 
 void test_has_tx_value_length_above_uint64_returns_true(void) {
@@ -396,7 +413,8 @@ int main(void) {
     RUN_TEST(test_dispatcher_null_param_silent);
     RUN_TEST(test_dispatcher_unknown_message_silent);
     RUN_TEST(test_ui_msg_too_small_returns);
-    RUN_TEST(test_ui_unknown_screen_returns_no_result_set);
+    RUN_TEST(test_ui_msg_too_small_for_pubkey_rejected);
+    RUN_TEST(test_ui_unknown_screen_rejected);
     RUN_TEST(test_has_tx_value_length_above_uint64_returns_true);
     RUN_TEST(test_finalize_non_mainnet_rejected);
     RUN_TEST(test_finalize_incomplete_rejected);

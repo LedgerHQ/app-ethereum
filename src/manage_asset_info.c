@@ -35,7 +35,8 @@ _Static_assert((offsetof(s_nft_info, collection_name) == offsetof(nftInfo_t, col
 //
 // An external plugin declares no asset type, so it keeps the historical
 // token-then-NFT order; binding that case too would require the union to carry
-// its own kind, which is a plugin SDK change.
+// its own kind, which is a plugin SDK change. Without a plugin reading them,
+// no asset is resolved.
 extraInfo_t *get_matching_asset_info(const uint64_t *chain_id, const uint8_t *address) {
     extraInfo_t *asset;
 
@@ -46,8 +47,9 @@ extraInfo_t *get_matching_asset_info(const uint64_t *chain_id, const uint8_t *ad
         case PLUGIN_TYPE_OLD_INTERNAL:
             return (extraInfo_t *) get_matching_token_info(chain_id, address);
         case PLUGIN_TYPE_NONE:
-        case PLUGIN_TYPE_EXTERNAL:
         case PLUGIN_TYPE_SWAP_WITH_CALLDATA:
+            return NULL;
+        case PLUGIN_TYPE_EXTERNAL:
             break;
         default:
             PRINTF("Unexpected plugin type %d for an asset lookup\n", pluginType);

@@ -62,7 +62,8 @@ bool format_param_datetime(const s_param_datetime *param, const char *name) {
     s_parsed_value_collection collec = {0};
     char *buf = strings.tmp.tmp;
     size_t buf_size = sizeof(strings.tmp.tmp);
-    uint8_t time_buf[sizeof(time_t)] = {0};
+    uint8_t time_buf[sizeof(uint64_t)] = {0};
+    uint64_t raw_timestamp;
     time_t timestamp;
     if ((ret = value_get(&param->value, &collec))) {
         for (int i = 0; i < collec.size; ++i) {
@@ -84,7 +85,14 @@ bool format_param_datetime(const s_param_datetime *param, const char *name) {
                                       collec.value[i].length,
                                       time_buf,
                                       sizeof(time_buf));
-                    timestamp = read_u64_be(time_buf, 0);
+                    raw_timestamp = read_u64_be(time_buf, 0);
+                    // time_t is signed: reject values it cannot represent
+                    if (raw_timestamp > (uint64_t) INT64_MAX) {
+                        PRINTF("Datetime value outside the representable time_t range\n");
+                        ret = false;
+                        break;
+                    }
+                    timestamp = (time_t) raw_timestamp;
                     if (!(ret = time_format_to_utc(&timestamp, buf, buf_size))) {
                         break;
                     }

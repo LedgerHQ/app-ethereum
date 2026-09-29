@@ -3,11 +3,13 @@ from collections.abc import Callable
 
 import pytest
 from client.client import EthAppClient
+from client.settings import SettingID, settings_toggle
 from client.status_word import StatusWord
 from client.token_info import EthTUID, TokenInfo
 from constants import ABIS_FOLDER
 from ragger.backend import BackendInterface
 from ragger.error import ExceptionRAPDU
+from ragger.navigator import Navigator
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 from test_sign import BIP32_PATH, sign_dummy_tx
 from test_sign import common as common_tx
@@ -158,6 +160,11 @@ def test_transfer_erc20(scenario_navigator: NavigateWithScenario):
 
 def test_approve_erc20(scenario_navigator: NavigateWithScenario):
     common_approve(scenario_navigator, 5)
+
+
+def test_transfer_erc20_nonce_display(navigator: Navigator, scenario_navigator: NavigateWithScenario):
+    settings_toggle(scenario_navigator.backend.device, navigator, [SettingID.NONCE])
+    common_transfer(scenario_navigator, 10)
 
 
 # these extra data are not part of the ABI :

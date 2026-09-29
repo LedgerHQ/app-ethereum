@@ -64,6 +64,7 @@ static void reset(void) {
     g_clear_nft_calls = 0;
     g_token_ret = NULL;
     g_nft_ret = NULL;
+    pluginType = PLUGIN_TYPE_EXTERNAL;
 }
 
 // =============================================================================
@@ -99,6 +100,18 @@ void test_no_token_no_nft_returns_null(void) {
     TEST_ASSERT_NULL(get_matching_asset_info(&cid, addr));
 }
 
+void test_no_reading_plugin_returns_null(void) {
+    const pluginType_t types[] = {PLUGIN_TYPE_NONE, PLUGIN_TYPE_SWAP_WITH_CALLDATA};
+    uint64_t cid = 1;
+    uint8_t addr[20] = {0};
+    g_token_ret = &s_token_fake;
+    g_nft_ret = &s_nft_fake;
+    for (size_t i = 0; i < sizeof(types) / sizeof(types[0]); ++i) {
+        pluginType = types[i];
+        TEST_ASSERT_NULL(get_matching_asset_info(&cid, addr));
+    }
+}
+
 // =============================================================================
 // forget_known_assets -- clears both registries
 // =============================================================================
@@ -120,6 +133,7 @@ int main(void) {
     RUN_TEST(test_token_match_returns_token_skips_nft);
     RUN_TEST(test_no_token_falls_back_to_nft);
     RUN_TEST(test_no_token_no_nft_returns_null);
+    RUN_TEST(test_no_reading_plugin_returns_null);
     RUN_TEST(test_forget_known_assets_clears_both);
     return UNITY_END();
 }

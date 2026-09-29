@@ -70,6 +70,8 @@ typedef struct {
     uint8_t field_flags;
     s_amount_context amount;
     s_filter_crc *filters_crc;
+    // paths of fields completed without any filter, in full filtering mode
+    s_filter_crc *unfiltered_crc;
     char *discarded_path;
     uint8_t tn_type_count;
     uint8_t tn_source_count;
@@ -974,41 +976,51 @@ bool ui_712_accumulate_value(const s_struct_712_field *field_ptr,
     return true;
 }
 
+static bool crc_list_contains(const s_filter_crc *list, uint32_t crc) {
+    for (; list != NULL; list = (s_filter_crc *) ((flist_node_t *) list)->next) {
+        if (list->value == crc) {
+            return true;
+        }
+    }
+    return false;
+}
+
 /**
  * Check filter enforcement for the field about to be finalized (path still points at it).
  *
  * In full filtering mode, paths are only identified by their schema form (".[]" for array
  * elements), so every occurrence of an array element shares one registered filter path.
  * Once a path is registered, every further occurrence must come with a freshly verified
- * filter (any filter sets at least one field flag); otherwise later array elements would
- * be signed with no filter applied to them at all.
+ * filter (any filter sets at least one field flag). Paths of unfiltered occurrences are
+ * recorded so that a filter registered for them afterwards is caught as well.
  */
 void ui_712_check_field_filtering(void) {
     uint32_t path_crc = 0;
-    const s_filter_crc *crc_node;
+    s_filter_crc *new_crc;
 
     if ((ui_ctx == NULL) || (ui_ctx->filtering_mode != EIP712_FILTERING_FULL)) {
         return;
     }
-    if (ui_ctx->filters_crc == NULL) {
-        // no path registered yet (just-in-time discovery for the first occurrence)
-        return;
-    }
     if (!filtering_compute_current_path_crc(&path_crc)) {
+        ui_ctx->filtering_broken = true;
         return;
     }
-    for (crc_node = ui_ctx->filters_crc; crc_node != NULL;
-         crc_node = (s_filter_crc *) ((flist_node_t *) crc_node)->next) {
-        if (crc_node->value == path_crc) {
-            // any filter sets at least one flag; no flag at all means this occurrence
-            // came without a fresh filter (calldata-filtered fields are registered but
-            // intentionally never SHOWN — only their decoded form is displayed)
-            if (ui_ctx->field_flags == 0) {
-                PRINTF("EIP-712: filtered path 0x%x occurrence without filter!\n", path_crc);
-                ui_ctx->filtering_broken = true;
-            }
+    if (crc_list_contains(ui_ctx->filters_crc, path_crc)) {
+        // calldata-filtered fields are registered but intentionally never SHOWN,
+        // only their decoded form is displayed
+        if (ui_ctx->field_flags == 0) {
+            PRINTF("EIP-712: filtered path 0x%x occurrence without filter!\n", path_crc);
+            ui_ctx->filtering_broken = true;
+        }
+        return;
+    }
+    if ((ui_ctx->field_flags == 0) && !crc_list_contains(ui_ctx->unfiltered_crc, path_crc)) {
+        if (APP_MEM_CALLOC((void **) &new_crc, sizeof(*new_crc)) == false) {
+            ui_ctx->filtering_broken = true;
             return;
         }
+        new_crc->value = path_crc;
+        flist_push_back((flist_node_t **) &ui_ctx->unfiltered_crc, (flist_node_t *) new_crc);
     }
 }
 
@@ -1082,6 +1094,10 @@ void ui_712_deinit(void) {
     if (ui_ctx != NULL) {
         if (ui_ctx->filters_crc != NULL) {
             flist_clear((flist_node_t **) &ui_ctx->filters_crc,
+                        (f_list_node_del) &delete_filter_crc);
+        }
+        if (ui_ctx->unfiltered_crc != NULL) {
+            flist_clear((flist_node_t **) &ui_ctx->unfiltered_crc,
                         (f_list_node_del) &delete_filter_crc);
         }
         if (ui_ctx->ui_pairs != NULL) {
@@ -1438,6 +1454,10 @@ bool ui_712_push_new_filter_path(uint32_t path_crc) {
 
     if (filter_count >= ui_ctx->filters_to_process) {
         return false;
+    }
+    if (crc_list_contains(ui_ctx->unfiltered_crc, path_crc)) {
+        PRINTF("EIP-712: path 0x%x already had an occurrence without filter!\n", path_crc);
+        ui_ctx->filtering_broken = true;
     }
     // allocate it
     if (APP_MEM_CALLOC((void **) &new_crc, sizeof(*new_crc)) == false) {

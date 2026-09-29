@@ -281,6 +281,60 @@ def test_eip712_amount_join_half_overwritten(
     assert e.value.status == StatusWord.SWO_PARAMETER_ERROR_NO_INFO
 
 
+@pytest.mark.parametrize("other_filter_first", [False, True], ids=["alone", "after_other_filter"])
+def test_eip712_array_element_filtered_late(
+    scenario_navigator: NavigateWithScenario, monkeypatch: pytest.MonkeyPatch, other_filter_first: bool
+):
+    """An array element sent before its path's filter must not be signed unfiltered."""
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    fields = [{"name": "values", "type": "uint256[]"}]
+    message: dict = {"values": [1, 2]}
+    filter_fields: dict = {"values.[]": {"type": "raw", "name": "Value"}}
+    if other_filter_first:
+        fields.insert(0, {"name": "to", "type": "address"})
+        message["to"] = "0x6B175474E89094C44Da98b954EedeAC495271d0F"
+        filter_fields = {"to": {"type": "raw", "name": "To"}, **filter_fields}
+
+    data = {
+        "domain": {
+            "chainId": 1,
+            "name": "Advanced test",
+            "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+            "version": "1",
+        },
+        "message": message,
+        "primaryType": "Transfer",
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "Transfer": fields,
+        },
+    }
+    filters = {"name": "Advanced Filtering", "fields": filter_fields}
+
+    send_filter = InputData.send_filter
+    skipped: list[str] = []
+
+    def send_filter_skip_first_element(path: str, discarded: bool):
+        if path == "values.[]" and not skipped:
+            skipped.append(path)
+            return None
+        return send_filter(path, discarded)
+
+    monkeypatch.setattr(InputData, "send_filter", send_filter_skip_first_element)
+
+    InputData.process_data(app_client, data, filters)
+    with pytest.raises(ExceptionRAPDU) as e:
+        with app_client.eip712_sign_new(BIP32_PATH):
+            pass
+    assert e.value.status == StatusWord.SWO_REFERENCED_DATA_NOT_FOUND
+
+
 @pytest.mark.parametrize("delta", [-1, 1], ids=["short", "long"])
 def test_eip712_fixed_bytes_wrong_length(scenario_navigator: NavigateWithScenario, monkeypatch: pytest.MonkeyPatch, delta: int):
     """A bytesN value must be exactly N bytes long."""

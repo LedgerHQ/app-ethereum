@@ -124,6 +124,12 @@ void test_tlv_weight_empty_payload_rejected(void) {
     TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &args));
 }
 
+void test_tlv_weight_zero_rejected(void) {
+    const uint8_t bytes[] = {0x01, 0x01, 0x00};  // WEIGHT = 0
+    s_array_args args = {0};
+    TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &args));
+}
+
 void test_tlv_start_one_byte_payload_rejected(void) {
     const uint8_t bytes[] = {0x02, 0x01, 0xAA};  // START needs 2 bytes
     s_array_args args = {0};
@@ -187,6 +193,7 @@ int main(void) {
     RUN_TEST(test_tlv_extra_weight_bytes_keeps_first_byte);
     RUN_TEST(test_tlv_start_end_read_big_endian);
     RUN_TEST(test_tlv_weight_empty_payload_rejected);
+    RUN_TEST(test_tlv_weight_zero_rejected);
     RUN_TEST(test_tlv_start_one_byte_payload_rejected);
     RUN_TEST(test_tlv_end_one_byte_payload_rejected);
     RUN_TEST(test_tlv_duplicate_weight_rejected);

@@ -11,7 +11,7 @@ from typing import Any
 import client.response_parser as ResponseParser
 import pytest
 import web3
-from client.client import EIP712CalldataParamPresence, EthAppClient
+from client.client import EIP712CalldataParamPresence, EIP712FieldType, EthAppClient
 from client.eip712 import InputData
 from client.gating import Gating
 from client.gcs import (
@@ -216,6 +216,41 @@ def test_eip712_amount_join_repeated_value(scenario_navigator: NavigateWithScena
         with app_client.eip712_sign_new(BIP32_PATH):
             pass
     assert e.value.status == StatusWord.SWO_REFERENCED_DATA_NOT_FOUND
+
+
+@pytest.mark.parametrize("delta", [-1, 1], ids=["short", "long"])
+def test_eip712_fixed_bytes_wrong_length(scenario_navigator: NavigateWithScenario, monkeypatch: pytest.MonkeyPatch, delta: int):
+    """A bytesN value must be exactly N bytes long."""
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    def encode_bytes_fix_resized(value: str, typesize: int) -> bytes:
+        return bytes(typesize + delta)
+
+    monkeypatch.setitem(InputData.encoding_functions, EIP712FieldType.FIX_BYTES, encode_bytes_fix_resized)
+
+    data = {
+        "domain": {
+            "chainId": 1,
+            "name": "Fixed bytes test",
+            "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+            "version": "1",
+        },
+        "message": {"salt": "0x" + "11" * 16},
+        "primaryType": "Salted",
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "Salted": [{"name": "salt", "type": "bytes16"}],
+        },
+    }
+
+    with pytest.raises(ExceptionRAPDU) as e:
+        InputData.process_data(app_client, data)
+    assert e.value.status == StatusWord.SWO_PARAMETER_ERROR_NO_INFO
 
 
 def get_filter_file_from_data_file(data_file: Path) -> Path:

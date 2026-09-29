@@ -6,9 +6,14 @@
 
 #define FINISH_MSG_LEN 32
 
-#ifndef SCREEN_SIZE_WALLET
+#ifdef SCREEN_SIZE_WALLET
+#define MSG_PAGE_FONT     SMALL_BOLD_FONT
+#define MSG_LINES_IN_PAGE NB_MAX_LINES_IN_DETAILS
+#else
+#define MSG_PAGE_FONT     BAGL_FONT_OPEN_SANS_REGULAR_11px_1bpp
 // first line of each step is taken by the "Message" title
 #define MSG_LINES_IN_PAGE (NB_MAX_LINES - 1)
+#endif
 
 /**
  * Walk the message pages the way the SDK splits them for display
@@ -24,7 +29,7 @@ static uint16_t ui_191_walk_pages(const char *message) {
             break;
         }
         len = 0;
-        nbgl_getTextMaxLenInNbLines(BAGL_FONT_OPEN_SANS_REGULAR_11px_1bpp,
+        nbgl_getTextMaxLenInNbLines(MSG_PAGE_FONT,
                                     message,
                                     AVAILABLE_WIDTH,
                                     MSG_LINES_IN_PAGE,
@@ -33,24 +38,57 @@ static uint16_t ui_191_walk_pages(const char *message) {
         if ((len == 0) && (message[0] != '\0')) {
             return UINT16_MAX;
         }
+#ifdef SCREEN_SIZE_WALLET
+        // a details page never starts on a '\n'
+        if (message[len] == '\n') {
+            len++;
+        }
+#endif
         message += len;
     } while (message[0] != '\0');
+    return nb_pages;
+}
+
+#ifdef SCREEN_SIZE_WALLET
+/**
+ * Number of pages the SDK "More" details view allots to the message, on 16 bits
+ */
+static uint16_t ui_191_details_nb_pages(const char *message) {
+    uint16_t nb_lines =
+        nbgl_getTextNbLinesInWidth(SMALL_REGULAR_FONT, message, AVAILABLE_WIDTH, true);
+    uint16_t nb_pages = (nb_lines + NB_MAX_LINES_IN_DETAILS - 1) / NB_MAX_LINES_IN_DETAILS;
+
+    if (nb_pages > 1) {
+        uint16_t nb_lost_chars = (nb_pages - 1) * 3;
+        uint16_t nb_lost_lines =
+            (nb_lost_chars + (AVAILABLE_WIDTH / 16) - 1) / (AVAILABLE_WIDTH / 16);
+        uint16_t nb_lines_in_last_page = nb_lines - ((nb_pages - 1) * NB_MAX_LINES_IN_DETAILS);
+
+        nb_pages += nb_lost_lines / NB_MAX_LINES_IN_DETAILS;
+        if ((nb_lines_in_last_page + (nb_lost_lines % NB_MAX_LINES_IN_DETAILS)) >
+            NB_MAX_LINES_IN_DETAILS) {
+            nb_pages++;
+        }
+    }
     return nb_pages;
 }
 #endif
 
 bool ui_191_message_fits(const char *message) {
+    // The UI counts pages on 8 bits: every page the message needs must be reachable
+    uint16_t nb_pages = ui_191_walk_pages(message);
+
+    if (nb_pages > UINT8_MAX) {
+        return false;
+    }
 #ifdef SCREEN_SIZE_WALLET
-    // Everything past a short excerpt is reached through the "More" details view,
-    // which the SDK paginates with an 8-bit page counter. Past what that counter can
-    // address, the tail of the message becomes unreachable while approval stays
-    // available, so the message must be refused rather than signed unseen.
-    return nbgl_getTextNbLinesInWidth(SMALL_BOLD_FONT, message, AVAILABLE_WIDTH, true) <=
-           (UINT8_MAX * NB_MAX_LINES_IN_DETAILS);
-#else
-    // Nano counts the message steps on 8 bits: every page must be reachable
-    return ui_191_walk_pages(message) <= UINT8_MAX;
+    // the details view only navigates through the pages it allotted
+    uint16_t nb_allotted = ui_191_details_nb_pages(message);
+    if ((nb_allotted > UINT8_MAX) || (nb_pages > nb_allotted)) {
+        return false;
+    }
 #endif
+    return true;
 }
 
 static void ui_191_finish_cb(bool confirm) {

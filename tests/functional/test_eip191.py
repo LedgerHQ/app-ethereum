@@ -62,20 +62,15 @@ def test_personal_sign_opensea(scenario_navigator: NavigateWithScenario, test_na
 
 
 def test_personal_sign_too_many_pages(scenario_navigator: NavigateWithScenario, device: Device):
-    """A message that needs more review pages than the UI can address must be refused.
-
-    The details view paginates the message with an 8-bit page counter, so past that
-    many pages the tail of the message becomes unreachable while approval stays
-    available. Only a newline-dense payload can get there: plain text cannot reach
-    the limit within the accepted message size.
-    """
-    if device.is_nano:
-        pytest.skip("Nano renders the message as text steps, not paginated details")
-
+    """A message that needs more review pages than the UI can address must be refused."""
     app_client = EthAppClient(scenario_navigator.backend)
 
-    # One line per byte, comfortably past 255 pages whatever the per-page line count
-    msg = b"\n" * 5000
+    if device.is_nano:
+        # Nano turns whitespace into spaces: wide words that each fill a line instead
+        msg = b"WWWWWW " * 780
+    else:
+        # one line per byte
+        msg = b"\n" * 5000
 
     with pytest.raises(ExceptionRAPDU) as e:
         with app_client.personal_sign(BIP32_PATH, msg):

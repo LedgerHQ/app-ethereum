@@ -6,6 +6,39 @@
 
 #define FINISH_MSG_LEN 32
 
+#ifndef SCREEN_SIZE_WALLET
+// first line of each step is taken by the "Message" title
+#define MSG_LINES_IN_PAGE (NB_MAX_LINES - 1)
+
+/**
+ * Walk the message pages the way the SDK splits them for display
+ *
+ * @return the number of pages, or a value above UINT8_MAX if they cannot all be addressed
+ */
+static uint16_t ui_191_walk_pages(const char *message) {
+    uint16_t nb_pages = 0;
+    uint16_t len;
+
+    do {
+        if (++nb_pages > UINT8_MAX) {
+            break;
+        }
+        len = 0;
+        nbgl_getTextMaxLenInNbLines(BAGL_FONT_OPEN_SANS_REGULAR_11px_1bpp,
+                                    message,
+                                    AVAILABLE_WIDTH,
+                                    MSG_LINES_IN_PAGE,
+                                    &len,
+                                    true);
+        if ((len == 0) && (message[0] != '\0')) {
+            return UINT16_MAX;
+        }
+        message += len;
+    } while (message[0] != '\0');
+    return nb_pages;
+}
+#endif
+
 bool ui_191_message_fits(const char *message) {
 #ifdef SCREEN_SIZE_WALLET
     // Everything past a short excerpt is reached through the "More" details view,
@@ -15,9 +48,8 @@ bool ui_191_message_fits(const char *message) {
     return nbgl_getTextNbLinesInWidth(SMALL_BOLD_FONT, message, AVAILABLE_WIDTH, true) <=
            (UINT8_MAX * NB_MAX_LINES_IN_DETAILS);
 #else
-    // Nano walks the message as text steps, with no page counter to overflow
-    UNUSED(message);
-    return true;
+    // Nano counts the message steps on 8 bits: every page must be reachable
+    return ui_191_walk_pages(message) <= UINT8_MAX;
 #endif
 }
 

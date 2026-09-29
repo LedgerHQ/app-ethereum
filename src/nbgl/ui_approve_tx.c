@@ -102,7 +102,11 @@ static bool resolve_address_pair(nbgl_contentTagValue_t *pair,
 
 #ifdef HAVE_ADDRESS_BOOK
     const s_ab_contact *ab_contact = get_address_book_contact(chain_id, raw_addr);
-    if ((ab_contact != NULL) && is_displayable_name(ab_contact->contact_name)) {
+    // A name that renders as a blank row says nothing in place of the address, so it
+    // is not a match: display_name stays clear and the ENS lookup below still runs.
+    if ((ab_contact != NULL) && is_displayable_string(ab_contact->contact_name,
+                                                      strnlen(ab_contact->contact_name,
+                                                              sizeof(ab_contact->contact_name)))) {
         display_name = ab_contact->contact_name;
         alias_type = ADDRESS_BOOK_ALIAS;
         alias_sub_name = (ab_contact->scope[0] != '\0') ? ab_contact->scope : NULL;
@@ -114,16 +118,18 @@ static bool resolve_address_pair(nbgl_contentTagValue_t *pair,
         e_name_source source = TN_SOURCE_ENS;
         const s_trusted_name *trusted_name =
             get_trusted_name(1, &type, 1, &source, &chain_id, raw_addr);
-        if (trusted_name != NULL) {
+        if ((trusted_name != NULL) &&
+            is_displayable_string(trusted_name->name,
+                                  strnlen(trusted_name->name, sizeof(trusted_name->name)))) {
             display_name = trusted_name->name;
             alias_type = ENS_ALIAS;
             alias_expl = display_addr;  // shown as small info text in the detail view
         }
     }
 
-    // An empty name would render a blank row in place of the destination; the
-    // checksummed address is the fallback that always says something true.
-    if (is_displayable_name(display_name)) {
+    // No usable name: the checksummed address is the fallback that always says
+    // something true.
+    if (display_name != NULL) {
         if (APP_MEM_CALLOC((void **) ext_out, sizeof(**ext_out)) == false) {
             return false;
         }

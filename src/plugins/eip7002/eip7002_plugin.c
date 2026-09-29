@@ -148,14 +148,18 @@ static void eip7002_plugin_query_contract_ui(ethQueryContractUI_t *param) {
     switch (screen) {
         case S_VALIDATOR:
             if (param->msgLength < 2) {
+                param->result = ETH_PLUGIN_RESULT_ERROR;
                 return;
             }
             strlcpy(param->title, "Validator", param->titleLength);
             memcpy(param->msg, "0x", 2);
-            format_hex(context->validator_pubkey,
-                       sizeof(context->validator_pubkey),
-                       &param->msg[2],
-                       param->msgLength - 2);
+            if (format_hex(context->validator_pubkey,
+                           sizeof(context->validator_pubkey),
+                           &param->msg[2],
+                           param->msgLength - 2) < 0) {
+                param->result = ETH_PLUGIN_RESULT_ERROR;
+                return;
+            }
             break;
         case S_TX_VALUE:
             strlcpy(param->title, "Tx value", param->titleLength);
@@ -182,7 +186,8 @@ static void eip7002_plugin_query_contract_ui(ethQueryContractUI_t *param) {
             }
             break;
         case S_UNKNOWN:
-            break;
+            param->result = ETH_PLUGIN_RESULT_ERROR;
+            return;
     }
     param->result = ETH_PLUGIN_RESULT_OK;
 }

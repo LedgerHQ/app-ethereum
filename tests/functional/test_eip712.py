@@ -218,6 +218,69 @@ def test_eip712_amount_join_repeated_value(scenario_navigator: NavigateWithScena
     assert e.value.status == StatusWord.SWO_REFERENCED_DATA_NOT_FOUND
 
 
+@pytest.mark.parametrize(
+    "fields,message,filter_fields",
+    [
+        (
+            [{"name": "values", "type": "uint256[]"}, {"name": "token", "type": "address"}],
+            {
+                "values": [10000000000000000, 24500000000000000000],
+                "token": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+            },
+            {
+                "values.[]": {"type": "amount_join_value", "name": "Send", "id": 0},
+                "token": {"type": "amount_join_token", "id": 0},
+            },
+        ),
+        (
+            [{"name": "tokens", "type": "address[]"}, {"name": "value", "type": "uint256"}],
+            {
+                "tokens": [
+                    "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+                    "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                ],
+                "value": 24500000000000000000,
+            },
+            {
+                "tokens.[]": {"type": "amount_join_token", "id": 0},
+                "value": {"type": "amount_join_value", "name": "Send", "id": 0},
+            },
+        ),
+    ],
+    ids=["values_before_token", "tokens_before_value"],
+)
+def test_eip712_amount_join_half_overwritten(
+    scenario_navigator: NavigateWithScenario, fields: list, message: dict, filter_fields: dict
+):
+    """A token/value join half already received must not be replaced before it is shown."""
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    data = {
+        "domain": {
+            "chainId": 1,
+            "name": "Advanced test",
+            "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+            "version": "1",
+        },
+        "message": message,
+        "primaryType": "Transfer",
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "Transfer": fields,
+        },
+    }
+    filters = {"name": "Advanced Filtering", "fields": filter_fields}
+
+    with pytest.raises(ExceptionRAPDU) as e:
+        InputData.process_data(app_client, data, filters)
+    assert e.value.status == StatusWord.SWO_PARAMETER_ERROR_NO_INFO
+
+
 @pytest.mark.parametrize("delta", [-1, 1], ids=["short", "long"])
 def test_eip712_fixed_bytes_wrong_length(scenario_navigator: NavigateWithScenario, monkeypatch: pytest.MonkeyPatch, delta: int):
     """A bytesN value must be exactly N bytes long."""

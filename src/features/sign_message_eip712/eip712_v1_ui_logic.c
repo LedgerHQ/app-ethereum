@@ -478,6 +478,8 @@ bool ui_712_set_amount_join_token_addr(const uint8_t *addr) {
     s_amount_join *amount_join = get_amount_join(ui_ctx->amount.current_id);
 
     if (amount_join == NULL) return false;
+    // A half already received must not be overwritten before being displayed
+    if (amount_join->flags & AMOUNT_JOIN_FLAG_TOKEN) return false;
     memcpy(amount_join->address, addr, sizeof(amount_join->address));
     amount_join->flags |= AMOUNT_JOIN_FLAG_TOKEN;
     return true;
@@ -493,7 +495,8 @@ bool ui_712_set_amount_join_token_addr(const uint8_t *addr) {
 static bool update_amount_join(s_amount_join *amount_join, const uint8_t *data, uint8_t length) {
     switch (ui_ctx->amount.state) {
         case AMOUNT_JOIN_STATE_TOKEN:
-            if (length > sizeof(amount_join->address)) {
+            if ((amount_join->flags & AMOUNT_JOIN_FLAG_TOKEN) ||
+                (length > sizeof(amount_join->address))) {
                 return false;
             }
             buf_shrink_expand(data, length, amount_join->address, sizeof(amount_join->address));
@@ -501,7 +504,8 @@ static bool update_amount_join(s_amount_join *amount_join, const uint8_t *data, 
             break;
 
         case AMOUNT_JOIN_STATE_VALUE:
-            if (length > sizeof(amount_join->value)) {
+            if ((amount_join->flags & AMOUNT_JOIN_FLAG_VALUE) ||
+                (length > sizeof(amount_join->value))) {
                 return false;
             }
             buf_shrink_expand(data, length, amount_join->value, sizeof(amount_join->value));

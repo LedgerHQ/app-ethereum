@@ -335,6 +335,46 @@ def test_eip712_array_element_filtered_late(
     assert e.value.status == StatusWord.SWO_REFERENCED_DATA_NOT_FOUND
 
 
+@pytest.mark.parametrize(
+    "filtering,status",
+    [(False, StatusWord.SWO_INCORRECT_DATA), (True, StatusWord.SWO_PARAMETER_ERROR_NO_INFO)],
+    ids=["no_filter", "filter"],
+)
+def test_eip712_string_embedded_nul(scenario_navigator: NavigateWithScenario, filtering: bool, status: StatusWord):
+    """A string holding a NUL byte must be refused, not displayed up to the NUL."""
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    data = {
+        "domain": {
+            "chainId": 1,
+            "name": "Advanced test",
+            "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+            "version": "1",
+        },
+        "message": {"note": "Approve\x00 and transfer everything"},
+        "primaryType": "Note",
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "Note": [{"name": "note", "type": "string"}],
+        },
+    }
+
+    with pytest.raises(ExceptionRAPDU) as e:
+        if filtering:
+            filters = {"name": "Advanced Filtering", "fields": {"note": {"type": "raw", "name": "Note"}}}
+            InputData.process_data(app_client, data, filters)
+        else:
+            InputData.process_data(app_client, data)
+            with app_client.eip712_sign_new(BIP32_PATH):
+                pass
+    assert e.value.status == status
+
+
 @pytest.mark.parametrize("delta", [-1, 1], ids=["short", "long"])
 def test_eip712_fixed_bytes_wrong_length(scenario_navigator: NavigateWithScenario, monkeypatch: pytest.MonkeyPatch, delta: int):
     """A bytesN value must be exactly N bytes long."""

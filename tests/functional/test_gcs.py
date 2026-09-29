@@ -2518,7 +2518,12 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario):
         scenario_navigator.review_approve()
 
 
-def test_gcs_batch_empty_tx(scenario_navigator: NavigateWithScenario) -> None:
+def batch_empty_tx_common(
+    scenario_navigator: NavigateWithScenario,
+    value: float = 0.0,
+    nested_chain_id: int | None = None,
+    test_name: str | None = None,
+) -> None:
     backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
 
@@ -2534,7 +2539,7 @@ def test_gcs_batch_empty_tx(scenario_navigator: NavigateWithScenario) -> None:
             [
                 (
                     bytes.fromhex("d8dA6BF26964aF9D7eEd9e03E53415D37aA96045"),
-                    Web3.to_wei(0.0, "ether"),
+                    Web3.to_wei(value, "ether"),
                     b"",
                 ),
             ]
@@ -2552,6 +2557,12 @@ def test_gcs_batch_empty_tx(scenario_navigator: NavigateWithScenario) -> None:
     with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
         pass
     param_paths = get_all_tuple_array_paths(f"{ABIS_FOLDER}/batch.json", "batchExecute", "calls")
+    chain_id = None
+    if nested_chain_id is not None:
+        chain_id = Value(1, TypeFamily.UINT, constant=nested_chain_id.to_bytes(8, "big"))
+    amount = None
+    if value != 0.0:
+        amount = Value(1, TypeFamily.UINT, data_path=DataPath(1, param_paths["value"]))
     fields = [
         Field(
             1,
@@ -2574,6 +2585,8 @@ def test_gcs_batch_empty_tx(scenario_navigator: NavigateWithScenario) -> None:
                         param_paths["to"],
                     ),
                 ),
+                chain_id=chain_id,
+                amount=amount,
             ),
         ),
     ]
@@ -2596,7 +2609,27 @@ def test_gcs_batch_empty_tx(scenario_navigator: NavigateWithScenario) -> None:
         app_client.provide_transaction_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
-        scenario_navigator.review_approve()
+        scenario_navigator.review_approve(test_name=test_name)
+
+
+def test_gcs_batch_empty_tx(scenario_navigator: NavigateWithScenario) -> None:
+    batch_empty_tx_common(scenario_navigator)
+
+
+@pytest.mark.parametrize(
+    "case,value,nested_chain_id",
+    [
+        ("arbitrum", 0.0, 42161),
+        ("unknown_chain", 0.0, 123456789),
+        ("arbitrum_send", 0.5, 42161),
+    ],
+    ids=["arbitrum", "unknown_chain", "arbitrum_send"],
+)
+def test_gcs_batch_empty_tx_cross_chain(
+    scenario_navigator: NavigateWithScenario, test_name: str, case: str, value: float, nested_chain_id: int
+) -> None:
+    """An empty nested call on another chain shows that chain's network."""
+    batch_empty_tx_common(scenario_navigator, value, nested_chain_id, f"{test_name}_{case}")
 
 
 def test_gcs_batch_complex(scenario_navigator: NavigateWithScenario) -> None:

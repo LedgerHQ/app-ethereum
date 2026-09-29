@@ -174,6 +174,13 @@ static bool process_empty_tx(const s_tx_ctx *tx_ctx) {
     if (!add_to_field_table(param_type, "To", buf, extra_data)) {
         return false;
     }
+    // A call on another chain than the root one is told apart by its network
+    if ((g_tx_ctx_list == NULL) || (tx_ctx->chain_id != g_tx_ctx_list->chain_id)) {
+        if (!get_network_as_string_from_chain_id(buf, buf_size, tx_ctx->chain_id) ||
+            !add_to_field_table(PARAM_TYPE_RAW, "Network", buf, NULL)) {
+            return false;
+        }
+    }
     list_remove((list_node_t **) &g_tx_ctx_list,
                 (list_node_t *) tx_ctx,
                 (f_list_node_del) &delete_tx_ctx);

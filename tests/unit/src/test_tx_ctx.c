@@ -101,6 +101,15 @@ bool get_address_display_name(const uint8_t *addr,
     return true;
 }
 
+static int g_network_calls = 0;
+static uint64_t g_network_chain_id = 0;
+bool get_network_as_string_from_chain_id(char *out, size_t out_size, uint64_t chain_id) {
+    g_network_calls++;
+    g_network_chain_id = chain_id;
+    strlcpy(out, "Arbitrum", out_size);
+    return true;
+}
+
 bool get_public_key(uint8_t *buf, uint8_t size) {
     if (size != ADDRESS_LENGTH) return false;
     memcpy(buf, g_self_addr, ADDRESS_LENGTH);
@@ -507,6 +516,32 @@ void test_process_empty_txs_with_amount_no_tx_info_uses_nested_chain(void) {
     TEST_ASSERT_EQUAL(get_tx_ctx_count(), 1);
 }
 
+void test_process_empty_tx_cross_chain_shows_network(void) {
+    uint64_t root_chain = 1;
+    uint64_t nested_chain = 42161;
+    s_calldata *cd = make_complete_calldata(g_match_selector);
+    TEST_ASSERT_TRUE(tx_ctx_init(cd, g_addr_a, g_addr_b, NULL, &root_chain));
+    TEST_ASSERT_TRUE(tx_ctx_init(NULL, g_addr_a, g_addr_a, g_amount_1eth, &nested_chain));
+    TEST_ASSERT_TRUE(find_matching_tx_ctx(g_addr_b, g_match_selector, &root_chain));
+
+    g_network_calls = 0;
+    TEST_ASSERT_TRUE(process_empty_txs_after());
+    TEST_ASSERT_EQUAL(1, g_network_calls);
+    TEST_ASSERT_EQUAL_UINT64(nested_chain, g_network_chain_id);
+}
+
+void test_process_empty_tx_same_chain_no_network(void) {
+    uint64_t chain = 1;
+    s_calldata *cd = make_complete_calldata(g_match_selector);
+    TEST_ASSERT_TRUE(tx_ctx_init(cd, g_addr_a, g_addr_b, NULL, &chain));
+    TEST_ASSERT_TRUE(tx_ctx_init(NULL, g_addr_a, g_addr_a, g_amount_1eth, &chain));
+    TEST_ASSERT_TRUE(find_matching_tx_ctx(g_addr_b, g_match_selector, &chain));
+
+    g_network_calls = 0;
+    TEST_ASSERT_TRUE(process_empty_txs_after());
+    TEST_ASSERT_EQUAL(0, g_network_calls);
+}
+
 // =============================================================================
 // Remaining gaps: simple getters with current set, process_empty_tx
 // amount happy path, set_tx_info_into_tx_ctx EIP712 + non-root,
@@ -660,6 +695,8 @@ int main(void) {
     RUN_TEST(test_process_empty_txs_after_removes_empty_successors);
     RUN_TEST(test_process_empty_txs_before_stops_at_non_empty);
     RUN_TEST(test_process_empty_txs_with_amount_no_tx_info_uses_nested_chain);
+    RUN_TEST(test_process_empty_tx_cross_chain_shows_network);
+    RUN_TEST(test_process_empty_tx_same_chain_no_network);
     RUN_TEST(test_get_fields_hash_ctx_returns_current_ctx);
     RUN_TEST(test_get_current_getters_return_attached_state);
     RUN_TEST(test_process_empty_txs_amount_branch_happy_path);

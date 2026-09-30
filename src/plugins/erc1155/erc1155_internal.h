@@ -15,6 +15,9 @@ typedef enum {
     VALUE_OFFSET,
     VALUE_LENGTH,
     VALUE,
+    // receiver payload of both transfers: its dynamic offset, then its length
+    DATA_OFFSET,
+    DATA_LENGTH,
     OPERATOR,
     APPROVED,
     NONE,

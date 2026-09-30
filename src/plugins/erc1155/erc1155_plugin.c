@@ -75,6 +75,12 @@ void handle_finalize_1155(ethPluginFinalize_t *msg) {
             msg->result = ETH_PLUGIN_RESULT_ERROR;
             return;
     }
+    // +1 screen to surface the transfer payload when present
+    if (((context->selectorIndex == SAFE_TRANSFER) ||
+         (context->selectorIndex == SAFE_BATCH_TRANSFER)) &&
+        (context->data_length > 0)) {
+        msg->numScreens++;
+    }
     // Check if some ETH is attached to this tx
     if (!is_zeroes_buffer((void *) &msg->txContent->value, sizeof(msg->txContent->value))) {
         // Those functions are not payable so return an error.

@@ -88,6 +88,11 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *contex
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
             break;
+        case 6:
+            // Requested by finalize only for a non-empty payload
+            strlcpy(msg->title, "Transfer With Data", msg->titleLength);
+            snprintf(msg->msg, msg->msgLength, "%u bytes", (unsigned) context->data_length);
+            break;
         default:
             PRINTF("Unsupported screen index %d\n", msg->screenIndex);
             msg->result = ETH_PLUGIN_RESULT_ERROR;
@@ -112,6 +117,7 @@ static void set_batch_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *
     uint8_t idx = msg->screenIndex;
     uint8_t pair_screens = (uint8_t) (2 * context->batch_displayed);
     uint8_t warn_idx = (uint8_t) (BATCH_SCREEN_PAIR_BASE + pair_screens);
+    uint8_t data_idx = (uint8_t) (warn_idx + (context->batch_truncated ? 1 : 0));
 
     switch (idx) {
         case BATCH_SCREEN_OWNER:
@@ -193,6 +199,10 @@ static void set_batch_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *
                          "Only first %d of %d IDs shown",
                          ERC1155_BATCH_DISPLAY_MAX,
                          context->array_index);
+            } else if ((context->data_length > 0) && (idx == data_idx)) {
+                // Requested by finalize only for a non-empty payload
+                strlcpy(msg->title, "Transfer With Data", msg->titleLength);
+                snprintf(msg->msg, msg->msgLength, "%u bytes", (unsigned) context->data_length);
             } else {
                 PRINTF("Unsupported screen index %d\n", idx);
                 msg->result = ETH_PLUGIN_RESULT_ERROR;

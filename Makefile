@@ -38,7 +38,7 @@ include ./makefile_conf/chain/$(CHAIN).mk
 APPVERSION_M = 1
 APPVERSION_N = 23
 APPVERSION_P = 0
-APPVERSION = $(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)-dev
+APPVERSION = $(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 
 ifneq ($(shell git rev-parse --is-inside-work-tree 2>/dev/null),true)
     $(error Building requires a git repository (needed for GIT_COMMIT / COPYRIGHT_YEAR))

@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-10-01
+
+### Added
+
+- Support for Address Book (based on Ragger generic helpers)
+- Support for Gated signing
+- Support for TLV token information (`TokenInfo`, `provide_token_info`)
+- Support for `TrustedName` serializable class (`provide_trusted_name`), with token, MAB and owner derivation path
+- Support for GCS map entries, groups, separators, interoperable addresses (EIP-7930), network formatter,
+  chain ID container path, visibility and constraints, and `PARAM_CALLDATA`
+- Support for EIP-712 calldata filters
+- Support for ETH2 withdrawal index (`set_eth2_withdrawal_index`)
+- `async_mode` parameter for `perform_privacy_operation`
+- `send_pki_certificate` function
+
+### Changed
+
+- Minimum Python version *3.11*
+- Status Words aligned on Ragger global definitions
+- EIP-712 command builder P1/P2 enums renamed with a `V1` prefix
+- EIP-712 amount-join tokens are all sent upfront, their id decoupled from their list order
+- `TxAuth7702` requires an explicit `chain_id` (`CHAIN_ID_ALL` for all chains)
+- `ledger_pki` module renamed to `signing_partners`
+- PKI certificate no longer sent beforehand when using a pre-computed signature
+
+### Removed
+
+- Support for Python *3.9* & *3.10*
+- `provide_trusted_name_v1` and `provide_trusted_name_v2`, replaced by `provide_trusted_name`
+- `tlv` module, replaced by Ragger TLV helpers
+
+### Fixed
+
+- EIP-712 type fields ordering
+- Truncation of some EIP-712 struct names
+- STRUCT_TYPE value for Safe signers
+
 ## [0.6.0] - 2025-09-05
 
 ### Added

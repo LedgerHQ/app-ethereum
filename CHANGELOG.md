@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.23.0](../../compare/1.22.5...1.23.0) - 2026-09-30
+
+### Added
+
+- Address Book support
+- TLV format (Ledger PKI signed) for ERC-20 token information
+- Interoperable addresses (EIP-7930) in generic clear-signing
+- Map, group, separator and iteration formatters in generic clear-signing
+- Nonce display in EIP-7702 authorization review
+- Nonce and transaction hash display in generic clear-signing review
+
+### Changed
+
+- Token and token amount fields of unknown tokens are now clickable
+- Contacts and trusted names that cannot be displayed fall back to the address
+- A review left on screen is dismissed when a command ends on an error
+
+### Fixed
+
+- EIP-191 messages could be partially hidden when too long for the review page count
+- EIP-712 array elements could bypass display filters, or be signed without being declared
+- EIP-712 amount-join could omit repeated amounts of the same token
+- EIP-712 and generic clear-signing dates could be displayed wrongly (e.g. far deadlines shown in 1969)
+- Short fixed-size bytes values were displayed differently from the signed value
+- ETH2 withdrawal index could change between validation and deposit approval
+- ERC-721 transfers could hide attached ETH, ERC-1155 transfers could hide their data payload
+- External plugin reviews did not show the signing account
+- Token/NFT metadata could be applied to the wrong asset type or to an unsupported chain
+- Generic clear-signing lookups (trusted names, maps, enums) could ignore the chain or contract binding
+- Empty nested transactions used the outer chain for ticker and trusted-name resolution
+- Privacy shared secret was not computed on the published X25519 key
+- Address retrieval failing on some clones
+- Various parsing and memory-safety issues found by security review and fuzzing
+
 ## [1.22.5](../../compare/1.22.4...1.22.5) - 2026-09-17
 
 ### Fixed

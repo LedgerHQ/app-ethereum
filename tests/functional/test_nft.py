@@ -106,6 +106,8 @@ def common_test_nft(
         # the payload row is now displayed: keep their snapshot dirs distinct
         if (plugin_name == ERC721_PLUGIN) and (action.fn_name == "safeTransferFrom") and (len(action.fn_args) == 4):
             test_name += "_with_data"
+        if (plugin_name == ERC1155_PLUGIN) and (action.fn_name != "setApprovalForAll") and (action.fn_args[-1] != b""):
+            test_name += "_with_data"
         if reject:
             scenario_navigator.review_reject(test_name=test_name)
         elif simu_params is not None or gating_params is not None:
@@ -272,6 +274,17 @@ collecs_1155 = [
 ]
 actions_1155 = [
     Action("safeTransferFrom", [FROM, TO, NFTS[0][0], NFTS[0][1], DATA]),
+    Action("safeTransferFrom", [FROM, TO, NFTS[0][0], NFTS[0][1], b""]),
+    Action(
+        "safeBatchTransferFrom",
+        [
+            FROM,
+            TO,
+            list(map(lambda nft: nft[0], NFTS)),
+            list(map(lambda nft: nft[1], NFTS)),
+            b"",
+        ],
+    ),
     Action(
         "safeBatchTransferFrom",
         [

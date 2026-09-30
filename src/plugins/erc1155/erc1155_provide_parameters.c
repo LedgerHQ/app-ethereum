@@ -36,6 +36,30 @@ static bool get_dynamic_offset(const uint8_t *parameter, uint32_t *out) {
     return true;
 }
 
+static void handle_data_offset(ethPluginProvideParameter_t *msg, erc1155_context_t *context) {
+    if (!get_dynamic_offset(msg->parameter, &context->data_offset)) {
+        PRINTF("Receiver data offset out of range!\n");
+        msg->result = ETH_PLUGIN_RESULT_ERROR;
+    }
+}
+
+// Returns true once the payload length word has been read
+static bool handle_data_length(ethPluginProvideParameter_t *msg, erc1155_context_t *context) {
+    if (msg->parameterOffset < context->data_offset) {
+        // not there yet
+        return false;
+    }
+    if ((msg->parameterOffset != context->data_offset) ||
+        !get_word_u32(msg->parameter, &context->data_length)) {
+        PRINTF("Receiver data length not where it was declared!\n");
+        msg->result = ETH_PLUGIN_RESULT_ERROR;
+        return false;
+    }
+    // The payload words themselves follow and are tolerated by the non-strict
+    // default case; the length is what the user is shown.
+    return true;
+}
+
 static void handle_safe_transfer(ethPluginProvideParameter_t *msg, erc1155_context_t *context) {
     uint8_t new_value[INT256_LENGTH];
 
@@ -59,7 +83,16 @@ static void handle_safe_transfer(ethPluginProvideParameter_t *msg, erc1155_conte
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
                 return;
             }
-            context->next_param = NONE;
+            context->next_param = DATA_OFFSET;
+            break;
+        case DATA_OFFSET:
+            handle_data_offset(msg, context);
+            context->next_param = DATA_LENGTH;
+            break;
+        case DATA_LENGTH:
+            if (handle_data_length(msg, context)) {
+                context->next_param = NONE;
+            }
             break;
         default:
             // Some extra data might be present so don't error.
@@ -94,6 +127,10 @@ static void handle_batch_transfer(ethPluginProvideParameter_t *msg, erc1155_cont
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
                 break;
             }
+            context->next_param = DATA_OFFSET;
+            break;
+        case DATA_OFFSET:
+            handle_data_offset(msg, context);
             context->next_param = TOKEN_IDS_LENGTH;
             break;
         case TOKEN_IDS_LENGTH:
@@ -150,7 +187,7 @@ static void handle_batch_transfer(ethPluginProvideParameter_t *msg, erc1155_cont
                 break;
             }
             // An empty batch has nothing to consume in VALUE
-            context->next_param = (context->values_array_len == 0) ? NONE : VALUE;
+            context->next_param = (context->values_array_len == 0) ? DATA_LENGTH : VALUE;
             // set to zero for next step
             context->array_index = 0;
             explicit_bzero(&context->value, sizeof(context->value));
@@ -179,9 +216,14 @@ static void handle_batch_transfer(ethPluginProvideParameter_t *msg, erc1155_cont
                 break;
             }
             if (--context->values_array_len == 0) {
-                context->next_param = NONE;
+                context->next_param = DATA_LENGTH;
             }
             context->array_index++;
+            break;
+        case DATA_LENGTH:
+            if (handle_data_length(msg, context)) {
+                context->next_param = NONE;
+            }
             break;
         default:
             // Some extra data might be present so don't error.

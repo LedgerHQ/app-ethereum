@@ -150,49 +150,93 @@ void test_init_zeroes_stale_context(void) {
     TEST_ASSERT_FALSE(ctx.batch_truncated);
 }
 
+// safeTransferFrom(from, to, id, value, data): head of 5 words, then the
+// data length at offset_to_data. Offsets fed to the plugin include the selector.
+static void run_safe_transfer(erc1155_context_t *ctx, uint32_t data_length) {
+    uint8_t param[PARAMETER_LENGTH];
+    make_abi_address(param, 0xAA);
+    feed_param(ctx, param, 4);  // FROM
+    make_abi_address(param, 0xBB);
+    feed_param(ctx, param, 36);  // TO
+    make_abi_u32(param, 42);
+    feed_param(ctx, param, 68);  // TOKEN_ID
+    make_abi_u32(param, 7);
+    feed_param(ctx, param, 100);  // VALUE
+    make_abi_u32(param, 160);
+    feed_param(ctx, param, 132);  // DATA_OFFSET
+    make_abi_u32(param, data_length);
+    feed_param(ctx, param, 164);  // DATA_LENGTH
+}
+
 void test_safe_transfer_walk(void) {
     erc1155_context_t ctx = {0};
     run_init(&ctx, SEL_SAFE_TRANSFER);
 
     uint8_t param[PARAMETER_LENGTH];
     make_abi_address(param, 0xAA);
-    feed_param(&ctx, param, 0);  // FROM (consumed, not stored)
+    feed_param(&ctx, param, 4);  // FROM
     TEST_ASSERT_EQUAL(ctx.next_param, TO);
 
     make_abi_address(param, 0xBB);
-    feed_param(&ctx, param, 0);  // TO
+    feed_param(&ctx, param, 36);  // TO
     TEST_ASSERT_EQUAL(ctx.next_param, TOKEN_ID);
     for (int i = 0; i < 20; i++) TEST_ASSERT_EQUAL(ctx.address[i], 0xBB);
 
     make_abi_u32(param, 42);
-    feed_param(&ctx, param, 0);  // TOKEN_ID
+    feed_param(&ctx, param, 68);  // TOKEN_ID
     TEST_ASSERT_EQUAL(ctx.next_param, VALUE);
 
     make_abi_u32(param, 7);
-    feed_param(&ctx, param, 0);  // VALUE
-    TEST_ASSERT_EQUAL(ctx.next_param, NONE);
+    feed_param(&ctx, param, 100);  // VALUE
+    TEST_ASSERT_EQUAL(ctx.next_param, DATA_OFFSET);
     TEST_ASSERT_EQUAL(LOWER(LOWER(ctx.value)), 7);
+
+    make_abi_u32(param, 160);
+    feed_param(&ctx, param, 132);  // DATA_OFFSET
+    TEST_ASSERT_EQUAL(ctx.next_param, DATA_LENGTH);
+
+    make_abi_u32(param, 9);
+    feed_param(&ctx, param, 164);  // DATA_LENGTH
+    TEST_ASSERT_EQUAL(ctx.next_param, NONE);
+    TEST_ASSERT_EQUAL(ctx.data_length, 9);
 }
 
 void test_safe_transfer_extra_params_tolerated(void) {
     erc1155_context_t ctx = {0};
     run_init(&ctx, SEL_SAFE_TRANSFER);
-    uint8_t param[PARAMETER_LENGTH];
-    make_abi_address(param, 0xAA);
-    feed_param(&ctx, param, 0);
-    feed_param(&ctx, param, 0);
-    make_abi_u32(param, 1);
-    feed_param(&ctx, param, 0);
-    feed_param(&ctx, param, 0);
+    run_safe_transfer(&ctx, 9);
     TEST_ASSERT_EQUAL(ctx.next_param, NONE);
-    // Extra param past NONE: handler must not error (encoded `data`
-    // field of safeTransferFrom is allowed).
+    // The payload words past NONE must not error
+    uint8_t param[PARAMETER_LENGTH] = {0};
     ethPluginProvideParameter_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
     msg.parameter = param;
+    msg.parameterOffset = 196;
     msg.result = ETH_PLUGIN_RESULT_SUCCESSFUL;
     erc1155_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
     TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_SUCCESSFUL);
+}
+
+void test_safe_transfer_data_length_misplaced_rejected(void) {
+    erc1155_context_t ctx = {0};
+    run_init(&ctx, SEL_SAFE_TRANSFER);
+    uint8_t param[PARAMETER_LENGTH];
+    make_abi_address(param, 0xAA);
+    feed_param(&ctx, param, 4);
+    feed_param(&ctx, param, 36);
+    make_abi_u32(param, 1);
+    feed_param(&ctx, param, 68);
+    feed_param(&ctx, param, 100);
+    make_abi_u32(param, 160);
+    feed_param(&ctx, param, 132);
+    // length word announced at 164, fed at 196
+    make_abi_u32(param, 9);
+    ethPluginProvideParameter_t msg = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.parameter = param;
+    msg.parameterOffset = 196;
+    erc1155_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
 
 // =============================================================================
@@ -216,7 +260,8 @@ void test_safe_transfer_extra_params_tolerated(void) {
 
 static void run_batch_head(erc1155_context_t *ctx,
                            uint32_t ids_offset_args,
-                           uint32_t values_offset_args) {
+                           uint32_t values_offset_args,
+                           uint32_t data_offset_args) {
     uint8_t param[PARAMETER_LENGTH];
     // FROM
     make_abi_address(param, 0xAA);
@@ -230,19 +275,22 @@ static void run_batch_head(erc1155_context_t *ctx,
     // VALUES_OFFSET
     make_abi_u32(param, values_offset_args);
     feed_param(ctx, param, 100);
+    // DATA_OFFSET
+    make_abi_u32(param, data_offset_args);
+    feed_param(ctx, param, 132);
 }
 
 void test_batch_empty_ids_skips_to_value_length(void) {
     erc1155_context_t ctx = {0};
     run_init(&ctx, SEL_SAFE_BATCH);
-    run_batch_head(&ctx, 128, 224);
+    run_batch_head(&ctx, 160, 192, 224);
     TEST_ASSERT_EQUAL(ctx.next_param, TOKEN_IDS_LENGTH);
 
     uint8_t param[PARAMETER_LENGTH];
     // ids array length = 0: must go to VALUE_LENGTH to avoid --ids_array_len
     // underflow (uint16_t wraps to 65535).
     make_abi_u32(param, 0);
-    feed_param(&ctx, param, 132);
+    feed_param(&ctx, param, 164);
     TEST_ASSERT_EQUAL(ctx.next_param, VALUE_LENGTH);
     TEST_ASSERT_EQUAL(ctx.ids_array_len, 0);
 }
@@ -250,15 +298,15 @@ void test_batch_empty_ids_skips_to_value_length(void) {
 void test_batch_two_pair_walk(void) {
     erc1155_context_t ctx = {0};
     run_init(&ctx, SEL_SAFE_BATCH);
-    // ids[] at offset 128 (4 head params after the 5 args head — keeping
-    // the example simple); values[] at offset 128 + 32 + 2*32 = 224.
-    run_batch_head(&ctx, /*ids_offset_args=*/128, /*values_offset_args=*/224);
+    // ids[] right after the 5-word head; values[] at 160 + 32 + 2*32 = 256;
+    // data at 256 + 32 + 2*32 = 352.
+    run_batch_head(&ctx, 160, 256, 352);
     TEST_ASSERT_EQUAL(ctx.next_param, TOKEN_IDS_LENGTH);
 
     uint8_t param[PARAMETER_LENGTH];
     // ids array length = 2
     make_abi_u32(param, 2);
-    feed_param(&ctx, param, 132);  // = ids_offset_args + 4
+    feed_param(&ctx, param, 164);  // = ids_offset_args + 4
     TEST_ASSERT_EQUAL(ctx.next_param, TOKEN_ID);
     TEST_ASSERT_EQUAL(ctx.ids_array_len, 2);
     TEST_ASSERT_EQUAL(ctx.batch_displayed, 2);
@@ -266,24 +314,30 @@ void test_batch_two_pair_walk(void) {
 
     // ids[0] = 7
     make_abi_u32(param, 7);
-    feed_param(&ctx, param, 164);
+    feed_param(&ctx, param, 196);
     // ids[1] = 9 → after this, next_param flips to VALUE_LENGTH
     make_abi_u32(param, 9);
-    feed_param(&ctx, param, 196);
+    feed_param(&ctx, param, 228);
     TEST_ASSERT_EQUAL(ctx.next_param, VALUE_LENGTH);
 
     // values array length = 2
     make_abi_u32(param, 2);
-    feed_param(&ctx, param, 228);  // = values_offset_args + 4
+    feed_param(&ctx, param, 260);  // = values_offset_args + 4
     TEST_ASSERT_EQUAL(ctx.next_param, VALUE);
 
     // values[0] = 100
     make_abi_u32(param, 100);
-    feed_param(&ctx, param, 260);
+    feed_param(&ctx, param, 292);
     // values[1] = 50
     make_abi_u32(param, 50);
-    feed_param(&ctx, param, 292);
+    feed_param(&ctx, param, 324);
+    TEST_ASSERT_EQUAL(ctx.next_param, DATA_LENGTH);
+
+    // data length = 9
+    make_abi_u32(param, 9);
+    feed_param(&ctx, param, 356);  // = data_offset_args + 4
     TEST_ASSERT_EQUAL(ctx.next_param, NONE);
+    TEST_ASSERT_EQUAL(ctx.data_length, 9);
     // total quantity = 100 + 50 = 150
     TEST_ASSERT_EQUAL(LOWER(LOWER(ctx.value)), 150);
 
@@ -298,12 +352,12 @@ void test_batch_two_pair_walk(void) {
 void test_batch_truncates_beyond_display_max(void) {
     erc1155_context_t ctx = {0};
     run_init(&ctx, SEL_SAFE_BATCH);
-    run_batch_head(&ctx, 128, 32 + 32 * (ERC1155_BATCH_DISPLAY_MAX + 1));
+    run_batch_head(&ctx, 160, 160 + 32 + 32 * 5, 160 + 2 * (32 + 32 * 5));
 
     uint8_t param[PARAMETER_LENGTH];
     // 5 ids -> > ERC1155_BATCH_DISPLAY_MAX (3) -> batch_truncated.
     make_abi_u32(param, 5);
-    feed_param(&ctx, param, 132);
+    feed_param(&ctx, param, 164);
     TEST_ASSERT_EQUAL(ctx.batch_displayed, ERC1155_BATCH_DISPLAY_MAX);
     TEST_ASSERT_TRUE(ctx.batch_truncated);
 }
@@ -311,7 +365,7 @@ void test_batch_truncates_beyond_display_max(void) {
 void test_batch_offset_mismatch_rejected(void) {
     erc1155_context_t ctx = {0};
     run_init(&ctx, SEL_SAFE_BATCH);
-    run_batch_head(&ctx, 128, 224);
+    run_batch_head(&ctx, 160, 256, 352);
 
     // Feed the ids_length parameter at the WRONG offset (one off);
     // the parser must reject rather than misalign.
@@ -328,22 +382,22 @@ void test_batch_offset_mismatch_rejected(void) {
 void test_batch_arrays_length_mismatch_rejected(void) {
     erc1155_context_t ctx = {0};
     run_init(&ctx, SEL_SAFE_BATCH);
-    run_batch_head(&ctx, 128, 224);
+    run_batch_head(&ctx, 160, 256, 384);
     uint8_t param[PARAMETER_LENGTH];
 
     // Declare 2 ids
     make_abi_u32(param, 2);
-    feed_param(&ctx, param, 132);
-    make_abi_u32(param, 1);
     feed_param(&ctx, param, 164);
-    make_abi_u32(param, 2);
+    make_abi_u32(param, 1);
     feed_param(&ctx, param, 196);
+    make_abi_u32(param, 2);
+    feed_param(&ctx, param, 228);
     // ...then declare 3 values (mismatch).
     make_abi_u32(param, 3);
     ethPluginProvideParameter_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
     msg.parameter = param;
-    msg.parameterOffset = 228;
+    msg.parameterOffset = 260;
     erc1155_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
     TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
@@ -353,28 +407,28 @@ void test_batch_aggregate_quantity_overflow_rejected(void) {
     // the "total quantity" line shown to the user does not lie.
     erc1155_context_t ctx = {0};
     run_init(&ctx, SEL_SAFE_BATCH);
-    run_batch_head(&ctx, 128, 224);
+    run_batch_head(&ctx, 160, 256, 352);
 
     uint8_t param[PARAMETER_LENGTH];
     // ids array length = 2 + ids[0]=1, ids[1]=2
     make_abi_u32(param, 2);
-    feed_param(&ctx, param, 132);
-    make_abi_u32(param, 1);
     feed_param(&ctx, param, 164);
-    make_abi_u32(param, 2);
+    make_abi_u32(param, 1);
     feed_param(&ctx, param, 196);
-    // values array length = 2
     make_abi_u32(param, 2);
     feed_param(&ctx, param, 228);
+    // values array length = 2
+    make_abi_u32(param, 2);
+    feed_param(&ctx, param, 260);
     // values[0] = 2^255
     memset(param, 0, sizeof(param));
     param[0] = 0x80;
-    feed_param(&ctx, param, 260);
+    feed_param(&ctx, param, 292);
     // values[1] = 2^255 — sum overflows uint256.
     ethPluginProvideParameter_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
     msg.parameter = param;
-    msg.parameterOffset = 292;
+    msg.parameterOffset = 324;
     erc1155_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
     TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
@@ -432,6 +486,24 @@ void test_finalize_batch_screens_formula(void) {
     msg.txContent = &tx;
     erc1155_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
     TEST_ASSERT_EQUAL(msg.numScreens, 5 + 2 * ERC1155_BATCH_DISPLAY_MAX + 1);
+}
+
+void test_finalize_transfer_with_data_extra_screen(void) {
+    erc1155_context_t ctx = {.selectorIndex = SAFE_TRANSFER, .data_length = 9};
+    txContent_t tx = {0};
+    ethPluginFinalize_t msg = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.txContent = &tx;
+    erc1155_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL(msg.numScreens, 7);
+
+    erc1155_context_t batch = {.selectorIndex = SAFE_BATCH_TRANSFER,
+                               .batch_displayed = 2,
+                               .data_length = 9};
+    msg.pluginContext = (uint8_t *) &batch;
+    erc1155_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
+    TEST_ASSERT_EQUAL(msg.numScreens, 5 + 2 * 2 + 1);
 }
 
 void test_finalize_approval_three_screens(void) {
@@ -693,6 +765,33 @@ void test_ui_safe_transfer_screen5_quantity(void) {
     TEST_ASSERT_EQUAL_STRING(body, "1234");
 }
 
+void test_ui_safe_transfer_screen6_data(void) {
+    prep_nft_info();
+    erc1155_context_t ctx = {.selectorIndex = SAFE_TRANSFER, .data_length = 9};
+    char title[32], body[64];
+    ethQueryContractUI_t msg;
+    prep_ui_msg(&msg, &ctx, title, body, 6);
+    erc1155_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL_STRING(title, "Transfer With Data");
+    TEST_ASSERT_EQUAL_STRING(body, "9 bytes");
+}
+
+void test_ui_batch_data_screen_after_warning(void) {
+    prep_nft_info();
+    erc1155_context_t ctx = {.selectorIndex = SAFE_BATCH_TRANSFER,
+                             .batch_displayed = ERC1155_BATCH_DISPLAY_MAX,
+                             .batch_truncated = true,
+                             .data_length = 9};
+    char title[32], body[64];
+    ethQueryContractUI_t msg;
+    prep_ui_msg(&msg, &ctx, title, body, (uint8_t) (5 + 2 * ERC1155_BATCH_DISPLAY_MAX + 1));
+    erc1155_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL_STRING(title, "Transfer With Data");
+    TEST_ASSERT_EQUAL_STRING(body, "9 bytes");
+}
+
 void test_ui_safe_transfer_unknown_screen_rejected(void) {
     prep_nft_info();
     erc1155_context_t ctx = {.selectorIndex = SAFE_TRANSFER};
@@ -857,6 +956,7 @@ int main(void) {
     RUN_TEST(test_batch_empty_ids_skips_to_value_length);
     RUN_TEST(test_safe_transfer_walk);
     RUN_TEST(test_safe_transfer_extra_params_tolerated);
+    RUN_TEST(test_safe_transfer_data_length_misplaced_rejected);
     RUN_TEST(test_batch_two_pair_walk);
     RUN_TEST(test_batch_truncates_beyond_display_max);
     RUN_TEST(test_batch_offset_mismatch_rejected);
@@ -865,6 +965,7 @@ int main(void) {
     RUN_TEST(test_approval_for_all_walk);
     RUN_TEST(test_finalize_safe_transfer_six_screens);
     RUN_TEST(test_finalize_batch_screens_formula);
+    RUN_TEST(test_finalize_transfer_with_data_extra_screen);
     RUN_TEST(test_finalize_approval_three_screens);
     RUN_TEST(test_finalize_eth_attached_rejected);
     RUN_TEST(test_finalize_unknown_selector_rejects);
@@ -880,6 +981,8 @@ int main(void) {
     RUN_TEST(test_ui_safe_transfer_screen3_nft_address);
     RUN_TEST(test_ui_safe_transfer_screen4_nft_id);
     RUN_TEST(test_ui_safe_transfer_screen5_quantity);
+    RUN_TEST(test_ui_safe_transfer_screen6_data);
+    RUN_TEST(test_ui_batch_data_screen_after_warning);
     RUN_TEST(test_ui_safe_transfer_unknown_screen_rejected);
     RUN_TEST(test_ui_approval_for_all_screen0_allow);
     RUN_TEST(test_ui_approval_for_all_screen0_revoke);

@@ -31,6 +31,11 @@ typedef struct erc1155_context_t {
     uint32_t values_offset;
     uint16_t array_index;
 
+    // Transfer receiver payload, forwarded to the onERC1155Received /
+    // onERC1155BatchReceived hook, so its presence must be shown
+    uint32_t data_offset;
+    uint32_t data_length;
+
     bool approved;
     uint8_t next_param;
     uint8_t selectorIndex;

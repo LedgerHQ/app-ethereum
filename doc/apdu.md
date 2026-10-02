@@ -1260,9 +1260,8 @@ None
 This command handles the dynamic networks configuration, allowing to access funds without needing to update the
 application for each new network.
 
-This configuration must be sent before any access to a network and stays valid until a new config is sent.
-Up to **2** different configurations can be used. The targeted slot is configured automatically to the next
-available one.
+This configuration must be sent before any access to a network and stays valid until the app exits.
+Several networks can be configured. Sending a configuration for an already known chain ID replaces it.
 
 The configuration is sent in TLV (Tag-Length-Value) mode, whereas the icon itself is send as raw bytes in dedicated
 chunk(s).

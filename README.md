@@ -7,14 +7,15 @@
   <h1 align="center">app-ethereum</h1>
 
   <p align="center">
-    Ethereum wallet application for Ledger Blue, Nano S, Nano S Plus and Nano X
+    Ethereum wallet application for Ledger devices
     <br />
     <a href="https://github.com/LedgerHQ/app-ethereum/tree/master/doc"><strong>« Explore the docs »</strong></a>
     <br />
     <br />
     <a href="https://github.com/LedgerHQ/app-ethereum/issues">Report Bug</a>
     · <a href="https://github.com/LedgerHQ/app-ethereum/issues">Request Feature</a>
-    · <a href="https://github.com/LedgerHQ/app-ethereum/issues">Request New Network</a>
+    · <a href="https://github.com/LedgerHQ/ledger-network-icons/blob/main/README.md#procedure-to-add-a-new-network-icon">
+      Request New Network</a>
   </p>
 <br/>
 
@@ -32,6 +33,14 @@
 
 - [About the project](#about-the-project)
 - [Documentation](#documentation)
+- [Features](#features)
+  - [Generic Clear Signing](#generic-clear-signing)
+  - [Trusted names](#trusted-names)
+  - [EVM networks](#evm-networks)
+  - [Transaction Check](#transaction-check)
+  - [Safe accounts](#safe-accounts)
+  - [Address book](#address-book)
+  - [Swap](#swap)
   - [Plugins](#plugins)
 - [Quick start guide](#quick-start-guide)
   - [With VSCode](#with-vscode)
@@ -49,21 +58,86 @@
 ## About the project
 
 Ethereum wallet application framework for Ledger devices.
-Ledger Blue is not maintained anymore, but the app can still be compiled for this target using the branch [`blue-final-release`](https://github.com/LedgerHQ/app-ethereum/tree/blue-final-release).
 
 ## Documentation
 
-This app follows the specification available in the `doc/` folder.
+This app follows the specification available in the `doc/` folder:
+
+- [APDU protocol](doc/apdu.md): list and coding of all the supported commands.
+- [TLV structures](doc/tlv_structs.md): signed descriptors sent by the client
+  (trusted names, networks, Generic Clear Signing, ...).
+- [EIP-712](doc/eip712.md): typed data signing and filtering.
+- [Generic Clear Signing](doc/gcs.md): implementation of the Generic Clear Signing flow.
+- [Plugins](doc/ethapp_plugins.adoc): technical specifications of the legacy plugin interface.
+- [Embedded contract support](doc/eth_contract_support_embedded.adoc): contracts natively supported by the app.
 
 To compile it and load it on a device, please check out our [developer portal](https://developers.ledger.com/docs/device-app/introduction).
 
+## Features
+
+Beyond the plain transaction and message signing, the app relies on signed metadata provided at runtime by the client
+(Ledger Wallet, DMK) to clear sign transactions without requiring an app update.
+
+### Generic Clear Signing
+
+Contract calls are clear signed from an [ERC-7730](https://eips.ethereum.org/EIPS/eip-7730) description, sent by the
+client as signed TLV descriptors: [TRANSACTION INFO](doc/apdu.md#transaction-info) describes the call, then each
+displayed field comes with a [TRANSACTION FIELD DESCRIPTION](doc/apdu.md#transaction-field-description).
+Additional descriptors resolve some of the values:
+
+- [PROVIDE ENUM VALUE](doc/apdu.md#provide-enum-value) and [PROVIDE MAP ENTRY](doc/apdu.md#provide-map-entry)
+  translate raw values into readable labels.
+- [PROVIDE PROXY INFO](doc/apdu.md#provide-proxy-info) associates a proxy contract with its implementation.
+
+See [doc/gcs.md](doc/gcs.md) for the implementation details.
+
+### Trusted names
+
+An address can be replaced on screen by a name (ENS domain, known contract, ...), provided as a signed descriptor with
+[PROVIDE TRUSTED NAME](doc/apdu.md#provide-trusted-name).
+
+### EVM networks
+
+Any EVM network can be used without updating the app: the client provides its configuration at runtime with the
+`PROVIDE NETWORK CONFIGURATION` command.
+
+- The configuration (chain ID, name, ticker and icon hash) is a signed TLV descriptor,
+  see [NETWORK_INFO](doc/tlv_structs.md#network_info).
+- The icon is sent separately as raw bytes, and is only used on Stax, Flex and Apex P.
+- Provided networks stay in memory until the app exits. Sending a configuration for an already known chain ID replaces it.
+- When the network is unknown, the raw chain ID is displayed instead of its name.
+
+The APDU coding is described in [PROVIDE NETWORK CONFIGURATION](doc/apdu.md#provide-network-configuration).
+
+Adding a new network does not require any change in this repository: follow the
+[procedure in ledger-network-icons](https://github.com/LedgerHQ/ledger-network-icons/blob/main/README.md#procedure-to-add-a-new-network-icon).
+
+### Transaction Check
+
+On Stax, Flex and Apex P, the client can provide a risk assessment of the transaction or message being signed, with
+[PROVIDE TX SIMULATION](doc/apdu.md#provide-tx-simulation). It is displayed during the review only when the
+_Transaction Check_ setting is enabled (disabled by default); the client can trigger an opt-in flow to propose it.
+
+### Safe accounts
+
+When signing for a [Safe](https://safe.global) multisig account, the client provides the Safe account and its signers
+with [PROVIDE SAFE ACCOUNT](doc/apdu.md#provide-safe-account), so that the user can verify them.
+
+### Address book
+
+The user can register contacts (a name associated with an address) and name their own
+Ledger accounts. The registered names are then displayed during the review in place of the addresses.
+This feature is provided by the SDK, see its
+[specification](https://github.com/LedgerHQ/ledger-secure-sdk/blob/master/app_features/address_book/doc/address_book_spec.md).
+
+### Swap
+
+The app can be called in library mode by the Exchange app, to check addresses, format amounts and sign the transaction
+of a swap, sell or fund operation.
+
 ### Plugins
 
-We have the concept of plugins in the ETH app.
-Find the documentations here:
-
-- [Plugin guide](https://ethereum-plugin-sdk.ledger.com)
-- [Boilerplate plugin](https://github.com/LedgerHQ/app-plugin-boilerplate)
+Plugins are no longer supported: new integrations must use [Generic Clear Signing](#generic-clear-signing) instead.
 
 ## Quick start guide
 
@@ -155,7 +229,6 @@ make DEBUG=1  # compile optionally with PRINTF
 
 You can choose which device to compile and load for by setting the `BOLOS_SDK` environment variable to the following values:
 
-- `BOLOS_SDK=$NANOS_SDK`
 - `BOLOS_SDK=$NANOX_SDK`
 - `BOLOS_SDK=$NANOSP_SDK`
 - `BOLOS_SDK=$STAX_SDK`
@@ -178,7 +251,7 @@ for the device you want, run the following command:
 
 ```shell
 # Run this command from the app-builder container terminal.
-make load    # load the app on a Nano S by default
+make load    # load the app on the device selected by BOLOS_SDK
 ```
 
 [Setting the BOLOS_SDK environment variable](#compilation-and-load) will allow you to load
@@ -240,7 +313,7 @@ Run the functional tests (here for flex but available for any device once you ha
 pytest tests/functional/ --tb=short -v --device flex
 ```
 
-Please see the corresponding ducomentation [USAGE](tests/functional/usage.md)
+Please see the corresponding documentation [USAGE](tests/functional/usage.md)
 
 Or run your app directly with Speculos
 
@@ -281,7 +354,7 @@ You can also simply open an issue with the tag `enhancement`.
 
 1. Fork the Project
 2. Create your Feature Branch (`git checkout -b feature/my-feature`)
-3. Commit your Changes (`git commit -m 'feat: my new feature`)
+3. Commit your Changes (`git commit -m 'feat: my new feature'`)
 4. Push to the Branch (`git push origin feature/my-feature`)
 5. Open a Pull Request
 

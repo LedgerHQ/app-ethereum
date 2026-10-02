@@ -1,19 +1,21 @@
 name: Publish swap test binaries
 
-# Attach the test-key builds of the app to the GitHub release of the tag, as
-# `<use_case>-<device>.elf`. They are used as dependencies of the swap tests of
-# other apps (see `pytest.swap.dependencies` in their `ledger_app.toml`).
+# Keep a rolling pre-release tagged `test-binaries`, rebuilt on every push to develop.
+# It holds the test-key builds of this app, one file per use case and device, named
+# `<use_case>-<device>.elf`. They are used as dependencies of the swap tests of other
+# apps (see `pytest.swap.dependencies` in their `ledger_app.toml`).
+# The `test-binaries` tag always points to the commit the files were built from.
 
 on:
   push:
-    tags:
-      - '[0-9]+.[0-9]+.[0-9]+'
+    branches:
+      - develop
   workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Existing tag to build and publish'
-        required: true
-        type: string
+
+# Only the newest commit matters: stop the older run if a new push comes in.
+concurrency:
+  group: publish-test-binaries
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -31,21 +33,20 @@ jobs:
       pull-requests: write  # Needed by the reusable build workflow
     uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_build.yml@v1
     with:
-      # Manual runs use the tag input. A workflow triggered by a tag push has no explicit inputs, so the ref_name is used.
-      app_branch_name: ${{ inputs.tag || github.ref_name }}
+      app_branch_name: ${{ github.sha }}
       use_case: ${{ matrix.use_case }}
       upload_app_binaries_artifact: test_binaries-${{ matrix.use_case }}
 
   upload:
-    name: Upload to the release
+    name: Update the test-binaries pre-release
     needs: build
     runs-on: ubuntu-latest
     permissions:
       contents: write
     env:
       GH_TOKEN: ${{ github.token }}
-      # Manual runs use the tag input. A workflow triggered by a tag push has no explicit inputs, so the ref_name is used.
-      TAG: ${{ inputs.tag || github.ref_name }}
+      GH_REPO: ${{ github.repository }}
+      TAG: test-binaries
     steps:
       - name: Download the built binaries
         uses: actions/download-artifact@v8
@@ -63,10 +64,22 @@ jobs:
           done
           ls -l assets
 
-      - name: Wait for the release of the tag, then upload
+      - name: Create the tag if it does not exist yet
         run: |
-          for _ in $(seq 60); do
-            gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1 && break
-            sleep 30
-          done
-          gh release upload "$TAG" assets/* --clobber --repo "$GITHUB_REPOSITORY"
+          gh api "repos/$GH_REPO/git/ref/tags/$TAG" > /dev/null 2>&1 \
+            || gh api --method POST "repos/$GH_REPO/git/refs" -f ref="refs/tags/$TAG" -f sha="$GITHUB_SHA"
+
+      - name: Create or update the pre-release, then upload the files
+        run: |
+          TITLE="Swap test binaries (develop)"
+          NOTES="Test-key builds of this app, rebuilt on every push to develop. Built from commit $GITHUB_SHA. Used by the swap tests of other apps. Not a product release."
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release edit "$TAG" --prerelease --title "$TITLE" --notes "$NOTES"
+          else
+            gh release create "$TAG" --prerelease --title "$TITLE" --notes "$NOTES" --verify-tag
+          fi
+          gh release upload "$TAG" assets/* --clobber
+
+      # Last step: the tag only moves once all files are uploaded.
+      - name: Move the tag to the built commit
+        run: gh api --method PATCH "repos/$GH_REPO/git/refs/tags/$TAG" -f sha="$GITHUB_SHA" -F force=true

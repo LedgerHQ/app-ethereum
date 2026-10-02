@@ -84,7 +84,8 @@ _Output data:_
 
 #### Description
 
-The application supports signing legacy or [EIP-2718](https://eips.ethereum.org/EIPS/eip-2718) transactions for Type 2 ([EIP-1559](https://eips.ethereum.org/EIPS/eip-1559)) and Type 4 ([EIP-7702](https://eips.ethereum.org/EIPS/eip-7702)).
+The application supports signing legacy or [EIP-2718](https://eips.ethereum.org/EIPS/eip-2718) transactions for Type 2
+([EIP-1559](https://eips.ethereum.org/EIPS/eip-1559)) and Type 4 ([EIP-7702](https://eips.ethereum.org/EIPS/eip-7702)).
 
 This command signs an Ethereum transaction after having the user validate the following parameters:
 
@@ -93,7 +94,9 @@ This command signs an Ethereum transaction after having the user validate the fo
 - Recipient address
 - Value
 
-The input data is the RLP encoded transaction (as per [pyethereum's transactions.py](https://github.com/ethereum/pyethereum/blob/develop/ethereum/transactions.py#L22)), without v/r/s present, streamed to the device in 255 bytes maximum data chunks.
+The input data is the RLP encoded transaction (as per [pyethereum's
+transactions.py](https://github.com/ethereum/pyethereum/blob/develop/ethereum/transactions.py#L22)), without v/r/s
+present, streamed to the device in 255 bytes maximum data chunks.
 
 #### Coding
 
@@ -162,7 +165,9 @@ _Output data:_
 
 #### Description
 
-This command signs an Ethereum message following the [personal_sign specification](https://github.com/ethereum/go-ethereum/pull/2940) after having the user validate the Keccak-256 hash of the message being signed.
+This command signs an Ethereum message following the [personal_sign
+specification](https://github.com/ethereum/go-ethereum/pull/2940) after having the user validate the Keccak-256 hash of
+the message being signed.
 
 This command has been supported since firmware version 1.0.8.
 
@@ -205,14 +210,18 @@ _Output data:_
 
 #### Description
 
-This command provides a trusted description of an [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token to associate a contract address with a ticker and number of decimals.
+This command provides a trusted description of an [ERC-20](https://eips.ethereum.org/EIPS/eip-20) token to associate a
+contract address with a ticker and number of decimals.
 
-It shall be run immediately before performing a transaction involving a contract calling this contract address to display the proper token information to the user if necessary, as marked in GET APP CONFIGURATION flags.
+It shall be run immediately before performing a transaction involving a contract calling this contract address to
+display the proper token information to the user if necessary, as marked in GET APP CONFIGURATION flags.
 
 Two formats are supported, selected by P1:
 
 - **P1 = 00 (legacy)**: raw binary payload, signed with a dedicated secp256k1 key.
-- **P1 = 01 (TLV)**: TLV dynamic descriptor payload as defined in [DYNAMIC_TOKEN_DESCRIPTOR](tlv_structs.md#dynamic_token_descriptor), signed via the Ledger PKI (key usage `COIN_META`). Supports multi-APDU chunking via P2.
+- **P1 = 01 (TLV)**: TLV dynamic descriptor payload as defined in
+  [DYNAMIC_TOKEN_DESCRIPTOR](tlv_structs.md#dynamic_token_descriptor), signed via the Ledger PKI (key usage
+  `COIN_META`). Supports multi-APDU chunking via P2.
 
 ##### Legacy format (P1 = 00)
 
@@ -227,7 +236,8 @@ signed by the following secp256k1 public key:
 
 ##### TLV format (P1 = 01)
 
-The signature covers the SHA-256 hash of all TLV fields except the SIGNATURE tag itself, verified via the Ledger PKI with key usage `COIN_META`.
+The signature covers the SHA-256 hash of all TLV fields except the SIGNATURE tag itself, verified via the Ledger PKI
+with key usage `COIN_META`.
 
 #### Coding
 
@@ -280,11 +290,13 @@ Returned only when the last (or only) chunk has been processed.
 
 This command signs an Ethereum message following the [EIP-712 specification](https://eips.ethereum.org/EIPS/eip-712).
 
-For V0 implementation, the domain hash and message hash are provided to the device, which displays them and returns the signature.
+For V0 implementation, the domain hash and message hash are provided to the device, which displays them and returns the
+signature.
 
 This command has been supported since app version 1.5.0.
 
-The full implementation uses all the JSON data and does all the hashing on the device, it has been supported since app version 1.9.19. This command should come last, after all the EIP712 SEND STRUCT DEFINITION & SEND STRUCT IMPLEMENTATION.
+The full implementation uses all the JSON data and does all the hashing on the device, it has been supported since app
+version 1.9.19. This command should come last, after all the EIP712 SEND STRUCT DEFINITION & SEND STRUCT IMPLEMENTATION.
 
 #### Coding
 
@@ -317,7 +329,8 @@ _Output data:_
 
 #### Description
 
-This command returns an Ethereum 2 BLS12-381 public key derived following [EIP-2333 specification](https://eips.ethereum.org/EIPS/eip-2333).
+This command returns an Ethereum 2 BLS12-381 public key derived following [EIP-2333
+specification](https://eips.ethereum.org/EIPS/eip-2333).
 
 This command has been supported since firmware version 1.6.0.
 
@@ -348,9 +361,12 @@ _Output data:_
 
 #### Description
 
-This command sets the index of the Withdrawal key used as withdrawal credentials in an ETH2 deposit contract call signature. The path of the Withdrawal key is defined as `m/12381/3600/index/0` according to [EIP-2334](https://eips.ethereum.org/EIPS/eip-2334).
+This command sets the index of the Withdrawal key used as withdrawal credentials in an ETH2 deposit contract call
+signature. The path of the Withdrawal key is defined as `m/12381/3600/index/0` according to
+[EIP-2334](https://eips.ethereum.org/EIPS/eip-2334).
 
-The default index used is 0 if this method isn't called before the deposit contract transaction is sent to the device to be signed.
+The default index used is 0 if this method isn't called before the deposit contract transaction is sent to the device to
+be signed.
 
 This command has been supported since firmware version 1.5.0.
 
@@ -376,9 +392,11 @@ None
 
 #### Description
 
-This command provides the name of a trusted binding of a plugin with a contract address and a supported method selector. This plugin will be called to interpret contract data in the following transaction signing command.
+This command provides the name of a trusted binding of a plugin with a contract address and a supported method selector.
+This plugin will be called to interpret contract data in the following transaction signing command.
 
-It shall be run immediately before performing a transaction involving a contract supported by this plugin to display the proper information to the user if necessary.
+It shall be run immediately before performing a transaction involving a contract supported by this plugin to display the
+proper information to the user if necessary.
 
 The function returns an error sw (0x6984) if the plugin requested is not installed on the device, 0x9000 otherwise.
 
@@ -419,7 +437,8 @@ None
 
 This command provides a trusted description of an NFT to associate a contract address with a collectionName.
 
-It shall be run immediately before performing a transaction involving a contract calling this contract address to display the proper nft information to the user if necessary, as marked in GET APP CONFIGURATION flags.
+It shall be run immediately before performing a transaction involving a contract calling this contract address to
+display the proper nft information to the user if necessary, as marked in GET APP CONFIGURATION flags.
 
 The signature is computed on:
 
@@ -460,15 +479,18 @@ _Output data:_
 
 #### Description
 
-This command provides the name of a trusted binding of a plugin with a contract address and a supported method selector. This plugin will be called to interpret contract data in the following transaction signing command.
+This command provides the name of a trusted binding of a plugin with a contract address and a supported method selector.
+This plugin will be called to interpret contract data in the following transaction signing command.
 
 It can be used to set both internal and external plugins.
 
-It shall be run immediately before performing a transaction involving a contract supported by this plugin to display the proper information to the user if necessary.
+It shall be run immediately before performing a transaction involving a contract supported by this plugin to display the
+proper information to the user if necessary.
 
 The function returns an error sw (0x6984) if the plugin requested is not installed on the device, 0x9000 otherwise.
 
-The plugin names `ERC20`, `ERC721` and `ERC1155` are reserved. Additional plugin names might be added to this list in the future.
+The plugin names `ERC20`, `ERC721` and `ERC1155` are reserved. Additional plugin names might be added to this list in
+the future.
 
 The signature is computed on:
 
@@ -508,9 +530,12 @@ None
 
 #### Description
 
-This command performs privacy operations as defined in [EIP-1024](https://ethereum-magicians.org/t/eip-1024-cross-client-encrypt-decrypt/505).
+This command performs privacy operations as defined in
+[EIP-1024](https://ethereum-magicians.org/t/eip-1024-cross-client-encrypt-decrypt/505).
 
-It can return the public encryption key on Curve25519 for a given Ethereum account or the shared secret (generated by the scalar multiplication of the remote public key by the account private key on Curve25519) used to decrypt private data encrypted for a given Ethereum account.
+It can return the public encryption key on Curve25519 for a given Ethereum account or the shared secret (generated by
+the scalar multiplication of the remote public key by the account private key on Curve25519) used to decrypt private
+data encrypted for a given Ethereum account.
 
 All data can be optionally checked on the device before being returned.
 
@@ -656,7 +681,8 @@ _Input data:_
 |-------------|---------------|
 | Name        | LC            |
 
-Sets the name of the upcoming root structure all the following fields will be a part of until we set another root structure.
+Sets the name of the upcoming root structure all the following fields will be a part of until we set another root
+structure.
 
 ##### If P2 == array
 
@@ -685,9 +711,11 @@ None
 
 #### Description
 
-This command provides a trusted way of deciding what information from the JSON data to show and replace some values by more meaningful ones.
+This command provides a trusted way of deciding what information from the JSON data to show and replace some values by
+more meaningful ones.
 
-This mode can be overridden by the in-app setting to fully clear-sign [EIP-712](https://eips.ethereum.org/EIPS/eip-712) messages.
+This mode can be overridden by the in-app setting to fully clear-sign [EIP-712](https://eips.ethereum.org/EIPS/eip-712)
+messages.
 
 For the signatures:
 
@@ -696,21 +724,25 @@ For the signatures:
 
 ##### Activation
 
-Full filtering is disabled by default and has to be changed with this APDU (default behaviour is basic filtering handled by the app itself).
+Full filtering is disabled by default and has to be changed with this APDU (default behaviour is basic filtering handled
+by the app itself).
 
 Field substitution will be ignored if the full filtering is not activated.
 
-This command should come before the domain & message implementations. If activated, fields will be by default hidden unless they receive a field name substitution.
+This command should come before the domain & message implementations. If activated, fields will be by default hidden
+unless they receive a field name substitution.
 
 ##### Discarded filter path
 
-This command gives the app the absolute path of the upcoming filter which will be discarded (because it targets a field within an empty array).
+This command gives the app the absolute path of the upcoming filter which will be discarded (because it targets a field
+within an empty array).
 
 The next filter should be marked as discarded (with P1) to be able to use this given filter path.
 
 ##### Message info
 
-This command should come right after the implementation of the domain has been sent with **SEND STRUCT IMPLEMENTATION**, just before sending the message implementation.
+This command should come right after the implementation of the domain has been sent with **SEND STRUCT IMPLEMENTATION**,
+just before sending the message implementation.
 The first byte is used as a magic number so that a signature of one type cannot be valid as another type.
 
 The signature is computed on:
@@ -721,7 +753,8 @@ The signature is computed on:
 
 ##### Amount-join token
 
-This command should come before the corresponding **SEND STRUCT IMPLEMENTATION** and are only usable for message fields (and not domain ones).
+This command should come before the corresponding **SEND STRUCT IMPLEMENTATION** and are only usable for message fields
+(and not domain ones).
 The first byte is used as a magic number so that a signature of one type cannot be valid as another type.
 
 The signature is computed on:
@@ -732,10 +765,13 @@ The signature is computed on:
 
 ##### Amount-join value
 
-This command should come before the corresponding **SEND STRUCT IMPLEMENTATION** and are only usable for message fields (and not domain ones).
+This command should come before the corresponding **SEND STRUCT IMPLEMENTATION** and are only usable for message fields
+(and not domain ones).
 The first byte is used as a magic number so that a signature of one type cannot be valid as another type.
 
-A join identifier of 0xFF indicates the token address is in the _verifyingContract_ field of the EIP712Domain so the app won't receive an amount-join token filtering APDU. This enables support for Permit ([ERC-2612](https://eips.ethereum.org/EIPS/eip-2612)) messages.
+A join identifier of 0xFF indicates the token address is in the _verifyingContract_ field of the EIP712Domain so the app
+won't receive an amount-join token filtering APDU. This enables support for Permit
+([ERC-2612](https://eips.ethereum.org/EIPS/eip-2612)) messages.
 
 The signature is computed on:
 
@@ -745,7 +781,8 @@ The signature is computed on:
 
 ##### Date / Time
 
-This command should come before the corresponding **SEND STRUCT IMPLEMENTATION** and are only usable for message fields (and not domain ones).
+This command should come before the corresponding **SEND STRUCT IMPLEMENTATION** and are only usable for message fields
+(and not domain ones).
 The first byte is used as a magic number so that a signature of one type cannot be valid as another type.
 
 The signature is computed on:
@@ -756,7 +793,8 @@ The signature is computed on:
 
 ##### Trusted name
 
-This command should come before the corresponding **SEND STRUCT IMPLEMENTATION** and are only usable for message fields (and not domain ones).
+This command should come before the corresponding **SEND STRUCT IMPLEMENTATION** and are only usable for message fields
+(and not domain ones).
 The first byte is used as a magic number so that a signature of one type cannot be valid as another type.
 
 The signature is computed on:
@@ -770,7 +808,9 @@ The signature is computed on:
 This command should come before the first other calldata filter of the same calldata index.
 The first byte is used as a magic number so that a signature of one type cannot be valid as another type.
 
-The signature is not computed on a field path, because this is not tied to a field within the message and is valid as long as the app receives it during the [EIP-712](https://eips.ethereum.org/EIPS/eip-712) flow and before any other calldata filter.
+The signature is not computed on a field path, because this is not tied to a field within the message and is valid as
+long as the app receives it during the [EIP-712](https://eips.ethereum.org/EIPS/eip-712) flow and before any other
+calldata filter.
 
 The signature is computed on:
 
@@ -780,7 +820,8 @@ The signature is computed on:
 
 ##### Calldata value
 
-This command should come before the corresponding **SEND STRUCT IMPLEMENTATION** and are only usable for message fields (and not domain ones).
+This command should come before the corresponding **SEND STRUCT IMPLEMENTATION** and are only usable for message fields
+(and not domain ones).
 The first byte is used as a magic number so that a signature of one type cannot be valid as another type.
 
 The signature is computed on:
@@ -791,7 +832,8 @@ The signature is computed on:
 
 ##### Calldata callee
 
-This command should come before the corresponding **SEND STRUCT IMPLEMENTATION** and are only usable for message fields (and not domain ones).
+This command should come before the corresponding **SEND STRUCT IMPLEMENTATION** and are only usable for message fields
+(and not domain ones).
 The first byte is used as a magic number so that a signature of one type cannot be valid as another type.
 
 The signature is computed on:
@@ -802,7 +844,8 @@ The signature is computed on:
 
 ##### Calldata chain ID
 
-This command should come before the corresponding **SEND STRUCT IMPLEMENTATION** and are only usable for message fields (and not domain ones).
+This command should come before the corresponding **SEND STRUCT IMPLEMENTATION** and are only usable for message fields
+(and not domain ones).
 The first byte is used as a magic number so that a signature of one type cannot be valid as another type.
 
 The signature is computed on:
@@ -813,7 +856,8 @@ The signature is computed on:
 
 ##### Calldata selector
 
-This command should come before the corresponding **SEND STRUCT IMPLEMENTATION** and are only usable for message fields (and not domain ones).
+This command should come before the corresponding **SEND STRUCT IMPLEMENTATION** and are only usable for message fields
+(and not domain ones).
 The first byte is used as a magic number so that a signature of one type cannot be valid as another type.
 
 The signature is computed on:
@@ -824,7 +868,8 @@ The signature is computed on:
 
 ##### Calldata amount
 
-This command should come before the corresponding **SEND STRUCT IMPLEMENTATION** and are only usable for message fields (and not domain ones).
+This command should come before the corresponding **SEND STRUCT IMPLEMENTATION** and are only usable for message fields
+(and not domain ones).
 The first byte is used as a magic number so that a signature of one type cannot be valid as another type.
 
 The signature is computed on:
@@ -835,7 +880,8 @@ The signature is computed on:
 
 ##### Calldata spender
 
-This command should come before the corresponding **SEND STRUCT IMPLEMENTATION** and are only usable for message fields (and not domain ones).
+This command should come before the corresponding **SEND STRUCT IMPLEMENTATION** and are only usable for message fields
+(and not domain ones).
 The first byte is used as a magic number so that a signature of one type cannot be valid as another type.
 
 The signature is computed on:
@@ -846,7 +892,8 @@ The signature is computed on:
 
 ##### Show raw field
 
-This command should come before the corresponding **SEND STRUCT IMPLEMENTATION** and are only usable for message fields (and not domain ones).
+This command should come before the corresponding **SEND STRUCT IMPLEMENTATION** and are only usable for message fields
+(and not domain ones).
 The first byte is used as a magic number so that a signature of one type cannot be valid as another type.
 
 The signature is computed on:
@@ -888,7 +935,9 @@ None
 
 ##### If P2 == calldata info
 
-The calldata index is there to differentiate calldatas if the message contains multiple and if they are presented in a way where the filters would be intertwined (the app would start receiving filters about a second calldata before receiving all the filters from the first one).
+The calldata index is there to differentiate calldatas if the message contains multiple and if they are presented in a
+way where the filters would be intertwined (the app would start receiving filters about a second calldata before
+receiving all the filters from the first one).
 
 This command is not counted towards the `Filters count` of the `message info` command, but other calldata commands are.
 
@@ -1041,7 +1090,9 @@ _Output data:_
 
 #### Description
 
-This command provides a trusted name (like an ENS domain) to be displayed during transactions in place of the address it is associated to. It shall be run just before a transaction/message involving the associated address that would be displayed on the device.
+This command provides a trusted name (like an ENS domain) to be displayed during transactions in place of the address it
+is associated to. It shall be run just before a transaction/message involving the associated address that would be
+displayed on the device.
 
 The signature is computed on the TLV payload (minus the signature obviously).
 
@@ -1171,7 +1222,8 @@ None
 
 #### Description
 
-This command provides the app with the knowledge that a contract address is a proxy to another contract on a specific chain.
+This command provides the app with the knowledge that a contract address is a proxy to another contract on a specific
+chain.
 This can also (optionally) be restricted to a specific function within the contract.
 
 #### Coding
@@ -1205,12 +1257,15 @@ None
 
 #### Description
 
-This command handles the dynamic networks configuration, allowing to access funds without needing to update the application for each new network.
+This command handles the dynamic networks configuration, allowing to access funds without needing to update the
+application for each new network.
 
 This configuration must be sent before any access to a network and stays valid until a new config is sent.
-Up to **2** different configurations can be used. The targeted slot is configured automatically to the next available one.
+Up to **2** different configurations can be used. The targeted slot is configured automatically to the next
+available one.
 
-The configuration is sent in TLV (Tag-Length-Value) mode, whereas the icon itself is send as raw bytes in dedicated chunk(s).
+The configuration is sent in TLV (Tag-Length-Value) mode, whereas the icon itself is send as raw bytes in dedicated
+chunk(s).
 The configuration doesn't include the icon itself, but only its hash (`sha256`), and it is signed.
 
 The TLV description is available in [NETWORK_INFO struct](tlv_structs.md#network_info).
@@ -1252,7 +1307,8 @@ _Input data:_
 > - No need to specify the full size because it is already included in the data header
 > - The icon is not supported on Nano devices and the corresponding APDU will be ignored.
 > - Depending on its size, it may be split on several chunks. The maximum allowed bitmap size is `1KB`.
-> - The data correspond the hex string generated by the script `<SDK_PATH>/lib_nbgl/tools/icon2glyph.py`, with parameter `--hexbitmap`
+> - The data correspond the hex string generated by the script `<SDK_PATH>/lib_nbgl/tools/icon2glyph.py`, with parameter
+>   `--hexbitmap`
 
 _Output data:_
 
@@ -1319,11 +1375,11 @@ None
 
 _Output data:_
 
-##### If P1 == TX Simulation Payload
+##### Response if P1 == TX Simulation Payload
 
 None
 
-##### If P1 == TX Simulation Opt-In
+##### Response if P1 == TX Simulation Opt-In
 
 | Description                      | Length |
 |----------------------------------|--------|
@@ -1333,7 +1389,8 @@ None
 
 #### Description
 
-This command computes the signature for an element of an [EIP-7702](https://eips.ethereum.org/EIPS/eip-7702) Authorization list on the given account, for the given delegate, chain ID and nonce.
+This command computes the signature for an element of an [EIP-7702](https://eips.ethereum.org/EIPS/eip-7702)
+Authorization list on the given account, for the given delegate, chain ID and nonce.
 
 The user is prompted to confirm the operation before the signature is issued.
 
@@ -1475,7 +1532,10 @@ None
 
 #### Description
 
-This command provides the app with a key/value entry for a specific contract, function selector, and chain ID. The entry is signed by CAL and stored on the device until a new signing session starts. When the Generic Transaction Parser encounters a `MAP_REF` parameter, the device looks up the stored entries and resolves the display value from the matching `MAP_ENTRY`.
+This command provides the app with a key/value entry for a specific contract, function selector, and chain ID. The entry
+is signed by CAL and stored on the device until a new signing session starts. When the Generic Transaction Parser
+encounters a `MAP_REF` parameter, the device looks up the stored entries and resolves the display value from the
+matching `MAP_ENTRY`.
 
 The descriptor is sent in TLV (Tag-Length-Value) mode.
 

@@ -7,14 +7,15 @@
   <h1 align="center">app-ethereum</h1>
 
   <p align="center">
-    Ethereum wallet application for Ledger Blue, Nano S, Nano S Plus and Nano X
+    Ethereum wallet application for Ledger devices
     <br />
     <a href="https://github.com/LedgerHQ/app-ethereum/tree/master/doc"><strong>« Explore the docs »</strong></a>
     <br />
     <br />
     <a href="https://github.com/LedgerHQ/app-ethereum/issues">Report Bug</a>
     · <a href="https://github.com/LedgerHQ/app-ethereum/issues">Request Feature</a>
-    · <a href="https://github.com/LedgerHQ/app-ethereum/issues">Request New Network</a>
+    · <a href="https://github.com/LedgerHQ/ledger-network-icons/blob/main/README.md#procedure-to-add-a-new-network-icon">
+      Request New Network</a>
   </p>
 <br/>
 
@@ -32,6 +33,7 @@
 
 - [About the project](#about-the-project)
 - [Documentation](#documentation)
+  - [Dynamic networks](#dynamic-networks)
   - [Plugins](#plugins)
 - [Quick start guide](#quick-start-guide)
   - [With VSCode](#with-vscode)
@@ -49,13 +51,36 @@
 ## About the project
 
 Ethereum wallet application framework for Ledger devices.
-Ledger Blue is not maintained anymore, but the app can still be compiled for this target using the branch [`blue-final-release`](https://github.com/LedgerHQ/app-ethereum/tree/blue-final-release).
 
 ## Documentation
 
-This app follows the specification available in the `doc/` folder.
+This app follows the specification available in the `doc/` folder:
+
+- [APDU protocol](doc/apdu.md): list and coding of all the supported commands.
+- [TLV structures](doc/tlv_structs.md): signed descriptors sent by the client
+  (trusted names, networks, Generic Clear Signing, ...).
+- [EIP-712](doc/eip712.md): typed data signing and filtering.
+- [Generic Clear Signing](doc/gcs.md): implementation of the Generic Clear Signing flow.
+- [Plugins](doc/ethapp_plugins.adoc): technical specifications of the legacy plugin interface.
+- [Embedded contract support](doc/eth_contract_support_embedded.adoc): contracts natively supported by the app.
 
 To compile it and load it on a device, please check out our [developer portal](https://developers.ledger.com/docs/device-app/introduction).
+
+### Dynamic networks
+
+Any EVM network can be used without updating the app: the client (Ledger Wallet, DMK) provides its
+configuration at runtime with the `PROVIDE NETWORK CONFIGURATION` command.
+
+- The configuration (chain ID, name, ticker and icon hash) is a signed TLV descriptor,
+  see [NETWORK_INFO](doc/tlv_structs.md#network_info).
+- The icon is sent separately as raw bytes, and is only used on Stax, Flex and Apex P.
+- Dynamic networks stay in memory until the app exits. Sending a configuration for an already known chain ID replaces it.
+- When the network is unknown, the raw chain ID is displayed instead of its name.
+
+The APDU coding is described in [PROVIDE NETWORK CONFIGURATION](doc/apdu.md#provide-network-configuration).
+
+Adding a new network does not require any change in this repository: follow the
+[procedure in ledger-network-icons](https://github.com/LedgerHQ/ledger-network-icons/blob/main/README.md#procedure-to-add-a-new-network-icon).
 
 ### Plugins
 
@@ -155,7 +180,6 @@ make DEBUG=1  # compile optionally with PRINTF
 
 You can choose which device to compile and load for by setting the `BOLOS_SDK` environment variable to the following values:
 
-- `BOLOS_SDK=$NANOS_SDK`
 - `BOLOS_SDK=$NANOX_SDK`
 - `BOLOS_SDK=$NANOSP_SDK`
 - `BOLOS_SDK=$STAX_SDK`
@@ -178,7 +202,7 @@ for the device you want, run the following command:
 
 ```shell
 # Run this command from the app-builder container terminal.
-make load    # load the app on a Nano S by default
+make load    # load the app on the device selected by BOLOS_SDK
 ```
 
 [Setting the BOLOS_SDK environment variable](#compilation-and-load) will allow you to load
@@ -240,7 +264,7 @@ Run the functional tests (here for flex but available for any device once you ha
 pytest tests/functional/ --tb=short -v --device flex
 ```
 
-Please see the corresponding ducomentation [USAGE](tests/functional/usage.md)
+Please see the corresponding documentation [USAGE](tests/functional/usage.md)
 
 Or run your app directly with Speculos
 
@@ -281,7 +305,7 @@ You can also simply open an issue with the tag `enhancement`.
 
 1. Fork the Project
 2. Create your Feature Branch (`git checkout -b feature/my-feature`)
-3. Commit your Changes (`git commit -m 'feat: my new feature`)
+3. Commit your Changes (`git commit -m 'feat: my new feature'`)
 4. Push to the Branch (`git push origin feature/my-feature`)
 5. Open a Pull Request
 

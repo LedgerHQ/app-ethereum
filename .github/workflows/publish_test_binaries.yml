@@ -29,6 +29,7 @@ jobs:
         use_case: [use_test_keys, dbg_use_test_keys]
     uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_build.yml@v1
     with:
+      # Manual runs use the tag input. A workflow triggered by a tag push has no explicit inputs, so the ref_name is used.
       app_branch_name: ${{ inputs.tag || github.ref_name }}
       use_case: ${{ matrix.use_case }}
       upload_app_binaries_artifact: test_binaries-${{ matrix.use_case }}
@@ -41,6 +42,7 @@ jobs:
       contents: write
     env:
       GH_TOKEN: ${{ github.token }}
+      # Manual runs use the tag input. A workflow triggered by a tag push has no explicit inputs, so the ref_name is used.
       TAG: ${{ inputs.tag || github.ref_name }}
     steps:
       - name: Download the built binaries

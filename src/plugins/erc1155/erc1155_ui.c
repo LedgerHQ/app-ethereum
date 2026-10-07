@@ -16,7 +16,7 @@ static void set_approval_for_all_ui(ethQueryContractUI_t *msg, erc1155_context_t
             if (!getEthDisplayableAddress(context->address,
                                           msg->msg,
                                           msg->msgLength,
-                                          chainConfig->chainId)) {
+                                          g_chain_config->chain_id)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
             break;
@@ -29,7 +29,7 @@ static void set_approval_for_all_ui(ethQueryContractUI_t *msg, erc1155_context_t
             if (!getEthDisplayableAddress(msg->item1->nft.contractAddress,
                                           msg->msg,
                                           msg->msgLength,
-                                          chainConfig->chainId)) {
+                                          g_chain_config->chain_id)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
             break;
@@ -47,7 +47,7 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *contex
             if (!getEthDisplayableAddress(context->ownerAddress,
                                           msg->msg,
                                           msg->msgLength,
-                                          chainConfig->chainId)) {
+                                          g_chain_config->chain_id)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
             break;
@@ -56,7 +56,7 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *contex
             if (!getEthDisplayableAddress(context->address,
                                           msg->msg,
                                           msg->msgLength,
-                                          chainConfig->chainId)) {
+                                          g_chain_config->chain_id)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
             break;
@@ -69,7 +69,7 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *contex
             if (!getEthDisplayableAddress(msg->item1->nft.contractAddress,
                                           msg->msg,
                                           msg->msgLength,
-                                          chainConfig->chainId)) {
+                                          g_chain_config->chain_id)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
             break;
@@ -87,6 +87,11 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *contex
             if (!tostring256(&context->value, 10, msg->msg, msg->msgLength)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
+            break;
+        case 6:
+            // Requested by finalize only for a non-empty payload
+            strlcpy(msg->title, "Transfer With Data", msg->titleLength);
+            snprintf(msg->msg, msg->msgLength, "%u bytes", (unsigned) context->data_length);
             break;
         default:
             PRINTF("Unsupported screen index %d\n", msg->screenIndex);
@@ -112,6 +117,7 @@ static void set_batch_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *
     uint8_t idx = msg->screenIndex;
     uint8_t pair_screens = (uint8_t) (2 * context->batch_displayed);
     uint8_t warn_idx = (uint8_t) (BATCH_SCREEN_PAIR_BASE + pair_screens);
+    uint8_t data_idx = (uint8_t) (warn_idx + (context->batch_truncated ? 1 : 0));
 
     switch (idx) {
         case BATCH_SCREEN_OWNER:
@@ -119,7 +125,7 @@ static void set_batch_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *
             if (!getEthDisplayableAddress(context->ownerAddress,
                                           msg->msg,
                                           msg->msgLength,
-                                          chainConfig->chainId)) {
+                                          g_chain_config->chain_id)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
             break;
@@ -128,7 +134,7 @@ static void set_batch_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *
             if (!getEthDisplayableAddress(context->address,
                                           msg->msg,
                                           msg->msgLength,
-                                          chainConfig->chainId)) {
+                                          g_chain_config->chain_id)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
             break;
@@ -141,7 +147,7 @@ static void set_batch_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *
             if (!getEthDisplayableAddress(msg->item1->nft.contractAddress,
                                           msg->msg,
                                           msg->msgLength,
-                                          chainConfig->chainId)) {
+                                          g_chain_config->chain_id)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
             break;
@@ -163,6 +169,10 @@ static void set_batch_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *
                 uint8_t pair_offset = (uint8_t) (idx - BATCH_SCREEN_PAIR_BASE);
                 uint8_t pair_idx = (uint8_t) (pair_offset / 2);
                 bool show_value = (pair_offset % 2) == 1;
+                if (pair_idx >= ERC1155_BATCH_DISPLAY_MAX) {
+                    msg->result = ETH_PLUGIN_RESULT_ERROR;
+                    return;
+                }
                 if (show_value) {
                     uint256_t v;
                     if (!convertUint256BE(context->batch_values[pair_idx], INT256_LENGTH, &v)) {
@@ -189,6 +199,10 @@ static void set_batch_transfer_ui(ethQueryContractUI_t *msg, erc1155_context_t *
                          "Only first %d of %d IDs shown",
                          ERC1155_BATCH_DISPLAY_MAX,
                          context->array_index);
+            } else if ((context->data_length > 0) && (idx == data_idx)) {
+                // Requested by finalize only for a non-empty payload
+                strlcpy(msg->title, "Transfer With Data", msg->titleLength);
+                snprintf(msg->msg, msg->msgLength, "%u bytes", (unsigned) context->data_length);
             } else {
                 PRINTF("Unsupported screen index %d\n", idx);
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
@@ -204,7 +218,6 @@ void handle_query_contract_ui_1155(ethQueryContractUI_t *msg) {
         msg->result = ETH_PLUGIN_RESULT_ERROR;
         return;
     }
-
     msg->result = ETH_PLUGIN_RESULT_OK;
     switch (context->selectorIndex) {
         case SET_APPROVAL_FOR_ALL:

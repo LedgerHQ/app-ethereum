@@ -26,34 +26,22 @@ typedef struct uint128_t {
     uint64_t elements[2];
 } uint128_t;
 
-void readu128BE(const uint8_t *const buffer, uint128_t *const target);
-bool zero128(const uint128_t *const number);
-void copy128(uint128_t *const target, const uint128_t *const number);
-void clear128(uint128_t *const target);
-void shiftl128(const uint128_t *const number, uint32_t value, uint128_t *const target);
-void shiftr128(const uint128_t *const number, uint32_t value, uint128_t *const target);
-uint32_t bits128(const uint128_t *const number);
-bool equal128(const uint128_t *const number1, const uint128_t *const number2);
-bool gt128(const uint128_t *const number1, const uint128_t *const number2);
-bool gte128(const uint128_t *const number1, const uint128_t *const number2);
-void add128(const uint128_t *const number1,
-            const uint128_t *const number2,
-            uint128_t *const target);
-void sub128(const uint128_t *const number1,
-            const uint128_t *const number2,
-            uint128_t *const target);
-void or128(const uint128_t *const number1, const uint128_t *const number2, uint128_t *const target);
-void mul128(const uint128_t *const number1,
-            const uint128_t *const number2,
-            uint128_t *const target);
-void divmod128(const uint128_t *const l,
-               const uint128_t *const r,
-               uint128_t *const div,
-               uint128_t *const mod);
-bool tostring128(const uint128_t *const number, uint32_t base, char *const out, uint32_t outLength);
-bool tostring128_signed(const uint128_t *const number,
-                        uint32_t base,
-                        char *const out,
-                        uint32_t out_length);
-void convertUint64BEto128(const uint8_t *const data, uint32_t length, uint128_t *const target);
-void convertUint128BE(const uint8_t *const data, uint32_t length, uint128_t *const target);
+void readu128BE(const uint8_t *buffer, uint128_t *target);
+bool zero128(const uint128_t *number);
+void copy128(uint128_t *target, const uint128_t *number);
+void clear128(uint128_t *target);
+void shiftl128(const uint128_t *number, uint32_t value, uint128_t *target);
+void shiftr128(const uint128_t *number, uint32_t value, uint128_t *target);
+uint32_t bits128(const uint128_t *number);
+bool equal128(const uint128_t *number1, const uint128_t *number2);
+bool gt128(const uint128_t *number1, const uint128_t *number2);
+bool gte128(const uint128_t *number1, const uint128_t *number2);
+void add128(const uint128_t *number1, const uint128_t *number2, uint128_t *target);
+void sub128(const uint128_t *number1, const uint128_t *number2, uint128_t *target);
+void or128(const uint128_t *number1, const uint128_t *number2, uint128_t *target);
+bool mul128(const uint128_t *number1, const uint128_t *number2, uint128_t *target);
+void divmod128(const uint128_t *l, const uint128_t *r, uint128_t *div, uint128_t *mod);
+bool tostring128(const uint128_t *number, uint32_t base, char *out, uint32_t outLength);
+bool tostring128_signed(const uint128_t *number, uint32_t base, char *out, uint32_t out_length);
+void convertUint64BEto128(const uint8_t *data, uint32_t length, uint128_t *target);
+void convertUint128BE(const uint8_t *data, uint32_t length, uint128_t *target);

@@ -211,7 +211,7 @@ uint16_t handle_network_icon_chunks(uint8_t p1, const buffer_t *buf) {
         return SWO_INCORRECT_DATA;
     }
 
-    if ((g_network_icon_hash == NULL) || (allzeroes(g_network_icon_hash, CX_SHA256_SIZE) == 1)) {
+    if ((g_network_icon_hash == NULL) || is_zeroes_buffer(g_network_icon_hash, CX_SHA256_SIZE)) {
         PRINTF("Error: Icon hash not set!\n");
         return SWO_INCORRECT_DATA;
     }

@@ -17,7 +17,6 @@
 _Static_assert(5 + 2 * ERC1155_BATCH_DISPLAY_MAX + 1 <= 255,
                "ERC1155 batch screen count overflows numScreens (uint8_t)");
 
-
 typedef struct erc1155_context_t {
     uint8_t address[ADDRESS_LENGTH];
     uint8_t tokenId[INT256_LENGTH];
@@ -32,6 +31,15 @@ typedef struct erc1155_context_t {
     uint32_t values_offset;
     uint16_t array_index;
 
+    // Transfer receiver payload, forwarded to the onERC1155Received /
+    // onERC1155BatchReceived hook, so its presence must be shown
+    uint32_t data_offset;
+    uint32_t data_length;
+
+    bool approved;
+    uint8_t next_param;
+    uint8_t selectorIndex;
+
     // SAFE_BATCH_TRANSFER review data. Without these, the UI only displayed
     // an aggregate "<total> from <count> NFT IDs" line and gave the user no
     // way to detect a high-value token ID hidden among innocuous ones.
@@ -39,10 +47,6 @@ typedef struct erc1155_context_t {
     uint8_t batch_values[ERC1155_BATCH_DISPLAY_MAX][INT256_LENGTH];
     uint8_t batch_displayed;
     bool batch_truncated;
-
-    bool approved;
-    uint8_t next_param;
-    uint8_t selectorIndex;
 } erc1155_context_t;
 
 void handle_provide_parameter_1155(ethPluginProvideParameter_t *parameters);

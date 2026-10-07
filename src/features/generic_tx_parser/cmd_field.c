@@ -15,12 +15,12 @@ static bool handle_tlv_payload(const buffer_t *buf) {
     ctx.field = &field;
     if (!handle_field_struct(buf, &ctx)) {
         PRINTF("Error: could not handle the field struct!\n");
-        cleanup_field_constraints(&field);
+        cleanup_field(&field);
         return false;
     }
     if (!verify_field_struct(&ctx)) {
         PRINTF("Error: could not verify the field struct!\n");
-        cleanup_field_constraints(&field);
+        cleanup_field(&field);
         return false;
     }
     // Hash before format_field so validate_instruction_hash() inside
@@ -31,14 +31,14 @@ static bool handle_tlv_payload(const buffer_t *buf) {
     // rejected data leaves no trace in the signed digest.
     cx_sha3_t *hash_ctx_backup;
     if (APP_MEM_CALLOC((void **) &hash_ctx_backup, sizeof(*hash_ctx_backup)) == false) {
-        cleanup_field_constraints(&field);
+        cleanup_field(&field);
         return false;
     }
     memcpy(hash_ctx_backup, get_fields_hash_ctx(), sizeof(*hash_ctx_backup));
     if (cx_hash_no_throw(get_fields_hash_ctx(), 0, buf->ptr, buf->size, NULL, 0) != CX_OK) {
         PRINTF("Error: could not hash the field struct!\n");
         APP_MEM_FREE(hash_ctx_backup);
-        cleanup_field_constraints(&field);
+        cleanup_field(&field);
         return false;
     }
     if (!format_field(&field, 0)) {

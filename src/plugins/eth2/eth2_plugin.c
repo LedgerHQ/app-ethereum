@@ -1,7 +1,6 @@
 #ifdef HAVE_ETH2
 
 #include <string.h>
-#include "os_utils.h"  // U4BE
 #include "eth_plugin_internal.h"
 #include "eth_plugin_handler.h"
 #include "shared_context.h"
@@ -32,6 +31,9 @@ const uint8_t *const ETH2_ADDRESSES[NUM_ETH2_ADDRESSES] = {deposit_contract_addr
 // Highest index for withdrawal derivation path.
 #define INDEX_MAX 65536  // 2 ^ 16 : arbitrary value to protect from path attacks.
 
+// 1 Gwei, big-endian: the unit the deposit amount is committed in
+static const uint8_t GWEI_BE[] = {0x3b, 0x9a, 0xca, 0x00};
+
 // deposit(bytes pubkey, bytes withdrawal_credentials, bytes signature, bytes32
 // deposit_data_root) is 13 calldata words: three dynamic offsets, the root,
 // then a length and its data for each of the three byte strings.  Every one of
@@ -43,9 +45,6 @@ const uint8_t *const ETH2_ADDRESSES[NUM_ETH2_ADDRESSES] = {deposit_contract_addr
 #define ETH2_DEPOSIT_ROOT_WORD  3
 #define ETH2_DEPOSIT_SIG_WORD_1 10
 
-// 1 Gwei, big-endian: the unit the deposit amount is committed in
-static const uint8_t GWEI_BE[] = {0x3b, 0x9a, 0xca, 0x00};
-
 typedef struct eth2_deposit_parameters_t {
     uint8_t valid;
     char deposit_address[BLS12381_G1_COMPRESSED_PUBKEY_LENGTH];
@@ -56,21 +55,97 @@ typedef struct eth2_deposit_parameters_t {
     uint8_t deposit_data_root[INT256_LENGTH];
     // Bitmap of the calldata words received so far
     uint16_t received_words;
+    // Withdrawal index captured at init, used for both the check and the review
+    uint32_t withdrawal_index;
 } eth2_deposit_parameters_t;
 
-ASSERT_SIZEOF_PLUGIN_CONTEXT(eth2_deposit_parameters_t);
+// Validate one of the fixed ABI offset/length words against its expected value.
+// Any mismatch marks the deposit context as invalid.
+static void check_offset_or_length(ethPluginProvideParameter_t *msg,
+                                   eth2_deposit_parameters_t *context) {
+    uint32_t check = 0;
+    switch (msg->parameterOffset) {
+        case 4 + (PARAMETER_LENGTH * 0):
+            check = ETH2_DEPOSIT_PUBKEY_OFFSET;
+            break;
+        case 4 + (PARAMETER_LENGTH * 1):
+            check = ETH2_WITHDRAWAL_CREDENTIALS_OFFSET;
+            break;
+        case 4 + (PARAMETER_LENGTH * 2):
+            check = ETH2_SIGNATURE_OFFSET;
+            break;
+        case 4 + (PARAMETER_LENGTH * 4):
+            check = BLS12381_G1_COMPRESSED_PUBKEY_LENGTH;
+            break;
+        case 4 + (PARAMETER_LENGTH * 7):
+            check = INT256_LENGTH;
+            break;
+        case 4 + (PARAMETER_LENGTH * 9):
+            check = BLS12381_G2_COMPRESSED_SIGNATURE_LENGTH;
+            break;
+        default:
+            context->valid = 0;
+            msg->result = ETH_PLUGIN_RESULT_ERROR;
+            return;
+    }
+    uint32_t index = U4BE(msg->parameter, PARAMETER_LENGTH - 4);
+    if (index != check) {
+        PRINTF("eth2 plugin parameter check %d failed, expected %d got %d\n",
+               msg->parameterOffset,
+               check,
+               index);
+        context->valid = 0;
+        msg->result = ETH_PLUGIN_RESULT_ERROR;
+        return;
+    }
+    msg->result = ETH_PLUGIN_RESULT_OK;
+}
 
-/**
- * @brief Convert the transaction value into the deposit amount, in Gwei
- *
- * The deposit contract derives the amount the root commits to as
- * msg.value / 1 Gwei, and rejects a value that is not a whole number of Gwei
- * or that does not fit the SSZ uint64, so the same constraints apply here.
- *
- * @param[in] value the transaction value, in wei
- * @param[out] amount_gwei the deposit amount, in Gwei
- * @return whether the conversion succeeded
- */
+// Recompute the expected withdrawal credentials from the device's withdrawal
+// key path and compare them against the provided ones.
+static void check_withdrawal_credentials(ethPluginProvideParameter_t *msg,
+                                         eth2_deposit_parameters_t *context) {
+    uint8_t tmp[BLS12381_G1_COMPRESSED_PUBKEY_LENGTH] = {0};
+    uint32_t withdrawalKeyPath[4];
+    withdrawalKeyPath[0] = WITHDRAWAL_KEY_PATH_1;
+    withdrawalKeyPath[1] = WITHDRAWAL_KEY_PATH_2;
+    if (context->withdrawal_index > INDEX_MAX) {
+        PRINTF("eth2 plugin: withdrawal index is too big\n");
+        PRINTF("Got %u which is higher than INDEX_MAX (%u)\n",
+               context->withdrawal_index,
+               INDEX_MAX);
+        msg->result = ETH_PLUGIN_RESULT_ERROR;
+        context->valid = 0;
+        return;
+    }
+    withdrawalKeyPath[2] = context->withdrawal_index;
+    withdrawalKeyPath[3] = WITHDRAWAL_KEY_PATH_4;
+    // A failed derivation leaves tmp at its all-zeroes init, which would hash
+    // into the public constant 0x00 || SHA256(zeros[48])[1:] credential
+    if (get_eth2_public_key(withdrawalKeyPath, 4, tmp) != CX_OK) {
+        PRINTF("eth2 plugin: failed to derive withdrawal public key\n");
+        explicit_bzero(tmp, sizeof(tmp));
+        msg->result = ETH_PLUGIN_RESULT_ERROR;
+        context->valid = 0;
+        return;
+    }
+    PRINTF("eth2 plugin computed withdrawal public key %.*H\n",
+           BLS12381_G1_COMPRESSED_PUBKEY_LENGTH,
+           tmp);
+    cx_hash_sha256(tmp, BLS12381_G1_COMPRESSED_PUBKEY_LENGTH, tmp, INT256_LENGTH);
+    tmp[0] = 0;
+    if (memcmp(tmp, msg->parameter, INT256_LENGTH) != 0) {
+        PRINTF("eth2 plugin invalid withdrawal credentials\n");
+        PRINTF("Got %.*H\n", INT256_LENGTH, msg->parameter);
+        PRINTF("Expected %.*H\n", INT256_LENGTH, tmp);
+        msg->result = ETH_PLUGIN_RESULT_ERROR;
+        context->valid = 0;
+    } else {
+        msg->result = ETH_PLUGIN_RESULT_OK;
+    }
+}
+
+// The deposit value is committed to the deposit_data_root in whole Gwei
 static bool tx_value_to_gwei(const txInt256_t *value, uint64_t *amount_gwei) {
     uint256_t wei;
     uint256_t unit;
@@ -79,6 +154,11 @@ static bool tx_value_to_gwei(const txInt256_t *value, uint64_t *amount_gwei) {
 
     if (value->length > INT256_LENGTH) {
         return false;
+    }
+    if (value->length == 0) {
+        // RLP encodes zero as an empty field
+        *amount_gwei = 0;
+        return true;
     }
     convertUint256BE(value->value, value->length, &wei);
     convertUint256BE(GWEI_BE, sizeof(GWEI_BE), &unit);
@@ -96,7 +176,7 @@ static bool tx_value_to_gwei(const txInt256_t *value, uint64_t *amount_gwei) {
 }
 
 /**
- * @brief Compute the SSZ hash_tree_root of the deposit's DepositData container
+ * @brief Compute the SSZ hash_tree_root of the DepositData
  *
  * DepositData is {pubkey: Bytes48, withdrawal_credentials: Bytes32,
  * amount: uint64, signature: Bytes96}.  Each field is the root of its own
@@ -201,13 +281,13 @@ void eth2_plugin_call(eth_plugin_msg_t message, void *parameters) {
             eth2_deposit_parameters_t *context = (eth2_deposit_parameters_t *) msg->pluginContext;
             explicit_bzero(context, sizeof(*context));
             context->valid = 1;
+            context->withdrawal_index = eth2WithdrawalIndex;
             msg->result = ETH_PLUGIN_RESULT_OK;
         } break;
 
         case ETH_PLUGIN_PROVIDE_PARAMETER: {
             ethPluginProvideParameter_t *msg = (ethPluginProvideParameter_t *) parameters;
             eth2_deposit_parameters_t *context = (eth2_deposit_parameters_t *) msg->pluginContext;
-            uint32_t index;
             uint32_t word;
 
             PRINTF("eth2 plugin provide parameter %d %.*H\n",
@@ -234,44 +314,8 @@ void eth2_plugin_call(eth_plugin_msg_t message, void *parameters) {
                 case 4 + (PARAMETER_LENGTH * 4):  // deposit pubkey length
                 case 4 + (PARAMETER_LENGTH * 7):  // withdrawal credentials length
                 case 4 + (PARAMETER_LENGTH * 9):  // signature length
-                {
-                    uint32_t check = 0;
-                    switch (msg->parameterOffset) {
-                        case 4 + (PARAMETER_LENGTH * 0):
-                            check = ETH2_DEPOSIT_PUBKEY_OFFSET;
-                            break;
-                        case 4 + (PARAMETER_LENGTH * 1):
-                            check = ETH2_WITHDRAWAL_CREDENTIALS_OFFSET;
-                            break;
-                        case 4 + (PARAMETER_LENGTH * 2):
-                            check = ETH2_SIGNATURE_OFFSET;
-                            break;
-                        case 4 + (PARAMETER_LENGTH * 4):
-                            check = BLS12381_G1_COMPRESSED_PUBKEY_LENGTH;
-                            break;
-                        case 4 + (PARAMETER_LENGTH * 7):
-                            check = INT256_LENGTH;
-                            break;
-                        case 4 + (PARAMETER_LENGTH * 9):
-                            check = BLS12381_G2_COMPRESSED_SIGNATURE_LENGTH;
-                            break;
-                        default:
-                            context->valid = 0;
-                            msg->result = ETH_PLUGIN_RESULT_ERROR;
-                            return;
-                    }
-                    index = U4BE(msg->parameter, PARAMETER_LENGTH - 4);
-                    if (index != check) {
-                        PRINTF("eth2 plugin parameter check %d failed, expected %d got %d\n",
-                               msg->parameterOffset,
-                               check,
-                               index);
-                        context->valid = 0;
-                        msg->result = ETH_PLUGIN_RESULT_ERROR;
-                        return;
-                    }
-                    msg->result = ETH_PLUGIN_RESULT_OK;
-                } break;
+                    check_offset_or_length(msg, context);
+                    break;
 
                 case 4 + (PARAMETER_LENGTH * 5):  // deposit pubkey 1
                 {
@@ -305,46 +349,12 @@ void eth2_plugin_call(eth_plugin_msg_t message, void *parameters) {
                     break;
 
                 case 4 + (PARAMETER_LENGTH * 8):  // withdrawal credentials
-                {
-                    uint8_t tmp[BLS12381_G1_COMPRESSED_PUBKEY_LENGTH] = {0};
-                    uint32_t withdrawalKeyPath[4];
-                    withdrawalKeyPath[0] = WITHDRAWAL_KEY_PATH_1;
-                    withdrawalKeyPath[1] = WITHDRAWAL_KEY_PATH_2;
-                    if (eth2WithdrawalIndex > INDEX_MAX) {
-                        PRINTF("eth2 plugin: withdrawal index is too big\n");
-                        PRINTF("Got %u which is higher than INDEX_MAX (%u)\n",
-                               eth2WithdrawalIndex,
-                               INDEX_MAX);
-                        msg->result = ETH_PLUGIN_RESULT_ERROR;
-                        context->valid = 0;
-                        break;
-                    }
-                    withdrawalKeyPath[2] = eth2WithdrawalIndex;
-                    withdrawalKeyPath[3] = WITHDRAWAL_KEY_PATH_4;
-                    if (get_eth2_public_key(withdrawalKeyPath, 4, tmp) != CX_OK) {
-                        PRINTF("eth2 plugin: failed to derive withdrawal public key\n");
-                        explicit_bzero(tmp, sizeof(tmp));
-                        msg->result = ETH_PLUGIN_RESULT_ERROR;
-                        context->valid = 0;
-                        break;
-                    }
-                    PRINTF("eth2 plugin computed withdrawal public key %.*H\n",
-                           BLS12381_G1_COMPRESSED_PUBKEY_LENGTH,
-                           tmp);
-                    cx_hash_sha256(tmp, BLS12381_G1_COMPRESSED_PUBKEY_LENGTH, tmp, INT256_LENGTH);
-                    tmp[0] = 0;
-                    if (memcmp(tmp, msg->parameter, INT256_LENGTH) != 0) {
-                        PRINTF("eth2 plugin invalid withdrawal credentials\n");
-                        PRINTF("Got %.*H\n", INT256_LENGTH, msg->parameter);
-                        PRINTF("Expected %.*H\n", INT256_LENGTH, tmp);
-                        msg->result = ETH_PLUGIN_RESULT_ERROR;
-                        context->valid = 0;
-                    } else {
+                    check_withdrawal_credentials(msg, context);
+                    if ((msg->result == ETH_PLUGIN_RESULT_OK) && context->valid) {
                         // Keep the credentials the root has to commit to
                         memcpy(context->withdrawal_credentials, msg->parameter, INT256_LENGTH);
-                        msg->result = ETH_PLUGIN_RESULT_OK;
                     }
-                } break;
+                    break;
 
                 default:
                     PRINTF("Unhandled parameter offset\n");
@@ -379,7 +389,11 @@ void eth2_plugin_call(eth_plugin_msg_t message, void *parameters) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
                 break;
             }
-            msg->numScreens = 2;
+            // Amount, Validator, and the withdrawal key index the credentials were
+            // validated against: that index comes from a separate unauthenticated
+            // command, so it must not decide where the stake can be withdrawn
+            // without the user seeing it.
+            msg->numScreens = 3;
             msg->uiType = ETH_UI_TYPE_GENERIC;
             msg->result = ETH_PLUGIN_RESULT_OK;
         } break;
@@ -397,7 +411,7 @@ void eth2_plugin_call(eth_plugin_msg_t message, void *parameters) {
             switch (msg->screenIndex) {
                 case 0: {  // Amount screen
                     uint8_t decimals = WEI_TO_ETHER;
-                    const char *ticker = chainConfig->coinName;
+                    const char *ticker = g_chain_config->ticker;
                     strlcpy(msg->title, "Amount", msg->titleLength);
                     if (!amountToString(tmpContent.txContent.value.value,
                                         tmpContent.txContent.value.length,
@@ -422,6 +436,17 @@ void eth2_plugin_call(eth_plugin_msg_t message, void *parameters) {
                                                msg->msgLength - 2,
                                                context->deposit_address,
                                                sizeof(context->deposit_address)) != 0) {
+                        msg->result = ETH_PLUGIN_RESULT_ERROR;
+                        break;
+                    }
+                    msg->result = ETH_PLUGIN_RESULT_OK;
+                } break;
+                case 2: {  // Withdrawal key index screen
+                    strlcpy(msg->title, "Withdrawal key", msg->titleLength);
+                    if (snprintf(msg->msg,
+                                 msg->msgLength,
+                                 "Index %u",
+                                 (unsigned int) context->withdrawal_index) <= 0) {
                         msg->result = ETH_PLUGIN_RESULT_ERROR;
                         break;
                     }

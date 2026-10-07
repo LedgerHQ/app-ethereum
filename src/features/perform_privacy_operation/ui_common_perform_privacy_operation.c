@@ -1,6 +1,6 @@
 #include "apdu_constants.h"
 #include "shared_context.h"
-#include "ui_callbacks.h"
+#include "common_ui.h"
 #include "feature_perform_privacy_operation.h"
 
 // The shared-secret review path renders the X25519 derived secret as hex into

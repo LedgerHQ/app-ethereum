@@ -34,9 +34,11 @@ bool rlp_can_decode(uint8_t *buffer, uint32_t bufferLength, bool *valid) {
         return false;
     }
     if (*buffer <= RLP_SINGLE_BYTE_MAX) {
+        // single byte: nothing to validate
     } else if (*buffer <= RLP_SHORT_STRING_MAX) {
+        // short string: nothing to validate
     } else if (*buffer <= RLP_LONG_STRING_MAX) {
-        if (bufferLength < (1 + (*buffer - RLP_LONG_STRING_BASE))) {
+        if (bufferLength < (uint32_t) (1 + (*buffer - RLP_LONG_STRING_BASE))) {
             return false;
         }
         if (*buffer > RLP_STR_LEN_OF_BYTES_4) {
@@ -44,8 +46,9 @@ bool rlp_can_decode(uint8_t *buffer, uint32_t bufferLength, bool *valid) {
             return true;
         }
     } else if (*buffer <= RLP_SHORT_LIST_MAX) {
+        // short list: nothing to validate
     } else {
-        if (bufferLength < (1 + (*buffer - RLP_LONG_LIST_BASE))) {
+        if (bufferLength < (uint32_t) (1 + (*buffer - RLP_LONG_LIST_BASE))) {
             return false;
         }
         if (*buffer > RLP_LIST_LEN_OF_BYTES_4) {
@@ -94,9 +97,8 @@ bool rlp_decode_length(uint8_t *buffer,
                 *fieldLength = (*(buffer + 1) << 16) + (*(buffer + 2) << 8) + *(buffer + 3);
                 break;
             case RLP_STR_LEN_OF_BYTES_4:
-                *fieldLength = ((uint32_t) * (buffer + 1) << 24) |
-                               ((uint32_t) * (buffer + 2) << 16) |
-                               ((uint32_t) * (buffer + 3) << 8) | *(buffer + 4);
+                *fieldLength = ((uint32_t) *(buffer + 1) << 24) | ((uint32_t) *(buffer + 2) << 16) |
+                               ((uint32_t) *(buffer + 3) << 8) | *(buffer + 4);
                 break;
             default:
                 return false;  // arbitrary 32 bits length limitation
@@ -122,9 +124,8 @@ bool rlp_decode_length(uint8_t *buffer,
                 *fieldLength = (*(buffer + 1) << 16) + (*(buffer + 2) << 8) + *(buffer + 3);
                 break;
             case RLP_LIST_LEN_OF_BYTES_4:
-                *fieldLength = ((uint32_t) * (buffer + 1) << 24) |
-                               ((uint32_t) * (buffer + 2) << 16) |
-                               ((uint32_t) * (buffer + 3) << 8) | *(buffer + 4);
+                *fieldLength = ((uint32_t) *(buffer + 1) << 24) | ((uint32_t) *(buffer + 2) << 16) |
+                               ((uint32_t) *(buffer + 3) << 8) | *(buffer + 4);
                 break;
             default:
                 return false;  // arbitrary 32 bits length limitation

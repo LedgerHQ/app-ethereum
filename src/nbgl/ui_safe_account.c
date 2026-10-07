@@ -3,8 +3,9 @@
 #include "signer_descriptor.h"
 #include "shared_context.h"
 #include "apdu_constants.h"
-#include "ui_callbacks.h"
+#include "common_ui.h"
 #include "ui_nbgl.h"
+#include "ui_icons.h"
 #include "ui_utils.h"
 #include "app_mem_utils.h"
 
@@ -181,16 +182,12 @@ static void review_cb(bool confirm) {
     if (confirm) {
         // User confirmed the Safe Account
         _cleanup(SWO_SUCCESS);
-#ifndef FUZZ
         nbgl_useCaseStatus("Safe Address validated", true, ui_idle);
-#endif
         return;
     } else {
         // User rejected the Safe Account
         _cleanup(SWO_CONDITIONS_NOT_SATISFIED);
-#ifndef FUZZ
         nbgl_useCaseStatus("Safe Address rejected", false, ui_idle);
-#endif
     }
 }
 
@@ -211,12 +208,10 @@ void ui_display_safe_account(void) {
     // Setup data to display
     setTagValuePairs();
 
-#ifndef FUZZ
     nbgl_useCaseAddressReview(s_safe_addr_str,
                               g_pairsList,
-                              &ICON_APP_MULTISIG,
+                              &LARGE_MULTISIG_ICON,
                               "Verify Safe address",
                               NULL,
                               review_cb);
-#endif
 }

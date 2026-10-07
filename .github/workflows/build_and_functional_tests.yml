@@ -33,6 +33,8 @@ jobs:
     with:
       upload_app_binaries_artifact: "ragger_elfs"
       flags: "use_test_keys"
+      build_comparison: true
+      enable_stack_consumption: true
 
   ragger_tests:
     name: Run ragger tests using the reusable workflow
@@ -41,6 +43,7 @@ jobs:
     with:
       download_app_binaries_artifact: "ragger_elfs"
       regenerate_snapshots: ${{ inputs.golden_run == 'Open a PR' }}
+      post_stack_consumption: true
 
   build_clone_app:
     name: Build Clone app using the reusable workflow
@@ -48,6 +51,7 @@ jobs:
     with:
       flags: "CHAIN=thundercore"
       upload_app_binaries_artifact: "clone_elfs"
+      enable_stack_consumption: true
 
   ragger_clone_tests:
     name: Run ragger Clone tests using the reusable workflow
@@ -58,47 +62,28 @@ jobs:
     with:
       download_app_binaries_artifact: "ragger_elfs"
       additional_app_binaries_artifact: "clone_elfs"
-      additional_app_binaries_artifact_dir: ./tests/ragger/.test_dependencies/clone/build/
+      additional_app_binaries_artifact_dir: ./tests/functional/.test_dependencies/clone/build/
       test_options: "--setup lib_mode"
       regenerate_snapshots: ${{ inputs.golden_run == 'Open a PR' }}
+      post_stack_consumption: true
+      stack_consumption_section_id: "clone_app_stack_consumption"
 
-  build_mem_app:
-    name: Build Memory application using the reusable workflow
-    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_build.yml@v1
+  memory_tests:
+    name: Memory profiling tests using the reusable workflow
+    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_memory_profiling.yml@v1
     with:
-      upload_app_binaries_artifact: "memory_elfs"
       flags: "memory_profiling"
       run_for_devices: '["nanox"]'
 
-  ragger_mem_tests:
-    name: Run Memory tests using the reusable workflow
-    needs: build_application
-    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_ragger_tests.yml@v1
+  ragger_coverage:
+    name: Functional tests coverage using the reusable workflow
+    # Builds the app with debug symbols (dbg_use_test_keys) and runs the ragger
+    # tests with coverage tracing; uploads the lcov file + HTML report as the
+    # 'coverage-<device>' artifact(s) and to codecov under the 'functionaltests' flag.
+    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_ragger_coverage.yml@v1
     with:
-      download_app_binaries_artifact: "memory_elfs"
-      run_for_devices: '["nanox"]'
-      upload_snapshots_on_failure: false
-      capture_file: pytest-logs-combined
-
-  ragger_mem__results:
-    name: Process pytest logs
-    if: always()
-    needs: ragger_mem_tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Clone
-        uses: actions/checkout@v4
-
-      - name: Download and process pytest logs
-        if: always()
-        uses: actions/download-artifact@v4
-        with:
-          name: pytest-logs-combined
-          path: logs
-
-      - name: Process logs with valground
-        if: always()
-        run: |
-          if [ -f logs/pytest-logs-combined.log ]; then
-            cat logs/pytest-logs-combined.log | tools/valground.py -q
-          fi
+      run_for_devices: '["flex"]'
+      flags: "dbg_use_test_keys"
+      coverage_exclude: "ethereum-plugin-sdk"
+    secrets:
+      codecov_token: ${{ secrets.CODECOV_TOKEN }}

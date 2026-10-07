@@ -1,142 +1,105 @@
-# Fuzzing Tests
+# Ethereum app fuzzing
 
-## Fuzzing
+Absolution-based, coverage-guided fuzzing for the Ethereum app, built on the
+Ledger SDK fuzzing framework.
 
-Fuzzing allows us to test how a program behaves when provided with invalid, unexpected, or random
-data as input.
+**Read the framework documentation first.** Concepts (what a corpus is, how the
+`[ prefix | tail ]` input works, the manifest, invariants, mocks, harnesses,
+the CMake API, CI, and how to maintain it) live in the **Fuzzing Framework**
+page of the SDK documentation, published at
+<https://ledgerhq.github.io/ledger-secure-sdk/>. This file only documents what
+is specific to the Ethereum app.
 
-The fuzz target needs to implement `int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)`,
-which provides an array of random bytes that can be used to simulate a serialized buffer.
-If the application crashes, or a [sanitizer](https://github.com/google/sanitizers) detects
-any kind of access violation, the fuzzing process is stopped, a report regarding the vulnerability is shown,
-and the input that triggered the bug is written to disk under the name `crash-*`.
-
-The vulnerable input file created can be passed as an argument to the fuzzer to triage the issue.
-
-## Manual usage based on Ledger container
-
-### Preparation
-
-The fuzzer can be run using the Docker image `ledger-app-dev-tools`. You can download it from the
-`ghcr.io` docker repository:
+## Quickstart
 
 ```bash
-docker pull ghcr.io/ledgerhq/ledger-app-builder/ledger-app-dev-tools:latest
+export BOLOS_SDK=/path/to/ledger-secure-sdk
+"$BOLOS_SDK"/fuzzing/scripts/app-campaign.sh \
+    --app-dir "$(pwd)" --fuzz-subdir tests/fuzzing my-campaign
 ```
 
-You can then enter this development environment by executing the following command from the
-repository root directory:
+`--fuzz-subdir tests/fuzzing` is required: this app keeps its fuzzing tree under
+`tests/fuzzing/` (the SDK default is `fuzzing/`). Pass a run name (or omit it for
+a timestamp); outputs land in `.fuzz-artifacts/<name>/`.
 
-```bash
-docker run --rm -ti -v "$(realpath .):/app" ghcr.io/ledgerhq/ledger-app-builder/ledger-app-dev-tools:latest
+## Targets
+
+| Target | What it drives |
+|--------|----------------|
+| `fuzz_app`    | A sequence of fuzzed APDUs through the real `apdu_parser()` → `handleApdu()` path |
+| `fuzz_plugin` | One internal plugin through the production `eth_plugin_call()` sequence |
+| `fuzz_parser` | The generic tx parser, EIP-712 and the calldata store, at their own entry points |
+
+`fuzz_plugin` and `fuzz_parser` exist because the APDU path cannot reach that
+code: the internal plugins are called through the plugin interface rather than
+an INS, and the generic tx parser runs from a descriptor the dispatcher never
+builds. The EIP-712 handlers `fuzz_parser` also drives are reachable from
+`fuzz_app`; it reaches them without spending budget on APDU framing. Both still go
+through the framework contract, so they get the prefix-aware mutator and the
+lane split for free; control byte 1 picks the plugin or parser.
+
+## Why one input is a sequence
+
+`fuzz_app` and `fuzz_parser` replay a *sequence* of steps per input, not one.
+Twelve commands accumulate their TLV descriptor across APDUs through
+`tlv_from_apdu()`, which only runs the payload handler once the descriptor is
+complete, and an APDU carries at most 253 bytes of TLV after the two-byte length
+header — so a single dispatch can never finish a descriptor that carries a
+signature. The same holds inside EIP-712: `handle_eip712_v1_filtering()` returns
+before doing anything unless a prior `P2_FILT_ACTIVATE` call switched the mode,
+and a type is built by several struct-def calls.
+
+The fuzzer picks every field of every step, including how many steps there are.
+The only structure the harness adds is the protocol's own framing.
+
+`fuzz-manifest.toml` is the authoritative list of targets, seeds and dictionary.
+
+## Where values come from
+
+The harnesses own **structure** and never author **content**. `mock/plugin_model.c`
+decides that a `txInt256_t` length must fit its array and that a ticker stays
+NUL-terminated; every byte inside those fields, plus every ABI word, address,
+selector and digest, comes from the fuzzer.
+
+`fuzz_plugin` reads its shaping bytes from a fixed-size header
+(`eth_plugin_header_t`, declared to the framework as `FUZZ_APP_HEADER_LEN`), so
+the ABI words after it always start at `fuzz_tail_ptr[0]`. Drawing those bytes
+sequentially instead would shift the calldata every time a length changed, and
+the fuzzer would keep losing the input it had built. `fuzz_app` and `fuzz_parser`
+read sequentially through the cursor in `mock/fuzz_input.h`.
+
+`fuzz_app` adds one grammar-aware mutation on top of the framework's, applied to
+the sequence's *last* step so a descriptor changing size cannot disturb the steps
+built before it. It runs on half the mutations; the rest are generic, which is
+what produces malformed framing.
+
+Constants the app keeps private — the ERC-721 and ERC-1155 selector tables —
+live in the manifest dictionary rather than as a second copy in C, so the
+harness cannot drift from the plugin. Where the app already exports a table
+(`ERC20_SELECTORS`, `ETH2_ADDRESSES`, …) the harness indexes it directly.
+
+## App-owned files in this tree
+
+Everything the SDK framework needs from the app lives here; the framework itself
+is in the SDK and is not duplicated:
+
+```text
+tests/fuzzing/
+  fuzz-manifest.toml   targets, seeds, dictionary, coverage key files
+  base-corpus.zip      promoted fuzz_app corpus (+ base-corpus.compat-key sidecar)
+  harness/             one fuzz_*.c per target
+  mock/                app globals, engine stubs, input cursor, model builders
+  invariants/          zero-symbols.txt, domain-overrides.txt
+  macros/              add_macros.txt / exclude_macros.txt
 ```
 
-### Writing your Harness
+A compat key names the fuzzer it was promoted from, so the single tracked
+`base-corpus.zip` seeds `fuzz_app` only; `fuzz_parser` and `fuzz_plugin` report
+it as incompatible and start from generated seeds. Promote with
+`corpus.py promote .fuzz-artifacts/<run>/targets/fuzz_app/corpus
+tests/fuzzing/base-corpus.zip` after any change to the prefix layout, the SDK
+version or `harness_version`.
 
-When writing your harness, keep the following points in mind:
-
-- An SDK's interface for compilation is provided via the target `secure_sdk` in CMakeLists.txt
-- If you are running it for the first time, consider using the script `local_run` from inside the
-  Docker container using the flag build=1, if you need to manually
-  add/remove macros you can then do it using the files macros/add_macros.txt or
-  macros/exclude_macros.txt and rerunning it, or directly change the macros/generated/macros.txt.
-- A typical harness looks like this:
-
-  ```C
-  int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
-    if (sigsetjmp(fuzz_exit_jump_ctx.jmp_buf, 1)) return 0;
-
-    ### harness code ###
-
-    return 0;
-  }
-  ```
-
-  This allows a return point when the `os_sched_exit()` function is mocked.
-
-- To provide an SDK interface, we automatically generate syscall mock functions located in
-  `SECURE_SDK_PATH/fuzzing/mock/generated/generated_syscalls.c`, if you need a more specific mock,
-  you can define it in `APP_PATH/fuzzing/mock` with the same name and without the WEAK attribute.
-
-### Compile and run the fuzzer from the container
-
-Once inside the container, navigate to the `tests/fuzzing` folder to generate the fuzzer:
-
-#### Preparation
-
-Install the needed modules and set the BOLOS_SDK variable:
-
-```bash
-export BOLOS_SDK=/opt/flex-secure-sdk/
-cd tests/fuzzing
-apt update && apt install -y libbsd-dev
-```
-
-#### Compile the fuzzers
-
-```bash
-${BOLOS_SDK}/fuzzing/local_run.sh --j=4 --build=1 --BOLOS_SDK=${BOLOS_SDK}
-```
-
-#### Run the fuzzer
-
-```bash
-${BOLOS_SDK}/fuzzing/local_run.sh --j=4 --run-fuzzer=1 --fuzzer=build/fuzz_dispatcher --compute-coverage=1
-```
-
-#### Compile and run the fuzzer
-
-```bash
-${BOLOS_SDK}/fuzzing/local_run.sh --j=4 --build=1 --BOLOS_SDK=${BOLOS_SDK} \
-                                  --run-fuzzer=1 --fuzzer=build/fuzz_dispatcher --compute-coverage=1
-```
-
-### About local_run.sh
-
-| Parameter              | Type                | Description                                                          |
-| :--------------------- | :------------------ | :------------------------------------------------------------------- |
-| `--BOLOS_SDK`          | `PATH TO BOLOS SDK` | **Required**. Path to the BOLOS SDK                                  |
-| `--build`              | `bool`              | **Optional**. Whether to build the project (default: 0)              |
-| `--fuzzer`             | `PATH`              | **Required**. Path to the fuzzer binary                              |
-| `--compute-coverage`   | `bool`              | **Optional**. Whether to compute coverage after fuzzing (default: 0) |
-| `--run-fuzzer`         | `bool`              | **Optional**. Whether to run or not the fuzzer (default: 0)          |
-| `--run-crash`          | `FILENAME`          | **Optional**. Run the on a specific crash input file (default: 0) |
-| `--sanitizer`          | `address or memory` | **Optional**. Compile with sanitizer (default: address)       |
-| `--j`                  | `int`               | **Optional**. N-parallel jobs for build and fuzzing (default: 1) |
-| `--help`               |                     | **Optional**. Display help message                                   |
-
-### Visualizing code coverage
-
-After running your fuzzer, if `--compute-coverage=1` the coverage will be available in your browser.
-
-## Full usage based on `clusterfuzzlite` container
-
-Exactly the same context as the CI, directly using the `clusterfuzzlite` environment.
-
-More info can be found here: <https://google.github.io/clusterfuzzlite/>
-
-### Preparation
-
-The principle is to build the container, and run it to perform the fuzzing.
-
-> **Note**: The container contains a copy of the sources (they are not cloned), which means the
-> `docker build` command must be re-executed after each code modification.
-
-```bash
-# Prepare directory tree
-mkdir tests/fuzzing/{corpus,out}
-# Container generation
-docker build -t fuzz-ethereum --file .clusterfuzzlite/Dockerfile .
-```
-
-### Compilation
-
-```bash
-docker run --rm --privileged -e FUZZING_LANGUAGE=c -v "$(realpath .)/tests/fuzzing/out:/out" -ti fuzz-ethereum
-```
-
-### Run
-
-```bash
-docker run --rm --privileged -e FUZZING_ENGINE=libfuzzer -e RUN_FUZZER_MODE=interactive -v "$(realpath .)/tests/fuzzing/corpus:/tmp/fuzz_corpus" -v "$(realpath .)/tests/fuzzing/out:/out" -ti gcr.io/oss-fuzz-base/base-runner run_fuzzer fuzzer
-```
+`.clusterfuzzlite/build.sh` is a thin wrapper that delegates to the SDK's shared
+`fuzzing/scripts/cfl-build.sh`; the CFL Dockerfile copies the SDK from the
+Ledger app development image.

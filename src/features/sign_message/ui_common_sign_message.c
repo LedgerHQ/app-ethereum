@@ -1,7 +1,7 @@
 #include "os_io_seproxyhal.h"
 #include "apdu_constants.h"
 #include "crypto_helpers.h"
-#include "ui_callbacks.h"
+#include "common_ui.h"
 
 unsigned int io_seproxyhal_touch_signMessage_ok(void) {
     if (appState != APP_STATE_SIGNING_MESSAGE) {

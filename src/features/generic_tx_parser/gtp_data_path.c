@@ -1,6 +1,7 @@
 #include <string.h>  // memcpy / explicit_bzero
 #include "os_print.h"
 #include "os_math.h"  // MIN
+#include "os_utils.h"
 #include "gtp_data_path.h"
 #include "read.h"
 #include "utils.h"
@@ -8,7 +9,7 @@
 #include "app_mem_utils.h"
 #include "tx_ctx.h"
 #include "tlv_library.h"
-#include "tlv_apdu.h"
+#include "tlv_utils.h"
 
 #define DATA_PATH_TAGS(X)                                    \
     X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG) \
@@ -261,17 +262,34 @@ static bool path_array(const s_array_args *array,
     }
     array_size = read_u16_be(chunk, chunk_offset);
 
+    int32_t start_signed;
+    int32_t end_signed;
+
     if (array->has_start) {
-        start = (array->start < 0) ? ((int32_t) array_size + array->start) : array->start;
+        start_signed = (array->start < 0) ? ((int32_t) array_size + array->start) : array->start;
     } else {
-        start = 0;
+        start_signed = 0;
     }
 
     if (array->has_end) {
-        end = (array->end < 0) ? ((int32_t) array_size + array->end) : array->end;
+        end_signed = (array->end < 0) ? ((int32_t) array_size + array->end) : array->end;
     } else {
-        end = array_size;
+        end_signed = array_size;
     }
+
+    // A descriptor bound is only meaningful inside the array the calldata actually
+    // declares. An absolute bound past its end would walk chunks beyond the array,
+    // and a negative offset reaching before its start would wrap once narrowed.
+    if ((start_signed < 0) || (end_signed < 0) || (start_signed > array_size) ||
+        (end_signed > array_size)) {
+        PRINTF("Error: array bounds [%d, %d) outside the %u declared elements\n",
+               (int) start_signed,
+               (int) end_signed,
+               array_size);
+        return false;
+    }
+    start = (uint16_t) start_signed;
+    end = (uint16_t) end_signed;
 
     if (end <= start) {
         return false;
@@ -352,7 +370,7 @@ bool data_path_get(const s_data_path *data_path, s_parsed_value_collection *coll
 void data_path_cleanup(const s_parsed_value_collection *collection) {
     for (int i = 0; i < collection->size; ++i) {
         if (collection->value[i].ptr != NULL) {
-            APP_MEM_FREE((void *) collection->value[i].ptr - collection->value[i].offset);
+            APP_MEM_FREE((uint8_t *) collection->value[i].ptr - collection->value[i].offset);
         }
     }
 }

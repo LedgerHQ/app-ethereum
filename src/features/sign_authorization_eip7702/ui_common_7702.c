@@ -1,6 +1,5 @@
 #include "shared_context.h"
 #include "common_ui.h"
-#include "ui_callbacks.h"
 #include "apdu_constants.h"
 #include "crypto_helpers.h"
 
@@ -26,7 +25,7 @@ unsigned int auth_7702_ok_cb(void) {
     }
     // Reset to release the APP_STATE_SIGNING_EIP7702 lock and clear the
     // signing context so a new authorization can start from a clean slate.
-    return io_seproxyhal_send_status(SWO_SUCCESS, ECDSA_SIGNATURE_LENGTH, true, true);
+    return io_seproxyhal_send_status(SWO_SUCCESS, ECDSA_SIGNATURE_LENGTH, true, false);
 }
 
 unsigned int auth_7702_cancel_cb(void) {

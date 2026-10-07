@@ -4,7 +4,7 @@
 #include "utils.h"
 #include "shared_context.h"
 #include "tlv_library.h"
-#include "tlv_apdu.h"
+#include "tlv_utils.h"
 
 #define SECONDS_IN_MINUTE 60
 #define MINUTES_IN_HOUR   60

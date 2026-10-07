@@ -5,6 +5,7 @@
 #include "network.h"
 #include "public_keys.h"
 #include "os_pki.h"
+#include "os_lib.h"
 
 // Supported internal plugins
 #define ERC721_STR  "ERC721"
@@ -119,7 +120,7 @@ uint16_t handle_set_plugin(const uint8_t *workBuffer, uint8_t dataLength) {
     }
 
     // `+ 1` because we want to add a null terminating character.
-    if (pluginNameLength + 1 > sizeof(tokenContext->pluginName)) {
+    if ((size_t) pluginNameLength + 1 > sizeof(tokenContext->pluginName)) {
         PRINTF("plugin name too big: expected max %d, got %d\n",
                sizeof(dataContext.tokenContext.pluginName),
                pluginNameLength + 1);
@@ -213,8 +214,11 @@ uint16_t handle_set_plugin(const uint8_t *workBuffer, uint8_t dataLength) {
     if (pluginType == PLUGIN_TYPE_EXTERNAL) {
         PRINTF("Check external plugin %s\n", tokenContext->pluginName);
 
-        // Check if the plugin is present on the device
-        params[0] = (uint32_t) tokenContext->pluginName;
+        // Check if the plugin is present on the device. Bridge through
+        // uintptr_t so the cast is well-defined on test builds where
+        // void* is wider than uint32_t (production target is 32-bit
+        // ARM where the two widths match).
+        params[0] = (uint32_t) (uintptr_t) tokenContext->pluginName;
         params[1] = ETH_PLUGIN_CHECK_PRESENCE;
         BEGIN_TRY {
             TRY {

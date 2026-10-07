@@ -1,8 +1,7 @@
 from enum import Enum, auto
-from typing import Union
-from ledgered.devices import Device, DeviceType
 
-from ragger.navigator import Navigator, NavInsID, NavIns
+from ledgered.devices import Device, DeviceType
+from ragger.navigator import Navigator, NavIns, NavInsID
 
 
 class SettingID(Enum):
@@ -73,10 +72,9 @@ def get_device_settings(device: Device) -> list[SettingID]:
     return all_settings
 
 
-def get_settings_moves(device: Device,
-                       to_toggle: list[SettingID]) -> list[Union[NavIns, NavInsID]]:
+def get_settings_moves(device: Device, to_toggle: list[SettingID]) -> list[NavIns | NavInsID]:
     """Get the navigation instructions to toggle the settings"""
-    moves: list[Union[NavIns, NavInsID]] = []
+    moves: list[NavIns | NavInsID] = []
     settings = get_device_settings(device)
     # Assume the app is on the 1st page of Settings
     if device.is_nano:

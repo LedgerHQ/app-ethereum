@@ -1,60 +1,22 @@
 #!/usr/bin/env python3
 
+import argparse
+import logging
 import os
-import struct
+import re
 import subprocess
 import sys
-import logging
-import re
-from hashlib import sha256
-from enum import IntEnum
-from typing import List, Optional
-from pathlib import Path
-import argparse
-
-# Resolve the parent directory and append to sys.path
-parent = Path(__file__).parent.parent.resolve()
-client_module = Path(f"{parent}/client/src/ledger_app_clients/ethereum")
-sys.path.append(f"{client_module}")
-# Import the required module
-from tlv import format_tlv  # type: ignore
-from keychain import Key, sign_data   # type: ignore
 
 # Retrieve the SDK path from the environment variable
-sdk_path = os.getenv('BOLOS_SDK')
+sdk_path = os.getenv("BOLOS_SDK")
 if sdk_path:
     # Import the library dynamically
     sys.path.append(f"{sdk_path}/lib_nbgl/tools")
-    from icon2glyph import open_image, compute_app_icon_data  # type: ignore
+    from icon2glyph import compute_app_icon_data, open_image  # type: ignore
 else:
     print("Environment variable BOLOS_SDK is not set")
     sys.exit(1)
 
-
-class NetworkInfoTag(IntEnum):
-    STRUCTURE_TYPE = 0x01
-    STRUCTURE_VERSION = 0x02
-    BLOCKCHAIN_FAMILY = 0x51
-    CHAIN_ID = 0x23
-    NETWORK_NAME = 0x52
-    TICKER = 0x24
-    NETWORK_ICON_HASH = 0x53
-    DER_SIGNATURE = 0x15
-
-
-class P1Type(IntEnum):
-    FIRST_CHUNK = 0x01
-    NEXT_CHUNK = 0x00
-
-
-class P2Type(IntEnum):
-    NETWORK_CONFIG = 0x00
-    NETWORK_ICON = 0x01
-    GET_INFO = 0x02
-
-
-PROVIDE_NETWORK_INFORMATION = 0x30
-CLA = 0xE0
 
 logger = logging.getLogger(__name__)
 
@@ -64,11 +26,8 @@ logger = logging.getLogger(__name__)
 # ===============================================================================
 def init_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Generate hex string for network icon, in NBGL format.")
-    parser.add_argument("--icon", "-i", help="Input icon to process.")
-    parser.add_argument("--name", "-n", help="Network name")
-    parser.add_argument("--ticker", "-t", help="Network ticker")
-    parser.add_argument("--chainid", "-c", type=int, help="Network chain_id")
-    parser.add_argument("--verbose", "-v", action='store_true', help="Verbose mode")
+    parser.add_argument("--icon", "-i", required=True, help="Input icon to process.")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose mode")
     return parser
 
 
@@ -107,8 +66,8 @@ def check_glyph(file: str) -> bool:
 
     x = re.search(r"Colors: (.*)", content)
     if x is None:
-            logger.error("Glyph should have the colors defined")
-            return False
+        logger.error("Glyph should have the colors defined")
+        return False
     nb_colors = int(x.group(1))
     if "Type: Bilevel" in content:
         logger.debug("Monochrome image type")
@@ -149,107 +108,6 @@ def check_glyph(file: str) -> bool:
 
 
 # ===============================================================================
-#          Prepare APDU - Extracted from python client
-# ===============================================================================
-def serialize(p1: int, p2: int, cdata: bytes) -> bytes:
-    """
-    Serializes the provided network information into byte format.
-
-    Args:
-        p1 (int): P1 parameter to be included in the header.
-        p2 (int): P2 parameter to be included in the header.
-        cdata (bytes): The network information data to be serialized.
-
-    Returns:
-        bytes: The serialized byte sequence combining the header and the data.
-    """
-
-    # Initialize a bytearray to construct the header
-    header = bytearray()
-    header.append(CLA)
-    header.append(PROVIDE_NETWORK_INFORMATION)
-    header.append(p1)
-    header.append(p2)
-    header.append(len(cdata))
-    # Return the concatenation of the header and cdata
-    return header + cdata
-
-
-def generate_tlv_payload(name: str,
-                         ticker: str,
-                         chain_id: int,
-                         icon: Optional[bytes] = None) -> bytes:
-    """
-    Generates a TLV (Type-Length-Value) payload for the given network information.
-
-    Args:
-        name (str): The name of the blockchain network.
-        ticker (str): The ticker symbol of the blockchain network.
-        chain_id (int): The unique identifier for the blockchain network.
-        icon (Optional[bytes]): Optional icon data in bytes for the blockchain network.
-
-    Returns:
-        bytes: The generated TLV payload.
-    """
-
-    tlv_payload: bytes = format_tlv(NetworkInfoTag.STRUCTURE_TYPE, 8)
-    tlv_payload += format_tlv(NetworkInfoTag.STRUCTURE_VERSION, 1)
-    tlv_payload += format_tlv(NetworkInfoTag.BLOCKCHAIN_FAMILY, 1)
-    tlv_payload += format_tlv(NetworkInfoTag.CHAIN_ID, chain_id.to_bytes(8, 'big'))
-    tlv_payload += format_tlv(NetworkInfoTag.NETWORK_NAME, name.encode('utf-8'))
-    tlv_payload += format_tlv(NetworkInfoTag.TICKER, ticker.encode('utf-8'))
-    if icon:
-        # Network Icon Hash
-        tlv_payload += format_tlv(NetworkInfoTag.NETWORK_ICON_HASH, sha256(icon).digest())
-    # Append the data Signature
-    tlv_payload += format_tlv(NetworkInfoTag.DER_SIGNATURE, sign_data(Key.NETWORK, tlv_payload))
-
-    # Append the payload length and the data
-    payload: bytes = bytes()
-    payload += struct.pack(">H", len(tlv_payload))
-    payload += tlv_payload
-
-    # Return the constructed TLV payload as bytes
-    return payload
-
-
-def prepare_network_information(name: str,
-                                ticker: str,
-                                chain_id: int,
-                                icon: Optional[bytes] = None) -> List[bytes]:
-    """
-    Prepares network information for a given blockchain network.
-
-    Args:
-        name (str): The name of the blockchain network.
-        ticker (str): The ticker symbol of the blockchain network.
-        chain_id (int): The unique identifier for the blockchain network.
-        icon (Optional[bytes]): Optional icon data in bytes for the blockchain network.
-
-    Returns:
-        List[bytes]: A list of byte chunks representing the network information.
-    """
-
-    # Initialize an empty list to store the byte chunks
-    chunks: List[bytes] = []
-    # Generate the TLV payload
-    payload = generate_tlv_payload(name, ticker, chain_id, icon)
-    # Check if the payload is larger than 0xff
-    assert len(payload) < 0xff, "Payload too large"
-    # Serialize the payload
-    chunks.append(serialize(0x01, P2Type.NETWORK_CONFIG, payload))
-
-    if icon:
-        # Serialize the icon
-        p1 = P1Type.FIRST_CHUNK
-        while len(icon) > 0:
-            chunks.append(serialize(p1, P2Type.NETWORK_ICON, icon[:0xff]))
-            icon = icon[0xff:]
-            p1 = P1Type.NEXT_CHUNK
-    return chunks
-
-
-# ===============================================================================
 #          Main entry
 # ===============================================================================
 def main() -> None:
@@ -258,33 +116,24 @@ def main() -> None:
 
     set_logging(args.verbose)
 
-    if args.icon:
-        if not os.access(args.icon, os.R_OK):
-            logger.error(f"Cannot read file {args.icon}")
-            sys.exit(1)
+    if not os.access(args.icon, os.R_OK):
+        logger.error(f"Cannot read file {args.icon}")
+        sys.exit(1)
 
-        # Open image in luminance format
-        im, bpp = open_image(args.icon)
-        if im is None:
-            logger.error(f"Unable to access icon file {args.icon}")
-            sys.exit(1)
+    # Open image in luminance format
+    im, bpp = open_image(args.icon)
+    if im is None:
+        logger.error(f"Unable to access icon file {args.icon}")
+        sys.exit(1)
 
-        # Check icon
-        if not check_glyph(args.icon):
-            logger.error(f"Invalid icon file {args.icon}")
-            sys.exit(1)
+    # Check icon
+    if not check_glyph(args.icon):
+        logger.error(f"Invalid icon file {args.icon}")
+        sys.exit(1)
 
-        # Prepare and print app icon data
-        _, image_data = compute_app_icon_data(False, im, bpp, False)
-        logger.debug(f"image_data={image_data.hex()}")
-    else:
-        image_data = None
-
-    if args.chainid and args.name and args.ticker:
-        chunks = prepare_network_information(args.name, args.ticker, args.chainid, image_data)
-        # Print each chunk with its index
-        for i, chunk in enumerate(chunks):
-            logger.info(f"Chunk {i}[{len(chunk)}]: {chunk.hex()}")
+    # Prepare and print app icon data
+    _, image_data = compute_app_icon_data(False, im, bpp, False)
+    logger.info(f"image_data={image_data.hex()}")
 
 
 if __name__ == "__main__":

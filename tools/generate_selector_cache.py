@@ -4,7 +4,7 @@
 import json
 import logging
 from pathlib import Path
-from typing import Dict, Optional
+
 from eth_utils import keccak
 
 
@@ -32,19 +32,19 @@ def parse_abi_type(abi_type: dict) -> str:
     Returns:
         String representation like "address", "uint256", "(address,uint256)[]"
     """
-    base_type = abi_type['type']
+    base_type = abi_type["type"]
 
     # Handle tuple types (structs)
-    if base_type.startswith('tuple'):
-        if 'components' not in abi_type:
+    if base_type.startswith("tuple"):
+        if "components" not in abi_type:
             return base_type
 
         # Build tuple signature recursively
-        component_types = [parse_abi_type(comp) for comp in abi_type['components']]
+        component_types = [parse_abi_type(comp) for comp in abi_type["components"]]
         tuple_sig = f"({','.join(component_types)})"
 
         # Handle arrays of tuples
-        if base_type.endswith('[]'):
+        if base_type.endswith("[]"):
             return f"{tuple_sig}[]"
         else:
             return tuple_sig
@@ -61,18 +61,18 @@ def extract_function_signature(func: dict) -> str:
     Returns:
         Function signature like "transfer(address,uint256)"
     """
-    name = func['name']
+    name = func["name"]
 
-    if 'inputs' not in func or not func['inputs']:
+    if "inputs" not in func or not func["inputs"]:
         return f"{name}()"
 
     # Parse input types
-    input_types = [parse_abi_type(input_param) for input_param in func['inputs']]
+    input_types = [parse_abi_type(input_param) for input_param in func["inputs"]]
 
     return f"{name}({','.join(input_types)})"
 
 
-def process_abi_file(abi_path: Path, logger: Optional[logging.Logger]) -> Dict[str, str]:
+def process_abi_file(abi_path: Path, logger: logging.Logger) -> dict[str, str]:
     """Process a single ABI file and extract all function signatures.
 
     Args:
@@ -83,18 +83,17 @@ def process_abi_file(abi_path: Path, logger: Optional[logging.Logger]) -> Dict[s
     """
 
     try:
-        with open(abi_path, 'r') as f:
+        with open(abi_path) as f:
             abi = json.load(f)
     except Exception as e:
         logger.error(f"Failed to load {abi_path}: {e}")
         return {}
 
-
     selectors = {}
 
     for item in abi:
         # Only process function definitions
-        if item.get('type') != 'function':
+        if item.get("type") != "function":
             continue
 
         # Extract signature
@@ -114,7 +113,7 @@ def process_abi_file(abi_path: Path, logger: Optional[logging.Logger]) -> Dict[s
     return selectors
 
 
-def scan_abi_directory(directory: Path, logger: Optional[logging.Logger]) -> Dict[str, str]:
+def scan_abi_directory(directory: Path, logger: logging.Logger) -> dict[str, str]:
     """Scan directory for ABI files and extract all signatures.
 
     Args:
@@ -126,7 +125,7 @@ def scan_abi_directory(directory: Path, logger: Optional[logging.Logger]) -> Dic
     all_selectors = {}
 
     # Find all JSON files
-    json_files = list(directory.glob('*.json')) + list(directory.glob('**/*.json'))
+    json_files = list(directory.glob("*.json")) + list(directory.glob("**/*.json"))
 
     if not json_files:
         logger.warning(f"No JSON files found in {directory}")
@@ -147,11 +146,33 @@ def scan_abi_directory(directory: Path, logger: Optional[logging.Logger]) -> Dic
     return all_selectors
 
 
-def gen_selector_cache(input_path: Path = Path("tests/ragger/abis"), logger: Optional[logging.Logger] = None) -> Dict[str, str]:
-    # Validate input directory
-    assert input_path.exists()
+def gen_selector_cache(
+    input_path: Path = Path("tests/functional/abis"),
+    logger: logging.Logger | None = None,
+) -> dict[str, str]:
+    """Generate the function selector cache from a directory of ABI files.
 
-    assert input_path.is_dir()
+    Args:
+        input_path: Directory containing the ABI JSON files to scan
+        logger: Logger to use; defaults to the module logger when None
+
+    Returns:
+        Dictionary mapping selector to signature
+
+    Raises:
+        FileNotFoundError: If input_path does not exist
+        NotADirectoryError: If input_path is not a directory
+    """
+    # Fall back to a default logger so downstream helpers always get a valid logger
+    if logger is None:
+        logger = logging.getLogger(__name__)
+
+    # Validate input directory
+    if not input_path.exists():
+        raise FileNotFoundError(f"Input path does not exist: {input_path}")
+
+    if not input_path.is_dir():
+        raise NotADirectoryError(f"Input path is not a directory: {input_path}")
 
     # Scan ABI files
     return scan_abi_directory(input_path, logger)

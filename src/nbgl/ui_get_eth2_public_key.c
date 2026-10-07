@@ -1,6 +1,7 @@
 #include "apdu_constants.h"
-#include "ui_callbacks.h"
+#include "common_ui.h"
 #include "ui_nbgl.h"
+#include "ui_icons.h"
 #include "ui_utils.h"
 #include "shared_context.h"
 
@@ -10,14 +11,10 @@
 static void reviewChoice(bool confirm) {
     if (confirm) {
         io_seproxyhal_touch_address_ok();
-#ifndef FUZZ
         nbgl_useCaseReviewStatus(STATUS_TYPE_ADDRESS_VERIFIED, ui_idle);
-#endif
     } else {
         io_seproxyhal_touch_address_cancel();
-#ifndef FUZZ
         nbgl_useCaseReviewStatus(STATUS_TYPE_ADDRESS_REJECTED, ui_idle);
-#endif
     }
     ui_buffers_cleanup();
 }
@@ -41,12 +38,10 @@ void ui_display_public_eth2(void) {
                        tmpCtx.publicKeyContext.publicKey.W,
                        BLS12381_G1_COMPRESSED_PUBKEY_LENGTH);
 
-#ifndef FUZZ
     nbgl_useCaseAddressReview(g_subTitleMsg,
                               NULL,
                               get_app_icon(false),
                               g_titleMsg,
                               NULL,
                               reviewChoice);
-#endif
 }

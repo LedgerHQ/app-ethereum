@@ -37,7 +37,7 @@ static void eip7002_plugin_init_contract(ethPluginInitContract_t *param) {
     eip7002_context_t *context = (eip7002_context_t *) param->pluginContext;
 
     explicit_bzero(context, sizeof(*context));
-    if ((context->received + CALLDATA_SELECTOR_SIZE) > sizeof(context->withdrawal_request)) {
+    if ((size_t) context->received + CALLDATA_SELECTOR_SIZE > sizeof(context->withdrawal_request)) {
         param->result = ETH_PLUGIN_RESULT_ERROR;
     } else {
         memcpy(&context->withdrawal_request[context->received],
@@ -106,7 +106,7 @@ static void eip7002_plugin_finalize(ethPluginFinalize_t *param) {
     if (has_tx_value(param->txContent)) {
         param->numScreens++;
     }
-    if (!allzeroes(context->raw_amount, sizeof(context->raw_amount))) {
+    if (!is_zeroes_buffer(context->raw_amount, sizeof(context->raw_amount))) {
         param->numScreens++;
     }
     param->result = (context->received == sizeof(context->withdrawal_request))
@@ -118,7 +118,7 @@ static void eip7002_plugin_query_contract_id(ethQueryContractID_t *param) {
     eip7002_context_t *context = (eip7002_context_t *) param->pluginContext;
 
     strlcpy(param->version, "do", param->versionLength);
-    if (allzeroes(context->raw_amount, sizeof(context->raw_amount))) {
+    if (is_zeroes_buffer(context->raw_amount, sizeof(context->raw_amount))) {
         strlcpy(param->name, "full exit", param->nameLength);
     } else {
         strlcpy(param->name, "partial withdrawal", param->nameLength);
@@ -129,11 +129,11 @@ static void eip7002_plugin_query_contract_id(ethQueryContractID_t *param) {
 static void eip7002_plugin_query_contract_ui(ethQueryContractUI_t *param) {
     eip7002_context_t *context = (eip7002_context_t *) param->pluginContext;
     uint64_t chain_id = get_tx_chain_id();
-    const char *ticker = get_displayable_ticker(&chain_id, chainConfig, true);
+    const char *ticker = get_displayable_ticker(&chain_id, g_chain_config, true);
     // Map a screen index to a logical screen kind based on which optional
     // screens are present for this transaction.
     bool show_tx_value = has_tx_value(param->txContent);
-    bool show_request_amount = !allzeroes(context->raw_amount, sizeof(context->raw_amount));
+    bool show_request_amount = !is_zeroes_buffer(context->raw_amount, sizeof(context->raw_amount));
     uint8_t idx = param->screenIndex;
     enum { S_VALIDATOR, S_TX_VALUE, S_REQUEST_AMOUNT, S_UNKNOWN } screen = S_UNKNOWN;
 
@@ -148,14 +148,18 @@ static void eip7002_plugin_query_contract_ui(ethQueryContractUI_t *param) {
     switch (screen) {
         case S_VALIDATOR:
             if (param->msgLength < 2) {
+                param->result = ETH_PLUGIN_RESULT_ERROR;
                 return;
             }
             strlcpy(param->title, "Validator", param->titleLength);
             memcpy(param->msg, "0x", 2);
-            format_hex(context->validator_pubkey,
-                       sizeof(context->validator_pubkey),
-                       &param->msg[2],
-                       param->msgLength - 2);
+            if (format_hex(context->validator_pubkey,
+                           sizeof(context->validator_pubkey),
+                           &param->msg[2],
+                           param->msgLength - 2) < 0) {
+                param->result = ETH_PLUGIN_RESULT_ERROR;
+                return;
+            }
             break;
         case S_TX_VALUE:
             strlcpy(param->title, "Tx value", param->titleLength);
@@ -182,7 +186,8 @@ static void eip7002_plugin_query_contract_ui(ethQueryContractUI_t *param) {
             }
             break;
         case S_UNKNOWN:
-            break;
+            param->result = ETH_PLUGIN_RESULT_ERROR;
+            return;
     }
     param->result = ETH_PLUGIN_RESULT_OK;
 }

@@ -10,7 +10,7 @@
 #include "ui_utils.h"
 #include "app_mem_utils.h"
 #include "crypto_helpers.h"
-#include "tlv_apdu.h"
+#include "tlv_utils.h"
 #include "lcx_ecdsa.h"
 #include "shared_context.h"  // CX_SECP256_PUB_KEY_SIZE
 #include "ox_ec.h"
@@ -20,7 +20,6 @@
 
 #define STRUCT_TYPE_TRUSTED_NAME 0x03
 #define SIG_ALGO_SECP256K1       0x01
-#define SLIP_44_ETHEREUM         60
 
 static s_trusted_name *g_trusted_name_list = NULL;
 
@@ -60,6 +59,9 @@ static bool matching_trusted_name(const s_trusted_name *trusted_name,
     switch (trusted_name->struct_version) {
         case STRUCT_VERSION_1:
             if (!matching_type(TN_TYPE_ACCOUNT, type_count, types)) {
+                return false;
+            }
+            if (!matching_source(TN_SOURCE_ENS, source_count, sources)) {
                 return false;
             }
             if (!chain_is_ethereum_compatible(chain_id)) {
@@ -121,7 +123,11 @@ const s_trusted_name *get_trusted_name(uint8_t type_count,
  */
 static bool handle_struct_type(const tlv_data_t *data, s_trusted_name_ctx *context) {
     UNUSED(context);
-    return tlv_check_struct_type(data, STRUCT_TYPE_TRUSTED_NAME);
+    if (!tlv_enforce_u8_value(data, STRUCT_TYPE_TRUSTED_NAME)) {
+        PRINTF("Invalid STRUCTURE_TYPE value\n");
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -228,7 +234,10 @@ static bool handle_signer_algo(const tlv_data_t *data, s_trusted_name_ctx *conte
         PRINTF("SIGNER_ALGO: failed to extract\n");
         return false;
     }
-    CHECK_FIELD_VALUE("SIGNER_ALGO", value, SIG_ALGO_SECP256K1);
+    if (value != SIG_ALGO_SECP256K1) {
+        PRINTF("SIGNER_ALGO Value mismatch!\n");
+        return false;
+    }
     return true;
 }
 
@@ -258,8 +267,10 @@ static bool handle_trusted_name(const tlv_data_t *data, s_trusted_name_ctx *cont
  * @return whether it was successful
  */
 static bool handle_coin_type(const tlv_data_t *data, s_trusted_name_ctx *context) {
+    uint32_t coin_type;
+
     UNUSED(context);
-    if (!tlv_check_uint8(data, SLIP_44_ETHEREUM)) {
+    if (!get_uint32_t_from_tlv_data(data, &coin_type) || (coin_type != g_chain_config->coin_type)) {
         PRINTF("COIN_TYPE: error\n");
         return false;
     }
@@ -725,6 +736,16 @@ bool verify_trusted_name_struct(const s_trusted_name_ctx *context) {
         return false;
     }
     memcpy(node, &context->trusted_name, sizeof(*node));
+
+    // A v1 descriptor carries neither NAME_TYPE nor NAME_SOURCE, so both would be
+    // stored as 0 — not a member of e_name_type at all, and TN_SOURCE_LAB, which
+    // claims the locally verified address book as the origin of a remotely resolved
+    // name. The .eth TLD and ENS charset enforced above are what a v1 descriptor
+    // actually is; record that, after the parsing so a stray tag cannot override it.
+    if (node->struct_version == STRUCT_VERSION_1) {
+        node->name_type = TN_TYPE_ACCOUNT;
+        node->name_source = TN_SOURCE_ENS;
+    }
     flist_push_back((flist_node_t **) &g_trusted_name_list, (flist_node_t *) node);
 
     print_trusted_name_info(context);

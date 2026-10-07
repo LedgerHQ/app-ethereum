@@ -2,7 +2,7 @@
 #include "gtp_field_table.h"
 #include "shared_context.h"
 #include "tlv_library.h"
-#include "tlv_apdu.h"
+#include "tlv_utils.h"
 
 #define PARAM_UNIT_TAGS(X)                                     \
     X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG)   \
@@ -27,7 +27,12 @@ static bool handle_base(const tlv_data_t *data, s_param_unit_context *context) {
     if (data->value.size >= sizeof(context->param->base)) {
         return false;
     }
-    memcpy(context->param->base, data->value.ptr, data->value.size);
+    if (data->value.size > 0) {
+        if (data->value.ptr == NULL) {
+            return false;
+        }
+        memcpy(context->param->base, data->value.ptr, data->value.size);
+    }
     context->param->base[data->value.size] = '\0';
     return true;
 }

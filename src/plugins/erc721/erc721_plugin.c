@@ -24,15 +24,6 @@ static const uint8_t *const ERC721_SELECTORS[] = {
 void handle_init_contract_721(ethPluginInitContract_t *msg) {
     erc721_context_t *context = (erc721_context_t *) msg->pluginContext;
     explicit_bzero(context, sizeof(*context));
-
-    // Require metadata for the contract actually being called, bound to the
-    // transaction's chain as soon as that is resolvable (see
-    // has_asset_info_for_current_tx).
-    if (!has_asset_info_for_current_tx(ASSET_TYPE_NFT, msg->txContent->destination)) {
-        PRINTF("No NFT metadata for the called contract when trying to sign!\n");
-        msg->result = ETH_PLUGIN_RESULT_ERROR;
-        return;
-    }
     uint8_t i;
     for (i = 0; i < ARRAYLEN(ERC721_SELECTORS); i++) {
         if (memcmp(PIC(ERC721_SELECTORS[i]), msg->selector, SELECTOR_SIZE) == 0) {
@@ -97,15 +88,18 @@ void handle_finalize_721(ethPluginFinalize_t *msg) {
             return;
     }
     // Check if some ETH is attached to this tx
-    if (!allzeroes((void *) &msg->txContent->value, sizeof(msg->txContent->value))) {
+    context->amount_screen = 0;
+    if (!is_zeroes_buffer((void *) &msg->txContent->value, sizeof(msg->txContent->value))) {
         // Set Approval for All is not payable
         if (context->selectorIndex == SET_APPROVAL_FOR_ALL) {
             msg->result = ETH_PLUGIN_RESULT_ERROR;
             return;
-        } else {
-            // Add an additional screen
-            msg->numScreens++;
         }
+        // No standard ERC-721 method is payable either, but a custom contract reusing
+        // the transfer/approve selectors can be. Give the attached value its own row,
+        // placed last so it cannot collide with the optional receiver-payload row.
+        context->amount_screen = msg->numScreens;
+        msg->numScreens++;
     }
     msg->uiType = ETH_UI_TYPE_GENERIC;
     msg->result = ETH_PLUGIN_RESULT_OK;

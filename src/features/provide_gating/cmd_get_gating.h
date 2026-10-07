@@ -18,8 +18,6 @@
 
 #pragma once
 
-#ifdef HAVE_GATING_SUPPORT
-
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -27,5 +25,3 @@ uint16_t handle_gating(uint8_t p1, uint8_t p2, const uint8_t *data, uint8_t leng
 
 void clear_gating(void);
 bool set_gating_warning(void);
-
-#endif  // HAVE_GATING_SUPPORT

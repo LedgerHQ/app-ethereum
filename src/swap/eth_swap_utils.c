@@ -20,6 +20,7 @@
 #include "eth_swap_utils.h"
 #include "asset_info.h"
 #include "apdu_constants.h"
+#include "main_std_app.h"  // app_exit
 #include "utils.h"
 #include "swap_error_code_helpers.h"
 #include "feature_sign_tx.h"
@@ -189,7 +190,7 @@ void get_asset_info_on_network(bool is_fee,
             // fallback mechanism in the absence of network ticker in swap config
             if (context->chain_id == 0) {
                 // fallback mechanism in the absence of chain ID in swap config
-                context->chain_id = config->chainId;
+                context->chain_id = config->chain_id;
             }
             PRINTF("chain_id = %d\n", (uint32_t) context->chain_id);
             *ticker = (char *) get_displayable_ticker(&context->chain_id, config, false);
@@ -208,29 +209,6 @@ void get_asset_info_on_network(bool is_fee,
 }
 
 /**
- * Local implementation of strcasecmp, workaround for the segfaulting base implementation
- * on return value. Remove once strcasecmp is fixed.
- *
- * @param str1 First string to compare
- * @param str2 Second string to compare
- * @return 0 if strings are equal (case-insensitive), difference otherwise
- */
-static int strcasecmp_workaround(const char *str1, const char *str2) {
-    unsigned char c1, c2;
-
-    LEDGER_ASSERT(str1 != NULL, "strcasecmp_workaround: str1 is NULL");
-    LEDGER_ASSERT(str2 != NULL, "strcasecmp_workaround: str2 is NULL");
-    do {
-        c1 = *str1++;
-        c2 = *str2++;
-        if (toupper(c1) != toupper(c2)) {
-            return toupper(c1) - toupper(c2);
-        }
-    } while (c1 != '\0');
-    return 0;
-}
-
-/**
  * Verify that the destination address matches the previously validated one
  *
  * @param destination Destination address to verify
@@ -241,7 +219,7 @@ bool swap_check_destination(const char *destination) {
         return false;
     }
     // Ensure the values are the same that the ones that have been previously validated
-    if (strcasecmp_workaround(strings.common.toAddress, destination) != 0) {
+    if (strcasecmp(strings.common.toAddress, destination) != 0) {
         PRINTF("Error comparing destination addresses\n");
         send_swap_error_with_string(APDU_RESPONSE_MODE_CHECK_FAILED,
                                     SWAP_EC_ERROR_WRONG_DESTINATION,
@@ -249,9 +227,8 @@ bool swap_check_destination(const char *destination) {
                                     "%s != %s",
                                     strings.common.toAddress,
                                     destination);
-        // unreachable
-        os_sched_exit(0);
-        return false;
+        // unreachable — app_exit is __attribute__((noreturn))
+        app_exit();
     }
     return true;
 }
@@ -275,9 +252,8 @@ bool swap_check_amount(const char *amount) {
                                     "%s != %s",
                                     strings.common.fullAmount,
                                     amount);
-        // unreachable
-        os_sched_exit(0);
-        return false;
+        // unreachable — app_exit is __attribute__((noreturn))
+        app_exit();
     }
     return true;
 }
@@ -371,6 +347,17 @@ bool swap_check_value(const char *formatted_value,
  * @param fee Fee to verify
  * @return true if fee matches, false otherwise (exits app on failure)
  */
+void swap_abort_session(void) {
+    if (!G_called_from_swap) {
+        return;
+    }
+    PRINTF("Error inside a swap session: ending it\n");
+    G_swap_response_ready = true;
+    send_swap_error_simple(APDU_RESPONSE_MODE_CHECK_FAILED,
+                           SWAP_EC_ERROR_GENERIC,
+                           APP_CODE_DEFAULT);
+}
+
 bool swap_check_fee(const char *fee) {
     if (fee == NULL) {
         return false;
@@ -384,9 +371,8 @@ bool swap_check_fee(const char *fee) {
                                     "%s != %s",
                                     strings.common.maxFee,
                                     fee);
-        // unreachable
-        os_sched_exit(0);
-        return false;
+        // unreachable — app_exit is __attribute__((noreturn))
+        app_exit();
     }
     return true;
 }

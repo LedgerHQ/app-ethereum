@@ -32,10 +32,11 @@ static const eip7702_whitelist_t EIP7702_WHITELIST[] = {
 const char *get_delegate_name(const uint64_t *chain_id, const uint8_t *address) {
     for (size_t i = 0; i < ARRAYLEN(EIP7702_WHITELIST); i++) {
         bool chain_match = (*chain_id == CHAIN_ID_ALL)
-                                ? (EIP7702_WHITELIST[i].chain_id == CHAIN_ID_ALL)
-                                : ((EIP7702_WHITELIST[i].chain_id == CHAIN_ID_ALL) ||
-                                   (EIP7702_WHITELIST[i].chain_id == *chain_id));
-        if (chain_match && (memcmp(PIC(EIP7702_WHITELIST[i].address), address, ADDRESS_LENGTH) == 0)) {
+                               ? (EIP7702_WHITELIST[i].chain_id == CHAIN_ID_ALL)
+                               : ((EIP7702_WHITELIST[i].chain_id == CHAIN_ID_ALL) ||
+                                  (EIP7702_WHITELIST[i].chain_id == *chain_id));
+        if (chain_match &&
+            (memcmp(PIC(EIP7702_WHITELIST[i].address), address, ADDRESS_LENGTH) == 0)) {
             return PIC(EIP7702_WHITELIST[i].name);
         }
     }

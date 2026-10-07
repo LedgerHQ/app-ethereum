@@ -1,0 +1,58 @@
+# Ethereum zero-symbols: globals Absolution must keep zeroed. What this file is
+# and when to add entries: see the "Invariants" page of the SDK Fuzzing docs.
+# Below are just this app's large / pointer globals, grouped by area.
+
+# ── Pointer globals (8 bytes each, random = ASAN crash) ──
+G_swap_signing_return_value_address
+g_caller_app
+g_chain_config
+G_swap_crosschain_hash
+g_parked_calldata
+
+# ── App-level pointer globals (from .zon — 8-byte .top fields) ──
+eip712_v1_context
+g_tx_ctx_list
+g_tx_ctx_current
+g_enum_value_list
+g_table
+g_pairs
+g_pairsList
+g_titleMsg
+g_subTitleMsg
+g_finishMsg
+g_tx_hash_ctx
+GATING
+g_network_icon_hash
+g_dynamic_network_list
+g_last_added_network
+g_icon_bitmap
+g_proxy_info
+SAFE_DESC
+g_trusted_name_list
+g_token_info_list
+g_nft_info_list
+g_map_entry_list
+
+# ── UI display buffers (large, only affect display) ──
+strings
+warning
+prelude_details
+generic_details
+# TX_SIMULATION removed from zero-symbols: risk/type/category enums gate
+# code paths in cmd_get_tx_simulation.c. Fields are embedded arrays (no
+# pointers), so random bytes are memory-safe. Enum fields constrained
+# via domain-overrides.
+
+# ── SDK IO/UX state (large structures, no handler branches) ──
+G_io_app
+G_ux
+G_ux_params
+G_ux_os
+G_io_asynch_ux_callback
+G_io_seproxyhal_spi_buffer
+G_io_rx_buffer
+G_io_tx_buffer
+
+# ── Address book pointer globals ──
+g_ab_contact_list
+g_ab_ctx

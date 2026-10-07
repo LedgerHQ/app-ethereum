@@ -1,0 +1,79 @@
+# Ethereum domain overrides. Syntax and how/when to edit this file: see the
+# "Invariants" page of the SDK Fuzzing Framework docs. The lines below are just
+# this app's globals and the values that keep them in range.
+
+# ── App state enum (IDLE=0, SIGNING_TX=1, SIGNING_MSG=2, SIGNING_EIP712=3) ──
+appState. = values \x00 \x01 \x02 \x03
+
+# ── Swap mode enum (STANDARD=0, CROSSCHAIN_PENDING=1, CROSSCHAIN_SUCCESS=2, ERROR=3) ──
+G_swap_mode. = values \x00 \x01 \x02 \x03
+
+# ── Plugin type enum (NONE=0..OLD_INTERNAL=5) ──
+pluginType. = values \x00 \x01 \x02 \x03 \x04 \x05
+
+# ── Transaction type (EIP2930=0x01, EIP1559=0x02, EIP7702=0x04, LEGACY=0xc0) ──
+txContext.txType = values \x00 \x01 \x02 \x04 \xc0
+
+# ── TX parser current field (covers all RLP field enum ranges 0-11) ──
+txContext.currentField = values \x00 \x01 \x02 \x03 \x04 \x05 \x06 \x07 \x08 \x09 \x0a \x0b
+
+# ── TX parser boolean flags ──
+txContext.currentFieldIsList = values \x00 \x01
+txContext.processingField = values \x00 \x01
+txContext.fieldSingleByte = values \x00 \x01
+txContext.rlp_size_known = values \x00 \x01
+txContext.store_calldata = values \x00 \x01
+
+# ── RLP cursor: force to 0 so each restored state starts a fresh RLP decode.
+# ── rlpBuffer is uint8_t[5]; a restored rlpBufferPos >= 5 would index OOB. ──
+txContext.rlpBufferPos = values \x00\x00\x00\x00
+
+# ── Swap OS-handoff flags: force OFF. With G_called_from_swap set, the swap path
+# ── ends in io_send_response_buffers() writing through the OS-provided
+# ── G_swap_signing_return_value_address (NULL here) then handing back via
+# ── os_lib_end() — an OS interaction the app-only build can't satisfy. Swap
+# ── plugin logic is covered by fuzz_plugin_swap_calldata, which sets these itself
+# ── after reset. ──
+G_called_from_swap. = values \x00
+G_swap_response_ready. = values \x00
+
+# ── Signer descriptor validity: forced off. handle_safe_account() only sets it
+# ── behind a non-NULL SAFE_DESC, which zero-symbols keeps NULL, so a restored
+# ── `true` reaches ui_display_safe_account() in a state the app cannot be in
+# ── and it derefs SAFE_DESC. ──
+SIGNER_DESC.is_valid = values \x00
+
+# ── Signer descriptor data pointer (NULL to prevent SEGV on random pointer) ──
+SIGNER_DESC.data = values \x00\x00\x00\x00\x00\x00\x00\x00
+
+# ── Tx batch state (gates gtp_field_table.c PARAM_TYPE_INTENT branch) ──
+txContext.batch_nb_tx = values \x00 \x01 \x02 \x03
+txContext.current_batch_size = values \x00 \x01 \x02 \x03
+
+# ── txContext pointer fields (harness overwrites these to valid targets; ──
+# ── constrain prefix to NULL for explicit intent + minor prefix savings) ──
+txContext.sha3 = values \x00\x00\x00\x00\x00\x00\x00\x00
+txContext.content = values \x00\x00\x00\x00\x00\x00\x00\x00
+txContext.workBuffer = values \x00\x00\x00\x00\x00\x00\x00\x00
+
+# ── Network icon payload sizes (keep fuzzable for range) ──
+g_icon_payload.received_size = top
+g_icon_payload.expected_size = top
+
+# ── Challenge value (keep fuzzable) ──
+challenge. = top
+
+# ── APDU response code ──
+apdu_response_code. = top
+
+# ── ETH2 withdrawal index ──
+eth2WithdrawalIndex. = top
+
+# ── SDK mock toggles ──
+# NOT listed here on purpose. Absolution does not discover fuzz_mock_nbgl_reject
+# or fuzz_mock_crypto_fail for this app -- they are in the linked binary (nm
+# confirms) and their defining TUs are in the parsed target list, yet this app's
+# model holds 57 globals and neither toggle is among them, where Bitcoin's model
+# has 112 and samples both. Until that discovery gap is resolved upstream, this
+# app cannot drive the UI-reject or crypto-failure branches from the invariant,
+# and listing the toggles here only produced a silent no-op.

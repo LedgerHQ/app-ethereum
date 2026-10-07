@@ -7,43 +7,47 @@ repos:
     rev: v6.0.0
     hooks:
       - id: trailing-whitespace
+        args: ['--markdown-linebreak-ext=md']
       - id: end-of-file-fixer
       - id: mixed-line-ending
       - id: check-added-large-files
+        exclude: 'pnpm-lock\.yaml$'
       - id: check-merge-conflict
       - id: check-case-conflict
 
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.1
+    rev: v2.4.2
     hooks:
       - id: codespell
-        args: ['--ignore-words-list', 'ontop,shft,hte,eSpace', '--skip', 'makefile_conf/chain/*,tests/ragger/eip712_input_files/*']
+        args: ['--ignore-words-list', 'ontop,shft,hte,eSpace', '--skip', 'makefile_conf/chain/*,tests/functional/eip712_input_files/*']
 
   - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v14.0.6
+    rev: v21.1.8
     hooks:
       - id: clang-format
         types_or: [c]
 
   - repo: https://github.com/Mateusz-Grzelinski/actionlint-py
-    rev: v1.7.7.24
+    rev: v1.7.12.24
     hooks:
       - id: actionlint
         types_or: [yaml]
         args: [-shellcheck='' -pyflakes='']
 
   - repo: https://github.com/DavidAnson/markdownlint-cli2
-    rev: v0.13.0
+    rev: v0.22.1
     hooks:
       - id: markdownlint-cli2
         types_or: [markdown]
         exclude: CHANGELOG.md
 
-  - repo: https://github.com/PyCQA/pylint
-    rev: v3.3.8
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.20
     hooks:
-      - id: pylint
-        language: system
-        types: [python]
-        args: ['--jobs=0', '--rcfile=tests/ragger/setup.cfg']
-        files: '^tests/ragger/.*$'
+      # Run the linter.
+      - id: ruff-check
+        types_or: [python, pyi]
+        args: [--fix]
+      # Run the formatter.
+      - id: ruff-format
+        types_or: [python, pyi]

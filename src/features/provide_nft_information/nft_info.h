@@ -1,0 +1,15 @@
+#pragma once
+
+#include <stdint.h>
+#include "common_utils.h"
+#include "asset_info.h"
+
+typedef struct {
+    uint8_t address[ADDRESS_LENGTH];
+    char collection_name[COLLECTION_NAME_MAX_LEN + 1];
+    uint64_t chain_id;
+} s_nft_info;
+
+int set_nft_info(const s_nft_info *info);
+void clear_nft_infos(void);
+const s_nft_info *get_matching_nft_info(const uint64_t *chain_id, const uint8_t *address);

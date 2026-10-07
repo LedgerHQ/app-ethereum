@@ -1,6 +1,6 @@
-#include <inttypes.h>
 #include "os.h"
 #include "os_print.h"
+#include "common_utils.h"
 #include "gtp_param_raw.h"
 #include "gtp_field.h"
 #include "uint256.h"
@@ -8,7 +8,7 @@
 #include "utils.h"
 #include "shared_context.h"
 #include "tlv_library.h"
-#include "tlv_apdu.h"
+#include "tlv_utils.h"
 
 #define PARAM_RAW_TAGS(X)                                    \
     X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG) \
@@ -129,7 +129,7 @@ bool format_uint(const s_field *field,
         return false;
     }
 
-    return *to_be_displayed ? tostring256(&value256, 10, buf, buf_size) : true;
+    return *to_be_displayed ? uint256_to_decimal(value_ptr, value->length, buf, buf_size) : true;
 }
 
 /**
@@ -208,7 +208,7 @@ static bool format_addr(const s_field *field,
         return false;
     }
 
-    return *to_be_displayed ? getEthDisplayableAddress(tmp, buf, buf_size, chainConfig->chainId)
+    return *to_be_displayed ? getEthDisplayableAddress(tmp, buf, buf_size, g_chain_config->chain_id)
                             : true;
 }
 
@@ -345,6 +345,27 @@ static bool format_string(const s_field *field,
                                        check_string_constraint(field, value));
 }
 
+static bool format_separator(const char *tmpl, int idx) {
+    char buf[MAX_SEPARATOR_SIZE];
+    const char *placeholder = "{index}";
+    const char *pos = strstr(tmpl, placeholder);
+
+    if (pos == NULL) {
+        return add_to_field_table(PARAM_TYPE_SEPARATOR, tmpl, "", NULL);
+    }
+
+    char idx_str[12];
+    snprintf(idx_str, sizeof(idx_str), "%d", idx);
+    snprintf(buf,
+             sizeof(buf),
+             "%.*s%s%s",
+             (int) (pos - tmpl),
+             tmpl,
+             idx_str,
+             pos + strlen(placeholder));
+    return add_to_field_table(PARAM_TYPE_SEPARATOR, buf, "", NULL);
+}
+
 bool format_param_raw(const s_field *field) {
     bool ret = false;
     s_parsed_value_collection collec = {0};
@@ -382,6 +403,10 @@ bool format_param_raw(const s_field *field) {
                 case TF_FIXED:
                 default:
                     ret = false;
+            }
+            // Emit separator (page break or labeled header) before each element
+            if (ret && to_be_displayed && field->separator[0] != '\0') {
+                ret = format_separator(field->separator, i + 1);
             }
             // Add to field table only if required to be displayed
             if (ret && to_be_displayed) {

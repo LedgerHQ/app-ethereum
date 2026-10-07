@@ -16,8 +16,6 @@
  *
  ********************************************************************************/
 
-#ifdef HAVE_GATING_SUPPORT
-
 #include "cmd_get_gating.h"
 #include "app_mem_utils.h"
 #include "apdu_constants.h"
@@ -26,20 +24,21 @@
 #include "get_public_key.h"
 #include "tlv_library.h"
 #include "tlv_apdu.h"
+#include "tlv_utils.h"
 #include "utils.h"
-#include "nbgl_use_case.h"
 #include "os_pki.h"
 #include "network.h"
-#include "ui_callbacks.h"
+#include "common_ui.h"
 #include "ui_nbgl.h"
+#include "ui_icons.h"
 #include "common_utils.h"
 #include "plugin_utils.h"
 #include "mem_utils.h"
 #include "utils.h"
-#include "ui_logic.h"
 #include "feature_sign_tx.h"
 #include "proxy_info.h"
-#include "context_712.h"
+#include "eip712_v1_context.h"
+#include "typed_data.h"
 #include "schema_hash.h"
 #include "lcx_sha256.h"
 
@@ -92,7 +91,11 @@ static nbgl_genericDetails_t generic_details = {0};
  */
 static bool parse_struct_type(const tlv_data_t *data, s_gating_ctx *context) {
     UNUSED(context);
-    return tlv_check_struct_type(data, TYPE_GATED_SIGNING);
+    if (!tlv_enforce_u8_value(data, TYPE_GATED_SIGNING)) {
+        PRINTF("Invalid STRUCTURE_TYPE value\n");
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -104,7 +107,11 @@ static bool parse_struct_type(const tlv_data_t *data, s_gating_ctx *context) {
  */
 static bool parse_struct_version(const tlv_data_t *data, s_gating_ctx *context) {
     UNUSED(context);
-    return tlv_check_struct_version(data, STRUCT_VERSION);
+    if (!tlv_enforce_u8_value(data, STRUCT_VERSION)) {
+        PRINTF("Invalid STRUCTURE_VERSION value\n");
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -137,7 +144,7 @@ static bool parse_address(const tlv_data_t *data, s_gating_ctx *context) {
     if (!tlv_get_address(data, context->gating->address)) {
         return false;
     }
-    if (allzeroes(context->gating->address, ADDRESS_LENGTH) == 1) {
+    if (is_zeroes_buffer(context->gating->address, ADDRESS_LENGTH)) {
         PRINTF("ADDRESS: all zeroes\n");
         return false;
     }
@@ -346,7 +353,7 @@ static void print_gating_info(s_gating_ctx *context) {
     }
     len = (context->gating->type == TX_TYPE_TRANSACTION) ? SELECTOR_SIZE
                                                          : sizeof(context->gating->hash_selector);
-    if (allzeroes((const void *) context->gating->hash_selector, len) == 0) {
+    if (!is_zeroes_buffer((const void *) context->gating->hash_selector, len)) {
         PRINTF("[GATING] -    Hash Selector: %.*h\n", len, context->gating->hash_selector);
     }
     PRINTF("[GATING] -    Intro Msg: %s\n", context->gating->intro_msg);
@@ -363,7 +370,7 @@ static bool handle_tlv_payload(const buffer_t *buf) {
     s_gating_ctx ctx = {0};
 
     // Free any previously allocated GATING to avoid memory leak
-    APP_MEM_FREE(GATING);
+    clear_gating();
 
     if (APP_MEM_CALLOC((void **) &GATING, sizeof(gating_t)) == false) {
         PRINTF("Error: Not enough memory!\n");
@@ -375,12 +382,12 @@ static bool handle_tlv_payload(const buffer_t *buf) {
     cx_sha256_init(&ctx.hash_ctx);
 
     if (!gating_tlv_parser(buf, &ctx, &ctx.received_tags)) {
-        APP_MEM_FREE_AND_NULL((void **) &GATING);
+        clear_gating();
         return false;
     }
 
     if (!verify_fields(&ctx) || !verify_signature(&ctx)) {
-        APP_MEM_FREE_AND_NULL((void **) &GATING);
+        clear_gating();
         return false;
     }
 
@@ -429,8 +436,14 @@ uint16_t handle_gating(uint8_t p1, uint8_t p2, const uint8_t *data, uint8_t leng
 /**
  * @brief Clear the Gating parameters.
  *
+ * prelude_details and generic_details hold pointers into the GATING block, and
+ * warning.prelude hands them to NBGL, which re-reads them at every page build.
+ * They are dropped together with the block they point into.
  */
 void clear_gating(void) {
+    warning.prelude = NULL;
+    explicit_bzero(&prelude_details, sizeof(prelude_details));
+    explicit_bzero(&generic_details, sizeof(generic_details));
     APP_MEM_FREE_AND_NULL((void **) &GATING);
 }
 
@@ -469,8 +482,9 @@ static bool check_gating_address(void) {
     const uint8_t *address = NULL;
     const uint8_t *selector = NULL;
     const uint8_t *contract = NULL;
+    uint8_t eip712_contract[ADDRESS_LENGTH];
 
-    if (allzeroes((const void *) GATING->address, ADDRESS_LENGTH)) {
+    if (is_zeroes_buffer((const void *) GATING->address, ADDRESS_LENGTH)) {
         PRINTF("[GATING] TO address missing\n");
         return false;
     }
@@ -481,7 +495,10 @@ static bool check_gating_address(void) {
             selector = GATING->hash_selector;
             break;
         case TX_TYPE_TYPED_DATA:
-            contract = eip712_context->contract_addr;
+            if (!td_get_domain_contract_addr(eip712_contract)) {
+                return false;
+            }
+            contract = eip712_contract;
             break;
         default:
             return false;
@@ -542,7 +559,8 @@ static bool check_gating_chain_id(void) {
             }
             break;
         case TX_TYPE_TYPED_DATA:
-            chain_id = eip712_context->chain_id;
+            // return value not checked on purpose
+            td_get_domain_chain_id(&chain_id);
             // For EIP-712, the chain_id is optional, and be 0 in the descriptor (any chain)
             if ((GATING->chain_id != 0) && (GATING->chain_id != chain_id)) {
                 PRINTF("[GATING] Chain_ID mismatch: %llu != %llu\n", GATING->chain_id, chain_id);
@@ -561,10 +579,12 @@ static bool check_gating_chain_id(void) {
  * @return whether it was successful
  */
 static bool check_gating_selector(void) {
+    uint8_t schema_hash[CX_SHA224_SIZE];
+
     switch (GATING->type) {
         case TX_TYPE_TRANSACTION:
             // Check if the descriptor is set
-            if (allzeroes((const void *) GATING->hash_selector, SELECTOR_SIZE)) {
+            if (is_zeroes_buffer((const void *) GATING->hash_selector, SELECTOR_SIZE)) {
                 break;
             }
             if (memcmp(GATING->hash_selector, txContext.selector_bytes, SELECTOR_SIZE) != 0) {
@@ -577,18 +597,16 @@ static bool check_gating_selector(void) {
             }
             break;
         case TX_TYPE_TYPED_DATA:
-            if (compute_schema_hash() == false) {
+            if (compute_schema_hash(schema_hash) == false) {
                 PRINTF("[GATING] Failed to compute schema hash\n");
                 return false;
             }
-            if (memcmp(GATING->hash_selector,
-                       eip712_context->schema_hash,
-                       sizeof(GATING->hash_selector)) != 0) {
+            if (memcmp(GATING->hash_selector, schema_hash, sizeof(GATING->hash_selector)) != 0) {
                 PRINTF("[GATING] schemaHash mismatch: %.*h != %.*h\n",
                        sizeof(GATING->hash_selector),
                        GATING->hash_selector,
-                       sizeof(eip712_context->schema_hash),
-                       eip712_context->schema_hash);
+                       sizeof(schema_hash),
+                       schema_hash);
                 return false;
             }
             break;
@@ -636,7 +654,7 @@ static void set_gating_ui_screen(void) {
     generic_details.qrCode.centered = true;
 #endif
 
-    prelude_details.icon = &ICON_LEDGER;
+    prelude_details.icon = &LARGE_LEDGER_ICON;
 #ifdef SCREEN_SIZE_WALLET
     prelude_details.title = "There is a safer\nway to sign";
     prelude_details.description = GATING->intro_msg;
@@ -690,5 +708,3 @@ bool set_gating_warning(void) {
     set_gating_ui_screen();
     return true;
 }
-
-#endif  // HAVE_GATING_SUPPORT

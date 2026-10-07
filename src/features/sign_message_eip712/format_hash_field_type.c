@@ -1,9 +1,6 @@
 #include "format_hash_field_type.h"
 #include "app_mem_utils.h"
 #include "mem_utils.h"
-#include "commands_712.h"
-#include "hash_bytes.h"
-#include "apdu_constants.h"  // APDU response codes
 #include "typed_data.h"
 
 /**
@@ -14,6 +11,7 @@
  * @return whether the formatting & hashing were successful or not
  */
 static bool format_hash_field_type_size(const s_struct_712_field *field_ptr, cx_hash_t *hash_ctx) {
+    cx_err_t ret;
     uint16_t field_size;
     const char *uint_str_ptr;
 
@@ -27,17 +25,15 @@ static bool format_hash_field_type_size(const s_struct_712_field *field_ptr, cx_
             break;
         default:
             // should not be in here :^)
-            apdu_response_code = SWO_INCORRECT_DATA;
             return false;
     }
     uint_str_ptr = mem_alloc_and_format_uint(field_size);
     if (uint_str_ptr == NULL) {
-        apdu_response_code = SWO_INSUFFICIENT_MEMORY;
         return false;
     }
-    hash_nbytes((uint8_t *) uint_str_ptr, strlen(uint_str_ptr), hash_ctx);
+    ret = cx_hash_update((cx_hash_t *) hash_ctx, (uint8_t *) uint_str_ptr, strlen(uint_str_ptr));
     APP_MEM_FREE((void *) uint_str_ptr);
-    return true;
+    return ret == CX_OK;
 }
 
 /**
@@ -49,10 +45,13 @@ static bool format_hash_field_type_size(const s_struct_712_field *field_ptr, cx_
  */
 static bool format_hash_field_type_array_levels(const s_struct_712_field *field_ptr,
                                                 cx_hash_t *hash_ctx) {
+    cx_err_t ret;
     const char *uint_str_ptr;
 
     for (int i = 0; i < field_ptr->array_level_count; ++i) {
-        hash_byte('[', hash_ctx);
+        if (cx_hash_update((cx_hash_t *) hash_ctx, (uint8_t *) "[", 1) != CX_OK) {
+            return false;
+        }
 
         switch (field_ptr->array_levels[i].type) {
             case ARRAY_DYNAMIC:
@@ -60,18 +59,23 @@ static bool format_hash_field_type_array_levels(const s_struct_712_field *field_
             case ARRAY_FIXED_SIZE:
                 if ((uint_str_ptr = mem_alloc_and_format_uint(field_ptr->array_levels[i].size)) ==
                     NULL) {
-                    apdu_response_code = SWO_INSUFFICIENT_MEMORY;
                     return false;
                 }
-                hash_nbytes((uint8_t *) uint_str_ptr, strlen(uint_str_ptr), hash_ctx);
+                ret = cx_hash_update((cx_hash_t *) hash_ctx,
+                                     (uint8_t *) uint_str_ptr,
+                                     strlen(uint_str_ptr));
                 APP_MEM_FREE((void *) uint_str_ptr);
+                if (ret != CX_OK) {
+                    return false;
+                }
                 break;
             default:
                 // should not be in here :^)
-                apdu_response_code = SWO_INCORRECT_DATA;
                 return false;
         }
-        hash_byte(']', hash_ctx);
+        if (cx_hash_update((cx_hash_t *) hash_ctx, (uint8_t *) "]", 1) != CX_OK) {
+            return false;
+        }
     }
     return true;
 }
@@ -87,21 +91,29 @@ bool format_hash_field_type(const s_struct_712_field *field_ptr, cx_hash_t *hash
     const char *name;
 
     // field type name
-    name = get_struct_field_typename(field_ptr);
+    name = td_get_struct_field_typename(field_ptr);
     if (name == NULL) {
         return false;
     }
-    hash_nbytes((uint8_t *) name, strlen(name), hash_ctx);
+    if (cx_hash_update((cx_hash_t *) hash_ctx, (uint8_t *) name, strlen(name)) != CX_OK) {
+        return false;
+    }
 
     // field type size
-    if (field_ptr->type_has_size) {
-        if (!format_hash_field_type_size(field_ptr, hash_ctx)) {
-            return false;
-        }
+    switch (field_ptr->type) {
+        case TYPE_SOL_INT:
+        case TYPE_SOL_UINT:
+        case TYPE_SOL_BYTES_FIX:
+            if (!format_hash_field_type_size(field_ptr, hash_ctx)) {
+                return false;
+            }
+            break;
+        default:
+            break;
     }
 
     // field type array levels
-    if (field_ptr->type_is_array) {
+    if (field_ptr->array_level_count > 0) {
         if (!format_hash_field_type_array_levels(field_ptr, hash_ctx)) {
             return false;
         }

@@ -1,7 +1,8 @@
 #include "nbgl_use_case.h"
 #include "app_mem_utils.h"
 #include "ui_nbgl.h"
-#include "caller_api.h"
+#include "ui_icons.h"
+#include "caller_app.h"
 #include "network.h"
 #include "cmd_get_tx_simulation.h"
 #include "mem_utils.h"
@@ -10,7 +11,11 @@
 nbgl_warning_t warning;
 
 // settings info definition
+#ifdef DEV_VERSION
+#define SETTING_INFO_NB 4
+#else
 #define SETTING_INFO_NB 3
+#endif
 
 // settings menu definition
 #define SETTING_CONTENTS_NB 1
@@ -47,8 +52,18 @@ enum {
 };
 
 // settings definition
-static const char *const infoTypes[SETTING_INFO_NB] = {"Version", "Developer", "Copyright"};
-static const char *const infoContents[SETTING_INFO_NB] = {APPVERSION, "Ledger", "Ledger (c) 2025"};
+static const char *const infoTypes[SETTING_INFO_NB] = {"Version",
+#ifdef DEV_VERSION
+                                                       "Commit",
+#endif
+                                                       "Developer",
+                                                       "Copyright"};
+static const char *const infoContents[SETTING_INFO_NB] = {APPVERSION,
+#ifdef DEV_VERSION
+                                                          GIT_COMMIT,
+#endif
+                                                          "Ledger",
+                                                          ("Ledger (c) " COPYRIGHT_YEAR)};
 
 static nbgl_contentInfoList_t infoList = {0};
 static nbgl_contentSwitch_t switches[SETTINGS_SWITCHES_NB] = {0};
@@ -103,38 +118,6 @@ static void setting_toggle_callback(int token, uint8_t index, int page) {
             nvm_write((void *) &N_storage.displayHash, (void *) &value, sizeof(value));
             break;
     }
-}
-
-const nbgl_icon_details_t *get_app_icon(bool caller_icon) {
-    const nbgl_icon_details_t *icon = NULL;
-
-    if (caller_icon && caller_app) {
-        if (caller_app->icon) {
-            icon = caller_app->icon;
-        }
-    } else {
-        icon = &ICONGLYPH;
-    }
-    if (icon == NULL) {
-        PRINTF("%s(%s) returned NULL!\n", __func__, (caller_icon ? "true" : "false"));
-    }
-    return icon;
-}
-
-static const nbgl_icon_details_t *get_home_icon(void) {
-    const nbgl_icon_details_t *icon = NULL;
-
-    if (caller_app) {
-        if (caller_app->icon) {
-            icon = caller_app->icon;
-        }
-    } else {
-        icon = &ICONHOME;
-    }
-    if (icon == NULL) {
-        PRINTF("%s returned NULL!\n", __func__);
-    }
-    return icon;
 }
 
 /**
@@ -229,7 +212,6 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
     infoList.infoTypes = infoTypes;
     infoList.infoContents = infoContents;
 
-#ifndef FUZZ
     nbgl_useCaseHomeAndSettings(appname,
                                 get_home_icon(),
                                 tagline,
@@ -238,7 +220,6 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
                                 &infoList,
                                 NULL,
                                 app_quit);
-#endif
 }
 
 /**
@@ -247,34 +228,42 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
  * This function prepares the app name & tagline depending on how the application was called
  */
 static void get_appname_and_tagline(const char **appname, const char **tagline) {
-    uint64_t mainnet_chain_id = ETHEREUM_MAINNET_CHAINID;
-    size_t name_len;
+    uint64_t mainnet_chain_id;
 
-    if (caller_app == NULL) {  // Ethereum app
-        *appname = get_network_name_from_chain_id(&mainnet_chain_id);
-        return;
-    }
-
-    // caller_app->name is untrusted; NBGL renders it with no length bound
-    if ((caller_app->name == NULL) ||
-        (strnlen(caller_app->name, MAX_CALLER_NAME_LEN + 1) > MAX_CALLER_NAME_LEN)) {
-        PRINTF("invalid caller_app->name; falling back to the default appname\n");
-        *appname = get_network_name_from_chain_id(&mainnet_chain_id);
-        return;
-    }
-    name_len = strlen(caller_app->name);
-    *appname = caller_app->name;
-
-    if (caller_app->type == CALLER_TYPE_PLUGIN) {
-        size_t line_len = 1 + strlen(FORMAT_PLUGIN) + name_len;
-        // Free any previous tagline before allocating a new one
-        if (g_tag_line != NULL) {
-            APP_MEM_FREE_AND_NULL((void **) &g_tag_line);
+    if (g_caller_app) {
+        // g_caller_app->name is untrusted; NBGL renders it with no length bound
+        if ((g_caller_app->name == NULL) ||
+            (strnlen(g_caller_app->name, MAX_CALLER_NAME_LEN + 1) > MAX_CALLER_NAME_LEN)) {
+            PRINTF("invalid caller_app->name; falling back to the default appname\n");
+            mainnet_chain_id = ETHEREUM_MAINNET_CHAINID;
+            *appname = get_network_name_from_chain_id(&mainnet_chain_id);
+            return;
         }
-        if (APP_MEM_CALLOC((void **) &g_tag_line, line_len) == true) {
-            snprintf(g_tag_line, line_len, FORMAT_PLUGIN, *appname);
-            *tagline = g_tag_line;
+        *appname = g_caller_app->name;
+
+        if (g_caller_app->type == CALLER_TYPE_PLUGIN) {
+            size_t name_len = strnlen(g_caller_app->name, MAX_CALLER_NAME_LEN + 1);
+            if (name_len > MAX_CALLER_NAME_LEN) {
+                PRINTF("Plugin g_caller_app->name exceeds %u bytes; tagline omitted\n",
+                       (unsigned) MAX_CALLER_NAME_LEN);
+                return;
+            }
+            size_t line_len = 1 + strlen(FORMAT_PLUGIN) + name_len;
+            // Free any tagline left over from a previous home transition
+            // before allocating a new one; without this, repeated returns
+            // to the home screen in the same session accumulate orphaned
+            // buffers in the app-memory pool.
+            if (g_tag_line != NULL) {
+                APP_MEM_FREE_AND_NULL((void **) &g_tag_line);
+            }
+            if (APP_MEM_CALLOC((void **) &g_tag_line, line_len) == true) {
+                snprintf(g_tag_line, line_len, FORMAT_PLUGIN, *appname);
+                *tagline = g_tag_line;
+            }
         }
+    } else {  // Ethereum app
+        mainnet_chain_id = ETHEREUM_MAINNET_CHAINID;
+        *appname = get_network_name_from_chain_id(&mainnet_chain_id);
     }
 }
 

@@ -25,10 +25,7 @@
  *     comment about the CWE-345 follow-up).
  */
 
-#include <stdarg.h>
-#include <stddef.h>
-#include <setjmp.h>
-#include <cmocka.h>
+#include "unity.h"
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -36,7 +33,7 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
 #include "eth_plugin_internal.h"
-#include "wraps.h"
+#include "Mockpublic_keys.h"
 
 // =============================================================================
 // Globals required by linked translation units
@@ -46,8 +43,27 @@
 // Wraps
 // =============================================================================
 
-// check_signature_with_pubkey is wrapped in mocks/mock.c; state via
-// g_sig_check_ret + g_sig_check_calls from wraps.h.
+// check_signature_with_pubkey is a CMock-generated mock.
+// Control its return value via s_sig_check_ret below.
+static bool s_sig_check_ret = true;
+static bool sig_check_stub(uint8_t *buffer,
+                           const uint8_t bufLen,
+                           const uint8_t *PubKey,
+                           const uint8_t keyLen,
+                           const uint8_t keyUsageExp,
+                           const uint8_t *signature,
+                           const uint8_t sigLen,
+                           int num_calls) {
+    (void) buffer;
+    (void) bufLen;
+    (void) PubKey;
+    (void) keyLen;
+    (void) keyUsageExp;
+    (void) signature;
+    (void) sigLen;
+    (void) num_calls;
+    return s_sig_check_ret;
+}
 
 // =============================================================================
 // SDK exception scaffolding — same approach as test_cmd_set_plugin
@@ -112,7 +128,7 @@ static size_t build_apdu(uint8_t *out, size_t out_size, const s_opts *opts) {
             out[off++] = 0x42;
         }
     }
-    assert_true(off <= out_size);
+    TEST_ASSERT_TRUE(off <= out_size);
     return off;
 }
 
@@ -120,43 +136,37 @@ static size_t build_apdu(uint8_t *out, size_t out_size, const s_opts *opts) {
 // Fixture
 // =============================================================================
 
-static int reset(void **state) {
-    (void) state;
+static void reset(void) {
     appState = APP_STATE_IDLE;
     memset(&dataContext, 0, sizeof(dataContext));
     pluginType = PLUGIN_TYPE_NONE;
-    g_sig_check_ret = true;
-    g_sig_check_calls = 0;
+    s_sig_check_ret = true;
     g_os_lib_calls = 0;
     memset(G_io_tx_buffer, 0, sizeof(G_io_tx_buffer));
-    return 0;
 }
 
 // =============================================================================
 // Tests
 // =============================================================================
 
-static void test_zero_length_payload_rejected(void **state) {
-    (void) state;
+void test_zero_length_payload_rejected(void) {
     uint8_t apdu[1] = {0};
     uint16_t sw = handle_set_external_plugin(apdu, 0);
-    assert_int_equal(sw, SWO_INCORRECT_DATA);
+    TEST_ASSERT_EQUAL(sw, SWO_INCORRECT_DATA);
 }
 
-static void test_empty_plugin_name_rejected(void **state) {
-    (void) state;
+void test_empty_plugin_name_rejected(void) {
     uint8_t apdu[100];
     s_opts opts = default_opts();
     opts.name_len = 0;
     opts.name = "";
     size_t len = build_apdu(apdu, sizeof(apdu), &opts);
     uint16_t sw = handle_set_external_plugin(apdu, (uint8_t) len);
-    assert_int_equal(sw, SWO_INCORRECT_DATA);
-    assert_int_equal(g_sig_check_calls, 0);
+    TEST_ASSERT_EQUAL(sw, SWO_INCORRECT_DATA);
+    TEST_ASSERT_EQUAL(check_signature_with_pubkey_CallCount(), 0);
 }
 
-static void test_payload_too_small_rejected(void **state) {
-    (void) state;
+void test_payload_too_small_rejected(void) {
     uint8_t apdu[100];
     s_opts opts = default_opts();
     opts.include_signature = false;
@@ -165,11 +175,10 @@ static void test_payload_too_small_rejected(void **state) {
     // payload of *exactly* payload_size (no signature attached) still
     // fails the check.
     uint16_t sw = handle_set_external_plugin(apdu, (uint8_t) len);
-    assert_int_equal(sw, SWO_INCORRECT_DATA);
+    TEST_ASSERT_EQUAL(sw, SWO_INCORRECT_DATA);
 }
 
-static void test_name_too_long_rejected(void **state) {
-    (void) state;
+void test_name_too_long_rejected(void) {
     uint8_t apdu[256];
     s_opts opts = default_opts();
     // pluginName slot length is PLUGIN_NAME_MAX_LEN; the guard rejects
@@ -178,45 +187,42 @@ static void test_name_too_long_rejected(void **state) {
     opts.name = NULL;
     size_t len = build_apdu(apdu, sizeof(apdu), &opts);
     uint16_t sw = handle_set_external_plugin(apdu, (uint8_t) len);
-    assert_int_equal(sw, SWO_INCORRECT_DATA);
+    TEST_ASSERT_EQUAL(sw, SWO_INCORRECT_DATA);
 }
 
-static void test_signature_failure_rejected(void **state) {
-    (void) state;
-    g_sig_check_ret = false;
+void test_signature_failure_rejected(void) {
+    s_sig_check_ret = false;
     uint8_t apdu[200];
     s_opts opts = default_opts();
     size_t len = build_apdu(apdu, sizeof(apdu), &opts);
     uint16_t sw = handle_set_external_plugin(apdu, (uint8_t) len);
-    assert_int_equal(sw, SWO_INCORRECT_DATA);
+    TEST_ASSERT_EQUAL(sw, SWO_INCORRECT_DATA);
     // The plugin must NOT have been activated.
-    assert_int_equal(pluginType, PLUGIN_TYPE_NONE);
+    TEST_ASSERT_EQUAL(pluginType, PLUGIN_TYPE_NONE);
 }
 
-static void test_happy_path_stores_address_and_selector(void **state) {
-    (void) state;
+void test_happy_path_stores_address_and_selector(void) {
     uint8_t apdu[200];
     s_opts opts = default_opts();
     size_t len = build_apdu(apdu, sizeof(apdu), &opts);
     uint16_t sw = handle_set_external_plugin(apdu, (uint8_t) len);
-    assert_int_equal(sw, SWO_SUCCESS);
-    assert_int_equal(g_os_lib_calls, 1);
-    assert_int_equal(pluginType, PLUGIN_TYPE_EXTERNAL);
+    TEST_ASSERT_EQUAL(sw, SWO_SUCCESS);
+    TEST_ASSERT_EQUAL(g_os_lib_calls, 1);
+    TEST_ASSERT_EQUAL(pluginType, PLUGIN_TYPE_EXTERNAL);
     // pluginName NUL-terminated.
-    assert_int_equal(dataContext.tokenContext.pluginName[opts.name_len], '\0');
-    assert_memory_equal(dataContext.tokenContext.pluginName, "Beef", 4);
+    TEST_ASSERT_EQUAL(dataContext.tokenContext.pluginName[opts.name_len], '\0');
+    TEST_ASSERT_EQUAL_MEMORY(dataContext.tokenContext.pluginName, "Beef", 4);
     // 20 bytes of 0xAA in contractAddress.
     for (int i = 0; i < 20; i++) {
-        assert_int_equal(dataContext.tokenContext.contractAddress[i], 0xAA);
+        TEST_ASSERT_EQUAL(dataContext.tokenContext.contractAddress[i], 0xAA);
     }
     // 4 bytes of 0xCC in methodSelector.
     for (int i = 0; i < 4; i++) {
-        assert_int_equal(dataContext.tokenContext.methodSelector[i], 0xCC);
+        TEST_ASSERT_EQUAL(dataContext.tokenContext.methodSelector[i], 0xCC);
     }
 }
 
-static void test_happy_path_binds_chain_id_any(void **state) {
-    (void) state;
+void test_happy_path_binds_chain_id_any(void) {
     // External-plugin enrollment is intentionally chain-unbound. Pin
     // that so a future "tighten chain binding" patch that touches this
     // file flips an explicit test rather than silently changing UX.
@@ -224,34 +230,43 @@ static void test_happy_path_binds_chain_id_any(void **state) {
     s_opts opts = default_opts();
     size_t len = build_apdu(apdu, sizeof(apdu), &opts);
     (void) handle_set_external_plugin(apdu, (uint8_t) len);
-    assert_int_equal(dataContext.tokenContext.pluginChainId, PLUGIN_CHAIN_ID_ANY);
+    TEST_ASSERT_EQUAL(dataContext.tokenContext.pluginChainId, PLUGIN_CHAIN_ID_ANY);
 }
 
-static void test_rejected_when_app_not_idle(void **state) {
-    (void) state;
+void test_rejected_when_app_not_idle(void) {
     uint8_t apdu[200];
     s_opts opts = default_opts();
     size_t len = build_apdu(apdu, sizeof(apdu), &opts);
     appState = APP_STATE_SIGNING_TX;
     uint16_t sw = handle_set_external_plugin(apdu, (uint8_t) len);
-    assert_int_equal(sw, SWO_COMMAND_NOT_ALLOWED);
-    assert_int_equal(pluginType, PLUGIN_TYPE_NONE);
+    TEST_ASSERT_EQUAL(sw, SWO_COMMAND_NOT_ALLOWED);
+    TEST_ASSERT_EQUAL(pluginType, PLUGIN_TYPE_NONE);
 }
 
 // =============================================================================
 // Runner
 // =============================================================================
 
+void setUp(void) {
+    Mockpublic_keys_Init();
+    check_signature_with_pubkey_StubWithCallback(sig_check_stub);
+    reset();
+}
+
+void tearDown(void) {
+    Mockpublic_keys_Verify();
+    Mockpublic_keys_Destroy();
+}
+
 int main(void) {
-    const struct CMUnitTest tests[] = {
-        cmocka_unit_test_setup(test_rejected_when_app_not_idle, reset),
-        cmocka_unit_test_setup(test_zero_length_payload_rejected, reset),
-        cmocka_unit_test_setup(test_empty_plugin_name_rejected, reset),
-        cmocka_unit_test_setup(test_payload_too_small_rejected, reset),
-        cmocka_unit_test_setup(test_name_too_long_rejected, reset),
-        cmocka_unit_test_setup(test_signature_failure_rejected, reset),
-        cmocka_unit_test_setup(test_happy_path_stores_address_and_selector, reset),
-        cmocka_unit_test_setup(test_happy_path_binds_chain_id_any, reset),
-    };
-    return cmocka_run_group_tests(tests, NULL, NULL);
+    UNITY_BEGIN();
+    RUN_TEST(test_zero_length_payload_rejected);
+    RUN_TEST(test_empty_plugin_name_rejected);
+    RUN_TEST(test_payload_too_small_rejected);
+    RUN_TEST(test_name_too_long_rejected);
+    RUN_TEST(test_signature_failure_rejected);
+    RUN_TEST(test_happy_path_stores_address_and_selector);
+    RUN_TEST(test_happy_path_binds_chain_id_any);
+    RUN_TEST(test_rejected_when_app_not_idle);
+    return UNITY_END();
 }

@@ -10,7 +10,7 @@
 #include "app_mem_utils.h"
 #include "tx_ctx.h"
 #include "tlv_library.h"
-#include "tlv_apdu.h"
+#include "tlv_utils.h"
 
 #define TX_INFO_TAGS(X)                                                            \
     X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG)                       \
@@ -130,7 +130,12 @@ static bool handle_signature(const tlv_data_t *data, s_tx_info_ctx *context) {
     if (data->value.size > sizeof(context->tx_info->signature)) {
         return false;
     }
-    memcpy(context->tx_info->signature, data->value.ptr, data->value.size);
+    if (data->value.size > 0) {
+        if (data->value.ptr == NULL) {
+            return false;
+        }
+        memcpy(context->tx_info->signature, data->value.ptr, data->value.size);
+    }
     context->tx_info->signature_len = data->value.size;
     return true;
 }

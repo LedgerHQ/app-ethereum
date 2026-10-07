@@ -1,6 +1,6 @@
 #include "shared_context.h"
-#include "ui_callbacks.h"
 #include "ui_nbgl.h"
+#include "ui_icons.h"
 #include "nbgl_use_case.h"
 #include "common_ui.h"
 #include "ui_utils.h"
@@ -8,34 +8,37 @@
 static void review7702Choice(bool confirm) {
     if (confirm) {
         auth_7702_ok_cb();
-#ifndef FUZZ
         nbgl_useCaseReviewStatus(STATUS_TYPE_OPERATION_SIGNED, ui_idle);
-#endif
     } else {
         auth_7702_cancel_cb();
-#ifndef FUZZ
         nbgl_useCaseReviewStatus(STATUS_TYPE_OPERATION_REJECTED, ui_idle);
-#endif
     }
     ui_pairs_cleanup();
 }
 
-void ui_sign_7702_revocation(void) {
+bool ui_sign_7702_revocation(void) {
+    int index = 0;
+
     // Initialize the buffers
-    if (!ui_pairs_init(2)) {
+    if (!ui_pairs_init(2 + (N_storage.displayNonce ? 1 : 0))) {
         // Initialization failed, cleanup and return
-        return;
+        return false;
     }
 
-    g_pairs[0].item = "Account";
-    g_pairs[0].value = strings.common.fromAddress;
-    g_pairs[1].item = "Revoke on network";
-    g_pairs[1].value = strings.common.network_name;
+    g_pairs[index].item = "Account";
+    g_pairs[index++].value = strings.common.fromAddress;
 
-#ifndef FUZZ
+    g_pairs[index].item = "Revoke on network";
+    g_pairs[index++].value = strings.common.network_name;
+
+    if (N_storage.displayNonce) {
+        g_pairs[index].item = "Nonce";
+        g_pairs[index++].value = strings.common.nonce;
+    }
+
     nbgl_useCaseReview(TYPE_OPERATION,
                        g_pairsList,
-                       &ICON_APP_REVIEW,
+                       &LARGE_REVIEW_ICON,
                        "Review authorization to revoke smart contract delegation?",
                        NULL,
 #ifdef SCREEN_SIZE_WALLET
@@ -44,5 +47,5 @@ void ui_sign_7702_revocation(void) {
                        "Sign operation",
 #endif
                        review7702Choice);
-#endif
+    return true;
 }

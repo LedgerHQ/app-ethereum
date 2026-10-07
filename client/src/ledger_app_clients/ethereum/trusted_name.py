@@ -2,9 +2,9 @@ import struct
 from enum import IntEnum
 
 from ragger.bip import pack_derivation_path
+from ragger.tlv import TlvSerializable
 
-from .keychain import Key, sign_data
-from .tlv import TlvSerializable
+from .signing_partners import CAL_TRUSTED_NAME_PARTNER, TRUSTED_NAME_PARTNER
 
 
 class TrustedNameType(IntEnum):
@@ -55,7 +55,7 @@ class TrustedName(TlvSerializable):
     name: str
     chain_id: int | None
     address: bytes
-    challenge: bytes | None
+    challenge: int | None
     nft_id: int | None
     owner: bytes | None
     owner_deriv_path: str | None
@@ -68,7 +68,7 @@ class TrustedName(TlvSerializable):
         name: str,
         coin_type: int | None = None,
         not_valid_after: tuple[int, int, int] | None = None,
-        challenge: bytes | None = None,
+        challenge: int | None = None,
         tn_type: TrustedNameType | None = None,
         tn_source: TrustedNameSource | None = None,
         chain_id: int | None = None,
@@ -118,13 +118,13 @@ class TrustedName(TlvSerializable):
         sig = self.signature
         if self.tn_source == TrustedNameSource.CAL:
             key_id = 9
-            key = Key.CAL
+            partner = CAL_TRUSTED_NAME_PARTNER
         else:
             key_id = 7
-            key = Key.TRUSTED_NAME
+            partner = TRUSTED_NAME_PARTNER
         payload += self.serialize_field(Tag.SIG_KEY_ID, key_id)
         payload += self.serialize_field(Tag.SIG_ALGO, 1)
         if sig is None:
-            sig = sign_data(key, payload)
+            sig = partner.sign(bytes(payload))
         payload += self.serialize_field(Tag.SIGNATURE, sig)
-        return payload
+        return bytes(payload)

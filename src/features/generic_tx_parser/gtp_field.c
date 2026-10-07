@@ -7,7 +7,7 @@
 #include "mem_utils.h"  // mem_buffer_cleanup
 #include "lists.h"
 #include "tlv_library.h"
-#include "tlv_apdu.h"
+#include "tlv_utils.h"
 
 typedef union {
     s_param_raw_context raw_ctx;
@@ -22,6 +22,7 @@ typedef union {
     s_param_calldata_context calldata_ctx;
     s_param_token_context token_ctx;
     s_param_network_context network_ctx;
+    s_param_group_context group_ctx;
 } u_param_context;
 
 // Forward declarations
@@ -31,16 +32,18 @@ static bool handle_param_type(const tlv_data_t *data, s_field_ctx *context);
 static bool handle_param(const tlv_data_t *data, s_field_ctx *context);
 static bool handle_param_visible(const tlv_data_t *data, s_field_ctx *context);
 static bool handle_param_constraint(const tlv_data_t *data, s_field_ctx *context);
+static bool handle_separator(const tlv_data_t *data, s_field_ctx *context);
 static bool field_common_handler(const tlv_data_t *data, s_field_ctx *context);
 
 // Define TLV tags for Field
-#define FIELD_TAGS(X)                                              \
-    X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG)       \
-    X(0x01, TAG_NAME, handle_name, ENFORCE_UNIQUE_TAG)             \
-    X(0x02, TAG_PARAM_TYPE, handle_param_type, ENFORCE_UNIQUE_TAG) \
-    X(0x03, TAG_PARAM, handle_param, ENFORCE_UNIQUE_TAG)           \
-    X(0x04, TAG_VISIBLE, handle_param_visible, ENFORCE_UNIQUE_TAG) \
-    X(0x05, TAG_CONSTRAINT, handle_param_constraint, ALLOW_MULTIPLE_TAG)
+#define FIELD_TAGS(X)                                                    \
+    X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG)             \
+    X(0x01, TAG_NAME, handle_name, ENFORCE_UNIQUE_TAG)                   \
+    X(0x02, TAG_PARAM_TYPE, handle_param_type, ENFORCE_UNIQUE_TAG)       \
+    X(0x03, TAG_PARAM, handle_param, ENFORCE_UNIQUE_TAG)                 \
+    X(0x04, TAG_VISIBLE, handle_param_visible, ENFORCE_UNIQUE_TAG)       \
+    X(0x05, TAG_CONSTRAINT, handle_param_constraint, ALLOW_MULTIPLE_TAG) \
+    X(0x06, TAG_SEPARATOR, handle_separator, ENFORCE_UNIQUE_TAG)
 
 // Generate TLV parser for Field
 DEFINE_TLV_PARSER(FIELD_TAGS, &field_common_handler, field_tlv_parser)
@@ -77,6 +80,14 @@ static bool handle_name(const tlv_data_t *data, s_field_ctx *context) {
     return true;
 }
 
+static bool handle_separator(const tlv_data_t *data, s_field_ctx *context) {
+    str_cpy_explicit_trunc((const char *) data->value.ptr,
+                           data->value.size,
+                           context->field->separator,
+                           sizeof(context->field->separator));
+    return true;
+}
+
 static bool handle_param_type(const tlv_data_t *data, s_field_ctx *context) {
     if (!tlv_get_uint8_range(data, &context->field->param_type, 0, UINT8_MAX)) {
         return false;
@@ -94,6 +105,9 @@ static bool handle_param_type(const tlv_data_t *data, s_field_ctx *context) {
         case PARAM_TYPE_CALLDATA:
         case PARAM_TYPE_TOKEN:
         case PARAM_TYPE_NETWORK:
+            break;
+        case PARAM_TYPE_GROUP:
+            context->field->param_group.fields = NULL;
             break;
         default:
             PRINTF("Error: Unsupported param type (%u)\n", context->field->param_type);
@@ -149,7 +163,14 @@ static bool handle_param_constraint(const tlv_data_t *data, s_field_ctx *context
         APP_MEM_FREE(node);
         return false;
     }
-    memcpy(node->value, data->value.ptr, data->value.size);
+    if (data->value.size > 0) {
+        if (data->value.ptr == NULL) {
+            APP_MEM_FREE(node->value);
+            APP_MEM_FREE(node);
+            return false;
+        }
+        memcpy(node->value, data->value.ptr, data->value.size);
+    }
     // Add to linked list
     flist_push_back((flist_node_t **) &context->field->constraints, (flist_node_t *) node);
     return true;
@@ -213,6 +234,10 @@ static bool handle_param(const tlv_data_t *data, s_field_ctx *context) {
             param_ctx.network_ctx.param = &context->field->param_network;
             ret = handle_param_network_struct(&data->value, &param_ctx.network_ctx);
             break;
+        case PARAM_TYPE_GROUP:
+            param_ctx.group_ctx.param = &context->field->param_group;
+            ret = handle_param_group_struct(&data->value, &param_ctx.group_ctx);
+            break;
         default:
             return false;
     }
@@ -252,13 +277,27 @@ bool verify_field_struct(const s_field_ctx *context) {
         // Set default visibility if not provided
         context->field->visibility = PARAM_VISIBILITY_ALWAYS;
     }
+
+    // MUST_BE and IF_NOT_IN are evaluated by the RAW and TRUSTED_NAME formatters only.
+    // Accepting them elsewhere would render the field as though the signed condition
+    // had been checked, so refuse the descriptor instead of ignoring the condition.
+    if (context->field->visibility != PARAM_VISIBILITY_ALWAYS) {
+        switch (context->field->param_type) {
+            case PARAM_TYPE_RAW:
+            case PARAM_TYPE_TRUSTED_NAME:
+                break;
+            default:
+                PRINTF("Error: VISIBLE constraint unsupported for param type %u!\n",
+                       context->field->param_type);
+                return false;
+        }
+    }
     return true;
 }
 
 bool format_field(s_field *field, uint8_t depth) {
     bool ret;
 
-    (void) depth;
     switch (field->param_type) {
         case PARAM_TYPE_RAW:
             ret = format_param_raw(field);
@@ -296,6 +335,10 @@ bool format_field(s_field *field, uint8_t depth) {
         case PARAM_TYPE_NETWORK:
             ret = format_param_network(&field->param_network, field->name);
             break;
+        case PARAM_TYPE_GROUP:
+            ret = format_param_group(field, depth);
+            cleanup_param_group(&field->param_group);
+            break;
         default:
             ret = false;
     }
@@ -307,6 +350,16 @@ bool format_field(s_field *field, uint8_t depth) {
     // so that EIP-712 error-handling does trigger
     strings.tmp.tmp[0] = '\0';
     return ret;
+}
+
+void cleanup_field(s_field *field) {
+    if (field == NULL) {
+        return;
+    }
+    if (field->param_type == PARAM_TYPE_GROUP) {
+        cleanup_param_group(&field->param_group);
+    }
+    cleanup_field_constraints(field);
 }
 
 static void constraint_node_del(flist_node_t *node) {

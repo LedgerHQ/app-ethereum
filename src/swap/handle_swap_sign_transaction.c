@@ -1,15 +1,18 @@
+#include "os_lib.h"  // os_lib_end
+
 #include "eth_swap_utils.h"
 #include "shared_context.h"
 #include "cmd_set_plugin.h"
-#include "nbgl_use_case.h"
 #include "app_mem_utils.h"
 #include "mem_utils.h"
+#include "common_ui.h"
+#include "os.h"
 
 // Standard or crosschain swap type
 swap_mode_t G_swap_mode;
 
 // On crosschain swap, save the hash promised by the partner
-uint8_t* G_swap_crosschain_hash = NULL;
+uint8_t *G_swap_crosschain_hash = NULL;
 
 uint64_t G_swap_expected_chain_id;
 uint8_t G_swap_expected_token_address[ADDRESS_LENGTH];
@@ -24,8 +27,8 @@ typedef enum extra_id_type_e {
     // There are others but they are not relevant for the Ethereum application
 } extra_id_type_t;
 
-bool copy_transaction_parameters(create_transaction_parameters_t* sign_transaction_params,
-                                 const chain_config_t* config) {
+bool copy_transaction_parameters(create_transaction_parameters_t *sign_transaction_params,
+                                 const chain_config_t *config) {
     // first copy parameters to stack, and then to global data.
     // We need this "trick" as the input data position can overlap with app-ethereum globals
     txStringProperties_t stack_data;
@@ -80,7 +83,7 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
     }
 
     swap_context_t context = {0};
-    char* ticker = NULL;
+    char *ticker = NULL;
 
     if (!parse_swap_config(sign_transaction_params->coin_configuration,
                            sign_transaction_params->coin_configuration_length,
@@ -91,11 +94,11 @@ bool copy_transaction_parameters(create_transaction_parameters_t* sign_transacti
 
     if (context.chain_id == 0) {
         // fallback mechanism in the absence of chain ID in swap config
-        context.chain_id = config->chainId;
+        context.chain_id = config->chain_id;
     }
 
     // If the amount is a fee, its value is nominated in NATIVE even if we're doing an ERC20 swap
-    get_asset_info_on_network(true, &context, (chain_config_t*) config, &ticker, NULL);
+    get_asset_info_on_network(true, &context, (chain_config_t *) config, &ticker, NULL);
 
     if (!amountToString(sign_transaction_params->fee_amount,
                         sign_transaction_params->fee_amount_length,
@@ -189,8 +192,8 @@ void __attribute__((noreturn)) swap_finalize_exchange_sign_transaction(bool is_s
     os_lib_end();
 }
 
-void __attribute__((noreturn)) handle_swap_sign_transaction(const chain_config_t* config) {
-    chainConfig = config;
+void __attribute__((noreturn)) handle_swap_sign_transaction(const chain_config_t *config) {
+    g_chain_config = config;
     G_called_from_swap = true;
     G_swap_response_ready = false;
     // If we are in crosschain context, automatically register the CROSSCHAIN plugin
@@ -198,16 +201,11 @@ void __attribute__((noreturn)) handle_swap_sign_transaction(const chain_config_t
         set_swap_with_calldata_plugin_type();
     }
 
-#ifdef SCREEN_SIZE_WALLET
-#ifndef FUZZ
-    nbgl_useCaseSpinner("Signing");
-#endif
-#endif  // SCREEN_SIZE_WALLET
+    ui_swap_show_signing();
 
     app_main();
 
     // Failsafe
     app_quit();
-    while (1)
-        ;
+    while (1);
 }

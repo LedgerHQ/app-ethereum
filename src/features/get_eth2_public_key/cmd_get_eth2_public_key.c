@@ -64,7 +64,6 @@ uint16_t handle_get_eth2_public_key(uint8_t p1,
                                     uint8_t p2,
                                     const uint8_t *dataBuffer,
                                     uint8_t dataLength,
-                                    unsigned int *flags,
                                     unsigned int *tx) {
     bip32_path_t bip32;
     cx_err_t error = CX_INTERNAL_ERROR;
@@ -95,11 +94,11 @@ uint16_t handle_get_eth2_public_key(uint8_t p1,
     }
     appState = APP_STATE_VERIFYING_ADDRESS;
     ui_display_public_eth2();
-    *flags |= IO_ASYNCH_REPLY;
     // Return code will be sent after UI approve/cancel
     error = SWO_NO_RESPONSE;
 end:
-    return error;
+    // A cx_err_t does not fit a status word; the low half is what the client sees.
+    return (uint16_t) error;
 }
 
 #endif

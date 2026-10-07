@@ -6,7 +6,7 @@
 #include "shared_context.h"
 #include "tx_ctx.h"
 #include "tlv_library.h"
-#include "tlv_apdu.h"
+#include "tlv_utils.h"
 
 #define PARAM_ENUM_TAGS(X)                                   \
     X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG) \
@@ -84,11 +84,8 @@ bool format_param_enum(const s_param_enum *param, const char *name) {
                 ret = false;
                 break;
             }
-            if ((enum_entry = get_matching_enum(&chain_id,
-                                                callee,
-                                                selector,
-                                                param->id,
-                                                value)) == NULL) {
+            if ((enum_entry = get_matching_enum(&chain_id, callee, selector, param->id, value)) ==
+                NULL) {
                 ret = false;
                 break;
             }

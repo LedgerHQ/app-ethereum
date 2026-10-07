@@ -1,24 +1,38 @@
+from contextlib import AbstractContextManager
 from enum import IntEnum
-from typing import Optional
-import rlp
-from web3 import Web3
-from eth_utils import keccak
+from typing import Literal, overload
 
+import rlp
+from eth_utils import keccak
+from ragger.address_book import AddressBookCommand
 from ragger.backend import BackendInterface
+from ragger.pki import SigningPartner
 from ragger.utils import RAPDU
+from web3 import Web3
 
 from .command_builder import CommandBuilder
-from .eip712 import EIP712FieldType
-from .keychain import sign_data, Key
-from .response_parser import pk_addr
-from .tx_simu import TxSimu
-from .tx_auth_7702 import TxAuth7702
-from .status_word import StatusWord
-from .ledger_pki import PKIClient, PKIPubKeyUsage
 from .dynamic_networks import DynamicNetwork
-from .safe import SafeAccount, AccountType
+from .eip712 import EIP712FieldType
 from .gating import Gating
+from .response_parser import pk_addr
+from .safe import AccountType, SafeAccount
+from .signing_partners import (
+    CAL_COIN_META_PARTNER,
+    CAL_TRUSTED_NAME_PARTNER,
+    CALLDATA_PARTNER,
+    GATING_PARTNER,
+    NETWORK_PARTNER,
+    NFT_PARTNER,
+    SAFE_PARTNER,
+    SET_PLUGIN_PARTNER,
+    TRUSTED_NAME_PARTNER,
+    TX_SIMU_PARTNER,
+)
+from .status_word import StatusWord
+from .token_info import TokenInfo
 from .trusted_name import TrustedName, TrustedNameSource
+from .tx_auth_7702 import TxAuth7702
+from .tx_simu import TxSimu
 
 
 class EIP712CalldataParamPresence(IntEnum):
@@ -38,7 +52,6 @@ class EthAppClient:
         self._backend = backend
         self.device = backend.device
         self._cmd_builder = CommandBuilder()
-        self.pki_client = PKIClient(self._backend)
 
     def _exchange_async(self, payload: bytes):
         return self._backend.exchange_async_raw(payload)
@@ -46,8 +59,13 @@ class EthAppClient:
     def _exchange(self, payload: bytes) -> RAPDU:
         return self._backend.exchange_raw(payload)
 
-    def response(self) -> Optional[RAPDU]:
-        return self._backend.last_async_response
+    def send_pki_certificate(self, partner: SigningPartner) -> RAPDU:
+        return self._exchange(partner.get_certificate_payload(self._backend.device.type))
+
+    def response(self) -> RAPDU:
+        response = self._backend.last_async_response
+        assert response is not None, "No asynchronous response available"
+        return response
 
     def send_raw(self, cla: int, ins: int, p1: int, p2: int, payload: bytes):
         header = bytearray()
@@ -56,7 +74,7 @@ class EthAppClient:
         header.append(p1)
         header.append(p2)
         header.append(len(payload))
-        return self._exchange(header + payload)
+        return self._exchange(bytes(header + payload))
 
     def send_raw_async(self, cla: int, ins: int, p1: int, p2: int, payload: bytes):
         header = bytearray()
@@ -65,7 +83,7 @@ class EthAppClient:
         header.append(p1)
         header.append(p2)
         header.append(len(payload))
-        return self._exchange_async(header + payload)
+        return self._exchange_async(bytes(header + payload))
 
     def get_app_configuration(self):
         return self._exchange(self._cmd_builder.get_app_configuration())
@@ -73,18 +91,17 @@ class EthAppClient:
     def eip712_send_struct_def_struct_name(self, name: str):
         return self._exchange_async(self._cmd_builder.eip712_send_struct_def_struct_name(name))
 
-    def eip712_send_struct_def_struct_field(self,
-                                            field_type: EIP712FieldType,
-                                            type_name: str,
-                                            type_size: int,
-                                            array_levels: list,
-                                            key_name: str):
-        return self._exchange_async(self._cmd_builder.eip712_send_struct_def_struct_field(
-                          field_type,
-                          type_name,
-                          type_size,
-                          array_levels,
-                          key_name))
+    def eip712_send_struct_def_struct_field(
+        self,
+        field_type: EIP712FieldType,
+        type_name: str,
+        type_size: int,
+        array_levels: list,
+        key_name: str,
+    ):
+        return self._exchange_async(
+            self._cmd_builder.eip712_send_struct_def_struct_field(field_type, type_name, type_size, array_levels, key_name)
+        )
 
     def eip712_send_struct_impl_root_struct(self, name: str):
         return self._exchange_async(self._cmd_builder.eip712_send_struct_impl_root_struct(name))
@@ -101,13 +118,8 @@ class EthAppClient:
     def eip712_sign_new(self, bip32_path: str):
         return self._exchange_async(self._cmd_builder.eip712_sign_new(bip32_path))
 
-    def eip712_sign_legacy(self,
-                           bip32_path: str,
-                           domain_hash: bytes,
-                           message_hash: bytes):
-        return self._exchange_async(self._cmd_builder.eip712_sign_legacy(bip32_path,
-                                                                         domain_hash,
-                                                                         message_hash))
+    def eip712_sign_legacy(self, bip32_path: str, domain_hash: bytes, message_hash: bytes):
+        return self._exchange_async(self._cmd_builder.eip712_sign_legacy(bip32_path, domain_hash, message_hash))
 
     def eip712_filtering_activate(self):
         return self._exchange_async(self._cmd_builder.eip712_filtering_activate())
@@ -116,88 +128,67 @@ class EthAppClient:
         return self._exchange(self._cmd_builder.eip712_filtering_discarded_path(path))
 
     def eip712_filtering_message_info(self, name: str, filters_count: int, sig: bytes):
-        return self._exchange_async(self._cmd_builder.eip712_filtering_message_info(name,
-                                                                                    filters_count,
-                                                                                    sig))
+        return self._exchange_async(self._cmd_builder.eip712_filtering_message_info(name, filters_count, sig))
 
     def eip712_filtering_amount_join_token(self, token_idx: int, sig: bytes, discarded: bool):
-        return self._exchange_async(self._cmd_builder.eip712_filtering_amount_join_token(token_idx,
-                                                                                         sig,
-                                                                                         discarded))
+        return self._exchange_async(self._cmd_builder.eip712_filtering_amount_join_token(token_idx, sig, discarded))
 
     def eip712_filtering_amount_join_value(self, token_idx: int, name: str, sig: bytes, discarded: bool):
-        return self._exchange_async(self._cmd_builder.eip712_filtering_amount_join_value(token_idx,
-                                                                                         name,
-                                                                                         sig,
-                                                                                         discarded))
+        return self._exchange_async(self._cmd_builder.eip712_filtering_amount_join_value(token_idx, name, sig, discarded))
 
     def eip712_filtering_datetime(self, name: str, sig: bytes, discarded: bool):
         return self._exchange_async(self._cmd_builder.eip712_filtering_datetime(name, sig, discarded))
 
-    def eip712_filtering_trusted_name(self,
-                                      name: str,
-                                      name_type: list[int],
-                                      name_source: list[int],
-                                      sig: bytes,
-                                      discarded: bool):
-        return self._exchange_async(self._cmd_builder.eip712_filtering_trusted_name(name,
-                                                                                    name_type,
-                                                                                    name_source,
-                                                                                    sig,
-                                                                                    discarded))
+    def eip712_filtering_trusted_name(
+        self,
+        name: str,
+        name_type: list[int],
+        name_source: list[int],
+        sig: bytes,
+        discarded: bool,
+    ):
+        return self._exchange_async(self._cmd_builder.eip712_filtering_trusted_name(name, name_type, name_source, sig, discarded))
 
-    def eip712_filtering_calldata_info(self,
-                                       index: int,
-                                       value_filter_flag: bool,
-                                       callee_filter_flag: int,
-                                       chain_id_filter_flag: bool,
-                                       selector_filter_flag: bool,
-                                       amount_filter_flag: bool,
-                                       spender_filter_flag: int,
-                                       sig: bytes):
-        return self._exchange(self._cmd_builder.eip712_filtering_calldata_info(index,
-                                                                               value_filter_flag,
-                                                                               callee_filter_flag,
-                                                                               chain_id_filter_flag,
-                                                                               selector_filter_flag,
-                                                                               amount_filter_flag,
-                                                                               spender_filter_flag,
-                                                                               sig))
+    def eip712_filtering_calldata_info(
+        self,
+        index: int,
+        value_filter_flag: bool,
+        callee_filter_flag: int,
+        chain_id_filter_flag: bool,
+        selector_filter_flag: bool,
+        amount_filter_flag: bool,
+        spender_filter_flag: int,
+        sig: bytes,
+    ):
+        return self._exchange(
+            self._cmd_builder.eip712_filtering_calldata_info(
+                index,
+                value_filter_flag,
+                callee_filter_flag,
+                chain_id_filter_flag,
+                selector_filter_flag,
+                amount_filter_flag,
+                spender_filter_flag,
+                sig,
+            )
+        )
 
-    def eip712_filtering_calldata_value(self,
-                                        index: int,
-                                        sig: bytes,
-                                        discarded: bool):
+    def eip712_filtering_calldata_value(self, index: int, sig: bytes, discarded: bool):
         return self._exchange(self._cmd_builder.eip712_filtering_calldata_value(index, sig, discarded))
 
-    def eip712_filtering_calldata_callee(self,
-                                         index: int,
-                                         sig: bytes,
-                                         discarded: bool):
+    def eip712_filtering_calldata_callee(self, index: int, sig: bytes, discarded: bool):
         return self._exchange(self._cmd_builder.eip712_filtering_calldata_callee(index, sig, discarded))
 
-    def eip712_filtering_calldata_chain_id(self,
-                                           index: int,
-                                           sig: bytes,
-                                           discarded: bool):
+    def eip712_filtering_calldata_chain_id(self, index: int, sig: bytes, discarded: bool):
         return self._exchange(self._cmd_builder.eip712_filtering_calldata_chain_id(index, sig, discarded))
 
-    def eip712_filtering_calldata_selector(self,
-                                           index: int,
-                                           sig: bytes,
-                                           discarded: bool):
+    def eip712_filtering_calldata_selector(self, index: int, sig: bytes, discarded: bool):
         return self._exchange(self._cmd_builder.eip712_filtering_calldata_selector(index, sig, discarded))
 
-    def eip712_filtering_calldata_amount(self,
-                                         index: int,
-                                         sig: bytes,
-                                         discarded: bool):
+    def eip712_filtering_calldata_amount(self, index: int, sig: bytes, discarded: bool):
         return self._exchange(self._cmd_builder.eip712_filtering_calldata_amount(index, sig, discarded))
 
-    def eip712_filtering_calldata_spender(self,
-                                          index: int,
-                                          sig: bytes,
-                                          discarded: bool):
+    def eip712_filtering_calldata_spender(self, index: int, sig: bytes, discarded: bool):
         return self._exchange(self._cmd_builder.eip712_filtering_calldata_spender(index, sig, discarded))
 
     def eip712_filtering_raw(self, name: str, sig: bytes, discarded: bool):
@@ -207,23 +198,25 @@ class EthAppClient:
         """Computes the serialized TX and its hash"""
 
         tx = Web3().eth.account.create().sign_transaction(tx_params).raw_transaction
-        prefix = bytes()
+        prefix = b""
         suffix = []
         if tx[0] in [0x01, 0x02, 0x04]:
             prefix = tx[:1]
-            tx = tx[len(prefix):]
+            tx = tx[len(prefix) :]
         else:  # legacy
             if "chainId" in tx_params:
-                suffix = [int(tx_params["chainId"]), bytes(), bytes()]
+                suffix = [int(tx_params["chainId"]), b"", b""]
         decoded_tx = rlp.decode(tx)[:-3]  # remove already computed signature
         encoded_tx = prefix + rlp.encode(decoded_tx + suffix)
         tx_hash = keccak(encoded_tx)
         return encoded_tx, tx_hash
 
-    def sign(self,
-             bip32_path: Optional[str] = None,
-             tx_params: Optional[dict] = None,
-             mode: SignMode = SignMode.BASIC):
+    def sign(
+        self,
+        bip32_path: str | None = None,
+        tx_params: dict | None = None,
+        mode: SignMode = SignMode.BASIC,
+    ):
         if tx_params is None:
             tx = None
         else:
@@ -236,132 +229,134 @@ class EthAppClient:
     def get_challenge(self) -> RAPDU:
         return self._exchange(self._cmd_builder.get_challenge())
 
-    def get_public_addr(self,
-                        display: bool = True,
-                        chaincode: bool = False,
-                        bip32_path: str = "m/44'/60'/0'/0/0",
-                        chain_id: Optional[int] = None):
-        return self._exchange_async(self._cmd_builder.get_public_addr(display,
-                                                                      chaincode,
-                                                                      bip32_path,
-                                                                      chain_id))
+    def get_public_addr(
+        self,
+        display: bool = True,
+        chaincode: bool = False,
+        bip32_path: str = "m/44'/60'/0'/0/0",
+        chain_id: int | None = None,
+    ):
+        return self._exchange_async(self._cmd_builder.get_public_addr(display, chaincode, bip32_path, chain_id))
 
-    def get_eth2_public_addr(self,
-                             display: bool = True,
-                             bip32_path: str = "m/12381/3600/0/0"):
-        return self._exchange_async(self._cmd_builder.get_eth2_public_addr(display,
-                                                                           bip32_path))
+    def get_eth2_public_addr(self, display: bool = True, bip32_path: str = "m/12381/3600/0/0"):
+        return self._exchange_async(self._cmd_builder.get_eth2_public_addr(display, bip32_path))
 
-    def perform_privacy_operation(self,
-                                  display: bool = True,
-                                  bip32_path: str = "m/44'/60'/0'/0/0",
-                                  pubkey: bytes = bytes()):
-        return self._exchange(self._cmd_builder.perform_privacy_operation(display,
-                                                                          bip32_path,
-                                                                          pubkey))
+    def set_eth2_withdrawal_index(self, index: int) -> RAPDU:
+        return self._exchange(self._cmd_builder.set_eth2_withdrawal_index(index))
+
+    def perform_privacy_operation(
+        self,
+        display: bool = True,
+        bip32_path: str = "m/44'/60'/0'/0/0",
+        pubkey: bytes = b"",
+        async_mode: bool = False,
+    ):
+        # display=True defers the answer until the user acts, so a caller that has to
+        # drive the review needs the asynchronous exchange.
+        payload = self._cmd_builder.perform_privacy_operation(display, bip32_path, pubkey)
+        if async_mode:
+            return self._exchange_async(payload)
+        return self._exchange(payload)
 
     def provide_trusted_name(self, trusted_name: TrustedName) -> RAPDU:
-        self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_TRUSTED_NAME,
-                                         trusted_name.tn_source == TrustedNameSource.CAL)
+        if trusted_name.tn_source == TrustedNameSource.CAL:
+            partner = CAL_TRUSTED_NAME_PARTNER
+        else:
+            partner = TRUSTED_NAME_PARTNER
+        self.send_pki_certificate(partner)
 
         chunks = self._cmd_builder.provide_trusted_name(trusted_name.serialize())
         for chunk in chunks[:-1]:
             self._exchange(chunk)
         return self._exchange(chunks[-1])
 
-    def set_plugin(self,
-                   plugin_name: str,
-                   contract_addr: bytes,
-                   selector: bytes,
-                   chain_id: int,
-                   type_: int = 1,
-                   version: int = 1,
-                   key_id: int = 2,
-                   algo_id: int = 1,
-                   sig: Optional[bytes] = None) -> RAPDU:
-
+    def set_plugin(
+        self,
+        plugin_name: str,
+        contract_addr: bytes,
+        selector: bytes,
+        chain_id: int,
+        type_: int = 1,
+        version: int = 1,
+        key_id: int = 2,
+        algo_id: int = 1,
+        sig: bytes | None = None,
+    ) -> RAPDU:
         if sig is None:
             # Send ledgerPKI certificate
-            self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_PLUGIN_METADATA)
+            self.send_pki_certificate(SET_PLUGIN_PARTNER)
 
             # Temporarily get a command with an empty signature to extract the payload and
             # compute the signature on it
-            tmp = self._cmd_builder.set_plugin(type_,
-                                               version,
-                                               plugin_name,
-                                               contract_addr,
-                                               selector,
-                                               chain_id,
-                                               key_id,
-                                               algo_id,
-                                               bytes())
+            tmp = self._cmd_builder.set_plugin(
+                type_,
+                version,
+                plugin_name,
+                contract_addr,
+                selector,
+                chain_id,
+                key_id,
+                algo_id,
+                b"",
+            )
             # skip APDU header & empty sig
-            sig = sign_data(Key.SET_PLUGIN, tmp[5:-1])
-        return self._exchange(self._cmd_builder.set_plugin(type_,
-                                                           version,
-                                                           plugin_name,
-                                                           contract_addr,
-                                                           selector,
-                                                           chain_id,
-                                                           key_id,
-                                                           algo_id,
-                                                           sig))
+            sig = SET_PLUGIN_PARTNER.sign(tmp[5:-1])
+        return self._exchange(
+            self._cmd_builder.set_plugin(
+                type_,
+                version,
+                plugin_name,
+                contract_addr,
+                selector,
+                chain_id,
+                key_id,
+                algo_id,
+                sig,
+            )
+        )
 
-    def provide_nft_metadata(self,
-                             collection: str,
-                             addr: bytes,
-                             chain_id: int,
-                             type_: int = 1,
-                             version: int = 1,
-                             key_id: int = 1,
-                             algo_id: int = 1,
-                             sig: Optional[bytes] = None) -> RAPDU:
-
+    def provide_nft_metadata(
+        self,
+        collection: str,
+        addr: bytes,
+        chain_id: int,
+        type_: int = 1,
+        version: int = 1,
+        key_id: int = 1,
+        algo_id: int = 1,
+        sig: bytes | None = None,
+    ) -> RAPDU:
         if sig is None:
             # Send ledgerPKI certificate
-            self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_NFT_METADATA)
+            self.send_pki_certificate(NFT_PARTNER)
 
             # Temporarily get a command with an empty signature to extract the payload and
             # compute the signature on it
-            tmp = self._cmd_builder.provide_nft_information(type_,
-                                                            version,
-                                                            collection,
-                                                            addr,
-                                                            chain_id,
-                                                            key_id,
-                                                            algo_id,
-                                                            bytes())
+            tmp = self._cmd_builder.provide_nft_information(type_, version, collection, addr, chain_id, key_id, algo_id, b"")
             # skip APDU header & empty sig
-            sig = sign_data(Key.NFT, tmp[5:-1])
-        return self._exchange(self._cmd_builder.provide_nft_information(type_,
-                                                                        version,
-                                                                        collection,
-                                                                        addr,
-                                                                        chain_id,
-                                                                        key_id,
-                                                                        algo_id,
-                                                                        sig))
+            sig = NFT_PARTNER.sign(tmp[5:-1])
+        return self._exchange(
+            self._cmd_builder.provide_nft_information(type_, version, collection, addr, chain_id, key_id, algo_id, sig)
+        )
 
-    def set_external_plugin(self,
-                            plugin_name: str,
-                            contract_address: bytes,
-                            method_selelector: bytes,
-                            sig: Optional[bytes] = None) -> RAPDU:
-
+    def set_external_plugin(
+        self,
+        plugin_name: str,
+        contract_address: bytes,
+        method_selelector: bytes,
+        sig: bytes | None = None,
+    ) -> RAPDU:
         if sig is None:
             # Send ledgerPKI certificate
-            self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_COIN_META)
+            self.send_pki_certificate(CAL_COIN_META_PARTNER)
 
             # Temporarily get a command with an empty signature to extract the payload and
             # compute the signature on it
-            tmp = self._cmd_builder.set_external_plugin(plugin_name, contract_address, method_selelector, bytes())
+            tmp = self._cmd_builder.set_external_plugin(plugin_name, contract_address, method_selelector, b"")
 
             # skip APDU header & empty sig
-            sig = sign_data(Key.CAL, tmp[5:])
-        return self._exchange(self._cmd_builder.set_external_plugin(plugin_name,
-                                                                    contract_address,
-                                                                    method_selelector,
-                                                                    sig))
+            sig = CAL_COIN_META_PARTNER.sign(tmp[5:])
+        return self._exchange(self._cmd_builder.set_external_plugin(plugin_name, contract_address, method_selelector, sig))
 
     def personal_sign(self, path: str, msg: bytes):
         chunks = self._cmd_builder.personal_sign(path, msg)
@@ -369,57 +364,58 @@ class EthAppClient:
             self._exchange(chunk)
         return self._exchange_async(chunks[-1])
 
-    def provide_token_metadata(self,
-                               ticker: str,
-                               addr: bytes,
-                               decimals: int,
-                               chain_id: int,
-                               sig: Optional[bytes] = None) -> RAPDU:
-
+    def provide_token_metadata(
+        self,
+        ticker: str,
+        addr: bytes,
+        decimals: int,
+        chain_id: int,
+        sig: bytes | None = None,
+    ) -> RAPDU:
         if sig is None:
             # Send ledgerPKI certificate
-            self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_COIN_META)
+            self.send_pki_certificate(CAL_COIN_META_PARTNER)
 
             # Temporarily get a command with an empty signature to extract the payload and
             # compute the signature on it
-            tmp = self._cmd_builder.provide_erc20_token_information(ticker,
-                                                                    addr,
-                                                                    decimals,
-                                                                    chain_id,
-                                                                    bytes())
+            tmp = self._cmd_builder.provide_erc20_token_information(ticker, addr, decimals, chain_id, b"")
             # skip APDU header & empty sig
-            sig = sign_data(Key.CAL, tmp[6:])
-        return self._exchange(self._cmd_builder.provide_erc20_token_information(ticker,
-                                                                                addr,
-                                                                                decimals,
-                                                                                chain_id,
-                                                                                sig))
+            sig = CAL_COIN_META_PARTNER.sign(tmp[6:])
+        return self._exchange(self._cmd_builder.provide_erc20_token_information(ticker, addr, decimals, chain_id, sig))
 
     def provide_network_information(self, network_params: DynamicNetwork) -> None:
         # Send ledgerPKI certificate
-        self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_NETWORK)
+        self.send_pki_certificate(NETWORK_PARTNER)
 
         # Add the network info
-        chunks = self._cmd_builder.provide_network_information(network_params.serialize(),
-                                                               network_params.icon)
+        chunks = self._cmd_builder.provide_network_information(network_params.serialize(), network_params.icon)
         for chunk in chunks[:-1]:
             response = self._exchange(chunk)
-            assert response.status == StatusWord.OK
+            assert response.status == StatusWord.SWO_SUCCESS
         response = self._exchange(chunks[-1])
-        assert response.status == StatusWord.OK
+        assert response.status == StatusWord.SWO_SUCCESS
 
     def provide_enum_value(self, payload: bytes) -> RAPDU:
         # Send ledgerPKI certificate
-        self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_CALLDATA)
+        self.send_pki_certificate(CALLDATA_PARTNER)
 
         chunks = self._cmd_builder.provide_enum_value(payload)
         for chunk in chunks[:-1]:
             self._exchange(chunk)
         return self._exchange(chunks[-1])
 
+    def provide_map_entry(self, payload: bytes) -> RAPDU:
+        # Send ledgerPKI certificate
+        self.send_pki_certificate(CALLDATA_PARTNER)
+
+        chunks = self._cmd_builder.provide_map_entry(payload)
+        for chunk in chunks[:-1]:
+            self._exchange(chunk)
+        return self._exchange(chunks[-1])
+
     def provide_transaction_info(self, payload: bytes) -> RAPDU:
         # Send ledgerPKI certificate
-        self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_CALLDATA)
+        self.send_pki_certificate(CALLDATA_PARTNER)
 
         chunks = self._cmd_builder.provide_transaction_info(payload)
         for chunk in chunks[:-1]:
@@ -437,7 +433,7 @@ class EthAppClient:
 
     def provide_tx_simulation(self, simu_params: TxSimu) -> RAPDU:
         # Send ledgerPKI certificate
-        self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_TX_SIMU_SIGNER)
+        self.send_pki_certificate(TX_SIMU_PARTNER)
 
         if not simu_params.from_addr:
             with self.get_public_addr(False):
@@ -454,7 +450,7 @@ class EthAppClient:
 
     def provide_proxy_info(self, payload: bytes) -> RAPDU:
         # Send ledgerPKI certificate
-        self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_TRUSTED_NAME)
+        self.send_pki_certificate(TRUSTED_NAME_PARTNER)
 
         chunks = self._cmd_builder.provide_proxy_info(payload)
         for chunk in chunks[:-1]:
@@ -470,18 +466,49 @@ class EthAppClient:
     def provide_safe_account(self, safe_params: SafeAccount):
         # Send ledgerPKI certificate - only for SAFE accounts
         if safe_params.account_type == AccountType.SAFE:
-            self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_SAFE_ACCOUNT)
+            self.send_pki_certificate(SAFE_PARTNER)
 
         chunks = self._cmd_builder.provide_safe_account(safe_params.serialize(), safe_params.account_type)
         for chunk in chunks[:-1]:
             self._exchange(chunk)
         return self._exchange_async(chunks[-1])
 
-    def provide_gating(self, gating_descriptor: Gating):
+    def provide_gating(self, gating_descriptor: Gating) -> RAPDU:
         # Send ledgerPKI certificate
-        self.pki_client.send_certificate(PKIPubKeyUsage.PUBKEY_USAGE_GATING)
+        self.send_pki_certificate(GATING_PARTNER)
 
         chunks = self._cmd_builder.provide_gating(gating_descriptor.serialize())
         for chunk in chunks[:-1]:
             self._exchange(chunk)
+        return self._exchange(chunks[-1])
+
+    def provide_token_info(self, token_info: TokenInfo) -> RAPDU:
+        # Send ledgerPKI certificate
+        self.send_pki_certificate(CAL_COIN_META_PARTNER)
+
+        chunks = self._cmd_builder.provide_token_info(token_info.serialize())
+        for chunk in chunks[:-1]:
+            self._exchange(chunk)
+        return self._exchange(chunks[-1])
+
+    @overload
+    def provide_address_book(
+        self, command: AddressBookCommand, async_mode: Literal[True] = ...
+    ) -> AbstractContextManager[bool | None]:
+        pass
+
+    @overload
+    def provide_address_book(self, command: AddressBookCommand, async_mode: Literal[False]) -> RAPDU:
+        pass
+
+    def provide_address_book(self, command: AddressBookCommand, async_mode: bool = True):
+        # The sub-command builds its own APDUs (TLV payload + chunked framing);
+        # the client only has to exchange them.
+        chunks = command.get_chunks()
+        # Intermediate chunks are always synchronous (device responds 9000).
+        for chunk in chunks[:-1]:
+            self._exchange(chunk)
+        # The last chunk may trigger the UI flow, hence the async option.
+        if async_mode:
+            return self._exchange_async(chunks[-1])
         return self._exchange(chunks[-1])

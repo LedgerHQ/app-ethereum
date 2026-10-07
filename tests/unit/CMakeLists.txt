@@ -1,16 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
+project(unit_tests VERSION 0.1 DESCRIPTION "Unit tests for Ledger Ethereum application" LANGUAGES C)
 
-if(${CMAKE_VERSION} VERSION_LESS 3.10)
-    cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
-endif()
-
-# project information
-project(unit_tests
-        VERSION 0.1
-	      DESCRIPTION "Unit tests for Ledger Ethereum application"
-        LANGUAGES C)
-
-# Check for BOLOS_SDK (optional for unit tests, provides SDK headers if available)
 if(NOT DEFINED BOLOS_SDK)
   set(BOLOS_SDK "/opt/ledger-secure-sdk")
   message(STATUS "BOLOS_SDK not defined, using default: ${BOLOS_SDK}")
@@ -18,35 +8,21 @@ else()
   message(STATUS "Using BOLOS_SDK: ${BOLOS_SDK}")
 endif()
 
-# guard against bad build-type strings
-if (NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE "Debug")
-endif()
+set(SDK_DIR ${BOLOS_SDK})
+include(${SDK_DIR}/cmake/LedgerUT.cmake)
 
-# guard against in-source builds
-if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
-  message(FATAL_ERROR "In-source builds not allowed. Please make a new directory (called a build directory) and run CMake from there. You may need to remove CMakeCache.txt. ")
-endif()
-
-include(CTest)
-ENABLE_TESTING()
-
-# specify C standard
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED True)
+set(APP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../src")
+set(MOCK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mocks")
+set(PLUGIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../ethereum-plugin-sdk/src")
 
 # Find libbsd for BSD string functions (strlcpy, strlcat)
 find_package(PkgConfig)
 if(PkgConfig_FOUND)
   pkg_check_modules(LIBBSD libbsd)
 endif()
-
-# Fallback if pkg-config or libbsd not found via pkg-config
 if(NOT LIBBSD_FOUND)
-  # Try to find libbsd manually
   find_path(LIBBSD_INCLUDE_DIR bsd/string.h)
   find_library(LIBBSD_LIBRARY NAMES bsd)
-
   if(LIBBSD_INCLUDE_DIR AND LIBBSD_LIBRARY)
     set(LIBBSD_FOUND TRUE)
     set(LIBBSD_INCLUDE_DIRS ${LIBBSD_INCLUDE_DIR})
@@ -59,31 +35,45 @@ if(NOT LIBBSD_FOUND)
   endif()
 endif()
 
-add_compile_options(-Wall -Wextra -g -pedantic --coverage)
-# Flag depending on the Build Type
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0")
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}-O3")
+# =============================================================================
+# Shared helper variables – referenced from every tests_*.cmake
+# =============================================================================
 
-set(GCC_COVERAGE_LINK_FLAGS "--coverage -lgcov")
-set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS}")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS}")
+# Sources compiled into every test binary.
+set(COMMON_SOURCES
+  ${MOCK_DIR}/sdk_stubs.c
+  ${MOCK_DIR}/system_stubs.c
+  ${BOLOS_SDK}/lib_standard_app/format.c
+  ${BOLOS_SDK}/lib_standard_app/read.c
+  ${BOLOS_SDK}/lib_standard_app/write.c
+  ${BOLOS_SDK}/lib_tlv/tlv_library.c
+)
 
-set(APP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../src")
-set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
-set(MOCK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mocks")
-set(PLUGIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../ethereum-plugin-sdk/src")
+# Sources for tests that need shared app globals (all non-NO_GLOBALS tests).
+set(COMMON_SOURCES_WITH_GLOBALS
+  ${COMMON_SOURCES}
+  ${MOCK_DIR}/app_globals.c
+)
 
-add_compile_definitions(TEST)
-
-include_directories(
+# Include directories added to every test target.
+set(COMMON_INCLUDE_DIRS
   ${APP_DIR}
   ${PLUGIN_DIR}
   ${APP_DIR}/features/generic_tx_parser
+  ${APP_DIR}/features/provide_erc20_token_information
+  ${APP_DIR}/features/provide_nft_information
   ${APP_DIR}/features/provide_trusted_name
+  ${APP_DIR}/features/provide_map_entry
+  ${APP_DIR}/features/provide_proxy_info
   ${APP_DIR}/features/get_public_key
   ${APP_DIR}/features/sign_tx
+  ${APP_DIR}/features/sign_authorization_eip7702
+  ${APP_DIR}/features/sign_message_eip712
   ${APP_DIR}/features/get_challenge
+  ${APP_DIR}/features/provide_network_info
   ${APP_DIR}/nbgl
+  ${APP_DIR}/utils
+  ${APP_DIR}/swap
   ${MOCK_DIR}
   ${BOLOS_SDK}/io/include
   ${BOLOS_SDK}/lib_cxng/include
@@ -92,224 +82,37 @@ include_directories(
   ${BOLOS_SDK}/lib_standard_app
   ${BOLOS_SDK}/lib_tlv
   ${BOLOS_SDK}/lib_alloc
+  ${BOLOS_SDK}/lib_ux_nbgl
+  ${BOLOS_SDK}/lib_u2f/include
   ${BOLOS_SDK}/include
   ${LIBBSD_INCLUDE_DIRS}
 )
 
-# Network parameter test
-add_executable(test_param_network
-  ${SRC_DIR}/test_param_network.c
-  ${APP_DIR}/features/generic_tx_parser/gtp_value.c
-  ${APP_DIR}/features/generic_tx_parser/gtp_param_network.c
-  ${APP_DIR}/tlv_apdu.c
-  ${APP_DIR}/mem_utils.c
-  ${APP_DIR}/utils.c
-  ${APP_DIR}/uint128.c
-  ${APP_DIR}/uint256.c
-  ${PLUGIN_DIR}/common_utils.c
-  ${MOCK_DIR}/mock.c
-  ${BOLOS_SDK}/lib_standard_app/format.c
-  ${BOLOS_SDK}/lib_standard_app/read.c
-  ${BOLOS_SDK}/lib_standard_app/write.c
-  ${BOLOS_SDK}/lib_tlv/tlv_library.c
+# Compile definitions added to every test target.
+# UT_COMPILE_DEFS_SDK is provided by the SDK but not auto-applied by
+# ledger_unit_tests_add_test(); forward it here so all test targets
+# inherit the full SDK-standard set. HAVE_TRANSACTION_CHECKS is app-specific.
+set(COMMON_COMPILE_DEFS
+  ${UT_COMPILE_DEFS_SDK}
+  HAVE_TRANSACTION_CHECKS
 )
 
-# Disable pedantic warnings for SDK's tlv_library.c (function pointer to void* conversions)
-set_source_files_properties(${BOLOS_SDK}/lib_tlv/tlv_library.c PROPERTIES COMPILE_FLAGS "-Wno-pedantic")
-
-target_compile_definitions(test_param_network PRIVATE
-  HAVE_ECDSA
-  HAVE_HASH
-  HAVE_SHA256
-  HAVE_SHA3
-  HAVE_ECC
-  HAVE_SPRINTF
-  HAVE_MATH
-)
-
-target_link_libraries(test_param_network PUBLIC
-                      cmocka
-                      gcov
-                      ${LIBBSD_LIBRARIES}
-                      -Wl,--wrap=get_network_as_string_from_chain_id
-                      -Wl,--wrap=add_to_field_table
-)
-
-add_test(test_param_network test_param_network)
-
-# Trusted name parameter test
-add_executable(test_param_trusted_name
-  ${SRC_DIR}/test_param_trusted_name.c
-  ${APP_DIR}/features/generic_tx_parser/gtp_value.c
-  ${APP_DIR}/features/generic_tx_parser/gtp_param_trusted_name.c
-  ${APP_DIR}/tlv_apdu.c
-  ${APP_DIR}/mem_utils.c
-  ${APP_DIR}/utils.c
-  ${APP_DIR}/uint128.c
-  ${APP_DIR}/uint256.c
-  ${PLUGIN_DIR}/common_utils.c
-  ${MOCK_DIR}/mock.c
-  ${BOLOS_SDK}/lib_standard_app/format.c
-  ${BOLOS_SDK}/lib_standard_app/read.c
-  ${BOLOS_SDK}/lib_standard_app/write.c
-  ${BOLOS_SDK}/lib_tlv/tlv_library.c
-)
-
-# Disable pedantic warnings for SDK's tlv_library.c
-set_source_files_properties(${BOLOS_SDK}/lib_tlv/tlv_library.c PROPERTIES COMPILE_FLAGS "-Wno-pedantic")
-
-# Add arraylen.h to the include path before other includes
-target_include_directories(test_param_trusted_name BEFORE PRIVATE ${MOCK_DIR})
-
-target_compile_definitions(test_param_trusted_name PRIVATE
-  HAVE_ECDSA
-  HAVE_HASH
-  HAVE_SHA256
-  HAVE_SHA3
-  HAVE_ECC
-  HAVE_MATH
-)
-
-target_link_libraries(test_param_trusted_name PUBLIC
-                      cmocka
-                      gcov
-                      ${LIBBSD_LIBRARIES}
-                      -Wl,--wrap=get_trusted_name
-                      -Wl,--wrap=get_public_key
-                      -Wl,--wrap=get_current_tx_chain_id
-                      -Wl,--wrap=add_to_field_table
-)
-
-add_test(test_param_trusted_name test_param_trusted_name)
-
-# Raw parameter test
-add_executable(test_param_raw
-  ${SRC_DIR}/test_param_raw.c
-  ${APP_DIR}/features/generic_tx_parser/gtp_value.c
-  ${APP_DIR}/features/generic_tx_parser/gtp_param_raw.c
-  ${APP_DIR}/tlv_apdu.c
-  ${APP_DIR}/mem_utils.c
-  ${APP_DIR}/uint256.c
-  ${APP_DIR}/uint128.c
-  ${APP_DIR}/utils.c
-  ${PLUGIN_DIR}/common_utils.c
-  ${MOCK_DIR}/mock.c
-  ${BOLOS_SDK}/lib_standard_app/format.c
-  ${BOLOS_SDK}/lib_standard_app/read.c
-  ${BOLOS_SDK}/lib_standard_app/write.c
-  ${BOLOS_SDK}/src/os_printf.c
-  ${BOLOS_SDK}/lib_tlv/tlv_library.c
-)
-
-target_compile_definitions(test_param_raw PRIVATE
-  HAVE_ECDSA
-  HAVE_HASH
-  HAVE_SHA256
-  HAVE_SHA3
-  HAVE_ECC
-  HAVE_SPRINTF
-  HAVE_SNPRINTF
-  HAVE_SNPRINTF_FORMAT_U
-  HAVE_MATH
-)
-
-target_link_libraries(test_param_raw PUBLIC
-                      cmocka
-                      gcov
-                      ${LIBBSD_LIBRARIES}
-                      -Wl,--wrap=add_to_field_table
-)
-
-add_test(test_param_raw test_param_raw)
-
-# Field validation test
-add_executable(test_field_validation
-  ${SRC_DIR}/test_field_validation.c
-  ${APP_DIR}/features/generic_tx_parser/gtp_field.c
-  ${APP_DIR}/tlv_apdu.c
-  ${APP_DIR}/mem_utils.c
-  ${BOLOS_SDK}/lib_lists/lists.c
-  ${APP_DIR}/utils.c
-  ${APP_DIR}/uint256.c
-  ${APP_DIR}/uint128.c
-  ${PLUGIN_DIR}/common_utils.c
-  ${MOCK_DIR}/mock.c
-  ${MOCK_DIR}/field_validation_mocks.c
-  ${BOLOS_SDK}/lib_standard_app/format.c
-  ${BOLOS_SDK}/lib_standard_app/read.c
-  ${BOLOS_SDK}/lib_standard_app/write.c
-  ${BOLOS_SDK}/lib_tlv/tlv_library.c
-)
-
-# Disable pedantic warnings for SDK's tlv_library.c
-set_source_files_properties(${BOLOS_SDK}/lib_tlv/tlv_library.c PROPERTIES COMPILE_FLAGS "-Wno-pedantic")
-target_compile_definitions(test_field_validation PRIVATE
-  HAVE_ECDSA
-  HAVE_HASH
-  HAVE_SHA256
-  HAVE_SHA3
-  HAVE_ECC
-  HAVE_MATH
-)
-
-target_compile_options(test_field_validation PRIVATE
-  -fshort-enums
-)
-
-target_link_libraries(test_field_validation PUBLIC
-                      cmocka
-                      gcov
-                      ${LIBBSD_LIBRARIES}
-)
-
-add_test(test_field_validation test_field_validation)
-
-# ETH2 staking deposit plugin test
-# Needs a real SHA-256 to check the SSZ deposit_data_root the plugin
-# recomputes, so it is only built when libcrypto is available.
-pkg_check_modules(LIBCRYPTO libcrypto)
-if(NOT LIBCRYPTO_FOUND)
-  message(WARNING "libcrypto not found - skipping test_eth2_plugin")
-else()
-add_executable(test_eth2_plugin
-  ${SRC_DIR}/test_eth2_plugin.c
-  ${APP_DIR}/plugins/eth2/eth2_plugin.c
-  ${APP_DIR}/uint256.c
-  ${APP_DIR}/uint128.c
-  ${APP_DIR}/utils.c
-  ${PLUGIN_DIR}/common_utils.c
-  ${MOCK_DIR}/mock.c
-  ${BOLOS_SDK}/lib_standard_app/format.c
-  ${BOLOS_SDK}/lib_standard_app/read.c
-  ${BOLOS_SDK}/lib_standard_app/write.c
-)
-
-target_include_directories(test_eth2_plugin PRIVATE
-  ${APP_DIR}/plugins
-  ${APP_DIR}/plugins/eth2
-  ${APP_DIR}/features/get_eth2_public_key
-  ${LIBCRYPTO_INCLUDE_DIRS}
-)
-
-target_compile_definitions(test_eth2_plugin PRIVATE
-  HAVE_ETH2
-  HAVE_ECDSA
-  HAVE_HASH
-  HAVE_SHA256
-  HAVE_SHA3
-  HAVE_ECC
-  HAVE_MATH
-)
-
-target_link_libraries(test_eth2_plugin PUBLIC
-                      cmocka
-                      gcov
-                      ${LIBBSD_LIBRARIES}
-                      ${LIBCRYPTO_LIBRARIES}
-                      -Wl,--wrap=get_eth2_public_key
-                      -Wl,--wrap=cx_hash_sha256
-                      -Wl,--wrap=amountToString
-)
-
-add_test(test_eth2_plugin test_eth2_plugin)
+# Link libbsd via link_libraries() so it appears AFTER object files in the link
+# command (GNU ld processes -l flags left-to-right; libraries must come after
+# the objects that reference them).
+if(LIBBSD_LIBRARIES)
+  link_directories(${LIBBSD_LIBRARY_DIRS})
+  link_libraries(bsd)
 endif()
+
+# COMMON_LINK_OPTIONS carries only any remaining raw linker flags (empty for now).
+set(COMMON_LINK_OPTIONS "")
+
+# =============================================================================
+# Test targets (grouped by feature)
+# =============================================================================
+
+# Test sources live in src/; ledger_unit_tests_init() is called there so that
+# CMAKE_CURRENT_SOURCE_DIR resolves to src/ when ledger_unit_tests_add_test()
+# looks up ${NAME}.c.
+add_subdirectory(src)

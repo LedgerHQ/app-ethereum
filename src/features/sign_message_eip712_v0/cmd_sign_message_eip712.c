@@ -3,12 +3,7 @@
 #include "common_ui.h"
 #include "common_712.h"
 
-uint16_t handle_sign_eip712_message_v0(uint8_t p1,
-                                       const uint8_t *workBuffer,
-                                       uint8_t dataLength,
-                                       unsigned int *flags) {
-    uint16_t sw = SWO_PARAMETER_ERROR_NO_INFO;
-
+uint16_t handle_sign_eip712_message_v0(uint8_t p1, const uint8_t *workBuffer, uint8_t dataLength) {
     if (p1 != 0x00) {
         return SWO_WRONG_P1_P2;
     }
@@ -18,22 +13,21 @@ uint16_t handle_sign_eip712_message_v0(uint8_t p1,
 
     if (!N_storage.dataAllowed) {
         ui_error_blind_signing();
+        ui_hold_error_screen();
         return SWO_INCORRECT_DATA;
     }
     workBuffer = parseBip32(workBuffer, &dataLength, &tmpCtx.messageSigningContext.bip32);
-    if ((workBuffer == NULL) || (dataLength < (KECCAK256_HASH_BYTESIZE * 2))) {
+    if ((workBuffer == NULL) || (dataLength < (CX_KECCAK_256_SIZE * 2))) {
         return SWO_INCORRECT_DATA;
     }
-    memmove(tmpCtx.messageSigningContext712.domainHash, workBuffer, KECCAK256_HASH_BYTESIZE);
+    memmove(tmpCtx.messageSigningContext712.domainHash, workBuffer, CX_KECCAK_256_SIZE);
     memmove(tmpCtx.messageSigningContext712.messageHash,
-            workBuffer + KECCAK256_HASH_BYTESIZE,
-            KECCAK256_HASH_BYTESIZE);
+            workBuffer + CX_KECCAK_256_SIZE,
+            CX_KECCAK_256_SIZE);
 
-    sw = ui_sign_712_v0();
-    if (sw != SWO_SUCCESS) {
-        return sw;
+    if (!ui_sign_712_v0()) {
+        return SWO_INCORRECT_DATA;
     }
 
-    *flags |= IO_ASYNCH_REPLY;
-    return APDU_NO_RESPONSE;
+    return SWO_NO_RESPONSE;
 }

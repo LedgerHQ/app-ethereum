@@ -9,7 +9,7 @@
 #include "read.h"
 #include "tx_ctx.h"
 #include "app_mem_utils.h"
-#include "tlv_apdu.h"
+#include "tlv_utils.h"
 
 #define PARAM_CALLDATA_TAGS(X)                                 \
     X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG)   \
@@ -178,23 +178,23 @@ static bool check_param(const s_param_calldata *param,
                         s_parsed_value_collection *spenders) {
     if (!value_get(&param->calldata, calldatas)) return false;
     if (!value_get(&param->contract_addr, contract_addrs)) return false;
-    if (contract_addrs->size != calldatas->size) return false;
+    if (contract_addrs->size != calldatas->size && contract_addrs->size != 1) return false;
 
     if (param->has_chain_id) {
         if (!value_get(&param->chain_id, chain_ids)) return false;
-        if (chain_ids->size != calldatas->size) return false;
+        if (chain_ids->size != calldatas->size && chain_ids->size != 1) return false;
     }
     if (param->has_selector) {
         if (!value_get(&param->selector, selectors)) return false;
-        if (selectors->size != calldatas->size) return false;
+        if (selectors->size != calldatas->size && selectors->size != 1) return false;
     }
     if (param->has_amount) {
         if (!value_get(&param->amount, amounts)) return false;
-        if (amounts->size != calldatas->size) return false;
+        if (amounts->size != calldatas->size && amounts->size != 1) return false;
     }
     if (param->has_spender) {
         if (!value_get(&param->spender, spenders)) return false;
-        if (spenders->size != calldatas->size) return false;
+        if (spenders->size != calldatas->size && spenders->size != 1) return false;
     }
     return true;
 }
@@ -224,11 +224,11 @@ bool format_param_calldata(const s_param_calldata *param, const char *name) {
         for (int i = 0; i < calldatas.size; ++i) {
             if (!process_nested_calldata(param,
                                          &calldatas.value[i],
-                                         &contract_addrs.value[i],
-                                         &chain_ids.value[i],
-                                         &selectors.value[i],
-                                         &amounts.value[i],
-                                         &spenders.value[i])) {
+                                         &contract_addrs.value[contract_addrs.size == 1 ? 0 : i],
+                                         &chain_ids.value[chain_ids.size == 1 ? 0 : i],
+                                         &selectors.value[selectors.size == 1 ? 0 : i],
+                                         &amounts.value[amounts.size == 1 ? 0 : i],
+                                         &spenders.value[spenders.size == 1 ? 0 : i])) {
                 ret = false;
                 break;
             }

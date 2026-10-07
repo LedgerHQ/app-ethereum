@@ -63,6 +63,7 @@ typedef struct {
     bip32_path_t owner_deriv_path;
     TLV_reception_t received_tags;
 } s_trusted_name_ctx;
+
 // clang-format on
 
 const s_trusted_name *get_trusted_name(uint8_t type_count,

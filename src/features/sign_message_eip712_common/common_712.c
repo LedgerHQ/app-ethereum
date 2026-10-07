@@ -1,10 +1,9 @@
-#include "apdu_constants.h"
 #include "os_io_seproxyhal.h"
 #include "crypto_helpers.h"
-#include "ui_callbacks.h"
+#include "common_ui.h"
 #include "utils.h"
 #include "ui_utils.h"
-#include "ui_logic.h"
+#include "eip712_v1_ui_logic.h"
 #include "ui_nbgl.h"
 #include "cmd_get_tx_simulation.h"
 #include "app_mem_utils.h"
@@ -19,23 +18,24 @@ void ui_712_approve_cb(void) {
         io_seproxyhal_send_status(SWO_CONDITIONS_NOT_SATISFIED, 0, true, false);
         return;
     }
+    cx_sha3_t hash_ctx;
     uint8_t hash[INT256_LENGTH];
 
     io_seproxyhal_io_heartbeat();
-    CX_ASSERT(cx_keccak_init_no_throw(&global_sha3, 256));
-    CX_ASSERT(cx_hash_no_throw((cx_hash_t *) &global_sha3,
+    CX_ASSERT(cx_keccak_init_no_throw(&hash_ctx, 256));
+    CX_ASSERT(cx_hash_no_throw((cx_hash_t *) &hash_ctx,
                                0,
                                (uint8_t *) EIP_712_MAGIC,
                                sizeof(EIP_712_MAGIC),
                                NULL,
                                0));
-    CX_ASSERT(cx_hash_no_throw((cx_hash_t *) &global_sha3,
+    CX_ASSERT(cx_hash_no_throw((cx_hash_t *) &hash_ctx,
                                0,
                                tmpCtx.messageSigningContext712.domainHash,
                                sizeof(tmpCtx.messageSigningContext712.domainHash),
                                NULL,
                                0));
-    CX_ASSERT(cx_hash_no_throw((cx_hash_t *) &global_sha3,
+    CX_ASSERT(cx_hash_no_throw((cx_hash_t *) &hash_ctx,
                                CX_LAST,
                                tmpCtx.messageSigningContext712.messageHash,
                                sizeof(tmpCtx.messageSigningContext712.messageHash),
@@ -101,9 +101,9 @@ void eip712_format_hash(uint8_t index) {
  * Initialize EIP712 flow
  *
  * @param filtering the filtering mode to use for the EIP712 flow
- * @return status code indicating success or failure
+ * @return boolean indicating success or failure
  */
-uint16_t ui_712_start(e_eip712_filtering_mode filtering) {
+bool ui_712_start(e_eip712_filtering_mode filtering) {
     if (appState != APP_STATE_IDLE && appState != APP_STATE_PREPARING_EIP712) {
         reset_app_context();
     }
@@ -113,9 +113,7 @@ uint16_t ui_712_start(e_eip712_filtering_mode filtering) {
     if (filtering == EIP712_FILTERING_BASIC) {
         // If the user has requested a filtered view, we will not show the warning
         warning.predefinedSet |= SET_BIT(BLIND_SIGNING_WARN);
-#ifdef HAVE_GATING_SUPPORT
         warning.predefinedSet |= SET_BIT(GATED_SIGNING_WARN);
-#endif
     }
-    return SWO_SUCCESS;
+    return true;
 }

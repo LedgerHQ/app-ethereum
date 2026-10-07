@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 *******************************************************************************
 *   Ledger Ethereum App
@@ -17,34 +17,33 @@
 *  limitations under the License.
 ********************************************************************************
 """
-from __future__ import print_function
 
-from ledgerblue.comm import getDongle
-from ledgerblue.commException import CommException
-from decimal import Decimal
 import argparse
-import struct
 import binascii
-from ethBase import Transaction, UnsignedTransaction, unsigned_tx_from_tx
+import struct
+from decimal import Decimal
+
+from ethBase import UnsignedTransaction
+from ledgerblue.comm import getDongle
 from rlp import encode
 
 # Define here Chain_ID for EIP-155
 CHAIN_ID = 0
 
 try:
-    from rlp.utils import decode_hex, encode_hex, str_to_bytes
-except:
+    from rlp.utils import decode_hex, encode_hex
+except ImportError:
     # Python3 hack import for pyethereum
-    from ethereum.utils import decode_hex, encode_hex, str_to_bytes
+    from ethereum.utils import decode_hex, encode_hex
 
 
 def parse_bip32_path(path):
     if len(path) == 0:
         return b""
     result = b""
-    elements = path.split('/')
+    elements = path.split("/")
     for pathElement in elements:
-        element = pathElement.split('\'')
+        element = pathElement.split("'")
         if len(element) == 1:
             result = result + struct.pack(">I", int(element[0]))
         else:
@@ -53,32 +52,32 @@ def parse_bip32_path(path):
 
 
 parser = argparse.ArgumentParser()
+parser.add_argument("--nonce", help="Nonce associated to the account", type=int, required=True)
+parser.add_argument("--gasprice", help="Network gas price", type=int, required=True)
+parser.add_argument("--startgas", help="startgas", default="21000", type=int)
+parser.add_argument("--amount", help="Amount to send in ether", required=True)
+parser.add_argument("--to", help="Destination address", type=str, required=True)
+parser.add_argument("--path", help="BIP 32 path to sign with")
+parser.add_argument("--data", help="Data to add, hex encoded")
 parser.add_argument(
-    '--nonce', help="Nonce associated to the account", type=int, required=True)
-parser.add_argument('--gasprice', help="Network gas price",
-                    type=int, required=True)
-parser.add_argument('--startgas', help="startgas", default='21000', type=int)
-parser.add_argument('--amount', help="Amount to send in ether", required=True)
-parser.add_argument('--to', help="Destination address",
-                    type=str, required=True)
-parser.add_argument('--path', help="BIP 32 path to sign with")
-parser.add_argument('--data', help="Data to add, hex encoded")
-parser.add_argument(
-    '--chainid', help="Chain ID (1 for Ethereum mainnet, 137 for Polygon, etc)", type=int)
-parser.add_argument('--descriptor', help="Optional descriptor")
+    "--chainid",
+    help="Chain ID (1 for Ethereum mainnet, 137 for Polygon, etc)",
+    type=int,
+)
+parser.add_argument("--descriptor", help="Optional descriptor")
 args = parser.parse_args()
 
-if args.path == None:
+if args.path is None:
     # if you want to use the next account ->  "44'/60'/1'/0/0"
     args.path = "44'/60'/0'/0/0"
 
-if args.data == None:
+if args.data is None:
     args.data = b""
 else:
     args.data = decode_hex(args.data[2:])
 
 # default to Ethereum mainnet
-if args.chainid == None:
+if args.chainid is None:
     args.chainid = 1
 
 amount = Decimal(args.amount) * 10**18
@@ -92,7 +91,7 @@ tx = UnsignedTransaction(
     data=args.data,
     chainid=args.chainid,
     dummy1=0,
-    dummy2=0
+    dummy2=0,
 )
 
 encodedTx = encode(tx, UnsignedTransaction)
@@ -102,14 +101,13 @@ encodedTx = encode(tx, UnsignedTransaction)
 # "02ef0306843b9aca008504a817c80082520894b2bb2b958afa2e96dab3f3ce7162b87daea39017872386f26fc1000080c0")
 
 # To test an EIP-2930 transaction, uncomment this line
-#encodedTx = bytearray.fromhex("01f8e60380018402625a0094cccccccccccccccccccccccccccccccccccccccc830186a0a4693c61390000000000000000000000000000000000000000000000000000000000000002f85bf859940000000000000000000000000000000000000102f842a00000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000060a780a09b8adcd2a4abd34b42d56fcd90b949f74ca9696dfe2b427bc39aa280bbf1924ca029af4a471bb2953b4e7933ea95880648552a9345424a1ac760189655ceb1832a")
+# encodedTx = bytearray.fromhex("01f8e60380018402625a0094cccccccccccccccccccccccccccccccccccccccc830186a0a4693c61390000000000000000000000000000000000000000000000000000000000000002f85bf859940000000000000000000000000000000000000102f842a00000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000060a780a09b8adcd2a4abd34b42d56fcd90b949f74ca9696dfe2b427bc39aa280bbf1924ca029af4a471bb2953b4e7933ea95880648552a9345424a1ac760189655ceb1832a")  # noqa: E501
 
 dongle = getDongle(True)
 
-if args.descriptor != None:
+if args.descriptor is not None:
     descriptor = binascii.unhexlify(args.descriptor)
-    apdu = struct.pack(">BBBBB", 0xE0, 0x0A, 0x00, 0x00,
-                       len(descriptor)) + descriptor
+    apdu = struct.pack(">BBBBB", 0xE0, 0x0A, 0x00, 0x00, len(descriptor)) + descriptor
     dongle.exchange(bytes(apdu))
 
 donglePath = parse_bip32_path(args.path)
@@ -118,19 +116,8 @@ apdu.append(len(donglePath) + 1 + len(encodedTx))
 apdu.append(len(donglePath) // 4)
 apdu += donglePath + encodedTx
 
-result = dongle.exchange(bytes(apdu))
+dongle.exchange(bytes(apdu))
 
-# Needs to recover (main.c:1121)
-# if (CHAIN_ID*2 + 35) + 1 > 255:
-#     ecc_parity = result[0] - ((CHAIN_ID*2 + 35) % 256)
-#     v = (CHAIN_ID*2 + 35) + ecc_parity
-# else:
-#     v = result[0]
-
-# r = int(binascii.hexlify(result[1:1 + 32]), 16)
-# s = int(binascii.hexlify(result[1 + 32: 1 + 32 + 32]), 16)
-
-# tx = Transaction(tx.nonce, tx.gasprice, tx.startgas,
-#                  tx.to, tx.value, tx.data, v, r, s)
-
-print("Signed transaction", encode_hex(encode(tx)))
+# Note: this prints the unsigned RLP that was sent to the device, not the
+# reconstructed signed transaction (the v/r/s from `result` are not reassembled).
+print("Unsigned transaction", encode_hex(encode(tx)))

@@ -6,18 +6,20 @@
 #include "swap_utils.h"
 #include "main_std_app.h"
 #include "eth_plugin_interface.h"
+#include "caller_app.h"
 
 #define PLUGIN_ID_LENGTH 30
 
 // Maximum number of plugin-driven items that can be added to the transaction review.
-// The review builder counts pluginUiMaxItems plus up to 3 fixed pairs (From, Network,
-// Max fees) into a uint8_t (g_pairsList->nbPairs and the cast at ui_pairs_init).
+// The review builder counts pluginUiMaxItems plus up to 4 fixed pairs (From, Nonce,
+// Network, Max fees) into a uint8_t (g_pairsList->nbPairs and the cast at ui_pairs_init).
 // Bound the source so the sum never overflows the 8-bit pair counter.
-#define MAX_PLUGIN_UI_ITEMS (UINT8_MAX - 3)
+#define MAX_PLUGIN_UI_ITEMS (UINT8_MAX - 4)
 
 // Address length
-#define ADDRESS_LENGTH_STR     ((ADDRESS_LENGTH * 2) + 1)  // 2 hex chars per byte + '\0'
-#define ADDRESS_LENGTH_HEX_STR (ADDRESS_LENGTH_STR + 2)    // with '0x' prefix
+#define ADDRESS_LENGTH_HEX     (ADDRESS_LENGTH * 2)      // 2 hex chars per byte
+#define ADDRESS_LENGTH_STR     (ADDRESS_LENGTH_HEX + 1)  // + '\0'
+#define ADDRESS_LENGTH_HEX_STR (ADDRESS_LENGTH_STR + 2)  // with '0x' prefix
 
 // Cryptographic key and signature sizes
 #define PRIVATE_KEY_LENGTH 64  // Private key material buffer size
@@ -33,20 +35,6 @@
 
 #define N_storage (*(volatile internalStorage_t *) PIC(&N_storage_real))
 
-#define MAX_ASSETS 5
-
-// Which kind of metadata was authenticated into an asset slot. extraInfo_t is
-// an untagged union of tokenDefinition_t and nftInfo_t whose first member is
-// the contract address in both cases, so an address-only lookup cannot tell
-// them apart and a consumer would happily read an NFT descriptor as a token
-// one. Slots record their kind so every lookup can demand the type it is about
-// to dereference.
-typedef enum {
-    ASSET_TYPE_NONE = 0,
-    ASSET_TYPE_ERC20,
-    ASSET_TYPE_NFT,
-} e_asset_type;
-
 typedef struct internalStorage_t {
     bool dataAllowed;
     bool contractDetails;
@@ -57,9 +45,7 @@ typedef struct internalStorage_t {
     // hidden setting (not shown in the UI)
     bool tx_check_opt_in;
 #endif
-#ifdef HAVE_GATING_SUPPORT
     uint8_t gating_counter;
-#endif
     bool eip7702_enable;
     bool displayHash;
     bool initialized;
@@ -77,6 +63,9 @@ typedef enum {
 
 typedef struct tokenContext_t {
     char pluginName[PLUGIN_ID_LENGTH];
+
+    const uint8_t *token_lookup1;
+    const uint8_t *token_lookup2;
 
     uint8_t data[INT256_LENGTH];
     uint16_t fieldIndex;
@@ -101,14 +90,6 @@ typedef struct tokenContext_t {
 
     uint8_t pluginStatus;
 
-    // Asset slots that the plugin's tokenLookup1/tokenLookup2 actually matched
-    // for this transaction, so the review renders the metadata that was looked
-    // up rather than whatever sits in a fixed slot position. Stored 1-based:
-    // the all-zero state left by reset_app_context() then reads as "no match"
-    // instead of as slot 0.
-    uint8_t pluginAssetSlot1;
-    uint8_t pluginAssetSlot2;
-
     // Chain ID the plugin registration was issued for. Populated from the
     // signed SET_PLUGIN payload so we can refuse to activate the plugin on a
     // transaction whose chain_id differs.
@@ -129,16 +110,6 @@ typedef struct transactionContext_t {
     bip32_path_t bip32;
     uint8_t hash[INT256_LENGTH];
     uint8_t sign_mode;  // e_sign_mode captured at P1_FIRST, pinned for the lifetime of the flow
-    union extraInfo_t extraInfo[MAX_ASSETS];
-    bool assetSet[MAX_ASSETS];
-    // Kind of descriptor authenticated into each slot, set only once the
-    // signature check passes. Parallel to extraInfo/assetSet.
-    e_asset_type assetType[MAX_ASSETS];
-    // Chain the descriptor in each slot was signed for. Signed metadata is
-    // chain-specific, so a lookup must match it and not the address alone.
-    // Parallel to extraInfo/assetSet.
-    uint64_t assetChainId[MAX_ASSETS];
-    uint8_t currentAssetIndex;
 } transactionContext_t;
 
 typedef struct messageSigningContext_t {
@@ -190,15 +161,19 @@ typedef enum {
     CONTRACT_ALLOWANCE,
 } contract_call_t;
 
-// must be able to hold in decimal up to : floor(MAX_UINT64 / 2) - 36
+// EIP-2681
+#define NONCE_STRING_MAX_SIZE 20
+
+// EIP-2294
 #define NETWORK_STRING_MAX_SIZE 19
 
 typedef struct txStringProperties_s {
     char fromAddress[ADDRESS_LENGTH_HEX_STR];
+    uint8_t fromAddressRaw[ADDRESS_LENGTH];
     char toAddress[ADDRESS_LENGTH_HEX_STR];
     char fullAmount[MAX_TICKER_LEN + 1 + 78 + 1];  // 2^256 is 78 digits long
     char maxFee[50];
-    char nonce[8];  // 10M tx per account ought to be enough for everybody
+    char nonce[NONCE_STRING_MAX_SIZE + 1];
     char network_name[NETWORK_STRING_MAX_SIZE + 1];
     char tx_hash[2 + (INT256_LENGTH * 2) + 1];
 } txStringProperties_t;
@@ -214,14 +189,14 @@ typedef union {
     strDataTmp_t tmp;
 } strings_t;
 
-extern const chain_config_t *chainConfig;
+extern const caller_app_t *g_caller_app;
+extern const chain_config_t *g_chain_config;
 
 extern tmpCtx_t tmpCtx;
 extern txContext_t txContext;
 extern tmpContent_t tmpContent;
 extern dataContext_t dataContext;
 extern strings_t strings;
-extern cx_sha3_t global_sha3;
 extern const internalStorage_t N_storage_real;
 
 typedef enum swap_mode_e {
@@ -233,9 +208,6 @@ typedef enum swap_mode_e {
 
 extern swap_mode_t G_swap_mode;
 extern uint8_t *G_swap_crosschain_hash;
-extern uint64_t G_swap_expected_chain_id;
-extern uint8_t G_swap_expected_token_address[ADDRESS_LENGTH];
-extern bool G_swap_has_expected_token_address;
 
 // What the transaction's value field must hold, as decided by copy_transaction_parameters() from
 // the identity of the asset being swapped. Both forms are strict: nothing else is signed.
@@ -280,4 +252,5 @@ extern uint32_t eth2WithdrawalIndex;
 
 void app_quit(void);
 void reset_app_context(void);
+void reset_app_context_ex(bool scrub_strings);
 const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_path_t *bip32);

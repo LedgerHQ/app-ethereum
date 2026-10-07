@@ -1,103 +1,68 @@
 #include "manage_asset_info.h"
-#include "network.h"  // get_tx_chain_id
+#include "token_info.h"
+#include "nft_info.h"
+#include "shared_context.h"  // pluginType
+
+_Static_assert((offsetof(s_token_info, address) == offsetof(tokenDefinition_t, address)) &&
+                   (sizeof(((s_token_info *) NULL)->address) ==
+                    sizeof(((tokenDefinition_t *) NULL)->address)),
+               "Layout mismatch: s_token_info.address vs tokenDefinition_t.address");
+_Static_assert((offsetof(s_token_info, ticker) == offsetof(tokenDefinition_t, ticker)) &&
+                   (sizeof(((s_token_info *) NULL)->ticker) ==
+                    sizeof(((tokenDefinition_t *) NULL)->ticker)),
+               "Layout mismatch: s_token_info.ticker vs tokenDefinition_t.ticker");
+_Static_assert((offsetof(s_token_info, decimals) == offsetof(tokenDefinition_t, decimals)) &&
+                   (sizeof(((s_token_info *) NULL)->decimals) ==
+                    sizeof(((tokenDefinition_t *) NULL)->decimals)),
+               "Layout mismatch: s_token_info.decimals vs tokenDefinition_t.decimals");
+
+_Static_assert((offsetof(s_nft_info, address) == offsetof(nftInfo_t, contractAddress)) &&
+                   (sizeof(((s_nft_info *) NULL)->address) ==
+                    sizeof(((nftInfo_t *) NULL)->contractAddress)),
+               "Layout mismatch: s_nft_info.address vs nftInfo_t.contractAddress");
+_Static_assert((offsetof(s_nft_info, collection_name) == offsetof(nftInfo_t, collectionName)) &&
+                   (sizeof(((s_nft_info *) NULL)->collection_name) ==
+                    sizeof(((nftInfo_t *) NULL)->collectionName)),
+               "Layout mismatch: s_nft_info.collection_name vs nftInfo_t.collectionName");
+
+// Resolve an address to the metadata the active plugin will actually read.
+//
+// extraInfo_t is an untagged union, so a plugin dereferences the arm its own
+// semantics expect with nothing to check it against: handing an NFT record to a
+// token plugin makes it read the collection name as a ticker and that name's
+// 52nd byte as a decimals count, and vice versa. Restrict the lookup to the type
+// the plugin expects wherever that type is known.
+//
+// An external plugin declares no asset type, so it keeps the historical
+// token-then-NFT order; binding that case too would require the union to carry
+// its own kind, which is a plugin SDK change. Without a plugin reading them,
+// no asset is resolved.
+extraInfo_t *get_matching_asset_info(const uint64_t *chain_id, const uint8_t *address) {
+    extraInfo_t *asset;
+
+    switch (pluginType) {
+        case PLUGIN_TYPE_ERC721:
+        case PLUGIN_TYPE_ERC1155:
+            return (extraInfo_t *) get_matching_nft_info(chain_id, address);
+        case PLUGIN_TYPE_OLD_INTERNAL:
+            return (extraInfo_t *) get_matching_token_info(chain_id, address);
+        case PLUGIN_TYPE_NONE:
+        case PLUGIN_TYPE_SWAP_WITH_CALLDATA:
+            return NULL;
+        case PLUGIN_TYPE_EXTERNAL:
+            break;
+        default:
+            PRINTF("Unexpected plugin type %d for an asset lookup\n", pluginType);
+            return NULL;
+    }
+
+    if ((asset = (extraInfo_t *) get_matching_token_info(chain_id, address)) == NULL) {
+        asset = (extraInfo_t *) get_matching_nft_info(chain_id, address);
+    }
+    return asset;
+}
 
 void forget_known_assets(void) {
-    memset(tmpCtx.transactionContext.assetSet, false, MAX_ASSETS);
-    memset(tmpCtx.transactionContext.assetType,
-           ASSET_TYPE_NONE,
-           sizeof(tmpCtx.transactionContext.assetType));
-    memset(tmpCtx.transactionContext.assetChainId,
-           0,
-           sizeof(tmpCtx.transactionContext.assetChainId));
-    tmpCtx.transactionContext.currentAssetIndex = 0;
-}
-
-static extraInfo_t *get_asset_info(int index) {
-    if ((index < 0) || (index >= MAX_ASSETS)) {
-        return NULL;
-    }
-    return &tmpCtx.transactionContext.extraInfo[index];
-}
-
-static bool asset_info_is_set(int index) {
-    if ((index < 0) || (index >= MAX_ASSETS)) {
-        return false;
-    }
-    return tmpCtx.transactionContext.assetSet[index];
-}
-
-int get_asset_index_by_type_and_addr(e_asset_type type, const uint8_t *addr, uint64_t chain_id) {
-    if ((type == ASSET_TYPE_NONE) || (addr == NULL)) {
-        return -1;
-    }
-    // The address compare works for both union members; only compare slots of
-    // the requested kind, provided for the chain being signed for
-    for (int i = 0; i < MAX_ASSETS; i++) {
-        extraInfo_t *asset = get_asset_info(i);
-        if (asset_info_is_set(i) && (tmpCtx.transactionContext.assetType[i] == type) &&
-            (tmpCtx.transactionContext.assetChainId[i] == chain_id) &&
-            (memcmp(asset->token.address, addr, ADDRESS_LENGTH) == 0)) {
-            PRINTF("Asset found at index %d\n", i);
-            return i;
-        }
-    }
-    return -1;
-}
-
-extraInfo_t *get_asset_info_by_type_and_addr(e_asset_type type,
-                                             const uint8_t *addr,
-                                             uint64_t chain_id) {
-    return get_asset_info(get_asset_index_by_type_and_addr(type, addr, chain_id));
-}
-
-bool has_asset_info_for_current_tx(e_asset_type type, const uint8_t *addr) {
-    uint64_t chain_id = get_tx_chain_id();
-
-    if ((type == ASSET_TYPE_NONE) || (addr == NULL)) {
-        return false;
-    }
-    if (chain_id != 0) {
-        // The chain is known: nothing to relax
-        return get_asset_index_by_type_and_addr(type, addr, chain_id) != -1;
-    }
-    for (int i = 0; i < MAX_ASSETS; i++) {
-        extraInfo_t *asset = get_asset_info(i);
-        if (asset_info_is_set(i) && (tmpCtx.transactionContext.assetType[i] == type) &&
-            (memcmp(asset->token.address, addr, ADDRESS_LENGTH) == 0)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-extraInfo_t *get_current_asset_info(void) {
-    return get_asset_info(tmpCtx.transactionContext.currentAssetIndex);
-}
-
-void reset_current_asset_info(void) {
-    uint8_t index = tmpCtx.transactionContext.currentAssetIndex;
-    extraInfo_t *asset = get_asset_info(index);
-
-    if (asset != NULL) {
-        explicit_bzero(asset, sizeof(*asset));
-    }
-    if (index < MAX_ASSETS) {
-        tmpCtx.transactionContext.assetSet[index] = false;
-        tmpCtx.transactionContext.assetType[index] = ASSET_TYPE_NONE;
-        tmpCtx.transactionContext.assetChainId[index] = 0;
-    }
-}
-
-void validate_current_asset_info(e_asset_type type, uint64_t chain_id) {
-    uint8_t index = tmpCtx.transactionContext.currentAssetIndex;
-
-    if (index < MAX_ASSETS) {
-        // mark it as set, recording what was actually authenticated into it and
-        // the chain it was signed for
-        tmpCtx.transactionContext.assetSet[index] = true;
-        tmpCtx.transactionContext.assetType[index] = type;
-        tmpCtx.transactionContext.assetChainId[index] = chain_id;
-    }
-    // increment index
-    tmpCtx.transactionContext.currentAssetIndex = (index + 1) % MAX_ASSETS;
+    clear_token_infos();
+    clear_nft_infos();
 }

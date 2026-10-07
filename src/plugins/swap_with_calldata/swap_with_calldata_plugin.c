@@ -1,5 +1,5 @@
 #include <string.h>
-#include "lib_cxng/src/cx_sha256.h"
+#include "swap_with_calldata_plugin.h"
 #include "plugin_utils.h"
 #include "eth_plugin_internal.h"
 #include "eth_plugin_interface.h"
@@ -17,15 +17,6 @@
  *
  * This minimalist internal plugin is used to do this calldata hashing and check.
  */
-
-typedef struct swap_with_calldata_context_s {
-    // Hash of the calldata received.
-    // Computed on (Selector + N * 32bytes parameters)
-    // We don't care at all about the content, we'll just compare the hash with the promised hash.
-    cx_sha256_t update_hash;
-    uint32_t expected_size;
-    uint32_t received_size;
-} swap_with_calldata_context_t;
 
 void handle_init_contract_swap_with_calldata(ethPluginInitContract_t *msg) {
     PRINTF("handle_init_contract_swap_with_calldata\n");

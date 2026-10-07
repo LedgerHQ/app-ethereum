@@ -16,6 +16,14 @@
     · <a href="https://github.com/LedgerHQ/app-ethereum/issues">Request Feature</a>
     · <a href="https://github.com/LedgerHQ/app-ethereum/issues">Request New Network</a>
   </p>
+<br/>
+
+[![Guidelines](https://img.shields.io/github/actions/workflow/status/LedgerHQ/app-ethereum/guidelines_enforcer.yml?branch=develop&label=Ledger%20Guidelines)](https://github.com/LedgerHQ/app-ethereum/actions/workflows/guidelines_enforcer.yml)
+[![Functional tests](https://img.shields.io/github/actions/workflow/status/LedgerHQ/app-ethereum/build_and_functional_tests.yml?branch=develop&label=Functional%20tests)](https://github.com/LedgerHQ/app-ethereum/actions/workflows/build_and_functional_tests.yml)
+[![codecov](https://codecov.io/gh/LedgerHQ/app-ethereum/graph/badge.svg)](https://codecov.io/gh/LedgerHQ/app-ethereum)
+[![Code style](https://img.shields.io/github/actions/workflow/status/LedgerHQ/app-ethereum/lint-workflow.yml?branch=develop&label=Code%20style)](https://github.com/LedgerHQ/app-ethereum/actions/workflows/lint-workflow.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+<br/>
 </div>
 <br/>
 
@@ -211,7 +219,7 @@ The Ethereum app comes with different tests:
 
 ### Functional Tests (Ragger based)
 
-> 📚 **For a comprehensive overview of all tested functionalities, see the [Test Documentation](tests/ragger/doc/).**
+> 📚 **For a comprehensive overview of all tested functionalities, see the [Test Documentation](tests/functional/doc/).**
 
 #### Linux (Ubuntu)
 
@@ -221,7 +229,7 @@ If you prefer not to, open a terminal and follow the steps below.
 Install the tests requirements:
 
 ```shell
-pip install -r tests/ragger/requirements.txt
+pip install -r tests/functional/requirements.txt
 ```
 
 Then you can:
@@ -229,10 +237,10 @@ Then you can:
 Run the functional tests (here for flex but available for any device once you have built the binaries):
 
 ```shell
-pytest tests/ragger/ --tb=short -v --device flex
+pytest tests/functional/ --tb=short -v --device flex
 ```
 
-Please see the corresponding ducomentation [USAGE](tests/ragger/usage.md)
+Please see the corresponding ducomentation [USAGE](tests/functional/usage.md)
 
 Or run your app directly with Speculos
 

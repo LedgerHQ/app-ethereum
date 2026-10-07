@@ -2,12 +2,12 @@
 #include "gtp_param_token.h"
 #include "shared_context.h"
 #include "utils.h"
-#include "manage_asset_info.h"
+#include "token_info.h"
 #include "network.h"
 #include "gtp_field_table.h"
 #include "tx_ctx.h"
 #include "tlv_library.h"
-#include "tlv_apdu.h"
+#include "tlv_utils.h"
 
 #define PARAM_TOKEN_TAGS(X)                                  \
     X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG) \
@@ -33,10 +33,15 @@ static bool handle_native_currency(const tlv_data_t *data, s_param_token_context
     if (context->param->native_addr_count == MAX_NATIVE_ADDRS) {
         return false;
     }
-    memcpy(&context->param->native_addrs[context->param->native_addr_count]
-                                        [ADDRESS_LENGTH - data->value.size],
-           data->value.ptr,
-           data->value.size);
+    if (data->value.size > 0) {
+        if (data->value.ptr == NULL) {
+            return false;
+        }
+        memcpy(&context->param->native_addrs[context->param->native_addr_count]
+                                            [ADDRESS_LENGTH - data->value.size],
+               data->value.ptr,
+               data->value.size);
+    }
     context->param->native_addr_count += 1;
     return true;
 }
@@ -79,22 +84,25 @@ bool format_param_token(const s_param_token *param, const char *name) {
             // Reset per-iteration so a previous match cannot leak into the
             // current row when the new address resolves through a different
             // branch (CWE-451). The native path explicitly carries no
-            // token_def; the ERC-20 path must repopulate it from scratch.
-            const tokenDefinition_t *token_def = NULL;
+            // s_token_info; the ERC-20 path must repopulate it from scratch.
+            const s_token_info *token_info = NULL;
             const char *ticker = NULL;
 
             buf_shrink_expand(collec.value[i].ptr, collec.value[i].length, addr, sizeof(addr));
             if (match_native(addr, param)) {
-                ticker = get_displayable_ticker(&chain_id, chainConfig, true);
-            } else if ((token_def = (const tokenDefinition_t *)
-                            get_asset_info_by_type_and_addr(ASSET_TYPE_ERC20, addr, chain_id))) {
-                ticker = token_def->ticker;
+                ticker = get_displayable_ticker(&chain_id, g_chain_config, true);
+            } else {
+                if ((token_info = get_matching_token_info_or_dummy(&chain_id, addr)) == NULL) {
+                    ret = false;
+                    break;
+                }
+                ticker = token_info->ticker;
             }
             if (ticker == NULL) {
                 ret = false;
                 break;
             }
-            if (!(ret = add_to_field_table(PARAM_TYPE_TOKEN, name, ticker, token_def))) {
+            if (!(ret = add_to_field_table(PARAM_TYPE_TOKEN, name, ticker, token_info))) {
                 break;
             }
         }

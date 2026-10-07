@@ -1,6 +1,11 @@
-from typing import Optional
-from .tlv import TlvSerializable, FieldTag
-from .keychain import sign_data, Key
+from ragger.tlv import (
+    EvmFunctionFieldTag,
+    LedgerCommonFieldTag,
+    TlvSerializable,
+    TxSimulationFieldTag,
+)
+
+from .signing_partners import GATING_PARTNER
 from .utils import TxType
 
 
@@ -9,18 +14,20 @@ class Gating(TlvSerializable):
     address: bytes
     intro_message: str
     tiny_url: str
-    chain_id: Optional[int]
-    selector: Optional[bytes]
-    signature: Optional[bytes]
+    chain_id: int | None
+    selector: bytes | None
+    signature: bytes | None
 
-    def __init__(self,
-                 tx_type: TxType,
-                 address: bytes,
-                 intro_message: str,
-                 tiny_url: str,
-                 chain_id: Optional[int] = None,
-                 selector: Optional[bytes] = None,
-                 signature: Optional[bytes] = None) -> None:
+    def __init__(
+        self,
+        tx_type: TxType,
+        address: bytes,
+        intro_message: str,
+        tiny_url: str,
+        chain_id: int | None = None,
+        selector: bytes | None = None,
+        signature: bytes | None = None,
+    ) -> None:
 
         self.tx_type = tx_type
         self.address = address
@@ -40,20 +47,21 @@ class Gating(TlvSerializable):
         assert self.intro_message is not None, "Intro message is required"
         assert self.tiny_url is not None, "Tiny URL is required"
 
-        # Construct the TLV payload
-        payload: bytes = self.serialize_field(FieldTag.STRUCT_TYPE, 0x0D)
-        payload += self.serialize_field(FieldTag.STRUCT_VERSION, 1)
-        payload += self.serialize_field(FieldTag.TX_TYPE, self.tx_type)
-        payload += self.serialize_field(FieldTag.ADDRESS, self.address)
+        # Construct the TLV payload. The TX_TYPE / PROVIDER_MESSAGE / TINY_URL tags
+        # are shared on the wire with the TxSimulation feature (same tag IDs).
+        payload: bytes = self.serialize_field(LedgerCommonFieldTag.STRUCTURE_TYPE, 0x0D)
+        payload += self.serialize_field(LedgerCommonFieldTag.VERSION, 1)
+        payload += self.serialize_field(TxSimulationFieldTag.SIMULATION_TYPE, self.tx_type)
+        payload += self.serialize_field(LedgerCommonFieldTag.ADDRESS, self.address)
         if self.chain_id is not None:
-            payload += self.serialize_field(FieldTag.CHAIN_ID, self.chain_id.to_bytes(8, 'big'))
-        payload += self.serialize_field(FieldTag.MESSAGE, self.intro_message.encode('utf-8'))
-        payload += self.serialize_field(FieldTag.TINY_URL, self.tiny_url.encode('utf-8'))
+            payload += self.serialize_field(LedgerCommonFieldTag.CHAIN_ID, self.chain_id.to_bytes(8, "big"))
+        payload += self.serialize_field(TxSimulationFieldTag.PROVIDER_MESSAGE, self.intro_message.encode("utf-8"))
+        payload += self.serialize_field(TxSimulationFieldTag.TINY_URL, self.tiny_url.encode("utf-8"))
         if self.selector:
-            payload += self.serialize_field(FieldTag.SELECTOR, self.selector)
+            payload += self.serialize_field(EvmFunctionFieldTag.EVM_FUNCTION_SELECTOR, self.selector)
         # Append the data Signature
         sig = self.signature
         if sig is None:
-            sig = sign_data(Key.GATING, payload)
-        payload += self.serialize_field(FieldTag.DER_SIGNATURE, sig)
+            sig = GATING_PARTNER.sign(payload)
+        payload += self.serialize_field(LedgerCommonFieldTag.DER_SIGNATURE, sig)
         return payload

@@ -1,5 +1,6 @@
 # Lock the application on its standard path for 1.5. Please complain if non compliant
-PATH_APP_LOAD_PARAMS += "44'/60'" "45'"
+COIN_TYPE = 60
+PATH_APP_LOAD_PARAMS += "44'/$(COIN_TYPE)'" "45'"
 TICKER = "ETH"
 CHAIN_ID = 1
 # Allow to derive ETH 2 public keys

@@ -5,6 +5,7 @@
 #include "chain_config.h"
 #include "nbgl_types.h"
 #include "lists.h"
+#include "caller_app.h"
 
 #define MAX_NETWORK_LEN 32  // 31 characters + '\0'
 
@@ -16,9 +17,9 @@ typedef struct network_info_s {
     nbgl_icon_details_t icon;
 } network_info_t;
 
-#define UNSUPPORTED_CHAIN_ID_MSG(chain_id)                                                  \
-    do {                                                                                    \
-        PRINTF("Unsupported chain ID: %llu (app: %llu)\n", chain_id, chainConfig->chainId); \
+#define UNSUPPORTED_CHAIN_ID_MSG(a)                                                      \
+    do {                                                                                 \
+        PRINTF("Unsupported chain ID: %llu (app: %llu)\n", a, g_chain_config->chain_id); \
     } while (0)
 
 extern const char g_unknown_ticker[];
@@ -51,3 +52,4 @@ uint64_t get_tx_chain_id(void);
 const char *get_displayable_ticker(const uint64_t *chain_id,
                                    const chain_config_t *chain_cfg,
                                    bool dynamic);
+const char *get_clone_network_name(const caller_app_t *caller_app);

@@ -4,6 +4,8 @@
 #include "eth_plugin_internal.h"
 #include "eth_plugin_interface.h"
 #include "common_utils.h"
+#include "network.h"
+#include "shared_context.h"
 
 static void set_approval_ui(ethQueryContractUI_t *msg, erc721_context_t *context) {
     switch (msg->screenIndex) {
@@ -12,7 +14,7 @@ static void set_approval_ui(ethQueryContractUI_t *msg, erc721_context_t *context
             if (!getEthDisplayableAddress(context->address,
                                           msg->msg,
                                           msg->msgLength,
-                                          chainConfig->chainId)) {
+                                          g_chain_config->chain_id)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
             break;
@@ -25,7 +27,7 @@ static void set_approval_ui(ethQueryContractUI_t *msg, erc721_context_t *context
             if (!getEthDisplayableAddress(msg->item1->nft.contractAddress,
                                           msg->msg,
                                           msg->msgLength,
-                                          chainConfig->chainId)) {
+                                          g_chain_config->chain_id)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
             break;
@@ -56,7 +58,7 @@ static void set_approval_for_all_ui(ethQueryContractUI_t *msg, erc721_context_t 
             if (!getEthDisplayableAddress(context->address,
                                           msg->msg,
                                           msg->msgLength,
-                                          chainConfig->chainId)) {
+                                          g_chain_config->chain_id)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
             break;
@@ -69,7 +71,7 @@ static void set_approval_for_all_ui(ethQueryContractUI_t *msg, erc721_context_t 
             if (!getEthDisplayableAddress(msg->item1->nft.contractAddress,
                                           msg->msg,
                                           msg->msgLength,
-                                          chainConfig->chainId)) {
+                                          g_chain_config->chain_id)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
             break;
@@ -87,7 +89,7 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc721_context_t *context
             if (!getEthDisplayableAddress(context->ownerAddress,
                                           msg->msg,
                                           msg->msgLength,
-                                          chainConfig->chainId)) {
+                                          g_chain_config->chain_id)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
             break;
@@ -96,7 +98,7 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc721_context_t *context
             if (!getEthDisplayableAddress(context->address,
                                           msg->msg,
                                           msg->msgLength,
-                                          chainConfig->chainId)) {
+                                          g_chain_config->chain_id)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
             break;
@@ -109,7 +111,7 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc721_context_t *context
             if (!getEthDisplayableAddress(msg->item1->nft.contractAddress,
                                           msg->msg,
                                           msg->msgLength,
-                                          chainConfig->chainId)) {
+                                          g_chain_config->chain_id)) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
             }
             break;
@@ -134,26 +136,41 @@ static void set_transfer_ui(ethQueryContractUI_t *msg, erc721_context_t *context
     }
 }
 
-// The metadata rendered must describe the called contract; fail closed on any
-// mismatch instead of showing a stale extraInfo slot
-static bool metadata_matches_destination(const ethQueryContractUI_t *msg) {
-    if ((msg->item1 == NULL) || (msg->txContent == NULL)) {
-        return false;
+static void set_amount_ui(ethQueryContractUI_t *msg) {
+    uint64_t chain_id;
+    const char *ticker;
+
+    if (msg->txContent == NULL) {
+        msg->result = ETH_PLUGIN_RESULT_ERROR;
+        return;
     }
-    return memcmp(msg->item1->nft.contractAddress, msg->txContent->destination, ADDRESS_LENGTH) ==
-           0;
+    chain_id = get_tx_chain_id();
+    ticker = get_displayable_ticker(&chain_id, g_chain_config, true);
+
+    strlcpy(msg->title, "Amount", msg->titleLength);
+    if (!amountToString(msg->txContent->value.value,
+                        msg->txContent->value.length,
+                        WEI_TO_ETHER,
+                        ticker,
+                        msg->msg,
+                        msg->msgLength)) {
+        msg->result = ETH_PLUGIN_RESULT_ERROR;
+    }
 }
 
 void handle_query_contract_ui_721(ethQueryContractUI_t *msg) {
     erc721_context_t *context = (erc721_context_t *) msg->pluginContext;
 
-    if (!metadata_matches_destination(msg)) {
-        PRINTF("NFT metadata does not describe the called contract!\n");
+    if (msg->item1 == NULL) {
         msg->result = ETH_PLUGIN_RESULT_ERROR;
         return;
     }
-
     msg->result = ETH_PLUGIN_RESULT_OK;
+    // Claimed before the per-selector rows: finalize placed it past their last index
+    if ((context->amount_screen != 0) && (msg->screenIndex == context->amount_screen)) {
+        set_amount_ui(msg);
+        return;
+    }
     switch (context->selectorIndex) {
         case APPROVE:
             set_approval_ui(msg, context);

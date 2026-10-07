@@ -1,0 +1,17 @@
+target-version = "py311"
+line-length = 130
+
+# Vendored third-party packages: not our code to lint.
+exclude = ["tests/functional/staking_deposit"]
+
+[lint]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # bugbear
+    "UP",   # pyupgrade
+    "RUF",  # ruff-native rules
+]
+ignore = [
+]

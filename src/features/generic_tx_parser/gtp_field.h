@@ -15,10 +15,12 @@
 #include "gtp_param_calldata.h"
 #include "gtp_param_token.h"
 #include "gtp_param_network.h"
+#include "gtp_param_group.h"
 #include "calldata.h"
 #include "lists.h"
 
 #define MAX_FIELD_NAME_SIZE 21
+#define MAX_SEPARATOR_SIZE  32
 
 typedef enum {
     PARAM_TYPE_RAW = 0,
@@ -33,7 +35,11 @@ typedef enum {
     PARAM_TYPE_CALLDATA,
     PARAM_TYPE_TOKEN,
     PARAM_TYPE_NETWORK,
-    PARAM_TYPE_INTENT,
+    PARAM_TYPE_GROUP,
+    // Internal types — never sent via APDU.
+    PARAM_TYPE_INTENT,     // marks a transaction-intent boundary in batch flows
+    PARAM_TYPE_SEPARATOR,  // centered page break label emitted before each array element
+    PARAM_TYPE_ADDRESS_BOOK,
 } e_param_type;
 
 typedef enum {
@@ -52,6 +58,7 @@ typedef struct s_field_constraint {
 typedef struct s_field {
     uint8_t version;
     char name[MAX_FIELD_NAME_SIZE];
+    char separator[MAX_SEPARATOR_SIZE];
     e_param_type param_type;
     union {
         s_param_raw param_raw;
@@ -66,6 +73,7 @@ typedef struct s_field {
         s_param_calldata param_calldata;
         s_param_token param_token;
         s_param_network param_network;
+        s_param_group param_group;
     };
     e_param_visibility visibility;
     s_field_constraint *constraints;
@@ -80,3 +88,4 @@ bool handle_field_struct(const buffer_t *buf, s_field_ctx *context);
 bool verify_field_struct(const s_field_ctx *context);
 bool format_field(s_field *field, uint8_t depth);
 void cleanup_field_constraints(s_field *field);
+void cleanup_field(s_field *field);

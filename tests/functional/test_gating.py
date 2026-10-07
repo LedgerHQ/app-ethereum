@@ -1,0 +1,97 @@
+import json
+from pathlib import Path
+
+from client.gating import Gating
+from client.utils import TxType
+from ragger.navigator.navigation_scenario import NavigateWithScenario
+from test_blind_sign import test_blind_sign as blind_sign
+from test_eip712 import eip712_json_path, set_wallet_addr
+from test_eip712 import test_eip712_new as sign_eip712
+
+
+def test_gating_blind_signing(scenario_navigator: NavigateWithScenario) -> None:
+    """Test the Gating descriptor APDU with a blind signing transaction"""
+
+    descriptor = Gating(
+        TxType.TRANSACTION,
+        bytes.fromhex("6b175474e89094c44da98b954eedeac495271d0f"),
+        "To scan for threats and verify this transaction before signing, use Ledger Multisig.",
+        "ledger.com/ledger-multisig",
+        1,
+    )
+    blind_sign(
+        scenario_navigator.navigator,
+        scenario_navigator,
+        scenario_navigator.test_name,
+        False,
+        0.0,
+        gating_params=descriptor,
+    )
+
+
+def test_gating_blind_signing_with_proxy(
+    scenario_navigator: NavigateWithScenario,
+) -> None:
+    """Test the Gating descriptor APDU with a blind signing transaction behind a proxy"""
+
+    descriptor = Gating(
+        TxType.TRANSACTION,
+        bytes.fromhex("Dad77910DbDFdE764fC21FCD4E74D71bBACA6D8D"),
+        "To scan for threats and verify this transaction before signing, use Ledger Multisig.",
+        "ledger.com/ledger-multisig",
+        1,
+    )
+
+    blind_sign(
+        scenario_navigator.navigator,
+        scenario_navigator,
+        scenario_navigator.test_name,
+        False,
+        0.0,
+        gating_params=descriptor,
+        with_proxy=True,
+    )
+
+
+def test_gating_eip712(scenario_navigator: NavigateWithScenario) -> None:
+    """Test the Gating descriptor APDU with a EIP712 transaction"""
+
+    json_file = Path(eip712_json_path()) / "00-simple_mail-data.json"
+    with open(json_file, encoding="utf-8") as file:
+        data = json.load(file)
+
+    descriptor = Gating(
+        TxType.TYPED_DATA,
+        bytes.fromhex(data["domain"]["verifyingContract"][2:]),
+        "To scan for threats and verify this transaction before signing, use Ledger Multisig.",
+        "ledger.com/ledger-multisig",
+        data["domain"].get("chainId", 0),
+    )
+    # Ensure the wallet address is initialized
+    set_wallet_addr(scenario_navigator.backend)
+    sign_eip712(scenario_navigator, json_file, False, False, descriptor)
+
+
+def test_gating_blind_signing_reject(scenario_navigator: NavigateWithScenario) -> None:
+    """Declining a gated review must return an error and credit no consent.
+
+    Not compared against snapshots: the rejecting tap answers the APDU, and ragger
+    surfaces that error from inside wait_for_screen_change(), racing the status screen
+    the same tap draws.
+    """
+    descriptor = Gating(
+        TxType.TRANSACTION,
+        bytes.fromhex("6b175474e89094c44da98b954eedeac495271d0f"),
+        "To scan for threats and verify this transaction before signing, use Ledger Multisig.",
+        "ledger.com/ledger-multisig",
+        1,
+    )
+    blind_sign(
+        scenario_navigator.navigator,
+        scenario_navigator,
+        scenario_navigator.test_name,
+        True,
+        0.0,
+        gating_params=descriptor,
+        do_comparison=False,
+    )

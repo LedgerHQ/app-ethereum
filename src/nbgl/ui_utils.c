@@ -1,12 +1,16 @@
 #include "nbgl_use_case.h"
 #include "app_mem_utils.h"
 #include "apdu_constants.h"
-#include "ui_callbacks.h"
+#include "common_ui.h"
 #include "ui_utils.h"
 #include "mem_utils.h"
 
 nbgl_contentTagValue_t *g_pairs = NULL;
 nbgl_contentTagValueList_t *g_pairsList = NULL;
+
+// Set by a command that has displayed an error screen of its own, so the main loop
+// answers the host without replacing it with the home screen.
+static bool s_error_screen_held;
 
 char *g_titleMsg = NULL;
 char *g_subTitleMsg = NULL;
@@ -104,4 +108,15 @@ bool ui_buffers_init(uint8_t title_len, uint8_t subtitle_len, uint8_t finish_len
 error:
     _cleanup();
     return false;
+}
+
+void ui_hold_error_screen(void) {
+    s_error_screen_held = true;
+}
+
+bool ui_error_screen_held(void) {
+    bool held = s_error_screen_held;
+
+    s_error_screen_held = false;
+    return held;
 }

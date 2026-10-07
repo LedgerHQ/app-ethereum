@@ -1,3 +1,2 @@
-HAVE_SHA512_WITH_BLOCK_ALT_METHOD
-PRINTF(...)=
-HAVE_BOLOS_APP_STACK_CANARY
+# The framework defines app_stack_canary in mock/fuzz_runtime.c, so the canary
+# code path in io_legacy can stay compiled in and get covered.

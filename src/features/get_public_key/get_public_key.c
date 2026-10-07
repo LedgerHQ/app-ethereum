@@ -48,9 +48,9 @@ uint32_t set_result_get_publicKey() {
     G_io_tx_buffer[tx++] = CX_SECP256_PUB_KEY_SIZE;
     memmove(G_io_tx_buffer + tx, tmpCtx.publicKeyContext.publicKey.W, CX_SECP256_PUB_KEY_SIZE);
     tx += CX_SECP256_PUB_KEY_SIZE;
-    G_io_tx_buffer[tx++] = 40;
-    memmove(G_io_tx_buffer + tx, tmpCtx.publicKeyContext.address, 40);
-    tx += 40;
+    G_io_tx_buffer[tx++] = ADDRESS_LENGTH_HEX;
+    memmove(G_io_tx_buffer + tx, tmpCtx.publicKeyContext.address, ADDRESS_LENGTH_HEX);
+    tx += ADDRESS_LENGTH_HEX;
     if (tmpCtx.publicKeyContext.getChaincode) {
         memmove(G_io_tx_buffer + tx, tmpCtx.publicKeyContext.chainCode, INT256_LENGTH);
         tx += INT256_LENGTH;

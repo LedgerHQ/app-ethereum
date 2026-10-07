@@ -1,0 +1,227 @@
+# Ethereum app fuzz manifest. Schema, field meanings and how to create/update
+# this file: see the "Manifest" page of the SDK Fuzzing Framework docs. One
+# [[targets]] block per fuzzer built by CMakeLists.txt.
+
+harness_version = "4"
+
+[coverage]
+exclude_regexes = [
+    '.*ledger-secure-sdk.*',
+    '.*fuzzing/mock/.*',
+    '.*fuzzing/harness/.*',
+    '.*fuzzer\.c',
+    '.*src/main\.c',
+    '.*src/nbgl/.*',
+]
+
+# ── fuzz_app: full-app APDU target ──────────────────────────────────────────
+[[targets]]
+fuzzer = "fuzz_app"
+# One input is a sequence of APDUs, so it reads far past the 255 bytes a single
+# payload can carry -- enough room for several full multi-chunk descriptors.
+tail_budget = 1024
+key_files = [
+    "src/features/sign_tx/cmd_sign_tx.c",
+    "src/features/sign_tx/logic_sign_tx.c",
+    "src/features/sign_tx/eth_ustream.c",
+    "src/features/sign_message/cmd_sign_message.c",
+    "src/features/get_public_key/get_public_key.c",
+    "src/features/get_public_key/cmd_get_public_key.c",
+    "src/features/provide_trusted_name/cmd_trusted_name.c",
+    "src/features/provide_trusted_name/trusted_name.c",
+    "src/features/provide_enum_value/cmd_enum_value.c",
+    "src/features/provide_enum_value/enum_value.c",
+    "src/features/provide_proxy_info/proxy_info.c",
+    "src/features/provide_proxy_info/cmd_proxy_info.c",
+    "src/features/provide_network_info/network_info.c",
+    "src/features/provide_network_info/cmd_network_info.c",
+    "src/features/provide_safe_account/safe_descriptor.c",
+    "src/features/provide_safe_account/signer_descriptor.c",
+    "src/features/provide_safe_account/cmd_safe_account.c",
+    "src/features/provide_gating/cmd_get_gating.c",
+    "src/features/provide_map_entry/cmd_map_entry.c",
+    "src/features/provide_map_entry/map_entry.c",
+    "src/features/provide_tx_simulation/cmd_get_tx_simulation.c",
+    "src/features/set_eth2_withdrawal_index/cmd_set_eth2_withdrawal_index.c",
+    "src/features/get_challenge/cmd_get_challenge.c",
+    "src/features/perform_privacy_operation/cmd_perform_privacy_operation.c",
+    "src/features/get_eth2_public_key/cmd_get_eth2_public_key.c",
+    "src/features/sign_authorization_eip7702/commands_7702.c",
+    "src/features/sign_authorization_eip7702/rlp_encode.c",
+    "src/features/sign_authorization_eip7702/whitelist_7702.c",
+    "src/features/sign_message_eip712/eip712_v1_commands.c",
+    "src/features/generic_tx_parser/cmd_tx_info.c",
+    "src/features/generic_tx_parser/cmd_field.c",
+    "src/tlv_apdu.c",
+    "src/utils/mem_utils.c",
+]
+seeds = { ins = [0x02, 0x04, 0x06, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E, 0x20, 0x22, 0x24, 0x26, 0x28, 0x2A, 0x30, 0x32, 0x34, 0x36, 0x38, 0x3A] }
+
+[targets.dictionary]
+tokens = [
+    { name = "cla", value = "\\xE0" },
+    { name = "ins_get_public_key", value = "\\xE0\\x02\\x00\\x00" },
+    { name = "ins_sign", value = "\\xE0\\x04\\x00\\x00" },
+    { name = "ins_get_app_config", value = "\\xE0\\x06\\x00\\x00" },
+    { name = "ins_sign_personal_msg", value = "\\xE0\\x08\\x00\\x00" },
+    { name = "ins_provide_erc20", value = "\\xE0\\x0A\\x00\\x00" },
+    { name = "ins_sign_eip712", value = "\\xE0\\x0C\\x00\\x00" },
+    { name = "ins_get_eth2_pk", value = "\\xE0\\x0E\\x00\\x00" },
+    { name = "ins_set_eth2_withdrawal", value = "\\xE0\\x10\\x00\\x00" },
+    { name = "ins_set_external_plugin", value = "\\xE0\\x12\\x00\\x00" },
+    { name = "ins_provide_nft_info", value = "\\xE0\\x14\\x00\\x00" },
+    { name = "ins_set_plugin", value = "\\xE0\\x16\\x00\\x00" },
+    { name = "ins_privacy_op", value = "\\xE0\\x18\\x00\\x00" },
+    { name = "ins_eip712_struct_def", value = "\\xE0\\x1A\\x00\\x00" },
+    { name = "ins_eip712_struct_impl", value = "\\xE0\\x1C\\x00\\x00" },
+    { name = "ins_eip712_filtering", value = "\\xE0\\x1E\\x00\\x00" },
+    { name = "ins_get_challenge", value = "\\xE0\\x20\\x00\\x00" },
+    { name = "ins_trusted_name", value = "\\xE0\\x22\\x00\\x00" },
+    { name = "ins_enum_value", value = "\\xE0\\x24\\x00\\x00" },
+    { name = "ins_gtp_tx_info", value = "\\xE0\\x26\\x00\\x00" },
+    { name = "ins_gtp_field", value = "\\xE0\\x28\\x00\\x00" },
+    { name = "ins_proxy_info", value = "\\xE0\\x2A\\x00\\x00" },
+    { name = "ins_network_config", value = "\\xE0\\x30\\x00\\x00" },
+    { name = "ins_tx_simulation", value = "\\xE0\\x32\\x00\\x00" },
+    { name = "ins_sign_eip7702", value = "\\xE0\\x34\\x00\\x00" },
+    { name = "ins_safe_account", value = "\\xE0\\x36\\x00\\x00" },
+    { name = "ins_gating", value = "\\xE0\\x38\\x00\\x00" },
+    { name = "ins_map_entry", value = "\\xE0\\x3A\\x00\\x00" },
+    { name = "p1_first_chunk", value = "\\x00" },
+    { name = "p1_more_chunk", value = "\\x80" },
+    # TLV struct types (tag 0x01 = STRUCTURE_TYPE, 1-byte value)
+    { name = "gating_struct_type", value = "\\x01\\x01\\x0D" },
+    { name = "trusted_name_struct_type", value = "\\x01\\x01\\x03" },
+    { name = "tx_simu_struct_type", value = "\\x01\\x01\\x09" },
+    { name = "proxy_struct_type", value = "\\x01\\x01\\x26" },
+    { name = "safe_struct_type", value = "\\x01\\x01\\x27" },
+    { name = "network_struct_type", value = "\\x01\\x01\\x08" },
+    { name = "tlv_version_1", value = "\\x02\\x01\\x01" },
+    { name = "gtp_version_1", value = "\\x00\\x01\\x01" },
+    { name = "trusted_name_full", value = "\\x01\\x01\\x03\\x02\\x01\\x01" },
+    { name = "txsim_v1", value = "\\x01\\x01\\x09\\x02\\x01\\x01" },
+    { name = "eip712_domain", value = "EIP712Domain" },
+    { name = "tn_eth_suffix", value = ".eth" },
+    # EIP-712 solidity type descriptors.
+    { name = "sol_uint256", value = "\\x42\\x20" },
+    { name = "sol_int256", value = "\\x41\\x20" },
+    { name = "sol_address", value = "\\x03" },
+    { name = "sol_bool", value = "\\x04" },
+    { name = "sol_string", value = "\\x05" },
+    { name = "sol_bytes32", value = "\\x46\\x20" },
+    { name = "sol_bytes_dyn", value = "\\x07" },
+    { name = "sol_uint256_dyn", value = "\\xC2\\x20\\x01\\x00" },
+    # Generic tx parser field descriptors.
+    { name = "gtp_param_raw", value = "\\x02\\x01\\x00" },
+    { name = "gtp_param_amount", value = "\\x02\\x01\\x01" },
+    { name = "gtp_param_token_amount", value = "\\x02\\x01\\x02" },
+    { name = "gtp_param_trusted_name", value = "\\x02\\x01\\x08" },
+    { name = "gtp_param_calldata", value = "\\x02\\x01\\x09" },
+    { name = "gtp_type_uint", value = "\\x01\\x01\\x01" },
+    { name = "gtp_type_address", value = "\\x01\\x01\\x05" },
+    { name = "gtp_full_leaf", value = "\\x03\\x06\\x00\\x01\\x01\\x04\\x01\\x03" },
+]
+
+# ── fuzz_parser: stateful parsers at their own entry points ─────────────────
+[[targets]]
+fuzzer = "fuzz_parser"
+key_files = [
+    "src/features/generic_tx_parser/gtp_tx_info.c",
+    "src/features/generic_tx_parser/gtp_field.c",
+    "src/features/generic_tx_parser/gtp_field_table.c",
+    "src/features/generic_tx_parser/gtp_data_path.c",
+    "src/features/generic_tx_parser/gtp_value.c",
+    "src/features/generic_tx_parser/gtp_path_array.c",
+    "src/features/generic_tx_parser/gtp_path_slice.c",
+    "src/features/generic_tx_parser/gtp_param_raw.c",
+    "src/features/generic_tx_parser/gtp_param_amount.c",
+    "src/features/generic_tx_parser/gtp_param_token_amount.c",
+    "src/features/generic_tx_parser/gtp_param_token.c",
+    "src/features/generic_tx_parser/gtp_param_nft.c",
+    "src/features/generic_tx_parser/gtp_param_datetime.c",
+    "src/features/generic_tx_parser/gtp_param_duration.c",
+    "src/features/generic_tx_parser/gtp_param_unit.c",
+    "src/features/generic_tx_parser/gtp_param_enum.c",
+    "src/features/generic_tx_parser/gtp_param_network.c",
+    "src/features/generic_tx_parser/gtp_param_trusted_name.c",
+    "src/features/generic_tx_parser/gtp_param_calldata.c",
+    "src/features/generic_tx_parser/gtp_param_group.c",
+    "src/features/generic_tx_parser/calldata.c",
+    "src/features/generic_tx_parser/tx_ctx.c",
+    "src/features/provide_enum_value/enum_value.c",
+    "src/features/sign_message_eip712/eip712_v1_filtering.c",
+    "src/features/sign_message_eip712/eip712_v1_parse.c",
+    "src/features/sign_message_eip712/eip712_v1_ui_logic.c",
+    "src/features/sign_message_eip712/typed_data.c",
+    "src/features/sign_message_eip712/encode_field.c",
+    "src/features/sign_message_eip712/type_hash.c",
+    "src/features/sign_message_eip712/value_hash.c",
+    "src/features/sign_message_eip712/schema_hash.c",
+    "src/features/sign_message_eip712/format_hash_field_type.c",
+    "src/features/sign_message_eip712/sol_typenames.c",
+]
+seeds = { ins = [0x00, 0x01, 0x02, 0x03, 0x04] }
+
+[targets.dictionary]
+tokens = [
+    { name = "eip712_domain", value = "EIP712Domain" },
+    { name = "sol_uint256", value = "\\x42\\x20" },
+    { name = "sol_int256", value = "\\x41\\x20" },
+    { name = "sol_address", value = "\\x03" },
+    { name = "sol_bool", value = "\\x04" },
+    { name = "sol_string", value = "\\x05" },
+    { name = "sol_bytes32", value = "\\x46\\x20" },
+    { name = "sol_bytes_dyn", value = "\\x07" },
+    { name = "sol_uint256_dyn", value = "\\xC2\\x20\\x01\\x00" },
+    { name = "p2_impl_field", value = "\\xFF" },
+    { name = "p2_filt_activate", value = "\\x00" },
+    { name = "gtp_param_raw", value = "\\x02\\x01\\x00" },
+    { name = "gtp_param_amount", value = "\\x02\\x01\\x01" },
+    { name = "gtp_param_token_amount", value = "\\x02\\x01\\x02" },
+    { name = "gtp_param_trusted_name", value = "\\x02\\x01\\x08" },
+    { name = "gtp_param_calldata", value = "\\x02\\x01\\x09" },
+    { name = "gtp_type_uint", value = "\\x01\\x01\\x01" },
+    { name = "gtp_type_address", value = "\\x01\\x01\\x05" },
+    { name = "gtp_value_selector", value = "\\x04\\x01\\x02" },
+    { name = "gtp_full_leaf", value = "\\x03\\x06\\x00\\x01\\x01\\x04\\x01\\x03" },
+    { name = "gtp_value_uint_min", value = "\\x00\\x01\\x01\\x01\\x01\\x01\\x02\\x01\\x20" },
+    { name = "gtp_field_root_raw", value = "\\x00\\x01\\x01\\x01\\x04test\\x02\\x01\\x00" },
+]
+
+# ── fuzz_plugin: internal plugins driven through the plugin interface ───────
+[[targets]]
+fuzzer = "fuzz_plugin"
+# The harness builds a txContent then feeds the rest as 32-byte ABI words, so
+# it reads well past the 255 bytes a single APDU payload can carry.
+tail_budget = 512
+key_files = [
+    "src/plugins/eth_plugin_handler.c",
+    "src/plugins/plugins.c",
+    "src/plugins/erc20/erc20_plugin.c",
+    "src/plugins/erc721/erc721_plugin.c",
+    "src/plugins/erc721/erc721_provide_parameters.c",
+    "src/plugins/erc721/erc721_ui.c",
+    "src/plugins/erc1155/erc1155_plugin.c",
+    "src/plugins/erc1155/erc1155_provide_parameters.c",
+    "src/plugins/erc1155/erc1155_ui.c",
+    "src/plugins/eth2/eth2_plugin.c",
+    "src/plugins/eip7002/eip7002_plugin.c",
+    "src/plugins/eip7251/eip7251_plugin.c",
+    "src/plugins/swap_with_calldata/swap_with_calldata_plugin.c",
+    "src/swap/eth_swap_utils.c",
+    "ethereum-plugin-sdk/src/plugin_utils.c",
+]
+seeds = { ins = [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06] }
+
+# ERC-721 and ERC-1155 keep their selector tables private, so the fuzzer needs
+# them here rather than as a second copy in the harness.
+[targets.dictionary]
+tokens = [
+    { name = "erc721_approve", value = "\\x09\\x5e\\xa7\\xb3" },
+    { name = "erc721_approve_for_all", value = "\\xa2\\x2c\\xb4\\x65" },
+    { name = "erc721_transfer_from", value = "\\x23\\xb8\\x72\\xdd" },
+    { name = "erc721_safe_transfer", value = "\\x42\\x84\\x2e\\x0e" },
+    { name = "erc721_safe_transfer_data", value = "\\xb8\\x8d\\x4f\\xde" },
+    { name = "erc1155_safe_transfer", value = "\\xf2\\x42\\x43\\x2a" },
+    { name = "erc1155_safe_batch_transfer", value = "\\x2e\\xb2\\xc2\\xd6" },
+]

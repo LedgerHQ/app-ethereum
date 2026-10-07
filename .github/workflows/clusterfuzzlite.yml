@@ -5,7 +5,7 @@ on:
   pull_request:
   push:
     branches:
-      - main
+      - develop
   schedule:
     - cron: '0 13 * * 6'  # At 01:00 PM, only on Saturday
 
@@ -16,3 +16,6 @@ jobs:
     uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_clusterfuzz_tests.yml@v1
     with:
       exec_mode: ${{ github.event_name }}
+    secrets:
+      # Optional: absent in forks, and the workflow skips the upload without it.
+      codecov_token: ${{ secrets.CODECOV_TOKEN }}

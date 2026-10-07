@@ -1,7 +1,8 @@
 from enum import IntEnum
-from typing import Optional
-from .tlv import TlvSerializable
-from .keychain import sign_data, Key
+
+from ragger.tlv import TlvSerializable
+
+from .signing_partners import TRUSTED_NAME_PARTNER
 
 
 class Tag(IntEnum):
@@ -26,19 +27,21 @@ class ProxyInfo(TlvSerializable):
     challenge: int
     address: bytes
     chain_id: int
-    selector: Optional[bytes]
+    selector: bytes | None
     impl_address: bytes
     delegation_type: DelegationType
-    signature: Optional[bytes]
+    signature: bytes | None
 
-    def __init__(self,
-                 challenge: int,
-                 address: bytes,
-                 chain_id: int,
-                 impl_address: bytes,
-                 delegation_type: DelegationType = DelegationType.PROXY,
-                 selector: Optional[bytes] = None,
-                 signature: Optional[bytes] = None):
+    def __init__(
+        self,
+        challenge: int,
+        address: bytes,
+        chain_id: int,
+        impl_address: bytes,
+        delegation_type: DelegationType = DelegationType.PROXY,
+        selector: bytes | None = None,
+        signature: bytes | None = None,
+    ):
         self.challenge = challenge
         self.address = address
         self.chain_id = chain_id
@@ -60,6 +63,6 @@ class ProxyInfo(TlvSerializable):
         payload += self.serialize_field(Tag.DELEGATION_TYPE, self.delegation_type)
         sig = self.signature
         if sig is None:
-            sig = sign_data(Key.TRUSTED_NAME, payload)
+            sig = TRUSTED_NAME_PARTNER.sign(bytes(payload))
         payload += self.serialize_field(Tag.SIGNATURE, sig)
-        return payload
+        return bytes(payload)

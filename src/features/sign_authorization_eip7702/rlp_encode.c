@@ -9,7 +9,7 @@ uint8_t rlpEncodeNumber(const uint8_t *number,
                         uint8_t numberLength,
                         uint8_t *output,
                         size_t output_size) {
-    if (output_size < numberLength + 2) {
+    if (output_size < (size_t) (numberLength + 2)) {
         return 0;
     }
     if (numberLength == 1) {

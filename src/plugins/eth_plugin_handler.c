@@ -1,4 +1,5 @@
 #include <string.h>
+#include "os_lib.h"  // os_lib_call
 #include "eth_plugin_handler.h"
 #include "eth_plugin_internal.h"
 #include "plugin_utils.h"
@@ -12,6 +13,8 @@
 #include "swap_with_calldata_plugin.h"
 #include "eip7002_plugin.h"
 #include "eip7251_plugin.h"
+#include "manage_asset_info.h"
+#include "utils.h"
 
 // All internal alias names start with 'minus'
 
@@ -67,20 +70,6 @@ void eth_plugin_prepare_query_contract_id(ethQueryContractID_t *query_contract_i
     query_contract_id->versionLength = version_length;
 }
 
-// Resolve the slot recorded during finalize (1-based, 0 = no match)
-static union extraInfo_t *get_plugin_asset_slot(uint8_t slot) {
-    uint8_t index;
-
-    if (slot == 0) {
-        return NULL;
-    }
-    index = slot - 1;
-    if ((index >= MAX_ASSETS) || !tmpCtx.transactionContext.assetSet[index]) {
-        return NULL;
-    }
-    return &tmpCtx.transactionContext.extraInfo[index];
-}
-
 void eth_plugin_prepare_query_contract_ui(ethQueryContractUI_t *query_contract_ui,
                                           uint8_t screen_index,
                                           char *title,
@@ -91,18 +80,16 @@ void eth_plugin_prepare_query_contract_ui(ethQueryContractUI_t *query_contract_u
 
     explicit_bzero((uint8_t *) query_contract_ui, sizeof(ethQueryContractUI_t));
 
-    // Hand the UI the slots that this transaction's tokenLookup1/tokenLookup2
-    // actually matched. Exposing the fixed extraInfo[0]/[1] positions instead
-    // let a host preload metadata for one collection into slot 0 and have it
-    // rendered while the user approved a call to a different contract, since
-    // the NFT plugins render item1->nft directly (CWE-345).
-    query_contract_ui->item1 = get_plugin_asset_slot(dataContext.tokenContext.pluginAssetSlot1);
-    query_contract_ui->item2 = get_plugin_asset_slot(dataContext.tokenContext.pluginAssetSlot2);
+    chain_id = get_tx_chain_id();
+
+    query_contract_ui->item1 =
+        get_matching_asset_info(&chain_id, dataContext.tokenContext.token_lookup1);
+    query_contract_ui->item2 =
+        get_matching_asset_info(&chain_id, dataContext.tokenContext.token_lookup2);
 
     query_contract_ui->screenIndex = screen_index;
-    chain_id = get_tx_chain_id();
     strlcpy(query_contract_ui->network_ticker,
-            get_displayable_ticker(&chain_id, chainConfig, true),
+            get_displayable_ticker(&chain_id, g_chain_config, true),
             sizeof(query_contract_ui->network_ticker));
     query_contract_ui->title = title;
     query_contract_ui->titleLength = title_length;
@@ -133,9 +120,14 @@ static void eth_plugin_perform_init_default(uint8_t *contract_address,
     // Validate that contractAddress/methodSelector are still the active half of the
     // union — if PLUGIN_CTX_PLUGIN is set, INIT_CONTRACT was already called and
     // the union now holds plugin data, not the original address/selector.
+    // A registration that does not match the transaction is refused, not signed around:
+    // ETH_PLUGIN_RESULT_ERROR makes eth_plugin_call() skip the plugin and
+    // custom_processor() abort the parsing, so the host gets a status word instead of
+    // losing the connection.
     if (dataContext.tokenContext.plugin_ctx_mode == PLUGIN_CTX_PLUGIN) {
         PRINTF("Error: plugin context already active, double INIT_CONTRACT detected\n");
-        app_exit();
+        dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_ERROR;
+        return;
     }
 
     // check if the registered external plugin matches the TX contract address / selector
@@ -146,14 +138,16 @@ static void eth_plugin_perform_init_default(uint8_t *contract_address,
         PRINTF("Expected contract: %.*H\n",
                ADDRESS_LENGTH,
                dataContext.tokenContext.contractAddress);
-        os_sched_exit(0);
+        dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_ERROR;
+        return;
     }
     if (memcmp(init->selector,
                dataContext.tokenContext.methodSelector,
                sizeof(dataContext.tokenContext.methodSelector)) != 0) {
         PRINTF("Got selector: %.*H\n", SELECTOR_SIZE, init->selector);
         PRINTF("Expected selector: %.*H\n", SELECTOR_SIZE, dataContext.tokenContext.methodSelector);
-        os_sched_exit(0);
+        dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_ERROR;
+        return;
     }
     PRINTF("Plugin will be used\n");
     dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_OK;
@@ -232,8 +226,8 @@ eth_plugin_result_t eth_plugin_perform_init(uint8_t *contract_address,
             break;
         default:
             PRINTF("Unsupported pluginType %d\n", pluginType);
-            os_sched_exit(0);
-            break;
+            app_exit();
+            // app_exit is noreturn — no break needed
     }
 
     eth_plugin_result_t status = ETH_PLUGIN_RESULT_UNAVAILABLE;
@@ -328,9 +322,14 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
     switch (pluginType) {
         case PLUGIN_TYPE_EXTERNAL: {
             uint32_t params[3];
-            params[0] = (uint32_t) alias;
+            // os_lib_call takes a 3-slot unsigned-int array; on device the
+            // pointer size matches uint32_t. Bridge through uintptr_t so
+            // the cast is well-formed on 64-bit host builds too (the
+            // truncation only matters in unit tests where os_lib_call is
+            // stubbed).
+            params[0] = (uint32_t) (uintptr_t) alias;
             params[1] = method;
-            params[2] = (uint32_t) parameter;
+            params[2] = (uint32_t) (uintptr_t) parameter;
             BEGIN_TRY {
                 TRY {
                     os_lib_call(params);
@@ -361,7 +360,15 @@ eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
             // Perform the call
             for (i = 0; i < ARRAYLEN(INTERNAL_ETH_PLUGINS); i++) {
                 if (strcmp(alias, INTERNAL_ETH_PLUGINS[i].alias) == 0) {
-                    ((PluginCall) PIC(INTERNAL_ETH_PLUGINS[i].impl))(method, parameter);
+                    // Two casts through uintptr_t guard against
+                    // -Wpedantic on both ends: the inner one feeds PIC()
+                    // an integer (so its internal (void *) cast is well-
+                    // formed, not function-ptr → object-ptr), the outer
+                    // one turns PIC's void * back into a function pointer
+                    // through uintptr_t (object-ptr → function-ptr is
+                    // equally forbidden by ISO C without the bridge).
+                    ((PluginCall) (uintptr_t) PIC(
+                        (uintptr_t) INTERNAL_ETH_PLUGINS[i].impl))(method, parameter);
                     break;
                 }
             }

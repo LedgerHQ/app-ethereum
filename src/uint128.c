@@ -19,32 +19,35 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "lcx_math.h"  // cx_math_mult_no_throw
+#include "os_utils.h"  // is_zeroes_buffer
 #include "read.h"
+#include "write.h"
 #include "uint128.h"
 #include "uint_common.h"
-#include "common_utils.h"  // HEXDIGITS
+#include "common_utils.h"  // HEXDIGITS, INT128_LENGTH
 #include "utils.h"
 
-void readu128BE(const uint8_t *const buffer, uint128_t *const target) {
+void readu128BE(const uint8_t *buffer, uint128_t *target) {
     UPPER_P(target) = read_u64_be(buffer, 0);
     LOWER_P(target) = read_u64_be(buffer + 8, 0);
 }
 
-bool zero128(const uint128_t *const number) {
+bool zero128(const uint128_t *number) {
     return ((LOWER_P(number) == 0) && (UPPER_P(number) == 0));
 }
 
-void copy128(uint128_t *const target, const uint128_t *const number) {
+void copy128(uint128_t *target, const uint128_t *number) {
     UPPER_P(target) = UPPER_P(number);
     LOWER_P(target) = LOWER_P(number);
 }
 
-void clear128(uint128_t *const target) {
+void clear128(uint128_t *target) {
     UPPER_P(target) = 0;
     LOWER_P(target) = 0;
 }
 
-void shiftl128(const uint128_t *const number, uint32_t value, uint128_t *const target) {
+void shiftl128(const uint128_t *number, uint32_t value, uint128_t *target) {
     if (value >= 128) {
         clear128(target);
     } else if (value == 64) {
@@ -61,7 +64,7 @@ void shiftl128(const uint128_t *const number, uint32_t value, uint128_t *const t
     }
 }
 
-void shiftr128(const uint128_t *const number, uint32_t value, uint128_t *const target) {
+void shiftr128(const uint128_t *number, uint32_t value, uint128_t *target) {
     if (value >= 128) {
         clear128(target);
     } else if (value == 64) {
@@ -80,7 +83,7 @@ void shiftr128(const uint128_t *const number, uint32_t value, uint128_t *const t
     }
 }
 
-uint32_t bits128(const uint128_t *const number) {
+uint32_t bits128(const uint128_t *number) {
     uint32_t result = 0;
     if (UPPER_P(number)) {
         result = 64;
@@ -99,95 +102,70 @@ uint32_t bits128(const uint128_t *const number) {
     return result;
 }
 
-bool equal128(const uint128_t *const number1, const uint128_t *const number2) {
+bool equal128(const uint128_t *number1, const uint128_t *number2) {
     return (UPPER_P(number1) == UPPER_P(number2)) && (LOWER_P(number1) == LOWER_P(number2));
 }
 
-bool gt128(const uint128_t *const number1, const uint128_t *const number2) {
+bool gt128(const uint128_t *number1, const uint128_t *number2) {
     if (UPPER_P(number1) == UPPER_P(number2)) {
         return (LOWER_P(number1) > LOWER_P(number2));
     }
     return (UPPER_P(number1) > UPPER_P(number2));
 }
 
-bool gte128(const uint128_t *const number1, const uint128_t *const number2) {
+bool gte128(const uint128_t *number1, const uint128_t *number2) {
     return gt128(number1, number2) || equal128(number1, number2);
 }
 
-void add128(const uint128_t *const number1,
-            const uint128_t *const number2,
-            uint128_t *const target) {
+void add128(const uint128_t *number1, const uint128_t *number2, uint128_t *target) {
     UPPER_P(target) = UPPER_P(number1) + UPPER_P(number2) +
                       ((LOWER_P(number1) + LOWER_P(number2)) < LOWER_P(number1));
     LOWER_P(target) = LOWER_P(number1) + LOWER_P(number2);
 }
 
-void sub128(const uint128_t *const number1,
-            const uint128_t *const number2,
-            uint128_t *const target) {
+void sub128(const uint128_t *number1, const uint128_t *number2, uint128_t *target) {
     UPPER_P(target) = UPPER_P(number1) - UPPER_P(number2) -
                       ((LOWER_P(number1) - LOWER_P(number2)) > LOWER_P(number1));
     LOWER_P(target) = LOWER_P(number1) - LOWER_P(number2);
 }
 
-void or128(const uint128_t *const number1,
-           const uint128_t *const number2,
-           uint128_t *const target) {
+void or128(const uint128_t *number1, const uint128_t *number2, uint128_t *target) {
     UPPER_P(target) = UPPER_P(number1) | UPPER_P(number2);
     LOWER_P(target) = LOWER_P(number1) | LOWER_P(number2);
 }
 
-void mul128(const uint128_t *const number1,
-            const uint128_t *const number2,
-            uint128_t *const target) {
-    uint64_t top[4] = {UPPER_P(number1) >> 32,
-                       UPPER_P(number1) & 0xffffffff,
-                       LOWER_P(number1) >> 32,
-                       LOWER_P(number1) & 0xffffffff};
-    uint64_t bottom[4] = {UPPER_P(number2) >> 32,
-                          UPPER_P(number2) & 0xffffffff,
-                          LOWER_P(number2) >> 32,
-                          LOWER_P(number2) & 0xffffffff};
-    uint64_t products[4][4];
-    uint128_t tmp, tmp2;
-
-    for (int y = 3; y > -1; y--) {
-        for (int x = 3; x > -1; x--) {
-            products[3 - x][y] = top[x] * bottom[y];
-        }
+bool mul128(const uint128_t *number1, const uint128_t *number2, uint128_t *target) {
+    // Match mul256's structure: feed two 16-byte big-endian operands
+    // into the SDK syscall, which produces a 32-byte big-endian product
+    // (bytes 0..15 = high 128 bits, bytes 16..31 = low 128 bits that we
+    // keep). Any nonzero byte in the high half means the product does
+    // not fit in uint128 — return false so callers cannot silently
+    // truncate.
+    //
+    // The previous schoolbook implementation returned void and threw
+    // the overflow carries away inside `>> 32` operations, leaving any
+    // future caller exposed to the same display-truth gap mul256 had
+    // (CWE-682). No production code calls mul128 today; the rewrite is
+    // a defensive hardening so the first such caller cannot trip it.
+    uint8_t num1[INT128_LENGTH], num2[INT128_LENGTH];
+    uint8_t result[INT128_LENGTH * 2];
+    memset(result, 0, sizeof(result));
+    write_u64_be(num1, 0, UPPER_P(number1));
+    write_u64_be(num1 + sizeof(uint64_t), 0, LOWER_P(number1));
+    write_u64_be(num2, 0, UPPER_P(number2));
+    write_u64_be(num2 + sizeof(uint64_t), 0, LOWER_P(number2));
+    if (cx_math_mult_no_throw(result, num1, num2, sizeof(num1)) != CX_OK) {
+        return false;
     }
-
-    uint64_t fourth32 = products[0][3] & 0xffffffff;
-    uint64_t third32 = (products[0][2] & 0xffffffff) + (products[0][3] >> 32);
-    uint64_t second32 = (products[0][1] & 0xffffffff) + (products[0][2] >> 32);
-    uint64_t first32 = (products[0][0] & 0xffffffff) + (products[0][1] >> 32);
-
-    third32 += products[1][3] & 0xffffffff;
-    second32 += (products[1][2] & 0xffffffff) + (products[1][3] >> 32);
-    first32 += (products[1][1] & 0xffffffff) + (products[1][2] >> 32);
-
-    second32 += products[2][3] & 0xffffffff;
-    first32 += (products[2][2] & 0xffffffff) + (products[2][3] >> 32);
-
-    first32 += products[3][3] & 0xffffffff;
-
-    UPPER(tmp) = first32 << 32;
-    LOWER(tmp) = 0;
-    UPPER(tmp2) = third32 >> 32;
-    LOWER(tmp2) = third32 << 32;
-    add128(&tmp, &tmp2, target);
-    UPPER(tmp) = second32;
-    LOWER(tmp) = 0;
-    add128(&tmp, target, &tmp2);
-    UPPER(tmp) = 0;
-    LOWER(tmp) = fourth32;
-    add128(&tmp, &tmp2, target);
+    if (!is_zeroes_buffer(result, INT128_LENGTH)) {
+        return false;
+    }
+    UPPER_P(target) = read_u64_be(result + INT128_LENGTH, 0);
+    LOWER_P(target) = read_u64_be(result + INT128_LENGTH + sizeof(uint64_t), 0);
+    return true;
 }
 
-void divmod128(const uint128_t *const l,
-               const uint128_t *const r,
-               uint128_t *const retDiv,
-               uint128_t *const retMod) {
+void divmod128(const uint128_t *l, const uint128_t *r, uint128_t *retDiv, uint128_t *retMod) {
     uint128_t copyd, adder, resDiv, resMod;
     uint128_t one;
     UPPER(one) = 0;
@@ -218,10 +196,7 @@ void divmod128(const uint128_t *const l,
     }
 }
 
-bool tostring128(const uint128_t *const number,
-                 uint32_t baseParam,
-                 char *const out,
-                 uint32_t outLength) {
+bool tostring128(const uint128_t *number, uint32_t baseParam, char *out, uint32_t outLength) {
     uint128_t rDiv;
     uint128_t rMod;
     uint128_t base;
@@ -259,10 +234,7 @@ bool tostring128(const uint128_t *const number,
  * @param[in] out_length the length of the output buffer
  * @return whether the formatting was successful or not
  */
-bool tostring128_signed(const uint128_t *const number,
-                        uint32_t base,
-                        char *const out,
-                        uint32_t out_length) {
+bool tostring128_signed(const uint128_t *number, uint32_t base, char *out, uint32_t out_length) {
     uint128_t max_unsigned_val;
     uint128_t max_signed_val;
     uint128_t one_val;
@@ -297,7 +269,7 @@ bool tostring128_signed(const uint128_t *const number,
     return tostring128(number, base, out, out_length);  // positive value
 }
 
-void convertUint64BEto128(const uint8_t *const data, uint32_t length, uint128_t *const target) {
+void convertUint64BEto128(const uint8_t *data, uint32_t length, uint128_t *target) {
     uint8_t tmp[INT128_LENGTH];
     int64_t value;
 
@@ -311,7 +283,7 @@ void convertUint64BEto128(const uint8_t *const data, uint32_t length, uint128_t 
     readu128BE(tmp, target);
 }
 
-void convertUint128BE(const uint8_t *const data, uint32_t length, uint128_t *const target) {
+void convertUint128BE(const uint8_t *data, uint32_t length, uint128_t *target) {
     uint8_t tmp[INT128_LENGTH];
 
     if (data == NULL || target == NULL || length == 0) {

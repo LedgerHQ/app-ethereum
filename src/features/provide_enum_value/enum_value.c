@@ -5,7 +5,7 @@
 #include "app_mem_utils.h"
 #include "proxy_info.h"
 #include "hash_bytes.h"
-#include "tlv_apdu.h"
+#include "tlv_utils.h"
 #include "lcx_ecdsa.h"
 
 #define STRUCT_VERSION 0x01
@@ -21,7 +21,11 @@ static s_enum_value_entry *g_enum_value_list = NULL;
  */
 static bool handle_version(const tlv_data_t *data, s_enum_value_ctx *context) {
     UNUSED(context);
-    return tlv_check_struct_version(data, STRUCT_VERSION);
+    if (!tlv_enforce_u8_value(data, STRUCT_VERSION)) {
+        PRINTF("Invalid STRUCTURE_VERSION value\n");
+        return false;
+    }
+    return true;
 }
 
 /**

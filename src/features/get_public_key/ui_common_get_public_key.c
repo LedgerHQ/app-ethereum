@@ -1,6 +1,6 @@
 #include "apdu_constants.h"
 #include "get_public_key.h"
-#include "ui_callbacks.h"
+#include "common_ui.h"
 
 unsigned int io_seproxyhal_touch_address_ok(void) {
     if (appState != APP_STATE_VERIFYING_ADDRESS) {

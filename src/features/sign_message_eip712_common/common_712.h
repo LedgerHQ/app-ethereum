@@ -1,9 +1,10 @@
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
-#include "ui_logic.h"
+#include "eip712_v1_ui_logic.h"
 
-uint16_t ui_712_start(e_eip712_filtering_mode filtering);
+bool ui_712_start(e_eip712_filtering_mode filtering);
 
 void eip712_format_hash(uint8_t index);
 void eip712_hash_strs_cleanup(void);

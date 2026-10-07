@@ -29,10 +29,7 @@
  *    missing NFT info pointer.
  */
 
-#include <stdarg.h>
-#include <stddef.h>
-#include <setjmp.h>
-#include <cmocka.h>
+#include "unity.h"
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -53,7 +50,10 @@
 
 // getEthDisplayableAddress lives in common_utils.c. Wrap it so tests
 // see deterministic output without touching keccak.
-bool __wrap_getEthDisplayableAddress(uint8_t *addr, char *out, size_t out_size, uint64_t chain_id) {
+bool __wrap_getEthDisplayableAddress(const uint8_t *addr,
+                                     char *out,
+                                     size_t out_size,
+                                     uint64_t chain_id) {
     (void) addr;
     (void) chain_id;
     if (out == NULL || out_size < 3) return false;
@@ -96,96 +96,88 @@ static void make_abi_address(uint8_t *param, uint8_t fill) {
 // Tests — INIT
 // =============================================================================
 
-static void test_init_recognises_approve(void **state) {
-    (void) state;
+void test_init_recognises_approve(void) {
     erc721_context_t ctx = {0};
     ethPluginInitContract_t msg;
     txContent_t tx;
     init_msg_with_selector(&msg, (uint8_t *) &ctx, &tx, SEL_APPROVE);
     erc721_plugin_call(ETH_PLUGIN_INIT_CONTRACT, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_OK);
-    assert_int_equal(ctx.selectorIndex, APPROVE);
-    assert_int_equal(ctx.next_param, OPERATOR);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL(ctx.selectorIndex, APPROVE);
+    TEST_ASSERT_EQUAL(ctx.next_param, OPERATOR);
 }
 
-static void test_init_recognises_approve_for_all(void **state) {
-    (void) state;
+void test_init_recognises_approve_for_all(void) {
     erc721_context_t ctx = {0};
     ethPluginInitContract_t msg;
     txContent_t tx;
     init_msg_with_selector(&msg, (uint8_t *) &ctx, &tx, SEL_APPROVE_FOR_ALL);
     erc721_plugin_call(ETH_PLUGIN_INIT_CONTRACT, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_OK);
-    assert_int_equal(ctx.selectorIndex, SET_APPROVAL_FOR_ALL);
-    assert_int_equal(ctx.next_param, OPERATOR);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL(ctx.selectorIndex, SET_APPROVAL_FOR_ALL);
+    TEST_ASSERT_EQUAL(ctx.next_param, OPERATOR);
 }
 
-static void test_init_recognises_transfer(void **state) {
-    (void) state;
+void test_init_recognises_transfer(void) {
     erc721_context_t ctx = {0};
     ethPluginInitContract_t msg;
     txContent_t tx;
     init_msg_with_selector(&msg, (uint8_t *) &ctx, &tx, SEL_TRANSFER);
     erc721_plugin_call(ETH_PLUGIN_INIT_CONTRACT, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_OK);
-    assert_int_equal(ctx.selectorIndex, TRANSFER);
-    assert_int_equal(ctx.next_param, FROM);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL(ctx.selectorIndex, TRANSFER);
+    TEST_ASSERT_EQUAL(ctx.next_param, FROM);
 }
 
-static void test_init_recognises_safe_transfer(void **state) {
-    (void) state;
+void test_init_recognises_safe_transfer(void) {
     erc721_context_t ctx = {0};
     ethPluginInitContract_t msg;
     txContent_t tx;
     init_msg_with_selector(&msg, (uint8_t *) &ctx, &tx, SEL_SAFE_TRANSFER);
     erc721_plugin_call(ETH_PLUGIN_INIT_CONTRACT, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_OK);
-    assert_int_equal(ctx.selectorIndex, SAFE_TRANSFER);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL(ctx.selectorIndex, SAFE_TRANSFER);
 }
 
-static void test_init_recognises_safe_transfer_data(void **state) {
-    (void) state;
+void test_init_recognises_safe_transfer_data(void) {
     erc721_context_t ctx = {0};
     ethPluginInitContract_t msg;
     txContent_t tx;
     init_msg_with_selector(&msg, (uint8_t *) &ctx, &tx, SEL_SAFE_TRANSFER_DATA);
     erc721_plugin_call(ETH_PLUGIN_INIT_CONTRACT, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_OK);
-    assert_int_equal(ctx.selectorIndex, SAFE_TRANSFER_DATA);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL(ctx.selectorIndex, SAFE_TRANSFER_DATA);
 }
 
-static void test_init_unknown_selector_falls_back(void **state) {
-    (void) state;
+void test_init_unknown_selector_falls_back(void) {
     erc721_context_t ctx = {0};
     ethPluginInitContract_t msg;
     txContent_t tx;
     static const uint8_t unknown[] = {0xFF, 0xFF, 0xFF, 0xFF};
     init_msg_with_selector(&msg, (uint8_t *) &ctx, &tx, unknown);
     erc721_plugin_call(ETH_PLUGIN_INIT_CONTRACT, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_FALLBACK);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_FALLBACK);
 }
 
-static void test_init_zeroes_stale_context(void **state) {
-    (void) state;
+void test_init_zeroes_stale_context(void) {
     erc721_context_t ctx;
     memset(&ctx, 0xCC, sizeof(ctx));
     ethPluginInitContract_t msg;
     txContent_t tx;
     init_msg_with_selector(&msg, (uint8_t *) &ctx, &tx, SEL_APPROVE);
     erc721_plugin_call(ETH_PLUGIN_INIT_CONTRACT, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_OK);
-    assert_int_equal(ctx.selectorIndex, APPROVE);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL(ctx.selectorIndex, APPROVE);
     // explicit_bzero must have cleared everything before selectorIndex was written.
-    assert_int_equal(ctx.next_param, OPERATOR);
-    assert_int_equal(ctx.approved, 0);
+    TEST_ASSERT_EQUAL(ctx.next_param, OPERATOR);
+    TEST_ASSERT_EQUAL(ctx.approved, 0);
 }
 
 // =============================================================================
 // Tests — PROVIDE_PARAMETER
 // =============================================================================
 
-static void test_approve_param_walk(void **state) {
-    (void) state;
+void test_approve_param_walk(void) {
     erc721_context_t ctx = {.selectorIndex = APPROVE, .next_param = OPERATOR};
     ethPluginProvideParameter_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
@@ -195,24 +187,23 @@ static void test_approve_param_walk(void **state) {
     // 1st parameter: operator address.
     make_abi_address(param, 0xAA);
     erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_SUCCESSFUL);
-    assert_int_equal(ctx.next_param, TOKEN_ID);
-    for (int i = 0; i < 20; i++) assert_int_equal(ctx.address[i], 0xAA);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_SUCCESSFUL);
+    TEST_ASSERT_EQUAL(ctx.next_param, TOKEN_ID);
+    for (int i = 0; i < 20; i++) TEST_ASSERT_EQUAL(ctx.address[i], 0xAA);
 
     // 2nd parameter: token id.
     memset(param, 0x11, sizeof(param));
     erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_SUCCESSFUL);
-    assert_int_equal(ctx.next_param, NONE);
-    for (int i = 0; i < INT256_LENGTH; i++) assert_int_equal(ctx.tokenId[i], 0x11);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_SUCCESSFUL);
+    TEST_ASSERT_EQUAL(ctx.next_param, NONE);
+    for (int i = 0; i < INT256_LENGTH; i++) TEST_ASSERT_EQUAL(ctx.tokenId[i], 0x11);
 
     // 3rd parameter: should NOT be accepted (default arm of switch).
     erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_ERROR);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
 
-static void test_transfer_param_walk_strict(void **state) {
-    (void) state;
+void test_transfer_param_walk_strict(void) {
     erc721_context_t ctx = {.selectorIndex = TRANSFER, .next_param = FROM};
     ethPluginProvideParameter_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
@@ -222,26 +213,25 @@ static void test_transfer_param_walk_strict(void **state) {
     // FROM (consumed, not stored)
     make_abi_address(param, 0xBB);
     erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
-    assert_int_equal(ctx.next_param, TO);
+    TEST_ASSERT_EQUAL(ctx.next_param, TO);
 
     // TO (stored in address)
     make_abi_address(param, 0xCC);
     erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
-    assert_int_equal(ctx.next_param, TOKEN_ID);
-    for (int i = 0; i < 20; i++) assert_int_equal(ctx.address[i], 0xCC);
+    TEST_ASSERT_EQUAL(ctx.next_param, TOKEN_ID);
+    for (int i = 0; i < 20; i++) TEST_ASSERT_EQUAL(ctx.address[i], 0xCC);
 
     // TOKEN_ID
     memset(param, 0x42, sizeof(param));
     erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
-    assert_int_equal(ctx.next_param, NONE);
+    TEST_ASSERT_EQUAL(ctx.next_param, NONE);
 
     // Extra param under strict mode → error.
     erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_ERROR);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
 
-static void test_safe_transfer_data_tolerates_extra_params(void **state) {
-    (void) state;
+void test_safe_transfer_data_tolerates_extra_params(void) {
     erc721_context_t ctx = {.selectorIndex = SAFE_TRANSFER_DATA, .next_param = FROM};
     ethPluginProvideParameter_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
@@ -252,16 +242,29 @@ static void test_safe_transfer_data_tolerates_extra_params(void **state) {
     erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);  // FROM
     erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);  // TO
     erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);  // TOKEN_ID
-    assert_int_equal(ctx.next_param, NONE);
+    // The bytes payload overhead is walked before NONE
+    TEST_ASSERT_EQUAL(ctx.next_param, DATA_OFFSET);
+
+    // Dynamic offset of the payload, counted from after the selector
+    memset(param, 0, sizeof(param));
+    param[PARAMETER_LENGTH - 1] = 4 * PARAMETER_LENGTH;
+    erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);  // DATA_OFFSET
+    TEST_ASSERT_EQUAL(ctx.next_param, DATA_LENGTH);
+
+    // The length word lands at the declared offset
+    msg.parameterOffset = SELECTOR_SIZE + 4 * PARAMETER_LENGTH;
+    memset(param, 0, sizeof(param));
+    param[PARAMETER_LENGTH - 1] = 9;
+    erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);  // DATA_LENGTH
+    TEST_ASSERT_EQUAL(ctx.next_param, NONE);
 
     // Non-strict: extra param after NONE is ignored, not an error.
     msg.result = ETH_PLUGIN_RESULT_SUCCESSFUL;
     erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_SUCCESSFUL);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_SUCCESSFUL);
 }
 
-static void test_approval_for_all_walks_two_params(void **state) {
-    (void) state;
+void test_approval_for_all_walks_two_params(void) {
     erc721_context_t ctx = {.selectorIndex = SET_APPROVAL_FOR_ALL, .next_param = OPERATOR};
     ethPluginProvideParameter_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
@@ -271,63 +274,59 @@ static void test_approval_for_all_walks_two_params(void **state) {
     // OPERATOR.
     make_abi_address(param, 0xDD);
     erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
-    assert_int_equal(ctx.next_param, APPROVED);
-    for (int i = 0; i < 20; i++) assert_int_equal(ctx.address[i], 0xDD);
+    TEST_ASSERT_EQUAL(ctx.next_param, APPROVED);
+    for (int i = 0; i < 20; i++) TEST_ASSERT_EQUAL(ctx.address[i], 0xDD);
 
     // APPROVED (bool: last byte of the 32-byte param).
     memset(param, 0, sizeof(param));
     param[PARAMETER_LENGTH - 1] = 0x01;
     erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
-    assert_int_equal(ctx.next_param, NONE);
-    assert_true(ctx.approved);
+    TEST_ASSERT_EQUAL(ctx.next_param, NONE);
+    TEST_ASSERT_TRUE(ctx.approved);
 
     // Extra param → error.
     erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_ERROR);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
 
-static void test_unknown_selector_index_rejects(void **state) {
-    (void) state;
+void test_unknown_selector_index_rejects(void) {
     erc721_context_t ctx = {.selectorIndex = 0x7F};
     ethPluginProvideParameter_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
     uint8_t param[PARAMETER_LENGTH] = {0};
     msg.parameter = param;
     erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_ERROR);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
 
 // =============================================================================
 // Tests — FINALIZE
 // =============================================================================
 
-static void test_finalize_transfer_four_screens(void **state) {
-    (void) state;
+void test_finalize_transfer_five_screens(void) {
     erc721_context_t ctx = {.selectorIndex = TRANSFER};
     txContent_t tx = {0};
     ethPluginFinalize_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
     msg.txContent = &tx;
     erc721_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_OK);
-    assert_int_equal(msg.numScreens, 4);
-    assert_int_equal(msg.uiType, ETH_UI_TYPE_GENERIC);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL(msg.numScreens, 5);
+    TEST_ASSERT_EQUAL(msg.uiType, ETH_UI_TYPE_GENERIC);
 }
 
-static void test_finalize_set_approval_three_screens(void **state) {
-    (void) state;
+void test_finalize_set_approval_three_screens(void) {
     erc721_context_t ctx = {.selectorIndex = SET_APPROVAL_FOR_ALL};
     txContent_t tx = {0};
     ethPluginFinalize_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
     msg.txContent = &tx;
     erc721_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_OK);
-    assert_int_equal(msg.numScreens, 3);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL(msg.numScreens, 3);
 }
 
-static void test_finalize_transfer_with_eth_value_adds_screen(void **state) {
-    (void) state;
+void test_finalize_transfer_with_eth_value_adds_screen(void) {
     erc721_context_t ctx = {.selectorIndex = TRANSFER};
     txContent_t tx = {0};
     tx.value.value[0] = 0x01;  // non-zero ETH
@@ -336,12 +335,11 @@ static void test_finalize_transfer_with_eth_value_adds_screen(void **state) {
     msg.pluginContext = (uint8_t *) &ctx;
     msg.txContent = &tx;
     erc721_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_OK);
-    assert_int_equal(msg.numScreens, 5);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL(msg.numScreens, 6);
 }
 
-static void test_finalize_set_approval_with_eth_rejected(void **state) {
-    (void) state;
+void test_finalize_set_approval_with_eth_rejected(void) {
     erc721_context_t ctx = {.selectorIndex = SET_APPROVAL_FOR_ALL};
     txContent_t tx = {0};
     tx.value.value[0] = 0x01;
@@ -352,15 +350,14 @@ static void test_finalize_set_approval_with_eth_rejected(void **state) {
     erc721_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
     // setApprovalForAll is non-payable. Sending ETH alongside it
     // means the calldata is hostile / malformed.
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_ERROR);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
 
 // =============================================================================
 // Tests — QUERY_CONTRACT_ID
 // =============================================================================
 
-static void test_query_contract_id_approve(void **state) {
-    (void) state;
+void test_query_contract_id_approve(void) {
     erc721_context_t ctx = {.selectorIndex = APPROVE};
     char name[32] = {0};
     char version[16] = {0};
@@ -371,13 +368,12 @@ static void test_query_contract_id_approve(void **state) {
     msg.version = version;
     msg.versionLength = sizeof(version);
     erc721_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_ID, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_OK);
-    assert_string_equal(name, "NFT allowance");
-    assert_string_equal(version, "manage");
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL_STRING(name, "NFT allowance");
+    TEST_ASSERT_EQUAL_STRING(version, "manage");
 }
 
-static void test_query_contract_id_transfer(void **state) {
-    (void) state;
+void test_query_contract_id_transfer(void) {
     erc721_context_t ctx = {.selectorIndex = TRANSFER};
     char name[32] = {0};
     char version[16] = {0};
@@ -388,24 +384,22 @@ static void test_query_contract_id_transfer(void **state) {
     msg.version = version;
     msg.versionLength = sizeof(version);
     erc721_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_ID, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_OK);
-    assert_string_equal(name, "NFT");
-    assert_string_equal(version, "Transfer");
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL_STRING(name, "NFT");
+    TEST_ASSERT_EQUAL_STRING(version, "Transfer");
 }
 
-static void test_finalize_unknown_selector_rejects(void **state) {
-    (void) state;
+void test_finalize_unknown_selector_rejects(void) {
     erc721_context_t ctx = {.selectorIndex = 0x7F};
     txContent_t tx = {0};
     ethPluginFinalize_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
     msg.txContent = &tx;
     erc721_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_ERROR);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
 
-static void test_query_id_unknown_selector_rejects(void **state) {
-    (void) state;
+void test_query_id_unknown_selector_rejects(void) {
     erc721_context_t ctx = {.selectorIndex = 0x7F};
     char name[32] = {0};
     char version[32] = {0};
@@ -416,16 +410,15 @@ static void test_query_id_unknown_selector_rejects(void **state) {
     msg.version = version;
     msg.versionLength = sizeof(version);
     erc721_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_ID, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_ERROR);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
 
-static void test_provide_info_returns_ok(void **state) {
-    (void) state;
+void test_provide_info_returns_ok(void) {
     // handle_provide_info_721 just sets result = OK; pin the dispatch
     // path through erc721_plugin_call too.
     ethPluginProvideInfo_t msg = {0};
     erc721_plugin_call(ETH_PLUGIN_PROVIDE_INFO, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
 }
 
 // =============================================================================
@@ -456,8 +449,7 @@ static void prep_ui_msg(ethQueryContractUI_t *msg,
     msg->screenIndex = screen;
 }
 
-static void test_ui_null_item1_rejected(void **state) {
-    (void) state;
+void test_ui_null_item1_rejected(void) {
     erc721_context_t ctx = {.selectorIndex = TRANSFER};
     char title[32] = {0};
     char body[64] = {0};
@@ -469,36 +461,45 @@ static void test_ui_null_item1_rejected(void **state) {
     msg.msg = body;
     msg.msgLength = sizeof(body);
     erc721_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_ERROR);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
 
-static void test_ui_transfer_screen0_is_to_address(void **state) {
-    (void) state;
+void test_ui_transfer_screen0_is_owner_address(void) {
     prep_nft_info();
     erc721_context_t ctx = {.selectorIndex = TRANSFER};
     char title[32], body[64];
     ethQueryContractUI_t msg;
     prep_ui_msg(&msg, &ctx, title, body, 0);
     erc721_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_OK);
-    assert_string_equal(title, "To");
-    assert_string_equal(body, "0xADDR");
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL_STRING(title, "NFT Owner");
+    TEST_ASSERT_EQUAL_STRING(body, "0xADDR");
 }
 
-static void test_ui_transfer_screen1_is_collection(void **state) {
-    (void) state;
+void test_ui_transfer_screen1_is_to_address(void) {
     prep_nft_info();
     erc721_context_t ctx = {.selectorIndex = TRANSFER};
     char title[32], body[64];
     ethQueryContractUI_t msg;
     prep_ui_msg(&msg, &ctx, title, body, 1);
     erc721_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    assert_string_equal(title, "Collection Name");
-    assert_string_equal(body, "CryptoPunks");
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL_STRING(title, "To");
+    TEST_ASSERT_EQUAL_STRING(body, "0xADDR");
 }
 
-static void test_ui_transfer_screen3_is_nft_id(void **state) {
-    (void) state;
+void test_ui_transfer_screen2_is_collection(void) {
+    prep_nft_info();
+    erc721_context_t ctx = {.selectorIndex = TRANSFER};
+    char title[32], body[64];
+    ethQueryContractUI_t msg;
+    prep_ui_msg(&msg, &ctx, title, body, 2);
+    erc721_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
+    TEST_ASSERT_EQUAL_STRING(title, "Collection Name");
+    TEST_ASSERT_EQUAL_STRING(body, "CryptoPunks");
+}
+
+void test_ui_transfer_screen4_is_nft_id(void) {
     prep_nft_info();
     erc721_context_t ctx = {.selectorIndex = TRANSFER};
     // tokenId = 42 in big-endian (encoded by copy_parameter on a
@@ -506,96 +507,89 @@ static void test_ui_transfer_screen3_is_nft_id(void **state) {
     ctx.tokenId[31] = 42;
     char title[32], body[64];
     ethQueryContractUI_t msg;
-    prep_ui_msg(&msg, &ctx, title, body, 3);
+    prep_ui_msg(&msg, &ctx, title, body, 4);
     erc721_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    assert_string_equal(title, "NFT ID");
-    assert_string_equal(body, "42");
+    TEST_ASSERT_EQUAL_STRING(title, "NFT ID");
+    TEST_ASSERT_EQUAL_STRING(body, "42");
 }
 
-static void test_ui_transfer_unknown_screen_rejected(void **state) {
-    (void) state;
+void test_ui_transfer_unknown_screen_rejected(void) {
     prep_nft_info();
     erc721_context_t ctx = {.selectorIndex = TRANSFER};
     char title[32], body[64];
     ethQueryContractUI_t msg;
     prep_ui_msg(&msg, &ctx, title, body, 99);
     erc721_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_ERROR);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
 
-static void test_ui_approval_for_all_allow_vs_revoke(void **state) {
-    (void) state;
+void test_ui_approval_for_all_allow_vs_revoke(void) {
     prep_nft_info();
     erc721_context_t ctx = {.selectorIndex = SET_APPROVAL_FOR_ALL, .approved = true};
     char title[32], body[64];
     ethQueryContractUI_t msg;
     prep_ui_msg(&msg, &ctx, title, body, 0);
     erc721_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    assert_string_equal(title, "Allow");
+    TEST_ASSERT_EQUAL_STRING(title, "Allow");
 
     ctx.approved = false;
     prep_ui_msg(&msg, &ctx, title, body, 0);
     erc721_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    assert_string_equal(title, "Revoke");
+    TEST_ASSERT_EQUAL_STRING(title, "Revoke");
 }
 
-static void test_ui_approve_screen0_is_allow_to_address(void **state) {
-    (void) state;
+void test_ui_approve_screen0_is_allow_to_address(void) {
     prep_nft_info();
     erc721_context_t ctx = {.selectorIndex = APPROVE};
     char title[32], body[64];
     ethQueryContractUI_t msg;
     prep_ui_msg(&msg, &ctx, title, body, 0);
     erc721_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    assert_string_equal(title, "Allow");
-    assert_string_equal(body, "0xADDR");
+    TEST_ASSERT_EQUAL_STRING(title, "Allow");
+    TEST_ASSERT_EQUAL_STRING(body, "0xADDR");
 }
 
 // Remaining sub-screens for each selector: TRANSFER screen 2, APPROVE
 // screens 1/2/3, SET_APPROVAL_FOR_ALL screens 1/2, plus the default
 // arms in each switch.
 
-static void test_ui_transfer_screen2_is_nft_address(void **state) {
-    (void) state;
+void test_ui_transfer_screen3_is_nft_address(void) {
     prep_nft_info();
     erc721_context_t ctx = {.selectorIndex = TRANSFER};
     char title[32], body[64];
     ethQueryContractUI_t msg;
-    prep_ui_msg(&msg, &ctx, title, body, 2);
+    prep_ui_msg(&msg, &ctx, title, body, 3);
     erc721_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_OK);
-    assert_string_equal(title, "NFT Address");
-    assert_string_equal(body, "0xADDR");
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL_STRING(title, "NFT Address");
+    TEST_ASSERT_EQUAL_STRING(body, "0xADDR");
 }
 
-static void test_ui_approve_screen1_is_to_manage_collection(void **state) {
-    (void) state;
+void test_ui_approve_screen1_is_to_manage_collection(void) {
     prep_nft_info();
     erc721_context_t ctx = {.selectorIndex = APPROVE};
     char title[32], body[64];
     ethQueryContractUI_t msg;
     prep_ui_msg(&msg, &ctx, title, body, 1);
     erc721_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_OK);
-    assert_string_equal(title, "To Manage Your");
-    assert_string_equal(body, "CryptoPunks");
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL_STRING(title, "To Manage Your");
+    TEST_ASSERT_EQUAL_STRING(body, "CryptoPunks");
 }
 
-static void test_ui_approve_screen2_is_nft_address(void **state) {
-    (void) state;
+void test_ui_approve_screen2_is_nft_address(void) {
     prep_nft_info();
     erc721_context_t ctx = {.selectorIndex = APPROVE};
     char title[32], body[64];
     ethQueryContractUI_t msg;
     prep_ui_msg(&msg, &ctx, title, body, 2);
     erc721_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_OK);
-    assert_string_equal(title, "NFT Address");
-    assert_string_equal(body, "0xADDR");
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL_STRING(title, "NFT Address");
+    TEST_ASSERT_EQUAL_STRING(body, "0xADDR");
 }
 
-static void test_ui_approve_screen3_is_nft_id(void **state) {
-    (void) state;
+void test_ui_approve_screen3_is_nft_id(void) {
     prep_nft_info();
     erc721_context_t ctx = {.selectorIndex = APPROVE};
     ctx.tokenId[31] = 7;
@@ -603,101 +597,102 @@ static void test_ui_approve_screen3_is_nft_id(void **state) {
     ethQueryContractUI_t msg;
     prep_ui_msg(&msg, &ctx, title, body, 3);
     erc721_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_OK);
-    assert_string_equal(title, "NFT ID");
-    assert_string_equal(body, "7");
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL_STRING(title, "NFT ID");
+    TEST_ASSERT_EQUAL_STRING(body, "7");
 }
 
-static void test_ui_approve_unknown_screen_rejected(void **state) {
-    (void) state;
+void test_ui_approve_unknown_screen_rejected(void) {
     prep_nft_info();
     erc721_context_t ctx = {.selectorIndex = APPROVE};
     char title[32], body[64];
     ethQueryContractUI_t msg;
     prep_ui_msg(&msg, &ctx, title, body, 99);
     erc721_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_ERROR);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
 
-static void test_ui_approval_for_all_screen1_is_to_manage_all(void **state) {
-    (void) state;
+void test_ui_approval_for_all_screen1_is_to_manage_all(void) {
     prep_nft_info();
     erc721_context_t ctx = {.selectorIndex = SET_APPROVAL_FOR_ALL, .approved = true};
     char title[32], body[64];
     ethQueryContractUI_t msg;
     prep_ui_msg(&msg, &ctx, title, body, 1);
     erc721_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_OK);
-    assert_string_equal(title, "To Manage ALL");
-    assert_string_equal(body, "CryptoPunks");
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL_STRING(title, "To Manage ALL");
+    TEST_ASSERT_EQUAL_STRING(body, "CryptoPunks");
 }
 
-static void test_ui_approval_for_all_screen2_is_nft_address(void **state) {
-    (void) state;
+void test_ui_approval_for_all_screen2_is_nft_address(void) {
     prep_nft_info();
     erc721_context_t ctx = {.selectorIndex = SET_APPROVAL_FOR_ALL, .approved = true};
     char title[32], body[64];
     ethQueryContractUI_t msg;
     prep_ui_msg(&msg, &ctx, title, body, 2);
     erc721_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_OK);
-    assert_string_equal(title, "NFT Address");
-    assert_string_equal(body, "0xADDR");
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL_STRING(title, "NFT Address");
+    TEST_ASSERT_EQUAL_STRING(body, "0xADDR");
 }
 
-static void test_ui_approval_for_all_unknown_screen_rejected(void **state) {
-    (void) state;
+void test_ui_approval_for_all_unknown_screen_rejected(void) {
     prep_nft_info();
     erc721_context_t ctx = {.selectorIndex = SET_APPROVAL_FOR_ALL, .approved = true};
     char title[32], body[64];
     ethQueryContractUI_t msg;
     prep_ui_msg(&msg, &ctx, title, body, 99);
     erc721_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_ERROR);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
 
 // =============================================================================
 // Runner
 // =============================================================================
 
+void setUp(void) {
+}
+void tearDown(void) {
+}
+
 int main(void) {
-    const struct CMUnitTest tests[] = {
-        cmocka_unit_test(test_init_recognises_approve),
-        cmocka_unit_test(test_init_recognises_approve_for_all),
-        cmocka_unit_test(test_init_recognises_transfer),
-        cmocka_unit_test(test_init_recognises_safe_transfer),
-        cmocka_unit_test(test_init_recognises_safe_transfer_data),
-        cmocka_unit_test(test_init_unknown_selector_falls_back),
-        cmocka_unit_test(test_init_zeroes_stale_context),
-        cmocka_unit_test(test_approve_param_walk),
-        cmocka_unit_test(test_transfer_param_walk_strict),
-        cmocka_unit_test(test_safe_transfer_data_tolerates_extra_params),
-        cmocka_unit_test(test_approval_for_all_walks_two_params),
-        cmocka_unit_test(test_unknown_selector_index_rejects),
-        cmocka_unit_test(test_finalize_transfer_four_screens),
-        cmocka_unit_test(test_finalize_set_approval_three_screens),
-        cmocka_unit_test(test_finalize_transfer_with_eth_value_adds_screen),
-        cmocka_unit_test(test_finalize_set_approval_with_eth_rejected),
-        cmocka_unit_test(test_query_contract_id_approve),
-        cmocka_unit_test(test_query_contract_id_transfer),
-        cmocka_unit_test(test_finalize_unknown_selector_rejects),
-        cmocka_unit_test(test_query_id_unknown_selector_rejects),
-        cmocka_unit_test(test_provide_info_returns_ok),
-        cmocka_unit_test(test_ui_null_item1_rejected),
-        cmocka_unit_test(test_ui_transfer_screen0_is_to_address),
-        cmocka_unit_test(test_ui_transfer_screen1_is_collection),
-        cmocka_unit_test(test_ui_transfer_screen3_is_nft_id),
-        cmocka_unit_test(test_ui_transfer_unknown_screen_rejected),
-        cmocka_unit_test(test_ui_approval_for_all_allow_vs_revoke),
-        cmocka_unit_test(test_ui_approve_screen0_is_allow_to_address),
-        cmocka_unit_test(test_ui_transfer_screen2_is_nft_address),
-        cmocka_unit_test(test_ui_approve_screen1_is_to_manage_collection),
-        cmocka_unit_test(test_ui_approve_screen2_is_nft_address),
-        cmocka_unit_test(test_ui_approve_screen3_is_nft_id),
-        cmocka_unit_test(test_ui_approve_unknown_screen_rejected),
-        cmocka_unit_test(test_ui_approval_for_all_screen1_is_to_manage_all),
-        cmocka_unit_test(test_ui_approval_for_all_screen2_is_nft_address),
-        cmocka_unit_test(test_ui_approval_for_all_unknown_screen_rejected),
-    };
-    return cmocka_run_group_tests(tests, NULL, NULL);
+    UNITY_BEGIN();
+    RUN_TEST(test_init_recognises_approve);
+    RUN_TEST(test_init_recognises_approve_for_all);
+    RUN_TEST(test_init_recognises_transfer);
+    RUN_TEST(test_init_recognises_safe_transfer);
+    RUN_TEST(test_init_recognises_safe_transfer_data);
+    RUN_TEST(test_init_unknown_selector_falls_back);
+    RUN_TEST(test_init_zeroes_stale_context);
+    RUN_TEST(test_approve_param_walk);
+    RUN_TEST(test_transfer_param_walk_strict);
+    RUN_TEST(test_safe_transfer_data_tolerates_extra_params);
+    RUN_TEST(test_approval_for_all_walks_two_params);
+    RUN_TEST(test_unknown_selector_index_rejects);
+    RUN_TEST(test_finalize_transfer_five_screens);
+    RUN_TEST(test_finalize_set_approval_three_screens);
+    RUN_TEST(test_finalize_transfer_with_eth_value_adds_screen);
+    RUN_TEST(test_finalize_set_approval_with_eth_rejected);
+    RUN_TEST(test_query_contract_id_approve);
+    RUN_TEST(test_query_contract_id_transfer);
+    RUN_TEST(test_finalize_unknown_selector_rejects);
+    RUN_TEST(test_query_id_unknown_selector_rejects);
+    RUN_TEST(test_provide_info_returns_ok);
+    RUN_TEST(test_ui_null_item1_rejected);
+    RUN_TEST(test_ui_transfer_screen0_is_owner_address);
+    RUN_TEST(test_ui_transfer_screen1_is_to_address);
+    RUN_TEST(test_ui_transfer_screen2_is_collection);
+    RUN_TEST(test_ui_transfer_screen4_is_nft_id);
+    RUN_TEST(test_ui_transfer_unknown_screen_rejected);
+    RUN_TEST(test_ui_approval_for_all_allow_vs_revoke);
+    RUN_TEST(test_ui_approve_screen0_is_allow_to_address);
+    RUN_TEST(test_ui_transfer_screen3_is_nft_address);
+    RUN_TEST(test_ui_approve_screen1_is_to_manage_collection);
+    RUN_TEST(test_ui_approve_screen2_is_nft_address);
+    RUN_TEST(test_ui_approve_screen3_is_nft_id);
+    RUN_TEST(test_ui_approve_unknown_screen_rejected);
+    RUN_TEST(test_ui_approval_for_all_screen1_is_to_manage_all);
+    RUN_TEST(test_ui_approval_for_all_screen2_is_nft_address);
+    RUN_TEST(test_ui_approval_for_all_unknown_screen_rejected);
+    return UNITY_END();
 }

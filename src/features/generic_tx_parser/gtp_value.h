@@ -28,12 +28,22 @@ typedef enum {
     SOURCE_CALLDATA,
     SOURCE_RLP,
     SOURCE_CONSTANT,
+    SOURCE_MAP_REF,
 } e_value_source;
 
 typedef struct {
     uint8_t size;
     uint8_t buf[CALLDATA_CHUNK_SIZE];
 } s_constant;
+
+// Raw TLV bytes of the KEY VALUE struct (avoids recursive s_value embedding)
+#define MAP_REF_KEY_TLV_MAX_SIZE 48
+
+typedef struct {
+    uint8_t id;
+    uint8_t key_tlv[MAP_REF_KEY_TLV_MAX_SIZE];
+    uint8_t key_tlv_size;
+} s_map_ref;
 
 typedef struct {
     uint8_t version;
@@ -43,6 +53,7 @@ typedef struct {
         s_data_path data_path;
         e_container_path container_path;
         s_constant constant;
+        s_map_ref map_ref;
     };
     e_value_source source;
 } s_value;

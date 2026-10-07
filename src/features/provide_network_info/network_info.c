@@ -8,7 +8,7 @@
 #include "ui_utils.h"
 #include "mem_utils.h"
 #include "tlv_library.h"
-#include "tlv_apdu.h"
+#include "tlv_utils.h"
 #include "lcx_ecdsa.h"
 
 #define TYPE_DYNAMIC_NETWORK   0x08
@@ -41,7 +41,11 @@ network_info_t *g_last_added_network = NULL;
  */
 static bool handle_struct_type(const tlv_data_t *data, s_network_info_ctx *context) {
     UNUSED(context);
-    return tlv_check_struct_type(data, TYPE_DYNAMIC_NETWORK);
+    if (!tlv_enforce_u8_value(data, TYPE_DYNAMIC_NETWORK)) {
+        PRINTF("Invalid STRUCTURE_TYPE value\n");
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -53,7 +57,11 @@ static bool handle_struct_type(const tlv_data_t *data, s_network_info_ctx *conte
  */
 static bool handle_struct_version(const tlv_data_t *data, s_network_info_ctx *context) {
     UNUSED(context);
-    return tlv_check_struct_version(data, NETWORK_STRUCT_VERSION);
+    if (!tlv_enforce_u8_value(data, NETWORK_STRUCT_VERSION)) {
+        PRINTF("Invalid STRUCTURE_VERSION value\n");
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -65,7 +73,7 @@ static bool handle_struct_version(const tlv_data_t *data, s_network_info_ctx *co
  */
 static bool handle_blockchain_family(const tlv_data_t *data, s_network_info_ctx *context) {
     UNUSED(context);
-    if (!tlv_check_uint8(data, BLOCKCHAIN_FAMILY_ETHEREUM)) {
+    if (!tlv_enforce_u8_value(data, BLOCKCHAIN_FAMILY_ETHEREUM)) {
         PRINTF("BLOCKCHAIN_FAMILY: error\n");
         return false;
     }
@@ -130,7 +138,7 @@ static bool handle_icon_hash(const tlv_data_t *data, s_network_info_ctx *context
     if (!tlv_get_hash(data, context->icon_hash, sizeof(context->icon_hash))) {
         return false;
     }
-    if (allzeroes(context->icon_hash, CX_SHA256_SIZE) == 1) {
+    if (is_zeroes_buffer(context->icon_hash, CX_SHA256_SIZE)) {
         PRINTF("NETWORK_ICON_HASH: all zeroes\n");
         return false;
     }
@@ -319,7 +327,7 @@ static bool prepare_network_icon(const s_network_info_ctx *context) {
     clear_icon();
 
     // Check if the icon hash is provided
-    if (allzeroes(context->icon_hash, CX_SHA256_SIZE) == 1) {
+    if (is_zeroes_buffer(context->icon_hash, CX_SHA256_SIZE)) {
         PRINTF("/!\\ Icon hash is not provided!\n");
         return true;
     }

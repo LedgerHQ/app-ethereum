@@ -4,9 +4,10 @@
 #include "network.h"
 #include "utils.h"
 #include "gtp_field_table.h"
-#include "manage_asset_info.h"
+#include "token_info.h"
 #include "tx_ctx.h"
-#include "tlv_apdu.h"
+#include "tlv_utils.h"
+#include "shared_context.h"
 
 #define PARAM_TOKEN_AMOUNT_TAGS(X)                                           \
     X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG)                 \
@@ -44,10 +45,15 @@ static bool handle_native_currency(const tlv_data_t *data, s_param_token_amount_
     if (context->param->native_addr_count == MAX_NATIVE_ADDRS) {
         return false;
     }
-    memcpy(&context->param->native_addrs[context->param->native_addr_count]
-                                        [ADDRESS_LENGTH - data->value.size],
-           data->value.ptr,
-           data->value.size);
+    if (data->value.size > 0) {
+        if (data->value.ptr == NULL) {
+            return false;
+        }
+        memcpy(&context->param->native_addrs[context->param->native_addr_count]
+                                            [ADDRESS_LENGTH - data->value.size],
+               data->value.ptr,
+               data->value.size);
+    }
     context->param->native_addr_count += 1;
     return true;
 }
@@ -64,7 +70,12 @@ static bool handle_above_threshold_msg(const tlv_data_t *data,
     if (data->value.size >= sizeof(context->param->above_threshold_msg)) {
         return false;
     }
-    memcpy(context->param->above_threshold_msg, data->value.ptr, data->value.size);
+    if (data->value.size > 0) {
+        if (data->value.ptr == NULL) {
+            return false;
+        }
+        memcpy(context->param->above_threshold_msg, data->value.ptr, data->value.size);
+    }
     context->param->above_threshold_msg[data->value.size] = '\0';
     return true;
 }
@@ -103,7 +114,7 @@ static bool process_token_amount(const s_param_token_amount *param,
     uint8_t addr_buf[ADDRESS_LENGTH];
     uint256_t zero256 = {0};
     uint256_t val256;
-    const tokenDefinition_t *token_def = NULL;
+    const s_token_info *token_info = NULL;
     uint64_t chain_id;
     const char *ticker = g_unknown_ticker;
     uint8_t decimals = 0;
@@ -113,15 +124,14 @@ static bool process_token_amount(const s_param_token_amount *param,
     if (param->has_token) {
         buf_shrink_expand(token->ptr, token->length, addr_buf, sizeof(addr_buf));
         if (match_native(addr_buf, param)) {
-            ticker = get_displayable_ticker(&chain_id, chainConfig, true);
+            ticker = get_displayable_ticker(&chain_id, g_chain_config, true);
             decimals = WEI_TO_ETHER;
         } else {
-            if ((token_def = (const tokenDefinition_t *)
-                     get_asset_info_by_type_and_addr(ASSET_TYPE_ERC20, addr_buf, chain_id)) !=
-                NULL) {
-                ticker = token_def->ticker;
-                decimals = token_def->decimals;
+            if ((token_info = get_matching_token_info_or_dummy(&chain_id, addr_buf)) == NULL) {
+                return false;
             }
+            ticker = token_info->ticker;
+            decimals = token_info->decimals;
         }
     }
 
@@ -139,10 +149,10 @@ static bool process_token_amount(const s_param_token_amount *param,
             return false;
         }
     }
-    if (!add_to_field_table(token_def ? PARAM_TYPE_TOKEN_AMOUNT : PARAM_TYPE_AMOUNT,
+    if (!add_to_field_table(token_info ? PARAM_TYPE_TOKEN_AMOUNT : PARAM_TYPE_AMOUNT,
                             name,
                             buf,
-                            token_def)) {
+                            token_info)) {
         return false;
     }
     return true;
@@ -156,7 +166,7 @@ bool format_param_token_amount(const s_param_token_amount *param, const char *na
     if ((ret = value_get(&param->value, &collec_value))) {
         if (param->has_token) {
             if ((ret = value_get(&param->token, &collec_token))) {
-                if (collec_value.size != collec_token.size) {
+                if (collec_token.size != collec_value.size && collec_token.size != 1) {
                     PRINTF("Error: mismatch between counts of value & token!\n");
                     ret = false;
                 }
@@ -164,10 +174,11 @@ bool format_param_token_amount(const s_param_token_amount *param, const char *na
         }
         if (ret) {
             for (int i = 0; i < collec_value.size; ++i) {
+                int ti = collec_token.size == 1 ? 0 : i;
                 if (!(ret = process_token_amount(param,
                                                  name,
                                                  &collec_value.value[i],
-                                                 &collec_token.value[i]))) {
+                                                 &collec_token.value[ti]))) {
                     break;
                 }
             }

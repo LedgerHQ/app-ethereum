@@ -19,10 +19,7 @@
  * sides of the threshold.
  */
 
-#include <stdarg.h>
-#include <stddef.h>
-#include <setjmp.h>
-#include <cmocka.h>
+#include "unity.h"
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -30,6 +27,7 @@
 #include "shared_context.h"
 #include "eth_plugin_interface.h"
 #include "eip7002_plugin.h"
+#include "Mocknetwork.h"
 
 // =============================================================================
 // eip7002_context_t mirror (file-static in the source)
@@ -54,15 +52,19 @@ typedef struct {
 // Globals
 // =============================================================================
 
-extern uint64_t g_tx_chain_id;
+// =============================================================================
+// Network mock state
+// =============================================================================
+
+static uint64_t s_tx_chain_id = 1;
+static uint64_t get_tx_chain_id_stub(int cmock_num_calls) {
+    (void) cmock_num_calls;
+    return s_tx_chain_id;
+}
 
 // =============================================================================
 // Wraps
 // =============================================================================
-
-// get_tx_chain_id is wrapped in mocks/mock.c (returns 1 by default).
-
-// get_displayable_ticker is wrapped in mocks/mock.c (defaults to "ETH").
 
 static int g_amount_calls = 0;
 bool __wrap_amountToString(const uint8_t *amount,
@@ -100,34 +102,30 @@ static void feed_param(eip7002_context_t *ctx, const uint8_t *data, uint8_t size
     eip7002_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
 }
 
-static int reset(void **state) {
-    (void) state;
+static void reset(void) {
     g_amount_calls = 0;
-    g_tx_chain_id = 1;
-    return 0;
+    s_tx_chain_id = 1;
 }
 
 // =============================================================================
 // Tests — INIT / PROVIDE_PARAMETER concatenation
 // =============================================================================
 
-static void test_init_copies_selector_and_resets_received(void **state) {
-    (void) state;
+void test_init_copies_selector_and_resets_received(void) {
     eip7002_context_t ctx;
     memset(&ctx, 0xCC, sizeof(ctx));  // dirty
     static const uint8_t selector[CALLDATA_SELECTOR_SIZE] = {0xDE, 0xAD, 0xBE, 0xEF};
     txContent_t tx = {0};
     run_init(&ctx, selector, &tx);
-    assert_int_equal(ctx.received, CALLDATA_SELECTOR_SIZE);
-    assert_int_equal(ctx.withdrawal_request[0], 0xDE);
-    assert_int_equal(ctx.withdrawal_request[3], 0xEF);
+    TEST_ASSERT_EQUAL(ctx.received, CALLDATA_SELECTOR_SIZE);
+    TEST_ASSERT_EQUAL(ctx.withdrawal_request[0], 0xDE);
+    TEST_ASSERT_EQUAL(ctx.withdrawal_request[3], 0xEF);
     // The rest of the context must be zeroed (explicit_bzero in source).
-    assert_int_equal(ctx.withdrawal_request[4], 0);
-    assert_int_equal(ctx.withdrawal_request[55], 0);
+    TEST_ASSERT_EQUAL(ctx.withdrawal_request[4], 0);
+    TEST_ASSERT_EQUAL(ctx.withdrawal_request[55], 0);
 }
 
-static void test_parameters_concatenate_into_request(void **state) {
-    (void) state;
+void test_parameters_concatenate_into_request(void) {
     eip7002_context_t ctx = {0};
     static const uint8_t selector[CALLDATA_SELECTOR_SIZE] = {0xDE, 0xAD, 0xBE, 0xEF};
     txContent_t tx = {0};
@@ -139,16 +137,15 @@ static void test_parameters_concatenate_into_request(void **state) {
     uint8_t chunk[32];
     memset(chunk, 0xAA, sizeof(chunk));
     feed_param(&ctx, chunk, 32);
-    assert_int_equal(ctx.received, CALLDATA_SELECTOR_SIZE + 32);
+    TEST_ASSERT_EQUAL(ctx.received, CALLDATA_SELECTOR_SIZE + 32);
     feed_param(&ctx, chunk, 20);
-    assert_int_equal(ctx.received, WITHDRAWAL_REQUEST_SIZE);  // 56
+    TEST_ASSERT_EQUAL(ctx.received, WITHDRAWAL_REQUEST_SIZE);  // 56
     // raw_amount sits at offset 48 within the union; the last 8 bytes
     // of the 52 parameter bytes land there.
-    for (int i = 0; i < 8; i++) assert_int_equal(ctx.raw_amount[i], 0xAA);
+    for (int i = 0; i < 8; i++) TEST_ASSERT_EQUAL(ctx.raw_amount[i], 0xAA);
 }
 
-static void test_parameter_overflow_rejected(void **state) {
-    (void) state;
+void test_parameter_overflow_rejected(void) {
     eip7002_context_t ctx = {.received = WITHDRAWAL_REQUEST_SIZE - 1};
     uint8_t chunk[32];
     memset(chunk, 0xFF, sizeof(chunk));
@@ -158,15 +155,14 @@ static void test_parameter_overflow_rejected(void **state) {
     msg.parameter = chunk;
     msg.parameter_size = 32;
     eip7002_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_ERROR);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
 
 // =============================================================================
 // Tests — FINALIZE
 // =============================================================================
 
-static void test_finalize_complete_request_one_screen(void **state) {
-    (void) state;
+void test_finalize_complete_request_one_screen(void) {
     eip7002_context_t ctx = {0};
     ctx.received = WITHDRAWAL_REQUEST_SIZE;  // full exit (raw_amount=0)
     txContent_t tx = {0};
@@ -174,13 +170,12 @@ static void test_finalize_complete_request_one_screen(void **state) {
     msg.pluginContext = (uint8_t *) &ctx;
     msg.txContent = &tx;
     eip7002_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_OK);
-    assert_int_equal(msg.numScreens, 1);  // Validator only
-    assert_int_equal(msg.uiType, ETH_UI_TYPE_GENERIC);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL(msg.numScreens, 1);  // Validator only
+    TEST_ASSERT_EQUAL(msg.uiType, ETH_UI_TYPE_GENERIC);
 }
 
-static void test_finalize_incomplete_rejected(void **state) {
-    (void) state;
+void test_finalize_incomplete_rejected(void) {
     eip7002_context_t ctx = {0};
     ctx.received = WITHDRAWAL_REQUEST_SIZE - 1;
     txContent_t tx = {0};
@@ -188,23 +183,21 @@ static void test_finalize_incomplete_rejected(void **state) {
     msg.pluginContext = (uint8_t *) &ctx;
     msg.txContent = &tx;
     eip7002_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_ERROR);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
 
-static void test_finalize_non_mainnet_rejected(void **state) {
-    (void) state;
+void test_finalize_non_mainnet_rejected(void) {
     eip7002_context_t ctx = {.received = WITHDRAWAL_REQUEST_SIZE};
     txContent_t tx = {0};
     ethPluginFinalize_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
     msg.txContent = &tx;
-    g_tx_chain_id = 2;  // not mainnet
+    s_tx_chain_id = 2;  // not mainnet
     eip7002_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_ERROR);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
 
-static void test_finalize_partial_withdrawal_extra_screen(void **state) {
-    (void) state;
+void test_finalize_partial_withdrawal_extra_screen(void) {
     eip7002_context_t ctx = {.received = WITHDRAWAL_REQUEST_SIZE};
     ctx.raw_amount[7] = 0x42;  // non-zero → partial
     txContent_t tx = {0};
@@ -212,11 +205,10 @@ static void test_finalize_partial_withdrawal_extra_screen(void **state) {
     msg.pluginContext = (uint8_t *) &ctx;
     msg.txContent = &tx;
     eip7002_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
-    assert_int_equal(msg.numScreens, 2);  // Validator + Amount
+    TEST_ASSERT_EQUAL(msg.numScreens, 2);  // Validator + Amount
 }
 
-static void test_finalize_tx_value_above_threshold_extra_screen(void **state) {
-    (void) state;
+void test_finalize_tx_value_above_threshold_extra_screen(void) {
     // 1 gwei + 1 wei = 1_000_000_001 wei = 0x3B9ACA01. Encoded BE as 4 bytes.
     eip7002_context_t ctx = {.received = WITHDRAWAL_REQUEST_SIZE};
     txContent_t tx = {0};
@@ -229,11 +221,10 @@ static void test_finalize_tx_value_above_threshold_extra_screen(void **state) {
     msg.pluginContext = (uint8_t *) &ctx;
     msg.txContent = &tx;
     eip7002_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
-    assert_int_equal(msg.numScreens, 2);  // Validator + Tx value
+    TEST_ASSERT_EQUAL(msg.numScreens, 2);  // Validator + Tx value
 }
 
-static void test_finalize_tx_value_below_threshold_hidden(void **state) {
-    (void) state;
+void test_finalize_tx_value_below_threshold_hidden(void) {
     // 1 gwei exactly is at the threshold (`val > 1e9`), so a value of
     // EXACTLY 1e9 wei is NOT shown. Use 0x3B9ACA00 = 1_000_000_000.
     eip7002_context_t ctx = {.received = WITHDRAWAL_REQUEST_SIZE};
@@ -247,11 +238,10 @@ static void test_finalize_tx_value_below_threshold_hidden(void **state) {
     msg.pluginContext = (uint8_t *) &ctx;
     msg.txContent = &tx;
     eip7002_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
-    assert_int_equal(msg.numScreens, 1);  // Tx value hidden
+    TEST_ASSERT_EQUAL(msg.numScreens, 1);  // Tx value hidden
 }
 
-static void test_finalize_tx_value_huge_shown(void **state) {
-    (void) state;
+void test_finalize_tx_value_huge_shown(void) {
     // value.length > 8 bytes -> unambiguously > 2^64 -> shown.
     eip7002_context_t ctx = {.received = WITHDRAWAL_REQUEST_SIZE};
     txContent_t tx = {0};
@@ -261,15 +251,14 @@ static void test_finalize_tx_value_huge_shown(void **state) {
     msg.pluginContext = (uint8_t *) &ctx;
     msg.txContent = &tx;
     eip7002_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
-    assert_int_equal(msg.numScreens, 2);
+    TEST_ASSERT_EQUAL(msg.numScreens, 2);
 }
 
 // =============================================================================
 // Tests — QUERY_CONTRACT_ID
 // =============================================================================
 
-static void test_query_contract_id_full_exit(void **state) {
-    (void) state;
+void test_query_contract_id_full_exit(void) {
     eip7002_context_t ctx = {0};  // raw_amount = 0
     char name[32] = {0};
     char version[16] = {0};
@@ -280,12 +269,11 @@ static void test_query_contract_id_full_exit(void **state) {
     msg.version = version;
     msg.versionLength = sizeof(version);
     eip7002_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_ID, &msg);
-    assert_string_equal(name, "full exit");
-    assert_string_equal(version, "do");
+    TEST_ASSERT_EQUAL_STRING(name, "full exit");
+    TEST_ASSERT_EQUAL_STRING(version, "do");
 }
 
-static void test_query_contract_id_partial_withdrawal(void **state) {
-    (void) state;
+void test_query_contract_id_partial_withdrawal(void) {
     eip7002_context_t ctx = {0};
     ctx.raw_amount[7] = 0x42;
     char name[32] = {0};
@@ -297,15 +285,14 @@ static void test_query_contract_id_partial_withdrawal(void **state) {
     msg.version = version;
     msg.versionLength = sizeof(version);
     eip7002_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_ID, &msg);
-    assert_string_equal(name, "partial withdrawal");
+    TEST_ASSERT_EQUAL_STRING(name, "partial withdrawal");
 }
 
 // =============================================================================
 // Tests — QUERY_CONTRACT_UI
 // =============================================================================
 
-static void test_ui_validator_screen_renders_pubkey(void **state) {
-    (void) state;
+void test_ui_validator_screen_renders_pubkey(void) {
     eip7002_context_t ctx = {0};
     memset(ctx.validator_pubkey, 0xAB, sizeof(ctx.validator_pubkey));
     txContent_t tx = {0};
@@ -320,17 +307,16 @@ static void test_ui_validator_screen_renders_pubkey(void **state) {
     msg.msgLength = sizeof(body);
     msg.screenIndex = 0;
     eip7002_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_OK);
-    assert_string_equal(title, "Validator");
-    assert_int_equal(body[0], '0');
-    assert_int_equal(body[1], 'x');
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL_STRING(title, "Validator");
+    TEST_ASSERT_EQUAL(body[0], '0');
+    TEST_ASSERT_EQUAL(body[1], 'x');
     // format_hex emits UPPERCASE; "AB" expected.
-    assert_int_equal(body[2], 'A');
-    assert_int_equal(body[3], 'B');
+    TEST_ASSERT_EQUAL(body[2], 'A');
+    TEST_ASSERT_EQUAL(body[3], 'B');
 }
 
-static void test_ui_tx_value_screen_when_above_threshold(void **state) {
-    (void) state;
+void test_ui_tx_value_screen_when_above_threshold(void) {
     eip7002_context_t ctx = {0};
     txContent_t tx = {0};
     tx.value.value[0] = 0x3B;
@@ -349,12 +335,11 @@ static void test_ui_tx_value_screen_when_above_threshold(void **state) {
     msg.msgLength = sizeof(body);
     msg.screenIndex = 1;
     eip7002_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    assert_string_equal(title, "Tx value");
-    assert_string_equal(body, "FMT ETH");
+    TEST_ASSERT_EQUAL_STRING(title, "Tx value");
+    TEST_ASSERT_EQUAL_STRING(body, "FMT ETH");
 }
 
-static void test_ui_amount_screen_when_partial(void **state) {
-    (void) state;
+void test_ui_amount_screen_when_partial(void) {
     eip7002_context_t ctx = {0};
     ctx.raw_amount[7] = 0x42;
     txContent_t tx = {0};  // tx.value = 0 → no tx_value screen
@@ -369,32 +354,29 @@ static void test_ui_amount_screen_when_partial(void **state) {
     msg.msgLength = sizeof(body);
     msg.screenIndex = 1;  // Amount sits at idx 1 when tx_value hidden
     eip7002_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    assert_string_equal(title, "Amount");
+    TEST_ASSERT_EQUAL_STRING(title, "Amount");
 }
 
 // =============================================================================
 // Branch-coverage quick wins -- NULL guards, switch defaults, edge buffers
 // =============================================================================
 
-static void test_dispatcher_null_param_silent(void **state) {
-    (void) state;
+void test_dispatcher_null_param_silent(void) {
     // The dispatcher's outer `if (param != NULL)` guards every sub-handler.
     // Passing NULL must short-circuit silently rather than crash.
     eip7002_plugin_call(ETH_PLUGIN_INIT_CONTRACT, NULL);
 }
 
-static void test_dispatcher_unknown_message_silent(void **state) {
-    (void) state;
+void test_dispatcher_unknown_message_silent(void) {
     // switch (msg) default branch: an unmapped eth_plugin_msg_t value
     // hits the PRINTF default and returns without touching param.
     ethPluginInitContract_t msg = {0};
     msg.result = 0xAB;  // sentinel
     eip7002_plugin_call((eth_plugin_msg_t) 0x7F, &msg);
-    assert_int_equal(msg.result, 0xAB);
+    TEST_ASSERT_EQUAL(msg.result, 0xAB);
 }
 
-static void test_ui_validator_msg_too_small_short_circuits(void **state) {
-    (void) state;
+void test_ui_validator_msg_too_small_short_circuits(void) {
     // msgLength < 2 means we can't even write the "0x" prefix.
     eip7002_context_t ctx = {0};
     char title[16] = {0};
@@ -410,15 +392,29 @@ static void test_ui_validator_msg_too_small_short_circuits(void **state) {
     txContent_t tx = {0};
     msg.txContent = &tx;
     eip7002_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    // The S_VALIDATOR path returns early on msgLength<2 without
-    // writing "Validator" into the title.
-    assert_string_equal(title, "");
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
+    TEST_ASSERT_EQUAL_STRING(title, "");
 }
 
-static void test_ui_unknown_screen_index_no_op(void **state) {
-    (void) state;
+void test_ui_validator_msg_too_small_for_pubkey_rejected(void) {
+    eip7002_context_t ctx = {0};
+    char title[16] = {0};
+    char msg_buf[16] = {0};
+    ethQueryContractUI_t msg = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.title = title;
+    msg.titleLength = sizeof(title);
+    msg.msg = msg_buf;
+    msg.msgLength = sizeof(msg_buf);  // "0x" fits, the 48-byte pubkey does not
+    msg.screenIndex = 0;
+    txContent_t tx = {0};
+    msg.txContent = &tx;
+    eip7002_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
+}
+
+void test_ui_unknown_screen_index_rejected(void) {
     // screenIndex doesn't match S_VALIDATOR / S_TX_VALUE / S_REQUEST_AMOUNT
-    // -> falls into S_UNKNOWN -> bare `break` -> result set to OK at end.
     eip7002_context_t ctx = {0};
     char title[16] = {0};
     char msg_buf[64] = {0};
@@ -432,12 +428,11 @@ static void test_ui_unknown_screen_index_no_op(void **state) {
     txContent_t tx = {0};
     msg.txContent = &tx;
     eip7002_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_OK);
-    assert_string_equal(title, "");
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
+    TEST_ASSERT_EQUAL_STRING(title, "");
 }
 
-static void test_has_tx_value_null_txcontent_returns_false(void **state) {
-    (void) state;
+void test_has_tx_value_null_txcontent_returns_false(void) {
     // has_tx_value is static; reach it through FINALIZE with NULL
     // txContent. has_tx_value()'s first OR clause catches NULL and
     // returns false -- the finalize then proceeds without adding the
@@ -447,35 +442,46 @@ static void test_has_tx_value_null_txcontent_returns_false(void **state) {
     msg.pluginContext = (uint8_t *) &ctx;
     msg.txContent = NULL;
     eip7002_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
 }
 
 // =============================================================================
 // Runner
 // =============================================================================
 
+void setUp(void) {
+    Mocknetwork_Init();
+    get_tx_chain_id_StubWithCallback(get_tx_chain_id_stub);
+    get_displayable_ticker_IgnoreAndReturn("ETH");
+    reset();
+}
+void tearDown(void) {
+    Mocknetwork_Verify();
+    Mocknetwork_Destroy();
+}
+
 int main(void) {
-    const struct CMUnitTest tests[] = {
-        cmocka_unit_test_setup(test_init_copies_selector_and_resets_received, reset),
-        cmocka_unit_test_setup(test_parameters_concatenate_into_request, reset),
-        cmocka_unit_test_setup(test_parameter_overflow_rejected, reset),
-        cmocka_unit_test_setup(test_finalize_complete_request_one_screen, reset),
-        cmocka_unit_test_setup(test_finalize_incomplete_rejected, reset),
-        cmocka_unit_test_setup(test_finalize_non_mainnet_rejected, reset),
-        cmocka_unit_test_setup(test_finalize_partial_withdrawal_extra_screen, reset),
-        cmocka_unit_test_setup(test_finalize_tx_value_above_threshold_extra_screen, reset),
-        cmocka_unit_test_setup(test_finalize_tx_value_below_threshold_hidden, reset),
-        cmocka_unit_test_setup(test_finalize_tx_value_huge_shown, reset),
-        cmocka_unit_test_setup(test_query_contract_id_full_exit, reset),
-        cmocka_unit_test_setup(test_query_contract_id_partial_withdrawal, reset),
-        cmocka_unit_test_setup(test_ui_validator_screen_renders_pubkey, reset),
-        cmocka_unit_test_setup(test_ui_tx_value_screen_when_above_threshold, reset),
-        cmocka_unit_test_setup(test_ui_amount_screen_when_partial, reset),
-        cmocka_unit_test_setup(test_dispatcher_null_param_silent, reset),
-        cmocka_unit_test_setup(test_dispatcher_unknown_message_silent, reset),
-        cmocka_unit_test_setup(test_ui_validator_msg_too_small_short_circuits, reset),
-        cmocka_unit_test_setup(test_ui_unknown_screen_index_no_op, reset),
-        cmocka_unit_test_setup(test_has_tx_value_null_txcontent_returns_false, reset),
-    };
-    return cmocka_run_group_tests(tests, NULL, NULL);
+    UNITY_BEGIN();
+    RUN_TEST(test_init_copies_selector_and_resets_received);
+    RUN_TEST(test_parameters_concatenate_into_request);
+    RUN_TEST(test_parameter_overflow_rejected);
+    RUN_TEST(test_finalize_complete_request_one_screen);
+    RUN_TEST(test_finalize_incomplete_rejected);
+    RUN_TEST(test_finalize_non_mainnet_rejected);
+    RUN_TEST(test_finalize_partial_withdrawal_extra_screen);
+    RUN_TEST(test_finalize_tx_value_above_threshold_extra_screen);
+    RUN_TEST(test_finalize_tx_value_below_threshold_hidden);
+    RUN_TEST(test_finalize_tx_value_huge_shown);
+    RUN_TEST(test_query_contract_id_full_exit);
+    RUN_TEST(test_query_contract_id_partial_withdrawal);
+    RUN_TEST(test_ui_validator_screen_renders_pubkey);
+    RUN_TEST(test_ui_tx_value_screen_when_above_threshold);
+    RUN_TEST(test_ui_amount_screen_when_partial);
+    RUN_TEST(test_dispatcher_null_param_silent);
+    RUN_TEST(test_dispatcher_unknown_message_silent);
+    RUN_TEST(test_ui_validator_msg_too_small_short_circuits);
+    RUN_TEST(test_ui_validator_msg_too_small_for_pubkey_rejected);
+    RUN_TEST(test_ui_unknown_screen_index_rejected);
+    RUN_TEST(test_has_tx_value_null_txcontent_returns_false);
+    return UNITY_END();
 }

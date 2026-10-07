@@ -17,19 +17,19 @@
 *  limitations under the License.
 ********************************************************************************
 """
-from __future__ import print_function
 
-from ledgerblue.comm import getDongle
 import argparse
-import struct
 import binascii
+import struct
+
 import rlp
+from ledgerblue.comm import getDongle
 
 
 def der_encode(value):
-    value_bytes = value.to_bytes(max(1, (value.bit_length() + 7) // 8), 'big')
+    value_bytes = value.to_bytes(max(1, (value.bit_length() + 7) // 8), "big")
     if value >= 0x80:
-        value_bytes = (0x80 | len(value_bytes)).to_bytes(1, 'big') + value_bytes
+        value_bytes = (0x80 | len(value_bytes)).to_bytes(1, "big") + value_bytes
     return value_bytes
 
 
@@ -41,10 +41,10 @@ def parse_bip32_path(path: str):
     if len(path) == 0:
         return b""
     result = b""
-    elements = path.split('/')
+    elements = path.split("/")
     result += len(elements).to_bytes(1, "big")
     for pathElement in elements:
-        element = pathElement.split('\'')
+        element = pathElement.split("'")
         if len(element) == 1:
             result = result + struct.pack(">I", int(element[0]))
         else:
@@ -53,10 +53,10 @@ def parse_bip32_path(path: str):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--path', help="BIP 32 path to retrieve", default="44'/60'/0'/0/0")
-parser.add_argument('--chainid', help="Chain ID", type=int, required=True)
-parser.add_argument('--nonce', help="Account Nonce", type=int, required=True)
-parser.add_argument('--delegate', help="Delegate address", type=str, required=True)
+parser.add_argument("--path", help="BIP 32 path to retrieve", default="44'/60'/0'/0/0")
+parser.add_argument("--chainid", help="Chain ID", type=int, required=True)
+parser.add_argument("--nonce", help="Account Nonce", type=int, required=True)
+parser.add_argument("--delegate", help="Delegate address", type=str, required=True)
 args = parser.parse_args()
 
 tmp = tlv_encode(0x00, struct.pack(">B", 0x01))
@@ -75,12 +75,12 @@ dongle = getDongle(True)
 result = dongle.exchange(bytes(apdu))
 
 v = result[0]
-r = result[1:1 + 32]
-s = result[1 + 32:]
+r = result[1 : 1 + 32]
+s = result[1 + 32 :]
 
 print("v = " + str(v))
-print("r = " + binascii.hexlify(r).decode('utf-8'))
-print("s = " + binascii.hexlify(s).decode('utf-8'))
+print("r = " + binascii.hexlify(r).decode("utf-8"))
+print("s = " + binascii.hexlify(s).decode("utf-8"))
 
 rlpData = [args.chainid, binascii.unhexlify(args.delegate[2:]), args.nonce, v, r, s]
-print(binascii.hexlify(rlp.encode(rlpData)).decode('utf-8'))
+print(binascii.hexlify(rlp.encode(rlpData)).decode("utf-8"))

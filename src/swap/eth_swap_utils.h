@@ -21,9 +21,16 @@
 #include <stdint.h>
 #include "swap_lib_calls.h"
 #include "chain_config.h"
-#include "caller_api.h"
+#include "caller_app.h"
 
 extern bool G_swap_checked;
+
+// Chain ID the exchange application promised for the transaction being signed
+extern uint64_t G_swap_expected_chain_id;
+
+// Token contract the exchange application promised, when one was provided
+extern uint8_t G_swap_expected_token_address[ADDRESS_LENGTH];
+extern bool G_swap_has_expected_token_address;
 
 // Whether the transaction carried a data field. Never cleared afterwards,
 // unlike txContent.dataPresent which successful plugins clear for their UI.
@@ -69,3 +76,13 @@ bool swap_check_destination(const char *destination);
 bool swap_check_amount(const char *amount);
 bool swap_check_value(const char *formatted_value, const uint8_t *raw_value, uint8_t raw_value_len);
 bool swap_check_fee(const char *fee);
+
+/**
+ * @brief End the Exchange session when an error unwinds the signing context.
+ *
+ * Every swap guard is conditioned on G_called_from_swap, which the teardown clears.
+ * Carrying on would run the rest of the session as an ordinary signing flow, with the
+ * comparisons skipped and the double-sign safeguard disarmed. Does nothing outside a
+ * swap session; never returns inside one.
+ */
+void swap_abort_session(void);

@@ -1,15 +1,21 @@
 from enum import IntEnum
+from typing import Any, TypeAlias, cast
 
+from ragger.error import StatusWords as global_SW
 
-class StatusWord(IntEnum):
-    OK = 0x9000
-    ERROR_NO_INFO = 0x6a00
-    INVALID_DATA = 0x6a80
-    INSUFFICIENT_MEMORY = 0x6a84
-    INVALID_INS = 0x6d00
-    INVALID_P1_P2 = 0x6b00
-    COMMAND_NOT_ALLOWED = 0x6980
-    CONDITION_NOT_SATISFIED = 0x6985
-    REF_DATA_NOT_FOUND = 0x6a88
-    EXCEPTION_OVERFLOW = 0x6807
-    NOT_IMPLEMENTED = 0x911c
+# Custom error codes specific to Boilerplate app
+# fmt: off
+custom_errors = {
+    "EXCEPTION_OVERFLOW": 0x6807,
+    "SW_SWAP_FAIL":       0xC000,
+}
+# fmt: on
+
+# Build the combined dictionary first
+_errors_dict = {m.name: m.value for m in global_SW}
+_errors_dict.update(custom_errors)
+
+# Create the Errors enum.
+# Cast to Any so that mypy does not flag accesses to dynamically-created
+# members (e.g. StatusWord.SWO_SUCCESS, StatusWord.EXCEPTION_OVERFLOW).
+StatusWord: TypeAlias = cast(Any, IntEnum("Errors", _errors_dict))  # type: ignore[misc]

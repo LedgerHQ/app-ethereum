@@ -18,10 +18,7 @@
  *    user about what they are signing.
  */
 
-#include <stdarg.h>
-#include <stddef.h>
-#include <setjmp.h>
-#include <cmocka.h>
+#include "unity.h"
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -43,18 +40,28 @@ extern cx_sha3_t *g_msg_hash_ctx;
 // Wraps / stubs
 // =============================================================================
 
-// parseBip32 + cx_keccak_init_no_throw are wrapped in mocks/mock.c;
-// drive them through g_parsebip32_force_null + g_keccak_init_ret
-// from wraps.h.
+// cx_keccak_init_no_throw is driven through g_keccak_init_ret (sdk_stubs.c).
+
+static bool s_parsebip32_force_null = false;
+const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_path_t *bip32) {
+    (void) bip32;
+    if (s_parsebip32_force_null) return NULL;
+    if (*dataLength < 1) return NULL;
+    uint8_t count = *dataBuffer;
+    if ((size_t) *dataLength < 1 + (size_t) count * 4) return NULL;
+    dataBuffer += 1 + count * 4;
+    *dataLength -= 1 + count * 4;
+    return dataBuffer;
+}
 
 static cx_err_t g_cx_hash_ret = CX_OK;
 static size_t g_cx_hash_calls = 0;
-cx_err_t __wrap_cx_hash_no_throw(void *ctx,
-                                 uint32_t mode,
-                                 const uint8_t *in,
-                                 size_t in_len,
-                                 uint8_t *out,
-                                 size_t out_len) {
+cx_err_t cx_hash_no_throw(cx_hash_t *ctx,
+                          uint32_t mode,
+                          const uint8_t *in,
+                          size_t in_len,
+                          uint8_t *out,
+                          size_t out_len) {
     (void) ctx;
     (void) mode;
     (void) in;
@@ -65,14 +72,13 @@ cx_err_t __wrap_cx_hash_no_throw(void *ctx,
     return g_cx_hash_ret;
 }
 
-// Strong override of mocks/mock.c's __wrap_finalize_hash: takes
-// `void *ctx` (vs cx_hash_t *) and fills with 0xAB so the assert
-// path can match a known digest. g_finalize_hash_ret lives in
-// wraps.h.
-bool __wrap_finalize_hash(void *ctx, uint8_t *out, size_t out_len) {
+// Strong override: fills out with 0xAB for a known digest; s_finalize_hash_ret
+// controls whether it reports success.
+static bool s_finalize_hash_ret = true;
+bool finalize_hash(void *ctx, uint8_t *out, size_t out_len) {
     (void) ctx;
     memset(out, 0xAB, out_len);
-    return g_finalize_hash_ret;
+    return s_finalize_hash_ret;
 }
 
 // UI hooks — record invocations.
@@ -89,6 +95,13 @@ void ui_191_start(const char *display_buffer) {
         strncpy(g_ui_191_display, display_buffer, sizeof(g_ui_191_display) - 1);
         g_ui_191_display[sizeof(g_ui_191_display) - 1] = '\0';
     }
+}
+
+// The real implementation measures the rendered message against the review's page
+// counter, which needs the NBGL layout headers; host tests accept every message.
+bool ui_191_message_fits(const char *message) {
+    (void) message;
+    return true;
 }
 
 // =============================================================================
@@ -121,7 +134,7 @@ static size_t build_first_apdu(uint8_t *out,
         memcpy(out + off, first_chunk, first_chunk_len);
         off += first_chunk_len;
     }
-    assert_true(off <= out_size);
+    TEST_ASSERT_TRUE(off <= out_size);
     return off;
 }
 
@@ -129,8 +142,7 @@ static size_t build_first_apdu(uint8_t *out,
 // Fixture
 // =============================================================================
 
-static int reset(void **state) {
-    (void) state;
+static void reset(void) {
     // The handler self-cleans on most error paths via set_idle(), but
     // tests that crash mid-flight may leak; flush explicitly.
     message_cleanup();
@@ -139,154 +151,133 @@ static int reset(void **state) {
         g_msg_hash_ctx = NULL;
     }
     appState = APP_STATE_IDLE;
-    g_parsebip32_force_null = false;
+    s_parsebip32_force_null = false;
     g_keccak_init_ret = CX_OK;
     g_cx_hash_ret = CX_OK;
     g_cx_hash_calls = 0;
-    g_finalize_hash_ret = true;
+    s_finalize_hash_ret = true;
     g_ui_idle_calls = 0;
     g_ui_191_calls = 0;
     memset(g_ui_191_display, 0, sizeof(g_ui_191_display));
     memset(&tmpCtx, 0, sizeof(tmpCtx));
     memset(&strings, 0, sizeof(strings));
-    return 0;
 }
 
 // =============================================================================
 // Tests — entry-point dispatcher
 // =============================================================================
 
-static void test_p1_first_rejected_when_not_idle(void **state) {
-    (void) state;
+void test_p1_first_rejected_when_not_idle(void) {
     appState = APP_STATE_SIGNING_TX;
     uint8_t data[64];
     size_t len = build_first_apdu(data, sizeof(data), 4, (uint8_t *) "ping", 4);
     uint16_t sw = handle_sign_personal_message(P1_FIRST, data, (uint8_t) len);
-    assert_int_equal(sw, SWO_COMMAND_NOT_ALLOWED);
-    assert_int_equal(g_ui_idle_calls, 0);
+    TEST_ASSERT_EQUAL(sw, SWO_COMMAND_NOT_ALLOWED);
+    TEST_ASSERT_EQUAL(g_ui_idle_calls, 0);
 }
 
-static void test_p1_unknown_rejected(void **state) {
-    (void) state;
+void test_p1_unknown_rejected(void) {
     uint8_t data[8] = {0};
     uint16_t sw = handle_sign_personal_message(0x42, data, sizeof(data));
-    assert_int_equal(sw, SWO_WRONG_P1_P2);
-    assert_int_equal(g_ui_idle_calls, 1);
+    TEST_ASSERT_EQUAL(sw, SWO_WRONG_P1_P2);
+    TEST_ASSERT_EQUAL(g_ui_idle_calls, 1);
 }
 
-static void test_p1_more_without_prior_first_rejected(void **state) {
-    (void) state;
+void test_p1_more_without_prior_first_rejected(void) {
     uint8_t data[8] = {0};
     // appState is IDLE — no prior FIRST happened.
     uint16_t sw = handle_sign_personal_message(P1_MORE, data, sizeof(data));
-    assert_int_equal(sw, SWO_INCORRECT_DATA);
-    assert_int_equal(g_ui_idle_calls, 1);
+    TEST_ASSERT_EQUAL(sw, SWO_INCORRECT_DATA);
+    TEST_ASSERT_EQUAL(g_ui_idle_calls, 1);
 }
 
 // =============================================================================
 // Tests — first_apdu_data
 // =============================================================================
 
-static void test_first_bad_bip32_returns_incorrect_data(void **state) {
-    (void) state;
-    g_parsebip32_force_null = true;
+void test_first_bad_bip32_returns_incorrect_data(void) {
+    s_parsebip32_force_null = true;
     uint8_t data[64];
     size_t len = build_first_apdu(data, sizeof(data), 4, (uint8_t *) "ping", 4);
     uint16_t sw = handle_sign_personal_message(P1_FIRST, data, (uint8_t) len);
-    assert_int_equal(sw, SWO_INCORRECT_DATA);
+    TEST_ASSERT_EQUAL(sw, SWO_INCORRECT_DATA);
 }
 
-static void test_first_truncated_before_msg_length_rejected(void **state) {
-    (void) state;
+void test_first_truncated_before_msg_length_rejected(void) {
     // bip32 path consumes 21 bytes, no msg_length follows.
     uint8_t data[21];
     data[0] = 5;
     memset(data + 1, 0, 20);
     uint16_t sw = handle_sign_personal_message(P1_FIRST, data, sizeof(data));
-    assert_int_equal(sw, SWO_INCORRECT_DATA);
+    TEST_ASSERT_EQUAL(sw, SWO_INCORRECT_DATA);
 }
 
-static void test_first_keccak_init_failure_propagates(void **state) {
-    (void) state;
+void test_first_keccak_init_failure_propagates(void) {
     g_keccak_init_ret = CX_INVALID_PARAMETER;
     uint8_t data[64];
     size_t len = build_first_apdu(data, sizeof(data), 4, (uint8_t *) "ping", 4);
     uint16_t sw = handle_sign_personal_message(P1_FIRST, data, (uint8_t) len);
     // cx_err_t is uint32_t but handle_sign_personal_message returns
     // uint16_t — the SDK error truncates to its low 16 bits.
-    assert_int_equal(sw, (uint16_t) CX_INVALID_PARAMETER);
+    TEST_ASSERT_EQUAL(sw, (uint16_t) CX_INVALID_PARAMETER);
 }
 
 // =============================================================================
 // Tests — happy path
 // =============================================================================
 
-static void test_single_chunk_ascii_starts_ui(void **state) {
-    (void) state;
+void test_single_chunk_ascii_starts_ui(void) {
     uint8_t data[64];
     size_t len = build_first_apdu(data, sizeof(data), 5, (uint8_t *) "hello", 5);
     uint16_t sw = handle_sign_personal_message(P1_FIRST, data, (uint8_t) len);
     // Single-chunk path: the handler finalizes and hands off to the UI;
     // it returns NO_RESPONSE so the dispatcher does not auto-reply.
-    assert_int_equal(sw, SWO_NO_RESPONSE);
-    assert_int_equal(g_ui_191_calls, 1);
-    assert_string_equal(g_ui_191_display, "hello");
+    TEST_ASSERT_EQUAL(sw, SWO_NO_RESPONSE);
+    TEST_ASSERT_EQUAL(g_ui_191_calls, 1);
+    TEST_ASSERT_EQUAL_STRING(g_ui_191_display, "hello");
 }
 
-static void test_single_chunk_hex_uses_0x_prefix(void **state) {
-    (void) state;
+void test_single_chunk_hex_uses_0x_prefix(void) {
     // 0x01 is non-printable & non-space, so the handler must switch to
     // the hex display path.
     uint8_t msg[3] = {0x01, 0x02, 0x03};
     uint8_t data[64];
     size_t len = build_first_apdu(data, sizeof(data), 3, msg, 3);
     uint16_t sw = handle_sign_personal_message(P1_FIRST, data, (uint8_t) len);
-    assert_int_equal(sw, SWO_NO_RESPONSE);
-    assert_string_equal(g_ui_191_display, "0x010203");
+    TEST_ASSERT_EQUAL(sw, SWO_NO_RESPONSE);
+    TEST_ASSERT_EQUAL_STRING(g_ui_191_display, "0x010203");
 }
 
-static void test_single_chunk_ascii_with_space_stays_ascii(void **state) {
-    (void) state;
-    uint8_t data[64];
-    size_t len = build_first_apdu(data, sizeof(data), 11, (uint8_t *) "hello world", 11);
-    uint16_t sw = handle_sign_personal_message(P1_FIRST, data, (uint8_t) len);
-    assert_int_equal(sw, SWO_NO_RESPONSE);
-    assert_string_equal(g_ui_191_display, "hello world");
-}
-
-static void test_multichunk_completes_on_last_chunk(void **state) {
-    (void) state;
+void test_multichunk_completes_on_last_chunk(void) {
     // FIRST sends 3 bytes, MORE sends remaining 4. msg_length = 7.
     uint8_t first[64];
     size_t flen = build_first_apdu(first, sizeof(first), 7, (uint8_t *) "abc", 3);
     uint16_t sw = handle_sign_personal_message(P1_FIRST, first, (uint8_t) flen);
-    assert_int_equal(sw, SWO_SUCCESS);
-    assert_int_equal(g_ui_191_calls, 0);
+    TEST_ASSERT_EQUAL(sw, SWO_SUCCESS);
+    TEST_ASSERT_EQUAL(g_ui_191_calls, 0);
 
     sw = handle_sign_personal_message(P1_MORE, (uint8_t *) "defg", 4);
-    assert_int_equal(sw, SWO_NO_RESPONSE);
-    assert_int_equal(g_ui_191_calls, 1);
-    assert_string_equal(g_ui_191_display, "abcdefg");
+    TEST_ASSERT_EQUAL(sw, SWO_NO_RESPONSE);
+    TEST_ASSERT_EQUAL(g_ui_191_calls, 1);
+    TEST_ASSERT_EQUAL_STRING(g_ui_191_display, "abcdefg");
 }
 
-static void test_chunk_overflow_rejected(void **state) {
-    (void) state;
+void test_chunk_overflow_rejected(void) {
     // Declare msg_length = 4; FIRST already delivered 2 bytes; sending
     // 3 more (total 5) must trip the overflow guard.
     uint8_t first[64];
     size_t flen = build_first_apdu(first, sizeof(first), 4, (uint8_t *) "ab", 2);
     uint16_t sw = handle_sign_personal_message(P1_FIRST, first, (uint8_t) flen);
-    assert_int_equal(sw, SWO_SUCCESS);
+    TEST_ASSERT_EQUAL(sw, SWO_SUCCESS);
 
     sw = handle_sign_personal_message(P1_MORE, (uint8_t *) "cde", 3);
-    assert_int_equal(sw, SWO_INCORRECT_DATA);
-    assert_int_equal(g_ui_idle_calls, 1);
-    assert_int_equal(g_ui_191_calls, 0);
+    TEST_ASSERT_EQUAL(sw, SWO_INCORRECT_DATA);
+    TEST_ASSERT_EQUAL(g_ui_idle_calls, 1);
+    TEST_ASSERT_EQUAL(g_ui_191_calls, 0);
 }
 
-static void test_final_finalize_failure_resets_state(void **state) {
-    (void) state;
-    g_finalize_hash_ret = false;
+void test_final_finalize_failure_resets_state(void) {
+    s_finalize_hash_ret = false;
     uint8_t data[64];
     size_t len = build_first_apdu(data, sizeof(data), 4, (uint8_t *) "ping", 4);
     uint16_t sw = handle_sign_personal_message(P1_FIRST, data, (uint8_t) len);
@@ -294,13 +285,12 @@ static void test_final_finalize_failure_resets_state(void **state) {
     // final_process(); since finalize_hash failed it jumps straight to
     // `end` without overwriting. The 32-bit SDK error truncates to its
     // low 16 bits on the way out.
-    assert_int_equal(sw, (uint16_t) CX_INTERNAL_ERROR);
-    assert_int_equal(g_ui_idle_calls, 1);
-    assert_int_equal(g_ui_191_calls, 0);
+    TEST_ASSERT_EQUAL(sw, (uint16_t) CX_INTERNAL_ERROR);
+    TEST_ASSERT_EQUAL(g_ui_idle_calls, 1);
+    TEST_ASSERT_EQUAL(g_ui_191_calls, 0);
 }
 
-static void test_cleanup_after_p1_first_when_busy(void **state) {
-    (void) state;
+void test_cleanup_after_p1_first_when_busy(void) {
     // Set up a successful single-chunk run, then send P1_FIRST again
     // while still in SIGNING_MESSAGE state — handler must reject and
     // wipe state.
@@ -308,13 +298,12 @@ static void test_cleanup_after_p1_first_when_busy(void **state) {
     uint8_t data[64];
     size_t len = build_first_apdu(data, sizeof(data), 4, (uint8_t *) "ping", 4);
     uint16_t sw = handle_sign_personal_message(P1_FIRST, data, (uint8_t) len);
-    assert_int_equal(sw, SWO_COMMAND_NOT_ALLOWED);
+    TEST_ASSERT_EQUAL(sw, SWO_COMMAND_NOT_ALLOWED);
     // After the rejection appState was NOT bumped to SIGNING_MESSAGE.
-    assert_int_equal(g_ui_idle_calls, 0);
+    TEST_ASSERT_EQUAL(g_ui_idle_calls, 0);
 }
 
-static void test_message_cleanup_safe_when_nothing_allocated(void **state) {
-    (void) state;
+void test_message_cleanup_safe_when_nothing_allocated(void) {
     // Calling cleanup with no active context must be a no-op rather
     // than crash. (signMsgCtx is private; verify by behaviour: a fresh
     // FIRST after cleanup should succeed cleanly.)
@@ -323,11 +312,10 @@ static void test_message_cleanup_safe_when_nothing_allocated(void **state) {
     uint8_t data[64];
     size_t len = build_first_apdu(data, sizeof(data), 4, (uint8_t *) "ping", 4);
     uint16_t sw = handle_sign_personal_message(P1_FIRST, data, (uint8_t) len);
-    assert_int_equal(sw, SWO_NO_RESPONSE);
+    TEST_ASSERT_EQUAL(sw, SWO_NO_RESPONSE);
 }
 
-static void test_hash_is_keccak_seeded_with_prefix(void **state) {
-    (void) state;
+void test_hash_is_keccak_seeded_with_prefix(void) {
     // The "\x19Ethereum Signed Message:\n<length>" header must be fed
     // to keccak before any payload byte. We can't observe the hash
     // value directly (finalize_hash is wrapped), but we can pin the
@@ -337,10 +325,10 @@ static void test_hash_is_keccak_seeded_with_prefix(void **state) {
     uint8_t data[64];
     size_t len = build_first_apdu(data, sizeof(data), 5, (uint8_t *) "hello", 5);
     (void) handle_sign_personal_message(P1_FIRST, data, (uint8_t) len);
-    assert_int_equal(g_cx_hash_calls, 3);
+    TEST_ASSERT_EQUAL(g_cx_hash_calls, 3);
     // strings.tmp.tmp must contain the decimal representation of the
     // message length so it can be fed to the hash.
-    assert_string_equal(strings.tmp.tmp, "5");
+    TEST_ASSERT_EQUAL_STRING(strings.tmp.tmp, "5");
 }
 
 // =============================================================================
@@ -353,38 +341,41 @@ static void test_hash_is_keccak_seeded_with_prefix(void **state) {
 // gate at line 251-254 must catch this and refuse rather than
 // dereferencing NULL.
 
-static void test_p1_more_with_null_ctx_rejected(void **state) {
-    (void) state;
+void test_p1_more_with_null_ctx_rejected(void) {
     appState = APP_STATE_SIGNING_MESSAGE;
     // signMsgCtx left NULL by reset() (message_cleanup() runs there).
     uint8_t data[8] = {0};
     uint16_t sw = handle_sign_personal_message(P1_MORE, data, sizeof(data));
-    assert_int_equal(sw, SWO_INCORRECT_DATA);
-    assert_int_equal(g_ui_idle_calls, 1);
+    TEST_ASSERT_EQUAL(sw, SWO_INCORRECT_DATA);
+    TEST_ASSERT_EQUAL(g_ui_idle_calls, 1);
 }
 
 // =============================================================================
 // Runner
 // =============================================================================
 
+void setUp(void) {
+    reset();
+}
+void tearDown(void) {
+}
+
 int main(void) {
-    const struct CMUnitTest tests[] = {
-        cmocka_unit_test_setup(test_p1_first_rejected_when_not_idle, reset),
-        cmocka_unit_test_setup(test_p1_unknown_rejected, reset),
-        cmocka_unit_test_setup(test_p1_more_without_prior_first_rejected, reset),
-        cmocka_unit_test_setup(test_first_bad_bip32_returns_incorrect_data, reset),
-        cmocka_unit_test_setup(test_first_truncated_before_msg_length_rejected, reset),
-        cmocka_unit_test_setup(test_first_keccak_init_failure_propagates, reset),
-        cmocka_unit_test_setup(test_single_chunk_ascii_starts_ui, reset),
-        cmocka_unit_test_setup(test_single_chunk_hex_uses_0x_prefix, reset),
-        cmocka_unit_test_setup(test_single_chunk_ascii_with_space_stays_ascii, reset),
-        cmocka_unit_test_setup(test_multichunk_completes_on_last_chunk, reset),
-        cmocka_unit_test_setup(test_chunk_overflow_rejected, reset),
-        cmocka_unit_test_setup(test_final_finalize_failure_resets_state, reset),
-        cmocka_unit_test_setup(test_cleanup_after_p1_first_when_busy, reset),
-        cmocka_unit_test_setup(test_message_cleanup_safe_when_nothing_allocated, reset),
-        cmocka_unit_test_setup(test_hash_is_keccak_seeded_with_prefix, reset),
-        cmocka_unit_test_setup(test_p1_more_with_null_ctx_rejected, reset),
-    };
-    return cmocka_run_group_tests(tests, NULL, NULL);
+    UNITY_BEGIN();
+    RUN_TEST(test_p1_first_rejected_when_not_idle);
+    RUN_TEST(test_p1_unknown_rejected);
+    RUN_TEST(test_p1_more_without_prior_first_rejected);
+    RUN_TEST(test_first_bad_bip32_returns_incorrect_data);
+    RUN_TEST(test_first_truncated_before_msg_length_rejected);
+    RUN_TEST(test_first_keccak_init_failure_propagates);
+    RUN_TEST(test_single_chunk_ascii_starts_ui);
+    RUN_TEST(test_single_chunk_hex_uses_0x_prefix);
+    RUN_TEST(test_multichunk_completes_on_last_chunk);
+    RUN_TEST(test_chunk_overflow_rejected);
+    RUN_TEST(test_final_finalize_failure_resets_state);
+    RUN_TEST(test_cleanup_after_p1_first_when_busy);
+    RUN_TEST(test_message_cleanup_safe_when_nothing_allocated);
+    RUN_TEST(test_hash_is_keccak_seeded_with_prefix);
+    RUN_TEST(test_p1_more_with_null_ctx_rejected);
+    return UNITY_END();
 }

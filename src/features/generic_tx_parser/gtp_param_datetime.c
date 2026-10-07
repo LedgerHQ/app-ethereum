@@ -5,7 +5,8 @@
 #include "utils.h"
 #include "shared_context.h"
 #include "tlv_library.h"
-#include "tlv_apdu.h"
+#include "tlv_utils.h"
+#include "common_utils.h"
 
 #define PARAM_DATETIME_TAGS(X)                               \
     X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG) \
@@ -25,16 +26,18 @@ static bool handle_value(const tlv_data_t *data, s_param_datetime_context *conte
 }
 
 static bool handle_type(const tlv_data_t *data, s_param_datetime_context *context) {
-    if (!tlv_get_uint8_range(data, &context->param->type, 0, UINT8_MAX)) {
+    uint8_t type;
+    if (!tlv_get_uint8_range(data, &type, 0, UINT8_MAX)) {
         return false;
     }
-    switch (context->param->type) {
+    switch (type) {
         case DT_UNIX:
         case DT_BLOCKHEIGHT:
             break;
         default:
             return false;
     }
+    context->param->type = (e_datetime_type) type;
     return true;
 }
 
@@ -59,10 +62,9 @@ bool format_param_datetime(const s_param_datetime *param, const char *name) {
     s_parsed_value_collection collec = {0};
     char *buf = strings.tmp.tmp;
     size_t buf_size = sizeof(strings.tmp.tmp);
-    uint8_t time_buf[sizeof(time_t)] = {0};
+    uint8_t time_buf[sizeof(uint64_t)] = {0};
+    uint64_t raw_timestamp;
     time_t timestamp;
-    uint256_t block_height;
-
     if ((ret = value_get(&param->value, &collec))) {
         for (int i = 0; i < collec.size; ++i) {
             if (param->type == DT_UNIX) {
@@ -83,19 +85,23 @@ bool format_param_datetime(const s_param_datetime *param, const char *name) {
                                       collec.value[i].length,
                                       time_buf,
                                       sizeof(time_buf));
-                    timestamp = read_u64_be(time_buf, 0);
+                    raw_timestamp = read_u64_be(time_buf, 0);
+                    // time_t is signed: reject values it cannot represent
+                    if (raw_timestamp > (uint64_t) INT64_MAX) {
+                        PRINTF("Datetime value outside the representable time_t range\n");
+                        ret = false;
+                        break;
+                    }
+                    timestamp = (time_t) raw_timestamp;
                     if (!(ret = time_format_to_utc(&timestamp, buf, buf_size))) {
                         break;
                     }
                 }
             } else if (param->type == DT_BLOCKHEIGHT) {
-                if (!convertUint256BE(collec.value[i].ptr,
-                                      collec.value[i].length,
-                                      &block_height)) {
-                    ret = false;
-                    break;
-                }
-                if (!(ret = tostring256(&block_height, 10, buf, buf_size))) {
+                if (!(ret = uint256_to_decimal(collec.value[i].ptr,
+                                               collec.value[i].length,
+                                               buf,
+                                               buf_size))) {
                     break;
                 }
             }

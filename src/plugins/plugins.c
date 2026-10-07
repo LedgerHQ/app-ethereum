@@ -1,5 +1,4 @@
 #include "eth_plugin_handler.h"
-#include "ui_callbacks.h"
 #include "common_ui.h"
 #include "io.h"
 

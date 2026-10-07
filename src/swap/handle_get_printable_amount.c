@@ -2,10 +2,10 @@
 #include "eth_swap_utils.h"
 #include "apdu_constants.h"
 
-void handle_get_printable_amount(get_printable_amount_parameters_t* params,
-                                 chain_config_t* config) {
+void handle_get_printable_amount(get_printable_amount_parameters_t *params,
+                                 chain_config_t *config) {
     swap_context_t context = {0};
-    char* ticker = NULL;
+    char *ticker = NULL;
     uint8_t decimals = 0;
 
     memset(params->printable_amount, 0, sizeof(params->printable_amount));

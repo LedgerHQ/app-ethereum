@@ -15,10 +15,7 @@
  * value budget at 1 gwei, and FINALIZE refuses a short payload.
  */
 
-#include <stdarg.h>
-#include <stddef.h>
-#include <setjmp.h>
-#include <cmocka.h>
+#include "unity.h"
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -26,6 +23,17 @@
 #include "shared_context.h"
 #include "eth_plugin_interface.h"
 #include "eip7251_plugin.h"
+#include "Mocknetwork.h"
+
+// =============================================================================
+// Network mock state
+// =============================================================================
+
+static uint64_t s_tx_chain_id = 1;
+static uint64_t get_tx_chain_id_stub(int cmock_num_calls) {
+    (void) cmock_num_calls;
+    return s_tx_chain_id;
+}
 
 // =============================================================================
 // eip7251_context_t mirror (file-static in the source)
@@ -48,8 +56,6 @@ typedef struct {
 // =============================================================================
 // Globals
 // =============================================================================
-
-extern uint64_t g_tx_chain_id;
 
 bool __wrap_amountToString(const uint8_t *amount,
                            uint8_t amount_size,
@@ -82,18 +88,16 @@ static void run_init(eip7251_context_t *ctx, const uint8_t *selector) {
 // Tests
 // =============================================================================
 
-static void test_init_copies_selector(void **state) {
-    (void) state;
+void test_init_copies_selector(void) {
     eip7251_context_t ctx;
     memset(&ctx, 0xCC, sizeof(ctx));
     static const uint8_t selector[CALLDATA_SELECTOR_SIZE] = {0xDE, 0xAD, 0xBE, 0xEF};
     run_init(&ctx, selector);
-    assert_int_equal(ctx.received, CALLDATA_SELECTOR_SIZE);
-    assert_int_equal(ctx.consolidation_request[0], 0xDE);
+    TEST_ASSERT_EQUAL(ctx.received, CALLDATA_SELECTOR_SIZE);
+    TEST_ASSERT_EQUAL(ctx.consolidation_request[0], 0xDE);
 }
 
-static void test_parameter_overflow_rejected(void **state) {
-    (void) state;
+void test_parameter_overflow_rejected(void) {
     eip7251_context_t ctx = {.received = CONSOLIDATION_REQUEST_SIZE - 1};
     uint8_t chunk[32];
     memset(chunk, 0xFF, sizeof(chunk));
@@ -102,28 +106,25 @@ static void test_parameter_overflow_rejected(void **state) {
     msg.parameter = chunk;
     msg.parameter_size = 32;
     eip7251_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_ERROR);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
 
 // =============================================================================
 // Branch-coverage quick wins -- NULL guards, switch defaults, edge buffers
 // =============================================================================
 
-static void test_dispatcher_null_param_silent(void **state) {
-    (void) state;
+void test_dispatcher_null_param_silent(void) {
     eip7251_plugin_call(ETH_PLUGIN_INIT_CONTRACT, NULL);
 }
 
-static void test_dispatcher_unknown_message_silent(void **state) {
-    (void) state;
+void test_dispatcher_unknown_message_silent(void) {
     ethPluginInitContract_t msg = {0};
     msg.result = 0xAB;
     eip7251_plugin_call((eth_plugin_msg_t) 0x7F, &msg);
-    assert_int_equal(msg.result, 0xAB);
+    TEST_ASSERT_EQUAL(msg.result, 0xAB);
 }
 
-static void test_ui_msg_too_small_returns(void **state) {
-    (void) state;
+void test_ui_msg_too_small_returns(void) {
     // msgLength < 2 short-circuits BEFORE the switch.
     eip7251_context_t ctx = {0};
     char title[16] = {0};
@@ -139,13 +140,29 @@ static void test_ui_msg_too_small_returns(void **state) {
     txContent_t tx = {0};
     msg.txContent = &tx;
     eip7251_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    assert_string_equal(title, "");
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
+    TEST_ASSERT_EQUAL_STRING(title, "");
 }
 
-static void test_ui_unknown_screen_returns_no_result_set(void **state) {
-    (void) state;
-    // screenIndex not in {0, target?1, tx_value?...} -> S_UNKNOWN ->
-    // bare `return` -> param->result NOT bumped.
+void test_ui_msg_too_small_for_pubkey_rejected(void) {
+    eip7251_context_t ctx = {0};
+    char title[16] = {0};
+    char msg_buf[16] = {0};
+    ethQueryContractUI_t msg = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.title = title;
+    msg.titleLength = sizeof(title);
+    msg.msg = msg_buf;
+    msg.msgLength = sizeof(msg_buf);  // "0x" fits, the 48-byte pubkey does not
+    msg.screenIndex = 0;
+    txContent_t tx = {0};
+    msg.txContent = &tx;
+    eip7251_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
+}
+
+void test_ui_unknown_screen_rejected(void) {
+    // screenIndex not in {0, target?1, tx_value?...} -> S_UNKNOWN
     eip7251_context_t ctx = {0};
     char title[16] = {0};
     char msg_buf[64] = {0};
@@ -160,11 +177,10 @@ static void test_ui_unknown_screen_returns_no_result_set(void **state) {
     txContent_t tx = {0};
     msg.txContent = &tx;
     eip7251_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    assert_int_equal(msg.result, 0xAB);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
 
-static void test_has_tx_value_length_above_uint64_returns_true(void **state) {
-    (void) state;
+void test_has_tx_value_length_above_uint64_returns_true(void) {
     // The `value.length > sizeof(uint64_t)` early-true branch in
     // has_tx_value never fires on the existing tests (all use
     // length<=8). FINALIZE with a >8-byte value reaches it and the
@@ -179,13 +195,12 @@ static void test_has_tx_value_length_above_uint64_returns_true(void **state) {
     msg.pluginContext = (uint8_t *) &ctx;
     msg.txContent = &tx;
     eip7251_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
     // 2 screens for consolidate (source + target) + 1 for tx value = 3.
-    assert_int_equal(msg.numScreens, 3);
+    TEST_ASSERT_EQUAL(msg.numScreens, 3);
 }
 
-static void test_parameter_success_copies_into_context(void **state) {
-    (void) state;
+void test_parameter_success_copies_into_context(void) {
     // Normal path: ctx empty, push a 32-byte chunk -> memcpy into
     // consolidation_request, received bumps to 32, result OK.
     eip7251_context_t ctx = {0};
@@ -196,14 +211,13 @@ static void test_parameter_success_copies_into_context(void **state) {
     msg.parameter = chunk;
     msg.parameter_size = sizeof(chunk);
     eip7251_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_OK);
-    assert_int_equal(ctx.received, 32);
-    assert_int_equal(ctx.consolidation_request[0], 0x42);
-    assert_int_equal(ctx.consolidation_request[31], 0x42);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL(ctx.received, 32);
+    TEST_ASSERT_EQUAL(ctx.consolidation_request[0], 0x42);
+    TEST_ASSERT_EQUAL(ctx.consolidation_request[31], 0x42);
 }
 
-static void test_finalize_non_mainnet_rejected(void **state) {
-    (void) state;
+void test_finalize_non_mainnet_rejected(void) {
     eip7251_context_t ctx = {.received = CONSOLIDATION_REQUEST_SIZE};
     memset(ctx.source_pubkey, 0xAA, VALIDATOR_PUBKEY_SIZE);
     memset(ctx.target_pubkey, 0xAA, VALIDATOR_PUBKEY_SIZE);
@@ -211,25 +225,22 @@ static void test_finalize_non_mainnet_rejected(void **state) {
     ethPluginFinalize_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
     msg.txContent = &tx;
-    g_tx_chain_id = 2;  // not mainnet
+    s_tx_chain_id = 2;  // not mainnet
     eip7251_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
-    g_tx_chain_id = 1;  // restore
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_ERROR);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
 
-static void test_finalize_incomplete_rejected(void **state) {
-    (void) state;
+void test_finalize_incomplete_rejected(void) {
     eip7251_context_t ctx = {.received = CONSOLIDATION_REQUEST_SIZE - 1};
     txContent_t tx = {0};
     ethPluginFinalize_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
     msg.txContent = &tx;
     eip7251_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_ERROR);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
 
-static void test_finalize_compound_single_screen(void **state) {
-    (void) state;
+void test_finalize_compound_single_screen(void) {
     // target == source → "compound" → numScreens = 1.
     eip7251_context_t ctx = {.received = CONSOLIDATION_REQUEST_SIZE};
     memset(ctx.source_pubkey, 0xAA, VALIDATOR_PUBKEY_SIZE);
@@ -239,12 +250,11 @@ static void test_finalize_compound_single_screen(void **state) {
     msg.pluginContext = (uint8_t *) &ctx;
     msg.txContent = &tx;
     eip7251_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
-    assert_int_equal(msg.result, ETH_PLUGIN_RESULT_OK);
-    assert_int_equal(msg.numScreens, 1);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL(msg.numScreens, 1);
 }
 
-static void test_finalize_consolidate_two_screens(void **state) {
-    (void) state;
+void test_finalize_consolidate_two_screens(void) {
     eip7251_context_t ctx = {.received = CONSOLIDATION_REQUEST_SIZE};
     memset(ctx.source_pubkey, 0xAA, VALIDATOR_PUBKEY_SIZE);
     memset(ctx.target_pubkey, 0xBB, VALIDATOR_PUBKEY_SIZE);
@@ -253,11 +263,10 @@ static void test_finalize_consolidate_two_screens(void **state) {
     msg.pluginContext = (uint8_t *) &ctx;
     msg.txContent = &tx;
     eip7251_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
-    assert_int_equal(msg.numScreens, 2);
+    TEST_ASSERT_EQUAL(msg.numScreens, 2);
 }
 
-static void test_finalize_with_tx_value_extra_screen(void **state) {
-    (void) state;
+void test_finalize_with_tx_value_extra_screen(void) {
     eip7251_context_t ctx = {.received = CONSOLIDATION_REQUEST_SIZE};
     memset(ctx.source_pubkey, 0xAA, VALIDATOR_PUBKEY_SIZE);
     memset(ctx.target_pubkey, 0xAA, VALIDATOR_PUBKEY_SIZE);  // compound
@@ -271,11 +280,10 @@ static void test_finalize_with_tx_value_extra_screen(void **state) {
     msg.pluginContext = (uint8_t *) &ctx;
     msg.txContent = &tx;
     eip7251_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
-    assert_int_equal(msg.numScreens, 2);  // compound + tx_value
+    TEST_ASSERT_EQUAL(msg.numScreens, 2);  // compound + tx_value
 }
 
-static void test_query_contract_id_compound_vs_consolidate(void **state) {
-    (void) state;
+void test_query_contract_id_compound_vs_consolidate(void) {
     char name[16] = {0};
     char version[16] = {0};
     ethQueryContractID_t msg = {0};
@@ -289,17 +297,16 @@ static void test_query_contract_id_compound_vs_consolidate(void **state) {
     memset(ctx.target_pubkey, 0xAA, VALIDATOR_PUBKEY_SIZE);
     msg.pluginContext = (uint8_t *) &ctx;
     eip7251_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_ID, &msg);
-    assert_string_equal(name, "stake");
-    assert_string_equal(version, "compound");
+    TEST_ASSERT_EQUAL_STRING(name, "stake");
+    TEST_ASSERT_EQUAL_STRING(version, "compound");
 
     memset(ctx.target_pubkey, 0xBB, VALIDATOR_PUBKEY_SIZE);
     memset(version, 0, sizeof(version));
     eip7251_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_ID, &msg);
-    assert_string_equal(version, "consolidate");
+    TEST_ASSERT_EQUAL_STRING(version, "consolidate");
 }
 
-static void test_ui_compound_uses_single_validator_title(void **state) {
-    (void) state;
+void test_ui_compound_uses_single_validator_title(void) {
     eip7251_context_t ctx = {0};
     memset(ctx.source_pubkey, 0xAA, VALIDATOR_PUBKEY_SIZE);
     memset(ctx.target_pubkey, 0xAA, VALIDATOR_PUBKEY_SIZE);  // compound
@@ -314,11 +321,10 @@ static void test_ui_compound_uses_single_validator_title(void **state) {
     msg.msgLength = sizeof(body);
     msg.screenIndex = 0;
     eip7251_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    assert_string_equal(title, "Validator");
+    TEST_ASSERT_EQUAL_STRING(title, "Validator");
 }
 
-static void test_ui_consolidate_uses_from_to_titles(void **state) {
-    (void) state;
+void test_ui_consolidate_uses_from_to_titles(void) {
     eip7251_context_t ctx = {0};
     memset(ctx.source_pubkey, 0xAA, VALIDATOR_PUBKEY_SIZE);
     memset(ctx.target_pubkey, 0xBB, VALIDATOR_PUBKEY_SIZE);  // consolidate
@@ -333,15 +339,14 @@ static void test_ui_consolidate_uses_from_to_titles(void **state) {
     msg.msgLength = sizeof(body);
     msg.screenIndex = 0;
     eip7251_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    assert_string_equal(title, "From validator");
+    TEST_ASSERT_EQUAL_STRING(title, "From validator");
 
     msg.screenIndex = 1;
     eip7251_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    assert_string_equal(title, "To validator");
+    TEST_ASSERT_EQUAL_STRING(title, "To validator");
 }
 
-static void test_ui_tx_value_screen_dynamic_index(void **state) {
-    (void) state;
+void test_ui_tx_value_screen_dynamic_index(void) {
     eip7251_context_t ctx = {0};
     memset(ctx.source_pubkey, 0xAA, VALIDATOR_PUBKEY_SIZE);
     memset(ctx.target_pubkey, 0xAA, VALIDATOR_PUBKEY_SIZE);  // compound → 1 base screen
@@ -361,12 +366,11 @@ static void test_ui_tx_value_screen_dynamic_index(void **state) {
     msg.msgLength = sizeof(body);
     msg.screenIndex = 1;  // tx_value sits at idx 1 in compound mode
     eip7251_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
-    assert_string_equal(title, "Tx value");
-    assert_string_equal(body, "VAL ETH");
+    TEST_ASSERT_EQUAL_STRING(title, "Tx value");
+    TEST_ASSERT_EQUAL_STRING(body, "VAL ETH");
 }
 
-static void test_ui_msg_too_small_short_circuits(void **state) {
-    (void) state;
+void test_ui_msg_too_small_short_circuits(void) {
     eip7251_context_t ctx = {0};
     memset(ctx.source_pubkey, 0xAA, VALIDATOR_PUBKEY_SIZE);
     memset(ctx.target_pubkey, 0xAA, VALIDATOR_PUBKEY_SIZE);
@@ -383,33 +387,44 @@ static void test_ui_msg_too_small_short_circuits(void **state) {
     msg.screenIndex = 0;
     eip7251_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
     // The title is not touched when msgLength < 2.
-    assert_string_equal(title, "untouched");
+    TEST_ASSERT_EQUAL_STRING(title, "untouched");
 }
 
 // =============================================================================
 // Runner
 // =============================================================================
 
+void setUp(void) {
+    s_tx_chain_id = 1;
+    Mocknetwork_Init();
+    get_tx_chain_id_StubWithCallback(get_tx_chain_id_stub);
+    get_displayable_ticker_IgnoreAndReturn("ETH");
+}
+void tearDown(void) {
+    Mocknetwork_Verify();
+    Mocknetwork_Destroy();
+}
+
 int main(void) {
-    const struct CMUnitTest tests[] = {
-        cmocka_unit_test(test_init_copies_selector),
-        cmocka_unit_test(test_parameter_overflow_rejected),
-        cmocka_unit_test(test_parameter_success_copies_into_context),
-        cmocka_unit_test(test_dispatcher_null_param_silent),
-        cmocka_unit_test(test_dispatcher_unknown_message_silent),
-        cmocka_unit_test(test_ui_msg_too_small_returns),
-        cmocka_unit_test(test_ui_unknown_screen_returns_no_result_set),
-        cmocka_unit_test(test_has_tx_value_length_above_uint64_returns_true),
-        cmocka_unit_test(test_finalize_non_mainnet_rejected),
-        cmocka_unit_test(test_finalize_incomplete_rejected),
-        cmocka_unit_test(test_finalize_compound_single_screen),
-        cmocka_unit_test(test_finalize_consolidate_two_screens),
-        cmocka_unit_test(test_finalize_with_tx_value_extra_screen),
-        cmocka_unit_test(test_query_contract_id_compound_vs_consolidate),
-        cmocka_unit_test(test_ui_compound_uses_single_validator_title),
-        cmocka_unit_test(test_ui_consolidate_uses_from_to_titles),
-        cmocka_unit_test(test_ui_tx_value_screen_dynamic_index),
-        cmocka_unit_test(test_ui_msg_too_small_short_circuits),
-    };
-    return cmocka_run_group_tests(tests, NULL, NULL);
+    UNITY_BEGIN();
+    RUN_TEST(test_init_copies_selector);
+    RUN_TEST(test_parameter_overflow_rejected);
+    RUN_TEST(test_parameter_success_copies_into_context);
+    RUN_TEST(test_dispatcher_null_param_silent);
+    RUN_TEST(test_dispatcher_unknown_message_silent);
+    RUN_TEST(test_ui_msg_too_small_returns);
+    RUN_TEST(test_ui_msg_too_small_for_pubkey_rejected);
+    RUN_TEST(test_ui_unknown_screen_rejected);
+    RUN_TEST(test_has_tx_value_length_above_uint64_returns_true);
+    RUN_TEST(test_finalize_non_mainnet_rejected);
+    RUN_TEST(test_finalize_incomplete_rejected);
+    RUN_TEST(test_finalize_compound_single_screen);
+    RUN_TEST(test_finalize_consolidate_two_screens);
+    RUN_TEST(test_finalize_with_tx_value_extra_screen);
+    RUN_TEST(test_query_contract_id_compound_vs_consolidate);
+    RUN_TEST(test_ui_compound_uses_single_validator_title);
+    RUN_TEST(test_ui_consolidate_uses_from_to_titles);
+    RUN_TEST(test_ui_tx_value_screen_dynamic_index);
+    RUN_TEST(test_ui_msg_too_small_short_circuits);
+    return UNITY_END();
 }

@@ -1,10 +1,11 @@
 #include "gtp_param_nft.h"
-#include "manage_asset_info.h"
 #include "utils.h"
 #include "gtp_field_table.h"
 #include "tlv_library.h"
-#include "tlv_apdu.h"
+#include "tlv_utils.h"
+#include "shared_context.h"
 #include "tx_ctx.h"
+#include "nft_info.h"
 
 #define PARAM_NFT_TAGS(X)                                    \
     X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG) \
@@ -35,6 +36,7 @@ DEFINE_TLV_PARSER(PARAM_NFT_TAGS, NULL, param_nft_tlv_parser)
 
 bool handle_param_nft_struct(const buffer_t *buf, s_param_nft_context *context) {
     TLV_reception_t received_tags;
+
     if (!param_nft_tlv_parser(buf, context, &received_tags)) {
         return false;
     }
@@ -51,7 +53,7 @@ bool format_param_nft(const s_param_nft *param, const char *name) {
     bool ret;
     s_parsed_value_collection collections = {0};
     s_parsed_value_collection ids = {0};
-    const nftInfo_t *asset;
+    const s_nft_info *asset;
     char *buf = strings.tmp.tmp;
     size_t buf_size = sizeof(strings.tmp.tmp);
     uint8_t collection_idx;
@@ -61,7 +63,6 @@ bool format_param_nft(const s_param_nft *param, const char *name) {
 
     if (get_current_tx_info() == NULL) return false;
     chain_id = get_current_tx_info()->chain_id;
-
     if ((ret = value_get(&param->collection, &collections))) {
         if ((ret = value_get(&param->id, &ids))) {
             if (collections.size == 0) {
@@ -76,10 +77,7 @@ bool format_param_nft(const s_param_nft *param, const char *name) {
                                           collections.value[collection_idx].length,
                                           addr_buf,
                                           sizeof(addr_buf));
-                        if ((asset = (const nftInfo_t *) get_asset_info_by_type_and_addr(
-                                 ASSET_TYPE_NFT,
-                                 addr_buf,
-                                 chain_id)) == NULL) {
+                        if ((asset = get_matching_nft_info(&chain_id, addr_buf)) == NULL) {
                             ret = false;
                             break;
                         }
@@ -89,7 +87,7 @@ bool format_param_nft(const s_param_nft *param, const char *name) {
                                                        sizeof(tmp)))) {
                             break;
                         }
-                        snprintf(buf, buf_size, "%s #%s", asset->collectionName, tmp);
+                        snprintf(buf, buf_size, "%s #%s", asset->collection_name, tmp);
                         if (!(ret = add_to_field_table(PARAM_TYPE_NFT, name, buf, asset))) {
                             break;
                         }

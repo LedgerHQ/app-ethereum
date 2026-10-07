@@ -1,0 +1,238 @@
+{
+  "types": {
+    "EIP712Domain": [
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "version",
+        "type": "string"
+      },
+      {
+        "name": "chainId",
+        "type": "uint256"
+      },
+      {
+        "name": "verifyingContract",
+        "type": "address"
+      }
+    ],
+    "L0": [
+      {
+        "name": "depth",
+        "type": "uint256"
+      },
+      {
+        "name": "nested",
+        "type": "L1"
+      }
+    ],
+    "L1": [
+      {
+        "name": "depth",
+        "type": "uint256"
+      },
+      {
+        "name": "nested",
+        "type": "L2"
+      }
+    ],
+    "L2": [
+      {
+        "name": "depth",
+        "type": "uint256"
+      },
+      {
+        "name": "nested",
+        "type": "L3"
+      }
+    ],
+    "L3": [
+      {
+        "name": "depth",
+        "type": "uint256"
+      },
+      {
+        "name": "nested",
+        "type": "L4"
+      }
+    ],
+    "L4": [
+      {
+        "name": "depth",
+        "type": "uint256"
+      },
+      {
+        "name": "nested",
+        "type": "L5"
+      }
+    ],
+    "L5": [
+      {
+        "name": "depth",
+        "type": "uint256"
+      },
+      {
+        "name": "nested",
+        "type": "L6"
+      }
+    ],
+    "L6": [
+      {
+        "name": "depth",
+        "type": "uint256"
+      },
+      {
+        "name": "nested",
+        "type": "L7"
+      }
+    ],
+    "L7": [
+      {
+        "name": "depth",
+        "type": "uint256"
+      },
+      {
+        "name": "nested",
+        "type": "L8"
+      }
+    ],
+    "L8": [
+      {
+        "name": "depth",
+        "type": "uint256"
+      },
+      {
+        "name": "nested",
+        "type": "L9"
+      }
+    ],
+    "L9": [
+      {
+        "name": "depth",
+        "type": "uint256"
+      },
+      {
+        "name": "nested",
+        "type": "L10"
+      }
+    ],
+    "L10": [
+      {
+        "name": "depth",
+        "type": "uint256"
+      },
+      {
+        "name": "nested",
+        "type": "L11"
+      }
+    ],
+    "L11": [
+      {
+        "name": "depth",
+        "type": "uint256"
+      },
+      {
+        "name": "nested",
+        "type": "L12"
+      }
+    ],
+    "L12": [
+      {
+        "name": "depth",
+        "type": "uint256"
+      },
+      {
+        "name": "nested",
+        "type": "L13"
+      }
+    ],
+    "L13": [
+      {
+        "name": "depth",
+        "type": "uint256"
+      },
+      {
+        "name": "nested",
+        "type": "L14"
+      }
+    ],
+    "L14": [
+      {
+        "name": "depth",
+        "type": "uint256"
+      },
+      {
+        "name": "nested",
+        "type": "L15"
+      }
+    ],
+    "L15": [
+      {
+        "name": "depth",
+        "type": "uint256"
+      },
+      {
+        "name": "leaf",
+        "type": "uint256"
+      }
+    ]
+  },
+  "primaryType": "L0",
+  "domain": {
+    "name": "EIP712 max depth",
+    "version": "1",
+    "chainId": 1,
+    "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"
+  },
+  "message": {
+    "depth": "0",
+    "nested": {
+      "depth": "1",
+      "nested": {
+        "depth": "2",
+        "nested": {
+          "depth": "3",
+          "nested": {
+            "depth": "4",
+            "nested": {
+              "depth": "5",
+              "nested": {
+                "depth": "6",
+                "nested": {
+                  "depth": "7",
+                  "nested": {
+                    "depth": "8",
+                    "nested": {
+                      "depth": "9",
+                      "nested": {
+                        "depth": "10",
+                        "nested": {
+                          "depth": "11",
+                          "nested": {
+                            "depth": "12",
+                            "nested": {
+                              "depth": "13",
+                              "nested": {
+                                "depth": "14",
+                                "nested": {
+                                  "depth": "15",
+                                  "leaf": "999"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

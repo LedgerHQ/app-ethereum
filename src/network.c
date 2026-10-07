@@ -188,7 +188,7 @@ bool get_network_as_string_from_chain_id(char *out, size_t out_size, uint64_t ch
 
     if (name == NULL) {
         // No network name found so simply copy the chain ID as the network name.
-        if (!u64_to_string(chain_id, out, out_size)) {
+        if (!format_u64(out, out_size, chain_id)) {
             return false;
         }
     } else {
@@ -234,8 +234,8 @@ const char *get_displayable_ticker(const uint64_t *chain_id,
     const char *ticker = get_network_ticker_from_chain_id(chain_id, dynamic);
 
     if (ticker == NULL) {
-        if (*chain_id == chain_cfg->chainId) {
-            ticker = chain_cfg->coinName;
+        if (*chain_id == chain_cfg->chain_id) {
+            ticker = chain_cfg->ticker;
         } else {
             ticker = g_unknown_ticker;
         }
@@ -250,9 +250,16 @@ const char *get_displayable_ticker(const uint64_t *chain_id,
  * - If both chain IDs are present in the array of Ethereum-compatible networks
  */
 bool app_compatible_with_chain_id(const uint64_t *chain_id) {
-    return ((chainConfig->chainId == *chain_id) ||
-            (chain_is_ethereum_compatible(&chainConfig->chainId) &&
+    return ((g_chain_config->chain_id == *chain_id) ||
+            (chain_is_ethereum_compatible(&g_chain_config->chain_id) &&
              chain_is_ethereum_compatible(chain_id)));
+}
+
+const char *get_clone_network_name(const caller_app_t *caller_app) {
+    if ((caller_app == NULL) || (caller_app->type != CALLER_TYPE_CLONE)) {
+        return NULL;
+    }
+    return caller_app->name;
 }
 
 /**
@@ -268,10 +275,10 @@ bool app_compatible_with_chain_id(const uint64_t *chain_id) {
  * metadata for a chain the app would refuse to sign is of no use to them.
  */
 bool chain_id_is_signable(uint64_t chain_id) {
-    if (chainConfig->chainId == chain_id) {
+    if (g_chain_config->chain_id == chain_id) {
         return true;
     }
-    if (chainConfig->chainId != ETHEREUM_MAINNET_CHAINID) {
+    if (g_chain_config->chain_id != ETHEREUM_MAINNET_CHAINID) {
         return false;
     }
     return chain_is_ethereum_compatible(&chain_id);

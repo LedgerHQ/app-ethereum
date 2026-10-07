@@ -2,11 +2,24 @@
 #include "common_ui.h"
 #include "common_712.h"
 #include "ui_nbgl.h"
-#include "ui_message_signing.h"
+#include "ui_icons.h"
 #include "cmd_get_tx_simulation.h"
 #include "ui_utils.h"
 #include "mem_utils.h"
 #include "cmd_get_gating.h"
+#include "proxy_info.h"
+
+static void ui_typed_message_review_choice(bool confirm) {
+    if (confirm) {
+        ui_712_approve_cb();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_SIGNED, ui_idle);
+    } else {
+        ui_712_reject_cb();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_REJECTED, ui_idle);
+    }
+    ui_all_cleanup();
+    proxy_cleanup();
+}
 
 /**
  * @brief Trigger the EIP712 review flow
@@ -53,66 +66,57 @@ static void ui_712_start_review(e_eip712_filtering_mode filtering_mode,
         }
     }
 
-#ifndef FUZZ
     nbgl_useCaseAdvancedReview(operationType,
                                g_pairsList,
-                               &ICON_APP_REVIEW,
+                               &LARGE_REVIEW_ICON,
                                "Review typed message",
                                NULL,
                                g_finishMsg,
                                NULL,
                                &warning,
                                choiceCallback);
-#endif
 }
 
 /**
  * @brief Start EIP712 signature review flow
  *
  * @param filtering_mode the filtering mode to use
- * @return status code indicating success or failure
+ * @return boolean indicating success or failure
  */
-uint16_t ui_sign_712(e_eip712_filtering_mode filtering_mode) {
+bool ui_sign_712_v1(e_eip712_filtering_mode filtering_mode) {
     // Initialize the pairs list
     if (!ui_712_push_pairs()) {
-        return SWO_INSUFFICIENT_MEMORY;
+        return false;
     }
 
     if (filtering_mode == EIP712_FILTERING_BASIC) {
-#ifdef HAVE_GATING_SUPPORT
         if (set_gating_warning() == false) {
-            return SWO_INCORRECT_DATA;
+            return false;
         }
-#endif
     }
 
     ui_712_start_review(filtering_mode, TYPE_MESSAGE, ui_typed_message_review_choice);
-    return SWO_SUCCESS;
+    return true;
 }
 
 /**
  * @brief Start EIP712 signature review flow in Legacy (v0) mode
- * @return status code indicating success or failure
+ * @return boolean indicating success or failure
  */
-uint16_t ui_sign_712_v0(void) {
-    uint16_t sw = SWO_PARAMETER_ERROR_NO_INFO;
-
-    sw = ui_712_start(EIP712_FILTERING_BASIC);
-    if (sw != SWO_SUCCESS) {
-        return sw;
+bool ui_sign_712_v0(void) {
+    if (!ui_712_start(EIP712_FILTERING_BASIC)) {
+        return false;
     }
 
     // Initialize the buffers
     if (!ui_pairs_init(2)) {
         // Initialization failed, cleanup and return
-        return SWO_INSUFFICIENT_MEMORY;
+        return false;
     }
 
     // Initialize the tag/value pairs
     eip712_format_hash(0);
 
-    ui_712_start_review(EIP712_FILTERING_BASIC,
-                        TYPE_TRANSACTION,
-                        ui_typed_message_review_choice_v0);
-    return SWO_SUCCESS;
+    ui_712_start_review(EIP712_FILTERING_BASIC, TYPE_TRANSACTION, ui_typed_message_review_choice);
+    return true;
 }

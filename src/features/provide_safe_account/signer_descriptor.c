@@ -7,7 +7,8 @@
 #include "public_keys.h"
 #include "lcx_ecdsa.h"
 #include "tlv_library.h"
-#include "tlv_apdu.h"
+#include "tlv_utils.h"
+#include "os_utils.h"
 #include "utils.h"
 
 #define TYPE_VERIFIABLE_ADDRESS 0x0A
@@ -34,7 +35,11 @@ signers_descriptor_t SIGNER_DESC = {0};
  */
 static bool handle_struct_type(const tlv_data_t *data, s_signer_ctx *context) {
     UNUSED(context);
-    return tlv_check_struct_type(data, TYPE_VERIFIABLE_ADDRESS);
+    if (!tlv_enforce_u8_value(data, TYPE_VERIFIABLE_ADDRESS)) {
+        PRINTF("Invalid STRUCTURE_TYPE value\n");
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -46,7 +51,11 @@ static bool handle_struct_type(const tlv_data_t *data, s_signer_ctx *context) {
  */
 static bool handle_struct_version(const tlv_data_t *data, s_signer_ctx *context) {
     UNUSED(context);
-    return tlv_check_struct_version(data, STRUCT_VERSION);
+    if (!tlv_enforce_u8_value(data, STRUCT_VERSION)) {
+        PRINTF("Invalid STRUCTURE_VERSION value\n");
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -79,7 +88,7 @@ static bool handle_address(const tlv_data_t *data, s_signer_ctx *context) {
                          (uint8_t *) context->signers->data[context->address_count].address)) {
         return false;
     }
-    if (allzeroes(context->signers->data[context->address_count].address, ADDRESS_LENGTH) == 1) {
+    if (is_zeroes_buffer(context->signers->data[context->address_count].address, ADDRESS_LENGTH)) {
         PRINTF("ADDRESS: all zeroes\n");
         return false;
     }

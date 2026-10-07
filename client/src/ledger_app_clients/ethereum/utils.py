@@ -1,14 +1,15 @@
 from enum import IntEnum
+
+import rlp
 from eth_account import Account
-from eth_account.messages import encode_defunct, encode_typed_data
 from eth_account.datastructures import SignedSetCodeAuthorization
+from eth_account.messages import encode_defunct, encode_typed_data
 from eth_account.typed_transactions.set_code_transaction import Authorization
 from eth_keys.datatypes import Signature
-import rlp
 
 
 class CoinType(IntEnum):
-    ETH = 0x3c
+    ETH = 0x3C
 
 
 class TxType(IntEnum):
@@ -32,10 +33,10 @@ def recover_message(msg, vrs: tuple[int, int, int]) -> bytes:
 
 def recover_transaction(tx_params, vrs: tuple[int, int, int]) -> bytes:
     raw_tx = Account.create().sign_transaction(tx_params).raw_transaction
-    prefix = bytes()
+    prefix = b""
     if raw_tx[0] in [0x01, 0x02, 0x04]:
         prefix = raw_tx[:1]
-        raw_tx = raw_tx[len(prefix):]
+        raw_tx = raw_tx[len(prefix) :]
     else:
         if "chainId" in tx_params:
             # v is returned on one byte only so it might have overflowed
@@ -47,20 +48,20 @@ def recover_transaction(tx_params, vrs: tuple[int, int, int]) -> bytes:
             trunc_target = trunc_chain_id * 2 + 35
             trunc_v = vrs[0]
 
-            if (trunc_target & 0xff) == trunc_v:
+            if (trunc_target & 0xFF) == trunc_v:
                 parity = 0
-            elif ((trunc_target + 1) & 0xff) == trunc_v:
+            elif ((trunc_target + 1) & 0xFF) == trunc_v:
                 parity = 1
             else:
                 # should have matched with a previous if
-                assert False
+                raise AssertionError("Invalid v value for EIP-155 transaction")
 
             # https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md
             full_v = parity + tx_params["chainId"] * 2 + 35
             vrs = (full_v, vrs[1], vrs[2])
         else:
             # Pre EIP-155 TX
-            assert False
+            raise AssertionError("Pre EIP-155 transactions are not supported")
     decoded = rlp.decode(raw_tx)
     reencoded = rlp.encode(decoded[:-3] + list(vrs))
     addr = Account.recover_transaction(prefix + reencoded)
@@ -69,10 +70,7 @@ def recover_transaction(tx_params, vrs: tuple[int, int, int]) -> bytes:
 
 # Code inspired by :
 # https://github.com/ethereum/eth-account/blob/a1ba20c9a112d3534ac3296f21f51e2f5127bf9b/eth_account/account.py#L1057
-def get_authorization_obj(chain_id: int,
-                          nonce: int,
-                          address: bytes,
-                          vrs: tuple[int, int, int]) -> SignedSetCodeAuthorization:
+def get_authorization_obj(chain_id: int, nonce: int, address: bytes, vrs: tuple[int, int, int]) -> SignedSetCodeAuthorization:
     unsigned_authorization = Authorization(chain_id, address, nonce)
     sig = Signature(vrs=vrs)
     return SignedSetCodeAuthorization(

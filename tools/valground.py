@@ -3,8 +3,12 @@
 # pytest --device nanosp -s -k my_special_test 2>&1 | ./valground.py
 
 import sys
-from argparse import ArgumentParser, Namespace, ArgumentDefaultsHelpFormatter, RawDescriptionHelpFormatter
-from typing import Optional
+from argparse import (
+    ArgumentDefaultsHelpFormatter,
+    ArgumentParser,
+    Namespace,
+    RawDescriptionHelpFormatter,
+)
 
 
 # ===============================================================================
@@ -97,7 +101,7 @@ class Memory:
             print(f"{COLORS['fg_red']}Free without malloc, or double free detected:")
             for code_loc in self.free_errors:
                 print(f"- {code_loc}")
-            print(f"{COLORS['all_reset']}", end='')
+            print(f"{COLORS['all_reset']}", end="")
 
         if len(self.allocs) == 0:
             if not quiet:
@@ -105,28 +109,26 @@ class Memory:
         else:
             print(f"{COLORS['fg_red']}Memory leaks:")
             for addr, info in self.allocs.items():
-                print("- [0x%.08x] %u bytes from %s" % (addr,
-                                                        info.size,
-                                                        info.code_location))
-            print(f"{COLORS['all_reset']}", end='')
+                print(f"- [0x{addr:08x}] {info.size} bytes from {info.code_location}")
+            print(f"{COLORS['all_reset']}", end="")
 
         global_summary.update(self.allocd_max)
         if not quiet:
             print("=== Summary ===")
-            print("Total overtime = %u bytes" % (self.allocd_overtime))
+            print(f"Total overtime = {self.allocd_overtime} bytes")
             used_percentage = self.allocd_max / self.size * 100
             info_str = f"Max overtime = {self.allocd_max} bytes ({used_percentage:.02f}% full)"
             if used_percentage > 90:
                 print(f"{COLORS['fg_yellow']}{info_str}{COLORS['all_reset']}")
             else:
                 print(info_str)
-            print("Allocations = %u" % (self.alloc_count))
+            print(f"Allocations = {self.alloc_count}")
             if len(self.persists) > 0:
                 print(f"{COLORS['fg_yellow']}Persistent memory allocations:")
                 for addr, info in list(self.persists.items()):
                     print(f"- {info.size} bytes from {info.code_location}")
                     del self.persists[addr]
-                print(f"{COLORS['all_reset']}", end='')
+                print(f"{COLORS['all_reset']}", end="")
 
         return len(self.allocs) + len(self.free_errors) == 0
 
@@ -141,26 +143,29 @@ def init_colors(enable_colors: bool) -> dict[str, str]:
         enable_colors (bool): Flag to enable or disable colors
     """
     colors = {
-        'fg_green': '',
-        'fg_red': '',
-        'all_reset': '',
-        'fg_yellow': '',
-        'fg_blue': '',
-        'bg_white': ''
+        "fg_green": "",
+        "fg_red": "",
+        "all_reset": "",
+        "fg_yellow": "",
+        "fg_blue": "",
+        "bg_white": "",
     }
 
     if enable_colors:
         try:
             import colorama
+
             colorama.init()  # Initialize colorama
-            colors.update({
-                'fg_green': colorama.Fore.GREEN,
-                'fg_red': colorama.Fore.RED,
-                'all_reset': colorama.Fore.RESET + colorama.Back.RESET,
-                'fg_yellow': colorama.Fore.YELLOW,
-                'fg_blue': colorama.Fore.BLUE,
-                'bg_white': colorama.Back.WHITE
-            })
+            colors.update(
+                {
+                    "fg_green": colorama.Fore.GREEN,
+                    "fg_red": colorama.Fore.RED,
+                    "all_reset": colorama.Fore.RESET + colorama.Back.RESET,
+                    "fg_yellow": colorama.Fore.YELLOW,
+                    "fg_blue": colorama.Fore.BLUE,
+                    "bg_white": colorama.Back.WHITE,
+                }
+            )
         except ImportError:
             print("To use colors, please install colorama: pip install colorama")
 
@@ -172,17 +177,21 @@ def init_colors(enable_colors: bool) -> dict[str, str]:
 # ===============================================================================
 class CustomFormatter(ArgumentDefaultsHelpFormatter, RawDescriptionHelpFormatter):
     """Custom formatter that combines ArgumentDefaultsHelpFormatter and RawDescriptionHelpFormatter"""
+
     pass
+
 
 def init_parser() -> Namespace:
     """Initialize the argument parser for command line arguments"""
     epilog = "Compile the app with MEMORY_PROFILING=1 and feed the speculos output to this script.\n"
     epilog += "Example usage: pytest --device nanosp -s -k my_special_test 2>&1 | ./valground.py"
-    parser = ArgumentParser(description="Analyze memory allocations to determine leaks.",
-                            formatter_class=CustomFormatter,
-                            epilog=epilog)
-    parser.add_argument("--quiet", "-q", action='store_true', help="Quiet logs to minimum.")
-    parser.add_argument("--colors", "-c", action='store_true', help="Enable colored output.")
+    parser = ArgumentParser(
+        description="Analyze memory allocations to determine leaks.",
+        formatter_class=CustomFormatter,
+        epilog=epilog,
+    )
+    parser.add_argument("--quiet", "-q", action="store_true", help="Quiet logs to minimum.")
+    parser.add_argument("--colors", "-c", action="store_true", help="Enable colored output.")
     return parser.parse_args()
 
 
@@ -190,7 +199,7 @@ def init_parser() -> Namespace:
 #          Main entry
 # ===============================================================================
 def main() -> None:
-    mem: Optional[Memory] = None
+    mem: Memory | None = None
 
     # Arguments parsing
     # -----------------
@@ -200,7 +209,7 @@ def main() -> None:
     global COLORS
     COLORS = init_colors(args.colors)
 
-   # Processing
+    # Processing
     # ----------
     ret_code = 0
     testnb = 0
@@ -222,10 +231,10 @@ def main() -> None:
 
         scheme = "seproxyhal: printf: "
         if line.startswith(scheme):
-            line = line[len(scheme):]
+            line = line[len(scheme) :]
             scheme = "==MP "
             if line.startswith(scheme):
-                line = line[len(scheme):]
+                line = line[len(scheme) :]
                 words = line.split(";")
                 assert len(words) > 2
 
@@ -236,11 +245,16 @@ def main() -> None:
                             ret_code = 1
                     mem = Memory(int(words[1], base=0), int(words[2], base=0), test_name)
                 elif words[0] in ("alloc", "persist"):
-                    mem.alloc(int(words[2], base=0), int(words[1], base=0), words[3], words[0] == "persist")
+                    mem.alloc(
+                        int(words[2], base=0),
+                        int(words[1], base=0),
+                        words[3],
+                        words[0] == "persist",
+                    )
                 elif words[0] == "free":
                     mem.free(int(words[1], base=0), words[2])
                 else:
-                    assert False
+                    raise AssertionError("Unknown memory operation")
 
     if mem is None:
         print(f"{COLORS['fg_red']}No memory profiling was found.{COLORS['all_reset']}")

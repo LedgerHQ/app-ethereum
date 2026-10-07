@@ -33,10 +33,7 @@
  * coverage pass.
  */
 
-#include <stdarg.h>
-#include <stddef.h>
-#include <setjmp.h>
-#include <cmocka.h>
+#include "unity.h"
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -45,37 +42,38 @@
 #include "apdu_constants.h"
 #include "feature_get_eth2_public_key.h"
 
+static bool g_parseBip32_ret = false;
+
 // =============================================================================
 // Wraps for handle_get_eth2_public_key
 // =============================================================================
 
-const uint8_t *__wrap_parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, void *bip32) {
+const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_path_t *bip32) {
     (void) dataBuffer;
     (void) dataLength;
-    bip32_path_t *out = (bip32_path_t *) bip32;
-    bool ok = (bool) mock();
-    if (!ok) return NULL;
+    bip32_path_t *out = bip32;
+    if (!g_parseBip32_ret) return NULL;
     out->length = 5;
     for (int i = 0; i < 5; i++) out->path[i] = (uint32_t) i;
     return dataBuffer;
 }
 
 static uint32_t g_set_result_ret = 0;
-uint32_t __wrap_set_result_get_eth2_publicKey(void) {
+uint32_t set_result_get_eth2_publicKey(void) {
     return g_set_result_ret;
 }
 
 static int g_ui_calls = 0;
-void __wrap_ui_display_public_eth2(void) {
+void ui_display_public_eth2(void) {
     g_ui_calls++;
 }
 
 static int g_reset_calls = 0;
-void __wrap_reset_app_context(void) {
+void reset_app_context(void) {
     g_reset_calls++;
 }
 
-void __wrap_io_seproxyhal_io_heartbeat(void) {
+void io_seproxyhal_io_heartbeat(void) {
 }
 
 // =============================================================================
@@ -134,7 +132,7 @@ cx_err_t cx_math_cmp_no_throw(const uint8_t *a, const uint8_t *b, size_t length,
 // cx_math_mult_no_throw is the only BLS-pipeline helper that lives in
 // mocks/mock.c (WEAK returning CX_OK). Wrap it locally so we can drive
 // a failure too; the cmake target adds --wrap=cx_math_mult_no_throw.
-cx_err_t __wrap_cx_math_mult_no_throw(uint8_t *r, const uint8_t *a, const uint8_t *b, size_t len) {
+cx_err_t cx_math_mult_no_throw(uint8_t *r, const uint8_t *a, const uint8_t *b, size_t len) {
     (void) r;
     (void) a;
     (void) b;
@@ -146,8 +144,7 @@ cx_err_t __wrap_cx_math_mult_no_throw(uint8_t *r, const uint8_t *a, const uint8_
 // Fixture
 // =============================================================================
 
-static int reset(void **state) {
-    (void) state;
+static void reset(void) {
     g_ui_calls = 0;
     g_reset_calls = 0;
     g_set_result_ret = 42;
@@ -159,65 +156,58 @@ static int reset(void **state) {
     memset(&tmpCtx, 0, sizeof(tmpCtx));
     appState = APP_STATE_IDLE;
     G_called_from_swap = false;
-    return 0;
 }
 
 // =============================================================================
 // handle_get_eth2_public_key
 // =============================================================================
 
-static void test_wrong_p1_rejected(void **state) {
-    (void) state;
+void test_wrong_p1_rejected(void) {
     unsigned int tx = 0;
-    assert_int_equal(handle_get_eth2_public_key(0xFF, 0, (uint8_t *) "", 0, &tx), SWO_WRONG_P1_P2);
+    TEST_ASSERT_EQUAL(handle_get_eth2_public_key(0xFF, 0, (uint8_t *) "", 0, &tx), SWO_WRONG_P1_P2);
 }
 
-static void test_wrong_p2_rejected(void **state) {
-    (void) state;
+void test_wrong_p2_rejected(void) {
     unsigned int tx = 0;
-    assert_int_equal(handle_get_eth2_public_key(P1_CONFIRM, 1, (uint8_t *) "", 0, &tx),
-                     SWO_WRONG_P1_P2);
+    TEST_ASSERT_EQUAL(handle_get_eth2_public_key(P1_CONFIRM, 1, (uint8_t *) "", 0, &tx),
+                      SWO_WRONG_P1_P2);
 }
 
-static void test_parsebip32_failure_rejected(void **state) {
-    (void) state;
+void test_parsebip32_failure_rejected(void) {
     unsigned int tx = 0;
-    will_return(__wrap_parseBip32, false);
-    assert_int_equal(handle_get_eth2_public_key(P1_CONFIRM, 0, (uint8_t *) "", 0, &tx),
-                     SWO_INCORRECT_DATA);
+    g_parseBip32_ret = false;
+    TEST_ASSERT_EQUAL(handle_get_eth2_public_key(P1_CONFIRM, 0, (uint8_t *) "", 0, &tx),
+                      SWO_INCORRECT_DATA);
 }
 
-static void test_non_confirm_returns_success_and_sets_tx(void **state) {
-    (void) state;
+void test_non_confirm_returns_success_and_sets_tx(void) {
     unsigned int tx = 0;
-    will_return(__wrap_parseBip32, true);
+    g_parseBip32_ret = true;
     g_set_result_ret = 64;
     uint16_t sw = handle_get_eth2_public_key(P1_NON_CONFIRM, 0, (uint8_t *) "", 0, &tx);
-    assert_int_equal(sw, SWO_SUCCESS);
-    assert_int_equal(tx, 64);
+    TEST_ASSERT_EQUAL(sw, SWO_SUCCESS);
+    TEST_ASSERT_EQUAL(tx, 64);
     // UI MUST NOT fire for the non-interactive read path.
-    assert_int_equal(g_ui_calls, 0);
+    TEST_ASSERT_EQUAL(g_ui_calls, 0);
 }
 
-static void test_confirm_defers_reply_via_ui(void **state) {
-    (void) state;
+void test_confirm_defers_reply_via_ui(void) {
     unsigned int tx = 0;
-    will_return(__wrap_parseBip32, true);
+    g_parseBip32_ret = true;
     uint16_t sw = handle_get_eth2_public_key(P1_CONFIRM, 0, (uint8_t *) "", 0, &tx);
     // Deferred reply: the dispatcher returns 0 and the UI thread will
     // emit the final SW after the user confirms.
-    assert_int_equal(sw, 0);
-    assert_int_equal(g_ui_calls, 1);
+    TEST_ASSERT_EQUAL(sw, 0);
+    TEST_ASSERT_EQUAL(g_ui_calls, 1);
 }
 
-static void test_called_from_swap_skips_reset_app_context(void **state) {
-    (void) state;
+void test_called_from_swap_skips_reset_app_context(void) {
     unsigned int tx = 0;
     G_called_from_swap = true;
     // Drive to a quick SWO_WRONG_P1_P2 path so the reset-check is the
     // only thing under observation.
     handle_get_eth2_public_key(0xFF, 0, (uint8_t *) "", 0, &tx);
-    assert_int_equal(g_reset_calls, 0);
+    TEST_ASSERT_EQUAL(g_reset_calls, 0);
 }
 
 // =============================================================================
@@ -230,68 +220,68 @@ static void test_called_from_swap_skips_reset_app_context(void **state) {
 // public_key. A fifth case covers cx_math_cmp_no_throw's diff>0
 // branch (sets the y_flag bit on the BLS public key).
 
-static void test_init_private_key_failure_propagates(void **state) {
-    (void) state;
+void test_init_private_key_failure_propagates(void) {
     unsigned int tx = 0;
-    will_return(__wrap_parseBip32, true);
+    g_parseBip32_ret = true;
     g_init_priv_ret = CX_INVALID_PARAMETER;
     uint16_t sw = handle_get_eth2_public_key(P1_CONFIRM, 0, (uint8_t *) "", 0, &tx);
-    assert_int_equal(sw, (uint16_t) CX_INVALID_PARAMETER);
+    TEST_ASSERT_EQUAL(sw, (uint16_t) CX_INVALID_PARAMETER);
 }
 
-static void test_generate_pair_failure_propagates(void **state) {
-    (void) state;
+void test_generate_pair_failure_propagates(void) {
     unsigned int tx = 0;
-    will_return(__wrap_parseBip32, true);
+    g_parseBip32_ret = true;
     g_gen_pair_ret = CX_INVALID_PARAMETER;
     uint16_t sw = handle_get_eth2_public_key(P1_CONFIRM, 0, (uint8_t *) "", 0, &tx);
-    assert_int_equal(sw, (uint16_t) CX_INVALID_PARAMETER);
+    TEST_ASSERT_EQUAL(sw, (uint16_t) CX_INVALID_PARAMETER);
 }
 
-static void test_math_mult_failure_propagates(void **state) {
-    (void) state;
+void test_math_mult_failure_propagates(void) {
     unsigned int tx = 0;
-    will_return(__wrap_parseBip32, true);
+    g_parseBip32_ret = true;
     g_math_mult_ret = CX_INVALID_PARAMETER;
     uint16_t sw = handle_get_eth2_public_key(P1_CONFIRM, 0, (uint8_t *) "", 0, &tx);
-    assert_int_equal(sw, (uint16_t) CX_INVALID_PARAMETER);
+    TEST_ASSERT_EQUAL(sw, (uint16_t) CX_INVALID_PARAMETER);
 }
 
-static void test_math_cmp_failure_propagates(void **state) {
-    (void) state;
+void test_math_cmp_failure_propagates(void) {
     unsigned int tx = 0;
-    will_return(__wrap_parseBip32, true);
+    g_parseBip32_ret = true;
     g_math_cmp_ret = CX_INVALID_PARAMETER;
     uint16_t sw = handle_get_eth2_public_key(P1_CONFIRM, 0, (uint8_t *) "", 0, &tx);
-    assert_int_equal(sw, (uint16_t) CX_INVALID_PARAMETER);
+    TEST_ASSERT_EQUAL(sw, (uint16_t) CX_INVALID_PARAMETER);
 }
 
-static void test_math_cmp_positive_diff_sets_y_flag(void **state) {
-    (void) state;
+void test_math_cmp_positive_diff_sets_y_flag(void) {
     // BLS compressed pubkey carries a "y-coordinate parity" flag in the
     // top byte. The source sets it when diff > 0, leaves it unset
     // otherwise. Pre-existing tests use g_math_cmp_diff=0; flip the
     // sign to cover the y-flag-set branch.
     unsigned int tx = 0;
-    will_return(__wrap_parseBip32, true);
+    g_parseBip32_ret = true;
     g_math_cmp_diff = 1;  // > 0 -> y_flag = 0x20
     uint16_t sw = handle_get_eth2_public_key(P1_CONFIRM, 0, (uint8_t *) "", 0, &tx);
-    assert_int_equal(sw, 0);  // happy path: ux_display deferred reply
+    TEST_ASSERT_EQUAL(sw, 0);  // happy path: ux_display deferred reply
+}
+
+void setUp(void) {
+    reset();
+}
+void tearDown(void) {
 }
 
 int main(void) {
-    const struct CMUnitTest tests[] = {
-        cmocka_unit_test_setup(test_wrong_p1_rejected, reset),
-        cmocka_unit_test_setup(test_wrong_p2_rejected, reset),
-        cmocka_unit_test_setup(test_parsebip32_failure_rejected, reset),
-        cmocka_unit_test_setup(test_non_confirm_returns_success_and_sets_tx, reset),
-        cmocka_unit_test_setup(test_confirm_defers_reply_via_ui, reset),
-        cmocka_unit_test_setup(test_called_from_swap_skips_reset_app_context, reset),
-        cmocka_unit_test_setup(test_init_private_key_failure_propagates, reset),
-        cmocka_unit_test_setup(test_generate_pair_failure_propagates, reset),
-        cmocka_unit_test_setup(test_math_mult_failure_propagates, reset),
-        cmocka_unit_test_setup(test_math_cmp_failure_propagates, reset),
-        cmocka_unit_test_setup(test_math_cmp_positive_diff_sets_y_flag, reset),
-    };
-    return cmocka_run_group_tests(tests, NULL, NULL);
+    UNITY_BEGIN();
+    RUN_TEST(test_wrong_p1_rejected);
+    RUN_TEST(test_wrong_p2_rejected);
+    RUN_TEST(test_parsebip32_failure_rejected);
+    RUN_TEST(test_non_confirm_returns_success_and_sets_tx);
+    RUN_TEST(test_confirm_defers_reply_via_ui);
+    RUN_TEST(test_called_from_swap_skips_reset_app_context);
+    RUN_TEST(test_init_private_key_failure_propagates);
+    RUN_TEST(test_generate_pair_failure_propagates);
+    RUN_TEST(test_math_mult_failure_propagates);
+    RUN_TEST(test_math_cmp_failure_propagates);
+    RUN_TEST(test_math_cmp_positive_diff_sets_y_flag);
+    return UNITY_END();
 }

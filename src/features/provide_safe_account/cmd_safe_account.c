@@ -18,11 +18,7 @@
  * @param[out] flags APDU flags
  * @return whether the handling was successful
  */
-uint16_t handle_safe_account(uint8_t p1,
-                             uint8_t p2,
-                             const uint8_t *data,
-                             uint8_t length,
-                             uint32_t *flags) {
+uint16_t handle_safe_account(uint8_t p1, uint8_t p2, const uint8_t *data, uint8_t length) {
     // Check P1 parameter
     if (p1 != P1_FIRST_CHUNK && p1 != P1_FOLLOWING_CHUNK) {
         PRINTF("Error: Invalid P1 (%u)\n", p1);
@@ -67,8 +63,7 @@ uint16_t handle_safe_account(uint8_t p1,
     // Display UI when all data is received
     if (SIGNER_DESC.is_valid) {
         ui_display_safe_account();
-        *flags |= IO_ASYNCH_REPLY;
-        return APDU_NO_RESPONSE;
+        return SWO_NO_RESPONSE;
     }
     return SWO_SUCCESS;
 }

@@ -18,10 +18,7 @@
  * app is installed, and the handler returns SWO_SUCCESS.
  */
 
-#include <stdarg.h>
-#include <stddef.h>
-#include <setjmp.h>
-#include <cmocka.h>
+#include "unity.h"
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -29,15 +26,36 @@
 #include "shared_context.h"
 #include "apdu_constants.h"
 #include "cmd_set_plugin.h"
-#include "wraps.h"
+#include "Mockpublic_keys.h"
 
 // =============================================================================
 // Stubs (mirror test_cmd_set_plugin.c)
 // =============================================================================
 
-bool __wrap_app_compatible_with_chain_id(const uint64_t *chain_id) {
+bool app_compatible_with_chain_id(const uint64_t *chain_id) {
     (void) chain_id;
     return true;
+}
+
+// check_signature_with_pubkey is mocked via Mockpublic_keys.h (CMock).
+static bool s_sig_check_ret = true;
+static bool sig_check_stub(uint8_t *buffer,
+                           const uint8_t bufLen,
+                           const uint8_t *PubKey,
+                           const uint8_t keyLen,
+                           const uint8_t keyUsageExp,
+                           const uint8_t *signature,
+                           const uint8_t sigLen,
+                           int num_calls) {
+    (void) buffer;
+    (void) bufLen;
+    (void) PubKey;
+    (void) keyLen;
+    (void) keyUsageExp;
+    (void) signature;
+    (void) sigLen;
+    (void) num_calls;
+    return s_sig_check_ret;
 }
 
 // =============================================================================
@@ -73,7 +91,7 @@ static size_t build_external_payload(uint8_t *out,
     out[off++] = sig_len;
     memset(out + off, 0x42, sig_len);
     off += sig_len;
-    assert_true(off <= out_size);
+    TEST_ASSERT_TRUE(off <= out_size);
     return off;
 }
 
@@ -81,21 +99,18 @@ static size_t build_external_payload(uint8_t *out,
 // Fixture
 // =============================================================================
 
-static int reset(void **state) {
-    (void) state;
+static void reset(void) {
     appState = APP_STATE_IDLE;
     memset(&dataContext, 0, sizeof(dataContext));
     pluginType = PLUGIN_TYPE_NONE;
-    g_sig_check_ret = true;
-    return 0;
+    s_sig_check_ret = true;
 }
 
 // =============================================================================
 // EXTERNAL plugin path
 // =============================================================================
 
-static void test_external_plugin_check_presence_succeeds(void **state) {
-    (void) state;
+void test_external_plugin_check_presence_succeeds(void) {
     // TEST_PLUGIN_KEY (0x00) accepted because HAVE_NFT_STAGING_KEY is on.
     // Plugin name "Uniswap" resolves to PLUGIN_TYPE_EXTERNAL.
     uint8_t payload[256];
@@ -112,13 +127,22 @@ static void test_external_plugin_check_presence_succeeds(void **state) {
     // hardening of the exception machinery makes the os_lib_call throw,
     // CATCH_OTHER will fire and return SWO_FILE_NOT_FOUND. Accept either,
     // the important thing is that the EXTERNAL block is traversed.
-    assert_true(sw == SWO_SUCCESS || sw == SWO_FILE_NOT_FOUND);
-    assert_int_equal(pluginType, PLUGIN_TYPE_EXTERNAL);
+    TEST_ASSERT_TRUE(sw == SWO_SUCCESS || sw == SWO_FILE_NOT_FOUND);
+    TEST_ASSERT_EQUAL(pluginType, PLUGIN_TYPE_EXTERNAL);
+}
+
+void setUp(void) {
+    Mockpublic_keys_Init();
+    check_signature_with_pubkey_StubWithCallback(sig_check_stub);
+    reset();
+}
+void tearDown(void) {
+    Mockpublic_keys_Verify();
+    Mockpublic_keys_Destroy();
 }
 
 int main(void) {
-    const struct CMUnitTest tests[] = {
-        cmocka_unit_test_setup(test_external_plugin_check_presence_succeeds, reset),
-    };
-    return cmocka_run_group_tests(tests, NULL, NULL);
+    UNITY_BEGIN();
+    RUN_TEST(test_external_plugin_check_presence_succeeds);
+    return UNITY_END();
 }

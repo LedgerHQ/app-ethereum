@@ -3,7 +3,6 @@
 #include "apdu_constants.h"
 #include "sign_message.h"
 #include "common_ui.h"
-#include "ui_callbacks.h"
 #include "ui_utils.h"
 #include "mem_utils.h"
 #include "hash_bytes.h"
@@ -61,7 +60,7 @@ static uint16_t first_apdu_data(uint8_t **data, uint8_t *length) {
     }
 
     // Get the message length
-    signMsgCtx->msg_length = U4BE(*data, 0);
+    signMsgCtx->msg_length = (uint16_t) U4BE(*data, 0);
 
     // Allocate the buffer for the message
     if (APP_MEM_CALLOC((void **) &(signMsgCtx->received_buffer), signMsgCtx->msg_length) == false) {
@@ -109,10 +108,15 @@ static uint16_t process_data(const uint8_t *const data, const uint8_t length) {
     cx_err_t error = CX_INTERNAL_ERROR;
 
     // Hash the data
-    CX_CHECK(cx_hash_no_throw((cx_hash_t *) g_msg_hash_ctx, 0, data, length, NULL, 0));
+    if (length > 0) {
+        if ((data == NULL) || (signMsgCtx->received_buffer == NULL)) {
+            return SWO_INCORRECT_DATA;
+        }
+        CX_CHECK(cx_hash_no_throw((cx_hash_t *) g_msg_hash_ctx, 0, data, length, NULL, 0));
 
-    // Copy the data to the buffer
-    memcpy(&signMsgCtx->received_buffer[signMsgCtx->processed_size], data, length);
+        // Copy the data to the buffer
+        memcpy(&signMsgCtx->received_buffer[signMsgCtx->processed_size], data, length);
+    }
 
     // Decrease the remaining length
     signMsgCtx->processed_size += length;
@@ -202,8 +206,23 @@ static uint16_t final_process(void) {
         }
 #else   // SCREEN_SIZE_NANO
         // Copy the message to the display buffer
-        memcpy(signMsgCtx->display_buffer, signMsgCtx->received_buffer, signMsgCtx->msg_length);
+        if (signMsgCtx->msg_length > 0) {
+            if (signMsgCtx->received_buffer == NULL) {
+                error = SWO_INCORRECT_DATA;
+                goto end;
+            }
+            memcpy(signMsgCtx->display_buffer, signMsgCtx->received_buffer, signMsgCtx->msg_length);
+        }
 #endif  // SCREEN_SIZE_NANO
+    }
+
+    // The review hides everything past a short excerpt behind "More", whose pages the
+    // UI counts on 8 bits. A message needing more pages than that counter can address
+    // would leave its tail unreachable while approval stays available.
+    if (!ui_191_message_fits(signMsgCtx->display_buffer)) {
+        PRINTF("Error: message needs more review pages than the UI can address\n");
+        error = SWO_INCORRECT_DATA;
+        goto end;
     }
 
     error = SWO_SUCCESS;
@@ -221,10 +240,7 @@ end:
  * @param[in] flags io_exchange flag
  * @return whether the handling of the APDU was successful or not
  */
-uint16_t handle_sign_personal_message(uint8_t p1,
-                                      const uint8_t *const payload,
-                                      uint8_t length,
-                                      unsigned int *flags) {
+uint16_t handle_sign_personal_message(uint8_t p1, const uint8_t *const payload, uint8_t length) {
     uint8_t *data = (uint8_t *) payload;
     uint16_t sw = SWO_PARAMETER_ERROR_NO_INFO;
 
@@ -284,8 +300,7 @@ uint16_t handle_sign_personal_message(uint8_t p1,
             return sw;
         }
         ui_191_start(signMsgCtx->display_buffer);
-        *flags |= IO_ASYNCH_REPLY;
-        return APDU_NO_RESPONSE;
+        return SWO_NO_RESPONSE;
     }
     return SWO_SUCCESS;
 }

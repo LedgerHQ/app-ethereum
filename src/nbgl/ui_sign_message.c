@@ -1,21 +1,103 @@
-#include "ui_callbacks.h"
+#include "common_ui.h"
 #include "ui_nbgl.h"
+#include "ui_icons.h"
 #include "cmd_get_tx_simulation.h"
 #include "ui_utils.h"
 
 #define FINISH_MSG_LEN 32
 
+#ifdef SCREEN_SIZE_WALLET
+#define MSG_PAGE_FONT     SMALL_BOLD_FONT
+#define MSG_LINES_IN_PAGE NB_MAX_LINES_IN_DETAILS
+#else
+#define MSG_PAGE_FONT     BAGL_FONT_OPEN_SANS_REGULAR_11px_1bpp
+// first line of each step is taken by the "Message" title
+#define MSG_LINES_IN_PAGE (NB_MAX_LINES - 1)
+#endif
+
+/**
+ * Walk the message pages the way the SDK splits them for display
+ *
+ * @return the number of pages, or a value above UINT8_MAX if they cannot all be addressed
+ */
+static uint16_t ui_191_walk_pages(const char *message) {
+    uint16_t nb_pages = 0;
+    uint16_t len;
+
+    do {
+        if (++nb_pages > UINT8_MAX) {
+            break;
+        }
+        len = 0;
+        nbgl_getTextMaxLenInNbLines(MSG_PAGE_FONT,
+                                    message,
+                                    AVAILABLE_WIDTH,
+                                    MSG_LINES_IN_PAGE,
+                                    &len,
+                                    true);
+        if ((len == 0) && (message[0] != '\0')) {
+            return UINT16_MAX;
+        }
+#ifdef SCREEN_SIZE_WALLET
+        // a details page never starts on a '\n'
+        if (message[len] == '\n') {
+            len++;
+        }
+#endif
+        message += len;
+    } while (message[0] != '\0');
+    return nb_pages;
+}
+
+#ifdef SCREEN_SIZE_WALLET
+/**
+ * Number of pages the SDK "More" details view allots to the message, on 16 bits
+ */
+static uint16_t ui_191_details_nb_pages(const char *message) {
+    uint16_t nb_lines =
+        nbgl_getTextNbLinesInWidth(SMALL_REGULAR_FONT, message, AVAILABLE_WIDTH, true);
+    uint16_t nb_pages = (nb_lines + NB_MAX_LINES_IN_DETAILS - 1) / NB_MAX_LINES_IN_DETAILS;
+
+    if (nb_pages > 1) {
+        uint16_t nb_lost_chars = (nb_pages - 1) * 3;
+        uint16_t nb_lost_lines =
+            (nb_lost_chars + (AVAILABLE_WIDTH / 16) - 1) / (AVAILABLE_WIDTH / 16);
+        uint16_t nb_lines_in_last_page = nb_lines - ((nb_pages - 1) * NB_MAX_LINES_IN_DETAILS);
+
+        nb_pages += nb_lost_lines / NB_MAX_LINES_IN_DETAILS;
+        if ((nb_lines_in_last_page + (nb_lost_lines % NB_MAX_LINES_IN_DETAILS)) >
+            NB_MAX_LINES_IN_DETAILS) {
+            nb_pages++;
+        }
+    }
+    return nb_pages;
+}
+#endif
+
+bool ui_191_message_fits(const char *message) {
+    // The UI counts pages on 8 bits: every page the message needs must be reachable
+    uint16_t nb_pages = ui_191_walk_pages(message);
+
+    if (nb_pages > UINT8_MAX) {
+        return false;
+    }
+#ifdef SCREEN_SIZE_WALLET
+    // the details view only navigates through the pages it allotted
+    uint16_t nb_allotted = ui_191_details_nb_pages(message);
+    if ((nb_allotted > UINT8_MAX) || (nb_pages > nb_allotted)) {
+        return false;
+    }
+#endif
+    return true;
+}
+
 static void ui_191_finish_cb(bool confirm) {
     if (confirm) {
         io_seproxyhal_touch_signMessage_ok();
-#ifndef FUZZ
         nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_SIGNED, ui_idle);
-#endif
     } else {
         io_seproxyhal_touch_signMessage_cancel();
-#ifndef FUZZ
         nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_REJECTED, ui_idle);
-#endif
     }
     ui_all_cleanup();
 }
@@ -71,15 +153,13 @@ void ui_191_start(const char *message) {
         g_pairs[1].value = strings.common.tx_hash;
     }
 
-#ifndef FUZZ
     nbgl_useCaseAdvancedReview(TYPE_MESSAGE,
                                g_pairsList,
-                               &ICON_APP_REVIEW,
+                               &LARGE_REVIEW_ICON,
                                "Review message",
                                NULL,
                                g_finishMsg,
                                NULL,
                                &warning,
                                ui_191_finish_cb);
-#endif
 }

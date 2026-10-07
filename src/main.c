@@ -31,8 +31,8 @@
 #include "handle_get_printable_amount.h"
 #include "handle_check_address.h"
 #include "swap_entrypoints.h"
-#include "commands_712.h"
-#include "context_712.h"  // eip712_context_deinit
+#include "eip712_v1_commands.h"
+#include "eip712_v1_context.h"  // eip712_v1_context, eip712_v1_context_deinit
 #include "challenge.h"
 #include "cmd_trusted_name.h"
 #include "crypto_helpers.h"
@@ -41,6 +41,8 @@
 #include "app_mem_utils.h"
 #include "mem_utils.h"
 #include "cmd_enum_value.h"
+#include "cmd_map_entry.h"
+#include "map_entry.h"
 #include "cmd_tx_info.h"
 #include "cmd_field.h"
 #include "cmd_get_tx_simulation.h"
@@ -50,6 +52,11 @@
 #include "sign_message.h"
 #include "ui_utils.h"
 #include "network_info.h"
+#ifdef HAVE_ADDRESS_BOOK
+#include "handle_contacts.h"
+#ifdef HAVE_ADDRESS_BOOK_LEDGER_ACCOUNT
+#endif  // HAVE_ADDRESS_BOOK_LEDGER_ACCOUNT
+#endif  // HAVE_ADDRESS_BOOK
 #include "cmd_safe_account.h"
 #include "tx_ctx.h"
 #include "enum_value.h"
@@ -60,10 +67,8 @@ txContext_t txContext;
 tmpContent_t tmpContent;
 dataContext_t dataContext;
 strings_t strings;
-cx_sha3_t global_sha3;
 
 uint8_t appState;
-uint16_t apdu_response_code;
 pluginType_t pluginType;
 
 #ifdef HAVE_ETH2
@@ -75,267 +80,24 @@ uint32_t eth2WithdrawalIndex;
 
 const internalStorage_t N_storage_real;
 
-caller_app_t *caller_app = NULL;
-const chain_config_t *chainConfig;
-
-// Tear down every per-flow global.
-//
-// `scrub_strings` wipes the `strings` union, which holds the addresses and amounts of the
-// transaction under review. Only a caller that is ending a user-facing flow should ask for
-// it: on an initialization path there is nothing to protect yet, and in library (swap) mode
-// copy_transaction_parameters() has already staged the values promised by the Exchange app
-// in there before app_init() runs.
-static void reset_app_context_ex(bool scrub_strings) {
-    // Same reasoning for a reset happening once the swap flow is under way:
-    // finalize_parsing_helper() still has to compare those staged values against the
-    // parsed transaction. Read the flag before it is cleared further down.
-    if (G_called_from_swap) {
-        scrub_strings = false;
-    }
-
-    if (appState == APP_STATE_SIGNING_MESSAGE) {
-        message_cleanup();
-    }
-    eip712_context_deinit();
-    G_called_from_swap = false;
-    G_swap_response_ready = false;
-    G_swap_checked = false;
-    G_swap_tx_had_calldata = false;
-    G_swap_calldata_validated = false;
-    pluginType = PLUGIN_TYPE_NONE;
-#ifdef HAVE_ETH2
-    eth2WithdrawalIndex = 0;
-#endif
-    memset((uint8_t *) &tmpCtx, 0, sizeof(tmpCtx));
-    memset((uint8_t *) &dataContext, 0, sizeof(dataContext));
-    forget_known_assets();
-    if (txContext.store_calldata) {
-        gcs_cleanup();
-    }
-    trusted_name_cleanup();
-    enum_value_cleanup();
-    // Release the tx-signing keccak context.
-    if (g_tx_hash_ctx != NULL) {
-        APP_MEM_FREE_AND_NULL((void **) &g_tx_hash_ctx);
-    }
-    memset((uint8_t *) &txContext, 0, sizeof(txContext));
-    memset((uint8_t *) &tmpContent, 0, sizeof(tmpContent));
-    clear_safe_account();
-#ifdef HAVE_TRANSACTION_CHECKS
-    clear_tx_simulation();
-#endif
-    ui_all_cleanup();
-    proxy_cleanup();
-#ifdef HAVE_GATING_SUPPORT
-    clear_gating();
-#endif
-    if (scrub_strings) {
-        explicit_bzero((uint8_t *) &strings, sizeof(strings));
-    }
-    appState = APP_STATE_IDLE;
-}
-
-void reset_app_context(void) {
-    reset_app_context_ex(true);
-}
-
-void app_quit(void) {
-    network_info_cleanup(NULL);
-    reset_app_context();
-    app_exit();
-}
+const caller_app_t *g_caller_app = NULL;
+const chain_config_t *g_chain_config;
 
 uint16_t io_seproxyhal_send_status(uint16_t sw, uint32_t tx, bool reset, bool idle) {
-    uint16_t err = 0;
     if (reset) {
         reset_app_context();
     }
-    if (tx > (sizeof(G_io_tx_buffer) - sizeof(sw))) {
-        // writing this SW at this offset would go out of bounds
-        tx = 0;
-        sw = SWO_INSUFFICIENT_MEMORY;
-    }
-    U2BE_ENCODE(G_io_tx_buffer, tx, sw);
-    tx += sizeof(sw);
-    err = io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
+    int err = io_send_response_pointer(G_io_tx_buffer, tx, sw);
     if (idle) {
         // Display back the original UX
         ui_idle();
     }
-    return err;
-}
-
-const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_path_t *bip32) {
-    if (*dataLength < 1) {
-        PRINTF("Invalid data\n");
-        return NULL;
-    }
-
-    bip32->length = *dataBuffer;
-
-    dataBuffer++;
-    (*dataLength)--;
-
-    if (*dataLength < sizeof(uint32_t) * (bip32->length)) {
-        PRINTF("Invalid data\n");
-        return NULL;
-    }
-
-    if (bip32_path_read(dataBuffer, (size_t) dataLength, bip32->path, (size_t) bip32->length) ==
-        false) {
-        PRINTF("Invalid Path data\n");
-        return NULL;
-    }
-    dataBuffer += bip32->length * sizeof(uint32_t);
-    *dataLength -= bip32->length * sizeof(uint32_t);
-
-    return dataBuffer;
-}
-
-static uint16_t handleApdu(command_t *cmd, uint32_t *flags, uint32_t *tx) {
-    uint16_t sw = APDU_NO_RESPONSE;
-
-    if (cmd->cla != CLA) {
-        return SWO_INVALID_CLA;
-    }
-
-    switch (cmd->ins) {
-        case INS_GET_PUBLIC_KEY:
-            forget_known_assets();
-            sw = handle_get_public_key(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags, tx);
-            break;
-
-        case INS_PROVIDE_ERC20_TOKEN_INFORMATION:
-            sw = handle_provide_erc20_token_information(cmd->data, cmd->lc, tx);
-            break;
-
-        case INS_PROVIDE_NFT_INFORMATION:
-            sw = handle_provide_nft_information(cmd->data, cmd->lc, tx);
-            break;
-
-        case INS_SET_EXTERNAL_PLUGIN:
-            sw = handle_set_external_plugin(cmd->data, cmd->lc);
-            break;
-
-        case INS_SET_PLUGIN:
-            sw = handle_set_plugin(cmd->data, cmd->lc);
-            break;
-
-        case INS_PERFORM_PRIVACY_OPERATION:
-            sw = handle_perform_privacy_operation(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags, tx);
-            break;
-
-        case INS_SIGN:
-            sw = handle_sign(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags);
-            break;
-
-        case INS_GET_APP_CONFIGURATION:
-            sw = handle_get_app_configuration(tx);
-            break;
-
-        case INS_SIGN_PERSONAL_MESSAGE:
-            forget_known_assets();
-            sw = handle_sign_personal_message(cmd->p1, cmd->data, cmd->lc, flags);
-            break;
-
-        case INS_SIGN_EIP_712_MESSAGE:
-            switch (cmd->p2) {
-                case P2_EIP712_LEGACY_IMPLEM:
-                    forget_known_assets();
-                    sw = handle_sign_eip712_message_v0(cmd->p1, cmd->data, cmd->lc, flags);
-                    break;
-                case P2_EIP712_FULL_IMPLEM:
-                    sw = handle_eip712_sign(cmd->data, cmd->lc, flags);
-                    break;
-                default:
-                    sw = SWO_WRONG_P1_P2;
-            }
-            break;
-
-#ifdef HAVE_ETH2
-        case INS_GET_ETH2_PUBLIC_KEY:
-            forget_known_assets();
-            sw = handle_get_eth2_public_key(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags, tx);
-            break;
-
-        case INS_SET_ETH2_WITHDRAWAL_INDEX:
-            sw = handle_set_eth2_withdrawal_index(cmd->p1, cmd->p2, cmd->data, cmd->lc);
-            break;
-#endif  // HAVE_ETH2
-
-        case INS_EIP712_STRUCT_DEF:
-            sw = handle_eip712_struct_def(cmd->p2, cmd->data, cmd->lc);
-            break;
-
-        case INS_EIP712_STRUCT_IMPL:
-            sw = handle_eip712_struct_impl(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags);
-            break;
-
-        case INS_EIP712_FILTERING:
-            sw = handle_eip712_filtering(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags);
-            break;
-
-        case INS_GET_CHALLENGE:
-            sw = handle_get_challenge(tx);
-            break;
-
-        case INS_PROVIDE_TRUSTED_NAME:
-            sw = handle_trusted_name(cmd->p1, cmd->data, cmd->lc);
-            break;
-
-        case INS_PROVIDE_ENUM_VALUE:
-            sw = handle_enum_value(cmd->p1, cmd->p2, cmd->lc, cmd->data);
-            break;
-
-        case INS_GTP_TRANSACTION_INFO:
-            sw = handle_tx_info(cmd->p1, cmd->p2, cmd->lc, cmd->data);
-            break;
-
-        case INS_GTP_FIELD:
-            sw = handle_field(cmd->p1, cmd->p2, cmd->lc, cmd->data);
-            break;
-
-        case INS_PROVIDE_PROXY_INFO:
-            sw = handle_proxy_info(cmd->p1, cmd->p2, cmd->lc, cmd->data);
-            break;
-
-        case INS_PROVIDE_NETWORK_CONFIGURATION:
-            sw = handle_network_info(cmd->p1, cmd->p2, cmd->data, cmd->lc, tx);
-            break;
-
-#ifdef HAVE_TRANSACTION_CHECKS
-        case INS_PROVIDE_TX_SIMULATION:
-            sw = handle_tx_simulation(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags);
-            break;
-#endif
-
-        case INS_SIGN_EIP7702_AUTHORIZATION:
-            sw = handle_sign_eip7702_authorization(cmd->p1, cmd->data, cmd->lc, flags);
-            break;
-
-        case INS_PROVIDE_SAFE_ACCOUNT:
-            sw = handle_safe_account(cmd->p1, cmd->p2, cmd->data, cmd->lc, flags);
-            break;
-
-#ifdef HAVE_GATING_SUPPORT
-        case INS_PROVIDE_GATING:
-            sw = handle_gating(cmd->p1, cmd->p2, cmd->data, cmd->lc);
-            break;
-#endif
-
-        default:
-            sw = SWO_INVALID_INS;
-            break;
-    }
-    return sw;
+    return (uint16_t) (err < 0 ? 1 : 0);
 }
 
 void app_main(void) {
-    uint32_t rx = 0;
     uint32_t tx = 0;
-    uint32_t flags = 0;
-    uint16_t sw = APDU_NO_RESPONSE;
-    bool quit_now = false;
+    uint16_t sw = SWO_NO_RESPONSE;
     command_t cmd = {0};
 
     // DESIGN NOTE: the bootloader ignores the way APDU are fetched. The only
@@ -347,11 +109,10 @@ void app_main(void) {
     for (;;) {
         BEGIN_TRY {
             TRY {
-                rx = io_exchange(CHANNEL_APDU | flags, tx);
+                int rx = io_recv_command();
                 tx = 0;
-                flags = 0;
 
-                if (apdu_parser(&cmd, G_io_tx_buffer, rx) == false) {
+                if (apdu_parser(&cmd, G_io_apdu_buffer, (size_t) rx) == false) {
                     PRINTF("=> BAD LENGTH: %d\n", rx);
                     sw = SWO_WRONG_DATA_LENGTH;
                 } else {
@@ -364,7 +125,7 @@ void app_main(void) {
                            cmd.lc,
                            cmd.lc,
                            cmd.data);
-                    sw = handleApdu(&cmd, &flags, &tx);
+                    sw = handleApdu(&cmd, &tx);
                 }
             }
             CATCH(EXCEPTION_IO_RESET) {
@@ -381,51 +142,28 @@ void app_main(void) {
             }
         }
         END_TRY;
-        if (sw == APDU_NO_RESPONSE) {
+
+        if (sw == SWO_NO_RESPONSE) {
             // Nothing to report
             continue;
         }
-        quit_now = G_called_from_swap && G_swap_response_ready;
+
         if ((sw != SWO_SUCCESS) && (sw != SWO_COMMAND_CODE_NOT_SUPPORTED)) {
             if ((sw & 0xF000) != 0x6000) {
-                // Internal error
                 sw = SWO_NOT_SUPPORTED_ERROR_NO_INFO | (sw & 0x7FF);
             }
-            if (appState != APP_STATE_IDLE) {
-                // Dismiss any ongoing review before its UI buffers are freed
+            // Dismiss any ongoing review before its UI buffers are freed, unless the
+            // command deliberately left an error screen up. appState cannot drive this:
+            // the Address Book reviews are displayed by the SDK on the app's behalf and
+            // never set it.
+            if (ui_error_screen_held() == false) {
                 ui_idle();
             }
             reset_app_context();
-            flags &= ~IO_ASYNCH_REPLY;
         }
 
-        // Report Status Word
-        if (tx > (sizeof(G_io_tx_buffer) - sizeof(sw))) {
-            // writing this SW at this offset would go out of bounds
-            tx = 0;
-            sw = SWO_INSUFFICIENT_MEMORY;
-        }
-        U2BE_ENCODE(G_io_tx_buffer, tx, sw);
-        tx += sizeof(sw);
-
-        // If we are in swap mode and have validated a TX, we send it and immediately quit
-        if (quit_now) {
-            if (io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx) == 0) {
-                // In case of success, the apdu is sent immediately and eth exits
-                // Reaching this code means we encountered an error
-                swap_finalize_exchange_sign_transaction(false);
-            } else {
-                PRINTF("Unrecoverable\n");
-                app_quit();
-            }
-        }
+        io_send_response_pointer(G_io_tx_buffer, tx, sw);
     }
-}
-
-static void init_coin_config(chain_config_t *coin_config) {
-    memset(coin_config, 0, sizeof(chain_config_t));
-    strcpy(coin_config->coinName, APP_TICKER);
-    coin_config->chainId = APP_CHAIN_ID;
 }
 
 static void storage_init(void) {
@@ -465,19 +203,20 @@ void coin_main(eth_libargs_t *args) {
     chain_config_t config;
     if (args) {
         if (args->chain_config != NULL) {
-            chainConfig = args->chain_config;
+            g_chain_config = args->chain_config;
         }
-        if ((caller_app = args->caller_app) != NULL) {
-            if (chainConfig != NULL) {
-                caller_app->type = CALLER_TYPE_CLONE;
+        if (args->caller_app != NULL) {
+            if (g_chain_config != NULL) {
+                args->caller_app->type = CALLER_TYPE_CLONE;
             } else {
-                caller_app->type = CALLER_TYPE_PLUGIN;
+                args->caller_app->type = CALLER_TYPE_PLUGIN;
             }
+            g_caller_app = args->caller_app;
         }
     }
-    if (chainConfig == NULL) {
-        init_coin_config(&config);
-        chainConfig = &config;
+    if (g_chain_config == NULL) {
+        init_chain_config(&config);
+        g_chain_config = &config;
     }
 
     app_init(false);
@@ -486,11 +225,11 @@ void coin_main(eth_libargs_t *args) {
 }
 
 __attribute__((noreturn)) void library_main(eth_libargs_t *args) {
-    chain_config_t coin_config;
+    chain_config_t chain_config;
     if (args->chain_config == NULL) {
         // We have been started directly by Exchange, not by a Clone. Init default chain
-        init_coin_config(&coin_config);
-        args->chain_config = &coin_config;
+        init_chain_config(&chain_config);
+        args->chain_config = &chain_config;
     }
 
     PRINTF("Inside a library \n");
@@ -520,17 +259,17 @@ __attribute__((noreturn)) void library_main(eth_libargs_t *args) {
 __attribute__((noreturn)) void clone_main(eth_libargs_t *args) {
     PRINTF("Starting in clone_main\n");
     uint32_t libcall_params[5];
-    chain_config_t local_chainConfig;
-    init_coin_config(&local_chainConfig);
+    chain_config_t local_chain_config;
+    init_chain_config(&local_chain_config);
 
     libcall_params[0] = (uint32_t) "Ethereum";
     libcall_params[1] = 0x100;
-    libcall_params[3] = (uint32_t) &local_chainConfig;
+    libcall_params[3] = (uint32_t) &local_chain_config;
 
     // Clone called by Exchange, forward the request to Ethereum
     if (args != NULL) {
         if (args->id != 0x100) {
-            os_sched_exit(0);
+            app_exit();
         }
         libcall_params[2] = args->command;
         libcall_params[4] = (uint32_t) args->get_printable_amount;
@@ -558,7 +297,7 @@ __attribute__((noreturn)) void clone_main(eth_libargs_t *args) {
     }
 
     // os_lib_call will raise if Ethereum application is not installed. Do not try to recover.
-    os_sched_exit(-1);
+    app_exit();
 }
 
 int ethereum_main(eth_libargs_t *args) {

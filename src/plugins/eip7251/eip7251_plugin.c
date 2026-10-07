@@ -39,7 +39,8 @@ static void eip7251_plugin_init_contract(ethPluginInitContract_t *param) {
     eip7251_context_t *context = (eip7251_context_t *) param->pluginContext;
 
     explicit_bzero(context, sizeof(*context));
-    if ((context->received + CALLDATA_SELECTOR_SIZE) > sizeof(context->consolidation_request)) {
+    if ((size_t) context->received + CALLDATA_SELECTOR_SIZE >
+        sizeof(context->consolidation_request)) {
         param->result = ETH_PLUGIN_RESULT_ERROR;
     } else {
         memcpy(&context->consolidation_request[context->received],
@@ -145,28 +146,35 @@ static void eip7251_plugin_query_contract_ui(ethQueryContractUI_t *param) {
     }
 
     if (param->msgLength < 2) {
+        param->result = ETH_PLUGIN_RESULT_ERROR;
         return;
     }
     switch (screen) {
         case S_SOURCE:
             memcpy(param->msg, "0x", 2);
             strlcpy(param->title, show_target ? "From validator" : "Validator", param->titleLength);
-            format_hex(context->source_pubkey,
-                       sizeof(context->source_pubkey),
-                       &param->msg[2],
-                       param->msgLength - 2);
+            if (format_hex(context->source_pubkey,
+                           sizeof(context->source_pubkey),
+                           &param->msg[2],
+                           param->msgLength - 2) < 0) {
+                param->result = ETH_PLUGIN_RESULT_ERROR;
+                return;
+            }
             break;
         case S_TARGET:
             memcpy(param->msg, "0x", 2);
             strlcpy(param->title, "To validator", param->titleLength);
-            format_hex(context->target_pubkey,
-                       sizeof(context->target_pubkey),
-                       &param->msg[2],
-                       param->msgLength - 2);
+            if (format_hex(context->target_pubkey,
+                           sizeof(context->target_pubkey),
+                           &param->msg[2],
+                           param->msgLength - 2) < 0) {
+                param->result = ETH_PLUGIN_RESULT_ERROR;
+                return;
+            }
             break;
         case S_TX_VALUE: {
             uint64_t chain_id = get_tx_chain_id();
-            const char *ticker = get_displayable_ticker(&chain_id, chainConfig, true);
+            const char *ticker = get_displayable_ticker(&chain_id, g_chain_config, true);
             strlcpy(param->title, "Tx value", param->titleLength);
             if (!amountToString(param->txContent->value.value,
                                 param->txContent->value.length,
@@ -180,6 +188,7 @@ static void eip7251_plugin_query_contract_ui(ethQueryContractUI_t *param) {
             break;
         }
         case S_UNKNOWN:
+            param->result = ETH_PLUGIN_RESULT_ERROR;
             return;
     }
     param->result = ETH_PLUGIN_RESULT_OK;

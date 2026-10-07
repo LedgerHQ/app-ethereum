@@ -19,15 +19,6 @@ static const uint8_t *const ERC1155_SELECTORS[] = {
 void handle_init_contract_1155(ethPluginInitContract_t *msg) {
     erc1155_context_t *context = (erc1155_context_t *) msg->pluginContext;
     explicit_bzero(context, sizeof(*context));
-
-    // Require metadata for the contract actually being called, bound to the
-    // transaction's chain as soon as that is resolvable (see
-    // has_asset_info_for_current_tx).
-    if (!has_asset_info_for_current_tx(ASSET_TYPE_NFT, msg->txContent->destination)) {
-        PRINTF("No NFT metadata for the called contract when trying to sign!\n");
-        msg->result = ETH_PLUGIN_RESULT_ERROR;
-        return;
-    }
     uint8_t i;
     for (i = 0; i < ARRAYLEN(ERC1155_SELECTORS); i++) {
         if (memcmp(PIC(ERC1155_SELECTORS[i]), msg->selector, SELECTOR_SIZE) == 0) {
@@ -62,7 +53,6 @@ void handle_init_contract_1155(ethPluginInitContract_t *msg) {
 void handle_finalize_1155(ethPluginFinalize_t *msg) {
     erc1155_context_t *context = (erc1155_context_t *) msg->pluginContext;
 
-    // Every selector renders the collection metadata, so all request the lookup
     msg->tokenLookup1 = msg->txContent->destination;
     msg->tokenLookup2 = NULL;
     switch (context->selectorIndex) {
@@ -85,8 +75,14 @@ void handle_finalize_1155(ethPluginFinalize_t *msg) {
             msg->result = ETH_PLUGIN_RESULT_ERROR;
             return;
     }
+    // +1 screen to surface the transfer payload when present
+    if (((context->selectorIndex == SAFE_TRANSFER) ||
+         (context->selectorIndex == SAFE_BATCH_TRANSFER)) &&
+        (context->data_length > 0)) {
+        msg->numScreens++;
+    }
     // Check if some ETH is attached to this tx
-    if (!allzeroes((void *) &msg->txContent->value, sizeof(msg->txContent->value))) {
+    if (!is_zeroes_buffer((void *) &msg->txContent->value, sizeof(msg->txContent->value))) {
         // Those functions are not payable so return an error.
         msg->result = ETH_PLUGIN_RESULT_ERROR;
         return;

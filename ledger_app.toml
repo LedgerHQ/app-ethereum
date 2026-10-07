@@ -12,4 +12,4 @@ dbg_no_checks_profiling = "DEBUG=1 BYPASS_SIGNATURES=1 CHALLENGE_NO_CHECK=1 MEMO
 
 [tests]
 unit_directory = "./tests/unit"
-pytest_directory = "./tests/ragger"
+pytest_directory = "./tests/functional"

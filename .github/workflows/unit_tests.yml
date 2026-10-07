@@ -12,7 +12,9 @@ jobs:
   job_unit_test:
     name: Call Ledger unit_test
     uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_unit_tests.yml@v1
-    secrets: inherit
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
+      codecov_token: ${{ secrets.CODECOV_TOKEN }}
     with:
-      test_directory: tests/unit
-      additional_packages: pkg-config libbsd-dev
+      coverage_exclude_paths: '*/ethereum-plugin-sdk/*'
+      use_cmake_ut_framework: true

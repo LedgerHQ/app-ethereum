@@ -1,12 +1,13 @@
 #include "tx_ctx.h"
 #include "app_mem_utils.h"
+#include "address_name_lookup.h"
 #include "gtp_field_table.h"
 #include "proxy_info.h"
 #include "common_ui.h"       // ui_gcs_cleanup
 #include "shared_context.h"  // appState
 #include "utils.h"           // buf_shrink_expand
 #include "get_public_key.h"
-#include "context_712.h"
+#include "eip712_v1_context.h"
 #include "network.h"
 #include "hash_bytes.h"
 
@@ -113,14 +114,13 @@ static bool process_empty_tx(const s_tx_ctx *tx_ctx) {
     char *buf = strings.tmp.tmp;
     size_t buf_size = sizeof(strings.tmp.tmp);
     e_param_type param_type;
-    const s_trusted_name *trusted_name = NULL;
 
     if (tx_ctx->has_amount) {
         if (!set_intent_field("Send")) {
             return false;
         }
         // The nested context carries its own (possibly cross-chain) chain ID
-        ticker = get_displayable_ticker(&tx_ctx->chain_id, chainConfig, true);
+        ticker = get_displayable_ticker(&tx_ctx->chain_id, g_chain_config, true);
         decimals = WEI_TO_ETHER;
         if (!amountToString(tx_ctx->amount,
                             sizeof(tx_ctx->amount),
@@ -141,23 +141,45 @@ static bool process_empty_tx(const s_tx_ctx *tx_ctx) {
 
     e_name_type types[] = {TN_TYPE_ACCOUNT};
     e_name_source sources[] = {TN_SOURCE_ENS, TN_SOURCE_LAB, TN_SOURCE_MAB};
+    e_addr_name_source name_source;
+    const void *extra_data = NULL;
 
-    if ((trusted_name = get_trusted_name(ARRAYLEN(types),
-                                         types,
-                                         ARRAYLEN(sources),
-                                         sources,
-                                         &tx_ctx->chain_id,
-                                         tx_ctx->to)) != NULL) {
-        param_type = PARAM_TYPE_TRUSTED_NAME;
-        strlcpy(buf, trusted_name->name, buf_size);
-    } else {
-        param_type = PARAM_TYPE_RAW;
-        if (!getEthDisplayableAddress(tx_ctx->to, buf, buf_size, tx_ctx->chain_id)) {
+    // Address Book > Trusted Name > raw hex; extra_data carries the matched record for the alias
+    // detail view
+    if (!get_address_display_name(tx_ctx->to,
+                                  tx_ctx->chain_id,
+                                  ARRAYLEN(types),
+                                  types,
+                                  ARRAYLEN(sources),
+                                  sources,
+                                  buf,
+                                  buf_size,
+                                  &name_source,
+                                  &extra_data)) {
+        return false;
+    }
+    // param_type drives how the field is rendered: ADDRESS_BOOK and TRUSTED_NAME
+    // entries carry an alias detail view (tappable name), RAW shows the plain address
+    switch (name_source) {
+        case ADDR_NAME_FROM_ADDRESS_BOOK:
+            param_type = PARAM_TYPE_ADDRESS_BOOK;
+            break;
+        case ADDR_NAME_FROM_TRUSTED_NAME:
+            param_type = PARAM_TYPE_TRUSTED_NAME;
+            break;
+        default:
+            param_type = PARAM_TYPE_RAW;
+            break;
+    }
+    if (!add_to_field_table(param_type, "To", buf, extra_data)) {
+        return false;
+    }
+    // A call on another chain than the root one is told apart by its network
+    if ((g_tx_ctx_list == NULL) || (tx_ctx->chain_id != g_tx_ctx_list->chain_id)) {
+        if (!get_network_as_string_from_chain_id(buf, buf_size, tx_ctx->chain_id) ||
+            !add_to_field_table(PARAM_TYPE_RAW, "Network", buf, NULL)) {
             return false;
         }
-    }
-    if (!add_to_field_table(param_type, "To", buf, trusted_name)) {
-        return false;
     }
     list_remove((list_node_t **) &g_tx_ctx_list,
                 (list_node_t *) tx_ctx,
@@ -281,15 +303,18 @@ bool tx_ctx_init(s_calldata *calldata,
             calldata_info->processed = true;
         }
     } else {
-        // Inherit defaults from the logical parent (the context whose field is
-        // being formatted), not from the list tail: with multiple queued siblings
-        // the tail can be an unrelated earlier child.
-        if (g_tx_ctx_current == NULL) {
-            APP_MEM_FREE(node);
-            return false;
+        // Inherit defaults from the logical parent: the context being
+        // formatted when known, the list tail at queue time (creation order
+        // matches nesting order before any matching has run).
+        const s_tx_ctx *parent = g_tx_ctx_current;
+        if (parent == NULL) {
+            parent = g_tx_ctx_list;
+            while (((const flist_node_t *) parent)->next != NULL) {
+                parent = (const s_tx_ctx *) ((const flist_node_t *) parent)->next;
+            }
         }
-        memcpy(node->from, g_tx_ctx_current->from, sizeof(node->from));
-        node->chain_id = g_tx_ctx_current->chain_id;
+        memcpy(node->from, parent->from, sizeof(node->from));
+        node->chain_id = parent->chain_id;
     }
 
     if (from != NULL) {

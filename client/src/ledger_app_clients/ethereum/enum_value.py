@@ -1,7 +1,8 @@
 from enum import IntEnum
-from typing import Optional
-from .tlv import TlvSerializable
-from .keychain import sign_data, Key
+
+from ragger.tlv import TlvSerializable
+
+from .signing_partners import CALLDATA_PARTNER
 
 
 class Tag(IntEnum):
@@ -12,7 +13,7 @@ class Tag(IntEnum):
     ID = 0x04
     VALUE = 0x05
     NAME = 0x06
-    SIGNATURE = 0xff
+    SIGNATURE = 0xFF
 
 
 class EnumValue(TlvSerializable):
@@ -23,17 +24,19 @@ class EnumValue(TlvSerializable):
     id: int
     value: int
     name: str
-    signature: Optional[bytes] = None
+    signature: bytes | None = None
 
-    def __init__(self,
-                 version: int,
-                 chain_id: int,
-                 contract_addr: bytes,
-                 selector: bytes,
-                 id: int,
-                 value: int,
-                 name: str,
-                 signature: Optional[bytes] = None):
+    def __init__(
+        self,
+        version: int,
+        chain_id: int,
+        contract_addr: bytes,
+        selector: bytes,
+        id: int,
+        value: int,
+        name: str,
+        signature: bytes | None = None,
+    ):
         self.version = version
         self.chain_id = chain_id
         self.contract_addr = contract_addr
@@ -54,6 +57,6 @@ class EnumValue(TlvSerializable):
         payload += self.serialize_field(Tag.NAME, self.name)
         sig = self.signature
         if sig is None:
-            sig = sign_data(Key.CALLDATA, payload)
+            sig = CALLDATA_PARTNER.sign(bytes(payload))
         payload += self.serialize_field(Tag.SIGNATURE, sig)
-        return payload
+        return bytes(payload)

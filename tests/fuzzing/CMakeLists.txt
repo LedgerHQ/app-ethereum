@@ -1,121 +1,59 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.20)
 
-if(${CMAKE_VERSION} VERSION_LESS 3.14)
-  cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
-endif()
-
-# project information
 project(EthereumAppFuzzer
         VERSION 1.0
-	      DESCRIPTION "App Ethereum Fuzzer"
+        DESCRIPTION "Ledger Ethereum App Fuzzer"
         LANGUAGES C)
 
 if(NOT DEFINED BOLOS_SDK)
-  message(FATAL_ERROR "BOLOS_SDK must be defined, CMake will exit.")
-  return()
+  message(FATAL_ERROR "BOLOS_SDK must be defined")
 endif()
 
-add_subdirectory(${BOLOS_SDK}/fuzzing ${CMAKE_CURRENT_BINARY_DIR}/ledger-secure-sdk EXCLUDE_FROM_ALL)
+# Exports the `secure_sdk` target and ledger_fuzz_add_app_target().
+include(${BOLOS_SDK}/fuzzing/cmake/LedgerAppFuzz.cmake)
+ledger_fuzz_setup()
 
-set(DEFINES FUZZ)
+set(APP_SOURCE_DIR ${CMAKE_SOURCE_DIR}/../..)
 
-set(APP_SRC ${CMAKE_SOURCE_DIR}/../../src)
-set(PLUGIN_SDK_SRC ${CMAKE_SOURCE_DIR}/../../ethereum-plugin-sdk/src)
-
-file(GLOB_RECURSE C_SOURCES
-  ${APP_SRC}/*.c
-  ${PLUGIN_SDK_SRC}/*.c
-  ${CMAKE_SOURCE_DIR}/mock/*.c
-  ${CMAKE_SOURCE_DIR}/src/fuzz_utils.c
-)
+# Whole app plus the plugin SDK and the fuzz mocks; both main.c are replaced by
+# the fuzz entry point. address_book lives in the SDK, so glob it separately.
+file(GLOB_RECURSE C_SOURCES CONFIGURE_DEPENDS
+    ${APP_SOURCE_DIR}/src/*.c
+    ${APP_SOURCE_DIR}/ethereum-plugin-sdk/src/*.c
+    ${CMAKE_SOURCE_DIR}/mock/*.c
+    ${BOLOS_SDK}/app_features/address_book/src/*.c)
 list(REMOVE_ITEM C_SOURCES
-  ${APP_SRC}/main.c
-  ${PLUGIN_SDK_SRC}/main.c
-)
+    ${APP_SOURCE_DIR}/src/main.c
+    ${APP_SOURCE_DIR}/ethereum-plugin-sdk/src/main.c)
 
-add_library(code_lib ${C_SOURCES})
+ledger_fuzz_collect_include_dirs(APP_INCLUDE_DIRS
+    ${APP_SOURCE_DIR}/src
+    ${APP_SOURCE_DIR}/ethereum-plugin-sdk/src)
+list(APPEND APP_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/mock)
 
-target_include_directories(
-  code_lib
-  PUBLIC ${CMAKE_SOURCE_DIR}/src
-         ${CMAKE_SOURCE_DIR}/mock
-         ${APP_SRC}
-         ${APP_SRC}/features/generic_tx_parser
-         ${APP_SRC}/features/get_public_key
-         ${APP_SRC}/features/get_eth2_public_key
-         ${APP_SRC}/features/provide_enum_value
-         ${APP_SRC}/features/provide_network_info
-         ${APP_SRC}/features/sign_tx
-         ${APP_SRC}/features/provide_trusted_name
-         ${APP_SRC}/features/get_challenge
-         ${APP_SRC}/features/provide_proxy_info
-         ${APP_SRC}/features/provide_tx_simulation
-         ${APP_SRC}/features/sign_authorization_eip7702
-         ${APP_SRC}/features/provide_safe_account
-         ${APP_SRC}/features/provide_gating
-         ${APP_SRC}/features/sign_message_eip712_common
-         ${APP_SRC}/features/sign_message_eip712
-         ${APP_SRC}/features/set_plugin
-         ${APP_SRC}/features/perform_privacy_operation
-         ${APP_SRC}/plugins
-         ${APP_SRC}/plugins/eth2
-         ${APP_SRC}/plugins/eip7002
-         ${APP_SRC}/plugins/eip7251
-         ${APP_SRC}/plugins/erc20
-         ${APP_SRC}/plugins/erc721
-         ${APP_SRC}/plugins/erc1155
-         ${APP_SRC}/plugins/swap_with_calldata
-         ${APP_SRC}/nbgl
-         ${APP_SRC}/swap
-         ${PLUGIN_SDK_SRC}
-)
+# FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION is the shared app/SDK sentinel for
+# fuzz-only relaxations. HAVE_* / APPNAME / ... arrive transitively from
+# secure_sdk (make list-defines + macros/add_macros.txt).
+function(eth_add_fuzz_target NAME INVARIANT)
+  # Invariant models are machine-local and regenerated per build (.gitignored).
+  ledger_fuzz_bootstrap_file("${INVARIANT}" ".{}\n")
+  ledger_fuzz_add_app_target(
+      NAME ${NAME}
+      HARNESS ${CMAKE_SOURCE_DIR}/harness/${NAME}.c
+      INVARIANT ${INVARIANT}
+      SOURCES ${C_SOURCES} ${ARGN}
+      INCLUDE_DIRECTORIES ${APP_INCLUDE_DIRS}
+      COMPILE_DEFINITIONS FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1)
+endfunction()
 
-target_link_libraries(code_lib PUBLIC secure_sdk)
-target_compile_definitions(code_lib PUBLIC ${DEFINES} FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1)
+# Full-app target: one input drives a sequence of APDUs through the real dispatcher.
+eth_add_fuzz_target(fuzz_app
+    "${CMAKE_SOURCE_DIR}/invariants/fuzz_globals.zon"
+    ${LEDGER_FUZZ_TLV_MUTATOR_SOURCE})
 
-# Find and add libbsd
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(LIBBSD REQUIRED libbsd)
+# Internal plugins are driven through the plugin interface rather than an INS,
+# so a fuzzed APDU cannot reach them on its own.
+eth_add_fuzz_target(fuzz_plugin "${CMAKE_SOURCE_DIR}/invariants/fuzz_plugin.zon")
 
-# Try to find the static libbsd library, because the final run image doesn't have dynamic library
-# Keep both options to fallback to dynamic if static is not found
-find_library(LIBBSD_STATIC_LIB lib${LIBBSD_STATIC_LIBRARIES}.a HINTS ${LIBBSD_LIBRARY_DIRS})
-
-if(LIBBSD_STATIC_LIB)
-    message(STATUS "Using static libbsd")
-    target_link_libraries(code_lib PUBLIC ${LIBBSD_STATIC_LIB})
-else()
-    message(STATUS "Using dynamic libbsd")
-    target_link_libraries(code_lib PUBLIC ${LIBBSD_LIBRARIES})
-endif()
-
-target_include_directories(code_lib PUBLIC ${LIBBSD_INCLUDE_DIRS})
-target_compile_options(code_lib PUBLIC ${LIBBSD_CFLAGS_OTHER})
-
-# Create the different fuzzing targets automatically
-file(GLOB FUZZ_HARNESSES "${CMAKE_SOURCE_DIR}/harness/fuzz_*.c")
-
-foreach(HARNESS_FILE ${FUZZ_HARNESSES})
-    # Extract the base name of the file without extension
-    get_filename_component(HARNESS_NAME ${HARNESS_FILE} NAME_WE)
-
-    # Create the executable target
-    add_executable(${HARNESS_NAME} ${HARNESS_FILE})
-
-    # Define the compilation options
-    target_compile_definitions(${HARNESS_NAME} PUBLIC macros FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1)
-
-    # Link against the secure_sdk and code_lib libraries
-    target_link_libraries(${HARNESS_NAME} PUBLIC secure_sdk code_lib)
-
-    # Wrap mem_alloc functions to use mock versions
-    target_link_options(${HARNESS_NAME} PRIVATE
-        -Wl,--wrap=mem_init
-        -Wl,--wrap=mem_alloc
-        -Wl,--wrap=mem_free
-    )
-    # Override SDK's cx_ecdsa_verify_no_throw to avoid MemorySanitizer false positives
-    target_link_options(${HARNESS_NAME} PRIVATE -Wl,--wrap=cx_ecdsa_verify_no_throw)
-
-    message(STATUS "Creating fuzzer target: ${HARNESS_NAME}")
-endforeach()
+# Stateful parsers behind a multi-APDU handshake fuzz_app cannot set up.
+eth_add_fuzz_target(fuzz_parser "${CMAKE_SOURCE_DIR}/invariants/fuzz_parser.zon")

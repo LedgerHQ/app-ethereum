@@ -58,6 +58,7 @@ identical between the two contexts, see the `Context` column below.
 > - For EIP-712, `DOMAIN_SEPARATOR` covers the domain's `chainId` and `verifyingContract`, which are
 >   the chain and the contract of the message — see
 >   [EIP712_MESSAGE_INFO](eip712.md#eip712_message_info).
+> - The signature covers the struct's raw bytes, whose tags tell the two contexts apart.
 
 ## ENUM_VALUE
 
@@ -786,12 +787,6 @@ SEQ {                           // outer dimension
 }
 ```
 
----
-
-> [!WARNING]
-> Everything below this point describes planned structures and open design questions. None of it
-> is implemented by this application yet, unlike `EIP712_SCHEMA` and `EIP712_VALUES` above.
-
 ## EIP712_FIELD_DESCRIPTOR
 
 Reuses [FIELD](#field) and all its `PARAM_*` variants unchanged — same struct, same tags, same
@@ -884,9 +879,3 @@ All rejections abort processing of that `EIP712_PATH`/descriptor.
 > value, analogous to GCS's `SLICE_ELEMENT`) is needed for EIP-712 is not yet decided — values
 > here are already decoded/typed (unlike GCS's raw ABI byte navigation), so the need is narrower.
 > Not reflected in the table above pending that decision.
-
-> [!NOTE]
-> **Open question**: which PKI usage constant scopes `EIP712_MESSAGE_INFO`/`EIP712_FIELD_DESCRIPTOR` signature verification —
-> `CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META` (V1's own precedent) or
-> `CERTIFICATE_PUBLIC_KEY_USAGE_CALLDATA` (used by GCS's `TRANSACTION_INFO`/`FIELD`, which
-> `EIP712_MESSAGE_INFO`/`EIP712_FIELD_DESCRIPTOR` otherwise reuse) — is not yet decided.

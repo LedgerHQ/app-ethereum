@@ -4,8 +4,9 @@
 #include "tlv_apdu.h"
 #include "gcs_field.h"
 #include "cmd_tx_info.h"
-#include "gtp_tx_info.h"
+#include "operation_info.h"
 #include "operation_ctx.h"
+#include "call_description.h"
 #include "app_mem_utils.h"
 
 static bool process_field(const buffer_t *buf, s_field *field) {
@@ -29,29 +30,28 @@ static bool process_field(const buffer_t *buf, s_field *field) {
     // Finding 907: rollback the hash if format_field() rejects the field so the
     // rejected data leaves no trace in the signed digest.
     cx_sha3_t *hash_ctx_backup;
+    cx_hash_t *hash_ctx = get_current_operation_fields_hash_ctx();
     if (APP_MEM_CALLOC((void **) &hash_ctx_backup, sizeof(*hash_ctx_backup)) == false) {
         cleanup_field(field);
         return false;
     }
-    memcpy(hash_ctx_backup, get_fields_hash_ctx(), sizeof(*hash_ctx_backup));
-    if (cx_hash_no_throw(get_fields_hash_ctx(), 0, buf->ptr, buf->size, NULL, 0) != CX_OK) {
+    memcpy(hash_ctx_backup, hash_ctx, sizeof(*hash_ctx_backup));
+    if (cx_hash_no_throw(hash_ctx, 0, buf->ptr, buf->size, NULL, 0) != CX_OK) {
         PRINTF("Error: could not hash the field struct!\n");
         APP_MEM_FREE(hash_ctx_backup);
         cleanup_field(field);
         return false;
     }
     if (!format_field(field, 0)) {
-        memcpy(get_fields_hash_ctx(), hash_ctx_backup, sizeof(*hash_ctx_backup));
+        memcpy(hash_ctx, hash_ctx_backup, sizeof(*hash_ctx_backup));
         APP_MEM_FREE(hash_ctx_backup);
         return false;
     }
     APP_MEM_FREE(hash_ctx_backup);
-    while (((appState == APP_STATE_SIGNING_EIP712) || !operation_ctx_is_root()) &&
-           validate_instruction_hash()) {
-        if (!process_empty_calls_after()) {
+    while (call_description_is_nested() && validate_instruction_hash()) {
+        if (!process_empty_calls_after() || !operation_ctx_pop()) {
             return false;
         }
-        operation_ctx_pop();
     }
     return true;
 }
@@ -76,7 +76,7 @@ uint16_t handle_field(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *payload
         return SWO_COMMAND_NOT_ALLOWED;
     }
 
-    if (get_current_tx_info() == NULL) {
+    if (get_current_operation_info() == NULL) {
         // Do NOT call gcs_cleanup() here: if a GCS review is currently shown,
         // gcs_cleanup() frees g_pairs/g_pairsList while NBGL still holds
         // pointers to them, causing a crash.

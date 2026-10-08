@@ -3,7 +3,7 @@
 #include "shared_context.h"
 #include "ui_nbgl.h"
 #include "ui_icons.h"
-#include "gtp_tx_info.h"
+#include "operation_info.h"
 #include "gcs_field_table.h"
 #include "app_mem_utils.h"
 #include "mem_utils.h"
@@ -106,7 +106,7 @@ static bool add_info(const char **keys,
 }
 
 static bool prepare_infos(nbgl_contentInfoList_t *infos) {
-    const s_tx_info *tx_info = get_current_tx_info();
+    const s_operation_info *tx_info = get_current_operation_info();
     char *tmp_buf = strings.tmp.tmp;
     size_t tmp_buf_size = sizeof(strings.tmp.tmp);
     char addr_str[2 + ADDRESS_LENGTH_HEX + 1];
@@ -119,10 +119,11 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
     uint8_t contract_idx;
 #endif
 
-    if ((get_current_tx_to() == NULL) || !getEthDisplayableAddress(get_current_tx_to(),
-                                                                   addr_str,
-                                                                   sizeof(addr_str),
-                                                                   g_chain_config->chain_id)) {
+    if ((get_current_operation_to() == NULL) ||
+        !getEthDisplayableAddress(get_current_operation_to(),
+                                  addr_str,
+                                  sizeof(addr_str),
+                                  g_chain_config->chain_id)) {
         return false;
     }
 
@@ -203,12 +204,14 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
 }
 
 void ui_gcs_cleanup(void) {
-    if ((g_pairsList != NULL) && (g_pairsList->pairs != NULL)) {
+    // The pairs are the ones of a GCS review only when it allocated index_allocated: another
+    // review fills the same list with pointers it owns, some of them to static strings
+    if ((index_allocated != NULL) && (g_pairsList != NULL) && (g_pairsList->pairs != NULL)) {
         for (int i = 0; i < g_pairsList->nbPairs; ++i) {
             free_pair(g_pairsList, i);
         }
-        APP_MEM_FREE_AND_NULL((void *) &index_allocated);
     }
+    APP_MEM_FREE_AND_NULL((void *) &index_allocated);
     ui_all_cleanup();
     proxy_cleanup();
 }
@@ -472,7 +475,7 @@ bool ui_gcs(void) {
     size_t table_size = 0;
     uint8_t tx_idx = 0;
     bool had_separator = false;
-    const s_tx_info *info_tx = get_current_tx_info();
+    const s_operation_info *info_tx = get_current_operation_info();
 
     explicit_bzero(&warning, sizeof(nbgl_warning_t));
 #ifdef HAVE_TRANSACTION_CHECKS
@@ -590,7 +593,7 @@ bool ui_gcs(void) {
     // Format from the tx context (strings.common.fromAddress shares its memory
     // with strings.tmp.tmp, already clobbered by the title above).
     if (show_root_from) {
-        const uint8_t *from = get_current_tx_from();
+        const uint8_t *from = get_current_operation_from();
 
         if ((from == NULL) ||
             !getEthDisplayableAddress(from, tmp_buf, tmp_buf_size, g_chain_config->chain_id)) {

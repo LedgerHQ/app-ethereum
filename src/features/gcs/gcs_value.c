@@ -172,12 +172,11 @@ static bool value_get_rlp(const s_value *value, s_parsed_value_collection *colle
     // Held static because its address is exposed to the caller via the
     // collection and must remain valid after this function returns.
     static uint64_t chain_id = 0;
-    const s_tx_info *tx_info = NULL;
 
     switch (value->container_path) {
         // Sender address (20 bytes)
         case CP_FROM:
-            if ((collection->value[0].ptr = get_current_tx_from()) == NULL) {
+            if ((collection->value[0].ptr = get_current_operation_from()) == NULL) {
                 return false;
             }
             collection->value[0].length = ADDRESS_LENGTH;
@@ -191,7 +190,7 @@ static bool value_get_rlp(const s_value *value, s_parsed_value_collection *colle
 
         // Recipient address (20 bytes)
         case CP_TO:
-            if ((collection->value[0].ptr = get_current_tx_to()) == NULL) {
+            if ((collection->value[0].ptr = get_current_operation_to()) == NULL) {
                 return false;
             }
             collection->value[0].length = ADDRESS_LENGTH;
@@ -200,7 +199,7 @@ static bool value_get_rlp(const s_value *value, s_parsed_value_collection *colle
 
         // Native amount transferred (256-bit big-endian)
         case CP_VALUE:
-            if ((collection->value[0].ptr = get_current_tx_amount()) == NULL) {
+            if ((collection->value[0].ptr = get_current_operation_amount()) == NULL) {
                 return false;
             }
             collection->value[0].length = INT256_LENGTH;
@@ -214,11 +213,9 @@ static bool value_get_rlp(const s_value *value, s_parsed_value_collection *colle
 
         // Chain ID, normalized to a big-endian 64-bit value
         case CP_CHAIN_ID:
-            tx_info = get_current_tx_info();
-            if (tx_info == NULL) {
+            if (!get_current_operation_chain_id(&chain_id)) {
                 return false;
             }
-            chain_id = tx_info->chain_id;
             // Convert to big-endian byte array
             chain_id = u64_from_BE((const uint8_t *) &chain_id, sizeof(uint64_t));
             collection->value[0].ptr = (const uint8_t *) &chain_id;

@@ -125,8 +125,7 @@ static bool process_token_amount(const s_param_token_amount *param,
     const char *ticker = g_unknown_ticker;
     uint8_t decimals = 0;
 
-    if (get_current_tx_info() == NULL) return false;
-    chain_id = get_current_tx_info()->chain_id;
+    if (!get_current_operation_chain_id(&chain_id)) return false;
     if (param->has_token) {
         buf_shrink_expand(token->ptr, token->length, addr_buf, sizeof(addr_buf));
         if (match_native(addr_buf, param)) {

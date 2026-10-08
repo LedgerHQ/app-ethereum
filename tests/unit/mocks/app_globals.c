@@ -138,8 +138,8 @@ WEAK nbgl_warning_t warning;
 // txContext.content at this and write fields directly. Each test process
 // runs independently so there is no cross-test bleed at runtime.
 // g_fake_tx_info (test_param_*) is intentionally left as 5 file-local
-// instances: s_tx_info is an anonymous-struct typedef so an extern decl
-// in wraps.h would have to pull gtp_tx_info.h's cx.h chain through every
+// instances: s_operation_info is an anonymous-struct typedef so an extern decl
+// in wraps.h would have to pull operation_info.h's cx.h chain through every
 // test target, and the savings (one line per test) don't justify it.
 
 WEAK txContent_t g_tx_content;

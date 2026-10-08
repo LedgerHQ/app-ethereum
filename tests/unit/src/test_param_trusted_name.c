@@ -58,6 +58,7 @@
 
 static bool g_add_to_field_table_ret = true;
 static int g_get_current_tx_chain_id_ret = 0;
+static bool g_operation_has_chain = true;
 static const char *g_get_network_as_string_from_chain_id_ret = NULL;
 static uint16_t g_get_public_key_ret = 0x9000;
 static const void *g_get_trusted_name_ret = NULL;
@@ -84,10 +85,11 @@ bool add_address_to_field_table(e_param_type param_type,
 }
 
 /**
- * @brief Mock implementation of get_current_tx_chain_id
+ * @brief Mock implementation of get_current_operation_chain_id
  */
-uint64_t get_current_tx_chain_id(void) {
-    return (uint64_t) g_get_current_tx_chain_id_ret;
+bool get_current_operation_chain_id(uint64_t *chain_id) {
+    *chain_id = (uint64_t) g_get_current_tx_chain_id_ret;
+    return g_operation_has_chain;
 }
 
 static const s_trusted_name *trusted_name_stub(uint8_t type_count,
@@ -436,9 +438,9 @@ void test_trusted_name_sender_addr_replacement(void) {
 }
 
 /**
- * @brief Test with chain_id = 0 (should fail)
+ * @brief Test with an operation on no chain, a typed message that pins none (should fail)
  */
-void test_trusted_name_chain_id_zero(void) {
+void test_trusted_name_without_a_chain(void) {
     // clang-format off
     CREATE_ADDRESS_PARAM(param,
         0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0x00,
@@ -452,8 +454,7 @@ void test_trusted_name_chain_id_zero(void) {
                      .param_trusted_name = param,
                      .name = "To"};
 
-    // Mock: chain_id = 0 is invalid
-    g_get_current_tx_chain_id_ret = 0;
+    g_operation_has_chain = false;
 
     TEST_ASSERT_FALSE(format_param_trusted_name(&field));
 }
@@ -475,7 +476,7 @@ void test_trusted_name_interoperable_named(void) {
                      .param_trusted_name = param,
                      .name = "To"};
 
-    // No get_current_tx_chain_id call — chain_id comes from EIP-7930 bytes
+    // No chain lookup — chain_id comes from EIP-7930 bytes
     static s_trusted_name trusted = {.name = "Vitalik.eth"};
     g_get_trusted_name_ret = &trusted;
     g_get_network_as_string_from_chain_id_ret = "Ethereum";
@@ -726,6 +727,7 @@ void setUp(void) {
     Mocknetwork_Init();
     g_get_trusted_name_ret = NULL;
     g_get_network_as_string_from_chain_id_ret = NULL;
+    g_operation_has_chain = true;
     get_trusted_name_StubWithCallback(trusted_name_stub);
     get_network_as_string_from_chain_id_StubWithCallback(network_from_chain_id_stub);
 }
@@ -745,7 +747,7 @@ int main(void) {
     RUN_TEST(test_trusted_name_if_not_in_match);
     RUN_TEST(test_trusted_name_if_not_in_no_match);
     RUN_TEST(test_trusted_name_sender_addr_replacement);
-    RUN_TEST(test_trusted_name_chain_id_zero);
+    RUN_TEST(test_trusted_name_without_a_chain);
     RUN_TEST(test_trusted_name_interoperable_named);
     RUN_TEST(test_trusted_name_interoperable_raw);
     RUN_TEST(test_trusted_name_interoperable_unknown_network);

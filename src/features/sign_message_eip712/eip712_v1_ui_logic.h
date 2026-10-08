@@ -101,7 +101,6 @@ void ui_712_set_trusted_name_requirements(uint8_t type_count,
 bool ui_712_push_pairs(void);
 void add_calldata_info(s_eip712_calldata_info *node);
 s_eip712_calldata_info *get_calldata_info(uint8_t index);
-s_eip712_calldata_info *get_current_calldata_info(void);
 bool all_calldata_info_processed(void);
 void calldata_info_set_state(uint8_t index, e_eip712_calldata_state state);
 bool calldata_info_all_received(const s_eip712_calldata_info *calldata_info);

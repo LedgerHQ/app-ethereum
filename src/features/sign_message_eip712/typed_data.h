@@ -359,6 +359,11 @@ bool td_has_message(void);
 bool td_has_schema(void);
 
 /**
+ * @return the name of the struct type the message is an instance of, NULL if there is no message
+ */
+const char *td_get_message_type_name(void);
+
+/**
  * Initialize the typed data context
  *
  * @return whether the initialization was successful
@@ -378,6 +383,14 @@ void td_deinit(void);
 bool td_hash_pass(void);
 
 /**
+ * Compute the hash of the domain, hashStruct(domain), over the domain value tree
+ *
+ * @param[out] out the hash
+ * @return whether the hash was computed
+ */
+bool td_hash_domain(uint8_t out[CX_KECCAK_256_SIZE]);
+
+/**
  * Fill @p chain_id with the chainId from the domain value tree.
  *
  * @return true if the field was found and copied into @p chain_id, false otherwise.
@@ -390,6 +403,16 @@ bool td_get_domain_chain_id(uint64_t *chain_id);
  * @return true if the field was found and copied into @p addr, false otherwise.
  */
 bool td_get_domain_contract_addr(uint8_t addr[ADDRESS_LENGTH]);
+
+/**
+ * Fill @p addr with the verifyingContract from the domain value tree, when it is an address.
+ *
+ * Unlike td_get_domain_contract_addr(), this does not take the Ethermint placeholder string for
+ * an address.
+ *
+ * @return true if the field was found, is an address and was copied into @p addr, false otherwise.
+ */
+bool td_get_domain_verifying_address(uint8_t addr[ADDRESS_LENGTH]);
 
 // Visitor callback for value tree traversal. Return false to abort traversal.
 typedef bool (*td_f_value_visitor)(const s_struct_712_value *node, void *context);

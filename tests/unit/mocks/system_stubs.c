@@ -308,20 +308,46 @@ __attribute__((weak)) bool data_path_get(const void *data_path, void *collection
 // app/src/features/gcs/operation_ctx.c
 // =============================================================================
 
-__attribute__((weak)) const uint8_t *get_current_tx_to(void) {
+__attribute__((weak)) const void *get_current_operation_info(void) {
     return NULL;
 }
 
-__attribute__((weak)) const uint8_t *get_current_tx_from(void) {
+__attribute__((weak)) bool get_current_operation_chain_id(uint64_t *chain_id) {
+    (void) chain_id;
+    return false;
+}
+
+__attribute__((weak)) const uint8_t *get_current_operation_from(void) {
     return NULL;
 }
 
-__attribute__((weak)) const uint8_t *get_current_tx_info(void) {
+__attribute__((weak)) const uint8_t *get_current_operation_to(void) {
     return NULL;
 }
 
-__attribute__((weak)) const uint8_t *get_current_tx_amount(void) {
+__attribute__((weak)) const uint8_t *get_current_operation_amount(void) {
     return NULL;
+}
+
+__attribute__((weak)) void *get_current_operation_fields_hash_ctx(void) {
+    return NULL;
+}
+
+__attribute__((weak)) bool get_current_operation_key(void *key) {
+    (void) key;
+    return false;
+}
+
+__attribute__((weak)) bool operation_ctx_is_describing_call(void) {
+    return false;
+}
+
+__attribute__((weak)) bool operation_ctx_has_message(void) {
+    return false;
+}
+
+__attribute__((weak)) bool operation_ctx_message_has_pending_fields(void) {
+    return false;
 }
 
 // =============================================================================

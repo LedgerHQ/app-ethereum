@@ -705,7 +705,11 @@ static bool update_calldata(const uint8_t *data,
         if (g_parked_calldata == NULL) {
             if (!handle_fallback_empty_calldata(calldata_info)) return false;
         } else {
-            if (!operation_ctx_init(g_parked_calldata,
+            // the first call is the root of the operations, and is made once per calldata
+            bool is_root = (get_operation_ctx_count() == 0);
+
+            if ((is_root && calldata_info->processed) ||
+                !operation_ctx_init(g_parked_calldata,
                                     calldata_info->spender,
                                     calldata_info->callee,
                                     calldata_info->amount,
@@ -713,6 +717,9 @@ static bool update_calldata(const uint8_t *data,
                 calldata_delete(g_parked_calldata);
                 g_parked_calldata = NULL;
                 return false;
+            }
+            if (is_root) {
+                calldata_info->processed = true;
             }
             g_parked_calldata = NULL;
         }
@@ -1368,10 +1375,6 @@ s_eip712_calldata_info *get_calldata_info(uint8_t index) {
         }
     }
     return NULL;
-}
-
-s_eip712_calldata_info *get_current_calldata_info(void) {
-    return get_calldata_info(ui_ctx->calldata_index);
 }
 
 bool all_calldata_info_processed(void) {

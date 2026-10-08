@@ -69,11 +69,17 @@ bool check_signature_with_pubkey(uint8_t *buffer,
     return (bool) g_check_signature_with_pubkey_ret;
 }
 
-const s_tx_info *get_current_tx_info(void) {
-    return (const s_tx_info *) g_get_current_tx_info_ret;
+bool get_current_operation_chain_id(uint64_t *chain_id) {
+    const s_operation_info *info = (const s_operation_info *) g_get_current_tx_info_ret;
+
+    if (info == NULL) {
+        return false;
+    }
+    *chain_id = info->chain_id;
+    return true;
 }
 
-const uint8_t *get_current_tx_to(void) {
+const uint8_t *get_current_operation_to(void) {
     return (const uint8_t *) g_get_current_tx_to_ret;
 }
 
@@ -229,7 +235,7 @@ void test_map_entry_lookup_no_tx_info(void) {
 }
 
 void test_map_entry_lookup_no_selector(void) {
-    static const s_tx_info tx_info = {.chain_id = 1};
+    static const s_operation_info tx_info = {.chain_id = 1};
 
     g_get_current_tx_info_ret = &tx_info;
     g_get_current_calldata_ret = NULL;
@@ -240,7 +246,7 @@ void test_map_entry_lookup_no_selector(void) {
 }
 
 void test_map_entry_lookup_found(void) {
-    static const s_tx_info tx_info = {.chain_id = 1};
+    static const s_operation_info tx_info = {.chain_id = 1};
     static const uint8_t selector[] = {SELECTOR_BYTES};
 
     // The lookup matches the callee of the current (possibly nested) context
@@ -263,7 +269,7 @@ void test_map_entry_lookup_found(void) {
 }
 
 void test_map_entry_lookup_wrong_key(void) {
-    static const s_tx_info tx_info = {.chain_id = 1};
+    static const s_operation_info tx_info = {.chain_id = 1};
     static const uint8_t selector[] = {SELECTOR_BYTES};
 
     memcpy(g_tx_content.destination, s_contract_addr, ADDRESS_LENGTH);
@@ -281,7 +287,7 @@ void test_map_entry_lookup_wrong_key(void) {
 }
 
 void test_map_entry_lookup_wrong_id(void) {
-    static const s_tx_info tx_info = {.chain_id = 1};
+    static const s_operation_info tx_info = {.chain_id = 1};
     static const uint8_t selector[] = {SELECTOR_BYTES};
 
     memcpy(g_tx_content.destination, s_contract_addr, ADDRESS_LENGTH);

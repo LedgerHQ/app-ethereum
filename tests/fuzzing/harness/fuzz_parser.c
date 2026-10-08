@@ -17,10 +17,12 @@
 #include "shared_context.h"
 #include "buffer.h"
 #include "gcs_field.h"
-#include "gtp_tx_info.h"
+#include "operation_info.h"
 #include "enum_value.h"
 #include "eip712_v1_commands.h"
 #include "eip712_v1_context.h"
+#include "eip712_session.h"
+#include "typed_data.h"
 #include "calldata.h"
 #include "mem_utils.h"  // app_mem_init()
 
@@ -28,7 +30,7 @@
 
 enum {
     PARSER_GCS_FIELD,
-    PARSER_GTP_TX_INFO,
+    PARSER_OPERATION_INFO,
     PARSER_ENUM_VALUE,
     PARSER_EIP712,
     PARSER_CALLDATA,
@@ -38,7 +40,7 @@ enum {
 #define PARSER_ROW(idx) {.ins = (idx), .flags = FUZZ_CMD_HAS_DATA}
 const fuzz_command_spec_t fuzz_commands[] = {
     PARSER_ROW(PARSER_GCS_FIELD),
-    PARSER_ROW(PARSER_GTP_TX_INFO),
+    PARSER_ROW(PARSER_OPERATION_INFO),
     PARSER_ROW(PARSER_ENUM_VALUE),
     PARSER_ROW(PARSER_EIP712),
     PARSER_ROW(PARSER_CALLDATA),
@@ -70,13 +72,19 @@ static void run_gcs_field(buffer_t *buf) {
     (void) format_field(&field, 0);
 }
 
-static void run_gtp_tx_info(buffer_t *buf) {
-    s_tx_info tx_info = {0};
-    s_tx_info_ctx ctx = {.tx_info = &tx_info};
+/* The same struct is a TRANSACTION_INFO and an EIP712_MESSAGE_INFO depending on the command it
+ * comes in, so every input goes through both. */
+static void run_operation_info(buffer_t *buf) {
+    const e_operation_info_context contexts[] = {OPERATION_INFO_CTX_SIGN_TX,
+                                                 OPERATION_INFO_CTX_EIP712};
 
-    cx_sha256_init(&ctx.struct_hash);
-    if (handle_tx_info_struct(buf, &ctx)) {
-        (void) verify_tx_info_struct(&ctx);
+    for (size_t i = 0; i < ARRAYLEN(contexts); i++) {
+        buffer_t payload = *buf;
+        s_operation_info *info = new_operation_info(&payload, contexts[i]);
+
+        if (info != NULL) {
+            delete_operation_info(info);
+        }
     }
 }
 
@@ -135,6 +143,8 @@ static void run_eip712(fuzz_cursor_t *cur) {
         }
     }
     eip712_v1_context_deinit();
+    td_deinit();
+    eip712_session_close();
 }
 
 /* Append/read program over one calldata store. The store is local so it cannot
@@ -184,8 +194,8 @@ static void run_tlv_step(uint8_t parser, fuzz_cursor_t *cur) {
         case PARSER_GCS_FIELD:
             run_gcs_field(&buf);
             break;
-        case PARSER_GTP_TX_INFO:
-            run_gtp_tx_info(&buf);
+        case PARSER_OPERATION_INFO:
+            run_operation_info(&buf);
             break;
         default:
             run_enum_value(&buf);

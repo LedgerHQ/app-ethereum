@@ -51,6 +51,7 @@ key_files = [
     "src/features/sign_message_eip712/eip712_v1_commands.c",
     "src/features/generic_tx_parser/cmd_tx_info.c",
     "src/features/generic_tx_parser/cmd_field.c",
+    "src/features/generic_tx_parser/call_description.c",
     "src/tlv_apdu.c",
     "src/utils/mem_utils.c",
 ]
@@ -139,7 +140,7 @@ fuzzer = "fuzz_parser"
 # generated structured seeds are 516 bytes.
 tail_budget = 1024
 key_files = [
-    "src/features/generic_tx_parser/gtp_tx_info.c",
+    "src/features/gcs/operation_info.c",
     "src/features/gcs/gcs_field.c",
     "src/features/gcs/gcs_field_table.c",
     "src/features/generic_tx_parser/gtp_data_path.c",

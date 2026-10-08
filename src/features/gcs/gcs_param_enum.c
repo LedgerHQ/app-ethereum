@@ -66,14 +66,13 @@ __attribute__((noinline)) bool format_param_enum(const s_param_enum *param, cons
     }
 
     if ((ret = value_get(&param->value, &collec))) {
-        if (get_current_tx_info() == NULL) {
+        if (!get_current_operation_chain_id(&chain_id)) {
             ret = false;
             goto end;
         }
-        chain_id = get_current_tx_info()->chain_id;
         // Enum metadata is signed per contract: use the callee of the current
         // (possibly nested) context, not the root transaction destination.
-        if ((callee = get_current_tx_to()) == NULL) {
+        if ((callee = get_current_operation_to()) == NULL) {
             ret = false;
             goto end;
         }

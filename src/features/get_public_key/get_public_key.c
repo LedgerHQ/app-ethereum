@@ -24,6 +24,28 @@ end:
 }
 
 /**
+ * Derive the address of a BIP32 path
+ *
+ * @param[in] bip32 derivation path
+ * @param[out] out the address, ADDRESS_LENGTH bytes
+ * @return whether it was successful
+ */
+bool get_address_of_path(const bip32_path_t *bip32, uint8_t out[ADDRESS_LENGTH]) {
+    uint8_t raw_pubkey[CX_SECP256_PUB_KEY_SIZE];
+
+    if (bip32_derive_get_pubkey_256(CX_CURVE_256K1,
+                                    bip32->path,
+                                    bip32->length,
+                                    raw_pubkey,
+                                    NULL,
+                                    CX_SHA512) != CX_OK) {
+        return false;
+    }
+    getEthAddressFromRawKey(raw_pubkey, out);
+    return true;
+}
+
+/**
  * Derive the address of a BIP32 path, formatted as "0x" followed by its checksummed hex
  *
  * @param[in] bip32 derivation path
@@ -36,18 +58,11 @@ bool get_displayable_address(const bip32_path_t *bip32,
                              char *out,
                              size_t out_size,
                              uint64_t chain_id) {
-    uint8_t raw_pubkey[CX_SECP256_PUB_KEY_SIZE];
     uint8_t address[ADDRESS_LENGTH];
 
-    if (bip32_derive_get_pubkey_256(CX_CURVE_256K1,
-                                    bip32->path,
-                                    bip32->length,
-                                    raw_pubkey,
-                                    NULL,
-                                    CX_SHA512) != CX_OK) {
+    if (!get_address_of_path(bip32, address)) {
         return false;
     }
-    getEthAddressFromRawKey(raw_pubkey, address);
     return getEthDisplayableAddress(address, out, out_size, chain_id);
 }
 

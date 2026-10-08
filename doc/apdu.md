@@ -333,7 +333,7 @@ _Input data:_
 
 ##### If P2 == V2 implementation
 
-None. `P1` must be `00` and `Lc` must be `0`.
+None. `P1` must be `00` and `Lc` must be `0`. It is refused with `0x6980` during a V1 session.
 
 _Output data:_
 
@@ -696,7 +696,8 @@ chunk), distinct from the other P2 branches above where P1 is unused.
 
 Once a full `EIP712_SCHEMA` has been received and parsed successfully, it is locked: any further
 call with `P2 == V2 schema` in the same session is rejected. Any `P1` value other than `01` or `00`
-is rejected too.
+is rejected too. V1 and V2 never share a session: a V2 command is refused with `0x6980` while a V1
+session is in progress.
 
 _Output data:_
 
@@ -771,7 +772,10 @@ chunk), distinct from the complete/partial meaning P1 has on the V1 branches abo
 
 This call requires `EIP712_SCHEMA` (see EIP712 SEND STRUCT DEFINITION, V2 branch) to already be
 locked, and is accepted once per session; otherwise rejected. Any `P1` value other than `01` or `00`
-is rejected too.
+is rejected too. It is refused with `0x6980` during a V1 session.
+
+It may be followed by an [EIP712_MESSAGE_INFO struct](eip712.md#eip712_message_info), sent with
+TRANSACTION INFO and `P2 = 02`, before EIP712 SIGN.
 
 _Output data:_
 
@@ -1226,28 +1230,56 @@ None
 
 #### Description
 
+This command provides the description of a transaction or of an EIP-712 message.
+
+##### If P2 == transaction
+
+The [TRANSACTION_INFO struct](tlv_structs.md#transaction_info--eip712_message_info) describes the
+transaction being signed.
+
+##### If P2 == V2 message
+
+The [EIP712_MESSAGE_INFO struct](eip712.md#eip712_message_info) is the same struct, with a
+domain separator and a primary type hash instead of a selector and an optional chain and contract.
+It describes the message of the EIP-712 V2 flow in progress:
+
+- it has to come after the values (EIP712 SEND STRUCT IMPLEMENTATION, V2 branch), and before
+  EIP712 SIGN; otherwise `0x6980` is returned;
+- there is at most one per message, a second one is refused with `0x6980`;
+- it is refused with `0x6980` during a V1 session;
+- it is bound to the message, and refused with `0x6A80` if its domain separator is not the one of
+  the message's domain, or if its primary type hash is not the one of the message's type. A
+  signature that does not verify, a missing required tag, a tag of a transaction or a version other
+  than `01` are refused with the same status.
+
+The review is not changed by it yet.
+
 #### Coding
 
 _Command:_
 
-| CLA | INS | P1                                         | P2  | LC  |
-|-----|-----|--------------------------------------------|-----|-----|
-| E0  | 26  | `01`: first chunk<br>`00`: following chunk | 00  | 00  |
+| CLA | INS | P1                                         | P2                                      | LC  |
+|-----|-----|--------------------------------------------|-----------------------------------------|-----|
+| E0  | 26  | `01`: first chunk<br>`00`: following chunk | `00`: transaction<br>`02`: V2 message   | variable |
+
+Any other P1 or P2 is refused with `0x6A86`.
 
 _Input data:_
 
 ##### If P1 == first chunk
 
-| Description                                                | Length (byte) |
-|------------------------------------------------------------|---------------|
-| struct size (BE)                                           | 2             |
-| [TRANSACTION_INFO struct](tlv_structs.md#transaction_info--eip712_message_info) | variable      |
+| Description                                                                                         | Length (byte) |
+|-----------------------------------------------------------------------------------------------------|---------------|
+| struct size (BE)                                                                                    | 2             |
+| [TRANSACTION_INFO struct](tlv_structs.md#transaction_info--eip712_message_info) (P2 == transaction) | variable      |
+| [EIP712_MESSAGE_INFO struct](eip712.md#eip712_message_info) (P2 == V2 message)                      | variable      |
 
 ##### If P1 == following chunk
 
-| Description                                                | Length (byte) |
-|------------------------------------------------------------|---------------|
-| [TRANSACTION_INFO struct](tlv_structs.md#transaction_info--eip712_message_info) | variable      |
+| Description                                                                                         | Length (byte) |
+|-----------------------------------------------------------------------------------------------------|---------------|
+| [TRANSACTION_INFO struct](tlv_structs.md#transaction_info--eip712_message_info) (P2 == transaction) | variable      |
+| [EIP712_MESSAGE_INFO struct](eip712.md#eip712_message_info) (P2 == V2 message)                      | variable      |
 
 _Output data:_
 

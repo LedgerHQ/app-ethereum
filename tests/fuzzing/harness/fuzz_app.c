@@ -14,6 +14,8 @@
 #include "shared_context.h"
 #include "apdu_constants.h"     // handleApdu()
 #include "eip712_v1_context.h"  // eip712_v1_context_deinit()
+#include "eip712_session.h"     // eip712_session_close()
+#include "typed_data.h"         // td_deinit()
 #include "operation_ctx.h"      // gcs_cleanup()
 #include "trusted_name.h"       // trusted_name_cleanup()
 #include "enum_value.h"         // enum_value_cleanup()
@@ -132,7 +134,7 @@ static const tlv_tag_info_t TAGS_SIGNER_DESCRIPTOR[] = {
     {0x15, 70, 72},
 };
 
-static const tlv_tag_info_t TAGS_GTP_TX_INFO[] = {
+static const tlv_tag_info_t TAGS_GCS_OP_INFO[] = {
     {0x00, 1, 1},
     {0x01, 1, 8},
     {0x02, 20, 20},
@@ -182,7 +184,7 @@ static const tlv_tag_info_t TAGS_MAP_ENTRY[] = {
 #define _TLV_INLINE_PROXY_INFO      TLV_CFG(TAGS_PROXY_INFO)
 #define _TLV_INLINE_NETWORK_INFO    TLV_CFG(TAGS_NETWORK_INFO)
 #define _TLV_INLINE_SAFE_DESCRIPTOR TLV_CFG(TAGS_SAFE_DESCRIPTOR)
-#define _TLV_INLINE_GTP_TX_INFO     TLV_CFG(TAGS_GTP_TX_INFO)
+#define _TLV_INLINE_GCS_OP_INFO     TLV_CFG(TAGS_GCS_OP_INFO)
 #define _TLV_INLINE_GCS_FIELD       TLV_CFG(TAGS_GCS_FIELD)
 #define _TLV_INLINE_AUTH_7702       TLV_CFG(TAGS_AUTH_7702)
 #define _TLV_INLINE_MAP_ENTRY       TLV_CFG(TAGS_MAP_ENTRY)
@@ -209,7 +211,7 @@ static const tlv_tag_info_t TAGS_MAP_ENTRY[] = {
     X(INS_GET_CHALLENGE,                   0,    0,    0,                 NONE)          \
     X(INS_PROVIDE_TRUSTED_NAME,            1,    0,    FUZZ_CMD_HAS_DATA, TRUSTED_NAME)  \
     X(INS_PROVIDE_ENUM_VALUE,              1,    0,    FUZZ_CMD_HAS_DATA, ENUM_VALUE)    \
-    X(INS_GTP_TRANSACTION_INFO,            1,    0,    FUZZ_CMD_HAS_DATA, GTP_TX_INFO)   \
+    X(INS_GTP_TRANSACTION_INFO,            1,    0,    FUZZ_CMD_HAS_DATA, GCS_OP_INFO)   \
     X(INS_GTP_FIELD,                       1,    0,    FUZZ_CMD_HAS_DATA, GCS_FIELD)     \
     X(INS_PROVIDE_PROXY_INFO,              1,    0,    FUZZ_CMD_HAS_DATA, PROXY_INFO)    \
     X(INS_PROVIDE_NETWORK_INFO,            1,    0,    FUZZ_CMD_HAS_DATA, NETWORK_INFO)  \
@@ -391,6 +393,8 @@ void fuzz_app_reset(void) {
      * makes tlv_from_apdu() free its accumulator via the public API). */
     (void) tlv_from_apdu(false, 0, NULL, NULL);
     eip712_v1_context_deinit();
+    td_deinit();
+    eip712_session_close();
     gcs_cleanup();
     trusted_name_cleanup();
     enum_value_cleanup();
@@ -412,6 +416,12 @@ void fuzz_app_reset(void) {
     txContext.content = &tmpContent.txContent;
 
     appState = restored_app_state;
+    /* A fuzzed PREPARING_EIP712 state has no command behind it, so enter it the way a V2 schema
+     * does, with the session its V2 commands require. */
+    if (appState == APP_STATE_PREPARING_EIP712) {
+        appState = APP_STATE_IDLE;
+        (void) eip712_session_open(EIP712_SESSION_V2);
+    }
 }
 
 /* P1/P2 values each handler accepts. The structured lane maps the drawn bytes onto

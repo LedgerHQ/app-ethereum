@@ -3,6 +3,7 @@
 
 #include "shared_context.h"
 #include "eip712_v1_context.h"  // eip712_v1_context_deinit
+#include "eip712_session.h"     // eip712_session_close
 #include "bip32_utils.h"
 #include "bip32.h"
 #include "eth_swap_utils.h"
@@ -72,9 +73,11 @@ void reset_app_context_ex(bool scrub_strings) {
     memset((uint8_t *) &tmpCtx, 0, sizeof(tmpCtx));
     memset((uint8_t *) &dataContext, 0, sizeof(dataContext));
     forget_known_assets();
-    if (txContext.store_calldata) {
-        gcs_cleanup();
-    }
+    // The pairs of a raw review of a typed message, before the list that points at them is freed
+    ui_712_v2_cleanup();
+    // The review of an operation points at what its descriptors formatted, and those at the
+    // operations they were formatted for (a transaction, or a typed message and its calls)
+    gcs_cleanup();
     trusted_name_cleanup();
     enum_value_cleanup();
     map_entry_cleanup();
@@ -88,8 +91,6 @@ void reset_app_context_ex(bool scrub_strings) {
 #ifdef HAVE_TRANSACTION_CHECKS
     clear_tx_simulation();
 #endif
-    // Release the review pairs before the array pointing at them is freed
-    ui_712_v2_cleanup();
     ui_all_cleanup();
 #ifdef HAVE_ADDRESS_BOOK
     // A review the SDK displayed on our behalf may have been cut short by an error,
@@ -104,6 +105,10 @@ void reset_app_context_ex(bool scrub_strings) {
     if (scrub_strings) {
         explicit_bzero((uint8_t *) &strings, sizeof(strings));
     }
+    // the flow of a typed message ends with its tree and its session, after the cleanups of what
+    // points into them; the state is idle after it whatever the flow
+    td_deinit();
+    eip712_session_close();
     appState = APP_STATE_IDLE;
 }
 

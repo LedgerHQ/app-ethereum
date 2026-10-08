@@ -183,6 +183,14 @@ static bool hash_value(const s_struct_712_value *node, uint8_t *out, uint8_t dep
     return ret;
 }
 
+bool value_hash_domain(const s_eip712_impl *impl, uint8_t out[CX_KECCAK_256_SIZE]) {
+    if ((impl == NULL) || (impl->domain == NULL) || !hash_value(impl->domain, out, 0)) {
+        PRINTF("value_hash_domain: domain hash failed\n");
+        return false;
+    }
+    return true;
+}
+
 /**
  * Run hash pass over the complete EIP-712 value tree.
  *
@@ -195,12 +203,7 @@ static bool hash_value(const s_struct_712_value *node, uint8_t *out, uint8_t dep
 bool value_hash_pass(const s_eip712_impl *impl) {
     uint8_t hash[CX_KECCAK_256_SIZE];
 
-    if (impl == NULL) {
-        return false;
-    }
-
-    if ((impl->domain == NULL) || !hash_value(impl->domain, hash, 0)) {
-        PRINTF("value_hash_pass: domain hash failed\n");
+    if (!value_hash_domain(impl, hash)) {
         return false;
     }
     memcpy(tmpCtx.messageSigningContext712.domainHash, hash, CX_KECCAK_256_SIZE);

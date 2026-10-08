@@ -21,6 +21,7 @@
 #include "cmd_eip712_v2_schema.h"
 #include "cmd_eip712_v2_values.h"
 #include "cmd_eip712_v2_sign.h"
+#include "cmd_eip712_v2_message_info.h"
 
 #ifdef HAVE_ETH2
 #include "withdrawal_index.h"
@@ -139,7 +140,11 @@ uint16_t handleApdu(command_t *cmd, uint32_t *tx) {
             break;
 
         case INS_GTP_TRANSACTION_INFO:
-            sw = handle_tx_info(cmd->p1, cmd->p2, cmd->lc, cmd->data);
+            if (cmd->p2 == P2_EIP712_V2_IMPLEM) {
+                sw = handle_eip712_v2_message_info(cmd->p1, cmd->p2, cmd->lc, cmd->data);
+            } else {
+                sw = handle_tx_info(cmd->p1, cmd->p2, cmd->lc, cmd->data);
+            }
             break;
 
         case INS_GTP_FIELD:

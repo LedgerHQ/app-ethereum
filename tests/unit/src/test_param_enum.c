@@ -10,7 +10,7 @@
  * bytes wide), then chains five preconditions that each surface as a
  * `false` return when they fail:
  *   - value_get must succeed,
- *   - get_current_tx_info must be non-NULL (chain_id source),
+ *   - the operation being described must be on a chain (chain_id source),
  *   - the parsed value must be non-empty,
  *   - calldata_get_selector(get_current_calldata()) must yield a
  *     selector — without it the lookup key is incomplete,
@@ -30,7 +30,7 @@
 #include "gcs_parsed_value.h"
 #include "gcs_value.h"
 #include "gcs_field.h"
-#include "gtp_tx_info.h"
+#include "operation_info.h"
 #include "enum_value.h"
 #include "calldata.h"
 #include "shared_context.h"
@@ -70,7 +70,7 @@ bool handle_value_struct(const buffer_t *buf, s_value_context *context) {
     return g_hvs_ret;
 }
 
-static s_tx_info g_fake_tx_info;
+static s_operation_info g_fake_tx_info;
 
 static s_calldata g_fake_calldata;  // contents irrelevant — only pointer identity matters
 static s_calldata *g_calldata_ret = &g_fake_calldata;
@@ -101,9 +101,13 @@ bool add_to_field_table(e_param_type type,
     return (bool) g_add_to_field_table_ret;
 }
 
-static const s_tx_info *s_tx_info_ret = NULL;
-const s_tx_info *get_current_tx_info(void) {
-    return s_tx_info_ret;
+static const s_operation_info *s_tx_info_ret = NULL;
+bool get_current_operation_chain_id(uint64_t *chain_id) {
+    if (s_tx_info_ret == NULL) {
+        return false;
+    }
+    *chain_id = s_tx_info_ret->chain_id;
+    return true;
 }
 
 // =============================================================================
@@ -115,8 +119,8 @@ static const uint8_t g_contract[ADDRESS_LENGTH] = {
     0x55, 0x66, 0x77, 0x88, 0x99, 0x00, 0xAA, 0xBB, 0xCC, 0xDD,
 };
 
-// Enum metadata is resolved against the callee of the current context
-const uint8_t *get_current_tx_to(void) {
+// Enum metadata is resolved against the callee of the operation being described
+const uint8_t *get_current_operation_to(void) {
     return g_contract;
 }
 

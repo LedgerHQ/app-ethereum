@@ -36,7 +36,7 @@
 #include "gcs_value.h"
 #include "gtp_data_path.h"
 #include "gcs_parsed_value.h"
-#include "gtp_tx_info.h"
+#include "operation_info.h"
 #include "map_entry.h"
 // wraps.h removed: all stubs are local
 
@@ -67,17 +67,17 @@ bool handle_data_path_struct(const buffer_t *buf, s_data_path_context *context) 
     return true;
 }
 
-// RLP getters
+// What the descriptor is evaluated against: the operation being described
 static const uint8_t *g_tx_from = NULL;
 static const uint8_t *g_tx_to = NULL;
 static const uint8_t *g_tx_amount = NULL;
-const uint8_t *get_current_tx_from(void) {
+const uint8_t *get_current_operation_from(void) {
     return g_tx_from;
 }
-const uint8_t *get_current_tx_to(void) {
+const uint8_t *get_current_operation_to(void) {
     return g_tx_to;
 }
-const uint8_t *get_current_tx_amount(void) {
+const uint8_t *get_current_operation_amount(void) {
     return g_tx_amount;
 }
 
@@ -90,9 +90,26 @@ const s_map_entry *get_matching_map_entry(uint8_t id, const uint8_t *key, uint8_
     return g_map_entry_ret;
 }
 
-static const s_tx_info *s_tx_info_ret = NULL;
-const s_tx_info *get_current_tx_info(void) {
+static const s_operation_info *s_tx_info_ret = NULL;
+const s_operation_info *get_current_operation_info(void) {
     return s_tx_info_ret;
+}
+bool get_current_operation_chain_id(uint64_t *chain_id) {
+    if (s_tx_info_ret == NULL) {
+        return false;
+    }
+    *chain_id = s_tx_info_ret->chain_id;
+    return true;
+}
+
+// What decides whether the review must add its own row for the sender
+static bool g_is_root = false;
+static int g_root_from_shown_calls = 0;
+bool operation_ctx_is_root(void) {
+    return g_is_root;
+}
+void operation_ctx_set_root_from_shown(void) {
+    g_root_from_shown_calls++;
 }
 
 // =============================================================================
@@ -107,6 +124,8 @@ static void reset(void) {
     g_tx_to = NULL;
     g_tx_amount = NULL;
     s_tx_info_ret = NULL;
+    g_is_root = false;
+    g_root_from_shown_calls = 0;
     g_map_entry_ret = NULL;
 }
 
@@ -178,7 +197,7 @@ void test_value_get_rlp_amount(void) {
 }
 
 void test_value_get_rlp_chain_id_bigendian(void) {
-    static s_tx_info info;
+    static s_operation_info info;
     info.chain_id = 0x1234;
     s_tx_info_ret = &info;
 

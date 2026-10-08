@@ -130,6 +130,15 @@ class EthAppClient:
             self._exchange(chunk)
         return self._exchange(chunks[-1])
 
+    def eip712_v2_send_message_info(self, payload: bytes) -> RAPDU:
+        # the struct is signed with the same key as the transaction one
+        self.send_pki_certificate(CALLDATA_PARTNER)
+
+        chunks = self._cmd_builder.eip712_v2_message_info(payload)
+        for chunk in chunks[:-1]:
+            self._exchange(chunk)
+        return self._exchange(chunks[-1])
+
     def eip712_v2_sign(self):
         return self._exchange_async(self._cmd_builder.eip712_v2_sign())
 

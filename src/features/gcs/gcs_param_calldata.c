@@ -4,7 +4,7 @@
 #include "common_utils.h"
 #include "gcs_field_table.h"
 #include "shared_context.h"
-#include "gtp_tx_info.h"
+#include "operation_info.h"
 #include "utils.h"
 #include "read.h"
 #include "operation_ctx.h"

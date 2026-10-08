@@ -14,3 +14,12 @@
  * @return whether the hash pass was successful
  */
 bool value_hash_pass(const s_eip712_impl *impl);
+
+/**
+ * Compute hashStruct(domain) over the domain value tree, once it is complete
+ *
+ * @param[in] impl the value trees
+ * @param[out] out the hash of the domain
+ * @return whether the hash was computed
+ */
+bool value_hash_domain(const s_eip712_impl *impl, uint8_t out[CX_KECCAK_256_SIZE]);

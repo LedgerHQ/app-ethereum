@@ -7,11 +7,16 @@
 #include "shared_context.h"  // appState
 #include "utils.h"           // buf_shrink_expand
 #include "get_public_key.h"
-#include "eip712_v1_context.h"
 #include "network.h"
 #include "hash_bytes.h"
 
+// The calls, in execution order
 static s_operation_ctx *g_operation_ctx_list = NULL;
+// The typed message the calls were made by, kept apart from them
+static s_operation_ctx *g_operation_ctx_message = NULL;
+// Whether the message info announces descriptors, which are still to be checked
+static bool g_message_has_fields = false;
+// The operation being described: a call, or the message while none is
 static s_operation_ctx *g_operation_ctx_current = NULL;
 s_calldata *g_parked_calldata = NULL;
 // Whether a descriptor field already displays the root transaction native value (CP_VALUE)
@@ -19,26 +24,72 @@ static bool g_root_value_shown = false;
 // Whether a descriptor field already displays the root transaction sender (CP_FROM)
 static bool g_root_from_shown = false;
 
+static bool is_message(const s_operation_ctx *ctx) {
+    return (ctx != NULL) && (ctx == g_operation_ctx_message);
+}
+
+// A call with no calldata to describe, which is shown from the call that made it
+static bool is_empty_call(const s_operation_ctx *ctx) {
+    return ctx->calldata == NULL;
+}
+
+// The operation the others come from: the typed message, else the transaction being signed
+static s_operation_ctx *get_root(void) {
+    return (g_operation_ctx_message != NULL) ? g_operation_ctx_message : g_operation_ctx_list;
+}
+
 bool operation_ctx_is_root(void) {
-    return (g_operation_ctx_list != NULL) && (g_operation_ctx_current == g_operation_ctx_list);
+    return (g_operation_ctx_current != NULL) && (g_operation_ctx_current == get_root());
+}
+
+bool operation_ctx_is_describing_call(void) {
+    return (g_operation_ctx_current != NULL) && !is_message(g_operation_ctx_current);
 }
 
 size_t get_operation_ctx_count(void) {
     return list_size((list_node_t **) &g_operation_ctx_list);
 }
 
-cx_hash_t *get_fields_hash_ctx(void) {
+const s_operation_info *get_current_operation_info(void) {
+    if (g_operation_ctx_current == NULL) return NULL;
+    return g_operation_ctx_current->info;
+}
+
+bool get_current_operation_chain_id(uint64_t *chain_id) {
+    // a message whose domain has no chain is on none
+    if ((get_current_operation_info() == NULL) || !g_operation_ctx_current->has_chain_id) {
+        return false;
+    }
+    *chain_id = g_operation_ctx_current->chain_id;
+    return true;
+}
+
+const uint8_t *get_current_operation_from(void) {
+    if (g_operation_ctx_current == NULL) return NULL;
+    return g_operation_ctx_current->from;
+}
+
+const uint8_t *get_current_operation_to(void) {
+    if ((g_operation_ctx_current == NULL) || !g_operation_ctx_current->has_to) return NULL;
+    return g_operation_ctx_current->to;
+}
+
+const uint8_t *get_current_operation_amount(void) {
+    // a typed message sends no native amount
+    if ((g_operation_ctx_current == NULL) || is_message(g_operation_ctx_current)) return NULL;
+    return g_operation_ctx_current->amount;
+}
+
+cx_hash_t *get_current_operation_fields_hash_ctx(void) {
+    if (g_operation_ctx_current == NULL) return NULL;
     return (cx_hash_t *) &g_operation_ctx_current->fields_hash_ctx;
 }
 
-const s_tx_info *get_current_tx_info(void) {
-    if (g_operation_ctx_current == NULL) return NULL;
-    return g_operation_ctx_current->tx_info;
-}
+const s_operation_info *get_root_operation_info(void) {
+    const s_operation_ctx *root = get_root();
 
-const s_tx_info *get_root_operation_info(void) {
-    if (g_operation_ctx_list == NULL) return NULL;
-    return g_operation_ctx_list->tx_info;
+    if (root == NULL) return NULL;
+    return root->info;
 }
 
 s_calldata *get_current_calldata(void) {
@@ -47,28 +98,10 @@ s_calldata *get_current_calldata(void) {
 }
 
 s_calldata *get_root_calldata(void) {
-    if (g_operation_ctx_list == NULL) return NULL;
-    return g_operation_ctx_list->calldata;
-}
+    const s_operation_ctx *root = get_root();
 
-const uint8_t *get_current_tx_from(void) {
-    if (g_operation_ctx_current == NULL) return NULL;
-    return g_operation_ctx_current->from;
-}
-
-const uint8_t *get_current_tx_to(void) {
-    if (g_operation_ctx_current == NULL) return NULL;
-    return g_operation_ctx_current->to;
-}
-
-const uint8_t *get_current_tx_amount(void) {
-    if (g_operation_ctx_current == NULL) return NULL;
-    return g_operation_ctx_current->amount;
-}
-
-uint64_t get_current_tx_chain_id(void) {
-    if (g_operation_ctx_current == NULL) return 0;
-    return g_operation_ctx_current->chain_id;
+    if (root == NULL) return NULL;
+    return root->calldata;
 }
 
 /**
@@ -77,24 +110,32 @@ uint64_t get_current_tx_chain_id(void) {
  */
 __attribute__((noinline)) static bool validate_inst_hash_on(const s_operation_ctx *operation_ctx) {
     cx_sha3_t hash_ctx;
-    uint8_t hash[sizeof(operation_ctx->tx_info->fields_hash)];
+    uint8_t hash[sizeof(operation_ctx->info->fields_hash)];
 
-    if ((operation_ctx == NULL) || (operation_ctx->tx_info == NULL)) return false;
+    if ((operation_ctx == NULL) || (operation_ctx->info == NULL)) return false;
     // copy it locally, because the cx_hash call will modify it
     memcpy(&hash_ctx, &operation_ctx->fields_hash_ctx, sizeof(hash_ctx));
     if (finalize_hash((cx_hash_t *) &hash_ctx, hash, sizeof(hash)) != true) {
         return false;
     }
-    return memcmp(operation_ctx->tx_info->fields_hash, hash, sizeof(hash)) == 0;
+    return memcmp(operation_ctx->info->fields_hash, hash, sizeof(hash)) == 0;
 }
 
 bool validate_instruction_hash(void) {
     return validate_inst_hash_on(g_operation_ctx_current);
 }
 
+bool operation_ctx_has_message(void) {
+    return g_operation_ctx_message != NULL;
+}
+
+bool operation_ctx_message_has_pending_fields(void) {
+    return operation_ctx_has_message() && g_message_has_fields;
+}
+
 static void delete_operation_ctx(s_operation_ctx *node) {
-    if (node->tx_info != NULL) {
-        delete_tx_info(node->tx_info);
+    if (node->info != NULL) {
+        delete_operation_info(node->info);
     }
     if (node->calldata != NULL) {
         if (g_parked_calldata == node->calldata) {
@@ -105,13 +146,26 @@ static void delete_operation_ctx(s_operation_ctx *node) {
     APP_MEM_FREE(node);
 }
 
-void operation_ctx_pop(void) {
+/**
+ * Drop the call being described, which hands the description back to what came before it
+ *
+ * @return whether a call was dropped, which it is not when none is being described
+ */
+bool operation_ctx_pop(void) {
     list_node_t *old_current = (list_node_t *) g_operation_ctx_current;
 
-    g_operation_ctx_current = (s_operation_ctx *) ((list_node_t *) g_operation_ctx_current)->prev;
-    list_remove((list_node_t **) &g_operation_ctx_list,
-                old_current,
-                (f_list_node_del) &delete_operation_ctx);
+    // only a call is popped, which the message is not
+    if (!operation_ctx_is_describing_call()) {
+        return false;
+    }
+    // what was being described before the call is the previous call, else the message
+    g_operation_ctx_current = (s_operation_ctx *) old_current->prev;
+    if (g_operation_ctx_current == NULL) {
+        g_operation_ctx_current = g_operation_ctx_message;
+    }
+    return list_remove((list_node_t **) &g_operation_ctx_list,
+                       old_current,
+                       (f_list_node_del) &delete_operation_ctx);
 }
 
 static bool process_empty_call(const s_operation_ctx *operation_ctx) {
@@ -121,6 +175,11 @@ static bool process_empty_call(const s_operation_ctx *operation_ctx) {
     size_t buf_size = sizeof(strings.tmp.tmp);
     e_param_type param_type;
 
+    // nothing tells where a call that takes no chain from its message goes
+    if (!operation_ctx->has_chain_id) {
+        PRINTF("Error: a call is on no chain!\n");
+        return false;
+    }
     if (operation_ctx->has_amount) {
         if (!set_intent_field("Send")) {
             return false;
@@ -181,8 +240,7 @@ static bool process_empty_call(const s_operation_ctx *operation_ctx) {
         return false;
     }
     // A call on another chain than the root one is told apart by its network
-    if ((g_operation_ctx_list == NULL) ||
-        (operation_ctx->chain_id != g_operation_ctx_list->chain_id)) {
+    if ((get_root() == NULL) || (operation_ctx->chain_id != get_root()->chain_id)) {
         if (!get_network_as_string_from_chain_id(buf, buf_size, operation_ctx->chain_id) ||
             !add_to_field_table(PARAM_TYPE_RAW, "Network", buf, NULL)) {
             return false;
@@ -197,7 +255,7 @@ static bool process_empty_call(const s_operation_ctx *operation_ctx) {
 bool process_empty_calls_before(void) {
     list_node_t *tmp = (list_node_t *) g_operation_ctx_current;
     // Rewind to the first of the contiguous empty predecessors: they are shown in execution order
-    while ((tmp->prev != NULL) && (((s_operation_ctx *) tmp->prev)->calldata == NULL)) {
+    while ((tmp->prev != NULL) && is_empty_call((s_operation_ctx *) tmp->prev)) {
         tmp = tmp->prev;
     }
     while (tmp != (list_node_t *) g_operation_ctx_current) {
@@ -214,7 +272,7 @@ bool process_empty_calls_before(void) {
 
 bool process_empty_calls_after(void) {
     flist_node_t *tmp = ((flist_node_t *) g_operation_ctx_current)->next;
-    while ((tmp != NULL) && (((s_operation_ctx *) tmp)->calldata == NULL)) {
+    while ((tmp != NULL) && is_empty_call((s_operation_ctx *) tmp)) {
         // process_empty_call calls list_remove + delete_operation_ctx, which frees tmp.
         // Ensure reading tmp->next before the call to avoid use-after-free.
         flist_node_t *next = tmp->next;
@@ -237,7 +295,7 @@ bool find_matching_operation_ctx(const uint8_t *contract_addr,
     // transactions have no TX_INFO and are handled by process_empty_calls_*().
     for (s_operation_ctx *tmp = g_operation_ctx_list; tmp != NULL;
          tmp = (s_operation_ctx *) ((flist_node_t *) tmp)->next) {
-        if ((tmp->tx_info == NULL) && (tmp->calldata != NULL)) {
+        if ((tmp->info == NULL) && (tmp->calldata != NULL)) {
             expected = tmp;
             break;
         }
@@ -251,7 +309,7 @@ bool find_matching_operation_ctx(const uint8_t *contract_addr,
                 contract_addr,
                 ADDRESS_LENGTH) == 0) &&
         (memcmp(selector, expected->calldata->selector, CALLDATA_SELECTOR_SIZE) == 0) &&
-        (*chain_id == expected->chain_id)) {
+        expected->has_chain_id && (*chain_id == expected->chain_id)) {
         g_operation_ctx_current = expected;
         return true;
     }
@@ -260,35 +318,74 @@ bool find_matching_operation_ctx(const uint8_t *contract_addr,
 
 static void operation_ctx_cleanup(void) {
     list_clear((list_node_t **) &g_operation_ctx_list, (f_list_node_del) &delete_operation_ctx);
+    if (g_operation_ctx_message != NULL) {
+        delete_operation_ctx(g_operation_ctx_message);
+        g_operation_ctx_message = NULL;
+    }
+    g_message_has_fields = false;
     g_operation_ctx_current = NULL;
 }
 
-bool operation_ctx_set_info(s_tx_info *tx_info) {
-    cx_sha3_t ctx;
-    uint8_t hash[INT256_LENGTH];
-
-    if (g_operation_ctx_current == NULL) return false;
-    g_operation_ctx_current->tx_info = tx_info;
-    if (operation_ctx_is_root()) {
-        if (appState == APP_STATE_SIGNING_EIP712) {
-            if (!set_intent_field(tx_info->operation_type)) return false;
-        }
-    } else {
-        if (!set_intent_field(tx_info->operation_type)) return false;
-    }
-
-    if ((appState == APP_STATE_SIGNING_EIP712) || !operation_ctx_is_root()) {
-        if (cx_sha3_init_no_throw(&ctx, 256) != CX_OK) {
-            return false;
-        }
-        if (finalize_hash((cx_hash_t *) &ctx, hash, sizeof(hash)) != true) {
-            return false;
-        }
-        if (memcmp(hash, tx_info->fields_hash, sizeof(hash)) == 0) {
-            operation_ctx_pop();
-        }
-    }
+bool operation_ctx_set_info(s_operation_info *info) {
+    if (!operation_ctx_is_describing_call()) return false;
+    g_operation_ctx_current->info = info;
     return true;
+}
+
+bool operation_ctx_init_message(s_operation_info *info,
+                                const uint8_t from[ADDRESS_LENGTH],
+                                const uint8_t contract[ADDRESS_LENGTH],
+                                const uint64_t *chain_id) {
+    s_operation_ctx *node;
+    bool no_fields;
+
+    // the message is the root of the operations, so it comes first, and there is only one
+    if ((g_operation_ctx_message != NULL) || (g_operation_ctx_list != NULL) ||
+        (APP_MEM_CALLOC((void **) &node, sizeof(*node)) == false)) {
+        delete_operation_info(info);
+        return false;
+    }
+    // the node owns the info from here on
+    node->info = info;
+    memcpy(node->from, from, sizeof(node->from));
+    if (!operation_info_fields_hash_is_empty(info, &no_fields) ||
+        (cx_sha3_init_no_throw(&node->fields_hash_ctx, 256) != CX_OK)) {
+        PRINTF("Error: could not set up the message!\n");
+        delete_operation_ctx(node);
+        return false;
+    }
+    if (chain_id != NULL) {
+        node->chain_id = *chain_id;
+        node->has_chain_id = true;
+    }
+    if (contract != NULL) {
+        memcpy(node->to, contract, sizeof(node->to));
+        node->has_to = true;
+    }
+    g_message_has_fields = !no_fields;
+    g_operation_ctx_message = node;
+    g_operation_ctx_current = node;
+    return true;
+}
+
+/**
+ * Get the operation a call that is queued comes from, whose defaults it takes
+ *
+ * That is the operation being described when there is one, else the last one queued: the calls are
+ * queued in the order they nest, before any matching has run.
+ *
+ * @return the operation, NULL if there is none
+ */
+static const s_operation_ctx *get_parent_of_new_call(void) {
+    const s_operation_ctx *parent = g_operation_ctx_current;
+
+    if (parent == NULL) {
+        parent = g_operation_ctx_list;
+        while ((parent != NULL) && (((const flist_node_t *) parent)->next != NULL)) {
+            parent = (const s_operation_ctx *) ((const flist_node_t *) parent)->next;
+        }
+    }
+    return (parent != NULL) ? parent : g_operation_ctx_message;
 }
 
 bool operation_ctx_init(s_calldata *calldata,
@@ -297,35 +394,24 @@ bool operation_ctx_init(s_calldata *calldata,
                         const uint8_t *amount,
                         const uint64_t *chain_id) {
     s_operation_ctx *node;
-    s_eip712_calldata_info *calldata_info;
 
     if (APP_MEM_CALLOC((void **) &node, sizeof(*node)) == false) {
         return false;
     }
     node->calldata = calldata;
+    node->has_to = true;
     if (get_operation_ctx_count() == 0) {
         get_public_key(node->from, ADDRESS_LENGTH);
-        if (appState == APP_STATE_SIGNING_EIP712) {
-            calldata_info = get_current_calldata_info();
-            if (!calldata_info_all_received(calldata_info) || calldata_info->processed) {
-                APP_MEM_FREE(node);
-                return false;
-            }
-            calldata_info->processed = true;
-        }
     } else {
-        // Inherit defaults from the logical parent: the context being
-        // formatted when known, the list tail at queue time (creation order
-        // matches nesting order before any matching has run).
-        const s_operation_ctx *parent = g_operation_ctx_current;
+        const s_operation_ctx *parent = get_parent_of_new_call();
+
         if (parent == NULL) {
-            parent = g_operation_ctx_list;
-            while (((const flist_node_t *) parent)->next != NULL) {
-                parent = (const s_operation_ctx *) ((const flist_node_t *) parent)->next;
-            }
+            APP_MEM_FREE(node);
+            return false;
         }
         memcpy(node->from, parent->from, sizeof(node->from));
         node->chain_id = parent->chain_id;
+        node->has_chain_id = parent->has_chain_id;
     }
 
     if (from != NULL) {
@@ -340,6 +426,7 @@ bool operation_ctx_init(s_calldata *calldata,
     }
     if (chain_id != NULL) {
         node->chain_id = *chain_id;
+        node->has_chain_id = true;
     }
 
     if (cx_sha3_init_no_throw(&node->fields_hash_ctx, 256) != CX_OK) {

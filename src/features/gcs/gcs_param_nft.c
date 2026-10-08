@@ -66,8 +66,7 @@ __attribute__((noinline)) bool format_param_nft(const s_param_nft *param, const 
     char tmp[80];
     uint64_t chain_id;
 
-    if (get_current_tx_info() == NULL) return false;
-    chain_id = get_current_tx_info()->chain_id;
+    if (!get_current_operation_chain_id(&chain_id)) return false;
     if ((ret = value_get(&param->collection, &collections))) {
         if ((ret = value_get(&param->id, &ids))) {
             if (collections.size == 0) {

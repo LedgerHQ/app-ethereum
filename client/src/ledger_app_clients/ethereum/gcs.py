@@ -19,14 +19,19 @@ class TxInfoTag(IntEnum):
     CREATOR_URL = 0x08
     CONTRACT_NAME = 0x09
     DEPLOY_DATE = 0x0A
+    DOMAIN_SEPARATOR = 0x0B
+    PRIMARY_TYPE_HASH = 0x0C
     SIGNATURE = 0xFF
 
 
-class TxInfo(TlvSerializable):
+class _TxInfoBase(TlvSerializable):
+    """What TRANSACTION_INFO and EIP712_MESSAGE_INFO have in common.
+
+    Both share one wire format: only the tags that identify what is signed (see `_type_id_field`)
+    differ.
+    """
+
     version: int
-    chain_id: int
-    contract_addr: bytes
-    selector: bytes
     fields_hash: bytes
     operation_type: str
     creator_name: str | None
@@ -39,9 +44,6 @@ class TxInfo(TlvSerializable):
     def __init__(
         self,
         version: int,
-        chain_id: int,
-        contract_addr: bytes,
-        selector: bytes,
         fields_hash: bytes,
         operation_type: str,
         creator_name: str | None = None,
@@ -52,9 +54,6 @@ class TxInfo(TlvSerializable):
         signature: bytes | None = None,
     ):
         self.version = version
-        self.chain_id = chain_id
-        self.contract_addr = contract_addr
-        self.selector = selector
         self.fields_hash = fields_hash
         self.operation_type = operation_type
         self.creator_name = creator_name
@@ -64,12 +63,15 @@ class TxInfo(TlvSerializable):
         self.deploy_date = deploy_date
         self.signature = signature
 
+    def _type_id_field(self) -> bytes:
+        """The serialized tags that identify what is signed: the chain, the contract and the function of
+        a transaction, or the domain and the type of a message."""
+        raise NotImplementedError
+
     def serialize(self) -> bytes:
         payload = bytearray()
         payload += self.serialize_field(TxInfoTag.VERSION, self.version)
-        payload += self.serialize_field(TxInfoTag.CHAIN_ID, self.chain_id)
-        payload += self.serialize_field(TxInfoTag.CONTRACT_ADDR, self.contract_addr)
-        payload += self.serialize_field(TxInfoTag.SELECTOR, self.selector)
+        payload += self._type_id_field()
         payload += self.serialize_field(TxInfoTag.FIELDS_HASH, self.fields_hash)
         payload += self.serialize_field(TxInfoTag.OPERATION_TYPE, self.operation_type)
         if self.creator_name is not None:
@@ -87,6 +89,92 @@ class TxInfo(TlvSerializable):
             signature = CALLDATA_PARTNER.sign(bytes(payload))
         payload += self.serialize_field(TxInfoTag.SIGNATURE, signature)
         return bytes(payload)
+
+
+class TxInfo(_TxInfoBase):
+    chain_id: int
+    contract_addr: bytes
+    selector: bytes
+
+    def __init__(
+        self,
+        version: int,
+        chain_id: int,
+        contract_addr: bytes,
+        selector: bytes,
+        fields_hash: bytes,
+        operation_type: str,
+        creator_name: str | None = None,
+        creator_legal_name: str | None = None,
+        creator_url: str | None = None,
+        contract_name: str | None = None,
+        deploy_date: int | None = None,
+        signature: bytes | None = None,
+    ):
+        super().__init__(
+            version,
+            fields_hash,
+            operation_type,
+            creator_name,
+            creator_legal_name,
+            creator_url,
+            contract_name,
+            deploy_date,
+            signature,
+        )
+        self.chain_id = chain_id
+        self.contract_addr = contract_addr
+        self.selector = selector
+
+    def _type_id_field(self) -> bytes:
+        return (
+            self.serialize_field(TxInfoTag.CHAIN_ID, self.chain_id)
+            + self.serialize_field(TxInfoTag.CONTRACT_ADDR, self.contract_addr)
+            + self.serialize_field(TxInfoTag.SELECTOR, self.selector)
+        )
+
+
+class Eip712MessageInfo(_TxInfoBase):
+    """EIP712_MESSAGE_INFO: the domain separator covers the chain and the contract of the message.
+
+    `domain_separator` is hashStruct(domain), the `header` of `eth_account.messages.encode_typed_data`.
+    """
+
+    domain_separator: bytes
+    primary_type_hash: bytes
+
+    def __init__(
+        self,
+        version: int,
+        domain_separator: bytes,
+        primary_type_hash: bytes,
+        fields_hash: bytes,
+        operation_type: str,
+        creator_name: str | None = None,
+        creator_legal_name: str | None = None,
+        creator_url: str | None = None,
+        contract_name: str | None = None,
+        deploy_date: int | None = None,
+        signature: bytes | None = None,
+    ):
+        super().__init__(
+            version,
+            fields_hash,
+            operation_type,
+            creator_name,
+            creator_legal_name,
+            creator_url,
+            contract_name,
+            deploy_date,
+            signature,
+        )
+        self.domain_separator = domain_separator
+        self.primary_type_hash = primary_type_hash
+
+    def _type_id_field(self) -> bytes:
+        return self.serialize_field(TxInfoTag.DOMAIN_SEPARATOR, self.domain_separator) + self.serialize_field(
+            TxInfoTag.PRIMARY_TYPE_HASH, self.primary_type_hash
+        )
 
 
 class ParamType(IntEnum):

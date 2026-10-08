@@ -5,6 +5,7 @@
 #include "shared_context.h"
 #include "typed_data.h"
 #include "common_ui.h"  // ui_712_v2_review, ui_error_blind_signing
+#include "eip712_session.h"
 
 #ifdef HAVE_PRINTF
 // Debug-only trace of the value trees, compiled out of release builds
@@ -85,7 +86,7 @@ uint16_t handle_eip712_v2_sign(uint8_t p1, uint8_t p2, uint8_t lc) {
     if (lc != 0) {
         return SWO_INCORRECT_DATA;
     }
-    if (appState != APP_STATE_PREPARING_EIP712) {
+    if (!eip712_session_is_preparing(EIP712_SESSION_V2)) {
         return SWO_COMMAND_NOT_ALLOWED;
     }
     if (!td_has_domain() || !td_has_message()) {

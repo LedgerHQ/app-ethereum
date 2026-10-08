@@ -404,6 +404,13 @@ bool td_has_schema(void) {
     return g_structs != NULL;
 }
 
+const char *td_get_message_type_name(void) {
+    if ((g_impl.message == NULL) || (g_impl.message->struct_type == NULL)) {
+        return NULL;
+    }
+    return g_impl.message->struct_type->name;
+}
+
 bool td_get_domain_chain_id(uint64_t *chain_id) {
     if (g_impl.domain != NULL) {
         for (const s_struct_712_value *child = g_impl.domain->children; child != NULL;
@@ -438,7 +445,7 @@ bool td_get_domain_chain_id(uint64_t *chain_id) {
     return false;
 }
 
-bool td_get_domain_contract_addr(uint8_t addr[ADDRESS_LENGTH]) {
+static bool get_domain_contract_addr(uint8_t addr[ADDRESS_LENGTH], bool accept_ethermint) {
     const char *ethermint_vc = "cosmos";
 
     if (g_impl.domain != NULL) {
@@ -457,7 +464,7 @@ bool td_get_domain_contract_addr(uint8_t addr[ADDRESS_LENGTH]) {
                         }
                         break;
                     case TYPE_SOL_STRING:
-                        if ((length != strlen(ethermint_vc)) ||
+                        if (!accept_ethermint || (length != strlen(ethermint_vc)) ||
                             (strncmp((char *) data, ethermint_vc, length) != 0)) {
                             PRINTF("Error: non standard verifyingContract\n");
                             return false;
@@ -475,6 +482,14 @@ bool td_get_domain_contract_addr(uint8_t addr[ADDRESS_LENGTH]) {
         }
     }
     return false;
+}
+
+bool td_get_domain_contract_addr(uint8_t addr[ADDRESS_LENGTH]) {
+    return get_domain_contract_addr(addr, true);
+}
+
+bool td_get_domain_verifying_address(uint8_t addr[ADDRESS_LENGTH]) {
+    return get_domain_contract_addr(addr, false);
 }
 
 /**
@@ -564,6 +579,10 @@ bool td_visit_struct_fields(const s_struct_712 *s,
 
 bool td_hash_pass(void) {
     return value_hash_pass(&g_impl);
+}
+
+bool td_hash_domain(uint8_t out[CX_KECCAK_256_SIZE]) {
+    return value_hash_domain(&g_impl, out);
 }
 
 const s_struct_712 *td_find_struct_if(td_f_struct_pred pred, const void *ctx) {

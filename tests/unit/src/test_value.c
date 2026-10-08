@@ -4,9 +4,10 @@
  *        src/features/gcs/gcs_value.c.
  *
  * `s_value` is the polymorphic descriptor every GCS parameter carries
- * to say "where do I read my bytes from". Four sources are supported,
+ * to say "where do I read my bytes from". Five sources are supported,
  * exposed through value_get():
  *   - SOURCE_CALLDATA: walk a data_path against the live calldata,
+ *   - SOURCE_EIP712: follow a path in the value tree of the typed message,
  *   - SOURCE_RLP: pull from the running tx's RLP envelope by
  *     container_path (FROM / TO / VALUE / CHAIN_ID),
  *   - SOURCE_CONSTANT: an inline byte buffer attached to the value,
@@ -61,10 +62,32 @@ void data_path_cleanup(const s_parsed_value_collection *collection) {
 
 // handle_data_path_struct is called by handle_value_struct on TAG_DATA_PATH.
 // The wrap accepts anything and reports success.
+static int g_dp_parse_calls = 0;
 bool handle_data_path_struct(const buffer_t *buf, s_data_path_context *context) {
     (void) buf;
     (void) context;
+    g_dp_parse_calls++;
     return true;
+}
+
+// message side: the path in the value tree
+static bool g_eip712_parse_ret = true;
+static int g_eip712_parse_calls = 0;
+bool handle_eip712_path_struct(const buffer_t *buf, s_eip712_path_context *context) {
+    (void) buf;
+    (void) context;
+    g_eip712_parse_calls++;
+    return g_eip712_parse_ret;
+}
+
+static bool g_eip712_get_ret = true;
+static int g_eip712_get_calls = 0;
+static s_parsed_value_collection g_eip712_collection;
+bool eip712_path_get(const s_eip712_path *path, s_parsed_value_collection *collection) {
+    (void) path;
+    *collection = g_eip712_collection;
+    g_eip712_get_calls++;
+    return g_eip712_get_ret;
 }
 
 // What the descriptor is evaluated against: the operation being described
@@ -120,6 +143,12 @@ static void reset(void) {
     g_dp_get_ret = true;
     memset(&g_dp_collection, 0, sizeof(g_dp_collection));
     g_dp_cleanup_calls = 0;
+    g_dp_parse_calls = 0;
+    g_eip712_parse_ret = true;
+    g_eip712_parse_calls = 0;
+    g_eip712_get_ret = true;
+    g_eip712_get_calls = 0;
+    memset(&g_eip712_collection, 0, sizeof(g_eip712_collection));
     g_tx_from = NULL;
     g_tx_to = NULL;
     g_tx_amount = NULL;
@@ -263,6 +292,95 @@ void test_handle_value_struct_data_path_tag_sets_source_calldata(void) {
 //
 // Actually: handle_data_path_struct is wrapped to ALWAYS return true,
 // so the error branch isn't reachable from this suite. Skipping.
+
+// =============================================================================
+// The path tag in a transaction and in a message
+// =============================================================================
+
+static const s_operation_info s_transaction_info = {.context = OPERATION_INFO_CTX_SIGN_TX};
+static const s_operation_info s_message_info = {.context = OPERATION_INFO_CTX_EIP712};
+
+// Tag 0x03 is a path in the calldata for a transaction, in the value tree for a message
+void test_path_tag_is_a_data_path_in_a_transaction(void) {
+    uint8_t bytes[] = {0x00, 0x01, 0x01, 0x01, 0x01, (uint8_t) TF_BYTES, 0x03, 0x00};
+    buffer_t buf = {.ptr = bytes, .size = sizeof(bytes), .offset = 0};
+    s_value v = {0};
+    s_value_context ctx = {.value = &v};
+
+    s_tx_info_ret = &s_transaction_info;
+    TEST_ASSERT_TRUE(handle_value_struct(&buf, &ctx));
+    TEST_ASSERT_EQUAL(SOURCE_CALLDATA, v.source);
+    TEST_ASSERT_EQUAL(1, g_dp_parse_calls);
+    TEST_ASSERT_EQUAL(0, g_eip712_parse_calls);
+}
+
+void test_path_tag_is_a_message_path_in_a_message(void) {
+    uint8_t bytes[] = {0x00, 0x01, 0x01, 0x01, 0x01, (uint8_t) TF_BYTES, 0x03, 0x00};
+    buffer_t buf = {.ptr = bytes, .size = sizeof(bytes), .offset = 0};
+    s_value v = {0};
+    s_value_context ctx = {.value = &v};
+
+    s_tx_info_ret = &s_message_info;
+    TEST_ASSERT_TRUE(handle_value_struct(&buf, &ctx));
+    TEST_ASSERT_EQUAL(SOURCE_EIP712, v.source);
+    TEST_ASSERT_EQUAL(0, g_dp_parse_calls);
+    TEST_ASSERT_EQUAL(1, g_eip712_parse_calls);
+}
+
+void test_message_path_that_does_not_parse_is_refused(void) {
+    uint8_t bytes[] = {0x00, 0x01, 0x01, 0x01, 0x01, (uint8_t) TF_BYTES, 0x03, 0x00};
+    buffer_t buf = {.ptr = bytes, .size = sizeof(bytes), .offset = 0};
+    s_value v = {0};
+    s_value_context ctx = {.value = &v};
+
+    s_tx_info_ret = &s_message_info;
+    g_eip712_parse_ret = false;
+    TEST_ASSERT_FALSE(handle_value_struct(&buf, &ctx));
+}
+
+void test_value_get_message_path_delegates_to_the_path(void) {
+    s_value v = {0};
+    s_parsed_value_collection collec = {0};
+
+    v.source = SOURCE_EIP712;
+    g_eip712_collection.size = 3;
+    s_tx_info_ret = &s_message_info;
+    TEST_ASSERT_TRUE(value_get(&v, &collec));
+    TEST_ASSERT_EQUAL(3, collec.size);
+    TEST_ASSERT_EQUAL(1, g_eip712_get_calls);
+}
+
+void test_value_get_message_path_failure_propagates(void) {
+    s_value v = {0};
+    s_parsed_value_collection collec = {0};
+
+    v.source = SOURCE_EIP712;
+    g_eip712_get_ret = false;
+    s_tx_info_ret = &s_message_info;
+    TEST_ASSERT_FALSE(value_get(&v, &collec));
+}
+
+// A message path is only read for a message, a data path only for a transaction
+void test_value_get_message_path_is_refused_for_a_transaction(void) {
+    s_value v = {0};
+    s_parsed_value_collection collec = {0};
+
+    v.source = SOURCE_EIP712;
+    s_tx_info_ret = &s_transaction_info;
+    TEST_ASSERT_FALSE(value_get(&v, &collec));
+    s_tx_info_ret = NULL;
+    TEST_ASSERT_FALSE(value_get(&v, &collec));
+    TEST_ASSERT_EQUAL(0, g_eip712_get_calls);
+}
+
+void test_value_get_data_path_is_refused_for_a_message(void) {
+    s_value v = {0};
+    s_parsed_value_collection collec = {0};
+
+    v.source = SOURCE_CALLDATA;
+    s_tx_info_ret = &s_message_info;
+    TEST_ASSERT_FALSE(value_get(&v, &collec));
+}
 
 void test_value_get_rlp_to_null_rejected(void) {
     g_tx_to = NULL;
@@ -457,7 +575,7 @@ void test_value_cleanup_calldata_calls_data_path_cleanup(void) {
 }
 
 void test_value_cleanup_non_calldata_is_noop(void) {
-    for (e_value_source src = SOURCE_RLP; src <= SOURCE_MAP_REF; ++src) {
+    for (e_value_source src = SOURCE_RLP; src <= SOURCE_EIP712; ++src) {
         if (src == SOURCE_CALLDATA) continue;
         s_value v = {0};
         v.source = src;
@@ -700,6 +818,13 @@ int main(void) {
     RUN_TEST(test_value_get_rlp_from_null_rejected);
     RUN_TEST(test_value_get_rlp_chain_id_null_tx_info_rejected);
     RUN_TEST(test_handle_value_struct_data_path_tag_sets_source_calldata);
+    RUN_TEST(test_path_tag_is_a_data_path_in_a_transaction);
+    RUN_TEST(test_path_tag_is_a_message_path_in_a_message);
+    RUN_TEST(test_message_path_that_does_not_parse_is_refused);
+    RUN_TEST(test_value_get_message_path_delegates_to_the_path);
+    RUN_TEST(test_value_get_message_path_failure_propagates);
+    RUN_TEST(test_value_get_message_path_is_refused_for_a_transaction);
+    RUN_TEST(test_value_get_data_path_is_refused_for_a_message);
     RUN_TEST(test_value_get_rlp_to_null_rejected);
     RUN_TEST(test_value_get_rlp_amount_null_rejected);
     RUN_TEST(test_value_get_rlp_invalid_container_path_rejected);

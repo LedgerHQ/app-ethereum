@@ -297,6 +297,56 @@ void test_from_of_a_call_in_a_message_is_not_marked_as_shown(void) {
     TEST_ASSERT_EQUAL(0, g_root_from_shown_calls);
 }
 
+// The container paths read what the operation being described holds, whatever it is
+static bool get_container(e_container_path path, s_parsed_value_collection *collec) {
+    s_value v = {0};
+
+    v.source = SOURCE_RLP;
+    v.container_path = path;
+    return value_get(&v, collec);
+}
+
+void test_container_to_is_the_callee_of_the_operation(void) {
+    static const uint8_t callee[ADDRESS_LENGTH] = {0xC0};
+    s_parsed_value_collection collec = {0};
+
+    s_tx_info_ret = &s_message_info;
+    g_tx_to = callee;
+    TEST_ASSERT_TRUE(get_container(CP_TO, &collec));
+    TEST_ASSERT_EQUAL(1, collec.size);
+    TEST_ASSERT_EQUAL_PTR(callee, collec.value[0].ptr);
+    TEST_ASSERT_EQUAL(ADDRESS_LENGTH, collec.value[0].length);
+}
+
+// an operation with no callee leaves the descriptor nothing to show
+void test_container_to_refused_when_the_operation_has_no_callee(void) {
+    s_parsed_value_collection collec = {0};
+
+    s_tx_info_ret = &s_message_info;
+    g_tx_to = NULL;
+    TEST_ASSERT_FALSE(get_container(CP_TO, &collec));
+}
+
+void test_container_chain_id_is_the_chain_of_the_operation_big_endian(void) {
+    static const uint8_t expected[8] = {0, 0, 0, 0, 0, 0, 0x01, 0x2C};
+    s_operation_info info = {.chain_id = 300};
+    s_parsed_value_collection collec = {0};
+
+    s_tx_info_ret = &info;
+    TEST_ASSERT_TRUE(get_container(CP_CHAIN_ID, &collec));
+    TEST_ASSERT_EQUAL(sizeof(uint64_t), collec.value[0].length);
+    TEST_ASSERT_EQUAL_MEMORY(expected, collec.value[0].ptr, sizeof(expected));
+}
+
+// an operation that sends no amount leaves the descriptor nothing to show
+void test_container_value_refused_when_the_operation_sends_no_amount(void) {
+    s_parsed_value_collection collec = {0};
+
+    s_tx_info_ret = &s_message_info;
+    g_tx_amount = NULL;
+    TEST_ASSERT_FALSE(get_container(CP_VALUE, &collec));
+}
+
 void test_value_get_rlp_from_null_rejected(void) {
     g_tx_from = NULL;
     s_value v = {0};
@@ -871,6 +921,10 @@ int main(void) {
     RUN_TEST(test_from_of_a_call_that_is_not_root_is_not_marked_as_shown);
     RUN_TEST(test_from_of_a_message_is_marked_as_shown);
     RUN_TEST(test_from_of_a_call_in_a_message_is_not_marked_as_shown);
+    RUN_TEST(test_container_to_is_the_callee_of_the_operation);
+    RUN_TEST(test_container_to_refused_when_the_operation_has_no_callee);
+    RUN_TEST(test_container_chain_id_is_the_chain_of_the_operation_big_endian);
+    RUN_TEST(test_container_value_refused_when_the_operation_sends_no_amount);
     RUN_TEST(test_value_get_rlp_from_null_rejected);
     RUN_TEST(test_value_get_rlp_chain_id_null_tx_info_rejected);
     RUN_TEST(test_handle_value_struct_data_path_tag_sets_source_calldata);

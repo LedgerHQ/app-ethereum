@@ -524,6 +524,21 @@ ledger_unit_tests_add_test(NAME test_eip712_v2_path
     ${COMMON_LINK_OPTIONS}
 )
 
+ledger_unit_tests_add_test(NAME test_typed_data_accessors
+  SOURCES
+    ${COMMON_SOURCES}
+    ${APP_DIR}/features/sign_message_eip712/typed_data.c
+    ${APP_DIR}/features/sign_message_eip712/sol_typenames.c
+    ${APP_DIR}/utils/mem_utils.c
+    ${SDK_DIR}/lib_lists/lists.c
+  INCLUDE_DIRS
+    ${COMMON_INCLUDE_DIRS}
+  COMPILE_DEFS
+    ${COMMON_COMPILE_DEFS}
+  LINK_OPTIONS
+    ${COMMON_LINK_OPTIONS}
+)
+
 ledger_unit_tests_add_test(NAME test_eip712_v2_message_info
   SOURCES
     ${COMMON_SOURCES_WITH_GLOBALS}

@@ -458,6 +458,23 @@ void test_get_a_slice_of_the_leaf_counts_negative_bounds_from_the_end(void) {
     assert_value(&collection.value[0], &k_blob[sizeof(k_blob) - 2], 2);
 }
 
+// the end is exclusive: -1 leaves the last byte out
+void test_get_a_slice_of_the_leaf_counts_a_negative_end_from_the_end(void) {
+    s_eip712_path path = {.version = 1};
+    s_eip712_path too_far = {.version = 1};
+    s_parsed_value_collection collection;
+
+    add_field_step(&path, ORDER_FIELD_BLOB);
+    add_leaf_step(&path, 1, -1);
+    TEST_ASSERT_TRUE(eip712_path_get(&path, &collection));
+    assert_value(&collection.value[0], &k_blob[1], sizeof(k_blob) - 2);
+
+    // an end before the start of the value selects nothing, which is refused for a leaf
+    add_field_step(&too_far, ORDER_FIELD_BLOB);
+    add_leaf_step(&too_far, NO_BOUND, -7);
+    TEST_ASSERT_FALSE(eip712_path_get(&too_far, &collection));
+}
+
 void test_get_a_string(void) {
     s_eip712_path path = {.version = 1};
     s_parsed_value_collection collection;
@@ -686,6 +703,7 @@ int main(void) {
     RUN_TEST(test_get_a_slice_of_each_dimension);
     RUN_TEST(test_get_a_slice_of_the_leaf);
     RUN_TEST(test_get_a_slice_of_the_leaf_counts_negative_bounds_from_the_end);
+    RUN_TEST(test_get_a_slice_of_the_leaf_counts_a_negative_end_from_the_end);
     RUN_TEST(test_get_a_string);
     RUN_TEST(test_get_nothing_from_an_empty_array);
     RUN_TEST(test_get_nothing_from_a_selection_that_is_empty);

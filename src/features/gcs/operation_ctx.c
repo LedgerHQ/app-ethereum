@@ -85,6 +85,36 @@ cx_hash_t *get_current_operation_fields_hash_ctx(void) {
     return (cx_hash_t *) &g_operation_ctx_current->fields_hash_ctx;
 }
 
+bool get_current_operation_key(s_operation_key *key) {
+    const s_operation_info *info = get_current_operation_info();
+    const uint8_t *callee;
+    const uint8_t *selector;
+
+    if (info == NULL) {
+        return false;
+    }
+    memset(key, 0, sizeof(*key));
+    key->context = info->context;
+    switch (info->context) {
+        case OPERATION_INFO_CTX_SIGN_TX:
+            // the selector the calldata carries, which the info was checked against
+            if (!get_current_operation_chain_id(&key->chain_id) ||
+                ((callee = get_current_operation_to()) == NULL) ||
+                ((selector = calldata_get_selector(get_current_calldata())) == NULL)) {
+                return false;
+            }
+            memcpy(key->contract_addr, callee, sizeof(key->contract_addr));
+            memcpy(key->selector, selector, sizeof(key->selector));
+            return true;
+        case OPERATION_INFO_CTX_EIP712:
+            memcpy(key->domain_separator, info->domain_separator, sizeof(key->domain_separator));
+            memcpy(key->primary_type_hash, info->primary_type_hash, sizeof(key->primary_type_hash));
+            return true;
+        default:
+            return false;
+    }
+}
+
 const s_operation_info *get_root_operation_info(void) {
     const s_operation_ctx *root = get_root();
 

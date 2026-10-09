@@ -472,6 +472,10 @@ __attribute__((weak)) const uint8_t *calldata_get_selector(const struct s_callda
     return NULL;
 }
 
+__attribute__((weak)) struct s_calldata *get_current_calldata(void) {
+    return NULL;
+}
+
 // =============================================================================
 // app/src/main.c -- BIP-32 path parsing
 // =============================================================================

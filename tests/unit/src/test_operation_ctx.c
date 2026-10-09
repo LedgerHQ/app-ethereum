@@ -224,6 +224,7 @@ static const uint8_t g_amount_1eth[INT256_LENGTH] = {
 
 void test_getters_on_empty_list_return_null_or_zero(void) {
     uint64_t chain_id;
+    s_operation_key key;
 
     TEST_ASSERT_FALSE(operation_ctx_is_root());
     TEST_ASSERT_EQUAL(get_operation_ctx_count(), 0);
@@ -236,6 +237,7 @@ void test_getters_on_empty_list_return_null_or_zero(void) {
     TEST_ASSERT_NULL(get_current_operation_amount());
     TEST_ASSERT_NULL(get_current_operation_fields_hash_ctx());
     TEST_ASSERT_FALSE(get_current_operation_chain_id(&chain_id));
+    TEST_ASSERT_FALSE(get_current_operation_key(&key));
     TEST_ASSERT_FALSE(operation_ctx_is_describing_call());
     TEST_ASSERT_FALSE(operation_ctx_has_message());
 }
@@ -742,6 +744,35 @@ void test_a_message_with_no_chain_is_on_none(void) {
     TEST_ASSERT_FALSE(get_current_operation_chain_id(&chain_id));
 }
 
+// the metadata of a message is attached to its primary type in its domain, the one of a call to its
+// function of its callee: a message needs no chain nor contract for it
+void test_the_key_of_a_message_is_its_domain_and_primary_type(void) {
+    s_operation_key key;
+
+    TEST_ASSERT_TRUE(operation_ctx_init_message(make_message_info(false), g_self_addr, NULL, NULL));
+    TEST_ASSERT_TRUE(get_current_operation_key(&key));
+    TEST_ASSERT_EQUAL(OPERATION_INFO_CTX_EIP712, key.context);
+    TEST_ASSERT_EACH_EQUAL_UINT8(0xD5, key.domain_separator, INT256_LENGTH);
+    TEST_ASSERT_EACH_EQUAL_UINT8(0x5A, key.primary_type_hash, INT256_LENGTH);
+}
+
+void test_the_key_of_a_call_is_its_chain_callee_and_selector(void) {
+    uint64_t chain = 1;
+    s_calldata *cd = make_complete_calldata(g_match_selector);
+    s_operation_info *info = calloc(1, sizeof(*info));
+    s_operation_key key;
+
+    TEST_ASSERT_TRUE(operation_ctx_init(cd, g_addr_a, g_addr_b, NULL, &chain));
+    TEST_ASSERT_TRUE(find_matching_operation_ctx(g_addr_b, g_match_selector, &chain));
+    info->fields_hash[0] = 0xAA;
+    TEST_ASSERT_TRUE(operation_ctx_set_info(info));
+    TEST_ASSERT_TRUE(get_current_operation_key(&key));
+    TEST_ASSERT_EQUAL(OPERATION_INFO_CTX_SIGN_TX, key.context);
+    TEST_ASSERT_EQUAL_UINT64(1, key.chain_id);
+    TEST_ASSERT_EQUAL_MEMORY(g_addr_b, key.contract_addr, ADDRESS_LENGTH);
+    TEST_ASSERT_EQUAL_MEMORY(g_match_selector, key.selector, CALLDATA_SELECTOR_SIZE);
+}
+
 // a call stays a call, whatever the info it is described with
 void test_a_call_is_not_taken_for_a_message_by_its_info(void) {
     uint64_t chain = 1;
@@ -1178,6 +1209,8 @@ int main(void) {
     RUN_TEST(test_a_message_is_the_root_and_the_operation_being_described);
     RUN_TEST(test_a_message_has_no_callee_when_its_domain_has_no_contract);
     RUN_TEST(test_a_message_with_no_chain_is_on_none);
+    RUN_TEST(test_the_key_of_a_message_is_its_domain_and_primary_type);
+    RUN_TEST(test_the_key_of_a_call_is_its_chain_callee_and_selector);
     RUN_TEST(test_a_call_is_not_taken_for_a_message_by_its_info);
     RUN_TEST(test_a_message_that_cannot_be_started_is_refused_and_its_info_released);
     RUN_TEST(test_a_message_cannot_come_after_a_call);

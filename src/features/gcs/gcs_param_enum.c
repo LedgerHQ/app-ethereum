@@ -52,12 +52,10 @@ bool handle_param_enum_struct(const buffer_t *buf, s_param_enum_context *context
 
 __attribute__((noinline)) bool format_param_enum(const s_param_enum *param, const char *name) {
     bool ret;
-    uint64_t chain_id;
     s_parsed_value_collection collec = {0};
     const s_enum_value_entry *enum_entry;
     uint8_t value;
-    const uint8_t *selector;
-    const uint8_t *callee;
+    s_operation_key operation_key;
 
     // Enum entries are 8-bit: the schema must declare an unsigned value. Wider declarations are
     // accepted as long as the calldata word fits in 8 bits (checked below).
@@ -66,13 +64,9 @@ __attribute__((noinline)) bool format_param_enum(const s_param_enum *param, cons
     }
 
     if ((ret = value_get(&param->value, &collec))) {
-        if (!get_current_operation_chain_id(&chain_id)) {
-            ret = false;
-            goto end;
-        }
-        // Enum metadata is signed per contract: use the callee of the current
-        // (possibly nested) context, not the root transaction destination.
-        if ((callee = get_current_operation_to()) == NULL) {
+        // Enum metadata is signed per operation: use the current (possibly nested) one, not the
+        // root transaction.
+        if (!get_current_operation_key(&operation_key)) {
             ret = false;
             goto end;
         }
@@ -89,12 +83,7 @@ __attribute__((noinline)) bool format_param_enum(const s_param_enum *param, cons
                 break;
             }
             value = collec.value[i].ptr[collec.value[i].length - 1];
-            if ((selector = calldata_get_selector(get_current_calldata())) == NULL) {
-                ret = false;
-                break;
-            }
-            if ((enum_entry = get_matching_enum(&chain_id, callee, selector, param->id, value)) ==
-                NULL) {
+            if ((enum_entry = get_matching_enum(&operation_key, param->id, value)) == NULL) {
                 ret = false;
                 break;
             }

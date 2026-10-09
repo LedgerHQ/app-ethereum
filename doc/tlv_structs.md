@@ -62,16 +62,35 @@ identical between the two contexts, see the `Context` column below.
 
 ## ENUM_VALUE
 
-| Name          | Tag  | Payload type   | Description                                                              | Optional | Source / value                                             |
-|---------------|------|----------------|--------------------------------------------------------------------------|----------|------------------------------------------------------------|
-| VERSION       | 0x00 | uint8          | struct version                                                           |          | constant: `0x1`                                            |
-| CHAIN_ID      | 0x01 | uint64         | EIP-155 chain ID                                                         |          | `$.context.contract.deployments.[<deployment id>].chainId` |
-| CONTRACT_ADDR | 0x02 | uint8[20]      | EVM contract address                                                     |          | `$.context.contract.deployments.[<deployment id>].address` |
-| SELECTOR      | 0x03 | uint8[4]       | function selector                                                        |          |                                                            |
-| ID            | 0x04 | uint8          | identifier of the enum (to differentiate multiple enums in one contract) |          | `$.metadata.enums.<enum id>`                               |
-| VALUE         | 0x05 | uint8          | enum entry integer value                                                 |          | `$.metadata.enums.<enum id>.<enum entry>.value`            |
-| NAME          | 0x06 | char[]         | enum entry name (ASCII)                                                  |          | `$.metadata.enums.<enum id>.<enum entry>.name`             |
-| SIGNATURE     | 0xff | uint8[]        | signature of all the other struct fields                                 |          | computed by CAL                                            |
+Provided via `PROVIDE_ENUM_VALUE` APDU (INS `0x24`). Signed by CAL. It is sent before the FIELD that
+uses it, and may come before the [TRANSACTION_INFO](#transaction_info--eip712_message_info) or the
+[EIP712_MESSAGE_INFO](eip712.md#eip712_message_info) of the operation it is for: its tags tell which
+kind of operation it is for. It has `CHAIN_ID`, `CONTRACT_ADDR` and `SELECTOR` for a transaction,
+`DOMAIN_SEPARATOR` and `PRIMARY_TYPE_HASH` for a typed message, and none of the other.
+
+For a typed message, it is looked up with the domain separator and the primary type hash of the
+message, whatever chain or contract its domain has.
+
+| Name          | Tag  | Payload type   | Description                                                              | Optional | Context      | Source / value                                             |
+|---------------|------|----------------|--------------------------------------------------------------------------|----------|--------------|------------------------------------------------------------|
+| VERSION       | 0x00 | uint8          | struct version                                                           |          | both         | constant: `0x1`                                            |
+| CHAIN_ID      | 0x01 | uint64         | EIP-155 chain ID                                                         |          | SignTx only  | `$.context.contract.deployments.[<deployment id>].chainId` |
+| CONTRACT_ADDR | 0x02 | uint8[20]      | EVM contract address                                                     |          | SignTx only  | `$.context.contract.deployments.[<deployment id>].address` |
+| SELECTOR      | 0x03 | uint8[4]       | function selector                                                        |          | SignTx only  |                                                            |
+| ID            | 0x04 | uint8          | identifier of the enum (to differentiate multiple enums in one contract) |          | both         | `$.metadata.enums.<enum id>`                               |
+| VALUE         | 0x05 | uint8          | enum entry integer value                                                 |          | both         | `$.metadata.enums.<enum id>.<enum entry>.value`            |
+| NAME          | 0x06 | char[]         | enum entry name (ASCII)                                                  |          | both         | `$.metadata.enums.<enum id>.<enum entry>.name`             |
+| DOMAIN_SEPARATOR  | 0x07 | uint8[32]  | `hashStruct(domain)`                                                     |          | EIP-712 only | `$.context.eip712.domain`, with the deployment             |
+| PRIMARY_TYPE_HASH | 0x08 | uint8[32]  | `keccak256(encodeType(primaryType))`                                     |          | EIP-712 only |                                                            |
+| SIGNATURE     | 0xff | uint8[]        | signature of all the other struct fields                                 |          | both         | computed by CAL                                            |
+
+> [!NOTE]
+>
+> - A selector is looked up for the call being described, and the contract is that call's callee
+>   (resolved through the proxy information, if any). A primary type hash is looked up for the
+>   message being described, with the domain separator of the message: a typed message names no
+>   proxy.
+> - The two kinds of key never match each other, whatever their bytes are.
 
 ## FIELD
 
@@ -440,20 +459,37 @@ Provided via `PROVIDE_MAP_ENTRY` APDU (INS `0x3A`). Signed by CAL. Associates a 
 value for context-dependent constants. The wallet resolves the key from the transaction context
 and sends only the matching entry to the device.
 
-| Name          | Tag  | Payload type | Description                                                    | Optional | Source / value                                             |
-|---------------|------|--------------|----------------------------------------------------------------|----------|------------------------------------------------------------|
-| VERSION       | 0x00 | uint8        | struct version                                                 |          | constant: `0x1`                                            |
-| CHAIN_ID      | 0x01 | uint64       | EIP-155 chain ID                                               |          | `$.context.contract.deployments.[<deployment id>].chainId` |
-| CONTRACT_ADDR | 0x02 | uint8[20]    | EVM contract address                                           |          | `$.context.contract.deployments.[<deployment id>].address` |
-| SELECTOR      | 0x03 | uint8[4]     | function selector                                              |          |                                                            |
-| ID            | 0x04 | uint8        | map identifier (to differentiate multiple maps in a contract)  |          | `$.metadata.maps.<map id>`                                 |
-| KEY           | 0x05 | uint8[]      | map key (raw bytes)                                            |          | `$.metadata.maps.<map id>.<key>`                           |
-| VALUE         | 0x06 | uint8[]      | map value (raw bytes)                                          |          | `$.metadata.maps.<map id>.<key>.value`                     |
-| SIGNATURE     | 0xff | uint8[]      | signature of all the other struct fields                       |          | computed by CAL                                            |
+Like an [ENUM_VALUE](#enum_value), it is sent before the FIELD that uses it, and may come before
+the [TRANSACTION_INFO](#transaction_info--eip712_message_info) or the
+[EIP712_MESSAGE_INFO](eip712.md#eip712_message_info) of the operation it is for: its tags tell which
+kind of operation it is for, as for an ENUM_VALUE. For a typed message, it is looked up with the
+domain separator and the primary type hash of the message.
+
+| Name          | Tag  | Payload type | Description                                                    | Optional | Context      | Source / value                                             |
+|---------------|------|--------------|----------------------------------------------------------------|----------|--------------|------------------------------------------------------------|
+| VERSION       | 0x00 | uint8        | struct version                                                 |          | both         | constant: `0x1`                                            |
+| CHAIN_ID      | 0x01 | uint64       | EIP-155 chain ID                                               |          | SignTx only  | `$.context.contract.deployments.[<deployment id>].chainId` |
+| CONTRACT_ADDR | 0x02 | uint8[20]    | EVM contract address                                           |          | SignTx only  | `$.context.contract.deployments.[<deployment id>].address` |
+| SELECTOR      | 0x03 | uint8[4]     | function selector                                              |          | SignTx only  |                                                            |
+| ID            | 0x04 | uint8        | map identifier (to differentiate multiple maps in a contract)  |          | both         | `$.metadata.maps.<map id>`                                 |
+| KEY           | 0x05 | uint8[]      | map key (raw bytes)                                            |          | both         | `$.metadata.maps.<map id>.<key>`                           |
+| VALUE         | 0x06 | uint8[]      | map value (raw bytes)                                          |          | both         | `$.metadata.maps.<map id>.<key>.value`                     |
+| DOMAIN_SEPARATOR  | 0x07 | uint8[32] | `hashStruct(domain)`                                          |          | EIP-712 only | `$.context.eip712.domain`, with the deployment             |
+| PRIMARY_TYPE_HASH | 0x08 | uint8[32] | `keccak256(encodeType(primaryType))`                          |          | EIP-712 only |                                                            |
+| SIGNATURE     | 0xff | uint8[]      | signature of all the other struct fields                       |          | both         | computed by CAL                                            |
 
 > [!NOTE]
-> The device verifies the KEY matches the value resolved from the transaction context before using the VALUE.
-> If no matching MAP_ENTRY is found in the current context, the clear signing flow is aborted.
+>
+> - The device verifies the KEY matches the value resolved from the transaction context before using the VALUE.
+>   If no matching MAP_ENTRY is found in the current context, the clear signing flow is aborted.
+> - The KEY is compared byte for byte with the value it is looked up for, whose length counts. In a
+>   transaction that value is a 32-byte word of the calldata. In a typed message it is the leaf
+>   as the host sent it, which for an integer is its minimal big-endian form (`7` is `0x07`).
+> - A selector is looked up for the call being described, and the contract is that call's callee
+>   (resolved through the proxy information, if any). A primary type hash is looked up for the
+>   message being described, with the domain separator of the message: a typed message names no
+>   proxy.
+> - The two kinds of key never match each other, whatever their bytes are.
 
 ### MAP_REF
 

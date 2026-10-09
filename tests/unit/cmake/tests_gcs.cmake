@@ -397,6 +397,7 @@ ledger_unit_tests_add_test(NAME test_provide_map_entry
   SOURCES
     ${COMMON_SOURCES_WITH_GLOBALS}
     ${APP_DIR}/features/provide_map_entry/map_entry.c
+    ${APP_DIR}/features/gcs/operation_key.c
     ${APP_DIR}/tlv_apdu.c
     ${APP_DIR}/utils/tlv_utils.c
     ${APP_DIR}/utils/mem_utils.c
@@ -418,6 +419,7 @@ ledger_unit_tests_add_test(NAME test_enum_value
   SOURCES
     ${COMMON_SOURCES_WITH_GLOBALS}
     ${APP_DIR}/features/provide_enum_value/enum_value.c
+    ${APP_DIR}/features/gcs/operation_key.c
     ${APP_DIR}/utils/tlv_utils.c
     ${APP_DIR}/utils/utils.c
     ${APP_DIR}/uint128.c

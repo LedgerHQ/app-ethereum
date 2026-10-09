@@ -6,6 +6,7 @@
 #include "lists.h"
 #include "common_utils.h"  // ADDRESS_LENGTH, INT256_LENGTH
 #include "operation_info.h"
+#include "operation_key.h"
 #include "calldata.h"
 #include "gcs_field.h"
 
@@ -80,6 +81,15 @@ const uint8_t *get_current_operation_amount(void);
  * @return the running hash of the descriptors received for the operation being described
  */
 cx_hash_t *get_current_operation_fields_hash_ctx(void);
+/**
+ * Get the key signed metadata (enum values, map entries) is attached to, for the operation being
+ * described: the chain, the callee and the function selector of the calldata for a call, the domain
+ * separator and the hash of the primary type for a typed message
+ *
+ * @param[out] key the key and which kind it is
+ * @return whether there is an operation, and it has a key: a call on no chain has none
+ */
+bool get_current_operation_key(s_operation_key *key);
 
 bool validate_instruction_hash(void);
 bool operation_ctx_pop(void);

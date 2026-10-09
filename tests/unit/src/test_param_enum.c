@@ -70,25 +70,19 @@ bool handle_value_struct(const buffer_t *buf, s_value_context *context) {
     return g_hvs_ret;
 }
 
-static s_operation_info g_fake_tx_info;
-
-static s_calldata g_fake_calldata;  // contents irrelevant — only pointer identity matters
-static s_calldata *g_calldata_ret = &g_fake_calldata;
-s_calldata *get_current_calldata(void) {
-    return g_calldata_ret;
-}
-
-static const uint8_t g_selector[4] = {0xDE, 0xAD, 0xBE, 0xEF};
-static const uint8_t *g_selector_ret = g_selector;
-const uint8_t *calldata_get_selector(const s_calldata *calldata) {
-    (void) calldata;
-    return g_selector_ret;
+// What the enum is looked up with: the key of the operation being described
+static s_operation_key g_operation_key;
+static bool g_operation_key_ret = true;
+bool get_current_operation_key(s_operation_key *key) {
+    if (!g_operation_key_ret) {
+        return false;
+    }
+    *key = g_operation_key;
+    return true;
 }
 
 static const s_enum_value_entry *g_enum_ret = NULL;
-const s_enum_value_entry *get_matching_enum(const uint64_t *chain_id,
-                                            const uint8_t *contract_addr,
-                                            const uint8_t *selector,
+const s_enum_value_entry *get_matching_enum(const s_operation_key *operation_key,
                                             uint8_t id,
                                             uint8_t value) {
     return g_enum_ret;
@@ -101,15 +95,6 @@ bool add_to_field_table(e_param_type type,
     return (bool) g_add_to_field_table_ret;
 }
 
-static const s_operation_info *s_tx_info_ret = NULL;
-bool get_current_operation_chain_id(uint64_t *chain_id) {
-    if (s_tx_info_ret == NULL) {
-        return false;
-    }
-    *chain_id = s_tx_info_ret->chain_id;
-    return true;
-}
-
 // =============================================================================
 // Fixtures
 // =============================================================================
@@ -119,12 +104,9 @@ static const uint8_t g_contract[ADDRESS_LENGTH] = {
     0x55, 0x66, 0x77, 0x88, 0x99, 0x00, 0xAA, 0xBB, 0xCC, 0xDD,
 };
 
-// Enum metadata is resolved against the callee of the operation being described
-const uint8_t *get_current_operation_to(void) {
-    return g_contract;
-}
-
 static void reset(void) {
+    memset(&g_operation_key, 0, sizeof(g_operation_key));
+    g_operation_key_ret = true;
     memset(&g_vg, 0, sizeof(g_vg));
     g_vg_call = 0;
     g_value_cleanup_calls = 0;
@@ -132,12 +114,6 @@ static void reset(void) {
     g_hvs_ret = true;
     g_add_to_field_table_ret = true;
 
-    memset(&g_fake_tx_info, 0, sizeof(g_fake_tx_info));
-    g_fake_tx_info.chain_id = 1;
-    s_tx_info_ret = &g_fake_tx_info;
-
-    g_calldata_ret = &g_fake_calldata;
-    g_selector_ret = g_selector;
     g_enum_ret = NULL;
 
     memset(&g_tx_content, 0, sizeof(g_tx_content));
@@ -201,7 +177,7 @@ void test_format_tx_info_null_returns_false(void) {
     static const uint8_t v[] = {0x01};
     g_vg[0].size = 1;
     g_vg[0].value[0] = (s_parsed_value) {.ptr = v, .size = 1, .offset = 0, .length = 1};
-    s_tx_info_ret = NULL;
+    g_operation_key_ret = false;
 
     s_param_enum param = {0};
     param.value.type_family = TF_UINT;
@@ -219,11 +195,11 @@ void test_format_empty_value_rejected(void) {
     TEST_ASSERT_FALSE(format_param_enum(&param, "Action"));
 }
 
-void test_format_selector_missing_rejects(void) {
+void test_format_operation_key_missing_rejects(void) {
     static const uint8_t v[] = {0x01};
     g_vg[0].size = 1;
     g_vg[0].value[0] = (s_parsed_value) {.ptr = v, .size = 1, .offset = 0, .length = 1};
-    g_selector_ret = NULL;
+    g_operation_key_ret = false;
 
     s_param_enum param = {0};
     TEST_ASSERT_FALSE(format_param_enum(&param, "Action"));
@@ -327,7 +303,7 @@ int main(void) {
     RUN_TEST(test_format_value_get_failure_returns_false);
     RUN_TEST(test_format_tx_info_null_returns_false);
     RUN_TEST(test_format_empty_value_rejected);
-    RUN_TEST(test_format_selector_missing_rejects);
+    RUN_TEST(test_format_operation_key_missing_rejects);
     RUN_TEST(test_format_unknown_enum_rejects);
     RUN_TEST(test_format_add_to_field_table_failure_propagates);
     RUN_TEST(test_tlv_version_other_than_one_refused);

@@ -1199,6 +1199,18 @@ None
 
 ### PROVIDE ENUM VALUE
 
+#### Description
+
+This command provides the app with a signed enum value, which labels a numeric value of an
+operation (see [ENUM_VALUE](tlv_structs.md#enum_value)). It comes before the FIELD descriptor that
+uses it, and may come before the [TRANSACTION INFO](#transaction-info) of the operation (or,
+for a typed message, its EIP712_MESSAGE_INFO).
+
+The value is attached to a function of a contract for a transaction (its chain, its contract and its
+selector), and to a primary type of a domain for a typed message (the domain separator and the hash
+of the primary type): its tags tell which. A call a typed message names is a transaction, keyed by
+its function.
+
 #### Coding
 
 _Command:_
@@ -1639,10 +1651,15 @@ None
 
 #### Description
 
-This command provides the app with a key/value entry for a specific contract, function selector, and chain ID. The entry
-is signed by CAL and stored on the device until a new signing session starts. When the Generic Transaction Parser
-encounters a `MAP_REF` parameter, the device looks up the stored entries and resolves the display value from the
-matching `MAP_ENTRY`.
+This command provides the app with a key/value entry for a specific function of a contract on a chain (or primary type of
+a domain). The entry is signed by CAL and stored on the device until a new signing session starts. When the Generic
+Transaction Parser encounters a `MAP_REF` parameter, the device looks up the stored entries and resolves the display
+value from the matching `MAP_ENTRY`.
+
+The entry comes before the FIELD descriptor that uses it, and may come before the
+[TRANSACTION INFO](#transaction-info) of the operation (or, for a typed message, its EIP712_MESSAGE_INFO). It is
+attached to a function of a contract for a transaction, and to a primary type of a domain for a typed message: its tags
+tell which. A call a typed message names is a transaction, keyed by its function.
 
 The descriptor is sent in TLV (Tag-Length-Value) mode.
 

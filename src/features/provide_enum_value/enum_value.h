@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include "lists.h"
 #include "common_utils.h"  // ADDRESS_LENGTH
-#include "plugin_utils.h"  // SELECTOR_SIZE
+#include "operation_key.h"
 #include "tlv_library.h"
 #include "cx.h"
 
@@ -11,9 +11,7 @@
 
 typedef struct {
     flist_node_t _list;
-    uint64_t chain_id;
-    uint8_t contract_addr[ADDRESS_LENGTH];
-    uint8_t selector[SELECTOR_SIZE];
+    s_operation_key operation_key;
     uint8_t id;
     uint8_t value;
     char name[MAX_ENUM_NAME_SIZE];
@@ -29,9 +27,16 @@ typedef struct {
 
 bool handle_enum_value_tlv_payload(const buffer_t *buf, s_enum_value_ctx *context);
 bool verify_enum_value_struct(const s_enum_value_ctx *context);
-const s_enum_value_entry *get_matching_enum(const uint64_t *chain_id,
-                                            const uint8_t *contract_addr,
-                                            const uint8_t *selector,
+
+/**
+ * Get the enum value stored for an operation
+ *
+ * @param[in] operation_key the key of the operation, see \ref operation_key_matches
+ * @param[in] id the identifier of the enum
+ * @param[in] value the value in the enum
+ * @return the stored entry, NULL if there is none
+ */
+const s_enum_value_entry *get_matching_enum(const s_operation_key *operation_key,
                                             uint8_t id,
                                             uint8_t value);
 void enum_value_cleanup(void);

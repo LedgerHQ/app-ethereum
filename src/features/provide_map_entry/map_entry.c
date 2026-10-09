@@ -3,12 +3,9 @@
 #include "utils.h"
 #include "ui_utils.h"
 #include "app_mem_utils.h"
-#include "proxy_info.h"
 #include "hash_bytes.h"
 #include "tlv_utils.h"
 #include "lcx_ecdsa.h"
-#include "calldata.h"
-#include "shared_context.h"
 #include "operation_ctx.h"
 
 #define STRUCT_VERSION 0x01
@@ -30,15 +27,33 @@ static bool handle_version(const tlv_data_t *data, s_map_entry_ctx *context) {
 }
 
 static bool handle_chain_id(const tlv_data_t *data, s_map_entry_ctx *context) {
-    return tlv_get_chain_id(data, &context->entry.chain_id);
+    return tlv_get_chain_id(data, &context->entry.operation_key.chain_id);
 }
 
 static bool handle_contract_addr(const tlv_data_t *data, s_map_entry_ctx *context) {
-    return tlv_get_address(data, (uint8_t *) context->entry.contract_addr);
+    return tlv_get_address(data, context->entry.operation_key.contract_addr);
 }
 
+// Which tells the entry is of a transaction
 static bool handle_selector(const tlv_data_t *data, s_map_entry_ctx *context) {
-    return tlv_get_hash(data, context->entry.selector, sizeof(context->entry.selector));
+    context->entry.operation_key.context = OPERATION_INFO_CTX_SIGN_TX;
+    return tlv_get_hash(data,
+                        context->entry.operation_key.selector,
+                        sizeof(context->entry.operation_key.selector));
+}
+
+static bool handle_domain_separator(const tlv_data_t *data, s_map_entry_ctx *context) {
+    return tlv_get_hash(data,
+                        context->entry.operation_key.domain_separator,
+                        sizeof(context->entry.operation_key.domain_separator));
+}
+
+// Which tells the entry is of a typed message
+static bool handle_primary_type_hash(const tlv_data_t *data, s_map_entry_ctx *context) {
+    context->entry.operation_key.context = OPERATION_INFO_CTX_EIP712;
+    return tlv_get_hash(data,
+                        context->entry.operation_key.primary_type_hash,
+                        sizeof(context->entry.operation_key.primary_type_hash));
 }
 
 static bool handle_id(const tlv_data_t *data, s_map_entry_ctx *context) {
@@ -79,14 +94,16 @@ static bool handle_signature(const tlv_data_t *data, s_map_entry_ctx *context) {
     return true;
 }
 
-#define MAP_ENTRY_TAGS(X)                                                \
-    X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG)             \
-    X(0x01, TAG_CHAIN_ID, handle_chain_id, ENFORCE_UNIQUE_TAG)           \
-    X(0x02, TAG_CONTRACT_ADDR, handle_contract_addr, ENFORCE_UNIQUE_TAG) \
-    X(0x03, TAG_SELECTOR, handle_selector, ENFORCE_UNIQUE_TAG)           \
-    X(0x04, TAG_ID, handle_id, ENFORCE_UNIQUE_TAG)                       \
-    X(0x05, TAG_KEY, handle_key, ENFORCE_UNIQUE_TAG)                     \
-    X(0x06, TAG_VALUE, handle_value, ENFORCE_UNIQUE_TAG)                 \
+#define MAP_ENTRY_TAGS(X)                                                        \
+    X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG)                     \
+    X(0x01, TAG_CHAIN_ID, handle_chain_id, ENFORCE_UNIQUE_TAG)                   \
+    X(0x02, TAG_CONTRACT_ADDR, handle_contract_addr, ENFORCE_UNIQUE_TAG)         \
+    X(0x03, TAG_SELECTOR, handle_selector, ENFORCE_UNIQUE_TAG)                   \
+    X(0x04, TAG_ID, handle_id, ENFORCE_UNIQUE_TAG)                               \
+    X(0x05, TAG_KEY, handle_key, ENFORCE_UNIQUE_TAG)                             \
+    X(0x06, TAG_VALUE, handle_value, ENFORCE_UNIQUE_TAG)                         \
+    X(0x07, TAG_DOMAIN_SEPARATOR, handle_domain_separator, ENFORCE_UNIQUE_TAG)   \
+    X(0x08, TAG_PRIMARY_TYPE_HASH, handle_primary_type_hash, ENFORCE_UNIQUE_TAG) \
     X(0xff, TAG_SIGNATURE, handle_signature, ENFORCE_UNIQUE_TAG)
 
 static bool map_entry_common_handler(const tlv_data_t *data, s_map_entry_ctx *context);
@@ -116,15 +133,25 @@ static bool verify_signature(const s_map_entry_ctx *context) {
 }
 
 static bool verify_fields(const s_map_entry_ctx *context) {
-    return TLV_CHECK_RECEIVED_TAGS(context->received_tags,
-                                   TAG_VERSION,
-                                   TAG_CHAIN_ID,
-                                   TAG_CONTRACT_ADDR,
-                                   TAG_SELECTOR,
-                                   TAG_ID,
-                                   TAG_KEY,
-                                   TAG_VALUE,
-                                   TAG_SIGNATURE);
+    TLV_reception_t tags = context->received_tags;
+    bool of_tx = TLV_CHECK_RECEIVED_TAGS(tags, TAG_CHAIN_ID) ||
+                 TLV_CHECK_RECEIVED_TAGS(tags, TAG_CONTRACT_ADDR) ||
+                 TLV_CHECK_RECEIVED_TAGS(tags, TAG_SELECTOR);
+    bool of_message = TLV_CHECK_RECEIVED_TAGS(tags, TAG_DOMAIN_SEPARATOR) ||
+                      TLV_CHECK_RECEIVED_TAGS(tags, TAG_PRIMARY_TYPE_HASH);
+
+    if (!TLV_CHECK_RECEIVED_TAGS(tags, TAG_VERSION, TAG_ID, TAG_KEY, TAG_VALUE, TAG_SIGNATURE)) {
+        return false;
+    }
+    // the entry is attached to a function of a contract or to a primary type of a domain, whole,
+    // never to both
+    if (of_tx == of_message) {
+        return false;
+    }
+    if (of_tx) {
+        return TLV_CHECK_RECEIVED_TAGS(tags, TAG_CHAIN_ID, TAG_CONTRACT_ADDR, TAG_SELECTOR);
+    }
+    return TLV_CHECK_RECEIVED_TAGS(tags, TAG_DOMAIN_SEPARATOR, TAG_PRIMARY_TYPE_HASH);
 }
 
 bool handle_map_entry_tlv_payload(const buffer_t *buf, s_map_entry_ctx *context) {
@@ -155,45 +182,19 @@ bool verify_map_entry_struct(const s_map_entry_ctx *context) {
     return true;
 }
 
-static bool is_matching_map_entry(const s_map_entry *node,
-                                  const uint64_t *chain_id,
-                                  const uint8_t *contract_addr,
-                                  const uint8_t *selector,
-                                  uint8_t id,
-                                  const uint8_t *key,
-                                  uint8_t key_size) {
-    const uint8_t *implem;
-
-    implem = get_implem_contract(chain_id, contract_addr, selector);
-    return (node != NULL) && (*chain_id == node->chain_id) &&
-           (memcmp((implem != NULL) ? implem : contract_addr,
-                   node->contract_addr,
-                   ADDRESS_LENGTH) == 0) &&
-           (memcmp(selector, node->selector, SELECTOR_SIZE) == 0) && (id == node->id) &&
-           (key_size == node->key_size) && (memcmp(key, node->key, key_size) == 0);
-}
-
 const s_map_entry *get_matching_map_entry(uint8_t id, const uint8_t *key, uint8_t key_size) {
-    uint64_t chain_id;
-    const uint8_t *selector;
-    const uint8_t *callee;
+    s_operation_key operation_key;
 
-    if (!get_current_operation_chain_id(&chain_id)) return NULL;
-    if ((selector = calldata_get_selector(get_current_calldata())) == NULL) return NULL;
-    // Map entries are signed per contract: use the callee of the current
-    // (possibly nested) context, not the root transaction destination.
-    if ((callee = get_current_operation_to()) == NULL) return NULL;
+    // the operation being described, which may be a call a message or a transaction makes
+    if (!get_current_operation_key(&operation_key)) return NULL;
 
     for (const flist_node_t *tmp = (flist_node_t *) g_map_entry_list; tmp != NULL;
          tmp = tmp->next) {
-        if (is_matching_map_entry((const s_map_entry *) tmp,
-                                  &chain_id,
-                                  callee,
-                                  selector,
-                                  id,
-                                  key,
-                                  key_size)) {
-            return (const s_map_entry *) tmp;
+        const s_map_entry *node = (const s_map_entry *) tmp;
+
+        if (operation_key_matches(&node->operation_key, &operation_key) && (id == node->id) &&
+            (key_size == node->key_size) && (memcmp(key, node->key, key_size) == 0)) {
+            return node;
         }
     }
     return NULL;

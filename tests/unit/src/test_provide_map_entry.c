@@ -34,12 +34,13 @@ static const uint8_t s_contract_addr[ADDRESS_LENGTH] = {
     0x55, 0x66, 0x77, 0x88, 0x99, 0x00, 0xAA, 0xBB, 0xCC, 0xDD,
 };
 
-static const void *g_calldata_get_selector_ret = NULL;
 static bool g_check_signature_with_pubkey_ret = true;
-static const void *g_get_current_calldata_ret = NULL;
-static const void *g_get_current_tx_info_ret = NULL;
 static const void *g_get_implem_contract_ret = NULL;
-static const void *g_get_current_tx_to_ret = NULL;
+static int g_get_implem_contract_calls = 0;
+
+// The operation being described, which an entry is found for by its key
+static s_operation_key g_operation_key;
+static bool g_operation_key_ret = true;
 
 // =============================================================================
 // Mock functions
@@ -69,27 +70,12 @@ bool check_signature_with_pubkey(uint8_t *buffer,
     return (bool) g_check_signature_with_pubkey_ret;
 }
 
-bool get_current_operation_chain_id(uint64_t *chain_id) {
-    const s_operation_info *info = (const s_operation_info *) g_get_current_tx_info_ret;
-
-    if (info == NULL) {
+bool get_current_operation_key(s_operation_key *key) {
+    if (!g_operation_key_ret) {
         return false;
     }
-    *chain_id = info->chain_id;
+    *key = g_operation_key;
     return true;
-}
-
-const uint8_t *get_current_operation_to(void) {
-    return (const uint8_t *) g_get_current_tx_to_ret;
-}
-
-s_calldata *get_current_calldata(void) {
-    return (s_calldata *) g_get_current_calldata_ret;
-}
-
-const uint8_t *calldata_get_selector(const s_calldata *calldata) {
-    (void) calldata;
-    return (const uint8_t *) g_calldata_get_selector_ret;
 }
 
 const uint8_t *get_implem_contract(const uint64_t *chain_id,
@@ -98,6 +84,7 @@ const uint8_t *get_implem_contract(const uint64_t *chain_id,
     (void) chain_id;
     (void) contract_addr;
     (void) selector;
+    g_get_implem_contract_calls++;
     return (const uint8_t *) g_get_implem_contract_ret;
 }
 
@@ -172,9 +159,14 @@ void test_map_entry_parse_valid(void) {
 
     TEST_ASSERT_TRUE(handle_map_entry_tlv_payload(&buf, &ctx));
 
-    TEST_ASSERT_EQUAL(ctx.entry.chain_id, 1);
-    TEST_ASSERT_EQUAL_MEMORY(ctx.entry.contract_addr, s_contract_addr, ADDRESS_LENGTH);
-    TEST_ASSERT_EQUAL_MEMORY(ctx.entry.selector, ((uint8_t[]) {SELECTOR_BYTES}), SELECTOR_SIZE);
+    TEST_ASSERT_EQUAL(OPERATION_INFO_CTX_SIGN_TX, ctx.entry.operation_key.context);
+    TEST_ASSERT_EQUAL(ctx.entry.operation_key.chain_id, 1);
+    TEST_ASSERT_EQUAL_MEMORY(ctx.entry.operation_key.contract_addr,
+                             s_contract_addr,
+                             ADDRESS_LENGTH);
+    TEST_ASSERT_EQUAL_MEMORY(ctx.entry.operation_key.selector,
+                             ((uint8_t[]) {SELECTOR_BYTES}),
+                             CALLDATA_SELECTOR_SIZE);
     TEST_ASSERT_EQUAL(ctx.entry.id, 2);
     TEST_ASSERT_EQUAL(ctx.entry.key_size, 3);
     TEST_ASSERT_EQUAL_MEMORY(ctx.entry.key, ((uint8_t[]) {KEY_BYTES}), 3);
@@ -227,39 +219,40 @@ void test_map_entry_verify_missing_mandatory_tag(void) {
 // Test cases — lookup
 // =============================================================================
 
+// The operation being described is a transaction, which an entry is attached to by its function
+static void be_in_a_transaction(void) {
+    static const uint8_t selector[] = {SELECTOR_BYTES};
+
+    memset(&g_operation_key, 0, sizeof(g_operation_key));
+    g_operation_key.context = OPERATION_INFO_CTX_SIGN_TX;
+    g_operation_key.chain_id = 1;
+    memcpy(g_operation_key.contract_addr, s_contract_addr, ADDRESS_LENGTH);
+    memcpy(g_operation_key.selector, selector, sizeof(selector));
+    g_get_implem_contract_ret = NULL;  // no proxy
+}
+
 void test_map_entry_lookup_no_tx_info(void) {
-    g_get_current_tx_info_ret = NULL;
+    g_operation_key_ret = false;
 
     uint8_t key[] = {KEY_BYTES};
     TEST_ASSERT_NULL(get_matching_map_entry(2, key, sizeof(key)));
 }
 
 void test_map_entry_lookup_no_selector(void) {
-    static const s_operation_info tx_info = {.chain_id = 1};
-
-    g_get_current_tx_info_ret = &tx_info;
-    g_get_current_calldata_ret = NULL;
-    g_calldata_get_selector_ret = NULL;
+    be_in_a_transaction();
+    g_operation_key_ret = false;
 
     uint8_t key[] = {KEY_BYTES};
     TEST_ASSERT_NULL(get_matching_map_entry(2, key, sizeof(key)));
 }
 
 void test_map_entry_lookup_found(void) {
-    static const s_operation_info tx_info = {.chain_id = 1};
-    static const uint8_t selector[] = {SELECTOR_BYTES};
-
     // The lookup matches the callee of the current (possibly nested) context
     memcpy(g_tx_content.destination, s_contract_addr, ADDRESS_LENGTH);
     txContext.content = &g_tx_content;
 
     register_entry();
-
-    g_get_current_tx_info_ret = &tx_info;
-    g_get_current_tx_to_ret = s_contract_addr;
-    g_get_current_calldata_ret = NULL;
-    g_calldata_get_selector_ret = selector;
-    g_get_implem_contract_ret = NULL;  // no proxy
+    be_in_a_transaction();
 
     uint8_t key[] = {KEY_BYTES};
     const s_map_entry *entry = get_matching_map_entry(2, key, sizeof(key));
@@ -269,36 +262,22 @@ void test_map_entry_lookup_found(void) {
 }
 
 void test_map_entry_lookup_wrong_key(void) {
-    static const s_operation_info tx_info = {.chain_id = 1};
-    static const uint8_t selector[] = {SELECTOR_BYTES};
-
     memcpy(g_tx_content.destination, s_contract_addr, ADDRESS_LENGTH);
     txContext.content = &g_tx_content;
 
     register_entry();
-
-    g_get_current_tx_info_ret = &tx_info;
-    g_get_current_calldata_ret = NULL;
-    g_calldata_get_selector_ret = selector;
-    g_get_implem_contract_ret = NULL;
+    be_in_a_transaction();
 
     uint8_t wrong_key[] = {0x11, 0x22, 0x33};
     TEST_ASSERT_NULL(get_matching_map_entry(2, wrong_key, sizeof(wrong_key)));
 }
 
 void test_map_entry_lookup_wrong_id(void) {
-    static const s_operation_info tx_info = {.chain_id = 1};
-    static const uint8_t selector[] = {SELECTOR_BYTES};
-
     memcpy(g_tx_content.destination, s_contract_addr, ADDRESS_LENGTH);
     txContext.content = &g_tx_content;
 
     register_entry();
-
-    g_get_current_tx_info_ret = &tx_info;
-    g_get_current_calldata_ret = NULL;
-    g_calldata_get_selector_ret = selector;
-    g_get_implem_contract_ret = NULL;
+    be_in_a_transaction();
 
     uint8_t key[] = {KEY_BYTES};
     TEST_ASSERT_NULL(get_matching_map_entry(99, key, sizeof(key)));  // wrong id
@@ -309,8 +288,7 @@ void test_map_entry_cleanup(void) {
 
     map_entry_cleanup();
 
-    // List is now empty: get_matching_map_entry returns NULL immediately
-    g_get_current_tx_info_ret = NULL;
+    // List is now empty
     uint8_t key[] = {KEY_BYTES};
     TEST_ASSERT_NULL(get_matching_map_entry(2, key, sizeof(key)));
 }
@@ -320,11 +298,9 @@ void test_map_entry_cleanup(void) {
 // =============================================================================
 
 void setUp(void) {
-    g_calldata_get_selector_ret = NULL;
     g_check_signature_with_pubkey_ret = true;
-    g_get_current_calldata_ret = NULL;
-    g_get_current_tx_info_ret = NULL;
-    g_get_implem_contract_ret = NULL;
+    be_in_a_transaction();
+    g_operation_key_ret = true;
     s_finalize_hash_ret = true;
     setup_empty_list();
 }

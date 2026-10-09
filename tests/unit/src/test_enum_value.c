@@ -92,6 +92,13 @@ static const s_operation_key g_function = {.context = OPERATION_INFO_CTX_SIGN_TX
                                            .chain_id = 1,
                                            .contract_addr = {CONTRACT_BYTES},
                                            .selector = {0xDE, 0xAD, 0xBE, 0xEF}};
+// a primary type of a domain, whose hash starts with the bytes of the selector above
+static const s_operation_key g_type = {
+    .context = OPERATION_INFO_CTX_EIP712,
+    .domain_separator = {0xD0, 0xD1, 0xD2, 0xD3},
+    .primary_type_hash = {0xDE, 0xAD, 0xBE, 0xEF, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+                          0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12,
+                          0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C}};
 
 // =============================================================================
 // TLV builder
@@ -314,6 +321,105 @@ void test_enum_value_cleanup_releases_list(void) {
 }
 
 // =============================================================================
+// What a value is attached to: a function of a contract, or a primary type of a domain
+// =============================================================================
+
+// the tags of the card tell its kind, whatever operation is being described
+void test_value_of_a_primary_type_registered_for_a_message(void) {
+    TEST_ASSERT_TRUE(run(card(&g_type)));
+    const s_enum_value_entry *e = get_matching_enum(&g_type, 5, 2);
+    TEST_ASSERT_NOT_NULL(e);
+    TEST_ASSERT_EQUAL_STRING("Standard", e->name);
+}
+
+// the domain separator covers the chain and the contract of a message: no other domain matches
+void test_value_of_a_primary_type_is_for_its_domain_and_type_only(void) {
+    s_operation_key other = g_type;
+
+    TEST_ASSERT_TRUE(run(card(&g_type)));
+    other.domain_separator[INT256_LENGTH - 1] ^= 0x01;
+    TEST_ASSERT_NULL(get_matching_enum(&other, 5, 2));
+    other = g_type;
+    other.primary_type_hash[INT256_LENGTH - 1] ^= 0x01;
+    TEST_ASSERT_NULL(get_matching_enum(&other, 5, 2));
+}
+
+void test_key_of_another_size_refused(void) {
+    static const uint8_t bytes[INT256_LENGTH + 1] = {0};
+    const struct {
+        const s_operation_key *key;
+        uint8_t tag;
+        uint8_t size;
+    } cases[] = {
+        {&g_function, WIRE_TAG_SELECTOR, INT256_LENGTH},
+        {&g_type, WIRE_TAG_DOMAIN_SEPARATOR, CALLDATA_SELECTOR_SIZE},
+        {&g_type, WIRE_TAG_PRIMARY_TYPE_HASH, INT256_LENGTH + 1},
+    };
+
+    for (size_t i = 0; i < ARRAYLEN(cases); i++) {
+        s_opts opts = card(cases[i].key);
+
+        opts.omit = OMIT(cases[i].tag);
+        opts.extra_tag = cases[i].tag;
+        opts.extra_value = bytes;
+        opts.extra_size = cases[i].size;
+        TEST_ASSERT_FALSE(run(opts));
+    }
+}
+
+// a value is attached to a function of a contract or to a primary type of a domain: it has all the
+// tags of one, and none of the other
+void test_card_not_of_one_operation_refused(void) {
+    static const uint8_t bytes[INT256_LENGTH] = {0x01};
+    const struct {
+        const s_operation_key *key;
+        uint32_t omit;
+        uint8_t extra_tag;
+        uint8_t extra_size;
+    } cases[] = {
+        {&g_function, OMIT(WIRE_TAG_CHAIN_ID), 0, 0},
+        {&g_function, OMIT(WIRE_TAG_CONTRACT_ADDR), 0, 0},
+        {&g_function, OMIT(WIRE_TAG_SELECTOR), 0, 0},
+        {&g_function, 0, WIRE_TAG_DOMAIN_SEPARATOR, INT256_LENGTH},
+        {&g_function, 0, WIRE_TAG_PRIMARY_TYPE_HASH, INT256_LENGTH},
+        {&g_type, OMIT(WIRE_TAG_DOMAIN_SEPARATOR), 0, 0},
+        {&g_type, OMIT(WIRE_TAG_PRIMARY_TYPE_HASH), 0, 0},
+        {&g_type, 0, WIRE_TAG_CHAIN_ID, 1},
+        {&g_type, 0, WIRE_TAG_CONTRACT_ADDR, ADDRESS_LENGTH},
+        {&g_type, 0, WIRE_TAG_SELECTOR, CALLDATA_SELECTOR_SIZE},
+        {&g_type, OMIT(WIRE_TAG_DOMAIN_SEPARATOR) | OMIT(WIRE_TAG_PRIMARY_TYPE_HASH), 0, 0},
+    };
+
+    for (size_t i = 0; i < ARRAYLEN(cases); i++) {
+        s_opts opts = card(cases[i].key);
+
+        opts.omit = cases[i].omit;
+        opts.extra_tag = cases[i].extra_tag;
+        opts.extra_value = bytes;
+        opts.extra_size = cases[i].extra_size;
+        TEST_ASSERT_FALSE(run(opts));
+    }
+}
+
+// a value of a function is not one of a primary type, and the reverse, whatever their bytes
+void test_values_of_a_function_and_of_a_type_are_not_interchangeable(void) {
+    TEST_ASSERT_TRUE(run(card(&g_function)));
+    TEST_ASSERT_NULL(get_matching_enum(&g_type, 5, 2));
+    enum_value_cleanup();
+
+    TEST_ASSERT_TRUE(run(card(&g_type)));
+    TEST_ASSERT_NULL(get_matching_enum(&g_function, 5, 2));
+}
+
+// a typed message names no proxy
+void test_proxy_resolver_not_consulted_for_a_message(void) {
+    TEST_ASSERT_TRUE(run(card(&g_type)));
+    g_implem_contract_ret = g_contract_addr;
+    TEST_ASSERT_NOT_NULL(get_matching_enum(&g_type, 5, 2));
+    TEST_ASSERT_EQUAL(0, g_implem_contract_calls);
+}
+
+// =============================================================================
 // Runner
 // =============================================================================
 
@@ -349,5 +455,11 @@ int main(void) {
     RUN_TEST(test_lookup_consults_proxy_resolver);
     RUN_TEST(test_two_entries_lookup_returns_matching_one);
     RUN_TEST(test_enum_value_cleanup_releases_list);
+    RUN_TEST(test_value_of_a_primary_type_registered_for_a_message);
+    RUN_TEST(test_value_of_a_primary_type_is_for_its_domain_and_type_only);
+    RUN_TEST(test_key_of_another_size_refused);
+    RUN_TEST(test_card_not_of_one_operation_refused);
+    RUN_TEST(test_values_of_a_function_and_of_a_type_are_not_interchangeable);
+    RUN_TEST(test_proxy_resolver_not_consulted_for_a_message);
     return UNITY_END();
 }

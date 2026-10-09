@@ -82,9 +82,11 @@ bool get_current_operation_key(s_operation_key *key) {
 }
 
 static const s_enum_value_entry *g_enum_ret = NULL;
+static s_operation_key g_enum_lookup_key;
 const s_enum_value_entry *get_matching_enum(const s_operation_key *operation_key,
                                             uint8_t id,
                                             uint8_t value) {
+    g_enum_lookup_key = *operation_key;
     return g_enum_ret;
 }
 
@@ -107,6 +109,7 @@ static const uint8_t g_contract[ADDRESS_LENGTH] = {
 static void reset(void) {
     memset(&g_operation_key, 0, sizeof(g_operation_key));
     g_operation_key_ret = true;
+    memset(&g_enum_lookup_key, 0, sizeof(g_enum_lookup_key));
     memset(&g_vg, 0, sizeof(g_vg));
     g_vg_call = 0;
     g_value_cleanup_calls = 0;
@@ -229,6 +232,32 @@ void test_format_add_to_field_table_failure_propagates(void) {
 }
 
 // =============================================================================
+// format_param_enum — the key the enum is looked up with
+// =============================================================================
+
+// the enum is looked up with the key of the operation being described, whichever kind it is
+void test_format_looks_up_with_the_key_of_the_operation(void) {
+    static const uint8_t v[] = {0x05};
+    g_vg[0].size = 1;
+    g_vg[0].value[0] = (s_parsed_value) {.ptr = v, .size = 1, .offset = 0, .length = 1};
+    static const s_enum_value_entry entry = {.name = "BUY", .value = 5, .id = 7};
+    g_enum_ret = &entry;
+
+    g_operation_key.context = OPERATION_INFO_CTX_EIP712;
+    memset(g_operation_key.domain_separator, 0xD5, sizeof(g_operation_key.domain_separator));
+    memset(g_operation_key.primary_type_hash, 0x5A, sizeof(g_operation_key.primary_type_hash));
+
+    s_param_enum param = {0};
+    param.id = 7;
+    param.value.type_family = TF_UINT;
+    param.value.type_size = sizeof(uint8_t);
+    TEST_ASSERT_TRUE(format_param_enum(&param, "Action"));
+    TEST_ASSERT_EQUAL(OPERATION_INFO_CTX_EIP712, g_enum_lookup_key.context);
+    TEST_ASSERT_EACH_EQUAL_UINT8(0xD5, g_enum_lookup_key.domain_separator, INT256_LENGTH);
+    TEST_ASSERT_EACH_EQUAL_UINT8(0x5A, g_enum_lookup_key.primary_type_hash, INT256_LENGTH);
+}
+
+// =============================================================================
 // handle_param_enum_struct (TLV)
 // =============================================================================
 
@@ -307,6 +336,7 @@ int main(void) {
     RUN_TEST(test_format_unknown_enum_rejects);
     RUN_TEST(test_format_add_to_field_table_failure_propagates);
     RUN_TEST(test_tlv_version_other_than_one_refused);
+    RUN_TEST(test_format_looks_up_with_the_key_of_the_operation);
     RUN_TEST(test_tlv_happy_path);
     RUN_TEST(test_tlv_duplicate_id_rejected);
     return UNITY_END();

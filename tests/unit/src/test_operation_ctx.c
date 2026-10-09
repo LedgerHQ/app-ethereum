@@ -469,6 +469,17 @@ void test_gcs_cleanup_frees_parked_calldata(void) {
     TEST_ASSERT_NULL(g_parked_calldata);
 }
 
+// The shown flags belong to the calls, which a typed message releases without gcs_cleanup()
+void test_operation_ctx_cleanup_forgets_what_the_descriptors_showed(void) {
+    operation_ctx_set_root_from_shown();
+    operation_ctx_set_root_value_shown();
+    TEST_ASSERT_TRUE(operation_ctx_is_root_from_shown());
+    TEST_ASSERT_TRUE(operation_ctx_is_root_value_shown());
+    operation_ctx_cleanup();
+    TEST_ASSERT_FALSE(operation_ctx_is_root_from_shown());
+    TEST_ASSERT_FALSE(operation_ctx_is_root_value_shown());
+}
+
 // =============================================================================
 // process_empty_calls_before / process_empty_calls_after
 // =============================================================================
@@ -677,10 +688,6 @@ void test_operation_ctx_init_signing_tx_calls_field_table_init(void) {
 }
 
 // =============================================================================
-// Nested calls
-// =============================================================================
-
-// =============================================================================
 // A typed message
 // =============================================================================
 
@@ -864,12 +871,270 @@ void test_descriptors_do_not_match_when_the_hash_cannot_be_finalized(void) {
 }
 
 // =============================================================================
-// Describing a call
-// =============================================================================
-
-// =============================================================================
 // The calls a typed message makes
 // =============================================================================
+
+// the calls of a message are not its own: they are counted apart, and are not the root
+void test_a_call_of_a_message_is_not_the_message(void) {
+    uint64_t chain = 137;
+    s_calldata *cd = make_complete_calldata(g_match_selector);
+    s_operation_info *message = make_message_info(true);
+
+    TEST_ASSERT_TRUE(operation_ctx_init_message(message, g_self_addr, NULL, &(uint64_t) {137}));
+    TEST_ASSERT_TRUE(operation_ctx_init(cd, g_addr_b, g_addr_a, NULL, &chain));
+    TEST_ASSERT_EQUAL(1, get_operation_ctx_count());
+    TEST_ASSERT_TRUE(operation_ctx_has_message());
+    // the call is not being described until a description is matched to it
+    TEST_ASSERT_FALSE(operation_ctx_is_describing_call());
+    TEST_ASSERT_EQUAL_PTR(message, get_current_operation_info());
+    TEST_ASSERT_TRUE(find_matching_operation_ctx(g_addr_a, g_match_selector, &chain));
+    TEST_ASSERT_TRUE(operation_ctx_is_describing_call());
+    TEST_ASSERT_FALSE(operation_ctx_is_root());
+    TEST_ASSERT_NULL(get_current_operation_info());
+    TEST_ASSERT_EQUAL_MEMORY(g_addr_a, get_current_operation_to(), ADDRESS_LENGTH);
+}
+
+// their sender and their chain are the message's, when they do not say
+void test_init_in_a_typed_message_takes_its_sender_and_chain(void) {
+    s_calldata *cd = make_complete_calldata(g_match_selector);
+    uint64_t chain = 137;
+
+    TEST_ASSERT_TRUE(
+        operation_ctx_init_message(make_message_info(true), g_self_addr, NULL, &(uint64_t) {137}));
+    TEST_ASSERT_TRUE(operation_ctx_init(cd, NULL, g_addr_a, NULL, NULL));
+    // the chain of the call is the one it is found by
+    TEST_ASSERT_TRUE(find_matching_operation_ctx(g_addr_a, g_match_selector, &chain));
+    TEST_ASSERT_EQUAL_MEMORY(g_self_addr, get_current_operation_from(), ADDRESS_LENGTH);
+}
+
+void test_init_in_a_typed_message_keeps_what_the_descriptor_says(void) {
+    s_calldata *cd = make_complete_calldata(g_match_selector);
+    uint64_t chain = 10;
+
+    TEST_ASSERT_TRUE(
+        operation_ctx_init_message(make_message_info(true), g_self_addr, NULL, &(uint64_t) {137}));
+    TEST_ASSERT_TRUE(operation_ctx_init(cd, g_addr_a, g_addr_a, NULL, &chain));
+    TEST_ASSERT_TRUE(find_matching_operation_ctx(g_addr_a, g_match_selector, &chain));
+    TEST_ASSERT_EQUAL_MEMORY(g_addr_a, get_current_operation_from(), ADDRESS_LENGTH);
+}
+
+// no chain is not a chain: no description matches a call on it
+// a call that takes no chain from its message is matched by no info, as an info always has one
+void test_init_in_a_typed_message_without_chain_gives_no_chain(void) {
+    s_calldata *cd = make_complete_calldata(g_match_selector);
+    uint64_t chain = 1;
+
+    TEST_ASSERT_TRUE(operation_ctx_init_message(make_message_info(true), g_self_addr, NULL, NULL));
+    TEST_ASSERT_TRUE(operation_ctx_init(cd, NULL, g_addr_a, NULL, NULL));
+    TEST_ASSERT_FALSE(find_matching_operation_ctx(g_addr_a, g_match_selector, &chain));
+    chain = 0;
+    TEST_ASSERT_FALSE(find_matching_operation_ctx(g_addr_a, g_match_selector, &chain));
+}
+
+// the calls named by the message are not the calls of one another
+void test_init_of_another_call_of_a_typed_message_does_not_take_the_previous_one(void) {
+    static const uint8_t selector2[CALLDATA_SELECTOR_SIZE] = {0xCA, 0xFE, 0xBA, 0xBE};
+    s_calldata *cd1 = make_complete_calldata(g_match_selector);
+    s_calldata *cd2 = make_complete_calldata(selector2);
+    uint64_t chain1 = 10;
+    uint64_t chain2 = 137;
+
+    TEST_ASSERT_TRUE(
+        operation_ctx_init_message(make_message_info(true), g_self_addr, NULL, &(uint64_t) {137}));
+    TEST_ASSERT_TRUE(operation_ctx_init(cd1, g_addr_a, g_addr_a, NULL, &chain1));
+    TEST_ASSERT_TRUE(operation_ctx_init(cd2, NULL, g_addr_a, NULL, NULL));
+    TEST_ASSERT_TRUE(find_matching_operation_ctx(g_addr_a, g_match_selector, &chain1));
+    s_operation_info *info = calloc(1, sizeof(*info));
+    info->fields_hash[0] = 0xAA;  // not the hash of the descriptors: stays described
+    TEST_ASSERT_TRUE(operation_ctx_set_info(info));
+    // the second was created while the message, not the first call, was described
+    TEST_ASSERT_TRUE(find_matching_operation_ctx(g_addr_a, selector2, &chain2));
+    TEST_ASSERT_EQUAL_MEMORY(g_self_addr, get_current_operation_from(), ADDRESS_LENGTH);
+}
+
+// a call made by a call is made by it
+void test_init_in_a_call_of_a_typed_message_takes_the_call(void) {
+    s_calldata *cd1 = make_complete_calldata(g_match_selector);
+    s_calldata *cd2 = make_complete_calldata(g_match_selector);
+    uint64_t chain1 = 10;
+
+    TEST_ASSERT_TRUE(
+        operation_ctx_init_message(make_message_info(true), g_self_addr, NULL, &(uint64_t) {137}));
+    TEST_ASSERT_TRUE(operation_ctx_init(cd1, g_addr_a, g_addr_a, NULL, &chain1));
+    TEST_ASSERT_TRUE(find_matching_operation_ctx(g_addr_a, g_match_selector, &chain1));
+    TEST_ASSERT_TRUE(operation_ctx_init(cd2, NULL, g_addr_b, NULL, NULL));
+    TEST_ASSERT_EQUAL(2, get_operation_ctx_count());
+    // it was queued with the sender of the one being described, and its chain: it is found by it
+    TEST_ASSERT_EQUAL_MEMORY(g_addr_a, get_current_operation_from(), ADDRESS_LENGTH);
+    s_operation_info *info = calloc(1, sizeof(*info));
+    info->fields_hash[0] = 0xAA;
+    TEST_ASSERT_TRUE(operation_ctx_set_info(info));
+    TEST_ASSERT_TRUE(find_matching_operation_ctx(g_addr_b, g_match_selector, &chain1));
+}
+
+void test_nothing_is_being_described_until_a_description_is_matched(void) {
+    s_calldata *cd = make_complete_calldata(g_match_selector);
+    uint64_t chain = 1;
+
+    TEST_ASSERT_FALSE(operation_ctx_is_describing_call());
+    TEST_ASSERT_TRUE(operation_ctx_init(cd, g_addr_a, g_addr_b, NULL, &chain));
+    TEST_ASSERT_FALSE(operation_ctx_is_describing_call());
+    TEST_ASSERT_TRUE(find_matching_operation_ctx(g_addr_b, g_match_selector, &chain));
+    TEST_ASSERT_TRUE(operation_ctx_is_describing_call());
+}
+
+// a call of a message is popped when its descriptors are complete, and the message is the one
+// described again
+void test_pop_of_a_call_of_a_typed_message_describes_the_message_again(void) {
+    uint64_t chain = 1;
+    s_calldata *cd = make_complete_calldata(g_match_selector);
+    s_operation_info *info = calloc(1, sizeof(*info));
+    s_operation_info *message = make_message_info(true);
+
+    TEST_ASSERT_TRUE(operation_ctx_init_message(message, g_self_addr, NULL, &(uint64_t) {1}));
+    TEST_ASSERT_TRUE(operation_ctx_init(cd, g_addr_a, g_addr_b, NULL, &chain));
+    TEST_ASSERT_TRUE(find_matching_operation_ctx(g_addr_b, g_match_selector, &chain));
+    TEST_ASSERT_FALSE(operation_ctx_is_root());
+    TEST_ASSERT_TRUE(operation_ctx_set_info(info));
+    TEST_ASSERT_TRUE(operation_ctx_pop());
+    TEST_ASSERT_EQUAL(0, get_operation_ctx_count());
+    TEST_ASSERT_TRUE(operation_ctx_has_message());
+    TEST_ASSERT_FALSE(operation_ctx_is_describing_call());
+    TEST_ASSERT_TRUE(operation_ctx_is_root());
+    TEST_ASSERT_EQUAL_PTR(message, get_current_operation_info());
+}
+
+// and a call that was made after another one is described again once it is popped
+void test_pop_of_a_nested_call_of_a_typed_message_describes_the_call_before(void) {
+    static const uint8_t selector2[CALLDATA_SELECTOR_SIZE] = {0xCA, 0xFE, 0xBA, 0xBE};
+    s_calldata *cd1 = make_complete_calldata(g_match_selector);
+    s_calldata *cd2 = make_complete_calldata(selector2);
+    uint64_t chain = 1;
+    s_operation_info *info = calloc(1, sizeof(*info));
+
+    TEST_ASSERT_TRUE(
+        operation_ctx_init_message(make_message_info(true), g_self_addr, NULL, &(uint64_t) {1}));
+    TEST_ASSERT_TRUE(operation_ctx_init(cd1, g_addr_a, g_addr_a, NULL, &chain));
+    TEST_ASSERT_TRUE(operation_ctx_init(cd2, NULL, g_addr_b, NULL, NULL));
+    TEST_ASSERT_TRUE(find_matching_operation_ctx(g_addr_a, g_match_selector, &chain));
+    info->fields_hash[0] = 0xAA;
+    TEST_ASSERT_TRUE(operation_ctx_set_info(info));
+    TEST_ASSERT_TRUE(find_matching_operation_ctx(g_addr_b, selector2, &chain));
+    TEST_ASSERT_TRUE(operation_ctx_pop());
+    TEST_ASSERT_EQUAL(1, get_operation_ctx_count());
+    TEST_ASSERT_TRUE(operation_ctx_is_describing_call());
+    TEST_ASSERT_EQUAL_PTR(info, get_current_operation_info());
+}
+
+// the message is not a call, so it is never popped
+void test_pop_leaves_the_message(void) {
+    s_operation_info *message = make_message_info(true);
+
+    TEST_ASSERT_TRUE(operation_ctx_init_message(message, g_self_addr, NULL, &(uint64_t) {1}));
+    TEST_ASSERT_FALSE(operation_ctx_pop());
+    TEST_ASSERT_TRUE(operation_ctx_has_message());
+    TEST_ASSERT_EQUAL_PTR(message, get_current_operation_info());
+    TEST_ASSERT_EQUAL(0, g_delete_info_calls);
+}
+
+// the message is the root of the calls, not an empty call to be shown from the call that follows
+void test_the_message_is_not_taken_for_an_empty_call(void) {
+    uint64_t chain = 1;
+    s_calldata *cd = make_complete_calldata(g_match_selector);
+
+    TEST_ASSERT_TRUE(
+        operation_ctx_init_message(make_message_info(true), g_self_addr, NULL, &(uint64_t) {1}));
+    TEST_ASSERT_TRUE(operation_ctx_init(cd, g_addr_a, g_addr_b, NULL, &chain));
+    TEST_ASSERT_TRUE(find_matching_operation_ctx(g_addr_b, g_match_selector, &chain));
+    g_to_rows_count = 0;
+    TEST_ASSERT_TRUE(process_empty_calls_before());
+    TEST_ASSERT_EQUAL(0, g_to_rows_count);
+    TEST_ASSERT_TRUE(operation_ctx_has_message());
+    TEST_ASSERT_EQUAL(1, get_operation_ctx_count());
+}
+
+// a call on another chain than the message's is told apart by its network
+void test_empty_call_of_a_typed_message_on_another_chain_shows_its_network(void) {
+    uint64_t other_chain = 10;
+
+    TEST_ASSERT_TRUE(
+        operation_ctx_init_message(make_message_info(true), g_self_addr, NULL, &(uint64_t) {1}));
+    TEST_ASSERT_TRUE(operation_ctx_init(NULL, g_addr_a, g_addr_a, g_amount_1eth, &other_chain));
+    g_network_calls = 0;
+    TEST_ASSERT_TRUE(process_remaining_empty_calls());
+    TEST_ASSERT_EQUAL(1, g_network_calls);
+}
+
+void test_empty_call_of_a_typed_message_on_its_chain_shows_no_network(void) {
+    uint64_t chain = 1;
+
+    TEST_ASSERT_TRUE(
+        operation_ctx_init_message(make_message_info(true), g_self_addr, NULL, &(uint64_t) {1}));
+    TEST_ASSERT_TRUE(operation_ctx_init(NULL, g_addr_a, g_addr_a, g_amount_1eth, &chain));
+    g_network_calls = 0;
+    TEST_ASSERT_TRUE(process_remaining_empty_calls());
+    TEST_ASSERT_EQUAL(0, g_network_calls);
+}
+
+// a message that is on no chain has no chain to share: a call on its own one is told apart
+void test_empty_call_of_a_typed_message_with_no_chain_shows_its_network(void) {
+    uint64_t chain = 1;
+
+    TEST_ASSERT_TRUE(operation_ctx_init_message(make_message_info(true), g_self_addr, NULL, NULL));
+    TEST_ASSERT_TRUE(operation_ctx_init(NULL, g_addr_a, g_addr_a, g_amount_1eth, &chain));
+    g_network_calls = 0;
+    TEST_ASSERT_TRUE(process_remaining_empty_calls());
+    TEST_ASSERT_EQUAL(1, g_network_calls);
+}
+
+// and a call that takes no chain from it goes nowhere that can be shown
+void test_empty_call_on_no_chain_is_refused(void) {
+    TEST_ASSERT_TRUE(operation_ctx_init_message(make_message_info(true), g_self_addr, NULL, NULL));
+    TEST_ASSERT_TRUE(operation_ctx_init(NULL, g_addr_a, g_addr_a, g_amount_1eth, NULL));
+    g_network_calls = 0;
+    g_to_rows_count = 0;
+    TEST_ASSERT_FALSE(process_remaining_empty_calls());
+    TEST_ASSERT_EQUAL(0, g_network_calls);
+    TEST_ASSERT_EQUAL(0, g_to_rows_count);
+}
+
+// what is left when no description is to come: calls that have nothing to be described
+void test_remaining_empty_calls_are_all_processed(void) {
+    uint64_t chain = 1;
+
+    TEST_ASSERT_TRUE(process_remaining_empty_calls());
+    TEST_ASSERT_TRUE(operation_ctx_init(NULL, g_addr_a, g_addr_a, NULL, &chain));
+    TEST_ASSERT_TRUE(operation_ctx_init(NULL, g_addr_a, g_addr_a, g_amount_1eth, &chain));
+    TEST_ASSERT_EQUAL(2, get_operation_ctx_count());
+    TEST_ASSERT_TRUE(process_remaining_empty_calls());
+    TEST_ASSERT_EQUAL(0, get_operation_ctx_count());
+}
+
+// the message stays, as the root of the calls that were processed
+void test_remaining_empty_calls_of_a_typed_message_leave_the_message(void) {
+    uint64_t chain = 1;
+
+    TEST_ASSERT_TRUE(
+        operation_ctx_init_message(make_message_info(true), g_self_addr, NULL, &(uint64_t) {1}));
+    TEST_ASSERT_TRUE(process_remaining_empty_calls());
+    TEST_ASSERT_TRUE(operation_ctx_init(NULL, g_addr_a, g_addr_a, NULL, &chain));
+    TEST_ASSERT_TRUE(operation_ctx_init(NULL, g_addr_a, g_addr_a, g_amount_1eth, &chain));
+    TEST_ASSERT_EQUAL(2, get_operation_ctx_count());
+    TEST_ASSERT_TRUE(process_remaining_empty_calls());
+    TEST_ASSERT_EQUAL(0, get_operation_ctx_count());
+    TEST_ASSERT_TRUE(operation_ctx_has_message());
+}
+
+void test_remaining_calls_with_calldata_are_not_processed(void) {
+    uint64_t chain = 1;
+    s_calldata *cd = make_complete_calldata(g_match_selector);
+
+    TEST_ASSERT_TRUE(operation_ctx_init(NULL, g_addr_a, g_addr_a, NULL, &chain));
+    TEST_ASSERT_TRUE(operation_ctx_init(cd, g_addr_a, g_addr_b, NULL, &chain));
+    TEST_ASSERT_FALSE(process_remaining_empty_calls());
+    // the empty one before it was, and the call that waits for its description is still there
+    TEST_ASSERT_EQUAL(1, get_operation_ctx_count());
+}
 
 // =============================================================================
 // Runner
@@ -898,6 +1163,7 @@ int main(void) {
     RUN_TEST(test_validate_instruction_hash_no_current_returns_false);
     RUN_TEST(test_gcs_cleanup_empties_list);
     RUN_TEST(test_gcs_cleanup_frees_parked_calldata);
+    RUN_TEST(test_operation_ctx_cleanup_forgets_what_the_descriptors_showed);
     RUN_TEST(test_process_empty_calls_before_removes_empty_predecessors);
     RUN_TEST(test_process_empty_calls_before_keeps_execution_order);
     RUN_TEST(test_process_empty_calls_after_removes_empty_successors);
@@ -924,5 +1190,23 @@ int main(void) {
     RUN_TEST(test_descriptors_match_when_the_digest_is_the_announced_one);
     RUN_TEST(test_descriptors_do_not_match_another_digest);
     RUN_TEST(test_descriptors_do_not_match_when_the_hash_cannot_be_finalized);
+    RUN_TEST(test_a_call_of_a_message_is_not_the_message);
+    RUN_TEST(test_init_in_a_typed_message_takes_its_sender_and_chain);
+    RUN_TEST(test_init_in_a_typed_message_keeps_what_the_descriptor_says);
+    RUN_TEST(test_init_in_a_typed_message_without_chain_gives_no_chain);
+    RUN_TEST(test_init_of_another_call_of_a_typed_message_does_not_take_the_previous_one);
+    RUN_TEST(test_init_in_a_call_of_a_typed_message_takes_the_call);
+    RUN_TEST(test_nothing_is_being_described_until_a_description_is_matched);
+    RUN_TEST(test_pop_of_a_call_of_a_typed_message_describes_the_message_again);
+    RUN_TEST(test_pop_of_a_nested_call_of_a_typed_message_describes_the_call_before);
+    RUN_TEST(test_pop_leaves_the_message);
+    RUN_TEST(test_the_message_is_not_taken_for_an_empty_call);
+    RUN_TEST(test_empty_call_of_a_typed_message_on_another_chain_shows_its_network);
+    RUN_TEST(test_empty_call_of_a_typed_message_on_its_chain_shows_no_network);
+    RUN_TEST(test_empty_call_of_a_typed_message_with_no_chain_shows_its_network);
+    RUN_TEST(test_empty_call_on_no_chain_is_refused);
+    RUN_TEST(test_remaining_empty_calls_are_all_processed);
+    RUN_TEST(test_remaining_empty_calls_of_a_typed_message_leave_the_message);
+    RUN_TEST(test_remaining_calls_with_calldata_are_not_processed);
     return UNITY_END();
 }

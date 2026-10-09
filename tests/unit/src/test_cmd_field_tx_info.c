@@ -476,6 +476,35 @@ void test_field_handler_pop_failure_propagates(void) {
 // The calls a typed message names
 // =============================================================================
 
+// the calls of a typed message are nested in it, which is the root: they are popped, as the calls
+// of a transaction are
+void test_field_handler_of_a_typed_message_pops_its_calls(void) {
+    static const s_operation_info dummy = {0};
+
+    s_tx_info_ret = &dummy;
+    appState = APP_STATE_PREPARING_EIP712;
+    g_field_tlv_invoke_handler = true;
+    g_operation_ctx_is_root_ret = false;
+    g_validate_instruction_hash_budget = 2;
+
+    handle_tx_field(P1_FIRST_CHUNK, 0, 0, NULL);
+    TEST_ASSERT_EQUAL(g_operation_ctx_pop_calls, 2);
+}
+
+// whereas the root of a transaction is not
+void test_field_handler_of_a_transaction_keeps_its_root(void) {
+    static const s_operation_info dummy = {0};
+
+    s_tx_info_ret = &dummy;
+    appState = APP_STATE_SIGNING_TX;
+    g_field_tlv_invoke_handler = true;
+    g_operation_ctx_is_root_ret = true;
+    g_validate_instruction_hash_budget = 2;
+
+    handle_tx_field(P1_FIRST_CHUNK, 0, 0, NULL);
+    TEST_ASSERT_EQUAL(g_operation_ctx_pop_calls, 0);
+}
+
 void test_field_handler_process_empty_failure_propagates(void) {
     static const s_operation_info dummy = {0};
     s_tx_info_ret = &dummy;
@@ -703,6 +732,8 @@ int main(void) {
     RUN_TEST(test_field_handler_format_failure);
     RUN_TEST(test_field_handler_eip712_pop_loop_runs);
     RUN_TEST(test_field_handler_pop_failure_propagates);
+    RUN_TEST(test_field_handler_of_a_typed_message_pops_its_calls);
+    RUN_TEST(test_field_handler_of_a_transaction_keeps_its_root);
     RUN_TEST(test_field_handler_process_empty_failure_propagates);
     RUN_TEST(test_tx_info_handler_happy_path);
     RUN_TEST(test_tx_info_handler_receive_failure);

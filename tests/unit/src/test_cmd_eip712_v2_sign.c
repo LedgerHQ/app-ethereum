@@ -166,6 +166,32 @@ void test_the_announced_descriptors_let_it_go_on(void) {
     TEST_ASSERT_EQUAL(1, g_described_review_calls);
 }
 
+// the descriptors the message info attests replace the raw review, and the blind signing setting
+void test_described_message_is_reviewed_as_described(void) {
+    g_fields_pending = true;
+    g_n_storage_writable.dataAllowed = false;
+    g_n_storage_writable.verbose_eip712 = false;
+    TEST_ASSERT_EQUAL(SWO_NO_RESPONSE, sign());
+    TEST_ASSERT_EQUAL(1, g_hash_pass_calls);
+    TEST_ASSERT_EQUAL(1, g_described_review_calls);
+    TEST_ASSERT_EQUAL(0, g_review_calls);
+    TEST_ASSERT_EQUAL(0, g_blind_signing_errors);
+}
+
+// the review is released by the reset an error leads to, like any other refusal
+void test_failure_of_the_described_review_is_refused(void) {
+    g_fields_pending = true;
+    g_described_review_ret = false;
+    TEST_ASSERT_EQUAL(SWO_INCORRECT_DATA, sign());
+    TEST_ASSERT_EQUAL(0, g_review_calls);
+}
+
+void test_raw_message_is_not_reviewed_as_described(void) {
+    TEST_ASSERT_EQUAL(SWO_NO_RESPONSE, sign());
+    TEST_ASSERT_EQUAL(0, g_described_review_calls);
+    TEST_ASSERT_EQUAL(1, g_review_calls);
+}
+
 // nothing is hashed, nothing is shown
 void test_other_descriptors_than_the_announced_are_refused(void) {
     g_fields_pending = true;
@@ -173,6 +199,7 @@ void test_other_descriptors_than_the_announced_are_refused(void) {
     TEST_ASSERT_EQUAL(SWO_INCORRECT_DATA, sign());
     TEST_ASSERT_EQUAL(0, g_hash_pass_calls);
     TEST_ASSERT_EQUAL(0, g_review_calls);
+    TEST_ASSERT_EQUAL(0, g_described_review_calls);
     TEST_ASSERT_EQUAL(0, g_blind_signing_errors);
 }
 
@@ -181,6 +208,24 @@ void test_no_announcement_means_nothing_to_match(void) {
     g_fields_pending = false;
     g_fields_match = false;
     TEST_ASSERT_EQUAL(SWO_NO_RESPONSE, sign());
+}
+
+// =============================================================================
+// The calls the descriptors named
+// =============================================================================
+
+// the calls that are left have to be empty ones, which have nothing to be described
+void test_calls_left_without_description_refused(void) {
+    g_remaining_empty_ret = false;
+    TEST_ASSERT_EQUAL(SWO_REFERENCED_DATA_NOT_FOUND, sign());
+    TEST_ASSERT_EQUAL(0, g_hash_pass_calls);
+    TEST_ASSERT_EQUAL(0, g_review_calls);
+}
+
+void test_calls_still_there_after_the_empty_ones_refused(void) {
+    g_operation_ctx_count = 1;
+    TEST_ASSERT_EQUAL(SWO_REFERENCED_DATA_NOT_FOUND, sign());
+    TEST_ASSERT_EQUAL(0, g_review_calls);
 }
 
 // =============================================================================
@@ -247,8 +292,13 @@ int main(void) {
     RUN_TEST(test_wrong_app_state_refused);
     RUN_TEST(test_missing_domain_or_message_refused);
     RUN_TEST(test_the_announced_descriptors_let_it_go_on);
+    RUN_TEST(test_described_message_is_reviewed_as_described);
+    RUN_TEST(test_failure_of_the_described_review_is_refused);
+    RUN_TEST(test_raw_message_is_not_reviewed_as_described);
     RUN_TEST(test_other_descriptors_than_the_announced_are_refused);
     RUN_TEST(test_no_announcement_means_nothing_to_match);
+    RUN_TEST(test_calls_left_without_description_refused);
+    RUN_TEST(test_calls_still_there_after_the_empty_ones_refused);
     RUN_TEST(test_hash_pass_failure_is_incorrect_data);
     RUN_TEST(test_raw_review_needs_blind_signing_to_be_enabled);
     RUN_TEST(test_review_failure_is_incorrect_data);

@@ -242,6 +242,61 @@ void test_value_get_rlp_chain_id_bigendian(void) {
     TEST_ASSERT_EQUAL_MEMORY(collec.value[0].ptr, expected, 8);
 }
 
+static bool get_from(void) {
+    s_value v = {0};
+    s_parsed_value_collection collec = {0};
+
+    v.source = SOURCE_RLP;
+    v.container_path = CP_FROM;
+    return value_get(&v, &collec);
+}
+
+static const s_operation_info s_transaction_info = {.context = OPERATION_INFO_CTX_SIGN_TX};
+static const s_operation_info s_message_info = {.context = OPERATION_INFO_CTX_EIP712};
+
+// The review adds its own row for the sender unless a descriptor of the root operation shows it
+void test_from_of_a_transaction_root_is_marked_as_shown(void) {
+    static const uint8_t addr[ADDRESS_LENGTH] = {0xAA};
+
+    g_tx_from = addr;
+    s_tx_info_ret = &s_transaction_info;
+    g_is_root = true;
+    TEST_ASSERT_TRUE(get_from());
+    TEST_ASSERT_EQUAL(1, g_root_from_shown_calls);
+}
+
+void test_from_of_a_call_that_is_not_root_is_not_marked_as_shown(void) {
+    static const uint8_t addr[ADDRESS_LENGTH] = {0xAA};
+
+    g_tx_from = addr;
+    s_tx_info_ret = &s_transaction_info;
+    g_is_root = false;
+    TEST_ASSERT_TRUE(get_from());
+    TEST_ASSERT_EQUAL(0, g_root_from_shown_calls);
+}
+
+// the review of a message shows the sender of the message: the message is the root of the
+// operations, and the calls it names are not
+void test_from_of_a_message_is_marked_as_shown(void) {
+    static const uint8_t addr[ADDRESS_LENGTH] = {0xBB};
+
+    g_tx_from = addr;
+    s_tx_info_ret = &s_message_info;
+    g_is_root = true;
+    TEST_ASSERT_TRUE(get_from());
+    TEST_ASSERT_EQUAL(1, g_root_from_shown_calls);
+}
+
+void test_from_of_a_call_in_a_message_is_not_marked_as_shown(void) {
+    static const uint8_t addr[ADDRESS_LENGTH] = {0xAA};
+
+    g_tx_from = addr;
+    s_tx_info_ret = &s_transaction_info;
+    g_is_root = false;
+    TEST_ASSERT_TRUE(get_from());
+    TEST_ASSERT_EQUAL(0, g_root_from_shown_calls);
+}
+
 void test_value_get_rlp_from_null_rejected(void) {
     g_tx_from = NULL;
     s_value v = {0};
@@ -296,9 +351,6 @@ void test_handle_value_struct_data_path_tag_sets_source_calldata(void) {
 // =============================================================================
 // The path tag in a transaction and in a message
 // =============================================================================
-
-static const s_operation_info s_transaction_info = {.context = OPERATION_INFO_CTX_SIGN_TX};
-static const s_operation_info s_message_info = {.context = OPERATION_INFO_CTX_EIP712};
 
 // Tag 0x03 is a path in the calldata for a transaction, in the value tree for a message
 void test_path_tag_is_a_data_path_in_a_transaction(void) {
@@ -815,6 +867,10 @@ int main(void) {
     RUN_TEST(test_value_get_rlp_to);
     RUN_TEST(test_value_get_rlp_amount);
     RUN_TEST(test_value_get_rlp_chain_id_bigendian);
+    RUN_TEST(test_from_of_a_transaction_root_is_marked_as_shown);
+    RUN_TEST(test_from_of_a_call_that_is_not_root_is_not_marked_as_shown);
+    RUN_TEST(test_from_of_a_message_is_marked_as_shown);
+    RUN_TEST(test_from_of_a_call_in_a_message_is_not_marked_as_shown);
     RUN_TEST(test_value_get_rlp_from_null_rejected);
     RUN_TEST(test_value_get_rlp_chain_id_null_tx_info_rejected);
     RUN_TEST(test_handle_value_struct_data_path_tag_sets_source_calldata);

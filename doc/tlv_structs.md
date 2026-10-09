@@ -388,8 +388,24 @@ If the network is not found, the device falls back to displaying the raw chain I
 > context-dependent — see `Context` column), `CONTAINER_PATH`, `CONSTANT` or `MAP_REF`, and both
 > `VERSION` and `TYPE_FAMILY`. A VALUE that lacks one of them, or that has none or several of those
 > sources, is refused, and so is the descriptor that holds it.
-> `EIP712_PATH` is only valid when the FIELD is part of an
-> [EIP712_FIELD_DESCRIPTOR](#eip712_field_descriptor) — see that section.
+>
+> Tag `0x03` is read according to the operation the FIELD describes: as a `DATA_PATH` for a
+> transaction, and for the calls a typed message names, and as an [EIP712_PATH](#eip712_path) for a
+> typed message (see [EIP712_FIELD_DESCRIPTOR](#eip712_field_descriptor)). Nothing in the bytes
+> tells them apart, so a path is only meaningful for the operation it was written for.
+
+What a `CONTAINER_PATH` stands for depends on the operation being described too:
+
+| Value    | Transaction                              | Typed message (EIP-712)                                                                                   |
+|----------|------------------------------------------|-----------------------------------------------------------------------------------------------------------|
+| FROM     | sender of the transaction                | account that signs, the one of the derivation path of `EIP712_VALUES`                                     |
+| TO       | recipient of the transaction             | `verifyingContract` of the domain, when it is an address. Refused when the domain has none                |
+| VALUE    | native amount of the transaction         | refused: a typed message sends nothing                                                                    |
+| CHAIN_ID | chain of the transaction                 | `chainId` of the domain. Refused when it has none                                                         |
+
+The calls a typed message names are transactions: their `CONTAINER_PATH` values are their own. A call
+that does not say who sends it is sent by the account that signs the message, and one that does not
+say its chain is on the one of the message, when it has one.
 
 ### DATA_PATH
 
@@ -830,30 +846,39 @@ signature-covers-nothing-directly rationale (`FIELDS_HASH` in `EIP712_MESSAGE_IN
 authenticity, order and completeness of all descriptors, same as SignTx). Multiple descriptors
 referencing the same underlying field/value is normal (e.g. shown once raw, once formatted) and
 is not treated as a duplicate — this only applies to `EIP712_SCHEMA`'s struct/field name
-uniqueness, not `EIP712_FIELD_DESCRIPTOR`.
+uniqueness, not `EIP712_FIELD_DESCRIPTOR`. The `VERSION` of a `FIELD` is `0x01`, for a message
+as for a transaction.
 
 The only addition is a new `VALUE` source: [EIP712_PATH](#eip712_path), reusing tag `0x03` on
 `VALUE` (same tag as `DATA_PATH`, since both play the same high-level role — see
-[VALUE](#value) above) — used in place of `DATA_PATH`/`CONTAINER_PATH` to reference a location in
-the EIP-712 value tree instead of the serialized transaction.
+[VALUE](#value) above) — used in place of `DATA_PATH` to reference a location in the EIP-712
+value tree instead of the serialized transaction. `CONTAINER_PATH`, `CONSTANT` and `MAP_REF` are
+available as well, with the meaning given in [VALUE](#value).
 
 ### EIP712_PATH
 
-| Name              | Tag  | Payload type | Description | Optional |
-|-------------------|------|--------------|--------------|----------|
-| VERSION           | 0x00 | uint8        | struct version |       |
-| EIP712_STRUCT_FIELD | 0x01 | uint8 (repeated) | field index at this depth, walking from the root | — |
-| EIP712_ARRAY_SLICE  | 0x02 | [EIP712_ARRAY_SLICE](#eip712_array_slice) (repeated) | array segment to match at this depth | — |
+| Name                | Tag  | Payload type                                         | Description                                      | Optional |
+|---------------------|------|------------------------------------------------------|--------------------------------------------------|----------|
+| VERSION             | 0x00 | uint8                                                | struct version (constant: `0x01`)                |          |
+| EIP712_STRUCT_FIELD | 0x01 | uint8 (repeated)                                     | field index at this depth, walking from the root | —        |
+| EIP712_ARRAY_SLICE  | 0x02 | [EIP712_ARRAY_SLICE](#eip712_array_slice) (repeated) | array segment to match at this depth             | —        |
+| EIP712_LEAF_SLICE   | 0x03 | [EIP712_LEAF_SLICE](#eip712_leaf_slice)              | bytes of the leaf to keep                        | x        |
+
+The path is walked in the value tree of the message, never in the domain, starting from the root,
+which is a struct: it begins with an `EIP712_STRUCT_FIELD`. What a descriptor needs from the domain
+is available through `CONTAINER_PATH`, see [VALUE](#value).
 
 `EIP712_STRUCT_FIELD` and `EIP712_ARRAY_SLICE` entries appear interleaved, in the order the path
-descends through the tree, walking the already-decoded value tree by field index.
+descends through the tree, walking the already-decoded value tree by field index. An
+`EIP712_LEAF_SLICE` comes last, at most once.
 
 > [!IMPORTANT]
-> Both tags describe steps of a **single ordered sequence**, not two independent collections. The
-> tag identifies the kind of step (descend into a struct field, or select an array segment); the
-> reception order is the descent order and is load-bearing. Accumulating entries per tag rather
-> than into one ordered sequence loses the interleaving, and two different paths — for example
-> `field/slice/field` and `field/field/slice` — become indistinguishable.
+> All three tags describe steps of a **single ordered sequence**, not independent collections. The
+> tag identifies the kind of step (descend into a struct field, select an array segment, or
+> keep some bytes of the leaf); the reception order is the descent order and is load-bearing.
+> Accumulating entries per tag rather than into one ordered sequence loses the interleaving, and
+> two different paths — for example `field/slice/field` and `field/field/slice` — become
+> indistinguishable.
 
 Example — `orders[2].items[0..3).price`, where `orders` is field 1 of the root struct, `items`
 field 2 of `Order`, and `price` field 0 of `Item`:
@@ -868,17 +893,20 @@ EIP712_PATH {
 }
 ```
 
-> [!IMPORTANT]
-> **Open question**: how a descriptor's path expresses starting from the domain tree rather than
-> the message tree (e.g. to reference `domain.verifyingContract`) is not yet decided. Candidates:
-> add a root tag to `EIP712_PATH`, add two separate `VALUE` sources (domain-path vs
-> message-path), don't support it (domain fields only ever shown via the fixed `EIP712_MESSAGE_INFO`
-> metadata), or recycle GCS's `ContainerPath` enum (`CHAIN_ID`/`TO`) for the well-known domain
-> fields shared across signing contexts. Not reflected in the table above pending that decision.
+A path leads to values, and is refused otherwise. It has to:
+
+- have the version `0x01`, and begin with an `EIP712_STRUCT_FIELD`;
+- go down through the tree consistently: an `EIP712_STRUCT_FIELD` applies to a struct and names a
+  field it has, an `EIP712_ARRAY_SLICE` applies to an array;
+- end on a leaf: a path that ends on a struct, or on an array whose dimensions it did not all go
+  through, leads to no value. Each dimension of an array needs an `EIP712_ARRAY_SLICE`, `{}`
+  (wildcard) included.
 
 A single `EIP712_PATH` matching multiple leaves (via a wildcard/ranged `EIP712_ARRAY_SLICE`) is
 intentional, same as GCS's `DATA_PATH`/`ARRAY_ELEMENT` — one descriptor applying its display
-format to every matched element without one descriptor per index.
+format to every matched element without one descriptor per index. It selects at most 16 values, in
+the order they are in the message, and a path selecting more is refused. A path that selects none,
+because an array it goes through is empty or the slice selects nothing, is valid and shows nothing.
 
 ### EIP712_ARRAY_SLICE
 
@@ -891,7 +919,7 @@ Absent `START` and `END` (`{}`) means wildcard — matches every element.
 
 `START` and `END` are encoded as fixed-width two-byte big-endian signed integers, not
 minimal-length — a negative index shortened to one byte would zero-extend to a large positive
-value instead of sign-extending.
+value instead of sign-extending. A bound of another length is refused.
 
 Resolution algorithm, given `array_size` = the resolved, fully-populated length of the target
 array (always known by the time `EIP712_FIELD_DESCRIPTOR` is processed, since `EIP712_VALUES` always completes first):
@@ -899,19 +927,29 @@ array (always known by the time `EIP712_FIELD_DESCRIPTOR` is processed, since `E
 1. If `START` present and negative: `start = array_size + START` (Python-style, `-1` = last
    element). Else if present and non-negative: `start = START`. Else: `start = 0`.
 2. Same rule for `END`, with `end = array_size` if absent.
-3. Reject if `start < 0` after normalization.
+3. Reject if `start < 0` or `end < 0` after normalization: the slice reaches before the array.
 4. Reject if `end > array_size` after normalization. *(The one check added beyond GCS's own
    `ARRAY_ELEMENT` resolution: GCS can rely on an unrelated buffer-length check catching an
    out-of-range calldata offset later; the EIP-712 value tree has no equivalent implicit
    backstop, so this must be explicit.)*
-5. Reject if `end <= start` (matches GCS: an inverted/empty range is malformed, not a valid
-   "zero matches" no-op).
-6. Otherwise valid — matches elements `[start, end)`.
+5. Otherwise valid — matches elements `[start, end)`, none when `end <= start`. *(Unlike GCS's
+   `ARRAY_ELEMENT`, an empty or inverted range is not malformed: whether an array has elements is
+   up to the message, and a descriptor must not make a valid message unsignable because an array
+   happens to be empty. This is also why `start >= array_size` is valid, for as long as `end` is
+   not past the array.)*
 
 All rejections abort processing of that `EIP712_PATH`/descriptor.
 
-> [!IMPORTANT]
-> **Open question**: whether leaf-level byte-range slicing (e.g. showing only part of a `bytes`
-> value, analogous to GCS's `SLICE_ELEMENT`) is needed for EIP-712 is not yet decided — values
-> here are already decoded/typed (unlike GCS's raw ABI byte navigation), so the need is narrower.
-> Not reflected in the table above pending that decision.
+### EIP712_LEAF_SLICE
+
+Keeps some of the bytes of the leaf the path ends on, as `SLICE_ELEMENT` does for a `DATA_PATH`.
+
+| Name  | Tag  | Payload type | Description | Optional |
+|-------|------|--------------|--------------|----------|
+| START | 0x01 | int16        | first byte kept (inclusive) | x, defaults to `0` |
+| END   | 0x02 | int16        | end of the bytes kept (exclusive) | x, defaults to the length of the leaf |
+
+Bounds are encoded as for an [EIP712_ARRAY_SLICE](#eip712_array_slice), a negative one counting
+back from the end of the leaf. The leaf has to be of type `bytesN`, `bytes` or `string`, and the
+slice has to be inside of it and keep at least one byte: unlike an array slice, an empty selection
+is refused, as for a `SLICE_ELEMENT`.

@@ -335,6 +335,19 @@ _Input data:_
 
 None. `P1` must be `00` and `Lc` must be `0`. It is refused with `0x6980` during a V1 session.
 
+When the message info announced field descriptors, they all have to have been received first
+([TRANSACTION FIELD DESCRIPTION](#transaction-field-description), `P2 = 02`), along with the
+description of every call they named. The command is refused, and nothing is shown, with:
+
+- `0x6A80` if the descriptors received are not the announced ones: any that is missing, added,
+  altered or out of order;
+- `0x6A88` if a call they named is not described, or not completely.
+
+The review is then the one of the described message, see
+[Reviewing a described message](eip712.md#reviewing-a-described-message): it is not blind
+signing, so it needs no setting and shows no warning. Without announced descriptors, every value
+is shown raw, which is blind signing: the setting is needed, and the warning is shown.
+
 _Output data:_
 
 | Description | Length |
@@ -1264,7 +1277,9 @@ It describes the message of the EIP-712 V2 flow in progress:
   signature that does not verify, a missing required tag, a tag of a transaction or a version other
   than `01` are refused with the same status.
 
-The review is not changed by it yet.
+The info announces, through its `FIELDS_HASH`, the field descriptors of the message, which are
+received with [TRANSACTION FIELD DESCRIPTION](#transaction-field-description) (`P2 = 02`) after it.
+Without any (the hash of no descriptors), the message is reviewed raw, as when there is no info.
 
 #### Coding
 
@@ -1301,17 +1316,43 @@ None
 
 #### Description
 
-This command provides a field description for the Generic Transaction Parser (GCS).
+This command provides a field description of a transaction or of an EIP-712 message.
 
 See [FIELD struct](tlv_structs.md#field) for the full field layout and parameter types.
+
+##### If P2 == transaction
+
+The field describes the transaction being signed, or a call it made, after its
+[TRANSACTION INFO](#transaction-info). The same goes for the calls a typed message names, described
+as transactions: they have a `TRANSACTION INFO` (`P2 = 00`) of their own, and their fields follow
+it.
+
+##### If P2 == V2 message
+
+The field describes the message of the EIP-712 V2 flow in progress, with the paths of the
+[EIP712_FIELD_DESCRIPTOR](tlv_structs.md#eip712_field_descriptor). It is accepted when:
+
+- the message info the message came with announced field descriptors, that is when its `FIELDS_HASH`
+  is not the one of no descriptors;
+- the message is complete and the review has not started: after the values and the message info,
+  and before EIP712 SIGN;
+- no call is being described: the fields of a call that a descriptor named are sent with `P2 = 00`,
+  after the info of that call, and the ones of the message resume when it is complete;
+- there is no V1 session in progress.
+
+Otherwise `0x6980` is returned. A field that cannot be applied to the message, whose path leads to
+no value for example, or whose path selects more than 16 values, is refused with `0x6A80`. The
+descriptors are hashed as they come: whether they are the announced ones is checked by EIP712 SIGN.
 
 #### Coding
 
 _Command:_
 
-| CLA | INS | P1                                         | P2  | LC  |
-|-----|-----|--------------------------------------------|-----|-----|
-| E0  | 28  | `01`: first chunk<br>`00`: following chunk | 00  | 00  |
+| CLA | INS | P1                                         | P2                                      | LC  |
+|-----|-----|--------------------------------------------|-----------------------------------------|-----|
+| E0  | 28  | `01`: first chunk<br>`00`: following chunk | `00`: transaction<br>`02`: V2 message   | 00  |
+
+Any other P2 is refused with `0x6A86`, and so is any other P1 when `P2 == 02`.
 
 _Input data:_
 

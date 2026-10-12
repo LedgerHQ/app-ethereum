@@ -52,17 +52,19 @@ The V2 tests of `test_gating.py` are listed at the end.
 
 ### The schema
 
-- 55 malformed schemas are refused: versions, missing or duplicate tags, duplicate struct and
-  field names, the rules of `TYPE_SIZE`, `STRUCT_NAME` and the array dimensions, and the names
+- 58 malformed schemas are refused: versions, missing, duplicate or unknown tags, duplicate struct
+  and field names, the rules of `TYPE_SIZE`, `STRUCT_NAME` and the array dimensions, and the names
   the device refuses.
-- A schema without `EIP712Domain`, a reference to a struct that does not exist, a truncated schema,
-  a second schema, a chunk after a complete schema and a following chunk without a first one are
-  refused.
+- A schema without `EIP712Domain`, a reference to a struct that does not exist (with a value of it,
+  or in an empty array), a truncated schema, a second schema, a chunk after a complete schema and a
+  following chunk without a first one are refused. The first two are refused when the values arrive.
+- A struct that holds an array of its own type is signed and recovered.
 - A struct without member, an empty `EIP712Domain` or the type of a field, is signed and recovered.
 
 ### The values
 
-- 23 malformed value payloads are refused: versions, a primary type that is unknown, empty, a prefix
+- 24 malformed value payloads are refused: versions, an unknown tag, a primary type that is
+  unknown, empty, a prefix
   or an extension of a struct name, or holds a NUL, an `EIP712_MESSAGE` before `PRIMARY_TYPE`,
   missing tags, a derivation path that is empty, unaligned, too long or whose count wraps a byte,
   missing and extra values, and a sequence where the schema has a scalar.
@@ -127,6 +129,10 @@ The V2 tests of `test_gating.py` are listed at the end.
 - 40 described messages are signed in a row: each review gives back the memory it took.
 - With the "Transaction hash" setting, the review ends with the hash of the domain and the hash of
   the message, and shows none without it.
+- A permit, the message of the V1 advanced filtering test, is described by a token amount in the
+  token of the contract and a datetime, with an intent and a creator in the message info. The
+  amount shows in the token the app knows (`4.2 ENS`), or as an integer followed by `???` when it
+  knows none.
 
 ### What the descriptors show
 
@@ -146,7 +152,8 @@ The V2 tests of `test_gating.py` are listed at the end.
 
 ### Which values are selected
 
-- Array slices (7 cases), wildcards, 16 matches kept and 17 refused.
+- Array slices (7 cases), wildcards, 16 matches kept and 17 refused. The steps after an empty
+  selection are not checked, while those after an element are.
 - 16 malformed paths are refused: a version other than `0x01`, a path with no step, one that starts
   with an array step or a leaf slice, a step after the leaf slice, a field index out of range, a
   field step on a leaf or an array, an array step on a leaf, a path that ends on an array or on a

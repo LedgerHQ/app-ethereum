@@ -65,8 +65,8 @@ This app follows the specification available in the `doc/` folder:
 
 - [APDU protocol](doc/apdu.md): list and coding of all the supported commands.
 - [TLV structures](doc/tlv_structs.md): signed descriptors sent by the client
-  (trusted names, networks, Generic Clear Signing, ...).
-- [EIP-712](doc/eip712.md): typed data signing and filtering.
+  (trusted names, networks, Generic Clear Signing, EIP-712 V2, ...).
+- [EIP-712](doc/eip712.md): typed data signing, V1 with filtering and V2.
 - [Generic Clear Signing](doc/gcs.md): implementation of the Generic Clear Signing flow.
 - [Plugins](doc/ethapp_plugins.adoc): technical specifications of the legacy plugin interface.
 - [Embedded contract support](doc/eth_contract_support_embedded.adoc): contracts natively supported by the app.
@@ -90,6 +90,20 @@ Additional descriptors resolve some of the values:
 - [PROVIDE PROXY INFO](doc/apdu.md#provide-proxy-info) associates a proxy contract with its implementation.
 
 See [doc/gcs.md](doc/gcs.md) for the implementation details.
+
+### Typed messages (EIP-712)
+
+The app signs [EIP-712](https://eips.ethereum.org/EIPS/eip-712) messages and computes their hashes itself.
+Two protocols are supported, see [doc/eip712.md](doc/eip712.md):
+
+- V1 streams the types and the values field by field. A signed filtering description chooses which fields to show and
+  how, see [EIP712 FILTERING](doc/apdu.md#eip712-filtering).
+- V2 sends the schema and the values as two TLV payloads, with
+  [EIP712 SEND STRUCT DEFINITION](doc/apdu.md#eip712-send-struct-definition) and
+  [EIP712 SEND STRUCT IMPLEMENTATION](doc/apdu.md#eip712-send-struct-implementation). A signed message info and its
+  field descriptors clear sign the message like a transaction, with the same formatters and from the same
+  [ERC-7730](https://eips.ethereum.org/EIPS/eip-7730) description. Without them, every value is shown raw, which is
+  blind signing. See [EIP712 V2](doc/eip712.md#v2).
 
 ### Trusted names
 

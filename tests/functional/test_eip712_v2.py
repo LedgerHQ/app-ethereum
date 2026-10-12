@@ -7,8 +7,9 @@ The signature check is the meaningful assertion here: the expected address is re
 hash that eth_account computes independently from the same JSON, so it only matches if the
 app's schema parsing, value tree and hashing all agree with the EIP-712 standard.
 
-V2 has no field descriptors yet, so every message is displayed raw. That is blind signing, so
-the setting has to be enabled and the review carries a warning page.
+These messages come without a message info, so every one is displayed raw. That is blind signing:
+the setting has to be enabled and the review carries a warning page. The message info is tested in
+test_eip712_v2_message_info.py, and the field descriptors in test_eip712_v2_fields.py.
 """
 
 import fnmatch

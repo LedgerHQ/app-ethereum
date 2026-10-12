@@ -305,7 +305,7 @@ bool ui_712_v2_review(void) {
         return false;
     }
 
-    // V2 has no field descriptors yet, so every value is shown raw, which is blind signing. The
+    // A message without field descriptors has every value shown raw, which is blind signing. The
     // schema opened the flow, so the app is already out of idle and nothing is reset.
     if (!ui_712_prepare_blind_review()) {
         return false;

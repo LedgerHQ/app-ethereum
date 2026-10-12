@@ -46,6 +46,16 @@ The following APDUs are managed by the application. They are detailed in the fol
 | PROVIDE GATING                    | 0x38        |
 | PROVIDE MAP ENTRY                 | 0x3A        |
 
+### EIP-712 versions
+
+A typed message is signed in one of two ways, V1 or V2, which never mix. A signing flow is a V1 one
+from its first V1 command and a V2 one from its schema. Until the flow ends, by a signature, a
+rejection or an error, the device refuses every command of the other version with `0x6980`:
+
+- the V2 commands (`P2 = 02`) in a V1 flow;
+- the V0 and V1 commands in a V2 flow: `EIP712 SEND STRUCT DEFINITION`,
+  `EIP712 SEND STRUCT IMPLEMENTATION`, `EIP712 FILTERING` and `SIGN ETH EIP 712` with another `P2`.
+
 ## General purpose APDUs
 
 ### GET ETH PUBLIC ADDRESS
@@ -303,10 +313,10 @@ This command has been supported since app version 1.5.0.
 The full implementation uses all the JSON data and does all the hashing on the device, it has been supported since app
 version 1.9.19. This command should come last, after all the EIP712 SEND STRUCT DEFINITION & SEND STRUCT IMPLEMENTATION.
 
-The V2 implementation triggers the hash pass and signature after the schema and values have been
-fully delivered via EIP712 SEND STRUCT DEFINITION and EIP712 SEND STRUCT IMPLEMENTATION (V2
-branches, `P2 = 02`). It carries no input data: the BIP 32 path was already delivered as part of
-the [EIP712_VALUES struct](tlv_structs.md#eip712_values).
+The V2 implementation computes the hashes and signs after the schema and the values have been
+delivered with EIP712 SEND STRUCT DEFINITION and EIP712 SEND STRUCT IMPLEMENTATION (V2 branches,
+`P2 = 02`). It carries no input data: the BIP 32 path is part of the
+[EIP712_VALUES struct](tlv_structs.md#eip712_values).
 
 #### Coding
 
@@ -333,23 +343,32 @@ _Input data:_
 
 ##### If P2 == V2 implementation
 
-None. `P1` must be `00` and `Lc` must be `0`. It is refused with `0x6980` during a V1 session.
+None. `P1` must be `00` and `Lc` must be `0`: the command is `e0 0c 00 02 00`. It starts the review of
+the message sent with the previous V2 commands, and returns the signature once the user approves it.
+If the user rejects the review, it answers `0x6985`.
 
-When the message info announced field descriptors, they all have to have been received first
-([TRANSACTION FIELD DESCRIPTION](#transaction-field-description), `P2 = 02`), along with the
-description of every call they named. The command is refused, and nothing is shown, with:
+The device refuses the command, and shows nothing, with:
 
+- `0x6A86` if `P1` is not `00`;
+- `0x6A80` if `Lc` is not `0`;
+- `0x6980` when the schema or the values were not received, and when the message was already
+  signed;
 - `0x6A80` if the descriptors received are not the announced ones: any that is missing, added,
   altered or out of order;
-- `0x6A88` if a call they named is not described, or not completely.
+- `0x6A88` if a call they named is not described, or not completely;
+- `0x6A80` if the device cannot hash the message or build the review, see below.
 
-The review is then the one of the described message, see
-[Reviewing a described message](eip712.md#reviewing-a-described-message): it is not blind
-signing, so it needs no setting and shows no warning. Without announced descriptors, every value
-is shown raw, which is blind signing: the setting is needed, and the warning is shown. The key of
-each value shown raw has to be printable ASCII with a visible character, otherwise the command is
-refused with `0x6A80` and nothing is shown, see
-[EIP712_STRUCT](tlv_structs.md#eip712_struct).
+When the message info announced field descriptors, the device has to have received all of them first
+([TRANSACTION FIELD DESCRIPTION](#transaction-field-description), `P2 = 02`), along with the
+description of every call they named. The review is then the one of the described message, see
+[Reviewing a described message](eip712.md#reviewing-a-described-message). It is not blind
+signing: it needs no setting and shows no warning.
+
+Without announced descriptors, the review shows every value raw, see
+[Reviewing a message without descriptors](eip712.md#reviewing-a-message-without-descriptors).
+It is blind signing: it needs the "Blind signing" or the "Raw messages" setting of the app, and the
+device refuses the command with neither. It shows the warning. The name of each field it shows has
+to be printable ASCII with a visible character, see [Names](eip712.md#names).
 
 _Output data:_
 
@@ -604,9 +623,8 @@ _Output data:_
 This command sends the message definition with all its types.
 These commands should come before the EIP712 SEND STRUCT IMPLEMENTATION ones.
 
-This is a V1-only description; see the [V2 branch](#if-p2--v2-schema) below for the V2 schema
-delivery mechanism, which replaces this incremental struct/field-by-field protocol with a single
-TLV blob.
+This description is the V1 one. The V2 schema is a single TLV payload, see
+[the V2 branch](#if-p2--v2-schema).
 
 #### Coding
 
@@ -694,8 +712,7 @@ Each fixed-sized array level is followed by a byte indicating its size (number o
 
 ##### If P2 == V2 schema
 
-P1 is reinterpreted as a chunk flag under this P2 value only (`01`: first chunk, `00`: following
-chunk), distinct from the other P2 branches above where P1 is unused.
+With this P2, P1 is the chunk flag: `01` first chunk, `00` following chunk.
 
 ###### If P1 == first chunk
 
@@ -710,10 +727,13 @@ chunk), distinct from the other P2 branches above where P1 is unused.
 |------------------------------------------------------|---------------|
 | [EIP712_SCHEMA struct](tlv_structs.md#eip712_schema) | variable      |
 
-Once a full `EIP712_SCHEMA` has been received and parsed successfully, it is locked: any further
-call with `P2 == V2 schema` in the same session is rejected. Any `P1` value other than `01` or `00`
-is rejected too. V1 and V2 never share a session: a V2 command is refused with `0x6980` while a V1
-session is in progress.
+The device locks the schema once it has received and accepted a full `EIP712_SCHEMA`. It answers:
+
+- `0x6A86` for a `P1` other than `01` and `00`;
+- `0x6980` for a first chunk when the app is not idle (this includes a second schema in the same
+  session), and for a following chunk when no incomplete schema is in progress;
+- `0x6A80` for a payload that is malformed or that the device refuses, see
+  [EIP712_SCHEMA](tlv_structs.md#eip712_schema).
 
 _Output data:_
 
@@ -726,9 +746,8 @@ None
 This command sends the message implementation with all its values.
 These commands should come after the EIP712 SEND STRUCT DEFINITION ones.
 
-This is a V1-only description; see the [V2 branch](#if-p2--v2-values) below for the V2 values
-delivery mechanism, which replaces this incremental root/array/field protocol with a single TLV
-blob.
+This description is the V1 one. The V2 values are a single TLV payload, see
+[the V2 branch](#if-p2--v2-values).
 
 #### Coding
 
@@ -770,8 +789,7 @@ instead of 3 as an array of ASCII characters, same for addresses and so on.
 
 ##### If P2 == V2 values
 
-P1 is reinterpreted as a chunk flag under this P2 value only (`01`: first chunk, `00`: following
-chunk), distinct from the complete/partial meaning P1 has on the V1 branches above.
+With this P2, P1 is the chunk flag: `01` first chunk, `00` following chunk.
 
 ###### If P1 == first chunk
 
@@ -786,9 +804,15 @@ chunk), distinct from the complete/partial meaning P1 has on the V1 branches abo
 |------------------------------------------------------|---------------|
 | [EIP712_VALUES struct](tlv_structs.md#eip712_values) | variable      |
 
-This call requires `EIP712_SCHEMA` (see EIP712 SEND STRUCT DEFINITION, V2 branch) to already be
-locked, and is accepted once per session; otherwise rejected. Any `P1` value other than `01` or `00`
-is rejected too. It is refused with `0x6980` during a V1 session.
+This call requires the `EIP712_SCHEMA` (see EIP712 SEND STRUCT DEFINITION, V2 branch) to be
+locked, and the device accepts the values once per session. It answers:
+
+- `0x6A86` for a `P1` other than `01` and `00`;
+- `0x6980` when no schema was received, and for a first chunk when the values
+  were already received;
+- `0x6A80` for a payload that is malformed or that the device refuses, see
+  [EIP712_VALUES](tlv_structs.md#eip712_values), and for a following chunk that continues no first
+  chunk.
 
 It may be followed by an [EIP712_MESSAGE_INFO struct](eip712.md#eip712_message_info), sent with
 TRANSACTION INFO and `P2 = 02`, before EIP712 SIGN.
@@ -806,6 +830,9 @@ more meaningful ones.
 
 This mode can be overridden by the in-app setting to fully clear-sign [EIP-712](https://eips.ethereum.org/EIPS/eip-712)
 messages.
+
+This command is part of V1. A V2 message has no filtering command: its field descriptors do the same job, see
+[EIP712_FIELD_DESCRIPTOR](tlv_structs.md#eip712_field_descriptor).
 
 For the signatures:
 
@@ -1274,15 +1301,15 @@ It describes the message of the EIP-712 V2 flow in progress:
 - it has to come after the values (EIP712 SEND STRUCT IMPLEMENTATION, V2 branch), and before
   EIP712 SIGN; otherwise `0x6980` is returned;
 - there is at most one per message, a second one is refused with `0x6980`;
-- it is refused with `0x6980` during a V1 session;
 - it is bound to the message, and refused with `0x6A80` if its domain separator is not the one of
   the message's domain, or if its primary type hash is not the one of the message's type. A
   signature that does not verify, a missing required tag, a tag of a transaction or a version other
   than `01` are refused with the same status.
 
-The info announces, through its `FIELDS_HASH`, the field descriptors of the message, which are
-received with [TRANSACTION FIELD DESCRIPTION](#transaction-field-description) (`P2 = 02`) after it.
-Without any (the hash of no descriptors), the message is reviewed raw, as when there is no info.
+The info announces the field descriptors of the message through its `FIELDS_HASH`. The device
+receives them with [TRANSACTION FIELD DESCRIPTION](#transaction-field-description) (`P2 = 02`),
+after the info. When the `FIELDS_HASH` is the hash of no descriptors, the message is reviewed raw,
+as it is when no info is sent.
 
 #### Coding
 
@@ -1340,12 +1367,23 @@ The field describes the message of the EIP-712 V2 flow in progress, with the pat
 - the message is complete and the review has not started: after the values and the message info,
   and before EIP712 SIGN;
 - no call is being described: the fields of a call that a descriptor named are sent with `P2 = 00`,
-  after the info of that call, and the ones of the message resume when it is complete;
-- there is no V1 session in progress.
+  after the info of that call, and the ones of the message resume when it is complete.
 
 Otherwise `0x6980` is returned. A field that cannot be applied to the message, whose path leads to
 no value for example, or whose path selects more than 16 values, is refused with `0x6A80`. The
 descriptors are hashed as they come: whether they are the announced ones is checked by EIP712 SIGN.
+
+The 50-byte `Send` descriptor of the [example](eip712.md#receiving-descriptors) fits in one
+command, with the size of the struct in front of it:
+
+```text
+e0 28 01 02 34                                    CLA INS P1 P2 Lc
+00 32                                             struct size, 50
+00 01 01 01 04 53 65 6e 64 02 01 02 03 24 00 01   FIELD
+01 01 11 00 01 01 01 01 01 02 01 20 03 06 00 01
+01 01 01 02 02 0c 00 01 01 01 01 05 02 01 14 04
+01 01
+```
 
 #### Coding
 

@@ -246,10 +246,12 @@ two TLV payloads, then `EIP712 SIGN` starts the review.
 **Key Features Tested:**
 
 - **Signature**: The signer is recovered from a hash that `eth_account` computes independently
-- **Schema and Values**: Malformed, truncated, oversized and out-of-order payloads are refused
+- **Schema and Values**: Malformed, truncated, oversized, out-of-order and unknown-tag payloads are refused
+- **Recursion**: A struct can hold an array of its own type
 - **Leaf Encoding**: One encoding per value, checked at the edge of every type
 - **Names**: Struct and field names, including non-identifiers and long names
-- **Raw Review**: The signer and every value are shown, behind the blind signing warning
+- **Raw Review**: The signer and every value are shown, behind the blind signing warning. A string with a NUL byte is refused
+- **Sessions**: A V1 command in a V2 session is refused, and the other way round
 
 📖 **[Detailed documentation](details/test_eip712_v2.md)**
 
@@ -261,7 +263,7 @@ two TLV payloads, then `EIP712 SIGN` starts the review.
 
 **Key Features Tested:**
 
-- **Binding**: The info has to match the domain and the primary type of the message
+- **Binding**: The info has to match the domain and the type of the message
 - **Signature and Structure**: Versions, required tags, sizes and signature
 - **Command**: Order, chunks, a second info, and V1 sessions
 
@@ -276,9 +278,10 @@ two TLV payloads, then `EIP712 SIGN` starts the review.
 **Key Features Tested:**
 
 - **EIP712_PATH**: Fields, array slices, leaf slices and the limit of 16 values
-- **Parameters**: Raw, amount, datetime, duration, unit, network, groups, visibility
+- **Parameters**: Raw, amount, token amount, datetime, duration, unit, network, enum, map entry, groups, visibility
+- **Domain**: What a domain without a chain or without a contract lets a descriptor show
 - **Calls**: Calldata described as transactions, with their enum values and map entries
-- **Review**: Snapshots of each kind of review, and the refusals at `EIP712 SIGN`
+- **Review**: Snapshots of each kind of review (a permit among them), and the refusals at `EIP712 SIGN`
 
 📖 **[Detailed documentation](details/test_eip712_v2.md#test_eip712_v2_fieldspy)**
 

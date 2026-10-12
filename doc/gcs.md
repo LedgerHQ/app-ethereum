@@ -68,10 +68,11 @@ sequenceDiagram
 
 ## The case of typed messages (EIP-712 V2)
 
-An EIP-712 V2 message is described like a transaction: its `EIP712_MESSAGE_INFO` stands for the
-`TRANSACTION_INFO`, and its descriptors (`P2 = 02`) read their values in the message through an
-[EIP712_PATH](tlv_structs.md#eip712_path) instead of in the calldata. The calls it makes are
-described as transactions (`P2 = 00`), between its descriptors.
+An EIP-712 V2 message is described like a transaction, from the same
+[ERC-7730](https://eips.ethereum.org/EIPS/eip-7730) description. Its `EIP712_MESSAGE_INFO` takes
+the place of the `TRANSACTION_INFO`, and its descriptors (`P2 = 02`) read their values in the
+message with an [EIP712_PATH](tlv_structs.md#eip712_path). The calls it makes are described as
+transactions (`P2 = 00`), between its descriptors.
 
 ```mermaid
 sequenceDiagram
@@ -84,18 +85,18 @@ sequenceDiagram
     HW ->> SW: OK / KO
     SW ->> HW: MESSAGE INFO (TRANSACTION INFO, P2 = 02)
     HW ->> SW: OK / KO
-    SW ->> HW: enum value / map entry of the message
-    HW ->> SW: OK / KO
 
     loop N times for N descriptors of the message
+        SW ->> HW: token / NFT / enum / trusted name metadatas
+        HW ->> SW: OK / KO
         SW ->> HW: FIELD DESCRIPTION (P2 = 02)
         HW ->> SW: OK / KO
         opt the descriptor is a CALLDATA, naming a call
             SW ->> HW: TRANSACTION INFO of the call (P2 = 00)
             HW ->> SW: OK / KO
-            SW ->> HW: enum value / map entry of the call
-            HW ->> SW: OK / KO
             loop for each descriptor of the call
+                SW ->> HW: token / NFT / enum / trusted name metadatas
+                HW ->> SW: OK / KO
                 SW ->> HW: FIELD DESCRIPTION (P2 = 00)
                 HW ->> SW: OK / KO
             end
@@ -107,6 +108,9 @@ sequenceDiagram
     note over HW: display all the<br/>formatted fields
     HW ->> SW: OK (with r,s,v) / KO
 ```
+
+The metadata of a field is sent after the info of the operation the field belongs to, the message
+info or the `TRANSACTION INFO` of a call, and before the descriptor that uses it.
 
 The calls may also all be described after the last descriptor of the message, in the order they
 were named. What is shown follows the order of reception.

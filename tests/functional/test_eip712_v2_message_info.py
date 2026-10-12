@@ -2,9 +2,9 @@
 
 The struct is the TRANSACTION_INFO one, received through the same instruction with P2 = 02. It is
 accepted once the values are complete and before the review starts, and bound to the message: its
-domain separator and its primary type hash must be the message's, which covers the chain and the
-contract of the domain. It changes nothing to the review yet, which stays a raw one behind the blind
-signing warning.
+domain separator and its primary type hash must be the ones of the message, which covers the chain
+and the contract of the domain. The review of a message whose info announces no descriptors is a raw
+one behind the blind signing warning. The descriptors are tested in test_eip712_v2_fields.py.
 
 Every refusal resets the signing flow, so each is followed by a valid message going through.
 """

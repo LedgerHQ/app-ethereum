@@ -500,7 +500,7 @@ domain separator and the primary type hash of the message.
 >   If no matching MAP_ENTRY is found in the current context, the clear signing flow is aborted.
 > - The KEY is compared byte for byte with the value it is looked up for, whose length counts. In a
 >   transaction that value is a 32-byte word of the calldata. In a typed message it is the leaf
->   as the host sent it, which for an integer is its minimal big-endian form (`7` is `0x07`).
+>   as the host sent it, which for an integer is its [minimal big-endian form](eip712.md#leaf-encoding) (`7` is `0x07`).
 > - A selector is looked up for the call being described, and the contract is that call's callee
 >   (resolved through the proxy information, if any). A primary type hash is looked up for the
 >   message being described, with the domain separator of the message: a typed message names no
@@ -705,11 +705,20 @@ No GCS equivalent.
 | EIP712_FIELD | 0x02 | [EIP712_FIELD](#eip712_field) (repeated) | one entry per declared field, in declaration order, none for a struct without member | x |
 
 > [!NOTE]
-> Struct names (`EIP712_STRUCT.NAME`, `EIP712_FIELD.STRUCT_NAME`) and field names
-> (`EIP712_FIELD.NAME`) must be non-empty and must not contain control characters, spaces, or any
-> of `(` `)` `,` `"` `\` `.`. Struct names are limited to 64 bytes. Names that break these rules
-> are rejected, so that two distinct schemas can never encode to the same type string.
-> Duplicate field names within one `EIP712_STRUCT` are rejected.
+> A name is refused when it would make a schema ambiguous, not for how it looks. The standard asks
+> for a valid identifier for a struct name only, and sets no condition on a field name; messages in
+> use name their types otherwise (`HyperliquidTransaction:UsdSend`), so neither has to be one. A
+> struct name (`EIP712_STRUCT.NAME`, `EIP712_FIELD.STRUCT_NAME`) and a field name
+> (`EIP712_FIELD.NAME`) must be non-empty, hold no NUL byte and none of `(` `)` `,`, which delimit
+> the members in the encoded type string, and none of `"` `\`, which would make the JSON
+> representation of the schema (the one a gating descriptor is matched against) ambiguous. A struct
+> name also holds no space and none of `[` `]`, which delimit a type and an array in that string;
+> a field name may, since the first space of a member ends its type. Struct names are limited to 64
+> bytes. Duplicate field names within one `EIP712_STRUCT` are rejected.
+>
+> How a name looks is for the review to judge: the key of every value it shows must be printable
+> ASCII (`0x20` to `0x7E`) with at least one visible character, otherwise `EIP 712 SIGN V2` is
+> refused. A name that is not shown (a struct name, or a field holding a struct) may be any bytes.
 
 ### EIP712_FIELD
 
@@ -787,10 +796,10 @@ An ordered sequence of values, used for **both** struct instances and array inst
 
 Position is the address — no field index, element index or count is carried.
 
-| Name | Tag  | Payload type                          | Description | Optional |
-|------|------|-----------------------------------------|--------------|----------|
-| LEAF | 0x00 | uint8[]                                 | raw value bytes, when the target's type is scalar | — |
-| SEQ  | 0x01 | [EIP712_VALUE_SEQ](#eip712_value_seq)   | nested sequence: an array dimension or a struct instance | — |
+| Name | Tag  | Payload type                          | Description                                                                                         | Optional |
+|------|------|---------------------------------------|-----------------------------------------------------------------------------------------------------|----------|
+| LEAF | 0x00 | uint8[]                               | value bytes, when the target's type is scalar, as given in [Leaf encoding](eip712.md#leaf-encoding) | —        |
+| SEQ  | 0x01 | [EIP712_VALUE_SEQ](#eip712_value_seq) | nested sequence: an array dimension or a struct instance                                            | —        |
 
 Whether a `SEQ` opens an array dimension or a struct instance is **derived from the schema**, not
 declared on the wire: it is an array while dimensions remain to be opened, and a struct once they

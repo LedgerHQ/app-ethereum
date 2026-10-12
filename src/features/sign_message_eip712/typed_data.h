@@ -309,17 +309,54 @@ bool td_field_set_key_name(s_struct_712_field *field, const uint8_t *name, size_
 const char *td_get_struct_field_typename(const s_struct_712_field *ptr);
 
 /**
- * Check a schema name (struct name, struct type reference or field key name)
+ * Check a struct name, or a reference to one (EIP712_STRUCT NAME, EIP712_FIELD STRUCT_NAME)
  *
- * A name must be non-empty and free of control characters, spaces and of the characters that
- * delimit the encoded type string ('(' ')' ','), the JSON schema representation ('"' '\\') and
- * the filter path ('.'), so that distinct schemas can never encode to the same preimage.
+ * The standard asks for a valid identifier, yet messages in use name their types otherwise (a
+ * primary type of "HyperliquidTransaction:UsdSend"). A name is refused for what would make a
+ * schema ambiguous, not for what it looks like, which the review judges when it shows one. It is
+ * not empty and holds no NUL (names are C strings), no space and none of '(' ')' ',' '[' ']' (they
+ * delimit a type in the encoded type string, so that distinct schemas never share a type hash),
+ * and none of '"' '\\' (they would make the JSON representation of the schema, which gating
+ * hashes, ambiguous).
  *
  * @param[in] name name to check (not required to be NUL-terminated)
  * @param[in] length length of name in bytes
  * @return whether the name is acceptable
  */
-bool td_is_valid_name(const uint8_t *name, size_t length);
+bool td_is_valid_struct_name(const uint8_t *name, size_t length);
+
+/**
+ * Check a field name (EIP712_FIELD NAME)
+ *
+ * The standard puts no condition on it. The rule is the one of a struct name, except that a space
+ * and '[' ']' are accepted: the first space of a member ends its type, which never holds one, and
+ * the brackets only delimit an array in a type.
+ *
+ * @param[in] name name to check (not required to be NUL-terminated)
+ * @param[in] length length of name in bytes
+ * @return whether the name is acceptable
+ */
+bool td_is_valid_field_name(const uint8_t *name, size_t length);
+
+/**
+ * Check the bytes received for a leaf of a V2 message against the type of its field
+ *
+ * - uintN, intN: big-endian, from 1 to N bytes, with no leading 00 byte unless the value is zero.
+ *   An intN is negative only when it is N bytes long and its top bit is set (two's complement).
+ * - bytesN: exactly N bytes.
+ * - address: exactly 20 bytes.
+ * - bool: one byte, 00 or 01.
+ * - string, bytes: any length, including none.
+ *
+ * A value has one encoding only, so comparisons on raw bytes (map keys, descriptor lists) are
+ * reliable, and the device never signs a value its type cannot hold.
+ *
+ * @param[in] field the declaration of the field the leaf belongs to
+ * @param[in] value the leaf bytes
+ * @param[in] length length of value in bytes
+ * @return whether the bytes are the encoding of a value of that type
+ */
+bool td_is_valid_leaf(const s_struct_712_field *field, const uint8_t *value, size_t length);
 
 /**
  * Find struct with a given name

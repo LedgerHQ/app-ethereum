@@ -33,7 +33,7 @@ static bool handle_version(const tlv_data_t *data, s_struct_712_ctx *context) {
 
 static bool handle_name(const tlv_data_t *data, s_struct_712_ctx *context) {
     if ((data->value.size > TD_MAX_STRUCT_NAME_LENGTH) ||
-        !td_is_valid_name(data->value.ptr, data->value.size)) {
+        !td_is_valid_struct_name(data->value.ptr, data->value.size)) {
         return false;
     }
     memcpy(&context->name, &data->value, sizeof(context->name));

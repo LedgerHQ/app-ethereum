@@ -4,6 +4,7 @@
 #include "ui_sign_712.h"
 #include "common_712.h"
 #include "ui_utils.h"
+#include "os_utils.h"  // is_displayable_string
 #include "app_mem_utils.h"
 #include "shared_context.h"
 #include "typed_data.h"
@@ -66,6 +67,10 @@ static bool measure_leaf(const s_struct_712_value *node, void *context) {
         return true;
     }
     if ((node->field == NULL) || (node->field->key_name == NULL)) {
+        return false;
+    }
+    // the key is shown as it was received, so it must be text the screen can show
+    if (!is_displayable_string(node->field->key_name, strlen(node->field->key_name))) {
         return false;
     }
     // a type with no text representation cannot be shown, and must not be signed unseen

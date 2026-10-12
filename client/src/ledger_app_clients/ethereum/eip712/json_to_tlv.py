@@ -128,7 +128,10 @@ def _decode_hex_bytes(value: str) -> bytes:
 
 
 def _encode_leaf(value: Any, sol_type: SolType, type_size: int | None) -> bytes:
-    """Encode one scalar JSON value into the raw bytes carried by a ``LEAF`` entry."""
+    """Encode one scalar JSON value into the bytes carried by a ``LEAF`` entry.
+
+    The app accepts one encoding per value only, see "Leaf encoding" in doc/tlv_structs.md.
+    """
     match sol_type:
         case SolType.INT | SolType.UINT:
             assert type_size is not None

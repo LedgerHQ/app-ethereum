@@ -313,19 +313,63 @@ const char *td_get_struct_field_typename(const s_struct_712_field *field_ptr) {
     return get_struct_field_sol_typename(field_ptr);
 }
 
-bool td_is_valid_name(const uint8_t *name, size_t length) {
+bool td_is_valid_struct_name(const uint8_t *name, size_t length) {
     if ((name == NULL) || (length == 0)) {
         return false;
     }
     for (size_t i = 0; i < length; ++i) {
         const uint8_t c = name[i];
 
-        // control characters and space are rejected first, so c is never the NUL strchr() matches
-        if ((c <= ' ') || (c == 0x7F) || (strchr("(),\"\\.", c) != NULL)) {
+        // A name is kept as a C string, so a NUL would cut it short. '(' ')' ',' '[' ']' and the
+        // space delimit a type in the encoded type string, and '"' and '\' break the JSON
+        // representation of the schema that the gating hash covers
+        if ((c == '\0') || (c == ' ') || (strchr("(),[]\"\\", c) != NULL)) {
             return false;
         }
     }
     return true;
+}
+
+bool td_is_valid_field_name(const uint8_t *name, size_t length) {
+    if ((name == NULL) || (length == 0)) {
+        return false;
+    }
+    for (size_t i = 0; i < length; ++i) {
+        const uint8_t c = name[i];
+
+        // same as a struct name, but a space is fine: the first one of a member ends its type,
+        // which never holds one, and '[' ']' only delimit an array in a type
+        if ((c == '\0') || (strchr("(),\"\\", c) != NULL)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool td_is_valid_leaf(const s_struct_712_field *field, const uint8_t *value, size_t length) {
+    if ((field == NULL) || ((value == NULL) && (length > 0))) {
+        return false;
+    }
+    switch (field->type) {
+        case TYPE_SOL_UINT:
+        case TYPE_SOL_INT:
+            // zero is the single byte 00, any other value has no leading 00
+            return (length >= 1) && (length <= field->type_size) &&
+                   ((length == 1) || (value[0] != 0x00));
+        case TYPE_SOL_BYTES_FIX:
+            return length == field->type_size;
+        case TYPE_SOL_ADDRESS:
+            return length == ADDRESS_LENGTH;
+        case TYPE_SOL_BOOL:
+            return (length == 1) && (value[0] <= 0x01);
+        case TYPE_SOL_STRING:
+        case TYPE_SOL_BYTES_DYN:
+            return true;
+        case TYPE_STRUCT:
+        case TYPES_COUNT:
+        default:
+            return false;
+    }
 }
 
 static bool match_struct_name(const s_struct_712 *node, const void *context_ptr) {

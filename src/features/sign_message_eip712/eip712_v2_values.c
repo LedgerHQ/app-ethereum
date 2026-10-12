@@ -75,6 +75,9 @@ static bool handle_leaf(const tlv_data_t *data, s_value_seq_ctx *context) {
     const s_struct_712_field *field = td_value_expected_field(context->node);
     s_struct_712_value *leaf;
 
+    if (!td_is_valid_leaf(field, data->value.ptr, data->value.size)) {
+        return false;
+    }
     if ((leaf = td_create_leaf(field, data->value.size)) == NULL) {
         return false;
     }

@@ -346,7 +346,10 @@ description of every call they named. The command is refused, and nothing is sho
 The review is then the one of the described message, see
 [Reviewing a described message](eip712.md#reviewing-a-described-message): it is not blind
 signing, so it needs no setting and shows no warning. Without announced descriptors, every value
-is shown raw, which is blind signing: the setting is needed, and the warning is shown.
+is shown raw, which is blind signing: the setting is needed, and the warning is shown. The key of
+each value shown raw has to be printable ASCII with a visible character, otherwise the command is
+refused with `0x6A80` and nothing is shown, see
+[EIP712_STRUCT](tlv_structs.md#eip712_struct).
 
 _Output data:_
 

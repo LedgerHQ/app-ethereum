@@ -193,7 +193,7 @@ static bool handle_value_seq_struct(const buffer_t *buf,
 
 typedef struct {
     TLV_reception_t received_tags;
-    char primary_type[TD_MAX_STRUCT_NAME_LENGTH + 1];
+    buffer_t primary_type;  // as received: the payload it sits in outlives the parse
     bip32_path_t deriv_path;
 } s_values_ctx;
 
@@ -215,9 +215,11 @@ static bool handle_version(const tlv_data_t *data, s_values_ctx *context) {
 }
 
 static bool handle_primary_type(const tlv_data_t *data, s_values_ctx *context) {
-    if (!get_string_from_tlv_data(data, context->primary_type, 1, sizeof(context->primary_type))) {
+    // an empty name finds no struct, so it is refused at once
+    if (data->value.size == 0) {
         return false;
     }
+    memcpy(&context->primary_type, &data->value, sizeof(context->primary_type));
     return true;
 }
 
@@ -246,17 +248,17 @@ static bool handle_derivation_path(const tlv_data_t *data, s_values_ctx *context
  * Build a root value tree and hand it over to the typed data module
  *
  * @param[in] data the tlv data holding the root sequence
- * @param[in] type_name name of the struct type the root is an instance of
+ * @param[in] struct_type struct type the root is an instance of, NULL when the schema holds none
+ *            of the name that was asked for: the root is then refused
  * @param[in] setter typed data function taking ownership of the built root
  * @return whether the tree was built and accepted
  */
 static bool handle_root(const tlv_data_t *data,
-                        const char *type_name,
+                        const s_struct_712 *struct_type,
                         bool (*setter)(s_struct_712_value *)) {
-    const s_struct_712 *struct_type;
     s_struct_712_value *root;
 
-    if ((struct_type = td_find_struct(type_name)) == NULL) {
+    if (struct_type == NULL) {
         return false;
     }
     if ((root = td_create_struct(struct_type)) == NULL) {
@@ -273,7 +275,7 @@ static bool handle_root(const tlv_data_t *data,
 
 static bool handle_eip712_domain(const tlv_data_t *data, s_values_ctx *context) {
     (void) context;
-    return handle_root(data, TD_DOMAIN_STRUCT_NAME, td_set_domain);
+    return handle_root(data, td_find_struct(TD_DOMAIN_STRUCT_NAME), td_set_domain);
 }
 
 // forward declaration: uses TAG_PRIMARY_TYPE, only declared by DEFINE_TLV_PARSER below
@@ -286,7 +288,9 @@ static bool handle_eip712_message(const tlv_data_t *data, s_values_ctx *context)
     if (!TLV_CHECK_RECEIVED_TAGS(context->received_tags, TAG_PRIMARY_TYPE)) {
         return false;
     }
-    return handle_root(data, context->primary_type, td_set_message);
+    return handle_root(data,
+                       td_find_struct_n(context->primary_type.ptr, context->primary_type.size),
+                       td_set_message);
 }
 
 static bool verify_eip712_v2_values_struct(const s_values_ctx *context) {

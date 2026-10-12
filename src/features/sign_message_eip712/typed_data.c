@@ -276,7 +276,7 @@ bool td_field_set_key_name(s_struct_712_field *field, const uint8_t *name, size_
     if (field == NULL) {
         return false;
     }
-    if (name == NULL) {
+    if ((name == NULL) && (length > 0)) {
         return false;
     }
     if (field->key_name != NULL) {
@@ -286,7 +286,9 @@ bool td_field_set_key_name(s_struct_712_field *field, const uint8_t *name, size_
     if ((field->key_name = APP_MEM_ALLOC(length + 1)) == NULL) {
         return false;
     }
-    memcpy(field->key_name, name, length);
+    if (length > 0) {
+        memcpy(field->key_name, name, length);
+    }
     field->key_name[length] = '\0';
     return true;
 }
@@ -321,9 +323,8 @@ bool td_is_valid_struct_name(const uint8_t *name, size_t length) {
         const uint8_t c = name[i];
 
         // A name is kept as a C string, so a NUL would cut it short. '(' ')' ',' '[' ']' and the
-        // space delimit a type in the encoded type string, and '"' and '\' break the JSON
-        // representation of the schema that the gating hash covers
-        if ((c == '\0') || (c == ' ') || (strchr("(),[]\"\\", c) != NULL)) {
+        // space delimit a type in the encoded type string
+        if ((c == '\0') || (c == ' ') || (strchr("(),[]", c) != NULL)) {
             return false;
         }
     }
@@ -331,7 +332,7 @@ bool td_is_valid_struct_name(const uint8_t *name, size_t length) {
 }
 
 bool td_is_valid_field_name(const uint8_t *name, size_t length) {
-    if ((name == NULL) || (length == 0)) {
+    if ((name == NULL) && (length > 0)) {
         return false;
     }
     for (size_t i = 0; i < length; ++i) {
@@ -339,7 +340,7 @@ bool td_is_valid_field_name(const uint8_t *name, size_t length) {
 
         // same as a struct name, but a space is fine: the first one of a member ends its type,
         // which never holds one, and '[' ']' only delimit an array in a type
-        if ((c == '\0') || (strchr("(),\"\\", c) != NULL)) {
+        if ((c == '\0') || (strchr("(),", c) != NULL)) {
             return false;
         }
     }
@@ -372,15 +373,33 @@ bool td_is_valid_leaf(const s_struct_712_field *field, const uint8_t *value, siz
     }
 }
 
+typedef struct {
+    const uint8_t *name;
+    size_t length;
+} s_struct_name_query;
+
 static bool match_struct_name(const s_struct_712 *node, const void *context_ptr) {
-    return (node->name != NULL) && (strcmp(node->name, (const char *) context_ptr) == 0);
+    const s_struct_name_query *query = context_ptr;
+
+    // a stored name is a C string and holds no NUL, so its strlen() is its whole length
+    return (node->name != NULL) && (strlen(node->name) == query->length) &&
+           (memcmp(node->name, query->name, query->length) == 0);
+}
+
+const s_struct_712 *td_find_struct_n(const uint8_t *name, size_t length) {
+    s_struct_name_query query = {.name = name, .length = length};
+
+    if (name == NULL) {
+        return NULL;
+    }
+    return td_find_struct_if(match_struct_name, &query);
 }
 
 const s_struct_712 *td_find_struct(const char *name) {
     if (name == NULL) {
         return NULL;
     }
-    return td_find_struct_if(match_struct_name, (const void *) name);
+    return td_find_struct_n((const uint8_t *) name, strlen(name));
 }
 
 s_struct_712 *td_create_struct_def(const uint8_t *name, size_t length) {

@@ -85,9 +85,6 @@ typedef struct {
 // Name identifying the domain struct, defined by the EIP-712 standard itself
 #define TD_DOMAIN_STRUCT_NAME "EIP712Domain"
 
-// Maximum byte length of a struct type name in a schema
-#define TD_MAX_STRUCT_NAME_LENGTH 64
-
 /**
  * Create a new, empty struct type definition
  *
@@ -294,7 +291,7 @@ bool td_field_set_array_level(s_struct_712_field *field,
  * Set the key name of a field
  *
  * @param[in,out] field field definition to update
- * @param[in] name key name (not required to be NUL-terminated)
+ * @param[in] name key name (not required to be NUL-terminated, may be NULL when empty)
  * @param[in] length length of name in bytes
  * @return whether the name was set
  */
@@ -314,10 +311,9 @@ const char *td_get_struct_field_typename(const s_struct_712_field *ptr);
  * The standard asks for a valid identifier, yet messages in use name their types otherwise (a
  * primary type of "HyperliquidTransaction:UsdSend"). A name is refused for what would make a
  * schema ambiguous, not for what it looks like, which the review judges when it shows one. It is
- * not empty and holds no NUL (names are C strings), no space and none of '(' ')' ',' '[' ']' (they
- * delimit a type in the encoded type string, so that distinct schemas never share a type hash),
- * and none of '"' '\\' (they would make the JSON representation of the schema, which gating
- * hashes, ambiguous).
+ * not empty and holds no NUL (names are C strings), no space and none of '(' ')' ',' '[' ']':
+ * they delimit a type in the encoded type string, so that distinct schemas never share a type
+ * hash.
  *
  * @param[in] name name to check (not required to be NUL-terminated)
  * @param[in] length length of name in bytes
@@ -328,9 +324,11 @@ bool td_is_valid_struct_name(const uint8_t *name, size_t length);
 /**
  * Check a field name (EIP712_FIELD NAME)
  *
- * The standard puts no condition on it. The rule is the one of a struct name, except that a space
- * and '[' ']' are accepted: the first space of a member ends its type, which never holds one, and
- * the brackets only delimit an array in a type.
+ * The standard puts no condition on it, so even an empty name is accepted: whether it can be shown
+ * is for the review to judge. A name holds no NUL (names are C strings) and none of '(' ')' ',',
+ * which delimit a member in the encoded type string. A space and '[' ']' are accepted: the first
+ * space of a member ends its type, which never holds one, and the brackets only delimit an array
+ * in a type.
  *
  * @param[in] name name to check (not required to be NUL-terminated)
  * @param[in] length length of name in bytes
@@ -361,10 +359,22 @@ bool td_is_valid_leaf(const s_struct_712_field *field, const uint8_t *value, siz
 /**
  * Find struct with a given name
  *
- * @param[in] name_ptr struct name
+ * @param[in] name_ptr NUL-terminated struct name
  * @return pointer to struct, or NULL if not found
  */
 const s_struct_712 *td_find_struct(const char *name_ptr);
+
+/**
+ * Find struct with a given name, which is not NUL-terminated (one inside a received payload)
+ *
+ * \p length is the whole name: a name that only starts like the one of a struct, or goes on past
+ * it, finds nothing. A NUL byte in the name finds nothing either, as no struct name holds one.
+ *
+ * @param[in] name struct name
+ * @param[in] length length of name in bytes
+ * @return pointer to struct, or NULL if not found
+ */
+const s_struct_712 *td_find_struct_n(const uint8_t *name, size_t length);
 
 /**
  * Set the message's EIP712Domain root value

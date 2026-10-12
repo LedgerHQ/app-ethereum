@@ -51,7 +51,6 @@ OTHER_BIP32_PATH = "m/44'/60'/1'/0/0"
 CLA = 0xE0
 P1_UNKNOWN = 0x02
 HARDENED = 0x80000000
-MAX_STRUCT_NAME_LENGTH = 64
 MAX_DEPTH = 16
 MAX_DERIVATION_PATH_LENGTH = 10
 
@@ -293,19 +292,17 @@ def schema_with_raw_field(raw: bytes) -> bytes:
 
 
 # what a name must not hold is what would make the schema ambiguous: the encoded type string
-# ('(' ')' ',' and, for a type, the space and the brackets) and the JSON of the schema ('"' '\').
-# How a name looks is for the review to judge
+# ('(' ')' ',' and, for a type, the space and the brackets), and a NUL, which cuts a name short.
+# Everything else is a name, and how it looks is for the review to judge
 BAD_NAMES = {
-    "empty": "",
     "comma": "a,b",
     "open_paren": "a(b",
     "close_paren": "a)b",
-    "quote": 'a"b',
-    "backslash": "a\\b",
     "nul": "a\x00b",
 }
-# a struct name, and a reference to one, also delimit a type: a field name may hold these
+# a struct name, and a reference to one, also delimit a type: a field name may hold these, or be empty
 BAD_STRUCT_NAMES = BAD_NAMES | {
+    "empty": "",
     "space": "a b",
     "open_bracket": "a[0",
     "close_bracket": "a]",
@@ -331,7 +328,6 @@ INVALID_FIELDS = {
     "unknown_type": field("x", 0x08),
     "nine_array_dims": field("x", SolType.BOOL, array_dims=[ArrayDim() for _ in range(9)]),
     "array_dim_size_256": field("x", SolType.BOOL, array_dims=[ArrayDim(256)]),
-    "struct_name_too_long": field("x", SolType.STRUCT, struct_name="A" * (MAX_STRUCT_NAME_LENGTH + 1)),
 }
 
 INVALID_SCHEMAS: dict[str, Callable[[], bytes]] = {
@@ -343,7 +339,6 @@ INVALID_SCHEMAS: dict[str, Callable[[], bytes]] = {
     "duplicate_field_name": lambda: schema_of(
         domain_struct(), struct_def("Test", field("flag", SolType.BOOL), field("flag", SolType.UINT, type_size=1))
     ),
-    "struct_name_too_long": partial(schema_with_struct_named, "A" * (MAX_STRUCT_NAME_LENGTH + 1)),
     "schema_without_version": lambda: tlv((Eip712SchemaTag.STRUCT, domain_struct().serialize())),
     "schema_duplicate_version": lambda: tlv(
         (Eip712SchemaTag.VERSION, STRUCT_VERSION),
@@ -456,7 +451,11 @@ INVALID_VALUES: dict[str, Callable[[list], list]] = {
     "duplicate_version": lambda f: [*f, (Eip712ValuesTag.VERSION, STRUCT_VERSION)],
     "primary_type_unknown": lambda f: replaced(f, Eip712ValuesTag.PRIMARY_TYPE, "Missing"),
     "primary_type_empty": lambda f: replaced(f, Eip712ValuesTag.PRIMARY_TYPE, ""),
-    "primary_type_too_long": lambda f: replaced(f, Eip712ValuesTag.PRIMARY_TYPE, "A" * (MAX_STRUCT_NAME_LENGTH + 1)),
+    # the primary type is looked up by its whole name: a prefix, an extension or a NUL is another name
+    "primary_type_prefix_of_a_struct": lambda f: replaced(f, Eip712ValuesTag.PRIMARY_TYPE, "Tes"),
+    "primary_type_extending_a_struct": lambda f: replaced(f, Eip712ValuesTag.PRIMARY_TYPE, "Tests"),
+    "primary_type_with_a_nul": lambda f: replaced(f, Eip712ValuesTag.PRIMARY_TYPE, "Test\x00"),
+    "primary_type_with_a_nul_inside": lambda f: replaced(f, Eip712ValuesTag.PRIMARY_TYPE, "Te\x00st"),
     "message_before_primary_type": lambda f: sorted(f, key=lambda e: e[0] != Eip712ValuesTag.MESSAGE),
     "without_version": lambda f: dropped(f, Eip712ValuesTag.VERSION),
     "without_primary_type": lambda f: dropped(f, Eip712ValuesTag.PRIMARY_TYPE),
@@ -786,16 +785,35 @@ def test_eip712_v2_values_oversized(scenario_navigator: NavigateWithScenario):
     assert_recovers(app_client)
 
 
-def test_eip712_v2_max_struct_name(scenario_navigator: NavigateWithScenario):
-    """A struct name of the maximum length must be accepted and hashed like any other."""
+@pytest.mark.parametrize("length", [200, 2000])
+def test_eip712_v2_long_struct_names(scenario_navigator: NavigateWithScenario, length: int):
+    """A struct name has no length of its own: the primary type, a referenced type and its reference are hashed like any other."""
     enable_blind_signing(scenario_navigator)
     data = minimal_data()
-    name = "A" * MAX_STRUCT_NAME_LENGTH
-    data["types"][name] = data["types"].pop("Test")
-    data["primaryType"] = name
+    primary = "A" * length
+    nested = "B" * length
+    data["types"].pop("Test")
+    data["types"][primary] = [{"name": "inner", "type": nested}, {"name": "flag", "type": "bool"}]
+    data["types"][nested] = [{"name": "flag", "type": "bool"}]
+    data["primaryType"] = primary
+    data["message"] = {"inner": {"flag": False}, "flag": True}
 
     vrs = sign_and_approve(scenario_navigator, data)
     assert get_wallet_addr(EthAppClient(scenario_navigator.backend)) == recover_message(data, vrs)
+
+
+def test_eip712_v2_struct_names_larger_than_the_heap_are_refused(scenario_navigator: NavigateWithScenario):
+    """Only the memory bounds a name: one that does not fit is refused, and the next message goes through."""
+    app_client = EthAppClient(scenario_navigator.backend)
+    name = "A" * 6000
+    payload = schema_of(
+        domain_struct(),
+        struct_def("Test", field("inner", SolType.STRUCT, struct_name=name)),
+        struct_def(name, field("flag", SolType.BOOL)),
+    )
+
+    expect_status(StatusWord.SWO_INCORRECT_DATA, lambda: app_client.eip712_v2_send_schema(payload))
+    assert_recovers(app_client)
 
 
 def test_eip712_v2_names_are_not_identifiers(scenario_navigator: NavigateWithScenario):
@@ -811,9 +829,20 @@ def test_eip712_v2_names_are_not_identifiers(scenario_navigator: NavigateWithSce
         {"name": "a.b", "type": "uint8"},
         {"name": "a[0]", "type": "uint8"},
         {"name": "_$", "type": "uint8"},
+        {"name": 'q"uote', "type": "uint8"},
+        {"name": "back\\slash", "type": "uint8"},
     ]
     data["primaryType"] = "HyperliquidTransaction:UsdSend"
-    data["message"] = {"from-address": True, "1st": 1, "Order Details": 2, "a.b": 3, "a[0]": 4, "_$": 5}
+    data["message"] = {
+        "from-address": True,
+        "1st": 1,
+        "Order Details": 2,
+        "a.b": 3,
+        "a[0]": 4,
+        "_$": 5,
+        'q"uote': 6,
+        "back\\slash": 7,
+    }
 
     vrs = sign_and_approve(scenario_navigator, data)
     assert get_wallet_addr(EthAppClient(scenario_navigator.backend)) == recover_message(data, vrs)
@@ -825,9 +854,9 @@ def test_eip712_v2_names_that_are_not_shown_can_be_anything(scenario_navigator: 
     data = minimal_data()
     data["types"].pop("Test")
     data["types"]["Caf\u00e9"] = [{"name": "flag", "type": "bool"}]
-    data["types"]["Test"] = [{"name": "caf\u00e9\x01", "type": "Caf\u00e9"}]
+    data["types"]["Test"] = [{"name": "caf\u00e9\x01", "type": "Caf\u00e9"}, {"name": "", "type": "Caf\u00e9"}]
     data["primaryType"] = "Test"
-    data["message"] = {"caf\u00e9\x01": {"flag": True}}
+    data["message"] = {"caf\u00e9\x01": {"flag": True}, "": {"flag": False}}
 
     vrs = sign_and_approve(scenario_navigator, data)
     assert get_wallet_addr(EthAppClient(scenario_navigator.backend)) == recover_message(data, vrs)
@@ -835,6 +864,7 @@ def test_eip712_v2_names_that_are_not_shown_can_be_anything(scenario_navigator: 
 
 # a key the screen cannot show: not ASCII, a control character, or nothing visible
 NOT_DISPLAYABLE_KEYS = {
+    "empty": "",
     "non_ascii": "caf\u00e9",
     "control": "a\x01b",
     "delete": "a\x7fb",

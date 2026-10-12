@@ -705,16 +705,18 @@ No GCS equivalent.
 | EIP712_FIELD | 0x02 | [EIP712_FIELD](#eip712_field) (repeated) | one entry per declared field, in declaration order, none for a struct without member | x |
 
 > [!NOTE]
-> A name is refused when it would make a schema ambiguous, not for how it looks. The standard asks
-> for a valid identifier for a struct name only, and sets no condition on a field name; messages in
-> use name their types otherwise (`HyperliquidTransaction:UsdSend`), so neither has to be one. A
-> struct name (`EIP712_STRUCT.NAME`, `EIP712_FIELD.STRUCT_NAME`) and a field name
-> (`EIP712_FIELD.NAME`) must be non-empty, hold no NUL byte and none of `(` `)` `,`, which delimit
-> the members in the encoded type string, and none of `"` `\`, which would make the JSON
-> representation of the schema (the one a gating descriptor is matched against) ambiguous. A struct
-> name also holds no space and none of `[` `]`, which delimit a type and an array in that string;
-> a field name may, since the first space of a member ends its type. Struct names are limited to 64
-> bytes. Duplicate field names within one `EIP712_STRUCT` are rejected.
+> A name is refused when it would make a schema ambiguous or cannot be kept, not for how it looks.
+> The standard asks for a valid identifier for a struct name only, and sets no condition on a field
+> name; messages in use name their types otherwise (`HyperliquidTransaction:UsdSend`), so a struct
+> name does not have to be one. A struct name (`EIP712_STRUCT.NAME`, `EIP712_FIELD.STRUCT_NAME`) is
+> refused when it is empty, holds a NUL byte (names are C strings), a space, or any of
+> `(` `)` `,` `[` `]`, which delimit a type and an array in the encoded type string. A field name
+> (`EIP712_FIELD.NAME`) is refused when it holds a NUL byte or any of `(` `)` `,`, which delimit the
+> members in that string; it may be empty or hold a space or brackets, since the first space of a
+> member ends its type. Any other byte is accepted, including `"` and `\`. No name has a length
+> limit of its own: it takes memory like any other data, and one that does not fit is refused like
+> a payload that is too large. Duplicate field names within one `EIP712_STRUCT` are rejected, as
+> Solidity structs and other implementations do.
 >
 > How a name looks is for the review to judge: the key of every value it shows must be printable
 > ASCII (`0x20` to `0x7E`) with at least one visible character, otherwise `EIP 712 SIGN V2` is

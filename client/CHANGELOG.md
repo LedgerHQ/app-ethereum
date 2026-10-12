@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- EIP-712 filtering: the chain id in the filter signature context was encoded as
+  `chainid & (0xFF << (i * 8))` instead of the shifted byte, so any filtered EIP-712 message
+  on a chain id above 255 (e.g. Base 8453, Arbitrum 42161) raised `ValueError: byte must be in range(0, 256)`
+
 ## [0.6.0] - 2025-09-05
 
 ### Added

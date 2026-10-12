@@ -22,8 +22,9 @@ from client.eip712.json_to_tlv import STRUCT_VERSION
 from client.gcs import Eip712MessageInfo, TxInfo, TxInfoTag
 from client.signing_partners import CALLDATA_PARTNER
 from client.status_word import StatusWord
-from client.utils import recover_message
+from eth_account import Account
 from eth_account._utils.encode_typed_data.encoding_and_hashing import hash_struct, hash_type
+from eth_utils import keccak
 from ragger.error import ExceptionRAPDU
 from ragger.navigator import NavigateWithScenario
 from test_eip712_v2 import (
@@ -45,12 +46,12 @@ SOME_FIELDS_HASH = hashlib.sha3_256(b"a descriptor").digest()
 P1_UNKNOWN = 0x02
 
 
-def message(chain_id: int | None = 1, verifying_contract: str | None = None) -> dict:
+def message(chain_id: int | str | bool | None = 1, verifying_contract: str | None = None, chain_type: str = "uint256") -> dict:
     """A message whose domain carries the chain and the contract asked for, if any."""
     domain_type = [{"name": "name", "type": "string"}]
     domain: dict[str, object] = {"name": "Test"}
     if chain_id is not None:
-        domain_type.append({"name": "chainId", "type": "uint256"})
+        domain_type.append({"name": "chainId", "type": chain_type})
         domain["chainId"] = chain_id
     if verifying_contract is not None:
         domain_type.append({"name": "verifyingContract", "type": "address"})
@@ -105,9 +106,24 @@ def sign_and_approve(scenario_navigator: NavigateWithScenario, app_client: EthAp
     return ResponseParser.signature(app_client.response().data)
 
 
+def recover_declared_types(data: dict, vrs: tuple[int, int, int]) -> bytes:
+    """The signer of a message, from hashes that eth_account computes with the types the message declares.
+
+    `recover_message` hashes the domain with the standard type of each field (a uint256 chainId),
+    which is not the hash of a domain that declares another one.
+    """
+    types = data["types"]
+    digest = keccak(
+        b"\x19\x01"
+        + hash_struct("EIP712Domain", types, data["domain"])
+        + hash_struct(data["primaryType"], types, data["message"])
+    )
+    return bytes.fromhex(Account._recover_hash(digest, vrs=vrs)[2:])
+
+
 def check_signed(scenario_navigator: NavigateWithScenario, app_client: EthAppClient, data: dict) -> None:
     vrs = sign_and_approve(scenario_navigator, app_client, data)
-    assert get_wallet_addr(app_client) == recover_message(data, vrs)
+    assert get_wallet_addr(app_client) == recover_declared_types(data, vrs)
 
 
 # --- Accepted ----------------------------------------------------------------------------------
@@ -118,6 +134,11 @@ ACCEPTED = {
     "chain_only": (message(137), {}),
     "contract_only": (message(None, CONTRACT), {}),
     "domain_with_neither": (message(None), {}),
+    # the standard types chainId as uint256, and any size of unsigned integer is a chain
+    "chain_of_uint8": (message(10, chain_type="uint8"), {}),
+    "chain_of_uint64": (message(137, chain_type="uint64"), {}),
+    # a chainId that is not an unsigned integer is no chain: the message has none
+    "chain_of_text": (message("1", chain_type="string"), {}),
     "metadata": (
         message(1),
         {

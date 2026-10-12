@@ -455,6 +455,9 @@ bool td_hash_domain(uint8_t out[CX_KECCAK_256_SIZE]);
 /**
  * Fill @p chain_id with the chainId from the domain value tree.
  *
+ * The chainId is an unsigned integer that fits in 64 bits: a field of another type, or a value
+ * that does not fit, gives no chain.
+ *
  * @return true if the field was found and copied into @p chain_id, false otherwise.
  */
 bool td_get_domain_chain_id(uint64_t *chain_id);

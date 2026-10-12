@@ -74,9 +74,11 @@ static const s_struct_712_field *field_at(const s_struct_712 *def, size_t index)
     return field;
 }
 
-// What the domain holds, and how: a value is missing when its pointer is NULL and its length is not
+// What the domain holds, and how: a value is missing when its pointer is NULL and its length is
+// not. The chain is an unsigned integer unless chain_id_type says otherwise.
 typedef struct {
     bool has_chain_id;
+    e_type chain_id_type;
     const uint8_t *chain_id;
     size_t chain_id_length;
     bool has_contract;
@@ -89,6 +91,20 @@ typedef struct {
 #define DOMAIN_FIELD_CHAIN_ID 1
 #define DOMAIN_FIELD_CONTRACT 2
 
+static s_struct_712_field *new_chain_id_field(e_type type) {
+    switch (type) {
+        case TYPE_SOL_INT:
+        case TYPE_SOL_UINT:
+        case TYPE_SOL_BYTES_FIX:
+            return new_sized_field(type, 32, "chainId");
+        case TYPE_STRUCT:
+            // 0, what an unset chain_id_type holds: the default type
+            return new_sized_field(TYPE_SOL_UINT, 32, "chainId");
+        default:
+            return new_field(type, "chainId");
+    }
+}
+
 static void build_domain(const s_domain_spec *spec) {
     s_struct_712 *def = new_struct_def("EIP712Domain");
     s_struct_712_value *domain;
@@ -96,8 +112,7 @@ static void build_domain(const s_domain_spec *spec) {
 
     TEST_ASSERT_TRUE(td_add_struct_field_def(def, new_field(TYPE_SOL_STRING, "name")));
     if (spec->has_chain_id) {
-        TEST_ASSERT_TRUE(
-            td_add_struct_field_def(def, new_sized_field(TYPE_SOL_UINT, 32, "chainId")));
+        TEST_ASSERT_TRUE(td_add_struct_field_def(def, new_chain_id_field(spec->chain_id_type)));
     }
     if (spec->has_contract) {
         s_struct_712_field *field = new_field(spec->contract_type, "verifyingContract");
@@ -285,6 +300,53 @@ void test_a_chain_that_does_not_fit_is_refused(void) {
     TEST_ASSERT_EQUAL_UINT64(0x1234, chain_id);
 }
 
+// the standard types chainId as an unsigned integer, of any size
+void test_a_chain_of_a_smaller_unsigned_integer_is_a_chain(void) {
+    static const uint8_t chain[] = {0x89};
+    s_domain_spec spec = {.has_chain_id = true,
+                          .chain_id_type = TYPE_SOL_UINT,
+                          .chain_id = chain,
+                          .chain_id_length = sizeof(chain)};
+    uint64_t chain_id = 0;
+
+    build_domain(&spec);
+    TEST_ASSERT_TRUE(td_get_domain_chain_id(&chain_id));
+    TEST_ASSERT_EQUAL_UINT64(0x89, chain_id);
+}
+
+// the bytes of any other type are not a number, even when they would read as one
+void test_a_chain_that_is_not_an_unsigned_integer_is_refused(void) {
+    static const uint8_t one[] = {0x01};
+    static const uint8_t text[] = {'1'};
+    static const uint8_t padded[INT256_LENGTH] = {[INT256_LENGTH - 1] = 0x01};
+    static const uint8_t address[ADDRESS_LENGTH] = {[ADDRESS_LENGTH - 1] = 0x01};
+    static const struct {
+        e_type type;
+        const uint8_t *value;
+        size_t length;
+    } cases[] = {
+        {TYPE_SOL_STRING, text, sizeof(text)},
+        {TYPE_SOL_INT, one, sizeof(one)},
+        {TYPE_SOL_BOOL, one, sizeof(one)},
+        {TYPE_SOL_BYTES_FIX, padded, sizeof(padded)},
+        {TYPE_SOL_BYTES_DYN, one, sizeof(one)},
+        {TYPE_SOL_ADDRESS, address, sizeof(address)},
+    };
+
+    for (size_t i = 0; i < ARRAYLEN(cases); ++i) {
+        s_domain_spec spec = {.has_chain_id = true,
+                              .chain_id_type = cases[i].type,
+                              .chain_id = cases[i].value,
+                              .chain_id_length = cases[i].length};
+        uint64_t chain_id = 0x1234;
+
+        td_deinit();
+        build_domain(&spec);
+        TEST_ASSERT_FALSE_MESSAGE(td_get_domain_chain_id(&chain_id), "type of chainId");
+        TEST_ASSERT_EQUAL_UINT64(0x1234, chain_id);
+    }
+}
+
 // =============================================================================
 // The contract of the domain
 // =============================================================================
@@ -434,6 +496,8 @@ int main(void) {
     RUN_TEST(test_a_chain_of_eight_bytes_is_read_whole);
     RUN_TEST(test_a_zero_padded_chain_is_the_same_number);
     RUN_TEST(test_a_chain_that_does_not_fit_is_refused);
+    RUN_TEST(test_a_chain_of_a_smaller_unsigned_integer_is_a_chain);
+    RUN_TEST(test_a_chain_that_is_not_an_unsigned_integer_is_refused);
     RUN_TEST(test_no_domain_has_no_contract);
     RUN_TEST(test_a_domain_without_contract_has_no_contract);
     RUN_TEST(test_an_address_is_the_contract);
